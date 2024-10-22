@@ -8,22 +8,20 @@ L["EXPORT"] = "Exportar"
 L["EXPORT_CAST_COLORS"] = "Compartir colores"
 L["EXPORT_CAST_SOUNDS"] = "Compartir sonidos"
 L["HIGHLIGHT_HOVEROVER"] = "Resaltar al pasar el ratón por encima"
---[[Translation missing --]]
-L["HIGHLIGHT_HOVEROVER_ALPHA"] = "Hover Over Highlight Alpha"
-L["HIGHLIGHT_HOVEROVER_DESC"] = "Efecto de resaltado cuando el ratón está sobre la placa."
+L["HIGHLIGHT_HOVEROVER_ALPHA"] = "Alfa de resaltado al pasar el ratón por encima"
+L["HIGHLIGHT_HOVEROVER_DESC"] = "Efecto de resaltado cuando el ratón está sobre la placa de nombre."
 L["IMPORT"] = "Importar"
 L["IMPORT_CAST_COLORS"] = "Importar colores"
 L["IMPORT_CAST_SOUNDS"] = "Importar sonidos"
 L["OPTIONS_ALPHA"] = "Alfa"
 L["OPTIONS_ALPHABYFRAME_ALPHAMULTIPLIER"] = "Multiplicador de transparencia."
-L["OPTIONS_ALPHABYFRAME_DEFAULT"] = "Transparencia por defecto"
-L["OPTIONS_ALPHABYFRAME_DEFAULT_DESC"] = "Cantidad de transparencia aplicada a todos los componentes de una misma placa."
+L["OPTIONS_ALPHABYFRAME_DEFAULT"] = "Transparencia predeterminado"
+L["OPTIONS_ALPHABYFRAME_DEFAULT_DESC"] = "Cantidad de transparencia aplicada a todos los componentes de una misma placa de nombre."
 L["OPTIONS_ALPHABYFRAME_ENABLE_ENEMIES"] = "Activar para enemigos"
 L["OPTIONS_ALPHABYFRAME_ENABLE_ENEMIES_DESC"] = "Aplica ajustes de transparencia a las unidades enemigas."
 L["OPTIONS_ALPHABYFRAME_ENABLE_FRIENDLY"] = "Activar para amistosos"
 L["OPTIONS_ALPHABYFRAME_ENABLE_FRIENDLY_DESC"] = "Aplica los ajustes de transparencia a las unidades amistosas."
---[[Translation missing --]]
-L["OPTIONS_ALPHABYFRAME_TARGET_INRANGE"] = "Target Alpha/In-Range"
+L["OPTIONS_ALPHABYFRAME_TARGET_INRANGE"] = "Alfa del objetivo/al alcance"
 L["OPTIONS_ALPHABYFRAME_TARGET_INRANGE_DESC"] = "Transparencia para objetivos o unidades al alcance."
 L["OPTIONS_ALPHABYFRAME_TITLE_ENEMIES"] = "Cantidad de transparencia por fotograma (enemigos)"
 L["OPTIONS_ALPHABYFRAME_TITLE_FRIENDLY"] = "Cantidad de transparencia por fotograma (amistoso)"
@@ -43,25 +41,19 @@ L["OPTIONS_ANCHOR_TARGET_SIDE"] = "A qué lado se coloca este widget."
 L["OPTIONS_ANCHOR_TOP"] = "Arriba"
 L["OPTIONS_ANCHOR_TOPLEFT"] = "Arriba a la izquierda"
 L["OPTIONS_ANCHOR_TOPRIGHT"] = "Arriba a la derecha"
---[[Translation missing --]]
-L["OPTIONS_AUDIOCUE_COOLDOWN"] = "Audio Cooldown"
---[[Translation missing --]]
-L["OPTIONS_AUDIOCUE_COOLDOWN_DESC"] = [=[Amount of time in milliseconds to wait before playing the SAME audio again.
-
-Prevents loud sounds from playing when two or more casts are happening at the same time.
-
-Set to 0 to disable this feature.]=]
+L["OPTIONS_AUDIOCUE_COOLDOWN"] = "Tiempo de reutilización del audio"
+L["OPTIONS_AUDIOCUE_COOLDOWN_DESC"] = "Cantidad de tiempo en milisegundos para esperar antes de reproducir el MISMO audio nuevamente. Evita que se reproduzcan sonidos fuertes cuando se producen dos o más emisiones al mismo tiempo. Establézcalo en 0 para desactivar esta función."
 L["OPTIONS_AURA_DEBUFF_HEIGHT"] = "Altura del icono del perjuicio."
 L["OPTIONS_AURA_DEBUFF_WITH"] = "Anchura del icono del perjuicio."
 L["OPTIONS_AURA_HEIGHT"] = "Altura del icono del perjuicio."
 L["OPTIONS_AURA_SHOW_BUFFS"] = "Mostrar beneficios"
-L["OPTIONS_AURA_SHOW_BUFFS_DESC"] = "Mostrar beneficios que te afectan en la barra personal."
+L["OPTIONS_AURA_SHOW_BUFFS_DESC"] = "Muestra beneficios que te afectan en la barra personal."
 L["OPTIONS_AURA_SHOW_DEBUFFS"] = "Mostrar perjuicios"
-L["OPTIONS_AURA_SHOW_DEBUFFS_DESC"] = "Mostrar perjuicios que te afectan en la barra personal."
+L["OPTIONS_AURA_SHOW_DEBUFFS_DESC"] = "Muestra perjuicios que te afectan en la barra personal."
 L["OPTIONS_AURA_WIDTH"] = "Anchura del icono del perjuicio."
 L["OPTIONS_AURAS_ENABLETEST"] = "Activa esta opción para ocultar las auras de prueba que se muestran al configurar."
 L["OPTIONS_AURAS_SORT"] = "Ordenar auras"
-L["OPTIONS_AURAS_SORT_DESC"] = "Las auras se ordenan por tiempo restante (por defecto)."
+L["OPTIONS_AURAS_SORT_DESC"] = "Las auras se ordenan por tiempo restante (predeterminado)."
 L["OPTIONS_BACKGROUND_ALWAYSSHOW"] = "Mostrar siempre el fondo"
 L["OPTIONS_BACKGROUND_ALWAYSSHOW_DESC"] = "Activa un fondo que muestra la zona del área clicable."
 L["OPTIONS_BORDER_COLOR"] = "Color del borde"
@@ -75,13 +67,13 @@ L["OPTIONS_CAST_COLOR_SUCCESS"] = "Exitoso"
 L["OPTIONS_CAST_COLOR_UNINTERRUPTIBLE"] = "Ininterrumpible"
 L["OPTIONS_CAST_SHOW_TARGETNAME"] = "Mostrar nombre del objetivo"
 L["OPTIONS_CAST_SHOW_TARGETNAME_DESC"] = "Muestra quién es el objetivo del lanzamiento actual (si el objetivo existe)"
-L["OPTIONS_CAST_SHOW_TARGETNAME_TANK"] = "[Tanque] No muestres tu nombre"
-L["OPTIONS_CAST_SHOW_TARGETNAME_TANK_DESC"] = "Si eres un tanque no muestres el nombre del objetivo si el lanzamiento es sobre ti."
-L["OPTIONS_CASTBAR_APPEARANCE"] = "Aspecto de la barra de lanzamiento"
+L["OPTIONS_CAST_SHOW_TARGETNAME_TANK"] = "[Tanque] No muestra tu nombre"
+L["OPTIONS_CAST_SHOW_TARGETNAME_TANK_DESC"] = "Si eres un tanque no muestra el nombre del objetivo si el lanzamiento es sobre ti."
+L["OPTIONS_CASTBAR_APPEARANCE"] = "Apariencia de la barra de lanzamiento"
 L["OPTIONS_CASTBAR_BLIZZCASTBAR"] = "Barra de lanzamiento Blizzard"
 L["OPTIONS_CASTBAR_COLORS"] = "Colores de las barras de lanzamiento"
-L["OPTIONS_CASTBAR_FADE_ANIM_ENABLED"] = "Activar animaciones de fundido"
-L["OPTIONS_CASTBAR_FADE_ANIM_ENABLED_DESC"] = "Activa las animaciones de fundido cuando el lanzamiento se inicia y se detiene."
+L["OPTIONS_CASTBAR_FADE_ANIM_ENABLED"] = "Activar animaciones de desvanecimiento"
+L["OPTIONS_CASTBAR_FADE_ANIM_ENABLED_DESC"] = "Activa las animaciones de desvanecimiento cuando el lanzamiento se inicia y se detiene."
 L["OPTIONS_CASTBAR_FADE_ANIM_TIME_END"] = "Al detenerse"
 L["OPTIONS_CASTBAR_FADE_ANIM_TIME_END_DESC"] = "Cuando finaliza un lanzamiento, este es el tiempo que tarda la barra de lanzamiento en pasar del 100% de transparencia a no ser visible en absoluto."
 L["OPTIONS_CASTBAR_FADE_ANIM_TIME_START"] = "Al empezar"
@@ -94,360 +86,231 @@ L["OPTIONS_CASTBAR_ICON_CUSTOM_ENABLE"] = "Activar la personalización de iconos
 L["OPTIONS_CASTBAR_ICON_CUSTOM_ENABLE_DESC"] = "Si esta opción está desactivada, Plater no modificará el icono del hechizo, dejando que lo hagan los scripts."
 L["OPTIONS_CASTBAR_NO_SPELLNAME_LIMIT"] = "Sin límite de longitud del nombre del hechizo"
 L["OPTIONS_CASTBAR_NO_SPELLNAME_LIMIT_DESC"] = "El texto del nombre del hechizo no se cortará para que quepa en el ancho de la barra de lanzamiento."
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_QUICKHIDE"] = "Quick Hide Cast Bar"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_QUICKHIDE_DESC"] = "After the cast finishes, immediately hide the cast bar."
+L["OPTIONS_CASTBAR_QUICKHIDE"] = "Ocultar barra de lanzamiento rápidamente"
+L["OPTIONS_CASTBAR_QUICKHIDE_DESC"] = "Después de que finaliza el lanzamiento, oculta inmediatamente la barra de lanzamiento."
 L["OPTIONS_CASTBAR_SPARK_HALF"] = "Media chispa"
 L["OPTIONS_CASTBAR_SPARK_HALF_DESC"] = "Muestra solo la mitad de la textura de la chispa."
 L["OPTIONS_CASTBAR_SPARK_HIDE_INTERRUPT"] = "Ocultar chispa al interrumpir"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_SPARK_SETTINGS"] = "Spark Settings"
+L["OPTIONS_CASTBAR_SPARK_SETTINGS"] = "Configuración de chispa"
 L["OPTIONS_CASTBAR_SPELLICON"] = "Icono de hechizo"
-L["OPTIONS_CASTBAR_TOGGLE_TEST"] = "Activar el test de barra de lanzamiento"
+L["OPTIONS_CASTBAR_TOGGLE_TEST"] = "Activar la prueba de la barra de lanzamiento"
 L["OPTIONS_CASTBAR_TOGGLE_TEST_DESC"] = "Inicia la prueba de la barra de lanzamiento, pulsa de nuevo para detenerla."
 L["OPTIONS_CASTBAR_WIDTH"] = "Anchura de la barra de lanzamiento."
---[[Translation missing --]]
-L["OPTIONS_CASTCOLORS_DISABLECOLORS"] = "Disable All Colors"
+L["OPTIONS_CASTCOLORS_DISABLECOLORS"] = "Desactivar todos los colores"
 L["OPTIONS_CLICK_SPACE_HEIGHT"] = "La altura del área que acepta clics del ratón para seleccionar al objetivo"
 L["OPTIONS_CLICK_SPACE_WIDTH"] = "La anchura del área que acepta clics del ratón para seleccionar al objetivo"
 L["OPTIONS_COLOR"] = "Color"
 L["OPTIONS_COLOR_BACKGROUND"] = "Color de fondo"
-L["OPTIONS_CVAR_ENABLE_PERSONAL_BAR"] = "Barras personales de salud y mana|cFFFF7700*|r"
-L["OPTIONS_CVAR_ENABLE_PERSONAL_BAR_DESC"] = "Muestra una mini barra de salud y maná debajo de tu personaje. |cFFFF7700[*]|r |cFFa0a0a0CVar, guardada dentro del perfil de Plater y restaurada al cargar el perfil.|r"
-L["OPTIONS_CVAR_NAMEPLATES_ALWAYSSHOW"] = "Mostrar siempre las placas|cFFFF7700*|r"
-L["OPTIONS_CVAR_NAMEPLATES_ALWAYSSHOW_DESC"] = "Muestra las placas de todas las unidades cercanas. Si se desactiva, solo muestra las unidades relevantes cuando estás en combate. |cFFFF7700[*]|r |cFFa0a0CVar, guardada dentro del perfil de Plater y restaurada cuando se carga el perfil.|r"
-L["OPTIONS_ENABLED"] = "Activadas"
+L["OPTIONS_CVAR_ENABLE_PERSONAL_BAR"] = "Barras personales de salud y maná|cFFFF7700*|r"
+L["OPTIONS_CVAR_ENABLE_PERSONAL_BAR_DESC"] = "Muestra una minibarra de salud y maná debajo de tu personaje. |cFFFF7700[*]|r |cFFa0a0a0CVar, guardada dentro del perfil de Plater y restaurada al cargar el perfil.|r"
+L["OPTIONS_CVAR_NAMEPLATES_ALWAYSSHOW"] = "Mostrar siempre las placas de nombre|cFFFF7700*|r"
+L["OPTIONS_CVAR_NAMEPLATES_ALWAYSSHOW_DESC"] = "Muestra las placas de nombre de todas las unidades cercanas. Si se desactiva, solo muestra las unidades relevantes cuando estás en combate. |cFFFF7700[*]|r |cFFa0a0CVar, guardada dentro del perfil de Plater y restaurada cuando se carga el perfil.|r"
+L["OPTIONS_ENABLED"] = "Activado"
 L["OPTIONS_ERROR_CVARMODIFY"] = "Los cvars no se pueden cambiar en combate."
 L["OPTIONS_ERROR_EXPORTSTRINGERROR"] = "error al exportar"
-L["OPTIONS_EXECUTERANGE"] = "Rango de ejecución"
-L["OPTIONS_EXECUTERANGE_DESC"] = "Mostrar un indicador cuando la unidad objetivo está en el rango de \"ejecución\". Si la detección no funciona tras un parche, comunícalo en Discord."
-L["OPTIONS_EXECUTERANGE_HIGH_HEALTH"] = "Rango de ejecución (sobre la salud)"
-L["OPTIONS_EXECUTERANGE_HIGH_HEALTH_DESC"] = "Mostrar el indicador de ejecución de la parte sobre la salud. Si la detección no funciona después de un parche, comunicarlo en Discord."
+L["OPTIONS_EXECUTERANGE"] = "Alcance de ejecución"
+L["OPTIONS_EXECUTERANGE_DESC"] = "Muestra un indicador cuando la unidad objetivo está en el alcance de 'ejecución'. Si la detección no funciona tras un parche, comunícalo en Discord."
+L["OPTIONS_EXECUTERANGE_HIGH_HEALTH"] = "Alcance de ejecución (sobre la salud)"
+L["OPTIONS_EXECUTERANGE_HIGH_HEALTH_DESC"] = "Muestra el indicador de ejecución de la parte sobre la salud. Si la detección no funciona después de un parche, comunícalo en Discord."
 L["OPTIONS_FONT"] = "Fuente"
 L["OPTIONS_FORMAT_NUMBER"] = "Formato numérico"
 L["OPTIONS_FRIENDLY"] = "Amistoso"
 L["OPTIONS_GENERALSETTINGS_HEALTHBAR_ANCHOR_TITLE"] = "Apariencia de barra de salud"
-L["OPTIONS_GENERALSETTINGS_HEALTHBAR_BGCOLOR"] = "Color de fondo y Alfa de Barra de salud "
+L["OPTIONS_GENERALSETTINGS_HEALTHBAR_BGCOLOR"] = "Color de fondo y alfa de la barra de salud "
 L["OPTIONS_GENERALSETTINGS_HEALTHBAR_BGTEXTURE"] = "Textura de fondo de barra de salud"
 L["OPTIONS_GENERALSETTINGS_HEALTHBAR_TEXTURE"] = "Textura de barra de salud"
 L["OPTIONS_GENERALSETTINGS_TRANSPARENCY_ANCHOR_TITLE"] = "La transparencia se utiliza para"
-L["OPTIONS_GENERALSETTINGS_TRANSPARENCY_RANGECHECK"] = "Comprobación de rango"
+L["OPTIONS_GENERALSETTINGS_TRANSPARENCY_RANGECHECK"] = "Comprobación de alcance"
 L["OPTIONS_GENERALSETTINGS_TRANSPARENCY_RANGECHECK_ALPHA"] = "Alfa"
 L["OPTIONS_GENERALSETTINGS_TRANSPARENCY_RANGECHECK_SPEC_DESC"] = "Hechizo para comprobar el alcance de esta especialización."
 L["OPTIONS_HEALTHBAR"] = "Barra de salud"
---[[Translation missing --]]
-L["OPTIONS_HEALTHBAR_HEIGHT"] = "Health Bar Height"
-L["OPTIONS_HEALTHBAR_SIZE_GLOBAL_DESC"] = "Cambia el tamaño de las placas Enemigo y Amigo para jugadores y npcs en combate y fuera de combate. Cada una de estas opciones se puede cambiar individualmente en las pestañas Npc, Enemigo, Jugador Enemigo."
---[[Translation missing --]]
-L["OPTIONS_HEALTHBAR_WIDTH"] = "Health Bar Width"
---[[Translation missing --]]
-L["OPTIONS_HEIGHT"] = "Height"
+L["OPTIONS_HEALTHBAR_HEIGHT"] = "Altura de la barra de salud"
+L["OPTIONS_HEALTHBAR_SIZE_GLOBAL_DESC"] = "Cambia el tamaño de las placas de nombre de enemigos y amigos para jugadores y PNJs en combate y fuera de combate. Cada una de estas opciones se puede cambiar individualmente en las pestañas PNJ enemigo y jugador enemigo."
+L["OPTIONS_HEALTHBAR_WIDTH"] = "Anchura de la barra de salud"
+L["OPTIONS_HEIGHT"] = "Altura"
 L["OPTIONS_HOSTILE"] = "Hostil"
 L["OPTIONS_ICON_ELITE"] = "Icono de élite"
 L["OPTIONS_ICON_ENEMYCLASS"] = "Icono de clase enemiga"
 L["OPTIONS_ICON_ENEMYFACTION"] = "Icono de la facción enemiga"
-L["OPTIONS_ICON_ENEMYSPEC"] = "Icono Espec. Enemigo"
-L["OPTIONS_ICON_FRIENDLY_SPEC"] = "Icono Espec. Amistoso"
-L["OPTIONS_ICON_FRIENDLYCLASS"] = "Clase Amistosa"
+L["OPTIONS_ICON_ENEMYSPEC"] = "Icono de especialización enemiga"
+L["OPTIONS_ICON_FRIENDLY_SPEC"] = "Icono de especialización amistosa"
+L["OPTIONS_ICON_FRIENDLYCLASS"] = "Clase amistosa"
 L["OPTIONS_ICON_FRIENDLYFACTION"] = "Icono de facción amistosa"
 L["OPTIONS_ICON_PET"] = "Icono de mascota"
 L["OPTIONS_ICON_QUEST"] = "Icono de misión"
---[[Translation missing --]]
-L["OPTIONS_ICON_RARE"] = "Rare Icon"
+L["OPTIONS_ICON_RARE"] = "Icono raro"
 L["OPTIONS_ICON_SHOW"] = "Mostrar icono"
---[[Translation missing --]]
-L["OPTIONS_ICON_SIDE"] = "Show Side"
+L["OPTIONS_ICON_SIDE"] = "Mostrar lado"
 L["OPTIONS_ICON_SIZE"] = "Mostrar tamaño"
-L["OPTIONS_ICON_WORLDBOSS"] = "Icono de jefe mundial"
+L["OPTIONS_ICON_WORLDBOSS"] = "Icono de jefe del mundo"
 L["OPTIONS_ICONROWSPACING"] = "Espaciado de filas de iconos"
 L["OPTIONS_ICONSPACING"] = "Espaciado entre iconos"
 L["OPTIONS_INDICATORS"] = "Indicadores"
 L["OPTIONS_INTERRUPT_FILLBAR"] = "Llenar la barra de lanzamiento al interrumpir"
-L["OPTIONS_INTERRUPT_SHOW_ANIM"] = "Reproducir Animación Interrumpir"
+L["OPTIONS_INTERRUPT_SHOW_ANIM"] = "Reproducir la animación de interrupción"
 L["OPTIONS_INTERRUPT_SHOW_AUTHOR"] = "Mostrar autor de la interrupción"
-L["OPTIONS_MINOR_SCALE_DESC"] = "Ajuste ligeramente el tamaño de las placas cuando muestre una unidad menor (estas unidades tienen una placa más pequeña por defecto)."
---[[Translation missing --]]
-L["OPTIONS_MINOR_SCALE_HEIGHT"] = "Minor Unit Height Scale"
---[[Translation missing --]]
-L["OPTIONS_MINOR_SCALE_WIDTH"] = "Minor Unit Width Scale"
---[[Translation missing --]]
-L["OPTIONS_MOVE_HORIZONTAL"] = "Move horizontally."
---[[Translation missing --]]
-L["OPTIONS_MOVE_VERTICAL"] = "Move vertically."
+L["OPTIONS_MINOR_SCALE_DESC"] = "Ajusta ligeramente el tamaño de las placas de nombre cuando muestra una unidad menor (estas unidades tienen una placa de nombre más pequeña por defecto)."
+L["OPTIONS_MINOR_SCALE_HEIGHT"] = "Escala de altura de unidad menor"
+L["OPTIONS_MINOR_SCALE_WIDTH"] = "Escala de anchura de unidad menor"
+L["OPTIONS_MOVE_HORIZONTAL"] = "Mueve horizontalmente."
+L["OPTIONS_MOVE_VERTICAL"] = "Mueve verticalmente."
 L["OPTIONS_NAMEPLATE_HIDE_FRIENDLY_HEALTH"] = "Ocultar las barras de salud de Blizzard|cFFFF7700*|r"
-L["OPTIONS_NAMEPLATE_HIDE_FRIENDLY_HEALTH_DESC"] = "En las mazmorras o en bandas, si las placas amistosas están activadas, solo se mostrará el nombre del jugador. Si algún módulo de Plater está desactivado, esto afectará también a estas placas de identificación. |cFFFF7700[*]|r |cFFa0a0a0CVar, guardada dentro del perfil de Plater y se restaura al cargar el perfil.|r |cFFFF2200[*]|r |cFFa0a0a0A /reload para que surta efecto.|r"
-L["OPTIONS_NAMEPLATE_OFFSET"] = "Ajuste ligeramente toda la placa."
-L["OPTIONS_NAMEPLATE_SHOW_ENEMY"] = "Mostrar placas de enemigos|cFFFF7700*|r"
---[[Translation missing --]]
-L["OPTIONS_NAMEPLATE_SHOW_ENEMY_DESC"] = [=[Show nameplate for enemy and neutral units.
-
-|cFFFF7700[*]|r |cFFa0a0a0CVar, saved within Plater profile and restored when loading the profile.|r]=]
-L["OPTIONS_NAMEPLATE_SHOW_FRIENDLY"] = "Mostrar placas amistosas|cFFFF7700*|r"
-L["OPTIONS_NAMEPLATE_SHOW_FRIENDLY_DESC"] = "Mostrar placa para jugadores amistosos. |cFFFF7700[*]|r |cFFa0a0a0CVar, guardada dentro del perfil de Plater y se restaura al cargar el perfil.|r"
---[[Translation missing --]]
-L["OPTIONS_NAMEPLATES_OVERLAP"] = "Nameplate Overlap (V)|cFFFF7700*|r"
---[[Translation missing --]]
-L["OPTIONS_NAMEPLATES_OVERLAP_DESC"] = [=[The space between each nameplate vertically when stacking is enabled.
-
-|cFFFFFFFFDefault: 1.10|r
-
-|cFFFF7700[*]|r |cFFa0a0a0CVar, saved within Plater profile and restored when loading the profile.|r
-
-|cFFFFFF00Important |r: if you find issues with this setting, use:
-|cFFFFFFFF/run SetCVar ('nameplateOverlapV', '1.6')|r]=]
---[[Translation missing --]]
-L["OPTIONS_NAMEPLATES_STACKING"] = "Stacking Nameplates|cFFFF7700*|r"
---[[Translation missing --]]
-L["OPTIONS_NAMEPLATES_STACKING_DESC"] = [=[If enabled, nameplates won't overlap with each other.
-
-|cFFFF7700[*]|r |cFFa0a0a0CVar, saved within Plater profile and restored when loading the profile.|r
-
-|cFFFFFF00Important |r: to set the amount of space between each nameplate see '|cFFFFFFFFNameplate Vertical Padding|r' option below.
-Please check the Auto tab settings to setup automatic toggling of this option.]=]
+L["OPTIONS_NAMEPLATE_HIDE_FRIENDLY_HEALTH_DESC"] = "En las mazmorras o en bandas, si las placas de nombre amistosas están activadas, solo se mostrará el nombre del jugador. Si algún módulo de Plater está desactivado, esto afectará también a estas placas de nombre. |cFFFF7700[*]|r |cFFa0a0a0CVar, guardada dentro del perfil de Plater y se restaura al cargar el perfil.|r |cFFFF2200[*]|r |cFFa0a0a0A /reload para que surta efecto.|r"
+L["OPTIONS_NAMEPLATE_OFFSET"] = "Ajusta ligeramente toda la placa de nombre."
+L["OPTIONS_NAMEPLATE_SHOW_ENEMY"] = "Mostrar placas de nombre de enemigos|cFFFF7700*|r"
+L["OPTIONS_NAMEPLATE_SHOW_ENEMY_DESC"] = "Muestra la placa de nombre para unidades enemigas y neutrales. |cFFFF7700[*]|r |cFFa0a0a0CVar, guardado dentro del perfil de Plater y restaurado al cargar el perfil.|r"
+L["OPTIONS_NAMEPLATE_SHOW_FRIENDLY"] = "Mostrar placas de nombre amistosas|cFFFF7700*|r"
+L["OPTIONS_NAMEPLATE_SHOW_FRIENDLY_DESC"] = "Muestra placa de nombre para jugadores amistosos. |cFFFF7700[*]|r |cFFa0a0a0CVar, guardada dentro del perfil de Plater y se restaura al cargar el perfil.|r"
+L["OPTIONS_NAMEPLATES_OVERLAP"] = "Superposición de placas de nombre (V)|cFFFF7700*|r"
+L["OPTIONS_NAMEPLATES_OVERLAP_DESC"] = "El espacio entre cada placa de nombre verticalmente cuando la apilación está habilitada. |cFFFFFFFFPredeterminado: 1.10|r |cFFFF7700[*]|r |cFFa0a0a0CVar, guardado dentro del perfil de Plater y restaurado al cargar el perfil.|r |cFFFFFF00Importante |r: si encuentras problemas con esta configuración, utiliza: |cFFFFFFFF/run SetCVar ('nameplateOverlapV', '1.6')|r"
+L["OPTIONS_NAMEPLATES_STACKING"] = "Apilamiento de placas de nombre|cFFFF7700*|r"
+L["OPTIONS_NAMEPLATES_STACKING_DESC"] = "Si está activado, las placas de nombre no se superpondrán entre sí. |cFFFF7700[*]|r |cFFa0a0a0CVar, guardada dentro del perfil de Plater y restaurado al cargar el perfil.|r |cFFFFFF00Importante |r: para establecer la cantidad de espacio entre cada placa de nombre, consulta la opción '|cFFFFFFFFRelleno vertical de placas de nombre|r' a continuación. Por favor, revisa la configuración de la pestaña 'Automático' para configurar el cambio automático de esta opción."
 L["OPTIONS_NEUTRAL"] = "Neutral"
---[[Translation missing --]]
-L["OPTIONS_NOCOMBATALPHA_AMOUNT_DESC"] = "Amount of transparency for 'No Combat Alpha'."
---[[Translation missing --]]
-L["OPTIONS_NOCOMBATALPHA_ENABLED"] = "Use No Combat Alpha"
---[[Translation missing --]]
-L["OPTIONS_NOCOMBATALPHA_ENABLED_DESC"] = [=[Changes the nameplate alpha when you are in combat and the unit isn't.
-
-|cFFFFFF00 Important |r:If the unit isn't in combat, it overrides the alpha from the range check.]=]
---[[Translation missing --]]
-L["OPTIONS_NOESSENTIAL_DESC"] = [=[On updating Plater, it is common for the new version to also update scripts from the scripts tab.
-This may sometimes overwrite changes made by the creator of the profile. The option below prevents Plater from modifying scripts when the addon receives an update.
-
-Note: During major patches and bug fixes, Plater may still update scripts.]=]
---[[Translation missing --]]
-L["OPTIONS_NOESSENTIAL_NAME"] = "Disable non-essential script updates during Plater version upgrades."
---[[Translation missing --]]
-L["OPTIONS_NOESSENTIAL_SKIP_ALERT"] = "Skipped non-essential patch:"
---[[Translation missing --]]
-L["OPTIONS_NOESSENTIAL_TITLE"] = "Skip Non Essential Script Patches"
---[[Translation missing --]]
-L["OPTIONS_NOTHING_TO_EXPORT"] = "There's nothing to export."
-L["OPTIONS_OKAY"] = "Okay"
+L["OPTIONS_NOCOMBATALPHA_AMOUNT_DESC"] = "Cantidad de transparencia para 'Alfa sin combate'."
+L["OPTIONS_NOCOMBATALPHA_ENABLED"] = "Usar alfa sin combate"
+L["OPTIONS_NOCOMBATALPHA_ENABLED_DESC"] = "Cambia la alfa de la placa de nombre cuando estás en combate y la unidad no lo está. |cFFFFFF00 Importante |r: Si la unidad no está en combate, anula la alfa de la comprobación de alcance."
+L["OPTIONS_NOESSENTIAL_DESC"] = "Al actualizar Plater, es común que la nueva versión también actualiza los scripts de la pestaña de scripts. Esto a veces puede sobrescribir los cambios realizados por el creador del perfil. La opción a continuación evita que Plater modifica los scripts cuando el addon recibe una actualización. Nota: Durante parches importantes y correcciones de errores, Plater aún puede actualizar los scripts."
+L["OPTIONS_NOESSENTIAL_NAME"] = "Desactivar actualizaciones de scripts no esenciales durante las actualizaciones de versión de Plater."
+L["OPTIONS_NOESSENTIAL_SKIP_ALERT"] = "Actualización no esencial omitida:"
+L["OPTIONS_NOESSENTIAL_TITLE"] = "Omitir actualizaciones de scripts no esenciales"
+L["OPTIONS_NOTHING_TO_EXPORT"] = "No hay nada que exportar."
+L["OPTIONS_OKAY"] = "Aceptar"
 L["OPTIONS_OUTLINE"] = "Contorno"
---[[Translation missing --]]
-L["OPTIONS_PERSONAL_HEALTHBAR_HEIGHT"] = "Height of the health bar."
---[[Translation missing --]]
-L["OPTIONS_PERSONAL_HEALTHBAR_WIDTH"] = "Width of the health bar."
---[[Translation missing --]]
-L["OPTIONS_PERSONAL_SHOW_HEALTHBAR"] = "Show health bar."
---[[Translation missing --]]
-L["OPTIONS_PET_SCALE_DESC"] = "Slightly adjust the size of nameplates when showing a pet"
---[[Translation missing --]]
-L["OPTIONS_PET_SCALE_HEIGHT"] = "Pet Height Scale"
---[[Translation missing --]]
-L["OPTIONS_PET_SCALE_WIDTH"] = "Pet Width Scale"
+L["OPTIONS_PERSONAL_HEALTHBAR_HEIGHT"] = "Altura de la barra de salud."
+L["OPTIONS_PERSONAL_HEALTHBAR_WIDTH"] = "Anchura de la barra de salud."
+L["OPTIONS_PERSONAL_SHOW_HEALTHBAR"] = "Mostrar barra de salud."
+L["OPTIONS_PET_SCALE_DESC"] = "Ajusta ligeramente el tamaño de las placas de nombre al mostrar una mascota."
+L["OPTIONS_PET_SCALE_HEIGHT"] = "Escala de altura de mascota"
+L["OPTIONS_PET_SCALE_WIDTH"] = "Escala de anchura de mascota"
 L["OPTIONS_PLEASEWAIT"] = "Esto puede tomar solo unos segundos"
---[[Translation missing --]]
-L["OPTIONS_POWERBAR"] = "Power Bar"
---[[Translation missing --]]
-L["OPTIONS_POWERBAR_HEIGHT"] = "Height of the power bar."
---[[Translation missing --]]
-L["OPTIONS_POWERBAR_WIDTH"] = "Width of the power bar."
+L["OPTIONS_POWERBAR"] = "Barra de poder"
+L["OPTIONS_POWERBAR_HEIGHT"] = "Altura de la barra de poder."
+L["OPTIONS_POWERBAR_WIDTH"] = "Anchura de la barra de poder."
 L["OPTIONS_PROFILE_CONFIG_EXPORTINGTASK"] = "Plater está exportando el perfil actual"
-L["OPTIONS_PROFILE_CONFIG_EXPORTPROFILE"] = "Exportar Perfil"
-L["OPTIONS_PROFILE_CONFIG_IMPORTPROFILE"] = "Importar Perfil"
+L["OPTIONS_PROFILE_CONFIG_EXPORTPROFILE"] = "Exportar perfil"
+L["OPTIONS_PROFILE_CONFIG_IMPORTPROFILE"] = "Importar perfil"
 L["OPTIONS_PROFILE_CONFIG_MOREPROFILES"] = "Obtenga más perfiles en Wago.io"
-L["OPTIONS_PROFILE_CONFIG_OPENSETTINGS"] = "Abrir configuración de Perfil"
+L["OPTIONS_PROFILE_CONFIG_OPENSETTINGS"] = "Abrir configuración de perfil"
 L["OPTIONS_PROFILE_CONFIG_PROFILENAME"] = "Nuevo nombre de perfil"
 L["OPTIONS_PROFILE_CONFIG_PROFILENAME_DESC"] = "Un nuevo perfil se creó con la cadena importada. Insertar el nombre de un perfil que ya existe lo sobrescribirá."
 L["OPTIONS_PROFILE_ERROR_PROFILENAME"] = "Nombre de perfil inválido"
 L["OPTIONS_PROFILE_ERROR_STRINGINVALID"] = "Archivo de perfil inválido."
-L["OPTIONS_PROFILE_ERROR_WRONGTAB"] = "Archivo de perfil inválido. Importa scripts o mods en la pestaña de scripts."
-L["OPTIONS_PROFILE_IMPORT_OVERWRITE"] = "El perfil '%s' ya existe, ¿sobrescribirlo?"
---[[Translation missing --]]
-L["OPTIONS_RANGECHECK_NONE"] = "Nothing"
---[[Translation missing --]]
-L["OPTIONS_RANGECHECK_NONE_DESC"] = "No alpha modifications is applyed."
---[[Translation missing --]]
-L["OPTIONS_RANGECHECK_NOTMYTARGET"] = "Units Which Isn't Your Target"
---[[Translation missing --]]
-L["OPTIONS_RANGECHECK_NOTMYTARGET_DESC"] = "When a nameplate isn't your current target, alpha is reduced."
---[[Translation missing --]]
-L["OPTIONS_RANGECHECK_NOTMYTARGETOUTOFRANGE"] = "Out of Range + Isn't Your Target"
---[[Translation missing --]]
-L["OPTIONS_RANGECHECK_NOTMYTARGETOUTOFRANGE_DESC"] = [=[Reduces the alpha of units which isn't your target.
-Reduces even more if the unit is out of range.]=]
---[[Translation missing --]]
-L["OPTIONS_RANGECHECK_OUTOFRANGE"] = "Units Out of Your Range"
---[[Translation missing --]]
-L["OPTIONS_RANGECHECK_OUTOFRANGE_DESC"] = "When a nameplate is out of range, alpha is reduced."
---[[Translation missing --]]
-L["OPTIONS_RESOURCES_TARGET"] = "Show Resources on Target"
---[[Translation missing --]]
-L["OPTIONS_RESOURCES_TARGET_DESC"] = [=[Shows your resource such as combo points above your current target.
-Uses Blizzard default resources and disables Platers own resources.
-
-Character specific setting!]=]
---[[Translation missing --]]
-L["OPTIONS_SCALE"] = "Scale"
---[[Translation missing --]]
-L["OPTIONS_SCRIPTING_ADDOPTION"] = "Select which option to add"
---[[Translation missing --]]
-L["OPTIONS_SCRIPTING_REAPPLY"] = "Re-Apply Default Values"
-L["OPTIONS_SETTINGS_COPIED"] = "ajustes copiados."
+L["OPTIONS_PROFILE_ERROR_WRONGTAB"] = "Archivo de perfil inválido. Importa scripts o módulos en la pestaña de scripts."
+L["OPTIONS_PROFILE_IMPORT_OVERWRITE"] = "El perfil '%s' ya existe, ¿deseas sobrescribirlo?"
+L["OPTIONS_RANGECHECK_NONE"] = "Nada"
+L["OPTIONS_RANGECHECK_NONE_DESC"] = "No se aplican modificaciones de alfa."
+L["OPTIONS_RANGECHECK_NOTMYTARGET"] = "Unidades que no son tu objetivo"
+L["OPTIONS_RANGECHECK_NOTMYTARGET_DESC"] = "Cuando una placa de nombre no es tu objetivo actual, la alfa se reduce."
+L["OPTIONS_RANGECHECK_NOTMYTARGETOUTOFRANGE"] = "Fuera de alcance + no es tu objetivo"
+L["OPTIONS_RANGECHECK_NOTMYTARGETOUTOFRANGE_DESC"] = "Reduce la alfa de las unidades que no son tu objetivo. Se reduce aún más si la unidad está fuera de alcance."
+L["OPTIONS_RANGECHECK_OUTOFRANGE"] = "Unidades fuera de tu alcance"
+L["OPTIONS_RANGECHECK_OUTOFRANGE_DESC"] = "Cuando una placa de nombre está fuera de alcance, la alfa se reduce."
+L["OPTIONS_RESOURCES_TARGET"] = "Mostrar recursos en el objetivo"
+L["OPTIONS_RESOURCES_TARGET_DESC"] = "Muestra tus recursos, como puntos de combo, sobre tu objetivo actual. Utiliza los recursos predeterminados de Blizzard y desactiva los propios de Plater. ¡Configuración específica del personaje!"
+L["OPTIONS_SCALE"] = "Escala"
+L["OPTIONS_SCRIPTING_ADDOPTION"] = "Seleccionar qué opción agregar"
+L["OPTIONS_SCRIPTING_REAPPLY"] = "Reaplicar valores predeterminados"
+L["OPTIONS_SETTINGS_COPIED"] = "configuración copiada."
 L["OPTIONS_SETTINGS_FAIL_COPIED"] = "no se pudo obtener la configuración de la pestaña seleccionada actual."
 L["OPTIONS_SHADOWCOLOR"] = "Color de la sombra"
---[[Translation missing --]]
-L["OPTIONS_SHIELD_BAR"] = "Shield Bar"
---[[Translation missing --]]
-L["OPTIONS_SHOW_CASTBAR"] = "Show cast bar"
---[[Translation missing --]]
-L["OPTIONS_SHOW_POWERBAR"] = "Show power bar"
---[[Translation missing --]]
-L["OPTIONS_SHOWOPTIONS"] = "Show Options"
---[[Translation missing --]]
-L["OPTIONS_SHOWSCRIPTS"] = "Show Scripts"
---[[Translation missing --]]
-L["OPTIONS_SHOWTOOLTIP"] = "Show Tooltip"
---[[Translation missing --]]
-L["OPTIONS_SHOWTOOLTIP_DESC"] = "Show tooltip when hovering over the aura icon."
+L["OPTIONS_SHIELD_BAR"] = "Barra de escudo"
+L["OPTIONS_SHOW_CASTBAR"] = "Mostrar barra de lanzamiento"
+L["OPTIONS_SHOW_POWERBAR"] = "Mostrar barra de poder"
+L["OPTIONS_SHOWOPTIONS"] = "Mostrar opciones"
+L["OPTIONS_SHOWSCRIPTS"] = "Mostrar scripts"
+L["OPTIONS_SHOWTOOLTIP"] = "Mostrar tooltip"
+L["OPTIONS_SHOWTOOLTIP_DESC"] = "Muestra el tooltip al pasar el ratón sobre el icono del aura."
 L["OPTIONS_SIZE"] = "Tamaño"
---[[Translation missing --]]
-L["OPTIONS_STACK_AURATIME"] = "Show shortest time of stacked auras"
---[[Translation missing --]]
-L["OPTIONS_STACK_AURATIME_DESC"] = "Show shortest time of stacked auras or the longes time, when disabled."
---[[Translation missing --]]
-L["OPTIONS_STACK_SIMILAR_AURAS"] = "Stack Similar Auras"
---[[Translation missing --]]
-L["OPTIONS_STACK_SIMILAR_AURAS_DESC"] = "Auras with the same name (e.g. warlock's unstable affliction debuff) get stacked together."
+L["OPTIONS_STACK_AURATIME"] = "Mostrar el tiempo más corto de auras apiladas"
+L["OPTIONS_STACK_AURATIME_DESC"] = "Muestra el tiempo más corto de auras apiladas o el tiempo más largo cuando está desactivado."
+L["OPTIONS_STACK_SIMILAR_AURAS"] = "Apilar auras similares"
+L["OPTIONS_STACK_SIMILAR_AURAS_DESC"] = "Las auras con el mismo nombre (por ejemplo, el perjuicio de aflicción inestable del brujo) se apilan juntas."
 L["OPTIONS_STATUSBAR_TEXT"] = "Ahora puede importar perfiles, modificaciones, scripts, animaciones y tablas de colores desde |cFFFFAA00http://wago.io|r"
 L["OPTIONS_TABNAME_ADVANCED"] = "Avanzado"
-L["OPTIONS_TABNAME_ANIMATIONS"] = "Animaciones"
+L["OPTIONS_TABNAME_ANIMATIONS"] = "Retroalimentación de hechizo"
 L["OPTIONS_TABNAME_AUTO"] = "Automático"
 L["OPTIONS_TABNAME_BUFF_LIST"] = "Lista de beneficios"
 L["OPTIONS_TABNAME_BUFF_SETTINGS"] = "Configuración de beneficios"
-L["OPTIONS_TABNAME_BUFF_SPECIAL"] = "Beneficios Especiales"
+L["OPTIONS_TABNAME_BUFF_SPECIAL"] = "Beneficios especiales"
 L["OPTIONS_TABNAME_BUFF_TRACKING"] = "Seguimiento de beneficios"
 L["OPTIONS_TABNAME_CASTBAR"] = "Barra de lanzamiento"
 L["OPTIONS_TABNAME_CASTCOLORS"] = "Colores y nombres de lanzamientos"
-L["OPTIONS_TABNAME_COMBOPOINTS"] = "Puntos de Combo"
+L["OPTIONS_TABNAME_COMBOPOINTS"] = "Puntos de combo"
 L["OPTIONS_TABNAME_GENERALSETTINGS"] = "Configuración general"
 L["OPTIONS_TABNAME_MODDING"] = "Modding"
-L["OPTIONS_TABNAME_NPC_COLORNAME"] = "Colores y Nombres de NPC"
-L["OPTIONS_TABNAME_NPCENEMY"] = "PNJ Enemigo"
-L["OPTIONS_TABNAME_NPCFRIENDLY"] = "PNJ Amistoso"
-L["OPTIONS_TABNAME_PERSONAL"] = "Barra Personal"
-L["OPTIONS_TABNAME_PLAYERENEMY"] = "Jugador Enemigo"
-L["OPTIONS_TABNAME_PLAYERFRIENDLY"] = "Jugador Amistoso"
+L["OPTIONS_TABNAME_NPC_COLORNAME"] = "Colores y nombres de PNJ"
+L["OPTIONS_TABNAME_NPCENEMY"] = "PNJ enemigo"
+L["OPTIONS_TABNAME_NPCFRIENDLY"] = "PNJ amistoso"
+L["OPTIONS_TABNAME_PERSONAL"] = "Barra personal"
+L["OPTIONS_TABNAME_PLAYERENEMY"] = "Jugador enemigo"
+L["OPTIONS_TABNAME_PLAYERFRIENDLY"] = "Jugador amistoso"
 L["OPTIONS_TABNAME_PROFILES"] = "Perfiles"
 L["OPTIONS_TABNAME_SCRIPTING"] = "Scripting"
 L["OPTIONS_TABNAME_SEARCH"] = "Buscar"
-L["OPTIONS_TABNAME_STRATA"] = "Nivel y Capas"
+L["OPTIONS_TABNAME_STRATA"] = "Nivel y capas"
 L["OPTIONS_TABNAME_TARGET"] = "Objetivo"
-L["OPTIONS_TABNAME_THREAT"] = "Amenaza / Aggro"
---[[Translation missing --]]
-L["OPTIONS_TEXT_COLOR"] = "The color of the text."
---[[Translation missing --]]
-L["OPTIONS_TEXT_FONT"] = "Font of the text."
---[[Translation missing --]]
-L["OPTIONS_TEXT_SIZE"] = "Size of the text."
+L["OPTIONS_TABNAME_THREAT"] = "Colores / Amenaza"
+L["OPTIONS_TEXT_COLOR"] = "El color del texto."
+L["OPTIONS_TEXT_FONT"] = "Fuente del texto."
+L["OPTIONS_TEXT_SIZE"] = "Tamaño del texto."
 L["OPTIONS_TEXTURE"] = "Textura"
---[[Translation missing --]]
-L["OPTIONS_TEXTURE_BACKGROUND"] = "Background Texture"
-L["OPTIONS_THREAT_AGGROSTATE_ANOTHERTANK"] = "Aggro en Otro Tanque"
+L["OPTIONS_TEXTURE_BACKGROUND"] = "Textura del fondo"
+L["OPTIONS_THREAT_AGGROSTATE_ANOTHERTANK"] = "Agro en otro tanque"
 L["OPTIONS_THREAT_AGGROSTATE_HIGHTHREAT"] = "Amenaza alta"
-L["OPTIONS_THREAT_AGGROSTATE_NOAGGRO"] = "Sin Aggro"
-L["OPTIONS_THREAT_AGGROSTATE_NOTANK"] = "Sin Aggro de Tanque"
+L["OPTIONS_THREAT_AGGROSTATE_NOAGGRO"] = "Sin agro"
+L["OPTIONS_THREAT_AGGROSTATE_NOTANK"] = "Sin agro de tanque"
 L["OPTIONS_THREAT_AGGROSTATE_NOTINCOMBAT"] = "Unidad sin combate"
-L["OPTIONS_THREAT_AGGROSTATE_ONYOU_LOWAGGRO"] = "Aggro en ti pero es bajo"
-L["OPTIONS_THREAT_AGGROSTATE_ONYOU_LOWAGGRO_DESC"] = "La unidad te está atacando, pero otros están a punto de pasar de aggro."
-L["OPTIONS_THREAT_AGGROSTATE_ONYOU_SOLID"] = "Aggro en Tí"
-L["OPTIONS_THREAT_AGGROSTATE_TAPPED"] = "Unidad Golpeada"
---[[Translation missing --]]
-L["OPTIONS_THREAT_CLASSIC_USE_TANK_COLORS"] = "Use Tank Threat Colors"
-L["OPTIONS_THREAT_COLOR_DPS_ANCHOR_TITLE"] = "Color al jugar como DPS o HEALER"
+L["OPTIONS_THREAT_AGGROSTATE_ONYOU_LOWAGGRO"] = "Agro en ti pero es bajo"
+L["OPTIONS_THREAT_AGGROSTATE_ONYOU_LOWAGGRO_DESC"] = "La unidad te está atacando, pero otros están a punto de pasar de agro."
+L["OPTIONS_THREAT_AGGROSTATE_ONYOU_SOLID"] = "Agro en ti"
+L["OPTIONS_THREAT_AGGROSTATE_TAPPED"] = "Unidad golpeada"
+L["OPTIONS_THREAT_CLASSIC_USE_TANK_COLORS"] = "Usar colores de amenaza de tanque"
+L["OPTIONS_THREAT_COLOR_DPS_ANCHOR_TITLE"] = "Color al jugar como DPS o SANADOR"
 L["OPTIONS_THREAT_COLOR_DPS_HIGHTHREAT_DESC"] = "La unidad está por comenzar a atacarte."
 L["OPTIONS_THREAT_COLOR_DPS_NOAGGRO_DESC"] = "La unidad no te está atacando."
 L["OPTIONS_THREAT_COLOR_DPS_NOTANK_DESC"] = "La unidad no te está atacando a ti ni a un tanque y lo más probable es que esté atacando a otro sanador o dps de tu grupo."
 L["OPTIONS_THREAT_COLOR_DPS_ONYOU_SOLID_DESC"] = "La unidad te está atacando."
 L["OPTIONS_THREAT_COLOR_OVERRIDE_ANCHOR_TITLE"] = "Anular colores predeterminados"
-L["OPTIONS_THREAT_COLOR_OVERRIDE_DESC"] = "Modifique los colores predeterminados establecidos por el juego para unidades neutrales, hostiles y amistosas. Durante el combate, estos colores también se anularán si se permite que los colores de amenaza cambien el color de la barra de salud."
+L["OPTIONS_THREAT_COLOR_OVERRIDE_DESC"] = "Modifica los colores predeterminados establecidos por el juego para unidades neutrales, hostiles y amistosas. Durante el combate, estos colores también se anularán si se permite que los colores de amenaza cambien el color de la barra de salud."
 L["OPTIONS_THREAT_COLOR_TANK_ANCHOR_TITLE"] = "Color al jugar como TANQUE"
 L["OPTIONS_THREAT_COLOR_TANK_ANOTHERTANK_DESC"] = "La unidad está siendo tanqueada por otro tanque en su grupo."
-L["OPTIONS_THREAT_COLOR_TANK_NOAGGRO_DESC"] = "La unidad no tiene aggro en tí."
+L["OPTIONS_THREAT_COLOR_TANK_NOAGGRO_DESC"] = "La unidad no tiene agro en ti."
 L["OPTIONS_THREAT_COLOR_TANK_NOTINCOMBAT_DESC"] = "La unidad no está en combate."
-L["OPTIONS_THREAT_COLOR_TANK_ONYOU_SOLID_DESC"] = "La unidad te está atacando y tienes un aggro sólido."
+L["OPTIONS_THREAT_COLOR_TANK_ONYOU_SOLID_DESC"] = "La unidad te está atacando y tienes un agro sólido."
 L["OPTIONS_THREAT_COLOR_TAPPED_DESC"] = "Cuando alguien más ha reclamado la unidad (cuando no recibes experiencia o botín por matarla)."
-L["OPTIONS_THREAT_DPS_CANCHECKNOTANK"] = "Comprobar si no hay aggro de tanque"
-L["OPTIONS_THREAT_DPS_CANCHECKNOTANK_DESC"] = "Cuando no tienes aggro como sanador o dps, verifica si el enemigo está atacando a otra unidad que no es un tanque."
-L["OPTIONS_THREAT_MODIFIERS_ANCHOR_TITLE"] = "Modificadores de Amenaza"
+L["OPTIONS_THREAT_DPS_CANCHECKNOTANK"] = "Comprobar si no hay agro de tanque"
+L["OPTIONS_THREAT_DPS_CANCHECKNOTANK_DESC"] = "Cuando no tienes agro como sanador o dps, verifica si el enemigo está atacando a otra unidad que no es un tanque."
+L["OPTIONS_THREAT_MODIFIERS_ANCHOR_TITLE"] = "Modificadores de amenaza"
 L["OPTIONS_THREAT_MODIFIERS_BORDERCOLOR"] = "Color del borde"
-L["OPTIONS_THREAT_MODIFIERS_HEALTHBARCOLOR"] = "Color de barra de salud"
+L["OPTIONS_THREAT_MODIFIERS_HEALTHBARCOLOR"] = "Color de la barra de salud"
 L["OPTIONS_THREAT_MODIFIERS_NAMECOLOR"] = "Nombre de color"
---[[Translation missing --]]
-L["OPTIONS_THREAT_PULL_FROM_ANOTHER_TANK"] = "Pulling From Another Tank"
---[[Translation missing --]]
-L["OPTIONS_THREAT_PULL_FROM_ANOTHER_TANK_TANK"] = "The unit has aggro on another tank and you're about to pull it."
---[[Translation missing --]]
-L["OPTIONS_THREAT_USE_AGGRO_FLASH"] = "Enable aggro flash"
---[[Translation missing --]]
-L["OPTIONS_THREAT_USE_AGGRO_FLASH_DESC"] = "Enables the -AGGRO- flash animation on the nameplates when gaining aggro as dps."
---[[Translation missing --]]
-L["OPTIONS_THREAT_USE_AGGRO_GLOW"] = "Enable aggro glow"
---[[Translation missing --]]
-L["OPTIONS_THREAT_USE_AGGRO_GLOW_DESC"] = "Enables the healthbar glow on the nameplates when gaining aggro as dps or losing aggro as tank."
---[[Translation missing --]]
-L["OPTIONS_THREAT_USE_SOLO_COLOR"] = "Solo Color"
---[[Translation missing --]]
-L["OPTIONS_THREAT_USE_SOLO_COLOR_DESC"] = "Use the 'Solo' color when not in a group."
---[[Translation missing --]]
-L["OPTIONS_THREAT_USE_SOLO_COLOR_ENABLE"] = "Use 'Solo' color"
---[[Translation missing --]]
-L["OPTIONS_TOGGLE_TO_CHANGE"] = "|cFFFFFF00 Important |r: hide and show nameplates to see changes."
---[[Translation missing --]]
-L["OPTIONS_WIDTH"] = "Width"
-L["OPTIONS_XOFFSET"] = "Vértice X"
---[[Translation missing --]]
-L["OPTIONS_XOFFSET_DESC"] = [=[Adjust the position on the X axis.
-
-*right click to type the value.]=]
-L["OPTIONS_YOFFSET"] = "Vértice Y"
---[[Translation missing --]]
-L["OPTIONS_YOFFSET_DESC"] = [=[Adjust the position on the Y axis.
-
-*right click to type the value.]=]
---[[Translation missing --]]
-L["TARGET_CVAR_ALWAYSONSCREEN"] = "Target Always on the Screen|cFFFF7700*|r"
---[[Translation missing --]]
-L["TARGET_CVAR_ALWAYSONSCREEN_DESC"] = [=[When enabled, the nameplate of your target is always shown even when the enemy isn't in the screen.
-
-|cFFFF7700[*]|r |cFFa0a0a0CVar, saved within Plater profile and restored when loading the profile.|r]=]
---[[Translation missing --]]
-L["TARGET_CVAR_LOCKTOSCREEN"] = "Lock to Screen (Top Side)|cFFFF7700*|r"
---[[Translation missing --]]
-L["TARGET_CVAR_LOCKTOSCREEN_DESC"] = [=[Min space between the nameplate and the top of the screen. Increase this if some part of the nameplate are going out of the screen.
-
-|cFFFFFFFFDefault: 0.065|r
-
-|cFFFFFF00 Important |r: if you're having issue, manually set using these macros:
-/run SetCVar ('nameplateOtherTopInset', '0.065')
-/run SetCVar ('nameplateLargeTopInset', '0.065')
-
-|cFFFFFF00 Important |r: setting to 0 disables this feature.
-
-|cFFFF7700[*]|r |cFFa0a0a0CVar, saved within Plater profile and restored when loading the profile.|r]=]
---[[Translation missing --]]
-L["TARGET_HIGHLIGHT"] = "Target Highlight"
---[[Translation missing --]]
-L["TARGET_HIGHLIGHT_ALPHA"] = "Target Highlight Alpha"
---[[Translation missing --]]
-L["TARGET_HIGHLIGHT_COLOR"] = "Target Highlight Color"
---[[Translation missing --]]
-L["TARGET_HIGHLIGHT_DESC"] = "Highlight effect on the nameplate of your current target."
---[[Translation missing --]]
-L["TARGET_HIGHLIGHT_SIZE"] = "Target Highlight Size"
---[[Translation missing --]]
-L["TARGET_HIGHLIGHT_TEXTURE"] = "Target Highlight Texture"
---[[Translation missing --]]
-L["TARGET_OVERLAY_ALPHA"] = "Target Overlay Alpha"
---[[Translation missing --]]
-L["TARGET_OVERLAY_TEXTURE"] = "Target Overlay Texture"
---[[Translation missing --]]
-L["TARGET_OVERLAY_TEXTURE_DESC"] = "Used above the health bar when it is the current target."
+L["OPTIONS_THREAT_PULL_FROM_ANOTHER_TANK"] = "Atrayendo de otro tanque"
+L["OPTIONS_THREAT_PULL_FROM_ANOTHER_TANK_TANK"] = "La unidad tiene agro en otro tanque y estás a punto de atraerla."
+L["OPTIONS_THREAT_USE_AGGRO_FLASH"] = "Activar destello de agro"
+L["OPTIONS_THREAT_USE_AGGRO_FLASH_DESC"] = "Activa la animación de destello -AGRO- en las placas de nombre al ganar agro como dps."
+L["OPTIONS_THREAT_USE_AGGRO_GLOW"] = "Activar resplandor de agro"
+L["OPTIONS_THREAT_USE_AGGRO_GLOW_DESC"] = "Activa el resplandor en la barra de salud de las placas de nombre al ganar agro como dps o al perder agro como tanque."
+L["OPTIONS_THREAT_USE_SOLO_COLOR"] = "Color solo"
+L["OPTIONS_THREAT_USE_SOLO_COLOR_DESC"] = "Usa el color 'Solo' cuando no estás en un grupo."
+L["OPTIONS_THREAT_USE_SOLO_COLOR_ENABLE"] = "Usar color 'Solo'"
+L["OPTIONS_TOGGLE_TO_CHANGE"] = "|cFFFFFF00 Importante |r: oculta y muestra las placas de nombre para ver los cambios."
+L["OPTIONS_WIDTH"] = "Anchura"
+L["OPTIONS_XOFFSET"] = "Desplazamiento X"
+L["OPTIONS_XOFFSET_DESC"] = "Ajusta la posición en el eje X. *clic derecho para escribir el valor."
+L["OPTIONS_YOFFSET"] = "Desplazamiento Y"
+L["OPTIONS_YOFFSET_DESC"] = "Ajusta la posición en el eje Y. *clic derecho para escribir el valor."
+L["TARGET_CVAR_ALWAYSONSCREEN"] = "Objetivo siempre en la pantalla|cFFFF7700*|r"
+L["TARGET_CVAR_ALWAYSONSCREEN_DESC"] = "Cuando está activado, la placa de nombre de tu objetivo siempre se muestra, incluso cuando el enemigo no está en la pantalla. |cFFFF7700[*]|r |cFFa0a0a0CVar, guardada dentro del perfil de Plater y restaurada al cargar el perfil.|r"
+L["TARGET_CVAR_LOCKTOSCREEN"] = "Bloquear en la pantalla (lado superior)|cFFFF7700*|r"
+L["TARGET_CVAR_LOCKTOSCREEN_DESC"] = "Espacio mínimo entre la placa de nombre y la parte superior de la pantalla. Aumenta esto si alguna parte de la placa de nombre está fuera de la pantalla. |cFFFFFFFFPredeterminado: 0.065|r |cFFFFFF00 Importante |r: si tienes problemas, establece manualmente usando estos macros: /run SetCVar ('nameplateOtherTopInset', '0.065') /run SetCVar ('nameplateLargeTopInset', '0.065') |cFFFFFF00 Importante |r: establecer en 0 desactiva esta función. |cFFFF7700[*]|r |cFFa0a0a0CVar, guardada dentro del perfil de Plater y restaurada al cargar el perfil.|r"
+L["TARGET_HIGHLIGHT"] = "Resaltado del objetivo"
+L["TARGET_HIGHLIGHT_ALPHA"] = "Alfa del resaltado del objetivo"
+L["TARGET_HIGHLIGHT_COLOR"] = "Color del resaltado del objetivo"
+L["TARGET_HIGHLIGHT_DESC"] = "Efecto de resaltado en la placa de nombre de tu objetivo actual."
+L["TARGET_HIGHLIGHT_SIZE"] = "Tamaño del resaltado del objetivo"
+L["TARGET_HIGHLIGHT_TEXTURE"] = "Textura del resaltado del objetivo"
+L["TARGET_OVERLAY_ALPHA"] = "Alfa de superposición del objetivo"
+L["TARGET_OVERLAY_TEXTURE"] = "Textura de superposición del objetivo"
+L["TARGET_OVERLAY_TEXTURE_DESC"] = "Usado sobre la barra de salud cuando es el objetivo actual."
 
 end
