@@ -661,8 +661,7 @@ local function TooltipHook(self)
     local id = addon.UnitID(unit)
     if id then
     	GameTooltip:AddLine(' ')
-		-- 自行修改成一行
-        GameTooltip:AddLine(L['Current Keystone']..": |cffFFFFFF"..addon.GetMapName(addon.UnitMapID(id)).." +"..addon.UnitKeyLevel(id).."|r")
+        GameTooltip:AddLine(L['Current Keystone']..": |cffFFFFFF"..(addon.GetMapName(addon.UnitMapID(id)) or UNKONW).." +"..(addon.UnitKeyLevel(id) or "").."|r") -- 暫時修正
         return
     end
 	end
