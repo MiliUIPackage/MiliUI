@@ -124,6 +124,8 @@ local Skin = {
 	},
 	Icon = {
 		-- TexCoords = {0, 1, 0, 1},
+		DrawLayer = "BACKGROUND",
+		DrawLevel = 0,
 		Width = 36,
 		Height = 36,
 		Point = "CENTER",
@@ -134,6 +136,8 @@ local Skin = {
 		UseMask = true,
 		Aura = {
 			-- TexCoords = {0, 1, 0, 1},
+			DrawLayer = "BACKGROUND",
+			DrawLevel = 0,
 			Width = 36,
 			Height = 36,
 			Point = "TOP",
@@ -145,6 +149,8 @@ local Skin = {
 		},
 		BagSlot = {
 			-- TexCoords = {0, 1, 0, 1},
+			DrawLayer = "BACKGROUND",
+			DrawLevel = 0,
 			Width = 36,
 			Height = 36,
 			Point = "CENTER",
@@ -156,6 +162,8 @@ local Skin = {
 		},
 		Item = {
 			-- TexCoords = {0, 1, 0, 1},
+			DrawLayer = "BACKGROUND",
+			DrawLevel = 0,
 			Width = 36,
 			Height = 36,
 			Point = "CENTER",

@@ -45,6 +45,8 @@ Core.AddSkin("Modern Enhanced", {
 	-- Backdrop = Template.Backdrop,
 	Icon = {
 		-- TexCoords = {0, 1, 0, 1},
+		DrawLayer = "BACKGROUND",
+		DrawLevel = 0,
 		Width = 36,
 		Height = 36,
 		Point = "CENTER",
@@ -55,6 +57,8 @@ Core.AddSkin("Modern Enhanced", {
 		UseMask = true,
 		Aura = {
 			-- TexCoords = {0, 1, 0, 1},
+			DrawLayer = "BACKGROUND",
+			DrawLevel = 0,
 			Width = 36,
 			Height = 36,
 			Point = "TOP",
@@ -66,6 +70,8 @@ Core.AddSkin("Modern Enhanced", {
 		},
 		BagSlot = {
 			-- TexCoords = {0, 1, 0, 1},
+			DrawLayer = "BACKGROUND",
+			DrawLevel = 0,
 			Width = 36,
 			Height = 36,
 			Point = "CENTER",
@@ -77,6 +83,8 @@ Core.AddSkin("Modern Enhanced", {
 		},
 		Item = {
 			-- TexCoords = {0, 1, 0, 1},
+			DrawLayer = "BACKGROUND",
+			DrawLevel = 0,
 			Width = 36,
 			Height = 36,
 			Point = "CENTER",
