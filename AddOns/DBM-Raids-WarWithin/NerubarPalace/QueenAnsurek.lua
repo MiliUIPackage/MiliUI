@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "story,lfr,normal,heroic,mythic"
 
-mod:SetRevision("20240928073002")
+mod:SetRevision("20241018024117")
 mod:SetCreatureID(218370)
 mod:SetEncounterID(2922)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
@@ -14,8 +14,8 @@ mod.respawnTime = 29
 mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
-	"SPELL_CAST_START 437592 456623 437417 439814 440899 440883 437093 447076 447411 450191 449940 449986 447950 448458 448147 451600 455374 443888 445422 444829 445021 438976 443325 443336 447456",
-	"SPELL_CAST_SUCCESS 439299 449986",
+	"SPELL_CAST_START 437592 456623 437417 439814 440899 440883 437093 447076 447411 450191 449940 449986 447950 448458 448147 451600 455374 443888 445422 444829 445021 438976 443325 443336",
+	"SPELL_CAST_SUCCESS 439299 449986 447456",
 	"SPELL_AURA_APPLIED 437586 441958 436800 440885 447207 453990 464056 447967 462558 451278 443903 455387 445880 445152 438974 443656 443726 443342 451832 464638 441556 445013 462693",--455404
 	"SPELL_AURA_APPLIED_DOSE 449236 445880 443726 443342 464638 441556",
 	"SPELL_AURA_REMOVED 437586 447207 453990 462558 451278 443903 455387 445152 443656 445013 445021 464056 447967",
@@ -219,39 +219,32 @@ local allTimers = {
 	["mythic"] = {
 		[1] = {
 			--Reactive Toxin
-			[437592] = {0},
+			[437592] = {19.1, 55.8, 55.8},
 			--Venom Nova
-			[437417] = {0},
+			[437417] = {29.3, 56, 56},
 			--Silken Tomb
-			[439814] = {0},
+			[439814] = {12.4, 40.0, 54.0, 26.0},
 			--Liquefy
-			[440899] = {0},
+			[440899] = {6.4, 40.0, 54.0},
 			--Web Blades
-			[439299] = {0}
-		},
-		[1.5] = {
-			--Wrest
-			[450191] = {0}--Technically diff spellid here, but table uses same one (different from normal)
-		},
-		[2] = {
-			--Wrest
-			[450191] = {0}--Then 8 repeating with exception of timer resetting when first platform adds die
+			[439299] = {20.4, 40.0, 13.0, 25.0, 16.0, 26.0}
 		},
 		[3] = {
 			--Abyssal Infusion
-			[443888] = {0},
+			[443888] = {57.8, 80, 80},
 			--Frothing Gluttony
-			[445422] = {0},
+			[445422] = {68.8, 80, 88},
 			--Queen's Summons
-			[444829] = {0},
+			[444829] = {43.8, 64, 83},
 			--Royal Condemnation
-			[438976] = {0},
+			[438976] = {116.3, 52, 34},
 			--Infest
-			[443325] = {0},
+			[443325] = {29.8, 66, 82},
 			--Gorge
-			[443336] = {0},
+			[443336] = {31.8, 66, 82},
 			--Web Blades
-			[439299] = {0}
+			[439299] = {48.5, 11.0, 26.0, 21.0, 17.0, 16.0, 47.0, 19.0, 14.0, 22.0}
+
 		},
 	},
 	["heroic"] = {
@@ -259,21 +252,13 @@ local allTimers = {
 			--Reactive Toxin
 			[437592] = {18.3, 55.8, 55.9},--56 repeating? (Same as normal)
 			--Venom Nova
-			[437417] = {29.4, 56, 56},--56 repeating? (Same as normal)
+			[437417] = {29.3, 56, 56},--56 repeating? (Same as normal)
 			--Silken Tomb
-			[439814] = {57.4, 54, 15.9},--(different from normal)
+			[439814] = {57.4, 48, 15.9},--(different from normal)
 			--Liquefy
 			[440899] = {8.3, 39.7, 51},--(different from normal)
 			--Web Blades
 			[439299] = {20.4, 47, 47, 25}--(different from normal)
-		},
-		[1.5] = {
-			--Wrest
-			[450191] = {6, 19, 19}--Technically diff spellid here, but table uses same one (different from normal)
-		},
-		[2] = {
-			--Wrest
-			[450191] = {34.2}--Then 8 repeating with exception of timer resetting when first platform adds die
 		},
 		[3] = {
 			--Abyssal Infusion
@@ -292,26 +277,18 @@ local allTimers = {
 			[439299] = {85.8, 39, 41, 18.6, 49.4}
 		},
 	},
-	["normal"] = {
+	["normal"] = {--LFR confirmed same
 		[1] = {
 			--Reactive Toxin
 			[437592] = {18.3, 56, 56},--56 repeating?
 			--Venom Nova
-			[437417] = {29.4, 56, 56},--56 repeating?
+			[437417] = {29.3, 56, 56},--56 repeating?
 			--Silken Tomb
 			[439814] = {57.4, 54},
 			--Liquefy
 			[440899] = {8.3, 40, 55},
 			--Web Blades
 			[439299] = {76.4, 48}
-		},
-		[1.5] = {
-			--Wrest
-			[450191] = {6, 19}--Technically diff spellid here, but table uses same one
-		},
-		[2] = {
-			--Wrest
-			[450191] = {31.5}--Then 8 repeating
 		},
 		[3] = {
 			--Abyssal Infusion
@@ -342,14 +319,6 @@ local allTimers = {
 			[440899] = {0},--Not used in Story
 			--Web Blades
 			[439299] = {7.5, 38.0}
-		},
-		[1.5] = {
-			--Wrest
-			[450191] = {0}--Not used in story
-		},
-		[2] = {
-			--Wrest
-			[450191] = {0}--Not used in story
 		},
 		[3] = {
 			--Abyssal Infusion
@@ -545,10 +514,7 @@ function mod:SPELL_CAST_START(args)
 		self.vb.wrestCount = self.vb.wrestCount + 1
 		specWarnWrest:Show(self.vb.wrestCount)
 		specWarnWrest:Play("pullin")
-		local timer = self:GetFromTimersTable(allTimers, savedDifficulty, self.vb.phase, 450191, self.vb.wrestCount+1) or self:GetStage(2) and 8
-		if timer then
-			timerWrestCD:Start(timer, self.vb.wrestCount+1)
-		end
+		timerWrestCD:Start(spellId == 447411 and 19 or 8, self.vb.wrestCount+1)
 	elseif spellId == 449940 then
 		timerWrestCD:Stop()
 		timerAcidicApocalypse:Start()--Basically phase 2.5 or transition to phase 3
@@ -589,7 +555,7 @@ function mod:SPELL_CAST_START(args)
 				specWarnNullDetonation:Play("kickcast")
 			end
 		end
-		timerNullDetonationCD:Start(nil, args.sourceGUID)
+		timerNullDetonationCD:Start(4.3, args.sourceGUID)
 	elseif spellId == 448458 and self:AntiSpam(5, 1) then
 		warnCosmicApocalypse:Show()
 		timerCosmicApocalypse:Start()
@@ -649,14 +615,6 @@ function mod:SPELL_CAST_START(args)
 		if timer then
 			timerGorgeCD:Start(timer, self.vb.gorgeCount+1)
 		end
-	elseif spellId == 447456 then
-		self.vb.reactiveCount = self.vb.reactiveCount + 1
-		warnParalyzingVenom:Show(self.vb.reactiveCount)
-		if self.vb.reactiveCount % 3 == 0 then
-			timerParalyzingVenomCD:Start(11, self.vb.reactiveCount+1)
-		else
-			timerParalyzingVenomCD:Start(4, self.vb.reactiveCount+1)
-		end
 	elseif spellId == 447076 then--Predation
 		self:SetStage(1.5)
 		self.vb.wrestCount = 0
@@ -670,8 +628,8 @@ function mod:SPELL_CAST_START(args)
 		timerWebBladesCD:Stop()
 		warnPhase:Show(DBM_CORE_L.AUTO_ANNOUNCE_TEXTS.stage:format(1.5))
 		warnPhase:Play("phasechange")
-		timerWrestCD:Start(allTimers[savedDifficulty][1.5][450191][1], 1)--6
-		timerParalyzingVenomCD:Start(13, 1)
+		timerWrestCD:Start(6, 1)
+		timerParalyzingVenomCD:Start(15.5, 1)
 	elseif spellId == 449986 then--Aphotic Communion Starting
 		self:SetStage(3)
 		timerAcidicApocalypse:Stop()
@@ -699,6 +657,14 @@ function mod:SPELL_CAST_SUCCESS(args)
 		local timer = self:GetFromTimersTable(allTimers, savedDifficulty, self.vb.phase, 439299, self.vb.webBladesCount+1)
 		if timer then
 			timerWebBladesCD:Start(timer, self.vb.webBladesCount+1)
+		end
+	elseif spellId == 447456 then
+		self.vb.reactiveCount = self.vb.reactiveCount + 1
+		warnParalyzingVenom:Show(self.vb.reactiveCount)
+		if self.vb.reactiveCount % 3 == 0 then
+			timerParalyzingVenomCD:Start(11, self.vb.reactiveCount+1)
+		else
+			timerParalyzingVenomCD:Start(4, self.vb.reactiveCount+1)
 		end
 	--elseif spellId == 449986 then--Aphotic Communion Finishing
 	--	timerAbyssalInfusionCD:Start(3)
@@ -970,7 +936,7 @@ function mod:UNIT_DIED(args)
 			--Better place to start Stage 2 wrest timer
 			if self.vb.wrestCount == 0 then
 				timerWrestCD:Stop()
-				timerWrestCD:Start(self:IsEasy() and 12.9 or 11.9, 1)
+				timerWrestCD:Start(self:IsEasy() and 12.9 or 11.7, 1)
 				timerExpulsionBeamCD:Start(12.5, 1)
 			end
 		end
@@ -1013,7 +979,7 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
 		warnPlatform:Show(self.vb.platformCount)
 		if self.vb.platformCount == 1 then
 			timerWrestCD:Stop()
-			timerWrestCD:Start(6, self.vb.wrestCount+1)--6-6.6
+			timerWrestCD:Start(5.4, self.vb.wrestCount+1)--6-6.6
 			timerGloomTouchCD:Start(6)
 		elseif self.vb.platformCount == 2 then
 			timerWrestCD:Stop()
