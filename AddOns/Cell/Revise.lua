@@ -3122,33 +3122,6 @@ function F:Revise()
 
     -- r241-release
     if CellDB["revise"] and dbRevision < 241 then
-        if Cell.isRetail then
-            local spells = {
-                439506, -- 钻地冲击
-                429545, -- 噤声齿轮
-                424888, -- 震地猛击
-                463248, -- 排斥
-                321828, -- 拍手手
-                323057, -- 灵魂之箭
-                333479, -- 吐疫
-                454438, -- 艾泽里特炸药
-                272571, -- 窒息之水
-                257063, -- 盐渍飞弹
-                431491, -- 污邪斩击
-                451119, -- 深渊轰击
-                428711, -- 火成岩锤
-                459210, -- 暗影爪击
-                256709, -- 钢刃之歌
-                434786, -- 蛛网箭
-            }
-            for _, spell in pairs(spells) do
-                if not F:TContains(CellDB["targetedSpellsList"], spell) then
-                    tinsert(CellDB["targetedSpellsList"], spell)
-                end
-            end
-            Cell.vars.targetedSpellsList = F:ConvertTable(CellDB["targetedSpellsList"])
-        end
-
         if type(CellDB["nicknames"]["blacklist"]) ~= "table" then
             CellDB["nicknames"]["blacklist"] = {}
         end
@@ -3179,6 +3152,59 @@ function F:Revise()
         end
     end
 
+    -- r243-release
+    if CellDB["revise"] and dbRevision < 243 then
+        if Cell.isRetail then
+            local spells = {
+                439506, -- 钻地冲击
+                429545, -- 噤声齿轮
+                424888, -- 震地猛击
+                463248, -- 排斥
+                321828, -- 拍手手
+                323057, -- 灵魂之箭
+                333479, -- 吐疫
+                454438, -- 艾泽里特炸药
+                272571, -- 窒息之水
+                257063, -- 盐渍飞弹
+                431491, -- 污邪斩击
+                451119, -- 深渊轰击
+                428711, -- 火成岩锤
+                459210, -- 暗影爪击
+                256709, -- 钢刃之歌
+                434786, -- 蛛网箭
+                451971, -- 熔岩之拳
+                451224, -- 暗影烈焰笼罩
+                451364, -- 残忍打击
+                451261, -- 大地之箭
+                449444, -- 熔火乱舞
+                450100, -- 碾碎
+                463217, -- 心能挥砍
+            }
+            for _, spell in pairs(spells) do
+                if not F:TContains(CellDB["targetedSpellsList"], spell) then
+                    tinsert(CellDB["targetedSpellsList"], spell)
+                end
+            end
+            Cell.vars.targetedSpellsList = F:ConvertTable(CellDB["targetedSpellsList"])
+        end
+
+        for _, layout in pairs(CellDB["layouts"]) do
+            for _, i in pairs(layout["indicators"]) do
+                if i.type == "text" then
+                    if not i.stack then
+                        i.stack = {
+                            true,
+                            i.circledStackNums,
+                        }
+                        i.circledStackNums = nil
+                    end
+                elseif i.indicatorName == "healthText" then
+                    i.format = "[effective_percent]"
+                end
+            end
+        end
+    end
+
     -- ----------------------------------------------------------------------- --
     --            update from old versions, validate all indicators            --
     -- ----------------------------------------------------------------------- --
@@ -3190,28 +3216,11 @@ function F:Revise()
             -- built-ins
             for i, t in ipairs(layout["indicators"]) do
                 local name = t["indicatorName"]
-                if t["type"] == "built-in" and toValidate[name] then
-                    if i == toValidate[name] then
-                        -- copy correct indicator
-                        F:Debug(layoutName, "CORRECT_FOUND", i, name)
-                        tinsert(temp, i, t)
-                    else
-                        -- search for correct indicator
-                        local found
-                        for j = i, #layout["indicators"] do
-                            if name == layout["indicators"][j]["indicatorName"] then
-                                F:Debug(layoutName, "WRONG_FOUND", j, "->", toValidate[name], name)
-                                found = true
-                                tinsert(temp, toValidate[name], layout["indicators"][j])
-                                break
-                            end
-                        end
-                        -- not found, copy from Defaults
-                        if not found then
-                            F:Debug(layoutName, "WRONG_NOT_FOUND", i, name)
-                            tinsert(temp, toValidate[name], F:Copy(Cell.defaults.layout.indicators[toValidate[name]]))
-                        end
-                    end
+                local correctIndex = toValidate[name]
+
+                if t["type"] == "built-in" and correctIndex then
+                    F:Debug(layoutName, "CORRECT_FOUND", correctIndex, name)
+                    temp[correctIndex] = t
                     -- remove validated
                     toValidate[name] = nil
                 end
@@ -3219,27 +3228,24 @@ function F:Revise()
 
             -- fix missing indicators
             for name, index in pairs(toValidate) do
-                if temp[index] then --? possible?
-                    F:Debug(layoutName, "FIXED_MISSING_REPLACE", index, name)
-                    temp[index] = F:Copy(Cell.defaults.layout.indicators[index])
-                else
-                    F:Debug(layoutName, "FIXED_MISSING_INSERT", index, name)
-                    tinsert(temp, index, F:Copy(Cell.defaults.layout.indicators[index]))
-                end
+                F:Debug(layoutName, "FIXED_MISSING", index, name)
+                temp[index] = F:Copy(Cell.defaults.layout.indicators[index])
             end
 
-            -- check indices
-            local maxKey
-            for i, t in pairs(temp) do
-                local name = t["indicatorName"]
-                if Cell.defaults.indicatorIndices[name] ~= i then
-                    temp[i] = F:Copy(Cell.defaults.layout.indicators[index])
-                    F:Print(L["Reset"] .. " " .. L[t["name"]])
-                end
-                maxKey = max(maxKey or 0, i)
+            --? check again
+            local maxKey = 0
+            for i in pairs(temp) do
+                maxKey = max(maxKey, i)
             end
-            for i = Cell.defaults.builtIns + 1, maxKey do
-                temp[i] = nil
+            for i = 1, maxKey do
+                if i <= Cell.defaults.builtIns then
+                    if not temp[i] or i ~= Cell.defaults.indicatorIndices[temp[i]["indicatorName"]] then
+                        F:Debug(layoutName, "RESET_WRONG", i, name)
+                        temp[i] = F:Copy(Cell.defaults.layout.indicators[i])
+                    end
+                else
+                    temp[i] = nil
+                end
             end
 
             -- customs

@@ -142,9 +142,6 @@ local function ResetIndicators()
         if t["dispellableByMe"] ~= nil then
             indicatorBooleans[t["indicatorName"]] = t["dispellableByMe"]
         end
-        if t["hideIfEmptyOrFull"] ~= nil then
-            indicatorBooleans[t["indicatorName"]] = t["hideIfEmptyOrFull"]
-        end
         if t["onlyShowTopGlow"] ~= nil then
             indicatorBooleans[t["indicatorName"]] = t["onlyShowTopGlow"]
         end
@@ -263,13 +260,13 @@ local function HandleIndicators(b)
         if t["iconStyle"] then
             indicator:SetIconStyle(t["iconStyle"])
         end
-        -- update duration
-        if type(t["showDuration"]) == "boolean" or type(t["showDuration"]) == "number" then
-            indicator:ShowDuration(t["showDuration"])
-        end
         -- update animation
         if type(t["showAnimation"]) == "boolean" then
             indicator:ShowAnimation(t["showAnimation"])
+        end
+        -- update duration
+        if type(t["showDuration"]) == "boolean" or type(t["showDuration"]) == "number" then
+            indicator:ShowDuration(t["showDuration"])
         end
         -- update stack
         if type(t["showStack"]) == "boolean" then
@@ -279,9 +276,9 @@ local function HandleIndicators(b)
         if t["duration"] then
             indicator:SetDuration(t["duration"])
         end
-        -- update circled nums
-        if type(t["circledStackNums"]) == "boolean" then
-            indicator:SetCircledStackNums(t["circledStackNums"])
+        -- update stack
+        if t["stack"] then
+            indicator:SetStack(t["stack"])
         end
         -- update groupNumber
         if type(t["showGroupNumber"]) == "boolean" then
@@ -330,6 +327,10 @@ local function HandleIndicators(b)
         -- max value
         if t["maxValue"] then
             indicator:SetMaxValue(t["maxValue"])
+        end
+        -- update hideIfEmptyOrFull
+        if type(t["hideIfEmptyOrFull"]) == "boolean" then
+            indicator:SetHideIfEmptyOrFull(t["hideIfEmptyOrFull"])
         end
 
         -- init
@@ -708,6 +709,11 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             F:IterateAllUnitButtons(function(b)
                 UnitButton_UpdateAuras(b)
             end, true)
+        elseif setting == "stack" then
+            F:IterateAllUnitButtons(function(b)
+                b.indicators[indicatorName]:SetStack(value)
+                UnitButton_UpdateAuras(b)
+            end, true)
         elseif setting == "highlightType" then
             F:IterateAllUnitButtons(function(b)
                 b.indicators[indicatorName]:UpdateHighlight(value)
@@ -757,13 +763,14 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                     b.indicators[indicatorName]:ShowBackground(value2)
                 end, true)
             elseif value == "hideIfEmptyOrFull" then
-                indicatorBooleans[indicatorName] = value2
                 if indicatorName == "healthText" then
                     F:IterateAllUnitButtons(function(b)
+                        b.indicators[indicatorName]:SetHideIfEmptyOrFull(value2)
                         B:UpdateHealthText(b)
                     end, true)
                 elseif indicatorName == "powerText" then
                     F:IterateAllUnitButtons(function(b)
+                        b.indicators[indicatorName]:SetHideIfEmptyOrFull(value2)
                         B:UpdatePowerText(b)
                     end, true)
                 end
@@ -798,11 +805,6 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             elseif value == "enableBlacklistShortcut" then
                 F:IterateAllUnitButtons(function(b)
                     b.indicators[indicatorName]:EnableBlacklistShortcut(value2)
-                end, true)
-            elseif value == "circledStackNums" then
-                F:IterateAllUnitButtons(function(b)
-                    b.indicators[indicatorName]:SetCircledStackNums(value2)
-                    UnitButton_UpdateAuras(b)
                 end, true)
             elseif value == "fadeOut" then
                 F:IterateAllUnitButtons(function(b)
@@ -873,13 +875,13 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 if value["texture"] then
                     indicator:SetTexture(value["texture"])
                 end
-                -- update showDuration
-                if type(value["showDuration"]) ~= "nil" then
-                    indicator:ShowDuration(value["showDuration"])
-                end
                 -- update showAnimation
                 if type(value["showAnimation"]) == "boolean" then
                     indicator:ShowAnimation(value["showAnimation"])
+                end
+                -- update showDuration
+                if type(value["showDuration"]) ~= "nil" then
+                    indicator:ShowDuration(value["showDuration"])
                 end
                 -- update showStack
                 if type(value["showStack"]) ~= "nil" then
@@ -889,9 +891,9 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 if value["duration"] then
                     indicator:SetDuration(value["duration"])
                 end
-                 -- update circled nums
-                 if type(value["circledStackNums"]) == "boolean" then
-                    indicator:SetCircledStackNums(value["circledStackNums"])
+                -- update stack
+                if value["stack"] then
+                    indicator:SetStack(value["stack"])
                 end
                 -- update fadeOut
                 if type(value["fadeOut"]) == "boolean" then
@@ -1364,18 +1366,8 @@ local function UpdateUnitHealthState(self, diff)
         UnitButton_UpdateHealthColor(self)
     end
 
-    if enabledIndicators["healthText"] and healthMax ~= 0 then
-        if indicatorBooleans["healthText"] then
-            if health == healthMax or self.states.isDeadOrGhost or self.states.isDead then
-                self.indicators.healthText:Hide()
-            else
-                self.indicators.healthText:SetValue(health, healthMax, self.states.totalAbsorbs)
-                self.indicators.healthText:Show()
-            end
-        else
-            self.indicators.healthText:SetValue(health, healthMax, self.states.totalAbsorbs)
-            self.indicators.healthText:Show()
-        end
+    if enabledIndicators["healthText"] and not self.states.isDeadOrGhost then
+        self.indicators.healthText:SetValue(health, healthMax, self.states.totalAbsorbs, 0)
     else
         self.indicators.healthText:Hide()
     end
@@ -1599,18 +1591,8 @@ local function UnitButton_FinishReadyCheck(self)
 end
 
 local function UnitButton_UpdatePowerText(self)
-    if enabledIndicators["powerText"] and self.states.powerMax and self.states.power then
-        if indicatorBooleans["powerText"] then
-            if self.states.power == self.states.powerMax or self.states.power == 0 then
-                self.indicators.powerText:Hide()
-            else
-                self.indicators.powerText:SetValue(self.states.power, self.states.powerMax)
-                self.indicators.powerText:Show()
-            end
-        else
-            self.indicators.powerText:SetValue(self.states.power, self.states.powerMax)
-            self.indicators.powerText:Show()
-        end
+    if enabledIndicators["powerText"] and self.states.powerMax and self.states.power and not self.states.isDeadOrGhost then
+        self.indicators.powerText:SetValue(self.states.power, self.states.powerMax)
     else
         self.indicators.powerText:Hide()
     end
@@ -2275,10 +2257,8 @@ local function UnitButton_OnEvent(self, event, unit)
 
     else
         if event == "GROUP_ROSTER_UPDATE" then
-            self.__tickCount = 2
-            self.__updateElapsed = 0.25
-            -- self._updateRequired = 1
-            -- self._powerBarUpdateRequired = 1
+            self._updateRequired = 1
+            self._powerBarUpdateRequired = 1
 
         elseif event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_REGEN_DISABLED" then
             UnitButton_UpdateLeader(self, event)

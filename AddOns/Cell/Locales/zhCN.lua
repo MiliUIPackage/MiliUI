@@ -520,6 +520,10 @@ L["Alpha"] = "透明度"
 L["Max Displayed"] = "最大显示个数"
 L["Displayed Per Line"] = "每行/列显示个数"
 L["Format"] = "格式"
+L["Format Options"] = "格式选项"
+L["Health"] = "生命值"
+L["Absorbs"] = "吸收盾"
+L["Heal Absorbs"] = "治疗吸收"
 L["shields"] = "护盾"
 L["hideIfEmptyOrFull"] = "当值为满或空时隐藏"
 L["Color"] = "颜色"
@@ -864,6 +868,15 @@ L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
     <h1>更新后如果有各种问题，先排查代码片段。</h1>
     <p>（正式服）如果指示器不能正常刷新，尝试启用常规页面下的“总是更新增益/减益”选项。</p>
+    <br/>
+
+    <h1>r243-release (Oct 13, 2024, 21:37 GMT+8)</h1>
+    <p>* 修复怀旧服的能量过滤选项。</p>
+    <p>* 更新内置指示器自我修复策略。</p>
+    <p>+ 为“文本”类型的自定义指示器添加了层数的选项。</p>
+    <p>* 更新“血量文字”指示器的格式。</p>
+    <p>* 更新“流血”列表。</p>
+    <p>* 回滚一些导致异常的改动。</p>
     <br/>
 
     <h1>r242-release (Oct 9, 2024, 10:30 GMT+8)</h1>

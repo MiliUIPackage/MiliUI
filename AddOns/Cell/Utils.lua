@@ -422,14 +422,6 @@ else
     end
 end
 
--- function F:KeepDecimals(num, n)
---     if num < 0 then
---         return -(abs(num) - abs(num) % 0.1 ^ n)
---     else
---         return num - num % 0.1 ^ n
---     end
--- end
-
 function F:Round(num, numDecimalPlaces)
     if numDecimalPlaces and numDecimalPlaces >= 0 then
         local mult = 10 ^ numDecimalPlaces
@@ -2213,7 +2205,7 @@ function F:IsInRange(unit)
     --     return inRange
 
     else
-        if UnitCanAssist("player", unit) then
+        if UnitCanAssist("player", unit) or UnitCanCooperate("player", unit) then
             if not (UnitIsConnected(unit) and UnitInSamePhase(unit)) then
                 return false
             end
@@ -2279,6 +2271,7 @@ local function GetResult1()
         "\nUnitInRange: " .. (checked and "checked" or "unchecked") .. " " .. (inRange and "true" or "false") ..
         "\nUnitIsVisible: " .. (UnitIsVisible("target") and "true" or "false") ..
         "\n\nUnitCanAssist: " .. (UnitCanAssist("player", "target") and "true" or "false") ..
+        "\nUnitCanCooperate: " .. (UnitCanCooperate("player", "target") and "true" or "false") ..
         "\nUnitCanAttack: " .. (UnitCanAttack("player", "target") and "true" or "false") ..
         "\n\nUnitIsConnected: " .. (UnitIsConnected("target") and "true" or "false") ..
         "\nUnitInSamePhase: " .. (UnitInSamePhase("target") and "true" or "false") ..
