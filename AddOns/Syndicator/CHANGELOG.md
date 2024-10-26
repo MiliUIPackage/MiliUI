@@ -1,7 +1,6 @@
 # Syndicator
 
-## [126](https://github.com/Baganator/Syndicator/tree/126) (2024-10-18)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/125...126) 
+## [127](https://github.com/Baganator/Syndicator/tree/127) (2024-10-23)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/126...127) 
 
-- Fix typo  
-- Retail: Add keyword keystone  
+- Update toc for 11.0.5  
