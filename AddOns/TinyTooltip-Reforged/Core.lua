@@ -34,7 +34,7 @@ setmetatable(addon.L, {__index = function(_, k) return k end})
 setmetatable(addon.G, {__index = function(_, k) return _G[k] or k end})
 
 local actualVersion = C_AddOns.GetAddOnMetadata("TinyTooltip-Reforged", "Version") or "unknown"
--- print("|cff00d200TinyTooltip Reforged v",actualVersion," loaded.|r")
+print("|cff00d200TinyTooltip Reforged v",actualVersion," loaded.|r")
 
 addon.tooltips = {
     GameTooltip,
@@ -265,7 +265,8 @@ function addon:GetRaidIcon(unit)
 end
 
 function addon:GetClassIcon(class)
-    if (not class) or (not CLASS_ICON_TCOORDS[strupper(class)] ) then return end -- 暫時修正
+    if (not class) then return end
+    if (class == "Adventurer") then return end
     local x1, x2, y1, y2 = unpack(CLASS_ICON_TCOORDS[strupper(class)])
     return format(self.icons.class, x1*256, x2*256, y1*256, y2*256)
 end
@@ -356,9 +357,9 @@ function addon:GetUnitInfo(unit)
     local pvpName = UnitPVPName(unit)
     local gender = UnitSex(unit)
     local level = UnitLevel(unit)
-	if(UnitIsWildBattlePet(unit) or UnitIsBattlePetCompanion(unit)) then
+    if(UnitIsWildBattlePet(unit) or UnitIsBattlePetCompanion(unit)) then
         level = UnitBattlePetLevel(unit)
-    end   
+    end
     local effectiveLevel = UnitEffectiveLevel(unit)
     local raceName, race = UnitRace(unit)
     local className, class = UnitClass(unit)

@@ -15,7 +15,7 @@ local function ShowId(tooltip, name, value, noBlankLine)
         local line = addon:FindLine(tooltip, name)
         if (not line) then
             if (not noBlankLine) then tooltip:AddLine(" ") end
-            tooltip:AddLine(format("%s: |cffffffff%s|r", addon.L[name] or name, value), 0, 1, 0.8)
+            tooltip:AddLine(format("%s: |cffffffff%s|r", name, value), 0, 1, 0.8)
             tooltip:Show()
         end
         LibEvent:trigger("tooltip.linkid", tooltip, name, value, noBlankLine)
@@ -102,14 +102,3 @@ if (HybridScrollFrame_CreateButtons) then
         end
     end)
 end
-
--- adds caster of buffs/debuffs to their tooltips
-hooksecurefunc(GameTooltip,"SetUnitAura",function(self,unit,index,filter)
-	if (IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown() or addon.db.general.alwaysShowIdInfo) then
-		local caster = select(7,UnitAura(unit,index,filter))
-		if caster and UnitExists(caster) then
-				GameTooltip:AddLine(addon.L["Caster"]..": "..UnitName(caster),.65,.85,1,1)
-				GameTooltip:Show()
-		end
-	end
-end)

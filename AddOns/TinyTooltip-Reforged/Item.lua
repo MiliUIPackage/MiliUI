@@ -58,9 +58,8 @@ local function ItemStackCount(tip, link)
     if (addon.db.item.showStackCountAlt) then
         local stack = stacks[link]
         if (stack and stack > 1) then
-            tip:Show()
-            tip:AddLine(format(addon.L["Stack Size: |cff00eeee%d|r"],stack))
-            tip:Show()
+            tip:AddLine(format("Stack Size: |cff00eeee%d|r",stack))
+	    tip:Show()
         end 
     end
 end

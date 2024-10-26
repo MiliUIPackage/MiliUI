@@ -52,7 +52,7 @@ local function ItemStackCount(tip, link)
     if (addon.db.item.showStackCountAlt) then
         local stack = stacks[link]
         if (stack and stack > 1) then
-            tip:AddLine(format(addon.L["Stack Size: |cff00eeee%d|r"],stack))
+            tip:AddLine(format("Stack Size: |cff00eeee%d|r",stack))
         end 
     end
 end
@@ -63,8 +63,8 @@ LibEvent:attachTrigger("tooltip:item", function(self, tip, link)
       if (not self) then return end
       if (addon.db.general.showItemLevel) then
           local iName, iLink, iRare, ilvl = GetItemInfo(link)
-          local ilvlLine, _, lineRight = FindLine(tip, addon.L["Item Level"])
-          local ilvlText = format("%s |cffffffff%d|r", addon.L["Item Level"], tonumber(ilvl))
+          local ilvlLine, _, lineRight = FindLine(tip, "Item Level")
+          local ilvlText = format("%s |cffffffff%d|r", "Item Level", tonumber(ilvl))
           if (ilvl and tonumber(ilvl)>1) then 
               if (not ilvlLine) then
                   tip:AddDoubleLine(ilvlText, "")

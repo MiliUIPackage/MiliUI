@@ -1,4 +1,3 @@
-
 local LibJSON = LibStub:GetLibrary("LibJSON.9000")
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local LibDropdown = LibStub:GetLibrary("LibDropdown.7000")
@@ -483,9 +482,9 @@ function widgets:anchor(parent, config)
     frame.anchorbutton = self:anchorbutton(frame, config)
     frame.dropdown = self:dropdown(frame, {keystring=config.keystring..".position",dropdata=config.dropdata})
     frame.dropdown:SetPoint("LEFT", 0, 0)
-    frame.anchorbutton:SetPoint("LEFT", frame.dropdown.Label, "LEFT", 5, 0)
+    frame.anchorbutton:SetPoint("LEFT", frame.dropdown.Label, "LEFT", 1, 0)
     frame.checkbox1 = self:checkbox(frame, {keystring=config.keystring..".hiddenInCombat"})
-    frame.checkbox1:SetPoint("LEFT", frame.dropdown.Label, "RIGHT", 45, -1)
+    frame.checkbox1:SetPoint("LEFT", frame.dropdown.Label, "RIGHT", 25, -1)
     frame.checkbox2 = self:checkbox(frame, {keystring=config.keystring..".defaultInCombat"})
     frame.checkbox2:SetPoint("LEFT", frame.checkbox1.Text, "RIGHT", 3, 0)
 --    frame.checkbox3 = self:checkbox(frame, {keystring=config.keystring..".defaultreturnOnUnitFrame"})
@@ -541,7 +540,7 @@ local options = {
         { keystring = "item.showStackCountAlt",     type = "checkbox" },
         { keystring = "item.coloredItemBorder",     type = "checkbox" },
         { keystring = "item.showItemIcon",          type = "checkbox" },
-		-- { keystring = "general.showItemLevel",	    type = "checkbox" },
+	{ keystring = "general.showItemLevel",	    type = "checkbox" },
         { keystring = "quest.coloredQuestBorder",   type = "checkbox" },
         { keystring = "general.alwaysShowIdInfo",   type = "checkbox" },        
         { keystring = "general.SavedVariablesPerCharacter",   type = "checkbox" },
@@ -615,7 +614,7 @@ local options = {
         { keystring = "general.statusbarTexture",   type = "dropdown", dropdata = widgets.barDropdata },
         { keystring = "general.statusbarPosition",  type = "dropdown", dropdata = {"default","bottom","top"} },
         { keystring = "general.statusbarColor",     type = "dropdown", dropdata = {"default","auto","smooth"} },
-        { keystring = "general.statusbarTextFormat", type = "dropdown", dropdata = {"healthmaxpercent", "healthpercent", "healthmax", "health", "percent"} },
+        { keystring = "general.statusbarTextFormat", type = "dropdown", dropdata = {"Health / Max (Percent)", "Health (Percent)", "Health / Max", "Health", "Percent"} },
     },
     spell = {
         { keystring = "spell.showIcon",             type = "checkbox" },
@@ -635,15 +634,11 @@ local options = {
 local frame = CreateFrame("Frame", nil, UIParent)
 frame.anchor = CreateFrame("Frame", nil, frame)
 frame.anchor:SetPoint("TOPLEFT", 32, -16)
-if (clientToc == 30401) then
-  frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
-else
-  frame.anchor:SetSize(SettingsPanel:GetWidth()-64, 1)
-end
+frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frame.title:SetPoint("TOPLEFT", 18, -16)
-frame.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["General"]))
-frame.name = L["Tooltip"]
+frame.title:SetText(format("%s |cff33eeff%s|r", addonName, "General"))
+frame.name = addonName
 
 frame.text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 frame.text:SetPoint("TOPLEFT", 30, -40)
@@ -652,16 +647,12 @@ frame.text:SetText("by |cffF58CBABeezer|r |cffff00ff<The Dragon Fighters>|r - |c
 local framePC = CreateFrame("Frame", nil, UIParent)
 framePC.anchor = CreateFrame("Frame", nil, framePC)
 framePC.anchor:SetPoint("TOPLEFT", 32, -13)
-if (clientToc == 30401) then
-  frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
-else
-  frame.anchor:SetSize(SettingsPanel:GetWidth()-64, 1)
-end
+frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 framePC.title = framePC:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 framePC.title:SetPoint("TOPLEFT", 18, -16)
-framePC.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Unit Is Player"]))
-framePC.parent = L["Tooltip"]
-framePC.name = L["Player"]
+framePC.title:SetText(format("%s |cff33eeff%s|r", addonName, "Unit Is Player"))
+framePC.parent = addonName
+framePC.name = " - Player"
 
 framePC.diy = CreateFrame("Button", nil, framePC)
 framePC.diy:SetSize(400, 67)
@@ -685,23 +676,19 @@ framePCScrollFrame:HookScript("OnScrollRangeChanged", function(self, xrange, yra
     self.ScrollBar:SetShown(floor(yrange) ~= 0)
 end)
 framePCScrollFrame:SetScrollChild(framePC)
-framePCScrollFrame.parent = L["Tooltip"]
-framePCScrollFrame.name = L["Player"]
+framePCScrollFrame.parent = addonName
+framePCScrollFrame.name = " - Player"
 framePCScrollFrame:Hide()
 
 local frameNPC = CreateFrame("Frame", nil, UIParent)
 frameNPC.anchor = CreateFrame("Frame", nil, frameNPC)
 frameNPC.anchor:SetPoint("TOPLEFT", 32, -16)
-if (clientToc == 30401) then
-  frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
-else
-  frame.anchor:SetSize(SettingsPanel:GetWidth()-64, 1)
-end
+frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frameNPC.title = frameNPC:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameNPC.title:SetPoint("TOPLEFT", 18, -16)
-frameNPC.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Unit Is NPC"]))
-frameNPC.parent = L["Tooltip"]
-frameNPC.name = "NPC"
+frameNPC.title:SetText(format("%s |cff33eeff%s|r", addonName, "Unit Is NPC"))
+frameNPC.parent = addonName
+frameNPC.name = " - NPC"
 
 frameNPC:SetSize(500, #options.npc*30)
 local frameNPCScrollFrame = CreateFrame("ScrollFrame", nil, UIParent, "UIPanelScrollFrameTemplate")
@@ -713,64 +700,48 @@ frameNPCScrollFrame:HookScript("OnScrollRangeChanged", function(self, xrange, yr
     self.ScrollBar:SetShown(floor(yrange) ~= 0)
 end)
 frameNPCScrollFrame:SetScrollChild(frameNPC)
-frameNPCScrollFrame.parent = L["Tooltip"]
-frameNPCScrollFrame.name = "NPC"
+frameNPCScrollFrame.parent = addonName
+frameNPCScrollFrame.name = " - NPC"
 
 local frameStatusbar = CreateFrame("Frame", nil, UIParent)
 frameStatusbar.anchor = CreateFrame("Frame", nil, frameStatusbar)
 frameStatusbar.anchor:SetPoint("TOPLEFT", 32, -16)
-if (clientToc == 30401) then
-  frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
-else
-  frame.anchor:SetSize(SettingsPanel:GetWidth()-64, 1)
-end
+frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frameStatusbar.title = frameStatusbar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameStatusbar.title:SetPoint("TOPLEFT", 18, -16)
-frameStatusbar.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["StatusBar"]))
-frameStatusbar.parent = L["Tooltip"]
-frameStatusbar.name = L["StatusBar"]
+frameStatusbar.title:SetText(format("%s |cff33eeff%s|r", addonName, "StatusBar"))
+frameStatusbar.parent = addonName
+frameStatusbar.name = " - StatusBar"
 
 local frameSpell = CreateFrame("Frame", nil, UIParent)
 frameSpell.anchor = CreateFrame("Frame", nil, frameSpell)
 frameSpell.anchor:SetPoint("TOPLEFT", 32, -16)
-if (clientToc == 30401) then
-  frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
-else
-  frame.anchor:SetSize(SettingsPanel:GetWidth()-64, 1)
-end
+frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frameSpell.title = frameSpell:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameSpell.title:SetPoint("TOPLEFT", 18, -16)
-frameSpell.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Spell"]))
-frameSpell.parent = L["Tooltip"]
-frameSpell.name = L["Spell"]
+frameSpell.title:SetText(format("%s |cff33eeff%s|r", addonName, "Spell"))
+frameSpell.parent = addonName
+frameSpell.name = " - Spell"
 
 local frameFont = CreateFrame("Frame", nil, UIParent)
 frameFont.anchor = CreateFrame("Frame", nil, frameFont)
 frameFont.anchor:SetPoint("TOPLEFT", 32, -16)
-if (clientToc == 30401) then
-  frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
-else
-  frame.anchor:SetSize(SettingsPanel:GetWidth()-64, 1)
-end
+frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frameFont.title = frameFont:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameFont.title:SetPoint("TOPLEFT", 18, -16)
-frameFont.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Font"]))
-frameFont.parent = L["Tooltip"]
-frameFont.name = L["Font"]
+frameFont.title:SetText(format("%s |cff33eeff%s|r", addonName, "Font"))
+frameFont.parent = addonName
+frameFont.name = " - Font"
 
 local frameVariables = CreateFrame("Frame", nil, UIParent)
 frameVariables.anchor = CreateFrame("Frame", nil, frameVariables)
 frameVariables.anchor:SetPoint("TOPLEFT", 32, -16)
-if (clientToc == 30401) then
-  frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
-else
-  frame.anchor:SetSize(SettingsPanel:GetWidth()-64, 1)
-end
+frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frameVariables.title = frameVariables:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameVariables.title:SetPoint("TOPLEFT", 18, -16)
-frameVariables.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Variables"]))
-frameVariables.parent = L["Tooltip"]
-frameVariables.name = L["Variables"]
+frameVariables.title:SetText(format("%s |cff33eeff%s|r", addonName, "Variables"))
+frameVariables.parent = addonName
+frameVariables.name = " - Variables"
 
 local function InitVariablesFrame()
     frameVariables.panel = CreateFrame("Frame", nil, frameVariables, "TinyTooltipReforgedVariablesTemplate")
@@ -792,9 +763,9 @@ local function InitVariablesFrame()
             addon.db = db
             frameVariables.panel.textarea.text:SetText("")
             LibEvent:trigger("TINYTOOLTIP_REFORGED_GENERAL_INIT")
-            print(L["|cffFFE4E1[TinyTooltipReforged]|r|cff00FFFF variables has been imported successfully. |r"])
+            print("|cffFFE4E1[TinyTooltipReforged]|r|cff00FFFF variables has been imported successfully. |r")
         else
-            print(L["|cffFFE4E1[TinyTooltipReforged]|r|cffFF3333 unvalidated variables. |r"])
+            print("|cffFFE4E1[TinyTooltipReforged]|r|cffFF3333 unvalidated variables. |r")
         end
     end)
 end

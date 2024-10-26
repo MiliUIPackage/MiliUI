@@ -68,18 +68,18 @@ local function UpdateHealthBar(self, hp)
     else
         if (hp<=0) then
             local percent = 0
-  	    self.TextString:SetFormattedText(addon.L["|cff999999Out of Range|r"])
+  	    self.TextString:SetFormattedText("|cff999999Out of Range|r")
         else
           local percent = ceil((hp*100)/maxhp)
-          if (addon.db.general.statusbarTextFormat == "healthmaxpercent") then
+          if (addon.db.general.statusbarTextFormat == "Health / Max (Percent)") then
               self.TextString:SetFormattedText("%s / %s (%d%%)", AbbreviateLargeNumbers(hp), AbbreviateLargeNumbers(maxhp), percent)
-          elseif (addon.db.general.statusbarTextFormat == "healthmax") then
+          elseif (addon.db.general.statusbarTextFormat == "Health / Max") then
               self.TextString:SetFormattedText("%s / %s", AbbreviateLargeNumbers(hp), AbbreviateLargeNumbers(maxhp))
-          elseif (addon.db.general.statusbarTextFormat == "percent") then
+          elseif (addon.db.general.statusbarTextFormat == "Percent") then
               self.TextString:SetFormattedText("%d%%", percent)
-          elseif (addon.db.general.statusbarTextFormat == "health") then
+          elseif (addon.db.general.statusbarTextFormat == "Health") then
               self.TextString:SetFormattedText("%s", AbbreviateLargeNumbers(hp))
-          elseif (addon.db.general.statusbarTextFormat == "healthpercent") then
+          elseif (addon.db.general.statusbarTextFormat == "Health (Percent)") then
               self.TextString:SetFormattedText("%s (%d%%)", AbbreviateLargeNumbers(hp), percent)
           else -- default
               self.TextString:SetFormattedText("%s / %s (%d%%)", AbbreviateLargeNumbers(hp), AbbreviateLargeNumbers(maxhp), percent)
@@ -125,7 +125,7 @@ LibEvent:attachEvent("VARIABLES_LOADED", function()
     --Variables
     if (IsTableEmpty(TinyTooltipReforgedDB) or 
         (addon.db.general.SavedVariablesPerCharacter and IsTableEmpty(TinyTooltipReforgedCharacterDB)) ) then
-        print(addon.L["|cFF00FFFF[TinyTooltipReforged]|r |cffFFE4E1Settings have been reset|r"])
+        print("|cFF00FFFF[TinyTooltipReforged]|r |cffFFE4E1Settings have been reset|r")
         TinyTooltipReforgedDB = addon.db
         TinyTooltipReforgedCharacterDB = addon.db
     end    
