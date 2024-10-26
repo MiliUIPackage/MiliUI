@@ -1,4 +1,4 @@
-## Interface: 110005
+## Interface: 40400
 ## Title: Baganator
 ## Version: 502
 ## Author: plusmouse
@@ -6,9 +6,7 @@
 ## SavedVariables: BAGANATOR_CONFIG, BAGANATOR_DATA
 ## IconTexture: Interface\AddOns\Baganator\Assets\logo.tga
 ## OptionalDependencies: WagoAnalytics
-## X-Category-zhTW: 物品
-## Title-zhTW: |cFF2DA267[物品]|r 背包整合
-## Notes-zhTW: Baganator|n功能強大的整合背包。
+
 
 Embeds\json.lua
 

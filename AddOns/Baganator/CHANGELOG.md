@@ -1,7 +1,6 @@
 # Baganator
 
-## [495](https://github.com/Baganator/Baganator/tree/495) (2024-09-27)
-[Full Changelog](https://github.com/Baganator/Baganator/compare/494...495) 
+## [502](https://github.com/Baganator/Baganator/tree/502) (2024-10-23)
+[Full Changelog](https://github.com/Baganator/Baganator/compare/501...502) 
 
-- Currency Panel: Tidy up code, converting to mixin  
-- Fix tooltip for tracked item as currency when swapping between item and currency  
+- Update toc for 11.0.5  
