@@ -1,4 +1,4 @@
-## Interface: 110002
+## Interface: 110005
 ## Author: Voopie
 ## Title: Maze Helper [|cff235be8Mists of Tirna Scithe|r]
 ## Notes: Your favorite helper for «Mists of Tirna Scithe»

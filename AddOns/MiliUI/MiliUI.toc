@@ -1,4 +1,4 @@
-﻿## Interface: 110002
+﻿## Interface: 110005
 ## Title: |cffffe00a<整合>|r |cff0088FF[米利UI套組]|r
 ## Notes: 歡迎使用米利UI套組。|nUI套組不定時更新，|n請上|cff9c27b0[奇樂-魔獸世界中文插件補給站]|r取得最新版本的UI。|n若有任何問題歡迎前往討論唷。|n|cffffd200https://addons.miliui.com|r
 ## IconTexture: Interface\AddOns\MiliUI\icon

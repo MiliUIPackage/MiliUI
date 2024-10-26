@@ -1,4 +1,4 @@
-## Interface: 110002
+## Interface: 110005
 ## Title: CursorTrail
 ## Title-zhTW: |cff0099FF[介面]|r 滑鼠軌跡
 ## Notes-zhTW: CursorTrail |n|n 為你的滑鼠游標加入發亮的軌跡特效。
