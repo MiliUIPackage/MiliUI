@@ -5,8 +5,6 @@ L["Not In Combat Tooltip"] = "\124cFFFF0000<Not available in combat>\124r"
 L["Random Hearthstone"] = "Random Hearthstone"
 L["Random Hearthstone Tooltip"] = "\124cFF34B7EBClick to cast a random hearthstone.\nIt will pick a new hearthstone when you re-open the menu.\124r"
 L["Random Hearthstone Location"] = "\n\124cFF34B7EBHearthstone Location:\124r \124cFF1EFF0C%s\124r"
-L["Bonus Hearthstones"] = "Bonus Hearthstones"
-L["Bonus Hearthstones Tooltip"] = "\124cFF34B7EBThese Hearthstones do not share cooldown with the other toys.\124r"
 L["Seasonal Teleports"] = "Seasonal Teleports"
 L["Seasonal Teleports Tooltip"] = "\124cFF34B7EBThese Teleports are for the current Mythic Keystone Season.\124r"
 L["Seasonal Teleports Toggle Tooltip"] = "Enable/Disable to only show the Seasonal Teleports.\n\n\124cFF34B7EBRequires a reload to take effect.\124r"
@@ -106,6 +104,37 @@ L["Dragonflight"] = "DF"
 L["Dragonflight Raids"] = "DF R"
 L["The War Within"] = "TWW"
 L["Season 1"] = "S1"
+
+-- Mage teleport/portal abreviated text
+-- Alliance
+L["Stormwind"] = "SW"
+L["Ironforge"] = "IF"
+L["Darnassus"] = "DS"
+L["Exodar"] = "EX"
+L["Theramore"] = "TH"
+L["Stormshield"] = "SS"
+L["Boralus"] = "BO"
+
+-- Horde
+L["Orgrimmar"] = "ORG"
+L["Undercity"] = "UC"
+L["Thunder Bluff"] = "TB"
+L["Silvermoon"] = "SM"
+L["Stonard"] = "STO"
+L["Warspear"] = "WS"
+L["Dazar'alor"] = "DAZ"
+
+-- Shared
+L["Shattrath"] = "SH"
+L["Dalaran - Northrend"] = "D-N"
+L["Tol Barad"] = "TOL"
+L["Vale of Eternal Blossoms"] = "VALE"
+L["Dalaran - Broken Isles"] = "D-BI"
+L["Oribos"] = "ORI"
+L["Valdrakken"] = "VALD"
+L["Dalaran - Ancient"] = "D-AP"
+L["Hall of the Guardian"] = "HotG"
+L["Dornogal"] = "DG"
 
 -- Options
 L["Enabled"] = "Enabled"
