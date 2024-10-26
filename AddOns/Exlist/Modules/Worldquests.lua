@@ -277,32 +277,34 @@ function Exlist.ScanQuests()
    for index, zoneId in ipairs(zones) do
       local wqs = C_TaskQuest.GetQuestsForPlayerByMapID(zoneId)
       for _, info in pairs(wqs or {}) do
-         local timeLeft = C_TaskQuest.GetQuestTimeLeftMinutes(info.questId) or 0
-         local rewards = GetQuestRewards(info.questId)
-         local checkRules, ruleid, targetReward = CheckRewardRules(rewards)
-         if (trackedQuests[info.questId] and trackedQuests[info.questId].enabled) or checkRules then
-            local name = C_TaskQuest.GetQuestInfoByQuestID(info.questId)
-            local objectives = C_QuestLog.GetQuestObjectives(info.questId)
-            local endTime = time() + (timeLeft * 60)
-            if targetReward then
-               rewards[targetReward].target = true
-            end
-            Exlist.Debug("Spotted", name, "world quest - ", key)
-            rt[#rt + 1] = {
-               name = name,
-               questId = info.questId,
-               endTime = endTime,
-               rewards = rewards,
-               zoneId = info.mapID, -- Use mapId provided from API... however Tiragarde Sound still return
-               -- Drustvar WQs.. soo why ????
-               ruleid = ruleid,
-               objectives = objectives
-            }
-         end
-         if timeLeft == 0 then
-            timeLeft = 5
-         end
-         tl = tl > timeLeft and timeLeft or tl
+         if info.questId then -- 暫時修正
+			 local timeLeft = C_TaskQuest.GetQuestTimeLeftMinutes(info.questId) or 0
+			 local rewards = GetQuestRewards(info.questId)
+			 local checkRules, ruleid, targetReward = CheckRewardRules(rewards)
+			 if (trackedQuests[info.questId] and trackedQuests[info.questId].enabled) or checkRules then
+				local name = C_TaskQuest.GetQuestInfoByQuestID(info.questId)
+				local objectives = C_QuestLog.GetQuestObjectives(info.questId)
+				local endTime = time() + (timeLeft * 60)
+				if targetReward then
+				   rewards[targetReward].target = true
+				end
+				Exlist.Debug("Spotted", name, "world quest - ", key)
+				rt[#rt + 1] = {
+				   name = name,
+				   questId = info.questId,
+				   endTime = endTime,
+				   rewards = rewards,
+				   zoneId = info.mapID, -- Use mapId provided from API... however Tiragarde Sound still return
+				   -- Drustvar WQs.. soo why ????
+				   ruleid = ruleid,
+				   objectives = objectives
+				}
+			 end
+			 if timeLeft == 0 then
+				timeLeft = 5
+			 end
+			 tl = tl > timeLeft and timeLeft or tl
+		 end
       end
    end
    -- Rescan Scheduling

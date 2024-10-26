@@ -1,4 +1,4 @@
-## Interface: 110005
+## Interface: 110002, 110005
 ## Title: Exlist
 ## Notes: Shows various information about your characters
 ## Title-zhTW: |r|cFFFFFFFF[其他]|r 我的分身名冊
@@ -6,7 +6,7 @@
 ## X-Category-zhTW: 團隊
 ## Author: Exality
 ## SavedVariables: Exlist_DB, Exlist_Config
-## Version: 1.8.6
+## Version: 1.8.7
 ## X-Curse-Project-ID: 284907
 ## X-WoWI-ID: 24636
 ## X-Wago-ID: pkNMj6z9

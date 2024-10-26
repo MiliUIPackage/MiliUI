@@ -1,14 +1,14 @@
-# [1.8.6](https://github.com/sragia/Exlist/tree/1.8.6) (2024-09-18)
+# [1.8.7](https://github.com/sragia/Exlist/tree/1.8.7) (2024-09-29)
 
-[Full Changelog](https://github.com/sragia/Exlist/compare/1.8.5...1.8.6)
+[Full Changelog](https://github.com/sragia/Exlist/compare/1.8.6...1.8.7)
 
 ## Highlights
 
- Update m+ affix thresholds 
+ Order currencies alphabetically 
 
 ## Commits
 
-Aigars Bedeicis (1):
+MarkW (1):
 
-- Update affix thresholds
+- Sort currencies by name in the tooltip
 

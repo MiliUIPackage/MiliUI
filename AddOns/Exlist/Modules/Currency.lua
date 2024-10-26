@@ -70,6 +70,7 @@ local function Updater(event)
          )
       end
    end
+   table.sort(t.currency, function(a, b) return a.name < b.name end)
    Exlist.UpdateChar(key, t)
 end
 local added = false
