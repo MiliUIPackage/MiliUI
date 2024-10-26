@@ -17,7 +17,7 @@ local GetTime = GetTime;
 local IsMouseButtonDown = IsMouseButtonDown;
 local GetMouseFocus = API.GetMouseFocus;
 local PlaySound = PlaySound;
-local GetSpellCharges = GetSpellCharges;
+local GetSpellCharges = C_Spell.GetSpellCharges;
 local C_Item = C_Item;
 local GetItemCount = C_Item.GetItemCount;
 local GetItemIconByID = C_Item.GetItemIconByID;
@@ -248,11 +248,24 @@ do  -- Checkbox
         if IsMouseButtonDown() then return end;
 
         if self.tooltip then
-            GameTooltip:Hide();
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-            GameTooltip:SetText(self.Label:GetText(), 1, 1, 1, true);
-            GameTooltip:AddLine(self.tooltip, 1, 0.82, 0, true);
-            GameTooltip:Show();
+            local f = GameTooltip;
+            f:Hide();
+            f:SetOwner(self, "ANCHOR_RIGHT");
+            f:SetText(self.Label:GetText(), 1, 1, 1, true);
+            f:AddLine(self.tooltip, 1, 0.82, 0, true);
+            if self.tooltip2 then
+                local tooltip2;
+                if type(self.tooltip2) == "function" then
+                    tooltip2 = self.tooltip2();
+                else
+                    tooltip2 = self.tooltip2;
+                end
+                if tooltip2 then
+                    f:AddLine(" ", 1, 0.82, 0, true);
+                    f:AddLine(tooltip2, 1, 0.82, 0, true);
+                end
+            end
+            f:Show();
         end
 
         if self.onEnterFunc then
@@ -339,6 +352,7 @@ do  -- Checkbox
     function CheckboxMixin:SetData(data)
         self.dbKey = data.dbKey;
         self.tooltip = data.tooltip;
+        self.tooltip2 = data.tooltip2;
         self.onClickFunc = data.onClickFunc;
         self.onEnterFunc = data.onEnterFunc;
         self.onLeaveFunc = data.onLeaveFunc;
@@ -560,6 +574,68 @@ do  -- Common Frame with Header (and close button)
     end
 
     addon.CreateHeaderFrame = CreateHeaderFrame;
+
+
+    local ExpandCollapseButtonMixin = {};
+
+    function ExpandCollapseButtonMixin:OnClick()
+        local parent = self:GetParent();
+        if parent.ToggleExpanded then
+            parent:ToggleExpanded();
+        end
+    end
+
+    function ExpandCollapseButtonMixin:ShowNormalTexture()
+        if self.expanded then
+            self.Texture:SetTexCoord(0, 0.15625, 0, 0.15625);
+        else
+            self.Texture:SetTexCoord(0, 0.15625, 0.15625, 0.3125);
+        end
+    end
+
+    function ExpandCollapseButtonMixin:ShowPushedTexture()
+        if self.expanded then
+            self.Texture:SetTexCoord(0.15625, 0.3125, 0, 0.15625);
+        else
+            self.Texture:SetTexCoord(0.15625, 0.3125, 0.15625, 0.3125);
+        end
+    end
+
+    function ExpandCollapseButtonMixin:SetExpanded(state)
+        self.expanded = state;
+        self:ShowNormalTexture();
+    end
+
+    local function CreateExpandCollapseButton(parent)
+        local b = CreateFrame("Button", nil, parent);
+        b:SetSize(BUTTON_MIN_SIZE, BUTTON_MIN_SIZE);
+
+        Mixin(b, ExpandCollapseButtonMixin);
+
+        b.Texture = b:CreateTexture(nil, "ARTWORK");
+        b.Texture:SetTexture("Interface/AddOns/Plumber/Art/Button/ExpandCollapseButton");
+        b.Texture:SetPoint("CENTER", b, "CENTER", 0, 0);
+        b.Texture:SetSize(20, 20);
+        DisableSharpening(b.Texture);
+
+        b.Highlight = b:CreateTexture(nil, "HIGHLIGHT");
+        b.Highlight:SetTexture("Interface/AddOns/Plumber/Art/Button/ExpandCollapseButton");
+        b.Highlight:SetBlendMode("ADD");
+        b.Highlight:SetPoint("CENTER", b, "CENTER", 0, 0);
+        b.Highlight:SetSize(20, 20);
+        b.Highlight:SetTexCoord(0.3125, 0.46875, 0, 0.15625);
+        b.Highlight:SetVertexColor(0.8, 0.8, 0.8);
+
+        b:SetExpanded(true);
+
+        b:SetScript("OnClick", b.OnClick);
+        b:SetScript("OnMouseUp", b.ShowNormalTexture);
+        b:SetScript("OnMouseDown", b.ShowPushedTexture);
+        b:SetScript("OnShow", b.ShowNormalTexture);
+
+        return b
+    end
+    addon.CreateExpandCollapseButton = CreateExpandCollapseButton;
 end
 
 do  -- TokenFrame   -- Money   -- Coin
@@ -805,7 +881,9 @@ do  -- TokenFrame   -- Money   -- Coin
 
     function MoneyDisplayMixin:SetAmountByDelta(addRawCopper, animte)
         if animte then
-            self.fromCopper = self.fromCopper or GetMoney();
+            if not self.fromCopper then
+                self.fromCopper = 0;
+            end
             self.toCopper = self.fromCopper + addRawCopper;
             self.updateTime = 0;
             self.totalTime = 0;
@@ -813,9 +891,9 @@ do  -- TokenFrame   -- Money   -- Coin
             self.showCopperDuringAnimation = floor(copper) > 0;
             self:SetScript("OnUpdate", self.OnUpdate_AnimateValue);
         else
-            self.fromCopper = self:GetAmount();
+            self.fromCopper = self:GetAmount() + addRawCopper;
             self.showCopperDuringAnimation = nil;
-            self:SetAmount(self:GetAmount() + addRawCopper);
+            self:SetAmount(self.fromCopper);
         end
     end
 
@@ -1394,13 +1472,23 @@ do  -- PeudoActionButton (a real ActionButtonTemplate will be attached to the bu
         end
     end
 
-    function PeudoActionButtonMixin:SetItem(item)
-        local icon = GetItemIconByID(item);
+    function PeudoActionButtonMixin:SetItem(item, icon)
+        icon = icon or GetItemIconByID(item);
         self:SetIcon(icon);
         self.id = item;
         self.actionType = "item";
         local stackSize = GetItemMaxStackSizeByID(item)
         self.stackable = stackSize and stackSize > 1;
+        self:UpdateCount();
+    end
+
+    function PeudoActionButtonMixin:SetSpell(spell, icon)
+        if not icon then
+            icon = C_Spell.GetSpellTexture(spell);
+        end
+        self:SetIcon(icon);
+        self.id = spell;
+        self.actionType = "spell";
         self:UpdateCount();
     end
 
@@ -1415,22 +1503,22 @@ do  -- PeudoActionButton (a real ActionButtonTemplate will be attached to the bu
                 self.Count:SetText("");
             end
         elseif self.actionType == "spell" then
-            local currentCharges, maxCharges = GetSpellCharges();
+            local currentCharges, maxCharges = GetSpellCharges(self.id);
             if currentCharges then
                 count = currentCharges;
             else
+                count = 1;
                 self.Count:SetText("");
             end
         end
-
-        self.charges = count;
 
         if count > 0 then
             self:SetIconState(1);
         else
             self:SetIconState(2);
-            --self.Count:SetText("");
         end
+
+        self.charges = count;
     end
 
     function PeudoActionButtonMixin:GetCharges()
@@ -1475,7 +1563,7 @@ do  -- PeudoActionButton (a real ActionButtonTemplate will be attached to the bu
         NormalTexture:SetTexture("Interface/AddOns/Plumber/Art/Button/ActionButtonCircle-Border");
         NormalTexture:SetTexCoord(0, 1, 0, 1);
         button:SetNormalTexture(NormalTexture);
-    
+
         local PushedTexture = button:CreateTexture(nil, "OVERLAY", nil, 2);
         button.PushedTexture = PushedTexture;
         PushedTexture:SetSize(64, 64);
@@ -1771,6 +1859,18 @@ do  --(In)Secure Button Pool
         return button
     end
     addon.AcquireSecureActionButton = AcquireSecureActionButton;
+
+    local function HideSecureActionButton(privateKey)
+        if InCombatLockdown() then return end;
+
+        if privateKey then
+            local button = PrivateSecureButtons[privateKey];
+            if button then
+                button:Release();
+            end
+        end
+    end
+    addon.HideSecureActionButton = HideSecureActionButton;
 end
 
 do
@@ -3806,7 +3906,7 @@ do  --Slider
 
         if userInput then
             if self.onValueChangedFunc then
-                self.onValueChangedFunc(value);
+                self.onValueChangedFunc(value, true);
             end
         end
     end
@@ -3867,6 +3967,8 @@ do  --Slider
         DisableSharpening(self.Slider.Left);
         DisableSharpening(self.Slider.Middle);
         DisableSharpening(self.Slider.Right);
+
+        self:SetLabelWidth(144);
     end
 
     function SliderFrameMixin:Enable()
@@ -3933,6 +4035,12 @@ do  --Slider
         self.onValueChangedFunc = onValueChangedFunc;
     end
 
+    function SliderFrameMixin:SetLabelWidth(width)
+        self.Label:SetWidth(width);
+        self:SetWidth(242 + width);
+        self.Slider:SetPoint("LEFT", self, "LEFT", 28 + width, 0);
+    end
+
     local function FormatValue(value)
         return value
     end
@@ -3960,24 +4068,35 @@ do  --UIPanelButton
 
     end
 
+    function UIPanelButtonMixin:SetButtonState(stateIndex)
+        --1 Normal  2 Pushed  3 Disabled
+        if stateIndex == 1 then
+            self.Background:SetTexCoord(0/512, 128/512, 0, 0.125);
+        elseif stateIndex == 2 then
+            self.Background:SetTexCoord(132/512, 260/512, 0, 0.125);
+        elseif stateIndex == 3 then
+            self.Background:SetTexCoord(264/512, 392/512, 0, 0.125);
+        end
+    end
+
     function UIPanelButtonMixin:OnMouseDown(button)
         if self:IsEnabled() then
-            self.Background:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton-Down");
+            self:SetButtonState(2);
         end
     end
 
     function UIPanelButtonMixin:OnMouseUp(button)
         if self:IsEnabled() then
-            self.Background:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton-Up");
+            self:SetButtonState(1);
         end
     end
 
     function UIPanelButtonMixin:OnDisable()
-        self.Background:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton-Disabled");
+        self:SetButtonState(3);
     end
 
     function UIPanelButtonMixin:OnEnable()
-        self.Background:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton-Up");
+        self:SetButtonState(1);
     end
 
     function UIPanelButtonMixin:OnEnter()
@@ -4005,28 +4124,217 @@ do  --UIPanelButton
         f:SetScript("OnDisable", f.OnDisable);
 
         f.Background = f:CreateTexture(nil, "BACKGROUND");
-        f.Background:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton-Up");
+        f.Background:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton");
         f.Background:SetTextureSliceMargins(32, 16, 32, 16);
         f.Background:SetTextureSliceMode(1);
         f.Background:SetAllPoints(true);
         DisableSharpening(f.Background);
 
         f.Highlight = f:CreateTexture(nil, "HIGHLIGHT");
-        f.Highlight:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton-Highlight");
+        f.Highlight:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton");
         f.Highlight:SetTextureSliceMargins(32, 16, 32, 16);
         f.Highlight:SetTextureSliceMode(0);
         f.Highlight:SetAllPoints(true);
         f.Highlight:SetBlendMode("ADD");
         f.Highlight:SetVertexColor(0.5, 0.5, 0.5);
+        f.Highlight:SetTexCoord(396/512, 1, 0, 0.125);
 
         f:SetNormalFontObject("GameFontNormal");
         f:SetHighlightFontObject("GameFontHighlight");
         f:SetDisabledFontObject("GameFontDisable");
         f:SetPushedTextOffset(0, -1);
 
+        f:SetButtonState(1);
+
         return f
     end
     addon.CreateUIPanelButton = CreateUIPanelButton;
+end
+
+do  --KeybindButton
+    local KeybindListener = CreateFrame("Frame");
+
+    function KeybindListener:SetOwner(keybindButton)
+        if keybindButton:IsVisible() then
+            self:OnHide();
+            self:SetParent(keybindButton);
+            self.owner = keybindButton;
+            self:SetScript("OnKeyDown", self.OnKeyDown);
+            self:Show();
+        end
+    end
+
+    function KeybindListener:OnHide()
+        self:Hide();
+        self:SetScript("OnKeyDown", nil);
+        if self.owner then
+            self.owner:ListenKey(false);
+            self.owner = nil;
+        end
+    end
+    KeybindListener:SetScript("OnHide", KeybindListener.OnHide);
+
+    KeybindListener.invalidKeys = {
+        ESCAPE = true,
+        UNKNOWN = true,
+        PRINTSCREEN = true,
+    };
+
+    function KeybindListener:OnKeyDown(key, down)
+        if self.invalidKeys[key] then
+            self:Hide();
+            return
+        end
+
+        if self.owner then
+            self.owner:SetKeyText(key);
+            if self.owner.dbKey then
+                addon.SetDBValue(self.owner.dbKey, key, true);
+            end
+        end
+
+        self:Hide();
+    end
+
+
+    local KeybindButtonMixin = {};
+
+    function KeybindButtonMixin:OnClick(button)
+        if button == "LeftButton" then
+            self.isActive = not self.isActive;
+            self:ListenKey(self.isActive);
+        else
+            self:ListenKey(false);
+        end
+    end
+
+    function KeybindButtonMixin:ListenKey(state)
+        self.isActive = state;
+        if state then
+            self:SetButtonState(3);
+            KeybindListener:SetOwner(self);
+        else
+            self:SetButtonState(1);
+            if KeybindListener.owner == self then
+                KeybindListener:Hide();
+            end
+        end
+    end
+
+    function KeybindButtonMixin:SetButtonState(stateIndex)
+        --1 Normal  2 Pushed  3 Activated
+        if stateIndex == 1 then
+            self.Background:SetTexCoord(0/512, 128/512, 68/512, 132/512);
+            self.Highlight:SetTexCoord(396/512, 1, 68/512, 132/512);
+            self:UnlockHighlight();
+            self.Highlight:SetVertexColor(0.5, 0.5, 0.5);
+        elseif stateIndex == 2 then
+            self.Background:SetTexCoord(132/512, 260/512, 68/512, 132/512);
+            self.Highlight:SetTexCoord(396/512, 1, 68/512, 132/512);
+            self:UnlockHighlight();
+            self.Highlight:SetVertexColor(0.5, 0.5, 0.5);
+        elseif stateIndex == 3 then
+            self.Background:SetTexCoord(0/512, 128/512, 68/512, 132/512);
+            self.Highlight:SetTexCoord(270/512, 386/512, 68/512, 132/512);
+            self.Highlight:SetVertexColor(0.8, 0.8, 0.8);
+            self:LockHighlight();
+        end
+    end
+
+    function KeybindButtonMixin:OnMouseDown(button)
+        self:SetButtonState(2);
+    end
+
+    function KeybindButtonMixin:OnMouseUp(button)
+        self:SetButtonState(1);
+    end
+
+    function KeybindButtonMixin:OnDisable()
+
+    end
+
+    function KeybindButtonMixin:OnEnable()
+
+    end
+
+    function KeybindButtonMixin:OnEnter()
+        if self.tooltip then
+            local f = GameTooltip;
+            f:Hide();
+            f:SetOwner(self, "ANCHOR_RIGHT");
+            f:SetText(self.Label:GetText(), 1, 1, 1, true);
+            f:AddLine(self.tooltip, 1, 0.82, 0, true);
+            f:Show();
+        end
+    end
+
+    function KeybindButtonMixin:OnLeave()
+        GameTooltip:Hide();
+    end
+
+    function KeybindButtonMixin:SetLabel(text)
+        self.Label:SetText(text);
+        self.effectiveWidth = self:GetWidth() + 20 + self.Label:GetWrappedWidth();
+    end
+
+    function KeybindButtonMixin:SetKeyText(text)
+        if text and type(text) == "string" then
+            self:SetText(text);
+        else
+            text = NOT_BOUND or "Not Bound";
+            self:SetText("|cff808080"..text.."|r");
+        end
+    end
+
+    local function CreateKeybindButton(parent)
+        local f = CreateFrame("Button", nil, parent);
+        f:SetSize(144, 24);
+        Mixin(f, KeybindButtonMixin);
+
+        f:SetScript("OnMouseDown", f.OnMouseDown);
+        f:SetScript("OnMouseUp", f.OnMouseUp);
+        f:SetScript("OnEnter", f.OnEnter);
+        f:SetScript("OnLeave", f.OnLeave);
+        f:SetScript("OnEnable", f.OnEnable);
+        f:SetScript("OnDisable", f.OnDisable);
+        f:SetScript("OnClick", f.OnClick);
+
+        f.Background = f:CreateTexture(nil, "BACKGROUND");
+        f.Background:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton");
+        f.Background:SetTextureSliceMargins(32, 16, 32, 16);
+        f.Background:SetTextureSliceMode(1);
+        f.Background:SetAllPoints(true);
+        DisableSharpening(f.Background);
+
+        f.Highlight = f:CreateTexture(nil, "HIGHLIGHT");
+        f.Highlight:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton");
+        f.Highlight:SetTextureSliceMargins(32, 16, 32, 16);
+        f.Highlight:SetTextureSliceMode(0);
+        f.Highlight:SetAllPoints(true);
+        f.Highlight:SetBlendMode("ADD");
+        f.Highlight:SetVertexColor(0.5, 0.5, 0.5);
+        f.Highlight:SetTexCoord(396/512, 1, 68/512, 132/512);
+
+        f:SetNormalFontObject("GameFontHighlight");
+        f:SetHighlightFontObject("GameFontHighlight");
+        f:SetDisabledFontObject("GameFontDisable");
+        f:SetPushedTextOffset(0, -1);
+
+        f.Label = f:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+        f.Label:SetJustifyH("RIGHT");
+        f.Label:SetJustifyV("MIDDLE");
+        f.Label:SetTextColor(1, 0.82, 0);
+        f.Label:SetPoint("RIGHT", f, "LEFT", -20, 0);
+        f.Label:SetWidth(144);
+
+        f.effectiveWidth = 288;
+        f.align = "center";
+
+        f:SetButtonState(1);
+
+        return f
+    end
+    addon.CreateKeybindButton = CreateKeybindButton;
 end
 
 do  --EditMode
@@ -4087,6 +4395,10 @@ do  --EditMode
             if self:IsShown() and not(self.parent:IsFocused() or IsMouseOverOptionToggle()) then
                 self:ShowHighlighted();
                 self.parent:ShowOptions(false);
+
+                if self.parent.ExitEditMode and not API.IsInEditMode() then
+                    self.parent:ExitEditMode();
+                end
             end
         end
     end
@@ -4143,7 +4455,7 @@ do  --EditMode
 
 
     local EditModeSettingsDialog;
-    local DIALOG_WIDTH = 382;
+    local DIALOG_WIDTH = 432;
 
     local EditModeSettingsDialogMixin = {};
 
@@ -4170,6 +4482,7 @@ do  --EditMode
         self.uiPanelButtonPool:ReleaseAll();
         self.texturePool:ReleaseAll();
         self.fontStringPool:ReleaseAll();
+        self.keybindButtonPool:ReleaseAll();
     end
 
     function EditModeSettingsDialogMixin:Layout()
@@ -4180,20 +4493,43 @@ do  --EditMode
         local height = topPadding;
         local widgetHeight;
         local contentWidth = DIALOG_WIDTH - 2*leftPadding;
+        local preOffset, postOffset;
 
         for order, widget in ipairs(self.activeWidgets) do
             if widget.isGap then
                 height = height + 8 + OPTION_GAP_Y;
             else
-                widget:SetPoint("TOPLEFT", self, "TOPLEFT", leftPadding, -height);
+                if widget.widgetType == "Divider" then
+                    preOffset = 2;
+                    postOffset = 2;
+                else
+                    preOffset = 0;
+                    postOffset = 0;
+                end
+
+                height = height + preOffset;
+
+                if widget.align and widget.align ~= "left" then
+                    if widget.align == "center" then
+                        if widget.effectiveWidth then
+                            widget:SetPoint("TOPRIGHT", self, "TOPRIGHT", -0.5*(contentWidth - widget.effectiveWidth) - leftPadding, -height);
+                        else
+                            widget:SetPoint("TOP", self, "TOP", 0, -height);
+                        end
+                    else
+                        widget:SetPoint("TOPRIGHT", self, "TOPRIGHT", -leftPadding, -height);
+                    end
+                else
+                    widget:SetPoint("TOPLEFT", self, "TOPLEFT", leftPadding, -height);
+                end
                 widgetHeight = Round(widget:GetHeight());
-                height = height + widgetHeight + OPTION_GAP_Y;
+                height = height + widgetHeight + OPTION_GAP_Y + postOffset;
                 if widget.matchParentWidth then
                     widget:SetWidth(contentWidth);
                 end
             end
         end
-        
+
         height = height - OPTION_GAP_Y + bottomPadding;
         self:SetHeight(height);
     end
@@ -4209,11 +4545,12 @@ do  --EditMode
             widget = self.uiPanelButtonPool:Acquire();
         elseif type == "Texture" then
             widget = self.texturePool:Acquire();
-            widget.isDivider = nil;
             widget.matchParentWidth = nil;
         elseif type == "FontString" then
             widget = self.fontStringPool:Acquire();
             widget.matchParentWidth = true;
+        elseif type == "Keybind" then
+            widget = self.keybindButtonPool:Acquire();
         end
 
         return widget
@@ -4273,8 +4610,8 @@ do  --EditMode
         texture:SetTextureSliceMargins(48, 4, 48, 4);
         texture:SetTextureSliceMode(0);
         texture:SetHeight(4);
-        texture.isDivider = true;
         texture.matchParentWidth = true;
+        DisableSharpening(texture);
         return texture
     end
 
@@ -4286,6 +4623,15 @@ do  --EditMode
         fontString.matchParentWidth = true;
         fontString:SetText(widgetData.label);
         return fontString
+    end
+
+    function EditModeSettingsDialogMixin:CreateKeybindButton(widgetData)
+        local button = self:AcquireWidgetByType("Keybind");
+        button.dbKey = widgetData.dbKey;
+        button.tooltip = widgetData.tooltip;
+        button:SetKeyText(addon.GetDBValue(widgetData.dbKey));
+        button:SetLabel(widgetData.label);
+        return button
     end
 
     function EditModeSettingsDialogMixin:SetupOptions(schematic)
@@ -4308,11 +4654,14 @@ do  --EditMode
                         widget = self:CreateDivider(widgetData);
                     elseif widgetData.type == "Header" then
                         widget = self:CreateHeader(widgetData);
+                    elseif widgetData.type == "Keybind" then
+                        widget = self:CreateKeybindButton(widgetData);
                     end
 
                     if widget then
                         tinsert(self.activeWidgets, widget);
                         widget.widgetKey = widgetData.widgetKey;
+                        widget.widgetType = widgetData.type;
                     end
                 end
             end
@@ -4410,6 +4759,11 @@ do  --EditMode
                 return f:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
             end
             f.fontStringPool = API.CreateObjectPool(CreateFontString);
+
+            local function CreateKeybindButton()
+                return addon.CreateKeybindButton(f);
+            end
+            f.keybindButtonPool = API.CreateObjectPool(CreateKeybindButton);
         end
 
         if (schematic ~= EditModeSettingsDialog.schematic) then

@@ -32,7 +32,7 @@ L["Module Category AzerothianArchives"] = "Azerothian Archives";     --Added in 
 
 --AutoJoinEvents
 L["ModuleName AutoJoinEvents"] = "Auto Join Events";
-L["ModuleDescription AutoJoinEvents"] = "Auto select (Begin Time Rift) when you interact with Soridormi during the event.";
+L["ModuleDescription AutoJoinEvents"] = "Auto join these events when you interact with the NPC: \n\n- Time Rift\n\n- Theater Troupe";
 
 
 --BackpackItemTracker
@@ -194,9 +194,20 @@ L["ModuleName Delves_SeasonProgress"] = "Delves: Delver's Journey";
 L["ModuleDescription Delves_SeasonProgress"] = "Display a progress bar on the top of the screen whenever you earn Delver's Journey";
 
 
+--WoW Anniversary
+L["ModuleName WoWAnniversary"] = "WoW Anniversary";
+L["ModuleDescription WoWAnniversary"] = "- Summon the corresponding mount easily during the Mount Maniac event.\n\n- Show voting results during the Fashion Frenzy event. ";
+L["Voting Result Header"] = "Results";
+
+
+--BlizzFixFishingArtifact
+L["ModuleName BlizzFixFishingArtifact"] = "Blitz Fix: Underlight Angler";
+L["ModuleDescription BlizzFixFishingArtifact"] = "Allow you to view the fishing artifact\'s traits again.";
+
+
 --Loot UI
 L["ModuleName LootUI"] = HUD_EDIT_MODE_LOOT_FRAME_LABEL or "Loot Window";
-L["ModuleDescription LootUI"] = "Replace the default Loot Window and provide some optional features:\n\n- Loot items fast\n\n- Fix Auto Loot failure bug.\n\n- Show a Take All button when looting manually.";
+L["ModuleDescription LootUI"] = "Replace the default Loot Window and provide some optional features:\n\n- Loot items fast.\n\n- Fix Auto Loot failure bug.\n\n- Show a Take All button when looting manually.";
 L["Take All"] = "Take All";     --Take all items from a loot window
 L["You Received"] = YOU_RECEIVED_LABEL or "You recieved";
 L["Reach Currency Cap"] = "Reached currency caps";
@@ -205,13 +216,21 @@ L["Sample Item 3"] = "Awesome Rare Item";
 L["Sample Item 2"] = "Awesome Uncommon Item";
 L["Sample Item 1"] = "Common Item";
 L["EditMode LootUI"] =  "Plumber: "..(HUD_EDIT_MODE_LOOT_FRAME_LABEL or "Loot Window");
+L["Manual Loot Instruction Format"] = "To temporarily cancel auto loot on a specific pickup, press and hold |cffffffff%s|r key until the loot window appears.";
 L["LootUI Option Force Auto Loot"] = "Force Auto Loot";
-L["LootUI Option Force Auto Loot Tooltip"] = "Always enable Auto Loot to counter the occasional auto loot failure.\n\nTo temporarily cancel auto loot on a specific pickup, press and hold %s key until the loot window appears.";
+L["LootUI Option Force Auto Loot Tooltip"] = "Always enable Auto Loot to counter the occasional auto loot failure.";
 L["LootUI Option Owned Count"] = "Show Number Of Owned Items";
 L["LootUI Option New Transmog"] = "Mark Uncollected Appearance";
 L["LootUI Option New Transmog Tooltip"] = "Add a marker %s if you have not collected the item's appearance.";
 L["LootUI Option Use Hotkey"] = "Press Key To Take All Items";
 L["LootUI Option Use Hotkey Tooltip"] = "While in Manual Looting mode, press the following hotkey to take all items.";
+L["LootUI Option Fade Delay"] = "Fade Out Delay Per Item";
+L["LootUI Option Replace Default"] = "Replace Default Loot Alert";
+L["LootUI Option Replace Default Tooltip"] = "Replace the default loot alerts that usually appear above the action bars.";
+L["LootUI Option Loot Under Mouse"] = LOOT_UNDER_MOUSE_TEXT or "Open Loot Window at Mouse";
+L["LootUI Option Loot Under Mouse Tooltip"] = "While in |cffffffffManual Loot|r mode, the window will appear under the current mouse location";
+L["LootUI Option Use Default UI"] = "Use Default Loot Window";
+L["LootUI Option Use Default UI Tooltip"] = "Use WoW\'s default loot window.\n\n|cffff4800Enabling this option nullifies all settings above.|r";
 
 
 --Generic

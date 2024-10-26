@@ -1,5 +1,5 @@
-local VERSION_TEXT = "v1.4.0";
-local VERSION_DATE = 1727700000;
+local VERSION_TEXT = "v1.4.5";
+local VERSION_DATE = 1729030000;
 
 
 local addonName, addon = ...
@@ -75,6 +75,11 @@ local function SetDBValue(dbKey, value, userInput)
 end
 addon.SetDBValue = SetDBValue;
 
+local function GetDBBool(dbKey)
+    return DB[dbKey] == true
+end
+addon.GetDBBool = GetDBBool;
+
 
 local DefaultValues = {
     AutoJoinEvents = true,
@@ -94,7 +99,9 @@ local DefaultValues = {
     TooltipRepTokens = true,            --Show faction info for items that grant rep
     ExpansionLandingPage = true,        --Display extra info on the ExpansionLandingPage
     Delves_SeasonProgress = true,       --Display Seaonal Journey changes on a progress bar
-
+    WoWAnniversary = true,              --QuickSlot for Mount Maniac Event
+        VotingResultsExpanded = true,
+    BlizzFixFishingArtifact = true,     --Fix Fishing Artifact Traits Not Showing bug
 
     --Custom Loot Window
     LootUI = false,
@@ -104,6 +111,10 @@ local DefaultValues = {
         LootUI_HotkeyName = "E",
         LootUI_ForceAutoLoot = true,
         LootUI_NewTransmogIcon = true,
+        LootUI_FadeDelayPerItem = 0.25,
+        LootUI_ReplaceDefaultAlert = false,
+        LootUI_LootUnderMouse = false;
+        LootUI_UseStockUI = false,
 
 
     --Unified Map Pin System
@@ -179,7 +190,8 @@ do
     local tocVersion = select(4, GetBuildInfo());
     tocVersion = tonumber(tocVersion or 0);
 
-    addon.IsGame_10_2_0 = tocVersion >= 100200;
-    addon.IsGame_11_0_0 = tocVersion >= 110000;
-    addon.IsGame_11_0_2 = tocVersion >= 110002;
+    local function IsToCVersionEqualOrNewerThan(targetVersion)
+        return tocVersion >= targetVersion
+    end
+    addon.IsToCVersionEqualOrNewerThan = IsToCVersionEqualOrNewerThan;
 end

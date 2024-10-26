@@ -1,4 +1,4 @@
-if not (GetLocale() == "zhCN") then return end;
+if not (GetLocale() == "zhTW") then return end;
 
 
 
@@ -32,7 +32,7 @@ L["Module Category AzerothianArchives"] = "艾澤拉斯檔案館";     --Added i
 
 --AutoJoinEvents
 L["ModuleName AutoJoinEvents"] = "自動加入活動";
-L["ModuleDescription AutoJoinEvents"] = "在時空裂隙事件期間與索莉多米對話會自動選擇加入活動。";
+L["ModuleDescription AutoJoinEvents"] = "與NPC交互時自動加入以下事件：\n\n- 時空裂隙\n\n- 劇場巡演";
 
 
 --BackpackItemTracker
@@ -194,6 +194,17 @@ L["ModuleName Delves_SeasonProgress"] = "探究: 賽季進度";
 L["ModuleDescription Delves_SeasonProgress"] = "在你提升“探究行者的旅程”時顯示一個進度條。";
 
 
+--WoW Anniversary
+L["ModuleName WoWAnniversary"] = "魔獸周年慶";
+L["ModuleDescription WoWAnniversary"] = "- 在坐騎狂歡活動期間輕鬆召喚相應坐騎。\n\n- 在時尚比賽期間顯示投票結果。";
+L["Voting Result Header"] = "投票結果";
+
+
+--BlizzFixFishingArtifact
+L["ModuleName BlizzFixFishingArtifact"] = "幽光魚竿修復";
+L["ModuleDescription BlizzFixFishingArtifact"] = "修復釣魚神器幽光魚竿特質不顯示的問題。";
+
+
 --Loot UI
 L["ModuleName LootUI"] = "拾取窗口";
 L["ModuleDescription LootUI"] = "替換預設的拾取窗口並提供以下功能：\n\n- 快速拾取所有物品\n\n- 修復自動拾取有時失效的問題\n\n- 手動拾取時顯示“全部拾取”按鈕";
@@ -205,6 +216,7 @@ L["Sample Item 3"] = "超棒的精良物品";
 L["Sample Item 2"] = "不錯的優秀物品";
 L["Sample Item 1"] = "一般的普通物品";
 L["EditMode LootUI"] =  "Plumber: 拾取窗口";
+L["Manual Loot Instruction Format"] = "如想暫時取消一次自動拾取，請按住|cffffffff%s|r鍵直到拾取窗口出現。";
 L["LootUI Option Force Auto Loot"] = "強制自動拾取";
 L["LootUI Option Force Auto Loot Tooltip"] = "強制使用自動拾取以修復自動拾取有時失效的問題。\n\n如想暫時取消一次自動拾取，請按住%s鍵直到拾取窗口出現。";
 L["LootUI Option Owned Count"] = "顯示已擁有的數量";
@@ -212,6 +224,13 @@ L["LootUI Option New Transmog"] = "標記未收集的外觀";
 L["LootUI Option New Transmog Tooltip"] = "用 %s 標記出還未收集外觀的物品。";
 L["LootUI Option Use Hotkey"] = "按快捷鍵拾取全部物品";
 L["LootUI Option Use Hotkey Tooltip"] = "在手動拾取模式下按快捷鍵來拾取全部物品。";
+L["LootUI Option Fade Delay"] = "每件物品推遲自動隱藏倒計時";
+L["LootUI Option Replace Default"] = "替換獲得物品提示";
+L["LootUI Option Replace Default Tooltip"] = "替換預設的獲得物品提示。這些提示通常出現在技能欄上方。";
+L["LootUI Option Loot Under Mouse"] = "鼠標位置打開拾取窗口";
+L["LootUI Option Loot Under Mouse Tooltip"] = "處於|cffffffff手動拾取|r模式時, 在鼠標位置打開拾取窗口。";
+L["LootUI Option Use Default UI"] = "使用預設拾取窗口";
+L["LootUI Option Use Default UI Tooltip"] = "使用WoW預設的拾取窗口。\n\n|cffff4800勾選此選項會使以上所有選項無效。|r";
 
 
 --Generic

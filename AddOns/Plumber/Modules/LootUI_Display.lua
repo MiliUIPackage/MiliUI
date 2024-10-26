@@ -21,8 +21,12 @@ local IsFishingLoot = IsFishingLoot;
 local GetMoney = GetMoney;
 local GetItemReagentQualityByItemInfo = C_TradeSkillUI.GetItemReagentQualityByItemInfo;
 local GetItemInfoInstant = C_Item.GetItemInfoInstant;
+local GetItemInfo = C_Item.GetItemInfo;
 local IsModifiedClick = IsModifiedClick;
 local GetCVarBool = C_CVar.GetCVarBool;
+local GetCurrencyIDFromLink = C_CurrencyInfo.GetCurrencyIDFromLink;
+local GetCurrencyInfoFromLink = C_CurrencyInfo.GetCurrencyInfoFromLink;
+
 
 local tsort = table.sort;
 local pairs = pairs;
@@ -46,6 +50,11 @@ local ENABLE_MODULE = false;
 
 -- User Settings
 local FORCE_AUTO_LOOT = true;
+local AUTO_LOOT_ENABLE_TOOLTIP = true;
+local FADE_DELAY_PER_ITEM = 0.25;
+local REPLACE_LOOT_ALERT = true;
+local LOOT_UNDER_MOUSE = false;
+local USE_STOCK_UI = false;
 ------------------
 
 local CLASS_SORT_ORDER = {
@@ -120,7 +129,11 @@ local function MergeData(d1, d2)
                 end
             else
                 if d1.id == d2.id then
-                    d1.quantity = d1.quantity + d2.quantity;
+                    if (d1.quantity == d2.quantity) and (d1.toast ~= d2.toast) then
+                        d1.toast = true;
+                    else
+                        d1.quantity = d1.quantity + d2.quantity;
+                    end
                     return true
                 end
             end
@@ -143,6 +156,12 @@ do  --Process Loot Message
                             local count = GetItemCountFromText(text);
                             if count then
                                 data.quantity = count;
+                            end
+                            if AUTO_LOOT_ENABLE_TOOLTIP then
+                                local link = match(text, "|H(item[:%d]+)|h", 1);
+                                if link then
+                                    data.link = link;
+                                end
                             end
                             MainFrame:QueueDisplayLoot(data);
                         end
@@ -204,6 +223,10 @@ do  --Event Handler
         --"TRANSMOG_COLLECTION_SOURCE_ADDED",
     };
 
+    local ALERT_SYSTEM_EVENTS = {
+        "SHOW_LOOT_TOAST",
+    }
+
     function EL:ListenStaticEvent(state)
         if state then
             for _, event in ipairs(STATIC_EVENTS) do
@@ -212,6 +235,35 @@ do  --Event Handler
         else
             for _, event in ipairs(STATIC_EVENTS) do
                 EL:UnregisterEvent(event);
+            end
+        end
+    end
+
+    function EL:ListenAlertSystemEvent(state)
+        local f = AlertFrame;
+
+        if state then
+            if not self.enabled then return end;
+
+            self.alertSystemMuted = true;
+            for _, event in ipairs(ALERT_SYSTEM_EVENTS) do
+                self:RegisterEvent(event);
+            end
+
+            if f then
+                for _, event in ipairs(ALERT_SYSTEM_EVENTS) do
+                    f:UnregisterEvent(event);
+                end
+            end
+        elseif self.alertSystemMuted then
+            for _, event in ipairs(ALERT_SYSTEM_EVENTS) do
+                self:UnregisterEvent(event);
+            end
+
+            if f then
+                for _, event in ipairs(ALERT_SYSTEM_EVENTS) do
+                    f:RegisterEvent(event);
+                end
             end
         end
     end
@@ -329,16 +381,26 @@ do  --Event Handler
         if numItems == 0 then
            CloseLoot();
            return
-        else
-            self:ListenDynamicEvents(true);
-            self:RegisterEvent("UI_ERROR_MESSAGE");
-            self:RegisterEvent("LOOT_SLOT_CHANGED");
-            self:RegisterEvent("LOOT_SLOT_CLEARED");
-            if acquiredFromItem then
-				PlaySound(SOUNDKIT.UI_CONTAINER_ITEM_OPEN);
-			elseif IsFishingLoot() then
-				PlaySound(SOUNDKIT.FISHING_REEL_IN);
+        end
+
+        if USE_STOCK_UI then
+            if not isAutoLoot and not useManualMode then
+                --When game sends conflicting signals
+                for slotIndex = 1, numItems do
+                    LootSlot(slotIndex);
+                end
             end
+            return
+        end
+
+        self:ListenDynamicEvents(true);
+        self:RegisterEvent("UI_ERROR_MESSAGE");
+        self:RegisterEvent("LOOT_SLOT_CHANGED");
+        self:RegisterEvent("LOOT_SLOT_CLEARED");
+        if acquiredFromItem then
+            PlaySound(SOUNDKIT.UI_CONTAINER_ITEM_OPEN);
+        elseif IsFishingLoot() then
+            PlaySound(SOUNDKIT.FISHING_REEL_IN);
         end
 
         self:BuildLootData();
@@ -489,6 +551,74 @@ do  --Event Handler
         end
     end
 
+    function EL:OnLootToast(typeIdentifier, itemLink, quantity, specID, sex, isPersonal, lootSource, lessAwesome, isUpgraded, isCorrupted)
+        --See Blizzard_FrameXML/Mainline/AlertFrames.lua
+        if typeIdentifier == "item" then
+            local itemName, _, itemRarity, _, _, _, _, _, _, itemTexture = GetItemInfo(itemLink);
+            local id, _, _, _, _, classID, subclassID = GetItemInfoInstant(itemLink);
+            local hideCount = false;
+            local craftQuality = 0;
+            if classID == 5 or classID == 7 then
+                craftQuality = GetItemReagentQualityByItemInfo(itemLink);
+            elseif classID == 2 or classID == 4 then
+                hideCount = true;
+            end
+            local data = {
+                icon = itemTexture,
+                name = itemName,
+                quantity = quantity,
+                locked = false,
+                quality = itemRarity,
+                id = id,
+                slotType = Defination.SLOT_TYPE_ITEM,
+                slotIndex = -1,
+                link = itemLink,
+                craftQuality = craftQuality,
+                questType = 0,
+                looted = true,
+                hideCount = hideCount,
+                classID = classID,
+                subclassID = subclassID,
+                overflow = false,
+                toast = true,
+            };
+            MainFrame:QueueDisplayLoot(data);
+        elseif typeIdentifier == "money" then
+            local data = {
+                slotType = Defination.SLOT_TYPE_MONEY,
+                quantity = quantity,
+                name = tostring(quantity),
+                toast = true,
+            };
+            MainFrame:QueueDisplayLoot(data);
+        elseif isPersonal and typeIdentifier == "currency" then
+            local currencyID = GetCurrencyIDFromLink(itemLink);
+            local currencyInfo = GetCurrencyInfoFromLink(itemLink);
+            local data = {
+                icon = currencyInfo.iconFileID,
+                name = currencyInfo.name,
+                quantity = quantity,
+                locked = false,
+                quality = currencyInfo.quality,
+                id = currencyID,
+                slotType = Defination.SLOT_TYPE_CURRENCY,
+                slotIndex = -1,
+                link = itemLink,
+                craftQuality = 0,
+                questType = 0,
+                looted = true,
+                hideCount = false,
+                classID = -1,
+                subclassID = -1,
+                overflow = false,
+                toast = true,
+            };
+            MainFrame:QueueDisplayLoot(data);
+        elseif typeIdentifier == "honor" then
+
+        end
+    end
+
     function EL:OnEvent(event, ...)
         if event == "LOOT_OPENED" then
             self:OnLootOpened(...);
@@ -536,7 +666,7 @@ do  --Event Handler
                     };
                     MainFrame:QueueDisplayLoot(data);
                 end
-                self.playerMoney = money;
+                self.playerMoney = nil;
             end
         elseif event == "LOOT_SLOT_CHANGED" then
             --Can happen during AoE Loot
@@ -544,6 +674,8 @@ do  --Event Handler
 
         elseif event == "LOOT_SLOT_CLEARED" then
             self:OnLootSlotCleared(...);
+        elseif event == "SHOW_LOOT_TOAST" then
+            self:OnLootToast(...);
         end
         --print(event, GetTimePreciseSec(), ...)  --
     end
@@ -621,6 +753,8 @@ do  --UI Notification Mode
     end
 
     local function OnUpdate_FadeOut_ThenDisplayNextPage(self, elapsed)
+        if self.isFocused then return end;
+
         if self.anyAlphaChange then
             self.anyAlphaChange = nil;
             for _, obj in ipairs(self.activeFrames) do
@@ -713,6 +847,7 @@ do  --UI Notification Mode
                 while (data2) do
                     if MergeData(data1, data2) then
                         tremove(self.lootQueue, index2);
+                        numQueued = numQueued - 1;
                     else
                         index2 = index2 + 1;
                     end
@@ -777,6 +912,8 @@ do  --UI Notification Mode
             lootThisPage = self.lootQueue;
         end
 
+        local enableState = AUTO_LOOT_ENABLE_TOOLTIP and 2 or 0;
+
         for i, data in ipairs(lootThisPage) do
             if data.slotType == Defination.SLOT_TYPE_MONEY then
                 self.MoneyFrame:SetData(data);
@@ -794,7 +931,7 @@ do  --UI Notification Mode
                 local n = #self.activeFrames;
                 n = n + 1;
                 self.activeFrames[n] = itemFrame;
-                itemFrame:EnableMouseScript(false);
+                itemFrame:EnableMouseScript(enableState);
                 itemFrame.hasItem = true;
             end
         end
@@ -802,12 +939,11 @@ do  --UI Notification Mode
         local numFrames = (self.activeFrames and #self.activeFrames) or 0;
 
         if numFrames > 0 then
-            local r = (MAX_ITEM_PER_PAGE - numFrames)/MAX_ITEM_PER_PAGE;
             if overflowWarning then
-                AUTO_HIDE_DELAY = r * 4.0 + (1 - r) * 6.0;
+                AUTO_HIDE_DELAY = 4.0 + numFrames * FADE_DELAY_PER_ITEM;
                 self.Header:SetText(L["Reach Currency Cap"]);
             else
-                AUTO_HIDE_DELAY = r * 2.0 + (1 - r) * 3.0;
+                AUTO_HIDE_DELAY = 2.0 + numFrames * FADE_DELAY_PER_ITEM;
                 self.Header:SetText(L["You Received"]);
             end
 
@@ -840,8 +976,10 @@ do  --UI Notification Mode
                 end
             end
         else
-            self:TryHide();
+            self:TryHide(true);
         end
+
+        self:RegisterEvent("GLOBAL_MOUSE_DOWN");
     end
 
     function MainFrame:DisplayOverflowCurrencies()
@@ -898,10 +1036,21 @@ do  --UI Manually Pickup Mode
             self.Header:Hide();
             self.TakeAllButton:Show();
             self.BackgroundFrame:SetBackgroundAlpha(0.90);
+            self.isFocused = false;
+
+            if LOOT_UNDER_MOUSE then
+                self:PositionUnderMouse();
+            end
+
+            EL:ListenDynamicEvents(false);
         else
             self.Header:Show();
             self.TakeAllButton:Hide();
             self.BackgroundFrame:SetBackgroundAlpha(0.50);
+
+            if LOOT_UNDER_MOUSE then
+                self:LoadPosition();
+            end
         end
         self:EnableMouseScript(state);
     end
@@ -922,7 +1071,7 @@ do  --UI Manually Pickup Mode
             activeFrames[i] = itemFrame;
             itemFrame:SetAlpha(1);
             itemFrame.toAlpha = nil;
-            itemFrame:EnableMouseScript(true);
+            itemFrame:EnableMouseScript(1);
             itemFrame.hasItem = true;
         end
 
@@ -935,6 +1084,7 @@ do  --UI Manually Pickup Mode
 
         self:SetScript("OnUpdate", OnUpdate_FadeIn);
         self:Show();
+        self:UnregisterEvent("GLOBAL_MOUSE_DOWN");
     end
 
     function MainFrame:ClosePendingLoot()
@@ -945,7 +1095,7 @@ do  --UI Manually Pickup Mode
 
         if self.activeFrames then
             for _, itemFrame in ipairs(self.activeFrames) do
-                itemFrame:EnableMouseScript(false);
+                itemFrame:EnableMouseScript();
             end
         end
 
@@ -969,9 +1119,11 @@ do  --UI Manually Pickup Mode
         if self.activeFrames then
             local slotIndex;
             for _, itemFrame in ipairs(self.activeFrames) do
-                slotIndex = itemFrame.data.slotIndex;
-                if slotIndex and LootSlotHasItem(slotIndex) then
-                    LootSlot(slotIndex);
+                if itemFrame.data then
+                    slotIndex = itemFrame.data.slotIndex;
+                    if slotIndex and LootSlotHasItem(slotIndex) then
+                        LootSlot(slotIndex);
+                    end
                 end
             end
         end
@@ -1024,7 +1176,7 @@ do  --UI Manually Pickup Mode
                 activeFrames[n] = itemFrame;
                 itemFrame:SetAlpha(1);
                 itemFrame.toAlpha = nil;
-                itemFrame:EnableMouseScript(true);
+                itemFrame:EnableMouseScript(1);
                 itemFrame.hasItem = true;
 
                 if self.anyLootInSlot then
@@ -1058,7 +1210,9 @@ do  --UI Manually Pickup Mode
         self.lootedFrames = lootedFrames;
 
         for i, data in ipairs(EL.currentLoots) do
-            if not LootSlotHasItem(data.slotIndex) then
+            if LootSlotHasItem(data.slotIndex) then
+                data.looted = false;
+            else
                 data.looted = true;
             end
         end
@@ -1073,10 +1227,10 @@ do  --UI Manually Pickup Mode
             itemFrame.toAlpha = nil;
             slotIndex = data.slotIndex;
             if LootSlotHasItem(slotIndex) then
-                itemFrame:EnableMouseScript(true);
+                itemFrame:EnableMouseScript(1);
                 itemFrame.hasItem = true;
             else
-                itemFrame:EnableMouseScript(false);
+                itemFrame:EnableMouseScript();
                 itemFrame.hasItem = nil;
                 n = n + 1;
                 lootedFrames[n] = itemFrame;
@@ -1114,6 +1268,7 @@ do  --UI Manually Pickup Mode
 
         self:SetScript("OnUpdate", OnUpdate_FadeIn_ThenHideLootedFrames);
         self:Show();
+        self:UnregisterEvent("GLOBAL_MOUSE_DOWN");
     end
 end
 
@@ -1149,7 +1304,7 @@ do  --Edit Mode
             itemFrame:Layout();
             itemFrame:SetAlpha(1);
             itemFrame:Show();
-            itemFrame:EnableMouseScript(false);
+            itemFrame:EnableMouseScript();
             if SHOW_ITEM_COUNT then
                 itemFrame.IconFrame.Count:SetText("99");
             else
@@ -1171,6 +1326,7 @@ do  --Edit Mode
     end
 
     function MainFrame:EnterEditMode()
+        self:SetFrameStrata("HIGH");
         EL:ListenStaticEvent(false);
         EL.overflowCurrencies = nil;
 
@@ -1189,6 +1345,8 @@ do  --Edit Mode
     end
 
     function MainFrame:ExitEditMode()
+        self:SetFrameStrata("DIALOG");
+
         if ENABLE_MODULE then
             EL:ListenStaticEvent(true);
         end
@@ -1205,11 +1363,6 @@ do  --Edit Mode
         self:ShowOptions(false);
     end
 
-    function MainFrame:IsFocused()
-        return (self:IsShown() and (self:IsMouseOver() or self.TakeAllButton:IsMouseOver())) or (self.OptionFrame and self.OptionFrame:IsShown() and self.OptionFrame:IsMouseOver())
-    end
-
-
     local function Options_FontSizeSlider_OnValueChanged(value)
         PlumberDB.LootUI_FontSize = value;
         local locale = GetLocale();
@@ -1224,6 +1377,23 @@ do  --Edit Mode
 
     local function Options_FontSizeSlider_FormatValue(value)
         return string.format("%.0f", value);
+    end
+
+    local function GetValidFadeOutDelay(value)
+        if not value then
+            value = 0.25;
+        end
+        return API.Clamp(value, 0.25, 1.0);
+    end
+
+    local function Options_FadeOutDelaySlider_OnValueChanged(value)
+        value = GetValidFadeOutDelay(value);
+        PlumberDB.LootUI_FadeDelayPerItem = value;
+        FADE_DELAY_PER_ITEM = value;
+    end
+
+    local function Options_FadeOutDelaySlider_FormatValue(value)
+        return string.format("%.2f", value);
     end
 
     local function Options_ForceAutoLoot_OnClick(self, state)
@@ -1257,16 +1427,29 @@ do  --Edit Mode
         end
     end
 
+    local function Tooltip_ManualLootInstruction()
+        local key = GetModifiedClick("AUTOLOOTTOGGLE");
+        key = key or "NONE";
+        return L["Manual Loot Instruction Format"]:format(key)
+    end
+
     local OPTIONS_SCHEMATIC = {
         title = L["EditMode LootUI"],
         widgets = {
             {type = "Slider", label = L["Font Size"], minValue = 12, maxValue = 16, valueStep = 2, onValueChangedFunc = Options_FontSizeSlider_OnValueChanged, formatValueFunc = Options_FontSizeSlider_FormatValue,  dbKey = "LootUI_FontSize"},
+            {type = "Slider", label = L["LootUI Option Fade Delay"], minValue = 0.25, maxValue = 1.0, valueStep = 0.25, onValueChangedFunc = Options_FadeOutDelaySlider_OnValueChanged, formatValueFunc = Options_FadeOutDelaySlider_FormatValue,  dbKey = "LootUI_FadeDelayPerItem"},
             {type = "Checkbox", label = L["LootUI Option Owned Count"], onClickFunc = nil, dbKey = "LootUI_ShowItemCount"},
             {type = "Checkbox", label = L["LootUI Option New Transmog"], onClickFunc = nil, dbKey = "LootUI_NewTransmogIcon", tooltip = L["LootUI Option New Transmog Tooltip"]:format("|TInterface/AddOns/Plumber/Art/LootUI/NewTransmogIcon:0:0|t")},
 
             {type = "Divider"},
-            {type = "Checkbox", label = L["LootUI Option Force Auto Loot"], onClickFunc = Options_ForceAutoLoot_OnClick, validityCheckFunc = Options_ForceAutoLoot_ValidityCheck, dbKey = "LootUI_ForceAutoLoot", tooltip = L["LootUI Option Force Auto Loot Tooltip"]},
+            {type = "Checkbox", label = L["LootUI Option Force Auto Loot"], onClickFunc = Options_ForceAutoLoot_OnClick, validityCheckFunc = Options_ForceAutoLoot_ValidityCheck, dbKey = "LootUI_ForceAutoLoot", tooltip = L["LootUI Option Force Auto Loot Tooltip"], tooltip2 = Tooltip_ManualLootInstruction},
+            {type = "Checkbox", label = L["LootUI Option Loot Under Mouse"], onClickFunc = nil, dbKey = "LootUI_LootUnderMouse", tooltip = L["LootUI Option Loot Under Mouse Tooltip"]},
+            {type = "Checkbox", label = L["LootUI Option Replace Default"], onClickFunc = nil, dbKey = "LootUI_ReplaceDefaultAlert", tooltip = L["LootUI Option Replace Default Tooltip"]},
             {type = "Checkbox", label = L["LootUI Option Use Hotkey"], onClickFunc = Options_UseHotkey_OnClick, dbKey = "LootUI_UseHotkey", tooltip = L["LootUI Option Use Hotkey Tooltip"]},
+            {type = "Keybind", label = L["Take All"], dbKey = "LootUI_HotkeyName", tooltip = L["LootUI Option Use Hotkey Tooltip"], defaultKey = "E"},
+
+            {type = "Divider"},
+            {type = "Checkbox", label = L["LootUI Option Use Default UI"], onClickFunc = nil, dbKey = "LootUI_UseStockUI", tooltip = L["LootUI Option Use Default UI Tooltip"], tooltip2 = Tooltip_ManualLootInstruction},
 
             {type = "Divider"},
             {type = "UIPanelButton", label = L["Reset To Default Position"], onClickFunc = Options_ResetPosition_OnClick, stateCheckFunc = Options_ResetPosition_ShouldEnable, widgetKey = "ResetButton"},
@@ -1335,6 +1518,31 @@ do  --Edit Mode
         end
     end
     addon.CallbackRegistry:RegisterSettingCallback("LootUI_ShowItemCount", SettingChanged_ShowItemCount);
+
+    local function SettingChanged_FadeDelayPerItem(value, userInput)
+        AUTO_HIDE_DELAY = GetValidFadeOutDelay(value);
+    end
+    addon.CallbackRegistry:RegisterSettingCallback("LootUI_FadeDelayPerItem", SettingChanged_FadeDelayPerItem);
+
+    local function SettingChanged_ReplaceDefaultAlert(state, userInput)
+        REPLACE_LOOT_ALERT = state;
+        if REPLACE_LOOT_ALERT and addon.GetDBBool("LootUI") then
+            EL:ListenAlertSystemEvent(true);
+        else
+            EL:ListenAlertSystemEvent(false);
+        end
+    end
+    addon.CallbackRegistry:RegisterSettingCallback("LootUI_ReplaceDefaultAlert", SettingChanged_ReplaceDefaultAlert);
+
+    local function SettingChanged_LootUnderMouse(state, userInput)
+        LOOT_UNDER_MOUSE = state;
+        if userInput then
+            if not LOOT_UNDER_MOUSE then
+                MainFrame:LoadPosition();
+            end
+        end
+    end
+    addon.CallbackRegistry:RegisterSettingCallback("LootUI_LootUnderMouse", SettingChanged_LootUnderMouse);
 end
 
 
@@ -1347,9 +1555,49 @@ do
         end
     end
 
+    local STOCK_UI_MUTED = false;
+
+    local function SettingChanged_UseStockUI(state, userInput)
+        USE_STOCK_UI = state == true;
+        local f = LootFrame;
+        if USE_STOCK_UI then
+            if f then
+                if STOCK_UI_MUTED then
+                    STOCK_UI_MUTED = false;
+                    if not C_AddOns.IsAddOnLoaded("Xloot") then
+                        f:RegisterEvent("LOOT_OPENED");
+                        f:RegisterEvent("LOOT_CLOSED");
+                    end
+                end
+            end
+
+            if not MainFrame.inEditMode then
+                MainFrame:Disable();
+            end
+
+            EL:ListenAlertSystemEvent(false);
+        else
+            if addon.GetDBBool("LootUI") then
+                if f then
+                    if not STOCK_UI_MUTED then
+                        STOCK_UI_MUTED = true;
+                        f:UnregisterEvent("LOOT_OPENED");
+                        f:UnregisterEvent("LOOT_CLOSED");
+                    end
+                end
+
+                if REPLACE_LOOT_ALERT then
+                    EL:ListenAlertSystemEvent(true);
+                end
+            end
+        end
+    end
+    addon.CallbackRegistry:RegisterSettingCallback("LootUI_UseStockUI", SettingChanged_UseStockUI);
+
     local function EnableModule(state)
         if state then
             ENABLE_MODULE = true;
+            EL.enabled = true;
             EL:ListenStaticEvent(true);
             EL:SetScript("OnEvent", EL.OnEvent);
 
@@ -1359,29 +1607,36 @@ do
 
             MainFrame:OnUIScaleChanged();
 
-            if LootFrame then
-                LootFrame:UnregisterEvent("LOOT_OPENED");
-                LootFrame:UnregisterEvent("LOOT_CLOSED");
-            end
-
             if not EDITMODE_HOOKED then
                 EDITMODE_HOOKED = true;
                 EventRegistry:RegisterCallback("EditMode.Enter", EditMode_Enter);
                 EventRegistry:RegisterCallback("EditMode.Exit", MainFrame.ExitEditMode, MainFrame);
             end
+
+            if addon.GetDBBool("LootUI_ReplaceDefaultAlert") and (not addon.GetDBBool("LootUI_UseStockUI")) then
+                EL:ListenAlertSystemEvent(true);
+            else
+                EL:ListenAlertSystemEvent(false);
+            end
+
+            if addon.GetDBBool("LootUI_UseStockUI") then
+                SettingChanged_UseStockUI(true);
+            else
+                SettingChanged_UseStockUI(false);
+            end
         elseif ENABLE_MODULE then
             ENABLE_MODULE = false;
+            EL.enabled = false;
             EL:ListenStaticEvent(false);
             EL:SetScript("OnEvent", nil);
             EL:SetScript("OnUpdate", nil);
             MainFrame:Disable();
 
-            if LootFrame then
-                LootFrame:RegisterEvent("LOOT_OPENED");
-                LootFrame:RegisterEvent("LOOT_CLOSED");
-            end
+            EL:ListenAlertSystemEvent(false);
+            SettingChanged_UseStockUI(true);
         end
     end
+
 
     local function OptionToggle_OnClick(self, button)
         if MainFrame.OptionFrame and MainFrame.OptionFrame:IsShown() then

@@ -10,21 +10,26 @@ local LootSlot = LootSlot;
 local GetPhysicalScreenSize = GetPhysicalScreenSize;
 local InCombatLockdown = InCombatLockdown;
 local CreateFrame = CreateFrame;
+local IsModifiedClick = IsModifiedClick;
 local IsCosmeticItem = C_Item.IsCosmeticItem;
 local GetItemCount = C_Item.GetItemCount;
+local GetCursorPosition = GetCursorPosition;
 
 
 -- User Settings
 local SHOW_ITEM_COUNT = true;
 local USE_HOTKEY = true;
+local TAKE_ALL_KEY = "E";
+local TAKE_ALL_MODIFIER_KEY = nil;  --"LALT"
 local USE_MOG_MARKER = true;
+local AUTO_LOOT_ENABLE_TOOLTIP = true;
 ------------------
 
 
 local MainFrame = CreateFrame("Frame", nil, UIParent);
 MainFrame:Hide();
 MainFrame:SetAlpha(0);
-MainFrame:SetFrameStrata("HIGH");
+MainFrame:SetFrameStrata("DIALOG");
 MainFrame:SetToplevel(true);
 MainFrame:SetClampedToScreen(true);
 
@@ -142,7 +147,7 @@ local FocusSolver = CreateFrame("Frame");
 do
     function FocusSolver:OnUpdate(elapsed)
         self.t = self.t + elapsed;
-        if self.t > 0.1 then
+        if self.t > 0.05 then
             self.t = nil;
             self:SetScript("OnUpdate", nil);
             if self.object and self.object:IsMouseMotionFocus() then
@@ -286,7 +291,7 @@ do  --UI ItemButton
                         end
                         f.IconOverlay:Show();
                         self:SetBorderColor(1, 195/255, 41/255);
-                    elseif data.craftQuality ~= 0 then
+                    elseif data.craftQuality and data.craftQuality ~= 0 then
                         f.IconOverlay:SetTexCoord((data.craftQuality - 1) * 0.125, data.craftQuality * 0.125, 0, 0.125);
                         f.IconOverlay:Show();
                     elseif data.id then
@@ -381,7 +386,7 @@ do  --UI ItemButton
     end
 
     function ItemFrameMixin:SetData(data)
-        if self.data and self.data.quantity ~= 0 then
+        if self.data and self.data.quantity ~= 0 and not (self.data.toast ~= data.toast and self.data.quantity == data.quantity) then
             data.oldQuantity = self.data.quantity;
             data.quantity = self.data.quantity + data.quantity;
         end
@@ -402,7 +407,8 @@ do  --UI ItemButton
     end
 
     function ItemFrameMixin:SetCount(data)
-        if (not data) or data.hideCount then
+        if (not data) or (data.hideCount and data.quantity < 2) then
+            --We don't show equipment count unless you loot multiple of the same item (Legacy Raid)
             self.countWidth = nil;
             self.Count:Hide();
         else
@@ -434,6 +440,8 @@ do  --UI ItemButton
         end
         self.Text:ClearAllPoints();
         self.Text:SetPoint("LEFT", self.Reference, "LEFT", offset, 0);
+
+        self.textOffset = offset;
     end
 
     function ItemFrameMixin:SetItem(data)
@@ -446,6 +454,12 @@ do  --UI ItemButton
             self:ShowGlow(true);
         else
             self:ShowGlow(false);
+        end
+
+        if data.classID == 15 and data.subclassID == 4 then
+            API.InquiryOpenableItem(data.id, function(bag, slot)
+                self:ShowGlow(true);
+            end);
         end
     end
 
@@ -545,21 +559,14 @@ do  --UI ItemButton
     end
 
     function ItemFrameMixin:OnEnter()
-        MainFrame:HighlightItemFrame(self);
-        self:ShowHoverVisual();
-        FocusSolver:SetFocus(self);
-    end
-
-    function ItemFrameMixin:OnFocused()
-        --Effective during Manual Mode
-        local tooltip = GameTooltip;
-        if self.data.slotType == Defination.SLOT_TYPE_ITEM then
-            tooltip:SetOwner(self, "ANCHOR_RIGHT", -Formatter.BUTTON_SPACING, 0);
-            tooltip:SetLootItem(self.data.slotIndex);
-        elseif self.data.slotType == Defination.SLOT_TYPE_CURRENCY then
-            tooltip:SetOwner(self, "ANCHOR_RIGHT");
-            tooltip:SetLootCurrency(self.data.slotIndex);
+        if self.enableState == 1 then
+            MainFrame:HighlightItemFrame(self);
+            self:ShowHoverVisual();
+        elseif self.enableState == 2 then
+            --MainFrame:HighlightItemFrame(self);
         end
+        FocusSolver:SetFocus(self);
+        MainFrame:SetFocused(true);
     end
 
     function ItemFrameMixin:OnLeave()
@@ -568,6 +575,28 @@ do  --UI ItemButton
         MainFrame:HighlightItemFrame(nil);
         self:ResetHoverVisual();
         FocusSolver:SetFocus(nil);
+        MainFrame:SetFocused(false);
+    end
+
+    function ItemFrameMixin:OnFocused()
+        --Effective during Manual Mode
+        local tooltip = GameTooltip;
+        if self.enableState == 1 then
+            if self.data.slotType == Defination.SLOT_TYPE_ITEM then
+                tooltip:SetOwner(self, "ANCHOR_RIGHT", -Formatter.BUTTON_SPACING, 0);
+                tooltip:SetLootItem(self.data.slotIndex);
+            elseif self.data.slotType == Defination.SLOT_TYPE_CURRENCY then
+                tooltip:SetOwner(self, "ANCHOR_RIGHT", -Formatter.BUTTON_SPACING, 0);
+                tooltip:SetLootCurrency(self.data.slotIndex);
+            end
+        elseif self.enableState == 2 then
+            if self.data.link then
+                local width = self:GetWidth();
+                local textWidth = self.Text:GetWrappedWidth();
+                tooltip:SetOwner(self, "ANCHOR_RIGHT", -(width - textWidth - (self.textOffset or 0)), 0);
+                tooltip:SetHyperlink(self.data.link);
+            end
+        end
     end
 
     function ItemFrameMixin:OnMouseDown(button)
@@ -582,18 +611,34 @@ do  --UI ItemButton
 
     function ItemFrameMixin:OnClick(button)
         if button == "LeftButton" then
+            if IsModifiedClick("DRESSUP") and not InCombatLockdown() then
+                local itemID = self.data.slotType == Defination.SLOT_TYPE_ITEM and self.data.id;
+                if itemID and C_Item.IsDressableItemByID(itemID) then
+                    DressUpVisual(self.data.link);
+                    return
+                end
+            end
             LootSlot(self.data.slotIndex);
             MainFrame:SetClickedFrameIndex(self.index);
         end
     end
 
-    function ItemFrameMixin:EnableMouseScript(state)
-        if state then
+    function ItemFrameMixin:EnableMouseScript(enableState)
+        if enableState == 1 then
+            --Manual Loot: Enable Clicks and Hover
             self:EnableMouse(true);
             self:EnableMouseMotion(true);
+            self.enableState = 1;
+        elseif enableState == 2 then
+            --Auto Loot: Only enable Hover to display tooltip
+            self:EnableMouse(false);
+            self:EnableMouseMotion(true);
+            self.enableState = 2;
         else
+            --Auto Loot: Non-interactable
             self:EnableMouse(false);
             self:EnableMouseMotion(false);
+            self.enableState = 0;
         end
     end
 
@@ -626,7 +671,7 @@ do  --UI ItemButton
         f:SetScript("OnClick", f.OnClick);
 
         f.scriptEnabled = true;
-        f:EnableMouseScript(false);
+        f:EnableMouseScript();
 
         return f
     end
@@ -865,7 +910,11 @@ do  --UI Generic Button (Hotkey Button)
     function UIButtonMixin:SetHotkey(key)
         if key then
             self.hotkeyName = key;
-            self.HotkeyFrame.Hotkey:SetText(key);
+            if API.GetModifierKeyName(key) ~= nil then
+                self.HotkeyFrame.Hotkey:SetText(API.GetModifierKeyName(key));
+            else
+                self.HotkeyFrame.Hotkey:SetText(key);
+            end
             self.HotkeyFrame:Show();
         else
             self.hotkeyName = nil;
@@ -893,7 +942,7 @@ do  --UI Generic Button (Hotkey Button)
             local bgHeight = Formatter.BASE_FONT_SIZE + 2*bgPadding;
             local bgWidth;
             if string.len(self.hotkeyName) > 1 then
-                bgWidth = self.Hotkey:GetUnboundedStringWidth() + 2*bgPadding;
+                bgWidth = self.HotkeyFrame.Hotkey:GetUnboundedStringWidth() + 2*bgPadding;
             else
                 bgWidth = bgHeight;
             end
@@ -925,10 +974,12 @@ do  --UI Generic Button (Hotkey Button)
 
     function UIButtonMixin:OnEnter()
         self:SetHighlighted(true);
+        MainFrame:SetFocused(true);
     end
 
     function UIButtonMixin:OnLeave()
         self:SetHighlighted(false);
+        MainFrame:SetFocused(false);
     end
 
     function CreateUIButton(parent)
@@ -938,6 +989,8 @@ do  --UI Generic Button (Hotkey Button)
         f.HotkeyFrame.HotkeyBackdrop:SetTexCoord(16/1024, 32/1024, 40/512, 56/512);
         f.Background:SetTexture(file);
         f.Background:SetTexCoord(0, 128/1024, 72/512, 104/512);
+        f.Highlight:SetTexture(file);
+        f.Highlight:SetTexCoord(338/1024, 458/1024, 72/512, 104/512);
         API.Mixin(f, UIButtonMixin);
         f:SetScript("OnEnter", f.OnEnter);
         f:SetScript("OnLeave", f.OnLeave);
@@ -950,6 +1003,9 @@ local TakeAllButtonMixin = {};
 do  --TakeAllButton
     function TakeAllButtonMixin:OnClick()
         MainFrame:LootAllItemsSorted();
+        self.AnimClick:Stop();
+        self.AnimClick:Play();
+        self.Highlight:Show();
     end
 
     function TakeAllButtonMixin:OnKeyDown(key)
@@ -967,24 +1023,46 @@ do  --TakeAllButton
     function TakeAllButtonMixin:OnEvent(event, ...)
         if event == "PLAYER_REGEN_DISABLED" then
             self:SetPropagateKeyboardInput(true);
+        elseif event == "PLAYER_REGEN_ENABLED" then
+            if self.hotkeyName and not self.hasOnKeyDownScript then
+                self:SetScript("OnKeyDown", self.OnKeyDown);
+                self.hasOnKeyDownScript = true;
+            end
+        elseif event == "MODIFIER_STATE_CHANGED" then
+            local key, down = ...
+            if down == 1 and key == TAKE_ALL_MODIFIER_KEY then
+                self:OnClick();
+            end
         end
     end
 
     function TakeAllButtonMixin:OnShow()
+        if MainFrame.inEditMode then return end;
+
         if self.hotkeyName and (not InCombatLockdown()) or self:GetPropagateKeyboardInput() then
             self:SetScript("OnKeyDown", self.OnKeyDown);
+            self.hasOnKeyDownScript = true;
         end
         self:RegisterEvent("PLAYER_REGEN_DISABLED");
+        self:RegisterEvent("PLAYER_REGEN_ENABLED");
+        if TAKE_ALL_MODIFIER_KEY then
+            self:RegisterEvent("MODIFIER_STATE_CHANGED");
+        end
     end
 
     function TakeAllButtonMixin:OnHide()
         self:SetScript("OnKeyDown", nil);
+        self.hasOnKeyDownScript = nil;
         self:UnregisterEvent("PLAYER_REGEN_DISABLED");
+        self:UnregisterEvent("PLAYER_REGEN_ENABLED");
+        self:UnregisterEvent("MODIFIER_STATE_CHANGED");
+        self.AnimClick:Stop();
+        self.Highlight:Hide();
     end
 
     function TakeAllButtonMixin:UpdateHotKey()
         if USE_HOTKEY then
-            self:SetHotkey("E");
+            self:SetHotkey(TAKE_ALL_KEY);
         else
             self:SetHotkey(nil);
         end
@@ -1026,7 +1104,7 @@ do
 
     function SpikeyGlowMixin:SetFrameSize(width, height)
         self:SetSize(width, height);
-        local scale = 1.7;
+        local scale = 1.75;
         self.Spike:SetSize(width*scale, height*scale);
         self.SpikeMask:SetSize(width*scale, height*scale)
         self.Glow:SetSize(2*width, 2*height);
@@ -1034,13 +1112,17 @@ do
     end
 
     function SpikeyGlowMixin:SetQualityColor(quality)
+        if not GLOW_COLORS[quality] then
+            quality = 1;
+        end
         if GLOW_COLORS[quality] then
             local c = GLOW_COLORS[quality];
             self.Glow:SetVertexColor(c[1], c[2], c[3]);
             if SPIKE_COLORS[quality] then
                 c = SPIKE_COLORS[quality];
             end
-            self.Spike:SetVertexColor(c[1], c[2], c[3]);
+            --self.Spike:SetVertexColor(c[1], c[2], c[3]);
+            self.Spike:SetVertexColor(1, 1, 1);
         else
             self:Hide();
         end
@@ -1121,11 +1203,28 @@ do  --UI Basic
         self:SetAlpha(self.alpha);
     end
 
-    function MainFrame:TryHide()
-        self.lootQueue = nil;
-        self.isUpdatingPage = nil;
-        self.alpha = self:GetAlpha();
-        self:SetScript("OnUpdate", OnUpdate_FadeOut);
+    local function OnUpdate_FadeOut_IfNotFocused(self, elapsed)
+        if self.isFocused then return end;
+        self.t = self.t + elapsed;
+        if self.t > 0.1 then
+            self.t = 0;
+            if not self:IsMouseOver() then
+                self:TryHide(true);
+            end
+        end
+    end
+
+    function MainFrame:TryHide(forceHide)
+        if (not AUTO_LOOT_ENABLE_TOOLTIP) or forceHide then
+            self.lootQueue = nil;
+            self.isUpdatingPage = nil;
+            self.alpha = self:GetAlpha();
+            self:SetScript("OnUpdate", OnUpdate_FadeOut);
+            self:UnregisterEvent("GLOBAL_MOUSE_DOWN");
+        else
+            self.t = 0;
+            self:SetScript("OnUpdate", OnUpdate_FadeOut_IfNotFocused);
+        end
     end
 
     function MainFrame:Disable()
@@ -1154,9 +1253,19 @@ do  --UI Basic
         end
     end
 
+    function MainFrame:PositionUnderMouse()
+        local x, y = GetCursorPosition();
+        local scale = self:GetEffectiveScale();
+		x = x / (scale) - Formatter.ICON_SIZE;
+		y = math.max((y / scale) + 24, 350);
+		self:ClearAllPoints();
+		self:SetPoint("TOPLEFT", nil, "BOTTOMLEFT", x, y);
+		self:Raise();
+    end
+
     function MainFrame:LayoutActiveFrames(fixedFrameWidth)
         if not self.activeFrames then
-            self:TryHide();
+            self:TryHide(true);
             return
         end
 
@@ -1251,6 +1360,13 @@ do  --UI Basic
             return data.slotType == Defination.SLOT_TYPE_MONEY
         end
 
+        function MoneyFrame:OnFocused()
+
+        end
+
+        function MoneyFrame:ResetHoverVisual()
+
+        end
 
         self:InitBackground();
 
@@ -1324,7 +1440,7 @@ do  --UI Basic
             for i, itemFrame in ipairs(self.activeFrames) do
                 if itemFrame.data.slotIndex == slotIndex then
                     --itemFrame:Hide();
-                    itemFrame:EnableMouseScript(false);
+                    itemFrame:EnableMouseScript();
                     itemFrame:PlaySlideOutAnimation();
                     itemFrame.hasItem = nil;
                     self:UpdateBackgroundHeightAfterClicks();
@@ -1361,10 +1477,22 @@ do  --UI Basic
     function MainFrame:OnHide()
         if not self:IsShown() then
             self:ReleaseAll();
-            --self:Hide();
         end
+        self.isFocused = false;
+        self.manualMode = nil;
+        self:UnregisterEvent("GLOBAL_MOUSE_DOWN");
     end
     MainFrame:SetScript("OnHide", MainFrame.OnHide);
+
+    function MainFrame:OnEvent(event, ...)
+        if event == "GLOBAL_MOUSE_DOWN" then
+            local button = ...
+            if button == "RightButton" and self:IsMouseOver() then
+                self:TryHide(true);
+            end
+        end
+    end
+    MainFrame:SetScript("OnEvent", MainFrame.OnEvent);
 
     function MainFrame:OnUIScaleChanged()
         if not self.uiScaleDirty then
@@ -1392,9 +1520,34 @@ do  --UI Basic
             self:EnableMouseMotion(true);
         else
             self:EnableMouse(false);
-            self:EnableMouseMotion(false);
+            self:EnableMouseMotion(true);
         end
     end
+
+    function MainFrame:IsFocused()
+        return (self:IsShown() and (self:IsMouseOver() or self.TakeAllButton:IsMouseOver())) or (self.OptionFrame and self.OptionFrame:IsShown() and self.OptionFrame:IsMouseOver())
+    end
+
+    function MainFrame:SetFocused(state)
+        --Mouse Motion will be propagated to frames below
+        --If the user mouse down on our frames (e.g. move camera), the game triggers OnLeave so we do a IsMouseOver check
+        --if (not state) and (not self:IsMouseOver()) then
+        if not state then
+            self.isFocused = false;
+        else
+            self.isFocused = true;
+        end
+    end
+
+    function MainFrame:OnEnter()
+        self:SetFocused(true);
+    end
+    MainFrame:SetScript("OnEnter", MainFrame.OnEnter);
+
+    function MainFrame:OnLeave()
+        self:SetFocused(false);
+    end
+    MainFrame:SetScript("OnLeave", MainFrame.OnLeave);
 end
 
 
@@ -1438,4 +1591,36 @@ do  --Callback Registery
         USE_MOG_MARKER = state;
     end
     addon.CallbackRegistry:RegisterSettingCallback("LootUI_NewTransmogIcon", SettingChanged_NewTransmogIcon);
+
+    local function SettingChanged_HotkeyName(value, userInput)
+        if not (value and type("value") == "string") then
+            value = nil;
+        end
+        TAKE_ALL_KEY = value;
+        if API.GetModifierKeyName(value) ~= nil then
+            TAKE_ALL_MODIFIER_KEY = value;
+        else
+            TAKE_ALL_MODIFIER_KEY = nil;
+        end
+
+        if userInput then
+            local button = MainFrame.TakeAllButton;
+            if button then
+                button:UpdateHotKey();
+            end
+        end
+    end
+    addon.CallbackRegistry:RegisterSettingCallback("LootUI_HotkeyName", SettingChanged_HotkeyName);
 end
+
+
+--[[    --Debug
+C_Timer.After(0, function()
+    local f = CreateSpikeyGlowFrame(UIParent);
+    f:SetPoint("CENTER", UIParent, "CENTER", 0, 0);
+    f:SetQualityColor(2);
+    f:SetFrameSize(Formatter.ICON_SIZE, Formatter.ICON_SIZE);
+    f:Show();
+    f.AnimGlow:Play();
+end);
+--]]

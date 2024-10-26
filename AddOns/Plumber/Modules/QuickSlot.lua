@@ -227,6 +227,8 @@ local function RealActionButton_OnLeave(self)
         QuickSlot:SetHeaderText();
         QuickSlot:StartShowingDefaultHeaderCountdown(true);
     end
+
+    GameTooltip:Hide();
 end
 
 local function RealActionButton_PostClick(self, button)
@@ -271,7 +273,16 @@ local function RealActionButton_OnMouseUp(self)
 end
 
 local function ItemButton_OnEnter(self)
-    QuickSlot:SetHeaderText(API.GetColorizedItemName(self.id));
+    if self.overrideName then
+        QuickSlot:SetHeaderText(self.overrideName);
+    else
+        if self.actionType == "item" then
+            QuickSlot:SetHeaderText(API.GetColorizedItemName(self.id));
+        elseif self.actionType == "spell" then
+            QuickSlot:SetHeaderText(C_Spell.GetSpellName(self.id));
+        end
+    end
+
     QuickSlot:StartShowingDefaultHeaderCountdown(false);
 
     local privateKey = "QuickSlot";
@@ -293,7 +304,17 @@ local function ItemButton_OnEnter(self)
         RealActionButton:Show();
         RealActionButton.owner = self;
 
-        local macroText = string.format("/use item:%s", self.id);
+        local macroText;
+        if self.macroText then
+            macroText = self.macroText;
+        else
+            if self.actionType == "item" then
+                macroText = string.format("/use item:%s", self.id);
+            elseif self.actionType == "spell" then
+                local spellName = C_Spell.GetSpellName(self.id);
+                macroText = string.format("/cast %s", spellName);
+            end
+        end
         RealActionButton:SetAttribute("type1", "macro");     --Any Mouseclick
         RealActionButton:SetMacroText(macroText);
         RealActionButton:RegisterForClicks("LeftButtonDown", "LeftButtonUp", "RightButtonUp");
@@ -301,12 +322,27 @@ local function ItemButton_OnEnter(self)
         self:LockHighlight();
         self.hasActionButton = true;
     end
+
+    if self.tooltipLines then
+        local tooltip = GameTooltip;
+        tooltip:Hide();
+        tooltip:SetOwner(self, "ANCHOR_RIGHT");
+        for i, text in ipairs(self.tooltipLines) do
+            if i == 1 then
+                tooltip:SetText(text, 1, 1, 1, true);
+            else
+                tooltip:AddLine(text, 1, 1, 1, true);
+            end
+        end
+        tooltip:Show();
+    end
 end
 
 local function ItemButton_OnLeave(self)
     if not (self:IsVisible() and self:IsMouseOver()) then
         QuickSlot:SetHeaderText();
         QuickSlot:StartShowingDefaultHeaderCountdown(true);
+        GameTooltip:Hide();
     end
 end
 
@@ -332,12 +368,23 @@ function QuickSlot:Init()
     Header:SetShadowColor(0, 0, 0);
     Header:SetShadowOffset(1, -1);
 
+    --[[
     local HeaderShadow = self:CreateTexture(nil, "ARTWORK");
     HeaderShadow:SetPoint("TOPLEFT", Header, "TOPLEFT", -8, 6);
     HeaderShadow:SetPoint("BOTTOMRIGHT", Header, "BOTTOMRIGHT", 8, -8);
     HeaderShadow:SetTexture("Interface/AddOns/Plumber/Art/Button/GenericTextDropShadow");
     HeaderShadow:Hide();
     HeaderShadow:SetAlpha(0);
+    --]]
+
+    local HeaderShadow = self:CreateTexture(nil, "ARTWORK");
+    HeaderShadow:SetTexture("Interface/AddOns/Plumber/Art/Frame/SubtitleShadow_NineSlice_Darker");
+    HeaderShadow:SetTextureSliceMargins(30, 30, 30, 30);
+    HeaderShadow:SetTextureSliceMode(0);
+    HeaderShadow:Hide();
+    HeaderShadow:SetAlpha(0);
+    HeaderShadow:SetPoint("TOPLEFT", Header, "TOPLEFT", -16, 16);
+    HeaderShadow:SetPoint("BOTTOMRIGHT", Header, "BOTTOMRIGHT", 16, -16);
 
     function QuickSlot:SetHeaderText(text, transparentText)
         if self:IsInEditMode() then return end;
@@ -395,29 +442,31 @@ function QuickSlot:StartShowingDefaultHeaderCountdown(state)
     end
 end
 
-function QuickSlot:SetButtonData(itemData, spellData, systemName, isCasting)
-    if itemData == self.itemData then
+function QuickSlot:SetButtonData(buttonData)
+    if buttonData == self.buttonData then
         return
     end
 
-    self.itemData = itemData;
-    self.spellData = spellData;
-    self.systemName = systemName;
+    local privateKey = "QuickSlot";
+    addon.HideSecureActionButton(privateKey);
+
+    self.buttonData = buttonData;
+    self.systemName = buttonData.systemName;
     self.layoutDirty = true;
-    self.numActiveButtons = #itemData;
-    self.spellcastType = (isCasting and 1) or 2;
+    self.numActiveButtons = #buttonData.buttons;
+    self.spellcastType = buttonData.spellcastType;
 
     local buttonSize = ACTION_BUTTON_SIZE;
     local gap = ACTION_BUTTON_GAP;
     local positionIndex = 0;
     local trackIndex = 0;
 
-    for i, itemID in ipairs(itemData) do
+    for i, info in ipairs(buttonData.buttons) do
         positionIndex = positionIndex + 1;
-        if itemID == 0 then
+        if info.spacer then
             --Used as a spacer
 
-        elseif itemID == -1 then
+        elseif info.track then
             --reset radian, reduce radius
             positionIndex = 0;
             trackIndex = trackIndex + 1;
@@ -428,17 +477,32 @@ function QuickSlot:SetButtonData(itemData, spellData, systemName, isCasting)
                 tinsert(self.Buttons, button);
                 button:SetPoint("LEFT", self, "LEFT", (i - 1) * (buttonSize +  gap), 0);
             end
-            local spellID = spellData and spellData[i] or nil;
+            local spellID = info.spellID;
             if spellID then
                 self.SpellXButton[spellID] = button;
             end
-            button:SetItem(itemID);
+            if info.actionType == "item" then
+                button:SetItem(info.itemID, info.icon);
+            elseif info.actionType == "spell" then
+                button:SetSpell(spellID, info.icon);
+            end
             button.spellID = spellID;
             button.positionIndex = positionIndex;
             button.trackIndex = trackIndex;
+            button.overrideName = info.name;
+            button.macroText = info.macroText;
+            button.tooltipLines = info.tooltipLines;
             button:SetScript("OnEnter", ItemButton_OnEnter);
             button:SetScript("OnLeave", ItemButton_OnLeave);
             button:Show();
+
+            if info.enabled ~= nil then
+                if info.enabled then
+                    button:SetIconState(1);
+                else
+                    button:SetIconState(2);
+                end
+            end
         end
     end
 
@@ -454,7 +518,7 @@ function QuickSlot:SetButtonOrder(side)
         return
     end
 
-    if not self.itemData then
+    if not self.buttonData then
         return
     end
 
@@ -465,15 +529,15 @@ function QuickSlot:SetButtonOrder(side)
         --right side of the screen
     else
         --left side
-        items = API.ReverseList(items);
-        spells = API.ReverseList(spells);
+        --items = API.ReverseList(items);
+        --spells = API.ReverseList(spells);
     end
 
-    for i, button in ipairs(self.Buttons) do
-        button:SetItem(items[i]);
-        button.spellID = spells[i];
-        self.SpellXButton[ spells[i] ] = button;
-    end
+    --for i, button in ipairs(self.Buttons) do
+    --    button:SetItem(items[i]);
+    --    button.spellID = spells[i];
+    --    self.SpellXButton[ spells[i] ] = button;
+    --end
 end
 
 function QuickSlot:SetFrameLayout(layoutIndex)
@@ -586,7 +650,9 @@ end
 
 function QuickSlot:UpdateItemCount()
     for i, button in ipairs(self.Buttons) do
-        button:UpdateCount();
+        if button.actionType == "item" then
+            button:UpdateCount();
+        end
     end
 end
 

@@ -1,5 +1,5 @@
 ## Interface: 110002, 110005
-## Version: 1.4.0
+## Version: 1.4.5
 
 ## Title: Plumber
 ## Title-zhTW: |cFF00AA99[任務]|r 實用工具包
@@ -26,7 +26,7 @@ ControlCenter.lua
 
 Modules\GossipFrameMedal.lua
 Modules\BackpackItemTracker.lua
-Modules\TimeRift.lua
+Modules\AutoJoinEvents.lua
 Modules\PlayerChoiceFrameToken.lua
 #Modules\DruidModelFix.lua
 Modules\QuickSlot.lua
@@ -48,6 +48,8 @@ Modules\DelvesDashboard.lua
 Modules\ExpansionLandingPage.xml
 Modules\GameTooltipExtension.xml
 Modules\LootUI.xml
+Modules\WoWAnniversary.lua
+Modules\UnderlightAngler.lua
 
 #Modules\AddonList.lua
 #Modules\BlizzFix_WardrobeTrackingHelpTip.lua
