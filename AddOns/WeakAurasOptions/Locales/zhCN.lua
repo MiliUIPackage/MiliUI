@@ -969,11 +969,9 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["Unit Count"] = "单位计数"
 	L["Unit Frames"] = "单位框架"
 	L["Unknown"] = "未知"
-	--[[Translation missing --]]
-	L["Unknown Encounter's Spell Id"] = "Unknown Encounter's Spell Id"
+	L["Unknown Encounter's Spell Id"] = "未知的首领战斗法术Id"
 	L["Unknown property '%s' found in '%s'"] = "发现'%2$s'的未知属性'%1$s'"
-	--[[Translation missing --]]
-	L["Unknown Spell"] = "Unknown Spell"
+	L["Unknown Spell"] = "未知法术"
 	L["Unlike the start or finish animations, the main animation will loop over and over until the display is hidden."] = "不同于开始或结束动画，主动画将不停循环，直到图示被隐藏。"
 	L["Update"] = "更新"
 	L["Update Auras"] = "更新光环"

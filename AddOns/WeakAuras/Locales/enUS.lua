@@ -25,6 +25,13 @@ L["|cFFFF0000Not|r Item Bonus Id Equipped"] = "|cFFFF0000Not|r Item Bonus Id Equ
 L["|cFFFF0000Not|r Item Equipped"] = "|cFFFF0000Not|r Item Equipped"
 L["|cFFFF0000Not|r Player Name/Realm"] = "|cFFFF0000Not|r Player Name/Realm"
 L["|cFFFF0000Not|r Spell Known"] = "|cFFFF0000Not|r Spell Known"
+L[ [=[|cFFFF0000Support for unfiltered COMBAT_LOG_EVENT_UNFILTERED is deprecated|r
+COMBAT_LOG_EVENT_UNFILTERED without a filter is advised against as it’s very performance costly.
+Find more information:
+https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events]=] ] = [=[|cFFFF0000Support for unfiltered COMBAT_LOG_EVENT_UNFILTERED is deprecated|r
+COMBAT_LOG_EVENT_UNFILTERED without a filter is advised against as it’s very performance costly.
+Find more information:
+https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events]=]
 L["|cFFffcc00Extra Options:|r %s"] = "|cFFffcc00Extra Options:|r %s"
 L["|cFFffcc00Extra Options:|r None"] = "|cFFffcc00Extra Options:|r None"
 L[ [=[• |cff00ff00Player|r, |cff00ff00Target|r, |cff00ff00Focus|r, and |cff00ff00Pet|r correspond directly to those individual unitIDs.
@@ -271,14 +278,7 @@ L["Channel (Spell)"] = "Channel (Spell)"
 L["Character Stats"] = "Character Stats"
 L["Character Type"] = "Character Type"
 L["Charge gained/lost"] = "Charge gained/lost"
-L["Charged Combo Point (1)"] = "Charged Combo Point (1)"
-L["Charged Combo Point (2)"] = "Charged Combo Point (2)"
-L["Charged Combo Point (3)"] = "Charged Combo Point (3)"
-L["Charged Combo Point (4)"] = "Charged Combo Point (4)"
-L["Charged Combo Point 1"] = "Charged Combo Point 1"
-L["Charged Combo Point 2"] = "Charged Combo Point 2"
-L["Charged Combo Point 3"] = "Charged Combo Point 3"
-L["Charged Combo Point 4"] = "Charged Combo Point 4"
+L["Charged Combo Points"] = "Charged Combo Points"
 L["Charges"] = "Charges"
 L["Charges Changed Event"] = "Charges Changed Event"
 L["Charging"] = "Charging"
@@ -299,11 +299,6 @@ L["Clone per Match"] = "Clone per Match"
 L["Color"] = "Color"
 L["Color Animation"] = "Color Animation"
 L["Combat Log"] = "Combat Log"
-L[ [=[COMBAT_LOG_EVENT_UNFILTERED without a filter is generally advised against as it’s very performance costly.
-Find more information:
-https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events]=] ] = [=[COMBAT_LOG_EVENT_UNFILTERED without a filter is generally advised against as it’s very performance costly.
-Find more information:
-https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events]=]
 L["Communities"] = "Communities"
 L["Condition Custom Text"] = "Condition Custom Text"
 L["Conditions"] = "Conditions"
@@ -332,7 +327,6 @@ L["Crushing"] = "Crushing"
 L["C'thun"] = "C'thun"
 L["Cumulated time used during profiling"] = "Cumulated time used during profiling"
 L["Currency"] = "Currency"
-L["Current Combo Point charged"] = "Current Combo Point charged"
 L["Current Essence"] = "Current Essence"
 L["Current Experience"] = "Current Experience"
 L["Current Instance"] = "Current Instance"
@@ -1380,7 +1374,6 @@ L["Tracking Charge %i"] = "Tracking Charge %i"
 L["Tracking Charge CDs"] = "Tracking Charge CDs"
 L["Tracking Only Cooldown"] = "Tracking Only Cooldown"
 L["Transmission error"] = "Transmission error"
-L["Treat charged combo point as 7 combo points"] = "Treat charged combo point as 7 combo points"
 L["Trigger"] = "Trigger"
 L["Trigger %i"] = "Trigger %i"
 L["Trigger %s"] = "Trigger %s"

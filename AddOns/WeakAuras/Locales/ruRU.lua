@@ -31,6 +31,14 @@ L["|cFFFF0000Not|r Item Bonus Id Equipped"] = "|cFFFF0000Нет|r ID бонус�
 L["|cFFFF0000Not|r Item Equipped"] = "Предмет |cFFFF0000НЕ|r надет"
 L["|cFFFF0000Not|r Player Name/Realm"] = "|cFFFF0000Нет|r Имя / Игровой мир игрока"
 L["|cFFFF0000Not|r Spell Known"] = "Заклинание |cFFFF0000НЕ|rизвестно"
+--[[Translation missing --]]
+L[ [=[|cFFFF0000Support for unfiltered COMBAT_LOG_EVENT_UNFILTERED is deprecated|r
+COMBAT_LOG_EVENT_UNFILTERED without a filter is advised against as it’s very performance costly.
+Find more information:
+https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events]=] ] = [=[|cFFFF0000Support for unfiltered COMBAT_LOG_EVENT_UNFILTERED is deprecated|r
+COMBAT_LOG_EVENT_UNFILTERED without a filter is advised against as it’s very performance costly.
+Find more information:
+https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events]=]
 L["|cFFffcc00Extra Options:|r %s"] = "|cFFFFCC00Дополнительные параметры:|r %s"
 L["|cFFffcc00Extra Options:|r None"] = "|cFFFFCC00Дополнительные параметры:|r нет"
 L[ [=[• |cff00ff00Player|r, |cff00ff00Target|r, |cff00ff00Focus|r, and |cff00ff00Pet|r correspond directly to those individual unitIDs.
@@ -268,14 +276,8 @@ L["Channel (Spell)"] = "Потоковое"
 L["Character Stats"] = "Характеристики персонажа"
 L["Character Type"] = "Тип персонажа"
 L["Charge gained/lost"] = "Событие заряда"
-L["Charged Combo Point (1)"] = "Заряженный анимой прием 1"
-L["Charged Combo Point (2)"] = "Заряженный анимой прием 2"
-L["Charged Combo Point (3)"] = "Заряженный анимой прием 3"
-L["Charged Combo Point (4)"] = "Заряженный анимой прием 4"
-L["Charged Combo Point 1"] = "Заряженный анимой прием 1"
-L["Charged Combo Point 2"] = "Заряженный анимой прием 2"
-L["Charged Combo Point 3"] = "Заряженный анимой прием 3"
-L["Charged Combo Point 4"] = "Заряженный анимой прием 4"
+--[[Translation missing --]]
+L["Charged Combo Points"] = "Charged Combo Points"
 L["Charges"] = "Заряды"
 L["Charges Changed Event"] = "Изменение зарядов"
 L["Charging"] = "Зарядка"
@@ -296,10 +298,6 @@ L["Clone per Match"] = "Клонировать для каждого совпа�
 L["Color"] = "Цвет"
 L["Color Animation"] = "Анимация цвета"
 L["Combat Log"] = "Журнал боя"
-L[ [=[COMBAT_LOG_EVENT_UNFILTERED without a filter is generally advised against as it’s very performance costly.
-Find more information:
-https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events]=] ] = [=[Использование события COMBAT_LOG_EVENT_UNFILTERED без фильтра не рекомендуется, поскольку это очень затратно с точки зрения производительности. Подробная информация на странице:
-https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events]=]
 L["Communities"] = "Сообщества"
 L["Condition Custom Text"] = "Пользовательский текст условия"
 L["Conditions"] = "Условия"
@@ -330,7 +328,6 @@ L["Crushing"] = "Сокрушительный удар"
 L["C'thun"] = "К'Тун"
 L["Cumulated time used during profiling"] = "Суммарное время, затраченное на профилирование"
 L["Currency"] = "Валюта"
-L["Current Combo Point charged"] = "Текущий прием заряжен анимой"
 L["Current Essence"] = "Текущее количество сущностей"
 L["Current Experience"] = "Текущее количество опыта"
 L["Current Instance"] = "Текущее подземелье"
@@ -1340,7 +1337,6 @@ L["Tracking Charge %i"] = "Показать восстановление %i-го
 L["Tracking Charge CDs"] = "Отслеживание зарядов"
 L["Tracking Only Cooldown"] = "Отслеживание восстановления"
 L["Transmission error"] = "Ошибка передачи данных"
-L["Treat charged combo point as 7 combo points"] = "Считать заряженный анимой прием как 7 приемов серии"
 L["Trigger"] = "Триггер"
 L["Trigger %i"] = "Триггер %i"
 L["Trigger %s"] = "Триггер %s"

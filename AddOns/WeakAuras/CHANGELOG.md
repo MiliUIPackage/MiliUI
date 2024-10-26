@@ -1,73 +1,47 @@
-# [5.17.2](https://github.com/WeakAuras/WeakAuras2/tree/5.17.2) (2024-10-07)
+# [5.17.3](https://github.com/WeakAuras/WeakAuras2/tree/5.17.3) (2024-10-22)
 
-[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.17.1...5.17.2)
+[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.17.2...5.17.3)
 
 ## Highlights
 
- - Action Useable Trigger: Add a "Ignore Spell Cooldown" mode
-- Add a mounted load condition
-- Classic updates
-- Template updates 
+- 🚨 🚨 🚨 Custom Triggers which listen to COMBAT_LOG_EVENT_UNFILTERED without..ahem..*filtering* now generate a deprecation warning, and will cease functioning in a future update
+- WeakAurasTemplates: Updated for 11.0.5. If we missed any, or got anything wrong, please let us know!
+- Rogue: Charged Combo Points no longer have any special interpretation in Player/Unit Info - Power - Combo Points trigger. The associated overlay should continue to work as expected.
+- WeakAurasArchive should be more conservative about when it loads, in the hopes of improving resiliency against SavedVariables loss
 
 ## Commits
 
-InfusOnWoW (28):
+Boneshock (1):
 
-- Item input: Improve display of exact id matches
-- Progress Texture: Add crop_x and crop_y conditions
-- Cycle Check for Anchoring
-- Spell triggers: Allow spell names in GetEffectiveSpellId
-- Item Equipped: Allow checking for a specific id
-- Spell Input Widgets: Allow invalid spell ids
-- Update Atlas File List from wago.tools
-- Try fixing the PR packager v2
-- Fix PR workflow to actually create a package
-- Tweak Default Collapse setting on display tab
-- Fix Spell Cast Success trigger for Smart Groups
-- Templates: Arms add Colossus Smash
-- Fix Item in Range condition of Item Cooldown Trigger
-- Classic Combo Points: Fix total combo points
-- Templates: Add correct Shadow Priest Debuff templates
-- Item Type trigger: Set multiNoSingle to force multi selection
-- Update Atlas File List from wago.tools
+- Add chat command for WA profiling window
+
+InfusOnWoW (10):
+
+- Charged ComboPoints: Update trigger to new design
+- Fix Lua error on new Weapon Type trigger
+- Templates 10.0.5 update
+- Stagger: Workaround UNIT_ABSORB_AMOUNT_CHANGED not firing for the last tick
+- Druid Templates: Add Apex Predator buff and overlayglow
+- Discord Updater: Allow Cyrillic in names
+- Combo Points: Remove treat charged as seven feature
 - Update Discord List
-- Update Atlas File List from wago.tools
-- Fix Ready Time for Cooldown Progress type triggers
-- Fix error message "Attempt to call table value"
-- Add a version check to WeakAurasOptions
-- Add a mounted load condition
-- Action Useable Trigger: Add a "Ignore Spell Cooldown" mode
-- Update Discord List
-- Remove dead code
-- Templates: Fix Totem templates
-- Update Discord List
+- Deprecate unfiltered CLEU events
+- DG: Fix Centered Grow if 0 auras are visible
 
-Nightwarden24 (1):
-
-- Use fonts from official sources
-
-Stanzilla (5):
+Stanzilla (2):
 
 - Update WeakAurasModelPaths from wago.tools
-- Update WeakAurasModelPaths from wago.tools
-- Update WeakAurasModelPaths from wago.tools
-- Update WeakAurasModelPaths from wago.tools
-- Update WeakAurasModelPaths from wago.tools
+- fix(ci): downgrade github workflows that depend on svn to the ubuntu-22.04 image
 
-emptyrivers (2):
+emptyrivers (4):
 
-- consider wagoID as metadata
-- improvements to background tasks
+- delete a couple nits in the geberated changelog
+- bump toc
+- fix archive clean schedule
+- finally remove LibDeflate hard commit
 
-mrbuds (9):
+mrbuds (2):
 
-- Upgrade CLEU spammy_event_warning to error level
-- update toc files for 1.15.04
-- Don't show url link with chinse simplified locale as profanity filter do not allow it
-- Linking an aura can't add url in chat for China region
-- Location load & trigger: check on WA_DELAYED_PLAYER_ENTERING_WORLD
-- Fix Instance Size Type load option for Molten Core & Onyxia on SoD
-- Make CorrectSpellName also use SpellCache
-- TextEditor: fix ctrl-z/y doubling vertical bars
-- TextEditor does not show errors
+- BuffTrigger2 Multi Handler: make profiling more granular
+- Power Trigger: fix max combo points on Cataclysm
 

@@ -944,11 +944,9 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["Unit Count"] = "Recuento de unidad"
 	L["Unit Frames"] = "Marcos de unidad"
 	L["Unknown"] = "Desconocido"
-	--[[Translation missing --]]
-	L["Unknown Encounter's Spell Id"] = "Unknown Encounter's Spell Id"
+	L["Unknown Encounter's Spell Id"] = "ID de hechizo de encuentro desconocido"
 	L["Unknown property '%s' found in '%s'"] = "Propiedad desconocida '%s' encontrada en '%s'"
-	--[[Translation missing --]]
-	L["Unknown Spell"] = "Unknown Spell"
+	L["Unknown Spell"] = "Hechizo desconocido"
 	L["Unlike the start or finish animations, the main animation will loop over and over until the display is hidden."] = "Ignorar animaciones de inicio y final: la animación principal se repetirá hasta que el aura se oculte."
 	L["Update"] = "Actualizar"
 	L["Update Auras"] = "Actualizar auras"

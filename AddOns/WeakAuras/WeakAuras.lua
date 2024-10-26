@@ -204,6 +204,8 @@ function SlashCmdList.WEAKAURAS(input)
     WeakAuras.PrintProfile();
   elseif msg == "pcancel" then
     WeakAuras.CancelScheduledProfile()
+  elseif msg == "pshow" or msg == "profiling" then
+    WeakAurasProfilingFrame:Toggle()
   elseif msg == "minimap" then
     WeakAuras.ToggleMinimap();
   elseif msg == "help" then
@@ -1365,7 +1367,8 @@ loadedFrame:SetScript("OnEvent", function(self, event, addon)
 
       if db.lastArchiveClear == nil then
         db.lastArchiveClear = time();
-      elseif db.lastArchiveClear < time() - 86400 then
+      elseif db.lastArchiveClear < time() - 2505600 --[[29 days]] then
+        db.lastArchiveClear = time();
         Private.CleanArchive(db.historyCutoff, db.migrationCutoff);
       end
       db.minimap = db.minimap or { hide = false };
