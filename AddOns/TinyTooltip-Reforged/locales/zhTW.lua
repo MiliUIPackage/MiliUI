@@ -29,12 +29,14 @@ addon.L = {
     ["general.skinMoreFrames"]              = "樣式應用于更多框架 |cffcccc33(重載生效)|r",
     ["general.SavedVariablesPerCharacter"]  = "為每個角色保存獨立配置",
     
+    ["item.showExpansionInformation"]	    = "顯示資料片資訊",
     ["item.coloredItemBorder"]              = "物品邊框染色",
     ["item.showItemIcon"]                   = "顯示物品圖標",
     ["quest.coloredQuestBorder"]            = "任務邊框染色",
     
     ["unit.player.anchor.position"]         = "框架錨點",
     ["unit.player.anchor.returnInCombat"]   = "戰鬥時固定",
+    ["unit.player.anchor.defaultInCombat"]  = "戰鬥中固定位置",
     ["unit.player.anchor.hiddenInCombat"]   = "戰鬥時隱藏",
     ["unit.player.anchor.returnOnUnitFrame"] = "UnitFrame上固定",
     ["unit.player.background"]              = "背景染色",
@@ -146,6 +148,8 @@ addon.L = {
     ["bodyFont"]          = "内容字體",
     ["bodyFontSize"]      = "内容字體大小",
     ["bodyFontFlag"]      = "内容字體描邊",
+    ["Expansion"]		  = "資料片",
+    ["general.ColorBlindMode"] = "色盲模式",
     
     ["Anchor"]   = "錨點器",
     
