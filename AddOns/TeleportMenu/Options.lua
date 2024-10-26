@@ -14,6 +14,9 @@ local defaultsDB = {
     enabled = true,
     iconSize = 40,
     hearthstone = "none",
+    reverseMageFlyouts = false,
+    buttonText = true,
+    showOnlySeasonalHerosPath = false,
 }
 
 -- Get all options and verify them
@@ -37,7 +40,11 @@ local function OnSettingChanged(_, setting, value)
     if variable == "Hearthstone_Dropdown" then
         tpm:updateHearthstone()
     end
+    if variable == "reverseMageFlyouts_Checkbox" then
+        tpm:updateMageFlyouts()
+    end
 end
+
 
 local optionsCategory = Settings.RegisterVerticalLayoutCategory(ADDON_NAME)
 
@@ -48,12 +55,20 @@ end
 function tpm:LoadOptions()
     local db = getOptions()
 
-    do -- Enabled Checkbox
+    do
         local optionsKey = "enabled"
         local tooltip = L["Enable Tooltip"]
         local setting = Settings.RegisterAddOnSetting(optionsCategory, "Enabled_Toggle", optionsKey, db, type(defaultsDB[optionsKey]), L["Enabled"], defaultsDB[optionsKey])
         Settings.SetOnValueChangedCallback("Enabled_Toggle", OnSettingChanged)
         Settings.CreateCheckbox(optionsCategory, setting, tooltip)
+    end
+
+    do -- ButtonText  Checkbox
+        local optionsKey = "buttonText"
+        local buttonText = L["ButtonText Tooltip"]
+        local setting = Settings.RegisterAddOnSetting(optionsCategory, "ButtonText_Toggle", optionsKey, db, type(defaultsDB[optionsKey]), L["ButtonText"], defaultsDB[optionsKey])
+        Settings.SetOnValueChangedCallback("ButtonText_Toggle", OnSettingChanged)
+        Settings.CreateCheckbox(optionsCategory, setting, buttonText)
     end
 
     -- do -- Icon Size Slider
@@ -97,9 +112,24 @@ function tpm:LoadOptions()
         end
 
         local setting = Settings.RegisterAddOnSetting(optionsCategory, "Hearthstone_Dropdown", optionsKey, db, type(defaultsDB[optionsKey]), L["Hearthstone Toy"], defaultsDB[optionsKey])
-
         Settings.CreateDropdown(optionsCategory, setting, GetOptions, tooltip)
         Settings.SetOnValueChangedCallback("Hearthstone_Dropdown", OnSettingChanged)
+    end
+
+    do
+        local optionsKey = "reverseMageFlyouts"
+        local tooltip = L["Reverse Mage Flyouts Tooltip"]
+        local setting = Settings.RegisterAddOnSetting(optionsCategory, "reverseMageFlyouts_Checkbox", optionsKey, db, type(defaultsDB[optionsKey]), L["Reverse Mage Flyouts"], defaultsDB[optionsKey])
+        Settings.SetOnValueChangedCallback("reverseMageFlyouts_Checkbox", OnSettingChanged)
+        Settings.CreateCheckbox(optionsCategory, setting, tooltip)
+    end
+
+    do
+        local optionsKey = "showOnlySeasonalHerosPath"
+        local tooltip = L["Seasonal Teleports Toggle Tooltip"]
+        local setting = Settings.RegisterAddOnSetting(optionsCategory, "ShowOnlySeasonalHerosPath_Checkbox", optionsKey, db, type(defaultsDB[optionsKey]), L["Seasonal Teleports"], defaultsDB[optionsKey])
+        Settings.SetOnValueChangedCallback("ShowOnlySeasonalHerosPath_Checkbox", OnSettingChanged)
+        Settings.CreateCheckbox(optionsCategory, setting, tooltip)
     end
 
 	Settings.RegisterAddOnCategory(optionsCategory)
