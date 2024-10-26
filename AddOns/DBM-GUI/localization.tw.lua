@@ -666,3 +666,5 @@ L.ShowDiff							= "顯示不同"
 L.ShowErrors						= "顯示錯誤"
 L.TestModEntry						= "[操練場] %s"
 L.EnterTestMode						= "操練場模式"
+
+L.AnonymizeTest						= "匿名玩家名字以及GUIDs"

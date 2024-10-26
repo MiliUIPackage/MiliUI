@@ -105,7 +105,10 @@ local function DelayedZoneCheck(force)
 	currentZone = DBM:GetCurrentArea() or 0
 	if not force and registeredZones[currentZone] and not eventsRegistered then
 		eventsRegistered = true
-		module:RegisterShortTermEvents("UNIT_FLAGS player party1 party2 party3 party4")
+		module:RegisterShortTermEvents(
+			"UNIT_FLAGS player party1 party2 party3 party4",
+			"CHALLENGE_MODE_DEATH_COUNT_UPDATED"
+		)
 		checkForCombat()--Still run an initial check
 		DBM:Debug("Registering Dungeon Trash Tracking Events", 2)
 		lastUsedMod = DBM:GetModByName(cachedMods[currentZone])
@@ -128,6 +131,9 @@ function module:UNIT_FLAGS()
 		checkForCombat()
 	end
 end
+--Sometimes UNIT_FLAGS doesn't fire if group is spead out, so we track death counter for checking combat state
+module.CHALLENGE_MODE_DEATH_COUNT_UPDATED	= module.UNIT_FLAGS
+
 function module:LOADING_SCREEN_DISABLED()
 	DBM:Unschedule(DelayedZoneCheck)
 	--Checks Delayed 3 second after core checks to prevent race condition of checking before core did and updated cached ID
@@ -142,10 +148,11 @@ function module:CHALLENGE_MODE_COMPLETED()
 	DelayedZoneCheck(true)
 end
 
----Used for registering combat with trash in general for use of notifying affixes mod that party is in combat
+---Used for registering combat with enemies that don't support conventional means (such as dungeon trash)
 ---@param zone number Instance ID of the zone
----@param modId string|number The mod id to register for combat scanning
+---@param modId? string|number The mod id to register for combat scanning
 function bossModPrototype:RegisterZoneCombat(zone, modId)
+	modId = modId or self.id
 	if DBM.Options.NoCombatScanningFeatures then return end
 	if not registeredZones[zone] then
 		registeredZones[zone] = true
@@ -160,8 +167,9 @@ function bossModPrototype:RegisterZoneCombat(zone, modId)
 end
 
 ---@param zone number Instance ID of the zone
----@param modId string|number The mod id to register for combat scanning
+---@param modId? string|number The mod id to register for combat scanning
 function bossModPrototype:UnregisterZoneCombat(zone, modId)
+	modId = modId or self.id
 	if DBM.Options.NoCombatScanningFeatures then return end
 	if not registeredZones[zone] then
 		registeredZones[zone] = nil

@@ -1,11 +1,11 @@
 local mod	= DBM:NewMod(2580, "DBM-Party-WarWithin", 5, 1270)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240923123122")
+mod:SetRevision("20241019092824")
 mod:SetCreatureID(211087)
 mod:SetEncounterID(2837)
-mod:SetHotfixNoticeRev(20240818000000)
-mod:SetMinSyncRevision(20240706000000)
+mod:SetHotfixNoticeRev(20241005000000)
+mod:SetMinSyncRevision(20241005000000)
 --mod.respawnTime = 29
 mod.sendMainBossGUID = true
 
@@ -42,7 +42,7 @@ local timerObsidianBlastCD					= mod:NewCDCountTimer(17, 425264, nil, nil, nil, 
 local timerObsidianBeamCD					= mod:NewCDCountTimer(24.3, 453212, nil, nil, nil, 5)--Mythic and Higher
 local timerCollapsingDarknessCD				= mod:NewCDCountTimer(18, 445996, nil, nil, nil, 3)--Heroic and Lower
 local timerCollapsingNightCD				= mod:NewCDCountTimer(25.9, 453140, nil, nil, nil, 3)--Mythic and Higher
-local timerDarknessComes					= mod:NewCastNPTimer(10, 453859, nil, nil, nil, 2)
+local timerDarknessComes					= mod:NewCastNPTimer(15, 453859, nil, nil, nil, 2)
 local timerBurningShadowsCD					= mod:NewCDCountTimer(17, 426734, nil, nil, nil, 3)
 
 mod.vb.darknessCount = 0
@@ -55,20 +55,20 @@ mod.vb.shadowsCount = 0
 local warnedTimerMissing = false--Single warn for single spell to avoid spam. As long as user finds ONE missing timer, their log is useful
 local allTimers = {
 	[1] = {
-		[425264] = {6},--Obsidian Blast (Non Mythic)
-		[453212] = {7.1, 32.4, 26.2},--Obsidian Beam (Mythic)
+		[425264] = {6, 34.3},--Obsidian Blast (Non Mythic)
+		[453212] = {7.1, 31.9, 26.2},--Obsidian Beam (Mythic)
 		[445996] = {13.1},--Collapsing Darkness (Non Mythic)
-		[453140] = {23.3, 28.6, 26.3},--Collapsing Night (Mythic)
+		[453140] = {23.3, 28.1, 26.3},--Collapsing Night (Mythic)
 		[4267341] = {9.3, 35.5},--Burning Shadows (Non Mythic)
-		[4267342] = {19.2, 16.2, 24.8},--Burning Shadows (Mythic)
+		[4267342] = {19.2, 15.7, 24.5},--Burning Shadows (Mythic)
 	},
 	[2] = {
 		[425264] = {6.8, 17},--Obsidian Blast (Non Mythic)
-		[453212] = {18.2, 23.5, 25.1, 24.4, 26.9},--Obsidian Beam (Mythic)
+		[453212] = {18.0, 23.5, 23.5, 24.4, 25.6},--Obsidian Beam (Mythic)
 		[445996] = {13.8, 18},--Collapsing Darkness (Non Mythic)
-		[453140] = {8.7, 27.8, 25.1, 25.1, 26.7},--Collapsing Night (Mythic)
+		[453140] = {8.7, 27.5, 25.1, 25.1, 25.6},--Collapsing Night (Mythic)
 		[4267341] = {10.1, 25.2},--Burning Shadows (Non Mythic)
-		[4267342] = {14.5, 19.2, 21.9, 21.1, 25.1},--Burning Shadows (Mythic)
+		[4267342] = {14.2, 18, 21.9, 18.0, 25.1, 25.4},--Burning Shadows (Mythic)
 	},								---23.5
 }
 
@@ -152,6 +152,7 @@ function mod:SPELL_CAST_START(args)
 			timerObsidianBlastCD:Start(timer, self.vb.obsidianCount+1)
 		else
 			timerObsidianBlastCD:Start(17, self.vb.obsidianCount+1)--Still start a timer with lowest known value
+			DBM:Debug("Obsidian Blast timer missing for count: "..self.vb.obsidianCount+1 .. ". Please share your log on GitHub or DBM Discord", 1)
 			if not warnedTimerMissing then
 				warnedTimerMissing = true
 				DBM:AddMsg("Obsidian Blast timer missing for count: "..self.vb.obsidianCount+1 .. ". Please share your log on GitHub or DBM Discord", 1)
@@ -169,6 +170,7 @@ function mod:SPELL_CAST_START(args)
 			timerObsidianBeamCD:Start(timer, self.vb.obsidianCount+1)
 		else
 			timerObsidianBeamCD:Start(23.5, self.vb.obsidianCount+1)--Still start a timer with lowest known value
+			DBM:Debug("Obsidian Beam timer missing for count: "..self.vb.obsidianCount+1 .. ". Please share your log on GitHub or DBM Discord", 1)
 			if not warnedTimerMissing then
 				warnedTimerMissing = true
 				DBM:AddMsg("Obsidian Beam timer missing for count: "..self.vb.obsidianCount+1 .. ". Please share your log on GitHub or DBM Discord", 1)
@@ -184,6 +186,7 @@ function mod:SPELL_CAST_START(args)
 			timerCollapsingDarknessCD:Start(timer, self.vb.collapsingCount+1)
 		else
 			timerCollapsingDarknessCD:Start(18, self.vb.collapsingCount+1)--Still start a timer with lowest known value
+			DBM:Debug("Collapsing Darkness timer missing for count: "..self.vb.collapsingCount+1 .. ". Please share your log on GitHub or DBM Discord", 1)
 			if not warnedTimerMissing then
 				warnedTimerMissing = true
 				DBM:AddMsg("Collapsing Darkness timer missing for count: "..self.vb.collapsingCount+1 .. ". Please share your log on GitHub or DBM Discord", 1)
@@ -199,6 +202,7 @@ function mod:SPELL_CAST_START(args)
 			timerCollapsingNightCD:Start(timer, self.vb.collapsingCount+1)
 		else
 			timerCollapsingNightCD:Start(25.1, self.vb.collapsingCount+1)--Still start a timer with lowest known value
+			DBM:Debug("Collapsing Night timer missing for count: "..self.vb.collapsingCount+1 .. ". Please share your log on GitHub or DBM Discord", 1)
 			if not warnedTimerMissing then
 				warnedTimerMissing = true
 				DBM:AddMsg("Collapsing Night timer missing for count: "..self.vb.collapsingCount+1 .. ". Please share your log on GitHub or DBM Discord", 1)
@@ -212,6 +216,7 @@ function mod:SPELL_CAST_START(args)
 			timerBurningShadowsCD:Start(timer, self.vb.shadowsCount+1)
 		else
 			timerBurningShadowsCD:Start(17, self.vb.shadowsCount+1)--Still start a timer with lowest known value
+			DBM:Debug("Burning Shadows timer missing for count: "..self.vb.shadowsCount+1 .. ". Please share your log on GitHub or DBM Discord", 1)
 			if not warnedTimerMissing then
 				warnedTimerMissing = true
 				DBM:AddMsg("Burning Shadows timer missing for count: "..self.vb.shadowsCount+1 .. ". Please share your log on GitHub or DBM Discord", 1)
@@ -259,12 +264,15 @@ function mod:SPELL_AURA_REMOVED(args)
 	if spellId == 453859 then
 		timerDarknessComes:Stop(args.destName)
 		if self.vb.darknessCount == 1 then--First one at 50%
+			self.vb.shadowsCount = 0
+			self.vb.obsidianCount = 0
+			self.vb.collapsingCount = 0
 			self:SetStage(2)
 			--Restart timers
 			if self:IsMythic() then
 				timerCollapsingNightCD:Start(8.7, 1)
-				timerBurningShadowsCD:Start(14.6, 1)
-				timerObsidianBeamCD:Start(18.2, 1)
+				timerBurningShadowsCD:Start(14.3, 1)
+				timerObsidianBeamCD:Start(18.0, 1)
 			else
 				timerBurningShadowsCD:Start(10.1, 1)
 				if not self:IsFollower() then--Doesn't seem used in follower difficulty

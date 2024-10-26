@@ -1,4 +1,4 @@
-## Interface: 110002, 110005
+## Interface: 110005
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10World Events|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界事件|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界事件|r
@@ -25,7 +25,6 @@
 ## X-DBM-Mod-LoadCID: 55003,54499,15467,15466,49687,15664,23558,27215,23486,24710,24484,153931,167749,121820,121818,121911,121912,121913,121821,20130,18166,530,227257,226646
 ## X-DBM-Mod-MinCoreRevision: 12473
 ## X-Category-zhTW: 團隊
-
 localization.en.lua
 localization.tw.lua
 localization.cn.lua

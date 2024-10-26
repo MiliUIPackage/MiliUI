@@ -1,13 +1,15 @@
 local mod	= DBM:NewMod("AraKaraTrash", "DBM-Party-WarWithin", 6)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240925005958")
+mod:SetRevision("20241022111413")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
+mod:SetZone(2660)
+mod:RegisterZoneCombat(2660)
 
 mod:RegisterEvents(
-	"SPELL_CAST_START 434824 434802 438877 436322 438826 448248 453161 432967 433841 433845",
+	"SPELL_CAST_START 434824 434802 438877 436322 438826 448248 453161 432967 433841 433845 434252",
 	"SPELL_CAST_SUCCESS 434802 434793 438622 448248 433841",
 	"SPELL_INTERRUPT",
 --	"SPELL_AURA_APPLIED",
@@ -21,6 +23,7 @@ mod:RegisterEvents(
  or (ability.id = 438622 or ability.id = 434793) and type = "cast"
  or (stoppedAbility.id = 438622 or stoppedAbility.id = 434793 or stoppedAbility.id = 438826 or stoppedAbility.id = 434252 or stoppedAbility.id = 433845 or stoppedAbility.id = 433841 or stoppedAbility.id = 453161 or stoppedAbility.id = 434824 or stoppedAbility.id = 438877 or stoppedAbility.id = 448248 or stoppedAbility.id = 434802 or stoppedAbility.id = 436322 or stoppedAbility.id = 432967)
  or type = "dungeonencounterstart" or type = "dungeonencounterend"
+ or (source.type = "NPC" and source.firstSeen = timestamp and source.id = 217531) or (target.type = "NPC" and target.firstSeen = timestamp and target.id = 217531)
 --]]
 local warnHorrifyingshrill					= mod:NewCastAnnounce(434802, 4)--High Prio Off interrupt
 local warnRadiantBarrage					= mod:NewCastAnnounce(434793, 4)--High Prio Off interrupt
@@ -30,6 +33,7 @@ local warnToxicRupture						= mod:NewSpellAnnounce(438622, 4, nil, "Melee")
 local warnCalloftheBrood					= mod:NewSpellAnnounce(438877, 3)
 local warnPoisonousCloud					= mod:NewSpellAnnounce(438826, 3)
 
+local specWarnMassiveSlam					= mod:NewSpecialWarningSpell(434252, nil, nil, nil, 2, 2)
 local specWarnWebSpray						= mod:NewSpecialWarningDodge(434824, nil, nil, nil, 2, 15)
 local specWarnImpale						= mod:NewSpecialWarningDodge(453161, nil, nil, nil, 2, 15)
 local specWarnEruptingWebs					= mod:NewSpecialWarningDodge(433845, nil, nil, nil, 2, 2)
@@ -41,6 +45,7 @@ local specWarnPoisonBolt					= mod:NewSpecialWarningInterrupt(436322, "HasInterr
 local specWarnRevoltingVolley				= mod:NewSpecialWarningInterrupt(448248, "HasInterrupt", nil, nil, 1, 2)
 local specWarnVenomVolley					= mod:NewSpecialWarningInterrupt(433841, "HasInterrupt", nil, nil, 1, 2)--High Prio
 
+local timerMassiveSlamCD					= mod:NewCDNPTimer(15.8, 434252, nil, nil, nil, 2)
 local timerWebSprayCD						= mod:NewCDPNPTimer(7, 434824, nil, nil, nil, 3)--7-8.2 from last cast finish/kick
 local timerHorrifyingShrillCD				= mod:NewCDPNPTimer(13.3, 434802, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--13.3-15.5 from last cast finish/kick
 local timerRadiantBarrageCD					= mod:NewCDNPTimer(16.8, 434793, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
@@ -125,6 +130,10 @@ function mod:SPELL_CAST_START(args)
 			specWarnEruptingWebs:Show()
 			specWarnEruptingWebs:Play("watchstep")
 		end
+	elseif spellId == 434252 then
+		timerMassiveSlamCD:Start(15.8, args.sourceGUID)
+		specWarnMassiveSlam:Show()
+		specWarnMassiveSlam:Play("stunsoon")
 	end
 end
 
@@ -194,5 +203,38 @@ function mod:UNIT_DIED(args)
 	elseif cid == 216364 then--Blood Overseer
 		timerVenomVolleyCD:Stop(args.destGUID)
 		timerEruptingWebsCD:Stop(args.destGUID)
+	elseif cid == 217039 then--Nerubian Hauler
+		timerMassiveSlamCD:Stop(args.destGUID)
 	end
+end
+
+--All timers subject to a ~0.5 second clipping due to ScanEngagedUnits
+function mod:StartNameplateTimers(guid, cid)
+	if cid == 217531 then--Ixin
+		timerWebSprayCD:Start(4.4, guid)--4.4-7
+		timerHorrifyingShrillCD:Start(12.7, guid)
+	elseif cid == 218324 then--Nakt
+		timerCalloftheBroodCD:Start(6.5, guid)
+		timerWebSprayCD:Start(12.6, guid)
+	elseif cid == 217533 then--Atik
+		timerWebSprayCD:Start(4.3, guid)--4.3-6
+		timerPoisonousCloudCD:Start(9.1, guid)--9.1-14.4
+	elseif cid == 216293 then--Trilling Attendant
+		timerRadiantBarrageCD:Start(2.1, guid)--2.1-3.8
+	elseif cid == 223253 then--Bloodstained Webmage
+		timerRevoltingVolleyCD:Start(2.2, guid)--2.2-4.5
+	elseif cid == 216338 then--Hulking Bodyguard
+		timerImpaleCD:Start(4.8, guid)--4.8-7.6
+	elseif cid == 216364 then--Blood Overseer
+		timerVenomVolleyCD:Start(5.2, guid)--5.2-7.4
+		timerEruptingWebsCD:Start(11.3, guid)--11.3-13.9
+	elseif cid == 217039 then--Nerubian Hauler
+		timerMassiveSlamCD:Start(3, guid)--3-4
+	end
+end
+
+--Abort timers when all players out of combat, so NP timers clear on a wipe
+--Caveat, it won't calls top with GUIDs, so while it might terminate bar objects, it may leave lingering nameplate icons
+function mod:LeavingZoneCombat()
+	self:Stop()
 end

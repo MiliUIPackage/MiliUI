@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2173, "DBM-Party-BfA", 5, 1023)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240925005958")
+mod:SetRevision("20241009083038")
 mod:SetCreatureID(129208)
 mod:SetEncounterID(2109)
 mod:SetHotfixNoticeRev(20240807000000)
@@ -11,7 +11,7 @@ mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 269029 268230 268260 463182",
-	"SPELL_CAST_SUCCESS 268963 268752 181089",
+	"SPELL_CAST_SUCCESS 268963 268752 181089 268230",
 	"SPELL_AURA_APPLIED 272421",
 	"UNIT_DIED"
 --	"UNIT_SPELLCAST_START boss1 boss2 boss3 boss4 boss5",--boss and Adds
@@ -35,10 +35,10 @@ local specWarnCleartheDeck			= mod:NewSpecialWarningDodgeCount(269029, "Tank", n
 local specWarnBroadside				= mod:NewSpecialWarningDodgeCount(268260, "Tank", nil, nil, 1, 2)
 
 local timerMassBombardmentCD		= mod:NewCDCountTimer(25, 463185, nil, nil, nil, 3)
-local timerRicochetCD				= mod:NewCDCountTimer(18.2, 463182, nil, nil, nil, 3)
+local timerRicochetCD				= mod:NewCDCountTimer(17.9, 463182, nil, nil, nil, 3)
 --local timerWithdrawCD				= mod:NewCDCountTimer(40, 268752, nil, nil, nil, 6)--Health based now
-local timerCleartheDeckCD			= mod:NewCDCountTimer(18.2, 269029, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
-local timerCrimsonSwipeCD			= mod:NewCDNPTimer(11.8, 268230, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--11.8-12.2 now
+local timerCleartheDeckCD			= mod:NewCDCountTimer(17.7, 269029, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerCrimsonSwipeCD			= mod:NewCDNPTimer(10.6, 268230, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--11.8-12.2 now
 local timerBroadsideCD				= mod:NewCDCountTimer(12.1, 268260, nil, nil, nil, 3)--12.1-14.2
 
 mod.vb.massBombCount = 0
@@ -56,7 +56,7 @@ function mod:OnCombatStart(delay)
 	self.vb.clearDeckCount = 0
 	self.vb.broadCount = 0
 	timerCleartheDeckCD:Start(3.5-delay, 1)
-	timerRicochetCD:Start(9.7-delay, 1)--Could be shorter, but most people trigger gutshot on pull
+	timerRicochetCD:Start(9.0-delay, 1)--Could be shorter, but most people trigger gutshot on pull
 	if self:IsMythic() then
 		timerMassBombardmentCD:Start(10.1-delay, 1)
 	end
@@ -74,12 +74,11 @@ function mod:SPELL_CAST_START(args)
 		if self:AntiSpam(3, 1) then
 			warnCrimsonSwipe:Show()
 		end
-		timerCrimsonSwipeCD:Start(nil, args.sourceGUID)
 	elseif spellId == 268260 and args:GetSrcCreatureID() == 136549 then--Broadside
 		self.vb.broadCount = self.vb.broadCount + 1
 		specWarnBroadside:Show(self.vb.broadCount)
 		specWarnBroadside:Play("watchstep")
-		timerBroadsideCD:Start(12.1, self.vb.broadCount+1)--12.1-14.6 in TWW (formerly 10.9)
+		timerBroadsideCD:Start(11.1, self.vb.broadCount+1)--11.1-14.6 in TWW (formerly 10.9)
 	elseif spellId == 463182 then
 		self.vb.ricochetCount = self.vb.ricochetCount + 1
 		warnFieryRicochet:Show(self.vb.ricochetCount)
@@ -92,6 +91,8 @@ function mod:SPELL_CAST_SUCCESS(args)
 	if spellId == 268963 then--Unstable Ordnance
 		warnUnstableOrdnance:Show()
 		timerBroadsideCD:Stop()
+	elseif spellId == 268230 then
+		timerCrimsonSwipeCD:Start(nil, args.sourceGUID)
 	elseif spellId == 268752 then--Withdraw (boss Leaving)
 		self:SetStage(2)
 		self.vb.withdrawCount = self.vb.withdrawCount + 1
@@ -99,11 +100,11 @@ function mod:SPELL_CAST_SUCCESS(args)
 		timerCleartheDeckCD:Stop()
 		timerRicochetCD:Stop()
 		timerMassBombardmentCD:Stop()
-		timerBroadsideCD:Start(13.3, self.vb.broadCount+1)--13-15 in TWW
+		timerBroadsideCD:Start(10.9, self.vb.broadCount+1)--10.9-15 in TWW
 	elseif spellId == 181089 then--Encounter Event (boss returning)
 		self:SetStage(1)
 		timerBroadsideCD:Stop()
-		timerCleartheDeckCD:Start(3.7, self.vb.clearDeckCount+1)
+		timerCleartheDeckCD:Start(3.3, self.vb.clearDeckCount+1)
 		timerRicochetCD:Start(8.4, self.vb.ricochetCount+1)
 		if self:IsMythic() then
 			timerMassBombardmentCD:Start(25, self.vb.massBombCount+1)

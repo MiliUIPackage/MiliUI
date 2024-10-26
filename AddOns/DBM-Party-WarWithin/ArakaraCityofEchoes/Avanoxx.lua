@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2583, "DBM-Party-WarWithin", 6, 1271)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240818054948")
+mod:SetRevision("20241015004108")
 mod:SetCreatureID(213179)
 mod:SetEncounterID(2926)
 mod:SetUsedIcons(1, 2, 3, 4)
@@ -30,11 +30,11 @@ mod:RegisterEventsInCombat(
  or type = "dungeonencounterstart" or type = "dungeonencounterend"
 --]]
 local warnInsatiable						= mod:NewStackAnnounce(446794, 4)
-local warnAlertingShrill					= mod:NewCountAnnounce(438476, 2)
-local warnGossamerOnsalught					= mod:NewCountAnnounce(438473, 2)
 local warnVileWebbing						= mod:NewCountAnnounce(434830, 3, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(434830))--Player
 local warnWebWrap							= mod:NewTargetNoFilterAnnounce(436614, 2, nil, "RemoveMagic")
 
+local specWarnAlertingShrill				= mod:NewSpecialWarningCount(438476, nil, nil, nil, 2, 2)
+local specWarnGossamerOnslaught				= mod:NewSpecialWarningDodgeCount(438473, nil, nil, nil, 2, 2)
 local specWarnVoraciousBite					= mod:NewSpecialWarningDefensive(438471, nil, nil, nil, 1, 2)
 local specWarnHunger						= mod:NewSpecialWarningRun(439070, nil, nil, nil, 1, 2)
 --local yellSomeAbility						= mod:NewYell(372107)
@@ -77,7 +77,11 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 438476 then
 		self.vb.mobIcon = 1
 		self.vb.shrillCount = self.vb.shrillCount + 1
-		warnAlertingShrill:Show(self.vb.shrillCount)
+		specWarnAlertingShrill:Show(self.vb.shrillCount)
+		specWarnAlertingShrill:Play("aesoon")
+		if not self:IsTank() then
+			specWarnAlertingShrill:ScheduleVoice(2, "killmob")
+		end
 		timerAlertingShrillCD:Start(self.vb.shrillCount == 1 and 38.7 or 39.3, self.vb.shrillCount+1)
 		--if time remaining on Voracious Bite is < 7.2, it's extended by this every time
 		if timerVoraciousBiteCD:GetRemaining(self.vb.biteCount+1) < 7.2 then
@@ -88,7 +92,8 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 438473 then
 		self.vb.onslaughtCount = self.vb.onslaughtCount + 1
-		warnGossamerOnsalught:Show(self.vb.onslaughtCount)
+		specWarnGossamerOnslaught:Show(self.vb.onslaughtCount)
+		specWarnGossamerOnslaught:Play("watchstep")
 		timerGossamerOnslaughtCD:Start(self.vb.onslaughtCount == 1 and 38.7 or 39.3, self.vb.onslaughtCount+1)
 		--if time remaining on Voracious Bite is < 12.1, it's extended by this every time
 		if timerVoraciousBiteCD:GetRemaining(self.vb.biteCount+1) < 12.1 then

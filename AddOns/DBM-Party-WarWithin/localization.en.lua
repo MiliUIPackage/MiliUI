@@ -98,7 +98,11 @@ L:SetGeneralLocalization({
 -----------------------------
 --  Forge Speakers  --
 -----------------------------
---L = DBM:GetModLocalization(2590)
+L = DBM:GetModLocalization(2590)
+
+L:SetMiscLocalization{
+	SafeVent		= "Safe Vent"
+}
 
 -----------------------------
 --  High Speaker Eirich  --
@@ -219,7 +223,11 @@ L:SetOptionLocalization({
 -----------------------------
 --  Fangs of the Queen  --
 -----------------------------
---L = DBM:GetModLocalization(2595)
+L = DBM:GetModLocalization(2595)
+
+L:SetMiscLocalization{
+	RolePlay		= "The Transformatory was once the home of our sacred evolution."
+}
 
 -----------------------------
 --  The Coaglamation  --

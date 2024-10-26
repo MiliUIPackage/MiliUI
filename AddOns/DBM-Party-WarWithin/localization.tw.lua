@@ -99,7 +99,11 @@ L:SetGeneralLocalization({
 -----------------------------
 --  Forge Speakers  --
 -----------------------------
---L = DBM:GetModLocalization(2590)
+L = DBM:GetModLocalization(2590)
+
+--L:SetMiscLocalization{
+	--SafeVent		= "Safe Vent"
+--}
 
 -----------------------------
 --  High Speaker Eirich  --
@@ -109,6 +113,7 @@ L = DBM:GetModLocalization(2582)
 L:SetWarningLocalization({
 	specWarnVoidCorruption	= "虛無腐化 - 移動靠近 (非進入) 裂隙"
 })
+
 ---------
 --Trash--
 ---------
@@ -201,6 +206,10 @@ L:SetGeneralLocalization({
 	name =	"燼釀酒莊小怪"
 })
 
+--L:SetOptionLocalization({
+	--AGBuffs		= "Auto select gossip to activate buffs when interacting with profession objects"
+--})
+
 -------------------------
 --  City of Threads (1274/2669)  --蛛絲城
 -----------------------------
@@ -212,6 +221,10 @@ L:SetGeneralLocalization({
 --  Fangs of the Queen  --
 -----------------------------
 --L = DBM:GetModLocalization(2595)
+
+--L:SetMiscLocalization{
+	--RolePlay		= "The Transformatory was once the home of our sacred evolution."
+--}
 
 -----------------------------
 --  The Coaglamation  --

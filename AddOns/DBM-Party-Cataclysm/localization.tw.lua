@@ -111,6 +111,21 @@ L= DBM:GetModLocalization(133)
 ------------
 L= DBM:GetModLocalization(134)
 
+L = DBM:GetModLocalization("GrimBatolTrash")
+
+L:SetGeneralLocalization({
+	name =	"格瑞姆巴托小怪"
+})
+
+---------
+--Trash--
+---------
+L = DBM:GetModLocalization("BoralusTrash")
+
+L:SetGeneralLocalization({
+	name =	"波拉勒斯小怪"
+})
+
 ----------------------------
 --  Halls of Origination  --
 ----------------------------
