@@ -46,7 +46,7 @@ function AddExpansionInfo(tooltip, data)
         if (expID > 0) then
             tooltip:AddLine(format("|cffffdd22%s:|r |cff64cd3c%s|r (%d)", addon.L["Expansion"], _G['EXPANSION_NAME' .. expID], tonumber(expID)+1))
         else
-            tooltip:AddLine(format("|cffffdd22%s:|r |cff64cd3c%s|r", L["Expansion"], _G['EXPANSION_NAME' .. expID]))
+            tooltip:AddLine(format("|cffffdd22%s:|r |cff64cd3c%s|r", addon.L["Expansion"], _G['EXPANSION_NAME' .. expID]))
         end
     end 
 end
