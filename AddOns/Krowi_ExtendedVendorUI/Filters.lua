@@ -111,6 +111,9 @@ do -- Mounts
 	end
 
 	function filters.IsMount(itemId)
+		if itemId == 37011 then -- Magic Broom is classified as a mount but can't be learned
+			return false;
+		end
 		local classId, subclassId = select(12, GetItemInfo(itemId));
 		return classId == Enum.ItemClass.Miscellaneous and subclassId == Enum.ItemMiscellaneousSubclass.Mount;
 	end

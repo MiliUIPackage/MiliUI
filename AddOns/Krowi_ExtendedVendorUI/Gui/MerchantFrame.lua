@@ -198,3 +198,9 @@ end
 StaticPopupDialogs["CONFIRM_HIGH_COST_ITEM"].OnAccept = function()
 	BuyMerchantItem(MerchantFrame.itemIndex, MerchantFrame.count);
 end
+
+-- 11.0.5 API changes
+local origC_MerchantFrame_GetItemInfo = C_MerchantFrame.GetItemInfo;
+C_MerchantFrame.GetItemInfo = function(index)
+	return origC_MerchantFrame_GetItemInfo(GetCachedIndex(index));
+end
