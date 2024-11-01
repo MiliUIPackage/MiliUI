@@ -246,6 +246,70 @@
 		"zone_100_wakingshore_outdoor_walk_wilds#217080",
 	})
 
+	-- Zones: Khaz Algar
+	Zn(L["Zones"], L["Khaz Algar"], "|cffffd800", {""})
+	Zn(L["Zones"], L["Khaz Algar"], "|cffffd800" .. L["Khaz Algar"], {""})
+	Zn(L["Zones"], L["Khaz Algar"], L["Ringing Deeps"]							, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Ringing Deeps"], prefol,
+		"mus_1100_ancient_falls_1#265014",
+		"mus_1100_ancient_falls_2#265023",
+		"mus_1100_lost_mines#265028",
+		"mus_1100_ringing_deeps_base_1#265489",
+		"mus_1100_ringing deeps_base_2#265493",
+		"mus_1100_the_warrens#265020",
+		"mus_1100_zone_11#265488",
+		"ringing_deeps_11#265490",
+		"mus_1100_taelloch#265494",
+		"mus_80_goblingreed_a#265497",
+	})
+	Zn(L["Zones"], L["Khaz Algar"], L["Isle of Dorn"]							, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Isle of Dorn"], prefol,
+		"mus_1100_boulder_springs_1#265442",
+		"mus_1100_boulder_springs_2#265443",
+		"mus_1100_cinderwold_1#265456",
+		"mus_1100_cinderwold_2#266426",
+		"mus_1100_delve_11#265450",
+		"mus_1100_dornogal_1#265460",
+		"mus_1100_dornogal_2#265464",
+		"mus_1100_dorn_country#265458",
+		"mus_1100_earthen_countryside#265018",
+		"mus_1100_earthen_memorial#265459",
+		"mus_1100_glimmering_shore#265452",
+		"mus_1100_isle_of_dorn#265449",
+		"mus_1100_proscenium#265009",
+		"mus_1100_tranquil_strand#263761",
+		"mus_1100_zone_11_2#265454",
+	})
+	Zn(L["Zones"], L["Khaz Algar"], L["Hallowfall"]								, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Hallowfall"], prefol,
+		"mus_1100_arathi_airships#265015",
+		"mus_1100_arathor_general#265016",
+		"mus_1100_arathi_memorial#265712",
+		"mus_1100_dark_crystal#265728",
+		"mus_1100_delve_11_1#265713",
+		"mus_1100_delve_11_2#266837",
+		"mus_1100_lorels_crossing#265716",
+		"mus_1100_mereldar#265327",
+		"mus_1100_nerubian_raid#265024",
+		"mus_1100_sunless_strand_1#265672",
+		"mus_1100_sunless_strand_2#265701",
+		"mus_1100_the_aegis_wall#265013",
+	})
+	Zn(L["Zones"], L["Khaz Algar"], L["Azj-Kahet"]								, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Azj-Kahet"], prefol,
+		"mus_101_loamm_town_a#228264",
+		"mus_1100_ancient_falls#265014",
+		"mus_1100_city_of_threads#265749",
+		"mus_1100_crawling_chasm#265736",
+		"mus_1100_delve_11#266837",
+		"mus_1100_maddening_deep#265738",
+		"mus_1100_nerubian_combat#265753",
+		"mus_1100_nerubian_raid#265735",
+		"mus_1100_silken_path_1#265343",
+		"mus_1100_silken_path_2#265752",
+		"mus_1100_sunless_strand#265745",
+		"mus_1100_weaver's_lair#265739",
+		"mus_1100_zone_11_1#265737",
+		"mus_1100_zone_11_2#265742",
+		"mus_1100_zone_11_3#265743",
+	})
+
 	----------------------------------------------------------------------
 	-- Dungeons
 	----------------------------------------------------------------------
@@ -484,6 +548,57 @@
 		"dragonflight/mus_100_scene_eranog_fire_transformation#217848",
 	})
 
+	-- Dungeons: The War Within
+	Zn(L["Dungeons"], L["The War Within"], "|cffffd800", {""})
+	Zn(L["Dungeons"], L["The War Within"], "|cffffd800" .. L["The War Within"], {""})
+	Zn(L["Dungeons"], L["The War Within"], L["Ara-Kara, City of Echoes"]		, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Ara-Kara, City of Echoes"], prefol,
+		-- Ara-Kara, City of Echoes
+		"mus_1100_crawling chasm#265343",
+		"mus_1100_dungeon_11#265403",
+	})
+	Zn(L["Dungeons"], L["The War Within"], L["City of Threads"]					, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["City of Threads"], prefol,
+		-- City of Threads
+		"mus_1100_city_of_threads#265373",
+		"mus_1100_maddening_deep#265188",
+	})
+	Zn(L["Dungeons"], L["The War Within"], L["Dawnbreaker"]						, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Dawnbreaker"], prefol,
+		-- Dawnbreaker
+		"mus_1100_arathi_airships#265015",
+		"mus_1100_arathi_combat_dark#265109",
+	})
+	Zn(L["Dungeons"], L["The War Within"], L["Nerub-ar Palace"]					, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Nerub-ar Palace"], prefol,
+		-- Nerub-ar Palace
+		"mus_1100_city_of_threads_1#265097",
+		"mus_1100_city_of_threads_2#265183",
+		"mus_1100_crawling_chasm#265343",
+		"mus_1100_maddening_deep#265188",
+		"mus_1100_silken_path#265190",
+	})
+	Zn(L["Dungeons"], L["The War Within"], L["Priory of the Sacred Flame"]		, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Priory of the Sacred Flame"], prefol,
+		-- Priory of the Sacred Flame
+		"mus_1100_dungeon_11#265408",
+	})
+	Zn(L["Dungeons"], L["The War Within"], L["Rookery"]							, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Rookery"], prefol,
+		-- Rookery
+		"mus_1100_taelloch#265436",
+	})
+
+	-- Dungeons: War Within Scenarios
+	-- Zn(L["Dungeons"], L["War Within: Scenarios"], "|cffffd800", {""})
+	-- Zn(L["Dungeons"], L["War Within: Scenarios"], "|cffffd800" .. L["War Within: Scenarios"], {""})
+	-- Zn(L["Dungeons"], L["War Within"], L["Burrows (Scenario)"]										, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Burrows (Scenario)"], prefol,
+		-- Scenario: Burrows
+		-- "mus_1100_nerubian_combat#266516",
+	--})
+	--Zn(L["Dungeons"], L["War Within: Scenarios"], L["Hallowfall (Scenario)"]						, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Hallowfall (Scenario)"], prefol,
+		-- Scenario: Hallowfall
+	--	"mus_1100_arathi_combat_dark#266441",
+	--})
+	--Zn(L["Dungeons"], L["War Within: Scenarios"], L["Kriegval's Rest (Scenario)"]					, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Kriegval's Rest (Scenario)"], prefol,
+		-- Scenario: Kriegval's Rest
+	--	"mus_1100_lost_mines#265028",
+	--})
+
 	----------------------------------------------------------------------
 	-- Various
 	----------------------------------------------------------------------
@@ -661,19 +776,34 @@
 		"|Cffffffff" .. L["Take To The Skies"] .. " |r#4867720#157", -- interface/cinematics/dragonflight_100_dm.mp3
 		"|Cffffffff" .. L["Raszageth the Storm-Eater (1)"] .. " |r#4687617#131", -- interface/cinematics/shadowlands/dragonflight_1000_rec.mp3
 		"|Cffffffff" .. L["Raszageth the Storm-Eater (2)"] .. " |r#4687618#210", -- interface/cinematics/shadowlands/dragonflight_1001_tuc.mp3
-		"|Cffffffff" .. L["Raszageth Confronts Alexstrasza"] .. " |r#4687621#156", -- unknown.mp3
+		"|Cffffffff" .. L["Raszageth Confronts Alexstrasza"] .. " |r#4687621#156", -- interface/cinematics/dragonflight_100_rva.mp3#4687621
 		"|Cffffffff" .. L["Dragonflight Legacies (1)"] .. " |r#4687622#301", -- interface/cinematics/dragonflight_100_gk.mp3
 		"|Cffffffff" .. L["Dragonflight Legacies (2)"] .. " |r#4687623#294", -- interface/cinematics/dragonflight_100_dw.mp3
 		"|Cffffffff" .. L["Dragonflight Legacies (3)"] .. " |r#4854572#350", -- interface/cinematics/dragonflight_100_dt.mp3
 		"|Cffffffff" .. L["The Ebon Scales"] .. " |r#4687624#23", -- interface/cinematics/shadowlands/dragonflight_1001_didc.mp3
-		"|Cffffffff" .. L["The Seed of Hope"] .. " |r#4687619#128", -- unknown
-		"|Cffffffff" .. L["Secrets of the Reach"] .. " |r#4925533#231", -- unknown
-		"|Cffffffff" .. L["Opening The Way"] .. " |r#5161928#181", -- unknown
+		"|Cffffffff" .. L["The Seed of Hope"] .. " |r#4687619#128", -- interface/cinematics/dragonflight_100_ptw.mp3#4687619
+		"|Cffffffff" .. L["Secrets of the Reach"] .. " |r#4925533#231", -- interface/cinematics/dragonflight_1007_coi.mp3#4925533
+		"|Cffffffff" .. L["Opening The Way"] .. " |r#5161928#181", -- interface/cinematics/dragonflight_101_otw.mp3#5161928
 		"|Cffffffff" .. L["Fyrakk Incinerates Loamm"] .. " |r#5161813#24", -- interface/cinematics/dragonflight_101_mol.mp3
 		"|Cffffffff" .. L["A Symbol of Hope"] .. " |r#5161808#16", -- interface/cinematics/dragonflight_101_wtr.mp3
-		"|Cffffffff" .. L["Dawn of the Infinite (Interlude)"] .. " |r#5202861#40", -- unknown
-		"|Cffffffff" .. L["Dawn of the Infinite (Finale)"] .. " |r#5202863#64", -- unknown
-		"|Cffffffff" .. L["A Matter of Time"] .. " |r#5202865#117", -- unknown
+		"|Cffffffff" .. L["Dawn of the Infinite (Interlude)"] .. " |r#5202861#40", -- interface/cinematics/dragonflight_1015_mda.mp3#5202861
+		"|Cffffffff" .. L["Dawn of the Infinite (Finale)"] .. " |r#5202863#64", -- interface/cinematics/dragonflight_1015_mdb.mp3#5202863
+		"|Cffffffff" .. L["A Matter of Time"] .. " |r#5202865#117", -- interface/cinematics/dragonflight_1015_nfi.mp3#5202865
+		"|Cffffffff" .. L["Fury Incarnate"] .. " |r#5369270#184", -- interface/cinematics/dragonflight_1017_fi.mp3#5369270 (1001)
+		"|Cffffffff" .. L["Crown of Flame"] .. " |r#5482243#127", -- interface/cinematics/dragonflight_102_cof.mp3#5482243 (1002)
+		"|Cffffffff" .. L["Blessing of Amirdrassil"] .. " |r#5486695#27", -- interface/cinematics/dragonflight_102_fra.mp3#5486695 (1003)
+		"|Cffffffff" .. L["Iridikron and Vyranoth"] .. " |r#5486709#119", -- interface/cinematics/dragonflight_1025_vis.mp3#5486709 (1009)
+
+		-- Cinematic Music: The War Within (movie.dbc)
+		"|cffffd800", "|cffffd800" .. L["The War Within"],
+		"|Cffffffff" .. L["The War Within"] .. " |r#6036525#147", -- 1023
+		"|Cffffffff" .. L["Thrall and Anduin"] .. " |r#6027243#285", -- 1014
+		"|Cffffffff" .. L["Threads of Destiny"] .. " |r#6036526#313", -- 1021
+		"|Cffffffff" .. L["The Story So Far"] .. " |r#6031151#230", -- interface/cinematics/tww_recap_cinematic.mp3#6031151 (1024)
+		"|Cffffffff" .. L["Dalaran Arrives at Khaz Algar"] .. " |r#5932222#83", -- 1010
+		"|Cffffffff" .. L["Magni's Sacrifice"] .. " |r#6036523#208", -- 1013
+		"|Cffffffff" .. L["Ascension Day"] .. " |r#6036522#77", -- 1020
+		-- "|Cffffffff" .. L["Confronting Xal'atath"] .. " |r#2148160#199", -- 1019 - 2148160 is placeholder MP3 (duplicate exists at 1025 but no sound file yet)
 	})
 
 	Zn(L["Various"], L["Various"], L["Class Trials"]							, {	"|cffffd800" .. L["Various"] .. ": " .. L["Class Trials"], prefol, "MUS_70_ClassTrial_Horde_BattleWalk#71954", "MUS_70_ClassTrial_Alliance_BattleWalk#71959",})
@@ -823,6 +953,23 @@
 		L["Dawn of the Infinite (Interlude)"] .. " |r(991)",
 		L["Dawn of the Infinite (Finale)"] .. " |r(992)",
 		L["A Matter of Time"] .. " |r(993)",
+		L["Fury Incarnate"] .. " |r(1001)",
+		L["Crown of Flame"] .. " |r(1002)",
+		L["Blessing of Amirdrassil"] .. " |r(1003)",
+		L["Iridikron and Vyranoth"] .. " |r(1009)",
+	})
+
+	-- Movies: The War Within
+	Zn(L["Movies"], L["Movies"], L["The War Within"]					, {	"|cffffd800" .. L["Movies"] .. ": " .. L["The War Within"], prefol,
+		L["The War Within"] .. " |r(1023)",
+		L["Thrall and Anduin"] .. " |r(1014)",
+		L["Threads of Destiny"] .. " |r(1021)",
+		L["The Story So Far"] .. " |r(1024)",
+		L["Dalaran Arrives at Khaz Algar"] .. " |r(1010)",
+		L["The Guardian and the Harbinger"] .. " |r(1012)",
+		L["Magni's Sacrifice"] .. " |r(1013)",
+		L["Ascension Day"] .. " |r(1020)",
+		L["Confronting Xal'atath"] .. " |r(1019)",
 	})
 
 	----------------------------------------------------------------------
