@@ -8,7 +8,7 @@ else
 	mod.statTypes = "normal,heroic"
 end
 
-mod:SetRevision("20241014043722")
+mod:SetRevision("20241029060849")
 mod:SetCreatureID(40319)
 mod:SetEncounterID(1048)
 mod:SetHotfixNoticeRev(20240812000000)
@@ -92,7 +92,7 @@ function mod:SPELL_CAST_START(args)
 	elseif args.spellId == 450095 then
 		self.vb.curseCount = self.vb.curseCount + 1
 		warnCurseofEntropy:Show(self.vb.curseCount)
-		timerCurseofEntropyCD:Start(self:GetStage(2) and 35 or 29.9, self.vb.curseCount+1)
+		timerCurseofEntropyCD:Start(self:GetStage(2) and 35 or 18, self.vb.curseCount+1)
 	end
 end
 

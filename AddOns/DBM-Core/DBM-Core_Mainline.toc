@@ -6,14 +6,14 @@
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0核心|r
 ## Notes: Deadly Boss Mods
 ## Dependencies: DBM-StatusBarTimers
-## OptionalDependencies: LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibChatAnims, LibDBIcon-1.0, LibDeflate, LibSerialize, LibSpecialization, CustomNames
+## OptionalDependencies: LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibChatAnims, LibDBIcon-1.0, LibDeflate, LibSerialize, LibSpecialization, CustomNames, Masque
 ## SavedVariables: DBM_AllSavedOptions, DBM_MinimapIcon, DBM_AnnoyingPopupDisables, DBM_ModsToLoadWithFullTestSupport
 ## SavedVariablesPerCharacter: DBM_UsedProfile, DBM_UseDualProfile, DBM_CharSavedRevision
 ## IconTexture: Interface\AddOns\DBM-Core\textures\dbm_airhorn
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 11.0.24
+## Version: 11.0.25
 ## X-Curse-Project-ID: 3358
 ## X-WoWI-ID: 8814
 ## X-Wago-ID: qv633o6b

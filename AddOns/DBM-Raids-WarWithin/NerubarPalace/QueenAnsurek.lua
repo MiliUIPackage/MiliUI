@@ -3,11 +3,11 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "story,lfr,normal,heroic,mythic"
 
-mod:SetRevision("20241018024117")
+mod:SetRevision("20241030025003")
 mod:SetCreatureID(218370)
 mod:SetEncounterID(2922)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
-mod:SetHotfixNoticeRev(20240917000000)
+mod:SetHotfixNoticeRev(20241029000000)
 mod:SetMinSyncRevision(20240910000000)
 mod.respawnTime = 29
 
@@ -254,11 +254,11 @@ local allTimers = {
 			--Venom Nova
 			[437417] = {29.3, 56, 56},--56 repeating? (Same as normal)
 			--Silken Tomb
-			[439814] = {57.4, 48, 15.9},--(different from normal)
+			[439814] = {57.2, 64},--(different from normal)
 			--Liquefy
 			[440899] = {8.3, 39.7, 51},--(different from normal)
 			--Web Blades
-			[439299] = {20.4, 47, 47, 25}--(different from normal)
+			[439299] = {20.2, 47.0, 43.0, 29.0}--(different from normal)
 		},
 		[3] = {
 			--Abyssal Infusion
@@ -580,7 +580,7 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 445422 and not self.vb.cataEvoActivated then
 		self.vb.frothingGluttonyCount = self.vb.frothingGluttonyCount + 1
 		specWarnFrothingGluttony:Show(self.vb.frothingGluttonyCount)
-		specWarnFrothingGluttony:Play("pullin")
+		specWarnFrothingGluttony:Play("pullin")--TODO, FIX ME with new audio
 		local timer = self:GetFromTimersTable(allTimers, savedDifficulty, self.vb.phase, 445422, self.vb.frothingGluttonyCount+1)
 		if timer then
 			timerFrothingGluttonyCD:Start(timer, self.vb.frothingGluttonyCount+1)

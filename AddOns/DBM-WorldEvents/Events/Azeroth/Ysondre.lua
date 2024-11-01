@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("Ysondre", "DBM-WorldEvents", 4)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240315080105")
+mod:SetRevision("20241029061136")
 mod:SetCreatureID(121912)--121912 TW ID, 14887 classic ID
 --mod:SetModelID(17887)
 
@@ -29,9 +29,9 @@ local timerLightningWaveCD		= mod:NewCDTimer(12.3, 243610, nil, nil, nil, 3)
 
 function mod:OnCombatStart(delay, yellTriggered)
 	if yellTriggered then
-		timerLightningWaveCD:Start(5.9-delay)--Iffy
+		timerLightningWaveCD:Start(3.4-delay)
 		timerNoxiousBreathCD:Start(11.9-delay)
-		timerSleepingFogCD:Start(18.4-delay)
+		timerSleepingFogCD:Start(16.8-delay)
 	end
 end
 
