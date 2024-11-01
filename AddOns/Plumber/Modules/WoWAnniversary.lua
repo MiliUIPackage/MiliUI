@@ -29,6 +29,29 @@ local time = time;
 
 local QUICKSLOT_NAME = "mount_maniac";
 
+
+local function IsOnMount(mountSpellID)
+    local GetAuraDataByIndex = C_UnitAuras.GetAuraDataByIndex;
+    local i = 1;
+    local spellID = 0;
+    local aura;
+
+    while spellID do
+        aura = GetAuraDataByIndex("player", i, "HELPFUL");
+        spellID = aura and aura.spellId;
+        if spellID then
+            if spellID == mountSpellID then
+                return true
+            end
+            i = i + 1;
+        else
+            break
+        end
+    end
+
+    return false
+end
+
 function EL:UpdateMountButton()
     local widgetInfo = GetSpellDisplayVisualizationInfo(WIDGET_ID_MOUNT_MANIAC_MOUNT);
     if (widgetInfo and widgetInfo.spellInfo and widgetInfo.spellInfo.spellID and widgetInfo.spellInfo.shownState ~= 0) then
@@ -38,16 +61,29 @@ function EL:UpdateMountButton()
             local _, description, source = GetMountInfoExtraByID(mountID);
 
             local title, colorizedName;
+            local onClickFunc;
+
             if isCollected then
                 title = "|TInterface/AddOns/Plumber/Art/Button/Checkmark-Green-Shadow:16:16:-4:-2|t"..name;
                 colorizedName = "|cffffd100"..name.."|r";
+                function onClickFunc()
+                    if not IsOnMount(spellID) then
+                        C_MountJournal.SummonByID(mountID);
+                    end
+                end
             else
                 title = "|TInterface/AddOns/Plumber/Art/Button/RedCross-Shadow:16:16:-4:-2|t"..name;
                 colorizedName = "|cff999999"..name.."|r";
+                function onClickFunc()
+
+                end
             end
 
             if description then
                 description = "|cffffd100"..description.."|r";
+                if not isCollected then
+                    description = description.."\n\n|cffff4800"..L["Mount Not Collected"].."|r";
+                end
             end
 
             local tooltipLines = {
@@ -58,7 +94,7 @@ function EL:UpdateMountButton()
 
             local data = {
                 buttons = {
-                    {actionType = "spell", spellID = spellID, icon = icon, name = colorizedName, macroText = "/cast "..name, enabled = isCollected, tooltipLines = tooltipLines},
+                    {actionType = "spell", spellID = spellID, icon = icon, name = colorizedName, onClickFunc = onClickFunc, enabled = isCollected, tooltipLines = tooltipLines},
                 },
                 systemName = QUICKSLOT_NAME,
                 spellcastType = 1,      --Cast
@@ -98,35 +134,6 @@ function EL:GetPlayerEventArea()
         end
     end
     return nil
-end
-
-function EL:GetBuffStacks(unit)
-    unit = unit or "player";
-    local spellID = 87649;
-    local index = 1;
-    local aura;
-    local stack;
-
-    while (index > 0) do
-        aura = GetBuffDataByIndex(unit, index);
-        if aura then
-            index = index + 1;
-            if aura.spellId == spellID then
-                stack = aura.applications;
-                index = 0;
-            end
-        else
-            index = 0;
-        end
-    end
-
-    local canInspect = CanInspect(unit);
-    
-    if DressUpFrame:IsShown() then
-        print(unit)
-        local actor = DressUpFrame.ModelScene:GetPlayerActor();
-        actor:SetModelByUnit(unit)
-    end
 end
 
 function EL:ShowQuickSlot(state)
@@ -217,7 +224,6 @@ function EL:OnEvent(event, ...)
 
     elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
         self:ProcessCombatLog( CombatLogGetCurrentEventInfo() );
-        print(...)
     end
 end
 
@@ -233,9 +239,11 @@ function EL:ListenEvents(state)
         self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
         self:SetScript("OnEvent", nil);
         self:WatchPlayerLocation(false);
+
     end
 end
 
+--[[
 local function Debug_GetActiveEvent()
     local widgetSetID = C_UIWidgetManager.GetTopCenterWidgetSetID()
     local widgets = C_UIWidgetManager.GetAllWidgetsBySetID(widgetSetID);
@@ -249,9 +257,10 @@ local function Debug_GetActiveEvent()
     end
 end
 
-function Debug_GetPlayerCoord()
+local function Debug_GetPlayerCoord()
     print(GetPlayerMapCoord(71));
 end
+--]]
 
 
 do  --Vote Counter
@@ -743,6 +752,8 @@ do
 
                 local function OnLeaveZoneCallback()
                     EL:ListenEvents(false);
+                    EL:ShowQuickSlot(false);
+                    EL:ShowVoteCounter(false);
                 end
 
                 module:SetEnterZoneCallback(OnEnterZoneCallback);

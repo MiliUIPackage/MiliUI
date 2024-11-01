@@ -9,6 +9,8 @@ local L = addon.L;
 --Module Control Panel
 L["Module Control"] = "功能選項";
 L["Quick Slot Generic Description"] = "\n\n*快捷按鈕是一組在特定情形下出現的、可交互的按鈕。";
+L["Quick Slot Edit Mode"] = "更改布局";
+L["Quick Slot High Contrast Mode"] = "切換高對比度模式";
 L["Restriction Combat"] = "戰鬥中不可用";    --Indicate a feature can only work when out of combat
 L["Map Pin Change Size Method"] = "\n\n*如需更改標記大小，請打開 世界地圖 - 地圖篩選 - Plumber";
 
@@ -203,6 +205,11 @@ L["Voting Result Header"] = "投票結果";
 --BlizzFixFishingArtifact
 L["ModuleName BlizzFixFishingArtifact"] = "幽光魚竿修復";
 L["ModuleDescription BlizzFixFishingArtifact"] = "修復釣魚神器幽光魚竿特質不顯示的問題。";
+
+
+--QuestItemDestroyAlert
+L["ModuleName QuestItemDestroyAlert"] = "刪除任務物品確認";
+L["ModuleDescription QuestItemDestroyAlert"] = "當你試圖摧毀一件可以提供任務的物品時，顯示該任務的訊息。\n\n|cffd4641c僅限於提供任務的物品，不適用於接受任務以後獲得的任務物品。|r";
 
 
 --Loot UI

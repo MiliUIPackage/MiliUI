@@ -9,6 +9,8 @@ local L = addon.L;
 --Module Control Panel
 L["Module Control"] = "Module Control";
 L["Quick Slot Generic Description"] = "\n\n*Quick Slot is a set of clickable buttons that appear under certain conditions.";
+L["Quick Slot Edit Mode"] = HUD_EDIT_MODE_MENU or "Edit Mode";
+L["Quick Slot High Contrast Mode"] = "Toggle High Contrast Mode";
 L["Restriction Combat"] = "Does not work in combat";    --Indicate a feature can only work when out of combat
 L["Map Pin Change Size Method"] = "\n\n*You can change the pin size in World Map - Map Filter - Plumber";
 
@@ -198,11 +200,17 @@ L["ModuleDescription Delves_SeasonProgress"] = "Display a progress bar on the to
 L["ModuleName WoWAnniversary"] = "WoW Anniversary";
 L["ModuleDescription WoWAnniversary"] = "- Summon the corresponding mount easily during the Mount Maniac event.\n\n- Show voting results during the Fashion Frenzy event. ";
 L["Voting Result Header"] = "Results";
+L["Mount Not Collected"] = MOUNT_JOURNAL_NOT_COLLECTED or "You have not collected this mount.";
 
 
 --BlizzFixFishingArtifact
 L["ModuleName BlizzFixFishingArtifact"] = "Blitz Fix: Underlight Angler";
 L["ModuleDescription BlizzFixFishingArtifact"] = "Allow you to view the fishing artifact\'s traits again.";
+
+
+--QuestItemDestroyAlert
+L["ModuleName QuestItemDestroyAlert"] = "Quest Item Delete Confirmation";
+L["ModuleDescription QuestItemDestroyAlert"] = "Show the associate quest info when you attempt to destroy an item that starts a quest. \n\n|cffd4641cOnly works for items that start quests, not those you obtain after accepting a quest.|r";
 
 
 --Loot UI

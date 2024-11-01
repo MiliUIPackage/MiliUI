@@ -1861,11 +1861,6 @@ do  --ObjectPool
         end
 
         self.numUnused = #self.objects;
-
-        local function Object_Release(f)
-            self:RecycleObject(f);
-        end
-        self.Object_Release = Object_Release;
     end
 
     function ObjectPoolMixin:GetTotalObjects()
@@ -1878,9 +1873,18 @@ do  --ObjectPool
         end
     end
 
+    function ObjectPoolMixin:Object_Release()
+        --Override
+    end
+
     local function CreateObjectPool(createObjectFunc)
         local pool = {};
         API.Mixin(pool, ObjectPoolMixin);
+
+        local function Object_Release(f)
+            pool:RecycleObject(f);
+        end
+        pool.Object_Release = Object_Release;
 
         pool.objects = {};
         pool.activeObjects = {};
@@ -1905,6 +1909,22 @@ do  --Transmog
         end
     end
     API.IsUncollectedTransmogByItemInfo = IsUncollectedTransmogByItemInfo
+end
+
+do  --Quest
+    local function GetQuestName(questID)
+        local questName = C_TaskQuest.GetQuestInfoByQuestID(questID);
+        if not questName then
+            questName = C_QuestLog.GetTitleForQuestID(questID);
+            if questName and questName ~= "" then
+                return questName
+            else
+                C_QuestLog.RequestLoadQuestByID(questID);
+            end
+        end
+        return questName
+    end
+    API.GetQuestName = GetQuestName;
 end
 
 do
