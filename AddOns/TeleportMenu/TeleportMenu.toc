@@ -8,7 +8,7 @@
 ## X-Category-zhTW: 其他
 ## IconTexture: Interface\Icons\inv_hearthstonepet
 ## Author: Justwait
-## Version: v9.1
+## Version: v9.3
 ## SavedVariables: TeleportMenuDB
 ## Dependencies: Blizzard_Collections
 
