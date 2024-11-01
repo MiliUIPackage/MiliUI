@@ -79,7 +79,7 @@ local function UpdateReputationCache(factionID)
    local numFactions = C_Reputation.GetNumFactions()
    for i = 1, numFactions do
       local factionData = C_Reputation.GetFactionDataByIndex(i)
-      if factionData and not factionData.isHeader and factionData.factionID ~= 1168 then -- 1168 = guild rep 暫時修正
+      if factionData and not factionData.isHeader and factionData.factionID ~= 1168 then -- 1168 = guild rep
          AddReputationToCache(factionData.name, factionData.factionID)
       end
    end

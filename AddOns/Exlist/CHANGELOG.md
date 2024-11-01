@@ -1,14 +1,18 @@
-# [1.8.7](https://github.com/sragia/Exlist/tree/1.8.7) (2024-09-29)
+# [1.8.8](https://github.com/sragia/Exlist/tree/1.8.8) (2024-10-26)
 
-[Full Changelog](https://github.com/sragia/Exlist/compare/1.8.6...1.8.7)
+[Full Changelog](https://github.com/sragia/Exlist/compare/1.8.7...1.8.8)
 
 ## Highlights
 
- Order currencies alphabetically 
+ 10.0.5 fixes 
 
 ## Commits
 
+Aigars Bedeicis (1):
+
+- Bump TOC
+
 MarkW (1):
 
-- Sort currencies by name in the tooltip
+- Fix 11.0.5 error
 
