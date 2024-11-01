@@ -1,5 +1,5 @@
 local addonName, addon = ...
-
+local L = LibStub("AceLocale-3.0"):GetLocale(addonName)
 local lib = LibStub:GetLibrary("EditModeExpanded-1.0")
 local libDD = LibStub:GetLibrary("LibUIDropDownMenu-4.0")
 
@@ -45,7 +45,7 @@ function addon:initTalkingHead()
             local db = getSettingDB()
             local info = libDD:UIDropDownMenu_CreateInfo()        
             
-            info.text = "Never"
+            info.text = L["Never"]
             info.checked = (db.checked == nil)
             info.func = function()
                 db.checked = nil
@@ -55,7 +55,7 @@ function addon:initTalkingHead()
             end
             libDD:UIDropDownMenu_AddButton(info)
             
-            info.text = "Dialog only, keep sound"
+            info.text = L["Dialog only, keep sound"]
             info.checked = db.checked == 2
             info.func = function()
                 db.checked = 2
@@ -65,7 +65,7 @@ function addon:initTalkingHead()
             end
             libDD:UIDropDownMenu_AddButton(info)
             
-            info.text = "Always, and mute sound"
+            info.text = L["Always, and mute sound"]
             info.checked = db.checked == 3
             info.func = function()
                 db.checked = 3
@@ -75,7 +75,7 @@ function addon:initTalkingHead()
             end
             libDD:UIDropDownMenu_AddButton(info)
             
-            info.text = "In Combat, but keep sound"
+            info.text = L["In Combat, but keep sound"]
             info.checked = db.checked == 4
             info.func = function()
                 db.checked = 4
@@ -85,7 +85,7 @@ function addon:initTalkingHead()
             end
             libDD:UIDropDownMenu_AddButton(info)
             
-            info.text = "In combat, and mute sound"
+            info.text = L["In combat, and mute sound"]
             info.checked = db.checked == 5
             info.func = function()
                 db.checked = 5
@@ -96,7 +96,7 @@ function addon:initTalkingHead()
             libDD:UIDropDownMenu_AddButton(info)
         end)
         libDD:UIDropDownMenu_SetWidth(dropdown, 100)
-        libDD:UIDropDownMenu_SetText(dropdown, "Hide if:")
+        libDD:UIDropDownMenu_SetText(dropdown, L["Hide if:"])
 
         C_Timer.After(1, function()
             local db = getSettingDB()

@@ -1,15 +1,16 @@
 local addonName, addon = ...
 
+local L = LibStub("AceLocale-3.0"):GetLocale(addonName)
 local lib = LibStub:GetLibrary("EditModeExpanded-1.0")
 
 function addon:initLFG()
     local db = addon.db.global
     if db.EMEOptions.lfg then
         QueueStatusButton:SetParent(UIParent)
-        lib:RegisterFrame(QueueStatusButton, "排隊資訊", db.QueueStatusButton)
+        lib:RegisterFrame(QueueStatusButton, L["LFG"], db.QueueStatusButton)
         hooksecurefunc(MicroMenu, "UpdateQueueStatusAnchors", function()
             if InCombatLockdown() then return end
-            lib:RepositionFrame(QueueStatusButton)
+            addon.ResetFrame(QueueStatusButton)
         end)
         hooksecurefunc(MicroMenuContainer, "Layout", function()
             if InCombatLockdown() then return end
@@ -26,7 +27,7 @@ function addon:initLFG()
         addon:registerSecureFrameHideable(QueueStatusButton)
         
         C_Timer.After(1, function()
-            lib:RepositionFrame(QueueStatusButton)
+            addon.ResetFrame(QueueStatusButton)
         end)
     end
 end

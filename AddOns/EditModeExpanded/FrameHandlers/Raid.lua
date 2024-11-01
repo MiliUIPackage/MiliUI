@@ -1,16 +1,17 @@
 local addonName, addon = ...
 
+local L = LibStub("AceLocale-3.0"):GetLocale(addonName)
 local lib = LibStub:GetLibrary("EditModeExpanded-1.0")
 
 function addon:initRaidFrames()
     local db = addon.db.global
     if not db.EMEOptions.compactRaidFrameContainer then return end
-    lib:RegisterFrame(CompactRaidFrameManager, "團隊管理員面板", db.CompactRaidFrameManager, nil, "TOPLEFT", false)
+    lib:RegisterFrame(CompactRaidFrameManager, L["Raid Manager"], db.CompactRaidFrameManager, nil, "TOPLEFT", false)
 
     hooksecurefunc("CompactRaidFrameManager_Expand", function()
         if InCombatLockdown() then return end
         --CompactRaidFrameManager:ClearPoint("TOPLEFT")
-        lib:RepositionFrame(CompactRaidFrameManager)
+        addon.ResetFrame(CompactRaidFrameManager)
         local db = lib.framesDB[CompactRaidFrameManager.system]
         if db.positionWasSavedWhileCollapsed then
             for i = 1, CompactRaidFrameManager:GetNumPoints() do
@@ -23,7 +24,7 @@ function addon:initRaidFrames()
     hooksecurefunc("CompactRaidFrameManager_Collapse", function()
         if InCombatLockdown() then return end
         --CompactRaidFrameManager:ClearPoint("TOPLEFT")
-        lib:RepositionFrame(CompactRaidFrameManager)
+        addon.ResetFrame(CompactRaidFrameManager)
         local db = lib.framesDB[CompactRaidFrameManager.system]
         if not db.positionWasSavedWhileCollapsed then
             for i = 1, CompactRaidFrameManager:GetNumPoints() do
@@ -63,36 +64,27 @@ function addon:initRaidFrames()
         CompactRaidFrameManager:SetShown(IsInGroup() or IsInRaid())
     end)
     
-    local noInfinite
     hooksecurefunc(CompactRaidFrameManager, "SetShown", function()
-        if noInfinite then return end
         if InCombatLockdown() then return end
         if EditModeManagerFrame.editModeActive then
             CompactRaidFrameManager:Show()
         else
-            noInfinite = true
-            --lib:RepositionFrame(CompactRaidFrameManager)
             if not (IsInGroup() or IsInRaid()) then
                 CompactRaidFrameManager:Hide()
             end
-            noInfinite = false
         end
     end)
     hooksecurefunc(CompactRaidFrameManager, "Show", function()
-        if noInfinite then return end
         if InCombatLockdown() then return end
         if not EditModeManagerFrame.editModeActive then
-            noInfinite = true
-            --lib:RepositionFrame(CompactRaidFrameManager)
             if not (IsInGroup() or IsInRaid()) then
                 CompactRaidFrameManager:Hide()
             end
-            noInfinite = false
         end
     end)
     
     local partyFrameNamesWereHidden
-    lib:RegisterCustomCheckbox(PartyFrame, "隱藏名字",
+    lib:RegisterCustomCheckbox(PartyFrame, L["Hide Names"],
         function()
             for i = 1, 4 do
                 PartyFrame["MemberFrame"..i].name:Hide()
@@ -124,9 +116,8 @@ function addon:initRaidFrames()
             end
         end
     end
-                        
-    
-    lib:RegisterCustomCheckbox(CompactRaidFrameContainer, "隱藏名字",
+
+    lib:RegisterCustomCheckbox(CompactRaidFrameContainer, L["Hide Names"],
         function()
             showRaidFrameNames = false
             updateHideRaidFrameNames()

@@ -1,5 +1,6 @@
 local addonName, addon = ...
 
+local L = LibStub("AceLocale-3.0"):GetLocale(addonName)
 local lib = LibStub:GetLibrary("EditModeExpanded-1.0")
 
 EventUtil.RegisterOnceFrameEventAndCallback("PLAYER_ENTERING_WORLD", function()
@@ -96,7 +97,7 @@ do
         if EditModeManagerExpandedFrame then
             EditModeExpandedWarningFrame:SetParent(EditModeManagerExpandedFrame)
             EditModeExpandedWarningFrame:SetPoint("TOPLEFT", EditModeManagerExpandedFrame, "BOTTOMLEFT", 0, -2)
-            EditModeExpandedWarningFrame.ScrollingFont:SetText("Warning: Using Snap to Elements can cause unexpected results!");
+            EditModeExpandedWarningFrame.ScrollingFont:SetText(L["WARNING_FRAME_TEXT"])
             if EditModeManagerFrame.EnableSnapCheckButton:IsControlChecked() then
                 EditModeExpandedWarningFrame:Show()
             end
@@ -121,16 +122,13 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_AuctionHouseUI", function()
     local db = addon.db.global
     
     if db.EMEOptions.auctionMultisell then
-        local alreadyInitialized
-        AuctionHouseMultisellProgressFrame:HookScript("OnShow", function()
-            if alreadyInitialized then
-                lib:RepositionFrame(AuctionHouseMultisellProgressFrame)
-                return
-            end
-            alreadyInitialized = true
-            lib:RegisterFrame(AuctionHouseMultisellProgressFrame, "拍賣場批次賣出", db.AuctionHouseMultisellProgressFrame)
+        addon.hookScriptOnce(AuctionHouseMultisellProgressFrame, "OnShow", function()
+            lib:RegisterFrame(AuctionHouseMultisellProgressFrame, L["Auction Multisell"], db.AuctionHouseMultisellProgressFrame)
             hooksecurefunc(UIParentBottomManagedFrameContainer, "Layout", function()
-                lib:RepositionFrame(AuctionHouseMultisellProgressFrame)
+                addon.ResetFrame(AuctionHouseMultisellProgressFrame)
+            end)
+            AuctionHouseMultisellProgressFrame:HookScript("OnShow", function()
+                addon.ResetFrame(AuctionHouseMultisellProgressFrame)
             end)
         end)
     end

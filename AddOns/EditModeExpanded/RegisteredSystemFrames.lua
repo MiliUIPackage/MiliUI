@@ -1,5 +1,6 @@
 local addonName, addon = ...
 
+local L = LibStub("AceLocale-3.0"):GetLocale(addonName)
 local lib = LibStub:GetLibrary("EditModeExpanded-1.0")
 
 function addon:initSystemFrames()
@@ -27,9 +28,9 @@ end
 
 local function getToggleInCombatText(hidden)
     if hidden then
-        return "戰鬥中顯示"
+        return L["Toggle(Show) During Combat"]
     else
-        return "戰鬥中隱藏"
+        return L["Toggle(Hide) During Combat"]
     end
 end
     
@@ -76,7 +77,18 @@ function addon:registerSecureFrameHideable(frame)
         end
     end)
     
-    local onResetFunctionHide = lib:RegisterCustomCheckbox(frame, "隱藏",
+    -- The position of some frames reset to default when spec is changed
+    -- Lets reset it back to the saved spot so we can shove it back off screen again
+    EventRegistry:RegisterFrameEventAndCallbackWithHandle("PLAYER_TALENT_UPDATE", function()
+        RunNextFrame(function()
+            if hidden then
+                show()
+                hide()
+            end
+        end)
+    end)
+    
+    local onResetFunctionHide = lib:RegisterCustomCheckbox(frame, HIDE,
         function()
             hidden = true
             if not EditModeManagerFrame.editModeActive then
@@ -153,4 +165,18 @@ function addon:registerSecureFrameHideable(frame)
     return function()
             return ( hidden and (not toggleInCombat) ) or ( hidden and toggleInCombat and (not InCombatLockdown()) ) or ( (not hidden) and toggleInCombat and InCombatLockdown() )
         end
+end
+
+-- Reparents the class resource to UIParent so player can move it independently of the player frame, and can hide the player frame without hiding the runes
+function addon.unlinkClassResourceFrame(frame)
+    lib:RegisterCustomCheckbox(frame, L["UNLINK_CLASS_RESOURCE_DESCRIPTION"], 
+        --onChecked
+        function()
+            frame:SetParent(UIParent)
+        end,
+        --onUnchecked
+        function()
+            frame:SetParent(PlayerFrameBottomManagedFramesContainer)
+        end
+    )
 end

@@ -1,4 +1,5 @@
 local addonName, addon = ...
+local L = LibStub("AceLocale-3.0"):GetLocale(addonName)
 local lib = LibStub:GetLibrary("EditModeExpanded-1.0")
 
 function addon:initTargetFrame()
@@ -10,7 +11,7 @@ function addon:initTargetFrame()
             local targetBuffsFrame = CreateFrame("Frame", "TargetFrameBuffs", TargetFrame)
             targetBuffsFrame:SetPoint("TOPLEFT", TargetFrame, "BOTTOMLEFT", 5, -10)
             targetBuffsFrame:SetSize(100, 10)
-            lib:RegisterFrame(targetBuffsFrame, "目標增益", db.TargetBuffs)
+            lib:RegisterFrame(targetBuffsFrame, L["Target Buffs"], db.TargetBuffs)
             lib:SetDontResize(targetBuffsFrame)
             
             hooksecurefunc("TargetFrame_UpdateDebuffAnchor", function(self, buff, index, numBuffs, anchorBuff, anchorIndex, size, offsetX, offsetY, mirrorVertically)
@@ -35,7 +36,7 @@ function addon:initTargetFrame()
         end
         
         local targetFrameWasHidden
-        lib:RegisterCustomCheckbox(TargetFrame, "隱藏名字",
+        lib:RegisterCustomCheckbox(TargetFrame, "Hide Name",
             function()
                 TargetFrame.name:Hide()
                 targetFrameWasHidden = true

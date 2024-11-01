@@ -2,7 +2,7 @@
 -- Internal variables
 --
 
-local MAJOR, MINOR = "EditModeExpanded-1.0", 85
+local MAJOR, MINOR = "EditModeExpanded-1.0", 86
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -824,9 +824,9 @@ hooksecurefunc(f, "OnLoad", function()
     EditModeManagerExpandedFrame:SetPoint("TOPLEFT", EditModeManagerFrame, "TOPRIGHT", 2, 0)
     EditModeManagerExpandedFrame:SetPoint("BOTTOMLEFT", EditModeManagerFrame, "BOTTOMRIGHT", 2, 0)
     EditModeManagerExpandedFrame:SetWidth(300)
-    EditModeManagerExpandedFrame.Title = EditModeManagerExpandedFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
+    EditModeManagerExpandedFrame.Title = EditModeManagerExpandedFrame.Title or EditModeManagerExpandedFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
     EditModeManagerExpandedFrame.Title:SetPoint("TOP", 0, -15)
-    EditModeManagerExpandedFrame.Title:SetText("擴充包")
+    EditModeManagerExpandedFrame.Title:SetText("選項中可啟用更多框架")
     EditModeManagerExpandedFrame.Border = EditModeManagerExpandedFrame.Border or CreateFrame("Frame", nil, EditModeManagerExpandedFrame, "DialogBorderTranslucentTemplate")
     EditModeManagerExpandedFrame.AccountSettings = EditModeManagerExpandedFrame.AccountSettings or CreateFrame("Frame", nil, EditModeManagerExpandedFrame)
     EditModeManagerExpandedFrame.AccountSettings:SetPoint("TOPLEFT", 0, -35)
@@ -1590,7 +1590,7 @@ function lib:RegisterMinimapPinnable(frame)
     table.insert(framesDialogs[frame.system],
         {
             setting = ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED,
-            name = "貼齊小地圖",
+            name = "Pin to Minimap",
             type = Enum.EditModeSettingDisplayType.Checkbox,
         }
     )
@@ -1760,7 +1760,7 @@ function lib:RegisterToggleInCombat(frame)
     table.insert(framesDialogs[systemID],
         {
             setting = ENUM_EDITMODEACTIONBARSETTING_TOGGLEHIDEINCOMBAT,
-            name = "戰鬥中隱藏",
+            name = "Toggle Visibility in Combat",
             type = Enum.EditModeSettingDisplayType.Checkbox,
     })
 end
