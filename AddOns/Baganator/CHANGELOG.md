@@ -1,6 +1,6 @@
 # Baganator
 
-## [502](https://github.com/Baganator/Baganator/tree/502) (2024-10-23)
-[Full Changelog](https://github.com/Baganator/Baganator/compare/501...502) 
+## [503](https://github.com/Baganator/Baganator/tree/503) (2024-10-30)
+[Full Changelog](https://github.com/Baganator/Baganator/compare/502...503) 
 
-- Update toc for 11.0.5  
+- Classic: Update toc for 4.4.1  
