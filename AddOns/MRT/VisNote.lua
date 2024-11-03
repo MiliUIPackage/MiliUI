@@ -3753,6 +3753,7 @@ do
 	local frame = CreateFrame("Frame",nil,UIParent,BackdropTemplateMixin and "BackdropTemplate")
 	module.popup = frame
 
+	frame:Hide()
 	frame:SetBackdrop({bgFile="Interface\\Addons\\"..GlobalAddonName.."\\media\\White"})
 	frame:SetBackdropColor(0.05,0.05,0.07,0.98)
 	frame:SetSize(250,65)
@@ -3808,5 +3809,4 @@ do
 		frame:Show()
 	end
 
-	frame:Hide()
 end

@@ -43,6 +43,8 @@ function module.options:Load()
 				edit2:SetText(textSelf)
 				self:SetCursorPosition(1)
 				edit2:SetCursorPosition(1)
+
+				module.options:SaveCurrentSave()
 				break
 			end
 		end
@@ -60,6 +62,8 @@ function module.options:Load()
 				local textSelf = self.preName or self:GetText()
 				edit2:SetText(textSelf)
 				edit2:SetCursorPosition(1)
+
+				module.options:SaveCurrentSave()
 				break
 			end
 		end
@@ -107,6 +111,8 @@ function module.options:Load()
 		end
 		if isUser then
 			module.options:UpdateNotInList()
+
+			module.options:SaveCurrentSave()
 		end
 	end
 
@@ -124,7 +130,8 @@ function module.options:Load()
 		edit:SetText(i)
 		edit.index = i
 
-		edit:Point("TOPLEFT",10+((i-1) % 10 < 5 and 0 or 165),-40-((i-1) % 5)*22-floor((i-1)/10)*132):OnChange(EditOnChange)
+		edit:Point("TOPLEFT",10+((i-1) % 10 < 5 and 0 or 165),-40-((i-1) % 5)*22-floor((i-1)/10)*132)
+		edit:OnChange(EditOnChange)
 
 		edit.roleIcon = edit:CreateTexture(nil, "BACKGROUND")
 		edit.roleIcon:SetPoint("RIGHT")
@@ -257,6 +264,8 @@ function module.options:Load()
 	end)
 
 	self.updateRoster = ELib:Button(self,L.RaidGroupsCurrentRoster):Size(315,20):Point("TOPLEFT",10,-565):OnClick(function() 
+		module.options:ResetCurrentSave()
+	
 		local roster = {}
 		for i=1,8 do roster[i] = {} end
 
@@ -292,7 +301,7 @@ function module.options:Load()
 		end
 	end):Shown(ExRT.isClassic)
 
-	self.presetList = ELib:ScrollList(self):Size(190,505):Point("TOPRIGHT",-10,-40):AddDrag()
+	self.presetList = ELib:ScrollList(self):Size(190,505-25):Point("TOPRIGHT",-10,-40):AddDrag()
 	ELib:Text(self,L.RaidGroupsQuickLoad..":"):Point("BOTTOMLEFT",self.presetList,"TOPLEFT",5,3):Color():Shadow()
 
 	self.presetList.ButtonRemove = CreateFrame("Button",nil,self.presetList)
@@ -307,6 +316,7 @@ function module.options:Load()
 			end
 		end
 		module.options:UpdateList()
+		module.options:ResetCurrentSave()
 	end)
 	self.presetList.ButtonRemove:SetScript("OnEnter",function(self)
 		GameTooltip:SetOwner(self,"ANCHOR_RIGHT")
@@ -323,6 +333,41 @@ function module.options:Load()
 	self.presetList.ButtonRemove.i:SetTexCoord(0.5,0.5625,0.5,0.625)
 	self.presetList.ButtonRemove.i:SetVertexColor(.8,0,0,1)
 
+	function self:ResetCurrentSave()
+		module.options.CURR_SAVE = nil
+		module.options.presetList.selected = nil
+		module.options.presetList:Update()
+	end
+	function self:SaveCurrentSave()
+		if not module.options.CURR_SAVE then
+			return
+		end
+		local new = module.options:CreateCurrentData()
+		for i=1,40 do
+			module.options.CURR_SAVE[i] = new[i]
+		end
+		module.options.CURR_SAVE.time = new.time
+	end
+	function self:SetCurrentSave(data)
+		if not data then
+			self:ResetCurrentSave()
+			return
+		end
+		module.options.CURR_SAVE = data
+
+		module.options.presetList.selected = nil
+		for i=1,#module.options.presetList.L do
+			if module.options.presetList.L[i][2] == data then
+				module.options.presetList.selected = i
+				break
+			end
+		end
+		if not module.options.presetList.selected then
+			module.options.CURR_SAVE = nil
+		end
+		module.options:UpdateList()
+	end
+
 	function self.presetList:SetListValue(index)
 		local data = self.L[index][2]
 		for i=1,40 do 
@@ -336,7 +381,12 @@ function module.options:Load()
 		end
 		module.options:UpdateNotInList()
 
-		module.options.presetList.selected = nil
+		module.options.LAST_CLICK = index
+		if not VMRT.RaidGroups.SaveCurrent then
+			module.options.presetList.selected = nil
+		else
+			module.options.CURR_SAVE = data
+		end
 		module.options.presetList:Update()	
 	end
 	function self.presetList:HoverListValue(isEnter,index,obj)
@@ -405,12 +455,8 @@ function module.options:Load()
 		module.options.presetList:Update()
 	end
 
-	local function SaveData(_,name)
-		if not name or string.trim(name) == "" then
-			return
-		end
+	function self:CreateCurrentData()
 		local new = {
-			name = name,
 			time = time(),
 		}
 		for i=1,40 do 
@@ -419,9 +465,21 @@ function module.options:Load()
 				new[i] = text
 			end
 		end
+
+		return new
+	end
+
+	local function SaveData(_,name)
+		if not name or string.trim(name) == "" then
+			return
+		end
+
+		local new = module.options:CreateCurrentData()
+		new.name = name
 		VMRT.RaidGroups.profiles[#VMRT.RaidGroups.profiles+1] = new
 
 		module.options:UpdateList()
+		module.options:SetCurrentSave(new)
 	end
 
 	local function SaveInputOnEdit(self)
@@ -433,7 +491,16 @@ function module.options:Load()
 		end	
 	end
 
-	self.presetListSave = ELib:Button(self,L.RaidGroupsSave):Size(192,20):Point("TOP",self.presetList,"BOTTOM",0,-5):OnClick(function(self) 
+	self.chkSaveCurrent = ELib:Check(self,L.RaidGroupsSaveCurrent,VMRT.RaidGroups.SaveCurrent):Point("TOPLEFT",self.presetList,"BOTTOMLEFT",0,-5):Tooltip(L.RaidGroupsSaveCurrentTip):OnClick(function(self) 
+		if self:GetChecked() then
+			VMRT.RaidGroups.SaveCurrent = true
+		else
+			VMRT.RaidGroups.SaveCurrent = nil
+			module.options:ResetCurrentSave()
+		end
+	end)  
+
+	self.presetListSave = ELib:Button(self,L.RaidGroupsSave):Size(192,20):Point("TOPLEFT",self.chkSaveCurrent,"BOTTOMLEFT",0,-5):OnClick(function(self) 
 		ExRT.F.ShowInput(L.RaidGroupsEnterName,SaveData,nil,nil,nil,SaveInputOnEdit)		
 	end)
 
@@ -580,6 +647,7 @@ function module.options:Load()
 		VMRT.RaidGroups.profiles[#VMRT.RaidGroups.profiles+1] = rec
 
 		module.options:UpdateList()
+		module.options:ResetCurrentSave()
 	end
 
 	function self.importWindow:ImportFunc(str)

@@ -5,7 +5,7 @@ local VMRT = nil
 local module = ExRT:New("AutoLogging",ExRT.L.Logging)
 local ELib,L = ExRT.lib,ExRT.L
 
-module.db.minRaidMapID = 1861
+module.db.minRaidMapID = 2522
 --module.db.minPartyMapID = 1754
 module.db.minPartyMapID = 959	--Since stupid overuse old content for m+
 
@@ -17,6 +17,7 @@ module.db.mapsToLog_5ppl = {
 	[1651] = true, -- Return to Karazhan
 	[657] = true,	-- The Vortex Pinnacle
 	[643] = true,	-- Throne of the Tides
+	[670] = true,	-- Grim Batol
 }
 
 module.db.mapsSoD = {	--Season of Discovery, Classic
@@ -36,7 +37,7 @@ function module.options:Load()
 		end
 	end)
 		
-	self.shtml1 = ELib:Text(self," -"..L.S_ZoneT32.."\n -"..L.S_ZoneT31.."\n -"..L.S_ZoneT30.."\n -"..L.S_ZoneT29VotI.."\n -"..L.S_ZoneT28SFO.."\n -"..L.S_ZoneT27SoD.."\n -"..L.S_ZoneT26CastleNathria.."\n -"..L.S_ZoneT25Nyalotha.."\n -"..L.S_ZoneT24Eternal.."\n -"..L.S_ZoneT23Storms.."\n -"..L.S_ZoneT23Siege.."\n -"..L.S_ZoneT22Uldir,12):Size(620,0):Point("TOP",0,-65):Top()
+	self.shtml1 = ELib:Text(self," -"..L.S_ZoneT32.."\n -"..L.S_ZoneT31.."\n -"..L.S_ZoneT30.."\n -"..L.S_ZoneT29VotI,12):Size(620,0):Point("TOP",0,-65):Top()
 
 	self.shtml2 = ELib:Text(self,L.LoggingHelp1,12):Size(650,0):Point("TOP",self.shtml1,"BOTTOM",0,-15):Top()
 	
@@ -48,7 +49,7 @@ function module.options:Load()
 		end
 	end)
 
-	self.enable5ppLegion = ELib:Check(self,DUNGEONS..": "..(UnitLevel'player'>50 and EXPANSION_NAME8 or EXPANSION_NAME7).." ("..PLAYER_DIFFICULTY6..", "..PLAYER_DIFFICULTY6.."+)",VMRT.Logging.enable5ppLegion):Point("TOP",self.enable3ppScenario,"BOTTOM",0,-5):Point("LEFT",self,15,0):OnClick(function(self) 
+	self.enable5ppLegion = ELib:Check(self,DUNGEONS.." ("..PLAYER_DIFFICULTY6..", "..PLAYER_DIFFICULTY6.."+)",VMRT.Logging.enable5ppLegion):Point("TOP",self.enable3ppScenario,"BOTTOM",0,-5):Point("LEFT",self,15,0):OnClick(function(self) 
 		if self:GetChecked() then
 			VMRT.Logging.enable5ppLegion = true
 		else

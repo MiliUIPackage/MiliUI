@@ -1,6 +1,70 @@
 local GlobalAddonName, ExRT = ...
 
 ExRT.Options.Changelog = [=[
+v.5040
+* Reminder: added "assignments" page for quick raid cooldowns organization for your roster
+* Reminder: queen ansurek p3 start was moved (only for timeline, reminders are unaffected)
+* WeakAuras checks: now able to check if aura is same
+* Note: added option for using autoload for personal note
+* Fixes
+
+v.5020
+* Reminder: added "sound delay" option
+* Raid groups: added option "Keep changes" for autosave any editing for selected preset
+* Fixes
+
+v.5005
+* Raid Inspect: added "cheap" option for minimum rank for gems/enchants
+* Major fixes
+
+v.5000
+* Raid Inspect: added option for minimum rank for gems/enchants
+* Fixes
+
+v.4990
+* Reminder: added option to grow upwards
+* Raid Check: add option for using only unlimited rune (old one for now)
+* Raid Check: add option for using custom oil itemid
+* Fixes
+
+v.4990-Cata
+* Reminder: added option to grow upwards
+* Fixes
+
+v.4980
+* Reminder: timeline updates
+* Reminder: added m+ support
+* Note: added option to autoload note before boss
+* Fixes
+
+v.4980-Cata
+* Note: added option to autoload note before boss
+* Reminder: added "boss timeline" feature with simplified setup and quick exchange to/from notes 
+* Raid Cooldowns: added option to grow by columns
+* Raid Cooldowns: added option for animation style "Starts Full for active and empty for cd"
+* Fixes
+
+v.4960
+* Reminder: added option to show message before timer ends instead of after. This option is enabled by default for new reminders from "boss timeline"
+* Reminder: updates
+* Raid Cooldowns: added option to grow by columns
+
+v.4950
+* Reminder: added "boss timeline" feature with simplified setup and quick exchange to/from notes 
+* Raid Cooldowns: added option for animation style "Starts Full for active and empty for cd"
+
+v.4930
+* Reminder: added triggers test tab
+* Saving log: fixed Grim Batol logging
+* Raid Check: added support for more weapon buffs
+* Fixes
+
+v.4920
+* Raid Check: TWW updates
+
+v.4910
+* Fixes
+
 v.4900
 * Raid cooldowns: added "column for raid/party role" option
 * Fixes

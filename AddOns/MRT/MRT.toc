@@ -1,4 +1,4 @@
-## Interface: 11503, 40400, 110000, 110005
+## Interface: 11504, 40401, 110005, 110007
 ## Title: Method Raid Tools
 ## Author: ykiigor
 ## Notes: Method Raid Tools
@@ -6,7 +6,7 @@
 ## Notes-zhTW: Method Raid Tools |n一個團隊會用到應有盡有的工具箱插件，包含團隊技能CD，團隊準備檢查等等。
 ## DefaultState: Disabled
 ## SavedVariables: VMRT
-## Version: 4900
+## Version: 5040
 ## AddonCompartmentFunc: MRT_MinimapClickFunction
 ## IconTexture: Interface\AddOns\MRT\media\MiniMap.tga
 ## X-Category-zhTW: 團隊
@@ -19,6 +19,7 @@ localization\localization.en.lua
 localization\localization.cn.lua
 localization\localization.tw.lua
 localization\localization.lua
+Data.lua
 BlizzFix.lua
 Options.lua
 Note.lua
