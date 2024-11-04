@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.23) add-on for World of Warcraft UI
+    Decursive (v 2.7.24) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2024-06-09T16:30:19Z
+    This file was last updated on 2024-10-20T21:50:55Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -537,6 +537,9 @@ do
             -- test for a type
             if TypeName and TypeName ~= "" then
                 Type = DC.NameToTypes[TypeName];
+            elseif DC.IS_OMNI_DEBUFF[SpellID] then -- it's a special debuff for which any dispel will work
+                TypeName = DC.TypeNames[self.Status.ReversedCureOrder[1]];
+                Type = DC.NameToTypes[TypeName]
             elseif self.Status.CuringSpells[DC.BLEED] then
                 checkSpellIDForBleed();
                 if D.Status.t_CheckBleedDebuffsActiveIDs[SpellID] then
@@ -948,6 +951,6 @@ end
 
 
 
-T._LoadedFiles["Decursive.lua"] = "2.7.23";
+T._LoadedFiles["Decursive.lua"] = "2.7.24";
 
 -- Sin
