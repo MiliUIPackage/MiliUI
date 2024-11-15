@@ -9,11 +9,12 @@ module.db.responces = {}
 module.db.responces2 = {}
 module.db.lastReq = {}
 module.db.lastReq2 = {}
+module.db.lastCheck = {}
 
 function module.options:Load()
 	self:CreateTilte()
 	
-	local UpdatePage
+	local UpdatePage, UpdatePageView
 
 	local Filter
 
@@ -42,7 +43,7 @@ function module.options:Load()
 		local currTopLine = floor(value / LINE_HEIGHT)
 		if currTopLine ~= prevTopLine then
 			prevTopLine = currTopLine
-			UpdatePage()
+			UpdatePageView()
 		end
 	end)
 	
@@ -50,7 +51,7 @@ function module.options:Load()
 		local currPlayerCol = floor(value)
 		if currPlayerCol ~= prevPlayerCol then
 			prevPlayerCol = currPlayerCol
-			UpdatePage()
+			UpdatePageView()
 		end
 	end)
 	raidSlider.Low:Hide()
@@ -125,6 +126,19 @@ function module.options:Load()
 		UpdatePage()
 	end)
 
+	local function addChildsToReq(req,data)
+		if not data then
+			return
+		end
+		if not data.childs then
+			return
+		end
+		for k,v in pairs(data.childs) do
+			req[k] = true
+			addChildsToReq(req,v)
+		end
+	end
+
 	local function LineName_OnClick(self,_,_,force)
 		if IsShiftKeyDown() or force then
 			local name, realm = UnitFullName("player")
@@ -149,8 +163,11 @@ function module.options:Load()
 			module:SendWA(id)
 		else
 			local db = self:GetParent().db
-			local id = db and db.data and db.data.id or "--"
-			module:SendReq({[id]=true})
+			local data = db and db.data
+			local id = data and data.id or "--"
+			local req = {[id]=true}
+			addChildsToReq(req,db)
+			module:SendReq2(req)
 		end
 	end
 	local function LineName_ShareButton_OnEnter(self)
@@ -319,9 +336,19 @@ function module.options:Load()
 		end
 	end)
 	
-	local UpdateButton = ELib:Button(self,UPDATE):Point("TOPLEFT",mainScroll,"BOTTOMLEFT",-2,-5):Size(130,20):OnClick(function()
+	local UpdateButton = ELib:Button(self,UPDATE):Point("TOPLEFT",mainScroll,"BOTTOMLEFT",-2,-5):Size(130,20):OnClick(function(self)
 		module:SendReq2()
 	end)
+
+	function self:ReqProgress(progress,parts)
+		if progress == parts then
+			UpdateButton:Enable()
+			UpdateButton:SetText(UPDATE)			
+		else
+			UpdateButton:Disable()
+			UpdateButton:SetText(UPDATE..format(" %d%%",progress/(parts or 1)*100))
+		end
+	end
 	
 	local function sortByName(a,b)
 		if a and b and a.name and b.name then
@@ -335,103 +362,50 @@ function module.options:Load()
 		[2] = 2,
 		[3] = 6,
 	}
-	
-	function UpdatePage()
-		if not WeakAurasSaved then
-			errorNoWA:Show()
-			mainScroll:Hide()
-			raidSlider:Hide()
-			for i=1,#self.helpicons do
-				self.helpicons[i][1]:SetAlpha(0)
-				self.helpicons[i][2]:SetAlpha(0)
-			end
-			UpdateButton:Hide()
-			raidNames:Hide()
-			self.filterEdit:Hide()
-			self.allIsHidden = true
+
+	local function checkChilds(data)
+		if not data.childs then
 			return
 		end
-		if self.allIsHidden then
-			self.allIsHidden = false
-			errorNoWA:Hide()
-			mainScroll:Show()
-			for i=1,#self.helpicons do
-				self.helpicons[i][1]:SetAlpha(1)
-				self.helpicons[i][2]:SetAlpha(1)
+		for k,v in pairs(data.childs) do
+			checkChilds(v)
+			if v.shouldDisplay then
+				data.shouldDisplay = true
 			end
-			UpdateButton:Show()
-			raidNames:Show()
 		end
-		
-		local auras,auras2 = {},{}
-		for WA_name,WA_data in pairs(WeakAurasSaved.displays) do
-			local aura = auras2[WA_name]
-			if aura then
-				aura.name = WA_name
-				aura.data = WA_data
-			else
-				aura = {
-					name = WA_name,
-					data = WA_data,
-				}
+	end
+
+	local function addChildsSorted(auras,childLevel)
+		childLevel = (childLevel or -1) + 1
+		local aurasSorted = {}
+		for WA_name,data in pairs(auras) do
+			if data.shouldDisplay then
+				aurasSorted[#aurasSorted+1] = data
 			end
-			if not Filter or WA_name:lower():find(Filter) then
-				local parent = WA_data.parent
-				if parent then
-					local a = auras2[parent] or {}
-					auras2[parent] = a
-					a[#a+1] = aura
-				else
-					auras[#auras+1] = aura
-				end
-			end
-			auras2[WA_name] = aura
 		end
-		if Filter then
-			local inList = {}
-			for i=1,#auras do
-				inList[ auras[i] ] = true
-			end
-			for k,v in pairs(auras2) do
-				if #v > 0 and not inList[v] and v.name then
-					auras[#auras+1] = v
+		sort(aurasSorted,sortByName)
+		for i=#aurasSorted,1,-1 do
+			local aura = aurasSorted[i]
+			aura.childLevel = childLevel
+			if aura.childs then
+				local d = addChildsSorted(aura.childs,childLevel)
+				for j=#d,1,-1 do
+					tinsert(aurasSorted,i+1,d[j])
 				end
 			end
 		end
-		sort(auras,sortByName)
-		for i=1,#auras do
-			sort(auras[i],sortByName)
-		end
-		local sortedTable = {}
-		if not Filter then
-			sortedTable[#sortedTable+1] = {name="VERSION"}
-		end
-		for i=1,#auras do
-			sortedTable[#sortedTable+1] = auras[i]
-			for j=1,#auras[i] do
-				sortedTable[#sortedTable+1] = auras[i][j]
-				auras[i][j].isChild = true
-			end
-		end
-		mainScroll.ScrollBar:Range(0,max(0,#sortedTable * LINE_HEIGHT - 1 - PAGE_HEIGHT),nil,true)
-		
-		local namesList,namesList2 = {},{}
-		for _,name,_,class in ExRT.F.IterateRoster do
-			namesList[#namesList + 1] = {
-				name = name,
-				class = class,
-			}
-		end
-		sort(namesList,sortByName)
-		
-		if #namesList <= VERTICALNAME_COUNT then
-			raidSlider:Hide()
-			prevPlayerCol = 0
-		else
-			raidSlider:Show()
-			raidSlider:Range(0,#namesList - VERTICALNAME_COUNT)
-		end
-		
+		return aurasSorted
+	end
+
+	local function NameHover(self)
+		local t = self.lastCheck
+		local n = time()
+		return "Last check: "..date("%X",t).." ("..(n-t).." "..SECONDS.." ago)"
+	end
+
+	function UpdatePageView()
+		local namesList = self.namesList or {}
+		local namesList2 = {}
 		local raidNamesUsed = 0
 		for i=1+prevPlayerCol,#namesList do
 			raidNamesUsed = raidNamesUsed + 1
@@ -450,7 +424,9 @@ function module.options:Load()
 			raidNames[i]:SetText("")
 			raidNames[i].t:SetAlpha(0)
 		end
-		
+
+		local sortedTable = self.sortedTable or {}
+
 		local lineNum = 1
 		local backgroundLineStatus = (prevTopLine % 2) == 1
 
@@ -463,13 +439,20 @@ function module.options:Load()
 				break
 			end
 			line:Show()
-			line.name:SetText((aura.isChild and "- " or "")..aura.name)
+			line.name:SetText((aura.childLevel and aura.childLevel > 0 and ("  "):rep(aura.childLevel).."- " or "")..aura.name)
 			line.db = aura
 			line.t:SetShown(backgroundLineStatus)
 			if i == 1 and aura.name == "VERSION" then
 				line.share:Hide()
 			else
 				line.share:Show()
+			end
+			local lastCheck = module.db.lastCheck[ aura.name ]
+			if lastCheck then
+				line.name.lastCheck = lastCheck
+				line.name.extraTip = NameHover
+			else
+				line.name.extraTip = nil
 			end
 			for j=1,VERTICALNAME_COUNT do
 				local pname = namesList2[j] or "-"
@@ -503,6 +486,8 @@ function module.options:Load()
 					SetIcon(line.icons[j],resp_to_icon[ db[ aura.name ] or -1] or 0)
 				elseif db[ aura.name ] then
 					SetIcon(line.icons[j],2)
+				elseif not lastCheck then
+					SetIcon(line.icons[j],0)
 				else
 					SetIcon(line.icons[j],1)
 				end
@@ -525,6 +510,91 @@ function module.options:Load()
 		for i=lineNum,#lines do
 			lines[i]:Hide()
 		end
+	end
+	
+	function UpdatePage()
+		if not WeakAurasSaved then
+			errorNoWA:Show()
+			mainScroll:Hide()
+			raidSlider:Hide()
+			for i=1,#self.helpicons do
+				self.helpicons[i][1]:SetAlpha(0)
+				self.helpicons[i][2]:SetAlpha(0)
+			end
+			UpdateButton:Hide()
+			raidNames:Hide()
+			self.filterEdit:Hide()
+			self.allIsHidden = true
+			return
+		end
+		if self.allIsHidden then
+			self.allIsHidden = false
+			errorNoWA:Hide()
+			mainScroll:Show()
+			for i=1,#self.helpicons do
+				self.helpicons[i][1]:SetAlpha(1)
+				self.helpicons[i][2]:SetAlpha(1)
+			end
+			UpdateButton:Show()
+			raidNames:Show()
+		end
+
+		local auras = {}
+		for WA_name,WA_data in pairs(WeakAurasSaved.displays) do
+			local aura = {
+				name = WA_name,
+				data = WA_data,
+				parent = WA_data.parent,
+				shouldDisplay = not Filter or WA_name:lower():find(Filter),
+			}
+			auras[WA_name] = aura
+		end
+		local toremove = {}
+		for WA_name,data in pairs(auras) do
+			if data.parent then
+				local parent = auras[data.parent]
+				if parent then
+					parent.childs = parent.childs or {}
+					parent.childs[WA_name] = data
+					toremove[WA_name] = true
+				else
+					print('no parent for',data.name,data.parent,auras[data.parent])
+				end
+			end
+		end
+		for WA_name in pairs(toremove) do
+			auras[WA_name] = nil
+		end
+		for WA_name,data in pairs(auras) do
+			checkChilds(data)
+		end
+
+		local sortedTable = addChildsSorted(auras)
+		self.sortedTable = sortedTable
+
+		tinsert(sortedTable,1,{name="VERSION"})
+
+		mainScroll.ScrollBar:Range(0,max(0,#sortedTable * LINE_HEIGHT - 1 - PAGE_HEIGHT),nil,true)
+		
+		local namesList = {}
+		self.namesList = namesList
+		for _,name,_,class in ExRT.F.IterateRoster do
+			namesList[#namesList + 1] = {
+				name = name,
+				class = class,
+			}
+		end
+		sort(namesList,sortByName)
+		
+		if #namesList <= VERTICALNAME_COUNT then
+			raidSlider:Hide()
+			prevPlayerCol = 0
+		else
+			raidSlider:Show()
+			raidSlider:Range(0,#namesList - VERTICALNAME_COUNT)
+		end
+		
+		UpdatePageView()
 	end
 	self.UpdatePage = UpdatePage
 	
@@ -607,6 +677,7 @@ function module:SendResp()
 	end
 end
 	
+
 local LONG = 2^31
 function module:hash(str)
 	local h = 5381
@@ -619,17 +690,7 @@ end
 
 
 local fieldsToClear = {
-        load = {
-		use_never = true,
-		use_ingroup = true,
-		ingroup = true,
-		use_difficulty = true,
-		difficulty = true,
-		use_size = true,
-		size = true,
-		use_instance_type = true,
-		instance_type = true,
-	},
+        load = true,
         grow = true,
         xOffset = true,
         yOffset = true,
@@ -778,7 +839,7 @@ local function ClearFields(table,fields)
 		if type(arg) == "table" then
 			if type(table[name])=="table" then
 				ClearFields(table[name],arg)
-			end	
+			end
 		elseif arg then
 			table[name] = nil
 		end
@@ -807,20 +868,26 @@ end
 function module:SendReq2(ownList)
 	if self.locked then return end
 	self.locked = true
+	module.options:ReqProgress(0)
 	ExRT.F:AddCoroutine(function()
 		local str = ""
 		local c = 0
 		if type(ownList) == "table" then
-			for WA_name,WA_data in pairs(ownList) do
-				str = str..WA_name.."''"..module:hash(ExRT.F.table_to_string(module:wa_clear(WA_data))).."''"
-				c = c + 1
+			for WA_name in pairs(ownList) do
+				local WA_data = WeakAurasSaved.displays[WA_name]
+				if WA_data then
+					str = str..WA_name.."''"..module:hash(ExRT.F.table_to_string(module:wa_clear(WA_data))).."''"
+					c = c + 1
+				end
 			end
 		else
+			local t_len = ExRT.F.table_len(WeakAurasSaved.displays)
 			for WA_name,WA_data in pairs(WeakAurasSaved.displays) do
 				str = str..WA_name.."''"..module:hash(ExRT.F.table_to_string(module:wa_clear(WA_data))).."''"
 				c = c + 1
 
 				if c % 10 == 0 then
+					module.options:ReqProgress(c,t_len*2)
 					coroutine.yield()
 				end
 			end
@@ -830,6 +897,7 @@ function module:SendReq2(ownList)
 		self.locked = false
 
 		if #str == 0 then
+			module.options:ReqProgress(1,1)
 			return
 		end
 	
@@ -838,12 +906,15 @@ function module:SendReq2(ownList)
 		encoded = encoded .. "##F##"
 		local parts = ceil(#encoded / 245)
 		
+		local opt = {maxPer5Sec = 50}
 		for i=1,parts do
 			local msg = encoded:sub( (i-1)*245+1 , i*245 )
+			local progress = i
+			opt.ondone=function() module.options:ReqProgress(parts+progress,parts*2) end
 			if i == 1 then
-				ExRT.F.SendExMsg("wac3", ExRT.F.CreateAddonMsg("G","H",msg))
+				ExRT.F.SendExMsgExt(opt,"wac3", ExRT.F.CreateAddonMsg("G","H",msg))
 			else
-				ExRT.F.SendExMsg("wac3", ExRT.F.CreateAddonMsg("G",msg))
+				ExRT.F.SendExMsgExt(opt,"wac3", ExRT.F.CreateAddonMsg("G",msg))
 			end
 		end
 	end)
@@ -864,6 +935,7 @@ function module:SendResp2()
 		local res = ""
 		local c = 0
 		for i,data in pairs(module.db.lastReq2) do
+			if IsEncounterInProgress() then return end	--stop on encounter
 			local wa_name, wa_hash = data[1],data[2]
 			c = c + 1
 
@@ -887,6 +959,7 @@ function module:SendResp2()
 		local encoded = LibDeflate:EncodeForWoWAddonChannel(compressed)
 		encoded = encoded .. "#F#"
 		local parts = ceil(#encoded / 245)
+
 		
 		for i=1,parts do
 			local msg = encoded:sub( (i-1)*245+1 , i*245 )
@@ -901,6 +974,19 @@ end
 
 function module.main:ADDON_LOADED()
 	module:RegisterAddonMessage()
+end
+
+function module:CheckAuraIsSame(aura,id)
+	if not WeakAurasSaved.displays[ id ] then
+		return false
+	end
+	local hash1 = module:hash(ExRT.F.table_to_string(module:wa_clear(aura)))
+	local hash2 = module:hash(ExRT.F.table_to_string(module:wa_clear(WeakAurasSaved.displays[ id ])))
+	if hash1 == hash2 then
+		return true
+	else
+		return false
+	end
 end
 
 local lastSenderTime,lastSender = 0
@@ -1021,6 +1107,7 @@ function module:addonMessage(sender, prefix, prefix2, ...)
 			local id, playername = ...
 
 			if module.db.synqWAData[sender] then
+				if not WeakAurasSaved then return end
 				if WeakAurasSaved.displays[ id ] then
 					local str = module.db.synqWAData[sender]:sub(7)
 					local decoded = LibDeflate:DecodeForWoWAddonChannel(str)
@@ -1030,16 +1117,31 @@ function module:addonMessage(sender, prefix, prefix2, ...)
 							local LibSerialize = LibStub("LibSerialize")
 							local success, deserialized = LibSerialize:Deserialize(decompressed)
 							if success and deserialized.d then
-								local hash1 = module:hash(ExRT.F.table_to_string(module:wa_clear(deserialized.d)))
-								local hash2 = module:hash(ExRT.F.table_to_string(module:wa_clear(WeakAurasSaved.displays[ id ])))
-								if hash1 == hash2 then
-									--print('aura is same')
-									return
+								if module:CheckAuraIsSame(deserialized.d,id) then
+									if not deserialized.c then
+										--print('aura is same')
+										return
+									else
+										local isPass = false
+										for i=1,#deserialized.c do
+											local child = deserialized.c[i]
+											local id = child.id
+											if not child or not id or not module:CheckAuraIsSame(child,id) then
+												isPass = true
+												break
+											end
+										end
+										if not isPass then
+											--print('aura is same')
+											return
+										end
+									end
 								end
 							end
 						end
 					end
 				end
+
 
 				local link = "|Hgarrmission:weakauras|h|cFF8800FF["..playername.." |r|cFF8800FF- "..id.."]|h|r"
 				SetItemRef("garrmission:weakauras",link)
@@ -1087,12 +1189,12 @@ function module:addonMessage(sender, prefix, prefix2, ...)
 		end
 	elseif prefix == "wac3" then
 		if prefix2 == "G" then
-			local time = GetTime()
-			if lastSender ~= sender and (time - lastSenderTime) < 2 then
+			local now = GetTime()
+			if lastSender ~= sender and (now - lastSenderTime) < 2 then
 				return
 			end
 			lastSender = sender
-			lastSenderTime = time
+			lastSenderTime = now
 			if ... == "H" then
 				wipe(module.db.lastReq2)
 				module.db.syncStr = ""
@@ -1110,16 +1212,18 @@ function module:addonMessage(sender, prefix, prefix2, ...)
 
 				decompressed = decompressed
 
+				local now_time = time()
 				local pos = 1
 				while true do
-					local ns,ne = decompressed:find("''",pos)
+					local ns,ne = decompressed:find("''",pos,true)
 					if not ns then break end
 					local wa_name = decompressed:sub(pos,ns-1)
-					local hs,he = decompressed:find("''",ne+1)
+					local hs,he = decompressed:find("''",ne+1,true)
 					if hs then hs = hs-1 end
 					local wa_hash = decompressed:sub(ne+1,hs)
 
 					module.db.lastReq2[#module.db.lastReq2 + 1] = {wa_name,wa_hash}
+					module.db.lastCheck[wa_name] = now_time
 					if not he then break end
 					pos = he + 1
 				end

@@ -195,7 +195,9 @@ function module.options:Load()
 			for i=1,GetNumGroupMembers() do
 				local name = GetRaidRosterInfo(i)
 				if not inList[name] then
-					notInList[#notInList+1] = name
+					if not name:find("%-") or not inList[strsplit("-",name)] then
+						notInList[#notInList+1] = name
+					end
 				end
 			end
 		end
@@ -975,6 +977,9 @@ function module:ProcessRoster()
 	for i=1,8 do groupSize[i] = 0 end
 	for i=1,GetNumGroupMembers() do
 		local name, rank, subgroup = GetRaidRosterInfo(i)
+		if not needGroup[name] and name:find("%-") and needGroup[strsplit("-",name)] then
+			name = strsplit("-",name)
+		end
 		currentGroup[name] = subgroup
 		nameToID[name] = i
 		groupSize[subgroup] = groupSize[subgroup] + 1

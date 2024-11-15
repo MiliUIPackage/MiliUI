@@ -3758,7 +3758,7 @@ if (not ExRT.isClassic) and UnitLevel'player' >= 60 then
 				end
 			end
 		elseif not IS_DF then
-			laskCount = GetItemCount(171276,false,false)
+			flaskCount = GetItemCount(171276,false,false)
 			flaskCanCount = GetItemCount(171280,false,false)
 		end
 		if not isFlask and ((flaskCount and flaskCount > 0 and not VMRT.RaidCheck.DisableNotCauldronFlask) or (flaskCanCount and flaskCanCount > 0)) then

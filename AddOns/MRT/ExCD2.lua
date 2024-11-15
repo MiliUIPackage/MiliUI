@@ -12457,7 +12457,7 @@ module.db.AllSpells = {
 		changeCdWithHaste=true},
 	{34433,	"PRIEST,DPS,HEAL",3,--Исчадие Тьмы
 		{34433,180,15},nil,nil,nil,
-		isTalent=true,cdDiff={296320,"*0.80"},hideWithTalent=123040,reduceCdAfterCast={{47540,390770},-4,{585,390770},-4,{8092,390770},-4}},
+		isTalent=true,cdDiff={296320,"*0.80"},hideWithTalent=123040,reduceCdAfterCast={{47540,390770},-4,{585,390770},-4,{8092,390770},-4},sameSpell={34433,451235}},
 	{15487,	"PRIEST,CC,KICK",3,--Безмолвие
 		nil,nil,nil,{15487,45,4},
 		isTalent=true,cdDiff={263716,-15}},
@@ -12504,7 +12504,7 @@ module.db.AllSpells = {
 		isTalent=true},
 	{123040,"PRIEST",3,--Подчинитель разума
 		nil,{123040,60,12},nil,nil,
-		isTalent=true,cdDiff={296320,"*0.80"},reduceCdAfterCast={{585,390770},-2,{47540,390770},-2,{8092,390770},-2}},
+		isTalent=true,cdDiff={296320,"*0.80"},reduceCdAfterCast={{585,390770},-2,{47540,390770},-2,{8092,390770},-2},sameSpell={123040,451235}},
 	{64044,	"PRIEST,CC",3,--Глубинный ужас
 		nil,nil,nil,{64044,45,4},
 		isTalent=true},
@@ -13448,7 +13448,7 @@ module.db.AllSpells = {
 		{212653,25,0},nil,nil,nil,
 		isTalent=true,hasCharges=1,cdDiff={382268,{-2,-4},336636,{-2,-2.2,-2.4,-2.6,-2.8,-3,-3.2,-3.4,-3.6,-3.8,-4,-4.2,-4.4,-4.6,-4.8}},ignoreUseWithAura=375240,changeCdWithAura={381750,"*0.85"},resetBy={{342245,342249}}},
 	{414660,"MAGE",3,--Массовая преграда
-		{414660,120,0},
+		{414660,180,0},
 		isTalent=true},
 	{414664,"MAGE",3,--Массовая невидимость
 		{414664,300,12},

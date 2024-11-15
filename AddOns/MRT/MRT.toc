@@ -6,7 +6,7 @@
 ## Notes-zhTW: Method Raid Tools |n一個團隊會用到應有盡有的工具箱插件，包含團隊技能CD，團隊準備檢查等等。
 ## DefaultState: Disabled
 ## SavedVariables: VMRT
-## Version: 5040
+## Version: 5080
 ## AddonCompartmentFunc: MRT_MinimapClickFunction
 ## IconTexture: Interface\AddOns\MRT\media\MiniMap.tga
 ## X-Category-zhTW: 團隊

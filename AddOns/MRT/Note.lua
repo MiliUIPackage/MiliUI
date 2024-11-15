@@ -1696,6 +1696,379 @@ function module.options:Load()
 	end
 	self.dropDownColor.Lines = #self.dropDownColor.List
 
+
+	self.rosterpickdd = ELib:DropDown(self.tab.tabs[1],170,-1):Point("LEFT",self.dropDownColor,"RIGHT",5,0):Size(150):SetText("Select roster")
+	function self.rosterpickdd:SetValue(arg1)
+		ELib:DropDownClose()
+		module.options.rosterType = arg1
+		module.options:UpdateRoster()
+		module.options.rosterpickdd:AutoText(arg1)
+	end
+	function self.rosterpickdd:SetValue2(arg1)
+		ELib:DropDownClose()
+		module.options.rosteredit:Show()
+	end
+	self.rosterpickdd.List = {
+		{
+			text = "Current roster",
+			arg1 = nil,
+			func = self.rosterpickdd.SetValue,
+		},
+		{
+			text = "Custom roster",
+			arg1 = 2,
+			func = self.rosterpickdd.SetValue,
+			subMenu = {
+				{
+					text = "Edit",
+					func = self.rosterpickdd.SetValue2,
+				}
+			},
+		}
+	}
+
+	local rolesList = {
+		{"TANK",TANK or "Tank","roleicon-tiny-tank"},
+		{"HEALER",HEALER or "Healer","roleicon-tiny-healer"},
+		{"DAMAGER",DAMAGER or "Damager","roleicon-tiny-dps"},
+	}
+	local roleToIcon = {
+		TANK = "|A:roleicon-tiny-tank:0:0|a",
+		HEALER = "|A:roleicon-tiny-healer:0:0|a",
+		--DAMAGER = "|A:roleicon-tiny-dps:0:0|a",
+	}
+	if MRT.isClassic then wipe(roleToIcon) end
+	
+	module.options.rosteredit = ELib:Popup("Edit custom roster"):Size(600,600):OnShow(function(self) self:Update() end,true)
+	ELib:Border(module.options.rosteredit,1,.4,.4,.4,.9)
+
+	module.options.rosteredit.frame = ELib:ScrollFrame(module.options.rosteredit):Size(600,585):Height(585):AddHorizontal(true):Width(600):Point("TOP",0,-15)
+	ELib:Border(module.options.rosteredit.frame,0)
+	module.options.rosteredit.frame.lines = {}
+
+	module.options.rosteredit.groupsedit = {}
+
+	module.options.rosteredit:SetScript("OnHide",function()
+		module.options:UpdateRoster()
+	end)
+
+	module.options.rosteredit.frame:SetScript("OnMouseDown",function(self)
+		local x,y = MRT.F.GetCursorPos(self)
+		self.saved_x = x
+		self.saved_y = y
+		self.saved_scroll_h = self.ScrollBarHorizontal:GetValue()
+		self.saved_scroll_v = self.ScrollBar:GetValue()
+		self.moveSpotted = nil
+
+	end)
+
+	module.options.rosteredit.frame:SetScript("OnMouseUp",function(self, button)
+		self.saved_x = nil
+		self.saved_y = nil
+		self.moveSpotted = nil
+	end)
+
+	module.options.rosteredit.ExportButton = ELib:Button(module.options.rosteredit.frame.C,L.Export):Point("TOPLEFT",600-250,-0):Size(200,20):OnClick(function()
+		local str = ""
+		for i=1,#VMRT.Note.CustomRoster do
+			if VMRT.Note.CustomRoster[i][1] then
+				str = str .. VMRT.Note.CustomRoster[i][1]  .."\t".. (VMRT.Note.CustomRoster[i][2] or "").."\t" ..(VMRT.Note.CustomRoster[i][3] or "").. "\n" 
+			end
+		end
+		MRT.F:Export2(str)
+	end)
+
+	module.options.rosteredit.importWindow = ELib:Popup(" "):Size(600,400)
+	ELib:Border(module.options.rosteredit.importWindow,1,.4,.4,.4,.9)
+
+	function module.options.rosteredit.importWindow:DoImport(isErase)
+		local text = module.options.rosteredit.importWindow.Edit:GetText()
+	  	if isErase then
+			wipe(VMRT.Note.CustomRoster)
+		end
+
+		local lines = {strsplit("\n",text)}
+		for i=1,#lines do
+			local l = {}
+			for k in lines[i]:gmatch("[^\n\t ]+") do
+				l[#l+1] = k
+			end
+			local name,class,role = unpack(l)
+
+			if name and name:trim() == ""  then name = nil end
+
+			if name then
+				if class and class:trim() == ""  then class = nil end
+				if role and role:trim() == ""  then role = nil end
+
+				if class then
+					local mclass
+					for i=1,#MRT.GDB.ClassList do
+						if MRT.GDB.ClassList[i]:lower() == class:lower() or (GetClassInfo(MRT.GDB.ClassID[ MRT.GDB.ClassList[i] ]) or "") == class:lower() then
+							mclass = MRT.GDB.ClassList[i]
+							break
+						end
+					end
+					class = mclass
+				end
+
+				if role then
+					local mrole
+					for i=1,#rolesList do
+						if rolesList[i][1]:lower() == role:lower() or rolesList[i][2]:lower() == role:lower() then
+							mrole = rolesList[i][1]
+							break
+						end
+					end
+					role = mrole
+				end
+
+				VMRT.Note.CustomRoster[#VMRT.Note.CustomRoster+1] = {
+					name,
+					class,
+					role,
+				}
+			end
+		end
+		module.options.rosteredit.importWindow:Hide()
+		module.options.rosteredit:Update()
+	end
+
+	module.options.rosteredit.importWindow.Tip = ELib:Text(module.options.rosteredit.importWindow,"1 line - 1 player, format: |cff00ff00name   class   role|r",12):Point("TOPLEFT",10,-5)
+	module.options.rosteredit.importWindow.Edit = ELib:MultiEdit(module.options.rosteredit.importWindow):Point("TOP",0,-25):Size(590,400-50-30)
+	module.options.rosteredit.importWindow.Import = ELib:Button(module.options.rosteredit.importWindow,"Add"):Point("BOTTOM",0,5):Size(590,20):OnClick(function()
+		module.options.rosteredit.importWindow:DoImport(false)
+	end)
+	module.options.rosteredit.importWindow.Import2 = ELib:Button(module.options.rosteredit.importWindow,"Add (rewrite current roster)"):Point("BOTTOM",module.options.rosteredit.importWindow.Import,"TOP",0,5):Size(590,20):OnClick(function()
+		module.options.rosteredit.importWindow:DoImport(true)
+	end)
+
+	module.options.rosteredit.ImportButton = ELib:Button(module.options.rosteredit.frame.C,L.Import):Point("TOP",module.options.rosteredit.ExportButton,"BOTTOM",0,-5):Size(200,20):OnClick(function()
+		module.options.rosteredit.importWindow:NewPoint("CENTER",UIParent,0,0)
+		module.options.rosteredit.importWindow.Edit:SetText("")
+		module.options.rosteredit.importWindow:Show()
+	end)
+
+	module.options.rosteredit.CurrRoster = ELib:Button(module.options.rosteredit.frame.C,"Add from current raid/group"):Point("RIGHT",module.options.rosteredit.ExportButton,"LEFT",-5,0):Size(200,20):OnClick(function()
+		for _, name, subgroup, class, guid, rank, level, online, isDead, combatRole in MRT.F.IterateRoster, MRT.F.GetRaidDiffMaxGroup() do
+			name = MRT.F.delUnitNameServer(name)
+
+			if combatRole == "NONE" then combatRole = nil end
+
+			VMRT.Note.CustomRoster[#VMRT.Note.CustomRoster+1] = {
+				name,
+				class,
+				combatRole,
+			}
+		end
+		module.options.rosteredit:Update()
+	end)
+
+	module.options.rosteredit.ClearList = ELib:Button(module.options.rosteredit.frame.C,"Clear list"):Point("TOP",module.options.rosteredit.CurrRoster,"BOTTOM",0,-5):Size(200,20):OnClick(function()
+		StaticPopupDialogs["EXRT_REMINDER_RESET"] = {
+			text = "Clear list?",
+			button1 = L.YesText,
+			button2 = L.NoText,
+			OnAccept = function()
+				wipe(VMRT.Note.CustomRoster)
+				module.options.rosteredit:Update()
+			end,
+			timeout = 0,
+			whileDead = true,
+			hideOnEscape = true,
+			preferredIndex = 3,
+		}
+		StaticPopup_Show("EXRT_REMINDER_RESET")
+	end)
+
+	module.options.rosteredit.addButton = ELib:Button(module.options.rosteredit.frame.C,"Add"):Size(100,20):OnClick(function(self)
+		local pos = #VMRT.Note.CustomRoster+1
+		VMRT.Note.CustomRoster[pos] = {self.gtext}
+
+		self:Hide()
+		module.options.rosteredit:Update()
+	end)
+
+	function module.options.rosteredit:removeButton_click()
+		local i = self:GetParent().data_i
+		tremove(VMRT.Note.CustomRoster, i)
+
+		module.options.rosteredit:Update()
+	end
+
+	function module.options.rosteredit:class_click(class)
+		ELib:DropDownClose()
+
+		local data = self:GetParent().parent:GetParent().data
+		data[2] = class
+
+		module.options.rosteredit:Update()
+	end
+	module.options.rosteredit.ClassDD_List = {
+		{
+			text = "-",
+			func = module.options.rosteredit.class_click,
+		},
+	}
+	for i=1,#MRT.GDB.ClassList do
+		local class = MRT.GDB.ClassList[i]
+		module.options.rosteredit.ClassDD_List[#module.options.rosteredit.ClassDD_List+1] = {
+			text = (RAID_CLASS_COLORS[class] and RAID_CLASS_COLORS[class].colorStr and "|c"..RAID_CLASS_COLORS[class].colorStr or "")..L.classLocalizate[class],
+			func = module.options.rosteredit.class_click,
+			arg1 = class,
+		}
+	end
+
+	function module.options.rosteredit:role_click(role)
+		ELib:DropDownClose()
+
+		local data = self:GetParent().parent:GetParent().data
+		data[3] = role
+
+		module.options.rosteredit:Update()
+	end
+	module.options.rosteredit.RoleDD_List = {
+		{
+			text = "-",
+			func = module.options.rosteredit.role_click,
+		},
+	}
+	for i=1,#rolesList do
+		local roledata = rolesList[i]
+		module.options.rosteredit.RoleDD_List[#module.options.rosteredit.RoleDD_List+1] = {
+			text = roledata[2],
+			func = module.options.rosteredit.role_click,
+			arg1 = roledata[1],
+			atlas = roledata[3],
+		}
+	end
+
+	function module.options.rosteredit:UpdateView()
+		local pos = self.frame:GetVerticalScroll()
+
+		local spellsList = self.pList
+
+		local c = 0
+		for i=1,#spellsList do
+			local data = spellsList[i]
+			if data.pos + 25 >= pos and data.pos <= pos+self.frame:GetHeight() then
+				c = c + 1
+
+				local line = self.frame.lines[c]
+				if not line then
+					line = CreateFrame("Frame",nil,self.frame.C)
+					self.frame.lines[c] = line
+					line:SetSize(500,24)
+
+					line.edit = ELib:Edit(line):Size(200,20):Point("LEFT",5,0):OnChange(function(self,isUser)
+						local text = self:GetText() or ""
+						module.options.rosteredit.addButton:NewPoint("LEFT",self,"RIGHT",5,0):SetShown(text:trim() ~= "" and not self:GetParent().data) 
+						if not isUser then return end
+						local data = self:GetParent().data
+						if data then
+							data[1] = text
+						else
+							module.options.rosteredit.addButton.gtext = text
+						end
+					end)
+	
+					line.remove = ELib:Button(line,""):Size(12,20):Point("LEFT",line.edit,"RIGHT",3,0):OnClick(self.removeButton_click)
+					ELib:Text(line.remove,"x"):Point("CENTER",0,0)
+					line.remove.Texture:SetGradient("VERTICAL",CreateColor(0.35,0.06,0.09,1), CreateColor(0.50,0.21,0.25,1))
+					line.remove._i = i
+
+					line.bg = line:CreateTexture(nil,"BACKGROUND")
+					line.bg:SetAllPoints()
+	
+					line.class = ELib:DropDown(line,220,-1):Size(150):Point("LEFT",line.edit,"RIGHT",25,0)
+					line.class.List = module.options.rosteredit.ClassDD_List
+
+					line.role = ELib:DropDown(line,220,-1):Size(150):Point("LEFT",line.class,"RIGHT",10,0)
+					line.role.List = module.options.rosteredit.RoleDD_List
+				end
+
+				if data.data then 
+					line.edit:SetScript("OnEditFocusGained",self.editgname_OnEditFocusGained) 
+					line.edit:SetScript("OnEditFocusLost",self.editgname_OnEditFocusLost) 
+
+					line.remove:Show()
+					line.class:Show()
+					line.role:Show()
+				else
+					line.edit:SetScript("OnEditFocusGained",nil) 
+					line.edit:SetScript("OnEditFocusLost",nil) 
+
+					line.remove:Hide()
+					line.class:Hide()
+					line.role:Hide()
+				end
+		
+				line.data = data.data
+				line:SetPoint("TOPLEFT",10,-data.pos)
+				line.edit:SetText(data.data and data.data[1] or "")
+				line.class:AutoText(data.data and data.data[2])
+				line.role:AutoText(data.data and data.data[3])
+				line.data_i = data._i
+
+				local classColor = data.data and data.data[2] and RAID_CLASS_COLORS[ data.data[2] ]
+				line.bg:SetColorTexture(1,1,1,1)
+				if classColor then
+					line.bg:SetGradient("HORIZONTAL",CreateColor(classColor.r,classColor.g,classColor.b, .5), CreateColor(classColor.r,classColor.g,classColor.b, 0))
+				else
+					line.bg:SetGradient("HORIZONTAL",CreateColor(1,1,1, 0), CreateColor(1,1,1, 0))
+				end
+
+				line:SetWidth(max(200,self:GetWidth()))		
+
+				line:Show()
+			end
+		end
+		for i=c+1,#self.frame.lines do
+			self.frame.lines[i]:Hide()
+		end
+	end
+
+	function module.options.rosteredit:editgname_OnEditFocusGained()
+		self.prefocustext = self:GetText()
+	end
+	function module.options.rosteredit:editgname_OnEditFocusLost()
+		if self.prefocustext ~= self:GetText() then 
+			module.options.rosteredit:Update() 
+		end
+	end
+
+	function module.options.rosteredit:Update()
+		local names_len = #VMRT.Note.CustomRoster
+
+		self.pList = {}
+		for i=1,names_len do
+			self.pList[#self.pList + 1] = {
+				data = VMRT.Note.CustomRoster[i],
+				_i = i,
+			}
+		end
+		self.pList[#self.pList + 1] = {}
+
+		for i=1,#self.pList do
+			self.pList[i].pos = 50 + 25 * (i-1)
+		end
+
+		local maxheight = 50 + #self.pList * 25 + 15
+		local maxwidth = max(200, self:GetWidth())
+
+		self.frame:Height(maxheight)
+		self.frame:Width(maxwidth)
+
+		self:UpdateView()
+	end
+
+	module.options.rosteredit.frame:SetScript("OnVerticalScroll", function(self)
+		self:GetParent():UpdateView()
+	end)
+
+
+
+
 	local function RaidNamesOnEnter(self)
 		self.html:SetShadowColor(0.2, 0.2, 0.2, 1)
 	end
@@ -1718,6 +2091,89 @@ function module.options:Load()
 
 		button:SetScript("OnEnter", RaidNamesOnEnter)
 		button:SetScript("OnLeave", RaidNamesOnLeave)
+	end
+
+	function self:UpdateRoster_MovePage(page,doNotUpdate)
+		local pageNow = (self.rosterpage or 1) + page
+		if pageNow < 1 then pageNow = 1 end
+		local pageMax = ceil(#VMRT.Note.CustomRoster / 40)
+		if pageNow > pageMax then pageNow = pageMax end
+		self.rosterpage = pageNow
+		self.rosterPage:SetText(pageNow.."/"..pageMax)
+		if not doNotUpdate then
+			self:UpdateRoster()
+		end
+	end
+
+	self.rosterPage = ELib:Text(self.tab.tabs[1],"1/2",10):Point("TOPLEFT", 15+8*95+20,-60)
+	self.rosterPagePrev = ELib:Button(self.tab.tabs[1],"<"):Point("RIGHT", self.rosterPage,"LEFT",-2,0):Size(20,15):OnClick(function() module.options:UpdateRoster_MovePage(-1) end)
+	self.rosterPageNext = ELib:Button(self.tab.tabs[1],">"):Point("LEFT", self.rosterPage,"RIGHT",2,0):Size(20,15):OnClick(function() module.options:UpdateRoster_MovePage(1) end)
+
+	local gruevent = {}
+	function self:UpdateRoster()
+		local rosterType = module.options.rosterType or 1
+		for i=1,8 do gruevent[i] = 0 end
+		if rosterType == 1 then
+			for _,name, subgroup, class, guid, rank, level, online, isDead, combatRole in MRT.F.IterateRoster do
+				gruevent[subgroup] = gruevent[subgroup] + 1
+		
+				local POS = gruevent[subgroup] + (subgroup - 1) * 5
+				local obj = module.options.raidnames[POS]
+		
+				if obj then
+					local cR,cG,cB = MRT.F.classColorNum(class)
+					name = MRT.F.delUnitNameServer(name)
+					local colorCode = MRT.F.classColor(class)
+					obj.iconText = "||c"..colorCode..name.."||r "
+					obj.iconTextShift = name
+					local roleicon = combatRole and roleToIcon[combatRole]
+					obj.html:SetText((roleicon or "")..name)
+					obj.html:SetTextColor(cR, cG, cB, 1)
+				end
+			end
+			module.options.rosterPage:Hide()
+			module.options.rosterPagePrev:Hide()
+			module.options.rosterPageNext:Hide()
+		elseif rosterType == 2 then
+			local start = ((self.rosterpage or 1) - 1) * 40 + 1
+			if start > #VMRT.Note.CustomRoster then
+				start = 1
+				self.rosterpage = 1
+			end
+			self:UpdateRoster_MovePage(0,true)
+			local c = 0
+			for i=start,#VMRT.Note.CustomRoster do
+				c = c + 1
+				if c > 40 then break end
+				subgroup = floor((c - 1) / 5) + 1
+				gruevent[subgroup] = gruevent[subgroup] + 1
+		
+				local POS = gruevent[subgroup] + (subgroup - 1) * 5
+				local obj = module.options.raidnames[POS]
+		
+				if obj then
+					local cR,cG,cB = MRT.F.classColorNum(VMRT.Note.CustomRoster[i][2] or "")
+					name = VMRT.Note.CustomRoster[i][1]
+					local colorCode = MRT.F.classColor(VMRT.Note.CustomRoster[i][2] or "")
+					obj.iconText = "||c"..colorCode..name.."||r "
+					obj.iconTextShift = name
+					local roleicon = VMRT.Note.CustomRoster[i][3] and roleToIcon[ VMRT.Note.CustomRoster[i][3] ]
+					obj.html:SetText((roleicon or "")..name)
+					obj.html:SetTextColor(cR, cG, cB, 1)
+				end
+			end
+			module.options.rosterPage:SetShown(#VMRT.Note.CustomRoster > 40)
+			module.options.rosterPagePrev:SetShown(#VMRT.Note.CustomRoster > 40)
+			module.options.rosterPageNext:SetShown(#VMRT.Note.CustomRoster > 40)
+		end
+		for i=1,8 do
+			for j=(gruevent[i]+1),5 do
+				local frame = module.options.raidnames[(i-1)*5+j]
+				frame.iconText = ""
+				frame.iconTextShift = ""
+				frame.html:SetText("")
+			end
+		end
 	end
 
 	self.lastUpdate = ELib:Text(self.tab.tabs[1],"",11):Size(600,20):Point("TOPLEFT",self.NotesList,"BOTTOMLEFT",3,-6):Top():Color()
@@ -3293,8 +3749,6 @@ function module:addonMessage(sender, prefix, ...)
 	end 
 end 
 
-local gruevent = {}
-
 NewVMRTTableData = {
 	OnlyPromoted = true,
 	OptionsFormatting = true,
@@ -3326,6 +3780,10 @@ function module.main:ADDON_LOADED()
 
 	VMRT.Note.BlackLastUpdateName = VMRT.Note.BlackLastUpdateName or {}
 	VMRT.Note.BlackLastUpdateTime = VMRT.Note.BlackLastUpdateTime or {}
+
+	if not VMRT.Note.CustomRoster then
+		VMRT.Note.CustomRoster = {}
+	end
 
 	if VMRT.Note.enabled then 
 		module:Enable()
@@ -3441,31 +3899,7 @@ function module.main:GROUP_ROSTER_UPDATE()
 	if not module.options.raidnames or not module.options:IsVisible() then
 		return
 	end
-	for i=1,8 do gruevent[i] = 0 end
-	for _,name,subgroup,class in MRT.F.IterateRoster do
-		gruevent[subgroup] = gruevent[subgroup] + 1
-		local cR,cG,cB = MRT.F.classColorNum(class)
-
-		local POS = gruevent[subgroup] + (subgroup - 1) * 5
-		local obj = module.options.raidnames[POS]
-
-		if obj then
-			name = MRT.F.delUnitNameServer(name)
-			local colorCode = MRT.F.classColor(class)
-			obj.iconText = "||c"..colorCode..name.."||r "
-			obj.iconTextShift = name
-			obj.html:SetText(name)
-			obj.html:SetTextColor(cR, cG, cB, 1)
-		end
-	end
-	for i=1,8 do
-		for j=(gruevent[i]+1),5 do
-			local frame = module.options.raidnames[(i-1)*5+j]
-			frame.iconText = ""
-			frame.iconTextShift = ""
-			frame.html:SetText("")
-		end
-	end
+	module.options:UpdateRoster()
 end 
 function module.main:PLAYER_REGEN_DISABLED()
 	Note_CombatState = true

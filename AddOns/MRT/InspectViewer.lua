@@ -742,6 +742,8 @@ function module.options:Load()
 	module.db.colorizeNoGems = VMRT.InspectViewer.ColorizeNoGems
 	module.db.colorizeNoTopEnchGems = VMRT.InspectViewer.ColorizeNoTopEnchGems
 	module.db.colorizeLowIlvl685 = VMRT.InspectViewer.ColorizeLowIlvl685
+	module.db.colorizeLowIlvlCustom = VMRT.InspectViewer.ColorizeLowIlvlCustom
+	module.db.colorizeLowIlvlCustomN = type(VMRT.InspectViewer.ColorizeLowIlvlCustomN) == "number" and VMRT.InspectViewer.ColorizeLowIlvlCustomN or 600
 	module.db.colorizeNoValorUpgrade = VMRT.InspectViewer.ColorizeNoValorUpgrade
 	module.db.minEnchRank = VMRT.InspectViewer.TopEnchGemsMinRank
 	module.db.checkCheap = VMRT.InspectViewer.TopEnchGemsCheckCheap
@@ -765,7 +767,7 @@ function module.options:Load()
 		colorizeLowIlvl685 = 619
 	end
 
-	self.chkItemsTrackDropDown = ELib:DropDown(self,300,6):Point(50,0):Size(50)
+	self.chkItemsTrackDropDown = ELib:DropDown(self,300,8):Point(50,0):Size(50)
 	self.chkItemsTrackDropDown:Hide()
 
 	local enchRankSubMenu
@@ -854,6 +856,22 @@ function module.options:Load()
 			VMRT.InspectViewer.ColorizeLowIlvl685 = checked
 			module.options.ReloadPage()
 		end,func = ItemsTrackDropDownClick},
+		{text = L.InspectViewerColorizeLowIlvlCustom,checkable = true,checkState = module.db.colorizeLowIlvlCustom, checkFunc = function(self,checked) 
+			module.db.colorizeLowIlvlCustom = checked
+			VMRT.InspectViewer.ColorizeLowIlvlCustom = checked
+			module.options.ReloadPage()
+		end,func = ItemsTrackDropDownClick},
+		{
+			text = "",
+			isTitle = true,	
+			slider = {min = 500, max = 800, val = module.db.colorizeLowIlvlCustomN, func = function(self,val)
+				val = floor(val + .5)
+				module.db.colorizeLowIlvlCustomN = val
+				VMRT.InspectViewer.ColorizeLowIlvlCustomN = val
+				self:GetParent().data.slider.val = val
+				module.options.ReloadPage()
+			end}
+		},
 		--[[
 		{text = L.InspectViewerColorizeNoValorUpgrade,checkable = true,checkState = module.db.colorizeNoValorUpgrade, checkFunc = function(self,checked)
 			module.db.colorizeNoValorUpgrade = checked
@@ -1300,7 +1318,9 @@ function module.options:Load()
 										(module.db.colorizeNoGems and ExRT.F.IsBonusOnItem(item,module.db.socketsBonusIDs) and IsItemHasNotGem(item)) or 
 										(module.db.colorizeNoGems and (slotID == 16 or slotID == 17) and itemQuality == 6 and IsArtifactItemHasNot3rdGem(item)) or 
 										(module.db.colorizeNoTopEnchGems and not IsTopEnchAndGems(item) and isSlotForEnchant) or
-										(items_ilvl[slotID] and items_ilvl[slotID] > 0 and items_ilvl[slotID] < colorizeLowIlvl685 and module.db.colorizeLowIlvl685)
+										(items_ilvl[slotID] and items_ilvl[slotID] > 0 and items_ilvl[slotID] < colorizeLowIlvl685 and module.db.colorizeLowIlvl685) or
+										(module.db.colorizeLowIlvlCustom and items_ilvl[slotID] and items_ilvl[slotID] > 0 and items_ilvl[slotID] < module.db.colorizeLowIlvlCustomN)
+										
 									) then
 										icon.border:Show()
 									end

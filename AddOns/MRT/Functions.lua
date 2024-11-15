@@ -9,6 +9,27 @@ local RAID_CLASS_COLORS, COMBATLOG_OBJECT_TYPE_MASK, COMBATLOG_OBJECT_CONTROL_MA
 local UnitGroupRolesAssigned = UnitGroupRolesAssigned or ExRT.NULLfunc
 local GetRaidRosterInfo = GetRaidRosterInfo
 local GetItemInfo, GetItemInfoInstant  = C_Item and C_Item.GetItemInfo or GetItemInfo,  C_Item and C_Item.GetItemInfoInstant or GetItemInfoInstant
+local GetSpecialization = GetSpecialization
+
+if not GetSpecialization and ExRT.isClassic then
+	GetSpecialization = function()
+		local n,m = 1,1
+		for spec=1,3 do
+			local selectedNum = 0
+			for talPos=1,22 do
+				local name, iconTexture, tier, column, rank, maxRank, isExceptional, available = GetTalentInfo(spec, talPos)
+				if name and maxRank > 0 and rank > 0 then
+					selectedNum = selectedNum + 1
+				end
+			end
+			if selectedNum > m then
+				n = spec
+				m = selectedNum
+			end
+		end
+		return n
+	end
+end
 
 do
 	local antiSpamArr = {}
@@ -827,6 +848,59 @@ function ExRT.F.GetUnitRole(unit)
 		end
 	end
 end
+if ExRT.isClassic and not ExRT.isWoD then
+	function ExRT.F.GetPlayerRole()
+		local role = UnitGroupRolesAssigned('player')
+		if role == "HEALER" then
+			local _,class = UnitClass('player')
+			return role, (class == "PALADIN" or class == "MONK") and "MHEALER" or "RHEALER"
+		elseif role ~= "DAMAGER" then
+			--TANK, NONE
+			return role
+		else
+			local _,class = UnitClass('player')
+			local isMelee = (class == "WARRIOR" or class == "PALADIN" or class == "ROGUE" or class == "DEATHKNIGHT" or class == "MONK" or class == "DEMONHUNTER")
+			if class == "DRUID" then
+				isMelee = GetSpecialization() ~= 1
+			elseif class == "SHAMAN" then
+				isMelee = GetSpecialization() == 2
+			elseif class == "HUNTER" then
+				isMelee = false
+			end
+			if isMelee then
+				return role, "MDD"
+			else
+				return role, "RDD"
+			end
+		end
+	end
+	
+	function ExRT.F.GetUnitRole(unit)
+		local role = UnitGroupRolesAssigned(unit)
+		if role == "HEALER" then
+			local _,class = UnitClass(unit)
+			return role, (class == "PALADIN" or class == "MONK") and "MHEALER" or "RHEALER"
+		elseif role ~= "DAMAGER" then
+			--TANK, NONE
+			return role
+		else
+			local _,class = UnitClass(unit)
+			local isMelee = (class == "WARRIOR" or class == "PALADIN" or class == "ROGUE" or class == "DEATHKNIGHT" or class == "MONK" or class == "DEMONHUNTER")
+			if class == "DRUID" then
+				isMelee = not (UnitPowerType(unit) == 8)	--astral power
+			elseif class == "SHAMAN" then
+				isMelee = UnitPowerMax(unit) >= 150
+			elseif class == "HUNTER" then
+				isMelee = false
+			end
+			if isMelee then
+				return role, "MDD"
+			else
+				return role, "RDD"
+			end
+		end
+	end
+end
 
 function ExRT.F.TextureToText(textureName,widthInText,heightInText,textureWidth,textureHeight,leftTexCoord,rightTexCoord,topTexCoord,bottomTexCoord)
 	return "|T"..textureName..":"..(widthInText or 0)..":"..(heightInText or 0)..":0:0:"..textureWidth..":"..textureHeight..":"..
@@ -1350,6 +1424,73 @@ do
 		alertWindow:Show()
 		alertWindow.EditBox:SetFocus()
 		alertFunc = ExRT.NULLfunc
+	end
+end
+
+do
+	local alertWindow = nil
+	local alertFunc = nil
+	local alertArg1 = nil
+	local ce = 0
+	local function CreateEdit()
+		ce = ce + 1
+		local e = alertWindow.EditBox[ce]
+		if not e then
+			e = ELib:Edit(alertWindow):Size(400,16):Point("TOPLEFT",90,-20-(ce-1)*20)
+			alertWindow.EditBox[ce] = e
+
+			e:SetScript("OnEnterPressed",function (self)
+				self:GetParent().OK:Click("LeftButton")
+			end)
+		end
+		e:Show()
+
+		return alertWindow.EditBox[ce]
+	end
+	local function CreateWindow()
+		alertWindow = ExRT.lib:Popup():Size(500,65)
+		alertWindow:SetFrameStrata("FULLSCREEN_DIALOG")
+
+		alertWindow.EditBox = {}
+
+		alertWindow.OK = ExRT.lib:Button(alertWindow,ACCEPT):Size(130,20):Point("BOTTOM",0,3):OnClick(function (self)
+			alertWindow:Hide()
+			local r = {}
+			for i=1,#alertWindow.EditBox do
+				local e = alertWindow.EditBox[i]
+				local input = e:GetText()
+				r[i] = input
+			end
+			alertFunc(r)
+		end)
+	end
+	function ExRT.F.ShowInput2(text,func,...)
+		if not alertWindow then
+			CreateWindow()
+		end
+		ce = 0
+		alertWindow.title:SetText(text)
+		for i=1,select("#",...) do
+			local opt = select(i,...)
+			
+			local e = CreateEdit()
+			e:LeftText(type(opt) == "table" and opt.text or opt)
+			e:SetScript("OnTextChanged",type(opt) == "table" and opt.funcOnEdit or nil)
+			e:Tooltip(type(opt) == "table" and opt.tip or nil)
+			e:SetText(type(opt) == "table" and opt.defText or "")
+			if type(opt) == "table" and opt.onlyNum then
+				e:SetNumeric(true)
+			else
+				e:SetNumeric(false)
+			end
+		end
+		alertFunc = func
+
+		alertWindow:ClearAllPoints()
+		alertWindow:SetPoint("CENTER",UIParent,0,0)
+		alertWindow:SetHeight(45+20*ce)
+		alertWindow:Show()
+		alertWindow.EditBox[1]:SetFocus()
 	end
 end
 

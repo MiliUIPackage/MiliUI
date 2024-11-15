@@ -947,7 +947,7 @@ function OptionsFrame:AddWeb()
 	
 		local X,Y = -0,-0
 		local function l(x1,y1,x2,y2)
-			line = sf.c:CreateLine(nil,"ARTWORK",nil,2)
+			local line = sf.c:CreateLine(nil,"ARTWORK",nil,2)
 			line:SetColorTexture(1,1,1,.4)
 			line:SetStartPoint("TOPRIGHT",x1+X,y1+Y)
 			line:SetEndPoint("TOPRIGHT",x2+X,y2+Y)
