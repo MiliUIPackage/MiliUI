@@ -59,6 +59,8 @@ L['cendvin_note'] = 'Farm 900x {item:225557} in {location:Cinderwold} from elite
 L['options_icons_flat_earthen'] = '{achievement:40606}'
 L['options_icons_flat_earthen_desc'] = 'Display location for {achievement:40606} achievement.'
 
+L['tome_of_polymorph_mosswool'] = 'Enter the tunnel and continue to {location:The Kindling Parlor}.\n\nAccept {quest:84438} from {npc:229128} to receive the {item:227710}.'
+
 L['aradan_note_start'] = '{npc:213428} can be found in the dungeon {location:The Rookery} in {location:Dornogal} in the {location:Isle of Dorn}.\n\n{note:{npc:213428} can be tamed while in Follower Dungeon mode.}'
 L['aradan_note_step_1'] = '1. Collect {item:220770} from the deep in the water outside of {location:Isle of Dorn.}'
 L['aradan_note_step_2'] = '2. ({dot:Blue}) Enter {location:The Rookery} and defeat {npc:209230}.'
@@ -133,6 +135,12 @@ L['gobblin_with_glublurp_note'] = 'Click on a {dot:Red}{object:Glimmering Crysta
 L['critter_love_note'] = 'You must use the emote {emote:/love} on critters, not battle pets.'
 L['options_icons_critter_love'] = '{achievement:40475}'
 L['options_icons_critter_love_desc'] = 'Display critter locations for {achievement:40475} achievement.'
+
+L['for_the_collective_note'] = 'Requires {wq:Courier Mission: Ore Recovery}\n\nContribute up to 20x {npc:224281} at each {npc:228056}.\n\n{note:Contribution progress is realm-wide and resets after 2 hours.}'
+L['for_the_collective_suffix'] = 'ore contributed'
+L['for_the_collective_location'] = 'On top of the building. Use the nearby {object:Wooden Plank} to build a ramp.'
+L['options_icons_for_the_collective'] = '{achievement:40630}'
+L['options_icons_for_the_collective_desc'] = 'Display {npc:228056} locations for {achievement:40630}.'
 
 -------------------------------------------------------------------------------
 --------------------------------- HALLOWFALL ----------------------------------
@@ -308,6 +316,11 @@ L['you_cant_hang_with_us_note'] = 'Find a {npc:211816} with the {spell:434734} b
 
 L['kej_pet_vendor_note'] = 'Each pet has a limited stock and costs 2,250x {currency:3056}.\n\n{note:Estimated respawn time is 3-4 hours for each pet item at any vendor.}'
 
+L['options_icons_back_to_the_wall'] = '{achievement:40620}'
+L['options_icons_back_to_the_wall_desc'] = 'Display {npc:222119} locations for {achievement:40620}.'
+L['arathi_prisoner_suffix'] = 'Arathi prisoners saved'
+L['arathi_prisoner_note'] = 'Free webbed-wrapped {npc:222119} during the {wq:Special Assignment: A Pound of Cure}.'
+
 -------------------------------------------------------------------------------
 ----------------------------------- DELVES ------------------------------------
 -------------------------------------------------------------------------------
@@ -332,3 +345,24 @@ L['tsw_chest_4_location'] = 'High up on a beam. Drop down from the pillar near t
 L['tuk_chest_1_note'] = 'Behind the Statue.'
 L['tuk_chest_2_note'] = '{note:Only available in the "Runaway Evolution" and "Torture Victims" story variants.}'
 L['tuk_chest_3_note'] = '{note:Only available in the "Runaway Evolution" and "Weaver Rescue" story variants.}'
+
+-------------------------------------------------------------------------------
+----------------------------- SECRETS OF AZEROTH ------------------------------
+-------------------------------------------------------------------------------
+
+L['options_icons_secrets_of_azeroth'] = 'Secrets of Azeroth'
+L['options_icons_secrets_of_azeroth_desc'] = 'Display clue locations for {location:Secrets of Azeroth}.'
+
+L['alyx_kickoff_note'] = 'Speak with {npc:226683} to enable the new Secrets of Azeroth puzzles.'
+
+L['celebration_crates_label'] = 'Celebration Crates'
+L['celebration_crates_note'] = 'Find and return all {object:Celebration Crates} hidden throughout {location:Azeroth}.'
+
+L['1_soggy_celebration_crate_note'] = 'Purchase a {item:225996} from {npc:143029} ({dot:Blue}) at {location:The Dive Bar} and give it to {npc:189119} to reveal the {item:226200}.'
+L['2_hazy_celebration_crate_note'] = 'While alive, look for the area with glowing green light. {note:However, you must be dead to reveal the {item:232263}.}'
+L['3_dirt_caked_celebration_crate_note'] = '{note:You do NOT need to collect the {item:228321} from the call board near {npc:226683} for this crate.}\n\n1. Enter the {location:Forgotten Crypt} behind {location:Karazhan}.\n\n2. Walk down the stairs, through the {location:Well of the Forgotten}, down the ramp of {location:Pauper\'s Walk}, and into the next level of the {location:Forgotten Crypt}.\n\n3. Turn right and follow the tunnel through {location:Pauper\'s Walk}.\n\n4. Cross the large room diagonally towards {location:The Upside-down Sinners}.\n\n5. Go straight across the water into {location:The Slough of Dispair} to grab the {item:228322}.'
+L['4_sandy_celebration_crate'] = '1. Collect the {item:228768} from the {location:Sunken Dig Site} in {location:Thousand Needles} in {location:Kalimdor}.\n\n2. Find {npc:91079} wandering along the eastern road in {location:Azsuna}.\n\n3. Purchase {item:228767} for %s.'
+L['5_battered_celebration_crate'] = 'Against the rocks of the cave near the {npc:24026}.'
+L['6_waterlogged_celebration_crate'] = 'Underwater on the second floor of the Gnomish building.\n\n{note:Do not touch the elevator. Currently it will crash your game.}'
+
+L['water_resistant_receipt_note'] = '1. Enter the tunnel filled with {npc:47390}, turn right, and collect the {item:228768} from the {object:Water-Resistant Receipt of Sale} behind the pipe.\n\n2. Find {npc:91079} in {location:Azsuna} in the {location:Broken Isles}.'
