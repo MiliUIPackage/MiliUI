@@ -1,6 +1,6 @@
 
 local addon = TinyTooltipReforged
-
+ 
 addon.db = {
     version = 11.0,
     general = {
@@ -80,6 +80,7 @@ addon.db = {
         },
         npc = {
             background = { colorfunc = "default", alpha = 1, },
+            coloredBorder = "reaction",
             showTarget = true,
             showTargetBy = true,
             grayForDead = true,
@@ -117,7 +118,7 @@ addon.db = {
         showIcon = true,
     },
     quest = {
-        coloredQuestBorder = true,
+        coloredQuestBorder = true, 
     },
     variables = {},
 }

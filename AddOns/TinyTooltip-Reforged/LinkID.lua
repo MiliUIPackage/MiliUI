@@ -11,7 +11,7 @@ end
 
 local function ShowId(tooltip, name, value, noBlankLine)
     if (not name or not value) then return end
-    local name = format("%s%s", name, " ID")
+    local name = format("%s%s", addon.L[name] or name, " ID")
     if (IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown() or addon.db.general.alwaysShowIdInfo) then
         local line = addon:FindLine(tooltip, name)
         local idLine = format("%s: |cffffffff%s|r", name, value)
@@ -29,7 +29,7 @@ local function ShowId(tooltip, name, value, noBlankLine)
 end
 
 local function ShowLinkIdInfo(tooltip, data)
-    if (data.type == Enum.TooltipDataType.Item) then
+    if data and (data.type == Enum.TooltipDataType.Item) then
         local itemName, itemLink, itemID = TooltipUtil.GetDisplayedItem(tooltip)
         ShowId(tooltip, ParseHyperLink(itemLink))
     end
@@ -90,9 +90,24 @@ if (clientToc>=100002) then
 else
     GameTooltip:HookScript("OnTooltipSetSpell", function(self) ShowId(self, "Spell", (select(2,self:GetSpell()))) end)
 end
---hooksecurefunc(GameTooltip, "SetUnitAura", function(self, ...) ShowId(self, "Spell", (select(10,C_UnitAuras.UnitAura(...)))) end)
-hooksecurefunc(GameTooltip, "SetUnitBuff", function(self, ...) ShowId(self, "Spell", (select(10,C_UnitAuras.UnitBuff(...)))) end)
-hooksecurefunc(GameTooltip, "SetUnitDebuff", function(self, ...) ShowId(self, "Spell", (select(10,C_UnitAuras.UnitDebuff(...)))) end)
+hooksecurefunc(GameTooltip, "SetUnitAura", function(self, ...) 
+	local aura = C_UnitAuras.GetAuraDataByIndex(...)
+	if aura then
+		ShowId(self, "Spell", aura.spellId) 
+	end
+end)
+hooksecurefunc(GameTooltip, "SetUnitBuff", function(self, ...)
+	local aura = C_UnitAuras.GetBuffDataByIndex(...)
+	if aura then
+		ShowId(self, "Spell", aura.spellId) 
+	end
+end)
+hooksecurefunc(GameTooltip, "SetUnitDebuff", function(self, ...)
+	local aura = C_UnitAuras.GetDebuffDataByIndex(...)
+	if aura then
+		ShowId(self, "Spell", aura.spellId) 
+	end
+end)
 if (GameTooltip.SetArtifactPowerByID) then
     hooksecurefunc(GameTooltip, "SetArtifactPowerByID", function(self, powerID)
         ShowId(self, "Power", powerID)
@@ -130,3 +145,15 @@ if (HybridScrollFrame_CreateButtons) then
         end
     end)
 end
+
+-- adds caster of buffs/debuffs to their tooltips
+hooksecurefunc(GameTooltip,"SetUnitAura",function(self,unit,index,filter)
+	if (IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown() or addon.db.general.alwaysShowIdInfo) then
+		local aura = C_UnitAuras.GetAuraDataByIndex(unit,index,filter)
+		local caster = aura and aura.sourceUnit or nil
+		if caster and UnitExists(caster) then
+				GameTooltip:AddLine(addon.L["Caster"]..": "..UnitName(caster),.65,.85,1,1)
+				GameTooltip:Show()
+		end
+	end
+end)

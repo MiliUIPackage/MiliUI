@@ -58,18 +58,18 @@ local function UpdateHealthBar(self, hp)
 	self.TextString:SetFormattedText("|cff999999%s|r |cffffcc33<%s>|r", AbbreviateLargeNumbers(maxhp), DEAD)
     else
         if (not hp or hp <= 0) then
-  	    self.TextString:SetFormattedText("|cff999999Out of Range|r")
+  	    self.TextString:SetFormattedText(addon.L["|cff999999Out of Range|r"])
         else
           local percent = ceil((hp*100)/maxhp)
-          if (addon.db.general.statusbarTextFormat == "Health / Max (Percent)") then
+          if (addon.db.general.statusbarTextFormat == "healthmaxpercent") then
               self.TextString:SetFormattedText("%s / %s (%d%%)", AbbreviateLargeNumbers(hp), AbbreviateLargeNumbers(maxhp), percent)
-          elseif (addon.db.general.statusbarTextFormat == "Health / Max") then
+          elseif (addon.db.general.statusbarTextFormat == "healthmax") then
               self.TextString:SetFormattedText("%s / %s", AbbreviateLargeNumbers(hp), AbbreviateLargeNumbers(maxhp))
-          elseif (addon.db.general.statusbarTextFormat == "Percent") then
+          elseif (addon.db.general.statusbarTextFormat == "percent") then
               self.TextString:SetFormattedText("%d%%", percent)
-          elseif (addon.db.general.statusbarTextFormat == "Health") then
+          elseif (addon.db.general.statusbarTextFormat == "health") then
               self.TextString:SetFormattedText("%s", AbbreviateLargeNumbers(hp))
-          elseif (addon.db.general.statusbarTextFormat == "Health (Percent)") then
+          elseif (addon.db.general.statusbarTextFormat == "healthpercent") then
               self.TextString:SetFormattedText("%s (%d%%)", AbbreviateLargeNumbers(hp), percent)
           else -- default
               self.TextString:SetFormattedText("%s / %s (%d%%)", AbbreviateLargeNumbers(hp), AbbreviateLargeNumbers(maxhp), percent)
@@ -113,7 +113,7 @@ LibEvent:attachEvent("VARIABLES_LOADED", function()
     --Variables
     if (IsTableEmpty(BigTipReforgedDB) or 
         (addon.db.general.SavedVariablesPerCharacter and IsTableEmpty(TinyTooltipReforgedCharacterDB)) ) then
-        print("|cFF00FFFF[TinyTooltipReforged]|r |cffFFE4E1Settings have been reset|r")
+        print(addon.L["|cFF00FFFF[TinyTooltipReforged]|r |cffFFE4E1Settings have been reset|r"])
         BigTipReforgedDB = addon.db
         TinyTooltipReforgedCharacterDB = addon.db
     end    

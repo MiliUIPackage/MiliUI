@@ -2,7 +2,7 @@
 ## Title: TinyTooltip-Reforged |cFF69CCF0by Beezer|r
 ## Notes: |cff4488ffTinyTooltip (Reforged)|r v9.3|n Options use /ttr|n Reset use /ttr reset
 ## Author: Beezer
-## Version: 9.4.3
+## Version: 9.6.3 Fix
 ## SavedVariables: BigTipReforgedDB
 ## SavedVariablesPerCharacter: TinyTooltipReforgedCharacterDB
 ## X-Category: Tooltip

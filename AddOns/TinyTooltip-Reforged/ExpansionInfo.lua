@@ -1,9 +1,10 @@
+if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then return end
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
 local addon = TinyTooltipReforged
 local addonName = "TinyTooltip-Reforged"
-local L = addon.L
+-- local L = addon.L
 
 addon.print = function(...)
     print(addonName, " ", ...);

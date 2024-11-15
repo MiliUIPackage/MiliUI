@@ -34,7 +34,7 @@ setmetatable(addon.L, {__index = function(_, k) return k end})
 setmetatable(addon.G, {__index = function(_, k) return _G[k] or k end})
 
 local actualVersion = C_AddOns.GetAddOnMetadata("TinyTooltip-Reforged", "Version") or "unknown"
-print("|cff00d200TinyTooltip Reforged v",actualVersion," loaded.|r")
+-- print("|cff00d200TinyTooltip Reforged v",actualVersion," loaded.|r")
 
 addon.tooltips = {
     GameTooltip,
@@ -357,9 +357,9 @@ function addon:GetUnitInfo(unit)
     local pvpName = UnitPVPName(unit)
     local gender = UnitSex(unit)
     local level = UnitLevel(unit)
-    if(UnitIsWildBattlePet(unit) or UnitIsBattlePetCompanion(unit)) then
+	if UnitIsWildBattlePet and (UnitIsWildBattlePet(unit) or UnitIsBattlePetCompanion(unit)) then
         level = UnitBattlePetLevel(unit)
-    end
+    end   
     local effectiveLevel = UnitEffectiveLevel(unit)
     local raceName, race = UnitRace(unit)
     local className, class = UnitClass(unit)

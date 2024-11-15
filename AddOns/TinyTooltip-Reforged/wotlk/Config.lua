@@ -107,6 +107,9 @@ addon.db = {
     item = {
         coloredItemBorder = true,
         showItemIcon = true,    
+		showExpansionInformation = false,
+		showStackCount = false,
+        showStackCountAlt = false,		
     },
     spell = {
         borderColor = {0.6, 0.6, 0.6, 0.8},
