@@ -45,8 +45,9 @@ local function GetItemLevelFrame(self, category)
         LibEvent:trigger("ITEMLEVEL_FRAME_CREATED", self.ItemLevelFrame, self)
     end
     if (TinyInspectDB and TinyInspectDB.EnableItemLevel) then
-        self.ItemLevelFrame:Show()
-        LibEvent:trigger("ITEMLEVEL_FRAME_SHOWN", self.ItemLevelFrame, self, category or "")
+        -- 移除讀取緩存，避免升級或轉化欄位出現不正常的裝等與部位 by Mili
+        -- self.ItemLevelFrame:Show()
+        -- LibEvent:trigger("ITEMLEVEL_FRAME_SHOWN", self.ItemLevelFrame, self, category or "")
     else
         self.ItemLevelFrame:Hide()
     end
