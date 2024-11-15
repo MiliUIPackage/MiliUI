@@ -545,6 +545,7 @@ You may want to turn on Lua error reporting (/console scriptErrors 1).]=]
 L["TOOFAR"] = "Too far"
 L["UNITSTATUS"] = "Unit Status: "
 L["UNSTABLERELEASE"] = "Unstable release"
+L["Decursive"] = "Decursive"
 
 
 

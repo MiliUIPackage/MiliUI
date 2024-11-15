@@ -642,7 +642,7 @@ local function GetStaticOptions ()
     return {
         -- {{{
         type = "group",
-        name = D.name,
+        name = L["Decursive"],
 
         get = D.GetHandler,
         set = D.SetHandler,
@@ -920,7 +920,7 @@ local function GetStaticOptions ()
                                 --]]
 
                                 f.FSt = f:CreateFontString(nil,"OVERLAY", "MailTextFontNormal");
-                                f.FSt:SetFont("Fonts\\MORPHEUS.TTF", 18 );
+                                f.FSt:SetFont(STANDARD_TEXT_FONT, 18 );
                                 f.FSt:SetTextColor(0.18, 0.12, 0.06, 1);
                                 f.FSt:SetPoint("TOPLEFT", f.tTL, "TOPLEFT", 5, -20);
                                 f.FSt:SetPoint("TOPRIGHT", f.tTR, "TOPRIGHT", -5, -20);
@@ -929,7 +929,7 @@ local function GetStaticOptions ()
                                 f.FSt:SetAlpha(0.80);
 
                                 f.FSc = f:CreateFontString(nil,"OVERLAY", "MailTextFontNormal");
-                                f.FSc:SetFont("Fonts\\MORPHEUS.TTF", 15 );
+                                f.FSc:SetFont(STANDARD_TEXT_FONT, 15 );
                                 f.FSc:SetTextColor(0.18, 0.12, 0.06, 1);
                                 f.FSc:SetHeight(h - 30 - 60);
                                 f.FSc:SetPoint("TOP", f.FSt, "BOTTOM", 0, -28);
@@ -945,7 +945,7 @@ local function GetStaticOptions ()
                                 f.FSc:SetAlpha(0.80);
 
                                 f.FSl = f:CreateFontString(nil,"OVERLAY", "MailTextFontNormal");
-                                f.FSl:SetFont("Fonts\\MORPHEUS.TTF", 15 );
+                                f.FSl:SetFont(STANDARD_TEXT_FONT, 15 );
                                 f.FSl:SetTextColor(0.18, 0.12, 0.06, 1);
                                 f.FSl:SetJustifyH("LEFT");
                                 f.FSl:SetJustifyV("BOTTOM");

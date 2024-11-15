@@ -100,7 +100,7 @@ end -- }}}
 
 local function SetBasicConstants_Once() -- these are constants that may be used at parsing time in other .lua and .xml {{{
 
-    BINDING_HEADER_DECURSIVE = "Decursive";
+    BINDING_HEADER_DECURSIVE = D.L["Decursive"];
 
     local DC = T._C;
 
@@ -1015,10 +1015,10 @@ function D:OnEnable() -- called after PLAYER_LOGIN -- {{{
     -- Configure specific profile dependent data
     D:SetConfiguration();
 
-    if FirstEnable and not D.db.global.NoStartMessages then
-        D:ColorPrint(0.3, 0.5, 1, L["IS_HERE_MSG"]);
+    -- if FirstEnable and not D.db.global.NoStartMessages then
+    --    D:ColorPrint(0.3, 0.5, 1, L["IS_HERE_MSG"]);
         -- D:ColorPrint(0.3, 0.5, 1, L["SHOW_MSG"]);
-    end
+    -- end
 
     FirstEnable = false;
 
@@ -1291,9 +1291,9 @@ function D:Init() --{{{
         D.profile.OutputWindow =  "DEFAULT_CHAT_FRAME";
     end
 
-    if not D.db.global.NoStartMessages then
-        D:Println("%s %s by %s", D.name, D.version, D.author);
-    end
+    -- if not D.db.global.NoStartMessages then
+    --    D:Println("%s %s by %s", D.name, D.version, D.author);
+    -- end
 
     D:Debug( "Decursive Initialization started!");
 
