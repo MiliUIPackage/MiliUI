@@ -1044,7 +1044,7 @@ do
 			for i = #latestLinesHighlighted, 1, -1 do
 				local line = latestLinesHighlighted [i]
 				line:SetBackdropColor(unpack(line.BackgroundColor))
-				tremove(latestLinesHighlighted, i)
+				table.remove(latestLinesHighlighted, i)
 			end
 
 			resetComparisonTooltip()

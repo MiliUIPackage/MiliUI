@@ -19,8 +19,8 @@
 		local addonName, Details222 = ...
 		local version, build, date, tvs = GetBuildInfo()
 
-		Details.build_counter = 13111
-		Details.alpha_build_counter = 13111 --if this is higher than the regular counter, use it instead
+		Details.build_counter = 13190
+		Details.alpha_build_counter = 13190 --if this is higher than the regular counter, use it instead
 		Details.dont_open_news = true
 		Details.game_version = version
 		Details.userversion = version .. " " .. Details.build_counter
@@ -237,6 +237,7 @@
 			["RaidHeroic"] = 15,
 			["RaidMythic"] = 16,
 		}
+		Details222.DHook = hooksecurefunc
 
 		local emptyFunction = function()end
 		local emptyTable = {}
@@ -2168,6 +2169,10 @@ function Details:DestroyActor(actorObject, actorContainer, combatObject, callSta
 	end
 
 	Details222.TimeMachine.RemoveActor(actorObject)
+
+	if (not actorObject.Name) then
+		print("error: actorObject.Name is nil", actorObject.tipo, actorObject.serial, actorObject.nome)
+	end
 
 	local actorName = actorObject:Name()
 	combatObject:RemoveActorFromSpellCastTable(actorName)

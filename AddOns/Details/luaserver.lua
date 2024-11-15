@@ -24,6 +24,8 @@ function LibStub:NewLibrary(major, minor)end
 function LibStub:GetLibrary(major, silent)end
 function LibStub:IterateLibraries()end
 
+CLASS_ICON_TCOORDS = {}
+
 --uiobject: is an object that represents a UI element, such as a frame, a texture, or a button. UIObjects are the base class for all UI elements in the WoW API.
 --3D World: is an object which is placed behind|below all UI elements, cannot be parent of any object, in the 3D World object is where the game world is rendered
 --size: corresponds to the height and height of an object, it is measure in pixels, must be bigger than zero.
@@ -357,6 +359,28 @@ function LibStub:IterateLibraries()end
 ---@field tilesHorizontally boolean?
 ---@field tilesVertically boolean?
 
+---@class challengecompletioninfo : table
+---@field mapChallengeModeID number
+---@field level number
+---@field time number
+---@field onTime boolean
+---@field keystoneUpgradeLevels number
+---@field practiceRun boolean
+---@field oldOverallDungeonScore number?
+---@field newOverallDungeonScore number?
+---@field isMapRecord boolean
+---@field isAffixRecord boolean
+---@field isEligibleForScore boolean
+---@field members table
+
+---@class challengemodecompletionmemberinfo : table
+---@field memberGUID guid
+---@field name string
+
+
+---@alias spellid number integer each spell in the game has a unique spell id, this id can be used to identify a spell.
+---@alias unitname string name of a unit
+---@alias unitguid string unique id of a unit (GUID)
 
 ---@alias width number property that represents the horizontal size of a UI element, such as a frame or a texture. Gotten from the first result of GetWidth() or from the first result of GetSize(). It is expected a GetWidth() or GetSize() when the type 'height' is used.
 ---@alias height number property that represents the vertical size of a UI element, such as a frame or a texture. Gotten from the first result of GetHeight() or from the second result of GetSize(). It is expected a GetHeight() or GetSize() when the type 'height' is used.
@@ -373,13 +397,11 @@ function LibStub:IterateLibraries()end
 ---@alias encountername string encounter name received by the event ENCOUNTER_START and ENCOUNTER_END also used by the encounter journal
 ---@alias encounterdifficulty number difficulty of the encounter received by the event ENCOUNTER_START and ENCOUNTER_END
 ---@alias instancename string localized name of an instance (e.g. "The Nighthold")
----@alias spellid number each spell in the game has a unique spell id, this id can be used to identify a spell.
----@alias unitname string name of a unit
----@alias unitguid string unique id of a unit (GUID)
 ---@alias actorname string name of a unit
 ---@alias petname string refers to a pet's name
 ---@alias ownername string refers to the pet's owner name
 ---@alias spellname string name of a spell
+---@alias classid number the ID of a class
 ---@alias spellschool number each spell in the game has a school, such as fire, frost, shadow and many others. This value can be used to identify the school of a spell.
 ---@alias actorid string unique id of a unit (GUID)
 ---@alias serial string unique id of a unit (GUID)
@@ -467,6 +489,9 @@ BackdropTemplateMixin = {}
 ---@field GetPoint fun(self: uiobject, index: number): string, frame, string, number, number
 ---@field GetCenter fun(self: uiobject): number, number
 ---@field GetLeft fun(self: uiobject): number
+---@field GetRight fun(self: uiobject): number
+---@field GetTop fun(self: uiobject): number
+---@field GetBottom fun(self: uiobject): number
 ---@field SetPoint fun(self: uiobject, point: anchorpoint, relativeFrame: uiobject, relativePoint: anchorpoint, xOffset: number, yOffset: number)
 ---@field ClearAllPoints fun(self: uiobject)
 ---@field CreateAnimationGroup fun(self: uiobject, name: string|nil, templateName: string|nil) : animationgroup
@@ -596,6 +621,7 @@ BackdropTemplateMixin = {}
 ---@field SetResizable fun(self: frame, enable: boolean) enable resizing of the frame
 ---@field EnableMouseWheel fun(self: frame, enable: boolean) enable mouse wheel scrolling
 ---@field RegisterForDrag fun(self: frame, button: string) register the frame for drag events, allowing it to be dragged by the mouse
+---@field Raise fun() raise the frame to the top of its strata
 ---@field SetResizeBounds fun(self: frame, minWidth: number, minHeight: number, maxWidth: number, maxHeight: number) set the minimum and maximum size of the frame
 ---@field RegisterEvent fun(self: frame, event: string) register for an event, trigers "OnEvent" script when the event is fired
 ---@field RegisterUnitEvent fun(self: frame, event: string, unitId: unit) register for an event, trigers "OnEvent" only if the event occurred for the registered unit
@@ -796,6 +822,7 @@ BackdropTemplateMixin = {}
 ---@field SetFont fun(self: editbox, font: string, size: number, flags: string)
 ---@field SetFontObject fun(self: editbox, fontString: fontstring)
 ---@field GetFont fun(self: editbox) : string, number, string
+---@field ClearFocus fun(self:editbox) clear the editing focus
 ---@field SetTextColor fun(self: editbox, r: red|number, g: green|number, b: blue|number, a: alpha|number?)
 ---@field SetJustifyH fun(self:editbox, alignment:string)
 ---@field SetTextInsets fun(self:editbox, left:number, right:number, top:number, bottom:number)
@@ -825,6 +852,16 @@ LE_PARTY_CATEGORY_INSTANCE = true
 
 --functions
 C_ChatInfo = true
+
+---@class classinfo : table
+---@field classID number
+---@field className string
+---@field classFile string
+
+C_CreatureInfo = {}
+---@param classId number
+---@return classinfo
+function C_CreatureInfo.GetClassInfo(classId) return {} end
 
 C_Item = {}
 function C_Item.PickupItem() end
@@ -1095,6 +1132,15 @@ function C_UnitAuras.IsAuraFilteredOutByInstanceID(unitToken, auraInstanceID, fi
 ---@return boolean
 function C_UnitAuras.WantsAlteredForm(unitToken) return true end
 
+---return true if the unit has assistant privileges in the raid group
+---@param unitToken unit
+---@return boolean
+UnitIsGroupAssistant = function(unitToken) return true end
+
+---return true if the unit is the leader of the group
+---@param unitToken unit
+---@return boolean
+UnitIsGroupLeader = function(unitToken) return true end
 
 
 ---linearly interpolates between two values. Example: Lerp(1, 2, 0.5) return 1.5
@@ -1400,21 +1446,8 @@ function C_ChallengeMode.GetActiveChallengeMapID() return 0 end
 ---@return boolean wasActive Whether the keystone was active.
 function C_ChallengeMode.GetActiveKeystoneInfo() return 0, {}, true end
 
----return the completion information for the current challenge mode.
----@return number mapChallengeModeID The map id of the challenge mode.
----@return number level The keystone level of the challenge mode.
----@return number time The time taken to complete the challenge mode.
----@return boolean onTime Whether the challenge mode was completed within the time limit.
----@return number keystoneUpgradeLevels The number of keystone upgrade levels.
----@return boolean practiceRun Whether the challenge mode was a practice run.
----@return number oldOverallDungeonScore The old overall dungeon score.
----@return number newOverallDungeonScore The new overall dungeon score.
----@return boolean isMapRecord Whether the completion is a map record.
----@return boolean isAffixRecord Whether the completion is an affix record.
----@return number primaryAffix The primary affix id.
----@return boolean isEligibleForScore Whether the completion is eligible for a score.
----@return ChallengeModeCompletionMemberInfo[] members The members of the group.
-function C_ChallengeMode.GetCompletionInfo() return 0, 0, 0, true, 0, true, 0, 0, true, true, 0, true, {} end
+---@return challengecompletioninfo
+function C_ChallengeMode.GetChallengeCompletionInfo() return {} end
 
 ---return the death count for the current challenge mode.
 ---@return number numDeaths The number of deaths.
@@ -1817,7 +1850,7 @@ function floor(x) return 0 end
 ---@param table table
 ---@param index number?
 ---@return any
-function tremove(table, index) return nil end
+function table.remove(table, index) return nil end
 
 --loads a string and output a function in lua.
 ---@param code string The Lua code string to be executed.
@@ -1894,7 +1927,7 @@ GetSpecializationInfo = function(specIndex, isInspect, isPet, sex, level) return
 ---@return string name
 ---@return string description
 ---@return string icon
----@return number role
+---@return string role
 ---@return ...
 GetSpecializationInfoByID = function(specID, isInspect, isPet, inspectTarget) return 0, "", "", "", 0, "" end
 
@@ -1905,7 +1938,7 @@ GetSpecializationInfoByID = function(specID, isInspect, isPet, inspectTarget) re
 ---@return string specName The name of the specialization.
 ---@return string specDescription The description of the specialization.
 ---@return string icon The icon of the specialization.
----@return number role The role of the specialization.
+---@return string role The role of the specialization.
 ---@return boolean recommended Whether the specialization is recommended.
 ---@return boolean allowedForBoost Whether the specialization is allowed for boost.
 ---@return number masterySpell1 The ID of the first mastery spell.
@@ -5006,9 +5039,10 @@ GetRealNumRaidMembers = function() return 0 end
 ---@return string, string
 GetPartyAssignment = function(unit) return "", "" end
 
+---return name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML, combatRole
 ---@param raidID number
----@return string, string
-GetRaidRosterInfo = function(raidID) return "", "" end
+---@return string, string, number, number, string, string, string, boolean, boolean, string, boolean, string
+GetRaidRosterInfo = function(raidID) return "", "", 0, 0, "", "", "", true, true, "", true, "" end
 
 ---@param unit string
 ---@return number
@@ -5834,8 +5868,8 @@ function UnitCanAttack(unit) return true end
 function UnitCanCooperate(unit) return true end
 
 ---@param unit string
----@return string, string
-function UnitClass(unit) return "", "" end
+---@return string, string, number
+function UnitClass(unit) return "", "", 0 end
 
 ---@param unit string
 ---@return string

@@ -1,5 +1,17 @@
 
 --[=[
+search keys:
+~internal
+~comms
+~timers
+~callbacks
+
+~unitinfo
+~equipment
+~opennotes
+~cooldowns
+~keystones
+
 
 Please refer to the docs.txt within this file folder for a guide on how to use this library.
 If you get lost on implementing the lib, be free to contact Tercio on Details! discord: https://discord.gg/AGSzAZX or email to terciob@gmail.com
@@ -44,7 +56,7 @@ end
 
 local major = "LibOpenRaid-1.0"
 
-local CONST_LIB_VERSION = 142
+local CONST_LIB_VERSION = 145
 
 if (LIB_OPEN_RAID_MAX_VERSION) then
     if (CONST_LIB_VERSION <= LIB_OPEN_RAID_MAX_VERSION) then
@@ -455,7 +467,7 @@ end
             local dataAsTable = {strsplit(",", data)}
 
             --remove the first index (prefix)
-            tremove(dataAsTable, 1)
+            table.remove(dataAsTable, 1)
 
             --trigger callbacks
             for i = 1, #callbackTable do
@@ -913,7 +925,7 @@ end
         for i = 1, #openRaidLib.publicCallback.events[event] do
             local registeredCallback = openRaidLib.publicCallback.events[event][i]
             if (registeredCallback[1] == addonObject and registeredCallback[2] == callbackMemberName) then
-                tremove(openRaidLib.publicCallback.events[event], i)
+                table.remove(openRaidLib.publicCallback.events[event], i)
                 break
             end
         end
@@ -950,7 +962,7 @@ end
         local eventCallbacks = openRaidLib.internalCallback.events[event]
         for i = 1, #eventCallbacks do
             if (eventCallbacks[i] == func) then
-                tremove(eventCallbacks, i)
+                table.remove(eventCallbacks, i)
                 break
             end
         end
@@ -1375,7 +1387,7 @@ end
     end)
 
 --------------------------------------------------------------------------------------------------------------------------------
---~player general ~info ~unit
+--~player general ~info ~unit ~unitinfo
 
     --API calls
         --return a table containing all information of units
@@ -1592,6 +1604,8 @@ function openRaidLib.UnitInfoManager.SendTalentUpdate()
     diagnosticComm("SendTalentUpdateData| " .. dataToSend) --debug
 end
 
+--/dump LibStub:GetLibrary("LibOpenRaid-1.0", true).UnitInfoManager.GetUnitInfo(UnitName("player"))
+
 function openRaidLib.UnitInfoManager.OnPlayerTalentChanged()
     --this talent update could be a specialization change, so we need to pass the specId as well
     local playerName = UnitName("player")
@@ -1694,7 +1708,7 @@ openRaidLib.internalCallback.RegisterCallback("onLeaveCombat", openRaidLib.UnitI
 
 
 --------------------------------------------------------------------------------------------------------------------------------
---~equipment
+--~equipment ~gear
     openRaidLib.GearManager = {
         --structure: [playerName] = {ilevel = 100, durability = 100, weaponEnchant = 0, noGems = {}, noEnchants = {}}
         UnitData = {},
@@ -2351,7 +2365,7 @@ end
     end
 
     --return a table containing values about the cooldown time
-    --values returned: {timeLeft, charges, timeOffset, duration, updateTime}
+    --values returned: {timeLeft, charges, timeOffset, duration, updateTime, auraDuration}
     function openRaidLib.GetUnitCooldownInfo(unitId, spellId)
         local unitCooldownsTable = openRaidLib.GetUnitCooldowns(unitId)
         if (unitCooldownsTable) then

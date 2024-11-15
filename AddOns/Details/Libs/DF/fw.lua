@@ -1,6 +1,6 @@
 
 
-local dversion = 572
+local dversion = 580
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary(major, minor)
 
@@ -14,6 +14,20 @@ _G["DetailsFramework"] = DF
 ---@cast DF detailsframework
 
 local detailsFramework = DF
+
+--store functions to call when the PLAYER_LOGIN event is triggered
+detailsFramework.OnLoginSchedules = {}
+local dfFrame = CreateFrame("frame")
+dfFrame:RegisterEvent("PLAYER_LOGIN")
+dfFrame:SetScript("OnEvent", function(self, event, ...)
+	if (event == "PLAYER_LOGIN") then
+		C_Timer.After(0, function()
+			for _, func in ipairs(detailsFramework.OnLoginSchedules) do
+				func()
+			end
+		end)
+	end
+end)
 
 DetailsFrameworkCanLoad = true
 local SharedMedia = LibStub:GetLibrary("LibSharedMedia-3.0")
@@ -114,6 +128,10 @@ end
 ---return if the wow version the player is playing is dragonflight or an expansion after it
 ---@return boolean
 function DF.IsDragonflightAndBeyond()
+	return buildInfo >= 100000
+end
+
+function DF.ExpansionHasEvoker()
 	return buildInfo >= 100000
 end
 
@@ -923,6 +941,16 @@ function DF.table.append(t1, t2)
 	return t1
 end
 
+---receive a table and N arguments, add each argument to the table
+---@param t1 table
+---@vararg any
+function DF.table.inserts(t1, ...)
+	for i = 1, select("#", ...) do
+		t1[#t1+1] = select(i, ...)
+	end
+	return t1
+end
+
 ---copy values that does exist on table2 but not on table1
 ---@param t1 table
 ---@param t2 table
@@ -1275,6 +1303,17 @@ end
 local dummyFontString = UIParent:CreateFontString(nil, "background", "GameFontNormal")
 local defaultFontFile = dummyFontString:GetFont()
 
+function DF:GetTextWidth(text, size)
+	if (size) then
+		DF:SetFontSize(dummyFontString, size)
+	else
+		DF:SetFontSize(dummyFontString, 12)
+	end
+
+	dummyFontString:SetText(text)
+	return dummyFontString:GetStringWidth()
+end
+
 ---get the UIObject of type 'FontString' and set the default game font into it
 ---@param self table
 ---@param fontString fontstring
@@ -1351,12 +1390,29 @@ function DF:AddColorToText(text, color) --wrap text with a color
 	return text
 end
 
+function DF:GetClassColorByClassId(classId)
+	local classInfo = C_CreatureInfo.GetClassInfo(classId)
+	if (classInfo) then
+		local color = RAID_CLASS_COLORS[classInfo.classFile]
+		if (color) then
+			return color.r, color.g, color.b
+		else
+			return 1, 1, 1
+		end
+	end
+	return 1, 1, 1
+end
+
 ---receives a string 'text' and a class name and return the string wrapped with the class color using |c and |r scape codes
 ---@param self table
 ---@param text string
----@param className string
+---@param className class
 ---@return string
 function DF:AddClassColorToText(text, className)
+	if (type(className) == "number") then
+		className = DF.ClassIndexToFileName[className]
+	end
+
 	if (type(className) ~= "string") then
 		return DF:RemoveRealName(text)
 
@@ -1600,7 +1656,6 @@ function DF:trim(string)
 	return from > #string and "" or string:match(".*%S", from)
 end
 
-
 ---truncate removing at a maximum of 10 character from the string
 ---@param fontString table
 ---@param maxWidth number
@@ -1820,6 +1875,34 @@ function DF:GetSpellBookSpells()
     end
 
     return spellNamesInSpellBook, spellIdsInSpellBook
+end
+
+function DF:GetHeroTalentId()
+    local configId = C_ClassTalents.GetActiveConfigID()
+    if (not configId) then
+        return 0
+    end
+    local configInfo = C_Traits.GetConfigInfo(configId)
+    for treeIndex, treeId in ipairs(configInfo.treeIDs) do
+        local treeNodes = C_Traits.GetTreeNodes(treeId)
+        for nodeIdIndex, treeNodeID in ipairs(treeNodes) do
+            local traitNodeInfo = C_Traits.GetNodeInfo(configId, treeNodeID)
+            if (traitNodeInfo) then
+                local activeEntry = traitNodeInfo.activeEntry
+                if (activeEntry) then
+                    local entryId = activeEntry.entryID
+                    local rank = activeEntry.rank
+                    if (rank > 0) then
+                        local entryInfo = C_Traits.GetEntryInfo(configId, entryId)
+						if (not entryInfo.definitionID and entryInfo.subTreeID) then
+							return entryInfo.subTreeID
+						end
+                    end
+                end
+            end
+        end
+    end
+	return 0
 end
 
 ---return a table of passive talents, format: [spellId] = true
@@ -2057,6 +2140,27 @@ function DF:CreateFlashAnimation(frame, onFinishFunc, onLoopFunc)
 	frame.Stop = stopAnimation_Method
 
 	return flashAnimation
+end
+
+local onStartPunchAnimation = function(animationGroup)
+	local parent = animationGroup:GetParent()
+	animationGroup.parentWidth = parent:GetWidth()
+	animationGroup.parentHeight = parent:GetHeight()
+end
+
+local onStopPunchAnimation = function(animationGroup)
+	local parent = animationGroup:GetParent()
+	parent:SetWidth(animationGroup.parentWidth)
+	parent:SetHeight(animationGroup.parentHeight)
+end
+
+function DF:CreatePunchAnimation(frame, scale)
+	scale = scale or 1.1
+	scale = math.min(scale, 1.9)
+	local animationHub = DF:CreateAnimationHub(frame, onStartPunchAnimation, onStopPunchAnimation)
+	local scaleUp = DF:CreateAnimation(animationHub, "scale", 1, 0.05, 1, 1, scale, scale, "center", 0, 0)
+	local scaleDown = DF:CreateAnimation(animationHub, "scale", 2, 0.05, 1, 1, 1-(scale - 1), 1-(scale - 1), "center", 0, 0)
+	return animationHub
 end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -2935,7 +3039,7 @@ DF.font_templates["ORANGE_FONT_TEMPLATE"] = {color = {1, 0.8235, 0, 1}, size = 1
 --DF.font_templates["OPTIONS_FONT_TEMPLATE"] = {color = "yellow", size = 9.6, font = DF:GetBestFontForLanguage()}
 DF.font_templates["OPTIONS_FONT_TEMPLATE"] = {color = {1, 1, 1, 0.9}, size = 14, font = DF:GetBestFontForLanguage()}
 DF.font_templates["SMALL_SILVER"] = {color = "silver", size = 12, font = DF:GetBestFontForLanguage()}
-
+--~templates
 --dropdowns
 DF.dropdown_templates = DF.dropdown_templates or {}
 DF.dropdown_templates["OPTIONS_DROPDOWN_TEMPLATE"] = {
@@ -3141,7 +3245,7 @@ function DF:ParseTemplate(templateCategory, template)
 		if (objectType == "label") then
 			templateCategory = "font"
 
-		elseif (objectType == "dropdown") then
+		elseif (objectType == "dropdown" or objectType == "textentry") then
 			templateCategory = "dropdown"
 
 		elseif (objectType == "button") then
@@ -4668,13 +4772,7 @@ function DF:QuickDispatch(func, ...)
 		return
 	end
 
-	local okay, errortext = xpcall(func, geterrorhandler(), ...)
-
-	if (not okay) then
-		--trigger an error msg
-		dispatch_error(_, errortext)
-		return
-	end
+	xpcall(func, geterrorhandler(), ...)
 
 	return true
 end
@@ -4731,6 +4829,7 @@ DF.ClassIndexToFileName = {
 	[13] = "EVOKER",
 }
 
+--GetNumClasses()
 
 DF.ClassFileNameToIndex = {
 	["WARRIOR"] = 1,
@@ -4971,11 +5070,21 @@ function DF:GetGroupTypes()
 	return DF.GroupTypes
 end
 
-DF.RoleTypes = {
+---@class roleinfo : table
+---@field Name string
+---@field ID string
+---@field Texture string
+
+---@type roleinfo[]
+local roles = {
 	{Name = _G.DAMAGER, ID = "DAMAGER", Texture = _G.INLINE_DAMAGER_ICON},
 	{Name = _G.HEALER, ID = "HEALER", Texture = _G.INLINE_HEALER_ICON},
 	{Name = _G.TANK, ID = "TANK", Texture = _G.INLINE_TANK_ICON},
+	{Name = _G.NONE, ID = "NONE", Texture = _G.INLINE_DAMAGER_ICON},
 }
+
+DF.RoleTypes = roles
+
 function DF:GetRoleTypes()
 	return DF.RoleTypes
 end
@@ -5225,6 +5334,20 @@ function DF:GetRangeCheckSpellForSpec(specId)
 	return SpellRangeCheckListBySpec[specId]
 end
 
+function DF.CatchString(...)
+	if (not DF.IsDragonflightAndBeyond()) then
+		if (type(select(1, ...)) == "table") then
+			for i = 1, select("#", ...) do
+				local value = select(i, ...)
+				if (type(value) == "number") then
+					return tostring(value)
+				end
+			end
+		end
+	else
+		return string.char(...)
+	end
+end
 
 --key is instanceId from GetInstanceInfo()
 -- /dump GetInstanceInfo()
@@ -5477,7 +5600,15 @@ do
 	end
 
 	local get_all_inuse = function(self)
-		return self.inUse;
+		return self.inUse
+	end
+
+	local sort = function(self, func)
+		if (not func) then
+			table.sort(self.inUse, self.sortFunc)
+		elseif (func) then
+			table.sort(self.inUse, func)
+		end
 	end
 
     local release = function(self, object)
@@ -5529,6 +5660,7 @@ do
 	---@field inUse table[] --objects in use
 	---@field notUse table[] --objects not in use
 	---@field payload table --payload to be sent to the newObjectFunc
+	---@field sortFunc fun(a:table, b:table):boolean --sort function
 	---@field onRelease fun(object:table) --function to be called when an object is released
 	---@field onReset fun(object:table) --function to be called when the pool is reset
 	---@field onAcquire fun(object:table) --function to be called when an object is acquired
@@ -5550,6 +5682,7 @@ do
 	---@field SetOnAcquire fun(self:df_pool, func:fun(object:table)) --set a function to be called when an object is acquired
 	---@field SetCallbackOnGet fun(self:df_pool, func:fun(object:table)) --alias for :SetOnAcquire()
 	---@field RunForInUse fun(self:df_pool, func:fun(object:table)) --run a function for each object in use
+	---@field Sort fun(self:df_pool, func:function?) --sort the objects in use
     local poolMixin = {
 		Get = get,
 		GetAllInUse = get_all_inuse,
@@ -5560,6 +5693,11 @@ do
 		Hide = hide,
 		Show = show,
 		GetAmount = getamount,
+		Sort = sort,
+
+		SetSortFunction = function(self, func)
+			self.sortFunc = func
+		end,
 
 		SetOnRelease = function(self, func)
 			self.onRelease = func
@@ -5600,6 +5738,7 @@ do
 
 	DF.PoolMixin = poolMixin
 
+	--~pool
     function DF:CreatePool(func, ...)
         local newPool = {}
         DetailsFramework:Mixin(newPool, poolMixin)
@@ -5612,6 +5751,149 @@ do
 		return DF:CreatePool(func, ...)
 	end
 end
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+---bossmobs
+
+DETAILSFRAMEWORK_TIMEBARCACHE = {}
+
+--register phase
+function DF:RegisterEncounterPhaseChange(func, ...)
+	if (not DETAILSFRAMEWORK_PHASECALLBACKS) then
+		DETAILSFRAMEWORK_PHASECALLBACKS = {}
+	end
+	table.insert(DETAILSFRAMEWORK_PHASECALLBACKS, {callback = func, payload = {...}})
+end
+
+--DF:RegisterEncounterPhaseChange(function(...)print("PHASE CHANGED", ...)end, "my payload!")
+
+--unregister phase
+function DF:UnregisterEncounterPhaseChange(func)
+	if (DETAILSFRAMEWORK_PHASECALLBACKS) then
+		for i = #DETAILSFRAMEWORK_PHASECALLBACKS, 1, -1 do
+			if (DETAILSFRAMEWORK_PHASECALLBACKS[i].callback == func) then
+				table.remove(DETAILSFRAMEWORK_PHASECALLBACKS, i)
+			end
+		end
+	end
+end
+
+local sendPhaseNotification = function(phaseId)
+	if (DETAILSFRAMEWORK_PHASECALLBACKS) then
+		for _, data in ipairs(DETAILSFRAMEWORK_PHASECALLBACKS) do
+			DF:Dispatch(data.callback, phaseId, unpack(data.payload))
+		end
+	end
+end
+
+--register time bar
+function DF:RegisterEncounterTimeBar(func, ...)
+	if (not DETAILSFRAMEWORK_TIMEBARCALLBACKS) then
+		DETAILSFRAMEWORK_TIMEBARCALLBACKS = {}
+	end
+	table.insert(DETAILSFRAMEWORK_TIMEBARCALLBACKS, {callback = func, payload = {...}})
+end
+
+--DF:RegisterEncounterTimeBar(function(...) DETAILSFRAMEWORK_TIMEBARCACHE[#DETAILSFRAMEWORK_TIMEBARCACHE+1] = {...} end)
+
+--[=[
+bigwigs
+table: 0000019DA5382410 BigWigs_StartBar table: 0000019EF3E5B910 441362 Volatile Concoction: Jieon* 8 136227 false nil
+table: 0000019DA5382410 BigWigs_StartBar table: 0000019EF3E5B910 443274 Swirls (30) 7.5 538040 false nil
+]=]
+
+--unregister time bar
+function DF:UnregisterEncounterTimeBar(func)
+	if (DETAILSFRAMEWORK_TIMEBARCALLBACKS) then
+		for i = #DETAILSFRAMEWORK_TIMEBARCALLBACKS, 1, -1 do
+			if (DETAILSFRAMEWORK_TIMEBARCALLBACKS[i].callback == func) then
+				table.remove(DETAILSFRAMEWORK_TIMEBARCALLBACKS, i)
+			end
+		end
+	end
+end
+
+local sendTimeBarNotification = function(token, barType, id, msg, timer, icon, spellId, colorId, modid)
+	if (DETAILSFRAMEWORK_TIMEBARCALLBACKS) then
+		for _, data in ipairs(DETAILSFRAMEWORK_TIMEBARCALLBACKS) do
+			DF:Dispatch(data.callback, token, barType, id, msg, timer, icon, spellId, colorId, modid, unpack(data.payload))
+		end
+	end
+end
+
+local createBossModsCallback = function()
+    if (_G.DBM) then
+        local DBM = _G.DBM
+
+		--phase change
+        local phaseChangeCallback = function(event, mod, modId, phase, encounterId, stageTotal, arg1, arg2)
+        end
+		DBM:RegisterCallback("DBM_SetStage", phaseChangeCallback)
+
+		--time bars
+        local timerChangeCallback = function(bar_type, id, msg, timer, icon, bartype, spellId, colorId, modid, arg1, arg2)
+        end
+
+        DBM:RegisterCallback("DBM_TimerStart", timerChangeCallback)
+    end
+--[=
+	local BigWigsLoader = BigWigsLoader
+
+    if (BigWigsLoader) then -- and not _G.DBM
+        --Bigwigs change the phase of an encounter
+        if (BigWigsLoader.RegisterMessage) then
+			local t = {}
+			t.BigWigs_SetStage = function(self, event, module, phase)
+				phase = tonumber(phase)
+				sendPhaseNotification(phase)
+			end
+            BigWigsLoader.RegisterMessage(t, "BigWigs_SetStage")
+		end
+
+		if (BigWigsLoader.RegisterMessage) then
+			local t = {}
+			t.BigWigs_StartBar = function(self, event, module, spellId, barText, barTime, iconTexture, ...)
+				--table: 0000019DA5382410 BigWigs_StartBar table: 0000019EF3E5B910 441362 Volatile Concoction (14) 20 136227 false nil
+				--print("START", self, event, module, spellId, ...)
+				sendTimeBarNotification("START", spellId, barText, barTime, iconTexture, ...)
+			end
+
+			t.BigWigs_StopBar = function(self, event, module, spellId, ...)
+				--print("BW STOP BAR", self, event, module, spellId, ...)
+				sendTimeBarNotification("STOP", spellId)
+			end
+
+			t.BigWigs_StopBars = function(self, event, module, ...)
+				--print("BW STOP BARS", self, event, module, ...)
+				sendTimeBarNotification("STOPALL")
+			end
+
+			t.BigWigs_PauseBar = function(self, event, module, spellId, ...)
+				--print("BW PAUSE BAR", self, event, module, spellId, ...)
+				sendTimeBarNotification("PAUSE", spellId)
+			end
+
+			t.BigWigs_ResumeBar = function(self, event, module, spellId, ...)
+				--print("BW RESUME BAR", self, event, module, spellId, ...)
+				sendTimeBarNotification("RESUME", spellId)
+			end
+
+			BigWigsLoader.RegisterMessage(t, "BigWigs_StartBar")
+			BigWigsLoader.RegisterMessage(t, "BigWigs_StopBar")
+			BigWigsLoader.RegisterMessage(t, "BigWigs_StopBars")
+			BigWigsLoader.RegisterMessage(t, "BigWigs_PauseBar")
+			BigWigsLoader.RegisterMessage(t, "BigWigs_ResumeBar")
+
+			--self:RegisterMessage("BigWigs_StopBars", "StopModuleBars")
+        end
+    end
+	--]=]
+end
+
+
+detailsFramework.OnLoginSchedules[#detailsFramework.OnLoginSchedules+1] = createBossModsCallback
+
 
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------

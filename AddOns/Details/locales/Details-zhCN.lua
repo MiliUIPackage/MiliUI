@@ -652,6 +652,7 @@ L["STRING_OPTIONS_EXTERNALS_TITLE"] = "外部小工具"
 L["STRING_OPTIONS_EXTERNALS_TITLE2"] = "这些选项控制外部小工具的行为。"
 L["STRING_OPTIONS_GENERAL"] = "一般设置"
 L["STRING_OPTIONS_GENERAL_ANCHOR"] = "一般："
+L["STRING_OPTIONS_GROUPING_HORIZONTAL_GAP"] = "\"窗口之间的距离\""
 L["STRING_OPTIONS_HIDE_ICON"] = "隐藏图标"
 L["STRING_OPTIONS_HIDE_ICON_DESC"] = [=[当启用时，表示所选的展示的图标不显示。
 |cFFFFFF00重要|r：启用图标后，强烈建议调整标题文本的位置。]=]

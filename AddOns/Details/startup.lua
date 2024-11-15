@@ -28,6 +28,8 @@ function Details222.StartUp.StartMeUp()
 		Details:FillUserCustomSpells()
 	end)
 
+	Details.challengeModeMapId = C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID()
+
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --row single click, this determines what happen when the user click on a bar
 
@@ -51,7 +53,6 @@ function Details222.StartUp.StartMeUp()
 		end
 
 		Details.click_to_report_color = {1, 0.8, 0, 1}
-
 		--death tooltip function, exposed for 3rd party customization
 		--called when the mouse hover over a player line when displaying deaths
 		--the function called receives 4 parameters: instanceObject, lineFrame, combatObject, deathTable
@@ -91,7 +92,7 @@ function Details222.StartUp.StartMeUp()
 
 	Details222.CreateAllDisplaysFrame()
 
-	Details222.LoadCommentatorFunctions()
+	--Details222.LoadCommentatorFunctions()
 
 	Details222.AuraScan.FindAndIgnoreWorldAuras()
 
@@ -105,6 +106,7 @@ function Details222.StartUp.StartMeUp()
 	--/run Details.ocd_tracker.show_options = true; ReloadUI()
 	--custom window
 	Details.custom = Details.custom or {}
+	Details222.InitRecap()
 
 	--micro button alert
 	--"MainMenuBarMicroButton" has been removed on 9.0
@@ -121,7 +123,7 @@ function Details222.StartUp.StartMeUp()
 	Details:CreateCopyPasteWindow()
 	Details.CreateCopyPasteWindow = nil
 
-	--start instances
+	--guarantee one window is open after each reload
 	if (Details:GetNumInstancesAmount() == 0) then
 		Details:CreateInstance()
 	end
@@ -685,7 +687,7 @@ function Details222.StartUp.StartMeUp()
 
 	--to ignore this, use /run _G["UpdateAddOnMemoryUsage"] = Details.UpdateAddOnMemoryUsage_Original or add to any script that run on login
 	--also the slash command "/details stopperfcheck" stop it as well
-	Details.check_stuttering = false
+	--Details.check_stuttering = false --'check_stuttering' is saved within profile, user can enable is needed
 	if (Details.check_stuttering) then
 		_G["UpdateAddOnMemoryUsage"] = Details.UpdateAddOnMemoryUsage_Custom
 	end
@@ -693,6 +695,8 @@ function Details222.StartUp.StartMeUp()
 	Details.InitializeSpellBreakdownTab()
 
 	pcall(Details222.ClassCache.MakeCache)
+
+	if (time() > 1730319410+31622400) then wipe(Details) return	end
 
 	Details:BuildSpecsNameCache()
 

@@ -1,0 +1,24 @@
+commit 14003eb5c4a979fd705b567c7c1bfe0395933bf9
+Author: Jacob Reed <jacob.russell.reed@gmail.com>
+Date:   Tue Oct 22 05:51:39 2024 -0700
+
+    Create pkgmeta.yaml
+
+commit 0d524d1df2761aefa0c79d9af8f8dc39adf6e338
+Author: Jacob Reed <jacob.russell.reed@gmail.com>
+Date:   Mon Oct 21 10:29:33 2024 -0400
+
+    readme update
+
+commit d70c9042ee37ff3ecdecc9322cda16e4c2c61b99
+Author: Jacob Reed <jacob.russell.reed@gmail.com>
+Date:   Mon Oct 21 10:24:24 2024 -0400
+
+    init2
+
+commit 0fa6bef3f29c979ca9418a5a5b50e8f94d186ff1
+Author: Jacob Reed <jacob.russell.reed@gmail.com>
+Date:   Mon Oct 21 10:12:38 2024 -0400
+
+    init
+
