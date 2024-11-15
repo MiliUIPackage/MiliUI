@@ -1,5 +1,5 @@
 ﻿----------------------------------------------------------------------
--- 	Leatrix Plus 11.0.15 (30th October 2024)
+-- 	Leatrix Plus 11.0.17 (13th November 2024)
 ----------------------------------------------------------------------
 
 --	01:Functions 02:Locks,  03:Restart 40:Player
@@ -18,7 +18,7 @@
 	local void
 
 	-- Version
-	LeaPlusLC["AddonVer"] = "11.0.15"
+	LeaPlusLC["AddonVer"] = "11.0.17"
 
 	-- Get locale table
 	local void, Leatrix_Plus = ...
@@ -42,7 +42,7 @@
 		end
 	end
 
-	-- Check for addons
+	-- Check for ElvUI
 	if C_AddOns.IsAddOnLoaded("ElvUI") then LeaPlusLC.ElvUI = unpack(ElvUI) end
 
 ----------------------------------------------------------------------
@@ -594,6 +594,7 @@
 		LeaPlusLC:LockOption("MuteCustomSounds", "MuteCustomSoundsBtn", false)		-- Mute custom sounds
 		LeaPlusLC:LockOption("FasterLooting", "FasterLootingBtn", true)				-- Faster auto loot
 		LeaPlusLC:LockOption("NoTransforms", "NoTransformsBtn", false)				-- Remove transforms
+		LeaPlusLC:LockOption("SetAddtonOptions", "SetAddtonOptionsBtn", true)		-- Set additional options
 	end
 
 ----------------------------------------------------------------------
@@ -680,6 +681,8 @@
 		or	(LeaPlusLC["CombatPlates"]			~= LeaPlusDB["CombatPlates"])			-- Combat plates
 		or	(LeaPlusLC["EasyItemDestroy"]		~= LeaPlusDB["EasyItemDestroy"])		-- Easy item destroy
 		or	(LeaPlusLC["LockoutSharing"]		~= LeaPlusDB["LockoutSharing"])			-- Lockout sharing
+		or	(LeaPlusLC["SetAddtonOptions"]		~= LeaPlusDB["SetAddtonOptions"])		-- Set additional options
+		or	(LeaPlusLC["AddOptNoCombatBox"]		~= LeaPlusDB["AddOptNoCombatBox"])		-- Uncheck combat animation checkbox
 
 		then
 			-- Enable the reload button
@@ -698,6 +701,65 @@
 ----------------------------------------------------------------------
 
 	function LeaPlusLC:Player()
+
+		----------------------------------------------------------------------
+		-- Set additional options
+		----------------------------------------------------------------------
+
+		if LeaPlusLC["SetAddtonOptions"] == "On" then
+
+			-- Create scrolling configuration panel
+			local addOptPanel = LeaPlusLC:CreatePanel("Set additional options", "addOptPanel", true)
+
+			-- Initialise row count
+			local row = -1
+
+			-- Add checkboxes
+			row = row + 2; LeaPlusLC:MakeTx(addOptPanel.scrollChild, "Trading post", 16, -((row - 1) * 20) - 2)
+			row = row + 1; LeaPlusLC:MakeCB(addOptPanel.scrollChild, "AddOptNoCombatBox", "Uncheck combat animation checkbox", 16, -((row - 1) * 20) - 2, true, "If checked, the trading post combat animation checkbox will be unchecked by default.")
+
+			-- Help button hidden
+			addOptPanel.h:Hide()
+
+			-- Back button handler
+			addOptPanel.b:SetScript("OnClick", function()
+				addOptPanel:Hide(); LeaPlusLC["PageF"]:Show(); LeaPlusLC["Page7"]:Show()
+				return
+			end)
+
+			-- Reset button handler
+			addOptPanel.r:SetScript("OnClick", function()
+
+				-- Refresh panel
+				addOptPanel:Hide(); addOptPanel:Show()
+
+			end)
+
+			-- Reset button hidden
+			addOptPanel.r:Hide()
+
+			-- Show panal when options panel button is clicked
+			LeaPlusCB["SetAddtonOptionsBtn"]:SetScript("OnClick", function()
+				if IsShiftKeyDown() and IsControlKeyDown() then
+					-- Preset profile
+				else
+					addOptPanel:Show()
+					LeaPlusLC:HideFrames()
+				end
+			end)
+
+			-- Run options on startup
+			do
+				if LeaPlusLC["AddOptNoCombatBox"] == "On" then
+					EventUtil.ContinueOnAddOnLoaded("Blizzard_PerksProgram", function()
+						hooksecurefunc(PerksProgramFrame.FooterFrame.ToggleAttackAnimation, "SetChecked", function(self)
+							if self:GetChecked() then self:Click() end
+						end)
+					end)
+				end
+			end
+
+		end
 
 		----------------------------------------------------------------------
 		-- Block requested invites (no reload required)
@@ -1597,7 +1659,7 @@
 			----------------------------------------------------------------------
 
 			-- Achievement link function
-			local function DoWowheadAchievementFunc()
+			EventUtil.ContinueOnAddOnLoaded("Blizzard_AchievementUI",function()
 
 				-- Create editbox
 				local aEB = CreateFrame("EditBox", nil, AchievementFrame)
@@ -1668,21 +1730,7 @@
 					GameTooltip:Hide()
 				end)
 
-			end
-
-			-- Run function when achievement UI is loaded
-			if C_AddOns.IsAddOnLoaded("Blizzard_AchievementUI") then
-				DoWowheadAchievementFunc()
-			else
-				local waitAchievementsFrame = CreateFrame("FRAME")
-				waitAchievementsFrame:RegisterEvent("ADDON_LOADED")
-				waitAchievementsFrame:SetScript("OnEvent", function(self, event, arg1)
-					if arg1 == "Blizzard_AchievementUI" then
-						DoWowheadAchievementFunc()
-						waitAchievementsFrame:UnregisterAllEvents()
-					end
-				end)
-			end
+			end)
 
 			----------------------------------------------------------------------
 			-- World map frame
@@ -1772,16 +1820,6 @@
 				GameTooltip:Hide()
 				SetQuestInBox()
 			end)
-
-			-- Function to move Wowhead link frame if Leatrix Maps is installed with Remove map border enabled
-			if C_AddOns.IsAddOnLoaded("Leatrix_Maps") and LeaMapsDB and LeaMapsDB["NoMapBorder"] and LeaMapsDB["NoMapBorder"] == "On" then
-				mEB:SetParent(WorldMapFrame)
-				mEB:ClearAllPoints()
-				mEB:SetPoint("TOPLEFT", WorldMapFrame, "TOPLEFT", 4, -64)
-				mEB:SetFontObject("GameFontNormalSmall")
-				mEB:SetFrameStrata("HIGH")
-				mEB:SetAlpha(0.5)
-			end
 
 		end
 
@@ -2341,7 +2379,8 @@
 			----------------------------------------------------------------------
 
 			-- Wardrobe (used by transmogrifier NPC) and mount journal
-			local function DoBlizzardCollectionsFunc()
+			EventUtil.ContinueOnAddOnLoaded("Blizzard_Collections",function()
+
 				-- Hide positioning controls for mount journal
 				MountJournal.MountDisplay.ModelScene.ControlFrame:HookScript("OnShow", MountJournal.MountDisplay.ModelScene.ControlFrame.Hide)
 				-- Hide positioning controls for wardrobe
@@ -2489,39 +2528,13 @@
 
 				end
 
-			end
-
-			if C_AddOns.IsAddOnLoaded("Blizzard_Collections") then
-				DoBlizzardCollectionsFunc()
-			else
-				local waitFrame = CreateFrame("FRAME")
-				waitFrame:RegisterEvent("ADDON_LOADED")
-				waitFrame:SetScript("OnEvent", function(self, event, arg1)
-					if arg1 == "Blizzard_Collections" then
-						DoBlizzardCollectionsFunc()
-						waitFrame:UnregisterAllEvents()
-					end
-				end)
-			end
+			end)
 
 			-- Inspect System
-			local function DoInspectSystemFunc()
+			EventUtil.ContinueOnAddOnLoaded("Blizzard_InspectUI",function()
 				-- Hide positioning controls
 				InspectModelFrameControlFrame:HookScript("OnShow", InspectModelFrameControlFrame.Hide)
-			end
-
-			if C_AddOns.IsAddOnLoaded("Blizzard_InspectUI") then
-				DoInspectSystemFunc()
-			else
-				local waitFrame = CreateFrame("FRAME")
-				waitFrame:RegisterEvent("ADDON_LOADED")
-				waitFrame:SetScript("OnEvent", function(self, event, arg1)
-					if arg1 == "Blizzard_InspectUI" then
-						DoInspectSystemFunc()
-						waitFrame:UnregisterAllEvents()
-					end
-				end)
-			end
+			end)
 
 		end
 
@@ -2601,25 +2614,11 @@
 		if LeaPlusLC["NoCommandBar"] == "On" then
 
 			-- Function to hide the order hall bar
-			local function HideCommandBar()
+			EventUtil.ContinueOnAddOnLoaded("Blizzard_OrderHallUI",function()
 				OrderHallCommandBar:HookScript("OnShow", function()
 					OrderHallCommandBar:Hide()
 				end)
-			end
-
-			-- Run function when Blizzard addon has loaded
-			if C_AddOns.IsAddOnLoaded("Blizzard_OrderHallUI") then
-				HideCommandBar()
-			else
-				local waitFrame = CreateFrame("FRAME")
-				waitFrame:RegisterEvent("ADDON_LOADED")
-				waitFrame:SetScript("OnEvent", function(self, event, arg1)
-					if arg1 == "Blizzard_OrderHallUI" then
-						HideCommandBar()
-						waitFrame:UnregisterAllEvents()
-					end
-				end)
-			end
+			end)
 
 		end
 
@@ -2676,7 +2675,7 @@
 
 		if LeaPlusLC["ShowPetSaveBtn"] == "On" then
 
-			local function MakePetSystem()
+			EventUtil.ContinueOnAddOnLoaded("Blizzard_Collections",function()
 
 				-- Create panel
 				local pFrame = CreateFrame("Frame", nil, PetJournal)
@@ -2759,21 +2758,7 @@
 				end)
 				macroBtn:HookScript("OnHide", function() pFrame:Hide() end)
 
-			end
-
-			-- Run system function when pet journal loads
-			if C_AddOns.IsAddOnLoaded("Blizzard_Collections") then
-				MakePetSystem()
-			else
-				local waitFrame = CreateFrame("FRAME")
-				waitFrame:RegisterEvent("ADDON_LOADED")
-				waitFrame:SetScript("OnEvent", function(self, event, arg1)
-					if arg1 == "Blizzard_Collections" then
-						MakePetSystem()
-						waitFrame:UnregisterAllEvents()
-					end
-				end)
-			end
+			end)
 
 		end
 
@@ -5787,25 +5772,11 @@
 				MinimapCluster.InstanceDifficulty:SetPoint("TOPRIGHT", MinimapCluster, "TOPRIGHT", -10, -22)
 
 				-- Setup hybrid minimap when available
-				local function SetHybridMap()
+				EventUtil.ContinueOnAddOnLoaded("Blizzard_HybridMinimap",function()
 					HybridMinimap.MapCanvas:SetUseMaskTexture(false)
 					HybridMinimap.CircleMask:SetTexture("Interface\\BUTTONS\\WHITE8X8")
 					HybridMinimap.MapCanvas:SetUseMaskTexture(true)
-				end
-
-				-- Run function when Blizzard addon is loaded
-				if C_AddOns.IsAddOnLoaded("Blizzard_HybridMinimap") then
-					SetHybridMap()
-				else
-					local waitFrame = CreateFrame("FRAME")
-					waitFrame:RegisterEvent("ADDON_LOADED")
-					waitFrame:SetScript("OnEvent", function(self, event, arg1)
-						if arg1 == "Blizzard_HybridMinimap" then
-							SetHybridMap()
-							waitFrame:UnregisterAllEvents()
-						end
-					end)
-				end
+				end)
 
 			end
 
@@ -6602,7 +6573,7 @@
 		if LeaPlusLC["ShowTrainAllButton"] == "On" then
 
 			-- Function to create train all button
-			local function TrainerFunc()
+			EventUtil.ContinueOnAddOnLoaded("Blizzard_TrainerUI",function()
 
 				----------------------------------------------------------------------
 				--	Train All button
@@ -6693,21 +6664,7 @@
 					end
 				end
 
-			end
-
-			-- Run function when Trainer UI has loaded
-			if C_AddOns.IsAddOnLoaded("Blizzard_TrainerUI") then
-				TrainerFunc()
-			else
-				local waitFrame = CreateFrame("FRAME")
-				waitFrame:RegisterEvent("ADDON_LOADED")
-				waitFrame:SetScript("OnEvent", function(self, event, arg1)
-					if arg1 == "Blizzard_TrainerUI" then
-						TrainerFunc()
-						waitFrame:UnregisterAllEvents()
-					end
-				end)
-			end
+			end)
 
 		end
 
@@ -9148,7 +9105,7 @@
 			-- Character customisation (dragonriding customisation, barbershop)
 			----------------------------------------------------------------------
 
-			local function CharCustomiseFunc()
+			EventUtil.ContinueOnAddOnLoaded("Blizzard_CharacterCustomize",function()
 
 				-- Function to set tooltip scale
 				local function SetCharCustomiseScale()
@@ -9161,27 +9118,13 @@
 				LeaPlusCB["LeaPlusTipSize"]:HookScript("OnValueChanged", SetCharCustomiseScale)
 				SetCharCustomiseScale()
 
-			end
-
-			-- Run function when Blizzard addon has loaded
-			if C_AddOns.IsAddOnLoaded("Blizzard_CharacterCustomize") then
-				CharCustomiseFunc()
-			else
-				local waitFrame = CreateFrame("FRAME")
-				waitFrame:RegisterEvent("ADDON_LOADED")
-				waitFrame:SetScript("OnEvent", function(self, event, arg1)
-					if arg1 == "Blizzard_CharacterCustomize" then
-						CharCustomiseFunc()
-						waitFrame:UnregisterAllEvents()
-					end
-				end)
-			end
+			end)
 
 			----------------------------------------------------------------------
 			-- Contribution frame
 			----------------------------------------------------------------------
 
-			local function ContributionTipFunc()
+			EventUtil.ContinueOnAddOnLoaded("Blizzard_Contribution",function()
 
 				-- Function to set tooltip scale
 				local function SetContributionTipScale()
@@ -9192,27 +9135,13 @@
 				LeaPlusCB["LeaPlusTipSize"]:HookScript("OnValueChanged", SetContributionTipScale)
 				SetContributionTipScale()
 
-			end
-
-			-- Run function when Blizzard addon has loaded
-			if C_AddOns.IsAddOnLoaded("Blizzard_Contribution") then
-				ContributionTipFunc()
-			else
-				local waitFrame = CreateFrame("FRAME")
-				waitFrame:RegisterEvent("ADDON_LOADED")
-				waitFrame:SetScript("OnEvent", function(self, event, arg1)
-					if arg1 == "Blizzard_Contribution" then
-						ContributionTipFunc()
-						waitFrame:UnregisterAllEvents()
-					end
-				end)
-			end
+			end)
 
 			----------------------------------------------------------------------
 			-- Pet Journal tooltips
 			----------------------------------------------------------------------
 
-			local function PetJournalTipFunc()
+			EventUtil.ContinueOnAddOnLoaded("Blizzard_Collections",function()
 
 				-- Function to set tooltip scale
 				local function SetPetJournalTipScale()
@@ -9223,27 +9152,13 @@
 				LeaPlusCB["LeaPlusTipSize"]:HookScript("OnValueChanged", SetPetJournalTipScale)
 				SetPetJournalTipScale()
 
-			end
-
-			-- Run function when Blizzard addon has loaded
-			if C_AddOns.IsAddOnLoaded("Blizzard_Collections") then
-				PetJournalTipFunc()
-			else
-				local waitFrame = CreateFrame("FRAME")
-				waitFrame:RegisterEvent("ADDON_LOADED")
-				waitFrame:SetScript("OnEvent", function(self, event, arg1)
-					if arg1 == "Blizzard_Collections" then
-						PetJournalTipFunc()
-						waitFrame:UnregisterAllEvents()
-					end
-				end)
-			end
+			end)
 
 			----------------------------------------------------------------------
 			-- Encounter Journal tooltips
 			----------------------------------------------------------------------
 
-			local function EncounterJournalTipFunc()
+			EventUtil.ContinueOnAddOnLoaded("Blizzard_EncounterJournal",function()
 
 				-- Function to set tooltip scale
 				local function SetEncounterJournalTipScale()
@@ -9254,77 +9169,35 @@
 				LeaPlusCB["LeaPlusTipSize"]:HookScript("OnValueChanged", SetEncounterJournalTipScale)
 				SetEncounterJournalTipScale()
 
-			end
-
-			-- Run function when Blizzard addon has loaded
-			if C_AddOns.IsAddOnLoaded("Blizzard_EncounterJournal") then
-				EncounterJournalTipFunc()
-			else
-				local waitFrame = CreateFrame("FRAME")
-				waitFrame:RegisterEvent("ADDON_LOADED")
-				waitFrame:SetScript("OnEvent", function(self, event, arg1)
-					if arg1 == "Blizzard_EncounterJournal" then
-						EncounterJournalTipFunc()
-						waitFrame:UnregisterAllEvents()
-					end
-				end)
-			end
+			end)
 
 			----------------------------------------------------------------------
 			-- Perks program tooltip (trading post)
 			----------------------------------------------------------------------
 
-			local function PerksProgramTipFunc()
+			EventUtil.ContinueOnAddOnLoaded("Blizzard_PerksProgram",function()
 
 				-- Set tooltip scale
 				PerksProgramTooltip:SetScale(LeaPlusLC["LeaPlusTipSize"])
 
-			end
-
-			-- Run function when Blizzard addon has loaded
-			if C_AddOns.IsAddOnLoaded("Blizzard_PerksProgram") then
-				PerksProgramTipFunc()
-			else
-				local waitFrame = CreateFrame("FRAME")
-				waitFrame:RegisterEvent("ADDON_LOADED")
-				waitFrame:SetScript("OnEvent", function(self, event, arg1)
-					if arg1 == "Blizzard_PerksProgram" then
-						PerksProgramTipFunc()
-						waitFrame:UnregisterAllEvents()
-					end
-				end)
-			end
+			end)
 
 			----------------------------------------------------------------------
 			-- Death Recap frame tooltips
 			----------------------------------------------------------------------
 
-			local function DeathRecapFrameFunc()
+			EventUtil.ContinueOnAddOnLoaded("Blizzard_DeathRecap",function()
 
 				-- Simple fix to prevent mousing over units behind the frame
 				DeathRecapFrame:EnableMouse(true)
 
-			end
-
-			-- Run function when Blizzard addon has loaded
-			if C_AddOns.IsAddOnLoaded("Blizzard_DeathRecap") then
-				DeathRecapFrameFunc()
-			else
-				local waitFrame = CreateFrame("FRAME")
-				waitFrame:RegisterEvent("ADDON_LOADED")
-				waitFrame:SetScript("OnEvent", function(self, event, arg1)
-					if arg1 == "Blizzard_DeathRecap" then
-						DeathRecapFrameFunc()
-						waitFrame:UnregisterAllEvents()
-					end
-				end)
-			end
+			end)
 
 			----------------------------------------------------------------------
 			-- Garrison tooltips
 			----------------------------------------------------------------------
 
-			local function GarrisonFunc()
+			EventUtil.ContinueOnAddOnLoaded("Blizzard_GarrisonUI",function()
 
 				-- Function to set tooltip scale
 				local function SetGarrisonTipScale()
@@ -9342,21 +9215,7 @@
 				LeaPlusCB["LeaPlusTipSize"]:HookScript("OnValueChanged", SetGarrisonTipScale)
 				SetGarrisonTipScale()
 
-			end
-
-			-- Run function when Blizzard addon has loaded
-			if C_AddOns.IsAddOnLoaded("Blizzard_GarrisonUI") then
-				GarrisonFunc()
-			else
-				local waitFrame = CreateFrame("FRAME")
-				waitFrame:RegisterEvent("ADDON_LOADED")
-				waitFrame:SetScript("OnEvent", function(self, event, arg1)
-					if arg1 == "Blizzard_GarrisonUI" then
-						GarrisonFunc()
-						waitFrame:UnregisterAllEvents()
-					end
-				end)
-			end
+			end)
 
 			---------------------------------------------------------------------------------------------------------
 			-- Other tooltip code
@@ -11139,6 +10998,8 @@
 				LeaPlusLC:LoadVarChk("EasyItemDestroy", "Off")				-- Easy item destroy
 				LeaPlusLC:LoadVarChk("LockoutSharing", "Off")				-- Lockout sharing
 				LeaPlusLC:LoadVarChk("NoTransforms", "Off")					-- Remove transforms
+				LeaPlusLC:LoadVarChk("SetAddtonOptions", "Off")				-- Set additional options
+				LeaPlusLC:LoadVarChk("AddOptNoCombatBox", "Off")			-- Uncheck combat animation checkbox
 
 				-- Settings
 				LeaPlusLC:LoadVarChk("ShowMinimapIcon", "On")				-- Show minimap button
@@ -11496,6 +11357,8 @@
 			LeaPlusDB["EasyItemDestroy"]		= LeaPlusLC["EasyItemDestroy"]
 			LeaPlusDB["LockoutSharing"] 		= LeaPlusLC["LockoutSharing"]
 			LeaPlusDB["NoTransforms"] 			= LeaPlusLC["NoTransforms"]
+			LeaPlusDB["SetAddtonOptions"] 		= LeaPlusLC["SetAddtonOptions"]
+			LeaPlusDB["AddOptNoCombatBox"] 		= LeaPlusLC["AddOptNoCombatBox"]
 
 			-- Settings
 			LeaPlusDB["ShowMinimapIcon"] 		= LeaPlusLC["ShowMinimapIcon"]
@@ -14174,6 +14037,8 @@
 				LeaPlusDB["EasyItemDestroy"] = "On"				-- Easy item destroy
 				LeaPlusDB["LockoutSharing"] = "On"				-- Lockout sharing
 				LeaPlusDB["NoTransforms"] = "On"				-- Remove transforms
+				LeaPlusDB["SetAddtonOptions"] = "On"			-- Set additional options
+				LeaPlusDB["AddOptNoCombatBox"] = "On"			-- Uncheck combat animation checkbox
 
 				-- Function to assign cooldowns
 				local function setIcon(pclass, pspec, sp1, pt1, sp2, pt2, sp3, pt3, sp4, pt4, sp5, pt5)
@@ -14602,6 +14467,7 @@
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "EasyItemDestroy"			, 	"Easy item destroy"				,	340, -232, 	true,	"If checked, you will no longer need to type delete when destroying a superior quality item.|n|nIn addition, item links will be shown in all item destroy confirmation windows.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "LockoutSharing"			, 	"Lockout sharing"				, 	340, -252, 	true, 	"If checked, the 'Display only character achievements to others' setting in the game options panel ('Social' menu) will be permanently checked and locked.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "NoTransforms"				, 	"Remove transforms"				, 	340, -272, 	false, 	"If checked, you will be able to have certain transforms removed automatically when they are applied to your character.|n|nYou can choose the transforms in the configuration panel.|n|nExamples include Weighted Jack-o'-Lantern and Hallowed Wand.|n|nTransforms applied during combat will be removed when combat ends.")
+	LeaPlusLC:MakeCB(LeaPlusLC[pg], "SetAddtonOptions"			, 	"Set additional options"		, 	340, -292, 	true, 	"If checked, you will be able to set some additional options.")
 
 	LeaPlusLC:CfgBtn("SetWeatherDensityBtn", LeaPlusCB["SetWeatherDensity"])
 	LeaPlusLC:CfgBtn("MuteGameSoundsBtn", LeaPlusCB["MuteGameSounds"])
@@ -14609,6 +14475,7 @@
 	LeaPlusLC:CfgBtn("MuteCustomSoundsBtn", LeaPlusCB["MuteCustomSounds"])
 	LeaPlusLC:CfgBtn("FasterLootingBtn", LeaPlusCB["FasterLooting"])
 	LeaPlusLC:CfgBtn("NoTransformsBtn", LeaPlusCB["NoTransforms"])
+	LeaPlusLC:CfgBtn("SetAddtonOptionsBtn", LeaPlusCB["SetAddtonOptions"])
 
 ----------------------------------------------------------------------
 -- 	LC8: Settings
