@@ -874,7 +874,9 @@ do  -- TokenFrame   -- Money   -- Coin
                 else
                     self.fromCopper = self.newValue;
                     self.updateTime = self.updateTime - 0.05;
+                    local _rawCopper = self.rawCopper;
                     self:SetAmount(self.fromCopper);
+                    self.rawCopper = _rawCopper;
                 end
             end
         end
@@ -885,10 +887,11 @@ do  -- TokenFrame   -- Money   -- Coin
             if not self.fromCopper then
                 self.fromCopper = 0;
             end
-            self.toCopper = self.fromCopper + addRawCopper;
+            self.rawCopper = self:GetAmount() + addRawCopper;
+            self.toCopper = self.rawCopper;
             self.updateTime = 0;
             self.totalTime = 0;
-            local copper = self.toCopper % 100;
+            local copper = self.toCopper % 10000;
             self.showCopperDuringAnimation = floor(copper) > 0;
             self:SetScript("OnUpdate", self.OnUpdate_AnimateValue);
         else
@@ -1068,7 +1071,7 @@ do  -- TokenFrame   -- Money   -- Coin
 
     local function AppendItemCount(tooltip, itemID)
         local inBag = GetItemCount(itemID);
-        local total = GetItemCount(itemID, true, false, true);
+        local total = GetItemCount(itemID, true, false, true, true);
         local inBank = total - inBag;
 
         local text = L["Num Items In Bag Format"]:format(inBag);
@@ -1145,7 +1148,7 @@ do  -- TokenFrame   -- Money   -- Coin
             icon = GetItemIconByID(id)
 
             if self.includeBank then
-                quantity = GetItemCount(id, true, false, true);
+                quantity = GetItemCount(id, true, false, true, true);
             else
                 quantity = GetItemCount(id);
             end
@@ -1336,6 +1339,10 @@ do  -- TokenFrame   -- Money   -- Coin
         self:RequestUpdate();
     end
 
+    function TokenDisplayMixin:SetIncludeBank(includeBank)
+        self.includeBank = includeBank == true;
+    end
+
 
     --For Merchant Vendor Item Price
     --Update is controlled by a shared event listener
@@ -1344,6 +1351,7 @@ do  -- TokenFrame   -- Money   -- Coin
     PriceDisplayMixin.AcquireTokenButton = TokenDisplayMixin.AcquireTokenButton;
     PriceDisplayMixin.SetFrameOwner = TokenDisplayMixin.SetFrameOwner;
     PriceDisplayMixin.ShowMoneyFrame = TokenDisplayMixin.ShowMoneyFrame;
+    PriceDisplayMixin.SetIncludeBank = TokenDisplayMixin.SetIncludeBank;
 
     function PriceDisplayMixin:SetMoneyAndAltCurrency(rawCopper, altCurrency, playerMoney)
         rawCopper = rawCopper or 0;
@@ -1410,7 +1418,7 @@ do  -- TokenFrame   -- Money   -- Coin
         f.tokens = {};
         f.tokenButtons = {};
         f.numberFont = "NumberFontNormal";
-        f.includeBank = true;
+        f:SetIncludeBank(true);
 
         return f
     end
