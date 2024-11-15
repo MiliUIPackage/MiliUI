@@ -1,6 +1,6 @@
 # Syndicator
 
-## [128](https://github.com/Baganator/Syndicator/tree/128) (2024-10-30)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/127...128) 
+## [133](https://github.com/Baganator/Syndicator/tree/133) (2024-11-14)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/132...133) 
 
-- Classic: Update toc for 4.4.1  
+- Options: Visual tweaks to guild widget  
