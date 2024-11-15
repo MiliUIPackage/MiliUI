@@ -1,5 +1,5 @@
-## Changed in v2024.29
+## Changed in v2024.31
 
-* Added a bunch of Vanilla rares and loot that were re-added back in 10.1.7
-* Fix an issue in classic / cataclysm when showing popups for mobs with loot
+* Add vignettes and achievement status for The Originals
+* Avoid a potential error when checking achievement status for some unusual criteria
 

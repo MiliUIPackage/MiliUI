@@ -575,6 +575,8 @@ local achievements = {
 	[40837] = {}, -- Adventurer of the Ringing Deeps
 	[40840] = {}, -- Adventurer of Azj-Kahet
 	[40851] = {}, -- Adventurer of Hallowfall
+	[40995] = {}, -- The Originals
+	[40997] = {}, -- The Gatecrashers (Anniversary)
 }
 ns.achievements = achievements
 local mobs_to_achievement = {
@@ -593,11 +595,9 @@ function ns:AchievementMobStatus(id)
 	end
 	local criteria = achievements[achievement][id]
 	local _, name, _, achievement_completed, _, _, _, _, _, _, _, _, completedByMe = GetAchievementInfo(achievement)
-	local completed
-	if criteria < 40 then
-		_, _, completed = GetAchievementCriteriaInfo(achievement, criteria)
-	else
-		_, _, completed = GetAchievementCriteriaInfoByID(achievement, criteria)
+	local retOK, _, _, completed = pcall(criteria < 100 and GetAchievementCriteriaInfo or GetAchievementCriteriaInfoByID, achievement, criteria, true)
+	if not retOK then
+		return
 	end
 	return achievement, name, completed, achievement_completed and not completedByMe
 end

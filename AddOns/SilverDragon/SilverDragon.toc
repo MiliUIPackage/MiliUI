@@ -1,10 +1,10 @@
-## Interface: 11504, 30403, 40400, 110005
+## Interface: 11504, 30403, 40400, 110002, 110005
 ## Title: SilverDragon
 ## Notes: Remember where rares were
 ## Title-zhTW: SilverDragon
 ## Notes-zhTW: 協助記錄稀有怪位置,以及MouseOver時提示你.
 ## Notes-zhCN: 记录稀有怪物位置。
-## Version: v2024.29
+## Version: v2024.31
 ## Author: Kemayo
 ## eMail: kemayo at gmail dot com
 ## IconTexture: Interface\Icons\INV_Misc_Head_Dragon_01
