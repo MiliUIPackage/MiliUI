@@ -1,18 +1,19 @@
 local mod	= DBM:NewMod("NecroticWakeTrash", "DBM-Party-Shadowlands", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241020100524")
+mod:SetRevision("20241111101136")
 --mod:SetModelID(47785)
 
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
 mod:SetZone(2286)
+mod:RegisterZoneCombat(2286)
 
 mod:RegisterEvents(
-	"SPELL_CAST_START 324293 327240 327399 334748 320462 338353 323496 333477 333479 338606 345623 322756 328667 335143 320822 324394 324387 338456 324323",
-	"SPELL_CAST_SUCCESS 334748 320571 321780 343470 324372 327130 323496 338606 322756 327393 335143 338353 338456 338357 333477 333479 327240 345623 324323",--324293
+	"SPELL_CAST_START 324293 327240 327399 334748 320462 338353 323496 333477 333479 338606 345623 322756 328667 335143 320822 324394 324387 338456 324323 321807",
+	"SPELL_CAST_SUCCESS 334748 320571 321780 343470 324372 327130 323496 338606 322756 327393 335143 338353 338456 338357 333477 333479 327240 345623 324323 321807",--324293
 	"SPELL_INTERRUPT",
-	"SPELL_AURA_APPLIED 327401 323347 335141 338353 338357 338606 327396 323471",
+	"SPELL_AURA_APPLIED 327401 323347 335141 338353 338357 338606 327396 323471 321807",
 	"SPELL_AURA_APPLIED_DOSE 338357",
 	"SPELL_AURA_REMOVED 338606 327396",
 	"UNIT_DIED"
@@ -23,6 +24,7 @@ mod:RegisterEvents(
  or (ability.id = 338357 or ability.id = 327393 or ability.id = 334748 or ability.id = 320571 or ability.id = 321780 or ability.id = 343470 or ability.id = 324372 or ability.id = 327130 or ability.id = 324293 or ability.id = 327240 or ability.id = 327399 or ability.id = 334748 or ability.id = 338353 or ability.id = 323496 or ability.id = 333477 or ability.id = 333479 or ability.id = 338606 or ability.id = 345623 or ability.id = 322756 or ability.id = 328667 or ability.id = 335143 or ability.id = 320822 or ability.id = 324394 or ability.id = 324387 or ability.id = 338456 or ability.id = 324323) and type = "cast"
  or stoppedAbility.id = 334748 or stoppedAbility.id = 324293 or stoppedAbility.id = 338353 or stoppedAbility.id = 328667 or stoppedAbility.id = 335143 or stoppedAbility.id = 327130
  or type = "dungeonencounterstart" or type = "dungeonencounterend"
+ or (source.type = "NPC" and source.firstSeen = timestamp and source.id = 163619) or (target.type = "NPC" and target.firstSeen = timestamp and target.id = 163619)
  --]]
 --TODO targetscan shared agony during cast and get at least one of targets early? for fade/invis and feign death?
 --TODO, actually, does shared agony even still exist? it's not in any recent logs
@@ -48,6 +50,7 @@ local warnWrathOfZolramus					= mod:NewSpellAnnounce(322756, 2)
 
 --General
 --local specWarnGTFO						= mod:NewSpecialWarningGTFO(257274, nil, nil, nil, 1, 8)
+local specWarnBoneflay						= mod:NewSpecialWarningDefensive(321807, nil, nil, nil, 1, 2)
 local specWarnSpineCrush					= mod:NewSpecialWarningRun(327240, nil, nil, nil, 4, 2)
 local specWarnGutSlice						= mod:NewSpecialWarningDodge(333477, nil, nil, nil, 2, 15)
 local specWarnDeathBurst					= mod:NewSpecialWarningDodge(345623, nil, nil, nil, 2, 2)
@@ -67,6 +70,7 @@ local yellGrimFateFades						= mod:NewShortFadesYell(327396)
 local specWarnGoresplatterDispel			= mod:NewSpecialWarningDispel(338353, "RemoveDisease", nil, nil, 1, 2)
 local specWarnClingingDarkness				= mod:NewSpecialWarningDispel(323347, false, nil, nil, 1, 2)--Opt it for now, since dispel timing is less black and white
 local specWarnDarkShroud					= mod:NewSpecialWarningDispel(335141, "MagicDispeller", nil, nil, 1, 2)
+local specWarnBoneFlayDispel				= mod:NewSpecialWarningDispel(321807, "RemoveBleed", nil, nil, 1, 2)
 local specWarnDrainFluids					= mod:NewSpecialWarningInterrupt(334748, nil, nil, nil, 1, 2)--Feedback be damned, it's too important not to kick, if it's spammy, maybe you shouldn't sit on your interrupt CD.
 local specWarnNecroticBolt					= mod:NewSpecialWarningInterrupt(320462, false, nil, nil, 1, 2)--Pretty much spam cast, so lower priority over other spells. Also excluded frome expression, it has no cooldown
 local specWarnRaspingScream					= mod:NewSpecialWarningInterrupt(324293, "HasInterrupt", nil, nil, 1, 2)
@@ -76,19 +80,20 @@ local specWarnBoneMend						= mod:NewSpecialWarningInterrupt(335143, "HasInterru
 local specWarnRepairFlesh					= mod:NewSpecialWarningInterrupt(327130, "HasInterrupt", nil, nil, 1, 2)--High Prio
 local specWarnBoneshatterShield				= mod:NewSpecialWarningSwitchCustom(343470, "Dps", nil, nil, 1, 2)
 
+local timerBoneflayCD						= mod:NewCDNPTimer(15, 321807, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerMorbidFixation					= mod:NewTargetTimer(8, 338606, nil, nil, nil, 5)
 local timerDrainFluidsCD					= mod:NewCDPNPTimer(15, 334748, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--Harvester 15-17.5, Collector 14.1-18.3, Stitching Assistant 16.6-17.9
 local timerThrowCleaverCD					= mod:NewCDNPTimer(13, 323496, nil, nil, nil, 3)--13-14.2 for Flesh Carver, 15.4 for Stitching Assistant, 14.1 for Separation Assistant
 local timerMorbidFixationCD					= mod:NewCDNPTimer(26.7, 338606, nil, nil, nil, 3)
 local timerWrathOfZolramusCD				= mod:NewCDNPTimer(16.9, 322756, nil, nil, nil, 2)--16.9-17.8 (at least from gatekeeper mob)
-local timerShadowWellCD						= mod:NewCDNPTimer(13.5, 320571, nil, nil, nil, 3)--13.5-19.4
+local timerShadowWellCD						= mod:NewCDNPTimer(12.7, 320571, nil, nil, nil, 3)--13.5-19.4
 local timerGrimFateCD						= mod:NewCDNPTimer(18.2, 327396, nil, nil, nil, 3)
 local timerDeathBurstCD						= mod:NewCDNPTimer(16.2, 345623, nil, nil, nil, 3)
 local timerAnimatedDeadCD					= mod:NewCDNPTimer(29.1, 321780, nil, nil, nil, 1)--29.1-33, not greatest sample size
 local timerBoneMendCD						= mod:NewCDPNPTimer(7, 335143, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--7 second recast, but can be delayed a lot by Final bargain
 --local timerRaspingScreamCD				= mod:NewCDPNPTimer(15, 324293, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--Not known, couldn't find a single log mob lived more than one cast
 local timerGruesomeCleaveCD					= mod:NewCDPNPTimer(11.1, 324323, nil, nil, nil, 3)
---local timerBoneshatterShieldCD			= mod:NewCDNPTimer(15, 343470, nil, nil, nil, 1, nil, DBM_CORE_L.DAMAGE_ICON)--Not known, couldn't find a single log mob lived more than one cast
+--local timerBoneshatterShieldCD			= mod:NewCDNPTimer(15, 343470, nil, nil, nil, 1, nil, DBM_COMMON_L.DAMAGE_ICON)--Not known, couldn't find a single log mob lived more than one cast
 --local timerFrostBoltVolleyCD				= mod:NewCDNPTimer(15.4, 328667, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--CD unknown
 local timerGoresplatterCD					= mod:NewCDPNPTimer(20, 338353, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--20-22
 local timerMutlilateCD						= mod:NewCDNPTimer(13, 338456, nil, nil, nil, 5)--13 sec trash, 10.6 both minibosses
@@ -97,7 +102,7 @@ local timerGutSliceCD						= mod:NewCDPNPTimer(12.5, 333477, nil, nil, nil, 3)
 local timerSpewDiseaseCD					= mod:NewCDNPTimer(10.6, 333479, nil, nil, nil, 3)
 local timerSpineCrushCD						= mod:NewCDNPTimer(14.0, 327240, nil, nil, nil, 3)
 local timerSpineCrush						= mod:NewCastNPTimer(3, 327240, nil, nil, nil, 5)
-local timerRepairFleshCD					= mod:NewCDPNPTimer(14.3, 327130, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--14-17
+local timerRepairFleshCD					= mod:NewCDPNPTimer(13.9, 327130, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--14-17
 
 --Antispam IDs for this mod: 1 run away, 2 dodge, 3 dispel, 4 incoming damage, 5 you/role, 6 misc, 7 off interrupt
 
@@ -110,6 +115,7 @@ function mod:ThrowCleaver(targetname, uId)
 	end
 end
 --]]
+local memoryWastingTable = {}
 
 function mod:FixateTarget(targetname, uId)
 	if not targetname then return end
@@ -158,6 +164,7 @@ function mod:SPELL_CAST_START(args)
 			specWarnFrostBoltVolley:Play("kickcast")
 		end
 	elseif spellId == 327240 then
+		timerSpineCrush:Stop(args.sourceGUID)
 		timerSpineCrush:Start(nil, args.sourceGUID)
 		if self:AntiSpam(3, 4) then
 			specWarnSpineCrush:Show()
@@ -210,6 +217,11 @@ function mod:SPELL_CAST_START(args)
 			specWarnGruesomeCleave:Show()
 			specWarnGruesomeCleave:Play("frontal")
 		end
+	elseif spellId == 321807 then
+		if self:IsTanking("player", nil, nil, true, args.sourceGUID) and self:AntiSpam(3, 5) then
+			specWarnBoneflay:Show()
+			specWarnBoneflay:Play("defensive")
+		end
 	end
 end
 
@@ -220,8 +232,11 @@ function mod:SPELL_CAST_SUCCESS(args)
 		--Harvester (166302) 15-17.5, Collector (173016) 14.1-18.3, Stitching Assistant (173044) 16.6-17.9
 		local cooldown = args:GetSrcCreatureID() == 173044 and 16.6 or args:GetSrcCreatureID() == 166302 and 15 or 14.1
 		timerDrainFluidsCD:Start(cooldown, args.sourceGUID)
+		if not memoryWastingTable[args.sourceGUID] then
+			memoryWastingTable[args.sourceGUID] = true
+		end
 	elseif spellId == 320571 then
-		timerShadowWellCD:Start(13.5, args.sourceGUID)
+		timerShadowWellCD:Start(nil, args.sourceGUID)
 		if self:AntiSpam(3, 2) then
 			specWarnShadowWell:Show()
 			specWarnShadowWell:Play("watchstep")
@@ -280,6 +295,8 @@ function mod:SPELL_CAST_SUCCESS(args)
 		timerSpineCrushCD:Start(14.0, args.sourceGUID)
 	elseif spellId == 345623 then
 		timerDeathBurstCD:Start(16.2, args.sourceGUID)
+	elseif spellId == 321807 then
+		timerBoneflayCD:Start(15, args.sourceGUID)
 	end
 end
 
@@ -289,7 +306,9 @@ function mod:SPELL_INTERRUPT(args)
 	if args.extraSpellId == 334748 then
 		--Harvester (166302) 15-17.5, Collector (173016) 14.1-18.3, Stitching Assistant (173044) 16.6-17.9
 		local cooldown = args:GetSrcCreatureID() == 173044 and 16.6 or args:GetSrcCreatureID() == 166302 and 15 or 14.1
-		timerDrainFluidsCD:Start(cooldown, args.destGUID)
+		if not memoryWastingTable[args.sourceGUID] then
+			timerDrainFluidsCD:Start(cooldown, args.destGUID)
+		end
 	elseif args.extraSpellId == 335143 then
 		timerBoneMendCD:Start(7, args.destGUID)
 --	elseif args.extraSpellId == 324293 then
@@ -348,6 +367,9 @@ function mod:SPELL_AURA_APPLIED(args)
 			warnThrowCleaver:Show(args.destName)
 			warnThrowCleaver:Play("helpsoak")
 		end
+	elseif spellId == 321807 and args:IsDestTypePlayer() and self:CheckDispelFilter("bleed") then
+		specWarnBoneFlayDispel:Show(args.destName)
+		specWarnBoneFlayDispel:Play("helpdispel")
 	end
 end
 mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
@@ -368,6 +390,7 @@ function mod:UNIT_DIED(args)
 	if not self.Options.Enabled then return end
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 173016 then--Corpse Collector
+		memoryWastingTable[args.destGUID] = nil
 		timerDrainFluidsCD:Stop(args.destGUID)
 		timerGoresplatterCD:Stop(args.destGUID)
 	elseif cid == 166302 then--Corpse Harvester
@@ -410,5 +433,58 @@ function mod:UNIT_DIED(args)
 	elseif cid == 165911 then--Loyal Creation
 		timerSpineCrushCD:Stop(args.destGUID)
 		timerSpineCrush:Stop(args.destGUID)
+	elseif cid == 163619 then--Zolramus Bonecarver
+		timerBoneflayCD:Stop(args.destGUID)
 	end
+end
+
+--All timers subject to a ~0.5 second clipping due to ScanEngagedUnits
+function mod:StartNameplateTimers(guid, cid)
+	if cid == 173016 then--Corpse Collector
+		timerGoresplatterCD:Start(5.1, guid)
+		timerDrainFluidsCD:Start(9.3, guid)--Can be spell locked or spell queued much longer up to about 18
+	elseif cid == 166302 then--Corpse Harvester
+		timerDrainFluidsCD:Start(6.7, guid)
+	elseif cid == 165872 then--Flesh Crafter
+--		timerThrowCleaverCD:Start(13, guid)--Cast instantly on pull
+		timerRepairFleshCD:Start(9.2, guid)
+	elseif cid == 173044 then--Stitching Assistant
+--		timerThrowCleaverCD:Start(15.4, guid)--Cast instantly on pull
+		timerDrainFluidsCD:Start(7.4, guid)
+	elseif cid == 167731 then--Separation Assistant
+--		timerThrowCleaverCD:Start(14.1, guid)--Cast instantly on pull
+		timerMorbidFixationCD:Start(12.8, guid)
+	elseif cid == 165137 then--Zolramus Gatekeeper
+		timerWrathOfZolramusCD:Start(5.5, guid)--about a 5 second CD, but can be delayed as much as 14 seconds due to spell lockout from kicking necrotic bolt
+	elseif cid == 163128 then--Zolramus Sorcerer
+		timerShadowWellCD:Start(7.9, guid)--about a 10 second CD, but can be delayed as much as 27 seconds due to spell lockout from kicking necrotic bolt
+	elseif cid == 163618 then--Zolramus Necromancer
+		timerGrimFateCD:Start(10.3, guid)
+		timerAnimatedDeadCD:Start(14.1, guid)--14.1-20
+--	elseif cid == 165222 then--Zolramus Bonemender
+--		timerBoneMendCD:Start(7, guid)--no initial CD, cast as soon as an ally needs healing, THEN goes on cooldown
+	elseif cid == 165824 then--Nar'zudah
+		timerDeathBurstCD:Start(4, guid)
+		timerGrimFateCD:Start(9, guid)--9, but sometimes 12 based on likely spellqueuing
+	elseif cid == 172981 then--Kyrian Stickwork
+		timerTenderizeCD:Start(4, guid)
+		timerMutlilateCD:Start(8.1, guid)
+	elseif cid == 163621 then--Goregrind
+		timerMutlilateCD:Start(8.1, guid)
+		timerTenderizeCD:Start(5.1, guid)
+		timerGutSliceCD:Start(11.2, guid)
+	elseif cid == 163620 then--Rotspew
+		timerMutlilateCD:Start(4.3, guid)
+		timerSpewDiseaseCD:Start(8, guid)--8-10
+	elseif cid == 165911 then--Loyal Creation
+		timerSpineCrushCD:Start(10.3, guid)
+	elseif cid == 163619 then--Zolramus Bonecarver
+		timerBoneflayCD:Start(6, guid)--TODO, fix me when Linaori complains it's wrong
+	end
+end
+
+--Abort timers when all players out of combat, so NP timers clear on a wipe
+--Caveat, it won't calls top with GUIDs, so while it might terminate bar objects, it may leave lingering nameplate icons
+function mod:LeavingZoneCombat()
+	self:Stop()
 end

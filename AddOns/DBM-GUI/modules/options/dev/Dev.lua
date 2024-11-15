@@ -3,9 +3,9 @@ local DBM_GUI = DBM_GUI
 local L = DBM_GUI_L
 
 local isDevBuild = true
---@non-alpha@
+--[===[@non-alpha@
 isDevBuild = false
---@end-non-alpha@
+--@end-non-alpha@]===]
 
 DBM_GUI.Cat_Development = DBM_GUI:CreateNewPanel(L.DevPanel, "option")
 

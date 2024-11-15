@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2396, "DBM-Party-Shadowlands", 1, 1182)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240912100312")
+mod:SetRevision("20241107025513")
 mod:SetCreatureID(162693)
 mod:SetEncounterID(2390)
 --mod:SetHotfixNoticeRev(20240817000000)
@@ -41,7 +41,7 @@ local specWarnDarkExile				= mod:NewSpecialWarningYou(321894, nil, nil, nil, 1, 
 local timerCometStormCD				= mod:NewCDCountTimer(24.2, 320772, nil, nil, nil, 3)
 local timerIceboundAegisCD			= mod:NewCDCountTimer(24.2, 321754, nil, nil, nil, 5, nil, DBM_COMMON_L.DAMAGE_ICON)
 local timerFrozenBindsCD			= mod:NewCDCountTimer(24.2, 323730, nil, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)
-local timerDarkExileCD				= mod:NewCDCountTimer(35.2, 321894, nil, nil, nil, 3)--35.2-50+
+local timerDarkExileCD				= mod:NewCDCountTimer(34, 321894, nil, nil, nil, 3)--34-50+
 local timerDarkExile				= mod:NewTargetTimer(50, 321894, nil, nil, nil, 5)
 
 mod:AddInfoFrameOption(321754, true)

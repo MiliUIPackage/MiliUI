@@ -1,11 +1,12 @@
 local mod	= DBM:NewMod(2580, "DBM-Party-WarWithin", 5, 1270)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241029071937")
+mod:SetRevision("20241111094130")
 mod:SetCreatureID(211087)
 mod:SetEncounterID(2837)
 mod:SetHotfixNoticeRev(20241005000000)
 mod:SetMinSyncRevision(20241005000000)
+mod:SetZone(2662)
 --mod.respawnTime = 29
 mod.sendMainBossGUID = true
 
@@ -58,7 +59,7 @@ local allTimers = {
 		[425264] = {6, 34.3},--Obsidian Blast (Non Mythic)
 		[453212] = {7.1, 31.9, 26.2},--Obsidian Beam (Mythic)
 		[445996] = {13.1},--Collapsing Darkness (Non Mythic)
-		[453140] = {23.3, 28.1, 26.3},--Collapsing Night (Mythic)
+		[453140] = {23.3, 28.1, 25.9},--Collapsing Night (Mythic)
 		[4267341] = {9.3, 35.5},--Burning Shadows (Non Mythic)
 		[4267342] = {19.2, 15.7, 24.5},--Burning Shadows (Mythic)
 	},
@@ -68,7 +69,7 @@ local allTimers = {
 		[445996] = {13.8, 18},--Collapsing Darkness (Non Mythic)
 		[453140] = {8.7, 27.5, 23.6, 25.1, 25.6},--Collapsing Night (Mythic)
 		[4267341] = {10.1, 25.2},--Burning Shadows (Non Mythic)
-		[4267342] = {14.2, 18, 21.9, 18.0, 25.1, 25.4},--Burning Shadows (Mythic)
+		[4267342] = {14.2, 18, 20.6, 18.0, 25.1, 25.4},--Burning Shadows (Mythic)
 	},								---23.5
 }
 

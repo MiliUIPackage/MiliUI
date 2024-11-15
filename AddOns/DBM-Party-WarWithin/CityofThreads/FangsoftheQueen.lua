@@ -1,23 +1,28 @@
 local mod	= DBM:NewMod(2595, "DBM-Party-WarWithin", 8, 1274)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241022111413")
+mod:SetRevision("20241114153405")
 mod:SetCreatureID(216648, 216649)--Nx, Vx
 mod:SetEncounterID(2908)
 mod:SetHotfixNoticeRev(20240818000000)
 mod:SetMinSyncRevision(20240818000000)
+mod:SetZone(2669)
+
 --mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
 
+mod:RegisterEvents(
+	"CHAT_MSG_MONSTER_SAY"
+)
+
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 441384 441381 439621 440468 439692 440218 440238",
 --	"SPELL_CAST_SUCCESS 440419",
-	"SPELL_AURA_APPLIED 441298 458741 440238",
+	"SPELL_AURA_APPLIED 441298 458741 440238"
 --	"SPELL_AURA_REMOVED 439989"
 --	"SPELL_PERIODIC_DAMAGE",
 --	"SPELL_PERIODIC_MISSED",
-	"CHAT_MSG_MONSTER_SAY"
 --	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
 
@@ -39,8 +44,8 @@ local timerNextSwapCD						= mod:NewCDCountTimer(44.9, 439989, nil, nil, nil, 6)
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(28876))
 local warnIceSickles						= mod:NewTargetNoFilterAnnounce(440238, 3, nil, "RemoveMagic")
 
-local specWarnShadeSlash					= mod:NewSpecialWarningDodgeCount(439621, nil, nil, nil, 1, 2)
-local specWarnDuskbringer					= mod:NewSpecialWarningDodgeCount(439692, nil, nil, nil, 2, 2)
+local specWarnShadeSlash					= mod:NewSpecialWarningDodgeCount(439621, nil, nil, nil, 1, 15)
+local specWarnDuskbringer					= mod:NewSpecialWarningDodgeCount(439692, nil, nil, nil, 2, 15)
 --local specWarnGTFO						= mod:NewSpecialWarningGTFO(372820, nil, nil, nil, 1, 8)
 
 local timerShadeSlashCD						= mod:NewCDCountTimer(7.8, 439621, nil, "Tank|Healer", nil, 5)
@@ -115,7 +120,7 @@ function mod:SPELL_CAST_START(args)
 		end
 		if self:IsTanking("player", nil, nil, true, args.sourceGUID) then
 			specWarnShadeSlash:Show(self.vb.tankCount)
-			specWarnShadeSlash:Play("defensive")
+			specWarnShadeSlash:Play("frontal")
 		end
 	elseif spellId == 440468 then
 		self.vb.tankCount = self.vb.tankCount + 1
@@ -125,7 +130,7 @@ function mod:SPELL_CAST_START(args)
 		end
 		if self:IsTanking("player", nil, nil, true, args.sourceGUID) then
 			specWarnRimeDagger:Show()
-			specWarnRimeDagger:Play("defensive")
+			specWarnRimeDagger:Play("frontal")
 		end
 	elseif spellId == 439692 then
 		self.vb.duskCount = self.vb.duskCount + 1

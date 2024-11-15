@@ -1,11 +1,12 @@
 local mod	= DBM:NewMod(2573, "DBM-Party-WarWithin", 2, 1267)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241014005918")
+mod:SetRevision("20241102154000")
 mod:SetCreatureID(207940)
 mod:SetEncounterID(2848)
 mod:SetHotfixNoticeRev(20240608000000)
 --mod:SetMinSyncRevision(20211203000000)
+mod:SetZone(2649)
 --mod.respawnTime = 29
 mod.sendMainBossGUID = true
 

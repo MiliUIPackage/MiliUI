@@ -19,8 +19,8 @@ local ActiveGUIDs = {}--GUIDS we're flagged in combat with
 local inCombat = false
 local currentZone = DBM:GetCurrentArea() or 0
 --Only up to two cached mods at a time, since it's unlikely more than 2 mods will be scanning units at once
-local affixesMod
-local lastUsedMod
+local affixesMod--Mythic+ or Raid affixes module
+local lastUsedMod--Trash module for given zone
 local cachedMods = {}
 
 ---Scan for new Unit Engages
@@ -37,7 +37,7 @@ local function ScanEngagedUnits(self)
 				ActiveGUIDs[guid] = true
 				local cid = DBM:GetCIDFromGUID(guid)
 				self:StartNameplateTimers(guid, cid, 0)
-				DBM:Debug("Firing Engaged Unit for "..cid, 3, nil, true)
+				DBM:Debug("Firing Engaged Unit for "..guid, 3, nil, true)
 			end
 		end
 	end
@@ -51,7 +51,7 @@ local function ScanEngagedUnits(self)
 					ActiveGUIDs[guid] = true
 					local cid = DBM:GetCIDFromGUID(guid)
 					self:StartNameplateTimers(guid, cid, 0.5)
-					DBM:Debug("Firing Engaged Unit for "..cid, 3, nil, true)
+					DBM:Debug("Firing Engaged Unit for "..guid, 3, nil, true)
 				end
 			end
 		end
@@ -64,7 +64,7 @@ local function checkForCombat()
 	local combatFound = DBM:GroupInCombat()
 	if combatFound and not inCombat then
 		inCombat = true
-		DBM:Debug("Zone Combat Detected", 2)
+		DBM:Debug("Zone Combat Detected", 2, nil, true)
 		if affixesMod then
 			affixesMod:EnteringZoneCombat()
 		end
@@ -80,7 +80,7 @@ local function checkForCombat()
 	elseif not combatFound and inCombat then
 		inCombat = false
 		table.wipe(ActiveGUIDs)--if no one is in combat, save to assume all engaged units gone
-		DBM:Debug("Zone Combat Ended", 2)
+		DBM:Debug("Zone Combat Ended", 2, nil, true)
 		if affixesMod then
 			affixesMod:LeavingZoneCombat()
 		end
@@ -119,6 +119,8 @@ local function DelayedZoneCheck(force)
 	end
 end
 --Monitor bitflag of players, which should change with combat states
+--Only party is monitored because main use case is dungeons and delves.
+--And we don't want to waste performance in registered raids. 5 players should be enough to determine raid combat
 function module:UNIT_FLAGS()
 	DBM:Unschedule(checkForCombat)
 	--Use throttled delay to avoid checks running too often when multiple flags change at once

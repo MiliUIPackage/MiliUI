@@ -1,8 +1,23 @@
 local mod	= DBM:NewMod("DelveTrashCommon", "DBM-Delves-WarWithin")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240929004817")
+mod:SetRevision("20241115080816")
 mod:SetZone(DBM_DISABLE_ZONE_DETECTION)--Stays active in all zones for zone change handlers, but registers events based on dungeon ids
+--2664, 2679, 2680, 2681, 2683, 2684, 2685, 2686, 2687, 2688, 2689, 2690, 2767, 2768
+mod:RegisterZoneCombat(2664)
+mod:RegisterZoneCombat(2679)
+mod:RegisterZoneCombat(2680)
+mod:RegisterZoneCombat(2681)
+mod:RegisterZoneCombat(2683)
+mod:RegisterZoneCombat(2684)
+mod:RegisterZoneCombat(2685)
+mod:RegisterZoneCombat(2686)
+mod:RegisterZoneCombat(2687)
+mod:RegisterZoneCombat(2688)
+mod:RegisterZoneCombat(2689)
+mod:RegisterZoneCombat(2690)
+mod:RegisterZoneCombat(2767)
+mod:RegisterZoneCombat(2768)
 
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
@@ -36,15 +51,18 @@ local warnBloatedEruption					= mod:NewCastAnnounce(424798, 4)
 local warnBattleRoar						= mod:NewCastAnnounce(414944, 3)
 local warnVineSpear							= mod:NewCastAnnounce(424891, 3, nil, nil, nil, nil, nil, 15)--Move to NewSpecialWarningDodge?
 local warnSkitterCharge						= mod:NewCastAnnounce(450197, 3, nil, nil, nil, nil, nil, 2)
+local warnShadowBarrier						= mod:NewCastAnnounce(434740, 3, nil, nil, nil, nil, nil, 2)
 local warnWicklighterVolley					= mod:NewCastAnnounce(445191, 3)
 local warnSkullCracker						= mod:NewCastAnnounce(462686, 3)
 local warnThrashingFrenzy					= mod:NewCastAnnounce(445774, 3)
 local warnEnfeeblingSpittle					= mod:NewCastAnnounce(450505, 2)
 local warnWideSwipe							= mod:NewCastAnnounce(450509, 3)
+local warnMagmaHammer						= mod:NewCastAnnounce(445718, 3)
 local warnEnrage							= mod:NewSpellAnnounce(448161, 3)
 local warnThrowDyno							= mod:NewSpellAnnounce(448600, 3)
 
 local specWarnSpearFish						= mod:NewSpecialWarningYou(430036, nil, nil, nil, 2, 12)
+local specWarnFungalBloom					= mod:NewSpecialWarningSpell(415250, nil, nil, nil, 2, 2)
 local specWarnFearfulShriek					= mod:NewSpecialWarningDodge(433410, nil, nil, nil, 2, 2)
 local specWarnJaggedBarbs					= mod:NewSpecialWarningDodge(450714, nil, nil, nil, 2, 15)--11-26
 local specWarnLavablast	    				= mod:NewSpecialWarningDodge(445781, nil, nil, nil, 2, 15)
@@ -56,7 +74,7 @@ local specWarnDefilingBreath				= mod:NewSpecialWarningDodge(455932, nil, nil, n
 local specWarnSerratedCleave				= mod:NewSpecialWarningDodge(445492, nil, nil, nil, 2, 15)--32.7
 local specWarnSpotted						= mod:NewSpecialWarningDodge(441129, nil, nil, nil, 2, 2)
 local specWarnFireCharge					= mod:NewSpecialWarningDodge(445210, nil, nil, nil, 2, 2)
-local specWarnUmbralSlam					= mod:NewSpecialWarningDodge(443292, nil, nil, nil, 2, 15)
+local specWarnUmbralSlam					= mod:NewSpecialWarningDodge(443292, nil, nil, nil, 2, 15)--30.0?
 local specWarnUmbralSlash					= mod:NewSpecialWarningDodge(418295, nil, nil, nil, 2, 15)
 local specWarnAnglersWeb					= mod:NewSpecialWarningDodge(450519, nil, nil, nil, 2, 15)
 local specWarnShockwaveTremors				= mod:NewSpecialWarningDodge(448155, nil, nil, nil, 2, 15)--9.7-15.8
@@ -65,6 +83,7 @@ local specWarnNecroticEnd					= mod:NewSpecialWarningRun(445252, nil, nil, nil, 
 local specWarnHorrendousRoar				= mod:NewSpecialWarningRun(450492, nil, nil, nil, 4, 2)
 local specWarnCurseoftheDepths				= mod:NewSpecialWarningDispel(440622, "RemoveCurse", nil, nil, 1, 2)
 local specWarnEnrageDispel					= mod:NewSpecialWarningDispel(448161, "RemoveEnrage", nil, nil, 1, 2)
+local specWarnBlessingofDuskDispel			= mod:NewSpecialWarningDispel(470592, "MagicDispeller", nil, nil, 1, 2)--Used by most speakers, boss and trash alike
 local specWarnShadowsofStrife				= mod:NewSpecialWarningInterrupt(449318, "HasInterrupt", nil, nil, 1, 2)--High Prio Interrupt
 local specWarnWebbedAegis					= mod:NewSpecialWarningInterrupt(450546, "HasInterrupt", nil, nil, 1, 2)
 local specWarnRotWaveVolley					= mod:NewSpecialWarningInterrupt(425040, "HasInterrupt", nil, nil, 1, 2)
@@ -72,12 +91,14 @@ local specWarnCastigate						= mod:NewSpecialWarningInterrupt(418297, "HasInterr
 local specWarnBattleCry						= mod:NewSpecialWarningInterrupt(448399, "HasInterrupt", nil, nil, 1, 2)
 local specWarnHolyLight						= mod:NewSpecialWarningInterrupt(459421, "HasInterrupt", nil, nil, 1, 2)
 local specWarnArmoredShell					= mod:NewSpecialWarningInterrupt(448179, "HasInterrupt", nil, nil, 1, 2)
+local specWarnBlessingofDusk				= mod:NewSpecialWarningInterrupt(470592, "HasInterrupt", nil, nil, 1, 2)--Speaker Davenruth
 local specWarnEnfeeblingSpittleInterrupt	= mod:NewSpecialWarningInterrupt(450505, nil, nil, nil, 1, 2)
 
 local timerFearfulShriekCD					= mod:NewCDPNPTimer(13.4, 433410, nil, nil, nil, 3)
 local timerShadowsofStrifeCD				= mod:NewCDNPTimer(15.6, 449318, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerRotWaveVolleyCD					= mod:NewCDNPTimer(15.2, 425040, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--15.2-17
 local timerWebbedAegisCD					= mod:NewCDNPTimer(15.8, 450546, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--14.6 BUT enemies can skip casts sometimes and make it 29.1
+local timerMagmaHammerCD					= mod:NewCDNPTimer(8.5, 445718, nil, nil, nil, 5)
 local timerLavablastCD					    = mod:NewCDNPTimer(15.8, 445781, nil, nil, nil, 3)
 local timerLavablast						= mod:NewCastNPTimer(3, 445781, DBM_COMMON_L.FRONTAL, nil, nil, 5)
 local timerBlazingWickCD					= mod:NewCDPNPTimer(14.6, 449071, nil, nil, nil, 3)
@@ -88,7 +109,8 @@ local timerBladeTossCD						= mod:NewCDNPTimer(15.4, 418791, nil, nil, nil, 3)
 local timerVineSpearCD						= mod:NewCDNPTimer(14.9, 424891, nil, nil, nil, 3)
 local timerRelocateCD						= mod:NewCDNPTimer(70, 427812, nil, nil, nil, 3)
 local timerSkitterChargeCD					= mod:NewCDNPTimer(12.2, 450197, nil, nil, nil, 3)
-local timerFungalBreathCD					= mod:NewCDNPTimer(15.4, 415253, nil, nil, nil, 3)
+local timerFungalBreathCD					= mod:NewCDNPTimer(15.4, 415253, nil, nil, nil, 3)--28 now?
+local timerUmbralSlamCD						= mod:NewCDNPTimer(30, 443292, nil, nil, nil, 3)
 local timerUmbrelSlashCD					= mod:NewCDNPTimer(17.8, 418295, nil, nil, nil, 3)
 local timerCastigateCD						= mod:NewCDPNPTimer(17.8, 418297, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerBattleCryCD						= mod:NewCDNPTimer(30.3, 448399, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
@@ -103,6 +125,8 @@ local timerJaggedBarbs						= mod:NewCastNPTimer(3, 450714, DBM_COMMON_L.FRONTAL
 local timerEnrageCD							= mod:NewCDNPTimer(23, 448161, nil, nil, nil, 5)
 local timerArmorShellCD						= mod:NewCDNPTimer(24, 448179, nil, nil, nil, 4)
 local timerWideSwipeCD						= mod:NewCDNPTimer(8, 450509, nil, nil, nil, 3)
+local timerFungalBloomCD					= mod:NewCDNPTimer(25.1, 415250, nil, nil, nil, 2)
+local timerShadowStrikeCD					= mod:NewCDNPTimer(15.8, 443162, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 
 --Antispam IDs for this mod: 1 run away, 2 dodge, 3 dispel, 4 incoming damage, 5 you/role, 6 misc, 7 off interrupt
 
@@ -114,10 +138,10 @@ do
 		if not force and validZones[currentZone] and not eventsRegistered then
 			eventsRegistered = true
 			self:RegisterShortTermEvents(
-                "SPELL_CAST_START 449318 450546 433410 450714 445781 415253 425040 424704 424798 414944 418791 424891 450197 448399 445191 455932 445492 434281 450637 445210 448528 449071 462686 459421 448179 445774 443292 450492 450519 450505 450509 448155 448161 418295",
-                "SPELL_CAST_SUCCESS 414944 424614 418791 424891 427812 450546 450197 415253 449318 445191 430036 445252 425040 424704 448399 448528 433410 445492 462686 447392 459421 448179 450509",
+                "SPELL_CAST_START 449318 450546 433410 450714 445781 415253 425040 424704 424798 414944 418791 424891 450197 448399 445191 455932 445492 434281 450637 445210 448528 449071 462686 459421 448179 445774 443292 450492 450519 450505 450509 448155 448161 418295 415250 434740 470592 443482 458879 445718",
+                "SPELL_CAST_SUCCESS 414944 424614 418791 424891 427812 450546 450197 415253 449318 445191 430036 445252 425040 424704 448399 448528 433410 445492 462686 447392 459421 448179 450509 415250 443162 443292",
 				"SPELL_INTERRUPT",
-                "SPELL_AURA_APPLIED 424614 449071 418297 430036 440622 441129 448161",
+                "SPELL_AURA_APPLIED 424614 449071 418297 430036 440622 441129 448161 470592 443482 458879",
                 --"SPELL_AURA_REMOVED",
                 --"SPELL_PERIODIC_DAMAGE",
                 "UNIT_DIED"
@@ -316,6 +340,24 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif args.spellId == 448161 then
 		timerEnrageCD:Start(nil, args.sourceGUID)
+	elseif args.spellId == 415250 then
+		if self:AntiSpam(3, 4) then
+			specWarnFungalBloom:Show()
+			specWarnFungalBloom:Play("aesoon")
+		end
+	elseif args.spellId == 434740 then
+		if self:AntiSpam(3, 2) then
+			warnShadowBarrier:Show()
+			warnShadowBarrier:Play("crowdcontrol")
+		end
+	elseif args.spellId == 470592 or args.spellId == 443482 or args.spellId == 458879 then--Varous versions of this spell
+		specWarnBlessingofDusk:Show(args.sourceName)
+		specWarnBlessingofDusk:Play("kickcast")
+	elseif args.spellId == 445718 then
+		timerMagmaHammerCD:Start(nil, args.sourceGUID)
+		if self:IsTanking("player", nil, nil, nil, args.sourceGUID) and self:AntiSpam(3, 5) then
+			warnMagmaHammer:Show()
+		end
 	end
 end
 
@@ -377,6 +419,12 @@ function mod:SPELL_CAST_SUCCESS(args)
 		timerArmorShellCD:Start(24, args.sourceGUID)
 	elseif args.spellId == 450509 then
 		timerWideSwipeCD:Start(7.9, args.sourceGUID)--7.9-8.5
+	elseif args.spellId == 415250 then
+		timerFungalBloomCD:Start(nil, args.sourceGUID)
+	elseif args.spellId == 443162 then
+		timerShadowStrikeCD:Start(8.2, args.sourceGUID)--8.2-8.7
+	elseif args.spellId == 443292 then
+		timerUmbralSlamCD:Start(27, args.sourceGUID)
 	end
 end
 
@@ -410,6 +458,8 @@ function mod:SPELL_INTERRUPT(args)
 		timerHolyLightCD:Start(14.5, args.destGUID)--17-2.5
 	elseif args.extraSpellId == 448179 then
 		timerArmorShellCD:Start(24, args.destGUID)
+	elseif args.extraSpellId == 443162 then
+		timerShadowStrikeCD:Start(8.2, args.destGUID)--8.2-8.7
 	end
 end
 
@@ -451,6 +501,9 @@ function mod:SPELL_AURA_APPLIED(args)
 		else
 			warnEnrage:Show()
 		end
+	elseif args.spellId == 470592 or args.spellId == 443482 or args.spellId == 458879 then
+		specWarnBlessingofDuskDispel:Show(args.destName)
+		specWarnBlessingofDuskDispel:Play("dispelboss")
 	end
 end
 
@@ -482,6 +535,7 @@ function mod:UNIT_DIED(args)
     elseif cid == 223541 then--Stolen Loader
         timerLavablastCD:Stop(args.destGUID)
 		timerLavablast:Stop(args.destGUID)
+		timerMagmaHammerCD:Stop(args.destGUID)
 	elseif cid == 207460 then--Fungarian Flinger
 		timerRotWaveVolleyCD:Stop(args.destGUID)
 	elseif cid == 204127 then--Kobold Taskfinder
@@ -505,6 +559,7 @@ function mod:UNIT_DIED(args)
 		timerSkitterChargeCD:Stop(args.destGUID)
 	elseif cid == 207482 then--Invasive Sporecap
 		timerFungalBreathCD:Stop(args.destGUID)
+		timerFungalBloomCD:Stop(args.destGUID)
 	elseif cid == 208728 then--Treasure Wraith
 		timerCastigateCD:Stop(args.destGUID)
 		timerUmbrelSlashCD:Stop(args.destGUID)
@@ -525,5 +580,67 @@ function mod:UNIT_DIED(args)
 	elseif cid == 219454 then--Crazed Abomination
 		timerEnrageCD:Stop(args.destGUID)
 		timerArmorShellCD:Stop(args.destGUID)
+	elseif cid == 217870 then--Devouring Shade
+		timerShadowStrikeCD:Stop(args.destGUID)
+		timerUmbralSlamCD:Stop(args.destGUID)
 	end
+end
+
+--All timers subject to a ~0.5 second clipping due to ScanEngagedUnits
+function mod:StartNameplateTimers(guid, cid)
+	if cid == 216584 then--Nerubian Captain
+		timerWebbedAegisCD:Start(6, guid)--Recheck with even better zone debug
+		timerWideSwipeCD:Start(9.5, guid)--Recheck with even better zone debug
+	elseif cid == 208242 then--Nerubian Darkcaster
+		timerShadowsofStrifeCD:Start(11.2, guid)
+	elseif cid == 223541 then--Stolen Loader
+		timerMagmaHammerCD:Start(5.9, guid)
+		timerLavablastCD:Start(12, guid)
+	elseif cid == 207460 then--Fungarian Flinger
+--		timerRotWaveVolleyCD:Start(9.4, guid)
+	elseif cid == 204127 then--Kobold Taskfinder
+--		timerBlazingWickCD:Start(14.6, guid)
+--		timerBattleCryCD:Start(30.3, guid)
+	elseif cid == 207454 then--Fungal Gutter
+--		timerBattleRoarCD:Start(19.9, guid)
+--		timerViciousStabsCD:Start(14, guid)
+	elseif cid == 207456 then--Fungal Speartender
+--		timerBattleRoarCD:Start(9.9, guid)
+	elseif cid == 207450 then--Fungal Stabber
+--		timerDebilitatingVenomCD:Start(13.3, guid)
+	elseif cid == 211062 then--Bill
+--		timerBladeTossCD:Start(12.1, guid)
+	elseif cid == 207455 then--Fungal Speartender
+--		timerVineSpearCD:Start(14.9, guid)
+	elseif cid == 213434 then--Sporesong
+--		timerRelocateCD:Start(70, guid)
+	elseif cid == 208245 or cid == 220508 then--Skittering Swarmer & The Puppetmaster?
+--		timerSkitterChargeCD:Start(12.5, guid)
+	elseif cid == 207482 then--Invasive Sporecap
+		timerFungalBreathCD:Start(6, guid)
+		timerFungalBloomCD:Start(10.9, guid)
+	elseif cid == 208728 then--Treasure Wraith
+--		timerCastigateCD:Start(17.8, guid)
+--		timerUmbrelSlashCD:Start(17.8, guid)
+	elseif cid == 214338 then--Kobyss Spearfisher
+		timerSpearFishCD:Start(9.2, guid)
+	elseif cid == 211777 then--Spitfire Fusetender
+--		timerThrowDynoCD:Start(7.2, guid)
+	elseif cid == 214551 then--Wandering Gutter
+--		timerSerratedCleaveCD:Start(32.7, guid)
+	elseif cid == 216583 then--Chittering Fearmonger
+		timerFearfulShriekCD:Start(3.6, guid)
+	elseif cid == 219454 then--Crazed Abomination
+--		timerEnrageCD:Start(23, guid)
+--		timerArmorShellCD:Start(24, guid)
+	elseif cid == 217870 then--Devouring Shade
+		timerShadowStrikeCD:Start(5, guid)
+		timerUmbralSlamCD:Start(11.2, guid)
+	end
+end
+
+--Abort timers when all players out of combat, so NP timers clear on a wipe
+--Caveat, it won't calls top with GUIDs, so while it might terminate bar objects, it may leave lingering nameplate icons
+function mod:LeavingZoneCombat()
+	self:Stop()
 end

@@ -1,30 +1,26 @@
 local mod	= DBM:NewMod(2609, "DBM-Raids-WarWithin", 1, 1273)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240918233817")
+mod:SetRevision("20241115064251")
 mod:SetCreatureID(214504)
 mod:SetEncounterID(2918)
---mod:SetUsedIcons(1, 2, 3)
-mod:SetHotfixNoticeRev(20240818000000)
+mod:SetHotfixNoticeRev(20241115000000)
 mod:SetMinSyncRevision(20240720000000)
+mod:SetZone(2657)
 mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 444687 439789 455373 439784 439795 439811 454989 452806 456853 456762",
-	"SPELL_AURA_APPLIED 458067",
+	"SPELL_AURA_APPLIED 458067 439776",
 	"SPELL_AURA_APPLIED_DOSE 458067",
-	"SPELL_INTERRUPT"
---	"SPELL_PERIODIC_DAMAGE",
---	"SPELL_PERIODIC_MISSED",
+	"SPELL_INTERRUPT",
+	"SPELL_PERIODIC_DAMAGE 439776",
+	"SPELL_PERIODIC_MISSED 439776"
 --	"UNIT_SPELLCAST_START boss1"
 )
 
---TODO, maybe auto mark https://www.wowhead.com/beta/spell=434579/corrosion so still assign clears by icon
---TODO, maybe use https://www.wowhead.com/beta/spell=455287/infested-bite to announce or mark infested spawns after the fact for healing?
---TODO, emphasize Enveloping webs cast itself? will probably only have a soon warning for it that's emphasized with a precise timer
---TODO, change option keys to match BW for weak aura compatability before live
 --[[
 (ability.id = 444687 or ability.id = 439789 or ability.id = 455373 or ability.id = 439784 or ability.id = 439795 or ability.id = 439811 or ability.id = 454989 or ability.id = 452806 or ability.id = 456853 or ability.id = 456841) and type = "begincast"
 or ability.id = 456762 and type = "begincast"
@@ -35,16 +31,14 @@ local warnRollingAcid							= mod:NewIncomingCountAnnounce(439789, 2, nil, nil, 
 local warnInfestedSpawn							= mod:NewIncomingCountAnnounce(455373, 2)
 local warnSpinneretsStrands						= mod:NewIncomingCountAnnounce(439784, 3)--General announce, private aura sound will be personal emphasis
 local warnErosiveSpray							= mod:NewCountAnnounce(439811, 2, nil, nil, 123121)--Shortname "Spray"
-local warnEnvelopingWebs						= mod:NewCountAnnounce(454989, 4, nil, nil, 157317)--Shortname "Webs"
 local warnAcidEruption							= mod:NewCastAnnounce(452806, 4)
 
 local specWarnSavageAssault						= mod:NewSpecialWarningDefensive(444687, nil, nil, nil, 1, 2)
-local specWarnSavageWoundSwap					= mod:NewSpecialWarningTaunt(458067, nil, nil, nil, 1, 2)
+local specWarnSavageAssaultTaunt				= mod:NewSpecialWarningTaunt(444687, nil, nil, nil, 1, 2)
 local specWarnWebReave							= mod:NewSpecialWarningCount(439795, nil, nil, DBM_COMMON_L.GROUPSOAK, 2, 2)
---local yellWebReave							= mod:NewShortYell(439795, DBM_COMMON_L.GROUPSOAK, nil, nil, "YELL")
---local yellSearingAftermathFades				= mod:NewShortFadesYell(422577)
+local specWarnEvellpingWebs						= mod:NewSpecialWarningDodgeCount(454989, nil, 157317, nil, 2, 2)
 local specWarnAcidEruption						= mod:NewSpecialWarningInterrupt(452806, "HasInterrupt", nil, nil, 1, 2)
---local specWarnGTFO							= mod:NewSpecialWarningGTFO(421532, nil, nil, nil, 1, 8)
+local specWarnGTFO								= mod:NewSpecialWarningGTFO(421532, nil, nil, nil, 1, 8)
 
 local timerSavageAssaultCD						= mod:NewCDCountTimer(49, 444687, DBM_COMMON_L.TANKDEBUFF.." (%s)", "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerRollingAcidCD						= mod:NewCDCountTimer(21.3, 439789, 437704, nil, nil, 3)--Shortname "Toxic Waves"
@@ -52,7 +46,7 @@ local timerInfestedSpawnCD						= mod:NewCDCountTimer(21.3, 455373, DBM_COMMON_L
 local timerSpinneretsStrandsCD					= mod:NewCDCountTimer(33.9, 439784, nil, nil, nil, 3)
 local timerWebReaveCD							= mod:NewCDCountTimer(49, 439795, DBM_COMMON_L.GROUPSOAK.." (%s)", nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
 local timerErosiveSprayCD						= mod:NewCDCountTimer(49, 439811, 123121, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)--Shortname "Spray"
-local timerEnvelopingWebsCD						= mod:NewCDCountTimer(49, 454989, 157317, nil, nil, 3, nil, DBM_COMMON_L.MYTHIC_ICON)--Shortname "Webs"
+local timerEnvelopingWebsCD						= mod:NewCDCountTimer(49, 454989, 157317, nil, nil, 3, nil, DBM_COMMON_L.MYTHIC_ICON, nil, 1)--Shortname "Webs"
 local timerMovementCD							= mod:NewStageContextCountTimer(49, 334371, nil, nil, nil, 6, 178717)
 
 mod:AddPrivateAuraSoundOption(439790, true, 439789, 1)--Rolling Acid target
@@ -77,6 +71,7 @@ mod.vb.envelopingCount = 0
 --Totals that don't need phase counts
 mod.vb.reaveCount = 0
 mod.vb.movementCount = 0
+mod.vb.acidAdjust = 2
 
 local savedDifficulty = "heroic"
 --LFR and normal are MOSTLY the same, but there are minor differences in some timers, so they are separated
@@ -344,7 +339,7 @@ local allTimers = {
 			--Erosive Spray
 			[439811] = {8.1, 40},
 			--Infested Spawn
-			[455373] = {18.8},
+			[455373] = {18.7},
 			--Rolling Acid
 			[439789] = {35},
 			--Savage Assault
@@ -372,7 +367,7 @@ local allTimers = {
 			--Erosive Spray
 			[439811] = {23.6, 25},
 			--Infested Spawn
-			[455373] = {14.3, 20},
+			[455373] = {0},--Not cast on this movement
 			--Rolling Acid
 			[439789] = {15.8},
 			--Savage Assault
@@ -386,7 +381,7 @@ local allTimers = {
 			--Erosive Spray
 			[439811] = {23.6, 25},
 			--Infested Spawn
-			[455373] = {14.4, 24.7},
+			[455373] = {14.3, 20},
 			--Rolling Acid
 			[439789] = {0},--Not cast on 4th area
 			--Savage Assault
@@ -400,7 +395,7 @@ local allTimers = {
 			--Erosive Spray
 			[439811] = {23.6, 25},
 			--Infested Spawn
-			[455373] = {19.1},
+			[455373] = {14.4, 24.7},
 			--Rolling Acid
 			[439789] = {20.6},
 			--Savage Assault
@@ -414,7 +409,7 @@ local allTimers = {
 			--Erosive Spray
 			[439811] = {0},
 			--Infested Spawn
-			[455373] = {0},
+			[455373] = {19.1},
 			--Rolling Acid
 			[439789] = {0},
 			--Savage Assault
@@ -461,15 +456,19 @@ function mod:OnCombatStart(delay)
 	if self:IsMythic() then
 		savedDifficulty = "mythic"
 		timerEnvelopingWebsCD:Start(38-delay, 1)
+		self.vb.acidAdjust = 2
 	elseif self:IsHeroic() then
 		savedDifficulty = "heroic"
+		self.vb.acidAdjust = 2
 	elseif self:IsNormal() then
 		savedDifficulty = "normal"
+		self.vb.acidAdjust = 3
 	else--LFR
 		savedDifficulty = "lfr"
+		self.vb.acidAdjust = 3
 	end
 	timerSavageAssaultCD:Start(allTimers[savedDifficulty][1][444687][1]-delay, 1)
-	timerRollingAcidCD:Start(allTimers[savedDifficulty][1][439789][1]-delay, 1)
+	timerRollingAcidCD:Start(allTimers[savedDifficulty][1][439789][1] - self.vb.acidAdjust, 1)
 	timerInfestedSpawnCD:Start(allTimers[savedDifficulty][1][455373][1]-delay, 1)
 	timerSpinneretsStrandsCD:Start(allTimers[savedDifficulty][1][439784][1]-delay, 1)
 	timerErosiveSprayCD:Start(allTimers[savedDifficulty][1][439811][1]-delay, 1)
@@ -494,6 +493,13 @@ function mod:OnTimerRecovery()
 	end
 end
 
+---@param self DBMMod
+local function delayedTankCheck(self)
+	local bossTarget = self:GetBossTarget(214504) or DBM_COMMON_L.UNKNOWN
+	specWarnSavageAssaultTaunt:Show(bossTarget)
+	specWarnSavageAssaultTaunt:Play("tauntboss")
+end
+
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
 	if spellId == 444687 then
@@ -502,6 +508,9 @@ function mod:SPELL_CAST_START(args)
 		if self:IsTanking("player", "boss1", nil, true) then
 			specWarnSavageAssault:Show()
 			specWarnSavageAssault:Play("defensive")
+		else
+			--Delayed so it doesn't grab invalid target since boss might be looking at previous target on first frame
+			self:Schedule(0.3, delayedTankCheck, self)
 		end
 		local timer = self:GetFromTimersTable(allTimers, savedDifficulty, self.vb.phase, spellId, self.vb.assaultCount+1)
 		if timer then
@@ -513,7 +522,7 @@ function mod:SPELL_CAST_START(args)
 		warnRollingAcid:Show(self.vb.rollingCountTotal)
 		local timer = self:GetFromTimersTable(allTimers, savedDifficulty, self.vb.phase, spellId, self.vb.rollingCount+1)
 		if timer then
-			timerRollingAcidCD:Start(timer, self.vb.rollingCountTotal+1)
+			timerRollingAcidCD:Start(timer - self.vb.acidAdjust, self.vb.rollingCountTotal+1)
 		end
 	elseif spellId == 455373 then
 		self.vb.spawnCountTotal = self.vb.spawnCountTotal + 1
@@ -550,7 +559,8 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 454989 then--Mythic
 		self.vb.envelopingCountTotal = self.vb.envelopingCountTotal + 1
 		self.vb.envelopingCount = self.vb.envelopingCount + 1
-		warnEnvelopingWebs:Show(self.vb.envelopingCountTotal)
+		specWarnEvellpingWebs:Show(self.vb.envelopingCountTotal)
+		specWarnEvellpingWebs:Play("watchstep")
 		local timer = self:GetFromTimersTable(allTimers, savedDifficulty, self.vb.phase, spellId, self.vb.envelopingCount+1)
 		if timer then
 			timerEnvelopingWebsCD:Start(timer, self.vb.envelopingCountTotal+1)
@@ -573,15 +583,10 @@ end
 function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
 	if spellId == 458067 then
-		local uId = DBM:GetRaidUnitId(args.destName)
-		if self:IsTanking(uId) then
-			if not DBM:UnitDebuff("player", spellId) and not UnitIsDeadOrGhost("player") then
-				specWarnSavageWoundSwap:Show(args.destName)
-				specWarnSavageWoundSwap:Play("tauntboss")
-			else
-				warnSavageWound:Show(args.destName, args.amount or 1)
-			end
-		end
+		warnSavageWound:Show(args.destName, args.amount or 1)
+	elseif spellId == 439776 and args:IsPlayer() and self:AntiSpam(3, 1) then
+		specWarnGTFO:Show(args.spellName)
+		specWarnGTFO:Play("watchfeet")
 	end
 end
 mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
@@ -602,7 +607,7 @@ function mod:SPELL_INTERRUPT(args)
 			timerEnvelopingWebsCD:Start(allTimers[savedDifficulty][self.vb.phase][454989][1], self.vb.envelopingCountTotal+1)
 		end
 		timerSavageAssaultCD:Start(allTimers[savedDifficulty][self.vb.phase][444687][1], self.vb.assaultCountTotal+1)
-		timerRollingAcidCD:Start(allTimers[savedDifficulty][self.vb.phase][439789][1], self.vb.rollingCountTotal+1)
+		timerRollingAcidCD:Start(allTimers[savedDifficulty][self.vb.phase][439789][1] - self.vb.acidAdjust, self.vb.rollingCountTotal+1)
 		timerInfestedSpawnCD:Start(allTimers[savedDifficulty][self.vb.phase][455373][1], self.vb.spawnCountTotal+1)
 		timerSpinneretsStrandsCD:Start(allTimers[savedDifficulty][self.vb.phase][439784][1], self.vb.strandsCountTotal+1)
 		timerErosiveSprayCD:Start(allTimers[savedDifficulty][self.vb.phase][439811][1], self.vb.sprayCountTotal+1)
@@ -610,25 +615,10 @@ function mod:SPELL_INTERRUPT(args)
 	end
 end
 
---[[
 function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId, spellName)
-	if spellId == 421532 and destGUID == UnitGUID("player") and self:AntiSpam(2, 2) then
+	if spellId == 439776 and destGUID == UnitGUID("player") and self:AntiSpam(3, 1) then
 		specWarnGTFO:Show(spellName)
 		specWarnGTFO:Play("watchfeet")
 	end
 end
 mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
---]]
-
---function mod:WebReaveTarget(targetname)
---	if not targetname then return end
---	if targetname == UnitName("player") then
---		yellWebReave:Yell()
---	end
---end
-
---function mod:UNIT_SPELLCAST_START(uId, _, spellId)
---	if spellId == 439795 then
---		self:BossUnitTargetScanner(uId, "WebReaveTarget")
---	end
---end

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2395, "DBM-Party-Shadowlands", 1, 1182)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241019035707")
+mod:SetRevision("20241111101136")
 mod:SetCreatureID(162691)
 mod:SetEncounterID(2387)
 mod:SetHotfixNoticeRev(20240817000000)
@@ -29,7 +29,7 @@ local yellHeavingRetch				= mod:NewYell(320596)
 local specWarnCrunch				= mod:NewSpecialWarningDefensive(320655, nil, nil, nil, 1, 2)
 local specWarnGTFO					= mod:NewSpecialWarningGTFO(320646, nil, nil, nil, 1, 8)
 
-local timerHeavingRetchCD			= mod:NewCDCountTimer(32.7, 320596, nil, nil, nil, 3)--32.7-42
+local timerHeavingRetchCD			= mod:NewCDCountTimer(32.5, 320596, nil, nil, nil, 3)--32.7-42
 local timerFetidGasCD				= mod:NewCDCountTimer(25.4, 320637, nil, nil, nil, 3)
 local timerCrunchCD					= mod:NewCDCountTimer(12.1, 320655, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--11-20, spell queues behind other 2 casts
 
@@ -79,7 +79,7 @@ function mod:OnCombatStart(delay)
 	self.vb.gasCount = 0
 	self.vb.crunchCount = 0
 	timerCrunchCD:Start(5-delay, 1)
-	timerHeavingRetchCD:Start(10.6-delay, 1)
+	timerHeavingRetchCD:Start(10.3-delay, 1)
 	timerFetidGasCD:Start(22-delay, 1)
 end
 

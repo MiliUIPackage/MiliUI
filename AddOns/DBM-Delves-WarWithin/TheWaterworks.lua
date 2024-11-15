@@ -1,9 +1,10 @@
 local mod	= DBM:NewMod("z2683", "DBM-Delves-WarWithin")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240917133347")
+mod:SetRevision("20241102154000")
 mod:SetHotfixNoticeRev(20240422000000)
 mod:SetMinSyncRevision(20240422000000)
+mod:SetZone(2683)
 
 mod:RegisterCombat("scenario", 2683)
 

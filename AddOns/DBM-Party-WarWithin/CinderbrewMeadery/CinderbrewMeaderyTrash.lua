@@ -1,12 +1,15 @@
 local mod	= DBM:NewMod("CinderbrewMeaderyTrash", "DBM-Party-WarWithin", 7)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241020100524")
+mod:SetRevision("20241105043731")
 --mod:SetModelID(47785)
 mod:SetZone(2661)
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
 mod:SetZone(2661)
+if DBM.Options.DebugMode then--Make it easier to collect initial nameplate timers across delves with transcriptor
+	mod:RegisterZoneCombat(2661)
+end
 
 mod:RegisterEvents(
 	"SPELL_CAST_START 434761 434706 437721 434756 434998 448619 441627 442589 439467",

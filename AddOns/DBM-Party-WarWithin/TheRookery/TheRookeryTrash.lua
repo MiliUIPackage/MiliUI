@@ -1,11 +1,14 @@
 local mod	= DBM:NewMod("TheRookeryTrash", "DBM-Party-WarWithin", 3)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241020100524")
+mod:SetRevision("20241105043731")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
 mod:SetZone(2648)
+if DBM.Options.DebugMode then--Make it easier to collect initial nameplate timers across delves with transcriptor
+	mod:RegisterZoneCombat(2648)
+end
 
 mod:RegisterEvents(
 	"SPELL_CAST_START 426893 450628 427323 427404 430013 427616 430754 423979 430805 430812 432959",

@@ -1,13 +1,14 @@
 local mod	= DBM:NewMod(2608, "DBM-Raids-WarWithin", 1, 1273)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241022110419")
+mod:SetRevision("20241107032241")
 mod:SetCreatureID(217489, 217491)--Anub'arash, Skeinspinner Takazj
 mod:SetEncounterID(2921)
 mod:SetUsedIcons(6, 7, 8)
 mod:SetBossHPInfoToHighest()
 mod:SetHotfixNoticeRev(20240711000000)
 mod:SetMinSyncRevision(20240628000000)
+mod:SetZone(2657)
 mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
@@ -78,7 +79,7 @@ local warnBindingWeb						= mod:NewFadesAnnounce(440001, 1)
 --local specWarnWebBomb						= mod:NewSpecialWarningYou(439838, nil, nil, nil, 1, 2)--Not exposed
 --local yellWebBomb							= mod:NewShortYell(439838)
 --local yellWebBombFades					= mod:NewShortFadesYell(439838)
-local specWarnBindingWebs					= mod:NewSpecialWarningYou(440001, nil, nil, nil, 1, 2)
+local specWarnBindingWebs					= mod:NewSpecialWarningLink(440001, nil, nil, nil, 1, 2)
 local specWarnVenomousRain					= mod:NewSpecialWarningMoveAwayCount(438656, nil, 44933, nil, 1, 2)--Change to moveto if this is one that removes ground webs?
 
 local timerVenomousRainCD					= mod:NewCDCountTimer(49, 438656, 44933, nil, nil, 3)--Shortname "Rain"
@@ -140,6 +141,7 @@ mod.vb.strandsCount = 0
 mod.vb.cataCount = 0
 mod.vb.scarabIcon = 8
 --mod.vb.rageCount = 0--Only cast once?
+local weblinkCount, playerFirst, lastPlayer = 0, false, nil
 
 local savedDifficulty = "heroic"
 local allTimers = {
@@ -448,6 +450,7 @@ function mod:OnCombatStart(delay)
 	self.vb.strandsCount = 0
 	self.vb.cataCount = 0
 	--self.vb.rageCount = 0
+	playerFirst = false
 	if self:IsMythic() then
 		savedDifficulty = "mythic"
 	elseif self:IsHeroic() then
@@ -721,10 +724,25 @@ function mod:SPELL_AURA_APPLIED(args)
 --			yellWebBombFades:Countdown(spellId)
 --		end
 	elseif spellId == 440001 then
-		if args:IsPlayer() and self:AntiSpam(3, 1) then
-			specWarnBindingWebs:Show()
-			specWarnBindingWebs:Play("lineapart")--Maybe use a diff sound during charge like "block charge"?
+		if self:AntiSpam(4, 1) then
+			weblinkCount = 0
+			playerFirst = false
+			lastPlayer = nil
 		end
+		weblinkCount = weblinkCount + 1
+		if args:IsPlayer() then
+			if weblinkCount % 2 == 0 then
+				specWarnBindingWebs:Show(lastPlayer or DBM_COMMON_L.UNKNOWN)
+				specWarnBindingWebs:Play(self:GetStage(2) and "lineapart" or "lineyou")--No charges to stop in stage 2
+			else
+				playerFirst = true
+			end
+		elseif playerFirst then
+			playerFirst = false
+			specWarnBindingWebs:Show(args.destName)
+			specWarnBindingWebs:Play(self:GetStage(2) and "lineapart" or "lineyou")--No charges to stop in stage 2
+		end
+		lastPlayer = args.destName
 	elseif spellId == 450980 then--Shatter Existence Absorb
 		if self.Options.InfoFrame then
 			DBM.InfoFrame:SetHeader(args.spellName)

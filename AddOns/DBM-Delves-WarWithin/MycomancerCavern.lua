@@ -1,9 +1,10 @@
 local mod	= DBM:NewMod("z2679", "DBM-Delves-WarWithin")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240920062720")
+mod:SetRevision("20241115080816")
 mod:SetHotfixNoticeRev(20240422000000)
 mod:SetMinSyncRevision(20240422000000)
+mod:SetZone(2679)
 
 mod:RegisterCombat("scenario", 2679)
 
@@ -104,7 +105,7 @@ end
 function mod:ENCOUNTER_END(eID, _, _, _, success)
 	if eID == 2960 then--Bogpiper
 		if success == 1 then
-			DBM:EndCombat(self)
+			--DBM:EndCombat(self)--Don't end combat this way, he can be entrance in one of stories, SCENARIO_COMPLETED will complete it
 		else
 			--Stop Timers manually
 			timerMuckChargeCD:Stop()
