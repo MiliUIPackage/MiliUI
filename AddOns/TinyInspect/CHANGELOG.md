@@ -1,8 +1,6 @@
 # TinyInspect
 
-## [11.0.4](https://github.com/Witnesscm/TinyInspect/tree/11.0.4) (2024-08-15)
-[Full Changelog](https://github.com/Witnesscm/TinyInspect/compare/11.0.3...11.0.4) [Previous Releases](https://github.com/Witnesscm/TinyInspect/releases)
+## [11.0.8](https://github.com/Witnesscm/TinyInspect/tree/11.0.8) (2024-11-05)
+[Full Changelog](https://github.com/Witnesscm/TinyInspect/compare/11.0.7...11.0.8) [Previous Releases](https://github.com/Witnesscm/TinyInspect/releases)
 
-- feat: new role texture  
-- fix: missing deprecated API  
-- toc: bump up version  
+- fix: update inspect stats #8  

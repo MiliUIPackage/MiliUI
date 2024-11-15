@@ -4,7 +4,6 @@
 -------------------------------------
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
-local LibItemGem = LibStub:GetLibrary("LibItemGem.7000")
 local LibSchedule = LibStub:GetLibrary("LibSchedule.7000")
 local LibItemInfo = LibStub:GetLibrary("LibItemInfo.7000")
 
@@ -14,16 +13,6 @@ local MOUNTS = MOUNTS or "Mount"
 local RELICSLOT = RELICSLOT or "Relic"
 local ARTIFACT_POWER = ARTIFACT_POWER or "Artifact"
 if (GetLocale():sub(1,2) == "zh") then ARTIFACT_POWER = "能量" end
-
---fixed for 10.x
-local GetContainerItemLink = GetContainerItemLink or function() end
-if (C_Container and C_Container.GetContainerItemInfo) then
-    GetContainerItemLink = function(bag, id)
-        local info = C_Container.GetContainerItemInfo(bag, id)
-        return info and info.hyperlink
-    end
-end
-
 
 --框架 #category Bag|Bank|Merchant|Trade|GuildBank|Auction|AltEquipment|PaperDoll|Loot
 local function GetItemLevelFrame(self, category)
@@ -56,9 +45,8 @@ local function GetItemLevelFrame(self, category)
         LibEvent:trigger("ITEMLEVEL_FRAME_CREATED", self.ItemLevelFrame, self)
     end
     if (TinyInspectDB and TinyInspectDB.EnableItemLevel) then
-        -- 移除讀取緩存，避免升級或轉化欄位出現不正常的裝等與部位 by Mili
-        -- self.ItemLevelFrame:Show()
-        -- LibEvent:trigger("ITEMLEVEL_FRAME_SHOWN", self.ItemLevelFrame, self, category or "")
+        self.ItemLevelFrame:Show()
+        LibEvent:trigger("ITEMLEVEL_FRAME_SHOWN", self.ItemLevelFrame, self, category or "")
     else
         self.ItemLevelFrame:Hide()
     end
@@ -104,7 +92,7 @@ local function SetItemLevelScheduled(button, ItemLevelFrame, link)
     LibSchedule:AddTask({
         identity  = link,
         elasped   = 1,
-        expired   = GetTime() + 3,
+        expired   = GetTime() + 5,
         frame     = ItemLevelFrame,
         button    = button,
         onExecute = function(self)
@@ -112,6 +100,7 @@ local function SetItemLevelScheduled(button, ItemLevelFrame, link)
             if (count == 0) then
                 SetItemLevelString(self.frame.levelString, level > 0 and level or "", quality)
                 SetItemSlotString(self.frame.slotString, class, equipSlot, link)
+                self.button.OrigItemLink = link
                 self.button.OrigItemLevel = (level and level > 0) and level or ""
                 self.button.OrigItemQuality = quality
                 self.button.OrigItemClass = class
@@ -123,7 +112,7 @@ local function SetItemLevelScheduled(button, ItemLevelFrame, link)
 end
 
 --設置物品等級
-local function SetItemLevel(self, link, category, BagID, SlotID)
+local function SetItemLevel(self, link, category)
     if (not self) then return end
     local frame = GetItemLevelFrame(self, category)
     if (self.OrigItemLink == link) then
@@ -131,28 +120,42 @@ local function SetItemLevel(self, link, category, BagID, SlotID)
         SetItemSlotString(frame.slotString, self.OrigItemClass, self.OrigItemEquipSlot, self.OrigItemLink)
     else
         local level = ""
-        local _, count, quality, class, subclass, equipSlot, linklevel
-        if (link and string.match(link, "item:(%d+):")) then
-            _, _, quality, _, _, class, subclass, _, equipSlot = C_Item.GetItemInfo(link)
-            --除了装备和圣物外,其它不显示装等
-            if ((equipSlot and string.find(equipSlot, "INVTYPE_"))
-                or (subclass and string.find(subclass, RELICSLOT))) then
-                count, level = LibItemInfo:GetItemInfo(link, nil, true)
-            else
-                count = 0
-                level = ""
-            end
-            --坐骑还是要显示的
-            if (subclass and subclass == MOUNTS) then
-                class = subclass
-            end
-            if (count > 0) then
-                SetItemLevelString(frame.levelString, "...")
-                return SetItemLevelScheduled(self, frame, link)
-            else
-                if (tonumber(level) == 0) then level = "" end
-                SetItemLevelString(frame.levelString, level, quality, link)
-                SetItemSlotString(frame.slotString, class, equipSlot, link)
+        local _, count, quality, class, subclass, equipSlot
+        if link then
+            local linkType, id = string.match(link, "|H(%a+):(%d+):.-|h.-|h")
+            if linkType == "item" then
+                _, _, quality, _, _, class, subclass, _, equipSlot = C_Item.GetItemInfo(link)
+                -- 除了装备和圣物外,其它不显示装等
+                if ((equipSlot and string.find(equipSlot, "INVTYPE_"))
+                    or (subclass and string.find(subclass, RELICSLOT))) then
+                    count, level = LibItemInfo:GetItemInfo(link, nil, true)
+                else
+                    count = 0
+                    level = ""
+                end
+                -- 坐骑
+                if (subclass and subclass == MOUNTS) then
+                    class = subclass
+                end
+                if (count > 0) then
+                    SetItemLevelString(frame.levelString, "...")
+                    return SetItemLevelScheduled(self, frame, link)
+                else
+                    if (tonumber(level) == 0) then level = "" end
+                    SetItemLevelString(frame.levelString, level, quality, link)
+                    SetItemSlotString(frame.slotString, class, equipSlot, link)
+                end
+            elseif linkType == "keystone" then
+                -- 钥石
+                quality = select(3, C_Item.GetItemInfo(id))
+                level = strmatch(link, "|Hkeystone:%d+:%d+:(%d+):.-|h.-|h")
+                SetItemLevelString(frame.levelString, level, quality)
+                SetItemSlotString(frame.slotString)
+            elseif linkType == "battlepet" then
+                -- 宠物
+                level, quality = strmatch(link, "|Hbattlepet:%d+:(%d+):(%d+):.-|h.-|h")
+                SetItemLevelString(frame.levelString, level, quality)
+                SetItemSlotString(frame.slotString)
             end
         else
             SetItemLevelString(frame.levelString, "")
@@ -164,6 +167,41 @@ local function SetItemLevel(self, link, category, BagID, SlotID)
         self.OrigItemClass = class
         self.OrigItemEquipSlot = equipSlot
     end
+end
+
+-- Gem
+local socketWatchList = {
+	["BLUE"] = true,
+	["RED"] = true,
+	["YELLOW"] = true,
+	["COGWHEEL"] = true,
+	["HYDRAULIC"] = true,
+	["META"] = true,
+	["PRISMATIC"] = true,
+	["PUNCHCARDBLUE"] = true,
+	["PUNCHCARDRED"] = true,
+	["PUNCHCARDYELLOW"] = true,
+	["DOMINATION"] = true,
+	["PRIMORDIAL"] = true,
+}
+
+local function GetSocketTexture(socket, count)
+	return strrep("|TInterface\\ItemSocketingFrame\\UI-EmptySocket-"..socket..":0|t", count)
+end
+
+local function IsItemHasGem(link)
+	local text = ""
+	local stats = C_Item.GetItemStats(link)
+	if stats then
+		for stat, count in pairs(stats) do
+			local socket = strmatch(stat, "EMPTY_SOCKET_(%S+)")
+			if socket and socketWatchList[socket] then
+				if socket == "PRIMORDIAL" then socket = "META" end -- primordial texture is missing, use meta instead, needs review
+				text = text..GetSocketTexture(socket, count)
+			end
+		end
+	end
+	return text
 end
 
 --[[ All ]]
@@ -199,7 +237,7 @@ hooksecurefunc("SetItemButtonQuality", function(self, quality, itemIDOrLink, sup
             SetItemLevel(self, link)
         --(Bank)
         elseif (tonumber(itemIDOrLink) and self.hasItem) then
-            link = GetContainerItemLink(self:GetParent():GetID(), self:GetID())
+            link = C_Container.GetContainerItemLink(self:GetParent():GetID(), self:GetID())
             SetItemLevel(self, link)
         else
             SetItemLevel(self, itemIDOrLink)
@@ -210,23 +248,59 @@ hooksecurefunc("SetItemButtonQuality", function(self, quality, itemIDOrLink, sup
     end
 end)
 
+-- Bag & Bank
+local function SetContainerItemLevel(self)
+    local category = self:IsBankBag() and "Bank" or "Bag"
+    for _, button in self:EnumerateValidItems() do
+        SetItemLevel(button, C_Container.GetContainerItemLink(button:GetBagID(), button:GetID()), category)
+    end
+end
+
+for i = 1, NUM_CONTAINER_FRAMES do
+    local ContainerFrame = _G["ContainerFrame"..i]
+    if ContainerFrame and ContainerFrame.UpdateItems then
+        hooksecurefunc(ContainerFrame, "UpdateItems", SetContainerItemLevel)
+    end
+end
+
+if ContainerFrameCombinedBags then
+    hooksecurefunc(ContainerFrameCombinedBags, "UpdateItems", SetContainerItemLevel)
+end
+
+-- Bank
+if BankFrameItemButton_Update then
+    hooksecurefunc("BankFrameItemButton_Update", function(self)
+        if self.isBag then return end
+        SetItemLevel(self, C_Container.GetContainerItemLink(self:GetParent():GetID(), self:GetID()), "Bank")
+    end)
+end
+
+-- Warband Bank
+if BankPanelItemButtonMixin then
+    hooksecurefunc(BankPanelItemButtonMixin, "Refresh", function(self)
+        SetItemLevel(self, self.itemInfo and self.itemInfo.hyperlink, "Bank")
+    end)
+end
+
 -- Merchant
-hooksecurefunc("MerchantFrameItem_UpdateQuality", function(self, link, isBound)
-    SetItemLevel(self.ItemButton, link, "Merchant")
-end)
+if MerchantFrameItem_UpdateQuality then
+    hooksecurefunc("MerchantFrameItem_UpdateQuality", function(self, link)
+        SetItemLevel(self.ItemButton, link, "Merchant")
+    end)
+end
 
 -- ALT
 if (EquipmentFlyout_DisplayButton) then
-    hooksecurefunc("EquipmentFlyout_DisplayButton", function(button, paperDollItemSlot)
+    hooksecurefunc("EquipmentFlyout_DisplayButton", function(button)
         local location = button.location
         if (not location) then return end
-        local player, bank, bags, voidStorage, slot, bag, tab, voidSlot = EquipmentManager_UnpackLocation(location)
+        local player, bank, bags, voidStorage, slot, bag = EquipmentManager_UnpackLocation(location)
         if (not player and not bank and not bags and not voidStorage) then return end
         if (voidStorage) then
             SetItemLevel(button, nil, "AltEquipment")
         elseif (bags) then
-            local link = GetContainerItemLink(bag, slot)
-            SetItemLevel(button, link, "AltEquipment", bag, slot)
+            local link = C_Container.GetContainerItemLink(bag, slot)
+            SetItemLevel(button, link, "AltEquipment")
         else
             local link = GetInventoryItemLink("player", slot)
             SetItemLevel(button, link, "AltEquipment")
@@ -235,29 +309,28 @@ if (EquipmentFlyout_DisplayButton) then
 end
 
 -- GuildNews
-LibEvent:attachEvent("ADDON_LOADED", function(self, addonName)
-    if (addonName == "Blizzard_Communities" and GuildNewsButton_SetText) then
-        GuildNewsItemCache = {}
-        hooksecurefunc("GuildNewsButton_SetText", function(button, text_color, text, text1, text2, ...)
-            if (not TinyInspectDB or 
-                not TinyInspectDB.EnableItemLevel or 
-                not TinyInspectDB.EnableItemLevelGuildNews) then
-              return
-            end
-            if (text2 and type(text2) == "string") then
-                local link = string.match(text2, "|H(item:%d+:.-)|h.-|h")
-                if (link) then
-                    local level = GuildNewsItemCache[link] or select(2, LibItemInfo:GetItemInfo(link))
-                    if (level > 0) then
-                        GuildNewsItemCache[link] = level
-                        text2 = text2:gsub("(%|Hitem:%d+:.-%|h%[)(.-)(%]%|h)", "%1"..level..":%2%3")
-                        button.text:SetFormattedText(text, text1, text2, ...)
-                    end
+local GuildNewsItemCache = {}
+if GuildNewsButton_SetText then
+    hooksecurefunc("GuildNewsButton_SetText", function(button, text_color, text, text1, text2, ...)
+        if (not TinyInspectDB or
+            not TinyInspectDB.EnableItemLevel or
+            not TinyInspectDB.EnableItemLevelGuildNews) then
+            return
+        end
+
+        if (text2 and type(text2) == "string") then
+            local link = string.match(text2, "|H(item:%d+:.-)|h.-|h")
+            if (link) then
+                local level = GuildNewsItemCache[link] or select(2, LibItemInfo:GetItemInfo(link))
+                if (level > 0) then
+                    GuildNewsItemCache[link] = level
+                    text2 = text2:gsub("(%|Hitem:%d+:.-%|h%[)(.-)(%]%|h)", "%1"..level..":%2%3"..IsItemHasGem(link))
+                    button.text:SetFormattedText(text, text1, text2, ...)
                 end
             end
-        end)
-    end
-end)
+        end
+    end)
+end
 
 -------------------
 --   PaperDoll  --
@@ -268,7 +341,7 @@ local function SetPaperDollItemLevel(self, unit)
     local id = self:GetID()
     local frame = GetItemLevelFrame(self, "PaperDoll")
     if (unit and GetInventoryItemTexture(unit, id)) then
-        local count, level, _, link, quality, _, _, class, _, _, equipSlot = LibItemInfo:GetUnitItemInfo(unit, id)
+        local _, level, _, link, quality, _, _, class, _, _, equipSlot = LibItemInfo:GetUnitItemInfo(unit, id)
         SetItemLevelString(frame.levelString, level > 0 and level or "", quality, link)
         SetItemSlotString(frame.slotString, class, equipSlot)
         if (id == 16 or id == 17) then
@@ -287,55 +360,41 @@ local function SetPaperDollItemLevel(self, unit)
     end
 end
 
-for _, slot in pairs(PaperDollItemsFrame.EquipmentSlots) do
-    slot.ItemLevelCategory = "PaperDoll"
-end
-
-for _, slot in pairs(PaperDollItemsFrame.WeaponSlots) do
-    slot.ItemLevelCategory = "PaperDoll"
-end
-
-local PaperDollSlots = {
-    [1] = "CharacterHeadSlot",
-    [2] = "CharacterNeckSlot",
-    [3] = "CharacterShoulderSlot",
-    [4] = "CharacterShirtSlot",
-    [5] = "CharacterChestSlot",
-    [6] = "CharacterWaistSlot",
-    [7] = "CharacterLegsSlot",
-    [8] = "CharacterFeetSlot",
-    [9] = "CharacterWristSlot",
-    [10] = "CharacterHandsSlot",
-    [11] = "CharacterFinger0Slot",
-    [12] = "CharacterFinger1Slot",
-    [13] = "CharacterTrinket0Slot",
-    [14] = "CharacterTrinket1Slot",
-    [15] = "CharacterBackSlot",
-    [16] = "CharacterMainHandSlot",
-    [17] = "CharacterSecondaryHandSlot"
+local EquipmentSlots = {
+    [1] = "Head",
+    [2] = "Neck",
+    [3] = "Shoulder",
+    [5] = "Chest",
+    [6] = "Waist",
+    [7] = "Legs",
+    [8] = "Feet",
+    [9] = "Wrist",
+    [10] = "Hands",
+    [11] = "Finger0",
+    [12] = "Finger1",
+    [13] = "Trinket0",
+    [14] = "Trinket1",
+    [15] = "Back",
+    [16] = "MainHand",
+    [17] = "SecondaryHand"
 }
 
 PaperDollFrame:HookScript("OnShow", function()
-    for _, slot in ipairs(PaperDollSlots) do
-        SetPaperDollItemLevel(_G[slot], "player")
+    for _, slot in pairs(EquipmentSlots) do
+        SetPaperDollItemLevel(_G["Character"..slot.."Slot"], "player")
     end
 end)
 
 LibEvent:attachEvent("PLAYER_EQUIPMENT_CHANGED", function(_, slotID)
-    if CharacterFrame:IsShown() then
-        SetPaperDollItemLevel(_G[PaperDollSlots[slotID]], "player")
+    if CharacterFrame:IsShown() and EquipmentSlots[slotID] then
+        SetPaperDollItemLevel(_G["Character"..EquipmentSlots[slotID].."Slot"], "player")
     end
 end)
 
 LibEvent:attachTrigger("UNIT_INSPECT_READY", function(self, data)
     if (InspectFrame and InspectFrame.unit and UnitGUID(InspectFrame.unit) == data.guid) then
-        for _, button in ipairs({
-             InspectHeadSlot,InspectNeckSlot,InspectShoulderSlot,InspectBackSlot,InspectChestSlot,InspectWristSlot,
-             InspectHandsSlot,InspectWaistSlot,InspectLegsSlot,InspectFeetSlot,InspectFinger0Slot,InspectFinger1Slot,
-             InspectTrinket0Slot,InspectTrinket1Slot,InspectMainHandSlot,InspectSecondaryHandSlot
-             , InspectShirtSlot, InspectTabardSlot
-            }) do
-            SetPaperDollItemLevel(button, InspectFrame.unit)
+        for _, slot in pairs(EquipmentSlots) do
+            SetPaperDollItemLevel(_G["Inspect"..slot.."Slot"], InspectFrame.unit)
         end
     end
 end)
@@ -343,13 +402,8 @@ end)
 LibEvent:attachEvent("ADDON_LOADED", function(self, addonName)
     if (addonName == "Blizzard_InspectUI") then
         hooksecurefunc(InspectFrame, "Hide", function()
-            for _, button in ipairs({
-                 InspectHeadSlot,InspectNeckSlot,InspectShoulderSlot,InspectBackSlot,InspectChestSlot,InspectWristSlot,
-                 InspectHandsSlot,InspectWaistSlot,InspectLegsSlot,InspectFeetSlot,InspectFinger0Slot,InspectFinger1Slot,
-                 InspectTrinket0Slot,InspectTrinket1Slot,InspectMainHandSlot,InspectSecondaryHandSlot
-                 , InspectShirtSlot, InspectTabardSlot
-                }) do
-                SetPaperDollItemLevel(button)
+            for _, slot in pairs(EquipmentSlots) do
+                SetPaperDollItemLevel(_G["Inspect"..slot.."Slot"])
             end
         end)
     end
@@ -380,13 +434,7 @@ local function ChatItemLevel(Hyperlink)
             level = nil
         end
         if (level) then
-            local n, stats = 0, C_Item.GetItemStats(link)
-            for key, num in pairs(stats) do
-                if (string.find(key, "EMPTY_SOCKET_")) then
-                    n = n + num
-                end
-            end
-            local gem = string.rep("|TInterface\\ItemSocketingFrame\\UI-EmptySocket-Prismatic:0|t", n)
+            local gem = IsItemHasGem(link)
             if (quality == 6 and class == WEAPON) then gem = "" end
             Hyperlink = Hyperlink:gsub("|h%[(.-)%]|h", "|h["..level..":"..name.."]|h"..gem)
         end
@@ -420,26 +468,6 @@ ChatFrame_AddMessageEventFilter("CHAT_MSG_PARTY_LEADER", filter)
 ChatFrame_AddMessageEventFilter("CHAT_MSG_GUILD", filter)
 ChatFrame_AddMessageEventFilter("CHAT_MSG_BATTLEGROUND", filter)
 ChatFrame_AddMessageEventFilter("CHAT_MSG_LOOT", filter)
-
---[[据说首次拾取大秘钥匙是个item:180653:
-function firstLootKeystone(Hyperlink)
-    local map, level = string.match(Hyperlink, "|Hitem:180653::::::::%d*:%d*:%d*:%d*:%d*:(%d+):(%d+):")
-    if (map and level) then
-        local name = C_ChallengeMode.GetMapUIInfo(map)
-        if name then
-            Hyperlink = Hyperlink:gsub("|h%[(.-)%]|h", "|h["..format(CHALLENGE_MODE_KEYSTONE_HYPERLINK, name, level).."]|h")
-        end
-    end
-    return Hyperlink
-end
-
-ChatFrame_AddMessageEventFilter("CHAT_MSG_LOOT", function(self, event, msg, ...)
-    if (string.find(msg, "item:180653:")) then
-        msg = msg:gsub("(|Hitem:180653:.-|h.-|h)", firstLootKeystone)
-    end
-    return false, msg, ...
-end)
-]]
 
 -- 位置設置
 LibEvent:attachTrigger("ITEMLEVEL_FRAME_SHOWN", function(self, frame, parent, category)
