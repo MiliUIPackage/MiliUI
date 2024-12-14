@@ -1,6 +1,6 @@
 # Syndicator
 
-## [133](https://github.com/Baganator/Syndicator/tree/133) (2024-11-14)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/132...133) 
+## [140](https://github.com/Baganator/Syndicator/tree/140) (2024-12-05)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/139...140) 
 
-- Options: Visual tweaks to guild widget  
+-  Add missing ptBR to Locales.lua  
