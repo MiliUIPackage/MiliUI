@@ -27,6 +27,8 @@ L["Module Category General"] = "常规";
 --- order: 2
 L["Module Category NPC Interaction"] = "NPC 交互";
 --- order: 3
+L["Module Category Tooltip"] = "鼠标提示";   --Additional Info on Tooltips
+--- order: 4
 L["Module Category Class"] = "职业";   --Player Class (rogue, paladin...)
 
 L["Module Category Dragonflight"] = "巨龙时代";
@@ -161,13 +163,19 @@ L["Seed Color Uncommon"] = "绿色";
 
 
 --Tooltip Chest Keys
-L["ModuleName TooltipChestKeys"] = "鼠标提示：宝箱钥匙";
+L["ModuleName TooltipChestKeys"] = "宝箱钥匙";
 L["ModuleDescription TooltipChestKeys"] = "显示打开某些宝箱所需的钥匙信息。";
 
 
 --Tooltip Reputation Tokens
-L["ModuleName TooltipRepTokens"] = "鼠标提示：声望兑换物";
+L["ModuleName TooltipRepTokens"] = "声望兑换物";
 L["ModuleDescription TooltipRepTokens"] = "如果当前物品可以被直接使用来提升某一阵营的声望，显示此声望信息";
+
+
+--Tooltip Mount Recolor
+L["ModuleName TooltipSnapdragonTreats"] = "毒鳍龙";
+L["ModuleDescription TooltipSnapdragonTreats"] = "在毒鳍龙鼠标提示上显示额外信息。";
+L["Color Applied"] = "你正在使用这个配色。";
 
 
 --Merchant UI Price
@@ -215,6 +223,25 @@ L["ModuleDescription BlizzFixFishingArtifact"] = "修复钓鱼神器幽光鱼竿
 --QuestItemDestroyAlert
 L["ModuleName QuestItemDestroyAlert"] = "删除任务物品确认";
 L["ModuleDescription QuestItemDestroyAlert"] = "当你试图摧毁一件可以提供任务的物品时，显示该任务的信息。\n\n|cffd4641c仅限于提供任务的物品，不适用于接受任务以后获得的任务物品。|r";
+
+
+--SpellcastingInfo
+L["ModuleName SpellcastingInfo"] = "目标施法信息";
+L["ModuleDescription SpellcastingInfo"] = "- 将鼠标悬停在目标框体施法条上可显示正在读条的法术信息。\n\n- 保存目标怪物的技能。你可以在目标框体的右键菜单-技能里找到它们。";
+L["Abilities"] = "技能";
+L["Spell Colon"] = "法术: ";
+L["Icon Colon"] = "图标: ";
+
+
+--Chat Options
+L["ModuleName ChatOptions"] = "聊天频道选项";
+L["ModuleDescription ChatOptions"] = "在聊天频道的右键菜单上增加离开按钮。";
+L["Chat Leave"] = "离开频道";
+L["Chat Leave All Characters"] = "在所有角色上离开此频道";
+L["Chat Leave All Characters Tooltip"] = "当你登录一个角色后自动离开此频道。";
+L["Chat Auto Leave Alert Format"] = "你是否希望你所有角色都自动离开 |cffffc0c0[%s]|r ？";
+L["Chat Auto Leave Cancel Format"] = "此频道的自动离开已禁用： %s。请使用 /join 命令重新加入频道。";
+L["Click To Disable"] = "点击禁用";
 
 
 --Loot UI

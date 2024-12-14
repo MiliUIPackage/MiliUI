@@ -27,6 +27,8 @@ L["Module Category General"] = "General";
 --- order: 2
 L["Module Category NPC Interaction"] = "NPC Interaction";
 --- order: 3
+L["Module Category Tooltip"] = "Tooltip";   --Additional Info on Tooltips
+--- order: 4
 L["Module Category Class"] = "Class";   --Player Class (rogue, paladin...)
 
 L["Module Category Dragonflight"] = EXPANSION_NAME9 or "Dragonflight";  --Merge Expansion Feature (Dreamseeds, AzerothianArchives) Modules into this
@@ -161,13 +163,19 @@ L["Seed Color Uncommon"] = ICON_TAG_RAID_TARGET_TRIANGLE3 or "Green";
 
 
 --Tooltip Chest Keys
-L["ModuleName TooltipChestKeys"] = "Tooltip: Chest Keys";
+L["ModuleName TooltipChestKeys"] = "Chest Keys";
 L["ModuleDescription TooltipChestKeys"] = "Show info on the key required to open the current chest or door.";
 
 
 --Tooltip Reputation Tokens
-L["ModuleName TooltipRepTokens"] = "Tooltip: Reputation Tokens";
+L["ModuleName TooltipRepTokens"] = "Reputation Tokens";
 L["ModuleDescription TooltipRepTokens"] = "Show the faction info if the item can be used to increase reputation.";
+
+
+--Tooltip Mount Recolor
+L["ModuleName TooltipSnapdragonTreats"] = "Snapdragon Treats";
+L["ModuleDescription TooltipSnapdragonTreats"] = "Show additional info for Snapdragon Treats.";
+L["Color Applied"] = "This is the currently applied color.";
 
 
 --Merchant UI Price
@@ -216,6 +224,24 @@ L["ModuleDescription BlizzFixFishingArtifact"] = "Allow you to view the fishing 
 L["ModuleName QuestItemDestroyAlert"] = "Quest Item Delete Confirmation";
 L["ModuleDescription QuestItemDestroyAlert"] = "Show the associate quest info when you attempt to destroy an item that starts a quest. \n\n|cffd4641cOnly works for items that start quests, not those you obtain after accepting a quest.|r";
 
+
+--SpellcastingInfo
+L["ModuleName SpellcastingInfo"] = "Target Spellcasting Info";
+L["ModuleDescription SpellcastingInfo"] = "- Show the spell tooltip when hovering over the Cast Bar on the Target Frame.\n\n- Save the monster's abilities that can be later viewed by right-clicking on the Target Frame.";
+L["Abilities"] = ABILITIES or "Abilities";
+L["Spell Colon"] = "Spell: ";   --Display SpellID
+L["Icon Colon"] = "Icon: ";     --Display IconFileID
+
+
+--Chat Options
+L["ModuleName ChatOptions"] = "Chat Channel Options";
+L["ModuleDescription ChatOptions"] = "Add Leave buttons to the menu that appears when you right-click on the channel name in the chat window.";
+L["Chat Leave"] = CHAT_LEAVE or "Leave";
+L["Chat Leave All Characters"] = "Leave On All Characters";
+L["Chat Leave All Characters Tooltip"] = "You will automatically leave this channel when you log in on a character.";
+L["Chat Auto Leave Alert Format"] = "Do you wish to automatically leave |cffffc0c0[%s]|r on all your characters?";
+L["Chat Auto Leave Cancel Format"] = "Auto Leave Disabled for %s. Please use /join command to rejoin the channel.";
+L["Click To Disable"] = "Click to Disable";
 
 --Loot UI
 L["ModuleName LootUI"] = HUD_EDIT_MODE_LOOT_FRAME_LABEL or "Loot Window";

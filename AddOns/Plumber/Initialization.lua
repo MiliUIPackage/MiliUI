@@ -1,5 +1,5 @@
-local VERSION_TEXT = "v1.4.8";
-local VERSION_DATE = 1730900000;
+local VERSION_TEXT = "v1.5.0";
+local VERSION_DATE = 1733800000;
 
 
 local addonName, addon = ...
@@ -97,6 +97,7 @@ local DefaultValues = {
     Technoscryers = true,               --Show Technoscryers on QuickSlot (Azerothian Archives World Quest)
     TooltipChestKeys = true,            --Show keys that unlocked the current chest or door
     TooltipRepTokens = true,            --Show faction info for items that grant rep
+    TooltipSnapdragonTreats = true,     --Show info on Snapdragon Treats (An item that changes this mount's color)
     PlayerChoiceFrameToken = true,      --Add owned token count to PlayerChoiceFrame
     ExpansionLandingPage = true,        --Display extra info on the ExpansionLandingPage
     Delves_SeasonProgress = true,       --Display Seaonal Journey changes on a progress bar
@@ -104,6 +105,8 @@ local DefaultValues = {
         VotingResultsExpanded = true,
     BlizzFixFishingArtifact = true,     --Fix Fishing Artifact Traits Not Showing bug
     QuestItemDestroyAlert = true,       --Show related quest info when destroying a quest-starting item
+    SpellcastingInfo = false,           --Show the spell info when hovering over target/focus cast bars. Logging target spells and displayed it on UnitPopupMenu
+    ChatOptions = true,                 --Add Leave button to Channel Context Menu
 
     --Custom Loot Window
     LootUI = false,
@@ -121,6 +124,7 @@ local DefaultValues = {
 
     --Unified Map Pin System
     WorldMapPin_TWW = true,             --Master Switch for TWW Map Pins
+        WorldMapPin_Size = 1,           --1: Default
         WorldMapPin_TWW_Delve = true,   --Show Bountiful Delves on continent map
         WorldMapPin_TWW_Quest = true,   --Show Special Assignment on continent map
 
@@ -160,6 +164,8 @@ local DefaultValues = {
 
 local function LoadDatabase()
     PlumberDB = PlumberDB or {};
+    PlumberStorage = PlumberStorage or {};  --Save large data (Spell)
+
     DB = PlumberDB;
 
     for dbKey, value in pairs(DefaultValues) do

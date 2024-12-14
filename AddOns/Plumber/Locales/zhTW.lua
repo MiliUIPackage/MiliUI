@@ -1,7 +1,6 @@
 if not (GetLocale() == "zhTW") then return end;
 
 
-
 local _, addon = ...
 local L = addon.L;
 
@@ -25,8 +24,10 @@ L["Module Category Unknown"] = "未知"    --Don't need to translate
 --- order: 1
 L["Module Category General"] = "常規";
 --- order: 2
-L["Module Category NPC Interaction"] = "NPC 交互";
+L["Module Category NPC Interaction"] = "NPC互動";
 --- order: 3
+L["Module Category Tooltip"] = "滑鼠提示";   --Additional Info on Tooltips
+--- order: 4
 L["Module Category Class"] = "職業";   --Player Class (rogue, paladin...)
 
 L["Module Category Dragonflight"] = "巨龍崛起";
@@ -161,13 +162,19 @@ L["Seed Color Uncommon"] = "綠色";
 
 
 --Tooltip Chest Keys
-L["ModuleName TooltipChestKeys"] = "鼠標提示：寶箱鑰匙";
+L["ModuleName TooltipChestKeys"] = "寶箱鑰匙";
 L["ModuleDescription TooltipChestKeys"] = "顯示打開某些寶箱所需的鑰匙訊息。";
 
 
 --Tooltip Reputation Tokens
-L["ModuleName TooltipRepTokens"] = "鼠標提示：聲望兌換物";
+L["ModuleName TooltipRepTokens"] = "聲望兌換物";
 L["ModuleDescription TooltipRepTokens"] = "如果當前物品可以被直接使用來提升某一陣營的聲望，顯示此聲望訊息";
+
+
+--Tooltip Mount Recolor
+L["ModuleName TooltipSnapdragonTreats"] = "毒鰭龍";
+L["ModuleDescription TooltipSnapdragonTreats"] = "在毒鰭龍滑鼠提示上顯示額外訊息。";
+L["Color Applied"] = "你正在使用這個配色。";
 
 
 --Merchant UI Price
@@ -214,6 +221,25 @@ L["ModuleDescription BlizzFixFishingArtifact"] = "修復釣魚神器幽光魚竿
 --QuestItemDestroyAlert
 L["ModuleName QuestItemDestroyAlert"] = "刪除任務物品確認";
 L["ModuleDescription QuestItemDestroyAlert"] = "當你試圖摧毀一件可以提供任務的物品時，顯示該任務的訊息。\n\n|cffd4641c僅限於提供任務的物品，不適用於接受任務以後獲得的任務物品。|r";
+
+
+--SpellcastingInfo
+L["ModuleName SpellcastingInfo"] = "目標施法訊息";
+L["ModuleDescription SpellcastingInfo"] = "- 將鼠標懸停在目標框體施法條上可顯示正在讀條的法術訊息。\n\n- 保存目標怪物的技能。你可以在目標框體的右鍵選單-技能裡找到它們。";
+L["Abilities"] = "技能";
+L["Spell Colon"] = "法術: ";
+L["Icon Colon"] = "圖示: ";
+
+
+--Chat Options
+L["ModuleName ChatOptions"] = "聊天頻道選項";
+L["ModuleDescription ChatOptions"] = "在聊天頻道的右鍵選單上增加離開按鈕。";
+L["Chat Leave"] = "離開頻道";
+L["Chat Leave All Characters"] = "在所有角色上離開此頻道";
+L["Chat Leave All Characters Tooltip"] = "當你登錄一個角色後自動離開此頻道。";
+L["Chat Auto Leave Alert Format"] = "你是否希望你所有角色都自動離開 |cffffc0c0[%s]|r ？";
+L["Chat Auto Leave Cancel Format"] = "此頻道的自動離開已禁用： %s。請使用 /join 命令重新加入頻道。";
+L["Click To Disable"] = "點擊禁用";
 
 
 --Loot UI

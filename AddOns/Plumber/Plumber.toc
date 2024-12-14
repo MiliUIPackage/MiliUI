@@ -1,5 +1,5 @@
 ## Interface: 110005, 110007
-## Version: 1.4.8
+## Version: 1.5.0
 
 ## Title: Plumber
 ## Title-zhTW: |cFF00AA99[任務]|r 實用工具包
@@ -7,7 +7,7 @@
 ## Notes-zhCN: 提供多种便捷功能。|n请前往插件设置来查看更多信息。
 ## Notes-zhTW: Plumber |n提供多種便捷功能。|n請前往插件設置來查看更多訊息。
 ## Author: Peterodox
-## SavedVariables: PlumberDB, PlumberDevData
+## SavedVariables: PlumberDB, PlumberDevData, PlumberStorage
 ## X-Category: 其他
 ## IconTexture: Interface\AddOns\Plumber\Art\Logo\PlumberLogo64
 
@@ -29,6 +29,7 @@ Modules\AutoJoinEvents.lua
 Modules\PlayerChoiceFrameToken.lua
 #Modules\DruidModelFix.lua
 Modules\QuickSlot.lua
+Modules\QuestAreaTrigger.lua
 Modules\Dreamseed.lua
 #Modules\EventMap.lua
 Modules\MapPin.xml
@@ -50,6 +51,10 @@ Modules\LootUI.xml
 Modules\WoWAnniversary.lua
 Modules\UnderlightAngler.lua
 Modules\QuestItemDestroyAlert.lua
+Modules\SpellcastInfo.lua
+Modules\ChatOptions.lua
 
+#Modules\QuestSpecialItemCooldown.lua
+#Modules\SecretOfAzeroth.lua
 #Modules\AddonList.lua
 #Modules\BlizzFix_WardrobeTrackingHelpTip.lua
