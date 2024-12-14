@@ -73,7 +73,7 @@ MyAddon.Mobs = {
 	[165824] = {name = "Nar'zudah", instanceID = 2286},	-- elite Humanoid MANA 61 hostile attackable
 	[165872] = {name = "Flesh Crafter", instanceID = 2286},	-- elite Humanoid MANA 60 hostile attackable
 --	[165911] = {name = "Loyal Creation", instanceID = 2286},	-- elite Undead RAGE 60 hostile attackable
-	[165919] = {name = "Skeletal Marauder", instanceID = 2286},	-- elite Undead RAGE 61 hostile attackable
+	[165919] = {name = "Skeletal Marauder", instanceID = 2286, marks = "+1"},	-- elite Undead RAGE 61 hostile attackable
 --	[166079] = {name = "Brittlebone Crossbowman", instanceID = 2286},	-- normal Undead ENERGY 60 hostile attackable
 --	[166264] = {name = "Spare Parts", instanceID = 2286},	-- normal Undead RAGE 60 hostile attackable
 --	[166266] = {name = "Spare Parts", instanceID = 2286},	-- normal Undead RAGE 60 hostile attackable
@@ -104,7 +104,7 @@ MyAddon.Mobs = {
 	[166299] = {name = "Mistveil Tender", instanceID = 2290},	-- elite Humanoid MANA 60 hostile attackable
 --	[166301] = {name = "Mistveil Stalker", instanceID = 2290},	-- elite Beast RAGE 60 hostile attackable
 	[166304] = {name = "Mistveil Stinger", instanceID = 2290},	-- elite Beast MANA 60 hostile attackable
-	[167111] = {name = "Spinemaw Staghorn", instanceID = 2290},	-- elite Beast MANA 61 hostile attackable
+	[167111] = {name = "Spinemaw Staghorn", instanceID = 2290, marks = "+1"},	-- elite Beast MANA 61 hostile attackable
 	[167113] = {name = "Spinemaw Acidgullet", instanceID = 2290},	-- elite Beast MANA 60 hostile attackable
 	[167116] = {name = "Spinemaw Reaver", instanceID = 2290},	-- elite Beast MANA 60 hostile attackable
 --	[167117] = {name = "Spinemaw Larva", instanceID = 2290},	-- normal Beast MANA 60 hostile attackable
@@ -113,7 +113,7 @@ MyAddon.Mobs = {
 --	[172991] = {name = "Drust Soulcleaver", instanceID = 2290},	-- elite Humanoid RAGE 60 hostile attackable
 --	[173655] = {name = "Mistveil Matriarch", instanceID = 2290},	-- elite Dragonkin RAGE 61 hostile attackable
 --	[173720] = {name = "Mistveil Gorgegullet", instanceID = 2290},	-- elite Beast RAGE 61 hostile attackable
---	[166885] = {name = "Mistcaller", instanceID = 2290, auto = "*mouseover", marks = "2"},
+	[166885] = {name = "Mistcaller", instanceID = 2290, auto = "*mouseover", marks = "8"},
 
 -- The Rookery (2648) TWW
 --	[207186] = {name = "Unruly Stormrook", instanceID = 2648},	-- elite Elemental ENERGY 81 hostile attackable
@@ -202,9 +202,9 @@ MyAddon.Mobs = {
 --	[212400] = {name = "Void Touched Elemental", instanceID = 2652},	-- elite Elemental RAGE 80 hostile attackable
 	[212403] = {name = "Cursedheart Invader", instanceID = 2652},	-- elite Aberration RAGE 80 hostile attackable
 --	[212405] = {name = "Aspiring Forgehand", instanceID = 2652},	-- normal Humanoid RAGE 80 hostile attackable
-	[212453] = {name = "Ghastly Voidsoul", instanceID = 2652},	-- elite Humanoid MANA 80 hostile attackable
+	[212453] = {name = "Ghastly Voidsoul", instanceID = 2652, marks = "+12"},	-- elite Humanoid MANA 80 hostile attackable
 --	[212764] = {name = "Engine Speaker", instanceID = 2652},	-- elite Humanoid RAGE 80 hostile attackable
-	[212765] = {name = "Void Bound Despoiler", instanceID = 2652},	-- elite Humanoid MANA 81 hostile attackable
+	[212765] = {name = "Void Bound Despoiler", instanceID = 2652, marks = "87"},	-- elite Humanoid MANA 81 hostile attackable
 --	[213119] = {name = "[BOSS] High Speaker Eirich", instanceID = 2652},	-- elite Humanoid RAGE 82 hostile attackable
 --	[213216] = {name = "[BOSS] Speaker Dorlita", instanceID = 2652},	-- elite Humanoid RAGE 82 hostile attackable
 	[213217] = {name = "[BOSS] Speaker Brokk", instanceID = 2652},	-- elite Humanoid RAGE 82 hostile attackable
@@ -227,7 +227,7 @@ MyAddon.Mobs = {
 --	[215407] = {name = "[BOSS] Ki'katal the Harvester", instanceID = 2660},	-- elite Humanoid POWER_TYPE_ENTROPY 82 hostile attackable
 --	[215826] = {name = "[BOSS ADD] Bloodworker", instanceID = 2660},	-- minus Humanoid RAGE 80 hostile attackable
 	[216293] = {name = "Trilling Attendant", instanceID = 2660},	-- elite Humanoid MANA 80 hostile attackable
-	[216333] = {name = "Bloodstained Assistant", instanceID = 2660},	-- elite Humanoid MANA 80 hostile attackable
+--	[216333] = {name = "Bloodstained Assistant", instanceID = 2660},	-- elite Humanoid MANA 80 hostile attackable
 --	[216336] = {name = "Ravenous Crawler", instanceID = 2660},	-- normal Beast RAGE 80 hostile attackable
 --	[216337] = {name = "Bloodworker", instanceID = 2660},	-- normal Humanoid RAGE 80 hostile attackable
 --	[216338] = {name = "Hulking Bloodguard", instanceID = 2660},	-- elite Humanoid RAGE 81 hostile attackable
@@ -279,7 +279,7 @@ MyAddon.Mobs = {
 	[211261] = {name = "Ascendant Vis'coxria", instanceID = 2662},	-- elite Humanoid MANA 81 hostile attackable
 --	[211262] = {name = "Ixkreten the Unbreakable", instanceID = 2662},	-- elite Humanoid RAGE 81 hostile attackable
 	[211263] = {name = "Deathscreamer Iken'tak", instanceID = 2662},	-- elite Humanoid MANA 81 hostile attackable
-	[211341] = {name = "Manifested Shadow", instanceID = 2662},	-- elite Elemental MANA 81 hostile attackable
+--	[211341] = {name = "Manifested Shadow", instanceID = 2662},	-- elite Elemental MANA 81 hostile attackable
 	[213885] = {name = "Nightfall Dark Architect", instanceID = 2662},	-- elite Humanoid MANA 81 hostile attackable
 	[213892] = {name = "Nightfall Shadowmage", instanceID = 2662},	-- elite Humanoid MANA 80 hostile attackable
 	[213893] = {name = "Nightfall Darkcaster", instanceID = 2662},	-- elite Humanoid MANA 80 hostile attackable
@@ -303,7 +303,7 @@ MyAddon.Mobs = {
 --	[216328] = {name = "Unstable Test Subject", instanceID = 2669},	-- elite Aberration RAGE 81 hostile attackable
 --	[216329] = {name = "Congealed Droplet", instanceID = 2669},	-- minus Aberration RAGE 80 hostile attackable
 	[216339] = {name = "Sureki Unnaturaler", instanceID = 2669},	-- elite Humanoid MANA 80 hostile attackable
-	[216342] = {name = "Skittering Assistant", instanceID = 2669},	-- elite Humanoid MANA 80 hostile attackable
+--	[216342] = {name = "Skittering Assistant", instanceID = 2669},	-- elite Humanoid MANA 80 hostile attackable
 --	[216619] = {name = "[BOSS] Orator Krix'vizk", instanceID = 2669},	-- elite Humanoid POWER_TYPE_ENERGY 82 hostile attackable
 --	[216648] = {name = "[BOSS] Nx", instanceID = 2669},	-- elite Humanoid ENERGY 82 hostile attackable
 --	[216649] = {name = "[BOSS] Vx", instanceID = 2669},	-- elite Humanoid ENERGY 82 hostile attackable
@@ -330,6 +330,7 @@ MyAddon.Mobs = {
 --	[224731] = {name = "Web Marauder", instanceID = 2669},	-- elite Humanoid RAGE 80 hostile attackable
 	[224732] = {name = "Covert Webmancer", instanceID = 2669},	-- elite Humanoid MANA 80 hostile attackable
 --	[228361] = {name = "Agile Pursuer", instanceID = 2669},	-- elite Humanoid ENERGY 80 hostile attackable
+-- [219983] = {name = "Eye of the Queen", instanceID = 2669, marks = "8", auto = "nameplate"},
 
 -- Grim Batol (670) TWW Season 1
 --	[224152] = {name = "Twilight Brute", instanceID = 670},	-- elite Dragonkin RAGE 35 hostile attackable
@@ -647,6 +648,6 @@ MyAddon.Mobs = {
 MyAddon.Icons = {1,2,3,6,7,8}
 
 MyAddon.PlayerMarks = {
-	["TANK"] = 6,
+	["TANK"] = 4,
 	["HEALER"] = 0,
 }

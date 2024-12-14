@@ -75,3 +75,18 @@ Added marks for some TWW mobs.
 
 v1.1.3
 Changed TWW mobs.
+
+v1.1.4
+Updated TOC file for 11.0.5.
+Priority marking used for Spinemaw Staghorn and Skeletal Marauder (star).
+Mark Mistcaller (friendly) with Skull on mouseover for maze.
+The Dawnbreaker - Removed Manifested Shadow (can't interrupt or CC).
+
+v1.1.5
+Updated TOC file for 11.0.7
+Ara-Kara, City of Echoes - Removed Bloodstained Assistant (can't interrupt).
+The Stonevault
+	Void Bound Despoiler marks changed to Skull/Cross. (Nothing to interrupt, just dangerous.)
+	Ghastly Voidsoul - Priority mark with Star/Circle.
+City of Threads
+	Skittering Assistant - No longer marked
