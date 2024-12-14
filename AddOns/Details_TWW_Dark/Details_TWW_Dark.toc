@@ -11,7 +11,7 @@
 ## Dependencies: Details
 ## OptionalDeps: Ace3
 
-## Title-zhTW: |cffFF2D2D[戰鬥]|r Details! 戰鬥統計外觀-地心之戰(暗色)
+## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計外觀-地心之戰(暗色)
 ## Notes-zhTW: Details! Skin TWW |n|n地心之戰的戰鬥統計視窗外觀。|n|n|cffffd200使用方法: |r打開 Details!選項>外觀>外觀的下拉選單選擇 地心之戰。
 ## X-Category-zhTW: 戰鬥
 ## IconTexture: Interface\AddOns\Details\images\minimap
