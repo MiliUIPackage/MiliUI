@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2609, "DBM-Raids-WarWithin", 1, 1273)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241115064251")
+mod:SetRevision("20241204054713")
 mod:SetCreatureID(214504)
 mod:SetEncounterID(2918)
 mod:SetHotfixNoticeRev(20241115000000)
@@ -357,7 +357,7 @@ local allTimers = {
 			--Rolling Acid
 			[439789] = {40},
 			--Savage Assault
-			[444687] = {9.7, 2, 18, 2, 11.8, 2.5},
+			[444687] = {9.7, 2, 18, 2, 11.4, 2.5},
 			--Spinneret's Strands
 			[439784] = {33.8},
 			--Enveloping Webs

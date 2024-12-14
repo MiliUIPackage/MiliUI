@@ -18,6 +18,7 @@ testbutton.myheight = 0
 local Plater = _G["Plater"]
 if Plater then--Plater button disabled for now
 	general:CreateCheckButton(L.SpamBlockNoBossGUIDs, true, nil, "DontSendBossGUIDs")--Only option we control that plater doesn't
+	general:CreateCheckButton(L.AlwaysKeepNPs, true, nil, "AlwaysKeepNPs")
 
 	local platerButton = general:CreateButton(L.Plater_Config, 100, 25)
 	platerButton:SetPoint("CENTER", general.frame, "CENTER", 0, -20)
@@ -35,6 +36,7 @@ else
 	general:CreateCheckButton(L.SpamBlockNoNameplateCD, true, nil, "DontShowNameplateIconsCD")
 	general:CreateCheckButton(L.SpamBlockNoNameplateCasts, true, nil, "DontShowNameplateIconsCast")
 	general:CreateCheckButton(L.SpamBlockNoBossGUIDs, true, nil, "DontSendBossGUIDs")
+	general:CreateCheckButton(L.AlwaysKeepNPs, true, nil, "AlwaysKeepNPs")
 end
 
 
@@ -313,10 +315,10 @@ local cooldownGlowType = {
 		text	= L.NPIcon_Pixel,
 		value	= 1,
 	},
-	{
-		text	= L.NPIcon_Proc,
-		value	= 2,
-	},
+--	{
+--		text	= L.NPIcon_Proc,
+--		value	= 2,
+--	},
 	{
 		text	= L.NPIcon_AutoCast,
 		value	= 3,
@@ -345,8 +347,8 @@ end, 200)
 castIconGlowBehavior:SetPoint("TOPLEFT", cooldownIconGlowBehavior, "BOTTOMLEFT", 0, -20)
 castIconGlowBehavior.myheight = 50
 
-local castIconGlowType = glow:CreateDropdown(L.NPIcon_GlowTypeCast, cooldownGlowType, "DBM", "CastNPIconGlowType", function(value)
-	DBM.Options.CastNPIconGlowType = value
+local castIconGlowType = glow:CreateDropdown(L.NPIcon_GlowTypeCast, cooldownGlowType, "DBM", "CastNPIconGlowType2", function(value)
+	DBM.Options.CastNPIconGlowType2 = value
 end, 100)
 castIconGlowType:SetPoint("LEFT", castIconGlowBehavior, "RIGHT", 45, 0)
 castIconGlowType.myheight = 0
@@ -360,12 +362,12 @@ glowResetbutton:SetScript("OnClick", function()
 	DBM.Options.NPIconGlowBehavior = DBM.DefaultOptions.NPIconGlowBehavior
 	DBM.Options.CDNPIconGlowType = DBM.DefaultOptions.CDNPIconGlowType
 	DBM.Options.CastNPIconGlowBehavior = DBM.DefaultOptions.CastNPIconGlowBehavior
-	DBM.Options.CastNPIconGlowType = DBM.DefaultOptions.CastNPIconGlowType
+	DBM.Options.CastNPIconGlowType2 = DBM.DefaultOptions.CastNPIconGlowType2
 	-- Set UI visuals
 	cooldownIconGlowBehavior:SetSelectedValue(DBM.DefaultOptions.NPIconGlowBehavior)
 	cooldownIconGlowType:SetSelectedValue(DBM.DefaultOptions.CDNPIconGlowType)
 	castIconGlowType:SetSelectedValue(DBM.DefaultOptions.CastNPIconGlowBehavior)
-	castIconGlowType:SetSelectedValue(DBM.DefaultOptions.CastNPIconGlowType)
+	castIconGlowType:SetSelectedValue(DBM.DefaultOptions.CastNPIconGlowType2)
 
 	DBM.Nameplate:UpdateIconOptions()
 end)

@@ -6,8 +6,12 @@ DBM_CORE_L = L
 L.DEADLY_BOSS_MODS						= "Deadly Boss Mods" -- NO TRANSLATE
 L.DBM									= "DBM" -- NO TRANSLATE
 
+local guild = GetGuildInfo("player")
 local dateTable = date("*t")
-if dateTable.day and dateTable.month and dateTable.day == 1 and dateTable.month == 4 then
+if C_Seasons and C_Seasons.GetActiveSeason and C_Seasons.GetActiveSeason() == 12 and guild == "OnlyFangs" then
+	L.DEADLY_BOSS_MODS					= "Deadly Boss Lua"
+	L.DBM								= "Boss Loa"
+elseif dateTable.day and dateTable.month and dateTable.day == 1 and dateTable.month == 4 then
 	L.DEADLY_BOSS_MODS					= "Harmless Minion Mods"
 	L.DBM								= "HMM"
 end
@@ -79,12 +83,15 @@ L.TRANSCRIPTOR_LOG_START				= "Transcriptor logging started."
 L.TRANSCRIPTOR_LOG_END					= "Transcriptor logging ended."
 
 L.MOVIE_SKIPPED							= L.DBM .. " has attempted to skip a cut scene automatically."
-L.MOVIE_NOTSKIPPED							= L.DBM .. " has detected a skipable cut scene but has NOT skipped it due to a blizzard bug. When this bug is fixed, skipping will be re-enabled"
+L.MOVIE_NOTSKIPPED						= L.DBM .. " has detected a skipable cut scene but has NOT skipped it due to a blizzard bug. When this bug is fixed, skipping will be re-enabled"
 L.BONUS_SKIPPED							= L.DBM .. " has automatically closed bonus loot frame. If you need to get this frame back, type /dbmbonusroll within 3 minutes"
 
 L.AFK_WARNING							= "You are AFK and in combat (%d percent health remaining), firing sound alert. If you are not AFK, clear your AFK flag or disable this option in 'extra features'."
+L.LOWHEALTH_WARNING						= "Low Health (%d percent health remaining), firing sound alert. You can disable this option in 'extra features'."
+L.ENTERING_COMBAT						= "Entering combat"
+L.LEAVING_COMBAT						= "Leaving combat"
 
-L.COMBAT_STARTED_AI_TIMER				= "My CPU is a neural net processor; a learning computer. (This fight will use the new timer AI feature to generate timer approximations)"
+L.COMBAT_STARTED_AI_TIMER				= "My CPU is a neural net processor; a learning computer. (This fight will use timer AI feature to generate timer approximations)"
 
 L.PROFILE_NOT_FOUND						= "<" .. L.DBM .. "> Your current profile is corrupted. " .. L.DBM .. " will load 'Default' profile."
 L.PROFILE_CREATED						= "'%s' profile created."
@@ -440,7 +447,7 @@ L.AUTO_SPEC_WARN_OPTIONS = {
 	targetcount 						= "Show special announce (with count) when someone is affected by $spell:%s",
 	link								= "Show special announce when you are linked to another player by $spell:%s",
 	defensive 							= "Show special announce to use defensive abilites for $spell:%s",
-	taunt 								= "Show special announce to taunt when other tank affected by $spell:%s",
+	taunt 								= "Show special announce (when in tank spec) to taunt when other tank affected by $spell:%s",
 	close 								= "Show special announce when someone close to you is affected by $spell:%s",
 	move 								= "Show special announce to move out from $spell:%s",
 	keepmove 							= "Show special announce to keep moving for $spell:%s",
@@ -495,6 +502,12 @@ L.AUTO_TIMER_TEXTS = {
 	nextspecial							= "Special",
 	nextcombo							= "%%1$s + %%2$s",--Now same as next, as the ~ was moved to timer number -- OPTIONAL
 
+	var									= "%s",
+	varcount							= "%s (%%s)",
+	varsource							= "%s: >%%s<",--Now same as next, as the ~ was moved to timer number -- OPTIONAL
+	varspecial							= "Special",--Now same as next, as the ~ was moved to timer number
+	varcombo							= "%%1$s + %%2$s",--Now same as next, as the ~ was moved to timer number -- OPTIONAL
+
 	achievement							= "%s", -- OPTIONAL
 	stage								= "Stage",
 	stagecount							= "Stage %%s",--NOT BUGGED, stage is 2nd arg, spellID is ignored on purpose
@@ -509,6 +522,7 @@ L.AUTO_TIMER_TEXTS = {
 	combat								= "Combat starts"--Only used if the boss auto engages upon completion (ie ragnaros type situation)
 }
 --This basically clones np only bar option and display text from regular counterparts
+--TODO, cleanup lots of duplication here and above
 L.AUTO_TIMER_TEXTS.cdnp					= L.AUTO_TIMER_TEXTS.cd -- OPTIONAL
 L.AUTO_TIMER_TEXTS.nextnp				= L.AUTO_TIMER_TEXTS.next -- OPTIONAL
 L.AUTO_TIMER_TEXTS.cdpnp				= L.AUTO_TIMER_TEXTS.cd -- OPTIONAL
@@ -525,6 +539,7 @@ L.AUTO_TIMER_OPTIONS = {
 	active								= "Show timer for $spell:%s duration",
 	fades								= "Show timer for when $spell:%s fades from players",
 	ai									= "Show AI timer for $spell:%s cooldown",
+
 	cd									= "Show timer for $spell:%s cooldown",
 	cdcount								= "Show timer for $spell:%s cooldown",
 	cdnp								= "Show nameplate only timer for $spell:%s cooldown",
@@ -532,6 +547,7 @@ L.AUTO_TIMER_OPTIONS = {
 	cdsource							= "Show timer (with source) for $spell:%s cooldown",--Maybe better wording?
 	cdspecial							= "Show timer for special ability cooldown",
 	cdcombo								= "Show timer for ability combo cooldown",--Used for combining 2 abilities into a single timer
+
 	next								= "Show timer for next $spell:%s",
 	nextcount							= "Show timer for next $spell:%s",
 	nextnp								= "Show nameplate only timer for next $spell:%s",
@@ -539,6 +555,15 @@ L.AUTO_TIMER_OPTIONS = {
 	nextsource							= "Show timer (with source) for next $spell:%s",--Maybe better wording?
 	nextspecial							= "Show timer for next special ability",
 	nextcombo							= "Show timer for next ability combo",--Used for combining 2 abilities into a single timer
+
+	var									= "Show timer (with variance) for $spell:%s cooldown window",
+	varcount							= "Show timer (with count and variance) for $spell:%s cooldown window",
+	varnp								= "Show nameplate only timer (with variance) for $spell:%s cooldown window",
+	varpnp								= "Show priority nameplate only timer (with variance) for $spell:%s cooldown window",
+	varsource							= "Show timer (with source and variance) for $spell:%s cooldown window",
+	varspecial							= "Show timer (with variance) for special ability cooldown window",
+	varcombo							= "Show timer (with variance) for ability combo cooldown window",
+
 	achievement							= "Show timer for %s",
 	stage								= "Show timer for next stage",
 	stagecount							= "Show timer (with count) for next stage",
@@ -698,8 +723,10 @@ L.DBM_INSTALL_REMINDER_DL_WAGO	= "Press " .. (IsMacClient() and "Cmd-C" or "Ctrl
 L.DBM_INSTALL_REMINDER_DL_CURSE	= "Press " .. (IsMacClient() and "Cmd-C" or "Ctrl-C")  ..  " to copy the Curseforge link to your clipboard."
 --"Press " .. (IsMacClient() and "Cmd-C" or "Ctrl-C")  ..  "
 L.DBM_INSTALL_PACKAGE_VANILLA	= "Vanilla and Season of Discovery package"
+L.DBM_INSTALL_PACKAGE_BCC		= "Burning Crusade package"
 L.DBM_INSTALL_PACKAGE_WRATH		= "Wrath package"
 L.DBM_INSTALL_PACKAGE_CATA		= "Cataclysm package"
+L.DBM_INSTALL_PACKAGE_MOP		= "Mist of Pandaria package"
 L.DBM_INSTALL_PACKAGE_DUNGEON	= "Dungeons, Delves, and Events package"
 
 -- Tests

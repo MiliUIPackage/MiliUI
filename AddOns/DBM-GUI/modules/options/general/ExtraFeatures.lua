@@ -6,8 +6,13 @@ local soundAlertsArea		= extraFeaturesPanel:CreateArea(L.Area_SoundAlerts)
 soundAlertsArea:CreateCheckButton(L.LFDEnhance, true, nil, "LFDEnhance")
 soundAlertsArea:CreateCheckButton(L.WorldBossNearAlert, true, nil, "WorldBossNearAlert")
 soundAlertsArea:CreateCheckButton(L.RLReadyCheckSound, true, nil, "RLReadyCheckSound")
-soundAlertsArea:CreateCheckButton(L.AFKHealthWarning, true, nil, "AFKHealthWarning2")
 soundAlertsArea:CreateCheckButton(L.AutoReplySound, true, nil, "AutoReplySound")
+
+local combatAlertsArea		= extraFeaturesPanel:CreateArea(L.Area_CombatAlerts)
+combatAlertsArea:CreateCheckButton(L.AFKHealthWarning, true, nil, "AFKHealthWarning2")
+combatAlertsArea:CreateCheckButton(L.HealthWarningLow, true, nil, "HealthWarningLow")
+combatAlertsArea:CreateCheckButton(L.EnteringCombatAlert, true, nil, "EnteringCombatAlert")
+combatAlertsArea:CreateCheckButton(L.LeavingCombatAlert, true, nil, "LeavingCombatAlert")
 
 local generaltimeroptions	= extraFeaturesPanel:CreateArea(L.TimerGeneral)
 generaltimeroptions:CreateCheckButton(L.SKT_Enabled, true, nil, "AlwaysShowSpeedKillTimer2")
@@ -26,4 +31,3 @@ inviteArea:CreateCheckButton(L.AutoAcceptGuildInvite, true, nil, "AutoAcceptGuil
 
 local advancedArea	= extraFeaturesPanel:CreateArea(L.Area_Advanced)
 advancedArea:CreateCheckButton(L.FakeBW, true, nil, "FakeBWVersion")
-advancedArea:CreateCheckButton(L.AITimer, true, nil, "AITimer")

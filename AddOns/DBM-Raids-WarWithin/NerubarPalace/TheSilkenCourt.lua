@@ -1,13 +1,14 @@
 local mod	= DBM:NewMod(2608, "DBM-Raids-WarWithin", 1, 1273)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241107032241")
+mod:SetRevision("20241213224934")
 mod:SetCreatureID(217489, 217491)--Anub'arash, Skeinspinner Takazj
 mod:SetEncounterID(2921)
 mod:SetUsedIcons(6, 7, 8)
 mod:SetBossHPInfoToHighest()
 mod:SetHotfixNoticeRev(20240711000000)
-mod:SetMinSyncRevision(20240628000000)
+mod:SetMinSyncRevision(20241213000000)
+mod:DisableRegenDetection()--Try to fix false combat detection
 mod:SetZone(2657)
 mod.respawnTime = 29
 

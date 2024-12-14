@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("MPlusAffixes", "DBM-Affixes")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241020061638")
+mod:SetRevision("20241213224934")
 --mod:SetModelID(47785)
 mod:SetZone(DBM_DISABLE_ZONE_DETECTION)--Stays active in all zones for zone change handlers, but registers events based on dungeon ids
 
@@ -14,7 +14,6 @@ mod:RegisterEvents(
 )
 
 --TODO, fine tune tank stacks/throttle?
---TODO, when Season 4 starts, prune season 3 IDs, and add WW Season 1 ids
 --[[
 (ability.id = 240446 or ability.id = 409492) and type = "begincast"
  or (ability.id = 408556 or ability.id = 408801) and type = "applydebuff"
@@ -37,7 +36,7 @@ local specWarnGTFO							= mod:NewSpecialWarningGTFO(209862, nil, nil, nil, 1, 8
 
 local timerQuakingCD						= mod:NewNextTimer(20, 240447, nil, nil, nil, 3)--Not active ingame
 local timerEntangledCD						= mod:NewCDTimer(30, 408556, nil, nil, nil, 3, 396347, nil, nil, 2, 3, nil, nil, nil, true)
---local timerAfflictedCD						= mod:NewCDTimer(30, 409492, nil, nil, nil, 5, 2, DBM_COMMON_L.HEALER_ICON, nil, mod:IsHealer() and 3 or nil, 3)--Timer is still on for all, cause knowing when they spawn still informs decisions like running ahead or pulling
+--local timerAfflictedCD					= mod:NewCDTimer(30, 409492, nil, nil, nil, 5, 2, DBM_COMMON_L.HEALER_ICON, nil, mod:IsHealer() and 3 or nil, 3)--Timer is still on for all, cause knowing when they spawn still informs decisions like running ahead or pulling
 local timerIncorporealCD					= mod:NewCDTimer(45, 408801, nil, nil, nil, 5, nil, nil, nil, 3, 3)--Not active ingame
 local timerXalatathsBargainUnstablePowerCD	= mod:NewCDTimer(59.9, 461895, nil, nil, nil, 1)
 local timerXalatathsBargainDevourCD			= mod:NewCDTimer(59.9, 465051, nil, nil, nil, 2)--60-67 even incombat
@@ -156,9 +155,9 @@ do
 	local validZones
 	--Upcoming Season
 	if (C_MythicPlus.GetCurrentSeason() or 0) == 14 then--War Within Season 2
-		--2651, 2649, 2648, 2661, ?, ?, ?, ?
-		--Darkflame Cleft, Priory of the Sacred Flame, The Rookery, Cinderbrew Meadery
-		validZones = {[2651]=true, [2649]=true, [2648]=true, [2661]=true}
+		--2651, 2649, 2648, 2661, 1594, 2097, 2293, ?
+		--Darkflame Cleft, Priory of the Sacred Flame, The Rookery, Cinderbrew Meadery, MOTHERLOAD, Mechagon, Theater of Pain, 11.1 Dungeon
+		validZones = {[2651]=true, [2649]=true, [2648]=true, [2661]=true, [1594]=true, [2097]=true, [2293]=true}
 	--Current Season (latest LIVE season put in else so if api fails, it just always returns latest)
 	else--War Within Season 1 (13)
 		--Stonevault, The Dawnbreaker, Ara-Kara City of Echos, City of Threads, Grim Batol, Siege of Boralus, The Necrotic Wake, Mists of Tirna Scithe

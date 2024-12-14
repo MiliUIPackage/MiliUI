@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal"
 
-mod:SetRevision("20241102154000")
+mod:SetRevision("20241126163159")
 mod:SetZone(2710)
 
 mod:RegisterCombat("scenario", 2710)
@@ -28,7 +28,7 @@ local specWarnBellowingSlam			= mod:NewSpecialWarningDodge(463052, nil, nil, nil
 local specWarnEarthshakingCharge	= mod:NewSpecialWarningDodge(463081, nil, nil, nil, 2, 2)
 local specWarnVolatileMagma			= mod:NewSpecialWarningMove(462983, nil, nil, nil, 1, 2)
 
-local timerAdds						= mod:NewAddsTimer(10, 433320)--Initial wave only
+local timerAdds						= mod:NewAddsTimer(9.8, 433320)--Initial wave only
 local timerBellowingSlamCD			= mod:NewCDNPTimer(20.6, 463052, nil, nil, nil, 3)
 local timerMaintenanceCD			= mod:NewCDNPTimer(19.3, 462936, nil, nil, nil, 5)
 local timerVolatileMagmaCD			= mod:NewCDNPTimer(17.3, 462983, nil, nil, nil, 3)

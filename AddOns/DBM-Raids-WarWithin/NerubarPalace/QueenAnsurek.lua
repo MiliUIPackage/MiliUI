@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "story,lfr,normal,heroic,mythic"
 
-mod:SetRevision("20241113031003")
+mod:SetRevision("20241213050845")
 mod:SetCreatureID(218370)
 mod:SetEncounterID(2922)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
@@ -88,7 +88,7 @@ mod:AddDropdownOption("ToxinBehavior", {"MatchBW", "UseAllAscending", "DisableIc
 --Intermission: The Spider's Web
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(28755))
 local warnParalyzingVenom					= mod:NewCountAnnounce(447456, 2, nil, nil, 441740)--Shortname "Toxic waves"
-local warnWrest							= mod:NewCountAnnounce(447411, 2, nil, nil, 193997)--Shortname "Pull"
+local warnWrest								= mod:NewCountAnnounce(447411, 2, nil, nil, 193997)--Shortname "Pull"
 
 local specWarnWrest							= mod:NewSpecialWarningCount(447411, nil, 193997, nil, 2, 12)--Shortname "Pull"
 

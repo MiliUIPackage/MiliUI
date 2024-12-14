@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("BoralusTrash", "DBM-Party-BfA", 5)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241104104210")
+mod:SetRevision("20241128001105")
 --mod:SetModelID(47785)
 
 mod.isTrashMod = true
@@ -324,7 +324,7 @@ end
 --]]
 
 --All timers subject to a ~0.5 second clipping due to ScanEngagedUnits
-function mod:StartNameplateTimers(guid, cid)
+function mod:StartEngageTimers(guid, cid)
 	if cid == 129374 then--Scrimshaw Enforcer
 --		timerSlobberknockerCD:Start(16.8, guid)--Might be 10ish, wait for improved logs
 	elseif cid == 129372 then--Blacktar Bomber
@@ -361,5 +361,5 @@ end
 --Abort timers when all players out of combat, so NP timers clear on a wipe
 --Caveat, it won't calls top with GUIDs, so while it might terminate bar objects, it may leave lingering nameplate icons
 function mod:LeavingZoneCombat()
-	self:Stop()
+	self:Stop(true)
 end

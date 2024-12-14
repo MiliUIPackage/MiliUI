@@ -25,7 +25,7 @@ local mt = {__index = bossModPrototype}
 ---@class DBMMod
 ---@field OnCombatStart fun(self: DBMMod, delay: number, startedByCastOrRegenDisabledOrMessage: boolean, startedByEncounter: boolean)
 ---@field OnCombatEnd fun(self: DBMMod, wipe: boolean, delayedSecondCall: boolean?)
----@field StartNameplateTimers fun(self: DBMMod, guid: string, cid: number, delay: number)
+---@field StartEngageTimers fun(self: DBMMod, guid: string, cid: number, delay: number)
 ---@field OnLeavingCombat fun()
 ---@field EnteringZoneCombat fun(self: DBMMod)
 ---@field LeavingZoneCombat fun(self: DBMMod)
@@ -208,9 +208,13 @@ function bossModPrototype:DisableMod()
 	self.Options.Enabled = false
 end
 
-function bossModPrototype:Stop()
+---@param killNameplates boolean? Should only be called by trash mods. Bosses should never call this
+function bossModPrototype:Stop(killNameplates)
 	for _, v in ipairs(self.timers) do
 		v:Stop()
+	end
+	if killNameplates then
+		DBM:FireEvent("DBM_NameplateStopAll")
 	end
 	self:Unschedule()
 end
@@ -304,14 +308,40 @@ function bossModPrototype:AffixEvent(eventType, stage, timeAdjust, spellDebit)
 	end
 end
 
+local function addIdsToExistingEvent(event, ...)
+	for i = 1, select("#", ...) do
+		local id = select(i, ...)
+		if not event:match(" " .. id .. " ") and not event:match(" " .. id .. "$") then
+			event = event .. " " .. id
+		end
+	end
+	return event
+end
+
 ---@param ... DBMEvent|string
 function bossModPrototype:RegisterEventsInCombat(...)
 	test:Trace(self, "RegisterEvents", "InCombat", ...)
-	if self.inCombatOnlyEvents then
+	if self.inCombatOnlyEvents and select("#", ...) > 1 then
 		geterrorhandler()("combat events already set")
 	end
-	self.inCombatOnlyEvents = {...}
-	for k, v in pairs(self.inCombatOnlyEvents) do
+	if self.inCombatOnlyEvents then
+		-- Special case: allow registrating additional events if you do it one-by-one (check in the abort above)
+		-- FIXME: allow this in general if we end up keeping the new event handlers
+		local event = ...
+		local prefix, ids = string.split(" ", event, 2)
+		for i, v in ipairs(self.inCombatOnlyEvents) do
+			if string.split(" ", v, 2) == prefix then
+				-- Warning: Registering an event twice with different spell IDs will not work -- it will trigger the handler twice for both IDs
+				-- This is kinda annoying to fix in the handler, so we instead modify the existing event definition here.
+				self.inCombatOnlyEvents[i] = addIdsToExistingEvent(v, string.split(" ", ids))
+				return
+			end
+		end
+		self.inCombatOnlyEvents[#self.inCombatOnlyEvents + 1] = event
+	else
+		self.inCombatOnlyEvents = {...}
+	end
+	for k, v in ipairs(self.inCombatOnlyEvents) do
 		if v:sub(0, 5) == "UNIT_" and v:sub(-11) ~= "_UNFILTERED" and not v:find(" ") and v ~= "UNIT_DIED" and v ~= "UNIT_DESTROYED" then
 			-- legacy event, oh noes
 			self.inCombatOnlyEvents[k] = v .. " boss1 boss2 boss3 boss4 boss5 target focus"
@@ -832,9 +862,7 @@ function bossModPrototype:EnablePrivateAuraSound(auraspellId, voice, voiceVersio
 			local isVoicePackUsed
 			--Vet if user has voice pack enabled by sound ID
 			if type(soundId) == "number" and soundId < 5 then--Value 1-4 are SW1 defaults, otherwise it's file data ID and handled by Custom
-				isVoicePackUsed = DBM.Options["VPReplacesSA" .. soundId]
-			else
-				isVoicePackUsed = DBM.Options.VPReplacesCustom
+				isVoicePackUsed = DBM.Options.VPReplacesSADefault
 			end
 			if isVoicePackUsed then
 				mediaPath = "Interface\\AddOns\\DBM-VP" .. chosenVoice .. "\\" .. voice .. ".ogg"
