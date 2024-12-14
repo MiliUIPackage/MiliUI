@@ -44,7 +44,7 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:OnLoad()
       if self:IsVisible() then
         self:GetParent():UpdateView()
       end
-    elseif settingName == addonTable.Config.Options.BANK_ONLY_VIEW_SHOW_BAG_SLOTS then
+    elseif settingName == addonTable.Config.Options.BANK_ONLY_VIEW_SHOW_BAG_SLOTS and self:IsVisible() then
       self.BagSlots:Update(self.lastCharacter, self.isLive)
       self:OnFinished()
       self:GetParent():OnTabFinished()
@@ -61,7 +61,7 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:OnLoad()
   addonTable.Skins.AddFrame("Button", self.DepositIntoReagentsBankButton)
   addonTable.Skins.AddFrame("Button", self.BuyReagentBankButton)
 
-  self.BagSlots:SetPoint("BOTTOMLEFT", self, "TOPLEFT", addonTable.Constants.ButtonFrameOffset, 0)
+  self:SetLiveCharacter(Syndicator.API.GetCurrentCharacter())
 end
 
 function BaganatorItemViewCommonBankViewCharacterViewMixin:ToggleBagSlots()
@@ -70,6 +70,9 @@ end
 
 function BaganatorItemViewCommonBankViewCharacterViewMixin:SetLiveCharacter(character)
   self.liveCharacter = character
+  if self.lastCharacter == nil then
+    self.lastCharacter = self.liveCharacter
+  end
 end
 
 function BaganatorItemViewCommonBankViewCharacterViewMixin:DoSort(isReverse)
@@ -131,7 +134,7 @@ end
 function BaganatorItemViewCommonBankViewCharacterViewMixin:RemoveSearchMatches(getItems)
   local matches = (getItems and getItems()) or self:GetSearchMatches()
 
-  local emptyBagSlots = addonTable.Transfers.GetEmptyBagsSlots(Syndicator.API.GetCharacter(self.liveCharacter).bags, Syndicator.Constants.AllBagIndexes)
+  local emptyBagSlots = addonTable.Transfers.GetBagsSlots(Syndicator.API.GetCharacter(self.liveCharacter).bags, Syndicator.Constants.AllBagIndexes)
 
   local status = addonTable.Transfers.FromBagsToBags(matches, Syndicator.Constants.AllBagIndexes, emptyBagSlots)
 
@@ -194,6 +197,8 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:UpdateForCharacter(ch
   if self.CurrencyWidget.lastCharacter ~= self.lastCharacter then
     self.CurrencyWidget:UpdateCurrencies(character)
   end
+
+  self.BagSlots:SetPoint("BOTTOMLEFT", self, "TOPLEFT", addonTable.Constants.ButtonFrameOffset, 0)
 
   self:SetupBlizzardFramesForTab()
 end

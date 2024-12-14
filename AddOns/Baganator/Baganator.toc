@@ -1,6 +1,6 @@
 ## Interface: 110005
 ## Title: Baganator
-## Version: 505
+## Version: 547
 ## Author: plusmouse
 ## OptionalDeps: Syndicator, Masque
 ## SavedVariables: BAGANATOR_CONFIG, BAGANATOR_DATA
@@ -24,7 +24,13 @@ Core\Welcome.lua
 Core\Analytics.lua
 Core\Main.lua
 
-Skins.lua
+Skins\Utilities.lua
+Skins\Main.lua
+Skins\Blizzard.lua
+Skins\Dark.lua
+Skins\ElvUI.lua
+Skins\GW2.lua
+Skins\NDui.lua
 
 Sorting\BagUsageChecks.lua
 Sorting\ItemFields.lua

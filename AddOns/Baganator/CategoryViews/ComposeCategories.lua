@@ -55,12 +55,10 @@ local function GetAuto(category, everything)
         end
       end
       for _, n in ipairs(names) do
-        if groupedItems[n] ~= nil then
-          local index = #searches + 1
-          searches[index] = ""
-          searchLabels[index] = n
-          attachedItems[index] = groupedItems[n]
-        end
+        local index = #searches + 1
+        searches[index] = ""
+        searchLabels[index] = n
+        attachedItems[index] = groupedItems[n] -- nil if no items
       end
     end
   elseif category.auto == "inventory_slots" then
@@ -77,7 +75,7 @@ local function GetAuto(category, everything)
     local newItems = {}
     for _, item in ipairs(everything) do
       if newItems[item.key] ~= false and item.bagID ~= nil then
-        newItems[item.key] = addonTable.NewItems:IsNewItemTimeout(item.bagID, item.slotID)
+        newItems[item.key] = addonTable.NewItems:IsNewItemTimeout(item.bagID, item.slotID) and addonTable.CategoryViews.Utilities.GetAddedItemData(item.itemID, item.itemLink)
       end
     end
     attachedItems[1] = newItems
@@ -94,7 +92,7 @@ local function GetAuto(category, everything)
           if not groups[groupPath] then
             groups[groupPath] = {}
           end
-          groups[groupPath][item.key] = true
+          groups[groupPath][item.key] = addonTable.CategoryViews.Utilities.GetAddedItemData(item.itemID, item.itemLink)
         end
       end
     end
@@ -102,11 +100,10 @@ local function GetAuto(category, everything)
       if groupPath:find("`") then
         groupPath = groupPath:match("`([^`]*)$")
       end
-      if groups[groupPath] then
-        table.insert(searches, "")
-        table.insert(searchLabels, groupPath)
-        table.insert(attachedItems, groups[groupPath])
-      end
+      local index = #searches + 1
+      searches[index] = ""
+      searchLabels[index] = groupPath
+      attachedItems[index] = groups[groupPath] -- nil if no items
     end
   else
     error("automatic category type not supported")

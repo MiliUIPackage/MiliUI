@@ -1,49 +1,5 @@
 local _, addonTable = ...
 
-local classicBorderFrames = {
-  "BotLeftCorner", "BotRightCorner", "BottomBorder", "LeftBorder", "RightBorder",
-  "TopRightCorner", "TopLeftCorner", "TopBorder"
-}
-
-function addonTable.Utilities.ApplyVisuals(frame)
-  if TSM_API then
-    frame:SetFrameStrata("HIGH")
-  end
-
-  local alpha = addonTable.Config.Get(addonTable.Config.Options.VIEW_ALPHA)
-  local noFrameBorders = addonTable.Config.Get(addonTable.Config.Options.NO_FRAME_BORDERS)
-
-  frame.Bg:SetAlpha(alpha)
-  frame.TopTileStreaks:SetAlpha(alpha)
-
-  if frame.NineSlice then -- retail
-    frame.NineSlice:SetAlpha(alpha)
-    frame.NineSlice:SetShown(not noFrameBorders)
-    if noFrameBorders then
-      frame.Bg:SetPoint("TOPLEFT", 6, 0)
-      frame.TopTileStreaks:SetPoint("TOPLEFT", 6, 0)
-    else
-      frame.Bg:SetPoint("TOPLEFT", 6, -21)
-      frame.TopTileStreaks:SetPoint("TOPLEFT", 6, -21)
-    end
-  elseif frame.TitleBg then -- classic
-    frame.TitleBg:SetAlpha(alpha)
-    for _, key in ipairs(classicBorderFrames) do
-      frame[key]:SetAlpha(alpha)
-      frame[key]:SetShown(not noFrameBorders)
-    end
-    if noFrameBorders then
-      frame.Bg:SetPoint("TOPLEFT", 2, 0)
-      frame.TopTileStreaks:SetPoint("TOPLEFT", 2, 0)
-      frame.Bg:SetPoint("BOTTOMRIGHT", -2, 0)
-    else
-      frame.Bg:SetPoint("TOPLEFT", 2, -21)
-      frame.Bg:SetPoint("BOTTOMRIGHT", -2, 2)
-      frame.TopTileStreaks:SetPoint("TOPLEFT", 2, -21)
-    end
-  end
-end
-
 function addonTable.Utilities.GetAllCharacters(searchText)
   searchText = searchText and searchText:lower() or ""
   local characters = {}
@@ -195,7 +151,44 @@ function addonTable.Utilities.GetMoneyString(amount, splitThousands)
 end
 
 function addonTable.Utilities.AddGeneralDropSlot(parent, getData, bagIndexes)
+  local cursorChanged = false
+  local function UpdateSlot(self)
+    if not cursorChanged then
+      return
+    end
+    cursorChanged = false
+    local cursorType, itemID = GetCursorInfo()
+    if cursorType == "item" then
+      local usageChecks = addonTable.Sorting.GetBagUsageChecks(bagIndexes)
+      local sortedBagIDs = CopyTable(bagIndexes)
+      table.sort(sortedBagIDs, function(a, b) return usageChecks.sortOrder[a] < usageChecks.sortOrder[b] end)
+      local currentCharacterBags = getData()
+      local backupBagID = nil
+      for _, bagID in ipairs(sortedBagIDs) do
+        local bag = currentCharacterBags[tIndexOf(bagIndexes, bagID)]
+        if bag and #bag > 0 then
+          if not usageChecks.checks[bagID] or usageChecks.checks[bagID]({itemID = itemID}) then
+            for index, slot in ipairs(bag) do
+              if slot.itemID == nil then
+                self:Enable()
+                self:SetID(index)
+                self:GetParent():SetID(bagID)
+                return
+              end
+            end
+          end
+          if not usageChecks.checks[bagID] then
+            backupBagID = usageChecks.checks[bagID]
+          end
+        end
+      end
+      self:Disable()
+      self:SetID(1)
+      self:GetParent():SetID(backupBagID or sortedBagIDs[1])
+    end
+  end
   local function UpdateVisibility()
+    cursorChanged = true
     if parent.isLive then
       local cursorType, itemID = GetCursorInfo()
       parent.backgroundButton:SetShown(cursorType == "item")
@@ -221,6 +214,7 @@ function addonTable.Utilities.AddGeneralDropSlot(parent, getData, bagIndexes)
   parent.backgroundButton:ClearNormalTexture()
   parent.backgroundButton:ClearDisabledTexture()
   parent.backgroundButton:ClearPushedTexture()
+  parent.backgroundButton.SlotBackground:Hide()
   for _, child in ipairs({parent.backgroundButton:GetRegions()}) do
     child:Hide()
   end
@@ -229,37 +223,8 @@ function addonTable.Utilities.AddGeneralDropSlot(parent, getData, bagIndexes)
   parent.backgroundButton:RegisterEvent("CURSOR_CHANGED")
   parent.backgroundButton:SetScript("OnEvent", UpdateVisibility)
 
-  parent.backgroundButton:SetScript("OnEnter", nil)
+  parent.backgroundButton:SetScript("OnEnter", UpdateSlot)
   parent.backgroundButton:SetScript("OnLeave", nil)
-  parent.backgroundButton:SetScript("PreClick", function(self)
-    local cursorType, itemID = GetCursorInfo()
-    if cursorType == "item" then
-      local usageChecks = addonTable.Sorting.GetBagUsageChecks(bagIndexes)
-      local sortedBagIDs = CopyTable(bagIndexes)
-      table.sort(sortedBagIDs, function(a, b) return usageChecks.sortOrder[a] < usageChecks.sortOrder[b] end)
-      local currentCharacterBags = getData()
-      local backupBagID = nil
-      for _, bagID in ipairs(sortedBagIDs) do
-        if not usageChecks.checks[bagID] or usageChecks.checks[bagID]({itemID = itemID}) then
-          local bag = currentCharacterBags[tIndexOf(bagIndexes, bagID)]
-          for index, slot in ipairs(bag) do
-            if slot.itemID == nil then
-              self:Enable()
-              self:SetID(index)
-              self:GetParent():SetID(bagID)
-              return
-            end
-          end
-        end
-        if not usageChecks.checks[bagID] then
-          backupBagID = usageChecks.checks[bagID]
-        end
-      end
-      self:Disable()
-      self:SetID(1)
-      self:GetParent():SetID(backupBagID or sortedBagIDs[1])
-    end
-  end)
 end
 
 function addonTable.Utilities.AddScrollBar(self)
@@ -379,4 +344,30 @@ if LibStub then
       end
     end
   end
+end
+
+function addonTable.Utilities.IsMasqueApplying()
+  if C_AddOns.IsAddOnLoaded("Masque") then
+    local Masque = LibStub("Masque", true)
+    local masqueGroup = Masque:Group("Baganator", "Bag")
+    return not masqueGroup.db.Disabled
+  end
+  return false
+end
+
+function addonTable.Utilities.AddButtons(allButtons, lastButton, parent, spacing, regionDetails)
+  local buttonsWidth = 0
+  for _, details in ipairs(regionDetails) do
+    local button = details.frame
+    button:ClearAllPoints()
+    if button:IsShown() then
+      button:SetParent(parent)
+      buttonsWidth = buttonsWidth + spacing + button:GetWidth()
+      button:SetPoint("LEFT", lastButton, "RIGHT", spacing, 0)
+      lastButton = button
+      table.insert(allButtons, button)
+    end
+  end
+
+  return buttonsWidth
 end

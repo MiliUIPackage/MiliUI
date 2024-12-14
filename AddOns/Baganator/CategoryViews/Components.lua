@@ -16,15 +16,24 @@ end
 function BaganatorCategoryViewsCategoryButtonMixin:OnClick(button)
   if button == "RightButton" and self.categorySearch then
     CallMethodOnNearestAncestor(self, "TransferCategory", self.categorySearch, self.source, self.groupLabel)
-  elseif button == "LeftButton" then
+  elseif button == "LeftButton" and self.source == addonTable.CategoryViews.Constants.RecentItemsCategory then
     addonTable.NewItems:ForceClearNewItemsForTimeout()
   end
 end
 
 function BaganatorCategoryViewsCategoryButtonMixin:OnEnter()
-  if self:GetFontString():IsTruncated() then
-    GameTooltip:SetOwner(self, "ANCHOR_TOP")
+  local _, transferActive = CallMethodOnNearestAncestor(self, "IsTransferActive")
+  local isRecent = self.source == addonTable.CategoryViews.Constants.RecentItemsCategory
+  if self:GetFontString():IsTruncated() or transferActive or isRecent then
+    GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
     GameTooltip:SetText(self:GetText())
+    if isRecent then
+      GameTooltip:AddLine(GREEN_FONT_COLOR:WrapTextInColorCode(BAGANATOR_L_CLICK_TO_CLEAR_RECENT))
+    end
+    if transferActive then
+      GameTooltip:AddLine(GREEN_FONT_COLOR:WrapTextInColorCode(BAGANATOR_L_RIGHT_CLICK_TO_TRANSFER))
+    end
+    GameTooltip:Show()
   end
 end
 

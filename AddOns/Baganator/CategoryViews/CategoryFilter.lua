@@ -53,10 +53,12 @@ function BaganatorCategoryViewsCategoryFilterMixin:ApplySearches(composed, every
   self.callback = callback
 
   self.results = {}
+  local indexMap = {}
   self.searchPending = nil
-  for _, entry in ipairs(composed.details) do
+  for index, entry in ipairs(composed.details) do
     if entry.search then
       self.results[entry.search] = entry.results
+      indexMap[entry.search] = index
     end
   end
 
@@ -72,20 +74,22 @@ function BaganatorCategoryViewsCategoryFilterMixin:ApplySearches(composed, every
   end
 
   local superAttachedItems = {}
-  for _, details in ipairs(composed.details) do
+  for _, search in ipairs(self.searches) do
+    local details = composed.details[indexMap[search]]
     local items = details.attachedItems
     local search = details.search
     if items then
       for key, hit in pairs(items) do
-        if hit and not superAttachedItems[key] then
+        if hit and not superAttachedItems[key] and not superAttachedItems[hit] then
           superAttachedItems[key] = search
         end
       end
     end
   end
+
   for key, pendingForKey in pairs(self.pending) do
     local attachmentKey = addonTable.CategoryViews.Utilities.GetAddedItemData(pendingForKey[1].itemID, pendingForKey[1].itemLink)
-    local match = superAttachedItems[attachmentKey] or superAttachedItems[key]
+    local match = superAttachedItems[key] or superAttachedItems[attachmentKey]
     if match then
       for _, i in ipairs(self.pending[key]) do
         rawset(i, "addedDirectly", true)

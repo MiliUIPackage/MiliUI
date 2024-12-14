@@ -6,10 +6,10 @@ end
 addonTable.CategoryViews.Constants = {
   ProtectedCategories = { "default_other", "default_special_empty" },
   EmptySlotsCategory = "default_special_empty",
+  RecentItemsCategory = "default_auto_recents",
   DividerName = "----",
   DividerLabel = "——————",
   SectionEnd = "__end",
-  MinWidth = 400,
 
   GroupingState = {
     SplitStack = 1,
@@ -294,7 +294,7 @@ tAppendAll(addonTable.CategoryViews.Constants.DefaultCategories, {
     key = "auto_recents",
     name = BAGANATOR_L_CATEGORY_RECENT_AUTO,
     auto = "recents",
-    priorityOffset = 600,
+    priorityOffset = 10000,
     doNotAdd = true,
   },
   {

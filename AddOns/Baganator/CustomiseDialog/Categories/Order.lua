@@ -41,6 +41,13 @@ StaticPopupDialogs[importDialog] = {
   hideOnEscape = 1,
 }
 
+local folderMarker
+if C_Texture.GetAtlasInfo("AnimCreate_Icon_Folder") then
+  folderMarker = "AnimCreate_Icon_Folder"
+else
+  folderMarker = "FXAM-SmallSpikeyGlow"
+end
+
 local function PopulateCategoryOrder(container)
   local hidden = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_HIDDEN)
 
@@ -76,7 +83,7 @@ local function PopulateCategoryOrder(container)
       else
         indent = "      "
         local section = source:match("^_(.*)")
-        name = CreateAtlasMarkup("AnimCreate_Icon_Folder") .. " " .. (_G["BAGANATOR_L_SECTION_" .. section] or section)
+        name = CreateAtlasMarkup(folderMarker) .. " " .. (_G["BAGANATOR_L_SECTION_" .. section] or section)
       end
       table.insert(dataProviderElements, {value = source, label = name})
       table.insert(elements, source)
@@ -180,43 +187,75 @@ local function GetInsertedCategories()
   return result
 end
 
-local function SetCategoriesToDropDown(dropDown, ignore)
-  local options = {}
-  for source, category in pairs(addonTable.CategoryViews.Constants.SourceToCategory) do
-    if not ignore[source] then
-      table.insert(options, {label = category.name, value = source})
-    end
-  end
-  local nameCount = {}
-  for source, category in pairs(addonTable.Config.Get(addonTable.Config.Options.CUSTOM_CATEGORIES)) do
-    if not ignore[source] then
-      if not nameCount[category.name] then
-        table.insert(options, {label = category.name .. " (*)", value = source})
-        nameCount[category.name] = 1
-      else
-        nameCount[category.name] = nameCount[category.name] + 1
-        table.insert(options, {label = category.name .. " (*" .. nameCount[category.name] .. ")", value = source})
+local function SetCategoriesToDropDown(dropdown, ignore)
+  dropdown:SetupMenu(function(_, rootDescription)
+    local defaultOptions = {}
+    for source, category in pairs(addonTable.CategoryViews.Constants.SourceToCategory) do
+      if not ignore[source] then
+        table.insert(defaultOptions, {label = category.name, value = source})
       end
     end
-  end
-  table.sort(options, function(a, b) return a.label:lower() < b.label:lower() end)
+    table.sort(defaultOptions, function(a, b) return a.label:lower() < b.label:lower() end)
 
-  local entries, values = {
-    NORMAL_FONT_COLOR:WrapTextInColorCode(BAGANATOR_L_CREATE_NEW_CATEGORY),
-    NORMAL_FONT_COLOR:WrapTextInColorCode(BAGANATOR_L_CREATE_NEW_SECTION),
-    NORMAL_FONT_COLOR:WrapTextInColorCode(BAGANATOR_L_CREATE_NEW_DIVIDER),
-  }, {
-    "",
-    "_",
-    addonTable.CategoryViews.Constants.DividerName,
-  }
+    local customOptions = {}
+    local nameCount = {}
+    for source, category in pairs(addonTable.Config.Get(addonTable.Config.Options.CUSTOM_CATEGORIES)) do
+      if not ignore[source] then
+        if not nameCount[category.name] then
+          table.insert(customOptions, {label = category.name .. " (*)", value = source, isCustom = true})
+          nameCount[category.name] = 1
+        else
+          nameCount[category.name] = nameCount[category.name] + 1
+          table.insert(customOptions, {label = category.name .. " (*" .. nameCount[category.name] .. ")", value = source, isCustom = true})
+        end
+      end
+    end
+    table.sort(customOptions, function(a, b) return a.label:lower() < b.label:lower() end)
 
-  for _, opt in ipairs(options) do
-    table.insert(entries, opt.label)
-    table.insert(values, opt.value)
-  end
+    local options = customOptions
+    tAppendAll(options, defaultOptions)
 
-  dropDown:SetupOptions(entries, values)
+    table.insert(options, 1, {
+      value = "", label = NORMAL_FONT_COLOR:WrapTextInColorCode(BAGANATOR_L_CREATE_NEW_CATEGORY)
+    })
+    table.insert(options, 2, {
+      value = "_", label = NORMAL_FONT_COLOR:WrapTextInColorCode(BAGANATOR_L_CREATE_NEW_SECTION)
+    })
+    table.insert(options, 3, {
+      value = addonTable.CategoryViews.Constants.DividerName, label = NORMAL_FONT_COLOR:WrapTextInColorCode(BAGANATOR_L_CREATE_NEW_DIVIDER)
+    })
+
+    for _, opt in ipairs(options) do
+      local button = rootDescription:CreateButton(opt.label, function() dropdown:OnEntryClicked({value = opt.value, label = opt.label}) end)
+      if opt.isCustom then
+        button:AddInitializer(function(button, description, menu)
+          local delete = MenuTemplates.AttachAutoHideButton(button, "transmog-icon-remove")
+          delete:SetPoint("RIGHT")
+          delete:SetSize(18, 18)
+          delete.Texture:SetAtlas("transmog-icon-remove")
+          delete:SetScript("OnClick", function()
+            local customCategories = addonTable.Config.Get(addonTable.Config.Options.CUSTOM_CATEGORIES)
+            local categoryMods = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_MODIFICATIONS)
+
+            if customCategories[opt.value] then
+              customCategories[opt.value] = nil
+              categoryMods[opt.value] = nil
+              addonTable.Config.Set(addonTable.Config.Options.CUSTOM_CATEGORIES, CopyTable(customCategories))
+            end
+            local scroll = menu.ScrollBox:GetScrollPercentage() * menu.ScrollBox:GetExtent()
+            menu:Close()
+            dropdown:OpenMenu()
+            dropdown.menu.ScrollBox:SetScrollPercentage(scroll / dropdown.menu.ScrollBox:GetExtent())
+          end)
+          MenuUtil.HookTooltipScripts(delete, function(tooltip)
+            GameTooltip_SetTitle(tooltip, DELETE);
+          end);
+        end)
+      end
+    end
+
+    rootDescription:SetScrollMode(20 * 20)
+  end)
 end
 
 function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
@@ -289,8 +328,10 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
     end
   end)
 
-  local dropDown = addonTable.CustomiseDialog.GetDropdown(container)
-  SetCategoriesToDropDown(dropDown, GetInsertedCategories())
+  local dropdown = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
+  addonTable.Skins.AddFrame("Dropdown", dropdown)
+  dropdown.disableSelectionText = true
+  SetCategoriesToDropDown(dropdown, GetInsertedCategories())
 
   local function Pickup(value, label, index)
     draggable.value = value
@@ -308,7 +349,7 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
       addonTable.Config.Set(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER, categoryOrder.elements)
     end
 
-    dropDown:SetText(label)
+    dropdown:SetText(label)
     draggable:Show()
     draggable.text:SetText(label)
   end
@@ -316,9 +357,9 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
   categoryOrder = GetCategoryContainer(container, Pickup)
   categoryOrder:SetPoint("TOPLEFT", 0, -40)
 
-  dropDown:SetText(BAGANATOR_L_INSERT_OR_CREATE)
+  dropdown:SetText(BAGANATOR_L_INSERT_OR_CREATE)
 
-  hooksecurefunc(dropDown, "OnEntryClicked", function(_, option)
+  dropdown.OnEntryClicked = function(_, option)
     if option.value == "_" then
       addonTable.CallbackRegistry:TriggerEvent("EditCategorySection", option.value)
     elseif option.value == addonTable.CategoryViews.Constants.DividerName then
@@ -328,9 +369,9 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
     else
       addonTable.CallbackRegistry:TriggerEvent("EditCategory", option.value)
     end
-  end)
+  end
   draggable:SetScript("OnHide", function()
-    dropDown:SetText(BAGANATOR_L_INSERT_OR_CREATE)
+    dropdown:SetText(BAGANATOR_L_INSERT_OR_CREATE)
     local displayOrder = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER)
     for _, source in ipairs(addonTable.CategoryViews.Constants.ProtectedCategories) do
       if tIndexOf(displayOrder, source) == nil then
@@ -339,12 +380,12 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
       end
     end
   end)
-  dropDown:SetPoint("TOPLEFT", 0, 0)
-  dropDown:SetPoint("RIGHT", categoryOrder)
+  dropdown:SetPoint("BOTTOMLEFT", categoryOrder, "TOPLEFT", 0, 8)
+  dropdown:SetPoint("RIGHT", categoryOrder)
 
   addonTable.CallbackRegistry:RegisterCallback("SettingChanged", function(_, settingName)
     if settingName == addonTable.Config.Options.CATEGORY_DISPLAY_ORDER or settingName == addonTable.Config.Options.CATEGORY_HIDDEN or settingName == addonTable.Config.Options.CUSTOM_CATEGORIES then
-      SetCategoriesToDropDown(dropDown, GetInsertedCategories())
+      SetCategoriesToDropDown(dropdown, GetInsertedCategories())
       PopulateCategoryOrder(categoryOrder)
     end
   end)

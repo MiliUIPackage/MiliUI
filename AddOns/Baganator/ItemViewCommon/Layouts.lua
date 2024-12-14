@@ -740,7 +740,7 @@ local function AddCategories(self)
   local itemKey = addonTable.CategoryViews.Utilities.GetAddedItemData(self.BGR.itemID, self.BGR.itemLink)
   local searchToLabel = {}
   for _, details in ipairs(composed.details) do
-    if details.attachedItems and (details.attachedItems[itemKey] or details.attachedItems[self.BGR.key]) then
+    if details.attachedItems and details.attachedItems[itemKey] then
       GameTooltip:AddLine(WHITE_FONT_COLOR:WrapTextInColorCode(
         BAGANATOR_L_ATTACHED_DIRECTLY_TO_X:format(GREEN_FONT_COLOR:WrapTextInColorCode("**" .. details.label .. "**"))
       ))
@@ -811,7 +811,7 @@ function BaganatorLiveCategoryLayoutMixin:SetupDummyButton(button)
   button.isDummy = true
 
   local function ProcessCursor()
-    if C_Cursor.GetCursorItem() ~= nil then
+    if C_Cursor.GetCursorItem() ~= nil and button.dummyType ~= "empty" then
       addonTable.CallbackRegistry:TriggerEvent("CategoryAddItemEnd", button.dummyType == "add" and button.BGR.category or nil)
       ClearCursor()
     end
@@ -821,8 +821,10 @@ function BaganatorLiveCategoryLayoutMixin:SetupDummyButton(button)
   button:SetScript("OnReceiveDrag", ProcessCursor)
 
   button:SetScript("OnEnter", function()
-    GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
-    GameTooltip:SetText(button.label)
+    if button.label then
+      GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
+      GameTooltip:SetText(button.label)
+    end
   end)
 
   button:SetScript("OnLeave", function()
@@ -839,12 +841,17 @@ function BaganatorLiveCategoryLayoutMixin:ApplyDummyButtonSettings(button, cache
   end
 
   button.dummyType = cacheData.dummyType
+  button.ModifiedIcon:SetDesaturated(false)
   if cacheData.dummyType == "remove" then
     button.ModifiedIcon:SetAtlas("transmog-icon-remove")
     button.ModifiedIcon:SetSize(25, 25)
   elseif cacheData.dummyType == "add" then
     button.ModifiedIcon:SetAtlas("Garr_Building-AddFollowerPlus")
     button.ModifiedIcon:SetSize(37, 37)
+  elseif cacheData.dummyType == "empty" then
+    button.ModifiedIcon:SetAtlas("transmog-icon-remove")
+    button.ModifiedIcon:SetSize(25, 25)
+    button.ModifiedIcon:SetDesaturated(true)
   end
 end
 
@@ -940,6 +947,14 @@ function BaganatorLiveCategoryLayoutMixin:ShowGroup(cacheList, rowWidth, categor
     table.insert(self.buttons, newButton)
   end
 
+  self.buttonsByKey = {}
+  for index, button in ipairs(self.buttons) do
+    local cacheData = cacheList[index]
+    local key = addonTable.ItemViewCommon.Utilities.GetCategoryDataKey(cacheData)
+    self.buttonsByKey[key] = self.buttonsByKey[key] or {}
+    table.insert(self.buttonsByKey[key], button)
+  end
+
   if #toSet > 0 then
     self.toSet = true
     for _, details in ipairs(toSet) do
@@ -967,14 +982,8 @@ function BaganatorLiveCategoryLayoutMixin:ShowGroup(cacheList, rowWidth, categor
 
   self.refreshContent = false
 
-  self.buttonsByKey = {}
   for index, button in ipairs(self.buttons) do
     button.BGR.category = category
-    local cacheData = cacheList[index]
-    button.BGR.key = cacheData.key
-    local key = addonTable.ItemViewCommon.Utilities.GetCategoryDataKey(cacheData)
-    self.buttonsByKey[key] = self.buttonsByKey[key] or {}
-    table.insert(self.buttonsByKey[key], button)
   end
 end
 
@@ -1178,6 +1187,7 @@ function BaganatorLiveGuildLayoutMixin:OnLoad()
   self.buttonPool = addonTable.ItemViewCommon.GetLiveGuildItemButtonPool(self)
   self.buttons = {}
   self.prevState = {}
+  self.layoutType = "live"
   self.SearchMonitor = CreateFrame("Frame", nil, self, "BaganatorGuildSearchLayoutMonitorTemplate")
 
   self:RegisterEvent("GUILDBANK_ITEM_LOCK_CHANGED")
@@ -1257,9 +1267,16 @@ function BaganatorUnifiedGuildLayoutMixin:ShowGuild(guild, rowWidth)
 
   local guildData = Syndicator.API.GetGuild(guild)
 
-  if #self.buttons ~= Syndicator.Constants.MaxGuildBankTabItemSlots * #guildData.bank then
+  local availableTabs = 0
+  for _, tabData in ipairs(guildData.bank) do
+    if tabData.isViewable then
+      availableTabs = availableTabs + 1
+    end
+  end
+
+  if #self.buttons ~= availableTabs * #guildData.bank then
     self.refreshContent = true
-    self:RebuildLayout(#guildData.bank, rowWidth)
+    self:RebuildLayout(availableTabs, rowWidth)
   elseif self.reflow or rowWidth ~= self.oldRowWidth then
     self.reflow = false
     FlowButtonsRows(self, rowWidth)
@@ -1283,10 +1300,12 @@ function BaganatorUnifiedGuildLayoutMixin:ShowGuild(guild, rowWidth)
 
     local index = 1
     for tabIndex, tabData in ipairs(guildData.bank) do
-      for _, cacheData in ipairs(tabData.slots) do
-        local button = self.buttons[index]
-        button:SetItemDetails(cacheData, tabIndex)
-        index = index + 1
+      if tabData.isViewable then
+        for _, cacheData in ipairs(tabData.slots) do
+          local button = self.buttons[index]
+          button:SetItemDetails(cacheData, tabIndex)
+          index = index + 1
+        end
       end
     end
   end
@@ -1306,6 +1325,7 @@ function BaganatorLiveUnifiedGuildLayoutMixin:OnLoad()
   self.buttonPool = addonTable.ItemViewCommon.GetLiveGuildItemButtonPool(self)
   self.buttons = {}
   self.prevState = {}
+  self.layoutType = "live"
   self.SearchMonitor = CreateFrame("Frame", nil, self, "BaganatorGuildSearchLayoutMonitorTemplate")
 
   self:RegisterEvent("GUILDBANK_ITEM_LOCK_CHANGED")
@@ -1322,7 +1342,7 @@ end
 BaganatorLiveWarbandLayoutMixin = {}
 
 function BaganatorLiveWarbandLayoutMixin:OnLoad()
-  self.buttonPool = addonTable.ItemViewCommon.GetLiveWarbandItemButtonPool(self)
+  self.buttonPool = addonTable.ItemViewCommon.GetLiveItemButtonPool(self)
   self.indexFrame = CreateFrame("Frame", nil, self)
   self.buttons = {}
   self.waitingUpdate = true
@@ -1360,7 +1380,8 @@ function BaganatorLiveWarbandLayoutMixin:RequestContentRefresh()
 end
 
 function BaganatorLiveWarbandLayoutMixin:UpdateLockForItem(bagID, slotID)
-  if self.buttons[1] and bagID == self.buttons[1]:GetBankTabID() then
+  local myBagID = self.indexFrame:GetID()
+  if self.buttons[1] and bagID == myBagID then
     local itemButton = self.buttons[slotID]
     if itemButton then
       local info = C_Container.GetContainerItemInfo(bagID, slotID);
@@ -1436,7 +1457,6 @@ function BaganatorLiveWarbandLayoutMixin:ShowTab(tabIndex, indexes, rowWidth)
     self.indexFrame:SetID(bagID)
     for index, cacheData in ipairs(warbandData[tabIndex].slots) do
       local button = self.buttons[index]
-      button:SetBankTabID(bagID)
       if IsDifferentCachedData(button.BGR, cacheData) then
         button:SetItemDetails(cacheData)
       elseif refreshContent then

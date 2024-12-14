@@ -1,7 +1,9 @@
 # Baganator
 
-## [505](https://github.com/Baganator/Baganator/tree/505) (2024-11-14)
-[Full Changelog](https://github.com/Baganator/Baganator/compare/504...505) 
+## [547](https://github.com/Baganator/Baganator/tree/547) (2024-12-13)
+[Full Changelog](https://github.com/Baganator/Baganator/compare/546...547) 
 
-- Fix guild bank tabs not fading when no search matches contained in them  
-- [Fixes #339] Classic: Fix bank container bags not showing bag icons  
+- Fixes for alt toggle buttons for separate issues on GW2 skin and saved searches  
+- Include buttons next to search box in effects of "Show when holding Alt" option  
+- Permit second row of currencies tracked to extend above buttons at bottom of bag  
+- [Fixes #378] Fix Auto Open: Character Panel option erroring  

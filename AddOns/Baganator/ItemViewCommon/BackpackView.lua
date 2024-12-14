@@ -5,15 +5,12 @@ local classicTabObjectCounter = 0
 BaganatorItemViewCommonBackpackViewMixin = {}
 
 local function PreallocateItemButtons(pool, buttonCount)
-  local frame = CreateFrame("Frame")
-  frame:RegisterEvent("PLAYER_LOGIN")
-  frame:SetScript("OnEvent", function()
-    for i = 1, buttonCount do
-      local button = pool:Acquire()
-      addonTable.Skins.AddFrame("ItemButton", button)
-    end
-    pool:ReleaseAll()
-  end)
+  assert(not InCombatLockdown())
+  for i = 1, buttonCount do
+    local button = pool:Acquire()
+    addonTable.Skins.AddFrame("ItemButton", button)
+  end
+  pool:ReleaseAll()
 end
 
 function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
@@ -55,18 +52,14 @@ function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
     if not self.lastCharacter then
       return
     end
-    if tIndexOf(addonTable.Config.VisualsFrameOnlySettings, settingName) ~= nil then
-      if self:IsVisible() then
-        addonTable.Utilities.ApplyVisuals(self)
-      end
-    elseif tIndexOf(addonTable.Config.ItemButtonsRelayoutSettings, settingName) ~= nil then
+    if tIndexOf(addonTable.Config.ItemButtonsRelayoutSettings, settingName) ~= nil then
       for _, layout in ipairs(self.Container.Layouts) do
         layout:InformSettingChanged(settingName)
       end
       if self:IsVisible() then
         self:UpdateForCharacter(self.lastCharacter, self.isLive)
       end
-    elseif settingName == addonTable.Config.Options.SHOW_RECENTS_TABS then
+    elseif settingName == addonTable.Config.Options.SHOW_RECENTS_TABS and self.Tabs ~= nil then
       local isShown = addonTable.Config.Get(addonTable.Config.Options.SHOW_RECENTS_TABS)
       for index, tab in ipairs(self.Tabs) do
         tab:SetShown(isShown)
@@ -75,7 +68,7 @@ function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
         end
       end
       self:OnFinished()
-    elseif settingName == addonTable.Config.Options.MAIN_VIEW_SHOW_BAG_SLOTS then
+    elseif settingName == addonTable.Config.Options.MAIN_VIEW_SHOW_BAG_SLOTS and self:IsVisible() then
       self.BagSlots:Update(self.lastCharacter, self.isLive)
       self:OnFinished()
     end
@@ -95,9 +88,15 @@ function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
     end
   end)
 
-  addonTable.CallbackRegistry:RegisterCallback("SpecialBagToggled", function(_, character)
+  addonTable.CallbackRegistry:RegisterCallback("LayoutUpdateRequired", function()
     if self:IsVisible() and self.lastCharacter ~= nil then
       self:UpdateForCharacter(self.lastCharacter, self.isLive)
+    end
+  end)
+
+  Syndicator.CallbackRegistry:RegisterCallback("GuildNameSet",  function(_, guild)
+    if self.lastCharacter ~= nil and Syndicator.API.GetCharacter(self.lastCharacter) then
+      self:UpdateGuildButton()
     end
   end)
 
@@ -127,9 +126,9 @@ function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
   self.TopButtons[1]:ClearAllPoints()
   self.TopButtons[1]:SetPoint("TOPLEFT", self, "TOPLEFT", addonTable.Constants.ButtonFrameOffset + 2, -1)
 
-  self.BagSlots:SetPoint("BOTTOMLEFT", self, "TOPLEFT", addonTable.Constants.ButtonFrameOffset, 0)
-
   addonTable.Skins.AddFrame("ButtonFrame", self, {"backpack"})
+
+  self:SetLiveCharacter(Syndicator.API.GetCurrentCharacter())
 end
 
 function BaganatorItemViewCommonBackpackViewMixin:OnShow()
@@ -147,6 +146,9 @@ end
 
 function BaganatorItemViewCommonBackpackViewMixin:SetLiveCharacter(character)
   self.liveCharacter = character
+  if self.lastCharacter == nil then
+    self.lastCharacter = self.liveCharacter
+  end
 end
 
 function BaganatorItemViewCommonBackpackViewMixin:OnDragStart()
@@ -298,7 +300,6 @@ end
 
 function BaganatorItemViewCommonBackpackViewMixin:UpdateForCharacter(character, isLive)
   local start = debugprofilestop()
-  addonTable.Utilities.ApplyVisuals(self)
 
   local characterData = Syndicator.API.GetCharacter(character)
 
@@ -336,6 +337,8 @@ function BaganatorItemViewCommonBackpackViewMixin:UpdateForCharacter(character, 
   if self.tabsSetup then -- Not ready immediately on PLAYER_ENTERING_WORLD
     self.Tabs[1]:SetPoint("LEFT", self, "LEFT", sideSpacing + addonTable.Constants.ButtonFrameOffset, 0)
   end
+
+  self.BagSlots:SetPoint("BOTTOMLEFT", self, "TOPLEFT", addonTable.Constants.ButtonFrameOffset, 0)
 
   self.SearchWidget:SetSpacing(sideSpacing)
 
@@ -381,6 +384,11 @@ function BaganatorItemViewCommonBackpackViewMixin:UpdateTransferButton()
     return
   end
 
+  if not self.isLive then
+    self.TransferButton:Hide()
+    return
+  end
+
   self.TransferButton:ClearAllPoints()
   if self.SortButton:IsShown() then
     self.TransferButton:SetPoint("RIGHT", self.SortButton, "LEFT")
@@ -398,8 +406,16 @@ function BaganatorItemViewCommonBackpackViewMixin:UpdateTransferButton()
   self.TransferButton:Hide()
 end
 
+function BaganatorItemViewCommonBackpackViewMixin:IsTransferActive()
+  return self.TransferButton:IsShown()
+end
+
 function BaganatorItemViewCommonBackpackViewMixin:UpdateAllButtons()
   self.ButtonVisibility:Update()
+  self:UpdateGuildButton()
+end
+
+function BaganatorItemViewCommonBackpackViewMixin:UpdateGuildButton()
   local guildName = Syndicator.API.GetCharacter(self.lastCharacter).details.guild
   self.ToggleGuildBankButton:SetEnabled(guildName ~= nil and Syndicator.API.GetGuild(guildName))
   self.ToggleGuildBankButton.Icon:SetDesaturated(not self.ToggleGuildBankButton:IsEnabled())
