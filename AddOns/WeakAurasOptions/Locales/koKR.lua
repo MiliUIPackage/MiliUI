@@ -29,7 +29,7 @@ local L = WeakAuras.L
 	L["%s - Condition Custom Check %s"] = "%s - 조건 사용자 정의 검사 %s"
 	L["%s - Condition Custom Code %s"] = "%s - 조건 사용자 정의 코드 %s"
 	L["%s - Custom Anchor"] = "%s - 사용자 정의 위치 부착"
-	L["%s - Custom Grow"] = "%s - 사용자 정의 성장"
+	L["%s - Custom Grow"] = "%s - 사용자 정의 그룹 확장"
 	L["%s - Custom Sort"] = "%s - 사용자 정의 정렬"
 	L["%s - Custom Text"] = "%s - 사용자 정의 텍스트"
 	L["%s - Finish"] = "%s - 종료"
@@ -151,7 +151,7 @@ Enable this setting if you want this timer to be hidden, or when using a WeakAur
 	L["Affected Unit Filters and Info"] = "오라에 걸린 유닛의 필터와 정보"
 	L["Align"] = "정렬"
 	L["Alignment"] = "정렬"
-	L["All maintainers of the libraries we use, especially:"] = "특히 우리가 사용하는 라이브러리의 모든 유지 관리자:"
+	L["All maintainers of the libraries we use, especially:"] = "특히 우리가 사용중인 라이브러리를 관리하시는 모든 분들:"
 	L["All of"] = "모두 만족"
 	L["Allow Full Rotation"] = "전체 회전 허용"
 	L["Alpha"] = "투명도"
@@ -171,7 +171,7 @@ Enable this setting if you want this timer to be hidden, or when using a WeakAur
 	L["Angle Between Auras"] = "위크오라들 간의 각도"
 	L["Animate"] = "애니메이션"
 	L["Animated Expand and Collapse"] = "확장 / 접기 애니메이션"
-	L["Animates progress changes"] = "진행 변화 애니메이션"
+	L["Animates progress changes"] = "진행 상태의 변화를 부드럽게 표현합니다"
 	L["Animation End"] = "애니메이션 종료"
 	L["Animation Mode"] = "애니메이션 모드"
 	L["Animation relative duration description"] = [=[
@@ -307,7 +307,7 @@ Off Screen]=] ] = "위크오라가 화면 밖에 있습니다"
 	L["Custom Configuration"] = "사용자 정의 구성"
 	L["Custom Frames"] = "사용자 정의 프레임"
 	L["Custom Function"] = "사용자 정의 함수"
-	L["Custom Grow"] = "사용자 정의 성장"
+	L["Custom Grow"] = "사용자 정의 그룹 확장"
 	L["Custom Options"] = "사용자 정의 옵션"
 	L["Custom Sort"] = "사용자 정의 정렬"
 	L["Custom Trigger"] = "사용자 정의 활성 조건"
@@ -446,7 +446,8 @@ Supports multiple entries, separated by commas
 Can use \ to escape -.]=] ] = [=[필터 형식: '이름', '이름-서버', '-서버'. 여러 항목을 지원하며, 각 항목은 쉼표로 구분합니다.
 -는 앞에 \를 사용해서 이스케이프 처리를 할 수 있습니다.]=]
 	L[ [=[Filter to only dispellable de/buffs of the given type(s)
-Bleed classification via LibDispel]=] ] = "LibDispel을 통해 출혈로 분류된 버프/디버프만 인식합니다"
+Bleed classification via LibDispel]=] ] = [=[해제 가능한 종류의 버프/디버프만 인식합니다
+출혈은 LibDispel을 통해 분류됩니다]=]
 	L["Find Auras"] = "위크오라 구하기"
 	L["Finish"] = "종료"
 	L["Finishing..."] = "완료중..."
@@ -512,7 +513,7 @@ Bleed classification via LibDispel]=] ] = "LibDispel을 통해 출혈로 분류�
 	L["Group Scale"] = "그룹 크기 비율"
 	L["Group Settings"] = "그룹 설정"
 	L["Group Type"] = "그룹 종류"
-	L["Grow"] = "성장"
+	L["Grow"] = "그룹 확장"
 	L["Hawk"] = "매"
 	L["Height"] = "높이"
 	L["Help"] = "도움말"
@@ -582,7 +583,7 @@ Bleed classification via LibDispel]=] ] = "LibDispel을 통해 출혈로 분류�
 	L["Invalid Spell Name/ID/Link"] = "잘못된 주문 이름/ID/링크"
 	L["Invalid target aura"] = "올바르지 않은 대상 위크오라"
 	L["Invalid type for '%s'. Expected 'bool', 'number', 'select', 'string', 'timer' or 'elapsedTimer'."] = "'%s'는 올바르지 않은 종류입니다. 'bool', 'number', 'select', 'string', 'timer' 또는 'elapsedTimer'가 되야합니다."
-	L["Invalid type for property '%s' in '%s'. Expected '%s'"] = "'%s'의 속성 '%s'의 유형이 유효하지 않습니다. '%s'가 필요합니다"
+	L["Invalid type for property '%s' in '%s'. Expected '%s'"] = "'%2$s'에서 '%1$s' 속성은 유효하지 않습니다. '%3$s'|1이;가; 되야합니다"
 	L["Inverse"] = "반대로"
 	L["Inverse Slant"] = "기울임 반대로"
 	L["Invert the direction of progress"] = "진행 방향 반대로"
@@ -654,13 +655,13 @@ Bleed classification via LibDispel]=] ] = "LibDispel을 통해 출혈로 분류�
 	L["Multiple Displays"] = "다중 디스플레이"
 	L["Multiselect ignored tooltip"] = [=[
 |cFFFF0000무시|r - |cFF777777단일|r - |cFF777777다중|r
-디스플레이를 불러오는 데 영향을 주지 않습니다]=]
+이 옵션은 이 디스플레이를 불러올 때 조건으로 사용되지 않습니다]=]
 	L["Multiselect multiple tooltip"] = [=[
 |cFF777777무시|r - |cFF777777단일|r - |cFF00FF00다중|r
-일치하는 여러 값을 선택할 수 있습니다]=]
+일치하는 값을 무엇이든 선택할 수 있습니다]=]
 	L["Multiselect single tooltip"] = [=[
 |cFF777777무시|r - |cFF00FF00단일|r - |cFF777777다중|r
-일치하는 한 값만 선택할 수 있습니다]=]
+일치하는 값을 하나만 선택할 수 있습니다]=]
 	L["Must be a power of 2"] = "2의 제곱이어야 합니다"
 	L["Name - The name of the display (usually an aura name), or the display's ID if there is no dynamic name"] = "이름 - 이 디스플레이의 이름이며 (일반적으론 오라 이름) 동적 이름이 없을땐 ID가 됩니다"
 	L["Name Info"] = "이름 정보"
@@ -731,7 +732,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[위크오�
 	L["Own Only"] = "내 것만"
 	L["Paste Action Settings"] = "동작 설정 붙여넣기"
 	L["Paste Animations Settings"] = "애니메이션 설정 붙여넣기"
-	L["Paste Author Options Settings"] = "작성자 설정 붙여넣기"
+	L["Paste Author Options Settings"] = "제작자 설정 붙여넣기"
 	L["Paste Condition Settings"] = "조건 설정 붙여넣기"
 	L["Paste Custom Configuration"] = "사용자 정의 구성 붙여넣기"
 	L["Paste Display Settings"] = "디스플레이 설정 붙여넣기"
@@ -772,6 +773,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[위크오�
 	L["Regions of type \"%s\" are not supported."] = "\"%s\" 종류의 Region은 지원하지 않습니다."
 	L["Remaining Time"] = "남은 시간"
 	L["Remove"] = "제거"
+	L["Remove All Sounds"] = "모든 소리 제거"
+	L["Remove All Text To Speech"] = "모든 텍스트 음성 변환 제거"
 	L["Remove this display from its group"] = "이 디스플레이를 그룹에서 제거합니다"
 	L["Remove this property"] = "이 속성 제거"
 	L["Rename"] = "이름 변경"
@@ -833,8 +836,10 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[위크오�
 	L["Show Model"] = "모델 표시"
 	L["Show model of unit "] = "유닛의 모델 표시"
 	L["Show On"] = "표시 조건"
+	L["Show Sound Setting"] = "소리 설정 표시"
 	L["Show Spark"] = "섬광 표시"
 	L["Show Text"] = "텍스트 표시"
+	L["Show Text To Speech Setting"] = "텍스트 음성 변환 설정 표시"
 	L["Show this group's children"] = "이 그룹의 자식 위크오라를 표시합니다"
 	L["Show Tick"] = "틱 표시"
 	L["Shows a 3D model from the game files"] = "게임 파일내 3D 모델을 표시합니다"
@@ -979,7 +984,7 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["Trigger Combination"] = "활성 조건 조합"
 	L["True"] = "참"
 	L["Type"] = "종류"
-	L["Type 'select' for '%s' requires a values member'"] = "'%s'에 대해 'select' 유형은 values 멤버가 필요합니다"
+	L["Type 'select' for '%s' requires a values member'"] = "'%s'에서 'select' 유형은 값들의 구성원을 필요로 합니다"
 	L["Ungroup"] = "그룹 해제"
 	L["Unit"] = "유닛"
 	L["Unit %s is not a valid unit for RegisterUnitEvent"] = "%s 유닛은 RegisterUnitEvent에 적합하지 않습니다."
@@ -1039,11 +1044,11 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["You are about to delete a trigger. |cFFFF0000This cannot be undone!|r Would you like to continue?"] = "이 활성 조건을 삭제하려고 합니다. |cFFFF0000이는 되돌릴 수 없습니다!|r 계속할까요?"
 	L[ [=[You can add a comma-separated list of state values here that (when changed) WeakAuras should also run the Anchor Code on.
 
-WeakAuras will always run custom anchor code if you include 'changed' in this list, or when a region is added, removed, or re-ordered.]=] ] = "이곳에 스테이트 값 목록을 쉼표 구분자를 넣어 추가할 수 있으며 (changed 발동시) WeakAuras도 앵커 코드를 이곳에서 실행합니다. WeakAuras는 언제나 이 목록에 'changed'가 들어있거나 region이 추가, 삭제, 재정렬시 사용자 정의 앵커 코드를 실행합니다."
+WeakAuras will always run custom anchor code if you include 'changed' in this list, or when a region is added, removed, or re-ordered.]=] ] = "이곳에 스테이트 값들의 목록을 쉼표로 구분해서 넣을 수 있으며 (changed가 발동하면) WeakAuras는 앵커 코드를 실행할 것입니다. WeakAuras는 이 목록에 'changed'가 들어있거나 region이 추가, 삭제, 재정렬시 항상 사용자 정의 앵커 코드를 실행합니다."
 	L[ [=[You can add a comma-separated list of state values here that (when changed) WeakAuras should also run the Grow Code on.
 
-WeakAuras will always run custom grow code if you include 'changed' in this list, or when a region is added, removed, or re-ordered.]=] ] = "이곳에 스테이트 값 목록을 쉼표 구분자를 넣어 추가할 수 있으며 (changed 발동시) WeakAuras도 Grow 코드를 이곳에서 실행합니다. WeakAuras는 언제나 이 목록에 'changed'가 들어있거나 region이 추가, 삭제, 재정렬시 사용자 정의 Grow 코드를 실행합니다."
-	L["You can add a comma-separated list of state values here that (when changed) WeakAuras should also run the sort code on.WeakAuras will always run custom sort code if you include 'changed' in this list, or when a region is added, removed."] = "이곳에 스테이트 값 목록을 쉼표 구분자를 넣어 추가할 수 있으며 (changed 발동시) WeakAuras도 정렬 코드를 이곳에서 실행합니다. WeakAuras는 언제나 이 목록에 'changed'가 들어있거나 region이 추가, 삭제, 재정렬시 사용자 정의 정렬 코드를 실행합니다."
+WeakAuras will always run custom grow code if you include 'changed' in this list, or when a region is added, removed, or re-ordered.]=] ] = "이곳에 스테이트 값들의 목록을 쉼표로 구분해서 넣을 수 있으며 (changed가 발동하면) WeakAuras는 그룹 확장 코드를 실행할 것입니다. WeakAuras는 이 목록에 'changed'가 들어있거나 region이 추가, 삭제, 재정렬시 항상 사용자 정의 그룹 확장 코드를 실행합니다."
+	L["You can add a comma-separated list of state values here that (when changed) WeakAuras should also run the sort code on.WeakAuras will always run custom sort code if you include 'changed' in this list, or when a region is added, removed."] = "이곳에 스테이트 값들의 목록을 쉼표로 구분해서 넣을 수 있으며 (changed가 발동하면) WeakAuras는 정렬 코드를 실행할 것입니다. WeakAuras는 이 목록에 'changed'가 들어있거나 region이 추가, 삭제, 재정렬시 항상 사용자 정의 정렬 코드를 실행합니다."
 	L["Your Saved Snippets"] = "저장된 스니펫"
 	L["Z Offset"] = "Z 위치 조정"
 	L["Z Rotation"] = "Z 회전"

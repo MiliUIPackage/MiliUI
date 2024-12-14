@@ -274,11 +274,16 @@ L["Centered Vertical, then Right"] = "垂直居中，然后向右"
 L["Changed"] = "已更改"
 L["Channel"] = "频道"
 L["Channel (Spell)"] = "引导法术"
+--[[Translation missing --]]
+L["Character GUID"] = "Character GUID"
+--[[Translation missing --]]
+L["Character Name"] = "Character Name"
 L["Character Stats"] = "角色属性"
+--[[Translation missing --]]
+L["Character Transferred Quantity"] = "Character Transferred Quantity"
 L["Character Type"] = "角色类型"
 L["Charge gained/lost"] = "获取/失去充能层数"
---[[Translation missing --]]
-L["Charged Combo Points"] = "Charged Combo Points"
+L["Charged Combo Points"] = "充能连击点"
 L["Charges"] = "充能"
 L["Charges Changed Event"] = "充能变化事件"
 L["Charging"] = "正在充能"
@@ -294,6 +299,8 @@ L["Class and Specialization"] = "职业和专精"
 L["Classic"] = "经典旧世"
 L["Classification"] = "分类"
 L["Clockwise"] = "顺时针"
+--[[Translation missing --]]
+L["Clone per Character"] = "Clone per Character"
 L["Clone per Event"] = "复制每项事件"
 L["Clone per Match"] = "复制每项符合项"
 L["Color"] = "颜色"
@@ -748,6 +755,8 @@ L["Lucifron"] = "鲁西弗隆"
 L["Maexxna"] = "迈克斯纳"
 L["Magic"] = "魔法"
 L["Magmadar"] = "玛格曼达"
+--[[Translation missing --]]
+L["Main Character"] = "Main Character"
 L["Main Stat"] = "主属性"
 L["Majordomo Executus"] = "管理者埃克索图斯"
 L["Malformed WeakAuras link"] = "错误的 WeakAuras 链接"
@@ -1299,6 +1308,10 @@ L["The effective level differs from the level in e.g. Time Walking dungeons."] =
 L["The Four Horsemen"] = "天启四骑士"
 L["The 'ID' value can be found in the BigWigs options of a specific spell"] = "'ID'值可以在BigWigs选项里的特定法术中找到。"
 L["The Prophet Skeram"] = "预言者斯克拉姆"
+--[[Translation missing --]]
+L["The total quantity a warband character can transfer after paying the transfer cost"] = "The total quantity a warband character can transfer after paying the transfer cost"
+--[[Translation missing --]]
+L["The total quantity after transferring everything to your current character and paying the transfer cost"] = "The total quantity after transferring everything to your current character and paying the transfer cost"
 L["The War Within"] = "地心之战"
 L["There are %i updates to your auras ready to be installed!"] = "有 %i 个光环更新已经准备好安装了！"
 L["Thick Outline"] = "粗轮廓"
@@ -1423,6 +1436,12 @@ L["Vertical"] = "垂直"
 L["Viscidus"] = "维希度斯"
 L["Visibility"] = "可见性"
 L["Visions of N'Zoth"] = "恩佐斯的幻象"
+--[[Translation missing --]]
+L["Warband Quantity Total"] = "Warband Quantity Total"
+--[[Translation missing --]]
+L["Warband Transfer Percentage"] = "Warband Transfer Percentage"
+--[[Translation missing --]]
+L["Warband Transferred Quantity"] = "Warband Transferred Quantity"
 L["Warfront (Heroic)"] = "战争前线（英雄）"
 L["Warfront (Normal)"] = "战争前线（普通）"
 L["Warlords of Draenor"] = "德拉诺之王"

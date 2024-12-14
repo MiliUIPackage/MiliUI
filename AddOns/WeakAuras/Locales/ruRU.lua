@@ -31,14 +31,10 @@ L["|cFFFF0000Not|r Item Bonus Id Equipped"] = "|cFFFF0000Нет|r ID бонус�
 L["|cFFFF0000Not|r Item Equipped"] = "Предмет |cFFFF0000НЕ|r надет"
 L["|cFFFF0000Not|r Player Name/Realm"] = "|cFFFF0000Нет|r Имя / Игровой мир игрока"
 L["|cFFFF0000Not|r Spell Known"] = "Заклинание |cFFFF0000НЕ|rизвестно"
---[[Translation missing --]]
 L[ [=[|cFFFF0000Support for unfiltered COMBAT_LOG_EVENT_UNFILTERED is deprecated|r
 COMBAT_LOG_EVENT_UNFILTERED without a filter is advised against as it’s very performance costly.
 Find more information:
-https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events]=] ] = [=[|cFFFF0000Support for unfiltered COMBAT_LOG_EVENT_UNFILTERED is deprecated|r
-COMBAT_LOG_EVENT_UNFILTERED without a filter is advised against as it’s very performance costly.
-Find more information:
-https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events]=]
+https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events]=] ] = "|cFFFF0000Поддержка COMBAT_LOG_EVENT_UNFILTERED без фильтра устарела|r Использование COMBAT_LOG_EVENT_UNFILTERED без фильтра не рекомендуется, так как это очень затратно по производительности. Дополнительная информация: https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events"
 L["|cFFffcc00Extra Options:|r %s"] = "|cFFFFCC00Дополнительные параметры:|r %s"
 L["|cFFffcc00Extra Options:|r None"] = "|cFFFFCC00Дополнительные параметры:|r нет"
 L[ [=[• |cff00ff00Player|r, |cff00ff00Target|r, |cff00ff00Focus|r, and |cff00ff00Pet|r correspond directly to those individual unitIDs.
@@ -273,7 +269,12 @@ L["Centered Vertical, then Right"] = "По вертикали по центру 
 L["Changed"] = "Изменен"
 L["Channel"] = "Канал"
 L["Channel (Spell)"] = "Потоковое"
+--[[Translation missing --]]
+L["Character GUID"] = "Character GUID"
+L["Character Name"] = "Имя персонажа"
 L["Character Stats"] = "Характеристики персонажа"
+--[[Translation missing --]]
+L["Character Transferred Quantity"] = "Character Transferred Quantity"
 L["Character Type"] = "Тип персонажа"
 L["Charge gained/lost"] = "Событие заряда"
 --[[Translation missing --]]
@@ -293,6 +294,8 @@ L["Class and Specialization"] = "Класс и специализация"
 L["Classic"] = "Classic"
 L["Classification"] = "Классификация"
 L["Clockwise"] = "По часовой стрелке"
+--[[Translation missing --]]
+L["Clone per Character"] = "Clone per Character"
 L["Clone per Event"] = "Клонировать для каждого события"
 L["Clone per Match"] = "Клонировать для каждого совпадения"
 L["Color"] = "Цвет"
@@ -319,10 +322,8 @@ L["Create"] = "Создание"
 L["Critical"] = "Критический эффект"
 L["Critical (%)"] = "Критический удар"
 L["Critical Rating"] = "Показатель крит. удара"
---[[Translation missing --]]
-L["Crop X"] = "Crop X"
---[[Translation missing --]]
-L["Crop Y"] = "Crop Y"
+L["Crop X"] = "Обрезка X"
+L["Crop Y"] = "Обрезка Y"
 L["Crowd Controlled"] = "Потеря контроля над персонажем"
 L["Crushing"] = "Сокрушительный удар"
 L["C'thun"] = "К'Тун"
@@ -751,6 +752,7 @@ L["Lucifron"] = "Люцифрон"
 L["Maexxna"] = "Мексна"
 L["Magic"] = "Магия"
 L["Magmadar"] = "Магмадар"
+L["Main Character"] = "Главный персонаж"
 L["Main Stat"] = "Основная характеристика"
 L["Majordomo Executus"] = "Мажордом Экзекутус"
 L["Malformed WeakAuras link"] = "Неверная ссылка WeakAuras"
@@ -1270,6 +1272,10 @@ L["The effective level differs from the level in e.g. Time Walking dungeons."] =
 L["The Four Horsemen"] = "Четыре всадника"
 L["The 'ID' value can be found in the BigWigs options of a specific spell"] = "Значение ID можно найти в параметрах BigWigs для конкретного заклинания"
 L["The Prophet Skeram"] = "Пророк Скерам"
+--[[Translation missing --]]
+L["The total quantity a warband character can transfer after paying the transfer cost"] = "The total quantity a warband character can transfer after paying the transfer cost"
+--[[Translation missing --]]
+L["The total quantity after transferring everything to your current character and paying the transfer cost"] = "The total quantity after transferring everything to your current character and paying the transfer cost"
 L["The War Within"] = "Война Внутри"
 L["There are %i updates to your auras ready to be installed!"] = "Готово к применению %i |4обновление:обновления:обновлений;."
 L["Thick Outline"] = "Толстый контур"
@@ -1394,13 +1400,18 @@ L["Vertical"] = "Вертикальная"
 L["Viscidus"] = "Нечистотон"
 L["Visibility"] = "Видимость"
 L["Visions of N'Zoth"] = "Видения Н'Зота"
+--[[Translation missing --]]
+L["Warband Quantity Total"] = "Warband Quantity Total"
+--[[Translation missing --]]
+L["Warband Transfer Percentage"] = "Warband Transfer Percentage"
+--[[Translation missing --]]
+L["Warband Transferred Quantity"] = "Warband Transferred Quantity"
 L["Warfront (Heroic)"] = "Фронт (героический)"
 L["Warfront (Normal)"] = "Фронт (обычный)"
 L["Warlords of Draenor"] = "Warlords of Draenor"
 L["Warning"] = "Предупреждение"
 L["Warning for unknown aura:"] = "Предупреждение для неизвестной индикации."
---[[Translation missing --]]
-L["Warning: Anchoring in aura '%s' is imposssible, due to an anchoring cycle"] = "Warning: Anchoring in aura '%s' is imposssible, due to an anchoring cycle"
+L["Warning: Anchoring in aura '%s' is imposssible, due to an anchoring cycle"] = "Предупреждение: крепление в ауре '%s' невозможно из-за цикла крепления"
 L["Warning: Full Scan auras checking for both name and spell id can't be converted."] = "|cFFFFCC00Предупреждение.|r Триггер с функцией Полного сканирования, проверяющий как название эффекта, так и ID заклинания, нельзя преобразовать."
 L["Warning: Name info is now available via %affected, %unaffected. Number of affected group members via %unitCount. Some options behave differently now. This is not automatically adjusted."] = "|cFFFFCC00Примечение.|r Теперь имена задействованных и незадействованных игроков доступны посредством %affected и %unaffected; количество задействованных участников группы - %unitCount. Некоторые параметры работают иначе. Эти изменения автоматически не применяются."
 L["Warning: Tooltip values are now available via %tooltip1, %tooltip2, %tooltip3 instead of %s. This is not automatically adjusted."] = "|cFFFFCC00Примечение.|r Теперь значения из текста подсказки доступны посредством %tooltip1, %tooltip2 и %tooltip3. Это изменение автоматически не применяется."

@@ -754,6 +754,10 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[事件发�
 	L["Regions of type \"%s\" are not supported."] = "%s 区域类型不被支持。"
 	L["Remaining Time"] = "剩余时间"
 	L["Remove"] = "移除"
+	--[[Translation missing --]]
+	L["Remove All Sounds"] = "Remove All Sounds"
+	--[[Translation missing --]]
+	L["Remove All Text To Speech"] = "Remove All Text To Speech"
 	L["Remove this display from its group"] = "从所在组中移除此图示"
 	L["Remove this property"] = "移除此属性"
 	L["Rename"] = "重命名"
@@ -815,8 +819,12 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[事件发�
 	L["Show Model"] = "显示模型"
 	L["Show model of unit "] = "显示该单位的模型"
 	L["Show On"] = "显示于"
+	--[[Translation missing --]]
+	L["Show Sound Setting"] = "Show Sound Setting"
 	L["Show Spark"] = "显示闪光效果"
 	L["Show Text"] = "显示文本"
+	--[[Translation missing --]]
+	L["Show Text To Speech Setting"] = "Show Text To Speech Setting"
 	L["Show this group's children"] = "显示此组的子项目"
 	L["Show Tick"] = "显示进度指示"
 	L["Shows a 3D model from the game files"] = "显示游戏文件中的3D模形"

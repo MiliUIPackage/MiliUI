@@ -1,47 +1,40 @@
-# [5.17.3](https://github.com/WeakAuras/WeakAuras2/tree/5.17.3) (2024-10-22)
+# [5.18.0](https://github.com/WeakAuras/WeakAuras2/tree/5.18.0) (2024-11-21)
 
-[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.17.2...5.17.3)
+[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.17.5...5.18.0)
 
 ## Highlights
 
-- 🚨 🚨 🚨 Custom Triggers which listen to COMBAT_LOG_EVENT_UNFILTERED without..ahem..*filtering* now generate a deprecation warning, and will cease functioning in a future update
-- WeakAurasTemplates: Updated for 11.0.5. If we missed any, or got anything wrong, please let us know!
-- Rogue: Charged Combo Points no longer have any special interpretation in Player/Unit Info - Power - Combo Points trigger. The associated overlay should continue to work as expected.
-- WeakAurasArchive should be more conservative about when it loads, in the hopes of improving resiliency against SavedVariables loss
+- Updated Currency trigger to support Warband currencies (thanks @Boneshock!!!)
+- Bump ToC for classic 1.15.5
+- Add some new filtering options in spell cast succeeded & buff triggers
 
 ## Commits
 
 Boneshock (1):
 
-- Add chat command for WA profiling window
+- Add warband currency support (#5229)
 
-InfusOnWoW (10):
+InfusOnWoW (2):
 
-- Charged ComboPoints: Update trigger to new design
-- Fix Lua error on new Weapon Type trigger
-- Templates 10.0.5 update
-- Stagger: Workaround UNIT_ABSORB_AMOUNT_CHANGED not firing for the last tick
-- Druid Templates: Add Apex Predator buff and overlayglow
-- Discord Updater: Allow Cyrillic in names
-- Combo Points: Remove treat charged as seven feature
+- Fix check
 - Update Discord List
-- Deprecate unfiltered CLEU events
-- DG: Fix Centered Grow if 0 auras are visible
 
-Stanzilla (2):
+Stanzilla (1):
 
 - Update WeakAurasModelPaths from wago.tools
-- fix(ci): downgrade github workflows that depend on svn to the ubuntu-22.04 image
 
-emptyrivers (4):
+github-actions[bot] (4):
 
-- delete a couple nits in the geberated changelog
-- bump toc
-- fix archive clean schedule
-- finally remove LibDeflate hard commit
+- Update Discord List (#5534)
+- Update WeakAurasModelPaths from wago.tools (#5528)
+- Update Atlas File List from wago.tools (#5529)
+- Update Discord List (#5527)
 
-mrbuds (2):
+mrbuds (5):
 
-- BuffTrigger2 Multi Handler: make profiling more granular
-- Power Trigger: fix max combo points on Cataclysm
+- Remove unused code in ConstructFunction
+- Aura trigger: add npc id filter for boss unit
+- Spell Cast Succeeded: add filter by spell name
+- Fix error when converting a Combat Log trigger to Spell Cooldown trigger
+- Toc update for Classic Era 1.15.5
 

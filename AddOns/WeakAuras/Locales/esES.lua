@@ -259,11 +259,16 @@ L["Centered Vertical, then Right"] = "Centrado vertical, luego a la derecha"
 L["Changed"] = "Modificado"
 L["Channel"] = "Canal"
 L["Channel (Spell)"] = "Canalizar Hechizo"
+--[[Translation missing --]]
+L["Character GUID"] = "Character GUID"
+--[[Translation missing --]]
+L["Character Name"] = "Character Name"
 L["Character Stats"] = "Estadísticas del personaje"
+--[[Translation missing --]]
+L["Character Transferred Quantity"] = "Character Transferred Quantity"
 L["Character Type"] = "Tipo de Personaje"
 L["Charge gained/lost"] = "Carga ganada/perdida"
---[[Translation missing --]]
-L["Charged Combo Points"] = "Charged Combo Points"
+L["Charged Combo Points"] = "Puntos de combo cargados"
 L["Charges"] = "Cargas"
 L["Charges Changed Event"] = "Cargas de evento cambiado"
 L["Charging"] = "Cargando"
@@ -279,6 +284,8 @@ L["Class and Specialization"] = "Clase y especialización"
 L["Classic"] = "Clásico"
 L["Classification"] = "Clasificación"
 L["Clockwise"] = "En sentido horario"
+--[[Translation missing --]]
+L["Clone per Character"] = "Clone per Character"
 L["Clone per Event"] = "Clonar por evento"
 L["Clone per Match"] = "Clonar por encuentro"
 L["Color"] = "Color"
@@ -733,6 +740,8 @@ L["Lucifron"] = "Lucifron"
 L["Maexxna"] = "Maexxna"
 L["Magic"] = "Magia"
 L["Magmadar"] = "Magmadar"
+--[[Translation missing --]]
+L["Main Character"] = "Main Character"
 L["Main Stat"] = "Estadística principal"
 L["Majordomo Executus"] = "Mayordomo Executus"
 L["Malformed WeakAuras link"] = "Enlace WeakAuras malformado"
@@ -1248,6 +1257,10 @@ L["The effective level differs from the level in e.g. Time Walking dungeons."] =
 L["The Four Horsemen"] = "Los cuatro jinetes"
 L["The 'ID' value can be found in the BigWigs options of a specific spell"] = "El valor 'ID' se puede encontrar en las opciones de BigWigs de un hechizo específico."
 L["The Prophet Skeram"] = "El profeta Skeram"
+--[[Translation missing --]]
+L["The total quantity a warband character can transfer after paying the transfer cost"] = "The total quantity a warband character can transfer after paying the transfer cost"
+--[[Translation missing --]]
+L["The total quantity after transferring everything to your current character and paying the transfer cost"] = "The total quantity after transferring everything to your current character and paying the transfer cost"
 L["The War Within"] = "The War Within"
 L["There are %i updates to your auras ready to be installed!"] = "¡Hay %i actualizaciones para tus auras listas para ser instaladas!"
 L["Thick Outline"] = "Contorno grueso"
@@ -1373,6 +1386,12 @@ L["Vertical"] = "Vertical"
 L["Viscidus"] = "Viscidus"
 L["Visibility"] = "Visibilidad"
 L["Visions of N'Zoth"] = "Visiones de N'Zoth"
+--[[Translation missing --]]
+L["Warband Quantity Total"] = "Warband Quantity Total"
+--[[Translation missing --]]
+L["Warband Transfer Percentage"] = "Warband Transfer Percentage"
+--[[Translation missing --]]
+L["Warband Transferred Quantity"] = "Warband Transferred Quantity"
 L["Warfront (Heroic)"] = "Frente de guerra (heroico)"
 L["Warfront (Normal)"] = "Frente de guerra (normal)"
 L["Warlords of Draenor"] = "Warlords of Draenor"

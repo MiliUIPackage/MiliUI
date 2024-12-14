@@ -274,7 +274,7 @@ local function singleTest(arg, trigger, name, value, operator, use_exact)
   end
 end
 
-function ConstructTest(trigger, arg, testGroups, preambleGroups)
+function ConstructTest(trigger, arg, preambleGroups)
   local test
   local preamble
   local name = arg.name;
@@ -333,7 +333,7 @@ function ConstructTest(trigger, arg, testGroups, preambleGroups)
     end
   end
 
-  if not test or test == "(true)" or arg.testGroup and testGroups[arg.testGroup] then
+  if not test or test == "(true)" then
     return nil, preamble
   end
 
@@ -368,7 +368,6 @@ function ConstructFunction(prototype, trigger)
   local preambles = "\n"
   local orConjunctionGroups = {}
   local preambleGroups = {}
-  local testGroups = {}
   if(prototype.init) then
     init = prototype.init(trigger);
   else
@@ -394,7 +393,7 @@ function ConstructFunction(prototype, trigger)
         if (arg.store) then
           tinsert(store, name);
         end
-        local test, preamble = ConstructTest(trigger, arg, testGroups, preambleGroups);
+        local test, preamble = ConstructTest(trigger, arg, preambleGroups);
         if (test) then
           if(arg.required) then
             tinsert(required, test);
@@ -1863,7 +1862,7 @@ function GenericTrigger.Add(data, region)
 
   if warnAboutCLEUEvents then
     Private.AuraWarnings.UpdateWarning(data.uid, "spammy_event_warning", "error",
-                L["|cFFFF0000Support for unfiltered COMBAT_LOG_EVENT_UNFILTERED is deprecated|r\nCOMBAT_LOG_EVENT_UNFILTERED without a filter is advised against as it’s very performance costly.\nFind more information:\nhttps://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events"])
+                L["|cFFFF0000Support for unfiltered COMBAT_LOG_EVENT_UNFILTERED is deprecated|r\nCOMBAT_LOG_EVENT_UNFILTERED without a filter is advised against as it’s very performance costly.\nFind more information:\nhttps://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events"], true)
   else
     Private.AuraWarnings.UpdateWarning(data.uid, "spammy_event_warning")
   end
@@ -4023,8 +4022,12 @@ do
   function WeakAuras.TenchInit()
     if not(tenchFrame) then
       tenchFrame = CreateFrame("Frame");
-      tenchFrame:RegisterUnitEvent("UNIT_INVENTORY_CHANGED", "player");
       tenchFrame:RegisterEvent("PLAYER_ENTERING_WORLD");
+      if WeakAuras.IsRetail() then
+        tenchFrame:RegisterEvent("WEAPON_ENCHANT_CHANGED")
+      else
+        tenchFrame:RegisterUnitEvent("UNIT_INVENTORY_CHANGED", "player")
+      end
       if WeakAuras.IsClassicEra() then
         tenchFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED");
       end
@@ -4120,7 +4123,7 @@ do
 
       tenchFrame:SetScript("OnEvent", function()
         Private.StartProfileSystem("generictrigger temporary enchant");
-        timer:ScheduleTimer(tenchUpdate, 0.1);
+        timer:ScheduleTimer(tenchUpdate, 0.1)
         Private.StopProfileSystem("generictrigger temporary enchant");
       end);
 
@@ -5124,6 +5127,57 @@ Private.GetCurrencyInfoForTrigger = function(trigger)
       return C_CurrencyInfo.GetCurrencyInfo(currencyId)
     end
   end
+end
+
+Private.ExecEnv.GetCurrencyAccountInfo = function(currencyId)
+  local currencyInfo = C_CurrencyInfo.GetCurrencyInfo(currencyId)
+
+  -- Gather currency data for account characters
+  if WeakAuras.IsRetail() and currencyInfo and currencyInfo.isAccountTransferable then
+    local dataReady = C_CurrencyInfo.IsAccountCharacterCurrencyDataReady()
+    local accountCurrencyData = dataReady and C_CurrencyInfo.FetchCurrencyDataFromAccountCharacters(currencyId)
+
+    if dataReady and accountCurrencyData then
+      currencyInfo.accountQuantity = currencyInfo.quantity
+      currencyInfo.realAccountQuantity = currencyInfo.quantity
+      if currencyInfo.transferPercentage then
+        currencyInfo.realCharacterQuantity = math.floor(currencyInfo.quantity * (currencyInfo.transferPercentage / 100))
+      end
+
+      currencyInfo.accountCurrencyData = accountCurrencyData
+      for _, currencyData in ipairs(currencyInfo.accountCurrencyData) do
+        if currencyData.quantity then
+          if currencyInfo.transferPercentage then
+            currencyData.realCharacterQuantity = math.floor(currencyData.quantity * (currencyInfo.transferPercentage / 100))
+          end
+          currencyInfo.realAccountQuantity = currencyInfo.realAccountQuantity + (currencyData.realCharacterQuantity or currencyData.quantity)
+          currencyInfo.accountQuantity = currencyInfo.accountQuantity + currencyData.quantity
+        end
+      end
+    else
+      C_CurrencyInfo.RequestCurrencyDataForAccountCharacters()
+    end
+  end
+
+  -- WORKAROUND https://github.com/WeakAuras/WeakAuras2/issues/5106
+  if currencyInfo and WeakAuras.IsCataClassic() then
+    if currencyInfo.quantityEarnedThisWeek then
+      currencyInfo.quantityEarnedThisWeek = currencyInfo.quantityEarnedThisWeek / 100
+    end
+  end
+
+  if currencyInfo then
+    currencyInfo.capped = currencyInfo.maxQuantity and currencyInfo.maxQuantity > 0 and currencyInfo.quantity >= currencyInfo.maxQuantity
+    currencyInfo.seasonCapped = currencyInfo.maxQuantity and currencyInfo.maxQuantity > 0 and currencyInfo.useTotalEarnedForMaxQty and currencyInfo.totalEarned >= currencyInfo.maxQuantity
+    currencyInfo.weeklyCapped = currencyInfo.maxWeeklyQuantity and currencyInfo.maxWeeklyQuantity > 0 and currencyInfo.quantityEarnedThisWeek >= currencyInfo.maxWeeklyQuantity
+  end
+
+  if not currencyInfo then
+    currencyInfo = C_CurrencyInfo.GetCurrencyInfo(1) --Currency Token Test Token 4
+    currencyInfo.iconFileID = "Interface\\Icons\\INV_Misc_QuestionMark" --We don't want the user to think their input was valid
+  end
+
+  return currencyInfo
 end
 
 

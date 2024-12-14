@@ -1090,6 +1090,10 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Regions of type \"%s\" are not supported."] = "Regions of type \"%s\" are not supported."
 	L["Remaining Time"] = "Verbleibende Zeit"
 	L["Remove"] = "Entfernen"
+	--[[Translation missing --]]
+	L["Remove All Sounds"] = "Remove All Sounds"
+	--[[Translation missing --]]
+	L["Remove All Text To Speech"] = "Remove All Text To Speech"
 	L["Remove this display from its group"] = "Diese Anzeige aus seiner Gruppe entfernen"
 	L["Remove this property"] = "Eigenschaft entfernen"
 	L["Rename"] = "Umbenennen"
@@ -1182,9 +1186,13 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Show model of unit "] = "Modell der Einheit zeigen"
 	L["Show On"] = "Einblenden wenn"
 	--[[Translation missing --]]
+	L["Show Sound Setting"] = "Show Sound Setting"
+	--[[Translation missing --]]
 	L["Show Spark"] = "Show Spark"
 	--[[Translation missing --]]
 	L["Show Text"] = "Show Text"
+	--[[Translation missing --]]
+	L["Show Text To Speech Setting"] = "Show Text To Speech Setting"
 	L["Show this group's children"] = "Die Kinder dieser Gruppe anzeigen"
 	--[[Translation missing --]]
 	L["Show Tick"] = "Show Tick"
