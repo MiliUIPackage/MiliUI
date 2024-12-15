@@ -3,7 +3,6 @@ local addonName, addon = ...
 function addon:setupOptions()
     local defaults = {
         profile = {
-            highestFortTyr = true,
             itemUpgrade = true,
             portalButtons = true,
             watermark = true,
@@ -12,7 +11,8 @@ function addon:setupOptions()
             plunderstormRenown = true,
             acronyms = false,
             wardrobeClassColours = true,
-            warbandTransferable = true,
+            delvesProgressTooltip = true,
+            minRatingLonger = true,
         },
     }
         
@@ -26,13 +26,6 @@ function addon:setupOptions()
                 type = "description",
                 fontSize = "medium",
                 order = 0,
-            },
-            highestFortTyr = {
-                type = "toggle",
-                name = "Enable Highest Fortified/Tyrannical Module",
-                set = function(info, v) addon.db.profile.highestFortTyr = v end,
-                get = function() return addon.db.profile.highestFortTyr end,
-                width = "full",
             },
             showCompleted = {
                 type = "toggle",
@@ -90,11 +83,19 @@ function addon:setupOptions()
                 get = function() return addon.db.profile.wardrobeClassColours end,
                 width = "full",
             },
-            warbandTransferable = {
+            delvesProgressTooltip = {
                 type = "toggle",
-                name = "Enable Warband Transferable Module: Always show the 'Warband Transferable' icons on the Currency window",
-                set = function(info, v) addon.db.profile.warbandTransferable = v end,
-                get = function() return addon.db.profile.warbandTransferable end,
+                name = "Enable Delves Progress Tooltip Module",
+                set = function(info, v) addon.db.profile.delvesProgressTooltip = v end,
+                get = function() return addon.db.profile.delvesProgressTooltip end,
+                width = "full",
+            },
+            minRatingLonger = {
+                type = "toggle",
+                name = "Enable Longer Minimum Rating Module",
+                desc = "Fixes a bug in the base UI preventing 'Minimum Mythic+ Rating' from being bigger than 999",
+                set = function(info, v) addon.db.profile.minRatingLonger = v end,
+                get = function() return addon.db.profile.minRatingLonger end,
                 width = "full",
             },
         },

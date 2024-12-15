@@ -160,7 +160,7 @@ local db = {
             445417, -- Ara-Kara
         },
     },
-    [502] = { -- Ara-Kara, City of Echoes
+    [503] = { -- Ara-Kara, City of Echoes
         primarySpell = 445417,
         alternateSpells = {
             445416, -- City of Threads
