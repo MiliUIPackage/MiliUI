@@ -1,3 +1,24 @@
+# v2.50.2
+
+- Added Lingering Shadows questline
+- Added A Song of Secrets questline
+
+# v2.50.1
+
+- Updated for 11.0.7
+
+# v2.50.0
+
+- Fixed an issue handling player auras
+
+# v2.49.0
+
+- Fixed an issue with Chromie Time 
+
+# v2.48.4
+
+- Updated for 11.0.5
+
 # v2.48.3
 
 - Fixed the completion check for The Priory questline in Hallowfall

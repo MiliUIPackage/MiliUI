@@ -2465,8 +2465,8 @@ BtWQuestsDatabase:AddNPCsTable({
         locations = {
             [2339] = {
                 {
-                    x = 0.646681,
-                    y = 0.268656,
+                    x = 0.627128,
+                    y = 0.217337,
                 },
             },
         },
@@ -3420,6 +3420,28 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [224395] = {
+        name = "Orweyna",
+        locations = {
+            [2215] = {
+                {
+                    x = 0.629749,
+                    y = 0.674924,
+                },
+            },
+        },
+    },
+    [224397] = {
+        name = "Hannan",
+        locations = {
+            [2215] = {
+                {
+                    x = 0.629849,
+                    y = 0.675748,
+                },
+            },
+        },
+    },
     [224602] = {
         name = "Danagh",
         locations = {
@@ -3475,6 +3497,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [224740] = {
+        name = "Orweyna",
+        locations = {
+            [2215] = {
+                {
+                    x = 0.249026,
+                    y = 0.516069,
+                },
+            },
+        },
+    },
     [224741] = {
         name = "Dolena",
         locations = {
@@ -3482,6 +3515,50 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.699442,
                     y = 0.325756,
+                },
+            },
+        },
+    },
+    [224857] = {
+        name = "Monte Gazlowe",
+        locations = {
+            [2214] = {
+                {
+                    x = 0.584496,
+                    y = 0.647093,
+                },
+            },
+        },
+    },
+    [224866] = {
+        name = "Orweyna",
+        locations = {
+            [2214] = {
+                {
+                    x = 0.644612,
+                    y = 0.797585,
+                },
+            },
+        },
+    },
+    [224874] = {
+        name = "Monte Gazlowe",
+        locations = {
+            [2214] = {
+                {
+                    x = 0.645767,
+                    y = 0.797688,
+                },
+            },
+        },
+    },
+    [224913] = {
+        name = "Renzik \"The Shiv\"",
+        locations = {
+            [2214] = {
+                {
+                    x = 0.603916,
+                    y = 0.871286,
                 },
             },
         },
@@ -3893,6 +3970,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [227499] = {
+        name = "Orweyna",
+        locations = {
+            [2339] = {
+                {
+                    x = 0.422996,
+                    y = 0.273688,
+                },
+            },
+        },
+    },
     [227523] = {
         name = "Brann Bronzebeard",
         locations = {
@@ -3911,6 +3999,127 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.558624,
                     y = 0.438582,
+                },
+            },
+        },
+    },
+    [227758] = {
+        name = "Alleria Windrunner",
+        locations = {
+            [2339] = {
+                {
+                    x = 0.423702,
+                    y = 0.268841,
+                },
+            },
+        },
+    },
+    [228074] = {
+        name = "Angorla",
+        locations = {
+            [2369] = {
+                {
+                    x = 0.710812,
+                    y = 0.441188,
+                },
+            },
+        },
+    },
+    [230235] = {
+        name = "Skaggit",
+        locations = {
+            [2339] = {
+                {
+                    x = 0.732821,
+                    y = 0.062531,
+                },
+            },
+        },
+    },
+    [230238] = {
+        name = "Skaggit",
+        locations = {
+            [2369] = {
+                {
+                    x = 0.693092,
+                    y = 0.480679,
+                },
+            },
+        },
+    },
+    [230242] = {
+        name = "Bargus",
+        locations = {
+            [2369] = {
+                {
+                    x = 0.674927,
+                    y = 0.419708,
+                },
+            },
+        },
+    },
+    [230271] = {
+        name = "Bargus",
+        locations = {
+            [2369] = {
+                {
+                    x = 0.488631,
+                    y = 0.184265,
+                },
+            },
+        },
+    },
+    [231140] = {
+        name = "Bargus",
+        locations = {
+            [2369] = {
+                {
+                    x = 0.481541,
+                    y = 0.439456,
+                },
+            },
+        },
+    },
+    [231143] = {
+        name = "Bargus",
+        locations = {
+            [2375] = {
+                {
+                    x = 0.40144,
+                    y = 0.70719,
+                },
+            },
+        },
+    },
+    [232132] = {
+        name = "Dawn",
+        locations = {
+            [2339] = {
+                {
+                    x = 0.41856,
+                    y = 0.261649,
+                },
+            },
+        },
+    },
+    [233501] = {
+        name = "Bargus",
+        locations = {
+            [2369] = {
+                {
+                    x = 0.435343,
+                    y = 0.284932,
+                },
+            },
+        },
+    },
+    [235216] = {
+        name = "Starving Snapdragon Runt",
+        locations = {
+            [2369] = {
+                {
+                    x = 0.709822,
+                    y = 0.486318,
                 },
             },
         },

@@ -12,12 +12,14 @@ BtWQuests.Constant.Category.TheWarWithin = {
     TheRingingDeeps = 1102,
     Hallowfall = 1103,
     AzjKahet = 1104,
+    SirenIsle = 1105,
 }
 BtWQuests.Constant.Chain.TheWarWithin = {
     IsleOfDorn = {},
     TheRingingDeeps = {},
     Hallowfall = {},
     AzjKahet = {},
+    SirenIsle = {},
 }
 
 BtWQuests.Constant.Restrictions.TheWarWithinToF = -110001;
