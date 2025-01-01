@@ -36,17 +36,17 @@ function PGF.GetOrCreateRatingInfoFrame(self)
         frame = CreateFrame("Frame", nil, self, nil)
         frame:Hide()
         frame:SetFrameStrata("HIGH")
-        frame:SetSize(45, 30)
+        frame:SetSize(35, 30)
         frame:SetPoint("TOP", 0, -4)
 
         frame.Rating = frame:CreateFontString("$parentRating", "ARTWORK", "GameFontNormalSmall")
-        frame.Rating:SetSize(45, 15)
+        frame.Rating:SetSize(35, 15)
         frame.Rating:SetPoint("TOP")
         frame.Rating:SetJustifyH("RIGHT")
         frame.Rating:SetTextColor(1, 1, 1)
 
         frame.ExtraText = frame:CreateFontString("$parentExtraText", "ARTWORK", "GameFontNormalSmall")
-        frame.ExtraText:SetSize(45, 15)
+        frame.ExtraText:SetSize(35, 15)
         frame.ExtraText:SetPoint("BOTTOM")
         frame.ExtraText:SetJustifyH("RIGHT")
         frame.ExtraText:SetTextColor(1, 1, 1)
@@ -62,8 +62,8 @@ function PGF.AddRatingInfo(self, searchResultInfo)
 
     -- reset
     frame:Hide()
-    self.Name:SetWidth(180)
-    self.ActivityName:SetWidth(180)
+    self.Name:SetWidth(176)
+    self.ActivityName:SetWidth(176)
 
     if not PremadeGroupsFilterSettings.ratingInfo then
         return -- stop if feature disabled
@@ -82,7 +82,12 @@ function PGF.AddRatingInfo(self, searchResultInfo)
     if activityInfo.isMythicPlusActivity then
         rightPos = -115
         rating = searchResultInfo.leaderOverallDungeonScore or 0
-        ratingColor = C_ChallengeMode.GetDungeonScoreRarityColor(rating) or ratingColor
+        if PremadeGroupsFilterSettings.rioRatingColors and RaiderIO and RaiderIO.GetScoreColor then
+            local r, g, b = RaiderIO.GetScoreColor(rating)
+            ratingColor = { r = r, g = g, b = b }
+        else
+            ratingColor = C_ChallengeMode.GetDungeonScoreRarityColor(rating) or ratingColor
+        end
         if searchResultInfo.leaderDungeonScoreInfo and searchResultInfo.leaderDungeonScoreInfo.bestRunLevel > 0 then
             extraText = "+" .. searchResultInfo.leaderDungeonScoreInfo.bestRunLevel
             if not searchResultInfo.leaderDungeonScoreInfo.finishedSuccess then
@@ -102,7 +107,7 @@ function PGF.AddRatingInfo(self, searchResultInfo)
         return -- stop if no rating
     end
 
-    local textWidth = 320 - 10 - 35 + rightPos
+    local textWidth = 312 - 10 - 35 + rightPos
     if searchResultInfo.voiceChat and searchResultInfo.voiceChat ~= "" then
         textWidth = textWidth - 20
     end

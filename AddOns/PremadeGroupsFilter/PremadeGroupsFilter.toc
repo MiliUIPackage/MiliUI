@@ -1,7 +1,7 @@
 ## Interface: 110005
 ## Title: Premade Groups Filter
 ## Title-zhTW: |cFF00CCFF[團隊]|r 預組隊伍過濾
-## Version: 6.2.0
+## Version: 6.5.10
 ## IconTexture: 397907
 ## X-Flavor: Retail
 ## Notes: Allows filtering of premade groups using an UI or advanced filter expressions.
@@ -10,14 +10,15 @@
 ## Author: Bernhard Saumweber
 ## SavedVariables: PremadeGroupsFilterSettings
 ## SavedVariablesPerCharacter: PremadeGroupsFilterState
+## OptionalDeps: PremadeRegions, RaiderIO
 ## X-Category-zhTW: 團隊
 
 Init.lua
+Compat.lua
 Localization\enUS.lua
 Localization\zhCN.lua
 Localization\zhTW.lua
 Modules\Logger.lua
-Fixes\FixGetPlaystyleString.lua
 Fixes\FixReportAdvertisement.lua
 UI\StaticPopup.xml
 UI\StaticPopup.lua
