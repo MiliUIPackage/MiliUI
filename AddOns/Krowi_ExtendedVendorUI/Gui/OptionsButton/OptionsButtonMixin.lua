@@ -75,25 +75,27 @@ function KrowiEVU_OptionsButtonMixin:BuildMenu()
 		self:AddRadioButton(menu, columns, i, addon.Options.db.profile, {"NumColumns"}, UpdateView);
 	end
 	menu:Add(columns);
-	menu:AddFull({
-		Text = addon.L["Hide"],
-		Func = function()
-			if not StaticPopup_IsCustomGenericConfirmationShown("KrowiEVU_ConfirmHideOptionsButton") then
-				StaticPopup_ShowCustomGenericConfirmation(
-					{
-						text = addon.L["Are you sure you want to hide the options button?"]:K_ReplaceVarsWithMenu{
-							general = addon.L["General"],
-							options = addon.L["Options"]
-						},
-						callback = function()
-							HideOptionsButtonCallback(self);
-						end,
-						referenceKey = "KrowiEVU_ConfirmHideOptionsButton"
-					}
-				);
+	if addon.Options.db.profile.ShowHideOption then
+		menu:AddFull({
+			Text = addon.L["Hide"],
+			Func = function()
+				if not StaticPopup_IsCustomGenericConfirmationShown("KrowiEVU_ConfirmHideOptionsButton") then
+					StaticPopup_ShowCustomGenericConfirmation(
+						{
+							text = addon.L["Are you sure you want to hide the options button?"]:K_ReplaceVarsWithMenu{
+								general = addon.L["General"],
+								options = addon.L["Options"]
+							},
+							callback = function()
+								HideOptionsButtonCallback(self);
+							end,
+							referenceKey = "KrowiEVU_ConfirmHideOptionsButton"
+						}
+					);
+				end
 			end
-		end
-	});
+		});
+	end
 	return menu;
 end
 

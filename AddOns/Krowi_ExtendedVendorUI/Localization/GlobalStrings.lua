@@ -12,3 +12,4 @@ L["Game Menu"] = MAINMENU_BUTTON;
 L["Interface"] = UIOPTIONS_MENU;
 L["AddOns"] = ADDONS;
 L["Options"] = GAMEOPTIONS_MENU;
+L["Appearances"] = WARDROBE;

@@ -30,7 +30,7 @@ do -- [[ Set some permanent MerchantFrame changes ]]
 	MerchantPrevPageButton:SetPoint("BOTTOMLEFT", MerchantFrameBottomLeftBorder, "TOPLEFT", 8, -5);
 	MerchantNextPageButton:SetPoint("BOTTOMRIGHT", KrowiEVU_BottomExtensionRightBorder, "TOPRIGHT", -7, -5);
 
-	MerchantFrame.FilterDropdown:Hide();
+	-- MerchantFrame.FilterDropdown:Hide();
 	-- MerchantFrameLootFilter:SetPoint("TOPRIGHT", MerchantFrame, -150, -28);
 
 	MerchantMoneyInset:SetPoint("TOPLEFT", MerchantFrame, "BOTTOMRIGHT", -169, 27);
@@ -55,6 +55,7 @@ hooksecurefunc("MerchantFrame_UpdateMerchantInfo", function()
 		height = height - 36;
 	end
 	MerchantFrame:SetSize(width, height);
+	MerchantFrame.FilterDropdown:Hide();
 	if numExtraColumns > 0 then
 		KrowiEVU_BottomExtensionLeftBorder:Show();
 		KrowiEVU_BottomExtensionMidBorder:Show();
@@ -77,6 +78,7 @@ end);
 
 hooksecurefunc("MerchantFrame_UpdateBuybackInfo", function()
 	MerchantFrame:SetSize(originalWidth, originalHeight);
+	MerchantFrame.FilterDropdown:Hide();
 	KrowiEVU_BottomExtensionLeftBorder:Hide();
 	KrowiEVU_BottomExtensionMidBorder:Hide();
 	KrowiEVU_BottomExtensionRightBorder:Hide();

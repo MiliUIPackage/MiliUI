@@ -1,11 +1,11 @@
-## Interface: 110002, 110007
+## Interface: 110005, 110007
 ## Title: Krowi's |cFF1D92C2Extended Vendor UI|r
 ## X-Prefix: KrowiEVU
 ## X-Acronym: KEVU
-## Version: 8.6
+## Version: 10.1
 ## Author: Krowi-Frostmane EU
 ## LoadWith: Blizzard_MerchantFrame
-## SavedVariables: KrowiEVU_Options, KrowiEVU_Filters
+## SavedVariables: KrowiEVU_Options, KrowiEVU_Filters, KrowiEVU_Debug
 ## Notes: Extends the size of your Merchant Frame.
 ## AddonCompartmentFuncOnEnter: KrowiEVU_OnAddonCompartmentEnter
 ## AddonCompartmentFuncOnLeave: KrowiEVU_OnAddonCompartmentLeave

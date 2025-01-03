@@ -1,6 +1,26 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 10.1 - 2025-01-02
+### Fixed
+- Some text localizations
+
+## 10.0 - 2025-01-02
+### Added
+- More filters for transmogs
+
+### Fixed
+- Items considered mounts should once again behave
+
+## 9.1 - 2024-12-23
+### Fixed
+- Removed unwanted recipe ids printed to the chat window
+
+## 9.0 - 2024-12-18
+### Added
+- Show the hide button option in the options button
+- Recipes filters
+
 ## 8.6 - 2024-10-27
 ### Fixed
 - Removed unwanted item ids printed to the chat window

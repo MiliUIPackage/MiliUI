@@ -29,16 +29,18 @@ L["Options Desc"] = "打開選項，也可以從商人視窗左上方的選項�
 L["Right click"] = "右鍵"
 L["Rows"] = "橫列數"
 L["Rows first"] = "橫列優先"
+L["Show Hide option"] = "顯示 '{hide}' 選項"
+L["Show Hide option Desc"] = "在 {optionsButton} 下拉選單顯示 '{hide}' 選項。"
 L["Show minimap icon"] = "顯示小地圖按鈕"
 L["Show minimap icon Desc"] = "顯示/隱藏小地圖按鈕。"
 L["Show options button"] = "顯示選項按鈕"
 L["Show options button Desc"] = "顯示/隱藏商人視窗的選項按鈕。"
-L["Transmog"] = "外觀"
 L["Unchecked"] = "停用"
 L["Wago"] = true
 L["Wago Desc"] = "顯示 {addonName} 的 {wago} 插件頁面連結。"
 L["WoWInterface"] = true
 L["WoWInterface Desc"] = "顯示 {addonName} 的 {woWInterface} 插件頁面連結。"
+L["Recipes"] = "配方"
 
 -- 自行加入
 
@@ -53,3 +55,5 @@ L["Other"] = "其他"
 L["Hide collected"] = "隱藏已有的"
 L["Left click"] = "左鍵"
 L["Plugins"] = "外掛套件"
+L["Deselect All"] = "取消全選"
+L["Select All"] = "全選"

@@ -9,6 +9,7 @@ addon.Options.Defaults = {
         Minimap = {
             hide = true -- not ShowMinimapIcon
         },
-        ShowOptionsButton = true
+        ShowOptionsButton = true,
+        ShowHideOption = true
     }
 };
