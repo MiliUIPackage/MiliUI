@@ -1,10 +1,10 @@
-## Interface: 11504, 30403, 40400, 110002, 110007
+## Interface: 11505, 30403, 40401, 110005, 110007
 ## Title: SilverDragon
 ## Notes: Remember where rares were
 ## Title-zhTW: SilverDragon
 ## Notes-zhTW: 協助記錄稀有怪位置,以及MouseOver時提示你.
 ## Notes-zhCN: 记录稀有怪物位置。
-## Version: v2024.31
+## Version: v2024.34
 ## Author: Kemayo
 ## eMail: kemayo at gmail dot com
 ## IconTexture: Interface\Icons\INV_Misc_Head_Dragon_01
@@ -13,7 +13,7 @@
 ## X-Curse-Project-ID: 14647
 ## X-WoWI-ID: 6606
 ## X-Wago-ID: LvNALQGo
-## OptionalDependencies: Ace3, LibSharedMedia-3.0, TomTom, LibSink-2.0, LibQTip-1.0, LibDBIcon-1.0, ChatThrottleLib, AceGUI-3.0-SharedMediaWidgets, HereBeDragons, LibTextDump-1.0, LibWindow-1.1, !LibUIDropDownMenu
+## OptionalDependencies: Ace3, LibSharedMedia-3.0, TomTom, LibSink-2.0, LibQTip-1.0, LibDBIcon-1.0, ChatThrottleLib, AceGUI-3.0-SharedMediaWidgets, HereBeDragons, LibTextDump-1.0, LibWindow-1.1
 ## SavedVariables: SilverDragon3DB
 ## LoadOnDemand: 0
 

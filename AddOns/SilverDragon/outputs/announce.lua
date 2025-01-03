@@ -107,7 +107,7 @@ function module:OnInitialize()
 			channel = "Music", -- 更改預設值
 			unmute = false,
 			background = false,
-			loot = false,
+			loot = true,
 			known_mounts = true,
 		},
 	})

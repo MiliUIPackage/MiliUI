@@ -1,5 +1,5 @@
-## Changed in v2024.31
+## Changed in v2024.34
 
-* Add vignettes and achievement status for The Originals
-* Avoid a potential error when checking achievement status for some unusual criteria
+* Siren Isle updates for the pirate phase
+* Proper data update for Cataclysm Classic
 
