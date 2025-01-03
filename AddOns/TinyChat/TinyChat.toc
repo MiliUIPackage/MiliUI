@@ -1,4 +1,4 @@
-## Interface: 110005
+## Interface: 110007
 ## Title: TinyChat
 ## Notes: TinyChat
 ## Author: M, 彩虹ui

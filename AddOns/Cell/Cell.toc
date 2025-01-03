@@ -1,4 +1,4 @@
-## Interface: 110005,110005
+## Interface: 110007,110005
 ## Title: Cell
 ## Version: r243-release
 ## Author: enderneko

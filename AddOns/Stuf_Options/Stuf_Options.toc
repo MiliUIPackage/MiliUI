@@ -1,4 +1,4 @@
-## Interface: 110005
+## Interface: 110007
 ## Title: Stuf_Options
 ## Author: TotalPackage
 ## Notes: Configuration Menu for Stuf.

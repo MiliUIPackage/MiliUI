@@ -1,4 +1,4 @@
-## Interface: 110005
+## Interface: 110007
 ## Title: WorldBossTimers
 ## Notes: Creates timers for world bosses
 ## Title-zhTW: |cff4DFF4D[地圖]|r 世界頭目計時

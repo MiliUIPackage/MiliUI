@@ -1,4 +1,4 @@
-## Interface: 110005
+## Interface: 110007
 ## X-Max-Interface: 110005
 ## X-Min-Interface:  11504
 ## X-Incompatible-With: 30403

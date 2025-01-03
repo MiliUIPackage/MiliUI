@@ -1,4 +1,4 @@
-## Interface: 110005, 110007
+## Interface: 110007, 110007
 ## X-Min-Interface: 100206
 ## Version: 11.0.37
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010Raids (WW)|r
