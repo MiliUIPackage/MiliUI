@@ -13,7 +13,7 @@ local Rare = ns.node.Rare
 local Treasure = ns.node.Treasure
 
 local FlightMaster = ns.node.FlightMaster
--- local LoreObject = ns.node.LoreObject
+local LoreObject = ns.node.LoreObject
 local SkyridingGlyph = ns.node.SkyridingGlyph
 
 local Achievement = ns.reward.Achievement
@@ -369,6 +369,14 @@ map.nodes[63479504] = Rare({
     pois = {Entrance({65309350})} -- Entrance
 }) -- The One Left
 
+local BloodVial = Class('BloodVial', ns.reward.Item, {item = 225952})
+
+function BloodVial:GetStatus()
+    local collected = select(11, C_MountJournal.GetMountInfoByID(2222))
+    return collected and ns.status.Green(L['known']) or
+               ns.status.Red(L['missing'])
+end
+
 map.nodes[62816618] = Rare({
     id = 216046,
     quest = 82289, -- 85166
@@ -379,7 +387,7 @@ map.nodes[62816618] = Rare({
         Reputation({id = 2607, gain = 50, quest = 85166}),
         Transmog({item = 221240, type = L['1h_sword']}), -- Nerubian Stagshell Gouger
         Transmog({item = 221252, type = L['2h_sword']}), -- Nerubian Slayer's Claymore
-        ns.reward.Item({item = 225952, quest = 83627})
+        BloodVial()
     } -- starts the questchain to get the Siesbarg mount.
 }) -- Tka'ktath
 
@@ -754,47 +762,47 @@ map.nodes[56344316] = ItsyBitsySpider({
 --------------------- ACHIEVEMENT: KHAZ ALGAR LORE HUNTER ---------------------
 -------------------------------------------------------------------------------
 
--- cot.nodes[77557018] = LoreObject({
---     parent = map.id,
---     rewards = {
---         Achievement({id = 40762, criteria = 69385}),
---         Reputation({id = 2601, gain = 85}), Reputation({id = 2605, gain = 85}),
---         Reputation({id = 2607, gain = 85})
---     }
--- }) -- Forgotten Shadecaster
+cot.nodes[77557018] = LoreObject({
+    parent = map.id,
+    rewards = {
+        Achievement({id = 40762, criteria = 69385}),
+        Reputation({id = 2601, gain = 85}), Reputation({id = 2605, gain = 85}),
+        Reputation({id = 2607, gain = 85})
+    }
+}) -- Forgotten Shadecaster
 
--- map.nodes[75443325] = LoreObject({
---     rewards = {
---         Achievement({id = 40762, criteria = 69387}),
---         Reputation({id = 2601, gain = 85}), Reputation({id = 2605, gain = 85}),
---         Reputation({id = 2607, gain = 85})
---     }
--- }) -- Kah'teht
+map.nodes[75443325] = LoreObject({
+    rewards = {
+        Achievement({id = 40762, criteria = 69387}),
+        Reputation({id = 2601, gain = 85}), Reputation({id = 2605, gain = 85}),
+        Reputation({id = 2607, gain = 85})
+    }
+}) -- Kah'teht
 
--- map.nodes[54071889] = LoreObject({
---     rewards = {
---         Achievement({id = 40762, criteria = 69388}),
---         Reputation({id = 2601, gain = 85}), Reputation({id = 2605, gain = 85}),
---         Reputation({id = 2607, gain = 85})
---     }
--- }) -- Mad Nerubian
+map.nodes[54071889] = LoreObject({
+    rewards = {
+        Achievement({id = 40762, criteria = 69388}),
+        Reputation({id = 2601, gain = 85}), Reputation({id = 2605, gain = 85}),
+        Reputation({id = 2607, gain = 85})
+    }
+}) -- Mad Nerubian
 
--- cot.nodes[08533058] = LoreObject({
---     parent = map.id,
---     rewards = {
---         Achievement({id = 40762, criteria = 69386}),
---         Reputation({id = 2601, gain = 85}), Reputation({id = 2605, gain = 85}),
---         Reputation({id = 2607, gain = 85})
---     }
--- }) -- Neglected Shadecaster
+cot.nodes[08533058] = LoreObject({
+    parent = map.id,
+    rewards = {
+        Achievement({id = 40762, criteria = 69386}),
+        Reputation({id = 2601, gain = 85}), Reputation({id = 2605, gain = 85}),
+        Reputation({id = 2607, gain = 85})
+    }
+}) -- Neglected Shadecaster
 
--- map.nodes[71126233] = LoreObject({
---     rewards = {
---         Achievement({id = 40762, criteria = 69384}),
---         Reputation({id = 2601, gain = 85}), Reputation({id = 2605, gain = 85}),
---         Reputation({id = 2607, gain = 85})
---     }
--- }) -- Weathered Shadecaster
+map.nodes[71126233] = LoreObject({
+    rewards = {
+        Achievement({id = 40762, criteria = 69384}),
+        Reputation({id = 2601, gain = 85}), Reputation({id = 2605, gain = 85}),
+        Reputation({id = 2607, gain = 85})
+    }
+}) -- Weathered Shadecaster
 
 -------------------------------------------------------------------------------
 --------------------- ACHIEVEMENT: SMELLING HISTORY ---------------------------
@@ -1198,3 +1206,14 @@ cot.nodes[46282915] = KejPetVendor({
         Pet({item = 222968, id = 4476}) -- Itchbite
     }
 }) -- "Calmest" Gobbu
+
+-------------------------------------------------------------------------------
+----------------------------- WORLDSOUL MEMORIES ------------------------------
+-------------------------------------------------------------------------------
+
+cot.nodes[21074547] = ns.node.WorldsoulMemory({
+    areaPoiID = 7839,
+    parent = map.id
+}) -- Old Gods Forsaken
+
+map.nodes[65865232] = ns.node.WorldsoulMemory({areaPoiID = 7840}) -- A Wounded Soul

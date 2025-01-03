@@ -6,9 +6,10 @@ local Class = ns.Class
 local L = ns.locale
 local Map = ns.Map
 
-local Node = ns.node.Node
+local Collectible = ns.node.Collectible
 
 local Achievement = ns.reward.Achievement
+local Buff = ns.reward.Buff
 local Item = ns.reward.Item
 
 local Entrance = ns.poi.Entrance
@@ -24,16 +25,23 @@ local zuldazar = ns.maps[862] or Map({id = 862, settings = false})
 local desolace = ns.maps[66] or Map({id = 66, settings = false})
 local deadwindPass = ns.maps[42] or Map({id = 42, settings = false})
 local thousandNeedles = ns.maps[64] or Map({id = 64, settings = false})
-local azsuna = ns.maps[630] or Map({id = 630, settings = true})
-local howlingFjord = ns.maps[117] or Map({id = 117, settings = true})
+local azsuna = ns.maps[630] or Map({id = 630, settings = false})
+local howlingFjord = ns.maps[117] or Map({id = 117, settings = false})
+local mountHyjal = ns.maps[198] or Map({id = 198, settings = false})
+local feralas = ns.maps[69] or Map({id = 69, settings = false})
+local ashenvale = ns.maps[63] or Map({id = 63, settings = false})
+local nagrand = ns.maps[107] or Map({id = 107, settings = false})
+local ahnQiraj = ns.maps[327] or Map({id = 327, settings = false})
+local stormheim = ns.maps[634] or Map({id = 634, settings = false})
+local maldraxxus = ns.maps[1536] or Map({id = 1536, settings = false})
 
 -------------------------------------------------------------------------------
 --------------------------- SECRETS OF AZEROTH NODE ---------------------------
 -------------------------------------------------------------------------------
 
-local SecretOfAzeroth = Class('SecretOfAzeroth', Node, {
+local SecretOfAzeroth = Class('SecretOfAzeroth', Collectible, {
     icon = 'peg_gn',
-    scale = 1.5,
+    scale = 2,
     group = ns.groups.SECRETS_OF_AZEROTH
 }) -- Secret of Azeroth
 
@@ -122,6 +130,48 @@ local CELEBRATION_CRATES = {
         note = L['6_waterlogged_celebration_crate'],
         parentMapID = 12, -- Kalimdor,
         quest = 84426 -- ![Waterlogged Celebration Crate]
+    },
+    [7] = {
+        coordinates = 13573345,
+        item = 228976,
+        map = mountHyjal,
+        note = L['7_charred_celebration_crate'],
+        parentMapID = 12, -- Kalimdor
+        quest = 84767 -- ![Charred Celebration Crate]
+    },
+    [8] = {
+        coordinates = 60423540,
+        item = 231886,
+        map = feralas,
+        note = L['8_mildewed_celebration_crate'],
+        parentMapID = 12, -- Kalimdor
+        quest = 85523, -- ![Mildewed Celebration Crate]
+        requires = ns.requirement.Spell(463368) -- Potion of Truth
+    },
+    [9] = {
+        coordinates = 35277473,
+        item = 228983,
+        map = nagrand,
+        note = L['9_crystalized_celebration_crate'],
+        parentMapID = 101, -- Outland
+        quest = 84773, -- ![Crystalized Celebration Crate]
+        pois = {Entrance({35856720})}
+    },
+    [10] = {
+        coordinates = 37344769,
+        item = 228770,
+        map = stormheim,
+        note = L['10_surprisingly_pristine_celebration_crate'],
+        parentMapID = 619, -- Broken Isles
+        quest = 84625 -- ![Surprisingly Pristine Celebration Crate]
+    },
+    [11] = {
+        coordinates = 49997381,
+        item = 229367,
+        map = maldraxxus,
+        note = L['11_ghostly_celebration_crate'],
+        parentMapID = 1550, -- Shadowlands
+        quest = 84909 -- ![Ghostly Celebration Crate]
     }
 }
 
@@ -149,10 +199,38 @@ thousandNeedles.nodes[64938438] = SecretOfAzeroth({
         Entrance({66028651}), --
         Path({66028651, 65678567, 65038493, 64938438})
     },
+    quest = CELEBRATION_CRATES[4].quest,
     rewards = {
         Item({item = 228768, bag = true}) -- Water-Resistant Receipt
     }
 }) -- Water-Resistant Receipt
+
+-------------------------------------------------------------------------------
+------------------------- POTION OF TRUTH (CRATE #8) --------------------------
+-------------------------------------------------------------------------------
+
+ashenvale.nodes[47903840] = SecretOfAzeroth({
+    label = '{spell:463368}',
+    note = L['8_mildewed_celebration_crate'],
+    quest = CELEBRATION_CRATES[8].quest,
+    rewards = {
+        Buff({id = 463368}) -- Potion of Truth
+    }
+}) -- Potion of Truth
+
+-------------------------------------------------------------------------------
+------------------------ MYSTERIOUS BONES (CRATE #10) -------------------------
+-------------------------------------------------------------------------------
+
+ahnQiraj.nodes[44559008] = SecretOfAzeroth({
+    label = '{item:228772}',
+    note = L['mysterious_bones_note'],
+    quest = CELEBRATION_CRATES[10].quest,
+    pois = {Entrance({42039268})}, -- Entrance
+    rewards = {
+        Item({item = 228772, bag = true}) -- Mysterious Bones
+    }
+}) -- Mysterious Bones
 
 -------------------------------------------------------------------------------
 --------------------------- CELEBRATION CRATE LIST ----------------------------
@@ -162,7 +240,10 @@ local CrateList = Class('CrateList', SecretOfAzeroth, {
     label = L['celebration_crates_label'],
     questDeps = START_QUEST,
     rewards = {
-        Achievement({id = 40979, criteria = {qty = true, id = 1}}) -- No Crate Left Behind
+        Achievement({
+            id = 40979,
+            criteria = {qty = true, id = 1, suffix = L['crates_found']}
+        }) -- No Crate Left Behind
     }
 })
 

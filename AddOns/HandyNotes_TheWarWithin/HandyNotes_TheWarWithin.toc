@@ -1,6 +1,6 @@
 ## Interface: 110007
 ## Title: HandyNotes: The War Within
-## Version: 107
+## Version: 112
 ## Notes: The War Within Notes
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-地心之戰
 ## Notes-zhTW: HandyNotes: The War Within |n地心之戰的各種地圖標記
@@ -9,7 +9,7 @@
 ## RequiredDeps: HandyNotes
 ## X-Embeds: Ace3
 ## SavedVariables: HandyNotes_TheWarWithinDB
-## IconTexture: 4640486
+## IconTexture: 5770811
 
 embeds.xml
 core\core.xml
