@@ -1,6 +1,7 @@
 # Syndicator
 
-## [140](https://github.com/Baganator/Syndicator/tree/140) (2024-12-05)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/139...140) 
+## [147](https://github.com/Baganator/Syndicator/tree/147) (2024-12-25)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/146...147) 
 
--  Add missing ptBR to Locales.lua  
+- Use global constant for anima keyword translations  
+- Search: Add "anima" keyword for Shadowlands anima items  
