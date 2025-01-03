@@ -68,6 +68,7 @@
 ---|"changemt" 2
 ---|"changetarget" 2
 ---|"chargemove" 2
+---|"chargethroughbomb" 18
 ---|"checkhp"
 ---|"cleave" 12
 ---|"cntnuemove"
@@ -239,6 +240,7 @@
 ---|"phasechange"
 ---|"polarityshift"
 ---|"pone" 12
+---|"poolyou" 18
 ---|"positive" 13
 ---|"pthree"
 ---|"ptran"

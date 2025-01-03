@@ -1,7 +1,7 @@
-local mod	= DBM:NewMod("NerubarPalaceTrash", "DBM-Raids-WarWithin", 1)
+local mod	= DBM:NewMod("NerubarPalaceTrash", "DBM-Raids-WarWithin", 2)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241207205110")
+mod:SetRevision("20241220032423")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod:SetZone(2657)

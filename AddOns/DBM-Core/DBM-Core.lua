@@ -75,15 +75,15 @@ end
 ---@class DBM
 local DBM = private:GetPrototype("DBM")
 _G.DBM = DBM
-DBM.Revision = parseCurseDate("20241214050400")
+DBM.Revision = parseCurseDate("20241230031809")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 local fakeBWVersion, fakeBWHash = 368, "fc06f51"--368.0
 local PForceDisable
 -- The string that is shown as version
-DBM.DisplayVersion = "11.0.37"--Core version
+DBM.DisplayVersion = "11.0.39"--Core version
 DBM.classicSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2024, 12, 13) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2024, 12, 29) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 PForceDisable = 15--When this is incremented, trigger force disable regardless of major patch
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -1744,12 +1744,15 @@ do
 										local id = tonumber(subTabs[k])
 										if id then
 											--For handling zones like Warfront: Arathi - Alliance
-											local subTabName = GetRealZoneText(id):trim() or id
+											local subTabName = GetRealZoneText(id):trim()
 											for w in string.gmatch(subTabName, " - ") do
 												if w:trim() ~= "" then
 													subTabName = w
 													break
 												end
+											end
+											if subTabName == "" then -- GetRealZoneText() returns empty string on unknown zones, this happens for dungeons that don't yet exist
+												subTabName = UNKNOWN .. " (" .. id .. ")"
 											end
 											self.AddOns[#self.AddOns].subTabs[k] = subTabName
 										else
@@ -5842,7 +5845,7 @@ do
 			local name = mod.combatInfo.name
 			local modId = mod.id
 			if private.isRetail then
-				if mod.addon.type == "SCENARIO" and (C_Scenario.IsInScenario() or test.Mocks and test.Mocks.IsInScenario()) and not mod.soloChallenge then
+				if mod.addon and mod.addon.type == "SCENARIO" and (C_Scenario.IsInScenario() or test.Mocks and test.Mocks.IsInScenario()) and not mod.soloChallenge then
 					mod.inScenario = true
 				end
 			end
@@ -5920,7 +5923,7 @@ do
 			else
 				trackedAchievements = (C_ContentTracking and C_ContentTracking.GetTrackedIDs(2)[1])
 			end
-			if self.Options.HideObjectivesFrame and mod.addon.type ~= "SCENARIO" and not trackedAchievements and difficulties.difficultyIndex ~= 8 and not InCombatLockdown() then
+			if self.Options.HideObjectivesFrame and mod.addon and mod.addon.type ~= "SCENARIO" and not trackedAchievements and difficulties.difficultyIndex ~= 8 and not InCombatLockdown() then
 				if private.isRetail then--Do nothing due to taint and breaking
 					--if ObjectiveTrackerFrame:IsVisible() then
 					--	ObjectiveTracker_Collapse()
@@ -5984,7 +5987,11 @@ do
 				--call OnCombatStart
 				if mod.OnCombatStart then
 					local startEvent = syncedEvent or event
-					mod:OnCombatStart(delay or 0, startEvent == "PLAYER_REGEN_DISABLED_AND_MESSAGE" or startEvent == "SPELL_CAST_SUCCESS" or startEvent == "MONSTER_MESSAGE", startEvent == "ENCOUNTER_START")
+					local nonZeroDelay = delay or 0
+					if nonZeroDelay == 0 then
+						nonZeroDelay = 0.000001
+					end
+					mod:OnCombatStart(nonZeroDelay, startEvent == "PLAYER_REGEN_DISABLED_AND_MESSAGE" or startEvent == "SPELL_CAST_SUCCESS" or startEvent == "MONSTER_MESSAGE", startEvent == "ENCOUNTER_START")
 				end
 				--send "C" sync
 				if not synced and not mod.soloChallenge then
@@ -6016,7 +6023,7 @@ do
 					elseif mod.ignoreBestkill and mod.inScenario then
 						self:AddMsg(L.SCENARIO_STARTED_IN_PROGRESS:format(difficulties.difficultyText .. name))
 					else
-						if mod.addon.type == "SCENARIO" then
+						if mod.addon and mod.addon.type == "SCENARIO" then
 							self:AddMsg(L.SCENARIO_STARTED:format(difficulties.difficultyText .. name))
 						else
 							self:AddMsg(L.COMBAT_STARTED:format(difficulties.difficultyText .. name))
@@ -6136,7 +6143,7 @@ do
 		mod = mod
 		if removeEntry(inCombat, mod) then
 			test:Trace(mod, "EndCombat", event)
-			local scenario = mod.addon.type == "SCENARIO" and not mod.soloChallenge
+			local scenario = mod.addon and mod.addon.type == "SCENARIO" and not mod.soloChallenge
 			if mod.inCombatOnlyEvents and mod.inCombatOnlyEventsRegistered then
 				if srmIncluded then
 					mod:UnregisterInCombatEvents(false, true)
@@ -7441,6 +7448,9 @@ do
 		for _, mod in ipairs(inCombat) do
 			-- force combat end if anything is active because :Unschedule below breaks wipe detection leaving you in a weird state
 			DBM:EndCombat(mod, true, true, "DBM:Disable() called")
+		end
+		for _, mod in ipairs(DBM.Mods) do
+			mod:UnregisterShortTermEvents()
 		end
 		DBMScheduler:Unschedule()
 		dbmIsEnabled = false
@@ -9242,7 +9252,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20241214041632" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20241230020002" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then

@@ -1,19 +1,15 @@
 local mod	= DBM:NewMod("z2685", "DBM-Delves-WarWithin")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241116185958")
+mod:SetRevision("20241216013153")
 mod:SetHotfixNoticeRev(20240422000000)
 mod:SetMinSyncRevision(20240422000000)
 mod:SetZone(2685)
 
 mod:RegisterCombat("scenario", 2685)
 
-mod:RegisterEvents(
-	"SPELL_CAST_START 470592 458834"
-)
-
 mod:RegisterEventsInCombat(
-	"SPELL_CAST_START 440806 458879 458874 458849 458853",
+	"SPELL_CAST_START 440806 458879 458874 458849 458853 458834",
 --	"SPELL_CAST_SUCCESS",
 --	"SPELL_AURA_APPLIED",
 --	"SPELL_AURA_REMOVED",

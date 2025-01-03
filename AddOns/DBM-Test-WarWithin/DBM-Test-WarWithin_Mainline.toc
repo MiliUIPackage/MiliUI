@@ -1,0 +1,27 @@
+## Interface: 110005, 110007
+## Title:|cffffe00a<|r|cffff7d0aDBM Tests|r|cffffe00a>|r |cff69ccf0Tests for The War Within mods|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM 測試|r|cffffe00a>|r |cff69ccf0地心之戰的測試模組|r
+## IconTexture: Interface\AddOns\DBM-Core\textures\dbm_airhorn
+## Dependencies: DBM-Test
+## DefaultState: enabled
+## LoadOnDemand: 1
+## X-DBM-Test: true
+## X-Category-zhTW: 團隊
+
+NerubarPalace/Ulgrax-Mythic-Kill.lua
+NerubarPalace/BloodboundHorror-Mythic-Kill.lua
+NerubarPalace/Sikran-Mythic-Kill.lua
+NerubarPalace/Rashanan-Mythic-Kill.lua
+NerubarPalace/Ovinax-Mythic-Kill.lua
+NerubarPalace/Kyveza-Mythic-Kill.lua
+NerubarPalace/SilkenCourt-Mythic-Kill.lua
+NerubarPalace/QueenAnsurek-Mythic-Wipe.lua
+
+NerubarPalace/Reports/Ulgrax-Mythic-Kill.lua
+NerubarPalace/Reports/BloodboundHorror-Mythic-Kill.lua
+NerubarPalace/Reports/Sikran-Mythic-Kill.lua
+NerubarPalace/Reports/Rashanan-Mythic-Kill.lua
+NerubarPalace/Reports/Ovinax-Mythic-Kill.lua
+NerubarPalace/Reports/Kyveza-Mythic-Kill.lua
+NerubarPalace/Reports/SilkenCourt-Mythic-Kill.lua
+NerubarPalace/Reports/QueenAnsurek-Mythic-Wipe.lua

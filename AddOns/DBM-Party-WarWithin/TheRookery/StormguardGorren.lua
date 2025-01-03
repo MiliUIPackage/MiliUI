@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2567, "DBM-Party-WarWithin", 3, 1268)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241102154000")
+mod:SetRevision("20241216024606")
 mod:SetCreatureID(207205)
 mod:SetEncounterID(2861)
 --mod:SetHotfixNoticeRev(20220322000000)
@@ -51,10 +51,10 @@ function mod:OnCombatStart(delay)
 	self.vb.chaoticCount = 0
 	self.vb.gravityCount = 0
 	self.vb.crushCount = 0
-	if self:IsStory() then--Confirmed only different on "story"
+	if self:IsStory() or self:IsEasy() then
 		timerCrushRealityCD:Start(8.4, 1)
 		timerDarkGravityCD:Start(15.5, 1)
-	else
+	else--Heroic and Mythic 0
 		timerChaoticCorruptionCD:Start(8.4, 1)
 		timerDarkGravityCD:Start(23, 1)--Still the same
 		timerCrushRealityCD:Start(30.3, 1)
@@ -81,12 +81,12 @@ function mod:SPELL_CAST_START(args)
 		specWarnDarkGravity:Show(self.vb.gravityCount)
 		specWarnDarkGravity:Play("pullin")
 		specWarnDarkGravity:ScheduleVoice(1.5, "justrun")
-		timerDarkGravityCD:Start(nil, self.vb.gravityCount+1)
+		timerDarkGravityCD:Start(21.8, self.vb.gravityCount+1)
 	elseif spellId == 424958 then
 		self.vb.crushCount = self.vb.crushCount + 1
 		specWarnCrushReality:Show(self.vb.crushCount)
 		specWarnCrushReality:Play("watchwave")
-		timerCrushRealityCD:Start(self:IsStory() and 15.7 or 21.8, self.vb.crushCount+1)
+		timerCrushRealityCD:Start((self:IsStory() or self:IsEasy()) and 15.7 or 21.8, self.vb.crushCount+1)
 	end
 end
 
@@ -107,6 +107,8 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnChaoticCorruption:Play("targetyou")
 			yellChaoticCorruption:Yell()
 			yellChaoticCorruptionFades:Countdown(spellId)
+		else
+			warnSomeChaoticCorruption:Show(args.destName)
 		end
 	end
 end

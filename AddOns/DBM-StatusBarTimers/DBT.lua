@@ -189,6 +189,7 @@ end
 do
 	local CreateFrame, IsShiftKeyDown = CreateFrame, IsShiftKeyDown
 
+
 	local function onUpdate(self)
 		if self.obj then
 			self.obj.curTime = GetTime()
@@ -231,6 +232,7 @@ do
 
 	local fCounter = 1
 
+	---@param self DBT
 	local function createBarFrame(self)
 		---@class DBTBarFrame: Frame
 		local frame = CreateFrame("Frame", "DBT_Bar_" .. fCounter, smallBarsAnchor)
@@ -276,6 +278,7 @@ do
 		varianceTex:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
 		varianceTex:SetWidth(20)
 		varianceTex:SetBlendMode("ADD")
+		varianceTex:SetAlpha(0.5)
 
 		local varianceTexBorder = bar:CreateTexture("$parentVarianceBorder", "OVERLAY")
 		varianceTexBorder:SetVertexColor(0, 0, 0, 1)
@@ -283,7 +286,6 @@ do
 		varianceTexBorder:SetPoint("BOTTOMLEFT", varianceTex, "BOTTOMLEFT", -1, 0)
 		varianceTexBorder:SetTexture("Interface\\Buttons\\WHITE8X8")
 		varianceTexBorder:SetWidth(1)
-
 		fCounter = fCounter + 1
 
 		frame:EnableMouse(not self.Options.ClickThrough or self.movable)
@@ -292,6 +294,7 @@ do
 
 	local mt = {__index = barPrototype}
 
+	---@param timer string|number
 	local function parseTimer(timer)
 		if not timer then return end
 
@@ -334,6 +337,9 @@ do
 			newBar.lastUpdate = GetTime()
 			newBar.huge = huge or nil
 			newBar.paused = nil
+			newBar.minTimer = varianceMinTimer or nil
+			newBar.varianceDuration = varianceDuration or 0
+			newBar.hasVariance = varianceMinTimer and true or false
 			newBar:SetTimer(timer) -- This can kill the timer and the timer methods don't like dead timers
 			if newBar.dead then
 				return
@@ -582,6 +588,7 @@ do
 		end
 	end
 
+	---@param self DBT
 	local function moveEnd(self)
 		updateClickThrough(self, self.Options.ClickThrough)
 		self.movable = false
@@ -955,14 +962,14 @@ function barPrototype:Update(elapsed)
 		return self:Cancel()
 	else
 		if fillUpBars then
-			if currentStyle == "NoAnim" and timerValue <= enlargeTime and not enlargeHack then
+			if currentStyle == "NoAnim" and timerValue <= enlargeTime and not enlargeHack and not self.varianceDuration then
 				-- Simple/NoAnim Bar mimics BW in creating a new bar on large bar anchor instead of just moving the small bar
 				bar:SetValue(1 - timerValue/(totaltimeValue < enlargeTime and totaltimeValue or enlargeTime))
 			else
 				bar:SetValue(1 - timerValue/totaltimeValue)
 			end
 		else
-			if currentStyle == "NoAnim" and timerValue <= enlargeTime and not enlargeHack then
+			if currentStyle == "NoAnim" and timerValue <= enlargeTime and not enlargeHack and not self.varianceDuration then
 				-- Simple/NoAnim Bar mimics BW in creating a new bar on large bar anchor instead of just moving the small bar
 				bar:SetValue(timerValue/(totaltimeValue < enlargeTime and totaltimeValue or enlargeTime))
 			else

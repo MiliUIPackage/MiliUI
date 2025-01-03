@@ -207,9 +207,9 @@ function timerPrototype:Start(timer, ...)
 		hasVariance = true
 		timerStringWithVariance = timer -- cache timer string
 		timer, minTimer = parseVarianceFromTimer(timer) -- use highest possible value as the actual End timer
-		if DBM.Options.DebugMode then
-			self.keep = true -- keep variance timers for debug purposes
-		end
+	end
+	if DBM.Options.DebugMode and self.mod.id ~= "TestMod" then
+		self.keep = hasVariance -- keep variance timers for debug purposes
 	end
 	if timer and type(timer) ~= "number" then
 		return self:Start(nil, timer, ...) -- first argument is optional!
@@ -232,7 +232,7 @@ function timerPrototype:Start(timer, ...)
 				end
 			end
 		end
-		timer = timer or self.timer--what the shit was "and ((timer > 0 and timer) or self.timer + timer)" even for? all that was doing was breaking mods that purposely start timers of 0
+		timer = timer and ((timer >= 0 and timer) or self.timer + timer) or self.timer
 		if isCountTimer and not self.allowdouble then--remove previous timer.
 			for i = #self.startedTimers, 1, -1 do
 				if DBM.Options.BadTimerAlert or DBM.Options.DebugMode and DBM.Options.DebugLevel > 1 then
@@ -308,6 +308,8 @@ function timerPrototype:Start(timer, ...)
 			else--AI timer passed with 5 or less is indicating phase change, with timer as phase number
 				if not private.isRetail then
 					timer = math.floor(timer)--Floor inprecise timers in classic because combat is mostly caused by PLAYER_REGEN in dungeons
+				else
+					timer = math.ceil(timer)--Ceil timer in retail to fix combat startt timers being 0.9999 instead of 1 (due to change in how delay works)
 				end
 				if self["phase" .. timer .. "CastTimer"] and type(self["phase" .. timer .. "CastTimer"]) == "number" then
 					--Check if timer is shorter than previous learned first timer by scanning remaining time on existing bar
@@ -398,6 +400,7 @@ function timerPrototype:Start(timer, ...)
 		end
 		msg = msg:gsub(">.-<", stringUtils.stripServerName)
 		bar:SetText(msg, self.inlineIcon)
+		bar.hasVariance = hasVariance
 		-- FIXME: i would prefer to trace this directly in DBT, but since I want to rewrite DBT... meh.
 		test:Trace(self.mod, "StartTimer", self, timer, msg)
 		--ID (string) Internal DBM timer ID
@@ -553,13 +556,13 @@ function timerPrototype:DelayedStart(delay, ...)
 	DBMScheduler:Unschedule(self.Start, self.mod, self, ...)
 	local id = DBMScheduler:Schedule(delay or 0.5, self.Start, self.mod, self, ...)
 	test:Trace(self.mod, "SchedulerHideFromTraceIfUnscheduled", id)
-	test:Trace(self.mod, "SetScheduleMethodName", id, self, "DelayedStart", testFixupScheduleMethodName(...))
+	test:Trace(self.mod, "SetScheduleMethodName", id, self, "DelayedStart", testFixupScheduleMethodName(self, ...))
 end
 timerPrototype.DelayedShow = timerPrototype.DelayedStart
 
 function timerPrototype:Schedule(t, ...)
 	local id = DBMScheduler:Schedule(t, self.Start, self.mod, self, ...)
-	test:Trace(self.mod, "SetScheduleMethodName", id, self, "Schedule", testFixupScheduleMethodName(...))
+	test:Trace(self.mod, "SetScheduleMethodName", id, self, "Schedule", testFixupScheduleMethodName(self, ...))
 end
 
 function timerPrototype:Unschedule(...)

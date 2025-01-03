@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("z2687", "DBM-Delves-WarWithin")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241116112013")
+mod:SetRevision("20241216021009")
 mod:SetHotfixNoticeRev(20240422000000)
 mod:SetMinSyncRevision(20240422000000)
 mod:SetZone(2687, 2767)
@@ -106,7 +106,7 @@ function mod:ENCOUNTER_START(eID)
 	elseif eID == 3000 then--Bloated Drowner
 		DBM:AddMsg("Boss alerts/timers not yet implemented for Bloated Drowner")
 	elseif eID == 3001 then--Cragpie
-		timerCorrosiveBileCD:Start(7.2)
+		timerCorrosiveBileCD:Start(6.1)
 		timerSwiftnessCD:Start(12.1)
 		timerElectricCataclysmCD:Start(20.5)
 	elseif eID == 3002 then--Leviathan Caller

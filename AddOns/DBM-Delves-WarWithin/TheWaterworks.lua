@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("z2683", "DBM-Delves-WarWithin")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241102154000")
+mod:SetRevision("20241220035749")
 mod:SetHotfixNoticeRev(20240422000000)
 mod:SetMinSyncRevision(20240422000000)
 mod:SetZone(2683)
@@ -96,6 +96,8 @@ function mod:ENCOUNTER_START(eID)
 		timerNoxiousGasCD:Start(3.3)
 		timerThrowWaxCD:Start(7.0)
 		timerBurnAwayCD:Start(18.2)
+	elseif eID == 3139 then--Shroomspew
+		DBM:AddMsg("Boss alerts/timers not yet implemented for Shroomspew")
 	end
 end
 
@@ -107,6 +109,12 @@ function mod:ENCOUNTER_END(eID, _, _, _, success)
 			timerNoxiousGasCD:Stop()
 			timerThrowWaxCD:Stop()
 			timerBurnAwayCD:Stop()
+		end
+	elseif eID == 3139 then--Shroomspew
+		if success == 1 then
+			DBM:EndCombat(self)
+		else
+
 		end
 	end
 end

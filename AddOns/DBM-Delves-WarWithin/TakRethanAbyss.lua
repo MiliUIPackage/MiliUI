@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("z2689", "DBM-Delves-WarWithin")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241102154000")
+mod:SetRevision("20241220035749")
 mod:SetHotfixNoticeRev(20240422000000)
 mod:SetMinSyncRevision(20240422000000)
 mod:SetZone(2689, 2768)
@@ -96,6 +96,8 @@ function mod:ENCOUNTER_START(eID)
 		timerFungalInfectionCD:Start(4.3)
 	elseif eID == 3004 then--Evolved Nerubian Leaders
 		DBM:AddMsg("Boss alerts/timers not yet implemented for Evolved Nerubian Leaders")
+	elseif eID == 3124 then--Vindle Snapcrank
+		DBM:AddMsg("Boss alerts/timers not yet implemented for Vindle Snapcrank")
 	end
 end
 

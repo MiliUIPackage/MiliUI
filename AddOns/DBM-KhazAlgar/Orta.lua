@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2625, "DBM-KhazAlgar", nil, 1278)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240511044840")
+mod:SetRevision("20241222015402")
 mod:SetCreatureID(221067)
 mod:SetEncounterID(2984)
 --mod:SetReCombatTime(30)
@@ -26,10 +26,10 @@ local warnDiscardWeaklings			= mod:NewSpellAnnounce(451702, 3)
 local specWarnTectonicRoar			= mod:NewSpecialWarningSpell(450454, nil, nil, nil, 2, 2)
 local specWarnColossalSlam			= mod:NewSpecialWarningDodge(450407, nil, nil, nil, 2, 2)
 
-local timerTectonicRoarCD			= mod:NewAITimer(32.7, 450454, nil, nil, nil, 2)
-local timerColossalSlamCD			= mod:NewAITimer(32.7, 450407, nil, nil, nil, 3)
-local timerRupturingRunesCD			= mod:NewAITimer(32.7, 450677, nil, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)
-local timerMountainsGraspCD			= mod:NewAITimer(32.7, 450929, nil, nil, nil, 3)
+local timerTectonicRoarCD			= mod:NewCDTimer(31.8, 450454, nil, nil, nil, 2)
+local timerColossalSlamCD			= mod:NewCDTimer(31.8, 450407, nil, nil, nil, 3)
+local timerRupturingRunesCD			= mod:NewCDTimer(31.8, 450677, nil, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)
+local timerMountainsGraspCD			= mod:NewCDTimer(31.8, 450929, nil, nil, nil, 3)
 
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
