@@ -1092,7 +1092,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	--[[Translation missing --]]
 	L["Portrait Zoom"] = "Portrait Zoom"
 	--[[Translation missing --]]
-	L["Position Settings"] = "Position Settings"
+	L["Position and Size Settings"] = "Position and Size Settings"
 	--[[Translation missing --]]
 	L["Preferred Match"] = "Preferred Match"
 	--[[Translation missing --]]

@@ -717,7 +717,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = "Время �
 	L["Places a tick on the bar"] = "Размещает такт (деление) на полосе"
 	L["Play Sound"] = "Воспроизвести звук"
 	L["Portrait Zoom"] = "Увеличить портрет"
-	L["Position Settings"] = "Настройки размера и расположения"
+	--[[Translation missing --]]
+	L["Position and Size Settings"] = "Position and Size Settings"
 	L["Preferred Match"] = "Предпочтительный результат"
 	L["Premade Auras"] = "Готовые индикации"
 	L["Premade Snippets"] = "Готовые фрагменты кода"

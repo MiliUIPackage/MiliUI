@@ -1044,7 +1044,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Places a tick on the bar"] = "Places a tick on the bar"
 	L["Play Sound"] = "Sound abspielen"
 	L["Portrait Zoom"] = "Portraitzoom"
-	L["Position Settings"] = "Positionsbedingte Einstellungen"
+	--[[Translation missing --]]
+	L["Position and Size Settings"] = "Position and Size Settings"
 	--[[Translation missing --]]
 	L["Preferred Match"] = "Preferred Match"
 	--[[Translation missing --]]

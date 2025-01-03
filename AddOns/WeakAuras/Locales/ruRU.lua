@@ -31,10 +31,14 @@ L["|cFFFF0000Not|r Item Bonus Id Equipped"] = "|cFFFF0000Нет|r ID бонус�
 L["|cFFFF0000Not|r Item Equipped"] = "Предмет |cFFFF0000НЕ|r надет"
 L["|cFFFF0000Not|r Player Name/Realm"] = "|cFFFF0000Нет|r Имя / Игровой мир игрока"
 L["|cFFFF0000Not|r Spell Known"] = "Заклинание |cFFFF0000НЕ|rизвестно"
+--[[Translation missing --]]
 L[ [=[|cFFFF0000Support for unfiltered COMBAT_LOG_EVENT_UNFILTERED is deprecated|r
 COMBAT_LOG_EVENT_UNFILTERED without a filter is advised against as it’s very performance costly.
 Find more information:
-https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events]=] ] = "|cFFFF0000Поддержка COMBAT_LOG_EVENT_UNFILTERED без фильтра устарела|r Использование COMBAT_LOG_EVENT_UNFILTERED без фильтра не рекомендуется, так как это очень затратно по производительности. Дополнительная информация: https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events"
+https://github.com/WeakAuras/WeakAuras2/wiki/Deprecated-CLEU]=] ] = [=[|cFFFF0000Support for unfiltered COMBAT_LOG_EVENT_UNFILTERED is deprecated|r
+COMBAT_LOG_EVENT_UNFILTERED without a filter is advised against as it’s very performance costly.
+Find more information:
+https://github.com/WeakAuras/WeakAuras2/wiki/Deprecated-CLEU]=]
 L["|cFFffcc00Extra Options:|r %s"] = "|cFFFFCC00Дополнительные параметры:|r %s"
 L["|cFFffcc00Extra Options:|r None"] = "|cFFFFCC00Дополнительные параметры:|r нет"
 L[ [=[• |cff00ff00Player|r, |cff00ff00Target|r, |cff00ff00Focus|r, and |cff00ff00Pet|r correspond directly to those individual unitIDs.
@@ -302,7 +306,8 @@ L["Color"] = "Цвет"
 L["Color Animation"] = "Анимация цвета"
 L["Combat Log"] = "Журнал боя"
 L["Communities"] = "Сообщества"
-L["Condition Custom Text"] = "Пользовательский текст условия"
+--[[Translation missing --]]
+L["Condition Custom Test"] = "Condition Custom Test"
 L["Conditions"] = "Условия"
 L["Contains"] = "Содержит"
 L["Continuously update Movement Speed"] = "Непрерывно обновлять данные о скорости передвижения"
@@ -358,6 +363,8 @@ L["Damage Split"] = "Разделение урона"
 L["DBM Announce"] = "Объявление DBM"
 L["DBM Stage"] = "Фаза сражения с боссом DBM"
 L["DBM Timer"] = "Таймер DBM"
+--[[Translation missing --]]
+L["Dead"] = "Dead"
 L["Death"] = "Смерть"
 L["Death Knight Rune"] = "Руна рыцаря смерти"
 L["Debuff"] = "Дебафф"
@@ -427,6 +434,8 @@ L["Eclipse"] = "Затмение"
 L["Eclipse Direction"] = "Направление затмения"
 L["Edge"] = "Эффект Edge (кромка)"
 L["Edge of Madness"] = "Грань Безумия"
+--[[Translation missing --]]
+L["Effective Spell Id"] = "Effective Spell Id"
 L["Elide"] = "Опускать слова"
 L["Elite"] = "Элитный"
 L["Emote"] = "Эмоция"
@@ -492,6 +501,8 @@ L["Every Frame"] = "Каждый кадр"
 L["Every Frame (High CPU usage)"] = "Каждый кадр (высокая загрузка ЦП)"
 L["Evoker Essence"] = "Сущность пробудителя"
 L["Exact Spell ID(s)"] = "ID заклинания"
+--[[Translation missing --]]
+L["Execute Conditions"] = "Execute Conditions"
 L["Experience (%)"] = "Опыт (%)"
 L["Expertise Bonus"] = "Бонус мастерства"
 L["Expertise Rating"] = "Показатель мастерства"
@@ -588,6 +599,8 @@ L["GTFO Alert"] = "Предупреждение GTFO"
 L["Guardian"] = "Страж"
 L["Guild"] = "Гильдия"
 L["Hakkar"] = "Хаккар"
+--[[Translation missing --]]
+L["Hardcore"] = "Hardcore"
 L["Has Target"] = "Есть цель"
 L["Has Vehicle UI"] = "Имеет UI транспорта"
 L["HasPet"] = "Призван и жив питомец"
@@ -1052,6 +1065,10 @@ L["Requested display not authorized"] = "Запрошенная индикаци
 L["Requesting display information from %s ..."] = "Запрос информации об индикации от %s ..."
 L["Require Valid Target"] = "Требуется допустимая цель"
 L["Requires syncing the specialization via LibSpecialization."] = "Требуется синхронизация специализации через LibSpecialization."
+--[[Translation missing --]]
+L["Resilience (%)"] = "Resilience (%)"
+--[[Translation missing --]]
+L["Resilience Rating"] = "Resilience Rating"
 L["Resist"] = "Сопротивление"
 L["Resistances"] = "Сопротивления"
 L["Resisted"] = "Сопротивление"
@@ -1060,6 +1077,8 @@ L["Rested Experience"] = "Доп. опыт после отдыха"
 L["Rested Experience (%)"] = "Доп. опыт после отдыха (%)"
 L["Resting"] = "Отдыхает"
 L["Resurrect"] = "Воскрешение"
+--[[Translation missing --]]
+L["Resurrect Pending"] = "Resurrect Pending"
 L["Right"] = "Справа"
 L["Right to Left"] = "Справа налево"
 L["Right, then Centered Vertical"] = "Справа > По вертикали по центру"
@@ -1095,6 +1114,8 @@ L["Scenario (Heroic)"] = "Сценарий (героический)"
 L["Scenario (Normal)"] = "Сценарий (обычный)"
 L["Screen"] = "Экран"
 L["Screen/Parent Group"] = "Экран / Исходная группа"
+--[[Translation missing --]]
+L["Season of Discovery"] = "Season of Discovery"
 L["Second"] = "Второе"
 L["Second Value of Tooltip Text"] = "Второе значение из текста подсказки"
 L["Secondary Stats"] = "Вторичная характеристика"
@@ -1227,6 +1248,8 @@ L["Subzone Name"] = "Название подзоны"
 L["Success"] = "Успех"
 L["Sulfuron Harbinger"] = "Предвестник Сульфурон"
 L["Summon"] = "Призыв"
+--[[Translation missing --]]
+L["Summon Pending"] = "Summon Pending"
 L["Sun"] = "Солнце"
 L["Supports multiple entries, separated by commas"] = "Можно указать несколько значений, разделенных запятыми."
 L[ [=[Supports multiple entries, separated by commas
@@ -1416,6 +1439,8 @@ L["Warning: Full Scan auras checking for both name and spell id can't be convert
 L["Warning: Name info is now available via %affected, %unaffected. Number of affected group members via %unitCount. Some options behave differently now. This is not automatically adjusted."] = "|cFFFFCC00Примечение.|r Теперь имена задействованных и незадействованных игроков доступны посредством %affected и %unaffected; количество задействованных участников группы - %unitCount. Некоторые параметры работают иначе. Эти изменения автоматически не применяются."
 L["Warning: Tooltip values are now available via %tooltip1, %tooltip2, %tooltip3 instead of %s. This is not automatically adjusted."] = "|cFFFFCC00Примечение.|r Теперь значения из текста подсказки доступны посредством %tooltip1, %tooltip2 и %tooltip3. Это изменение автоматически не применяется."
 L["WeakAuras Built-In (63:42 | 3:07 | 10 | 2.4)"] = "WeakAuras (встроенный):  63:42 | 3:07 | 10 | 2.4"
+--[[Translation missing --]]
+L["WeakAuras has detected empty settings. If this is unexpected, ask for assitance on https://discord.gg/weakauras."] = "WeakAuras has detected empty settings. If this is unexpected, ask for assitance on https://discord.gg/weakauras."
 L[ [=[WeakAuras has detected that it has been downgraded.
 Your saved auras may no longer work properly.
 Would you like to run the |cffff0000EXPERIMENTAL|r repair tool? This will overwrite any changes you have made since the last database upgrade.

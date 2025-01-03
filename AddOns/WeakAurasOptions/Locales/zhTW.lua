@@ -719,7 +719,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[事件發�
 	L["Places a tick on the bar"] = "在進度條上顯示每次進度指示"
 	L["Play Sound"] = "播放音效"
 	L["Portrait Zoom"] = "人像變焦"
-	L["Position Settings"] = "位置設定"
+	L["Position and Size Settings"] = "位置與大小設定"
 	L["Preferred Match"] = "優先選擇符合"
 	L["Premade Auras"] = "現成的提醒效果"
 	L["Premade Snippets"] = "現成的程式碼片段"

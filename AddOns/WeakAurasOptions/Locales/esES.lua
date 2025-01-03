@@ -698,7 +698,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = "Ocurrencia d
 	L["Places a tick on the bar"] = "Coloca una marca en la barra"
 	L["Play Sound"] = "Reproducir sonido"
 	L["Portrait Zoom"] = "Zoom del retrato"
-	L["Position Settings"] = "Configuración de posición"
+	L["Position and Size Settings"] = "Configuración de posición y tamaño"
 	L["Preferred Match"] = "Coincidencia preferida"
 	L["Premade Auras"] = "Auras prediseñadas"
 	L["Premade Snippets"] = "Snippets prefabricados"

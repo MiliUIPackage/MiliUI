@@ -214,7 +214,7 @@ end
 
 function Private.ExecEnv.CallCustomConditionTest(uid, testFunctionNumber, ...)
   local ok, result = xpcall(Private.ExecEnv.conditionHelpers[uid].customTestFunctions[testFunctionNumber],
-                            Private.GetErrorHandlerUid(uid, L["Condition Custom Text"]), ...)
+                            Private.GetErrorHandlerUid(uid, L["Condition Custom Test"]), ...)
   if (ok) then
     return result
   end
@@ -843,7 +843,7 @@ end
 function Private.RunConditions(region, uid, hideRegion)
   if (checkConditions[uid]) then
     Private.ActivateAuraEnvironmentForRegion(region)
-    checkConditions[uid](region, hideRegion);
+    xpcall(checkConditions[uid], Private.GetErrorHandlerUid(uid, L["Execute Conditions"]), region, hideRegion);
     Private.ActivateAuraEnvironment()
   end
 end

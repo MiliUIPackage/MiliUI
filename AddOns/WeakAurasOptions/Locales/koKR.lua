@@ -654,13 +654,13 @@ Bleed classification via LibDispel]=] ] = [=[해제 가능한 종류의 버프/�
 	L["Moving auras: "] = "위크오라 이동중: "
 	L["Multiple Displays"] = "다중 디스플레이"
 	L["Multiselect ignored tooltip"] = [=[
-|cFFFF0000무시|r - |cFF777777단일|r - |cFF777777다중|r
+|cFFFF0000무시|r - |cFF777777단일|r - |cFF777777여럿|r
 이 옵션은 이 디스플레이를 불러올 때 조건으로 사용되지 않습니다]=]
 	L["Multiselect multiple tooltip"] = [=[
-|cFF777777무시|r - |cFF777777단일|r - |cFF00FF00다중|r
+|cFF777777무시|r - |cFF777777단일|r - |cFF00FF00여럿|r
 일치하는 값을 무엇이든 선택할 수 있습니다]=]
 	L["Multiselect single tooltip"] = [=[
-|cFF777777무시|r - |cFF00FF00단일|r - |cFF777777다중|r
+|cFF777777무시|r - |cFF00FF00단일|r - |cFF777777여럿|r
 일치하는 값을 하나만 선택할 수 있습니다]=]
 	L["Must be a power of 2"] = "2의 제곱이어야 합니다"
 	L["Name - The name of the display (usually an aura name), or the display's ID if there is no dynamic name"] = "이름 - 이 디스플레이의 이름이며 (일반적으론 오라 이름) 동적 이름이 없을땐 ID가 됩니다"
@@ -744,7 +744,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[위크오�
 	L["Places a tick on the bar"] = "바에 틱 배치"
 	L["Play Sound"] = "소리 재생"
 	L["Portrait Zoom"] = "초상화 확대"
-	L["Position Settings"] = "위치 설정"
+	L["Position and Size Settings"] = "위치 및 크기 설정"
 	L["Preferred Match"] = "조건 일치시 우선순위"
 	L["Premade Auras"] = "미리 준비된 위크오라"
 	L["Premade Snippets"] = "미리 준비된 스니펫 위크오라"
@@ -883,7 +883,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[위크오�
 	L["Specific Currency ID"] = "화폐 ID 지정"
 	L["Specific Unit"] = "유닛 직접 지정"
 	L["Spell ID"] = "주문 ID"
-	L["Spell Selection Filters"] = "주문 선택 필터"
+	L["Spell Selection Filters"] = "주문 선정 필터"
 	L["Stack Count"] = "중첩 횟수"
 	L["Stack Info"] = "중첩 정보"
 	L["Stacks - The number of stacks of an aura (usually)"] = "중첩 - 오라의 중첩 갯수입니다 (일반적으로)"
@@ -932,7 +932,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[위크오�
 	L["Then "] = "Then"
 	L["There are several special codes available to make this text dynamic. Click to view a list with all dynamic text codes."] = "이 텍스트를 동적으로 만들 수 있는 여러 특수 코드가 있습니다. 클릭하면 모든 동적 텍스트 코드가 표시됩니다."
 	L["Thickness"] = "굵기"
-	L["This adds %raidMark as text replacements."] = "이 옵션을 켜면 텍스트에서 %raidMark 대체 코드가 추가됩니다."
+	L["This adds %raidMark as text replacements."] = "이 옵션을 켜면 텍스트 대체 코드에 %raidMark가 추가됩니다."
 	L["This adds %role, %roleIcon as text replacements. Does nothing if the unit is not a group member."] = "이 옵션을 켜면 텍스트 대체 코드에 %role, %roleIcon이 추가됩니다. 유닛이 그룹에 없으면 작동하지 않습니다."
 	L["This adds %tooltip, %tooltip1, %tooltip2, %tooltip3 and %tooltip4 as text replacements and also allows filtering based on the tooltip content/values."] = "이 옵션을 켜면 텍스트 대체 코드에 %tooltip, %tooltip1, %tooltip2, %tooltip3, %tooltip4를 추가해서 툴팁 내용/수치 정보를 추출할 수 있게 해줍니다."
 	L[ [=[This aura contains custom Lua code.
@@ -991,7 +991,7 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["Unit Count"] = "유닛 수"
 	L["Unit Frames"] = "유닛 프레임"
 	L["Unknown"] = "알 수 없음"
-	L["Unknown Encounter's Spell Id"] = "알 수 없는 보스 주문 ID"
+	L["Unknown Encounter's Spell Id"] = "알 수 없는 보스전의 주문 ID"
 	L["Unknown property '%s' found in '%s'"] = "'%2$s'에 알 수 없는 속성 '%1$s'|1이;가; 있음"
 	L["Unknown Spell"] = "알 수 없는 주문"
 	L["Unlike the start or finish animations, the main animation will loop over and over until the display is hidden."] = "시작 또는 종료 애니메이션과 달리 메인 애니메이션은 디스플레이가 숨겨질 때까지 계속 반복됩니다."
@@ -1007,8 +1007,8 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["Used in Auras:"] = "위크오라에서 사용됨:"
 	L["Used in auras:"] = "위크오라에서 사용됨:"
 	L["Uses Texture Coordinates to rotate the texture."] = "이 텍스처를 회전시키려면 텍스처 좌표를 사용하세요."
-	L["Uses UnitInRange() to check if in range. Matches default raid frames out of range behavior, which is between 25 to 40 yards depending on your class and spec."] = "사거리 안에 있는지 검사를 위해 UnitInRange()를 사용합니다. 기본 공격대 프레임의 사거리 밖 동작과 일치하며 직업과 전문화에 따라 25에서 40미터 사이에서 작동합니다."
-	L["Uses UnitIsVisible() to check if game client has loaded a object for this unit. This distance is around 100 yards. This is polled every second."] = "UnitIsVisible()을 사용해서 게임 클라이언트가 이 유닛에 대응하는 물체를 불러왔는지 검사합니다. 검사 거리는 약 100미터 정도입니다. 매 초마다 검사합니다."
+	L["Uses UnitInRange() to check if in range. Matches default raid frames out of range behavior, which is between 25 to 40 yards depending on your class and spec."] = "사거리 안에 있는지 검사를 위해 UnitInRange()를 사용합니다. 기본 공격대 프레임의 사거리 검사 방식과 마찬가지로 직업과 전문화에 따라 25~40미터 거리를 감지합니다."
+	L["Uses UnitIsVisible() to check if game client has loaded a object for this unit. This distance is around 100 yards. This is polled every second."] = "UnitIsVisible()을 사용해서 게임 클라이언트가 이 유닛의 오브젝트를 불러왔는지를 검사합니다. 검사 거리는 약 100미터 정도입니다. 매 초마다 검사합니다."
 	L["Value"] = "값"
 	L["Value %i"] = "값 %i"
 	L["Values are in normalized rgba format."] = "값은 정규화된 rgba 형식입니다."

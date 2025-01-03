@@ -1127,7 +1127,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Play Sound"] = "Reproduzir Som"
 	--[[Translation missing --]]
 	L["Portrait Zoom"] = "Portrait Zoom"
-	L["Position Settings"] = "Configurações de Posição"
+	--[[Translation missing --]]
+	L["Position and Size Settings"] = "Position and Size Settings"
 	--[[Translation missing --]]
 	L["Preferred Match"] = "Preferred Match"
 	--[[Translation missing --]]

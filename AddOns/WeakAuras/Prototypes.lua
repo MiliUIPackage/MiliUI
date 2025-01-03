@@ -136,7 +136,7 @@ if WeakAuras.IsRetail() then
         castLatencyFrame:GetScript("OnEvent")(nil, event, unit, ...)
       end
     end
-    WeakAuras.ScanUnitEvents(event.."_FAKE", unit, ...)
+    Private.ScanUnitEvents(event.."_FAKE", unit, ...)
   end)
 else
   WeakAuras.UnitChannelInfo = UnitChannelInfo
@@ -766,7 +766,7 @@ if WeakAuras.IsRetail() then
       end
     end
     Private.ScanForLoads(nil, "WA_TALENT_UPDATE")
-    WeakAuras.ScanEvents("WA_TALENT_UPDATE")
+    Private.ScanEvents("WA_TALENT_UPDATE")
 
     if (event == "WA_DELAYED_PLAYER_ENTERING_WORLD" or event == "PLAYER_TALENT_UPDATE") then
       C_Timer.After(1, function()
@@ -1158,7 +1158,7 @@ do
     if waitingFor[itemId] then
       waitingFor[itemId] = nil
       if success then
-        WeakAuras.ScanEvents("WA_DELAYED_SET_INFORMATION")
+        Private.ScanEvents("WA_DELAYED_SET_INFORMATION")
       end
       if next(waitingFor) == nil then
         itemDataLoadFrame:UnregisterEvent("GET_ITEM_INFO_RECEIVED")
@@ -1395,6 +1395,24 @@ Private.load_prototype = {
       width = WeakAuras.normalWidth,
       optional = true,
       events = {"PLAYER_MOUNT_DISPLAY_CHANGED"}
+    },
+    {
+      name = "hardcore",
+      display = L["Hardcore"],
+      type = "tristate",
+      init = WeakAuras.IsClassicEra() and "arg" or nil,
+      width = WeakAuras.normalWidth,
+      enable = WeakAuras.IsClassicEra(),
+      hidden = not WeakAuras.IsClassicEra(),
+    },
+    {
+      name = "engraving",
+      display = L["Season of Discovery"],
+      type = "tristate",
+      init = WeakAuras.IsClassicEra() and "arg" or nil,
+      width = WeakAuras.normalWidth,
+      enable = WeakAuras.IsClassicEra(),
+      hidden = not WeakAuras.IsClassicEra(),
     },
     {
       name ="playerTitle",
@@ -2266,6 +2284,8 @@ Private.event_prototypes = {
       AddUnitEventForEvents(result, unit, "UNIT_NAME_UPDATE")
       AddUnitEventForEvents(result, unit, "UNIT_FLAGS")
       AddUnitEventForEvents(result, unit, "PLAYER_FLAGS_CHANGED")
+      AddUnitEventForEvents(result, unit, "INCOMING_RESURRECT_CHANGED")
+      AddUnitEventForEvents(result, unit, "INCOMING_SUMMON_CHANGED")
       if trigger.use_inRange then
         AddUnitEventForEvents(result, unit, "UNIT_IN_RANGE_UPDATE")
       end
@@ -2434,6 +2454,35 @@ Private.event_prototypes = {
         init = "raidMarkIndex > 0 and '{rt'..raidMarkIndex..'}' or ''"
       },
       {
+        name = "dead",
+        display = L["Dead"],
+        type = "tristate",
+        width = WeakAuras.doubleWidth,
+        init = "UnitIsDeadOrGhost(unit)",
+        store = true,
+        conditionType = "bool",
+      },
+      {
+        name = "resurrectPending",
+        display = L["Resurrect Pending"],
+        type = "tristate",
+        width = WeakAuras.doubleWidth,
+        init = "UnitHasIncomingResurrection(unit)",
+        store = true,
+        conditionType = "bool",
+      },
+      {
+        name = "summonPending",
+        display = L["Summon Pending"],
+        type = "tristate",
+        width = WeakAuras.doubleWidth,
+        enable = WeakAuras.IsRetail(),
+        hidden = not WeakAuras.IsRetail(),
+        init = "C_IncomingSummon.HasIncomingSummon(unit)",
+        store = true,
+        conditionType = "bool",
+      },
+      {
         name = "ignoreSelf",
         display = L["Ignore Self"],
         type = "toggle",
@@ -2442,16 +2491,6 @@ Private.event_prototypes = {
           return trigger.unit == "nameplate" or trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party"
         end,
         init = "not UnitIsUnit(\"player\", unit)"
-      },
-      {
-        name = "ignoreDead",
-        display = L["Ignore Dead"],
-        type = "toggle",
-        width = WeakAuras.doubleWidth,
-        enable = function(trigger)
-          return trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party"
-        end,
-        init = "not UnitIsDeadOrGhost(unit)"
       },
       {
         name = "ignoreDisconnected",
@@ -5466,6 +5505,15 @@ Private.event_prototypes = {
         conditionType = "elapsedTimer",
         store = true,
         test = "true"
+      },
+      {
+        hidden = true,
+        name = "effectiveSpellId",
+        display = L["Effective Spell Id"],
+        conditionType = "number",
+        store = true,
+        test = "true",
+        operator_types = "only_equal"
       },
       {
         name = "genericShowOn",
@@ -10257,9 +10305,9 @@ Private.event_prototypes = {
         type = "number",
         init = "GetCombatRating(CR_MASTERY)",
         store = true,
-        enable = WeakAuras.IsRetail(), -- CATA TODO: Mastery stat constants & functions are not implemented yet
+        enable = WeakAuras.IsCataOrRetail(),
         conditionType = "number",
-        hidden = not WeakAuras.IsRetail(),
+        hidden = not WeakAuras.IsCataOrRetail(),
         multiEntry = {
           operator = "and",
           limit = 2
@@ -10269,11 +10317,11 @@ Private.event_prototypes = {
         name = "masterypercent",
         display = L["Mastery (%)"],
         type = "number",
-        init = "GetMasteryEffect()",
+        init = "WeakAuras.IsCataClassic() and GetMastery() or GetMasteryEffect()",
         store = true,
-        enable = WeakAuras.IsRetail(), -- CATA TODO: Mastery stat constants & functions are not implemented yet
+        enable = WeakAuras.IsCataOrRetail(),
         conditionType = "number",
-        hidden = not WeakAuras.IsRetail(),
+        hidden = not WeakAuras.IsCataOrRetail(),
         multiEntry = {
           operator = "and",
           limit = 2
@@ -10583,6 +10631,34 @@ Private.event_prototypes = {
         enable = WeakAuras.IsRetail(),
         conditionType = "number",
         hidden = not WeakAuras.IsRetail(),
+        multiEntry = {
+          operator = "and",
+          limit = 2
+        },
+      },
+      {
+        name = "resiliencerating",
+        display = L["Resilience Rating"],
+        type = "number",
+        init = "GetCombatRating(COMBAT_RATING_RESILIENCE_PLAYER_DAMAGE_TAKEN)",
+        store = true,
+        enable = WeakAuras.IsCataClassic(),
+        conditionType = "number",
+        hidden = not WeakAuras.IsCataClassic(),
+        multiEntry = {
+          operator = "and",
+          limit = 2
+        },
+      },
+      {
+        name = "resiliencepercent",
+        display = L["Resilience (%)"],
+        type = "number",
+        init = "GetCombatRatingBonus(COMBAT_RATING_RESILIENCE_PLAYER_DAMAGE_TAKEN)",
+        store = true,
+        enable = WeakAuras.IsCataClassic(),
+        conditionType = "number",
+        hidden = not WeakAuras.IsCataClassic(),
         multiEntry = {
           operator = "and",
           limit = 2

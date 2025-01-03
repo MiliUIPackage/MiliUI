@@ -1,40 +1,57 @@
-# [5.18.0](https://github.com/WeakAuras/WeakAuras2/tree/5.18.0) (2024-11-21)
+# [5.18.1](https://github.com/WeakAuras/WeakAuras2/tree/5.18.1) (2024-12-17)
 
-[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.17.5...5.18.0)
+[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.18.0...5.18.1)
 
 ## Highlights
 
-- Updated Currency trigger to support Warband currencies (thanks @Boneshock!!!)
-- Bump ToC for classic 1.15.5
-- Add some new filtering options in spell cast succeeded & buff triggers
+- Bug fixes for Cata and Vanilla
+- Performance improvements
 
 ## Commits
 
-Boneshock (1):
+InfusOnWoW (13):
 
-- Add warband currency support (#5229)
-
-InfusOnWoW (2):
-
-- Fix check
 - Update Discord List
+- Discord Update: Allow overriding the display name via a DM
+- Fix Spell Cache for Season of Discovery Phase 6
+- On renaming an aura, don't clear filter
+- Enchant Trigger: Fix regression on weapon switching
+- CondtionOptions: Fix lua error on choosing manual icon in merged case
+- Rename "Position Settings" to "Position and Size Settings"
+- Update Discord List
+- Update Atlas File List from wago.tools
+- Load: Add Hardcode and Season of Discovery load options for Classic
+- Fix lua error on editing conditions for manual progress
+- Print a warning on finding empty settings
+- Add Effective Spell ID condition to Spell Cooldown Trigger
 
-Stanzilla (1):
+Stanzilla (4):
 
 - Update WeakAurasModelPaths from wago.tools
+- Update WeakAurasModelPaths from wago.tools
+- Update WeakAurasModelPaths from wago.tools
+- Update WeakAurasModelPaths from wago.tools
 
-github-actions[bot] (4):
+dependabot[bot] (1):
 
-- Update Discord List (#5534)
-- Update WeakAurasModelPaths from wago.tools (#5528)
-- Update Atlas File List from wago.tools (#5529)
-- Update Discord List (#5527)
+- Bump cbrgm/mastodon-github-action from 2.1.9 to 2.1.10
 
-mrbuds (5):
+emptyrivers (7):
 
-- Remove unused code in ConstructFunction
-- Aura trigger: add npc id filter for boss unit
-- Spell Cast Succeeded: add filter by spell name
-- Fix error when converting a Combat Log trigger to Spell Cooldown trigger
-- Toc update for Classic Era 1.15.5
+- bump toc for 11.0.7
+- unit characteristics - disable summon pending for classic
+- harden conditions against garbage in custom state
+- upgrade Unit Characteristics - Ignore Dead, and add Summon/Resurrect Pending properties
+- fix a typo
+- be more careful about getting tooltip data
+- defer calls to ScanEvents & friends if it doesn't come from WeakAuras
+
+mrbuds (1):
+
+- Edit CLEU deprecated warning link
+
+nullKomplex (2):
+
+- Add Resilience to Cataclysm Classic.
+- Add Mastery to Cataclysm Classic.
 
