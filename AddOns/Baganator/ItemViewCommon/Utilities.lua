@@ -161,7 +161,13 @@ function addonTable.Utilities.AddGeneralDropSlot(parent, getData, bagIndexes)
     if cursorType == "item" then
       local usageChecks = addonTable.Sorting.GetBagUsageChecks(bagIndexes)
       local sortedBagIDs = CopyTable(bagIndexes)
-      table.sort(sortedBagIDs, function(a, b) return usageChecks.sortOrder[a] < usageChecks.sortOrder[b] end)
+      table.sort(sortedBagIDs, function(a, b)
+        if usageChecks.sortOrder[a] == usageChecks.sortOrder[b] then
+          return a < b
+        else
+          return usageChecks.sortOrder[a] < usageChecks.sortOrder[b]
+        end
+      end)
       local currentCharacterBags = getData()
       local backupBagID = nil
       for _, bagID in ipairs(sortedBagIDs) do
@@ -216,6 +222,9 @@ function addonTable.Utilities.AddGeneralDropSlot(parent, getData, bagIndexes)
   parent.backgroundButton:ClearPushedTexture()
   parent.backgroundButton.SlotBackground:Hide()
   for _, child in ipairs({parent.backgroundButton:GetRegions()}) do
+    child:Hide()
+  end
+  for _, child in ipairs({parent.backgroundButton:GetChildren()}) do
     child:Hide()
   end
 

@@ -423,7 +423,6 @@ function BaganatorCustomiseDialogMixin:OnLoad()
   ButtonFrameTemplate_HidePortrait(self)
   ButtonFrameTemplate_HideButtonBar(self)
   self.Inset:Hide()
-  addonTable.Skins.AddFrame("ButtonFrame", self)
   self:SetScript("OnMouseWheel", function() end)
 
   self:SetTitle(BAGANATOR_L_CUSTOMISE_BAGANATOR)
@@ -447,9 +446,7 @@ function BaganatorCustomiseDialogMixin:OnLoad()
   self:SetMovable(true)
   self:SetClampedToScreen(true)
 
-  if TSM_API then
-    self:SetFrameStrata("HIGH")
-  end
+  addonTable.Skins.AddFrame("ButtonFrame", self, {"customise"})
 end
 
 function BaganatorCustomiseDialogMixin:OnDragStart()
@@ -682,7 +679,7 @@ function BaganatorCustomiseDialogMixin:SetupGeneral()
       button1 = DONE,
       hasEditBox = 1,
       OnShow = function(self)
-        self.editBox:SetText("https://buymeacoffee.com/plusmouse")
+        self.editBox:SetText("https://linktr.ee/plusmouse")
         self.editBox:HighlightText()
       end,
       EditBoxOnEnterPressed = function(self)
@@ -695,7 +692,7 @@ function BaganatorCustomiseDialogMixin:SetupGeneral()
     }
 
     local button = CreateFrame("Button", nil, donateFrame, "UIPanelDynamicResizeButtonTemplate")
-    button:SetText("Buy Me A Coffee")
+    button:SetText(BAGANATOR_L_LINK)
     DynamicResizeButton_Resize(button)
     button:SetPoint("LEFT", donateFrame, "CENTER", -35, 0)
     button:SetScript("OnClick", function()
@@ -762,8 +759,9 @@ function BaganatorCustomiseDialogMixin:SetupIcon()
   else
     itemButton = CreateFrame("Button", nil, frame, "ItemButtonTemplate")
   end
+  itemButton.SlotBackground = itemButton:CreateTexture(nil, "BACKGROUND")
   itemButton:SetPoint("CENTER", cornersEditor, 0, 0)
-  --addonTable.Skins.AddFrame("ItemButton", itemButton)
+  addonTable.Skins.AddFrame("ItemButton", itemButton)
 
   frame:SetScript("OnShow", function()
     for index, frame in ipairs(allFrames) do
@@ -806,6 +804,7 @@ function BaganatorCustomiseDialogMixin:SetupSorting()
   do
     local allModes = {
       {"type", BAGANATOR_L_ITEM_TYPE},
+      {"name", BAGANATOR_L_ITEM_NAME},
       {"quality", BAGANATOR_L_ITEM_QUALITY},
       {"item-level", BAGANATOR_L_ITEM_LEVEL},
       {"combine_stacks_only", BAGANATOR_L_COMBINE_STACKS_ONLY},
@@ -1032,6 +1031,9 @@ function BaganatorCustomiseDialogMixin:SetupCategoriesOptions()
   end
   for event, editor in pairs(editors) do
     addonTable.CallbackRegistry:RegisterCallback(event, function()
+      if not self:IsVisible() then
+        return
+      end
       ShowEditor(event)
     end)
     editor.Return = function()
@@ -1068,6 +1070,15 @@ function BaganatorCustomiseDialogMixin:SetupCategoriesOptions()
     end
   end)
 
+  local prevTooltips = {}
+  frame:SetScript("OnHide", function()
+    addonTable.Config.Set(addonTable.Config.Options.DEBUG_KEYWORDS, prevTooltips.keywords)
+    frame:UnregisterEvent("PLAYER_LOGOUT")
+  end)
+  -- Ensure the setting resets if the player does /reload  or /logout
+  frame:SetScript("OnEvent", function()
+    addonTable.Config.Set(addonTable.Config.Options.DEBUG_KEYWORDS, prevTooltips.keywords)
+  end)
   frame:SetScript("OnShow", function()
     for index, frame in ipairs(allFrames) do
       if frame.SetValue then
@@ -1075,6 +1086,12 @@ function BaganatorCustomiseDialogMixin:SetupCategoriesOptions()
       end
     end
     ShowEditor("EditCategory")
+
+    prevTooltips = {
+      keywords = addonTable.Config.Get(addonTable.Config.Options.DEBUG_KEYWORDS),
+    }
+    addonTable.Config.Set(addonTable.Config.Options.DEBUG_KEYWORDS, true)
+    frame:RegisterEvent("PLAYER_LOGOUT")
   end)
 
   table.insert(self.lowestFrames, allFrames[#allFrames])

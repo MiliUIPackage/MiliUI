@@ -1,9 +1,9 @@
 # Baganator
 
-## [547](https://github.com/Baganator/Baganator/tree/547) (2024-12-13)
-[Full Changelog](https://github.com/Baganator/Baganator/compare/546...547) 
+## [594](https://github.com/Baganator/Baganator/tree/594) (2025-01-02)
+[Full Changelog](https://github.com/Baganator/Baganator/compare/593...594) 
 
-- Fixes for alt toggle buttons for separate issues on GW2 skin and saved searches  
-- Include buttons next to search box in effects of "Show when holding Alt" option  
-- Permit second row of currencies tracked to extend above buttons at bottom of bag  
-- [Fixes #378] Fix Auto Open: Character Panel option erroring  
+- [Fixes #395] Add help for slash commands when entering /bgr help  
+- [Fixes #396] Automatically enable /bgr keywords when editing categories  
+- Categories: Include cached views when showing keywords/categories tooltips  
+- Classic Era/SoD/Anni: Fix missing divider in default layout below recents  

@@ -54,8 +54,9 @@ local function PopulateCategoryOrder(container)
   local elements = {}
   local dataProviderElements = {}
   local customCategories = addonTable.Config.Get(addonTable.Config.Options.CUSTOM_CATEGORIES)
-  local indent = ""
+  local indentLevel = 0
   for _, source in ipairs(addonTable.Config.Get(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER)) do
+    local indent = string.rep("      ", indentLevel)
     local color = WHITE_FONT_COLOR
     if hidden[source] then
       color = GRAY_FONT_COLOR
@@ -78,12 +79,12 @@ local function PopulateCategoryOrder(container)
     if source:match("^_") then
       local name
       if source == addonTable.CategoryViews.Constants.SectionEnd then
-        indent = ""
+        indentLevel = indentLevel - 1
         name = " "
       else
-        indent = "      "
+        indentLevel = indentLevel + 1
         local section = source:match("^_(.*)")
-        name = CreateAtlasMarkup(folderMarker) .. " " .. (_G["BAGANATOR_L_SECTION_" .. section] or section)
+        name = indent .. CreateAtlasMarkup(folderMarker) .. " " .. (_G["BAGANATOR_L_SECTION_" .. section] or section)
       end
       table.insert(dataProviderElements, {value = source, label = name})
       table.insert(elements, source)
@@ -100,11 +101,14 @@ local function PopulateCategoryOrder(container)
 end
 
 local function GetCategoryContainer(parent, pickupCallback)
-  local container = CreateFrame("Frame", nil, parent, "InsetFrameTemplate")
-  addonTable.Skins.AddFrame("InsetFrame", container)
+  local container = CreateFrame("Frame", nil, parent)
+  local inset = CreateFrame("Frame", nil, container, "InsetFrameTemplate")
+  inset:SetPoint("TOPLEFT")
+  inset:SetPoint("BOTTOMRIGHT", -15, 0)
+  addonTable.Skins.AddFrame("InsetFrame", inset)
   container.ScrollBox = CreateFrame("Frame", nil, container, "WowScrollBoxList")
   container.ScrollBox:SetPoint("TOPLEFT", 1, -3)
-  container.ScrollBox:SetPoint("BOTTOMRIGHT", -1, 3)
+  container.ScrollBox:SetPoint("BOTTOMRIGHT", -15, 3)
   local scrollView = CreateScrollBoxListLinearView()
   scrollView:SetElementExtentCalculator(function(index, elementData)
     if elementData.value ~= addonTable.CategoryViews.Constants.SectionEnd then
@@ -120,7 +124,7 @@ local function GetCategoryContainer(parent, pickupCallback)
       frame:SetHighlightAtlas("auctionhouse-ui-row-highlight")
       frame:SetScript("OnClick", function(self, button)
         if self.value:match("^_") then
-          addonTable.CallbackRegistry:TriggerEvent("EditCategorySection", self.value)
+          addonTable.CallbackRegistry:TriggerEvent("EditCategorySection", self.value, self.indexValue)
         elseif self.value == "default_auto_recents" then
           addonTable.CallbackRegistry:TriggerEvent("EditCategoryRecent")
         elseif self.value == addonTable.CategoryViews.Constants.EmptySlotsCategory then
@@ -131,6 +135,8 @@ local function GetCategoryContainer(parent, pickupCallback)
           addonTable.CallbackRegistry:TriggerEvent("EditCategory", self.value)
         end
       end)
+      frame:SetText(" ")
+      frame:GetFontString():SetWordWrap(false)
       local button = CreateFrame("Button", nil, frame)
       button:SetSize(28, 22)
       local tex = button:CreateTexture(nil, "ARTWORK")
@@ -166,7 +172,7 @@ local function GetCategoryContainer(parent, pickupCallback)
     frame:SetEnabled(not categoryEnd)
     frame.repositionButton:SetShown(not categoryEnd)
   end)
-  container.ScrollBar = CreateFrame("EventFrame", nil, container, "WowTrimScrollBar")
+  container.ScrollBar = CreateFrame("EventFrame", nil, container, "MinimalScrollBar")
   container.ScrollBar:SetPoint("TOPRIGHT")
   container.ScrollBar:SetPoint("BOTTOMRIGHT")
   ScrollUtil.InitScrollBoxListWithScrollBar(container.ScrollBox, container.ScrollBar, scrollView)
@@ -272,7 +278,7 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
   local categoryOrder
   local highlightContainer = CreateFrame("Frame", nil, container)
   local highlight = highlightContainer:CreateTexture(nil, "OVERLAY", nil, 7)
-  highlight:SetSize(200, 20)
+  highlight:SetSize(235, 20)
   highlight:SetAtlas("128-RedButton-Highlight")
   highlight:Hide()
   local draggable
@@ -287,17 +293,8 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
           insertIndex = index + 1
         end
       end
-
-      if draggable.value:match("^_") or draggable.value == addonTable.CategoryViews.Constants.DividerName then
-        for i = insertIndex, #categoryOrder.elements do
-          local element = categoryOrder.elements[i]
-          if element == addonTable.CategoryViews.Constants.SectionEnd then
-            insertIndex = i + 1
-            break
-          elseif element:match("^_") then
-            break
-          end
-        end
+      if insertIndex == 0 then
+        insertIndex = 1
       end
 
       if draggable.value:match("^_") then
@@ -311,24 +308,53 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
       end
       addonTable.Config.Set(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER, categoryOrder.elements)
     end
+    for _, frame in categoryOrder.ScrollBox:EnumerateFrames() do
+      frame:UnlockHighlight()
+    end
     highlight:Hide()
   end, function()
     highlight:ClearAllPoints()
     highlight:Hide()
+    for _, frame in categoryOrder.ScrollBox:EnumerateFrames() do
+      frame:UnlockHighlight()
+    end
     if categoryOrder:IsMouseOver() then
       highlight:Show()
-      local f, isTop = addonTable.CustomiseDialog.GetMouseOverInContainer(categoryOrder)
-      if f and isTop then
-        highlight:SetPoint("BOTTOMLEFT", f, "TOPLEFT", 0, -10)
-      elseif f then
-        highlight:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 0, 10)
-      else
+      local hoverFrame, isTop, hoverIndex = addonTable.CustomiseDialog.GetMouseOverInContainer(categoryOrder)
+      if hoverFrame and ((categoryOrder.elements[hoverIndex] == addonTable.CategoryViews.Constants.SectionEnd and isTop) or (categoryOrder.elements[hoverIndex + 1] == addonTable.CategoryViews.Constants.SectionEnd and not isTop)) then
+        local level = 1
+        local startIndex = 1
+        for i = hoverIndex - 1, 1, -1 do
+          local value = categoryOrder.elements[i]
+          if value == addonTable.CategoryViews.Constants.SectionEnd then
+            level = level + 1
+          elseif value:match("^_") then
+            level = level - 1
+          end
+          if level == 0 then
+            startIndex = i
+            break
+          end
+        end
+        for _, frame in categoryOrder.ScrollBox:EnumerateFrames() do
+          if frame.indexValue <= hoverIndex and frame.indexValue >= startIndex then
+            frame:LockHighlight()
+          end
+        end
+      end
+      if hoverFrame and isTop then
+        highlight:SetPoint("BOTTOMLEFT", hoverFrame, "TOPLEFT", 0, -10)
+      elseif hoverFrame then
+        highlight:SetPoint("TOPLEFT", hoverFrame, "BOTTOMLEFT", 0, 10)
+      elseif #categoryOrder.elements > 0 then
         highlight:SetPoint("BOTTOMLEFT", categoryOrder, 0, 0)
+      else
+        highlight:SetPoint("TOPLEFT", categoryOrder, 0, 0)
       end
     end
   end)
 
-  local dropdown = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
+  local dropdown = CreateFrame("DropdownButton", nil, container, "WowStyle1DropdownTemplate")
   addonTable.Skins.AddFrame("Dropdown", dropdown)
   dropdown.disableSelectionText = true
   SetCategoriesToDropDown(dropdown, GetInsertedCategories())
@@ -339,11 +365,16 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
     if index ~= nil then
       table.remove(categoryOrder.elements, index)
       if value:match("^_") then -- section
-        local tmp
-        while tmp ~= addonTable.CategoryViews.Constants.SectionEnd do
-          tmp = categoryOrder.elements[index]
+        local level = 1
+        while level ~= 0 and #categoryOrder.elements > 0 do
+          local tmp = categoryOrder.elements[index]
           table.insert(draggable.sectionValues, tmp)
           table.remove(categoryOrder.elements, index)
+          if tmp == addonTable.CategoryViews.Constants.SectionEnd then
+            level = level - 1
+          elseif tmp:match("^_") then
+            level = level + 1
+          end
         end
       end
       addonTable.Config.Set(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER, categoryOrder.elements)
@@ -381,7 +412,7 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
     end
   end)
   dropdown:SetPoint("BOTTOMLEFT", categoryOrder, "TOPLEFT", 0, 8)
-  dropdown:SetPoint("RIGHT", categoryOrder)
+  dropdown:SetPoint("RIGHT", categoryOrder.ScrollBar, 5, 0)
 
   addonTable.CallbackRegistry:RegisterCallback("SettingChanged", function(_, settingName)
     if settingName == addonTable.Config.Options.CATEGORY_DISPLAY_ORDER or settingName == addonTable.Config.Options.CATEGORY_HIDDEN or settingName == addonTable.Config.Options.CUSTOM_CATEGORIES then
@@ -391,7 +422,7 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
   end)
 
   local exportButton = CreateFrame("Button", nil, container, "UIPanelDynamicResizeButtonTemplate")
-  exportButton:SetPoint("RIGHT", categoryOrder, 0, 0)
+  exportButton:SetPoint("RIGHT", container, -17, 0)
   exportButton:SetPoint("BOTTOM", container)
   exportButton:SetText(BAGANATOR_L_EXPORT)
   DynamicResizeButton_Resize(exportButton)

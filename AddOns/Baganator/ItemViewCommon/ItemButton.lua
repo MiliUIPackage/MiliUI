@@ -15,6 +15,7 @@ do
     table.insert(widgetsQueued, callback)
     if RetryWidgets:GetScript("OnUpdate") == nil then
       RetryWidgets:SetScript("OnUpdate", function()
+        addonTable.ReportEntry()
         local queue = widgetsQueued
         widgetsQueued = {}
         for _, callback in ipairs(queue) do
@@ -67,7 +68,7 @@ function addonTable.ItemButtonUtil.UpdateSettings()
   if upgradePlugin and upgradePluginID ~= "poor_quality" then
     iconSettings.usingUpgradePlugin = true
     table.insert(itemCallbacks, function(self)
-      if self:GetID() ~= 0 then
+      if self.BGR.itemLink then
         local _, upgradeStatus = pcall(upgradePlugin.callback, self.BGR.itemLink)
         self.BGR.isUpgrade = upgradeStatus == true
       end
@@ -84,10 +85,12 @@ function addonTable.ItemButtonUtil.UpdateSettings()
   for _, key in ipairs(positions) do
     local array = CopyTable(addonTable.Config.Get(key))
     local callbacks = {}
+    local fastStatus = {}
     local plugins = {}
     for _, plugin in ipairs(array) do
       if addonTable.API.IconCornerPlugins[plugin] then
         table.insert(callbacks, addonTable.API.IconCornerPlugins[plugin].onUpdate)
+        table.insert(fastStatus, addonTable.API.IconCornerPlugins[plugin].isFast)
         table.insert(plugins, plugin)
       end
     end
@@ -95,11 +98,16 @@ function addonTable.ItemButtonUtil.UpdateSettings()
       local function Callback(itemButton)
         local toShow = nil
         local queued = false
+        local timeoutStatus = not addonTable.CheckTimeout()
+
         for index = 1, #callbacks do
           local cb = callbacks[index]
           local widget = itemButton.cornerPlugins[plugins[index]]
           if widget then
-            local show = cb(widget, itemButton.BGR)
+            local show
+            if timeoutStatus or fastStatus[index] then
+              show = cb(widget, itemButton.BGR)
+            end
             if show == nil then
               local BGR = itemButton.BGR
               if not queued then
@@ -170,6 +178,8 @@ local function GetInfo(self, cacheData, earlyCallback, finalCallback)
 
   self.BGR.earlyCallback = earlyCallback or function() end
   self.BGR.finalCallback = finalCallback or function() end
+
+  self.BGR.bagType = cacheData.bagType
 
   self.BGR.earlyCallback()
 
@@ -404,6 +414,7 @@ function BaganatorRetailCachedItemButtonMixin:SetItemDetails(details)
 
   GetInfo(self, details, nil, function()
     self:SetItemButtonQuality(details.quality, details.itemLink, false, details.isBound)
+
     ReparentOverlays(self)
   end)
 end
@@ -605,6 +616,7 @@ function BaganatorRetailLiveContainerItemButtonMixin:SetItemDetails(cacheData)
     self.BGR.itemLocation = itemLocation
 
     self.BGR.hasNoValue = noValue
+
     self:BGRUpdateQuests()
     ApplyNewItemAnimation(self, quality);
   end, function()
@@ -634,11 +646,8 @@ end
 
 function BaganatorRetailLiveContainerItemButtonMixin:BGRUpdateQuests()
   local questInfo = C_Container.GetContainerItemQuestInfo(self:GetBagID(), self:GetID());
-  local isQuestItem = questInfo.isQuestItem;
-  self.BGR.isQuestItem = questInfo.isQuestItem or questInfo.questID
-  local questID = questInfo.questID;
-  local isActive = questInfo.isActive;
-  self:UpdateQuestItem(isQuestItem, questID, isActive);
+  self.BGR.isQuestItem = self.BGR.itemID and (questInfo.isQuestItem or questInfo.questID)
+  self:UpdateQuestItem(questInfo.isQuestItem, questInfo.questID, questInfo.isActive);
 end
 
 function BaganatorRetailLiveContainerItemButtonMixin:SetItemFiltered(text)
@@ -946,7 +955,7 @@ end
 
 function BaganatorClassicLiveContainerItemButtonMixin:BGRUpdateQuests()
   local questInfo = C_Container.GetContainerItemQuestInfo(self:GetParent():GetID(), self:GetID());
-  self.BGR.isQuestItem = questInfo.isQuestItem or questInfo.questID
+  self.BGR.isQuestItem = self.BGR.itemID and (questInfo.isQuestItem or questInfo.questID)
 
   local questTexture = _G[self:GetName().."IconQuestTexture"];
 

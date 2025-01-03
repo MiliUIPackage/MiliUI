@@ -97,7 +97,7 @@ local function SetupBackpackHooks()
     b:HookScript("OnClick", ToggleBackpackView)
   end
 
-  hooksecurefunc("ToggleBackpack", function()
+  local function DirectToggleOnly()
     local stack = debugstack()
     -- Check to ensure we're not opening when OpenClose.lua will handle the
     -- auto-open and auto-close
@@ -105,7 +105,11 @@ local function SetupBackpackHooks()
       return
     end
     ToggleBackpackView()
-  end)
+  end
+
+  hooksecurefunc("ToggleBackpack", DirectToggleOnly)
+
+  hooksecurefunc("ToggleBag", DirectToggleOnly)
 
   ToggleAllBags = ToggleBackpackView
 
@@ -562,14 +566,7 @@ function addonTable.ViewManagement.Initialize()
   xpcall(function()
     local info = C_XMLUtil.GetTemplateInfo("BackpackTokenTemplate")
     local tokenWidth = info and info.width or 50
-    -- Reverts token frame width change after using the character frame to avoid
-    -- unexpected freezes.
-    TokenFramePopup:HookScript("OnShow", function()
-      BackpackTokenFrame:SetWidth(tokenWidth * addonTable.Constants.MaxPinnedCurrencies + 1) -- Support tracking up to 100 currencies
-    end)
-    TokenFramePopup:HookScript("OnHide", function()
-      BackpackTokenFrame:SetWidth(tokenWidth * 3 + 1)
-    end)
+    BackpackTokenFrame:SetWidth(tokenWidth * 7 + 1)
   end, CallErrorHandler)
 end
 

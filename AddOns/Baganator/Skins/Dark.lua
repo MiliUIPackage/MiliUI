@@ -30,26 +30,6 @@ local function ToHSL(r, g, b)
   return h, s, l
 end
 
-local function FromHSL_Prev(h, s, l)
-  c = (1 - math.abs(2 * l - 1)) * s
-  h_dash = h / 60
-  x = c * ( 1 - math.abs(h_dash % 2 - 1))
-  m = l - c / 2
-  if h < 1 then
-    return c + m, x + m, 0 + m
-  elseif h < 2 then
-    return x + m, c + m, 0 + m
-  elseif h < 3 then
-    return 0 + m, c + m, x + m
-  elseif h < 4 then
-    return 0 + m, x + m, c + m
-  elseif h < 5 then
-    return x + m, 0 + m, c + m
-  else
-    return c + m, 0 + m, x + m
-  end
-end
-
 local function FromHSL(h, s, l)
   local function f(n)
     local k = (n + h/30) % 12
@@ -130,6 +110,9 @@ local function ItemButtonQualityHook(frame, quality)
     if c then
       frame.IconBorder:SetVertexColor(c.r, c.g, c.b)
       frame.IconBorder:Show()
+    else
+      frame.IconBorder:SetVertexColor(color.r, color.g, color.b, 1)
+      frame.IconBorder:Show()
     end
   end
 end
@@ -184,16 +167,21 @@ local function StyleButton(button)
   end)
 end
 
+local showSlots = true
+local allItemButtons = {}
+
 local skinners = {
   ItemButton = function(frame, tags)
     frame.bgrSimpleHooked = true
     local r, g, b = Lighten(color.r, color.g, color.b, -0.2)
-    if not tags.containerbag then
+    if not tags.containerBag then
+      table.insert(allItemButtons, frame)
       frame.SlotBackground:SetColorTexture(r, g, b, 0.3)
       frame.SlotBackground:SetPoint("CENTER")
       frame.SlotBackground:SetSize(35, 35)
       table.insert(toColor.textures, {texture = frame.SlotBackground, alpha = 0.3, lightened = -0.2})
     end
+    frame.SlotBackground:SetShown(showSlots)
     if frame.SetItemButtonQuality then
       hooksecurefunc(frame, "SetItemButtonQuality", ItemButtonQualityHook)
     end
@@ -265,12 +253,27 @@ local function SetConstants()
 end
 
 local function LoadSkin()
+  showSlots = not addonTable.Config.Get("skins.dark.empty_slot_background")
   if addonTable.Utilities.IsMasqueApplying() or not addonTable.Config.Get("skins.dark.square_icons") then
-    skinners.ItemButton = nil
+    skinners.ItemButton = function(frame, tags)
+      if not tags.containerBag then
+        table.insert(allItemButtons, frame)
+        frame.SlotBackground:SetShown(showSlots)
+      end
+    end
   else
     hooksecurefunc("SetItemButtonQuality", ItemButtonQualityHook)
     hooksecurefunc("SetItemButtonTexture", ItemButtonTextureHook)
   end
+
+  addonTable.CallbackRegistry:RegisterCallback("SettingChanged", function(_, settingName)
+    if settingName == "skins.dark.empty_slot_background" then
+      showSlots = not addonTable.Config.Get("skins.dark.empty_slot_background")
+      for _, button in ipairs(allItemButtons) do
+        button.SlotBackground:SetShown(showSlots)
+      end
+    end
+  end)
 end
 
 addonTable.Skins.RegisterSkin(BAGANATOR_L_DARK, "dark", LoadSkin, SkinFrame, SetConstants, {
@@ -291,6 +294,12 @@ addonTable.Skins.RegisterSkin(BAGANATOR_L_DARK, "dark", LoadSkin, SkinFrame, Set
     text = BAGANATOR_L_SQUARE_ICONS,
     rightText = BAGANATOR_L_RELOAD_REQUIRED,
     option = "square_icons",
+    default = false,
+  },
+  {
+    type = "checkbox",
+    text = BAGANATOR_L_HIDE_ICON_BACKGROUNDS,
+    option = "empty_slot_background",
     default = false,
   },
 })

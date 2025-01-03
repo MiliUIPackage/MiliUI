@@ -33,7 +33,7 @@ hidden:Hide()
 local skinners = {
   ItemButton = function(frame, tags)
     frame.bgrElvUISkin = true
-    if not tags.containerbag then
+    if not tags.containerBag then
       frame.SlotBackground:SetParent(hidden)
     end
     frame.SlotBackground:SetTexCoord(unpack(E.TexCoords))
@@ -156,9 +156,6 @@ local function SetConstants()
 end
 
 local function LoadSkin()
-  if (select(4, C_AddOns.GetAddOnInfo("Paste"))) then
-    addonTable.Utilities.Message("You have Paste installed, this will cause glitches in the ElvUI skin.")
-  end
   E, L, V, P, G = unpack(ElvUI)
   S = E:GetModule("Skins")
   B = E:GetModule('Bags')
@@ -166,7 +163,7 @@ local function LoadSkin()
 
   if addonTable.Utilities.IsMasqueApplying() then
     skinners.ItemButton = function(frame, tags)
-      if not tags.containerbag then
+      if not tags.containerBag then
         frame.SlotBackground:SetParent(hidden)
       end
     end

@@ -9,21 +9,26 @@ local function ConvertTags(tags)
   return res
 end
 
-local function SkinContainerFrame(frame, topButtons, topRightButtons)
+local function AddHeader(frame, texture)
   (frame.GwStripTextures or frame.StripTextures)(frame)
-  GW.CreateFrameHeaderWithBody(frame, frame:GetTitleText(), "Interface/AddOns/GW2_UI/textures/bag/bagicon", {})
+  GW.CreateFrameHeaderWithBody(frame, frame:GetTitleText(), texture, {})
   frame.gwHeader:ClearAllPoints()
   frame.gwHeader:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", 0, -25)
   frame.gwHeader:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -25)
-  frame.gwHeader.windowIcon:ClearAllPoints()
-  frame.gwHeader.windowIcon:SetPoint("CENTER", frame, "TOPLEFT", -16, 0)
-  frame.gwHeader.windowIcon:SetSize(84, 84)
   ;(frame.CloseButton.GwSkinButton or frame.CloseButton.SkinButton)(frame.CloseButton, true)
   frame.CloseButton:SetPoint("TOPRIGHT", -10, 4)
   frame.CloseButton:SetSize(20, 20)
+end
+
+local function SkinContainerFrame(frame, topButtons, topRightButtons)
+  AddHeader(frame, "Interface/AddOns/GW2_UI/textures/bag/bagicon")
 
   frame:GetTitleText():ClearAllPoints()
   frame:GetTitleText():SetPoint("BOTTOMLEFT", frame.gwHeader, "BOTTOMLEFT", 35, 10)
+
+  frame.gwHeader.windowIcon:ClearAllPoints()
+  frame.gwHeader.windowIcon:SetPoint("CENTER", frame, "TOPLEFT", -16, 0)
+  frame.gwHeader.windowIcon:SetSize(84, 84)
 
   frame.footer = frame:CreateTexture(nil, "BACKGROUND", nil, 7)
   frame.footer:SetTexture("Interface/AddOns/GW2_UI/textures/bag/bagfooter")
@@ -104,8 +109,8 @@ local function SkinContainerFrame(frame, topButtons, topRightButtons)
     SetupRightButtons()
   end)
 
-  if frame.UpdateTransferButton then
-    hooksecurefunc(frame, "UpdateTransferButton", SetupRightButtons)
+  if frame.ButtonVisibility then
+    hooksecurefunc(frame.ButtonVisibility, "Update", SetupRightButtons)
   end
 
   frame.backgroundMask = UIParent:CreateMaskTexture()
@@ -151,7 +156,7 @@ end
 local skinners = {
   ItemButton = function(frame, tags)
     frame.bgrGW2SkinHooked = true
-    if not tags.containerbag then
+    if not tags.containerBag then
       frame.SlotBackground:SetParent(GW.HiddenFrame)
     end
     frame.SlotBackground:SetTexCoord(0.07, 0.93, 0.07, 0.93)
@@ -216,6 +221,14 @@ local skinners = {
       frame.LogsFrame:SetFrameStrata("DIALOG")
       frame.TabTextFrame:SetFrameStrata("DIALOG")
       SkinContainerFrame(frame, {frame.ToggleTabTextButton, frame.ToggleTabLogsButton, frame.ToggleGoldLogsButton}, frame.AllFixedButtons)
+    elseif tags.customise then
+      AddHeader(frame, "Interface/AddOns/GW2_UI/textures/character/settings-window-icon")
+      frame.Tabs[1]:SetPoint("TOPLEFT", 65, -25)
+      frame:HookScript("OnShow", function(self)
+        local tabsWidth = self.Tabs[#self.Tabs]:GetRight() - self.Tabs[1]:GetLeft()
+
+        self:SetWidth(math.max(self:GetWidth(), tabsWidth + 90))
+      end)
     else
       GW.HandlePortraitFrame(frame, true)
     end
@@ -319,8 +332,11 @@ local skinners = {
     end
   end,
   Dropdown = function(button)
-    button:GwHandleDropDownBox()
-    button:OnEnter()
+    button:GwHandleDropDownBox(nil, nil, nil)
+    button:OnEnter() -- Fix text colour
+    button.Text:SetPoint("LEFT", 10, -2)
+    button.backdrop:SetPoint("TOPLEFT", -5, 0)
+    button:SetHitRectInsets(-5, 0, 0, 0)
   end,
 }
 
@@ -373,7 +389,7 @@ local function LoadSkin()
 
   if addonTable.Utilities.IsMasqueApplying() then
     skinners.ItemButton = function(frame, tags)
-      if not tags.containerbag then
+      if not tags.containerBag then
         frame.SlotBackground:SetParent(hidden)
       end
     end

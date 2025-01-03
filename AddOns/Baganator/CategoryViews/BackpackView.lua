@@ -29,6 +29,7 @@ function BaganatorCategoryViewBackpackViewMixin:OnLoad()
 
   addonTable.CallbackRegistry:RegisterCallback("ForceClearedNewItems",  function()
     if self:IsVisible() and self.lastCharacter ~= nil and self.isLive then
+      self.searchToApply = true
       self:UpdateForCharacter(self.lastCharacter, self.isLive)
     end
   end)
@@ -43,7 +44,7 @@ function BaganatorCategoryViewBackpackViewMixin:OnLoad()
       if self:IsVisible() then
         self:UpdateForCharacter(self.lastCharacter, self.isLive)
       end
-    elseif settingName == addonTable.Config.Options.SORT_METHOD then
+    elseif settingName == addonTable.Config.Options.SORT_METHOD or settingName == addonTable.Config.Options.REVERSE_GROUPS_SORT_ORDER then
       self.LayoutManager:SettingChanged(settingName)
       for _, layout in ipairs(self.Container.Layouts) do
         layout:InformSettingChanged(settingName)
@@ -129,12 +130,12 @@ function BaganatorCategoryViewBackpackViewMixin:GetSearchMatches()
   return matches
 end
 
-function BaganatorCategoryViewBackpackViewMixin:TransferCategory(index, source, groupLabel)
+function BaganatorCategoryViewBackpackViewMixin:TransferCategory(sourceKey)
   if not self.isLive then
     return
   end
 
-  self:Transfer(true, function() return addonTable.CategoryViews.Utilities.GetItemsFromComposed(self.LayoutManager.composed, index, source, groupLabel) end)
+  self:Transfer(true, function() return self.layoutsBySourceKey[sourceKey] and self.layoutsBySourceKey[sourceKey].SearchMonitor:GetMatches() or {} end)
 end
 
 function BaganatorCategoryViewBackpackViewMixin:UpdateForCharacter(character, isLive)
@@ -151,7 +152,11 @@ function BaganatorCategoryViewBackpackViewMixin:UpdateForCharacter(character, is
 
   local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
 
+  local oldIsGrouping = self.isGrouping
   self.isGrouping = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_ITEM_GROUPING) and (not self.splitStacksDueToTransfer or not self.isLive)
+  if self.isGrouping ~= oldIsGrouping then
+    self.searchToApply = true
+  end
 
   if self.addToCategoryMode and C_Cursor.GetCursorItem() == nil then
     self.addToCategoryMode = false

@@ -129,7 +129,7 @@ local function IsDifferentCachedData(data1, data2)
 end
 
 function addonTable.ItemViewCommon.Utilities.GetCategoryDataKey(data)
-  return data ~= nil and (tostring(data.keyLink) .. tostring(data.isBound) .. tostring(data.itemCount or 1) .. "_" .. tostring(data.quality)) or ""
+  return data ~= nil and (tostring(data.keyLink) .. tostring(data.isBound) .. tostring(data.itemCount or 1) .. "_" .. tostring(data.quality) .. "_" .. tostring(data.bagType)) or ""
 end
 
 function addonTable.ItemViewCommon.Utilities.GetCategoryDataKeyNoCount(data)
@@ -677,7 +677,7 @@ function BaganatorLiveCategoryLayoutMixin:OnHide()
 end
 
 function BaganatorLiveCategoryLayoutMixin:InformSettingChanged(setting)
-  if tIndexOf(ReflowSettings, setting) ~= nil or setting == addonTable.Config.Options.SORT_METHOD then
+  if tIndexOf(ReflowSettings, setting) ~= nil or setting == addonTable.Config.Options.SORT_METHOD or setting == addonTable.Config.Options.REVERSE_GROUPS_SORT_ORDER then
     self.reflow = true
   end
   if tIndexOf(UpdateTextureSettings, setting) ~= nil then
@@ -1023,7 +1023,7 @@ function BaganatorCachedCategoryLayoutMixin:OnHide()
 end
 
 function BaganatorCachedCategoryLayoutMixin:InformSettingChanged(setting)
-  if tIndexOf(ReflowSettings, setting) ~= nil or setting == addonTable.Config.Options.SORT_METHOD then
+  if tIndexOf(ReflowSettings, setting) ~= nil or setting == addonTable.Config.Options.SORT_METHOD or setting == addonTable.Config.Options.REVERSE_GROUPS_SORT_ORDER then
     self.reflow = true
   end
   if tIndexOf(UpdateTextureSettings, setting) ~= nil then
@@ -1047,11 +1047,15 @@ function BaganatorCachedCategoryLayoutMixin:ShowGroup(cacheList, rowWidth)
   self.buttons = {}
   for _, cacheData in ipairs(cacheList) do
     local button = self.buttonPool:Acquire()
-    addonTable.Skins.AddFrame("ItemButton", button)
-    if not button.texturesSetup then
-      button.texturesSetup = true
+    if not button.setup then
+      button.setup = true
+      addonTable.Skins.AddFrame("ItemButton", button)
       MasqueRegistration(button)
       button:UpdateTextures()
+      hooksecurefunc(button, "UpdateTooltip", function(...)
+        AddKeywords(...)
+        AddCategories(...)
+      end)
     elseif self.updateTextures then
       button:UpdateTextures()
     end
