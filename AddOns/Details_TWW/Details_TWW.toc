@@ -1,4 +1,4 @@
-## Interface: 11505, 30403, 40401, 110002, 110007
+## Interface: 11505, 30403, 40401, 110005, 110007
 ## Title: Details! Skin TWW |cff8080ffv1.3|r
 ## Notes: Adds the 'The War Within' Skin to Details.|n|cffbbbbbbBy Karl-Heinz Schneider|r|n|n|TInterface/Addons/Details_TWW/Textures/coffee:12:12|t |cff82c5ffbuymeacoffee.com/karlheinzschneider|r
 ## Author: Karl-Heinz Schneider
@@ -14,6 +14,17 @@
 ## X-Category-zhTW: 戰鬥
 ## IconTexture: Interface\AddOns\Details\images\minimap
 ## DefaultState: disabled
+
+# Libs
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+Libs\AceAddon-3.0\AceAddon-3.0.xml
+Libs\AceDB-3.0\AceDB-3.0.xml
+Libs\AceDBOptions-3.0\AceDBOptions-3.0.xml
+Libs\AceConsole-3.0\AceConsole-3.0.xml
+Libs\AceGUI-3.0\AceGUI-3.0.xml
+Libs\AceConfig-3.0\AceConfig-3.0.xml
+Libs\LibSharedMedia-3.0\lib.xml
 
 Core.lua
 Profile_Default.lua

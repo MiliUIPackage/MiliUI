@@ -5,7 +5,7 @@
 ## SavedVariables: _detalhes_global, __details_backup
 ## SavedVariablesPerCharacter: _detalhes_database
 ## OptionalDeps: Ace3, LibSharedMedia-3.0, LibWindow-1.1, LibDBIcon-1.0, NickTag-1.0, LibDataBroker-1.1, LibItemUpgradeInfo-1.0, LibGroupInSpecT-1.1, LibGraph-2.0
-## Version: #Details.20241204.13303.161
+## Version: #Details.20241219.13317.161
 ## IconTexture: Interface\AddOns\Details\images\minimap
 
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計
@@ -123,6 +123,7 @@ frames\window_debug.lua
 frames\window_pro_file.lua
 frames\window_nestspells.lua
 frames\window_deathrecap.lua
+frames\window_transcriptor.lua
 
 classes\class_error.lua
 classes\class_spelltable.lua

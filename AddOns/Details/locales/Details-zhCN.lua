@@ -691,7 +691,7 @@ L["STRING_OPTIONS_INSTANCE_STATUSBAR_ANCHOR"] = "状态栏:"
 L["STRING_OPTIONS_INSTANCE_STATUSBARCOLOR"] = "颜色和透明度"
 L["STRING_OPTIONS_INSTANCE_STATUSBARCOLOR_DESC"] = [=[选择状态栏使用的颜色。
 |cFFFFFF00重要|r：此选项会覆盖通过“窗口颜色”选择的颜色和透明度]=]
-L["STRING_OPTIONS_INSTANCE_STRATA"] = "层的阶层"
+L["STRING_OPTIONS_INSTANCE_STRATA"] = "图层层级"
 L["STRING_OPTIONS_INSTANCE_STRATA_DESC"] = [=[选择要放置框架的图层高度
 低层是默认设置，使窗口留在大多数界面面板的后面
 使用高层窗口可能会停留在其他主要面板的前面
