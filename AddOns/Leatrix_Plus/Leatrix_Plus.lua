@@ -1,5 +1,5 @@
 ﻿----------------------------------------------------------------------
--- 	Leatrix Plus 11.0.17 (13th November 2024)
+-- 	Leatrix Plus 11.0.26 (1st January 2025)
 ----------------------------------------------------------------------
 
 --	01:Functions 02:Locks,  03:Restart 40:Player
@@ -18,7 +18,7 @@
 	local void
 
 	-- Version
-	LeaPlusLC["AddonVer"] = "11.0.17"
+	LeaPlusLC["AddonVer"] = "11.0.26"
 
 	-- Get locale table
 	local void, Leatrix_Plus = ...
@@ -3870,13 +3870,30 @@
 					-- If merchant frame is closed, stop selling
 					StopSelling()
 				elseif event == "UI_ERROR_MESSAGE" then
-					if arg1 == 46 then
-						StopSelling() -- Vendor refuses to buy items
-					elseif arg1 == 635 then
-						StopSelling() -- At gold limit
+					if arg1 == 47 then
+						StopSelling() -- Vendor refuses to buy items (ERR_VENDOR_DOESNT_BUY)
+					elseif arg1 == 644 then
+						StopSelling() -- At gold limit (ERR_TOO_MUCH_GOLD)
 					end
 				end
 			end)
+
+			-- Find updated error strings
+			-- print(GetGameMessageInfo(635))
+			-- print(GetGameMessageInfo(46))
+
+			-- Find updated error codes
+			-- for i = 100, 2000 do
+			--   if GetGameMessageInfo(i) == "ERR_TOO_MUCH_GOLD" then print(i) end
+			-- end
+
+			-- Report in chat if UI error codes have changed so code above needs to be updated
+			if GetGameMessageInfo(47) ~= "ERR_VENDOR_DOESNT_BUY" then
+				LeaPlusLC:Print("Leatrix Plus: ERR_VENDOR_DOESNT_BUY.")
+			end
+			if GetGameMessageInfo(644) ~= "ERR_TOO_MUCH_GOLD" then
+				LeaPlusLC:Print("Leatrix Plus: ERR_TOO_MUCH_GOLD.")
+			end
 
 		end
 
@@ -4712,8 +4729,10 @@
 			local event = CreateFrame("FRAME")
 			event:RegisterEvent("VOICE_CHAT_OUTPUT_DEVICES_UPDATED")
 			event:SetScript("OnEvent", function()
-				SetCVar("Sound_OutputDriverIndex", "0")
-				Sound_GameSystem_RestartSoundSystem()
+				if not CinematicFrame:IsShown() and not MovieFrame:IsShown() then -- Dont restart sound system during cinematic
+					SetCVar("Sound_OutputDriverIndex", "0")
+					Sound_GameSystem_RestartSoundSystem()
+				end
 			end)
 
 		end
@@ -13872,6 +13891,12 @@
 				-- Print open menu tags (such as dropdown menus)
 				Menu.PrintOpenMenuTags()
 				return
+			elseif str == "editmode" then
+				-- Open Edit Mode (useful for new player experience)
+				if not LeaPlusLC:PlayerInCombat() then
+					RunScript('ShowUIPanel(EditModeManagerFrame)')
+				end
+				return
 			elseif str == "admin" then
 				-- Preset profile (used for testing)
 				LpEvt:UnregisterAllEvents()						-- Prevent changes
@@ -14451,7 +14476,7 @@
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "SetWeatherDensity"			, 	"Set weather density"			, 	146, -132, 	false,	"If checked, you will be able to set the density of weather effects.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "MaxCameraZoom"				, 	"Max camera zoom"				, 	146, -152, 	false,	"If checked, you will be able to zoom out to a greater distance.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "NoRestedEmotes"			, 	"Silence rested emotes"			,	146, -172, 	true,	"If checked, emote sounds will be silenced while your character is:|n|n- resting|n- in a pet battle|n- at the Halfhill Market|n- at the Grim Guzzler|n|nEmote sounds will be enabled when none of the above apply.")
-	LeaPlusLC:MakeCB(LeaPlusLC[pg], "KeepAudioSynced"			, 	"Keep audio synced"				,	146, -192, 	true,	"If checked, when you change the audio output device in your operating system, the game audio output device will change automatically.|n|nFor this to work, the game audio output device will be set to system default.")
+	LeaPlusLC:MakeCB(LeaPlusLC[pg], "KeepAudioSynced"			, 	"Keep audio synced"				,	146, -192, 	true,	"If checked, when you change the audio output device in your operating system, the game audio output device will change automatically as long as a cinematic is not playing at the time.|n|nFor this to work, the game audio output device will be set to system default.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "MuteGameSounds"			, 	"Mute game sounds"				,	146, -212, 	false,	"If checked, you will be able to mute a selection of game sounds.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "MuteMountSounds"			, 	"Mute mount sounds"				,	146, -232, 	false,	"If checked, you will be able to mute a selection of mount sounds.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "MuteCustomSounds"			, 	"Mute custom sounds"			,	146, -252, 	false,	"If checked, you will be able to mute your own choice of sounds.")

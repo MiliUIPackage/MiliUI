@@ -13,6 +13,12 @@
 	-- Create soundtable
 	local muteTable = {
 
+		-- Quad hooved
+		-- sound/character/footsteps/hoovedmedium/mon_footstep_quadraped_hooved_
+
+		-- Bipedal hooved
+		-- sound/character/footsteps/hoovedmedium/mon_footstep_bipedal_hooved_
+
 		----------------------------------------------------------------------
 		-- General
 		----------------------------------------------------------------------

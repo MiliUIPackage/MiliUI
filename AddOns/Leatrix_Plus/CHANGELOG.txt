@@ -1,4 +1,28 @@
-﻿11.0.17 - 13th November 2024
+﻿11.0.26 - 1st January 2025
+- Happy New Year!
+- For 'Media', added zone music for 'The Great Sea (Dragon Isles)' and 'Traitor's Rest' ('Dragonflight') and 'Sinfall' ('Shadowlands').
+- Updated translations.
+
+11.0.25 - 25th December 2024
+- Merry Christmas!
+- For 'Media', added zone music for 'The Great Sea (Khaz Algar)', 'The Maddening Deep' and 'Siren Isle' ('Khaz Algar') and 'Amirdrassil', 'Tyrhold Cavern' and 'Zaralek Cavern' ('Dragon Isles').
+- Updated translations.
+
+11.0.23 - 18th December 2024
+- Updated for game patch 11.0.7.
+- For 'Media', added movie 'Orweyna's Vision'.  You can watch in Movies and listen in Various > Cinematics.  Also added cinematic audio for 'Confronting Xal'atath'.
+- Updated translations.
+
+11.0.22 - 12th December 2024
+- The 'Keep audio sync' ('System') option will no longer sync audio while a cinematic is playing.
+- Updated translations.
+
+11.0.20 - 8th December 2024
+- For 'Sell junk automatically', fixed an issue which caused vendors that refuse to buy items to loop selling junk.
+- All versions of Leatrix Plus (The War Within, Cataclysm and Classic Era) are now under the same CurseForge project.  If you use Leatrix Plus for Cataclysm Classic or Classic Era, you need to remove the addon, find it again on CurseForge and install it again as the project IDs have changed and there will be no more updates for the old project.  There is no change for The War Within.
+- The new Leatrix Plus project for all game versions is https://www.curseforge.com/wow/addons/leatrix-plus.
+
+11.0.17 - 13th November 2024
 - Added a new option 'Set additional options' ('System').  If checked, you will be able to go into the configuration panel to set additional options.  The additional options list may be expanded over time to include minor tweaks that are useful but too small to be standalone options.
 - Game API updates.
 
