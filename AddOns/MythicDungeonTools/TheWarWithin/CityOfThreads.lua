@@ -1,9 +1,15 @@
+local addonName = ...
 local MDT = MDT
 local L = MDT.L
 
 local dungeonIndex = 114
 MDT.dungeonList[dungeonIndex] = L["CityOfThreads"]
-MDT.mapInfo[dungeonIndex] = {}
+MDT.mapInfo[dungeonIndex] = {
+  teleportId = 445416,
+  shortName = L["cityOfThreadsShortName"],
+  englishName = "City of Threads",
+  mapID = 502
+}
 
 local zones = { 2343 }
 for _, zone in ipairs(zones) do
@@ -12,7 +18,7 @@ end
 
 MDT.dungeonMaps[dungeonIndex] = {
   [0] = "",
-  [1] = { customTextures = "CityOfThreads" }
+  [1] = { customTextures = 'Interface\\AddOns\\'..addonName..'\\TheWarWithin\\Textures\\CityOfThreads' }
 }
 
 MDT.dungeonSubLevels[dungeonIndex] = {
@@ -21,7 +27,40 @@ MDT.dungeonSubLevels[dungeonIndex] = {
 
 MDT.dungeonTotalCount[dungeonIndex] = { normal = 742, teeming = 1000, teemingEnabled = true }
 
-MDT.mapPOIs[dungeonIndex] = {}
+MDT.mapPOIs[dungeonIndex] = {
+  [1] = {
+    [1] = {
+      ["template"] = "MapLinkPinTemplate",
+      ["type"] = "dungeonEntrance",
+      ["x"] = 320.77680262201,
+      ["y"] = -83.954249381602,
+    },
+    [2] = {
+      ["template"] = "MapLinkPinTemplate",
+      ["type"] = "cityOfThreadsItem",
+      ["x"] = 502.76705118943,
+      ["y"] = -118.51498924243,
+    },
+    [3] = {
+      ["template"] = "MapLinkPinTemplate",
+      ["type"] = "cityOfThreadsItem",
+      ["x"] = 435.54496374703,
+      ["y"] = -259.54267223567,
+    },
+    [4] = {
+      ["template"] = "MapLinkPinTemplate",
+      ["type"] = "cityOfThreadsItem",
+      ["x"] = 326.12725031554,
+      ["y"] = -143.49639416954,
+    },
+    [5] = {
+      ["template"] = "MapLinkPinTemplate",
+      ["type"] = "cityOfThreadsItem",
+      ["x"] = 430.16808643823,
+      ["y"] = -167.16077396436,
+    },
+  },
+};
 
 MDT.dungeonEnemies[dungeonIndex] = {
   [1] = {
@@ -123,14 +162,14 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["sublevel"] = 1,
       },
       [11] = {
-        ["x"] = 437.27311259249,
-        ["y"] = -163.02819162461,
+        ["x"] = 445.66882753185,
+        ["y"] = -174.78218933701,
         ["g"] = 7,
         ["sublevel"] = 1,
       },
       [12] = {
-        ["x"] = 446.66714928546,
-        ["y"] = -156.64016755124,
+        ["x"] = 444.98803191928,
+        ["y"] = -157.7595791287,
         ["g"] = 7,
         ["sublevel"] = 1,
       },
@@ -333,6 +372,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["count"] = 20,
     ["health"] = 35804403,
     ["scale"] = 1.4,
+    ["stealthDetect"] = true,
     ["displayId"] = 120882,
     ["creatureType"] = "Demon",
     ["level"] = 80,
@@ -355,8 +395,8 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["sublevel"] = 1,
       },
       [2] = {
-        ["x"] = 412.45071573533,
-        ["y"] = -172.60348929333,
+        ["x"] = 409.09244897585,
+        ["y"] = -176.24164097428,
         ["g"] = 8,
         ["sublevel"] = 1,
         ["patrol"] = {
@@ -393,8 +433,8 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["sublevel"] = 1,
       },
       [4] = {
-        ["x"] = 428.2835459159,
-        ["y"] = -249.52893405992,
+        ["x"] = 432.20151846411,
+        ["y"] = -243.6519432105,
         ["g"] = 21,
         ["sublevel"] = 1,
         ["patrol"] = {
@@ -454,6 +494,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["count"] = 20,
     ["health"] = 31826136,
     ["scale"] = 1.4,
+    ["stealthDetect"] = true,
     ["displayId"] = 120905,
     ["creatureType"] = "Humanoid",
     ["level"] = 80,
@@ -489,8 +530,8 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["sublevel"] = 1,
       },
       [3] = {
-        ["x"] = 448.07978042853,
-        ["y"] = -169.23431486618,
+        ["x"] = 454.51646105312,
+        ["y"] = -164.47675160777,
         ["g"] = 7,
         ["sublevel"] = 1,
       },
@@ -635,7 +676,6 @@ MDT.dungeonEnemies[dungeonIndex] = {
       ["Imprison"] = true,
       ["Sap"] = true,
       ["Stun"] = true,
-      ["Slow"] = true,
       ["Sleep Walk"] = true,
       ["Mind Soothe"] = true,
     },
@@ -921,26 +961,26 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["sublevel"] = 1,
       },
       [14] = {
-        ["x"] = 406.78375894997,
-        ["y"] = -164.55470767201,
+        ["x"] = 403.98519797922,
+        ["y"] = -166.51372597322,
         ["g"] = 8,
         ["sublevel"] = 1,
       },
       [15] = {
-        ["x"] = 412.72301595052,
-        ["y"] = -162.79978849513,
+        ["x"] = 409.92445497977,
+        ["y"] = -164.75880679634,
         ["g"] = 8,
         ["sublevel"] = 1,
       },
       [16] = {
-        ["x"] = 419.11663270762,
-        ["y"] = -164.81144910553,
+        ["x"] = 416.31807173687,
+        ["y"] = -166.77046740674,
         ["g"] = 8,
         ["sublevel"] = 1,
       },
       [17] = {
-        ["x"] = 421.53692815507,
-        ["y"] = -170.86706516824,
+        ["x"] = 418.73836718432,
+        ["y"] = -172.82608346945,
         ["g"] = 8,
         ["sublevel"] = 1,
       },
@@ -1438,7 +1478,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
     },
   },
   [14] = {
-    ["name"] = "Assistant Unnaturaler",
+    ["name"] = "Skittering Assistant",
     ["id"] = 216342,
     ["count"] = 3,
     ["health"] = 7956534,
@@ -1546,6 +1586,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["count"] = 20,
     ["health"] = 31826136,
     ["scale"] = 1.4,
+    ["stealthDetect"] = true,
     ["displayId"] = 116499,
     ["creatureType"] = "Humanoid",
     ["level"] = 80,
@@ -1828,6 +1869,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
       [1] = {
         ["x"] = 629.54955808077,
         ["y"] = -427.61602925928,
+        ["g"] = 51,
         ["sublevel"] = 1,
       },
     },
@@ -1874,6 +1916,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
       [1] = {
         ["x"] = 659.46898694165,
         ["y"] = -425.94445203024,
+        ["g"] = 51,
         ["sublevel"] = 1,
       },
     },
@@ -2204,6 +2247,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["count"] = 20,
     ["health"] = 32727423,
     ["scale"] = 2.1,
+    ["stealthDetect"] = true,
     ["displayId"] = 120885,
     ["creatureType"] = "Humanoid",
     ["level"] = 80,

@@ -1,9 +1,15 @@
+local addonName = ...
 local MDT = MDT
 local L = MDT.L
 
 local dungeonIndex = 110
 MDT.dungeonList[dungeonIndex] = L["The Stonevault"]
-MDT.mapInfo[dungeonIndex] = {}
+MDT.mapInfo[dungeonIndex] = {
+  teleportId = 445269,
+  shortName = L["stoneVaultShortName"],
+  englishName = "The Stonevault",
+  mapID = 501
+}
 
 local zones = { 2214, 2341 }
 for _, zone in ipairs(zones) do
@@ -12,7 +18,7 @@ end
 
 MDT.dungeonMaps[dungeonIndex] = {
   [0] = "",
-  [1] = { customTextures = "Stonevault" }
+  [1] = { customTextures = 'Interface\\AddOns\\'..addonName..'\\TheWarWithin\\Textures\\Stonevault' }
 }
 
 MDT.dungeonSubLevels[dungeonIndex] = {
@@ -21,7 +27,22 @@ MDT.dungeonSubLevels[dungeonIndex] = {
 
 MDT.dungeonTotalCount[dungeonIndex] = { normal = 489, teeming = 1000, teemingEnabled = true }
 
-MDT.mapPOIs[dungeonIndex] = {}
+MDT.mapPOIs[dungeonIndex] = {
+  [1] = {
+    [1] = {
+      ["template"] = "MapLinkPinTemplate",
+      ["type"] = "stonevaultItem",
+      ["x"] = 247.47244222345,
+      ["y"] = -307.41345271418,
+    },
+    [2] = {
+      ["template"] = "MapLinkPinTemplate",
+      ["type"] = "dungeonEntrance",
+      ["x"] = 420.12609193429,
+      ["y"] = -67.862389219205,
+    },
+  },
+};
 
 MDT.dungeonEnemies[dungeonIndex] = {
   [1] = {
@@ -57,7 +78,6 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["interruptible"] = true,
       },
       [426308] = {
-        ["interruptible"] = true,
       },
       [427300] = {
       },
@@ -100,8 +120,8 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["sublevel"] = 1,
       },
       [7] = {
-        ["x"] = 395.97497959271,
-        ["y"] = -192.22059154327,
+        ["x"] = 434.85585402472,
+        ["y"] = -191.43246286624,
         ["g"] = -3,
         ["sublevel"] = 1,
       },
@@ -143,11 +163,13 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["count"] = 10,
     ["health"] = 31826136,
     ["scale"] = 1,
+    ["stealthDetect"] = true,
     ["displayId"] = 117402,
     ["creatureType"] = "Mechanical",
     ["level"] = 80,
     ["characteristics"] = {
       ["Taunt"] = true,
+      ["Slow"] = true,
     },
     ["spells"] = {
       [425027] = {
@@ -163,8 +185,8 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["sublevel"] = 1,
       },
       [2] = {
-        ["x"] = 406.14796036113,
-        ["y"] = -181.72812203169,
+        ["x"] = 445.02883479314,
+        ["y"] = -180.93999335466,
         ["g"] = -3,
         ["sublevel"] = 1,
       },
@@ -181,8 +203,8 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["sublevel"] = 1,
       },
       [5] = {
-        ["x"] = 437.48188308858,
-        ["y"] = -181.96255305416,
+        ["x"] = 395.74669115686,
+        ["y"] = -181.44420259993,
         ["g"] = 4,
         ["sublevel"] = 1,
       },
@@ -229,20 +251,20 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["sublevel"] = 1,
       },
       [2] = {
-        ["x"] = 405.71261950077,
-        ["y"] = -191.97397860472,
+        ["x"] = 444.59349393278,
+        ["y"] = -191.18584992769,
         ["g"] = -3,
         ["sublevel"] = 1,
       },
       [3] = {
-        ["x"] = 437.19146418848,
-        ["y"] = -191.337801521,
+        ["x"] = 395.45627225676,
+        ["y"] = -190.81945106677,
         ["g"] = 4,
         ["sublevel"] = 1,
       },
       [4] = {
-        ["x"] = 446.72561503579,
-        ["y"] = -191.86125373346,
+        ["x"] = 404.99042310407,
+        ["y"] = -191.34290327923,
         ["g"] = 4,
         ["sublevel"] = 1,
       },
@@ -302,14 +324,14 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["sublevel"] = 1,
       },
       [5] = {
-        ["x"] = 396.35230338203,
-        ["y"] = -182.03219532435,
+        ["x"] = 435.23317781404,
+        ["y"] = -181.24406664732,
         ["g"] = -3,
         ["sublevel"] = 1,
       },
       [6] = {
-        ["x"] = 446.58036393967,
-        ["y"] = -181.51316144966,
+        ["x"] = 404.84517200795,
+        ["y"] = -180.99481099543,
         ["g"] = 4,
         ["sublevel"] = 1,
       },
@@ -333,11 +355,13 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["count"] = 10,
     ["health"] = 31826136,
     ["scale"] = 1.3,
+    ["stealthDetect"] = true,
     ["displayId"] = 117973,
     ["creatureType"] = "Humanoid",
     ["level"] = 80,
     ["characteristics"] = {
       ["Taunt"] = true,
+      ["Slow"] = true,
       ["Mind Soothe"] = true,
     },
     ["spells"] = {
@@ -509,20 +533,8 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["sublevel"] = 1,
       },
       [15] = {
-        ["x"] = 301.54167477449,
-        ["y"] = -399.37482981507,
-        ["g"] = 21,
-        ["sublevel"] = 1,
-      },
-      [16] = {
-        ["x"] = 301.5876565276,
-        ["y"] = -409.4563850863,
-        ["g"] = 21,
-        ["sublevel"] = 1,
-      },
-      [17] = {
-        ["x"] = 301.96424712952,
-        ["y"] = -418.84857418338,
+        ["x"] = 305.05898053776,
+        ["y"] = -409.18629178679,
         ["g"] = 21,
         ["sublevel"] = 1,
       },
@@ -940,14 +952,14 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["sublevel"] = 1,
       },
       [18] = {
-        ["x"] = 309.99703268189,
-        ["y"] = -403.51793042722,
+        ["x"] = 308.70117761502,
+        ["y"] = -399.81548435251,
         ["g"] = 21,
         ["sublevel"] = 1,
       },
       [19] = {
-        ["x"] = 309.40976383851,
-        ["y"] = -413.35817199874,
+        ["x"] = 306.81807489029,
+        ["y"] = -417.98619251745,
         ["g"] = 21,
         ["sublevel"] = 1,
       },
@@ -1062,6 +1074,18 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["g"] = 26,
         ["sublevel"] = 1,
       },
+      [11] = {
+        ["x"] = 314.57058323812,
+        ["y"] = -405.78567159115,
+        ["g"] = 21,
+        ["sublevel"] = 1,
+      },
+      [12] = {
+        ["x"] = 314.75572354955,
+        ["y"] = -414.30128908876,
+        ["g"] = 21,
+        ["sublevel"] = 1,
+      },
     },
   },
   [12] = {
@@ -1070,11 +1094,13 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["count"] = 10,
     ["health"] = 35804403,
     ["scale"] = 1.4,
+    ["stealthDetect"] = true,
     ["displayId"] = 116911,
     ["creatureType"] = "Mechanical",
     ["level"] = 80,
     ["characteristics"] = {
       ["Taunt"] = true,
+      ["Slow"] = true,
     },
     ["spells"] = {
       [429114] = {
@@ -1162,6 +1188,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["count"] = 8,
     ["health"] = 31826136,
     ["scale"] = 1,
+    ["stealthDetect"] = true,
     ["displayId"] = 115944,
     ["creatureType"] = "Humanoid",
     ["level"] = 80,
@@ -1284,6 +1311,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["count"] = 12,
     ["health"] = 39782670,
     ["scale"] = 1.5,
+    ["stealthDetect"] = true,
     ["displayId"] = 117855,
     ["creatureType"] = "Elemental",
     ["level"] = 80,
@@ -1314,16 +1342,56 @@ MDT.dungeonEnemies[dungeonIndex] = {
             ["y"] = -321.03385512463,
           },
           [2] = {
-            ["x"] = 418.74608459022,
-            ["y"] = -292.99204146227,
+            ["x"] = 420.0755257332,
+            ["y"] = -333.46133560933,
           },
           [3] = {
+            ["x"] = 419.70436667038,
+            ["y"] = -343.46116660108,
+          },
+          [4] = {
+            ["x"] = 420.79211588973,
+            ["y"] = -353.04846125516,
+          },
+          [5] = {
+            ["x"] = 421.03097927524,
+            ["y"] = -360.21445849705,
+          },
+          [6] = {
+            ["x"] = 421.03097927524,
+            ["y"] = -367.85819617804,
+          },
+          [7] = {
+            ["x"] = 421.03097927524,
+            ["y"] = -360.21445849705,
+          },
+          [8] = {
+            ["x"] = 420.79211588973,
+            ["y"] = -353.04846125516,
+          },
+          [9] = {
+            ["x"] = 419.70436667038,
+            ["y"] = -343.46116660108,
+          },
+          [10] = {
+            ["x"] = 420.0755257332,
+            ["y"] = -333.46133560933,
+          },
+          [11] = {
             ["x"] = 421.24294061487,
             ["y"] = -321.03385512463,
           },
-          [4] = {
-            ["x"] = 419.70436667038,
-            ["y"] = -343.46116660108,
+          [12] = {
+            ["x"] = 420.0755257332,
+            ["y"] = -305.0361963592,
+          },
+          [13] = {
+            ["x"] = 420.31436178255,
+            ["y"] = -295.24263353629,
+          },
+          [14] = {
+            ["x"] = 420.0755257332,
+            ["y"] = -305.0361963592,
           },
         },
       },
@@ -1412,6 +1480,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["instanceID"] = 0,
     ["characteristics"] = {
       ["Taunt"] = true,
+      ["Slow"] = true,
     },
     ["spells"] = {
       [424795] = {
@@ -1447,7 +1516,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["name"] = "Skarmorak",
     ["id"] = 210156,
     ["count"] = 0,
-    ["health"] = 139239345,
+    ["health"] = 125533481,
     ["scale"] = 2,
     ["displayId"] = 118714,
     ["creatureType"] = "Elemental",
@@ -1457,6 +1526,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["instanceID"] = 0,
     ["characteristics"] = {
       ["Taunt"] = true,
+      ["Slow"] = true,
     },
     ["spells"] = {
       [422233] = {
@@ -1492,6 +1562,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
       [1] = {
         ["x"] = 699.74817113159,
         ["y"] = -173.1586521009,
+        ["g"] = 25,
         ["sublevel"] = 1,
       },
     },
@@ -1510,6 +1581,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["instanceID"] = 0,
     ["characteristics"] = {
       ["Taunt"] = true,
+      ["Slow"] = true,
       ["Mind Soothe"] = true,
     },
     ["spells"] = {
@@ -1548,6 +1620,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
       [1] = {
         ["x"] = 80.546507183685,
         ["y"] = -466.14107485364,
+        ["g"] = 27,
         ["sublevel"] = 1,
       },
     },
@@ -1566,6 +1639,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["instanceID"] = 0,
     ["characteristics"] = {
       ["Taunt"] = true,
+      ["Slow"] = true,
       ["Mind Soothe"] = true,
     },
     ["spells"] = {
@@ -1590,6 +1664,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
       [1] = {
         ["x"] = 102.30037882388,
         ["y"] = -506.10925249048,
+        ["g"] = 27,
         ["sublevel"] = 1,
       },
     },
@@ -1598,7 +1673,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["name"] = "Void Speaker Eirich",
     ["id"] = 213119,
     ["count"] = 0,
-    ["health"] = 159130680,
+    ["health"] = 143466834,
     ["scale"] = 2,
     ["displayId"] = 119856,
     ["creatureType"] = "Humanoid",
@@ -1669,7 +1744,6 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["interruptible"] = true,
       },
       [426308] = {
-        ["interruptible"] = true,
       },
       [452811] = {
       },
@@ -1767,7 +1841,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["name"] = "Crystal Shard",
     ["id"] = 214443,
     ["count"] = 0,
-    ["health"] = 1591307,
+    ["health"] = 1275261,
     ["scale"] = 1,
     ["displayId"] = 37518,
     ["creatureType"] = "Uncategorized",
@@ -1777,6 +1851,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
     ["instanceID"] = 0,
     ["characteristics"] = {
       ["Taunt"] = true,
+      ["Slow"] = true,
     },
     ["spells"] = {
       [439600] = {
@@ -1788,6 +1863,7 @@ MDT.dungeonEnemies[dungeonIndex] = {
       [1] = {
         ["x"] = 714.45914191942,
         ["y"] = -206.13900400225,
+        ["g"] = 25,
         ["sublevel"] = 1,
       },
     },

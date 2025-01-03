@@ -57,7 +57,7 @@ end
 local LDB = LibStub("LibDataBroker-1.1"):NewDataObject("MythicDungeonTools", {
   type = "data source",
   text = "Mythic Dungeon Tools",
-  icon = "Interface\\AddOns\\"..AddonName.."\\Textures\\NnoggieMinimap",
+  icon = "Interface\\AddOns\\"..AddonName.."\\Textures\\MDTMinimap",
   OnClick = function(button, buttonPressed)
     if buttonPressed == "RightButton" then
       if db.minimap.lock then
@@ -182,7 +182,7 @@ local defaultSavedVars = {
       numberCustomColors = 12,
     },
     currentDungeonIdx = 31,
-    selectedDungeonList = 9,
+    selectedDungeonList = 1,
     latestSeenDungeonList = 0,
     knownAffixWeeks = {},
   },
@@ -274,10 +274,6 @@ do
   function MDT.PLAYER_ENTERING_WORLD()
     --initialize Blizzard_ChallengesUI
     C_Timer.After(1, function()
-      C_AddOns.LoadAddOn("Blizzard_ChallengesUI")
-      C_MythicPlus.RequestCurrentAffixes()
-      C_MythicPlus.RequestMapInfo()
-      C_MythicPlus.RequestRewards()
       if db.loadOnStartUp and db.devMode then MDT:Async(function() MDT:ShowInterfaceInternal(true) end, "showInterface") end
     end)
     eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
@@ -336,7 +332,13 @@ function MDT:GetNumDungeons()
   return count
 end
 
-function MDT:GetDungeonName(idx) return MDT.dungeonList[idx] end
+function MDT:GetDungeonName(idx, forceEnglish)
+  -- don't fail hard for legacy dungeons
+  if forceEnglish and MDT.mapInfo[idx].englishName then
+    return MDT.mapInfo[idx].englishName
+  end
+  return MDT.dungeonList[idx]
+end
 
 function MDT:GetDungeonSublevels()
   return MDT.dungeonSubLevels
@@ -629,10 +631,10 @@ function MDT:MakeTopBottomTextures(frame)
     frame.topPanelString:Show()
     frame.topPanelString:SetFont(frame.topPanelString:GetFont() or '', 20, '')
     frame.topPanelLogo = frame.topPanel:CreateTexture(nil, "ARTWORK", nil, 7)
-    frame.topPanelLogo:SetTexture("Interface\\AddOns\\"..AddonName.."\\Textures\\Nnoggie")
-    frame.topPanelLogo:SetWidth(24)
-    frame.topPanelLogo:SetHeight(24)
-    frame.topPanelLogo:SetPoint("RIGHT", frame.topPanelString, "LEFT", -5, 0)
+    frame.topPanelLogo:SetTexture("Interface\\AddOns\\"..AddonName.."\\Textures\\MDTFull")
+    frame.topPanelLogo:SetWidth(30)
+    frame.topPanelLogo:SetHeight(30)
+    frame.topPanelLogo:SetPoint("RIGHT", frame.topPanelString, "LEFT", -5, -1)
     frame.topPanelLogo:Show()
   end
 
@@ -1252,7 +1254,7 @@ function MDT:MakeSidePanel(frame)
     GameTooltip:Hide()
   end)
 
-  frame.sidePanel.WidgetGroup:AddChild(affixDropdown)
+  -- frame.sidePanel.WidgetGroup:AddChild(affixDropdown)
 
   --affix not current week warning
   frame.sidePanel.affixWeekWarning = AceGUI:Create("Icon")
@@ -2162,10 +2164,10 @@ function MDT:CalculateEnemyHealth(boss, baseHealth, level, ignoreFortified)
     if boss == false then mult = mult * 1.2 end
     if boss == true then mult = mult * 1.25 end
   elseif level >= 12 then
-    -- For levels 12 and above, apply an additional 20% health increase
-    -- Xal'atath's Guile:Xal'atath betrays players, revoking her bargains and increasing the health and damage of enemies by 20%
-    if boss == false then mult = mult * 1.2 * 1.2 end
-    if boss == true then mult = mult * 1.25 * 1.2 end
+    -- For levels 12 and above, apply an additional 10% health increase
+    -- Xal'atath's Guile:Xal'atath betrays players, revoking her bargains and increasing the health and damage of enemies by 10%
+    if boss == false then mult = mult * 1.2 * 1.1 end
+    if boss == true then mult = mult * 1.25 * 1.1 end
   end
 
 
@@ -2200,10 +2202,10 @@ function MDT:ReverseCalcEnemyHealth(health, level, boss, fortified, tyrannical, 
     if boss == false then mult = mult * 1.2 end
     if boss == true then mult = mult * 1.25 end
   elseif level >= 12 then
-    -- For levels 12 and above, apply an additional 20% health increase
+    -- For levels 12 and above, apply an additional 10% health increase
     -- Source: https://www.wowhead.com/blue-tracker/topic/us/affix-system-updates-in-the-war-within-1882601
-    if boss == false then mult = mult * 1.2 * 1.2 end
-    if boss == true then mult = mult * 1.25 * 1.2 end
+    if boss == false then mult = mult * 1.2 * 1.1 end
+    if boss == true then mult = mult * 1.25 * 1.1 end
   end
 
   -- Apply thundering multiplier if present
@@ -2558,7 +2560,7 @@ function MDT:UpdateMap(ignoreSetSelection, ignoreReloadPullButtons, ignoreUpdate
     for i = 1, 10 do
       for j = 1, 15 do
         local fileSuffix = (i - 1) * 15 + j
-        local texName = 'Interface\\AddOns\\'..AddonName..'\\Textures\\Upscaled\\'..textureInfo.customTextures..'\\'..sublevel..'_'..fileSuffix..".png"
+        local texName = textureInfo.customTextures..'\\'..sublevel..'_'..fileSuffix..".png"
         local tile = frame["largeMapPanelTile"..i..j]
         tile:SetTexture(texName)
         tile:Show()
@@ -2616,12 +2618,12 @@ function MDT:UpdateMap(ignoreSetSelection, ignoreReloadPullButtons, ignoreUpdate
     MDT:DrawAllAnimatedLines()
     if not framesInitialized then coroutine.yield() end
     MDT:UpdateProgressbar()
-    MDT:FixDungeonDropDownList()
   end, "UpdateMap", true)
 end
 
 ---Updates the map to the specified dungeon
 function MDT:UpdateToDungeon(dungeonIdx, ignoreUpdateMap, init)
+  if dungeonIdx == db.currentDungeonIdx then return end
   db.currentDungeonIdx = dungeonIdx
   if not db.presets[db.currentDungeonIdx][db.currentPreset[db.currentDungeonIdx]].value.currentSublevel then
     db.presets[db.currentDungeonIdx][db.currentPreset[db.currentDungeonIdx]].value.currentSublevel = 1
@@ -4487,7 +4489,7 @@ function MDT:GetCurrentAffixWeek()
   C_MythicPlus.RequestMapInfo()
   C_MythicPlus.RequestRewards()
   local affixIds = C_MythicPlus.GetCurrentAffixes() --table
-  if not affixIds then return end
+  if not affixIds then return 1 end
   if not affixIds[1] then return 1 end
   for week, affixes in ipairs(affixWeeks) do
     if affixes[1] == affixIds[2].id and affixes[2] == affixIds[3].id and affixes[3] == affixIds[1].id then
@@ -4778,7 +4780,7 @@ function initFrames()
   main_frame:SetSize(sizex * db.scale, sizey * db.scale)
   main_frame:SetResizable(true)
   local _, _, fullscreenScale = MDT:GetFullScreenSizes()
-  main_frame:SetResizeBounds(sizex * 0.75, sizey * 0.75, sizex * fullscreenScale, sizey * fullscreenScale)
+  main_frame:SetResizeBounds(sizex * 0.9, sizey * 0.9, sizex * fullscreenScale, sizey * fullscreenScale)
   MDT.main_frame = main_frame
 
   main_frame.mainFrametex = main_frame:CreateTexture(nil, "BACKGROUND", nil, 0)
@@ -4809,8 +4811,8 @@ function initFrames()
   MDT:MakePresetImportFrame(main_frame)
   coroutine.yield()
   MDT:DungeonEnemies_CreateFramePools()
-  --MDT:UpdateDungeonEnemies(main_frame)
-  MDT:CreateDungeonSelectDropdown(main_frame)
+  MDT:CreateSeasonDropdown(main_frame)
+  MDT:CreateSublevelDropdown(main_frame)
   coroutine.yield()
   MDT:MakePullSelectionButtons(main_frame.sidePanel)
   coroutine.yield()
