@@ -61,6 +61,21 @@ do  -- Table
         return tbl
     end
     API.ReverseList = ReverseList;
+
+    local function CopyTable(tbl)
+        --Blizzard TableUtil.lua
+        if not tbl then return; end;
+        local copy = {};
+        for k, v in pairs(tbl) do
+            if type(v) == "table" then
+                copy[k] = CopyTable(v);
+            else
+                copy[k] = v;
+            end
+        end
+        return copy;
+    end
+    API.CopyTable = CopyTable;
 end
 
 do  -- String
@@ -131,6 +146,15 @@ do  -- String
         return obj
     end
     API.GetGlobalObject = GetGlobalObject;
+
+    local function JoinText(delimiter, l, r)
+        if l and r then
+            return l..delimiter..r
+        else
+            return l or r
+        end
+    end
+    API.JoinText = JoinText;
 end
 
 do  -- DEBUG
@@ -1567,11 +1591,15 @@ do  --Reputation
     local UnitSex = UnitSex;
     local GetText = GetText;
 
-    local function GetFriendshipProgress(factionID)
-        local repInfo = factionID and GetFriendshipReputation(factionID);
-        if repInfo and repInfo.friendshipFactionID and  repInfo.friendshipFactionID > 0 then
-            local currentValue, maxValue;
+    local function GetReputationProgress(factionID)
+        if not factionID then return end;
 
+        local level, isFull, currentValue, maxValue, name, reputationType;
+
+        local repInfo = GetFriendshipReputation(factionID);
+        if repInfo and repInfo.friendshipFactionID and repInfo.friendshipFactionID > 0 then
+            reputationType = 2;
+            name = repInfo.name;
             if repInfo.nextThreshold then
                 currentValue = repInfo.standing - repInfo.reactionThreshold;
                 maxValue = repInfo.nextThreshold - repInfo.reactionThreshold;
@@ -1585,13 +1613,47 @@ do  --Reputation
             end
 
             local rankInfo = GetFriendshipReputationRanks(repInfo.friendshipFactionID);
-            local level = rankInfo.currentLevel;
-            local isFull = level >= rankInfo.maxLevel;
+            level = rankInfo.currentLevel;
+            isFull = level >= rankInfo.maxLevel;
+        end
 
-            return level, isFull, currentValue, maxValue
+        if not reputationType then
+            repInfo = GetFactionInfoByID(factionID);
+            if repInfo then
+                reputationType = 1;
+                name = repInfo.name;
+                if repInfo.currentReactionThreshold then
+                    currentValue = repInfo.currentStanding - repInfo.currentReactionThreshold;
+                    maxValue = repInfo.nextReactionThreshold - repInfo.currentReactionThreshold;
+                    if maxValue == 0 then
+                        currentValue = 1;
+                        maxValue = 1;
+                    end
+                else
+                    currentValue = 1;
+                    maxValue = 1;
+                end
+
+                local zeroLevel = 4;    --Neutral
+                level = repInfo.reaction;
+                level = level - zeroLevel;
+                isFull = level >= 8; --TEMP DEBUG
+            end
+        end
+
+        if reputationType then
+            local tbl = {
+                level = level,
+                currentValue = currentValue,
+                maxValue = maxValue,
+                isFull = isFull,
+                name = name,
+                reputationType = reputationType,    --1:Standard, 2:Friendship
+            };
+            return tbl
         end
     end
-    API.GetFriendshipProgress = GetFriendshipProgress;
+    API.GetReputationProgress = GetReputationProgress;
 
 
     local function GetParagonValuesAndLevel(factionID)
@@ -1673,8 +1735,8 @@ do  --Reputation
         end
 
         local rolloverText; --(0/24000)
-        if barValue and barMax and (not isCapped) then
-            rolloverText = string.format("(%s/%s)", barValue, barMax);
+        if barMin and barValue and barMax and (not isCapped) then
+            rolloverText = string.format("(%s/%s)", barValue - barMin, barMax - barMin);
         end
 
         local text;
@@ -2411,6 +2473,93 @@ do  -- Chat Message
     end
     API.PrintMessage = PrintMessage;
 end
+
+do  --11.0 Menu Formatter
+    function API.ShowBlizzardMenu(ownerRegion, schematic, contextData)
+        contextData = contextData or {};
+
+        local menu = MenuUtil.CreateContextMenu(ownerRegion, function(ownerRegion, rootDescription)
+            rootDescription:SetTag(schematic.tag, contextData);
+
+            for _, info in ipairs(schematic.objects) do
+                local elementDescription;
+                if info.type == "Title" then
+                    elementDescription = rootDescription:CreateTitle();
+                    elementDescription:AddInitializer(function(f, description, menu)
+                        f.fontString:SetText(info.name);
+                    end);
+                elseif info.type == "Divider" then
+                    elementDescription = rootDescription:CreateDivider();
+                elseif info.type == "Spacer" then
+                    elementDescription = rootDescription:CreateSpacer();
+                elseif info.type == "Button" then
+                    elementDescription = rootDescription:CreateButton(info.name, info.OnClick);
+                elseif info.type == "Checkbox" then
+                    elementDescription = rootDescription:CreateCheckbox(info.name, info.IsSelected, info.ToggleSelected);
+                end
+
+                if info.tooltip then
+                    elementDescription:SetTooltip(function(tooltip, elementDescription)
+                        GameTooltip_SetTitle(tooltip, MenuUtil.GetElementText(elementDescription));
+                        GameTooltip_AddNormalLine(tooltip, info.tooltip);
+                        --GameTooltip_AddInstructionLine(tooltip, "Test Tooltip Instruction");
+                        --GameTooltip_AddErrorLine(tooltip, "Test Tooltip Colored Line");
+                    end);
+                end
+
+                if info.rightText or info.rightTexture then
+                    local rightText;
+                    if type(info.rightText) == "function" then
+                        rightText = info.rightText();
+                    else
+                        rightText = info.rightText;
+                    end
+                    elementDescription:AddInitializer(function(button, description, menu)
+                        local rightWidth = 0;
+
+                        if info.rightTexture then
+                            local iconSize = 18;
+                            local rightTexture = button:AttachTexture();
+                            rightTexture:SetSize(iconSize, iconSize);
+                            rightTexture:SetPoint("RIGHT");
+                            rightTexture:SetTexture(info.rightTexture);
+                            rightWidth = rightWidth + iconSize;
+                            rightWidth = 20;
+                        end
+
+                        local fontString = button.fontString;
+                        fontString:SetTextColor(NORMAL_FONT_COLOR:GetRGB());
+
+                        local fontString2;
+                        if info.rightText then
+                            fontString2 = button:AttachFontString();
+                            fontString2:SetHeight(20);
+                            fontString2:SetPoint("RIGHT", button, "RIGHT", 0, 0);
+                            fontString2:SetJustifyH("RIGHT");
+                            fontString2:SetText(rightText);
+                            fontString2:SetTextColor(0.5, 0.5, 0.5);
+                            rightWidth = fontString2:GetWrappedWidth() + 20;
+                        end
+
+                        local width = fontString:GetWrappedWidth() + rightWidth;
+                        local height = 20;
+
+                        return width, height;
+                    end);
+                end
+            end
+        end);
+
+        if schematic.onMenuClosedCallback then
+            menu:SetClosedCallback(schematic.onMenuClosedCallback);
+        end
+
+        return menu
+    end
+end
+
+
+
 
 --[[
 local DEBUG = CreateFrame("Frame");

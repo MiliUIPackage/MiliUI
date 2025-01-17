@@ -61,8 +61,8 @@ L["Track Upgrade Currency"] = "追蹤紋章";     --Crest: e.g. Drake’s Dreami
 L["Track Upgrade Currency Tooltip"] = "在最左側顯示你已獲得的最高等級的紋章。";
 L["Track Holiday Item"] = "追蹤節日貨幣";       --e.g. Tricky Treats (Hallow's End)
 L["Currently Pinned Colon"] = "當前顯示：";     --Tells the currently pinned item
-L["Bar Inside The Bag"] = "顯示在背包窗口內部";
-L["Bar Inside The Bag Tooltip"] = "將工具欄放置在背包窗口的內部。\n\n僅在使用暴雪預設背包的“分開的小包”模式下生效。";
+L["Bar Inside The Bag"] = "顯示在背包視窗內部";
+L["Bar Inside The Bag Tooltip"] = "將工具欄放置在背包視窗的內部。\n\n僅在使用暴雪預設背包的“分開的小包”模式下生效。";
 L["Catalyst Charges"] = "充能層數";
 
 
@@ -131,7 +131,7 @@ L["ModuleDescription Technoscryers"] = "在你做“科技考古”世界任務�
 --Navigator(Waypoint/SuperTrack) Shared Strings
 L["Priority"] = "優先級";
 L["Priority Default"] = "游戲預設";  --WoW's default waypoint priority: Corpse, Quest, Scenario, Content
-L["Priority Default Tooltip"] = "遵從游戲預設設定。如果可能的話，優先追蹤任務、屍體和商人位置，否則開始搜索新種子。";
+L["Priority Default Tooltip"] = "遵從游戲預設設定。如果可能的話，優先追蹤任務、屍體和商人位置，否則開始搜尋新種子。";
 L["Stop Tracking"] = "停止追蹤";
 L["Click To Track Location"] = "|TInterface/AddOns/Plumber/Art/SuperTracking/SuperTrackIcon:0:0:0:0|t " .. "左鍵點擊以開始追蹤種子。";
 L["Click To Track In TomTom"] = "|TInterface/AddOns/Plumber/Art/SuperTracking/TooltipIcon-TomTom:0:0:0:0|t " .. "左鍵點擊以創建 TomTom 箭頭";
@@ -140,9 +140,9 @@ L["Click To Track In TomTom"] = "|TInterface/AddOns/Plumber/Art/SuperTracking/To
 --Navigator_Dreamseed (Use Super Tracking to navigate players)
 L["ModuleName Navigator_Dreamseed"] = "導航: 夢境之種";
 L["ModuleDescription Navigator_Dreamseed"] = "使用路徑點系統指引你到達夢境之種生長的位置。\n\n*右鍵點擊圖標可查看更多選項。\n\n|cffd4641c當你身處翡翠夢境時，此插件將取代游戲自帶的路徑指引系統。|r";
-L["Priority New Seeds"] = "搜索新種子";
+L["Priority New Seeds"] = "搜尋新種子";
 L["Priority Rewards"] = "拾取獎勵";
-L["Stop Tracking Dreamseed Tooltip"] = "停止搜索種子。你可以點擊大地圖上正在生長的種子來恢復追蹤。";
+L["Stop Tracking Dreamseed Tooltip"] = "停止搜尋種子。你可以點擊大地圖上正在生長的種子來恢復追蹤。";
 
 
 --BlizzFixWardrobeTrackingTip (Permanently disable the tip for wardrobe shortcuts)
@@ -242,9 +242,34 @@ L["Chat Auto Leave Cancel Format"] = "此頻道的自動離開已禁用： %s。
 L["Click To Disable"] = "點擊禁用";
 
 
+--NameplateWidget
+L["ModuleName NameplateWidget"] = "名條: 鑰炎";
+L["ModuleDescription NameplateWidget"] = "在鑰炎的名條進度條上顯示你擁有的幅光殘骸的數量。";
+
+
+--PartyInviterInfo
+L["ModuleName PartyInviterInfo"] = "隊伍邀請人訊息";
+L["ModuleDescription PartyInviterInfo"] = "顯示隊伍以及公會邀請人的等級、職業等訊息。";
+L["Additional Info"] = "額外訊息";
+L["Race"] = "種族";
+L["Faction"] = "陣營";
+L["Click To Search Player"] = "搜尋此玩家";
+L["Searching Player In Progress"] = "搜尋中...";
+L["Player Not Found"] = "未找到玩家。";
+
+
+--PlayerTitleUI
+L["ModuleName PlayerTitleUI"] = "頭銜管理";
+L["ModuleDescription PlayerTitleUI"] = "在游戲自帶頭銜選擇界面上增加搜尋欄和篩選器。";
+L["Right Click To Reset Filter"] = "右鍵單擊來重置。";
+L["Earned"] = "已獲得";
+L["Unearned"] = "未獲得";
+L["Unearned Filter Tooltip"] = "某些頭銜可能重復，且無法由當前陣營獲取。";
+
+
 --Loot UI
-L["ModuleName LootUI"] = "拾取窗口";
-L["ModuleDescription LootUI"] = "替換預設的拾取窗口並提供以下功能：\n\n- 快速拾取所有物品\n\n- 修復自動拾取有時失效的問題\n\n- 手動拾取時顯示“全部拾取”按鈕";
+L["ModuleName LootUI"] = "拾取視窗";
+L["ModuleDescription LootUI"] = "替換預設的拾取視窗並提供以下功能：\n\n- 快速拾取所有物品\n\n- 修復自動拾取有時失效的問題\n\n- 手動拾取時顯示“全部拾取”按鈕";
 L["Take All"] = "全部拾取";     --Take all items from a loot window
 L["You Received"] = "你獲得了";
 L["Reach Currency Cap"] = "貨幣已達到上限";
@@ -252,28 +277,30 @@ L["Sample Item 4"] = "炫酷的史詩物品";
 L["Sample Item 3"] = "超棒的精良物品";
 L["Sample Item 2"] = "不錯的優秀物品";
 L["Sample Item 1"] = "一般的普通物品";
-L["EditMode LootUI"] =  "Plumber: 拾取窗口";
-L["Manual Loot Instruction Format"] = "如想暫時取消一次自動拾取，請按住|cffffffff%s|r鍵直到拾取窗口出現。";
+L["EditMode LootUI"] =  "Plumber: 拾取視窗";
+L["Manual Loot Instruction Format"] = "如想暫時取消一次自動拾取，請按住|cffffffff%s|r鍵直到拾取視窗出現。";
 L["LootUI Option Force Auto Loot"] = "強制自動拾取";
-L["LootUI Option Force Auto Loot Tooltip"] = "強制使用自動拾取以修復自動拾取有時失效的問題。\n\n如想暫時取消一次自動拾取，請按住%s鍵直到拾取窗口出現。";
+L["LootUI Option Force Auto Loot Tooltip"] = "強制使用自動拾取以修復自動拾取有時失效的問題。\n\n如想暫時取消一次自動拾取，請按住%s鍵直到拾取視窗出現。";
 L["LootUI Option Owned Count"] = "顯示已擁有的數量";
 L["LootUI Option New Transmog"] = "標記未收集的外觀";
 L["LootUI Option New Transmog Tooltip"] = "用 %s 標記出還未收集外觀的物品。";
 L["LootUI Option Use Hotkey"] = "按快捷鍵拾取全部物品";
 L["LootUI Option Use Hotkey Tooltip"] = "在手動拾取模式下按快捷鍵來拾取全部物品。";
 L["LootUI Option Fade Delay"] = "每件物品推遲自動隱藏倒計時";
+L["LootUI Option Items Per Page"] = "每頁顯示物品數";
+L["LootUI Option Items Per Page Tooltip"] = "改變通知模式下每頁最多顯示物品的數量。\n\n此選項不影響手動拾取和編輯模式下物品的數量。";
 L["LootUI Option Replace Default"] = "替換獲得物品提示";
 L["LootUI Option Replace Default Tooltip"] = "替換預設的獲得物品提示。這些提示通常出現在技能欄上方。";
-L["LootUI Option Loot Under Mouse"] = "鼠標位置打開拾取窗口";
-L["LootUI Option Loot Under Mouse Tooltip"] = "處於|cffffffff手動拾取|r模式時, 在鼠標位置打開拾取窗口。";
-L["LootUI Option Use Default UI"] = "使用預設拾取窗口";
-L["LootUI Option Use Default UI Tooltip"] = "使用WoW預設的拾取窗口。\n\n|cffff4800勾選此選項會使以上所有選項無效。|r";
+L["LootUI Option Loot Under Mouse"] = "鼠標位置打開拾取視窗";
+L["LootUI Option Loot Under Mouse Tooltip"] = "處於|cffffffff手動拾取|r模式時, 在鼠標位置打開拾取視窗。";
+L["LootUI Option Use Default UI"] = "使用預設拾取視窗";
+L["LootUI Option Use Default UI Tooltip"] = "使用WoW預設的拾取視窗。\n\n|cffff4800勾選此選項會使以上所有選項無效。|r";
 
 
 --Generic
 L["Reposition Button Horizontal"] = "水平方向移動";   --Move the window horizontally
 L["Reposition Button Vertical"] = "豎直方向移動";
-L["Reposition Button Tooltip"] = "左鍵點擊並拖拉來移動這個窗口。";
+L["Reposition Button Tooltip"] = "左鍵點擊並拖拉來移動這個視窗。";
 L["Font Size"] = "字體大小";
 L["Reset To Default Position"] = "重置到預設位置";
 L["Renown Level Label"] = "名望 ";  --There is a space

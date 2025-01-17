@@ -244,6 +244,31 @@ L["Chat Auto Leave Cancel Format"] = "此频道的自动离开已禁用： %s。
 L["Click To Disable"] = "点击禁用";
 
 
+--NameplateWidget
+L["ModuleName NameplateWidget"] = "姓名版: 钥焰";
+L["ModuleDescription NameplateWidget"] = "在钥焰的姓名版进度条上显示你拥有的光耀残渣的数量。";
+
+
+--PartyInviterInfo
+L["ModuleName PartyInviterInfo"] = "队伍邀请人信息";
+L["ModuleDescription PartyInviterInfo"] = "显示队伍以及公会邀请人的等级、职业等信息。";
+L["Additional Info"] = "额外信息";
+L["Race"] = "种族";
+L["Faction"] = "阵营";
+L["Click To Search Player"] = "搜索此玩家";
+L["Searching Player In Progress"] = "搜索中...";
+L["Player Not Found"] = "未找到玩家。";
+
+
+--PlayerTitleUI
+L["ModuleName PlayerTitleUI"] = "头衔管理";
+L["ModuleDescription PlayerTitleUI"] = "在游戏自带头衔选择界面上增加搜索栏和筛选器。";
+L["Right Click To Reset Filter"] = "右键单击来重置。";
+L["Earned"] = "已获得";
+L["Unearned"] = "未获得";
+L["Unearned Filter Tooltip"] = "某些头衔可能重复，且无法由当前阵营获取。";
+
+
 --Loot UI
 L["ModuleName LootUI"] = "拾取窗口";
 L["ModuleDescription LootUI"] = "替换默认的拾取窗口并提供以下功能：\n\n- 快速拾取所有物品\n\n- 修复自动拾取有时失效的问题\n\n- 手动拾取时显示“全部拾取”按钮";
@@ -264,6 +289,8 @@ L["LootUI Option New Transmog Tooltip"] = "用 %s 标记出还未收集外观的
 L["LootUI Option Use Hotkey"] = "按快捷键拾取全部物品";
 L["LootUI Option Use Hotkey Tooltip"] = "在手动拾取模式下按快捷键来拾取全部物品。";
 L["LootUI Option Fade Delay"] = "每件物品推迟自动隐藏倒计时";
+L["LootUI Option Items Per Page"] = "每页显示物品数";
+L["LootUI Option Items Per Page Tooltip"] = "改变通知模式下每页最多显示物品的数量。\n\n此选项不影响手动拾取和编辑模式下物品的数量。";
 L["LootUI Option Replace Default"] = "替换获得物品提示";
 L["LootUI Option Replace Default Tooltip"] = "替换默认的获得物品提示。这些提示通常出现在技能栏上方。";
 L["LootUI Option Loot Under Mouse"] = "鼠标位置打开拾取窗口";

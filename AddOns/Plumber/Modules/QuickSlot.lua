@@ -10,6 +10,7 @@ local ACTION_BUTTON_GAP = 4;
 local REPOSITION_BUTTON_OFFSET = 46;
 
 
+local GetItemCooldown = C_Container.GetItemCooldown;
 local UnitCastingInfo = UnitCastingInfo;
 local UnitChannelInfo = UnitChannelInfo;
 local InCombatLockdown = InCombatLockdown;
@@ -19,19 +20,24 @@ local UIParent = UIParent;
 local CreateFrame = CreateFrame;
 local tinsert = table.insert;
 local atan2 = math.atan2;
+local ipairs = ipairs;
 
 
 local QuickSlot = CreateFrame("Frame", nil, UIParent);
-addon.QuickSlot = QuickSlot;
-QuickSlot:Hide();
-QuickSlot:SetSize(46, 46);
-QuickSlot:SetAlpha(0);
-QuickSlot:SetFrameStrata("HIGH");
-QuickSlot.Buttons = {};
-QuickSlot.numActiveButtons = 0;
-QuickSlot.SpellXButton = {};
-QuickSlot:SetClampedToScreen(true);
-QuickSlot:SetClampRectInsets(-ACTION_BUTTON_SIZE, ACTION_BUTTON_SIZE, 8, -8);
+do  --QuickSlot "OnLoad"
+    addon.QuickSlot = QuickSlot;
+    QuickSlot:Hide();
+    QuickSlot:SetSize(46, 46);
+    QuickSlot:SetAlpha(0);
+    QuickSlot:SetFrameStrata("HIGH");
+    QuickSlot.Buttons = {};
+    QuickSlot.ItemButtons = {};
+    QuickSlot.SpellButtons = {};
+    QuickSlot.numActiveButtons = 0;
+    QuickSlot.SpellXButton = {};
+    QuickSlot:SetClampedToScreen(true);
+    QuickSlot:SetClampRectInsets(-ACTION_BUTTON_SIZE, ACTION_BUTTON_SIZE, 8, -8);
+end
 
 local ContextMenu;
 
@@ -285,7 +291,23 @@ local function RealActionButton_PostClick(self, button)
             menu:SetOwner(owner);
             menu:ClearAllPoints();
             menu:SetPoint("LEFT", owner, "RIGHT", 12, 0);
-            menu:SetContent(ContextMenuData);
+
+            local menuData;
+            if QuickSlot.buttonData.developerInfo then
+                menuData = API.CopyTable(ContextMenuData);
+                tinsert(menuData, {
+                    type = "divider",
+                });
+                tinsert(menuData, {
+                    --type == "info",
+                    color = {0.5, 0.5, 0.5},
+                    text = L["Quickslot Module Info"];
+                    tooltip = QuickSlot.buttonData.developerInfo,
+                });
+            else
+                menuData = ContextMenuData;
+            end
+            menu:SetContent(menuData);
             menu:Show();
         end
     end
@@ -339,7 +361,7 @@ local function ItemButton_OnEnter(self)
 
         local macroText;
         if self.onClickFunc then
-            
+
         elseif self.macroText then
             macroText = self.macroText;
         else
@@ -347,10 +369,12 @@ local function ItemButton_OnEnter(self)
                 macroText = string.format("/use item:%s", self.id);
             elseif self.actionType == "spell" then
                 local spellName = C_Spell.GetSpellName(self.id);
-                macroText = string.format("/cast %s", spellName);
+                if spellName then
+                    macroText = string.format("/cast %s", spellName);
+                end
             end
         end
-        RealActionButton:SetAttribute("type1", "macro");     --Any Mouseclick
+        RealActionButton:SetAttribute("type1", "macro");
         RealActionButton:SetMacroText(macroText);
         RealActionButton:RegisterForClicks("LeftButtonDown", "LeftButtonUp", "RightButtonUp");
 
@@ -486,13 +510,20 @@ function QuickSlot:SetButtonData(buttonData)
     self.buttonData = buttonData;
     self.systemName = buttonData.systemName;
     self.layoutDirty = true;
+    self.anyItemAction = nil;
     self.numActiveButtons = #buttonData.buttons;
     self.spellcastType = buttonData.spellcastType;
+    self.SpellXButton = {};
+    self.ItemButtons = {};
+    self.SpellButtons = {};
 
     local buttonSize = ACTION_BUTTON_SIZE;
     local gap = ACTION_BUTTON_GAP;
     local positionIndex = 0;
     local trackIndex = 0;
+
+    local anyItemAction;
+    local anySpellAction;
 
     for i, info in ipairs(buttonData.buttons) do
         positionIndex = positionIndex + 1;
@@ -510,15 +541,22 @@ function QuickSlot:SetButtonData(buttonData)
                 tinsert(self.Buttons, button);
                 button:SetPoint("LEFT", self, "LEFT", (i - 1) * (buttonSize +  gap), 0);
             end
+
             local spellID = info.spellID;
             if spellID then
                 self.SpellXButton[spellID] = button;
             end
+
             if info.actionType == "item" then
+                anyItemAction = true;
                 button:SetItem(info.itemID, info.icon);
+                tinsert(self.ItemButtons, button);
             elseif info.actionType == "spell" then
+                anySpellAction = true;
                 button:SetSpell(spellID, info.icon);
+                tinsert(self.SpellButtons, button);
             end
+
             button.spellID = spellID;
             button.positionIndex = positionIndex;
             button.trackIndex = trackIndex;
@@ -548,6 +586,17 @@ function QuickSlot:SetButtonData(buttonData)
         self.layoutIndex = 2;
     else
         self.layoutIndex = 1;
+    end
+
+    self.anyItemAction = anyItemAction;
+    self.anySpellAction = anySpellAction;
+
+    if anySpellAction then
+        self:RegisterEvent("SPELL_UPDATE_CHARGES");
+        self:RegisterEvent("SPELL_UPDATE_COOLDOWN");
+    else
+        self:UnregisterEvent("SPELL_UPDATE_CHARGES");
+        self:UnregisterEvent("SPELL_UPDATE_COOLDOWN");
     end
 
     if not self.Init then
@@ -711,10 +760,14 @@ function QuickSlot:SetInteractable(state, dueToCombat)
 end
 
 function QuickSlot:UpdateItemCount()
-    for i, button in ipairs(self.Buttons) do
-        if button.actionType == "item" then
-            button:UpdateCount();
-        end
+    for i, button in ipairs(self.ItemButtons) do
+        button:UpdateCount();
+    end
+end
+
+function QuickSlot:UpdateSpellCharge()
+    for i, button in ipairs(self.SpellButtons) do
+        button:UpdateCount();
     end
 end
 
@@ -755,10 +808,11 @@ function QuickSlot:OnSpellCastChanged(spellID, isStartCasting)
 end
 
 function QuickSlot:OnShow()
-
+    self.isClosing = nil;
 end
 
 function QuickSlot:OnHide()
+    self.isClosing = nil;
     self:EnableEditMode(false);
 end
 QuickSlot:SetScript("OnHide", QuickSlot.OnHide);
@@ -1012,11 +1066,25 @@ function QuickSlot:ShowUI()
         self:UpdateFrameLayout();
     end
 
-    self:RegisterEvent("BAG_UPDATE");
+    self:UpdateItemCount();
+
+    self:RegisterEvent("BAG_UPDATE_DELAYED");
     self:RegisterEvent("PLAYER_REGEN_DISABLED");
     self:RegisterEvent("PLAYER_REGEN_ENABLED");
     self:RegisterEvent("UI_SCALE_CHANGED");
     self:RegisterEvent("LOADING_SCREEN_ENABLED");
+
+    if self.anyItemAction then
+        self:RegisterEvent("BAG_UPDATE_COOLDOWN");
+        self:UpdateItemCooldowns();
+    end
+
+    if self.anySpellAction then
+        self:RegisterEvent("SPELL_UPDATE_CHARGES");
+        self:RegisterEvent("SPELL_UPDATE_COOLDOWN");
+        self:RequestUpdateSpellCooldowns();
+        self:UpdateSpellCharge();
+    end
 
     if self.spellcastType == 1 then
         self:RegisterUnitEvent("UNIT_SPELLCAST_START", "player");
@@ -1027,7 +1095,6 @@ function QuickSlot:ShowUI()
         self:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", "player");
     end
 
-    self:UpdateItemCount();
 
     for _, button in ipairs(self.Buttons) do
         button.Count:Show();
@@ -1052,8 +1119,8 @@ end
 function QuickSlot:CloseUI()
     if self:IsShown() then
         self:EnableEditMode(false);
+        self.isClosing = true;
         UIFrameFade(self, 0.5, 0);
-        self:UnregisterEvent("BAG_UPDATE");
         self:UnregisterEvent("PLAYER_REGEN_DISABLED");
         self:UnregisterEvent("PLAYER_REGEN_ENABLED");
         self:UnregisterEvent("UI_SCALE_CHANGED");
@@ -1063,6 +1130,10 @@ function QuickSlot:CloseUI()
         self:UnregisterEvent("UNIT_SPELLCAST_START");
         self:UnregisterEvent("UNIT_SPELLCAST_STOP");
         self:UnregisterEvent("LOADING_SCREEN_ENABLED");
+        self:UnregisterEvent("BAG_UPDATE_DELAYED");
+        self:UnregisterEvent("BAG_UPDATE_COOLDOWN");
+        self:UnregisterEvent("SPELL_UPDATE_CHARGES");
+        self:UnregisterEvent("SPELL_UPDATE_COOLDOWN");
         self:SetInteractable(false);
         self.isChanneling = nil;
         self.defaultHeaderText = nil;
@@ -1095,9 +1166,101 @@ function QuickSlot:UseHighContrast(state)
     end
 end
 
+function QuickSlot:UpdateItemCooldowns()
+    if self.ItemButtons then
+        local startTime, duration, enable;
+        for _, button in ipairs(self.ItemButtons) do
+            if button.id and button.actionType == "item" then
+                startTime, duration, enable = GetItemCooldown(button.id);
+                if enable == 1 and startTime and startTime > 0 and duration and duration > 0 then
+                    button.Cooldown:SetCooldown(startTime, duration);
+                    button.Cooldown:Show();
+                    button.Cooldown:SetHideCountdownNumbers(false);
+                else
+                    button.Cooldown:Hide();
+                end
+            end
+        end
+    end
+end
+
+do  --Spell Cooldown
+    local GetSpellCooldown = C_Spell.GetSpellCooldown;
+    local GetSpellCharges = C_Spell.GetSpellCharges;
+
+    local Throttler = CreateFrame("Frame", nil, QuickSlot);
+    QuickSlot.Throttler = Throttler;
+    Throttler:SetScript("OnHide", function(self)
+        self:SetScript("OnUpdate", nil);
+        self.pauseUpdate = nil;
+    end);
+
+    local function Throttler_OnUpdate(self, elapsed)
+        self.t = self.t + elapsed;
+        if self.t >= 0.5 then
+            self.t = 0;
+            self:SetScript("OnUpdate", nil);
+            self.pauseUpdate = nil;
+        end
+    end
+
+    function QuickSlot:RequestUpdateSpellCooldowns()
+        if Throttler.pauseUpdate then
+            
+        else
+            Throttler.pauseUpdate = true;
+            Throttler.t = 0;
+            Throttler:SetScript("OnUpdate", Throttler_OnUpdate);
+            self:UpdateSpellCooldowns();
+        end
+    end
+
+    function QuickSlot:UpdateSpellCooldowns()
+        local cooldownInfo, chargeInfo, startTime, duration, modRate, fromChargeCooldown;
+        for _, button in ipairs(self.SpellButtons) do
+            if button.id and button.actionType == "spell" then
+                startTime, duration, modRate, fromChargeCooldown = nil, nil, nil, nil;
+
+                chargeInfo = GetSpellCharges(button.id);
+                if chargeInfo and chargeInfo.currentCharges > 0 then
+                    if chargeInfo.cooldownStartTime > 0 and chargeInfo.cooldownDuration > 0 then
+                        startTime = chargeInfo.cooldownStartTime;
+                        duration = chargeInfo.cooldownDuration;
+                        modRate = chargeInfo.chargeModRate;
+                        fromChargeCooldown = true;
+                    end
+                end
+
+                if not (startTime and duration) then
+                    cooldownInfo = GetSpellCooldown(button.id);
+                    if cooldownInfo and cooldownInfo.isEnabled and cooldownInfo.startTime > 0 and cooldownInfo.duration > 0 then
+                        startTime = cooldownInfo.startTime;
+                        duration = cooldownInfo.duration;
+                        modRate = cooldownInfo.modRate
+                    end
+                end
+
+                if startTime and duration then
+                    button.Cooldown:SetCooldown(startTime, duration, modRate);
+                    button.Cooldown:Show();
+                    if fromChargeCooldown then
+                        button.Cooldown:SetHideCountdownNumbers(true);
+                    else
+                        button.Cooldown:SetHideCountdownNumbers(false);
+                    end
+                else
+                    button.Cooldown:Hide();
+                end
+            end
+        end
+    end
+end
+
 function QuickSlot:OnEvent(event, ...)
-    if event == "BAG_UPDATE" then
+    if event == "BAG_UPDATE_DELAYED" then
         self:UpdateItemCount();
+    elseif event == "SPELL_UPDATE_COOLDOWN" then
+        self:RequestUpdateSpellCooldowns();
     elseif event == "PLAYER_REGEN_DISABLED" then
         self:SetInteractable(false, true);
     elseif event == "PLAYER_REGEN_ENABLED" then
@@ -1116,6 +1279,10 @@ function QuickSlot:OnEvent(event, ...)
         self:OnSpellCastChanged(spellID, false);
     elseif event == "LOADING_SCREEN_ENABLED" then
         self:CloseUI();
+    elseif event == "BAG_UPDATE_COOLDOWN" then
+        self:UpdateItemCooldowns();
+    elseif event == "SPELL_UPDATE_CHARGES" then
+        self:UpdateSpellCharge();
     end
 end
 QuickSlot:SetScript("OnEvent", QuickSlot.OnEvent);

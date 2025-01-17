@@ -1,5 +1,5 @@
-local VERSION_TEXT = "v1.5.0";
-local VERSION_DATE = 1733800000;
+local VERSION_TEXT = "v1.5.5";
+local VERSION_DATE = 1736700000;
 
 
 local addonName, addon = ...
@@ -107,18 +107,25 @@ local DefaultValues = {
     QuestItemDestroyAlert = true,       --Show related quest info when destroying a quest-starting item
     SpellcastingInfo = false,           --Show the spell info when hovering over target/focus cast bars. Logging target spells and displayed it on UnitPopupMenu
     ChatOptions = true,                 --Add Leave button to Channel Context Menu
+    NameplateWidget = true,             --Show required items on nameplate widget set
+    PartyInviterInfo = false,           --Show the inviter's level and class
+        PartyInviter_Race = false,
+        PartyInviter_Faction = false,
+    PlayerTitleUI = false,              --Add search box and filter to TitleManagerPane
+
 
     --Custom Loot Window
     LootUI = false,
         LootUI_FontSize = 14,
+        LootUI_FadeDelayPerItem = 0.25,
+        LootUI_ItemsPerPage = 6,
         LootUI_ShowItemCount = false,
+        LootUI_NewTransmogIcon = true,
+        LootUI_ForceAutoLoot = true,
+        LootUI_LootUnderMouse = false;
         LootUI_UseHotkey = true,
         LootUI_HotkeyName = "E",
-        LootUI_ForceAutoLoot = true,
-        LootUI_NewTransmogIcon = true,
-        LootUI_FadeDelayPerItem = 0.25,
         LootUI_ReplaceDefaultAlert = false,
-        LootUI_LootUnderMouse = false;
         LootUI_UseStockUI = false,
 
 
