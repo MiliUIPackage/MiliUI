@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.24) add-on for World of Warcraft UI
+    Decursive (v 2.7.25) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2022-11-27T23:18:58Z
+    This file was last updated on 2024-12-16T01:31:02Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -261,7 +261,9 @@ do
     local GUIDToUnit_mt = { __index = function(self, GUID)
         -- {{{
 
-        if GUIDToUnit_ScannedAll then
+        GUID = GUID ~= "player" and GUID or DC.MyGUID -- hack for the player entry in the populate lists GUI
+
+        if GUIDToUnit_ScannedAll and GUID ~= DC.MyGUID then
             self[GUID] = false;
             D:Debug("GUIDToUnit_mt: %s is not in our group!", GUID);
             return self[GUID];
@@ -390,6 +392,10 @@ do
         end
 
         -- Priority list
+        -- note that there is no notion of precedence between groups, class and
+        -- roles and unfortunately specific GUIDs. As soon as a unit is part of
+        -- several criteria the criteria with the lowest position will take
+        -- precedence over the other, including GUID.
         UIa = UnitInfo[ua]; UIb = UnitInfo[ub];
         uaVSub = a_isBefore_b(getMinOf4(IPL[UIa.class], IPL[UIa.group], IPL[UIa.GUID], IPL[UIa.role]), getMinOf4(IPL[UIb.class], IPL[UIb.group], IPL[UIb.GUID], IPL[UIb.role]));
 
@@ -662,6 +668,7 @@ do
 
         --[==[@debug@
         D:Debug("Current group:", CurrentGroup, D:tAsString(IPL));
+        D:Debug("Source priority list:", #self.profile.PriorityList, D:tAsString(self.profile.PriorityList));
         for i, unit in ipairs(Status.Unit_Array) do
             unit = Status.Unit_Array[i];
             D:Debug(D:ColorTextNA(unit, D:GetClassHexColor(DC.ClassNumToUName[UnitInfo[unit].class])), DC.ClassNumToUName[UnitInfo[unit].class], UnitInfo[unit].group and "g"..UnitInfo[unit].group or nil, "i"..UnitInfo[unit].RaidID, UnitInfo[unit].role);
@@ -673,7 +680,7 @@ end
 
 
 -------------------------------------------------------------------------------
-T._LoadedFiles["Dcr_Raid.lua"] = "2.7.24";
+T._LoadedFiles["Dcr_Raid.lua"] = "2.7.25";
 
 -- "Your God is dead and no one cares"
 -- "If there is a Hell I'll see you there"
