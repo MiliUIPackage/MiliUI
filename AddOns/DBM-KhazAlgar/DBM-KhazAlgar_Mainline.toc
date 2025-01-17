@@ -1,5 +1,7 @@
 ## Interface: 110007, 110100
-## Version: 11.0.39
+## Version: 11.1.0
+## Category: DBM
+
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10World Bosses (War Within)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界首領 (地心之戰)|r
 ## Author: MysticalOS

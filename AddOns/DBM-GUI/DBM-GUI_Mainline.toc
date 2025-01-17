@@ -1,4 +1,6 @@
-## Interface: 110005, 110007
+## Interface: 110007, 110100
+## Category: DBM
+## Group: DBM Core
 ## Title:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Options GUI|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0设置界面|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0使用者介面|r
@@ -10,7 +12,7 @@
 ## LoadOnDemand: 1
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 11.0.38
+## Version: 11.1.0
 ## X-Website: https://deadlybossmods.com
 ## X-Category-zhTW: 團隊
 
@@ -22,8 +24,7 @@ localization.tw.lua
 
 DBM-GUI.lua
 DBM-GUI_TestUI.lua
-DBM-GUI_DropDown.xml
-DBM-GUI_DropDown.lua
+DBM-GUI_DropDownNEW.lua
 
 # Modules
 modules\MainFramePrototype.lua

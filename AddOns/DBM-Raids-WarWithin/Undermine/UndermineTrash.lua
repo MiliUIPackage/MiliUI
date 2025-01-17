@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod("UndermineTrash", "DBM-Raids-WarWithin", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241220032423")
+mod:SetRevision("20250105060358")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod:SetZone(2769)
@@ -68,7 +68,7 @@ end
 --]]
 
 --All timers subject to a ~0.5 second clipping due to ScanEngagedUnits
-function mod:StartEngageTimers(guid, cid)
+function mod:StartEngageTimers(guid, cid, delay)
 	if cid == 222305 then
 
 	end

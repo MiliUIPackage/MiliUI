@@ -1,4 +1,6 @@
-## Interface: 110005, 110007
+## Interface: 110007, 110100
+## Category: DBM
+
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (SL)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領-暗影之境|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0队伍首领 (暗影国度)|r
@@ -33,3 +35,9 @@ MistsofTirnaScithe\IngraMaloch.lua
 MistsofTirnaScithe\Mistcaller.lua
 MistsofTirnaScithe\Tredova.lua
 MistsofTirnaScithe\TirnaScitheTrash.lua
+TheaterofPain\AffrontofChallengers.lua
+TheaterofPain\Gorechop.lua
+TheaterofPain\XavtheUnfallen.lua
+TheaterofPain\Kultharok.lua
+TheaterofPain\Mordretha.lua
+TheaterofPain\TheaterofPainTrash.lua

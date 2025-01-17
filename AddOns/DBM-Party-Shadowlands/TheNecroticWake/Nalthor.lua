@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2396, "DBM-Party-Shadowlands", 1, 1182)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241214043728")
+mod:SetRevision("20250105054024")
 mod:SetCreatureID(162693)
 mod:SetEncounterID(2390)
 --mod:SetHotfixNoticeRev(20240817000000)
@@ -57,9 +57,9 @@ function mod:OnCombatStart(delay)
 	self.vb.bindsCount = 0
 	self.vb.exileCount = 0
 	timerFrozenBindsCD:Start(6.9-delay, 1)--START
-	timerIceboundAegisCD:Start("v11.7-14", 1)--11.7-14
+	timerIceboundAegisCD:Start("v11.4-14", 1)--11.4-14
 	timerCometStormCD:Start("v16.5-17.2", 1)--16.5-17.2
-	timerDarkExileCD:Start("v26.5-30", 1)--SUCCESS--26-30
+	timerDarkExileCD:Start("v24.4-30", 1)--SUCCESS--24.4-30
 end
 
 function mod:OnCombatEnd()

@@ -267,6 +267,7 @@
 ---|"safenow"
 ---|"scatter"
 ---|"scattersoon"
+---|"screwup" 18
 ---|"securityguardcoming" 12
 ---|"seedyou" 15
 ---|"shadowrun"
@@ -283,6 +284,7 @@
 ---|"south"
 ---|"southeast"
 ---|"southwest"
+---|"sparktowater" 18
 ---|"spear"
 ---|"specialsoon"
 ---|"speedup"

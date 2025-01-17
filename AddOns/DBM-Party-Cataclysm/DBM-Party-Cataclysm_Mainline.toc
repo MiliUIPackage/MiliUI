@@ -1,5 +1,7 @@
-## Interface: 110005, 110007
+## Interface: 110007, 110100
 ## X-Min-Interface: 80000
+## Category: DBM
+
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (Cata)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領-浩劫與重生|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0队伍首领 (大地的裂变)|r
@@ -23,7 +25,7 @@
 ## X-DBM-Mod-MinExpansion: 3
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r171
+## Version: r180
 ## X-Category-zhTW: 團隊
 
 localization.en.lua

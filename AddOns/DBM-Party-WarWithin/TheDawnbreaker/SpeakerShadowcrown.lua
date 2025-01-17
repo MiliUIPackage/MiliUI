@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2580, "DBM-Party-WarWithin", 5, 1270)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241111094130")
+mod:SetRevision("20250105054024")
 mod:SetCreatureID(211087)
 mod:SetEncounterID(2837)
 mod:SetHotfixNoticeRev(20241005000000)
@@ -57,11 +57,11 @@ local warnedTimerMissing = false--Single warn for single spell to avoid spam. As
 local allTimers = {
 	[1] = {
 		[425264] = {6, 34.3},--Obsidian Blast (Non Mythic)
-		[453212] = {7.1, 31.9, 26.2},--Obsidian Beam (Mythic)
+		[453212] = {7.1, 31.9, 26.0},--Obsidian Beam (Mythic)
 		[445996] = {13.1},--Collapsing Darkness (Non Mythic)
 		[453140] = {23.3, 28.1, 25.9},--Collapsing Night (Mythic)
 		[4267341] = {9.3, 35.5},--Burning Shadows (Non Mythic)
-		[4267342] = {19.2, 15.7, 24.5},--Burning Shadows (Mythic)
+		[4267342] = {19.2, 15.7, 24.1},--Burning Shadows (Mythic)
 	},
 	[2] = {
 		[425264] = {6.8, 17},--Obsidian Blast (Non Mythic)

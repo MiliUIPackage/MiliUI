@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2140, "DBM-Party-BfA", 5, 1023)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241103153349")
+mod:SetRevision("20250105054024")
 mod:SetCreatureID(120553)
 mod:SetEncounterID(2100)
 --mod:SetHotfixNoticeRev(20230516000000)
@@ -74,7 +74,7 @@ function mod:SPELL_CAST_START(args)
 			specWarnSlam:Show()
 			specWarnSlam:Play("aesoon")
 		end
-		local timer = self:GetStage(1) and 20.6 or self:GetStage(2) and 13.3 or 10.9
+		local timer = self:GetStage(1) and 19.7 or self:GetStage(2) and 13.3 or 10.9
 		timerSlamCD:Start(timer, args.sourceGUID)
 	elseif spellId == 269366 then
 		warnRepair:Show()

@@ -1,3 +1,4 @@
+---@diagnostic disable: assign-type-mismatch, cast-local-type
 -- *********************************************************
 -- **               Deadly Boss Mods - Core               **
 -- **              https://deadlybossmods.com             **
@@ -75,15 +76,15 @@ end
 ---@class DBM
 local DBM = private:GetPrototype("DBM")
 _G.DBM = DBM
-DBM.Revision = parseCurseDate("20241230031809")
+DBM.Revision = parseCurseDate("20250109100820")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 local fakeBWVersion, fakeBWHash = 368, "fc06f51"--368.0
 local PForceDisable
 -- The string that is shown as version
-DBM.DisplayVersion = "11.0.39"--Core version
+DBM.DisplayVersion = "11.1.0"--Core version
 DBM.classicSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2024, 12, 29) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2024, 1, 9) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 PForceDisable = 15--When this is incremented, trigger force disable regardless of major patch
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -395,6 +396,7 @@ DBM.DefaultOptions = {
 	CoreSavedRevision = 1,
 	SilentMode = false,
 	NoCombatScanningFeatures = false,
+	ZoneCombatSyncing = false,--HIDDEN power user feature to improve zone scanning accuracy in niche cases
 }
 
 ---@type DBMMod[]
@@ -2662,7 +2664,6 @@ do
 		difficulties:RefreshCache(true)
 	end
 
-	--C_Map.GetMapGroupMembersInfo
 	function DBM:GetNumRealPlayersInZone()
 		if not IsInGroup() then return 1 end
 		local total = 0
@@ -4341,11 +4342,14 @@ do
 		end
 	end
 
+	local DBMZoneCombatScanner = private:GetModule("TrashCombatScanningModule")
+
 	local syncHandlers, whisperSyncHandlers, guildSyncHandlers = {}, {}, {}
 
 	-- DBM uses the following prefixes since 4.1 as pre-4.1 sync code is going to be incompatible anways, so this is the perfect opportunity to throw away the old and long names
 	-- M = Mod
 	-- C = Combat start
+	-- ZC = Zone Combat
 	-- GC = Guild Combat Start
 	-- IS = Icon set info
 	-- K = Kill
@@ -4433,6 +4437,10 @@ do
 				end
 			end
 		end
+	end
+
+	syncHandlers["ZC"] = function(sender, _, guid, cid)
+		DBMZoneCombatScanner:OnSync(sender, guid, tonumber(cid))
 	end
 
 	syncHandlers["RLO"] = function(sender, protocol, statusWhisper, guildStatus, raidIcons, chatBubbles)
@@ -9139,7 +9147,7 @@ function DBM:GroupInCombat()
 	--Any Other group member in combat
 	if not combatFound then
 		for uId in DBM:GetGroupMembers() do
-			if UnitAffectingCombat(uId) and not UnitIsDeadOrGhost(uId) then
+			if UnitAffectingCombat(uId) then
 				combatFound = true
 				break
 			end
@@ -9252,7 +9260,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20241230020002" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20250109100820" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then

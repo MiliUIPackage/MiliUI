@@ -1,5 +1,7 @@
 ## Interface: 110007, 110100
 ## X-Min-Interface: 110002
+## Category: DBM
+## Group: DBM Delves
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff4565ffDelves (TWW)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff4565ff探究 (地心之戰)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff4565ff地下堡 (地心之战)|r
@@ -20,7 +22,7 @@
 ## X-DBM-Mod-MapID: 2664, 2679, 2680, 2681, 2682, 2683, 2684, 2685, 2686, 2687, 2688, 2689, 2690, 2767, 2768, 2831, 2815, 2826
 ## X-DBM-Mod-MinCoreRevision: 20200524142133
 ## X-DBM-Mod-MinExpansion: 10
-## Version: r178
+## Version: r180
 ## X-Category-zhTW: 團隊
 
 localization.en.lua
