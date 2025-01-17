@@ -1,4 +1,13 @@
-﻿11.0.26 - 1st January 2025
+﻿11.0.28 - 15th January 2025
+- The 'Remove transforms' option ('System') now lets you choose which individual profession transforms you want to remove.
+- The 'Class colored frames' option ('Frames') will now be locked out if you have Easy Frames installed.
+
+11.0.27 - 8th January 2025
+- Fixed an issue with 'Sell junk automatically' ('Automation') which caused the sell junk routine to loop if you have the Rock Buddy item in your bags.  This issue is caused by a game bug.
+- Game API updates.
+- PTR (11.1.0) - The 'Lockout sharing' option ('System') is no longer available.  The achievements window now always shows warband achievement points.
+
+11.0.26 - 1st January 2025
 - Happy New Year!
 - For 'Media', added zone music for 'The Great Sea (Dragon Isles)' and 'Traitor's Rest' ('Dragonflight') and 'Sinfall' ('Shadowlands').
 - Updated translations.

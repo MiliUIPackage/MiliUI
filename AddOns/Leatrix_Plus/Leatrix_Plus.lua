@@ -1,5 +1,5 @@
 ﻿----------------------------------------------------------------------
--- 	Leatrix Plus 11.0.26 (1st January 2025)
+-- 	Leatrix Plus 11.0.28 (15th January 2025)
 ----------------------------------------------------------------------
 
 --	01:Functions 02:Locks,  03:Restart 40:Player
@@ -18,7 +18,7 @@
 	local void
 
 	-- Version
-	LeaPlusLC["AddonVer"] = "11.0.26"
+	LeaPlusLC["AddonVer"] = "11.0.28"
 
 	-- Get locale table
 	local void, Leatrix_Plus = ...
@@ -34,11 +34,8 @@
 			end)
 			return
 		end
-		if gametocversion and gametocversion >= 110002 then -- 11.0.2
+		if gametocversion and gametocversion >= 110100 then -- 11.1.0
 			LeaPlusLC.NewPatch = true
-		end
-		if gametocversion and gametocversion >= 110005 then -- 11.0.5
-			LeaPlusLC.NewPatch1105 = true
 		end
 	end
 
@@ -477,7 +474,7 @@
 		-- Update friends list
 		C_FriendList.ShowFriends()
 
-		-- Remove realm
+		-- Remove realm (since we have GUID checking)
 		name = strsplit("-", name, 2)
 
 		-- Check character friends
@@ -945,8 +942,18 @@
 				if (not UnitExists("party1") or UnitIsGroupLeader("player") or UnitIsGroupAssistant("player")) and strlower(strtrim(arg1)) == strlower(LeaPlusLC["InvKey"]) then
 					if not LeaPlusLC:IsInLFGQueue() then
 						if event == "CHAT_MSG_WHISPER" then
-						local void, void, void, void, viod, void, void, void, void, guid = ...
+							local void, void, void, void, viod, void, void, void, void, guid = ...
 							if LeaPlusLC:FriendCheck(arg2, guid) or LeaPlusLC["InviteFriendsOnly"] == "Off" then
+								-- If whisper name is same realm, remove realm name
+								local theWhisperName, theWhisperRealm = strsplit("-", arg2, 2)
+								if theWhisperRealm then
+									local void, theCharRealm = UnitFullName("player")
+									if theCharRealm then
+										if theWhisperRealm == theCharRealm then arg2 = theWhisperName end
+									end
+								end
+
+								-- Invite whisper player
 								C_PartyInfo.InviteUnit(arg2)
 							end
 						elseif event == "CHAT_MSG_BN_WHISPER" then
@@ -1081,8 +1088,8 @@
 			local frame = CreateFrame("FRAME")
 			frame:SetScript("OnEvent", function(self, event, arg1, ...)
 
-				-- If a friend, accept if you're accepting friends and not in Dungeon Finder
-				local void, void, void, void, guid = ...
+				-- If a friend, accept if you're accepting friends and not queued
+				local void, void, void, void, void, guid = ...
 				if (LeaPlusLC["AcceptPartyFriends"] == "On" and LeaPlusLC:FriendCheck(arg1, guid)) then
 					if not LeaPlusLC:IsInLFGQueue() then
 						AcceptGroup()
@@ -1129,8 +1136,9 @@
 		do
 
 			local frame = CreateFrame("FRAME")
-			frame:SetScript("OnEvent", function(self, event, arg1)
+			frame:SetScript("OnEvent", function(self, event, arg1, ...)
 				-- If not a friend and you're blocking invites, decline
+				local void, void, void, void, void, guid = ...
 				if LeaPlusLC["NoPartyInvites"] == "On" then
 					if LeaPlusLC:FriendCheck(arg1, guid) then
 						return
@@ -3616,6 +3624,9 @@
 				whiteList[200592] = "Dirty Old Satchel"
 				whiteList[200606] = "Previously Owned Map"
 
+				-- Rock Buddy (item cannot be sold but sell price is reported as 1)
+				whiteList[228431] = "Rock Buddy"
+
 				-- End of whitelist
 
 				local whiteString = eb.Text:GetText()
@@ -3847,6 +3858,22 @@
 
 			end
 
+			-- These values can change with a new game patch
+			local errorCodeVendorDoesNotBuy = 47 -- ERR_VENDOR_DOESNT_BUY
+			local errorCodeTooMuchGold = 644 -- ERR_TOO_MUCH_GOLD
+
+			if LeaPlusLC.NewPatch then -- 11.1.0
+				errorCodeTooMuchGold = 645
+			end
+
+			-- Report in chat if UI error codes have changed so code above needs to be updated
+			if GetGameMessageInfo(errorCodeVendorDoesNotBuy) ~= "ERR_VENDOR_DOESNT_BUY" then
+				LeaPlusLC:Print("Leatrix Plus: ERR_VENDOR_DOESNT_BUY.")
+			end
+			if GetGameMessageInfo(errorCodeTooMuchGold) ~= "ERR_TOO_MUCH_GOLD" then
+				LeaPlusLC:Print("Leatrix Plus: ERR_TOO_MUCH_GOLD.")
+			end
+
 			-- Event handler
 			SellJunkFrame:RegisterEvent("MERCHANT_SHOW")
 			SellJunkFrame:RegisterEvent("MERCHANT_CLOSED")
@@ -3870,9 +3897,9 @@
 					-- If merchant frame is closed, stop selling
 					StopSelling()
 				elseif event == "UI_ERROR_MESSAGE" then
-					if arg1 == 47 then
+					if arg1 == errorCodeVendorDoesNotBuy then
 						StopSelling() -- Vendor refuses to buy items (ERR_VENDOR_DOESNT_BUY)
-					elseif arg1 == 644 then
+					elseif arg1 == errorCodeTooMuchGold then
 						StopSelling() -- At gold limit (ERR_TOO_MUCH_GOLD)
 					end
 				end
@@ -3886,14 +3913,6 @@
 			-- for i = 100, 2000 do
 			--   if GetGameMessageInfo(i) == "ERR_TOO_MUCH_GOLD" then print(i) end
 			-- end
-
-			-- Report in chat if UI error codes have changed so code above needs to be updated
-			if GetGameMessageInfo(47) ~= "ERR_VENDOR_DOESNT_BUY" then
-				LeaPlusLC:Print("Leatrix Plus: ERR_VENDOR_DOESNT_BUY.")
-			end
-			if GetGameMessageInfo(644) ~= "ERR_TOO_MUCH_GOLD" then
-				LeaPlusLC:Print("Leatrix Plus: ERR_TOO_MUCH_GOLD.")
-			end
 
 		end
 
@@ -6303,6 +6322,26 @@
 
 		do
 
+			-- LeaPlusLC.NewPatch: Temporary UpdateVars for the old Transform professions to the new individual professions
+			local function UpdateVars(oldvar, newvar)
+					if LeaPlusDB[oldvar] and not LeaPlusDB[newvar] then LeaPlusDB[newvar] = LeaPlusDB[oldvar]; end
+			end
+
+			UpdateVars("TransProfessions", "TransBlacksmithing")
+			UpdateVars("TransProfessions", "TransJewelcrafting")
+			UpdateVars("TransProfessions", "TransTailoring")
+			UpdateVars("TransProfessions", "TransEngineering")
+			UpdateVars("TransProfessions", "TransEnchanting")
+			UpdateVars("TransProfessions", "TransAlchemy")
+			UpdateVars("TransProfessions", "TransInscription")
+			UpdateVars("TransProfessions", "TransLeatherworking")
+			UpdateVars("TransProfessions", "TransHerbalism")
+			UpdateVars("TransProfessions", "TransMining")
+			UpdateVars("TransProfessions", "TransSkinning")
+			UpdateVars("TransProfessions", "TransCooking")
+			UpdateVars("TransProfessions", "TransFishing")
+			LeaPlusDB["TransProfessions"] = nil
+
 			local transTable = {
 
 				-- Single spell IDs
@@ -6347,27 +6386,24 @@
 					--[[Wisp]] 24740,
 				},
 
-				-- Professions
-				["TransProfessions"] = {
-					-- Crafting
-					--[[Blacksmithing: Suited for Smithing]] 388658,
-					--[[Jewelcrafting: An Eye For Shine]] 394015,
-					--[[Tailoring: Wrapped Up In Weaving]] 391312,
-					--[[Engineering: Ready To Build]] 394007,
-					--[[Enchanting: A Looker's Charm]] 394008,
-					--[[Alchemy: Spark of Madness]] 394003,
-					--[[Inscription: Artist's Duds]] 394016,
-					--[[Leatherworking: Sculpting Leather Finery]] 394001,
+				-- Crafting professions
+				["TransBlacksmithing"] 	= {--[[Blacksmithing: Suited for Smithing]] 388658,},
+				["TransJewelcrafting"] 	= {--[[Jewelcrafting: An Eye For Shine]] 394015,},
+				["TransTailoring"] 		= {--[[Tailoring: Wrapped Up In Weaving]] 391312,},
+				["TransEngineering"] 	= {--[[Engineering: Ready To Build]] 394007,},
+				["TransEnchanting"] 	= {--[[Enchanting: A Looker's Charm]] 394008,},
+				["TransAlchemy"] 		= {--[[Alchemy: Spark of Madness]] 394003,},
+				["TransInscription"] 	= {--[[Inscription: Artist's Duds]] 394016,},
+				["TransLeatherworking"] = {--[[Leatherworking: Sculpting Leather Finery]] 394001,},
 
-					-- Gathering
-					--[[Herbalism: A Cultivator's Colors]] 394005,
-					--[[Mining: Rockin' Mining Gear]] 394006,
-					--[[Skinning: Dressed To Kill]] 394011,
+				-- Gathering professions
+				["TransHerbalism"] 		= 	{--[[Herbalism: A Cultivator's Colors]] 394005,},
+				["TransMining"] 		= 	{--[[Mining: Rockin' Mining Gear]] 394006,},
+				["TransSkinning"] 		= 	{--[[Skinning: Dressed To Kill]] 394011,},
 
-					-- Secondary
-					--[[Cooking: What's Cookin', Good Lookin'?]] 391775,
-					--[[Fishing: Fishing For Attention 394009 - Handled separately]]
-				},
+				-- Secondary professions
+				["TransCooking"] 		= {--[[Cooking: What's Cookin', Good Lookin'?]] 391775,},
+				["TransFishing"] 		= {--[[Fishing: Fishing For Attention 394009 - Handled separately]]},
 
 			}
 
@@ -6394,8 +6430,24 @@
 			local row = -1
 
 			-- Add checkboxes
-			row = row + 2; LeaPlusLC:MakeTx(transPanel.scrollChild, "Professions", 16, -((row - 1) * 20) - 2)
-			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransProfessions", "All profession transforms", 16, -((row - 1) * 20) - 2, false, "If checked, all profession transforms added in Dragonflight will be removed when applied.")
+			row = row + 2; LeaPlusLC:MakeTx(transPanel.scrollChild, "Crafting professions", 16, -((row - 1) * 20) - 2)
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransBlacksmithing", "Blacksmithing", 16, -((row - 1) * 20) - 2, false, "If checked, the Suited for Smithing transform will be removed when applied.")
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransJewelcrafting", "Jewelcrafting", 16, -((row - 1) * 20) - 2, false, "If checked, the An Eye For Shine transform will be removed when applied.")
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransTailoring", "Tailoring", 16, -((row - 1) * 20) - 2, false, "If checked, the Wrapped Up In Weaving transform will be removed when applied.")
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransEngineering", "Engineering", 16, -((row - 1) * 20) - 2, false, "If checked, the Ready To Build transform will be removed when applied.")
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransEnchanting", "Enchanting", 16, -((row - 1) * 20) - 2, false, "If checked, the A Looker's Charm transform will be removed when applied.")
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransAlchemy", "Alchemy", 16, -((row - 1) * 20) - 2, false, "If checked, the Spark of Madness transform will be removed when applied.")
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransInscription", "Inscription", 16, -((row - 1) * 20) - 2, false, "If checked, the Artist's Duds transform will be removed when applied.")
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransLeatherworking", "Leatherworking", 16, -((row - 1) * 20) - 2, false, "If checked, the Sculpting Leather Finery transform will be removed when applied.")
+
+			row = row + 2; LeaPlusLC:MakeTx(transPanel.scrollChild, "Gathering professions", 16, -((row - 1) * 20) - 2)
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransHerbalism", "Herbalism", 16, -((row - 1) * 20) - 2, false, "If checked, the A Cultivator's Colors transform will be removed when applied.")
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransMining", "Mining", 16, -((row - 1) * 20) - 2, false, "If checked, the Rockin' Mining Gear transform will be removed when applied.")
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransSkinning", "Skinning", 16, -((row - 1) * 20) - 2, false, "If checked, the Dressed To Kill transform will be removed when applied.")
+
+			row = row + 2; LeaPlusLC:MakeTx(transPanel.scrollChild, "Secondary professions", 16, -((row - 1) * 20) - 2)
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransCooking", "Cooking", 16, -((row - 1) * 20) - 2, false, "If checked, the What's Cookin', Good Lookin' transform will be removed when applied.")
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransFishing", "Fishing", 16, -((row - 1) * 20) - 2, false, "If checked, the Fishing For Attention transform will be removed when applied.")
 
 			row = row + 2; LeaPlusLC:MakeTx(transPanel.scrollChild, "Toys", 16, -((row - 1) * 20) - 2)
 			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransAqir", "Aqir Egg Cluster", 16, -((row - 1) * 20) - 2, false, "If checked, the Aqir Egg Cluster transform will be removed when applied.")
@@ -6450,7 +6502,7 @@
 			local fishEvent = CreateFrame("FRAME")
 			fishEvent:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player")
 			fishEvent:SetScript("OnEvent", function(self, event, unit, void, spellID)
-				if LeaPlusLC["NoTransforms"] == "On" and LeaPlusLC["TransProfessions"] == "On" and spellID == 131476 then -- Fishing
+				if LeaPlusLC["NoTransforms"] == "On" and LeaPlusLC["TransFishing"] == "On" and spellID == 131476 then -- Fishing
 					for i = 1, 40 do
 						local BuffData = C_UnitAuras.GetBuffDataByIndex("player", i)
 						if BuffData then
@@ -6462,6 +6514,7 @@
 					end
 				end
 			end)
+			LeaPlusCB["TransFishing"]:HookScript("OnClick", function() fishEvent:GetScript("OnEvent")("", "", "", "", 131476) end)
 
 			-- Create frame for events
 			local spellFrame = CreateFrame("FRAME")
@@ -8830,7 +8883,8 @@
 		-- Lockout sharing
 		----------------------------------------------------------------------
 
-		if LeaPlusLC["LockoutSharing"] == "On" then
+		-- LeaPlusLC.NewPatch - Remove in 11.1.0
+		if LeaPlusLC["LockoutSharing"] == "On" and not LeaLockList["LockoutSharing"] then
 			-- Set the social menu option (sharing will be disabled but the checkbox will be set on next reload)
 			ShowAccountAchievements(true)
 		end
@@ -11054,6 +11108,11 @@
 						end
 					end
 
+					-- Disable items that conflict with Easy Frames
+					if C_AddOns.IsAddOnLoaded("EasyFrames") then
+						Lock("ClassColFrames", L["Cannot be used with Easy Frames"]) -- Class colored frames
+					end
+
 					-- Disable items that conflict with Glass
 					if C_AddOns.IsAddOnLoaded("Glass") then
 						local reason = L["Cannot be used with Glass"]
@@ -11153,8 +11212,8 @@
 					end
 				end
 
-				if LeaPlusLC.NewPatch1105 then
-					-- LockDF("CharAddonList", "This option is now built into the game.")
+				if LeaPlusLC.NewPatch then
+					LockDF("LockoutSharing", "This option is no longer available in the game.  The achievements window now always shows warband achievement points.")
 				end
 
 				-- Run other startup items
@@ -12502,11 +12561,13 @@
 					LeaPlusLC:Print("GetAllowLowLevelRaid: |cffffffff" .. "False")
 				end
 				-- Show achievement sharing
-				local achhidden = AreAccountAchievementsHidden()
-				if achhidden then
-					LeaPlusLC:Print("Account achievements are hidden.")
-				else
-					LeaPlusLC:Print("Account achievements are being shared.")
+				if not LeaPlusLC.NewPatch then -- Removed in 11.1.0
+					local achhidden = AreAccountAchievementsHidden()
+					if achhidden then
+						LeaPlusLC:Print("Account achievements are hidden.")
+					else
+						LeaPlusLC:Print("Account achievements are being shared.")
+					end
 				end
 				return
 			elseif str == "move" then
