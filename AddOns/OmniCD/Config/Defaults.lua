@@ -37,9 +37,9 @@ C.Party.arena = {
 	},
 	["position"] = {
 		["uf"] = "auto",
-		["preset"] = "TOPRIGHT",
-		["anchor"] = "TOPLEFT",
-		["attach"] = "TOPRIGHT",
+		["preset"] = "TOPLEFT",
+		["anchor"] = "TOPRIGHT",
+		["attach"] = "TOPLEFT",
 		["offsetX"] = 4,
 		["offsetY"] = 0,
 		["layout"] = "horizontal",
