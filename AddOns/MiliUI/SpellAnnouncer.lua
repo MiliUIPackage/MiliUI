@@ -12,6 +12,17 @@ local portalSpellMap = {
     [424167] = "威奎斯特莊園",
     [424187] = "阿塔達薩",
     [424197] = "恆龍黎明",
+
+    -- TWW S1
+    [445418] = "波拉勒斯圍城戰", -- 聯盟
+    [464256] = "波拉勒斯圍城戰", -- 部落
+    [354464] = "特那希迷霧",
+    [354462] = "死靈戰地",
+    [445269] = "石庫",
+    [445416] = "蛛絲城",
+    [445417] = "回音之城",
+    [445414] = "破曉者號",
+    [445424] = "格瑞姆巴托",
 }
 
 local needToHelp = {
@@ -43,9 +54,12 @@ local spellCastTimer
 
 -- 施法通報
 local function HandleSpellMessage(unit, spellID, messagePrefix, detectAsPlayer)
-    local spellLink = GetSpellLink(spellID)
+    local spellLink = C_Spell.GetSpellLink(spellID)
     local name, realm = UnitName(unit)
-    local message = name .. "正在施放" .. spellLink .. messagePrefix
+    local message = "正在施放" .. spellLink .. messagePrefix
+    if not detectAsPlayer then
+        message = name .. message
+    end
 
     if (detectAsPlayer) then
         if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) or IsInRaid(LE_PARTY_CATEGORY_INSTANCE) then
@@ -67,7 +81,7 @@ end
 
 local function HandleSpellCast(unit, spellID, detectAsPlayer)
     if portalSpellMap[spellID] then
-        HandleSpellMessage(unit, spellID, "傳送到" .. portalSpellMap[spellID] .. "！", detectAsPlayer)
+        HandleSpellMessage(unit, spellID, "前往[" .. portalSpellMap[spellID] .. "]！", detectAsPlayer)
     end
 
     if table.contains(needToHelp, spellID) then
@@ -96,7 +110,7 @@ SpellAnnouncer:SetScript("OnEvent", function(self, event, ...)
                 end
 
                 -- 設置計時器，延遲處理
-                spellCastTimer = C_Timer.NewTimer(0.1, function()
+                spellCastTimer = C_Timer.NewTimer(0.2, function()
                     HandleSpellCast(unit, spellID, detectAsPlayer)
                 end)
             elseif string.find(unit, "raid") then
