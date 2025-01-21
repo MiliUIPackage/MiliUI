@@ -71,31 +71,33 @@ function KrowiEVU_FilterButtonMixin:BuildMenu()
 	-- Reset menu
 	menu:Clear();
 
-	local className = UnitClass("player");
 	self:AddTitle(menu, addon.L["Default filters"]);
-	local class = menuItem:New({
-		Text = className,
-		Checked = function()
-			return GetMerchantFilter() >= LE_LOOT_FILTER_CLASS and GetMerchantFilter() <= LE_LOOT_FILTER_SPEC4;
-		end,
-		Func = function()
-			MerchantFrame_SetFilter(nil, LE_LOOT_FILTER_CLASS);
-			menu:SetSelectedName(className);
-			self:SetText(className);
-		end,
-		NotCheckable = false,
-		KeepShownOnClick = true
-	});
-	local numSpecs = GetNumSpecializations();
-	local sex = UnitSex("player");
-	for i = 1, numSpecs do
-		local _, name = GetSpecializationInfo(i, nil, nil, nil, sex);
-		self:AddLootFilterRadioButton(menu, class, name, LE_LOOT_FILTER_SPEC1 + i - 1, className, name);
-	end
-	self:AddLootFilterRadioButton(menu, class, ALL_SPECS, LE_LOOT_FILTER_CLASS, ALL_SPECS, className);
-	menu:Add(class);
+	if addon.Util.IsMainline then
+		local className = UnitClass("player");
+		local class = menuItem:New({
+			Text = className,
+			Checked = function()
+				return GetMerchantFilter() >= LE_LOOT_FILTER_CLASS and GetMerchantFilter() <= LE_LOOT_FILTER_SPEC4;
+			end,
+			Func = function()
+				MerchantFrame_SetFilter(nil, LE_LOOT_FILTER_CLASS);
+				menu:SetSelectedName(className);
+				self:SetText(className);
+			end,
+			NotCheckable = false,
+			KeepShownOnClick = true
+		});
+		local numSpecs = GetNumSpecializations();
+		local sex = UnitSex("player");
+		for i = 1, numSpecs do
+			local _, name = GetSpecializationInfo(i, nil, nil, nil, sex);
+			self:AddLootFilterRadioButton(menu, class, name, LE_LOOT_FILTER_SPEC1 + i - 1, className, name);
+		end
+		self:AddLootFilterRadioButton(menu, class, ALL_SPECS, LE_LOOT_FILTER_CLASS, ALL_SPECS, className);
+		menu:Add(class);
 
-	self:AddLootFilterRadioButton(menu, menu, ITEM_BIND_ON_EQUIP, LE_LOOT_FILTER_BOE, ITEM_BIND_ON_EQUIP, ITEM_BIND_ON_EQUIP);
+		self:AddLootFilterRadioButton(menu, menu, ITEM_BIND_ON_EQUIP, LE_LOOT_FILTER_BOE, ITEM_BIND_ON_EQUIP, ITEM_BIND_ON_EQUIP);
+	end
 
 	self:AddLootFilterRadioButton(menu, menu, ALL, LE_LOOT_FILTER_ALL, ALL, ALL);
 
@@ -153,7 +155,7 @@ function KrowiEVU_FilterButtonMixin:BuildMenu()
 	self:AddCheckBox(custom, addon.L["Pets"], {"Custom", "Pets"});
 	self:AddCheckBox(custom, addon.L["Mounts"], {"Custom", "Mounts"});
 	self:AddCheckBox(custom, addon.L["Toys"], {"Custom", "Toys"});
-	local appearances = menuItem:New({
+	appearances = menuItem:New({
 		Text = addon.L["Appearances"],
 		Checked = function() -- Using function here, we force the GUI to get the value again instead of only once (caused visual bugs)
 			return addon.Filters.db.profile.Custom.Transmog;

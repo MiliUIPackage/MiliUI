@@ -4,26 +4,42 @@ local merchantItemsContainer = addon.Gui.MerchantItemsContainer;
 local originalWidth, originalHeight = MerchantFrame:GetSize();
 
 do -- [[ Set some permanent MerchantFrame changes ]]
-	MerchantFrameBottomLeftBorder:SetSize(256, 61);
-	MerchantFrameBottomLeftBorder:SetTexture("Interface/MerchantFrame/Merchant");
-	MerchantFrameBottomLeftBorder:SetTexCoord(0.001953125, 0.5, 0.00390625, 0.2421875);
-	MerchantFrameBottomLeftBorder:SetPoint("BOTTOMLEFT", MerchantFrame, "BOTTOMLEFT", 1, 26);
+	local tex = addon.Util.IsMainline and "Interface/MerchantFrame/Merchant" or "Interface/MerchantFrame/UI-Merchant-BottomBorder";
+
+	if addon.Util.IsMainline then
+		MerchantFrameBottomLeftBorder:SetSize(256, 61);
+		MerchantFrameBottomLeftBorder:SetTexture(tex);
+		MerchantFrameBottomLeftBorder:SetTexCoord(0.001953125, 0.5, 0.00390625, 0.2421875);
+		MerchantFrameBottomLeftBorder:SetPoint("BOTTOMLEFT", MerchantFrame, "BOTTOMLEFT", 1, 26);
+	end
 
 	local bottomExtensionRightBorder = MerchantFrame:CreateTexture("KrowiEVU_BottomExtensionRightBorder");
 	bottomExtensionRightBorder:SetSize(78, 61);
-	bottomExtensionRightBorder:SetTexture("Interface/MerchantFrame/Merchant");
-	bottomExtensionRightBorder:SetTexCoord(0.5, 0.650390625, 0.00390625, 0.2421875);
-	bottomExtensionRightBorder:SetPoint("BOTTOMRIGHT", MerchantFrame, "BOTTOMRIGHT", -1, 26);
+	bottomExtensionRightBorder:SetTexture(tex);
+	bottomExtensionRightBorder:SetTexCoord(
+		addon.Util.IsMainline and 0.5 or 0,
+		addon.Util.IsMainline and 0.650390625 or 0.296875,
+		addon.Util.IsMainline and 0.00390625 or 0.4765625,
+		addon.Util.IsMainline and 0.2421875 or 0.953125);
+		bottomExtensionRightBorder:SetPoint("BOTTOMRIGHT", MerchantFrame, "BOTTOMRIGHT", addon.Util.IsMainline and -1 or -3, 26);
 
 	local bottomExtensionLeftBorder = MerchantFrame:CreateTexture("KrowiEVU_BottomExtensionLeftBorder");
-	bottomExtensionLeftBorder:SetSize(78, 61);
-	bottomExtensionLeftBorder:SetTexture("Interface/MerchantFrame/Merchant");
-	bottomExtensionLeftBorder:SetTexCoord(0.240234375, 0.390625, 0.00390625, 0.2421875);
+	bottomExtensionLeftBorder:SetSize(addon.Util.IsMainline and 78 or 83, 61);
+	bottomExtensionLeftBorder:SetTexture(tex);
+	bottomExtensionLeftBorder:SetTexCoord(
+		addon.Util.IsMainline and 0.240234375 or 90 / 256,
+		addon.Util.IsMainline and 0.390625 or 173 / 256,
+		addon.Util.IsMainline and 0.00390625 or 0,
+		addon.Util.IsMainline and 0.2421875 or 0.4765625);
 	bottomExtensionLeftBorder:SetPoint("TOPLEFT", MerchantFrameBottomLeftBorder, "TOPRIGHT", 0, 0);
 
 	local bottomExtensionMidBorder = MerchantFrame:CreateTexture("KrowiEVU_BottomExtensionMidBorder");
-	bottomExtensionMidBorder:SetTexture("Interface/MerchantFrame/Merchant");
-	bottomExtensionMidBorder:SetTexCoord(0.01953125, 0.373046875, 0.00390625, 0.2421875);
+	bottomExtensionMidBorder:SetTexture(tex);
+		bottomExtensionMidBorder:SetTexCoord(
+		addon.Util.IsMainline and 0.01953125 or 8 / 256,
+		addon.Util.IsMainline and 0.373046875 or 158 / 256,
+		addon.Util.IsMainline and 0.00390625 or 0,
+		addon.Util.IsMainline and 0.2421875 or 0.4765625);
 	bottomExtensionMidBorder:SetPoint("TOPLEFT", bottomExtensionLeftBorder, "TOPRIGHT", 0, 0);
 	bottomExtensionMidBorder:SetPoint("BOTTOMRIGHT", bottomExtensionRightBorder, "BOTTOMLEFT", 0, 0);
 
@@ -36,12 +52,14 @@ do -- [[ Set some permanent MerchantFrame changes ]]
 	MerchantMoneyInset:SetPoint("TOPLEFT", MerchantFrame, "BOTTOMRIGHT", -169, 27);
 	-- <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" x="-5" y="4"/>
 	-- MerchantExtraCurrencyInset:SetPoint("TOPRIGHT", MerchantFrame, "BOTTOMLEFT", 169, 27);
-	MerchantExtraCurrencyInset:ClearAllPoints();
-	MerchantExtraCurrencyInset:SetPoint("BOTTOMRIGHT", -167, 4);
-	MerchantExtraCurrencyInset:SetPoint("TOPLEFT", MerchantFrame, "BOTTOMRIGHT", -332, 27);
-	MerchantExtraCurrencyBg:ClearAllPoints();
-	MerchantExtraCurrencyBg:SetPoint("TOPRIGHT", MerchantExtraCurrencyInset, -3, -2);
-	MerchantExtraCurrencyBg:SetPoint("BOTTOMLEFT", MerchantExtraCurrencyInset, 3, 2);
+	if addon.Util.IsMainline then
+		MerchantExtraCurrencyInset:ClearAllPoints();
+		MerchantExtraCurrencyInset:SetPoint("BOTTOMRIGHT", -167, 4);
+		MerchantExtraCurrencyInset:SetPoint("TOPLEFT", MerchantFrame, "BOTTOMRIGHT", -332, 27);
+		MerchantExtraCurrencyBg:ClearAllPoints();
+		MerchantExtraCurrencyBg:SetPoint("TOPRIGHT", MerchantExtraCurrencyInset, -3, -2);
+		MerchantExtraCurrencyBg:SetPoint("BOTTOMLEFT", MerchantExtraCurrencyInset, 3, 2);
+	end
 end
 
 hooksecurefunc("MerchantFrame_UpdateMerchantInfo", function()
@@ -55,7 +73,9 @@ hooksecurefunc("MerchantFrame_UpdateMerchantInfo", function()
 		height = height - 36;
 	end
 	MerchantFrame:SetSize(width, height);
-	MerchantFrame.FilterDropdown:Hide();
+	if addon.Util.IsMainline then
+		MerchantFrame.FilterDropdown:Hide();
+	end
 	if numExtraColumns > 0 then
 		KrowiEVU_BottomExtensionLeftBorder:Show();
 		KrowiEVU_BottomExtensionMidBorder:Show();
@@ -74,21 +94,32 @@ hooksecurefunc("MerchantFrame_UpdateMerchantInfo", function()
 		KrowiEVU_SearchBox:SetPoint("TOPRIGHT", KrowiEVU_FilterButton, "BOTTOMRIGHT", 0, 2);
 	end
 	KrowiEVU_BottomExtensionRightBorder:Show();
+	if not addon.Util.IsMainline then
+		MerchantFrameBottomRightBorder:Hide();
+	end
 end);
 
 hooksecurefunc("MerchantFrame_UpdateBuybackInfo", function()
 	MerchantFrame:SetSize(originalWidth, originalHeight);
-	MerchantFrame.FilterDropdown:Hide();
+	if addon.Util.IsMainline then
+		MerchantFrame.FilterDropdown:Hide();
+	end
 	KrowiEVU_BottomExtensionLeftBorder:Hide();
 	KrowiEVU_BottomExtensionMidBorder:Hide();
 	KrowiEVU_BottomExtensionRightBorder:Hide();
+	KrowiEVU_FilterButton:ClearAllPoints();
+	KrowiEVU_FilterButton:SetPoint("TOPRIGHT", -10, -21);
+	KrowiEVU_SearchBox:ClearAllPoints();
+	KrowiEVU_SearchBox:SetPoint("TOPRIGHT", KrowiEVU_FilterButton, "BOTTOMRIGHT", 0, 2);
 end);
 
-hooksecurefunc("MerchantFrame_UpdateRepairButtons", function()
-	if not CanMerchantRepair() then
-		MerchantSellAllJunkButton:SetPoint("BOTTOMRIGHT", MerchantFrame, "BOTTOMLEFT", 162, 33);
-	end
-end);
+if addon.Util.IsMainline then
+	hooksecurefunc("MerchantFrame_UpdateRepairButtons", function()
+		if not CanMerchantRepair() then
+			MerchantSellAllJunkButton:SetPoint("BOTTOMRIGHT", MerchantFrame, "BOTTOMLEFT", 162, 33);
+		end
+	end);
+end
 
 addon.CachedItemIndices = {};
 
@@ -193,8 +224,10 @@ StaticPopupDialogs["CONFIRM_PURCHASE_NONREFUNDABLE_ITEM"].OnAccept = function()
 	BuyMerchantItem(MerchantFrame.itemIndex, MerchantFrame.count);
 end
 
-StaticPopupDialogs["CONFIRM_PURCHASE_ITEM_DELAYED"].OnAccept = function()
-	BuyMerchantItem(MerchantFrame.itemIndex, MerchantFrame.count);
+if addon.Util.IsMainline then
+	StaticPopupDialogs["CONFIRM_PURCHASE_ITEM_DELAYED"].OnAccept = function()
+		BuyMerchantItem(MerchantFrame.itemIndex, MerchantFrame.count);
+	end
 end
 
 StaticPopupDialogs["CONFIRM_HIGH_COST_ITEM"].OnAccept = function()

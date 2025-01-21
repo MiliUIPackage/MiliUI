@@ -79,6 +79,17 @@ for index, _ in next, filters.WeaponTypes do
 	defaults.profile.OnlyShow.Weapon[index] = true;
 end
 
+if not addon.Util.IsMainline then
+	local merchantFilter = LE_LOOT_FILTER_ALL;
+	function GetMerchantFilter()
+		return merchantFilter;
+	end
+
+	function SetMerchantFilter(newMerchantFilter)
+		merchantFilter = newMerchantFilter;
+	end
+end
+
 function filters:RefreshFilters()
     -- for t, _ in next, addon.Tabs do
     --     addon.Tabs[t].Filters = self.db.profile.Tabs[t];

@@ -88,9 +88,17 @@ function merchantItemsContainer:PrepareInfo()
 	end
 end
 
-hooksecurefunc(MerchantFrame.FilterDropdown, "Update", function()
-	merchantItemsContainer:PrepareInfo();
-end);
+if addon.Util.IsMainline then
+    hooksecurefunc(MerchantFrame.FilterDropdown, "Update", function()
+        merchantItemsContainer:PrepareInfo();
+    end);
+else
+    local preHookFunction = MerchantFrame_Update;
+    function MerchantFrame_Update()
+        merchantItemsContainer:PrepareInfo();
+        preHookFunction();
+    end
+end
 
 function merchantItemsContainer:DrawItemSlot(index, row, column, offsetX, offsetY)
     local itemSlot = GetItemSlot(index);
@@ -129,7 +137,7 @@ end
 function merchantItemsContainer:DrawMerchantBuyBackItem(show)
     if show then
         MerchantBuyBackItem:ClearAllPoints();
-        MerchantBuyBackItem:SetPoint("BOTTOMLEFT", MerchantFrameBottomLeftBorder, "BOTTOMLEFT", 205, 7);
+        MerchantBuyBackItem:SetPoint("BOTTOMLEFT", MerchantFrameBottomLeftBorder, "BOTTOMLEFT", addon.Util.IsMainline and 205 or 175, 7);
 	    MerchantBuyBackItem:Show();
     else
         MerchantBuyBackItem:Hide();
