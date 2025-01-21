@@ -291,17 +291,17 @@ L['skittershaw_spin_note'] = '在這區搭乘 {npc:224973} 一整圈.\n\n{npc:22
 L['options_icons_no_harm_from_reading'] = '{achievement:40632}'
 L['options_icons_no_harm_from_reading_desc'] = '顯示 {achievement:40632} 成就中 NPC {npc:227421} 的位置。'
 L['no_harm_from_reading_note'] = [[
-進入（{dot:Yellow}）洞穴，前往（{dot:Red），爬上3只蜘蛛所在的牆壁，然後進入頂部蜘蛛後面的洞。
+進入洞窟 ({dot:Yellow}), 往 ({dot:Red}) 移動並爬上有三隻蜘蛛所在的牆上後跳下最上方蜘蛛後方的洞口.
 
-掉下去後，與附近的 {object:血肉魔典} 互動，出現4個 {npc:227421}。
+當你掉下來後, 和附近的 {object:血腥魔典} 互動來召喚4個 {npc:227421}.
 
-{npc:227421} 隨後會消失，然後重新出現在地圖周圍。
+{npc:227421} 會消失並重新出現在地圖上.
 
-追蹤每個 {npc:227421} 並與他們互動，將他們送回 {object:血肉魔典}。
+追蹤每個 {npc:227421} 並和他們互動來讓它們回到 {object:血腥魔典}.
 
-找到所有4個 {npc:227421} 後，返回 {object:血肉魔典} 並與 {npc:227421} 交談。
+當你找到所有4個 {npc:227421} 後, 回到 {object:血腥魔典} 並和 {npc:227421} 交談.
 ]]
-L['another_you_4_note'] = '沿著標記的路徑巡邏。'
+L['another_you_4_note'] = '在標記的路徑上巡邏.'
 
 L['concealed_contraband_note'] = '移除 {object:網繭} 後揭露寶藏。'
 L['memory_cache_note'] = '從附近的 ({dot:Red}) {object:吸取器儲藏室} 獲得 {spell:420847}. 殺掉 {npc:223908} 後取得 {item:223870} 來開啟 {object:記憶寶箱}。'
@@ -400,7 +400,7 @@ L['prismatic_day'] = '第 %d 天'
 L['pris_quest_1'] = '生命線' -- https://www.wowhead.com/quest=86482/a-lifeline
 L['pris_quest_2'] = nil -- https://www.wowhead.com/ptr/quest=86483/snap-to-it
 L['pris_quest_3'] = '暴風壞脾氣' -- https://www.wowhead.com/ptr/quest=86484/temper-like-a-tempest
-L['pris_quest_4'] = nil -- https://www.wowhead.com/ptr/quest=86485/a-loyal-friend
+L['pris_quest_4'] = '忠誠的朋友' -- https://www.wowhead.com/ptr/quest=86485/a-loyal-friend
 
 L['unsolved_amethyst_runelock'] = '未解的紫晶符文鎖'
 L['bilge_rat_supply_chest'] = '污鼠會補給箱'
