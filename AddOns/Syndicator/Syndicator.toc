@@ -1,6 +1,6 @@
-## Interface: 110007
+## Interface: 110007, 110100
 ## Title: Syndicator
-## Version: 147
+## Version: 157
 ## Author: plusmouse
 ## SavedVariables: SYNDICATOR_CONFIG, SYNDICATOR_DATA, SYNDICATOR_SUMMARIES
 ## IconTexture: Interface\AddOns\Syndicator\Assets\logo.tga
@@ -44,7 +44,7 @@ Search\CheckItem.lua
 Search\GetGroupingKey.lua
 Search\OfflineList.lua
 Search\OfflineList.xml
-Search\MegaSearch.lua
+Search\SearchEverywhere.lua
 Search\Utilities.lua
 
 API\Main.lua

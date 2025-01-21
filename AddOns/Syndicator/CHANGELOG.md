@@ -1,7 +1,6 @@
 # Syndicator
 
-## [147](https://github.com/Baganator/Syndicator/tree/147) (2024-12-25)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/146...147) 
+## [157](https://github.com/Baganator/Syndicator/tree/157) (2025-01-11)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/156...157) 
 
-- Use global constant for anima keyword translations  
-- Search: Add "anima" keyword for Shadowlands anima items  
+- Make "#set bonus" keyword retail only, as only retail supports the needed APIs  
