@@ -11,9 +11,9 @@ Details.AuraTracker = {
 }
 
 --frame options
-local windowWidth = 800
+local windowWidth = 900
 local windowHeight = 670
-local scrollWidth = 790
+local scrollWidth = 890
 local scrollHeightBuff = 400
 local scrollHeightDebuff = 200
 local scrollLineAmountBuff = 20
@@ -165,6 +165,7 @@ function Details.AuraTracker.CreatePanel()
         {text = Loc["Spell Id"], width = 100},
         {text = Loc["Lua Table"], width = 200},
         {text = Loc["Payload (Points)"], width = 296},
+        {text = Loc["Last Cast"], width = 100},
     }
     local headerOptions = {
         padding = 2,
@@ -272,6 +273,12 @@ local formatToLuaTable = {
 
 --[371354] = {[131] = 1, [151] = 2, [174] = 3, [1] = 131, [2] = 151, [3] = 174}, --Phial of the Eye in the Storm
 
+local castEventFrame = CreateFrame("frame")
+castEventFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+castEventFrame:SetScript("OnEvent", function(self, event, unit, castGUID, spellId)
+    castEventFrame.lastSpellId = spellId
+end)
+
 function Details.AuraTracker.RefreshScroll(self, data, offset, totalLines)
     for i = 1, totalLines do
         local index = i + offset
@@ -286,6 +293,7 @@ function Details.AuraTracker.RefreshScroll(self, data, offset, totalLines)
             local globalfunc = DETAILS_AURATRACKER_LUATABLE_FUNC
             line.LuaTableEntry.text = globalfunc and globalfunc(auraInfo) or formatToLuaTable.doFormat2NoIndex(auraInfo) --doFormat2NoIndex
             line.Points.text = formatToLuaTable.doFormat5(auraInfo)
+            line.LastCastSpellId.text = castEventFrame.lastSpellId or 0
 
             line.Name:SetCursorPosition(0)
             line.LuaTableEntry:SetCursorPosition(0)
@@ -343,6 +351,12 @@ function Details.AuraTracker.CreateScrollLine(self, lineId)
     spellIdTextField:SetTextInsets(3, 3, 0, 0)
     spellIdTextField:SetAutoSelectTextOnFocus(true)
 
+    --spellId text field
+    local lastSpellIdCastTextField = DetailsFramework:CreateTextEntry(line, function()end, header:GetColumnWidth(6), scrollLineHeight, _, _, _, dropdownTemplate)
+    lastSpellIdCastTextField:SetJustifyH("left")
+    lastSpellIdCastTextField:SetTextInsets(3, 3, 0, 0)
+    lastSpellIdCastTextField:SetAutoSelectTextOnFocus(true)
+
     --formatted lua table
     local luaTableEntryTextField = DetailsFramework:CreateTextEntry(line, function()end, header:GetColumnWidth(4), scrollLineHeight, _, _, _, dropdownTemplate)
     luaTableEntryTextField:SetJustifyH("left")
@@ -360,6 +374,7 @@ function Details.AuraTracker.CreateScrollLine(self, lineId)
     line:AddFrameToHeaderAlignment(spellIdTextField)
     line:AddFrameToHeaderAlignment(luaTableEntryTextField)
     line:AddFrameToHeaderAlignment(pointsTextField)
+    line:AddFrameToHeaderAlignment(lastSpellIdCastTextField)
 
     line:AlignWithHeader(header, "left")
 
@@ -368,6 +383,7 @@ function Details.AuraTracker.CreateScrollLine(self, lineId)
     line.SpellId = spellIdTextField
     line.LuaTableEntry = luaTableEntryTextField
     line.Points = pointsTextField
+    line.LastCastSpellId = lastSpellIdCastTextField
 
     return line
 end

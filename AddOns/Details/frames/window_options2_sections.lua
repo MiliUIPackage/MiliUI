@@ -7206,8 +7206,8 @@ do
                     afterUpdate()
                     Details:ClearParserCache()
                 end,
-                name = Loc["Merge Primordial Stones 10.0.7"],
-                desc = Loc["Merge Primordial Stones 10.0.7"],
+                name = Loc["Merge Ring Gems 11.0.7"],
+                desc = Loc["Merge Ring Gems 11.0.7"],
                 boxfirst = true,
             },
 
