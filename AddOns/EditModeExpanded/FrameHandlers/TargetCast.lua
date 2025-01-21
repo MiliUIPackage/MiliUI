@@ -16,8 +16,19 @@ function addon:initTargetCastBar()
             addon.ResetFrame(TargetFrameSpellBar)
         end)
         lib:SetDontResize(TargetFrameSpellBar)
-        lib:RegisterResizable(TargetFrameSpellBar)
+        lib:RegisterResizable(TargetFrameSpellBar, 10, 500)
         lib:RegisterHideable(TargetFrameSpellBar)
-        addon.registerAnchorToDropdown(TargetFrameSpellBar)            
+        addon.registerAnchorToDropdown(TargetFrameSpellBar)
+        
+        lib:RegisterSlider(TargetFrameSpellBar, "Width", "Width",
+            function(newValue)
+                TargetFrameSpellBar:SetWidth(newValue)
+            end,
+            10, 300, 1)
+        lib:RegisterSlider(TargetFrameSpellBar, "Height", "Height",
+            function(newValue)
+                TargetFrameSpellBar:SetHeight(newValue)
+            end,
+            1, 50, 1)
     end
 end

@@ -2,7 +2,7 @@
 -- Internal variables
 --
 
-local MAJOR, MINOR = "EditModeExpanded-1.0", 86
+local MAJOR, MINOR = "EditModeExpanded-1.0", 89
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -484,7 +484,6 @@ function lib:RepositionFrame(frame)
                 frame:Show()
             else
                 -- should not get to here
-                -- print("error 37")
             end
         else
             if db.settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] == 1 then
@@ -528,7 +527,11 @@ end
 
 -- Call this to add a slider to the frames dialog box, allowing is to be resized using frame:SetScale
 -- param1: an edit mode registered frame, either one already registered by Blizz, or a custom one you have registered with lib:RegisterFrame
-function lib:RegisterResizable(frame)
+-- param2: minimum size, default will be 10
+-- param3: maximum size, default will be 200
+function lib:RegisterResizable(frame, minSize, maxSize)
+    minSize = minSize or 10
+    maxSize = maxSize or 200
     local systemID = getSystemID(frame)
     
     if not framesDialogs[systemID] then framesDialogs[systemID] = {} end
@@ -540,8 +543,8 @@ function lib:RegisterResizable(frame)
             setting = ENUM_EDITMODEACTIONBARSETTING_FRAMESIZE,
             name = HUD_EDIT_MODE_SETTING_UNIT_FRAME_FRAME_SIZE,
             type = Enum.EditModeSettingDisplayType.Slider,
-            minValue = 10,
-            maxValue = 200,
+            minValue = minSize,
+            maxValue = maxSize,
             stepSize = 5,
         })
     
@@ -684,6 +687,8 @@ function lib:RegisterCustomCheckbox(frame, name, onChecked, onUnchecked, interna
     else
         table.insert(customCheckboxCallDuringProfileInit, callLater)
     end
+
+    EventRegistry:RegisterFrameEventAndCallback("EDIT_MODE_LAYOUTS_UPDATED", callLater)
     
     return function()
         local db = framesDB[systemID]
@@ -1417,7 +1422,7 @@ function refreshCurrentProfile()
             runOutOfCombat(function()
             
                 -- frame hide option
-                if db.settings and (db.settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] ~= nil) then
+                if framesDialogsKeys[systemID] and framesDialogsKeys[systemID][ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] and db.settings and (db.settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] ~= nil) then
                     if frame ~= TalkingHeadFrame then
                         frame:SetShown(framesDB[systemID].settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] ~= 1)
                         if frame.EMEOnEventHandler then
@@ -1434,7 +1439,7 @@ function refreshCurrentProfile()
                 if framesDialogsKeys[systemID] and framesDialogsKeys[systemID][ENUM_EDITMODEACTIONBARSETTING_FRAMESIZE] and db.settings and db.settings[ENUM_EDITMODEACTIONBARSETTING_FRAMESIZE] then
                     frame:SetScaleOverride(db.settings[ENUM_EDITMODEACTIONBARSETTING_FRAMESIZE]/100)
                 end
-
+                
                 if not frame.EMESystemID then
                     
                     -- update position
@@ -1501,13 +1506,14 @@ do
             profilesInitialised = true
             refreshCurrentProfile()
             initialLayout = nop
+            RunNextFrame(function() EventRegistry:RegisterFrameEventAndCallback("EDIT_MODE_LAYOUTS_UPDATED", refreshCurrentProfile) end)
         end
     end
-    initialLayout()
     
     hooksecurefunc(f, "OnLoad", function()
         initialLayout()
         EventUtil.RegisterOnceFrameEventAndCallback("EDIT_MODE_LAYOUTS_UPDATED", initialLayout)
+        RunNextFrame(initialLayout)
     end)
 end
 
