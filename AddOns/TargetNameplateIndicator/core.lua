@@ -1,7 +1,7 @@
-------------------------------------------------------
--- Configuration variables have moved to config.lua --
---        Do not change anything in this file       --
-------------------------------------------------------
+------------------------------------------------------------
+-- Configuration variables have moved to the in-game menu --
+--           Do not change anything in this file          --
+------------------------------------------------------------
 
 local addon, TNI = ...
 
@@ -9,8 +9,7 @@ local LNR = LibStub("LibNameplateRegistry-1.0")
 
 LibStub("AceAddon-3.0"):NewAddon(TNI, addon, "AceConsole-3.0")
 
-
---[==[@debug@
+--[=[@alpha@
 local DEBUG = false
 
 local function debugprint(...)
@@ -18,7 +17,9 @@ local function debugprint(...)
 		print("TNI DEBUG:", ...)
 	end
 end
---@end-debug@]==]
+
+_G.TNI = TNI
+--@end-alpha@]=]
 
 
 -----
@@ -44,7 +45,6 @@ function TNI:OnError_FatalIncompatibility(callback, incompatibilityType)
 	errorPrint(true, "(Error Code: %s) %s", incompatibilityType, detailedMessage)
 end
 
-
 ------
 -- Initialisation
 ------
@@ -58,6 +58,7 @@ do
 			texture = "Interface\\AddOns\\TargetNameplateIndicator\\Textures\\Reticule",
 			height = 70,
 			width = 70,
+			frameStrata = "BACKGROUND",
 			opacity = 1,
 			texturePoint = "BOTTOM",
 			anchorPoint = "TOP",
@@ -232,11 +233,11 @@ function TNI:OnInitialize()
 
 	self:LNR_RegisterCallback("LNR_ERROR_FATAL_INCOMPATIBILITY", "OnError_FatalIncompatibility")
 
-	--[==[@debug@
+	--[=[@alpha@
 	if DEBUG then
 		TNI:LNR_RegisterCallback("LNR_DEBUG", debugprint)
 	end
-	--@end-debug@]==]
+	--@end-alpha@]=]
 end
 
 function TNI:OnEnable()
@@ -261,7 +262,6 @@ function TNI:RefreshIndicator(unit)
 	indicator:Refresh()
 end
 
-
 ------
 -- Indicator functions
 ------
@@ -274,8 +274,8 @@ TNI.Indicators = {}
 --- @field enabled boolean
 --- @field unit string
 --- @field priority number
---- @field LNR_RegisterCallback fun(string, string)
---- @field GetPlateByGUID fun(string):Frame,table
+--- @field LNR_RegisterCallback fun(self: Indicator, eventName: string, callbackName: string)
+--- @field GetPlateByGUID fun(string) : Frame, table
 local Indicator = {}
 
 function Indicator:Update(nameplate)
@@ -284,7 +284,8 @@ function Indicator:Update(nameplate)
 
 	local unitConfig = TNI.db.profile[self.unit]
 	if not unitConfig then return end -- 暫時修正
-	local config = UnitIsUnit("player", self.unit) and unitConfig.self or UnitIsFriend("player", self.unit) and unitConfig.friendly or unitConfig.hostile
+	local config = UnitIsUnit("player", self.unit) and unitConfig.self or
+		UnitIsFriend("player", self.unit) and unitConfig.friendly or unitConfig.hostile
 
 	self:SetShown(unitConfig.enable)
 	self.enabled = unitConfig.enable;
@@ -295,6 +296,7 @@ function Indicator:Update(nameplate)
 			texture = config.textureCustom
 		end
 
+		self:SetFrameStrata(config.frameStrata or "BACKGROUND") -- 暫時修正
 		self.Texture:Show()
 		self.Texture:SetTexture(texture)
 		self.Texture:SetSize(config.width, config.height)
@@ -310,9 +312,9 @@ function Indicator:Refresh()
 end
 
 function Indicator:OnRecyclePlate(callback, nameplate, plateData)
-	--[==[@debug@
+	--[=[@alpha@
 	debugprint("Callback fired (recycle)", self.unit, nameplate == self.currentNameplate)
-	--@end-debug@]==]
+	--@end-alpha@]=]
 
 	if nameplate == self.currentNameplate then
 		self:Update()
@@ -327,7 +329,7 @@ end
 function Indicator:CheckAndHideLowerPriorityIndicators()
 	for unit, indicator in pairs(TNI.Indicators) do
 		if indicator.enabled and self.unit ~= indicator.unit and UnitIsUnit(self.unit, unit) then -- If the indicator is for a different unit token but it's the same unit,
-			if self.priority > indicator.priority then -- If this indicator is a higher priority, hide the other indicator and return true
+			if self.priority > indicator.priority then                                      -- If this indicator is a higher priority, hide the other indicator and return true
 				indicator:Update()
 				return true
 			else -- If this indicator is a lower or equal priority, return false
@@ -358,8 +360,9 @@ function Indicator:VerifyNameplateUnitToken()
 end
 
 local function CreateIndicator(unit, priority)
-	--- @type Indicator
 	local indicator = CreateFrame("Frame", "TargetNameplateIndicator_" .. unit)
+	--- @cast indicator Indicator
+
 	indicator:SetFrameStrata("BACKGROUND")
 	indicator.Texture = indicator:CreateTexture("$parentTexture", "OVERLAY")
 
@@ -385,7 +388,7 @@ end
 -- Non-target Indicator functions
 ------
 
---- @class NonTargetIndicator:Indicator
+--- @class NonTargetIndicator : Indicator
 local NonTargetIndicator = {}
 
 function NonTargetIndicator:OnUpdate()
@@ -403,9 +406,9 @@ function NonTargetIndicator:OnUpdate()
 
 	local shouldDisplay = self:CheckAndHideLowerPriorityIndicators()
 
-	--[==[@debug@
+	--[=[@alpha@
 	debugprint(self.unit, "changed", nameplate, "shouldDisplay?", shouldDisplay)
-	--@end-debug@]==]
+	--@end-alpha@]=]
 
 	-- If the nameplate for this indicator's unit doesn't already have a higher priority indicator displaying on it, update the indicator; otherwise hide it.
 	if shouldDisplay then
@@ -416,8 +419,8 @@ function NonTargetIndicator:OnUpdate()
 end
 
 local function CreateNonTargetIndicator(unit, priority)
-	--- @type NonTargetIndicator
 	local indicator = CreateIndicator(unit, priority)
+	--- @cast indicator NonTargetIndicator
 
 	Mixin(indicator, NonTargetIndicator)
 
@@ -431,14 +434,15 @@ end
 -- Target Indicator
 ------
 
+--- @class TargetIndicator : Indicator
 local TargetIndicator = CreateIndicator("target", 100)
 
 function TargetIndicator:PLAYER_TARGET_CHANGED()
 	local nameplate, plateData = self:GetPlateByGUID(UnitGUID("target"))
 
-	--[==[@debug@
+	--[=[@alpha@
 	debugprint("Player target changed", nameplate)
-	--@end-debug@]==]
+	--@end-alpha@]=]
 
 	if not nameplate then
 		self:Update()
@@ -446,9 +450,9 @@ function TargetIndicator:PLAYER_TARGET_CHANGED()
 end
 
 function TargetIndicator:OnTargetPlateOnScreen(callback, nameplate, plateData)
-	--[==[@debug@
+	--[=[@alpha@
 	debugprint("Callback fired (target found)")
-	--@end-debug@]==]
+	--@end-alpha@]=]
 
 	local shouldDisplay = self:CheckAndHideLowerPriorityIndicators()
 
@@ -477,6 +481,7 @@ local MouseoverIndicator = CreateNonTargetIndicator("mouseover", 10)
 
 ---@diagnostic disable-next-line: unused-local
 local FocusIndicator = CreateNonTargetIndicator("focus", 90)
+
 
 ------
 -- Target of Target Indicator

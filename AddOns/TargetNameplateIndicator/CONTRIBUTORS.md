@@ -38,3 +38,11 @@ Texture contributors:
 - Arrows_FriendAway - Green Arrows Away From Nameplate - Inokis
 - Arrows_FocusTowards - Yellow Arrows Towards Nameplate - Inokis
 - Arrows_FocusAway - Yellow Arrows Away From Nameplate - Inokis
+- green_arrow_down_11384 - Green arrow pointing downwards - Iconpacks via Hayan
+- CyanChevronArrow - Cyan inverted triple chevron - Tushar Saxena and OligoFriends
+- GreenChevronArrow - Green inverted triple chevron - Tushar Saxena and OligoFriends
+- PurpleChevronArrow - Purple inverted triple chevron - Tushar Saxena and OligoFriends
+- YellowChevronArrow - Yellow inverted triple chevron - Tushar Saxena and OligoFriends
+- NeonCyanArrow - Neon cyan arrow pointing downwards - Tushar Saxena and mezmorizedck
+- NeonPurpleArrow - Neon purple arrow pointing downwards - Tushar Saxena and mezmorizedck
+- NeonYellowArrow - Neon yellow arrow pointing downwards - Tushar Saxena and mezmorizedck

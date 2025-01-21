@@ -19,7 +19,7 @@
     You should have received a copy of the GNU Lesser Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-This file was last updated on 2024-05-02T00:34:51Z by Archarodim
+This file was last updated on 2025-01-06T11:26:57Z by Archarodim
 
 --]]
 
@@ -43,7 +43,7 @@ This file was last updated on 2024-05-02T00:34:51Z by Archarodim
 --
 
 -- Library framework {{{
-local MAJOR, MINOR = "LibNameplateRegistry-1.0", 20
+local MAJOR, MINOR = "LibNameplateRegistry-1.0", 21
 
 -- used to be set using debug packager tags but they've been broken ever since the new wowace.com...
 -- see: https://www.curseforge.com/forums/wow-sites/wow-sites-feedback/185461-curse-keyword-substitution-not-applied-for
@@ -119,7 +119,8 @@ local pairs                 = _G.pairs;
 local select                = _G.select;
 local setmetatable          = _G.setmetatable;
 local twipe                 = _G.table.wipe;
--- local GetMouseFocus         = _G.GetMouseFocus;
+local GetMouseFocus         = _G.GetMouseFocus;
+local GetMouseFoci          = _G.GetMouseFoci;
 local UnitExists            = _G.UnitExists;
 local UnitGUID              = _G.UnitGUID;
 local UnitName              = _G.UnitName;
@@ -617,7 +618,7 @@ function LNR_Private:UPDATE_MOUSEOVER_UNIT()
 
     local unitName = "";
     local mouseoverNameplate, data;
-    if WorldFrame:IsMouseMotionFocus() then -- the cursor is either on a name plate or on a 3d model (ie: not on a unit-frame)
+    if  GetMouseFocus and GetMouseFocus() == WorldFrame or GetMouseFoci and GetMouseFoci()[1] == WorldFrame then -- the cursor is either on a name plate or on a 3d model (ie: not on a unit-frame)
 
         if UnitExists("mouseover") then
             mouseoverNameplate = GetNamePlateForUnit("mouseover");

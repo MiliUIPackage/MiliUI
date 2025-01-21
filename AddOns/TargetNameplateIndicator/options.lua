@@ -48,6 +48,13 @@ local TEXTURE_NAMES = {
 	"Arrows_FocusTowards",
 	"Arrows_FocusAway",
 	"green_arrow_down_11384",
+	"CyanChevronArrow",
+	"GreenChevronArrow",
+	"PurpleChevronArrow",
+	"YellowChevronArrow",
+	"NeonCyanArrow",
+	"NeonPurpleArrow",
+	"NeonYellowArrow",
 }
 
 -- Add the directory prefix to the texture names and localise the descriptions
@@ -384,7 +391,11 @@ TNI.ACC_HandleCommand = ACC.HandleCommand
 local slash = slashes[1]
 function TNI:HandleChatCommand(input)
 	if input:trim() == "" then
-		Settings.OpenToCategory(frameref.name)
+		if Settings and Settings.OpenToCategory then
+			Settings.OpenToCategory(frameref.name)
+		else
+			InterfaceOptionsFrame_OpenToCategory(frameref)
+		end
 	else
 		self:ACC_HandleCommand(slash, addon, input)
 	end

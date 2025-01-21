@@ -49,19 +49,31 @@ L["Dropdown.Texture.Arrows_Towards.Desc"] = "Red Arrows Towards Nameplate"
 L["Dropdown.Texture.BlueArrow.Desc"] = "蓝色向下箭头"
 L["Dropdown.Texture.bluearrow1.Desc"] = "抽象蓝色向下箭头"
 L["Dropdown.Texture.circles_target.Desc"] = "红色同心圆标靶"
+--[[Translation missing --]]
+L["Dropdown.Texture.CyanChevronArrow.Desc"] = "Cyan inverted triple chevron"
 L["Dropdown.Texture.gearsofwar.Desc"] = "战争机器logo"
 --[[Translation missing --]]
 L["Dropdown.Texture.green_arrow_down_11384.Desc"] = "Green arrow pointing downwards"
 L["Dropdown.Texture.greenarrowtarget.Desc"] = "霓虹绿色箭头和红色标靶"
+--[[Translation missing --]]
+L["Dropdown.Texture.GreenChevronArrow.Desc"] = "Green inverted triple chevron"
 L["Dropdown.Texture.Hunters_Mark.Desc"] = "红色猎人标记箭头"
 L["Dropdown.Texture.malthael.Desc"] = "玛瑟尔（暗黑破坏神）logo"
+--[[Translation missing --]]
+L["Dropdown.Texture.NeonCyanArrow.Desc"] = "Neon cyan arrow pointing downwards"
 L["Dropdown.Texture.NeonGreenArrow.Desc"] = "霓虹红色箭头的绿色版"
+--[[Translation missing --]]
+L["Dropdown.Texture.NeonPurpleArrow.Desc"] = "Neon purple arrow pointing downwards"
 L["Dropdown.Texture.NeonRedArrow.Desc"] = "霓虹红色箭头"
 L["Dropdown.Texture.NeonReticule.Desc"] = "准心的霓虹版"
+--[[Translation missing --]]
+L["Dropdown.Texture.NeonYellowArrow.Desc"] = "Neon yellow arrow pointing downwards"
 L["Dropdown.Texture.NewRedArrow.Desc"] = "红色向下箭头"
 L["Dropdown.Texture.NewSkull.Desc"] = "骷髅和防毒面具"
 L["Dropdown.Texture.PaleRedChevronArrow.Desc"] = "淡红色军阶图形"
 L["Dropdown.Texture.PurpleArrow.Desc"] = "抽象紫色向下箭头"
+--[[Translation missing --]]
+L["Dropdown.Texture.PurpleChevronArrow.Desc"] = "Purple inverted triple chevron"
 L["Dropdown.Texture.Q_FelFlamingSkull.Desc"] = "绿色火焰骷髅"
 L["Dropdown.Texture.Q_GreenGPS.Desc"] = "绿色地图GPS符号"
 L["Dropdown.Texture.Q_GreenTarget.Desc"] = "绿色标靶箭头"
@@ -77,6 +89,8 @@ L["Dropdown.Texture.RedChevronArrow.Desc"] = "红色渐变军阶图形"
 L["Dropdown.Texture.Reticule.Desc"] = "红色准心"
 L["Dropdown.Texture.Shield.Desc"] = "圣盾与剑和交叉的矛"
 L["Dropdown.Texture.skull.Desc"] = "骷髅和交叉骨头"
+--[[Translation missing --]]
+L["Dropdown.Texture.YellowChevronArrow.Desc"] = "Yellow inverted triple chevron"
 L["Group.focus.friendly.Desc"] = "焦点为友方时的选项"
 L["Group.focus.hostile.Desc"] = "焦点为敌方时的选项"
 L["Group.focus.Name"] = "焦点目标"

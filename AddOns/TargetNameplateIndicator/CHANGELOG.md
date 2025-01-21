@@ -1,3 +1,20 @@
+# 1.59
+- Add recoloured textures from Tushar Saxena
+- Add green_arrow_down_11384 to CONTRIBUTORS.md
+- Bump TOC Interface version for Retail
+
+# 1.58
+- Bump TOC Interface version for Retail, Classic and Cataclysm Classic
+
+# 1.57
+- Clean up code slightly
+- Bump TOC Interface version for Retail and Classic
+
+## 1.56
+- Bump TOC Interface version for Retail
+- Update slash command to use Settings API where available
+- Update libraries for 11.0.0
+
 ## 1.55
 - Bump TOC Interface version for Retail, Classic and WotLK Classic
 
