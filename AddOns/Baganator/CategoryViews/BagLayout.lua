@@ -59,12 +59,11 @@ local function Prearrange(isLive, bagID, bag, bagType, isGrouping)
         info.tooltipGetter = function() return C_TooltipInfo.GetBagItem(bagID, slotIndex) end
       end
       info.isJunkGetter = junkPlugin and function() local _, result = pcall(junkPlugin, bagID, slotIndex, info.itemID, info.itemLink); return result == true end
-      if info.itemID ~= nil then
-        local location = {bagID = bagID, slotIndex = slotIndex}
+      local location = {bagID = bagID, slotIndex = slotIndex}
+      if info.itemID ~= nil and C_Item.DoesItemExist(location) then
         info.setInfo = addonTable.ItemViewCommon.GetEquipmentSetInfo(location, info.itemLink)
-        if info.setInfo then
-          info.guid = C_Item.GetItemGUID(location)
-        elseif not isGrouping then
+        info.itemLocation = location
+        if info.setInfo or not isGrouping then
           info.guid = C_Item.GetItemGUID(location)
         elseif info.hasLoot and not info.isBound then
           -- Ungroup lockboxes always
@@ -91,7 +90,7 @@ local function Prearrange(isLive, bagID, bag, bagType, isGrouping)
         linkMap[info.itemLink] = info.keyLink
       end
       info.keyNoGUID = addonTable.ItemViewCommon.Utilities.GetCategoryDataKeyNoCount(info)
-      info.key = info.keyNoGUID .. info.guid
+      info.key = info.keyNoGUID .. info.guid .. "_" .. tostring(info.refundable)
       table.insert(everything, info)
     else
       table.insert(emptySlots, {bagID = bagID, itemCount = 1, slotID = slotIndex, key = bagType, bagType = bagType, keyLink = bagType})
@@ -156,6 +155,7 @@ function addonTable.CategoryViews.BagLayoutMixin:SettingChanged(settingName)
   end
   if settingName ~= addonTable.Config.Options.CATEGORY_SECTION_TOGGLED then
     self.composed = nil
+    self.wasGrouping = nil
   end
 end
 
@@ -259,7 +259,7 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
         end
       end
       details.results = entries
-      if hidden[details.source] or sectionToggled[details.section] then
+      if hidden[details.source] then
         for _, entry in ipairs(details.results) do
           table.insert(self.notShown, entry)
         end
@@ -269,13 +269,13 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
 
   local oldComposed = self.composed
   self.composed = composed
-  if oldComposed then
+  if oldComposed and self.wasGrouping == container.isGrouping then
     local anyNew = #composed.details ~= #oldComposed.details
     for index, old in ipairs(oldComposed.details) do
       local current = composed.details[index]
       if current.source ~= old.source or
         (current.source and (current.source ~= addonTable.CategoryViews.Constants.RecentItemsCategory)
-          and not old.emptySlots and old.oldLength and old.oldLength < #current.results) then
+          and not old.emptySlots and (old.oldLength or #old.results) < #current.results) then
         for _, item in ipairs(current.results) do -- Put returning items back where they were before
           -- Check if the exact item existed before, or at least a similar one
           -- (for warband transfers)
@@ -326,18 +326,18 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
         end
       end
     end
-    if container.splitStacksDueToTransfer then
-      for _, current in ipairs(composed.details) do
-        if current.results then
-          current.keys = {}
-          -- We use keyNoGUID as a backup because the guid shifts when moving items
-          -- in-and-out of the warband bank
-          current.keysNoGUID = {}
-          for _, item in ipairs(current.results) do
-            if item.bagID and item.slotID and (item.key or item.oldKey) and (item.keyNoGUID or item.oldKeyNoGUID) then
-              current.keys[item.key or item.oldKey] = true
-              current.keysNoGUID[item.keyNoGUID or item.oldKeyNoGUID] = (current.keysNoGUID[item.keyNoGUID or item.oldKeyNoGUID] or 0) + 1
-            end
+  end
+  if container.splitStacksDueToTransfer then
+    for _, current in ipairs(composed.details) do
+      if current.results then
+        current.keys = {}
+        -- We use keyNoGUID as a backup because the guid shifts when moving items
+        -- in-and-out of the warband bank
+        current.keysNoGUID = {}
+        for _, item in ipairs(current.results) do
+          if item.bagID and item.slotID and (item.key or item.oldKey) and (item.keyNoGUID or item.oldKeyNoGUID) then
+            current.keys[item.key or item.oldKey] = true
+            current.keysNoGUID[item.keyNoGUID or item.oldKeyNoGUID] = (current.keysNoGUID[item.keyNoGUID or item.oldKeyNoGUID] or 0) + 1
           end
         end
       end
@@ -350,7 +350,7 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
     if details.results then
       details.sourceKey = details.source .. "_" .. details.label .. "_" .. (details.groupLabel or "")
       if #details.results > 0 then
-        sourceKeysInUse[details.sourceKey] = true
+        sourceKeysInUse[details.sourceKey] = details
       end
     end
   end
@@ -366,34 +366,34 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
     return false
   end
 
+  local layoutsBySource = {}
+  local unusedLayouts = {}
+
   if container.isLive then
-    for index, details in pairs(composed.details) do
-      if details.results and #details.results > 0 then
-        local layout = FindValueInTableIf(container.LiveLayouts, function(a) return a.sourceKey == details.sourceKey end)
-        if layout then
-          if hidden[details.source] or IsSectionToggled(details.section) then
-            layout:DeallocateUnusedButtons({})
-          else
-            layout:DeallocateUnusedButtons(details.results)
-          end
-        end
-      end
-    end
-    -- Ensure we don't overflow the preallocated buttons by returning all
-    -- buttons no longer needed by a particular group
     for _, layout in ipairs(container.LiveLayouts) do
-      if not sourceKeysInUse[layout.sourceKey] then
+      local existing = sourceKeysInUse[layout.sourceKey]
+      if existing and not hidden[existing.source] then
+        layoutsBySource[layout.sourceKey] = layout
+        layout:DeallocateUnusedButtons(existing.results)
+      else
+        table.insert(unusedLayouts, layout)
+        -- Ensure we don't overflow the preallocated buttons by returning all
+        -- buttons no longer needed by a particular group
         layout:DeallocateUnusedButtons({})
         layout:Hide()
       end
     end
+
     for _, layout in ipairs(container.CachedLayouts) do
       layout:Hide()
     end
     activeLayouts = container.LiveLayouts
   else
     for _, layout in ipairs(container.CachedLayouts) do
-      if not sourceKeysInUse[layout.sourceKey] or IsSectionToggled(layout.section) then
+      if sourceKeysInUse[layout.sourceKey] then
+        layoutsBySource[layout.sourceKey] = layout
+      else
+        table.insert(unusedLayouts, layout)
         layout:Hide()
       end
     end
@@ -409,61 +409,57 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
 
   for index, details in ipairs(composed.details) do
     if details.type == "divider" then
-      table.insert(layoutsShown, (self.dividerPool:Acquire()))
-      layoutsShown[#layoutsShown].type = details.type
-      layoutsShown[#layoutsShown].section = details.section
+      local divider = self.dividerPool:Acquire()
+      table.insert(layoutsShown, divider)
+      divider.type = details.type
+      divider.section = details.section
     elseif details.type == "section" then
-      if not IsSectionToggled(details.section) then
-        -- Check whether the section has any non-empty items in it
-        local itemCount = 0
-        local any = false
-        local level = #details.section + 1
-        if index < #composed.details then
-          for i = index + 1, #composed.details do
-            local d = composed.details[i]
-            if d.section[level] ~= details.label then
-              break
-            elseif d.type == "category" and #d.results > 0 and not hidden[d.source] then
-              itemCount = itemCount + (d.oldLength or #d.results)
-              any = true -- keep section active if blank slots in it
-            end
+      -- Check whether the section has any non-empty items in it
+      local itemCount = 0
+      local any = false
+      local level = #details.section + 1
+      if index < #composed.details then
+        for i = index + 1, #composed.details do
+          local d = composed.details[i]
+          if d.section[level] ~= details.label then
+            break
+          elseif d.type == "category" and #d.results > 0 and not hidden[d.source] then
+            itemCount = itemCount + (d.oldLength or #d.results)
+            any = true -- keep section active if blank slots in it
           end
         end
-        if itemCount > 0 or any then
-          local button = self.sectionButtonPool:Acquire()
-          if sectionToggled[details.label] then
-            button:SetText(details.label .. " " .. LIGHTGRAY_FONT_COLOR:WrapTextInColorCode("(" .. itemCount .. ")"))
-            button:SetCollapsed()
-          else
-            button:SetText(details.label)
-            button:SetExpanded()
-          end
-          button:SetScript("OnClick", function()
-            local sectionToggled = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_SECTION_TOGGLED)
-            sectionToggled[details.label] = not sectionToggled[details.label]
-            addonTable.Config.Set(addonTable.Config.Options.CATEGORY_SECTION_TOGGLED, CopyTable(sectionToggled))
-          end)
-          button.section = details.section
-          table.insert(layoutsShown, button)
-          button.type = details.type
+      end
+      if itemCount > 0 or any then
+        local button = self.sectionButtonPool:Acquire()
+        if sectionToggled[details.label] then
+          button:SetText(details.label .. " " .. LIGHTGRAY_FONT_COLOR:WrapTextInColorCode("(" .. itemCount .. ")"))
+          button:SetCollapsed()
         else
-          table.insert(layoutsShown, {}) -- {} causes the packing code to ignore this
+          button:SetText(details.label)
+          button:SetExpanded()
         end
+        button.assignedLayouts = {}
+        button.label = details.label
+        button.section = details.section
+        button.moveOffscreen = IsSectionToggled(details.section)
+        table.insert(layoutsShown, button)
+        button.type = details.type
       else
         table.insert(layoutsShown, {}) -- {} causes the packing code to ignore this
       end
     elseif details.type == "category" then
-      if #details.results > 0 and not hidden[details.source] and not IsSectionToggled(details.section) then
+      if #details.results > 0 and not hidden[details.source] then
         local searchResults = details.results
-        local layout = FindValueInTableIf(activeLayouts, function(a) return a.sourceKey == details.sourceKey end)
+        local layout = layoutsBySource[details.sourceKey]
         if not layout then
-          layout = FindValueInTableIf(activeLayouts, function(a) return not sourceKeysInUse[a.sourceKey] end)
+          layout = table.remove(unusedLayouts)
         end
         if not layout then
           AllocateLayout()
           layout = activeLayouts[#activeLayouts]
         end
         layout:ShowGroup(details.results, math.min(bagWidth, #details.results), details.source)
+        layout.moveOffscreen = IsSectionToggled(details.section)
         table.insert(layoutsShown, layout)
         layout.section = details.section
         layout.sourceKey = details.sourceKey
@@ -483,6 +479,11 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
       error("unrecognised layout type")
     end
   end
+
+  container.activeLayouts = layoutsShown
+
+  self.wasGrouping = container.isGrouping
+
   if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
     addonTable.Utilities.DebugOutput("category group show", debugprofilestop() - start2)
   end
@@ -503,7 +504,7 @@ function addonTable.CategoryViews.BagLayoutMixin:Layout(allBags, bagWidth, bagTy
     if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
       addonTable.Utilities.DebugOutput("stackables", debugprofilestop() - s0)
     end
-    if state ~= self.state or Syndicator.API.IsBagEventPending() then
+    if state ~= self.state then
       return
     end
 

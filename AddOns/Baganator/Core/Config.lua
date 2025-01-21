@@ -30,6 +30,7 @@ addonTable.Config.Options = {
   CURRENCY_HEADERS_COLLAPSED = "currency_headers_collapsed",
   CURRENCIES_TRACKED = "currencies_tracked",
   CURRENCIES_TRACKED_IMPORTED = "currencies_tracked_imported",
+  SHOW_SEARCH_BOX = "show_search_box",
 
   WARBAND_CURRENT_TAB = "warband_current_tab",
   GUILD_CURRENT_TAB = "guild_current_tab",
@@ -38,6 +39,7 @@ addonTable.Config.Options = {
 
   HIDE_BOE_ON_COMMON = "hide_boe_on_common",
   ICON_TEXT_QUALITY_COLORS = "icon_text_quality_colors",
+  ICON_MARK_UNUSABLE  = "icon_mark_unusable",
   ICON_TEXT_FONT_SIZE = "icon_text_font_size",
   ICON_TOP_LEFT_CORNER_ARRAY = "icon_top_left_corner_array",
   ICON_TOP_RIGHT_CORNER_ARRAY = "icon_top_right_corner_array",
@@ -47,6 +49,7 @@ addonTable.Config.Options = {
   ICON_GREY_JUNK = "icon_grey_junk",
   ICON_EQUIPMENT_SET_BORDER = "icon_equipment_set_border",
   ICON_FLASH_SIMILAR_ALT = "icon_flash_similar_alt",
+  ICON_CONTEXT_FADING = "icon_context_fading",
 
   JUNK_PLUGIN = "junk_plugin",
   JUNK_PLUGINS_IGNORED = "junk_plugin_ignored",
@@ -111,6 +114,7 @@ addonTable.Config.Defaults = {
   [addonTable.Config.Options.SHOW_SORT_BUTTON] = true,
   [addonTable.Config.Options.RECENT_CHARACTERS_MAIN_VIEW] = {},
   [addonTable.Config.Options.HIDE_BOE_ON_COMMON] = false,
+  [addonTable.Config.Options.ICON_MARK_UNUSABLE] = false,
   [addonTable.Config.Options.SHOW_RECENTS_TABS] = false,
   [addonTable.Config.Options.ICON_TEXT_QUALITY_COLORS] = false,
   [addonTable.Config.Options.MAIN_VIEW_POSITION] = {"BOTTOMRIGHT", addonTable.Constants.IsRetail and -115 or -30, 85},
@@ -137,6 +141,7 @@ addonTable.Config.Defaults = {
   [addonTable.Config.Options.REVERSE_GROUPS_SORT_ORDER] = false,
   [addonTable.Config.Options.SORT_START_AT_BOTTOM] = false,
   [addonTable.Config.Options.ICON_FLASH_SIMILAR_ALT] = false,
+  [addonTable.Config.Options.ICON_CONTEXT_FADING] = true,
   [addonTable.Config.Options.SORT_IGNORE_SLOTS_AT_END] = false,
   [addonTable.Config.Options.SORT_IGNORE_BAG_SLOTS_COUNT] = 0,
   [addonTable.Config.Options.SORT_IGNORE_BANK_SLOTS_COUNT] = 0,
@@ -151,6 +156,7 @@ addonTable.Config.Defaults = {
   [addonTable.Config.Options.CURRENCY_HEADERS_COLLAPSED] = {},
   [addonTable.Config.Options.CURRENCIES_TRACKED] = {},
   [addonTable.Config.Options.CURRENCIES_TRACKED_IMPORTED] = 0,
+  [addonTable.Config.Options.SHOW_SEARCH_BOX] = true,
 
   [addonTable.Config.Options.DEBUG_TIMERS] = false,
   [addonTable.Config.Options.DEBUG_KEYWORDS] = false,
@@ -208,13 +214,15 @@ addonTable.Config.IsCharacterSpecific = {
 
 addonTable.Config.ItemButtonsRelayoutSettings = {
   addonTable.Config.Options.BAG_ICON_SIZE,
-  --addonTable.Config.Options.EMPTY_SLOT_BACKGROUND, -- now done by theme
   addonTable.Config.Options.BAG_VIEW_WIDTH,
   addonTable.Config.Options.BANK_VIEW_WIDTH,
   addonTable.Config.Options.WARBAND_BANK_VIEW_WIDTH,
   addonTable.Config.Options.GUILD_VIEW_WIDTH,
   addonTable.Config.Options.SHOW_SORT_BUTTON,
+  addonTable.Config.Options.SHOW_SEARCH_BOX,
   addonTable.Config.Options.HIDE_BOE_ON_COMMON,
+  addonTable.Config.Options.ICON_MARK_UNUSABLE,
+  addonTable.Config.Options.ICON_CONTEXT_FADING,
   addonTable.Config.Options.ICON_TEXT_QUALITY_COLORS,
   addonTable.Config.Options.ICON_TEXT_FONT_SIZE,
   addonTable.Config.Options.BAG_EMPTY_SPACE_AT_TOP,

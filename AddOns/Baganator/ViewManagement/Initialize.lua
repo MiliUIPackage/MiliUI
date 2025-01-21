@@ -22,9 +22,14 @@ local function RegisterForScaling(frame)
 end
 
 local backpackView, UpdateBackpackButtons
+local bankView
 
 function addonTable.ViewManagement.GetBackpackFrame()
   return backpackView
+end
+
+function addonTable.ViewManagement.GetBankFrame()
+  return bankView
 end
 
 local function SetupBackpackHooks()
@@ -198,7 +203,6 @@ local function SetupBackpackView(frameGroup)
 end
 
 local function SetupBankView(frameGroup)
-  local bankView
   local allBankViews = {
     single = CreateFrame("Frame", "Baganator_SingleViewBankViewFrame" .. frameGroup, UIParent, "BaganatorSingleViewBankViewTemplate"),
     category = CreateFrame("Frame", "Baganator_CategoryViewBankViewFrame" .. frameGroup, UIParent, "BaganatorCategoryViewBankViewTemplate"),

@@ -330,6 +330,7 @@ function BaganatorSingleViewGuildViewMixin:UpdateTabs(guildData)
     addonTable.Skins.AddFrame("SideTabButton", tabButton)
     tabButton:RegisterForClicks("LeftButtonUp")
     tabButton.Icon:SetTexture("Interface\\AddOns\\Baganator\\Assets\\Everything.png")
+    tabButton.Icon:SetAlpha(1)
     tabButton:SetScript("OnClick", function(_, button)
       self:SetCurrentTab(0)
       self:UpdateForGuild(self.lastGuild, self.isLive)
@@ -349,12 +350,20 @@ function BaganatorSingleViewGuildViewMixin:UpdateTabs(guildData)
     addonTable.Skins.AddFrame("SideTabButton", tabButton)
     tabButton:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     tabButton.Icon:SetTexture(tabInfo.iconTexture)
+    tabButton.Icon:SetAlpha(1)
     tabButton:SetScript("OnClick", function(_, button)
+      addonTable.CallbackRegistry:TriggerEvent("ClearHighlightGuildTab")
       self:SetCurrentTab(index)
       self:UpdateForGuild(self.lastGuild, self.isLive)
       if self.isLive and button == "RightButton" then
         self:OpenTabEditor()
       end
+    end)
+    tabButton:SetScript("OnEnter", function()
+      addonTable.CallbackRegistry:TriggerEvent("HighlightGuildTabItems", {[index] = true})
+    end)
+    tabButton:SetScript("OnLeave", function()
+      addonTable.CallbackRegistry:TriggerEvent("ClearHighlightGuildTab")
     end)
     tabButton:SetPoint("TOPLEFT", lastTab, "BOTTOMLEFT", 0, -12)
     tabButton.SelectedTexture:Hide()
@@ -372,6 +381,7 @@ function BaganatorSingleViewGuildViewMixin:UpdateTabs(guildData)
     local tabButton = self.tabsPool:Acquire()
     addonTable.Skins.AddFrame("SideTabButton", tabButton)
     tabButton.Icon:SetTexture("Interface\\GuildBankFrame\\UI-GuildBankFrame-NewTab")
+    tabButton.Icon:SetAlpha(1)
     tabButton:SetScript("OnClick", function()
       PlaySound(SOUNDKIT.IG_MAINMENU_OPTION);
       StaticPopup_Show("CONFIRM_BUY_GUILDBANK_TAB")
@@ -515,7 +525,7 @@ function BaganatorSingleViewGuildViewMixin:UpdateForGuild(guild, isLive)
     self.Tabs[1]:SetPoint("LEFT", active, "LEFT")
   end
 
-  local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
+  local sideSpacing, topSpacing, searchSpacing = addonTable.Utilities.GetSpacing()
 
   self.SearchWidget:SetSpacing(sideSpacing)
 
@@ -537,7 +547,7 @@ function BaganatorSingleViewGuildViewMixin:UpdateForGuild(guild, isLive)
       withdrawText = LIGHTGRAY_FONT_COLOR:WrapTextInColorCode(BAGANATOR_L_MULTIPLE_TABS)
       remainingWithdrawals = -2
     end
-    self.WithdrawalsInfo:SetText(BAGANATOR_L_GUILD_WITHDRAW_DEPOSIT_X_X:format(withdrawText, depositText))
+    self.ItemsTransferInfo:SetText(BAGANATOR_L_GUILD_WITHDRAW_DEPOSIT_X_X:format(withdrawText, depositText))
     local guildMoney = GetGuildBankMoney()
     local withdrawMoney = math.min(GetGuildBankWithdrawMoney(), guildMoney)
     if not CanWithdrawGuildBankMoney() or withdrawMoney == 0 then
@@ -548,15 +558,17 @@ function BaganatorSingleViewGuildViewMixin:UpdateForGuild(guild, isLive)
       self.canWithdraw = true
       self.WithdrawButton:Enable()
     end
-    self.Money:SetText(BAGANATOR_L_GUILD_MONEY_X_X:format(GetMoneyString(withdrawMoney, true), GetMoneyString(guildMoney, true)))
+    self.Money:SetText(CURRENCY_TOTAL:format(GetMoneyString(guildMoney, true), ""))
+    self.GoldTransferInfo:SetText(BAGANATOR_L_GUILD_MONEY_WITHDRAW_X:format(GetMoneyString(withdrawMoney, true)))
     self.NoTabsText:SetPoint("TOP", self, "CENTER", 0, 15)
-    detailsHeight = 30
+    detailsHeight = 50
 
     self.wouldShowTransferButton = remainingWithdrawals == -1 or remainingWithdrawals > 0
     self.LogsFrame:ApplyTabTitle()
   else -- not live
     self.wouldShowTransferButton = false
-    self.WithdrawalsInfo:SetText("")
+    self.ItemsTransferInfo:SetText("")
+    self.GoldTransferInfo:SetText("")
     if guildData then
       self.Money:SetText(BAGANATOR_L_GUILD_MONEY_X:format(GetMoneyString(guildData.money, true)))
     end
@@ -567,12 +579,13 @@ function BaganatorSingleViewGuildViewMixin:UpdateForGuild(guild, isLive)
   end
   self.TransferButton:SetShown(self.wouldShowTransferButton)
 
-  self.SearchWidget:SetShown(active:IsShown())
+  self.SearchWidget:SetShown(addonTable.Config.Get(addonTable.Config.Options.SHOW_SEARCH_BOX) and active:IsShown())
   self.NotVisitedText:SetShown(not active:IsShown() and (not guildData or not guildData.details.visited))
   self.NoTabsText:SetShown(not active:IsShown() and guildData and guildData.details.visited)
   self.Money:SetShown(active:IsShown() or guildData and guildData.details.visited)
 
-  self.WithdrawalsInfo:SetPoint("BOTTOMLEFT", sideSpacing + addonTable.Constants.ButtonFrameOffset, 30)
+  self.ItemsTransferInfo:SetPoint("BOTTOMLEFT", sideSpacing + addonTable.Constants.ButtonFrameOffset, 50)
+  self.GoldTransferInfo:SetPoint("BOTTOMLEFT", sideSpacing + addonTable.Constants.ButtonFrameOffset, 30)
   self.Money:SetPoint("BOTTOMLEFT", sideSpacing + addonTable.Constants.ButtonFrameOffset, 10)
   self.DepositButton:SetPoint("BOTTOMRIGHT", self, -sideSpacing + 1, 6)
 
@@ -585,11 +598,12 @@ function BaganatorSingleViewGuildViewMixin:UpdateForGuild(guild, isLive)
       80 + topSpacing / 2
     )
   else
+    local tabsHeight = #self.Tabs * (self.Tabs[1]:GetHeight() + 12) * self.Tabs[1]:GetScale() + 20 * self.Tabs[1]:GetScale()
     self:SetSize(
       self.Container:GetWidth() + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset - 2,
-      math.min(self.Container:GetHeight() + 69 + detailsHeight, UIParent:GetHeight() / self:GetScale())
+      math.max(tabsHeight, math.min(self.Container:GetHeight() + 44 + searchSpacing + detailsHeight, UIParent:GetHeight() / self:GetScale()))
     )
-    self:UpdateScroll(69 + detailsHeight, self:GetScale())
+    self:UpdateScroll(44 + searchSpacing + detailsHeight, self:GetScale())
   end
 
   self.ButtonVisibility:Update()

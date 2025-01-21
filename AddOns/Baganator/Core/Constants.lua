@@ -37,6 +37,9 @@ addonTable.Constants.Events = {
 
   "ViewComplete",
   "BagCacheAfterNewItemsUpdate",
+  "SearchMonitorComplete",
+
+  "NewItemsAcquired",
 
   -- Single view only events
   "SpecialBagToggled",
@@ -65,6 +68,9 @@ addonTable.Constants.Events = {
   "HighlightBagItems",
   "ClearHighlightBag",
 
+  "HighlightGuildTabItems",
+  "ClearHighlightGuildTab",
+
   "ContentRefreshRequired",
   "LayoutUpdateRequired",
   "PluginsUpdated",
@@ -75,6 +81,10 @@ addonTable.Constants.Events = {
   "SetButtonsShown",
 
   "FrameGroupSwapped",
+
+  "BankViewChanged",
+
+  "ItemContextChanged", -- Baganator specific context highlighting
 }
 
 addonTable.Constants.SortStatus = {

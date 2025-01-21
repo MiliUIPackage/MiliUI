@@ -28,6 +28,39 @@ function addonTable.Utilities.GetAllCharacters(searchText)
   return characters
 end
 
+function addonTable.Utilities.GetAllGuilds(searchText)
+  searchText = searchText and searchText:lower() or ""
+  local guilds = {}
+
+  local realmNormalizedToRealmMap = {}
+  for _, character in ipairs(Syndicator.API.GetAllCharacters()) do
+    local data = Syndicator.API.GetCharacter(character)
+    realmNormalizedToRealmMap[data.details.realmNormalized] = data.details.realm
+  end
+
+  for _, guild in ipairs(Syndicator.API.GetAllGuilds()) do
+    local info = Syndicator.API.GetGuild(guild)
+    if searchText == "" or guild:lower():find(searchText, nil, true) then
+      table.insert(guilds, {
+        fullName = guild,
+        name = info.details.guild,
+        realmNormalized = info.details.realm,
+        realm = realmNormalizedToRealmMap[info.details.realm or info.details.realms[1]] or info.details.realm or info.details.realms[1],
+      })
+    end
+  end
+
+  table.sort(guilds, function(a, b)
+    if a.realm == b.realm then
+      return a.name < b.name
+    else
+      return a.realm < b.realm
+    end
+  end)
+
+  return guilds
+end
+
 function addonTable.Utilities.ShouldShowSortButton()
   return addonTable.Config.Get(addonTable.Config.Options.SHOW_SORT_BUTTON)
 end
@@ -251,9 +284,9 @@ function addonTable.Utilities.AddScrollBar(self)
   ScrollUtil.AddManagedScrollBarVisibilityBehavior(self.ScrollBox, self.ScrollBar)
 
   function self:UpdateScroll(ySaved, scale)
-    local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
+    local sideSpacing, topSpacing, searchSpacing = addonTable.Utilities.GetSpacing()
     self.ScrollBox:ClearAllPoints()
-    self.ScrollBox:SetPoint("TOPLEFT", sideSpacing + addonTable.Constants.ButtonFrameOffset - 2 - 2, -50 - topSpacing / 4 + 2)
+    self.ScrollBox:SetPoint("TOPLEFT", sideSpacing + addonTable.Constants.ButtonFrameOffset - 2 - 2, -25 - searchSpacing - topSpacing / 4 + 2)
     self.ScrollChild:SetWidth(self.Container:GetWidth() + 4)
     self.ScrollChild:SetHeight(self.Container:GetHeight() + 4)
     self.ScrollBox:SetSize(
@@ -331,8 +364,12 @@ function addonTable.Utilities.GetSpacing()
     sideSpacing = 8
     topSpacing = 7
   end
+  local searchSpacing = 25
+  if not addonTable.Config.Get(addonTable.Config.Options.SHOW_SEARCH_BOX) then
+    searchSpacing = 0
+  end
 
-  return sideSpacing, topSpacing
+  return sideSpacing, topSpacing, searchSpacing
 end
 
 addonTable.Utilities.MasqueRegistration = function() end
@@ -379,4 +416,87 @@ function addonTable.Utilities.AddButtons(allButtons, lastButton, parent, spacing
   end
 
   return buttonsWidth
+end
+
+if addonTable.Constants.IsRetail then
+  function addonTable.Utilities.IsAuctionable(details)
+    if not C_Item.IsItemDataCachedByID(details.itemID) then
+      C_Item.RequestLoadItemDataByID(details.itemID)
+      return nil
+    end
+    return C_Item.DoesItemExist(details.itemLocation) and C_AuctionHouse.IsSellItemValid(details.itemLocation, false)
+  end
+else
+  local cachedCharges = {}
+  local fontString = UIParent:CreateFontString(nil, nil, "GameFontNormal")
+  local function DetermineCharges(tooltipInfo)
+    for _, line in ipairs(tooltipInfo.lines) do
+      local num = line.leftText:match("%d+")
+      if num then
+        local start = debugprofilestop()
+        fontString:SetText(ITEM_SPELL_CHARGES:format(num))
+        if fontString:GetText() == line.leftText then
+          return fontString:GetText()
+        end
+      end
+    end
+    return ""
+  end
+
+  function addonTable.Utilities.IsAuctionable(details)
+    local result = false
+
+    local currentDurability, maxDurability
+    if details.itemLocation:IsBagAndSlot() then
+      currentDurability, maxDurability = C_Container.GetContainerItemDurability(details.itemLocation:GetBagAndSlot())
+    else
+      local slot = details.itemLocation:GetEquipmentSlot()
+      currentDurability, maxDurability = GetInventoryItemDurability(slot)
+    end
+
+    result = not C_Item.IsBound(details.itemLocation) and currentDurability == maxDurability
+
+    -- Determine if the item is at max charges (if it has charges)
+    if result and select(6, C_Item.GetItemInfoInstant(details.itemID)) == Enum.ItemClass.Consumable and C_Item.GetItemSpell(details.itemID) and details.itemLocation.bagID ~= nil then
+      local _, spellID = C_Item.GetItemSpell(details.itemID)
+      if not C_Spell.IsSpellDataCached(spellID) then
+        C_Spell.RequestLoadSpellData(spellID)
+        return nil
+      end
+
+      if not details.tooltipInfoSpell then
+        details.tooltipInfoSpell = details.tooltipGetter()
+      end
+
+      if not cachedCharges[details.itemID] then
+        cachedCharges[details.itemID] = DetermineCharges(Syndicator.Search.DumpClassicTooltip(function(t) t:SetItemByID(details.itemID) end))
+      end
+
+      local cached = cachedCharges[details.itemID]
+      if cached ~= "" then
+        result = false
+        for _, line in ipairs(details.tooltipInfoSpell) do
+          if line.leftText == cached then
+            result = true
+            break
+          end
+        end
+      end
+    end
+
+    return result
+  end
+end
+
+do
+  local timer
+  function addonTable.ItemViewCommon.NotifySearchMonitorComplete(text)
+    if timer then
+      return
+    end
+    timer = C_Timer.NewTimer(0, function()
+      addonTable.CallbackRegistry:TriggerEvent("SearchMonitorComplete", text)
+      timer = nil
+    end)
+  end
 end

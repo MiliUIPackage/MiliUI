@@ -45,6 +45,7 @@ function addonTable.ItemButtonUtil.UpdateSettings()
   iconSettings = {
     markJunk = addonTable.Config.Get("icon_grey_junk"),
     equipmentSetBorder = addonTable.Config.Get("icon_equipment_set_border"),
+    contextFading = addonTable.Config.Get("icon_context_fading"),
   }
 
   local junkPluginID = addonTable.Config.Get("junk_plugin")
@@ -60,6 +61,42 @@ function addonTable.ItemButtonUtil.UpdateSettings()
           self.icon:SetDesaturated(true)
         end
       end
+    end)
+  end
+
+  local markUnusable = addonTable.Config.Get("icon_mark_unusable")
+  if markUnusable then
+    table.insert(itemCallbacks, function(self)
+      if not self.BGR.tooltipInfo then
+        self.BGR.tooltipInfo = self.BGR.tooltipGetter()
+      end
+      self.icon:SetVertexColor(1, 1, 1)
+      self.BGR.markUnusable = false
+      if not self.icon.hooked then
+        self.icon.hooked = true
+        local inHook = false
+        hooksecurefunc(self.icon,"SetVertexColor", function()
+          if not inHook and self.BGR.markUnusable then
+            inHook = true
+            self.icon:SetVertexColor(RED_FONT_COLOR.r, RED_FONT_COLOR.g, RED_FONT_COLOR.b)
+            inHook = false
+          end
+        end)
+      end
+      if self.BGR.tooltipInfo then
+        for _, row in ipairs(self.BGR.tooltipInfo.lines) do
+          if row.leftColor.r == 1 and row.leftColor.g < 0.2 and row.leftColor.b < 0.2 and row.leftText ~= ITEM_SCRAPABLE_NOT or
+             row.rightColor and row.rightColor.r == 1 and row.rightColor.g < 0.2 and row.rightColor.b < 0.2 then
+            self.BGR.markUnusable = true
+            self.icon:SetVertexColor(RED_FONT_COLOR.r, RED_FONT_COLOR.g, RED_FONT_COLOR.b)
+          end
+        end
+      end
+    end)
+  else
+    table.insert(itemCallbacks, function(self)
+      self.BGR.markUnusable = false
+      self.icon:SetVertexColor(1, 1, 1)
     end)
   end
 
@@ -395,6 +432,59 @@ local function ApplyNewItemAnimation(self, quality)
   end
 end
 
+local function GetItemContextMatch(self)
+  if self.BGR and self.BGR.itemID and self.BGR.itemLocation and C_Item.DoesItemExist(self.BGR.itemLocation) then
+    local needsData = false
+
+    local bankFrame = addonTable.ViewManagement.GetBankFrame()
+    if addonTable.Constants.IsRetail and bankFrame and bankFrame.currentTab.isLive and bankFrame.Warband:IsVisible() then
+      if not C_Item.IsItemDataCachedByID(self.BGR.itemID) then
+        C_Item.RequestLoadItemDataByID(self.BGR.itemID)
+        needsData = true
+      else
+        return C_Bank.IsItemAllowedInBankType(Enum.BankType.Account, self.BGR.itemLocation)
+      end
+    elseif addonTable.Compatibility.Context.Auctioneer then
+      local auctionable = addonTable.Utilities.IsAuctionable(self.BGR)
+      if auctionable == nil then
+        needsData = true
+      else
+        return auctionable
+      end
+    elseif addonTable.Constants.IsRetail and addonTable.Compatibility.Context.MailInfo and addonTable.Compatibility.Context.SendMail then
+      if not C_Item.IsItemDataCachedByID(self.BGR.itemID) then
+        C_Item.RequestLoadItemDataByID(self.BGR.itemID)
+        needsData = true
+      else
+        return not self.BGR.isBound or C_Bank.IsItemAllowedInBankType(Enum.BankType.Account, self.BGR.itemLocation)
+      end
+    elseif addonTable.Compatibility.Context.Merchant then
+      return not self.BGR.hasNoValue or (C_Item.DoesItemExist(self.BGR.itemLocation) and C_Item.CanBeRefunded(self.BGR.itemLocation))
+    elseif addonTable.Compatibility.Context.GuildBanker then
+      if not C_Item.IsItemDataCachedByID(self.BGR.itemID) then
+        C_Item.RequestLoadItemDataByID(self.BGR.itemID)
+        needsData = true
+      else
+        return not self.BGR.isBound and (not addonTable.Constants.IsRetail or not C_Item.IsBoundToAccountUntilEquip(self.BGR.itemLocation))
+      end
+    elseif addonTable.Compatibility.Context.Socket then
+      return (select(6, C_Item.GetItemInfoInstant(self.BGR.itemID)) == Enum.ItemClass.Gem)
+    end
+
+    if needsData then -- Missing item/spell data
+      local BGR = self.BGR
+      QueueWidget(function()
+        if self.BGR ~= BGR then
+          return
+        end
+        self:UpdateItemContextMatching()
+      end)
+      return false
+    end
+  end
+  return true
+end
+
 BaganatorRetailCachedItemButtonMixin = {}
 
 function BaganatorRetailCachedItemButtonMixin:OnLoad()
@@ -495,67 +585,89 @@ function BaganatorRetailLiveContainerItemButtonMixin:MyOnLoad()
       addonTable.CallbackRegistry:TriggerEvent("HighlightSimilarItems", self.BGR.itemLink)
     end
   end)
-  -- Automatically use the reagent bank when at the bank transferring crafting
-  -- reagents if there is space
-  self:HookScript("PreClick", function()
-    if BankFrame:IsShown() and self.BGR and self.BGR.itemID and BankFrame.activeTabIndex ~= addonTable.Constants.BlizzardBankTabConstants.Warband then
-      BankFrame.selectedTab = 1
+  self:HookScript("PreClick", self.PreClickHook)
+  self:HookScript("PostClick", self.PostClickHook)
 
-      local _
-      self.BGR.stackLimit, _, _, _, _, _, _, _, _, self.BGR.isReagent = select(8, C_Item.GetItemInfo(self.BGR.itemID))
-      if self.BGR.isReagent then
-        local bank = Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter()).bank
-        local reagentBank = bank[tIndexOf(Syndicator.Constants.AllBankIndexes, Enum.BagIndex.Reagentbank)]
-        local emptySlotFound = false
-        --Find a matching stack for the item, prioritising reagent bank
-        for _, item in ipairs(reagentBank) do
-          if item.itemID == self.BGR.itemID and self.BGR.stackLimit - item.itemCount >= self.BGR.itemCount then
-            BankFrame.selectedTab = 2
-            return
-          elseif item.itemID == nil then -- Got an empty slot, remember this for if no stacks found
-            emptySlotFound = true
-          end
-        end
+  self:HookScript("OnShow", self.OnShowHook)
+  self:HookScript("OnHide", self.OnHideHook)
 
-        -- Find a matching stack in the regular bank
-        for index, bag in ipairs(bank) do
-          if Syndicator.Constants.AllBankIndexes[index] ~= Enum.BagIndex.Reagentbank then
-            for _, slot in ipairs(bag) do
-              if slot.itemID == self.BGR.itemID and slot.itemCount + self.BGR.itemCount <= self.BGR.stackLimit then
-                return
-              end
-            end
-          end
-        end
+  self.GetItemContextMatchResult = function()
+    return (
+      not iconSettings.contextFading or
 
-        -- No matching stacks, find an empty slot in the reagent bank (if
-        -- possible)
-        if emptySlotFound then
-          BankFrame.selectedTab = 2
-        end
-      end
-    end
-  end)
-  self:HookScript("PostClick", function()
-    if BankFrame:IsShown() and self.BGR and BankFrame.activeTabIndex ~= addonTable.Constants.BlizzardBankTabConstants.Warband then
-      BankFrame.selectedTab = 1
-    end
-  end)
-
-  hooksecurefunc(self, "UpdateItemContextMatching", function()
-    if self.widgetContainer then
-      if self.ItemContextOverlay:IsShown() then
-        SetWidgetsAlpha(self, false)
-      else
-        SetWidgetsAlpha(self, self.BGR == nil or self.BGR.matchesSearch ~= false)
-      end
-    end
-  end)
+      ItemButtonUtil.GetItemContextMatchResultForItem({bagID = self:GetBagID(), slotIndex = self:GetID()})
+        ~= ItemButtonUtil.ItemContextMatchResult.Mismatch and
+      GetItemContextMatch(self)
+    ) and ItemButtonUtil.ItemContextMatchResult.Match or ItemButtonUtil.ItemContextMatchResult.Mismatch
+  end
+  hooksecurefunc(self, "UpdateItemContextOverlay", self.PostUpdateItemContextOverlay)
 
   self:HookScript("OnEnter", function(self)
     local bagID, slotID = self:GetParent():GetID(), self:GetID()
     addonTable.NewItems:ClearNewItem(bagID, slotID)
   end)
+end
+
+function BaganatorRetailLiveContainerItemButtonMixin:PreClickHook()
+  -- Automatically use the reagent bank when at the bank transferring crafting
+  -- reagents if there is space
+  if BankFrame:IsShown() and self.BGR and self.BGR.itemID and BankFrame.activeTabIndex ~= addonTable.Constants.BlizzardBankTabConstants.Warband then
+    BankFrame.selectedTab = 1
+
+    local _
+    self.BGR.stackLimit, _, _, _, _, _, _, _, _, self.BGR.isReagent = select(8, C_Item.GetItemInfo(self.BGR.itemID))
+    if self.BGR.isReagent then
+      local bank = Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter()).bank
+      local reagentBank = bank[tIndexOf(Syndicator.Constants.AllBankIndexes, Enum.BagIndex.Reagentbank)]
+      local emptySlotFound = false
+      --Find a matching stack for the item, prioritising reagent bank
+      for _, item in ipairs(reagentBank) do
+        if item.itemID == self.BGR.itemID and self.BGR.stackLimit - item.itemCount >= self.BGR.itemCount then
+          BankFrame.selectedTab = 2
+          return
+        elseif item.itemID == nil then -- Got an empty slot, remember this for if no stacks found
+          emptySlotFound = true
+        end
+      end
+
+      -- Find a matching stack in the regular bank
+      for index, bag in ipairs(bank) do
+        if Syndicator.Constants.AllBankIndexes[index] ~= Enum.BagIndex.Reagentbank then
+          for _, slot in ipairs(bag) do
+            if slot.itemID == self.BGR.itemID and slot.itemCount + self.BGR.itemCount <= self.BGR.stackLimit then
+              return
+            end
+          end
+        end
+      end
+
+      -- No matching stacks, find an empty slot in the reagent bank (if
+      -- possible)
+      if emptySlotFound then
+        BankFrame.selectedTab = 2
+      end
+    end
+  end
+end
+
+function BaganatorRetailLiveContainerItemButtonMixin:PostClickHook()
+  if BankFrame:IsShown() and self.BGR and BankFrame.activeTabIndex ~= addonTable.Constants.BlizzardBankTabConstants.Warband then
+    BankFrame.selectedTab = 1
+  end
+end
+
+function BaganatorRetailLiveContainerItemButtonMixin:OnShowHook()
+  addonTable.CallbackRegistry:RegisterCallback("ItemContextChanged", self.OnItemContextChanged, self)
+end
+
+function BaganatorRetailLiveContainerItemButtonMixin:OnHideHook()
+  addonTable.CallbackRegistry:UnregisterCallback("ItemContextChanged", self)
+end
+
+function BaganatorRetailLiveContainerItemButtonMixin:PostUpdateItemContextOverlay()
+  if self.widgetContainer then
+    SetWidgetsAlpha(self, not self.ItemContextOverlay:IsShown() and (self.BGR == nil or self.BGR.matchesSearch ~= false))
+  end
 end
 
 function BaganatorRetailLiveContainerItemButtonMixin:UpdateTextures()
@@ -612,8 +724,10 @@ function BaganatorRetailLiveContainerItemButtonMixin:SetItemDetails(cacheData)
   GetInfo(self, cacheData, function()
     self.BGR.tooltipGetter = function() return C_TooltipInfo.GetBagItem(self:GetBagID(), self:GetID()) end
     local itemLocation = ItemLocation:CreateFromBagAndSlot(self:GetParent():GetID(), self:GetID())
-    self.BGR.setInfo = addonTable.ItemViewCommon.GetEquipmentSetInfo(itemLocation, self.BGR.itemLink)
-    self.BGR.itemLocation = itemLocation
+    if C_Item.DoesItemExist(itemLocation) then
+      self.BGR.setInfo = addonTable.ItemViewCommon.GetEquipmentSetInfo(itemLocation, self.BGR.itemLink)
+      self.BGR.itemLocation = itemLocation
+    end
 
     self.BGR.hasNoValue = noValue
 
@@ -927,7 +1041,30 @@ function BaganatorClassicLiveContainerItemButtonMixin:MyOnLoad()
 
   self:SetScript("OnEnter", self.OnEnter)
   self:SetScript("OnLeave", self.OnLeave)
+
   self.UpdateTooltip = self.OnEnter
+
+  self:HookScript("OnShow", self.OnShowHook)
+  self:HookScript("OnHide", self.OnHideHook)
+
+  self.ItemContextOverlay = self:CreateTexture(nil, "OVERLAY")
+  self.ItemContextOverlay:SetColorTexture(0, 0, 0, 0.8)
+  self.ItemContextOverlay:SetAllPoints()
+  self.ItemContextOverlay:Hide()
+end
+
+function BaganatorClassicLiveContainerItemButtonMixin:OnShowHook()
+  addonTable.CallbackRegistry:RegisterCallback("ItemContextChanged", self.UpdateItemContextMatching, self)
+end
+
+function BaganatorClassicLiveContainerItemButtonMixin:OnHideHook()
+  addonTable.CallbackRegistry:UnregisterCallback("ItemContextChanged", self)
+end
+
+function BaganatorClassicLiveContainerItemButtonMixin:UpdateItemContextMatching()
+  self.ItemContextOverlay:SetShown(
+    iconSettings.contextFading and not GetItemContextMatch(self)
+  )
 end
 
 function BaganatorClassicLiveContainerItemButtonMixin:GetInventorySlot()
@@ -1026,6 +1163,7 @@ function BaganatorClassicLiveContainerItemButtonMixin:SetItemDetails(cacheData)
   end
 
   self.searchOverlay:SetShown(false);
+  self.ItemContextOverlay:Hide()
   SetWidgetsAlpha(self, true)
 
   GetInfo(self, cacheData, function()
@@ -1041,8 +1179,10 @@ function BaganatorClassicLiveContainerItemButtonMixin:SetItemDetails(cacheData)
       end)
     end
     local itemLocation = ItemLocation:CreateFromBagAndSlot(self:GetParent():GetID(), self:GetID())
-    self.BGR.setInfo = addonTable.ItemViewCommon.GetEquipmentSetInfo(itemLocation, self.BGR.itemLink)
-    self.BGR.itemLocation = itemLocation
+    if C_Item.DoesItemExist(itemLocation) then
+      self.BGR.setInfo = addonTable.ItemViewCommon.GetEquipmentSetInfo(itemLocation, self.BGR.itemLink)
+      self.BGR.itemLocation = itemLocation
+    end
 
     if C_Engraving and C_Engraving.IsEngravingEnabled() then
       self.BGR.isEngravable = false
@@ -1062,6 +1202,7 @@ function BaganatorClassicLiveContainerItemButtonMixin:SetItemDetails(cacheData)
     self.BGR.hasNoValue = noValue
   end, function()
     self:BGRUpdateQuests()
+    self:UpdateItemContextMatching()
   end)
 end
 
@@ -1092,7 +1233,7 @@ function BaganatorClassicLiveContainerItemButtonMixin:SetItemFiltered(text)
     self.BGR.matchesSearch = result
   end
   self.searchOverlay:SetShown(not result)
-  SetWidgetsAlpha(self, result)
+  SetWidgetsAlpha(self, result and not self.ItemContextOverlay:IsShown())
 end
 
 BaganatorClassicLiveGuildItemButtonMixin = {}

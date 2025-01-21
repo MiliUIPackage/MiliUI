@@ -67,7 +67,9 @@ function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
           PanelTemplates_SetTab(self, index)
         end
       end
-      self:OnFinished()
+      if self:IsVisible() then
+        self:OnFinished()
+      end
     elseif settingName == addonTable.Config.Options.MAIN_VIEW_SHOW_BAG_SLOTS and self:IsVisible() then
       self.BagSlots:Update(self.lastCharacter, self.isLive)
       self:OnFinished()
@@ -316,6 +318,10 @@ function BaganatorItemViewCommonBackpackViewMixin:UpdateForCharacter(character, 
 
   local oldLast = self.lastCharacter
   self.lastCharacter = character
+  if oldLast ~= character then
+    addonTable.CallbackRegistry:TriggerEvent("CharacterSelect", character)
+    self.searchToApply = true
+  end
   self.isLive = isLive
 
   addonTable.Utilities.AddGeneralDropSlot(self, function()
@@ -325,10 +331,6 @@ function BaganatorItemViewCommonBackpackViewMixin:UpdateForCharacter(character, 
   self.BagSlots:Update(self.lastCharacter, self.isLive)
   local containerInfo = characterData.containerInfo
   self.ToggleBagSlotsButton:SetShown(self.isLive or (containerInfo and containerInfo.bags))
-
-  if oldLast ~= character then
-    addonTable.CallbackRegistry:TriggerEvent("CharacterSelect", character)
-  end
 
   self.SortButton:SetShown(addonTable.Utilities.ShouldShowSortButton() and isLive)
   self:UpdateTransferButton()
@@ -349,7 +351,7 @@ function BaganatorItemViewCommonBackpackViewMixin:UpdateForCharacter(character, 
 end
 
 function BaganatorItemViewCommonBackpackViewMixin:OnFinished(character, isLive)
-  local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
+  local sideSpacing, topSpacing, searchSpacing = addonTable.Utilities.GetSpacing()
 
   local externalVerticalSpacing = (self.BagSlots:GetHeight() > 0 and (self.BagSlots:GetTop() - self:GetTop()) or 0) + (self.Tabs[1] and self.Tabs[1]:IsShown() and (self:GetBottom() - self.Tabs[1]:GetBottom() + 5) or 0)
 
@@ -360,7 +362,7 @@ function BaganatorItemViewCommonBackpackViewMixin:OnFinished(character, isLive)
 
   self:SetSize(
     self.Container:GetWidth() + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset - 2,
-    math.min(self.Container:GetHeight() + 74 + additionalPadding + topSpacing / 2 + self.CurrencyWidget:GetExtraHeight(), UIParent:GetHeight() / self:GetScale() - externalVerticalSpacing)
+    math.min(self.Container:GetHeight() + 49 + searchSpacing + additionalPadding + topSpacing / 2 + self.CurrencyWidget:GetExtraHeight(), UIParent:GetHeight() / self:GetScale() - externalVerticalSpacing)
   )
 
   self:UpdateScroll(74 + additionalPadding + topSpacing / 2 + externalVerticalSpacing, self:GetScale())
