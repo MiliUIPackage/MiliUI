@@ -1,5 +1,4 @@
-## Changed in v2024.34
+## Changed in v2025.2
 
-* Siren Isle updates for the pirate phase
-* Proper data update for Cataclysm Classic
+* Siren Isle: update the storm phase mobs
 
