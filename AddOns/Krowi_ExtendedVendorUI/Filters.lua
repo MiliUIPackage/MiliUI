@@ -47,11 +47,11 @@ filters.WeaponTypes = {
 local defaults = {
 	profile = {
 		HideCollected = {
-			Pets = false,
-			Mounts = false,
-			Toys = false,
+			Pets = true,
+			Mounts = true,
+			Toys = true,
 			Transmog = false,
-			Recipes = false
+			Recipes = true
 		},
 		Custom = {
 			Pets = true,
