@@ -1,6 +1,6 @@
 # Mythic+ Miscellaneous
 
-## [11.0-020](https://github.com/teelolws/MplusAG/tree/11.0-020) (2024-10-29)
-[Full Changelog](https://github.com/teelolws/MplusAG/compare/11.0-019...11.0-020) [Previous Releases](https://github.com/teelolws/MplusAG/releases)
+## [11.0-021](https://github.com/teelolws/MplusAG/tree/11.0-021) (2024-12-28)
+[Full Changelog](https://github.com/teelolws/MplusAG/compare/11.0-020...11.0-021) [Previous Releases](https://github.com/teelolws/MplusAG/releases)
 
-- Update min-rating-longer.lua  
+- Update MplusAdventureGuide.toc  
