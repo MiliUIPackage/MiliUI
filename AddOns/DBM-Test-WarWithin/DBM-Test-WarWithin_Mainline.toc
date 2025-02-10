@@ -10,7 +10,30 @@
 ## X-DBM-Test: true
 ## X-Category-zhTW: 團隊
 
+Undermine/Vexieand-Normal-Kill.lua
+Undermine/Vexieand-Heroic-Wipe.lua
+Undermine/Vexieand-Mythic-Wipe.lua
+Undermine/CauldronofCarnage-LFR-Kill.lua
+Undermine/CauldronofCarnage-Normal-Wipe.lua
+Undermine/CauldronofCarnage-Heroic-Wipe.lua
+Undermine/CauldronofCarnage-Mythic-Wipe.lua
+Undermine/RikReverb-LFR-Wipe.lua
+Undermine/RikReverb-Normal-Wipe.lua
+Undermine/RikReverb-Heroic-Wipe.lua
+Undermine/RikReverb-Mythic-Wipe.lua
+Undermine/StixBunkjunker-LFR-Kill.lua
+Undermine/StixBunkjunker-Normal-Kill.lua
 Undermine/StixBunkjunker-Heroic-Wipe.lua
+Undermine/StixBunkjunker-Mythic-Wipe.lua
+Undermine/SprocketmongerLockenstock-LFR-Kill.lua
+Undermine/SprocketmongerLockenstock-Normal-Kill.lua
+Undermine/SprocketmongerLockenstock-Heroic-Wipe.lua
+Undermine/SprocketmongerLockenstock-Mythic-Wipe.lua
+Undermine/TheOneArmedBandit-Mythic-Wipe.lua
+Undermine/MugZeeHeadsofSecurity-LFR-Wipe.lua
+Undermine/MugZeeHeadsofSecurity-Normal-Wipe.lua
+Undermine/MugZeeHeadsofSecurity-Heroic-Wipe.lua
+Undermine/MugZeeHeadsofSecurity-Mythic-Wipe.lua
 
 NerubarPalace/Ulgrax-Mythic-Kill.lua
 NerubarPalace/BloodboundHorror-Mythic-Kill.lua
@@ -20,12 +43,3 @@ NerubarPalace/Ovinax-Mythic-Kill.lua
 NerubarPalace/Kyveza-Mythic-Kill.lua
 NerubarPalace/SilkenCourt-Mythic-Kill.lua
 NerubarPalace/QueenAnsurek-Mythic-Wipe.lua
-
-NerubarPalace/Reports/Ulgrax-Mythic-Kill.lua
-NerubarPalace/Reports/BloodboundHorror-Mythic-Kill.lua
-NerubarPalace/Reports/Sikran-Mythic-Kill.lua
-NerubarPalace/Reports/Rashanan-Mythic-Kill.lua
-NerubarPalace/Reports/Ovinax-Mythic-Kill.lua
-NerubarPalace/Reports/Kyveza-Mythic-Kill.lua
-NerubarPalace/Reports/SilkenCourt-Mythic-Kill.lua
-NerubarPalace/Reports/QueenAnsurek-Mythic-Wipe.lua

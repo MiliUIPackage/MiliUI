@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2570, "DBM-Party-WarWithin", 2, 1267)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241214043239")
+mod:SetRevision("20250208205545")
 mod:SetCreatureID(207939)
 mod:SetEncounterID(2835)
 mod:SetHotfixNoticeRev(20240608000000)
@@ -39,7 +39,7 @@ local specWarnHammerofPurity				= mod:NewSpecialWarningDodgeCount(423062, nil, n
 
 local timerVindictiveWrathCD				= mod:NewCDCountTimer(48.5, 422969, nil, nil, nil, 6)
 local timerCastigatorsShieldCD				= mod:NewVarCountTimer("v23-27", 423015, nil, nil, nil, 3)--23-27
-local timerBurningLightCD					= mod:NewCDCountTimer(34, 423051, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerBurningLightCD					= mod:NewVarCountTimer("v34-36.4", 423051, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerHammerofPurityCD					= mod:NewCDCountTimer(18.2, 423062, nil, nil, nil, 3)
 local timerSacredPyreCD						= mod:NewAITimer(33.9, 446368, nil, nil, nil, 5, nil, DBM_COMMON_L.MYTHIC_ICON)
 

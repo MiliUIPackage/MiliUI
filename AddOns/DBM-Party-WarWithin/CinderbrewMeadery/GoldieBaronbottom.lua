@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2589, "DBM-Party-WarWithin", 7, 1272)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241102154000")
+mod:SetRevision("20250208184131")
 mod:SetCreatureID(218523)
 mod:SetEncounterID(2930)
 mod:SetUsedIcons(1, 2)
@@ -12,6 +12,10 @@ mod:SetZone(2661)
 mod.sendMainBossGUID = true
 
 mod:RegisterCombat("combat")
+
+mod:RegisterEvents(
+	"CHAT_MSG_MONSTER_YELL"
+)
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 435622 435560 436592 436637",
@@ -48,6 +52,7 @@ local timerCinderWounds						= mod:NewBuffFadesTimer(33.9, 435789, nil, nil, nil
 local timerSpreadtheLoveCD					= mod:NewAITimer(49.6, 435560, nil, nil, nil, 5)
 local timerBurningRicochetCD				= mod:NewCDCountTimer(13.3, 436644, nil, nil, nil, 3)
 local timerCashCannonCD						= mod:NewCDCountTimer(13.3, 436592, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerRP								= mod:NewRPTimer(9)
 
 mod:AddSetIconOption("SetIconOnRico", 436644, true, 0, {1, 2})
 
@@ -189,3 +194,15 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
 	end
 end
 --]]
+
+function mod:CHAT_MSG_MONSTER_YELL(msg)
+	if (msg == L.RolePlay or msg:find(L.RolePlay)) and self:LatencyCheck() then
+		self:SendSync("Roleplay")
+	end
+end
+
+function mod:OnSync(msg)
+	if msg == "Roleplay" and self:AntiSpam(10, 3) then
+		timerRP:Start()
+	end
+end

@@ -7,7 +7,8 @@ local active = nil
 test.TimeWarper = {
 	---@type table<Frame, boolean|function>
 	-- true if it needs to be hooked, function is the previous function or false if the handler was cleared while it was hooked
-	framesToHook = {}
+	framesToHook = {},
+	sortedFramesToHook = {} -- Frames sorted by name, resolves some determinism problems around ordering OnUpdate calls
 }
 local timeWarperMt = {__index = test.TimeWarper}
 
@@ -47,6 +48,9 @@ function test.TimeWarper:HookOnUpdateHandler(frame)
 			return oldSetScript(frame, scriptType, handler)
 		end
 	end
+	-- Invalidate cache, important to use an empty table and not null, since this is actually a static variable and re-setting it would make it a class variable
+	-- (Yes, the class setup for timewarper is a mess)
+	table.wipe(self.sortedFramesToHook)
 end
 
 function test.TimeWarper:Start()
@@ -117,16 +121,32 @@ function test.TimeWarper:WaitUntil(time)
 			self.lastFrameTime = GetTimePreciseSec() - self.currentFrameStart
 			self.currentFrameStart = GetTimePreciseSec()
 			-- this goes negative if we hit the fps limit, so it effectively speeds up later to catch up
-			self.fakeTimeSinceLastFrame = self.fakeTimeSinceLastFrame - self.lastFrameTime * self.factor
+			if not self.frozen then
+				self.fakeTimeSinceLastFrame = self.fakeTimeSinceLastFrame - self.lastFrameTime * self.factor
+			end
 		end
 		self.fakeTime = self.fakeTime + timeStep
 		self.fakeTimeSinceLastFrame = self.fakeTimeSinceLastFrame + timeStep
-		-- FIXME: This calls handlers in a non-deterministic order, but it's a bit annoying to fix, because how would we order the frames?
-		-- Options to consider
-		--  * Frame creation/registration time: mod load order can differ and timers are created lazily
-		--  * By name: might be anonymous frames
-		--  * Hard-coded logic to run DBT, then DBM, then DBM scheduler, then everything else by some logic?
-		for frame, updateFunc in pairs(self.framesToHook) do
+		-- Enforce deterministic order for calling OnUpdate handlers, this resolves some annoying problems with code that gets timer info from DBT in a scheduled task
+		if #self.sortedFramesToHook == 0 then
+			for frame, updateFunc in pairs(self.framesToHook) do
+				self.sortedFramesToHook[#self.sortedFramesToHook + 1] = {frame = frame, updateFunc = updateFunc}
+			end
+			-- Reverse order by name, this runs DBT before the DBM scheduler to run DBT first and then the scheduler
+			-- That's the better order for determinism because it potentially expires DBT timers before running scheduled tasks that operate on them
+			table.sort(self.sortedFramesToHook, function(e1, e2)
+				local n1, n2 = e1.frame:GetName(), e2.frame:GetName()
+				if n1 and n2 then
+					return n1 > n2
+				elseif not n1 and not n2 then
+					return tostring(e1.frame) > tostring(e2.frame)
+				else
+					return not not n1
+				end
+			end)
+		end
+		for _, hookedFrame in ipairs(self.sortedFramesToHook) do
+			local frame, updateFunc = hookedFrame.frame, hookedFrame.updateFunc
 			if frame:IsVisible() and type(updateFunc) == "function" then
 				updateFunc(frame, timeStep)
 			end
@@ -168,9 +188,44 @@ function test.TimeWarper:SetSpeed(factor)
 	---@type DBMTestCallbackTimewarp
 	local testStopCallbackArgs = {
 		Speed = factor,
+		Frozen = self.frozen,
 		Timewarper = self --[[@as DBMTestTimewarperPublic]]
 	}
 	DBM:FireEvent("DBMTest_Timewarp", testStopCallbackArgs)
+end
+
+local frozenWarningSpamScheduled = false
+local function spamFrozenWarning(self)
+	if not self.frozen then
+		frozenWarningSpamScheduled = false
+		return
+	end
+	if frozenWarningSpamScheduled then
+		return
+	end
+	frozenWarningSpamScheduled = true
+	C_Timer.After(60, function() -- Do not use DBM:Schedule() here, it's also frozen
+		frozenWarningSpamScheduled = false
+		if not self.frozen then
+			return
+		end
+		DBM:AddMsg("DBM is in test mode and frozen, it will not react to any event (including real events). Run /dbm test resume to unfreeze.")
+		spamFrozenWarning(self)
+	end)
+end
+
+function test.TimeWarper:Freeze()
+	self.frozen = true
+	spamFrozenWarning(self)
+end
+
+function test.TimeWarper:Resume()
+	self.frozen = false
+end
+
+function test.TimeWarper:ToggleFreeze()
+	self.frozen = not self.frozen
+	spamFrozenWarning(self)
 end
 
 -- Skip to a stage/phase (default: the next stage)

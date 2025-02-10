@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2609, "DBM-Raids-WarWithin", 2, 1273)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241220032423")
+mod:SetRevision("20250209023836")
 mod:SetCreatureID(214504)
 mod:SetEncounterID(2918)
 mod:SetHotfixNoticeRev(20241115000000)
@@ -18,7 +18,6 @@ mod:RegisterEventsInCombat(
 	"SPELL_INTERRUPT",
 	"SPELL_PERIODIC_DAMAGE 439776",
 	"SPELL_PERIODIC_MISSED 439776"
---	"UNIT_SPELLCAST_START boss1"
 )
 
 --[[

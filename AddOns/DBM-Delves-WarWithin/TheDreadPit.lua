@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("z2684", "DBM-Delves-WarWithin")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241220035749")
+mod:SetRevision("20250126155354")
 mod:SetHotfixNoticeRev(20240422000000)
 mod:SetMinSyncRevision(20240422000000)
 mod:SetZone(2684)
@@ -95,7 +95,7 @@ function mod:ENCOUNTER_START(eID)
 	if eID == 2989 then--Under-Lord Vik'tis
 		timerImpaleCD:Start(6.1)
 		timerBurrowingTremorsCD:Start(12.1)
-		timerStingingSwarmCD:Start(23.2)
+		timerStingingSwarmCD:Start(23)
 	elseif eID == 3120 then--Geargrave
 		DBM:AddMsg("Boss alerts/timers not yet implemented for Geargrave")
 	end

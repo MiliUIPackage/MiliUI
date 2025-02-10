@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("TheStonevaultTrash", "DBM-Party-WarWithin", 4)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250105060420")
+mod:SetRevision("20250208191443")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
@@ -147,7 +147,7 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 448640 then
 		timerShieldStampedeCD:Start(nil, args.sourceGUID)
-		if self:AntiSpam(3, 2) then
+		if self:AntiSpam(2, 2) then
 			specWarnShieldStampede:Show()
 			specWarnShieldStampede:Play("chargemove")
 		end

@@ -8,7 +8,7 @@ else
 	mod.statTypes = "normal,heroic"
 end
 
-mod:SetRevision("20241102154000")
+mod:SetRevision("20250202085203")
 mod:SetCreatureID(39625)
 mod:SetEncounterID(1051)
 mod:SetHotfixNoticeRev(20240812000000)
@@ -20,7 +20,8 @@ mod:RegisterCombat("combat")
 if mod:IsRetail() then
 	--Retail version of mod
 	mod:RegisterEventsInCombat(
-		"SPELL_CAST_START 448847 448877 447261"
+		"SPELL_CAST_START 448847 448877 447261",
+		"UNIT_AURA player"
 	)
 
 	--[[
@@ -34,6 +35,9 @@ if mod:IsRetail() then
 	local timerCommandingRoarCD		= mod:NewNextCountTimer(25, 448847, nil, nil, nil, 3)
 	local timerRockSpikeCD			= mod:NewNextCountTimer(25, 448877, nil, nil, nil, 3)
 	local timerSkullsplitterCD		= mod:NewNextCountTimer(25, 447261, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+
+	local yellRockSpike				= mod:NewShortYell(448877)
+	local yellRockSpikeFades		= mod:NewShortFadesYell(448877)
 
 	mod.vb.roarCount = 0
 	mod.vb.spikeCount = 0
@@ -67,6 +71,21 @@ if mod:IsRetail() then
 				specWarnSkullsplitter:Play("defensive")
 			end
 			timerSkullsplitterCD:Start(nil, self.vb.skullCount+1)
+		end
+	end
+
+	do
+		local warnedRockSpike = false
+		function mod:UNIT_AURA(uId)
+			local hasRockSpike = DBM:UnitDebuff("player", 448870)
+			if hasRockSpike and not warnedRockSpike then
+				warnedRockSpike = true
+				yellRockSpike:Yell()
+				yellRockSpikeFades:Countdown(4)
+			elseif not hasRockSpike and warnedRockSpike then
+				warnedRockSpike = false
+				yellRockSpikeFades:Cancel()
+			end
 		end
 	end
 else

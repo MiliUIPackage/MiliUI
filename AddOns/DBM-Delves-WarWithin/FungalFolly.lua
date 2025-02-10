@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("z2664", "DBM-Delves-WarWithin")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241102154000")
+mod:SetRevision("20250126155414")
 mod:SetHotfixNoticeRev(20240422000000)
 mod:SetMinSyncRevision(20240422000000)
 mod:SetZone(2664)
@@ -97,7 +97,7 @@ function mod:ENCOUNTER_START(eID)
 		--To confirm, both have same timer, but can be cast in any order
 		--Then other is cast 10 seconds after first cast
 		timerFungalChargeCD:Start(20.3)--31.3
-		timerFungsplosionCD:Start(21.8)--21.8
+		timerFungsplosionCD:Start(21.6)--21.8
 	end
 end
 

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("z2681", "DBM-Delves-WarWithin")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241220035749")
+mod:SetRevision("20250129190300")
 mod:SetHotfixNoticeRev(20240422000000)
 mod:SetMinSyncRevision(20240422000000)
 mod:SetZone(2681)
@@ -38,7 +38,7 @@ function mod:SPELL_CAST_START(args)
 		timerFlamestormCD:Start()
 	elseif args.spellId == 449295 then
 		warnGroundSlam:Show()
-		timerGroundSlamCD:Start()
+		--timerGroundSlamCD:Start()
 	elseif args.spellId == 449339 then
 		specWarnRagingTantrum:Show()
 		specWarnRagingTantrum:Play("carefly")

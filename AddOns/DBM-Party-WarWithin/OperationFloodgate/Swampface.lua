@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2650, "DBM-Party-WarWithin", 9, 1298)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250109034640")
+mod:SetRevision("20250208205545")
 mod:SetCreatureID(226396)
 mod:SetEncounterID(3053)
 --mod:SetHotfixNoticeRev(20240817000000)
@@ -66,19 +66,19 @@ function mod:SPELL_CAST_START(args)
 		self.vb.swampCount = self.vb.swampCount + 1
 		specWarnAwakenSwamp:Show(self.vb.swampCount)
 		specWarnAwakenSwamp:Play("watchstep")
-		timerAwakenSwampCD:Start()--33.9, self.vb.swampCount+1
+		timerAwakenSwampCD:Start()--30, self.vb.swampCount+1
 	elseif spellId == 473114 then
 		self.vb.mudslideCount = self.vb.mudslideCount + 1
 		specWarnMudslide:Show(self.vb.mudslideCount)
 		specWarnMudslide:Play("watchstep")
-		timerMudslideCD:Start()--33.9, self.vb.mudslideCount+1
+		timerMudslideCD:Start()--30, self.vb.mudslideCount+1
 	elseif spellId == 469478 then
 		self.vb.clawsCount = self.vb.clawsCount + 1
 		if self:IsTanking("player", "boss1", nil, true) then
 			specWarnSludgeClaws:Show()
 			specWarnSludgeClaws:Play("defensive")
 		end
-		timerSludgeClawsCD:Start()--33.9, self.vb.clawsCount+1
+		timerSludgeClawsCD:Start()--30, self.vb.clawsCount+1
 	end
 end
 

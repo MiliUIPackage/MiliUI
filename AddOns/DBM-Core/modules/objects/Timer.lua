@@ -163,6 +163,10 @@ local waKeyOverrides = {
 	["intermissioncount"] = "stages",
 }
 
+local function isNegativeZero(x)
+	return x == 0 and 1/x < 0  -- Only true for -0
+end
+
 -- Parse variance from timer string (v30.5-40" or "dv30.5-40"), into minimum and maximum timer, and calculated variance duration
 ---@param timer string
 ---@return number maxTimer, number minTimer, number varianceDuration
@@ -201,12 +205,22 @@ function timerPrototype:Start(timer, ...)
 		if DBM.Options.DontShowBossTimers and not self.mod.isTrashMod then return end
 		if DBM.Options.DontShowTrashTimers and self.mod.isTrashMod then return end
 	end
-	local hasVariance = type(timer) == "number" and false or not timer and self.hasVariance -- to separate from metadata, to account for metavariant timers with a fixed timer start, like timer:Start(10)
-	local timerStringWithVariance, minTimer
+	local isDelayed = type(timer) == "number" and (isNegativeZero(timer) or timer < 0)
+	local hasVariance = type(timer) == "number" and timer > 0 and false or not timer and self.hasVariance -- account for metavariant timers that were fired with a fixed timer start, like timer:Start(10). Does not account for timer:Start(-delay), which is parsed below after variance started timers
+	local timerStringWithVariance, maxTimer, minTimer
 	if type(timer) == "string" and timer:match("^v%d+%.?%d*-%d+%.?%d*$") then -- catch "timer variance" pattern, expressed like v10.5-20.5
 		hasVariance = true
 		timerStringWithVariance = timer -- cache timer string
-		timer, minTimer = parseVarianceFromTimer(timer) -- use highest possible value as the actual End timer
+		maxTimer, minTimer = parseVarianceFromTimer(timer) -- use highest possible value as the actual End timer
+		timer = DBT.Options.VarianceEnabled and maxTimer or minTimer
+	end
+	if isDelayed then -- catch metavariant timers with delay, expressed like timer:Start(-delay)
+		if self.hasVariance then
+			hasVariance = self.hasVariance
+			maxTimer, minTimer = parseVarianceFromTimer(self.timerStringWithVariance) -- use highest possible value as the actual End timer
+			timerStringWithVariance = ("v%s-%s"):format(minTimer + timer, maxTimer + timer) -- rebuild timer string with delay applied
+			timer = (DBT.Options.VarianceEnabled and maxTimer or minTimer) + timer
+		end
 	end
 	if DBM.Options.DebugMode and self.mod.id ~= "TestMod" then
 		self.keep = hasVariance -- keep variance timers for debug purposes
@@ -260,6 +274,10 @@ function timerPrototype:Start(timer, ...)
 								elseif bar.timer > 0.2 then
 									DBM:Debug("Timer " .. ttext .. phaseText .. " refreshed before expired. Remaining time is : " .. remaining, 2, true)
 								end
+							end
+							-- Trace early refreshes for tests
+							if bar.timer > correctWithVarianceDuration(0.1, bar) then
+								test:Trace(self.mod, "EarlyTimerRefresh", self, bar.timer, bar.totalTime, bar.varianceDuration)
 							end
 						end
 					end
@@ -356,6 +374,9 @@ function timerPrototype:Start(timer, ...)
 							end
 						end
 					end
+					if bar.timer > correctWithVarianceDuration(0.1, bar) then
+						test:Trace(self.mod, "EarlyTimerRefresh", self, bar.timer, bar.totalTime, bar.varianceDuration)
+					end
 				end
 			end
 		end
@@ -400,7 +421,6 @@ function timerPrototype:Start(timer, ...)
 		end
 		msg = msg:gsub(">.-<", stringUtils.stripServerName)
 		bar:SetText(msg, self.inlineIcon)
-		bar.hasVariance = hasVariance
 		-- FIXME: i would prefer to trace this directly in DBT, but since I want to rewrite DBT... meh.
 		test:Trace(self.mod, "StartTimer", self, timer, msg)
 		--ID (string) Internal DBM timer ID
