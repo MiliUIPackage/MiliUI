@@ -43,8 +43,12 @@ function Addon:HandleEvent(event)
 		if not bar.State.ExtraActionButton and eab and
 		   eab:GetObjectType() == "CheckButton" then
 			-- TODO: Update this to use Core:Skin()
-			bar.Group:AddButton(eab)
+			bar.Group:AddButton(eab, nil, "Action")
 			bar.State.ExtraActionButton = true
+			-- Move the overlay art behind the Normal frame
+			if eab.style then
+				eab.style:SetDrawLayer("ARTWORK", -1)
+			end
 		end
 
 	-- Handle Pet Battle Buttons on Pet Battle start
@@ -174,12 +178,7 @@ function Addon:Init()
 	Addon.Events = CreateFrame("Frame")
 
 	-- Extra Action Button
-	--
-	-- This was added in 40300, but in Cata Classic it's not in 40400.
-	-- It'll probably be added when Dragon Soul is released since it's needed
-	-- for Ultraxion but I have no way to know what version that will be yet.
-	--
-	if Core:CheckVersion({ 50004, nil }) then
+	if Core:CheckVersion({ 40402, nil }) then
 		Addon.Events:RegisterEvent("UPDATE_EXTRA_ACTIONBAR")
 	end
 

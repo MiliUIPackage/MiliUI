@@ -3,6 +3,7 @@
 	<Script file="Locales.lua" />
 	<!-- enUS must always be first -->
 	<Script file="enUS.lua" />
+	<Script file="ruRU.lua" />
 	<Script file="zhCN.lua" />
 	<Script file="zhTW.lua" />
 </Ui>

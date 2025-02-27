@@ -133,7 +133,7 @@ Metadata.Groups = {
 	ExtraAbilityContainer = {
 		Title = "Extra Ability Buttons",
 		Notes = L["NOTES_EXTRA_ABILITY_BUTTONS"],
-		Versions = { 50004, nil },
+		Versions = { 40402, nil },
 
 		-- Keep track of the frames that have been processed
 		State = {
