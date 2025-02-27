@@ -1,57 +1,54 @@
-# [5.18.1](https://github.com/WeakAuras/WeakAuras2/tree/5.18.1) (2024-12-17)
+# [5.19.4](https://github.com/WeakAuras/WeakAuras2/tree/5.19.4) (2025-02-26)
 
-[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.18.0...5.18.1)
+[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.19.3...5.19.4)
 
 ## Highlights
 
-- Bug fixes for Cata and Vanilla
-- Performance improvements
+Update for The War Within 11.1
+
+New in this version:
+
+- models now have an alpha slider to set transparency
+- TSU-type custom triggers have some new convenience functions available. Documentation is avaliable at https://github.com/WeakAuras/WeakAuras2/wiki/Trigger-State-Updater-(TSU)#all-states-
+helper-methods
+  - this is unlikely to matter, but note that the choice of plumbing used means this is techni
+cally a breaking change if you ever created a state with the "__changed" key.
+
+Fixes:
+
+- x-realm transfer of auras should fail less often
+- improve performance
+cally a breaking change if you ever created a state with the "__changed" key.
+
+Fixes:
+
+- x-realm transfer of auras should fail less often
+- improve performance
+- large, deply nested groups should load significantly faster (i.e. https://wago.io/twwdungeons should be less prone to throw errors when you start an encounter)
+- "Hide Cooldown Text" condition property remembered how to function
+- x-realm data transfer (for sharing auras) should be more likely to actually succeed now
 
 ## Commits
 
-InfusOnWoW (13):
+InfusOnWoW (6):
 
-- Update Discord List
-- Discord Update: Allow overriding the display name via a DM
-- Fix Spell Cache for Season of Discovery Phase 6
-- On renaming an aura, don't clear filter
-- Enchant Trigger: Fix regression on weapon switching
-- CondtionOptions: Fix lua error on choosing manual icon in merged case
-- Rename "Position Settings" to "Position and Size Settings"
-- Update Discord List
-- Update Atlas File List from wago.tools
-- Load: Add Hardcode and Season of Discovery load options for Classic
-- Fix lua error on editing conditions for manual progress
-- Print a warning on finding empty settings
-- Add Effective Spell ID condition to Spell Cooldown Trigger
+- Use Chomp for cross-realm transfer
+- Fix EnsureRegion repeately creating parents
+- Group: Don't calculate group size if not needed
+- Fix Hide Cooldown Text condition
+- Models: Fix Alpha animations
+- Be extra picky on noValidation spell inputs
 
-Stanzilla (4):
+Stanzilla (1):
 
-- Update WeakAurasModelPaths from wago.tools
-- Update WeakAurasModelPaths from wago.tools
-- Update WeakAurasModelPaths from wago.tools
-- Update WeakAurasModelPaths from wago.tools
+- chore(toc): bump version for retail
 
-dependabot[bot] (1):
+emptyrivers (1):
 
-- Bump cbrgm/mastodon-github-action from 2.1.9 to 2.1.10
+- put the mixins in private exec_env too
 
-emptyrivers (7):
+mrbuds (2):
 
-- bump toc for 11.0.7
-- unit characteristics - disable summon pending for classic
-- harden conditions against garbage in custom state
-- upgrade Unit Characteristics - Ignore Dead, and add Summon/Resurrect Pending properties
-- fix a typo
-- be more careful about getting tooltip data
-- defer calls to ScanEvents & friends if it doesn't come from WeakAuras
-
-mrbuds (1):
-
-- Edit CLEU deprecated warning link
-
-nullKomplex (2):
-
-- Add Resilience to Cataclysm Classic.
-- Add Mastery to Cataclysm Classic.
+- cache buildup optimization for 11.1
+- Add alpha setting for model region
 

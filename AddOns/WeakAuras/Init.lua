@@ -45,6 +45,10 @@ Private.frames = {}
 ---@field state state
 ---@field states state[]
 ---@field regionType string
+---@field FrameTick fun(self: WARegion)?
+---@field UpdateValue fun(self: WARegion)?
+---@field UpdateTime fun(self: WARegion)?
+---@field Update fun(self: WARegion)?
 
 --- @class Private
 --- @field ActivateAuraEnvironment fun(id: auraId?, cloneId: string?, state: state?, states: state[]?, config: boolean?)
@@ -377,8 +381,8 @@ WeakAuras.normalWidth = 1.3
 WeakAuras.halfWidth = WeakAuras.normalWidth / 2
 WeakAuras.doubleWidth = WeakAuras.normalWidth * 2
 local versionStringFromToc = C_AddOns.GetAddOnMetadata("WeakAuras", "Version")
-local versionString = "5.18.1"
-local buildTime = "20241219194139"
+local versionString = "5.19.4"
+local buildTime = "20250226214337"
 
 local flavorFromToc = C_AddOns.GetAddOnMetadata("WeakAuras", "X-Flavor")
 local flavorFromTocToNumber = {
@@ -406,7 +410,7 @@ WeakAuras.buildType = "pr"
 --@end-experimental@]=====]
 
 --[==[@debug@
-if versionStringFromToc == "5.18.1" then
+if versionStringFromToc == "5.19.4" then
   versionStringFromToc = "Dev"
   buildTime = "Dev"
   WeakAuras.buildType = "dev"

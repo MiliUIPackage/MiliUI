@@ -1,10 +1,10 @@
-## Interface: 110007
+## Interface: 110100
 ## Title: WeakAuras Archive
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r WeakAuras Archive
 ## Notes-zhTW: WeakAuras Archive |nWA技能提醒的資料記錄
 ## DefaultState: Disabled
 ## Author: The WeakAuras Team
-## Version: 5.18.1
+## Version: 5.19.4
 ## IconTexture: Interface\AddOns\WeakAuras\Media\Textures\icon.blp
 ## LoadOnDemand: 1
 ## SavedVariables: WeakAurasArchive

@@ -42,8 +42,6 @@ local L = WeakAuras.L
 	L["Bloodlust/Heroism"] = "Furie sanguinaire/Héroïsme"
 	L["buff"] = "amélioration"
 	L["Buffs"] = "Améliorations"
-	L["Cancel"] = "Annuler"
-	L["Cast"] = "Incantation"
 	L["Charge and Buff Tracking"] = "Suivis des Charges et Amélioration"
 	L["Charge and Debuff Tracking"] = "Suivis des Charges et Affaiblissement"
 	L["Charge and Duration Tracking"] = "Suivi des Charges et Durée"
@@ -57,8 +55,6 @@ local L = WeakAuras.L
 	L["Debuffs"] = "Affaiblissements"
 	--[[Translation missing --]]
 	L["dps buff"] = "dps buff"
-	L["General"] = "Général"
-	L["Health"] = "Vie"
 	--[[Translation missing --]]
 	L["Highlight while action is queued."] = "Highlight while action is queued."
 	L["Highlight while active, red when out of range."] = "Mettre en surbrillance pendant qu'il est actif, rouge quand hors de portée."
@@ -82,7 +78,6 @@ local L = WeakAuras.L
 	L["Only shows the aura when the ability is ready to use."] = "Afficher uniquement l'aura quand la technique est prête à être utilisée."
 	L["Other cooldown"] = "Autre temps de recharge"
 	L["Pet alive"] = "Familier vivant"
-	L["Pet Behavior"] = "Comportement du familier"
 	--[[Translation missing --]]
 	L["regen buff"] = "regen buff"
 	L["Replace all existing triggers"] = "Remplacer tous les déclencheurs existant"
@@ -141,7 +136,6 @@ local L = WeakAuras.L
 Suit la charge et le debuff, met en surbrillance pendant que le debuff est actif, bleu en cas de ressources insuffisantes.]=]
 	L["Tracks the charge and the duration of spell, highlight while the spell is active, blue on insufficient resources."] = "Suit la charge et la durée du sort, mettez en surbrillance pendant que le sort est actif, bleu en cas de ressources insuffisantes."
 	L["Unknown Item"] = "Objet inconnu"
-	L["Unknown Spell"] = "Sort inconnu"
 	--[[Translation missing --]]
 	L["Warrior cooldown"] = "Warrior cooldown"
 

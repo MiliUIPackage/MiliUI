@@ -31,12 +31,12 @@ L["|cFFFF0000Not|r Player Name/Realm"] = "|cFFFF0000Not|r Nom du joueur / serveu
 L["|cFFFF0000Not|r Spell Known"] = "|cFFFF0000Not|r Spell Known"
 --[[Translation missing --]]
 L[ [=[|cFFFF0000Support for unfiltered COMBAT_LOG_EVENT_UNFILTERED is deprecated|r
-COMBAT_LOG_EVENT_UNFILTERED without a filter is advised against as it’s very performance costly.
+COMBAT_LOG_EVENT_UNFILTERED without a filter are disabled as it’s very performance costly.
 Find more information:
-https://github.com/WeakAuras/WeakAuras2/wiki/Deprecated-CLEU]=] ] = [=[|cFFFF0000Support for unfiltered COMBAT_LOG_EVENT_UNFILTERED is deprecated|r
-COMBAT_LOG_EVENT_UNFILTERED without a filter is advised against as it’s very performance costly.
+https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events]=] ] = [=[|cFFFF0000Support for unfiltered COMBAT_LOG_EVENT_UNFILTERED is deprecated|r
+COMBAT_LOG_EVENT_UNFILTERED without a filter are disabled as it’s very performance costly.
 Find more information:
-https://github.com/WeakAuras/WeakAuras2/wiki/Deprecated-CLEU]=]
+https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Triggers#events]=]
 L["|cFFffcc00Extra Options:|r %s"] = "|cFFffcc00Options supplémentaires :|r %s"
 L["|cFFffcc00Extra Options:|r None"] = "|cFFffcc00Options supplémentaires :|r Aucun"
 L[ [=[• |cff00ff00Player|r, |cff00ff00Target|r, |cff00ff00Focus|r, and |cff00ff00Pet|r correspond directly to those individual unitIDs.
@@ -171,6 +171,8 @@ L["At Value"] = "At Value"
 --[[Translation missing --]]
 L["At War"] = "At War"
 L["Attach to End"] = "Attacher à la Fin"
+--[[Translation missing --]]
+L["Attach to Point"] = "Attach to Point"
 L["Attach to Start"] = "Attacher au Début"
 L["Attack Power"] = "Puissance d'attaque"
 L["Attackable"] = "Attaquable"
@@ -364,6 +366,8 @@ L["Check if a single talent match a Rank"] = "Check if a single talent match a R
 L["Check nameplate's target every 0.2s"] = "Check nameplate's target every 0.2s"
 L["Chromaggus"] = "Chromaggus"
 L["Circle"] = "Cercle"
+--[[Translation missing --]]
+L["Circular Texture"] = "Circular Texture"
 L["Clamp"] = "Attache"
 L["Class"] = "Classe"
 L["Class and Specialization"] = "Classe et spécialisation"
@@ -375,6 +379,8 @@ L["Clockwise"] = "Sens horaire"
 L["Clone per Character"] = "Clone per Character"
 L["Clone per Event"] = "Clone pour chaque Évènement"
 L["Clone per Match"] = "Clone pour chaque Correspondance"
+--[[Translation missing --]]
+L["Coin Precision"] = "Coin Precision"
 L["Color"] = "Couleur"
 --[[Translation missing --]]
 L["Color Animation"] = "Color Animation"
@@ -403,6 +409,8 @@ L["Cooldown Ready Event (Slot)"] = "Cooldown Ready Event (Slot)"
 L["Cooldown Reduction changes the duration of seconds instead of showing the real time seconds."] = "Cooldown Reduction changes the duration of seconds instead of showing the real time seconds."
 --[[Translation missing --]]
 L["Cooldown/Charges/Count"] = "Cooldown/Charges/Count"
+--[[Translation missing --]]
+L["Copper"] = "Copper"
 --[[Translation missing --]]
 L["Could not load WeakAuras Archive, the addon is %s"] = "Could not load WeakAuras Archive, the addon is %s"
 L["Count"] = "Nombre"
@@ -519,6 +527,8 @@ L["Destination unit's raid mark texture"] = "Destination unit's raid mark textur
 L["Difficulty"] = "Difficulty"
 --[[Translation missing --]]
 L["Disable Spell Known Check"] = "Disable Spell Known Check"
+--[[Translation missing --]]
+L["Disabled"] = "Disabled"
 --[[Translation missing --]]
 L["Disabled feature %q"] = "Disabled feature %q"
 --[[Translation missing --]]
@@ -710,6 +720,8 @@ L["Fetch Legendary Power"] = "Fetch Legendary Power"
 --[[Translation missing --]]
 L["Fetches the name and icon of the Legendary Power that matches this bonus id."] = "Fetches the name and icon of the Legendary Power that matches this bonus id."
 --[[Translation missing --]]
+L["Fill Area"] = "Fill Area"
+--[[Translation missing --]]
 L["Filter messages with format <message>"] = "Filter messages with format <message>"
 L["Fire Resistance"] = "Résistance au feu"
 L["Firemaw"] = "Gueule-de-feu"
@@ -738,6 +750,8 @@ L["Foreground"] = "Premier plan"
 L["Foreground Color"] = "Couleur de Premier Plan"
 L["Form"] = "Forme"
 L["Format"] = "Format"
+--[[Translation missing --]]
+L["Format Gold"] = "Format Gold"
 --[[Translation missing --]]
 L["Formats |cFFFFCC00%unit|r"] = "Formats |cFFFFCC00%unit|r"
 --[[Translation missing --]]
@@ -768,7 +782,7 @@ L["Frost Rune #1"] = "Frost Rune #1"
 L["Frost Rune #2"] = "Frost Rune #2"
 L["Full"] = "Plein"
 --[[Translation missing --]]
-L["Full Bar"] = "Full Bar"
+L["Full Region"] = "Full Region"
 L["Full/Empty"] = "Plein/Vide"
 --[[Translation missing --]]
 L["Gahz'ranka"] = "Gahz'ranka"
@@ -789,6 +803,8 @@ L["Glow"] = "Brillance"
 L["Glow External Element"] = "Élément externe brillant"
 --[[Translation missing --]]
 L["Gluth"] = "Gluth"
+--[[Translation missing --]]
+L["Gold"] = "Gold"
 --[[Translation missing --]]
 L["Golemagg the Incinerator"] = "Golemagg the Incinerator"
 --[[Translation missing --]]
@@ -861,6 +877,8 @@ L["High Priestess Jeklik"] = "High Priestess Jeklik"
 --[[Translation missing --]]
 L["High Priestess Mar'li"] = "High Priestess Mar'li"
 L["Higher Than Tank"] = "Plus haut que le tank"
+--[[Translation missing --]]
+L["Highest Spell Id"] = "Highest Spell Id"
 --[[Translation missing --]]
 L["Hit (%)"] = "Hit (%)"
 --[[Translation missing --]]
@@ -990,6 +1008,8 @@ L["Item Slot String"] = "Item Slot String"
 L["Item Type"] = "Type d'objet"
 L["Item Type Equipped"] = "Type d'objet équipé"
 --[[Translation missing --]]
+L["ItemId"] = "ItemId"
+--[[Translation missing --]]
 L["Jin'do the Hexxer"] = "Jin'do the Hexxer"
 --[[Translation missing --]]
 L["Journal Stage"] = "Journal Stage"
@@ -1028,6 +1048,8 @@ L["Level"] = "Niveau"
 L["LibSharedMedia"] = "LibSharedMedia"
 L["Limited"] = "Limité"
 --[[Translation missing --]]
+L["Linear Texture"] = "Linear Texture"
+--[[Translation missing --]]
 L["Lines & Particles"] = "Lines & Particles"
 L["Load Conditions"] = "Conditions de Chargement"
 --[[Translation missing --]]
@@ -1048,6 +1070,8 @@ L["Loot Specialization Name"] = "Loot Specialization Name"
 L["Lost"] = "Perdu"
 L["Low Damage"] = "Dégâts faibles"
 L["Lower Than Tank"] = "Plus bas que le tank"
+--[[Translation missing --]]
+L["Lowest Spell Id"] = "Lowest Spell Id"
 --[[Translation missing --]]
 L["Lua error"] = "Lua error"
 --[[Translation missing --]]
@@ -1134,6 +1158,8 @@ L["Modern Blizzard (1h 3m | 3m 7s | 10s | 2.4)"] = "Modern Blizzard (1h 3m | 3m 
 L["Modernize"] = "Modernize"
 --[[Translation missing --]]
 L["Molten Core"] = "Molten Core"
+--[[Translation missing --]]
+L["Money"] = "Money"
 L["Monochrome"] = "Monochrome"
 L["Monochrome Outline"] = "Contour monochrome"
 L["Monochrome Thick Outline"] = "Contour épais monochrome"
@@ -1186,6 +1212,8 @@ Note: This trigger will use BigWigs or DBM, in that order if both are installed.
 L["No Extend"] = "No Extend"
 L["No Instance"] = "Aucune instance"
 L["No Profiling information saved."] = "Aucune information de profilage enregistrée."
+--[[Translation missing --]]
+L["No Progress Information available."] = "No Progress Information available."
 L["None"] = "Aucun"
 L["Non-player Character"] = "Personnage non-joueur"
 L["Normal"] = "Normal"
@@ -1366,6 +1394,8 @@ L["Player Faction"] = "Faction joueur"
 L["Player Level"] = "Niveau du joueur"
 --[[Translation missing --]]
 L["Player Location ID(s)"] = "Player Location ID(s)"
+--[[Translation missing --]]
+L["Player Money"] = "Player Money"
 L["Player Name/Realm"] = "Nom du joueur / serveur"
 L["Player Race"] = "Race du joueur"
 L["Player(s) Affected"] = "Joueur(s) affecté(s)"
@@ -1453,6 +1483,8 @@ L["Reagent Quality Texture"] = "Reagent Quality Texture"
 L["Realm"] = "Royaume"
 L["Realm Name"] = "Nom du Royaume"
 L["Realm of Caster's Target"] = "Royaume de la Cible du Lanceur de sort"
+--[[Translation missing --]]
+L["Receiving %s Bytes"] = "Receiving %s Bytes"
 L["Receiving display information"] = "Réception d'information de graphique de %s..."
 L["Reflect"] = "Renvoi"
 L["Region type %s not supported"] = "Région de type %s non supporté"
@@ -1590,6 +1622,8 @@ L["Show Rested Overlay"] = "Superposer l'XP en reposé"
 L["Shrink"] = "Rétrécir"
 --[[Translation missing --]]
 L["Silithid Royalty"] = "Silithid Royalty"
+--[[Translation missing --]]
+L["Silver"] = "Silver"
 L["Simple"] = "Basique"
 --[[Translation missing --]]
 L["Since Apply"] = "Since Apply"
@@ -1683,6 +1717,8 @@ L["Spell Name"] = "Nom du sort"
 --[[Translation missing --]]
 L["Spell Peneration Percent"] = "Spell Peneration Percent"
 --[[Translation missing --]]
+L["Spell Power"] = "Spell Power"
+--[[Translation missing --]]
 L["Spell School"] = "Spell School"
 L["Spell Usable"] = "Sort Utilisable"
 --[[Translation missing --]]
@@ -1728,6 +1764,8 @@ L["Status"] = "Statut"
 L["Status Bar"] = "Status Bar"
 L["Stolen"] = "Volé"
 L["Stop"] = "Arrêter"
+--[[Translation missing --]]
+L["Stop Motion"] = "Stop Motion"
 --[[Translation missing --]]
 L["Story Raid"] = "Story Raid"
 L["Strength"] = "Force"
@@ -2062,8 +2100,6 @@ L["Weapon Enchant"] = "Enchantement d'arme"
 --[[Translation missing --]]
 L["Weapon Enchant / Fishing Lure"] = "Weapon Enchant / Fishing Lure"
 L["Whisper"] = "Chuchoter"
---[[Translation missing --]]
-L["Whole Area"] = "Whole Area"
 L["Width"] = "Largeur"
 L["Wobble"] = "Osciller"
 L["World Boss"] = "Boss de Monde"

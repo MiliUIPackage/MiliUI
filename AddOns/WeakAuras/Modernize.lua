@@ -2313,6 +2313,89 @@ function Private.Modernize(data, oldSnapshot)
     end
   end
 
+
+  if data.internalVersion < 80 then
+    -- Use common names for anchor areas/points so
+    -- that up/down of sub regions can adapt that
+
+    local conversions = {
+      subborder = {
+        border_anchor = "anchor_area",
+      },
+      subglow = {
+        glow_anchor = "anchor_area"
+      },
+      subtext = {
+        text_anchorPoint = "anchor_point"
+      }
+    }
+
+    if data.subRegions then
+      for index, subRegionData in ipairs(data.subRegions) do
+        if conversions[subRegionData.type] then
+          for oldKey, newKey in pairs(conversions[subRegionData.type]) do
+            subRegionData[newKey] = subRegionData[oldKey]
+            subRegionData[oldKey] = nil
+          end
+        end
+      end
+    end
+  end
+
+  if data.internalVersion < 81 then
+    -- Rename 'progressSources' to 'progressSource' for Linear/CircularProgressTexture/StopMotion sub elements
+    local conversions = {
+      sublineartexture = {
+        progressSources = "progressSource",
+      },
+      subcirculartexture = {
+        progressSources = "progressSource",
+      },
+      substopmotion = {
+        progressSources = "progressSource",
+      }
+    }
+    if data.subRegions then
+      for index, subRegionData in ipairs(data.subRegions) do
+        if conversions[subRegionData.type] then
+          for oldKey, newKey in pairs(conversions[subRegionData.type]) do
+            subRegionData[newKey] = subRegionData[oldKey]
+            subRegionData[oldKey] = nil
+          end
+        end
+      end
+    end
+  end
+
+  if data.internalVersion < 82 then
+    -- noMerge for separator custom option doesn't make sense,
+    -- and groups achieve the desired effect better,
+    -- so drop the feature
+    if data.authorOptions then
+      for _, optionData in ipairs(data.authorOptions) do
+        if optionData.type == "header" then
+          optionData.noMerge = nil
+        end
+      end
+    end
+  end
+
+  if data.internalVersion < 83 then
+    local propertyRenames = {
+      cooldownText = "cooldownTextDisabled",
+    }
+
+    if data.conditions then
+      for conditionIndex, condition in ipairs(data.conditions) do
+        for changeIndex, change in ipairs(condition.changes) do
+          if propertyRenames[change.property] then
+            change.property = propertyRenames[change.property]
+          end
+        end
+      end
+    end
+  end
+
   data.internalVersion = max(data.internalVersion or 0, WeakAuras.InternalVersion())
 end
 
