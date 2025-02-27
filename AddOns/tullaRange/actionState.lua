@@ -18,12 +18,14 @@ local function isUsuableAction(slot)
 
 			-- only run the check for spell macros
 			if spellID then
-				local costs = (GetSpellPowerCost or C_Spell.GetSpellPowerCost)(spellID)
-				for i = 1, #costs do
-					local cost = costs[i]
+				local costs = C_Spell.GetSpellPowerCost(spellID)
 
-					if UnitPower("player", cost.type) < cost.minCost then
-						return false, false
+				if costs then
+					for i = 1, #costs do
+						local cost = costs[i]
+						if UnitPower("player", cost.type) < cost.minCost then
+							return false, false
+						end
 					end
 				end
 			end
@@ -45,7 +47,7 @@ function Addon.GetPetActionState(slot)
 	local oor = checksRange and not inRange
 
 	if spellID then
-		local _, oom = (IsUsableSpell or C_Spell.IsSpellUsable)(spellID)
+		local _, oom = C_Spell.IsSpellUsable(spellID)
 		if oom then
 			return false, oom, oor
 		end

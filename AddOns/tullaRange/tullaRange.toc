@@ -1,15 +1,17 @@
-## Interface: 110007, 40400, 11503
+## Interface: 11506, 40401, 110005, 110100
 ## Title: tullaRange
 ## Author: Tuller
 ## Notes: Out of range coloring based on RedRange
+## Notes-ruRU: Аддон, который позволяет полностью менять цвет кнопок действий
+## Version: 11.0.8
+## SavedVariables: TULLARANGE_COLORS
+## IconTexture: Interface/Icons/Inv_misc_punchcards_red
+
 ## Title-zhTW: |cFF0099FF[介面]|r 快捷列著色
 ## Notes-zhTW:  tullaRange |n|n超出射程時，快捷列圖示會顯示紅色。能量不足時顯示藍色，技能無法使用時顯示灰色。|n|n|cffffd200使用方法: |r從Esc>選項>插件>快捷列-著色，進行設定。
 ## X-Category-zhTW: 介面
-## Notes-ruRU: Аддон, который позволяет полностью менять цвет кнопок действий
-## Version: 11.0.4
-## SavedVariables: TULLARANGE_COLORS
-## IconTexture: Interface/Icons/Inv_misc_punchcards_red
-## AddonCompartmentFunc: tullaRange_Launch
+## Category: Action Bars
+## Category-zhTW: 快捷列
 
 
 attackFlash.lua

@@ -1,8 +1,25 @@
 # tullaRange release notes
 
+## 11.0.8
+
+* Update TOCs for 11.1.0, 4.4.2, and 1.15.6
+* Slight options menu adjustments
+
+## 11.0.7
+
+* Update TOCs for 11.0.5 and 1.15.5
+
+## 11.0.6
+
+* Update TOCs for 4.4.1 and 1.15.3
+
+## 11.0.5
+
+* Fix an error caused by the retrieval of a nil value when checking the spell costs of a macro.
+
 ## 11.0.4
 
-* Fixed an issue causing range checking to incorrectly revert actions to displaying as usable, 
+* Fixed an issue causing range checking to incorrectly revert actions to displaying as usable,
   even if they are not
 
 ## 11.0.3
