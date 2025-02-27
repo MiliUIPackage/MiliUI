@@ -1,8 +1,11 @@
 local MSQ = LibStub('Masque', true)
-local GetAddOnMetadata = C_AddOns.GetAddOnMetadata
 if not MSQ then return end
 
 --TODO: https://github.com/SFX-WoW/Masque/commit/f81e68b63629e7f7b6a05a1ae0b20d19f5b0316f#diff-afee5d33c5e1d495dec91aaeaebaf5d58fa602eb6bac650c47a830e525edca99 update to support masque 90002 cooldown pulse support.
+
+-- Global methods moved into namespace as defined in this reddit post: https://www.reddit.com/r/wowaddons/comments/1erlj7g/getaddonmetadata_is_a_nil_value/
+-- This expression allows us to support both the old & the new API
+local GetAddOnMetadata = GetAddOnMetadata or (C_AddOns and C_AddOns.GetAddOnMetadata)
 
 MSQ:AddSkin('Raeli - Square Edge', {
 	Author = 'Raeli',
