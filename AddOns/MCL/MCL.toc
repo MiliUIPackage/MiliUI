@@ -1,4 +1,4 @@
-## Interface: 110007
+## Interface: 110100
 ## Title: |cFF1FB7EBMCL |cFFFFFFFF- Mount Collection Log
 ## Notes: A tool used to log collected mounts in a similiar way to Simple Armory.
 ## Title-zhTW: |cffFFFF66[收藏]|r 坐騎收藏紀錄

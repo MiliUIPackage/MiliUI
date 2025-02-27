@@ -1,4 +1,4 @@
-## Interface: 11505, 30403, 40401, 110005, 110007
+## Interface: 11505, 30403, 40401, 110005, 110100
 ## Title: SilverDragon: Range Extender
 ## Notes: Show map vignettes when they'd normally be out of your range
 ## Version: v2025.2

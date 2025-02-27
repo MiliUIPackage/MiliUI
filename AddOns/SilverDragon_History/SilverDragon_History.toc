@@ -1,4 +1,4 @@
-## Interface: 11505, 30403, 40401, 110005, 110007
+## Interface: 11505, 30403, 40401, 110005, 110100
 ## Title: SilverDragon: History
 ## Notes: Show the history of seen rares
 ## Version: v2025.2
