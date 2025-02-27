@@ -1,6 +1,8 @@
 local _, Cell = ...
 local L = Cell.L
+---@type CellFuncs
 local F = Cell.funcs
+---@class CellIndicatorFuncs
 local I = Cell.iFuncs
 
 local UnitGUID = UnitGUID
@@ -79,7 +81,7 @@ local function StartTicker()
 
         -- update indicator
         for guid in pairs(Cell.vars.guids) do
-            F:HandleUnitButton("guid", guid, SetCount, counter[guid] and F:Getn(counter[guid]) or 0)
+            F.HandleUnitButton("guid", guid, SetCount, counter[guid] and F.Getn(counter[guid]) or 0)
         end
     end)
 end
@@ -94,7 +96,7 @@ function eventFrame:PLAYER_ENTERING_WORLD()
     -- reset
     wipe(nameplates)
     wipe(counter)
-    F:IterateAllUnitButtons(function(b)
+    F.IterateAllUnitButtons(function(b)
         b.indicators.targetCounter:SetCount(0)
     end, true)
 
@@ -154,7 +156,7 @@ function I.CreateTargetCounter(parent)
     text:SetPoint("CENTER", 1, 0)
 
     function targetCounter:SetFont(font, size, outline, shadow)
-        font = F:GetFont(font)
+        font = F.GetFont(font)
 
         local flags
         if outline == "None" then

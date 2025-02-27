@@ -1,7 +1,11 @@
-local addonName, addon = ...
-local L = addon.L
-local F = addon.funcs
-local P = addon.pixelPerfectFuncs
+local addonName = ...
+---@class Cell
+local Cell = select(2, ...)
+local L = Cell.L
+---@type CellFuncs
+local F = Cell.funcs
+---@type PixelPerfectFuncs
+local P = Cell.pixelPerfectFuncs
 local LCG = LibStub("LibCustomGlow-1.0")
 
 -----------------------------------------
@@ -114,7 +118,7 @@ font_class:SetJustifyH("CENTER")
 
 local defaultFont = GameFontNormal:GetFont()
 local fontSizeOffset = 0
-function addon:UpdateOptionsFont(offset, useGameFont)
+function Cell.UpdateOptionsFont(offset, useGameFont)
     if useGameFont then
         defaultFont = GameFontNormal:GetFont()
     else
@@ -136,21 +140,21 @@ end
 -- Accent Color
 -----------------------------------------
 local accentColorOverride
-function addon:OverrideAccentColor(cTable)
+function Cell.OverrideAccentColor(cTable)
     accentColorOverride = true
 
     accentColor.t[1], accentColor.t[2], accentColor.t[3] = unpack(cTable)
-    accentColor.s = "|cFF"..F:ConvertRGBToHEX(F:ConvertRGB_256(unpack(cTable)))
+    accentColor.s = "|cFF"..F.ConvertRGBToHEX(F.ConvertRGB_256(unpack(cTable)))
 
     font_class_title:SetTextColor(unpack(cTable))
     font_class:SetTextColor(unpack(cTable))
 end
 
-function addon:GetAccentColorRGB()
+function Cell.GetAccentColorRGB()
     return unpack(accentColor.t)
 end
 
-function addon:GetAccentColorTable(alpha)
+function Cell.GetAccentColorTable(alpha)
     if alpha then
         return {accentColor.t[1], accentColor.t[2], accentColor.t[3], alpha}
     else
@@ -158,22 +162,22 @@ function addon:GetAccentColorTable(alpha)
     end
 end
 
-function addon:GetAccentColorString()
+function Cell.GetAccentColorString()
     return accentColor.s
 end
 
-function addon:ColorFontStringWithAccentColor(fs)
+function Cell.ColorFontStringWithAccentColor(fs)
     fs:SetTextColor(accentColor.t[1], accentColor.t[2], accentColor.t[3])
 end
 
-function addon:WrapTextInAccentColor(text)
+function Cell.WrapTextInAccentColor(text)
     return WrapTextInColorCode(text, accentColor.s) -- FIXME: ("|c%s%s|r"):format(colorHexString, text)
 end
 
 -----------------------------------------
 -- enable/disable
 -----------------------------------------
-function addon:SetEnabled(isEnabled, ...)
+function Cell.SetEnabled(isEnabled, ...)
     for _, w in pairs({...}) do
         if w:IsObjectType("FontString") then
             if isEnabled then
@@ -201,7 +205,7 @@ end
 -- rainbow text
 -----------------------------------------
 local colorSelect = CreateFrame("Colorselect")
-function addon:StartRainbowText(fs, reverse)
+function Cell.StartRainbowText(fs, reverse)
     -- save original
     fs.text = fs:GetText()
 
@@ -237,7 +241,7 @@ function addon:StartRainbowText(fs, reverse)
     end)
 end
 
-function addon:StopRainbowText(fs)
+function Cell.StopRainbowText(fs)
     fs.rainbow = nil
     if fs.updater then
         fs.updater:SetScript("OnUpdate", nil)
@@ -248,7 +252,7 @@ end
 -----------------------------------------
 -- seperator
 -----------------------------------------
-function addon:CreateSeparator(text, parent, width, color)
+function Cell.CreateSeparator(text, parent, width, color)
     if not color then color = {t={accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.777}, s=accentColor.s} end
     if not width then width = parent:GetWidth()-10 end
 
@@ -258,37 +262,37 @@ function addon:CreateSeparator(text, parent, width, color)
     fs:SetText(text)
 
     local line = parent:CreateTexture()
-    P:Size(line, width, 1)
+    P.Size(line, width, 1)
     line:SetColorTexture(unpack(color.t))
-    P:Point(line, "TOPLEFT", fs, "BOTTOMLEFT", 0, -2)
+    P.Point(line, "TOPLEFT", fs, "BOTTOMLEFT", 0, -2)
     local shadow = parent:CreateTexture()
-    P:Size(shadow, width, 1)
+    P.Size(shadow, width, 1)
     shadow:SetColorTexture(0, 0, 0, 1)
-    P:Point(shadow, "TOPLEFT", line, "TOPLEFT", 1, -1)
+    P.Point(shadow, "TOPLEFT", line, "TOPLEFT", 1, -1)
 
     return fs
 end
 
-function addon:CreateTitledPane(parent, text, width, height, color)
+function Cell.CreateTitledPane(parent, text, width, height, color)
     if not color then color = {["r"]=accentColor.t[1], ["g"]=accentColor.t[2], ["b"]=accentColor.t[3], ["a"]=0.777, ["s"]=accentColor.s} end
 
     local pane = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-    P:Size(pane, width, height)
-    -- addon:StylizeFrame(pane, {0,1,0,0.1}, {0,0,0,0})
+    P.Size(pane, width, height)
+    -- Cell.StylizeFrame(pane, {0,1,0,0.1}, {0,0,0,0})
 
     -- underline
     local line = pane:CreateTexture()
     pane.line = line
-    P:Height(line, 1)
+    P.Height(line, 1)
     line:SetColorTexture(color.r, color.g, color.b, color.a)
-    line:SetPoint("TOPLEFT", pane, "TOPLEFT", 0, P:Scale(-17))
-    line:SetPoint("TOPRIGHT", pane, "TOPRIGHT", 0, P:Scale(-17))
+    line:SetPoint("TOPLEFT", pane, "TOPLEFT", 0, P.Scale(-17))
+    line:SetPoint("TOPRIGHT", pane, "TOPRIGHT", 0, P.Scale(-17))
 
     local shadow = pane:CreateTexture()
-    P:Height(shadow, 1)
+    P.Height(shadow, 1)
     shadow:SetColorTexture(0, 0, 0, 1)
-    shadow:SetPoint("TOPLEFT", line, "TOPLEFT", P:Scale(1), P:Scale(-1))
-    shadow:SetPoint("TOPRIGHT", line, "TOPRIGHT", P:Scale(1), P:Scale(-1))
+    shadow:SetPoint("TOPLEFT", line, "TOPLEFT", P.Scale(1), P.Scale(-1))
+    shadow:SetPoint("TOPRIGHT", line, "TOPRIGHT", P.Scale(1), P.Scale(-1))
 
     -- title
     local title = pane:CreateFontString(nil, "OVERLAY", font_title_name)
@@ -296,7 +300,7 @@ function addon:CreateTitledPane(parent, text, width, height, color)
     title:SetJustifyH("LEFT")
     title:SetTextColor(color.r, color.g, color.b)
     title:SetText(text)
-    title:SetPoint("BOTTOMLEFT", line, "TOPLEFT", 0, P:Scale(2))
+    title:SetPoint("BOTTOMLEFT", line, "TOPLEFT", 0, P.Scale(2))
 
     -- func
     function pane:SetTitle(t)
@@ -309,32 +313,32 @@ end
 -----------------------------------------
 -- Frame
 -----------------------------------------
-function addon:StylizeFrame(frame, color, borderColor)
+function Cell.StylizeFrame(frame, color, borderColor)
     if not color then color = {0.1, 0.1, 0.1, 0.9} end
     if not borderColor then borderColor = {0, 0, 0, 1} end
 
-    frame:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P:Scale(1)})
+    frame:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(1)})
     frame:SetBackdropColor(unpack(color))
     frame:SetBackdropBorderColor(unpack(borderColor))
 end
 
-function addon:CreateFrame(name, parent, width, height, isTransparent, template)
+function Cell.CreateFrame(name, parent, width, height, isTransparent, template)
     local f = CreateFrame("Frame", name, parent, template and template..",BackdropTemplate" or "BackdropTemplate")
     f:Hide()
-    if not isTransparent then addon:StylizeFrame(f) end
+    if not isTransparent then Cell.StylizeFrame(f) end
     f:EnableMouse(true)
-    if width and height then P:Size(f, width, height) end
+    if width and height then P.Size(f, width, height) end
 
     function f:UpdatePixelPerfect()
-        if not isTransparent then addon:StylizeFrame(f) end
-        P:Resize(f)
+        if not isTransparent then Cell.StylizeFrame(f) end
+        P.Resize(f)
     end
 
     return f
 end
 
 
-function addon:CreateMovableFrame(title, name, width, height, frameStrata, frameLevel, notUserPlaced)
+function Cell.CreateMovableFrame(title, name, width, height, frameStrata, frameLevel, notUserPlaced)
     local f = CreateFrame("Frame", name, UIParent, "BackdropTemplate")
     f:EnableMouse(true)
     f:SetIgnoreParentScale(true)
@@ -344,11 +348,11 @@ function addon:CreateMovableFrame(title, name, width, height, frameStrata, frame
     f:SetFrameStrata(frameStrata or "HIGH")
     f:SetFrameLevel(frameLevel or 1)
     f:SetClampedToScreen(true)
-    f:SetClampRectInsets(0, 0, P:Scale(20), 0)
-    P:Size(f, width, height)
+    f:SetClampRectInsets(0, 0, P.Scale(20), 0)
+    P.Size(f, width, height)
     f:SetPoint("CENTER")
     f:Hide()
-    addon:StylizeFrame(f)
+    Cell.StylizeFrame(f)
 
     -- header
     local header = CreateFrame("Frame", nil, f, "BackdropTemplate")
@@ -364,24 +368,24 @@ function addon:CreateMovableFrame(title, name, width, height, frameStrata, frame
     header:SetPoint("LEFT")
     header:SetPoint("RIGHT")
     header:SetPoint("BOTTOM", f, "TOP", 0, -1)
-    P:Height(header, 20)
-    addon:StylizeFrame(header, {0.115, 0.115, 0.115, 1})
+    P.Height(header, 20)
+    Cell.StylizeFrame(header, {0.115, 0.115, 0.115, 1})
 
     header.text = header:CreateFontString(nil, "OVERLAY", font_class_title_name)
     header.text:SetText(title)
     header.text:SetPoint("CENTER", header)
 
-    header.closeBtn = addon:CreateButton(header, "×", "red", {20, 20}, false, false, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
+    header.closeBtn = Cell.CreateButton(header, "×", "red", {20, 20}, false, false, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
     header.closeBtn:SetPoint("TOPRIGHT")
     header.closeBtn:SetScript("OnClick", function() f:Hide() end)
 
     function f:UpdatePixelPerfect()
-        f:SetClampRectInsets(0, 0, P:Scale(20), 0)
-        P:Resize(f)
-        addon:StylizeFrame(f)
-        P:Resize(header, 20)
-        P:Repoint(header)
-        addon:StylizeFrame(header, {0.115, 0.115, 0.115, 1})
+        f:SetClampRectInsets(0, 0, P.Scale(20), 0)
+        P.Resize(f)
+        Cell.StylizeFrame(f)
+        P.Resize(header, 20)
+        P.Repoint(header)
+        Cell.StylizeFrame(header, {0.115, 0.115, 0.115, 1})
         header.closeBtn:UpdatePixelPerfect()
     end
 
@@ -407,7 +411,7 @@ local function ShowTooltips(widget, anchor, x, y, tooltips)
     CellTooltip:Show()
 end
 
-function addon:SetTooltips(widget, anchor, x, y, ...)
+function Cell.SetTooltips(widget, anchor, x, y, ...)
     if not widget._tooltipsInited then
         widget._tooltipsInited = true
 
@@ -422,14 +426,14 @@ function addon:SetTooltips(widget, anchor, x, y, ...)
     widget.tooltips = {...}
 end
 
-function addon:ClearTooltips(widget)
+function Cell.ClearTooltips(widget)
     widget.tooltips = nil
 end
 
 -----------------------------------------
 -- change frame size with animation
 -----------------------------------------
-function addon:ChangeSizeWithAnimation(frame, targetWidth, targetHeight, step, startFunc, endFunc, repoint)
+function Cell.ChangeSizeWithAnimation(frame, targetWidth, targetHeight, step, startFunc, endFunc, repoint)
     if startFunc then startFunc() end
 
     local currentHeight = frame:GetHeight()
@@ -449,7 +453,7 @@ function addon:ChangeSizeWithAnimation(frame, targetWidth, targetHeight, step, s
             else
                 currentWidth = math.max(currentWidth + diffW, targetWidth)
             end
-            P:Width(frame, currentWidth)
+            P.Width(frame, currentWidth)
         end
 
         if diffH ~= 0 then
@@ -458,14 +462,14 @@ function addon:ChangeSizeWithAnimation(frame, targetWidth, targetHeight, step, s
             else
                 currentHeight = math.max(currentHeight + diffH, targetHeight)
             end
-            P:Height(frame, currentHeight)
+            P.Height(frame, currentHeight)
         end
 
         if currentWidth == targetWidth and currentHeight == targetHeight then
             animationTimer:Cancel()
             animationTimer = nil
             if endFunc then endFunc() end
-            if repoint then P:PixelPerfectPoint(frame) end -- already point to another frame
+            if repoint then P.PixelPerfectPoint(frame) end -- already point to another frame
         end
     end)
 end
@@ -473,11 +477,11 @@ end
 -----------------------------------------
 -- Button
 -----------------------------------------
-function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackground, fontNormal, fontDisable, template, ...)
+function Cell.CreateButton(parent, text, buttonColor, size, noBorder, noBackground, fontNormal, fontDisable, template, ...)
     local b = CreateFrame("Button", nil, parent, template and template..",BackdropTemplate" or "BackdropTemplate")
     if parent then b:SetFrameLevel(parent:GetFrameLevel()+1) end
     b:SetText(text)
-    P:Size(b, size[1], size[2])
+    P.Size(b, size[1], size[2])
 
     local color, hoverColor
     if buttonColor == "red" then
@@ -571,7 +575,7 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
     if noBorder then
         b:SetBackdrop({bgFile = Cell.vars.whiteTexture})
     else
-        local n = P:Scale(1)
+        local n = P.Scale(1)
         b:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = n, insets = {left=n, right=n, top=n, bottom=n}})
     end
 
@@ -624,7 +628,7 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
         b:SetScript("PostClick", function() PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON) end)
     end
 
-    addon:SetTooltips(b, "ANCHOR_TOPLEFT", 0, 3, ...)
+    Cell.SetTooltips(b, "ANCHOR_TOPLEFT", 0, 3, ...)
 
     -- texture
     function b:SetTexture(tex, texSize, point, isAtlas, noPushDownEffect)
@@ -670,15 +674,15 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
     end
 
     function b:UpdatePixelPerfect()
-        P:Resize(b)
-        P:Repoint(b)
+        P.Resize(b)
+        P.Repoint(b)
 
         if not noBorder then
             -- backup colors
             local currentBackdropColor = {b:GetBackdropColor()}
             local currentBackdropBorderColor = {b:GetBackdropBorderColor()}
             -- update backdrop
-            local n = P:Scale(1)
+            local n = P.Scale(1)
             b:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = n, insets = {left=n, right=n, top=n, bottom=n}})
             -- restore colors
             b:SetBackdropColor(unpack(currentBackdropColor))
@@ -694,7 +698,7 @@ end
 -----------------------------------------
 -- Button Group
 -----------------------------------------
-function addon:CreateButtonGroup(buttons, onClick, func1, func2, onEnter, onLeave)
+function Cell.CreateButtonGroup(buttons, onClick, func1, func2, onEnter, onLeave)
     local function HighlightButton(id)
         for _, b in pairs(buttons) do
             if id == b.id then
@@ -738,9 +742,9 @@ end
 -----------------------------------------
 -- tips button
 -----------------------------------------
-function addon:CreateTipsButton(parent, size, points, ...)
+function Cell.CreateTipsButton(parent, size, points, ...)
     -- tips
-    local tips = Cell:CreateButton(parent, nil, "accent-hover", {size, size})
+    local tips = Cell.CreateButton(parent, nil, "accent-hover", {size, size})
     tips:SetPoint("TOPRIGHT")
     tips.tex = tips:CreateTexture(nil, "ARTWORK")
     tips.tex:SetAllPoints(tips)
@@ -782,7 +786,7 @@ end
 -----------------------------------------
 -- check button
 -----------------------------------------
-function addon:CreateCheckButton(parent, label, onClick, ...)
+function Cell.CreateCheckButton(parent, label, onClick, ...)
     -- InterfaceOptionsCheckButtonTemplate --> FrameXML\InterfaceOptionsPanels.xml line 19
     -- OptionsBaseCheckButtonTemplate -->  FrameXML\OptionsPanelTemplates.xml line 10
 
@@ -795,27 +799,27 @@ function addon:CreateCheckButton(parent, label, onClick, ...)
 
     cb.label = cb:CreateFontString(nil, "OVERLAY", font_name)
     cb.label:SetText(label)
-    cb.label:SetPoint("LEFT", cb, "RIGHT", P:Scale(5), 0)
+    cb.label:SetPoint("LEFT", cb, "RIGHT", P.Scale(5), 0)
     -- cb.label:SetTextColor(accentColor.t[1], accentColor.t[2], accentColor.t[3])
 
-    P:Size(cb, 14, 14)
+    P.Size(cb, 14, 14)
     if strtrim(label) ~= "" then
         cb:SetHitRectInsets(0, -cb.label:GetStringWidth()-5, 0, 0)
     end
 
-    cb:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P:Scale(1)})
+    cb:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(1)})
     cb:SetBackdropColor(0.115, 0.115, 0.115, 0.9)
     cb:SetBackdropBorderColor(0, 0, 0, 1)
 
     local checkedTexture = cb:CreateTexture(nil, "ARTWORK")
     checkedTexture:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.7)
-    checkedTexture:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
-    checkedTexture:SetPoint("BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+    checkedTexture:SetPoint("TOPLEFT", P.Scale(1), P.Scale(-1))
+    checkedTexture:SetPoint("BOTTOMRIGHT", P.Scale(-1), P.Scale(1))
 
     local highlightTexture = cb:CreateTexture(nil, "ARTWORK")
     highlightTexture:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.1)
-    highlightTexture:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
-    highlightTexture:SetPoint("BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+    highlightTexture:SetPoint("TOPLEFT", P.Scale(1), P.Scale(-1))
+    highlightTexture:SetPoint("BOTTOMRIGHT", P.Scale(-1), P.Scale(1))
 
     cb:SetCheckedTexture(checkedTexture)
     cb:SetHighlightTexture(highlightTexture, "ADD")
@@ -842,7 +846,7 @@ function addon:CreateCheckButton(parent, label, onClick, ...)
         end
     end
 
-    addon:SetTooltips(cb, "ANCHOR_TOPLEFT", 0, 3, ...)
+    Cell.SetTooltips(cb, "ANCHOR_TOPLEFT", 0, 3, ...)
 
     return cb
 end
@@ -850,10 +854,10 @@ end
 -----------------------------------------
 -- colorpicker
 -----------------------------------------
-function addon:CreateColorPicker(parent, label, hasOpacity, onChange, onConfirm)
+function Cell.CreateColorPicker(parent, label, hasOpacity, onChange, onConfirm)
     local cp = CreateFrame("Button", nil, parent, "BackdropTemplate")
-    P:Size(cp, 14, 14)
-    cp:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P:Scale(1)})
+    P.Size(cp, 14, 14)
+    cp:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(1)})
     cp:SetBackdropBorderColor(0, 0, 0, 1)
     cp:SetScript("OnEnter", function()
         cp:SetBackdropBorderColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.5)
@@ -868,8 +872,8 @@ function addon:CreateColorPicker(parent, label, hasOpacity, onChange, onConfirm)
 
     cp.mask = cp:CreateTexture(nil, "ARTWORK")
     cp.mask:SetColorTexture(0.15, 0.15, 0.15, 0.7)
-    cp.mask:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
-    cp.mask:SetPoint("BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+    cp.mask:SetPoint("TOPLEFT", P.Scale(1), P.Scale(-1))
+    cp.mask:SetPoint("BOTTOMRIGHT", P.Scale(-1), P.Scale(1))
     cp.mask:Hide()
 
     -- local function ColorCallback(restore)
@@ -907,7 +911,7 @@ function addon:CreateColorPicker(parent, label, hasOpacity, onChange, onConfirm)
     cp.hasOpacity = hasOpacity
 
     function cp:EnableAlpha(enable)
-        addon:HideColorPicker()
+        Cell.HideColorPicker()
         cp.hasOpacity = enable
     end
 
@@ -915,7 +919,7 @@ function addon:CreateColorPicker(parent, label, hasOpacity, onChange, onConfirm)
     cp.onConfirm = onConfirm
 
     cp:SetScript("OnClick", function()
-        addon:ShowColorPicker(function(r, g, b, a)
+        Cell.ShowColorPicker(function(r, g, b, a)
             cp:SetBackdropColor(r, g, b, a)
             cp.color[1] = r
             cp.color[2] = g
@@ -963,16 +967,63 @@ end
 -----------------------------------------
 -- editbox
 -----------------------------------------
-function addon:CreateEditBox(parent, width, height, isTransparent, isMultiLine, isNumeric, font)
+local function EditBox_AddConfirmButton(self, func, mode)
+    self.confirmBtn = self.confirmBtn or Cell.CreateButton(self, "OK", "accent", {27, 20})
+    self.confirmBtn:Hide()
+
+    P.ClearPoints(self.confirmBtn)
+    P.Point(self.confirmBtn, "TOPLEFT", self, "TOPRIGHT", -1, 0)
+
+    self.confirmBtn:SetScript("OnHide", function()
+        self.confirmBtn:Hide()
+    end)
+
+    self.confirmBtn:SetScript("OnClick", function()
+        local value = self:GetText()
+
+        if mode == "number" then
+            value = tonumber(value) or 0
+        elseif mode == "trim" then
+            value = strtrim(value)
+        end
+
+        if func then func(value) end
+        self.value = value -- update value
+        self.confirmBtn:Hide()
+        self:ClearFocus()
+    end)
+
+    self:SetScript("OnTextChanged", function(self, userChanged)
+        if userChanged then
+            local newValue = self:GetText()
+
+            if mode == "number" then
+                newValue = tonumber(newValue) or 0
+            elseif mode == "trim" then
+                newValue = strtrim(newValue)
+            end
+
+            if newValue and newValue ~= self.value then
+                self.confirmBtn:Show()
+            else
+                self.confirmBtn:Hide()
+            end
+        else
+            self.value = self:GetText()
+        end
+    end)
+end
+
+function Cell.CreateEditBox(parent, width, height, isTransparent, isMultiLine, isNumeric, font)
     local eb = CreateFrame("EditBox", nil, parent, "BackdropTemplate")
-    if not isTransparent then addon:StylizeFrame(eb, {0.115, 0.115, 0.115, 0.9}) end
+    if not isTransparent then Cell.StylizeFrame(eb, {0.115, 0.115, 0.115, 0.9}) end
     eb:SetFontObject(font or font_name)
     eb:SetMultiLine(isMultiLine)
     eb:SetMaxLetters(0)
     eb:SetJustifyH("LEFT")
     eb:SetJustifyV("MIDDLE")
-    P:Width(eb, width or 0)
-    P:Height(eb, height or 0)
+    P.Width(eb, width or 0)
+    P.Height(eb, height or 0)
     eb:SetTextInsets(5, 5, 0, 0)
     eb:SetAutoFocus(false)
     eb:SetNumeric(isNumeric)
@@ -983,17 +1034,19 @@ function addon:CreateEditBox(parent, width, height, isTransparent, isMultiLine, 
     eb:SetScript("OnDisable", function() eb:SetTextColor(0.4, 0.4, 0.4, 1) end)
     eb:SetScript("OnEnable", function() eb:SetTextColor(1, 1, 1, 1) end)
 
+    eb.AddConfirmButton = EditBox_AddConfirmButton
+
     return eb
 end
 
-function addon:CreateScrollEditBox(parent, onTextChanged, scrollStep)
+function Cell.CreateScrollEditBox(parent, onTextChanged, scrollStep)
     scrollStep = scrollStep or 1
 
     local frame = CreateFrame("Frame", nil, parent)
-    addon:CreateScrollFrame(frame)
-    addon:StylizeFrame(frame.scrollFrame, {0.15, 0.15, 0.15, 0.9})
+    Cell.CreateScrollFrame(frame)
+    Cell.StylizeFrame(frame.scrollFrame, {0.15, 0.15, 0.15, 0.9})
 
-    frame.eb = addon:CreateEditBox(frame.scrollFrame.content, 10, 20, true, true)
+    frame.eb = Cell.CreateEditBox(frame.scrollFrame.content, 10, 20, true, true)
     frame.eb:SetPoint("TOPLEFT")
     frame.eb:SetPoint("RIGHT")
     frame.eb:SetTextInsets(2, 2, 2, 2)
@@ -1052,16 +1105,16 @@ end
 -- slider 2020-08-25 02:49:16
 -----------------------------------------
 -- Interface\FrameXML\OptionsPanelTemplates.xml, line 76, OptionsSliderTemplate
-function addon:CreateSlider(name, parent, low, high, width, step, onValueChangedFn, afterValueChangedFn, isPercentage, ...)
+function Cell.CreateSlider(name, parent, low, high, width, step, onValueChangedFn, afterValueChangedFn, isPercentage, ...)
     local tooltips = {...}
     local slider = CreateFrame("Slider", nil, parent, "BackdropTemplate")
     slider:SetValueStep(step)
     slider:SetObeyStepOnDrag(true)
     slider:SetOrientation("HORIZONTAL")
-    P:Size(slider, width, 10)
+    P.Size(slider, width, 10)
     local unit = isPercentage and "%" or ""
 
-    addon:StylizeFrame(slider, {0.115, 0.115, 0.115, 1})
+    Cell.StylizeFrame(slider, {0.115, 0.115, 0.115, 1})
 
     local label = slider:CreateFontString(nil, "OVERLAY", font_name)
     label:SetText(name)
@@ -1071,9 +1124,9 @@ function addon:CreateSlider(name, parent, low, high, width, step, onValueChanged
         label:SetText(n)
     end
 
-    local currentEditBox = addon:CreateEditBox(slider, 48, 14)
+    local currentEditBox = Cell.CreateEditBox(slider, 48, 14)
     slider.currentEditBox = currentEditBox
-    P:Point(currentEditBox, "TOPLEFT", slider, "BOTTOMLEFT", math.ceil(width / 2 - 24), -1)
+    P.Point(currentEditBox, "TOPLEFT", slider, "BOTTOMLEFT", math.ceil(width / 2 - 24), -1)
     -- currentEditBox:SetPoint("TOP", slider, "BOTTOM", 0, -1)
     currentEditBox:SetJustifyH("CENTER")
     currentEditBox:SetScript("OnEditFocusGained", function(self)
@@ -1231,10 +1284,10 @@ end
 -----------------------------------------
 -- switch
 -----------------------------------------
-function addon:CreateSwitch(parent, size, leftText, leftValue, rightText, rightValue, func)
+function Cell.CreateSwitch(parent, size, leftText, leftValue, rightText, rightValue, func)
     local switch = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-    P:Size(switch, size[1], size[2])
-    addon:StylizeFrame(switch, {0.115, 0.115, 0.115, 1})
+    P.Size(switch, size[1], size[2])
+    Cell.StylizeFrame(switch, {0.115, 0.115, 0.115, 1})
 
     local textLeft = switch:CreateFontString(nil, "OVERLAY", font_name)
     textLeft:SetPoint("LEFT", 2, 0)
@@ -1256,13 +1309,13 @@ function addon:CreateSwitch(parent, size, leftText, leftValue, rightText, rightV
     local function UpdateHighlight(which)
         highlight:ClearAllPoints()
         if which == "LEFT" then
-            highlight:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
+            highlight:SetPoint("TOPLEFT", P.Scale(1), P.Scale(-1))
             highlight:SetPoint("RIGHT", switch, "CENTER")
-            highlight:SetPoint("BOTTOM", 0, P:Scale(1))
+            highlight:SetPoint("BOTTOM", 0, P.Scale(1))
         else
-            highlight:SetPoint("TOPRIGHT", P:Scale(-1), P:Scale(-1))
+            highlight:SetPoint("TOPRIGHT", P.Scale(-1), P.Scale(-1))
             highlight:SetPoint("LEFT", switch, "CENTER")
-            highlight:SetPoint("BOTTOM", 0, P:Scale(1))
+            highlight:SetPoint("BOTTOM", 0, P.Scale(1))
         end
     end
 
@@ -1325,10 +1378,10 @@ function addon:CreateSwitch(parent, size, leftText, leftValue, rightText, rightV
     return switch
 end
 
-function addon:CreateTripleSwitch(parent, size, func)
+function Cell.CreateTripleSwitch(parent, size, func)
     local switch = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-    P:Size(switch, size[1], size[2])
-    addon:StylizeFrame(switch, {0.115, 0.115, 0.115, 1})
+    P.Size(switch, size[1], size[2])
+    Cell.StylizeFrame(switch, {0.115, 0.115, 0.115, 1})
 
     local highlight = switch:CreateTexture(nil, "ARTWORK")
     if class == "PRIEST" and not accentColorOverride then
@@ -1342,14 +1395,14 @@ function addon:CreateTripleSwitch(parent, size, func)
 
         highlight:ClearAllPoints()
         if which == "LEFT" then
-            highlight:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
-            highlight:SetPoint("BOTTOMRIGHT", switch, "BOTTOMLEFT", P:Scale(width/3+1), P:Scale(1))
+            highlight:SetPoint("TOPLEFT", P.Scale(1), P.Scale(-1))
+            highlight:SetPoint("BOTTOMRIGHT", switch, "BOTTOMLEFT", P.Scale(width/3+1), P.Scale(1))
         elseif which == "CENTER" then
-            highlight:SetPoint("TOPLEFT", P:Scale(width/3+1), P:Scale(-1))
-            highlight:SetPoint("BOTTOMRIGHT", P:Scale(-width/3-1), P:Scale(1))
+            highlight:SetPoint("TOPLEFT", P.Scale(width/3+1), P.Scale(-1))
+            highlight:SetPoint("BOTTOMRIGHT", P.Scale(-width/3-1), P.Scale(1))
         else
-            highlight:SetPoint("TOPLEFT", P:Scale(width/3*2+1), P:Scale(-1))
-            highlight:SetPoint("BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+            highlight:SetPoint("TOPLEFT", P.Scale(width/3*2+1), P.Scale(-1))
+            highlight:SetPoint("BOTTOMRIGHT", P.Scale(-1), P.Scale(1))
         end
     end
 
@@ -1418,10 +1471,10 @@ function addon:CreateTripleSwitch(parent, size, func)
     return switch
 end
 
-function addon:CreateFourfoldSwitch(parent, size, func)
+function Cell.CreateFourfoldSwitch(parent, size, func)
     local switch = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-    P:Size(switch, size[1], size[2])
-    addon:StylizeFrame(switch, {0.115, 0.115, 0.115, 1})
+    P.Size(switch, size[1], size[2])
+    Cell.StylizeFrame(switch, {0.115, 0.115, 0.115, 1})
 
     local highlight = switch:CreateTexture(nil, "ARTWORK")
     if class == "PRIEST" and not accentColorOverride then
@@ -1435,17 +1488,17 @@ function addon:CreateFourfoldSwitch(parent, size, func)
 
         highlight:ClearAllPoints()
         if value == 1 then
-            highlight:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
-            highlight:SetPoint("BOTTOMRIGHT", switch, "BOTTOMLEFT", P:Scale(width/4+1), P:Scale(1))
+            highlight:SetPoint("TOPLEFT", P.Scale(1), P.Scale(-1))
+            highlight:SetPoint("BOTTOMRIGHT", switch, "BOTTOMLEFT", P.Scale(width/4+1), P.Scale(1))
         elseif value == 2 then
-            highlight:SetPoint("TOPLEFT", P:Scale(width/4+1), P:Scale(-1))
-            highlight:SetPoint("BOTTOMRIGHT", P:Scale(-width/4*2-1), P:Scale(1))
+            highlight:SetPoint("TOPLEFT", P.Scale(width/4+1), P.Scale(-1))
+            highlight:SetPoint("BOTTOMRIGHT", P.Scale(-width/4*2-1), P.Scale(1))
         elseif value == 3 then
-            highlight:SetPoint("TOPLEFT", P:Scale(width/4*2+1), P:Scale(-1))
-            highlight:SetPoint("BOTTOMRIGHT", P:Scale(-width/4-1), P:Scale(1))
+            highlight:SetPoint("TOPLEFT", P.Scale(width/4*2+1), P.Scale(-1))
+            highlight:SetPoint("BOTTOMRIGHT", P.Scale(-width/4-1), P.Scale(1))
         else
-            highlight:SetPoint("TOPLEFT", P:Scale(width/4*3+1), P:Scale(-1))
-            highlight:SetPoint("BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+            highlight:SetPoint("TOPLEFT", P.Scale(width/4*3+1), P.Scale(-1))
+            highlight:SetPoint("BOTTOMRIGHT", P.Scale(-1), P.Scale(1))
         end
     end
 
@@ -1509,7 +1562,7 @@ end
 -----------------------------------------
 -- status bar
 -----------------------------------------
-function addon:CreateStatusBar(name, parent, width, height, maxValue, smooth, func, showText, texture, color)
+function Cell.CreateStatusBar(name, parent, width, height, maxValue, smooth, func, showText, texture, color)
     local bar = CreateFrame("StatusBar", name, parent, "BackdropTemplate")
 
     if not color then color = {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1} end
@@ -1518,9 +1571,9 @@ function addon:CreateStatusBar(name, parent, width, height, maxValue, smooth, fu
     bar:SetStatusBarColor(unpack(color))
     bar:GetStatusBarTexture():SetDrawLayer("BORDER", -1)
 
-    P:Width(bar, width)
-    P:Height(bar, height)
-    bar:SetBackdrop({bgFile=Cell.vars.whiteTexture, edgeFile=Cell.vars.whiteTexture, edgeSize=P:Scale(1)})
+    P.Width(bar, width)
+    P.Height(bar, height)
+    bar:SetBackdrop({bgFile=Cell.vars.whiteTexture, edgeFile=Cell.vars.whiteTexture, edgeSize=P.Scale(1)})
     bar:SetBackdropColor(0.07, 0.07, 0.07, 0.9)
     bar:SetBackdropBorderColor(0, 0, 0, 1)
 
@@ -1566,16 +1619,16 @@ function addon:CreateStatusBar(name, parent, width, height, maxValue, smooth, fu
     end)
 
     function bar:UpdatePixelPerfect()
-        P:Resize(bar)
-        P:Repoint(bar)
-        P:Reborder(bar)
+        P.Resize(bar)
+        P.Repoint(bar)
+        P.Reborder(bar)
     end
 
     return bar
 end
 
-function addon:CreateStatusBarButton(parent, text, size, maxValue, template)
-    local b = Cell:CreateButton(parent, text, "accent-hover", size, false, true, nil, nil, template)
+function Cell.CreateStatusBarButton(parent, text, size, maxValue, template)
+    local b = Cell.CreateButton(parent, text, "accent-hover", size, false, true, nil, nil, template)
     b:SetFrameLevel(parent:GetFrameLevel()+2)
     b:SetBackdropColor(0, 0, 0, 0)
     b:SetScript("OnEnter", function()
@@ -1594,7 +1647,7 @@ function addon:CreateStatusBarButton(parent, text, size, maxValue, template)
     bar:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = 1})
     bar:SetBackdropColor(0.115, 0.115, 0.115, 1)
     bar:SetBackdropBorderColor(0, 0, 0, 0)
-    P:Size(bar, size[1], size[2])
+    P.Size(bar, size[1], size[2])
     bar:SetMinMaxValues(0, maxValue)
     bar:SetValue(0)
     bar:SetFrameLevel(parent:GetFrameLevel()+1)
@@ -1623,15 +1676,15 @@ function addon:CreateStatusBarButton(parent, text, size, maxValue, template)
     function b:UpdatePixelPerfect()
         b:_UpdatePixelPerfect()
 
-        P:Resize(bar)
-        P:Repoint(bar)
+        P.Resize(bar)
+        P.Repoint(bar)
 
         -- update bar
         -- backup colors
         local currentBackdropColor = {bar:GetBackdropColor()}
         local currentBackdropBorderColor = {bar:GetBackdropBorderColor()}
         -- update backdrop
-        bar:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P:Scale(1)})
+        bar:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(1)})
         -- restore colors
         bar:SetBackdropColor(unpack(currentBackdropColor))
         bar:SetBackdropBorderColor(unpack(currentBackdropBorderColor))
@@ -1645,10 +1698,10 @@ end
 -----------------------------------------
 -- mask
 -----------------------------------------
-function addon:CreateMask(parent, text, points) -- points = {topleftX, topleftY, bottomrightX, bottomrightY}
+function Cell.CreateMask(parent, text, points) -- points = {topleftX, topleftY, bottomrightX, bottomrightY}
     if not parent.mask then -- not init
         parent.mask = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-        addon:StylizeFrame(parent.mask, {0.15, 0.15, 0.15, 0.7}, {0, 0, 0, 0})
+        Cell.StylizeFrame(parent.mask, {0.15, 0.15, 0.15, 0.7}, {0, 0, 0, 0})
         -- parent.mask:SetFrameStrata("HIGH")
         parent.mask:SetFrameLevel(parent:GetFrameLevel()+30)
         parent.mask:EnableMouse(true) -- can't click-through
@@ -1672,22 +1725,22 @@ function addon:CreateMask(parent, text, points) -- points = {topleftX, topleftY,
     parent.mask:ClearAllPoints() -- prepare for SetPoint()
     if points then
         local tlX, tlY, brX, brY = unpack(points)
-        parent.mask:SetPoint("TOPLEFT", P:Scale(tlX), P:Scale(tlY))
-        parent.mask:SetPoint("BOTTOMRIGHT", P:Scale(brX), P:Scale(brY))
+        parent.mask:SetPoint("TOPLEFT", P.Scale(tlX), P.Scale(tlY))
+        parent.mask:SetPoint("BOTTOMRIGHT", P.Scale(brX), P.Scale(brY))
     else
         parent.mask:SetAllPoints(parent) -- anchor points are set to those of its "parent"
     end
     parent.mask:Show()
 end
 
-function addon:CreateCombatMask(parent, x1, y1, x2, y2)
+function Cell.CreateCombatMask(parent, x1, y1, x2, y2)
     local mask = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     parent.combatMask = mask
 
-    mask:SetPoint("TOPLEFT", P:Scale(x1 or 1), P:Scale(y1 or -1))
-    mask:SetPoint("BOTTOMRIGHT", P:Scale(x2 or -1), P:Scale(y2 or 1))
+    mask:SetPoint("TOPLEFT", P.Scale(x1 or 1), P.Scale(y1 or -1))
+    mask:SetPoint("BOTTOMRIGHT", P.Scale(x2 or -1), P.Scale(y2 or 1))
 
-    addon:StylizeFrame(mask, {0.17, 0.15, 0.15, 0.8}, {0, 0, 0, 0})
+    Cell.StylizeFrame(mask, {0.17, 0.15, 0.15, 0.8}, {0, 0, 0, 0})
     -- mask:SetFrameStrata("DIALOG")
     mask:SetFrameLevel(parent:GetFrameLevel()+100)
     mask:EnableMouse(true) -- can't click-through
@@ -1705,11 +1758,11 @@ end
 -----------------------------------------
 -- create popup (delete/edit/... confirm) with mask
 -----------------------------------------
-function addon:CreateConfirmPopup(parent, width, text, onAccept, onReject, mask, hasEditBox, dropdowns)
+function Cell.CreateConfirmPopup(parent, width, text, onAccept, onReject, mask, hasEditBox, dropdowns)
     if not parent.confirmPopup then -- not init
         parent.confirmPopup = CreateFrame("Frame", nil, parent, "BackdropTemplate")
         parent.confirmPopup:SetSize(width, 100)
-        addon:StylizeFrame(parent.confirmPopup, {0.1, 0.1, 0.1, 0.95}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
+        Cell.StylizeFrame(parent.confirmPopup, {0.1, 0.1, 0.1, 0.95}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
         parent.confirmPopup:EnableMouse(true)
         parent.confirmPopup:SetClampedToScreen(true)
         parent.confirmPopup:Hide()
@@ -1728,19 +1781,19 @@ function addon:CreateConfirmPopup(parent, width, text, onAccept, onReject, mask,
         parent.confirmPopup.text:SetPoint("TOPRIGHT", -5, -8)
 
         -- yes
-        parent.confirmPopup.button1 = addon:CreateButton(parent.confirmPopup, L["Yes"], "green", {35, 15})
+        parent.confirmPopup.button1 = Cell.CreateButton(parent.confirmPopup, L["Yes"], "green", {35, 15})
         -- button1:SetPoint("BOTTOMRIGHT", -45, 0)
         parent.confirmPopup.button1:SetPoint("BOTTOMRIGHT", -34, 0)
         parent.confirmPopup.button1:SetBackdropBorderColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], 1)
         -- no
-        parent.confirmPopup.button2 = addon:CreateButton(parent.confirmPopup, L["No"], "red", {35, 15})
-        parent.confirmPopup.button2:SetPoint("LEFT", parent.confirmPopup.button1, "RIGHT", P:Scale(-1), 0)
+        parent.confirmPopup.button2 = Cell.CreateButton(parent.confirmPopup, L["No"], "red", {35, 15})
+        parent.confirmPopup.button2:SetPoint("LEFT", parent.confirmPopup.button1, "RIGHT", P.Scale(-1), 0)
         parent.confirmPopup.button2:SetBackdropBorderColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], 1)
     end
 
     if hasEditBox then
         if not parent.confirmPopup.editBox then
-            parent.confirmPopup.editBox = addon:CreateEditBox(parent.confirmPopup, width-40, 20)
+            parent.confirmPopup.editBox = Cell.CreateEditBox(parent.confirmPopup, width-40, 20)
             parent.confirmPopup.editBox:SetPoint("TOP", parent.confirmPopup.text, "BOTTOM", 0, -5)
             parent.confirmPopup.editBox:SetAutoFocus(true)
             parent.confirmPopup.editBox:SetScript("OnHide", function()
@@ -1765,7 +1818,7 @@ function addon:CreateConfirmPopup(parent, width, text, onAccept, onReject, mask,
 
     if dropdowns then
         if not parent.confirmPopup.dropdown1 then
-            parent.confirmPopup.dropdown1 = addon:CreateDropdown(parent.confirmPopup, width-40)
+            parent.confirmPopup.dropdown1 = Cell.CreateDropdown(parent.confirmPopup, width-40)
             parent.confirmPopup.dropdown1:SetPoint("LEFT", 20, 0)
             if hasEditBox then
                 parent.confirmPopup.dropdown1:SetPoint("TOP", parent.confirmPopup.editBox, "BOTTOM", 0, -5)
@@ -1774,7 +1827,7 @@ function addon:CreateConfirmPopup(parent, width, text, onAccept, onReject, mask,
             end
         end
         if not parent.confirmPopup.dropdown2 then
-            parent.confirmPopup.dropdown2 = addon:CreateDropdown(parent.confirmPopup, (width-40)/2-3)
+            parent.confirmPopup.dropdown2 = Cell.CreateDropdown(parent.confirmPopup, (width-40)/2-3)
             parent.confirmPopup.dropdown2:SetPoint("LEFT", parent.confirmPopup.dropdown1, "RIGHT", 5, 0)
         end
 
@@ -1793,7 +1846,7 @@ function addon:CreateConfirmPopup(parent, width, text, onAccept, onReject, mask,
 
     if mask then -- show mask?
         if not parent.mask then
-            addon:CreateMask(parent, nil, {1, -1, -1, 1})
+            Cell.CreateMask(parent, nil, {1, -1, -1, 1})
         else
             parent.mask:Show()
         end
@@ -1837,11 +1890,11 @@ end
 -----------------------------------------
 -- notification popup
 -----------------------------------------
-function addon:CreateNotificationPopup(parent, width, text, mask)
+function Cell.CreateNotificationPopup(parent, width, text, mask)
     if not parent.notificationPopup then -- not init
         parent.notificationPopup = CreateFrame("Frame", nil, parent, "BackdropTemplate")
         parent.notificationPopup:SetSize(width, 100)
-        addon:StylizeFrame(parent.notificationPopup, {0.1, 0.1, 0.1, 0.95}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
+        Cell.StylizeFrame(parent.notificationPopup, {0.1, 0.1, 0.1, 0.95}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
         parent.notificationPopup:EnableMouse(true)
         parent.notificationPopup:SetClampedToScreen(true)
         parent.notificationPopup:Hide()
@@ -1860,14 +1913,14 @@ function addon:CreateNotificationPopup(parent, width, text, mask)
         parent.notificationPopup.text:SetPoint("TOPRIGHT", -5, -8)
 
         -- ok
-        parent.notificationPopup.button = addon:CreateButton(parent.notificationPopup, _G.OKAY, "green", {37, 17})
+        parent.notificationPopup.button = Cell.CreateButton(parent.notificationPopup, _G.OKAY, "green", {37, 17})
         parent.notificationPopup.button:SetPoint("BOTTOMRIGHT")
         parent.notificationPopup.button:SetBackdropBorderColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], 1)
     end
 
     if mask then -- show mask?
         if not parent.mask then
-            addon:CreateMask(parent, nil, {1, -1, -1, 1})
+            Cell.CreateMask(parent, nil, {1, -1, -1, 1})
         else
             parent.mask:Show()
         end
@@ -1900,7 +1953,7 @@ end
 -----------------------------------------
 -- popup edit box
 -----------------------------------------
-function addon:CreatePopupEditBox(parent, func, multiLine)
+function Cell.CreatePopupEditBox(parent, func, multiLine)
     if not parent.popupEditBox then
         local eb = CreateFrame("EditBox", nil, parent, "BackdropTemplate")
         parent.popupEditBox = eb
@@ -1911,7 +1964,7 @@ function addon:CreatePopupEditBox(parent, func, multiLine)
         eb:SetMultiLine(true)
         eb:SetMaxLetters(255)
         eb:SetTextInsets(5, 5, 3, 4)
-        addon:StylizeFrame(eb, {0.115, 0.115, 0.115, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
+        Cell.StylizeFrame(eb, {0.115, 0.115, 0.115, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
 
         eb:SetScript("OnEscapePressed", function()
             eb:SetText("")
@@ -1969,15 +2022,15 @@ end
 -----------------------------------------
 -- dual popup edit box
 -----------------------------------------
-function addon:CreateDualPopupEditBox(parent, leftTip, rightTip, isNumeric, func)
+function Cell.CreateDualPopupEditBox(parent, leftTip, rightTip, isNumeric, func)
     if not parent.dualPopupEditBox then
         local f = CreateFrame("Frame", nil, parent)
         parent.dualPopupEditBox = f
-        P:Size(f, 230, 20)
+        P.Size(f, 230, 20)
         f:Hide()
 
         -- ok
-        local ok = addon:CreateButton(f, "OK", "accent", {30, 20})
+        local ok = Cell.CreateButton(f, "OK", "accent", {30, 20})
         f.ok = ok
         ok:SetPoint("TOPRIGHT")
 
@@ -1985,7 +2038,7 @@ function addon:CreateDualPopupEditBox(parent, leftTip, rightTip, isNumeric, func
         local left = CreateFrame("EditBox", nil, f, "BackdropTemplate")
         f.left = left
         left:SetPoint("TOPLEFT")
-        P:Size(left, 100, 20)
+        P.Size(left, 100, 20)
         left:SetAutoFocus(false)
         left:SetFontObject(font)
         left:SetJustifyH("LEFT")
@@ -1993,7 +2046,7 @@ function addon:CreateDualPopupEditBox(parent, leftTip, rightTip, isNumeric, func
         left:SetMaxLetters(255)
         left:SetNumeric(isNumeric)
         left:SetTextInsets(5, 5, 3, 4)
-        addon:StylizeFrame(left, {0.115, 0.115, 0.115, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
+        Cell.StylizeFrame(left, {0.115, 0.115, 0.115, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
 
         left:SetScript("OnEditFocusGained", function() left:HighlightText() end)
         left:SetScript("OnEditFocusLost", function() left:HighlightText(0, 0) end)
@@ -2018,9 +2071,9 @@ function addon:CreateDualPopupEditBox(parent, leftTip, rightTip, isNumeric, func
         -- right
         local right = CreateFrame("EditBox", nil, f, "BackdropTemplate")
         f.right = right
-        right:SetPoint("TOPLEFT", left, "TOPRIGHT", P:Scale(1), 0)
-        right:SetPoint("TOPRIGHT", ok, "TOPLEFT", P:Scale(-1), 0)
-        P:Size(right, 100, 20)
+        right:SetPoint("TOPLEFT", left, "TOPRIGHT", P.Scale(1), 0)
+        right:SetPoint("TOPRIGHT", ok, "TOPLEFT", P.Scale(-1), 0)
+        P.Size(right, 100, 20)
         right:SetAutoFocus(false)
         right:SetFontObject(font)
         right:SetJustifyH("LEFT")
@@ -2028,7 +2081,7 @@ function addon:CreateDualPopupEditBox(parent, leftTip, rightTip, isNumeric, func
         right:SetMaxLetters(255)
         right:SetNumeric(isNumeric)
         right:SetTextInsets(5, 5, 3, 4)
-        addon:StylizeFrame(right, {0.115, 0.115, 0.115, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
+        Cell.StylizeFrame(right, {0.115, 0.115, 0.115, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
 
         right:SetScript("OnEditFocusGained", function() right:HighlightText() end)
         right:SetScript("OnEditFocusLost", function() right:HighlightText(0, 0) end)
@@ -2092,8 +2145,8 @@ end
 -----------------------------------------
 -- cascading menu
 -----------------------------------------
-local menu = addon:CreateFrame(addonName.."CascadingMenu", UIParent, 100, 20)
-addon.menu = menu
+local menu = Cell.CreateFrame(addonName.."CascadingMenu", UIParent, 100, 20)
+Cell.menu = menu
 tinsert(UISpecialFrames, menu:GetName())
 menu:SetClampedToScreen(true)
 menu:SetBackdropColor(0.115, 0.115, 0.115, 0.977)
@@ -2102,9 +2155,9 @@ menu:SetFrameStrata("TOOLTIP")
 menu.items = {}
 
 function menu:UpdatePixelPerfect()
-    menu:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P:Scale(1)})
+    menu:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(1)})
     menu:SetBackdropColor(0.115, 0.115, 0.115, 0.977)
-    menu:SetBackdropBorderColor(Cell:GetAccentColorRGB())
+    menu:SetBackdropBorderColor(Cell.GetAccentColorRGB())
 end
 
 -- items: menu items table
@@ -2120,7 +2173,7 @@ local function CreateItemButtons(items, itemTable, itemParent, level)
             b = itemTable[i]
             b:SetText(item.text)
         else
-            b = addon:CreateButton(itemParent, item.text, "transparent-accent", {98 ,18}, true)
+            b = Cell.CreateButton(itemParent, item.text, "transparent-accent", {98 ,18}, true)
             tinsert(itemTable, b)
         end
 
@@ -2141,25 +2194,25 @@ local function CreateItemButtons(items, itemTable, itemParent, level)
         if item.icon then
             if not b.icon then
                 b.iconBg = b:CreateTexture(nil, "BORDER")
-                P:Size(b.iconBg, 16, 16)
-                b.iconBg:SetPoint("TOPLEFT", P:Scale(5), P:Scale(-1))
+                P.Size(b.iconBg, 16, 16)
+                b.iconBg:SetPoint("TOPLEFT", P.Scale(5), P.Scale(-1))
                 b.iconBg:SetColorTexture(0, 0, 0, 1)
 
                 b.icon = b:CreateTexture(nil, "ARTWORK")
-                b.icon:SetPoint("TOPLEFT", b.iconBg, P:Scale(1), P:Scale(-1))
-                b.icon:SetPoint("BOTTOMRIGHT", b.iconBg, P:Scale(-1), P:Scale(1))
+                b.icon:SetPoint("TOPLEFT", b.iconBg, P.Scale(1), P.Scale(-1))
+                b.icon:SetPoint("BOTTOMRIGHT", b.iconBg, P.Scale(-1), P.Scale(1))
                 b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
             end
             b.icon:SetTexture(item.icon)
             b.icon:Show()
             b.iconBg:Show()
-            b:GetFontString():SetPoint("LEFT", b.iconBg, "RIGHT", P:Scale(2), 0)
+            b:GetFontString():SetPoint("LEFT", b.iconBg, "RIGHT", P.Scale(2), 0)
         else
             if b.icon then
                 b.icon:Hide()
                 b.iconBg:Hide()
             end
-            b:GetFontString():SetPoint("LEFT", P:Scale(5), 0)
+            b:GetFontString():SetPoint("LEFT", P.Scale(5), 0)
         end
 
         if level == 0 then
@@ -2173,7 +2226,7 @@ local function CreateItemButtons(items, itemTable, itemParent, level)
             -- create sub menu level+1
             if not menu[level+1] then
                 -- menu[level+1] parent == menu[level]
-                menu[level+1] = addon:CreateFrame(addonName.."CascadingSubMenu"..level, level == 0 and menu or menu[level], 100, 20)
+                menu[level+1] = Cell.CreateFrame(addonName.."CascadingSubMenu"..level, level == 0 and menu or menu[level], 100, 20)
                 menu[level+1]:SetBackdropColor(0.115, 0.115, 0.115, 1)
                 menu[level+1]:SetBackdropBorderColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], 1)
                 -- menu[level+1]:SetScript("OnHide", function(self) self:Hide() end)
@@ -2197,14 +2250,20 @@ local function CreateItemButtons(items, itemTable, itemParent, level)
                 menu[level+1]:SetPoint("TOPLEFT", b, "TOPRIGHT", 2, 1)
                 menu[level+1]:Show()
 
-                for _, b in ipairs(b) do
-                    b:Show()
+                for _, sub in ipairs(b) do
+                    sub:Show()
                 end
+
+                menu[level+1]:SetHeight(2 + #item.children*18)
             end)
 
             -- clear parent menuItem's onClick
             b:SetScript("OnClick", function()
                 PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON)
+                if item.onClick then
+                    menu:Hide()
+                    item.onClick(item.text)
+                end
             end)
         else
             if b.childrenSymbol then b.childrenSymbol:Hide() end
@@ -2227,7 +2286,7 @@ local function CreateItemButtons(items, itemTable, itemParent, level)
     itemParent:SetHeight(2 + #items*18)
 end
 
-local function CreateItemButtons_Scroll(items, itemTable, limit)
+local function CreateItemButtons_Scroll(items, itemTable, limit, level)
     menu:SetScript("OnHide", function(self) self:Hide() end)
 
     for i, item in pairs(items) do
@@ -2236,7 +2295,7 @@ local function CreateItemButtons_Scroll(items, itemTable, limit)
             b = itemTable[i]
             b:SetText(item.text)
         else
-            b = addon:CreateButton(menu.scrollFrame.content, item.text, "transparent-accent", {98 ,18}, true)
+            b = Cell.CreateButton(menu.scrollFrame.content, item.text, "transparent-accent", {98 ,18}, true)
             tinsert(itemTable, b)
         end
 
@@ -2258,31 +2317,31 @@ local function CreateItemButtons_Scroll(items, itemTable, limit)
         if item.icon then
             if not b.icon then
                 b.iconBg = b:CreateTexture(nil, "BORDER")
-                P:Size(b.iconBg, 16, 16)
-                b.iconBg:SetPoint("TOPLEFT", P:Scale(5), P:Scale(-1))
+                P.Size(b.iconBg, 16, 16)
+                b.iconBg:SetPoint("TOPLEFT", P.Scale(5), P.Scale(-1))
                 b.iconBg:SetColorTexture(0, 0, 0, 1)
 
                 b.icon = b:CreateTexture(nil, "ARTWORK")
-                b.icon:SetPoint("TOPLEFT", b.iconBg, P:Scale(1), P:Scale(-1))
-                b.icon:SetPoint("BOTTOMRIGHT", b.iconBg, P:Scale(-1), P:Scale(1))
+                b.icon:SetPoint("TOPLEFT", b.iconBg, P.Scale(1), P.Scale(-1))
+                b.icon:SetPoint("BOTTOMRIGHT", b.iconBg, P.Scale(-1), P.Scale(1))
                 b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
             end
             b.icon:SetTexture(item.icon)
             b.icon:Show()
             b.iconBg:Show()
-            b:GetFontString():SetPoint("LEFT", b.iconBg, "RIGHT", P:Scale(2), 0)
+            b:GetFontString():SetPoint("LEFT", b.iconBg, "RIGHT", P.Scale(2), 0)
         else
             if b.icon then
                 b.icon:Hide()
                 b.iconBg:Hide()
             end
-            b:GetFontString():SetPoint("LEFT", P:Scale(5), 0)
+            b:GetFontString():SetPoint("LEFT", P.Scale(5), 0)
         end
 
         -- if item.marker then
         --     if not b.marker then
         --         b.marker = b:CreateTexture(nil, "OVERLAY")
-        --         P:Size(b.marker, 16, 16)
+        --         P.Size(b.marker, 16, 16)
         --         b.marker:SetAllPoints(b.iconBg)
         --     end
         --     b.marker:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\icon_marker.tga")
@@ -2295,28 +2354,76 @@ local function CreateItemButtons_Scroll(items, itemTable, limit)
         --     end
         -- end
 
-        if b.childrenSymbol then b.childrenSymbol:Hide() end
+        if item.children then
+            -- create sub menu level+1
+            if not menu[level+1] then
+                -- menu[level+1] parent == menu[level]
+                menu[level+1] = Cell.CreateFrame(addonName.."CascadingSubMenu"..level, level == 0 and menu or menu[level], 100, 20)
+                menu[level+1]:SetFrameLevel((level == 0 and menu or menu[level]):GetFrameLevel() + 10)
+                menu[level+1]:SetBackdropColor(0.115, 0.115, 0.115, 1)
+                menu[level+1]:SetBackdropBorderColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], 1)
+                -- menu[level+1]:SetScript("OnHide", function(self) self:Hide() end)
+            end
 
-        b:SetScript("OnEnter", function()
-            b:SetBackdropColor(unpack(b.hoverColor))
-        end)
+            if not b.childrenSymbol then
+                b.childrenSymbol = b:CreateFontString(nil, "OVERLAY", font_name)
+                b.childrenSymbol:SetText("|cFF777777>")
+                b.childrenSymbol:SetPoint("RIGHT", -5, 0)
+            end
+            b.childrenSymbol:Show()
 
-        b:SetScript("OnClick", function()
-            PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON)
-            menu:Hide()
-            if item.onClick then item.onClick(item.text) end
-        end)
+            CreateItemButtons(item.children, b, menu[level+1], level+1) -- itemTable == b, insert children to its table
+
+            b:SetScript("OnEnter", function()
+                b:SetBackdropColor(unpack(b.hoverColor))
+
+                menu[level+1]:Hide()
+
+                menu[level+1]:ClearAllPoints()
+                menu[level+1]:SetPoint("TOPLEFT", b, "TOPRIGHT", 2, 1)
+                menu[level+1]:Show()
+
+                for _, sub in ipairs(b) do
+                    sub:Show()
+                end
+
+                menu[level+1]:SetHeight(2 + #item.children*18)
+            end)
+
+            -- clear parent menuItem's onClick
+            b:SetScript("OnClick", function()
+                PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON)
+                if item.onClick then
+                    menu:Hide()
+                    item.onClick(item.text)
+                end
+            end)
+        else
+            if b.childrenSymbol then b.childrenSymbol:Hide() end
+
+            b:SetScript("OnEnter", function()
+                b:SetBackdropColor(unpack(b.hoverColor))
+
+                if menu[level+1] then menu[level+1]:Hide() end
+            end)
+
+            b:SetScript("OnClick", function()
+                PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON)
+                menu:Hide()
+                if item.onClick then item.onClick(item.text) end
+            end)
+        end
     end
 
     -- update height
     local n = #items
-    menu.scrollFrame:SetContentHeight(P:Scale(2) + n * P:Scale(18))
+    menu.scrollFrame:SetContentHeight(P.Scale(2) + n * P.Scale(18))
     if n == 0 then
-        menu:SetHeight(P:Scale(5))
+        menu:SetHeight(P.Scale(5))
     elseif n <= limit then
-        menu:SetHeight(P:Scale(2) + n * P:Scale(18))
+        menu:SetHeight(P.Scale(2) + n * P.Scale(18))
     else
-        menu:SetHeight(P:Scale(2) + limit * P:Scale(18))
+        menu:SetHeight(P.Scale(2) + limit * P.Scale(18))
     end
 end
 
@@ -2329,7 +2436,7 @@ function menu:SetItems(items, limit)
     end
 
     if not menu.scrollFrame then
-        addon:CreateScrollFrame(menu)
+        Cell.CreateScrollFrame(menu)
         menu.scrollFrame:SetScrollStep(18)
     end
     menu.scrollFrame:Reset()
@@ -2337,7 +2444,7 @@ function menu:SetItems(items, limit)
     -- create buttons -- items, itemTable, itemParent, level
     if limit then
         menu.scrollFrame:Show()
-        CreateItemButtons_Scroll(items, menu.items, limit)
+        CreateItemButtons_Scroll(items, menu.items, limit, 0)
     else
         menu.scrollFrame:Hide()
         CreateItemButtons(items, menu.items, menu, 0)
@@ -2346,14 +2453,14 @@ end
 
 function menu:SetWidths(...)
     local widths = {...}
-    P:Width(menu, widths[1])
+    P.Width(menu, widths[1])
     if #widths == 1 then
         for _, m in ipairs(menu) do
-            P:Width(m, widths[1])
+            P.Width(m, widths[1])
         end
     else
         for i, m in ipairs(menu) do
-            if widths[i+1] then P:Width(m, widths[i+1]) end
+            if widths[i+1] then P.Width(m, widths[i+1]) end
         end
     end
 end
@@ -2373,7 +2480,7 @@ end
 -----------------------------------------
 -- scroll text frame
 -----------------------------------------
-function addon:CreateScrollTextFrame(parent, s, timePerScroll, scrollStep, delayTime, noFadeIn)
+function Cell.CreateScrollTextFrame(parent, s, timePerScroll, scrollStep, delayTime, noFadeIn)
     if not delayTime then delayTime = 3 end
     if not timePerScroll then timePerScroll = 0.02 end
     if not scrollStep then scrollStep = 1 end
@@ -2479,7 +2586,7 @@ end
 -----------------------------------------------------------------------------------
 -- create scroll frame (with scrollbar & content frame)
 -----------------------------------------------------------------------------------
-function addon:CreateScrollFrame(parent, top, bottom, color, border)
+function Cell.CreateScrollFrame(parent, top, bottom, color, border)
     -- create scrollFrame & scrollbar seperately (instead of UIPanelScrollFrameTemplate), in order to custom it
     local scrollFrame = CreateFrame("ScrollFrame", parent:GetName() and parent:GetName().."ScrollFrame" or nil, parent, "BackdropTemplate")
     parent.scrollFrame = scrollFrame
@@ -2489,7 +2596,7 @@ function addon:CreateScrollFrame(parent, top, bottom, color, border)
     scrollFrame:SetPoint("BOTTOMRIGHT", 0, bottom)
 
     if color then
-        addon:StylizeFrame(scrollFrame, color, border)
+        Cell.StylizeFrame(scrollFrame, color, border)
     end
 
     function scrollFrame:Resize(newTop, newBottom)
@@ -2511,7 +2618,7 @@ function addon:CreateScrollFrame(parent, top, bottom, color, border)
     scrollbar:SetPoint("TOPLEFT", scrollFrame, "TOPRIGHT", 2, 0)
     scrollbar:SetPoint("BOTTOMRIGHT", scrollFrame, 7, 0)
     scrollbar:Hide()
-    addon:StylizeFrame(scrollbar, {0.1, 0.1, 0.1, 0.8})
+    Cell.StylizeFrame(scrollbar, {0.1, 0.1, 0.1, 0.8})
     scrollFrame.scrollbar = scrollbar
 
     -- scrollbar thumb
@@ -2519,7 +2626,7 @@ function addon:CreateScrollFrame(parent, top, bottom, color, border)
     scrollThumb:SetWidth(5) -- scrollbar's width is 5
     scrollThumb:SetHeight(scrollbar:GetHeight())
     scrollThumb:SetPoint("TOP")
-    addon:StylizeFrame(scrollThumb, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.8})
+    Cell.StylizeFrame(scrollThumb, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.8})
     scrollThumb:EnableMouse(true)
     scrollThumb:SetMovable(true)
     scrollThumb:SetHitRectInsets(-5, -5, 0, 0) -- Frame:SetHitRectInsets(left, right, top, bottom)
@@ -2707,7 +2814,7 @@ local listInit, list, highlightTexture
 list = CreateFrame("Frame", addonName.."DropdownList", UIParent, "BackdropTemplate")
 list:SetIgnoreParentScale(true)
 list:SetClampedToScreen(true)
--- addon:StylizeFrame(list, {0.115, 0.115, 0.115, 1})
+-- Cell.StylizeFrame(list, {0.115, 0.115, 0.115, 1})
 list:Hide()
 
 -- store created buttons
@@ -2715,7 +2822,7 @@ list.items = {}
 
 -- highlight
 highlightTexture = CreateFrame("Frame", nil, list, "BackdropTemplate")
--- highlightTexture:SetBackdrop({edgeFile = Cell.vars.whiteTexture, edgeSize = P:Scale(1)})
+-- highlightTexture:SetBackdrop({edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(1)})
 -- highlightTexture:SetBackdropBorderColor(unpack(accentColor.t))
 highlightTexture:Hide()
 
@@ -2727,7 +2834,7 @@ end)
 list:SetScript("OnHide", function() list:Hide() end)
 
 -- close dropdown
-function addon:RegisterForCloseDropdown(f)
+function Cell.RegisterForCloseDropdown(f)
     if f:GetObjectType() == "Button" or f:GetObjectType() == "CheckButton" then
         f:HookScript("OnClick", function()
             list:Hide()
@@ -2751,17 +2858,17 @@ local function SetHighlightItem(i)
     end
 end
 
-function addon:CreateDropdown(parent, width, dropdownType, isMini, isHorizontal)
+function Cell.CreateDropdown(parent, width, dropdownType, isMini, isHorizontal)
     local menu = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-    P:Size(menu, width, 20)
+    P.Size(menu, width, 20)
     menu:EnableMouse(true)
     -- menu:SetFrameLevel(5)
-    addon:StylizeFrame(menu, {0.115, 0.115, 0.115, 1})
+    Cell.StylizeFrame(menu, {0.115, 0.115, 0.115, 1})
 
     -- label
     function menu:SetLabel(label)
         menu.label = menu:CreateFontString(nil, "OVERLAY", font_name)
-        menu.label:SetPoint("BOTTOMLEFT", menu, "TOPLEFT", 0, P:Scale(1))
+        menu.label:SetPoint("BOTTOMLEFT", menu, "TOPLEFT", 0, P.Scale(1))
         menu.label:SetText(label)
 
         hooksecurefunc(menu, "SetEnabled", function(self, enabled)
@@ -2775,17 +2882,17 @@ function addon:CreateDropdown(parent, width, dropdownType, isMini, isHorizontal)
 
     -- button: open/close menu list
     if isMini then
-        menu.button = addon:CreateButton(menu, "", "transparent-accent", {18 ,18})
+        menu.button = Cell.CreateButton(menu, "", "transparent-accent", {18 ,18})
         menu.button:SetAllPoints(menu)
         menu.button:SetFrameLevel(menu:GetFrameLevel()+1)
         -- selected item
         menu.text = menu.button:CreateFontString(nil, "OVERLAY", font_name)
-        menu.text:SetPoint("LEFT", P:Scale(1), 0)
-        menu.text:SetPoint("RIGHT", P:Scale(-1), 0)
+        menu.text:SetPoint("LEFT", P.Scale(1), 0)
+        menu.text:SetPoint("RIGHT", P.Scale(-1), 0)
         menu.text:SetJustifyH("CENTER")
     else
-        menu.button = addon:CreateButton(menu, "", "transparent-accent", {18 ,20})
-        addon:StylizeFrame(menu.button, {0.115, 0.115, 0.115, 1})
+        menu.button = Cell.CreateButton(menu, "", "transparent-accent", {18 ,20})
+        Cell.StylizeFrame(menu.button, {0.115, 0.115, 0.115, 1})
         menu.button:SetPoint("TOPRIGHT")
         menu.button:SetFrameLevel(menu:GetFrameLevel()+1)
         menu.button:SetNormalTexture([[Interface\AddOns\Cell\Media\Icons\dropdown-normal]])
@@ -2797,8 +2904,8 @@ function addon:CreateDropdown(parent, width, dropdownType, isMini, isHorizontal)
         menu.button:SetDisabledTexture(disabledTexture)
         -- selected item
         menu.text = menu:CreateFontString(nil, "OVERLAY", font_name)
-        menu.text:SetPoint("TOPLEFT", P:Scale(5), P:Scale(-1))
-        menu.text:SetPoint("BOTTOMRIGHT", P:Scale(-18), P:Scale(1))
+        menu.text:SetPoint("TOPLEFT", P.Scale(5), P.Scale(-1))
+        menu.text:SetPoint("BOTTOMRIGHT", P.Scale(-18), P.Scale(1))
         menu.text:SetJustifyH("LEFT")
     end
 
@@ -2808,8 +2915,8 @@ function addon:CreateDropdown(parent, width, dropdownType, isMini, isHorizontal)
 
     if dropdownType == "texture" then
         menu.texture = menu:CreateTexture(nil, "ARTWORK")
-        menu.texture:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
-        menu.texture:SetPoint("BOTTOMRIGHT", P:Scale(-18), P:Scale(1))
+        menu.texture:SetPoint("TOPLEFT", P.Scale(1), P.Scale(-1))
+        menu.texture:SetPoint("BOTTOMRIGHT", P.Scale(-18), P.Scale(1))
         menu.texture:SetVertexColor(1, 1, 1, 0.7)
     end
 
@@ -2911,10 +3018,10 @@ function addon:CreateDropdown(parent, width, dropdownType, isMini, isHorizontal)
     local function LoadItems()
         if not listInit then
             listInit = true
-            addon:CreateScrollFrame(list)
+            Cell.CreateScrollFrame(list)
             list.scrollFrame:SetScrollStep(18)
-            addon:StylizeFrame(list, {0.115, 0.115, 0.115, 1})
-            highlightTexture:SetBackdrop({edgeFile = Cell.vars.whiteTexture, edgeSize = P:Scale(1)})
+            Cell.StylizeFrame(list, {0.115, 0.115, 0.115, 1})
+            highlightTexture:SetBackdrop({edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(1)})
             highlightTexture:SetBackdropBorderColor(unpack(accentColor.t))
         end
 
@@ -2928,13 +3035,13 @@ function addon:CreateDropdown(parent, width, dropdownType, isMini, isHorizontal)
             local b
             if not list.items[i] then
                 -- init
-                b = addon:CreateButton(list.scrollFrame.content, item.text, "transparent-accent", {18 ,18}, true) --! width is not important
+                b = Cell.CreateButton(list.scrollFrame.content, item.text, "transparent-accent", {18 ,18}, true) --! width is not important
                 table.insert(list.items, b)
 
                 -- texture
                 b.texture = b:CreateTexture(nil, "ARTWORK")
-                b.texture:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
-                b.texture:SetPoint("BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+                b.texture:SetPoint("TOPLEFT", P.Scale(1), P.Scale(-1))
+                b.texture:SetPoint("BOTTOMRIGHT", P.Scale(-1), P.Scale(1))
                 b.texture:SetVertexColor(1, 1, 1, 0.7)
                 b.texture:Hide()
             else
@@ -2996,16 +3103,16 @@ function addon:CreateDropdown(parent, width, dropdownType, isMini, isHorizontal)
             b:Show()
 
             if isMini and isHorizontal then
-                P:Width(b, width)
+                P.Width(b, width)
                 if i == 1 then
-                    b:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
+                    b:SetPoint("TOPLEFT", P.Scale(1), P.Scale(-1))
                 else
                     b:SetPoint("TOPLEFT", list.items[i-1], "TOPRIGHT")
                 end
             else
                 if i == 1 then
-                    b:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
-                    b:SetPoint("TOPRIGHT", P:Scale(-1), P:Scale(-1))
+                    b:SetPoint("TOPLEFT", P.Scale(1), P.Scale(-1))
+                    b:SetPoint("TOPRIGHT", P.Scale(-1), P.Scale(-1))
                 else
                     b:SetPoint("TOPLEFT", list.items[i-1], "BOTTOMLEFT")
                     b:SetPoint("TOPRIGHT", list.items[i-1], "BOTTOMRIGHT")
@@ -3020,22 +3127,22 @@ function addon:CreateDropdown(parent, width, dropdownType, isMini, isHorizontal)
         if isMini and isHorizontal then
             list:SetPoint("TOPLEFT", menu, "TOPRIGHT", 2, 0)
             if #menu.items == 0 then
-                list:SetSize(P:Scale(5), menu:GetHeight())
+                list:SetSize(P.Scale(5), menu:GetHeight())
             else
-                list:SetSize(P:Scale(2) + #menu.items*P:Scale(width), menu:GetHeight())
+                list:SetSize(P.Scale(2) + #menu.items*P.Scale(width), menu:GetHeight())
             end
-            list.scrollFrame:SetContentHeight(P:Scale(20))
+            list.scrollFrame:SetContentHeight(P.Scale(20))
         else
             list:SetPoint("TOPLEFT", menu, "BOTTOMLEFT", 0, -2)
             if #menu.items == 0 then
-                list:SetSize(menu:GetWidth(), P:Scale(5))
+                list:SetSize(menu:GetWidth(), P.Scale(5))
             elseif #menu.items <= 15 then
-                list:SetSize(menu:GetWidth(), P:Scale(2) + #menu.items*P:Scale(18))
-                list.scrollFrame:SetContentHeight(P:Scale(2) + #menu.items*P:Scale(18))
+                list:SetSize(menu:GetWidth(), P.Scale(2) + #menu.items*P.Scale(18))
+                list.scrollFrame:SetContentHeight(P.Scale(2) + #menu.items*P.Scale(18))
             else
-                list:SetSize(menu:GetWidth(), P:Scale(2) + 11*P:Scale(18))
+                list:SetSize(menu:GetWidth(), P.Scale(2) + 11*P.Scale(18))
                 -- update list scrollFrame
-                list.scrollFrame:SetContentHeight(P:Scale(2) + #menu.items*P:Scale(18))
+                list.scrollFrame:SetContentHeight(P.Scale(2) + #menu.items*P.Scale(18))
             end
         end
     end
@@ -3102,15 +3209,15 @@ local function GetModifier()
     return modifier
 end
 
-function addon:CreateBindingButton(parent, width)
+function Cell.CreateBindingButton(parent, width)
     if not parent.bindingButton then
-        parent.bindingButton = addon:CreateFrame("CellClickCastings_BindingButton", parent, 50, 20)
+        parent.bindingButton = Cell.CreateFrame("CellClickCastings_BindingButton", parent, 50, 20)
         parent.bindingButton:SetFrameStrata("TOOLTIP")
         parent.bindingButton:Hide()
         tinsert(UISpecialFrames, parent.bindingButton:GetName())
-        addon:StylizeFrame(parent.bindingButton, {0.1, 0.1, 0.1, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3]})
+        Cell.StylizeFrame(parent.bindingButton, {0.1, 0.1, 0.1, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3]})
 
-        parent.bindingButton.close = addon:CreateButton(parent.bindingButton, "×", "red", {18, 18}, true, true, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
+        parent.bindingButton.close = Cell.CreateButton(parent.bindingButton, "×", "red", {18, 18}, true, true, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
         parent.bindingButton.close:SetPoint("TOPRIGHT", -1, -1)
         parent.bindingButton.close:SetScript("OnClick", function()
             parent.bindingButton:Hide()
@@ -3166,7 +3273,7 @@ function addon:CreateBindingButton(parent, width)
     end
 
     parent.bindingButton:ClearAllPoints()
-    P:Width(parent.bindingButton, width)
+    P.Width(parent.bindingButton, width)
 
     return parent.bindingButton
 end
@@ -3177,8 +3284,8 @@ end
 local function CreateGrid(parent, text, width)
     local grid = CreateFrame("Button", nil, parent, "BackdropTemplate")
     grid:SetFrameLevel(6)
-    grid:SetSize(width, P:Scale(20))
-    grid:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P:Scale(1)})
+    grid:SetSize(width, P.Scale(20))
+    grid:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(1)})
     grid:SetBackdropColor(0, 0, 0, 0)
     grid:SetBackdropBorderColor(0, 0, 0, 1)
 
@@ -3186,8 +3293,8 @@ local function CreateGrid(parent, text, width)
     grid.text = grid:CreateFontString(nil, "OVERLAY", font_name)
     grid.text:SetWordWrap(false)
     grid.text:SetJustifyH("LEFT")
-    grid.text:SetPoint("LEFT", P:Scale(5), 0)
-    grid.text:SetPoint("RIGHT", P:Scale(-5), 0)
+    grid.text:SetPoint("LEFT", P.Scale(5), 0)
+    grid.text:SetPoint("RIGHT", P.Scale(-5), 0)
     grid.text:SetText(text)
 
     function grid:SetText(s)
@@ -3230,20 +3337,20 @@ local function CreateGrid(parent, text, width)
         parent:SetFrameStrata("LOW")
         -- self:Hide() --! Hide() will cause OnDragStop trigger TWICE!!!
         C_Timer.After(0.05, function()
-            local b = F:GetMouseFocus()
+            local b = F.GetMouseFocus()
             if b then b = b:GetParent() end
-            F:MoveClickCastings(parent.clickCastingIndex, b and b.clickCastingIndex)
+            F.MoveClickCastings(parent.clickCastingIndex, b and b.clickCastingIndex)
         end)
     end)
 
     return grid
 end
 
-function addon:CreateBindingListButton(parent, modifier, bindKey, bindType, bindAction)
+function Cell.CreateBindingListButton(parent, modifier, bindKey, bindType, bindAction)
     local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
     b:SetFrameLevel(5)
-    P:Size(b, 100, 20)
-    b:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P:Scale(1)})
+    P.Size(b, 100, 20)
+    b:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(1)})
     b:SetBackdropColor(0.115, 0.115, 0.115, 1)
     b:SetBackdropBorderColor(0, 0, 0, 1)
     b:SetMovable(true)
@@ -3262,16 +3369,16 @@ function addon:CreateBindingListButton(parent, modifier, bindKey, bindType, bind
 
     local typeGrid = CreateGrid(b, bindType, 70)
     b.typeGrid = typeGrid
-    typeGrid:SetPoint("BOTTOMLEFT", keyGrid, "BOTTOMRIGHT", P:Scale(-1), 0)
+    typeGrid:SetPoint("BOTTOMLEFT", keyGrid, "BOTTOMRIGHT", P.Scale(-1), 0)
 
     local actionGrid = CreateGrid(b, bindAction, 100)
     b.actionGrid = actionGrid
-    actionGrid:SetPoint("BOTTOMLEFT", typeGrid, "BOTTOMRIGHT", P:Scale(-1), 0)
+    actionGrid:SetPoint("BOTTOMLEFT", typeGrid, "BOTTOMRIGHT", P.Scale(-1), 0)
     actionGrid:SetPoint("BOTTOMRIGHT")
 
     actionGrid:HookScript("OnEnter", function()
         if actionGrid:IsTruncated() then
-            CellTooltip:SetOwner(actionGrid, "ANCHOR_TOPLEFT", 0, P:Scale(1))
+            CellTooltip:SetOwner(actionGrid, "ANCHOR_TOPLEFT", 0, P.Scale(1))
             CellTooltip:AddLine(L["Action"])
             CellTooltip:AddLine("|cffffffff" .. actionGrid:GetText())
             CellTooltip:Show()
@@ -3283,14 +3390,14 @@ function addon:CreateBindingListButton(parent, modifier, bindKey, bindType, bind
 
     -- spell icon
     local spellIconBg = actionGrid:CreateTexture(nil, "BORDER")
-    P:Size(spellIconBg, 16, 16)
-    spellIconBg:SetPoint("TOPLEFT", P:Scale(2), P:Scale(-2))
+    P.Size(spellIconBg, 16, 16)
+    spellIconBg:SetPoint("TOPLEFT", P.Scale(2), P.Scale(-2))
     spellIconBg:SetColorTexture(0, 0, 0, 1)
     spellIconBg:Hide()
 
     local spellIcon = actionGrid:CreateTexture(nil, "OVERLAY")
-    spellIcon:SetPoint("TOPLEFT", spellIconBg, P:Scale(1), P:Scale(-1))
-    spellIcon:SetPoint("BOTTOMRIGHT", spellIconBg, P:Scale(-1), P:Scale(1))
+    spellIcon:SetPoint("TOPLEFT", spellIconBg, P.Scale(1), P.Scale(-1))
+    spellIcon:SetPoint("BOTTOMRIGHT", spellIconBg, P.Scale(-1), P.Scale(1))
     spellIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     spellIcon:Hide()
 
@@ -3299,14 +3406,15 @@ function addon:CreateBindingListButton(parent, modifier, bindKey, bindType, bind
         spellIconBg:Show()
         spellIcon:Show()
         -- actionGrid.text:ClearAllPoints()
-        actionGrid.text:SetPoint("LEFT", spellIconBg, "RIGHT", P:Scale(2), 0)
-        -- actionGrid.text:SetPoint("RIGHT", P:Scale(-5), 0)
+        actionGrid.text:SetPoint("LEFT", spellIconBg, "RIGHT", P.Scale(2), 0)
+        -- actionGrid.text:SetPoint("RIGHT", P.Scale(-5), 0)
     end
 
     function b:ShowSpellIcon(spell)
         local icon = nil
         if spell then
-            icon = select(2, F:GetSpellInfo(spell))
+            spell = strsplit(":", spell) -- has spell rank
+            icon = select(2, F.GetSpellInfo(spell))
         end
         b:ShowIcon(icon)
     end
@@ -3323,8 +3431,8 @@ function addon:CreateBindingListButton(parent, modifier, bindKey, bindType, bind
         spellIconBg:Hide()
         spellIcon:Hide()
         -- actionGrid.text:ClearAllPoints()
-        actionGrid.text:SetPoint("LEFT", P:Scale(5), 0)
-        -- actionGrid.text:SetPoint("RIGHT", P:Scale(-5), 0)
+        actionGrid.text:SetPoint("LEFT", P.Scale(5), 0)
+        -- actionGrid.text:SetPoint("RIGHT", P.Scale(-5), 0)
     end
 
     function b:SetBorderColor(...)
@@ -3347,7 +3455,7 @@ end
 -----------------------------------------
 -- receiving frame
 -----------------------------------------
-function addon:CreateReceivingFrame(parent)
+function Cell.CreateReceivingFrame(parent)
     local f = CreateFrame("Frame", "CellReceivingFrame", parent, "BackdropTemplate")
     f:EnableMouse(true)
     f:SetMovable(true)
@@ -3356,9 +3464,9 @@ function addon:CreateReceivingFrame(parent)
     f:SetFrameStrata("DIALOG")
     f:SetFrameLevel(277)
     f:SetClampedToScreen(true)
-    P:Size(f, 249, 135)
+    P.Size(f, 249, 135)
     f:SetPoint("TOPRIGHT", UIParent, "CENTER")
-    addon:StylizeFrame(f)
+    Cell.StylizeFrame(f)
 
     f:SetScript("OnDragStart", function() f:StartMoving() end)
     f:SetScript("OnDragStop", function() f:StopMovingOrSizing() end)
@@ -3427,24 +3535,24 @@ function addon:CreateReceivingFrame(parent)
     end
 
     -- buttons
-    local requestBtn = addon:CreateButton(f, L["Request"], "green", {125, 20})
+    local requestBtn = Cell.CreateButton(f, L["Request"], "green", {125, 20})
     requestBtn:SetPoint("BOTTOMLEFT")
 
-    local importBtn = addon:CreateButton(f, L["Import"], "green", {125, 20})
+    local importBtn = Cell.CreateButton(f, L["Import"], "green", {125, 20})
     importBtn:SetPoint("BOTTOMLEFT")
 
-    local cancelBtn = addon:CreateButton(f, L["Cancel"], "red", {125, 20})
+    local cancelBtn = Cell.CreateButton(f, L["Cancel"], "red", {125, 20})
     cancelBtn:SetPoint("BOTTOMLEFT", importBtn, "BOTTOMRIGHT", -1, 0)
     cancelBtn:SetPoint("BOTTOMRIGHT")
 
     -- bar
-    local progressBar = addon:CreateStatusBar("CellReceivingFrameBar", f, 198, 18, 0, true, nil, true, "Interface\\AddOns\\Cell\\Media\\statusbar.tga", {0.7, 0.7, 0, 1})
+    local progressBar = Cell.CreateStatusBar("CellReceivingFrameBar", f, 198, 18, 0, true, nil, true, "Interface\\AddOns\\Cell\\Media\\statusbar.tga", {0.7, 0.7, 0, 1})
     progressBar:SetPoint("BOTTOMLEFT", 1, 1)
     progressBar:SetPoint("BOTTOMRIGHT", cancelBtn, "BOTTOMLEFT")
     progressBar:Hide()
 
     function f:ShowFrame(type, playerName, name1, name2)
-        P:Size(f, 249, 20) -- reset size
+        P.Size(f, 249, 20) -- reset size
         typeLabel:Hide()
         nameLabel:Hide()
         fromLabel:Hide()
@@ -3461,7 +3569,7 @@ function addon:CreateReceivingFrame(parent)
         fromText:SetText(playerName)
 
         local lines = typeText:GetNumLines() + nameText:GetNumLines() + fromText:GetNumLines()
-        addon:ChangeSizeWithAnimation(f, 249, 40 + lines*math.ceil(typeLabel:GetStringHeight()*1.4), 7, nil, function()
+        Cell.ChangeSizeWithAnimation(f, 249, 40 + lines*math.ceil(typeLabel:GetStringHeight()*1.4), 7, nil, function()
             typeLabel:Show()
             nameLabel:Show()
             fromLabel:Show()
@@ -3487,7 +3595,7 @@ function addon:CreateReceivingFrame(parent)
             requestBtn:Hide()
             progressBar:SetValue(0)
             progressBar:Show()
-            addon:ChangeSizeWithAnimation(importBtn, 200, 20, 7)
+            Cell.ChangeSizeWithAnimation(importBtn, 200, 20, 7)
             func(self)
 
             infoMsg:Hide()
@@ -3495,7 +3603,7 @@ function addon:CreateReceivingFrame(parent)
             timeout = C_Timer.NewTimer(10, function()
                 if f:IsShown() and progressBar:GetValue() == 0 then
                     infoMsg:SetMsg(L["To transfer across realm, you need to be in the same group"], fromText)
-                    addon:ChangeSizeWithAnimation(f, 249, f.height+15+math.ceil(infoMsg:GetStringHeight()), 7, nil, function()
+                    Cell.ChangeSizeWithAnimation(f, 249, f.height+15+math.ceil(infoMsg:GetStringHeight()), 7, nil, function()
                         infoMsg:Show()
                     end)
                 end
@@ -3522,7 +3630,7 @@ function addon:CreateReceivingFrame(parent)
             timeout:Cancel()
             timeout = nil
         end
-        addon:ChangeSizeWithAnimation(importBtn, 125, 20, 7)
+        Cell.ChangeSizeWithAnimation(importBtn, 125, 20, 7)
         progressBar:Hide()
         importBtn:Show()
         importBtn:SetEnabled(false)
@@ -3531,15 +3639,15 @@ function addon:CreateReceivingFrame(parent)
             if received["type"] == "Debuffs" then
                 local isCompatible = type(received["version"]) == "number" and received["version"] >= Cell.MIN_DEBUFFS_VERSION
 
-                F:Debug("|cffFFDAB9RECEIVED DEBUFFS:|r ", received["instanceId"], received["bossId"], received["data"])
-                local builtIn, custom = F:CalcRaidDebuffs(received["instanceId"], received["bossId"], received["data"])
+                F.Debug("|cffFFDAB9RECEIVED DEBUFFS:|r ", received["instanceId"], received["bossId"], received["data"])
+                local builtIn, custom = F.CalcRaidDebuffs(received["instanceId"], received["bossId"], received["data"])
 
                 dataLabel:SetText(L["Debuffs"] .. ": ")
                 dataText:SetText("|cff90EE90"..builtIn.." "..L["built-in(s)"].."|r, |cffFFB5C5"..custom.." "..L["custom(s)"].."|r")
 
                 importBtn:SetScript("OnClick", function()
-                    F:UpdateRaidDebuffs(received["instanceId"], received["bossId"], received["data"], nameText:GetText())
-                    F:ShowInstanceDebuffs(received["instanceId"], received["bossId"])
+                    F.UpdateRaidDebuffs(received["instanceId"], received["bossId"], received["data"], nameText:GetText())
+                    F.ShowInstanceDebuffs(received["instanceId"], received["bossId"])
                     f:Hide()
                 end)
 
@@ -3549,7 +3657,7 @@ function addon:CreateReceivingFrame(parent)
                     else
                         infoMsg:SetMsg(L["Incompatible Version"], dataText)
                     end
-                    addon:ChangeSizeWithAnimation(f, 249, f.height+15+math.ceil(dataText:GetStringHeight()+infoMsg:GetStringHeight()), 7, nil, function()
+                    Cell.ChangeSizeWithAnimation(f, 249, f.height+15+math.ceil(dataText:GetStringHeight()+infoMsg:GetStringHeight()), 7, nil, function()
                         dataLabel:Show()
                         dataText:Show()
                         infoMsg:Show()
@@ -3561,7 +3669,7 @@ function addon:CreateReceivingFrame(parent)
             elseif received["type"] == "Layout" then
                 local isCompatible = type(received["version"]) == "number" and received["version"] >= Cell.MIN_LAYOUTS_VERSION
 
-                F:Debug("|cffFFDAB9RECEIVED LAYOUT:|r ", received["name"], received["data"])
+                F.Debug("|cffFFDAB9RECEIVED LAYOUT:|r ", received["name"], received["data"])
 
                 importBtn:SetScript("OnClick", function()
                     -- check layout name
@@ -3578,7 +3686,7 @@ function addon:CreateReceivingFrame(parent)
                     end
                     -- save
                     CellDB["layouts"][layoutName] = received["data"]
-                    F:ShowLayout(layoutName)
+                    F.ShowLayout(layoutName)
                     f:Hide()
                 end)
 
@@ -3588,7 +3696,7 @@ function addon:CreateReceivingFrame(parent)
                     else
                         infoMsg:SetMsg(L["Incompatible Version"], fromText)
                     end
-                    addon:ChangeSizeWithAnimation(f, 249, f.height+15+math.ceil(infoMsg:GetStringHeight()), 7, nil, function()
+                    Cell.ChangeSizeWithAnimation(f, 249, f.height+15+math.ceil(infoMsg:GetStringHeight()), 7, nil, function()
                         dataLabel:Show()
                         dataText:Show()
                         infoMsg:Show()
@@ -3599,7 +3707,7 @@ function addon:CreateReceivingFrame(parent)
             end
         else
             infoMsg:SetMsg(L["Data transfer failed..."], fromText)
-            addon:ChangeSizeWithAnimation(f, 249, f.height+15+math.ceil(infoMsg:GetStringHeight()), 7, nil, function()
+            Cell.ChangeSizeWithAnimation(f, 249, f.height+15+math.ceil(infoMsg:GetStringHeight()), 7, nil, function()
                 infoMsg:Show()
                 if func then func() end
             end)

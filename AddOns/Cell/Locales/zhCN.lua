@@ -249,10 +249,10 @@ L["Assist"] = "协助"
 L["Menu"] = "菜单"
 
 L["T"] = "天赋"
-L["P"] = "PvP天赋"
-L["C"] = "职业天赋"
-L["S"] = "专精天赋"
-L["H"] = "英雄天赋"
+L["P"] = "PvP"
+L["C"] = "职业"
+L["S"] = "专精"
+L["H"] = "英雄"
 
 L["Edit"] = "编辑"
 L["Extra Action Button"] = "额外按键"
@@ -351,6 +351,7 @@ L["set unit's pet"] = "设置为目标单位的宠物"
 L["not in combat"] = "非战斗中"
 
 L["Invalid layout name."] = "无效布局名称。"
+L["Profile imported successfully."] = "配置导入成功。"
 L["Layout imported: %s."] = "已导入布局：%s。"
 L["Layout added: %s."] = "已创建布局：%s。"
 L["Layout deleted: %s."] = "已删除布局：%s。"
@@ -429,6 +430,7 @@ L["Status Icon"] = "状态图标"
 L["Role Icon"] = "职责图标"
 L["Party Assignment Icon"] = "职位图标"
 L["Leader Icon"] = "队长图标"
+L["Combat Icon"] = "战斗图标"
 L["Ready Check Icon"] = "就位确认图标"
 L["Raid Icon (player)"] = "团队标记 (玩家)"
 L["Raid Icon (target)"] = "团队标记 (目标)"
@@ -478,6 +480,8 @@ L["Blocks"] = "色块组"
 
 L["Enabled"] = "启用"
 L["Anchor Point"] = "锚点"
+L["Relative Point"] = "相对锚点"
+L["Relative To"] = "相对于"
 L["To UnitButton's"] = "到单位按钮的"
 L["To HealthBar's"] = "到血条的"
 L["vehicle name"] = "载具名称"
@@ -520,11 +524,12 @@ L["Alpha"] = "透明度"
 L["Max Displayed"] = "最大显示个数"
 L["Displayed Per Line"] = "每行/列显示个数"
 L["Format"] = "格式"
-L["Format Options"] = "格式选项"
 L["Health"] = "生命值"
-L["Absorbs"] = "吸收盾"
-L["Heal Absorbs"] = "治疗吸收"
+L["Shields"] = "护盾"
 L["shields"] = "护盾"
+L["Heal Absorbs"] = "治疗吸收"
+L["Delimiter"] = "分隔符"
+L["Effective"] = "有效"
 L["hideIfEmptyOrFull"] = "当值为满或空时隐藏"
 L["Color"] = "颜色"
 L["Border Color"] = "边框颜色"
@@ -588,6 +593,7 @@ L["hideInCombat"] = "战斗中隐藏"
 L["fadeOut"] = "随时间淡出"
 L["shieldByMe"] = "只显示我施放的真言术：盾"
 L["onlyShowOvershields"] = "只显示超过血量上限的护盾"
+L["onlyEnableNotInCombat"] = "仅当我不在战斗中"
 L["showAllSpells"] = "显示所有法术"
 L["Glow is only available to the spells in the list below"] = "发光仅对列表的中的法术有效"
 L["Uncategorized"] = "未分类"
@@ -610,7 +616,7 @@ L["cleuAurasTips"] = "通过战斗记录事件匹配不可见的法术效果"
 L["%s in Utilities must be enabled to make this indicator work."] = "要使用此指示器，必须先启用工具页面下的%s功能。"
 L["If you are a paladin or warrior, and the unit has no buffs from you, a %s icon will be displayed."] = "如果你是圣骑士或战士，且该单位没有来自你的增益时，将会显示一个%s图标。"
 L["Play animation when the unit uses a specific spell/item. The list is global shared, not layout-specific."] = "当单位使用特定的法术/物品时，播放动画。这个列表是全局共享的，而非每个布局独立。"
-L["Display a gradient texture when the unit receives a heal from your certain AoE healing spells."] = "当单位受到你的特定群体治疗法术的治疗时，显示一个渐变材质。"
+L["Display a gradient texture when the unit receives a heal from your certain healing spells."] = "当单位受到你特定治疗法术的治疗时，显示一个渐变材质。"
 
 L["Would you like Cell to create a \"Healers\" indicator (icons)?"] = "需要 Cell 为你创建一个 “Healers” 指示器（图标组）？"
 
@@ -870,6 +876,36 @@ L["CHANGELOGS"] = [[
     <p>（正式服）如果指示器不能正常刷新，尝试启用常规页面下的“总是更新增益/减益”选项。</p>
     <br/>
 
+    <h1>r245-release (Feb 25, 2025, 19:35 GMT+8)</h1>
+    <p>* 修复了一个布局自动切换时产生的异常。</p>
+    <p>* 修复了怀旧服上由特别关注框体导致的主框体指示器异常。</p>
+    <p>* 修复导入。</p>
+    <p>+ 为血量文字指示器添加了“生命值 2”的选项。</p>
+    <p>* 血量文字指示器现在不再于死亡/鬼魂状态下隐藏。</p>
+    <p>* 法术请求现在支持昵称。</p>
+    <p>* 更新德语、繁中。</p>
+    <br/>
+
+    <h1>r244-release (Feb 24, 2025, 21:40 GMT+8)</h1>
+    <p>+ （怀旧服）为点击施法添加对低级法术的直接支持。</p>
+    <p>* 更新“喝水”列表（#279, #306）。</p>
+    <p>* 更新距离检查。</p>
+    <p>* 更新驱散请求的文本动画。</p>
+    <p>* 重构血量文字指示器。</p>
+    <p>+ （经典怀旧服）将纳克萨玛斯加入副本减益列表 (#294)。</p>
+    <p>+ （地心之战）更新第二赛季副本减益（感谢 钛锬）。</p>
+    <p>+ （地心之战）更新解放安德麦的副本减益（感谢 Reat）。</p>
+    <p>+ （经典怀旧服）新增职责图标，更新能量条过滤。</p>
+    <p>+ 新增战斗图标指示器。</p>
+    <p>+ 更新AoE治疗指示器。</p>
+    <p>+ 为指示器的定位选项添加“相对于”的选项。</p>
+    <p>+ 为能量文字指示器添加职业/职责过滤。</p>
+    <p>* 修复材质选择器。</p>
+    <p>+ 为某些“插件安装器”新增一些方法。</p>
+    <p>* 将部分冒号方法转换为点方法，因此部分代码片段需要更新。</p>
+    <p>* 更新本地化。</p>
+    <br/>
+
     <h1>r243-release (Oct 13, 2024, 21:37 GMT+8)</h1>
     <p>* 修复怀旧服的能量过滤选项。</p>
     <p>* 更新内置指示器自我修复策略。</p>
@@ -921,6 +957,11 @@ L["CHANGELOGS"] = [[
     <p>+ 更新本地化：德语、法语、葡萄牙语、俄语、繁中。</p>
     <br/>
 
+    <p><a href="older">]]..L["Click to view older changelogs"]..[[</a></p>
+    <br/>
+]]
+
+L["OLDER_CHANGELOGS"] = [[
     <h1>r238-release (Aug 7, 2024, 15:25 GMT+8)</h1>
     <p>* 修复可能缺失的指示器。</p>
     <p>* 更新本地化。</p>
@@ -1238,11 +1279,6 @@ L["CHANGELOGS"] = [[
     <p>* 更新繁中。</p>
     <br/>
 
-    <p><a href="older">]]..L["Click to view older changelogs"]..[[</a></p>
-    <br/>
-]]
-
-L["OLDER_CHANGELOGS"] = [[
     <h1>r199-release (Oct 21, 2023, 15:40 GMT+8)</h1>
     <p>* 更新“减伤”指示器的内置法术。</p>
     <p>+ 为增益类型的自定义指示器添加了“来源”选项。</p>

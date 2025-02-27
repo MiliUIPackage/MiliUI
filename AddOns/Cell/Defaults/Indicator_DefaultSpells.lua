@@ -37,7 +37,7 @@ local debuffBlacklist = {
 function I.GetDefaultDebuffBlacklist()
     -- local temp = {}
     -- for i, id in pairs(debuffBlacklist) do
-    --     temp[i] = F:GetSpellInfo(id)
+    --     temp[i] = F.GetSpellInfo(id)
     -- end
     -- return temp
     return debuffBlacklist
@@ -90,75 +90,101 @@ end
 -- aoeHealings
 -------------------------------------------------
 local aoeHealings = {
-    -- druid
-    740, -- 宁静 - Tranquility
-    145205, -- 百花齐放 - Efflorescence
+    ["DRUID"] = {
+        [740] = true,      -- 宁静 - Tranquility
+        [145205] = true,   -- 百花齐放 - Efflorescence
+    },
 
-    -- evoker
-    355916, -- 翡翠之花 - Emerald Blossom
-    361361, -- 婆娑幼苗 - Fluttering Seedlings
-    363534, -- 回溯 - Rewind
-    367230, -- 精神之花 - Spiritbloom
-    370984, -- 翡翠交融 - Emerald Communion
-    371441, -- 赐命者之焰 - Life-Giver's Flame
-    371879, -- 生生不息 - Cycle of Life
+    ["EVOKER"] = {
+        [355916] = true,   -- 翡翠之花 - Emerald Blossom
+        [361361] = true,   -- 婆娑幼苗 - Fluttering Seedlings
+        [363534] = true,   -- 回溯 - Rewind
+        [367230] = true,   -- 精神之花 - Spiritbloom
+        [370984] = true,   -- 翡翠交融 - Emerald Communion
+        [371441] = true,   -- 赐命者之焰 - Life-Giver's Flame
+        [371879] = true,   -- 生生不息 - Cycle of Life
+        [377509] = false,  -- 梦境投影（pvp）- Dream Projection
+    },
 
-    -- monk
-    115098, -- 真气波 - Chi Wave
-    123986, -- 真气爆裂 - Chi Burst
-    115310, -- 还魂术 - Revival
-    322118, -- 青龙下凡 (SUMMON) - Invoke Yu'lon, the Jade Serpent
-    388193, -- 碧火踏 - Jadefire Stomp
-    443028, -- 天神御身 - Celestial Conduit
+    ["MONK"] = {
+        [115098] = true,   -- 真气波 - Chi Wave
+        [123986] = true,   -- 真气爆裂 - Chi Burst
+        [115310] = true,   -- 还魂术 - Revival
+        [322118] = true,   -- 青龙下凡 (SUMMON) - Invoke Yu'lon, the Jade Serpent
+        [388193] = true,   -- 碧火踏 - Jadefire Stomp
+        [443028] = true,   -- 天神御身 - Celestial Conduit
+        [343819] = false,  -- 迷雾之风 (朱鹤下凡产生的“迷雾之风”的施法者是玩家) - Gust of Mists
+    },
 
-    -- paladin
-    85222, -- 黎明之光 - Light of Dawn
-    119952, -- 弧形圣光 - Arcing Light
-    114165, -- 神圣棱镜 - Holy Prism
-    200654, -- 提尔的拯救 - Tyr's Deliverance
-    216371, -- 复仇十字军 - Avenging Crusader
+    ["PALADIN"] = {
+        [85222]  = true,   -- 黎明之光 - Light of Dawn
+        [119952] = true,   -- 弧形圣光 - Arcing Light
+        [114165] = true,   -- 神圣棱镜 - Holy Prism
+        [200654] = true,   -- 提尔的拯救 - Tyr's Deliverance
+        [216371] = true,   -- 复仇十字军 - Avenging Crusader
+    },
 
-    -- priest
-    120517, -- 光晕 - Halo
-    34861, -- 圣言术：灵 - Holy Word: Sanctify
-    596, -- 治疗祷言 - Prayer of Healing
-    64843, -- 神圣赞美诗 - Divine Hymn
-    110744, -- 神圣之星 - Divine Star
-    204883, -- 治疗之环 - Circle of Healing
-    281265, -- 神圣新星 - Holy Nova
-    314867, -- 暗影盟约 - Shadow Covenant
-    15290, -- 吸血鬼的拥抱 - Vampiric Embrace
-    372787, -- 神言术：佑 - Divine Word: Sanctuary
+    ["PRIEST"] = {
+        [120517] = true,   -- 光晕 - Halo
+        [34861]  = true,   -- 圣言术：灵 - Holy Word: Sanctify
+        [596]    = true,   -- 治疗祷言 - Prayer of Healing
+        [64843]  = true,   -- 神圣赞美诗 - Divine Hymn
+        [110744] = true,   -- 神圣之星 - Divine Star
+        [204883] = true,   -- 治疗之环 - Circle of Healing
+        [281265] = true,   -- 神圣新星 - Holy Nova
+        [314867] = true,   -- 暗影盟约 - Shadow Covenant
+        [15290]  = true,   -- 吸血鬼的拥抱 - Vampiric Embrace
+        [372787] = true,   -- 神言术：佑 - Divine Word: Sanctuary
+    },
 
-    -- shaman
-    1064, -- 治疗链 - Chain Heal
-    73920, -- 治疗之雨 - Healing Rain
-    108280, -- 治疗之潮图腾 (SUMMON) - Healing Tide Totem
-    52042, -- 治疗之泉图腾 (SUMMON) - Healing Stream Totem
-    197995, -- 奔涌之流 - Wellspring
-    157503, -- 暴雨图腾 - Cloudburst
-    114911, -- 先祖指引 - Ancestral Guidance
-    382311, -- 先祖复苏 - Ancestral Awakening
-    207778, -- 倾盆大雨 - Downpour
-    114083, -- 恢复迷雾 (升腾) - Restorative Mists
+    ["SHAMAN"] = {
+        [1064]   = true,   -- 治疗链 - Chain Heal
+        [73920]  = true,   -- 治疗之雨 - Healing Rain
+        [108280] = true,   -- 治疗之潮图腾 (SUMMON) - Healing Tide Totem
+        [52042]  = true,   -- 治疗之泉图腾 (SUMMON) - Healing Stream Totem
+        [197995] = true,   -- 奔涌之流 - Wellspring
+        [157503] = true,   -- 暴雨图腾 - Cloudburst
+        [114911] = true,   -- 先祖指引 - Ancestral Guidance
+        [382311] = true,   -- 先祖复苏 - Ancestral Awakening
+        [207778] = true,   -- 倾盆大雨 - Downpour
+        [114083] = true,   -- 恢复迷雾 (升腾) - Restorative Mists
+    },
 }
 
-local aoeHealingIDs = {
-    [343819] = true, -- 朱鹤下凡，朱鹤产生的“迷雾之风”的施法者是玩家
-    [377509] = true, -- 梦境投影（pvp）
-}
-
-do
-    local temp = {}
-    for _, id in pairs(aoeHealings) do
-        temp[F:GetSpellInfo(id)] = true
-    end
-    aoeHealings = temp
+function I.GetAoEHealings()
+    return aoeHealings
 end
 
-function I.IsAoEHealing(nameOrID)
-    if not nameOrID then return false end
-    return aoeHealings[nameOrID] or aoeHealingIDs[nameOrID]
+local builtInAoEHealings = {}
+local customAoEHealings = {}
+
+function I.UpdateAoEHealings(t)
+    -- user disabled
+    wipe(builtInAoEHealings)
+    for class, spells in pairs(aoeHealings) do
+        for id, trackByName in pairs(spells) do
+            if not t["disabled"][id] then -- not disabled
+                if trackByName then
+                    local name = F.GetSpellInfo(id)
+                    if name then
+                        builtInAoEHealings[name] = true
+                    end
+                else
+                    builtInAoEHealings[id] = true
+                end
+            end
+        end
+    end
+
+    -- user created
+    wipe(customAoEHealings)
+    for _, id in pairs(t["custom"]) do
+        customAoEHealings[id] = true
+    end
+end
+
+function I.IsAoEHealing(name, id)
+    return builtInAoEHealings[name] or builtInAoEHealings[id] or customAoEHealings[id]
 end
 
 local summonDuration = {
@@ -176,7 +202,7 @@ local summonDuration = {
 do
     local temp = {}
     for id, duration in pairs(summonDuration) do
-        temp[F:GetSpellInfo(id)] = duration
+        temp[F.GetSpellInfo(id)] = duration
     end
     summonDuration = temp
 end
@@ -271,7 +297,7 @@ local customExternals = {}
 
 local function UpdateExternals(id, trackByName)
     if trackByName then
-        local name = F:GetSpellInfo(id)
+        local name = F.GetSpellInfo(id)
         if name then
             builtInExternals[name] = true
         end
@@ -301,7 +327,7 @@ function I.UpdateExternals(t)
     -- user created
     wipe(customExternals)
     for _, id in pairs(t["custom"]) do
-        -- local name = F:GetSpellInfo(id)
+        -- local name = F.GetSpellInfo(id)
         -- if name then
         --     customExternals[name] = true
         -- end
@@ -310,7 +336,7 @@ function I.UpdateExternals(t)
 end
 
 local UnitIsUnit = UnitIsUnit
-local bos = F:GetSpellInfo(6940) -- 牺牲祝福
+local bos = F.GetSpellInfo(6940) -- 牺牲祝福
 function I.IsExternalCooldown(name, id, source, target)
     if name == bos then
         if source and target then
@@ -439,7 +465,7 @@ function I.UpdateDefensives(t)
         for id, trackByName in pairs(spells) do
             if not t["disabled"][id] then -- not disabled
                 if trackByName then
-                    local name = F:GetSpellInfo(id)
+                    local name = F.GetSpellInfo(id)
                     if name then
                         builtInDefensives[name] = true
                     end
@@ -453,7 +479,7 @@ function I.UpdateDefensives(t)
     -- user created
     wipe(customDefensives)
     for _, id in pairs(t["custom"]) do
-        -- local name = F:GetSpellInfo(id)
+        -- local name = F.GetSpellInfo(id)
         -- if name then
         --     customDefensives[name] = true
         -- end
@@ -491,29 +517,29 @@ local tankActiveMitigations = {
 
 local tankActiveMitigationNames = {
     -- death knight
-    -- F:GetClassColorStr("DEATHKNIGHT")..F:GetSpellInfo(77535).."|r", -- 鲜血护盾
-    F:GetClassColorStr("DEATHKNIGHT")..F:GetSpellInfo(195181).."|r", -- 白骨之盾
+    -- F.GetClassColorStr("DEATHKNIGHT")..F.GetSpellInfo(77535).."|r", -- 鲜血护盾
+    F.GetClassColorStr("DEATHKNIGHT")..F.GetSpellInfo(195181).."|r", -- 白骨之盾
 
     -- demon hunter
-    F:GetClassColorStr("DEMONHUNTER")..F:GetSpellInfo(203720).."|r", -- 恶魔尖刺
+    F.GetClassColorStr("DEMONHUNTER")..F.GetSpellInfo(203720).."|r", -- 恶魔尖刺
 
     -- druid
-    F:GetClassColorStr("DRUID")..F:GetSpellInfo(192081).."|r", -- 铁鬃
+    F.GetClassColorStr("DRUID")..F.GetSpellInfo(192081).."|r", -- 铁鬃
 
     -- monk
-    F:GetClassColorStr("MONK")..F:GetSpellInfo(215479).."|r", -- 铁骨酒
+    F.GetClassColorStr("MONK")..F.GetSpellInfo(215479).."|r", -- 铁骨酒
 
     -- paladin
-    F:GetClassColorStr("PALADIN")..F:GetSpellInfo(132403).."|r", -- 正义盾击
+    F.GetClassColorStr("PALADIN")..F.GetSpellInfo(132403).."|r", -- 正义盾击
 
     -- warrior
-    F:GetClassColorStr("WARRIOR")..F:GetSpellInfo(2565).."|r", -- 盾牌格挡
+    F.GetClassColorStr("WARRIOR")..F.GetSpellInfo(2565).."|r", -- 盾牌格挡
 }
 
 do
     local temp = {}
     for _, id in pairs(tankActiveMitigations) do
-        temp[F:GetSpellInfo(id)] = true
+        temp[F.GetSpellInfo(id)] = true
     end
     tankActiveMitigations = temp
 end
@@ -676,7 +702,7 @@ else
         timer = C_Timer.NewTimer(1, UpdateDispellable)
     end)
 
-    Cell:RegisterCallback("SpecChanged", "Dispellable_SpecChanged", function()
+    Cell.RegisterCallback("SpecChanged", "Dispellable_SpecChanged", function()
         if timer then timer:Cancel() end
         timer = C_Timer.NewTimer(1, UpdateDispellable)
     end)
@@ -693,12 +719,14 @@ local drinks = {
     172786, -- 饮料 - Drink
     308433, -- 食物和饮料 - Food & Drink
     369162, -- 饮用 - Drink
+    456574, -- 燧烬蜜露 - Cinder Nectar
+    461063, -- 静默省思（土灵）- Quiet Contemplation (Earthen)
 }
 
 do
     local temp = {}
     for _, id in pairs(drinks) do
-        temp[F:GetSpellInfo(id)] = true
+        temp[F.GetSpellInfo(id)] = true
     end
     drinks = temp
 end
@@ -794,10 +822,10 @@ local spells =  {
     -- 456366, -- 治疗之雨 - Healing Rain
 }
 
-function F:FirstRun()
+function F.FirstRun()
     local icons = "\n\n"
     for i, id in pairs(spells) do
-        local icon = select(2, F:GetSpellInfo(id))
+        local icon = select(2, F.GetSpellInfo(id))
         if icon then
             icons = icons .. "|T"..icon..":0|t"
             if i % 11 == 0 then
@@ -806,7 +834,7 @@ function F:FirstRun()
         end
     end
 
-    local popup = Cell:CreateConfirmPopup(Cell.frames.anchorFrame, 200, L["Would you like Cell to create a \"Healers\" indicator (icons)?"]..icons, function(self)
+    local popup = Cell.CreateConfirmPopup(Cell.frames.anchorFrame, 200, L["Would you like Cell to create a \"Healers\" indicator (icons)?"]..icons, function(self)
         local currentLayoutTable = Cell.vars.currentLayoutTable
 
         local last = #currentLayoutTable["indicators"]
@@ -821,7 +849,7 @@ function F:FirstRun()
             ["indicatorName"] = indicatorName,
             ["type"] = "icons",
             ["enabled"] = true,
-            ["position"] = {"TOPRIGHT", "TOPRIGHT", 0, 3},
+            ["position"] = {"TOPRIGHT", "button", "TOPRIGHT", 0, 3},
             ["frameLevel"] = 5,
             ["size"] = {13, 13},
             ["num"] = 5,
@@ -839,9 +867,9 @@ function F:FirstRun()
             ["castBy"] = "me",
             ["auras"] = spells,
         })
-        Cell:Fire("UpdateIndicators", Cell.vars.currentLayout, indicatorName, "create", currentLayoutTable["indicators"][last+1])
+        Cell.Fire("UpdateIndicators", Cell.vars.currentLayout, indicatorName, "create", currentLayoutTable["indicators"][last+1])
         CellDB["firstRun"] = false
-        F:ReloadIndicatorList()
+        F.ReloadIndicatorList()
     end, function()
         CellDB["firstRun"] = false
     end)
@@ -859,7 +887,7 @@ end
 --     wipe(cleuAuras)
 --     -- insert
 --     for _, c in pairs(t) do
---         local icon = select(2, F:GetSpellInfo(c[1]))
+--         local icon = select(2, F.GetSpellInfo(c[1]))
 --         cleuAuras[c[1]] = {c[2], icon}
 --     end
 -- end
@@ -986,6 +1014,8 @@ local targetedSpells = {
     431491, -- 污邪斩击
     451119, -- 深渊轰击
     431303, -- 暗夜箭
+    -- 尼鲁巴尔王宫
+    459524, -- 致命之箭
 }
 
 function I.GetDefaultTargetedSpellsList()
@@ -1045,7 +1075,7 @@ do
     local temp = {}
     for _, k in pairs(buffsOrder) do
         local id = missingBuffs[k]
-        local name, icon = F:GetSpellInfo(id)
+        local name, icon = F.GetSpellInfo(id)
         if name then
             tinsert(temp, {
                 ["id"] = id,
@@ -1229,7 +1259,7 @@ function I.UpdateCrowdControls(t)
         for id, trackByName in pairs(spells) do
             if not t["disabled"][id] then -- not disabled
                 if trackByName then
-                    local name = F:GetSpellInfo(id)
+                    local name = F.GetSpellInfo(id)
                     if name then
                         builtInCrowdControls[name] = true
                     end
@@ -1243,7 +1273,7 @@ function I.UpdateCrowdControls(t)
     -- user created
     wipe(customCrowdControls)
     for _, id in pairs(t["custom"]) do
-        local name = F:GetSpellInfo(id)
+        local name = F.GetSpellInfo(id)
         if name then
             customCrowdControls[name] = true
         end

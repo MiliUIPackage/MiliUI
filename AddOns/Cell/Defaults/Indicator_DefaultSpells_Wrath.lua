@@ -37,44 +37,65 @@ function I.GetDefaultBigDebuffs()
     return bigDebuffs
 end
 
-
 -------------------------------------------------
 -- aoeHealings
 -------------------------------------------------
 local aoeHealings = {
-    -- druid
-    740, -- 宁静
-
-    -- priest
-    596, -- 治疗祷言
-    64843, -- 神圣赞美诗
-    34866, -- 治疗之环
-
-    -- shaman
-    1064, -- 治疗链
+    ["DRUID"] = {
+        [740] = true, -- 宁静
+    },
+    ["PRIEST"] = {
+        [596]  = true, -- 治疗祷言
+        [64843] = true, -- 神圣赞美诗
+        [34866] = true, -- 治疗之环
+    },
+    ["SHAMAN"] = {
+        [1064] = true, -- 治疗链
+    },
 }
 
-do
-    local temp = {}
-    for _, id in pairs(aoeHealings) do
-        temp[F:GetSpellInfo(id)] = true
+function I.GetAoEHealings()
+    return aoeHealings
+end
+
+local builtInAoEHealings = {}
+local customAoEHealings = {}
+
+function I.UpdateAoEHealings(t)
+    -- user disabled
+    wipe(builtInAoEHealings)
+    for class, spells in pairs(aoeHealings) do
+        for id, trackByName in pairs(spells) do
+            if not t["disabled"][id] then -- not disabled
+                if trackByName then
+                    local name = F.GetSpellInfo(id)
+                    if name then
+                        builtInAoEHealings[name] = true
+                    end
+                else
+                    builtInAoEHealings[id] = true
+                end
+            end
+        end
     end
-    aoeHealings = temp
+
+    -- user created
+    wipe(customAoEHealings)
+    for _, id in pairs(t["custom"]) do
+        customAoEHealings[id] = true
+    end
 end
 
-function I.IsAoEHealing(name)
-    if not name then return false end
-    return aoeHealings[name]
+function I.IsAoEHealing(name, id)
+    return builtInAoEHealings[name] or builtInAoEHealings[id] or customAoEHealings[id]
 end
 
-local summonDuration = {
-
-}
+local summonDuration = {}
 
 do
     local temp = {}
     for id, duration in pairs(summonDuration) do
-        temp[F:GetSpellInfo(id)] = duration
+        temp[F.GetSpellInfo(id)] = duration
     end
     summonDuration = temp
 end
@@ -125,7 +146,7 @@ function I.UpdateExternals(t)
         for id, trackByName in pairs(spells) do
             if not t["disabled"][id] then -- not disabled
                 if trackByName then
-                    local name = F:GetSpellInfo(id)
+                    local name = F.GetSpellInfo(id)
                     if name then
                         builtInExternals[name] = true
                     end
@@ -139,7 +160,7 @@ function I.UpdateExternals(t)
     -- user created
     wipe(customExternals)
     for _, id in pairs(t["custom"]) do
-        -- local name = F:GetSpellInfo(id)
+        -- local name = F.GetSpellInfo(id)
         -- if name then
         --     customExternals[name] = true
         -- end
@@ -217,7 +238,7 @@ function I.UpdateDefensives(t)
         for id, trackByName in pairs(spells) do
             if not t["disabled"][id] then -- not disabled
                 if trackByName then
-                    local name = F:GetSpellInfo(id)
+                    local name = F.GetSpellInfo(id)
                     if name then
                         builtInDefensives[name] = true
                     end
@@ -231,7 +252,7 @@ function I.UpdateDefensives(t)
     -- user created
     wipe(customDefensives)
     for _, id in pairs(t["custom"]) do
-        -- local name = F:GetSpellInfo(id)
+        -- local name = F.GetSpellInfo(id)
         -- if name then
         --     customDefensives[name] = true
         -- end
@@ -296,7 +317,7 @@ local drinks = {
 do
     local temp = {}
     for _, id in pairs(drinks) do
-        temp[F:GetSpellInfo(id)] = true
+        temp[F.GetSpellInfo(id)] = true
     end
     drinks = temp
 end
@@ -328,17 +349,17 @@ local spells =  {
     61295, -- 激流
 }
 
-function F:FirstRun()
+function F.FirstRun()
     local icons = "\n\n"
     for i, id in pairs(spells) do
-        local icon = select(2, F:GetSpellInfo(id))
+        local icon = select(2, F.GetSpellInfo(id))
         icons = icons .. "|T"..icon..":0|t"
         if i % 11 == 0 then
             icons = icons .. "\n"
         end
     end
 
-    local popup = Cell:CreateConfirmPopup(Cell.frames.anchorFrame, 200, L["Would you like Cell to create a \"Healers\" indicator (icons)?"]..icons, function(self)
+    local popup = Cell.CreateConfirmPopup(Cell.frames.anchorFrame, 200, L["Would you like Cell to create a \"Healers\" indicator (icons)?"]..icons, function(self)
         local currentLayoutTable = Cell.vars.currentLayoutTable
 
         local last = #currentLayoutTable["indicators"]
@@ -353,7 +374,7 @@ function F:FirstRun()
             ["indicatorName"] = indicatorName,
             ["type"] = "icons",
             ["enabled"] = true,
-            ["position"] = {"TOPRIGHT", "TOPRIGHT", 0, 3},
+            ["position"] = {"TOPRIGHT", "button", "TOPRIGHT", 0, 3},
             ["frameLevel"] = 5,
             ["size"] = {13, 13},
             ["num"] = 5,
@@ -372,9 +393,9 @@ function F:FirstRun()
             ["trackByName"] = true,
             ["auras"] = spells,
         })
-        Cell:Fire("UpdateIndicators", Cell.vars.currentLayout, indicatorName, "create", currentLayoutTable["indicators"][last+1])
+        Cell.Fire("UpdateIndicators", Cell.vars.currentLayout, indicatorName, "create", currentLayoutTable["indicators"][last+1])
         CellDB["firstRun"] = false
-        F:ReloadIndicatorList()
+        F.ReloadIndicatorList()
     end, function()
         CellDB["firstRun"] = false
     end)
@@ -441,7 +462,7 @@ do
     local temp = {}
     for _, k in pairs(buffsOrder) do
         local id = missingBuffs[k]
-        local name, icon = F:GetSpellInfo(id)
+        local name, icon = F.GetSpellInfo(id)
         if name then
             tinsert(temp, {
                 ["id"] = id,
@@ -491,7 +512,7 @@ function I.GetMissingBuffsFilters()
                 local icon = missingBuffs[abbrToIndex[abbr]]["icon"]
                 icons = icons.."|T"..icon..":14:14:0:0:14:14:1:13:1:13|t "
             end
-            tinsert(ret, {icons..F:GetLocalizedClassName(v[1]), v[1]})
+            tinsert(ret, {icons..F.GetLocalizedClassName(v[1]), v[1]})
         end
     end
     return ret

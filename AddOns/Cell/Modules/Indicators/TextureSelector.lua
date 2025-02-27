@@ -10,19 +10,19 @@ local selectedPath, textureNum
 
 local function CreateTextureSelector()
     if not Cell.frames.indicatorsTab.mask then
-        Cell:CreateMask(Cell.frames.indicatorsTab, nil, {1, -1, -1, 1})
+        Cell.CreateMask(Cell.frames.indicatorsTab, nil, {1, -1, -1, 1})
         Cell.frames.indicatorsTab.mask:Hide()
     end
 
     textureSelector = CreateFrame("Frame", "CellOptionsFrame_TextureSelector", Cell.frames.indicatorsTab, "BackdropTemplate")
-    Cell:StylizeFrame(textureSelector, nil, Cell:GetAccentColorTable())
+    Cell.StylizeFrame(textureSelector, nil, Cell.GetAccentColorTable())
     textureSelector:SetFrameLevel(Cell.frames.indicatorsTab:GetFrameLevel() + 50)
-    textureSelector:SetPoint("TOPLEFT", P:Scale(1), -100)
-    textureSelector:SetPoint("TOPRIGHT", P:Scale(-1), -100)
+    textureSelector:SetPoint("TOPLEFT", P.Scale(1), -100)
+    textureSelector:SetPoint("TOPRIGHT", P.Scale(-1), -100)
     textureSelector:SetHeight(235)
 
     -- add
-    local addEB = Cell:CreateEditBox(textureSelector, 355, 20)
+    local addEB = Cell.CreateEditBox(textureSelector, 355, 20)
     addEB:SetPoint("TOPLEFT", 5, -5)
     addEB.tip = addEB:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     addEB.tip:SetTextColor(0.4, 0.4, 0.4, 1)
@@ -39,12 +39,12 @@ local function CreateTextureSelector()
         end
     end)
 
-    local addBtn = Cell:CreateButton(textureSelector, L["Add"], "accent", {66, 20})
+    local addBtn = Cell.CreateButton(textureSelector, L["Add"], "accent", {66, 20})
     addBtn:SetPoint("TOPLEFT", addEB, "TOPRIGHT", -1, 0)
     addBtn:SetScript("OnClick", function()
         local path = strtrim(addEB:GetText())
         -- check whether exists
-        if path ~= "" and not F:TContains(CellDB["customTextures"], path) then
+        if path ~= "" and not F.TContains(CellDB["customTextures"], path) then
             -- update db
             tinsert(CellDB["customTextures"], path)
             -- reload
@@ -53,24 +53,24 @@ local function CreateTextureSelector()
     end)
 
     -- cancel
-    local cancelBtn = Cell:CreateButton(textureSelector, L["Cancel"], "red", {70, 20})
+    local cancelBtn = Cell.CreateButton(textureSelector, L["Cancel"], "red", {70, 20})
     cancelBtn:SetPoint("BOTTOMRIGHT")
-    cancelBtn:SetBackdropBorderColor(unpack(Cell:GetAccentColorTable()))
+    cancelBtn:SetBackdropBorderColor(unpack(Cell.GetAccentColorTable()))
     cancelBtn:SetScript("OnClick", function()
         textureSelector:Hide()
     end)
 
     -- OK
-    confirmBtn = Cell:CreateButton(textureSelector, L["Confirm"], "green", {70, 20})
-    confirmBtn:SetPoint("BOTTOMRIGHT", cancelBtn, "BOTTOMLEFT", P:Scale(1), 0)
-    confirmBtn:SetBackdropBorderColor(unpack(Cell:GetAccentColorTable()))
+    confirmBtn = Cell.CreateButton(textureSelector, L["Confirm"], "green", {70, 20})
+    confirmBtn:SetPoint("BOTTOMRIGHT", cancelBtn, "BOTTOMLEFT", P.Scale(1), 0)
+    confirmBtn:SetBackdropBorderColor(unpack(Cell.GetAccentColorTable()))
 
     -- textures
-    local texFrame = Cell:CreateFrame(nil, textureSelector)
+    local texFrame = Cell.CreateFrame(nil, textureSelector)
     texFrame:Show()
     texFrame:SetPoint("TOPLEFT", addEB, "BOTTOMLEFT", 0, -10)
     texFrame:SetPoint("BOTTOMRIGHT", -5, 30)
-    scrollFrame = Cell:CreateScrollFrame(texFrame, -5, 5)
+    scrollFrame = Cell.CreateScrollFrame(texFrame, -5, 5)
     scrollFrame:SetScrollStep(55)
 
     -- current path
@@ -85,6 +85,7 @@ local function CreateTextureSelector()
         Cell.frames.indicatorsTab.mask:Hide()
         textureSelector:Hide()
         addEB.tip:Show()
+        addEB:SetText("")
     end)
 end
 
@@ -94,7 +95,7 @@ end
 LoadTextures = function()
     scrollFrame:Reset()
 
-    local builtIns, textures = F:GetTextures()
+    local builtIns, textures = F.GetTextures()
     textureNum = #textures
 
     -- create buttons
@@ -103,19 +104,19 @@ LoadTextures = function()
         if not b then
             b = CreateFrame("Button", nil, scrollFrame.content, "BackdropTemplate")
             buttons[i] = b
-            P:Size(b, 50, 50)
-            b:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P:Scale(1)})
+            P.Size(b, 50, 50)
+            b:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(1)})
             b:SetBackdropColor(0.115, 0.115, 0.115, 1)
             b:SetBackdropBorderColor(0, 0, 0, 1)
             b:SetScript("OnEnter", function()
-                b:SetBackdropBorderColor(unpack(Cell:GetAccentColorTable()))
-                b.delBtn:SetBackdropBorderColor(unpack(Cell:GetAccentColorTable()))
+                b:SetBackdropBorderColor(unpack(Cell.GetAccentColorTable()))
+                b.delBtn:SetBackdropBorderColor(unpack(Cell.GetAccentColorTable()))
 
-                F:FitWidth(currentTexturePath, path, "right")
+                F.FitWidth(currentTexturePath, b.path, "right")
             end)
             b:SetScript("OnLeave", function()
                 currentTexturePath:SetText("")
-                if selectedPath ~= path then
+                if selectedPath ~= b.path then
                     b:SetBackdropBorderColor(0, 0, 0, 1)
                     b.delBtn:SetBackdropBorderColor(0, 0, 0, 1)
                 end
@@ -125,7 +126,7 @@ LoadTextures = function()
             b.tex:SetPoint("TOPLEFT", 5, -5)
             b.tex:SetPoint("BOTTOMRIGHT", -5, 5)
 
-            b.delBtn = Cell:CreateButton(b, "×", "red", {13, 13})
+            b.delBtn = Cell.CreateButton(b, "×", "red", {13, 13})
             b.delBtn:GetFontString():SetFont("Interface\\AddOns\\Cell\\Media\\Fonts\\font.ttf", 10, "")
             b.delBtn:SetPoint("TOPRIGHT")
             b.delBtn:HookScript("OnEnter", function()
@@ -136,11 +137,13 @@ LoadTextures = function()
             end)
             b.delBtn:SetScript("OnClick", function()
                 -- update db
-                F:TRemove(CellDB["customTextures"], path)
+                F.TRemove(CellDB["customTextures"], b.path)
                 -- reload
                 LoadTextures()
             end)
         end
+
+        b.path = path
 
         -- point
         b:ClearAllPoints()
@@ -180,7 +183,7 @@ LoadTextures = function()
 
         -- highlight selected
         if selectedPath == path then
-            b:SetBackdropBorderColor(unpack(Cell:GetAccentColorTable()))
+            b:SetBackdropBorderColor(unpack(Cell.GetAccentColorTable()))
         else
             b:SetBackdropBorderColor(0, 0, 0, 1)
         end
@@ -200,7 +203,7 @@ end
 -------------------------------------------------
 -- functions
 -------------------------------------------------
-function F:ShowTextureSelector(selected, callback)
+function F.ShowTextureSelector(selected, callback)
     if not textureSelector then
         CreateTextureSelector()
     end

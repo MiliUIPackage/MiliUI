@@ -1,7 +1,8 @@
 local _, Cell = ...
 local L = Cell.L
+---@type CellFuncs
 local F = Cell.funcs
-local B = Cell.bFuncs
+---@class CellIndicatorFuncs
 local I = Cell.iFuncs
 
 local orientation, speed
@@ -28,12 +29,12 @@ eventFrame:SetScript("OnEvent", function(self, event, unit, castGUID, spellID)
     if not (UnitInRaid(unit) or UnitInParty(unit) or unit == "player" or unit == "pet") then return end
 
     if Cell.vars.actionsDebugModeEnabled then
-        local name = F:GetSpellInfo(spellID)
+        local name = F.GetSpellInfo(spellID)
         print("|cFFFF3030[Cell]|r |cFFB2B2B2"..event..":|r", unit, "|cFF00FF00"..(spellID or "nil").."|r", name)
     end
 
     if Cell.vars.actions[spellID] then
-        F:HandleUnitButton("unit", unit, Display, unpack(Cell.vars.actions[spellID]))
+        F.HandleUnitButton("unit", unit, Display, unpack(Cell.vars.actions[spellID]))
     end
 end)
 

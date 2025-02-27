@@ -1,10 +1,9 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r242-release...16402c234159ae4dd8b357e9c30e941dea8d7cea)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r244-release...106ad398539e0bcb5821fa5722d2a38147c61a4d)
 
-- Fix wrath power filter
-- Fix indicator revision process
-- Add stack options for custom text indicators
-- Update health text format
-- Update bleed list
-- Update buff tracker events
-- Update range check
-- Revert some GROUP_ROSTER_UPDATE changes
+- Fix a layout auto switch issue
+- Fix issues caused by spotlight on Classic
+- Fix import
+- Add nickname support for SpellRequest
+- Add "health2" for HealthText
+- HealthText no longer hide when dead/ghost
+- Update deDE, zhTW

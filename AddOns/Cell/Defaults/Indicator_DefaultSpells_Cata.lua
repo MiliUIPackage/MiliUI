@@ -26,7 +26,7 @@ local debuffBlacklist = {
 function I.GetDefaultDebuffBlacklist()
     -- local temp = {}
     -- for i, id in pairs(debuffBlacklist) do
-    --     temp[i] = F:GetSpellInfo(id)
+    --     temp[i] = F.GetSpellInfo(id)
     -- end
     -- return temp
     return debuffBlacklist
@@ -43,53 +43,74 @@ function I.GetDefaultBigDebuffs()
     return bigDebuffs
 end
 
-
 -------------------------------------------------
 -- aoeHealings
 -------------------------------------------------
 local aoeHealings = {
-    -- druid
-    740, -- 宁静
-
-    -- palain
-    85222, -- 黎明圣光
-    82327, -- 圣光普照
-
-    -- priest
-    596, -- 治疗祷言
-    64843, -- 神圣赞美诗
-    34861, -- 治疗之环
-    15237, -- 神圣新星
-    81751, -- 救赎
-    15290, -- 吸血鬼的拥抱
-
-    -- shaman
-    1064, -- 治疗链
-    73920, -- 治疗之雨
-    -- 52042, -- 治疗之泉图腾
+    ["DRUID"] = {
+        [740] = true, -- 宁静
+    },
+    ["PALADIN"] = {
+        [85222] = true, -- 黎明圣光
+        [82327] = true, -- 圣光普照
+    },
+    ["PRIEST"] = {
+        [596]   = true, -- 治疗祷言
+        [64843] = true, -- 神圣赞美诗
+        [34861] = true, -- 治疗之环
+        [15237] = true, -- 神圣新星
+        [81751] = true, -- 救赎
+        [15290] = true, -- 吸血鬼的拥抱
+    },
+    ["SHAMAN"] = {
+        [1064]  = true, -- 治疗链
+        [73920] = true, -- 治疗之雨
+        -- [52042] = true, -- 治疗之泉图腾
+    },
 }
 
-do
-    local temp = {}
-    for _, id in pairs(aoeHealings) do
-        temp[F:GetSpellInfo(id)] = true
+function I.GetAoEHealings()
+    return aoeHealings
+end
+
+local builtInAoEHealings = {}
+local customAoEHealings = {}
+
+function I.UpdateAoEHealings(t)
+    -- user disabled
+    wipe(builtInAoEHealings)
+    for class, spells in pairs(aoeHealings) do
+        for id, trackByName in pairs(spells) do
+            if not t["disabled"][id] then -- not disabled
+                if trackByName then
+                    local name = F.GetSpellInfo(id)
+                    if name then
+                        builtInAoEHealings[name] = true
+                    end
+                else
+                    builtInAoEHealings[id] = true
+                end
+            end
+        end
     end
-    aoeHealings = temp
+
+    -- user created
+    wipe(customAoEHealings)
+    for _, id in pairs(t["custom"]) do
+        customAoEHealings[id] = true
+    end
 end
 
-function I.IsAoEHealing(name)
-    if not name then return false end
-    return aoeHealings[name]
+function I.IsAoEHealing(name, id)
+    return builtInAoEHealings[name] or builtInAoEHealings[id] or customAoEHealings[id]
 end
 
-local summonDuration = {
-
-}
+local summonDuration = {}
 
 do
     local temp = {}
     for id, duration in pairs(summonDuration) do
-        temp[F:GetSpellInfo(id)] = duration
+        temp[F.GetSpellInfo(id)] = duration
     end
     summonDuration = temp
 end
@@ -143,7 +164,7 @@ function I.UpdateExternals(t)
         for id, trackByName in pairs(spells) do
             if not t["disabled"][id] then -- not disabled
                 if trackByName then
-                    local name = F:GetSpellInfo(id)
+                    local name = F.GetSpellInfo(id)
                     if name then
                         builtInExternals[name] = true
                     end
@@ -157,7 +178,7 @@ function I.UpdateExternals(t)
     -- user created
     wipe(customExternals)
     for _, id in pairs(t["custom"]) do
-        -- local name = F:GetSpellInfo(id)
+        -- local name = F.GetSpellInfo(id)
         -- if name then
         --     customExternals[name] = true
         -- end
@@ -239,7 +260,7 @@ function I.UpdateDefensives(t)
         for id, trackByName in pairs(spells) do
             if not t["disabled"][id] then -- not disabled
                 if trackByName then
-                    local name = F:GetSpellInfo(id)
+                    local name = F.GetSpellInfo(id)
                     if name then
                         builtInDefensives[name] = true
                     end
@@ -253,7 +274,7 @@ function I.UpdateDefensives(t)
     -- user created
     wipe(customDefensives)
     for _, id in pairs(t["custom"]) do
-        -- local name = F:GetSpellInfo(id)
+        -- local name = F.GetSpellInfo(id)
         -- if name then
         --     customDefensives[name] = true
         -- end
@@ -340,7 +361,7 @@ local drinks = {
 do
     local temp = {}
     for _, id in pairs(drinks) do
-        temp[F:GetSpellInfo(id)] = true
+        temp[F.GetSpellInfo(id)] = true
     end
     drinks = temp
 end
@@ -372,17 +393,17 @@ local spells =  {
     51945, -- 大地生命
 }
 
-function F:FirstRun()
+function F.FirstRun()
     local icons = "\n\n"
     for i, id in pairs(spells) do
-        local icon = select(2, F:GetSpellInfo(id))
+        local icon = select(2, F.GetSpellInfo(id))
         icons = icons .. "|T"..icon..":0|t"
         if i % 11 == 0 then
             icons = icons .. "\n"
         end
     end
 
-    local popup = Cell:CreateConfirmPopup(Cell.frames.anchorFrame, 200, L["Would you like Cell to create a \"Healers\" indicator (icons)?"]..icons, function(self)
+    local popup = Cell.CreateConfirmPopup(Cell.frames.anchorFrame, 200, L["Would you like Cell to create a \"Healers\" indicator (icons)?"]..icons, function(self)
         local currentLayoutTable = Cell.vars.currentLayoutTable
 
         local last = #currentLayoutTable["indicators"]
@@ -397,7 +418,7 @@ function F:FirstRun()
             ["indicatorName"] = indicatorName,
             ["type"] = "icons",
             ["enabled"] = true,
-            ["position"] = {"TOPRIGHT", "TOPRIGHT", 0, 3},
+            ["position"] = {"TOPRIGHT", "button", "TOPRIGHT", 0, 3},
             ["frameLevel"] = 5,
             ["size"] = {13, 13},
             ["num"] = 5,
@@ -416,9 +437,9 @@ function F:FirstRun()
             ["trackByName"] = true,
             ["auras"] = spells,
         })
-        Cell:Fire("UpdateIndicators", Cell.vars.currentLayout, indicatorName, "create", currentLayoutTable["indicators"][last+1])
+        Cell.Fire("UpdateIndicators", Cell.vars.currentLayout, indicatorName, "create", currentLayoutTable["indicators"][last+1])
         CellDB["firstRun"] = false
-        F:ReloadIndicatorList()
+        F.ReloadIndicatorList()
     end, function()
         CellDB["firstRun"] = false
     end)
@@ -482,7 +503,7 @@ do
     local temp = {}
     for _, k in pairs(buffsOrder) do
         local id = missingBuffs[k]
-        local name, icon = F:GetSpellInfo(id)
+        local name, icon = F.GetSpellInfo(id)
         if name then
             tinsert(temp, {
                 ["id"] = id,
@@ -531,7 +552,7 @@ function I.GetMissingBuffsFilters()
                 local icon = missingBuffs[abbrToIndex[abbr]]["icon"]
                 icons = icons.."|T"..icon..":14:14:0:0:14:14:1:13:1:13|t "
             end
-            tinsert(ret, {icons..F:GetLocalizedClassName(v[1]), v[1]})
+            tinsert(ret, {icons..F.GetLocalizedClassName(v[1]), v[1]})
         end
     end
     return ret

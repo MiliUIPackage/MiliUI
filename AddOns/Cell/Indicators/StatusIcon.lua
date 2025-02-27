@@ -1,6 +1,9 @@
 local _, Cell = ...
+---@type CellFuncs
 local F = Cell.funcs
+---@class CellIndicatorFuncs
 local I = Cell.iFuncs
+---@type PixelPerfectFuncs
 local P = Cell.pixelPerfectFuncs
 
 CELL_SUMMON_ICONS_ENABLED = false
@@ -10,7 +13,7 @@ CELL_SUMMON_ICONS_ENABLED = false
 -------------------------------------------------
 local eventFrame = CreateFrame("Frame")
 eventFrame:SetScript("OnEvent", function(self, event, unit)
-    F:HandleUnitButton("unit", unit, I.UpdateStatusIcon)
+    F.HandleUnitButton("unit", unit, I.UpdateStatusIcon)
 end)
 
 local function DiedWithSoulstone(b)
@@ -19,8 +22,9 @@ local function DiedWithSoulstone(b)
 end
 
 local rez = {}
-local SOULSTONE = F:GetSpellInfo(20707)
 local soulstones = {}
+local SOULSTONE = F.GetSpellInfo(20707)
+local RESURRECTING = F.GetSpellInfo(160029)
 
 local cleuFrame = CreateFrame("Frame")
 cleuFrame:SetScript("OnEvent", function()
@@ -33,18 +37,21 @@ cleuFrame:SetScript("OnEvent", function()
             C_Timer.After(0.1, function()
                 soulstones[destGUID] = nil
             end)
+        elseif spellName == RESURRECTING then
+            rez[destGUID] = nil
+            F.HandleUnitButton("guid", destGUID, I.UpdateStatusIcon_Resurrection)
         end
     elseif subEvent == "UNIT_DIED" then
         -- print("died", timestamp, destName)
         if soulstones[destGUID] then
-            F:HandleUnitButton("guid", destGUID, DiedWithSoulstone)
+            F.HandleUnitButton("guid", destGUID, DiedWithSoulstone)
         end
         soulstones[destGUID] = nil
     elseif subEvent == "SPELL_RESURRECT" then
         local start, duration = GetTime(), 60
         rez[destGUID] = {start, duration}
 
-        F:HandleUnitButton("guid", destGUID, I.UpdateStatusIcon_Resurrection, start, duration)
+        F.HandleUnitButton("guid", destGUID, I.UpdateStatusIcon_Resurrection, start, duration)
     end
 end)
 
@@ -150,7 +157,7 @@ function I.UpdateStatusIcon_Resurrection(button, start, duration)
     end
 
     if not start then
-        local dur, expir = select(5, F:FindAuraById(unit, "DEBUFF", 160029)) -- battle res
+        local dur, expir = select(5, F.FindAuraById(unit, "DEBUFF", 160029)) -- battle res
         if dur then --! check Resurrecting debuff
             start = expir - dur
             duration = dur
@@ -205,8 +212,13 @@ if Cell.isRetail then
             icon:SetTexture("Interface\\RaidFrame\\Raid-Icon-Rez")
             icon:SetTexCoord(0, 1, 0, 1)
             icon:Show()
-        elseif button.states.hasRezDebuff or button.states.hasSoulstone then
+        elseif button.states.hasRezDebuff then
             icon:SetVertexColor(0.6, 1, 0.6, 1)
+            icon:SetTexture("Interface\\RaidFrame\\Raid-Icon-Rez")
+            icon:SetTexCoord(0, 1, 0, 1)
+            icon:Show()
+        elseif button.states.hasSoulstone then
+            icon:SetVertexColor(1, 0.4, 1, 1)
             icon:SetTexture("Interface\\RaidFrame\\Raid-Icon-Rez")
             icon:SetTexCoord(0, 1, 0, 1)
             icon:Show()
@@ -315,7 +327,7 @@ function I.EnableStatusIcon(enabled)
     else
         eventFrame:UnregisterAllEvents()
         cleuFrame:UnregisterAllEvents()
-        F:IterateAllUnitButtons(function(b)
+        F.IterateAllUnitButtons(function(b)
             b.indicators.statusIcon:Hide()
             b.indicators.resurrectionIcon:Hide()
         end)
