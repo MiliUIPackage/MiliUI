@@ -1,6 +1,7 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("TeleportMenu", "enUS", true)
 
 L["AddonNamePrint"] = "\124cFFFF0000TeleportMenu:\124r " -- 1 space after the :
+L["Common:Loading"] = "LOADING"
 L["Not In Combat Tooltip"] = "\124cFFFF0000<Not available in combat>\124r"
 L["Random Hearthstone"] = "Random Hearthstone"
 L["Random Hearthstone Tooltip"] = "\124cFF34B7EBClick to cast a random hearthstone.\nIt will pick a new hearthstone when you re-open the menu.\124r"
@@ -38,6 +39,7 @@ L["Darkheart Thicket"] = "DHT"
 L["Freehold"] = "FH"
 L["The Underrot"] = "UR"
 L["Mechagon"] = "MECH"
+L["The MOTHERLODE!!"] = "ML"
 L["Waycrest Manor"] = "WM"
 L["Atal'Dazar"] = "AD"
 L["Siege of Boralus"] = "SoB"
@@ -73,6 +75,7 @@ L["Cinderbrew Meadery"] = "CBM"
 L["Priory of the Sacred Flame"] = "PoSF"
 L["Ara-Kara, City of Echoes"] = "AK"
 L["Darkflame Cleft"] = "DFC"
+L["Operation: Floodgate"] = "FL"
 
 -- expansion abreviated Text
 L["Cataclysm"] = "CATA"
@@ -86,6 +89,9 @@ L["Dragonflight"] = "DF"
 L["Dragonflight Raids"] = "DF R"
 L["The War Within"] = "TWW"
 L["Season 1"] = "S1"
+L["Season 2"] = "S2"
+L["Season 3"] = "S3"
+L["Season 4"] = "S4"
 
 -- Mage teleport/portal abreviated text
 -- Alliance
@@ -119,6 +125,7 @@ L["Hall of the Guardian"] = "HotG"
 L["Dornogal"] = "DG"
 
 -- Options
+L["Opening Options Menu"] = "Opening Options Menu"
 L["Enabled"] = "Enabled"
 L["Enable Tooltip"] = "Enable/Disable the Teleport Menu."
 L["Hearthstone Toy"] = "Hearthstone Toy"
@@ -133,8 +140,25 @@ L["Seasonal Teleports"] = "Seasonal Teleports"
 L["Seasonal Teleports Tooltip"] = "\124cFF34B7EBThese Teleports are for the current Mythic Keystone Season.\124r"
 L["Seasonal Teleports Toggle Tooltip"] = "Enable/Disable to only show the Seasonal Teleports."
 L["Icon Size"] = "Icon Size"
-L["Increase or decrease the size of the icons."] = "Increase or decrease the size of the icons."
+L["Icon Size Tooltip"] = "Increase or decrease the size of the icons."
 L["%s px"] = "%s px"
 L["Icons Per Flyout Row"] = "Icons Per Flyout Row"
 L["Icons Per Flyout Row Tooltip"] = "Set the maximum amount of flyout icons before a new row will be created."
 L["%s icons"] = "%s icons"
+L["Item Teleports"] = "Item Teleports"
+L["Item Teleports Tooltip"] = "\124cFF34B7EBAll items that have a teleport that are in your possession\124r\n\n\124cFFFF0000Items such as faction cloaks require clicking twice!\124r"
+L["Teleports:Items:Filters:Held_Items"] = "Items you have"
+L["Teleports:Items:Filters:Items_To_Be_Obtained"] = "Items you do NOT have"
+
+-- Settings
+L["ADDON_NAME"] = "Teleport Menu"
+L["TITLE"] = "Teleport Menu Settings"
+L["GENERAL"] = "General Settings"
+L["BUTTON_SETTINGS"] = "Button Settings"
+L["TELEPORT_SETTINGS"] = "Teleport Settings"
+L["HEARTHSTONE_SETTINGS"] = "Hearthstone Settings"
+L["BUTTON_FONT_SIZE"] = "Button Font Size"
+L["BUTTON_FONT_SIZE_TOOLTIP"] = "Changing this setting controls the size of the abbreviated teleport names"
+L["Teleports:Items:Filters"] = "Item Filters"
+L["ABOUT_ADDON"] = "|CFFFFFFFFThis addon adds your available hearthstones and teleports to the game menu (esc). \n\nYou can change the hearthstone it uses by typing /tpm ingame and following the commands. \n\nIf there are issues or questions, or missing teleports/stones, feel free to contact me on Github.  \n\nSupported Items:\n\n Hearthstones\n Mage Teleports/Portals\n Engineering Wormholes\n Hero's Path teleports\n All class teleports (Zen Pilgramige, Death Gate, Astral Recall etc.)  \n\n \n\nFuture plans to support:  \n\nTeleport Items in inventory (on use, equipment).|r"
+L["ABOUT_CONTRIBUTORS"] = "Active Contributors: |CFFFFFFFF\n\n%s\n\n|r"

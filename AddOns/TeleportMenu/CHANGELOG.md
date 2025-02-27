@@ -1,14 +1,15 @@
 # Teleport Menu
 
-## [v9.3](https://github.com/Justw8/TeleportMenu/tree/v9.3) (2024-10-31)
-[Full Changelog](https://github.com/Justw8/TeleportMenu/compare/v9.2...v9.3) [Previous Releases](https://github.com/Justw8/TeleportMenu/releases)
+## [v10](https://github.com/Justw8/TeleportMenu/tree/v10) (2025-02-25)
+[Full Changelog](https://github.com/Justw8/TeleportMenu/compare/v9.5...v10) [Previous Releases](https://github.com/Justw8/TeleportMenu/releases)
 
-- Add the option to set a maximum amount of icons per flyout row (closes #39)  
-- Update CreateSecureButton  
-- Update zhTW.lua (#68)  
-- Update localization (#67)  
-- Use C\_Item for GetItemCount  
-- Formatting pass  
-- Remove chat commands, /tpm will always open the options menu.  
-- Options: Set default height and width  
-- Options: Enable re-sizing of icons and reload the frames when changing anything.  
+- TOC update for 11.1 (#86)  
+- Add Vulpera Racials & Druid's Moonglade teleport (#85)  
+    Co-authored-by: Mike Donkers <67101689+donkers-mike@users.noreply.github.com>  
+- Remove dependency on lod blizzard data (#84)  
+- Update zhTW.lua (#83)  
+    Co-authored-by: Matthijs Groot // Justwait <Justw8@users.noreply.github.com>  
+- Update zhCN.lua (#82)  
+- Add item teleports (#81)  
+- Implement season 2 teleports (#79)  
+- Update zhCN.lua (#72)  
