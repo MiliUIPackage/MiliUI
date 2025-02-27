@@ -4374,7 +4374,8 @@ local default_radiogroup_options = {
 ---@field RefreshCheckbox fun(self:df_checkboxgroup, checkbox:df_radiogroup_checkbox, optionTable:table, optionId:number)
 
 local radio_checkbox_onclick_extraspace = function(self)
-	self:GetParent():GetObject():OnSwitch() --as the parent of self is a Switch object from DetailsFramework, it need to run :GetObject() to get the capsule object
+	self:GetParent():GetObject():OnSwitch(self:GetParent():GetObject()._param, not self:GetParent():GetObject():GetValue()) --as the parent of self is a Switch object from DetailsFramework, it need to run :GetObject() to get the capsule object
+	self:GetParent():GetObject():GetParent():Refresh()
 end
 
 ---@type df_radiogroupmixin
@@ -4571,7 +4572,7 @@ detailsFramework.RadioGroupCoreFunctions = {
 			end
 		end
 
-		checkbox.__width = width + (checkbox.Icon:IsShown() and (checkbox.Icon:GetWidth() + 2)) + (checkbox.Label:GetStringWidth()) + 2
+		checkbox.__width = width + (checkbox.Icon:IsShown() and (checkbox.Icon:GetWidth() + (self.AnchorOptions.icon_offset_x or 0))) + (checkbox.Label:GetUnboundedStringWidth()) + (self.options.text_padding or 2)
 		checkbox.widget.__width = checkbox.__width
 
 		checkbox.__height = height + (checkbox.Icon:IsShown() and (checkbox.Icon:GetHeight() + 2))
@@ -4595,7 +4596,7 @@ detailsFramework.RadioGroupCoreFunctions = {
 			self:RefreshCheckbox(checkbox, optionsTable, optionId)
 			totalWidth = totalWidth + checkbox.__width
 
-			checkbox.extraSpaceToClick:SetWidth(checkbox.__width)
+			checkbox.extraSpaceToClick:SetWidth(checkbox.__width - checkbox:GetWidth()) -- total __width contains checkbox size which we don't need here
 
 			if (checkbox:GetHeight() > maxHeight) then
 				maxHeight = checkbox:GetHeight()
@@ -5480,3 +5481,90 @@ end
 
 --]=]
 
+--[=[
+
+--show data panel
+function detailsFramework:ShowData(data)
+	if (not DetailsFrameworkDataPanel) then
+		local mainFrame = detailsFramework:CreateSimplePanel(UIParent, 800, 600, "Show Data", "DetailsFrameworkShowDataPanel")
+		mainFrame:SetPoint("center", UIParent, "center", 0, 0)
+
+		--header
+		local headerTable = {
+			{text = "", width = 75},
+			{text = "", width = 75},
+			{text = "", width = 75},
+			{text = "", width = 75},
+			{text = "", width = 75},
+			{text = "", width = 75},
+			{text = "", width = 75},
+			{text = "", width = 75},
+			{text = "", width = 75},
+			{text = "", width = 75},
+			{text = "", width = 75},
+			{text = "", width = 75},
+		}
+		local headerOptions = {
+			padding = 2,
+		}
+
+		mainFrame.Header = DF:CreateHeader(mainFrame, headerTable, headerOptions)
+		mainFrame.Header:SetPoint("topleft", mainFrame, "topleft", 5, headerY)
+
+		local refreshFunc = function(self, data, offset, totalLines) --~refresh
+			local ToK = Details:GetCurrentToKFunction()
+
+			for i = 1, totalLines do
+				local index = i + offset
+				local thisData = data[index]
+				if (thisData) then
+					local line = self:GetLine(i)
+				end
+			end
+		end
+
+		local createLineFunc = function(self, index)
+			local line = CreateFrame("button", "$parentLine" .. index, self,"BackdropTemplate")
+			line:SetPoint("topleft", self, "topleft", 1, -((index-1)*(scroll_line_height+1)) - 1)
+			line:SetSize(scroll_width - 2, scroll_line_height)
+
+			line:SetBackdrop({bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
+			line:SetBackdropColor(unpack(backdrop_color))
+			-- ~createline --~line
+			DF:Mixin(line, DF.HeaderFunctions)
+
+			--columns
+			local column1 = DF:CreateTextEntry(line, function()end, DetailsScrollDamage.Header:GetColumnWidth(2), scroll_line_height, _, _, _, dropdownTemplate)
+			local column1 = DF:CreateTextEntry(line, function()end, DetailsScrollDamage.Header:GetColumnWidth(2), scroll_line_height, _, _, _, dropdownTemplate)
+			local column1 = DF:CreateTextEntry(line, function()end, DetailsScrollDamage.Header:GetColumnWidth(2), scroll_line_height, _, _, _, dropdownTemplate)
+			local column1 = DF:CreateTextEntry(line, function()end, DetailsScrollDamage.Header:GetColumnWidth(2), scroll_line_height, _, _, _, dropdownTemplate)
+			local column1 = DF:CreateTextEntry(line, function()end, DetailsScrollDamage.Header:GetColumnWidth(2), scroll_line_height, _, _, _, dropdownTemplate)
+			local column1 = DF:CreateTextEntry(line, function()end, DetailsScrollDamage.Header:GetColumnWidth(2), scroll_line_height, _, _, _, dropdownTemplate)
+
+			line:AddFrameToHeaderAlignment(icon)
+			line:AddFrameToHeaderAlignment(spellNameText)
+			line:AddFrameToHeaderAlignment(damageText)
+			line:AddFrameToHeaderAlignment(timeText)
+			line:AddFrameToHeaderAlignment(spellIDText)
+
+			line:AlignWithHeader(DetailsScrollDamage.Header, "left")
+
+			line.Icon = icon
+			line.IconFrame = iconFrame
+			line.DamageText = damageText
+			line.TimeText = timeText
+			line.SpellIDText = spellIDText
+			line.SpellNameText = spellNameText
+
+			return line
+		end
+	end
+
+	local dataPanel = DetailsFrameworkDataPanel
+	local scrollBox = dataPanel.ScrollBox
+	scrollBox:SetData(data)
+	scrollBox:Refresh()
+
+end
+
+--]=]

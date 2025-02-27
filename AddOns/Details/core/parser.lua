@@ -2904,6 +2904,17 @@
 	--BUFFS & DEBUFFS 	search key: ~buff ~aura ~shield								|
 -----------------------------------------------------------------------------------------------------------------------------------------
 
+	--aura ddebugger
+	local function aura_debugger_parserfile(type, spellName, sourceName, targetName)
+		do return end --don't enable on releases
+
+		if (Details.zone_type == "party" or true) then
+			if (sourceName == UnitName("player")) then
+				--print("buff", type, spellName, sourceName, "on", targetName)
+			end
+		end
+	end
+
 	function parser:buff(token, time, sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags, targetFlags2, spellId, spellName, spellschool, auraType, amount, arg1, arg2, arg3)
 		if (ignoredWorldAuras[spellId]) then
 			return
@@ -2944,6 +2955,8 @@
 		end
 
 		if (auraType == "BUFF") then
+			aura_debugger_parserfile("IN", spellName, sourceName, targetName)
+
 			if (LIB_OPEN_RAID_BLOODLUST[spellId]) then --~bloodlust
 				if (Details.playername == targetName) then
 					_current_combat.bloodlust = _current_combat.bloodlust or {}
@@ -3137,6 +3150,8 @@
 		end
 
 		if (tipo == "BUFF") then
+			aura_debugger_parserfile("RE", spellName, sourceName, targetName)
+
 			if (spellId == 272790 and cacheAnything.track_hunter_frenzy) then --hunter pet Frenzy spellid
 				local miscActorObject = misc_cache[sourceName]
 				if (miscActorObject) then
@@ -3230,6 +3245,8 @@
 		end
 
 		if (tipo == "BUFF") then
+			aura_debugger_parserfile("OUT", spellName, sourceName, targetName)
+
 			if (spellId == 272790 and cacheAnything.track_hunter_frenzy) then --hunter pet Frenzy spellid
 				if (not pet_frenzy_cache[sourceName]) then
 					return
@@ -6053,6 +6070,8 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 			Details222.MythicPlus.Level = activeKeystoneLevel or 2
 
 			Details.challengeModeMapId = C_ChallengeMode.GetActiveChallengeMapID()
+
+			Details222.MythicPlus.debug_auras = {}
 		end
 	end
 
@@ -6142,6 +6161,30 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		Details222.MythicPlus.Texture = texture
 		Details222.MythicPlus.BackgroundTexture = backgroundTexture
 
+		--store the data of the mythic+ run that just finished, this table always exists when COMBAT_MYTHICDUNGEON_END is triggered
+		Details.LastMythicPlusData = {
+			MapID = mapID,
+			Level = level,
+			ElapsedTime = time or 0.1,
+			TimeWithoutDeaths = time or 0.1,
+			OnTime = onTime,
+			KeystoneUpgradeLevels = keystoneUpgradeLevels,
+			PracticeRun = practiceRun,
+			IsAffixRecord = isAffixRecord,
+			IsMapRecord = isMapRecord,
+			PrimaryAffix = primaryAffix,
+			IsEligibleForScore = isEligibleForScore,
+			UpgradeMembers = upgradeMembers,
+			OldDungeonScore = oldDungeonScore,
+			NewDungeonScore = newDungeonScore,
+			DungeonName = dungeonName,
+			DungeonId = id,
+			TimeLimit = timeLimit,
+			Texture = texture,
+			BackgroundTexture = backgroundTexture,
+			time = time or 0.1,
+		}
+
 		if (time) then
             --Subtract death time from time of run to get the true time
             local deaths = C_ChallengeMode.GetDeathCount()
@@ -6155,6 +6198,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
             end
 
         	Details222.MythicPlus.time = math.floor(time / 1000)
+			Details.LastMythicPlusData.TimeWithoutDeaths = Details222.MythicPlus.time
 			Details:Msg("run elapsed time:", DetailsFramework:IntegerToTimer(time / 1000))
 		else
 			Details222.MythicPlus.time = 0.1

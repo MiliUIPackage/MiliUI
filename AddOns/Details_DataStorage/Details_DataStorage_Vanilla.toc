@@ -1,4 +1,4 @@
-## Interface: 11505
+## Interface: 11506
 ## Title: Details!: Storage
 ## Notes: Stores information for Details! Damage Meter
 ## LoadOnDemand: 1
