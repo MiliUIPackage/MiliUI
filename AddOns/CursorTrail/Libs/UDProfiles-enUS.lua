@@ -3,7 +3,11 @@ local kAddonFolderName, private = ...
 assert(private.L == nil)  -- Must include this file before other localization files!
 private.L = {}
 local L = private.L
---=============================================================================
+--[[===========================================================================
+CHANGE HISTORY:
+    Sep 25, 2024
+        - Added L.mUndo, L.UndoDesc .
+=============================================================================]]
 
 --''''''''''''''
 -- Menu Strings
@@ -23,6 +27,7 @@ L.mRestore     = "Restore ..."
 L.mExport = "Export ..."
 L.mImport = "Import"
 L.mOptions = "Profile Options"
+L.mUndo = "Undo"
 
 --''''''''''''''
 -- Misc Strings
@@ -47,6 +52,7 @@ L.current_values = "current values"  -- Lower-case!
 L.loaded = "loaded"  -- A lower-case word meaning the profile is loaded.
 L.modified = "modified"  -- A lower-case word meaning the profile is modified.
 L.NewProfileDesc = "Create a new profile using default values."
+L.UndoDesc = "Undo all changes to current profile."
 L.BackupDesc = "Create a new backup of current profiles."
 ----L.BackupsDesc = "Create/restore backups of current profiles."
 L.RestoreDesc = "Replace current profiles with backed up profiles."
@@ -122,6 +128,7 @@ L.UnsavedChangesBackupWarning = "The backup was successful, but unsaved settings
 L.OptionSaveOnOkay = "Save profile when Okay button is clicked."
 L.OptionConfirmDelete = "Ask before deleting profiles."
 L.OptionConfirmCopy = "Ask before copying profiles."
+L.OptionAccountProfile = "Use same profile for all characters."
 
 L.ProfilesHelp = [[
 - To create a new profile, select "New Profile" from Menu.
@@ -147,7 +154,7 @@ To change this behavior, select "Profile Options" from Menu, and turn on "Save p
 ]]
 
 L.BackupsHelp = [[
-- You can backup or restore all your profiles from the options window by selecting "Backup" or "Restore" from Menu.
+- You can backup or restore all your profiles from the main window by selecting "Backup" or "Restore" from Menu.
 
 - Two backups will always be available to restore from:
       @Original - Contains profiles that existed the very first time the profiles UI was used.

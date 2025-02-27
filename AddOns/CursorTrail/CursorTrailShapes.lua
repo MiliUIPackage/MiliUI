@@ -9,10 +9,12 @@
 
 local Globals = _G
 local _  -- Prevent tainting global _ .
-local pairs = _G.pairs
+local assert = _G.assert
+local ipairs = _G.ipairs
 local print = _G.print
 local table = _G.table
 local tonumber = _G.tonumber
+local type = _G.type
 
 --:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 --[[                       Declare Namespace                                 ]]
@@ -28,90 +30,169 @@ if (not _G.CursorTrail) then _G.CursorTrail = CursorTrail end
 setfenv(1, _G.CursorTrail)  -- Everything after this uses our namespace rather than _G.
 
 --:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+--[[                       Constants                                         ]]
+--:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+kDefaultShapeID = kMediaPath.."Cross 1.tga"
+kShape_None = ""  -- Must not be nil.
+
+kShapeConstants = {}
+do -- Initialize kShapeConstants.
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    local addShape = function(displayName, shapeID, width, height, scale, texCoords)
+        assert(displayName and displayName ~= "")
+        assert(width and height) -- Width and height required!
+        assert(scale == nil or type(scale) == "number")
+        assert(texCoords == nil or type(texCoords) == "table")
+
+        table.insert(kShapeConstants, {
+                displayName = displayName,
+                shapeID = shapeID,
+                width = width,
+                height = height,
+                scale = scale or 1,
+                texCoords = texCoords,
+            })
+    end
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    ----local colorChanger = { color = "",
+    ----    next = function(self)
+    ----        if self.color == "" then self.color = CatColor2 else self.color = "" end
+    ----        return self.color
+    ----    end,
+    ----}
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+
+    local retail = isRetailWoW()
+    local co = ""
+    local size
+
+    -- IMPORTANT!  Add lines in alphabetical order (by display name).
+    --      -----------------------------   ---------------------------------------------------------
+    --              DISPLAY NAME              SHAPE ID,  WIDTH,  HEIGHT, [ SCALE,  TEXTURE COORDS ]
+    --      -----------------------------   ---------------------------------------------------------
+    addShape(kStr_None,                     kShape_None, 0, 0)
+    ----co = colorChanger:next()
+    addShape(co.."蟲子  (藍色)",             605711, 64, 64) -- "Interface\\HELPFRAME\\HelpIcon-Bug"
+    addShape(co.."蟲子  (橘色)",           2447131, 64, 64) -- "Interface\\HELPFRAME\\HelpIcon-Bug-Red"
+    ----co = colorChanger:next()
+    addShape(co.."圓形 1",                kMediaPath.."Circle 1.tga", 64, 64)
+    addShape(co.."圓形 2",                kMediaPath.."Circle 2.tga", 64, 64)
+    ----co = colorChanger:next()
+    addShape(co.."十字線 1",                 kMediaPath.."Cross 1.tga", 64, 64)
+    addShape(co.."十字線 2",                 kMediaPath.."Cross 2.tga", 64, 64)
+    addShape(co.."十字線 3",                 kMediaPath.."Cross 3.tga", 64, 64)
+    ----co = colorChanger:next()
+    ----addShape(co.."Cursor  (Attack)",        342521, 64, 64) -- "Interface\\TUTORIALFRAME\\UI-TutorialFrame-AttackCursor"
+    ----addShape(co.."Cursor  (Glove)",         344158, 64, 64) -- "Interface\\TUTORIALFRAME\\UI-TutorialFrame-GloveCursor"
+    ----co = colorChanger:next()
+    addShape(co.."框架  (金色)",           237701, 64, 64, 1, {.035, 1, .02, 1}) -- "Interface\\Vehicles\\UI-Vehicles-Button-Highlight"
+    addShape(co.."框架  (金色, 3D)",       618870, 64, 64) -- "Interface\\SPELLBOOK\\RotationIconFrame"
+  if retail then
+    addShape(co.."框架  (風暴, 黃色)", 4861476, 256, 128, 1.7) -- "Interface\\ExtraButton\\stormyellow-extrabutton"
+  end
+    ----co = colorChanger:next()
+    addShape(co.."發光",                    kMediaPath.."Glow 1.tga", 256, 256, 1.1)
+    addShape(co.."發光  (金色)",            607860, 256, 256, 1.5) -- "Interface\\Challenges\\challenges-metalglow"
+    ----addShape(co.."Glow  (Green)",           131978, 256, 256, 1.3) -- "Interface\\GLUES\\Models\\UI_MainMenu_BurningCrusade\\glow_green"
+    addShape(co.."發光  (反向)",        kMediaPath.."Glow Reversed.tga", 64, 64, 1.01)
+    ----addShape(co.."Glow  (Sunglare)",        1063368, 256, 256, 1.2) -- "Interface\\GLUES\\Models\\UI_Alliance\\UI_Troll_sunglare"
+    ----addShape(co.."Glow  (Sunglare, Gold)",  1063478, 256, 256, 1.2) -- "Interface\\GLUES\\Models\\UI_Dwarf\\UI_Goblin_sunglare"
+    ----co = colorChanger:next()
+  size = retail and 1024 or 256
+    addShape(co.."魔法陣  (綠色)",          136841, size, size, 1.5) -- "Interface\\SpellShadow\\Spell-Shadow-Acceptable"
+    ----co = colorChanger:next()
+    addShape(co.."圓環 1",                  kMediaPath.."Ring 1.tga", 64, 64)
+    addShape(co.."圓環 1 (柔邊)",           kMediaPath.."Ring Soft 1.tga", 64, 64)
+    addShape(co.."圓環 2",                  kMediaPath.."Ring 2.tga", 64, 64)
+    addShape(co.."圓環 2 (柔邊)",           kMediaPath.."Ring Soft 2.tga", 64, 64)
+    addShape(co.."圓環 3",                  kMediaPath.."Ring 3.tga", 64, 64)
+    addShape(co.."圓環 3 (柔邊)",           kMediaPath.."Ring Soft 3.tga", 64, 64)
+    addShape(co.."圓環 4",                  kMediaPath.."Ring 4.tga", 64, 64)
+    addShape(co.."圓環 4 (柔邊)",           kMediaPath.."Ring Soft 4.tga", 64, 64)
+    ----co = colorChanger:next()
+    addShape(co.."圓環  (秘法)",          "Interface\\UnitPowerBarAlt\\Arcane_Circular_Frame", 128, 128, 1.3) -- DO NOT CONVERT THIS PATH TO AN ID# !  (So current user profiles still work.)
+    addShape(co.."圓環  (黑龍)",       457566, 128, 128, 1.15, {.1, .9, .1, .9}) -- "Interface\\UnitPowerBarAlt\\Atramedes_Circular_Frame"
+    addShape(co.."圓環  (青銅)",          457594, 128, 128, 1.1, {.15, .85, .15, .85}) -- "Interface\\UnitPowerBarAlt\\MetalBronze_Circular_Frame"
+  if retail then
+    ----addShape(co.."Ring  (Brown)",           1949861, 512, 512, 0.95) -- "Interface\\Azerite\\AzeriteGoldRingRanks"
+  end
+    ----addShape(co.."Ring  (Brown, Split)",    237654, 128, 128, 1.05, {.119, .89, .135, .907}) -- "Interface\\SPELLBOOK\\UI-GlyphFrame-Locked"
+    addShape(co.."圓環  (日蝕)",         461873, 256, 256, 1.14, {0, .725, 0, .725}) -- "Interface\\TUTORIALFRAME\\minimap-glow"
+    ----addShape(co.."Ring  (Eternium)",        457597, 128, 128, 1.12, {.15, .85, .15, .85}) -- "Interface\\UnitPowerBarAlt\\MetalEternium_Circular_Frame"
+    addShape(co.."圓環  (火焰)",            "Interface\\UnitPowerBarAlt\\Fire_Circular_Frame", 128, 128, 1.4) -- DO NOT CONVERT THIS PATH TO AN ID# !  (So current user profiles still work.)
+    addShape(co.."圓環  (齒輪)",            457591, 128, 128, 1.25, {.019, .99, .025, 1}) -- "Interface\\UnitPowerBarAlt\\Mechanical_Circular_Frame"
+    addShape(co.."圓環  (黃金)",            519888, 64, 64, 1.03) -- "Interface\\COMMON\\GoldRing"
+  if retail then
+    addShape(co.."圓環  (漸層 1)",      4734120, 128, 128, 1.03, {.123, .855, .13, .865}) -- "Interface\\Professions\\ProfessionSpecializationMiniDialArtMining"
+    addShape(co.."圓環  (漸層 2)",      4734108, 128, 128, 1.03, {.123, .855, .13, .865}) -- "Interface\\Professions\\ProfessionSpecializationMiniDialArtLeatherworking"
+    ----addShape(co.."Ring  (Gradient 2.2)",      4734131, 128, 128, 1.03, {.123, .855, .13, .865}) -- "Interface\\Professions\\ProfessionSpecializationMiniDialArtSkinning"
+    addShape(co.."圓環  (漸層 3)",      4755699, 128, 128, 1.03, {.123, .855, .13, .865}) -- "Interface\\Professions\\ProfessionSpecializationMiniDialArtEngineering"
+    addShape(co.."圓環  (漸層 4)",      4734100, 128, 128, 1.03, {.123, .855, .13, .865}) -- "Interface\\Professions\\ProfessionSpecializationMiniDialArtBlacksmithing"
+    addShape(co.."圓環  (漸層 5)",      4734114, 128, 128, 1.03, {.123, .855, .13, .865}) -- "Interface\\Professions\\ProfessionSpecializationMiniDialArtJewelcrafting"
+    addShape(co.."圓環  (漸層 6)",      4734106, 128, 128, 1.03, {.123, .855, .13, .865}) -- "Interface\\Professions\\ProfessionSpecializationMiniDialArtAlchemy"
+    addShape(co.."圓環  (漸層 7)",      4734111, 128, 128, 1.03, {.123, .855, .13, .865}) -- "Interface\\Professions\\ProfessionSpecializationMiniDialArtEnchanting"
+    addShape(co.."圓環  (漸層 8)",      4734097, 128, 128, 1.03, {.123, .855, .13, .865}) -- "Interface\\Professions\\ProfessionSpecializationMiniDialArtTailoring"
+    addShape(co.."圓環  (漸層 9)",     4734118, 128, 128, 1.03, {.123, .855, .13, .865}) -- "Interface\\Professions\\ProfessionSpecializationMiniDialArtHerbalism"
+    addShape(co.."圓環  (漸層 10)",     4734102, 128, 128, 1.03, {.123, .855, .13, .865}) -- "Interface\\Professions\\ProfessionSpecializationMiniDialArtInscription"
+  end
+    addShape(co.."圓環  (部落)",           457585, 128, 128, 1.3, {.1, .9, .1, .9}) -- "Interface\\UnitPowerBarAlt\\Horde_Circular_Frame"
+    addShape(co.."圓環  (寒冰)",             458995, 128, 128, 1.3, {.1, .9, .1, .9}) -- "Interface\\UnitPowerBarAlt\\Ice_Circular_Frame"
+    addShape(co.."圓環  (鮮肉)",            458999, 128, 128, 1.3, {.1, .9, .1, .9}) -- "Interface\\UnitPowerBarAlt\\Meat_Circular_Frame"
+  if retail then
+    ----addShape(co.."Ring  (Orange)",          2131913, 128, 128, 0.98, {.09, .91, .09, .91}) -- "Interface\\PVPFrame\\pvpqueue-sidebar-honorbar-fill"
+  end
+    addShape(co.."圓環  (光罩)",         307587, 256, 256, 1.1, {.2, .8, .2, .8}) -- "Interface\\Vehicles\\Reticle2"
+    addShape(co.."圓環  (網點)",         1117898, 128, 128, 0.95) -- "Interface\\MINIMAP\\UI-BonusObjectiveBlob-MinimapRing"
+    addShape(co.."圓環  (石頭)",           449445, 128, 128, 1.03, {.18, .82, .18, .82}) -- "Interface\\UnitPowerBarAlt\\Generic1Player_Circular_Frame"
+    addShape(co.."圓環  (石頭 2)",         457623, 128, 128, 1.03, {.17, .83, .17, .83}) -- "Interface\\UnitPowerBarAlt\\WowUI_Circular_Frame"
+    ----co = colorChanger:next()
+    addShape(co.."盾牌  (聯盟)",      457561, 128, 128) -- "Interface\\UnitPowerBarAlt\\Alliance_Circular_Frame"
+    addShape(co.."盾牌  (黃金)",          607858, 256, 256) -- "Interface\\Challenges\\challenges-gold"
+    ----co = colorChanger:next()
+    addShape(co.."球體",                  kMediaPath.."Sphere Edge 2.tga", 128, 128)
+    ----co = colorChanger:next()
+    addShape(co.."星星",                    kMediaPath.."Star 1.tga", 64, 64)
+    ----co = colorChanger:next()
+    addShape(co.."螺旋",                   kMediaPath.."Swirl.tga", 256, 256)
+    ----co = colorChanger:next()
+end
+
+--:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 --[[                       Functions                                         ]]
 --:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 -------------------------------------------------------------------------------
-function ShapeDropDown_AddLines(dropdown)
-    local bRetailWoW = isRetailWoW()
-    
-    -- IMPORTANT!  Add new lines in alphabetical order (by display name).
-    --                ---------------------------   ------------------------------
-    --                       DISPLAY NAME                     FILE NAME
-    --                ---------------------------   ------------------------------
-    dropdown:AddItem( kStr_None,                    "" )
-    dropdown:AddItem( "Circle 1",                   kMediaPath.."Circle 1.tga" )
-    dropdown:AddItem( "Circle 2",                   kMediaPath.."Circle 2.tga" )
-    dropdown:AddItem( "Cross 1",                    kMediaPath.."Cross 1.tga" )
-    dropdown:AddItem( "Cross 2",                    kMediaPath.."Cross 2.tga" )
-    dropdown:AddItem( "Cross 3",                    kMediaPath.."Cross 3.tga" )
-    dropdown:AddItem( "Glow",                       kMediaPath.."Glow 1.tga" )
-    dropdown:AddItem( "Glow (Reversed)",            kMediaPath.."Glow Reversed.tga" )
-    dropdown:AddItem( "Ring - Arcane",              "Interface\\UnitPowerBarAlt\\Arcane_Circular_Frame" )
-    dropdown:AddItem( "Ring - Fire",                "Interface\\UnitPowerBarAlt\\Fire_Circular_Frame" )
-    dropdown:AddItem( "Ring 1",                     kMediaPath.."Ring 1.tga" )
-    dropdown:AddItem( "Ring 1 (Soft)",              kMediaPath.."Ring Soft 1.tga" )
-    dropdown:AddItem( "Ring 2",                     kMediaPath.."Ring 2.tga" )
-    dropdown:AddItem( "Ring 2 (Soft)",              kMediaPath.."Ring Soft 2.tga" )
-    dropdown:AddItem( "Ring 3",                     kMediaPath.."Ring 3.tga" )
-    dropdown:AddItem( "Ring 3 (Soft)",              kMediaPath.."Ring Soft 3.tga" )
-    dropdown:AddItem( "Ring 4",                     kMediaPath.."Ring 4.tga" )
-    dropdown:AddItem( "Ring 4 (Soft)",              kMediaPath.."Ring Soft 4.tga" )
-    dropdown:AddItem( "Sphere",                     kMediaPath.."Sphere Edge 2.tga" )
-    dropdown:AddItem( "Star",                       kMediaPath.."Star 1.tga" )
-    dropdown:AddItem( "Swirl",                      kMediaPath.."Swirl.tga" )
-   
-    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
-    ----dropdown:AddItem( "Ring 2 (Black Edge)",        kMediaPath.."Ring Edge 2.tga" )
-    ----dropdown:AddItem( "Test: NewCharacterNotification", "Interface\\GLUES\\CHARACTERCREATE\\NewCharacterNotification" )
-    --dropdown:AddItem( "Test: EventNotificationGlow", "Interface\\Calendar\\EventNotificationGlow" )
-    --dropdown:AddItem( "Test: Wisp", "Interface\\GLUES\\Models\\UI_DeathKnight\\Wisp" )
-    --dropdown:AddItem( "Test: AzeriteGoldRingRanks", "Interface\\Azerite\\AzeriteGoldRingRanks" )
-    --dropdown:AddItem( "Test: AzeriteGoldRingRank2", "Interface\\Azerite\\AzeriteGoldRingRank2" )
-    --dropdown:AddItem( "Test: AzeriteTitanBGRank2", "Interface\\Azerite\\AzeriteTitanBGRank2" )
-    --dropdown:AddItem( "Test: AzeriteTitanBGRank3", "Interface\\Azerite\\AzeriteTitanBGRank3" )
-    --dropdown:AddItem( "Test: AzeriteTitanBGRank4", "Interface\\Azerite\\AzeriteTitanBGRank4" )
-    --dropdown:AddItem( "Test: challenges-gold", "Interface\\Challenges\\challenges-gold" )
-    --dropdown:AddItem( "Test: challenges-gold-sm", "Interface\\Challenges\\challenges-gold-sm" )
-    --dropdown:AddItem( "Test: GoldRing", "Interface\\COMMON\\GoldRing" )
-    --dropdown:AddItem( "Test: stormyellow-extrabutton", "Interface\\ExtraButton\\stormyellow-extrabutton" )
-    --dropdown:AddItem( "Test: UI_Troll_sunglare", "Interface\\GLUES\\Models\\UI_Alliance\\UI_Troll_sunglare" )
-    --dropdown:AddItem( "Test: UI_Goblin_sunglare", "Interface\\GLUES\\Models\\UI_Dwarf\\UI_Goblin_sunglare" )
-    --dropdown:AddItem( "Test: glow_green", "Interface\\GLUES\\Models\\UI_MainMenu_BurningCrusade\\glow_green" )
-    --dropdown:AddItem( "Test: HelpIcon-Bug", "Interface\\HELPFRAME\\HelpIcon-Bug" )
-    --dropdown:AddItem( "Test: HelpIcon-Bug-Red", "Interface\\HELPFRAME\\HelpIcon-Bug-Red" )
-    --dropdown:AddItem( "Test: UI-BonusObjectiveBlob-MinimapRing", "Interface\\MINIMAP\\UI-BonusObjectiveBlob-MinimapRing" )
-    --dropdown:AddItem( "Ring - Gradient 01", "Interface\\Professions\\ProfessionSpecializationMiniDialArtAlchemy" )
-    --dropdown:AddItem( "Ring - Gradient 02", "Interface\\Professions\\ProfessionSpecializationMiniDialArtBlacksmithing" )
-    --dropdown:AddItem( "Ring - Gradient 03", "Interface\\Professions\\ProfessionSpecializationMiniDialArtEnchanting" )
-    --dropdown:AddItem( "Ring - Gradient 04", "Interface\\Professions\\ProfessionSpecializationMiniDialArtEngineering" )
-    --dropdown:AddItem( "Ring - Gradient 05", "Interface\\Professions\\ProfessionSpecializationMiniDialArtHerbalism" )
-    --dropdown:AddItem( "Ring - Gradient 06", "Interface\\Professions\\ProfessionSpecializationMiniDialArtInscription" )
-    --dropdown:AddItem( "Ring - Gradient 07", "Interface\\Professions\\ProfessionSpecializationMiniDialArtJewelcrafting" )
-    --dropdown:AddItem( "Ring - Gradient 08", "Interface\\Professions\\ProfessionSpecializationMiniDialArtLeatherworking" )
-    --dropdown:AddItem( "Ring - Gradient 09", "Interface\\Professions\\ProfessionSpecializationMiniDialArtMining" )
-    --dropdown:AddItem( "Ring - Gradient 10", "Interface\\Professions\\ProfessionSpecializationMiniDialArtSkinning" )
-    --dropdown:AddItem( "Ring - Gradient 11", "Interface\\Professions\\ProfessionSpecializationMiniDialArtTailoring" )
-    --dropdown:AddItem( "Square - Art, Gold 3D", "Interface\\SPELLBOOK\\RotationIconFrame" )
-    --dropdown:AddItem( "Square - Art, Gold", "Interface\\Vehicles\\UI-Vehicles-Button-Highlight" )
-    --dropdown:AddItem( "Test: UI-GlyphFrame-Locked", "Interface\\SPELLBOOK\\UI-GlyphFrame-Locked" )
-    --dropdown:AddItem( "Test: Spell-Shadow-Acceptable", "Interface\\SpellShadow\\Spell-Shadow-Acceptable" )
-    --dropdown:AddItem( "Test: UI-TutorialFrame-AttackCursor", "Interface\\TutorialFrame\\UI-TutorialFrame-AttackCursor" )
-    --dropdown:AddItem( "Test: Atramedes_Circular_Frame", "Interface\\UnitPowerBarAlt\\Atramedes_Circular_Frame" )
-    --dropdown:AddItem( "Ring - Art, Fire", "Interface\\UnitPowerBarAlt\\Fire_Circular_Frame" )
-    --dropdown:AddItem( "Ring - Art, Horde", "Interface\\UnitPowerBarAlt\\Horde_Circular_Frame" )
-    --dropdown:AddItem( "Ring - Art, Ice", "Interface\\UnitPowerBarAlt\\Ice_Circular_Frame" )
-    --dropdown:AddItem( "Ring - Art, Meat", "Interface\\UnitPowerBarAlt\\Meat_Circular_Frame" )
-    --dropdown:AddItem( "Ring - Art, Gear", "Interface\\UnitPowerBarAlt\\Mechanical_Circular_Frame" )
-    --dropdown:AddItem( "Ring - Art, Bronze", "Interface\\UnitPowerBarAlt\\MetalBronze_Circular_Frame" )
-    --dropdown:AddItem( "Ring - Art, Eternium", "Interface\\UnitPowerBarAlt\\MetalEternium_Circular_Frame" )
-    --dropdown:AddItem( "Ring - Art, Metal Yellow", "Interface\\UnitPowerBarAlt\\WowUI_Circular_Frame" )
-    --dropdown:AddItem( "Test: Reticle2", "Interface\\Vehicles\\Reticle2" )
-    --dropdown:AddItem( "Glow - Yellow",              "Interface\\Challenges\\challenges-metalglow" )
-    --if bRetailWoW then
-    --    dropdown:AddItem( "Ring - Art, Orange",         "Interface\\PVPFrame\\pvpqueue-sidebar-honorbar-fill" )
-    --end
-    
+function getShapeData(shapeID)
+    assert(shapeID)
+    for i, data in ipairs(kShapeConstants) do
+        if shapeID == data.shapeID then
+            return data
+        end
+    end
 end
+
+-------------------------------------------------------------------------------
+function ShapeDropDown_AddLines(dropdown)
+    for i, data in ipairs(kShapeConstants) do
+        dropdown:AddItem(data.displayName, data.shapeID or "")
+    end
+end
+
+--~ -------------------------------------------------------------------------------
+--~ -- (For Development - Dump numeric ID for built-in texture file names.)
+--~ Globals.C_Timer.After(3, function()
+--~     local color = "|cff00cccc"
+--~     print(color.."CursorTrailShapes.lua: DUMPING SHAPE ID#s")
+--~     local dropdown = private.UDControls.CreateDropDown(OptionsFrame)
+--~     ShapeDropDown_AddLines(dropdown)
+--~     local frm = Globals.CreateFrame("Frame", nil, UIParent)
+--~     local tex = frm:CreateTexture()
+--~     for i = 1, #dropdown.itemIDs do
+--~         tex:SetTexture( dropdown.itemIDs[i] )
+--~         print(color, tex:GetTextureFileID(), "=", dropdown.items[i])
+--~     end
+--~     tex:SetTexture(nil); tex=nil; frm=nil; dropdown=nil
+--~ end)
 
 --- End of File ---

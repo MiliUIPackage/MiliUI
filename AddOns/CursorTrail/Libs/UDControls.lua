@@ -1,4 +1,4 @@
-local CONTROLS_VERSION = "2024-07-24"  -- Version (date) of this file.  Stored as "UDControls.VERSION".
+local CONTROLS_VERSION = "2024-10-16"  -- Version (date) of this file.  Stored as "UDControls.VERSION".
 
 --[[---------------------------------------------------------------------------
 FILE:   UDControls.lua
@@ -16,6 +16,50 @@ REQUIREMENTS / DEPENDANCIES:
 USAGE:  See examples at end of this comment block.
 -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
 CHANGE HISTORY:
+    Oct 16, 2024
+        - Added SmallTooltip:Show(), SmallTooltip:Hide(), and SmallTooltip:SetTextColor().
+        - Added anchor/relativeFrame/relativeAnchor/x/y parameters to ContextMenu:Open().
+        - Minor changes to CreateColorSwatch().
+        - Added support to MsgBox3() for sending a key to a visible message box so it
+          can be forced to close a certain way if necessary to prevent data corruption.
+                e.g.  MsgBox3("SendKey", "ESCAPE")
+        - Updated MsgBox3() by changing its 'bShowAlertIcon' parameter into a 'boolFlags' string
+          of space delimited StaticPopupDialog flags that can be set true (or false by putting
+          a '-' character infront of the flag name).  See MsgBox3 examples.
+    Oct 09, 2024
+        - Added flashing scrollbar buttons in listboxes and dropdown menus when
+          there are more lines above/below those being shown.
+        - Scrollbar buttons now auto-repeat when held down.
+        - Brightened scrollbars thumb texture.
+        - Fixed dropdown bugs caused when using CDropDown.AddSeparator().
+        - Improved Outline() so it makes perfect corners now.  The old implementation
+          can still be used by specifying 'version=1' in the options parameter.
+          Also add a new option parameter named "expand".
+        - Added FillFrame() function.
+        - Reduced the frame level of the [X] button from 501 to be just one level higher than its parent.
+        - Added UDControls configuration parameters for changing behavior of ALL listboxes created afterwards:
+            UDControls.kSetButtonFlashing   - Scrollbar button flashing mode for ALL listboxes.  (Default is true)
+            UDControls.kButtonFlashAlpha    - Intensity of scrollbar button flashing.  (Default it 0.5)
+            UDControls.kButtonFlashSecs     - Seconds between scrollbar button flashing.  (Default it 0.6)
+        - Changed ContextMenu function names to start with upper-case letters (to be consistent with
+          all other exposed function names in this file).
+        - Minor adjustments to scrollbar position in listboxes and dropdown menus.
+        - Minor loop optimization in CListBox.Refresh().
+        - Fixed bug in CListBox.SelectNextItem() and CListBox.SelectPreviousItem().
+        - Updated comments.
+    Sep 25, 2024
+        - Fixed LUA errors in Classic WoW 1.15.4 that were caused by the removal of
+          the OptionsButtonTemplate and OptionsBoxTemplate templates from its API.
+        - Added GetLabelWidth() to checkboxes.  (See CCheckBox.GetLabelWidth() .)
+        - Added MsgBox3(), CCheckBox:Click().
+        - Added support to MsgBox3() and MsgBox() for hooking "OnShow" and "OnHide" script
+          functions by specifying their first three parameters like this ...
+                MsgBox3("HookScript", "OnShow", function(self) print("MsgBox OnShow() called.") end
+                MsgBox3("HookScript", "OnHide", function(self) print("MsgBox OnHide() called.") end
+          Also can determine if a message box is being shown like this ...
+                local isShown = MsgBox3("IsShown")
+    Sep 15, 2024
+        - Added CUtil.EnhanceFrameEdges(), CUtil.CreateContextMenu().
     Jul 24, 2024
         - Fixed GetMouseFocus() errors caused in WoW 11.0.  (Added CUtil.GetMouseFocus() and exported that function too.)
     Jun 25, 2024
@@ -32,8 +76,7 @@ CHANGE HISTORY:
         - Consolidate all places that set tooltip info into one function, setTooltipInfo().
         - Consolidate all places that showed tooltips into one function, showTooltip().
         - Added SetTooltipTitleAndText() to controls in this file.
-        - Added CListBox.Line_SetTooltipTitleAndText() and CListBox.Line_SetTooltipTitleAndText(), for
-          implementing different tooltips for each line in a listbox.
+        - Added CListBox.Line_SetTooltipTitleAndText() for implementing different tooltips on each line of a listbox.
         - Added GameTooltip_SetTitleAndText() and Outline() functions.
         - Added SetMouseWheelStepSpeed() and SetMouseWheelDefault() to TextScrollFrame.
     Jun 11, 2024
@@ -41,7 +84,7 @@ CHANGE HISTORY:
           This change has no effect on the exposed interfaces.
           (See CListBox, CDropDown, CCheckBox, CButton, COptionsButton, CSlider, CGroupBox, CUtil.)
         - Disable listbox scrollbar's UP button if at top of list, or its DOWN button if at bottom of list.
-        - Added SetDynamicWheelSpeed() for scrolling listbox and dropdown contents based on mouse wheel speed.
+        - Added CListBox.SetDynamicWheelSpeed() for scrolling listbox and dropdown contents based on mouse wheel speed.
         - Added CloseDropDowns().
         - Added bCallChangeHandler parameter to CDropDown functions that select an item.
         - Added support for custom click handling when a dropdown or colorswatch control is clicked with
@@ -132,6 +175,7 @@ CHANGE HISTORY:
 
         CreateCheckBox()        - Returns a CheckBox object.
         CreateColorSwatch()     - Returns a ColorSwatch object.
+        CreateContextMenu()     - Returns a ListBox object that behaves as a context menu.
         CreateDropDown()        - Returns a DropDown object.
         CreateGroupBox()        - Returns a group box frame.
         CreateIconButton()      - Returns a standard button frame.
@@ -156,10 +200,12 @@ CHANGE HISTORY:
 ~~~~~~~~~~~~~~~
 
     Functions:
+        Click()
         Configure()
         Disable()
         Enable()
         GetChecked()
+        GetLabelWidth()
         SetChecked()
         SetClickHandler( function(isChecked) )
         SetLabel()
@@ -172,6 +218,18 @@ CHANGE HISTORY:
     Variables:
         checkButton
         fontString
+
+~~~~~~~~~~~~~~~~~~~
+    ContextMenu
+~~~~~~~~~~~~~~~~~~~
+
+    Functions:
+        Close()
+        GetColor()
+        GetBackColor()
+        Open()
+        SetColor()
+        SetBackColor()
 
 ~~~~~~~~~~~~~~~~~~~
     ColorSwatch
@@ -199,6 +257,7 @@ CHANGE HISTORY:
 
     Functions:
         AddItem( text, ID )  - ID can be a number or text.
+        AddSeparator()
         Clear()
         ClearSelection()
         Configure()
@@ -219,6 +278,7 @@ CHANGE HISTORY:
         SetChangeHandler( function(thisDD, selectedID, selectedText, selectedIndex) )
         SetBackdropBorderColor()
         SetBackdropColor()
+        SetButtonFlashing()     - Enables/disables scrollbar button flashing for the dropdown list.
         SetLabel()
         SetListBoxHeight()
         SetListBoxWidth()
@@ -244,9 +304,12 @@ CHANGE HISTORY:
 
     Functions:
         AddItem( text, bScrollIntoView )
+        AddSeparator()
         Clear()
         ClearSelection()
         Configure()
+        ConfigureAutoRepeat()   - Configures auto-repeat rate and initial delay for ALL listboxes.
+        ConfigureFlashing()     - Configures scrollbar button flashing rate and intensity for a listbox.
         Disable()
         Enable()
         GetItem()
@@ -256,8 +319,10 @@ CHANGE HISTORY:
         GetOffset()
         GetSelectedItem()       - Returns selected item (text).
         GetSelectedItemNumber() - Returns the selected line number.
+        Line_SetTooltipTitleAndText()   - Sets a tooltip title and text for a specific line of a listbox.
         Refresh()
         RemoveItem()
+        SetButtonFlashing()     - Enables/disables scrollbar button flashing for a listbox.
         SetClickHandler( function(thisLB, line, value, mouseButton, bDown) )
         SetCreateLineHandler( function(thisLB) )
         SetDisplayHandler( function(thisLB, line, value, isSelected) )
@@ -340,6 +405,8 @@ CHANGE HISTORY:
     Functions:
         AddText()
         GetNextVerticalPosition()
+        SetMouseWheelDefault()
+        SetMouseWheelStepSpeed()
         SetScrollTextBackColor()
         SetVerticalScroll()
 
@@ -414,6 +481,51 @@ CHANGE HISTORY:
     colorswatch:SetColorChangedHandler(function(self) YourObjectTexture:SetVertexColor(self.r, self.g, self.b, self.a) end)
 
 
+~~~~~~~~~~~~~~~~~~~~~
+ ContextMenu Example
+~~~~~~~~~~~~~~~~~~~~~
+
+    local kAddonFolderName, private = ...  -- First line of LUA file that will use these controls.
+        .                                  -- (The variable names can be changed to anything you like.)
+        .
+        .
+
+    YourOptionsFrame.contextMenu = private.UDControls.CreateContextMenu(YourOptionsFrame)
+    YourOptionsFrame.contextMenu:SetColor(0.24, 0.48, 0.6,  1)
+    YourOptionsFrame.contextMenu:SetBackColor(0.5, 1, 1,  0.95)
+
+    YourOptionsFrame:SetScript("OnMouseUp", function(self, mouseButton)
+            if mouseButton == "RightButton" then
+                -- Open context menu.
+                local iconR = "Interface\\COMMON\\Indicator-Red"
+                local iconG = "Interface\\COMMON\\Indicator-Green"
+
+                local lines = {}
+                local i = 1
+                lines[i] = {isDivider=true}; i=i+1
+                lines[i] = {text="Enabled Line",  icon=iconG, func=function() print("Enabled line clicked.") end}; i=i+1
+                lines[i] = {text="Disabled Line", icon=iconR, disabled=true}; i=i+1
+                lines[i] = {isDivider=true}; i=i+1
+
+                self.contextMenu:Open( lines )
+            else
+                -- Close context menu.
+                if self.contextMenu then self.contextMenu:Close() end
+            end
+        end)
+
+    hooksecurefunc(private.UDControls, "handleGlobalMouseClick", function(mouseButton)
+            -- Hide context menu when user clicks anywhere outside of it.
+            if (mouseButton == nil or mouseButton == "LeftButton") then
+                local cmenu = YourOptionsFrame.contextMenu
+                if cmenu:IsShown() and not cmenu:IsMouseOver() then
+                    cmenu:Close()
+                end
+            end
+        end)
+
+
+
 ~~~~~~~~~~~~~~~~~~
  DropDown Example
 ~~~~~~~~~~~~~~~~~~
@@ -449,6 +561,8 @@ CHANGE HISTORY:
     local dropdown = private.UDControls.CreateDropDown(YourOptionsFrame)
     ----dropdown.listbox:SetScale( 0.95 )  -- (Optional) Shrinks the dropdown.
     ----dropdown:SetBackdropBorderColor(0.7, 0.7, 0.0)  -- (Optional) Colorize the dropdown edges.
+    dropdown:SetButtonFlashing( true )  -- (Optional) Flashes scrollbar buttons if more lines are above/below.
+
     dropdown:SetPoint("TOPLEFT", YourOptionsFrame, "TOPLEFT", 16, -16)
     dropdown:Configure(200, "Color Names:", "")  -- (width, label, tooltip_text)
 
@@ -601,9 +715,13 @@ CHANGE HISTORY:
     end
     -- - - - - - - - - - - - - - - - - - - - - - - - - - --
 
+    ----private.UDControls.kSetButtonFlashing = true  -- (Optional) All listboxes created after this
+                                                      -- line will have flashing scrollbar buttons.
+                                                      -- See also SetButtonFlashing().
     -- Create listbox.
     local listbox = private.UDControls.CreateListBox(YourOptionsFrame)
     listbox.tooltipWhileDisabled = true  -- (Optional)
+    listbox:SetButtonFlashing( true )  -- (Optional) This listbox's scrollbar buttons will flash if more lines are above/below.
     listbox:Configure(listboxW, listboxH, listboxLineH)
 	listbox:SetPoint("TOPLEFT", YourOptionsFrame, "TOPLEFT", 18, -35)
 	listbox:SetCreateLineHandler( listboxCreateLine )
@@ -684,6 +802,13 @@ CHANGE HISTORY:
     tsf:AddText("This is line #3.  It is a very long line in order to test the .:.:.:. word wrap feature of the scroll frame.\n ", indent)
     tsf:AddText("This is 5000 pixels below the top, so scrollChild automatically adjusts its height.", 0, 5000)
 
+
+-----
+ FYI
+-----
+    SetTextureColor() / SetTextureBackgroundColor() == SetColorTexture()
+                                                       Also see texture:SetVertexColor().
+
 -------------------------------------------------------------------------------]]
 
 
@@ -729,6 +854,8 @@ local string = string
 local table = table
 ----local tinsert = tinsert
 local type = type
+----local UIFrameFadeIn = UIFrameFadeIn
+----local UIFrameFadeOut = UIFrameFadeOut
 ----local UIParent = UIParent
 local unpack = unpack
 
@@ -751,9 +878,8 @@ local unpack = unpack
 
 -- Templates compatible with all versions of WoW.
 local kGameTocVersion = select(4, GetBuildInfo())
+local function isVanillaWoW() return (kGameTocVersion < 20000) end
 local function isRetailWoW() return (kGameTocVersion >= 100000) end
-local kButtonTemplate = ((kGameTocVersion >= 100000) and "UIPanelButtonTemplate") or "OptionsButtonTemplate"
-local kBoxTemplate = ((kGameTocVersion >= 100000) and "TooltipBorderBackdropTemplate") or "OptionsBoxTemplate"
 local kMinVer_10_2_5 = (kGameTocVersion >= 100205)  -- WoW 10.2.5 or newer?
 
 -- Other constants.
@@ -841,6 +967,11 @@ end
 -------------------------------------------------------------------------------
 --#############################################################################
 
+
+-- ****************************************************************************
+-- Does nothing.  i.e. noop()
+-- ****************************************************************************
+local function DoNothing() end
 
 -- ****************************************************************************
 -- Dumps a variable to the ViragDevTools addon, if it is loaded.
@@ -971,6 +1102,114 @@ end
 -- ****************************************************************************
 -- Called when the listbox needs to be refreshed.
 -- ****************************************************************************
+function CListBox.FlashButtons(thisLB)
+    ----UDC_FlashCnt=(UDC_FlashCnt and UDC_FlashCnt+1 or 1); print( "FlashCnt:", UDC_FlashCnt) -- For debugging.
+    ----local fadeSecs = 0.3
+    ----if fadeSecs > thisLB.buttonFlashSecs then fadeSecs = thisLB.buttonFlashSecs end
+    CListBox.buttonFlashState = not CListBox.buttonFlashState
+    for i = 1, 2 do
+        local btn = (i == 1) and thisLB.upButton or thisLB.downButton
+
+        -- Flash button glow.
+        btn.glow:SetShown( btn:IsEnabled() and CListBox.buttonFlashState or false )
+
+        ------ Fade button glow in/out.
+        ----if btn:IsEnabled() then
+        ----    btn.glow:Show()
+        ----    if CListBox.buttonFlashState then
+        ----        UIFrameFadeIn(btn.glow, fadeSecs, 0, thisLB.buttonFlashAlpha)
+        ----    else
+        ----        UIFrameFadeOut(btn.glow, fadeSecs, thisLB.buttonFlashAlpha, 0)
+        ----    end
+        ----else
+        ----    btn.glow:Hide()
+        ----end
+    end
+end
+
+
+-- ****************************************************************************
+-- Creates a ticker for flashing listbox scrollbar buttons (when more data is above/below).
+-- ****************************************************************************
+function CListBox.startButtonFlasher(thisLB)
+    if thisLB.buttonFlashEnabled and not thisLB.buttonFlashTicker then
+        CListBox.buttonFlashState = nil
+        thisLB.buttonFlashTicker = C_Timer.NewTicker( thisLB.buttonFlashSecs, function()
+                    CListBox.FlashButtons(thisLB)  -- Call repeatedly.
+                end)
+
+        local shortDelay = 0.02
+        if thisLB.buttonFlashSecs > shortDelay * 2 then
+            C_Timer.After(shortDelay, function() CListBox.FlashButtons(thisLB) end)  -- Call "immediately".
+        end
+    end
+end
+
+
+-- ****************************************************************************
+-- Stops the ticker for flashing listbox scrollbar buttons.
+-- ****************************************************************************
+function CListBox.stopButtonFlasher(thisLB)
+    if thisLB.buttonFlashTicker then
+        thisLB.buttonFlashTicker:Cancel()
+        thisLB.buttonFlashTicker = nil
+        thisLB.upButton.glow:Hide()
+        thisLB.downButton.glow:Hide()
+        CListBox.buttonFlashState = nil
+    end
+end
+
+
+-- ****************************************************************************
+-- Enables/disables flashing scrollbar buttons for the specified listbox.
+-- ****************************************************************************
+function CListBox.SetButtonFlashing(thisLB, enabled)
+    thisLB.buttonFlashEnabled = enabled
+    if not enabled then
+        CListBox.stopButtonFlasher(thisLB)
+    end
+end
+
+
+-- ****************************************************************************
+-- Configures scrollbar flashing rate and intensity for the specified listbox.
+-- EXAMPLE:  listbox:ConfigureFlashing(1.0, 0.5)  -- (Full intensity every half sec.)
+-- ****************************************************************************
+function CListBox.ConfigureFlashing(thisLB, buttonFlashAlpha, buttonFlashSecs)
+    local udcontrols = private.UDControls
+    buttonFlashAlpha = buttonFlashAlpha or udcontrols.kButtonFlashAlpha
+    buttonFlashSecs = buttonFlashSecs or udcontrols.kButtonFlashSecs
+    assert(buttonFlashAlpha >= 0.0 and buttonFlashAlpha <= 1.0)
+    assert(buttonFlashSecs > 0)
+
+    thisLB.buttonFlashSecs = buttonFlashSecs
+    thisLB.buttonFlashAlpha = buttonFlashAlpha
+    thisLB.upButton.glow:SetAlpha( buttonFlashAlpha * 0.8 )  -- Make top button glow less bright/annoying.
+    thisLB.downButton.glow:SetAlpha( buttonFlashAlpha )
+end
+
+
+-- ****************************************************************************
+-- Configures scrollbar button auto-repeat rate and initial delay for ALL listboxes.
+-- Auto-repeat occurs when a scrollbar button is held down.
+-- (Initial delay seconds = autoRepeatDelayCount * autoRepeatSecs)
+-- EXAMPLE:  listbox:ConfigureAutoRepeat(0.2, 2)
+-- ****************************************************************************
+function CListBox.ConfigureAutoRepeat(thisLB, autoRepeatSecs, autoRepeatDelayCount)
+    autoRepeatSecs = autoRepeatSecs or 0.075
+    autoRepeatDelayCount = autoRepeatDelayCount or 4
+    assert(autoRepeatSecs > 0)
+    assert(autoRepeatDelayCount > 0)
+    CListBox.autoRepeatSecs = autoRepeatSecs
+    CListBox.autoRepeatDelayCount = autoRepeatDelayCount
+end
+
+CListBox.ConfigureAutoRepeat()  -- Initialize auto-repeat variables for ALL listboxes.
+
+
+-- ****************************************************************************
+-- Called when the listbox needs to be refreshed.
+-- ****************************************************************************
 function CListBox.Refresh(thisLB)
     -- Don't do anything if the listbox isn't configured.
     if (not CListBox.IsConfigured(thisLB)) then return end
@@ -985,12 +1224,13 @@ function CListBox.Refresh(thisLB)
     -- apply a highlight to the selected item.
     local selectedItem = thisLB.selectedItem
     local isDropDownListBox = (gDropDownListBoxFrame and thisLB == gDropDownListBoxFrame.listbox)
+    local lineOffset = CListBox.GetOffset(thisLB)
     for lineNum, line in ipairs(thisLB.lines) do
         if (lineNum > #thisLB.items) then
             line:Hide()
             line.invisibleLine:Hide()
         else
-            line.itemNumber = lineNum + CListBox.GetOffset(thisLB)
+            line.itemNumber = lineNum + lineOffset
             line:Show()
 
             local value = thisLB.items[ line.itemNumber ]
@@ -1032,8 +1272,17 @@ function CListBox.Refresh(thisLB)
     -- Disable top scroll button if at top of list, or bottom button if at bottom of list.
     local scrollPos = thisLB.sliderFrame:GetValue()
     local minPos, maxPos = thisLB.sliderFrame:GetMinMaxValues()
-    thisLB.upButton:SetEnabled( scrollPos > minPos )
-    thisLB.downButton:SetEnabled( scrollPos < maxPos )
+    local enableUP = scrollPos > minPos
+    local enableDOWN = scrollPos < maxPos
+    thisLB.upButton:SetEnabled( enableUP )
+    thisLB.downButton:SetEnabled( enableDOWN )
+
+    -- Flash scroll button(s) if more lines are above/below those being shown.
+    if enableUP or enableDOWN then
+        CListBox.startButtonFlasher(thisLB)
+    elseif thisLB.buttonFlashTicker then
+        CListBox.stopButtonFlasher(thisLB)
+    end
 
     ----if thisLB.bMoreIndicators then  --DJUadded...  For use with CListBox.SetIndicators().
     ----    local scrollPos = thisLB.sliderFrame:GetValue()
@@ -1135,7 +1384,7 @@ function CListBox.OnClickUp(thisBtn, mouseButton, bDown)
 
     local listbox = thisBtn:GetParent():GetParent()
     CListBox.ScrollUp(listbox)
-    PlaySound(826)
+    ----PlaySound(826)
 end
 
 
@@ -1147,7 +1396,7 @@ function CListBox.OnClickDown(thisBtn, mouseButton, bDown)
 
     local listbox = thisBtn:GetParent():GetParent()
     CListBox.ScrollDown(listbox)
-    PlaySound(827)
+    ----PlaySound(827)
 end
 
 
@@ -1469,7 +1718,7 @@ end
 
 
 -- ****************************************************************************
--- Adds a separator line to the listbox.
+-- Adds a separator line to the listbox.  (i.e. Divider line.)
 -- ****************************************************************************
 function CListBox.AddSeparator(thisLB)
     CListBox.AddItem(thisLB, kSeparatorLine)
@@ -1644,6 +1893,7 @@ end
 function CListBox.SelectNextItem(thisLB)  --DJUadded
     local itemNum = CListBox.GetSelectedItemNumber(thisLB)
     if itemNum < CListBox.GetNumItems(thisLB) then
+        thisLB.bGlitchFixed = true -- Must prevent its timer from messing up our selection logic!
         CListBox.SelectItem(thisLB, itemNum+1, true, true)  -- Scrolls into view and calls click handler.
         return true
     end
@@ -1659,6 +1909,7 @@ end
 function CListBox.SelectPreviousItem(thisLB)  --DJUadded
     local itemNum = CListBox.GetSelectedItemNumber(thisLB)
     if itemNum > 1 then
+        thisLB.bGlitchFixed = true -- Must prevent its timer from messing up our selection logic!
         CListBox.SelectItem(thisLB, itemNum-1, true, true)  -- Scrolls into view and calls click handler.
         return true
     end
@@ -1749,6 +2000,85 @@ end
 
 
 -- ****************************************************************************
+-- Called when the listbox is hidden.
+-- ****************************************************************************
+function CListBox.OnHide(thisLB)
+    CListBox.stopButtonFlasher(thisLB)
+    if CListBox.autoRepeatTicker then
+        CListBox.autoRepeatTicker:Cancel()
+    end
+end
+
+-- ****************************************************************************
+-- Called when a listbox scrollbar button is clicked down.
+-- ****************************************************************************
+function CListBox.Button_OnMouseDown(thisBtn, mouseButton)
+    if mouseButton == "LeftButton" then
+        local clistbox = CListBox
+        if clistbox.autoRepeatTicker then
+            clistbox.autoRepeatTicker:Cancel()
+        end
+        clistbox.autoRepeatCount = 0
+        clistbox.autoRepeatTicker = C_Timer.NewTicker(clistbox.autoRepeatSecs, function()
+            ----UDC_BtnRepCnt=(UDC_BtnRepCnt and UDC_BtnRepCnt+1 or 1); print( "BtnRepCnt:", UDC_BtnRepCnt) -- For debugging.
+            clistbox.autoRepeatCount = clistbox.autoRepeatCount + 1
+            if clistbox.autoRepeatCount >= clistbox.autoRepeatDelayCount then
+                thisBtn.onClickHander(thisBtn, mouseButton, true)  -- Button down.
+            end
+        end)
+    end
+end
+
+-- ****************************************************************************
+-- Called when a listbox scrollbar button is released.
+-- ****************************************************************************
+function CListBox.Button_OnMouseUp(thisBtn, mouseButton)
+    if mouseButton == "LeftButton" then
+        local clistbox = CListBox
+        if clistbox.autoRepeatTicker then
+            clistbox.autoRepeatTicker:Cancel()
+            clistbox.autoRepeatTicker = nil
+            if clistbox.autoRepeatCount < clistbox.autoRepeatDelayCount then
+                thisBtn.onClickHander(thisBtn, mouseButton, false)  -- Button up.
+            end
+            clistbox.autoRepeatCount = 0
+        end
+    else
+        thisBtn.onClickHander(thisBtn, mouseButton, false)  -- Button up.
+    end
+end
+
+-- ****************************************************************************
+-- Called to create listbox scrollbar up/down buttons.  ('isUpButton' specifies which button to create.)
+-- ****************************************************************************
+function CListBox.CreateSliderButton(thisLB, thisSlider, buttonW, buttonH, isUpButton)
+    local template = (isUpButton and "UIPanelScrollUpButtonTemplate") or "UIPanelScrollDownButtonTemplate"
+
+    local button = CreateFrame("Button", nil, thisSlider, template)
+    button:SetSize(buttonW, buttonH)
+    button.isUpButton = isUpButton
+    button.onClickHander = (isUpButton and CListBox.OnClickUp) or CListBox.OnClickDown
+
+    -- Button glow.
+    button.glow = button:CreateTexture(nil, "OVERLAY")
+    button.glow:Hide()
+    button.glow:SetTexture("Interface\\CHATFRAME\\ChatFrame")
+    if isVanillaWoW() then
+        button.glow:SetTexCoord(0, 1/4, 0, 1/4)  -- x1, x2, y1, y2
+    else
+        button.glow:SetTexCoord(0, 1/8, 0, 1/4)  -- x1, x2, y1, y2
+    end
+    button.glow:SetPoint("TOPLEFT", -4, 5)
+    button.glow:SetPoint("BOTTOMRIGHT", 1, -3)
+
+    -- Button scripts.
+    button:SetScript("OnMouseDown", CListBox.Button_OnMouseDown)
+    button:SetScript("OnMouseUp", CListBox.Button_OnMouseUp)
+
+    return button
+end
+
+-- ****************************************************************************
 -- Creates and returns a listbox object ready to be configured.
 -- ****************************************************************************
 local function CreateListBox(parent, bHideBorder)  --DJUadded 'bHideBorder' to this function.
@@ -1782,6 +2112,9 @@ local function CreateListBox(parent, bHideBorder)  --DJUadded 'bHideBorder' to t
 
     listbox.bHideBorder = bHideBorder
     listbox.creationTime = GetTime()  --DJUadded
+    listbox.autoRepeatCount = 0
+    listbox.buttonFlashEnabled = private.UDControls.kSetButtonFlashing
+    listbox:SetScript("OnHide", CListBox.OnHide)  --DJUadded
 
     -- Highlight frame.
     local highlight = CreateFrame("Frame")
@@ -1816,52 +2149,61 @@ local function CreateListBox(parent, bHideBorder)  --DJUadded 'bHideBorder' to t
     -- Resize thumb texture to fit nicely inside our slider.
     slider:SetThumbTexture("Interface\\Buttons\\UI-ScrollBar-Knob")
     local thumb = slider:GetThumbTexture()
-    thumb:SetVertexOffset(UPPER_LEFT_VERTEX,   2, -2)
-    thumb:SetVertexOffset(LOWER_LEFT_VERTEX,   2,  2)
-    thumb:SetVertexOffset(UPPER_RIGHT_VERTEX, -2, -2)
-    thumb:SetVertexOffset(LOWER_RIGHT_VERTEX, -2,  2)
-    ----thumb:SetVertexColor(1,1,0, 1)  -- Makes it slightly yellow.
+    thumb:SetVertexOffset(UPPER_LEFT_VERTEX,   2, -1.25)
+    thumb:SetVertexOffset(LOWER_LEFT_VERTEX,   2,  1.25)
+    thumb:SetVertexOffset(UPPER_RIGHT_VERTEX, -2, -1.25)
+    thumb:SetVertexOffset(LOWER_RIGHT_VERTEX, -2,  1.25)
+
+    -- Brighten the scrollbar thumb.
+    local drawLayer, subLevel = thumb:GetDrawLayer()
+    slider.thumbOverlay = slider:CreateTexture()
+    slider.thumbOverlay:SetDrawLayer(drawLayer, subLevel+1)
+    slider.thumbOverlay:SetTexture("Interface\\Buttons\\UI-Quickslot-Depress")
+    slider.thumbOverlay:SetSize(sliderWidth-1, sliderWidth-1)
+    slider.thumbOverlay:SetPoint("CENTER", thumb, "CENTER", -0.5, 0)
+    slider.thumbOverlay:SetAlpha(0.75)
+--~     slider.thumbOverlay2 = slider:CreateTexture()
+--~     slider.thumbOverlay2:SetDrawLayer(drawLayer, subLevel+1)
+--~     slider.thumbOverlay2:SetSize(12, 4)
+--~     slider.thumbOverlay2:SetPoint("CENTER", thumb, "CENTER", -0.3, 0.5)
+--~     slider.thumbOverlay2:SetColorTexture(0.7, 0.7, 0.0,  0.6)
+--~     ----slider.thumbOverlay2:SetColorTexture(0.7, 0.7, 0.0,  0.4)
 
     slider.background = slider:CreateTexture(nil, "BACKGROUND")
     slider.background:SetPoint("TOPLEFT", 0, 0)
     slider.background:SetPoint("BOTTOMRIGHT", -1, 0)
     slider.background:SetColorTexture(0.06, 0.06, 0.06)
 
-    -- Up button.
-    local upButton = CreateFrame("Button", nil, slider, "UIPanelScrollUpButtonTemplate")
-    upButton:SetSize(sliderButtonWidth, sliderButtonHeight)
-    upButton:SetScript("OnClick", CListBox.OnClickUp)
-
-    -- Down button.
-    local downButton = CreateFrame("Button", nil, slider, "UIPanelScrollDownButtonTemplate")
-    downButton:SetSize(sliderButtonWidth, sliderButtonHeight)
-    downButton:SetScript("OnClick", CListBox.OnClickDown)
+    local upButton = CListBox.CreateSliderButton(listbox, slider, sliderButtonWidth, sliderButtonHeight, true)
+    local downButton = CListBox.CreateSliderButton(listbox, slider, sliderButtonWidth, sliderButtonHeight, false)
 
     -- Set scrollbar position.
     local dx = 0  -- Shifts scrollbar left/right while keeping all its parts aligned.
     local sliderButtonX = (sliderButtonWidth - sliderWidth) / 2  -- Centers button horizontally to slider.
-    local sliderButtonY = 0
+    local sliderButtonYt, sliderButtonYb
     if bHideBorder then
         -- Listbox does not have borders.  (Probably for a dropdown menu.)
         listbox.margin = 0
-        sliderButtonY = -2
+        sliderButtonYt = 2.5
+        sliderButtonYb = -6
         slider:SetPoint("RIGHT", listbox, "RIGHT", dx+7.3, 0)
-        slider:SetPoint("TOP", listbox, "TOP", 0, 7.5 - upButton:GetHeight() - sliderButtonY)
-        slider:SetPoint("BOTTOM", listbox, "BOTTOM", 0, -8 + downButton:GetHeight() + sliderButtonY)
+        slider:SetPoint("TOP", listbox, "TOP", 0, sliderButtonYt - upButton:GetHeight() + 8)
+        slider:SetPoint("BOTTOM", listbox, "BOTTOM", 0, sliderButtonYb + downButton:GetHeight() - 8.25)
     else
         -- Normal listbox with borders.
         listbox.margin = 2
-        sliderButtonY = listbox.margin + 2
+        sliderButtonYt = -listbox.margin - 2.75
+        sliderButtonYb = listbox.margin + 1.9
 
         slider:SetPoint("RIGHT", listbox, "RIGHT", -listbox.margin - 2 + dx, 0)
-        slider:SetPoint("TOP", listbox, "TOP", 0, 3.9 - upButton:GetHeight())
-        slider:SetPoint("BOTTOM", listbox, "BOTTOM", 0, downButton:GetHeight() - 4.7)
+        slider:SetPoint("TOP", listbox, "TOP", 0, 3.3 - upButton:GetHeight())
+        slider:SetPoint("BOTTOM", listbox, "BOTTOM", 0, downButton:GetHeight() - 4.5)
     end
 
     -- Set scrollbar button positions.
-    upButton:SetPoint("TOP", listbox, "TOP", 0, -sliderButtonY-1)
+    upButton:SetPoint("TOP", listbox, "TOP", 0, sliderButtonYt)
     upButton:SetPoint("RIGHT", slider, "RIGHT", sliderButtonX, 0)
-    downButton:SetPoint("BOTTOM", listbox, "BOTTOM", 0, sliderButtonY-1)
+    downButton:SetPoint("BOTTOM", listbox, "BOTTOM", 0, sliderButtonYb)
     downButton:SetPoint("RIGHT", slider, "RIGHT", sliderButtonX, 0)
 
     -- Set display area position and size.
@@ -1876,6 +2218,9 @@ local function CreateListBox(parent, bHideBorder)  --DJUadded 'bHideBorder' to t
 
     -- Extension functions.
     listbox.Configure               = CListBox.Configure
+    listbox.ConfigureAutoRepeat     = CListBox.ConfigureAutoRepeat  --DJUadded
+    listbox.ConfigureFlashing       = CListBox.ConfigureFlashing  --DJUadded
+    listbox.SetButtonFlashing       = CListBox.SetButtonFlashing  --DJUadded
     listbox.SetCreateLineHandler    = CListBox.SetCreateLineHandler
     listbox.SetDisplayHandler       = CListBox.SetDisplayHandler
     listbox.SetClickHandler         = CListBox.SetClickHandler
@@ -1912,6 +2257,8 @@ local function CreateListBox(parent, bHideBorder)  --DJUadded 'bHideBorder' to t
     listbox.lines = {}
     listbox.lineCache = {}
     listbox.selectedItem = 0
+
+    CListBox.ConfigureFlashing(listbox)
     return listbox
 end
 
@@ -1954,17 +2301,25 @@ end
 
 
 -- ****************************************************************************
--- Sets the label for the checkbox.
+-- Sets the label for the checkbox.  Returns label width.
 -- ****************************************************************************
 function CCheckBox.SetLabel(thisCheckBox, label)
     local fontString = thisCheckBox.fontString
     fontString:SetText(label or "")
     gCalcFontString:SetText(label or "")
-    local labelWidth = gCalcFontString:GetStringWidth()
-    local width = math.ceil( thisCheckBox.checkButton:GetWidth() + labelWidth + 2 )
+    thisCheckBox.labelWidth = gCalcFontString:GetStringWidth()
+    local width = math.ceil( thisCheckBox.checkButton:GetWidth() + thisCheckBox.labelWidth + 2 )
     thisCheckBox:SetWidth(width)
-    local rightInset = thisCheckBox.bClickableText and -labelWidth or 0  --DJUadded
+    local rightInset = thisCheckBox.bClickableText and -thisCheckBox.labelWidth or 0  --DJUadded
     thisCheckBox.checkButton:SetHitRectInsets(0, rightInset, 0, 0)  --DJUadded
+end
+
+
+-- ****************************************************************************
+-- Returns the width of the text part of the checkbox.
+-- ****************************************************************************
+function CCheckBox.GetLabelWidth(thisCheckBox)
+    return thisCheckBox.labelWidth
 end
 
 
@@ -2051,6 +2406,14 @@ end
 
 
 -- ****************************************************************************
+-- Clicks the checkbox.
+-- ****************************************************************************
+function CCheckBox.Click(thisCheckBox)  --DJUadded
+    thisCheckBox.checkButton:Click()
+end
+
+
+-- ****************************************************************************
 -- Creates and returns a checkbox object ready to be configured.
 -- ****************************************************************************
 local function CreateCheckBox(parent, fontTemplateName, dx, dy, bClickableText)
@@ -2095,7 +2458,9 @@ local function CreateCheckBox(parent, fontTemplateName, dx, dy, bClickableText)
     ----end
 
     -- Extension functions.
+    checkbox.Click              = CCheckBox.Click
     checkbox.Configure          = CCheckBox.Configure
+    checkbox.GetLabelWidth      = CCheckBox.GetLabelWidth
     checkbox.SetLabel           = CCheckBox.SetLabel
     checkbox.SetTooltip         = CCheckBox.SetTooltip
     checkbox.SetTooltipTitleAndText = CCheckBox.SetTooltipTitleAndText
@@ -2613,6 +2978,7 @@ function CDropDown.OnClick(thisDropDownButton, mouseButton)
     listbox:SetPoint("BOTTOMRIGHT", gDropDownListBoxFrame, "BOTTOMRIGHT", -12, 12)
     CListBox.Configure(listbox, 0, totalHeight, kListBoxLineHeight)
     CListBox.SetDynamicWheelSpeed(listbox, dropdown.bDynamicWheelSpeed)
+    CListBox.SetButtonFlashing(listbox, dropdown.buttonFlashEnabled)
 
     for itemNum in ipairs(dropdown.items) do
         CListBox.AddItem(listbox, itemNum)
@@ -2709,6 +3075,13 @@ end
 
 
 -- ****************************************************************************
+-- Enables/disables flashing scrollbar buttons for the specified listbox.
+-- ****************************************************************************
+function CDropDown.SetButtonFlashing(thisDD, enabled)
+    thisDD.buttonFlashEnabled = enabled
+end
+
+-- ****************************************************************************
 -- Configures the dropdown.
 -- ****************************************************************************
 function CDropDown.Configure(thisDD, width, label, tooltip)
@@ -2785,7 +3158,7 @@ end
 -- Adds a separator line to the dropdown.
 -- ****************************************************************************
 function CDropDown.AddSeparator(thisDD)
-    CDropDown.AddItem(thisDD, kSeparatorLine)
+    CDropDown.AddItem(thisDD, kSeparatorLine, kSeparatorLine)
 end
 
 
@@ -3178,6 +3551,7 @@ local function CreateDropDown(parent, bDisableWheelCycling)
 
     -- Extension functions.
     dropdown.Configure          = CDropDown.Configure
+    dropdown.SetButtonFlashing  = CDropDown.SetButtonFlashing  --DJUadded
     dropdown.SetListBoxHeight   = CDropDown.SetListBoxHeight
     dropdown.SetListBoxWidth    = CDropDown.SetListBoxWidth
     dropdown.SetLabel           = CDropDown.SetLabel
@@ -3215,6 +3589,8 @@ local function CreateDropDown(parent, bDisableWheelCycling)
     dropdown.items = {}
     dropdown.itemIDs = {}
     dropdown.selectedItem = 0  -- index #
+    dropdown.buttonFlashEnabled = private.UDControls.kSetButtonFlashing
+
     return dropdown
 end
 
@@ -3883,8 +4259,7 @@ local function CreateColorSwatch(parent, size)
 
     -- Create button frame.
     local colorswatch = CreateFrame("Button", nil, parent)
-    colorswatch:SetWidth(size)
-    colorswatch:SetHeight(size)
+    colorswatch:SetSize(size, size)
     colorswatch:SetNormalTexture("Interface\\ChatFrame\\ChatFrameColorSwatch")
     colorswatch:SetScript("OnClick", function(self, mouseButton)
                 if mouseButton ~= "LeftButton" then return end  -- Only process left button.
@@ -3895,19 +4270,15 @@ local function CreateColorSwatch(parent, size)
 
     -- Border texture.
     colorswatch.borderTexture = colorswatch:CreateTexture(nil, "BACKGROUND")
-    colorswatch.borderTexture:SetTexture("Interface\\ChatFrame\\ChatFrameBackground")
-    ----colorswatch.borderTexture:SetVertexColor(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
-    colorswatch.borderTexture:SetVertexColor(1, 1, 1)
-    ----colorswatch.borderTexture:SetColorTexture(1, 1, 1)
-    colorswatch.borderTexture:SetWidth(size-2)
-    colorswatch.borderTexture:SetHeight(size-2)
-    colorswatch.borderTexture:SetPoint("CENTER")
+    ----colorswatch.borderTexture:SetColorTexture(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
+    colorswatch.borderTexture:SetColorTexture(1, 1, 1)
+    colorswatch.borderTexture:SetSize(size-2, size-2)
+    colorswatch.borderTexture:SetPoint("CENTER", -0.1, 0)
 
     -- Checkerboard texture.  (Requires WoW version 10.0.2 or later to use texture 188523.)
     if (kGameTocVersion >= 100002) then
         colorswatch.checkers = colorswatch:CreateTexture(nil, "BACKGROUND")
-        colorswatch.checkers:SetWidth(size * 0.75)
-        colorswatch.checkers:SetHeight(size * 0.75)
+        colorswatch.checkers:SetSize(size * 0.75, size * 0.75)
         colorswatch.checkers:SetTexture(188523) -- Tileset\\Generic\\Checkers
         colorswatch.checkers:SetTexCoord(.25, 0, 0.5, .25)
         colorswatch.checkers:SetDesaturated(true)
@@ -4006,7 +4377,7 @@ local function CreateTextScrollFrame(parent, title, width, height)  --DJUadded
     end
 
     -- Create CLOSE button.
-    containerFrame.closeBtn = CreateFrame("Button", nil, containerFrame, kButtonTemplate)
+    containerFrame.closeBtn = CreateFrame("Button", nil, containerFrame, "UIPanelButtonTemplate")
     containerFrame.closeBtn:SetText("Close")
     containerFrame.closeBtn:SetPoint("BOTTOM", 0, 12)
     containerFrame.closeBtn:SetSize(width/3, 24)
@@ -4018,6 +4389,7 @@ local function CreateTextScrollFrame(parent, title, width, height)  --DJUadded
         x, y, size = 1, 1, 36
     end
     containerFrame.xBtn = CreateFrame("Button", nil, containerFrame, "UIPanelCloseButton")
+    containerFrame.xBtn:SetFrameLevel( containerFrame:GetFrameLevel()+1 )
     containerFrame.xBtn:SetSize(size, size)
     containerFrame.xBtn:SetPoint("TOPRIGHT", containerFrame, "TOPRIGHT", x, y)
     containerFrame.xBtn:SetScript("OnClick", function(self) self:GetParent():Hide() end)
@@ -4093,7 +4465,7 @@ local function CreateTextScrollFrame(parent, title, width, height)  --DJUadded
             dx = dx or 0
             dy = dy or 1
 
-            local numStrings = #containerFrame.strings
+            local numStrings = #self.strings
             numStrings = numStrings + 1
             local str = self.scrollChild:CreateFontString(nil, "ARTWORK", fontName or "GameFontNormal")
             self.strings[numStrings] = str  -- Store this string.
@@ -4108,11 +4480,23 @@ local function CreateTextScrollFrame(parent, title, width, height)  --DJUadded
                 dy = math.max(dy, 0)  -- Prevents a scrolling bug when thumb is dragged below bottom of scrollbar.
                 str:SetPoint("TOP", self.scrollChild, "TOP", 0, -dy)
             end
-            str.verticalScrollPos = self.nextVertPos
+            str.verticalScrollPos = self.nextVertPos  -- Each string knows its position.
             self.nextVertPos = self.nextVertPos + str:GetHeight() + dy
 
             return str  -- Return the font string so it can be customized.
         end
+
+    ---->>> DIDN'T CLEAR THE FRAME!
+    ------ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    ------ Clear():
+    ------ Clears all text from the frame.
+    ----containerFrame.Clear = function(self)
+    ----        assert(type(self) == "table")  -- Fails if this function is called using a dot instead of a colon.
+    ----        for i = 1, #self.strings do
+    ----            self.strings[i] = nil  -- Release the fontstring for the garbage collector to collect.
+    ----        end
+    ----        self.nextVertPos = 0
+    ----    end
 
     -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
     -- GetNextVerticalPosition():
@@ -4243,7 +4627,7 @@ local function CreateGroupBox(title, anchor, parent, relativeAnchor, x, y, width
     ----    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",  tileEdge=true,  edgeSize=16,
     ----    insets = {left=4, right=4, top=4, bottom=4},
     ----}
-    local groupbox = CreateFrame("Frame", nil, parent, kBoxTemplate)
+    local groupbox = CreateFrame("Frame", nil, parent, "TooltipBorderBackdropTemplate")
 
     groupbox:SetPoint(anchor, parent, relativeAnchor, x, y)
     if (width and width > 0) then
@@ -4344,7 +4728,11 @@ function CUtil.DisplayAllFonts(width, height)
 
 
 -- ****************************************************************************
-function CUtil.MsgBox( msg,
+CUtil.MsgBoxScripts = {}  -- Used by MsgBox(), MsgBox3(), and MsgBox_Command().
+
+
+-- ****************************************************************************
+function CUtil.MsgBox( msg,    -- Deprecated 2024-09-23. (Replaced by MsgBox3.)
                     btnText1, btnFunc1,
                     btnText2, btnFunc2,
                     customData, customData2, -- Can be tables of values if more than two data parameters are needed.
@@ -4355,21 +4743,21 @@ function CUtil.MsgBox( msg,
 --~
 --~ EXAMPLE 2: A prompt with two choices that each call a function that uses a custom data buffer (myDataBuffer).
 --~     MsgBox("Bad data found!  Click OK to use it anyway, or CANCEL to restore defaults.",
---~             "Okay", function(thisStaticPopupTable, data, data2)  -- 'data2' unused in this example.
+--~             _G.OKAY, function(thisPopupFrame, data, data2)  -- 'data2' unused in this example.
 --~                             local dataBuffer = data
 --~                             saveMyData(dataBuffer)
 --~                         end,
---~             "Cancel", function(thisStaticPopupTable, data, reason)  -- 'reason' can be "clicked", "timeout", or "override".
+--~             _G.CANCEL, function(thisPopupFrame, data, reason)  -- 'reason' can be "clicked", "timeout", or "override".
 --~                             local dataBuffer = data
 --~                             restoreMyDefaultData(dataBuffer)
 --~                         end,
 --~             myDataBuffer, nil,  -- data, data2
---~             true, SOUNDKIT.IG_MAINMENU_OPEN, 0, 3)  -- Icon, Sound, Timeout, Preferred Index.
+--~             true, SOUNDKIT.ALARM_CLOCK_WARNING_3, 0, 3)  -- Icon, Sound, Timeout, Preferred Index.
 --~
 --~ EXAMPLE 3: A Yes/No prompt with a single function for "Yes", and a 15 second time limit.
 --~     MsgBox("Uh oh! Show help?\n\n(This message goes away after 15 seconds.)",
---~             "Yes", showMyHelp,
---~             "No", nil,
+--~             _G.YES, showMyHelp,
+--~             _G.NO, nil,
 --~             nil, nil,  -- data, data2
 --~             false, SOUNDKIT.ALARM_CLOCK_WARNING_3, 15)  -- Icon, Sound, Timeout, Preferred Index.
 --~
@@ -4377,25 +4765,24 @@ function CUtil.MsgBox( msg,
 --~     local SrcName = "My DPS Profile"
 --~     local DestName = "My Tank Profile"
 --~     MsgBox( 'Are you sure?\n\nThe profile "'..SrcName..'" will be copied to "'..DestName..'".',
---~             "Copy Profile", function(thisStaticPopupTable, data, data2)  -- 'data2' unused in this example.
+--~             "Copy Profile", function(thisPopupFrame, data, data2)  -- 'data2' unused in this example.
 --~                                 data.profileFrame:copyProfile( data.srcName, data.destName )
 --~                             end,
---~             "Cancel", nil,
+--~             _G.CANCEL, nil,
 --~             {profileFrame=ProfileFrame, srcName=SrcName, destName=DestName}, nil,  -- data, data2
---~             false, SOUNDKIT.IG_MAINMENU_OPEN)  -- Icon, Sound, Timeout, Preferred Index.
---~
---~ For more info, see ...
---~     https://wowpedia.fandom.com/wiki/Creating_simple_pop-up_dialog_boxes
---~     https://wowwiki-archive.fandom.com/wiki/Creating_simple_pop-up_dialog_boxes
+--~             false)  -- Icon, Sound, Timeout, Preferred Index.
 -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
     local msgboxID = "MSGBOX_FOR_" .. kAddonFolderName
+
+    local cmdResult = CUtil.MsgBox_Command(msgboxID, msg, btnText1, btnFunc1) -- Pass our ID and first 3 params to MsgBox_Command().
+    if cmdResult ~= nil then return cmdResult end  -- Caller specified a message box command, so return now.
 
     assert(msg and type(msg) == "string" and msg ~= "")
     assert(btnFunc1 == nil or type(btnFunc1) == "function")
     assert(btnFunc2 == nil or type(btnFunc2) == "function")
     assert(bShowAlertIcon == true or bShowAlertIcon == false or bShowAlertIcon == nil)
 
-    if (btnText1 == "" or btnText1 == nil) then btnText1 = "Okay" end
+    if (btnText1 == "" or btnText1 == nil) then btnText1 = OKAY end
     if (btnText2 == "") then btnText2 = nil end
     if (bShowAlertIcon ~= true) then bShowAlertIcon = nil end  -- Forces it to be 'true' or 'nil'.
 
@@ -4418,18 +4805,348 @@ function CUtil.MsgBox( msg,
         button2 = btnText2,
         OnCancel = btnFunc2,
 
-        OnHide = function(thisStaticPopupTable) thisStaticPopupTable.data = nil; thisStaticPopupTable.data2 = nil; end,
+        OnShow = function(self, customData)  -- 'self' is the popup frame.
+            ----local dialog = _G.StaticPopupDialogs[ self.which ]
+            local callback = CUtil.MsgBoxScripts["OnShow"]
+            if callback then callback(self, customData) end
+        end,
+
+        OnHide = function(self)  -- 'self' is the popup frame.
+            local dialog = _G.StaticPopupDialogs[ self.which ]
+            dialog.data = nil
+            dialog.data2 = nil
+            local callback = CUtil.MsgBoxScripts["OnHide"]
+            if callback then callback(self) end
+        end,
     }
 
     local msgbox = _G.StaticPopup_Show(msgboxID)
     if msgbox then
-        -- Note: 'data' and 'data2' get passed to your OnAccept() function, and 'data' also is passed to OnCancel().
+        -- Note: 'data' and 'data2' are passed to your OnAccept() function, and only 'data' is passed to OnCancel().
         msgbox.data = customData
         msgbox.data2 = customData2
     end
     return msgbox
 end
 
+
+-- ****************************************************************************
+-- Similar to CUtil.MsgBox(), except this function allows up to three buttons instead of two.
+-- Also, there is only one customData parameter instead of two.  (Pass multiple parameters as a table.)
+-- ENTER key triggers button 1.
+-- ESCAPE key triggers the button named _G.CANCEL (if it exists), or _G.NO (if it exists).
+-- Y key triggers the button named _G.YES (if it exists).
+-- N key triggers the button named _G.NO (if it exists).
+-- The 'boolFlags' parameter can be nil, true to show an alert icon, or a string of StaticPopupDialog
+-- flags (separated by spaces) to set true.  To set a flag false, put a dash '-' in front of its name.
+-- For a list of flags that can be set, see preInit() below.
+-- ****************************************************************************
+function CUtil.MsgBox3( msg,
+                    btnText1, btnFunc1,
+                    btnText2, btnFunc2,
+                    btnText3, btnFunc3,
+                    customData, -- Can be tables of values.
+                    boolFlags, soundID, timeoutSecs, preferredIndex)
+-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+--~ EXAMPLE 1: Basic message with a single "Okay" button.
+--~     MsgBox3("Job done.")
+--~
+--~ EXAMPLE 2: A prompt with two choices that each call a function that uses a custom data buffer (myDataBuffer).
+--~     MsgBox3("Bad data found!  Click OK to use it anyway, or CANCEL to restore defaults.",
+--~             _G.OKAY, function(thisPopupFrame, data, reason)  -- 'reason' can be "clicked", "timeout", or "override".
+--~                             local dataBuffer = data
+--~                             saveMyData(dataBuffer)
+--~                         end,
+--~             _G.CANCEL, function(thisPopupFrame, data, reason)
+--~                             local dataBuffer = data
+--~                             restoreMyDefaultData(dataBuffer)
+--~                         end,
+--~             nil, nil,  -- Button3 hidden.
+--~             myDataBuffer,  -- data
+--~             "showAlert fullScreenCover", SOUNDKIT.ALARM_CLOCK_WARNING_3, 0, 3)  -- Flags, Sound, Timeout, Preferred Index.
+--~
+--~ EXAMPLE 3: A prompt with three buttons (YES/NO/CANCEL), each call a function that uses a custom data buffer (myDataBuffer).
+--~     MsgBox3("Save data before continuing?",
+--~             _G.YES, function(thisPopupFrame, data, reason)  -- 'reason' can be "clicked", "timeout", or "override".
+--~                             local dataBuffer = data
+--~                             saveMyData(dataBuffer)
+--~                             processData(dataBuffer)
+--~                         end,
+--~             _G.NO, function(thisPopupFrame, data, reason)
+--~                             local dataBuffer = data
+--~                             processData(dataBuffer)
+--~                         end,
+--~             _G.CANCEL, function(thisPopupFrame, data, reason)
+--~                             print("Operation canceled.")
+--~                         end,
+--~             myDataBuffer,  -- data
+--~             "showAlert -whileDead", SOUNDKIT.IG_MAINMENU_OPEN, 0, 3)  -- Flags, Sound, Timeout, Preferred Index.
+--~
+--~ EXAMPLE 4: A Yes/No prompt with a single function for "Yes", and a 15 second time limit.
+--~     MsgBox3("Uh oh! Show help?\n\n(This message goes away after 15 seconds.)",
+--~             _G.YES, showMyHelp,  -- Button1 calls function showMyHelp().
+--~             _G.NO, nil,  -- Button2 displayed, but does nothing.
+--~             nil, nil,  -- Button3 hidden.
+--~             nil,  -- data
+--~             nil, nil, 15)  -- Flags, Sound, Timeout, Preferred Index.
+--~
+--~ EXAMPLE 5: Setting custom OnShow/OnHide script functions.
+--~     MsgBox3("HookScript", "OnShow", function(self) print("MsgBox OnShow() called.") end  -- (Only need to do this once.)
+--~     MsgBox3("HookScript", "OnHide", function(self) print("MsgBox OnHide() called.") end  -- (Only need to do this once.)
+--~     MsgBox3("Hello world!")
+--~
+--~ EXAMPLE 6: Checking if a message box is being shown, and getting its frame it it is.
+--~     if MsgBox3("IsShown") then
+--~         print( "The frame for the displayed message box is:", MsgBox3("GetFrame") )
+--~     end
+--~
+--~ For more info, see ...
+--~     https://warcraft.wiki.gg/wiki/Creating_simple_pop-up_dialog_boxes
+--~     https://wowpedia.fandom.com/wiki/Creating_simple_pop-up_dialog_boxes
+--~     https://wowwiki-archive.fandom.com/wiki/Creating_simple_pop-up_dialog_boxes
+-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    local msgboxID = "MSGBOX3_FOR_" .. kAddonFolderName
+
+    local cmdResult = CUtil.MsgBox_Command(msgboxID, msg, btnText1, btnFunc1) -- Pass our ID and first 3 params to MsgBox_Command().
+    if cmdResult ~= nil then return cmdResult end  -- Caller specified a message box command, so return now.
+
+    assert(msg and type(msg) == "string" and msg ~= "")
+    assert(btnFunc1 == nil or type(btnFunc1) == "function")
+    assert(btnFunc2 == nil or type(btnFunc2) == "function")
+    assert(btnFunc3 == nil or type(btnFunc3) == "function")
+
+    if (btnText1 == "" or btnText1 == nil) then btnText1 = OKAY end
+    if (btnText2 == "") then btnText2 = nil end
+    if (btnText3 == "") then btnText3 = nil end
+    btnFunc1 = btnFunc1 or DoNothing
+    btnFunc2 = btnFunc2 or DoNothing
+    btnFunc3 = btnFunc3 or DoNothing
+
+    if not _G.StaticPopupDialogs[msgboxID] then
+        _G.StaticPopupDialogs[msgboxID] =
+        {
+            --_________________________________________________________________
+            preInit = function(self)  -- 'self' is the StaticPopupDialogs table for this message box.
+                -- For a list of flags, see https://warcraft.wiki.gg/wiki/Creating_simple_pop-up_dialog_boxes .
+                self.whileDead = true
+                self.exclusive = true  -- Makes the popup go away if any other popup is displayed.
+                self.showAlert = nil
+                self.showAlertGear = nil
+                self.fullScreenCover = nil  -- System modal message box.  (Darkens entire screen.)
+                self.verticalButtonLayout = nil
+                self.interruptCinematic = nil
+                self.notClosableByLogout = nil
+                self.noCancelOnReuse = nil
+                self.cancels = nil
+            end,
+            --_________________________________________________________________
+            postInit = function(self)  -- 'self' is the StaticPopupDialogs table for this message box.
+                -- Prevents caller from changing these options.
+                self.selectCallbackByIndex = true  -- Required when using OnButton1, OnButton2, etc.  (Return true from them to keep popup open.)
+                self.enterClicksFirstButton = nil  -- Required!  ENTER key handled in our own keypress function.
+                self.hideOnEscape = nil  -- Required!  ESCAPE key handled in our own keypress function.
+                self.hasMoneyFrame = nil
+                self.hasMoneyInputFrame = nil
+                self.hasEditBox = nil
+                self.hasDropdown = nil
+                self.hasItemFrame = nil
+                self.subText = nil
+                self.compactItemFrame = nil
+                self.extraButton = nil
+            end,
+            --_________________________________________________________________
+            OnShow = function(self, customData)  -- 'self' is the popup frame.
+                local dialogInfo = _G.StaticPopupDialogs[ self.which ]
+                dialogInfo.msgboxFrame = self
+
+                -- Customize buttons.
+                local popupName = self:GetName()
+                local minBtnH = 24
+                for i = 1, 4 do
+                    local btn = _G[popupName.."Button"..i]
+                    if btn:GetHeight() < minBtnH then
+                        btn:SetHeight(minBtnH)
+                        deltaH = 1
+                    end
+                end
+
+                -- Customize frame height (if necessary).
+                C_Timer.After(0.01, function()
+                    local frameH = self:GetHeight()
+                    local minH = minBtnH + 56
+                    if self.AlertIcon and self.AlertIcon:IsShown() then minH = minH + 4 end
+                    if frameH < minH then self:SetHeight(minH) end
+                end)
+
+                -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+                -- Process Y, N, ENTER, and ESCAPE keys.
+                self:SetScript("OnKeyDown", function(self, key)
+                    local bPassKeyToParent = false
+                    if key == "ENTER" then
+                        StaticPopup_OnClick(self, 1)  -- Trigger button1.
+                    elseif key == "ESCAPE" then
+                        local btnNum = CUtil.findSPDButton(self, _G.CANCEL) or CUtil.findSPDButton(self, _G.NO)
+                        if btnNum then StaticPopup_OnClick(self, btnNum)
+                        ----else self:Hide()  -- No cancel button, so just close the frame.
+                        end
+                    elseif key == "Y" then
+                        local btnNum = CUtil.findSPDButton(self, _G.YES)
+                        if btnNum then StaticPopup_OnClick(self, btnNum)
+                        ----else bPassKeyToParent = true
+                        end
+                    elseif key == "N" then
+                        local btnNum = CUtil.findSPDButton(self, _G.NO)
+                        if btnNum then StaticPopup_OnClick(self, btnNum)
+                        ----else bPassKeyToParent = true
+                        end
+                    else
+                        bPassKeyToParent = true
+                    end
+                    if not InCombatLockdown() then self:SetPropagateKeyboardInput(bPassKeyToParent) end
+                end)
+                -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+
+                local callback = CUtil.MsgBoxScripts["OnShow"]
+                if callback then callback(self, customData) end
+            end,
+            --_________________________________________________________________
+            OnHide = function(self)  -- 'self' is the popup frame.
+                local dialogInfo = _G.StaticPopupDialogs[ self.which ]
+                local callback = CUtil.MsgBoxScripts["OnHide"]
+                if callback then callback(self) end
+                dialogInfo.msgboxFrame = nil
+            end,
+            --_________________________________________________________________
+        }
+    end
+
+    -- If a prior message is still showing, wait for it to close.
+    local dialogInfo = _G.StaticPopupDialogs[msgboxID]
+    local delaySecs = dialogInfo.msgboxFrame and 0.15 or 0 -- Allow time for prior message to close.
+    C_Timer.After( delaySecs, function()
+        ----assert(dialogInfo.msgboxFrame == nil) -- Fails if our wait time was too short.
+
+        -- Set caller's parameters.
+        dialogInfo:preInit()
+        dialogInfo.sound = soundID
+        dialogInfo.timeout = timeoutSecs
+        dialogInfo.preferredIndex = preferredIndex or 1  -- Which of the global StaticPopup frames to use (if available).
+
+        dialogInfo.text = (msg or "")
+        dialogInfo.button1 = btnText1
+        dialogInfo.button2 = btnText2
+        dialogInfo.button3 = btnText3
+        dialogInfo.OnButton1 = btnFunc1
+        dialogInfo.OnButton2 = btnFunc2
+        dialogInfo.OnButton3 = btnFunc3
+
+        if (boolFlags == true) then dialogInfo.showAlert = true  -- Legacy support for 'bShowAlertIcon' param.
+        elseif (boolFlags == false or boolFlags == nil) then dialogInfo.showAlert = nil  -- Legacy support for 'bShowAlertIcon' param.
+        else -- Parse boolFlags string.
+            local delimiter = " "
+            for flag in string.gmatch(boolFlags, "([^"..delimiter.."]+)") do
+                flag = flag:trim()
+                ----print("MsgBox boolFlag:", flag)  -- For debugging.
+                if flag:sub(1,1) == "-" then  -- If starts with '-', set flag to nil (false).
+                    dialogInfo[flag:sub(2)] = nil
+                else  -- Set flag to true.
+                    dialogInfo[flag] = true
+                end
+            end
+        end
+        dialogInfo:postInit()
+
+        -- Show the message box.
+        _G.StaticPopup_Show(msgboxID, nil, nil, customData)  -- which, text1, text2, customData
+    end)
+end
+
+
+-- ****************************************************************************
+--  Helper function that executes configuration or status commands for MsgBox3()
+--  and MsgBox() popup frames.
+--  NOTE: This implementation is required instead of just frame:IsShown() or
+--  frame:HookScript() because message boxes don't have their own permanent frame.
+--  One is temporarily assigned to them by the game each time a message is shown.
+--
+-- Supported commands:
+--      MsgBox_Command( msgboxID, "IsShown" )
+--      MsgBox_Command( msgboxID, "GetFrame" )
+--      MsgBox_Command( msgboxID, "HookScript", "OnShow", function(self) )
+--      MsgBox_Command( msgboxID, "HookScript", "OnHide", function(self) )
+--      MsgBox_Command( msgboxID, "SendKey", keyName )  -- e.g. "ESCAPE", "ENTER", "Y", "N".
+--
+-- Returns: Returns nil if the cmd parameter is not a supported command.  Otherwise, it returns
+--          whatever the specified command requested.  If the command normally returns nothing,
+--          then true or false is returned indicating success or failure.
+-- ****************************************************************************
+function CUtil.MsgBox_Command(msgboxID, cmd, arg1, arg2)
+    if cmd == "HookScript" then
+        local scriptName, scriptFunc = arg1, arg2
+        ----print(kAddonFolderName, "CUtil.MsgBox_Command(", cmd, scriptName, scriptFunc, ")")
+        assert(scriptFunc == nil or type(scriptFunc) == "function")  -- Fails if bad parameters passed in.
+        assert(scriptName == "OnShow" or scriptName == "OnHide") -- Fails if unsupported script name passed in.
+        CUtil.MsgBoxScripts[scriptName] = scriptFunc
+        return true
+    elseif cmd == "IsShown" then
+        assert(arg1 == nil and arg2 == nil)
+        local dialogInfo = _G.StaticPopupDialogs[msgboxID]
+        if dialogInfo and dialogInfo.msgboxFrame then return true end
+    elseif cmd == "GetFrame" then
+        assert(arg1 == nil and arg2 == nil)
+        local dialogInfo = _G.StaticPopupDialogs[msgboxID]
+        if dialogInfo and dialogInfo.msgboxFrame then return dialogInfo.msgboxFrame end
+--~ --      MsgBox_Command( msgboxID, "Click", buttonNumberOrText )  -- e.g. 1, 2, 3, OKAY, CANCEL, YES, NO.
+--~     elseif cmd == "Click" then
+--~         local dialogInfo = _G.StaticPopupDialogs[msgboxID]
+--~         if dialogInfo and dialogInfo.msgboxFrame then
+--~             if type(arg1) == "string" then
+--~                 arg1 = CUtil.findSPDButton(dialogInfo, arg1)  -- Find button number contain the text.
+--~             end
+--~             if arg1 >= 1 and arg1 <= 3 then
+--~                 StaticPopup_OnClick(dialogInfo.msgboxFrame, arg1)
+--~                 return true
+--~             end
+--~         end
+    elseif cmd == "SendKey" then
+        assert(type(arg1) == "string" and arg1 ~= "")
+        local dialogInfo = _G.StaticPopupDialogs[msgboxID]
+        if dialogInfo and dialogInfo.msgboxFrame then
+            local onKeyDown = dialogInfo.msgboxFrame:GetScript("OnKeyDown")
+            onKeyDown(dialogInfo.msgboxFrame, arg1)
+            return true
+        end
+    else -- A command was not passed in.
+        return nil
+    end
+
+    return false  -- If we get here, 'cmd' is valid but it failed.
+end
+
+
+-- ****************************************************************************
+-- Helper function that finds a specific button name in a static popup dialog.
+-- The button's name can either match perfectly, or start with the search text
+-- followed by a space character.  Comparisons are case-insensitive.
+-- Returns the button's number (1 - 4) if found, or nil if not.
+-- ****************************************************************************
+function CUtil.findSPDButton(thisStaticPopup, searchText)
+    assert(searchText)
+    local len = searchText:len()
+    searchText = searchText:lower()
+    for i = 1, 4 do
+        local btn = _G[thisStaticPopup:GetName().."Button"..i]
+        if btn and btn:IsShown() and btn:IsEnabled() then
+            local fontString = (isRetailWoW() and btn.Text) or btn:GetFontString()
+            local text = fontString:GetText():lower()
+            if text == searchText
+                or (text:sub(1,len) == searchText and text:sub(len+1,len+1) == " ")
+            then
+                return i
+            end
+        end
+    end
+end
 
 -- ****************************************************************************
 -- Creates the "new feature" glowy text used in the Blizzard UI for new features.
@@ -4514,8 +5231,13 @@ end
 
 -- ****************************************************************************
 -- Creates a colored outline around the specified frame.  (Useful for debugging frame positions.)
--- EXAMPLE:
---      private.UDControls.Outline( yourFrame, {r=1, g=0, b=0, a=0.5, thickness=1} )
+-- The "expand" option is for thicknesses greater than 1, and can be ...
+--      nil - The outline will be centered on the frame's sides.
+--      -1  - The outline will expand inward from the frame's sides.
+--      1   - The outline will expand outward from the frame's sides.
+-- EXAMPLES:
+--      private.UDControls.Outline( yourFrame, {r=1, g=0, b=0, a=0.5, thickness=5, expand=-1} )
+--      private.UDControls.Outline( yourFrame, {version=1, thickness=3} )
 -- ****************************************************************************
 function CUtil.Outline(frame, options)
     local r = (options and options.r) or 1
@@ -4523,29 +5245,53 @@ function CUtil.Outline(frame, options)
     local b = (options and options.b) or 1
     local a = (options and options.a) or 1
     local thickness = (options and options.thickness) or 1
+    local version = (options and options.version) or -1
+    local expand = (options and options.expand) or 0
 
-    if not frame._edges then
-        frame._edges = {}
-        for i = 1, 4 do
-            frame._edges[i] = frame:CreateLine(nil, "BACKGROUND", nil, 0)
-            local line = frame._edges[i]
-            line:SetThickness(thickness)
-            line:SetColorTexture(r, g, b, a)
-            if i == 1 then
-                line:SetStartPoint("TOPLEFT")
-                line:SetEndPoint("TOPRIGHT")
-            elseif i == 2 then
-                line:SetStartPoint("TOPRIGHT")
-                line:SetEndPoint("BOTTOMRIGHT")
-            elseif i == 3 then
-                line:SetStartPoint("BOTTOMRIGHT")
-                line:SetEndPoint("BOTTOMLEFT")
-            else
-                line:SetStartPoint("BOTTOMLEFT")
-                line:SetEndPoint("TOPLEFT")
-            end
+    local ofs = (version==1 and 0) or (thickness / 2)
+    local ex = (version==1 and 0) or (expand * ofs)
+    ----ex = ex + expand  -- For testing.
+    frame._edges = frame._edges or {}
+    for i = 1, 4 do
+        frame._edges[i] = frame._edges[i] or frame:CreateLine(nil, "BACKGROUND", nil, 0)
+        local line = frame._edges[i]
+        line:SetThickness(thickness)
+        line:SetColorTexture(r, g, b, a)
+        if i == 1 then -- TOP
+            line:SetStartPoint("TOPLEFT", -ofs-ex, ex)
+            line:SetEndPoint("TOPRIGHT", ofs+ex, ex)
+        elseif i == 2 then -- RIGHT
+            line:SetStartPoint("TOPRIGHT", ex, -ofs+ex)
+            line:SetEndPoint("BOTTOMRIGHT", ex, ofs-ex)
+        elseif i == 3 then -- BOTTOM
+            line:SetStartPoint("BOTTOMRIGHT", ofs+ex, -ex)
+            line:SetEndPoint("BOTTOMLEFT", -ofs-ex, -ex)
+        else -- LEFT
+            line:SetStartPoint("BOTTOMLEFT", -ex, ofs-ex)
+            line:SetEndPoint("TOPLEFT", -ex, -ofs+ex)
         end
     end
+end
+
+
+-- ****************************************************************************
+-- Fills the specified frame with a color.  (Useful for debugging frame positions.)
+-- EXAMPLE:
+--      private.UDControls.FillFrame( yourFrame, {r=1, g=0, b=0, a=0.5, inset=1} )
+-- ****************************************************************************
+function CUtil.FillFrame(frame, options)
+    local r = (options and options.r) or 1
+    local g = (options and options.g) or 1
+    local b = (options and options.b) or 1
+    local a = (options and options.a) or 1
+    local inset = (options and options.inset) or 0
+
+    if not frame._fillTexture then
+        frame._fillTexture = frame:CreateTexture()
+        frame._fillTexture:SetPoint("TOPLEFT", inset, -inset)
+        frame._fillTexture:SetPoint("BOTTOMRIGHT", -inset, inset)
+    end
+    frame._fillTexture:SetColorTexture(r, g, b, a)
 end
 
 
@@ -4566,13 +5312,266 @@ end
 -- Displays tooltips that has text and a title.
 -- ****************************************************************************
 function CUtil.GetMouseFocus()
-    if GetMouseFocus then  -- Older version of WoW?
-        return GetMouseFocus()
-    end
+    if GetMouseFocus then return GetMouseFocus() end  -- Older API version.
 
     -- Else use GetMouseFoci(), which was added in WoW 11.0.
-    local regionsUnderMouse = GetMouseFoci()
-    return regionsUnderMouse[1]
+    local frames = GetMouseFoci()
+    ----assert(frames[1]) -- If fails, try wrapping calling code in C_Timer.After(0.02, function() ... end)
+    return frames[1]
+end
+
+
+-- ****************************************************************************
+-- Adds an "edges" variable to the specified table that adds lines around
+-- the edges of the frame.  The color of the lines can change be changed
+-- by calling frame.edges:setColor(r,g,b,a).
+-- ****************************************************************************
+function CUtil.EnhanceFrameEdges(frame, x1, y1, x2, y2)
+    assert(not frame.edges) -- Don't call this more than once, or with a frame that already has a ".edges" table.
+    frame.edges = CreateFrame("Frame", nil,  frame, "ThinBorderTemplate")
+    frame.edges:SetPoint("TOPLEFT", frame.titleBox or frame, "TOPLEFT", x1, y1)
+    frame.edges:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", x2, y2)
+    frame.edges:SetScale(0.92)
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    frame.edges.setColor = function(self, r, g, b, alpha)
+        assert(type(self) == "table") -- First param must be a frame.
+        r=r or 1; g=g or 1; b=b or 1; alpha=alpha or 1;
+        self.color = {r=r, g=g, b=b, alpha=alpha}
+        for i, region in ipairs({self:GetRegions()}) do
+            if region.SetVertexColor then region:SetVertexColor(r, g, b, alpha); end
+        end
+    end
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    frame.edges.getColor = function(self)
+        if self and self.color then
+            return self.color.r, self.color.g, self.color.b, self.color.alpha
+        end
+        return 1, 1, 1, 1
+    end
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    frame.edges:setColor(0.6, 0.6, 0.6,  1)  -- Set a default color.
+end
+
+-------------------------------------------------------------------------------
+function CUtil.CreateContextMenu(parent, fontTemplateName, sizes)
+    local listbox = CreateListBox( parent )
+    listbox:Hide()
+    local sizes = sizes or {}
+    listbox.sizes = {lineHeight   = sizes.lineHeight    or 20,
+                    iconSize      = sizes.iconSize      or 19,
+                    leftPadding   = sizes.leftPadding   or 6,
+                    rightPadding  = sizes.rightPadding  or 6,
+                    iconPadding   = sizes.iconPadding   or 8,
+                    bottomPadding = sizes.bottomPadding or 3,
+                    edgeW         = sizes.edgeW         or 4 }
+    listbox.fontTemplateName = fontTemplateName or "GameFontNormal"
+    listbox.separatorLeft = listbox.sizes.leftPadding - 4
+    listbox.separatorRight = -listbox.sizes.rightPadding
+    listbox:Configure(10, 10, listbox.sizes.lineHeight)  -- Temp sizes for now, so we can add items.
+    listbox:SetFrameStrata("FULLSCREEN")
+    listbox:SetClampedToScreen(true)
+
+    -------------------------
+    -- CONTEXT MENU SCRIPTS
+    -------------------------
+
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    listbox:SetScript("OnHide", function(self) self:Clear() end)  -- ContextMenu:OnHide()
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    listbox:SetScript("OnKeyDown", function(self, key)  -- ContextMenu:OnKeyDown()
+            -- Close listbox when Escape key is pressed.
+            local bPassKeyToParent = false
+            if key == "ESCAPE" then self:Close()
+            else bPassKeyToParent = true end
+            if not InCombatLockdown() then self:SetPropagateKeyboardInput(bPassKeyToParent) end
+        end)
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+
+    ---------------------------
+    -- CONTEXT MENU CALLBACKS
+    ---------------------------
+
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    -- ContextMenu:OnCreateLine()
+	listbox:SetCreateLineHandler( function(thisLB) -- (listbox == ContextMenu)
+            local iconSize = thisLB.sizes.iconSize
+            local leftPadding = thisLB.sizes.leftPadding
+            local rightPadding = thisLB.sizes.rightPadding
+            local lineButton = CreateFrame("Button", nil, thisLB)
+
+            lineButton.fontString = lineButton:CreateFontString(nil, "OVERLAY", thisLB.fontTemplateName)
+            lineButton.fontString:SetTextColor(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
+            lineButton.fontString:SetJustifyH("LEFT")
+            lineButton.fontString:SetPoint("TOPLEFT", lineButton, "TOPLEFT", leftPadding, 0)
+            lineButton.fontString:SetPoint("BOTTOMRIGHT", lineButton, "BOTTOMRIGHT", -iconSize - rightPadding, 0)
+
+            lineButton.icon = lineButton:CreateTexture(nil, "ARTWORK")
+            lineButton.icon:SetPoint("RIGHT", lineButton, "RIGHT", -1 - rightPadding, 0)
+            lineButton.icon:SetSize(iconSize, iconSize)
+
+            return lineButton
+        end)
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    -- ContextMenu:OnDisplayLine()
+	listbox:SetDisplayHandler( function(thisLB, lineButton, value, isSelected) -- (listbox == ContextMenu)
+            local line = value
+            lineButton.fontString:SetText( line.text or "" )
+            lineButton:SetEnabled( not line.disabled )
+            lineButton.icon:SetTexture( line.icon )
+            lineButton:SetTooltipTitleAndText( line.tooltipTitle, line.tooltip ) ----, "ANCHOR_LEFT")
+        end)
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    -- ContextMenu:OnClickLine()
+	listbox:SetClickHandler( function(thisLB, lineButton, value, mouseButton, bDown) -- (listbox == ContextMenu)
+            local line = value
+            thisLB:Hide()
+            thisLB:ClearSelection()
+            if line.func then line.func() end  -- Execute action.
+        end)
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+
+    ---------------------------
+    -- CONTEXT MENU FUNCTIONS
+    ---------------------------
+
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    function listbox:Open(lines, anchor, relativeFrame, relativeAnchor, x, y)  -- ContextMenu:Open()
+    -- Each line in the "lines" parameter can have one or more of the following values:
+    --  * text      - The text to show for this line in the menu.
+    --  * icon      - An icon (path name) to show at end of the menu line.
+    --  * func      - The function to execute when the menu line is selected.
+    --  * disabled  - Set true to disable the menu line.
+    --  * isDivider - Set true to show a divider line in the menu.
+    --  * isSpacer  - Set true to show an empty line in the menu.
+            local TextSize = CUtil.TextSize
+            TextSize:SetFontObject( self.fontTemplateName )
+
+            -- Add items.
+            self:Clear()
+            local sizes = self.sizes
+            local maxWidth = 10
+            for i = 1, #lines do
+                local line = lines[i]
+                if line.isDivider then
+                    self:AddSeparator()
+                elseif line.isSpacer then
+                    line.text = " "
+                    self:AddItem(line)
+                elseif line.title then
+                    assert(nil)  --TODO: Currently unsupported.
+                else
+                    self:AddItem(line)
+                    local width = TextSize:GetSize( line.text )
+                    maxWidth = math.max(maxWidth, width)
+                end
+            end
+
+            -- Set listbox size.
+            local listboxW = maxWidth + sizes.iconSize + sizes.iconPadding + sizes.leftPadding + sizes.rightPadding + sizes.edgeW
+            local listboxH = (#lines * sizes.lineHeight) + sizes.bottomPadding + sizes.edgeW
+            self:Configure(listboxW, listboxH, sizes.lineHeight)  -- Set final size.
+
+            -- Show context menu at mouse location, or at the specified position if provided.
+            if anchor then  -- Show at specified position.
+                self:SetPoint(anchor, relativeFrame, relativeAnchor, x, y)
+            else  -- Show at mouse position.
+                x, y = GetScaledCursorPosition()
+                x = x - (self:GetWidth() * 0.33)
+                y = y + (sizes.lineHeight * 0.5) + sizes.edgeW
+                self:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, y)
+            end
+            self:Show()
+        end
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    function listbox:Close() self:Hide() end  -- ContextMenu:Close()
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    function listbox:SetColor(r, g, b, alpha) self.edges:setColor(r, g, b, alpha) end  -- ContextMenu:SetColor()
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    function listbox:GetColor() return self.edges:getColor() end  -- ContextMenu:GetColor()
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    function listbox:SetBackColor(r, g, b, alpha)  -- ContextMenu:SetBackColor()
+        self.Bg:SetVertexColor(r or 1,  g or 1,  b or 1,  alpha or 1)
+    end
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    function listbox:GetBackColor() return self.Bg:GetVertexColor() end  -- ContextMenu:GetBackColor()
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+
+    CUtil.EnhanceFrameEdges( listbox, 1, -0.5, -1, 0 )  -- (frame, x1, y1, x2, y2)
+    return listbox
+end
+
+
+-- ****************************************************************************
+-- SmallTooltip is for showing a smaller tooltips than GameTooltip does.
+-- EXAMPLE:  SmallTooltip:Show(YourButton, "Info about your button.", "ANCHOR_TOP")
+-- ****************************************************************************
+CUtil.SmallTooltip = {}
+function CUtil.SmallTooltip:validate()
+    if not self.tooltip then
+        self.tooltip = CreateFrame("Frame", nil, UIParent, "TooltipBorderedFrameTemplate")
+        self.tooltip:Hide()
+        self.tooltip:SetFrameStrata("TOOLTIP")
+        self.tooltip:SetBackdropColor(0, 0, 0, 1)  -- Makes background a little darker.
+        ----self.tooltip:SetBackdropBorderColor(0, 1, 1, 1)
+        self.tooltip.fontString = self.tooltip:CreateFontString(nil, "ARTWORK")
+        self.tooltip.fontString:SetFont("Fonts\\ARIALN.ttf", 12, "")
+        self.tooltip.fontString:SetPoint("CENTER", 1, 0)
+    end
+end
+
+
+-- ****************************************************************************
+-- Displays a small tooltip containing the specified text.  The anchor parameter
+-- can be "ANCHOR_RIGHT", "ANCHOR_LEFT", "ANCHOR_TOP", "ANCHOR_BOTTOM", or nil.
+-- If parent is nil, UIParent is used.
+-- ****************************************************************************
+function CUtil.SmallTooltip:Show(parent, text, anchor, x, y)
+    assert(text ~= nil and text ~= "")
+    assert(parent == nil or type(parent) == "table")
+    self:validate()
+
+    parent = parent or UIParent
+    self.tooltip:SetParent(parent)
+	self.tooltip.fontString:SetText(text)
+	local strW = self.tooltip.fontString:GetStringWidth()
+	local strH = self.tooltip.fontString:GetStringHeight()
+	self.tooltip:SetSize( strW+16, strH+13 )
+
+    self.tooltip:ClearAllPoints()
+    if parent == UIParent then
+        if (anchor == "ANCHOR_TOP") then self.tooltip:SetPoint("TOP", x, y)
+        elseif (anchor == "ANCHOR_BOTTOM") then self.tooltip:SetPoint("BOTTOM", x, y)
+        elseif (anchor == "ANCHOR_LEFT") then self.tooltip:SetPoint("LEFT", x, y)
+        elseif (anchor == "ANCHOR_RIGHT") then self.tooltip:SetPoint("RIGHT", x, y)
+        else self.tooltip:SetPoint("CENTER")
+        end
+    else
+        if (anchor == "ANCHOR_TOP") then self.tooltip:SetPoint("BOTTOM", parent, "TOP", x, y)
+        elseif (anchor == "ANCHOR_BOTTOM") then self.tooltip:SetPoint("TOP", parent, "BOTTOM", x, y)
+        elseif (anchor == "ANCHOR_LEFT") then self.tooltip:SetPoint("RIGHT", parent, "LEFT", x, y)
+        else self.tooltip:SetPoint("LEFT", parent, "RIGHT", x, y) -- "ANCHOR_RIGHT"
+        end
+    end
+
+    self.tooltip:Show()
+end
+
+-- ****************************************************************************
+function CUtil.SmallTooltip:Hide()
+    self:validate()
+    self.tooltip:Hide()
+end
+
+-- ****************************************************************************
+function CUtil.SmallTooltip:GetTextColor()
+    self:validate()
+    return self.tooltip.fontString:GetTextColor()
+end
+
+-- ****************************************************************************
+function CUtil.SmallTooltip:SetTextColor(r, g, b, alpha)
+    self:validate()
+    self.tooltip.fontString:SetTextColor(r, g, b, alpha)
 end
 
 
@@ -4583,6 +5582,13 @@ end
 --#############################################################################
 
 private.UDControls.VERSION = CONTROLS_VERSION
+
+
+-- Exposed Config.  (If changed, they must be set before calling any other UDControls functions!)
+private.UDControls.kSetButtonFlashing = false   -- Default scrollbar button flashing mode for ALL listboxes.
+                                                -- Can be overriden for a specific control by SetButtonFlashing().
+private.UDControls.kButtonFlashAlpha = 0.5  -- Can be overriden by ConfigureFlashing().
+private.UDControls.kButtonFlashSecs = 0.6   -- Can be overriden by ConfigureFlashing().
 
 
 -- Exposed Functions.
@@ -4598,16 +5604,23 @@ private.UDControls.CreateSlider           = CreateSlider
 private.UDControls.CreateTextScrollFrame  = CreateTextScrollFrame  --DJUadded
 private.UDControls.CreateTextureButton    = CreateTextureButton  --DJUadded
 
+
 -- Exposed Utility Functions.  --DJUadded--
 private.UDControls.CloseDropDowns         = CUtil.CloseDropDowns
+private.UDControls.CreateContextMenu      = CUtil.CreateContextMenu
 private.UDControls.CreateHorizontalDivider= CUtil.CreateHorizontalDivider
 private.UDControls.CreateTexture_NEW      = CUtil.CreateTexture_NEW
 private.UDControls.DisplayAllFonts        = CUtil.DisplayAllFonts
-private.UDControls.GameTooltip_SetTitleAndText = CUtil.GameTooltip_SetTitleAndText  --DJUadded
-private.UDControls.GetMouseFocus          = CUtil.GetMouseFocus  --DJUadded
+private.UDControls.DoNothing              = DoNothing
+private.UDControls.EnhanceFrameEdges      = CUtil.EnhanceFrameEdges
+private.UDControls.FillFrame              = CUtil.FillFrame
+private.UDControls.GameTooltip_SetTitleAndText = CUtil.GameTooltip_SetTitleAndText
+private.UDControls.GetMouseFocus          = CUtil.GetMouseFocus
 private.UDControls.handleGlobalMouseClick = CUtil.handleGlobalMouseClick
 private.UDControls.MsgBox                 = CUtil.MsgBox
+private.UDControls.MsgBox3                = CUtil.MsgBox3
 private.UDControls.Outline                = CUtil.Outline
+private.UDControls.SmallTooltip           = CUtil.SmallTooltip
 private.UDControls.TextSize               = CUtil.TextSize
 
 --- End of File ---

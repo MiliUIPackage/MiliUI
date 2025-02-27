@@ -105,6 +105,12 @@ function CursorTrail_ShowChangelog(parent)
             elseif strStartsWith(line, "Released ") then  -- Release date?
                 line = YELLOW .. line
                 dx = 1
+            elseif strStartsWith(line, "NEW FEATURES:")
+                or strStartsWith(line, "CHANGES:")
+                or strStartsWith(line, "BUG FIXES:")
+              then
+                line = YELLOW .. line
+                dx = indent * 0.75
             elseif line:sub(1,5) == "- - -" then  -- Version block?
                 line = BLUE .. line
             elseif strStartsWith(line, "Version ") then  -- Version #?
@@ -147,27 +153,51 @@ function CursorTrail_ShowChangelog(parent)
         ChangelogFrame:RegisterForDrag("LeftButton")
         ChangelogFrame:SetScript("OnDragStart", function() ChangelogFrame:StartMoving() end)
         ChangelogFrame:SetScript("OnDragStop", function() ChangelogFrame:StopMovingOrSizing() end)
-        
+
         -- EVENTS --
         ChangelogFrame:SetScript("OnShow", function(self)
+                self:SetFrameLevel( self:GetParent():GetFrameLevel()+20 )
                 self:SetVerticalScroll(0)  -- Always open to first line of text.
                 Globals.PlaySound(829)  -- IG_SPELLBOOK_OPEN
             end)
-        ChangelogFrame:SetScript("OnHide", function(self) 
+        ChangelogFrame:SetScript("OnHide", function(self)
                 Globals.PlaySound(830)  -- IG_SPELLBOOK_CLOSE
-            end) 
+            end)
     end
 
+    if HelpFrame and HelpFrame:IsShown() then
+        HelpFrame:ClearAllPoints()
+        HelpFrame:SetPoint("RIGHT", UIParent, "CENTER", -1, 0)
+        ChangelogFrame:ClearAllPoints()
+        ChangelogFrame:SetPoint("LEFT", UIParent, "CENTER", 1, 0)
+    else
+        ChangelogFrame:ClearAllPoints()
+        ChangelogFrame:SetPoint("CENTER", UIParent, "CENTER")
+    end
     ChangelogFrame:Show()
+    -----Globals.UIFrameFadeIn(ChangelogFrame, 0.3, 0, 1)
 end
 
 -------------------------------------------------------------------------------
 function CursorTrail_HideChangelog()
     if ChangelogFrame and ChangelogFrame:IsShown() then
         ChangelogFrame:Hide()
+        if HelpFrame and HelpFrame:IsShown() then
+            HelpFrame:ClearAllPoints()
+            HelpFrame:SetPoint("CENTER", UIParent, "CENTER")
+        end
         return true
     end
     return false
+end
+
+-------------------------------------------------------------------------------
+function CursorTrail_ToggleChangelog(parent)
+    if ChangelogFrame and ChangelogFrame:IsShown() then
+        CursorTrail_HideChangelog()
+    else
+        CursorTrail_ShowChangelog(parent)
+    end
 end
 
 --- End of File ---
