@@ -16,48 +16,11 @@ function BaganatorCategoryViewBackpackViewMixin:OnLoad()
   self:RegisterEvent("CURSOR_CHANGED")
   self:RegisterEvent("MODIFIER_STATE_CHANGED")
 
-  addonTable.CallbackRegistry:RegisterCallback("ContentRefreshRequired",  function()
-    self.searchToApply = true
-    self.LayoutManager:FullRefresh()
-    for _, layout in ipairs(self.Container.Layouts) do
-      layout:RequestContentRefresh()
-    end
-    if self:IsVisible() and self.lastCharacter ~= nil then
-      self:UpdateForCharacter(self.lastCharacter, self.isLive)
-    end
-  end)
-
   addonTable.CallbackRegistry:RegisterCallback("ForceClearedNewItems",  function()
     if self:IsVisible() and self.lastCharacter ~= nil and self.isLive then
-      self.searchToApply = true
+      self.refreshState[addonTable.Constants.RefreshReason.Searches] = true
+      self.refreshState[addonTable.Constants.RefreshReason.Layout] = true
       self:UpdateForCharacter(self.lastCharacter, self.isLive)
-    end
-  end)
-
-  addonTable.CallbackRegistry:RegisterCallback("SettingChanged",  function(_, settingName)
-    if not self.lastCharacter then
-      return
-    end
-    if tIndexOf(addonTable.CategoryViews.Constants.RedisplaySettings, settingName) ~= nil then
-      self.searchToApply = true
-      self.LayoutManager:SettingChanged(settingName)
-      if self:IsVisible() then
-        self:UpdateForCharacter(self.lastCharacter, self.isLive)
-      end
-    elseif settingName == addonTable.Config.Options.SORT_METHOD or settingName == addonTable.Config.Options.REVERSE_GROUPS_SORT_ORDER then
-      self.LayoutManager:SettingChanged(settingName)
-      for _, layout in ipairs(self.Container.Layouts) do
-        layout:InformSettingChanged(settingName)
-      end
-      if self:IsVisible() then
-        self:UpdateForCharacter(self.lastCharacter, self.isLive)
-      end
-    elseif settingName == addonTable.Config.Options.JUNK_PLUGIN or settingName == addonTable.Config.Options.UPGRADE_PLUGIN then
-      self.searchToApply = true
-      self.LayoutManager:SettingChanged(settingName)
-      if self:IsVisible() then
-        self:UpdateForCharacter(self.lastCharacter, self.isLive)
-      end
     end
   end)
 
@@ -65,6 +28,7 @@ function BaganatorCategoryViewBackpackViewMixin:OnLoad()
     self.addToCategoryMode = fromCategory
     self.addedToFromCategory = addedDirectly == true
     if self:IsVisible() and addonTable.CategoryViews.Utilities.GetAddButtonsState() then
+      self.refreshState[addonTable.Constants.RefreshReason.Layout] = true
       self:UpdateForCharacter(self.lastCharacter, self.isLive)
     end
   end)
@@ -85,23 +49,27 @@ function BaganatorCategoryViewBackpackViewMixin:OnLoad()
 end
 
 function BaganatorCategoryViewBackpackViewMixin:NotifyBagUpdate(updatedBags)
-  self.LayoutManager:NotifyBagUpdate(updatedBags.bags)
+  --self.LayoutManager:NotifyBagUpdate(updatedBags.bags)
 end
 
 function BaganatorCategoryViewBackpackViewMixin:OnEvent(eventName)
   if eventName == "CURSOR_CHANGED" and self.addToCategoryMode and not C_Cursor.GetCursorItem() then
     self.addToCategoryMode = nil
     if self:IsVisible() then
+      self.refreshState[addonTable.Constants.RefreshReason.Layout] = true
       self:UpdateForCharacter(self.lastCharacter, self.isLive)
     end
   elseif eventName == "MODIFIER_STATE_CHANGED" and self.addToCategoryMode and (addonTable.CategoryViews.Utilities.GetAddButtonsState() or self.LayoutManager.showAddButtons) and C_Cursor.GetCursorItem() then
+    self.refreshState[addonTable.Constants.RefreshReason.Layout] = true
     self:UpdateForCharacter(self.lastCharacter, self.isLive)
   end
 end
 
 function BaganatorCategoryViewBackpackViewMixin:OnShow()
   BaganatorItemViewCommonBackpackViewMixin.OnShow(self)
-  addonTable.NewItems:ClearNewItemsForTimeout()
+  if addonTable.NewItems:ClearNewItemsForTimeout() then
+    self.refreshState[addonTable.Constants.RefreshReason.ItemData] = true -- Change to more relevant refresh state
+  end
 end
 
 -- Clear new item status on items that are hidden as part of a stack
@@ -169,10 +137,6 @@ function BaganatorCategoryViewBackpackViewMixin:TransferSection(tree)
 end
 
 function BaganatorCategoryViewBackpackViewMixin:UpdateForCharacter(character, isLive)
-  if self.lastCharacter ~= character then
-    self.LayoutManager:NewCharacter()
-  end
-
   local start = debugprofilestop()
   BaganatorItemViewCommonBackpackViewMixin.UpdateForCharacter(self, character, isLive)
 
@@ -185,11 +149,11 @@ function BaganatorCategoryViewBackpackViewMixin:UpdateForCharacter(character, is
   local oldIsGrouping = self.isGrouping
   self.isGrouping = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_ITEM_GROUPING) and (not self.splitStacksDueToTransfer or not self.isLive)
   if self.isGrouping ~= oldIsGrouping then
-    self.searchToApply = true
+    self.refreshState[addonTable.Constants.RefreshReason.Layout] = true
   end
 
   if self.addToCategoryMode and C_Cursor.GetCursorItem() == nil then
-    self.addToCategoryMode = false
+    self.addToCategoryMode = nil
   end
 
   local characterData = Syndicator.API.GetCharacter(character)
@@ -230,12 +194,15 @@ function BaganatorCategoryViewBackpackViewMixin:UpdateForCharacter(character, is
 
     local searchText = self.SearchWidget.SearchBox:GetText()
     if self.searchToApply then
+      self.searchToApply = false
       self:ApplySearch(searchText)
     end
 
     if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
       addonTable.Utilities.DebugOutput("-- updateforcharacter backpack", debugprofilestop() - start)
     end
+
+    self.refreshState = {}
 
     addonTable.CallbackRegistry:TriggerEvent("ViewComplete")
   end)

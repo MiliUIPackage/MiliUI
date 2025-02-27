@@ -39,6 +39,9 @@ local skinners = {
     frame.SlotBackground:SetTexCoord(unpack(E.TexCoords))
     S:HandleItemButton(frame, true)
     S:HandleIconBorder(frame.IconBorder)
+    hooksecurefunc(frame.IconBorder, "SetVertexColor", function(_, r, g, b, a)
+      frame.backdrop.forcedBorderColors = {r, g, b, a}
+    end)
     if frame.SetItemButtonTexture then
       hooksecurefunc(frame, "SetItemButtonTexture", function()
         frame.icon:SetTexCoord(unpack(E.TexCoords))
@@ -129,7 +132,7 @@ local skinners = {
   end,
   CornerWidget = function(frame, tags)
     if frame:IsObjectType("FontString") and addonTable.Config.Get("skins.elvui.use_bag_font") then
-      frame:FontTemplate(LSM:Fetch('font', E.db.bags.countFont), addonTable.Config.Get("icon_text_font_size"), E.db.bags.countFontOutline)
+      frame:FontTemplate(LSM:Fetch('font', E.db.bags.countFont), 14, E.db.bags.countFontOutline)
     end
   end,
   Dropdown = function(button)

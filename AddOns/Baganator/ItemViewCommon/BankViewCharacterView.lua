@@ -14,12 +14,35 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:OnLoad()
     end
   end)
 
+  self.refreshState = {}
+  for _, value in pairs(addonTable.Constants.RefreshReason) do
+    self.refreshState[value] = true
+  end
+
   Syndicator.CallbackRegistry:RegisterCallback("BagCacheUpdate",  function(_, character, updatedBags)
     self:SetLiveCharacter(character)
-    self.searchToApply = true
     self:NotifyBagUpdate(updatedBags)
-    if character == self.liveCharacter and self:IsVisible() then
+    if next(updatedBags.bank) then
+      self.refreshState[addonTable.Constants.RefreshReason.ItemData] = true
+    end
+    if updatedBags.containerBags.bank then
+      self.refreshState[addonTable.Constants.RefreshReason.ItemData] = true
+      self.refreshState[addonTable.Constants.RefreshReason.Layout] = true
+    end
+    if character == self.liveCharacter and self:IsVisible() and next(self.refreshState) ~= nil then
       self:GetParent():UpdateView()
+    end
+  end)
+
+  addonTable.CallbackRegistry:RegisterCallback("RefreshStateChange",  function(_, refreshState)
+    self.refreshState = Mixin(self.refreshState, refreshState)
+
+    for _, layout in ipairs(self.Container.Layouts) do
+      layout:UpdateRefreshState(refreshState)
+    end
+
+    if self:IsVisible() then
+      self:UpdateForCharacter(self.lastCharacter, self.isLive)
     end
   end)
 
@@ -37,14 +60,7 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:OnLoad()
     if not self.lastCharacter then
       return
     end
-    if tIndexOf(addonTable.Config.ItemButtonsRelayoutSettings, settingName) ~= nil then
-      for _, layout in ipairs(self.Container.Layouts) do
-        layout:InformSettingChanged(settingName)
-      end
-      if self:IsVisible() then
-        self:GetParent():UpdateView()
-      end
-    elseif settingName == addonTable.Config.Options.BANK_ONLY_VIEW_SHOW_BAG_SLOTS and self:IsVisible() then
+    if settingName == addonTable.Config.Options.BANK_ONLY_VIEW_SHOW_BAG_SLOTS and self:IsVisible() then
       self.BagSlots:Update(self.lastCharacter, self.isLive)
       self:OnFinished()
       self:GetParent():OnTabFinished()
@@ -52,11 +68,15 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:OnLoad()
   end)
 
   addonTable.CallbackRegistry:RegisterCallback("CharacterSelect", function(_, character)
-    if self:IsVisible() and character ~= self.lastCharacter then
-      self.lastCharacter = character
-      self:GetParent():UpdateView()
-    else
-      self.lastCharacter = character
+    if character ~= self.lastCharacter then
+      self.refreshState[addonTable.Constants.RefreshReason.ItemData] = true
+      self.refreshState[addonTable.Constants.RefreshReason.Layout] = true
+      if self:IsVisible() then
+        self.lastCharacter = character
+        self:GetParent():UpdateView()
+      else
+        self.lastCharacter = character
+      end
     end
   end)
 
@@ -166,12 +186,22 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:UpdateForCharacter(ch
     self:GetParent():SetTitle(BAGANATOR_L_XS_BANK:format(characterData.details.character))
   end
 
+  self.searchToApply = self.searchToApply or self.refreshState[addonTable.Constants.RefreshReason.Searches] or self.refreshState[addonTable.Constants.RefreshReason.ItemData] or self.refreshState[addonTable.Constants.RefreshReason.ItemWidgets]
+
   local oldLast = self.lastCharacter
   self.lastCharacter = character
   if oldLast ~= self.lastCharacter then
+    self.refreshState[addonTable.Constants.RefreshReason.ItemData] = true
+    self.refreshState[addonTable.Constants.RefreshReason.Layout] = true
+    self.refreshState[addonTable.Constants.RefreshReason.Character] = true
     addonTable.CallbackRegistry:TriggerEvent("CharacterSelect", character)
-    self.searchToApply = true
+    return
   end
+
+  if self.isLive ~= isLive then
+    self.refreshState[addonTable.Constants.RefreshReason.ItemData] = true
+  end
+
   self.isLive = isLive
 
   addonTable.Utilities.AddGeneralDropSlot(self, function()
@@ -225,21 +255,24 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:OnFinished(character,
   if self.BankMissingHint:IsShown() then
     return
   end
-  local sideSpacing, topSpacing, searchSpacing = addonTable.Utilities.GetSpacing()
 
-  local buttonPadding = 5
-  local additionalPadding = 0
-  if addonTable.Config.Get(addonTable.Config.Options.REDUCE_SPACING) then
-    buttonPadding = 3
+  if self.refreshState[addonTable.Constants.RefreshReason.Layout] then
+    local sideSpacing, topSpacing, searchSpacing = addonTable.Utilities.GetSpacing()
+
+    local buttonPadding = 5
+    local additionalPadding = 0
+    if addonTable.Config.Get(addonTable.Config.Options.REDUCE_SPACING) then
+      buttonPadding = 3
+    end
+
+    self:SetSize(10, 10)
+    local externalVerticalSpacing = (self.BagSlots:GetHeight() > 0 and (self.BagSlots:GetTop() - self:GetTop()) or 0) + (self:GetParent().Tabs[1] and self:GetParent().Tabs[1]:IsShown() and (self:GetParent():GetBottom() - self:GetParent().Tabs[1]:GetBottom() + 5) or 0)
+
+    self:SetSize(
+      self.Container:GetWidth() + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset - 2,
+      math.min(self.Container:GetHeight() + 50 + searchSpacing + buttonPadding + self.CurrencyWidget:GetExtraHeight(), UIParent:GetHeight() / self:GetParent():GetScale() - externalVerticalSpacing)
+    )
+
+    self:UpdateScroll(73 + buttonPadding + externalVerticalSpacing, self:GetParent():GetScale())
   end
-
-  self:SetSize(10, 10)
-  local externalVerticalSpacing = (self.BagSlots:GetHeight() > 0 and (self.BagSlots:GetTop() - self:GetTop()) or 0) + (self:GetParent().Tabs[1] and self:GetParent().Tabs[1]:IsShown() and (self:GetParent():GetBottom() - self:GetParent().Tabs[1]:GetBottom() + 5) or 0)
-
-  self:SetSize(
-    self.Container:GetWidth() + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset - 2,
-    math.min(self.Container:GetHeight() + 50 + searchSpacing + buttonPadding + self.CurrencyWidget:GetExtraHeight(), UIParent:GetHeight() / self:GetParent():GetScale() - externalVerticalSpacing)
-  )
-
-  self:UpdateScroll(73 + buttonPadding + externalVerticalSpacing, self:GetParent():GetScale())
 end

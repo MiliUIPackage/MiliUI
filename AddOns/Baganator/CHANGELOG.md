@@ -1,7 +1,7 @@
 # Baganator
 
-## [616](https://github.com/Baganator/Baganator/tree/616) (2025-01-12)
-[Full Changelog](https://github.com/Baganator/Baganator/compare/615...616) 
+## [653](https://github.com/Baganator/Baganator/tree/653) (2025-02-25)
+[Full Changelog](https://github.com/Baganator/Baganator/compare/652...653) 
 
-- Customise: Reorder "Icons" options  
-- Currencies: Fix transfer currency shortcut when using GW2 UI overhaul  
+- [Fixes #432] Workaround to prevent Masque bug breaking bag view  
+- [Fixes #430] Update item level widget after entering/leaving timewalking raid  

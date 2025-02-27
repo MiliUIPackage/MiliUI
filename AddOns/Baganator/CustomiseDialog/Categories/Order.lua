@@ -54,12 +54,16 @@ local function PopulateCategoryOrder(container)
   local elements = {}
   local dataProviderElements = {}
   local customCategories = addonTable.Config.Get(addonTable.Config.Options.CUSTOM_CATEGORIES)
+  local categoryMods = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_MODIFICATIONS)
+  local sections = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_SECTIONS)
   local indentLevel = 0
   for _, source in ipairs(addonTable.Config.Get(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER)) do
     local indent = string.rep("      ", indentLevel)
     local color = WHITE_FONT_COLOR
     if hidden[source] then
       color = GRAY_FONT_COLOR
+    elseif categoryMods[source] and categoryMods[source].color then
+      color = CreateColorFromRGBHexString(categoryMods[source].color)
     end
 
     local category = addonTable.CategoryViews.Constants.SourceToCategory[source]
@@ -83,8 +87,11 @@ local function PopulateCategoryOrder(container)
         name = " "
       else
         indentLevel = indentLevel + 1
-        local section = source:match("^_(.*)")
-        name = indent .. CreateAtlasMarkup(folderMarker) .. " " .. (_G["BAGANATOR_L_SECTION_" .. section] or section)
+        local sectionDetails = sections[source:match("^_(.*)")]
+        if sectionDetails.color then
+          color = CreateColorFromRGBHexString(sectionDetails.color)
+        end
+        name = indent .. CreateAtlasMarkup(folderMarker) .. " " .. color:WrapTextInColorCode((_G["BAGANATOR_L_SECTION_" .. sectionDetails.name] or sectionDetails.name))
       end
       table.insert(dataProviderElements, {value = source, label = name})
       table.insert(elements, source)
@@ -124,7 +131,7 @@ local function GetCategoryContainer(parent, pickupCallback)
       frame:SetHighlightAtlas("auctionhouse-ui-row-highlight")
       frame:SetScript("OnClick", function(self, button)
         if self.value:match("^_") then
-          addonTable.CallbackRegistry:TriggerEvent("EditCategorySection", self.value, self.indexValue)
+          addonTable.CallbackRegistry:TriggerEvent("EditCategorySection", (self.value:match("^_(.*)")))
         elseif self.value == "default_auto_recents" then
           addonTable.CallbackRegistry:TriggerEvent("EditCategoryRecent")
         elseif self.value == addonTable.CategoryViews.Constants.EmptySlotsCategory then
@@ -195,10 +202,12 @@ end
 
 local function SetCategoriesToDropDown(dropdown, ignore)
   dropdown:SetupMenu(function(_, rootDescription)
+    local categoryMods = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_MODIFICATIONS)
     local defaultOptions = {}
     for source, category in pairs(addonTable.CategoryViews.Constants.SourceToCategory) do
+      local color = categoryMods[source] and categoryMods[source].color or "ffffff"
       if not ignore[source] then
-        table.insert(defaultOptions, {label = category.name, value = source})
+        table.insert(defaultOptions, {label = "|cff" .. color .. category.name .. "|r", sortKey = category.name, value = source})
       end
     end
     table.sort(defaultOptions, function(a, b) return a.label:lower() < b.label:lower() end)
@@ -207,16 +216,19 @@ local function SetCategoriesToDropDown(dropdown, ignore)
     local nameCount = {}
     for source, category in pairs(addonTable.Config.Get(addonTable.Config.Options.CUSTOM_CATEGORIES)) do
       if not ignore[source] then
+        local color = categoryMods[source] and categoryMods[source].color or "ffffff"
         if not nameCount[category.name] then
-          table.insert(customOptions, {label = category.name .. " (*)", value = source, isCustom = true})
+          local raw = category.name .. " (*)"
+          table.insert(customOptions, {label = "|cff" .. color .. raw .. "|r", sortKey = raw, value = source, isCustom = true})
           nameCount[category.name] = 1
         else
+          local raw = category.name .. " (*" .. nameCount[category.name] .. ")"
           nameCount[category.name] = nameCount[category.name] + 1
-          table.insert(customOptions, {label = category.name .. " (*" .. nameCount[category.name] .. ")", value = source, isCustom = true})
+          table.insert(customOptions, {label = "|cff" .. color .. raw .. "|r", sortKey = raw, value = source, isCustom = true})
         end
       end
     end
-    table.sort(customOptions, function(a, b) return a.label:lower() < b.label:lower() end)
+    table.sort(customOptions, function(a, b) return a.sortKey:lower() < b.sortKey:lower() end)
 
     local options = customOptions
     tAppendAll(options, defaultOptions)
@@ -298,6 +310,8 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
       end
 
       if draggable.value:match("^_") then
+        local sections = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_SECTIONS)
+        sections[draggable.value:gsub("^_", "")] = draggable.sectionDetails
         table.insert(categoryOrder.elements, insertIndex, draggable.value)
         for _, value in ipairs(draggable.sectionValues) do
           insertIndex = insertIndex + 1
@@ -324,7 +338,7 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
       if hoverFrame and ((categoryOrder.elements[hoverIndex] == addonTable.CategoryViews.Constants.SectionEnd and isTop) or (categoryOrder.elements[hoverIndex + 1] == addonTable.CategoryViews.Constants.SectionEnd and not isTop)) then
         local level = 1
         local startIndex = 1
-        for i = hoverIndex - 1, 1, -1 do
+        for i = isTop and hoverIndex - 1 or hoverIndex, 1, -1 do
           local value = categoryOrder.elements[i]
           if value == addonTable.CategoryViews.Constants.SectionEnd then
             level = level + 1
@@ -361,10 +375,16 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
 
   local function Pickup(value, label, index)
     draggable.value = value
+    draggable.sectionDetails = nil
     draggable.sectionValues = {}
     if index ~= nil then
       table.remove(categoryOrder.elements, index)
       if value:match("^_") then -- section
+        local sections = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_SECTIONS)
+        local key = value:match("^_(.*)")
+        draggable.sectionDetails = sections[key]
+        sections[key] = nil
+
         local level = 1
         while level ~= 0 and #categoryOrder.elements > 0 do
           local tmp = categoryOrder.elements[index]
@@ -392,7 +412,7 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
 
   dropdown.OnEntryClicked = function(_, option)
     if option.value == "_" then
-      addonTable.CallbackRegistry:TriggerEvent("EditCategorySection", option.value)
+      addonTable.CallbackRegistry:TriggerEvent("EditCategorySection", (option.value:match("^_(.*)")))
     elseif option.value == addonTable.CategoryViews.Constants.DividerName then
       Pickup(option.value, addonTable.CategoryViews.Constants.DividerLabel, nil)
     elseif option.value ~= "" then
@@ -414,6 +434,12 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
   dropdown:SetPoint("BOTTOMLEFT", categoryOrder, "TOPLEFT", 0, 8)
   dropdown:SetPoint("RIGHT", categoryOrder.ScrollBar, 5, 0)
 
+  addonTable.CallbackRegistry:RegisterCallback("RefreshStateChange", function(_, refreshState)
+    if refreshState[addonTable.Constants.RefreshReason.Cosmetic] or refreshState[addonTable.Constants.RefreshReason.Searches] then
+      SetCategoriesToDropDown(dropdown, GetInsertedCategories())
+      PopulateCategoryOrder(categoryOrder)
+    end
+  end)
   addonTable.CallbackRegistry:RegisterCallback("SettingChanged", function(_, settingName)
     if settingName == addonTable.Config.Options.CATEGORY_DISPLAY_ORDER or settingName == addonTable.Config.Options.CATEGORY_HIDDEN or settingName == addonTable.Config.Options.CUSTOM_CATEGORIES then
       SetCategoriesToDropDown(dropdown, GetInsertedCategories())

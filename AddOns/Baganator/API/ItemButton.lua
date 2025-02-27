@@ -51,7 +51,7 @@ local function CacheSettings()
     iconSettings.junkPlugin = nil
   end
 end
-addonTable.CallbackRegistry:RegisterCallback("SettingChangedEarly", CacheSettings)
+addonTable.CallbackRegistry:RegisterCallback("SettingChanged", CacheSettings)
 addonTable.Utilities.OnAddonLoaded("Baganator", CacheSettings)
 
 local function textInit(itemButton)
@@ -80,6 +80,34 @@ Baganator.API.RegisterCornerWidget(BAGANATOR_L_ITEM_LEVEL, "item_level", functio
   end
   return false
 end, textInit)
+
+do
+  -- Level up (as heirlooms may change ilvl) or timewalking raid begin/end
+  local frame = CreateFrame("Frame")
+  frame:RegisterEvent("PLAYER_LEVEL_UP")
+  frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+
+  local lastDifficultyID
+
+  frame:SetScript("OnEvent", function(_, eventName)
+    if not Baganator.API.IsCornerWidgetActive("item_level") then
+      return
+    end
+
+    if eventName == "PLAYER_LEVEL_UP" then
+      Baganator.API.RequestItemButtonsRefresh({Baganator.Constants.RefreshReason.ItemWidgets})
+    -- Detect entering or leaving a timewalking raid instance
+    elseif eventName == "PLAYER_ENTERING_WORLD" then
+      local newDifficultyID = GetDungeonDifficultyID()
+      if lastDifficultyID ~= nil and lastDifficultyID ~= newDifficultyID and (
+        newDifficultyID == 33 or lastDifficultyID == 33
+        ) then
+        Baganator.API.RequestItemButtonsRefresh({Baganator.Constants.RefreshReason.ItemWidgets})
+      end
+      lastDifficultyID = newDifficultyID
+    end
+  end)
+end
 
 local function IsBindOnEquip(details)
   local classID = select(6, C_Item.GetItemInfoInstant(details.itemLink))
@@ -278,7 +306,7 @@ end, nil, true)
 
 Baganator.API.RegisterCornerWidget(BAGANATOR_L_EQUIPMENT_SET_ICON, "equipment_set_icon", function(EquipmentSetIcon, details)
   EquipmentSetIcon:SetTexture(details.setInfo and details.setInfo[1].iconTexture or nil)
-  return details.setInfo and details.setInfo[1].iconTexture ~= nil
+  return details.setInfo ~= nil and details.setInfo[1].iconTexture ~= nil
 end, function(itemButton)
   local EquipmentSetIcon = itemButton:CreateTexture(nil, "ARTWORK")
   EquipmentSetIcon:SetSize(15, 15)
@@ -313,7 +341,7 @@ addonTable.Utilities.OnAddonLoaded("CanIMogIt", function()
 
   local function Callback()
     if Baganator.API.IsCornerWidgetActive("can_i_mog_it") then
-      Baganator.API.RequestItemButtonsRefresh()
+      Baganator.API.RequestItemButtonsRefresh({Baganator.Constants.RefreshReason.ItemWidgets})
     end
   end
   CanIMogIt:RegisterMessage("OptionUpdate", function()

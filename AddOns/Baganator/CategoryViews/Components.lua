@@ -10,7 +10,7 @@ function BaganatorCategoryViewsCategoryButtonMixin:OnLoad()
 end
 
 function BaganatorCategoryViewsCategoryButtonMixin:Resize()
-  self:SetSize(self:GetFontString():GetUnboundedStringWidth(), self:GetFontString():GetHeight())
+  self:SetSize(self:GetFontString():GetUnboundedStringWidth(), self:GetFontString():GetLineHeight())
 end
 
 function BaganatorCategoryViewsCategoryButtonMixin:OnClick(button)
@@ -94,17 +94,18 @@ function addonTable.CategoryViews.GetSectionButtonPool(parent)
     button:SetScript("OnClick", function(self, button)
       if button == "LeftButton" then
         local sectionToggled = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_SECTION_TOGGLED)
-        sectionToggled[self.label] = not sectionToggled[self.label]
+        sectionToggled[self.source] = not sectionToggled[self.source]
         addonTable.Config.Set(addonTable.Config.Options.CATEGORY_SECTION_TOGGLED, CopyTable(sectionToggled))
       elseif button == "RightButton" then
         local tree = CopyTable(self.section)
-        table.insert(tree, self.label)
+        table.insert(tree, self.source)
         CallMethodOnNearestAncestor(self, "TransferSection", tree)
       end
     end)
     button:SetScript("OnEnter", BaganatorCategoryViewsCategoryButtonMixin.OnEnter)
     button:SetScript("OnLeave", BaganatorCategoryViewsCategoryButtonMixin.OnLeave)
     button:SetScript("OnShow", function(self)
+      self:CheckResults(self.lastText or "")
       addonTable.CallbackRegistry:RegisterCallback("SearchMonitorComplete", self.CheckResults, self)
     end)
     button:SetScript("OnHide", function(self)
@@ -113,12 +114,13 @@ function addonTable.CategoryViews.GetSectionButtonPool(parent)
     end)
     function button:CheckResults(text)
       self.fadeAnimation:Stop()
+      self.lastText = text
       if text == "" or not self.collapsed then
         return
       end
       local found, layouts = CallMethodOnNearestAncestor(self, "GetActiveLayouts")
       for _, layout in ipairs(layouts) do
-        if layout.type == "category" and layout.section[#self.section + 1] == self.label then
+        if layout.type == "category" and layout.section[#self.section + 1] == self.source then
           local rootMatch = true
           for index = 1, #self.section do
             rootMatch = layout.section[index] == self.section[index]

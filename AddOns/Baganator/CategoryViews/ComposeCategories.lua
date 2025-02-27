@@ -99,9 +99,6 @@ local function GetAuto(category, everything)
       if itemString then
         local groupPath = TSM_API.GetGroupPathByItem(itemString)
         if groupPath then
-          if groupPath:find("`") then
-            groupPath = groupPath:match("`([^`]*)$")
-          end
           if not groups[groupPath] then
             groups[groupPath] = {}
           end
@@ -109,14 +106,31 @@ local function GetAuto(category, everything)
         end
       end
     end
+    local prevLevel = 1
     for _, groupPath in ipairs(TSM_API.GetGroupPaths({})) do
-      if groupPath:find("`") then
-        groupPath = groupPath:match("`([^`]*)$")
+      local parts = {strsplit("`", groupPath)}
+      if #parts > prevLevel then
+        -- Previous entry will be root of group
+        attachedItems[#searches + 1] = attachedItems[#searches]
+        attachedItems[#searches] = nil
+        table.insert(searches, #searches, "__start")
+        searchLabels[#searches] = searchLabels[#searches - 1]
+        searchLabels[#searches - 1] = parts[prevLevel]
+      end
+      while #parts < prevLevel do
+        prevLevel = prevLevel - 1
+        table.insert(searches, "__end")
       end
       local index = #searches + 1
       searches[index] = ""
-      searchLabels[index] = groupPath
+      searchLabels[index] = parts[#parts]
+      assert(searchLabels[index], #searches)
       attachedItems[index] = groups[groupPath] -- nil if no items
+      prevLevel = #parts
+    end
+    while prevLevel > 1 do
+      prevLevel = prevLevel - 1
+      table.insert(searches, "__end")
     end
   else
     error("automatic category type not supported")
@@ -131,10 +145,10 @@ function addonTable.CategoryViews.ComposeCategories(everything)
 
   local customCategories = addonTable.Config.Get(addonTable.Config.Options.CUSTOM_CATEGORIES)
   local categoryMods = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_MODIFICATIONS)
+  local sections = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_SECTIONS)
   local categoryKeys = {}
   local currentSection = {}
   for _, source in ipairs(addonTable.Config.Get(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER)) do
-    local sectionName = source:match("^_(.*)")
     local section = CopyTable(currentSection)
     if source == addonTable.CategoryViews.Constants.DividerName then
       table.insert(allDetails, {
@@ -149,15 +163,19 @@ function addonTable.CategoryViews.ComposeCategories(everything)
         type = "divider",
         section = section,
       })
-    elseif sectionName then
+    elseif source:sub(1, 1) == "_" then
+      local sectionID = source:match("^_(.*)")
       table.insert(allDetails, {
         type = "divider",
         section = section,
       })
+      local sectionDetails = sections[sectionID]
+      local sectionName = sectionDetails.name
       local label = _G["BAGANATOR_L_SECTION_" .. sectionName] or sectionName
-      table.insert(currentSection, label)
+      table.insert(currentSection, sectionID)
       table.insert(allDetails, {
         type = "section",
+        source = sectionID,
         label = label,
         section = section,
       })
@@ -166,7 +184,7 @@ function addonTable.CategoryViews.ComposeCategories(everything)
     local priority = categoryMods[source] and categoryMods[source].priority and (categoryMods[source].priority + 1) * 200 or 0
 
     local mods = categoryMods[source]
-    local group, groupPrefix, attachedItems
+    local group, groupPrefix, attachedItems, color
     if mods then
       if mods.addedItems and next(mods.addedItems) then
         attachedItems = mods.addedItems
@@ -179,24 +197,55 @@ function addonTable.CategoryViews.ComposeCategories(everything)
     if category then
       if category.auto then
         local autoDetails = GetAuto(category, everything)
+        local currentTree = {}
         for index = 1, #autoDetails.searches do
+          section = CopyTable(currentSection)
           local search = autoDetails.searches[index]
-          if search == "" then
-            search = "________" .. (#allDetails + 1)
+          if search == "__start" or search == "__end" then
+            if search == "__end" then
+              table.remove(currentTree)
+              table.remove(currentSection)
+              table.remove(section)
+              table.insert(allDetails, {
+                type = "divider",
+                section = section,
+              })
+            elseif search == "__start" then
+              table.insert(allDetails, {
+                type = "divider",
+                section = section,
+              })
+              table.insert(currentTree, autoDetails.searchLabels[index])
+              local sectionSource = source .. "$" .. table.concat(currentTree, "$")
+              table.insert(currentSection, sectionSource)
+              table.insert(allDetails, {
+                type = "section",
+                color = category.source,
+                source = sectionSource,
+                label = autoDetails.searchLabels[index],
+                section = section,
+              })
+            end
+          else
+            if search == "" then
+              search = "________" .. (#allDetails + 1)
+            end
+            allDetails[#allDetails + 1] = {
+              type = "category",
+              source = source,
+              search = search,
+              label = autoDetails.searchLabels[index],
+              priority = category.priorityOffset + priority,
+              index = #allDetails + 1,
+              attachedItems = autoDetails.attachedItems[index],
+              group = group,
+              groupPrefix = groupPrefix,
+              color = category.source,
+              auto = true,
+              autoIndex = index,
+              section = section,
+            }
           end
-          allDetails[#allDetails + 1] = {
-            type = "category",
-            source = source,
-            search = search,
-            label = autoDetails.searchLabels[index],
-            priority = category.priorityOffset + priority,
-            index = #allDetails + 1,
-            attachedItems = autoDetails.attachedItems[index],
-            group = group,
-            groupPrefix = groupPrefix,
-            auto = true,
-            section = section,
-          }
         end
       elseif category.emptySlots then
         allDetails[#allDetails + 1] = {

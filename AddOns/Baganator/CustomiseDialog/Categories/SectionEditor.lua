@@ -4,9 +4,11 @@ BaganatorCustomiseDialogCategoriesSectionEditorMixin = {}
 function BaganatorCustomiseDialogCategoriesSectionEditorMixin:OnLoad()
   local function RemoveSection(name)
     local displayOrder = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER)
+    local sections = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_SECTIONS)
 
-    if self.currentSectionIndex then
-      table.remove(displayOrder, self.currentSectionIndex)
+    if sections[self.currentSection] then
+      sections[self.currentSection] = nil
+      table.remove(displayOrder, tIndexOf(displayOrder, "_" .. self.currentSection))
       local level = 0
       for i = 1, #displayOrder do
         if displayOrder[i] == addonTable.CategoryViews.Constants.SectionEnd then
@@ -28,19 +30,42 @@ function BaganatorCustomiseDialogCategoriesSectionEditorMixin:OnLoad()
       return
     end
 
-    local newValue = "_" .. self.SectionName:GetText():gsub("_", " ")
-
+    local sections = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_SECTIONS)
     local displayOrder = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER)
 
-    if self.currentSectionIndex then
-      self.currentSection = newValue
-      displayOrder[self.currentSectionIndex] = newValue
+    local refreshState = {}
+    if sections[self.currentSection] then
+      if sections[self.currentSection].name ~= self.SectionName:GetText() then
+        refreshState[addonTable.Constants.RefreshReason.Searches] = true
+      end
+      sections[self.currentSection].name = self.SectionName:GetText()
     else
-      self.currentSectionIndex = 1
-      table.insert(displayOrder, self.currentSectionIndex, newValue)
-      table.insert(displayOrder, self.currentSectionIndex + 1, addonTable.CategoryViews.Constants.SectionEnd)
+      self.currentSection = tostring(1)
+      while sections[self.currentSection] do
+        self.currentSection = tostring(tonumber(self.currentSection) + 1)
+      end
+      sections[self.currentSection] = {name = self.SectionName:GetText()}
+      table.insert(displayOrder, 1, "_" .. self.currentSection)
+      table.insert(displayOrder, 2, addonTable.CategoryViews.Constants.SectionEnd)
+      refreshState[addonTable.Constants.RefreshReason.Searches] = true
+      refreshState[addonTable.Constants.RefreshReason.Layout] = true
     end
-    addonTable.Config.Set(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER, CopyTable(displayOrder))
+    if self.SectionColorSwatch.pendingColor then
+      local c = self.SectionColorSwatch.pendingColor
+      local oldColor = sections[self.currentSection].color
+      if c.r == 1 and c.g == 1 and c.b == 1 then
+        sections[self.currentSection].color = nil
+      else
+        sections[self.currentSection].color = c:GenerateHexColorNoAlpha()
+      end
+      if oldColor ~= sections[self.currentSection].color then
+        refreshState[addonTable.Constants.RefreshReason.Cosmetic] = true
+      end
+    end
+
+    if next(refreshState) ~= nil then
+      addonTable.CallbackRegistry:TriggerEvent("RefreshStateChange", refreshState)
+    end
   end
 
   self.DeleteButton:SetScript("OnClick", function()
@@ -51,20 +76,33 @@ function BaganatorCustomiseDialogCategoriesSectionEditorMixin:OnLoad()
     addonTable.Config.Set(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER, CopyTable(displayOrder))
   end)
 
-  addonTable.CallbackRegistry:RegisterCallback("EditCategorySection", function(_, value, index)
+  self.SectionColorSwatch = addonTable.CustomiseDialog.GetColorSwatch(self, self.NameLabel, Save)
+  table.insert(self.ChangeAlpha, self.SectionColorSwatch)
+
+  addonTable.CallbackRegistry:RegisterCallback("EditCategorySection", function(_, value)
     if not self:GetParent():IsVisible() then
       return
     end
-    if value == "_" then
-      self.currentSection = "_" .. BAGANATOR_L_NEW_SECTION
-      self.currentSectionIndex = nil
+    self.SectionColorSwatch.pendingColor = nil
+    if value == "" then
+      self.currentSection = "-1"
       self.SectionName:SetText(BAGANATOR_L_NEW_SECTION)
+
+      self.SectionColorSwatch.lastColor = CreateColor(1, 1, 1)
+      self.SectionColorSwatch:SetColorRGB(self.SectionColorSwatch.lastColor:GetRGBA())
+
       Save()
     else
       self.currentSection = value
-      self.currentSectionIndex = index
-      local section = value:match("^_(.*)")
-      self.SectionName:SetText(_G["BAGANATOR_L_SECTION_" .. section] or section)
+      local sectionDetails = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_SECTIONS)[value]
+      self.SectionName:SetText(_G["BAGANATOR_L_SECTION_" .. sectionDetails.name] or sectionDetails.name)
+
+      if sectionDetails.color then
+        self.SectionColorSwatch.lastColor = CreateColorFromRGBAHexString(sectionDetails.color .. "ff")
+      else
+        self.SectionColorSwatch.lastColor = CreateColor(1, 1, 1)
+      end
+      self.SectionColorSwatch:SetColorRGB(self.SectionColorSwatch.lastColor:GetRGBA())
     end
   end)
 
@@ -74,12 +112,24 @@ function BaganatorCustomiseDialogCategoriesSectionEditorMixin:OnLoad()
     end
 
     if settingName == addonTable.Config.Options.CATEGORY_DISPLAY_ORDER then
-      local displayOrder = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER)
-      if displayOrder[self.currentSectionIndex] ~= self.currentSection then
+      local sections = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_SECTIONS)
+      if sections[self.currentSection] == nil then
+        self:Disable() -- Necessary to work around edit box not losing focus in classic era
         self:Return()
       end
     end
   end)
+
+  local colorPickerFrameMonitor = CreateFrame("Frame")
+  colorPickerFrameMonitor.OnUpdate = function()
+    if not ColorPickerFrame:IsVisible() then
+      colorPickerFrameMonitor:SetScript("OnUpdate", nil)
+    end
+    if colorPickerFrameMonitor.changed then
+      Save()
+    end
+    colorPickerFrameMonitor.changed = false
+  end
 
   self.SectionName:SetScript("OnEditFocusLost", Save)
   self.SectionName:SetScript("OnKeyDown", function(_, key)
@@ -93,6 +143,7 @@ function BaganatorCustomiseDialogCategoriesSectionEditorMixin:OnLoad()
 end
 
 function BaganatorCustomiseDialogCategoriesSectionEditorMixin:Disable()
+  self.SectionColorSwatch:SetColorRGB(1, 1, 1)
   self.SectionName:SetText("")
 end
 

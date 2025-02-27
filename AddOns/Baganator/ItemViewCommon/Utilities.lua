@@ -282,13 +282,14 @@ function addonTable.Utilities.AddScrollBar(self)
   self.Container:SetPoint("TOPLEFT", 2, -2)
   ScrollUtil.InitScrollBoxWithScrollBar(self.ScrollBox, self.ScrollBar, CreateScrollBoxLinearView())
   ScrollUtil.AddManagedScrollBarVisibilityBehavior(self.ScrollBox, self.ScrollBar)
+  self.ScrollChild:SetScript("OnSizeChanged", nil)
+  self.ScrollBox:SetScript("OnSizeChanged", nil)
 
   function self:UpdateScroll(ySaved, scale)
     local sideSpacing, topSpacing, searchSpacing = addonTable.Utilities.GetSpacing()
     self.ScrollBox:ClearAllPoints()
     self.ScrollBox:SetPoint("TOPLEFT", sideSpacing + addonTable.Constants.ButtonFrameOffset - 2 - 2, -25 - searchSpacing - topSpacing / 4 + 2)
-    self.ScrollChild:SetWidth(self.Container:GetWidth() + 4)
-    self.ScrollChild:SetHeight(self.Container:GetHeight() + 4)
+    self.ScrollChild:SetSize(self.Container:GetWidth() + 4, self.Container:GetHeight() + 4)
     self.ScrollBox:SetSize(
       self.Container:GetWidth() + 4,
       math.min(
@@ -382,12 +383,14 @@ if LibStub then
     local masqueGroup = Masque:Group("Baganator", "Bag")
 
     addonTable.Utilities.MasqueRegistration = function(button)
-      if button.masqueApplied then
-        masqueGroup:ReSkin(button)
-      else
-        button.masqueApplied = true
-        masqueGroup:AddButton(button, nil, "Item")
-      end
+      xpcall(function()
+        if button.masqueApplied then
+          masqueGroup:ReSkin(button)
+        else
+          button.masqueApplied = true
+          masqueGroup:AddButton(button, nil, "Item")
+        end
+      end, CallErrorHandler)
     end
   end
 end
@@ -418,7 +421,7 @@ function addonTable.Utilities.AddButtons(allButtons, lastButton, parent, spacing
   return buttonsWidth
 end
 
-if addonTable.Constants.IsRetail then
+if addonTable.Constants.IsRetail or IsUsingLegacyAuctionClient and not IsUsingLegacyAuctionClient() then
   function addonTable.Utilities.IsAuctionable(details)
     if not C_Item.IsItemDataCachedByID(details.itemID) then
       C_Item.RequestLoadItemDataByID(details.itemID)
@@ -447,11 +450,10 @@ else
     local result = false
 
     local currentDurability, maxDurability
-    if details.itemLocation:IsBagAndSlot() then
-      currentDurability, maxDurability = C_Container.GetContainerItemDurability(details.itemLocation:GetBagAndSlot())
+    if details.itemLocation.bagID then
+      currentDurability, maxDurability = C_Container.GetContainerItemDurability(details.itemLocation.bagID, details.itemLocation.slotIndex)
     else
-      local slot = details.itemLocation:GetEquipmentSlot()
-      currentDurability, maxDurability = GetInventoryItemDurability(slot)
+      currentDurability, maxDurability = GetInventoryItemDurability(details.itemLocation.equipmentSlotIndex)
     end
 
     result = not C_Item.IsBound(details.itemLocation) and currentDurability == maxDurability

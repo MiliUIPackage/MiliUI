@@ -149,23 +149,28 @@ end
 
 -- Update any recents on a timeout
 function BaganatorItemViewCommonNewItemsTrackingMixin:ClearNewItemsForTimeout()
+  local anyChanges = false
   if self.timeout < 0 then
     for guid, details in pairs(self.recentTimeout) do
       if not self.seenGUIDs[guid] then
+        anyChanges = true
         self.recentTimeout[guid] = nil
       end
     end
   else
     local time = GetTime()
     for guid, details in pairs(self.recentTimeout) do
-      if not self.seenGUIDs[guid] then
+      if not self.seenGUIDs[guid] or time - details.time >= self.timeout then
+        anyChanges = true
         self.recentTimeout[guid] = nil
-      elseif time - details.time >= self.timeout then
-        self.recentTimeout[guid] = nil
-        self.recentByContainerTimeout[details.bagID][details.slotID] = nil
+        if self.recentByContainerTimeout[details.bagID][details.slotID] == guid then
+          self.recentByContainerTimeout[details.bagID][details.slotID] = nil
+        end
       end
     end
   end
+
+  return anyChanges
 end
 
 function BaganatorItemViewCommonNewItemsTrackingMixin:ForceClearNewItemsForTimeout()

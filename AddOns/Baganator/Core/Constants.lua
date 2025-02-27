@@ -34,6 +34,7 @@ addonTable.Constants.Events = {
   "GuildShow",
   "GuildHide",
   "CurrencyPanelToggle",
+  "RefreshStateChange",
 
   "ViewComplete",
   "BagCacheAfterNewItemsUpdate",
@@ -71,8 +72,6 @@ addonTable.Constants.Events = {
   "HighlightGuildTabItems",
   "ClearHighlightGuildTab",
 
-  "ContentRefreshRequired",
-  "LayoutUpdateRequired",
   "PluginsUpdated",
 
   "TransferCancel",
@@ -98,7 +97,8 @@ if not Syndicator then
   return
 end
 
-addonTable.Constants.KeywordGroupOrder = {
+addonTable.Constants.KeywordGroupOrder = Syndicator.Search.Constants.KeywordGroupOrder or {
+-- Stored here temporarily, true list is in Syndicator now
   SYNDICATOR_L_GROUP_ITEM_TYPE,
   SYNDICATOR_L_GROUP_ITEM_DETAIL,
   SYNDICATOR_L_GROUP_QUALITY,
@@ -143,7 +143,6 @@ addonTable.Constants.SampleSearchTerms = {
   ITEM_QUALITY3_DESC:lower(),
   ITEM_QUALITY2_DESC:lower(),
   SYNDICATOR_L_KEYWORD_BOA,
-  SYNDICATOR_L_KEYWORD_REPUTATION,
   SYNDICATOR_L_KEYWORD_AXE,
   SYNDICATOR_L_KEYWORD_SWORD,
   MOUNT:lower(),
@@ -196,4 +195,29 @@ addonTable.Constants.ContainerTypes = 13
 addonTable.Constants.BankTabType = {
   Character = 0,
   Warband = 1,
+}
+
+addonTable.Constants.RefreshReason = {
+  ItemData = 2,
+  ItemWidgets = 4,
+  ItemTextures = 8,
+  Searches = 16,
+  Layout = 32,
+  Buttons = 64,
+  Sorts = 128,
+  Flow = 256,
+  Cosmetic = 512,
+  Character = 1024,
+}
+
+Baganator.Constants.RefreshReason = {
+  ItemWidgets = addonTable.Constants.RefreshReason.ItemWidgets,
+  Searches = addonTable.Constants.RefreshReason.Searches,
+}
+
+addonTable.Constants.RefreshZone = {
+  Bags = 2,
+  CharacterBank = 4,
+  WarbandBank = 8,
+  GuildBank = 16,
 }
