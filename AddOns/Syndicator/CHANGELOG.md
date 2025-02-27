@@ -1,6 +1,7 @@
 # Syndicator
 
-## [157](https://github.com/Baganator/Syndicator/tree/157) (2025-01-11)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/156...157) 
+## [173](https://github.com/Baganator/Syndicator/tree/173) (2025-02-22)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/172...173) 
 
-- Make "#set bonus" keyword retail only, as only retail supports the needed APIs  
+- Open syndicator options with /syn or /syndicator slash commands  
+- Fix missing "return" when doing blank /syns search  
