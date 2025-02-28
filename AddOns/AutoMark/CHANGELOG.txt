@@ -90,3 +90,8 @@ The Stonevault
 	Ghastly Voidsoul - Priority mark with Star/Circle.
 City of Threads
 	Skittering Assistant - No longer marked
+
+v1.1.6
+Updated for 11.1.0 TWW Season 2.
+Added support for Season 2 dungeons: Theater of Pain, The MOTHERLOAD!!, Operation: Mechagon - Workshop & Operation: Floodgate.
+Siege of Boralus - The Ashvane Spotter before Dread Captain Lockwood is marked with a Skull. (Should be snared/rooted.)

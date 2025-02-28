@@ -25,7 +25,7 @@ MyAddon.Mobs = {
 	[135241] = {name = "Bilge Rat Pillager", instanceID = 1822},	-- elite Humanoid MANA 50 hostile attackable
 --	[135245] = {name = "Bilge Rat Demolisher", instanceID = 1822},	-- elite Humanoid RAGE 51 hostile attackable
 --	[135258] = {name = "Irontide Curseblade", instanceID = 1822},	-- normal Humanoid MANA 50 hostile attackable
---	[135263] = {name = "Ashvane Spotter", instanceID = 1822},	-- elite Humanoid RAGE 50 hostile attackable
+	[135263] = {name = "Ashvane Spotter", instanceID = 1822, marks = "+8"},	-- elite Humanoid RAGE 50 hostile attackable
 --	[136483] = {name = "Ashvane Deckhand", instanceID = 1822},	-- elite Humanoid RAGE 50 hostile attackable
 	[136549] = {name = "Ashvane Cannoneer", instanceID = 1822, marks = "8"},	-- elite Humanoid RAGE 51 hostile attackable
 --	[137405] = {name = "[BOSS ADD] Gripping Terror", instanceID = 1822},	-- elite Aberration RAGE 52 hostile attackable
@@ -350,6 +350,128 @@ MyAddon.Mobs = {
 --	[40320] = {name = "[BOSS] Valiona", instanceID = 670},	-- elite Dragonkin RAGE 37 hostile attackable
 --	[40484] = {name = "[BOSS] Erudax", instanceID = 670},	-- elite Aberration RAGE 37 hostile attackable
 
+-- Theater of Pain (2293) TWW Season 2
+	[160495] = {name = "Maniacal Soulbinder", instanceID = 2293},	-- elite Humanoid MANA 60 hostile attackable
+--	[162309] = {name = "[BOSS] Kul'tharok", instanceID = 2293},	-- elite Undead ENERGY 62 hostile attackable
+--	[162317] = {name = "[BOSS] Gorechop", instanceID = 2293},	-- elite Undead ENERGY 62 hostile attackable
+--	[162329] = {name = "[BOSS] Xav the Unfallen", instanceID = 2293},	-- elite Humanoid POWER_TYPE_WARLORD_BOSS_PVP_MECHANIC_ENERGY_BAR 62 hostile attackable
+--	[162744] = {name = "Nekthara the Mangler", instanceID = 2293},	-- elite Humanoid RAGE 61 hostile attackable
+--	[162763] = {name = "Soulforged Bonereaver", instanceID = 2293},	-- elite Undead RAGE 61 hostile attackable
+--	[163086] = {name = "Rancid Gasbag", instanceID = 2293},	-- elite Undead RAGE 61 hostile attackable
+--	[163089] = {name = "Disgusting Refuse", instanceID = 2293},	-- normal Undead RAGE 60 hostile attackable
+--	[164451] = {name = "[BOSS] Dessia the Decapitator", instanceID = 2293},	-- elite Humanoid POWER_TYPE_RED_POWER 62 hostile attackable
+	[164461] = {name = "[BOSS] Sathel the Accursed", instanceID = 2293, marks = "8"},	-- elite Humanoid POWER_TYPE_ENERGY 62 hostile attackable
+	[164463] = {name = "[BOSS] Paceran the Virulent", instanceID = 2293, marks = "7"},	-- elite Humanoid POWER_TYPE_ENERGY 62 hostile attackable
+	[164506] = {name = "Ancient Captain", instanceID = 2293, marks = "8"},	-- elite Undead RAGE 61 hostile attackable
+--	[164510] = {name = "Shambling Arbalest", instanceID = 2293},	-- elite Undead ENERGY 60 hostile attackable
+--	[165946] = {name = "[BOSS] Mordretha, the Endless Empress", instanceID = 2293},	-- elite Humanoid MANA 62 hostile attackable
+--	[167532] = {name = "Heavin the Breaker", instanceID = 2293},	-- elite Humanoid RAGE 61 hostile attackable
+--	[167533] = {name = "Advent Nevermore", instanceID = 2293},	-- elite Humanoid RAGE 61 hostile attackable
+--	[167534] = {name = "Rek the Hardened", instanceID = 2293},	-- elite Humanoid RAGE 61 hostile unattackable
+--	[167536] = {name = "Harugia the Bloodthirsty", instanceID = 2293},	-- elite Humanoid RAGE 61 hostile attackable
+--	[167538] = {name = "Dokigg the Brutalizer", instanceID = 2293},	-- elite Humanoid RAGE 61 hostile unattackable
+--	[167994] = {name = "Ossified Conscript", instanceID = 2293},	-- elite Undead RAGE 60 hostile attackable
+--	[167998] = {name = "Portal Guardian", instanceID = 2293},	-- elite Elemental MANA 61 hostile attackable
+--	[169875] = {name = "Shackled Soul", instanceID = 2293},	-- elite Undead MANA 60 hostile attackable
+	[169893] = {name = "Nefarious Darkspeaker", instanceID = 2293},	-- elite Undead MANA 61 hostile attackable
+--	[169927] = {name = "Putrid Butcher", instanceID = 2293},	-- elite Undead RAGE 60 hostile attackable
+	[170690] = {name = "Diseased Horror", instanceID = 2293},	-- elite Undead RAGE 60 hostile attackable
+--	[170838] = {name = "Unyielding Contender", instanceID = 2293},	-- elite Humanoid RAGE 60 hostile attackable
+--	[170850] = {name = "Raging Bloodhorn", instanceID = 2293},	-- elite Beast RAGE 61 hostile attackable
+	[170882] = {name = "Bone Magus", instanceID = 2293},	-- elite Undead MANA 60 hostile attackable
+	[174197] = {name = "Battlefield Ritualist", instanceID = 2293},	-- elite Humanoid MANA 60 hostile attackable
+
+-- The MOTHERLOAD!! (1594) TWW Season 2
+--	[129214] = {name = "[BOSS] Coin-Operated Crowd Pummeler", instanceID = 1594},	-- elite Mechanical ENERGY 62 hostile attackable
+--	[129227] = {name = "Azerokk", instanceID = 1594},	-- elite Elemental ENERGY 62 hostile attackable
+--	[129231] = {name = "[BOSS] Rixxa Fluxflame", instanceID = 1594},	-- elite Humanoid MANA 62 hostile attackable
+--	[129232] = {name = "[BOSS] Mogul Razdunk", instanceID = 1594},	-- elite Mechanical ENERGY 62 hostile attackable
+--	[129246] = {name = "Azerite Footbomb", instanceID = 1594},	-- normal Not specified RAGE 60 hostile attackable
+--	[129802] = {name = "[BOSS ADD] Earthrager", instanceID = 1594},	-- elite Elemental RAGE 60 hostile attackable
+--	[130435] = {name = "Addled Thug", instanceID = 1594},	-- elite Humanoid RAGE 61 hostile attackable
+--	[130436] = {name = "Off-Duty Laborer", instanceID = 1594},	-- normal Humanoid RAGE 60 hostile attackable
+--	[130437] = {name = "Mine Rat", instanceID = 1594},	-- normal Humanoid RAGE 60 hostile attackable
+--	[130485] = {name = "Mechanized Peacekeeper", instanceID = 1594},	-- elite Mechanical RAGE 61 hostile attackable
+	[130488] = {name = "Mech Jockey", instanceID = 1594, marks = "87"},	-- elite Humanoid RAGE 60 hostile attackable
+	[130635] = {name = "Stonefury", instanceID = 1594},	-- elite Elemental MANA 60 hostile attackable
+--	[130653] = {name = "Wanton Sapper", instanceID = 1594},	-- elite Humanoid RAGE 60 hostile attackable
+	[130661] = {name = "Venture Co. Earthshaper", instanceID = 1594},	-- elite Humanoid MANA 60 hostile attackable
+--	[132056] = {name = "[BOSS ADD] Venture Co. Skyscorcher", instanceID = 1594},	-- elite Humanoid RAGE 61 hostile attackable
+--	[132713] = {name = "Mogul Razdunk", instanceID = 1594},	-- normal Humanoid RAGE 60 hostile attackable
+	[133430] = {name = "Venture Co. Mastermind", instanceID = 1594, marks = "87"},	-- elite Humanoid MANA 61 hostile attackable
+	[133432] = {name = "Venture Co. Alchemist", instanceID = 1594},	-- elite Humanoid RAGE 60 hostile attackable
+--	[133463] = {name = "Venture Co. War Machine", instanceID = 1594},	-- elite Mechanical RAGE 61 hostile attackable
+--	[133482] = {name = "Crawler Mine", instanceID = 1594},	-- minus Mechanical RAGE 61 hostile attackable
+--	[133963] = {name = "Test Subject", instanceID = 1594},	-- normal Beast RAGE 60 hostile attackable
+--	[134005] = {name = "Shalebiter", instanceID = 1594},	-- normal Beast RAGE 60 hostile attackable
+--	[134012] = {name = "Taskmaster Askari", instanceID = 1594},	-- elite Humanoid RAGE 61 hostile attackable
+	[134232] = {name = "Hired Assassin", instanceID = 1594},	-- elite Humanoid ENERGY 60 hostile attackable
+--	[135975] = {name = "Off-Duty Laborer", instanceID = 1594},	-- normal Humanoid RAGE 60 hostile attackable
+--	[136139] = {name = "Mechanized Peacekeeper", instanceID = 1594},	-- elite Mechanical RAGE 61 hostile attackable
+	[136470] = {name = "Refreshment Vendor", instanceID = 1594},	-- elite Humanoid MANA 60 hostile attackable
+--	[136643] = {name = "Azerite Extractor", instanceID = 1594},	-- elite Mechanical RAGE 61 hostile attackable
+--	[136688] = {name = "Fanatical Driller", instanceID = 1594},	-- normal Humanoid RAGE 60 hostile attackable
+--	[136934] = {name = "Weapons Tester", instanceID = 1594},	-- elite Humanoid RAGE 60 hostile attackable
+--	[137029] = {name = "Ordnance Specialist", instanceID = 1594},	-- elite Humanoid RAGE 60 hostile attackable
+--	[137940] = {name = "Safety Shark", instanceID = 1594},	-- elite Beast RAGE 60 hostile attackable
+--	[138369] = {name = "Footbomb Hooligan", instanceID = 1594},	-- normal Humanoid RAGE 60 hostile attackable
+
+-- Operation: Mechagon - Workshop (2097) TWW Season 2
+--	[144244] = {name = "[BOSS] The Platinum Pummeler", instanceID = 2097},	-- elite Mechanical RAGE 52 hostile attackable
+--	[144246] = {name = "[BOSS] K.U.-J.0.", instanceID = 2097},	-- elite Mechanical RAGE 52 hostile attackable
+--	[144248] = {name = "[BOSS] Head Machinist Sparkflux", instanceID = 2097},	-- elite Mechanical ENERGY 52 hostile attackable
+--	[144249] = {name = "[BOSS] Omega Buster", instanceID = 2097},	-- elite Mechanical ENERGY 52 hostile attackable
+--	[144293] = {name = "Waste Processing Unit", instanceID = 2097},	-- elite Mechanical RAGE 51 hostile attackable
+	[144294] = {name = "Mechagon Tinkerer", instanceID = 2097},	-- elite Humanoid RAGE 50 hostile attackable
+	[144295] = {name = "Mechagon Mechanic", instanceID = 2097},	-- elite Humanoid RAGE 50 hostile attackable
+--	[144296] = {name = "Spider Tank", instanceID = 2097},	-- elite Mechanical RAGE 51 hostile attackable
+--	[144298] = {name = "Defense Bot Mk III", instanceID = 2097},	-- elite Mechanical RAGE 50 hostile attackable
+--	[144299] = {name = "Workshop Defender", instanceID = 2097},	-- elite Humanoid RAGE 50 hostile attackable
+--	[144301] = {name = "Living Waste", instanceID = 2097},	-- minus Elemental RAGE 50 hostile attackable
+--	[144303] = {name = "G.U.A.R.D.", instanceID = 2097},	-- elite Mechanical RAGE 50 hostile attackable
+--	[145185] = {name = "[BOSS] Gnomercy 4.U.", instanceID = 2097},	-- elite Mechanical RAGE 52 hostile attackable
+--	[150396] = {name = "[BOSS] Aerial Unit R-21/X", instanceID = 2097},	-- elite Mechanical ENERGY 52 hostile attackable
+--	[150397] = {name = "King Mechagon", instanceID = 2097},	-- elite Mechanical ENERGY 52 hostile attackable
+--	[151325] = {name = "Alarm-o-Bot", instanceID = 2097},	-- normal Mechanical RAGE 50 hostile attackable
+--	[151476] = {name = "Blastatron X-80", instanceID = 2097},	-- elite Mechanical RAGE 51 hostile attackable
+--	[151579] = {name = "Shield Generator", instanceID = 2097},	-- normal Mechanical ENERGY 50 hostile attackable
+--	[151613] = {name = "Anti-Personnel Squirrel", instanceID = 2097},	-- normal Mechanical RAGE 50 hostile attackable
+--	[151649] = {name = "Defense Bot Mk I", instanceID = 2097},	-- elite Mechanical RAGE 50 hostile attackable
+	[151657] = {name = "Bomb Tonk", instanceID = 2097},	-- elite Mechanical RAGE 50 hostile attackable
+--	[151658] = {name = "Strider Tonk", instanceID = 2097},	-- elite Mechanical RAGE 50 hostile attackable
+--	[151659] = {name = "Rocket Tonk", instanceID = 2097},	-- elite Mechanical RAGE 50 hostile attackable
+--	[151773] = {name = "Junkyard D.0.G.", instanceID = 2097},	-- elite Mechanical RAGE 50 hostile attackable
+--	[151812] = {name = "Detect-o-Bot", instanceID = 2097},	-- normal Mechanical RAGE 50 hostile attackable
+--	[152033] = {name = "[BOSS ADD] Inconspicuous Plant", instanceID = 2097},	-- normal Mechanical RAGE 50 hostile attackable
+
+-- Operation: Floodgate (2773) TWW Season 2
+--	[226396] = {name = "[BOSS] Swampface", instanceID = 2773},	-- elite Elemental ENERGY 82 hostile attackable
+--	[226398] = {name = "[BOSS] Big M.O.M.M.A.", instanceID = 2773},	-- elite Mechanical POWER_TYPE_ENERGY 82 hostile attackable
+--	[226402] = {name = "[BOSS] Bront", instanceID = 2773},	-- elite Humanoid ENERGY 82 hostile attackable
+--	[226403] = {name = "[BOSS] Keeza Quickfuse", instanceID = 2773},	-- elite Humanoid ENERGY 82 hostile attackable
+--	[226404] = {name = "[BOSS] Geezle Gigazap", instanceID = 2773},	-- elite Humanoid POWER_TYPE_STORMENERGY 82 hostile attackable
+--	[227145] = {name = "Waterworks Crocolisk", instanceID = 2773},	-- elite Beast RAGE 80 hostile attackable
+--	[228144] = {name = "Darkfuse Soldier", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
+--	[228424] = {name = "Darkfuse Mechadrone", instanceID = 2773},	-- elite Mechanical RAGE 81 hostile attackable
+--	[229069] = {name = "Mechadrone Sniper", instanceID = 2773},	-- elite Mechanical RAGE 80 hostile attackable
+--	[229212] = {name = "Darkfuse Demolitionist", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
+--	[229250] = {name = "Venture Co. Contractor", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
+	[229251] = {name = "Venture Co. Architect", instanceID = 2773},	-- elite Humanoid MANA 81 hostile attackable
+--	[229252] = {name = "Darkfuse Hyena", instanceID = 2773},	-- elite Beast RAGE 80 hostile attackable
+	[229686] = {name = "Venture Co. Surveyor", instanceID = 2773},	-- elite Humanoid MANA 80 hostile attackable
+--	[230740] = {name = "Shreddinator 3000", instanceID = 2773},	-- elite Mechanical RAGE 81 hostile attackable
+	[230748] = {name = "Darkfuse Bloodwarper", instanceID = 2773},	-- elite Humanoid MANA 81 hostile attackable
+--	[231014] = {name = "Loaderbot", instanceID = 2773},	-- elite Mechanical RAGE 80 hostile attackable
+--	[231176] = {name = "Scaffolding", instanceID = 2773},	-- normal Not specified RAGE 80 hostile attackable
+--	[231197] = {name = "Bubbles", instanceID = 2773},	-- elite Beast RAGE 81 hostile attackable
+	[231223] = {name = "Disturbed Kelp", instanceID = 2773},	-- elite Elemental RAGE 80 hostile attackable
+	[231312] = {name = "Venture Co. Electrician", instanceID = 2773},	-- elite Humanoid MANA 80 hostile attackable
+--	[231325] = {name = "Darkfuse Jumpstarter", instanceID = 2773},	-- elite Humanoid RAGE 81 hostile attackable
+--	[231380] = {name = "Undercrawler", instanceID = 2773},	-- elite Beast RAGE 80 hostile attackable
+--	[231385] = {name = "Darkfuse Inspector", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
+--	[231496] = {name = "Venture Co. Diver", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
+--	[231497] = {name = "Bombshell Crab", instanceID = 2773},	-- elite Beast RAGE 80 hostile attackable
+--	[236982] = {name = "Darkfuse Soldier", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
 
 -- Algeth'ar Academy (2526)
 	[196548] = {name = "[BOSS-ADD] Ancient Branch", instanceID = 2526, auto = "nameplate", marks = "87"},
