@@ -109,9 +109,9 @@ function Core.SkinIcon(Region, Button, Skin, xScale, yScale)
 	local bType = Button.__MSQ_bType
 	local Layer = "BACKGROUND"
 
-	if bType == "Item" then
-		Layer = "BORDER"
-	end
+	-- if bType == "Item" then
+	-- 	Layer = "BORDER"
+	-- end
 
 	Button.__MSQ_Icon = Region
 	Region.__MSQ_Button = Button
