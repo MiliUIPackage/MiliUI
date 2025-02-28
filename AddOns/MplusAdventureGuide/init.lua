@@ -14,7 +14,6 @@ EventUtil.ContinueOnAddOnLoaded(addonName, function()
         
         EventUtil.ContinueOnAddOnLoaded("Blizzard_AchievementUI", addon.initAchievementExpansionFeatures)
         EventUtil.ContinueOnAddOnLoaded("Blizzard_Collections", addon.initWardrobeClassColours)
-        EventUtil.ContinueOnAddOnLoaded("Blizzard_GroupFinder", addon.initMinRatingLonger)
         EventUtil.ContinueOnAddOnLoaded("Blizzard_TokenUI", addon.initWarbandTransferable)
         EventUtil.ContinueOnAddOnLoaded("Blizzard_WeeklyRewards", addon.initDelvesProgressTooltip)
     end)
