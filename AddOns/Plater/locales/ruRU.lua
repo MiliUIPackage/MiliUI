@@ -4,12 +4,18 @@ do
     local L = languageTable
 
 ------------------------------------------------------------
+--[[Translation missing --]]
+L["A /reload may be required to take effect."] = "A /reload may be required to take effect."
+--[[Translation missing --]]
+L["CVar, saved within Plater profile and restored when loading the profile."] = "CVar, saved within Plater profile and restored when loading the profile."
 L["EXPORT"] = "Экспорт"
 L["EXPORT_CAST_COLORS"] = "Поделиться Цветами"
 L["EXPORT_CAST_SOUNDS"] = "Поделиться Звуками"
 L["HIGHLIGHT_HOVEROVER"] = "Подсвечивание при наведении курсора"
 L["HIGHLIGHT_HOVEROVER_ALPHA"] = "Степень подсвечивания при наведении курсора"
 L["HIGHLIGHT_HOVEROVER_DESC"] = "Эффект подсвечивания при наведении курсора мыши над индикаторами здоровья"
+--[[Translation missing --]]
+L["Hold Shift to change the sound of all casts with the audio %s to %s"] = "Hold Shift to change the sound of all casts with the audio %s to %s"
 L["IMPORT"] = "Импорт"
 L["IMPORT_CAST_COLORS"] = "Импортировать Цвета"
 L["IMPORT_CAST_SOUNDS"] = "Импортировать Звуки"
@@ -178,6 +184,10 @@ L["OPTIONS_ICON_WORLDBOSS"] = "Иконка Мирового Босса"
 L["OPTIONS_ICONROWSPACING"] = "Icon Row Spacing"
 L["OPTIONS_ICONSPACING"] = "Пробел между иконками"
 L["OPTIONS_INDICATORS"] = "Индикаторы"
+--[[Translation missing --]]
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR"] = "Game object name color"
+--[[Translation missing --]]
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR_DESC"] = "Names on objects will get this color."
 L["OPTIONS_INTERRUPT_FILLBAR"] = "Заполнять полосу заклинания при прерывании"
 --[[Translation missing --]]
 L["OPTIONS_INTERRUPT_SHOW_ANIM"] = "Play Interrupt Animation"
@@ -395,6 +405,16 @@ L["OPTIONS_XOFFSET_DESC"] = [=[Регулировка положения по о
 L["OPTIONS_YOFFSET"] = "Смещ Y"
 L["OPTIONS_YOFFSET_DESC"] = [=[Регулировка положения по оси Y.
 *щелкните правой кнопкой мыши, чтобы ввести значение.]=]
+--[[Translation missing --]]
+L[ [=[Show nameplate for friendly npcs.
+
+|cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
+
+|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=] ] = [=[Show nameplate for friendly npcs.
+
+|cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
+
+|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=]
 L["TARGET_CVAR_ALWAYSONSCREEN"] = "Цель ВСЕГДА на экране|cFFFF7700*|r"
 --[[Translation missing --]]
 L["TARGET_CVAR_ALWAYSONSCREEN_DESC"] = [=[When enabled, the nameplate of your target is always shown even when the enemy isn't in the screen.

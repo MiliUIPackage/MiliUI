@@ -655,7 +655,7 @@ detailsFramework:Mixin(ButtonMetaFunctions, detailsFramework.ScriptHookMixin)
 
 		if (object.capsule_textalign) then
 			if (object.icon) then
-				object.icon:SetPoint("left", button, "left", 5 + (object.icon.leftpadding or 0), -1)
+				object.icon:SetPoint("left", button, "left", 5 + (object.icon.leftPadding or 0), -1)
 
 			elseif (object.capsule_textalign == "left") then
 				button.text:SetPoint("left", button, "left", 3, -1)
@@ -668,7 +668,7 @@ detailsFramework:Mixin(ButtonMetaFunctions, detailsFramework.ScriptHookMixin)
 			end
 		else
 			if (object.icon) then
-				object.icon:SetPoint("left", button, "left", 5 + (object.icon.leftpadding or 0), -1)
+				object.icon:SetPoint("left", button, "left", 5 + (object.icon.leftPadding or 0), -1)
 			else
 				button.text:SetPoint("center", button,"center", 1, -1)
 			end
@@ -729,7 +729,7 @@ detailsFramework:Mixin(ButtonMetaFunctions, detailsFramework.ScriptHookMixin)
 
 		if (object.capsule_textalign) then
 			if (object.icon) then
-				object.icon:SetPoint("left", button, "left", 4 + (object.icon.leftpadding or 0), 0)
+				object.icon:SetPoint("left", button, "left", 4 + (object.icon.leftPadding or 0), 0)
 
 			elseif (object.capsule_textalign == "left") then
 				button.text:SetPoint("left", button, "left", 2, 0)
@@ -742,7 +742,7 @@ detailsFramework:Mixin(ButtonMetaFunctions, detailsFramework.ScriptHookMixin)
 			end
 		else
 			if (object.icon) then
-				object.icon:SetPoint("left", button, "left", 4 + (object.icon.leftpadding or 0), 0)
+				object.icon:SetPoint("left", button, "left", 4 + (object.icon.leftPadding or 0), 0)
 			else
 				button.text:SetPoint("center", button,"center", 0, 0)
 			end
@@ -828,7 +828,7 @@ function ButtonMetaFunctions:SetTemplate(template)
 
 	if (template.icon) then
 		local iconInfo = template.icon
-		self:SetIcon(iconInfo.texture, iconInfo.width, iconInfo.height, iconInfo.layout, iconInfo.texcoord, iconInfo.color, iconInfo.textdistance, iconInfo.leftpadding)
+		self:SetIcon(iconInfo.texture, iconInfo.width, iconInfo.height, iconInfo.layout, iconInfo.texcoord, iconInfo.color, iconInfo.textdistance, iconInfo.leftPadding)
 	end
 
 	if (template.textsize) then
@@ -1009,9 +1009,11 @@ end
 		buttonObject.text_overlay = _G[name .. "_Text"]
 		buttonObject.disabled_overlay = _G[name .. "_TextureDisabled"]
 
+		-- "dungeons/textures/common/transparent.blp", an epmty texture as default.
+		-- emptystring seems to cause weird issues (GREEEEEEN!) under unknown circumstances
+		texture = texture ~= "" and texture or 982414
+		
 		--check for atlas
-		texture = texture or ""
-
 		local bSetTexture = false
 		if (type(texture) == "string") then
 			local isAtlas = C_Texture.GetAtlasInfo(texture)

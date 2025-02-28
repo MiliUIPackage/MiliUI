@@ -4,12 +4,18 @@ do
     local L = languageTable
 
 ------------------------------------------------------------
+--[[Translation missing --]]
+L["A /reload may be required to take effect."] = "A /reload may be required to take effect."
+--[[Translation missing --]]
+L["CVar, saved within Plater profile and restored when loading the profile."] = "CVar, saved within Plater profile and restored when loading the profile."
 L["EXPORT"] = "내보내기"
 L["EXPORT_CAST_COLORS"] = "시전바 색상 내보내기"
 L["EXPORT_CAST_SOUNDS"] = "시전바 소리 내보내기"
 L["HIGHLIGHT_HOVEROVER"] = "마우스오버 강조"
 L["HIGHLIGHT_HOVEROVER_ALPHA"] = "마우스오버 강조 투명도"
 L["HIGHLIGHT_HOVEROVER_DESC"] = "마우스를 이름표에 올렸을 때 하이라이트 효과를 적용합니다."
+--[[Translation missing --]]
+L["Hold Shift to change the sound of all casts with the audio %s to %s"] = "Hold Shift to change the sound of all casts with the audio %s to %s"
 L["IMPORT"] = "가져오기"
 L["IMPORT_CAST_COLORS"] = "시전바 색상 가져오기"
 L["IMPORT_CAST_SOUNDS"] = "시전바 소리 가져오기"
@@ -162,6 +168,10 @@ L["OPTIONS_ICON_WORLDBOSS"] = "월드 보스 아이콘"
 L["OPTIONS_ICONROWSPACING"] = "아이콘 줄 간격"
 L["OPTIONS_ICONSPACING"] = "아이콘 간격"
 L["OPTIONS_INDICATORS"] = "Indicators"
+--[[Translation missing --]]
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR"] = "Game object name color"
+--[[Translation missing --]]
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR_DESC"] = "Names on objects will get this color."
 L["OPTIONS_INTERRUPT_FILLBAR"] = "차단 시 시전바 채우기"
 L["OPTIONS_INTERRUPT_SHOW_ANIM"] = "차단 애니메이션 재생"
 L["OPTIONS_INTERRUPT_SHOW_AUTHOR"] = "시전 차단한 유저 표시"
@@ -350,6 +360,16 @@ L["OPTIONS_YOFFSET"] = "Y 좌표"
 L["OPTIONS_YOFFSET_DESC"] = [=[Y 축 값을 설정합니다.
 
 *우클릭으로 값을 입력할 수 있습니다.]=]
+--[[Translation missing --]]
+L[ [=[Show nameplate for friendly npcs.
+
+|cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
+
+|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=] ] = [=[Show nameplate for friendly npcs.
+
+|cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
+
+|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=]
 L["TARGET_CVAR_ALWAYSONSCREEN"] = "대상을 항상 화면안에 표시|cFFFF7700*|r"
 L["TARGET_CVAR_ALWAYSONSCREEN_DESC"] = [=[체크하면 대상이 화면밖일 때에도 이름표가 항상 화면안에 보이도록 합니다.
 

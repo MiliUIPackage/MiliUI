@@ -4,12 +4,18 @@ do
     local L = languageTable
 
 ------------------------------------------------------------
+--[[Translation missing --]]
+L["A /reload may be required to take effect."] = "A /reload may be required to take effect."
+--[[Translation missing --]]
+L["CVar, saved within Plater profile and restored when loading the profile."] = "CVar, saved within Plater profile and restored when loading the profile."
 L["EXPORT"] = "Exportar"
 L["EXPORT_CAST_COLORS"] = "Compartilhar Cores"
 L["EXPORT_CAST_SOUNDS"] = "Compartilhar Sons"
 L["HIGHLIGHT_HOVEROVER"] = "Passe o Mouse Sobre o Destaque"
 L["HIGHLIGHT_HOVEROVER_ALPHA"] = "Passe o Mouse Sobre o Destaque Alfa"
 L["HIGHLIGHT_HOVEROVER_DESC"] = "Destaque os efeitos quando o mouse estiver em cima da placa de identificação."
+--[[Translation missing --]]
+L["Hold Shift to change the sound of all casts with the audio %s to %s"] = "Hold Shift to change the sound of all casts with the audio %s to %s"
 L["IMPORT"] = "Importar"
 L["IMPORT_CAST_COLORS"] = "Importar Cores"
 L["IMPORT_CAST_SOUNDS"] = "Importar Sons"
@@ -156,6 +162,10 @@ L["OPTIONS_ICON_WORLDBOSS"] = "Ícone de Chefe Mundial"
 L["OPTIONS_ICONROWSPACING"] = "Espaçamento de Linha do Ícone"
 L["OPTIONS_ICONSPACING"] = "Espaçamento do Ícone"
 L["OPTIONS_INDICATORS"] = "Indicadores"
+--[[Translation missing --]]
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR"] = "Game object name color"
+--[[Translation missing --]]
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR_DESC"] = "Names on objects will get this color."
 L["OPTIONS_INTERRUPT_FILLBAR"] = "Preenche a Barra de lançamento na Interrupção"
 L["OPTIONS_INTERRUPT_SHOW_ANIM"] = "Reproduz Animação de Interrupção"
 L["OPTIONS_INTERRUPT_SHOW_AUTHOR"] = "Mostra o Autor da Interrupção"
@@ -336,6 +346,16 @@ L["OPTIONS_XOFFSET"] = "Deslocamento horizontal"
 L["OPTIONS_XOFFSET_DESC"] = "Ajuste a posição do eixo X. *clique com botão direito para digitar um valor."
 L["OPTIONS_YOFFSET"] = "Deslocamento vertical"
 L["OPTIONS_YOFFSET_DESC"] = "Ajuste a posição do eixo Y. *clique com botão direito para digitar um valor."
+--[[Translation missing --]]
+L[ [=[Show nameplate for friendly npcs.
+
+|cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
+
+|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=] ] = [=[Show nameplate for friendly npcs.
+
+|cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
+
+|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=]
 L["TARGET_CVAR_ALWAYSONSCREEN"] = "Alvo Sempre na Tela|cFFFF7700*|r"
 L["TARGET_CVAR_ALWAYSONSCREEN_DESC"] = "Quando habilitado, a placa de identificação do seu alvo é sempre exibida, mesmo que o inimigo não esteja na tela. |cFFFF7700[*]|r |cFFa0a0a0CVar, salvo no perfil do Plater e restaurado quando o perfil é carregado."
 L["TARGET_CVAR_LOCKTOSCREEN"] = "Bloqueio de Tela (Lado Superior)|cFFFF7700*|r"

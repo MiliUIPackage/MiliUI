@@ -257,12 +257,15 @@ Plater.NameplateComponents = {
 		"unit",
 		"ThrottleUpdate",
 		"SpellName",
+		"SpellNameRenamed",
 		"SpellID",
 		"SpellTexture",
 		"SpellStartTime",
 		"SpellEndTime",
 		"CanInterrupt",
 		"IsInterrupted",
+		"InterruptSourceName",
+		"InterruptSourceGUID",
 	},
 	
 	["castBar - Frames"] = {

@@ -4,12 +4,18 @@ do
     local L = languageTable
 
 ------------------------------------------------------------
+--[[Translation missing --]]
+L["A /reload may be required to take effect."] = "A /reload may be required to take effect."
+--[[Translation missing --]]
+L["CVar, saved within Plater profile and restored when loading the profile."] = "CVar, saved within Plater profile and restored when loading the profile."
 L["EXPORT"] = "导出"
 L["EXPORT_CAST_COLORS"] = "导出施法条颜色"
 L["EXPORT_CAST_SOUNDS"] = "导出施法条声音"
 L["HIGHLIGHT_HOVEROVER"] = "鼠标悬停高亮"
 L["HIGHLIGHT_HOVEROVER_ALPHA"] = "鼠标悬停高亮透明度"
 L["HIGHLIGHT_HOVEROVER_DESC"] = "鼠标放在姓名版上时的高亮效果."
+--[[Translation missing --]]
+L["Hold Shift to change the sound of all casts with the audio %s to %s"] = "Hold Shift to change the sound of all casts with the audio %s to %s"
 L["IMPORT"] = "导入"
 L["IMPORT_CAST_COLORS"] = "导入施法条颜色"
 L["IMPORT_CAST_SOUNDS"] = "导入施法条声音"
@@ -146,6 +152,10 @@ L["OPTIONS_ICON_WORLDBOSS"] = "世界首领图标"
 L["OPTIONS_ICONROWSPACING"] = "图标行间距"
 L["OPTIONS_ICONSPACING"] = "图标间距"
 L["OPTIONS_INDICATORS"] = "指示器"
+--[[Translation missing --]]
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR"] = "Game object name color"
+--[[Translation missing --]]
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR_DESC"] = "Names on objects will get this color."
 L["OPTIONS_INTERRUPT_FILLBAR"] = "打断时填充施法条"
 L["OPTIONS_INTERRUPT_SHOW_ANIM"] = "播放打断动画"
 L["OPTIONS_INTERRUPT_SHOW_AUTHOR"] = "显示打断者名字"
@@ -304,6 +314,16 @@ L["OPTIONS_XOFFSET"] = "X 偏移"
 L["OPTIONS_XOFFSET_DESC"] = "调整X轴上的位置。右键点击输入数值。"
 L["OPTIONS_YOFFSET"] = "Y 偏移"
 L["OPTIONS_YOFFSET_DESC"] = "调整Y轴上的位置。右键点击输入数值。"
+--[[Translation missing --]]
+L[ [=[Show nameplate for friendly npcs.
+
+|cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
+
+|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=] ] = [=[Show nameplate for friendly npcs.
+
+|cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
+
+|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=]
 L["TARGET_CVAR_ALWAYSONSCREEN"] = "目标始终在屏幕上|cFFFF7700*|r"
 L["TARGET_CVAR_ALWAYSONSCREEN_DESC"] = "启用后，当前目标即使不在屏幕中，也会始终显示其姓名板。 |cFFFF7700[*]|r |cFFa0a0a0CVar，保存在Plater配置文件中，并在加载配置文件时恢复。|r"
 L["TARGET_CVAR_LOCKTOSCREEN"] = "锁定至屏幕（顶部）|cFFFF7700*|r"

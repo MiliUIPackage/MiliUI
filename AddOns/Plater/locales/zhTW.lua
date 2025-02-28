@@ -5,48 +5,33 @@ do
 
 ------------------------------------------------------------
 --[[Translation missing --]]
-L["EXPORT"] = "Export"
+L["A /reload may be required to take effect."] = "A /reload may be required to take effect."
 --[[Translation missing --]]
-L["EXPORT_CAST_COLORS"] = "Share Colors"
+L["CVar, saved within Plater profile and restored when loading the profile."] = "CVar, saved within Plater profile and restored when loading the profile."
+L["EXPORT"] = "匯出"
+L["EXPORT_CAST_COLORS"] = "匯出施法條顏色"
+L["EXPORT_CAST_SOUNDS"] = "匯出施法條聲音"
+L["HIGHLIGHT_HOVEROVER"] = "滑鼠懸停顯示"
+L["HIGHLIGHT_HOVEROVER_ALPHA"] = "滑鼠懸停顯示透明度"
+L["HIGHLIGHT_HOVEROVER_DESC"] = "滑鼠在姓名版的懸停顯示效果"
 --[[Translation missing --]]
-L["EXPORT_CAST_SOUNDS"] = "Share Sounds"
---[[Translation missing --]]
-L["HIGHLIGHT_HOVEROVER"] = "Hover Over Highlight"
---[[Translation missing --]]
-L["HIGHLIGHT_HOVEROVER_ALPHA"] = "Hover Over Highlight Alpha"
---[[Translation missing --]]
-L["HIGHLIGHT_HOVEROVER_DESC"] = "Highlight effect when the mouse is over the nameplate."
---[[Translation missing --]]
-L["IMPORT"] = "Import"
---[[Translation missing --]]
-L["IMPORT_CAST_COLORS"] = "Import Colors"
---[[Translation missing --]]
-L["IMPORT_CAST_SOUNDS"] = "Import Sounds"
+L["Hold Shift to change the sound of all casts with the audio %s to %s"] = "Hold Shift to change the sound of all casts with the audio %s to %s"
+L["IMPORT"] = "匯入"
+L["IMPORT_CAST_COLORS"] = "匯入施法條顏色"
+L["IMPORT_CAST_SOUNDS"] = "匯入施法條聲音"
 L["OPTIONS_ALPHA"] = "透明度"
---[[Translation missing --]]
-L["OPTIONS_ALPHABYFRAME_ALPHAMULTIPLIER"] = "Transparency multiplier."
---[[Translation missing --]]
-L["OPTIONS_ALPHABYFRAME_DEFAULT"] = "Default Transparency"
---[[Translation missing --]]
-L["OPTIONS_ALPHABYFRAME_DEFAULT_DESC"] = "Amount of transparency applyed to all the components of a single nameplate."
---[[Translation missing --]]
-L["OPTIONS_ALPHABYFRAME_ENABLE_ENEMIES"] = "Enable For Enemies"
---[[Translation missing --]]
-L["OPTIONS_ALPHABYFRAME_ENABLE_ENEMIES_DESC"] = "Apply Transparency settings to enemy units."
---[[Translation missing --]]
-L["OPTIONS_ALPHABYFRAME_ENABLE_FRIENDLY"] = "Enable For Friendly"
---[[Translation missing --]]
-L["OPTIONS_ALPHABYFRAME_ENABLE_FRIENDLY_DESC"] = "Apply Transparency settings to friendly units."
---[[Translation missing --]]
-L["OPTIONS_ALPHABYFRAME_TARGET_INRANGE"] = "Target Alpha/In-Range"
---[[Translation missing --]]
-L["OPTIONS_ALPHABYFRAME_TARGET_INRANGE_DESC"] = "Transparency for targets or in-range units."
---[[Translation missing --]]
-L["OPTIONS_ALPHABYFRAME_TITLE_ENEMIES"] = "Transparency Amount Per Frame (enemies)"
---[[Translation missing --]]
-L["OPTIONS_ALPHABYFRAME_TITLE_FRIENDLY"] = "Transparency Amount Per Frame (friendly)"
---[[Translation missing --]]
-L["OPTIONS_AMOUNT"] = "Amount"
+L["OPTIONS_ALPHABYFRAME_ALPHAMULTIPLIER"] = "透明度倍數"
+L["OPTIONS_ALPHABYFRAME_DEFAULT"] = "預設透明度"
+L["OPTIONS_ALPHABYFRAME_DEFAULT_DESC"] = "姓名板中所有部分的透明度"
+L["OPTIONS_ALPHABYFRAME_ENABLE_ENEMIES"] = "為敵對啟用"
+L["OPTIONS_ALPHABYFRAME_ENABLE_ENEMIES_DESC"] = "為敵對單位套用透明度設定"
+L["OPTIONS_ALPHABYFRAME_ENABLE_FRIENDLY"] = "為友方啟用"
+L["OPTIONS_ALPHABYFRAME_ENABLE_FRIENDLY_DESC"] = "為友方單位套用透明度設定"
+L["OPTIONS_ALPHABYFRAME_TARGET_INRANGE"] = "目標/範圍內不透明度"
+L["OPTIONS_ALPHABYFRAME_TARGET_INRANGE_DESC"] = "目標或範圍內單位的透明度"
+L["OPTIONS_ALPHABYFRAME_TITLE_ENEMIES"] = "框架透明度 (敵對)"
+L["OPTIONS_ALPHABYFRAME_TITLE_FRIENDLY"] = "框架透明度 (友方)"
+L["OPTIONS_AMOUNT"] = "數值"
 L["OPTIONS_ANCHOR"] = "錨點"
 L["OPTIONS_ANCHOR_BOTTOM"] = "底部"
 L["OPTIONS_ANCHOR_BOTTOMLEFT"] = "左下"
@@ -58,163 +43,83 @@ L["OPTIONS_ANCHOR_INNERRIGHT"] = "右邊內側"
 L["OPTIONS_ANCHOR_INNERTOP"] = "頂部內側"
 L["OPTIONS_ANCHOR_LEFT"] = "左側"
 L["OPTIONS_ANCHOR_RIGHT"] = "右側"
---[[Translation missing --]]
-L["OPTIONS_ANCHOR_TARGET_SIDE"] = "Which side this widget is attach to."
+L["OPTIONS_ANCHOR_TARGET_SIDE"] = "該部分吸附在姓名版哪邊"
 L["OPTIONS_ANCHOR_TOP"] = "頂部"
 L["OPTIONS_ANCHOR_TOPLEFT"] = "左上"
 L["OPTIONS_ANCHOR_TOPRIGHT"] = "右上"
---[[Translation missing --]]
-L["OPTIONS_AUDIOCUE_COOLDOWN"] = "Audio Cooldown"
---[[Translation missing --]]
-L["OPTIONS_AUDIOCUE_COOLDOWN_DESC"] = [=[Amount of time in milliseconds to wait before playing the SAME audio again.
-
-Prevents loud sounds from playing when two or more casts are happening at the same time.
-
-Set to 0 to disable this feature.]=]
---[[Translation missing --]]
-L["OPTIONS_AURA_DEBUFF_HEIGHT"] = "Debuff's icon height."
---[[Translation missing --]]
-L["OPTIONS_AURA_DEBUFF_WITH"] = "Debuff's icon width."
---[[Translation missing --]]
-L["OPTIONS_AURA_HEIGHT"] = "Debuff's icon height."
---[[Translation missing --]]
-L["OPTIONS_AURA_SHOW_BUFFS"] = "Show Buffs"
---[[Translation missing --]]
-L["OPTIONS_AURA_SHOW_BUFFS_DESC"] = "Show buffs on you on the Personal Bar."
---[[Translation missing --]]
-L["OPTIONS_AURA_SHOW_DEBUFFS"] = "Show Debuffs"
---[[Translation missing --]]
-L["OPTIONS_AURA_SHOW_DEBUFFS_DESC"] = "Show debuffs on you on the Personal Bar."
---[[Translation missing --]]
-L["OPTIONS_AURA_WIDTH"] = "Debuff's icon width."
---[[Translation missing --]]
-L["OPTIONS_AURAS_ENABLETEST"] = "Enable this to hide test auras shown when configuring."
---[[Translation missing --]]
-L["OPTIONS_AURAS_SORT"] = "Sort Auras"
---[[Translation missing --]]
-L["OPTIONS_AURAS_SORT_DESC"] = "Auras are sorted by time remaining (default)."
---[[Translation missing --]]
-L["OPTIONS_BACKGROUND_ALWAYSSHOW"] = "Always Show Background"
---[[Translation missing --]]
-L["OPTIONS_BACKGROUND_ALWAYSSHOW_DESC"] = "Enable a background showing the area of the clickable area."
---[[Translation missing --]]
-L["OPTIONS_BORDER_COLOR"] = "Border Color"
---[[Translation missing --]]
-L["OPTIONS_BORDER_THICKNESS"] = "Border Thickness"
---[[Translation missing --]]
-L["OPTIONS_BUFFFRAMES"] = "Buff Frames"
+L["OPTIONS_AUDIOCUE_COOLDOWN"] = "音效冷卻"
+L["OPTIONS_AUDIOCUE_COOLDOWN_DESC"] = "等待的毫秒數，用於在播放相同音效之前的間隔。此設定可防止在同時進行兩次或更多施法時播放過大的聲音。設為 0 可停用此功能。"
+L["OPTIONS_AURA_DEBUFF_HEIGHT"] = "減益圖示高度"
+L["OPTIONS_AURA_DEBUFF_WITH"] = "減益圖示寬度"
+L["OPTIONS_AURA_HEIGHT"] = "減益圖示高度"
+L["OPTIONS_AURA_SHOW_BUFFS"] = "顯示增益"
+L["OPTIONS_AURA_SHOW_BUFFS_DESC"] = "在你的個人條上顯示增益效果"
+L["OPTIONS_AURA_SHOW_DEBUFFS"] = "顯示減益"
+L["OPTIONS_AURA_SHOW_DEBUFFS_DESC"] = "在你的個人條上顯示減益效果"
+L["OPTIONS_AURA_WIDTH"] = "減益圖示寬度"
+L["OPTIONS_AURAS_ENABLETEST"] = "啟用此選項可隱藏設定時顯示的測試光環"
+L["OPTIONS_AURAS_SORT"] = "光環排序"
+L["OPTIONS_AURAS_SORT_DESC"] = "按剩餘時間排序（默認）"
+L["OPTIONS_BACKGROUND_ALWAYSSHOW"] = "總是顯示背景"
+L["OPTIONS_BACKGROUND_ALWAYSSHOW_DESC"] = "啟用一個顯示可點擊區域的背景"
+L["OPTIONS_BORDER_COLOR"] = "邊框顏色"
+L["OPTIONS_BORDER_THICKNESS"] = "邊框厚度"
+L["OPTIONS_BUFFFRAMES"] = "增減益框架"
 L["OPTIONS_CANCEL"] = "取消"
---[[Translation missing --]]
-L["OPTIONS_CAST_COLOR_CHANNELING"] = "Channelled"
---[[Translation missing --]]
-L["OPTIONS_CAST_COLOR_INTERRUPTED"] = "Interrupted"
---[[Translation missing --]]
-L["OPTIONS_CAST_COLOR_REGULAR"] = "Regular"
---[[Translation missing --]]
-L["OPTIONS_CAST_COLOR_SUCCESS"] = "Success"
---[[Translation missing --]]
-L["OPTIONS_CAST_COLOR_UNINTERRUPTIBLE"] = "Uninterruptible"
---[[Translation missing --]]
-L["OPTIONS_CAST_SHOW_TARGETNAME"] = "Show Target Name"
---[[Translation missing --]]
-L["OPTIONS_CAST_SHOW_TARGETNAME_DESC"] = "Show who is the target of the current cast (if the target exists)"
---[[Translation missing --]]
-L["OPTIONS_CAST_SHOW_TARGETNAME_TANK"] = "[Tank] Don't Show Your Name"
---[[Translation missing --]]
-L["OPTIONS_CAST_SHOW_TARGETNAME_TANK_DESC"] = "If you are a tank don't show the target name if the cast is on you."
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_APPEARANCE"] = "Cast Bar Appearance"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_BLIZZCASTBAR"] = "Blizzard Cast Bar"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_COLORS"] = "Cast Bar Colors"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_FADE_ANIM_ENABLED"] = "Enable Fade Animations"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_FADE_ANIM_ENABLED_DESC"] = "Enable fade animations when the cast starts and stop."
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_FADE_ANIM_TIME_END"] = "On Stop"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_FADE_ANIM_TIME_END_DESC"] = "When a cast ends, this is the amount of time the cast bar takes to go from 100% transparency to not be visible at all."
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_FADE_ANIM_TIME_START"] = "On Start"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_FADE_ANIM_TIME_START_DESC"] = "When a cast starts, this is the amount of time the cast bar takes to go from zero transparency to full opaque."
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_HEIGHT"] = "Height of the cast bar."
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_HIDE_ENEMY"] = "Hide Enemy Cast Bar"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_HIDE_FRIENDLY"] = "Hide Friendly Cast Bar"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_HIDEBLIZZARD"] = "Hide Blizzard Player Cast Bar"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_ICON_CUSTOM_ENABLE"] = "Enable Icon Customization"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_ICON_CUSTOM_ENABLE_DESC"] = "If this option is disabled, Plater won't modify the spell icon, leaving it for scripts to do."
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_NO_SPELLNAME_LIMIT"] = "No Spell Name Length Limitation"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_NO_SPELLNAME_LIMIT_DESC"] = "Spell name text won't be cut to fit within the cast bar width."
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_QUICKHIDE"] = "Quick Hide Cast Bar"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_QUICKHIDE_DESC"] = "After the cast finishes, immediately hide the cast bar."
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_SPARK_HALF"] = "Half Spark"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_SPARK_HALF_DESC"] = "Show only half of the spark texture."
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_SPARK_HIDE_INTERRUPT"] = "Hide Spark On Interrupt"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_SPARK_SETTINGS"] = "Spark Settings"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_SPELLICON"] = "Spell Icon"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_TOGGLE_TEST"] = "Toggle Cast Bar Test"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_TOGGLE_TEST_DESC"] = "Start cast bar test, press again to stop."
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_WIDTH"] = "Width of the cast bar."
---[[Translation missing --]]
-L["OPTIONS_CASTCOLORS_DISABLECOLORS"] = "Disable All Colors"
---[[Translation missing --]]
-L["OPTIONS_CLICK_SPACE_HEIGHT"] = "The height of the are area which accepts mouse clicks to select the target"
---[[Translation missing --]]
-L["OPTIONS_CLICK_SPACE_WIDTH"] = "The width of the are area which accepts mouse clicks to select the target"
+L["OPTIONS_CAST_COLOR_CHANNELING"] = "引導中"
+L["OPTIONS_CAST_COLOR_INTERRUPTED"] = "被打斷"
+L["OPTIONS_CAST_COLOR_REGULAR"] = "標準"
+L["OPTIONS_CAST_COLOR_SUCCESS"] = "成功"
+L["OPTIONS_CAST_COLOR_UNINTERRUPTIBLE"] = "無法打斷"
+L["OPTIONS_CAST_SHOW_TARGETNAME"] = "顯示目標名字"
+L["OPTIONS_CAST_SHOW_TARGETNAME_DESC"] = "顯示當前施法的目標（若存在）"
+L["OPTIONS_CAST_SHOW_TARGETNAME_TANK"] = "[坦克] 不顯示你的名字"
+L["OPTIONS_CAST_SHOW_TARGETNAME_TANK_DESC"] = "如果你是坦克，當施法目標是你時不顯示名字"
+L["OPTIONS_CASTBAR_APPEARANCE"] = "施法條外觀"
+L["OPTIONS_CASTBAR_BLIZZCASTBAR"] = "暴雪施法條"
+L["OPTIONS_CASTBAR_COLORS"] = "施法條顏色"
+L["OPTIONS_CASTBAR_FADE_ANIM_ENABLED"] = "開啟漸隱動畫"
+L["OPTIONS_CASTBAR_FADE_ANIM_ENABLED_DESC"] = "開啟施法開始和結束時的漸隱動畫"
+L["OPTIONS_CASTBAR_FADE_ANIM_TIME_END"] = "結束時"
+L["OPTIONS_CASTBAR_FADE_ANIM_TIME_END_DESC"] = "當施法結束，施法條從可見到完全不可見的時間"
+L["OPTIONS_CASTBAR_FADE_ANIM_TIME_START"] = "開始時"
+L["OPTIONS_CASTBAR_FADE_ANIM_TIME_START_DESC"] = "當施法開始，施法條從不可見到完全可見的時間"
+L["OPTIONS_CASTBAR_HEIGHT"] = "施法條高度"
+L["OPTIONS_CASTBAR_HIDE_ENEMY"] = "隱藏敵對施法條"
+L["OPTIONS_CASTBAR_HIDE_FRIENDLY"] = "隱藏友方施法條"
+L["OPTIONS_CASTBAR_HIDEBLIZZARD"] = "隱藏暴雪的玩家施法條"
+L["OPTIONS_CASTBAR_ICON_CUSTOM_ENABLE"] = "啟用圖示自定義"
+L["OPTIONS_CASTBAR_ICON_CUSTOM_ENABLE_DESC"] = "如果此選項被禁用，Plater就不會修改法術圖示，而是留給腳本來做。"
+L["OPTIONS_CASTBAR_NO_SPELLNAME_LIMIT"] = "不限制法術名稱長度"
+L["OPTIONS_CASTBAR_NO_SPELLNAME_LIMIT_DESC"] = "法術名稱文字將不會被截斷以適應施法條的寬度"
+L["OPTIONS_CASTBAR_QUICKHIDE"] = "快速隱藏施法條"
+L["OPTIONS_CASTBAR_QUICKHIDE_DESC"] = "施法結束後，立即隱藏施法條"
+L["OPTIONS_CASTBAR_SPARK_HALF"] = "半寬火花"
+L["OPTIONS_CASTBAR_SPARK_HALF_DESC"] = "只顯示火花材質的一半"
+L["OPTIONS_CASTBAR_SPARK_HIDE_INTERRUPT"] = "打斷時隱藏火花"
+L["OPTIONS_CASTBAR_SPARK_SETTINGS"] = "火花設定"
+L["OPTIONS_CASTBAR_SPELLICON"] = "法術圖示"
+L["OPTIONS_CASTBAR_TOGGLE_TEST"] = "施法條測試開關"
+L["OPTIONS_CASTBAR_TOGGLE_TEST_DESC"] = "開始施法條測試，再次點擊停止"
+L["OPTIONS_CASTBAR_WIDTH"] = "施法條寬度"
+L["OPTIONS_CASTCOLORS_DISABLECOLORS"] = "禁用所有顏色"
+L["OPTIONS_CLICK_SPACE_HEIGHT"] = "接受滑鼠點擊以選擇目標的區域高度"
+L["OPTIONS_CLICK_SPACE_WIDTH"] = "接受滑鼠點擊以選擇目標的區域寬度"
 L["OPTIONS_COLOR"] = "顔色"
---[[Translation missing --]]
-L["OPTIONS_COLOR_BACKGROUND"] = "Background Color"
---[[Translation missing --]]
-L["OPTIONS_CVAR_ENABLE_PERSONAL_BAR"] = "Personal Health and Mana Bars|cFFFF7700*|r"
---[[Translation missing --]]
-L["OPTIONS_CVAR_ENABLE_PERSONAL_BAR_DESC"] = [=[Shows a mini health and mana bars under your character.
-
-|cFFFF7700[*]|r |cFFa0a0a0CVar, saved within Plater profile and restored when loading the profile.|r]=]
---[[Translation missing --]]
-L["OPTIONS_CVAR_NAMEPLATES_ALWAYSSHOW"] = "Always Show Nameplates|cFFFF7700*|r"
---[[Translation missing --]]
-L["OPTIONS_CVAR_NAMEPLATES_ALWAYSSHOW_DESC"] = [=[Show nameplates for all units near you. If disabled only show relevant units when you are in combat.
-
-|cFFFF7700[*]|r |cFFa0a0a0CVar, saved within Plater profile and restored when loading the profile.|r]=]
+L["OPTIONS_COLOR_BACKGROUND"] = "背景色"
+L["OPTIONS_CVAR_ENABLE_PERSONAL_BAR"] = "個人生命條和法力條|cFFFF7700*|r"
+L["OPTIONS_CVAR_ENABLE_PERSONAL_BAR_DESC"] = "在你的角色下方顯示一個迷你生命條和法力條。 |cFFFF7700[*]|r |cFFa0a0a0CVar，保存在 Plater 設定檔中，並在載入設定檔時恢復。|r"
+L["OPTIONS_CVAR_NAMEPLATES_ALWAYSSHOW"] = "始終顯示姓名板|cFFFF7700*|r"
+L["OPTIONS_CVAR_NAMEPLATES_ALWAYSSHOW_DESC"] = "為你附近的所有單位顯示名條。如果停用，則僅在戰鬥時顯示相關單位。 |cFFFF7700[*]|r |cFFa0a0a0CVar，保存在 Plater 設定檔中，並在載入設定檔時恢復。|r"
 L["OPTIONS_ENABLED"] = "啓用"
 L["OPTIONS_ERROR_CVARMODIFY"] = "cvars參數無法在戰鬥中修改。"
 L["OPTIONS_ERROR_EXPORTSTRINGERROR"] = "導出失敗"
---[[Translation missing --]]
-L["OPTIONS_EXECUTERANGE"] = "Execute Range"
---[[Translation missing --]]
-L["OPTIONS_EXECUTERANGE_DESC"] = [=[Show an indicator when the target unit is in 'execute' range.
-
-If the detection does not work after a patch, communicate at Discord.]=]
---[[Translation missing --]]
-L["OPTIONS_EXECUTERANGE_HIGH_HEALTH"] = "Execute Range (high heal)"
---[[Translation missing --]]
-L["OPTIONS_EXECUTERANGE_HIGH_HEALTH_DESC"] = [=[Show the execute indicator for the high portion of the health.
-
-If the detection does not work after a patch, communicate at Discord.]=]
+L["OPTIONS_EXECUTERANGE"] = "斬殺範圍"
+L["OPTIONS_EXECUTERANGE_DESC"] = "當目標單位處於「斬殺」範圍內時顯示指示器。如果在補丁後偵測無法正常運作，請在 Discord 上聯繫。"
+L["OPTIONS_EXECUTERANGE_HIGH_HEALTH"] = "反斬殺範圍"
+L["OPTIONS_EXECUTERANGE_HIGH_HEALTH_DESC"] = "顯示生命值高位的斬殺指示器。如果在補丁後無法正常偵測，請在 Discord 上反饋。"
 L["OPTIONS_FONT"] = "字體"
---[[Translation missing --]]
-L["OPTIONS_FORMAT_NUMBER"] = "Number Format"
+L["OPTIONS_FORMAT_NUMBER"] = "數字格式"
 L["OPTIONS_FRIENDLY"] = "友方"
 L["OPTIONS_GENERALSETTINGS_HEALTHBAR_ANCHOR_TITLE"] = "生命條外觀"
 L["OPTIONS_GENERALSETTINGS_HEALTHBAR_BGCOLOR"] = "生命條背景顔色和透明度"
@@ -271,6 +176,10 @@ L["OPTIONS_ICONROWSPACING"] = "Icon Row Spacing"
 L["OPTIONS_ICONSPACING"] = "Icon Spacing"
 --[[Translation missing --]]
 L["OPTIONS_INDICATORS"] = "Indicators"
+--[[Translation missing --]]
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR"] = "Game object name color"
+--[[Translation missing --]]
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR_DESC"] = "Names on objects will get this color."
 --[[Translation missing --]]
 L["OPTIONS_INTERRUPT_FILLBAR"] = "Fill Cast Bar On Interrupt"
 --[[Translation missing --]]
@@ -547,6 +456,16 @@ L["OPTIONS_YOFFSET"] = "Y 偏移"
 L["OPTIONS_YOFFSET_DESC"] = [=[Adjust the position on the Y axis.
 
 *right click to type the value.]=]
+--[[Translation missing --]]
+L[ [=[Show nameplate for friendly npcs.
+
+|cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
+
+|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=] ] = [=[Show nameplate for friendly npcs.
+
+|cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
+
+|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=]
 --[[Translation missing --]]
 L["TARGET_CVAR_ALWAYSONSCREEN"] = "Target Always on the Screen|cFFFF7700*|r"
 --[[Translation missing --]]

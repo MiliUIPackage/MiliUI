@@ -630,6 +630,10 @@ Plater.AnchorNamesByPhraseId = {
 					if IsPlayerSpell(53351) or IsPlayerSpell(320976) then -- Kill Shot
 						lowExecute = 0.2
 					end
+					if isTalentLearned(94987) then --IsPlayerSpell(466930) then --> Black Arrow
+						lowExecute = 0.2
+						highExecute = 0.8
+					end
 					if IsPlayerSpell(273887) then --> is using killer instinct?
 						lowExecute = 0.35
 					end
@@ -835,9 +839,9 @@ Plater.AnchorNamesByPhraseId = {
 		
 		if not rangeChecker then
 			rangeChecker = function (unit)
-				local minRange, maxRange = (LibRangeCheck:GetRange(unit, nil, true) or 0) <= (rangeCheckRange or 40)
-				Plater.EndLogPerformanceCore("Plater-Core", "Update", "CheckRange")
-				return maxRange or minRange
+				local minRange, maxRange = (LibRangeCheck:GetRange(unit, nil, true) or 0)
+				maxRange = maxRange or minRange or 0
+				return maxRange <= (rangeCheckRange or 40)
 			end
 			Plater.GetSpellForRangeCheck()
 		end
@@ -1403,6 +1407,17 @@ Plater.AnchorNamesByPhraseId = {
 		
 		Plater.UpdateSettingsCache()
 	end
+				
+	function Plater:RefreshConfigProfileReset() --private
+		Plater:RefreshConfig()
+		
+		Plater.db.profile.use_ui_parent = true
+		Plater.db.profile.use_ui_parent_just_enabled = false
+		Plater.db.profile.ui_parent_scale_tune = 1 / UIParent:GetEffectiveScale()
+		
+		--call the user to /reload his UI
+		DF:ShowPromptPanel ("Plater profile reset, do you want /reload now (recommended)?", function() ReloadUI() end, function() end, true, 500)
+	end
 	
 	function Plater:RefreshConfigProfileChanged() --private
 		Plater:RefreshConfig()
@@ -1833,6 +1848,7 @@ Plater.AnchorNamesByPhraseId = {
 	function Plater.UpdateUIParentScale (self, w, h) --private
 		local unitFrame = self.unitFrame
 		if (unitFrame) then
+			local defaultScale = self:GetEffectiveScale() / self:GetScale()
 			local defaultScale = self:GetEffectiveScale()
 			--local defaultScale = UIParent:GetEffectiveScale()
 			
@@ -1881,7 +1897,7 @@ Plater.AnchorNamesByPhraseId = {
 		local tmplevel = baseLevel + profile.ui_parent_cast_level + 3
 		castBar:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
 		
-		tmplevel = baseLevel + profile.ui_parent_buff_level + 3
+		tmplevel = baseLevel + profile.ui_parent_buff_level + 10
 		buffFrame1:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
 		
 		tmplevel = baseLevel + profile.ui_parent_buff2_level + 10
@@ -1927,7 +1943,7 @@ Plater.AnchorNamesByPhraseId = {
 		local tmplevel = min(baseLevel + profile.ui_parent_cast_level + 3, 10000)
 		castBar:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
 		
-		tmplevel = min(baseLevel + profile.ui_parent_buff_level + 3, 10000)
+		tmplevel = min(baseLevel + profile.ui_parent_buff_level + 10, 10000)
 		buffFrame1:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
 		
 		tmplevel = min(baseLevel + profile.ui_parent_buff2_level + 10, 10000)
@@ -2157,7 +2173,7 @@ Plater.AnchorNamesByPhraseId = {
 			for _, plateFrame in ipairs (Plater.GetAllShownPlates()) do
 				---@cast plateFrame plateframe
 				if plateFrame.unitFrame and plateFrame.unitFrame.PlaterOnScreen then
-					if not plateFrame.unitFrame.isPerformanceUnit then
+					if not plateFrame.unitFrame.isPerformanceUnitAura then
 						Plater.AddToAuraUpdate(plateFrame.unitFrame.unit) -- force aura update
 					end
 					Plater.ScheduleUpdateForNameplate (plateFrame)
@@ -2529,13 +2545,9 @@ Plater.AnchorNamesByPhraseId = {
 			if (Plater.db.profile.use_ui_parent_just_enabled) then
 				Plater.db.profile.use_ui_parent_just_enabled = false
 				if (Plater.db.profile.ui_parent_scale_tune == 0) then
-					--@Ariani - march 9
 					Plater.db.profile.ui_parent_scale_tune = 1 / UIParent:GetEffectiveScale()
-					
-					--@Tercio:
-					--if (UIParent:GetEffectiveScale() < 1) then
-					--	Plater.db.profile.ui_parent_scale_tune = 1 - UIParent:GetEffectiveScale()
-					--end
+					Plater.RefreshDBUpvalues()
+					Plater.UpdateAllPlates()
 				end
 			end
 			
@@ -3403,13 +3415,13 @@ Plater.AnchorNamesByPhraseId = {
 			--if (not plateFrame.UnitFrame.HasPlaterHooksRegistered) then
 			if not HOOKED_BLIZZARD_PLATEFRAMES[blizzardPlateFrameID] then
 				--print(HOOKED_BLIZZARD_PLATEFRAMES[tostring(plateFrame.UnitFrame)], tostring(plateFrame.UnitFrame), plateFrame.UnitFrame.HasPlaterHooksRegistered)
-                --hook the retail nameplate
-                --plateFrame.UnitFrame:HookScript("OnShow", Plater.OnRetailNamePlateShow)
+				--hook the retail nameplate
+				--plateFrame.UnitFrame:HookScript("OnShow", Plater.OnRetailNamePlateShow)
 				hooksecurefunc(plateFrame.UnitFrame, "Show", Plater.OnRetailNamePlateShow)
-                --plateFrame.UnitFrame.HasPlaterHooksRegistered = true
+				--plateFrame.UnitFrame.HasPlaterHooksRegistered = true
 				HOOKED_BLIZZARD_PLATEFRAMES[blizzardPlateFrameID] = true
 				
-            end
+			end
 			
 			-- we should clear stuff here, tbh...
 			
@@ -3498,14 +3510,26 @@ Plater.AnchorNamesByPhraseId = {
 			
 			--reset performance unit
 			unitFrame.isPerformanceUnit = nil
+			unitFrame.isPerformanceUnitAura = nil
+			unitFrame.isPerformanceUnitThreat = nil
+			unitFrame.isPerformanceUnitCast = nil
 			unitFrame.healthBar.isPerformanceUnit = nil
 			
 			if (Plater.PerformanceUnits[plateFrame[MEMBER_NPCID]]) then
+				local perfUnitData = tonumber(Plater.PerformanceUnits[plateFrame[MEMBER_NPCID]]) or 0
 				--print("perf", plateFrame[MEMBER_NPCID])
-				unitFrame.castBar:SetUnit(nil) -- no casts
-				Plater.RemoveFromAuraUpdate (unitID) -- no auras
 				unitFrame.isPerformanceUnit = true
+				unitFrame.isPerformanceUnitAura = bit.band(perfUnitData, platerInternal.PERF_UNIT_OVERRIDES_BIT.AURA) == 0 and true or false
+				unitFrame.isPerformanceUnitThreat = bit.band(perfUnitData, platerInternal.PERF_UNIT_OVERRIDES_BIT.THREAT) == 0 and true or false
+				unitFrame.isPerformanceUnitCast = bit.band(perfUnitData, platerInternal.PERF_UNIT_OVERRIDES_BIT.CAST) == 0 and true or false
 				unitFrame.healthBar.isPerformanceUnit = true
+				
+				if unitFrame.isPerformanceUnitCast then
+					unitFrame.castBar:SetUnit(nil) -- no casts
+				end
+				if unitFrame.isPerformanceUnitAura then
+					Plater.RemoveFromAuraUpdate (unitID) -- no auras
+				end
 			end
 			
 			--show unit name, the frame work will hide it due to ShowUnitName is set to false
@@ -3812,7 +3836,7 @@ Plater.AnchorNamesByPhraseId = {
 			end
 			
 			--can check aggro
-			unitFrame.CanCheckAggro = unitFrame.displayedUnit == unitID and actorType == ACTORTYPE_ENEMY_NPC and not unitFrame.isPerformanceUnit
+			unitFrame.CanCheckAggro = unitFrame.displayedUnit == unitID and actorType == ACTORTYPE_ENEMY_NPC and not unitFrame.isPerformanceUnitThreat
 			
 			--tick-setup
 			plateFrame.OnTickFrame.ThrottleUpdate = DB_TICK_THROTTLE
@@ -4364,9 +4388,14 @@ function Plater.OnInit() --private --~oninit ~init
 				
 				--enable UIParent nameplates for new installs of Plater
 				--this setting is disabled by default and will be enabled for new people
-				Plater.db.profile.use_ui_parent = true
-				--adjust the fine tune to player's screen scale
-				Plater.db.profile.ui_parent_scale_tune = 1 / UIParent:GetEffectiveScale()
+				if not Plater.db.profile.use_ui_parent or Plater.db.profile.ui_parent_scale_tune == 0 then
+					Plater.db.profile.use_ui_parent = true
+					--adjust the fine tune to player's screen scale
+					Plater.db.profile.ui_parent_scale_tune = 1 / UIParent:GetEffectiveScale()
+					Plater.db.profile.use_ui_parent_just_enabled = false
+					Plater.RefreshDBUpvalues()
+					Plater.UpdateAllPlates()
+				end
 				
 			elseif (not PlaterDBChr.first_run3 [UnitGUID ("player")]) then
 				--do not run cvars for individual characters
@@ -5159,6 +5188,7 @@ function Plater.OnInit() --private --~oninit ~init
 					local curTime = GetTime()
 					--local name, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible, spellId = UnitCastingInfo (unitCast)
 					self.SpellName = 		self.spellName
+					self.SpellNameRenamed = self.spellName
 					self.SpellID = 		self.spellID
 					self.SpellTexture = 	self.spellTexture
 					self.SpellStartTime = 	self.spellStartTime or curTime
@@ -5194,9 +5224,6 @@ function Plater.OnInit() --private --~oninit ~init
 					self.Spark:SetAlpha (profile.cast_statusbar_spark_alpha)
 					PixelUtil.SetSize(self.Spark, profile.cast_statusbar_spark_width, self:GetHeight())
 
-					--cut the spell name text to fit within the castbar
-					Plater.UpdateSpellNameSize (self.Text, unitFrame.ActorType, nil, isInCombat)
-
 					Plater.UpdateCastbarTargetText (self)
 
 					--castbar icon
@@ -5210,7 +5237,6 @@ function Plater.OnInit() --private --~oninit ~init
 					--cast color (from options tab Cast Colors)
 					local castColors = profile.cast_colors
 					local customColor = castColors[self.spellID]
-					local customRenamed = false
 					if (customColor) then
 						local isEnabled, color, customSpellName = customColor[1], customColor[2], customColor[3]
 						if (color and isEnabled) then
@@ -5224,11 +5250,6 @@ function Plater.OnInit() --private --~oninit ~init
 								self:SetColor(color)
 							end
 
-							if (customSpellName and customSpellName ~= "") then
-								self.Text:SetText(customSpellName)
-								customRenamed = true
-							end
-
 							--check if the original cast color is enabled
 							if (originalCastColor) then
 								--get the original cast color
@@ -5239,18 +5260,27 @@ function Plater.OnInit() --private --~oninit ~init
 								self.castColorTexture:SetHeight(self:GetHeight() + profile.cast_color_settings.height_offset)
 							end
 						end
+						
+						if (customSpellName and customSpellName ~= "") then
+							self.SpellNameRenamed = customSpellName
+						end
 					end
 					
-					if not customRenamed and Plater.db.profile.bossmod_support_enabled and Plater.db.profile.bossmod_castrename_enabled then
+					if self.SpellNameRenamed == self.SpellName and Plater.db.profile.bossmod_support_enabled and Plater.db.profile.bossmod_castrename_enabled then
 						local bmSpellName = ((BigWigsAPI and BigWigsAPI.GetSpellRename and BigWigsAPI.GetSpellRename(self.spellID)) or (DBM and DBM.GetAltSpellName and DBM:GetAltSpellName(self.spellID))) or nil
 						if bmSpellName then
-							self.Text:SetText(bmSpellName)
+							self.SpellNameRenamed = bmSpellName
 						end
 					end
 					
 					if (self.channeling and (self.SpellStartTime + 0.25 > curTime)) then
 						platerInternal.Audio.PlaySoundForCastStart(self.spellID) --fallback for edge cases. should not double play
 					end
+
+					self.Text:SetText(self.SpellNameRenamed)
+					
+					--cut the spell name text to fit within the castbar
+					Plater.UpdateSpellNameSize (self.Text, unitFrame.ActorType, nil, isInCombat)
 					
 					-- in some occasions channeled casts don't have a CLEU entry... check this here
 					if (unitFrame.ActorType == "enemynpc" and event == "UNIT_SPELLCAST_CHANNEL_START" and (not DB_CAPTURED_SPELLS[self.spellID] or DB_CAPTURED_SPELLS[self.spellID].isChanneled == nil)) then
@@ -5487,15 +5517,13 @@ function Plater.OnInit() --private --~oninit ~init
 		local currentHealth = self.currentHealth
 		local currentHealthMax = self.currentHealthMax
 		local unitFrame = self.unitFrame
-		local oldHealth = self.CurrentHealth
+		local oldHealth = self.CurrentHealth or currentHealth
 		
 		--> exposed values to scripts
 		self.CurrentHealth = currentHealth
 		self.CurrentHealthMax = currentHealthMax
 	
 		if (plateFrame.IsSelf) then
-			self.CurrentHealth = currentHealth
-			self.CurrentHealthMax = currentHealthMax
 		
 			--> flash if low health
 			if (currentHealth / currentHealthMax < 0.27) then
@@ -5535,9 +5563,6 @@ function Plater.OnInit() --private --~oninit ~init
 			
 			if (DB_DO_ANIMATIONS) then
 				--do healthbar animation ~animation ~healthbar
-				oldHealth = oldHealth or self.CurrentHealth
-				
-				self.CurrentHealthMax = currentHealthMax
 				self.AnimationStart = oldHealth
 				self.AnimationEnd = currentHealth
 
@@ -5550,9 +5575,6 @@ function Plater.OnInit() --private --~oninit ~init
 				else
 					self.AnimateFunc = Plater.AnimateLeftWithAccel
 				end
-			else
-				self.CurrentHealth = currentHealth
-				self.CurrentHealthMax = currentHealthMax
 			end
 			
 			if (plateFrame.actorType == ACTORTYPE_FRIENDLY_PLAYER) then
@@ -5602,7 +5624,7 @@ function Plater.OnInit() --private --~oninit ~init
 	--> profile changes and refreshes ~db
 		Plater.db.RegisterCallback (Plater, "OnProfileChanged", "RefreshConfigProfileChanged")
 		Plater.db.RegisterCallback (Plater, "OnProfileCopied", "RefreshConfig")
-		Plater.db.RegisterCallback (Plater, "OnProfileReset", "RefreshConfig")
+		Plater.db.RegisterCallback (Plater, "OnProfileReset", "RefreshConfigProfileReset")
 		--Plater.db.RegisterCallback (Plater, "OnDatabaseShutdown", "SaveConsoleVariables")
 		
 		function Plater.OnProfileCreated()
@@ -5610,11 +5632,15 @@ function Plater.OnInit() --private --~oninit ~init
 				Plater:Msg ("new profile created, applying patches and adding default scripts.")
 				platerInternal.Scripts.UpdateFromLibrary()
 				
-				--enable UIParent nameplates for new installs of Plater
 				--this setting is disabled by default and will be enabled for new users and new profiles
-				Plater.db.profile.use_ui_parent = true
-				--adjust the fine tune to player's screen scale
-				Plater.db.profile.ui_parent_scale_tune = 1 / UIParent:GetEffectiveScale()
+				if not Plater.db.profile.use_ui_parent or Plater.db.profile.ui_parent_scale_tune == 0 then
+					--enable UIParent nameplates for new installs of Plater
+					Plater.db.profile.use_ui_parent = true
+					--adjust the fine tune to player's screen scale
+					Plater.db.profile.ui_parent_scale_tune = 1 / UIParent:GetEffectiveScale()
+					Plater.RefreshDBUpvalues()
+					Plater.UpdateAllPlates()
+				end
 				
 				--call major refresh
 				Plater:RefreshConfig()
@@ -5661,6 +5687,7 @@ function Plater.OnInit() --private --~oninit ~init
 		for classID = 1, MAX_CLASSES do
 			local _, classFile = GetClassInfo(classID)
 			CLASS_INFO_CACHE[classFile] = {}
+			local GetNumSpecializationsForClassID = GetNumSpecializationsForClassID or C_SpecializationInfo.GetNumSpecializationsForClassID --10.0.5
 			for i = 1, GetNumSpecializationsForClassID(classID) do
 				local specID, maleName, _, iconID, role = GetSpecializationInfoForClassID(classID, i, 2) -- male
 				local _, femaleName, _, iconID, role = GetSpecializationInfoForClassID(classID, i, 3) -- female
@@ -5893,10 +5920,8 @@ end
 		for _, plateFrame in ipairs (Plater.GetAllShownPlates()) do
 			---@cast plateFrame plateframe
 			if plateFrame.unitFrame and plateFrame.unitFrame.PlaterOnScreen then
-				if not plateFrame.unitFrame.isPerformanceUnit then
-					if not IS_WOW_PROJECT_CLASSIC_ERA or (IS_WOW_PROJECT_CLASSIC_ERA and plateFrame.actorType ~= ACTORTYPE_ENEMY_PLAYER) then -- don't force update in classic
-						Plater.AddToAuraUpdate(plateFrame.unitFrame.unit) -- force aura update
-					end
+				if not plateFrame.unitFrame.isPerformanceUnitAura then
+					Plater.AddToAuraUpdate(plateFrame.unitFrame.unit) -- force aura update
 				end
 				
 				Plater.UpdatePlateFrame (plateFrame, nil, forceUpdate, justAdded, regenDisabled)
@@ -7699,7 +7724,7 @@ end
 			end
 		end
 		
-		while (nameString:GetStringWidth() > maxLength) do
+		while (nameString:GetUnboundedStringWidth() > maxLength) do
 			spellName = strsub (spellName, 1, #spellName - 1)
 			nameString:SetText (spellName)
 			if (string.len (spellName) <= 1) then
@@ -7748,7 +7773,7 @@ end
 			return
 		end
 		
-		while (nameString:GetStringWidth() > stringSize) do
+		while (nameString:GetUnboundedStringWidth() > stringSize) do
 			name = strsub (name, 1, #name-1)
 			nameString:SetText (name)
 			if (string.len (name) <= 1) then
@@ -8806,20 +8831,20 @@ end
 	
 	-- anchor sides as comprehensive table.
 	Plater.AnchorSides = {
-        TOP_LEFT = 1,
-        LEFT = 2,
-        BOTTOM_LEFT = 3,
-        BOTTOM = 4,
-        BOTTOM_RIGHT = 5,
-        RIGHT = 6,
-        TOP_RIGHT = 7,
-        TOP = 8,
-        CENTER = 9,
-        INNER_LEFT = 10,
-        INNER_RIGHT = 11,
-        INNER_TOP = 12,
-        INNER_BOTTOM = 13,
-    }
+		TOP_LEFT = 1,
+		LEFT = 2,
+		BOTTOM_LEFT = 3,
+		BOTTOM = 4,
+		BOTTOM_RIGHT = 5,
+		RIGHT = 6,
+		TOP_RIGHT = 7,
+		TOP = 8,
+		CENTER = 9,
+		INNER_LEFT = 10,
+		INNER_RIGHT = 11,
+		INNER_TOP = 12,
+		INNER_BOTTOM = 13,
+	}
 
 	--check the setting 'only_damaged' and 'only_thename' for player characters. not critical code, can run slow
 	function Plater.ParseHealthSettingForPlayer (plateFrame, force) --private
@@ -10091,7 +10116,8 @@ end
 		if IS_WOW_PROJECT_MAINLINE then
 			local mapId = C_Map.GetBestMapForUnit ("player")
 			if (mapId) then
-				local worldQuests = C_TaskQuest.GetQuestsForPlayerByMapID (mapId)
+				local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap
+				local worldQuests = GetQuestsForPlayerByMapID(mapId)
 				if (type (worldQuests) == "table") then
 					for i, questTable in ipairs (worldQuests) do
 						local x, y, floor, numObjectives, questId, inProgress = questTable.x, questTable.y, questTable.floor, questTable.numObjectives, questTable.questId, questTable.inProgress
@@ -10415,27 +10441,27 @@ end
 	end
 
 	--pass some colors and return the first valid color
-    function Plater.GetColorByPriority(unitFrame, color1, color2, color3)
-        if (unitFrame) then
+	function Plater.GetColorByPriority(unitFrame, color1, color2, color3)
+		if (unitFrame) then
 			--from the Npc Colors and Names
-            local npcColor = Plater.GetNpcColor(unitFrame)
-            if (npcColor) then
-                return npcColor
-            end
-        end
-        
-        if (color1) then
-            return color1
-        end
-        
-        if (color2) then
-            return color2
-        end
+			local npcColor = Plater.GetNpcColor(unitFrame)
+			if (npcColor) then
+				return npcColor
+			end
+		end
+		
+		if (color1) then
+			return color1
+		end
+		
+		if (color2) then
+			return color2
+		end
 
 		if (color3) then
-            return color3
-        end
-    end
+			return color3
+		end
+	end
 
 	--return which raid mark the namepalte has
 	function Plater.GetRaidMark (unitFrame)
@@ -10459,7 +10485,7 @@ end
 			return
 		end
 		
-		while (fontString:GetStringWidth() > maxWidth) do
+		while (fontString:GetUnboundedStringWidth() > maxWidth) do
 			text = strsub (text, 1, #text - 1)
 			fontString:SetText (text)
 			if (string.len (text) <= 1) then
@@ -10589,12 +10615,14 @@ end
 		end
 		
 		if options.glowType == "button" then
-			LCG.ButtonGlow_Start(frame.__PlaterGlowFrame, options.color, options.frequency)
+			LCG.ButtonGlow_Start(frame.__PlaterGlowFrame, options.color, options.frequency, options.framelevel)
 		elseif options.glowType == "pixel" then
 			if not options.border then options.border = false end
-			LCG.PixelGlow_Start(frame.__PlaterGlowFrame, options.color, options.N, options.frequency, options.length, options.th, options.xOffset, options.yOffset, options.border, options.key or "")
+			LCG.PixelGlow_Start(frame.__PlaterGlowFrame, options.color, options.N, options.frequency, options.length, options.th, options.xOffset, options.yOffset, options.border, options.key or "", options.framelevel)
 		elseif options.glowType == "ants" then
-			LCG.AutoCastGlow_Start(frame.__PlaterGlowFrame, options.color, options.N, options.frequency, options.scale, options.xOffset, options.yOffset, options.key or "")
+			LCG.AutoCastGlow_Start(frame.__PlaterGlowFrame, options.color, options.N, options.frequency, options.scale, options.xOffset, options.yOffset, options.key or "", options.framelevel)
+		elseif options.glowType == "proc" then
+			LCG.ProcGlow_Start(frame.__PlaterGlowFrame, options)
 		end
 	end
 	
@@ -10659,6 +10687,27 @@ end
 		Plater.StartGlow(frame, color or options.color, options, options.key)
 	end
 	
+	-- creates a proc glow effect
+	function Plater.StartProcGlow(frame, color, options, key)
+		-- type "proc"
+		if not options then
+			options = {
+				glowType = "proc",
+				color = color,
+				--frameLevel = 8,
+				startAnim = true,
+				xOffset = 0,
+				yOffset = 0,
+				duration = 1,
+				key = key,
+			}
+		else
+			options.glowType = "proc"
+		end
+		
+		Plater.StartGlow(frame, color or options.color, options, options.key)
+	end
+	
 	-- stop LibCustomGlow effects on the frame, if existing
 	-- if glowType (and key) are given, stop one glow. if not, stop all.
 	function Plater.StopGlow(frame, glowType, key)
@@ -10672,11 +10721,14 @@ end
 				LCG.PixelGlow_Stop(frame.__PlaterGlowFrame, key or "")
 			elseif glowType == "ants" then
 				LCG.AutoCastGlow_Stop(frame.__PlaterGlowFrame, key or "")
+			elseif glowType == "proc" then
+				LCG.ProcGlow_Stop(frame.__PlaterGlowFrame, key or "")
 			end
 		else
 			LCG.ButtonGlow_Stop(frame.__PlaterGlowFrame, key or "")
 			LCG.PixelGlow_Stop(frame.__PlaterGlowFrame, key or "")
 			LCG.AutoCastGlow_Stop(frame.__PlaterGlowFrame, key or "")
+			LCG.ProcGlow_Stop(frame.__PlaterGlowFrame, key or "")
 		end
 	end
 	
@@ -10693,6 +10745,11 @@ end
 	-- stop an ants glow
 	function Plater.StopAntsGlow(frame, key)
 		Plater.StopGlow(frame, "ants", key)
+	end
+	
+	-- stop a proc glow
+	function Plater.StopProcGlow(frame, key)
+		Plater.StopGlow(frame, "proc", key)
 	end
 
 	--create a glow around an icon
@@ -11702,6 +11759,11 @@ end
 			["GetUnitAuras"] = false,
 			["GetUnitAurasForUnitID"] = false,
 			["PerformanceUnits"] = true,
+			["PERF_UNIT_OVERRIDES_BIT"] = {
+				["AURA"] = false,
+				["THREAT"] = false,
+				["CAST"] = false,
+			},
 			["ForceBlizzardNameplateUnits"] = true,
 			["COMM_PLATER_PREFIX"] = true,
 			["COMM_SCRIPT_GROUP_EXPORTED"] = true,

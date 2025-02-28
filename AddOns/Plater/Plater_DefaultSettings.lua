@@ -783,7 +783,7 @@ PLATER_DEFAULT_SETTINGS = {
 		health_cutoff_extra_glow = false,
 		health_cutoff_hide_divisor = false,
 		
-		update_throttle = 0.120,
+		update_throttle = 0.25,
 		culling_distance = 100,
 		use_playerclass_color = true, --friendly player
 		
@@ -951,15 +951,18 @@ PLATER_DEFAULT_SETTINGS = {
 		
 		bossmod_support_enabled = true,
 		bossmod_castrename_enabled = true,
-		bossmod_support_bars_enabled = false,
+		bossmod_support_bars_enabled = true,
 		bossmod_support_bars_text_enabled = true,
-		bossmod_aura_height = 32,
-		bossmod_aura_width = 32,
+		bossmod_aura_height = 24,
+		bossmod_aura_width = 24,
 		bossmod_cooldown_text_size = 16,
 		bossmod_cooldown_text_enabled = true,
-		bossmod_icons_anchor = {side = 8, x = 0, y = 30},
+		bossmod_icons_anchor = {side = 2, x = -5, y = 25},
+		bossmod_aura_glow_cooldown = true,
 		bossmod_aura_glow_important_only = true,
-		bossmod_aura_glow_expiring = true,
+		bossmod_aura_glow_casts = true,
+		bossmod_aura_glow_casts_glow_type = 4,
+		bossmod_aura_glow_cooldown_glow_type = 1,
 		
 		not_affecting_combat_enabled = false,
 		not_affecting_combat_alpha = 0.6,

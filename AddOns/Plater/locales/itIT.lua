@@ -5,6 +5,10 @@ do
 
 ------------------------------------------------------------
 --[[Translation missing --]]
+L["A /reload may be required to take effect."] = "A /reload may be required to take effect."
+--[[Translation missing --]]
+L["CVar, saved within Plater profile and restored when loading the profile."] = "CVar, saved within Plater profile and restored when loading the profile."
+--[[Translation missing --]]
 L["EXPORT"] = "Export"
 --[[Translation missing --]]
 L["EXPORT_CAST_COLORS"] = "Share Colors"
@@ -16,6 +20,8 @@ L["HIGHLIGHT_HOVEROVER"] = "Hover Over Highlight"
 L["HIGHLIGHT_HOVEROVER_ALPHA"] = "Hover Over Highlight Alpha"
 --[[Translation missing --]]
 L["HIGHLIGHT_HOVEROVER_DESC"] = "Highlight effect when the mouse is over the nameplate."
+--[[Translation missing --]]
+L["Hold Shift to change the sound of all casts with the audio %s to %s"] = "Hold Shift to change the sound of all casts with the audio %s to %s"
 --[[Translation missing --]]
 L["IMPORT"] = "Import"
 --[[Translation missing --]]
@@ -271,6 +277,10 @@ L["OPTIONS_ICONROWSPACING"] = "Icon Row Spacing"
 L["OPTIONS_ICONSPACING"] = "Icon Spacing"
 --[[Translation missing --]]
 L["OPTIONS_INDICATORS"] = "Indicators"
+--[[Translation missing --]]
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR"] = "Game object name color"
+--[[Translation missing --]]
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR_DESC"] = "Names on objects will get this color."
 --[[Translation missing --]]
 L["OPTIONS_INTERRUPT_FILLBAR"] = "Fill Cast Bar On Interrupt"
 --[[Translation missing --]]
@@ -541,6 +551,16 @@ L["OPTIONS_YOFFSET"] = "Offset Y"
 L["OPTIONS_YOFFSET_DESC"] = [=[Adjust the position on the Y axis.
 
 *right click to type the value.]=]
+--[[Translation missing --]]
+L[ [=[Show nameplate for friendly npcs.
+
+|cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
+
+|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=] ] = [=[Show nameplate for friendly npcs.
+
+|cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
+
+|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=]
 --[[Translation missing --]]
 L["TARGET_CVAR_ALWAYSONSCREEN"] = "Target Always on the Screen|cFFFF7700*|r"
 --[[Translation missing --]]
