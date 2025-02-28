@@ -1,5 +1,6 @@
-## Interface: 110100, 110100
+## Interface: 110007, 110100
 ## Category: DBM
+## Category-zhTW: 副本
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010M+ Affixes|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010傳奇+詞綴|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010副本词缀|r

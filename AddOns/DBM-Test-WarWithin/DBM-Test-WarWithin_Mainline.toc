@@ -1,6 +1,7 @@
-## Interface: 110100, 110100
+## Interface: 110007, 110100
 ## Category: DBM
-## Group: DBM Tests
+## Category-zhTW: 副本
+
 ## Title:|cffffe00a<|r|cffff7d0aDBM Tests|r|cffffe00a>|r |cff69ccf0Tests for The War Within mods|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM 測試|r|cffffe00a>|r |cff69ccf0地心之戰的測試模組|r
 ## IconTexture: Interface\AddOns\DBM-Core\textures\dbm_airhorn

@@ -25,6 +25,8 @@
 ## X-Wago-ID: Rn6VLLGd
 ## X-Category-zhTW: 團隊
 ## Version: r151
+## Category: DBM
+## Category-zhTW: 副本
 localization.en.lua
 localization.tw.lua
 localization.cn.lua

@@ -10,5 +10,7 @@
 ## X-Curse-Project-ID: 267605
 ## X-Wago-ID: kRNLxQNo
 ## X-Category-zhTW: 團隊
+## Category: DBM
+## Category-zhTW: 副本
 
 CountLoadList.lua

@@ -1,6 +1,7 @@
-## Interface: 110100, 110100
+## Interface: 110007, 110100
 ## X-Min-Interface: 80000
 ## Category: DBM
+## Category-zhTW: 副本
 
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (Cata)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領-浩劫與重生|r

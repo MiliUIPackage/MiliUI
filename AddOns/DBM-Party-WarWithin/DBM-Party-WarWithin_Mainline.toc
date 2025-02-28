@@ -1,5 +1,6 @@
-## Interface: 110100, 110100
+## Interface: 110007, 110100
 ## Category: DBM
+## Category-zhTW: 副本
 
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (WW)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0队伍首领 (地心之战)|r

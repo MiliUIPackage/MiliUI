@@ -14,3 +14,5 @@
 ## X-DBM-Voice-ShortName: AnnieSeal
 ## X-DBM-Voice-Version: 18
 ## X-DBM-Voice-HasCount: 1
+## Category: DBM
+## Category-zhTW: 副本

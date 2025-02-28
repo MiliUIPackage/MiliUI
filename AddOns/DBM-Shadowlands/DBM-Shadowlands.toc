@@ -22,6 +22,8 @@
 ## X-Curse-Project-ID: 3358
 ## X-WoWI-ID: 8814
 ## X-Wago-ID: qv633o6b
+## Category: DBM
+## Category-zhTW: 副本
 
 localization.en.lua
 localization.tw.lua
