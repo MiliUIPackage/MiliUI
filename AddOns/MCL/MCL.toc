@@ -1,7 +1,7 @@
 ## Interface: 110100
 ## Title: |cFF1FB7EBMCL |cFFFFFFFF- Mount Collection Log
 ## Notes: A tool used to log collected mounts in a similiar way to Simple Armory.
-## Title-zhTW: |cffFFFF66[收藏]|r 坐騎收藏紀錄
+## Title-zhTW: |cffFFFF66[坐騎]|r 坐騎收藏紀錄
 ## Notes-zhTW: MCL |n|n顯示坐騎收藏記錄，從小地圖旁插件列表內可進入，若顯示開啟失敗則多點幾次即可。
 ## X-Category-zhTW: 收藏
 ## DefaultState: disabled
