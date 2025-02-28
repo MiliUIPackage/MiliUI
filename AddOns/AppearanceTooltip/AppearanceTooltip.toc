@@ -17,6 +17,8 @@
 ## X-Category-zhTW: 收藏
 ## IconTexture: Interface\Icons\inv_raidpriestmythic_q_01chest
 
+## Category-zhTW: 收藏
+
 #@no-lib-strip@
 embeds.xml
 #@end-no-lib-strip@

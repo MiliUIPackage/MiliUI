@@ -1,4 +1,4 @@
-## Interface: 110100, 110100
+## Interface: 110007, 110100
 ## Title: Details! Damage Meter
 ## Notes: Essential tool to impress that chick in your raid.
 ## Notes-ruRU: Незаменимый инструмент, чтобы произвести впечатление на цыпочку в вашем рейде.
@@ -15,6 +15,8 @@
 ## Notes-zhTW: Details! Damage Meter |n|n可以看自己和隊友的DPS、HPS...等模組化的傷害統計資訊，還有各種好用的戰鬥分析工具和外掛套件。|n|n|cffffd200使用方法: |r點小地圖按鈕，或從Esc>選項>插件>戰鬥-統計，進行設定。
 ## X-Category-zhTW: 戰鬥
 ## DefaultState: disabled
+## Category: Battle
+## Category-zhTW: 戰鬥
 
 #@no-lib-strip@
 Libs\libs.xml

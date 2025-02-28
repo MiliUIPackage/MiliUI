@@ -15,8 +15,8 @@
 ## X-WoWI-ID: 26399
 ## X-Wago-ID: Xb6XkoNp
 
-## Title-zhTW: |cFF00AA99[任務]|r 任務指南-巨龍崛起模組
-## Notes-zhTW: BtWQuests: Dragonflight |n巨龍崛起模組。
+## Title-zhTW: |cFF00AA99[任務]|r 任務指南 - 巨龍崛起模組
+## Notes-zhTW: BtWQuests: Dragonflight|n|n巨龍崛起模組。
 
 Defines.lua
 

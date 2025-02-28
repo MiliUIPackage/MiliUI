@@ -23,6 +23,8 @@
 ## Notes-zhTW: SilverDragon |n|n怪獸與牠們的產地，記錄稀有怪的位置和時間，發現時會通知你。|n|n支援舊地圖的稀有怪!|n|n|cffffd200使用方法: |r點小地圖按鈕，或從Esc>選項>插件>稀有怪，進行設定。
 ## X-Category-zhTW: 地圖
 ## DefaultState: disabled
+## Category: Info
+## Category-zhTW: 資訊
 
 #@no-lib-strip@
 embeds.xml

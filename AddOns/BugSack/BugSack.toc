@@ -26,6 +26,8 @@
 ## X-WoWI-ID: 5995
 ## X-Wago-ID: rkGrrgGy
 ## X-BugGrabber-Display: BugSack
+## Category: Other
+## Category-zhTW: 其他
 
 embeds.xml
 

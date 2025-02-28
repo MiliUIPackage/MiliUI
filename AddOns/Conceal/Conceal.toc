@@ -7,11 +7,13 @@
 ## SavedVariables: ConcealDB
 
 ## Title-zhTW: |cff0099FF[介面]|r 隱藏
-## Notes-zhTW: Conceal |n|n頭像、背包、快捷列...等沒有使用的時候可以隱藏或設為半透明，滑鼠指向或戰鬥中才顯示出來。|n|n|cffffd200使用方法: |r從Esc>選項>插件>隱藏，進行設定。
+## Notes-zhTW: Conceal |n|n頭像、背包、快捷列...等沒有使用的時候可以隱藏或設為半透明，可以選擇在滑鼠指向時或戰鬥中才顯示出來。|n|n|cffffd200使用方法: |r從Esc>選項>插件>隱藏，進行設定。
 ## X-Category-zhTW: 介面
 ## Version: 1.4.0
 
 ## SavedVariablesPerCharacter: ConcealDB
+## Category: Interface
+## Category-zhTW: 介面
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml

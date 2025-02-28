@@ -14,6 +14,8 @@
 
 ## SavedVariables: OmniCDDB
 ## IconTexture: Interface\AddOns\OmniCD\Config\Libs\Media\omnicd-logo64-c
+## Category: Raid
+## Category-zhTW: 副本
 
 Libs\Embeds.xml
 Locales\locales.xml

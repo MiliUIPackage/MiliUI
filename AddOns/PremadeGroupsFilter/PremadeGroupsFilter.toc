@@ -12,6 +12,8 @@
 ## SavedVariablesPerCharacter: PremadeGroupsFilterState
 ## OptionalDeps: PremadeRegions, RaiderIO
 ## X-Category-zhTW: 副本
+## Category: Interface
+## Category-zhTW: 介面
 
 Init.lua
 Compat.lua

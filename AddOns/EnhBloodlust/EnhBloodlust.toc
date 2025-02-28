@@ -1,5 +1,4 @@
 ﻿## Interface: 110100
-## IconTexture: 982414
 ## Title: Enhanced Bloodlust
 ## Notes: Add a music in Bloodlust or Heroism!
 ## Author: Vilkku, 彩虹ui
@@ -7,6 +6,9 @@
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 嗜血音樂
 ## Notes-zhTW: Enhanced Bloodlust |n|n為嗜血與英勇效果添加超棒的音樂。
 ## X-Category-zhTW: 戰鬥
+## Category: Battle
+## Category-zhTW: 戰鬥
+## IconTexture: Interface\Icons\spell_nature_bloodlust
 
 hawayconfig.lua
 EnhBloodlust.lua

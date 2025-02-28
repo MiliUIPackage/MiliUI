@@ -8,7 +8,9 @@
 ## IconTexture: Interface\Icons\Spell_Mage_PresenceOfMind
 
 ## Title-zhTW: |cFF0099FF[介面]|r 冒險指南強化
-## Notes-zhTW: MplusAdventureGuide|n顯示拾取標籤，方便玩家觀看套裝，以及其他一些內容。
+## Notes-zhTW: MplusAdventureGuide|n|n顯示賽季裝備裝備等級區間、M+介面顯示傳送門以及其他一些內容。
+## Category: Interface
+## Category-zhTW: 介面
 
 libs\LibStub\LibStub.lua
 libs\CallbackHandler-1.0\CallbackHandler-1.0.xml

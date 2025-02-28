@@ -10,6 +10,8 @@
 ## AddonCompartmentFunc: MRT_MinimapClickFunction
 ## IconTexture: Interface\AddOns\MRT\media\MiniMap.tga
 ## X-Category-zhTW: 團隊
+## Category: Raid
+## Category-zhTW: 副本
 
 core.lua
 Functions.lua

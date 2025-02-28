@@ -16,7 +16,7 @@
 ## X-Wago-ID: bGoMAr60
 
 ## Title-zhTW: |cFF00AA99[任務]|r 任務指南 - 地心之戰模組
-## Notes-zhTW: BtWQuests: The War Within |n地心之戰模組。
+## Notes-zhTW: BtWQuests: The War Within |n|n地心之戰模組。
 
 Defines.lua
 

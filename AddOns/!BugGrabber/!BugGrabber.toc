@@ -19,6 +19,8 @@
 ## X-License: All Rights Reserved
 ## X-Category: Development Tools
 ## SavedVariables: BugGrabberDB
+## Category: Other
+## Category-zhTW: 其他
 
 BugGrabber.lua
 locales.lua

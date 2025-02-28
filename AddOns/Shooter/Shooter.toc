@@ -5,5 +5,7 @@
 ## Notes-zhTW: Shooter |n獲得成就時會自動擷取螢幕畫面，為你的魔獸生活捕捉難忘的回憶。
 ## Author: Akcent
 ## Version: 1.0.8
+## Category: Other
+## Category-zhTW: 其他
 
 Shooter.lua

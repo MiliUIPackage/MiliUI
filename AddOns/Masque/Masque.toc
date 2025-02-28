@@ -17,7 +17,9 @@
 ## Notes-koKR: 버튼 기반 애드온을 위한 스킨 엔진입니다.
 ## Notes-ruRU: Основа для аддонов, изменяющих внешний вид кнопок.
 ## Notes-zhCN: 一款基于按钮的外观美化插件。
-## Notes-zhTW: Masque|n一個基於按鈕的外觀美化插件。
+## Notes-zhTW: Masque|n一個基於快捷列的外觀美化插件。
+## Category: Action Bar
+## Category-zhTW: 快捷列
 
 ## X-Category: Interface Enhancements
 ## X-Credits: JJSheets

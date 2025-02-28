@@ -8,6 +8,8 @@
 ## X-Category-zhTW: 介面
 ## Version: 2023.4.24_v1.3.1
 ## Author: 高频变压器
+## Category: Interface
+## Category-zhTW: 介面
 ## https://nga.178.com/read.php?tid=32246801
 
 zZ_Bufftimes.lua

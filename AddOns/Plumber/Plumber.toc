@@ -10,7 +10,8 @@
 ## SavedVariables: PlumberDB, PlumberDevData, PlumberStorage
 ## X-Category: 其他
 ## IconTexture: Interface\AddOns\Plumber\Art\Logo\PlumberLogo64
-
+## Category: Interface
+## Category-zhTW: 介面
 
 Initialization.lua
 Locales\Localization.xml

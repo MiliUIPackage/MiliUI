@@ -1,15 +1,15 @@
-## Interface: 11504, 40400, 110100
+## Interface: 11504, 40400, 110007, 110100
 ## Title: MSBT [|cffffff80Options|r]
 ## Author: Mikord
 ## Notes: Load on demand options for Mik's Scrolling Battle Text.
-## Title-zhTW: |cFF00FFFF[戰鬥]|r 戰鬥訊息滾動 (設置)
-## Notes-zhTW: MSBTOptions |nMSBT的設定介面
 ## Dependencies: MikScrollingBattleText
 ## LoadOnDemand: 1
 ## X-Child-Of: MikScrollingBattleText
 
+## Title-zhTW: |cFF00FFFF[戰鬥]|r MSBT 捲動戰鬥文字 - 設定選項
+## Notes-zhTW: MSBT [|cffffff80Options|r] |n|nMik 捲動戰鬥文字的設定選項，勾選後會依需求自動載入。|n|n|cffffd200使用方法: |r輸入 /msbt 進行設定。
 ## IconTexture: Interface\Icons\ability_warrior_challange
-## X-Category-zhTW: 戰鬥
+## Category-zhTW: 戰鬥
 ## DefaultState: disabled
 
 Localization\localization.xml

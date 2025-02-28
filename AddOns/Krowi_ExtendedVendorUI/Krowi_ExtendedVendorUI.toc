@@ -24,6 +24,8 @@
 ## Notes-zhTW: Krowi's |cFF1D92C2Extended Vendor UI|r|n|n加大商人的購買視窗，方便選購，可自訂商人視窗大小。|n可隱藏已有的寵物、坐騎和玩具，避免重複購買。|n|n|cffffd200使用方法: 點商人視窗左上角的選項，自訂商人視窗大小。|n點商人視窗右上角的過濾設定來篩選/隱藏物品。|n從Esc>選項>插件>商人，開啟其他設定選項。
 ## IconTexture: Interface\Icons\inv_misc_coin_16
 ## X-Category-zhTW: 交易
+## Category: Interface
+## Category-zhTW: 介面
 
 Libs\Files.xml
 

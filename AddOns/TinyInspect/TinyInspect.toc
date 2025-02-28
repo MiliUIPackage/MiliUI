@@ -12,6 +12,8 @@
 ## X-Category-zhTW: 介面
 ## Author: M
 ## SavedVariables: TinyInspectDB
+## Category: Interface
+## Category-zhTW: 介面
 
 libs\lib.xml
 

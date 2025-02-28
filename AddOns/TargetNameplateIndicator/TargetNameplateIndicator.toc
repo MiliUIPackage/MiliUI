@@ -10,10 +10,12 @@
 ## X-Curse-Project-ID: 42647
 ## X-WoWI-ID: 21391
 
-## Title-zhTW: |cff0099FF[介面]|r 目標指示箭頭
+## Title-zhTW: |cff0099FF[名條]|r 目標指示箭頭
 ## Notes-zhTW: Target Nameplate Indicator |n|n在當前目標、專注目標、滑鼠指向目標和目標的目標血條上方顯示箭頭，讓目標更明顯。|n|n|cffffd200使用方法: |r從Esc>選項>插件>血條-箭頭，進行設定。|n|n|cffFF2D2D特別注意: |r一定要開啟敵方和友方的名條/血條，才能顯示出箭頭。
 ## IconTexture: Interface\Icons\ability_warrior_charge
 ## X-Category-zhTW: 介面
+## Category: Nameplate
+## Category-zhTW: 名條
 
 #@no-lib-strip@
 Libs\LibStub\LibStub.lua

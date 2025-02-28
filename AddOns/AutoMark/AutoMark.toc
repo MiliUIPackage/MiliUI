@@ -10,6 +10,8 @@
 ## AddonCompartmentFunc: AutoMark_OnAddonCompartmentClick
 ## AddonCompartmentFuncOnEnter: AutoMark_OnAddonCompartmentEnter
 ## AddonCompartmentFuncOnLeave: AutoMark_OnAddonCompartmentLeave
+## Category: Raid
+## Category-zhTW: 副本
 embeds.xml
 AutoMarkIcon.lua
 AutoMarkData.lua

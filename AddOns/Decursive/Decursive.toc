@@ -44,10 +44,12 @@
 
 ## X-eMail: Decursive@2072productions.com
 
-## Title-zhTW: |cFF00FFFF[戰鬥]|r 一鍵驅散 |cff7fff7f -Ace3-|r
-## Notes-zhTW: Decursive|cffff00ff-Ace3-|r |n清除單人、小隊和團隊的有害狀態，並可設定進階過濾和優先權。 (內含 Ace3 程式庫) |n|cffffd200使用方法：|r點一下亮起來的小方格，可以驅散該隊友身上DEBUFF。|n滑鼠滑到第一個小方格的上方，出現一個小亮點時，按住 Alt 不放來拖曳可以移動位置。|n輸入 /decursive 開啟設定。
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 一鍵驅散
+## Notes-zhTW: Decursive |n|n清除單人、小隊和團隊的有害狀態，並可設定進階過濾和優先權。 (內含 Ace3 程式庫) |n|cffffd200使用方法：|r點一下亮起來的小方格，可以驅散該隊友身上DEBUFF。|n滑鼠滑到第一個小方格的上方，出現一個小亮點時，按住 Alt 不放來拖曳可以移動位置。|n輸入 /decursive 開啟設定。
 ## X-Category-zhTW: 職業
 ## DefaultState: disabled
+## Category: Battle
+## Category-zhTW: 戰鬥
 
 embeds.xml
 

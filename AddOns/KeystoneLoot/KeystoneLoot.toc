@@ -2,8 +2,8 @@
 ## Title: |cff9d5db8KeystoneLoot|r
 ## Notes: Shows the items from the mythic plus instances in a compact overview
 ## Notes-ruRU: Компактный аддон, который показывает уровни предметов из подземелий М+
-## Title-zhTW: |cffFF7F00[副本]|r 戰利品查詢
-## Notes-zhTW: KeystoneLoot |n顯示所有地城的掉落，並可以標記最愛。|n|n|cffffd200使用方法：|r點小地圖旁按鈕。
+## Title-zhTW: |cFF2DA267[裝備]|r 戰利品查詢
+## Notes-zhTW: KeystoneLoot |n|n 顯示所有地城的掉落，並可以標記最愛。|n|n|cffffd200使用方法：|r點小地圖旁按鈕。
 ## Author: Selina Ruesch
 ## X-Email: selina.ruesch@gmail.com
 ## Version: 1.9.4
@@ -11,6 +11,8 @@
 ## SavedVariables: KeystoneLootDB
 ## SavedVariablesPerCharacter: KeystoneLootCharDB
 ## X-Category-zhTW: 物品
+## Category: Info
+## Category-zhTW: 資訊
 
 locale\_controller.lua
 locale\enUS.lua

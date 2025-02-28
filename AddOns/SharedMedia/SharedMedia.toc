@@ -11,6 +11,8 @@
 ## X-Date: 2018-07-17T19:41:06Z
 
 ## OptionalDeps: LibStub, LibSharedMedia-3.0
+## Category: Other
+## Category-zhTW: 其他
 
 #@no-lib-strip@
 libs\LibStub\LibStub.lua

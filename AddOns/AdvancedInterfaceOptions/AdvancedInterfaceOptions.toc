@@ -15,6 +15,8 @@
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
 ## SavedVariables: AdvancedInterfaceOptionsSaved
+## Category: Other
+## Category-zhTW: 其他
 
 semlib\semlib.xml
 utils.lua
