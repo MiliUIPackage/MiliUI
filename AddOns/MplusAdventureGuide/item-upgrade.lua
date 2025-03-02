@@ -30,6 +30,10 @@ local db = {
                 lower = 558,
                 upper = 580,
             },
+            TWWseason2 = {
+                lower = 597,
+                upper = 619,
+            },
         },
     },
     adventurer = {
@@ -60,6 +64,10 @@ local db = {
             TWWseason1 = {
                 lower = 571,
                 upper = 593,
+            },
+            TWWseason2 = {
+                lower = 610,
+                upper = 632,
             },
         },
     },
@@ -92,6 +100,10 @@ local db = {
                 lower = 584,
                 upper = 606,
             },
+            TWWseason2 = {
+                lower = 623,
+                upper = 645,
+            }
         },
     },
     champion = {
@@ -123,6 +135,10 @@ local db = {
                 lower = 597,
                 upper = 619,
             },
+            TWWseason2 = {
+                lower = 636,
+                upper = 658,
+            },
         },
     },
     hero = {
@@ -146,6 +162,10 @@ local db = {
                 lower = 610,
                 upper = 626,
             },
+            TWWseason2 = {
+                lower = 649,
+                upper = 665,
+            },
         },
     },
     myth = {
@@ -168,6 +188,10 @@ local db = {
             TWWseason1 = {
                 lower = 623,
                 upper = 639,
+            },
+            TWWseason2 = {
+                lower = 662,
+                upper = 678,
             },
         },
     },

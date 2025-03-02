@@ -1,7 +1,7 @@
 ## Interface: 110100
 ## Title: Mythic+ Miscellaneous
 ## Author: Teelo - Jubei'thos (US)
-## Version: 11.0-022
+## Version: 11.1-002
 ## Notes: Shows the Loot tab in your Encounter Journal in Dragonflight, as well as a few other things
 ## X-Curse-Project-ID: 655714
 ## SavedVariables: MPlusAdventureGuideADB
@@ -11,6 +11,16 @@
 ## Notes-zhTW: MplusAdventureGuide|n|n顯示賽季裝備裝備等級區間、M+介面顯示傳送門以及其他一些內容。
 ## Category: Interface
 ## Category-zhTW: 介面
+## Category-enUS: Dungeons & Raids
+## Category-deDE: Dungeons & Schlachtzüge
+## Category-esES: Mazmorras y bandas
+## Category-esMX: Calabozos y bandas
+## Category-frFR: Donjons et raids
+## Category-itIT: Spedizioni e incursioni
+## Category-koKR: 던전 및 공격대
+## Category-ptBR: Masmorras e Raides
+## Category-ruRU: Подземелья и рейды
+## Category-zhCN: 地下城和团队副本
 
 libs\LibStub\LibStub.lua
 libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
@@ -32,7 +42,6 @@ watermark.lua
 portal-buttons.lua
 achievement-expansion-features.lua
 keystone-movable.lua
-plunderstorm-renown.lua
 acronyms.lua
 wardrobe-class-colours.lua
 warband-transferable.lua
