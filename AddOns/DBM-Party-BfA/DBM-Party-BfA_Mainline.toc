@@ -1,7 +1,5 @@
 ## Interface: 110007, 110100
 ## Category: DBM
-## Category-zhTW: 副本
-
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (BfA)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領-決戰艾澤拉斯|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0队伍首领 (争霸艾泽拉斯)|r
@@ -22,16 +20,11 @@
 ## X-DBM-Mod-MapID: 1763, 1754, 1762, 1864, 1822, 1877, 1594, 1841, 1771, 1862, 2097
 ## X-DBM-Mod-MinCoreRevision: 17286
 ## X-DBM-Mod-MinExpansion: 7
-## X-Category-zhTW: 團隊
+## Category-zhTW: 副本
 
 localization.en.lua
 localization.cn.lua
 localization.tw.lua
-SiegeofBoralus\Lockwood.lua
-SiegeofBoralus\Redhook_Bainbridge.lua
-SiegeofBoralus\Darkfathom.lua
-SiegeofBoralus\ViqGoth.lua
-SiegeofBoralus\BoralusTrash.lua
 TheMotherload\CrowdPummeler.lua
 TheMotherload\Azerokk.lua
 TheMotherload\RixxaFluxflame.lua

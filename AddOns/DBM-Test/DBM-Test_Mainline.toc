@@ -1,7 +1,5 @@
 ## Interface: 110007, 110100
 ## Category: DBM
-## Category-zhTW: 副本
-
 ## Title:|cffffe00a<|r|cffff7d0aDBM Tests|r|cffffe00a>|r |cff69ccf0Test runner for DBM|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM 測試|r|cffffe00a>|r |cff69ccf0DBM的測試運行|r
 ## Dependencies: DBM-Core
@@ -10,7 +8,7 @@
 ## DefaultState: enabled
 ## LoadOnDemand: 1
 ## X-DBM-Test: true
-## X-Category-zhTW: 團隊
+## Category-zhTW: 副本
 
 Options.lua
 Registry.lua

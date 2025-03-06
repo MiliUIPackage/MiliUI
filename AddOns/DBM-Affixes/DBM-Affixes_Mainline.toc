@@ -1,6 +1,5 @@
 ## Interface: 110007, 110100
 ## Category: DBM
-## Category-zhTW: 副本
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010M+ Affixes|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010傳奇+詞綴|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010副本词缀|r
@@ -18,7 +17,7 @@
 ## X-DBM-Mod-MapID: 2516, 2526, 2515, 2521, 2527, 2519, 2451, 2520, 2652, 2662, 2660, 2669, 670, 1822, 2286, 2290, 2773
 ## X-DBM-Mod-Sort: 211
 ## X-DBM-Mod-MinCoreRevision: 12473
-## X-Category-zhTW: 團隊
+## Category-zhTW: 副本
 
 localization.en.lua
 localization.tw.lua

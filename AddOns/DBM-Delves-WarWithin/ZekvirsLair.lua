@@ -3,14 +3,13 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,mythic"--Best way to really call it
 
-mod:SetRevision("20241123070219")
+mod:SetRevision("20250225124647")
 mod:SetCreatureID(225204)--Non hard one placeholder on load. Real one set in OnCombatStart
 mod:SetEncounterID(2987, 2985)
 mod:SetHotfixNoticeRev(20240914000000)
 mod:SetMinSyncRevision(20240914000000)
 mod:SetZone(2682)
 
---mod:RegisterCombat("scenario", 2682)
 mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
@@ -30,7 +29,7 @@ local warnBlackBloodEnd						= mod:NewEndAnnounce(451003, 2)
 
 local specWarnCallWebTerror					= mod:NewSpecialWarningSwitchCount(450568, nil, nil, nil, 1, 2)
 local specWarnAnglersWeb					= mod:NewSpecialWarningDodgeCount(450519, nil, nil, nil, 2, 15)
-local specWarnClawSmash						= mod:NewSpecialWarningDodgeCount(450451, nil, nil, nil, 2, 15)
+local specWarnClawSmash						= mod:NewSpecialWarningDodgeCount(450451, nil, nil, nil, 3, 15)
 local specWarnUnendingSpines				= mod:NewSpecialWarningDodgeCount(450872, nil, nil, nil, 2, 2)
 local specWarnEnfeeblingSpittleInterrupt	= mod:NewSpecialWarningInterruptCount(450505, false, nil, nil, 1, 2)
 local specWarnRegeneratingCarapace			= mod:NewSpecialWarningInterruptCount(450449, nil, nil, nil, 1, 2, 4)--Stage 1

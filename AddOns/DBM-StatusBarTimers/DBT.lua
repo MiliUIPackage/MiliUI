@@ -86,6 +86,9 @@ DBT.DefaultOptions = {
 	Bar7CustomInline = true,
 	-- Variance
 	VarianceEnabled = true,
+	VarColorR = 1,
+	VarColorG = 1,
+	VarColorB = 1,
 	VarianceAlpha = 0.5,
 	VarianceBehavior = "ZeroAtMinTimerAndNeg",
 	-- Small bar
@@ -282,7 +285,7 @@ do
 		varianceTex:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
 		varianceTex:SetWidth(20)
 		varianceTex:SetBlendMode("ADD")
-		varianceTex:SetAlpha(0.5)
+		varianceTex:SetVertexColor(1, 1, 1, 0.5)
 
 		local varianceTexBorder = bar:CreateTexture("$parentVarianceBorder", "OVERLAY")
 		varianceTexBorder:SetVertexColor(0, 0, 0, 1)
@@ -346,11 +349,11 @@ do
 			newBar.lastUpdate = GetTime()
 			newBar.huge = huge or nil
 			newBar.paused = nil
-			newBar.keep = keep
 			newBar.minTimer = varianceMinTimer or nil
 			newBar.varianceDuration = varianceDuration or 0
 			newBar.hasVariance = varianceMinTimer and true or false
 			newBar:SetTimer(timer) -- This can kill the timer and the timer methods don't like dead timers
+			newBar.keep = keep -- keep this after SetTimer, not before, otherwise the bar will turn dead if Debug mode enabled and switching from var to non-var, since Update(0) will Cancel the timer
 			if newBar.dead then
 				return
 			end
@@ -895,7 +898,7 @@ function barPrototype:SetVariance()
 			varianceTexBorder:SetPoint("BOTTOMRIGHT", varianceTex, "BOTTOMRIGHT", 1, 0)
 		end
 
-		varianceTex:SetAlpha(DBT.Options.VarianceAlpha)
+		varianceTex:SetVertexColor(DBT.Options.VarColorR, DBT.Options.VarColorG, DBT.Options.VarColorB, DBT.Options.VarianceAlpha)
 
 		varianceTex:Show()
 		varianceTexBorder:Show()

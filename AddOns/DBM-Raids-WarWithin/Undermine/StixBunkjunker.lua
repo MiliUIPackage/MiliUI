@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2642, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250127032933")
+mod:SetRevision("20250302044035")
 mod:SetCreatureID(230322)
 mod:SetEncounterID(3012)
 mod:SetUsedIcons(7, 6, 5, 4, 3, 2, 1)
@@ -16,11 +16,11 @@ mod:RegisterCombat("combat")
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 464399 466742 1220752 464112 1217954 467117 467109",
 	"SPELL_CAST_SUCCESS 464149",
-	"SPELL_AURA_APPLIED 465346 1217685 464854 473115 473066 1218704 1219384 1220648",
---	"SPELL_AURA_APPLIED_DOSE",
+	"SPELL_AURA_APPLIED 465346 1217685 464854 473115 473066 1218704 1219384 1220648 466748 472893",
+	"SPELL_AURA_APPLIED_DOSE 466748",
 	"SPELL_AURA_REMOVED 465346 461536 1217685 473115 473066 467117",
-	"SPELL_PERIODIC_DAMAGE 464854",
-	"SPELL_PERIODIC_MISSED 464854",
+	"SPELL_PERIODIC_DAMAGE 464854 464248",
+	"SPELL_PERIODIC_MISSED 464854 464248",
 --	"CHAT_MSG_RAID_BOSS_WHISPER",
 	"UNIT_DIED"
 --	"UNIT_SPELLCAST_SUCCEEDED boss1"
@@ -31,11 +31,12 @@ mod:RegisterEventsInCombat(
 --TODO, Discarded Doomsplosive spawn and auto marking if possible?
 --TODO, fancy infoframe that tracks active bombs, times remaining, as well as time remaining on https://www.wowhead.com/ptr-2/spell=1217975/doomsploded
 --TODO, more with power coil
---TODO, Target scan or something for dumpster dive. or upgrade emphasis and just make it aoe dodge alert
---TODO, warn for high bite count? https://www.wowhead.com/ptr-2/spell=466748/infected-bite
+--TODO, dumpster dive upgrade emphasis and just make it aoe dodge alert
 --TODO, taunt DURING demolish cast, or immediately on completion of cast
 --TODO, clear bomb count using SPELL_DAMAGE 465747? of course first we have to find a way to increment bomb count
 --TODO, prevent starting new timers if overdrive soon. this is on hold til other difficulties seen
+--TODO, add rolled? 465611. I feel it's pretty obvious you're stunned...by the stun
+--TODO, verify which variant of timers is final version, the slower fight pacing harder tests saw or faster pacing normal and LFR saw, or are both pacings still used
 --[[
  (ability.id = 464399 or ability.id = 464112 or ability.id = 1217954) and type = "begincast"
   or ability.id = 464149 and type = "cast"
@@ -44,16 +45,17 @@ mod:RegisterEventsInCombat(
 --Sorting
 mod:AddTimerLine(DBM:GetSpellName(464399))
 local warnSorted									= mod:NewTargetNoFilterAnnounce(465346, 3)
+local warnInfectedbite								= mod:NewCountAnnounce(466748, 4, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(466748))--Player
 
-local specWarnElectroSorting						= mod:NewSpecialWarningCount(464399, nil, nil, nil, 2, 2)
-local specWarnSorted								= mod:NewSpecialWarningYouPos(465346, nil, nil, nil, 1, 2)--Pre target debuff for Rolling Rubbish
-local yellSorted									= mod:NewShortPosYell(465346)
-local yellSortedFades								= mod:NewIconFadesYell(465346)
-local specWarnSortedTaunt							= mod:NewSpecialWarningTaunt(465346, nil, nil, nil, 1, 2)
+local specWarnElectroSorting						= mod:NewSpecialWarningCount(464399, nil, nil, DBM_COMMON_L.BALLS.. "+" ..DBM_COMMON_L.ADDS, 2, 2)
+local specWarnSorted								= mod:NewSpecialWarningYouPos(461536, nil, nil, nil, 1, 2)--Pre target debuff for Rolling Rubbish
+local yellSorted									= mod:NewShortPosYell(461536)
+local yellSortedFades								= mod:NewIconFadesYell(461536)
+local specWarnSortedTaunt							= mod:NewSpecialWarningTaunt(461536, nil, nil, nil, 1, 2)
 local specWarnPowercoil								= mod:NewSpecialWarningYou(1218704, nil, nil, nil, 1, 2, 4)
 local specWarnGTFO									= mod:NewSpecialWarningGTFO(464854, nil, nil, nil, 1, 8)
 
-local timerElectroSortingCD							= mod:NewNextCountTimer(51.1, 464399, nil, nil, nil, 2)
+local timerElectroSortingCD							= mod:NewNextCountTimer(51.1, 464399, DBM_COMMON_L.BALLS.. "+" ..DBM_COMMON_L.ADDS.." (%s)", nil, nil, 2)
 --local timerBigBomb								= mod:NewCastTimer(20, 464865, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
 local timerShortFuseCast							= mod:NewCastNPTimer(30, 473115, nil, nil, nil, 2)
 
@@ -65,7 +67,7 @@ mod:AddNamePlateOption("NPAuraOnTerritorial", 473066)
 --mod:AddPrivateAuraSoundOption(433517, true, 433517, 1)
 --Cleanup Crew
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(30533))
-local warnDumpsterDive								= mod:NewCastAnnounce(466742, 3, nil, nil, false, 2)--Spammy without way to scope it to specific target
+local warnDumpsterDive								= mod:NewCastAnnounce(466742, 4)--Spammy without way to scope it to specific target
 local warnMarkedForRecycling						= mod:NewTargetNoFilterAnnounce(1220648, 4)
 
 local specWarnScrapRockets							= mod:NewSpecialWarningInterruptCount(1219384, "HasInterrupt", nil, nil, 1, 2)
@@ -76,7 +78,8 @@ local timerDumpsterDiveCD							= mod:NewCDNPTimer(10.9, 466742, nil, nil, nil, 
 local timerRecyclerCast								= mod:NewCastNPTimer(12, 1220752, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
 --Rest of Boss mechanics
 mod:AddTimerLine(DBM_COMMON_L.BOSS)
-local specWarnIncinerator							= mod:NewSpecialWarningMoveAwayCount(464149, nil, nil, nil, 2, 2)--Debuff is 472893 but we pre warn spread instead
+local specWarnIncinerator							= mod:NewSpecialWarningMoveAwayCount(464149, nil, nil, nil, 2, 2)--Debuff is 472893 but we pre warn first
+local specWarnIncineratorVictim						= mod:NewSpecialWarningYou(472893, nil, nil, nil, 1, 17)
 --local yellIncinerator								= mod:NewShortYell(464149)--Spammy
 local specWarnDemolish								= mod:NewSpecialWarningDefensive(464112, nil, nil, nil, 1, 2)
 local specWarnDemolishTaunt							= mod:NewSpecialWarningTaunt(464112, nil, nil, nil, 1, 2)
@@ -108,11 +111,19 @@ function mod:OnCombatStart(delay)
 	self.vb.IncinCount = 0
 	self.vb.demolishCount = 0
 	self.vb.meltdownCount = 0
-	timerIncineratorCD:Start(11.1-delay, 1)
-	timerDemolishCD:Start(17.8-delay, 1)
-	timerElectroSortingCD:Start(22.3-delay, 1)
-	timerMeltdownCD:Start(44.5-delay, 1)
-	timerOverDriveCD:Start((self:IsMythic() and 55.6 or 111.1)-delay)
+	if self:IsHard() then
+		timerIncineratorCD:Start(11.1-delay, 1)
+		timerDemolishCD:Start(17.8-delay, 1)
+		timerElectroSortingCD:Start(22.3-delay, 1)
+		timerMeltdownCD:Start(44.5-delay, 1)
+		timerOverDriveCD:Start((self:IsMythic() and 55.6 or 111.1)-delay)
+	else
+		timerIncineratorCD:Start(10-delay, 1)
+		timerDemolishCD:Start(16-delay, 1)
+		timerElectroSortingCD:Start(20.1-delay, 1)
+		timerMeltdownCD:Start(40-delay, 1)
+		timerOverDriveCD:Start(100-delay)
+	end
 	--self:EnablePrivateAuraSound(433517, "runout", 2)
 	if self.Options.NPAuraOnMessedUp or self.Options.NPAuraOnTerritorial then
 		DBM:FireEvent("BossMod_EnableHostileNameplates")
@@ -141,16 +152,18 @@ function mod:SPELL_CAST_START(args)
 		self.vb.smallBombIcon = 7
 		specWarnElectroSorting:Show(self.vb.sortingCount)
 		specWarnElectroSorting:Play("specialsoon")
-		timerElectroSortingCD:Start(nil, self.vb.sortingCount+1)
+		timerElectroSortingCD:Start(self:IsHard() and 51.1 or 46.0, self.vb.sortingCount+1)
 	elseif spellId == 466742 then
-		warnDumpsterDive:Show()
-		timerDumpsterDiveCD:Start(nil, args.sourceGUID)
+		if self:AntiSpam(4, 1) then
+			warnDumpsterDive:Show()
+		end
+		timerDumpsterDiveCD:Start(self:IsHard() and 10.9 or 15.8, args.sourceGUID)
 	elseif spellId == 1220752 then
 		timerRecyclerCast:Start(nil, args.sourceGUID)
 		--timerRecyclerCD:Start(nil, args.sourceGUID)
 	elseif spellId == 464112 then
 		self.vb.demolishCount = self.vb.demolishCount + 1
-		timerDemolishCD:Start(nil, self.vb.demolishCount+1)
+		timerDemolishCD:Start(self:IsHard() and 51.1 or 46.0, self.vb.demolishCount+1)
 		if self:IsTanking("player", "boss1", nil, true) then
 			specWarnDemolish:Show()
 			specWarnDemolish:Play("defensive")
@@ -164,7 +177,7 @@ function mod:SPELL_CAST_START(args)
 			specWarnMeltdown:Show()
 			specWarnMeltdown:Play("defensive")
 		end
-		timerMeltdownCD:Start(nil, self.vb.meltdownCount+1)
+		timerMeltdownCD:Start(self:IsHard() and 51.1 or 46.0, self.vb.meltdownCount+1)
 	elseif spellId == 467117 then--Overdrive (P2 start)
 		timerOverdrive:Start()
 		--Stop Timers
@@ -184,7 +197,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 		self.vb.IncinCount = self.vb.IncinCount + 1
 		specWarnIncinerator:Show(self.vb.IncinCount)
 		specWarnIncinerator:Play("scatter")
-		timerIncineratorCD:Start(nil, self.vb.IncinCount+1)
+		timerIncineratorCD:Start(self:IsHard() and 25.5 or 22.9, self.vb.IncinCount+1)
 	end
 end
 
@@ -258,9 +271,18 @@ function mod:SPELL_AURA_APPLIED(args)
 		else
 			warnMarkedForRecycling:Show(args.destName)
 		end
+	elseif spellId == 466748 and args:IsPlayer() then
+		local amount = args.amount or 1
+		if amount % 2 == 0 then--Stack frequency guesswork
+			warnInfectedbite:Show(amount)
+		end
+	elseif spellId == 472893 and args:IsPlayer() then
+		specWarnIncineratorVictim:Show()
+		specWarnIncineratorVictim:Play("debuffyou")
+		--yellIncinerator:Yell()
 	end
 end
---mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
+mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
 
 function mod:SPELL_AURA_REMOVED(args)
 	local spellId = args.spellId
@@ -287,15 +309,22 @@ function mod:SPELL_AURA_REMOVED(args)
 		timerShortFuseCast:Stop(args.destGUID)
 	elseif spellId == 467117 then
 		timerOverdrive:Stop()
-		timerIncineratorCD:Start(13.2, self.vb.IncinCount+1)
-		timerDemolishCD:Start(19.8, self.vb.demolishCount+1)
-		timerElectroSortingCD:Start(24.2, self.vb.sortingCount+1)
-		timerMeltdownCD:Start(47.7, self.vb.meltdownCount+1)
+		if self:IsHard() then
+			timerIncineratorCD:Start(13.2, self.vb.IncinCount+1)
+			timerDemolishCD:Start(19.8, self.vb.demolishCount+1)
+			timerElectroSortingCD:Start(24.2, self.vb.sortingCount+1)
+			timerMeltdownCD:Start(46.5, self.vb.meltdownCount+1)
+		else
+			timerIncineratorCD:Start(12.2, self.vb.IncinCount+1)
+			timerDemolishCD:Start(18.2, self.vb.demolishCount+1)
+			timerElectroSortingCD:Start(22.3, self.vb.sortingCount+1)
+			timerMeltdownCD:Start(42.2, self.vb.meltdownCount+1)
+		end
 	end
 end
 
 function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId, spellName)
-	if spellId == 464854 and destGUID == UnitGUID("player") and self:AntiSpam(2, 3) then
+	if (spellId == 464248 or spellId == 464854) and destGUID == UnitGUID("player") and self:AntiSpam(2, 3) then
 		specWarnGTFO:Show(spellName)
 		specWarnGTFO:Play("watchfeet")
 	end

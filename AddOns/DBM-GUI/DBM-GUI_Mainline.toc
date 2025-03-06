@@ -1,7 +1,5 @@
 ## Interface: 110007, 110100
 ## Category: DBM
-## Category-zhTW: 副本
-
 ## Title:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Options GUI|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0设置界面|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0使用者介面|r
@@ -13,9 +11,9 @@
 ## LoadOnDemand: 1
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 11.1.4
+## Version: 11.1.5
 ## X-Website: https://deadlybossmods.com
-## X-Category-zhTW: 團隊
+## Category-zhTW: 副本
 
 Polyfills.xml
 

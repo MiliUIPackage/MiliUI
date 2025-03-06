@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "story,lfr,normal,heroic,mythic"
 
-mod:SetRevision("20250209023836")
+mod:SetRevision("20250225032709")
 mod:SetCreatureID(218370)
 mod:SetEncounterID(2922)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
@@ -585,7 +585,7 @@ function mod:SPELL_CAST_START(args)
 			specWarnOust:Play("carefly")
 		end
 		timerOustCD:Start(nil, args.sourceGUID)
-	elseif spellId == 451600 and self:AntiSpam(5, 2) then
+	elseif spellId == 451600 and self:CheckBossDistance(args.sourceGUID, true, 32825, 60) then
 		self.vb.novaCount = self.vb.novaCount + 1
 		specWarnExpulsionBeam:Show(self.vb.novaCount)
 		specWarnExpulsionBeam:Play("farfromline")

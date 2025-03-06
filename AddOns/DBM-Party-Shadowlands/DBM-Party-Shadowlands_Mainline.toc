@@ -1,7 +1,5 @@
 ## Interface: 110007, 110100
 ## Category: DBM
-## Category-zhTW: 副本
-
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (SL)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領-暗影之境|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0队伍首领 (暗影国度)|r
@@ -22,20 +20,11 @@
 ## X-DBM-Mod-MapID: 2286, 2289, 2290, 2287, 2285, 2293, 2291, 2284, 2441
 ## X-DBM-Mod-MinCoreRevision: 17286
 ## X-DBM-Mod-MinExpansion: 8
-## X-Category-zhTW: 團隊
+## Category-zhTW: 副本
 
 localization.en.lua
 localization.tw.lua
 localization.cn.lua
-TheNecroticWake\Blightbone.lua
-TheNecroticWake\Amarth.lua
-TheNecroticWake\SurgeonStitchflesh.lua
-TheNecroticWake\Nalthor.lua
-TheNecroticWake\NecroticWakeTrash.lua
-MistsofTirnaScithe\IngraMaloch.lua
-MistsofTirnaScithe\Mistcaller.lua
-MistsofTirnaScithe\Tredova.lua
-MistsofTirnaScithe\TirnaScitheTrash.lua
 TheaterofPain\AffrontofChallengers.lua
 TheaterofPain\Gorechop.lua
 TheaterofPain\XavtheUnfallen.lua

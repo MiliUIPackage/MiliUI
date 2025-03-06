@@ -76,15 +76,15 @@ end
 ---@class DBM
 local DBM = private:GetPrototype("DBM")
 _G.DBM = DBM
-DBM.Revision = parseCurseDate("20250209024049")
+DBM.Revision = parseCurseDate("20250304233911")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
-local fakeBWVersion, fakeBWHash = 368, "fc06f51"--368.0
+local fakeBWVersion, fakeBWHash = 373, "9b49b21"--373.0
 local PForceDisable
 -- The string that is shown as version
-DBM.DisplayVersion = "11.1.4"--Core version
+DBM.DisplayVersion = "11.1.6"--Core version
 DBM.classicSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2025, 2, 8) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2025, 3, 4) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 PForceDisable = 16--When this is incremented, trigger force disable regardless of major patch
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -1310,6 +1310,7 @@ do
 	end
 
 	---@param self DBMModOrDBM
+	---@param srmIncluded boolean?
 	function DBM:UnregisterInCombatEvents(srmOnly, srmIncluded)
 		for event, mods in pairs(registeredEvents) do
 			if srmOnly then
@@ -2000,6 +2001,7 @@ do
 	--- |"DBM_Debug"
 	--- |"DBM_SetStage"
 	--- |"DBM_AffixEvent"
+	--- |"DBM_TimerBegin"
 	--- |"DBM_TimerStart"
 	--- |"DBM_TimerStop"
 	--- |"DBM_TimerFadeUpdate"
@@ -2007,6 +2009,7 @@ do
 	--- |"DBM_TimerPause"
 	--- |"DBM_TimerResume"
 	--- |"DBM_TimerUpdateIcon"
+	--- |"DBM_NameplateBegin"
 	--- |"DBM_NameplateStart"
 	--- |"DBM_NameplateStop"
 	--- |"DBM_NameplateStopAll"
@@ -3153,7 +3156,6 @@ do
 		[9278] = 552035,--HoodWolfTransformPlayer01
 		[6674] = 566558,--BellTollNightElf
 		[11742] = 566558,--BellTollNightElf
-		[8585] = 546633,--CThunYouWillDIe
 		[11965] = 551703,--Horseman_Laugh_01
 		[37666] = 876098,--Blizzard Raid Emote
 		[11466] = 552503,--BLACK_Illidan_04
@@ -5337,7 +5339,7 @@ do
 		if self.Options.AFKHealthWarning2 and not private.IsEncounterInProgress() and UnitIsAFK("player") and self:AntiSpam(3, "AFK") then--You are afk and losing health, some griever is trying to kill you while you are afk/tabbed out.
 			self:FlashClientIcon()
 			local voice = DBM.Options.ChosenVoicePack2
-			local path = 546633--"Sound\\Creature\\CThun\\CThunYouWillDIe.ogg"
+			local path = 566558--Nightelf Bell
 			if not private.voiceSessionDisabled and voice ~= "None" then
 				path = "Interface\\AddOns\\DBM-VP" .. voice .. "\\checkhp.ogg"
 			end
@@ -5932,7 +5934,7 @@ do
 				trackedAchievements = (C_ContentTracking and C_ContentTracking.GetTrackedIDs(2)[1])
 			end
 			if self.Options.HideObjectivesFrame and mod.addon and mod.addon.type ~= "SCENARIO" and not trackedAchievements and difficulties.difficultyIndex ~= 8 and not InCombatLockdown() then
-				if private.isRetail then--Do nothing due to taint and breaking
+				if private.isRetail or private.isCata then--Do nothing due to taint and breaking
 					--if ObjectiveTrackerFrame:IsVisible() then
 					--	ObjectiveTracker_Collapse()
 					--	watchFrameRestore = true
@@ -6057,7 +6059,7 @@ do
 				if self.Options.EventSoundEngage2 and self.Options.EventSoundEngage2 ~= "" and self.Options.EventSoundEngage2 ~= "None" then
 					self:PlaySoundFile(self.Options.EventSoundEngage2, nil, true)
 				end
-				if self.Options.EventSoundMusic and self.Options.EventSoundMusic ~= "None" and self.Options.EventSoundMusic ~= "" and not (self.Options.EventMusicMythicFilter and (difficulties.savedDifficulty == "mythic" or difficulties.savedDifficulty == "challenge")) and not mod.noStatistics and not self.Options.RestoreSettingMusic then
+				if not mod.inScenario and self.Options.EventSoundMusic and self.Options.EventSoundMusic ~= "None" and self.Options.EventSoundMusic ~= "" and not (self.Options.EventMusicMythicFilter and (difficulties.savedDifficulty == "mythic" or difficulties.savedDifficulty == "challenge")) and not mod.noStatistics and not self.Options.RestoreSettingMusic then
 					fireEvent("DBM_MusicStart", "BossEncounter")
 					if not self.Options.RestoreSettingCustomMusic then
 						self.Options.RestoreSettingCustomMusic = tonumber(GetCVar("Sound_EnableMusic")) or 1
@@ -6069,7 +6071,7 @@ do
 					end
 					local path = "MISSING"
 					if self.Options.EventSoundMusic == "Random" then
-						local usedTable = self.Options.EventSoundMusicCombined and self:GetMusic() or mod.inScenario and self:GetDungeonMusic() or self:GetBattleMusic()
+						local usedTable = self.Options.EventSoundMusicCombined and self:GetMusic() or self:GetBattleMusic()
 						if #usedTable >= 3 then
 							local random = fastrandom(3, #usedTable)
 							---@diagnostic disable-next-line: cast-local-type
@@ -6121,7 +6123,7 @@ do
 				--PRIO afk alert first
 				if self.Options.AFKHealthWarning2 and (health < (private.isHardcoreServer and 95 or 85)) and UnitIsAFK("player") and self:AntiSpam(5, "AFK") then
 					local voice = DBM.Options.ChosenVoicePack2
-					local path = 546633--"Sound\\Creature\\CThun\\CThunYouWillDIe.ogg"
+					local path = 566558--Nightelf Bell
 					if not private.voiceSessionDisabled and voice ~= "None" then
 						path = "Interface\\AddOns\\DBM-VP" .. voice .. "\\checkhp.ogg"
 					end
@@ -6130,7 +6132,7 @@ do
 				--Low health warning
 				elseif self.Options.HealthWarningLow and health < 35 and self:AntiSpam(5, "LOWHEALTH") then
 					local voice = DBM.Options.ChosenVoicePack2
-					local path = 546633--"Sound\\Creature\\CThun\\CThunYouWillDIe.ogg"
+					local path = 566558--Nightelf Bell
 					if not private.voiceSessionDisabled and voice ~= "None" then
 						path = "Interface\\AddOns\\DBM-VP" .. voice .. "\\checkhp.ogg"
 					end
@@ -6194,7 +6196,7 @@ do
 			local usedDifficulty = mod.engagedDiff or difficulties.savedDifficulty
 			local usedDifficultyText = mod.engagedDiffText or difficulties.difficultyText
 			local usedDifficultyIndex = mod.engagedDiffIndex or difficulties.difficultyIndex
-			local usedDifficultyModifier = mod.engagedDiffModifier or difficulties.difficultyModifier
+			local usedDifficultyModifier = mod.engagedDiffModifier or difficulties.difficultyModifier or 0
 			local name = mod.combatInfo.name
 			local modId = mod.id
 			if wipe and mod.stats and not mod.noStatistics then
@@ -7057,7 +7059,7 @@ function DBM:UNIT_DIED(args)
 	if not private.isHardcoreServer and self.Options.AFKHealthWarning2 and GUID == UnitGUID("player") and not private.IsEncounterInProgress() and UnitIsAFK("player") and self:AntiSpam(5, "AFK") then--You are afk and losing health, some griever is trying to kill you while you are afk/tabbed out.
 		self:FlashClientIcon()
 		local voice = DBM.Options.ChosenVoicePack2
-		local path = 546633--"Sound\\Creature\\CThun\\CThunYouWillDIe.ogg"
+		local path = 566558--Nightelf Bell
 		if not private.voiceSessionDisabled and voice ~= "None" then
 			path = "Interface\\AddOns\\DBM-VP" .. voice .. "\\checkhp.ogg"
 		end
@@ -7538,7 +7540,7 @@ do
 			testSpecialWarning2 = testMod:NewSpecialWarning(" %s ", nil, nil, nil, 2, 2)
 			testSpecialWarning3 = testMod:NewSpecialWarning("  %s  ", nil, nil, nil, 3, 2) -- hack: non auto-generated special warnings need distinct names (we could go ahead and give them proper names with proper localization entries, but this is much easier)
 		end
-		testTimer1:Stop("測試條")
+		testTimer1:Stop("測試條顯示5秒差異")
 		testTimer2:Stop("小怪")
 		testTimer3:Stop("惡魔減益")
 		testTimer4:Stop("重要的打斷")
@@ -7546,12 +7548,12 @@ do
 		testTimer6:Stop("掌握你的職責")
 		testTimer7:Stop("下一階段")
 		testTimer8:Stop("用戶自訂義條")
-		testTimer1:Start(10, "測試條")
-		testTimer2:Start(30, "小怪")
+		testTimer1:Start("v5-10", "測試條顯示5秒差異")
+		testTimer2:Start("v25-30", "小怪")
 		testTimer3:Start(43, "惡魔減益")
 		testTimer4:Start(20, "重要的打斷")
 		testTimer5:Start(60, "蹦!")
-		testTimer6:Start(35, "掌握你的職責")
+		testTimer6:Start("v32-35", "掌握你的職責")
 		testTimer7:Start(50, "下一階段")
 		testTimer8:Start(55, "用戶自訂義條")
 		testWarning1:Cancel()
@@ -9263,7 +9265,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20250208191722" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20250304233911" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then

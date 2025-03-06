@@ -594,6 +594,12 @@ function test:InjectEvent(event, ...)
 	if event == "CHAT_MSG_RAID_BOSS_WHISPER" and select(2, ...) ~= self.logPlayerName and not self.allOnYou then
 		return
 	end
+	if event == "CHAT_MSG_RAID_WARNING" then
+		if select(12, ...) == self.logPlayerGuid and self.logPlayerGuid ~= UnitGUID("player") then
+			local arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11 = ...
+			return self:InjectEvent(event, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, UnitGUID("player"), select(13, ...))
+		end
+	end
 	if event == "COMBAT_LOG_EVENT_UNFILTERED" then
 		self.Mocks:SetFakeCLEUArgs(...)
 		self:OnInjectCombatLog(self.Mocks.CombatLogGetCurrentEventInfo())
@@ -740,9 +746,10 @@ function test:Playback(testData, timeWarp, testOptions)
 	self.players = {}
 	if testData.players then
 		for _, v in ipairs(testData.players) do
-			self.players[v[1]] = true
+			self.players[v[1]] = v[2]
 		end
 	end
+	self.logPlayerGuid = self.players[self.logPlayerName]
 	adjustFlagsForPerspective(testData, self.logPlayerName, self.allOnYou)
 	self.Mocks:SetInstanceInfo(testData.instanceInfo)
 	DBM:ScenarioCheck(0)
@@ -775,13 +782,14 @@ function test:Playback(testData, timeWarp, testOptions)
 			end
 		elseif testData.instanceInfo.instanceID == 533 then -- Naxx
 			local modifier = testData.instanceInfo.difficultyModifier
+			-- I've no clue how the spell IDs map to number of modifiers, it could change by week maybe?
+			-- Week 1 had 1218271 for difficulty 1, week 2 has 1218275 for difficulty 1 but for difficulty 2 as well and 1218276 for 3?
+			-- Anyhow, the real important number is the number of stacks and that 1224428 means no hardmode enable, our mods don't care about the exact debuff anyways.
 			if modifier and modifier > 0 then
-				if modifier == 1 then
-					self.Mocks:ApplyUnitAura(UnitName("player"), UnitGUID("player"), 1224428, DBM:GetSpellName(1224428), "DEBUFF", modifier)
-				elseif modifier == 2 then
+				if modifier == 1 or modifier == 2 then
 					self.Mocks:ApplyUnitAura(UnitName("player"), UnitGUID("player"), 1218275, DBM:GetSpellName(1218275), "DEBUFF", modifier)
 				elseif modifier == 3 then
-					self.Mocks:ApplyUnitAura(UnitName("player"), UnitGUID("player"), 1218271, DBM:GetSpellName(1218271), "DEBUFF", modifier)
+					self.Mocks:ApplyUnitAura(UnitName("player"), UnitGUID("player"), 1218276, DBM:GetSpellName(1218276), "DEBUFF", modifier)
 				else
 					self.Mocks:ApplyUnitAura(UnitName("player"), UnitGUID("player"), 1218283, DBM:GetSpellName(1218283), "DEBUFF", modifier)
 				end

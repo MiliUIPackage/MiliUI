@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2640, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250201033849")
+mod:SetRevision("20250304222644")
 mod:SetCreatureID(229181, 229177)
 mod:SetEncounterID(3010)
 mod:SetHotfixNoticeRev(20250131000000)
@@ -15,8 +15,8 @@ mod:RegisterCombat("combat")
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 473650 472233 1214190 473994 466178",
 	"SPELL_CAST_SUCCESS 463900",
-	"SPELL_AURA_APPLIED 472222 472225 471660 471557 1213690 472231 1214009",
-	"SPELL_AURA_APPLIED_DOSE 472222 472225 471557",
+	"SPELL_AURA_APPLIED 472222 472225 471660 471557 1213690 472231 1214009 1221826",
+	"SPELL_AURA_APPLIED_DOSE 472222 472225 471557 1221826",
 	"SPELL_AURA_REMOVED 471660 1213690 472231 1214009 465863 465872",
 	"SPELL_PERIODIC_DAMAGE 1214039 463925",
 	"SPELL_PERIODIC_MISSED 1214039 463925",
@@ -41,7 +41,7 @@ mod:RegisterEventsInCombat(
  or (ability.id = 465863 or ability.id = 465872) and type = "removebuff"
 --]]
 --General
---local warnTinyTussle								= mod:NewCountAnnounce(1221826, 3)
+local warnTinyTussle								= mod:NewCountAnnounce(1221826, 3, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(471557))--Player Stacks
 local warnKingofCarnage								= mod:NewCountAnnounce(471557, 4, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(471557))--Boss
 
 local specWarnColossalClash							= mod:NewSpecialWarningDodgeCount(465833, nil, nil, nil, 2, 2)
@@ -64,25 +64,25 @@ local yellMoltenPhlegmFades							= mod:NewShortFadesYell(1213690)
 local specWarnBlastburnRoarcannon					= mod:NewSpecialWarningMoveAway(472233, nil, 173303, nil, 3, 2)
 local yellBlastburnRoarcannon						= mod:NewShortYell(472233, 173303)
 local yellBlastburnRoarcannonFades					= mod:NewShortFadesYell(472233)
-local specWarnEruptionStomp							= mod:NewSpecialWarningDodgeCount(1214190, nil, nil, nil, 1, 2)
+local specWarnEruptionStomp							= mod:NewSpecialWarningDodgeCount(1214190, nil, 247733, nil, 1, 2)
 
 local timerScrapBombCD								= mod:NewCDCountTimer(97.3, 473650, 37859, nil, nil, 3)--"Bomb" shortname
 local timerMoltenPhlegmCD							= mod:NewCDCountTimer(97.3, 1213690, nil, nil, nil, 3, nil, DBM_COMMON_L.HEROIC_ICON)
 local timerBlastburnRoarcannonCD					= mod:NewCDCountTimer(97.3, 472233, 173303, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)--"Beam" shortname
-local timerEruptionStompCD							= mod:NewCDCountTimer(97.3, 1214190, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerEruptionStompCD							= mod:NewCDCountTimer(97.3, 1214190, 247733, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--"Stomp" shortname
 --Torq the Tempest
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(30344))
 local warnGalvanizedSpite							= mod:NewCountAnnounce(472225, 2, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(472225))--Player
 local warnVoltaicImage								= mod:NewTargetNoFilterAnnounce(1213994, 3)
 
-local specWarnStaticChargeHigh						= mod:NewSpecialWarningStack(473994, nil, 75, nil, nil, 1, 6)
-local yellStaticChargeHigh							= mod:NewIconRepeatYell(473994, DBM_CORE_L.AUTO_YELL_ANNOUNCE_TEXT.shortyell)
-local specWarnThundderdrumSalvo						= mod:NewSpecialWarningDodgeCount(463840, nil, nil, nil, 2, 2)
+local specWarnStaticChargeHigh						= mod:NewSpecialWarningStack(474159, nil, 75, nil, nil, 1, 6)
+local yellStaticChargeHigh							= mod:NewIconRepeatYell(474159, DBM_CORE_L.AUTO_YELL_ANNOUNCE_TEXT.shortyell)
+local specWarnThundderdrumSalvo						= mod:NewSpecialWarningDodgeCount(463900, nil, nil, nil, 2, 2)
 local specWarnVoltaicImage							= mod:NewSpecialWarningRun(1213994, nil, nil, nil, 4, 2, 3)
 local specWarnLightningBash							= mod:NewSpecialWarningDefensive(466178, nil, nil, nil, 1, 2)
 
-local timerStaticChargeCD							= mod:NewCDCountTimer(97.3, 473994, nil, nil, nil, 3)
-local timerThunderdrumSalvoCD						= mod:NewCDCountTimer(97.3, 463840, nil, nil, nil, 3)
+local timerStaticChargeCD							= mod:NewCDCountTimer(97.3, 474159, nil, nil, nil, 3)
+local timerThunderdrumSalvoCD						= mod:NewCDCountTimer(97.3, 463900, nil, nil, nil, 3)
 local timerVoltaicImageCD							= mod:NewCDCountTimer(97.3, 1213994, nil, nil, nil, 3, nil, DBM_COMMON_L.HEROIC_ICON)
 local timerLightningBashCD							= mod:NewCDCountTimer(97.3, 466178, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 
@@ -155,7 +155,7 @@ local allTimers = {
 		--Scrap Bomb
 		[473650] = {10.0, 30.0},
 		--Blastburn Roarcannon
-		[472233] = {20.0, 30.0},
+		[472233] = {16.0, 30.0},
 		--Eruption Stomp
 		[1214190] = {30.0, 30.0},
 		--Static Charge
@@ -277,6 +277,9 @@ function mod:OnCombatEnd()
 	if self.Options.NPAuraOnRaisedGuard or self.Options.NPFixate then
 		DBM.Nameplate:Hide(true, nil, nil, nil, true, true)
 	end
+	if self.Options.Infoframe then
+		DBM.InfoFrame:Hide()
+	end
 end
 
 function mod:OnTimerRecovery()
@@ -299,7 +302,7 @@ function mod:SPELL_CAST_START(args)
 			specWarnScrapBomb:Play("helpsoak")
 		end
 		if self.vb.crashGone then
-			timerScrapBombCD:Start(65, self.vb.scrapbombCount+1)
+			timerScrapBombCD:Start(30, self.vb.scrapbombCount+1)
 		else
 			local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, spellId, self.vb.scrapBombTimerCount+1)
 			if timer then
@@ -310,7 +313,7 @@ function mod:SPELL_CAST_START(args)
 		self.vb.cannonCount = self.vb.cannonCount + 1
 		self.vb.cannonTimerCount = self.vb.cannonTimerCount + 1
 		if self.vb.crashGone then
-			timerBlastburnRoarcannonCD:Start(65, self.vb.cannonCount+1)
+			timerBlastburnRoarcannonCD:Start(30, self.vb.cannonCount+1)
 		else
 			local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, spellId, self.vb.cannonTimerCount+1)
 			if timer then
@@ -325,7 +328,7 @@ function mod:SPELL_CAST_START(args)
 			specWarnEruptionStomp:Play("watchstep")
 		end
 		if self.vb.crashGone then
-			timerEruptionStompCD:Start(65, self.vb.stompCount+1)
+			timerEruptionStompCD:Start(30, self.vb.stompCount+1)
 		else
 			local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, spellId, self.vb.stompTimerCount+1)
 			if timer then
@@ -403,6 +406,8 @@ function mod:SPELL_AURA_APPLIED(args)
 		end
 	elseif spellId == 471557 then
 		warnKingofCarnage:Show(args.amount or 1)
+	elseif spellId == 1221826 and args:IsPlayer() then
+		warnTinyTussle:Show(args.amount or 1)
 	elseif spellId == 1213690 and args:IsPlayer() then
 		specWarnMoltenPhlegm:Schedule(25)
 		specWarnMoltenPhlegm:ScheduleVoice(25, "runout")
@@ -448,7 +453,7 @@ function mod:SPELL_AURA_REMOVED(args)
 				DBM.Nameplate:Hide(true, args.sourceGUID, spellId)
 			end
 		end
-	elseif spellId == 465863 or spellId == 465872 then--Clash Ending
+	elseif (spellId == 465863 or spellId == 465872) and self:AntiSpam(3, 1) then--Clash Ending
 		--Reset timer counts
 		self.vb.scrapBombTimerCount = 0
 		self.vb.moltenPhlegmTimerCount = 0
@@ -526,12 +531,6 @@ end
 function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
 	if spellId == 1213994 then
 		self.vb.imagesCount = self.vb.imagesCount + 1
-		--pull:29.0, 30.0, 65.0, 30.0, 65.0, 30.0, 65.1, 30.0, 65.0, 30.0, 65.0, 30.0, 65.0, 30.0",
-		if not self.vb.crashGone and self.vb.imagesCount % 2 == 0 then
-			timerVoltaicImageCD:Start(65, self.vb.imagesCount+1)
-		else
-			timerVoltaicImageCD:Start(30, self.vb.imagesCount+1)
-		end
 	elseif spellId == 1213688 then
 		self.vb.moltenPhlegmCount = self.vb.moltenPhlegmCount + 1
 		self.vb.moltenPhlegmTimerCount = self.vb.moltenPhlegmTimerCount + 1

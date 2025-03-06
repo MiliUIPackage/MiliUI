@@ -1,9 +1,7 @@
 ## Interface: 110007, 110100
 ## X-Min-Interface: 100206
-## Version: 11.1.4
+## Version: 11.1.6
 ## Category: DBM
-## Category-zhTW: 副本
-
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010Raids (WW)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010团队副本 (地心之战)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010團隊副本 (地心之戰)|r
@@ -28,7 +26,7 @@
 ## X-Curse-Project-ID: 3358
 ## X-WoWI-ID: 8814
 ## X-Wago-ID: qv633o6b
-## X-Category-zhTW: 團隊
+## Category-zhTW: 副本
 
 localization.en.lua
 localization.cn.lua

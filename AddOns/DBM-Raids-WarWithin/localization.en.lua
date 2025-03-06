@@ -57,8 +57,8 @@ L:SetOptionLocalization({
 L= DBM:GetModLocalization(2608)
 
 L:SetMiscLocalization({
-	Red		= " [R-Takazj]",--Skeinspinner Takazj
-	Blue	= " [B-Anub]"--Anub'arash
+	Red		= RED_FONT_COLOR:WrapTextInColorCode(" [R-Takazj]"),--Skeinspinner Takazj
+	Blue	= BLUE_FONT_COLOR:WrapTextInColorCode(" [B-Anub]")--Anub'arash
 })
 
 ---------------------------
@@ -114,12 +114,24 @@ L:SetOptionLocalization({
 ---------------------------
 --  Sprocketmonger Lockenstock --
 ---------------------------
---L= DBM:GetModLocalization(2653)
+L= DBM:GetModLocalization(2653)
+
+L:SetWarningLocalization{
+	specWarnPolGen	= "Changing to %s - 3 sec",
+}
+
+L:SetOptionLocalization({
+	specWarnPolGen	= "Show special warning when polarity generator is changing your charge"
+})
 
 ---------------------------
 --  The One-Armed Bandit --
 ---------------------------
---L= DBM:GetModLocalization(2644)
+L= DBM:GetModLocalization(2644)
+
+L:SetMiscLocalization({
+	BaitCoil	= "Bait Coil"
+})
 
 ---------------------------
 --  Mug'Zee, Heads of Security --
