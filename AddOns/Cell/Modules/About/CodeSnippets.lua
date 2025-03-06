@@ -15,8 +15,6 @@ local function CreateCodeSnippetsFrame()
     codeSnippetsFrame:SetToplevel(true)
     codeSnippetsFrame:SetPoint("CENTER")
 
-    P.SetEffectiveScale(codeSnippetsFrame)
-
     local reloadBtn = Cell.CreateButton(codeSnippetsFrame.header, "Reload", "blue", {70, 20})
     reloadBtn:SetPoint("TOPRIGHT", codeSnippetsFrame.header.closeBtn, "TOPLEFT", P.Scale(1), 0)
     reloadBtn:SetScript("OnClick", ReloadUI)
@@ -424,7 +422,7 @@ function F.GetDefaultSnippet()
             "-- unit button border color ({r, g, b, a}, number: 0-1)\n"..
             "CELL_BORDER_COLOR = {0, 0, 0, 1}\n\n"..
             "-- show raid pet owner name (\"VEHICLE\", \"NAME\", nil)\n"..
-            "CELL_SHOW_RAID_PET_OWNER_NAME = nil\n\n"..
+            "CELL_SHOW_GROUP_PET_OWNER_NAME = nil\n\n"..
             "-- use LibHealComm (boolean, non-retail)\n"..
             "CELL_USE_LIBHEALCOMM = false"
     }

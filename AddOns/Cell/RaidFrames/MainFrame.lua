@@ -12,7 +12,7 @@ Cell.unitButtons = {
     ["raid"] = {
         ["units"] = {}, -- NOTE: update in UnitButton_OnAttributeChanged
     },
-    ["raidpet"] = {
+    ["pet"] = {
         ["units"] = {}, -- NOTE: update in _initialAttribute-refreshUnitChange
     },
     ["npc"] = {
@@ -30,16 +30,15 @@ local tooltipPoint, tooltipRelativePoint, tooltipX, tooltipY
 -------------------------------------------------
 -- CellMainFrame
 -------------------------------------------------
-local cellMainFrame = CreateFrame("Frame", "CellMainFrame", UIParent, "SecureFrameTemplate")
+local cellMainFrame = CreateFrame("Frame", "CellMainFrame", CellParent, "SecureFrameTemplate")
 Cell.frames.mainFrame = cellMainFrame
-cellMainFrame:SetIgnoreParentScale(true)
 
-local hoverFrame = CreateFrame("Frame", nil, cellMainFrame, "BackdropTemplate")
+local hoverFrame = CreateFrame("Frame", "CellMenuHoverDetector", cellMainFrame, "BackdropTemplate")
 -- Cell.StylizeFrame(hoverFrame, {1,0,0,0.3}, {0,0,0,0})
 
 local anchorFrame = CreateFrame("Frame", "CellAnchorFrame", cellMainFrame)
 Cell.frames.anchorFrame = anchorFrame
-PixelUtil.SetPoint(anchorFrame, "TOPLEFT", UIParent, "CENTER", 1, -1)
+PixelUtil.SetPoint(anchorFrame, "TOPLEFT", CellParent, "CENTER", 1, -1)
 P.Size(anchorFrame, 20, 10)
 anchorFrame:SetMovable(true)
 anchorFrame:SetClampedToScreen(true)
@@ -53,9 +52,6 @@ local function RegisterButtonEvents(frame)
     frame:SetScript("OnDragStop", function()
         anchorFrame:StopMovingOrSizing()
         P.SavePosition(anchorFrame, Cell.vars.currentLayoutTable["main"]["position"])
-        if not InCombatLockdown() then
-            P.PixelPerfectPoint(anchorFrame)
-        end
     end)
 
     frame:HookScript("OnEnter", function()
@@ -207,7 +203,7 @@ menuFrame.fadeIn:SetScript("OnPlay", function()
     menuFrame.fadeOut:Finish()
     fadingIn = true
 
-    if Cell.frames.battleResFrame and CellDB["general"]["menuPosition"] == "top_bottom" then
+    if Cell.frames.battleResFrame and not CellDB["tools"]["battleResTimer"][2] and CellDB["general"]["menuPosition"] == "top_bottom" then
         Cell.frames.battleResFrame:OnMenuShow()
     end
 end)
@@ -233,7 +229,7 @@ menuFrame.fadeOut:SetScript("OnPlay", function()
     menuFrame.fadeIn:Finish()
     fadingOut = true
 
-    if Cell.frames.battleResFrame and CellDB["general"]["menuPosition"] == "top_bottom" then
+    if Cell.frames.battleResFrame and not CellDB["tools"]["battleResTimer"][2] and CellDB["general"]["menuPosition"] == "top_bottom" then
         Cell.frames.battleResFrame:OnMenuHide()
     end
 end)
@@ -371,29 +367,6 @@ end
 -------------------------------------------------
 -- group type changed
 -------------------------------------------------
-local function MainFrame_UpdateVisibility()
-    if Cell.vars.groupType == "solo" then
-        if CellDB["general"]["showSolo"] then
-            menuFrame:Show()
-        else
-            menuFrame:Hide()
-        end
-    elseif Cell.vars.groupType == "party" then
-        if CellDB["general"]["showParty"] then
-            menuFrame:Show()
-        else
-            menuFrame:Hide()
-        end
-    else
-        if CellDB["general"]["showRaid"] then
-            menuFrame:Show()
-        else
-            menuFrame:Hide()
-        end
-    end
-end
-Cell.RegisterCallback("UpdateVisibility", "MainFrame_UpdateVisibility", MainFrame_UpdateVisibility)
-
 local function MainFrame_GroupTypeChanged(groupType)
     if groupType == "raid" then
         raid:Show()
@@ -401,8 +374,6 @@ local function MainFrame_GroupTypeChanged(groupType)
         raid:Hide()
     end
     UpdateHoverFrame()
-    -- check whether menu should be shown
-    MainFrame_UpdateVisibility()
 end
 Cell.RegisterCallback("GroupTypeChanged", "MainFrame_GroupTypeChanged", MainFrame_GroupTypeChanged)
 
@@ -545,10 +516,22 @@ local init
 local function MainFrame_UpdateLayout(layout, which)
     F.Debug("|cffff0066UpdateLayout:|r layout:", layout, " which:", which)
 
+    -- visibility
+    if layout == "hide" then
+        anchorFrame:Hide()
+        menuFrame:Hide()
+        hoverFrame:Hide()
+        return
+    else
+        anchorFrame:Show()
+        menuFrame:Show()
+        hoverFrame:Show()
+    end
+
     if not init then
-        init = true
         --! NOTE: a reload during pet battle prevents HEADER from CREATING CHILDs (unit buttons), this hide delay is a MUST
         RegisterStateDriver(cellMainFrame, "visibility", "[petbattle] hide; show")
+        init = true
     end
 
     layout = Cell.vars.currentLayoutTable
@@ -566,7 +549,7 @@ local function MainFrame_UpdateLayout(layout, which)
         if not P.LoadPosition(anchorFrame, layout["main"]["position"]) then
             P.ClearPoints(anchorFrame)
             -- no position, use default
-            PixelUtil.SetPoint(anchorFrame, "TOPLEFT", UIParent, "CENTER", 1, -1)
+            PixelUtil.SetPoint(anchorFrame, "TOPLEFT", CellParent, "CENTER", 1, -1)
         end
     end
 end
@@ -582,9 +565,8 @@ local function UpdatePixelPerfect()
     P.Repoint(loadingBar)
     P.Resize(loadingBar)
 
-    -- NOTE: update pixel perfect for each button moved to UpdateIndicators
-    -- F.IterateAllUnitButtons(function(b)
-    --     B.UpdatePixelPerfect(b)
-    -- end)
+    F.IterateAllUnitButtons(function(b)
+        B.UpdatePixelPerfect(b, true)
+    end, true)
 end
 Cell.RegisterCallback("UpdatePixelPerfect", "MainFrame_UpdatePixelPerfect", UpdatePixelPerfect)

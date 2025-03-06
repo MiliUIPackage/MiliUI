@@ -35,7 +35,7 @@ local quickAssistFrame = CreateFrame("Frame", "CellQuickAssistFrame", Cell.frame
 Cell.frames.quickAssistFrame = quickAssistFrame
 
 local anchorFrame = CreateFrame("Frame", "CellQuickAssistAnchorFrame", quickAssistFrame)
-PixelUtil.SetPoint(anchorFrame, "TOPLEFT", UIParent, "CENTER", 1, -1)
+PixelUtil.SetPoint(anchorFrame, "TOPLEFT", CellParent, "CENTER", 1, -1)
 anchorFrame:SetMovable(true)
 anchorFrame:SetClampedToScreen(true)
 
@@ -1297,7 +1297,7 @@ local function UpdateQuickAssist(which)
             -- glow
             indicator = header[i].offensiveGlow
             indicator:SetFadeOut(ogt["fadeOut"])
-            indicator:UpdateGlowOptions(ogt["options"])
+            indicator:SetupGlow(ogt["options"])
         end
     end
 

@@ -209,6 +209,7 @@ function I.CreateDefensiveCooldowns(parent)
     defensiveCooldowns.SetOrientation = I.Cooldowns_SetOrientation
     defensiveCooldowns.ShowDuration = I.Cooldowns_ShowDuration
     defensiveCooldowns.ShowAnimation = I.Cooldowns_ShowAnimation
+    defensiveCooldowns.SetupGlow = I.Glow_SetupForChildren
     defensiveCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     for i = 1, 5 do
@@ -233,6 +234,7 @@ function I.CreateExternalCooldowns(parent)
     externalCooldowns.SetOrientation = I.Cooldowns_SetOrientation
     externalCooldowns.ShowDuration = I.Cooldowns_ShowDuration
     externalCooldowns.ShowAnimation = I.Cooldowns_ShowAnimation
+    externalCooldowns.SetupGlow = I.Glow_SetupForChildren
     externalCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     for i = 1, 5 do
@@ -257,6 +259,7 @@ function I.CreateAllCooldowns(parent)
     allCooldowns.SetOrientation = I.Cooldowns_SetOrientation
     allCooldowns.ShowDuration = I.Cooldowns_ShowDuration
     allCooldowns.ShowAnimation = I.Cooldowns_ShowAnimation
+    allCooldowns.SetupGlow = I.Glow_SetupForChildren
     allCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     for i = 1, 5 do
@@ -1025,9 +1028,17 @@ end
 -------------------------------------------------
 local font_name = CreateFont("CELL_FONT_NAME")
 font_name:SetFont(GameFontNormal:GetFont(), 13, "")
+--! NOTE: VERY IMPORTANT, if not set, shadows will DISAPPER when wow window size changed
+font_name:SetTextColor(1, 1, 1, 1)
+font_name:SetShadowColor(0, 0, 0)
+font_name:SetShadowOffset(1, -1)
 
 local font_status = CreateFont("CELL_FONT_STATUS")
 font_status:SetFont(GameFontNormal:GetFont(), 11, "")
+--! NOTE: VERY IMPORTANT, if not set, shadows will DISAPPER when wow window size changed
+font_status:SetTextColor(1, 1, 1, 1)
+font_status:SetShadowColor(0, 0, 0)
+font_status:SetShadowOffset(1, -1)
 
 function I.CreateNameText(parent)
     local nameText = CreateFrame("Frame", parent:GetName().."NameText", parent.widgets.indicatorFrame)
@@ -1140,12 +1151,12 @@ function I.CreateNameText(parent)
 
         F.UpdateTextWidth(nameText.name, name, nameText.width, parent.widgets.healthBar)
 
-        if CELL_SHOW_RAID_PET_OWNER_NAME and parent.isRaidPet then
+        if CELL_SHOW_GROUP_PET_OWNER_NAME and parent.isGroupPet then
             local owner = F.GetPlayerUnit(parent.states.unit)
             owner = UnitName(owner)
-            if CELL_SHOW_RAID_PET_OWNER_NAME == "VEHICLE" then
+            if CELL_SHOW_GROUP_PET_OWNER_NAME == "VEHICLE" then
                 F.UpdateTextWidth(nameText.vehicle, owner, nameText.width, parent.widgets.healthBar)
-            elseif CELL_SHOW_RAID_PET_OWNER_NAME == "NAME" then
+            elseif CELL_SHOW_GROUP_PET_OWNER_NAME == "NAME" then
                 F.UpdateTextWidth(nameText.name, owner, nameText.width, parent.widgets.healthBar)
             end
         end
@@ -1235,19 +1246,6 @@ function I.CreateNameText(parent)
             end
         end
     end)
-
-    function nameText:UpdatePixelPerfect()
-        if nameText.shadow then
-            -- NOTE: remove then add shadows back
-            nameText.name:SetShadowOffset(0, 0)
-            nameText.vehicle:SetShadowOffset(0, 0)
-
-            nameText.name:SetShadowOffset(1, -1)
-            nameText.name:SetShadowColor(0, 0, 0, 1)
-            nameText.vehicle:SetShadowOffset(1, -1)
-            nameText.vehicle:SetShadowColor(0, 0, 0, 1)
-        end
-    end
 end
 
 -------------------------------------------------
@@ -1380,19 +1378,6 @@ local function StatusText_HideTimer(self, reset)
     end
 end
 
-local function StatusText_UpdatePixelPerfect(self)
-    if self.shadow then
-        -- NOTE: remove then add shadows back
-        self.text:SetShadowOffset(0, 0)
-        self.timer:SetShadowOffset(0, 0)
-
-        self.text:SetShadowOffset(1, -1)
-        self.text:SetShadowColor(0, 0, 0, 1)
-        self.timer:SetShadowOffset(1, -1)
-        self.timer:SetShadowColor(0, 0, 0, 1)
-    end
-end
-
 function I.CreateStatusText(parent)
     local statusText = CreateFrame("Frame", parent:GetName().."StatusText", parent.widgets.indicatorFrame)
     parent.indicators.statusText = statusText
@@ -1421,7 +1406,6 @@ function I.CreateStatusText(parent)
     statusText.ShowBackground = StatusText_ShowBackground
     statusText.ShowTimer = StatusText_ShowTimer
     statusText.HideTimer = StatusText_HideTimer
-    statusText.UpdatePixelPerfect = StatusText_UpdatePixelPerfect
 end
 
 -------------------------------------------------

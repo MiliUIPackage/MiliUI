@@ -146,11 +146,8 @@ local function CreateColorPicker()
 
     colorPicker = Cell.CreateMovableFrame(_G.COLOR_PICKER, name, 216, 295, "DIALOG", 1, true)
     colorPicker:SetToplevel(true)
-    colorPicker:SetIgnoreParentScale(true)
     colorPicker:SetPoint("CENTER")
     colorPicker.header.closeBtn:Hide()
-
-    P.SetEffectiveScale(colorPicker)
 
     --------------------------------------------------
     -- current
@@ -343,7 +340,7 @@ local function CreateColorPicker()
     picker:SetMovable(true)
 
     function picker:StartMoving(x, y, mouseX, mouseY)
-        local scale = P.GetEffectiveScale()
+        local scale = picker:GetEffectiveScale()
 
         local lastX, lastY
         self:SetScript("OnUpdate", function(self)
@@ -395,7 +392,7 @@ local function CreateColorPicker()
         local hueSaturationX, hueSaturationY = hueSaturation:GetLeft(), hueSaturation:GetBottom()
         local mouseX, mouseY = GetCursorPosition()
 
-        local scale = P.GetEffectiveScale()
+        local scale = picker:GetEffectiveScale()
         mouseX, mouseY = mouseX/scale, mouseY/scale
 
         -- start dragging

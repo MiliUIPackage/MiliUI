@@ -22,7 +22,7 @@ local function CreateCellPane()
     cellPane:SetPoint("TOPLEFT", appearanceTab, "TOPLEFT", 5, -5)
 
     -- global scale
-    scaleSlider = Cell.CreateSlider(L["Scale"], cellPane, 0.5, 4, 141, 0.01, nil, nil, nil, L["Scale"], L["Non-integer scaling may result in abnormal display of options UI"])
+    scaleSlider = Cell.CreateSlider(L["Scale"], cellPane, 0.5, 2, 141, 0.01, nil, nil, nil, L["Scale"])
     scaleSlider:SetPoint("TOPLEFT", cellPane, "TOPLEFT", 5, -40)
     scaleSlider.afterValueChangedFn = function(value)
         CellDB["appearance"]["scale"] = value
@@ -35,6 +35,16 @@ local function CreateCellPane()
         popup:SetPoint("TOPLEFT", appearanceTab, "TOPLEFT", 117, -70)
     end
     Cell.RegisterForCloseDropdown(scaleSlider)
+
+    -- recommended scale
+    local recScaleBtn = Cell.CreateButton(cellPane, nil, "accent-hover", {17, 17}, nil, nil, nil, nil, nil, L["Apply Recommended Scale"])
+    recScaleBtn:SetPoint("BOTTOMRIGHT", scaleSlider, "TOPRIGHT", 0, 2)
+    recScaleBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\resize", {15, 15}, {"CENTER", 0, 0})
+    recScaleBtn:SetScript("OnClick", function()
+        local scale = P.GetRecommendedScale()
+        scaleSlider:SetValue(scale)
+        scaleSlider.afterValueChangedFn(scale)
+    end)
 
     -- options ui font size
     optionsFontSizeOffset = Cell.CreateSlider(L["Options UI Font Size"], cellPane, -5, 5, 141, 1)
@@ -1811,17 +1821,23 @@ local function UpdateAppearance(which)
 
     -- scale
     if not which or which == "scale" then
-        P.SetRelativeScale(CellDB["appearance"]["scale"])
-        P.SetEffectiveScale(Cell.frames.mainFrame)
-        if Cell.frames.changelogsFrame then P.SetEffectiveScale(Cell.frames.changelogsFrame) end
-        if Cell.frames.codeSnippetsFrame then P.SetEffectiveScale(Cell.frames.codeSnippetsFrame) end
-        P.SetEffectiveScale(CellTooltip)
-        P.SetEffectiveScale(CellSpellTooltip)
-        -- P.SetEffectiveScale(CellScanningTooltip)
+        CellParent:SetScale(CellDB["appearance"]["scale"])
+
         CellTooltip:UpdatePixelPerfect()
         CellSpellTooltip:UpdatePixelPerfect()
-        -- CellScanningTooltip:UpdatePixelPerfect()
         Cell.menu:UpdatePixelPerfect()
+
+        if Cell.frames.changelogsFrame then
+            Cell.frames.changelogsFrame:UpdatePixelPerfect()
+        end
+
+        if Cell.frames.codeSnippetsFrame then
+            Cell.frames.codeSnippetsFrame:UpdatePixelPerfect()
+        end
+
+        if CellColorPicker then
+            CellColorPicker:UpdatePixelPerfect()
+        end
     end
 
     -- strata

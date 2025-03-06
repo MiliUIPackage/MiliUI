@@ -41,7 +41,7 @@ header:SetAttribute("_initialAttribute-refreshUnitChange", [[
 
     -- print(self:GetName(), unit, petButton)
 
-    if petButton and header:GetAttribute("showPartyPets") then
+    if petButton and header:GetAttribute("showPartyPets") and not header:GetAttribute("partyDetached") then
         local petUnit
         if unit == "player" then
             petUnit = "pet"
@@ -93,19 +93,32 @@ end
 local init, previousLayout
 local function PartyFrame_UpdateLayout(layout, which)
     if Cell.vars.groupType ~= "party" and init then return end
+
+    -- visibility
+    if layout == "hide" then
+        UnregisterAttributeDriver(partyFrame, "state-visibility")
+        partyFrame:Hide()
+        if init then
+            return
+        else
+            layout = "default"
+        end
+    else
+        RegisterAttributeDriver(partyFrame, "state-visibility", "[@raid1,exists] hide;[@party1,exists] show;[group:party] show;hide")
+    end
+
+    -- update
     init = true
-
-    -- if previousLayout == layout and not which then return end
-    -- previousLayout = layout
-
     layout = CellDB["layouts"][layout]
 
     -- anchor
-    if not which or which == "main-arrangement" then
+    if not which or which == "main-arrangement" or which == "pet-arrangement" then
         local orientation = layout["main"]["orientation"]
         local anchor = layout["main"]["anchor"]
         local spacingX = layout["main"]["spacingX"]
         local spacingY = layout["main"]["spacingY"]
+        local petSpacingX = layout["pet"]["sameArrangementAsMain"] and spacingX or layout["pet"]["spacingX"]
+        local petSpacingY = layout["pet"]["sameArrangementAsMain"] and spacingY or layout["pet"]["spacingY"]
 
         local point, playerAnchorPoint, petAnchorPoint, playerSpacing, petSpacing, headerPoint
         if orientation == "vertical" then
@@ -113,51 +126,51 @@ local function PartyFrame_UpdateLayout(layout, which)
                 point, playerAnchorPoint, petAnchorPoint = "BOTTOMLEFT", "TOPLEFT", "BOTTOMRIGHT"
                 headerPoint = "BOTTOM"
                 playerSpacing = spacingY
-                petSpacing = spacingX
+                petSpacing = petSpacingX
             elseif anchor == "BOTTOMRIGHT" then
                 point, playerAnchorPoint, petAnchorPoint = "BOTTOMRIGHT", "TOPRIGHT", "BOTTOMLEFT"
                 headerPoint = "BOTTOM"
                 playerSpacing = spacingY
-                petSpacing = -spacingX
+                petSpacing = -petSpacingX
             elseif anchor == "TOPLEFT" then
                 point, playerAnchorPoint, petAnchorPoint = "TOPLEFT", "BOTTOMLEFT", "TOPRIGHT"
                 headerPoint = "TOP"
                 playerSpacing = -spacingY
-                petSpacing = spacingX
+                petSpacing = petSpacingX
             elseif anchor == "TOPRIGHT" then
                 point, playerAnchorPoint, petAnchorPoint = "TOPRIGHT", "BOTTOMRIGHT", "TOPLEFT"
                 headerPoint = "TOP"
                 playerSpacing = -spacingY
-                petSpacing = -spacingX
+                petSpacing = -petSpacingX
             end
 
             header:SetAttribute("xOffset", 0)
-            header:SetAttribute("yOffset", playerSpacing)
+            header:SetAttribute("yOffset", P.Scale(playerSpacing))
         else
             -- anchor
             if anchor == "BOTTOMLEFT" then
                 point, playerAnchorPoint, petAnchorPoint = "BOTTOMLEFT", "BOTTOMRIGHT", "TOPLEFT"
                 headerPoint = "LEFT"
                 playerSpacing = spacingX
-                petSpacing = spacingY
+                petSpacing = petSpacingY
             elseif anchor == "BOTTOMRIGHT" then
                 point, playerAnchorPoint, petAnchorPoint = "BOTTOMRIGHT", "BOTTOMLEFT", "TOPRIGHT"
                 headerPoint = "RIGHT"
                 playerSpacing = -spacingX
-                petSpacing = spacingY
+                petSpacing = petSpacingY
             elseif anchor == "TOPLEFT" then
                 point, playerAnchorPoint, petAnchorPoint = "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT"
                 headerPoint = "LEFT"
                 playerSpacing = spacingX
-                petSpacing = -spacingY
+                petSpacing = -petSpacingY
             elseif anchor == "TOPRIGHT" then
                 point, playerAnchorPoint, petAnchorPoint = "TOPRIGHT", "TOPLEFT", "BOTTOMRIGHT"
                 headerPoint = "RIGHT"
                 playerSpacing = -spacingX
-                petSpacing = -spacingY
+                petSpacing = -petSpacingY
             end
 
-            header:SetAttribute("xOffset", playerSpacing)
+            header:SetAttribute("xOffset", P.Scale(playerSpacing))
             header:SetAttribute("yOffset", 0)
         end
 
@@ -171,9 +184,9 @@ local function PartyFrame_UpdateLayout(layout, which)
             -- update petButton's point
             header[j].petButton:ClearAllPoints()
             if orientation == "vertical" then
-                header[j].petButton:SetPoint(point, header[j], petAnchorPoint, petSpacing, 0)
+                header[j].petButton:SetPoint(point, header[j], petAnchorPoint, P.Scale(petSpacing), 0)
             else
-                header[j].petButton:SetPoint(point, header[j], petAnchorPoint, 0, petSpacing)
+                header[j].petButton:SetPoint(point, header[j], petAnchorPoint, 0, P.Scale(petSpacing))
             end
         end
         header:SetAttribute("unitsPerColumn", 5)
@@ -214,7 +227,8 @@ local function PartyFrame_UpdateLayout(layout, which)
 
     if not which or which == "pet" then
         header:SetAttribute("showPartyPets", layout["pet"]["partyEnabled"])
-        if layout["pet"]["partyEnabled"] then
+        header:SetAttribute("partyDetached", layout["pet"]["partyDetached"])
+        if layout["pet"]["partyEnabled"] and not layout["pet"]["partyDetached"] then
             for i, playerButton in ipairs(header) do
                 RegisterUnitWatch(playerButton.petButton)
             end
@@ -245,23 +259,23 @@ local function PartyFrame_UpdateLayout(layout, which)
 end
 Cell.RegisterCallback("UpdateLayout", "PartyFrame_UpdateLayout", PartyFrame_UpdateLayout)
 
-local function PartyFrame_UpdateVisibility(which)
-    if not which or which == "party" then
-        header:SetAttribute("showParty", CellDB["general"]["showParty"])
-        if CellDB["general"]["showParty"] then
-            --! [group] won't fire during combat
-            -- RegisterAttributeDriver(partyFrame, "state-visibility", "[group:raid] hide; [group:party] show; hide")
-            -- NOTE: [group:party] show: fix for premade, only player in party, but party1 not exists
-            RegisterAttributeDriver(partyFrame, "state-visibility", "[@raid1,exists] hide;[@party1,exists] show;[group:party] show;hide")
-        else
-            UnregisterAttributeDriver(partyFrame, "state-visibility")
-            partyFrame:Hide()
-        end
-    end
-end
-Cell.RegisterCallback("UpdateVisibility", "PartyFrame_UpdateVisibility", PartyFrame_UpdateVisibility)
+-- local function PartyFrame_UpdateVisibility(which)
+--     if not which or which == "party" then
+--         header:SetAttribute("showParty", CellDB["general"]["showParty"])
+--         if CellDB["general"]["showParty"] then
+--             --! [group] won't fire during combat
+--             -- RegisterAttributeDriver(partyFrame, "state-visibility", "[group:raid] hide; [group:party] show; hide")
+--             -- NOTE: [group:party] show: fix for premade, only player in party, but party1 not exists
+--             RegisterAttributeDriver(partyFrame, "state-visibility", "[@raid1,exists] hide;[@party1,exists] show;[group:party] show;hide")
+--         else
+--             UnregisterAttributeDriver(partyFrame, "state-visibility")
+--             partyFrame:Hide()
+--         end
+--     end
+-- end
+-- Cell.RegisterCallback("UpdateVisibility", "PartyFrame_UpdateVisibility", PartyFrame_UpdateVisibility)
 
--- local f = CreateFrame("Frame", nil, UIParent, "SecureFrameTemplate")
+-- local f = CreateFrame("Frame", nil, CellParent, "SecureFrameTemplate")
 -- RegisterAttributeDriver(f, "state-group", "[@raid1,exists] raid;[@party1,exists] party; solo")
 -- SecureHandlerWrapScript(f, "OnAttributeChanged", f, [[
 --     print(name, value)

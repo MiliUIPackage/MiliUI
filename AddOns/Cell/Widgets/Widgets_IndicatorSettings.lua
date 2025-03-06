@@ -3760,6 +3760,7 @@ local function CreateSetting_Glow(parent)
                     widget:SetHeight(50)
                     Cell.UpdateIndicatorSettingsHeight()
                     widget.glowColor:SetColor({0.95,0.95,0.32,1})
+                    widget.glowColor:Hide()
                     widget.glowLines:Hide()
                     widget.glowParticles:Hide()
                     widget.glowDuration:Hide()
@@ -3783,6 +3784,7 @@ local function CreateSetting_Glow(parent)
                     widget:SetHeight(50)
                     Cell.UpdateIndicatorSettingsHeight()
                     widget.glowColor:SetColor({0.95,0.95,0.32,1})
+                    widget.glowColor:Show()
                     widget.glowLines:Hide()
                     widget.glowParticles:Hide()
                     widget.glowDuration:Hide()
@@ -3806,6 +3808,7 @@ local function CreateSetting_Glow(parent)
                     widget:SetHeight(145)
                     Cell.UpdateIndicatorSettingsHeight()
                     widget.glowColor:SetColor({0.95,0.95,0.32,1})
+                    widget.glowColor:Show()
                     widget.glowLines:Show()
                     widget.glowLines:SetValue(9)
                     widget.glowFrequency:Show()
@@ -3819,10 +3822,10 @@ local function CreateSetting_Glow(parent)
                     widget.glowScale:Hide()
                     widget.glow[1] = "Pixel"
                     widget.glow[2] = {0.95,0.95,0.32,1}
-                    widget.glow[3] = 9
+                    widget.glow[3] = widget.useSmallerSize and 4 or 9
                     widget.glow[4] = 0.25
-                    widget.glow[5] = 8
-                    widget.glow[6] = 2
+                    widget.glow[5] = widget.useSmallerSize and 4 or 8
+                    widget.glow[6] = widget.useSmallerSize and 1 or 2
                     widget.func(widget.glow)
                 end,
             },
@@ -3833,6 +3836,7 @@ local function CreateSetting_Glow(parent)
                     widget:SetHeight(145)
                     Cell.UpdateIndicatorSettingsHeight()
                     widget.glowColor:SetColor({0.95,0.95,0.32,1})
+                    widget.glowColor:Show()
                     widget.glowParticles:Show()
                     widget.glowParticles:SetValue(9)
                     widget.glowFrequency:Show()
@@ -3845,9 +3849,9 @@ local function CreateSetting_Glow(parent)
                     widget.glowThickness:Hide()
                     widget.glow[1] = "Shine"
                     widget.glow[2] = {0.95,0.95,0.32,1}
-                    widget.glow[3] = 9
+                    widget.glow[3] = widget.useSmallerSize and 4 or 9
                     widget.glow[4] = 0.5
-                    widget.glow[5] = 1
+                    widget.glow[5] = widget.useSmallerSize and 0.7 or 1
                     widget.glow[6] = nil
                     widget.func(widget.glow)
                 end,
@@ -3859,6 +3863,7 @@ local function CreateSetting_Glow(parent)
                     widget:SetHeight(95)
                     Cell.UpdateIndicatorSettingsHeight()
                     widget.glowColor:SetColor({0.95,0.95,0.32,1})
+                    widget.glowColor:Show()
                     widget.glowDuration:Show()
                     widget.glowDuration:SetValue(1)
                     widget.glowParticles:Hide()
@@ -3943,8 +3948,9 @@ local function CreateSetting_Glow(parent)
 
         -- show db value
         function widget:SetDBValue(t, hideNone)
+            widget.useSmallerSize = not hideNone -- TODO: may require addtional arg
             widget.glowType.items[1].disabled = hideNone
-            widget.glowType.items[5].disabled = Cell.isVanilla or Cell.isCata
+            widget.glowType.items[5].disabled = not Cell.isRetail
 
             -- {"Pixel", {0.95,0.95,0.32,1}, 9, 0.25, 8, 2},
             widget.glow = t
@@ -3952,6 +3958,9 @@ local function CreateSetting_Glow(parent)
             widget.glowColor:SetColor(t[2])
 
             if t[1] == "None" or t[1] == "Normal" then
+                if t[1] == "None" then
+                    widget.glowColor:Hide()
+                end
                 widget.glowLines:Hide()
                 widget.glowParticles:Hide()
                 widget.glowDuration:Hide()
@@ -3961,6 +3970,7 @@ local function CreateSetting_Glow(parent)
                 widget.glowScale:Hide()
                 widget:SetHeight(50)
             else
+                widget.glowColor:Show()
                 if t[1] == "Pixel" then
                     widget.glowLines:Show()
                     widget.glowLines:SetValue(t[3])
@@ -6402,40 +6412,30 @@ local function CreateSetting_MaxValue(parent)
     local widget
 
     if not settingWidgets["maxValue"] then
-        widget = Cell.CreateFrame("CellIndicatorSettings_MaxValue", parent, 240, 70)
+        widget = Cell.CreateFrame("CellIndicatorSettings_MaxValue", parent, 240, 80)
         settingWidgets["maxValue"] = widget
 
-        widget.maxValue = Cell.CreateDropdown(widget, 245)
-        widget.maxValue:SetPoint("TOPLEFT", 5, -20)
-        local items = {
-            {
-                ["text"] = L["Disabled"],
-                ["value"] = 0,
-                ["onClick"] = function()
-                    widget.allowSmaller:SetEnabled(false)
-                    widget.func({0, widget.allowSmaller:GetChecked()})
-                end,
-            }
-        }
-        local values = {5, 10, 15, 20, 25, 30}
-        for _, v in pairs(values) do
-            tinsert(items, {
-                ["text"] = v .. " " .. L["sec"],
-                ["value"] = v,
-                ["onClick"] = function()
-                    widget.allowSmaller:SetEnabled(true)
-                    widget.func({v, widget.allowSmaller:GetChecked()})
-                end,
-            })
-        end
-        widget.maxValue:SetItems(items)
+        widget.cb = Cell.CreateCheckButton(widget, L["Set Bar Max Value"], function(checked)
+            Cell.SetEnabled(checked, widget.maxValue, widget.secText, widget.allowSmaller)
+            widget.func({checked, tonumber(widget.maxValue:GetText()) or 0, widget.allowSmaller:GetChecked()})
+        end)
+        widget.cb:SetPoint("TOPLEFT", 5, -8)
 
-        widget.maxValueText = widget:CreateFontString(nil, "OVERLAY", font_name)
-        widget.maxValueText:SetText(L["Set Bar Max Value"])
-        widget.maxValueText:SetPoint("BOTTOMLEFT", widget.maxValue, "TOPLEFT", 0, 1)
+        widget.maxValue = Cell.CreateEditBox(widget, 50, 20, nil, nil, true)
+        widget.maxValue:SetPoint("TOPLEFT", widget.cb, "BOTTOMLEFT", 0, -8)
+        widget.maxValue:SetMaxLetters(3)
+        widget.maxValue:AddConfirmButton(function()
+            local value = tonumber(widget.maxValue:GetText()) or 0
+            widget.maxValue:SetText(value)
+            widget.func({widget.cb:GetChecked(), value, widget.allowSmaller:GetChecked()})
+        end, "number")
+
+        widget.secText = widget:CreateFontString(nil, "OVERLAY", font_name)
+        widget.secText:SetPoint("LEFT", widget.maxValue, "RIGHT", 5, 0)
+        widget.secText:SetText(L["sec"])
 
         widget.allowSmaller = Cell.CreateCheckButton(widget, L["Allow smaller value"], function(checked)
-            widget.func({widget.maxValue:GetSelected(), checked})
+            widget.func({widget.cb:GetChecked(), tonumber(widget.maxValue:GetText()) or 0, checked})
         end)
         widget.allowSmaller:SetPoint("TOPLEFT", widget.maxValue, "BOTTOMLEFT", 0, -8)
 
@@ -6446,9 +6446,10 @@ local function CreateSetting_MaxValue(parent)
 
         -- show db value
         function widget:SetDBValue(maxValue)
-            widget.maxValue:SetSelectedValue(maxValue[1])
-            widget.allowSmaller:SetChecked(maxValue[2])
-            widget.allowSmaller:SetEnabled(maxValue[1] ~= 0)
+            widget.cb:SetChecked(maxValue[1])
+            widget.maxValue:SetText(maxValue[2])
+            widget.allowSmaller:SetChecked(maxValue[3])
+            Cell.SetEnabled(maxValue[1], widget.maxValue, widget.secText, widget.allowSmaller)
         end
     else
         widget = settingWidgets["maxValue"]
@@ -6642,7 +6643,7 @@ local function CreateSetting_RoleFilters(parent)
 
         local last
         for class in F.IterateClasses() do
-            widget.filters[class] = CreateRoleFilter(widget, class, CLASS_ROLES[class])
+            widget.filters[class] = CreateRoleFilter(widget, class, Cell.isVanilla and {"TANK", "HEALER", "DAMAGER"} or CLASS_ROLES[class])
             if last then
                 widget.filters[class]:SetPoint("TOPLEFT", last, "BOTTOMLEFT", 0, -5)
             else

@@ -17,25 +17,27 @@ Cell.unitButtons.solo["player"] = playerButton
 local petButton = CreateFrame("Button", soloFrame:GetName().."Pet", soloFrame, "CellUnitButtonTemplate")
 -- petButton.type = "pet" -- layout setup
 petButton:SetAttribute("unit", "pet")
-RegisterAttributeDriver(petButton, "state-visibility", "[nopet] hide; [vehicleui] hide; show")
 Cell.unitButtons.solo["pet"] = petButton
 
 local init, previousLayout
 local function SoloFrame_UpdateLayout(layout, which)
     if Cell.vars.groupType ~= "solo" and init then return end
+
+    -- visibility
+    if layout == "hide" then
+        UnregisterAttributeDriver(soloFrame, "state-visibility")
+        soloFrame:Hide()
+        if init then
+            return
+        else
+            layout = "default"
+        end
+    else
+        RegisterAttributeDriver(soloFrame, "state-visibility", "[@raid1,exists] hide;[@party1,exists] hide;[group] hide;show")
+    end
+
+    -- update
     init = true
-
-    -- if layout == "hide" then
-    --     UnregisterAttributeDriver(soloFrame, "state-visibility")
-    --     soloFrame:Hide()
-    --     return
-    -- else
-    --     RegisterAttributeDriver(soloFrame, "state-visibility", "[@raid1,exists] hide;[@party1,exists] hide;[group] hide;show")
-    -- end
-
-    -- if previousLayout == layout and not which then return end
-    -- previousLayout = layout
-
     layout = CellDB["layouts"][layout]
 
     if not which or strfind(which, "size$") then
@@ -63,59 +65,68 @@ local function SoloFrame_UpdateLayout(layout, which)
         end
     end
 
-    if not which or which == "main-arrangement" then
+    if not which or which == "main-arrangement" or which == "pet-arrangement" then
         petButton:ClearAllPoints()
         if layout["main"]["orientation"] == "vertical" then
             -- anchor
-            local point, anchorPoint, unitSpacing
+            local point, anchorPoint
+            local petSpacing = layout["pet"]["sameArrangementAsMain"] and layout["main"]["spacingY"] or layout["pet"]["spacingY"]
+
             if layout["main"]["anchor"] == "BOTTOMLEFT" then
                 point, anchorPoint = "BOTTOMLEFT", "TOPLEFT"
-                unitSpacing = layout["main"]["spacingY"]
             elseif layout["main"]["anchor"] == "BOTTOMRIGHT" then
                 point, anchorPoint = "BOTTOMRIGHT", "TOPRIGHT"
-                unitSpacing = layout["main"]["spacingY"]
             elseif layout["main"]["anchor"] == "TOPLEFT" then
                 point, anchorPoint = "TOPLEFT", "BOTTOMLEFT"
-                unitSpacing = -layout["main"]["spacingY"]
+                petSpacing = -petSpacing
             elseif layout["main"]["anchor"] == "TOPRIGHT" then
                 point, anchorPoint = "TOPRIGHT", "BOTTOMRIGHT"
-                unitSpacing = -layout["main"]["spacingY"]
+                petSpacing = -petSpacing
             end
 
-            petButton:SetPoint(point, playerButton, anchorPoint, 0, unitSpacing)
+            petButton:SetPoint(point, playerButton, anchorPoint, 0, P.Scale(petSpacing))
         else
             -- anchor
-            local point, anchorPoint, unitSpacing
+            local point, anchorPoint
+            local petSpacing = layout["pet"]["sameArrangementAsMain"] and layout["main"]["spacingX"] or layout["pet"]["spacingX"]
+
             if layout["main"]["anchor"] == "BOTTOMLEFT" then
                 point, anchorPoint = "BOTTOMLEFT", "BOTTOMRIGHT"
-                unitSpacing = layout["main"]["spacingX"]
             elseif layout["main"]["anchor"] == "BOTTOMRIGHT" then
                 point, anchorPoint = "BOTTOMRIGHT", "BOTTOMLEFT"
-                unitSpacing = -layout["main"]["spacingX"]
+                petSpacing = -petSpacing
             elseif layout["main"]["anchor"] == "TOPLEFT" then
                 point, anchorPoint = "TOPLEFT", "TOPRIGHT"
-                unitSpacing = layout["main"]["spacingX"]
             elseif layout["main"]["anchor"] == "TOPRIGHT" then
                 point, anchorPoint = "TOPRIGHT", "TOPLEFT"
-                unitSpacing = -layout["main"]["spacingX"]
+                petSpacing = -petSpacing
             end
 
-            petButton:SetPoint(point, playerButton, anchorPoint, unitSpacing, 0)
+            petButton:SetPoint(point, playerButton, anchorPoint, P.Scale(petSpacing), 0)
+        end
+    end
+
+    if not which or which == "pet" then
+        if layout["pet"]["soloEnabled"] then
+            RegisterAttributeDriver(petButton, "state-visibility", "[nopet] hide; [vehicleui] hide; show")
+        else
+            UnregisterAttributeDriver(petButton, "state-visibility")
+            petButton:Hide()
         end
     end
 end
 Cell.RegisterCallback("UpdateLayout", "SoloFrame_UpdateLayout", SoloFrame_UpdateLayout)
 
-local function SoloFrame_UpdateVisibility(which)
-    F.Debug("|cffff7fffUpdateVisibility:|r "..(which or "all"))
+-- local function SoloFrame_UpdateVisibility(which)
+--     F.Debug("|cffff7fffUpdateVisibility:|r "..(which or "all"))
 
-    if not which or which == "solo" then
-        if CellDB["general"]["showSolo"] then
-            RegisterAttributeDriver(soloFrame, "state-visibility", "[@raid1,exists] hide;[@party1,exists] hide;[group] hide;show")
-        else
-            UnregisterAttributeDriver(soloFrame, "state-visibility")
-            soloFrame:Hide()
-        end
-    end
-end
-Cell.RegisterCallback("UpdateVisibility", "SoloFrame_UpdateVisibility", SoloFrame_UpdateVisibility)
+--     if not which or which == "solo" then
+--         if CellDB["general"]["showSolo"] then
+--             RegisterAttributeDriver(soloFrame, "state-visibility", "[@raid1,exists] hide;[@party1,exists] hide;[group] hide;show")
+--         else
+--             UnregisterAttributeDriver(soloFrame, "state-visibility")
+--             soloFrame:Hide()
+--         end
+--     end
+-- end
+-- Cell.RegisterCallback("UpdateVisibility", "SoloFrame_UpdateVisibility", SoloFrame_UpdateVisibility)

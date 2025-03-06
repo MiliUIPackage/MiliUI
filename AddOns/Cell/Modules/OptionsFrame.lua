@@ -7,7 +7,7 @@ local lastShownTab
 
 local optionsFrame = Cell.CreateFrame("CellOptionsFrame", Cell.frames.mainFrame, 432, 401)
 Cell.frames.optionsFrame = optionsFrame
-PixelUtil.SetPoint(optionsFrame, "CENTER", UIParent, "CENTER", 1, -1)
+PixelUtil.SetPoint(optionsFrame, "CENTER", CellParent, "CENTER", 1, -1)
 optionsFrame:SetFrameStrata("DIALOG")
 optionsFrame:SetFrameLevel(520)
 optionsFrame:SetClampedToScreen(true)
@@ -81,7 +81,7 @@ local function CreateTabButtons()
     local tabHeight = {
         ["general"] = 535,
         ["appearance"] = 665,
-        ["layouts"] = 530,
+        ["layouts"] = 550,
         ["clickCastings"] = 592,
         ["indicators"] = 607,
         ["debuffs"] = 521,

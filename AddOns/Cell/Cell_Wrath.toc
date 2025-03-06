@@ -1,6 +1,6 @@
 ## Interface: 30403
 ## Title: Cell
-## Version: r245-release
+## Version: r249-release
 ## Author: enderneko
 ## X-Flavor: Wrath
 ## SavedVariables: CellDB, CellDBBackup
@@ -45,7 +45,7 @@ RaidFrames\UnitButton.xml
 RaidFrames\Groups\SoloFrame.lua
 RaidFrames\Groups\PartyFrame.lua
 RaidFrames\Groups\RaidFrame.lua
-RaidFrames\Groups\RaidPetFrame.lua
+RaidFrames\Groups\PetFrame.lua
 RaidFrames\Groups\NPCFrame.lua
 RaidFrames\Groups\SpotlightFrame.lua
 

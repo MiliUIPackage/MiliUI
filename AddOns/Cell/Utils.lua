@@ -396,9 +396,19 @@ end
 function F.Round(num, numDecimalPlaces)
     if numDecimalPlaces and numDecimalPlaces >= 0 then
         local mult = 10 ^ numDecimalPlaces
-        return floor(num * mult + 0.5) / mult
+        num = num * mult
+        if num >= 0 then
+            return floor(num + 0.5) / mult
+        else
+            return ceil(num - 0.5) / mult
+        end
     end
-    return floor(num + 0.5)
+
+    if num >= 0 then
+        return floor(num + 0.5)
+    else
+        return ceil(num - 0.5)
+    end
 end
 
 local symbol_1K, symbol_10K, symbol_1B
@@ -896,8 +906,8 @@ function F.IterateAllUnitButtons(func, updateCurrentGroupOnly, updateQuickAssist
             func(b)
         end
 
-        -- raid pet
-        for index, b in pairs(Cell.unitButtons.raidpet) do
+        -- group pet
+        for index, b in pairs(Cell.unitButtons.pet) do
             if index ~= "units" then
                 func(b)
             end
@@ -944,7 +954,7 @@ function F.GetUnitButtonByUnit(unit, getSpotlights, getQuickAssist)
         if Cell.vars.inBattleground == 5 then
             normal = Cell.unitButtons.raid.units[unit] or Cell.unitButtons.npc.units[unit] or Cell.unitButtons.arena[unit]
         else
-            normal = Cell.unitButtons.raid.units[unit] or Cell.unitButtons.npc.units[unit] or Cell.unitButtons.raidpet.units[unit]
+            normal = Cell.unitButtons.raid.units[unit] or Cell.unitButtons.npc.units[unit] or Cell.unitButtons.pet.units[unit]
         end
     elseif Cell.vars.groupType == "party" then
         normal = Cell.unitButtons.party.units[unit] or Cell.unitButtons.npc.units[unit]
@@ -993,7 +1003,7 @@ function F.HandleUnitButton(type, unit, func, ...)
         if Cell.vars.inBattleground == 5 then
             normal = Cell.unitButtons.raid.units[unit] or Cell.unitButtons.npc.units[unit] or Cell.unitButtons.arena[unit]
         else
-            normal = Cell.unitButtons.raid.units[unit] or Cell.unitButtons.npc.units[unit] or Cell.unitButtons.raidpet.units[unit]
+            normal = Cell.unitButtons.raid.units[unit] or Cell.unitButtons.npc.units[unit] or Cell.unitButtons.pet.units[unit]
         end
     elseif Cell.vars.groupType == "party" then
         normal = Cell.unitButtons.party.units[unit] or Cell.unitButtons.npc.units[unit]
@@ -1855,6 +1865,36 @@ if Cell.isWrath or Cell.isVanilla then
     end
 end
 
+if C_Spell.GetSpellCooldown then
+    local GetSpellCooldown = C_Spell.GetSpellCooldown
+    F.GetSpellCooldown = function(spellId)
+        local info = GetSpellCooldown(spellId)
+        if info then
+            return info.startTime, info.duration
+        end
+    end
+else
+    F.GetSpellCooldown = function(spellId)
+        local start, duration = GetSpellCooldown(spellId)
+        return start, duration
+    end
+end
+
+function F.IsSpellReady(spellId)
+    local start, duration = F.GetSpellCooldown(spellId)
+    if start == 0 or duration == 0 then
+        return true
+    else
+        local _, gcd = F.GetSpellCooldown(61304) --! check gcd
+        if duration == gcd then -- spell ready
+            return true
+        else
+            local cdLeft = start + duration - GetTime()
+            return false, cdLeft
+        end
+    end
+end
+
 -------------------------------------------------
 -- macro
 -------------------------------------------------
@@ -2292,7 +2332,7 @@ end
 -------------------------------------------------
 -- RangeCheck debug
 -------------------------------------------------
-local debug = CreateFrame("Frame", "CellRangeCheckDebug", UIParent, "BackdropTemplate")
+local debug = CreateFrame("Frame", "CellRangeCheckDebug", CellParent, "BackdropTemplate")
 debug:SetBackdrop({bgFile = Cell.vars.whiteTexture})
 debug:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
 debug:SetBackdropBorderColor(0, 0, 0, 1)

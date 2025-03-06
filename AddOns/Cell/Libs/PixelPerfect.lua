@@ -5,6 +5,26 @@
 local _, addon = ...
 addon.pixelPerfectFuncs = {}
 
+local function Round(num, numDecimalPlaces)
+    if numDecimalPlaces and numDecimalPlaces >= 0 then
+        local mult = 10 ^ numDecimalPlaces
+        num = num * mult
+        if num >= 0 then
+            return floor(num + 0.5) / mult
+        else
+            return ceil(num - 0.5) / mult
+        end
+    end
+
+    if num >= 0 then
+        return floor(num + 0.5)
+    else
+        return ceil(num - 0.5)
+    end
+end
+
+local Clamp = Clamp
+
 ---@class PixelPerfectFuncs
 local P = addon.pixelPerfectFuncs
 
@@ -25,6 +45,19 @@ function P.GetPixelPerfectScale()
     end
 end
 
+function P.GetRecommendedScale()
+    local pScale = P.GetPixelPerfectScale()
+    local mult
+    if pScale >= 0.71 then -- 1080
+        mult = 1
+    elseif pScale >= 0.53 then -- 1440
+        mult = 1.2
+    else -- 2160
+        mult = 1.7
+    end
+    return Clamp(Round(pScale / UIParent:GetScale() * mult, 2), 0.5, 2)
+end
+
 -- scale perfect!
 function P.PixelPerfectScale(frame)
     frame:SetScale(P.GetPixelPerfectScale())
@@ -36,7 +69,7 @@ function P.PixelPerfectPoint(frame)
     local top = frame:GetTop()
 
     frame:ClearAllPoints()
-    frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", math.floor(left + 0.5), math.floor(top + 0.5))
+    frame:SetPoint("TOPLEFT", CellParent, "BOTTOMLEFT", math.floor(left + 0.5), math.floor(top + 0.5))
 end
 
 --------------------------------------------
@@ -83,15 +116,20 @@ end
 --     return scale - scale % 0.1 ^ 2
 -- end
 
+local scale = 1
 local mult = 1
-function P.SetRelativeScale(scale)
-    mult = 1 / scale
+---@deprecated
+function P.SetRelativeScale(s)
+    mult = 1 / s
+    scale = s
 end
 
+---@deprecated
 function P.GetEffectiveScale()
     return P.GetPixelPerfectScale() / mult
 end
 
+---@deprecated
 function P.SetEffectiveScale(frame)
     frame:SetScale(P.GetEffectiveScale())
 end
@@ -103,13 +141,19 @@ function P.Scale(n)
     return (mult == 1 or n == 0) and n or ((mult < 1 and trunc(n/mult) or round(n/mult)) * mult)
 end
 ]]
-function P.Scale(n)
-    if mult == 1 or n == 0 then
-        return n
-    else
-        local x = mult > 1 and mult or -mult
-        return n - n % (n < 0 and x or -x)
-    end
+-- function P.Scale(n)
+--     if mult == 1 or n == 0 then
+--         return n
+--     else
+--         local x = mult > 1 and mult or -mult
+--         return n - n % (n < 0 and x or -x)
+--     end
+-- end
+
+local GetNearestPixelSize = PixelUtil.GetNearestPixelSize
+
+function P.Scale(desiredPixels)
+    return GetNearestPixelSize(desiredPixels, CellParent:GetEffectiveScale())
 end
 
 function P.Size(frame, width, height)
@@ -237,17 +281,56 @@ end
 --------------------------------------------
 function P.SavePosition(frame, positionTable)
     wipe(positionTable)
-    local left = math.floor(frame:GetLeft() + 0.5)
-    local top = math.floor(frame:GetTop() + 0.5)
-    positionTable[1], positionTable[2] = left, top
+    positionTable[1], positionTable[2], positionTable[3] = P.CalcPoint(frame)
+    -- local left = math.floor(frame:GetLeft() + 0.5)
+    -- local top = math.floor(frame:GetTop() + 0.5)
+    -- positionTable[1], positionTable[2] = left, top
 end
 
 function P.LoadPosition(frame, positionTable)
-    if type(positionTable) ~= "table" or #positionTable ~= 2 then return end
+    if type(positionTable) ~= "table" then return end
 
-    P.ClearPoints(frame)
-    P.Point(frame, "TOPLEFT", UIParent, "BOTTOMLEFT", positionTable[1], positionTable[2])
-    return true
+    if #positionTable == 2 then
+        P.ClearPoints(frame)
+        P.Point(frame, "TOPLEFT", UIParent, "BOTTOMLEFT", positionTable[1], positionTable[2])
+        return true
+    elseif #positionTable == 3 then
+        P.ClearPoints(frame)
+        frame:SetPoint(positionTable[1], CellParent, positionTable[2], positionTable[3])
+        return true
+    end
+end
+
+function P.CalcPoint(frame)
+    local point, x, y
+    local centerX, centerY = CellParent:GetCenter()
+    local width = CellParent:GetRight()
+    x, y = frame:GetCenter()
+
+    if y >= centerY then
+        point = "TOP"
+            y = -(CellParent:GetTop() - frame:GetTop())
+    else
+        point = "BOTTOM"
+            y = frame:GetBottom()
+    end
+
+    if x >= (width * 2 / 3) then
+        point = point.."RIGHT"
+            x = frame:GetRight() - width
+    elseif x <= (width / 3) then
+        point = point.."LEFT"
+            x = frame:GetLeft()
+    else
+        x = x - centerX
+    end
+
+    -- x = tonumber(string.format("%.2f", x))
+    -- y = tonumber(string.format("%.2f", y))
+    x = Round(x, 1)
+    y = Round(y, 1)
+
+    return point, x, y
 end
 
 ---------------------------------------------------------------------

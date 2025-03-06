@@ -800,7 +800,7 @@ local outerBuff, innerBuff
 local borderSize, glowBuffsColor, glowCastsColor
 
 local quickCastFrame = CreateFrame("Frame", "CellQuickCastFrame", Cell.frames.mainFrame, "SecureHandlerAttributeTemplate")
-PixelUtil.SetPoint(quickCastFrame, "TOPLEFT", UIParent, "CENTER", -1, -1)
+PixelUtil.SetPoint(quickCastFrame, "TOPLEFT", CellParent, "CENTER", -1, -1)
 quickCastFrame:SetSize(16, 16)
 quickCastFrame:SetClampedToScreen(true)
 quickCastFrame:SetMovable(true)
@@ -834,10 +834,10 @@ targetFrame:SetFrameStrata("TOOLTIP")
 
 function targetFrame:StartMoving()
     targetFrame:Show()
-    local scale = P.GetEffectiveScale()
+    local scale = targetFrame:GetEffectiveScale()
     targetFrame:SetScript("OnUpdate", function()
         local x, y = GetCursorPosition()
-        targetFrame:SetPoint("BOTTOMLEFT", UIParent, x/scale, y/scale)
+        targetFrame:SetPoint("BOTTOMLEFT", CellParent, x/scale, y/scale)
         targetFrame:SetWidth(targetFrame.label:GetWidth() + 10)
     end)
 end

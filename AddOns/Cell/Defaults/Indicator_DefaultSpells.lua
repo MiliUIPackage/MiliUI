@@ -359,7 +359,7 @@ local defensives = { -- true: track by name, false: track by id
         [48792] = true, -- 冰封之韧 - Icebound Fortitude
         [49028] = true, -- 符文刃舞 - Dancing Rune Weapon
         [55233] = true, -- 吸血鬼之血 - Vampiric Blood
-        [49039] = true, -- 巫妖之躯 - Lichborne
+        [49039] = false, -- 巫妖之躯 - Lichborne
         [194679] = true, -- 符文分流 - Rune Tap
     },
 
@@ -565,13 +565,13 @@ end
 local dispelNodeIDs = {
     -- DRUID ----------------
         -- 102 - Balance
-        [102] = {["Curse"] = 82205, ["Poison"] = 82205},
+        [102] = {["Curse"] = 82241, ["Poison"] = 82241},
         -- 103 - Feral
-        [103] = {["Curse"] = 82204, ["Poison"] = 82204},
+        [103] = {["Curse"] = 82241, ["Poison"] = 82241},
         -- 104 - Guardian
-        [104] = {["Curse"] = 82215, ["Poison"] = 82215},
+        [104] = {["Curse"] = 82241, ["Poison"] = 82241},
         -- Restoration
-        [105] = {["Curse"] = 82203, ["Magic"] = true, ["Poison"] = 82203},
+        [105] = {["Curse"] = true, ["Magic"] = true, ["Poison"] = true},
     -------------------------
 
     -- EVOKER ---------------
@@ -674,14 +674,14 @@ else
                 elseif type(value) == "table" then -- more than one trait
                     for _, v in pairs(value) do
                         local nodeInfo = C_Traits.GetNodeInfo(activeConfigID, v)
-                        if nodeInfo and nodeInfo.ranksPurchased ~= 0 then
+                        if nodeInfo and nodeInfo.activeRank ~= 0 then
                             dispellable[dispelType] = true
                             break
                         end
                     end
                 else -- number: check node info
                     local nodeInfo = C_Traits.GetNodeInfo(activeConfigID, value)
-                    if nodeInfo and nodeInfo.ranksPurchased ~= 0 then
+                    if nodeInfo and nodeInfo.activeRank ~= 0 then
                         dispellable[dispelType] = true
                     end
                 end
@@ -863,6 +863,7 @@ function F.FirstRun()
             ["showStack"] = true,
             ["showDuration"] = false,
             ["showAnimation"] = true,
+            ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}},
             ["auraType"] = "buff",
             ["castBy"] = "me",
             ["auras"] = spells,

@@ -23,8 +23,10 @@ Cell.bFuncs = {}
 Cell.uFuncs = {}
 Cell.animations = {}
 
+---@class CellFuncs
 local F = Cell.funcs
 local I = Cell.iFuncs
+---@type PixelPerfectFuncs
 local P = Cell.pixelPerfectFuncs
 local L = Cell.L
 
@@ -57,12 +59,12 @@ function F.Print(msg)
     print("|cFFFF3030[Cell]|r " .. msg)
 end
 
-local IsInRaid = IsInRaid
-local IsInGroup = IsInGroup
-local GetNumGroupMembers = GetNumGroupMembers
-local GetRaidRosterInfo = GetRaidRosterInfo
-local UnitGUID = UnitGUID
--- local IsInBattleGround = C_PvP.IsBattleground -- NOTE: can't get valid value immediately after PLAYER_ENTERING_WORLD
+--------------------------------------------------
+-- CellParent
+--------------------------------------------------
+local CellParent = CreateFrame("Frame", "CellParent", UIParent)
+CellParent:SetAllPoints(UIParent)
+CellParent:SetFrameLevel(0)
 
 -------------------------------------------------
 -- layout
@@ -76,11 +78,11 @@ end)
 
 function F.UpdateLayout(layoutGroupType)
     if InCombatLockdown() then
-        F.Debug("|cFF7CFC00F:UpdateLayout(\""..layoutGroupType.."\") DELAYED")
+        F.Debug("|cFF7CFC00F.UpdateLayout(\""..layoutGroupType.."\") DELAYED")
         delayedLayoutGroupType = layoutGroupType
         delayedFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     else
-        F.Debug("|cFF7CFC00F:UpdateLayout(\""..layoutGroupType.."\")")
+        F.Debug("|cFF7CFC00F.UpdateLayout(\""..layoutGroupType.."\")")
 
         if CellDB["layoutAutoSwitch"][Cell.vars.playerClass][Cell.vars.playerSpecID] then
             Cell.vars.layoutAutoSwitchBy = "spec"
@@ -92,14 +94,19 @@ function F.UpdateLayout(layoutGroupType)
 
         local layout = Cell.vars.layoutAutoSwitch[layoutGroupType]
         Cell.vars.currentLayout = layout
-        Cell.vars.currentLayoutTable = CellDB["layouts"][layout]
         Cell.vars.layoutGroupType = layoutGroupType
+
+        if layout == "hide" then
+            Cell.vars.currentLayoutTable = CellDB["layouts"]["default"]
+        else
+            Cell.vars.currentLayoutTable = CellDB["layouts"][layout]
+        end
 
         F.IterateAllUnitButtons(function(b)
             b._indicatorsReady = nil
         end, true)
 
-        Cell.Fire("UpdateLayout", Cell.vars.currentLayout)
+        Cell.Fire("UpdateLayout", layout)
         Cell.Fire("UpdateIndicators")
     end
 end
@@ -171,6 +178,12 @@ function eventFrame:VARIABLES_LOADED()
     SetCVar("predictedHealth", 1)
 end
 
+local IsInRaid = IsInRaid
+local IsInGroup = IsInGroup
+local GetNumGroupMembers = GetNumGroupMembers
+local GetRaidRosterInfo = GetRaidRosterInfo
+local UnitGUID = UnitGUID
+-- local IsInBattleGround = C_PvP.IsBattleground -- NOTE: can't get valid value immediately after PLAYER_ENTERING_WORLD
 local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
 
 -- local cellLoaded, omnicdLoaded
@@ -204,9 +217,6 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["enableTooltips"] = false,
                 ["hideTooltipsInCombat"] = true,
                 ["tooltipsPosition"] = {"BOTTOMLEFT", "Default", "TOPLEFT", 0, 15},
-                ["showSolo"] = true,
-                ["showParty"] = true,
-                ["showRaid"] = true,
                 ["hideBlizzardParty"] = true,
                 ["hideBlizzardRaid"] = true,
                 ["locked"] = false,
@@ -237,7 +247,7 @@ function eventFrame:ADDON_LOADED(arg1)
         -- tools ----------------------------------------------------------------------------------
         if type(CellDB["tools"]) ~= "table" then
             CellDB["tools"] = {
-                ["showBattleRes"] = true,
+                ["battleResTimer"] = {true, false, {}},
                 ["buffTracker"] = {false, "left-to-right", 32, {}},
                 ["deathReport"] = {false, 10},
                 ["readyAndPull"] = {false, "text_button", {"default", 7}, {}},
@@ -366,22 +376,8 @@ function eventFrame:ADDON_LOADED(arg1)
 
         -- appearance -----------------------------------------------------------------------------
         if type(CellDB["appearance"]) ~= "table" then
-            -- get recommended scale
-            local pScale = P.GetPixelPerfectScale()
-            local scale
-            if pScale >= 0.7 then
-                scale = 1
-            elseif pScale >= 0.5 then
-                scale = 1.4
-            else
-                scale = 2
-            end
-
             CellDB["appearance"] = F.Copy(Cell.defaults.appearance)
-            -- update recommended scale
-            CellDB["appearance"]["scale"] = scale
         end
-        P.SetRelativeScale(CellDB["appearance"]["scale"])
 
         -- color ---------------------------------------------------------------------------------
         if CellDB["appearance"]["accentColor"] then -- version < r103
@@ -543,7 +539,7 @@ function eventFrame:ADDON_LOADED(arg1)
         for _, roleOrClass in pairs(CellDB["layoutAutoSwitch"]) do
             for _, t in pairs(roleOrClass) do
                 for groupType, layout in pairs(t) do
-                    if not CellDB["layouts"][layout] then
+                    if layout ~= "hide" and not CellDB["layouts"][layout] then
                         t[groupType] = "default"
                     end
                 end
@@ -791,8 +787,6 @@ function eventFrame:PLAYER_LOGIN()
 
     --! init Cell.vars.currentLayout and Cell.vars.currentLayoutTable
     eventFrame:GROUP_ROSTER_UPDATE()
-    -- update visibility
-    Cell.Fire("UpdateVisibility")
     -- REVIEW: register unitframes for click casting
     -- RegisterGlobalClickCastings()
     -- update click-castings
@@ -833,12 +827,19 @@ end
 
 function eventFrame:UI_SCALE_CHANGED()
     if not InCombatLockdown() then
-        F.Debug("UI_SCALE_CHANGED: ", "effectiveScale:", P.GetEffectiveScale(), "uiScale:", UIParent:GetScale())
+        F.Debug("UI_SCALE_CHANGED: ", UIParent:GetScale(), CellParent:GetEffectiveScale())
         Cell.Fire("UpdatePixelPerfect")
         Cell.Fire("UpdateAppearance", "scale")
-        PreUpdateLayout()
     end
 end
+
+hooksecurefunc(UIParent, "SetScale", function()
+    if not InCombatLockdown() then
+        F.Debug("UIParent:SetScale: ", UIParent:GetScale(), CellParent:GetEffectiveScale())
+        Cell.Fire("UpdatePixelPerfect")
+        Cell.Fire("UpdateAppearance", "scale")
+    end
+end)
 
 -------------------------------------------------
 -- ACTIVE_TALENT_GROUP_CHANGED
@@ -905,30 +906,34 @@ function SlashCmdList.CELL(msg, editbox)
     elseif command == "healers" then
         F.FirstRun()
 
+    elseif command == "rescale" then
+        CellDB["appearance"]["scale"] = P.GetRecommendedScale()
+        ReloadUI()
+
     elseif command == "reset" then
         if rest == "position" then
             Cell.frames.anchorFrame:ClearAllPoints()
-            Cell.frames.anchorFrame:SetPoint("TOPLEFT", UIParent, "CENTER")
+            Cell.frames.anchorFrame:SetPoint("TOPLEFT", CellParent, "CENTER")
             Cell.vars.currentLayoutTable["position"] = {}
             P.ClearPoints(Cell.frames.readyAndPullFrame)
-            Cell.frames.readyAndPullFrame:SetPoint("TOPRIGHT", UIParent, "CENTER")
+            Cell.frames.readyAndPullFrame:SetPoint("TOPRIGHT", CellParent, "CENTER")
             CellDB["tools"]["readyAndPull"][4] = {}
             P.ClearPoints(Cell.frames.raidMarksFrame)
-            Cell.frames.raidMarksFrame:SetPoint("BOTTOMRIGHT", UIParent, "CENTER")
+            Cell.frames.raidMarksFrame:SetPoint("BOTTOMRIGHT", CellParent, "CENTER")
             CellDB["tools"]["marks"][4] = {}
             P.ClearPoints(Cell.frames.buffTrackerFrame)
-            Cell.frames.buffTrackerFrame:SetPoint("BOTTOMLEFT", UIParent, "CENTER")
+            Cell.frames.buffTrackerFrame:SetPoint("BOTTOMLEFT", CellParent, "CENTER")
             CellDB["tools"]["buffTracker"][4] = {}
 
         elseif rest == "all" then
             Cell.frames.anchorFrame:ClearAllPoints()
-            Cell.frames.anchorFrame:SetPoint("TOPLEFT", UIParent, "CENTER")
+            Cell.frames.anchorFrame:SetPoint("TOPLEFT", CellParent, "CENTER")
             Cell.frames.readyAndPullFrame:ClearAllPoints()
-            Cell.frames.readyAndPullFrame:SetPoint("TOPRIGHT", UIParent, "CENTER")
+            Cell.frames.readyAndPullFrame:SetPoint("TOPRIGHT", CellParent, "CENTER")
             Cell.frames.raidMarksFrame:ClearAllPoints()
-            Cell.frames.raidMarksFrame:SetPoint("BOTTOMRIGHT", UIParent, "CENTER")
+            Cell.frames.raidMarksFrame:SetPoint("BOTTOMRIGHT", CellParent, "CENTER")
             Cell.frames.buffTrackerFrame:ClearAllPoints()
-            Cell.frames.buffTrackerFrame:SetPoint("BOTTOMLEFT", UIParent, "CENTER")
+            Cell.frames.buffTrackerFrame:SetPoint("BOTTOMLEFT", CellParent, "CENTER")
             CellDB = nil
             ReloadUI()
 
@@ -982,6 +987,7 @@ function SlashCmdList.CELL(msg, editbox)
         F.Print(L["Available slash commands"]..":\n"..
             "|cFFFFB5C5/cell options|r, |cFFFFB5C5/cell opt|r: "..L["show Cell options frame"]..".\n"..
             "|cFFFFB5C5/cell healers|r: "..L["create a \"Healers\" indicator"]..".\n"..
+            "|cFFFFB5C5/cell rescale|r: "..strlower(L["Apply Recommended Scale"])..".\n"..
             "|cFFFF7777"..L["These \"reset\" commands below affect all your characters in this account"]..".|r\n"..
             "|cFFFFB5C5/cell reset position|r: "..L["reset Cell position"]..".\n"..
             "|cFFFFB5C5/cell reset layouts|r: "..L["reset all Layouts and Indicators"]..".\n"..

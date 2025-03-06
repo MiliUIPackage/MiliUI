@@ -10,8 +10,6 @@ local function CreateChangelogsFrame()
     Cell.frames.changelogsFrame = changelogsFrame
     changelogsFrame:SetToplevel(true)
 
-    P.SetEffectiveScale(changelogsFrame)
-
     changelogsFrame.header.closeBtn:HookScript("OnClick", function()
         CellDB["changelogsViewed"] = Cell.version
     end)
@@ -36,10 +34,12 @@ local function CreateChangelogsFrame()
 
     changelogsFrame:SetScript("OnShow", function()
         content:SetText("<html><body>" .. L["CHANGELOGS"] .. "</body></html>")
-        local height = content:GetContentHeight()
-        content:SetHeight(height)
-        changelogsFrame.scrollFrame.content:SetHeight(height + 30)
-        P.PixelPerfectPoint(changelogsFrame)
+        C_Timer.After(0, function()
+            local height = content:GetContentHeight()
+            content:SetHeight(height)
+            changelogsFrame.scrollFrame.content:SetHeight(height + 100)
+            P.PixelPerfectPoint(changelogsFrame)
+        end)
     end)
 
     content:SetScript("OnHyperlinkClick", function(self, linkData, link, button)
@@ -49,10 +49,12 @@ local function CreateChangelogsFrame()
             content:SetText("<html><body>" .. L["CHANGELOGS"] .. "</body></html>")
         end
 
-        local height = content:GetContentHeight()
-        content:SetHeight(height)
-        changelogsFrame.scrollFrame.content:SetHeight(height + 30)
-        changelogsFrame.scrollFrame:ResetScroll()
+        C_Timer.After(0, function()
+            local height = content:GetContentHeight()
+            content:SetHeight(height)
+            changelogsFrame.scrollFrame.content:SetHeight(height + 30)
+            changelogsFrame.scrollFrame:ResetScroll()
+        end)
     end)
 end
 

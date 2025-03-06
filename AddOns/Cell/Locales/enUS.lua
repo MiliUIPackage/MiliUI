@@ -67,7 +67,7 @@ select(2, ...).L = setmetatable({
     ["INVERT"] = "Invert",
     ["Default"] = _G.DEFAULT,
 
-    ["ABOUT"] = "Cell is a nice raid frame addon inspired by several great addons, such as CompactRaid, Grid2, Aptechka and VuhDo.\nWith a more human-friendly interface, Cell can provide a better user experience, better than ever.\nHope you enjoy.",
+    ["ABOUT"] = "Cell is a nice raid frame addon inspired by several great addons, such as CompactRaid, Grid2, Aptechka and VuhDo.\nWith a more human-friendly interface, Cell can provide a better user experience, better than ever.",
     ["RESET"] = "Cell requires a full reset after updating from a very old version",
     ["RESET_CHARACTER"] = "Cell requires a character profile reset after updating from a very old version",
     ["RESET_INCLUDES"] = "Only Click-Castings and Layout Auto Switch are included",
@@ -86,8 +86,46 @@ select(2, ...).L = setmetatable({
     ["BACKUP_TIPS2"] = "Note for Classic players: Backups do not include Click-Castings and Layout Auto Switch of other characters",
 
     ["CHANGELOGS"] = [[
-        <h1>If there are any issues after an update, check through all code snippets first.</h1>
+        <h2>If there are any issues after an update, check through all code snippets first.</h2>
         <p>(Retail) Enable "Always Update Auras" in General tab, if indicators do not update correctly.</p>
+        <h2>The scaling "issue" isn't a bug; it's due to changes in the scaling method. Please readjust Cell's scale and dimensions.</h2>
+        <br/>
+
+        <h1>r249-release (Mar 5, 2025, 19:12 GMT+8)</h1>
+        <p>* Fixed horizontal layout.</p>
+        <br/>
+
+        <h1>r248-release (Mar 5, 2025, 18:30 GMT+8)</h1>
+        <p>* Improved the accuracy of unit button spacing.</p>
+        <p>* Fixed "Healers" indicator.</p>
+        <p>* Fixed layout hiding on classic.</p>
+        <p>* Fixed pixel accuracy of Block(s).</p>
+        <p>* Fixed raid layout preview.</p>
+        <p>* Added "Apply Recommended Scale" button and "/cell rescale".</p>
+        <p>* Updated power filter for vanilla.</p>
+        <p>* Updated max unitsPerColumn on classic.</p>
+        <p>* Update locales.</p>
+        <br/>
+
+        <h1>r247-release (Mar 4, 2025, 17:50 GMT+8)</h1>
+        <p>! Due to changes in scaling behavior, you might need to readjust the size and position of Cell.</p>
+        <p>* Updated TWW season 2 debuffs (Thanks 钛锬).</p>
+        <p>* Fixed scaling issue.</p>
+        <p>* Fixed positioning issue.</p>
+        <p>* Fixed Glow indicator.</p>
+        <br/>
+
+        <h1>r246-release (Mar 4, 2025, 13:00 GMT+8)</h1>
+        <p>! Cell now scales with UIParent.</p>
+        <p>+ Added maxValue settings to custom Bar indicator (#337).</p>
+        <p>+ Added glow to some indicators.</p>
+        <p>+ Implemented layout hiding (under Layout Auto Switch), removed old options under General tab.</p>
+        <p>+ Implemented solo pet hiding.</p>
+        <p>* Fixed hidden menu clickthrough issue.</p>
+        <p>* Fixed dispel check.</p>
+        <p>* Made BattleResTimer and PartyPets detachable.</p>
+        <p>* Made spacing options effective for solo/party pets.</p>
+        <p>* Updated locales.</p>
         <br/>
 
         <h1>r245-release (Feb 25, 2025, 19:35 GMT+8)</h1>
