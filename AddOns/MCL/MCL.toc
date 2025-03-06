@@ -3,16 +3,15 @@
 ## Notes: A tool used to log collected mounts in a similiar way to Simple Armory.
 ## Title-zhTW: |cffFFFF66[坐騎]|r 坐騎收藏紀錄
 ## Notes-zhTW: MCL |n|n顯示坐騎收藏記錄，從小地圖旁插件列表內可進入，若顯示開啟失敗則多點幾次即可。
-## X-Category-zhTW: 收藏
 ## DefaultState: disabled
-## Version: 2.4.2
+## Category-zhTW: 收藏
+## Version: 2.4.6
 ## LoadWith: Blizzard_Collections
 ## SavedVariables: MCL_DB, MOUNTLIST, MCL_PINNED, MCL_SETTINGS
 ## Author: Discord: Cam#7332
 ## Description: A tool used to log collected mounts in a similiar way to Simple Armory.
 ## IconTexture: Interface\AddOns\MCL\mcl-logo-32
 ## AddonCompartmentFunc: MCL_OnAddonCompartmentClick
-## Category-zhTW: 收藏
 
 libs\load_libs.xml
 button.xml
