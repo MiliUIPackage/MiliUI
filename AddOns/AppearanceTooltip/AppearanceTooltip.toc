@@ -1,23 +1,32 @@
-## Interface: 110100, 40400
+## Interface: 40402, 110007, 110100
 ## Title: AppearanceTooltip
 ## Author: Kemayo
 ## Notes: Show the item your mouse is over on your character in a tooltip
-## Version: v53
+## Version: v57
 ## LoadOnDemand: 0
 ## OptionalDeps: tekDebug, LibStub, LibArmorToken-1.0, LibAppropriateItems-1.0
 ## X-Embeds: LibStub, LibArmorToken-1.0, LibAppropriateItems-1.0
 ## X-Curse-Project-ID: 101155
 ## X-Wago-ID: JZKbYO61
 
+## Category-enUS: Collections
+## Category-deDE: Kriegsmeutesammlungen
+## Category-esES: Colecciones de banda guerrera
+## Category-esMX: Colecciones de tropa
+## Category-frFR: Collections du bataillon
+## Category-itIT: Collezioni della Brigata
+## Category-koKR: 전투부대 수집품
+## Category-ptBR: Coleções do Bando de Guerra
+## Category-ruRU: Коллекции отряда
+## Category-zhCN: 战团藏品
+
 ## SavedVariables: AppearanceTooltipDB
 ## SavedVariablesPerCharacter: AppearanceTooltipDBPC
 
 ## Title-zhTW: |cffFFFF66[塑形]|r 外觀預覽
 ## Notes-zhTW: AppearanceTooltip |n|n滑鼠指向裝備圖示時，會顯示你的角色穿上時的外觀預覽。|n|n|cffffd200使用方法: |r滾動滑鼠滾輪旋轉預覽，從Esc>選項>插件>塑形預覽，可以設定縮放、自動旋轉和其他相關設定。
-## X-Category-zhTW: 收藏
-## IconTexture: Interface\Icons\inv_raidpriestmythic_q_01chest
-
 ## Category-zhTW: 收藏
+## IconTexture: Interface\Icons\inv_raidpriestmythic_q_01chest
 
 #@no-lib-strip@
 embeds.xml
