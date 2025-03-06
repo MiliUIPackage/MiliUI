@@ -52,7 +52,7 @@ local defaults = {
 			Mounts = true,
 			Toys = true,
 			Transmog = false,
-			Recipes = true
+			Recipes = true,
 			TransmogSets = false,
 		},
 		Custom = {
