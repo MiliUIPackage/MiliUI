@@ -7,7 +7,7 @@
 
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計-儲存資料
 ## Notes-zhTW: Details!: Storage |n|n儲存供 Details! 戰鬥統計使用的儲存資料。
-## X-Category-zhTW: 戰鬥
+## Category-zhTW: 戰鬥
 ## DefaultState: disabled
 
 Details_DataStorage.lua

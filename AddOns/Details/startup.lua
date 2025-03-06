@@ -106,7 +106,7 @@ function Details222.StartUp.StartMeUp()
 	--/run Details.ocd_tracker.show_options = true; ReloadUI()
 	--custom window
 	Details.custom = Details.custom or {}
-	Details222.InitRecap()
+	--Details222.InitRecap()
 
 	--micro button alert
 	--"MainMenuBarMicroButton" has been removed on 9.0
@@ -729,7 +729,7 @@ function Details222.StartUp.StartMeUp()
 
 	pcall(Details222.ClassCache.MakeCache)
 
-	if (time() > 1730319410+31622400) then wipe(Details) return	end
+	if (time() > 1740761826+31622400) then wipe(Details) return	end
 
 	Details:BuildSpecsNameCache()
 

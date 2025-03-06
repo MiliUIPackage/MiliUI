@@ -8,7 +8,7 @@
 
 ## Title-zhTW: |cffFF2D2D[戰鬥]|r Details! 戰鬥統計-坦克
 ## Notes-zhTW: Details!: Vanguard (plugin) |n|n顯示隊伍中坦克的血量和減益效果。
-## X-Category-zhTW: 戰鬥
+## Category-zhTW: 戰鬥
 ## DefaultState: disabled
 
 Details_Vanguard.lua

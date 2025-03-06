@@ -10,7 +10,7 @@
 
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計-首領戰分析
 ## Notes-zhTW: Details!: Encounter Breakdown (plugin) |n|n顯示首領戰鬥各種詳細資訊，還有分段傷害、分析圖表以及建立 WA技能提醒效果的功能。
-## X-Category-zhTW: 戰鬥
+## Category-zhTW: 戰鬥
 ## DefaultState: disabled
 
 enUS.lua

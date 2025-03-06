@@ -7,7 +7,7 @@
 
 ## Title-zhTW: |cffFF2D2D[戰鬥]|r Details! 戰鬥統計-仇恨值
 ## Notes-zhTW: Details!: Tiny Threat (plugin) |n|n仇恨值的外掛套件，在視窗中顯示隊友的仇恨值。|n|n|cffffd200使用方法: |r點小齒輪，從外掛套件選單來選擇。
-## X-Category-zhTW: 戰鬥
+## Category-zhTW: 戰鬥
 ## DefaultState: disabled
 
 enUS.lua
