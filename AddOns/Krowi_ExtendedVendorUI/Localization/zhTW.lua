@@ -11,6 +11,7 @@ addon.Plugins:LoadLocalization(L);
 -- [[ Exported at 2023-08-20 18-17-39 ]] --
 L["Are you sure you want to hide the options button?"] = [=[是否確定要隱藏選項按鈕?
 要再次顯示選項按鈕，請到 {gameMenu} > {addOns} > 商人 > {general} > {options}]=]
+L["Arsenals"] = "武器庫"
 L["Author"] = "作者"
 L["Build"] = "魔獸版本"
 L["Checked"] = "啟用"
@@ -21,11 +22,14 @@ L["CurseForge Desc"] = "顯示 {addonName} 的 {curseForge} 插件頁面連結�
 L["Default value"] = "預設值"
 L["Discord"] = true
 L["Discord Desc"] = "顯示 {serverName} Discord 伺服器的連結。可以留言、評論、回報問題、想法，或其他任何有關的內容。"
+L["Ensembles"] = "套裝"
+L["Filters"] = "過濾方式"
 L["Hide"] = "隱藏"
 L["Icon Left click"] = "快速版面配置"
 L["Icon Right click"] = "設定選項"
 L["Options button"] = "選項按鈕"
 L["Options Desc"] = "打開選項，也可以從商人視窗左上方的選項按鈕打開選項。"
+L["Recipes"] = "配方"
 L["Right click"] = "右鍵"
 L["Rows"] = "橫列數"
 L["Rows first"] = "橫列優先"
@@ -40,11 +44,8 @@ L["Wago"] = true
 L["Wago Desc"] = "顯示 {addonName} 的 {wago} 插件頁面連結。"
 L["WoWInterface"] = true
 L["WoWInterface Desc"] = "顯示 {addonName} 的 {woWInterface} 插件頁面連結。"
-L["Recipes"] = "配方"
 
 -- 自行加入
-
-L["Filters"] = "過濾方式"
 L["Default filters"] = "預設過濾方式"
 L["Only show"] = "只顯示"
 L["Custom"] = "自訂"
@@ -57,3 +58,4 @@ L["Left click"] = "左鍵"
 L["Plugins"] = "外掛套件"
 L["Deselect All"] = "取消全選"
 L["Select All"] = "全選"
+L["Appearance Sets"] = "外觀套裝"

@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 12.0 - 2025-03-01
+### Added
+- Transmog sets likes ensembles and arsenals can now also filtered
+- Addon category
+
+## 11.1 - 2025-02-14
+### Cata Classic
+- Silver Shafted Arrow and Truesilver Shafted Arrow are no longer considered pets
+
 ## 11.0 - 2025-01-18
 ### Cata Classic
 - First port from retail

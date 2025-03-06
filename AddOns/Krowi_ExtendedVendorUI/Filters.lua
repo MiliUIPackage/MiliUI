@@ -8,6 +8,7 @@ _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_MOUNTS"] = 102;
 _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_TOYS"] = 103;
 _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_TRANSMOG"] = 104;
 _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_RECIPES"] = 105;
+_G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_TRANSMOG_SETS"] = 106;
 _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_CUSTOM"] = 200;
 _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_SEARCH"] = 201;
 
@@ -52,12 +53,14 @@ local defaults = {
 			Toys = true,
 			Transmog = false,
 			Recipes = true
+			TransmogSets = false,
 		},
 		Custom = {
 			Pets = true,
 			Mounts = true,
 			Toys = true,
 			Transmog = true,
+			TransmogSets = true,
 			Recipes = true,
 			Other = true,
 			Armor = { --[[ Automatically generated ]] },
@@ -112,6 +115,8 @@ function filters:Validate(lootFilter, itemId)
 		return self:ValidateToysOnly(itemId);
     elseif lootFilter == _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_TRANSMOG"] then
 		return self:ValidateTransmogOnly(itemId);
+    elseif lootFilter == _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_TRANSMOG_SETS"] and addon.Util.IsMainline then
+		return self:ValidateTransmogSetOnly(itemId);
     elseif lootFilter == _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_RECIPES"] then
 		return self:ValidateRecipesOnly(itemId);
     elseif lootFilter == _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_CUSTOM"] then
@@ -135,6 +140,12 @@ function filters:Validate(lootFilter, itemId)
 			return not self.IsTransmogCollected(itemId);
 		end
 
+		if addon.Util.IsMainline then
+			if self.IsTransmogSet(itemId) and addon.Filters.db.profile.HideCollected.TransmogSets then
+				return not self.IsTransmogSetCollected(itemId);
+			end
+		end
+
 		if self.IsRecipe(itemId) and addon.Filters.db.profile.HideCollected.Recipes then
 			return not self.IsRecipeCollected(itemId);
 		end
@@ -155,6 +166,9 @@ do -- Pets
 	end
 
 	function filters.IsPet(itemId)
+		if itemId == 22200 or itemId == 22235 then -- Silver Shafted Arrow and Truesilver Shafted Arrow is classified as a pet but works differntly by adding a pet to another player, not yourself
+			return false;
+		end
 		local classId, subclassId = select(6, C_Item.GetItemInfoInstant(itemId));
 		if classId ~= Enum.ItemClass.Miscellaneous or subclassId ~= Enum.ItemMiscellaneousSubclass.CompanionPet then
 			return false;
@@ -244,6 +258,37 @@ do -- Transmog
 	end
 end
 
+do -- Transmog Set
+	function filters:ValidateTransmogSetOnly(itemId)
+		if not self.IsTransmogSet(itemId) then
+			return false;
+		end
+		if addon.Filters.db.profile.HideCollected.TransmogSets then
+			return not self.IsTransmogSetCollected(itemId);
+		end
+		return true;
+	end
+
+	function filters.IsTransmogSet(itemId)
+		local setId = C_Item.GetItemLearnTransmogSet(itemId);
+		return setId ~= nil;
+	end
+
+	function filters.IsTransmogSetCollected(itemId)
+		local setId = C_Item.GetItemLearnTransmogSet(itemId);
+		local setItems = C_Transmog.GetAllSetAppearancesByID(setId);
+		if not setItems then
+			return false;
+		end
+		for _, setItem in next, setItems do
+			if not filters.IsTransmogCollected(setItem.itemID) then
+				return false;
+			end
+		end
+		return true;
+	end
+end
+
 do -- Recipes
 	function filters:ValidateRecipesOnly(itemId)
 		if not self.IsRecipe(itemId) then
@@ -313,6 +358,16 @@ do -- Custom
 					return addon.Filters.db.profile.Custom.Armor[subClassId];
 				elseif classId == Enum.ItemClass.Weapon and addon.Filters.db.profile.Custom.Weapon[subClassId] ~= nil then
 					return addon.Filters.db.profile.Custom.Weapon[subClassId];
+				end
+				return true;
+			end
+			return false;
+		end
+
+		if self.IsTransmogSet(itemId) then
+			if addon.Filters.db.profile.Custom.TransmogSets then
+				if addon.Filters.db.profile.HideCollected.TransmogSets then
+					return not self.IsTransmogSetCollected(itemId);
 				end
 				return true;
 			end

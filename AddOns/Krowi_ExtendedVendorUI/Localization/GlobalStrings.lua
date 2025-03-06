@@ -1,4 +1,4 @@
-local _, addon = ...;
+local addonName, addon = ...;
 local L = addon.L;
 
 L["Direction"] = HUD_EDIT_MODE_SETTING_BAGS_DIRECTION;
@@ -12,4 +12,7 @@ L["Game Menu"] = MAINMENU_BUTTON;
 L["Interface"] = UIOPTIONS_MENU;
 L["AddOns"] = ADDONS;
 L["Options"] = GAMEOPTIONS_MENU;
-L["Appearances"] = WARDROBE;
+L["Appearances"] = WARDROBE .. " (" .. ITEMS .. ")";
+
+local l = LibStub(addon.Libs.AceLocale):GetLocale(addonName);
+L["Appearance Sets"] = WARDROBE .. " (" .. l["Ensembles"] .. ", " .. l["Arsenals"] .. ", ...)";

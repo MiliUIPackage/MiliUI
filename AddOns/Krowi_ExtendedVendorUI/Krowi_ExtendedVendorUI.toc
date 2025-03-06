@@ -1,8 +1,8 @@
-## Interface: 11505, 30403, 40401, 110005, 110100
+## Interface: 11506, 30403, 40402, 110007, 110100
 ## Title: Krowi's |cFF1D92C2Extended Vendor UI|r
 ## X-Prefix: KrowiEVU
 ## X-Acronym: KEVU
-## Version: 11.0
+## Version: 12.0
 ## Author: Krowi-Frostmane EU
 ## LoadWith: Blizzard_MerchantFrame
 ## SavedVariables: KrowiEVU_Options, KrowiEVU_Filters, KrowiEVU_Debug
@@ -10,7 +10,17 @@
 ## AddonCompartmentFuncOnEnter: KrowiEVU_OnAddonCompartmentEnter
 ## AddonCompartmentFuncOnLeave: KrowiEVU_OnAddonCompartmentLeave
 ## AddonCompartmentFunc: KrowiEVU_OnAddonCompartmentClick
-## IconTexture: interface/icons/inv_tailoring_70_silkweaveimbuedbag
+## IconTexture: interface/icons/inv_misc_bag_24_netherweave_imbued
+## Category-enUS: Inventory
+## Category-deDE: Inventar
+## Category-esES: Inventario
+## Category-esMX: Inventario
+## Category-frFR: Inventaire
+## Category-itIT: Inventario
+## Category-koKR: 소지품
+## Category-ptBR: Inventário
+## Category-ruRU: Предметы
+## Category-zhCN: 物品栏
 ## X-Discord-Invite-Link: https://discord.gg/mdBFQJYeQZ
 ## X-Discord-Server-Name: Krowi's Addons
 ## X-CurseForge: https://www.curseforge.com/wow/addons/krowi-extended-vendor-ui
@@ -23,8 +33,6 @@
 ## Title-zhTW: |cffFFFF99[商人]|r 介面增強
 ## Notes-zhTW: Krowi's |cFF1D92C2Extended Vendor UI|r|n|n加大商人的購買視窗，方便選購，可自訂商人視窗大小。|n可隱藏已有的寵物、坐騎和玩具，避免重複購買。|n|n|cffffd200使用方法: 點商人視窗左上角的選項，自訂商人視窗大小。|n點商人視窗右上角的過濾設定來篩選/隱藏物品。|n從Esc>選項>插件>商人，開啟其他設定選項。
 ## IconTexture: Interface\Icons\inv_misc_coin_16
-## X-Category-zhTW: 交易
-## Category: Interface
 ## Category-zhTW: 介面
 
 Libs\Files.xml
