@@ -139,19 +139,19 @@ MyAddon.Mobs = {
 	[206697] = {name = "Devout Priest", instanceID = 2649},	-- elite Humanoid MANA 80 hostile attackable
 	[206698] = {name = "Fanatical Conjuror", instanceID = 2649},	-- elite Humanoid MANA 80 hostile attackable
 --	[206699] = {name = "War Lynx", instanceID = 2649},	-- elite Beast RAGE 80 hostile attackable
-	[206704] = {name = "Ardent Paladin", instanceID = 2649},	-- elite Humanoid MANA 81 hostile attackable
+--	[206704] = {name = "Ardent Paladin", instanceID = 2649},	-- elite Humanoid MANA 81 hostile attackable
 --	[206705] = {name = "Arathi Footman", instanceID = 2649},	-- elite Humanoid RAGE 80 hostile attackable
-	[206710] = {name = "Lightspawn", instanceID = 2649},	-- elite Elemental MANA 80 hostile attackable
+--	[206710] = {name = "Lightspawn", instanceID = 2649},	-- elite Elemental MANA 80 hostile attackable
 --	[207939] = {name = "[BOSS] Baron Braunpyke", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 82 hostile attackable
 --	[207940] = {name = "[BOSS] Prioress Murrpray", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 82 hostile attackable
 --	[207943] = {name = "Arathi Neophyte", instanceID = 2649},	-- normal Humanoid MANA 80 hostile attackable
-	[207946] = {name = "[BOSS] Captain Dailcry", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 82 hostile attackable
-	[207949] = {name = "Zealous Templar", instanceID = 2649},	-- elite Humanoid MANA 81 hostile attackable
+	[207946] = {name = "[BOSS] Captain Dailcry", instanceID = 2649, marks = "+2"},	-- elite Humanoid POWER_TYPE_ENERGY 82 hostile attackable
+	[211289] = {name = "[BOSS-ADD] Taener Duelmal", instanceID = 2649, marks = "+1"},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
+	[211290] = {name = "[BOSS-ADD] Elaena Emberlanz", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
+--	[211291] = {name = "[BOSS-ADD] Sergeant Shaynemail", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
+--	[207949] = {name = "Zealous Templar", instanceID = 2649},	-- elite Humanoid MANA 81 hostile attackable
 --	[211140] = {name = "Arathi Neophyte", instanceID = 2649},	-- normal Humanoid RAGE 80 hostile attackable
-	[211289] = {name = "Taener Duelmal", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
-	[211290] = {name = "Elaena Emberlanz", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
---	[211291] = {name = "Sergeant Shaynemail", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
---	[212826] = {name = "Guard Captain Suleyman", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
+	[212826] = {name = "Guard Captain Suleyman", instanceID = 2649, marks = "8"},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
 --	[212827] = {name = "High Priest Aemya", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
 	[212831] = {name = "Forge Master Damian", instanceID = 2649},	-- elite Humanoid MANA 81 hostile attackable
 --	[212835] = {name = "Risen Footman", instanceID = 2649},	-- elite Undead ENERGY 80 hostile attackable
@@ -259,7 +259,7 @@ MyAddon.Mobs = {
 	[214697] = {name = "Chef Chewie", instanceID = 2661, auto = "nameplate", marks = "8"},	-- elite Humanoid RAGE 81 hostile attackable
 --	[214920] = {name = "Tasting Room Attendant", instanceID = 2661},	-- elite Humanoid RAGE 80 hostile attackable
 --	[218002] = {name = "[BOSS] Benk Buzzbee", instanceID = 2661},	-- elite Humanoid RAGE 82 hostile attackable
---	[218671] = {name = "Venture Co. Pyromaniac", instanceID = 2661},	-- elite Humanoid RAGE 80 hostile attackable
+	[218671] = {name = "Venture Co. Pyromaniac", instanceID = 2661},	-- elite Humanoid RAGE 80 hostile attackable
 --	[218865] = {name = "Bee-let", instanceID = 2661},	-- minus Beast RAGE 80 hostile attackable
 	[219588] = {name = "Yes Man", instanceID = 2661, auto = "nameplate", marks = "8726"},	-- elite Humanoid RAGE 80 hostile attackable
 --	[220060] = {name = "Taste Tester", instanceID = 2661},	-- elite Humanoid RAGE 80 hostile attackable
@@ -453,20 +453,20 @@ MyAddon.Mobs = {
 --	[227145] = {name = "Waterworks Crocolisk", instanceID = 2773},	-- elite Beast RAGE 80 hostile attackable
 --	[228144] = {name = "Darkfuse Soldier", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
 --	[228424] = {name = "Darkfuse Mechadrone", instanceID = 2773},	-- elite Mechanical RAGE 81 hostile attackable
---	[229069] = {name = "Mechadrone Sniper", instanceID = 2773},	-- elite Mechanical RAGE 80 hostile attackable
+	[229069] = {name = "Mechadrone Sniper", instanceID = 2773},	-- elite Mechanical RAGE 80 hostile attackable
 --	[229212] = {name = "Darkfuse Demolitionist", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
 --	[229250] = {name = "Venture Co. Contractor", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
 	[229251] = {name = "Venture Co. Architect", instanceID = 2773},	-- elite Humanoid MANA 81 hostile attackable
 --	[229252] = {name = "Darkfuse Hyena", instanceID = 2773},	-- elite Beast RAGE 80 hostile attackable
 	[229686] = {name = "Venture Co. Surveyor", instanceID = 2773},	-- elite Humanoid MANA 80 hostile attackable
---	[230740] = {name = "Shreddinator 3000", instanceID = 2773},	-- elite Mechanical RAGE 81 hostile attackable
+	[230740] = {name = "Shreddinator 3000", instanceID = 2773, marks = "87"},	-- elite Mechanical RAGE 81 hostile attackable
 	[230748] = {name = "Darkfuse Bloodwarper", instanceID = 2773},	-- elite Humanoid MANA 81 hostile attackable
 --	[231014] = {name = "Loaderbot", instanceID = 2773},	-- elite Mechanical RAGE 80 hostile attackable
 --	[231176] = {name = "Scaffolding", instanceID = 2773},	-- normal Not specified RAGE 80 hostile attackable
 --	[231197] = {name = "Bubbles", instanceID = 2773},	-- elite Beast RAGE 81 hostile attackable
 	[231223] = {name = "Disturbed Kelp", instanceID = 2773},	-- elite Elemental RAGE 80 hostile attackable
 	[231312] = {name = "Venture Co. Electrician", instanceID = 2773},	-- elite Humanoid MANA 80 hostile attackable
---	[231325] = {name = "Darkfuse Jumpstarter", instanceID = 2773},	-- elite Humanoid RAGE 81 hostile attackable
+	[231325] = {name = "Darkfuse Jumpstarter", instanceID = 2773, marks = "87"},	-- elite Humanoid RAGE 81 hostile attackable
 --	[231380] = {name = "Undercrawler", instanceID = 2773},	-- elite Beast RAGE 80 hostile attackable
 --	[231385] = {name = "Darkfuse Inspector", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
 --	[231496] = {name = "Venture Co. Diver", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable

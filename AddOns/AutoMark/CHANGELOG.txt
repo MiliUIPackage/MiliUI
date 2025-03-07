@@ -95,3 +95,18 @@ v1.1.6
 Updated for 11.1.0 TWW Season 2.
 Added support for Season 2 dungeons: Theater of Pain, The MOTHERLOAD!!, Operation: Mechagon - Workshop & Operation: Floodgate.
 Siege of Boralus - The Ashvane Spotter before Dread Captain Lockwood is marked with a Skull. (Should be snared/rooted.)
+
+v1.1.7
+Operation: Floodgate
+	Darkfuse Jumpstarter - Priority marked with Skull/Cross.
+	Shreddinator 3000 - Priority marked with Skull/Cross.
+	Mechadrone Sniper - Added.
+Priory of the Sacred Flame
+	Ardent Paladin - Removed (nothing to interrupt).
+	Lightspawn - Removed (nothing to interrupt).
+	Zealous Templar - Removed (nothing to interrupt).
+	Guard Captain Suleyman - Added for visibility.
+Cinderbrew Meadery
+	Venture Co. Pyromaniac - Added.
+
+
