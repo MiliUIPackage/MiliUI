@@ -1,45 +1,94 @@
 # DBM - Core
 
-## [11.1.5](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/11.1.5) (2025-02-28)
-[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/11.1.4...11.1.5) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
+## [11.1.7](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/11.1.7) (2025-03-07)
+[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/11.1.6...11.1.7) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
 
-- prep new tag  
-- Full undermine pass:  
-     - Improved weak aura pack compatability  
-     - Fixed a few test mode bugs  
-     - Tweaked some warning clarity  
-     - Added some misc stuff  
-     - Pruned some deleted stuff  
-- Delete "C'Thun: You will Die" sound from dbm options. at some point blizzard deleted it from game so it's just no longer available.  
-- decouble beam alerts on ansurek and just use distance check instead. Closes https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1544  
-- Fix something that shouldn't have slipped through  
-- send unitID with start engage timers  
-- Fix resets  
-- temporarly remove luaLS workflow for now. will be restored when it can be fixed, but right now I don't want to be spammed emails for failed builds for next two weeks.  
-- latest cata patch is now tainting when trying to hide quest frame, just like retail does, so scrap feature there as well.  
-- Update localization.br.lua (#1542)  
-- Update localization.fr.lua (#1543)  
-- Update localization.es.lua (#1541)  
-- New fancy color selector (#1545)  
-    * New fancy color selector  
-    * Fix warning  
-- block encounter music in scenarios entirely, it's extremely problematic with existing code and too much time and effort to fix  
-- Update koKR (#1539)  
-- Update localization.ru.lua (#1540)  
-- Add color option to variance bars  
-- Core: Fix tracking of started timers for keep-style timers that are being canceled (#1538)  
-- fix some incorrectly set spellids  
-- Update localization.es.lua (#1537)  
-- Tests: Be more resilient to unknown spells  
-- Core: Throw error on bad string timer spec  
-- Core: Fix Naxx normal difficulty detection  
-- Push preliminarly Gallywix drycode  
-- Change stating and counts to synergize better  
-- Fix bug with screw up timer on normal and LFR difficulty sprocketmonger  
-- Fixup mugzee and one armed bandit from extensive test moding  
-- apparently it wasn't removed, just match sensitive now  
-- Apparently blizzard decided to remove support for using group and category together, it's one or other, or neither.  
-- Variance: fix var to non-var timers not showing while on Debug and timer<0 (#1535)  
-- Update localization.cn.lua (#1534)  
-- mod cleanup  
+- Prep new tag  
+- Add user request to auto mark gaol targets. Should be combat with BW users  
+- add heroic gallywix timer data  
+- Mythic timer tweaks for carnage  
+- Add a lot more gallywix normal data and fixed up taunt warnings on fight a little bit  
+    Updated rik heroic timers with some mid weak changes from blizzard.  
+    tweaked tank warnings on rik again to be further aggressive at minimizing stacks  
+- nearly perfect now in structure and functionality, just needs some data fill in now.  
+- Because DBT can't get it's shit together, all 77 (and counting) mods that do this just need to work around core bug  
+- gallywix mod restructure work. needs data population but it's quite a bit more ready now  
+    Fix infoframe not hiding on combat end iwth carnage for real this time  
+- add some nil error filler timers though  
+- preliminary gallywix stuff, but only stage 1 timers. there is a gross lacking of sufficient stage 2 and stage 3 data on any difficulty due to normal being radically undertuned and phase 2 lasting like 30 seconds, and heroic parses being scarce (only kills are again those that just overgear it and steamroll it too fast).  
+- Fix and close https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1556  
+- Attempt to fix random vexie timer error. Closes https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1557  
+- rework mugzee timers for normal and heroic on live  
+- fix cauldron lua error  
+- Update RU locale (#1552)  
+    * Update commonlocal.ru.lua  
+    * Update localization.ru.lua  
+- Update commonlocal.tw.lua (#1553)  
+- Update koKR (#1551)  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Revert  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR stings in tocs  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    * Update koKR  
+    ---------  
+    Co-authored-by: Adam <MysticalOS@users.noreply.github.com>  
+- Update lockenstock normal and heroic timers from live  
+    Closes https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1555  
+- Rework one armed bandit timers with the changes on live.  
+- Micro adjust some heroic timrs on Cauldron.  
+    Fixed bug on caudron that caused Salvo timer not to start after first  
+    Fixed a bug on mugzee causing surging arc to give unknown target  
+    Fixed some minor timer incorrectness on Rik Reverb normal'  
+    Fixed initial timers on Vexie and scrapped Bomb voyage timer  
+    Closes https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1554  
+- local luacheck doesn't error on that :D  
+- Fix 3 bad tank swaps  
+     - Tweak rik taunt behavior to be more often  
+     - Fix bad taunt behavior on lockenstock. this boss does NOT permit swapping targets mid cast.  
+     - remove bad taunt warning from stix for demolish, you only swap for balls  
+- posisbly fix lua error? taht value shouldn't be nil though...  
+- Timer fixes to rik reverb and cauldron for LFR difficulty at least  
 - bump alpha  

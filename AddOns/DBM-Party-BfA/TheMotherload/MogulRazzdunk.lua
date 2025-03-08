@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2116, "DBM-Party-BfA", 7, 1012)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250303013948")
+mod:SetRevision("20250307004102")
 mod:SetCreatureID(129232, 132713)--Vehicle, boss
 mod:SetEncounterID(2108)
 mod:SetHotfixNoticeRev(20250302000000)
@@ -49,7 +49,7 @@ mod.vb.gatCount = 0
 mod.vb.homingCount = 0
 mod.vb.drillCount = 0
 
-function mod:DrillTarget(targetname, _, scanTime)
+function mod:DrillTarget(targetname, _, _, scanTime)
 	if not targetname then return end
 	if self:AntiSpam(4, targetname) then--Antispam to lock out redundant later warning from firing if this one succeeds
 		if targetname == UnitName("player") then

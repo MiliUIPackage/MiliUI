@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2640, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250304222644")
+mod:SetRevision("20250307092947")
 mod:SetCreatureID(229181, 229177)
 mod:SetEncounterID(3010)
 mod:SetHotfixNoticeRev(20250131000000)
@@ -37,7 +37,8 @@ mod:RegisterEventsInCombat(
 --TODO, any kind of marking for https://www.wowhead.com/ptr-2/spell=1213992/voltaic-image ?
 --[[
 (ability.id = 473650 or ability.id = 472233 or ability.id = 1214190 or ability.id = 473994 or ability.id = 466178) and type = "begincast"
- or (ability.id = 463900 or ability.id = 473201 or ability.id = 473202 or ability.id = 465863 or ability.id = 465872) and type = "cast"
+ or ability.id = 463900 and type = "cast"
+ or (ability.id = 473201 or ability.id = 473202 or ability.id = 465863 or ability.id = 465872) and type = "cast"
  or (ability.id = 465863 or ability.id = 465872) and type = "removebuff"
 --]]
 --General
@@ -117,17 +118,17 @@ local savedDifficulty = "normal"
 local allTimers = {
 	["mythic"] = {
 		--Scrap Bomb
-		[473650] = {9.0, 24.0, 23.0},--Scrap consistently is 23 second cast on mythic (on heroic it's 24)
+		[473650] = {9.0, 23.0, 24.0},--Scrap consistently is 23 second cast on mythic (on heroic it's 24)
 		--Molten Phlegm
 		[1213688] = {23.7, 24.3},--Cast twice on mythic
 		--Blastburn Roarcannon
-		[472233] = {15.0, 24.0, 23.0},--Roarcannon consistently is 23 second cast on mythic (on heroic it's 24)
+		[472233] = {15.0, 24.0, 21.0},--Roarcannon consistently is 23 second cast on mythic (on heroic it's 24)
 		--Eruption Stomp
-		[1214190] = {27.0, 24.0},
+		[1214190] = {26.0, 25.0},
 		--Static Charge
 		[473994] = {6.0},
 		--Thunderdrum Salvo
-		[463840] = {10.0, 30.1},
+		[463900] = {10.0, 30.1},
 		--Voltaic Image
 		[1213994] = {29.1},--Mythic removed 2nd cast that heroic had
 		--Lightning Bash
@@ -135,23 +136,23 @@ local allTimers = {
 	},
 	["heroic"] = {
 		--Scrap Bomb
-		[473650] = {9.0, 24.0, 24.0},
+		[473650] = {9.0, 23.0, 24.0},
 		--Molten Phlegm
 		[1213688] = {47.6},
 		--Blastburn Roarcannon
-		[472233] = {15.1, 24.0, 24.0},
+		[472233] = {15.0, 24.0, 21.0},
 		--Eruption Stomp
-		[1214190] = {27.0, 24.0},
+		[1214190] = {26.0, 25.0},
 		--Static Charge
 		[473994] = {6.0},
 		--Thunderdrum Salvo
-		[463840] = {10.0, 30.0},
+		[463900] = {10.0, 30.0},
 		--Voltaic Image
 		[1213994] = {29.0, 30.0},
 		--Lightning Bash
-		[466178] = {21.1, 30.0},
+		[466178] = {21.0, 30.0},
 	},
-	["normal"] = {--Normal has slower pacing
+	["normal"] = {--Normal and LFR same slower pacing
 		--Scrap Bomb
 		[473650] = {10.0, 30.0},
 		--Blastburn Roarcannon
@@ -161,7 +162,7 @@ local allTimers = {
 		--Static Charge
 		[473994] = {6.0},
 		--Thunderdrum Salvo
-		[463840] = {20.0, 25.0},
+		[463900] = {20.0, 25.0},
 		--Lightning Bash
 		[466178] = {35.0, 25.0},
 	},
@@ -247,7 +248,7 @@ function mod:OnCombatStart(delay)
 	timerEruptionStompCD:Start(allTimers[savedDifficulty][1214190][1]-delay, 1)
 	--Torq the Tempest
 	timerStaticChargeCD:Start(allTimers[savedDifficulty][473994][1]-delay, 1)
-	timerThunderdrumSalvoCD:Start(allTimers[savedDifficulty][463840][1]-delay, 1)
+	timerThunderdrumSalvoCD:Start(allTimers[savedDifficulty][463900][1]-delay, 1)
 	if self:IsHard() then
 		timerVoltaicImageCD:Start(allTimers[savedDifficulty][1213994][1]-delay, 1)
 		timerMoltenPhlegmCD:Start(allTimers[savedDifficulty][1213688][1]-delay, 1)
@@ -277,7 +278,7 @@ function mod:OnCombatEnd()
 	if self.Options.NPAuraOnRaisedGuard or self.Options.NPFixate then
 		DBM.Nameplate:Hide(true, nil, nil, nil, true, true)
 	end
-	if self.Options.Infoframe then
+	if self.Options.InfoFrame then
 		DBM.InfoFrame:Hide()
 	end
 end
@@ -305,7 +306,7 @@ function mod:SPELL_CAST_START(args)
 			timerScrapBombCD:Start(30, self.vb.scrapbombCount+1)
 		else
 			local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, spellId, self.vb.scrapBombTimerCount+1)
-			if timer then
+			if timer and timer > 0 then
 				timerScrapBombCD:Start(timer, self.vb.scrapbombCount+1)
 			end
 		end
@@ -316,7 +317,7 @@ function mod:SPELL_CAST_START(args)
 			timerBlastburnRoarcannonCD:Start(30, self.vb.cannonCount+1)
 		else
 			local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, spellId, self.vb.cannonTimerCount+1)
-			if timer then
+			if timer and timer > 0 then
 				timerBlastburnRoarcannonCD:Start(timer, self.vb.cannonCount+1)
 			end
 		end
@@ -331,7 +332,7 @@ function mod:SPELL_CAST_START(args)
 			timerEruptionStompCD:Start(30, self.vb.stompCount+1)
 		else
 			local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, spellId, self.vb.stompTimerCount+1)
-			if timer then
+			if timer and timer > 0 then
 				timerEruptionStompCD:Start(timer, self.vb.stompCount+1)
 			end
 		end
@@ -342,7 +343,7 @@ function mod:SPELL_CAST_START(args)
 			timerStaticChargeCD:Start(95, self.vb.staticChargeCount+1)
 		--else
 		--	local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, spellId, self.vb.staticChargeTimerCount+1)
-		--	if timer then
+		--	if timer and timer > 0 then
 		--		timerStaticChargeCD:Start(timer, self.vb.staticChargeCount+1)
 		--	end
 		end
@@ -353,7 +354,7 @@ function mod:SPELL_CAST_START(args)
 			timerLightningBashCD:Start(65, self.vb.bashCount+1)
 		else
 			local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, spellId, self.vb.bashTimerCount+1)
-			if timer then
+			if timer and timer > 0 then
 				timerLightningBashCD:Start(timer, self.vb.bashCount+1)
 			end
 		end
@@ -377,7 +378,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 			timerThunderdrumSalvoCD:Start(70, self.vb.salvoCount+1)
 		else
 			local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, spellId, self.vb.salvoTimerCount+1)
-			if timer then
+			if timer and timer > 0 then
 				timerThunderdrumSalvoCD:Start(timer, self.vb.salvoCount+1)
 			end
 		end
@@ -470,7 +471,7 @@ function mod:SPELL_AURA_REMOVED(args)
 		timerEruptionStompCD:Start(allTimers[savedDifficulty][1214190][1], self.vb.stompCount+1)
 		--Torq the Tempest
 		timerStaticChargeCD:Start(allTimers[savedDifficulty][473994][1], self.vb.staticChargeCount+1)
-		timerThunderdrumSalvoCD:Start(allTimers[savedDifficulty][463840][1], self.vb.salvoCount+1)
+		timerThunderdrumSalvoCD:Start(allTimers[savedDifficulty][463900][1], self.vb.salvoCount+1)
 		if self:IsHard() then
 			timerVoltaicImageCD:Start(allTimers[savedDifficulty][1213994][1], self.vb.imagesCount+1)
 			timerMoltenPhlegmCD:Start(allTimers[savedDifficulty][1213688][1], self.vb.moltenPhlegmCount+1)
@@ -538,7 +539,7 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
 			timerMoltenPhlegmCD:Start(self:IsMythic() and 65 or 95, self.vb.moltenPhlegmCount+1)
 		else
 			local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, spellId, self.vb.moltenPhlegmTimerCount+1)
-			if timer then
+			if timer and timer > 0 then
 				timerMoltenPhlegmCD:Start(timer, self.vb.moltenPhlegmCount+1)
 			end
 		end

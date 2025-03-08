@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2584, "DBM-Party-WarWithin", 6, 1271)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20241214213130")
+mod:SetRevision("20250307060117")
 mod:SetCreatureID(215405)
 mod:SetEncounterID(2906)
 mod:SetHotfixNoticeRev(20240817000000)
@@ -108,7 +108,7 @@ function mod:SPELL_CAST_START(args)
 			end
 		else
 			local timer = self:GetFromTimersTable(allTimers, false, self.vb.timerSet, spellId, self.vb.impaleCount+1)
-			if timer then
+			if timer and timer > 0 then
 				timerImpaleCD:Start(timer, self.vb.impaleCount+1)
 			end
 		end
@@ -140,7 +140,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 			end
 		else
 			local timer = self:GetFromTimersTable(allTimers, false, self.vb.timerSet, spellId, self.vb.infestationCount+1)
-			if timer then
+			if timer and timer > 0 then
 				timerInfestationCD:Start(timer, self.vb.infestationCount+1)
 			end
 		end

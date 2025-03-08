@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2642, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250302044035")
+mod:SetRevision("20250305061227")
 mod:SetCreatureID(230322)
 mod:SetEncounterID(3012)
 mod:SetUsedIcons(7, 6, 5, 4, 3, 2, 1)
@@ -82,7 +82,6 @@ local specWarnIncinerator							= mod:NewSpecialWarningMoveAwayCount(464149, nil
 local specWarnIncineratorVictim						= mod:NewSpecialWarningYou(472893, nil, nil, nil, 1, 17)
 --local yellIncinerator								= mod:NewShortYell(464149)--Spammy
 local specWarnDemolish								= mod:NewSpecialWarningDefensive(464112, nil, nil, nil, 1, 2)
-local specWarnDemolishTaunt							= mod:NewSpecialWarningTaunt(464112, nil, nil, nil, 1, 2)
 local specWarnMeltdown								= mod:NewSpecialWarningDefensive(1217954, nil, nil, nil, 1, 2)
 local specWarnTrashCompactor						= mod:NewSpecialWarningDodge(467135, nil, nil, nil, 2, 2)
 
@@ -136,14 +135,6 @@ function mod:OnCombatEnd()
 	end
 end
 
----@param self DBMMod
----@param bossGUID string
-local function delayedTankCheck(self, bossGUID)
-	local bossTarget = self:GetBossTarget(bossGUID) or DBM_COMMON_L.UNKNOWN
-	specWarnDemolishTaunt:Show(bossTarget)
-	specWarnDemolishTaunt:Play("tauntboss")
-end
-
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
 	if spellId == 464399 then
@@ -167,9 +158,6 @@ function mod:SPELL_CAST_START(args)
 		if self:IsTanking("player", "boss1", nil, true) then
 			specWarnDemolish:Show()
 			specWarnDemolish:Play("defensive")
-		else
-			--Delayed so it doesn't grab invalid target since boss might be looking at previous target on first frame
-			self:Schedule(0.3, delayedTankCheck, self, args.sourceGUID)
 		end
 	elseif spellId == 1217954 then
 		self.vb.meltdownCount = self.vb.meltdownCount + 1

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2390, "DBM-Party-Shadowlands", 6, 1187)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250219052344")
+mod:SetRevision("20250307060117")
 mod:SetCreatureID(162329)
 mod:SetEncounterID(2366)
 mod:SetZone(2293)
@@ -109,7 +109,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 		self.vb.bloodCount = self.vb.bloodCount + 1
 		--34.1, 70.4, 65.6
 		local timer = allTimers[spellId][self.vb.bloodCount+1]
-		if timer then
+		if timer and timer > 0 then
 			timerBloodandGloryCD:Start(timer, self.vb.bloodCount+1)
 		end
 	elseif spellId == 331618 then

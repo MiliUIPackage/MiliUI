@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2641, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250304222644")
+mod:SetRevision("20250307083853")
 mod:SetCreatureID(228648)
 mod:SetEncounterID(3011)
 mod:SetUsedIcons(8, 7, 6, 5, 4, 3, 2, 1)
@@ -115,21 +115,21 @@ local allTimers = {
 	},
 	["heroic"] = {
 		--Amplification
-		[473748] = {10.7, 40, 40},
+		[473748] = {10.7, 38.9, 38.9},--both 2nd and 3rd cast have a 1-2 sec variation
 		--Echoing Chant
-		[466866] = {21.5, 58.0, 28.6},
+		[466866] = {21.0, 58.5, 33.5},
 		--Sound Cannon
-		[467606] = {27.5, 34.5},
+		[467606] = {32.0, 35.0},
 		--Faulty Zap
-		[466979] = {39.5, 35.5, 26.0},
+		[466979] = {43.5, 31.5, 26.0},
 		--Spark Blast Ignition
-		[472306] = {15.0, 43.5, 44.7},
+		[472306] = {20.5, 39.5, 43.2},
 	},
-	["normal"] = {--LFR confirmed
+	["normal"] = {--LFR and normal confirmed
 		--Amplification
-		[473748] = {9.7, 40.2, 40.0},
+		[473748] = {9.7, 40.2, 49.0},
 		--Echoing Chant
-		[466866] = {23.0, 58.5, 28.5},
+		[466866] = {21.0, 58.5, 28.5},
 		--Sound Cannon
 		[467606] = {32.0, 35.0},
 		--Faulty Zap
@@ -215,7 +215,7 @@ function mod:SPELL_CAST_START(args)
 		specWarnAmplification:Show(self.vb.ampCount)
 		specWarnAmplification:Play("watchstep")
 		local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, spellId, self.vb.ampTimerCount+1)
-		if timer then
+		if timer and timer > 0 then
 			timerAmplificationCD:Start(timer, self.vb.ampCount+1)
 		end
 	elseif spellId == 466866 then
@@ -224,7 +224,7 @@ function mod:SPELL_CAST_START(args)
 		specWarnEchoingChant:Show(self.vb.chantCount)
 		specWarnEchoingChant:Play("watchwave")
 		local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, spellId, self.vb.chantTimerCount+1)
-		if timer then
+		if timer and timer > 0 then
 			timerEchoingChantCD:Start(timer, self.vb.chantCount+1)
 		end
 	elseif spellId == 467606 then
@@ -237,7 +237,7 @@ function mod:SPELL_CAST_START(args)
 			warnSoundCannon:Show(self.vb.cannonCount)
 		end
 		local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, spellId, self.vb.cannonTimerCount+1)
-		if timer then
+		if timer and timer > 0 then
 			timerSoundCannonCD:Start(timer, self.vb.cannonCount+1)
 		end
 		self:ScheduleMethod(0.1, "BossTargetScanner", args.sourceGUID, "CannonTarget", 0.1, 8, nil, nil, nil, nil, true)--Filter tank, so if blizzard fixes being able to see target and instead have boss stare at tank, it's ignored
@@ -245,7 +245,7 @@ function mod:SPELL_CAST_START(args)
 		self.vb.zapCount = self.vb.zapCount + 1
 		self.vb.zapTimerCount = self.vb.zapTimerCount+1
 		local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, spellId, self.vb.zapTimerCount+1)
-		if timer then
+		if timer and timer > 0 then
 			timerFaultyZapCD:Start(timer, self.vb.zapCount+1)
 		end
 	elseif spellId == 473260 then
@@ -303,15 +303,11 @@ function mod:SPELL_AURA_APPLIED(args)
 		local uId = DBM:GetRaidUnitId(args.destName)
 		if self:IsTanking(uId) then
 			local amount = args.amount or 1
-			if amount % 4 == 0 then--Fine tune
-				if not args:IsPlayer() then
-					if amount >= 8 and not DBM:UnitDebuff("player", spellId) then
-						specWarnTinnitusTaunt:Show(args.destName)
-						specWarnTinnitusTaunt:Play("tauntboss")
-					else
-						warnTinnitus:Show(args.destName, amount)
-					end
-				else
+			if not args:IsPlayer() and amount >= 3 then
+				if amount >= 6 and not DBM:UnitDebuff("player", spellId) then
+					specWarnTinnitusTaunt:Show(args.destName)
+					specWarnTinnitusTaunt:Play("tauntboss")
+				elseif amount % 3 == 0 then
 					warnTinnitus:Show(args.destName, amount)
 				end
 			end
@@ -439,7 +435,7 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(_, _, spellId)
 		specWarnSparkBlastIngition:Show(self.vb.sparkCount)
 		specWarnSparkBlastIngition:Play("killmob")
 		local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, 472306, self.vb.sparkTimerCount+1)
-		if timer then
+		if timer and timer > 0 then
 			timerSparkBlastIngitionCD:Start(timer, self.vb.sparkCount+1)
 		end
 	end

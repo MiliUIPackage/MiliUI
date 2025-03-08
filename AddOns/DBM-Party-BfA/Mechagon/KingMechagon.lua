@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2331, "DBM-Party-BfA", 11, 1178)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250303093209")
+mod:SetRevision("20250307060117")
 mod:SetCreatureID(150396, 144249, 150397)
 mod:SetEncounterID(2260)
 mod:SetBossHPInfoToHighest()
@@ -101,7 +101,7 @@ function mod:SPELL_CAST_START(args)
 		warnRecalibrate:Show()
 		warnRecalibrate:Play("watchorb")
 		local timer = P1RecalibrateTimers[self.vb.recalibrateCount+1] or 12
-		if timer then
+		if timer and timer > 0 then
 			timerRecalibrateCD:Start(timer, self.vb.recalibrateCount+1)
 		end
 	elseif spellId == 291928 or spellId == 292264 then--Stage 1, Stage 2

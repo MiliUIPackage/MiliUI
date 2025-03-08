@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2650, "DBM-Party-WarWithin", 9, 1298)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250216024530")
+mod:SetRevision("20250305235147")
 mod:SetCreatureID(226396)
 mod:SetEncounterID(3053)
 mod:SetHotfixNoticeRev(20250215000000)
@@ -61,9 +61,9 @@ function mod:OnCombatStart(delay)
 	timerAwakenSwampCD:Start(19-delay)
 end
 
---function mod:OnCombatEnd()
-
---end
+function mod:OnCombatEnd()
+	table.wipe(vineTargets)
+end
 
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
@@ -158,6 +158,7 @@ end
 --Vines Cast not in combat log (only debuffs, but this is more efficent timer start)
 function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
 	if spellId == 470039 then
+		table.wipe(vineTargets)
 		self.vb.vinesCount = self.vb.vinesCount + 1
 		timerRazorchokeVinesCD:Start(nil, self.vb.vinesCount+1)
 	end
