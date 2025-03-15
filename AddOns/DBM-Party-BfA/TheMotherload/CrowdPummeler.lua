@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2109, "DBM-Party-BfA", 7, 1012)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250302141654")
+mod:SetRevision("20250308113922")
 mod:SetCreatureID(129214)
 mod:SetEncounterID(2105)
 mod:SetHotfixNoticeRev(20250302000000)
@@ -58,7 +58,7 @@ function mod:OnCombatStart(delay)
 	if not self:IsNormal() then
 		timerThrowCoinsCD:Start(12.2-delay, 1)
 	end
-	timerCoinMagnetCD:Start(43.3-delay, 1)
+	timerCoinMagnetCD:Start(40.0-delay, 1)
 end
 
 function mod:SPELL_CAST_START(args)

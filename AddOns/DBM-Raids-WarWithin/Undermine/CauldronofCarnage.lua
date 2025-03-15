@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2640, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250307092947")
+mod:SetRevision("20250312035612")
 mod:SetCreatureID(229181, 229177)
 mod:SetEncounterID(3010)
 mod:SetHotfixNoticeRev(20250131000000)
@@ -87,7 +87,7 @@ local timerThunderdrumSalvoCD						= mod:NewCDCountTimer(97.3, 463900, nil, nil,
 local timerVoltaicImageCD							= mod:NewCDCountTimer(97.3, 1213994, nil, nil, nil, 3, nil, DBM_COMMON_L.HEROIC_ICON)
 local timerLightningBashCD							= mod:NewCDCountTimer(97.3, 466178, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 
-mod:AddInfoFrameOption(473994, true)
+mod:AddInfoFrameOption(473994, false, 2)
 mod:AddNamePlateOption("NPFixate", 1213994, true)
 
 local nearTorq, nearFlare = true, true

@@ -11,7 +11,7 @@
 ## LoadOnDemand: 1
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 11.1.5
+## Version: 11.1.9
 ## X-Website: https://deadlybossmods.com
 ## Category-zhTW: 副本
 

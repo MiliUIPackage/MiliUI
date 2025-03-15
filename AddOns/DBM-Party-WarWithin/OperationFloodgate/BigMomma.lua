@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2648, "DBM-Party-WarWithin", 9, 1298)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250216020319")
+mod:SetRevision("20250309025733")
 mod:SetCreatureID(226398)
 mod:SetEncounterID(3020)
 mod:SetUsedIcons(8, 7, 6, 5)
@@ -41,7 +41,7 @@ local warnJumpStartOver						= mod:NewEndAnnounce(460156, 2)
 local warnDoomStorm							= mod:NewTargetNoFilterAnnounce(472452, 2)
 local warnSonicBoom							= mod:NewTargetNoFilterAnnounce(473220, 2)
 
-local specWarnMobilizeMechadrones			= mod:NewSpecialWarningSwitchCount(433740, "-Healer", nil, nil, 1, 2)
+local specWarnMobilizeMechadrones			= mod:NewSpecialWarningSwitchCount(471585, "-Healer", nil, nil, 1, 2)
 local specWarnDoomStorm						= mod:NewSpecialWarningMoveAway(472452, nil, nil, nil, 1, 2)
 local yellDoomStorm							= mod:NewShortYell(472452)
 local specWarnMaximumDistortion				= mod:NewSpecialWarningInterruptCount(1214780, "HasInterrupt", nil, nil, 1, 2, 4)

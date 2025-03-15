@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2641, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250307083853")
+mod:SetRevision("20250308105451")
 mod:SetCreatureID(228648)
 mod:SetEncounterID(3011)
 mod:SetUsedIcons(8, 7, 6, 5, 4, 3, 2, 1)
@@ -103,15 +103,15 @@ local savedDifficulty = "normal"
 local allTimers = {
 	["mythic"] = {
 		--Amplification
-		[473748] = {10.5, 38.1, 41.0},
+		[473748] = {10.5, 40, 37.7},
 		--Echoing Chant
-		[466866] = {22.0, 57.5, 32.8},
+		[466866] = {21.0, 39, 53},
 		--Sound Cannon
-		[467606] = {30.0, 37.0},
+		[467606] = {32.0, 35.0},
 		--Faulty Zap
-		[466979] = {38.0, 37.0, 24.0},
+		[466979] = {43.5, 31.5, 26.0},
 		--Spark Blast Ignition
-		[472306] = {17.0, 43.0, 41.2},
+		[472306] = {17.0, 43.0, 41.2},--Unknown, not in combat log, will update with transcriptor later
 	},
 	["heroic"] = {
 		--Amplification

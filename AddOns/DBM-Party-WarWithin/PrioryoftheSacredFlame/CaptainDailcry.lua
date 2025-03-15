@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2571, "DBM-Party-WarWithin", 2, 1267)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250303132608")
+mod:SetRevision("20250308122502")
 mod:SetCreatureID(207946)
 mod:SetEncounterID(2847)
 mod:SetHotfixNoticeRev(20250303000000)
@@ -60,7 +60,7 @@ function mod:OnCombatStart(delay)
 	self.vb.pierceCount = 0
 	timerPierceArmorCD:Start(6-delay, 1)
 	timerHurlSpearCD:Start(9.7-delay, 1)
-	timerBattleCryCD:Start(14.9-delay, 1)
+	timerBattleCryCD:Start(14.2-delay, 1)
 	timerSavageMaulingCD:Start(13.3-delay, 1)
 end
 

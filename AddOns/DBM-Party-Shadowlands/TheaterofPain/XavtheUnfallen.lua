@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2390, "DBM-Party-Shadowlands", 6, 1187)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250307060117")
+mod:SetRevision("20250308123957")
 mod:SetCreatureID(162329)
 mod:SetEncounterID(2366)
 mod:SetZone(2293)
@@ -67,7 +67,7 @@ function mod:OnCombatStart(delay)
 	self.vb.bannerCount = 0
 	timerBrutalComboCD:Start(5.8-delay, 1)
 	timerOppressiveBannerCD:Start(10.7-delay, 1)
-	timerMightofMaldraxxusCD:Start(17.1-delay, 1)
+	timerMightofMaldraxxusCD:Start(16.7-delay, 1)
 	timerBloodandGloryCD:Start(33.9-delay, 1)--SUCCESS
 end
 

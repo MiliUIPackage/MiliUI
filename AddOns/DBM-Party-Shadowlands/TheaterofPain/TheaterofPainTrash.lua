@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("TheaterofPainTrash", "DBM-Party-Shadowlands", 6)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250228065700")
+mod:SetRevision("20250308123957")
 mod:SetZone(2293)
 mod:RegisterZoneCombat(2293)
 --mod:SetModelID(47785)
@@ -54,7 +54,7 @@ local specWarnNecroticBoltVolley			= mod:NewSpecialWarningInterrupt(330868, "Has
 local specWarnBoneSpear						= mod:NewSpecialWarningInterrupt(342675, "HasInterrupt", nil, nil, 1, 2)--cast every 3.6 seconds (it's 3.5 second cast, so basically spam cast)
 local specWarnMeatShield					= mod:NewSpecialWarningInterrupt(341977, "HasInterrupt", nil, nil, 1, 2)
 
-local timerSoulstormCD						= mod:NewCDNPTimer(26.7, 323043, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
+local timerSoulstormCD						= mod:NewCDNPTimer(26.7, 330716, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
 local timerVileEruptionCD					= mod:NewCDNPTimer(15.4, 330614, nil, nil, nil, 3)--15.4-16.2
 local timerDeathwindsCD						= mod:NewCDNPTimer(10.9, 333294, nil, nil, nil, 3)
 local timerBoneSpikesCD						= mod:NewCDNPTimer(33.6, 331237, nil, nil, nil, 3)

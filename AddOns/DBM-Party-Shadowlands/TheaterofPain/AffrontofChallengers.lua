@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2397, "DBM-Party-Shadowlands", 6, 1187)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250219052344")
+mod:SetRevision("20250308123957")
 mod:SetCreatureID(164451, 164463, 164461)--Dessia, Paceran, Sathel
 mod:SetEncounterID(2391)
 mod:SetHotfixNoticeRev(20220416000000)
@@ -113,7 +113,7 @@ function mod:SPELL_CAST_START(args)
 		timerSearingDeathCD:Start(timer, self.vb.deathCount+1, args.sourceGUID)--self.vb.deathCount+1
 	elseif spellId == 320182 then
 		self.vb.sporeCount = self.vb.sporeCount + 1
-		local timer = self.vb.willCount == 2 and 14.6 or self.vb.willCount == 1 and 29.1 or 43.7
+		local timer = self.vb.willCount == 2 and 14.6 or self.vb.willCount == 1 and 29.1 or 42.6
 		timerNoxiousSporeCD:Start(timer, self.vb.sporeCount+1, args.sourceGUID)
 		--Breath timer restarts
 		timerDecayingBreathCD:HardStop(args.sourceGUID)

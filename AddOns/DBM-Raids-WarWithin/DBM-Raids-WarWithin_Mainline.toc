@@ -1,6 +1,6 @@
 ## Interface: 110007, 110100
 ## X-Min-Interface: 100206
-## Version: 11.1.7
+## Version: 11.1.9
 ## Category: DBM
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010Raids (WW)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010团队副本 (地心之战)|r
@@ -41,13 +41,3 @@ Undermine\TheOneArmedBandit.lua
 Undermine\MugZeeHeadsofSecurity.lua
 Undermine\ChromeKingGallywix.lua
 Undermine\UndermineTrash.lua
-
-NerubarPalace\UlgraxtheDevourer.lua
-NerubarPalace\TheBloodboundHorror.lua
-NerubarPalace\Sikran.lua
-NerubarPalace\Rashanan.lua
-NerubarPalace\BloodtwisterOvinax.lua
-NerubarPalace\NexusPrincessKyveza.lua
-NerubarPalace\TheSilkenCourt.lua
-NerubarPalace\QueenAnsurek.lua
-NerubarPalace\NerubarPalaceTrash.lua

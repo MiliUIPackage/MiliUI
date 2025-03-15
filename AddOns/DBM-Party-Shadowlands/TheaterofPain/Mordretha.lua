@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2417, "DBM-Party-Shadowlands", 6, 1187)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250219052344")
+mod:SetRevision("20250308123957")
 mod:SetCreatureID(165946)
 mod:SetEncounterID(2404)
 mod:SetZone(2293)
@@ -111,7 +111,7 @@ function mod:OnCombatStart(delay)
 	self.vb.ghostlyCount = 0
 	timerReapingScytheCD:Start(8.1-delay, 1)
 	timerDarkDevastationCD:Start(15.7-delay, 1)
-	timerGraspingriftCD:Start(24.3-delay, 1)
+	timerGraspingriftCD:Start(24.0-delay, 1)
 	timerManifesstDeathCD:Start(25.5-delay, 1)
 end
 

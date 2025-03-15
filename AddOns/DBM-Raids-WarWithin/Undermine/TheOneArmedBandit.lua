@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2644, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250305084426")
+mod:SetRevision("20250312211647")
 mod:SetCreatureID(228458)
 mod:SetEncounterID(3014)
 mod:SetHotfixNoticeRev(20250209000000)
@@ -288,7 +288,7 @@ function mod:SPELL_CAST_START(args)
 		specWarnHotHotHot:Play("farfromline")
 		--new Phase Timers
 		timerFoulExhaustCD:Stop()--Just to cancel run over from the custom 2nd cast between linked and hot
-		timerFoulExhaustCD:Start(self:IsEasy() and 28.9 or 3.3, self.vb.foulExhaustCount+1)
+		timerFoulExhaustCD:Start(self:IsEasy() and 4.4 or 3.3, self.vb.foulExhaustCount+1)
 		timerTheBigHitCD:Start("v4.6-10.3", self.vb.bigHitCount+1)--This one gets a little screwed up
 		timerPaylineCD:Start("v15.5-18", self.vb.paylineCount+1)
 		timerScatteredPayoutCD:Start(self:IsEasy() and 29.9 or 25.2, 3)
@@ -345,7 +345,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 		timerPaylineCD:Stop()
 		timerFoulExhaustCD:Stop()
 		timerTheBigHitCD:Stop()
-		timerLinkedMachinesCD:Start(13.3, 1)
+		timerLinkedMachinesCD:Start(12.9, 1)
 	end
 end
 
