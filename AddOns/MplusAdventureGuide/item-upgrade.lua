@@ -215,7 +215,24 @@ local db = {
     },
 }
 
-
+function addon:initItemUpgradeOldSeasons()
+    if not addon.db.profile.itemUpgradeOldSeasons then
+        for _, block in pairs(db) do
+            local highestUpper, highestName = 0, ""
+            for seasonName, seasonData in pairs(block.seasons) do
+                if seasonData.upper > highestUpper then
+                    highestUpper = seasonData.upper
+                    highestName = seasonName
+                end
+            end
+            for seasonName, seasonData in pairs(block.seasons) do
+                if seasonName ~= highestName then
+                    block.seasons[seasonName] = nil
+                end
+            end
+        end
+    end
+end
 
 local itemLevelPattern = ITEM_LEVEL
 itemLevelPattern = itemLevelPattern:gsub("%%d", "(%%d+)")

@@ -98,7 +98,9 @@ local db = {
     [244] = { -- Atal'Dazar
         primarySpell = 424187,
         alternateSpells = {
-            281404, -- Dazar'alor
+            281404, -- Teleport: Dazar'alor
+            467553, -- The MOTHERLODE!!
+            467555, -- Also The MOTHERLODE!!
         },
     },
     
@@ -131,11 +133,16 @@ local db = {
     },
     [501] = { -- Stonevault
         primarySpell = 445269,
-        alternateSpells = {},
+        alternateSpells = {
+            445441, -- Darkflame Cleft
+            1216786, -- Operation: Floodgate
+        },
     },
     [505] = { -- Dawnbreaker
         primarySpell = 445414,
-        alternateSpells = {},
+        alternateSpells = {
+            445444, -- Priory of the Sacred Flame
+        },
     },
     [353] = { -- Siege of Boralus
         primarySpell = 445418,
@@ -164,6 +171,60 @@ local db = {
         primarySpell = 445417,
         alternateSpells = {
             445416, -- City of Threads
+        },
+    },
+
+    -- TWW season 2
+    [506] = { -- Cinderbrew Meadery
+        primarySpell = 445440,
+        alternateSpells = {
+            446540, -- Teleport: Dornogal
+            445443, -- The Rookery
+        },
+    },
+    [247] = { -- The MOTHERLODE!!
+        primarySpell = 467553,
+        alternateSpells = {
+            467555, -- Also ML - the other faction's one
+            281404, -- Teleport: Dazar'alor
+            424187, -- Atal'Dazar
+        },
+    },
+    [500] = { -- The Rookery
+        primarySpell = 445443,
+        alternateSpells = {
+            446540, -- Teleport: Dornogal
+            445440, -- Cinderbrew Meadery
+        },
+    },
+    [382] = { -- Theater of Pain
+        primarySpell = 354467,
+        alternateSpells = {
+            354463, -- Plaguefall
+        },
+    },
+    [370] = { -- Mechagon Workshop
+        primarySpell = 373274,
+        alternateSpells = {},
+    },
+    [525] = { -- Operation: Floodgate
+        primarySpell = 1216786,
+        alternateSpells = {
+            445441, -- Darkflame Cleft
+            445269, -- Stonevault
+        },
+    },
+    [504] = { -- Darkflame Cleft
+        primarySpell = 445441,
+        alternateSpells = {
+            1216786, -- Operation: Floodgate
+            445269, -- Stonevault
+        },
+    },
+    [499] = { -- Priory of the Sacred Flame
+        primarySpell = 445444,
+        alternateSpells = {
+            445414, -- The Dawnbreaker
         },
     },
 }

@@ -19,6 +19,16 @@ local mapToAcronym = {
     [507] = "GB",
     [502] = "COT",
     [503] = "AK",
+
+    -- TWW season 2
+    [506] = "BREW",
+    [247] = "ML",
+    [500] = "ROOK",
+    [382] = "TOP",
+    [370] = "WORK",
+    [525] = "FLOOD",
+    [504] = "DFC",
+    [499] = "PSF",
 }
 
 function addon:initAcronyms()

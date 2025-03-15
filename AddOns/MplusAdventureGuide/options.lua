@@ -4,6 +4,7 @@ function addon:setupOptions()
     local defaults = {
         profile = {
             itemUpgrade = true,
+            itemUpgradeOldSeasons = true,
             portalButtons = true,
             watermark = true,
             achievementExpansionFeatures = true,
@@ -25,11 +26,18 @@ function addon:setupOptions()
                 fontSize = "medium",
                 order = 0,
             },
-            showCompleted = {
+            itemUpgrade = {
                 type = "toggle",
                 name = "Enable Item Upgrade Range Module",
                 set = function(info, v) addon.db.profile.itemUpgrade = v end,
                 get = function() return addon.db.profile.itemUpgrade end,
+                width = "full",
+            },
+            itemUpgradeOldSeasons = {
+                type = "toggle",
+                name = "Item Upgrade Module: include old seasons (requires /reload)",
+                set = function(info, v) addon.db.profile.itemUpgradeOldSeasons = v end,
+                get = function() return addon.db.profile.itemUpgradeOldSeasons end,
                 width = "full",
             },
             showCoordinates = {
@@ -87,4 +95,6 @@ function addon:setupOptions()
     LibStub("AceConfigRegistry-3.0"):ValidateOptionsTable(options, addonName)
     LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, options, {"mplusadventureguide"})
     LibStub("AceConfigDialog-3.0"):AddToBlizOptions(addonName)
+    
+    addon:initItemUpgradeOldSeasons()
 end
