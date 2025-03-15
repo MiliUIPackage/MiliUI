@@ -109,4 +109,15 @@ Priory of the Sacred Flame
 Cinderbrew Meadery
 	Venture Co. Pyromaniac - Added.
 
-
+v1.1.8
+The Rookery
+	Corrupted Thunderer (214421) was renamed to Coalescing Void Diffuser. Removed (nothing to interrupt).
+Cinderbrew Meadery
+	Bee Wrangler - Added.
+	Taste Tester - Added.
+Theater of Pain
+	Blighted Sludge-Spewer - Added.
+Priory of the Sacred Flame
+	Elaena Emberlanz - Removed.
+Darkflame Cleft
+	Dynamite Mine Cart - Added. Priority marked with Skull.

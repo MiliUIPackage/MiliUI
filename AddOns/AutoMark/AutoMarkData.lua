@@ -129,7 +129,7 @@ MyAddon.Mobs = {
 --	[212786] = {name = "Voidrider", instanceID = 2648},	-- elite Elemental RAGE 81 hostile attackable
 	[212793] = {name = "Void Ascendant", instanceID = 2648},	-- elite Humanoid MANA 80 hostile attackable
 --	[214419] = {name = "Corrupted Rookguard", instanceID = 2648},	-- elite Aberration RAGE 81 hostile attackable
-	[214421] = {name = "Corrupted Thunderer", instanceID = 2648},	-- elite Aberration MANA 81 hostile attackable
+--	[214421] = {name = "Coalescing Void Diffuser", instanceID = 2648},	-- elite Aberration MANA 81 hostile attackable
 	[214439] = {name = "Corrupted Oracle", instanceID = 2648},	-- elite Humanoid MANA 80 hostile attackable
 --	[219066] = {name = "Inflicted Civilian", instanceID = 2648},	-- elite Humanoid RAGE 80 hostile attackable
 
@@ -147,7 +147,7 @@ MyAddon.Mobs = {
 --	[207943] = {name = "Arathi Neophyte", instanceID = 2649},	-- normal Humanoid MANA 80 hostile attackable
 	[207946] = {name = "[BOSS] Captain Dailcry", instanceID = 2649, marks = "+2"},	-- elite Humanoid POWER_TYPE_ENERGY 82 hostile attackable
 	[211289] = {name = "[BOSS-ADD] Taener Duelmal", instanceID = 2649, marks = "+1"},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
-	[211290] = {name = "[BOSS-ADD] Elaena Emberlanz", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
+--	[211290] = {name = "[BOSS-ADD] Elaena Emberlanz", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
 --	[211291] = {name = "[BOSS-ADD] Sergeant Shaynemail", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
 --	[207949] = {name = "Zealous Templar", instanceID = 2649},	-- elite Humanoid MANA 81 hostile attackable
 --	[211140] = {name = "Arathi Neophyte", instanceID = 2649},	-- normal Humanoid RAGE 80 hostile attackable
@@ -193,6 +193,7 @@ MyAddon.Mobs = {
 	[223775] = {name = "Blazing Fiend", instanceID = 2651},	-- elite Elemental MANA 80 hostile attackable
 	[223776] = {name = "Blazing Fiend", instanceID = 2651},	-- elite Elemental MANA 80 hostile attackable
 	[223777] = {name = "Blazing Fiend", instanceID = 2651},	-- elite Elemental MANA 80 hostile attackable
+	[213751] = {name = "Dynamite Mine Cart", instanceID = 2651, auto = "nameplate", marks = "8"},
 
 -- The Stonevault (2652) TWW Season 1
 --	[210108] = {name = "[BOSS] E.D.N.A", instanceID = 2652},	-- elite Mechanical POWER_TYPE_ENERGY 82 hostile attackable
@@ -247,7 +248,7 @@ MyAddon.Mobs = {
 --	[228015] = {name = "Hulking Bloodguard", instanceID = 2660},	-- elite Humanoid RAGE 81 hostile attackable
 
 -- Cinderbrew Meadery (2661) TWW
---	[210264] = {name = "Bee Wrangler", instanceID = 2661},	-- elite Humanoid RAGE 80 hostile attackable
+	[210264] = {name = "Bee Wrangler", instanceID = 2661},	-- elite Humanoid RAGE 80 hostile attackable
 --	[210265] = {name = "Worker Bee", instanceID = 2661},	-- elite Beast RAGE 80 hostile attackable
 --	[210267] = {name = "[BOSS] I'pa", instanceID = 2661},	-- elite Elemental POWER_TYPE_ENERGY 82 hostile attackable
 --	[210269] = {name = "Hired Muscle", instanceID = 2661},	-- elite Humanoid RAGE 81 hostile attackable
@@ -262,7 +263,7 @@ MyAddon.Mobs = {
 	[218671] = {name = "Venture Co. Pyromaniac", instanceID = 2661},	-- elite Humanoid RAGE 80 hostile attackable
 --	[218865] = {name = "Bee-let", instanceID = 2661},	-- minus Beast RAGE 80 hostile attackable
 	[219588] = {name = "Yes Man", instanceID = 2661, auto = "nameplate", marks = "8726"},	-- elite Humanoid RAGE 80 hostile attackable
---	[220060] = {name = "Taste Tester", instanceID = 2661},	-- elite Humanoid RAGE 80 hostile attackable
+	[220060] = {name = "Taste Tester", instanceID = 2661},	-- elite Humanoid RAGE 80 hostile attackable
 	[220141] = {name = "Royal Jelly Purveyor", instanceID = 2661},	-- elite Humanoid MANA 80 hostile attackable
 	[220368] = {name = "Failed Batch", instanceID = 2661, auto = "nameplate", marks = "87"},	-- normal Not specified RAGE 80 hostile attackable
 --	[220946] = {name = "Venture Co. Honey Harvester", instanceID = 2661},	-- elite Humanoid RAGE 81 hostile attackable
@@ -380,6 +381,7 @@ MyAddon.Mobs = {
 --	[170850] = {name = "Raging Bloodhorn", instanceID = 2293},	-- elite Beast RAGE 61 hostile attackable
 	[170882] = {name = "Bone Magus", instanceID = 2293},	-- elite Undead MANA 60 hostile attackable
 	[174197] = {name = "Battlefield Ritualist", instanceID = 2293},	-- elite Humanoid MANA 60 hostile attackable
+	[174210] = {name = "Blighted Sludge-Spewer", instanceID = 2293},	-- elite Undead MANA 60 hostile attackable
 
 -- The MOTHERLOAD!! (1594) TWW Season 2
 --	[129214] = {name = "[BOSS] Coin-Operated Crowd Pummeler", instanceID = 1594},	-- elite Mechanical ENERGY 62 hostile attackable
