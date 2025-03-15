@@ -570,43 +570,48 @@ L['ak_decryption_console_note'] = nil
 ---------------------------------- UNDERMINE ----------------------------------
 -------------------------------------------------------------------------------
 
-L['requires_ally'] = nil
-L['complete_event'] = nil
-L['in_sewer'] = nil
-L['and_slimesby'] = nil
+L['requires_ally'] = '{note:必須與 |cFFFFFF00{faction:%d}|r 結盟。}'
+L['complete_event'] = '與 {npc:%d} 交談並完成事件以召喚。'
+L['in_sewer'] = '在下水道內。使用附近的 {object:下水道柵欄} 進入。'
+L['and_slimesby'] = '和 {npc:230947}'
 
-L['inert_plunger_label'] = nil
-L['exploded_plunger_label'] = nil
+L['inert_plunger_label'] = '無力的馬桶搋子？'
+L['exploded_plunger_label'] = '爆炸的馬桶搋子'
 
-L['unexploded_fireworks_location'] = nil
-L['suspicious_book_note'] = nil
-L['fireworks_hat_note'] = nil
-L['blackened_dice_note'] = nil
-L['lonely_tub_note'] = nil
-L['impotent_potable_location'] = nil
-L['abandoned_toolbox_location'] = nil
-L['trick_deck_of_cards_location'] = nil
+L['unexploded_fireworks_location'] = '在 {location:尾門公園} 的屋頂上。'
+L['suspicious_book_note'] = '1. {dot:Red} 隱藏在一樓的書架上。嘗試收集它，它會飛到樓上的新書架上。\n\n2. {dot:Green} 隱藏在二樓的書架後面。嘗試收集它，它會飛到樓上的桌子上。\n\n3. 在三樓的桌子上。最後，收集這本書！'
+L['fireworks_hat_note'] = '嘗試抓住帽子，導致它從屋頂飛到這裡。'
+L['blackened_dice_note'] = '轉動附近的 {object:管道閥門} 以釋放骰子。'
+L['lonely_tub_note'] = '拿起附近的 {object:滅火器}（{dot:Blue}）來撲滅 {object:孤獨浴缸} 上的火焰。'
+L['impotent_potable_location'] = '在碼頭下方，靠近 {location:掠奪派對}'
+L['abandoned_toolbox_location'] = '在 {location:廢品店} 的屋頂高處。\n\n跟隨樓梯到頂部。'
+L['trick_deck_of_cards_location'] = '在 {location:大陸酒店} 內 {npc:231045} 旁邊的桌子上。'
 
-L['ditty_fuzeboy_note'] = nil
-L['angelo_rustbin_note'] = nil
+L['ditty_fuzeboy_note'] = '用 {item:234741} 交換寵物。'
+L['angelo_rustbin_note'] = '用 {currency:3220} 交換寵物和 {object:G-99 極速} 自定義選項。'
 
 L['options_icons_nine_tenths'] = '{achievement:40948}'
-L['options_icons_nine_tenths_desc'] = nil
-L['muffs_auto_locker_label'] = nil
-L['muffs_auto_locker_note'] = nil
-L['muffs_auto_locker_suffix'] = nil
+L['options_icons_nine_tenths_desc'] = '顯示 {achievement:40948} 的所有 {object:馬夫的自鎖箱} 位置。'
+L['muffs_auto_locker_label'] = '馬夫的自鎖箱'
+L['muffs_auto_locker_note'] = '收集所有 5 個 Gorillion 部件並完成 {quest:87406} 以制作 {item:232843}。'
+L['muffs_auto_locker_suffix'] = '馬夫的自鎖箱已打開'
 
 L['options_icons_between_the_lines'] = '{achievement:41588}'
-L['options_icons_between_the_lines_desc'] = nil
-L['a_threatening_letter_location'] = nil
-L['gallywixs_notes_location'] = nil
+L['options_icons_between_the_lines_desc'] = '顯示 {achievement:41588} 的書籍位置。'
+L['a_threatening_letter_location'] = '在 {location:蒸汽輪實驗室} 的底層樓梯下。'
+L['gallywixs_notes_location'] = '在 {location:藏寶室} 後面的桌子上。'
 
 L['options_icons_can_do_attitude'] = '{achievement:41589}'
-L['options_icons_can_do_attitude_desc'] = nil
+L['options_icons_can_do_attitude_desc'] = '顯示 {achievement:41589} 的 {npc:237103} 位置。'
 L['discarded_can_label'] = '{npc:237103}'
-L['discarded_can_note'] = nil
-L['discarded_can_suffix'] = nil
+L['discarded_can_note'] = '踢幾次 {npc:237103}。'
+L['discarded_can_suffix'] = '罐頭被踢'
 
-L['options_icons_scrap_rewards'] = nil
-L['options_icons_scrap_rewards_desc'] = nil
-L['scrap_heap_suffix'] = nil
+L['options_icons_scrap_rewards'] = 'S.C.R.A.P. 堆'
+L['options_icons_scrap_rewards_desc'] = '顯示 {object:S.C.R.A.P. 堆} 的獎勵。'
+L['scrap_heap_suffix'] = 'S.C.R.A.P. 任務完成'
+
+L['options_icons_youre_my_friend_now'] = '{achievement:41708}'
+L['options_icons_youre_my_friend_now_desc'] = '顯示 {achievement:41708} 成就中 {npc:239248} 的位置。'
+L['rat_in_building_rail'] = '在建築物內的欄杆上。'
+L['rat_2nd_floor_trash_can'] = '在建築物二樓垃圾桶上。'

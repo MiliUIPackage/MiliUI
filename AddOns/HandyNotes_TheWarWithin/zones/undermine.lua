@@ -235,7 +235,7 @@ map.nodes[64162556] = Rare({
 map.nodes[40209190] = Rare({
     id = 231310,
     note = format(L['complete_event'], 231329), -- De-Pollution Station X1119
-    quest = nil,
+    quest = 90492,
     requires = {
         ns.requirement.Reputation(2653, 6, true), -- The Cartels of Undermine
         ns.requirement.Item(229823) -- Canister of Darkfuse Solution
@@ -493,21 +493,21 @@ trd.nodes[72907315] = UndermineLoreBook({
 map.nodes[27327075] = UndermineLoreBook({
     location = L['a_threatening_letter_location'],
     quest = 86567,
-    requires = ns.requirement.Quest(85780), -- ![Right Where We Want Him]
+    requires = ns.requirement.Quest(83130), -- ![Sour Victory]
     rewards = {Achievement({id = 41588, criteria = 103108})}
 }) -- A Threatening Letter
 
 map.nodes[39622690] = UndermineLoreBook({
     location = L['in_sewer'],
     quest = 86572,
-    requires = ns.requirement.Quest(85780), -- ![Right Where We Want Him]
+    requires = ns.requirement.Quest(83130), -- ![Sour Victory]
     rewards = {Achievement({id = 41588, criteria = 103106})}
 }) -- First Half of Noggenfogger's Journal
 
 map.nodes[32805895] = UndermineLoreBook({
     location = L['in_sewer'],
     quest = 86571,
-    requires = ns.requirement.Quest(85780), -- ![Right Where We Want Him]
+    requires = ns.requirement.Quest(83130), -- ![Sour Victory]
     rewards = {Achievement({id = 41588, criteria = 103109})}
 }) -- Second Half of Noggenfogger's Journal
 
@@ -520,7 +520,7 @@ map.nodes[60966439] = UndermineLoreBook({
     location = L['gallywixs_notes_location'],
     pois = {Entrance({58685937})},
     quest = 86573,
-    requires = ns.requirement.Quest(85780), -- ![Right Where We Want Him]
+    requires = ns.requirement.Quest(83130), -- ![Sour Victory]
     rewards = {Achievement({id = 41588, criteria = 103111})}
 }) -- Gallywix's Notes
 
@@ -528,6 +528,30 @@ map.nodes[65611420] = UndermineLoreBook({
     quest = 86568,
     rewards = {Achievement({id = 41588, criteria = 103112})}
 }) -- Misplaced Work Order
+
+-------------------------------------------------------------------------------
+--------------------- ACHIEVEMENT: YOU'RE MY FRIEND NOW -----------------------
+-------------------------------------------------------------------------------
+
+local YoureMyFriendNow = Class('youre_my_friend_now', Collectible, {
+    icon = 6351952,
+    group = ns.groups.YOURE_MY_FRIEND_NOW,
+    rewards = {
+        Achievement({id = 41708, criteria = {id = 1, qty = true}}) -- You're My Friend Now
+    }
+})
+
+map.nodes[43591131] = YoureMyFriendNow({id = 239250})
+map.nodes[28485579] = YoureMyFriendNow({
+    id = 239248,
+    note = L['rat_2nd_floor_trash_can']
+})
+map.nodes[35958563] = YoureMyFriendNow({
+    id = 239252,
+    note = L['rat_in_building_rail']
+})
+map.nodes[65268826] = YoureMyFriendNow({id = 239249})
+map.nodes[65864395] = YoureMyFriendNow({id = 239251})
 
 -------------------------------------------------------------------------------
 ---------------------- ACHIEVEMENT: THAT CAN-DO ATTITUDE ----------------------

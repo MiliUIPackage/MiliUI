@@ -570,8 +570,8 @@ L['ak_decryption_console_note'] = '回到隐藏的洞穴，入口位于 {locatio
 ---------------------------------- UNDERMINE ----------------------------------
 -------------------------------------------------------------------------------
 
-L['requires_ally'] = nil
-L['complete_event'] = nil
+L['requires_ally'] = '{note:必须与 |cFFFFFF00{faction:%d}|r 结盟。}'
+L['complete_event'] = '与 {npc:%d} 交谈并完成事件以召唤。'
 L['in_sewer'] = '在下水道内。使用附近的 {object:下水道栅栏} 进入。'
 L['and_slimesby'] = '和 {npc:230947}'
 
@@ -610,3 +610,8 @@ L['discarded_can_suffix'] = '罐头被踢'
 L['options_icons_scrap_rewards'] = 'S.C.R.A.P. 堆'
 L['options_icons_scrap_rewards_desc'] = '显示 {object:S.C.R.A.P. 堆} 的奖励。'
 L['scrap_heap_suffix'] = 'S.C.R.A.P. 任务完成'
+
+L['options_icons_youre_my_friend_now'] = '{achievement:41708}'
+L['options_icons_youre_my_friend_now_desc'] = '显示 {achievement:41708} 成就中 {npc:239248} 的位置。'
+L['rat_in_building_rail'] = '在建筑物内的栏杆上。'
+L['rat_2nd_floor_trash_can'] = '在建筑物二楼垃圾桶上。'
