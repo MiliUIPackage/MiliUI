@@ -1,5 +1,6 @@
 local _, addon = ...
 local L = addon.L
+
 LibStub("AceAddon-3.0"):NewAddon(addon, "AstralKeys", "AceConsole-3.0")
 
 local astralkeysLDB = LibStub("LibDataBroker-1.1"):NewDataObject("AstralKeys", {

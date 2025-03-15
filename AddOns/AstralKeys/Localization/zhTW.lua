@@ -4,6 +4,8 @@ local L = select(2, ...).L('zhTW')
 L['KEYSTONE'] = '鑰石:'
 
 -- Default tab names
+L['Report'] = '通報鑰石'
+L['REPORT_TO'] = '通報到'
 L['GUILD'] = GUILD
 L['FRIENDS'] = FRIENDS
 L['PARTY'] = PARTY
@@ -55,13 +57,14 @@ L['FILTER_TEXT_DUNGEON'] = '過濾地城'
 L['FILTER_TEXT_CHARACTER'] = '過濾角色名稱'
 
 -- Options
+L['Settings'] = '設定選項'
 L['!KEYS_DESC'] = '回應這些聊天頻道中的 !keys 指令 (報上自己的鑰石)'
 L['EXPANDED_TOOLTIP'] = '浮動提示顯示詞綴詳細說明'
-L['Show enemy forces in tooltip'] = '浮動提示顯示敵方部隊進度'
 L['GENERAL OPTIONS'] = '一般選項'
 L['Show offline players'] = '顯示離線角色'
 L['Show Minimap button'] = '顯示小地圖按鈕'
 L['Show current key in tooltip'] = '浮動提示顯示目前鑰石'
+L['Show enemy forces in tooltip'] = '浮動提示顯示敵方部隊進度'
 L['Display offline below online'] = '離線玩家顯示在線上玩家的下方'
 L['Announce new keys to party'] = '通報新的鑰石到隊伍頻道'
 L['Announce new keys to guild'] = '通報新的鑰石到公會頻道'
@@ -71,6 +74,25 @@ L['Sync with friends'] = '和好友同步資料'
 L['Show other faction'] = '顯示其他陣營'
 L['Rank Filter'] = '過濾會階'
 L['Include these ranks in the guild listing'] = '包含公會名單內的這些會階'
+L['Vault'] = '瀏覽寶庫'
+L['Refresh'] = '重新整理'
+L['Refreshing key data.'] = '重新整理鑰石資料'
+L['Done.'] = '完成。'
+L['You need to wait more than 30 seconds before refreshing again.'] = '您需要等待 30 秒以上才能再次刷新。'
+
+-- Dialog
+L["Are you sure you want to refresh all key data?"] = "是否確定要重新整理所有鑰石資料?"
+L["Yes"] = "是"
+L["No"] = "否"
+L["Refreshed key data."] = "已重新整理鑰石資料。"
+L["You need to wait more than 30 seconds before refreshing again."] = "需要等待30秒後才能再次重新整理。"
+
+-- MinimapButton
+L["Left click to toggle main window"] = "左鍵: 打開主視窗"
+L["Right Click to toggle options"] = "右鍵: 設定選項"
+
+-- Lists/Friends
+L["Current Keystone"] = '目前鑰石'
 
 -- Dungeon Name
 --CATA
@@ -137,19 +159,11 @@ L["Grim Batol"] = "格瑞姆巴托"
 L["Siege of Boralus"] = "波拉勒斯圍城戰"
 L["Mists of Tirna Scithe"] = "特那希迷霧"
 L["The Necrotic Wake"] = "死靈戰地"
-
+L["Priory of the Sacred Flame"] = "聖焰隱修院"
+L["Theater of Pain"] = "苦痛劇場"
+L["The MOTHERLODE!!"] = "晶喜鎮"
+L["Operation: Floodgate"] = "水閘行動"
 
 -- 自行加入
 L["Astral Keys"] = "M+ 鑰石名單"
-L['Left click to toggle main window'] = "左鍵: 打開主視窗"
-L['Right Click to toggle options'] = "右鍵: 設定選項"
 L['Visit Astral at'] = "拜訪 Astral 公會"
-L['Report'] = "通報鑰石"
-L['Settings'] = "設定選項"
-L['Vault'] = "瀏覽寶庫"
-L['Refresh'] = "重新整理"
-L["|cffffd200Current Keystone|r\n%d - %s"] = "|cffffd200目前鑰石|r\n%d - %s"
-L['Current Keystone'] = "目前鑰石"
-L["Are you sure you want to refresh all key data?"] = "是否確定要重新整理所有鑰石資料?"
-L["Refreshed key data."] = "已重新整理鑰石資料。"
-L["You need to wait more than 30 seconds before refreshing again."] = "需要等待30秒後才能再次重新整理。"

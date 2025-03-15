@@ -1,4 +1,5 @@
 local _, addon = ...
+local L = addon.L
 
 local SYNC_VERSION = 'sync4'
 local UPDATE_VERSION = 'update4'
@@ -603,7 +604,7 @@ do
 						if id then
 							local keyLevel, dungeonID = AstralKeys[id].key_level, AstralKeys[id].dungeon_id
 							astralKeyString:SetWordWrap(false)
-							astralKeyString:SetFormattedText(L["|cffffd200Current Keystone|r\n%d - %s"], keyLevel, addon.GetMapName(dungeonID))
+							astralKeyString:SetFormattedText("|cffffd200"..L["Current Keystone"].."|r\n%d - %s", keyLevel, addon.GetMapName(dungeonID))
 							astralKeyString:SetWordWrap(true)
 							astralKeyString:SetPoint('TOP', characterNameString, 'BOTTOM', 3, -4)
 							gameInfoString:SetPoint('TOP', astralKeyString, 'BOTTOM', 0, 0)
@@ -661,7 +662,8 @@ local function TooltipHook(self)
     local id = addon.UnitID(unit)
     if id then
     	GameTooltip:AddLine(' ')
-        GameTooltip:AddLine(L['Current Keystone']..": |cffFFFFFF"..(addon.GetMapName(addon.UnitMapID(id)) or UNKONW).." +"..(addon.UnitKeyLevel(id) or "").."|r") -- 暫時修正
+        GameTooltip:AddLine(L['Current Keystone'])
+        GameTooltip:AddDoubleLine(addon.GetMapName(addon.UnitMapID(id) or UNKONW), addon.UnitKeyLevel(id) or "", 1, 1, 1, 1, 1, 1) -- 暫時修正
         return
     end
 	end
