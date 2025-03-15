@@ -22,6 +22,9 @@ function BaganatorItemViewCommonBankViewMixin:OnLoad()
   self:InitializeWarband(self.warbandTemplate)
 
   self.currentTab = self.Character
+  if addonTable.Config.Get(addonTable.Config.Options.BANK_CURRENT_TAB) == addonTable.Constants.BankTabType.Warband then
+    self:SetTab(addonTable.Constants.BankTabType.Warband)
+  end
 
   Syndicator.CallbackRegistry:RegisterCallback("BagCacheUpdate",  function(_, character, updatedBags)
     self.hasCharacter = true
@@ -43,6 +46,26 @@ function BaganatorItemViewCommonBankViewMixin:OnLoad()
   addonTable.Skins.AddFrame("ButtonFrame", self, {"bank"})
 end
 
+function BaganatorItemViewCommonBankViewMixin:SetTab(index)
+  self.currentTab:Hide()
+  addonTable.Config.Set(addonTable.Config.Options.BANK_CURRENT_TAB, index)
+
+  if index == addonTable.Constants.BankTabType.Character then
+    self.currentTab = self.Character
+  elseif index == addonTable.Constants.BankTabType.Warband then
+    self.currentTab = self.Warband
+  end
+
+  self.currentTab:Show()
+
+  if self:IsVisible() then
+    PanelTemplates_SetTab(self, index)
+    addonTable.Config.Set(addonTable.Config.Options.BANK_CURRENT_TAB, index)
+    self:UpdateView()
+    addonTable.CallbackRegistry:TriggerEvent("BankViewChanged")
+  end
+end
+
 function BaganatorItemViewCommonBankViewMixin:InitializeWarband(template)
   if Syndicator.Constants.WarbandBankActive then
     self.Warband = CreateFrame("Frame", nil, self, template)
@@ -54,24 +77,14 @@ function BaganatorItemViewCommonBankViewMixin:InitializeWarband(template)
     characterTab:SetText(BAGANATOR_L_CHARACTER)
     characterTab:Show()
     characterTab:SetScript("OnClick", function()
-      self.currentTab:Hide()
-      self.currentTab = self.Character
-      self.currentTab:Show()
-      PanelTemplates_SetTab(self, 1)
-      self:UpdateView()
-      addonTable.CallbackRegistry:TriggerEvent("BankViewChanged")
+      self:SetTab(1)
     end)
 
     local warbandTab = self.tabPool:Acquire()
     warbandTab:SetText(BAGANATOR_L_WARBAND)
     warbandTab:Show()
     warbandTab:SetScript("OnClick", function()
-      self.currentTab:Hide()
-      self.currentTab = self.Warband
-      self.currentTab:Show()
-      PanelTemplates_SetTab(self, 2)
-      self:UpdateView()
-      addonTable.CallbackRegistry:TriggerEvent("BankViewChanged")
+      self:SetTab(2)
     end)
     addonTable.Skins.AddFrame("TabButton", warbandTab)
 
@@ -131,9 +144,7 @@ end
 function BaganatorItemViewCommonBankViewMixin:OnShow()
   if Syndicator.Constants.WarbandBankActive then
     if C_PlayerInteractionManager.IsInteractingWithNpcOfType(Enum.PlayerInteractionType.AccountBanker) then
-      self.currentTab = self.Warband
-      self.Warband:Show()
-      self.Character:Hide()
+      self:SetTab(2)
       for _, tab in ipairs(self.Tabs) do
         tab:Hide()
       end
@@ -168,7 +179,7 @@ function BaganatorItemViewCommonBankViewMixin:OnHide(eventName)
 end
 
 function BaganatorItemViewCommonBankViewMixin:UpdateViewToCharacter(characterName)
-  self.Character.lastCharacter = characterName
+  addonTable.CallbackRegistry:TriggerEvent("CharacterSelect", characterName)
   if not self.Character:IsShown() then
     self.Tabs[1]:Click()
   else

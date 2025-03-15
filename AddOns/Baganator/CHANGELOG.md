@@ -1,7 +1,8 @@
 # Baganator
 
-## [653](https://github.com/Baganator/Baganator/tree/653) (2025-02-25)
-[Full Changelog](https://github.com/Baganator/Baganator/compare/652...653) 
+## [660](https://github.com/Baganator/Baganator/tree/660) (2025-03-10)
+[Full Changelog](https://github.com/Baganator/Baganator/compare/659...660) 
 
-- [Fixes #432] Workaround to prevent Masque bug breaking bag view  
-- [Fixes #430] Update item level widget after entering/leaving timewalking raid  
+- Customise: Categories: Finish skinning new import dialog for GW2 and NDui  
+- Customise: Categories: Make import dialog act more like a static popup  
+- [Fixes #436] Avoid freeze when pasting to import large categories profile  

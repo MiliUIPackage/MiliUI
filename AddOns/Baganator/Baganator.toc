@@ -1,6 +1,6 @@
-## Interface: 110100, 110100
+## Interface: 110007, 110100
 ## Title: Baganator
-## Version: 653
+## Version: 660
 ## Author: plusmouse
 ## OptionalDeps: Syndicator, Masque
 ## SavedVariables: BAGANATOR_CONFIG, BAGANATOR_DATA
@@ -11,16 +11,8 @@
 ## Notes-zhTW: Baganator|n功能強大的整合背包。
 
 ## Category-enUS: Inventory
-## Category-deDE: Inventar
-## Category-esES: Inventario
-## Category-esMX: Inventario
-## Category-frFR: Inventaire
-## Category-itIT: Inventario
-## Category-koKR: 소지품
-## Category-ptBR: Inventário
-## Category-ruRU: Предметы
 ## Category-zhCN: 物品栏
-## Category-zhTW: 物品欄
+## Category-zhTW: 物品
 
 Embeds\json.lua
 
@@ -144,6 +136,7 @@ CustomiseDialog\Categories\RecentEditor.lua
 CustomiseDialog\Categories\EmptyEditor.lua
 CustomiseDialog\Categories\Utilities.lua
 CustomiseDialog\Categories\ImportExport.lua
+CustomiseDialog\Categories\ImportDialog.lua
 CustomiseDialog\Main.lua
 CustomiseDialog\Main.xml
 CustomiseDialog\Initialize.lua

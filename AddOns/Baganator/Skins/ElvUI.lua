@@ -40,7 +40,11 @@ local skinners = {
     S:HandleItemButton(frame, true)
     S:HandleIconBorder(frame.IconBorder)
     hooksecurefunc(frame.IconBorder, "SetVertexColor", function(_, r, g, b, a)
-      frame.backdrop.forcedBorderColors = {r, g, b, a}
+      if a == 0 then
+        frame.backdrop.forcedBorderColors = nil
+      else
+        frame.backdrop.forcedBorderColors = {r, g, b, a}
+      end
     end)
     if frame.SetItemButtonTexture then
       hooksecurefunc(frame, "SetItemButtonTexture", function()
@@ -144,6 +148,10 @@ local skinners = {
     tex:SetPoint("TOPRIGHT", 0, 0)
     tex:SetHeight(1)
     tex:SetColorTexture(1, 0.93, 0.73, 0.45)
+  end,
+  Dialog = function(frame)
+    frame:StripTextures()
+    frame:SetTemplate('Transparent')
   end,
 }
 
