@@ -546,7 +546,6 @@ local function Dispels_UpdateSize(self, iconsShown)
 
     local width, height = self.width, self.height
     if iconsShown then -- SetDispels
-        iconsShown = iconsShown - 1
         if self.orientation == "horizontal"  then
             width = self.width + (iconsShown - 1) * floor(self.width / 2)
             height = self.height
@@ -564,6 +563,8 @@ local function Dispels_UpdateSize(self, iconsShown)
                     width = self.width
                     height = self.height + (i - 1) * floor(self.height / 2)
                 end
+            else
+                break
             end
         end
     end
@@ -2340,6 +2341,7 @@ function I.CreatePowerWordShield(parent)
 
     function powerWordShield:UpdatePixelPerfect()
         local size = powerWordShield.size
+        if not size then return end
 
         powerWordShield:_SetSize(P.Scale(size), P.Scale(size))
         innerBG:SetSize(P.Scale(ceil(size/2)+2), P.Scale(ceil(size/2)+2))

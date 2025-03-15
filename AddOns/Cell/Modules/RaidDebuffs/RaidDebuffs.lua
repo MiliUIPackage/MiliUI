@@ -1183,6 +1183,7 @@ local previewButton
 
 local function CreatePreviewButton()
     previewButton = CreateFrame("Button", "CellRaidDebuffsPreviewButton", debuffsTab, "CellPreviewButtonTemplate")
+    B.UpdateBackdrop(previewButton)
     -- previewButton.type = "main" -- layout setup
     previewButton:SetPoint("TOPLEFT", debuffsTab, "TOPRIGHT", 5, -137)
     previewButton:UnregisterAllEvents()
@@ -2025,6 +2026,7 @@ LoadGlowOptions = function(glowType, glowOptions)
         return
     end
 
+    glowTargetDropdown:SetSelectedValue("button")
     glowTargetDropdown:Show()
     ShowGlowPreview(glowType, glowOptions)
     glowColor:SetColor(glowOptions[1])

@@ -1135,7 +1135,7 @@ local function HandleDebuffs(self, auraInfo)
                 if glowType and glowType ~= "None" then
                     auraInfo.raidDebuffGlowType = glowType
                     auraInfo.raidDebuffGlowOptions = glowOptions
-                    self._debuffs_glow_current[glowType] = true
+                    self._debuffs_glow_current[glowType] = glowOptions
                 end
             end
         end
@@ -1406,7 +1406,7 @@ local function HandleBuff(self, auraInfo)
         end
 
         -- tankActiveMitigation
-        if enabledIndicators["tankActiveMitigation"] and I.IsTankActiveMitigation(name) then
+        if enabledIndicators["tankActiveMitigation"] and I.IsTankActiveMitigation(spellId) then
             self.indicators.tankActiveMitigation:SetCooldown(start, duration)
             self._buffs.tankActiveMitigationFound = true
         end
@@ -1722,6 +1722,7 @@ local function UnitButton_UpdateHealthStates(self, diff)
 
     if enabledIndicators["healthText"] then -- and not self.states.isDeadOrGhost then
         self.indicators.healthText:SetValue(health, healthMax, self.states.totalAbsorbs, self.states.healAbsorbs)
+        self.indicators.healthText:Show()
     else
         self.indicators.healthText:Hide()
     end
@@ -1850,7 +1851,7 @@ end
 local function ShowPowerBar(b)
     b.widgets.powerBar:Show()
     b.widgets.powerBarLoss:Show()
-    b.widgets.gapTexture:Show()
+    b.widgets.gapTexture:SetShown(CELL_BORDER_SIZE ~= 0)
 
     P.ClearPoints(b.widgets.healthBar)
     P.ClearPoints(b.widgets.powerBar)
@@ -3580,6 +3581,18 @@ function B.HideFlash(button)
     button.widgets.damageFlashAG:Finish()
 end
 
+-- backdrop
+function B.UpdateBackdrop(button)
+    if CELL_BORDER_SIZE == 0 then
+        button:SetBackdrop({bgFile = Cell.vars.whiteTexture})
+        button:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
+    else
+        button:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(CELL_BORDER_SIZE)})
+        button:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
+        button:SetBackdropBorderColor(unpack(CELL_BORDER_COLOR))
+    end
+end
+
 -- pixel perfect
 function B.UpdatePixelPerfect(button, updateIndicators)
     if not InCombatLockdown() then P.Resize(button) end
@@ -3603,6 +3616,7 @@ function B.UpdatePixelPerfect(button, updateIndicators)
     P.Repoint(button.widgets.overAbsorbGlow)
 
     B.UpdateHighlightSize(button)
+    B.UpdateBackdrop(button)
 
     if updateIndicators then
         -- indicators
@@ -3674,9 +3688,9 @@ function CellUnitButton_OnLoad(button)
     -- button:SetAttribute("typerelease", "macro")
 
     -- backdrop
-    button:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(CELL_BORDER_SIZE)})
-    button:SetBackdropColor(0, 0, 0, 1)
-    button:SetBackdropBorderColor(unpack(CELL_BORDER_COLOR))
+    -- button:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(CELL_BORDER_SIZE)})
+    -- button:SetBackdropColor(0, 0, 0, 1)
+    -- button:SetBackdropBorderColor(unpack(CELL_BORDER_COLOR))
 
     -- healthbar
     local healthBar = CreateFrame("StatusBar", name.."HealthBar", button)
