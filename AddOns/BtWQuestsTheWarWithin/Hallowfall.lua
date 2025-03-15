@@ -872,6 +872,11 @@ Database:AddChain(Chain.LostInTheDarkness, {
         {
             type = "level",
             level = 80
+        },
+        {
+            type = "chain",
+            id = BtWQuests.Constant.Chain.TheWarWithin.AgainstTheCurrent,
+            upto = 79197,
         }
     },
     active = {
@@ -1160,30 +1165,6 @@ Database:AddChain(Chain.TheWeightOfDuty, {
                 { level = 73, },
             }
         },
-        {
-            type = "chain",
-            id = BtWQuests.Constant.Chain.TheWarWithin.TheRingingDeeps.TheMonsterAndTheMachine,
-            restrictions = NOT_THREADS_OF_FATE_RESTRICTION,
-            lowPriority = true,
-        },
-        {
-            type = "chain",
-            id = Chain.TheGuidingStar,
-            restrictions = NOT_THREADS_OF_FATE_RESTRICTION,
-            lowPriority = true,
-        },
-        {
-            type = "chain",
-            id = Chain.GatheringShadows,
-            restrictions = NOT_THREADS_OF_FATE_RESTRICTION,
-            lowPriority = true,
-        },
-        {
-            type = "chain",
-            id = Chain.HopeInSolidarity,
-            restrictions = NOT_THREADS_OF_FATE_RESTRICTION,
-            upto = 78607,
-        },
     },
     active = {
         type = "quest",
@@ -1307,6 +1288,7 @@ Database:AddChain(Chain.RestAtLast, {
     },
     items = {
         -- Unknown requirement, probably around 78607, level 80
+        -- Wowhead comment says both 83497 and 79165 are breadcrumbs
         {
             variations = {
                 {
@@ -1773,6 +1755,12 @@ Database:AddChain(Chain.TempChain19, {
             type = "level",
             level = 80,
         },
+        -- Based on PTR level 80 without campaign there is a requirement for this
+    },
+    active = {
+        type = "quest",
+        id = 79232,
+        status = { "active", "completed" }
     },
     completed = {
         type = "quest",
@@ -1842,6 +1830,11 @@ Database:AddChain(Chain.TempChain21, {
             restrictions = NOT_THREADS_OF_FATE_RESTRICTION,
             upto = 78607,
         },
+    },
+    active = {
+        type = "quest",
+        id = 82894,
+        status = { "active", "completed" }
     },
     completed = {
         type = "quest",

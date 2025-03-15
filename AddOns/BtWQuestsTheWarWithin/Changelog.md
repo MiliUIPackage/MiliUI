@@ -1,3 +1,15 @@
+# v7.1
+
+- Fixed an issue preventing uploads to Wago.io
+
+# v7.0
+
+- Updated for 11.1
+- Added Underline questlines
+- Fixed some questlines in the Isle Of Dorn not showing as active correctly
+- Fixed the breadcrumbs for All Good Things in Azj-Kahet
+- Updated prerequisites and active status for a number of quests in The Ringing Deeps and Hallowfall
+
 # v6.0
 
 - Added Lingering Shadows questline

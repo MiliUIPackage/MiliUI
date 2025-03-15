@@ -1,6 +1,6 @@
-## Interface: 110100, 110007
+## Interface: 110007, 110100
 ## Title: BtWQuests: The War Within
-## Version: 6.0
+## Version: 7.1
 ## Notes: The War Within quest data for BtWQuests
 ## Author: Breen
 ## Dependencies: BtWQuests
@@ -11,9 +11,6 @@
 ## X-BtWQuests-Expansion-Image: UI-Expansion 0 0.90625 0 0.8125
 ## X-BtWQuests-AutoLoad: 1
 ## X-Part-Of: BtWQuests
-## X-Curse-Project-ID: 1010391
-## X-WoWI-ID: 26776
-## X-Wago-ID: bGoMAr60
 
 ## Title-zhTW: |cFF00AA99[任務]|r 任務指南 - 地心之戰模組
 ## Notes-zhTW: BtWQuests: The War Within |n|n地心之戰模組。
@@ -79,6 +76,7 @@ Database/Index.ptBR.lua
 Database/Index.ruRU.lua
 Database/Index.zhCN.lua
 Database/Index.zhTW.lua
+Database/Index.11.1.lua
 
 General.lua
 IsleOfDorn.lua
@@ -86,3 +84,4 @@ TheRingingDeeps.lua
 Hallowfall.lua
 AzjKahet.lua
 SirenIsle.lua
+11.1.lua

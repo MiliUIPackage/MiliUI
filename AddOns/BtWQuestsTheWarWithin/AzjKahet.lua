@@ -1631,16 +1631,21 @@ Database:AddChain(Chain.AllGoodThings, {
     },
     items = {
         {
-            type = "npc",
-            id = 207471,
-            x = 0,
-            connections = {
-                1, 
+            variations = {
+                {
+                    type = "quest",
+                    id = 82248,
+                    restrictions = {
+                        type = "quest",
+                        id = 82248,
+                        status = { "active", "completed" }
+                    }
+                },
+                {
+                    type = "npc",
+                    id = 211409,
+                },
             },
-        },
-        {
-            type = "quest",
-            id = 82248,
             x = 0,
             connections = {
                 1, 
