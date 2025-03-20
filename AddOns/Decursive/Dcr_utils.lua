@@ -1,8 +1,8 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.25) add-on for World of Warcraft UI
-    Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
+    Decursive (v 2.7.27) add-on for World of Warcraft UI
+    Copyright (C) 2006-2025 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2024-09-16T00:29:30Z
+    This file was last updated on 2025-03-16T19:58:01Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -56,8 +56,8 @@ T._LoadedFiles["Dcr_utils.lua"] = false;
 
 local D = T.Dcr;
 
-local L = D.L;
-local LC = D.LC;
+--local L = D.L;
+--local LC = D.LC;
 local DC = T._C;
 
 T._CatchAllErrors = 'LibQTip';
@@ -543,7 +543,7 @@ do
             else
                 DC.ClassesColors[EnglishClass] = { 0.63, 0.63, 0.63 };
             end
-            DC.ClassesColors[LC[EnglishClass]] = DC.ClassesColors[EnglishClass];
+            DC.ClassesColors[D.LC[EnglishClass]] = DC.ClassesColors[EnglishClass];
         end
         return unpack(DC.ClassesColors[EnglishClass]);
     end
@@ -554,7 +554,7 @@ do
         if not DC.HexClassColor[EnglishClass] or noCache then
             local r, g, b = self:GetClassColor(EnglishClass)
             DC.HexClassColor[EnglishClass] = str_format("%02x%02x%02x", r * 255, g * 255, b * 255);
-            DC.HexClassColor[LC[EnglishClass]] = DC.HexClassColor[EnglishClass];
+            DC.HexClassColor[D.LC[EnglishClass]] = DC.HexClassColor[EnglishClass];
         end
 
         return DC.HexClassColor[EnglishClass];
@@ -565,7 +565,7 @@ do
         if RAID_CLASS_COLORS then
             local class, colors;
             for class in pairs(RAID_CLASS_COLORS) do
-                if LC[class] then -- Some badly coded add-ons are modifying RAID_CLASS_COLORS causing multiple problems...
+                if D.LC[class] then -- Some badly coded add-ons are modifying RAID_CLASS_COLORS causing multiple problems...
                     D:GetClassColor(class, true);
                     D:GetClassHexColor(class, true);
                 elseif not (DC.WOWC and NON_CLASSIC_CLASSES[class]) then
@@ -715,7 +715,7 @@ function D.GetSpellOrItemInfo(spellID) -- could be renamed to GetSpellOrItemName
 end
 
 local function BadLocalTest (localtest)
-    D:PPrint(L[localtest]);
+    D:PPrint(D.L[localtest]);
 end
 
 -- /run LibStub("AceAddon-3.0"):GetAddon("Decursive"):MakeError()
@@ -1061,4 +1061,4 @@ do
         return nocase:trim();
     end
 end
-T._LoadedFiles["Dcr_utils.lua"] = "2.7.25";
+T._LoadedFiles["Dcr_utils.lua"] = "2.7.27";

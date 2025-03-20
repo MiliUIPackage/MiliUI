@@ -1,8 +1,8 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.25) add-on for World of Warcraft UI
-    Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
+    Decursive (v 2.7.27) add-on for World of Warcraft UI
+    Copyright (C) 2006-2025 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2024-08-11T22:33:29Z
+    This file was last updated on 2025-03-16T19:58:01Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -115,9 +115,11 @@ local DebugTextTable    = T._DebugTextTable;
 local Reported          = {};
 
 local UNPACKAGED = "@pro" .. "ject-version@";
-local VERSION = "2.7.25";
+local VERSION = "2.7.27";
 
-T._LoadedFiles = {};
+if not T._LoadedFiles then
+    T._LoadedFiles = {};
+end
 T._LoadedFiles["Dcr_DIAG.lua"] = false; -- here for consistency but useless in this particular file
 
 if DecursiveInEmbeddedMode == nil then
@@ -132,6 +134,7 @@ end
 
 -- a list of all source files part of Decursive sort in loading order
 T._LoadOrderedFiles = { -- {{{
+    "Dcr_preload.lua",
     "embeds.xml",
 
     "Dcr_DIAG.xml",
@@ -331,7 +334,7 @@ do
         local dbclud = T.Dcr.Status and T.Dcr.Status.delayedUnDebuffOccurences or -1
 
 
-        DebugHeader = ("%s\n2.7.25  %s(%s)  CT: %0.4f D: %s %s %s DTl: %d DE: %d nDrE: %d Embeded: %s W: %d (LA: %d TAMU: %d) TA: %d NDRTA: %d BUIE: %d dbc: [d:%d-%d, u:%d-%d] TI: [dc:%d, lc:%d, y:%d, LEBY:%d, LB:%d, TTE:%u] (%s, %s, %s, %s)"):format(instructionsHeader, -- "%s\n
+        DebugHeader = ("%s\n2.7.27  %s(%s)  CT: %0.4f D: %s %s %s DTl: %d DE: %d nDrE: %d Embeded: %s W: %d (LA: %d TAMU: %d) TA: %d NDRTA: %d BUIE: %d dbc: [d:%d-%d, u:%d-%d] TI: [dc:%d, lc:%d, y:%d, LEBY:%d, LB:%d, TTE:%u] (%s, %s, %s, %s)"):format(instructionsHeader, -- "%s\n
         tostring(DC.MyClass), tostring(UnitLevel("player") or "??"), NiceTime(), date(), GetLocale(), -- %s(%s)  CT: %0.4f D: %s %s
         BugGrabber and "BG" .. (T.BugGrabber and "e" or "") or "NBG", -- %s
         #DebugTextTable / 2, -- DTl: %d
@@ -623,16 +626,26 @@ function T._onError(event, errorObject)
             _G.DEBUGLOCALS_LEVEL = _G.DEBUGLOCALS_LEVEL + 9
         end
 
-        -- forward the error to the default Blizzad error displayer
-        if _G.HandleLuaError then
+        -- forward the error to the original error handler
+        if _G.HandleLuaError or T._OriginalDebugHandler then
             local errorm = errorObject.message;
 
-            _Debug("Lua error forwarded");
 
-            return _G.HandleLuaError( errorm );
+            if _G.HandleLuaError then
+                _Debug("Lua error forwarded to Blizzard's handler");
+                return _G.HandleLuaError( errorm );
+            elseif T._OriginalDebugHandler and T._OriginalDebugHandler ~= geterrorhandler() then
+                _Debug("Lua error forwarded to original handler");
+                return T._OriginalDebugHandler ( errorm );
+            else
+                _Debug("Lua error could not be forwarded because the original error handler is no longer available.");
+            end
+
+        else
+            _Debug("Lua error NOT forwarded because no original error handler was found!");
         end
     else
-        _Debug("Lua error NOT forwarded, mine=", mine);
+        _Debug("Lua error NOT forwarded, mine=", mine, "BugSack loaded:", T._BugSackLoaded);
     end
 
 end
@@ -665,6 +678,17 @@ function T._DecursiveErrorHandler(err, ...)
     end
 
     local mine = false;
+
+
+    -- adapted from Blizzard
+    local currentStackHeight = GetCallstackHeight and GetCallstackHeight() or 3;
+	local errorCallStackHeight = GetErrorCallstackHeight and GetErrorCallstackHeight() or currentStackHeight - 2;
+	local errorStackOffset = errorCallStackHeight and (errorCallStackHeight - 1);
+	local debugStackLevel = currentStackHeight - (errorStackOffset or 0);
+    --
+
+    _Debug("GetCallstackHeight: ", GetCallstackHeight(), "GetErrorCallstackHeight:", GetErrorCallstackHeight(), "computed stackLevel:", debugStackLevel);
+
     if not IsReporting and (T._CatchAllErrors or errl:find("decursive") and not errl:find("[\\/]libs[\\/]")) then
 
         if not continueErrorReporting(errl) then
@@ -678,7 +702,7 @@ function T._DecursiveErrorHandler(err, ...)
 
 
         IsReporting = true;
-        AddDebugText(err, "\n|cff00aa00STACK:|r\n", debugstack(3), "\n|cff00aa00LOCALS:|r\n", debuglocals(3), ...);
+        AddDebugText(err, "\n|cff00aa00STACK:|r\n", debugstack(debugStackLevel), "\n|cff00aa00LOCALS:|r\n", debuglocals(debugStackLevel), ...);
         IsReporting = false;
         T._CatchAllErrors = false; -- Errors are unacceptable so one is enough, no need to get all subsequent errors.
         mine = true;
@@ -785,10 +809,10 @@ end
 function T._HookErrorHandler()
 
     if BugGrabber then
-        local name, _, _, enabled = GetAddOnInfo("BugSack") -- enabled becomes isLoaded in WoD
+        local loading, loaded = IsAddOnLoaded("BugSack");
 
-        if name and enabled then
-            T._BugSackLoaded = true;
+        if loaded then
+            T._BugSackLoaded = _G.BugSack and _G.BugSack.healthCheck or false;
         else
             T._BugSackLoaded = false;
         end
@@ -1082,6 +1106,10 @@ do
                 AddDebugText("|cFFFF0000WARNING Blizzard default error handler is no longer available...|r");
             end
 
+            if not _G.GetCallstackHeight or not _G.GetErrorCallstackHeight then
+                AddDebugText("|cFFFF0000WARNING Blizzard GetErrorCallstackHeight or GetErrorCallstackHeight not available...|r");
+            end
+
             PrintMessage("|cFF00FF00No problem found in shared libraries or Decursive files!|r");
 
             PrintMessage("Now checking spell translations...");
@@ -1170,4 +1198,4 @@ do
     end
 end
 
-T._LoadedFiles["Dcr_DIAG.lua"] = "2.7.25";
+T._LoadedFiles["Dcr_DIAG.lua"] = "2.7.27";
