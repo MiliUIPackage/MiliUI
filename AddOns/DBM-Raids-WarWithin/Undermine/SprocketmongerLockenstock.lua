@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2653, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250312211409")
+mod:SetRevision("20250316181625")
 mod:SetCreatureID(230583)
 mod:SetEncounterID(3013)
 mod:SetHotfixNoticeRev(20250209000000)
@@ -421,7 +421,7 @@ function mod:SPELL_AURA_REMOVED(args)
 			warnScrewUpOver:Show()
 			warnScrewUpOver:Play("safenow")
 		end
-	elseif (spellId == 1218318 or spellId == 466860) and self:GetStage(2) then--Bleeding Edge ending (beta launch over) (will likely be removed as visible event, it's only showing on script bunnies
+	elseif (spellId == 1218318 or spellId == 466860) and self:GetStage(2) and self:IsInCombat() then--Bleeding Edge ending (beta launch over) (will likely be removed as visible event, it's only showing on script bunnies
 		--can also use [DNT] Intermission Cleanup
 		self:SetStage(1)
 		timerBleedingEdge:Stop()

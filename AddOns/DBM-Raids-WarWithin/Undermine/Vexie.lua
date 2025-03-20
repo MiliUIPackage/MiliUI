@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2639, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250312070859")
+mod:SetRevision("20250313200234")
 mod:SetCreatureID(225821)--Gear Grinder, 225822 Vexie
 mod:SetEncounterID(3009)
 mod:SetHotfixNoticeRev(20250122000000)
@@ -21,7 +21,6 @@ mod:RegisterEventsInCombat(
 	"SPELL_PERIODIC_DAMAGE 459683",
 	"SPELL_PERIODIC_MISSED 459683",
 	"UNIT_DIED",
---	"CHAT_MSG_RAID_BOSS_WHISPER",
 	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
 

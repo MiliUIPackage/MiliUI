@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2649, "DBM-Party-WarWithin", 9, 1298)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250308121633")
+mod:SetRevision("20250317004755")
 mod:SetCreatureID(226403, 226402)
 mod:SetEncounterID(3019)
 mod:SetHotfixNoticeRev(20250215000000)
@@ -116,7 +116,8 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 459779 then
 		self.vb.chargeCount = self.vb.chargeCount + 1
-		local timer = (self.vb.chargeCount % 3 == 0) and "v23-25" or "v4-6.3"
+		--"Barreling Charge-459779-npc:226402-00004D0020 = pull:24.8, 5.6, 6.0, 27.5, 5.4, 5.1",
+		local timer = (self.vb.chargeCount % 3 == 0) and "v23-27.5" or "v4-6.3"
 		timerChargeCD:Start(timer, self.vb.chargeCount+1)
 	end
 end

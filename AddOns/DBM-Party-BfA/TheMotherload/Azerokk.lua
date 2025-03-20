@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2114, "DBM-Party-BfA", 7, 1012)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250308113922")
+mod:SetRevision("20250317030415")
 mod:SetCreatureID(129227)
 mod:SetEncounterID(2106)
 mod:SetUsedIcons(8)
@@ -29,10 +29,10 @@ local specWarnInfusion				= mod:NewSpecialWarningSwitchCount(271698, "-Healer", 
 local specWarnTectonicSmash			= mod:NewSpecialWarningDodgeCount(275907, nil, nil, 2, 1, 15)
 local specWarnQuake					= mod:NewSpecialWarningDodge(258627, nil, nil, nil, 2, 2)
 
-local timerCallEarthragerCD			= mod:NewNextCountTimer(44.9, 257593, nil, nil, nil, 1)
+local timerCallEarthragerCD			= mod:NewVarCountTimer("v42.5-44.9", 257593, nil, nil, nil, 1)
 local timerInfusionCD				= mod:NewVarCountTimer("v40.9-45", 271698, nil, nil, nil, 3, nil, DBM_COMMON_L.DAMAGE_ICON)--Health based?
 local timerResonantPulseCD			= mod:NewVarCountTimer("v40.1-44.9", 258622, nil, nil, nil, 2)
-local timerTectonicSmashCD			= mod:NewVarCountTimer("v14.6-25.5", 275907, nil, nil, nil, 3)
+local timerTectonicSmashCD			= mod:NewVarCountTimer("v14.6-26.7", 275907, nil, nil, nil, 3)
 
 mod:AddInfoFrameOption(257481, true)
 mod:AddSetIconOption("SetIconOnInfusion", 271698, true, 5, {8})
