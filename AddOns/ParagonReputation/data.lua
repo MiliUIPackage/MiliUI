@@ -1,5 +1,5 @@
 		-------------------------------------------------
-		-- Paragon Reputation 1.60 by Fail US-Ragnaros --
+		-- Paragon Reputation 1.61 by Fail US-Ragnaros --
 		-------------------------------------------------
 
 		  --[[	  Special thanks to Ammako for
@@ -562,22 +562,57 @@ PR.PARAGON_DATA = {
 			[85806] = { -- Bilgewater Cartel
 				factionID = 2673,
 				cache = 237132,
+				rewards = {
+					{ -- Bilgewater Bombardier
+						type = MOUNT,
+						--itemID = 999999, -- PLACEHOLDER
+						mountID = 2295,
+					},
+				},
 			},
 			[85807] = { -- Blackwater Cartel
 				factionID = 2675,
 				cache = 237135,
+				rewards = {
+					{ -- Blackwater Bonecrusher
+						type = MOUNT,
+						--itemID = 999999, -- PLACEHOLDER
+						mountID = 2274,
+					},
+				},
 			},
 			[85808] = { -- Darkfuse Solutions
 				factionID = 2669,
 				cache = 232465,
+				rewards = {
+					{ -- Bronze Goblin Waveshredder
+						type = MOUNT,
+						itemID = 233064,
+						mountID = 2334,
+					},
+				},
 			},
 			[85809] = { -- Steamwheedle Cartel
 				factionID = 2677,
 				cache = 237134,
+				rewards = {
+					{ -- Steamwheedle Supplier
+						type = MOUNT,
+						--itemID = 999999, -- PLACEHOLDER
+						mountID = 2281,
+					},
+				},
 			},
 			[85810] = { -- Venture Company
 				factionID = 2671,
 				cache = 237133,
+				rewards = {
+					{ -- Venture Co-ordinator
+						type = MOUNT,
+						--itemID = 999999, -- PLACEHOLDER
+						mountID = 2289,
+					},
+				},
 			},
 		[79196] = { -- The Severed Threads
 			factionID = 2600,

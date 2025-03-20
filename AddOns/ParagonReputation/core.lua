@@ -1,5 +1,5 @@
 		-------------------------------------------------
-		-- Paragon Reputation 1.60 by Fail US-Ragnaros --
+		-- Paragon Reputation 1.61 by Fail US-Ragnaros --
 		-------------------------------------------------
 
 		  --[[	  Special thanks to Ammako for
@@ -28,24 +28,35 @@ local ParagonItemInfoReceivedQueue = {}
 local function AddParagonRewardsToTooltip(self,tooltip,rewards)
 	if rewards then
 		for index,data in ipairs(rewards) do
-			local name,link,quality,_,_,_,_,_,_,icon = C_Item.GetItemInfo(data.itemID)
-			if name then
-				local collected
-				if data.type == MOUNT then
-					collected = select(11,C_MountJournal.GetMountInfoByID(data.mountID))
-				elseif data.type == PET and link then
-					collected = ParagonIsPetOwned(link)
-				elseif data.type == TOY then
-					collected = PlayerHasToy(data.itemID)
-				elseif data.type == ITEM_COSMETIC then
-					collected = C_TransmogCollection.PlayerHasTransmogByItemInfo(data.itemID)
-				elseif data.type == BINDING_HEADER_OTHER then
-					collected = C_QuestLog.IsQuestFlaggedCompleted(data.questID)
+			if data.itemID then
+				local name,link,quality,_,_,_,_,_,_,icon = C_Item.GetItemInfo(data.itemID)
+				if name then
+					local collected
+					if data.type == MOUNT then
+						collected = select(11,C_MountJournal.GetMountInfoByID(data.mountID))
+					elseif data.type == PET and link then
+						collected = ParagonIsPetOwned(link)
+					elseif data.type == TOY then
+						collected = PlayerHasToy(data.itemID)
+					elseif data.type == ITEM_COSMETIC then
+						collected = C_TransmogCollection.PlayerHasTransmogByItemInfo(data.itemID)
+					elseif data.type == BINDING_HEADER_OTHER then
+						collected = C_QuestLog.IsQuestFlaggedCompleted(data.questID)
+					end
+					tooltip:AddLine(string.format("|A:common-icon-%s:14:14|a |T%d:0|t %s %s",collected and "checkmark" or "redx",icon,name,data.covenant or "|cffffd000(|r|cffffffff"..data.type.."|r|cffffd000)|r"),ITEM_QUALITY_COLORS[quality].r,ITEM_QUALITY_COLORS[quality].g,ITEM_QUALITY_COLORS[quality].b)
+				else
+					tooltip:AddLine(ERR_TRAVEL_PASS_NO_INFO,1,0,0)
+					ParagonItemInfoReceivedQueue[data.itemID] = self
 				end
-				tooltip:AddLine(string.format("|A:common-icon-%s:14:14|a |T%d:0|t %s %s",collected and "checkmark" or "redx",icon,name,data.covenant or "|cffffd000(|r|cffffffff"..data.type.."|r|cffffd000)|r"),ITEM_QUALITY_COLORS[quality].r,ITEM_QUALITY_COLORS[quality].g,ITEM_QUALITY_COLORS[quality].b)
-			else
-				tooltip:AddLine(ERR_TRAVEL_PASS_NO_INFO,1,0,0)
-				ParagonItemInfoReceivedQueue[data.itemID] = self
+				
+			-- TEMP FIX for missing item mounts
+			elseif data.type == MOUNT then
+				local name,_,icon,_,_,_,_,_,_,_,collected = C_MountJournal.GetMountInfoByID(data.mountID)
+				if name then
+					tooltip:AddLine(string.format("|A:common-icon-%s:14:14|a |T%d:0|t %s %s",collected and "checkmark" or "redx",icon,name,"|cffffd000(|r|cffffffff"..data.type.."|r|cffffd000)|r"),ITEM_QUALITY_COLORS[4].r,ITEM_QUALITY_COLORS[4].g,ITEM_QUALITY_COLORS[4].b)
+				else
+					tooltip:AddLine(ERR_TRAVEL_PASS_NO_INFO,1,0,0)
+				end
 			end
 		end
 	else
