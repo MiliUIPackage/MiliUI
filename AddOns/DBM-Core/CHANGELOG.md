@@ -1,31 +1,24 @@
 # DBM - Core
 
-## [11.1.10](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/11.1.10) (2025-03-17)
-[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/11.1.9...11.1.10) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
+## [11.1.11](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/11.1.11) (2025-03-21)
+[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/11.1.10...11.1.11) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
 
-- prep tag  
-- Fix typo  
-- Add a mugzee mythic test  
-- Push gallywix mythic mod and test  
-- Fix bug where timers could restart on a wipe for Sprocketmonger Lockenstock  
-- Core: Implement countdown timers using DBT callbacks  
-- DBT: Add callback support  
-- mugzee  
-     - Don't reset counts til stage 2  
-     - Add timer for electro shocker spawn in stage 2  
-- MugZee Update:  
-     - Updated all timers for Mythic  
-     - Added optional off by default icon marking for crawling mines  
-     - Spray and Pray target warning is now faster  
-     - Finger Gun now has improved target warning  
-     - Double whammy now have improved target warnings  
-- Stix:  
-     - Added personal timer for tracking ball duration with countdown enabled by default.  
-- One armed Bandit update:  
-     - Rework a ton of timers to account for more variances caused by spell queues and delays as well as differences between heroic and normal and mythic all accounted for much better  
-- Cauldron of Carnage Update:  
-     - Fix beam alert/yell not working since blizzard removed target debuff from combat log (even though it's target scanable and has a whisper)  
-- Fix and close https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1582  
-- refix https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1581 since the actual problem is blizzard finally disabled the script bunny event I was using. fortunately they seem to have added another event at original script bunny time stamp so this should fix the stage 1 restarts on sprocket to be cleaner.  
-- fix gallywix header not showing used icon  
+- Tag new release for wrath client compat updates  
+- one armed bandit update:  
+     - Added emphasized alerts for picking up coins with specialized TTS  
+     - Added emphasized "run to edge" tank alert to make it clearer where to drop zone.  
+     - Micro timer adjustments  
+- Mugzee Update:  
+    Fixed bug where gaol yell didn't use red color that's usually used for group soak mechanics.  
+    Fixed bug where several of timers had incorrect values, especially on heroic.  
+- Bump Wrath TOC  
+    Remove old wrath client compat checks and assume that it's using modern functions now based on initial reports. kinda hard to verify though since wrath client is region specific.  
+- Updated spec info to work with wrath client update in China  
+    Updated profiles to actually check right arg for talent points, which has been broken in vanilla since the beginning of SoD. Now DBM should correctly load profile related to actual talent point choices instead of being broken.  
+- increase cast times for rolling rubbish and recycle on mythic stix  
+- Revert last, that doesn't fix problem  
+    Fix it at mod level for now  
+- Fix setstage so it doesn't break if using incrementor right on engage.  
+- Fix a bug causing bad initials stage numbers  
+- adjust stix icons used to remove compat issues  
 - bump alpha  

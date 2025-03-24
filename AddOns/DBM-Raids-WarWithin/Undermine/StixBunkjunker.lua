@@ -2,10 +2,10 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2642, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250315143808")
+mod:SetRevision("20250319002603")
 mod:SetCreatureID(230322)
 mod:SetEncounterID(3012)
-mod:SetUsedIcons(7, 5, 4, 3, 2, 1)
+mod:SetUsedIcons(8, 7, 6, 5, 4, 3, 2, 1)
 mod:SetHotfixNoticeRev(20250111000000)
 mod:SetMinSyncRevision(20250111000000)
 mod:SetZone(2769)
@@ -59,8 +59,8 @@ local timerRollingPlayer							= mod:NewBuffFadesTimer(20, 461536, nil, nil, nil
 --local timerBigBomb								= mod:NewCastTimer(20, 464865, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
 local timerShortFuseCast							= mod:NewCastNPTimer(30, 473115, nil, nil, nil, 2)
 
-mod:AddSetIconOption("SetIconOnBalls", 465346, false, 0, {1, 2, 3, 4, 5}, true)
-mod:AddSetIconOption("SetIconOnScrapmasters", -31645, true, 5, {2, 4, 5, 7}, true)
+mod:AddSetIconOption("SetIconOnBalls", 465346, true, 0, {1, 2, 3, 4})
+mod:AddSetIconOption("SetIconOnScrapmasters", -31645, true, 5, {8, 7, 6, 5})
 --mod:AddSetIconOption("SetIconOnBigBomb", 464865, true, 5, {8})
 --mod:AddSetIconOption("SetIconOnSmallBomb", -30451, false, 5, {5, 6, 7}, true)
 mod:AddNamePlateOption("NPAuraOnMessedUp", 1217685)
@@ -76,7 +76,7 @@ local specWarnMarkedForRecycling					= mod:NewSpecialWarningYou(1220648, nil, ni
 
 --local timerDumpsterDiveCD							= mod:NewCDNPTimer(10.9, 466742, nil, nil, nil, 3)--10.9-24.4
 --local timerRecyclerCD								= mod:NewCDNPTimer(97.3, 1220752, nil, nil, nil, 3)
-local timerRecyclerCast								= mod:NewCastNPTimer(12, 1220752, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
+local timerRecyclerCast								= mod:NewCastNPTimer(14, 1220752, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
 --Rest of Boss mechanics
 mod:AddTimerLine(DBM_COMMON_L.BOSS)
 local specWarnIncinerator							= mod:NewSpecialWarningMoveAwayCount(464149, nil, nil, nil, 2, 2)--Debuff is 472893 but we pre warn first
@@ -100,7 +100,6 @@ mod.vb.IncinCount = 0
 mod.vb.demolishCount = 0
 mod.vb.meltdownCount = 0
 local castsPerGUID = {}
-local JWIconOrder = {2, 4, 5, 7} -- Circle, Triangle, Moon, Cross
 local usedMarks, seenGUIDs = {}, {}
 
 function mod:OnCombatStart(delay)
@@ -222,12 +221,12 @@ function mod:SPELL_AURA_APPLIED(args)
 			DBM.Nameplate:Show(true, args.destGUID, spellId)
 		end
 		if args:GetDestCreatureID() == 231839 then -- Scrapmaster
-			for i = 1, 4 do
+			for i = 8, 4, -1 do
 				if not usedMarks[i] and not seenGUIDs[args.destGUID] then
 					seenGUIDs[args.destGUID] = i
 					usedMarks[i] = args.destGUID
 					if self.Options.SetIconOnScrapmasters then
-						self:ScanForMobs(args.destGUID, 2, JWIconOrder[i], 1, nil, 12, "SetIconOnScrapmasters")
+						self:ScanForMobs(args.destGUID, 2, i, 1, nil, 12, "SetIconOnScrapmasters")
 					end
 					return
 				end
@@ -284,7 +283,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		specWarnIncineratorVictim:Play("debuffyou")
 		--yellIncinerator:Yell()
 	elseif spellId == 461536 and args:IsPlayer() then
-		timerRollingPlayer:Start(20)
+		timerRollingPlayer:Start(24)
 	end
 end
 mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
