@@ -118,7 +118,7 @@ SpellAnnouncer:SetScript("OnEvent", function(self, event, ...)
                 if spellCastTimer then
                     spellCastTimer:Cancel()
                 end
-                HandleSpellCast(unit, spellID, detectAsPlayer)
+                -- HandleSpellCast(unit, spellID, detectAsPlayer)
             end
         end
     end
