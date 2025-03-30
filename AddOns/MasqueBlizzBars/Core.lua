@@ -148,6 +148,7 @@ function Core:Skin(buttons, group, bclass, slots, parent, prefix)
 		elseif (bclass == button or not bclass) and type(children) == "number" then
 			-- Pass the correct type for this button so that Masque
 			-- doesn't have to try to figure it out.
+			--print("map: type: ", prefix .. button)
 			local btype = Types[prefix .. button] or {}
 			local dtype = Types['DEFAULT'] or {}
 			local type = btype.type or dtype.type or nil
@@ -160,6 +161,16 @@ function Core:Skin(buttons, group, bclass, slots, parent, prefix)
 				local frame = parent[button]
 				local regions = Core:MakeRegions(frame, map)
 				group:AddButton(frame, regions, type)
+
+			-- If -2, assume button is a function
+			-- If slots was set, we're confused, don't do anything
+			elseif children == -2 and not slots then
+				--print("button:", button, children, parent[button])
+				local frames = parent[button](parent)
+				for _, frame in ipairs(frames) do
+					local regions = Core:MakeRegions(frame, map)
+					group:AddButton(frame, regions, type)
+				end
 
 			-- Otherwise, append a range of numbers to the name.
 			--

@@ -11,6 +11,8 @@
 -- Please use CurseForge to submit localization content for another language:
 -- https://www.curseforge.com/wow/addons/masque-blizz-bars-revived/localization
 
+-- luacheck: no max line length
+
 local Locale = GetLocale()
 if Locale ~= "zhTW" then return end
 
@@ -37,6 +39,7 @@ L["Possess Bar"] = "控制列"
 L["Spell Flyouts"] = "技能彈出選單"
 L["Stance Bar"] = "形態列"
 L["Vehicle Bar"] = "載具列"
+
 -- 自行加入
 L["Blizzard Action Bars"] = "內建快捷列"
 L["Masque Blizzard Bars"] = "按鈕外觀-內建快捷列"

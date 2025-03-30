@@ -94,7 +94,7 @@ end
 
 -- Spell Flyout buttons are created as needed when a flyout is opened, so
 -- check for any new buttons any time that happens
-function Addon:SpellFlyout_Toggle(flyoutID)
+function Addon:SpellFlyout_Toggle(_, flyoutID)
 	local _, _, numSlots, _ = GetFlyoutInfo(flyoutID)
 	local activeSlots = 0
         for slot = 1, numSlots do
@@ -106,13 +106,33 @@ function Addon:SpellFlyout_Toggle(flyoutID)
 
 	-- Skin any extra buttons found
 	local bar = Groups.SpellFlyout
-	local numButtons = bar.Buttons.SpellFlyoutButton
+	local numButtons = bar.Buttons.SpellFlyoutPopupButton
         if (numButtons < activeSlots) then
-		for i = numButtons + 1, activeSlots do
-			-- TODO: Update this to use Core:Skin()
-			bar.Group:AddButton(_G["SpellFlyoutButton"..i])
+		bar.Buttons.SpellFlyoutPopupButton = activeSlots
+		Core:Skin(bar.Buttons, bar.Group)
+	end
+end
+
+function Addon:CooldownViewer_RefreshLayout()
+	local frameName = self:GetName()
+	if frameName and Groups.CooldownViewer.Buttons[frameName] then
+		-- Map the Mask to a key and hide the overlay
+		for _, frame in ipairs(self:GetItemFrames()) do
+			if not frame.Mask then
+				frame.Mask = frame.Icon:GetMaskTexture(1)
+			end
+			if not frame.IconOverlay then
+				-- There should be one region left that isn't mapped
+				for i = 1, select("#", frame:GetRegions()) do
+					local texture = select(i, frame:GetRegions())
+					if texture.GetAtlas and texture:GetAtlas() == "UI-HUD-CoolDownManager-IconOverlay" then
+						frame.IconOverlay = texture
+					end
+				end
+			end
+			frame.IconOverlay:Hide()
 		end
-		bar.Buttons.SpellFlyoutButton = activeSlots
+		Core:Skin(Groups.CooldownViewer.Buttons[frameName], Groups.CooldownViewer.Group, nil, nil, self, frameName)
 	end
 end
 
@@ -160,6 +180,16 @@ function Addon:Init()
 	if Core:CheckVersion({ 70003, nil }) then
 		hooksecurefunc(SpellFlyout, "Toggle",
 		               Addon.SpellFlyout_Toggle)
+	end
+
+	-- Cooldown Viewer
+	if Core:CheckVersion({ 110105, nil }) then
+		hooksecurefunc(BuffIconCooldownViewer, "RefreshLayout",
+		               Addon.CooldownViewer_RefreshLayout)
+		hooksecurefunc(EssentialCooldownViewer, "RefreshLayout",
+		               Addon.CooldownViewer_RefreshLayout)
+		hooksecurefunc(UtilityCooldownViewer, "RefreshLayout",
+		               Addon.CooldownViewer_RefreshLayout)
 	end
 
         -- Check if MoveAny is installed and handle the bar modifications it makes

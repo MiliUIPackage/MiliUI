@@ -11,6 +11,8 @@
 -- Please use CurseForge to submit localization content for another language:
 -- https://www.curseforge.com/wow/addons/masque-blizz-bars-revived/localization
 
+-- luacheck: no max line length
+
 local Locale = GetLocale()
 if Locale ~= "zhCN" then return end
 
