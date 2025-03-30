@@ -32,16 +32,16 @@ local function GetItemLevelFrame(self, category)
         self.ItemLevelFrame:SetSize(w, h)
         self.ItemLevelFrame:SetPoint("CENTER", anchor, "CENTER", 0, 0)
         self.ItemLevelFrame.slotString = self.ItemLevelFrame:CreateFontString(nil, "OVERLAY")
-        self.ItemLevelFrame.slotString:SetFont(STANDARD_TEXT_FONT, 12+fontAdjust, "OUTLINE")
+        self.ItemLevelFrame.slotString:SetFont(STANDARD_TEXT_FONT, 10+fontAdjust, "OUTLINE")
         self.ItemLevelFrame.slotString:SetPoint("BOTTOMRIGHT", 1, 2)
         self.ItemLevelFrame.slotString:SetTextColor(1, 1, 1)
         self.ItemLevelFrame.slotString:SetJustifyH("RIGHT")
         self.ItemLevelFrame.slotString:SetWidth(30)
         self.ItemLevelFrame.slotString:SetHeight(0)
         self.ItemLevelFrame.levelString = self.ItemLevelFrame:CreateFontString(nil, "OVERLAY")
-        self.ItemLevelFrame.levelString:SetFont(STANDARD_TEXT_FONT, 15+fontAdjust, "OUTLINE")
+        self.ItemLevelFrame.levelString:SetFont(STANDARD_TEXT_FONT, 14+fontAdjust, "OUTLINE")
         self.ItemLevelFrame.levelString:SetPoint("TOP")
-        self.ItemLevelFrame.levelString:SetTextColor(1, 1, 0.4)
+        self.ItemLevelFrame.levelString:SetTextColor(1, 0.82, 0)
         LibEvent:trigger("ITEMLEVEL_FRAME_CREATED", self.ItemLevelFrame, self)
     end
     if (TinyInspectDB and TinyInspectDB.EnableItemLevel) then
@@ -450,7 +450,7 @@ local function ChatItemLevel(Hyperlink)
 end
 
 local function filter(self, event, msg, ...)
-    if (TinyInspectDB and TinyInspectDB.EnableItemLevelChat) then
+    if (TinyInspectDB and TinyInspectDB.EnableItemLevel and TinyInspectDB.EnableItemLevelChat) then
         msg = msg:gsub("(|Hitem:%d+:.-|h.-|h)", ChatItemLevel)
     end
     return false, msg, ...
