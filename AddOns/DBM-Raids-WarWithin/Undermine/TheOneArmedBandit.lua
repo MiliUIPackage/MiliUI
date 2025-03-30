@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2644, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250321071449")
+mod:SetRevision("20250328080509")
 mod:SetCreatureID(228458)
 mod:SetEncounterID(3014)
 mod:SetHotfixNoticeRev(20250209000000)
@@ -86,7 +86,7 @@ local timerWitheringFlamesCD					= mod:NewCDNPTimer(18.2, 471927, nil, nil, nil,
 mod:AddNamePlateOption("NPAuraOnDLC", 460973, true)
 --Boss
 mod:AddTimerLine(DBM_COMMON_L.BOSS)
-local warnCrushed								= mod:NewTargetNoFilterAnnounce(460430, 4)
+local warnCrushed								= mod:NewTargetNoFilterAnnounce(460430, 4, nil, false, 2)
 local warnFoulExhaust							= mod:NewCountAnnounce(469993, 2)
 local warnHighRoller							= mod:NewYouAnnounce(460444, 1)
 
@@ -142,8 +142,8 @@ function mod:OnCombatStart(delay)
 		timerSpintoWinCD:Start(string.format("v%s-%s", 14.8-delay, 16.7-delay), 1)
 		timerTheBigHitCD:Start(string.format("v%s-%s", 18.1-delay, 20.6-delay), 1)
 	else
-		timerTheBigHitCD:Start(string.format("v%s-%s", 13.8-delay, 15.6-delay), 1)
-		timerSpintoWinCD:Start(string.format("v%s-%s", 18.0-delay, 20.6-delay), 1)
+		timerTheBigHitCD:Start(string.format("v%s-%s", 10.8-delay, 15.6-delay), 1)
+		timerSpintoWinCD:Start(string.format("v%s-%s", 17.3-delay, 20.6-delay), 1)
 	end
 	self:EnablePrivateAuraSound(465325, "lineyou", 17)
 	if self.Options.NPAuraOnGaze or self.Options.NPAuraOnDLC then
@@ -168,7 +168,7 @@ function mod:SPELL_CAST_START(args)
 		elseif self:IsHeroic() then
 			timerSpintoWinCD:Start("v60.9-63.4", self.vb.spinCount+1)
 		else
-			timerSpintoWinCD:Start("v80.4-86.7", self.vb.spinCount+1)
+			timerSpintoWinCD:Start("v78.6-86.7", self.vb.spinCount+1)
 		end
 		--Stop other timers?
 		--timerPaylineCD:Stop()
@@ -199,11 +199,11 @@ function mod:SPELL_CAST_START(args)
 				timerPaylineCD:Start(16.4, self.vb.paylineCount+1)
 				timerTheBigHitCD:Start("v22.7-23.1", self.vb.bigHitCount+1)
 				timerFoulExhaustCD:Start("v16.6-18.9", self.vb.foulExhaustCount+1)
-			elseif self:IsHeroic() then--Heroic swaps payline and bighit compared to normal
+			elseif self:IsHeroic() or self:IsLFR() then--Heroic/LFR swaps payline and bighit compared to normal
 				timerPaylineCD:Start("v11.1-11.8", self.vb.paylineCount+1)
 				timerFoulExhaustCD:Start("v16.0-16.7", self.vb.foulExhaustCount+1)
-				timerTheBigHitCD:Start("v22.1-22.8", self.vb.bigHitCount+1)
-			else--Normal and LFR
+				timerTheBigHitCD:Start("v22.1-23", self.vb.bigHitCount+1)
+			else
 				timerTheBigHitCD:Start("v11.9-13.1", self.vb.bigHitCount+1)
 				timerFoulExhaustCD:Start("v16.6-18.9", self.vb.foulExhaustCount+1)
 				timerPaylineCD:Start("v24-25.2", self.vb.paylineCount+1)
@@ -213,7 +213,7 @@ function mod:SPELL_CAST_START(args)
 				timerPaylineCD:Start(5, self.vb.paylineCount+1)
 				timerFoulExhaustCD:Start("v9.5-9.9", self.vb.foulExhaustCount+1)
 				timerTheBigHitCD:Start("v16.0-16.7", self.vb.bigHitCount+1)
-			elseif self:IsHeroic() then
+			elseif self:IsHeroic() or self:IsLFR() then
 				timerPaylineCD:Start("v5.9-7", self.vb.paylineCount+1)
 				timerFoulExhaustCD:Start("v10.7-11.8", self.vb.foulExhaustCount+1)
 				timerTheBigHitCD:Start("v16.8-18", self.vb.bigHitCount+1)
@@ -234,7 +234,7 @@ function mod:SPELL_CAST_START(args)
 		timerFoulExhaustCD:Start(10.6, self.vb.foulExhaustCount+1)
 		timerTheBigHitCD:Start(16.6, self.vb.bigHitCount+1)
 	elseif spellId == 472178 then
-		if self:CheckBossDistance(args.sourceGUID, false, 6450, 18) then
+		if self:AntiSpam(8, 1) then
 			specWarnBurningBlast:Show()
 			specWarnBurningBlast:Play("watchstep")
 		end
@@ -269,7 +269,7 @@ function mod:SPELL_CAST_START(args)
 		specWarnPayline:Play("specialsoon")
 		--Heroic sees massive variation
 		if self:IsHard() and self:GetStage(1) then
-			timerPaylineCD:Start(self:IsMythic() and 26.7 or "v32.9-42.8", self.vb.paylineCount+1)
+			timerPaylineCD:Start(self:IsMythic() and 26.7 or "v31.6-42.8", self.vb.paylineCount+1)
 		end
 	elseif spellId == 469993 then
 		self.vb.foulExhaustCount = self.vb.foulExhaustCount + 1
@@ -304,7 +304,7 @@ function mod:SPELL_CAST_START(args)
 		timerFoulExhaustCD:Start("v4.1-4.6", self.vb.foulExhaustCount+1)
 		timerPaylineCD:Start("v10.2-10.7", self.vb.paylineCount+1)
 		timerTheBigHitCD:Start("v15.1-15.6", self.vb.bigHitCount+1)
-		timerHotHotHotCD:Start(self:IsEasy() and 29.9 or "v24.3-25.2", 2)
+		timerHotHotHotCD:Start(self:IsEasy() and "v29.9-31.6" or "v24.3-25.2", 2)
 	elseif spellId == 465322 then
 		self.vb.spinCount = 2
 		---@diagnostic disable-next-line: param-type-mismatch

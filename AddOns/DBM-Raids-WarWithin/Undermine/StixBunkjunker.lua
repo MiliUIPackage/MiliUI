@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2642, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250319002603")
+mod:SetRevision("20250329042249")
 mod:SetCreatureID(230322)
 mod:SetEncounterID(3012)
 mod:SetUsedIcons(8, 7, 6, 5, 4, 3, 2, 1)
@@ -21,7 +21,8 @@ mod:RegisterEventsInCombat(
 	"SPELL_AURA_REMOVED 465346 461536 1217685 473115 473066 467117",
 	"SPELL_PERIODIC_DAMAGE 464854 464248",
 	"SPELL_PERIODIC_MISSED 464854 464248",
-	"UNIT_DIED"
+	"UNIT_DIED",
+	"UNIT_POWER_UPDATE player"
 --	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
 
@@ -45,6 +46,7 @@ mod:RegisterEventsInCombat(
 mod:AddTimerLine(DBM:GetSpellName(464399))
 local warnSorted									= mod:NewTargetNoFilterAnnounce(465346, 3)
 local warnInfectedbite								= mod:NewCountAnnounce(466748, 4, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(466748))--Player
+local warnRollingRubbish							= mod:NewCountAnnounce(461536, 1, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(461536), nil, nil, 2)--Player
 
 local specWarnElectroSorting						= mod:NewSpecialWarningCount(464399, nil, nil, DBM_COMMON_L.BALLS.. "+" ..DBM_COMMON_L.ADDS, 2, 2)
 local specWarnSorted								= mod:NewSpecialWarningYouPos(461536, nil, nil, nil, 1, 2)--Pre target debuff for Rolling Rubbish
@@ -65,7 +67,6 @@ mod:AddSetIconOption("SetIconOnScrapmasters", -31645, true, 5, {8, 7, 6, 5})
 --mod:AddSetIconOption("SetIconOnSmallBomb", -30451, false, 5, {5, 6, 7}, true)
 mod:AddNamePlateOption("NPAuraOnMessedUp", 1217685)
 mod:AddNamePlateOption("NPAuraOnTerritorial", 473066)
---mod:AddPrivateAuraSoundOption(433517, true, 433517, 1)
 --Cleanup Crew
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(30533))
 local warnDumpsterDive								= mod:NewCastAnnounce(466742, 4)--Spammy without way to scope it to specific target
@@ -101,6 +102,7 @@ mod.vb.demolishCount = 0
 mod.vb.meltdownCount = 0
 local castsPerGUID = {}
 local usedMarks, seenGUIDs = {}, {}
+local bigballs = 0
 
 function mod:OnCombatStart(delay)
 	self:SetStage(1)
@@ -123,8 +125,10 @@ function mod:OnCombatStart(delay)
 	else
 		timerIncineratorCD:Start(10-delay, 1)
 		timerDemolishCD:Start(16-delay, 1)
-		timerElectroSortingCD:Start(20.1-delay, 1)
-		timerMeltdownCD:Start(40-delay, 1)
+		timerElectroSortingCD:Start(20.0-delay, 1)
+		if not self:IsLFR() then
+			timerMeltdownCD:Start(40-delay, 1)
+		end
 		timerOverDriveCD:Start(100-delay)
 	end
 	--self:EnablePrivateAuraSound(433517, "runout", 2)
@@ -146,7 +150,7 @@ function mod:SPELL_CAST_START(args)
 		self.vb.sortedIcon = 1
 		specWarnElectroSorting:Show(self.vb.sortingCount)
 		specWarnElectroSorting:Play("specialsoon")
-		timerElectroSortingCD:Start(self:IsHard() and 51.1 or 46.0, self.vb.sortingCount+1)
+		timerElectroSortingCD:Start(self:IsHard() and 51.1 or 45.9, self.vb.sortingCount+1)
 		--Hard reset icons, even if last adds are up, because new adds need prio marking
 		table.wipe(usedMarks)
 		table.wipe(seenGUIDs)
@@ -203,6 +207,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			self:SetIcon(args.destName, icon, 24)--Autoclear after 24 seconds in case player dies before getting 461536
 		end
 		if args:IsPlayer() then
+			bigballs = 0
 			specWarnSorted:Show(self:IconNumToTexture(icon))
 			specWarnSorted:Play("mm"..icon)
 			yellSorted:Yell(icon, icon)
@@ -317,15 +322,17 @@ function mod:SPELL_AURA_REMOVED(args)
 	elseif spellId == 467117 and self:IsInCombat() then
 		timerOverdrive:Stop()
 		if self:IsHard() then
-			timerIncineratorCD:Start(13.2, self.vb.IncinCount+1)
-			timerDemolishCD:Start(19.8, self.vb.demolishCount+1)
-			timerElectroSortingCD:Start(24.2, self.vb.sortingCount+1)
-			timerMeltdownCD:Start(46.5, self.vb.meltdownCount+1)
+			timerIncineratorCD:Start("v13.0-14.5", self.vb.IncinCount+1)
+			timerDemolishCD:Start("v19.8-21.2", self.vb.demolishCount+1)
+			timerElectroSortingCD:Start("v24.2-25.6", self.vb.sortingCount+1)
+			timerMeltdownCD:Start("v46.5-47.8", self.vb.meltdownCount+1)
 		else
-			timerIncineratorCD:Start(12.2, self.vb.IncinCount+1)
-			timerDemolishCD:Start(18.2, self.vb.demolishCount+1)
-			timerElectroSortingCD:Start(22.3, self.vb.sortingCount+1)
-			timerMeltdownCD:Start(42.2, self.vb.meltdownCount+1)
+			timerIncineratorCD:Start("v12.2-13.4", self.vb.IncinCount+1)
+			timerDemolishCD:Start("v18.2-19.4", self.vb.demolishCount+1)
+			timerElectroSortingCD:Start("v22.3-23.4", self.vb.sortingCount+1)
+			if not self:IsLFR() then
+				timerMeltdownCD:Start(42.2, self.vb.meltdownCount+1)
+			end
 		end
 	end
 end
@@ -347,6 +354,22 @@ function mod:UNIT_DIED(args)
 		--timerDumpsterDiveCD:Stop(args.destGUID)
 --	elseif cid == 230863 then--Discarded Doomsplosive
 
+	end
+end
+
+function mod:UNIT_POWER_UPDATE(_, powerType)
+	if powerType == "ALTERNATE" then
+		local power = UnitPower("player", 10)
+		if power >= 200 and bigballs < 200 then
+			---@diagnostic disable-next-line: param-type-mismatch
+			warnRollingRubbish:Show("2/3")
+			warnRollingRubbish:Play("mediumball")
+		elseif power >= 100 and bigballs < 100 then
+			---@diagnostic disable-next-line: param-type-mismatch
+			warnRollingRubbish:Show("3/3")
+			warnRollingRubbish:Play("bigball")
+		end
+		bigballs = power
 	end
 end
 

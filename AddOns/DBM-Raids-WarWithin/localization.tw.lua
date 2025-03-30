@@ -134,7 +134,7 @@ L:SetOptionLocalization({
 L= DBM:GetModLocalization(2644)
 
 L:SetMiscLocalization({
-	BaitCoil	= "線圈誘餌"
+	BaitCoil	= "引誘線圈"
 })
 
 ---------------------------

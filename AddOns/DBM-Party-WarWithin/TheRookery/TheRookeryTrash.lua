@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("TheRookeryTrash", "DBM-Party-WarWithin", 3)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250317033204")
+mod:SetRevision("20250320200628")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
@@ -78,7 +78,7 @@ function mod:VoidCrushtarget(targetname)
 	if targetname == UnitName("player") then
 		if self:AntiSpam(4, 5) then
 			specWarnVoidCrush:Show()
-			specWarnVoidCrush:Play("runout")
+			specWarnVoidCrush:Play("scatter")
 		end
 		yellVoidCrush:Yell()
 	end

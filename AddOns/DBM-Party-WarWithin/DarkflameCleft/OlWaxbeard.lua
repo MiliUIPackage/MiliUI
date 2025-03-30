@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2569, "DBM-Party-WarWithin", 1, 1210)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250307004102")
+mod:SetRevision("20250324070519")
 mod:SetCreatureID(210149)
 mod:SetEncounterID(2829)
 mod:SetHotfixNoticeRev(20250222000000)
@@ -51,7 +51,7 @@ local specWarnUnderhandedTactic				= mod:NewSpecialWarningSwitchCount(428268, "D
 local timerUnderhandedTacticCD				= mod:NewCDCountTimer(80, 428268, nil, nil, nil, 1, nil, DBM_COMMON_L.MYTHIC_ICON)
 local timerRecklessChargeCD					= mod:NewVarCountTimer("v35.2-36.2", 422122, nil, nil, nil, 3)--Can sometimes skip casts
 local timerRockBusterCD						= mod:NewVarCountTimer("v13.4-37.7", 422245, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Can also sometimes skip casts
-local timerLuringCandleCD					= mod:NewCDCountTimer(38.9, 422162, nil, nil, nil, 1)
+local timerLuringCandleCD					= mod:NewCDCountTimer(38.4, 422162, nil, nil, nil, 1)
 
 --local castsPerGUID = {}
 mod.vb.chargeCount = 0
@@ -68,7 +68,7 @@ function mod:OnCombatStart(delay)
 	timerLuringCandleCD:Start(6-delay, 1)
 	timerRecklessChargeCD:Start(28-delay, 1)
 	if self:IsMythic() then
-		timerUnderhandedTacticCD:Start(49.3-delay, 1)
+		timerUnderhandedTacticCD:Start(9-delay, 1)
 	end
 end
 
@@ -140,7 +140,12 @@ function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg)
 		self.vb.tacticsCount = self.vb.tacticsCount + 1
 		specWarnUnderhandedTactic:Show(self.vb.tacticsCount)
 		specWarnUnderhandedTactic:Play("targetchange")
-		timerUnderhandedTacticCD:Start(nil, self.vb.tacticsCount+1)
+		--The alternation of 48 and 32 results in old 80 timing combined
+		if self.vb.tacticsCount % 2 == 0 then
+			timerUnderhandedTacticCD:Start(48, self.vb.tacticsCount+1)
+		else
+			timerUnderhandedTacticCD:Start(32, self.vb.tacticsCount+1)
+		end
 	end
 end
 mod.CHAT_MSG_RAID_WARNING = mod.CHAT_MSG_RAID_BOSS_EMOTE

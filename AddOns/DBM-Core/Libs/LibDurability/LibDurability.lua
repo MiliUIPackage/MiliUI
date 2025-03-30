@@ -24,7 +24,7 @@ local frame = LD.frame
 local next, type, error, tonumber, format, match = next, type, error, tonumber, string.format, string.match
 local Ambiguate, GetTime, GetInventoryItemDurability, IsInGroup, IsInRaid = Ambiguate, GetTime, GetInventoryItemDurability, IsInGroup, IsInRaid
 local SendAddonMessage = C_ChatInfo.SendAddonMessage
-local pName = UnitName("player")
+local pName = UnitNameUnmodified("player")
 
 local function GetDurability()
 	local curTotal, maxTotal, broken = 0, 0, 0

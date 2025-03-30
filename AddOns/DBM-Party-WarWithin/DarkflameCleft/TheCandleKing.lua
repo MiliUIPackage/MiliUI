@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2560, "DBM-Party-WarWithin", 1, 1210)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250223095900")
+mod:SetRevision("20250324070519")
 mod:SetCreatureID(208745)
 mod:SetEncounterID(2787)
 mod:SetUsedIcons(8, 7, 6, 5, 4)
@@ -47,7 +47,7 @@ local yellDarkflamePickaxeFades				= mod:NewShortFadesYell(422648)
 local specWarnParanoidMind					= mod:NewSpecialWarningInterruptCount(426145, "HasInterrupt", nil, nil, 1, 2)
 local specWarnGTFO							= mod:NewSpecialWarningGTFO(421067, nil, nil, nil, 1, 8)
 
-local timerEarieMoldsCD						= mod:NewVarCountTimer("v21.8-26.8", 420659, nil, nil, nil, 1)
+local timerEarieMoldsCD						= mod:NewVarCountTimer("v21.8-27.9", 420659, nil, nil, nil, 1)
 local timerDarkflamePickaxeCD				= mod:NewVarCountTimer("v23.1-27.9", 422648, nil, nil, nil, 3)
 local timerParanoidMindCD					= mod:NewVarCountTimer("v10.9-15.8", 426145, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--Usually 12.1, probably need more timer correction
 local timerThrowDarkflameCD					= mod:NewVarCountTimer("v21.9-37.6", 420696, nil, nil, nil, 3)--TODO, refine it with timer correction
@@ -68,10 +68,10 @@ function mod:OnCombatStart(delay)
 	self.vb.mindCount = 0
 	self.vb.throwCount = 0
 	timerEarieMoldsCD:Start(6-delay, 1)
-	timerDarkflamePickaxeCD:Start(15.4-delay, 1)
-	timerParanoidMindCD:Start(10.9-delay, 1)
+	timerDarkflamePickaxeCD:Start(13.4-delay, 1)
+	timerParanoidMindCD:Start(9.4-delay, 1)
 	if self:IsMythic() then
-		timerThrowDarkflameCD:Start(21.4-delay, 1)
+		timerThrowDarkflameCD:Start(20.7-delay, 1)
 		self:EnablePrivateAuraSound(420696, "movetostatue", 17)--Throw Darkflame
 		self:EnablePrivateAuraSound(453278, "movetostatue", 17, 420696)--Register Additional Throw Darkflame ID
 	end

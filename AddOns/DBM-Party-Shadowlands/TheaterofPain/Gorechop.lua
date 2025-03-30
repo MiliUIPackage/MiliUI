@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2401, "DBM-Party-Shadowlands", 6, 1187)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250317020654")
+mod:SetRevision("20250324013038")
 mod:SetCreatureID(162317)
 mod:SetEncounterID(2365)
 mod:SetZone(2293)
@@ -29,8 +29,8 @@ local specWarnHatefulStrike			= mod:NewSpecialWarningDefensive(323515, nil, nil,
 local specWarnGTFO					= mod:NewSpecialWarningGTFO(323130, nil, nil, nil, 1, 8)
 
 local timerMeatHooksCD				= mod:NewCDCountTimer(20.2, 322795, nil, nil, nil, 1)--"v20.6-24.3"
-local timerTenderizingSmashCD		= mod:NewCDCountTimer(19.4, 318406, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)--19.4 unless delayed by another spell
-local timerHatefulStrikeCD			= mod:NewCDCountTimer(14.6, 323515, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--14.6 unless delayed by other spells (up to 19.4)
+local timerTenderizingSmashCD		= mod:NewCDCountTimer(19.0, 318406, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)--19.4 unless delayed by another spell
+local timerHatefulStrikeCD			= mod:NewCDCountTimer(14.1, 323515, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--14.6 unless delayed by other spells (up to 19.4)
 
 mod.vb.hookCount = 0
 mod.vb.smashCount = 0
