@@ -1845,6 +1845,8 @@ L["Rokmora"] = "洛克莫拉"
 L["Rook Spiderling"] = "鸦堡小蜘蛛"
 L["Rook Spinner"] = "鸦堡织网蛛"
 L["rookeryShortname"] = "驭雷"
+L["rookItemDescription"] = [=[在击败|cFFFF0000凯里欧斯|r后,拾取|cFF00FF00雷鸫之羽|r 
+对着周围的|cFF00FF00缚链雷鸫|r使用,来获得此增益,持续5分钟.]=]
 L["Root"] = "定身"
 L["Rotation"] = "循环"
 L["Rotbow Ranger"] = "腐弓游侠"
