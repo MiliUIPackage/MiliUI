@@ -6,12 +6,12 @@
 ![wakatime](https://wakatime.com/badge/user/b2ffce60-8269-440f-81a0-7316f36a6085/project/82ff5b42-1fec-416d-9d8d-50b586ceea0c.svg)
 
 [![Discord](https://img.shields.io/discord/1122747237546610760?label=Discord&color=5865F2)](https://discord.gg/9PSe3fKQGJ)
+[![KOOK](https://img.shields.io/badge/KOOK-87eb00)](https://kook.top/q4T7yp)
 [![Curseforge](https://img.shields.io/curseforge/dt/409666?label=CurseForge&color=F16436)](https://www.curseforge.com/wow/addons/cell)
 [![Wago](https://img.shields.io/badge/Wago-Cell-ad1319)](https://addons.wago.io/addons/cell)
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/enderneko)
-
-<a href="https://afdian.com/a/enderneko"><img width="200" src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" alt=""></a >
+[![afdian](https://raw.githubusercontent.com/enderneko/ImagePosts/main/1/afdian.png)](https://afdian.com/a/enderneko)
 
 Cell 团队框架的灵感来主要来自 CompactRaid 与 Grid2，同时也稍微参考了 Aptechka 和 VuhDo。
 Cell 不轻量，也并非全能，其目标是提供相比以往更好的用户体验。

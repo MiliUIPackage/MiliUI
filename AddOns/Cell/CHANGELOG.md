@@ -1,14 +1,10 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r249-release...70557d8982ca1a6778bce12bf60de73715fe0cfd)
+# [Full Changelog](https://github.com/enderneko/Cell/compare/r251-release...be06bd183a5fd9676ff6d96cdf04e1f4b0ce076a)
 
-- Fix "Healers" indicator
-- Fix healthText issue
-- Fix raid debuff glow
-- Fix size of Dispels
-- Fix nil error #354 #355
-- Fix spotlight placeholders
-- Change TankActiveMitigation to spellID
-- Attempt to fix the aura list height
-- Update Liberation of Undermine debuffs
-- Update some targeted spells
-- Update button backdrops
+Okami:
+
+- Import fix due to powerfilter expected values (#367)
+
+enderneko:
+
+- Remove global names for custom indicators
 - Update locales

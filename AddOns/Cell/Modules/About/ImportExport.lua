@@ -48,9 +48,16 @@ local function DoImport(noReload)
                 F.FilterInvalidSpells(layout["indicators"][i]["auras"])
             end
         end
+
         -- powerFilters
-        if Cell.flavor ~= imported.flavor then
-            layout.powerFilters = F.Copy(Cell.defaults.layout.powerFilters)
+        for class, t in pairs(Cell.defaults.layout.powerFilters) do
+            if type(layout["powerFilters"][class]) ~= type(t) then
+                if type(t) == "table" then
+                    layout["powerFilters"][class] = F.Copy(t)
+                else
+                    layout["powerFilters"][class] = true
+                end
+            end
         end
     end
 

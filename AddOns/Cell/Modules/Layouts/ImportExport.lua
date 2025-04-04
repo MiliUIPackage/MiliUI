@@ -28,6 +28,17 @@ local function DoImport(overwriteExisting)
         end
     end
 
+    -- powerFilters
+    for class, t in pairs(Cell.defaults.layout.powerFilters) do
+        if type(layout["powerFilters"][class]) ~= type(t) then
+            if type(t) == "table" then
+                layout["powerFilters"][class] = F.Copy(t)
+            else
+                layout["powerFilters"][class] = true
+            end
+        end
+    end
+
     -- add missing indicators
     if F.Getn(builtInFound) ~= Cell.defaults.builtIns then
         for indicatorName, index in pairs(Cell.defaults.indicatorIndices) do

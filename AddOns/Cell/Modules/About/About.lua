@@ -186,7 +186,7 @@ local function CreateSpecialThanksPane()
         "|cff00ffff露露缇娅, Reat TV(YouTube), 钛锬, warbaby(爱不易)|r\n"..
         "|cffff0000Wago:|r Ora\n"..
         "|cffff3333YouTube:|r AutomaticJak, JFunkGaming, yumytv\n"..
-        "|cff5662f6Discord:|r |cff7fff00clankz.|r, |cff7fff00DreadMesh|r, |cff7fff00Missgunst|r, |cff00ffffVollmerino|r, aba, BinarySunshine, Bruds, Gharr, honeyhoney, leaKsi, Serghei, Xepheris"
+        "|cff5662f6Discord:|r |cff7fff00clankz.|r, |cff7fff00DreadMesh|r, |cff7fff00Missgunst|r, |cff00ffffVollmerino|r, aba, BinarySunshine, Bruds, Gharr, honeyhoney, leaKsi, Serghei, swirl, Xepheris"
     )
 end
 
@@ -430,7 +430,7 @@ end
 
 local function CreateLinksPane()
     local linksPane = Cell.CreateTitledPane(aboutTab, L["Links"], 422, 100)
-    linksPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -460)
+    linksPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -480)
 
     local current
 
@@ -468,13 +468,21 @@ local function CreateLinksPane()
     end)
     curseforge:SetPoint("TOPLEFT", github, "TOPRIGHT", 7, 0)
 
+    --! wago
+    local wago = CreateLink(linksPane, "wago", "Interface\\AddOns\\Cell\\Media\\Links\\wago.tga", function()
+        current = "https://addons.wago.io/addons/cell"
+        linksEB:SetText(current)
+        linksEB:ClearFocus()
+    end)
+    wago:SetPoint("TOPLEFT", curseforge, "TOPRIGHT", 7, 0)
+
     --! discord
     local discord = CreateLink(linksPane, "discord", "Interface\\AddOns\\Cell\\Media\\Links\\discord.tga", function()
         current = "https://discord.gg/9PSe3fKQGJ"
         linksEB:SetText(current)
         linksEB:ClearFocus()
     end)
-    discord:SetPoint("TOPLEFT", curseforge, "TOPRIGHT", 7, 0)
+    discord:SetPoint("TOPLEFT", wago, "TOPRIGHT", 7, 0)
 
     --! kook
     local kook = CreateLink(linksPane, "kook", "Interface\\AddOns\\Cell\\Media\\Links\\kook.tga", function()
@@ -514,7 +522,7 @@ end
 -------------------------------------------------
 local function CreateImportExportPane()
     local iePane = Cell.CreateTitledPane(aboutTab, L["Import & Export All Settings"], 422, 50)
-    iePane:SetPoint("TOPLEFT", 5, -575)
+    iePane:SetPoint("TOPLEFT", 5, -595)
 
     local importBtn = Cell.CreateButton(iePane, L["Import"], "accent-hover", {134, 20})
     importBtn:SetPoint("TOPLEFT", 5, -27)
