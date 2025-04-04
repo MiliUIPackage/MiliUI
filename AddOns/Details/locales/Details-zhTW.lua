@@ -2333,6 +2333,10 @@ L["Shadow Color"] = "陰影顏色"
 L["Color of the text shadow"] = "文字陰影的顏色"
 L["Hide Yellow Helptips"] = "隱藏黃色說明提示"
 L["Those yellow boxes with an arrow and a text showing a text with tips."] = "那些顯示提示文字，有箭頭的黃色方框。"
+L["Record Tank Avoidance"] = "記錄坦克減傷"
+L["Record tank avoidance, this information is used in the Avoidance tank for tanks."] = "記錄坦克的閃躲招架等減傷，這資訊會用在坦克的減傷面板。"
+L["Record Energy Resources"] = "記錄能量資源"
+L["Energy resources are mana, rage, energy, runic power, and others."] = "能量資源包含法力、怒氣、能量、符能，以及其他。"
 
 -- frames\window_plater.lua 更改字體大小
 -- 要加上 local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
