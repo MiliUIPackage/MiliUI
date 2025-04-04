@@ -1,5 +1,5 @@
 		-------------------------------------------------
-		-- Paragon Reputation 1.61 by Fail US-Ragnaros --
+		-- Paragon Reputation 1.62 by Fail US-Ragnaros --
 		-------------------------------------------------
 
 		  --[[	  Special thanks to Ammako for
@@ -565,7 +565,7 @@ PR.PARAGON_DATA = {
 				rewards = {
 					{ -- Bilgewater Bombardier
 						type = MOUNT,
-						--itemID = 999999, -- PLACEHOLDER
+						itemID = 229957,
 						mountID = 2295,
 					},
 				},
@@ -576,7 +576,7 @@ PR.PARAGON_DATA = {
 				rewards = {
 					{ -- Blackwater Bonecrusher
 						type = MOUNT,
-						--itemID = 999999, -- PLACEHOLDER
+						itemID = 229937,
 						mountID = 2274,
 					},
 				},
@@ -598,7 +598,7 @@ PR.PARAGON_DATA = {
 				rewards = {
 					{ -- Steamwheedle Supplier
 						type = MOUNT,
-						--itemID = 999999, -- PLACEHOLDER
+						itemID = 229943,
 						mountID = 2281,
 					},
 				},
@@ -609,7 +609,7 @@ PR.PARAGON_DATA = {
 				rewards = {
 					{ -- Venture Co-ordinator
 						type = MOUNT,
-						--itemID = 999999, -- PLACEHOLDER
+						itemID = 229951,
 						mountID = 2289,
 					},
 				},
