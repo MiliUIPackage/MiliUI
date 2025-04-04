@@ -1,4 +1,4 @@
-## Interface: 110007, 110100
+## Interface: 110100
 ## Category: DBM
 ## Title:|cffffe00a<|r|cffff7d0aDBM Tests|r|cffffe00a>|r |cff69ccf0Test runner for DBM|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM 測試|r|cffffe00a>|r |cff69ccf0DBM的測試運行|r

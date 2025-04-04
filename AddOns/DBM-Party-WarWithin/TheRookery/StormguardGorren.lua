@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2567, "DBM-Party-WarWithin", 3, 1268)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250317022520")
+mod:SetRevision("20250330105426")
 mod:SetCreatureID(207205)
 mod:SetEncounterID(2861)
 --mod:SetHotfixNoticeRev(20220322000000)
@@ -57,7 +57,7 @@ function mod:OnCombatStart(delay)
 	else--Heroic and Mythic 0
 		timerChaoticCorruptionCD:Start(5.8, 1)
 		timerCrushRealityCD:Start(9.4, 1)
-		timerDarkGravityCD:Start(30.1, 1)
+		timerDarkGravityCD:Start(17, 1)
 	end
 	if self.Options.InfoFrame and self:IsMythic() then
 		DBM.InfoFrame:SetHeader(DBM:GetSpellName(424797))

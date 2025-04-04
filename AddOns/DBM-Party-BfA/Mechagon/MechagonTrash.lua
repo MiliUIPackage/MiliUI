@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("MechagonTrash", "DBM-Party-BfA", 11)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250308115734")
+mod:SetRevision("20250330040931")
 mod:SetZone(2097)
 mod:RegisterZoneCombat(2097)
 --mod:SetModelID(47785)
@@ -46,7 +46,7 @@ local warnRippingSlash				= mod:NewStackAnnounce(299474, 2, nil, "Tank|Healer")-
 local warnNanoslicer				= mod:NewStackAnnounce(299502, 2, nil, "Tank|Healer")--Mechagon Trooper
 local warnChainblade				= mod:NewStackAnnounce(293670, 2, nil, "Tank|Healer")--Workshop Defender
 local warnShrunk					= mod:NewTargetNoFilterAnnounce(284219, 1)
-local FieryJaws						= mod:NewTargetNoFilterAnnounce(1217819, 2, nil, "Healer|RemoveMagic")--(S2 confirmed)
+local FieryJaws						= mod:NewTargetNoFilterAnnounce(1217819, 2, nil, false, 2)--(S2 confirmed). Spammy so off by default
 local warnCorrosiveGunk				= mod:NewSpellAnnounce(1215412, 2)--(S2 confirmed)
 
 local specWarnMegaDrill				= mod:NewSpecialWarningSpell(1215409, nil, nil, nil, 2, 2)--Waste Processing Unit (294324 old version) (S2 confirmed)

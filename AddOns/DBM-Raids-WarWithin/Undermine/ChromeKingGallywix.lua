@@ -2,12 +2,12 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2646, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250328093847")
+mod:SetRevision("20250330155023")
 mod:SetCreatureID(231075)
 mod:SetEncounterID(3016)
 mod:SetUsedIcons(8, 7, 6)
-mod:SetHotfixNoticeRev(20250316000000)
-mod:SetMinSyncRevision(20250316000000)
+mod:SetHotfixNoticeRev(20250330000000)
+mod:SetMinSyncRevision(20250330000000)
 mod:SetZone(2769)
 mod.respawnTime = 29
 
@@ -1065,7 +1065,7 @@ end
 
 function mod:UNIT_SPELLCAST_START(_, _, spellId)
 	if spellId == 469286 then
-		if self:GetStage(1) then--LFR backup
+		if self:GetStage(1) and not self:IsMythic() and not self:IsStory() then--LFR backup
 			self:SetStage(2)
 			warnPhase:Show(DBM_CORE_L.AUTO_ANNOUNCE_TEXTS.stage:format(2))
 			warnPhase:Play("ptwo")

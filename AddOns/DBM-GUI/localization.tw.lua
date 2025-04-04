@@ -654,6 +654,7 @@ L.ExportTestFailedNonAnonString		= "警告：字串 %q 看起來非匿名化。"
 L.CreatedTest						= "建立測試包含 %d 事件於 %.1f 秒。"
 L.NoLogsFound						= "紀錄器匯入不包含日誌數據。"
 L.NoTestDataAvailable				= "無可用測試數據"
+L.TestDataLoading					= "載入測試中..."
 L.NoLogSelected						= "測試建立失敗：未選擇日誌。"
 L.LogAlreadyImported				= "測試建立失敗：測試已經匯入。"
 
