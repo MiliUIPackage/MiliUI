@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 12.1 - 2025-03-31
+### Fixed
+- Compatibility issue with TSM
+
 ## 12.0 - 2025-03-01
 ### Added
 - Transmog sets likes ensembles and arsenals can now also filtered

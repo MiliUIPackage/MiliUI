@@ -145,9 +145,11 @@ hooksecurefunc("MerchantFrame_UpdateAltCurrency", function(index, indexOnPage, c
 	end
 end);
 
-local origGetMerchantItemInfo = GetMerchantItemInfo;
-GetMerchantItemInfo = function(index)
-	return origGetMerchantItemInfo(GetCachedIndex(index));
+if not addon.Util.IsMainline then
+	local origGetMerchantItemInfo = GetMerchantItemInfo;
+	GetMerchantItemInfo = function(index)
+		return origGetMerchantItemInfo(GetCachedIndex(index));
+	end
 end
 
 local origCanAffordMerchantItem = CanAffordMerchantItem;
