@@ -5,7 +5,7 @@
 ## Notes-zhTW: MCL |n|n顯示坐騎收藏記錄，從小地圖旁插件列表內可進入，若顯示開啟失敗則多點幾次即可。
 ## DefaultState: disabled
 ## Category-zhTW: 收藏
-## Version: 2.4.6
+## Version: 2.5.2
 ## LoadWith: Blizzard_Collections
 ## SavedVariables: MCL_DB, MOUNTLIST, MCL_PINNED, MCL_SETTINGS
 ## Author: Discord: Cam#7332
@@ -14,6 +14,10 @@
 ## AddonCompartmentFunc: MCL_OnAddonCompartmentClick
 
 libs\load_libs.xml
+locales\MCL_enUS.lua
+locales\MCL_zhCN.lua
+locales\MCL_zhTW.lua
+locales.lua
 button.xml
 frame.xml
 data.lua

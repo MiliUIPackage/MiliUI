@@ -15,6 +15,8 @@ local main_frame_height = 640
 
 local r,g,b,a
 
+local L = core.L
+
 
 local function ScrollFrame_OnMouseWheel(self, delta)
 	local newValue = self:GetVerticalScroll() - (delta * 50);
@@ -144,7 +146,7 @@ function MCL_frames:SetTabs()
         tab.title = tab:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
         tab.title:SetPoint("LEFT", 0, 0)       
 
-		tab.title:SetText(tostring(v.name));
+		tab.title:SetText(tostring(L[v.name]));
 		if v.icon ~= nil then
 			tab.icon = CreateFrame("Frame", nil, tab);
 			tab.icon:SetSize(32, 32)
@@ -155,7 +157,7 @@ function MCL_frames:SetTabs()
 		end
 		tab:SetScript("OnClick", Tab_OnClick);
         tab:SetWidth(nav_width)
-		if v.name == "釘選" then
+		if v.name == "Pinned" then
 			tab.content = CreateFrame("Frame", "PinnedTab", tabFrame.ScrollFrame);
 		else
 			tab.content = CreateFrame("Frame", nil, tabFrame.ScrollFrame);
@@ -165,9 +167,9 @@ function MCL_frames:SetTabs()
 
 		table.insert(contents, tab.content);
 
-		if tab.title:GetText() == "總覽" then
+		if tab.title:GetText() == L["Overview"] then
 			tab:SetPoint("TOPLEFT", tabFrame, "TOPLEFT", 0, 20);
-		elseif (i == 1) or tab.title:GetText() == "總覽" then
+		elseif (i == 1) or tab.title:GetText() == L["Overview"] then
 			tab:SetPoint("TOPLEFT", tabFrame, "TOPLEFT", 0, -10);
 		else
 			tab:SetPoint("BOTTOM", _G[frameName.."Tab"..(i-1)], "BOTTOM", 0, -30);
@@ -229,29 +231,25 @@ function MCL_frames:progressBar(relativeFrame, top)
 end
 
 function MCL_frames:createContentFrame(relativeFrame, title)
-	--Creating a frame to place expansion content in.
-	local frame = CreateFrame("Frame", nil, relativeFrame, "BackdropTemplate");
-
-	--category:SetSize(490, boxSize);
-	frame:SetWidth(490)
-	frame:SetHeight(30)
-	frame:SetPoint("TOPLEFT", relativeFrame, nav_width+30, 0);
+    local frame = CreateFrame("Frame", nil, relativeFrame, "BackdropTemplate")
+    frame:SetWidth(490)
+    frame:SetHeight(30)
+    frame:SetPoint("TOPLEFT", relativeFrame, nav_width + 30, 0)
     frame:SetBackdropColor(0, 1, 0)
-	frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	frame.title:SetPoint("LEFT", 0, 0)
-	frame.title:SetText(title)
+    frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    frame.title:SetPoint("LEFT", 0, 0)
+    frame.title:SetText(L[title]) -- Localized for display
+    frame.name = title -- Store non-localized name
 
+    if title ~= "Pinned" then
+        frame.pBar = core.Frames:progressBar(frame)
+        frame.pBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, -15)
+        frame.pBar:SetWidth(880)
+        frame.pBar:SetHeight(20)
+    end
 
-	if title ~= "Pinned" then
-		frame.pBar = core.Frames:progressBar(frame)
-		frame.pBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, -15)
-		frame.pBar:SetWidth(880)
-		frame.pBar:SetHeight(20)
-	end
-
-	return frame;
+    return frame
 end
-
 
 
 function MCL_frames:createOverviewCategory(set, relativeFrame)
@@ -260,77 +258,74 @@ function MCL_frames:createOverviewCategory(set, relativeFrame)
     local oddFrame, evenFrame = false, false
     local oddOverFlow, evenOverFlow = 0, 0
 
-	for k,v in pairs(set) do
-		if (v.name ~= "Overview") and (v.name ~= "Pinned") then
-			local frame = CreateFrame("Frame", nil, relativeFrame, "BackdropTemplate")
-			frame:SetWidth(60);
-			frame:SetHeight(60);
+    for k, v in pairs(set) do
+        if (v.name ~= "Overview") and (v.name ~= "Pinned") then
+            local frame = CreateFrame("Frame", nil, relativeFrame, "BackdropTemplate")
+            frame:SetWidth(60)
+            frame:SetHeight(60)
 
-			if (first == true) then
-				frame:SetPoint("TOPLEFT", relativeFrame, "TOPLEFT", 0, -80);
-			elseif (col % 2 == 0) then
-				if evenFrame then
-					frame:SetPoint("TOPRIGHT", evenFrame, "TOPRIGHT", 0, -50);
-				else
-					frame:SetPoint("TOPRIGHT", oddFrame, "TOPRIGHT", 480, 0);
-				end
-			else
-				frame:SetPoint("BOTTOMLEFT", oddFrame, "BOTTOMLEFT", 0, -50);
-			end
+            if (first == true) then
+                frame:SetPoint("TOPLEFT", relativeFrame, "TOPLEFT", 0, -80)
+            elseif (col % 2 == 0) then
+                if evenFrame then
+                    frame:SetPoint("TOPRIGHT", evenFrame, "TOPRIGHT", 0, -50)
+                else
+                    frame:SetPoint("TOPRIGHT", oddFrame, "TOPRIGHT", 480, 0)
+                end
+            else
+                frame:SetPoint("BOTTOMLEFT", oddFrame, "BOTTOMLEFT", 0, -50)
+            end
 
-			first = false
-			frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-			frame.title:SetPoint("TOPLEFT", 0, 0)
-			frame.title:SetText(v.name)
-			
-			local pBar = core.Frames:progressBar(frame)
-			pBar:SetWidth(400)
-			pBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 30)
+            first = false
+            frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+            frame.title:SetPoint("TOPLEFT", 0, 0)
+            frame.title:SetText(L[v.name]) -- Localized for display only
 
-			pBar:HookScript("OnEnter", function()
-				r,g,b,a = pBar:GetStatusBarColor()
-				local temp = pBar:SetStatusBarColor(0.8, 0.5, 0.9, 1)
-			end)
-			pBar:HookScript("OnLeave", function()
-				pBar:SetStatusBarColor(r, g, b, a)
-			end)
-			if v.name == "Unobtainable" then
-				pBar.unobtainable = MCL_SETTINGS.unobtainable
-				if MCL_SETTINGS.unobtainable == true then
-					pBar:GetParent():Hide()
-				end
-			end
+            local pBar = core.Frames:progressBar(frame)
+            pBar:SetWidth(400)
+            pBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 30)
 
-			pBar:SetScript("OnMouseDown", function(self, button)
-				if button == 'LeftButton' then
-					for i,tab in ipairs(core.TabTable) do
-						if tab == v.name then
-							Tab_OnClick(_G["NavTab"..i]);
-						end
-					end
-				end			
-			end)
+            pBar:HookScript("OnEnter", function()
+                r, g, b, a = pBar:GetStatusBarColor()
+                pBar:SetStatusBarColor(0.8, 0.5, 0.9, 1)
+            end)
+            pBar:HookScript("OnLeave", function()
+                pBar:SetStatusBarColor(r, g, b, a)
+            end)
+            if v.name == "Unobtainable" then
+                pBar.unobtainable = MCL_SETTINGS.unobtainable
+                if MCL_SETTINGS.unobtainable == true then
+                    pBar:GetParent():Hide()
+                end
+            end
 
-			if (col % 2 == 0) then
-				evenFrame = frame
-				evenOverFlow = overflow
-			else
-				oddFrame = frame
-				oddOverFlow = overflow
-			end
-			col = col + 1
+            pBar:SetScript("OnMouseDown", function(self, button)
+                if button == 'LeftButton' then
+                    for i, tab in ipairs(core.TabTable) do
+                        if tab == v.name then
+                            Tab_OnClick(_G["NavTab"..i])
+                        end
+                    end
+                end
+            end)
 
-			local t = {
-				name = v.name,
-				frame = pBar
-			}
-	
-			table.insert(core.overviewFrames, t)			
-		end	
+            if (col % 2 == 0) then
+                evenFrame = frame
+                evenOverFlow = overflow
+            else
+                oddFrame = frame
+                oddOverFlow = overflow
+            end
+            col = col + 1
 
-	end
+            local t = {
+                name = v.name, -- Use non-localized name for identification
+                frame = pBar
+            }
 
-
+            table.insert(core.overviewFrames, t)
+        end
+    end
 end
 
 
@@ -368,10 +363,17 @@ function MCL_frames:createCategoryFrame(set, relativeFrame)
         first = false
         category.title = category:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
         category.title:SetPoint("TOPLEFT", 0, 0)
-		category.title:SetText(v.name)
+		local localizedName = L[v.name]
+		if localizedName then
+			category.title:SetText(localizedName)
+		else
+			-- Handle missing translation (e.g., use v.name as a fallback)
+			category.title:SetText(v.name)
+			print("Warning: Missing translation for " .. v.name)
+		end
 
 		category.section = relativeFrame.title:GetText()
-		category.category = v.name
+		category.category = localizedName
 
         local pBar = core.Frames:progressBar(category) 
 		local overflow = core.Function:CreateMountsForCategory(v.mounts, category, frame_size, relativeFrame, category, false, false)

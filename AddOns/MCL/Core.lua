@@ -8,7 +8,7 @@ SLASH_MCL1 = "/mcl";
 
 SlashCmdList["MCL"] = function(msg)
     if msg:lower() == "help" then
-        print("\n|cff00CCFFMount Collection Log\n指令:\n|cffFF0000Show:|cffFFFFFF 顯示您的坐騎收藏紀錄\n|cffFF0000Icon:|cffFFFFFF 切換小地圖圖示。\n|cffFF0000Config:|cffFFFFFF 開啟選項設定..\n|cffFF0000Help:|cffFFFFFF 顯示指令")
+        print("\n|cff00CCFFMount Collection Log\nCommands:\n|cffFF0000Show:|cffFFFFFF Shows your mount collection log\n|cffFF0000Icon:|cffFFFFFF Toggles the minimap icon.\n|cffFF0000Config:|cffFFFFFF Opens the settings..\n|cffFF0000Help:|cffFFFFFF Shows commands")
     end
     if msg:lower() == "show" then
         core.Main.Toggle();
@@ -29,7 +29,7 @@ SlashCmdList["MCL"] = function(msg)
         if MCL_Load and type(MCL_Load.Init) == "function" then
             MCL_Load:Init(true)  -- True to force re-initialization.
         else
-            print("MCL: 無法刷新。初始化功能不可用。")
+            print("MCL: Cannot refresh. Initialization function not available.")
         end
     end  
  end 

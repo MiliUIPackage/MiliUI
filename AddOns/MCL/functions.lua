@@ -2,6 +2,7 @@ local MCL, core = ...;
 
 core.Function = {};
 local MCL_functions = core.Function;
+local L = core.L
 
 core.mounts = {}
 core.stats= {}
@@ -156,7 +157,7 @@ function MCL_functions:compareLink()
             targetRealm = realmName
         end
     else
-        KethoEditBox_Show("Mount off需要一個目標")
+        KethoEditBox_Show("Mount off requires a target")
         return
     end
     
@@ -262,10 +263,10 @@ function MCL_functions:initSections()
             table.insert(core.sectionFrames, section_frame)
 
             for ii,v in ipairs(core.sectionNames) do
-                if v.name == "總覽" then
+                if v.name == "Overview" then
                     core.overview = section_frame        
                 elseif v.name == core.sections[i].name then
-                    if v.name == "釘選" then
+                    if v.name == "Pinned" then
                         local category = CreateFrame("Frame", "PinnedFrame", section_frame, "BackdropTemplate");
                         category:SetWidth(60);
                         category:SetHeight(60);
@@ -274,7 +275,7 @@ function MCL_functions:initSections()
                         table.insert(core.mountFrames, mountFrame)
                         category.info = category:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
                         category.info:SetPoint("TOP", 450, -0)
-                        category.info:SetText("Ctrl + 右鍵點擊來釘選未收藏坐騎")
+                        category.info:SetText(core.L["Ctrl + Right Click to pin uncollected mounts"])
                     end                   
                     -- ! Create Frame for each category
                     if v.mounts then
@@ -289,9 +290,9 @@ function MCL_functions:initSections()
             end
         end)
         
-        --if not success then
-            --print("Error in iteration "..i..": "..err)
-        --end
+        -- if not success then
+        --     print("Error in iteration "..i..": "..err)
+        -- end
     end    
 
     OverviewStats(core.overview)
@@ -929,32 +930,33 @@ end
 
 function MCL_functions:UpdateCollection()
     clearOverviewStats()
-    core.MCL_MF.Bg:SetVertexColor(0,0,0,MCL_SETTINGS.opacity)
+    core.MCL_MF.Bg:SetVertexColor(0, 0, 0, MCL_SETTINGS.opacity)
     core.total = 0
     core.collected = 0
-    for k,v in pairs(core.mounts) do
+
+    -- Count mounts from core.mounts
+    for k, v in pairs(core.mounts) do
+        local mountID = v.id
         core.total = core.total + 1
-        if IsMountCollected(v.id) then
-            table.insert(core.mountCheck, v.id)
+        if IsMountCollected(mountID) then
+            table.insert(core.mountCheck, mountID)
             UpdateBackground(v.frame)
             core.collected = core.collected + 1
-            local pin = false
-            local pin_count = table.getn(MCL_PINNED)
-            if pin_count ~= nil then                     
-                for i=1, pin_count do                      
-                    if MCL_PINNED[i].mountID == "m"..v.frame.mountID then
-                        table.remove(MCL_PINNED, i)
-                    end
+            local pin_count = table.getn(MCL_PINNED) or 0
+            for i = 1, pin_count do
+                if MCL_PINNED[i].mountID == "m"..v.frame.mountID then
+                    table.remove(MCL_PINNED, i)
+                    break
                 end
             end
-            UpdatePin(v.frame)                
+            UpdatePin(v.frame)
             local index = 0
-            for kk,vv in pairs(core.mountFrames[1]) do
+            for kk, vv in pairs(core.mountFrames[1] or {}) do
                 index = index + 1
                 if tostring(vv.mountID) == tostring(v.frame.mountID) then
                     local f = core.mountFrames[1][index]
-                    table.remove(core.mountFrames[1],  index)
-                    for kkk,vvv in ipairs(core.mountFrames[1]) do
+                    table.remove(core.mountFrames[1], index)
+                    for kkk, vvv in ipairs(core.mountFrames[1]) do
                         if kkk == 1 then
                             vvv:SetParent(_G["PinnedFrame"])
                         else
@@ -962,45 +964,49 @@ function MCL_functions:UpdateCollection()
                         end
                     end
                     f:Hide()
+                    break
                 end
-            end            
-
+            end
         else
             UpdatePin(v.frame)
         end
     end
-    for k,v in pairs(core.stats) do
+
+    -- Update section stats with validation
+    for k, v in pairs(core.stats) do
         local section_total = 0
         local section_collected = 0
         local section_name
-        -- if (type(v) == "table") then
-        for kk,vv in pairs(v) do
+        for kk, vv in pairs(v) do
             local collected = 0
             local total = 0
-            local isCollected
-
-            if (type(vv) == "table") then
+            if type(vv) == "table" then
                 if vv["mounts"] then
                     for kkk, vvv in pairs(vv.mounts) do
                         local faction, faction_specific = IsMountFactionSpecific(vvv)
                         if faction then
-                            if faction == 1 then
-                                faction = "Alliance"
-                            else
-                                faction = "Horde"
-                            end
+                            if faction == 1 then faction = "Alliance" else faction = "Horde" end
                         end
-                        if (faction_specific == false) or (faction_specific == true and faction == UnitFactionGroup("player")) then                     
-                            if string.sub(vvv, 1, 1 ) == "m" then
-                                isCollected = IsMountCollected(string.sub(vvv, 2, -1))
+                        if (faction_specific == false) or (faction_specific == true and faction == UnitFactionGroup("player")) then
+                            local mountID
+                            if string.sub(vvv, 1, 1) == "m" then
+                                mountID = tonumber(string.sub(vvv, 2, -1))
                             else
-                                local id = core.Function:GetMountID(vvv)
-                                isCollected = IsMountCollected(id)
+                                mountID = C_MountJournal.GetMountFromItem(vvv)
                             end
-                            if isCollected then
-                                collected = collected +1
+                            if mountID then
+                                local isCollected = IsMountCollected(mountID)
+                                if isCollected == nil then
+                                    print("MCL: Warning - Mount ID", mountID, "not fully loaded for", vvv, "in section", vv.rel and vv.rel.name or "unknown")
+                                    C_Item.RequestLoadItemDataByID(vvv) -- Force load if item-based
+                                end
+                                total = total + 1
+                                if isCollected then
+                                    collected = collected + 1
+                                end
+                            else
+                                print("MCL: Warning - No mount ID for", vvv, "in section", vv.rel and vv.rel.name or "unknown")
                             end
-                            total = total +1
                         end
                     end
                     vv.pBar = UpdateProgressBar(vv.pBar, total, collected)
@@ -1010,18 +1016,24 @@ function MCL_functions:UpdateCollection()
                     vv.pBar = UpdateProgressBar(vv.pBar, section_total, section_collected)
                 end
                 if vv["rel"] then
-                    for q,e in pairs(core.overviewFrames) do
-                        if e.name == vv.rel.title:GetText() then                       
+                    for q, e in pairs(core.overviewFrames) do
+                        if e.name == vv.rel.name then
                             e.frame = UpdateProgressBar(e.frame, section_total, section_collected)
-                            section_name = vv.rel.title:GetText()
+                            section_name = e.name
                         end
-                    end                     
-                end               
-            end            
+                    end
+                end
+            end
         end
-        if section_name == "Unobtainable" then
+        if section_name == core.L["Unobtainable"] then
             core.total = core.total + section_collected - section_total
         end
+    end
+
+    -- Validate and update overall progress
+    if core.total < 0 then
+        print("MCL: Error - core.total is negative:", core.total, "Resetting to 0")
+        core.total = 0
     end
     core.overview.pBar = UpdateProgressBar(core.overview.pBar, core.total, core.collected)
 end
@@ -1109,19 +1121,19 @@ function MCL_functions:AddonSettings()
     core.media = media
     local options = {
         type = "group",
-        name = "Mount Collection Log 設定",
+        name = core.L["Mount Collection Log Settings"],
         order = 1,
         args = {
             headerone = {             
                 order = 1,
-                name = "主視窗選項",
+                name = core.L["Main Window Options"],
                 type = "header",
                 width = "full",
             },            
             mainWindow = {             
                 order = 2,
-                name = "主視窗透明度",
-                desc = "Changes the opacity of the main window",
+                name = core.L["Main Window Opacity"],
+                desc = core.L["Changes the opacity of the main window"],
                 type = "range",
                 width = "normal",
                 min = 0,
@@ -1142,8 +1154,8 @@ function MCL_functions:AddonSettings()
             },
             defaultOpacity = {
                 order = 3,
-                name = "重置透明度",
-                desc = "Reset to default opacity",
+                name = core.L["Reset Opacity"],
+                desc = core.L["Reset to default opacity"],
                 width = "normal",
                 type = "execute",
                 func = function()
@@ -1152,16 +1164,16 @@ function MCL_functions:AddonSettings()
             },              
             headertwo = {             
                 order = 4,
-                name = "進度條設定",
+                name = core.L["Progress Bar Settings"],
                 type = "header",
                 width = "normal",
             },             
             texture = {              
                 order = 5,
                 type = "select",
-                name = "狀態條材質",
+                name = core.L["Statusbar Texture"],
                 width = "normal",
-                desc = "Set the statusbar texture.",
+                desc = core.L["Set the statusbar texture."],
                 values = media:HashTable("statusbar"),
                 -- Removed dialogControl = "LSM30_Statusbar",
                 set = function(info, val) MCL_SETTINGS.statusBarTexture = val; core.Function:updateFromSettings("texture"); end,
@@ -1177,8 +1189,8 @@ function MCL_functions:AddonSettings()
             },            
             defaultTexture = {
                 order = 6,
-                name = "重置材質",
-                desc = "Reset to default texture",
+                name = core.L["Reset Texture"],
+                desc = core.L["Reset to default texture"],
                 width = "normal",
                 type = "execute",
                 func = function()
@@ -1202,9 +1214,9 @@ function MCL_functions:AddonSettings()
             progressColorLow = {
                 order = 7,
                 type = "color",
-                name = "進度條 (<33%)",
+                name = core.L["Progress Bar (<33%)"],
                 width = "normal",
-                desc = "當收藏進度少於 33% 時，設定進度條的顯示顏色",
+                desc = core.L["Set the progress bar colors to be shown when the percentage collected is below 33%"],
                 set = function(info, r, g, b) MCL_SETTINGS.progressColors.low.r = r; MCL_SETTINGS.progressColors.low.g = g; MCL_SETTINGS.progressColors.low.b = b; core.Function:updateFromSettings("progressColor"); end,
                 get = function(info) return MCL_SETTINGS.progressColors.low.r, MCL_SETTINGS.progressColors.low.g, MCL_SETTINGS.progressColors.low.b; end,                
             },
@@ -1218,9 +1230,9 @@ function MCL_functions:AddonSettings()
             progressColorMedium = {
                 order = 8,
                 type = "color",
-                name = "進度條 (<66%)",
+                name = core.L["Progress Bar (<66%)"],
                 width = "normal",
-                desc = "當收藏進度少於 66% 時，設定進度條的顯示顏色",
+                desc = core.L["Set the progress bar colors to be shown when the percentage collected is below 66%"],
                 set = function(info, r, g, b) MCL_SETTINGS.progressColors.medium.r = r; MCL_SETTINGS.progressColors.medium.g = g; MCL_SETTINGS.progressColors.medium.b = b; core.Function:updateFromSettings("progressColor"); end,
                 get = function(info) return MCL_SETTINGS.progressColors.medium.r, MCL_SETTINGS.progressColors.medium.g, MCL_SETTINGS.progressColors.medium.b; end,                
             },
@@ -1234,9 +1246,9 @@ function MCL_functions:AddonSettings()
             progressColorHigh = {
                 order = 9,
                 type = "color",
-                name = "進度條 (<100%)",
+                name = core.L["Progress Bar (<100%)"],
                 width = "normal",
-                desc = "當收藏進度少於 100% 時，設定進度條的顯示顏色",
+                desc = core.L["Set the progress bar colors to be shown when the percentage collected is below 100%"],
                 set = function(info, r, g, b) MCL_SETTINGS.progressColors.high.r = r; MCL_SETTINGS.progressColors.high.g = g; MCL_SETTINGS.progressColors.high.b = b; core.Function:updateFromSettings("progressColor"); end,
                 get = function(info) return MCL_SETTINGS.progressColors.high.r, MCL_SETTINGS.progressColors.high.g, MCL_SETTINGS.progressColors.high.b; end,                
             },
@@ -1250,16 +1262,16 @@ function MCL_functions:AddonSettings()
             progressColorComplete = {
                 order = 10,
                 type = "color",
-                name = "進度條 (100%)",
+                name = core.L["Progress Bar (100%)"],
                 width = "normal",
-                desc = "當全部坐騎都已收藏時，設定進度條的顯示顏色",
+                desc = core.L["Set the progress bar colors to be shown when all mounts are collected"],
                 set = function(info, r, g, b) MCL_SETTINGS.progressColors.complete.r = r; MCL_SETTINGS.progressColors.complete.g = g; MCL_SETTINGS.progressColors.complete.b = b; core.Function:updateFromSettings("progressColor"); end,
                 get = function(info) return MCL_SETTINGS.progressColors.complete.r, MCL_SETTINGS.progressColors.complete.g, MCL_SETTINGS.progressColors.complete.b; end,                
             },
             defaultColor = {
                 order = 11,
-                name = "重置顏色",
-                desc = "Reset to default colors",
+                name = core.L["Reset Colors"],
+                desc = core.L["Reset to default colors"],
                 width = "normal",
                 type = "execute",
                 func = function()
@@ -1268,14 +1280,14 @@ function MCL_functions:AddonSettings()
             },              
             headerthree = {             
                 order = 12,
-                name = "絕版設定",
+                name = core.L["Unobtainable Settings"],
                 type = "header",
                 width = "full",
             },            
             unobtainable = {             
                 order = 13,
-                name = "從總覽中隱藏絕版",
-                desc = "Hide Unobtainable mounts from the overview.",
+                name = core.L["Hide Unobtainable from overview"],
+                desc = core.L["Hide Unobtainable mounts from the overview."],
                 type = "toggle",
                 width = "full",
                 set = function(info, val) MCL_SETTINGS.unobtainable = val; core.Function:updateFromSettings("unobtainable", val); end,
@@ -1283,8 +1295,8 @@ function MCL_functions:AddonSettings()
             },
             minimapIconToggle = {
                 order = 14,
-                name = "顯示小地圖按鈕",
-                desc = "Toggle the display of the Minimap Icon.",
+                name = core.L["Show Minimap Icon"],
+                desc = core.L["Toggle the display of the Minimap Icon."],
                 type = "toggle",
                 width = "full",
                 set = function(info, val)
@@ -1300,15 +1312,15 @@ function MCL_functions:AddonSettings()
                 end,
             },            
             headerfour = {             
-                order = 14,
-                name = "重置設定",
+                order = 15,
+                name = core.L["Reset Settings"],
                 type = "header",
                 width = "full",
             },             
             defaults = {
-                order = 15,
-                name = "重置設定",
-                desc = "Reset to default settings",
+                order = 16,
+                name = core.L["Reset Settings"],
+                desc = core.L["Reset to default settings"],
                 width = "normal",
                 type = "execute",
                 func = function()
