@@ -1,8 +1,8 @@
 # Premade Groups Filter
 
-## [6.6.3](https://github.com/0xbs/premade-groups-filter/tree/6.6.3) (2025-02-19)
-[Full Changelog](https://github.com/0xbs/premade-groups-filter/compare/6.6.2...6.6.3) [Previous Releases](https://github.com/0xbs/premade-groups-filter/releases)
+## [6.7.0](https://github.com/0xbs/premade-groups-filter/tree/6.7.0) (2025-04-13)
+[Full Changelog](https://github.com/0xbs/premade-groups-filter/compare/6.6.4...6.7.0) [Previous Releases](https://github.com/0xbs/premade-groups-filter/releases)
 
-- Merge pull request #309 from Hollicsh/master  
-    Update PremadeGroupsFilter\_Cata.toc  
-- Update PremadeGroupsFilter\_Cata.toc  
+- Add hasmyclass, hasmyspec, hasmyarmor (see #315)  
+- Use English addon name in Chinese translations (fixes #313)  
+- Improve Italian translation  
