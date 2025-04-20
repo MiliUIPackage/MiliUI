@@ -18,22 +18,38 @@ local function GetItemName(details)
   end
 end
 
-local function GetClassSubClass(details)
-  if details.classID then
-    return
-  end
+local GetClassSubClass
+if Syndicator.Constants.IsEra then
+  GetClassSubClass = function(details)
+    if details.classID then
+      return
+    end
 
-  if details.itemID == Syndicator.Constants.BattlePetCageID and details.itemLink:find("battlepet:") then
-    local petID = details.itemLink:match("battlepet:(%d+)")
-    local _, _, petType = C_PetJournal.GetPetInfoBySpeciesID(tonumber(petID))
-    details.classID = Enum.ItemClass.Battlepet
-    details.subClassID = petType - 1
-  else
-    local classID, subClassID = select(6, C_Item.GetItemInfoInstant(details.itemID))
-    details.classID = classID
-    details.subClassID = subClassID
+    local override = Syndicator.Search.Constants.TypeOverridesMap[details.itemID]
+    if override then
+      details.classID = override.classID
+      details.subClassID = override.subClassID
+    else
+      details.classID, details.subClassID = select(6, C_Item.GetItemInfoInstant(details.itemID))
+    end
+  end
+else
+  GetClassSubClass = function(details)
+    if details.classID then
+      return
+    end
+
+    if details.itemID == Syndicator.Constants.BattlePetCageID and details.itemLink:find("battlepet:") then
+      local petID = details.itemLink:match("battlepet:(%d+)")
+      local _, _, petType = C_PetJournal.GetPetInfoBySpeciesID(tonumber(petID))
+      details.classID = Enum.ItemClass.Battlepet
+      details.subClassID = petType - 1
+    else
+      details.classID, details.subClassID = select(6, C_Item.GetItemInfoInstant(details.itemID))
+    end
   end
 end
+Syndicator.Search.GetClassSubClass = GetClassSubClass
 
 local function GetInvType(details)
   if details.invType then
@@ -199,12 +215,15 @@ local function GetSourceID(itemLink)
     return sourceID
   end
   local _, sourceID = C_TransmogCollection.GetItemInfo((C_Item.GetItemInfoInstant(itemLink)))
-  return sourceID
+  if sourceID then
+    return sourceID
+  end
+  return Syndicator.Search.RecoverTransmogInfo(itemLink)
 end
 
 local function IsTMogCollectedCompletionist(itemLink)
   local sourceID = GetSourceID(itemLink)
-  if not sourceID then
+  if not sourceID or not select(2, C_TransmogCollection.AccountCanCollectSource(sourceID)) then
     return nil
   else
     return C_TransmogCollection.PlayerHasTransmogItemModifiedAppearance(sourceID)
@@ -213,7 +232,7 @@ end
 
 local function IsTMogCollectedUnique(itemLink)
   local sourceID = GetSourceID(itemLink)
-  if not sourceID then
+  if not sourceID or not select(2, C_TransmogCollection.AccountCanCollectSource(sourceID)) then
     return
   else
     local subClass = select(7, C_Item.GetItemInfoInstant(itemLink))
@@ -343,6 +362,29 @@ local function MyClassCheck(details)
     return true
   end
   return false
+end
+
+local function GetTooltipInfoLink(details)
+  if details.tooltipInfoLink then
+    return
+  end
+
+  if not C_Item.IsItemDataCachedByID(details.itemID) then
+    C_Item.RequestLoadItemDataByID(details.itemID)
+    return
+  end
+
+  local _, spellID = C_Item.GetItemSpell(details.itemID)
+  if spellID and not C_Spell.IsSpellDataCached(spellID) then
+    C_Spell.RequestLoadSpellData(spellID)
+    return
+  end
+
+  if Syndicator.Constants.IsRetail then
+    details.tooltipInfoLink = C_TooltipInfo.GetHyperlink(details.itemLink) or {lines={}}
+  else
+    details.tooltipInfoLink = Syndicator.Utilities.DumpClassicTooltip(function(tooltip) tooltip:SetHyperlink(details.itemLink) end)
+  end
 end
 
 local function GetTooltipInfoSpell(details)
@@ -691,6 +733,29 @@ local function SetBonusCheck(details)
   return false
 end
 
+local classRestrictionsPattern = ITEM_CLASSES_ALLOWED:gsub("%%s", ".+")
+-- Check for items with the appropriate item class (which have a lot of
+-- variation), not common (to exclude glyphs) and have a class restriction.
+local function TierTokenCheck(details)
+  GetInvType(details)
+  GetClassSubClass(details)
+
+  if details.quality == 1 or details.invType ~= "INVTYPE_NON_EQUIP_IGNORE" or (details.classID ~= Enum.ItemClass.Consumable and details.classID ~= Enum.ItemClass.Armor and details.classID ~= Enum.ItemClass.Weapon and details.classID ~= Enum.ItemClass.Miscellaneous and details.classID ~= Enum.ItemClass.Reagent) then
+    return false
+  end
+
+  GetTooltipInfoLink(details)
+
+  if details.tooltipInfoLink then
+    for _, row in ipairs(details.tooltipInfoLink.lines) do
+      if row.leftText:match(classRestrictionsPattern) then
+        return true
+      end
+    end
+    return false
+  end
+end
+
 local function UseATTInfo(details)
   if details.ATTInfoAcquired or not ATTC or not ATTC.SearchForField then -- All The Things
     return
@@ -813,6 +878,7 @@ AddKeywordManual(ITEM_UNIQUE:lower(), "unique", UniqueCheck, SYNDICATOR_L_GROUP_
 AddKeywordLocalised("KEYWORD_LOCKED", LockedCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
 AddKeywordLocalised("KEYWORD_REFUNDABLE", RefundableCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
 AddKeywordLocalised("KEYWORD_CRAFTED", CraftedCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeywordLocalised("KEYWORD_TIER_TOKEN", TierTokenCheck, SYNDICATOR_L_GROUP_ITEM_TYPE)
 
 if Syndicator.Constants.IsRetail then
   AddKeywordLocalised("KEYWORD_COSMETIC", CosmeticCheck, SYNDICATOR_L_GROUP_QUALITY)
@@ -849,7 +915,7 @@ local sockets = {
   ["EMPTY_SOCKET_SINGINGWIND"] = "singing wind socket",
 }
 
-if Syndicator.Constants.IsClassic and not Syndicator.Constants.IsEra then
+if Syndicator.Constants.IsCata then
   sockets["EMPTY_SOCKET_HYDRAULIC"] = "hydraulic socket"
 end
 
@@ -1454,11 +1520,13 @@ local function GetTooltipSpecialTerms(details)
     for _, line in ipairs(details.tooltipInfoSpell.lines) do
       local term = line.leftText:match("^|cFF......(.*)|r$")
       if term then
-        table.insert(details.searchKeywords, term:lower())
+        -- Cleanup special characters that interfere with typing in text for
+        -- tooltip search
+        table.insert(details.searchKeywords, (term:lower():gsub("\226\128\147", "-"):gsub("\194\160", " ")))
       else
         local match = line.leftText:match("^" .. ITEM_SPELL_TRIGGER_ONUSE) or line.leftText:match("^" .. ITEM_SPELL_TRIGGER_ONEQUIP) or (UPGRADE_PATH_PATTERN and line.leftText:match(UPGRADE_PATH_PATTERN))
         if details.classID ~= Enum.ItemClass.Recipe and match then
-          table.insert(details.searchKeywords, line.leftText:lower())
+          table.insert(details.searchKeywords, (line.leftText:lower():gsub("\226\128\147", "-"):gsub("\194\160", " ")))
         end
       end
     end
@@ -1466,7 +1534,7 @@ local function GetTooltipSpecialTerms(details)
     if #details.tooltipInfoSpell.lines > 1 then
       local color = details.tooltipInfoSpell.lines[2].leftColor
       if color ~= nil and math.floor(color.r * 100) == 52 and math.floor(color.g * 100) == 67 and color.b == 1 then
-        table.insert(details.searchKeywords, details.tooltipInfoSpell.lines[2].leftText:lower())
+        table.insert(details.searchKeywords, (details.tooltipInfoSpell.lines[2].leftText:lower():gsub("\226\128\147", "-"):gsub("\194\160", " ")))
       end
     end
 
@@ -1824,29 +1892,50 @@ function Syndicator.Search.InitializeSearchEngine()
     end
   end
 
-  local tradeGoodsToCheck = {
-    [1] = "parts",
-    [4] = "jewelcrafting",
-    [5] = "cloth",
-    [6] = "leather",
-    [7] = "metal & stone",
-    [8] = "cooking",
-    [9] = "herb",
-    [10] = "elemental",
-    [12] = "enchanting",
-    [16] = "inscription",
-    [18] = "optional reagents",
-    [19] = "finishing reagents",
-  }
-  if Syndicator.Constants.IsClassic then
-    tradeGoodsToCheck[2] = "explosives"
-    tradeGoodsToCheck[3] = "devices"
-    tradeGoodsToCheck[8] = "meat"
-  end
-  for subClass, english in pairs(tradeGoodsToCheck) do
-    local keyword = C_Item.GetItemSubClassInfo(7, subClass)
-    if keyword ~= nil then
-      AddKeywordManual(keyword:lower(), english, function(details)
+  if not Syndicator.Constants.IsEra then
+    local tradeGoodsToCheck = {
+      [1] = "parts",
+      [4] = "jewelcrafting",
+      [5] = "cloth",
+      [6] = "leather",
+      [7] = "metal & stone",
+      [8] = "cooking",
+      [9] = "herb",
+      [10] = "elemental",
+      [12] = "enchanting",
+      [16] = "inscription",
+      [18] = "optional reagents",
+      [19] = "finishing reagents",
+    }
+    if Syndicator.Constants.IsClassic then
+      tradeGoodsToCheck[2] = "explosives"
+      tradeGoodsToCheck[3] = "devices"
+      tradeGoodsToCheck[8] = "meat"
+    end
+    for subClass, english in pairs(tradeGoodsToCheck) do
+      local keyword = C_Item.GetItemSubClassInfo(7, subClass)
+      if keyword ~= nil then
+        AddKeywordManual(keyword:lower(), english, function(details)
+          GetClassSubClass(details)
+          return details.classID == 7 and details.subClassID == subClass
+        end, SYNDICATOR_L_GROUP_TRADE_GOODS)
+      end
+    end
+  else
+    local tradeGoodsToCheck = {
+      [1] = "PARTS",
+      [2] = "EXPLOSIVES",
+      [3] = "DEVICES",
+      [5] = "CLOTH",
+      [6] = "LEATHER",
+      [7] = "METAL_AND_STONE",
+      [8] = "MEAT",
+      [9] = "HERB",
+      [10] = "ELEMENTAL",
+      [12] = "ENCHANTING",
+    }
+    for subClass, localeString in pairs(tradeGoodsToCheck) do
+      AddKeywordLocalised("KEYWORD_SUBCLASS_" .. localeString, function(details)
         GetClassSubClass(details)
         return details.classID == 7 and details.subClassID == subClass
       end, SYNDICATOR_L_GROUP_TRADE_GOODS)
@@ -2034,6 +2123,22 @@ function Syndicator.Search.InitializeSearchEngine()
           return details.classID == Enum.ItemClass.Consumable and details.subClassID == subClass
         end, SYNDICATOR_L_GROUP_CONSUMABLE)
       end
+    end
+  else
+    local consumablesToCheck = {
+      [1] = "POTION",
+      [2] = "ELIXIR",
+      [3] = "FLASK",
+      [4] = "SCROLL",
+      [5] = "FOOD_AND_DRINK",
+      [6] = "ITEM_ENHANCEMENT",
+      [8] = "BANDAGES",
+    }
+    for subClass, localeString in pairs(consumablesToCheck) do
+      AddKeywordLocalised("KEYWORD_SUBCLASS_" .. localeString, function(details)
+        GetClassSubClass(details)
+        return details.classID == Enum.ItemClass.Consumable and details.subClassID == subClass
+      end, SYNDICATOR_L_GROUP_CONSUMABLE)
     end
   end
 

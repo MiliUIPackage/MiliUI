@@ -1,8 +1,7 @@
 # Syndicator
 
-## [176](https://github.com/Baganator/Syndicator/tree/176) (2025-03-05)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/175...176) 
+## [188](https://github.com/Baganator/Syndicator/tree/188) (2025-04-11)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/187...188) 
 
-- Search: Add "ring" keyword  
-- Search: Fix the "staff" keyword  
-- Search: Move binding type keywords into their own group  
+- Remove leftover print  
+- Classic Era: Workaround missing consumable/trade goods subtypes  
