@@ -1,5 +1,5 @@
 ﻿----------------------------------------------------------------------
--- 	Leatrix Plus 11.1.00 (26th February 2025)
+-- 	Leatrix Plus 11.1.08 (9th April 2025)
 ----------------------------------------------------------------------
 
 --	01:Functions 02:Locks,  03:Restart 40:Player
@@ -18,7 +18,7 @@
 	local void
 
 	-- Version
-	LeaPlusLC["AddonVer"] = "11.1.00"
+	LeaPlusLC["AddonVer"] = "11.1.08"
 
 	-- Get locale table
 	local void, Leatrix_Plus = ...
@@ -677,9 +677,9 @@
 		or	(LeaPlusLC["FasterMovieSkip"]		~= LeaPlusDB["FasterMovieSkip"])		-- Faster movie skip
 		or	(LeaPlusLC["CombatPlates"]			~= LeaPlusDB["CombatPlates"])			-- Combat plates
 		or	(LeaPlusLC["EasyItemDestroy"]		~= LeaPlusDB["EasyItemDestroy"])		-- Easy item destroy
-		or	(LeaPlusLC["LockoutSharing"]		~= LeaPlusDB["LockoutSharing"])			-- Lockout sharing
 		or	(LeaPlusLC["SetAddtonOptions"]		~= LeaPlusDB["SetAddtonOptions"])		-- Set additional options
 		or	(LeaPlusLC["AddOptNoCombatBox"]		~= LeaPlusDB["AddOptNoCombatBox"])		-- Uncheck combat animation checkbox
+		or	(LeaPlusLC["AddOptNoMountBox"]		~= LeaPlusDB["AddOptNoMountBox"])		-- Uncheck mount special animation checkbox
 
 		then
 			-- Enable the reload button
@@ -714,6 +714,7 @@
 			-- Add checkboxes
 			row = row + 2; LeaPlusLC:MakeTx(addOptPanel.scrollChild, "Trading post", 16, -((row - 1) * 20) - 2)
 			row = row + 1; LeaPlusLC:MakeCB(addOptPanel.scrollChild, "AddOptNoCombatBox", "Uncheck combat animation checkbox", 16, -((row - 1) * 20) - 2, true, "If checked, the trading post combat animation checkbox will be unchecked by default.")
+			row = row + 1; LeaPlusLC:MakeCB(addOptPanel.scrollChild, "AddOptNoMountBox", "Uncheck mount special animation checkbox", 16, -((row - 1) * 20) - 2, true, "If checked, the mount special animation checkbox will be unchecked by default.")
 
 			-- Help button hidden
 			addOptPanel.h:Hide()
@@ -747,6 +748,8 @@
 
 			-- Run options on startup
 			do
+
+				-- Uncheck combat animation checkbox
 				if LeaPlusLC["AddOptNoCombatBox"] == "On" then
 					EventUtil.ContinueOnAddOnLoaded("Blizzard_PerksProgram", function()
 						hooksecurefunc(PerksProgramFrame.FooterFrame.ToggleAttackAnimation, "SetChecked", function(self)
@@ -754,6 +757,21 @@
 						end)
 					end)
 				end
+
+				-- Uncheck mount special animation checkbox
+				if LeaPlusLC["AddOptNoMountBox"] == "On" then
+					EventUtil.ContinueOnAddOnLoaded("Blizzard_PerksProgram", function()
+						hooksecurefunc(PerksProgramFrame.FooterFrame.ToggleMountSpecial, "SetChecked", function(self)
+							if self:GetChecked() then
+								self:Click()
+								RunNextFrame(function()
+									PerksProgramFrame:SetMountSpecialPreviewOnClick(false)
+								end)
+							end
+						end)
+					end)
+				end
+
 			end
 
 		end
@@ -1650,7 +1668,7 @@
 			-- Get localised Wowhead URL
 			local wowheadLoc
 			if GameLocale == "deDE" then wowheadLoc = "de.wowhead.com"
-			elseif GameLocale == "esMX" then wowheadLoc = "es.wowhead.com"
+			elseif GameLocale == "esMX" then wowheadLoc = "mx.wowhead.com"
 			elseif GameLocale == "esES" then wowheadLoc = "es.wowhead.com"
 			elseif GameLocale == "frFR" then wowheadLoc = "fr.wowhead.com"
 			elseif GameLocale == "itIT" then wowheadLoc = "it.wowhead.com"
@@ -1658,7 +1676,7 @@
 			elseif GameLocale == "ruRU" then wowheadLoc = "ru.wowhead.com"
 			elseif GameLocale == "koKR" then wowheadLoc = "ko.wowhead.com"
 			elseif GameLocale == "zhCN" then wowheadLoc = "cn.wowhead.com"
-			elseif GameLocale == "zhTW" then wowheadLoc = "cn.wowhead.com"
+			elseif GameLocale == "zhTW" then wowheadLoc = "tw.wowhead.com"
 			else							 wowheadLoc = "wowhead.com"
 			end
 
@@ -8841,16 +8859,6 @@
 		end
 
 		----------------------------------------------------------------------
-		-- Lockout sharing
-		----------------------------------------------------------------------
-
-		-- LeaPlusLC.NewPatch - Remove in 11.1.0
-		if LeaPlusLC["LockoutSharing"] == "On" and not LeaLockList["LockoutSharing"] then
-			-- Set the social menu option (sharing will be disabled but the checkbox will be set on next reload)
-			ShowAccountAchievements(true)
-		end
-
-		----------------------------------------------------------------------
 		-- Combat plates
 		----------------------------------------------------------------------
 
@@ -8874,6 +8882,9 @@
 		----------------------------------------------------------------------
 
 		if LeaPlusLC["TipModEnable"] == "On" and not LeaLockList["TipModEnable"] then
+
+			-- Enable mouse hover events for world frame (required for hide tooltips, cursor anchor and maybe other addons)
+			WorldFrame:EnableMouseMotion(true)
 
 			----------------------------------------------------------------------
 			--	Position the tooltip
@@ -8981,7 +8992,11 @@
 			end
 
 			-- Set controls when dropdown menu is changed and on startup
-			LeaPlusCB["TooltipAnchorMenu"]:RegisterCallback("OnMenuClose", SetAnchorControls)
+			LeaPlusCB["TooltipAnchorMenu"]:RegisterCallback("OnMenuClose", function()
+				if not UnitAffectingCombat("player") then
+					SetAnchorControls()
+				end
+			end)
 			SetAnchorControls()
 
 			-- Help button hidden
@@ -9040,7 +9055,6 @@
 					LeaPlusLC:HideFrames()
 					SideTip:Show()
 				end
-
 			end)
 
 			-- Hide health bar
@@ -9405,6 +9419,7 @@
 
 					-- Show name
 					LT["NameText"] = UnitPVPName(LT["Unit"]) or LT["TipUnitName"]
+					if LT["NameText"] == "" then LT["NameText"] = LT["TipUnitName"] end -- Needed because some units (Demolition Fan, 237523) return empty strings for UnitPVPName
 
 					-- Show realm
 					if LT["TipUnitRealm"] and LT["TipUnitRealm"] ~= "" then
@@ -11030,10 +11045,10 @@
 				LeaPlusLC:LoadVarChk("FasterMovieSkip", "Off")				-- Faster movie skip
 				LeaPlusLC:LoadVarChk("CombatPlates", "Off")					-- Combat plates
 				LeaPlusLC:LoadVarChk("EasyItemDestroy", "Off")				-- Easy item destroy
-				LeaPlusLC:LoadVarChk("LockoutSharing", "Off")				-- Lockout sharing
 				LeaPlusLC:LoadVarChk("NoTransforms", "Off")					-- Remove transforms
 				LeaPlusLC:LoadVarChk("SetAddtonOptions", "Off")				-- Set additional options
 				LeaPlusLC:LoadVarChk("AddOptNoCombatBox", "Off")			-- Uncheck combat animation checkbox
+				LeaPlusLC:LoadVarChk("AddOptNoMountBox", "Off")				-- Uncheck mount special animation checkbox
 
 				-- Settings
 				LeaPlusLC:LoadVarChk("ShowMinimapIcon", "On")				-- Show minimap button
@@ -11174,7 +11189,7 @@
 				end
 
 				if LeaPlusLC.NewPatch then
-					LockDF("LockoutSharing", "This option is no longer available in the game.  The achievements window now always shows warband achievement points.")
+					-- LockDF("LockoutSharing", "This option is no longer available in the game.  The achievements window now always shows warband achievement points.")
 				end
 
 				-- Run other startup items
@@ -11394,10 +11409,10 @@
 			LeaPlusDB["FasterMovieSkip"] 		= LeaPlusLC["FasterMovieSkip"]
 			LeaPlusDB["CombatPlates"]			= LeaPlusLC["CombatPlates"]
 			LeaPlusDB["EasyItemDestroy"]		= LeaPlusLC["EasyItemDestroy"]
-			LeaPlusDB["LockoutSharing"] 		= LeaPlusLC["LockoutSharing"]
 			LeaPlusDB["NoTransforms"] 			= LeaPlusLC["NoTransforms"]
 			LeaPlusDB["SetAddtonOptions"] 		= LeaPlusLC["SetAddtonOptions"]
 			LeaPlusDB["AddOptNoCombatBox"] 		= LeaPlusLC["AddOptNoCombatBox"]
+			LeaPlusDB["AddOptNoMountBox"] 		= LeaPlusLC["AddOptNoMountBox"]
 
 			-- Settings
 			LeaPlusDB["ShowMinimapIcon"] 		= LeaPlusLC["ShowMinimapIcon"]
@@ -12216,7 +12231,7 @@
 				if not LeaPlusLC.WowheadLock then
 					-- Set Wowhead link prefix
 					if GameLocale == "deDE" then LeaPlusLC.WowheadLock = "de.wowhead.com"
-					elseif GameLocale == "esMX" then LeaPlusLC.WowheadLock = "es.wowhead.com"
+					elseif GameLocale == "esMX" then LeaPlusLC.WowheadLock = "mx.wowhead.com"
 					elseif GameLocale == "esES" then LeaPlusLC.WowheadLock = "es.wowhead.com"
 					elseif GameLocale == "frFR" then LeaPlusLC.WowheadLock = "fr.wowhead.com"
 					elseif GameLocale == "itIT" then LeaPlusLC.WowheadLock = "it.wowhead.com"
@@ -12224,7 +12239,7 @@
 					elseif GameLocale == "ruRU" then LeaPlusLC.WowheadLock = "ru.wowhead.com"
 					elseif GameLocale == "koKR" then LeaPlusLC.WowheadLock = "ko.wowhead.com"
 					elseif GameLocale == "zhCN" then LeaPlusLC.WowheadLock = "cn.wowhead.com"
-					elseif GameLocale == "zhTW" then LeaPlusLC.WowheadLock = "cn.wowhead.com"
+					elseif GameLocale == "zhTW" then LeaPlusLC.WowheadLock = "tw.wowhead.com"
 					else							 LeaPlusLC.WowheadLock = "wowhead.com"
 					end
 				end
@@ -12520,15 +12535,6 @@
 					LeaPlusLC:Print("GetAllowLowLevelRaid: |cffffffff" .. "True")
 				else
 					LeaPlusLC:Print("GetAllowLowLevelRaid: |cffffffff" .. "False")
-				end
-				-- Show achievement sharing
-				if not LeaPlusLC.NewPatch then -- Removed in 11.1.0
-					local achhidden = AreAccountAchievementsHidden()
-					if achhidden then
-						LeaPlusLC:Print("Account achievements are hidden.")
-					else
-						LeaPlusLC:Print("Account achievements are being shared.")
-					end
 				end
 				return
 			elseif str == "move" then
@@ -14082,10 +14088,10 @@
 				LeaPlusDB["FasterMovieSkip"] = "On"				-- Faster movie skip
 				LeaPlusDB["CombatPlates"] = "On"				-- Combat plates
 				LeaPlusDB["EasyItemDestroy"] = "On"				-- Easy item destroy
-				LeaPlusDB["LockoutSharing"] = "On"				-- Lockout sharing
 				LeaPlusDB["NoTransforms"] = "On"				-- Remove transforms
 				LeaPlusDB["SetAddtonOptions"] = "On"			-- Set additional options
 				LeaPlusDB["AddOptNoCombatBox"] = "On"			-- Uncheck combat animation checkbox
+				LeaPlusDB["AddOptNoMountBox"] = "On"			-- Uncheck mount special animation checkbox
 
 				-- Function to assign cooldowns
 				local function setIcon(pclass, pspec, sp1, pt1, sp2, pt2, sp3, pt3, sp4, pt4, sp5, pt5)
@@ -14512,9 +14518,8 @@
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "FasterMovieSkip"			, 	"Faster movie skip"				,	340, -192, 	true,	"If checked, you will be able to cancel movies without being prompted for confirmation.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "CombatPlates"				, 	"Combat plates"					,	340, -212, 	true,	"If checked, enemy nameplates will be shown during combat and hidden when combat ends.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "EasyItemDestroy"			, 	"Easy item destroy"				,	340, -232, 	true,	"If checked, you will no longer need to type delete when destroying a superior quality item.|n|nIn addition, item links will be shown in all item destroy confirmation windows.")
-	LeaPlusLC:MakeCB(LeaPlusLC[pg], "LockoutSharing"			, 	"Lockout sharing"				, 	340, -252, 	true, 	"If checked, the 'Display only character achievements to others' setting in the game options panel ('Social' menu) will be permanently checked and locked.")
-	LeaPlusLC:MakeCB(LeaPlusLC[pg], "NoTransforms"				, 	"Remove transforms"				, 	340, -272, 	false, 	"If checked, you will be able to have certain transforms removed automatically when they are applied to your character.|n|nYou can choose the transforms in the configuration panel.|n|nExamples include Weighted Jack-o'-Lantern and Hallowed Wand.|n|nTransforms applied during combat will be removed when combat ends.")
-	LeaPlusLC:MakeCB(LeaPlusLC[pg], "SetAddtonOptions"			, 	"Set additional options"		, 	340, -292, 	true, 	"If checked, you will be able to set some additional options.")
+	LeaPlusLC:MakeCB(LeaPlusLC[pg], "NoTransforms"				, 	"Remove transforms"				, 	340, -252, 	false, 	"If checked, you will be able to have certain transforms removed automatically when they are applied to your character.|n|nYou can choose the transforms in the configuration panel.|n|nExamples include Weighted Jack-o'-Lantern and Hallowed Wand.|n|nTransforms applied during combat will be removed when combat ends.")
+	LeaPlusLC:MakeCB(LeaPlusLC[pg], "SetAddtonOptions"			, 	"Set additional options"		, 	340, -272, 	true, 	"If checked, you will be able to set some additional options.")
 
 	LeaPlusLC:CfgBtn("SetWeatherDensityBtn", LeaPlusCB["SetWeatherDensity"])
 	LeaPlusLC:CfgBtn("MuteGameSoundsBtn", LeaPlusCB["MuteGameSounds"])

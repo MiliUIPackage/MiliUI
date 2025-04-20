@@ -1,9 +1,23 @@
-﻿11.1.00 - 26th February 2025
+﻿11.1.08 - 9th April 2025
+- For 'Enhance tooltip' ('Interface'), fixed a minor issue which caused Demolition Fan NPCs in Demolition Dome to have no name.
+- For 'Show Wowhead links' ('Interface') and web link (keybindings), added support for Mexico (mx.wowhead.com) and traditional Chinese (tw.wowhead.com).
+
+11.1.03 - 7th March 2025
+- PTR (11.1.5): Preliminary update for game patch 11.1.5.
+
+11.1.02 - 1st March 2025
+- For 'Set additional options' ('System'), added a new setting to uncheck mount special animations by default.
+- For 'Enhance tooltip' ('Interface'), fixed the issue with hide tooltips for world units during combat.
+
+11.1.01 - 26th February 2025
+- For 'Enhance tooltip' ('Interface'), fixed the issue with anchor tooltip to cursor, cursor left or cursor right.
+
+11.1.00 - 26th February 2025
 - Updated for game patch 11.1.0.
 - For 'Media', added cinematic 'Gallywix and Xal'atath' (watch in Movies and listen in Various > Cinematics).
 
 11.0.30 - 29th January 2025
-- For 'Sell junk automatically', fixed an issue where selling would continue for vendors that refuse to buy items or where the player has reached the gold limit.
+- For 'Sell junk automatically' ('Automation'), fixed an issue where selling would continue for vendors that refuse to buy items or where the player has reached the gold limit.
 
 11.0.29 - 22nd January 2025
 - For 'Enhance minimap' ('Interface'), Leatrix Plus will no longer create a standard minimap button for Narcissus as Narcissus now creates its own standard button.
