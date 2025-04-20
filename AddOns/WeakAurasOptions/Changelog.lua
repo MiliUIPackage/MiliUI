@@ -10,53 +10,54 @@ local AddonName = ...
 ---@class OptionsPrivate
 local OptionsPrivate = select(2, ...)
 OptionsPrivate.changelog = {
-  versionString = '5.19.4',
-  dateString = '2025-02-26',
-  fullChangeLogUrl = 'https://github.com/WeakAuras/WeakAuras2/compare/5.19.3...5.19.4',
+  versionString = '5.19.8',
+  dateString = '2025-04-11',
+  fullChangeLogUrl = 'https://github.com/WeakAuras/WeakAuras2/compare/5.19.7...5.19.8',
   highlightText = [==[
-Update for The War Within 11.1
+TOC update for SoD phase 8
 
-New in this version:
+New Features:
 
-- models now have an alpha slider to set transparency
-- TSU-type custom triggers have some new convenience functions available. Documentation is avaliable at https://github.com/WeakAuras/WeakAuras2/wiki/Trigger-State-Updater-(TSU)#all-states-
-helper-methods
-  - this is unlikely to matter, but note that the choice of plumbing used means this is techni
-cally a breaking change if you ever created a state with the "__changed" key.
-
-Fixes:
-
-- x-realm transfer of auras should fail less often
-- improve performance
-cally a breaking change if you ever created a state with the "__changed" key.
+- states:Replace(id, newstate) & states:Get(id, key) are now available in TSU custom triggers
+- subtext & condition change text learned to support UI escape sequences, like the text region type already does
+- Spell Activation Overlay events are available in Cata classic, so the related trigger has been re-enabled for that game flavor
+- Scarlet Enclave encounter IDs added for SoD
 
 Fixes:
 
-- x-realm transfer of auras should fail less often
-- improve performance
-- large, deply nested groups should load significantly faster (i.e. https://wago.io/twwdungeons should be less prone to throw errors when you start an encounter)
-- "Hide Cooldown Text" condition property remembered how to function
-- x-realm data transfer (for sharing auras) should be more likely to actually succeed now]==],  commitText = [==[InfusOnWoW (6):
+- Item Equipped load/trigger forces exact match now, to deal with e.g. normal/heroic versions of the same item
+- unit formatters produces empty string "" instead of "nil" when the underlying unit token is invalid
+- various fixes to options panel & thanks list so they don't look terrible (thanks @pewtro!)
+- Fixed some templates which were invalidated in 11.1
+- Reminded chat msg - emote trigger to pay attention to CHAT_MSG_TEXT_EMOTE again]==],  commitText = [==[InfusOnWoW (8):
 
-- Use Chomp for cross-realm transfer
-- Fix EnsureRegion repeately creating parents
-- Group: Don't calculate group size if not needed
-- Fix Hide Cooldown Text condition
-- Models: Fix Alpha animations
-- Be extra picky on noValidation spell inputs
+- Item Equipped: Force "exact match" mode
+- Make SubText + Conditions also use IndentionLib.encode/decode for text
+- Make Unit formatting not return "nil"
+- Tweak bottom buttons until they all fit
+- Enable Spell Activation Overlay Glow trigger in Cata
+- Chat: Fix Emote filter for /commands
+- Templates: Update to 11.1 patch changes
+- Update Discord List
+
+Pewtro (1):
+
+- Fix an issue with word wrapping in the Discord thanks list
 
 Stanzilla (1):
 
-- chore(toc): bump version for retail
+- Update WeakAurasModelPaths from wago.tools
 
-emptyrivers (1):
+dependabot[bot] (1):
 
-- put the mixins in private exec_env too
+- Bump cbrgm/mastodon-github-action from 2.1.13 to 2.1.14
 
-mrbuds (2):
+mrbuds (4):
 
-- cache buildup optimization for 11.1
-- Add alpha setting for model region
+- TSUHelpers: add states:Replace() and states:Get() functions, + bug fixes
+- Add Encounter IDs for Scarlet Enclave
+- Update Atlas File List from wago.tools
+- SoD P8 toc update
 
 ]==]
 }
