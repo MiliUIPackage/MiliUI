@@ -1295,7 +1295,6 @@ function MDT:MakeSidePanel(frame)
     local difficulty = tonumber(value)
     if (difficulty >= 10 and db.currentDifficulty < 10) or (difficulty < 10 and db.currentDifficulty >= 10) then
       db.currentDifficulty = difficulty or db.currentDifficulty
-      MDT:DungeonEnemies_UpdateSeasonalAffix()
       MDT:POI_UpdateAll()
       MDT:KillAllAnimatedLines()
       MDT:DrawAllAnimatedLines()
@@ -2479,9 +2478,6 @@ function MDT:UpdateMap(ignoreSetSelection, ignoreReloadPullButtons, ignoreUpdate
     coroutine.yield()
     if not db.devMode then MDT:ZoomMapToDefault() end
     MDT:DungeonEnemies_UpdateEnemiesAsync()
-    MDT:DungeonEnemies_UpdateTeeming()
-    MDT:DungeonEnemies_UpdateSeasonalAffix()
-    MDT:DungeonEnemies_UpdateInspiring()
     MDT:POI_UpdateAll()
     if not ignoreReloadPullButtons then
       MDT:ReloadPullButtons(true)
@@ -4088,7 +4084,7 @@ function MDT:OpenConfirmationFrame(width, height, title, buttonText, prompt, cal
   f:SetTitle(title)
   f.OkayButton:SetText(buttonText)
   f.OkayButton:SetCallback("OnClick", function()
-    callback()
+    if callback then callback() end
     MDT:HideAllDialogs()
   end)
   if buttonText2 then
@@ -4813,7 +4809,7 @@ function initFrames()
     MDT.pullTooltip.Model:SetPoint("TOPLEFT", MDT.pullTooltip, "TOPLEFT", 7, -7)
 
     MDT.pullTooltip.topString = MDT.pullTooltip:CreateFontString("MDTToolTipString")
-    MDT.pullTooltip.topString:SetFontObject(GameFontNormalSmall)
+    MDT.pullTooltip.topString:SetFontObject(GameFontNormal)
     MDT.pullTooltip.topString:SetFont(MDT.pullTooltip.topString:GetFont() or '', 10, '')
     MDT.pullTooltip.topString:SetTextColor(1, 1, 1, 1)
     MDT.pullTooltip.topString:SetJustifyH("LEFT")
@@ -4835,7 +4831,7 @@ function initFrames()
 
     MDT.pullTooltip.botString = MDT.pullTooltip:CreateFontString("MDTToolTipString")
     local botString = MDT.pullTooltip.botString
-    botString:SetFontObject(GameFontNormalSmall)
+    botString:SetFontObject(GameFontNormal)
     botString:SetFont(MDT.pullTooltip.topString:GetFont() or '', 10, '')
     botString:SetTextColor(1, 1, 1, 1)
     botString:SetJustifyH("CENTER")
