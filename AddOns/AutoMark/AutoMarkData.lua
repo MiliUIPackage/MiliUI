@@ -145,14 +145,17 @@ MyAddon.Mobs = {
 --	[207939] = {name = "[BOSS] Baron Braunpyke", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 82 hostile attackable
 --	[207940] = {name = "[BOSS] Prioress Murrpray", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 82 hostile attackable
 --	[207943] = {name = "Arathi Neophyte", instanceID = 2649},	-- normal Humanoid MANA 80 hostile attackable
-	[207946] = {name = "[BOSS] Captain Dailcry", instanceID = 2649, marks = "+2"},	-- elite Humanoid POWER_TYPE_ENERGY 82 hostile attackable
-	[211289] = {name = "[BOSS-ADD] Taener Duelmal", instanceID = 2649, marks = "+1"},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
+	[207946] = {name = "[BOSS] Captain Dailcry", instanceID = 2649, marks = "8"},	-- elite Humanoid POWER_TYPE_ENERGY 82 hostile attackable
+	[239834] = {name = "Taener Duelmal", instanceID = 2649, auto = "nameplate", marks = "8"},
+	[211289] = {name = "[BOSS-ADD] Taener Duelmal", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
+--	[239833] = {name = "Elaena Emberlanz", instanceID = 2649}
 --	[211290] = {name = "[BOSS-ADD] Elaena Emberlanz", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
---	[211291] = {name = "[BOSS-ADD] Sergeant Shaynemail", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
+	[239836] = {name = "Sergeant Shaynemail", instanceID = 2649, auto = "nameplate", marks = "8"},
+	[211291] = {name = "[BOSS-ADD] Sergeant Shaynemail", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
 --	[207949] = {name = "Zealous Templar", instanceID = 2649},	-- elite Humanoid MANA 81 hostile attackable
 --	[211140] = {name = "Arathi Neophyte", instanceID = 2649},	-- normal Humanoid RAGE 80 hostile attackable
-	[212826] = {name = "Guard Captain Suleyman", instanceID = 2649, marks = "8"},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
---	[212827] = {name = "High Priest Aemya", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
+	[212826] = {name = "Guard Captain Suleyman", instanceID = 2649, auto = "nameplate", marks = "8"},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
+	[212827] = {name = "High Priest Aemya", instanceID = 2649},	-- elite Humanoid POWER_TYPE_ENERGY 81 hostile attackable
 	[212831] = {name = "Forge Master Damian", instanceID = 2649},	-- elite Humanoid MANA 81 hostile attackable
 --	[212835] = {name = "Risen Footman", instanceID = 2649},	-- elite Undead ENERGY 80 hostile attackable
 --	[212838] = {name = "Arathi Neophyte", instanceID = 2649},	-- normal Humanoid MANA 80 hostile attackable

@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- AutoMark v1.1.8
+-- AutoMark v1.1.9
 -- ===============
 --
 --	Auto Mark
@@ -111,6 +111,7 @@ if AutoMark_DB.reMark == nil then AutoMark_DB.reMark = true end
 if AutoMark_DB.updateMarked == nil then AutoMark_DB.updateMarked = true end
 if AutoMark_DB.verbose == nil then AutoMark_DB.verbose = false end
 if AutoMark_DB.playerMarks == nil then AutoMark_DB.playerMarks = {} end
+if AutoMark_DB.forceMouseover == nil then AutoMark_DB.forceMouseover = false end
 
 for _,k in ipairs({"TANK","HEALER"}) do
 	PlayerMarks[k] = AutoMark_DB.playerMarks[k] or MyAddon.PlayerMarks[k]
@@ -546,7 +547,7 @@ if IsInGroup() then
 	local success = C_ChatInfo.SendAddonMessage(addonName,buffer,MyAddon.GetChatType())
 	if not success then
 		msgErrors = msgErrors + 1
-		MyAddon.Debug("FAILED TO SEND ADDON MESSAGE")
+--		MyAddon.Debug("FAILED TO SEND ADDON MESSAGE")
 	end
 else
 	if AutoMark_DB.enabled then
@@ -788,6 +789,8 @@ end
 -------------------------------------------------------------------------------
 function MyAddon.SetMark(m,guid,name,time,force,tag)
 
+MyAddon.Debug("SET MARK",m,guid,name,time,force,tag)
+
 if Marks[m].guid then
 	GUIDs[Marks[m].guid] = nil
 end
@@ -941,7 +944,7 @@ local success = C_ChatInfo.SendAddonMessage(WAPrefix,"DECIDE_MARKER^"..message,M
 
 if not success then
 	msgErrors = msgErrors + 1
-	MyAddon.Debug("FAILED TO SEND WA ADDON MESSAGE")
+--	MyAddon.Debug("FAILED TO SEND WA ADDON MESSAGE")
 end
 
 end
@@ -952,9 +955,9 @@ function MyAddon.ChatMessageAddon(prefix,text,channel,sender)
 
 -- Send reply to WA!
 if prefix == WAPrefix then
-	if sender ~= PlayerName then
-		MyAddon.Debug("MSG",prefix,text,channel,sender)
-	end
+	-- if sender ~= PlayerName then
+		-- MyAddon.Debug("MSG",prefix,text,channel,sender)
+	-- end
 	local subEvent, msg = strsplit("^", text)
 	if subEvent == "UPDATE_PLAYER" then
 		MyAddon.SendWAInfo()
@@ -1007,15 +1010,15 @@ end
 MarkerGUID = guid
 MarkerName = name
 
-if MarkerGUID == nil then
-	MyAddon.Debug("No Marker")
-else
-	if PlayerGUID == guid then
-		MyAddon.Debug("You're Marker")
-	else
-		MyAddon.Debug("Marker is",MarkerName)
-	end
-end
+-- if MarkerGUID == nil then
+	-- MyAddon.Debug("No Marker")
+-- else
+	-- if PlayerGUID == guid then
+		-- MyAddon.Debug("You're Marker")
+	-- else
+		-- MyAddon.Debug("Marker is",MarkerName)
+	-- end
+-- end
 
 if PlayerGUID == guid then
 	Marker = true
@@ -1108,6 +1111,10 @@ end
 
 if AutoMark_DB.modify then
 	GameTooltip:AddLine("Modify: " .. tostring(AutoMark_DB.modify),1,1,1)
+end
+
+if AutoMark_DB.forceMouseover then
+	GameTooltip:AddLine("Force Mouseover: " .. tostring(AutoMark_DB.forceMouseover),1,1,1)
 end
 
 if verbose then
@@ -1728,6 +1735,12 @@ if cmd == "sounds" then
 	return
 end
 
+if cmd == "forcemouseover" then
+	AutoMark_DB.forceMouseover = not AutoMark_DB.forceMouseover
+	MyAddon.Message("Force Mouseover:",AutoMark_DB.forceMouseover)
+	return
+end
+
 if cmd == "info" then
 	if not InfoFrame then
 		InfoFrame = MyAddon.CreateInfoFrame()
@@ -2274,6 +2287,7 @@ if event == "UPDATE_MOUSEOVER_UNIT" or (event == "MODIFIER_STATE_CHANGED" and Un
 	local unit = "mouseover"
 	if UnitIsDead(unit) or UnitIsPlayer(unit) then return end
     local guid = UnitGUID(unit)
+	MyAddon.Debug("GUID:",guid)
 	if guid == nil then return end
 	if IsAltKeyDown() then
 		if IsControlKeyDown() and AutoMark_DB.modify then
@@ -2286,12 +2300,26 @@ if event == "UPDATE_MOUSEOVER_UNIT" or (event == "MODIFIER_STATE_CHANGED" and Un
 		end
 	end
 	local npcId = MyAddon.GetNpcIdFromGUID(guid)
+	MyAddon.Debug("NPCID:",npcId)
 	if npcId == nil then return end
 	if Scan then
 		MyAddon.AddCustomMob(unit)
 	end
+	if Debug and Mobs[npcId] then
+		MyAddon.Debug("NAME:",Mobs[npcId].name)
+		if MyAddon.IsNameplateVisble(guid) then
+			MyAddon.Debug("NAMEPLATE VISIBLE: TRUE")
+		else
+			MyAddon.Debug("NAMEPLATE VISIBLE: FALSE")
+		end
+		if Mobs[npcId].auto == nil then
+			MyAddon.Debug("AUTO: DEFAULT")
+		else
+			MyAddon.Debug("AUTO:",Mobs[npcId].auto)
+		end
+	end
 	if Mobs[npcId] and Mobs[npcId].auto ~= "never" and Mobs[npcId].auto ~= "combat" then
-		if MyAddon.IsNameplateVisble(guid) or Mobs[npcId].auto == "*mouseover" then
+		if MyAddon.IsNameplateVisble(guid) or Mobs[npcId].auto == "*mouseover" or AutoMark_DB.forceMouseover then
 			MyAddon.MarkUnit(unit,guid,Mobs[npcId])
 		end
 	else

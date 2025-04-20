@@ -121,3 +121,15 @@ Priory of the Sacred Flame
 	Elaena Emberlanz - Removed.
 Darkflame Cleft
 	Dynamite Mine Cart - Added. Priority marked with Skull.
+
+v1.1.9
+Priory of the Sacred Flame
+	Sergeant Shaynemail - Added (marked when nameplate becomes visible).
+	Taener Duelmal - Added (marked when nameplate becomes visible).
+	High Priest Aemya - Added.
+	Guard Captain Suleyman - Now marked when nameplate becomes visible.
+Some debug options added.
+Added option for marking without nameplates.
+	To toggle use: /automark forcemouseover
+	Not recommended as mouseover will apply marks at any range!
+	Also, without nameplates, mobs will not be auto marked when entering combat (a mouseover will be required).
