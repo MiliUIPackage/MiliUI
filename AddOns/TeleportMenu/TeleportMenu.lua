@@ -207,31 +207,31 @@ local function SetTextureByItemId(frame, itemId)
 	end)
 end
 
-local function retrySetNormalTexture(button, itemId, attempt)
-	local attempts = attempt or 1
-	local _, _, _, _, _, _, _, _, _, itemTexture = C_Item.GetItemInfo(itemId)
-	if itemTexture then
-		button:SetNormalTexture(itemTexture)
-		return
-	end
-	if attempts < 5 then
-		C_Timer.After(1, function()
-			retrySetNormalTexture(button, itemId, attempts + 1)
-		end)
-	else
-		print(APPEND .. L["Missing Texture %s"]:format(itemId))
-	end
-end
+-- local function retrySetNormalTexture(button, itemId, attempt)
+-- 	local attempts = attempt or 1
+-- 	local _, _, _, _, _, _, _, _, _, itemTexture = C_Item.GetItemInfo(itemId)
+-- 	if itemTexture then
+-- 		button:SetNormalTexture(itemTexture)
+-- 		return
+-- 	end
+-- 	if attempts < 5 then
+-- 		C_Timer.After(1, function()
+-- 			retrySetNormalTexture(button, itemId, attempts + 1)
+-- 		end)
+-- 	else
+-- 		print(APPEND .. L["Missing Texture %s"]:format(itemId))
+-- 	end
+-- end
 
-local function retryGetToyTexture(toyId, attempt)
-	local attempts = attempt or 1
-	local _, name, texture = C_ToyBox.GetToyInfo(toyId)
-	if attempts < 5 then
-		C_Timer.After(0.1, function()
-			retryGetToyTexture(toyId, attempts + 1)
-		end)
-	end
-end
+-- local function retryGetToyTexture(toyId, attempt)
+-- 	local attempts = attempt or 1
+-- 	local _, name, texture = C_ToyBox.GetToyInfo(toyId)
+-- 	if attempts < 5 then
+-- 		C_Timer.After(0.1, function()
+-- 			retryGetToyTexture(toyId, attempts + 1)
+-- 		end)
+-- 	end
+-- end
 
 --------------------------------------
 --- Tooltip
@@ -428,6 +428,25 @@ local function createFlyOutFrame()
 	return flyOutFrame
 end
 
+---@param id ItemInfo
+---@return boolean
+local function IsItemEquipped(id)
+	return C_Item.IsEquippableItem(id) and C_Item.IsEquippedItem(id)
+end
+
+local function ClearAllInvalidHighlights()
+	for _, button in pairs(secureButtons) do
+		button:ClearHighlightTexture()
+
+		if button:GetAttribute("item") ~= nil then
+			local id = string.match(button:GetAttribute("item"), "%d+")
+			if IsItemEquipped(id) then
+				button:Highlight()
+			end
+		end
+	end
+end
+
 ---@param frame Frame
 ---@param type string
 ---@param text string|nil
@@ -442,8 +461,8 @@ local function CreateSecureButton(frame, type, text, id, hearthstone)
 		button = CreateFrame("Button", nil, nil, "SecureActionButtonTemplate")
 		button.cooldownFrame = createCooldownFrame(button)
 		button.text = button:CreateFontString(nil, "OVERLAY")
+		button:LockHighlight()
 		button.text:SetPoint("BOTTOM", button, "BOTTOM", 0, 5)
-
 		table.insert(secureButtons, button)
 	end
 
@@ -451,7 +470,14 @@ local function CreateSecureButton(frame, type, text, id, hearthstone)
 		self:SetParent(nil)
 		self:ClearAllPoints()
 		self:Hide()
+		if type == "item" and not C_Item.IsEquippedItem(id) then
+			self:ClearHighlightTexture()
+		end
 		table.insert(secureButtonsPool, self)
+	end
+
+	function button:Highlight()
+		self:SetHighlightAtlas("talents-node-choiceflyout-square-green")
 	end
 
 	button:EnableMouse(true)
@@ -476,6 +502,16 @@ local function CreateSecureButton(frame, type, text, id, hearthstone)
 	button:SetScript("OnShow", function(self)
 		self.cooldownFrame:CheckCooldown(id, type)
 	end)
+	button:SetScript("PostClick", function(self)
+		if type == "item" and C_Item.IsEquippableItem(id) then
+			C_Timer.After(0.25, function() -- Slight delay due to equipping the item not being instant.
+				if IsItemEquipped(id) then
+					ClearAllInvalidHighlights()
+					self:Highlight()
+				end
+			end)
+		end
+	end)
 	button.cooldownFrame:CheckCooldown(id, type)
 
 	-- Textures
@@ -490,6 +526,9 @@ local function CreateSecureButton(frame, type, text, id, hearthstone)
 	button:SetAttribute("type", type)
 	if type == "item" then
 		button:SetAttribute(type, "item:" .. id)
+		if C_Item.IsEquippableItem(id) and IsItemEquipped(id) then
+			button:Highlight()
+		end
 	else
 		button:SetAttribute(type, id)
 	end
@@ -518,16 +557,15 @@ end
 
 function tpm:UpdateAvailableSeasonalTeleports()
 	availableSeasonalTeleports = {}
+
+	local factionTeleports = {
+		Alliance = { siegeOfBoralus = 445418, motherlode = 467553 },
+		Horde = { siegeOfBoralus = 464256, motherlode = 467555 }
+	}
 	local playerFaction = UnitFactionGroup("player")
-	local siegeOfBoralus = -1
-	local motherlode = -1
-	if playerFaction == "Alliance" then
-		siegeOfBoralus = 445418
-		motherlode = 467553
-	else
-		siegeOfBoralus = 464256
-		motherlode = 467555
-	end
+	local factionData = factionTeleports[playerFaction] or {}
+	local siegeOfBoralus = factionData.siegeOfBoralus
+	local motherlode = factionData.motherlode
 
 	local seasonalTeleports = {
 		-- TWW S1
@@ -637,7 +675,6 @@ function tpm:CreateSeasonalTeleportFlyout()
 
 	local flyoutsCreated = 0
 	for _, spellId in ipairs(availableSeasonalTeleports) do
-		local flyname = nil
 		if IsSpellKnown(spellId) then
 			flyoutsCreated = flyoutsCreated + 1
 			local text = tpm:GetIconText(spellId)
@@ -652,7 +689,8 @@ function tpm:CreateSeasonalTeleportFlyout()
 end
 
 function tpm:CreateWormholeFlyout(flyoutData)
-	if #tpm.AvailableWormholes == 0 then
+	local usableWormholes = tpm.AvailableWormholes:GetUsable()
+	if #usableWormholes == 0 then
 		return
 	end
 
@@ -665,7 +703,7 @@ function tpm:CreateWormholeFlyout(flyoutData)
 	button:SetPoint("LEFT", TeleportMeButtonsFrame, "TOPRIGHT", 0, yOffset)
 
 	local flyoutsCreated = 0
-	for _, wormholeId in ipairs(tpm.AvailableWormholes) do
+	for _, wormholeId in ipairs(usableWormholes) do
 		flyoutsCreated = flyoutsCreated + 1
 		local flyOutButton = CreateSecureButton(flyOutFrame, "toy", nil, wormholeId)
 		local xOffset = globalWidth * flyoutsCreated
@@ -716,8 +754,8 @@ function tpm:updateHearthstone()
 		SetTextureByItemId(hearthstoneButton, db["Teleports:Hearthstone"])
 		hearthstoneButton:SetAttribute("type", "toy")
 		hearthstoneButton:SetAttribute("toy", db["Teleports:Hearthstone"])
-		hearthstoneButton:SetScript("OnEnter", function(self)
-			setToolTip(self, "toy", db["Teleports:Hearthstone"], true)
+		hearthstoneButton:SetScript("OnEnter", function(s)
+			setToolTip(s, "toy", db["Teleports:Hearthstone"], true)
 		end)
 	else
 		if C_Item.GetItemCount(6948) == 0 then
@@ -728,17 +766,15 @@ function tpm:updateHearthstone()
 		SetTextureByItemId(hearthstoneButton, 6948)
 		hearthstoneButton:SetAttribute("type", "item")
 		hearthstoneButton:SetAttribute("item", "item:6948")
-		hearthstoneButton:SetScript("OnEnter", function(self)
-			setToolTip(self, "item", 6948, true)
+		hearthstoneButton:SetScript("OnEnter", function(s)
+			setToolTip(s, "item", 6948, true)
 		end)
 	end
 	hearthstoneButton:Show()
 end
 
 local function createAnchors()
-	if InCombatLockdown() then
-		return
-	elseif TeleportMeButtonsFrame and not TeleportMeButtonsFrame.reload then
+	if TeleportMeButtonsFrame and not TeleportMeButtonsFrame.reload then
 		if not db["Enabled"] then
 			TeleportMeButtonsFrame:Hide()
 			return
@@ -747,6 +783,7 @@ local function createAnchors()
 			local rng = tpm:GetRandomHearthstone()
 			TeleportMeButtonsFrame.hearthstoneButton:SetAttribute("toy", rng)
 		end
+		ClearAllInvalidHighlights()
 		return
 	end
 	if not db["Enabled"] then
@@ -755,8 +792,8 @@ local function createAnchors()
 	local buttonsFrame = TeleportMeButtonsFrame or CreateFrame("Frame", "TeleportMeButtonsFrame", GameMenuFrame)
 	buttonsFrame.reload = nil
 	buttonsFrame:SetSize(1, 1)
-	local yOffset = globalHeight / 2
-	buttonsFrame:SetPoint("TOPLEFT", GameMenuFrame, "TOPRIGHT", 0, -yOffset)
+	local buttonFrameYOffset = globalHeight / 2
+	buttonsFrame:SetPoint("TOPLEFT", GameMenuFrame, "TOPRIGHT", 0, -buttonFrameYOffset)
 
 	buttonsFrame.buttonAmount = 0
 	function buttonsFrame:IncrementButtons()
@@ -767,7 +804,7 @@ local function createAnchors()
 		return self.buttonAmount
 	end
 
-	for i, teleport in ipairs(tpTable) do
+	for _, teleport in ipairs(tpTable) do
 		local texture
 		local known
 
@@ -831,7 +868,7 @@ local function createAnchors()
 		end
 	end
 
-	function CreateCurrentSeasonTeleports()
+	local function CreateCurrentSeasonTeleports()
 		local created = tpm:CreateSeasonalTeleportFlyout()
 		if created then
 			buttonsFrame:IncrementButtons()
@@ -843,6 +880,9 @@ local function createAnchors()
 end
 
 function tpm:ReloadFrames()
+	if InCombatLockdown() then
+		return
+	end
 	if db["Button:Size"] then
 		globalWidth = db["Button:Size"]
 		globalHeight = db["Button:Size"]
@@ -858,7 +898,9 @@ function tpm:ReloadFrames()
 		secureButton:Recycle()
 	end
 
-	TeleportMeButtonsFrame.reload = true
+	if TeleportMeButtonsFrame then
+		TeleportMeButtonsFrame.reload = true
+	end
 
 	createAnchors()
 end
@@ -935,21 +977,15 @@ function tpm:Setup()
 		tpm:updateHearthstone()
 	end
 
-	createAnchors()
-	hooksecurefunc("ToggleGameMenu", createAnchors)
+	hooksecurefunc("ToggleGameMenu", tpm.ReloadFrames)
 end
 
 -- Event Handlers
 local events = {}
-local normalizedSeasons = {
-	[13] = 1, -- TWW Season 1
-	[14] = 2, -- TWW Season 2
-}
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("BAG_UPDATE_DELAYED")
-f:RegisterEvent("CVAR_UPDATE")
 f:SetScript("OnEvent", function(self, event, ...)
 	events[event](self, ...)
 end)
@@ -959,25 +995,14 @@ function events:ADDON_LOADED(...)
 
 	if addOnName == "TeleportMenu" then
 		db = tpm:GetOptions()
-		tpm.settings.current_season = normalizedSeasons[tonumber(C_CVar.GetCVar("newMythicPlusSeason"))] or 1
+		tpm.settings.current_season = 2
 
 		db.debug = false
 		f:UnregisterEvent("ADDON_LOADED")
 	end
 end
 
-function events:CVAR_UPDATE(...)
-	local name, value = ...
-	if name == "newMythicPlusSeason" then
-		tpm.settings.current_season = normalizedSeasons[tonumber(value)] or 1
-		if TeleportMeButtonsFrame then
-			tpm:UpdateAvailableSeasonalTeleports()
-			tpm:ReloadFrames()
-		end
-	end
-end
-
-function events:PLAYER_LOGIN(...)
+function events:PLAYER_LOGIN()
 	checkItemsLoaded(f)
 	f:UnregisterEvent("PLAYER_LOGIN")
 end

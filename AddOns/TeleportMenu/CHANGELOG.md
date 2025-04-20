@@ -1,15 +1,15 @@
 # Teleport Menu
 
-## [v10](https://github.com/Justw8/TeleportMenu/tree/v10) (2025-02-25)
-[Full Changelog](https://github.com/Justw8/TeleportMenu/compare/v9.5...v10) [Previous Releases](https://github.com/Justw8/TeleportMenu/releases)
+## [v10.4](https://github.com/Justw8/TeleportMenu/tree/v10.4) (2025-04-08)
+[Full Changelog](https://github.com/Justw8/TeleportMenu/compare/v10.3...v10.4) [Previous Releases](https://github.com/Justw8/TeleportMenu/releases)
 
-- TOC update for 11.1 (#86)  
-- Add Vulpera Racials & Druid's Moonglade teleport (#85)  
-    Co-authored-by: Mike Donkers <67101689+donkers-mike@users.noreply.github.com>  
-- Remove dependency on lod blizzard data (#84)  
-- Update zhTW.lua (#83)  
-    Co-authored-by: Matthijs Groot // Justwait <Justw8@users.noreply.github.com>  
-- Update zhCN.lua (#82)  
-- Add item teleports (#81)  
-- Implement season 2 teleports (#79)  
-- Update zhCN.lua (#72)  
+- Update vscode setting files  
+- Add Ring-Bound Hourglass  
+- Add Fractured Necrolyte Skull  
+- Add Gallagio Loyalty Rewards Cards  
+- Add Boots of the Bay  
+- Add luacheck and code updates  
+- Update Items/zhCN/zhTW (#108)  
+- Set the season to be static to fix loading seasonal teleports (#106)  
+- Add Argent Crusader's Tabard (#104)  
+- Add Explosive Hearthstone (#96)  
