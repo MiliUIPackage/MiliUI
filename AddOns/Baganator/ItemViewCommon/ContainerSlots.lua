@@ -70,6 +70,8 @@ function ApplyCursor(targetInventorySlot, associatedTargetBag)
   end
 end
 
+local HighlightMonitor = {}
+
 -- REGULAR BAGS
 BaganatorRetailBagSlotButtonMixin = {}
 
@@ -92,11 +94,16 @@ local function ShowBagSlotTooltip(self)
   GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
   GameTooltip:SetInventoryItem("player", GetBagInventorySlot(self))
   GameTooltip:Show()
+  addonTable.CallbackRegistry:RegisterCallback("ViewComplete", function()
+    addonTable.CallbackRegistry:TriggerEvent("ClearHighlightBag")
+    addonTable.CallbackRegistry:TriggerEvent("HighlightBagItems", {[self:GetID()] = true})
+  end, HighlightMonitor)
 end
 
 local function HideBagSlotTooltip(self)
   addonTable.CallbackRegistry:TriggerEvent("ClearHighlightBag")
   GameTooltip:Hide()
+  addonTable.CallbackRegistry:UnregisterCallback("ViewComplete", HighlightMonitor)
 end
 
 function BaganatorRetailBagSlotButtonMixin:OnLoad()
@@ -252,7 +259,8 @@ local function OnBankSlotClick(self, button)
 end
 
 local function ShowBankSlotTooltip(self)
-  addonTable.CallbackRegistry:TriggerEvent("HighlightBagItems", {[Syndicator.Constants.AllBankIndexes[self:GetID() + 1]] = true})
+  local id = Syndicator.Constants.AllBankIndexes[self:GetID() + 1]
+  addonTable.CallbackRegistry:TriggerEvent("HighlightBagItems", {[id] = true})
 
   GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
   if self.needPurchase then
@@ -262,11 +270,16 @@ local function ShowBankSlotTooltip(self)
     GameTooltip:SetInventoryItem("player", GetBankInventorySlot(self))
   end
   GameTooltip:Show()
+  addonTable.CallbackRegistry:RegisterCallback("ViewComplete", function()
+    addonTable.CallbackRegistry:TriggerEvent("ClearHighlightBag")
+    addonTable.CallbackRegistry:TriggerEvent("HighlightBagItems", {[id] = true})
+  end, HighlightMonitor)
 end
 
 local function HideBankSlotTooltip(self)
   addonTable.CallbackRegistry:TriggerEvent("ClearHighlightBag")
   GameTooltip:Hide()
+  addonTable.CallbackRegistry:UnregisterCallback("ViewComplete", HighlightMonitor)
 end
 
 local function GetBankBagInfo(bankBagID)

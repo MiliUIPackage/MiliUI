@@ -1,8 +1,7 @@
 # Baganator
 
-## [660](https://github.com/Baganator/Baganator/tree/660) (2025-03-10)
-[Full Changelog](https://github.com/Baganator/Baganator/compare/659...660) 
+## [672](https://github.com/Baganator/Baganator/tree/672) (2025-04-11)
+[Full Changelog](https://github.com/Baganator/Baganator/compare/671...672) 
 
-- Customise: Categories: Finish skinning new import dialog for GW2 and NDui  
-- Customise: Categories: Make import dialog act more like a static popup  
-- [Fixes #436] Avoid freeze when pasting to import large categories profile  
+- Classic Era: Use new data to sort/group trade goods/consumables better  
+    Requires updated Syndicator  
