@@ -120,6 +120,8 @@ L.LogCurrentMPlus					= "當前等級傳奇+地下城"--Retail Only
 L.LogCurrentMythicZero				= "當前等級傳奇0層地下城"--Retail Only
 L.LogTWDungeons						= "時光漫遊 或 克羅米時光地下城"--Retail Only
 L.LogCurrentHeroic					= "當前等級英雄地下城 (注意：如果您通過地城搜尋器佇列英雄並想要記錄，請關閉地城搜尋器過濾)"
+L.LogDelves							= "當前等級探究"--Retail Only
+L.LogChallenges						= "當前等級特別挑戰 (像是托加斯特、幻象、法師塔等)"--Retail Only
 
 -- Panel: Extra Features
 L.Panel_ExtraFeatures		= "額外功能"

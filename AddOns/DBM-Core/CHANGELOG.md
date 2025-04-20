@@ -1,74 +1,22 @@
 # DBM - Core
 
-## [11.1.13-18-g232f87c](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/232f87cd32151b94f3df447b60ebf47afa8d29e1) (2025-04-02)
-[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/11.1.13...232f87cd32151b94f3df447b60ebf47afa8d29e1) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
+## [11.1.16](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/11.1.16) (2025-04-11)
+[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/11.1.15...11.1.16) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
 
-- put hacky workaronds in for Linaori problem  
-- cleanup deprecations some. add ignores for others  
-- Update localization.ru.lua (#1603)  
-    * Update localization.ru.lua  
-    * Update localization.ru.lua  
-    * Update localization.ru.lua  
-- Update localization.tw.lua (#1605)  
-- fix dungeon version reporting 0 instead of "not installed"  
-- Update koKR (#1602)  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Revert  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR stings in tocs  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    * Update koKR  
-    ---------  
-    Co-authored-by: Adam <MysticalOS@users.noreply.github.com>  
-- Fix break timer recovery no longer working since start of TWW due to arg accidentally getting dropped in refactor  
-- fix lua error in new version check  
-- fix voice alerts being backwards on stix  
-- Fix cauldron fades being inverted  
-- Update localization.ru.lua (#1601)  
-- Update localization.tw.lua (#1600)  
-- Fix double dungeons  
-- Revert "Also collect dungeon version from guild"  
-- Also collect dungeon version from guild  
-- missed a tonumber  
-- Scrap sending voice pack version and replace it with always sending dungeon mod version.  
-- bump alpha  
+- prep new tag  
+- Core: Fix AntiSpam when GetTime() is ~0 (happens with DBM-Offline)  
+- Core: Add support for DAMAGE\_SHIELD events  
+- Core: Add basic difficulty modifier support for Scarlet Enclave  
+- Update localization.ru.lua (#1615)  
+- Difficulty check updates:  
+     - Fixed a bug where dungeon popup didn't show for season 2 dungeons (it was still locked to season 1 retail dunegons)  
+     - Improved handling of challenges module checks and ensured they run for visions return as well. Visions specifically will use popup notifier  
+     - Delves will now use the non popup notifier of available dungeon mods (instead of no notification at all)  
+     - Missing module popup will now correctly run in Scarlet Enclave in SoD  
+- Cauldron of carnage update  
+     - Fixed bug where timer fades still didn't work for first side you started on.  
+     - Fixed bug where tank alert on flare side gave wrong instruction (said to watch step instead of defensive)  
+     - Fixed bug where clash timer didn't restart after first clash  
+     - Added Clash active timer that shows when clash ends  
+- Notes  
+- Send respawn, battlefield, lfg pop, and pizza/custom timers to Timerbegin callback. Addresses https://github.com/WeakAuras/WeakAuras2/issues/5800#issuecomment-2792795291  
