@@ -1,4 +1,4 @@
-## Interface: 110007, 110100
+## Interface: 110007, 110105
 ## X-Min-Interface: 80000
 ## Category: DBM
 ## Category-zhTW: 副本

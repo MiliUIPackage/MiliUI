@@ -1,4 +1,4 @@
-## Interface: 110100, 110105
+## Interface: 110105, 110105
 
 ## Title: Leatrix Plus
 ## Title-zhCN: Leatrix Plus [|cffeda55f功能百宝箱|r]

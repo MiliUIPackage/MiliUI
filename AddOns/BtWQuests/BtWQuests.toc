@@ -1,4 +1,4 @@
-## Interface: 110007, 110100
+## Interface: 110007, 110105
 ## Title: BtWQuests
 ## Version: 2.51.1
 ## Notes: 

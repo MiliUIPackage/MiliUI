@@ -1,4 +1,4 @@
-## Interface: 110007, 110100
+## Interface: 110007, 110105
 ## Title: |cff0088eeParagon|r Reputation
 ## Author: |cffabd473Fail|r |cffff4000US-Ragnaros|r
 ## Version: 1.62

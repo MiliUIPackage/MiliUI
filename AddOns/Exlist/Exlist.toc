@@ -1,4 +1,4 @@
-## Interface: 110002, 110100
+## Interface: 110002, 110105
 ## Title: Exlist
 ## Notes: Shows various information about your characters
 ## Title-zhTW: |cffFF7F00[分身]|r 我的分身名冊

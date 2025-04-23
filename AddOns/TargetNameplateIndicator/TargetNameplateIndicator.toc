@@ -1,5 +1,5 @@
 ## Title: TargetNameplateIndicator
-## Interface: 11505, 30403, 40401, 110005, 110100
+## Interface: 11505, 30403, 40401, 110005, 110105
 ## Notes: Puts a texture on the nameplates of your target, mouseover and focus to make them stand out.
 ## Author: Choonster
 ## Version: 1.59

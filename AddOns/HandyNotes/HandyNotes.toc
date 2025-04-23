@@ -1,4 +1,4 @@
-## Interface: 110100
+## Interface: 110105
 ## Title: HandyNotes
 ## Notes: Handy notes for your maps
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-主程式
