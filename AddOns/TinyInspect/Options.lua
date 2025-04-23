@@ -267,7 +267,7 @@ local function CreateAnchorFrame(anchorkey, parent)
         end)
         frame[anchorPoint] = button
     end
-    local frame = CreateFrame("Frame", nil, parent.SubtypeFrame or parent, BackdropTemplateMixin and "BackdropTemplate,ThinBorderTemplate" or "ThinBorderTemplate")
+    local frame = CreateFrame("Frame", nil, parent.SubtypeFrame or parent, BackdropTemplateMixin and "BackdropTemplate" or nil)
     frame.anchorkey = anchorkey
     frame:SetBackdrop({
             bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
