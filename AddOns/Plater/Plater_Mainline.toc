@@ -10,13 +10,11 @@
 ## OptionalDeps: Masque
 ## IconTexture-blank: 982414
 ## IconTexture: Interface\AddOns\Plater\images\cast_bar
-## Version: Plater-v603-Retail
+## Version: Plater-v608-Retail
 ## X-Curse-Project-ID: 100547
 ## X-Wago-ID: kRNLep6o
-## Title-zhTW: |cff0099FF[名條]|r Plater 名條
+## Title-zhTW: |cff0099FF[介面]|r Plater 名條
 ## Notes-zhTW: Plater|r |n|n可高度客製化名條。|n|n|cffffd200使用方法: |r輸入 /plater 或從小地圖旁邊的按鈕進行設定。
-## Category: Nameplate
-## Category-zhTW: 名條
 
 #@no-lib-strip@
 libs\libs.xml
@@ -33,7 +31,6 @@ locales\ptBR.lua
 locales\ruRU.lua
 locales\zhCN.lua
 locales\zhTW.lua
-locales\arAR.lua
 
 Plater.xml
 

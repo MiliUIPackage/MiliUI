@@ -102,7 +102,13 @@ L["OPTIONS_CASTBAR_SPELLICON"] = "Ícone do Feitiço"
 L["OPTIONS_CASTBAR_TOGGLE_TEST"] = "Ativa Barra de Lançamento Teste"
 L["OPTIONS_CASTBAR_TOGGLE_TEST_DESC"] = "Inicia a barra de lançamento teste, pressione de novo para parar."
 L["OPTIONS_CASTBAR_WIDTH"] = "Largura da barra de lançamento."
+--[[Translation missing --]]
+L["OPTIONS_CASTCOLORS_DISABLE_SOUNDS"] = "Remove All Sounds"
+--[[Translation missing --]]
+L["OPTIONS_CASTCOLORS_DISABLE_SOUNDS_CONFIRM"] = "Are you sure you want to remove all configured cast sounds?"
 L["OPTIONS_CASTCOLORS_DISABLECOLORS"] = "Desabilita todas as Cores"
+--[[Translation missing --]]
+L["OPTIONS_CASTCOLORS_DISABLECOLORS_CONFIRM"] = "Confirm disable all cast colors?"
 L["OPTIONS_CLICK_SPACE_HEIGHT"] = "A altura da área que aceita cliques do mouse para selecionar o alvo."
 L["OPTIONS_CLICK_SPACE_WIDTH"] = "A largura da área que aceita cliques do mouse para selecionar o alvo"
 L["OPTIONS_COLOR"] = "Cores"

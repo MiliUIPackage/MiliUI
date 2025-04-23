@@ -4,18 +4,15 @@ do
     local L = languageTable
 
 ------------------------------------------------------------
---[[Translation missing --]]
-L["A /reload may be required to take effect."] = "A /reload may be required to take effect."
---[[Translation missing --]]
-L["CVar, saved within Plater profile and restored when loading the profile."] = "CVar, saved within Plater profile and restored when loading the profile."
+L["A /reload may be required to take effect."] = "可能需要重新加载(/reload)才能生效。"
+L["CVar, saved within Plater profile and restored when loading the profile."] = "保存在 Plater 配置文件中的 CVar，在加载配置文件时恢复。"
 L["EXPORT"] = "导出"
 L["EXPORT_CAST_COLORS"] = "导出施法条颜色"
 L["EXPORT_CAST_SOUNDS"] = "导出施法条声音"
 L["HIGHLIGHT_HOVEROVER"] = "鼠标悬停高亮"
 L["HIGHLIGHT_HOVEROVER_ALPHA"] = "鼠标悬停高亮透明度"
 L["HIGHLIGHT_HOVEROVER_DESC"] = "鼠标放在姓名版上时的高亮效果."
---[[Translation missing --]]
-L["Hold Shift to change the sound of all casts with the audio %s to %s"] = "Hold Shift to change the sound of all casts with the audio %s to %s"
+L["Hold Shift to change the sound of all casts with the audio %s to %s"] = "按住 Shift 键，将所有带有音频 %s 的施法的声音更改为 %s"
 L["IMPORT"] = "导入"
 L["IMPORT_CAST_COLORS"] = "导入施法条颜色"
 L["IMPORT_CAST_SOUNDS"] = "导入施法条声音"
@@ -102,7 +99,10 @@ L["OPTIONS_CASTBAR_SPELLICON"] = "法术图标"
 L["OPTIONS_CASTBAR_TOGGLE_TEST"] = "施法条测试开关"
 L["OPTIONS_CASTBAR_TOGGLE_TEST_DESC"] = "开始施法条测试，再次点击停止。"
 L["OPTIONS_CASTBAR_WIDTH"] = "施法条宽度"
+L["OPTIONS_CASTCOLORS_DISABLE_SOUNDS"] = "移除所有声音"
+L["OPTIONS_CASTCOLORS_DISABLE_SOUNDS_CONFIRM"] = "您确定要删除所有已配置的施法声音吗？"
 L["OPTIONS_CASTCOLORS_DISABLECOLORS"] = "禁用所有颜色"
+L["OPTIONS_CASTCOLORS_DISABLECOLORS_CONFIRM"] = "确认禁用所有施法颜色？"
 L["OPTIONS_CLICK_SPACE_HEIGHT"] = "接受鼠标点击以选择目标的区域高度"
 L["OPTIONS_CLICK_SPACE_WIDTH"] = "接受鼠标点击以选择目标的区域宽度"
 L["OPTIONS_COLOR"] = "颜色"
@@ -152,10 +152,8 @@ L["OPTIONS_ICON_WORLDBOSS"] = "世界首领图标"
 L["OPTIONS_ICONROWSPACING"] = "图标行间距"
 L["OPTIONS_ICONSPACING"] = "图标间距"
 L["OPTIONS_INDICATORS"] = "指示器"
---[[Translation missing --]]
-L["OPTIONS_INTERACT_OBJECT_NAME_COLOR"] = "Game object name color"
---[[Translation missing --]]
-L["OPTIONS_INTERACT_OBJECT_NAME_COLOR_DESC"] = "Names on objects will get this color."
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR"] = "游戏物品名称颜色"
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR_DESC"] = "物品上的名称将显示这种颜色。"
 L["OPTIONS_INTERRUPT_FILLBAR"] = "打断时填充施法条"
 L["OPTIONS_INTERRUPT_SHOW_ANIM"] = "播放打断动画"
 L["OPTIONS_INTERRUPT_SHOW_AUTHOR"] = "显示打断者名字"
@@ -314,16 +312,11 @@ L["OPTIONS_XOFFSET"] = "X 偏移"
 L["OPTIONS_XOFFSET_DESC"] = "调整X轴上的位置。右键点击输入数值。"
 L["OPTIONS_YOFFSET"] = "Y 偏移"
 L["OPTIONS_YOFFSET_DESC"] = "调整Y轴上的位置。右键点击输入数值。"
---[[Translation missing --]]
 L[ [=[Show nameplate for friendly npcs.
 
 |cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
 
-|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=] ] = [=[Show nameplate for friendly npcs.
-
-|cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
-
-|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=]
+|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=] ] = "显示友方NPC的姓名板。|cFFFFFF00 重要 |r： 此选项取决于客户端的姓名板状态（开/关）。|cFFFFFF00 重要 |r：当禁用后但客户端通过（%s）启用时，生命栏将不可见，但姓名板仍可点击。"
 L["TARGET_CVAR_ALWAYSONSCREEN"] = "目标始终在屏幕上|cFFFF7700*|r"
 L["TARGET_CVAR_ALWAYSONSCREEN_DESC"] = "启用后，当前目标即使不在屏幕中，也会始终显示其姓名板。 |cFFFF7700[*]|r |cFFa0a0a0CVar，保存在Plater配置文件中，并在加载配置文件时恢复。|r"
 L["TARGET_CVAR_LOCKTOSCREEN"] = "锁定至屏幕（顶部）|cFFFF7700*|r"

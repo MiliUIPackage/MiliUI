@@ -183,7 +183,13 @@ L["OPTIONS_CASTBAR_TOGGLE_TEST_DESC"] = "Start cast bar test, press again to sto
 --[[Translation missing --]]
 L["OPTIONS_CASTBAR_WIDTH"] = "Width of the cast bar."
 --[[Translation missing --]]
+L["OPTIONS_CASTCOLORS_DISABLE_SOUNDS"] = "Remove All Sounds"
+--[[Translation missing --]]
+L["OPTIONS_CASTCOLORS_DISABLE_SOUNDS_CONFIRM"] = "Are you sure you want to remove all configured cast sounds?"
+--[[Translation missing --]]
 L["OPTIONS_CASTCOLORS_DISABLECOLORS"] = "Disable All Colors"
+--[[Translation missing --]]
+L["OPTIONS_CASTCOLORS_DISABLECOLORS_CONFIRM"] = "Confirm disable all cast colors?"
 --[[Translation missing --]]
 L["OPTIONS_CLICK_SPACE_HEIGHT"] = "The height of the are area which accepts mouse clicks to select the target"
 --[[Translation missing --]]

@@ -4,8 +4,7 @@ do
     local L = languageTable
 
 ------------------------------------------------------------
---[[Translation missing --]]
-L["A /reload may be required to take effect."] = "A /reload may be required to take effect."
+L["A /reload may be required to take effect."] = "Un /reload peut être nécessaire pour prendre effet."
 --[[Translation missing --]]
 L["CVar, saved within Plater profile and restored when loading the profile."] = "CVar, saved within Plater profile and restored when loading the profile."
 L["EXPORT"] = "Exporter"
@@ -102,7 +101,13 @@ L["OPTIONS_CASTBAR_SPELLICON"] = "Icône de sort"
 L["OPTIONS_CASTBAR_TOGGLE_TEST"] = "Activer/désactiver le test de la barre d'incantation"
 L["OPTIONS_CASTBAR_TOGGLE_TEST_DESC"] = "Commencez le test de la barre d'incantation, appuyez à nouveau pour arrêter."
 L["OPTIONS_CASTBAR_WIDTH"] = "Largeur de la barre d'incantation."
+--[[Translation missing --]]
+L["OPTIONS_CASTCOLORS_DISABLE_SOUNDS"] = "Remove All Sounds"
+--[[Translation missing --]]
+L["OPTIONS_CASTCOLORS_DISABLE_SOUNDS_CONFIRM"] = "Are you sure you want to remove all configured cast sounds?"
 L["OPTIONS_CASTCOLORS_DISABLECOLORS"] = "Désactiver toutes les couleurs"
+--[[Translation missing --]]
+L["OPTIONS_CASTCOLORS_DISABLECOLORS_CONFIRM"] = "Confirm disable all cast colors?"
 L["OPTIONS_CLICK_SPACE_HEIGHT"] = "La hauteur de la zone qui accepte les clics de souris pour sélectionner la cible"
 L["OPTIONS_CLICK_SPACE_WIDTH"] = "La largeur de la zone qui accepte les clics de souris pour sélectionner la cible"
 L["OPTIONS_COLOR"] = "Couleur"

@@ -121,7 +121,13 @@ L["OPTIONS_CASTBAR_TOGGLE_TEST"] = "Тест полосы заклинаний"
 L["OPTIONS_CASTBAR_TOGGLE_TEST_DESC"] = "Активировать тестовую полосу заклинаний, нажмите снова для остановки теста"
 L["OPTIONS_CASTBAR_WIDTH"] = "Ширина полосы заклинаний."
 --[[Translation missing --]]
+L["OPTIONS_CASTCOLORS_DISABLE_SOUNDS"] = "Remove All Sounds"
+--[[Translation missing --]]
+L["OPTIONS_CASTCOLORS_DISABLE_SOUNDS_CONFIRM"] = "Are you sure you want to remove all configured cast sounds?"
+--[[Translation missing --]]
 L["OPTIONS_CASTCOLORS_DISABLECOLORS"] = "Disable All Colors"
+--[[Translation missing --]]
+L["OPTIONS_CASTCOLORS_DISABLECOLORS_CONFIRM"] = "Confirm disable all cast colors?"
 L["OPTIONS_CLICK_SPACE_HEIGHT"] = "Высота области допустимая при выборе цели кликом мышью."
 L["OPTIONS_CLICK_SPACE_WIDTH"] = "Ширина области допустимая при выборе цели кликом мышью."
 L["OPTIONS_COLOR"] = "Цвет"

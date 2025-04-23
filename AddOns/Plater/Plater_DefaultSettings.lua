@@ -742,8 +742,8 @@ PLATER_DEFAULT_SETTINGS = {
 		no_spellname_length_limit = false,
 		
 		--> castbar target name
-		castbar_target_show = false,
-		castbar_target_notank = false,
+		castbar_target_show = true,
+		castbar_target_notank = true,
 		castbar_target_anchor = {side = 5, x = 0, y = 0},
 		castbar_target_text_size = 10,
 		castbar_target_outline = "OUTLINE",
@@ -912,6 +912,8 @@ PLATER_DEFAULT_SETTINGS = {
 		aura_show_aura_by_the_player = true,
 		aura_show_aura_by_other_players = false,
 		aura_show_buff_by_the_unit = true,
+		aura_show_debuff_by_the_unit = true,
+		aura_show_aura_by_other_npcs = true,
 		aura_border_colors_by_type = false,
 		aura_show_crowdcontrol = false,
 		aura_show_offensive_cd = false,
@@ -951,6 +953,7 @@ PLATER_DEFAULT_SETTINGS = {
 		
 		bossmod_support_enabled = true,
 		bossmod_castrename_enabled = true,
+		bossmod_castrename_priority = false,
 		bossmod_support_bars_enabled = true,
 		bossmod_support_bars_text_enabled = true,
 		bossmod_aura_height = 24,
@@ -1023,6 +1026,15 @@ PLATER_DEFAULT_SETTINGS = {
 			["arena"] = true,
 			["world"] =  true,
 			["cities"] = false,
+		},
+		
+		auto_toggle_always_show_enabled = false,
+		auto_toggle_always_show = {
+			["party"] = true,
+			["raid"] = true,
+			["arena"] = true,
+			["world"] =  true,
+			["cities"] = true,
 		},
 
 		auto_inside_raid_dungeon = {
