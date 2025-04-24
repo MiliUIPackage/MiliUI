@@ -6,6 +6,9 @@ local L
 L= DBM:GetModLocalization("d640")
 
 L:SetMiscLocalization({
+	Bronze			= "Bronze",--Blizzard deleted global localization for it from game, has to be done manually now
+	Silver			= "Silver",--Blizzard deleted global localization for it from game, has to be done manually now
+	Gold			= "Gold",--Blizzard deleted global localization for it from game, has to be done manually now
 	Endless			= "Endless",--Could not find a global for this one.
 	ReplyWhisper	= "<Deadly Boss Mods> %s is busy in Proving Grounds (Mode: %s Wave: %d)"
 })

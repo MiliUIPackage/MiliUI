@@ -1,5 +1,4 @@
-## Interface: 110105
-## Category: DBM
+## Interface: 110105, 110105
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (WW)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0队伍首领 (地心之战)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領 (地心之戰)|r
@@ -23,7 +22,7 @@
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
 ## X-Wago-ID: xZKxZENk
-## Version: r195
+## Version: r197
 ## Category-zhTW: 副本
 
 localization.en.lua
