@@ -129,6 +129,7 @@ L.OptionSaveOnOkay = "Save profile when Okay button is clicked."
 L.OptionConfirmDelete = "Ask before deleting profiles."
 L.OptionConfirmCopy = "Ask before copying profiles."
 L.OptionAccountProfile = "Use same profile for all characters."
+L.AccountProfileIconDesc = "Using this profile for all characters."
 
 L.ProfilesHelp = [[
 - To create a new profile, select "New Profile" from Menu.

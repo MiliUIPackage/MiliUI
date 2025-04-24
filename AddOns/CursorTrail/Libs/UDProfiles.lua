@@ -1,4 +1,4 @@
-local PROFILESUI_VERSION = "2025-02-15"  -- Version (date) of this file.  Stored as "ProfilesUI.VERSION".
+local PROFILESUI_VERSION = "2025-04-20"  -- Version (date) of this file.  Stored as "ProfilesUI.VERSION".
 
 --[[---------------------------------------------------------------------------
     FILE:   UDProfiles.lua
@@ -28,7 +28,7 @@ local PROFILESUI_VERSION = "2025-02-15"  -- Version (date) of this file.  Stored
         * A getAddonConfig() function that returns the TOC file's "SavedVariables" variable.
 
                 -----------------------[ EXAMPLE ]-----------------------------
-                function getAddonConfig()  -- Returns the addon's persistent "SavedVariables" config data.
+                function YourGetAddonConfig()  -- Returns the addon's persistent "SavedVariables" config data.
                     return _G.YourAddon_SavedVariables
                 end
 
@@ -36,8 +36,8 @@ local PROFILESUI_VERSION = "2025-02-15"  -- Version (date) of this file.  Stored
           parameter is nil, the function should copy UI fields to the addon's "SavedVariables" config data.
 
                 -----------------------[ EXAMPLE ]-----------------------------
-                function UI_GetValues(config)  -- Copies UI values into 'config'.  If 'config' is nil, copies
-                                               -- UI values to the addon's "SavedVariables" config data.
+                function Your_UI_GetValues(config)  -- Copies UI values into 'config'.  If 'config' is nil, copies
+                                                    -- UI values to the addon's "SavedVariables" config data.
                     local config = config or _G.YourAddon_SavedVariables  -- Use "SavedVariables" data if config is nil.
 
                     -- Copy UI values into the config parameter.
@@ -50,8 +50,8 @@ local PROFILESUI_VERSION = "2025-02-15"  -- Version (date) of this file.  Stored
           into its UI fields.
 
                 -----------------------[ EXAMPLE ]-----------------------------
-                function UI_SetValues(config)  -- Copies config data into UI widgets.  If 'config'
-                                               -- is nil, copies last saved data into the UI widgets.
+                function Your_UI_SetValues(config)  -- Copies config data into UI widgets.  If 'config'
+                                                    -- is nil, copies last saved data into the UI widgets.
                     local config = config or _G.YourAddon_SavedVariables  -- Use "SavedVariables" data if config is nil.
 
                     -- Copy config data into UI widgets.
@@ -78,7 +78,20 @@ local PROFILESUI_VERSION = "2025-02-15"  -- Version (date) of this file.  Stored
                         ["TestString"] = "Thirty Three",
                     },
                 }
-                DefaultKeyName = "Defaults 2"
+                YourDefaultKeyName = "Defaults 2"
+                    .
+                    .
+                    .
+                YourOptionsFrame.profilesUI = private.UDProfiles_CreateUI({
+                                        parent = YourOptionsFrame,
+                                        xPos = 4,
+                                        yPos = -12,
+                                        getAddonConfig = YourGetAddonConfig,
+                                        UI_SetValues = Your_UI_SetValues,
+                                        UI_GetValues = Your_UI_GetValues,
+                                        defaults = YourAddonDefaults,
+                                        defaultKeyName = YourDefaultKeyName,
+                                    })
 
         * IMPORTANT: The caller should also ... (using the "profilesUI" parameter returned by UDProfiles_CreateUI)
             - Call profilesUI:OnOkay() when its OKAY button is clicked, AFTER doing its own "okay" steps,
@@ -164,6 +177,10 @@ local PROFILESUI_VERSION = "2025-02-15"  -- Version (date) of this file.  Stored
 
 -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
 CHANGE HISTORY:
+    Apr 20, 2025
+        - Added a tooltip for the icon that indicates the selected profile is used for all characters.  (See accountProfileIcon.)
+        - Updated comments.
+
     Feb 15, 2025
         - Renamed "@Original" backup to "Original" so it can be deleted by users.
         - No longer create a backup named "@Original" (L.BackupName_Orig) since the latest data format
@@ -2556,6 +2573,11 @@ local function UDProfiles_CreateUI(info)
     accountProfileIcon:SetSize(28, 24)
     accountProfileIcon:SetPoint("BOTTOMRIGHT", editbox, "TOPLEFT", 18, -5)
     accountProfileIcon:Hide()
+    accountProfileIcon:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(gMainFrame, "ANCHOR_TOPLEFT", -80, 0)
+        GameTooltip:SetText(L.AccountProfileIconDesc, nil, nil, nil, nil, true) -- (text, r, g, b, a, wrap)
+    end)
+    accountProfileIcon:SetScript("OnLeave", function(self) GameTooltip:Hide() end)
 
     --=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     -- - - - MAIN FRAME EVENTS - - - --

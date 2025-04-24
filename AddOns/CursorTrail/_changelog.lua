@@ -1,11 +1,25 @@
 --[[---------------------------------------------------------------------------
-    File:   changelog.lua
+    Addon:  "CursorTrail"
+    File:   _changelog.lua
     Desc:   Text to display in the changelog window.
 -----------------------------------------------------------------------------]]
 ----local kAddonFolderName, private = ...
 setfenv(1, _G.CursorTrail)  -- Everything after this uses our namespace rather than _G.
 kChangelogText =
 [[
+=======================================
+RELEASE 11.1.5.1
+Released 2025-04-22
+
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+Version 11.1.5.1 for Retail WoW
+Version 4.4.2.5 for Classic Cataclysm
+Version 1.15.7.1 for Classic WoW
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+- Updated for Retail WoW 11.1.5 and Classic WoW 1.15.7.
+- Fixed the "ThinBorderTemplate" error in Retail WoW.
+- Added a tooltip for the icon that indicates the selected profile is used for all characters.
+
 =======================================
 RELEASE 11.1.0.1
 Released 2025-02-26
@@ -600,36 +614,6 @@ NEW MODELS:
     Object - Swirl, Pulsing, Blue
     Spots - Flare
     Trail - Swirling, Firestrike
-
-=======================================
-RELEASE 10.2.7.2
-Released 2024-05-28
-
-- - - - - - - - - - - - - - - - - - - - - - - - - -
-Version 10.2.7.2 for Retail WoW
-Version 4.4.0.3 for Classic Cataclysm
-Version 1.15.2.2 for Classic WoW
-- - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW FEATURES:
-- Added UI for saving and managing profiles (saved settings).
-- Profile names can now have upper and lower case letters.  (Different letter casing is ignored for comparison purposes.  For example, "dps" and "DPS" are consider the same profile name.  The last spelling used when saving a profile will be used in the profile list there after.)
-- Added Backup and Restore menu actions for creating "snapshots" of all your profiles.
-- Automatically create a backup of your current profiles everytime you log into the game (named "@Login").
-- Automatically create a backup of your current profiles the first time the profiles UI is used (named "@Original").  This backup will never change unless you delete it using the slash command "/ct deletebackup @Original".
-- Added new slash commands:
-    /ct backup <backup name>
-    /ct restore <backup name>
-    /ct deletebackup <backup name>
-    /ct listbackups
-- Moved all "Defaults" buttons into one button that shows them in a popup menu.
-- Added some new defaults (for Retail WoW only).
-
-CHANGES:
-- Cursor FX are now confined to the top side of the main window while the mouse is over that window.  (Easier to see changes you make.)
-- Updated help, and added component version numbers at the end of it.
-- Updated the UI controls library, renamed that file to "UDControls.lua" (was "Controls.lua"), and moved it to the "Lib" folder.
-- Fixed color swatch button sometimes showing wrong color after "Sparkle" checkbox was turned off.
-- Disable "Sparkle" checkbox whenever "Shape" is set to none.
 
 ]]
 

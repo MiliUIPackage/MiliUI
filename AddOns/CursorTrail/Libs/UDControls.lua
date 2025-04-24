@@ -1,4 +1,4 @@
-local CONTROLS_VERSION = "2024-10-16"  -- Version (date) of this file.  Stored as "UDControls.VERSION".
+local CONTROLS_VERSION = "2025-04-22"  -- Version (date) of this file.  Stored as "UDControls.VERSION".
 
 --[[---------------------------------------------------------------------------
 FILE:   UDControls.lua
@@ -16,6 +16,9 @@ REQUIREMENTS / DEPENDANCIES:
 USAGE:  See examples at end of this comment block.
 -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
 CHANGE HISTORY:
+    Apr 22, 2025
+        - Updated for Retail WoW 11.1.5.  (Fixed ThinBorderTemplate error.)
+        - Added CUtil.CreateThinBorderFrame().
     Oct 16, 2024
         - Added SmallTooltip:Show(), SmallTooltip:Hide(), and SmallTooltip:SetTextColor().
         - Added anchor/relativeFrame/relativeAnchor/x/y parameters to ContextMenu:Open().
@@ -2593,9 +2596,9 @@ local function CreateOptionButton(parent)
     local fontString = button:CreateFontString(nil, "OVERLAY")
     fontString:SetPoint("CENTER")
     button:SetFontString(fontString)
-    button:SetNormalFontObject(GameFontNormalSmall)
-    button:SetHighlightFontObject(GameFontHighlightSmall)
-    button:SetDisabledFontObject(GameFontDisableSmall)
+    button:SetNormalFontObject("GameFontNormalSmall")
+    button:SetHighlightFontObject("GameFontHighlightSmall")
+    button:SetDisabledFontObject("GameFontDisableSmall")
     button:SetNormalTexture("Interface\\Buttons\\UI-Panel-Button-Up")
     button:SetPushedTexture("Interface\\Buttons\\UI-Panel-Button-Down")
     button:SetDisabledTexture("Interface\\Buttons\\UI-Panel-Button-Disabled")
@@ -5322,13 +5325,74 @@ end
 
 
 -- ****************************************************************************
+-- Replaces Blizzard's "ThinBorderTemplate" which was removed
+-- from UIPanelTemplates.xml in Retail WoW release 11.1.5.
+-- ****************************************************************************
+function CUtil.CreateThinBorderFrame(parent)
+    local frm = CreateFrame("Frame", nil, parent)
+    frm:SetSize(100, 100)
+
+    local drawLayer = "BORDER"
+    local corner = "Interface\\Common\\ThinBorder2-Corner"
+    local sz = 8
+    local ofs = 3
+
+    frm.TopLeft = frm:CreateTexture(nil, drawLayer)
+    frm.TopLeft:SetTexture(corner)
+    frm.TopLeft:SetSize(sz, sz)
+    frm.TopLeft:SetPoint("TOPLEFT", -ofs, ofs)
+
+    frm.TopRight = frm:CreateTexture(nil, drawLayer)
+    frm.TopRight:SetTexture(corner)
+    frm.TopRight:SetSize(sz, sz)
+    frm.TopRight:SetPoint("TOPRIGHT", ofs, ofs)
+    frm.TopRight:SetTexCoord(1, 0, 0, 1)  -- x1, x2, y1, y2
+
+    frm.BottomLeft = frm:CreateTexture(nil, drawLayer)
+    frm.BottomLeft:SetTexture(corner)
+    frm.BottomLeft:SetSize(sz, sz)
+    frm.BottomLeft:SetPoint("BOTTOMLEFT", -ofs, -ofs)
+    frm.BottomLeft:SetTexCoord(0, 1, 1, 0)  -- x1, x2, y1, y2
+
+    frm.BottomRight = frm:CreateTexture(nil, drawLayer)
+    frm.BottomRight:SetTexture(corner)
+    frm.BottomRight:SetSize(sz, sz)
+    frm.BottomRight:SetPoint("BOTTOMRIGHT", ofs, -ofs)
+    frm.BottomRight:SetTexCoord(1, 0, 1, 0)  -- x1, x2, y1, y2
+
+    frm.Top = frm:CreateTexture(nil, drawLayer)
+    frm.Top:SetTexture("Interface\\Common\\ThinBorder2-Top")
+    frm.Top:SetPoint("TOPLEFT", frm.TopLeft, "TOPRIGHT")
+    frm.Top:SetPoint("BOTTOMRIGHT", frm.TopRight, "BOTTOMLEFT")
+
+    frm.Bottom = frm:CreateTexture(nil, drawLayer)
+    frm.Bottom:SetTexture("Interface\\Common\\ThinBorder2-Top")
+    frm.Bottom:SetPoint("TOPLEFT", frm.BottomLeft, "TOPRIGHT")
+    frm.Bottom:SetPoint("BOTTOMRIGHT", frm.BottomRight, "BOTTOMLEFT")
+    frm.Bottom:SetTexCoord(0, 1, 1, 0)  -- x1, x2, y1, y2
+
+    frm.Left = frm:CreateTexture(nil, drawLayer)
+    frm.Left:SetTexture("Interface\\Common\\ThinBorder2-Left")
+    frm.Left:SetPoint("TOPLEFT", frm.TopLeft, "BOTTOMLEFT")
+    frm.Left:SetPoint("BOTTOMRIGHT", frm.BottomLeft, "TOPRIGHT")
+
+    frm.Right = frm:CreateTexture(nil, drawLayer)
+    frm.Right:SetTexture("Interface\\Common\\ThinBorder2-Left")
+    frm.Right:SetPoint("TOPLEFT", frm.TopRight, "BOTTOMLEFT")
+    frm.Right:SetPoint("BOTTOMRIGHT", frm.BottomRight, "TOPRIGHT")
+    frm.Right:SetTexCoord(1, 0, 0, 1)  -- x1, x2, y1, y2
+
+    return frm
+end
+
+-- ****************************************************************************
 -- Adds an "edges" variable to the specified table that adds lines around
 -- the edges of the frame.  The color of the lines can change be changed
 -- by calling frame.edges:setColor(r,g,b,a).
 -- ****************************************************************************
 function CUtil.EnhanceFrameEdges(frame, x1, y1, x2, y2)
     assert(not frame.edges) -- Don't call this more than once, or with a frame that already has a ".edges" table.
-    frame.edges = CreateFrame("Frame", nil,  frame, "ThinBorderTemplate")
+    frame.edges = CUtil.CreateThinBorderFrame(frame)
     frame.edges:SetPoint("TOPLEFT", frame.titleBox or frame, "TOPLEFT", x1, y1)
     frame.edges:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", x2, y2)
     frame.edges:SetScale(0.92)

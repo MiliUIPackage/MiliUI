@@ -874,6 +874,7 @@ function       EventFrame:PLAYER_ENTERING_WORLD(isLogin, isReload)
     if not StandardPanel then StandardPanel_Create("/"..kAddonFolderName) end
     if not OptionsFrame then OptionsFrame_Create() end
 
+    -- NOTE: See "https://wowpedia.fandom.com/wiki/TOC_format" about using "AddonCompartmentFunc" to trigger this logic from the TOC file.
     -- Add this addon to the game's "AddOn Compartment" button.
     local AddonCompartmentFrame = Globals.AddonCompartmentFrame
     if AddonCompartmentFrame and not private.addedCompartmentButton then
