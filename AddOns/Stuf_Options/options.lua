@@ -600,10 +600,12 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			buffgroup={ 
 				x=-10, y=-62, w=25, h=25, 
 				count=16, rows=2, cols=8, growth="LRTB", showpie=true,
+				counttx=5, countty=-5, counttfontflags="OUTLINE", counttfontsize=10,
 			},
 			debuffgroup={ 
 				x=0, y=8, w=25, h=25, 
 				count=16, rows=2, cols=8, growth="LRBT", showpie=true,
+				counttx=5, countty=-5, counttfontflags="OUTLINE", counttfontsize=10,
 			},
 			auratimers={
                 x=0, y=-52, w=70, h=13,
