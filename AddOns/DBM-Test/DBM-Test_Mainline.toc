@@ -10,6 +10,7 @@
 ## DefaultState: enabled
 ## LoadOnDemand: 1
 ## X-DBM-Test: true
+## Category-zhTW: 副本
 
 Options.lua
 Registry.lua

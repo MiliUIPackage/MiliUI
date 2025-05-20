@@ -9,6 +9,7 @@
 ## DefaultState: enabled
 ## LoadOnDemand: 1
 ## X-DBM-Test: true
+## Category-zhTW: 副本
 
 Undermine/Vexieand-Normal-Kill.lua
 Undermine/Vexieand-Heroic-Kill.lua
