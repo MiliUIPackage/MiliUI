@@ -124,7 +124,7 @@ MyAddon.Mobs = {
 	[207205] = {name = "[BOSS] Stormguard Gorren", instanceID = 2648},	-- elite Humanoid MANA 82 hostile attackable
 	[207207] = {name = "[BOSS] Voidstone Monstrosity", instanceID = 2648},	-- elite Aberration MANA 82 hostile attackable
 --	[209230] = {name = "[BOSS] Kyrioss", instanceID = 2648},	-- elite Elemental POWER_TYPE_ENERGY 82 hostile attackable
-	[209801] = {name = "Quartermaster Koratite", instanceID = 2648},	-- elite Humanoid MANA 81 hostile attackable
+	[209801] = {name = "Quartermaster Koratite", instanceID = 2648, marks = "8"},	-- elite Humanoid MANA 81 hostile attackable
 --	[212739] = {name = "Radiating Voidstone", instanceID = 2648},	-- elite Aberration RAGE 81 hostile attackable
 --	[212786] = {name = "Voidrider", instanceID = 2648},	-- elite Elemental RAGE 81 hostile attackable
 	[212793] = {name = "Void Ascendant", instanceID = 2648},	-- elite Humanoid MANA 80 hostile attackable
@@ -168,7 +168,7 @@ MyAddon.Mobs = {
 	[208450] = {name = "Wandering Candle", instanceID = 2651},	-- elite Elemental MANA 81 hostile attackable
 --	[208456] = {name = "Shuffling Horror", instanceID = 2651},	-- elite Aberration RAGE 80 hostile attackable
 --	[208457] = {name = "Skittering Darkness", instanceID = 2651},	-- normal Aberration RAGE 81 hostile attackable
-	[208743] = {name = "[BOSS] Blazikon", instanceID = 2651},	-- elite Elemental MANA 82 hostile attackable
+--	[208743] = {name = "[BOSS] Blazikon", instanceID = 2651},	-- elite Elemental MANA 82 hostile attackable
 --	[208745] = {name = "[BOSS] The Candle King", instanceID = 2651},	-- elite Humanoid RAGE 82 hostile attackable
 --	[208747] = {name = "[BOSS] The Darkness", instanceID = 2651},	-- normal Aberration POWER_TYPE_DARKNESS_ENERGY -1 hostile attackable
 --	[210148] = {name = "Menial Laborer", instanceID = 2651},	-- minus Humanoid RAGE 80 hostile attackable
@@ -457,7 +457,7 @@ MyAddon.Mobs = {
 --	[226404] = {name = "[BOSS] Geezle Gigazap", instanceID = 2773},	-- elite Humanoid POWER_TYPE_STORMENERGY 82 hostile attackable
 --	[227145] = {name = "Waterworks Crocolisk", instanceID = 2773},	-- elite Beast RAGE 80 hostile attackable
 --	[228144] = {name = "Darkfuse Soldier", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
---	[228424] = {name = "Darkfuse Mechadrone", instanceID = 2773},	-- elite Mechanical RAGE 81 hostile attackable
+	[228424] = {name = "[BOSS ADD] Darkfuse Mechadrone", instanceID = 2773, marks = "*8765"},	-- elite Mechanical RAGE 81 hostile attackable
 	[229069] = {name = "Mechadrone Sniper", instanceID = 2773},	-- elite Mechanical RAGE 80 hostile attackable
 --	[229212] = {name = "Darkfuse Demolitionist", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
 --	[229250] = {name = "Venture Co. Contractor", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
@@ -474,7 +474,7 @@ MyAddon.Mobs = {
 	[231325] = {name = "Darkfuse Jumpstarter", instanceID = 2773, marks = "87"},	-- elite Humanoid RAGE 81 hostile attackable
 --	[231380] = {name = "Undercrawler", instanceID = 2773},	-- elite Beast RAGE 80 hostile attackable
 --	[231385] = {name = "Darkfuse Inspector", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
---	[231496] = {name = "Venture Co. Diver", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
+	[231496] = {name = "Venture Co. Diver", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
 --	[231497] = {name = "Bombshell Crab", instanceID = 2773},	-- elite Beast RAGE 80 hostile attackable
 --	[236982] = {name = "Darkfuse Soldier", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
 

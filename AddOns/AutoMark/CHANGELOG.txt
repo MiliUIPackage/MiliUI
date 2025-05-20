@@ -133,3 +133,13 @@ Added option for marking without nameplates.
 	To toggle use: /automark forcemouseover
 	Not recommended as mouseover will apply marks at any range!
 	Also, without nameplates, mobs will not be auto marked when entering combat (a mouseover will be required).
+
+v1.1.10
+Operation: Floodgate
+	Darkfuse Mechadrone (Big M.O.M.M.A. adds) - Added . Uses Skull, Cross, Square & Moon to match the marks that DBM sets.
+	Venture Co. Diver - Added.
+The Rookery
+	Quartermaster Koratite - Changed to Skull just for visibility (no interrupts).
+Darkflame Cleft
+	Blazikon - Removed.
+TOC updated for 11.1.5.
