@@ -1,7 +1,6 @@
-## Interface: 110105
+## Interface: 110105, 110107
 ## X-Min-Interface: 100206
-## Version: 11.1.16
-## Category: DBM
+## Version: 11.1.18
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010Raids (WW)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010团队副本 (地心之战)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010團隊副本 (地心之戰)|r

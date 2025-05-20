@@ -5,7 +5,7 @@
 ## Notes: Library providing downdown menu like blizzards DropDownMenu
 ## Author: Hizuro
 ## IconTexture: 986485
-## Version: r51
+## Version: r52
 
 ## Category-enUS: Libraries
 ## Category-deDE: Bibliotheken

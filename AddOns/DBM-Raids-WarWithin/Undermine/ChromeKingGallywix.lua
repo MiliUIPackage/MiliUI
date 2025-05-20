@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2646, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250416053116")
+mod:SetRevision("20250430044000")
 mod:SetCreatureID(231075)
 mod:SetEncounterID(3016)
 mod:SetUsedIcons(8, 7, 6, 5, 4, 3)
@@ -52,6 +52,7 @@ local warnVentingHeat								= mod:NewCountAnnounce(466751, 2, nil, nil, 2)
 local warnFocusedDetonation							= mod:NewCountAnnounce(466246, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(466246))
 
 local specWarnSupression							= mod:NewSpecialWarningDodgeCount(467182, nil, nil, nil, 2, 2)
+local specWarnFinalBlast							= mod:NewSpecialWarningDodge(1219333, nil, nil, nil, 2, 2)
 local specWarnScatterblastCanisters					= mod:NewSpecialWarningCount(466340, nil, nil, nil, 2, 2)
 local specWarnScatterblastCanistersTaunt			= mod:NewSpecialWarningTaunt(466340, nil, nil, nil, 1, 2)
 local specWarnBBBBombs								= mod:NewSpecialWarningCount(465952, nil, nil, nil, 2, 2)
@@ -531,6 +532,8 @@ function mod:SPELL_CAST_START(args)
 		specWarnSupression:Play("watchstep")
 		if self:IsStory() then return end--hard disable timers in story mode
 		if self:GetStage(3) or self:IsMythic() then
+			specWarnFinalBlast:Show()
+			specWarnFinalBlast:Play("justrun")
 			timerFinalBlast:Start(6, self.vb.suppressionCount)
 		end
 		local timer

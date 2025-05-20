@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2389, "DBM-Party-Shadowlands", 6, 1187)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250421064450")
+mod:SetRevision("20250429163552")
 mod:SetCreatureID(162309)
 mod:SetEncounterID(2364)
 mod:SetZone(2293)
@@ -92,7 +92,7 @@ function mod:OnCombatStart(delay)
 	self.vb.feastCount = 0
 	self.vb.spiralCount = 0
 	self.vb.necroticEruption = 0
-	timerWellofDarknessCD:Start(10.9-delay, 1)--SUCCESS event 473540
+	timerWellofDarknessCD:Start(10.6-delay, 1)--SUCCESS event 473540
 	timerNecroticEruptionCD:Start(16.9, 1)--START (16.9-19.1)
 	if self:IsMythic() then
 		timerDeathSpiralCD:Start(6-delay, 1)--START

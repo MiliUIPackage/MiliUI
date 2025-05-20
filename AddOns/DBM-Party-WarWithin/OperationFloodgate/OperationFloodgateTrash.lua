@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod("OperationFloodgateTrash", "DBM-Party-WarWithin", 9)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250421065859")
+mod:SetRevision("20250503234636")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
@@ -296,8 +296,8 @@ function mod:StartEngageTimers(guid, cid, delay)
 		timerBackwashCD:Start(15-delay, guid)
 	elseif cid == 230748 then--Darkfuse Bloodwarper
 		timerWarpBloodCD:Start(6-delay, guid)
-	elseif cid == 229252 then--Darkfuse Hyena
-		timerBloodthirstyCackleCD:Start(5-delay, guid)
+--	elseif cid == 229252 then--Darkfuse Hyena
+--		timerBloodthirstyCackleCD:Start(5-delay, guid)--Used instantly on engage
 	elseif cid == 229069 then--Mechadrone Sniper
 		timerTrickShotCD:Start(5.5-delay, guid)
 	elseif cid == 231325 then--darkfuse jumpstarter

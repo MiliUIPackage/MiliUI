@@ -1,5 +1,5 @@
-## Interface: 110007, 110105
-## Version: 11.1.7
+## Interface: 110105, 110107
+## Version: 11.1.18
 ## Category: DBM
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10World Bosses (War Within)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界首領 (地心之戰)|r

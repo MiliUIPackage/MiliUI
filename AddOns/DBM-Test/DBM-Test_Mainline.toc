@@ -1,5 +1,4 @@
-## Interface: 110105
-## Category: DBM
+## Interface: 110105, 110107
 ## Title:|cffffe00a<|r|cffff7d0aDBM Tests|r|cffffe00a>|r |cff69ccf0Test runner for DBM|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM 測試|r|cffffe00a>|r |cff69ccf0DBM的測試運行|r
 ## Dependencies: DBM-Core

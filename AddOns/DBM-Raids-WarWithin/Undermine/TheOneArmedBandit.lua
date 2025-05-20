@@ -2,7 +2,7 @@ if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2644, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250416053159")
+mod:SetRevision("20250423071452")
 mod:SetCreatureID(228458)
 mod:SetEncounterID(3014)
 mod:SetHotfixNoticeRev(20250209000000)
@@ -199,7 +199,7 @@ function mod:SPELL_CAST_START(args)
 			elseif self:IsHeroic() or self:IsLFR() then--Heroic/LFR swaps payline and bighit compared to normal
 				timerPaylineCD:Start("v11.1-11.8", self.vb.paylineCount+1)
 				timerFoulExhaustCD:Start("v16.0-16.7", self.vb.foulExhaustCount+1)
-				timerTheBigHitCD:Start("v22.1-23", self.vb.bigHitCount+1)
+				timerTheBigHitCD:Start("v15.3-23", self.vb.bigHitCount+1)
 			else
 				timerTheBigHitCD:Start("v11.9-13.1", self.vb.bigHitCount+1)
 				timerFoulExhaustCD:Start("v16.6-18.9", self.vb.foulExhaustCount+1)

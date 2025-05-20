@@ -213,10 +213,6 @@ L:SetGeneralLocalization({
 -----------------------
 --L= DBM:GetModLocalization(2417)
 
-L:SetMiscLocalization{
-	RolePlay		= "瑪卓薩斯的士兵！準備大開殺戒了嗎？！"
-}
-
 ---------
 --Trash--
 ---------

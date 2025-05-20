@@ -59,7 +59,7 @@ L:SetOptionLocalization({
 L= DBM:GetModLocalization(2608)
 
 L:SetMiscLocalization({
-	Red		= RED_FONT_COLOR:WrapTextInColorCode(" [紅-塔卡茲]"),--Skeinspinner Takazj
+	Red		= RED_FONT_COLOR:WrapTextInColorCode(" [紅-塔卡]"),--Skeinspinner Takazj
 	Blue	= BLUE_FONT_COLOR:WrapTextInColorCode(" [藍-阿努]")--Anub'arash
 })
 
@@ -113,7 +113,12 @@ L:SetOptionLocalization({
 ---------------------------
 --  Stix Bunkjunker --
 ---------------------------
---L= DBM:GetModLocalization(2642)
+L= DBM:GetModLocalization(2642)
+
+L:SetMiscLocalization({
+	BombsLeft		= "炸彈剩餘"
+})
+
 
 ---------------------------
 --  Sprocketmonger Lockenstock --
@@ -121,11 +126,11 @@ L:SetOptionLocalization({
 L= DBM:GetModLocalization(2653)
 
 L:SetWarningLocalization{
-	specWarnPolGen	= "變更為 %s - 3秒",
+	specWarnPolGen	= "3秒後轉化極性為 %s"
 }
 
 L:SetOptionLocalization({
-	specWarnPolGen	= "當polarity generator變更你的極性時顯示特別警告"
+	specWarnPolGen	= "為極化產生器轉化你的極性顯示特別警報"
 })
 
 ---------------------------
@@ -134,7 +139,7 @@ L:SetOptionLocalization({
 L= DBM:GetModLocalization(2644)
 
 L:SetMiscLocalization({
-	BaitCoil	= "引誘線圈"
+	BaitCoil	= "引誘線圈至小怪"
 })
 
 ---------------------------
