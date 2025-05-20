@@ -1,4 +1,8 @@
+@Terciob:
+- Bug fixes for Mists and framework updates.
+
 @cont1nuity:
-- Fixing healthbar animation.
-- Disable garbage collection profiling in preparation for 11.1.5.
+- Enable 'Shadowburn' for WL execute in classic.
+- Preparation for Mists.
+- Enable support for native compression API for import/export, when available.
 

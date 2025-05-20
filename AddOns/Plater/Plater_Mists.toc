@@ -1,4 +1,4 @@
-## Interface: 40402
+## Interface: 50500
 ## Title: Plater
 ## Notes: Nameplate addon designed for advanced users.
 ## Notes-esES: Addon de placa de nombre diseñado para usuarios avanzados
@@ -10,7 +10,6 @@
 ## OptionalDeps: Masque
 ## IconTexture-blank: 982414
 ## IconTexture: Interface\AddOns\Plater\images\cast_bar
-## Version: Plater-v609-Cata
 #@version-mistst@
 ## Version: Plater-v609-Mists
 #@end-version-mistst@

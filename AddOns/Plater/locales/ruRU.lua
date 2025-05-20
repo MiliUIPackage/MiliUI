@@ -4,10 +4,8 @@ do
     local L = languageTable
 
 ------------------------------------------------------------
---[[Translation missing --]]
-L["A /reload may be required to take effect."] = "A /reload may be required to take effect."
---[[Translation missing --]]
-L["CVar, saved within Plater profile and restored when loading the profile."] = "CVar, saved within Plater profile and restored when loading the profile."
+L["A /reload may be required to take effect."] = "Может потребоваться /reload для применения изменений."
+L["CVar, saved within Plater profile and restored when loading the profile."] = "CVar, сохраняется в профиле Plater и восстанавливается при загрузке профиля."
 L["EXPORT"] = "Экспорт"
 L["EXPORT_CAST_COLORS"] = "Поделиться Цветами"
 L["EXPORT_CAST_SOUNDS"] = "Поделиться Звуками"
