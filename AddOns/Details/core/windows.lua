@@ -1362,6 +1362,10 @@
 						end
 
 					elseif (button == "RightButton") then
+						if (IsControlKeyDown() and SlashCmdList["SCORE"]) then  -- 自行加入支援 M+計分板
+							SlashCmdList["SCORE"]("open")
+							return
+						end
 						--minimap menu
 						GameTooltip:Hide()
 						local GameCooltip = GameCooltip
@@ -1437,6 +1441,9 @@
 					end
 					tooltip:AddLine(Loc ["STRING_MINIMAP_TOOLTIP2"])
 					tooltip:AddLine(Loc["|cFFCFCFCFctrl + left click|r: show/hide windows"])
+					if SlashCmdList["SCORE"] then -- 自行加入支援 M+ 計分板
+						tooltip:AddLine(Loc["|cFFCFCFCFctrl + right click|r: show/hide Mythic+ scoreboard"])
+					end
 				end,
 			})
 

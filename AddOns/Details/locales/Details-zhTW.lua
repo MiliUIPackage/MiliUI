@@ -1842,6 +1842,7 @@ L["Good news everyone!\nA new version has been forged and is waiting to be loote
 L["|cFF00FF00Left Click:|r open options panel."] = "|cFF00FF00左鍵:|r 設定選項。"
 L["|cFF00FF00Left Click:|r clear all segments."] = "|cFF00FF00左鍵:|r 清空所有戰鬥記錄。"
 L["|cFFCFCFCFctrl + left click|r: show/hide windows"] = "|cFFCFCFCFCtrl + 左鍵|r: 顯示/隱藏視窗"
+L["|cFFCFCFCFctrl + right click|r: show/hide Mythic+ scoreboard"] = "|cFFCFCFCFCtrl + 右鍵|r: 顯示M+計分板"
 L["Details! - Reset Data"] = "Details! - 重置資料"
 L["Details! - Open Options"] = "Details! - 設定選項"
 

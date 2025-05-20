@@ -71,6 +71,19 @@ function Details222.StartUp.StartMeUp()
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --initialize
 
+	do
+		--advertising patreon cuz I'm in need, need to make absolute sure this is removed before 11.1.7 goes live
+		local version = GetBuildInfo()
+		if (version == "11.1.7") then
+			--limit this to 10 days to be safe, don't want problems
+			local time = time()
+			local limitTime = 1747072462 --10 days ahead of May 02
+			if (time < limitTime) then
+				Details:Msg("Help support Details! author on Patreon: https://www.patreon.com/terciob")
+			end
+		end
+	end
+
 	--make an encounter journal cache. the cache will load before this if any function tries to get information from the cache
 	C_Timer.After(3, Details222.EJCache.CreateEncounterJournalDump)
 
@@ -89,6 +102,10 @@ function Details222.StartUp.StartMeUp()
 	Details:InitializeRunCodeWindow()
 	Details:InitializePlaterIntegrationWindow()
 	Details:InitializeMacrosWindow()
+
+	if (Details.InitializeEncounterSwapper) then
+		Details:InitializeEncounterSwapper()
+	end
 
 	Details222.CreateAllDisplaysFrame()
 
@@ -298,7 +315,7 @@ function Details222.StartUp.StartMeUp()
 
 		Details.listener:RegisterEvent("PLAYER_TARGET_CHANGED")
 
-		if (not DetailsFramework.IsTimewalkWoW()) then
+		if (not DetailsFramework.IsTimewalkWoW()) then --C_EventUtils.IsEventValid
 			Details.listener:RegisterEvent("PET_BATTLE_OPENING_START")
 			Details.listener:RegisterEvent("PET_BATTLE_CLOSE")
 			Details.listener:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
@@ -493,10 +510,12 @@ function Details222.StartUp.StartMeUp()
         end
     end
 
-	--store the names of all crowd control spells
+	---used to know if the spell is a crowd control during the parser debuff event.
 	---@type table<string, boolean>
 	Details.CrowdControlSpellNamesCache = {}
-	---@type table<unitname, table<string, boolean>>
+
+	---not in use atm, waiting the unzip of talents string.
+	---@type table<unitname, table<spellname, boolean>>
 	Details.CrowdControlSpellsByUnitCache = {}
 
 	for spellId, spellData in pairs(LIB_OPEN_RAID_COOLDOWNS_INFO) do
@@ -509,7 +528,7 @@ function Details222.StartUp.StartMeUp()
 	end
 	for spellId, spellData in pairs(LIB_OPEN_RAID_CROWDCONTROL) do
 		local spellInfo = C_Spell.GetSpellInfo(spellId)
-		if (spellInfo) then
+		if (spellInfo and not Details.CrowdControlSpellNamesCache[spellInfo.name]) then
 			Details.CrowdControlSpellNamesCache[spellInfo.name] = true
 		end
 	end
@@ -518,6 +537,7 @@ function Details222.StartUp.StartMeUp()
 	if (openRaidLib) then
 		local t = {}
 		function t.OnUnitUpdate(unitId, unitInfo)
+			--print("open raid update...")
 			local specId = unitInfo.specId
 			local specName = unitInfo.specName
 			local role = unitInfo.role
@@ -538,7 +558,12 @@ function Details222.StartUp.StartMeUp()
 						if (not spellData.ignoredIfTalent) then
 							Details.CrowdControlSpellNamesCache[spellInfo.name] = true
 						else
-							
+							--check if the player the talent from spellData.ignoredIfTalent
+							--local unitTalents = openRaidLib.GetSpellIdsFromTalentString(talents)
+							--dumpt(unitTalents)
+							--print("talentId", spellData.ignoredIfTalent)
+							--print("has the talent?", unitTalents[spellData.ignoredIfTalent])
+							break
 						end
 					end
 				end
@@ -546,7 +571,18 @@ function Details222.StartUp.StartMeUp()
 		end
 
 		--registering the callback:
-		openRaidLib.RegisterCallback(ToggleBackpack, "UnitInfoUpdate", "OnUnitUpdate")
+		openRaidLib.RegisterCallback(t, "UnitInfoUpdate", "OnUnitUpdate")
+
+		--test
+		--[=[
+		C_Timer.After(5, function()
+			local unitName = UnitName("player")
+			local unitInfo = openRaidLib.GetUnitInfo("player")
+			if (unitInfo) then
+				t.OnUnitUpdate("player", unitInfo)
+			end
+		end)
+		--]=]
 	end
 
 	function Details:OpenOptionsWindowAtStart()

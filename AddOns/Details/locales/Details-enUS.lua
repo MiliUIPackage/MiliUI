@@ -4498,6 +4498,7 @@ L["|TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:14:12:0:1:512:512:8:70:328:409|
 L["|cFF00FF00Left Click:|r clear all segments."] = "|cFF00FF00Left Click:|r clear all segments."
 L["|cFF00FF00Left Click:|r open options panel."] = "|cFF00FF00Left Click:|r open options panel."
 L["|cFFCFCFCFctrl + left click|r: show/hide windows"] = "|cFFCFCFCFctrl + left click|r: show/hide windows"
+L["|cFFCFCFCFctrl + right click|r: show/hide Mythic+ scoreboard"] = "|cFFCFCFCFctrl + right click|r: show/hide Mythic+ scoreboard"
 L["|cFFFF2222Details!: Normal position for a window wasn't found! Moving it to the center of the screen.|r\nType '/details exitlog' to check for errors."] = "|cFFFF2222Details!: Normal position for a window wasn't found! Moving it to the center of the screen.|r\nType '/details exitlog' to check for errors."
 L["|cFFFF2222Details!: Position for a window wasn't found! Moving it to the center of the screen.|r\nType '/details exitlog' to check for errors."] = "|cFFFF2222Details!: Position for a window wasn't found! Moving it to the center of the screen.|r\nType '/details exitlog' to check for errors."
 L["|cFFFF3300you may need sync the rank within the guild, type '|cFFFFFF00/details rank|r'|r"] = "|cFFFF3300you may need sync the rank within the guild, type '|cFFFFFF00/details rank|r'|r"

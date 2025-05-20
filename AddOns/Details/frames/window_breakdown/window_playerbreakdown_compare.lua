@@ -1,10 +1,12 @@
 
 local Details = Details
+local addonName, Details222 = ...
 local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 local red = "FFFFAAAA"
 local green = "FFAAFFAA"
 local _GetSpellInfo = Details.GetSpellInfo
 local unpack = unpack
+local GetSpellInfo = Details222.GetSpellInfo --api local
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --~compare
