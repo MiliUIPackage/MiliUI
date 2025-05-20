@@ -1,5 +1,5 @@
 ﻿----------------------------------------------------------------------
--- 	Leatrix Plus 11.1.08 (9th April 2025)
+-- 	Leatrix Plus 11.1.12 (6th May 2025)
 ----------------------------------------------------------------------
 
 --	01:Functions 02:Locks,  03:Restart 40:Player
@@ -18,7 +18,7 @@
 	local void
 
 	-- Version
-	LeaPlusLC["AddonVer"] = "11.1.08"
+	LeaPlusLC["AddonVer"] = "11.1.12"
 
 	-- Get locale table
 	local void, Leatrix_Plus = ...
@@ -764,6 +764,7 @@
 						hooksecurefunc(PerksProgramFrame.FooterFrame.ToggleMountSpecial, "SetChecked", function(self)
 							if self:GetChecked() then
 								self:Click()
+								PerksProgramFrame:SetMountSpecialPreviewOnClick(false)
 								RunNextFrame(function()
 									PerksProgramFrame:SetMountSpecialPreviewOnClick(false)
 								end)
@@ -4485,8 +4486,9 @@
 
 			-- Hover over the durability button to show the durability tooltip
 			cButton:SetScript("OnEnter", function()
-				GameTooltip:SetOwner(cButton, "ANCHOR_RIGHT");
-				ShowDuraStats("tip");
+				GameTooltip:SetOwner(cButton, "ANCHOR_RIGHT")
+				GameTooltip:SetMinimumWidth(0) -- Needed due to MoP mage reset specialisation and choose frost
+				ShowDuraStats("tip")
 			end)
 			cButton:SetScript("OnLeave", GameTooltip_Hide)
 
@@ -6325,7 +6327,8 @@
 
 				-- Single spell IDs
 				["TransAqir"] = {318452}, -- Aqir Egg Cluster
-				["TransAtomic"] = {399502}, -- Atomically Recalibrated toy
+				["TransAtomic"] = {399502}, -- Atomically Recalibrator toy
+				["TransAtomGoblin"] = {1215363}, -- Atomically Regoblinator toy
 				["TransBlight"] = {290224}, -- Detoxified Blight Grenade
 				["TransLantern"] = {44212}, -- Weighted Jack-o'-Lantern
 				["TransWitch"] = {279509}, -- Lucille's Sewing Needle (witch)
@@ -6431,6 +6434,7 @@
 			row = row + 2; LeaPlusLC:MakeTx(transPanel.scrollChild, "Toys", 16, -((row - 1) * 20) - 2)
 			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransAqir", "Aqir Egg Cluster", 16, -((row - 1) * 20) - 2, false, "If checked, the Aqir Egg Cluster transform will be removed when applied.")
 			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransAtomic", "Atomic Recalibrator", 16, -((row - 1)* 20) -2, false, "If checked, the Atomic Recalibrator transform will be removed when applied.")
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransAtomGoblin", "Atomic Regoblinator", 16, -((row - 1)* 20) -2, false, "If checked, the Atomic Regoblinator transform will be removed when applied.")
 			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransBlight", "Detoxified Blight Grenade", 16, -((row - 1) * 20) - 2, false, "If checked, the Detoxified Blight Grenade transform will be removed when applied.")
 			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransWitch", "Lucille's Sewing Needle", 16, -((row - 1) * 20) - 2, false, "If checked, the Lucille's Sewing Needle transform will be removed when applied.")
 			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransSpraybots", "Spraybots", 16, -((row - 1) * 20) - 2, false, "If checked, the Spraybot transforms will be removed when applied.")
@@ -9269,6 +9273,13 @@
 			-- Other tooltip code
 			---------------------------------------------------------------------------------------------------------
 
+			-- Remove the right-click for frame settings instruction (UNIT_POPUP_RIGHT_CLICK)
+			hooksecurefunc("UnitFrame_UpdateTooltip", function(self)
+				GameTooltip_SetDefaultAnchor(GameTooltip, self)
+				GameTooltip:SetUnit(self.unit, true)
+				GameTooltip:Show()
+			end)
+
 			-- Colorblind setting change
 			SideTip:RegisterEvent("CVAR_UPDATE");
 			SideTip:SetScript("OnEvent", function(self, event, arg1, arg2)
@@ -11178,7 +11189,7 @@
 
 				end
 
-				-- Lock options currently not compatible with The War Within (LeaPlusLC.DF)
+				-- Lock options currently not compatible with the next expansion (LeaPlusLC.DF)
 				local function LockDF(option, reason)
 					LeaPlusLC[option] = "Off"
 					LeaPlusDB[option] = "Off"
@@ -13924,6 +13935,24 @@
 				if not LeaPlusLC:PlayerInCombat() then
 					RunScript('ShowUIPanel(EditModeManagerFrame)')
 				end
+				return
+			elseif str == "taintmap" then
+				-- TaintMap
+				if LeaPlusLC.TaintMap then
+					LeaPlusLC.TaintMap:Cancel()
+					LeaPlusLC.TaintMap = nil
+					LeaPlusLC:Print("TaintMap stopped.")
+					return
+				end
+				LeaPlusLC.TaintMap = C_Timer.NewTicker(1, function()
+					for k,v in pairs(WorldMapFrame) do
+						local ok, who = issecurevariable(WorldMapFrame, k)
+						if not ok then
+							print("Tainted:", k, "by", who or "unknown")
+						end
+					end
+				end)
+				LeaPlusLC:Print("TaintMap started.")
 				return
 			elseif str == "admin" then
 				-- Preset profile (used for testing)

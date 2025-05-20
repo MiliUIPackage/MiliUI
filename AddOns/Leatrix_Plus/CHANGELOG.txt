@@ -1,4 +1,17 @@
-﻿11.1.08 - 9th April 2025
+﻿11.1.12 - 6th May 2025
+- PTR (11.1.7): Preliminary update for game patch 11.1.7.
+- For 'Enhance tooltip' ('Intereface'), the 'right-click for frame settings' instruction will now be hidden in unit frame tooltips.
+- For 'Set additional options' ('System'), fixed a minor graphical glitch with the mount special setting.
+
+11.1.11 - 30th April 2025
+- For 'Media', added 'Undermine' ('Zones') and 'Liberation of Undermine' and 'Operation: Floodgate' ('Dungeons').
+
+11.1.10 - 23rd April 2025
+- Updated for game patch 11.1.5.
+- For 'Remove transforms' ('System'), added the Atomic Regoblinator transform.
+- For 'Media', added cinematic 'Undermined' (watch in Movies and listen in Various > Cinematics).
+
+11.1.08 - 9th April 2025
 - For 'Enhance tooltip' ('Interface'), fixed a minor issue which caused Demolition Fan NPCs in Demolition Dome to have no name.
 - For 'Show Wowhead links' ('Interface') and web link (keybindings), added support for Mexico (mx.wowhead.com) and traditional Chinese (tw.wowhead.com).
 
