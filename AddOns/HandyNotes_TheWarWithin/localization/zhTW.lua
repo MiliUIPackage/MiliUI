@@ -397,7 +397,7 @@ L['prismatic_snapdragon_note_start'] = '在10天的過程中, 幫助拯救在 {l
 L['prismatic_day'] = '第 %d 天'
 
 L['pris_quest_1'] = '生命線' -- https://www.wowhead.com/quest=86482/a-lifeline
-L['pris_quest_2'] = nil -- https://www.wowhead.com/ptr/quest=86483/snap-to-it
+L['pris_quest_2'] = "速戰速決" -- https://www.wowhead.com/ptr/quest=86483/snap-to-it
 L['pris_quest_3'] = '暴風壞脾氣' -- https://www.wowhead.com/ptr/quest=86484/temper-like-a-tempest
 L['pris_quest_4'] = '忠誠的朋友' -- https://www.wowhead.com/ptr/quest=86485/a-loyal-friend
 
@@ -636,9 +636,11 @@ L['undermine_clam_chowder_label'] = '安德麥正宗烹飪法指南'
 L['undermine_clam_chowder_location'] = '在 {location:罐缸工坊} 的小巷中，{npc:226728} 後面的架子上。'
 L['undermine_clam_chowder_note'] = '1. 要收集此食譜，必須首先學會 {item:16767}，該食譜可以從兩個 {object:舊世經典} 供應商處以 %s 的價格購買。\n\n{npc:54232} 位於 {location:荊棘谷海角} 的 {location:藏寶海灣}\n\n{npc:48060} 位於 {location:荒蕪之地} 的 {location:熔光鎮}\n\n2. 一旦學會了舊食譜，打開 {object:安德麥正宗烹飪法指南} 並閱讀到最後一頁。記下食譜以獲得 {item:235800}。'
 
+L['breakneck_race_note'] = '以下推薦的 {object:G-99疾飆飛車} 升級可以讓賺取 |cFFFFD700金幣|r 變得更容易一些：\n\n%s\n\n%s\n\n%s'
+L['upgrade_the_pozzik_standard'] = '{item:232982}（引擎）：在所有普通和反向 {object:疾飆競速} 比賽中獲得 |cFFCD7F32銅牌|r。'
+L['upgrade_22h_slicks'] = '{item:232985}（輪胎）：由工程師制作並在拍賣行出售。'
+L['upgrade_turbo_handcrank'] = '{item:232984}（渦輪）：從稀有怪物或拍賣行收集並組合所有5個部件。'
+
 L['blazefeather_peacock_note'] = '完成 {quest:83421} 任務線後，與 {npc:226555} 對話並支付 %s 以召喚一只可馴服的 {npc:226561}。'
 L['radioactive_subject_note'] = '使用附近的管道和 {item:237276}、{item:109076}、{item:231099} 或其他跳躍謎題技巧，到達 {location:罐缸工坊} 的 {location:熱砂試驗室} 建築屋頂。'
 L['george_the_big_pinch_note'] = '快速點擊所有5個 {npc:238189} 以獲得 {spell:1219679}，並允許馴服 {npc:233938}。'
-
-L['crumpled_schematic_note'] = nil
-L['crumpled_schematic_location'] = nil
