@@ -1,7 +1,6 @@
 # Syndicator
 
-## [188](https://github.com/Baganator/Syndicator/tree/188) (2025-04-11)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/187...188) 
+## [195](https://github.com/Baganator/Syndicator/tree/195) (2025-05-06)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/194...195) 
 
-- Remove leftover print  
-- Classic Era: Workaround missing consumable/trade goods subtypes  
+- Fix expansion sometimes being detected wrong when using ATT as a data source  
