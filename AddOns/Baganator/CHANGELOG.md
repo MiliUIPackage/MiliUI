@@ -1,7 +1,7 @@
 # Baganator
 
-## [672](https://github.com/Baganator/Baganator/tree/672) (2025-04-11)
-[Full Changelog](https://github.com/Baganator/Baganator/compare/671...672) 
+## [686](https://github.com/Baganator/Baganator/tree/686) (2025-01-31)
+[Full Changelog](https://github.com/Baganator/Baganator/compare/685...686) 
 
-- Classic Era: Use new data to sort/group trade goods/consumables better  
-    Requires updated Syndicator  
+- Customise: Categories: Skin raw search box and scroll buttons for visual search  
+- Move scrolling search widget to Syndicator  

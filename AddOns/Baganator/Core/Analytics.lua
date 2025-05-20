@@ -1,4 +1,5 @@
-local _, addonTable = ...
+---@class addonTableBaganator
+local addonTable = select(2, ...)
 -- This code will _ONLY_ do anything if analytics are manually enabled within
 -- the Wago app.
 --
@@ -29,7 +30,7 @@ function addonTable.Core.RunAnalytics()
   WagoAnalytics:Switch("UsingMasque", (C_AddOns.IsAddOnLoaded("Masque")))
 
   local categoryCount = 0
-  for _, category in pairs(addonTable.Config.Get(addonTable.Config.Options.CUSTOM_CATEGORIES)) do
+  for _, _ in pairs(addonTable.Config.Get(addonTable.Config.Options.CUSTOM_CATEGORIES)) do
     categoryCount = categoryCount + 1
   end
 
@@ -113,12 +114,12 @@ function addonTable.Core.RunAnalytics()
     end
 
     local nonDefault = false
-    for _, count in pairs(BAGANATOR_CONFIG[addonTable.Config.Options.SORT_IGNORE_BAG_SLOTS_COUNT]) do
+    for _, count in pairs(BAGANATOR_CONFIG.CharacterSpecific[addonTable.Config.Options.SORT_IGNORE_BAG_SLOTS_COUNT]) do
       if count ~= 0 then
         nonDefault = true
       end
     end
-    for _, count in pairs(BAGANATOR_CONFIG[addonTable.Config.Options.SORT_IGNORE_BANK_SLOTS_COUNT]) do
+    for _, count in pairs(BAGANATOR_CONFIG.CharacterSpecific[addonTable.Config.Options.SORT_IGNORE_BANK_SLOTS_COUNT]) do
       if count ~= 0 then
         nonDefault = true
       end

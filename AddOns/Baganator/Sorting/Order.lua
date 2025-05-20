@@ -1,4 +1,5 @@
-local _, addonTable = ...
+---@class addonTableBaganator
+local addonTable = select(2, ...)
 
 -- See comment in Sorting/ItemFields.lua.
 -- Values generated are cached across the current sort iteration.
@@ -29,6 +30,7 @@ local allSortKeys = {
     "invertedItemID",
     "invertedItemCount",
     "itemLink",
+    "specialSplitting",
   },
   ["type"] = {
     "priority",
@@ -43,6 +45,7 @@ local allSortKeys = {
     "invertedItemID",
     "invertedItemCount",
     "itemLink",
+    "specialSplitting",
   },
   ["name"] = {
     "priority",
@@ -57,6 +60,7 @@ local allSortKeys = {
     "invertedItemID",
     "invertedItemCount",
     "itemLink",
+    "specialSplitting",
   },
   ["item-level"] = {
     "priority",
@@ -72,6 +76,7 @@ local allSortKeys = {
     "invertedItemID",
     "invertedItemCount",
     "itemLink",
+    "specialSplitting",
   },
   ["expansion"] = {
     "invertedExpansion",
@@ -85,7 +90,10 @@ local allSortKeys = {
     "invertedItemID",
     "invertedItemCount",
     "itemLink",
+    "specialSplitting",
   },
+  ["manual"] = {
+  }
 }
 
 -- Remove expansion sort criteria on classic, as there isn't much expansion

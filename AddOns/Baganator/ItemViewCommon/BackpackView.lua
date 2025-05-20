@@ -1,4 +1,5 @@
-local _, addonTable = ...
+---@class addonTableBaganator
+local addonTable = select(2, ...)
 
 local classicTabObjectCounter = 0
 
@@ -84,11 +85,11 @@ function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
         end
       end
       if self:IsVisible() then
-        self:OnFinished()
+        self:OnFinished(true)
       end
     elseif settingName == addonTable.Config.Options.MAIN_VIEW_SHOW_BAG_SLOTS and self:IsVisible() then
       self.BagSlots:Update(self.lastCharacter, self.isLive)
-      self:OnFinished()
+      self:OnFinished(true)
     end
   end)
 
@@ -118,7 +119,7 @@ function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
 
   self.confirmTransferAllDialogName = "addonTable.ConfirmTransferAll_" .. self:GetName()
   StaticPopupDialogs[self.confirmTransferAllDialogName] = {
-    text = BAGANATOR_L_CONFIRM_TRANSFER_ALL_ITEMS_FROM_BAG,
+    text = addonTable.Locales.CONFIRM_TRANSFER_ALL_ITEMS_FROM_BAG,
     button1 = YES,
     button2 = NO,
     OnAccept = function()
@@ -299,7 +300,7 @@ function BaganatorItemViewCommonBackpackViewMixin:SetupTabs()
     return
   end
 
-  self:FillRecents(characters)
+  self:FillRecents()
 
   self.tabsSetup = self.liveCharacter ~= nil
 end
@@ -324,7 +325,7 @@ function BaganatorItemViewCommonBackpackViewMixin:UpdateForCharacter(character, 
     self:SetTitle("")
     return
   else
-    self:SetTitle(BAGANATOR_L_XS_BAGS:format(characterData.details.character))
+    self:SetTitle(addonTable.Locales.XS_BAGS:format(characterData.details.character))
   end
 
   self:SetupTabs()
@@ -377,8 +378,8 @@ function BaganatorItemViewCommonBackpackViewMixin:UpdateForCharacter(character, 
   end
 end
 
-function BaganatorItemViewCommonBackpackViewMixin:OnFinished(character, isLive)
-  if self.refreshState[addonTable.Constants.RefreshReason.Layout] then
+function BaganatorItemViewCommonBackpackViewMixin:OnFinished(forceResize)
+  if self.refreshState[addonTable.Constants.RefreshReason.Layout] or forceResize then
     local sideSpacing, topSpacing, searchSpacing = addonTable.Utilities.GetSpacing()
 
     local externalVerticalSpacing = (self.BagSlots:GetHeight() > 0 and (self.BagSlots:GetTop() - self:GetTop()) or 0) + (self.Tabs[1] and self.Tabs[1]:IsShown() and (self:GetBottom() - self.Tabs[1]:GetBottom() + 5) or 0)

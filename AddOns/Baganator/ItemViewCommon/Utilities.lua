@@ -1,4 +1,5 @@
-local _, addonTable = ...
+---@class addonTableBaganator
+local addonTable = select(2, ...)
 
 function addonTable.Utilities.GetAllCharacters(searchText)
   searchText = searchText and searchText:lower() or ""
@@ -79,7 +80,7 @@ end
 function addonTable.Utilities.GetRandomSearchesText()
   local term = addonTable.Constants.SampleSearchTerms[random(#addonTable.Constants.SampleSearchTerms)]
 
-  return BAGANATOR_L_SEARCH_TRY_X:format(term)
+  return addonTable.Locales.SEARCH_TRY_X:format(term)
 end
 
 function addonTable.Utilities.AddBagSortManager(parent)
@@ -97,7 +98,7 @@ function addonTable.Utilities.AddBagSortManager(parent)
     if status == addonTable.Constants.SortStatus.Complete then
       completeFunc()
     elseif status == addonTable.Constants.SortStatus.WaitingMove then
-      Syndicator.CallbackRegistry:RegisterCallback("BagCacheUpdate",  function(_, character, updatedBags)
+      Syndicator.CallbackRegistry:RegisterCallback("BagCacheUpdate",  function()
         self:Cancel()
         retryFunc()
       end, self)
@@ -170,7 +171,7 @@ function addonTable.Utilities.AddBagTransferManager(parent)
       self:SetScript("OnUpdate", retryFunc)
     end
   end
-  parent.transferManager:SetScript("OnHide", function(self)
+  parent.transferManager:SetScript("OnHide", function()
     addonTable.CallbackRegistry:TriggerEvent("TransferCancel")
   end)
 end
@@ -231,7 +232,7 @@ function addonTable.Utilities.AddGeneralDropSlot(parent, getData, bagIndexes)
   local function UpdateVisibility()
     cursorChanged = true
     if parent.isLive then
-      local cursorType, itemID = GetCursorInfo()
+      local cursorType = GetCursorInfo()
       parent.backgroundButton:SetShown(cursorType == "item")
       parent.backgroundButton:SetFrameLevel(parent.ScrollBox:GetFrameLevel() + 1)
     else
@@ -316,7 +317,7 @@ end
 
 function addonTable.Utilities.GetExternalSortMethodName()
   local sortsDetails = addonTable.API.ExternalContainerSorts[addonTable.Config.Get(addonTable.Config.Options.SORT_METHOD)]
-  return sortsDetails and BAGANATOR_L_USING_X:format(sortsDetails.label)
+  return sortsDetails and addonTable.Locales.USING_X:format(sortsDetails.label)
 end
 
 function addonTable.Utilities.GetBagType(bagID, itemID)
@@ -381,7 +382,7 @@ addonTable.Utilities.MasqueRegistration = function() end
 
 if LibStub then
   -- Establish a reference to Masque.
-  local Masque, MSQ_Version = LibStub("Masque", true)
+  local Masque = LibStub("Masque", true)
   if Masque ~= nil then
     -- Retrieve a reference to a new or existing group.
     local masqueGroup = Masque:Group("Baganator", "Bag")
@@ -425,6 +426,42 @@ function addonTable.Utilities.AddButtons(allButtons, lastButton, parent, spacing
   return buttonsWidth
 end
 
+do
+  local possibleChargePatterns
+  if addonTable.Constants.IsRetail then
+    possibleChargePatterns = {
+      "^" .. ITEM_SPELL_CHARGES_NONE .. "$",
+      "^" .. ITEM_SPELL_CHARGES:gsub("%%d", "%%d+") .. "$",
+    }
+
+  else
+    possibleChargePatterns = {
+      "^" .. ITEM_SPELL_CHARGES_NONE .. "$",
+    }
+
+    local escapeSequence = ITEM_SPELL_CHARGES:match("|4([^;]*);")
+
+    if escapeSequence then
+      for _, part in ipairs({ strsplit(":", escapeSequence) }) do
+        table.insert(possibleChargePatterns, "^" .. (ITEM_SPELL_CHARGES:gsub("%%d", "%%d%+"):gsub("|4[^;]*;", part)) .. "$")
+      end
+    else
+      table.insert(possibleChargePatterns, "^" .. ITEM_SPELL_CHARGES .. "$")
+    end
+  end
+
+  function addonTable.Utilities.GetChargesLine(tooltipInfo)
+    for _, line in ipairs(tooltipInfo.lines) do
+      for _, p in ipairs(possibleChargePatterns) do
+        if line.leftText:match(p) then
+          return line.leftText
+        end
+      end
+    end
+    return nil
+  end
+end
+
 if addonTable.Constants.IsRetail or IsUsingLegacyAuctionClient and not IsUsingLegacyAuctionClient() then
   function addonTable.Utilities.IsAuctionable(details)
     if not C_Item.IsItemDataCachedByID(details.itemID) then
@@ -435,22 +472,13 @@ if addonTable.Constants.IsRetail or IsUsingLegacyAuctionClient and not IsUsingLe
   end
 else
   local cachedCharges = {}
-  local fontString = UIParent:CreateFontString(nil, nil, "GameFontNormal")
-  local function DetermineCharges(tooltipInfo)
-    for _, line in ipairs(tooltipInfo.lines) do
-      local num = line.leftText:match("%d+")
-      if num then
-        local start = debugprofilestop()
-        fontString:SetText(ITEM_SPELL_CHARGES:format(num))
-        if fontString:GetText() == line.leftText then
-          return fontString:GetText()
-        end
-      end
-    end
-    return ""
-  end
 
   function addonTable.Utilities.IsAuctionable(details)
+    if not C_Item.IsItemDataCachedByID(details.itemID) then
+      C_Item.RequestLoadItemDataByID(details.itemID)
+      return nil
+    end
+
     local result = false
 
     local currentDurability, maxDurability
@@ -475,13 +503,13 @@ else
       end
 
       if not cachedCharges[details.itemID] then
-        cachedCharges[details.itemID] = DetermineCharges(Syndicator.Search.DumpClassicTooltip(function(t) t:SetItemByID(details.itemID) end))
+        cachedCharges[details.itemID] = addonTable.Utilities.GetChargesLine(Syndicator.Search.DumpClassicTooltip(function(t) t:SetItemByID(details.itemID) end)) or ""
       end
 
       local cached = cachedCharges[details.itemID]
       if cached ~= "" then
         result = false
-        for _, line in ipairs(details.tooltipInfoSpell) do
+        for _, line in ipairs(details.tooltipInfoSpell.lines) do
           if line.leftText == cached then
             result = true
             break
