@@ -1,7 +1,7 @@
 ## Interface: 40402
 ## Title: WeakAuras Archive
 ## Author: The WeakAuras Team
-## Version: 5.19.8
+## Version: 5.19.9
 ## LoadOnDemand: 1
 ## SavedVariables: WeakAurasArchive
 ## Dependencies: WeakAuras

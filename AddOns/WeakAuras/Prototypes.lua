@@ -2444,6 +2444,48 @@ Private.event_prototypes = {
         conditionType = "select"
       },
       {
+        name = "creatureTypeIndex",
+        display = L["Creature Type"],
+        type = "multiselect",
+        init = "select(2, UnitCreatureType(unit))",
+        values = "creature_type_types",
+        store = true,
+        sorted = true,
+        conditionType = "select",
+        enable = WeakAuras.IsRetail(),
+        hidden = not WeakAuras.IsRetail(),
+      },
+      {
+        name = "creatureType",
+        display = L["Creature Type Name"],
+        init = "UnitCreatureType(unit)",
+        store = true,
+        test = "true",
+        hidden = true,
+        enable = WeakAuras.IsRetail(),
+      },
+      {
+        name = "creatureFamilyIndex",
+        display = L["Creature Family"],
+        type = "multiselect",
+        init = "select(2, UnitCreatureFamily(unit))",
+        values = "creature_family_types",
+        store = true,
+        sorted = true,
+        conditionType = "select",
+        enable = WeakAuras.IsRetail(),
+        hidden = not WeakAuras.IsRetail(),
+      },
+      {
+        name = "creatureFamily",
+        display = L["Creature Family Name"],
+        init = "UnitCreatureFamily(unit)",
+        store = true,
+        test = "true",
+        hidden = true,
+        enable = WeakAuras.IsRetail(),
+      },
+      {
         name = "role",
         display = L["Assigned Role"],
         type = "select",
@@ -11498,12 +11540,16 @@ Private.event_prototypes = {
 
       local function createQuantityCheck(property, operator, value, primary, use)
         if not use then return nil end
-        return([[
-          if not primaryCheckFailed and not ((currencyInfo["%s"] or 0) %s %s) then
-            active = false
-            %s
-          end
-        ]]):format(property, operator or "<", tonumber(value) or 0, primary and "primaryCheckFailed = true" or "")
+        if type(property) == "string" and type(operator) == "string" then
+          return([[
+            if not primaryCheckFailed and not ((currencyInfo["%s"] or 0) %s %s) then
+              active = false
+              %s
+            end
+          ]]):format(property, operator or "<", tonumber(value) or 0, primary and "primaryCheckFailed = true" or "")
+        else
+          return ""
+        end
       end
 
       local function createTristateCheck(property, value, primary)
@@ -11517,21 +11563,23 @@ Private.event_prototypes = {
       end
 
       local function createCloneCheck(property, operator, value, check_type, condition, use)
-        if check_type == "number" and use then
-          return([[
-            if cloneActive and not ((currencyData["%s"] or 0) %s %s) then
-              cloneActive = false
-            end
-          ]]):format(property, operator or "<", tonumber(value) or 0)
-        elseif check_type == "tristate" and value ~= nil then
-          return([[
-            if cloneActive and %s ~= %s then
-              cloneActive = false
-            end
-          ]]):format(condition, value and "true" or "false")
-        else
-          return nil
+        if type(property) == "string" and type(operator) == "string" then
+          if check_type == "number" and use then
+            return([[
+              if cloneActive and not ((currencyData["%s"] or 0) %s %s) then
+                cloneActive = false
+              end
+            ]]):format(property, operator or "<", tonumber(value) or 0)
+          elseif check_type == "tristate" and value ~= nil then
+            return([[
+              if cloneActive and %s ~= %s then
+                cloneActive = false
+              end
+            ]]):format(condition, value and "true" or "false")
+          else
+          end
         end
+        return ""
       end
 
       table.insert(quantityChecks, createQuantityCheck("quantity", trigger.value_operator, trigger.value, nil, trigger.use_value))
