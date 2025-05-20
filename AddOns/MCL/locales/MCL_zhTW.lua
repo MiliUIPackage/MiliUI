@@ -2,7 +2,7 @@ local MCL, core = ...
 local AceLocale = LibStub("AceLocale-3.0")
 local L = AceLocale:NewLocale("MCL", "zhTW")
 if L then
-    print("Loading zhCN locale for MCL")
+    print("Loading zhTW locale for MCL")
     L["Achievement"] = "成就"
     L["Adventures"] = "冒險"
     L["Ahead of the Curve"] = "引領潮流"
@@ -58,7 +58,7 @@ if L then
     L["Guild Vendor"] = "公會商人"
     L["Halaa"] = "哈剌"
     L["Hallow's End"] = "萬鬼節"
-    L["Hearthstone"] = "爐石傳說"
+    L["Hearthstone"] = "爐石戰記"
     L["Heirlooms"] = "傳家寶"
     L["Honor"] = "榮譽"
     L["Horde"] = "部落"
@@ -169,6 +169,10 @@ if L then
     L["WorldEvents"] = "世界事件"
     L["Wrath of the Lich King"] = "巫妖王之怒"
     L["Zone"] = "區域"
+	L["Incursion"] = "入侵"
+    L["Horrific Visions"] = "驚懼幻象"
+    L["Ashran"] = "艾斯蘭"
+
     
     ------ setting panel ------
     L["Ctrl + Right Click to pin uncollected mounts"] = "Ctrl + 右鍵 釘選未收集的坐騎"
