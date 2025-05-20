@@ -1,8 +1,7 @@
-if DBM:GetTOC() < 110100 then return end
 local mod	= DBM:NewMod(2641, "DBM-Raids-WarWithin", 1, 1296)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250502045058")
+mod:SetRevision("20250513222630")
 mod:SetCreatureID(228648)
 mod:SetEncounterID(3011)
 mod:SetUsedIcons(8, 7, 6, 5, 4, 3, 2, 1)
@@ -26,13 +25,7 @@ mod:RegisterEventsInCombat(
 	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
 
---TODO, precise stacks to special warn for for high voltage stacks. Possibly add an infoframe to monitor player rotations
---TODO, what to do with resonate echoes
---TODO, change TTS on entranced to use extra action?
---TODO, personal stack tracker forhttps://www.wowhead.com/ptr-2/spell=1214164/excitement ?
---TODO, finetune tank stacks
---TODO, perfect staging timers for weak aura compat
---TODO, you can target scan Sound Cannon, which defeats point of being private aura. if this isn't fixed by live,
+--TODO, perfect staging timers for weak aura compat (what was this note about?)
 --[[
 (ability.id = 473748 or ability.id = 466866 or ability.id = 467606 or ability.id = 466979 or ability.id = 473655 or ability.id = 473260) and type = "begincast"
  or ability.id = 1213817 and (type = "applybuff" or type = "removebuff")
@@ -44,7 +37,7 @@ local warnLingeringVoltage							= mod:NewCountAnnounce(1217122, 2, nil, nil, DB
 local warnLingeringVoltageFaded						= mod:NewFadesAnnounce(1217122, 1)--Player
 local warnResonantEchoes							= mod:NewYouAnnounce(468119, 3)
 local warnEntranced									= mod:NewTargetNoFilterAnnounce(1214598, 4)
-local warnSoundCannon								= mod:NewIncomingCountAnnounce(467606, 2)
+local warnSoundCannon								= mod:NewTargetNoFilterAnnounce(467606, 2)
 local warnFaultyZap									= mod:NewTargetNoFilterAnnounce(466979, 3)
 local warnTinnitus									= mod:NewStackAnnounce(464518, 2, nil, "Tank|Healer")
 local warnHaywire									= mod:NewSpellAnnounce(466093, 4)
@@ -148,8 +141,11 @@ function mod:CannonTarget(targetname)
 		else
 			yellSoundCannonSoak:Say()--White Text
 		end
---	else
---		warnSurgingArc:Show(targetname)
+	elseif self:IsMythic() then
+		specWarnSoundCannonSoak:Show(self.vb.cannonCount)
+		specWarnSoundCannonSoak:Play("helpsoak")
+	else
+		warnSoundCannon:Show(targetname)
 	end
 end
 
@@ -232,12 +228,6 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 467606 then
 		self.vb.cannonCount = self.vb.cannonCount + 1
 		self.vb.cannonTimerCount = self.vb.cannonTimerCount+1
-		if self:IsMythic() then
-			specWarnSoundCannonSoak:Show(self.vb.cannonCount)
-			specWarnSoundCannonSoak:Play("helpsoak")
-		else
-			warnSoundCannon:Show(self.vb.cannonCount)
-		end
 		local timer = self:GetFromTimersTable(allTimers, savedDifficulty, false, spellId, self.vb.cannonTimerCount+1)
 		if timer and timer > 0 then
 			timerSoundCannonCD:Start(timer, self.vb.cannonCount+1)

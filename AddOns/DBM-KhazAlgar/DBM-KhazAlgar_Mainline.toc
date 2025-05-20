@@ -1,8 +1,9 @@
 ## Interface: 110105, 110107
-## Version: 11.1.18
+## Version: 11.1.19
 ## Category: DBM
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10World Bosses (War Within)|r
-## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界首領 (地心之戰)|r
+## Title-koKR:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10필드 보스 (내부 전쟁)|r
+## Title-ruRU:|cffffe00a<|r|cffff7d0aDBM Мод|r|cffffe00a>|r |cff10ff10Мировые боссы (Война Внутри)|r
 ## Author: MysticalOS
 ## LoadOnDemand: 1
 ## RequiredDeps: DBM-Core
@@ -14,16 +15,19 @@
 ## X-DBM-Mod-Category: WARWITHIN
 ## X-DBM-StatTypes: normal
 ## X-DBM-Mod-Name: World Bosses (War Within)
-## X-DBM-Mod-Name-zhTW: 世界首領 (地心之戰)
+## X-DBM-Mod-Name-koKR: 필드 보스 (내부 전쟁)
+## X-DBM-Mod-Name-ruRU: Мировые боссы (Война Внутри)
 ## X-DBM-Mod-World-Boss: 1
 ## X-DBM-Mod-Sort: 110
-## X-DBM-Mod-MapID: 2774, 2601, 2552
-## X-DBM-Mod-LoadCID: 220999, 221067, 221224, 221084
+## X-DBM-Mod-MapID: 2774, 2601, 2552, 2708
+## X-DBM-Mod-LoadCID: 220999, 221067, 221224, 221084, 231821
 ## X-DBM-Mod-MinCoreRevision: 17286
 ## X-DBM-Mod-MinExpansion: 10
 ## Category-zhTW: 副本
 
 localization.en.lua
+localization.kr.lua
+localization.ru.lua
 
 Kordac.lua
 AggregationofHorrors.lua

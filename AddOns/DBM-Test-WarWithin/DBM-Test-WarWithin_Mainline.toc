@@ -1,12 +1,14 @@
 ## Interface: 110105, 110107
+## Category: DBM
+## Group: DBM-Test
 ## Title:|cffffe00a<|r|cffff7d0aDBM Tests|r|cffffe00a>|r |cff69ccf0Tests for The War Within mods|r
-## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM 測試|r|cffffe00a>|r |cff69ccf0地心之戰的測試模組|r
+## Title-koKR:|cffffe00a<|r|cffff7d0aDBM Tests|r|cffffe00a>|r |cff69ccf0내부 전쟁 모듈 테스트|r
+## Title-ruRU:|cffffe00a<|r|cffff7d0aDBM Тесты|r|cffffe00a>|r |cff69ccf0Тесты модов TWW (Война Внутри)|r
 ## IconTexture: Interface\AddOns\DBM-Core\textures\dbm_airhorn
 ## Dependencies: DBM-Test
 ## DefaultState: enabled
 ## LoadOnDemand: 1
 ## X-DBM-Test: true
-## Category-zhTW: 副本
 
 Undermine/Vexieand-Normal-Kill.lua
 Undermine/Vexieand-Heroic-Kill.lua
@@ -29,3 +31,12 @@ Undermine/MugZeeHeadsofSecurity-Mythic-Wipe.lua
 Undermine/ChromeKingGallywix-Normal-Kill.lua
 Undermine/ChromeKingGallywix-Heroic-Kill.lua
 Undermine/ChromeKingGallywix-Mythic-Kill.lua
+
+NerubarPalace/Ulgrax-Mythic-Kill.lua
+NerubarPalace/BloodboundHorror-Mythic-Kill.lua
+NerubarPalace/Sikran-Mythic-Kill.lua
+NerubarPalace/Rashanan-Mythic-Kill.lua
+NerubarPalace/Ovinax-Mythic-Kill.lua
+NerubarPalace/Kyveza-Mythic-Kill.lua
+NerubarPalace/SilkenCourt-Mythic-Kill.lua
+NerubarPalace/QueenAnsurek-Mythic-Wipe.lua
