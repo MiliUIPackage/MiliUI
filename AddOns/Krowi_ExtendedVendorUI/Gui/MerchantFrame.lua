@@ -97,6 +97,10 @@ hooksecurefunc("MerchantFrame_UpdateMerchantInfo", function()
 	if not addon.Util.IsMainline then
 		MerchantFrameBottomRightBorder:Hide();
 	end
+	if MerchantToken4 then
+		MerchantToken4:ClearAllPoints();
+		MerchantToken4:SetPoint("BOTTOMRIGHT", -185, 8);
+	end
 end);
 
 hooksecurefunc("MerchantFrame_UpdateBuybackInfo", function()

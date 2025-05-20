@@ -138,6 +138,7 @@ function KrowiEVU_FilterButtonMixin:BuildMenu()
 	menu:Add(appearances);
 	if addon.Util.IsMainline then
 		self:AddLootFilterRadioButton(menu, menu, addon.L["Appearance Sets"], _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_TRANSMOG_SETS"]);
+		self:AddLootFilterRadioButton(menu, menu, addon.L["Illusions"], _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_ILLUSIONS"]);
 	end
 	self:AddLootFilterRadioButton(menu, menu, addon.L["Recipes"], _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_RECIPES"]);
 
@@ -188,6 +189,7 @@ function KrowiEVU_FilterButtonMixin:BuildMenu()
 	custom:Add(appearances);
 	if addon.Util.IsMainline then
 		self:AddCheckBox(custom, addon.L["Appearance Sets"], {"Custom", "TransmogSets"});
+		self:AddCheckBox(custom, addon.L["Illusions"], {"Custom", "Illusions"});
 	end
 	self:AddCheckBox(custom, addon.L["Recipes"], {"Custom", "Recipes"});
 	self:AddCheckBox(custom, addon.L["Other"], {"Custom", "Other"});
@@ -202,6 +204,7 @@ function KrowiEVU_FilterButtonMixin:BuildMenu()
 	self:AddCheckBox(menu, addon.L["Appearances"], {"HideCollected", "Transmog"});
 	if addon.Util.IsMainline then
 		self:AddCheckBox(menu, addon.L["Appearance Sets"], {"HideCollected", "TransmogSets"});
+		self:AddCheckBox(menu, addon.L["Illusions"], {"HideCollected", "Illusions"});
 	end
 	self:AddCheckBox(menu, addon.L["Recipes"], {"HideCollected", "Recipes"});
 

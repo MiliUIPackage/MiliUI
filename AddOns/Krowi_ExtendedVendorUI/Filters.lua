@@ -9,6 +9,7 @@ _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_TOYS"] = 103;
 _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_TRANSMOG"] = 104;
 _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_RECIPES"] = 105;
 _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_TRANSMOG_SETS"] = 106;
+_G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_ILLUSIONS"] = 107;
 _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_CUSTOM"] = 200;
 _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_SEARCH"] = 201;
 
@@ -52,8 +53,9 @@ local defaults = {
 			Mounts = true,
 			Toys = true,
 			Transmog = false,
-			Recipes = true,
 			TransmogSets = false,
+			Illusions = false,
+			Recipes = true
 		},
 		Custom = {
 			Pets = true,
@@ -61,6 +63,7 @@ local defaults = {
 			Toys = true,
 			Transmog = true,
 			TransmogSets = true,
+			Illusions = true,
 			Recipes = true,
 			Other = true,
 			Armor = { --[[ Automatically generated ]] },
@@ -115,8 +118,10 @@ function filters:Validate(lootFilter, itemId)
 		return self:ValidateToysOnly(itemId);
     elseif lootFilter == _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_TRANSMOG"] then
 		return self:ValidateTransmogOnly(itemId);
-    elseif lootFilter == _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_TRANSMOG_SETS"] and addon.Util.IsMainline then
+    elseif lootFilter == _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_TRANSMOG_SETS"] then
 		return self:ValidateTransmogSetOnly(itemId);
+	elseif lootFilter == _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_ILLUSIONS"] then
+		return self:ValidateIllusionOnly(itemId);
     elseif lootFilter == _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_RECIPES"] then
 		return self:ValidateRecipesOnly(itemId);
     elseif lootFilter == _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_CUSTOM"] then
@@ -140,10 +145,12 @@ function filters:Validate(lootFilter, itemId)
 			return not self.IsTransmogCollected(itemId);
 		end
 
-		if addon.Util.IsMainline then
-			if self.IsTransmogSet(itemId) and addon.Filters.db.profile.HideCollected.TransmogSets then
-				return not self.IsTransmogSetCollected(itemId);
-			end
+		if self.IsTransmogSet(itemId) and addon.Filters.db.profile.HideCollected.TransmogSets then
+			return not self.IsTransmogSetCollected(itemId);
+		end
+
+		if self.IsIllusion(itemId) and addon.Filters.db.profile.HideCollected.Illusions then
+			return not self.IsIllusionCollected(itemId);
 		end
 
 		if self.IsRecipe(itemId) and addon.Filters.db.profile.HideCollected.Recipes then
@@ -239,7 +246,7 @@ do -- Transmog
 		if addon.Filters.db.profile.HideCollected.Transmog and self.IsTransmogCollected(itemId) then
 			return false;
 		end
-		local _, _, _, itemEquipLoc, _, classId, subClassId = C_Item.GetItemInfoInstant(itemId);
+		local classId, subClassId = select(6, C_Item.GetItemInfoInstant(itemId));
 		if classId == Enum.ItemClass.Armor and addon.Filters.db.profile.OnlyShow.Armor[subClassId] ~= nil then
 			return addon.Filters.db.profile.OnlyShow.Armor[subClassId];
 		elseif classId == Enum.ItemClass.Weapon and addon.Filters.db.profile.OnlyShow.Weapon[subClassId] ~= nil then
@@ -258,7 +265,7 @@ do -- Transmog
 	end
 end
 
-do -- Transmog Set
+if addon.Util.IsMainline then -- Transmog Set
 	function filters:ValidateTransmogSetOnly(itemId)
 		if not self.IsTransmogSet(itemId) then
 			return false;
@@ -286,6 +293,49 @@ do -- Transmog Set
 			end
 		end
 		return true;
+	end
+else
+	function filters.IsTransmogSet(itemId)
+		return false;
+	end
+
+	function filters.IsTransmogSetCollected(itemId)
+		return false;
+	end
+end
+
+if addon.Util.IsMainline then -- Illusion
+	function filters:ValidateIllusionOnly(itemId)
+		if not self.IsIllusion(itemId) then
+			return false;
+		end
+		if addon.Filters.db.profile.HideCollected.Illusions then
+			return not self.IsIllusionCollected(itemId);
+		end
+		return true;
+	end
+
+	function filters.IsIllusion(itemId)
+		local classId, subclassId = select(6, C_Item.GetItemInfoInstant(itemId));
+		return classId == Enum.ItemClass.Consumable and subclassId == Enum.ItemConsumableSubclass.Other;
+	end
+
+	function filters.IsIllusionCollected(itemId)
+		local tooltipInfo = C_TooltipInfo.GetItemByID(itemId);
+		for _, line in next, tooltipInfo.lines do
+			if line.type == Enum.TooltipDataLineType.RestrictedSpellKnown then
+				return true;
+			end
+		end
+		return false;
+	end
+else
+	function filters.IsIllusion(itemId)
+		return false;
+	end
+
+	function filters.IsIllusionCollected(itemId)
+		return false;
 	end
 end
 
@@ -374,6 +424,16 @@ do -- Custom
 			return false;
 		end
 
+		if self.IsIllusion(itemId) then
+			if addon.Filters.db.profile.Custom.Illusions then
+				if addon.Filters.db.profile.HideCollected.Illusions then
+					return not self.IsIllusionCollected(itemId);
+				end
+				return true;
+			end
+			return false;
+		end
+		
 		if self.IsRecipe(itemId) then
 			if addon.Filters.db.profile.Custom.Recipes then
 				if addon.Filters.db.profile.HideCollected.Recipes then

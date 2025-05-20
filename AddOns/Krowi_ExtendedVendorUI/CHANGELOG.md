@@ -1,6 +1,17 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 13.1 - 2025-05-15
+### Added
+- Added Russian translation
+
+### Fixed
+- The 3 new extra tokens should now also align to the right of the window
+
+## 13.0 - 2025-04-22
+### Added
+- Illusions can now also be filtered
+
 ## 12.1 - 2025-03-31
 ### Fixed
 - Compatibility issue with TSM

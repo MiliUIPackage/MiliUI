@@ -1,8 +1,8 @@
-## Interface: 11506, 30403, 40402, 110007, 110105
+## Interface: 11507, 30404, 40402, 110100, 110105
 ## Title: Krowi's |cFF1D92C2Extended Vendor UI|r
 ## X-Prefix: KrowiEVU
 ## X-Acronym: KEVU
-## Version: 12.1
+## Version: 13.1
 ## Author: Krowi-Frostmane EU
 ## LoadWith: Blizzard_MerchantFrame
 ## SavedVariables: KrowiEVU_Options, KrowiEVU_Filters, KrowiEVU_Debug
@@ -21,12 +21,13 @@
 ## Category-ptBR: Inventário
 ## Category-ruRU: Предметы
 ## Category-zhCN: 物品栏
+## Category-zhTW: 物品欄
 ## X-Discord-Invite-Link: https://discord.gg/mdBFQJYeQZ
 ## X-Discord-Server-Name: Krowi's Addons
 ## X-CurseForge: https://www.curseforge.com/wow/addons/krowi-extended-vendor-ui
 ## X-Curse-Project-ID: 872787
 ## X-Wago: https://addons.wago.io/addons/krowi-extended-vendor-ui
-## X-Wago-Project-ID: mNwQwWKo
+## X-Wago-ID: mNwQwWKo
 ## X-WoWInterface: https://www.wowinterface.com/downloads/info26611-KrowisExtendedVendorUI
 ## X-WoWInterface-Project-ID: 26611
 
