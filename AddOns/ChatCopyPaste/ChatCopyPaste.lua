@@ -8,6 +8,9 @@
 --Click the icon so you can highlight and copy chat.
 --Use /chatcopypaste or /ccp for options.
 
+--DEFAULT_CHAT_FRAME:SetTextCopyable(true);
+--DEFAULT_CHAT_FRAME:EnableMouse(true);
+
 CCP = LibStub("AceAddon-3.0"):NewAddon("ChatCopyPaste");
 local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata;
 
@@ -367,6 +370,11 @@ function CCP.ccpChatWebLinks(self, event, msg, author, ...)
 	if (not CCP.db.global.chat_url) then
 		return;
 	end
+	if (string.match(msg, "%[MDT_v2:") or string.match(msg, "%[WeakAuras:")) then
+		return;
+	end
+	--The msg here is alrady formatted as [Link] when we get it instead of the raw text |HLink:stuff|hstuff|h.
+	--Seems it's hard to detect a link easily due to the above, for now just ignore the 2 most common cases.
 	for word in string.gmatch(msg, urlPattern) do
 		msg = string.gsub(msg, word, urlColorCode .. "[|HccpCustomLink:url|h" .. word .. "|h]|r", 1);
 	end
@@ -432,8 +440,6 @@ end
 --Open the options GUI
 SLASH_CCPOPTIONSCMD1, SLASH_CCPOPTIONSCMD2 = '/chatcopypaste', '/ccp';
 function SlashCmdList.CCPOPTIONSCMD(msg, editBox)
-	InterfaceOptionsFrame_OpenToCategory("ChatCopyPaste");
-	InterfaceOptionsFrame_OpenToCategory("ChatCopyPaste");
 	Settings.OpenToCategory("ChatCopyPaste");
 end
 
