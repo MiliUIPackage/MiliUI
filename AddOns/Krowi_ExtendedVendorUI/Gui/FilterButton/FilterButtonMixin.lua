@@ -139,8 +139,8 @@ function KrowiEVU_FilterButtonMixin:BuildMenu()
 	if addon.Util.IsMainline then
 		self:AddLootFilterRadioButton(menu, menu, addon.L["Appearance Sets"], _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_TRANSMOG_SETS"]);
 		self:AddLootFilterRadioButton(menu, menu, addon.L["Illusions"], _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_ILLUSIONS"]);
+		self:AddLootFilterRadioButton(menu, menu, addon.L["Recipes"], _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_RECIPES"]);
 	end
-	self:AddLootFilterRadioButton(menu, menu, addon.L["Recipes"], _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_RECIPES"]);
 
 	local custom = menuItem:New({
 		Text = addon.L["Custom"],
@@ -155,7 +155,9 @@ function KrowiEVU_FilterButtonMixin:BuildMenu()
 		NotCheckable = false,
 		KeepShownOnClick = true
 	});
-	self:AddCheckBox(custom, addon.L["Pets"], {"Custom", "Pets"});
+	if addon.Util.IsMainline then
+		self:AddCheckBox(custom, addon.L["Pets"], {"Custom", "Pets"});
+	end
 	self:AddCheckBox(custom, addon.L["Mounts"], {"Custom", "Mounts"});
 	self:AddCheckBox(custom, addon.L["Toys"], {"Custom", "Toys"});
 	appearances = menuItem:New({
@@ -190,23 +192,25 @@ function KrowiEVU_FilterButtonMixin:BuildMenu()
 	if addon.Util.IsMainline then
 		self:AddCheckBox(custom, addon.L["Appearance Sets"], {"Custom", "TransmogSets"});
 		self:AddCheckBox(custom, addon.L["Illusions"], {"Custom", "Illusions"});
+		self:AddCheckBox(custom, addon.L["Recipes"], {"Custom", "Recipes"});
 	end
-	self:AddCheckBox(custom, addon.L["Recipes"], {"Custom", "Recipes"});
 	self:AddCheckBox(custom, addon.L["Other"], {"Custom", "Other"});
 	menu:Add(custom);
 
 	menu:AddSeparator();
 
 	self:AddTitle(menu, addon.L["Hide collected"]);
-	self:AddCheckBox(menu, addon.L["Pets"], {"HideCollected", "Pets"});
+	if addon.Util.IsMainline then
+		self:AddCheckBox(menu, addon.L["Pets"], {"HideCollected", "Pets"});
+	end
 	self:AddCheckBox(menu, addon.L["Mounts"], {"HideCollected", "Mounts"});
 	self:AddCheckBox(menu, addon.L["Toys"], {"HideCollected", "Toys"});
 	self:AddCheckBox(menu, addon.L["Appearances"], {"HideCollected", "Transmog"});
 	if addon.Util.IsMainline then
 		self:AddCheckBox(menu, addon.L["Appearance Sets"], {"HideCollected", "TransmogSets"});
 		self:AddCheckBox(menu, addon.L["Illusions"], {"HideCollected", "Illusions"});
+		self:AddCheckBox(menu, addon.L["Recipes"], {"HideCollected", "Recipes"});
 	end
-	self:AddCheckBox(menu, addon.L["Recipes"], {"HideCollected", "Recipes"});
 
 	return menu;
 end

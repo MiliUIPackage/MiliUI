@@ -1,6 +1,20 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 13.3 - 2025-05-25
+### Cata Classic
+- Disabled pet filtering
+
+### WoW Classic
+- Disabled pet filtering
+
+## 13.2 - 2025-05-20
+### Cata Classic
+- Disabled recipe filtering
+
+### WoW Classic
+- Disabled recipe filtering
+
 ## 13.1 - 2025-05-15
 ### Added
 - Added Russian translation

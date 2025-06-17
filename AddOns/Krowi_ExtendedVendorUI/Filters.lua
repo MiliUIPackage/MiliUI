@@ -161,7 +161,7 @@ function filters:Validate(lootFilter, itemId)
 	return true;
 end
 
-do -- Pets
+if addon.Util.IsMainline then -- Pets
 	function filters:ValidatePetsOnly(itemId)
 		if not self.IsPet(itemId) then
 			return false;
@@ -187,6 +187,14 @@ do -- Pets
 
 	function filters.IsPetCollected(itemId)
 		return (C_PetJournal.GetNumCollectedInfo((select(13, C_PetJournal.GetPetInfoByItemID(itemId))))) ~= 0;
+	end
+else
+	function filters.IsPet(itemId)
+		return false;
+	end
+
+	function filters.IsPetCollected(itemId)
+		return false;
 	end
 end
 
@@ -339,7 +347,7 @@ else
 	end
 end
 
-do -- Recipes
+if addon.Util.IsMainline then -- Recipes
 	function filters:ValidateRecipesOnly(itemId)
 		if not self.IsRecipe(itemId) then
 			return false;
@@ -362,6 +370,14 @@ do -- Recipes
 				return true;
 			end
 		end
+		return false;
+	end
+else
+	function filters.IsRecipe(itemId)
+		return false;
+	end
+
+	function filters.IsRecipeCollected(itemId)
 		return false;
 	end
 end
