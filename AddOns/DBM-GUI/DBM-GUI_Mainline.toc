@@ -13,7 +13,7 @@
 ## Author: MysticalOS, QartemisT
 ## Version: 11.1.19
 ## X-Website: https://deadlybossmods.com
-## Category-zhTW: 團隊
+## Category-zhTW: 副本
 
 Polyfills.xml
 
