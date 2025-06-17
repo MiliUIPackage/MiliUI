@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("MotherloadTrash", "DBM-Party-BfA", 7)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250504011404")
+mod:SetRevision("20250519110737")
 mod:SetZone(1594)
 mod:RegisterZoneCombat(1594)
 --mod:SetModelID(47785)
@@ -49,7 +49,7 @@ local specWarnTectonicBarrierDispel			= mod:NewSpecialWarningDispel(263215, "Mag
 local specWarnEnemyToGoo					= mod:NewSpecialWarningInterrupt(268797, "HasInterrupt", nil, nil, 1, 2)--High Prio
 
 local timerFanOfKnivesCD					= mod:NewCDNPTimer(20.6, 267354, nil, nil, nil, 3)
-local timerIcedSpritzerCD					= mod:NewCDPNPTimer(24.4, 280604, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerIcedSpritzerCD					= mod:NewCDPNPTimer(24.0, 280604, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerFuriousQuakeCD					= mod:NewCDNPTimer(24.6, 268702, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--Small sample, need more data
 local timerTectonicBarrierCD				= mod:NewCDNPTimer(20.9, 263215, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--19.3-21.3?
 local timerEnemyToGoosCD					= mod:NewCDPNPTimer(24.2, 268797, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
@@ -78,6 +78,8 @@ local timerUppercutCD						= mod:NewCDNPTimer(20.3, 1217280, nil, nil, nil, 3)
 --local specWarnOverchargeDispel			= mod:NewSpecialWarningDispel(262540, "MagicDispeller", nil, nil, 1, 2)
 
 --Antispam IDs for this mod: 1 run away, 2 dodge, 3 dispel, 4 incoming damage, 5 you/role, 6 misc, 7 GTFO
+
+local annoyingCasts = {}
 
 function mod:UppercutTarget(targetname)
 	if not targetname then return end
@@ -180,9 +182,12 @@ function mod:SPELL_CAST_SUCCESS(args)
 	if not self.Options.Enabled then return end
 	local spellId = args.spellId
 	if spellId == 280604 then
-		timerIcedSpritzerCD:Start(21.5, args.sourceGUID)
+		if not annoyingCasts[args.sourceGUID] then
+			annoyingCasts[args.sourceGUID] = true
+			timerIcedSpritzerCD:Start(21.5, args.sourceGUID)
+		end
 	elseif spellId == 268702 then
-		timerFuriousQuakeCD:Start(24.1, args.sourceGUID)
+		timerFuriousQuakeCD:Start(22.7, args.sourceGUID)
 	elseif spellId == 263215 then
 		timerTectonicBarrierCD:Start(20.9, args.sourceGUID)
 	elseif spellId == 268797 then
@@ -194,7 +199,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 			specWarnArtilleryBarrage:Play("watchstep")
 		end
 	elseif spellId == 269302 then
-		timerToxicBladesCD:Start(27.8, args.sourceGUID)
+		timerToxicBladesCD:Start(25.7, args.sourceGUID)
 	elseif spellId == 1213893 then
 		warnActivateMech:Show()
 	elseif spellId == 473168 then
@@ -216,15 +221,18 @@ function mod:SPELL_INTERRUPT(args)
 	if not self.Options.Enabled then return end
 	if type(args.extraSpellId) ~= "number" then return end
 	if args.extraSpellId == 280604 then
-		timerIcedSpritzerCD:Start(21.5, args.destGUID)
+		if not annoyingCasts[args.destGUID] then
+			annoyingCasts[args.destGUID] = true
+			timerIcedSpritzerCD:Start(21.5, args.destGUID)
+		end
 	elseif args.extraSpellId == 268702 then
-		timerFuriousQuakeCD:Start(24.1, args.destGUID)
+		timerFuriousQuakeCD:Start(22.7, args.destGUID)
 	elseif args.extraSpellId == 263215 then
 		timerTectonicBarrierCD:Start(20.9, args.destGUID)
 	elseif args.extraSpellId == 268797 then
 		timerEnemyToGoosCD:Start(24.2, args.destGUID)
 	elseif args.extraSpellId == 269302 then
-		timerToxicBladesCD:Start(27.8, args.destGUID)
+		timerToxicBladesCD:Start(25.7, args.destGUID)
 	end
 end
 
@@ -255,6 +263,7 @@ function mod:UNIT_DIED(args)
 		timerToxicBladesCD:Stop(args.destGUID)
 	elseif cid == 136470 then--Refreshment Vendor
 		timerIcedSpritzerCD:Stop(args.destGUID)
+		annoyingCasts[args.destGUID] = nil
 	elseif cid == 130635 then--Stonefury
 		timerFuriousQuakeCD:Stop(args.destGUID)
 		timerTectonicBarrierCD:Stop(args.destGUID)
@@ -282,15 +291,15 @@ end
 --All timers subject to a ~0.5 second clipping due to ScanEngagedUnits
 function mod:StartEngageTimers(guid, cid, delay)
 	if cid == 134232 then--Hired Assassin
-		timerToxicBladesCD:Start(9.8-delay, guid)
+		timerToxicBladesCD:Start(9.6-delay, guid)
 		timerFanOfKnivesCD:Start(13.3-delay, guid)
 	elseif cid == 136470 then--Refreshment Vendor
 		timerIcedSpritzerCD:Start(10.9-delay, guid)
 	elseif cid == 130635 then--Stonefury
 		timerTectonicBarrierCD:Start(5-delay, guid)
-		timerFuriousQuakeCD:Start(11.8-delay, guid)
+		timerFuriousQuakeCD:Start(11.3-delay, guid)
 	elseif cid == 133432 then--Venture Co. Alchemist
-		timerEnemyToGoosCD:Start(8.5-delay, guid)--8-15
+		timerEnemyToGoosCD:Start(7.9-delay, guid)--7.9-15
 --	elseif cid == 137029 then--Ordnance Specialist
 --		timerArtilleryBarrageCD:Start(1.5-delay, guid)--Used pretty much instantly on pull
 	elseif cid == 130435 then--Addled Thug

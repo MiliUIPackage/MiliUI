@@ -76,16 +76,16 @@ end
 ---@class DBM
 local DBM = private:GetPrototype("DBM")
 _G.DBM = DBM
-DBM.Revision = parseCurseDate("20250520034044")
+DBM.Revision = parseCurseDate("20250529025737")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 local fakeBWVersion, fakeBWHash = 386, "0d07b1a"--386.0
 local PForceDisable
 -- The string that is shown as version
-DBM.DisplayVersion = "11.1.19"--Core version
+DBM.DisplayVersion = "11.1.20"--Core version
 DBM.classicSubVersion = 0
 DBM.dungeonSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2025, 5, 19) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2025, 5, 28) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 PForceDisable = 18--When this is incremented, trigger force disable regardless of major patch
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -7431,7 +7431,7 @@ do
 		if not testMod then
 			---@class DBMModTestMod: DBMMod
 			testMod = self:NewMod("TestMod")
-			self:GetModLocalization("TestMod"):SetGeneralLocalization{name = "Test Mod"}
+			self:GetModLocalization("TestMod"):SetGeneralLocalization{name = "測試模式"}
 			testWarning1 = testMod:NewAnnounce("%s", 1, "136116")--Interface\\Icons\\Spell_Nature_WispSplode
 			testWarning2 = testMod:NewAnnounce("%s", 2, private.isRetail and "136194" or "136221")
 			testWarning3 = testMod:NewAnnounce("%s", 3, "135826")
@@ -7447,22 +7447,22 @@ do
 			testSpecialWarning2 = testMod:NewSpecialWarning(" %s ", nil, nil, nil, 2, 2)
 			testSpecialWarning3 = testMod:NewSpecialWarning("  %s  ", nil, nil, nil, 3, 2) -- hack: non auto-generated special warnings need distinct names (we could go ahead and give them proper names with proper localization entries, but this is much easier)
 		end
-		testTimer1:Stop("Test Bar showing 5s Variance")
-		testTimer2:Stop("Adds")
-		testTimer3:Stop("Evil Debuff")
-		testTimer4:Stop("Important Interrupt")
-		testTimer5:Stop("Boom!")
-		testTimer6:Stop("Handle your Role")
-		testTimer7:Stop("Next Stage")
-		testTimer8:Stop("Custom User Bar")
-		testTimer1:Start("v5-10", "Test Bar showing 5s Variance")
-		testTimer2:Start("v25-30", "Adds")
-		testTimer3:Start(43, "Evil Debuff")
-		testTimer4:Start(20, "Important Interrupt")
-		testTimer5:Start(60, "Boom!")
-		testTimer6:Start("v32-35", "Handle your Role")
-		testTimer7:Start(50, "Next Stage")
-		testTimer8:Start(55, "Custom User Bar")
+		testTimer1:Stop("測試條顯示5秒差異")
+		testTimer2:Stop("小怪")
+		testTimer3:Stop("惡魔減益")
+		testTimer4:Stop("重要的打斷")
+		testTimer5:Stop("蹦!")
+		testTimer6:Stop("掌握你的職責")
+		testTimer7:Stop("下一階段")
+		testTimer8:Stop("用戶自訂義條")
+		testTimer1:Start("v5-10", "測試條顯示5秒差異")
+		testTimer2:Start("v25-30", "小怪")
+		testTimer3:Start(43, "惡魔減益")
+		testTimer4:Start(20, "重要的打斷")
+		testTimer5:Start(60, "蹦!")
+		testTimer6:Start("v32-35", "掌握你的職責")
+		testTimer7:Start(50, "下一階段")
+		testTimer8:Start(55, "用戶自訂義條")
 		testWarning1:Cancel()
 		testWarning2:Cancel()
 		testWarning3:Cancel()
@@ -7472,19 +7472,19 @@ do
 		testSpecialWarning2:CancelVoice()
 		testSpecialWarning3:Cancel()
 		testSpecialWarning3:CancelVoice()
-		testWarning1:Show("Test-mode started...")
-		testWarning1:Schedule(62, "Test-mode finished!")
-		testWarning3:Schedule(50, "Boom in 10 sec!")
-		testWarning3:Schedule(20, "Pew Pew Laser Owl!")
-		testWarning2:Schedule(38, "Evil Spell in 5 sec!")
-		testWarning2:Schedule(43, "Evil Spell!")
-		testWarning1:Schedule(10, "Test Bar expired!")
-		testSpecialWarning1:Schedule(20, "Pew Pew Laser Owl")
-		testSpecialWarning1:ScheduleVoice(20, "runaway")
-		testSpecialWarning2:Schedule(43, "Fear!")
-		testSpecialWarning2:ScheduleVoice(43, "fearsoon")
-		testSpecialWarning3:Schedule(60, "Boom!")
-		testSpecialWarning3:ScheduleVoice(60, "defensive")
+		testWarning1:Show("測試模式開始...")
+		testWarning1:Schedule(62, "測試模式已結束!")
+		testWarning3:Schedule(50, "10秒後爆炸!")
+		testWarning3:Schedule(20, "皮皮雷射貓頭鷹!")
+		testWarning2:Schedule(38, "惡魔法術5秒後!")
+		testWarning2:Schedule(43, "惡魔法術!")
+		testWarning1:Schedule(10, "測試條已過期!")
+		testSpecialWarning1:Schedule(20, "PiuPiu雷射貓頭鷹")
+		testSpecialWarning1:ScheduleVoice(20, "跑開人群")
+		testSpecialWarning2:Schedule(43, "恐懼!")
+		testSpecialWarning2:ScheduleVoice(43, "恐懼準備")
+		testSpecialWarning3:Schedule(60, "蹦!")
+		testSpecialWarning3:ScheduleVoice(60, "開啟減傷")
 	end
 end
 
@@ -8555,7 +8555,7 @@ function bossModPrototype:AddGossipOption(default, gossipType, optionVersion)
 		self.localization.options["AutoGossip" .. gossipType .. oVersion] = L.AUTO_GOSSIP_PERFORM_ACTION
 	elseif gossipType == "Encounter" then
 		self.localization.options["AutoGossip" .. gossipType .. oVersion] = L.AUTO_GOSSIP_START_ENCOUNTER
-	else--Type 1 most common so the default fallback if left blank
+	else--Buff
 		self.localization.options["AutoGossip" .. gossipType .. oVersion] = L.AUTO_GOSSIP_BUFFS
 	end
 	self:SetOptionCategory("AutoGossip" .. gossipType .. oVersion, "misc")
@@ -9181,7 +9181,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20250520033823" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20250529025737" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then

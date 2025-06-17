@@ -4,7 +4,7 @@ local cataWowID = 14
 local mistsWowID = 19
 if wowID ~= 1 and wowID ~= cataWowID and wowID ~= mistsWowID then return end -- Retail, Cata, Mists
 
-local LS, oldminor = LibStub:NewLibrary("LibSpecialization", 13)
+local LS, oldminor = LibStub:NewLibrary("LibSpecialization", 15)
 if not LS then return end -- No upgrade needed
 
 LS.callbackMap = LS.callbackMap or {}
@@ -314,7 +314,7 @@ local starterSpecs = {
 local callbackMap = LS.callbackMap
 local frame = LS.frame
 
-local next, type, error, tonumber, format, strsplit = next, type, error, tonumber, string.format, string.split
+local next, type, error, tonumber, format = next, type, error, tonumber, string.format
 local Ambiguate, GetTime, IsInGroup, geterrorhandler = Ambiguate, GetTime, IsInGroup, geterrorhandler
 local GetSpecialization, GetSpecializationInfo = GetSpecialization, GetSpecializationInfo
 local C_ClassTalents_GetActiveConfigID = C_ClassTalents and C_ClassTalents.GetActiveConfigID
@@ -407,6 +407,7 @@ do
 		["PARTY"] = true,
 		["INSTANCE_CHAT"] = true,
 	}
+	local strmatch = string.match
 	frame:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
 		if event == "CHAT_MSG_ADDON" then
 			if prefix == "LibSpec" and approved[channel] then -- Only approved channels
@@ -419,8 +420,14 @@ do
 					return
 				end
 
-				local spec, talentString, cataDruidRole = strsplit(",", msg)
+				local spec, talentString = strmatch(msg, "(%d+),(.+)")
 				local specId = tonumber(spec)
+				local cataDruidRole
+				if specId == 750 then -- Cataclysm Feral Druids
+					talentString = nil
+					cataDruidRole = strmatch(msg, "%d+,,(.+)")
+				end
+
 				local role, position = roleTable[specId], positionTable[specId]
 				if role and position then
 					if specId == 750 then -- Cataclysm Feral Druids
@@ -500,12 +507,33 @@ function LS:MySpecialization()
 				local position = positionTable[specId]
 				local role = roleTable[specId]
 				if position and role then
-					--local activeConfigID = C_ClassTalents_GetActiveConfigID()
-					--if activeConfigID then
-					--	local talentString = C_Traits_GenerateImportString(activeConfigID)
-					--	return specId, role, position, talentString
-					--end
-					return specId, role, position
+					local storageTable = {}
+					for tier = 1, 6 do -- The first 6 entries of the table are talent IDs
+						storageTable[tier] = 0
+						for column = 1, 3 do
+							local talentInfo = C_SpecializationInfo.GetTalentInfo({tier=tier, column=column})
+							if talentInfo.known then
+								storageTable[tier] = talentInfo.talentID
+								break
+							end
+						end
+					end
+					for glyphSlot = 1, 6 do -- The remaining 6 entries of the table are glyph IDs (12 entries total)
+						storageTable[glyphSlot+6] = 0
+						local link = GetGlyphLink(glyphSlot)
+						if link then
+							local GlyphIDStr = link:match("|Hglyph:%d+:(%d+)|h")
+							if GlyphIDStr then
+								local glyphID = tonumber(GlyphIDStr)
+								if glyphID then
+									storageTable[glyphSlot+6] = glyphID
+								end
+							end
+						end
+					end
+					local talentsAndGlyphsJSON = C_EncodingUtil.SerializeJSON(storageTable)
+
+					return specId, role, position, talentsAndGlyphsJSON
 				elseif not starterSpecs[specId] then
 					geterrorhandler()(format("LibSpecialization: Unknown specId %q", specId))
 				end

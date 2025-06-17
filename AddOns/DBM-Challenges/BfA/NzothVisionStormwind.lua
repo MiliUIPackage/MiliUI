@@ -1,13 +1,14 @@
 local mod	= DBM:NewMod("d1993", "DBM-Challenges", 2)--1993 Stormwind 1995 Org
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250411193139")
+mod:SetRevision("20250527223641")
 
 mod:RegisterCombat("scenario", 2213, 2827)
+mod:RegisterZoneCombat(2827)
 
 mod:RegisterEventsInCombat(
-	"SPELL_CAST_START 308278 309819 309648 298691 308669 308366 308406 311456 296911 296537 308481 308575 298033 308375 309882 309671 308305 311399 297315 308998 308265 296669",
-	"SPELL_AURA_APPLIED 311390 315385 316481 311641 308380 308366 308265 308998",
+	"SPELL_CAST_START 308278 309819 309648 298691 308669 308366 308406 311456 296911 296537 308481 308575 298033 308375 309882 309671 308305 311399 297315 308998 308265 296669 307870 296718",
+	"SPELL_AURA_APPLIED 311390 315385 311641 308380 308366 308265 308998",--316481
 	"SPELL_AURA_APPLIED_DOSE 311390",
 	"SPELL_AURA_REMOVED 308998 298033",
 	"SPELL_CAST_SUCCESS 309035",
@@ -19,13 +20,15 @@ mod:RegisterEventsInCombat(
 	"UNIT_SPELLCAST_SUCCEEDED_UNFILTERED",
 	"UNIT_SPELLCAST_INTERRUPTED_UNFILTERED",
 	"UNIT_AURA player",
-	"NAME_PLATE_UNIT_ADDED",
-	"FORBIDDEN_NAME_PLATE_UNIT_ADDED"
+	"UNIT_POWER_UPDATE player"
 )
 
 --TODO, maybe add https://ptr.wowhead.com/spell=292021/madness-leaden-foot#see-also-other affix? just depends on warning to stop moving can be counter to a stacked affix
 --TODO, see if target scanning will work on Entropic Leap
+--NOTE: Alleria does not have RP timer because it has early termination based on proximity. Full rp is 14.4 seconds, but she'll end it early if you're in melee range (takes about 2 sec to trigger)
 --General
+local warnSanity				= mod:NewCountAnnounce(307831, 3)
+local warnSanityOrb				= mod:NewCastAnnounce(307870, 1)
 local warnGiftoftheTitans		= mod:NewSpellAnnounce(313698, 1)
 local warnScorchedFeet			= mod:NewSpellAnnounce(315385, 4)
 --Extra Abilities (used by main boss and the area LTs)
@@ -44,20 +47,21 @@ local warnTouchoftheAbyss		= mod:NewCastAnnounce(298033, 4)
 local warnBrutalSmash			= mod:NewCastAnnounce(309882, 3)
 
 --General (GTFOs and Affixes)
+local specwarnSanity			= mod:NewSpecialWarningCount(307831, nil, nil, nil, 1, 10)
 local specWarnGTFO				= mod:NewSpecialWarningGTFO(312121, nil, nil, nil, 1, 8)
 local specWarnEntomophobia		= mod:NewSpecialWarningJump(311389, nil, nil, nil, 1, 6)
-local specWarnHauntingShadows	= mod:NewSpecialWarningDodge(306545, false, nil, 4, 1, 2)
+--local specWarnHauntingShadows	= mod:NewSpecialWarningDodge(306545, false, nil, 4, 1, 2)
 local specWarnScorchedFeet		= mod:NewSpecialWarningYou(315385, false, nil, 2, 1, 2)
-local yellScorchedFeet			= mod:NewYell(315385)
-local specWarnSplitPersonality	= mod:NewSpecialWarningYou(316481, nil, nil, nil, 1, 2)
+local yellScorchedFeet			= mod:NewYell(315385, nil, false, 2)
+--local specWarnSplitPersonality	= mod:NewSpecialWarningYou(316481, nil, nil, nil, 1, 2)
 local specWarnWaveringWill		= mod:NewSpecialWarningReflect(311641, "false", nil, nil, 1, 2)--Off by default, it's only 5%, but that might matter to some classes
 --Alleria Windrunner
 local specWarnDarkenedSky		= mod:NewSpecialWarningDodge(308278, nil, nil, nil, 2, 2)
 local specWarnVoidEruption		= mod:NewSpecialWarningMoveTo(309819, nil, nil, nil, 3, 2)
 --Extra Abilities (used by Alleria and the area LTs)
-local specWarnChainsofServitude	= mod:NewSpecialWarningRun(298691, nil, nil, nil, 4, 2)
+local specWarnChainsofServitude	= mod:NewSpecialWarningRun(298691, nil, nil, nil, 4, 2)--Health based, no CD. 66% and 33% on LT and 50% on alleria
 local specWarnDarkGaze			= mod:NewSpecialWarningLookAway(308669, false, nil, 2, 2, 2)
-local specWarnForgeBreath		= mod:NewSpecialWarningDodge(309671, nil, nil, nil, 2, 2)
+local specWarnForgeBreath		= mod:NewSpecialWarningDodge(309671, nil, nil, nil, 2, 15)
 local specWarnTaintedPolymorph	= mod:NewSpecialWarningInterrupt(309648, "HasInterrupt", nil, nil, 1, 2)
 --Other notable abilities by mini bosses/trash
 local specWarnAgonizingTorment	= mod:NewSpecialWarningInterrupt(308366, "HasInterrupt", nil, nil, 1, 2)
@@ -69,13 +73,14 @@ local specWarnPsychicScream		= mod:NewSpecialWarningInterrupt(308375, "HasInterr
 local specWarnImproveMorale		= mod:NewSpecialWarningInterrupt(308998, "HasInterrupt", nil, nil, 1, 2)
 local specWarnVoidBuffet		= mod:NewSpecialWarningInterrupt(297315, "HasInterrupt", nil, nil, 1, 2)
 local specWarnBladeFlourish		= mod:NewSpecialWarningRun(311399, nil, nil, nil, 4, 2)
-local specWarnRoaringBlast		= mod:NewSpecialWarningDodge(311456, nil, nil, nil, 2, 2)
-local specWarnChaosBreath		= mod:NewSpecialWarningDodge(296911, nil, nil, nil, 2, 2)
+local specWarnRoaringBlast		= mod:NewSpecialWarningDodge(311456, nil, nil, nil, 2, 15)
+local specWarnChaosBreath		= mod:NewSpecialWarningDodge(296911, nil, nil, nil, 2, 15)
 local specWarnAgonizingTormentD	= mod:NewSpecialWarningDispel(308366, "RemoveCurse", nil, nil, 1, 2)
 local specWarnCorruptedBlight	= mod:NewSpecialWarningDispel(308265, "RemoveDisease", nil, 2, 1, 2)
 local specWarnBlightEruption	= mod:NewSpecialWarningMoveAway(308305, nil, nil, nil, 1, 2)
 local yellBlightEruption		= mod:NewYell(308305)
 local specWarnRiftStrike		= mod:NewSpecialWarningDodge(308481, nil, nil, nil, 2, 2)
+local specWarnDarkSmash			= mod:NewSpecialWarningDodge(296718, nil, nil, nil, 2, 2)
 
 --General
 local timerGiftoftheTitan		= mod:NewBuffFadesTimer(20, 313698, nil, nil, nil, 5)
@@ -83,74 +88,35 @@ local timerGiftoftheTitan		= mod:NewBuffFadesTimer(20, 313698, nil, nil, nil, 5)
 local timerDarkImaginationCD	= mod:NewCDTimer(60, 315976, nil, nil, nil, 1, 296733)
 --Alleria Windrunner
 local timerDarkenedSkyCD		= mod:NewCDTimer(13.3, 308278, nil, nil, nil, 3)
-local timerVoidEruptionCD		= mod:NewCDTimer(27.9, 309819, nil, nil, nil, 2)
+local timerVoidEruptionCD		= mod:NewVarTimer("v27.9-31.6", 309819, nil, nil, nil, 2)
+local timerVoidEruption			= mod:NewCastTimer(7, 309819, nil, nil, nil, 5)
 --Extra Abilities (used by Alleria and the area LTs)
---local timerTaintedPolymorphCD	= mod:NewAITimer(21, 309648, nil, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)
---local timerExplosiveOrdnanceCD	= mod:NewCDTimer(20.7, 305672, nil, nil, nil, 3)--20-25 (on alleria anyways, forgot to log other guy)
+local timerTaintedPolymorphCD	= mod:NewVarTimer("v22.3-30.4", 309648, nil, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)--22.3-30.4 on alleria, unknown on LT without way more data
+local timerExplosiveOrdnanceCD	= mod:NewVarTimer("v20.6-29.1", 305672, nil, nil, nil, 3)--20-29.1 on alleria, 12.1 on LT
+local timerForgeBreathCD		= mod:NewCDTimer(13.3, 309671, nil, nil, nil, 3)--13.3-14.6
+local timerEntropicMissilesCD	= mod:NewCDTimer(10.1, 309035, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--10.1-17.1
+--Other notable abilities for trash
+local timerTouchoftheAbyss		= mod:NewCastNPTimer(2, 298033, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerBladeFlourishCD		= mod:NewCDPNPTimer(14.6, 311399, nil, nil, nil, 3)
+local timerDarkSmashCD			= mod:NewCDNPTimer(7.3, 296718, nil, nil, nil, 3)
 
 mod:AddInfoFrameOption(307831, true)
-mod:AddNamePlateOption("NPAuraOnHaunting2", 306545, false)
-mod:AddNamePlateOption("NPAuraOnAbyss", 298033)
 mod:AddNamePlateOption("NPAuraOnMorale", 308998)
 
 --Antispam 1: Boss throttles, 2: GTFOs, 3: Dodge stuff on ground. 4: Face Away/special action. 5: Dodge Shockwaves
 
 local playerName = UnitName("player")
 mod.vb.TherumCleared = false
-mod.vb.UlrokCleared = false
-mod.vb.ShawCleared = false
 mod.vb.UmbricCleared = false
 local warnedGUIDs = {}
-
---If you have potions when run ends, the debuffs throw you in combat for about 6 seconds after run has ended
-local function DelayedNameplateFix(self, once)
-	--Check if we changed users nameplate options and restore them
-	if self.Options.CVAR1 or self.Options.CVAR2 or self.Options.CVAR3 then
-		if InCombatLockdown() then
-			if once then return end
-			--In combat, delay nameplate fix
-			DBM:Schedule(2, DelayedNameplateFix, self)
-		else
-			if self.Options.CVAR1 then
-				SetCVar("nameplateShowFriends", self.Options.CVAR1)
-			end
-			if self.Options.CVAR2 then
-				SetCVar("nameplateShowFriendlyNPCs", self.Options.CVAR2)
-			end
-			if self.Options.CVAR3 then
-				SetCVar("nameplateShowOnlyNames", self.Options.CVAR3)
-			end
-			self.Options.CVAR1, self.Options.CVAR2, self.Options.CVAR3 = nil, nil, nil
-		end
-	end
-end
+local lastSanity = 1000
 
 function mod:OnCombatStart(delay)
 	self.vb.TherumCleared = false
-	self.vb.UlrokCleared = false
-	self.vb.ShawCleared = false
 	self.vb.UmbricCleared = false
 	table.wipe(warnedGUIDs)
-	DelayedNameplateFix(self, true)--Repair settings from previous session if they didn't get repaired in last session
-	if self.Options.SpecWarn306545dodge4 then
-		--This warning requires friendly nameplates, because it's only way to detect it.
-		self.Options.CVAR1, self.Options.CVAR2, self.Options.CVAR3 = tonumber(GetCVar("nameplateShowFriends") or 0), tonumber(GetCVar("nameplateShowFriendlyNPCs") or 0), tonumber(GetCVar("nameplateShowOnlyNames") or 0)
-		--Check if they were disabled, if disabled, force enable them
-		if self.Options.CVAR1 == 0 then
-			SetCVar("nameplateShowFriends", 1)
-		end
-		if self.Options.CVAR2 == 0 then
-			SetCVar("nameplateShowFriendlyNPCs", 1)
-		end
-		if self.Options.CVAR3 == 0 then
-			SetCVar("nameplateShowOnlyNames", 1)
-		end
-		--Making this option rely on another option is kind of required because this won't work without nameplateShowFriendlyNPCs
-		if not DBM:HasMapRestrictions() and self.Options.NPAuraOnHaunting2 then
-			DBM:FireEvent("BossMod_EnableFriendlyNameplates")
-		end
-	end
-	if self.Options.NPAuraOnAbyss or self.Options.NPAuraOnMorale then
+	lastSanity = 1000
+	if self.Options.NPAuraOnMorale then
 		DBM:FireEvent("BossMod_EnableHostileNameplates")
 	end
 	if self.Options.InfoFrame then
@@ -164,11 +130,9 @@ function mod:OnCombatEnd()
 	if self.Options.InfoFrame then
 		DBM.InfoFrame:Hide()
 	end
-	if self.Options.NPAuraOnAbyss or self.Options.NPAuraOnHaunting2 or self.Options.NPAuraOnMorale then
-		DBM.Nameplate:Hide(true, nil, nil, nil, true, self.Options.NPAuraOnAbyss or self.Options.NPAuraOnMorale, self.Options.CVAR1)--isGUID, unit, spellId, texture, force, isHostile, isFriendly
+	if self.Options.NPAuraOnMorale then
+		DBM.Nameplate:Hide(true, nil, nil, nil, true, self.Options.NPAuraOnMorale, self.Options.CVAR1)--isGUID, unit, spellId, texture, force, isHostile, isFriendly
 	end
-	--Check if we changed users nameplate options and restore them
-	DelayedNameplateFix(self)
 end
 
 function mod:SPELL_CAST_START(args)
@@ -181,6 +145,7 @@ function mod:SPELL_CAST_START(args)
 		specWarnVoidEruption:Show(DBM_COMMON_L.BREAK_LOS)
 		specWarnVoidEruption:Play("findshelter")
 		timerVoidEruptionCD:Start()
+		timerVoidEruption:Start()
 	elseif spellId == 309648 then
 		if self.Options.SpecWarn309648interrupt and self:CheckInterruptFilter(args.sourceGUID, false, true) then
 			specWarnTaintedPolymorph:Show(args.sourceName)
@@ -188,7 +153,9 @@ function mod:SPELL_CAST_START(args)
 		else
 			warnTaintedPolymorph:Show()
 		end
-		--timerTaintedPolymorphCD:Start()
+		if args:GetSrcCreatureID() == 233675 then--Alleria
+			timerTaintedPolymorphCD:Start()--too dirty right now to do LTs timer due to his phases delaying his casts
+		end
 	elseif spellId == 298691 then
 		specWarnChainsofServitude:Show()
 		specWarnChainsofServitude:Play("justrun")
@@ -220,20 +187,19 @@ function mod:SPELL_CAST_START(args)
 		else
 			warnTouchoftheAbyss:Show()
 		end
-		if self.Options.NPAuraOnAbyss then
-			DBM.Nameplate:Show(true, args.sourceGUID, 298033, nil, 7)
-		end
+		timerTouchoftheAbyss:Start(nil, args.sourceGUID)
 	elseif spellId == 308406 then
 		warnEntropicLeap:Show()
 	elseif spellId == 311456 and self:AntiSpam(3, 5) then
 		specWarnRoaringBlast:Show()
-		specWarnRoaringBlast:Play("shockwave")
+		specWarnRoaringBlast:Play("frontal")
 	elseif spellId == 296911 and self:AntiSpam(3, 5) then
 		specWarnChaosBreath:Show()
-		specWarnChaosBreath:Play("shockwave")
+		specWarnChaosBreath:Play("frontal")
 	elseif spellId == 309671 and self:AntiSpam(3, 5) then
 		specWarnForgeBreath:Show()
-		specWarnForgeBreath:Play("shockwave")
+		specWarnForgeBreath:Play("frontal")
+		timerForgeBreathCD:Start()
 	elseif spellId == 308481 and self:AntiSpam(5, 3) then
 		specWarnRiftStrike:Show()
 		specWarnRiftStrike:Play("watchstep")
@@ -246,10 +212,19 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 311399 then
 		specWarnBladeFlourish:Show()
 		specWarnBladeFlourish:Play("justrun")
+		timerBladeFlourishCD:Start(nil, args.sourceGUID)
 	elseif spellId == 308265 then
 		warnCorruptedBlight:Show()
 	elseif spellId == 296669 then
 		warnLurkingAppendage:Show()
+	elseif spellId == 307870 then
+		warnSanityOrb:Show()
+	elseif spellId == 296718 then
+		timerDarkSmashCD:Start(nil, args.sourceGUID)
+		if self:AntiSpam(3, 3) then
+			specWarnDarkSmash:Show()
+			specWarnDarkSmash:Play("watchstep")
+		end
 	end
 end
 
@@ -279,9 +254,9 @@ function mod:SPELL_AURA_APPLIED(args)
 		if GetNumGroupMembers() > 1 then--Warn allies if in scenario with others
 			yellScorchedFeet:Yell()
 		end
-	elseif spellId == 316481 and args:IsPlayer() then
-		specWarnSplitPersonality:Show()
-		specWarnSplitPersonality:Play("targetyou")
+--	elseif spellId == 316481 and args:IsPlayer() then
+--		specWarnSplitPersonality:Show()
+--		specWarnSplitPersonality:Play("targetyou")
 	elseif spellId == 311641 and args:IsPlayer() then
 		specWarnWaveringWill:Show(playerName)
 		specWarnWaveringWill:Play("stopattack")
@@ -311,9 +286,7 @@ function mod:SPELL_AURA_REMOVED(args)
 			DBM.Nameplate:Hide(true, args.destGUID, spellId)
 		end
 	elseif spellId == 298033 then
-		if self.Options.NPAuraOnAbyss then
-			DBM.Nameplate:Hide(true, args.sourceGUID, 298033)
-		end
+		timerTouchoftheAbyss:Stop(args.sourceGUID)
 	end
 end
 
@@ -327,9 +300,7 @@ mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
 
 function mod:SPELL_INTERRUPT(args)
 	if type(args.extraSpellId) == "number" and args.extraSpellId == 298033 then
-		if self.Options.NPAuraOnAbyss then
-			DBM.Nameplate:Hide(true, args.destGUID, 298033)
-		end
+		timerTouchoftheAbyss:Stop(args.destGUID)
 	end
 end
 
@@ -338,46 +309,67 @@ function mod:UNIT_DIED(args)
 	if cid == 152718 or cid == 233675 then--Alleria Windrunner
 		timerDarkenedSkyCD:Stop()
 		timerVoidEruptionCD:Stop()
-		--timerTaintedPolymorphCD:Stop()
-		--timerExplosiveOrdnanceCD:Stop()
+		timerTaintedPolymorphCD:Stop()
+		timerExplosiveOrdnanceCD:Stop()
 		DBM:EndCombat(self)
 	elseif cid == 156577 or cid == 233679 then--Therum Deepforge
-		--timerExplosiveOrdnanceCD:Stop()
+		timerExplosiveOrdnanceCD:Stop()
+		timerForgeBreathCD:Stop()
 		self.vb.TherumCleared = true
-	elseif cid == 153541 or cid == 233685 then--Slavemaster Ul'rok
-		self.vb.UlrokCleared = true
-	elseif cid == 158157 or cid == 233684 then--Overlord Mathias Shaw
-		self.vb.ShawCleared = true
+--	elseif cid == 153541 or cid == 233685 then--Slavemaster Ul'rok
+
+--	elseif cid == 158157 or cid == 233684 then--Overlord Mathias Shaw
+
 	elseif cid == 158035 or cid == 233681 then--Magister Umbric
 		--timerTaintedPolymorphCD:Stop()
+		timerEntropicMissilesCD:Stop()
 		self.vb.UmbricCleared = true
 	elseif cid == 156795 then--S.I. Informant (Unknownn variant ID for TWW)
-		if self.Options.NPAuraOnAbyss then
-			DBM.Nameplate:Hide(true, args.destGUID, 298033)
-		end
+		timerTouchoftheAbyss:Stop(args.destGUID)
+	elseif cid == 156949 then--Alleyway bladeflourish guy
+		timerBladeFlourishCD:Stop(args.destGUID)
+	elseif cid == 152987 then
+		timerDarkSmashCD:Stop(args.destGUID)
 	end
 end
+
+--All timers subject to a ~0.5 second clipping due to ScanEngagedUnits
+function mod:StartEngageTimers(guid, cid, delay)
+	if cid == 156949 then
+--		timerBladeFlourishCD:Start(14.6-delay, guid)
+	elseif cid == 152987 then
+--		timerDarkSmashCD:Start(7.3-delay, guid)
+	end
+end
+
+--Abort timers when all players out of combat, so NP timers clear on a wipe
+--Caveat, it won't calls top with GUIDs, so while it might terminate bar objects, it may leave lingering nameplate icons
+function mod:LeavingZoneCombat()
+	self:Stop(true)
+end
+
 
 function mod:ENCOUNTER_START(encounterID)
 	if (encounterID == 2338 or encounterID == 3081) and self:IsInCombat() then--Alleria Windrunner
 		timerDarkenedSkyCD:Start(4.9)
 		timerVoidEruptionCD:Start(20.5)
-		--if self.vb.TherumCleared then
-			--timerExplosiveOrdnanceCD:Start(9.7)
-		--end
-		--if self.vb.UlrokCleared then
-
-		--end
-		--if self.vb.UmbricCleared then
-		--	timerTaintedPolymorphCD:Start(27.9)
-		--end
+		if self.vb.TherumCleared then
+			timerExplosiveOrdnanceCD:Start(9.7)
+		end
+		if self.vb.UmbricCleared then
+			timerTaintedPolymorphCD:Start(14.8)
+		end
+	elseif encounterID == 2374 or encounterID == 3082 then--Therum Deepforge
+		timerExplosiveOrdnanceCD:Start(2.4)
+		timerForgeBreathCD:Start(8.5)
 	end
 end
 
 --None of these boss abilities are in combat log
 function mod:UNIT_SPELLCAST_SUCCEEDED_UNFILTERED(uId, _, spellId)
-	if (spellId == 305708 or spellId == 312260) and self:AntiSpam(2, 1) then
-		self:SendSync("ExplosiveOrd")
+	if (spellId == 305708 or spellId == 312260) and self:AntiSpam(2, 1) then--First one is mini boss second is alleria
+		local cid = self:GetUnitCreatureId(uId)
+		self:SendSync("ExplosiveOrd", cid)
 	elseif spellId == 309035 and self:AntiSpam(2, 1) then
 		self:SendSync("EntropicMissiles")
 	elseif spellId == 311530 and self:AntiSpam(2, 1) then
@@ -394,10 +386,8 @@ end
 
 function mod:UNIT_SPELLCAST_INTERRUPTED_UNFILTERED(uId, _, spellId)
 	if spellId == 298033 then
-		if self.Options.NPAuraOnAbyss then
-			local guid = UnitGUID(uId)
-			DBM.Nameplate:Hide(true, guid, 298033)
-		end
+		local guid = UnitGUID(uId)
+		timerTouchoftheAbyss:Stop(guid)
 	end
 end
 
@@ -416,30 +406,45 @@ do
 	end
 end
 
-function mod:NAME_PLATE_UNIT_ADDED(unit)
-	if unit and (UnitName(unit) == playerName) and not (UnitPlayerOrPetInRaid(unit) or UnitPlayerOrPetInParty(unit)) then
-		local guid = UnitGUID(unit)
-		if not guid then return end
-		if not warnedGUIDs[guid] then
-			warnedGUIDs[guid] = true
-			if self:AntiSpam(2, 2) then--Throttled because sometimes two spawn at once
-				specWarnHauntingShadows:Show()
-				specWarnHauntingShadows:Play("runaway")
-			end
+function mod:UNIT_POWER_UPDATE(uId)
+	local currentSanity = UnitPower(uId, ALTERNATE_POWER_INDEX)
+	if currentSanity > lastSanity then
+		lastSanity = currentSanity
+		return
+	end
+	if self:AntiSpam(5, 6) then--Additional throttle in case you lose sanity VERY rapidly with increased ICD for special warning
+		if currentSanity < 40 and lastSanity > 40 then
+			lastSanity = currentSanity
+			specwarnSanity:Show(lastSanity)
+			specwarnSanity:Play("lowsanity")
+		elseif currentSanity < 80 and lastSanity > 80 then
+			lastSanity = currentSanity
+			specwarnSanity:Show(lastSanity)
+			specwarnSanity:Play("lowsanity")
 		end
-		if not DBM:HasMapRestrictions() and self.Options.NPAuraOnHaunting2 then
-			DBM.Nameplate:Show(true, guid, 306545, 1029718, 5)
+	elseif self:AntiSpam(3, 7) then--Additional throttle in case you lose sanity VERY rapidly
+		if currentSanity < 120 and lastSanity > 120 then
+			lastSanity = currentSanity
+			warnSanity:Show(lastSanity)
+		elseif currentSanity < 160 and lastSanity > 160 then
+			lastSanity = currentSanity
+			warnSanity:Show(lastSanity)
 		end
 	end
 end
-mod.FORBIDDEN_NAME_PLATE_UNIT_ADDED = mod.NAME_PLATE_UNIT_ADDED--Just in case blizzard fixes map restrictions
 
-function mod:OnSync(msg)
+function mod:OnSync(msg, creatureId)
 	if not self:IsInCombat() then return end
 	if msg == "ExplosiveOrd" then
+		creatureId = tonumber(creatureId)
 		warnExplosiveOrdnance:Show()
+		if creatureId then
+			local timer = (creatureId == 233679 or creatureId == 156577) and 12.1 or 29.1
+			timerExplosiveOrdnanceCD:Start(timer)
+		end
 	elseif msg == "EntropicMissiles" then
 		warnEntropicMissiles:Show()
+		timerEntropicMissilesCD:Start()
 	elseif msg == "SeekandDestroy" then
 		warnSeekAndDestroy:Show()
 	elseif msg == "SummonEye" then

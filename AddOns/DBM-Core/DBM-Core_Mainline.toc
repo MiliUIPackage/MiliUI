@@ -1,16 +1,9 @@
 ## Interface: 110105, 110107
 ## X-Min-Interface: 100207
 ## Category: DBM
-## Group: DBM-Core
 ## Title:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Main Core|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0核心|r
-## Title-ruRU:|cffffe00a<|r|cffff7d0aDBM Ядро|r|cffffe00a>|r |cff69ccf0Основной модуль|r
-## Title-itIT:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Base|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0核心|r
-## Title-koKR:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0핵심 모듈|r
-## Title-esES:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Núcleo|r
-## Title-esMX:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Núcleo|r
-## Title-frFR:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Noyau|r
 ## Notes: Deadly Boss Mods
 ## Dependencies: DBM-StatusBarTimers
 ## OptionalDependencies: LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibChatAnims, LibDBIcon-1.0, LibDeflate, LibSerialize, LibSpecialization, CustomNames, Masque, ChatThrottleLib
@@ -20,7 +13,7 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 11.1.19
+## Version: 11.1.20
 ## X-Curse-Project-ID: 3358
 ## X-WoWI-ID: 8814
 ## X-Wago-ID: qv633o6b
@@ -42,26 +35,12 @@ Libs\LibSpecialization\LibSpecialization.xml
 Libs\LibCustomGlow-1.0\LibCustomGlow-1.0.xml
 
 localization.en.lua
-localization.br.lua
 localization.cn.lua
-localization.de.lua
-localization.es.lua
-localization.fr.lua
-localization.it.lua
-localization.kr.lua
-localization.ru.lua
 localization.tw.lua
 
 commonlocal.en.lua
 commonlocal.tw.lua
-commonlocal.br.lua
 commonlocal.cn.lua
-commonlocal.de.lua
-commonlocal.es.lua
-commonlocal.fr.lua
-commonlocal.it.lua
-commonlocal.kr.lua
-commonlocal.ru.lua
 
 # Pre-core modules
 modules\objects\PrototypeRegistry.lua
