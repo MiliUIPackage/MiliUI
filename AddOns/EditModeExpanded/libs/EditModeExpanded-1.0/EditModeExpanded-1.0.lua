@@ -2,7 +2,7 @@
 -- Internal variables
 --
 
-local MAJOR, MINOR = "EditModeExpanded-1.0", 91
+local MAJOR, MINOR = "EditModeExpanded-1.0", 92
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -534,9 +534,11 @@ end
 -- param1: an edit mode registered frame, either one already registered by Blizz, or a custom one you have registered with lib:RegisterFrame
 -- param2: minimum size, default will be 10
 -- param3: maximum size, default will be 200
-function lib:RegisterResizable(frame, minSize, maxSize)
+-- param3: step size, default will be 5
+function lib:RegisterResizable(frame, minSize, maxSize, step)
     minSize = minSize or 10
     maxSize = maxSize or 200
+    step = step or 5
     local systemID = getSystemID(frame)
     
     if not framesDialogs[systemID] then framesDialogs[systemID] = {} end
@@ -550,7 +552,7 @@ function lib:RegisterResizable(frame, minSize, maxSize)
             type = Enum.EditModeSettingDisplayType.Slider,
             minValue = minSize,
             maxValue = maxSize,
-            stepSize = 5,
+            stepSize = step,
         })
     
     local db = framesDB[systemID]
@@ -1601,7 +1603,7 @@ function lib:RegisterMinimapPinnable(frame)
     table.insert(framesDialogs[frame.system],
         {
             setting = ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED,
-            name = "Pin to Minimap",
+            name = "貼齊小地圖",
             type = Enum.EditModeSettingDisplayType.Checkbox,
         }
     )
@@ -1771,7 +1773,7 @@ function lib:RegisterToggleInCombat(frame)
     table.insert(framesDialogs[systemID],
         {
             setting = ENUM_EDITMODEACTIONBARSETTING_TOGGLEHIDEINCOMBAT,
-            name = "Toggle Visibility in Combat",
+            name = "戰鬥中隱藏",
             type = Enum.EditModeSettingDisplayType.Checkbox,
     })
 end

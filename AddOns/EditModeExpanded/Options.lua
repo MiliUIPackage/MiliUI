@@ -6,6 +6,20 @@ local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName)
 
 local defaults = {
+    char = {
+        EssentialCooldownViewerSpellIDs = {
+            ["*"] = {},
+        },
+        UtilityCooldownViewerSpellIDs = {
+            ["*"] = {},
+        },
+        BuffIconCooldownViewerSpellIDs = {
+            ["*"] = {},
+        },
+        BuffBarCooldownViewerSpellIDs = {
+            ["*"] = {},
+        },
+    },
     global = {
         EMEOptions = {
             lfg = true,
@@ -54,6 +68,7 @@ local defaults = {
             lossOfControl = true,
             pet = true,
             extraActionButton = true,
+            cooldownManager = true,
         },
         QueueStatusButton = {},
         TotemFrame = {},
@@ -103,6 +118,10 @@ local defaults = {
         LOC = {},
         PetFrame = {},
         ExtraActionButton = {},
+        EssentialCooldownViewer = {},
+        UtilityCooldownViewer = {},
+        BuffIconCooldownViewer = {},
+        BuffBarCooldownViewer = {},
     }
 }
 
@@ -361,6 +380,25 @@ local options = {
             name = BINDING_NAME_EXTRAACTIONBUTTON1,
             desc = string.format(L["TOGGLE_ADDITIONAL_OPTIONS_SUPPORT_STRING"], BINDING_NAME_EXTRAACTIONBUTTON1),
             type = "toggle",
+        },
+        cooldownManager = {
+            name = L["Cooldown Manager"],
+            desc = L["Cooldown Manager options"],
+            type = "toggle",
+        },
+        cooldownManagerReset = {
+            type = "execute",
+            name = L["Reset Cooldown Manager DB"],
+            func = function()
+                wipe(addon.db.char.EssentialCooldownViewerSpellIDs)
+                wipe(addon.db.char.UtilityCooldownViewerSpellIDs)
+                wipe(addon.db.char.BuffIconCooldownViewerSpellIDs)
+                wipe(addon.db.char.BuffBarCooldownViewerSpellIDs)
+                EssentialCooldownViewer:RefreshLayout()
+                UtilityCooldownViewer:RefreshLayout()
+                BuffIconCooldownViewer:RefreshLayout()
+                BuffBarCooldownViewer:RefreshLayout()
+            end,
         },
     },
 }
