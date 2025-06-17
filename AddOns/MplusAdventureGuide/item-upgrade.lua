@@ -164,7 +164,7 @@ local db = {
             },
             TWWseason2 = {
                 lower = 649,
-                upper = 672,
+                upper = 671,
             },
         },
     },
