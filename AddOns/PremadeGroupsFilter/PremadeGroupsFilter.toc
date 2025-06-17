@@ -1,7 +1,7 @@
-## Interface: 110105, 110105
+## Interface: 110105, 110107
 ## Title: Premade Groups Filter
 ## Title-zhTW: |cFF00CCFF[團隊]|r 預組隊伍過濾
-## Version: 6.7.0
+## Version: 6.7.3
 ## IconTexture: 397907
 ## X-Flavor: Retail
 ## Notes: Allows filtering of premade groups using an UI or advanced filter expressions.
