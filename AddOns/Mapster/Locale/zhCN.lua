@@ -5,7 +5,7 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("Mapster", "zhCN")
 if not L then return end
 
-L["Accuracy"] = "高精度"
+L["Accuracy"] = "精确度"
 L["Adjust the size of the Player Arrow on the Map for better visibility."] = "调整地图上的玩家箭头尺寸以获得更好的视觉效果。"
 L["Alpha"] = "透明度"
 L["Change the scale of the world map if you do not want the whole screen filled while the map is open."] = "如果您不想让世界地图覆盖整个屏幕，可以调整世界地图的缩放。"
@@ -25,9 +25,11 @@ L["Mapster allows you to control various aspects of your World Map. You can chan
 L["Overlay Color"] = "覆盖颜色"
 L["Player"] = "玩家"
 L["PlayerArrow Scale"] = "玩家箭头大小"
+L["Quest POI Scale"] = "任务兴趣点缩放"
 L["Scale"] = "缩放"
 L["Scale of the big map."] = "大地图的缩放。"
 L["Scale of the Encounter Journal Icons on the Map."] = "缩放地图上的地下城手册图标。"
+L["Scale of the Quest POI Icons on the Map."] = "缩放地图上的任务兴趣点图标。"
 L["The Coordinates module adds a display of your current location, and the coordinates of your mouse cursor to the World Map frame."] = "在世界地图上加入你当前位置坐标和鼠标位置的鼠标。"
 L["The FogClear module removes the Fog of War from the World map, thus displaying the artwork for all the undiscovered zones, optionally with a color overlay on undiscovered areas."] = "世界地图全亮，显示你没有去探索过的地图。"
 L["The map will fade out to the configured Fade Alpha level when you start moving."] = "当你开始移动时地图消退透明度等级。"

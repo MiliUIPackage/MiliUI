@@ -70,10 +70,17 @@ FaderFrame:SetScript("OnUpdate", FaderOnUpdate)
 function Mapster:OnEnable()
 	LibWindow.RegisterConfig(WorldMapFrame, db)
 
+	-- hide before we do things
+	HideUIPanel(WorldMapFrame)
+
 	-- remove from UI panel system
 	purgeKey(UIPanelWindows, "WorldMapFrame")
 	WorldMapFrame:SetAttribute("UIPanelLayout-area", nil)
 	WorldMapFrame:SetAttribute("UIPanelLayout-enabled", false)
+
+	-- set options for the maximize function to work
+	WorldMapFrame:SetAttribute("UIPanelLayout-defined", true)
+	WorldMapFrame:SetAttribute("UIPanelLayout-maximizePoint", "TOP")
 
 	-- make the map movable
 	WorldMapFrame:SetMovable(true)
@@ -107,13 +114,13 @@ function Mapster:OnEnable()
 	self:SecureHook(QuestPinMixin, "OnAcquired", "QuestPOI_OnAcquired")
 	self:SecureHook(WorldMap_WorldQuestPinMixin, "OnAcquired", "QuestPOI_OnAcquired")
 	for pin in WorldMapFrame:EnumeratePinsByTemplate("BonusObjectivePinTemplate") do
-		pin.OnAcquired = BonusObjectivePinMixin.OnAcquired
+		self:SecureHook(pin, "OnAcquired", "QuestPOI_OnAcquired")
 	end
 	for pin in WorldMapFrame:EnumeratePinsByTemplate("QuestPinTemplate") do
-		pin.OnAcquired = QuestPinMixin.OnAcquired
+		self:SecureHook(pin, "OnAcquired", "QuestPOI_OnAcquired")
 	end
 	for pin in WorldMapFrame:EnumeratePinsByTemplate("WorldMap_WorldQuestPinTemplate") do
-		pin.OnAcquired = WorldMap_WorldQuestPinMixin.OnAcquired
+		self:SecureHook(pin, "OnAcquired", "QuestPOI_OnAcquired")
 	end
 
 	-- hook into unit provider
