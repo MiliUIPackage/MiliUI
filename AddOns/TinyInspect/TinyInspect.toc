@@ -1,6 +1,6 @@
-## Interface: 110105
+## Interface: 110200, 110107
 ## Title: TinyInspect
-## Version: 11.1.1
+## Version: 11.2.0
 ## Notes: Show ItemLevel For Inspect & Party & Raid & Mouse & Bag & Bank ...
 ## Notes-zhCN: 装等观察,装等显示
 ## Notes-zhTW: 裝等觀察,裝等顯示
@@ -9,9 +9,6 @@
 ## Author: M
 ## SavedVariables: TinyInspectDB
 ## IconTexture: Interface\Icons\Item_spellclothbolt
-## X-Category-zhTW: 介面
-## Author: M
-## SavedVariables: TinyInspectDB
 ## Category: Interface
 ## Category-zhTW: 介面
 
