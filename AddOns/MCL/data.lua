@@ -1,18 +1,17 @@
 --------------------------------------------------------
 -- Namespaces
 --------------------------------------------------------
-local _, core = ...;
+local _, MCLcore = ...;
 
-core.sectionNames = {}
-core.mountList = {}
+MCLcore.sectionNames = {}
+MCLcore.mountList = {}
 
-core.mountList[1] = {
+MCLcore.mountList[1] = {
 	name = "SL",
 	categories = {
 		Achievement = {
 			name = "Achievement",
-			mounts = {186654, 186637, 184183, 182596, 186653, 184166, 186655, 187673, "m1549", "m1576"},
-			mountID = {"m15491", "m1549", "m1576"}
+			mounts = {186654, 186637, 184183, 182596, 186653, 184166, 186655, 187673, "m1549", "m1576", 217612},
 		},
 		Vendor = {
 			name = "Vendor",
@@ -121,7 +120,7 @@ core.mountList[1] = {
 		}
 	}
 }
-core.mountList[2] = {
+MCLcore.mountList[2] = {
 	name = "BFA",
 	categories = {
 		Achievement = {
@@ -231,7 +230,7 @@ core.mountList[2] = {
 		}
 	}
 }
-core.mountList[3] = {
+MCLcore.mountList[3] = {
 	name = "LEGION",
 	categories = {
 		Achievement = {
@@ -286,7 +285,7 @@ core.mountList[3] = {
 		}
 	}																										
 }
-core.mountList[4] = {
+MCLcore.mountList[4] = {
 	name = "WOD",
 	categories = {
 		Achievement = {
@@ -341,7 +340,7 @@ core.mountList[4] = {
 		}		
 	}		
 }
-core.mountList[5] = {
+MCLcore.mountList[5] = {
 	name = "MOP",
 	categories = {
 		Achievement = {
@@ -406,7 +405,7 @@ core.mountList[5] = {
 		}
 	}																																
 }
-core.mountList[6] = {
+MCLcore.mountList[6] = {
 	name = "CATA",
 	categories = {
 		Achievement = {
@@ -441,7 +440,7 @@ core.mountList[6] = {
 		}		
 	}										
 }
-core.mountList[7] = {
+MCLcore.mountList[7] = {
 	name = "WOTLK",
 	categories = {
 		Achievement = {
@@ -486,7 +485,7 @@ core.mountList[7] = {
 		}			
 	}																		
 }
-core.mountList[8] = {
+MCLcore.mountList[8] = {
 	name = "TBC",
 	categories = {
 		CenarionExpedition = {
@@ -526,7 +525,7 @@ core.mountList[8] = {
 		}
 	}
 }
-core.mountList[9] = {
+MCLcore.mountList[9] = {
 	name = "Classic",
 	categories = {	
 		Reputation = {
@@ -546,7 +545,7 @@ core.mountList[9] = {
 		}
 	}						
 }
-core.mountList[10] = {
+MCLcore.mountList[10] = {
 	name = "Alliance",
 	categories = {	
 		Human = {
@@ -596,7 +595,7 @@ core.mountList[10] = {
 		}		
 	}				
 }
-core.mountList[11] = {
+MCLcore.mountList[11] = {
 	name = "Horde",
 	categories = {	
 		Orc = {
@@ -621,7 +620,7 @@ core.mountList[11] = {
 		},
 		Bloodelf = {
 			name = "Blood Elf",
-			mounts = {28936, 29223, 29224, 28927, 29220, 29221, 29222, 191566},
+			mounts = {28936, 29223, 29224, 28927, 29220, 29221, 29222},
 			mountID = {}
 		},
 		Goblin = {
@@ -641,7 +640,7 @@ core.mountList[11] = {
 		}
 	}
 }
-core.mountList[12] = {
+MCLcore.mountList[12] = {
 	name = "Professions",
 	categories = {	
 		Alchemy = {
@@ -656,7 +655,7 @@ core.mountList[12] = {
 		},
 		Engineering = {
 			name = "Engineering",
-			mounts = {34060, 41508, 34061, 44413, 87250, 87251, 95416, 161134, 153594},
+			mounts = {34060, 41508, 34061, 44413, 87250, 87251, 95416, 161134, 153594, 221967},
 			mountID = {}
 		},
 		Fishing = {
@@ -666,7 +665,7 @@ core.mountList[12] = {
 		},
 		Jewelcrafting = {
 			name = "Jewelcrafting",
-			mounts = {83088, 83087, 83090, 83089, 82453},
+			mounts = {83088, 83087, 83090, 83089, 82453, 235712},
 			mountID = {}
 		},
 		Tailoring = {
@@ -686,7 +685,7 @@ core.mountList[12] = {
 		}
 	}
 }
-core.mountList[13] = {
+MCLcore.mountList[13] = {
 	name = "PVP",
 	categories = {	
 		Achievement = {
@@ -706,12 +705,12 @@ core.mountList[13] = {
 		},
 		ViciousSaddle = {
 			name = "Vicious Saddle",
-			mounts = {102533, 70910, 116778, 124540, 140348, 140354, 143649, 142235, 142437, 152869, 163124, 165020, 163121, 173713, 184013,184014, 186179, 70909, 102514, 116777, 124089, 140353, 140350, 143648, 142234, 142237, 152870, 163123, 163122, 173714, 186178, 187681, 187680, 187642, 187644, 201788, 201789, 205245, 205246, 210070, 210069, 213439, 213440,223511,221813,229989,229988},
+			mounts = {102533, 70910, 116778, 124540, 140348, 140354, 143649, 142235, 142437, 152869, 163124, 165020, 163121, 173713, 184013,184014, 186179, 70909, 102514, 116777, 124089, 140353, 140350, 143648, 142234, 142237, 152870, 163123, 163122, 173714, 186178, 187681, 187680, 187642, 187644, 201788, 201789, 205245, 205246, 210070, 210069, 213439, 213440,223511,221813,229989,229988, 165019, 243157, 243159},
 			mountID = {}
 		},
 		Gladiator = {
 			name = "Gladiator",
-			mounts = {229987},
+			mounts = {232617},
 			mountID = {}
 		},
 		Halaa = {
@@ -735,7 +734,7 @@ core.mountList[13] = {
 		}
 	}
 }
-core.mountList[14] = {
+MCLcore.mountList[14] = {
 	name = "WorldEvents",
 	categories = {	
 		Achievement = {
@@ -775,7 +774,7 @@ core.mountList[14] = {
 		},
 		TimeWalking = {
 			name = "Timewalking",
-			mounts = {129923, 129922, 87775, 167894, 167895, 133543, 188674, 187595, 231374, 224398, 224399,234730,232624,205208,234721,234716,234740},
+			mounts = {129923, 129922, 87775, 167894, 167895, 133543, 188674, 187595, 231374, 224398, 224399,234730,232624,205208,234721,234716,234740,238739,245694,245695},
 			mountID = {}
 		},
 		Lunar = {
@@ -785,12 +784,12 @@ core.mountList[14] = {
 		}
 	}
 }
-core.mountList[15] = {
+MCLcore.mountList[15] = {
 	name = "Promotion",
 	categories = {	
 		BlizzardStore = {
 			name = "Blizzard Store",
-			mounts = {54811, 69846, 78924, 97989, 107951, 112326, 122469, 147901, 156564, 160589, 166775, 166774, 166776, "m1266", "m1267", "m1290", "m1346", "m1291", "m1456", "m1330", "m1531", "m1581", "m1312", "m1662", "m1594", "m1583", "m1797", 203727, "m1795", "m1692", 212229, 228751, 229128, 219450, 224574, "m2237", 229418, 230184, 230200, 230201, 230185, 227362, 235344, 231297, 233285, 233284, 233282, 233283, 233286, 238943,238994},
+			mounts = {54811, 69846, 78924, 97989, 107951, 112326, 122469, 147901, 156564, 160589, 166775, 166774, 166776, "m1266", "m1267", "m1290", "m1346", "m1291", "m1456", "m1330", "m1531", "m1581", "m1312", "m1662", "m1594", "m1583", "m1797", 203727, "m1795", "m1692", 212229, 228751, 229128, 219450, 224574, "m2237", 229418, 230184, 230200, 230201, 230185, 227362, 235344, 231297, 233285, 233284, 233282, 233283, 233286, 238943,238994, 238966, 221270, 190581, 212228, 225250, 206167, 246698},
 			mountID = {1266, 1267, 1290, 1346, 1291, 1456, 1330, 1531, 1581}
 		},
 		CollectorsEdition = {
@@ -800,18 +799,23 @@ core.mountList[15] = {
 		},
 		WowClassic = {
 			name = "WoW Classic",
-			mounts = {"m1444", "m1602", "m1812"},
+			mounts = {"m1444", "m1602", "m1812", 235287, 210008},
 			mountID = {1444, 1602}
 		},
 		anniversary = {
 			name = "WoW Anniversary Mounts",
-			mounts = {172022, 172023, 186469, 208572, 228760, 229348},
+			mounts = {172022, 186469, 208572, 228760, 229348, 223459, 223471},
 			mountID = {}
 		},
 		Hearthstone = {
 			name = "Hearthstone",
 			mounts = {98618, "m1513", 163186, 212522},
 			mountID = {1513}
+		},
+		MopRemix = {
+			name = "Mists of Pandaria Remix",
+			mounts = {235286},
+			mountID = {}
 		},
 		WarcraftIII = {
 			name = "Warcraft III Reforged",
@@ -820,7 +824,7 @@ core.mountList[15] = {
 		},
 		DiabloIV = {
 			name = "Diablo IV",
-			mounts = {"m1596"},
+			mounts = {"m1596", 246264, 191114},
 			mountID = {}
 		},		
 		RAF = {
@@ -835,7 +839,7 @@ core.mountList[15] = {
 		},
 		TCG = {
 			name = "Trading Card Game",
-			mounts = {49283, 49284, 49285, 49286, 49282, 49290, 54069, 54068, 68008, 69228, 68825, 71718, 72582, 72575, 79771, 93671},
+			mounts = {49283, 49284, 49285, 49286, 49282, 49290, 54069, 54068, 68008, 69228, 68825, 71718, 72582, 72575, 79771, 93671, 74269},
 			mountID = {}
 		},
 		AV = {
@@ -849,11 +853,11 @@ core.mountList[15] = {
 		},
 		ProductPromotion = {
 			name="Product Promotion",
-			mounts = {"m1947", "m1946"}
+			mounts = {"m1947", "m1946", 211087}
 		}
 	}	
 }
-core.mountList[16] = {
+MCLcore.mountList[16] = {
 	name = "Other",
 	categories = {	
 		GuildVendor = {
@@ -863,7 +867,7 @@ core.mountList[16] = {
 		},
 		BMAH = {
 			name = "BMAH",
-			mounts = {19872, 19902, 44175, 163042},
+			mounts = {19872, 19902, 44175, 163042, 211084},
 			mountID = {}
 		},
 		MountCollection = {
@@ -888,7 +892,7 @@ core.mountList[16] = {
 		},
 		Paladin = {
 			name="Paladin",
-			mounts = {47179, "m2233", "m41", "m84", "m149", "m150", "m350", "m351", "m367", "m368", "m1046", "m1047", "m1568"},
+			mounts = {47179, "m2233", "m41", "m84", "m149", "m150", "m350", "m351", "m367", "m368", "m1046", "m1047", "m1568",191566},
 			mountID = {}
 		},
 		Warlock = {
@@ -902,16 +906,16 @@ core.mountList[16] = {
 		},
 		TradingPost = {
 			name = "Trading Post",
-			mounts = {190231, 190168, 190539, 190767, 190613, 206156, 137576, 208598, 211074, 210919, 212227, 212630, 212920, 192766, 226041, 226040, 226044, 226042, 226506, 223449, 223469, 187674, 233019,233020,233023,233354,212631, 223285, 221814, 207821, 190169, 189978, 206976, 206027, "m1595", 235646, 235650, 235555, 235556, 235554, 235657, 235557, 235658, 235659, 235662,238967,238897,238941,236415,238902,238901,238968,238900},
+			mounts = {190231, 190168, 190539, 190767, 190613, 206156, 137576, 208598, 211074, 210919, 212227, 212630, 212920, 192766, 226041, 226040, 226044, 226042, 226506, 223449, 223469, 187674, 233019,233020,233023,233354,212631, 223285, 221814, 207821, 190169, 189978, 206976, 206027, "m1595", 235646, 235650, 235555, 235556, 235554, 235657, 235557, 235658, 235659, 235662,238967,238897,238941,236415,238902,238901,238968,238900, 243593, 243597, 243594, 243590, 243572, 243591, 243592, 245936, 243596, 76755, 207964, 207963, 190636, 210141, 137615, 229951, 54860, 247791, 247793, 246919, 247794, 247792, 246921, 247795, 247722, 247720, 247721, 247723, 246917, 246920},
 		},		
 	}
 }
-core.mountList[17] = {
+MCLcore.mountList[17] = {
 	name = "Unobtainable",
 	categories = {	
 		MythicPlus = {
 			name = "Mythic +",
-			mounts = {182717, 187525, 174836, 187682, 192557, 199412, 204798, 209060, 213438, 226357},
+			mounts = {182717, 187525, 174836, 187682, 192557, 199412, 204798, 209060, 213438, 226357,235549,237141},
 			mountID = {}
 		},
 		ScrollOfResurrection = {
@@ -941,7 +945,7 @@ core.mountList[17] = {
 		},
 		Arena = {
 			name = "Arena Mounts",
-			mounts = {30609, 34092, 37676, 43516, 46708, 46171, 47840, 50435, 71339, 71954, 85785, 95041, 104325, 104326, 104327, 128277, 128281, 128282, 141843, 141844, 141845, 141846, 141847, 141848, 153493, 156879, 156880, 156881, 156884, 183937, 186177, 189507, 191290, 202086, 205233, 210345, "m1822", 223586},
+			mounts = {30609, 34092, 37676, 43516, 46708, 46171, 47840, 50435, 71339, 71954, 85785, 95041, 104325, 104326, 104327, 128277, 128281, 128282, 141843, 141844, 141845, 141846, 141847, 141848, 153493, 156879, 156880, 156881, 156884, 183937, 186177, 189507, 191290, 202086, 205233, 210345, "m1822", 223586, 210077,229987},
 			mountID = {}
 		},
 		DCAzerothChopper = {
@@ -956,7 +960,7 @@ core.mountList[17] = {
 		},
 		Promotion = {
 			name = "Old Promotion Mounts",
-			mounts = {76755, 95341, 112327, 92724, 143631, 163127, 43599, 151618, "m1458"},
+			mounts = {95341, 112327, 92724, 143631, 163127, 43599, 151618, "m1458", 151617},
 			mountID = {}
 		},	
 		RaidMounts = {
@@ -981,11 +985,11 @@ core.mountList[17] = {
 		},
 		RemixMOP = {
 			name="Remix MOP",
-			mounts = {220766,220768,213582,213576,213584,213595,87784,213602,213603,213605,213606,213607,213604,213608,213609,213628,213627,87786,87787,84753,213626,213624,213625,213623,213622,213621,218111,213600,213601,213598,213597,213596},	
+			mounts = {220766,220768,213582,213576,213584,213595,87784,213602,213603,213605,213606,213607,213604,213608,213609,213628,213627,87786,87787,84753,213626,213624,213625,213623,213622,213621,218111,213600,213601,213598,213597,213596, 224374},	
 		}
 	}
 }
-core.mountList[18] = {
+MCLcore.mountList[18] = {
 	name = "Dragonflight",
 	categories = {
 		DragonRiding = {
@@ -1010,32 +1014,32 @@ core.mountList[18] = {
 		},
 		Zone = {
 			name = "Zone",
-			mounts = {192601, 198873, 198871, 192775, 201454, 192800, 204382, 192785, 192790, 192772, 191838, 205203, 205197,210775, 210769, 210058, 210057, 209947, 209950, 212645, "m1638", 192807, 198824},
+			mounts = {192601, 198873, 198871, 192775, 201454, 192800, 204382, 192785, 192790, 192772, 191838, 205203, 205197,210775, 210769, 210058, 210057, 209947, 209950, 212645, 192807, 198824},
 		},
 		Secret = {
 			name = "Secret",
-			mounts = {192786}
+			mounts = {192786, 210022}
 		},
 		Vendor = {
 			name = "Vendor",
-			mounts = {206673, 206680, 206676, 206678, 206674, 206679, 206675, 211084}
+			mounts = {206673, 206680, 206676, 206678, 206674, 206679, 206675, 192796}
 		},
 		Raid = {
 			name = "Raid",
-			mounts = {"m1818"}
+			mounts = {210061}
 		},
 	}
 }
-core.mountList[19] = {
+MCLcore.mountList[19] = {
 	name = "The War Within",
 	categories = {
 		RareDrops = {
 			name = "Rare Drops",
-			mounts = {223315,223270,223501},
+			mounts = {223315,223270,223501, 246067, 246160, 246159},
 		},
 		Raid = {
 			name = "Raid",
-			mounts = {224147,224151, 236960, 235626, 229945, 229924, 229940},
+			mounts = {224147,224151, 236960, 235626, 229945, 229924, 229940, 243061},
 		},
 		Dungeon = {
 			name = "Dungeon",
@@ -1043,23 +1047,19 @@ core.mountList[19] = {
 		},
 		Achievement = {
 			name = "Achievement",
-			mounts = {223266,224415,223267,223286,223158, "m2190", 231173, 235549, 237141},
+			mounts = {223266,224415,223267,223286,223158, "m2190", 231173, 248248, 250240, 247822, 237485, 242714},
 		},
 		Quest = {
 			name = "Quest",
-			mounts = {219391,224150},
+			mounts = {219391,224150, 246237, 242733, 242734, 238051, 246445, 242713},
 		},
 		Reputation = {
 			name = "Reputation",
-			mounts = {223571,221753,223505,222989,223317,223314,223274,223264,223276,223278,223279,238829},
-		},
-		Profession = {
-			name = "Profession",
-			mounts = {221967, 235712},
+			mounts = {223571,221753,223505,222989,223317,223314,223274,223264,223276,223278,223279,238829,229936,229944,229935, 242729, 237484, 242728},
 		},
 		Vendor = {
 			name = "Vendor",
-			mounts = {223153},
+			mounts = {223153, 242730, 242717},
 		},
 		Zone = {
 			name = "Zone",
@@ -1071,7 +1071,7 @@ core.mountList[19] = {
 		},
 		UnderMine = {
 			name = "Undermine",
-			mounts = {229974, 229953, 229955,  229954, 229941, 229952, 229949, 229947, 233064, "m2281", "m2295", "m2289", "m2274"}
+			mounts = {229974, 229953, 229955,  229954, 229941, 229952, 229949, 229947, 233064, "m2295", "m2289", "m2274", 229943}
 		},
 		Incursion = {
 			name = "Incursion",
@@ -1079,126 +1079,142 @@ core.mountList[19] = {
 		},
 		HorrificVisions = {
 			name = "Horrific Visions",
-			mounts = {235711,235709,235705,235700,235706,235707}
+			mounts = {235711,235709,235705,235700,235706,235707,211089,223265}
 		},
 		Delves = {
 			name = "Delves",
-			mounts = {229944,229956,229948,229935,229946,229936,229950}
+			mounts = {229956,229948,229946,229950}
 		}	
 	}
 }
-core.sectionNames[11] = {
+MCLcore.sectionNames[11] = {
 	name = "Vanilla",
-	mounts = core.mountList[9],
+	mounts = MCLcore.mountList[9],
 	icon = "Interface\\AddOns\\MCL\\icons\\classic.blp",
+	isExpansion = true,
 }
-core.sectionNames[10] = {
+MCLcore.sectionNames[10] = {
 	name = "The Burning Crusade",
-	mounts = core.mountList[8],
+	mounts = MCLcore.mountList[8],
 	icon = "Interface\\AddOns\\MCL\\icons\\bc.blp",
+	isExpansion = true,
 }
-core.sectionNames[9] = {
+MCLcore.sectionNames[9] = {
 	name = "Wrath of the Lich King",
-	mounts = core.mountList[7],
+	mounts = MCLcore.mountList[7],
 	icon = "Interface\\AddOns\\MCL\\icons\\wrath.blp",
+	isExpansion = true,
 }
-core.sectionNames[8] = {
+MCLcore.sectionNames[8] = {
 	name = "Cataclysm",
-	mounts = core.mountList[6],
+	mounts = MCLcore.mountList[6],
 	icon = "Interface\\AddOns\\MCL\\icons\\cata.blp",
+	isExpansion = true,
 }
-core.sectionNames[7] = {
+MCLcore.sectionNames[7] = {
 	name = "Mists of Pandaria",
-	mounts = core.mountList[5],
+	mounts = MCLcore.mountList[5],
 	icon = "Interface\\AddOns\\MCL\\icons\\mists.blp",
+	isExpansion = true,
 }
-core.sectionNames[6] = {
+MCLcore.sectionNames[6] = {
 	name = "Warlords of Draenor",
-	mounts = core.mountList[4],
+	mounts = MCLcore.mountList[4],
 	icon = "Interface\\AddOns\\MCL\\icons\\wod.blp",
+	isExpansion = true,
 }
-core.sectionNames[5] = {
+MCLcore.sectionNames[5] = {
 	name = "Legion",
-	mounts = core.mountList[3],
+	mounts = MCLcore.mountList[3],
 	icon = "Interface\\AddOns\\MCL\\icons\\legion.blp",
+	isExpansion = true,
 }
-core.sectionNames[4] = {
+MCLcore.sectionNames[4] = {
 	name = "Battle for Azeroth",
-	mounts = core.mountList[2],
+	mounts = MCLcore.mountList[2],
 	icon = "Interface\\AddOns\\MCL\\icons\\bfa.blp",
+	isExpansion = true,
 }
-core.sectionNames[3] = {
+MCLcore.sectionNames[3] = {
 	name = "Shadowlands",
-	mounts = core.mountList[1],
+	mounts = MCLcore.mountList[1],
 	icon = "Interface\\AddOns\\MCL\\icons\\sl.blp",
+	isExpansion = true,
 }
-core.sectionNames[2] = {
+MCLcore.sectionNames[2] = {
 	name = "Dragonflight",
-	mounts = core.mountList[18],
+	mounts = MCLcore.mountList[18],
 	icon = "Interface\\AddOns\\MCL\\icons\\df.blp",
+	isExpansion = true,
 }
-core.sectionNames[1] = {
+MCLcore.sectionNames[1] = {
 	name = "The War Within",
-	mounts = core.mountList[19],
+	mounts = MCLcore.mountList[19],
 	icon = "Interface\\AddOns\\MCL\\icons\\tww.blp",
+	isExpansion = true,
 }
-core.sectionNames[12] = {
+MCLcore.sectionNames[12] = {
 	name = "Horde",
-	mounts = core.mountList[11],
+	mounts = MCLcore.mountList[11],
 	icon = "Interface\\AddOns\\MCL\\icons\\horde.blp",
+	isExpansion = false,
 }
-core.sectionNames[13] = {
+MCLcore.sectionNames[13] = {
 	name = "Alliance",
-	mounts = core.mountList[10],
+	mounts = MCLcore.mountList[10],
 	icon = "Interface\\AddOns\\MCL\\icons\\alliance.blp",
+	isExpansion = false,
 }
-core.sectionNames[14] = {
+MCLcore.sectionNames[14] = {
 	name = "Professions",
-	mounts = core.mountList[12],
+	mounts = MCLcore.mountList[12],
 	icon = "Interface\\AddOns\\MCL\\icons\\professions.blp",
+	isExpansion = false,
 }
-core.sectionNames[15] = {
+MCLcore.sectionNames[15] = {
 	name = "PVP",
-	mounts = core.mountList[13],
+	mounts = MCLcore.mountList[13],
 	icon = "Interface\\AddOns\\MCL\\icons\\pvp.blp",
+	isExpansion = false,
 }
-core.sectionNames[16] = {
+MCLcore.sectionNames[16] = {
 	name = "World Events",
-	mounts = core.mountList[14],
+	mounts = MCLcore.mountList[14],
 	icon = "Interface\\AddOns\\MCL\\icons\\holiday.blp",
+	isExpansion = false,
 }
-core.sectionNames[17] = {
+MCLcore.sectionNames[17] = {
 	name = "Promotion",
-	mounts = core.mountList[15],
+	mounts = MCLcore.mountList[15],
 	icon = "Interface\\AddOns\\MCL\\icons\\promotion.blp",
+	isExpansion = false,
 }
-core.sectionNames[18] = {
+MCLcore.sectionNames[18] = {
 	name = "Other",
-	mounts = core.mountList[16],
+	mounts = MCLcore.mountList[16],
 	icon = "Interface\\AddOns\\MCL\\icons\\other.blp",
+	isExpansion = false,
 }
-core.sectionNames[19] = {
+MCLcore.sectionNames[19] = {
 	name = "Unobtainable",
-	mounts = core.mountList[17],
+	mounts = MCLcore.mountList[17],
 	icon = "Interface\\AddOns\\MCL\\icons\\unobtainable.blp",
+	isExpansion = false,
 }
-core.sectionNames[20] = {
+MCLcore.sectionNames[20] = {
 	name = "Pinned",
 	mounts = {MCL_PINNED},
-	icon = "Interface\\AddOns\\MCL\\icons\\pin.blp",	
+	icon = "Interface\\AddOns\\MCL\\icons\\pin.blp",
+	isExpansion = false,
 }
-core.sectionNames[21] = {
+MCLcore.sectionNames[21] = {
 	name = "Overview",
 	mounts = {},
-	icon = "Interface\\AddOns\\MCL\\icons\\mcl.blp",	
+	icon = "Interface\\AddOns\\MCL\\icons\\mcl.blp",
+	isExpansion = false,
 }
 
-core.regionalFilter = {
+MCLcore.regionalFilter = {
 	['CN'] = {210077},
+	['KR'] = {210077},
 }
-
--- Mounts not currently in game?
-
--- 229945 - Busted - https://www.wowhead.com/item=229945/thunderdrum-misfire
--- 229947 - Busted
--- 232523 - Busted - https://www.wowhead.com/item=232523/g-99-breakneck

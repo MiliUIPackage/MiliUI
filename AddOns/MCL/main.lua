@@ -1,13 +1,13 @@
 -- * ------------------------------------------------------
 -- *  Namespaces
 -- * ------------------------------------------------------
-local MCL, core = ...;
+local MCL, MCLcore = ...;
 
 -- * ------------------------------------------------------
 -- * Variables
 -- * ------------------------------------------------------
-core.Main = {};
-local MCL_Load = core.Main;
+MCLcore.Main = {};
+local MCL_Load = MCLcore.Main;
 local init_load = true
 local load_check = 0
 local region = GetCVar('portal')
@@ -20,8 +20,8 @@ local region = GetCVar('portal')
 -- * -----------------------------------------------
 
 function IsRegionalFiltered(id)
-    if core.regionalFilter[region] ~= nil then
-        for k, v in pairs(core.regionalFilter[region]) do
+    if MCLcore.regionalFilter[region] ~= nil then
+        for k, v in pairs(MCLcore.regionalFilter[region]) do
             if v == id then
                 return true
             end
@@ -31,9 +31,9 @@ function IsRegionalFiltered(id)
 end
 
 function CountMounts()
-    core.mountList = core.mountList or {}
+    MCLcore.mountList = MCLcore.mountList or {}
     local count = 0
-    for b, n in pairs(core.mountList) do
+    for b, n in pairs(MCLcore.mountList) do
         if type(n) == "table" then
             for h, j in pairs(n) do
                 if type(j) == "table" then
@@ -60,10 +60,22 @@ end
 -- Save total mount count
 local totalMountCount = CountMounts()
 
+-- Debugging variables
+local debugMode = true -- Set to false to disable debugging
+local invalidMounts = {}
+local validMounts = {}
+
 local function InitMounts()
     load_check = 0
     totalMountCount = 0
-    for b,n in pairs(core.mountList) do
+    
+    -- Reset debug tracking
+    if debugMode then
+        invalidMounts = {}
+        validMounts = {}
+    end
+    
+    for b,n in pairs(MCLcore.mountList) do
         for h,j in pairs(n) do
             if (type(j) == "table") then
                 for k,v in pairs(j) do
@@ -72,16 +84,46 @@ local function InitMounts()
                             if not string.match(vv, "^m") then
                                 totalMountCount = totalMountCount + 1
                                 C_Item.RequestLoadItemDataByID(vv)
-                                local mountName = C_MountJournal.GetMountFromItem(vv)
-                                if mountName ~= nil then
+                                local mountID = C_MountJournal.GetMountFromItem(vv)
+                                
+                                if mountID ~= nil then
                                     load_check = load_check + 1
+                                    if debugMode then
+                                        table.insert(validMounts, {itemID = vv, mountID = mountID, expansion = n.name, category = v.name})
+                                    end
+                                else
+                                    -- Mount doesn't exist in game, but we'll count it as "loaded" to prevent infinite waiting
+                                    load_check = load_check + 1
+                                    if debugMode then
+                                        local itemName = GetItemInfo(vv) or "Unknown Item"
+                                        table.insert(invalidMounts, {itemID = vv, itemName = itemName, expansion = n.name, category = v.name})
+                                    end
                                 end                            
+                            else
+                                -- Handle mountID entries (strings starting with "m")
+                                totalMountCount = totalMountCount + 1
+                                load_check = load_check + 1
+                                if debugMode then
+                                    local mountIDNum = tonumber(string.sub(vv, 2))
+                                    local mountName = C_MountJournal.GetMountInfoByID(mountIDNum)
+                                    if not mountName then
+                                        table.insert(invalidMounts, {mountID = mountIDNum, expansion = n.name, category = v.name, type = "mountID"})
+                                    else
+                                        table.insert(validMounts, {mountID = mountIDNum, mountName = mountName, expansion = n.name, category = v.name, type = "mountID"})
+                                    end
+                                end
                             end
                         end                                     
                     end
                 end
             end
         end
+    end
+    
+    -- Debug summary (silent tracking only)
+    if debugMode then
+        -- Data is collected but not printed to chat
+        -- invalidMounts and validMounts tables are populated for debugging if needed
     end
 end
 
@@ -91,15 +133,13 @@ end
 -- * -----------------------------------------------------
 
 
-core.dataLoaded = false
+MCLcore.dataLoaded = false
 
 function MCL_Load:PreLoad()      
     if load_check >= totalMountCount then
-        -- print("Preload passed:", "totalMountCount", totalMountCount, "load_check", load_check)
-        core.dataLoaded = true
+        MCLcore.dataLoaded = true
         return true
     else   
-        -- print("Preload ongoing:", "totalMountCount", totalMountCount, "load_check", load_check)
         InitMounts()         
         return false
     end
@@ -109,17 +149,40 @@ end
 local MAX_INIT_RETRIES = 3
 
 -- Initialization function
-function MCL_Load:Init(force)
+function MCL_Load:Init(force, showOnComplete)
+    local retries = 0
     local function repeatCheck()
-        local retries = 0
         if MCL_Load:PreLoad() then
             -- Initialization steps
-            if core.MCL_MF == nil then
-                core.MCL_MF = core.Frames:CreateMainFrame()
-                core.MCL_MF:SetShown(false)
-                core.Function:initSections()
+            if MCLcore.MCL_MF == nil then
+                -- Ensure Frames module is available
+                if not MCLcore.Frames then
+                    return false
+                end
+                MCLcore.MCL_MF = MCLcore.Frames:CreateMainFrame()
+                MCLcore.MCL_MF:SetShown(false)
+                
+                -- Ensure Function module is available before calling methods
+                if MCLcore.Function and MCLcore.Function.initSections then
+                    MCLcore.Function:initSections()
+                end
+                
+                -- Clean up any invalid pinned mounts during initialization
+                if MCLcore.Function and MCLcore.Function.CleanupInvalidPinnedMounts then
+                    MCLcore.Function:CleanupInvalidPinnedMounts()
+                end
             end
-            core.Function:UpdateCollection()
+            
+            -- Ensure Function module is available before updating collection
+            if MCLcore.Function and MCLcore.Function.UpdateCollection then
+                MCLcore.Function:UpdateCollection()
+            end
+            
+            -- If we should show the window after initialization, do so
+            if showOnComplete and MCLcore.MCL_MF then
+                MCLcore.MCL_MF:Show()
+            end
+            
             init_load = false -- Ensure that the initialization does not repeat unnecessarily.
         else
             retries = retries + 1
@@ -133,11 +196,11 @@ function MCL_Load:Init(force)
     -- Force reinitialization if specifically requested
     if force then
         load_check = 0
-        core.dataLoaded = false
+        MCLcore.dataLoaded = false
     end
 
     -- Check if we need to attempt initialization
-    if not core.dataLoaded then
+    if not MCLcore.dataLoaded then
         init_load = true
         repeatCheck()
     end
@@ -145,17 +208,16 @@ end
 
 -- Toggle function
 function MCL_Load:Toggle()
-    -- Check preload status and if false, prevent execution.
-    if core.dataLoaded == false then
-        MCL_Load:Init()
+    -- Check preload status and if false, attempt initialization
+    if MCLcore.dataLoaded == false then
+        MCL_Load:Init(false, true) -- Initialize and show when complete
         return
     end 
-    if core.MCL_MF == nil then
+    if MCLcore.MCL_MF == nil then
         return -- Immune to function calls before the initialization process is complete, as the frame doesn't exist yet.
     else
-        core.MCL_MF:SetShown(not core.MCL_MF:IsShown()) -- The addon's frame exists and can be toggled.
+        MCLcore.MCL_MF:SetShown(not MCLcore.MCL_MF:IsShown()) -- The addon's frame exists and can be toggled.
     end
-    core.Function:UpdateCollection()
 end
 
 local f = CreateFrame("Frame")
@@ -169,17 +231,31 @@ local login = true
 
 
 local function onevent(self, event, arg1, ...)
-    if(login and ((event == "ADDON_LOADED" and name == arg1) or (event == "PLAYER_LOGIN"))) then
+    if(login and ((event == "ADDON_LOADED" and MCL == arg1) or (event == "PLAYER_LOGIN"))) then
         login = nil
         f:UnregisterEvent("ADDON_LOADED")
         f:UnregisterEvent("PLAYER_LOGIN")
 	    if not C_AddOns.IsAddOnLoaded("Blizzard_Collections") then
 	        C_AddOns.LoadAddOn("Blizzard_Collections")
 	    end
-        core.Function:AddonSettings()
+        
+        -- Ensure Function module is available before calling AddonSettings
+        if MCLcore.Function and MCLcore.Function.AddonSettings then
+            MCLcore.Function:AddonSettings()
+        end
         
         -- Initiate the addon when the required addon is loaded
         MCL_Load:Init()
+        
+        -- Initialize search functionality
+        if MCLcore.InitializeSearch then
+            MCLcore.InitializeSearch()
+        end
+        
+        -- Initialize MountCard functionality
+        if MCLcore.MountCard then
+            MCLcore.MountCard:CreateMountCard()
+        end
     end
 end
 

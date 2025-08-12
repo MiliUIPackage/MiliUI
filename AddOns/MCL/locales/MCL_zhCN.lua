@@ -2,7 +2,6 @@ local MCL, core = ...
 local AceLocale = LibStub("AceLocale-3.0")
 local L = AceLocale:NewLocale("MCL", "zhCN")
 if L then
-    print("Loading zhCN locale for MCL")
     L["Achievement"] = "成就"
     L["Adventures"] = "冒险"
     L["Ahead of the Curve"] = "引领潮流"
@@ -172,9 +171,10 @@ if L then
     L["Incursion"] = "突袭"
     L["Horrific Visions"] = "恐怖幻象"
     L["Ashran"] = "阿什兰"
+    L["Mists of Pandaria Remix"] = "熊猫人之谜重置版"
     
     ------ setting panel ------
-    L["Ctrl + Right Click to pin uncollected mounts"] = "Ctrl + 右键 标记未收集的坐骑"
+    L["Ctrl + Right Click to pin uncollected mounts"] = "Ctrl + 右键 标记/取消标记坐骑"
     L["Mount Collection Log Settings"] = "Mount Collection Log 设置"
     L["Main Window Options"] = "主界面选项"
     L["Main Window Opacity"] = "主界面透明度"
@@ -203,5 +203,22 @@ if L then
     L["Toggle the display of the Minimap Icon."] = "切换显示小地图按钮"
     L["Reset Settings"] = "重置设置"
     L["Reset to default settings"] = "重置为默认设置"
+    L["Hide Collected Mounts"] = "隐藏已收集的坐骑"
+    L["If enabled, collected mounts will not be shown in the list at all. Requires UI reload."] = "启用后，已收集的坐骑将不会显示在列表中。需要重载界面。"
+    L["Changing this setting requires a UI reload. Reload now?"] = "更改此设置需要重载界面。现在重载吗？"
+    L["YES"] = "是"
+    L["NO"] = "否"
+    L["Layout Settings"] = "布局设置"
+    L["Mounts Per Row"] = "每行坐骑数"
+    L["Set the number of mounts to display per row in the mount grid. Requires UI reload."] = "设置坐骑网格中每行显示的坐骑数量。需要重载界面。"
+    L["Use Blizzard Theme"] = "使用暴雪主题"
+    L["If enabled, the addon will use Blizzard's default UI theme. Requires UI reload."] = "启用后，插件将使用暴雪默认的界面主题。需要重载界面。"
+    L["Search Results"] = "搜索结果"
+    L["Search mounts..."] = "搜索坐骑..."
+    L["Mount Collection Log"] = "坐骑收集日志"
+    L["Clear Search"] = "清除搜索"
+    L["Enable Mount Card on Hover"] = "鼠标悬停时启用坐骑卡片"
+    L["If enabled, the mount card will automatically appear when hovering over mounts."] = "启用后，鼠标悬停在坐骑上时会自动显示坐骑卡片。"
+    L["Pin Instructions Text"] = "|cffFF8800|TInterface\\GossipFrame\\AvailableQuestIcon:0:0:0:0:32:32:0:32:0:32|t Ctrl + 右键|r 收藏/取消收藏坐骑"
 end
 
