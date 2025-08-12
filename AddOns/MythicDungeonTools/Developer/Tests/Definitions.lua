@@ -1,4 +1,0 @@
---- @class MDTTest
---- @field name string
---- @field func function
---- @field duration number

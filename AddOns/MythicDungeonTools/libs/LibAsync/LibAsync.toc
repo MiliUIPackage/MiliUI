@@ -1,7 +1,0 @@
-## Interface: 110002
-## Title: LibAsync
-## Author: Nnoggie
-## X-Curse-Project-ID: 904147
-## Notes: WoW library for running code asynchronously
-
-LibAsync.xml
