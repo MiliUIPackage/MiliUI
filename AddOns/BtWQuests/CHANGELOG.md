@@ -1,6 +1,31 @@
-# v2.51.1
+# v2.55.0
 
-- Fixed an issue preventing uploads to Wago.io
+- Added questlines for Ghosts of Ka'resh
+- Updated for 11.2
+
+# v2.54.0
+
+- Fixed Rise of the Red Dawn Horde only quest showing for Alliance characters
+
+# v2.53.0
+
+- Updated for 11.1.7
+- Added quest line Rise of the Red Dawn
+
+# v2.52.2
+
+- Updated for 11.1.5
+
+# v2.52.1
+
+- Added the Homecoming questline in Undermine
+- Added the Hard Ways at the Gallagio questline in Undermine
+
+# v2.52.0
+
+- Updated for 4.4.2
+- Fixed error showing experience tooltips in 4.4.2
+- Fixed error showing with the main gui in 4.4.2
 
 # v2.51.0
 

@@ -1,6 +1,6 @@
-## Interface: 110007, 110105
+## Interface: 110107, 110200
 ## Title: BtWQuests
-## Version: 2.51.1
+## Version: 2.55.0
 ## Notes: 
 ## Author: Breen
 ## SavedVariables: BtWQuests_Characters BtWQuests_AccountSettings
@@ -13,8 +13,17 @@
 
 ## Title-zhTW: |cFF00AA99[任務]|r 任務指南
 ## Notes-zhTW: BtWQuests|n|n一個任務日誌，以簡單易懂的方式顯示您在任務鏈中的進度，不僅顯示您當前的任務，還顯示該行中的所有未來任務，包含前置需要或互相關聯的其他任務線。|n|n|cffffd200使用方法: |r點小地圖按鈕。
-## Category: Info
 ## Category-zhTW: 資訊
+## Category-enUS: Quests
+## Category-deDE: Quests
+## Category-esES: Misiones
+## Category-esMX: Misiones
+## Category-frFR: Quêtes
+## Category-itIT: Missioni
+## Category-koKR: 퀘스트
+## Category-ptBR: Missões
+## Category-ruRU: Задания
+## Category-zhCN: 任务
 
 Defines.lua
 BtWQuestsCharacters.lua

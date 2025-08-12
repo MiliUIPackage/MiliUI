@@ -153,6 +153,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [226255] = {
         name = "Ciboulette",
     },
+    [226273] = {
+        name = "Monte Gazleu",
+    },
     [226569] = {
         name = "Snap Graissevelin",
     },
@@ -171,6 +174,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [227222] = {
         name = "Ysabel Luisegaard",
     },
+    [227758] = {
+        name = "Alleria Coursevent",
+    },
     [228158] = {
         name = "Tirenouille",
     },
@@ -183,8 +189,32 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [230554] = {
         name = "Vieux Lowe",
     },
+    [230786] = {
+        name = "Scribe de l'âme",
+    },
+    [230811] = {
+        name = "Arpenteur des ombres",
+    },
     [230841] = {
         name = "Le Chevalier Vert-de-gras",
+    },
+    [231128] = {
+        name = "Arpenteur des ombres",
+    },
+    [231422] = {
+        name = "Hizfran le Proscrit",
+    },
+    [231674] = {
+        name = "Gardien du coffre Xy'vez",
+    },
+    [232008] = {
+        name = "Boss de cartel Xy'eolm",
+    },
+    [232351] = {
+        name = "Marchand Ba'kril",
+    },
+    [232498] = {
+        name = "Partenaire Xy'nell",
     },
     [233235] = {
         name = "Gerry Crassejabot",
@@ -194,6 +224,15 @@ BtWQuestsDatabase:UpdateNPCsTable({
     },
     [233482] = {
         name = "Monte Gazleu",
+    },
+    [234216] = {
+        name = "Ingénieur assistant Om'vek",
+    },
+    [246601] = {
+        name = "Chercheuse Essarae",
+    },
+    [248153] = {
+        name = "Magistère Umbric",
     },
 })
 ]])()

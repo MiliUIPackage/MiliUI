@@ -162,6 +162,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [226255] = {
         name = "Cipollina",
     },
+    [226273] = {
+        name = "Monte Sparachiodi",
+    },
     [226569] = {
         name = "Snap Vellunto",
     },
@@ -183,6 +186,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [227222] = {
         name = "Ysabel Delbarlum",
     },
+    [227758] = {
+        name = "Alleria Ventolesto",
+    },
     [228158] = {
         name = "Spezzaspiccia",
     },
@@ -195,8 +201,32 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [230554] = {
         name = "Vecchio Lowe",
     },
+    [230786] = {
+        name = "Scriba dell'Anima",
+    },
+    [230811] = {
+        name = "Ramingo del Locus",
+    },
     [230841] = {
         name = "Il Cavaliere Verderame",
+    },
+    [231128] = {
+        name = "Ramingo del Locus",
+    },
+    [231422] = {
+        name = "Hizfran l'Esiliato",
+    },
+    [231674] = {
+        name = "Banchiere Xy'vez",
+    },
+    [232008] = {
+        name = "Boss del Cartello Xy'eolm",
+    },
+    [232351] = {
+        name = "Commerciante Ba'kril",
+    },
+    [232498] = {
+        name = "Socio Xy'nell",
     },
     [233235] = {
         name = "Gerry Golasecca",
@@ -206,6 +236,15 @@ BtWQuestsDatabase:UpdateNPCsTable({
     },
     [233482] = {
         name = "Monte Sparachiodi",
+    },
+    [234216] = {
+        name = "Assistente Ingegnere Om'vek",
+    },
+    [246601] = {
+        name = "Ricercatrice Essarae",
+    },
+    [248153] = {
+        name = "Magistro Umbric",
     },
 })
 ]])()

@@ -1,3 +1,26 @@
+# v10.0
+
+- Added questlines for Ghosts of Ka'resh
+- Updated for 11.2
+
+# v9.1
+
+- Fixed Rise of the Red Dawn Horde only quest showing for Alliance characters
+
+# v9.0
+
+- Updated for 11.1.7
+- Added quest line Rise of the Red Dawn
+
+# v8.1
+
+- Updated for 11.1.5
+
+# v8.0
+
+- Added the Homecoming questline in Undermine
+- Added the Hard Ways at the Gallagio questline in Undermine
+
 # v7.1
 
 - Fixed an issue preventing uploads to Wago.io

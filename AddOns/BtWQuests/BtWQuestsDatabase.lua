@@ -2191,7 +2191,7 @@ function ExperienceItemMixin:GetName(database, item, character)
     return format(GAIN_EXPERIENCE, math.floor(amount * modifier + .5))
 end
 function ExperienceItemMixin:Visible(database, item, character)
-    return character:GetLevel() < GetMaxLevelForPlayerExpansion()
+    return character:GetLevel() < (GetMaxLevelForPlayerExpansion and GetMaxLevelForPlayerExpansion() or MAX_PLAYER_LEVEL)
 end
 function ExperienceItemMixin:IsActive(database, item, character)
     return true

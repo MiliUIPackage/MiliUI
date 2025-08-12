@@ -832,7 +832,7 @@ function BtWQuestsMixin:OnLoad()
             self.NavHere:SetFrameLevel(510)
             self.OptionsButton:SetFrameLevel(510)
             self.CharacterDropDown:SetFrameLevel(510)
-        else
+        elseif self.NineSlice.TopLeftCorner then
             -- Updated the NineSlice frame for our extra buttons
             self.NineSlice.TopLeftCorner:SetTexture("Interface\\Addons\\BtWQuests\\UI-Frame-Metal")
             self.NineSlice.TopLeftCorner:SetWidth(196)

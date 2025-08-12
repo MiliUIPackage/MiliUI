@@ -1629,6 +1629,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [81615] = {
         name = "Dochtpunkte",
     },
+    [81620] = {
+        name = "Bergungsauftrag",
+    },
     [81630] = {
         name = "Aktivierungsprotokoll",
     },
@@ -1722,6 +1725,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [81806] = {
         name = "Drachenreiterrennen - Erzgrubenecken",
     },
+    [81808] = {
+        name = "Drachenreiterrennen - Schallende-Tiefen-Spektakel",
+    },
     [81819] = {
         name = "Drachenreiterrennen - Stillsteinslalom",
     },
@@ -1799,6 +1805,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [82041] = {
         name = "Beledars Segen",
+    },
+    [82088] = {
+        name = "Kobysskrawall",
     },
     [82120] = {
         name = "Wasserreinigung",
@@ -2037,6 +2046,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [82518] = {
         name = "Rohre flicken",
     },
+    [82523] = {
+        name = "Kerzenkönigbrecher",
+    },
     [82524] = {
         name = "Exterminieren",
     },
@@ -2183,6 +2195,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [83057] = {
         name = "Grenzen setzen",
+    },
+    [83079] = {
+        name = "Mineralienansammlung",
     },
     [83080] = {
         name = "Taelloch-Aufräumarbeiten",
@@ -2526,6 +2541,21 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83497] = {
         name = "Ein besorgter Freund",
     },
+    [83519] = {
+        name = "Aber was ist mit dem Casino?",
+    },
+    [83522] = {
+        name = "Schuld begleichen, Freiheit einstreichen",
+    },
+    [83524] = {
+        name = "Des einen Müll, des anderen Gold",
+    },
+    [83527] = {
+        name = "Gewinnen ist sowieso was für Verlierer",
+    },
+    [83528] = {
+        name = "Alles Teil des Spiels",
+    },
     [83529] = {
         name = "Angelfest von Heilsturz",
     },
@@ -2535,11 +2565,32 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83532] = {
         name = "Angelfest von Heilsturz",
     },
+    [83534] = {
+        name = "Keine Aufwärmübung",
+    },
+    [83535] = {
+        name = "Plunderparty-Erdbeben",
+    },
     [83537] = {
         name = "Geothermale Edelsteinbehandlung",
     },
+    [83538] = {
+        name = "Ausgrabungsbefreiung",
+    },
+    [83540] = {
+        name = "Vordrängeln",
+    },
+    [83541] = {
+        name = "Es hagelt Kritik",
+    },
+    [83542] = {
+        name = "Schnelle Kiemen gegen Gold",
+    },
     [83543] = {
         name = "Abenteuer in Khaz Algar",
+    },
+    [83546] = {
+        name = "Verantwortung",
     },
     [83548] = {
         name = "Insel von Dorn",
@@ -2549,6 +2600,18 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [83551] = {
         name = "Heilsturz",
+    },
+    [83558] = {
+        name = "Casinohof",
+    },
+    [83563] = {
+        name = "Kaffee für den Erfolg",
+    },
+    [83566] = {
+        name = "Oh, das Casino!",
+    },
+    [83569] = {
+        name = "Tod und Steuern",
     },
     [83587] = {
         name = "Unsere Chance, zuzuschlagen",
@@ -2649,6 +2712,18 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [84218] = {
         name = "Der Fluchtwagen",
     },
+    [84221] = {
+        name = "Papierkram lässt die Lore sinken",
+    },
+    [84242] = {
+        name = "Haldentauchgang",
+    },
+    [84244] = {
+        name = "Schwarzmeerstrandwelle",
+    },
+    [84249] = {
+        name = "Ein Fass mit Boden",
+    },
     [84298] = {
         name = "AUSHILFE GESUCHT: Kaja'Kuriositäten",
     },
@@ -2691,6 +2766,48 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [84621] = {
         name = "Sporen eines Knappen",
     },
+    [84638] = {
+        name = "Ärger im Hochland",
+    },
+    [84639] = {
+        name = "Fackeln und Fässer",
+    },
+    [84640] = {
+        name = "Ein ungutes Abzeichen",
+    },
+    [84641] = {
+        name = "Schlechte Nachrichten",
+    },
+    [84643] = {
+        name = "Immer Ärger mit den Wutbürgern",
+    },
+    [84645] = {
+        name = "Auf dem Postweg",
+    },
+    [84649] = {
+        name = "Marran Trollbann",
+    },
+    [84650] = {
+        name = "Gemeinsame Zuflucht",
+    },
+    [84651] = {
+        name = "Ein bekanntes Gesicht",
+    },
+    [84652] = {
+        name = "Dringender Nachschub",
+    },
+    [84656] = {
+        name = "Auf nach Hammerfall",
+    },
+    [84657] = {
+        name = "Rückkehr nach Stromgarde",
+    },
+    [84658] = {
+        name = "Familie finden",
+    },
+    [84659] = {
+        name = "Die Suche nach Faerin",
+    },
     [84667] = {
         name = "G.O.L.E.M. des Fortschritts",
     },
@@ -2709,8 +2826,146 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [84683] = {
         name = "Ab in die Gosse",
     },
+    [84704] = {
+        name = "Eine andere Perspektive",
+    },
+    [84705] = {
+        name = "Bleichborken erbleichen lassen",
+    },
+    [84706] = {
+        name = "Verbrecherfamilie",
+    },
+    [84707] = {
+        name = "Troll treffen",
+    },
+    [84708] = {
+        name = "Das Syndikat schlägt zurück",
+    },
+    [84709] = {
+        name = "Hammer fallen",
+    },
+    [84710] = {
+        name = "Blutsaugersammlung",
+    },
+    [84711] = {
+        name = "Danaths Verschwinden",
+    },
+    [84712] = {
+        name = "Falsche Flagge",
+    },
+    [84713] = {
+        name = "Gefallene Festung",
+    },
+    [84714] = {
+        name = "Alles Liebe aus Eisenschmiede",
+    },
+    [84715] = {
+        name = "Die Suche nach Danath",
+    },
+    [84716] = {
+        name = "Rückkehr nach Stromgarde",
+    },
+    [84717] = {
+        name = "Der Aufstieg der Roten Dämmerung",
+    },
+    [84740] = {
+        name = "Die Brücke ins Nirgendwo",
+    },
+    [84741] = {
+        name = "Spuren im Sand",
+    },
+    [84759] = {
+        name = "Eine unschöne Begegnung unterm Sternenzelt",
+    },
+    [84760] = {
+        name = "Eine freundliche Warnung",
+    },
+    [84761] = {
+        name = "Rache für den Hausfriedensbruch",
+    },
+    [84762] = {
+        name = "An unseren Worten werden wir gemessen",
+    },
+    [84765] = {
+        name = "Von Eiden und Schwüren",
+    },
+    [84820] = {
+        name = "Durch Eid und Blut",
+    },
     [84821] = {
         name = "Biologisches Stechpuppier",
+    },
+    [84822] = {
+        name = "Nach Iskaara",
+    },
+    [84826] = {
+        name = "Die Biokuppel: Rhovan",
+    },
+    [84827] = {
+        name = "Die zertrümmerte Kuppel",
+    },
+    [84831] = {
+        name = "Der Befall von Rhovan",
+    },
+    [84834] = {
+        name = "Sturmklüfte",
+    },
+    [84838] = {
+        name = "Feinde der Feinde",
+    },
+    [84848] = {
+        name = "Vor der Leere",
+    },
+    [84855] = {
+        name = "Totenstille",
+    },
+    [84856] = {
+        name = "Wo sich die Leere sammelt",
+    },
+    [84857] = {
+        name = "Die Biokuppel: Primus",
+    },
+    [84858] = {
+        name = "Systemneustart",
+    },
+    [84859] = {
+        name = "Schadensbericht 101",
+    },
+    [84860] = {
+        name = "Biostabilisierung",
+    },
+    [84861] = {
+        name = "Das ist unsere Kuppel!",
+    },
+    [84862] = {
+        name = "Das Leerenbündnis",
+    },
+    [84863] = {
+        name = "Gegenmaßnahmen",
+    },
+    [84864] = {
+        name = "Ihre dunkle Seite",
+    },
+    [84865] = {
+        name = "Teilen und herrschen",
+    },
+    [84866] = {
+        name = "Sicherheit erkaufen",
+    },
+    [84867] = {
+        name = "Pirschende Pirscher",
+    },
+    [84869] = {
+        name = "Glasjagd",
+    },
+    [84876] = {
+        name = "Die Oase",
+    },
+    [84879] = {
+        name = "Erneuerte Hoffnung",
+    },
+    [84883] = {
+        name = "Das einstige K'aresh",
     },
     [84885] = {
         name = "Arbeiten für G.E.T.A.",
@@ -2724,14 +2979,248 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [84893] = {
         name = "G.E.T.A. und der Kapitän",
     },
+    [84896] = {
+        name = "Die nächste Dimension",
+    },
+    [84897] = {
+        name = "Die Ruhe vor unserem Sturm",
+    },
+    [84898] = {
+        name = "Die Sande von K'aresh",
+    },
+    [84899] = {
+        name = "Ausbreitung der Schattenwache",
+    },
+    [84900] = {
+        name = "Wie ein Buttermesser durch den Äther",
+    },
+    [84902] = {
+        name = "Einsatz zum Bösen",
+    },
+    [84903] = {
+        name = "Bis der Sand Leere blutet",
+    },
+    [84904] = {
+        name = "Und wir werden antworten",
+    },
+    [84905] = {
+        name = "Im Schatten wandeln",
+    },
+    [84906] = {
+        name = "Nexuskönigsmord",
+    },
+    [84910] = {
+        name = "Das Tabiqa",
+    },
+    [84915] = {
+        name = "Die Dünen säubern",
+    },
+    [84956] = {
+        name = "Eine schattenhafte Einladung",
+    },
+    [84957] = {
+        name = "Rückkehr zum Verhüllten Markt",
+    },
+    [84958] = {
+        name = "Ungebändigte Bestien",
+    },
+    [84959] = {
+        name = "Verlorene Verteidigungslinien",
+    },
+    [84960] = {
+        name = "Die Dunkelheit unter uns",
+    },
+    [84961] = {
+        name = "Barrieren als Zugang",
+    },
+    [84963] = {
+        name = "Versiegelung der Schatten",
+    },
+    [84964] = {
+        name = "Helden im Schatten",
+    },
+    [84965] = {
+        name = "Kernbeiträge",
+    },
+    [84967] = {
+        name = "Die Schattenwache zerschmettert",
+    },
+    [84972] = {
+        name = "Die Leere zersplittern",
+    },
+    [84973] = {
+        name = "Von Partikeln und Schalen",
+    },
+    [84974] = {
+        name = "Splitter der Hoffnung",
+    },
+    [85003] = {
+        name = "Wiederherstellung der effektiven Bereitschaft",
+    },
+    [85006] = {
+        name = "Jene, die wir verloren haben",
+    },
+    [85007] = {
+        name = "Ausgeweiteter Bereich",
+    },
+    [85008] = {
+        name = "Machenschaften der Erinnerung",
+    },
+    [85009] = {
+        name = "Jene, die wir noch retten müssen",
+    },
+    [85018] = {
+        name = "Pakete der Verheißungen",
+    },
+    [85019] = {
+        name = "Bitte eines Verstoßenen",
+    },
+    [85020] = {
+        name = "Das Blut von K'aresh",
+    },
+    [85021] = {
+        name = "Säuberung der Leere",
+    },
+    [85022] = {
+        name = "Priester der Alten Wege",
+    },
+    [85032] = {
+        name = "Was noch von der Heimat übrig ist",
+    },
+    [85037] = {
+        name = "Alles abgewickelt",
+    },
+    [85039] = {
+        name = "Kompromittierte Eindämmung",
+    },
+    [85052] = {
+        name = "Eine lukrative Gelegenheit",
+    },
+    [85053] = {
+        name = "Einholen von Erlaubnissen",
+    },
+    [85054] = {
+        name = "Artikel der Aneignung",
+    },
+    [85055] = {
+        name = "Abgelaufene Waren",
+    },
+    [85075] = {
+        name = "Nach Sturmsang",
+    },
+    [85076] = {
+        name = "Alles für die Biene",
+    },
+    [85077] = {
+        name = "Klebrige Finger",
+    },
+    [85078] = {
+        name = "Bienenstich",
+    },
+    [85079] = {
+        name = "Bienenschlaf",
+    },
+    [85080] = {
+        name = "Summender Sauger",
+    },
+    [85081] = {
+        name = "Honig im Topf",
+    },
+    [85082] = {
+        name = "Nach K'aresh",
+    },
+    [85083] = {
+        name = "Schwarzgelb-Foto",
+    },
+    [85084] = {
+        name = "Bienenstark",
+    },
     [85174] = {
         name = "Raus wagen",
+    },
+    [85189] = {
+        name = "Unser Tag am Gericht",
+    },
+    [85190] = {
+        name = "Der Staub legt sich",
+    },
+    [85191] = {
+        name = "Schnitt für Schnitt",
+    },
+    [85192] = {
+        name = "Heimkehr",
+    },
+    [85238] = {
+        name = "Fremde Schritte auf den Stufen",
+    },
+    [85239] = {
+        name = "Ein neues Verschlingen",
+    },
+    [85240] = {
+        name = "Nur der Hunger bleibt",
+    },
+    [85241] = {
+        name = "Ein einst stolzer Priester",
+    },
+    [85249] = {
+        name = "Testbiene",
+    },
+    [85255] = {
+        name = "Bienenbetäubung",
+    },
+    [85256] = {
+        name = "Endlich was mit Pflanzen",
+    },
+    [85257] = {
+        name = "Bienenkuppel Primus",
+    },
+    [85258] = {
+        name = "Honigmomente",
+    },
+    [85259] = {
+        name = "Wedeltanz",
+    },
+    [85260] = {
+        name = "Überarbeitete Bienchen",
+    },
+    [85261] = {
+        name = "Bienenstockfotos",
+    },
+    [85262] = {
+        name = "Die königliche Prozession",
+    },
+    [85383] = {
+        name = "Angewandte Mixologie",
+    },
+    [85384] = {
+        name = "Marktforschung",
+    },
+    [85394] = {
+        name = "Ein Auge für Ärger",
     },
     [85409] = {
         name = "Wer petzt, wird verletzt",
     },
     [85410] = {
         name = "Lorenhalls langer Schatten",
+    },
+    [85429] = {
+        name = "Überwältigt sie",
+    },
+    [85430] = {
+        name = "Pflichturlaub",
+    },
+    [85431] = {
+        name = "Entzieht ihnen ihre Ressourcen",
+    },
+    [85432] = {
+        name = "Verwirrt ihre Kontakte",
+    },
+    [85433] = {
+        name = "Alle Augen auf uns",
+    },
+    [85434] = {
+        name = "Verfahrensfehler",
     },
     [85438] = {
         name = "Sonst setzt's was!",
@@ -2745,6 +3234,12 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [85450] = {
         name = "Evakuierungsplan",
     },
+    [85451] = {
+        name = "Der Brand von Hammerfall",
+    },
+    [85529] = {
+        name = "Vergangener Ruhm",
+    },
     [85562] = {
         name = "Zäher als gedacht",
     },
@@ -2754,11 +3249,68 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [85724] = {
         name = "Gegenwehr",
     },
+    [85730] = {
+        name = "Rettet, was übrig bleibt",
+    },
     [85780] = {
         name = "Genau wo wir ihn haben wollen",
     },
     [85941] = {
         name = "Arbeitsmoral aufwerten",
+    },
+    [85961] = {
+        name = "Der Zug der Bauern",
+    },
+    [86182] = {
+        name = "Geisterjäger",
+    },
+    [86183] = {
+        name = "Die Macht der Götter",
+    },
+    [86184] = {
+        name = "Kleinere Probleme",
+    },
+    [86185] = {
+        name = "Freilauf",
+    },
+    [86186] = {
+        name = "Die Supernase",
+    },
+    [86187] = {
+        name = "Der kleinstmögliche Aufwand",
+    },
+    [86188] = {
+        name = "Auf dem Pilzweg",
+    },
+    [86189] = {
+        name = "Pilzinvasion",
+    },
+    [86190] = {
+        name = "Ein Pilz, sie zu knechten",
+    },
+    [86191] = {
+        name = "Wir riechen uns später",
+    },
+    [86192] = {
+        name = "Auf Knochen gebettet",
+    },
+    [86193] = {
+        name = "Leben für Leben",
+    },
+    [86194] = {
+        name = "Der Duft der Liebe",
+    },
+    [86195] = {
+        name = "Schießerrücken",
+    },
+    [86196] = {
+        name = "Gebt mir Treibstoff",
+    },
+    [86200] = {
+        name = "Macht mir Feuer",
+    },
+    [86201] = {
+        name = "Käferjagd",
     },
     [86204] = {
         name = "Befreiung von Lorenhall: Das Haus verliert",
@@ -2787,20 +3339,254 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [86297] = {
         name = "Führung bedingt Arbeitsmoral",
     },
+    [86327] = {
+        name = "Die Sturmfelder",
+    },
+    [86332] = {
+        name = "Energieverteilung",
+    },
+    [86348] = {
+        name = "Fuchsbann",
+    },
+    [86349] = {
+        name = "Schoßkäferessenzjäger",
+    },
+    [86350] = {
+        name = "Eau de Fuchs",
+    },
+    [86351] = {
+        name = "Werft Euch in Pose",
+    },
+    [86352] = {
+        name = "Die Jagd nach einem guten Autoren",
+    },
+    [86353] = {
+        name = "Jugendschutz",
+    },
+    [86354] = {
+        name = "Ein einschlagendes Gegenmittel",
+    },
+    [86355] = {
+        name = "Verwertung des kompletten Tiers",
+    },
+    [86356] = {
+        name = "Nachhaltige Verwertung",
+    },
+    [86357] = {
+        name = "Zeit für Leckerlies",
+    },
+    [86358] = {
+        name = "Ausreden über Ausreden",
+    },
+    [86359] = {
+        name = "Rückkehr nach K'aresh",
+    },
+    [86360] = {
+        name = "Die fabelhafte Füchsin",
+    },
+    [86361] = {
+        name = "Ihr macht mich fuchsig!",
+    },
+    [86362] = {
+        name = "Wovon träumt der Fuchs?",
+    },
+    [86392] = {
+        name = "Tanz mit dem Fuchs",
+    },
     [86408] = {
         name = "Mein Loch in der Wand",
     },
     [86417] = {
         name = "Bereitschaft",
     },
+    [86495] = {
+        name = "Das Reshiiband",
+    },
     [86575] = {
         name = "Raketenrumba",
+    },
+    [86587] = {
+        name = "Auf nach Maldraxxus",
+    },
+    [86588] = {
+        name = "Ritualmord",
+    },
+    [86589] = {
+        name = "Pest und Pein, der Arzt bleibt daheim",
+    },
+    [86590] = {
+        name = "Lehrling wider Willen",
+    },
+    [86591] = {
+        name = "Stümperhafte Seuchenschöpfung",
+    },
+    [86592] = {
+        name = "Impftermin",
+    },
+    [86593] = {
+        name = "Zur Oase",
+    },
+    [86594] = {
+        name = "Feinschmecker mit Flossen",
+    },
+    [86595] = {
+        name = "Reinemachen im Reich der Rochen",
+    },
+    [86601] = {
+        name = "Volltreffer im Rochenhimmel",
+    },
+    [86602] = {
+        name = "Visite bei den Tieren",
+    },
+    [86603] = {
+        name = "Roch-Quetball",
+    },
+    [86604] = {
+        name = "Fragwürdige Motive",
+    },
+    [86605] = {
+        name = "Vitaminkur",
+    },
+    [86606] = {
+        name = "Glibber aus Gold",
+    },
+    [86607] = {
+        name = "Das große Rochenrennen",
     },
     [86697] = {
         name = "Der Räumtrupp",
     },
+    [86782] = {
+        name = "Atrium-Ambulanz",
+    },
+    [86783] = {
+        name = "Sonnige Rochentage",
+    },
+    [86786] = {
+        name = "Der Leerenjäger",
+    },
+    [86820] = {
+        name = "Manaschmiede Omega: Dimensius naht",
+    },
+    [86835] = {
+        name = "Neu formieren!",
+    },
+    [86946] = {
+        name = "Abgewickelt und aufgelöst",
+    },
     [87008] = {
         name = "Spontaner Hochzeitsplaner",
+    },
+    [87290] = {
+        name = "Die Oase",
+    },
+    [87291] = {
+        name = "Salatbar",
+    },
+    [87292] = {
+        name = "Verstrickt im Grünen",
+    },
+    [87293] = {
+        name = "Schamlose Werbung",
+    },
+    [87294] = {
+        name = "Eine kosmische Gewissheit",
+    },
+    [87297] = {
+        name = "Scheck einlösen",
+    },
+    [87299] = {
+        name = "Wie alt sind diese Dinger?",
+    },
+    [87321] = {
+        name = "Unerledigte Dinge",
+    },
+    [87337] = {
+        name = "Großreinemachen",
+    },
+    [87338] = {
+        name = "Erste Schritte",
+    },
+    [87339] = {
+        name = "Routinearbeiten",
+    },
+    [87340] = {
+        name = "Postwurfsendung",
+    },
+    [87408] = {
+        name = "Essenz der Vergangenheit",
+    },
+    [87409] = {
+        name = "Aus dem Tod, Leben.",
+    },
+    [87410] = {
+        name = "Schlagfeste Verhandlungen",
+    },
+    [87411] = {
+        name = "Brutale Baukunst",
+    },
+    [87412] = {
+        name = "K'arrocische Fotos",
+    },
+    [87413] = {
+        name = "Vogelbad",
+    },
+    [87414] = {
+        name = "Medizinische Manöver",
+    },
+    [87415] = {
+        name = "Der Himmel über K'aresh",
+    },
+    [89323] = {
+        name = "Verheerte Lande",
+    },
+    [89324] = {
+        name = "Ein Teil von etwas Größerem",
+    },
+    [89325] = {
+        name = "Zusammenfluss der Leere",
+    },
+    [89326] = {
+        name = "Destillierte Dunkelheit",
+    },
+    [89343] = {
+        name = "Die ungebundene Leere",
+    },
+    [89344] = {
+        name = "Was Euch nicht sieht",
+    },
+    [89345] = {
+        name = "Der ungebundene Horror",
+    },
+    [89348] = {
+        name = "Summ, summ, summ, Liebe summt herum",
+    },
+    [89380] = {
+        name = "Eine andere Welt",
+    },
+    [89561] = {
+        name = "Eingewickelt",
+    },
+    [90517] = {
+        name = "Mein Teil der Abmachung",
+    },
+    [90938] = {
+        name = "Ein Sprung durch die Leere",
+    },
+    [90972] = {
+        name = "Eine gemeinsame Sache",
+    },
+    [91039] = {
+        name = "Faerins Bitte",
+    },
+    [91044] = {
+        name = "Hunger der Leere",
+    },
+    [91314] = {
+        name = "Ungebundenes Potenzial",
+    },
+    [91454] = {
+        name = "Phasenverlorener Abenteurer",
     },
 })
 ]])()

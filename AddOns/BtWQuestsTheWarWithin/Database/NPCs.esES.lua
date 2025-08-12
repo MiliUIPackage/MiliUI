@@ -162,6 +162,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [227222] = {
         name = "Ysabel Brillogranja",
     },
+    [227758] = {
+        name = "Alleria Brisaveloz",
+    },
     [228158] = {
         name = "Tallatriza",
     },
@@ -171,14 +174,44 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [230554] = {
         name = "Viejo Lowe",
     },
+    [230786] = {
+        name = "Escriba de almas",
+    },
+    [230811] = {
+        name = "El Peregrino",
+    },
     [230841] = {
         name = "El caballero de verdete",
+    },
+    [231128] = {
+        name = "El Peregrino",
+    },
+    [231422] = {
+        name = "Hizfran el Marginado",
+    },
+    [231674] = {
+        name = "Custodio de la cámara Xy'vez",
+    },
+    [232008] = {
+        name = "Jefa del cártel Xy'eolm",
+    },
+    [232351] = {
+        name = "Comerciante Ba'kril",
+    },
+    [232498] = {
+        name = "Agente Xy'nell",
     },
     [233235] = {
         name = "Gerry Taponabuche",
     },
     [233420] = {
         name = "Benny Gansocohete",
+    },
+    [234216] = {
+        name = "Ayudante de ingeniería Om'vek",
+    },
+    [246601] = {
+        name = "Investigadora Essarae",
     },
 })
 ]])()

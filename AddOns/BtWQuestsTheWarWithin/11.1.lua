@@ -856,15 +856,6 @@ Database:AddChain(Chain.IgniteTheFuelOfChange, {
             type = "quest",
             id = 85780,
             x = 0,
-            connections = {
-                1, 
-            },
-        },
-        {
-            type = "quest",
-            id = 86204,
-            aside = true,
-            x = 0,
         },
     }
 })
@@ -917,14 +908,67 @@ Database:AddChain(Chain.Homecoming, {
     },
     active = {
         type = "quest",
-        ids = { 79009, 81654 },
+        id = 86204,
         status = {'active', 'completed'}
     },
     completed = {
         type = "quest",
-        id = 79021,
+        id = 87297,
     },
     items = {
+        {
+            type = "npc",
+            id = 233482,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 86204,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 87321,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 85190,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 85191,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 85192,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 87297,
+            x = 0,
+        },
     }
 })
 
@@ -1632,10 +1676,49 @@ Database:AddChain(Chain.HardWaysAtTheGallagio, {
             type = "level",
             level = 80,
         },
+        {
+            type = "chain",
+            id = BtWQuests.Constant.Chain.TheWarWithin.AgainstTheCurrent,
+            upto = 79197,
+            completed = {
+                type = "quest",
+                id = 79573,
+            },
+            lowPriority = true,
+        },
+        {
+            type = "chain",
+            id = Chain.TrustIssues,
+            lowPriority = true,
+        },
+        {
+            type = "chain",
+            id = Chain.UndermineAwaits,
+            lowPriority = true,
+        },
+        {
+            type = "chain",
+            id = Chain.UncoveringTheTruth,
+            lowPriority = true,
+        },
+        {
+            type = "chain",
+            id = Chain.BreakingTheShackles,
+            lowPriority = true,
+        },
+        {
+            type = "chain",
+            id = Chain.IgniteTheFuelOfChange,
+            lowPriority = true,
+        },
+        {
+            type = "chain",
+            id = Chain.Homecoming,
+        },
     },
     active = {
         type = "quest",
-        id = 78068,
+        id = 83519,
         status = {'active', 'completed'}
     },
     completed = {
@@ -1643,6 +1726,170 @@ Database:AddChain(Chain.HardWaysAtTheGallagio, {
         id = 83566,
     },
     items = {
+        {
+            type = "npc",
+            id = 226273,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83519,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83569,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 84221,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 84242,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83522,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83524,
+            x = 0,
+            connections = {
+                1, 2, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83527,
+            x = -1,
+            connections = {
+                2, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83528,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 84249,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83540,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83541,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83542,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 84244,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83534,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83535,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 85189,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83546,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83558,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83563,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83566,
+            x = 0,
+        },
     }
 })
 Database:AddChain(Chain.PropertyDevalued, {
@@ -2041,10 +2288,10 @@ Database:AddCategory(CATEGORY_ID, {
             type = "chain",
             id = Chain.IgniteTheFuelOfChange,
         },
-        -- {
-        --     type = "chain",
-        --     id = Chain.Homecoming,
-        -- },
+        {
+            type = "chain",
+            id = Chain.Homecoming,
+        },
         {
             type = "chain",
             id = Chain.TheHighst,
@@ -2077,10 +2324,10 @@ Database:AddCategory(CATEGORY_ID, {
             type = "chain",
             id = Chain.TheVerdigreaseKnight,
         },
-        -- {
-        --     type = "chain",
-        --     id = Chain.HardWaysAtTheGallagio,
-        -- },
+        {
+            type = "chain",
+            id = Chain.HardWaysAtTheGallagio,
+        },
         {
             type = "chain",
             id = Chain.PropertyDevalued,

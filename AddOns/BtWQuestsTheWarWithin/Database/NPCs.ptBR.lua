@@ -183,6 +183,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [226255] = {
         name = "Cebolita",
     },
+    [226273] = {
+        name = "Monte Gasganete",
+    },
     [226569] = {
         name = "Estalo Graxavelino",
     },
@@ -204,6 +207,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [227222] = {
         name = "Isebel Refulgrado",
     },
+    [227758] = {
+        name = "Alleria Correventos",
+    },
     [228158] = {
         name = "Mac Rámen",
     },
@@ -219,8 +225,35 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [230555] = {
         name = "Suka Taum",
     },
+    [230786] = {
+        name = "Escriba d'Alma",
+    },
+    [230811] = {
+        name = "Andarilho Imaterial",
+    },
     [230841] = {
         name = "Cavaleiro Graxaverdi",
+    },
+    [231128] = {
+        name = "Andarilho Imaterial",
+    },
+    [231422] = {
+        name = "Proscrito Hizfran",
+    },
+    [231674] = {
+        name = "Guarda-cofre Xy'vez",
+    },
+    [232008] = {
+        name = "Chefe do Cartel Xy'eolm",
+    },
+    [232132] = {
+        name = "Sol",
+    },
+    [232351] = {
+        name = "Comerciante Ba'kril",
+    },
+    [232498] = {
+        name = "Colaborador Xy'nell",
     },
     [233235] = {
         name = "Gérson Garrentala",
@@ -230,6 +263,15 @@ BtWQuestsDatabase:UpdateNPCsTable({
     },
     [233482] = {
         name = "Monte Gasganete",
+    },
+    [234216] = {
+        name = "Engenheiro Assistente Om'verk",
+    },
+    [246601] = {
+        name = "Pesquisadora Essarae",
+    },
+    [248153] = {
+        name = "Magíster Umbric",
     },
 })
 ]])()

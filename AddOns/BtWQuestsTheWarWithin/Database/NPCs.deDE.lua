@@ -168,6 +168,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [227222] = {
         name = "Ysabel Schimmerwaach",
     },
+    [227758] = {
+        name = "Alleria Windläufer",
+    },
     [228158] = {
         name = "Zocknudel",
     },
@@ -180,14 +183,44 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [230555] = {
         name = "Pitz Leo",
     },
+    [230786] = {
+        name = "Seelenschreiberin",
+    },
+    [230811] = {
+        name = "Raumgänger",
+    },
     [230841] = {
         name = "Der Grünschmierritter",
+    },
+    [231128] = {
+        name = "Raumgänger",
+    },
+    [231422] = {
+        name = "Hizfran der Verstoßene",
+    },
+    [231674] = {
+        name = "Schatzhüter Xy'vez",
+    },
+    [232008] = {
+        name = "Kartellbossin Xy'eolm",
+    },
+    [232351] = {
+        name = "Händler Ba'kril",
+    },
+    [232498] = {
+        name = "Partner Xy'nell",
     },
     [233235] = {
         name = "Gerry Klotzkropf",
     },
     [233420] = {
         name = "Benny Gänsesprenger",
+    },
+    [234216] = {
+        name = "Hilfsingenieur Om'vek",
+    },
+    [246601] = {
+        name = "Forscherin Essarae",
     },
 })
 ]])()
