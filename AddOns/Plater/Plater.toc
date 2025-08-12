@@ -1,4 +1,4 @@
-## Interface: 110105
+## Interface: 110200
 ## Title: Plater
 ## Notes: Nameplate addon designed for advanced users.
 ## Notes-esES: Addon de placa de nombre diseñado para usuarios avanzados

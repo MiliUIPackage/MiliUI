@@ -1,4 +1,4 @@
-## Interface: 11507, 40402, 50500, 110105
+## Interface: 11507, 40402, 50500, 110200
 ## Notes: A simple chat copy paste addon.
 ## Title: ChatCopyPaste
 ## Author: Novaspark-Arugal OCE

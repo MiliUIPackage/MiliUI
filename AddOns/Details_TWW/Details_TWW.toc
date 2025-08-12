@@ -1,4 +1,4 @@
-## Interface: 11506, 30403, 40402, 110007, 110105
+## Interface: 11506, 30403, 40402, 110007, 110200
 ## Title: Details! Skin TWW |cff8080ffv1.3|r
 ## Notes: Adds the 'The War Within' Skin to Details.|n|cffbbbbbbBy Karl-Heinz Schneider|r|n|n|TInterface/Addons/Details_TWW/Textures/coffee:12:12|t |cff82c5ffbuymeacoffee.com/karlheinzschneider|r
 ## Author: Karl-Heinz Schneider

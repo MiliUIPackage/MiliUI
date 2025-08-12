@@ -1,4 +1,4 @@
-## Interface: 40402, 110007, 110105
+## Interface: 40402, 110007, 110200
 ## Title: AppearanceTooltip
 ## Author: Kemayo
 ## Notes: Show the item your mouse is over on your character in a tooltip

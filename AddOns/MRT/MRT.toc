@@ -1,4 +1,4 @@
-## Interface: 11504, 40401, 110005, 110105
+## Interface: 11504, 40401, 110005, 110200
 ## Title: Method Raid Tools
 ## Author: ykiigor
 ## Notes: Method Raid Tools

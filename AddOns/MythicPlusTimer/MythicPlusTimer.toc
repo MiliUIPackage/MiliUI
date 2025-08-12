@@ -1,4 +1,4 @@
-## Interface: 110105
+## Interface: 110200
 ## Version: 6.4.1
 ## Title: MythicPlusTimer
 ## Author: Fabys
