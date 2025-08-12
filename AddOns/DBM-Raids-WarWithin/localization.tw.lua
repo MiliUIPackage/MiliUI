@@ -20,7 +20,7 @@ local L
 --})
 
 ---------------------------
---  The Bloodbound Horror (2917) --
+--  The Bloodbound Horror --
 ---------------------------
 --L= DBM:GetModLocalization(2611)
 
@@ -119,7 +119,6 @@ L:SetMiscLocalization({
 	BombsLeft		= "炸彈剩餘"
 })
 
-
 ---------------------------
 --  Sprocketmonger Lockenstock --
 ---------------------------
@@ -152,11 +151,44 @@ L:SetMiscLocalization({
 ---------------------------
 --L= DBM:GetModLocalization(2646)
 
--------------
---  Trash  --
--------------
-L = DBM:GetModLocalization("UndermineTrash")
 
-L:SetGeneralLocalization({
-	name =	"幽坑城小怪"
-})
+----<<<<法力熔爐歐美加>>>>----
+---------------------------
+--  Plexus Sentinel --
+---------------------------
+--L= DBM:GetModLocalization(2684)
+
+---------------------------
+--  Loom'ithar --
+---------------------------
+--L= DBM:GetModLocalization(2686)
+
+---------------------------
+--  Soulbinder Naazindhri --
+---------------------------
+--L= DBM:GetModLocalization(2685)
+
+---------------------------
+--  Forgeweaver Araz --
+---------------------------
+--L= DBM:GetModLocalization(2687)
+
+---------------------------
+--  The Soul Hunters --
+---------------------------
+--L= DBM:GetModLocalization(2688)
+
+---------------------------
+--  Fractillus --
+---------------------------
+--L= DBM:GetModLocalization(2747)
+
+---------------------------
+--  Nexus-King Salhadaar --
+---------------------------
+--L= DBM:GetModLocalization(2690)
+
+---------------------------
+--  Dimensius, the All-Devouring --
+---------------------------
+--L= DBM:GetModLocalization(2691)

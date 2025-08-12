@@ -1,6 +1,6 @@
-## Interface: 110105, 110107
+## Interface: 110200
 ## X-Min-Interface: 100206
-## Version: 11.1.20
+## Version: 11.2.7
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010Raids (WW)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010团队副本 (地心之战)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010團隊副本 (地心之戰)|r
@@ -14,29 +14,28 @@
 ## X-DBM-Mod-Type: RAID
 ## X-DBM-Mod-Category: WARWITHIN
 ## X-DBM-StatTypes: lfr,normal,heroic,mythic
-## X-DBM-Mod-SubCategoriesID: 2769, 2657
+## X-DBM-Mod-SubCategoriesID: 2810, 2769, 2657
 ## X-DBM-Mod-Name: Raids (War Within)
 ## X-DBM-Mod-Name-zhCN: 团队副本（地心之战）
 ## X-DBM-Mod-Name-zhTW: 團隊副本 (地心之戰)
 ## X-DBM-Mod-Sort: 101
-## X-DBM-Mod-MapID: 2657, 2769
+## X-DBM-Mod-MapID: 2657, 2769, 2810
 ## X-DBM-Mod-MinCoreRevision: 20230617000000
 ## X-DBM-Mod-MinExpansion: 10
 ## X-Curse-Project-ID: 3358
 ## X-WoWI-ID: 8814
 ## X-Wago-ID: qv633o6b
+## Category-zhTW: 團隊
 ## Category-zhTW: 副本
-
 localization.en.lua
 localization.cn.lua
 localization.tw.lua
 
-Undermine\Vexie.lua
-Undermine\CauldronofCarnage.lua
-Undermine\RikReverb.lua
-Undermine\StixBunkjunker.lua
-Undermine\SprocketmongerLockenstock.lua
-Undermine\TheOneArmedBandit.lua
-Undermine\MugZeeHeadsofSecurity.lua
-Undermine\ChromeKingGallywix.lua
-Undermine\UndermineTrash.lua
+ManaforgeOmega\PlexusSentinel.lua
+ManaforgeOmega\Loomithar.lua
+ManaforgeOmega\SoulbinderNaazindhri.lua
+ManaforgeOmega\ForgeweaverAraz.lua
+ManaforgeOmega\TheSoulHunters.lua
+ManaforgeOmega\Fractillus.lua
+ManaforgeOmega\NexusKingSalhadaar.lua
+ManaforgeOmega\DimensiustheAllDevouring.lua

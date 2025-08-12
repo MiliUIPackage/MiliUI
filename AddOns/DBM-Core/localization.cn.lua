@@ -637,14 +637,8 @@ L.SPEED_CLEAR_TIMER_TEXT	= "最速清除"
 L.COMBAT_RES_TIMER_TEXT	= "下一次可用战复"
 L.TIMER_RESPAWN		= "%s 刷新"
 
-L.LAG_CHECKING				= "延时检测请稍后... "
-L.LAG_HEADER					= L.DEADLY_BOSS_MODS .. " - 延时检测"
-L.LAG_ENTRY					= "%s：世界延时[%d毫秒] / 本地延时[%d毫秒]"
-L.LAG_FOOTER					= "未反馈此次检测的团员:%s"
-
-L.DUR_CHECKING				= "全团装备耐久度检测请稍后... "
-L.DUR_HEADER					= L.DEADLY_BOSS_MODS .. "- 装备耐久度检测结果"
-L.DUR_ENTRY					= "%s: %d 耐久度 / %s件装备损坏"
+L.LAG_HEADER					= L.DBM .. " - 延时检测"
+L.DUR_HEADER					= L.DBM .. "- 装备耐久度检测结果"
 
 L.OVERRIDE_ACTIVATED			= "本次战斗的配置已经被队长的配置覆盖"
 
@@ -676,7 +670,6 @@ L.DBM_INSTALL_PACKAGE_WRATH		= "巫妖王之怒模块"
 L.DBM_INSTALL_PACKAGE_CATA		= "大地的裂变模块"
 L.DBM_INSTALL_PACKAGE_MOP		= "熊猫人之谜模块"
 L.DBM_INSTALL_PACKAGE_DUNGEON	= "五人本与事件模块"
-L.DBM_INSTALL_PACKAGE_CHALLENGES= "挑战模块"
 
 -- Tests
 L.DBM_TAINTED_BY_TESTS			= "DBM曾经在当前进程中使用过测试模式的时间卷曲功能，建议你在正式战斗前 /reload 界面以防止DBM出现奇怪的问题。"

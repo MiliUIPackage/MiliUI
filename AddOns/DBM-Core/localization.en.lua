@@ -689,14 +689,8 @@ L.SPEED_CLEAR_TIMER_TEXT				= "Best Clear"
 L.COMBAT_RES_TIMER_TEXT					= "Next CR Charge"
 L.TIMER_RESPAWN							= "%s Respawn"
 
-L.LAG_CHECKING							= "Checking raid Latency... "
-L.LAG_HEADER							= L.DEADLY_BOSS_MODS.. " - Latency Results"
-L.LAG_ENTRY								= "%s: World delay [%d ms] / Home delay [%d ms]"
-L.LAG_FOOTER							= "No Response: %s"
-
-L.DUR_CHECKING							= "Checking raid Durability... "
-L.DUR_HEADER							= L.DEADLY_BOSS_MODS.. " - Durability Results"
-L.DUR_ENTRY								= "%s: Durability [%d percent] / Gear broken [%s]"
+L.LAG_HEADER							= L.DBM.. " - Latency Results"
+L.DUR_HEADER							= L.DBM.. " - Durability Results"
 
 L.OVERRIDE_ACTIVATED					= "Configuration overrides have been activated for this encounter by RL"
 
@@ -730,8 +724,7 @@ L.DBM_INSTALL_PACKAGE_BCC		= "Burning Crusade package"
 L.DBM_INSTALL_PACKAGE_WRATH		= "Wrath package"
 L.DBM_INSTALL_PACKAGE_CATA		= "Cataclysm package"
 L.DBM_INSTALL_PACKAGE_MOP		= "Mist of Pandaria package"
-L.DBM_INSTALL_PACKAGE_DUNGEON	= "Dungeons, Delves, and Events package"
-L.DBM_INSTALL_PACKAGE_CHALLENGES= "Challenges package"
+L.DBM_INSTALL_PACKAGE_DUNGEON	= "Dungeons, Delves, Challenges, and Events package"
 
 -- Tests
 L.DBM_TAINTED_BY_TESTS			= "DBM was used in test mode with time warping in the current session, it is recommended to reload your UI prior to using DBM in a real boss fight. Everything should still work as expected, but no gurantees!"
@@ -746,3 +739,4 @@ L.TOOLTIP_FASTEST				= "Fastest kill (%s)"
 -- Difficulty info not found in normal globals, used by both GUI and tooltip
 L.FOLLOWER						= "Follower"--i.e. the new dungeon type in 10.2.5. I haven't found a translated string yet
 L.STORY					    	= PLAYER_DIFFICULTY_STORY_RAID or "Story"--i.e. the new dungeon type in 11.0.0. I haven't found a translated string yet
+L.DUOS							= "Duos"

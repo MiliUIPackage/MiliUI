@@ -1,25 +1,27 @@
-## Interface: 110105, 110107
-## X-Min-Interface: 100207
+## Interface: 110200
+## X-Min-Interface: 110200
 ## Category: DBM
+## Group: DBM-Core
 ## Title:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Main Core|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0核心|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0核心|r
 ## Notes: Deadly Boss Mods
 ## Dependencies: DBM-StatusBarTimers
-## OptionalDependencies: LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibChatAnims, LibDBIcon-1.0, LibDeflate, LibSerialize, LibSpecialization, CustomNames, Masque, ChatThrottleLib
+## OptionalDependencies: LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibChatAnims, LibDBIcon-1.0, LibDeflate, LibSerialize, LibSpecialization, LibKeystone, CustomNames, Masque, ChatThrottleLib
 ## SavedVariables: DBM_AllSavedOptions, DBM_MinimapIcon, DBM_AnnoyingPopupDisables, DBM_ModsToLoadWithFullTestSupport
 ## SavedVariablesPerCharacter: DBM_UsedProfile, DBM_UseDualProfile, DBM_CharSavedRevision
 ## IconTexture: Interface\AddOns\DBM-Core\textures\dbm_airhorn
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 11.1.20
+## Version: 11.2.7
 ## X-Curse-Project-ID: 3358
 ## X-WoWI-ID: 8814
 ## X-Wago-ID: qv633o6b
 ## X-Website: https://deadlybossmods.com
-## Category-zhTW: 副本
+## Category-zhTW: 團隊
 
+## Category-zhTW: 副本
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
 Libs\ChatThrottleLib\ChatThrottleLib.lua
@@ -27,11 +29,12 @@ Libs\LibChatAnims\LibChatAnims.xml
 Libs\LibSharedMedia-3.0\lib.xml
 Libs\LibLatency\LibLatency.xml
 Libs\LibDurability\LibDurability.xml
+Libs\LibKeystone\LibKeystone.lua
 Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
 Libs\LibDBIcon-1.0\lib.xml
 Libs\LibDeflate\LibDeflate.lua
 Libs\LibSerialize\lib.xml
-Libs\LibSpecialization\LibSpecialization.xml
+Libs\LibSpecialization\LibSpecialization.lua
 Libs\LibCustomGlow-1.0\LibCustomGlow-1.0.xml
 
 localization.en.lua
@@ -65,6 +68,10 @@ DBM-RangeCheck.lua
 DBM-InfoFrame.lua
 DBM-HudMap.lua
 DBM-Nameplate.lua
+
+# GUI Features
+modules\gui\Latency.lua
+modules\gui\Durability.lua
 
 # Modules
 modules\Commands.lua

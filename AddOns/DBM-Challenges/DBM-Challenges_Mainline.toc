@@ -1,4 +1,4 @@
-## Interface: 110105, 110107
+## Interface: 110107, 110200
 ## X-Min-Interface: 80000
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Challenges|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0挑戰|r
@@ -23,11 +23,18 @@
 ## X-DBM-Mod-MinExpansion: 4
 ## X-Curse-Project-ID: 61621
 ## X-Wago-ID: Rn6VLLGd
-## Version: r170
+## Version: r203
+## Category-zhTW: 團隊
 ## Category-zhTW: 副本
-
 localization.en.lua
 localization.tw.lua
 localization.cn.lua
 BfA\NzothVisionStormwind.lua
 BfA\NzothVisionOrgrimmar.lua
+Legion\DPSFelTotem.lua
+Legion\DPSImpossibleFoe.lua
+Legion\DPSQueen.lua
+Legion\DPSTwins.lua
+Legion\DPSXylem.lua
+Legion\Healer.lua
+Legion\Tank.lua

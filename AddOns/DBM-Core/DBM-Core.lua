@@ -76,17 +76,17 @@ end
 ---@class DBM
 local DBM = private:GetPrototype("DBM")
 _G.DBM = DBM
-DBM.Revision = parseCurseDate("20250529025737")
+DBM.Revision = parseCurseDate("20250812032004")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
-local fakeBWVersion, fakeBWHash = 386, "0d07b1a"--386.0
+local fakeBWVersion, fakeBWHash = 393, "9e38763"--393.0
 local PForceDisable
 -- The string that is shown as version
-DBM.DisplayVersion = "11.1.20"--Core version
+DBM.DisplayVersion = "11.2.7"--Core version
 DBM.classicSubVersion = 0
 DBM.dungeonSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2025, 5, 28) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
-PForceDisable = 18--When this is incremented, trigger force disable regardless of major patch
+DBM.ReleaseRevision = releaseDate(2025, 8, 11) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+PForceDisable = 19--When this is incremented, trigger force disable regardless of major patch
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
 -- support for github downloads, which doesn't support curse keyword expansion
@@ -535,7 +535,7 @@ local deprecatedMods = { -- a list of "banned" (meaning they are replaced by ano
 -----------------
 local LibSpec
 do
-	if (private.isRetail or private.isCata) and LibStub then
+	if (private.isRetail or private.isCata or private.isMop) and LibStub then
 		LibSpec = LibStub("LibSpecialization", true)
 		if LibSpec then
 			local function update(specID, _, _, playerName)
@@ -544,7 +544,7 @@ do
 				end
 			end
 			---@diagnostic disable-next-line: undefined-field
-			LibSpec:Register(DBM, update)
+			LibSpec.RegisterGroup(DBM, update)
 		end
 	end
 end
@@ -580,6 +580,7 @@ local PlaySoundFile = PlaySoundFile
 local Ambiguate = Ambiguate
 local C_TimerAfter = C_Timer.After
 local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted
+local SendChatMessage = C_ChatInfo.SendChatMessage or SendChatMessage -- Classic has C_ChatInfo but not C_ChatInfo.SendChatMessage, need to use global for classic
 
 -- Store globals that can be hooked/overriden by tests in private
 private.GetInstanceInfo = GetInstanceInfo
@@ -1563,13 +1564,13 @@ do
 		if modname == "DBM-Core" and not isLoaded then
 			--Establish a classic sub mod version for version checks and out of date notification/checking
 			if not private.isRetail then
-				local checkedRaidmodule = private.isCata and "DBM-Raids-Cata" or private.isWrath and "DBM-Raids-WoTLK" or private.isBCC and "DBM-Raids-BC" or private.isClassic and "DBM-Raids-Vanilla"
+				local checkedRaidmodule = private.isMop and "DBM-Raids-MoP" or private.isCata and "DBM-Raids-Cata" or private.isWrath and "DBM-Raids-WoTLK" or private.isBCC and "DBM-Raids-BC" or private.isClassic and "DBM-Raids-Vanilla"
 				if checkedRaidmodule and C_AddOns.DoesAddOnExist(checkedRaidmodule) then
 					local version = C_AddOns.GetAddOnMetadata(checkedRaidmodule, "Version") or "r0"
 					DBM.classicSubVersion = tonumber(string.sub(version, 2, 4)) or 0
 				end
 			end
-			local checkedDungeonmodule = private.isRetail and "DBM-Party-WarWithin" or private.isCata and "DBM-Party-Cataclysm" or private.isWrath and "DBM-Party-WotLK" or private.isBCC and "DBM-Party-BC" or "DBM-Party-Vanilla"
+			local checkedDungeonmodule = private.isRetail and "DBM-Party-WarWithin" or private.isMop and "DBM-Party-MoP" or private.isCata and "DBM-Party-Cataclysm" or private.isWrath and "DBM-Party-WotLK" or private.isBCC and "DBM-Party-BC" or "DBM-Party-Vanilla"
 			if checkedDungeonmodule and C_AddOns.DoesAddOnExist(checkedDungeonmodule) then
 				local version = C_AddOns.GetAddOnMetadata(checkedDungeonmodule, "Version") or "r0"
 				DBM.dungeonSubVersion = tonumber(string.sub(version, 2, 4)) or 0
@@ -2245,6 +2246,61 @@ do
 	end
 end
 
+------------------------
+--  Break/Pull Timer  --
+------------------------
+
+---@param timer number --time in seconds
+function DBM:CreateBreakTimer(timer)
+	--Apparently BW wants to accept all pull timers regardless of length, and not support break timers that can be used by all users
+	--Sadly, this means DBM has to also be as limiting because if boss mods are not on same page it creates conflicts within multi mod groups
+	local LFGTankException = IsPartyLFG and IsPartyLFG() and UnitGroupRolesAssigned("player") == "TANK"--Tanks in LFG need to be able to send pull timer even if someone refuses to pass lead. LFG locks roles so no one can abuse this.
+	if (self:GetRaidRank() == 0 and IsInGroup() and not LFGTankException) or select(2, IsInInstance()) == "pvp" then
+		return self:AddMsg(L.ERROR_NO_PERMISSION)
+	end
+	if IsEncounterInProgress() then
+		return self:AddMsg(L.ERROR_NO_PERMISSION_COMBAT)
+	end
+	if timer > 60 then
+		return self:AddMsg(L.BREAK_USAGE)
+	end
+	timer = timer * 60
+	--Make sure 1 minute break timer is sent as a break timer and not a pull timer
+	--if timer == 60 then
+	--	timer = 61
+	--end
+	--if not private.isWrath then
+	--	--Send blizzard countdown timer that all users see (including modless)
+	--	C_PartyInfo.DoCountdown(timer)
+	--	DBM:Debug("Sending Blizzard Countdown Timer")
+	--else
+	private.sendSync(private.DBMSyncProtocol, "BT", timer, "ALERT")
+	self:Debug("Sending DBM Break Timer")
+	--end
+end
+
+---@param timer number --time in seconds
+function DBM:CreatePullTimer(timer)
+	--Apparently BW wants to accept all pull timers regardless of length, and not support break timers that can be used by all users
+	--Sadly, this means DBM has to also be as limiting because if boss mods are not on same page it creates conflicts within multi mod groups
+	local LFGTankException = IsPartyLFG and IsPartyLFG() and UnitGroupRolesAssigned("player") == "TANK"--Tanks in LFG need to be able to send pull timer even if someone refuses to pass lead. LFG locks roles so no one can abuse this.
+	if (self:GetRaidRank() == 0 and IsInGroup() and not LFGTankException) or select(2, IsInInstance()) == "pvp" then
+		return self:AddMsg(L.ERROR_NO_PERMISSION)
+	end
+	if IsEncounterInProgress() then
+		return self:AddMsg(L.ERROR_NO_PERMISSION_COMBAT)
+	end
+	if timer > 0 and timer < 3 then
+		return self:AddMsg(L.PULL_TIME_TOO_SHORT)
+	end
+	--if timer > 60 then
+	--	return DBM:AddMsg(L.PULL_TIME_TOO_LONG)
+	--end
+	--Send blizzard countdown timer that all users see (including modless)
+	C_PartyInfo.DoCountdown(timer)
+	self:Debug("Sending Blizzard Countdown Timer")
+end
+
 -------------------
 --  Pizza Timer  --
 -------------------
@@ -2435,14 +2491,10 @@ do
 				if dbmIsEnabled and not IsTrialAccount() then
 					sendBWSync("Q", ("%d^%s"):format(0, fakeBWHash), IsInGroup(2) and "INSTANCE_CHAT" or "RAID", "NORMAL")
 				end
-				if private.isRetail or private.isCata then
+				if private.isRetail or private.isCata or private.isMop then
 					self:Schedule(2, self.RoleCheck, false, self)
 				end
 				fireEvent("DBM_raidJoin", playerName)
-				local bigWigs = _G["BigWigs"]
-				if bigWigs and bigWigs.db.profile.raidicon and not self.Options.DontSetIcons and self:GetRaidRank() > 0 then--Both DBM and bigwigs have raid icon marking turned on.
-					self:AddMsg(L.BIGWIGS_ICON_CONFLICT)--Warn that one of them should be turned off to prevent conflict (which they turn off is obviously up to raid leaders preference, dbm accepts either or turned off to stop this alert)
-				end
 			end
 			for i = 1, GetNumGroupMembers() do
 				local name, rank, subgroup, _, _, className, _, isOnline = GetRaidRosterInfo(i)
@@ -2524,7 +2576,7 @@ do
 				if dbmIsEnabled and not IsTrialAccount() then
 					sendBWSync("Q", ("%d^%s"):format(0, fakeBWHash), IsInGroup(2) and "INSTANCE_CHAT" or "RAID", "NORMAL")
 				end
-				if private.isRetail or private.isCata then
+				if private.isRetail or private.isCata or private.isMop then
 					self:Schedule(2, self.RoleCheck, false, self)
 				end
 				fireEvent("DBM_partyJoin", playerName)
@@ -3721,7 +3773,7 @@ do
 		end
 		if currentSpecID ~= lastSpecID then--Don't fire specchanged unless spec actually has changed.
 			self:SpecChanged()
-			if (private.isRetail or private.isCata) and IsInGroup() then
+			if (private.isRetail or private.isCata or private.isMop) and IsInGroup() then
 				self:RoleCheck(false)
 			end
 		end
@@ -3747,7 +3799,7 @@ end
 do
 	local function AcceptPartyInvite()
 		AcceptGroup()
-		for i = 1, STATICPOPUP_NUMDIALOGS do
+		for i = 1, 4 do
 			local whichDialog = _G["StaticPopup" .. i].which
 			if whichDialog == "PARTY_INVITE" or whichDialog == "PARTY_INVITE_XREALM" then
 				_G["StaticPopup" .. i].inviteAccepted = 1
@@ -3882,10 +3934,10 @@ do
 			--MoP raid Handling
 			elseif mopZones[LastInstanceMapID] then
 				if not C_AddOns.DoesAddOnExist("DBM-Raids-MoP") then
-					AddMsg(self, L.MOD_AVAILABLE:format("DBM Mists of Pandaria mods"))
+					AddMsg(self, L.MOD_AVAILABLE:format("DBM Mists of Pandaria mods"), nil, private.isMop)
 				end
 				--Show extra annoying popup in current content if it's classic
-				if private.isMop or LastInstanceMapID == 0 then
+				if private.isMop then--or LastInstanceMapID == 1098 (throne of thunder next timewalking raid?)
 					self:AnnoyingPopupCheckZone(LastInstanceMapID, "MoP")
 				end
 			--WoD raid Handling
@@ -4762,7 +4814,7 @@ do
 				end
 				if #newersubVersionPerson == 2 and updateSubNotificationDisplayed < 2 then--Only requires 2 for update notification.
 					updateSubNotificationDisplayed = 2
-					local checkedSubmodule = private.isCata and "DBM-Raids-Cata" or private.isWrath and "DBM-Raids-WoTLK" or private.isBCC and "DBM-Raids-BC" or "DBM-Raids-Vanilla"
+					local checkedSubmodule = private.isMop and "DBM-Raids-MoP" or private.isCata and "DBM-Raids-Cata" or private.isWrath and "DBM-Raids-WoTLK" or private.isBCC and "DBM-Raids-BC" or "DBM-Raids-Vanilla"
 					AddMsg(DBM, L.UPDATEREMINDER_HEADER_SUBMODULE:match("\n(.*)"):format(checkedSubmodule, classicSubVers))
 					showConstantReminder = 1
 				end
@@ -5331,9 +5383,9 @@ do
 			delayedFunction = nil
 		end
 		if watchFrameRestore then
-			if private.isRetail then
+			if private.isRetail or private.isCata or private.isMop then
 				ObjectiveTracker_Expand()
-			elseif private.isCata or private.isWrath then
+			elseif private.isWrath then
 				WatchFrame:Show()
 			else -- Classic Era / BCC
 				QuestWatchFrame:Show()
@@ -5579,7 +5631,7 @@ do
 	function DBM:RAID_BOSS_WHISPER(msg)
 		--Make it easier for devs to detect whispers they are unable to see
 		--TINTERFACE\\ICONS\\ability_socererking_arcanewrath.blp:20|t You have been branded by |cFFF00000|Hspell:156238|h[Arcane Wrath]|h|r!"
-		if msg and msg ~= "" and IsInGroup() and not _G["BigWigs"] and not IsTrialAccount() then
+		if msg and msg ~= "" and #msg < 255 and IsInGroup() and not _G["BigWigs"] and not IsTrialAccount() then
 			ChatThrottleLib:SendAddonMessage("ALERT", "Transcriptor", msg, IsInGroup(2) and "INSTANCE_CHAT" or IsInRaid() and "RAID" or "PARTY")--Alert prio used since time accuracy is paramount for accurate logging
 		end
 	end
@@ -5850,6 +5902,7 @@ do
 				self:StartLogging(0)
 			end
 			local trackedAchievements
+			--TODO, is MoP classic still using the old path? will TBC when it launches on aniversary
 			if private.isClassic or private.isBCC then
 				trackedAchievements = false
 			elseif private.isWrath or private.isCata then
@@ -5858,7 +5911,7 @@ do
 				trackedAchievements = (C_ContentTracking and C_ContentTracking.GetTrackedIDs(2)[1])
 			end
 			if self.Options.HideObjectivesFrame and mod.addon and mod.addon.type ~= "SCENARIO" and not trackedAchievements and difficulties.difficultyIndex ~= 8 and not InCombatLockdown() then
-				if private.isRetail or private.isCata then--Do nothing due to taint and breaking
+				if private.isRetail or private.isCata or private.isMop then--Do nothing due to taint and breaking
 					--if ObjectiveTrackerFrame:IsVisible() then
 					--	ObjectiveTracker_Collapse()
 					--	watchFrameRestore = true
@@ -5975,10 +6028,6 @@ do
 				if dummyMod then--stop pull timer
 					dummyMod.text:Cancel()
 					dummyMod.timer:Stop()
-				end
-				local bigWigs = _G["BigWigs"]
-				if bigWigs and bigWigs.db.profile.raidicon and not self.Options.DontSetIcons and self:GetRaidRank() > 0 then--Both DBM and bigwigs have raid icon marking turned on.
-					self:AddMsg(L.BIGWIGS_ICON_CONFLICT)--Warn that one of them should be turned off to prevent conflict (which they turn off is obviously up to raid leaders preference, dbm accepts either or turned off to stop this alert)
 				end
 				if self.Options.EventSoundEngage2 and self.Options.EventSoundEngage2 ~= "" and self.Options.EventSoundEngage2 ~= "None" then
 					self:PlaySoundFile(self.Options.EventSoundEngage2, nil, true)
@@ -6293,7 +6342,7 @@ do
 					lastBossDefeat[modId .. normalizedPlayerRealm] = GetTime()--Update last defeat time before we send it, so we don't handle our own sync
 					SendWorldSync(self, 8, "WBD", modId .. "\t" .. normalizedPlayerRealm .. "\t" .. name)
 				end
-				if self.Options.EventSoundVictory2 and self.Options.EventSoundVictory2 ~= "None" and self.Options.EventSoundVictory2 ~= "" then
+				if self.Options.EventSoundVictory2 and self.Options.EventSoundVictory2 ~= "None" and self.Options.EventSoundVictory2 ~= "" and difficulties.difficultyIndex ~= 232 then--No victory in duos
 					if self.Options.EventSoundVictory2 == "Random" then
 						local victorySounds = DBM:GetVictorySounds()
 						if #victorySounds >= 3 then
@@ -6322,9 +6371,9 @@ do
 				self.Arrow:Hide()
 				if not InCombatLockdown() then
 					if watchFrameRestore then
-						if private.isRetail then
+						if private.isRetail or private.isCata or private.isMop then
 							--ObjectiveTracker_Expand()
-						elseif private.isCata or private.isWrath then
+						elseif private.isWrath then
 							WatchFrame:Show()
 						else -- Classic Era / BCC
 							QuestWatchFrame:Show()
@@ -7297,7 +7346,8 @@ do
 				DisableEvent(RaidBossEmoteFrame, "RAID_BOSS_EMOTE")
 				DisableEvent(RaidBossEmoteFrame, "RAID_BOSS_WHISPER")
 				DisableEvent(RaidBossEmoteFrame, "CLEAR_BOSS_EMOTES")
-				SOUNDKIT.UI_RAID_BOSS_WHISPER_WARNING = 999999--Since blizzard can still play the sound via RaidBossEmoteFrame_OnEvent (line 148) via encounter scripts in certain cases despite the frame having no registered events
+				MuteSoundFile(567394) -- SOUNDKIT.RAID_BOSS_EMOTE_WARNING
+				MuteSoundFile(876098) -- SOUNDKIT.UI_RAID_BOSS_WHISPER_WARNING
 			end
 			if self.Options.HideGarrisonToasts or custom then
 				DisableEvent(AlertFrame, "GARRISON_MISSION_FINISHED")
@@ -7311,7 +7361,8 @@ do
 				EnableEvent(RaidBossEmoteFrame, "RAID_BOSS_EMOTE")
 				EnableEvent(RaidBossEmoteFrame, "RAID_BOSS_WHISPER")
 				EnableEvent(RaidBossEmoteFrame, "CLEAR_BOSS_EMOTES")
-				SOUNDKIT.UI_RAID_BOSS_WHISPER_WARNING = 37666--restore it
+				UnmuteSoundFile(567394) -- SOUNDKIT.RAID_BOSS_EMOTE_WARNING
+				UnmuteSoundFile(876098) -- SOUNDKIT.UI_RAID_BOSS_WHISPER_WARNING
 			end
 			if self.Options.HideGarrisonToasts then
 				EnableEvent(AlertFrame, "GARRISON_MISSION_FINISHED")
@@ -7775,7 +7826,7 @@ do
 		if uId then--This version includes ONLY melee dps
 			local name = GetUnitName(uId, true)
 			--First we check if we have acccess to specID (ie remote player is using DBM or Bigwigs)
-			if (private.isRetail or private.isCata) and raid[name] and raid[name].specID then--We know their specId
+			if (private.isRetail or private.isCata or private.isMop) and raid[name] and raid[name].specID then--We know their specId
 				local specID = raid[name].specID
 				return private.specRoleTable[specID]["MeleeDps"]
 			else
@@ -7826,7 +7877,7 @@ do
 			end
 			--Now we check if we have acccess to specID (ie remote player is using DBM or Bigwigs)
 			local name = GetUnitName(uId, true)
-			if (private.isRetail or private.isCata) and raid[name] and raid[name].specID then--We know their specId
+			if (private.isRetail or private.isCata or private.isMop) and raid[name] and raid[name].specID then--We know their specId
 				local specID = raid[name].specID
 				return private.specRoleTable[specID]["Melee"]
 			else
@@ -7862,7 +7913,7 @@ do
 	function DBM:IsRanged(uId)
 		if uId then
 			local name = GetUnitName(uId, true)
-			if (private.isRetail or private.isCata) and raid[name] and raid[name].specID then--We know their specId
+			if (private.isRetail or private.isCata or private.isMop) and raid[name] and raid[name].specID then--We know their specId
 				local specID = raid[name].specID
 				return private.specRoleTable[specID]["Ranged"]
 			else
@@ -7881,7 +7932,7 @@ do
 	function bossModPrototype:IsSpellCaster(uId)
 		if uId then
 			local name = GetUnitName(uId, true)
-			if (private.isRetail or private.isCata) and raid[name] and raid[name].specID then--We know their specId
+			if (private.isRetail or private.isCata or private.isMop) and raid[name] and raid[name].specID then--We know their specId
 				local specID = raid[name].specID
 				return private.specRoleTable[specID]["SpellCaster"]
 			else
@@ -7899,7 +7950,7 @@ do
 	function bossModPrototype:IsMagicDispeller(uId)
 		if uId then
 			local name = GetUnitName(uId, true)
-			if (private.isRetail or private.isCata) and raid[name] and raid[name].specID then--We know their specId
+			if (private.isRetail or private.isCata or private.isMop) and raid[name] and raid[name].specID then--We know their specId
 				local specID = raid[name].specID
 				return private.specRoleTable[specID]["MagicDispeller"]
 			else
@@ -9181,7 +9232,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20250529025737" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20250812032004" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then

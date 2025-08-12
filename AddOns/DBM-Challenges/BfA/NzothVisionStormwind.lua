@@ -1,17 +1,17 @@
 local mod	= DBM:NewMod("d1993", "DBM-Challenges", 2)--1993 Stormwind 1995 Org
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250527223641")
+mod:SetRevision("20250805031427")
 
 mod:RegisterCombat("scenario", 2213, 2827)
 mod:RegisterZoneCombat(2827)
 
 mod:RegisterEventsInCombat(
-	"SPELL_CAST_START 308278 309819 309648 298691 308669 308366 308406 311456 296911 296537 308481 308575 298033 308375 309882 309671 308305 311399 297315 308998 308265 296669 307870 296718",
+	"SPELL_CAST_START 308278 309819 309648 298691 308669 308366 308406 311456 296911 296537 308481 308575 298033 308375 309882 309671 308305 311399 297315 308998 308265 296669 307870 296718 1231047 1223112 308801",
 	"SPELL_AURA_APPLIED 311390 315385 311641 308380 308366 308265 308998",--316481
 	"SPELL_AURA_APPLIED_DOSE 311390",
 	"SPELL_AURA_REMOVED 308998 298033",
-	"SPELL_CAST_SUCCESS 309035",
+	"SPELL_CAST_SUCCESS 309035 1223112 1223111 308308 308865 298033",
 	"SPELL_PERIODIC_DAMAGE 312121 296674 308807 313303",
 	"SPELL_PERIODIC_MISSED 312121 296674 308807 313303",
 	"SPELL_INTERRUPT",
@@ -25,6 +25,9 @@ mod:RegisterEventsInCombat(
 
 --TODO, maybe add https://ptr.wowhead.com/spell=292021/madness-leaden-foot#see-also-other affix? just depends on warning to stop moving can be counter to a stacked affix
 --TODO, see if target scanning will work on Entropic Leap
+--TODO, Brutal Smash CD is a prioroty but needs more data
+--TODO, Touch of the Abyss CD is prioirty but needs more data
+--TODO, mental assault CD? also needs more data
 --NOTE: Alleria does not have RP timer because it has early termination based on proximity. Full rp is 14.4 seconds, but she'll end it early if you're in melee range (takes about 2 sec to trigger)
 --General
 local warnSanity				= mod:NewCountAnnounce(307831, 3)
@@ -44,7 +47,8 @@ local warnEntropicLeap			= mod:NewCastAnnounce(308406, 3)
 local warnConvert				= mod:NewTargetNoFilterAnnounce(308380, 3)
 local warnImprovedMorale		= mod:NewTargetNoFilterAnnounce(308998, 3)
 local warnTouchoftheAbyss		= mod:NewCastAnnounce(298033, 4)
-local warnBrutalSmash			= mod:NewCastAnnounce(309882, 3)
+local warnViciousSlice			= mod:NewSpellAnnounce(1223111, 3)
+local warnTwistedSummons		= mod:NewSpellAnnounce(308865, 3)
 
 --General (GTFOs and Affixes)
 local specwarnSanity			= mod:NewSpecialWarningCount(307831, nil, nil, nil, 1, 10)
@@ -68,9 +72,9 @@ local specWarnAgonizingTorment	= mod:NewSpecialWarningInterrupt(308366, "HasInte
 local specWarnEntropicMissiles	= mod:NewSpecialWarningInterrupt(309035, "HasInterrupt", nil, nil, 1, 2)
 local specWarnMentalAssault		= mod:NewSpecialWarningInterrupt(296537, "HasInterrupt", nil, nil, 1, 2)
 local specWarnShadowShift		= mod:NewSpecialWarningInterrupt(308575, "HasInterrupt", nil, nil, 1, 2)
-local specWarnTouchoftheAbyss	= mod:NewSpecialWarningInterrupt(298033, "HasInterrupt", nil, nil, 1, 2)
+local specWarnTouchoftheAbyss	= mod:NewSpecialWarningInterrupt(298033, "HasInterrupt", nil, 2, 3, 2)
 local specWarnPsychicScream		= mod:NewSpecialWarningInterrupt(308375, "HasInterrupt", nil, nil, 1, 2)
-local specWarnImproveMorale		= mod:NewSpecialWarningInterrupt(308998, "HasInterrupt", nil, nil, 1, 2)
+local specWarnImproveMorale		= mod:NewSpecialWarningInterrupt(308998, "HasInterrupt", nil, nil, 1, 2)--possibly 9.7 CD
 local specWarnVoidBuffet		= mod:NewSpecialWarningInterrupt(297315, "HasInterrupt", nil, nil, 1, 2)
 local specWarnBladeFlourish		= mod:NewSpecialWarningRun(311399, nil, nil, nil, 4, 2)
 local specWarnRoaringBlast		= mod:NewSpecialWarningDodge(311456, nil, nil, nil, 2, 15)
@@ -81,6 +85,10 @@ local specWarnBlightEruption	= mod:NewSpecialWarningMoveAway(308305, nil, nil, n
 local yellBlightEruption		= mod:NewYell(308305)
 local specWarnRiftStrike		= mod:NewSpecialWarningDodge(308481, nil, nil, nil, 2, 2)
 local specWarnDarkSmash			= mod:NewSpecialWarningDodge(296718, nil, nil, nil, 2, 2)
+local specWarnBrutalSmash		= mod:NewSpecialWarningDodge(309882, nil, nil, nil, 2, 2)
+local specWarnRainofFire		= mod:NewSpecialWarningDodge(308801, nil, nil, nil, 2, 2)
+--Hogger
+local specWarnMaddeningCall		= mod:NewSpecialWarningInterrupt(1223112, "HasInterrupt", nil, 2, 3, 2)
 
 --General
 local timerGiftoftheTitan		= mod:NewBuffFadesTimer(20, 313698, nil, nil, nil, 5)
@@ -96,9 +104,19 @@ local timerExplosiveOrdnanceCD	= mod:NewVarTimer("v20.6-29.1", 305672, nil, nil,
 local timerForgeBreathCD		= mod:NewCDTimer(13.3, 309671, nil, nil, nil, 3)--13.3-14.6
 local timerEntropicMissilesCD	= mod:NewCDTimer(10.1, 309035, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--10.1-17.1
 --Other notable abilities for trash
+local timerEntropicLeapCD		= mod:NewCDTimer(10.1, 308406, nil, nil, nil, 3, nil, nil, nil, nil, nil, nil, nil, nil, nil, true)--Priority CD--Unknown recast time, even with 8 masks this guy usually doesn't live long enough to cast it again
+local timerTouchoftheAbyssCD	= mod:NewCDPNPTimer(12, 298033, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--Insuffiicent data
 local timerTouchoftheAbyss		= mod:NewCastNPTimer(2, 298033, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
-local timerBladeFlourishCD		= mod:NewCDPNPTimer(14.6, 311399, nil, nil, nil, 3)
+local timerBladeFlourishCD		= mod:NewCDTimer(14.6, 311399, nil, nil, nil, 3, nil, nil, nil, nil, nil, nil, nil, nil, nil, true)--Priority CD / 14.6-15.8
+local timerRoaringBlastCD		= mod:NewCDTimer(17, 311456, nil, nil, nil, 3)
 local timerDarkSmashCD			= mod:NewCDNPTimer(7.3, 296718, nil, nil, nil, 3)
+local timerMaddeningCallCD		= mod:NewCDNPTimer(20.7, 1223112, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--Insufficient Data to determine if it goes on CD on cast or cast finish/interrupt
+local timerViciousSliceCD		= mod:NewCDNPTimer(10.9, 1223111, nil, nil, nil, 5)
+local timerPiercingShotCD		= mod:NewCDNPTimer(12.1, 308308, nil, nil, nil, 3)--12.1-13.4
+local timerRiftStrikeCD			= mod:NewCDNPTimer(14.6, 308481, nil, nil, nil, 3)
+local timerChaosBreathCD		= mod:NewCDTimer(13.4, 296911, nil, nil, nil, 3, nil, nil, nil, nil, nil, nil, nil, nil, nil, true)--Priority CD / 13.4-14.6
+local timerRainofFireCD			= mod:NewCDTimer(10.9, 308801, nil, nil, nil, 3)--10.9-13
+local timerTwistedSummonsCD		= mod:NewCDTimer(16.6, 308865, nil, nil, nil, 1)
 
 mod:AddInfoFrameOption(307831, true)
 mod:AddNamePlateOption("NPAuraOnMorale", 308998)
@@ -177,7 +195,7 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 297315 and self:CheckInterruptFilter(args.sourceGUID, false, true) then
 		specWarnVoidBuffet:Show(args.sourceName)
 		specWarnVoidBuffet:Play("kickcast")
-	elseif spellId == 308998 and self:CheckInterruptFilter(args.sourceGUID, false, true) then
+	elseif (spellId == 308998 or spellId == 1231047) and self:CheckInterruptFilter(args.sourceGUID, false, true) then
 		specWarnImproveMorale:Show(args.sourceName)
 		specWarnImproveMorale:Play("kickcast")
 	elseif spellId == 298033 then
@@ -190,21 +208,34 @@ function mod:SPELL_CAST_START(args)
 		timerTouchoftheAbyss:Start(nil, args.sourceGUID)
 	elseif spellId == 308406 then
 		warnEntropicLeap:Show()
-	elseif spellId == 311456 and self:AntiSpam(3, 5) then
-		specWarnRoaringBlast:Show()
-		specWarnRoaringBlast:Play("frontal")
-	elseif spellId == 296911 and self:AntiSpam(3, 5) then
-		specWarnChaosBreath:Show()
-		specWarnChaosBreath:Play("frontal")
+		timerEntropicLeapCD:Start(30, args.sourceGUID)--Placeholder number so we can at least trigger refresh alert on first cast if we need to
+	elseif spellId == 311456 then
+		timerRoaringBlastCD:Start(nil, args.sourceGUID)
+		if self:AntiSpam(3, 5) then
+			specWarnRoaringBlast:Show()
+			specWarnRoaringBlast:Play("frontal")
+		end
+	elseif spellId == 296911 then
+		timerChaosBreathCD:Start(nil, args.sourceGUID)
+		if self:AntiSpam(3, 5) then
+			specWarnChaosBreath:Show()
+			specWarnChaosBreath:Play("frontal")
+		end
 	elseif spellId == 309671 and self:AntiSpam(3, 5) then
 		specWarnForgeBreath:Show()
 		specWarnForgeBreath:Play("frontal")
 		timerForgeBreathCD:Start()
-	elseif spellId == 308481 and self:AntiSpam(5, 3) then
-		specWarnRiftStrike:Show()
-		specWarnRiftStrike:Play("watchstep")
-	elseif spellId == 309882 and self:AntiSpam(5, 3) then
-		warnBrutalSmash:Show()
+	elseif spellId == 308481 then
+		timerRiftStrikeCD:Start(nil, args.sourceGUID)
+		if self:AntiSpam(5, 3) then
+			specWarnRiftStrike:Show()
+			specWarnRiftStrike:Play("watchstep")
+		end
+	elseif spellId == 309882 then
+		if self:AntiSpam(3, 5) then
+			specWarnBrutalSmash:Show()
+			specWarnBrutalSmash:Play("frontal")
+		end
 	elseif spellId == 308305 and GetNumGroupMembers() > 1 and DBM:UnitDebuff("player", 308265) then
 		specWarnBlightEruption:Show()
 		specWarnBlightEruption:Play("runout")
@@ -225,6 +256,18 @@ function mod:SPELL_CAST_START(args)
 			specWarnDarkSmash:Show()
 			specWarnDarkSmash:Play("watchstep")
 		end
+	elseif spellId == 1223112 then
+		if self:CheckInterruptFilter(args.sourceGUID, false, true) then
+			specWarnMaddeningCall:Show(args.sourceName)
+			specWarnMaddeningCall:Play("kickcast")
+		end
+		--timerMaddeningCallCD:Start(nil, args.sourceGUID)
+	elseif spellId == 308801 then
+		timerRainofFireCD:Start(nil, args.sourceGUID)
+		if self:AntiSpam(3, 3) then
+			specWarnRainofFire:Show()
+			specWarnRainofFire:Play("watchstep")
+		end
 	end
 end
 
@@ -233,6 +276,25 @@ function mod:SPELL_CAST_SUCCESS(args)
 	if spellId == 309035 and self:CheckInterruptFilter(args.sourceGUID, false, true) then
 		specWarnEntropicMissiles:Show(args.sourceName)
 		specWarnEntropicMissiles:Play("kickcast")
+	elseif spellId == 1223112 then
+		timerMaddeningCallCD:Start(17.7, args.sourceGUID)--20.7-3
+	elseif spellId == 1223111 then
+		warnViciousSlice:Show()
+		timerViciousSliceCD:Start(nil, args.sourceGUID)
+	elseif spellId == 308308 then
+		timerPiercingShotCD:Start(nil, args.sourceGUID)
+	elseif spellId == 308865 then
+		warnTwistedSummons:Show()
+		timerTwistedSummonsCD:Start(nil, args.sourceGUID)
+	elseif spellId == 298033 then
+		timerTouchoftheAbyssCD:Start(18.6, args.sourceGUID)
+	end
+end
+
+function mod:SPELL_INTERRUPT(args)
+	if type(args.extraSpellId) == "number" and args.extraSpellId == 298033 then
+		timerTouchoftheAbyss:Stop(args.destGUID)
+		timerTouchoftheAbyssCD:Start(18.6, args.destGUID)
 	end
 end
 
@@ -285,8 +347,6 @@ function mod:SPELL_AURA_REMOVED(args)
 		if self.Options.NPAuraOnMorale then
 			DBM.Nameplate:Hide(true, args.destGUID, spellId)
 		end
-	elseif spellId == 298033 then
-		timerTouchoftheAbyss:Stop(args.sourceGUID)
 	end
 end
 
@@ -297,12 +357,6 @@ function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId, spell
 	end
 end
 mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
-
-function mod:SPELL_INTERRUPT(args)
-	if type(args.extraSpellId) == "number" and args.extraSpellId == 298033 then
-		timerTouchoftheAbyss:Stop(args.destGUID)
-	end
-end
 
 function mod:UNIT_DIED(args)
 	local cid = self:GetCIDFromGUID(args.destGUID)
@@ -326,24 +380,59 @@ function mod:UNIT_DIED(args)
 		self.vb.UmbricCleared = true
 	elseif cid == 156795 then--S.I. Informant (Unknownn variant ID for TWW)
 		timerTouchoftheAbyss:Stop(args.destGUID)
-	elseif cid == 156949 then--Alleyway bladeflourish guy
+		timerTouchoftheAbyssCD:Stop(args.destGUID)
+	elseif cid == 156949 then--Armsmaster Terenson
 		timerBladeFlourishCD:Stop(args.destGUID)
+		timerRoaringBlastCD:Stop(args.destGUID)
 	elseif cid == 152987 then
 		timerDarkSmashCD:Stop(args.destGUID)
+	elseif cid == 239437 then--Hogger
+		timerMaddeningCallCD:Stop(args.destGUID)
+		timerViciousSliceCD:Stop(args.destGUID)
+	elseif cid == 158158 then--Forge-Guard Hurrul
+		timerEntropicLeapCD:Stop(args.destGUID)
+	elseif cid == 158092 then--Fallen Heartpiercer
+		timerPiercingShotCD:Stop(args.destGUID)
+	elseif cid == 158146 then--Fallen Riftwalker
+		timerRiftStrikeCD:Stop(args.destGUID)
+	elseif cid == 152939 then--Boundless Corruption
+		timerChaosBreathCD:Stop(args.destGUID)
+	elseif cid == 158371 then--Zardeth of the Black Claw
+		timerRainofFireCD:Stop(args.destGUID)
+		timerTwistedSummonsCD:Stop(args.destGUID)
 	end
 end
 
 --All timers subject to a ~0.5 second clipping due to ScanEngagedUnits
 function mod:StartEngageTimers(guid, cid, delay)
-	if cid == 156949 then
---		timerBladeFlourishCD:Start(14.6-delay, guid)
-	elseif cid == 152987 then
---		timerDarkSmashCD:Start(7.3-delay, guid)
+	if cid == 156949 then--Armsmaster Terenson
+		timerBladeFlourishCD:Start(3.7-delay, guid)
+		timerRoaringBlastCD:Start(9.7-delay, guid)
+--	elseif cid == 152987 then
+--		timerDarkSmashCD:Start(10.8-delay, guid)
+	elseif cid == 156795 then
+		timerTouchoftheAbyssCD:Start(12-delay, guid)
+	elseif (cid == 164189 or cid == 164188) and self:AntiSpam(5, 8) then--Horrific Fragment
+		timerDarkImaginationCD:Start()
+	elseif cid == 239437 then
+		timerViciousSliceCD:Start(6-delay, guid)
+		timerMaddeningCallCD:Start(10-delay, guid)
+	elseif cid == 158158 then--Forge-Guard Hurrul
+		timerEntropicLeapCD:Start(10-delay, guid)
+	elseif cid == 158092 then--Fallen Heartpiercer
+		timerPiercingShotCD:Start(6.6-delay, guid)--6.6-12 (could be even sooner or later too?)
+	elseif cid == 158146 then--Fallen Riftwalker
+		timerRiftStrikeCD:Start(4.8-delay, guid)
+	elseif cid == 152939 then--Boundless Corruption
+		timerChaosBreathCD:Start(6-delay, guid)
+	elseif cid == 158371 then--Zardeth of the Black Claw
+		timerRainofFireCD:Start(7.2-delay, guid)
+		timerTwistedSummonsCD:Start(9.7-delay, guid)
 	end
 end
 
 --Abort timers when all players out of combat, so NP timers clear on a wipe
---Caveat, it won't calls top with GUIDs, so while it might terminate bar objects, it may leave lingering nameplate icons
+--Caveat, it won't call stop with GUIDs, so while it might terminate bar objects, it may leave lingering nameplate icons
 function mod:LeavingZoneCombat()
 	self:Stop(true)
 end
@@ -360,27 +449,34 @@ function mod:ENCOUNTER_START(encounterID)
 			timerTaintedPolymorphCD:Start(14.8)
 		end
 	elseif encounterID == 2374 or encounterID == 3082 then--Therum Deepforge
-		timerExplosiveOrdnanceCD:Start(2.4)
-		timerForgeBreathCD:Start(8.5)
+		local unitID, GUID = DBM:GetUnitIdFromCID(233679)--Therum Deepforge
+		if unitID then
+			GUID = UnitGUID(unitID)
+			timerExplosiveOrdnanceCD:Start(2.4, GUID)
+			timerForgeBreathCD:Start(8.5, GUID)
+		else
+			timerExplosiveOrdnanceCD:Start(2.4)
+			timerForgeBreathCD:Start(8.5)
+		end
 	end
 end
 
 --None of these boss abilities are in combat log
 function mod:UNIT_SPELLCAST_SUCCEEDED_UNFILTERED(uId, _, spellId)
 	if (spellId == 305708 or spellId == 312260) and self:AntiSpam(2, 1) then--First one is mini boss second is alleria
-		local cid = self:GetUnitCreatureId(uId)
-		self:SendSync("ExplosiveOrd", cid)
+		local cid, guid = self:GetUnitCreatureId(uId), UnitGUID(uId)
+		self:SendSync("ExplosiveOrd", cid, guid)
 	elseif spellId == 309035 and self:AntiSpam(2, 1) then
 		self:SendSync("EntropicMissiles")
 	elseif spellId == 311530 and self:AntiSpam(2, 1) then
 		self:SendSync("SeekandDestroy")
 	elseif spellId == 308681 and self:AntiSpam(2, 1) then
 		self:SendSync("SummonEye")
-	elseif spellId == 18950 and self:AntiSpam(2, 6) then
-		local cid = self:GetUnitCreatureId(uId)
-		if cid == 164189 or cid == 164188 then
-			self:SendSync("DarkImagination")
-		end
+	--elseif spellId == 18950 and self:AntiSpam(2, 6) then
+	--	local cid = self:GetUnitCreatureId(uId)
+	--	if cid == 164189 or cid == 164188 then
+	--		self:SendSync("DarkImagination")
+	--	end
 	end
 end
 
@@ -433,14 +529,18 @@ function mod:UNIT_POWER_UPDATE(uId)
 	end
 end
 
-function mod:OnSync(msg, creatureId)
+function mod:OnSync(msg, creatureId, guid)
 	if not self:IsInCombat() then return end
 	if msg == "ExplosiveOrd" then
 		creatureId = tonumber(creatureId)
 		warnExplosiveOrdnance:Show()
 		if creatureId then
 			local timer = (creatureId == 233679 or creatureId == 156577) and 12.1 or 29.1
-			timerExplosiveOrdnanceCD:Start(timer)
+			if guid then
+				timerExplosiveOrdnanceCD:Start(timer, guid)
+			else
+				timerExplosiveOrdnanceCD:Start(timer)
+			end
 		end
 	elseif msg == "EntropicMissiles" then
 		warnEntropicMissiles:Show()
@@ -449,7 +549,7 @@ function mod:OnSync(msg, creatureId)
 		warnSeekAndDestroy:Show()
 	elseif msg == "SummonEye" then
 		warnSummonEyeofChaos:Show()
-	elseif msg == "DarkImagination" then
-		timerDarkImaginationCD:Start()
+	--elseif msg == "DarkImagination" then
+	--	timerDarkImaginationCD:Start()
 	end
 end

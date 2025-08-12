@@ -1,4 +1,4 @@
-## Interface: 110105, 110107
+## Interface: 110200
 ## Category: DBM
 ## Title:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Options GUI|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0设置界面|r
@@ -11,10 +11,10 @@
 ## LoadOnDemand: 1
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 11.1.19
+## Version: 11.2.7
 ## X-Website: https://deadlybossmods.com
+## Category-zhTW: 團隊
 ## Category-zhTW: 副本
-
 Polyfills.xml
 
 localization.en.lua
@@ -64,3 +64,5 @@ modules\options\frames\Range.lua
 modules\options\frames\Nameplate.lua
 
 modules\options\dev\Dev.lua
+
+modules\options\tools.lua

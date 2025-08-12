@@ -1,4 +1,4 @@
-## Interface: 110105, 110107
+## Interface: 110200
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (SL)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領-暗影之境|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0队伍首领 (暗影国度)|r
@@ -19,14 +19,22 @@
 ## X-DBM-Mod-MapID: 2286, 2289, 2290, 2287, 2285, 2293, 2291, 2284, 2441
 ## X-DBM-Mod-MinCoreRevision: 17286
 ## X-DBM-Mod-MinExpansion: 8
+## Category-zhTW: 團隊
 ## Category-zhTW: 副本
-
 localization.en.lua
 localization.tw.lua
 localization.cn.lua
-TheaterofPain\AffrontofChallengers.lua
-TheaterofPain\Gorechop.lua
-TheaterofPain\XavtheUnfallen.lua
-TheaterofPain\Kultharok.lua
-TheaterofPain\Mordretha.lua
-TheaterofPain\TheaterofPainTrash.lua
+HallsofAtonement\Halkias.lua
+HallsofAtonement\Echelon.lua
+HallsofAtonement\HighAdjudicatorAleez.lua
+HallsofAtonement\LordChamberlain.lua
+HallsofAtonement\AtonementTrash.lua
+Tazavesh\ZophextheSentinel.lua
+Tazavesh\TheMenagerie.lua
+Tazavesh\MailroomMayhem.lua
+Tazavesh\MyzasOasis.lua
+Tazavesh\Soazmi.lua
+Tazavesh\Hylbrande.lua
+Tazavesh\TimecapnHooktail.lua
+Tazavesh\Soleah.lua
+Tazavesh\TazaveshTrash.lua
