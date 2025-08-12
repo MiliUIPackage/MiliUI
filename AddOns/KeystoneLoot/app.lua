@@ -4,7 +4,7 @@ local Translate = KeystoneLoot.Translate;
 
 
 function KeystoneLoot:GetSeasonId()
-	return 14; -- 14 = TWW Season 2
+	return 15; -- 15 = TWW Season 3
 end
 
 local _slotList = { INVTYPE_HEAD, INVTYPE_NECK, INVTYPE_SHOULDER, INVTYPE_CLOAK, INVTYPE_CHEST, INVTYPE_WRIST, INVTYPE_HAND, INVTYPE_WAIST, INVTYPE_LEGS, INVTYPE_FEET, INVTYPE_WEAPONMAINHAND, INVTYPE_WEAPONOFFHAND, INVTYPE_FINGER, INVTYPE_TRINKET, EJ_LOOT_SLOT_FILTER_OTHER }
@@ -22,10 +22,12 @@ function KeystoneLoot:ShowExportDialog()
 			OnAccept = function(self) end,
 			OnShow = function(self)
 				self.popupElapsed = 1;
+				if (self.editBox == nil) then
+					self.editBox = _G[self:GetName().."EditBox"];
+				end
 			end,
 			OnHide = function(self)
 				ChatEdit_FocusActiveWindow();
-				self.editBox:SetText('');
 				self.popupElapsed = nil;
 			end,
 			OnUpdate = function(self, elapsed)
@@ -60,15 +62,19 @@ function KeystoneLoot:ShowImportDialog()
 			button3 = CANCEL,
 			hasEditBox = 1,
 			editBoxWidth = 350,
+			OnShow = function(self)
+				if (self.editBox == nil) then
+					self.editBox = _G[self:GetName().."EditBox"];
+				end
+			end,
 			OnHide = function(self)
 				ChatEdit_FocusActiveWindow();
-				self.editBox:SetText("");
 			end,
 			OnAccept = function(self)
-				print(KeystoneLoot:ImportFavorites(self.editBox:GetText(), false));
+				KeystoneLoot:ImportFavorites(self.editBox:GetText(), false);
 			end,
 			OnCancel = function(self)
-				print(KeystoneLoot:ImportFavorites(self.editBox:GetText(), true));
+				KeystoneLoot:ImportFavorites(self.editBox:GetText(), true);
 			end,
 			OnAlt = function(self) end,
 			EditBoxOnEnterPressed = function(self)
