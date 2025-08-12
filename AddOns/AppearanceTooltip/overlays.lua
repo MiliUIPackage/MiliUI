@@ -70,6 +70,10 @@ local function IsRelevantItem(link)
             if C_MountJournal and C_MountJournal.GetMountFromItem(itemID) then
                 return true
             end
+            local petID = C_PetJournal and C_PetJournal.GetPetInfoByItemID and select(13, C_PetJournal.GetPetInfoByItemID(itemID))
+            if petID then
+                return true
+            end
         end
     end
     return IsDressableItem(link)
@@ -159,11 +163,32 @@ else
     end
 end
 
-hooksecurefunc("BankFrameItemButton_Update", function(button)
-    if not button.isBag then
-        UpdateContainerButton(button, -1)
+-- Main bank frame, bankbags are covered by containerframe above
+if _G.BankFrameItemButton_Update then
+    -- pre-11.2.0 bank
+    hooksecurefunc("BankFrameItemButton_Update", function(button)
+        if not button.isBag then
+            UpdateContainerButton(button, -1)
+        end
+    end)
+end
+
+do
+    local function hookBankPanel(panel)
+        if not panel then return end
+        local update = function(frame)
+            for itemButton in frame:EnumerateValidItems() do
+                UpdateContainerButton(itemButton, itemButton:GetBankTabID(), itemButton:GetContainerSlotID())
+            end
+        end
+        -- Initial load and switching tabs
+        hooksecurefunc(panel, "GenerateItemSlotsForSelectedTab", update)
+        -- Moving items
+        hooksecurefunc(panel, "RefreshAllItemsForSelectedTab", update)
     end
-end)
+    hookBankPanel(_G.BankPanel) -- added in 11.2.0
+    hookBankPanel(_G.AccountBankPanel) -- removed in 11.2.0
+end
 
 -- Merchant frame
 
@@ -408,7 +433,7 @@ f:RegisterAddonHook("AdiBags", function()
     local AdiBags = AA and AA:GetAddon("AdiBags", true)
     if not AdiBags then return end
     local filter = AdiBags:RegisterFilter("Appearance Unknown", 86, "ABEvent-1.0")
-    filter.uiName = "未收藏外觀"
+    filter.uiName = "Unknown appearance"
     filter.uiDesc = TRANSMOGRIFY_TOOLTIP_APPEARANCE_UNKNOWN
 
     function filter:OnInitialize()
@@ -434,14 +459,14 @@ f:RegisterAddonHook("AdiBags", function()
             IsDressableItem(slotData.link) and
             ns.CanTransmogItem(slotData.link)
         then
-            return appropriateItem and "未收藏外觀" or "未收藏外觀 (其他職業)"
+            return appropriateItem and "Appearance Unknown" or "Appearance Unknown (other class)"
         end
     end
     function filter:GetOptions()
         return {
             other = {
-                name = "無法使用的物品",
-                desc = "包含當前角色無法使用的物品",
+                name = "Unlearnable items",
+                desc = "Include items that the current character can't learn",
                 type = "toggle",
                 order = 60,
             },

@@ -1,7 +1,7 @@
 # AppearanceTooltip
 
-## [v57](https://github.com/kemayo/wow-appearancetooltip/tree/v57) (2025-02-28)
-[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v56...v57) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
+## [v63](https://github.com/kemayo/wow-appearancetooltip/tree/v63) (2025-08-09)
+[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v62...v63) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
 
-- Bump TOC and add a category  
-- Add Earthen race id  
+- Fix pet-related error in classic  
+    It has C\_PetJournal for some reason...  

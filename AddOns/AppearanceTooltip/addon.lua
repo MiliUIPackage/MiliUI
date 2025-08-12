@@ -12,6 +12,9 @@ local LAI = LibStub("LibAppropriateItems-1.0")
 -- minor compat:
 local IsDressableItem = _G.IsDressableItem or C_Item.IsDressableItemByID
 
+ns.CLASSIC = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE -- rolls forward
+ns.CLASSICERA = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC -- forever vanilla
+
 local tooltip = CreateFrame("Frame", "AppearanceTooltipTooltip", UIParent, "TooltipBorderedFrameTemplate")
 tooltip:SetClampedToScreen(true)
 tooltip:SetFrameStrata("TOOLTIP")
@@ -23,8 +26,6 @@ tooltip:SetScript("OnEvent", function(self, event, ...)
 end)
 tooltip:RegisterEvent("ADDON_LOADED")
 tooltip:RegisterEvent("PLAYER_LOGIN")
-tooltip:RegisterEvent("PLAYER_REGEN_DISABLED")
-tooltip:RegisterEvent("PLAYER_REGEN_ENABLED")
 
 function tooltip:ADDON_LOADED(addon)
     if addon ~= myname then return end
@@ -37,17 +38,17 @@ function tooltip:ADDON_LOADED(addon)
         zoomWorn = true, -- zoom in on the item in question
         zoomHeld = true, -- zoom in on weapons
         zoomMasked = false, -- use the transmog mask while zoomed
-        dressed = false, -- whether the model should be wearing your current outfit, or be naked
+        dressed = true, -- whether the model should be wearing your current outfit, or be naked
         uncover = true, -- remove clothing to expose the previewed item
         customModel = false, -- use a model other than your current class, and if so:
         modelRace = 7, -- raceid (1:human)
         modelGender = 1, -- 0:male, 1:female
         notifyKnown = true, -- show text explaining the transmog state of the item previewed
         currentClass = false, -- only show for items the current class can transmog
-        anchor = "horizontal", -- vertical / horizontal
+        anchor = "vertical", -- vertical / horizontal
         byComparison = true, -- whether to show by the comparison, or fall back to vertical if needed
         tokens = true, -- try to preview tokens?
-        learnable = true, -- show for other learnable items (toys, mounts)
+        learnable = true, -- show for other learnable items (toys, mounts, pets)
         bags = true,
         bags_unbound = true,
         merchant = true,
@@ -55,7 +56,6 @@ function tooltip:ADDON_LOADED(addon)
         encounterjournal = true,
         setjournal = true,
         alerts = true,
-        appearances_known = {},
     })
     db = _G[myname.."DB"]
     ns.db = db
@@ -72,29 +72,39 @@ function tooltip:PLAYER_LOGIN()
     C_CVar.SetCVar("missingTransmogSourceInItemTooltips", "1")
 end
 
-function tooltip:PLAYER_REGEN_ENABLED()
-    if self:IsShown() and db.mousescroll then
-        SetOverrideBinding(tooltip, true, "MOUSEWHEELUP", "AppearanceKnown_TooltipScrollUp")
-        SetOverrideBinding(tooltip, true, "MOUSEWHEELDOWN", "AppearanceKnown_TooltipScrollDown")
+do
+    local scrollup = CreateFrame("Button", "AppearanceTooltipScrollUpButton", tooltip)
+    scrollup:SetScript("OnClick", function(self, button, down)
+        tooltip.activeModel:SetFacing(tooltip.activeModel:GetFacing() + 0.3)
+    end)
+    local scrolldown = CreateFrame("Button", "AppearanceTooltipScrollDownButton", tooltip)
+    scrolldown:SetScript("OnClick", function(self, button, down)
+        tooltip.activeModel:SetFacing(tooltip.activeModel:GetFacing() - 0.3)
+    end)
+
+    local function ClearBindings()
+        if InCombatLockdown() then return end
+        ClearOverrideBindings(tooltip)
     end
+
+    function tooltip:UpdateMouseBinding(event, unit)
+        if InCombatLockdown() then return end
+        if db.mousescroll and (event ~= "PLAYER_REGEN_DISABLED") and tooltip:IsVisible() then
+            SetOverrideBindingClick(tooltip, true, "MOUSEWHEELUP", scrollup:GetName())
+            SetOverrideBindingClick(tooltip, true, "MOUSEWHEELDOWN", scrolldown:GetName())
+        else
+            ClearOverrideBindings(tooltip)
+        end
+    end
+
+    local frame = CreateFrame("Frame", nil, tooltip)
+    frame:SetScript("OnShow", tooltip.UpdateMouseBinding)
+    frame:SetScript("OnHide", ClearBindings)
+
+    frame:SetScript("OnEvent", tooltip.UpdateMouseBinding)
+    frame:RegisterEvent("PLAYER_REGEN_ENABLED")
+    frame:RegisterEvent("PLAYER_REGEN_DISABLED")
 end
-
-function tooltip:PLAYER_REGEN_DISABLED()
-    ClearOverrideBindings(tooltip)
-end
-
-tooltip:SetScript("OnShow", function(self)
-    if db.mousescroll and not InCombatLockdown() then
-        SetOverrideBinding(tooltip, true, "MOUSEWHEELUP", "AppearanceKnown_TooltipScrollUp")
-        SetOverrideBinding(tooltip, true, "MOUSEWHEELDOWN", "AppearanceKnown_TooltipScrollDown")
-    end
-end);
-
-tooltip:SetScript("OnHide",function(self)
-    if not InCombatLockdown() then
-        ClearOverrideBindings(tooltip);
-    end
-end)
 
 local function makeModel()
     local model = CreateFrame("DressUpModel", nil, tooltip)
@@ -131,7 +141,7 @@ classwarning:SetPoint("TOPLEFT", tooltip, "TOPLEFT", 6, -12)
 classwarning:SetPoint("TOPRIGHT", tooltip, "TOPRIGHT", -6, -12)
 -- ITEM_WRONG_CLASS = "That item can't be used by players of your class!"
 -- STAT_USELESS_TOOLTIP = "|cff808080Provides no benefit for your class|r"
-classwarning:SetText("你的職業無法使用這個物品塑形")
+classwarning:SetText("Your class can't transmogrify this item")
 classwarning:Show()
 
 -- Ye showing:
@@ -375,6 +385,7 @@ function ns:ShowItem(link, for_tooltip)
         for itemid, tclass, relevant in LAT:IterateItemsForToken(id) do
             found = found or itemid
             if relevant then
+                found = itemid -- make *sure* the item shown is a relevant one, if one exists
                 AddItemToTooltip(itemid, for_tooltip, tclass == class and class_colored or tclass)
             else
                 counts[tclass] = (counts[tclass] or 0) + 1
@@ -407,27 +418,24 @@ function ns:ShowItem(link, for_tooltip)
         local appropriateItem = LAI:IsAppropriate(id)
 
         if self.slot_facings[slot] and IsDressableItem(id) and (not db.currentClass or appropriateItem) then
-            local model
-            local cameraID, itemCamera
-            if db.zoomWorn or db.zoomHeld then
-                cameraID, itemCamera = self:GetCameraID(id, db.customModel and db.modelRace, db.customModel and db.modelGender)
-            end
+            local model, cameraID
+            local isHeld = self.slot_held[slot]
+            local shouldZoom = (db.zoomWorn and not isHeld) or (db.zoomHeld and isHeld)
+            local appearanceID = C_TransmogCollection.GetItemInfo(link) or C_TransmogCollection.GetItemInfo(id)
 
             tooltip.model:Hide()
             tooltip.modelZoomed:Hide()
             tooltip.modelWeapon:Hide()
 
-            local shouldZoom = (db.zoomHeld and cameraID and itemCamera) or (db.zoomWorn and cameraID and not itemCamera)
-
             if shouldZoom then
-                if itemCamera then
+                cameraID = appearanceID and C_TransmogCollection.GetAppearanceCameraID(appearanceID)
+                -- Classic Era always returns 0, in which case a non-truthy value gets better results:
+                if cameraID == 0 then cameraID = nil end
+            end
+
+            if cameraID then
+                if isHeld then
                     model = tooltip.modelWeapon
-                    local appearanceID = C_TransmogCollection.GetItemInfo(link)
-                    if appearanceID then
-                        model:SetItemAppearance(appearanceID)
-                    else
-                        model:SetItem(id)
-                    end
                 else
                     model = tooltip.modelZoomed
                     model:SetUseTransmogSkin(db.zoomMasked and slot ~= "INVTYPE_HEAD")
@@ -472,9 +480,17 @@ function ns:ShowItem(link, for_tooltip)
                     end
                 end
             end
-            C_Timer.After(0, function()
+
+            -- Finally set the item onto the model
+            if isHeld and shouldZoom then
+                if appearanceID then
+                    model:SetItemAppearance(appearanceID)
+                else
+                    model:SetItem(id)
+                end
+            else
                 model:TryOn(link)
-            end)
+            end
         else
             tooltip:Hide()
         end
@@ -584,6 +600,17 @@ ns.slot_facings = {
     INVTYPE_NON_EQUIP_IGNORE = 0,
 }
 
+ns.slot_held = {
+    INVTYPE_2HWEAPON = true,
+    INVTYPE_WEAPON = true,
+    INVTYPE_WEAPONMAINHAND = true,
+    INVTYPE_WEAPONOFFHAND = true,
+    INVTYPE_RANGED = true,
+    INVTYPE_RANGEDRIGHT = true,
+    INVTYPE_HOLDABLE = true,
+    INVTYPE_SHIELD = true,
+}
+
 ns.modifiers = {
     Shift = IsShiftKeyDown,
     Ctrl = IsControlKeyDown,
@@ -593,7 +620,7 @@ ns.modifiers = {
 
 -- Utility fun
 
---/dump C_Transmog.GetItemInfo(C_Item.GetItemInfoInstant(""))
+--/dump C_Transmog.CanTransmogItem(C_Item.GetItemInfoInstant(""))
 function ns.CanTransmogItem(itemLink)
     local itemID = C_Item.GetItemInfoInstant(itemLink)
     if itemID then
@@ -619,12 +646,18 @@ function ns.PlayerHasAppearance(itemLinkOrID)
         return ns.CheckTooltipFor(itemID, ITEM_SPELL_KNOWN), false, true
     end
     if db.learnable then
-        if C_MountJournal and classID == Enum.ItemClass.Miscellaneous and subclassID == Enum.ItemMiscellaneousSubclass.Mount then
-            local mountID = C_MountJournal.GetMountFromItem(itemID)
+        if classID == Enum.ItemClass.Miscellaneous and subclassID == Enum.ItemMiscellaneousSubclass.Mount then
+            if ns.CLASSICERA then return GetItemCount(itemID, true) > 0 end
+            local mountID = C_MountJournal and C_MountJournal.GetMountFromItem(itemID)
             return mountID and (select(11, C_MountJournal.GetMountInfoByID(mountID))), false, true
         end
         if C_ToyBox and C_ToyBox.GetToyInfo(itemID)  then
             return PlayerHasToy(itemID), false, true
+        end
+        if classID == Enum.ItemClass.Miscellaneous and subclassID == Enum.ItemMiscellaneousSubclass.CompanionPet then
+            if ns.CLASSICERA then return GetItemCount(itemID, true) > 0 end
+            local petID = C_PetJournal and select(13, C_PetJournal.GetPetInfoByItemID(itemID))
+            return petID and C_PetJournal.GetNumCollectedInfo(petID) > 0, false, true
         end
     end
     local appearanceID, sourceID = C_TransmogCollection.GetItemInfo(itemLinkOrID)

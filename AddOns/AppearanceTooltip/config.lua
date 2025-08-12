@@ -20,7 +20,7 @@ local function checkboxOnEnter(self)
 end
 
 local function newCheckbox(parent, key, label, description, getValue, setValue)
-    local check = CreateFrame("CheckButton", "AppearanceTooltipOptionsCheck" .. key, parent, "InterfaceOptionsCheckButtonTemplate")
+    local check = CreateFrame("CheckButton", "AppearanceTooltipOptionsCheck" .. key, parent, "OptionsBaseCheckButtonTemplate")
 
     check.key = key
     check.GetValue = getValue or checkboxGetValue
@@ -103,11 +103,11 @@ do
     local panel = CreateFrame("Frame", nil, InterfaceOptionsFramePanelContainer)
     panel:Hide()
     panel:SetAllPoints()
-    panel.name = "塑形預覽"
+    panel.name = myname
 
     local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
-    title:SetText("塑形外觀預覽")
+    title:SetText(panel.name)
 
     local subText = panel:CreateFontString(nil, 'ARTWORK', 'GameFontHighlightSmall')
     subText:SetMaxLines(3)
@@ -116,35 +116,40 @@ do
     subText:SetJustifyH('LEFT')
     subText:SetPoint('TOPLEFT', title, 'BOTTOMLEFT', 0, -8)
     subText:SetPoint('RIGHT', -32, 0)
-    subText:SetText("這些選項可以調整如何顯示滑鼠提示的外觀預覽")
+    subText:SetText("These options let you control how the appearance tooltip is shown")
 
-    local dressed = newCheckbox(panel, 'dressed', '穿上所有衣服 (不要脫光)', "同時顯示要預覽的物品，以及目前身上所穿的裝備。")
-    local uncover = newCheckbox(panel, 'uncover', '不要遮住預覽的物品', "移除會遮住的衣物，讓目前正要預覽的物品可以完整呈現。")
-    local mousescroll = newCheckbox(panel, 'mousescroll', '使用滑鼠滾輪旋轉', "使用滑鼠滾輪旋轉預覽模特兒。")
-    local spin = newCheckbox(panel, 'spin', '自動旋轉', "預覽模型顯示時會持續旋轉。")
-    local notifyKnown = newCheckbox(panel, 'notifyKnown', '顯示是否已收藏', "顯示你是否已經收集到這個外觀。")
-    local currentClass = newCheckbox(panel, 'currentClass', '只預覽當前角色可用的物品', "只有當前角色可以收集外觀的物品才顯示預覽。")
-    local byComparison = newCheckbox(panel, 'byComparison', '在裝備比較旁邊顯示', "有裝備比較的滑鼠提示說明時，在旁邊顯示預覽 (比較不容易重疊)。")
-    local tokens = newCheckbox(panel, 'tokens', '預覽套裝兌換物品', "滑鼠指向可以用來兌換套裝的物品時顯示裝備預覽。")
-    local alerts = newCheckbox(panel, 'alerts', '收藏新外觀時要通知', "每次學習到新外觀時要彈出通知 (例如只能在貿易站買到的外觀)")
+    local dressed = newCheckbox(panel, 'dressed', 'Wear your clothes', "Show the model wearing your current outfit, apart from the previewed item")
+    local uncover = newCheckbox(panel, 'uncover', 'Uncover previewed item', "Remove clothes that would hide the item you're trying to preview")
+    local mousescroll = newCheckbox(panel, 'mousescroll', 'Rotate with mousewheel', "Use the mousewheel to rotate the model in the tooltip")
+    local spin = newCheckbox(panel, 'spin', 'Spin model', "Constantly spin the model while it's displayed")
+    local notifyKnown = newCheckbox(panel, 'notifyKnown', 'Display transmog information', "Display a label showing whether you know the item appearance already")
+    local currentClass = newCheckbox(panel, 'currentClass', 'Current character only', "Only show previews on items that the current character can collect")
+    local byComparison = newCheckbox(panel, 'byComparison', 'Show by comparison tooltip', "If the comparison tooltip is shown where the preview would want to be, show next to it (this makes it *much* less likely you'll have the preview overlap your cursor)")
+    local tokens = newCheckbox(panel, 'tokens', 'Previews for tokens', "Show previews for the items which various tokens can be turned in for when mousing over the token")
+    local alerts = newCheckbox(panel, 'alerts', 'Alert when you learn a new appearance', "Show an alert popup for every new appearance that you learn (like the ones that otherwise only show when you buy something at the Trading Post)")
 
+    local zoomWorn = newCheckbox(panel, 'zoomWorn', 'Zoom on worn items', "Zoom in on the part of your model which wears the item")
+    local zoomHeld = newCheckbox(panel, 'zoomHeld', 'Zoom on held items', "Zoom in on the held item being previewed, without seeing your character")
+    local zoomMasked = newCheckbox(panel, 'zoomMasked', 'Mask out model while zoomed', "Hide the details of your player model while you're zoomed (like the transmog wardrobe does)")
 
-    local zoomWorn = newCheckbox(panel, 'zoomWorn', '放大穿著部位', "放大預覽模特兒穿著這個物品的部位。")
-    local zoomHeld = newCheckbox(panel, 'zoomHeld', '放大手持物品', "放大預覽手持的物品，不顯示你的角色。")
-    local zoomMasked = newCheckbox(panel, 'zoomMasked', '放大時淡化模特兒', "放大時不要顯示模特兒的細節 (和塑形時的衣櫃相同)。")
+    if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
+        -- C_TransmogCollection.GetAppearanceCameraID doesn't return anything useful in Classic Era
+        zoomWorn:SetEnabled(false)
+        zoomMasked:SetEnabled(false)
+    end
 
-    local modifier = newDropdown(panel, 'modifier', "按下組合按鍵時才顯示預覽。", {
+    local modifier = newDropdown(panel, 'modifier', "Show preview with modifier key", {
         Alt = "Alt",
         Ctrl = "Ctrl",
         Shift = "Shift",
-        None = "無",
+        None = "None",
     })
     UIDropDownMenu_SetWidth(modifier, 100)
 
-    local anchor = newDropdown(panel, 'anchor', "對齊滑鼠提示的哪個方向，會依據畫面調整顯示位置。", {
-    vertical = "上 / 下",
-    horizontal = "左 / 右",
-})
+    local anchor = newDropdown(panel, 'anchor', "Side of the tooltip to attach to, depending on where on the screen it's showing", {
+        vertical = "top / bottom",
+        horizontal = "left / right",
+    })
     UIDropDownMenu_SetWidth(anchor, 100)
 
     -- local modelBox = newBox(panel, "Custom player model", 48)
@@ -196,10 +201,10 @@ do
     mousescroll:SetPoint("TOPLEFT", currentClass, "BOTTOMLEFT", 0, -4)
     spin:SetPoint("TOPLEFT", mousescroll, "BOTTOMLEFT", 0, -4)
 
-    local modifierLabel = newFontString(panel, "預覽的輔助鍵:", nil, 'TOPLEFT', spin, 'BOTTOMLEFT', 0, -10)
+    local modifierLabel = newFontString(panel, "Show with modifier key:", nil, 'TOPLEFT', spin, 'BOTTOMLEFT', 0, -10)
     modifier:SetPoint("LEFT", modifierLabel, "RIGHT", 4, -2)
 
-    local anchorLabel = newFontString(panel, "位置:", nil, 'TOPLEFT', modifierLabel, 'BOTTOMLEFT', 0, -16)
+    local anchorLabel = newFontString(panel, "Attach to the:", nil, 'TOPLEFT', modifierLabel, 'BOTTOMLEFT', 0, -16)
     anchor:SetPoint("LEFT", anchorLabel, "RIGHT", 4, -2)
 
     byComparison:SetPoint("TOPLEFT", anchorLabel, "BOTTOMLEFT", 0, -10)
@@ -221,8 +226,8 @@ do
     local panel = CreateFrame("Frame", nil, InterfaceOptionsFramePanelContainer)
     panel:Hide()
     panel:SetAllPoints()
-    panel.name = "未收藏圖示"
-    panel.parent = "塑形預覽"
+    panel.name = "Overlays"
+    panel.parent = myname
 
     local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
@@ -235,20 +240,20 @@ do
     subText:SetJustifyH('LEFT')
     subText:SetPoint('TOPLEFT', title, 'BOTTOMLEFT', 0, -8)
     subText:SetPoint('RIGHT', -32, 0)
-    subText:SetText("這些選項可以控制要在哪些地方顯示尚未收藏的圖示。")
+    subText:SetText("These options let you control how transmog availability is shown in various places in the UI")
 
     local bagicon = CreateAtlasMarkup("transmog-icon-hidden")
-	local othercharicon = CreateAtlasMarkup("mailbox")
+    local othercharicon = CreateAtlasMarkup("mailbox")
 
     local show = panel:CreateFontString(nil, 'ARTWORK', 'GameFontHighlight')
-    show:SetText(("顯示未收藏物品圖示 %s 和此角色無法使用的未收藏物品圖示 %s"):format(bagicon, othercharicon))
+    show:SetText(("Show %s icon for unknown items, and %s icon for unknown items you can't learn on this character:"):format(bagicon, othercharicon))
 
-    local bags = newCheckbox(panel, 'bags', '背包', ("在背包中尚未收藏外觀的物品上面顯示 %s 圖示。支援遊戲內建的背包、Baggins、Bagnon 和 Inventorian 背包插件。"):format(bagicon))
-    local bags_unbound = newCheckbox(panel, 'bags_unbound', '...只有不是靈魂綁定的物品', "靈魂綁定的物品通常不是已經收藏外觀，就是無法寄給其他角色。")
-    local merchant = newCheckbox(panel, 'merchant', '商人', ("在商人視窗中尚未收藏外觀的物品上面顯示 %s 圖示。"):format(bagicon))
-    local loot = newCheckbox(panel, 'loot', '拾取', ("在拾取視窗中尚未收藏外觀的物品上面顯示 %s 圖示。"):format(bagicon))
-    local encounterjournal = newCheckbox(panel, 'encounterjournal', '冒險指南', ("在冒險指南中尚未收藏外觀的物品上面顯示 %s 圖示。"):format(bagicon))
-	local setjournal = newCheckbox(panel, 'setjournal', '外觀套裝', ("在套裝列表中顯示已收藏/未收藏的套裝物品"))
+    local bags = newCheckbox(panel, 'bags', 'in bags', ("For items whose appearance you don't know, show the %s icon on the item in bags. Works with built-in bags, Baggins, Bagnon, and Inventorian."):format(bagicon))
+    local bags_unbound = newCheckbox(panel, 'bags_unbound', '...for non-soulbound items only', "Soulbound items are either known already, or can't be sent to another character")
+    local merchant = newCheckbox(panel, 'merchant', 'at merchants', ("For items whose appearance you don't know, show the %s icon on the item in the merchant frame."):format(bagicon))
+    local loot = newCheckbox(panel, 'loot', 'in loot', ("For items whose appearance you don't know, show the %s icon on the item in the loot frame."):format(bagicon))
+    local encounterjournal = newCheckbox(panel, 'encounterjournal', 'in Encounter Journal', ("For items whose appearance you don't know, show the %s icon on the item in the loot section of the Encounter Journal."):format(bagicon))
+    local setjournal = newCheckbox(panel, 'setjournal', 'in Appearance Sets', ("Show a count of set items known / needed in the sets list"))
 
     show:SetPoint("TOPLEFT", subText, "BOTTOMLEFT", 0, -8)
     bags:SetPoint("TOPLEFT", show, "BOTTOMLEFT", 0, -8)
@@ -256,7 +261,7 @@ do
     merchant:SetPoint("TOPLEFT", bags_unbound, "BOTTOMLEFT", -8, -4)
     loot:SetPoint("TOPLEFT", merchant, "BOTTOMLEFT", 0, -4)
     encounterjournal:SetPoint("TOPLEFT", loot, "BOTTOMLEFT", 0, -4)
-	setjournal:SetPoint("TOPLEFT", encounterjournal, "BOTTOMLEFT", 0, -4)
+    setjournal:SetPoint("TOPLEFT", encounterjournal, "BOTTOMLEFT", 0, -4)
 
     local category = Settings.GetCategory(panel.parent)
     local subcategory, layout = Settings.RegisterCanvasLayoutSubcategory(category, panel, panel.name, panel.name)
@@ -265,7 +270,7 @@ end
 
 -- Slash handler
 SlashCmdList.APPEARANCETOOLTIP = function(msg)
-    Settings.OpenToCategory("塑形預覽")
+    Settings.OpenToCategory(myname)
 end
 SLASH_APPEARANCETOOLTIP1 = "/appearancetooltip"
 SLASH_APPEARANCETOOLTIP2 = "/aptip"
