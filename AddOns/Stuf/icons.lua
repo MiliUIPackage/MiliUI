@@ -253,7 +253,7 @@ do  -- General Icons -----------------------------------------------------------
 		UpdateStatusIcon("player", su.player)
 	end
 	
-	local select, GetLootMethod, GetRaidRosterInfo = select, GetLootMethod, GetRaidRosterInfo
+	local select, GetLootMethod, GetRaidRosterInfo = select, C_PartyInfo.GetLootMethod, GetRaidRosterInfo
 	local UnitIsGroupLeader, UnitIsUnit = UnitIsGroupLeader, UnitIsUnit
 	local function updateuniticon(uf, icon, show)
 		local f = uf and not uf.hidden and uf[icon]
