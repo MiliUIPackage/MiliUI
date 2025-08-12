@@ -1170,6 +1170,10 @@ local default_player_data = {
 			last_coach_name = false,
 		},
 
+		arena_data_headers = {},
+		arena_data_compressed = {}, --store data for arena the character did
+		arena_data_index_selected = 1, --index of the arena data selected to be shown in the arena data panel
+
 		player_stats = {},
 
 		combat_log = {
@@ -1409,6 +1413,8 @@ local default_global_data = {
 
 		boss_wipe_counter = {},
 		boss_wipe_min_time = 20, --minimum time to consider a wipe as a boss wipe
+
+		arena_debug = false,
 
 		user_is_patreon_supporter = false,
 

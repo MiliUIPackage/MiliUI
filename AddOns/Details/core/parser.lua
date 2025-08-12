@@ -56,7 +56,7 @@
 	local shield_cache = Details.ShieldCache
 	local parser = Details.parser
 
-	local crowdControlSpells = Details.CrowdControlSpellNamesCache or {} --built during startup, can be edited to add or remove spells
+	local crowdControlSpells = Details.CrowdControlSpellIdsCache or {} --built during startup, can be edited to add or remove spells
 	local spellContainerClass = Details.container_habilidades --details local
 
 	--localize the cooldown table from the framework
@@ -303,55 +303,49 @@
 	--spellIds override
 	local override_spellId = {}
 
-	if (isCATA) then
+	if (isCATA or isPANDA) then
 		override_spellId = {
 			--Scourge Strike
-			[55090] = 55271,
-			[55265] = 55271,
-			[55270] = 55271,
-			[70890] = 55271, --shadow
+			[55265] = 55090,
+			[55270] = 55090,
+			[70890] = 55090, --shadow
 
 			--Frost Strike
-			[49143] = 55268,
-			[51416] = 55268,
-			[51417] = 55268,
-			[51418] = 55268,
-			[51419] = 55268,
-			[66962] = 55268, --offhand
-			[66196] = 55268, --frost dk frost strike offhand
+			[51416] = 49143,
+			[51417] = 49143,
+			[51418] = 49143,
+			[51419] = 49143,
+			[66962] = 49143, --offhand
+			[66196] = 49143, --frost dk frost strike offhand
 
 			--Obliterate
-			[49020] = 51425,
-			[51423] = 51425,
-			[51424] = 51425,
-			[66974] = 51425, --offhand
-			[66198] = 51425, --frost dk obliterate offhand
+			[51423] = 49020,
+			[51424] = 49020,
+			[66974] = 49020, --offhand
+			[66198] = 49020, --frost dk obliterate offhand
 
 			--Death Strike
-			[49998] = 49924,
-			[49999] = 49924,
-			[45463] = 49924,
-			[49923] = 49924,
-			[66953] = 49924, --offhand
+			[49999] = 49998,
+			[45463] = 49998,
+			[49923] = 49998,
+			[66953] = 49998, --offhand
 
 			--Blood Strike
-			[45902] = 49930,
-			[49926] = 49930,
-			[49927] = 49930,
-			[49928] = 49930,
-			[49929] = 49930,
-			[66979] = 49930, --offhand
+			[49926] = 45902,
+			[49927] = 45902,
+			[49928] = 45902,
+			[49929] = 45902,
+			[66979] = 45902, --offhand
 
 			--Rune Strike
 			[6621] = 56815, --offhand
 
 			--Plague Strike
-			[45462] = 49921,
-			[49917] = 49921,
-			[49918] = 49921,
-			[49919] = 49921,
-			[49920] = 49921,
-			[66992] = 49921, --offhand
+			[49917] = 45462,
+			[49918] = 45462,
+			[49919] = 45462,
+			[49920] = 45462,
+			[66992] = 45462, --offhand
 
 			--Seal of Command
 			[20424] = 69403, --53739 and 53733
@@ -1103,10 +1097,9 @@
 			end
 		end
 
-		if (sourceActor.grupo and not sourceActor.arena_enemy and not sourceActor.enemy and not targetActor.arena_enemy) then --source = friendly player and not an enemy player
-			--dano to adversario estava caindo aqui por nao estar checando .enemy
+		if ((sourceActor.grupo or (sourceActor.owner and sourceActor.owner.grupo)) and not sourceActor.arena_enemy and not sourceActor.enemy and not targetActor.arena_enemy) then --source = friendly player/pet and not an enemy player 
+			--dano to adversario estava caindo aqui por nao estar checando .enemy 
 			_current_gtotal[1] = _current_gtotal[1] + amount
-
 		elseif (targetActor.grupo) then --source = arena enemy or friendly player
 			if (targetActor.arena_enemy) then
 				_current_gtotal[1] = _current_gtotal[1] + amount
@@ -1623,6 +1616,8 @@
 		end
 
 		--actor owner (if any)
+		targetRaidFlags = targetRaidFlags and bitBand(targetRaidFlags, COMBATLOG_OBJECT_RAIDTARGET_MASK)
+
 		if (ownerActor) then --se for dano de um Pet
 			ownerActor.total = ownerActor.total + amount --e adiciona o dano ao pet
 
@@ -2541,12 +2536,12 @@
 			end
 		end
 
-	if (spellId == 98021) then --spirit link toten
-		return parser:SLT_healing(token, time, sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags, spellId, spellName, spellType, amount, overHealing, absorbed, critical, bIsShield)
-	end
+		if (spellId == 98021) then --spirit link toten
+			return parser:SLT_healing(token, time, sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags, spellId, spellName, spellType, amount, overHealing, absorbed, critical, bIsShield)
+		end
 
 
-	if (is_using_spellId_override) then
+		if (is_using_spellId_override) then
 			spellId = override_spellId[spellId] or spellId
 		end
 
@@ -3079,7 +3074,8 @@
 			if (_in_combat) then
 				------------------------------------------------------------------------------------------------
 				--buff uptime
-				if (crowdControlSpells[spellName]) then
+				if (crowdControlSpells[spellId] or Details.CrowdControlSpellNamesCache[spellName]) then --
+					--print("adding cc done", sourceName, targetName, spellId, spellName)
 					parser:add_cc_done (token, time, sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags, targetFlags2, spellId, spellName)
 				end
 
@@ -4154,7 +4150,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		--if the interrupt is from a pet, then we need to add the interrupt to the owner
 		if (ownerActor) then
 			if (not ownerActor.interrupt) then
-				ownerActor.interrupt = Details:GetOrderNumber(sourceName)
+				ownerActor.interrupt = Details:GetOrderNumber()
 				ownerActor.interrupt_targets = {}
 				ownerActor.interrupt_spells = spellContainerClass:CreateSpellContainer(container_misc)
 				ownerActor.interrompeu_oque = {}
@@ -4170,6 +4166,13 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 
 			--which spells this actor interrupted
 			ownerActor.interrompeu_oque[extraSpellID] = (ownerActor.interrompeu_oque[extraSpellID] or 0) + 1
+
+			--owner spells table
+			local spell = ownerActor.interrupt_spells._ActorTable[spellId]
+			if (not spell) then
+				spell = ownerActor.interrupt_spells:GetOrCreateSpell(spellId, true, token)
+			end
+			_spell_utility_func(spell, targetName, token, extraSpellID, extraSpellName)
 
 			--pet interrupt
 			if (_hook_interrupt) then
@@ -4248,6 +4251,16 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 			_current_combat.amountCasts[sourceName] = castsByPlayer
 		end
 
+		if (ownerActor) then
+			--add a cast to the owner
+			local ownerName = ownerActor.nome
+			castsByPlayer = _current_combat.amountCasts[ownerName]
+			if (not castsByPlayer) then
+				castsByPlayer = {}
+				_current_combat.amountCasts[ownerName] = castsByPlayer
+			end
+		end
+
 		--rampage cast spam
 		if (spellId == 184367 or spellId == 184707 or spellId == 201364) then --rampage spellIds (IDs from Retail - wow patch 10.1.0)
 			local latestRampageCastByPlayer = (cacheAnything.rampage_cast_amount[sourceName] or 0)
@@ -4260,6 +4273,14 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		local amountOfCasts = _current_combat.amountCasts[sourceName][spellName] or 0
 		amountOfCasts = amountOfCasts + 1
 		_current_combat.amountCasts[sourceName][spellName] = amountOfCasts
+
+		--pet cast add to owner
+		if (ownerActor) then
+			local ownerName = ownerActor.nome
+			local amountOfCasts = _current_combat.amountCasts[ownerName][spellName] or 0
+			amountOfCasts = amountOfCasts + 1
+			_current_combat.amountCasts[ownerName][spellName] = amountOfCasts
+		end
 
 		if (Details.debug_spell_cast) then
 			if (LIB_OPEN_RAID_CROWDCONTROL[spellId]) then
@@ -5365,6 +5386,8 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		Details.zone_id = zoneMapID
 		Details.zone_name = zoneName
 
+		Details:SetDeathLogTemporaryLimit(nil) --reset the temp amount
+
 		--Details222.ContextManager:CheckContextInterest(zoneMapID, zoneName, zoneType, difficultyID)
 
 		_in_resting_zone = IsResting()
@@ -5464,6 +5487,9 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 					Details:Destroy(Details.cached_specs)
 				end
 			end
+
+			--increase the deathlog amount for arenas
+			Details:SetDeathLogTemporaryLimit(100)
 
 			Details.is_in_arena = true
 			Details:EnteredInArena()
@@ -6604,7 +6630,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 	playerLogin:RegisterEvent("PLAYER_LOGIN")
 	playerLogin:SetScript("OnEvent", function()
 		Details222.StartUp.StartMeUp()
-		crowdControlSpells = Details.CrowdControlSpellNamesCache
+		crowdControlSpells = Details.CrowdControlSpellIdsCache
 	end)
 
 	function Details.parser_functions:PET_BATTLE_OPENING_START(...)
@@ -7275,7 +7301,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 	---returns a table containing crowd control spells.
 	---the table maps spell names to a boolean value indicating whether the spell is a crowd control spell.
 	---@param self details
-	---@return table<spellname, boolean> crowdControlSpellsTable table of crowd control spells.
+	---@return table<spellid, boolean> crowdControlSpellsTable table of crowd control spells.
 	function Details:GetCrowdControlSpells()
 		return crowdControlSpells
 	end
@@ -7298,6 +7324,16 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 	---@return table
 	function Details:GetParserPlayerCache()
 		return raid_members_cache
+	end
+
+	function Details:SetDeathLogTemporaryLimit(limitAmount) --when the zone type changes, this is automatically called with value nil (remove the temp limit)
+		if (limitAmount and limitAmount > Details.deadlog_events) then
+			Details.temp_deathlog_limit = limitAmount
+			_amount_of_last_events = Details.temp_deathlog_limit or Details.deadlog_events
+		else
+			Details.temp_deathlog_limit = nil
+			_amount_of_last_events = Details.deadlog_events
+		end
 	end
 
 	--serach key: ~cache
@@ -7328,7 +7364,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		--_recording_ability_with_buffs = _detalhes.RecordPlayerAbilityWithBuffs --can be deprecated
 		_in_combat = Details.in_combat
 
-		crowdControlSpells = Details.CrowdControlSpellNamesCache
+		crowdControlSpells = Details.CrowdControlSpellIdsCache
 
 		Details:Destroy(ignored_npcids)
 
