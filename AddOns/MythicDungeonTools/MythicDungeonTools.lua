@@ -1,4 +1,4 @@
--- Made by Nnoggie, 2017-2024
+-- Made by Nnoggie, 2017-2025
 local AddonName, MDT = ...
 local L = MDT.L
 local mainFrameStrata = "HIGH"
@@ -25,6 +25,12 @@ MDT.externalLinks = {
     tooltip = L["Provide feedback in Discord"],
     url = "https://discord.gg/tdxMPb3",
     texture = { "Interface\\AddOns\\MythicDungeonTools\\Textures\\icons", 0.5, .75, 0.75, 1 }
+  },
+  {
+    name = "Patreon",
+    tooltip = L["Support MDT on Patreon"],
+    url = "https://www.patreon.com/nnoggie",
+    texture = { "Interface\\AddOns\\MythicDungeonTools\\Textures\\icons", 0, .25, 0.25, 0.5 }
   },
 }
 
@@ -181,7 +187,7 @@ local defaultSavedVars = {
       customPaletteValues = {},
       numberCustomColors = 12,
     },
-    currentDungeonIdx = 115, -- set this one every new season
+    currentDungeonIdx = MDT:IsMop() and 130 or 123, -- set this one every new season
     latestDungeonSeen = 0,
     selectedDungeonList = 1,
     knownAffixWeeks = {},
@@ -405,6 +411,7 @@ function MDT:CreateMenu()
   self.main_frame.closeButton:SetPoint("TOPRIGHT", self.main_frame.sidePanel, "TOPRIGHT", -1, -4)
   self.main_frame.closeButton:SetScript("OnClick", function() self:HideInterface() end)
   self.main_frame.closeButton:SetFrameLevel(4)
+  self.main_frame.closeButton:SetSize(24, 24)
 
   --Maximize Button
   self.main_frame.maximizeButton = CreateFrame("Button", "MDTMaximizeButton", self.main_frame,
@@ -417,6 +424,7 @@ function MDT:CreateMenu()
   if not db.maximized then self.main_frame.maximizeButton:Minimize() end
   self.main_frame.maximizeButton:SetOnMaximizedCallback(self.Maximize)
   self.main_frame.maximizeButton:SetOnMinimizedCallback(self.Minimize)
+  self.main_frame.maximizeButton:SetSize(24, 24)
 
   --return to live preset
   self.main_frame.liveReturnButton = CreateFrame("Button", "MDTLiveReturnButton", self.main_frame, "UIPanelCloseButton")
@@ -563,8 +571,8 @@ end
 function MDT:SkinProgressBar(progressBar)
   local bar = progressBar and progressBar.Bar
   if not bar then return end
-  bar.Icon:Hide()
-  bar.IconBG:Hide()
+  if bar.Icon then bar.Icon:Hide() end
+  if bar.IconBG then bar.IconBG:Hide() end
 end
 
 function MDT:IsFrameOffScreen()
@@ -676,7 +684,7 @@ function MDT:MakeTopBottomTextures(frame)
   frame.bottomPanel:SetPoint("TOPRIGHT", frame, "BOTTOMRIGHT")
 
   frame.bottomPanelString = frame.bottomPanel:CreateFontString("MDTMid")
-  frame.bottomPanelString:SetFontObject(GameFontNormalSmall)
+  frame.bottomPanelString:SetFontObject(GameFontNormal)
   frame.bottomPanelString:SetJustifyH("CENTER")
   frame.bottomPanelString:SetJustifyV("MIDDLE")
   frame.bottomPanelString:SetPoint("CENTER", frame.bottomPanel, "CENTER", 0, 0)
@@ -684,7 +692,7 @@ function MDT:MakeTopBottomTextures(frame)
   frame.bottomPanelString:Show()
 
   frame.bottomLeftPanelString = frame.bottomPanel:CreateFontString("MDTVersion")
-  frame.bottomLeftPanelString:SetFontObject(GameFontNormalSmall)
+  frame.bottomLeftPanelString:SetFontObject(GameFontNormal)
   frame.bottomLeftPanelString:SetJustifyH("LEFT")
   frame.bottomLeftPanelString:SetJustifyV("MIDDLE")
   frame.bottomLeftPanelString:SetPoint("LEFT", frame.bottomPanel, "LEFT", 0, 0)
@@ -728,7 +736,7 @@ function MDT:MakeTopBottomTextures(frame)
   end
 
   frame.statusString = frame.bottomPanel:CreateFontString("MDTStatusLabel")
-  frame.statusString:SetFontObject(GameFontNormalSmall)
+  frame.statusString:SetFontObject(GameFontNormal)
   frame.statusString:SetJustifyH("RIGHT")
   frame.statusString:SetJustifyV("MIDDLE")
   frame.statusString:SetPoint("RIGHT", frame.bottomPanel, "RIGHT", 0, 0)
@@ -833,7 +841,7 @@ function MDT:MakeSidePanel(frame)
   frame.sidePanel:SetPoint("BOTTOMLEFT", frame, "BOTTOMRIGHT", 0, -30)
 
   frame.sidePanelString = frame.sidePanel:CreateFontString("MDTSidePanelText")
-  frame.sidePanelString:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
+  frame.sidePanelString:SetFont("Fonts\\FRIZQT__.TTF", 13, "")
   frame.sidePanelString:SetTextColor(1, 1, 1, 1)
   frame.sidePanelString:SetJustifyH("LEFT")
   frame.sidePanelString:SetJustifyV("TOP")
@@ -932,7 +940,7 @@ function MDT:MakeSidePanel(frame)
   if not fontInstance then return end
   fontInstance:CopyFontObject(frame.sidePanelNewButton.frame:GetNormalFontObject())
   local fontName, height = fontInstance:GetFont()
-  fontInstance:SetFont(fontName, 10, "")
+  fontInstance:SetFont(fontName, 13, "")
   frame.sidePanelNewButton.frame:SetNormalFontObject(fontInstance)
   frame.sidePanelNewButton.frame:SetHighlightFontObject(fontInstance)
   frame.sidePanelNewButton.frame:SetDisabledFontObject(fontInstance)
@@ -1158,6 +1166,7 @@ function MDT:MakeSidePanel(frame)
   local function makeAffixString(week, affixes, longText)
     local ret
     local sep = ""
+    if not MDT:IsRetail() then return "" end
     for _, affixID in ipairs(affixes) do
       local name, _, filedataid = C_ChallengeMode.GetAffixInfo(affixID)
       name = name or L["Unknown"]
@@ -1218,16 +1227,6 @@ function MDT:MakeSidePanel(frame)
 
   function affixDropdown:SetAffixWeek(key, ignoreReloadPullButtons, ignoreUpdateProgressBar)
     affixDropdown:SetValue(key)
-    if not MDT:GetCurrentAffixWeek() then
-      frame.sidePanel.affixWeekWarning.image:Hide()
-      frame.sidePanel.affixWeekWarning:SetDisabled(true)
-    elseif MDT:GetCurrentAffixWeek() == key then
-      frame.sidePanel.affixWeekWarning.image:Hide()
-      frame.sidePanel.affixWeekWarning:SetDisabled(true)
-    else
-      frame.sidePanel.affixWeekWarning.image:Show()
-      frame.sidePanel.affixWeekWarning:SetDisabled(false)
-    end
     MDT:GetCurrentPreset().week = key
     local teeming = MDT:IsPresetTeeming(MDT:GetCurrentPreset())
     MDT:GetCurrentPreset().value.teeming = teeming
@@ -1256,38 +1255,12 @@ function MDT:MakeSidePanel(frame)
 
   -- frame.sidePanel.WidgetGroup:AddChild(affixDropdown)
 
-  --affix not current week warning
-  frame.sidePanel.affixWeekWarning = AceGUI:Create("Icon")
-  local affixWeekWarning = frame.sidePanel.affixWeekWarning
-  affixWeekWarning:SetImage("Interface\\DialogFrame\\UI-Dialog-Icon-AlertNew")
-  affixWeekWarning:SetImageSize(25, 25)
-  affixWeekWarning:SetWidth(30)
-  affixWeekWarning:SetCallback("OnEnter", function(...)
-    GameTooltip:SetOwner(affixDropdown.frame, "ANCHOR_CURSOR")
-    GameTooltip:AddLine(L["The selected affixes are not the ones of the current week"], 1, 1, 1)
-    GameTooltip:AddLine(L["Click to switch to current week"], 1, 1, 1)
-    GameTooltip:Show()
-  end)
-  affixWeekWarning:SetCallback("OnLeave", function(...)
-    GameTooltip:Hide()
-  end)
-  affixWeekWarning:SetCallback("OnClick", function(...)
-    if not MDT:GetCurrentAffixWeek() then return end
-    affixDropdown:SetAffixWeek(MDT:GetCurrentAffixWeek())
-    if MDT.liveSessionActive and MDT:GetCurrentPreset().uid == MDT.livePresetUID then
-      MDT:LiveSession_SendAffixWeek(MDT:GetCurrentAffixWeek())
-    end
-  end)
-  affixWeekWarning.image:Hide()
-  affixWeekWarning:SetDisabled(true)
-  frame.sidePanel.WidgetGroup:AddChild(affixWeekWarning)
-
   --difficulty slider
   frame.sidePanel.DifficultySlider = AceGUI:Create("Slider")
   frame.sidePanel.DifficultySlider:SetSliderValues(1, 35, 1)
   frame.sidePanel.DifficultySlider:SetLabel(L["Dungeon Level"])
   frame.sidePanel.DifficultySlider.label:SetJustifyH("LEFT")
-  frame.sidePanel.DifficultySlider.label:SetFontObject("GameFontNormalSmall")
+  frame.sidePanel.DifficultySlider.label:SetFontObject("GameFontNormal")
   frame.sidePanel.DifficultySlider:SetWidth(200)
   frame.sidePanel.DifficultySlider:SetValue(db.currentDifficulty)
   local timer
@@ -1333,15 +1306,16 @@ function MDT:MakeSidePanel(frame)
   frame.sidePanel.DifficultySlider:SetCallback("OnLeave", function()
     GameTooltip:Hide()
   end)
-  frame.sidePanel.WidgetGroup:AddChild(frame.sidePanel.DifficultySlider)
-
+  if MDT:IsRetail() then
+    frame.sidePanel.WidgetGroup:AddChild(frame.sidePanel.DifficultySlider)
+  end
   frame.sidePanel.middleLine = AceGUI:Create("Heading")
   frame.sidePanel.middleLine:SetWidth(240)
   frame.sidePanel.WidgetGroup:AddChild(frame.sidePanel.middleLine)
   frame.sidePanel.WidgetGroup.frame:SetFrameLevel(3)
 
-  --progress bar
-  frame.sidePanel.ProgressBar = CreateFrame("Frame", nil, frame.sidePanel, "ScenarioProgressBarTemplate")
+  local progressBarTemplate = MDT:IsMop() and "TooltipProgressBarTemplate" or "ScenarioProgressBarTemplate"
+  frame.sidePanel.ProgressBar = CreateFrame("Frame", nil, frame.sidePanel, progressBarTemplate)
   frame.sidePanel.ProgressBar:Show()
   frame.sidePanel.ProgressBar:ClearAllPoints()
   frame.sidePanel.ProgressBar:SetPoint("TOP", frame.sidePanel.WidgetGroup.frame, "BOTTOM", -10, 5)
@@ -3247,7 +3221,9 @@ function MDT:MakeSettingsFrame(frame)
       minimapIcon:RemoveButtonFromCompartment("MythicDungeonTools")
     end
   end)
-  frame.settingsFrame:AddChild(frame.compartmentCheckbox)
+  if MDT:IsRetail() then
+    frame.settingsFrame:AddChild(frame.compartmentCheckbox)
+  end
 
   frame.forcesCheckbox = AceGUI:Create("CheckBox")
   frame.forcesCheckbox:SetLabel(L["Use forces count"])
@@ -4765,8 +4741,8 @@ function initFrames()
     ---@diagnostic disable-next-line: param-type-mismatch
     tooltip.Model:SetPoint("TOPLEFT", tooltip, "TOPLEFT", 7, -7)
     tooltip.String = tooltip:CreateFontString("MDTToolTipString")
-    tooltip.String:SetFontObject(GameFontNormalSmall)
-    tooltip.String:SetFont(tooltip.String:GetFont() or '', 10, '')
+    tooltip.String:SetFontObject(GameFontNormal)
+    tooltip.String:SetFont(tooltip.String:GetFont() or '', 13, '')
     tooltip.String:SetTextColor(1, 1, 1, 1)
     tooltip.String:SetJustifyH("LEFT")
     --tooltip.String:SetJustifyV("MIDDLE")
@@ -4810,7 +4786,7 @@ function initFrames()
 
     MDT.pullTooltip.topString = MDT.pullTooltip:CreateFontString("MDTToolTipString")
     MDT.pullTooltip.topString:SetFontObject(GameFontNormal)
-    MDT.pullTooltip.topString:SetFont(MDT.pullTooltip.topString:GetFont() or '', 10, '')
+    MDT.pullTooltip.topString:SetFont(MDT.pullTooltip.topString:GetFont() or '', 13, '')
     MDT.pullTooltip.topString:SetTextColor(1, 1, 1, 1)
     MDT.pullTooltip.topString:SetJustifyH("LEFT")
     MDT.pullTooltip.topString:SetJustifyV("TOP")
@@ -4832,7 +4808,7 @@ function initFrames()
     MDT.pullTooltip.botString = MDT.pullTooltip:CreateFontString("MDTToolTipString")
     local botString = MDT.pullTooltip.botString
     botString:SetFontObject(GameFontNormal)
-    botString:SetFont(MDT.pullTooltip.topString:GetFont() or '', 10, '')
+    botString:SetFont(MDT.pullTooltip.topString:GetFont() or '', 13, '')
     botString:SetTextColor(1, 1, 1, 1)
     botString:SetJustifyH("CENTER")
     botString:SetJustifyV("TOP")

@@ -5,6 +5,46 @@ local addonName, MDT = ...
 local L = MDT.L
 L = L or {}
 
+--- ITEMDesc
+L["Support MDT on Patreon"] = "支援 MDT 在 Patreon"
+L["Ghastly Parishioner"] = "Ghastly Parishioner"
+L["Empty Anima Vessel"] = "Empty Anima Vessel"
+L["Anima Fountain"] = "Anima Fountain"
+L["Sinstone Statue"] = "Sinstone Statue"
+L["EDAItem1Description"] = "使用在 |T4620672:15:15|t 卡茲阿爾加附魔 (25)"
+L["eda2BossNote"] = "需要擊敗 G23 才能出生此首領"
+L["streetBazaarEventNote1"] = "市集事件第一波"
+L["streetBazaarEventNote2"] = "市集事件第二波"
+L["streetBazaarEventNote3"] = "市集事件第三波"
+L["streetOasisBossNote1"] = "綠洲第一波"
+L["streetOasisBossNote2"] = "綠洲第二波"
+--- STREET
+L["Smuggled Creature"] = "Smuggled Creature"
+L["Unruly Patron"] = "Unruly Patron"
+L["Bazaar Strongarm"] = "Bazaar Strongarm"
+L["Unruly Patron"] = "Unruly Patron"
+L["Bazaar Overseer"] = "Bazaar Overseer"
+L["Cartel Lackey"] = "Cartel Lackey"
+
+--- GMBT
+L["Titanic Defense Turret"] = "Titanic Defense Turret"
+L["Hourglass Cannon"] = "Hourglass Cannon"
+L["Corsair Brute"] = "Corsair Brute"
+L["So' Cartel Assassin"] = "So' Cartel Assassin"
+L["Progenitor Relic"] = "Progenitor Relic"
+L["Invigorating Fish Stick"] = "Invigorating Fish Stick"
+L["Wandering Pulsar"] = "Wandering Pulsar"
+L["Vault Purifier"] = "Vault Purifier"
+
+--creatureType
+L["Totem"] = "圖騰"
+
+L["ecoDomeAldaniShortName"] = "EDA"
+L["Eco-Dome Al'dani"] = "埃達尼秘境"
+L["The War Within Season 3"] = "地心之戰第三季"
+
+L["MDT: Cannot add enemy - you are trying to add too many enemies of the same kind"] = "MDT: 無法加入敵人 - 你嘗試加入太多相同類型的敵人"
+L["Clear all Markers"] = "清除所有標記"
 L["Okay"] = "OK"
 L["Warning"] = "警告"
 L["assignmentWarning"] = "MDT不會在遊戲世界中自動標記目標敵人。"
