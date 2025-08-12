@@ -381,8 +381,8 @@ WeakAuras.normalWidth = 1.3
 WeakAuras.halfWidth = WeakAuras.normalWidth / 2
 WeakAuras.doubleWidth = WeakAuras.normalWidth * 2
 local versionStringFromToc = C_AddOns.GetAddOnMetadata("WeakAuras", "Version")
-local versionString = "5.19.9"
-local buildTime = "20250425150929"
+local versionString = "5.20.1"
+local buildTime = "20250805203921"
 
 local flavorFromToc = C_AddOns.GetAddOnMetadata("WeakAuras", "X-Flavor")
 local flavorFromTocToNumber = {
@@ -390,10 +390,10 @@ local flavorFromTocToNumber = {
   TBC = 2,
   Wrath = 3,
   Cata = 4,
+  Mists = 5,
   Mainline = 10
 }
 local flavor = flavorFromTocToNumber[flavorFromToc]
-
 
 if not versionString:find("beta", 1, true) then
   WeakAuras.buildType = "release"
@@ -410,7 +410,7 @@ WeakAuras.buildType = "pr"
 --@end-experimental@]=====]
 
 --[==[@debug@
-if versionStringFromToc == "5.19.9" then
+if versionStringFromToc == "5.20.1" then
   versionStringFromToc = "Dev"
   buildTime = "Dev"
   WeakAuras.buildType = "dev"
@@ -435,6 +435,11 @@ function WeakAuras.IsCataClassic()
 end
 
 ---@return boolean result
+function WeakAuras.IsMists()
+  return flavor == 5
+end
+
+---@return boolean result
 function WeakAuras.IsRetail()
   return flavor == 10
 end
@@ -442,6 +447,25 @@ end
 ---@return boolean result
 function WeakAuras.IsClassicOrCata()
   return WeakAuras.IsClassicEra() or WeakAuras.IsCataClassic()
+end
+
+---@return boolean result
+function WeakAuras.IsClassicOrCataOrMists()
+  return WeakAuras.IsClassicOrCata() or WeakAuras.IsMists()
+end
+
+---@return boolean result
+function WeakAuras.IsCataOrMists()
+  return WeakAuras.IsCataClassic() or WeakAuras.IsMists()
+end
+
+function WeakAuras.IsCataOrMistsOrRetail()
+  return WeakAuras.IsCataClassic() or WeakAuras.IsMists() or WeakAuras.IsRetail()
+end
+
+---@return boolean result
+function WeakAuras.IsMistsOrRetail()
+  return WeakAuras.IsMists() or WeakAuras.IsRetail()
 end
 
 ---@return boolean result

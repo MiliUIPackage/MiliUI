@@ -1,28 +1,37 @@
-# [5.19.9](https://github.com/WeakAuras/WeakAuras2/tree/5.19.9) (2025-04-25)
+# [5.20.1](https://github.com/WeakAuras/WeakAuras2/tree/5.20.1) (2025-08-05)
 
-[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.19.8...5.19.9)
+[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.20.0...5.20.1)
 
 ## Highlights
 
-Bump .toc files
+new game patch, new weakauras version
+
+- load status indicator (the little power icon) now changes shape depending on load status in addition to color
+- item count trigger no longer claims to check the reagent bank, since that doesn't exist anymore
+- custom code meant to run on every frame now has a builtin throttle option, so no more need for if GetTime() > (aura_env.last + 1) boilerplate :)
 
 ## Commits
 
-InfusOnWoW (4):
+InfusOnWoW (2):
 
-- Bump .toc files
-- Icon: If OmniCC or ElvUI are installed hide blizzard cooldown numbers
-- Currency trigger: Add type checking to guard against unexpected data
-- Update Discord List
+- Tweak loaded/standby/unloaded icons
+- Bufftrigger: Fix Unit Caste condition
 
 Stanzilla (2):
 
 - Update WeakAurasModelPaths from wago.tools
 - Update WeakAurasModelPaths from wago.tools
 
+emptyrivers (4):
+
+- drop reagent bank option
+- toc bump
+- lazily get rid of STATICPOPUPS_NUMDIALOGS
+- protect weakauras against unaligned ai
+
 mrbuds (3):
 
-- Unit Characteristics trigger: add creature type & family (Retail only)
-- Textute Atlas Picker: use C_Texture.GetAtlasElements on Retail
-- TSUHelper: hide __changed from pairs()
+- Add throttle option for everyframe custom triggers
+- Add throttle option for everyframe custom text
+- Make profiling of BuffTrigger2 more granular
 
