@@ -12,13 +12,10 @@ function BaganatorCategoryViewBankViewWarbandViewMixin:OnLoad()
   self.LayoutManager = CreateFrame("Frame", nil, self)
   Mixin(self.LayoutManager, addonTable.CategoryViews.BagLayoutMixin)
   self.LayoutManager:OnLoad()
+  self.location = "warband_bank"
 
   self:RegisterEvent("CURSOR_CHANGED")
   self:RegisterEvent("MODIFIER_STATE_CHANGED")
-
-  self.labelsPool = CreateFramePool("Button", self, "BaganatorCategoryViewsCategoryButtonTemplate")
-  self.sectionButtonPool = addonTable.CategoryViews.GetSectionButtonPool(self)
-  self.dividerPool = CreateFramePool("Button", self, "BaganatorBagDividerTemplate")
 
   addonTable.CallbackRegistry:RegisterCallback("CategoryAddItemStart", function(_, fromCategory, itemID, itemLink, addedDirectly)
     self.addToCategoryMode = fromCategory

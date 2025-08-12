@@ -117,18 +117,6 @@ function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
     end
   end)
 
-  self.confirmTransferAllDialogName = "addonTable.ConfirmTransferAll_" .. self:GetName()
-  StaticPopupDialogs[self.confirmTransferAllDialogName] = {
-    text = addonTable.Locales.CONFIRM_TRANSFER_ALL_ITEMS_FROM_BAG,
-    button1 = YES,
-    button2 = NO,
-    OnAccept = function()
-      self:Transfer(true, self.data)
-    end,
-    timeout = 0,
-    hideOnEscape = 1,
-  }
-
   if addonTable.Constants.IsEra then
     local index = tIndexOf(self.TopButtons, self.ToggleGuildBankButton)
     table.remove(self.TopButtons, index)
@@ -466,7 +454,9 @@ function BaganatorItemViewCommonBackpackViewMixin:Transfer(force, getItems)
   for _, transferDetails in ipairs(addonTable.BagTransfers) do
     if transferDetails.condition() then
       if not force and transferDetails.confirmOnAll and self.SearchWidget.SearchBox:GetText() == "" then
-        StaticPopup_Show(self.confirmTransferAllDialogName, nil, nil, getItems)
+        addonTable.Dialogs.ShowConfirm(addonTable.Locales.CONFIRM_TRANSFER_ALL_ITEMS_FROM_BAG, YES, NO, function()
+          self:Transfer(true, self.data)
+        end)
         break
       else
         self:RunAction(transferDetails.action, getItems)
@@ -506,6 +496,9 @@ function BaganatorItemViewCommonBackpackViewMixin:CombineStacksAndSort(isReverse
   end
 
   if addonTable.API.ExternalContainerSorts[sortMethod] then
+    if addonTable.Config.Get(addonTable.Config.Options.SORT_START_AT_BOTTOM) then
+      isReverse = not isReverse
+    end
     addonTable.API.ExternalContainerSorts[sortMethod].callback(isReverse, Baganator.API.Constants.ContainerType.Backpack)
   elseif sortMethod == "combine_stacks_only" then
     self:CombineStacks(function() end)

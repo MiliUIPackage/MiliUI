@@ -1,7 +1,6 @@
 # Baganator
 
-## [686](https://github.com/Baganator/Baganator/tree/686) (2025-01-31)
-[Full Changelog](https://github.com/Baganator/Baganator/compare/685...686) 
+## [725-1-g43c29a9](https://github.com/Baganator/Baganator/tree/43c29a951f3297ff6b9a3e26431b4cd4686b0601) (2025-08-09)
+[Full Changelog](https://github.com/Baganator/Baganator/compare/725...43c29a951f3297ff6b9a3e26431b4cd4686b0601) 
 
-- Customise: Categories: Skin raw search box and scroll buttons for visual search  
-- Move scrolling search widget to Syndicator  
+- [Fixes #529] Support reversing Blizzard sort method by default on backpack  

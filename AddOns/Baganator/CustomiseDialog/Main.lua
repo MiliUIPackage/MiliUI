@@ -70,6 +70,17 @@ local LAYOUT_OPTIONS = {
     highText = "42",
     text = addonTable.Locales.BANK_COLUMNS,
     option = "bank_view_width",
+    check = function() return not Syndicator.Constants.CharacterBankTabsActive or not addonTable.Constants.IsRetail end,
+  },
+  {
+    type = "slider",
+    min = 1,
+    max = 42,
+    lowText = "1",
+    highText = "42",
+    text = addonTable.Locales.BANK_COLUMNS,
+    option = "character_bank_view_width",
+    check = function() return Syndicator.Constants.CharacterBankTabsActive and addonTable.Constants.IsRetail end,
   },
   {
     type = "slider",
@@ -182,6 +193,11 @@ local ICON_OPTIONS = {
     type = "checkbox",
     text = addonTable.Locales.HIDE_BOE_STATUS_ON_COMMON_2,
     option = "hide_boe_on_common",
+  },
+  {
+    type = "checkbox",
+    text = addonTable.Locales.NEW_ITEMS_FLASHING_ANIMATION,
+    option = "new_items_flashing",
   },
   { type = "spacing" },
   {
@@ -524,29 +540,12 @@ function BaganatorCustomiseDialogMixin:SetupGeneral()
     credit:SetText(addonTable.Locales.BY_PLUSMOUSE)
     credit:SetPoint("BOTTOMLEFT", name, "BOTTOMRIGHT", 5, 0)
 
-    local discordLinkDialog = "Baganator_General_Settings_Discord_Dialog"
-    StaticPopupDialogs[discordLinkDialog] = {
-      text = addonTable.Locales.CTRL_C_TO_COPY,
-      button1 = DONE,
-      hasEditBox = 1,
-      OnShow = function(self)
-        self.editBox:SetText("https://discord.gg/TtSN6DxSky")
-        self.editBox:HighlightText()
-      end,
-      EditBoxOnEnterPressed = function(self)
-        self:GetParent():Hide()
-      end,
-      EditBoxOnEscapePressed = StaticPopup_StandardEditBoxOnEscapePressed,
-      editBoxWidth = 230,
-      timeout = 0,
-      hideOnEscape = 1,
-    }
     local discordButton = CreateFrame("Button", nil, infoInset, "UIPanelDynamicResizeButtonTemplate")
     discordButton:SetText(addonTable.Locales.JOIN_THE_DISCORD)
     DynamicResizeButton_Resize(discordButton)
     discordButton:SetPoint("BOTTOMLEFT", logo, "BOTTOMRIGHT", 8, 0)
     discordButton:SetScript("OnClick", function()
-      StaticPopup_Show(discordLinkDialog)
+      addonTable.Dialogs.ShowCopy("https://discord.gg/TtSN6DxSky")
     end)
     addonTable.Skins.AddFrame("Button", discordButton)
     local discordText = infoInset:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
@@ -698,30 +697,12 @@ function BaganatorCustomiseDialogMixin:SetupGeneral()
     text:SetText(addonTable.Locales.DONATE)
     text:SetJustifyH("RIGHT")
 
-    local donateLinkDialog = "Baganator_General_Settings_Donate_Dialog"
-    StaticPopupDialogs[donateLinkDialog] = {
-      text = addonTable.Locales.CTRL_C_TO_COPY,
-      button1 = DONE,
-      hasEditBox = 1,
-      OnShow = function(self)
-        self.editBox:SetText("https://linktr.ee/plusmouse")
-        self.editBox:HighlightText()
-      end,
-      EditBoxOnEnterPressed = function(self)
-        self:GetParent():Hide()
-      end,
-      EditBoxOnEscapePressed = StaticPopup_StandardEditBoxOnEscapePressed,
-      editBoxWidth = 230,
-      timeout = 0,
-      hideOnEscape = 1,
-    }
-
     local button = CreateFrame("Button", nil, donateFrame, "UIPanelDynamicResizeButtonTemplate")
     button:SetText(addonTable.Locales.LINK)
     DynamicResizeButton_Resize(button)
     button:SetPoint("LEFT", donateFrame, "CENTER", -35, 0)
     button:SetScript("OnClick", function()
-      StaticPopup_Show(donateLinkDialog)
+      addonTable.Dialogs.ShowCopy("https://linktr.ee/plusmouse")
     end)
     addonTable.Skins.AddFrame("Button", button)
     table.insert(allFrames, donateFrame)
@@ -742,33 +723,6 @@ function BaganatorCustomiseDialogMixin:SetupGeneral()
         end
       end
     end
-    local makeProfileDialog = "Baganator_MakeProfileDialog"
-    StaticPopupDialogs[makeProfileDialog] = {
-      text = addonTable.Locales.ENTER_PROFILE_NAME,
-      button1 = ACCEPT,
-      button2 = CANCEL,
-      hasEditBox = 1,
-      OnAccept = function(self)
-        ValidateAndCreate(self.editBox:GetText())
-      end,
-      EditBoxOnEnterPressed = function(self)
-        ValidateAndCreate(self:GetText())
-        self:GetParent():Hide()
-      end,
-      EditBoxOnEscapePressed = StaticPopup_StandardEditBoxOnEscapePressed,
-      timeout = 0,
-      hideOnEscape = 1,
-    }
-    local deleteProfileDialog = "Baganator_DeleteProfileDialog"
-    StaticPopupDialogs[deleteProfileDialog] = {
-      button1 = YES,
-      button2 = NO,
-      OnAccept = function(_, data)
-        addonTable.Config.DeleteProfile(data)
-      end,
-      timeout = 0,
-      hideOnEscape = 1,
-    }
     profileDropdown:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
     profileDropdown.DropDown:SetupMenu(function(menu, rootDescription)
       local profiles = addonTable.Config.GetProfileNames()
@@ -787,8 +741,9 @@ function BaganatorCustomiseDialogMixin:SetupGeneral()
             delete.Texture:SetAtlas("transmog-icon-remove")
             delete:SetScript("OnClick", function()
               menu:Close()
-              StaticPopupDialogs[deleteProfileDialog].text = addonTable.Locales.CONFIRM_DELETE_PROFILE_X:format(name)
-              StaticPopup_Show(deleteProfileDialog, nil, nil, name)
+              addonTable.Dialogs.ShowConfirm(addonTable.Locales.CONFIRM_DELETE_PROFILE_X:format(name), YES, NO, function()
+                addonTable.Config.DeleteProfile(name)
+              end)
             end)
             MenuUtil.HookTooltipScripts(delete, function(tooltip)
               GameTooltip_SetTitle(tooltip, DELETE);
@@ -798,11 +753,11 @@ function BaganatorCustomiseDialogMixin:SetupGeneral()
       end
       rootDescription:CreateButton(NORMAL_FONT_COLOR:WrapTextInColorCode(addonTable.Locales.NEW_PROFILE_CLONE), function()
         clone = true
-        StaticPopup_Show(makeProfileDialog)
+        addonTable.Dialogs.ShowEditBox(addonTable.Locales.ENTER_PROFILE_NAME, ACCEPT, CANCEL, ValidateAndCreate)
       end)
       rootDescription:CreateButton(NORMAL_FONT_COLOR:WrapTextInColorCode(addonTable.Locales.NEW_PROFILE_BLANK), function()
         clone = false
-        StaticPopup_Show(makeProfileDialog)
+        addonTable.Dialogs.ShowEditBox(addonTable.Locales.ENTER_PROFILE_NAME, ACCEPT, CANCEL, ValidateAndCreate)
       end)
     end)
   end
@@ -1190,24 +1145,13 @@ function BaganatorCustomiseDialogMixin:SetupCategoriesOptions()
   categoriesOrder:SetPoint("LEFT", frame, addonTable.Constants.ButtonFrameOffset + 20, 0)
   categoriesOrder:SetPoint("RIGHT", frame, "CENTER")
 
-  local enableDialog = "BaganatorCategoryEnableDialog"
-  StaticPopupDialogs[enableDialog] = {
-    text = addonTable.Locales.ENABLE_CATEGORY_MODE_WARNING,
-    button1 = ENABLE,
-    button2 = CANCEL,
-    OnAccept = function()
-      addonTable.Config.Set(addonTable.Config.Options.BAG_VIEW_TYPE, "category")
-      addonTable.Config.Set(addonTable.Config.Options.BANK_VIEW_TYPE, "category")
-    end,
-    timeout = 0,
-    hideOnEscape = 1,
-  }
-
   addonTable.CallbackRegistry:RegisterCallback("SettingChanged", function(_, settingName)
     if frame:IsVisible() and tIndexOf(addonTable.CategoryViews.Constants.RedisplaySettings, settingName) ~= nil then
       if addonTable.Config.Get("bag_view_type") ~= "category" and addonTable.Config.Get("bank_view_type") ~= "category" then
-        StaticPopup_Hide(enableDialog)
-        StaticPopup_Show(enableDialog)
+        addonTable.Dialogs.ShowConfirm(addonTable.Locales.ENABLE_CATEGORY_MODE_WARNING, ENABLE, CANCEL, function()
+          addonTable.Config.Set(addonTable.Config.Options.BAG_VIEW_TYPE, "category")
+          addonTable.Config.Set(addonTable.Config.Options.BANK_VIEW_TYPE, "category")
+        end)
       end
     end
   end)

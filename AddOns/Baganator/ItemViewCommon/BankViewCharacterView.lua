@@ -48,7 +48,6 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:OnLoad()
   end)
 
   Syndicator.CallbackRegistry:RegisterCallback("CharacterDeleted", function(_, character)
-    self.tabsSetup = false
     if self.lastCharacter == character then
       self.lastCharacter = self.liveCharacter
     end
@@ -94,6 +93,12 @@ end
 
 function BaganatorItemViewCommonBankViewCharacterViewMixin:SetLiveCharacter(character)
   self.liveCharacter = character
+end
+
+function BaganatorItemViewCommonBankViewCharacterViewMixin:BuyReagentBank(character)
+  addonTable.Dialogs.ShowMoney(CONFIRM_BUY_REAGNETBANK_TAB, GetReagentBankCost(), YES, NO, function()
+    BuyReagentBank();
+  end)
 end
 
 function BaganatorItemViewCommonBankViewCharacterViewMixin:DoSort(isReverse)
@@ -142,6 +147,9 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:CombineStacksAndSort(
   end
 
   if addonTable.API.ExternalContainerSorts[sortMethod] then
+    if addonTable.Config.Get(addonTable.Config.Options.SORT_START_AT_BOTTOM) then
+      isReverse = not isReverse
+    end
     addonTable.API.ExternalContainerSorts[sortMethod].callback(isReverse, Baganator.API.Constants.ContainerType.Bank)
   elseif sortMethod == "combine_stacks_only" then
     self:CombineStacks(function() end)
@@ -223,8 +231,8 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:UpdateForCharacter(ch
 
   local searchText = self:GetParent().SearchWidget.SearchBox:GetText()
 
-  self.DepositIntoReagentsBankButton:SetShown(self.isLive and addonTable.Constants.IsRetail and IsReagentBankUnlocked())
-  self.BuyReagentBankButton:SetShown(self.isLive and addonTable.Constants.IsRetail and not IsReagentBankUnlocked())
+  self.DepositIntoReagentsBankButton:SetShown(self.isLive and addonTable.Constants.IsRetail and not Syndicator.Constants.CharacterBankTabsActive and IsReagentBankUnlocked())
+  self.BuyReagentBankButton:SetShown(self.isLive and addonTable.Constants.IsRetail and not Syndicator.Constants.CharacterBankTabsActive and not IsReagentBankUnlocked())
 
   if self.CurrencyWidget.lastCharacter ~= self.lastCharacter then
     self.CurrencyWidget:UpdateCurrencies(character)

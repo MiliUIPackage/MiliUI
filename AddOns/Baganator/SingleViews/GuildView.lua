@@ -92,26 +92,6 @@ function BaganatorSingleViewGuildViewMixin:OnLoad()
 
   addonTable.Utilities.AddBagTransferManager(self) -- self.transferManager
 
-  self.confirmTransferAllDialogName = "addonTable.ConfirmTransferAll_" .. self:GetName()
-  StaticPopupDialogs[self.confirmTransferAllDialogName] = {
-    text = addonTable.Locales.CONFIRM_TRANSFER_ALL_ITEMS_FROM_GUILD_BANK,
-    button1 = YES,
-    button2 = NO,
-    OnAccept = function()
-      self:RemoveSearchMatches(function() end)
-    end,
-    timeout = 0,
-    hideOnEscape = 1,
-  }
-
-  self.warningNotInGuildDialog = "addonTable.NotInGuild" .. self:GetName()
-  StaticPopupDialogs[self.warningNotInGuildDialog] = {
-    text = ERR_GUILD_PLAYER_NOT_IN_GUILD,
-    button1 = OKAY,
-    timeout = 0,
-    hideOnEscape = 1,
-  }
-
   self.AllButtons = {}
   tAppendAll(self.AllButtons, self.AllFixedButtons)
   tAppendAll(self.AllButtons, self.LiveButtons)
@@ -138,7 +118,7 @@ function BaganatorSingleViewGuildViewMixin:OnEvent(eventName, ...)
       -- Special case, classic, where Blizzard still opens the Guild Bank UI
       -- even if there's no guild
       if self.lastGuild == nil then
-        StaticPopup_Show(self.warningNotInGuildDialog)
+        addonTable.Dialogs.ShowAcknowledge(ERR_GUILD_PLAYER_NOT_IN_GUILD)
         CloseGuildBankFrame()
       else
         self.isLive = true
@@ -401,7 +381,9 @@ function BaganatorSingleViewGuildViewMixin:UpdateTabs(guildData)
     tabButton.Icon:SetAlpha(1)
     tabButton:SetScript("OnClick", function()
       PlaySound(SOUNDKIT.IG_MAINMENU_OPTION);
-      StaticPopup_Show("CONFIRM_BUY_GUILDBANK_TAB")
+      addonTable.Dialogs.ShowMoney(CONFIRM_BUY_GUILDBANK_TAB, GetGuildBankTabCost(), YES, NO, function()
+        BuyGuildBankTab();
+      end)
     end)
     if not lastTab then
       tabButton:SetPoint("TOPLEFT", self, "TOPRIGHT", 0, -20)
@@ -663,7 +645,9 @@ end
 
 function BaganatorSingleViewGuildViewMixin:Transfer()
   if self.SearchWidget.SearchBox:GetText() == "" then
-    StaticPopup_Show(self.confirmTransferAllDialogName)
+    addonTable.Dialogs.ShowConfirm(addonTable.Locales.CONFIRM_TRANSFER_ALL_ITEMS_FROM_GUILD_BANK, YES, NO, function()
+      self:RemoveSearchMatches(function() end)
+    end)
   else
     self:RemoveSearchMatches(function() end)
   end
@@ -712,6 +696,18 @@ function BaganatorSingleViewGuildViewMixin:ToggleMoneyLogs()
   self.LogsFrame:SetTitle(addonTable.Locales.MONEY_LOGS)
   self.LogsFrame:ApplyMoney()
   QueryGuildBankLog(MAX_GUILDBANK_TABS + 1);
+end
+
+function BaganatorSingleViewGuildViewMixin:WithdrawMoney()
+  addonTable.Dialogs.ShowMoneyBox(GUILDBANK_WITHDRAW, ACCEPT, CANCEL, function(value)
+    WithdrawGuildBankMoney(value)
+  end)
+end
+
+function BaganatorSingleViewGuildViewMixin:DepositMoney()
+  addonTable.Dialogs.ShowMoneyBox(GUILDBANK_DEPOSIT, ACCEPT, CANCEL, function(value)
+    DepositGuildBankMoney(value)
+  end)
 end
 
 BaganatorGuildLogsTemplateMixin = {}

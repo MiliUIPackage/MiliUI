@@ -64,9 +64,9 @@ local function Prearrange(isLive, bagID, bag, bagType, isGrouping)
       info.isJunkGetter = junkPlugin and function() local _, result = pcall(junkPlugin, bagID, slotIndex, info.itemID, info.itemLink); return result == true end
       local location = {bagID = bagID, slotIndex = slotIndex}
       if info.itemID ~= nil and C_Item.DoesItemExist(location) then
-        info.setInfo = addonTable.ItemViewCommon.GetEquipmentSetInfo(location, info.itemLink)
-        info.itemLocation = location
         info.guid = C_Item.GetItemGUID(location)
+        info.setInfo = addonTable.ItemViewCommon.GetEquipmentSetInfo(location, info.guid, info.itemLink)
+        info.itemLocation = location
         if info.setInfo then
           info.useGUID = true
         end
@@ -107,7 +107,7 @@ addonTable.CategoryViews.BagLayoutMixin = {}
 function addonTable.CategoryViews.BagLayoutMixin:OnLoad()
   self.labelsPool = CreateFramePool("Button", self:GetParent().Container, "BaganatorCategoryViewsCategoryButtonTemplate")
   self.sectionButtonPool = addonTable.CategoryViews.GetSectionButtonPool(self:GetParent().Container)
-  self.dividerPool = CreateFramePool("Button", self:GetParent().Container, "BaganatorBagDividerTemplate")
+  self.dividerPool = CreateFramePool("Frame", self:GetParent().Container, "BaganatorBagDividerTemplate")
 
   self.notShown = {}
 
@@ -592,7 +592,8 @@ function addonTable.CategoryViews.BagLayoutMixin:Layout(allBags, bagWidth, bagTy
 
   if refreshState[Refresh.ItemData] or refreshState[Refresh.Searches] then
     table.insert(calls, function()
-      self.state.composed = addonTable.CategoryViews.ComposeCategories(self.state.everything)
+      local container = self:GetParent()
+      self.state.composed = addonTable.CategoryViews.ComposeCategories(self.state.everything, container.location)
       Next()
     end)
   end

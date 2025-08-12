@@ -18,14 +18,6 @@ local function Unmute()
   end)
 end
 
-local transferImpossibleDialogName = "Baganator_TransferImpossible"
-StaticPopupDialogs[transferImpossibleDialogName] = {
-  text = CURRENCY_TRANSFER_DISABLED_NO_VALID_SOURCES,
-  button1 = OKAY,
-  timeout = 0,
-  hideOnEscape = 1,
-}
-
 BaganatorCurrencyPanelMixin = {}
 
 function BaganatorCurrencyPanelMixin:OnLoad()
@@ -224,7 +216,8 @@ function BaganatorCurrencyPanelMixin:UpdateCurrencies()
       elseif details.itemID then
         local itemName = C_Item.GetItemNameByID(details.itemID) or " "
         if itemName:lower():match(search) and not self.isWarbandOnly then
-          table.insert(items, {type = "item", name = itemName, itemID = details.itemID, amount = addonTable.ItemViewCommon.GetTrackedItemCount(details.itemID, self.selectedCharacter), icon = select(5, C_Item.GetItemInfoInstant(details.itemID)), isLive = isLive})
+          local _, _, _, _, icon = C_Item.GetItemInfoInstant(details.itemID)
+          table.insert(items, {type = "item", name = itemName, itemID = details.itemID, amount = addonTable.ItemViewCommon.GetTrackedItemCount(details.itemID, self.selectedCharacter), icon = icon, isLive = isLive})
         end
       end
     end
@@ -474,7 +467,7 @@ function BaganatorCurrencyPanelMixin:GetTransferButton(parent)
     GameTooltip:Hide()
     TokenFramePopup:SetPoint("TOPLEFT", CharacterFrame, "TOPRIGHT", 3, -28)
     if not TokenFramePopup.CurrencyTransferToggleButton:IsEnabled() then
-      StaticPopup_Show(transferImpossibleDialogName)
+      addonTable.Dialogs.ShowAcknowledge(CURRENCY_TRANSFER_DISABLED_NO_VALID_SOURCES)
     end
   end)
 

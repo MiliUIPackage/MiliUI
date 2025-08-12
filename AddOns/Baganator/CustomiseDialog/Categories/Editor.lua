@@ -12,7 +12,7 @@ local groupingToLabel = {
 
 local disabledAlpha = 0.5
 
-local function GetCheckBox(self)
+function addonTable.CustomiseDialog.GetCategoryEditorCheckBox(self)
   local checkBoxWrapper = CreateFrame("Frame", nil, self)
   checkBoxWrapper:SetHeight(40)
   checkBoxWrapper:SetPoint("LEFT")
@@ -173,6 +173,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
       self.ChangeSearchModeButton:Enable()
       self.CategoryColorSwatch.currentColor = CreateColor(1, 1, 1)
       self.CategoryColorSwatch:SetColorRGB(self.CategoryColorSwatch.currentColor:GetRGBA())
+      self.LocationsDropDown:GenerateMenu()
       operationInProgress = false
       Save()
       return
@@ -206,6 +207,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
       self.Blocker:Show()
       self.ExportButton:Disable()
     end
+    self.LocationsDropDown:GenerateMenu()
     self.HiddenCheckBox:SetChecked(addonTable.Config.Get(addonTable.Config.Options.CATEGORY_HIDDEN)[value])
 
     local categoryMods = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_MODIFICATIONS)
@@ -245,15 +247,15 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
     SetState(value)
   end)
 
-  local hiddenCheckBoxWrapper = GetCheckBox(self)
-  hiddenCheckBoxWrapper:SetPoint("TOP", 0, -200)
+  local hiddenCheckBoxWrapper = addonTable.CustomiseDialog.GetCategoryEditorCheckBox(self)
+  hiddenCheckBoxWrapper:SetPoint("TOP", 0, -250)
   self.HiddenCheckBox = hiddenCheckBoxWrapper.checkBox
   self.HiddenCheckBox:SetText(addonTable.Locales.HIDDEN)
 
   table.insert(self.ChangeAlpha, self.HiddenCheckBox)
 
-  local prefixCheckBoxWrapper = GetCheckBox(self)
-  prefixCheckBoxWrapper:SetPoint("TOP", 0, -240)
+  local prefixCheckBoxWrapper = addonTable.CustomiseDialog.GetCategoryEditorCheckBox(self)
+  prefixCheckBoxWrapper:SetPoint("TOP", 0, -285)
   self.PrefixCheckBox = prefixCheckBoxWrapper.checkBox
   self.PrefixCheckBox:SetText(addonTable.Locales.SHOW_NAME_PREFIX)
 
@@ -275,7 +277,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
   })
   self.PrioritySlider:SetPoint("LEFT")
   self.PrioritySlider:SetPoint("RIGHT")
-  self.PrioritySlider:SetPoint("TOP", 0, -160)
+  self.PrioritySlider:SetPoint("TOP", 0, -210)
   self.PrioritySlider:SetValue(0)
   table.insert(self.ChangeAlpha, self.PrioritySlider)
 
@@ -313,6 +315,52 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
   self.GroupDropDown:SetPoint("LEFT", 15, 0)
   self.GroupDropDown:SetPoint("RIGHT", -10, 0)
   table.insert(self.ChangeAlpha, self.GroupDropDown)
+
+  self.LocationsDropDown = CreateFrame("DropdownButton", nil, self, "WowStyle1DropdownTemplate")
+  self.LocationsDropDown:SetupMenu(function(_, rootDescription)
+    local labels = {
+      addonTable.Locales.BACKPACK,
+      addonTable.Locales.CHARACTER_BANK,
+      addonTable.Locales.WARBAND_BANK,
+    }
+    local values = {
+      "backpack",
+      "character_bank",
+      "warband_bank",
+    }
+    if not Syndicator.Constants.WarbandBankActive then
+      table.remove(labels)
+      table.remove(values)
+    end
+
+    for i, l in ipairs(labels) do
+      rootDescription:CreateCheckbox(labels[i], function()
+        local mods = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_MODIFICATIONS)[self.currentCategory]
+        return not mods or not mods.hideIn or mods.hideIn[values[i]] ~= true
+      end, function()
+        local mods = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_MODIFICATIONS)[self.currentCategory]
+        if not mods then
+          mods = {}
+          addonTable.Config.Get(addonTable.Config.Options.CATEGORY_MODIFICATIONS)[self.currentCategory] = mods
+        end
+        if not mods.hideIn then
+          mods.hideIn = {}
+        end
+        mods.hideIn[values[i]] = not mods.hideIn[values[i]]
+        local refreshState = {
+          [addonTable.Constants.RefreshReason.Searches] = true,
+          [addonTable.Constants.RefreshReason.Layout] = true,
+        }
+        addonTable.CallbackRegistry:TriggerEvent("RefreshStateChange", refreshState)
+      end)
+    end
+  end)
+  self.LocationsDropDown:SetPoint("TOP", 0, -175)
+  self.LocationsDropDown:SetPoint("LEFT", 15, 0)
+  self.LocationsDropDown:SetPoint("RIGHT", -10, 0)
+  table.insert(self.ChangeAlpha, self.LocationsDropDown)
+
+  addonTable.Skins.AddFrame("Dropdown", self.LocationsDropDown)
 
   self.Blocker = CreateFrame("Frame", nil, self)
   self.Blocker:EnableMouse(true)
@@ -402,6 +450,9 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
   addonTable.CallbackRegistry:RegisterCallback("SettingChanged", function(_, settingName)
     if settingName == addonTable.Config.Options.CATEGORY_SEARCH_EDIT_MODE then
       ApplySearchMode()
+    elseif settingName == addonTable.Config.Options.CATEGORY_DISPLAY_ORDER then
+      addonTable.CallbackRegistry:TriggerEvent("SetSelectedCategory", nil)
+      self:OnHide()
     end
   end)
 
@@ -409,14 +460,14 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
   self.PrefixCheckBox:SetScript("OnClick", Save)
 
   self.ItemsEditor = self:MakeItemsEditor()
-  self.ItemsEditor:SetPoint("TOP", 0, -290)
+  self.ItemsEditor:SetPoint("TOP", 0, -330)
 
   self.ExportButton:SetScript("OnClick", function()
     if self.currentCategory == "-1" then
       return
     end
 
-    StaticPopup_Show("Baganator_Export_Dialog", nil, nil, addonTable.CustomiseDialog.SingleCategoryExport(self.currentCategory))
+    addonTable.Dialogs.ShowCopy(addonTable.CustomiseDialog.SingleCategoryExport(self.currentCategory):gsub("|n", "||n"))
   end)
 
   self.DeleteButton:SetScript("OnClick", function()
@@ -431,14 +482,16 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
     local oldIndex = tIndexOf(displayOrder, self.currentCategory)
     if oldIndex then
       table.remove(displayOrder, oldIndex)
-      addonTable.Config.Set(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER, CopyTable(displayOrder))
     end
 
     if customCategories[self.currentCategory] then
       customCategories[self.currentCategory] = nil
       categoryMods[self.currentCategory] = nil
-      addonTable.Config.Set(addonTable.Config.Options.CUSTOM_CATEGORIES, CopyTable(customCategories))
     end
+    addonTable.Config.MultiSet({
+      [addonTable.Config.Options.CATEGORY_DISPLAY_ORDER] = CopyTable(displayOrder),
+      [addonTable.Config.Options.CUSTOM_CATEGORIES] = CopyTable(customCategories),
+    })
 
     self:OnHide()
   end)
@@ -622,13 +675,6 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:MakeItemsEditor()
 end
 
 function BaganatorCustomiseDialogCategoriesEditorMixin:MakeATTImportButton(container)
-  local completeDialog = "Baganator_ATT_Add_Items_Complete"
-  StaticPopupDialogs[completeDialog] = {
-    text = "",
-    button1 = DONE,
-    timeout = 0,
-    hideOnEscape = 1,
-  }
   local addFromATTButton = CreateFrame("Button", nil, container, "UIPanelDynamicResizeButtonTemplate")
   addonTable.Skins.AddFrame("Button", addFromATTButton)
   addFromATTButton:SetText(addonTable.Locales.ATT_ADDON)
@@ -659,8 +705,8 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:MakeATTImportButton(conta
 
   addFromATTButton:SetScript("OnClick", function()
     local activePaths = {}
-    for key, frame in pairs(_G) do
-      local path = key:match("^AllTheThings%-Window%-.*%|r(.*%>.*%d)$")
+    for key, frame in pairs(ATTC.Windows) do
+      local path = key:match("^.*%>.*$")
       if path and frame:IsVisible() then
         table.insert(activePaths, path)
       end
@@ -710,8 +756,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:MakeATTImportButton(conta
     end
     addonTable.Config.Set(addonTable.Config.Options.CATEGORY_MODIFICATIONS, CopyTable(categoryMods))
 
-    StaticPopupDialogs[completeDialog].text = addonTable.Locales.ADD_FROM_ATT_POPUP_COMPLETE:format(#items, #activePaths)
-    StaticPopup_Show(completeDialog)
+    addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.ADD_FROM_ATT_POPUP_COMPLETE:format(#items, #activePaths))
   end)
 
   return addFromATTButton

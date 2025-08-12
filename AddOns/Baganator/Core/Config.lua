@@ -1,4 +1,5 @@
-local _, addonTable = ...
+---@class addonTableBaganator
+local addonTable = select(2, ...)
 addonTable.Config = {}
 
 local Refresh = addonTable.Constants.RefreshReason
@@ -10,6 +11,7 @@ local settings = {
   SEEN_WELCOME = {key = "seen_welcome", default = 0},
   BAG_VIEW_WIDTH = {key = "bag_view_width", default = 12, refresh = {Refresh.Layout}, zone = {Zone.Bags}},
   BANK_VIEW_WIDTH = {key = "bank_view_width", default = addonTable.Constants.IsRetail and 24 or 18, refresh = {Refresh.Layout}, zone = {Zone.CharacterBank}},
+  CHARACTER_BANK_VIEW_WIDTH = {key = "character_bank_view_width", default = 14, refresh = {Refresh.Layout}, zone = {Zone.CharacterBank}},
   WARBAND_BANK_VIEW_WIDTH = {key = "warband_bank_view_width", default = 14, refresh = {Refresh.Layout}, zone = {Zone.WarbandBank}},
   GUILD_VIEW_WIDTH = {key = "guild_view_width", default = 14, refresh = {Refresh.Layout}, zone = {Zone.GuildBank}},
   BAG_ICON_SIZE = {key = "bag_icon_size", default = 37, refresh = {Refresh.Layout, Refresh.Flow}},
@@ -34,6 +36,7 @@ local settings = {
   SHOW_SEARCH_BOX = {key = "show_search_box", default = true, refresh = {Refresh.Layout}},
 
   BANK_CURRENT_TAB = {key = "bank_current_tab", default = 1},
+  CHARACTER_BANK_CURRENT_TAB = {key = "character_bank_current_tab", default = 1},
   WARBAND_CURRENT_TAB = {key = "warband_current_tab", default = 1},
   GUILD_CURRENT_TAB = {key = "guild_current_tab", default = 1},
 
@@ -52,6 +55,7 @@ local settings = {
   ICON_EQUIPMENT_SET_BORDER = {key = "icon_equipment_set_border", default = true, refresh = {Refresh.ItemWidgets}},
   ICON_FLASH_SIMILAR_ALT = {key = "icon_flash_similar_alt", default = false},
   ICON_CONTEXT_FADING = {key = "icon_context_fading", default = true, refresh = {Refresh.ItemWidgets}},
+  NEW_ITEMS_FLASHING = {key = "new_items_flashing", default = true},
 
   JUNK_PLUGIN = {key = "junk_plugin", default = "poor_quality", refresh = {Refresh.Searches, Refresh.ItemWidgets}},
   JUNK_PLUGINS_IGNORED = {key = "junk_plugin_ignored", default = {}},
@@ -89,6 +93,7 @@ local settings = {
   CATEGORY_ITEM_GROUPING = {key = "category_item_grouping", default = true, refresh = {Refresh.ItemData}},
   CATEGORY_GROUP_EMPTY_SLOTS = {key = "category_group_empty_slots", default = true, refresh = {Refresh.Searches}},
   RECENT_TIMEOUT = {key = "recent_timeout", default = 15},
+  RECENT_INCLUDE_OWNED = {key = "recent_include_owned", default = false},
   ADD_TO_CATEGORY_BUTTONS = {key = "add_to_category_buttons_2", default = "drag"},
 
   SAVED_SEARCHES = {key = "saved_searches", default = {}},
@@ -137,37 +142,27 @@ function addonTable.Config.IsValidOption(name)
   return false
 end
 
-function addonTable.Config.Create(constant, name, defaultValue)
-  addonTable.Config.Options[constant] = name
-
-  addonTable.Config.Defaults[addonTable.Config.Options[constant]] = defaultValue
-
-  if BAGANATOR_CONFIG ~= nil and BAGANATOR_CONFIG[name] == nil then
-    BAGANATOR_CONFIG[name] = defaultValue
-  end
-end
-
 local function RawSet(name, value)
   local tree = {strsplit(".", name)}
-  if BAGANATOR_CONFIG == nil then
-    error("JOURNALATOR_CONFIG not initialized")
+  if addonTable.Config.CurrentProfile == nil then
+    error("BAGANATOR_CONFIG not initialized")
   elseif not addonTable.Config.IsValidOption(tree[1]) then
     error("Invalid option '" .. name .. "'")
   elseif #tree == 1 then
     local oldValue
     if addonTable.Config.IsCharacterSpecific[name] then
       local characterName = Syndicator.API.GetCurrentCharacter()
-      oldValue = BAGANATOR_CONFIG[name][characterName]
-      BAGANATOR_CONFIG[name][characterName] = value
+      oldValue = BAGANATOR_CONFIG.CharacterSpecific[name][characterName]
+      BAGANATOR_CONFIG.CharacterSpecific[name][characterName] = value
     else
-      oldValue = BAGANATOR_CONFIG[name]
-      BAGANATOR_CONFIG[name] = value
+      oldValue = addonTable.Config.CurrentProfile[name]
+      addonTable.Config.CurrentProfile[name] = value
     end
     if value ~= oldValue then
       return true
     end
   else
-    local root = BAGANATOR_CONFIG
+    local root = addonTable.Config.CurrentProfile
     for i = 1, #tree - 1 do
       root = root[tree[i]]
       if type(root) ~= "table" then
@@ -218,16 +213,23 @@ function addonTable.Config.MultiSet(nameValueMap)
   end
 end
 
+local addedInstalledNestedToList = {}
+local installedNested = {}
+
 function addonTable.Config.Install(name, defaultValue)
   if BAGANATOR_CONFIG == nil then
     error("BAGANATOR_CONFIG not initialized")
   elseif name:find("%.") == nil then
-    if BAGANATOR_CONFIG[name] == nil then
-      BAGANATOR_CONFIG[name] = defaultValue
+    if addonTable.Config.CurrentProfile[name] == nil then
+      addonTable.Config.CurrentProfile[name] = defaultValue
     end
   else
+    if not addedInstalledNestedToList[name] then
+      addedInstalledNestedToList[name] = true
+      table.insert(installedNested, name)
+    end
     local tree = {strsplit(".", name)}
-    local root = BAGANATOR_CONFIG
+    local root = addonTable.Config.CurrentProfile
     for i = 1, #tree - 1 do
       if not root[tree[i]] then
         root[tree[i]] = {}
@@ -253,12 +255,26 @@ function addonTable.Config.ResetOne(name)
 end
 
 function addonTable.Config.Reset()
-  BAGANATOR_CONFIG = {}
+  BAGANATOR_CONFIG = {
+    Profiles = {
+      DEFAULT = {},
+    },
+    CharacterSpecific = {},
+    Version = 1,
+  }
+  addonTable.Config.InitializeData()
+end
+
+local function ImportDefaultsToProfile()
   for option, value in pairs(addonTable.Config.Defaults) do
-    if addonTable.Config.IsCharacterSpecific[option] then
-      BAGANATOR_CONFIG[option] = {}
-    else
-      BAGANATOR_CONFIG[option] = value
+    if addonTable.Config.IsCharacterSpecific[option] and BAGANATOR_CONFIG.CharacterSpecific[option] == nil then
+      BAGANATOR_CONFIG.CharacterSpecific[option] = {}
+    elseif addonTable.Config.CurrentProfile[option] == nil then
+      if type(value) == "table" then
+        addonTable.Config.CurrentProfile[option] = CopyTable(value)
+      else
+        addonTable.Config.CurrentProfile[option] = value
+      end
     end
   end
 end
@@ -266,39 +282,99 @@ end
 function addonTable.Config.InitializeData()
   if BAGANATOR_CONFIG == nil then
     addonTable.Config.Reset()
+    return
+  end
+
+  if BAGANATOR_CONFIG.Profiles == nil then
+    BAGANATOR_CONFIG = {
+      Profiles = {
+        DEFAULT = BAGANATOR_CONFIG,
+      },
+      CharacterSpecific = {},
+      Version = 1,
+    }
+  end
+
+  if BAGANATOR_CONFIG.Profiles.DEFAULT == nil then
+    BAGANATOR_CONFIG.Profiles.DEFAULT = {}
+  end
+  if BAGANATOR_CONFIG.Profiles[BAGANATOR_CURRENT_PROFILE] == nil then
+    BAGANATOR_CURRENT_PROFILE = "DEFAULT"
+  end
+
+  addonTable.Config.CurrentProfile = BAGANATOR_CONFIG.Profiles[BAGANATOR_CURRENT_PROFILE]
+  ImportDefaultsToProfile()
+end
+
+function addonTable.Config.GetProfileNames()
+  return GetKeysArray(BAGANATOR_CONFIG.Profiles)
+end
+
+function addonTable.Config.MakeProfile(newProfileName, clone)
+  assert(tIndexOf(addonTable.Config.GetProfileNames(), newProfileName) == nil, "Existing Profile")
+  if clone then
+    BAGANATOR_CONFIG.Profiles[newProfileName] = CopyTable(addonTable.Config.CurrentProfile)
   else
-    for option, value in pairs(addonTable.Config.Defaults) do
-      if BAGANATOR_CONFIG[option] == nil then
-        if addonTable.Config.IsCharacterSpecific[option] then
-          BAGANATOR_CONFIG[option] = {}
-        else
-          BAGANATOR_CONFIG[option] = value
-        end
-      end
+    BAGANATOR_CONFIG.Profiles[newProfileName] = {}
+  end
+  addonTable.Config.ChangeProfile(newProfileName)
+end
+
+function addonTable.Config.DeleteProfile(profileName)
+  assert(profileName ~= "DEFAULT" and profileName ~= BAGANATOR_CURRENT_PROFILE)
+
+  BAGANATOR_CONFIG.Profiles[profileName] = nil
+end
+
+function addonTable.Config.ChangeProfile(newProfileName)
+  assert(tIndexOf(addonTable.Config.GetProfileNames(), newProfileName) ~= nil, "Invalid Profile")
+
+  local changedOptions = {}
+  local refreshState = {}
+  local newProfile = BAGANATOR_CONFIG.Profiles[newProfileName]
+
+  for name, value in pairs(addonTable.Config.CurrentProfile) do
+    if value ~= newProfile[name] then
+      table.insert(changedOptions, name)
+      Mixin(refreshState, addonTable.Config.RefreshType[name] or {})
     end
   end
+
+  tAppendAll(changedOptions, installedNested)
+
+  addonTable.Config.CurrentProfile = newProfile
+  BAGANATOR_CURRENT_PROFILE = newProfileName
+
+  ImportDefaultsToProfile()
+
+  addonTable.Core.MigrateSettings()
+
+  for _, name in ipairs(changedOptions) do
+    addonTable.CallbackRegistry:TriggerEvent("SettingChanged", name)
+  end
+  addonTable.CallbackRegistry:TriggerEvent("RefreshStateChange", refreshState)
 end
 
 -- characterName is optional, only use if need a character specific setting for
 -- a character other than the current one.
 function addonTable.Config.Get(name, characterName)
   -- This is ONLY if a config is asked for before variables are loaded
-  if BAGANATOR_CONFIG == nil then
+  if addonTable.Config.CurrentProfile == nil then
     return addonTable.Config.Defaults[name]
   elseif name:find("%.") == nil then
     if addonTable.Config.IsCharacterSpecific[name] then
-      local value = BAGANATOR_CONFIG[name][characterName or Syndicator.API.GetCurrentCharacter()]
+      local value = BAGANATOR_CONFIG.CharacterSpecific[name][characterName or Syndicator.API.GetCurrentCharacter()]
       if value == nil then
         return addonTable.Config.Defaults[name]
       else
         return value
       end
     else
-      return BAGANATOR_CONFIG[name]
+      return addonTable.Config.CurrentProfile[name]
     end
   else
     local tree = {strsplit(".", name)}
-    local root = BAGANATOR_CONFIG
+    local root = addonTable.Config.CurrentProfile
     for i = 1, #tree do
       root = root[tree[i]]
       if root == nil then

@@ -1,9 +1,9 @@
 ---@class addonTableBaganator
 local addonTable = select(2, ...)
-BaganatorCategoryViewBankViewCharacterViewMixin = CreateFromMixins(BaganatorItemViewCommonBankViewCharacterViewMixin)
+BaganatorCategoryViewBankViewCharacterTabsViewMixin = CreateFromMixins(BaganatorItemViewCommonBankViewCharacterTabsViewMixin)
 
-function BaganatorCategoryViewBankViewCharacterViewMixin:OnLoad()
-  BaganatorItemViewCommonBankViewCharacterViewMixin.OnLoad(self)
+function BaganatorCategoryViewBankViewCharacterTabsViewMixin:OnLoad()
+  BaganatorItemViewCommonBankViewCharacterTabsViewMixin.OnLoad(self)
 
   self.Container.Layouts = {}
   self.LiveLayouts = {}
@@ -27,7 +27,7 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:OnLoad()
   end)
 end
 
-function BaganatorCategoryViewBankViewCharacterViewMixin:OnEvent(eventName, ...)
+function BaganatorCategoryViewBankViewCharacterTabsViewMixin:OnEvent(eventName, ...)
   if eventName == "CURSOR_CHANGED" and self.addToCategoryMode and not C_Cursor.GetCursorItem() then
     self.addToCategoryMode = nil
     if self:IsVisible() then
@@ -42,7 +42,7 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:OnEvent(eventName, ...)
   end
 end
 
-function BaganatorCategoryViewBankViewCharacterViewMixin:TransferCategory(sourceKey)
+function BaganatorCategoryViewBankViewCharacterTabsViewMixin:TransferCategory(sourceKey)
   if not self.isLive then
     return
   end
@@ -50,7 +50,7 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:TransferCategory(source
   self:RemoveSearchMatches(function() return self.layoutsBySourceKey[sourceKey] and self.layoutsBySourceKey[sourceKey].SearchMonitor:GetMatches() or {} end)
 end
 
-function BaganatorCategoryViewBankViewCharacterViewMixin:TransferSection(tree)
+function BaganatorCategoryViewBankViewCharacterTabsViewMixin:TransferSection(tree)
   if not self.isLive then
     return
   end
@@ -76,11 +76,11 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:TransferSection(tree)
   end)
 end
 
-function BaganatorCategoryViewBankViewCharacterViewMixin:GetActiveLayouts()
+function BaganatorCategoryViewBankViewCharacterTabsViewMixin:GetActiveLayouts()
   return self.activeLayouts
 end
 
-function BaganatorCategoryViewBankViewCharacterViewMixin:GetSearchMatches()
+function BaganatorCategoryViewBankViewCharacterTabsViewMixin:GetSearchMatches()
   local matches = {}
   for _, layouts in ipairs(self.LiveLayouts) do
     tAppendAll(matches, layouts.SearchMonitor:GetMatches())
@@ -88,24 +88,12 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:GetSearchMatches()
   return matches
 end
 
-function BaganatorCategoryViewBankViewCharacterViewMixin:ApplySearch(text)
-  if not self:IsVisible() then
-    return
-  end
-
-  for _, layout in ipairs(self.Container.Layouts) do
-    if layout:IsVisible() then
-      layout:ApplySearch(text)
-    end
-  end
-end
-
-function BaganatorCategoryViewBankViewCharacterViewMixin:NotifyBagUpdate(updatedBags)
+function BaganatorCategoryViewBankViewCharacterTabsViewMixin:NotifyBagUpdate(updatedBags)
   --self.LayoutManager:NotifyBagUpdate(updatedBags.bank)
 end
 
-function BaganatorCategoryViewBankViewCharacterViewMixin:UpdateForCharacter(character, isLive)
-  BaganatorItemViewCommonBankViewCharacterViewMixin.UpdateForCharacter(self, character, isLive)
+function BaganatorCategoryViewBankViewCharacterTabsViewMixin:ShowTab(character, tabIndex, isLive)
+  BaganatorItemViewCommonBankViewCharacterTabsViewMixin.ShowTab(self, character, tabIndex, isLive)
 
   local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
 
@@ -114,30 +102,9 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:UpdateForCharacter(char
     return
   end
 
-  self:GetParent().AllButtons = {}
-
-  tAppendAll(self:GetParent().AllButtons, self:GetParent().AllFixedButtons)
-  tAppendAll(self:GetParent().AllButtons, self.TopButtons)
-
   local buttonPadding = 0
 
   local lastButton
-  if self.BuyReagentBankButton:IsShown() then
-    table.insert(self:GetParent().AllButtons, self.BuyReagentBankButton)
-    self.BuyReagentBankButton:ClearAllPoints()
-    self.BuyReagentBankButton:SetPoint("LEFT", self, addonTable.Constants.ButtonFrameOffset + sideSpacing - 2, 0)
-    self.BuyReagentBankButton:SetPoint("BOTTOM", self, 0, 6)
-    lastButton = self.BuyReagentBankButton
-    buttonPadding = 2
-  end
-  if self.DepositIntoReagentsBankButton:IsShown() then
-    table.insert(self:GetParent().AllButtons, self.DepositIntoReagentsBankButton)
-    self.DepositIntoReagentsBankButton:ClearAllPoints()
-    self.DepositIntoReagentsBankButton:SetPoint("LEFT", self, addonTable.Constants.ButtonFrameOffset + sideSpacing - 2, 0)
-    self.DepositIntoReagentsBankButton:SetPoint("BOTTOM", self, 0, 6)
-    lastButton = self.DepositIntoReagentsBankButton
-    buttonPadding = 2
-  end
 
   self.isGrouping = not self.isLive and addonTable.Config.Get(addonTable.Config.Options.CATEGORY_ITEM_GROUPING)
   self.splitStacksDueToTransfer = self.isLive
@@ -148,13 +115,28 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:UpdateForCharacter(char
 
   local characterData = Syndicator.API.GetCharacter(character)
   local bagTypes = addonTable.CategoryViews.Utilities.GetBagTypes(characterData, "bank", Syndicator.Constants.AllBankIndexes)
-  local bagWidth = addonTable.Config.Get(addonTable.Config.Options.BANK_VIEW_WIDTH)
-  self.LayoutManager:Layout(characterData.bank, bagWidth, bagTypes, Syndicator.Constants.AllBankIndexes, sideSpacing, topSpacing, function(maxWidth, maxHeight)
-    self.Container:SetSize(math.max(addonTable.CategoryViews.Utilities.GetMinWidth(bagWidth), maxWidth), maxHeight)
-
+  local bagWidth = addonTable.Config.Get(addonTable.Config.Options.CHARACTER_BANK_VIEW_WIDTH)
+  local bagData = {}
+  if self.currentTab > 0 then
+    table.insert(bagData, characterData.bankTabs[tabIndex].slots)
+    table.insert(bagTypes, 0)
+    bagIndexes = {Syndicator.Constants.AllBankIndexes[tabIndex]}
+  else
+    for _, tab in ipairs(characterData.bankTabs) do
+      table.insert(bagData, tab.slots)
+      table.insert(bagTypes, 0)
+    end
+    bagWidth = bagWidth * 2
+    bagIndexes = Syndicator.Constants.AllBankIndexes
+  end
+  self.LayoutManager:Layout(bagData, bagWidth, bagTypes, bagIndexes, sideSpacing, topSpacing, function(maxWidth, maxHeight)
+    self.Container:SetSize(
+      math.max(addonTable.CategoryViews.Utilities.GetMinWidth(bagWidth), self:GetButtonsWidth(sideSpacing), maxWidth),
+      maxHeight
+    )
     self:OnFinished()
 
-    self.CurrencyWidget:UpdateCurrencyTextPositions(self.Container:GetWidth() - (lastButton and lastButton:GetWidth() + 10 or 0), self.Container:GetWidth())
+    self.CurrencyWidget:UpdateCurrencyTextPositions(self.Container:GetWidth() - self.buttonsWidth - 5, self.Container:GetWidth())
 
     local searchText = self:GetParent().SearchWidget.SearchBox:GetText()
     if self.searchToApply then

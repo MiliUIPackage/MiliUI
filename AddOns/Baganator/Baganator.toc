@@ -1,6 +1,6 @@
-## Interface: 110200, 110200
+## Interface: 110200, 110107
 ## Title: Baganator
-## Version: 686
+## Version: 725
 ## Author: plusmouse
 ## OptionalDeps: Syndicator, Masque
 ## SavedVariables: BAGANATOR_CONFIG, BAGANATOR_DATA
@@ -27,6 +27,7 @@ Core\Utilities.lua
 Core\SlashCmd.lua
 Core\Welcome.lua
 Core\Analytics.lua
+Core\Dialogs.lua
 Core\Main.lua
 
 Skins\Utilities.lua
@@ -78,6 +79,8 @@ ItemViewCommon\BackpackView.lua
 ItemViewCommon\BackpackView.xml
 ItemViewCommon\BankViewCharacterView.lua
 ItemViewCommon\BankViewCharacterView.xml
+ItemViewCommon\BankViewCharacterTabsView.lua
+ItemViewCommon\BankViewCharacterTabsView.xml
 ItemViewCommon\BankViewWarbandView.lua
 ItemViewCommon\BankViewWarbandView.xml
 ItemViewCommon\BankView.lua
@@ -91,6 +94,8 @@ ItemViewCommon\Initialize.lua
 SingleViews\Pools.lua
 SingleViews\BankViewCharacterView.lua
 SingleViews\BankViewCharacterView.xml
+SingleViews\BankViewCharacterTabsView.lua
+SingleViews\BankViewCharacterTabsView.xml
 SingleViews\BankViewWarbandView.lua
 SingleViews\BankViewWarbandView.xml
 SingleViews\BankView.xml
@@ -114,6 +119,8 @@ CategoryViews\Components.lua
 CategoryViews\Components.xml
 CategoryViews\BankViewCharacterView.lua
 CategoryViews\BankViewCharacterView.xml
+CategoryViews\BankViewCharacterTabsView.lua
+CategoryViews\BankViewCharacterTabsView.xml
 CategoryViews\BankViewWarbandView.lua
 CategoryViews\BankViewWarbandView.xml
 CategoryViews\BankView.xml
@@ -156,3 +163,5 @@ Compatibility\VanillaEngraving.lua
 Compatibility\Lockpicking.lua
 Compatibility\Refunds.lua
 Compatibility\Contexts.lua
+Compatibility\Timewalking.lua
+Compatibility\AuctionValue.lua

@@ -289,6 +289,7 @@ function addonTable.Utilities.AddScrollBar(self)
   ScrollUtil.AddManagedScrollBarVisibilityBehavior(self.ScrollBox, self.ScrollBar)
   self.ScrollChild:SetScript("OnSizeChanged", nil)
   self.ScrollBox:SetScript("OnSizeChanged", nil)
+  self.ScrollBox:SetPanExtent(100)
 
   function self:UpdateScroll(ySaved, scale)
     local sideSpacing, topSpacing, searchSpacing = addonTable.Utilities.GetSpacing()
@@ -321,9 +322,9 @@ function addonTable.Utilities.GetExternalSortMethodName()
 end
 
 function addonTable.Utilities.GetBagType(bagID, itemID)
-  local classID, subClassID
+  local _, classID, subClassID
   if itemID then
-    classID, subClassID = select(6, C_Item.GetItemInfoInstant(itemID))
+    _, _, _, _, _, classID, subClassID = C_Item.GetItemInfoInstant(itemID)
   end
   local iconDetails = addonTable.Constants.ContainerKeyToInfo[subClassID]
   if classID ~= nil and classID == Enum.ItemClass.Quiver then
@@ -332,7 +333,7 @@ function addonTable.Utilities.GetBagType(bagID, itemID)
     return subClassID
   elseif addonTable.Constants.IsRetail and bagID == Enum.BagIndex.ReagentBag then
     return "reagentBag"
-  elseif addonTable.Constants.IsRetail and bagID == Enum.BagIndex.Reagentbank then
+  elseif addonTable.Constants.IsRetail and bagID == Enum.BagIndex.Reagentbank and not Syndicator.Constants.CharacterBankTabsActive then
     return "reagentBag"
   elseif bagID == Enum.BagIndex.Keyring then
     return "keyring"

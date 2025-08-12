@@ -4,7 +4,7 @@ Baganator.API.RegisterJunkPlugin(NONE, "none", function()
   return false
 end)
 
-addonTable.Utilities.OnAddonLoaded("Peddler", function()
+--[[addonTable.Utilities.OnAddonLoaded("Peddler", function()
   if not PeddlerAPI then
     return
   end
@@ -14,7 +14,7 @@ addonTable.Utilities.OnAddonLoaded("Peddler", function()
 
     return uniqueItemID and PeddlerAPI.itemIsToBeSold(itemID, uniqueItemID, isSoulbound)
   end)
-end)
+end)]]
 
 addonTable.Utilities.OnAddonLoaded("SellJunk", function()
   Baganator.API.RegisterJunkPlugin(addonTable.Locales.SELLJUNK, "selljunk", function(bagID, slotID, _, itemLink)
@@ -37,25 +37,23 @@ addonTable.Utilities.OnAddonLoaded("Scrap", function()
   end)
 end)
 
-if addonTable.Constants.IsRetail then
-  addonTable.Utilities.OnAddonLoaded("Vendor", function()
-    Baganator.API.RegisterJunkPlugin(addonTable.Locales.VENDOR, "vendor", function(bagID, slotID, _, _)
-      return Vendor.EvaluateItem(bagID, slotID) ~= 0
-    end)
-
-    local extension = {
-      Addon = addonTable.Locales.BAGANATOR,
-      Source = addonTable.Locales.BAGANATOR,
-      Version = 1.0,
-      OnRuleUpdate = function()
-        Baganator.API.RequestItemButtonsRefresh()
-      end,
-    }
-    C_Timer.After(0, function()
-      Vendor.RegisterExtension(extension)
-    end)
+addonTable.Utilities.OnAddonLoaded("Vendor", function()
+  Baganator.API.RegisterJunkPlugin(addonTable.Locales.VENDOR, "vendor", function(bagID, slotID, _, _)
+    return Vendor.EvaluateItem(bagID, slotID) ~= 0
   end)
-end
+
+  local extension = {
+    Addon = addonTable.Locales.BAGANATOR,
+    Source = addonTable.Locales.BAGANATOR,
+    Version = 1.0,
+    OnRuleUpdate = function()
+      Baganator.API.RequestItemButtonsRefresh()
+    end,
+  }
+  C_Timer.After(0, function()
+    Vendor.RegisterExtension(extension)
+  end)
+end)
 
 addonTable.Utilities.OnAddonLoaded("Dejunk", function()
   if not DejunkApi or not DejunkApi.Events then

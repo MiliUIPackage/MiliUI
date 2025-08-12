@@ -1,23 +1,5 @@
 ---@class addonTableBaganator
 local addonTable = select(2, ...)
-local exportDialog = "Baganator_Export_Dialog"
-StaticPopupDialogs[exportDialog] = {
-  text = addonTable.Locales.CTRL_C_TO_COPY,
-  button1 = DONE,
-  hasEditBox = 1,
-  OnShow = function(self, data)
-    self.editBox:SetText(data)
-    self.editBox:HighlightText()
-  end,
-  EditBoxOnEnterPressed = function(self)
-    self:GetParent():Hide()
-  end,
-  EditBoxOnEscapePressed = StaticPopup_StandardEditBoxOnEscapePressed,
-  editBoxWidth = 230,
-  maxLetters = 0,
-  timeout = 0,
-  hideOnEscape = 1,
-}
 
 local folderMarker
 if C_Texture.GetAtlasInfo("AnimCreate_Icon_Folder") then
@@ -188,7 +170,7 @@ local function GetCategoryContainer(parent, pickupCallback)
   ScrollUtil.InitScrollBoxListWithScrollBar(container.ScrollBox, container.ScrollBar, scrollView)
   addonTable.Skins.AddFrame("TrimScrollBar", container.ScrollBar)
 
-  container:SetSize(250, 600)
+  container:SetSize(250, 630)
 
   PopulateCategoryOrder(container)
 
@@ -281,7 +263,7 @@ end
 
 function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
   local container = CreateFrame("Frame", nil, parent)
-  container:SetSize(300, 670)
+  container:SetSize(300, 700)
   container:SetPoint("CENTER")
 
   local previousOrder = CopyTable(addonTable.Config.Get(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER))
@@ -456,7 +438,7 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
   exportButton:SetText(addonTable.Locales.EXPORT)
   DynamicResizeButton_Resize(exportButton)
   exportButton:SetScript("OnClick", function()
-    StaticPopup_Show(exportDialog, nil, nil, addonTable.CustomiseDialog.CategoriesExport())
+    addonTable.Dialogs.ShowCopy(addonTable.CustomiseDialog.CategoriesExport():gsub("|n", "||n"))
   end)
   addonTable.Skins.AddFrame("Button", exportButton)
 

@@ -18,8 +18,13 @@ function BaganatorItemViewCommonBankViewMixin:OnLoad()
 
   self.Tabs = {}
 
-  self.Character = CreateFrame("Frame", nil, self, self.characterTemplate)
-  self.Character:SetPoint("TOPLEFT")
+  if self.characterTabsTemplate and Syndicator.Constants.CharacterBankTabsActive then
+    self.Character = CreateFrame("Frame", nil, self, self.characterTabsTemplate)
+    self.Character:SetPoint("TOPLEFT")
+  else
+    self.Character = CreateFrame("Frame", nil, self, self.characterTemplate)
+    self.Character:SetPoint("TOPLEFT")
+  end
   self:InitializeWarband(self.warbandTemplate)
 
   self.currentTab = self.Character
@@ -31,17 +36,6 @@ function BaganatorItemViewCommonBankViewMixin:OnLoad()
     self.hasCharacter = true
   end)
 
-  self.confirmTransferAllDialogName = "addonTable.ConfirmTransferAll_" .. self:GetName()
-  StaticPopupDialogs[self.confirmTransferAllDialogName] = {
-    text = addonTable.Locales.CONFIRM_TRANSFER_ALL_ITEMS_FROM_BANK,
-    button1 = YES,
-    button2 = NO,
-    OnAccept = function()
-      self.currentTab:RemoveSearchMatches(function() end)
-    end,
-    timeout = 0,
-    hideOnEscape = 1,
-  }
   self:UpdateTransferButton()
 
   addonTable.Skins.AddFrame("ButtonFrame", self, {"bank"})
@@ -143,6 +137,10 @@ function BaganatorItemViewCommonBankViewMixin:OnEvent(eventName)
 end
 
 function BaganatorItemViewCommonBankViewMixin:OnShow()
+  if Syndicator.Constants.CharacterBankTabsActive then
+    BankFrame.BankPanel:Show()
+  end
+
   if Syndicator.Constants.WarbandBankActive then
     if C_PlayerInteractionManager.IsInteractingWithNpcOfType(Enum.PlayerInteractionType.AccountBanker) then
       self:SetTab(2)
@@ -173,6 +171,10 @@ function BaganatorItemViewCommonBankViewMixin:OnHide()
     C_Bank.CloseBankFrame()
   else
     CloseBankFrame()
+  end
+
+  if Syndicator.Constants.CharacterBankTabsActive then
+    BankFrame.BankPanel:Hide()
   end
 
   addonTable.CallbackRegistry:TriggerEvent("SearchTextChanged", "")
@@ -235,7 +237,9 @@ end
 
 function BaganatorItemViewCommonBankViewMixin:Transfer()
   if self.SearchWidget.SearchBox:GetText() == "" then
-    StaticPopup_Show(self.confirmTransferAllDialogName)
+    addonTable.Dialogs.ShowConfirm(addonTable.Locales.CONFIRM_TRANSFER_ALL_ITEMS_FROM_BANK, YES, NO, function()
+      self.currentTab:RemoveSearchMatches(function() end)
+    end)
   else
     self.currentTab:RemoveSearchMatches()
   end

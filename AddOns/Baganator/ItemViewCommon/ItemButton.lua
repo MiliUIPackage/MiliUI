@@ -146,8 +146,10 @@ function addonTable.ItemButtonUtil.UpdateSettings()
             if show == nil then
               local BGR = itemButton.BGR
               if not queued then
-                QueueWidget(function()
-                  if itemButton.BGR == BGR then
+                local function queueFunc()
+                  -- Ensure the item button's state is still the same
+                  -- IsShown ensures the item hasn't been returned to the pool
+                  if itemButton.BGR == BGR and itemButton:IsShown() then
                     -- Hide any widgets shown immediately because the widget
                     -- wasn't available
                     for i = 1, #callbacks do
@@ -156,9 +158,14 @@ function addonTable.ItemButtonUtil.UpdateSettings()
                         cornerWidget:Hide()
                       end
                     end
-                    Callback(itemButton)
+                    if itemButton.BGR.guid and itemButton.BGR.guid ~= C_Item.GetItemGUID(itemButton.BGR.itemLocation) then
+                      QueueWidget(queueFunc)
+                    else
+                      Callback(itemButton)
+                    end
                   end
-                end)
+                end
+                QueueWidget(queueFunc)
                 queued = true
               end
             elseif show then
@@ -303,7 +310,6 @@ end
 
 local function AddClassicBackground(button)
   if not button.SlotBackground then
-    button.emptySlotFilepath = nil
     button.SlotBackground = button:CreateTexture(nil, "BACKGROUND", nil, -1)
     button.SlotBackground:SetAllPoints(button.icon)
     button.SlotBackground:SetTexture("Interface\\AddOns\\Baganator\\Assets\\classic-bag-slot")
@@ -363,7 +369,7 @@ end
 
 local function ApplyNewItemAnimation(self, quality)
   -- Modified code from Blizzard for classic
-  local isNewItem = addonTable.NewItems:IsNewItem(self:GetParent():GetID(), self:GetID());
+  local isNewItem = addonTable.NewItems:IsNewItem(self:GetParent():GetID(), self:GetID()) and addonTable.Config.Get(addonTable.Config.Options.NEW_ITEMS_FLASHING);
 
   local newItemTexture = self.NewItemTexture;
   local battlepayItemTexture = self.BattlepayItemTexture;
@@ -581,7 +587,7 @@ end
 function BaganatorRetailLiveContainerItemButtonMixin:PreClickHook()
   -- Automatically use the reagent bank when at the bank transferring crafting
   -- reagents if there is space
-  if BankFrame:IsShown() and self.BGR and self.BGR.itemID and BankFrame.activeTabIndex ~= addonTable.Constants.BlizzardBankTabConstants.Warband then
+  if not Syndicator.Constants.CharacterBankTabsActive and BankFrame:IsShown() and self.BGR and self.BGR.itemID and BankFrame.activeTabIndex ~= addonTable.Constants.BlizzardBankTabConstants.Warband then
     BankFrame.selectedTab = 1
 
     local _
@@ -695,7 +701,8 @@ function BaganatorRetailLiveContainerItemButtonMixin:SetItemDetails(cacheData)
     self.BGR.tooltipGetter = function() return C_TooltipInfo.GetBagItem(self:GetBagID(), self:GetID()) end
     local itemLocation = {bagID = self:GetParent():GetID(), slotIndex = self:GetID()}
     if C_Item.DoesItemExist(itemLocation) then
-      self.BGR.setInfo = addonTable.ItemViewCommon.GetEquipmentSetInfo(itemLocation, self.BGR.itemLink)
+      self.BGR.guid = C_Item.GetItemGUID(itemLocation)
+      self.BGR.setInfo = addonTable.ItemViewCommon.GetEquipmentSetInfo(itemLocation, self.BGR.guid, self.BGR.itemLink)
       self.BGR.itemLocation = itemLocation
     end
 
@@ -706,11 +713,11 @@ function BaganatorRetailLiveContainerItemButtonMixin:SetItemDetails(cacheData)
   end, function()
     self.BGR.hasSpell = C_Item.GetItemSpell(self.BGR.itemID) ~= nil
     self:BGRUpdateCooldown()
-    self:BGRUpdateQuests()
     self:UpdateItemContextMatching();
     local doNotSuppressOverlays = false
     self:SetItemButtonQuality(quality, itemLink, doNotSuppressOverlays, isBound);
     ReparentOverlays(self)
+    self:BGRUpdateQuests()
   end)
 
   if not self.BGR.itemID then
@@ -940,7 +947,7 @@ local function ApplyQualityBorderClassic(self, quality)
     self.IconBorder:SetVertexColor(color.r, color.g, color.b, 1)
     self.IconBorder:Show()
   else
-    self.IconBorder:SetVertexColor(1, 1, 1, 0)
+    self.IconBorder:SetVertexColor(1, 1, 1, 1)
     self.IconBorder:Hide()
   end
 end
@@ -958,7 +965,7 @@ end
 function BaganatorClassicCachedItemButtonMixin:SetItemDetails(details)
   GetInfo(self, details)
 
-  SetItemButtonTexture(self, details.iconTexture or self.emptySlotFilepath);
+  SetItemButtonTexture(self, details.iconTexture);
   SetItemButtonQuality(self, details.quality); -- Doesn't do much
   ApplyQualityBorderClassic(self, details.quality)
   SetItemButtonCount(self, details.itemCount);
@@ -1151,7 +1158,7 @@ function BaganatorClassicLiveContainerItemButtonMixin:SetItemDetails(cacheData)
   local noValue = info and info.hasNoValue;
   local itemID = info and info.itemID;
 
-  SetItemButtonTexture(self, texture or self.emptySlotFilepath);
+  SetItemButtonTexture(self, texture);
   SetItemButtonQuality(self, quality, itemID);
   ApplyQualityBorderClassic(self, quality)
   SetItemButtonCount(self, itemCount);
@@ -1188,7 +1195,8 @@ function BaganatorClassicLiveContainerItemButtonMixin:SetItemDetails(cacheData)
     end
     local itemLocation = {bagID = self:GetParent():GetID(), slotIndex = self:GetID()}
     if C_Item.DoesItemExist(itemLocation) then
-      self.BGR.setInfo = addonTable.ItemViewCommon.GetEquipmentSetInfo(itemLocation, self.BGR.itemLink)
+      self.BGR.guid = C_Item.GetItemGUID(itemLocation)
+      self.BGR.setInfo = addonTable.ItemViewCommon.GetEquipmentSetInfo(itemLocation, self.BGR.guid, self.BGR.itemLink)
       self.BGR.itemLocation = itemLocation
     end
 
@@ -1347,7 +1355,7 @@ function BaganatorClassicLiveGuildItemButtonMixin:SetItemDetails(cacheData, tabI
   itemCount = cacheData.itemCount
   quality = cacheData.quality or quality
 
-  SetItemButtonTexture(self, texture or self.emptySlotFilepath);
+  SetItemButtonTexture(self, texture);
   SetItemButtonCount(self, itemCount);
   SetItemButtonDesaturated(self, locked);
   ApplyQualityBorderClassic(self, quality)

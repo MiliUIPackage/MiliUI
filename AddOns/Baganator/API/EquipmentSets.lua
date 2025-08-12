@@ -1,7 +1,7 @@
 ---@class addonTableBaganator
 local addonTable = select(2, ...)
 -- Blizzard Equipment sets (Wrath onwards)
-if not addonTable.Constants.IsEra then
+if not addonTable.Constants.IsEra and Syndicator then
   local BlizzardSetTracker = CreateFrame("Frame")
   local EQUIPMENT_SETS_PATTERN = EQUIPMENT_SETS:gsub("%%s", "(.*)")
 
@@ -188,12 +188,17 @@ if not addonTable.Constants.IsRetail then
         if name:sub(1, 1) ~= "~" then
           table.insert(equipmentSetNames, name)
           local setInfo = {name = name, iconTexture = details.icon}
+          local seenRefs = {}
           for _, itemRef in pairs(details.equip) do
             if itemRef ~= 0 then
+              if seenRefs[itemRef] then -- Some sets use 2 trinkets/rings, this adds a special key for that
+                itemRef = ";" .. itemRef
+              end
               if not equipmentSetInfo[itemRef] then
                 equipmentSetInfo[itemRef] = {}
               end
               table.insert(equipmentSetInfo[itemRef], setInfo)
+              seenRefs[itemRef] = true
             end
           end
         end
@@ -240,7 +245,8 @@ if not addonTable.Constants.IsRetail then
       end
       local characterData = Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter())
       local function DoLocation(location, slotInfo)
-        if slotInfo.itemLink and Syndicator.Utilities.IsEquipment(slotInfo.itemLink) and C_Item.DoesItemExist(location) then
+        -- We check by inventory slot because some classic era trinkets are Trade Goods -> Devices
+        if slotInfo.itemLink and select(4, C_Item.GetItemInfoInstant(slotInfo.itemLink)) ~= "INVTYPE_NON_EQUIP_IGNORE" and C_Item.DoesItemExist(location) then
           local runeSuffix = ""
           if ItemRack.AppendRuneID then
             local info
@@ -260,11 +266,11 @@ if not addonTable.Constants.IsRetail then
           if missing[itemRackID] then
             missing[itemRackID] = nil
             guidToItemRef[guid] = itemRackID
-          else
+          elseif missing[";" .. itemRackID] then
+            guidToItemRef[guid] = ";" .. itemRackID
           end
-          if itemIDToGUID[slotInfo.itemID] == nil then
-            itemIDToGUID[slotInfo.itemID] = guid
-          end
+          itemIDToGUID[slotInfo.itemID] = itemIDToGUID[slotInfo.itemID] or {}
+          table.insert(itemIDToGUID[slotInfo.itemID], guid)
         end
       end
       local function DoBag(bagID, bagData)
@@ -289,10 +295,12 @@ if not addonTable.Constants.IsRetail then
       end
       if next(missing) then
         for key in pairs(missing) do
-          local itemID = tonumber(key:match("^%-?%d+"))
-          local guid = itemIDToGUID[itemID]
-          if guid then
-            guidToItemRef[guid] = key
+          local itemID = tonumber((key:match("^;?%-?(%d+)")))
+          if itemIDToGUID[itemID] and #itemIDToGUID[itemID] > 0 then
+            local guid = table.remove(itemIDToGUID[itemID])
+            if guid then
+              guidToItemRef[guid] = key
+            end
           end
         end
       end
@@ -367,7 +375,7 @@ addonTable.Utilities.OnAddonLoaded("Outfitter", function()
     local result = {}
     for _, name in ipairs(setNames) do
       local outfit = Outfitter_FindOutfitByName(name)
-      if outfit:OutfitUsesItem(itemInfo) then
+      if outfit and outfit:OutfitUsesItem(itemInfo) then
         table.insert(result, {
           name = name,
           iconTexture = outfit:GetIcon(),
