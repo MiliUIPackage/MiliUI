@@ -100,6 +100,9 @@ local shortNames = {
 	[445417] = L["Ara-Kara, City of Echoes"],
 	[445441] = L["Darkflame Cleft"],
 	[1216786] = L["Operation: Floodgate"],
+	[1237215] = L["Eco-Dome Al'dani"],
+	-- TWW R
+	[1226482] = L["Liberation of Undermine"],
 	-- Mage teleports
 	[3561] = L["Stormwind"],
 	[3562] = L["Ironforge"],
@@ -178,6 +181,7 @@ local tpTable = {
 	-- Racials
 	{ id = 312370, type = "spell" }, -- Make Camp (Vulpera)
 	{ id = 312372, type = "spell" }, -- Return to Camp (Vulpera)
+	{ id = 265225, type = "spell" }, -- Mole Machine (Dark Iron Dwarf)
 
 	-- Dungeon/Raid Teleports
 	{ id = 230, type = "flyout", iconId = 574788, name = L["Cataclysm"], subtype = "path" }, -- Hero's Path: Cataclysm
@@ -190,6 +194,7 @@ local tpTable = {
 	{ id = 227, type = "flyout", iconId = 4640496, name = L["Dragonflight"], subtype = "path" }, -- Hero's Path: Dragonflight
 	{ id = 231, type = "flyout", iconId = 5342925, name = L["Dragonflight Raids"], subtype = "path" }, -- Hero's Path: Dragonflight Raids
 	{ id = 232, type = "flyout", iconId = 5872031, name = L["The War Within"], subtype = "path" }, -- Hero's Path: The War Within
+	{ id = 242, type = "flyout", iconId = 6392630, name = L["The War Within Raids"], subtype = "path", currentExpansion=true }, -- Hero's Path: The War Within Raids
 }
 
 local GetItemCount = C_Item.GetItemCount
@@ -590,6 +595,17 @@ function tpm:UpdateAvailableSeasonalTeleports()
 			[506] = 445440, -- Cinderbrew Meadery
 			[525] = 1216786, -- Operation: Floodgate
 		},
+		-- TWW S3
+		[3] = {
+			[499] = 445444, -- Priory of the Sacred Flame
+			[542] = 1237215, -- Eco-Dome Al'dani
+			[378] = 354465, -- Halls of Atonement
+			[525] = 1216786, -- Operation: Floodgate
+			[503] = 445417, -- Ara-Kara, City of Echoes
+			[392] = 367416, -- Tazavesh: So'leah's Gambit
+			-- [391] = 367416, -- Tazavesh: Streets of Wonder
+			[505] = 445414, -- The Dawnbreaker
+		},
 	}
 
 	for _, mapId in ipairs(C_ChallengeMode.GetMapTable()) do
@@ -613,7 +629,7 @@ function tpm:checkQuestCompletion(quest)
 end
 
 function tpm:CreateFlyout(flyoutData)
-	if db["Teleports:Seasonal:Only"] and flyoutData.subtype == "path" then
+	if db["Teleports:Seasonal:Only"] and (flyoutData.subtype == "path" and not flyoutData.currentExpansion) then
 		return
 	end
 	local _, _, spells, flyoutKnown = GetFlyoutInfo(flyoutData.id)
@@ -632,7 +648,6 @@ function tpm:CreateFlyout(flyoutData)
 	local childButtons = {}
 	local flyoutsCreated = 0
 	local rowNr = 1
-
 	local inverse = db["Teleports:Mage:Reverse"] and flyoutData.subtype == "mage"
 	local start, endLoop, step = 1, spells, 1
 	if inverse then -- Inverse loop params
@@ -647,7 +662,7 @@ function tpm:CreateFlyout(flyoutData)
 			end
 			flyoutsCreated = flyoutsCreated + 1
 			local flyOutButton = CreateSecureButton(flyOutFrame, "spell", shortNames[spellId], spellId)
-			flyOutButton:SetPoint("TOPLEFT", flyOutFrame, "TOPLEFT", globalWidth * flyoutsCreated, (rowNr - 1) * -globalHeight)
+			flyOutButton:SetPoint("TOPLEFT", flyOutFrame, "TOPLEFT", globalWidth * flyoutsCreated, (rowNr - 1) * - globalHeight)
 			table.insert(childButtons, flyOutButton)
 		end
 	end
@@ -674,16 +689,21 @@ function tpm:CreateSeasonalTeleportFlyout()
 	button:SetPoint("LEFT", TeleportMeButtonsFrame, "TOPRIGHT", 0, yOffset)
 
 	local flyoutsCreated = 0
+	local rowNr = 1
 	for _, spellId in ipairs(availableSeasonalTeleports) do
 		if IsSpellKnown(spellId) then
+			if flyoutsCreated == db["Flyout:Max_Per_Row"] then
+				flyoutsCreated = 0
+				rowNr = rowNr + 1
+			end
 			flyoutsCreated = flyoutsCreated + 1
 			local text = tpm:GetIconText(spellId)
 			local flyOutButton = CreateSecureButton(flyOutFrame, "spell", text, spellId)
-			local xOffset = globalWidth * flyoutsCreated
-			flyOutButton:SetPoint("TOPLEFT", flyOutFrame, "TOPLEFT", xOffset, 0)
+			flyOutButton:SetPoint("TOPLEFT", flyOutFrame, "TOPLEFT", globalWidth * flyoutsCreated, (rowNr - 1) * - globalHeight)
 		end
 	end
-	flyOutFrame:SetSize(globalWidth + (globalWidth * flyoutsCreated), globalHeight)
+	local frameWidth = rowNr > 1 and globalWidth * (db["Flyout:Max_Per_Row"] + 1) or globalWidth * (flyoutsCreated + 1)
+	flyOutFrame:SetSize(frameWidth, globalHeight * rowNr)
 
 	return button
 end
@@ -703,13 +723,18 @@ function tpm:CreateWormholeFlyout(flyoutData)
 	button:SetPoint("LEFT", TeleportMeButtonsFrame, "TOPRIGHT", 0, yOffset)
 
 	local flyoutsCreated = 0
+	local rowNr = 1
 	for _, wormholeId in ipairs(usableWormholes) do
+		if flyoutsCreated == db["Flyout:Max_Per_Row"] then
+			flyoutsCreated = 0
+			rowNr = rowNr + 1
+		end
 		flyoutsCreated = flyoutsCreated + 1
 		local flyOutButton = CreateSecureButton(flyOutFrame, "toy", nil, wormholeId)
-		local xOffset = globalWidth * flyoutsCreated
-		flyOutButton:SetPoint("TOPLEFT", flyOutFrame, "TOPLEFT", xOffset, 0)
+		flyOutButton:SetPoint("TOPLEFT", flyOutFrame, "TOPLEFT", globalWidth * flyoutsCreated, (rowNr - 1) * - globalHeight)
 	end
-	flyOutFrame:SetSize(globalWidth * (flyoutsCreated + 1), globalHeight)
+	local frameWidth = rowNr > 1 and globalWidth * (db["Flyout:Max_Per_Row"] + 1) or globalWidth * (flyoutsCreated + 1)
+	flyOutFrame:SetSize(frameWidth, globalHeight * rowNr)
 
 	return button
 end
@@ -728,13 +753,20 @@ function tpm:CreateItemTeleportsFlyout(flyoutData)
 	button:SetPoint("LEFT", TeleportMeButtonsFrame, "TOPRIGHT", 0, yOffset)
 
 	local flyoutsCreated = 0
+	local rowNr = 1
 	for _, itemTeleportId in ipairs(tpm.AvailableItemTeleports) do
+		if flyoutsCreated == db["Flyout:Max_Per_Row"] then
+			flyoutsCreated = 0
+			rowNr = rowNr + 1
+		end
 		flyoutsCreated = flyoutsCreated + 1
-		local flyOutButton = CreateSecureButton(flyOutFrame, "item", nil, itemTeleportId)
-		local xOffset = globalWidth * flyoutsCreated
-		flyOutButton:SetPoint("TOPLEFT", flyOutFrame, "TOPLEFT", xOffset, 0)
+		local isToy = tpm:IsToyTeleport(itemTeleportId)
+		local flyOutButton = CreateSecureButton(flyOutFrame, isToy and "toy" or "item", nil, itemTeleportId)
+		flyOutButton:SetPoint("TOPLEFT", flyOutFrame, "TOPLEFT", globalWidth * flyoutsCreated, (rowNr - 1) * - globalHeight)
 	end
-	flyOutFrame:SetSize(globalWidth * (flyoutsCreated + 1), globalHeight)
+
+	local frameWidth = rowNr > 1 and globalWidth * (db["Flyout:Max_Per_Row"] + 1) or globalWidth * (flyoutsCreated + 1)
+	flyOutFrame:SetSize(frameWidth, globalHeight * rowNr)
 
 	return button
 end
@@ -995,7 +1027,7 @@ function events:ADDON_LOADED(...)
 
 	if addOnName == "TeleportMenu" then
 		db = tpm:GetOptions()
-		tpm.settings.current_season = 2
+		tpm.settings.current_season = 3
 
 		db.debug = false
 		f:UnregisterEvent("ADDON_LOADED")

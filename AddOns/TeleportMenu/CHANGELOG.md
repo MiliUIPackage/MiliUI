@@ -1,15 +1,10 @@
 # Teleport Menu
 
-## [v10.4](https://github.com/Justw8/TeleportMenu/tree/v10.4) (2025-04-08)
-[Full Changelog](https://github.com/Justw8/TeleportMenu/compare/v10.3...v10.4) [Previous Releases](https://github.com/Justw8/TeleportMenu/releases)
+## [v11.1](https://github.com/Justw8/TeleportMenu/tree/v11.1) (2025-08-06)
+[Full Changelog](https://github.com/Justw8/TeleportMenu/compare/v11.0...v11.1) [Previous Releases](https://github.com/Justw8/TeleportMenu/releases)
 
-- Update vscode setting files  
-- Add Ring-Bound Hourglass  
-- Add Fractured Necrolyte Skull  
-- Add Gallagio Loyalty Rewards Cards  
-- Add Boots of the Bay  
-- Add luacheck and code updates  
-- Update Items/zhCN/zhTW (#108)  
-- Set the season to be static to fix loading seasonal teleports (#106)  
-- Add Argent Crusader's Tabard (#104)  
-- Add Explosive Hearthstone (#96)  
+- Season 3 Teleports are now the seasonal ones.  
+- Add P.O.S.T. Master's Express Hearthstone and Cosmic Hearthstone  
+- Update zhTW.lua (#133)  
+- Update RU locale (#132)  
+- Update zhCN.lua (#131)  
