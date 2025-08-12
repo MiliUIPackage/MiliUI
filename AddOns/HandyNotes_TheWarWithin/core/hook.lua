@@ -91,6 +91,7 @@ end
 -------------------------------------------------------------------------------
 
 local function renderTooltip(self, POI)
+    if not POI then return end
 
     if POI.group and not POI.group:GetDisplay(self:GetMap().mapID) then
         return
@@ -277,7 +278,7 @@ local function HookAllPOIS()
 
     -------------------------------- VIGNETTE ---------------------------------
 
-    hooksecurefunc(VignettePinMixin, 'OnMouseEnter', function(self) -- TODO
+    hooksecurefunc(VignettePinMixin, 'OnMouseEnter', function(self)
         local hookInfo = ns.hooks.vignette[self.vignetteID]
         if not hookInfo then return end
         local mapID = self:GetMap().mapID
@@ -288,7 +289,7 @@ local function HookAllPOIS()
         local node = ns.maps[mapID].nodes[coordinates]
         hookInfo.note = node.note
         hookInfo.rewards = node.rewards
-        renderTooltip(hookInfo)
+        renderTooltip(self, hookInfo)
     end)
 end
 

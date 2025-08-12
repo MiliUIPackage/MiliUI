@@ -35,6 +35,12 @@ local esn = Map({id = 2396, settings = false}) -- Excavation Site 9
 local pit = Map({id = 2420, settings = false}) -- Sidestreet Sluice - The Pits
 local thd = Map({id = 2422, settings = false}) -- Sidestreet Sluice - The High Decks
 
+-- local upc = Map({id = 2452, settings = false}) -- Archival Assault -- Upper Chamber
+local arc = Map({id = 2452, settings = false}) -- Archival Assault -- The Arcane Conservatory
+-- local mol = Map({id = 2455, settings = false}) -- Archival Assault -- Mausoleum of Legends
+local low = Map({id = 2455, settings = false}) -- Archival Assault -- Lower Chamber
+local cch = Map({id = 2476, settings = false}) -- Archival Assault -- Crystal Chambers
+
 -------------------------------------------------------------------------------
 
 local SturdyChestCriteria = {
@@ -514,6 +520,34 @@ pit.nodes[74447419] = SturdyChest({
 }) -- Sturdy Chest 4
 
 -------------------------------------------------------------------------------
+------------------------------ ARCHIVAL ASSUALT -------------------------------
+-------------------------------------------------------------------------------
+
+arc.nodes[62383800] = SturdyChest({
+    achievementID = 42679,
+    quest = 83692,
+    rlabel = ns.status.Gray('#1')
+}) -- Sturdy Chest 1
+
+arc.nodes[61931087] = SturdyChest({
+    achievementID = 42679,
+    quest = 83673,
+    rlabel = ns.status.Gray('#2')
+}) -- Sturdy Chest 2 good
+
+cch.nodes[43886472] = SturdyChest({
+    achievementID = 42679,
+    quest = 90839,
+    rlabel = ns.status.Gray('#3')
+}) -- Sturdy Chest 3 (good)
+
+low.nodes[49669258] = SturdyChest({
+    achievementID = 42679,
+    quest = 92573,
+    rlabel = ns.status.Gray('#4')
+}) -- Sturdy Chest 4 (good)
+
+-------------------------------------------------------------------------------
 -------------------------- DELVE REWARDS (AREAPOIS) ---------------------------
 -------------------------------------------------------------------------------
 
@@ -523,7 +557,8 @@ local maps = {
     ns.maps[2248], -- Isle of Dorn
     ns.maps[2255], -- Azj-Kahet - Upper
     ns.maps[2256], -- Azj-Kahet - Lower
-    ns.maps[2346] -- Undermine
+    ns.maps[2346], -- Undermine
+    ns.maps[2371] -- K'aresh
 }
 
 for _, m in pairs(maps) do
@@ -559,7 +594,6 @@ local DELVE_REWARDS = {
     ['kriegvals_rest'] = {
         Achievement({id = 40807, criteria = SturdyChestCriteria}), -- Kriegval's Rest Discoveries
         Achievement({id = 40526, criteria = {68755, 68756, 68757, 102967}}), -- Kriegval's Rest Stories
-        Achievement({id = 40446, oneline = true}), -- I TAKE Candle!
         Achievement({id = 41110, oneline = true, criteria = {71060}}), -- Algari Delver Damage Dealer III
         Achievement({id = 41112, oneline = true, criteria = {71088}}), -- Algari Delver Healer III
         Achievement({id = 41114, oneline = true, criteria = {71116}}), -- Algari Delver Tank  III
@@ -570,7 +604,6 @@ local DELVE_REWARDS = {
     ['the_waterworks'] = {
         Achievement({id = 40816, criteria = SturdyChestCriteria}), -- The Waterworks Discoveries
         Achievement({id = 40528, criteria = {68761, 68762, 68763, 102968}}), -- The Waterworks Stories
-        Achievement({id = 40446, oneline = true}), -- I TAKE Candle!
         Achievement({id = 41110, oneline = true, criteria = {71069}}), -- Algari Delver Damage Dealer III
         Achievement({id = 41112, oneline = true, criteria = {71097}}), -- Algari Delver Healer III
         Achievement({id = 41114, oneline = true, criteria = {71125}}), -- Algari Delver Tank  III
@@ -689,6 +722,10 @@ local DELVE_REWARDS = {
         Spacer(), --
         Pet({item = 221820, id = 4537}), -- Chester
         Pet({item = 232848, id = 4647}) -- Mr. DELVER
+    },
+    ['archival_assault'] = {
+        Achievement({id = 42679, criteria = SturdyChestCriteria}), -- Archival Assault Discoveries
+        Achievement({id = 42771, criteria = {106401, 106402, 106403, 106404}}) -- Archival Assault Stories
     }
 }
 
@@ -708,6 +745,7 @@ local DELVE_AREA_POIS = {
     [7874] = DELVE_REWARDS['the_spiral_weave'],
     [8143] = DELVE_REWARDS['excavation_site_9'],
     [8140] = DELVE_REWARDS['sidestreet_sluice'],
+    [8274] = DELVE_REWARDS['archival_assault'],
     -- BOUNTIFUL DELVES -------------------------------------------------------
     [7779] = DELVE_REWARDS['fungal_folly'],
     [7780] = DELVE_REWARDS['mycomancer_cavern'],
@@ -722,7 +760,8 @@ local DELVE_AREA_POIS = {
     [7789] = DELVE_REWARDS['skittering_breach'],
     [7790] = DELVE_REWARDS['the_spiral_weave'],
     [8181] = DELVE_REWARDS['excavation_site_9'],
-    [8246] = DELVE_REWARDS['sidestreet_sluice']
+    [8246] = DELVE_REWARDS['sidestreet_sluice'],
+    [8273] = DELVE_REWARDS['archival_assault']
 }
 
 ns.hooks.delve.Add(ns.groups.DELVE_REWARDS, DELVE_AREA_POIS)

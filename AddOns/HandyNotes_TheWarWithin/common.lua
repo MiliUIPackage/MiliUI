@@ -69,6 +69,12 @@ ns.groups.BEACON_OF_HOPE = Group('beacon_of_hope', 135922, {
     achievement = 40308
 })
 
+ns.groups.BETWEEN_THE_LINES = Group('between_the_lines', 4549129, {
+    defaults = ns.GROUP_HIDDEN,
+    type = ns.group_types.ACHIEVEMENT,
+    achievement = 41588
+})
+
 ns.groups.BIBLO_ARCHIVIST = Group('biblo_archivist', 5341597, {
     defaults = ns.GROUP_HIDDEN,
     type = ns.group_types.ACHIEVEMENT,
@@ -79,6 +85,12 @@ ns.groups.BOOKWORM = Group('bookworm', 4549129, {
     defaults = ns.GROUP_HIDDEN,
     type = ns.group_types.ACHIEVEMENT,
     achievement = 40629
+})
+
+ns.groups.FIGHTER = Group('fighter', 135945, {
+    defaults = ns.GROUP_HIDDEN,
+    type = ns.group_types.ACHIEVEMENT,
+    achievement = 41999
 })
 
 ns.groups.FLAMEGARDS_HOPE = Group('flamegards_hope', 463526, {
@@ -176,10 +188,10 @@ ns.groups.NOTABLE_MACHINES = Group('notable_machines', 1506451, {
     achievement = 40628
 })
 
-ns.groups.BETWEEN_THE_LINES = Group('between_the_lines', 4549129, {
+ns.groups.PHASE_LOST_AND_FOUND = Group('phase_lost_and_found', 135305, {
     defaults = ns.GROUP_HIDDEN,
     type = ns.group_types.ACHIEVEMENT,
-    achievement = 41588
+    achievement = 61017
 })
 
 ns.groups.ROCKED_TO_SLEEP = Group('rocked_to_sleep', 5788303, {
@@ -241,6 +253,17 @@ ns.groups.CRITTER_LOVE = Group('critter_love', 3459801, {
     achievement = 40475
 })
 
+ns.groups.PURRKINS = Group('purrkins', 3742947, {
+    defaults = ns.GROUP_HIDDEN,
+    type = ns.group_types.ACHIEVEMENT,
+    achievement = 42729
+})
+
+ns.groups.KARESH_LORE_HUNTER = Group('karesh_lore_hunter', 1723993, {
+    defaults = ns.GROUP_HIDDEN,
+    type = ns.group_types.ACHIEVEMENT,
+    achievement = 60890
+})
 -------------------------------------------------------------------------------
 ---------------------------- KHAZ ALGAR LORE HUNTER ---------------------------
 -------------------------------------------------------------------------------
@@ -342,6 +365,20 @@ local FlightMaster = Class('FlightMaster', Collectible, {
 }) -- Flight Point
 
 ns.node.FlightMaster = FlightMaster
+
+-------------------------------------------------------------------------------
+-------------------- ACHIEVEMENT: FIGHTER OF THE NIGHTMAN ---------------------
+-------------------------------------------------------------------------------
+
+local SuspiciousDocument = Collectible({
+    label = L['suspicious_document_label'],
+    icon = 'peg_bl',
+    scale = 1.5,
+    note = L['suspicious_document_note'],
+    group = ns.groups.FIGHTER
+})
+
+ns.node.SuspiciousDocument = SuspiciousDocument
 
 -------------------------------------------------------------------------------
 ----------------------------- WORLDSOUL MEMORIES ------------------------------

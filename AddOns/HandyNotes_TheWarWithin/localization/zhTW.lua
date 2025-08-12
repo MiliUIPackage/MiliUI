@@ -20,10 +20,10 @@ L['options_icons_khaz_algar_lore_hunter'] = '{achievement:40762}'
 L['options_icons_khaz_algar_lore_hunter_desc'] = '顯示成就 {achievement:40762} 所需的知識位置.'
 
 L['options_icons_flight_master'] = '{achievement:40430}'
-L['options_icons_flight_master_desc'] = '顯示 {achievement:40430} 成就中 {npc:飛行管理員} 的位置。'
+L['options_icons_flight_master_desc'] = nil
 
-L['options_icons_worldsoul_memories'] = '世界之魂的回憶'
-L['options_icons_worldsoul_memories_desc'] = '顯示 {object:世界之魂的回憶} 的獎勵。'
+L['options_icons_worldsoul_memories'] = nil
+L['options_icons_worldsoul_memories_desc'] = nil
 
 -------------------------------------------------------------------------------
 -------------------------------- ISLE OF DORN ---------------------------------
@@ -218,9 +218,9 @@ L['dander_location'] = nil
 L['gobbo_location'] = nil
 
 L['beledars_spawn_note'] = '此稀有會於固定時間在數個位置之一出現.\n\n下次刷新時間:\n{note:%s (%s)}'
-L['croakit_note'] = '從附近的 {object:影盲石斑魚群} 釣起10個 {item:211474}（或者從拍賣行購買）然後把它們扔給它，使稀有可被攻擊。'
-L['deathtide_note'] = '收集一個 {item:220122} {dot:Red} 和一個 {item:220124} {dot:Green}。將它們組合成 {item:220123}，在 {object:不祥祭壇} 召喚稀有。'
-L['murkshade_note'] = '與 {npc:218455} 互動。'
+L['croakit_note'] = nil
+L['deathtide_note'] = nil
+L['murkshade_note'] = nil
 L['spreading_the_light_rares_note'] = nil
 
 L['options_icons_mereldar_menace'] = '{achievement:40151}'
@@ -248,6 +248,11 @@ L['hallowfall_sparkfly_note'] = '在 {area:14852} 對 {object:低階鑰炎} 使�
 L['nightfarm_growthling_note'] = nil
 
 L['thunder_lynx_note'] = nil
+
+L['options_icons_fighter'] = '{achievement:41999}'
+L['options_icons_fighter_desc'] = nil
+L['suspicious_document_label'] = nil
+L['suspicious_document_note'] = nil
 
 -------------------------------------------------------------------------------
 ---------------------------------- AZJ-KAHET ----------------------------------
@@ -397,7 +402,7 @@ L['prismatic_snapdragon_note_start'] = '在10天的過程中, 幫助拯救在 {l
 L['prismatic_day'] = '第 %d 天'
 
 L['pris_quest_1'] = '生命線' -- https://www.wowhead.com/quest=86482/a-lifeline
-L['pris_quest_2'] = "速戰速決" -- https://www.wowhead.com/ptr/quest=86483/snap-to-it
+L['pris_quest_2'] = nil -- https://www.wowhead.com/ptr/quest=86483/snap-to-it
 L['pris_quest_3'] = '暴風壞脾氣' -- https://www.wowhead.com/ptr/quest=86484/temper-like-a-tempest
 L['pris_quest_4'] = '忠誠的朋友' -- https://www.wowhead.com/ptr/quest=86485/a-loyal-friend
 
@@ -570,77 +575,103 @@ L['ak_decryption_console_note'] = nil
 ---------------------------------- UNDERMINE ----------------------------------
 -------------------------------------------------------------------------------
 
-L['requires_ally'] = '{note:必須與 |cFFFFFF00{faction:%d}|r 結盟。}'
-L['complete_event'] = '與 {npc:%d} 交談並完成事件以召喚。'
-L['in_sewer'] = '在下水道內。使用附近的 {object:下水道柵欄} 進入。'
-L['and_slimesby'] = '和 {npc:230947}'
+L['requires_ally'] = nil
+L['complete_event'] = nil
+L['in_sewer'] = nil
+L['and_slimesby'] = nil
 
-L['inert_plunger_label'] = '無力的馬桶搋子？'
-L['exploded_plunger_label'] = '爆炸的馬桶搋子'
+L['inert_plunger_label'] = nil
+L['exploded_plunger_label'] = nil
 
-L['unexploded_fireworks_location'] = '在 {location:尾門公園} 的屋頂上。'
-L['suspicious_book_note'] = '1. {dot:Red} 隱藏在一樓的書架上。嘗試收集它，它會飛到樓上的新書架上。\n\n2. {dot:Green} 隱藏在二樓的書架後面。嘗試收集它，它會飛到樓上的桌子上。\n\n3. 在三樓的桌子上。最後，收集這本書！'
-L['fireworks_hat_note'] = '嘗試抓住帽子，導致它從屋頂飛到這裡。'
-L['blackened_dice_note'] = '轉動附近的 {object:管道閥門} 以釋放骰子。'
-L['lonely_tub_note'] = '拿起附近的 {object:滅火器}（{dot:Blue}）來撲滅 {object:孤獨浴缸} 上的火焰。'
-L['impotent_potable_location'] = '在碼頭下方，靠近 {location:掠奪派對}'
-L['abandoned_toolbox_location'] = '在 {location:廢品店} 的屋頂高處。\n\n跟隨樓梯到頂部。'
-L['trick_deck_of_cards_location'] = '在 {location:大陸酒店} 內 {npc:231045} 旁邊的桌子上。'
+L['unexploded_fireworks_location'] = nil
+L['suspicious_book_note'] = nil
+L['fireworks_hat_note'] = nil
+L['blackened_dice_note'] = nil
+L['lonely_tub_note'] = nil
+L['impotent_potable_location'] = nil
+L['abandoned_toolbox_location'] = nil
+L['trick_deck_of_cards_location'] = nil
 
-L['breakneck_customization'] = 'G-99極速飛車'
+L['breakneck_customization'] = nil
 
-L['ditty_fuzeboy_note'] = '用 {item:234741} 兌換寵物。'
-L['skedgit_cinderbangs_note'] = '用 {item:234741} 兌換坐騎。\n\n{note:坐騎可以在拍賣行買賣。}'
-L['angelo_rustbin_note'] = '用 {currency:3218} 兌換玩具和一個 {object:G-99極速飛車} 自定義外觀。兌換的 {item:233557} 有機會獲得寵物和坐騎。\n\n用 {currency:3220} 兌換寵物。\n\n{note:收集 {currency:3218} 可以隨時進行，但收集 {item:229810} 需要 {faction:2653} 名望達到14級。}'
-L['blair_bass_note'] = '用 {item:227673} 兌換玩具。\n\n{item:227673} 可以從 {object:熱砂徑流} 漁點中釣到。'
-L['greexit_coarsebub_note'] = '用金幣兌換地精財閥幻化裝備。\n\n{note:只能購買當前所屬財閥相關的物品。}'
+L['ditty_fuzeboy_note'] = nil
+L['skedgit_cinderbangs_note'] = nil
+L['angelo_rustbin_note'] = nil
+L['blair_bass_note'] = nil
+L['greexit_coarsebub_note'] = nil
 
-L['quartermaster'] = '%s 軍需官'
-L['quartermaster_note'] = '使用 {currency:2815} 兌換各種收藏品。'
+L['quartermaster'] = nil
+L['quartermaster_note'] = nil
 
-L['rocco_razzboom_location'] = '{location:廢渣鋪} 底層。'
-L['lab_assistant_laszly_location'] = '{location:熱砂試驗室} 深處。'
-L['boatswain_hardee_location'] = '{location:港務局} 一樓。'
-L['shrez_the_scrapper_location'] = '{location:風險廣場} 一樓。'
+L['rocco_razzboom_location'] = nil
+L['lab_assistant_laszly_location'] = nil
+L['boatswain_hardee_location'] = nil
+L['shrez_the_scrapper_location'] = nil
 
 L['options_icons_nine_tenths'] = '{achievement:40948}'
-L['options_icons_nine_tenths_desc'] = '顯示 {achievement:40948} 的所有 {object:傻瓜式自動鎖櫃} 位置。'
-L['muffs_auto_locker_label'] = '馬夫的自鎖箱'
-L['muffs_auto_locker_note'] = '收集所有5個超新猩部件並完成 {quest:87406} 以制作 {item:232843}。'
-L['muffs_auto_locker_suffix'] = '馬夫的自鎖箱已打開'
+L['options_icons_nine_tenths_desc'] = nil
+L['muffs_auto_locker_label'] = nil
+L['muffs_auto_locker_note'] = nil
+L['muffs_auto_locker_suffix'] = nil
 
 L['options_icons_between_the_lines'] = '{achievement:41588}'
-L['options_icons_between_the_lines_desc'] = '顯示 {achievement:41588} 的書籍位置。'
-L['a_threatening_letter_location'] = '在 {location:熱砂試驗室} 的底層樓梯下。'
-L['gallywixs_notes_location'] = '在 {location:囤寶室} 後面的桌子上。'
+L['options_icons_between_the_lines_desc'] = nil
+L['a_threatening_letter_location'] = nil
+L['gallywixs_notes_location'] = nil
 
 L['options_icons_can_do_attitude'] = '{achievement:41589}'
-L['options_icons_can_do_attitude_desc'] = '顯示 {achievement:41589} 的 {npc:237103} 位置。'
+L['options_icons_can_do_attitude_desc'] = nil
 L['discarded_can_label'] = '{npc:237103}'
-L['discarded_can_note'] = '踢幾次 {npc:237103}。'
-L['discarded_can_suffix'] = '罐頭被踢'
+L['discarded_can_note'] = nil
+L['discarded_can_suffix'] = nil
 
-L['options_icons_scrap_rewards'] = 'S.C.R.A.P.廢料堆'
-L['options_icons_scrap_rewards_desc'] = '顯示 {object:S.C.R.A.P.廢料堆} 的獎勵。'
-L['scrap_heap_suffix'] = 'S.C.R.A.P. 任務完成'
+L['options_icons_scrap_rewards'] = nil
+L['options_icons_scrap_rewards_desc'] = nil
+L['scrap_heap_suffix'] = nil
 
 L['options_icons_youre_my_friend_now'] = '{achievement:41708}'
-L['options_icons_youre_my_friend_now_desc'] = '顯示 {achievement:41708} 成就中 {npc:239248} 的位置。'
-L['rat_in_building_rail'] = '在建築物內的欄杆上。'
-L['rat_2nd_floor_trash_can'] = '在建築物二樓垃圾桶上。'
+L['options_icons_youre_my_friend_now_desc'] = nil
+L['rat_in_building_rail'] = nil
+L['rat_2nd_floor_trash_can'] = nil
 
-L['sewer_cheese_label'] = '下水道奶酪'
-L['undermine_undershirt_note'] = '1. 從 {location:罐缸工坊} 下方的下水道中收集 {object:下水道奶酪}，以獲得 {spell:1221472} 增益效果。\n\n2. 與附近的 {npc:238661} 互動，用奶酪交換一個 {item:237129}。\n\n3. 將 {item:237129} 帶到 {location:黑水碼頭} 的 {location:港務局} 大樓樓上的 {npc:237412} 處，並交換為 {item:237130}。'
+L['sewer_cheese_label'] = nil
+L['undermine_undershirt_note'] = nil
 
-L['undermine_clam_chowder_label'] = '安德麥正宗烹飪法指南'
-L['undermine_clam_chowder_location'] = '在 {location:罐缸工坊} 的小巷中，{npc:226728} 後面的架子上。'
-L['undermine_clam_chowder_note'] = '1. 要收集此食譜，必須首先學會 {item:16767}，該食譜可以從兩個 {object:舊世經典} 供應商處以 %s 的價格購買。\n\n{npc:54232} 位於 {location:荊棘谷海角} 的 {location:藏寶海灣}\n\n{npc:48060} 位於 {location:荒蕪之地} 的 {location:熔光鎮}\n\n2. 一旦學會了舊食譜，打開 {object:安德麥正宗烹飪法指南} 並閱讀到最後一頁。記下食譜以獲得 {item:235800}。'
+L['undermine_clam_chowder_label'] = nil
+L['undermine_clam_chowder_location'] = nil
+L['undermine_clam_chowder_note'] = nil
 
-L['breakneck_race_note'] = '以下推薦的 {object:G-99疾飆飛車} 升級可以讓賺取 |cFFFFD700金幣|r 變得更容易一些：\n\n%s\n\n%s\n\n%s'
-L['upgrade_the_pozzik_standard'] = '{item:232982}（引擎）：在所有普通和反向 {object:疾飆競速} 比賽中獲得 |cFFCD7F32銅牌|r。'
-L['upgrade_22h_slicks'] = '{item:232985}（輪胎）：由工程師制作並在拍賣行出售。'
-L['upgrade_turbo_handcrank'] = '{item:232984}（渦輪）：從稀有怪物或拍賣行收集並組合所有5個部件。'
+L['breakneck_race_note'] = nil
+L['upgrade_the_pozzik_standard'] = nil
+L['upgrade_22h_slicks'] = nil
+L['upgrade_turbo_handcrank'] = nil
 
-L['blazefeather_peacock_note'] = '完成 {quest:83421} 任務線後，與 {npc:226555} 對話並支付 %s 以召喚一只可馴服的 {npc:226561}。'
-L['radioactive_subject_note'] = '使用附近的管道和 {item:237276}、{item:109076}、{item:231099} 或其他跳躍謎題技巧，到達 {location:罐缸工坊} 的 {location:熱砂試驗室} 建築屋頂。'
-L['george_the_big_pinch_note'] = '快速點擊所有5個 {npc:238189} 以獲得 {spell:1219679}，並允許馴服 {npc:233938}。'
+L['blazefeather_peacock_note'] = nil
+L['radioactive_subject_note'] = nil
+L['george_the_big_pinch_note'] = nil
+
+-------------------------------------------------------------------------------
+----------------------------------- K'ARESH -----------------------------------
+-------------------------------------------------------------------------------
+
+L['options_icons_karesh_lore_hunter'] = '{achievement:60890}'
+L['options_icons_karesh_lore_hunter_desc'] = '顯示成就 {achievement:60890} 所需的知識位置.'
+
+L['options_icons_phase_lost_and_found'] = '{achievement:61017}'
+L['options_icons_phase_lost_and_found_desc'] = nil
+L['phaseorb_label'] = nil
+L['phaseorb_note'] = nil
+
+L['options_icons_purrkins'] = '{achievement:42729}'
+L['options_icons_purrkins_desc'] = nil
+L['purrkins_note'] = nil
+L['kareshire_sublabel'] = nil
+L['in_a_tree'] = '在一棵樹上.'
+L['little_ms_phaser_sublabel'] = nil
+
+L['mailroom_distribution_note'] = nil
+L['gift_of_the_brothers_note'] = nil
+L['ancient_coffer_note'] = nil
+
+L['sthaarbs_note'] = nil
+L['heka_tamos_note'] = nil

@@ -249,6 +249,11 @@ L['nightfarm_growthling_note'] = 'Use 3x {item:206350} at the {object:Lesser Key
 
 L['thunder_lynx_note'] = '1. Use 3x {item:206350} at the {object:Lesser Keyflame} in {location:Torchlight Mine} to summon {npc:212419}.\n\n2. Speak with {npc:212419} and follow all extra dialog prompts to reveal {quest:82007}.\n\n3. Locate each baby lynx: {npc:222373} ({dot:Blue}), {npc:222372} ({dot:Green}), {npc:222375} ({dot:Orange}), and {npc:222374} ({dot:Red}).\n\n{note:Be sure to start {quest:76169} at the same to to receive {item:219198} or use a similar item such as {item:219148}. You\'ll need a light to reveal {npc:222373} within {location:Coldshadow Cave}.}\n\n4. Rescue each lynx kitten and return to {npc:212419}.'
 
+L['options_icons_fighter'] = '{achievement:41999}'
+L['options_icons_fighter_desc'] = 'Show {object:Nightfall} elite locations for {achievement:41999}'
+L['suspicious_document_label'] = 'Suspicious Document'
+L['suspicious_document_note'] = 'Open the {object:Suspicious Document} to summon a {object:Nightfall} elite.'
+
 -------------------------------------------------------------------------------
 ---------------------------------- AZJ-KAHET ----------------------------------
 -------------------------------------------------------------------------------
@@ -324,7 +329,7 @@ L['kej_pet_vendor_note'] = 'Each pet has a limited stock and costs 2,250x {curre
 L['options_icons_back_to_the_wall'] = '{achievement:40620}'
 L['options_icons_back_to_the_wall_desc'] = 'Display {npc:222119} locations for {achievement:40620}.'
 L['arathi_prisoner_suffix'] = 'Arathi prisoners saved'
-L['arathi_prisoner_note'] = 'Free webbed-wrapped {npc:222119} during the {wq:Special Assignment: A Pound of Cure}.'
+L['arathi_prisoner_note'] = 'Free webbed-wrapped {npc:222119}.'
 
 -------------------------------------------------------------------------------
 ----------------------------------- DELVES ------------------------------------
@@ -646,3 +651,29 @@ L['upgrade_turbo_handcrank'] = '{item:232984} (Turbo): Combine all 5 pieces coll
 L['blazefeather_peacock_note'] = 'After completing the {quest:83421} storyline, speak with {npc:226555} to pay %s to summon a trainable {npc:226561}.'
 L['radioactive_subject_note'] = 'Use nearby pipes and combination of {item:237276}, {item:109076}, {item:231099} or any other jumping puzzle tricks to reach the roof of the {location:Steamwheedle Laboratories} building in {location:The Vatworks}.'
 L['george_the_big_pinch_note'] = 'Quickly click all 5 {npc:238189} to recieve {spell:1219679} and allow you to tame {npc:233938}.'
+
+-------------------------------------------------------------------------------
+----------------------------------- K'ARESH -----------------------------------
+-------------------------------------------------------------------------------
+
+L['options_icons_karesh_lore_hunter'] = '{achievement:60890}'
+L['options_icons_karesh_lore_hunter_desc'] = 'Display lore object locations for {achievement:60890} achievement.'
+
+L['options_icons_phase_lost_and_found'] = '{achievement:61017}'
+L['options_icons_phase_lost_and_found_desc'] = 'Display Phase Diving Orb locations for {achievement:61017} achievement.'
+L['phaseorb_label'] = 'Phase Diving Orb'
+L['phaseorb_note'] = 'Walk through the Phase Diving Orb for a chance to obtain one of the appearances.'
+
+L['options_icons_purrkins'] = '{achievement:42729}'
+L['options_icons_purrkins_desc'] = 'Display purrkins for {achievement:42729}.'
+L['purrkins_note'] = '{emote:/Pet} the purrkin.'
+L['kareshire_sublabel'] = 'Phases in and out.'
+L['in_a_tree'] = 'Up in a tree.'
+L['little_ms_phaser_sublabel'] = 'Phases in and out.'
+
+L['mailroom_distribution_note'] = 'Interact with the cart outside, then open the Mailroom door. Stand on the circles and use the extra action button. Treasure will appear near the door.'
+L['gift_of_the_brothers_note'] = 'Interact with the {object:Flickering Lantern} and speak with {npc:233881}, then go find {npc:234112} ({dot:Red}), {npc:234113} ({dot:Yellow}) and {npc:234075} ({dot:Green}), then return to {npc:233881} at the {object:Flickering Lantern}.'
+L['ancient_coffer_note'] = 'Collect the {item:233794}({dot:Red}) and {item:233799}({dot:Yellow}) then return to the {object:Ancient Coffer} to receive {item:245269}.'
+
+L['sthaarbs_note'] = 'Use the teleporter near the {object:Phase Conduit} to reach {npc:234845}.'
+L['heka_tamos_note'] = 'Collect a buff from each of the {object:Dewminder}, {object:Spectral Lantern}, {object:Earthy Succulent} and {object:Windcatcher} which spawn nearby then interact with the {object:Brazier of Elemental Union} to summon the rare.'
