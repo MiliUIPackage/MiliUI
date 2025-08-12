@@ -30,7 +30,11 @@ if Syndicator.Constants.IsEra then
       details.classID = override.classID
       details.subClassID = override.subClassID
     else
-      details.classID, details.subClassID = select(6, C_Item.GetItemInfoInstant(details.itemID))
+      local _
+      _, _, _, details.invType, _, details.classID, details.subClassID = C_Item.GetItemInfoInstant(details.itemID)
+      if details.invType == "INVTYPE_CLOAK" then
+        details.subClassID = 0
+      end
     end
   end
 else
@@ -45,7 +49,11 @@ else
       details.classID = Enum.ItemClass.Battlepet
       details.subClassID = petType - 1
     else
-      details.classID, details.subClassID = select(6, C_Item.GetItemInfoInstant(details.itemID))
+      local _
+      _, _, _, details.invType, _, details.classID, details.subClassID = C_Item.GetItemInfoInstant(details.itemID)
+      if details.invType == "INVTYPE_CLOAK" then
+        details.subClassID = 0
+      end
     end
   end
 end
@@ -55,7 +63,9 @@ local function GetInvType(details)
   if details.invType then
     return
   end
-  details.invType = (select(4, C_Item.GetItemInfoInstant(details.itemID))) or "NONE"
+  local _
+  _, _, _, details.invType = C_Item.GetItemInfoInstant(details.itemID)
+  details.invType = details.invType or "NONE"
 end
 
 local function PetCheck(details)
@@ -209,6 +219,56 @@ local function KnowledgeCheck(details)
   return spellName == baseKnowledgeName and (spellInfo.iconID == 236225 or spellInfo.iconID == 136175)
 end
 
+local function EnsembleCheck(details)
+  GetInvType(details)
+  GetClassSubClass(details)
+
+  if not C_Item.IsItemDataCachedByID(details.itemID) then
+    C_Item.RequestLoadItemDataByID(details.itemID)
+    return nil
+  end
+
+  if details.classID == Enum.ItemClass.Consumable and details.invType == "INVTYPE_NON_EQUIP_IGNORE" and (C_Item.IsDressableItemByID or IsDressableItem)(details.itemID) then
+    if details.setSources == nil then
+      local setID = C_Item.GetItemLearnTransmogSet(details.itemLink)
+      if setID then
+        details.setSources = C_Transmog.GetAllSetAppearancesByID(setID)
+      end
+    end
+    if not details.setSources then
+      return true
+    end
+    local invSlot = details.setSources[1].invSlot + 1
+    return invSlot ~= 16 and invSlot ~= 17
+  end
+  return false
+end
+
+local function ArsenalCheck(details)
+  GetInvType(details)
+  GetClassSubClass(details)
+
+  if not C_Item.IsItemDataCachedByID(details.itemID) then
+    C_Item.RequestLoadItemDataByID(details.itemID)
+    return nil
+  end
+
+  if details.classID == Enum.ItemClass.Consumable and details.invType == "INVTYPE_NON_EQUIP_IGNORE" and (C_Item.IsDressableItemByID or IsDressableItem)(details.itemID) then
+    if details.setSources == nil then
+      local setID = C_Item.GetItemLearnTransmogSet(details.itemLink)
+      if setID then
+        details.setSources = C_Transmog.GetAllSetAppearancesByID(setID)
+      end
+    end
+    if not details.setSources then
+      return false
+    end
+    local invSlot = details.setSources[1].invSlot + 1
+    return invSlot == 16 or invSlot == 17
+  end
+  return false
+end
+
 local function GetSourceID(itemLink)
   local _, sourceID = C_TransmogCollection.GetItemInfo(itemLink)
   if sourceID then
@@ -335,6 +395,40 @@ local function UncollectedCheck(details)
   return result or false, result == true
 end
 
+local function CatalystCheck(details)
+  if not TransmogUpgradeMaster_API then
+    return false
+  end
+
+  if not C_Item.IsItemDataCachedByID(details.itemID) then
+    C_Item.RequestLoadItemDataByID(details.itemID)
+    return nil
+  end
+
+  if not TransmogUpgradeMaster_API.IsCacheWarmedUp() then
+    return false, true
+  end
+
+  return select(3, TransmogUpgradeMaster_API.IsAppearanceMissing(details.itemLink)) == true
+end
+
+local function CatalystUpgradeCheck(details)
+  if not TransmogUpgradeMaster_API then
+    return false
+  end
+
+  if not C_Item.IsItemDataCachedByID(details.itemID) then
+    C_Item.RequestLoadItemDataByID(details.itemID)
+    return nil
+  end
+
+  if not TransmogUpgradeMaster_API.IsCacheWarmedUp() then
+    return false, true
+  end
+
+  return select(4, TransmogUpgradeMaster_API.IsAppearanceMissing(details.itemLink)) == true
+end
+
 
 local alwaysMatchClass = {
   ["INVTYPE_CLOAK"] = true,
@@ -380,8 +474,10 @@ local function GetTooltipInfoLink(details)
     return
   end
 
-  if Syndicator.Constants.IsRetail then
+  if C_TooltipInfo then
     details.tooltipInfoLink = C_TooltipInfo.GetHyperlink(details.itemLink) or {lines={}}
+  elseif details.itemID == Syndicator.Constants.BattlePetCageID then
+    info.tooltipInfoLink = {lines = {}}
   else
     details.tooltipInfoLink = Syndicator.Utilities.DumpClassicTooltip(function(tooltip) tooltip:SetHyperlink(details.itemLink) end)
   end
@@ -456,16 +552,22 @@ local function BindOnEquipCheck(details)
 end
 
 local function BindOnAccountCheck(details)
+  if details.accountBound ~= nil then
+    return details.accountBound
+  end
+
   GetTooltipInfoSpell(details)
 
   if details.tooltipInfoSpell then
+    details.accountBound = false
     for _, row in ipairs(details.tooltipInfoSpell.lines) do
       if tIndexOf(Syndicator.Constants.AccountBoundTooltipLines, row.leftText) ~= nil or
           (not details.isBound and tIndexOf(Syndicator.Constants.AccountBoundTooltipLinesNotBound, row.leftText) ~= nil) then
-        return true
+        details.accountBound = true
+        break
       end
     end
-    return false
+    return details.accountBound
   end
 end
 
@@ -544,6 +646,33 @@ local function UsableCheck(details)
         return false
       end
       if row.rightColor and row.rightColor.r == 1 and row.rightColor.g < 0.2 and row.rightColor.b < 0.2 then
+        return false
+      end
+    end
+    return true
+  end
+end
+
+local function ActiveCheck(details)
+  if not C_Item.IsItemDataCachedByID(details.itemID) then
+    C_Item.RequestLoadItemDataByID(details.itemID)
+    return
+  end
+  if not Syndicator.Utilities.IsEquipment(details.itemLink) then
+    return false
+  end
+  local upgradeInfo = C_Item.GetItemUpgradeInfo(details.itemLink)
+  if not upgradeInfo or not upgradeInfo.trackString then
+    return false
+  end
+
+  GetTooltipInfoSpell(details)
+
+  if details.tooltipInfoSpell then
+    for index = 1, math.min(#details.tooltipInfoSpell.lines, 4) do
+      local row = details.tooltipInfoSpell.lines[index]
+      local r, g, b = math.floor(row.leftColor.r * 100), math.floor(row.leftColor.g * 100), math.floor(row.leftColor.b * 100)
+      if r == g and g == b and r < 60 then
         return false
       end
     end
@@ -658,6 +787,21 @@ local function UniqueCheck(details)
   return false
 end
 
+local function ConjuredCheck(details)
+  GetTooltipInfoSpell(details)
+
+  if not details.tooltipInfoSpell then
+    return
+  end
+
+  for _, row in ipairs(details.tooltipInfoSpell.lines) do
+    if row.leftText == ITEM_CONJURED then
+      return true
+    end
+  end
+  return false
+end
+
 local PVP_PATTERN = PVP_ITEM_LEVEL_TOOLTIP:gsub("%%d", ".*")
 local function PvPCheck(details)
   if not Syndicator.Utilities.IsEquipment(details.itemLink) then
@@ -735,6 +879,7 @@ local function SetBonusCheck(details)
 end
 
 local classRestrictionsPattern = ITEM_CLASSES_ALLOWED:gsub("%%s", ".+")
+local multipleUniquesPattern = ITEM_UNIQUE_MULTIPLE:gsub("%%d", ".+")
 -- Check for items with the appropriate item class (which have a lot of
 -- variation), not common (to exclude glyphs) and have a class restriction.
 local function TierTokenCheck(details)
@@ -745,11 +890,20 @@ local function TierTokenCheck(details)
     return false
   end
 
+  if not C_Item.IsItemDataCachedByID(details.itemID) then
+    C_Item.RequestLoadItemDataByID(details.itemID)
+    return nil
+  end
+
+  if (C_Item.IsDressableItemByID or IsDressableItem)(details.itemID) then
+    return false
+  end
+
   GetTooltipInfoLink(details)
 
   if details.tooltipInfoLink then
     for _, row in ipairs(details.tooltipInfoLink.lines) do
-      if row.leftText == ITEM_UNIQUE then
+      if row.leftText == ITEM_UNIQUE or row.leftText:match(multipleUniquesPattern) then
         return false
       elseif row.leftText:match(classRestrictionsPattern) then
         return true
@@ -878,10 +1032,13 @@ AddKeywordLocalised("KEYWORD_UNCOLLECTED", UncollectedCheck, Syndicator.Locales.
 AddKeywordLocalised("KEYWORD_MY_CLASS", MyClassCheck, Syndicator.Locales.GROUP_ITEM_DETAIL)
 AddKeywordLocalised("KEYWORD_PVP", PvPCheck, Syndicator.Locales.GROUP_ITEM_DETAIL)
 AddKeywordManual(ITEM_UNIQUE:lower(), "unique", UniqueCheck, Syndicator.Locales.GROUP_ITEM_DETAIL)
+AddKeywordLocalised("KEYWORD_CONJURED", ConjuredCheck, Syndicator.Locales.GROUP_ITEM_DETAIL)
 AddKeywordLocalised("KEYWORD_LOCKED", LockedCheck, Syndicator.Locales.GROUP_ITEM_DETAIL)
 AddKeywordLocalised("KEYWORD_REFUNDABLE", RefundableCheck, Syndicator.Locales.GROUP_ITEM_DETAIL)
 AddKeywordLocalised("KEYWORD_CRAFTED", CraftedCheck, Syndicator.Locales.GROUP_ITEM_DETAIL)
 AddKeywordLocalised("KEYWORD_TIER_TOKEN", TierTokenCheck, Syndicator.Locales.GROUP_ITEM_TYPE)
+AddKeywordLocalised("KEYWORD_ENSEMBLE", EnsembleCheck, Syndicator.Locales.GROUP_ITEM_TYPE)
+AddKeywordLocalised("KEYWORD_ARSENAL", ArsenalCheck, Syndicator.Locales.GROUP_ITEM_TYPE)
 
 if Syndicator.Constants.IsRetail then
   AddKeywordLocalised("KEYWORD_COSMETIC", CosmeticCheck, Syndicator.Locales.GROUP_QUALITY)
@@ -890,6 +1047,9 @@ if Syndicator.Constants.IsRetail then
   AddKeywordManual(WORLD_QUEST_REWARD_FILTERS_ANIMA:lower(), "anima", AnimaCheck, Syndicator.Locales.GROUP_ITEM_DETAIL)
   AddKeywordLocalised("KEYWORD_KNOWLEDGE", KnowledgeCheck, Syndicator.Locales.GROUP_ITEM_DETAIL)
   AddKeywordLocalised("KEYWORD_SET_BONUS", SetBonusCheck, Syndicator.Locales.GROUP_ITEM_DETAIL)
+  AddKeywordLocalised("KEYWORD_CATALYST", CatalystCheck, Syndicator.Locales.GROUP_ITEM_DETAIL)
+  AddKeywordLocalised("KEYWORD_CATALYST_UPGRADE", CatalystUpgradeCheck, Syndicator.Locales.GROUP_ITEM_DETAIL)
+  AddKeywordLocalised("KEYWORD_ACTIVE_SEASON", ActiveCheck, Syndicator.Locales.GROUP_ITEM_DETAIL)
   if Syndicator.Constants.WarbandBankActive then
     AddKeywordManual(ITEM_ACCOUNTBOUND:lower(), "warbound", BindOnAccountCheck, Syndicator.Locales.GROUP_BINDING_TYPE)
     AddKeywordManual(ITEM_ACCOUNTBOUND_UNTIL_EQUIP:lower(), "warbound until equipped", WarboundUntilEquippedCheck, Syndicator.Locales.GROUP_BINDING_TYPE)
@@ -1039,7 +1199,8 @@ function Syndicator.Search.GetExpansion(details)
   if not Syndicator.Constants.IsRetail then
     return -1
   else
-    return (select(15, C_Item.GetItemInfo(details.itemID)))
+    local _, _, _, _, _, _, _, _, _, _, _, _, _, _, xpac = C_Item.GetItemInfo(details.itemID)
+    return xpac
   end
 end
 for key, expansionID in pairs(TextToExpansion) do
@@ -1376,12 +1537,19 @@ local function ItemLevelPatternCheck(details, text)
     return false
   end
 
-  local wantedItemLevel = tonumber(text)
-  return details.itemLevel and details.itemLevel == wantedItemLevel
-end
+  local operator, value = text:match("([><=]?)(%d+)")
 
-local function ExactItemLevelPatternCheck(details, text)
-  return ItemLevelPatternCheck(details, (text:match("%d+")))
+  local wantedItemLevel = tonumber(value)
+
+  if operator == "" or operator == "=" then
+    return details.itemLevel and details.itemLevel == wantedItemLevel
+  elseif operator == "<" then
+  return details.itemLevel and details.itemLevel <= wantedItemLevel
+  elseif operator == ">" then
+    return details.itemLevel and details.itemLevel >= wantedItemLevel
+  else
+    error("Unexpected item level operator")
+  end
 end
 
 local function ItemLevelRangePatternCheck(details, text)
@@ -1393,75 +1561,49 @@ local function ItemLevelRangePatternCheck(details, text)
   return details.itemLevel and details.itemLevel >= tonumber(minText) and details.itemLevel <= tonumber(maxText)
 end
 
-local function ItemLevelMinPatternCheck(details, text)
-  if GetItemLevel(details) == false then
+local function GetAuctionValue(details)
+  if details.auctionValue then
+    return details.auctionValue >= 0
+  end
+  BindOnAccountCheck(details)
+  if details.accountBound == true or details.isBound then
+    details.auctionValue = -1
     return false
+  elseif details.accountBound == nil then
+    return
+  end
+  if not C_Item.IsItemDataCachedByID(details.itemID) then
+    C_Item.RequestLoadItemDataByID(details.itemID)
+    return
   end
 
-  local minText = text:match("%d+")
-  return details.itemLevel and details.itemLevel <= tonumber(minText)
+  details.auctionValue = Syndicator.Search.GetAuctionValue(details.itemLink) or -1
+
+  return details.auctionValue >= 0
 end
 
-local function ItemLevelMaxPatternCheck(details, text)
-  if GetItemLevel(details) == false then
-    return false
+local function AHValuePatternCheck(details, text)
+  if GetAuctionValue(details) == false then
+    return details.auctionValue == -2
   end
 
-  local maxText = text:match("%d+")
-  return details.itemLevel and details.itemLevel >= tonumber(maxText)
-end
+  local operator, value, scale = text:match("^([><=]?)(%d+)([gsc])$")
 
-local function ExpansionPatternCheck(details, text)
-  local itemMajor, itemMinor, itemPatch = Syndicator.Search.GetExpansionInfo(details.itemID)
-  if not itemMajor then
-    return false
+  local wantedAuctionValue = tonumber(value)
+  if scale == "g" then
+    wantedAuctionValue = wantedAuctionValue * 10000
+  elseif scale == "s" then
+    wantedAuctionValue = wantedAuctionValue * 100
   end
 
-  local major, minor, patch = text:match("(%d+)%.(%d*)%.?(%d*)")
-  major, minor, patch = tonumber(major), tonumber(minor), tonumber(patch)
-
-  if not minor then
-    return major == itemMajor
-  elseif not patch then
-    return major == itemMajor and minor == itemMinor
+  if operator == "" or operator == "=" then
+    return details.auctionValue and details.auctionValue == wantedAuctionValue
+  elseif operator == "<" then
+    return details.auctionValue and details.auctionValue <= wantedAuctionValue
+  elseif operator == ">" then
+    return details.auctionValue and details.auctionValue >= wantedAuctionValue
   else
-    return major == itemMajor and minor == itemMinor and patch == itemPatch
-  end
-end
-
-local function ExpansionMinPatternCheck(details, text)
-  local itemMajor, itemMinor, itemPatch = Syndicator.Search.GetExpansionInfo(details.itemID)
-  if not itemMajor then
-    return false
-  end
-
-  local major, minor, patch = text:match("(%d+)%.(%d*)%.?(%d*)")
-  major, minor, patch = tonumber(major), tonumber(minor), tonumber(patch)
-
-  if not minor then
-    return major <= itemMajor
-  elseif not patch then
-    return major <= itemMajor and minor <= itemMinor
-  else
-    return major <= itemMajor and minor <= itemMinor and patch <= itemPatch
-  end
-end
-
-local function ExpansionMaxPatternCheck(details, text)
-  local itemMajor, itemMinor, itemPatch = Syndicator.Search.GetExpansionInfo(details.itemID)
-  if not itemMajor then
-    return false
-  end
-
-  local major, minor, patch = text:match("(%d+)%.(%d*)%.?(%d*)")
-  major, minor, patch = tonumber(major), tonumber(minor), tonumber(patch)
-
-  if not minor then
-    return major >= itemMajor
-  elseif not patch then
-    return major >= itemMajor and minor >= itemMinor
-  else
-    return major >= itemMajor and minor >= itemMinor and patch >= itemPatch
+    error("Unexpected auction value operator")
   end
 end
 
@@ -1475,14 +1617,12 @@ local function ExactKeywordCheck(details, text)
 end
 
 local patterns = {
-  ["^%d+$"] = ItemLevelPatternCheck,
-  ["^=%d+$"] = ExactItemLevelPatternCheck,
+  ["^[><=]?%d+$"] = ItemLevelPatternCheck,
   ["^%d+%-%d+$"] = ItemLevelRangePatternCheck,
-  ["^%>%d+$"] = ItemLevelMaxPatternCheck,
-  ["^%<%d+$"] = ItemLevelMinPatternCheck,
-  ["^%d+%.%d*%.?%d*$"] = ExpansionPatternCheck,
-  ["^%>%d+%.%d*%.?%d*$"] = ExpansionMinPatternCheck,
-  ["^%<%d+%.%d*%.?%d*$"] = ExpansionMaxPatternCheck,
+
+  ["^[><=]?%d+[gsc]$"] = AHValuePatternCheck,
+  ["^%d+[gsc]%-%d+[gsc]$"] = AHValueRangePatternCheck,
+
   ["^%#.*$"] = ExactKeywordCheck,
 }
 
@@ -1969,8 +2109,7 @@ function Syndicator.Search.InitializeSearchEngine()
   -- cloth armor, but excluding cloaks
   AddKeywordManual(C_Item.GetItemSubClassInfo(Enum.ItemClass.Armor, 1):lower(), "cloth", function(details)
     GetClassSubClass(details)
-    GetInvType(details)
-    return details.classID == Enum.ItemClass.Armor and details.subClassID == 1 and details.invType ~= "INVTYPE_CLOAK"
+    return details.classID == Enum.ItemClass.Armor and details.subClassID == Enum.ItemArmorSubclass.Cloth
   end, Syndicator.Locales.GROUP_ARMOR_TYPE)
 
   local weaponTypesToCheck = {

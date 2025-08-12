@@ -1,6 +1,6 @@
 # Syndicator
 
-## [195](https://github.com/Baganator/Syndicator/tree/195) (2025-05-06)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/194...195) 
+## [225](https://github.com/Baganator/Syndicator/tree/225) (2025-08-07)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/224...225) 
 
-- Fix expansion sometimes being detected wrong when using ATT as a data source  
+- Remove C\_PlayerInfo.HasAccountInventoryLock use (replaced with C\_Bank function)  

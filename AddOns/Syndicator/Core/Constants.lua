@@ -6,21 +6,12 @@ Syndicator.Constants = {
     Enum.BagIndex.Bag_3,
     Enum.BagIndex.Bag_4,
   },
-  AllBankIndexes = {
-    Enum.BagIndex.Bank,
-    Enum.BagIndex.BankBag_1,
-    Enum.BagIndex.BankBag_2,
-    Enum.BagIndex.BankBag_3,
-    Enum.BagIndex.BankBag_4,
-    Enum.BagIndex.BankBag_5,
-    Enum.BagIndex.BankBag_6,
-    Enum.BagIndex.BankBag_7,
-  },
+  AllBankIndexes = {},
   AllWarbandIndexes = {},
 
   IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE,
   IsClassic = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE,
-  IsMoP = WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC,
+  IsMists = WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC,
   IsCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC,
   IsWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC,
   IsBC = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC,
@@ -30,7 +21,7 @@ Syndicator.Constants = {
 
   BattlePetCageID = 82800,
 
-  BankBagSlotsCount = 7,
+  BankBagSlotsCount = 0,
 
   MaxGuildBankTabItemSlots = 98,
 
@@ -41,11 +32,38 @@ Syndicator.Constants = {
   MailExpiryDuration = 30 * 24 * 60 * 60,
 }
 
+Syndicator.Constants.IsBrokenTooltipScanning = false
+
 if Syndicator.Constants.IsRetail then
+  Syndicator.Constants.WarbandBankActive = true
+  Syndicator.Constants.CharacterBankTabsActive = Enum.BagIndex.CharacterBankTab_1 ~= nil
   table.insert(Syndicator.Constants.AllBagIndexes, Enum.BagIndex.ReagentBag)
-  table.insert(Syndicator.Constants.AllBankIndexes, Enum.BagIndex.Reagentbank)
   Syndicator.Constants.BagSlotsCount = 5
   Syndicator.Constants.MaxBagSize = 42
+  if Syndicator.Constants.CharacterBankTabsActive then
+    Syndicator.Constants.AllBankIndexes = {
+      Enum.BagIndex.CharacterBankTab_1,
+      Enum.BagIndex.CharacterBankTab_2,
+      Enum.BagIndex.CharacterBankTab_3,
+      Enum.BagIndex.CharacterBankTab_4,
+      Enum.BagIndex.CharacterBankTab_5,
+      Enum.BagIndex.CharacterBankTab_6,
+    }
+    Syndicator.Constants.BankBagSlotsCount = 0
+  else
+    Syndicator.Constants.AllBankIndexes = {
+      Enum.BagIndex.Bank,
+      Enum.BagIndex.BankBag_1,
+      Enum.BagIndex.BankBag_2,
+      Enum.BagIndex.BankBag_3,
+      Enum.BagIndex.BankBag_4,
+      Enum.BagIndex.BankBag_5,
+      Enum.BagIndex.BankBag_6,
+      Enum.BagIndex.BankBag_7,
+      Enum.BagIndex.Reagentbank,
+    }
+    Syndicator.Constants.BankBagSlotsCount = 7
+  end
   Syndicator.Constants.AllWarbandIndexes = {
     Enum.BagIndex.AccountBankTab_1,
     Enum.BagIndex.AccountBankTab_2,
@@ -53,7 +71,6 @@ if Syndicator.Constants.IsRetail then
     Enum.BagIndex.AccountBankTab_4,
     Enum.BagIndex.AccountBankTab_5,
   }
-  Syndicator.Constants.WarbandBankActive = true
 end
 
 if Syndicator.Constants.IsEra or KeyRingButtonIDToInvSlotID then
@@ -61,8 +78,13 @@ if Syndicator.Constants.IsEra or KeyRingButtonIDToInvSlotID then
 end
 if Syndicator.Constants.IsEra then
   Syndicator.Constants.BankBagSlotsCount = 6
+elseif Syndicator.Constants.IsClassic then
+  Syndicator.Constants.BankBagSlotsCount = 7
 end
 if Syndicator.Constants.IsClassic then
+  Syndicator.Constants.AllBankIndexes = {
+    Enum.BagIndex.Bank,
+  }
   -- Workaround for the enum containing the wrong values for the bank bag slots
   for i = 1, Syndicator.Constants.BankBagSlotsCount do
     Syndicator.Constants.AllBankIndexes[i + 1] = NUM_BAG_SLOTS + i
@@ -87,6 +109,8 @@ Syndicator.Constants.Events = {
   "AuctionsCacheUpdate",
 
   "Ready",
+
+  "AuctionValueSourceChanged"
 }
 
 -- Hidden currencies for all characters tooltips as they are shared between characters

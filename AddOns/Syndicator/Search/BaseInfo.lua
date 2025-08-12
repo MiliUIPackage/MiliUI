@@ -3,13 +3,17 @@ function Syndicator.Search.GetBaseInfo(cacheData)
 
   info.itemLink = cacheData.itemLink
   info.itemID = cacheData.itemID
-  info.quality = cacheData.quality
+  info.quality = cacheData.quality or 0
   info.itemCount = cacheData.itemCount or 1
   info.isBound = cacheData.isBound or false
   info.hasLoot = cacheData.hasLoot or false
 
-  if C_TooltipInfo then
+  if Syndicator.Constants.IsBrokenTooltipScanning then
+    info.tooltipGetter = function() return {lines = {}} end
+  elseif C_TooltipInfo then
     info.tooltipGetter = function() return C_TooltipInfo.GetHyperlink(cacheData.itemLink) end
+  elseif cacheData.itemID == Syndicator.Constants.BattlePetCageID then
+    info.tooltipGetter = function() return nil end
   else
     info.tooltipGetter = function() return Syndicator.Search.DumpClassicTooltip(function(t) t:SetHyperlink(cacheData.itemLink) end) end
   end

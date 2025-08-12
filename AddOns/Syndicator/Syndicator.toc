@@ -1,10 +1,9 @@
-## Interface: 110105, 110200
+## Interface: 110200
 ## Title: Syndicator
-## Version: 195
+## Version: 225
 ## Author: plusmouse
 ## SavedVariables: SYNDICATOR_CONFIG, SYNDICATOR_DATA, SYNDICATOR_SUMMARIES
 ## IconTexture: Interface\AddOns\Syndicator\Assets\logo.tga
-## X-Category-zhTW: 物品
 ## Title-zhTW: |cFF2DA267[物品]|r 物品資訊
 ## Notes-zhTW: Syndicator|n儲存角色背包和銀行的物品資訊。
 
