@@ -2,7 +2,7 @@
 -- Internal variables
 --
 
-local MAJOR, MINOR = "EditModeExpanded-1.0", 92
+local MAJOR, MINOR = "EditModeExpanded-1.0", 95
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -235,7 +235,9 @@ function lib:RegisterFrame(frame, name, db, anchorTo, anchorPoint, clamped)
     frame.Selection:Hide()
     
     frame.systemNameString = name
-    frame.Selection:SetGetLabelTextFunction(function() return name end)
+    
+    frame.Selection:SetSystem(frame)
+    
     frame:SetupSettingsDialogAnchor();
     
     --frame.snappedFrames = {}; -- this was spreading taint, need to check for the absence causing errors
@@ -254,7 +256,7 @@ function lib:RegisterFrame(frame, name, db, anchorTo, anchorPoint, clamped)
     table.insert(framesDialogs[frame.system],
         {
             setting = ENUM_EDITMODEACTIONBARSETTING_CLAMPED,
-            name = "避免超出畫面",
+            name = "Clamp to Screen",
             type = Enum.EditModeSettingDisplayType.Checkbox,
         }
     )
@@ -600,7 +602,7 @@ function lib:RegisterHideable(frame, onEventHandler)
     table.insert(framesDialogs[systemID],
         {
             setting = ENUM_EDITMODEACTIONBARSETTING_HIDEABLE,
-            name = "隱藏",
+            name = "Hide",
             type = Enum.EditModeSettingDisplayType.Checkbox,
     })
     
@@ -838,7 +840,7 @@ hooksecurefunc(f, "OnLoad", function()
     EditModeManagerExpandedFrame:SetWidth(300)
     EditModeManagerExpandedFrame.Title = EditModeManagerExpandedFrame.Title or EditModeManagerExpandedFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
     EditModeManagerExpandedFrame.Title:SetPoint("TOP", 0, -15)
-    EditModeManagerExpandedFrame.Title:SetText("選項中可啟用更多框架")
+    EditModeManagerExpandedFrame.Title:SetText("Expanded")
     EditModeManagerExpandedFrame.Border = EditModeManagerExpandedFrame.Border or CreateFrame("Frame", nil, EditModeManagerExpandedFrame, "DialogBorderTranslucentTemplate")
     EditModeManagerExpandedFrame.AccountSettings = EditModeManagerExpandedFrame.AccountSettings or CreateFrame("Frame", nil, EditModeManagerExpandedFrame)
     EditModeManagerExpandedFrame.AccountSettings:SetPoint("TOPLEFT", 0, -35)
@@ -902,7 +904,7 @@ hooksecurefunc(f, "OnLoad", function()
 
     hooksecurefunc(EditModeManagerFrame, "ExitEditMode", function()
         if InCombatLockdown() then
-            print("編輯模式擴充包錯誤: 戰鬥中無法正常結束編輯模式!")
+            print("EditModeExpanded Error: could not hide Edit Mode properly - you were in combat!")
             return
         end
         if not EditModeManagerExpandedFrame then return end -- happens if library is embedded but nothing has been registered
@@ -1089,7 +1091,7 @@ hooksecurefunc(f, "OnLoad", function()
         end
     end)
     
-    checkButtonFrame.Text:SetText("停用顯著標示")
+    checkButtonFrame.Text:SetText(DISABLE.." "..string.gsub(HIGHLIGHTING, ":", ""))
     checkButtonFrame.Text:SetFontObject(GameFontHighlightMedium)
     checkButtonFrame:SetSize(32, 32)
     checkButtonFrame:SetPoint("TOPLEFT", EditModeManagerExpandedFrame.AccountSettings, "TOPLEFT", 20, 0)
@@ -1603,7 +1605,7 @@ function lib:RegisterMinimapPinnable(frame)
     table.insert(framesDialogs[frame.system],
         {
             setting = ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED,
-            name = "貼齊小地圖",
+            name = "Pin to Minimap",
             type = Enum.EditModeSettingDisplayType.Checkbox,
         }
     )
@@ -1773,7 +1775,7 @@ function lib:RegisterToggleInCombat(frame)
     table.insert(framesDialogs[systemID],
         {
             setting = ENUM_EDITMODEACTIONBARSETTING_TOGGLEHIDEINCOMBAT,
-            name = "戰鬥中隱藏",
+            name = "Toggle Visibility in Combat",
             type = Enum.EditModeSettingDisplayType.Checkbox,
     })
 end

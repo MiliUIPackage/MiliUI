@@ -1,6 +1,6 @@
-## Interface: 110100, 110200
+## Interface: 110200
 ## Title: Edit Mode Expanded
-## Version: 11.1-071
+## Version: 11.2-004
 ## Notes: Expands Edit Mode to apply to other frames
 ## Author: Teelo
 ## SavedVariables: EditModeExpandedADB
@@ -32,7 +32,11 @@ libs\EditModeExpanded-1.0\EditModeExpanded-1.0.xml
 libs\LibUIDropDownMenu\LibUIDropDownMenu.lua
 
 Locales\enus.lua
+Locales\esES.lua
+Locales\ruRU.lua
+Locales\zhCN.lua
 Locales\zhTW.lua
+Locales\koKR.lua
 
 FrameHandlers\ActionBars.lua
 FrameHandlers\AlertFrame.lua

@@ -39,14 +39,14 @@ function addon:initCooldownManager()
         settingFrame:SetFrameStrata("TOOLTIP")
 
         settingFrame.activeFontString = settingFrame:CreateFontString(nil, nil, "GameTooltipText")
-        settingFrame.activeFontString:SetText(L["Active Icons"])
+        settingFrame.activeFontString:SetText("Active Icons")
         settingFrame.activeFontString.layoutIndex = 1
 
         settingFrame.activeIcons = CreateFrame("Frame", nil, settingFrame, "HorizontalLayoutFrame")
         settingFrame.activeIcons.layoutIndex = 2
 
         settingFrame.inactiveFontString = settingFrame:CreateFontString(nil, nil, "GameTooltipText")
-        settingFrame.inactiveFontString:SetText(L["Inactive Icons"])
+        settingFrame.inactiveFontString:SetText("Inactive Icons")
         settingFrame.inactiveFontString.layoutIndex = 3
 
         settingFrame.inactiveIcons = CreateFrame("Frame", nil, settingFrame, "HorizontalLayoutFrame")
@@ -67,7 +67,7 @@ function addon:initCooldownManager()
 
         settingFrame.addRow.addFontString = settingFrame.addRow:CreateFontString(nil, nil, "GameTooltipText")
         settingFrame.addRow.addFontString.layoutIndex = 1
-        settingFrame.addRow.addFontString:SetText(L["Add spell ID:"])
+        settingFrame.addRow.addFontString:SetText("Add spell ID:")
 
         settingFrame.addRow.addEditBox = CreateFrame("EditBox", nil, settingFrame.addRow, "EditModeDialogLayoutNameEditBoxTemplate")
         settingFrame.addRow.addEditBox.layoutIndex = 2
@@ -511,7 +511,7 @@ function addon:initCooldownManager()
         end
 
         local function initFrame(frame, db, includeTrinkets)
-            lib:RegisterCustomButton(frame, L["Rearrange Buttons"], function()
+            lib:RegisterCustomButton(frame, "Rearrange Buttons", function()
                 local db = db[getCurrentLoadoutID(frame, db)]
                 settingFrame:SetShown(not settingFrame:IsShown())
                 settingFrame.viewer = frame
@@ -539,7 +539,6 @@ function addon:initCooldownManager()
             		end
             	end
 
-            	self:RefreshItemsShown()
                 self:GetItemContainerFrame():Layout()
             end)
             
@@ -617,13 +616,13 @@ function addon:initCooldownManager()
         C_Timer.After(3, refreshAll)
         
         local dropdown, getSettingDB = lib:RegisterDropdown(BuffBarCooldownViewer, libDD, "Resort")
-        local dropdownOptions = {L["None"], L["Top by duration"], L["Bottom by duration"]}
+        local dropdownOptions = {"None", "Top by duration", "Bottom by duration"}
         
         libDD:UIDropDownMenu_Initialize(dropdown, function(self, level, menuList)
             local db = getSettingDB()
             local info = libDD:UIDropDownMenu_CreateInfo()        
             
-            if db.checked == nil then db.checked = L["None"] end
+            if db.checked == nil then db.checked = "None" end
             
             for _, f in ipairs(dropdownOptions) do
                 info.text = f
@@ -639,13 +638,13 @@ function addon:initCooldownManager()
             end
         end)
         libDD:UIDropDownMenu_SetWidth(dropdown, 100)
-        libDD:UIDropDownMenu_SetText(dropdown, L["Sort Icons:"])
+        libDD:UIDropDownMenu_SetText(dropdown, "Sort Icons:")
         
         BuffBarCooldownViewer:HookScript("OnEvent", function(self)
             local settingDB = getSettingDB()
-            if settingDB.checked == L["None"] then return end
+            if settingDB.checked == "None" then return end
             
-            if settingDB.checked == L["Top by duration"] then
+            if settingDB.checked == "Top by duration" then
                 self.layoutFramesGoingUp = false
             else
                 self.layoutFramesGoingUp = true
@@ -676,6 +675,8 @@ function addon:initCooldownManager()
             for index, itemFrame in ipairs(include) do
                 itemFrame.layoutIndex = index
             end
+            
+            self:GetItemContainerFrame():Layout()
         end)
     end
 end

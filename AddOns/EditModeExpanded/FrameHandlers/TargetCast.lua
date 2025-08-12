@@ -1,11 +1,12 @@
 local addonName, addon = ...
-local L = LibStub("AceLocale-3.0"):GetLocale(addonName)
+
 local lib = LibStub:GetLibrary("EditModeExpanded-1.0")
+local L = LibStub("AceLocale-3.0"):GetLocale(addonName)
 
 function addon:initTargetCastBar()
     local db = addon.db.global
     if db.EMEOptions.targetCast then
-        lib:RegisterFrame(TargetFrameSpellBar, L["Target Cast Bar"], db.TargetSpellBar, TargetFrame, "TOPLEFT")
+        lib:RegisterFrame(TargetFrameSpellBar, L["TARGET_CAST_BAR"], db.TargetSpellBar, TargetFrame, "TOPLEFT")
         hooksecurefunc(TargetFrameSpellBar, "AdjustPosition", function(self)
             addon.ResetFrame(TargetFrameSpellBar)
             if EditModeManagerFrame.editModeActive then
