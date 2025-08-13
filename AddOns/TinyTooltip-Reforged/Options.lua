@@ -354,8 +354,7 @@ local function CreateAnchorInput(frame, k)
     return box
 end
 
--- 修正：CreateFrame 使用安全模板條件，避免 BackdropTemplate 找不到錯誤
-local saframe = CreateFrame("Frame", nil, UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+local saframe = CreateFrame("Frame", nil, UIParent, "ThinGoldEdgeTemplate")
 saframe:Hide()
 saframe:SetFrameStrata("DIALOG")
 saframe.close = CreateFrame("Button", nil, saframe, "UIPanelCloseButton")
@@ -376,7 +375,6 @@ CreateAnchorButton(saframe, "BOTTOM")
 saframe:SetScript("OnShow", function() grid:Show() end)
 saframe:SetScript("OnHide", function() grid:Hide() end)
 
--- caframe 使用安全模板條件，避免 BackdropTemplate 找不到錯誤
 local caframe = CreateFrame("Frame", nil, UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
 caframe:Hide()
 caframe:SetFrameStrata("DIALOG")
