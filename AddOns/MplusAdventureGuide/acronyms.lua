@@ -29,6 +29,12 @@ local mapToAcronym = {
     [525] = "FLOOD",
     [504] = "DFC",
     [499] = "PSF",
+    
+    -- TWW season 3
+    [391] = "STREETS",
+    [392] = "GAMBIT",
+    [378] = "HoA",
+    [542] = "EDA",
 }
 
 function addon:initAcronyms()
@@ -45,7 +51,7 @@ function addon:initAcronyms()
             label:SetTextColor(1, 1, 0.8)
             label:SetShadowColor(0, 0, 0)
             label:SetShadowOffset(1, -1)
-            label:SetScale(0.9)
+            label:SetScale(0.8)
             if mapToAcronym[icon.mapID] then
                 label:SetText(mapToAcronym[icon.mapID])
             end

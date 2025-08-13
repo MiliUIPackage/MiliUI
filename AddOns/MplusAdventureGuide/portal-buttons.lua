@@ -227,6 +227,24 @@ local db = {
             445414, -- The Dawnbreaker
         },
     },
+    
+    -- TWW season 3
+    [391] = { -- Tazavesh part 1
+        primarySpell = 367416,
+        alternateSpells = {},
+    },
+    [392] = { -- Tazavesh part 2
+        primarySpell = 367416,
+        alternateSpells = {},
+    },
+    [378] = { -- Halls of Attonement
+        primarySpell = 354465,
+        alternateSpells = {},
+    },
+    [542] = { -- Eco-Dome Al'dani
+        primarySpell = 1237215,
+        alternateSpells = {},
+    },
 }
 
 local loaded = false
