@@ -178,6 +178,8 @@ L["STRING_DODGE"] = "闪避"
 L["STRING_DOT"] = " (DoT)"
 L["STRING_DPS"] = "每秒伤害"
 L["STRING_EMPTY_SEGMENT"] = "空片段"
+--[[Translation missing --]]
+L["STRING_ENABLE_DO_NOT_DISTURB"] = "Enable Do Not Disturb"
 L["STRING_ENABLED"] = "启用"
 L["STRING_ENVIRONMENTAL_DROWNING"] = "环境伤害 (溺水)"
 L["STRING_ENVIRONMENTAL_FALLING"] = "环境伤害 (坠落)"
@@ -297,11 +299,27 @@ L["STRING_KEYBIND_TOGGLE_WINDOWS"] = "显示/隐藏所有窗口"
 L["STRING_KEYBIND_WINDOW_CONTROL"] = "窗口控制"
 L["STRING_KEYBIND_WINDOW_REPORT"] = "将报告数据显示在窗口#%s。"
 L["STRING_KEYBIND_WINDOW_REPORT_HEADER"] = "报告数据"
+--[[Translation missing --]]
+L["STRING_KEYSTONE_ADD_TO_FRIENDS_TOOLTIP"] = "Add to friends list as character (not battlenet friend request)."
+--[[Translation missing --]]
+L["STRING_KEYSTONE_CLICK_TO_VIEW_SCOREBOARD"] = "Click to view the scoreboard."
+--[[Translation missing --]]
+L["STRING_KEYSTONE_DND_TOOLTIP"] = "Your key won't be sent to your guild or friends. While in a group, it will still be sent."
+--[[Translation missing --]]
+L["STRING_KEYSTONE_LIFETIME_LIKES_YOU_GAVE"] = [=[Life-time likes you gave for this player through the 'GG' button in the |cFFFFFF00Details! Damage Meter Mythic+|r addon.
+
+View run breakdown by selecting a Mythic+ run you did with this player.]=]
+--[[Translation missing --]]
+L["STRING_KEYSTONE_NO_MYTHICPLUS_ADDON"] = "Mythic+ addon not found."
+--[[Translation missing --]]
+L["STRING_KEYSTONE_REQUEST_FROM_GUILD"] = "Request from Guild"
 L["STRING_KILLED"] = "已击杀"
 L["STRING_LAST_COOLDOWN"] = "使用的最后CD"
 L["STRING_LEFT"] = "左"
 L["STRING_LEFT_CLICK_SHARE"] = "左键点击报告。"
 L["STRING_LEFT_TO_RIGHT"] = "从左往右"
+--[[Translation missing --]]
+L["STRING_LIKES_YOU_GAVE"] = "Likes you gave"
 L["STRING_LOCK_DESC"] = "锁定或解锁窗口"
 L["STRING_LOCK_WINDOW"] = "锁定"
 L["STRING_MASTERY"] = "精通"
@@ -366,9 +384,13 @@ L["STRING_NEWS_REINSTALL"] = "更新后发现问题? 尝试 '/details reinstall'
 L["STRING_NEWS_TITLE"] = "最近更新"
 L["STRING_NO"] = "否"
 L["STRING_NO_DATA"] = "数据已经被清除"
+--[[Translation missing --]]
+L["STRING_NO_MYTHIC_PLUS_ADDON"] = "To track your Mythic+ runs including loot, score, damage, healing done, and who you played with, install the |cFFFFAA00Details! Damage Meter Mythic+|r addon on |cFFfff1c1Wago AddOns|r or |cFFfff1c1Curse Forge|r."
 L["STRING_NO_SPELL"] = "没有已用法术"
 L["STRING_NO_TARGET"] = "没有找到目标."
 L["STRING_NO_TARGET_BOX"] = "没有目标可用"
+--[[Translation missing --]]
+L["STRING_NO_TELEPORTER"] = "You don't have this teleporter"
 L["STRING_NOCLOSED_INSTANCES"] = [=[没有关闭的窗口，
 点击打开一个新的。]=]
 L["STRING_NOLAST_COOLDOWN"] = "没有CD可用"
@@ -781,8 +803,6 @@ L["STRING_OPTIONS_MPLUS_AUTO_CLOSE_TIME_DESC"] = "自动关闭“显示史诗钥
 L["STRING_OPTIONS_MPLUS_BOSSNEWCOMBAT"] = "首领战启用新的战斗记录"
 L["STRING_OPTIONS_MPLUS_BOSSNEWCOMBAT_DESC"] = "如果在战斗中开启了首领战，会关闭当前战斗，并为首领战启用新的战斗记录。"
 L["STRING_OPTIONS_MPLUS_DPS_ANCHOR"] = "整场战斗统计DPS"
-L["STRING_OPTIONS_MPLUS_MAKEOVERALL"] = "整场战斗记录"
-L["STRING_OPTIONS_MPLUS_MAKEOVERALL_DESC"] = "副本完成后，此选项会创建新的战斗记录，包含这次副本的所有战斗数据。"
 L["STRING_OPTIONS_MPLUS_MERGETRASH"] = "合并小怪"
 L["STRING_OPTIONS_MPLUS_PANELS_ANCHOR"] = "窗口"
 L["STRING_OPTIONS_MPLUS_SHOWENDPANEL"] = "显示史诗钥石地下城结束窗口"
@@ -1457,6 +1477,10 @@ L["STRING_SWITCH_WARNING"] = "角色改变。开关：|cFFFFAA00%s|r  "
 L["STRING_TARGET"] = "目标"
 L["STRING_TARGETS"] = "目标"
 L["STRING_TARGETS_OTHER1"] = "宠物和其他目标"
+--[[Translation missing --]]
+L["STRING_TELEPORT"] = "Teleport"
+--[[Translation missing --]]
+L["STRING_TELEPORTERS"] = "Teleporters"
 L["STRING_TEXTURE"] = "材质"
 L["STRING_TIME_OF_DEATH"] = "死亡"
 L["STRING_TOOOLD"] = "不能安装因为你的Details!版本过低。"
