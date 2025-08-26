@@ -8,6 +8,28 @@ function Plater.GetChangelogTable()
 	if (not Plater.ChangeLogTable) then
 		Plater.ChangeLogTable = {
 
+			{1755715831, "Backend Change", "Aug 3rd, 2025", "Correction to tank recognition adjustments for MoP.", "cont1nuity"},
+			{1755715831, "Bug Fix", "Aug 20th, 2025", "Recognizing 'Twist of Fate' as 35% execute for priests.", "cont1nuity"},
+			{1755715831, "Bug Fix", "Aug 20th, 2025", "Fixing send to party/raid functionality.", "cont1nuity"},
+			
+			{1754345972, "Backend Change", "Aug 10th, 2025", "MoP has spec specific ghost auras.", "cont1nuity"},
+			{1754345972, "Bug Fix", "Aug 9th, 2025", "Recognizing 'Deathspeaker' as 35% execute for priests.", "cont1nuity"},
+			{1754345972, "Backend Change", "Aug 5th, 2025", "NpcColorPanels: Add Remove All Renames Button.", "Wtz_LASR"},
+			{1754345972, "Backend Change", "Aug 5th, 2025", "Improve/fix the cast bar script previews.", "gareth3001"},
+			{1754345972, "Backend Change", "Aug 4th, 2025", "Updated the wording of the priority tooltip.", "Lynn"},
+			{1754345972, "Backend Change", "Aug 3rd, 2025", "Tank recognition adjustments for MoP.", "cont1nuity"},
+			
+			{1750963632, "Backend Change", "July 19th, 2025", "Changing Drain Soul execute for MoP classic.", "cont1nuity"},
+			{1750963632, "Bug Fix", "July 5th, 2025", "Fixing an error in quest tracking for MoP for certain units.", "cont1nuity"},
+			{1750963632, "Backend Change", "July 4th, 2025", "Changing SW:D execute for MoP classic.", "cont1nuity"},
+			{1750963632, "Backend Change", "June 30th, 2025", "Adding 'Soul Reaper' as DK execute for MoP classic.", "cont1nuity"},
+			{1750963632, "Backend Change", "June 26th, 2025", "Enabling absorb shields when available (MoP classic prep).", "cont1nuity"},
+			
+			{1750232667, "Backend Change", "June 18th, 2025", "Fixing broken glow.", "cont1nuity"},
+			{1750232667, "Backend Change", "June 18th, 2025", "Fixing broken load conditions for affixes.", "cont1nuity"},
+			{1750232667, "Backend Change", "May 31st, 2025", "Adding option to only show buffs on the personal bar which would show on the default one.", "cont1nuity"},
+			{1750232667, "Backend Change", "May 22nd, 2025", "Adding 'resetcvar(s)' command.", "cont1nuity"},
+			
 			{1746914849, "Backend Change", "May 6th, 2025", "Enable 'Shadowburn' for WL execute in classic.", "cont1nuity"},
 			{1746914849, "Backend Change", "Apr 27th, 2025", "Bug fixes for Mists and framework updates.", "Terciob"},
 			{1746914849, "Backend Change", "Apr 27th, 2025", "Preparation for Mists.", "cont1nuity"},

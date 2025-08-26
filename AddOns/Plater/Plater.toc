@@ -1,4 +1,4 @@
-## Interface: 110200
+## Interface: 110200, 110205
 ## Title: Plater
 ## Notes: Nameplate addon designed for advanced users.
 ## Notes-esES: Addon de placa de nombre diseñado para usuarios avanzados
@@ -10,10 +10,7 @@
 ## OptionalDeps: Masque
 ## IconTexture-blank: 982414
 ## IconTexture: Interface\AddOns\Plater\images\cast_bar
-## Version: Plater-v609-Retail
-#@version-mistst@
-## Version: Plater-v609-Mists
-#@end-version-mistst@
+## Version: Plater-v614-4-g6ccbbb5-Retail
 ## X-Curse-Project-ID: 100547
 ## X-Wago-ID: kRNLep6o
 ## Title-zhTW: |cff0099FF[名條]|r Plater 名條

@@ -23,6 +23,7 @@
 ---@field SelectDelayed fun(self:df_dropdown, optionName:string|number, byOptionNumber:boolean?, bOnlyShown:boolean?, runCallback:boolean?) --call Select() after a random delay
 ---@field UseSimpleHeader fun(self:df_dropdown, value:boolean) ignore text color, font, statusbar, in the main frame
 ---@field Open fun(self:df_dropdown)
+---@field IsOpen fun(self:df_dropdown):boolean
 ---@field Close fun(self:df_dropdown)
 ---@field Refresh fun(self:df_dropdown)
 ---@field GetValue fun(self:df_dropdown):any
@@ -31,6 +32,7 @@
 ---@field SetMenuSize fun(self:df_dropdown, width:number?, height:number?)
 ---@field Disable fun(self:df_dropdown)
 ---@field Enable fun(self:df_dropdown)
+---@field IsText fun(self:df_dropdown_text):boolean return true is the dropdown is a text dropdown
 ---@field OnCreateOptionFrame function callback: fun(self:df_dropdown, optionFrame:button, optionTable:dropdownoption) assign a function to be called when creating an option frame
 ---@field OnUpdateOptionFrame function callback: fun(self:df_dropdown, optionFrame:button, optionTable:dropdownoption) assign a function to be called when updating an option frame
 
@@ -242,6 +244,11 @@ DF:Mixin(DropDownMetaFunctions, DF.Language.LanguageMixin)
 
 ------------------------------------------------------------------------------------------------------------
 
+function DropDownMetaFunctions:IsText()
+	return self.isText or false
+end
+
+
 --menu width and height
 	function DropDownMetaFunctions:SetMenuSize(width, height)
 		if (width) then
@@ -293,6 +300,10 @@ DF:Mixin(DropDownMetaFunctions, DF.Language.LanguageMixin)
 		self:SetAlpha(1)
 		rawset(self, "lockdown", false)
 
+		if (self:IsText()) then
+			self:GetTextEntry():Enable()
+		end
+
 		if (self.OnEnable) then
 			self.OnEnable(self)
 		end
@@ -301,6 +312,10 @@ DF:Mixin(DropDownMetaFunctions, DF.Language.LanguageMixin)
 	function DropDownMetaFunctions:Disable()
 		self:SetAlpha(.4)
 		rawset(self, "lockdown", true)
+
+		if (self:IsText()) then
+			self:GetTextEntry():Disable()
+		end
 
 		if (self.OnDisable) then
 			self.OnDisable(self)
@@ -690,6 +705,10 @@ function DropDownMetaFunctions:Open()
 		lastOpened:Close()
 	end
 	lastOpened = self
+end
+
+function DropDownMetaFunctions:IsOpen()
+	return self.opened or self.dropdown.dropdownborder:IsShown()
 end
 
 --close the menu showing the options
@@ -1503,6 +1522,10 @@ local dropdownWithTextFunctions = {
 
 		self.TextEntry:SetScript("OnEditFocusLost", function()end)
 	end,
+
+	GetTextEntry = function(self)
+		return self.TextEntry
+	end,
 }
 
 ---@class df_dropdown_text : df_dropdown
@@ -1513,6 +1536,7 @@ local dropdownWithTextFunctions = {
 ---@field SetRightMargin fun(self:df_dropdown_text, right:number)
 ---@field SetText fun(self:df_dropdown_text, text:string)
 ---@field SetOnPressEnterFunction fun(self:df_dropdown_text, func:function)
+---@field GetTextEntry fun(self:df_dropdown_text):df_textentry
 
 function DF:CreateDropDownWithText(parent, func, default, width, height, member, name, template)
 	---@type df_dropdown_text

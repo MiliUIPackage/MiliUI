@@ -4,18 +4,15 @@ do
     local L = languageTable
 
 ------------------------------------------------------------
---[[Translation missing --]]
-L["A /reload may be required to take effect."] = "A /reload may be required to take effect."
---[[Translation missing --]]
-L["CVar, saved within Plater profile and restored when loading the profile."] = "CVar, saved within Plater profile and restored when loading the profile."
+L["A /reload may be required to take effect."] = "Puede ser necesario un /reload para que surta efecto."
+L["CVar, saved within Plater profile and restored when loading the profile."] = "CVar, guardada dentro del perfil de Plater y restaurada al cargar el perfil."
 L["EXPORT"] = "Exportar"
 L["EXPORT_CAST_COLORS"] = "Compartir colores"
 L["EXPORT_CAST_SOUNDS"] = "Compartir sonidos"
 L["HIGHLIGHT_HOVEROVER"] = "Resaltar al pasar el ratón por encima"
 L["HIGHLIGHT_HOVEROVER_ALPHA"] = "Alfa de resaltado al pasar el ratón por encima"
 L["HIGHLIGHT_HOVEROVER_DESC"] = "Efecto de resaltado cuando el ratón está sobre la placa de nombre."
---[[Translation missing --]]
-L["Hold Shift to change the sound of all casts with the audio %s to %s"] = "Hold Shift to change the sound of all casts with the audio %s to %s"
+L["Hold Shift to change the sound of all casts with the audio %s to %s"] = "Mantén Mayús para cambiar el sonido de todos los lanzamientos con el audio %s a %s"
 L["IMPORT"] = "Importar"
 L["IMPORT_CAST_COLORS"] = "Importar colores"
 L["IMPORT_CAST_SOUNDS"] = "Importar sonidos"
@@ -102,13 +99,10 @@ L["OPTIONS_CASTBAR_SPELLICON"] = "Icono de hechizo"
 L["OPTIONS_CASTBAR_TOGGLE_TEST"] = "Activar la prueba de la barra de lanzamiento"
 L["OPTIONS_CASTBAR_TOGGLE_TEST_DESC"] = "Inicia la prueba de la barra de lanzamiento, pulsa de nuevo para detenerla."
 L["OPTIONS_CASTBAR_WIDTH"] = "Anchura de la barra de lanzamiento."
---[[Translation missing --]]
-L["OPTIONS_CASTCOLORS_DISABLE_SOUNDS"] = "Remove All Sounds"
---[[Translation missing --]]
-L["OPTIONS_CASTCOLORS_DISABLE_SOUNDS_CONFIRM"] = "Are you sure you want to remove all configured cast sounds?"
+L["OPTIONS_CASTCOLORS_DISABLE_SOUNDS"] = "Quitar todos los sonidos"
+L["OPTIONS_CASTCOLORS_DISABLE_SOUNDS_CONFIRM"] = "¿Seguro que quieres quitar todos los sonidos de lanzamientos configurados?"
 L["OPTIONS_CASTCOLORS_DISABLECOLORS"] = "Desactivar todos los colores"
---[[Translation missing --]]
-L["OPTIONS_CASTCOLORS_DISABLECOLORS_CONFIRM"] = "Confirm disable all cast colors?"
+L["OPTIONS_CASTCOLORS_DISABLECOLORS_CONFIRM"] = "¿Confirmas desactivar todos los colores de lanzamientos?"
 L["OPTIONS_CLICK_SPACE_HEIGHT"] = "La altura del área que acepta clics del ratón para seleccionar al objetivo"
 L["OPTIONS_CLICK_SPACE_WIDTH"] = "La anchura del área que acepta clics del ratón para seleccionar al objetivo"
 L["OPTIONS_COLOR"] = "Color"
@@ -158,10 +152,8 @@ L["OPTIONS_ICON_WORLDBOSS"] = "Icono de jefe del mundo"
 L["OPTIONS_ICONROWSPACING"] = "Espaciado de filas de iconos"
 L["OPTIONS_ICONSPACING"] = "Espaciado entre iconos"
 L["OPTIONS_INDICATORS"] = "Indicadores"
---[[Translation missing --]]
-L["OPTIONS_INTERACT_OBJECT_NAME_COLOR"] = "Game object name color"
---[[Translation missing --]]
-L["OPTIONS_INTERACT_OBJECT_NAME_COLOR_DESC"] = "Names on objects will get this color."
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR"] = "Color del nombre del objeto del juego"
+L["OPTIONS_INTERACT_OBJECT_NAME_COLOR_DESC"] = "Los nombres en los objetos tendrán este color"
 L["OPTIONS_INTERRUPT_FILLBAR"] = "Llenar la barra de lanzamiento al interrumpir"
 L["OPTIONS_INTERRUPT_SHOW_ANIM"] = "Reproducir la animación de interrupción"
 L["OPTIONS_INTERRUPT_SHOW_AUTHOR"] = "Mostrar autor de la interrupción"
@@ -315,16 +307,11 @@ L["OPTIONS_XOFFSET"] = "Desplazamiento X"
 L["OPTIONS_XOFFSET_DESC"] = "Ajusta la posición en el eje X. *clic derecho para escribir el valor."
 L["OPTIONS_YOFFSET"] = "Desplazamiento Y"
 L["OPTIONS_YOFFSET_DESC"] = "Ajusta la posición en el eje Y. *clic derecho para escribir el valor."
---[[Translation missing --]]
 L[ [=[Show nameplate for friendly npcs.
 
 |cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
 
-|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=] ] = [=[Show nameplate for friendly npcs.
-
-|cFFFFFF00 Important |r: This option is dependent on the client`s nameplate state (on/off).
-
-|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=]
+|cFFFFFF00 Important |r: when disabled but enabled on the client through (%s), the healthbar isn't visible but the nameplate is still clickable.]=] ] = "Mostrar placa de nombre para PNJs amistosos. |cFFFFFF00 Importante |r: Esta opción depende del estado de la placa de nombre del cliente (activado/desactivado). |cFFFFFF00 Importante |r: cuando está desactivado pero activado en el cliente mediante (%s), la barra de vida no es visible pero la placa de nombre sigue siendo clicable."
 L["TARGET_CVAR_ALWAYSONSCREEN"] = "Objetivo siempre en la pantalla|cFFFF7700*|r"
 L["TARGET_CVAR_ALWAYSONSCREEN_DESC"] = "Cuando está activado, la placa de nombre de tu objetivo siempre se muestra, incluso cuando el enemigo no está en la pantalla. |cFFFF7700[*]|r |cFFa0a0a0CVar, guardada dentro del perfil de Plater y restaurada al cargar el perfil.|r"
 L["TARGET_CVAR_LOCKTOSCREEN"] = "Bloquear en la pantalla (lado superior)|cFFFF7700*|r"

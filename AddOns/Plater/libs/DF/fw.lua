@@ -1,6 +1,6 @@
 
 
-local dversion = 607
+local dversion = 618
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary(major, minor)
 
@@ -56,6 +56,8 @@ local GetOverrideSpell = C_SpellBook and C_SpellBook.GetOverrideSpell or C_Spell
 local HasPetSpells = HasPetSpells or C_SpellBook.HasPetSpells
 local GetSpecialization = GetSpecialization or C_SpecializationInfo.GetSpecialization
 local GetSpecializationInfo = GetSpecializationInfo or C_SpecializationInfo.GetSpecializationInfo
+local GetSpecializationRole = GetSpecializationRole or C_SpecializationInfo.GetSpecializationRole
+
 local spellBookPetEnum = Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Pet or "pet"
 
 SMALL_NUMBER = 0.000001
@@ -804,7 +806,8 @@ function DF.table.setfrompath(t, path, value)
 		local lastTable
 		local lastKey
 
-		for key in path:gmatch("[%w_]+") do
+		--for key in path:gmatch("[%w_]+") do
+		for key in path:gmatch("[^%.%[%]]+") do
 			lastTable = t
 			lastKey = key
 
@@ -1120,7 +1123,48 @@ function DF:SplitTextInLines(text)
 	return lines
 end
 
+---@diagnostic disable-next-line: missing-fields
+DF.string = {}
+
 DF.strings = {}
+
+---@class df_strings
+---@field Acronym fun(phrase:string):string return the first upper case letter of each word of a string
+---@field FormatDateByLocale fun(timestamp:number, ignoreYear:boolean?):string given a timestamp return a formatted date string
+
+function DF.string.Acronym(phrase)
+	local acronym = phrase:gsub("%-", ""):gsub("(%a)[^%s]*%s*", function(word)
+		--only use the first letter if it's uppercase
+		if (word:match("%u")) then
+			return word:upper()
+		else
+			return ""
+		end
+	end)
+	return acronym
+end
+
+function DF.string.FormatDateByLocale(timestamp, ignoreYear)
+	local locale = GetLocale()
+	local dataTable = date("*t", timestamp)
+	local monthAbbreviated = date("%b", timestamp)
+
+	if (locale == "enUS") then
+		--monthAbbreviated day, year (Mar 19, 2024)
+		if (ignoreYear) then
+			return string.format("%s %d", monthAbbreviated, dataTable.day)
+		else
+			return string.format("%s %d, %d", monthAbbreviated, dataTable.day, dataTable.year)
+		end
+	else
+		--day, monthAbbreviated, year (5 Mar 2024)
+		if (ignoreYear) then
+			return string.format("%d %s", dataTable.day, monthAbbreviated)
+		else
+			return string.format("%d %s %d", dataTable.day, monthAbbreviated, dataTable.year)
+		end
+	end
+end
 
 ---receive an array and output a string with the values separated by commas
 ---if bDoCompression is true, the string will be compressed using LibDeflate
@@ -1279,6 +1323,19 @@ end
 ---@return string
 function DF:IntegerToTimer(value) --~formattime
 	return "" .. math.floor(value/60) .. ":" .. string.format("%02.f", value%60)
+end
+
+--this function transform a number into a string showing the time format for cooldowns
+---@param self table
+---@param value number
+---@return string
+function DF:IntegerToCooldownTime(value) --~formattime
+	if (value >= 3600) then
+		return floor(value/3600) .. "h"
+	elseif (value > 60) then
+		return floor(value/60) .. "m"
+	end
+	return floor(value) .. "s"
 end
 
 ---remove the realm name from a name
@@ -4095,7 +4152,13 @@ function DF:CreateGlowOverlay(parent, antsColor, glowColor)
 		frameName = string.sub(frameName, string.len(frameName)-49)
 	end
 
-	local glowFrame = CreateFrame("frame", frameName, parent, "ActionBarButtonSpellActivationAlert")
+	local glowFrame
+	if (buildInfo >= 110107) then --24-05-2025: in the 11.1.7 patch, the template used here does not exist anymore, replacement used
+		glowFrame = CreateFrame("frame", frameName, parent, "ActionButtonSpellAlertTemplate")
+	else
+		glowFrame = CreateFrame("frame", frameName, parent, "ActionBarButtonSpellActivationAlert")
+	end
+
 	--local glowFrame = CreateFrame("frame", frameName, parent)
 	glowFrame:HookScript("OnShow", glow_overlay_onshow)
 	glowFrame:HookScript("OnHide", glow_overlay_onhide)
