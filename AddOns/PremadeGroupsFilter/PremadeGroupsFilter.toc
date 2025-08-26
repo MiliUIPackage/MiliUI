@@ -1,7 +1,7 @@
-## Interface: 110107, 110200
+## Interface: 110200
 ## Title: Premade Groups Filter
 ## Title-zhTW: |cFF00CCFF[團隊]|r 預組隊伍過濾
-## Version: 6.8.1
+## Version: 6.9.2
 ## IconTexture: 397907
 ## X-Flavor: Retail
 ## Notes: Allows filtering of premade groups using an UI or advanced filter expressions.
@@ -55,6 +55,8 @@ UI\Dialog.xml
 UI\Dialog.lua
 UI\DungeonPanel.xml
 UI\DungeonPanel.lua
+UI\DelvePanel.xml
+UI\DelvePanel.lua
 UI\RolePanel.xml
 UI\RolePanel.lua
 UI\ArenaPanel.xml
