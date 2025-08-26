@@ -23,8 +23,10 @@ Cell.bFuncs = {}
 Cell.uFuncs = {}
 Cell.animations = {}
 
+---@class CellFuncs
 local F = Cell.funcs
 local I = Cell.iFuncs
+---@type PixelPerfectFuncs
 local P = Cell.pixelPerfectFuncs
 local L = Cell.L
 
@@ -81,7 +83,13 @@ function F.UpdateLayout(layoutGroupType)
     else
         F.Debug("|cFF7CFC00F.UpdateLayout(\""..layoutGroupType.."\")")
 
-        Cell.vars.layoutAutoSwitch = CellCharacterDB["layoutAutoSwitch"][Cell.vars.activeTalentGroup]
+        if CellDB["layoutAutoSwitch"][Cell.vars.playerClass][Cell.vars.playerSpecID] then
+            Cell.vars.layoutAutoSwitchBy = "spec"
+            Cell.vars.layoutAutoSwitch = CellDB["layoutAutoSwitch"][Cell.vars.playerClass][Cell.vars.playerSpecID]
+        else
+            Cell.vars.layoutAutoSwitchBy = "role"
+            Cell.vars.layoutAutoSwitch = CellDB["layoutAutoSwitch"]["role"][Cell.vars.playerSpecRole]
+        end
 
         local layout = Cell.vars.layoutAutoSwitch[layoutGroupType]
         Cell.vars.currentLayout = layout
@@ -102,12 +110,29 @@ function F.UpdateLayout(layoutGroupType)
     end
 end
 
+local bgMaxPlayers = {
+    [2197] = 40, -- 科尔拉克的复仇
+}
+
 -- layout auto switch
 local instanceType
 local function PreUpdateLayout()
+    if not (Cell.vars.playerSpecID and Cell.vars.playerSpecRole) then return end
+
     if instanceType == "pvp" then
-        Cell.vars.inBattleground = true
-        F.UpdateLayout("battleground", true)
+        local name, _, _, _, _, _, _, id = GetInstanceInfo()
+        if bgMaxPlayers[id] then
+            if bgMaxPlayers[id] <= 15 then
+                Cell.vars.inBattleground = 15
+                F.UpdateLayout("battleground15", true)
+            else
+                Cell.vars.inBattleground = 40
+                F.UpdateLayout("battleground40", true)
+            end
+        else
+            Cell.vars.inBattleground = 15
+            F.UpdateLayout("battleground15", true)
+        end
     elseif instanceType == "arena" then
         Cell.vars.inBattleground = 5 -- treat as bg 5
         F.UpdateLayout("arena", true)
@@ -118,8 +143,8 @@ local function PreUpdateLayout()
         elseif Cell.vars.groupType == "party" then
             F.UpdateLayout("party", true)
         else -- raid
-            if Cell.vars.inInstance then
-                F.UpdateLayout("raid_instance", true)
+            if Cell.vars.raidType then
+                F.UpdateLayout(Cell.vars.raidType, true)
             else
                 F.UpdateLayout("raid_outdoor", true)
             end
@@ -127,6 +152,8 @@ local function PreUpdateLayout()
     end
 end
 Cell.RegisterCallback("GroupTypeChanged", "Core_GroupTypeChanged", PreUpdateLayout)
+Cell.RegisterCallback("SpecChanged", "Core_SpecChanged", PreUpdateLayout)
+Cell.RegisterCallback("LayoutAutoSwitchChanged", "Core_LayoutAutoSwitchChanged", PreUpdateLayout)
 
 -------------------------------------------------
 -- events
@@ -135,6 +162,14 @@ local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("VARIABLES_LOADED")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
+-- eventFrame:RegisterEvent("LOADING_SCREEN_DISABLED")
+
+-- function eventFrame:LOADING_SCREEN_DISABLED()
+--     if not InCombatLockdown() and not UnitAffectingCombat("player") then
+--         F.Debug("|cffbbbbbbLOADING_SCREEN_DISABLED: |cffff7777collectgarbage")
+--         collectgarbage("collect")
+--     end
+-- end
 
 function eventFrame:VARIABLES_LOADED()
     SetCVar("predictedHealth", 1)
@@ -147,6 +182,9 @@ local GetRaidRosterInfo = GetRaidRosterInfo
 local UnitGUID = UnitGUID
 -- local IsInBattleGround = C_PvP.IsBattleground -- NOTE: can't get valid value immediately after PLAYER_ENTERING_WORLD
 local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
+local GetSpecsForClassID = GetSpecsForClassID
+local GetSpecialization = C_SpecializationInfo.GetSpecialization
+local GetSpecializationInfo = C_SpecializationInfo.GetSpecializationInfo
 
 -- local cellLoaded, omnicdLoaded
 function eventFrame:ADDON_LOADED(arg1)
@@ -155,7 +193,6 @@ function eventFrame:ADDON_LOADED(arg1)
         eventFrame:UnregisterEvent("ADDON_LOADED")
 
         if type(CellDB) ~= "table" then CellDB = {} end
-        if type(CellCharacterDB) ~= "table" then CellCharacterDB = {} end
         if type(CellDBBackup) ~= "table" then CellDBBackup = {} end
 
         if type(CellDB["optionsFramePosition"]) ~= "table" then CellDB["optionsFramePosition"] = {} end
@@ -171,6 +208,8 @@ function eventFrame:ADDON_LOADED(arg1)
 
         if type(CellDB["snippets"]) ~= "table" then CellDB["snippets"] = {} end
         if not CellDB["snippets"][0] then CellDB["snippets"][0] = F.GetDefaultSnippet() end
+
+        Cell.vars.playerClass, Cell.vars.playerClassID = UnitClassBase("player")
 
         -- general --------------------------------------------------------------------------------
         if type(CellDB["general"]) ~= "table" then
@@ -193,6 +232,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["translit"] = false,
             }
         end
+        Cell.vars.alwaysUpdateAuras = CellDB["general"]["alwaysUpdateAuras"]
 
         -- nicknames ------------------------------------------------------------------------------
         if type(CellDB["nicknames"]) ~= "table" then
@@ -209,10 +249,10 @@ function eventFrame:ADDON_LOADED(arg1)
         if type(CellDB["tools"]) ~= "table" then
             CellDB["tools"] = {
                 ["battleResTimer"] = {true, false, {}},
-                ["buffTracker"] = {false, "left-to-right", 27, {}},
+                ["buffTracker"] = {false, "left-to-right", 32, {}},
                 ["deathReport"] = {false, 10},
                 ["readyAndPull"] = {false, "text_button", {"default", 7}, {}},
-                ["marks"] = {false, false, "target_h", {}},
+                ["marks"] = {false, false, "both_h", {}},
                 ["fadeOut"] = false,
             }
         end
@@ -331,41 +371,42 @@ function eventFrame:ADDON_LOADED(arg1)
         end
 
         -- click-casting --------------------------------------------------------------------------
-        Cell.vars.playerClass, Cell.vars.playerClassID = UnitClassBase("player")
+        if type(CellDB["clickCastings"]) ~= "table" then CellDB["clickCastings"] = {} end
 
-        if type(CellCharacterDB["clickCastings"]) ~= "table" then
-            CellCharacterDB["clickCastings"] = {
-                ["class"] = Cell.vars.playerClass, -- validate on import
+        if type(CellDB["clickCastings"][Cell.vars.playerClass]) ~= "table" then
+            CellDB["clickCastings"][Cell.vars.playerClass] = {
                 ["useCommon"] = true,
                 ["smartResurrection"] = "disabled",
                 ["alwaysTargeting"] = {
                     ["common"] = "disabled",
-                    [1] = "disabled",
-                    [2] = "disabled",
                 },
                 ["common"] = {
                     {"type1", "target"},
                     {"type2", "togglemenu"},
                 },
-                [1] = {
-                    {"type1", "target"},
-                    {"type2", "togglemenu"},
-                },
-                [2] = {
-                    {"type1", "target"},
-                    {"type2", "togglemenu"},
-                },
             }
 
-            -- add resurrections
+            -- add resurrections for "common"
             for _, t in pairs(F.GetResurrectionClickCastings(Cell.vars.playerClass)) do
-                tinsert(CellCharacterDB["clickCastings"]["common"], t)
-                for i = 1, 2 do
-                    tinsert(CellCharacterDB["clickCastings"][i], t)
+                tinsert(CellDB["clickCastings"][Cell.vars.playerClass]["common"], t)
+            end
+
+            -- https://wow.gamepedia.com/SpecializationID
+            local specs = GetSpecsForClassID(Cell.vars.playerClassID)
+
+            for _, specID in pairs(specs) do
+                CellDB["clickCastings"][Cell.vars.playerClass]["alwaysTargeting"][specID] = "disabled"
+                CellDB["clickCastings"][Cell.vars.playerClass][specID] = {
+                    {"type1", "target"},
+                    {"type2", "togglemenu"},
+                }
+                -- add resurrections for each spec
+                for _, t in pairs(F.GetResurrectionClickCastings(Cell.vars.playerClass)) do
+                    tinsert(CellDB["clickCastings"][Cell.vars.playerClass][specID], t)
                 end
             end
         end
-        Cell.vars.clickCastings = CellCharacterDB["clickCastings"]
+        Cell.vars.clickCastings = CellDB["clickCastings"][Cell.vars.playerClass]
 
         -- layouts --------------------------------------------------------------------------------
         if type(CellDB["layouts"]) ~= "table" then
@@ -375,11 +416,18 @@ function eventFrame:ADDON_LOADED(arg1)
         end
 
         -- layoutAutoSwitch -----------------------------------------------------------------------
-        if type(CellCharacterDB["layoutAutoSwitch"]) ~= "table" then
-            CellCharacterDB["layoutAutoSwitch"] = {
-                [1] = F.Copy(Cell.defaults.layoutAutoSwitch),
-                [2] = F.Copy(Cell.defaults.layoutAutoSwitch),
+        if type(CellDB["layoutAutoSwitch"]) ~= "table" then
+            CellDB["layoutAutoSwitch"] = {
+                ["role"] = {
+                    ["TANK"] = F.Copy(Cell.defaults.layoutAutoSwitch),
+                    ["HEALER"] = F.Copy(Cell.defaults.layoutAutoSwitch),
+                    ["DAMAGER"] = F.Copy(Cell.defaults.layoutAutoSwitch),
+                }
             }
+        end
+
+        if type(CellDB["layoutAutoSwitch"][Cell.vars.playerClass]) ~= "table" then
+            CellDB["layoutAutoSwitch"][Cell.vars.playerClass] = {}
         end
 
         -- dispelBlacklist ------------------------------------------------------------------------
@@ -425,6 +473,13 @@ function eventFrame:ADDON_LOADED(arg1)
         --     }
         -- }
 
+        -- if type(CellDB["cleuAuras"]) ~= "table" then CellDB["cleuAuras"] = {} end
+        -- I.UpdateCleuAuras(CellDB["cleuAuras"])
+
+        -- if type(CellDB["cleuGlow"]) ~= "table" then
+        --     CellDB["cleuGlow"] = {"Pixel", {{0, 1, 1, 1}, 9, 0.25, 8, 2}}
+        -- end
+
         -- targetedSpells -------------------------------------------------------------------------
         if type(CellDB["targetedSpellsList"]) ~= "table" then
             CellDB["targetedSpellsList"] = I.GetDefaultTargetedSpellsList()
@@ -452,10 +507,12 @@ function eventFrame:ADDON_LOADED(arg1)
 
         -- validation -----------------------------------------------------------------------------
         -- validate layout
-        for talent, t in pairs(CellCharacterDB["layoutAutoSwitch"]) do
-            for groupType, layout in pairs(t) do
-                if layout ~= "hide" and not CellDB["layouts"][layout] then
-                    t[groupType] = "default"
+        for _, roleOrClass in pairs(CellDB["layoutAutoSwitch"]) do
+            for _, t in pairs(roleOrClass) do
+                for groupType, layout in pairs(t) do
+                    if layout ~= "hide" and not CellDB["layouts"][layout] then
+                        t[groupType] = "default"
+                    end
                 end
             end
         end
@@ -602,23 +659,44 @@ end
 
 local inInstance
 function eventFrame:PLAYER_ENTERING_WORLD()
+    -- eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
     F.Debug("|cffbbbbbb=== PLAYER_ENTERING_WORLD ===")
+    Cell.vars.inMythic = false
 
     local isIn, iType = IsInInstance()
     instanceType = iType
-    Cell.vars.inInstance = isIn
+    Cell.vars.raidType = nil
 
     if isIn then
         F.Debug("|cffff1111*** Entered Instance:|r", iType)
+        Cell.Fire("EnterInstance", iType)
         PreUpdateLayout()
         inInstance = true
+
+        -- NOTE: delayed check mythic raid
+        if iType == "raid" then
+            C_Timer.After(0.5, function()
+                --! can't get difficultyID, difficultyName immediately after entering an instance
+                local _, _, difficultyID, difficultyName, maxPlayers = GetInstanceInfo()
+                if maxPlayers == 10 then
+                    Cell.vars.raidType = "raid10"
+                elseif maxPlayers == 25 then
+                    Cell.vars.raidType = "raid25"
+                end
+                if Cell.vars.raidType then
+                    PreUpdateLayout()
+                end
+            end)
+        end
+
     elseif inInstance then -- left insntance
         F.Debug("|cffff1111*** Left Instance|r")
+        Cell.Fire("LeaveInstance")
         PreUpdateLayout()
         inInstance = false
 
         if not InCombatLockdown() and not UnitAffectingCombat("player") then
-            F.Debug("|cffbbbbbb--- LeaveInstance: |cffff7777collectgarbage")
+            F.Debug("|cffbbbbbb--- LeftInstance: |cffff7777collectgarbage")
             collectgarbage("collect")
         end
     end
@@ -628,23 +706,63 @@ function eventFrame:PLAYER_ENTERING_WORLD()
     end
 end
 
+-- REVIEW:
+-- local function RegisterGlobalClickCastings()
+--     ClickCastFrames = ClickCastFrames or {}
+
+--     if ClickCastFrames then
+--         for frame, options in pairs(ClickCastFrames) do
+--             F.RegisterFrame(frame)
+--         end
+--     end
+
+--     ClickCastFrames = setmetatable({}, {__newindex = function(t, k, v)
+--         if v == nil or v == false then
+--             F.UnregisterFrame(k)
+--         else
+--             F.RegisterFrame(k)
+--         end
+--     end})
+
+--     F.IterateAllUnitButtons(function (b)
+--         ClickCastFrames[b] = true
+--     end)
+-- end
+
+local function UpdateSpecVars()
+    Cell.vars.playerSpecID, Cell.vars.playerSpecName, _, Cell.vars.playerSpecIcon, Cell.vars.playerSpecRole = GetSpecializationInfo(GetSpecialization())
+    if not Cell.vars.playerSpecName or Cell.vars.playerSpecName == "" then
+        Cell.vars.playerSpecName = L["No Spec"]
+        Cell.vars.playerSpecIcon = 134400
+    end
+end
+
 function eventFrame:PLAYER_LOGIN()
     F.Debug("|cffbbbbbb=== PLAYER_LOGIN ===")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+    eventFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
+    eventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
     eventFrame:RegisterEvent("UI_SCALE_CHANGED")
 
     Cell.vars.playerNameShort = GetUnitName("player")
     Cell.vars.playerNameFull = F.UnitFullName("player")
 
+    --! init bgMaxPlayers
+    for i = 1, GetNumBattlegroundTypes() do
+        local bgName, _, _, _, _, _, bgId, maxPlayers = GetBattlegroundInfo(i)
+        bgMaxPlayers[bgId] = maxPlayers
+    end
+
     Cell.vars.playerGUID = UnitGUID("player")
 
     -- update spec vars
-    Cell.vars.activeTalentGroup = 1
-    Cell.vars.playerSpecID = Cell.vars.activeTalentGroup
+    UpdateSpecVars()
 
     --! init Cell.vars.currentLayout and Cell.vars.currentLayoutTable
     eventFrame:GROUP_ROSTER_UPDATE()
+    -- REVIEW: register unitframes for click casting
+    -- RegisterGlobalClickCastings()
     -- update click-castings
     Cell.Fire("UpdateClickCastings")
     -- update indicators
@@ -657,6 +775,8 @@ function eventFrame:PLAYER_LOGIN()
     Cell.Fire("UpdateTools")
     -- update requests
     Cell.Fire("UpdateRequests")
+    -- update quick cast
+    Cell.Fire("UpdateQuickCast")
     -- update raid debuff list
     Cell.Fire("UpdateRaidDebuffs")
     -- hide blizzard
@@ -664,7 +784,7 @@ function eventFrame:PLAYER_LOGIN()
     if CellDB["general"]["hideBlizzardRaid"] then F.HideBlizzardRaid() end
     -- lock & menu
     Cell.Fire("UpdateMenu")
-    -- update CLEU
+    -- update CLEU health
     Cell.Fire("UpdateCLEU")
     -- update builtIns and customs
     I.UpdateAoEHealings(CellDB["aoeHealings"])
@@ -672,8 +792,6 @@ function eventFrame:PLAYER_LOGIN()
     I.UpdateExternals(CellDB["externals"])
     -- update pixel perfect
     Cell.Fire("UpdatePixelPerfect")
-    -- LibHealComm
-    -- F.EnableLibHealComm(CellDB["appearance"]["useLibHealComm"])
     -- update LGF
     F.UpdateFramePriority()
 end
@@ -693,6 +811,54 @@ hooksecurefunc(UIParent, "SetScale", function()
         Cell.Fire("UpdateAppearance", "scale")
     end
 end)
+
+-------------------------------------------------
+-- ACTIVE_TALENT_GROUP_CHANGED
+-------------------------------------------------
+local checkSpecFrame = CreateFrame("Frame")
+checkSpecFrame:SetScript("OnEvent", function()
+    eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
+end)
+
+-- ACTIVE_TALENT_GROUP_CHANGED fires twice
+-- PLAYER_SPECIALIZATION_CHANGED fires when level up
+-- ACTIVE_PLAYER_SPECIALIZATION_CHANGED only fires when player manually change spec
+-- NOTE: ACTIVE_TALENT_GROUP_CHANGED fires before PLAYER_LOGIN, but can't GetSpecializationInfo before PLAYER_LOGIN
+local prevSpec
+function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
+    -- not in combat
+    if InCombatLockdown() then
+        checkSpecFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return
+    end
+
+    --  fires twice
+    local spec = GetSpecialization()
+    if prevSpec ~= spec then
+        prevSpec = spec
+        F.Debug("|cffbbbbbb=== ACTIVE_TALENT_GROUP_CHANGED ===")
+
+        -- update spec vars
+        UpdateSpecVars()
+
+        if not Cell.vars.playerSpecID then
+            -- NOTE: when join in battleground, spec auto switched, during loading, can't get info from GetSpecializationInfo, until PLAYER_ENTERING_WORLD
+            prevSpec = nil
+            checkSpecFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+            F.Debug("|cffffbb77SpecChanged:|r FAILED")
+        else
+            checkSpecFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
+            checkSpecFrame:UnregisterEvent("PLAYER_REGEN_ENABLED")
+            F.Debug("|cffffbb77SpecChanged:|r", Cell.vars.playerSpecID, Cell.vars.playerSpecRole)
+            if not CellDB["clickCastings"][Cell.vars.playerClass]["useCommon"] then
+                Cell.Fire("UpdateClickCastings")
+            end
+            Cell.Fire("SpecChanged", Cell.vars.playerSpecID, Cell.vars.playerSpecRole)
+        end
+    end
+end
+
+eventFrame.PLAYER_SPECIALIZATION_CHANGED = eventFrame.ACTIVE_TALENT_GROUP_CHANGED
 
 eventFrame:SetScript("OnEvent", function(self, event, ...)
     self[event](self, ...)
@@ -742,7 +908,6 @@ function SlashCmdList.CELL(msg, editbox)
             Cell.frames.buffTrackerFrame:ClearAllPoints()
             Cell.frames.buffTrackerFrame:SetPoint("BOTTOMLEFT", CellParent, "CENTER")
             CellDB = nil
-            CellCharacterDB = nil
             ReloadUI()
 
         elseif rest == "layouts" then
@@ -750,7 +915,7 @@ function SlashCmdList.CELL(msg, editbox)
             ReloadUI()
 
         elseif rest == "clickcastings" then
-            CellCharacterDB["clickCastings"] = nil
+            CellDB["clickCastings"] = nil
             ReloadUI()
 
         elseif rest == "raiddebuffs" then
@@ -791,4 +956,8 @@ function SlashCmdList.CELL(msg, editbox)
             "|cFFFFB5C5/cell reset all|r: "..L["reset all Cell settings"].."."
         )
     end
+end
+
+function Cell_OnAddonCompartmentClick()
+    F.ShowOptionsFrame()
 end

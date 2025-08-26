@@ -1,10 +1,9 @@
-## Interface: 11507
+## Interface: 50500
 ## Title: Cell
 ## Version: r261-release
 ## Author: enderneko
-## X-Flavor: Vanilla
+## X-Flavor: Mists
 ## SavedVariables: CellDB, CellDBBackup
-## SavedVariablesPerCharacter: CellCharacterDB
 
 ## X-Curse-Project-ID: 409666
 ## X-Wago-ID: qv63LLKb
@@ -12,14 +11,14 @@
 
 Locales\LoadLocales.xml
 
-Libs\LoadLibs_Classic.xml
+Libs\LoadLibs.xml
 
-Core_Vanilla.lua
+Core_Mists.lua
 Utils.lua
 Revise.lua
 Comm\LoadComm.xml
 Widgets\LoadWidgets_Classic.xml
-Defaults\LoadDefaults_Vanilla.xml
+Defaults\LoadDefaults_Mists.xml
 
 HideBlizzard.lua
 
@@ -30,17 +29,16 @@ Indicators\AoEHealing.lua
 Indicators\TargetCounter.lua
 Indicators\TargetedSpells.lua
 Indicators\Actions.lua
-Indicators\Custom_Classic.lua
+Indicators\Custom.lua
 Indicators\Supporter.lua
 
 RaidFrames\MainFrame.lua
 
-RaidDebuffs\ExpansionData\LoadExpansionData.xml
-Modules\LoadModules_Classic.xml
-Utilities\LoadUtilities_Classic.xml
-RaidDebuffs\LoadRaidDebuffs_Vanilla.xml
+Modules\LoadModules.xml
+Utilities\LoadUtilities_Mists.xml
+RaidDebuffs\LoadRaidDebuffs.xml
 
-RaidFrames\UnitButton_Vanilla.lua
+RaidFrames\UnitButton_Mists.lua
 RaidFrames\UnitButton.xml
 RaidFrames\Groups\SoloFrame.lua
 RaidFrames\Groups\PartyFrame.lua

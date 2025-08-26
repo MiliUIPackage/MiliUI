@@ -87,8 +87,48 @@ select(2, ...).L = setmetatable({
 
     ["CHANGELOGS"] = [[
         <h2>If there are any issues after an update, check through all code snippets first.</h2>
-        <p>(Retail) Enable "Always Update Auras" in General tab, if indicators do not update correctly.</p>
-        <h2>The scaling "issue" isn't a bug; it's due to changes in the scaling method. Please readjust Cell's scale and dimensions.</h2>
+        <br/>
+
+        <h1>r261-release (Aug 22, 2025, 20:40 GMT+8)</h1>
+        <p>* Updated MoP debuffs (thanks Ekkles).</p>
+        <p>* Updated TWW debuffs.</p>
+        <br/>
+
+        <h1>r260-release (Aug 18, 2025, 17:20 GMT+8)</h1>
+        <p>* Updated TWW raid debuffs (thanks swirl).</p>
+        <br/>
+
+        <h1>r259-release (Aug 6, 2025, 16:27 GMT+8)</h1>
+        <p>* Updated TWW debuffs (thanks 钛锬 and 枫岚).</p>
+        <p>* Updated MoP debuffs.</p>
+        <br/>
+
+        <h1>r258-release (Jul 13, 2025, 11:30 GMT+8)</h1>
+        <p>* Attempt to fix aura update.</p>
+        <br/>
+
+        <h1>r257-release (Jul 11, 2025, 17:00 GMT+8)</h1>
+        <p>* Bump up toc for Wrath (CN).</p>
+        <br/>
+
+        <h1>r256-release (Jul 8, 2025, 18:00 GMT+8)</h1>
+        <p>* (MoP) Fixed PW:S indicator.</p>
+        <br/>
+
+        <h1>r255-release (Jul 8, 2025, 16:00 GMT+8)</h1>
+        <p>+ Added Healer frame to spotlight (#393 by hreich).</p>
+        <p>+ (MoP) Added back PW:S indicator.</p>
+        <p>* (MoP) Fixed click-cast for Soulstone.</p>
+        <p>* Reworked BuffTracker &amp; MissingBuffs for all flavors.</p>
+        <p>- (Vanilla) Removed debuff duration limit from display logic.</p>
+        <br/>
+
+        <h1>r254-release (Jul 4, 2025, 21:20 GMT+8)</h1>
+        <p>* Updated for MoP. Updated for MoP. Layout Auto Switch and Power Filters have been reset due to the game version update.</p>
+        <p>* Disabled dragging while in combat.</p>
+        <p>* BuffTracker updated: now only available for Retail and MoP..</p>
+        <p>- Removed MissingBuffs indicator.</p>
+        <p>+ (Retail) Cell will attempt to restore the correct layout after reconnecting during combat.</p>
         <br/>
 
         <h1>r253-release (May 13, 2025, 20:30 GMT+8)</h1>

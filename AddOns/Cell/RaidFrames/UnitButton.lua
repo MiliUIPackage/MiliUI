@@ -118,7 +118,7 @@ local function ResetIndicators()
 
     CheckCLEURequired()
 
-    for _, t in pairs(Cell.vars.currentLayoutTable["indicators"]) do
+    for _, t in next, Cell.vars.currentLayoutTable["indicators"] do
         -- update enabled
         if t["enabled"] then
             enabledIndicators[t["indicatorName"]] = true
@@ -151,15 +151,13 @@ local function ResetIndicators()
         elseif t["indicatorName"] == "actions" then
             I.EnableActions(t["enabled"])
 
+        -- update missingBuffs
+        elseif t["indicatorName"] == "missingBuffs" then
+            I.EnableMissingBuffs(t["enabled"])
+
         -- update healthThresholds
         elseif t["indicatorName"] == "healthThresholds" then
             I.UpdateHealthThresholds()
-
-        -- update missingBuffs
-        elseif t["indicatorName"] == "missingBuffs" then
-            I.UpdateMissingBuffsNum(t["num"], true)
-            I.UpdateMissingBuffsFilters(t["filters"], true)
-            I.EnableMissingBuffs(t["enabled"])
         end
 
         -- update extra
@@ -204,7 +202,7 @@ local function HandleIndicators(b)
     -- NOTE: Remove old
     I.RemoveAllCustomIndicators(b)
 
-    for _, t in pairs(Cell.vars.currentLayoutTable["indicators"]) do
+    for _, t in next, Cell.vars.currentLayoutTable["indicators"] do
         local indicator = b.indicators[t["indicatorName"]] or I.CreateIndicator(b, t)
         indicator.configs = t
 
@@ -488,7 +486,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
     if layout then
         -- Cell.Fire("UpdateIndicators", layout): indicators copy/import
         -- Cell.Fire("UpdateIndicators", xxx, ...): indicator updated
-        for k, v in pairs(previousLayout) do
+        for k, v in next, previousLayout do
             if v == layout then
                 previousLayout[k] = nil -- update required
                 F.Debug("UPDATE REQUIRED:", k)
@@ -754,9 +752,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             end, true)
         elseif setting == "num" then
             indicatorNums[indicatorName] = value
-            if indicatorName == "missingBuffs" then
-                I.UpdateMissingBuffsNum(value)
-            elseif indicatorName == "targetedSpells" then
+            if indicatorName == "targetedSpells" then
                 I.UpdateTargetedSpellsNum(value)
             else
                 -- refresh
@@ -818,8 +814,6 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                     b.indicators[indicatorName]:Hide()
                 end
             end, true)
-        elseif setting == "missingBuffsFilters" then
-            I.UpdateMissingBuffsFilters()
         elseif setting == "targetCounterFilters" then
             I.UpdateTargetCounterFilters()
         elseif setting == "maxValue" then
@@ -1264,10 +1258,10 @@ local function UnitButton_UpdateDebuffs(self)
             if topGlowType and topGlowType ~= "None" then
                 self._debuffs_glow_current[topGlowType] = topGlowOptions
             end
-            for t, o in pairs(self._debuffs_glow_current) do
+            for t, o in next, self._debuffs_glow_current do
                 self.indicators.raidDebuffs:ShowGlow(t, o, true)
             end
-            for _, t in pairs(RAID_DEBUFFS_GLOW_TYPES) do
+            for _, t in next, RAID_DEBUFFS_GLOW_TYPES do
                 if not self._debuffs_glow_current[t] then
                     self.indicators.raidDebuffs:HideGlow(t)
                 end
@@ -1290,7 +1284,7 @@ local function UnitButton_UpdateDebuffs(self)
     startIndex = 1
     if enabledIndicators["debuffs"] then
         -- bigDebuffs first
-        for auraInstanceID in pairs(self._debuffs_big) do
+        for auraInstanceID in next, self._debuffs_big do
             local auraInfo = self._debuffs_cache[auraInstanceID]
             if startIndex <= indicatorNums["debuffs"] then
                 -- start, duration, debuffType, texture, count
@@ -1303,7 +1297,7 @@ local function UnitButton_UpdateDebuffs(self)
             end
         end
         -- then normal debuffs
-        for auraInstanceID in pairs(self._debuffs_normal) do
+        for auraInstanceID in next, self._debuffs_normal do
             local auraInfo = self._debuffs_cache[auraInstanceID]
             if startIndex <= indicatorNums["debuffs"] then
                 -- start, duration, debuffType, texture, count
@@ -1645,35 +1639,33 @@ UnitButton_UpdateAuras = function(self, updateInfo)
         wipe(self._debuffs_cache)
         buffsChanged = true
         debuffsChanged = true
+    elseif Cell.vars.alwaysUpdateAuras then
+        buffsChanged = true
+        debuffsChanged = true
     else
-        if Cell.loaded and CellDB["general"]["alwaysUpdateAuras"] then
-            buffsChanged = true
-            debuffsChanged = true
-        else
-            if updateInfo.addedAuras then
-                for _, aura in pairs(updateInfo.addedAuras) do
-                    if aura.isHelpful then buffsChanged = true end
-                    if aura.isHarmful then debuffsChanged = true end
-                end
+        if updateInfo.addedAuras then
+            for _, aura in next, updateInfo.addedAuras do
+                if aura.isHelpful then buffsChanged = true end
+                if aura.isHarmful then debuffsChanged = true end
             end
+        end
 
-            if updateInfo.updatedAuraInstanceIDs then
-                for _, auraInstanceID in pairs(updateInfo.updatedAuraInstanceIDs) do
-                    if self._buffs_cache[auraInstanceID] then buffsChanged = true end
-                    if self._debuffs_cache[auraInstanceID] then debuffsChanged = true end
-                end
+        if updateInfo.updatedAuraInstanceIDs then
+            for _, auraInstanceID in next, updateInfo.updatedAuraInstanceIDs do
+                if self._buffs_cache[auraInstanceID] then buffsChanged = true end
+                if self._debuffs_cache[auraInstanceID] then debuffsChanged = true end
             end
+        end
 
-            if updateInfo.removedAuraInstanceIDs then
-                for _, auraInstanceID in pairs(updateInfo.removedAuraInstanceIDs) do
-                    if self._buffs_cache[auraInstanceID] then
-                        self._buffs_cache[auraInstanceID] = nil
-                        buffsChanged = true
-                    end
-                    if self._debuffs_cache[auraInstanceID] then
-                        self._debuffs_cache[auraInstanceID] = nil
-                        debuffsChanged = true
-                    end
+        if updateInfo.removedAuraInstanceIDs then
+            for _, auraInstanceID in next, updateInfo.removedAuraInstanceIDs do
+                if self._buffs_cache[auraInstanceID] then
+                    self._buffs_cache[auraInstanceID] = nil
+                    buffsChanged = true
+                end
+                if self._debuffs_cache[auraInstanceID] then
+                    self._debuffs_cache[auraInstanceID] = nil
+                    debuffsChanged = true
                 end
             end
         end
@@ -2851,7 +2843,7 @@ local function UnitButton_OnAttributeChanged(self, name, value)
                 self.unit = value
             end
 
-            ResetAuraTables(self)
+            -- ResetAuraTables(self)
         -- else
         --     self:UnregisterEvent("UNIT_IN_RANGE_UPDATE")
         end
@@ -3620,7 +3612,7 @@ function B.UpdatePixelPerfect(button, updateIndicators)
 
     if updateIndicators then
         -- indicators
-        for _, i in pairs(button.indicators) do
+        for _, i in next, button.indicators do
             if i.UpdatePixelPerfect then
                 i:UpdatePixelPerfect()
             end
@@ -3928,8 +3920,8 @@ function CellUnitButton_OnLoad(button)
     I.CreateTargetCounter(button)
     I.CreateCrowdControls(button)
     I.CreateActions(button)
-    I.CreateHealthThresholds(button)
     I.CreateMissingBuffs(button)
+    I.CreateHealthThresholds(button)
     U.CreateSpellRequestIcon(button)
     U.CreateDispelRequestText(button)
 

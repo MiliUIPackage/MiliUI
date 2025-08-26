@@ -19,10 +19,13 @@ Cell.isVanilla = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 -- Cell.isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC and LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_WRATH_OF_THE_LICH_KING
 Cell.isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
 Cell.isCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC
+Cell.isMists = WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC
 Cell.isTWW = LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_WAR_WITHIN
 
 if Cell.isRetail then
     Cell.flavor = "retail"
+elseif Cell.isMists then
+    Cell.flavor = "mists"
 elseif Cell.isCata then
     Cell.flavor = "cata"
 elseif Cell.isWrath then
@@ -1547,7 +1550,7 @@ Cell.vars.whiteTexture = "Interface\\AddOns\\Cell\\Media\\white.tga"
 
 local LSM = LibStub("LibSharedMedia-3.0", true)
 LSM:Register("statusbar", "Cell ".._G.DEFAULT, Cell.vars.texture)
-LSM:Register("font", "visitor", [[Interface\Addons\Cell\Media\Fonts\visitor.ttf]], 255)
+LSM:Register("font", "Visitor", [[Interface\Addons\Cell\Media\Fonts\visitor.ttf]], 255)
 
 function F.GetBarTexture()
     --! update Cell.vars.texture for further use in UnitButton_OnLoad
@@ -1828,19 +1831,19 @@ function F.GetSpellTooltipInfo(spellId)
     return name, icon, table.concat(lines, "\n")
 end
 
-if Cell.isRetail then
+if Cell.isRetail or Cell.isMists then
+    local GetSpellInfo = C_Spell.GetSpellInfo
+    local GetSpellTexture = C_Spell.GetSpellTexture
     function F.GetSpellInfo(spellId)
         if not spellId then return end
-        if C_Spell and C_Spell.GetSpellInfo then
-            local info = C_Spell.GetSpellInfo(spellId)
-            if not info then return end
+        local info = GetSpellInfo(spellId)
+        if not info then return end
 
-            if not info.iconID then -- when?
-                info.iconID = C_Spell.GetSpellTexture(spellId)
-            end
-
-            return info.name, info.iconID
+        if not info.iconID then -- when?
+            info.iconID = GetSpellTexture(spellId)
         end
+
+        return info.name, info.iconID
     end
 else
     local GetSpellInfo = GetSpellInfo
@@ -2435,4 +2438,11 @@ function SlashCmdList.CELLRC()
             debug:Show()
         end
     end
+end
+
+---------------------------------------------------------------------
+-- spec data
+---------------------------------------------------------------------
+if Cell.isMists then
+
 end

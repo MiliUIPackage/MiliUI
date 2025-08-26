@@ -2034,7 +2034,7 @@ local function ShieldBar_SetHorizontalValue(bar, percent)
     else
         barWidth = maxWidth * percent
     end
-    bar:SetWidth(barWidth)
+    bar:SetWidth(max(barWidth, 3))
 end
 
 local function ShieldBar_SetVerticalValue(bar, percent)
@@ -2045,7 +2045,7 @@ local function ShieldBar_SetVerticalValue(bar, percent)
     else
         barHeight = maxHeight * percent
     end
-    bar:SetHeight(barHeight)
+    bar:SetHeight(max(barHeight, 3))
 end
 
 local function ShieldBar_SetPoint(bar, point, anchorTo, anchorPoint, x, y)
@@ -2182,102 +2182,6 @@ function I.UpdateHealthThresholds()
 end
 
 -------------------------------------------------
--- missing buffs
--------------------------------------------------
-function I.CreateMissingBuffs(parent)
-    local missingBuffs = CreateFrame("Frame", parent:GetName().."MissingBuffParent", parent.widgets.indicatorFrame)
-    parent.indicators.missingBuffs = missingBuffs
-    missingBuffs:Hide()
-
-    missingBuffs._SetSize = missingBuffs.SetSize
-    missingBuffs.SetSize = I.Cooldowns_SetSize
-    missingBuffs.UpdateSize = I.Cooldowns_UpdateSize
-    missingBuffs.SetOrientation = I.Cooldowns_SetOrientation
-    missingBuffs.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
-
-    for i = 1, 5 do
-        local name = parent:GetName().."MissingBuff"..i
-        local frame = I.CreateAura_BarIcon(name, missingBuffs)
-        tinsert(missingBuffs, frame)
-        frame:HookScript("OnSizeChanged", function()
-            if frame.glow then
-                LCG.ButtonGlow_Start(frame)
-            else
-                LCG.ButtonGlow_Stop(frame)
-            end
-        end)
-    end
-end
-
-local missingBuffsEnabled, missingBuffsNum, missingBuffsFilters = false, 0, {}
-function I.EnableMissingBuffs(enabled)
-    missingBuffsEnabled = enabled
-
-    if enabled and CellDB["tools"]["buffTracker"][1] then
-        CellBuffTrackerFrame:GROUP_ROSTER_UPDATE(true)
-    end
-end
-
-function I.UpdateMissingBuffsNum(num, noUpdate)
-    missingBuffsNum = num
-
-    if not noUpdate and missingBuffsEnabled and CellDB["tools"]["buffTracker"][1] then
-        CellBuffTrackerFrame:GROUP_ROSTER_UPDATE(true)
-    end
-end
-
-function I.UpdateMissingBuffsFilters(filters, noUpdate)
-    if filters then missingBuffsFilters = filters end
-
-    if not noUpdate and missingBuffsEnabled and CellDB["tools"]["buffTracker"][1] then
-        CellBuffTrackerFrame:GROUP_ROSTER_UPDATE(true)
-    end
-end
-
-local function HideMissingBuffs(b)
-    for i = 1, 5 do
-        b.indicators.missingBuffs[i]:Hide()
-    end
-end
-
-local missingBuffsCounter = {}
-function I.HideMissingBuffs(unit, force)
-    if not (missingBuffsEnabled or force) then return end
-
-    missingBuffsCounter[unit] = nil
-
-    F.HandleUnitButton("unit", unit, HideMissingBuffs)
-end
-
-local function ShowMissingBuff(b, index, icon, buffByMe)
-    b.indicators.missingBuffs:UpdateSize(index)
-
-    local f = b.indicators.missingBuffs[index]
-
-    f:SetCooldown(0, 0, nil, icon, 0)
-
-    if buffByMe then
-        LCG.ButtonGlow_Start(f)
-        f.glow = true
-    else
-        LCG.ButtonGlow_Stop(f)
-        f.glow = nil
-    end
-end
-
-function I.ShowMissingBuff(unit, buff, icon, buffByMe)
-    if not missingBuffsEnabled then return end
-    if missingBuffsFilters["buffByMe"] and not buffByMe then return end
-    if not missingBuffsFilters[buff] then return end
-
-    missingBuffsCounter[unit] = (missingBuffsCounter[unit] or 0) + 1
-
-    if missingBuffsCounter[unit] > missingBuffsNum then return end
-
-    F.HandleUnitButton("unit", unit, ShowMissingBuff, missingBuffsCounter[unit], icon, buffByMe)
-end
-
--------------------------------------------------
 -- power word : shield 怀旧服API太落后，蛋疼！
 -------------------------------------------------
 function I.CreatePowerWordShield(parent)
@@ -2375,7 +2279,9 @@ function I.CreatePowerWordShield(parent)
         weakendedSoulCooldown:ClearAllPoints()
 
         if value > 0 and powerWordShield.max then
-            shieldAmount:SetCooldown(GetTime()-(powerWordShield.max-value), powerWordShield.max)
+            local progress = (powerWordShield.max - value) / powerWordShield.max
+            local start = GetTime() - (progress * 100)
+            shieldAmount:SetCooldown(start, 100)
             shieldAmount:Pause()
             shieldCooldown:SetPoint("CENTER")
             weakendedSoulCooldown:SetPoint("CENTER")
@@ -2474,4 +2380,75 @@ function I.CreateCombatIcon(parent)
     combatIcon.UpdatePixelPerfect = CombatIcon_UpdatePixelPerfect
 
     return combatIcon
+end
+
+-------------------------------------------------
+-- missing buffs
+-------------------------------------------------
+function I.CreateMissingBuffs(parent)
+    local missingBuffs = CreateFrame("Frame", parent:GetName().."MissingBuffParent", parent.widgets.indicatorFrame)
+    parent.indicators.missingBuffs = missingBuffs
+    missingBuffs:Hide()
+
+    missingBuffs._SetSize = missingBuffs.SetSize
+    missingBuffs.SetSize = I.Cooldowns_SetSize
+    missingBuffs.UpdateSize = I.Cooldowns_UpdateSize
+    missingBuffs.SetOrientation = I.Cooldowns_SetOrientation
+    missingBuffs.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
+
+    for i = 1, 3 do
+        local name = parent:GetName().."MissingBuff"..i
+        local frame = I.CreateAura_BarIcon(name, missingBuffs)
+        tinsert(missingBuffs, frame)
+        frame:HookScript("OnSizeChanged", function()
+            LCG.ButtonGlow_Start(frame)
+        end)
+    end
+end
+
+local missingBuffsEnabled = false
+function I.EnableMissingBuffs(enabled)
+    missingBuffsEnabled = enabled
+
+    if enabled and CellDB["tools"]["buffTracker"][1] then
+        CellBuffTrackerFrame:GROUP_ROSTER_UPDATE(true)
+    end
+end
+
+function I.UpdateMissingBuffsFilters(filters, noUpdate)
+    if filters then missingBuffsFilters = filters end
+
+    if not noUpdate and missingBuffsEnabled and CellDB["tools"]["buffTracker"][1] then
+        CellBuffTrackerFrame:GROUP_ROSTER_UPDATE(true)
+    end
+end
+
+local function HideMissingBuffs(b)
+    for i = 1, 3 do
+        b.indicators.missingBuffs[i]:Hide()
+    end
+end
+
+local missingBuffsCounter = {}
+function I.HideMissingBuffs(unit, force)
+    if not (missingBuffsEnabled or force) then return end
+    missingBuffsCounter[unit] = nil
+    F.HandleUnitButton("unit", unit, HideMissingBuffs)
+end
+
+local function ShowMissingBuff(b, index, icon)
+    b.indicators.missingBuffs:UpdateSize(index)
+
+    local f = b.indicators.missingBuffs[index]
+    f:SetCooldown(0, 0, nil, icon, 0)
+    LCG.ButtonGlow_Start(f)
+end
+
+function I.ShowMissingBuff(unit, icon)
+    if not missingBuffsEnabled then return end
+
+    missingBuffsCounter[unit] = (missingBuffsCounter[unit] or 0) + 1
+    if missingBuffsCounter[unit] > 3 then return end
+
+    F.HandleUnitButton("unit", unit, ShowMissingBuff, missingBuffsCounter[unit], icon)
 end

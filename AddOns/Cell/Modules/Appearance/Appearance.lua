@@ -35,6 +35,7 @@ local function CreateCellPane()
         popup:SetPoint("TOPLEFT", appearanceTab, "TOPLEFT", 117, -70)
     end
     Cell.RegisterForCloseDropdown(scaleSlider)
+    F.ApplyCombatProtectionToWidget(scaleSlider)
 
     -- recommended scale
     local recScaleBtn = Cell.CreateButton(cellPane, nil, "accent-hover", {17, 17}, nil, nil, nil, nil, nil, L["Apply Recommended Scale"])
@@ -45,6 +46,7 @@ local function CreateCellPane()
         scaleSlider:SetValue(scale)
         scaleSlider.afterValueChangedFn(scale)
     end)
+    F.ApplyCombatProtectionToWidget(recScaleBtn)
 
     -- options ui font size
     optionsFontSizeOffset = Cell.CreateSlider(L["Options UI Font Size"], cellPane, -5, 5, 141, 1)
@@ -82,6 +84,7 @@ local function CreateCellPane()
             end,
         },
     })
+    F.ApplyCombatProtectionToWidget(strataDropdown)
 
     local scaleSliderText =  cellPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     scaleSliderText:SetPoint("BOTTOMLEFT", strataDropdown, "TOPLEFT", 0, 1)
@@ -437,7 +440,7 @@ local function UpdatePreviewShields(r, g, b)
         previewButton2.widgets.incomingHeal:Hide()
     end
 
-    if Cell.isRetail then
+    if Cell.isRetail or Cell.isMists then
         if CellDB["appearance"]["healAbsorb"][1] then
             previewButton2.widgets.absorbsBar:SetValue(0.8, 0.6)
             if CellDB["appearance"]["healAbsorbInvertColor"] then
@@ -453,7 +456,7 @@ local function UpdatePreviewShields(r, g, b)
         end
     end
 
-    if Cell.isRetail or Cell.isWrath or Cell.isCata then
+    if Cell.isRetail or Cell.isMists or Cell.isWrath or Cell.isCata then
         if CellDB["appearance"]["shield"][1] then
             previewButton2.widgets.shieldBar:SetValue(0.6, 0.6)
             previewButton2.widgets.shieldBar:SetVertexColor(unpack(CellDB["appearance"]["shield"][2]))
@@ -1459,7 +1462,7 @@ local function CreateUnitButtonStylePane()
         Cell.Fire("UpdateAppearance", "shields")
     end)
     absorbCB:SetPoint("TOPLEFT", predCB, "BOTTOMLEFT", 0, -28)
-    absorbCB:SetEnabled(Cell.isRetail)
+    absorbCB:SetEnabled(Cell.isRetail or Cell.isMists)
 
     absorbColorPicker = Cell.CreateColorPicker(unitButtonPane, L["Heal Absorb"], true, function(r, g, b, a)
         CellDB["appearance"]["healAbsorb"][2][1] = r
@@ -1706,8 +1709,6 @@ local function ShowTab(tab)
             CreateUnitButtonStylePane()
             CreateIconOptionsFrame()
             CreateDebuffTypeColorPane()
-            F.ApplyCombatProtectionToWidget(scaleSlider)
-            F.ApplyCombatProtectionToWidget(strataDropdown)
         end
 
         appearanceTab:Show()

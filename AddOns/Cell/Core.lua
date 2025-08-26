@@ -31,12 +31,12 @@ local P = Cell.pixelPerfectFuncs
 local L = Cell.L
 
 -- sharing version check
-Cell.MIN_VERSION = 239
-Cell.MIN_CLICKCASTINGS_VERSION = 239
-Cell.MIN_LAYOUTS_VERSION = 245
-Cell.MIN_INDICATORS_VERSION = 245
-Cell.MIN_DEBUFFS_VERSION = 239
-Cell.MIN_QUICKASSIST_VERSION = 239
+Cell.MIN_VERSION = 246
+Cell.MIN_CLICKCASTINGS_VERSION = 246
+Cell.MIN_LAYOUTS_VERSION = 246
+Cell.MIN_INDICATORS_VERSION = 246
+Cell.MIN_DEBUFFS_VERSION = 246
+Cell.MIN_QUICKASSIST_VERSION = 246
 
 --[==[@debug@
 local debugMode = true
@@ -222,7 +222,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["locked"] = false,
                 ["fadeOut"] = false,
                 ["menuPosition"] = "top_bottom",
-                ["alwaysUpdateAuras"] = true,
+                ["alwaysUpdateAuras"] = false,
                 ["framePriority"] = {
                     {"Main", true},
                     {"Spotlight", false},
@@ -232,6 +232,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["translit"] = false,
             }
         end
+        Cell.vars.alwaysUpdateAuras = CellDB["general"]["alwaysUpdateAuras"]
 
         -- nicknames ------------------------------------------------------------------------------
         if type(CellDB["nicknames"]) ~= "table" then
@@ -687,7 +688,18 @@ function eventFrame:GROUP_ROSTER_UPDATE()
 end
 
 local inInstance
-function eventFrame:PLAYER_ENTERING_WORLD()
+
+local function UpdateFallbackGroupType()
+    if IsInRaid() then
+        CellDB.fallbackGroupType = "raid"
+    elseif IsInGroup() then
+        CellDB.fallbackGroupType = "party"
+    else
+        CellDB.fallbackGroupType = "solo"
+    end
+end
+
+function eventFrame:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
     -- eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
     F.Debug("|cffbbbbbb=== PLAYER_ENTERING_WORLD ===")
     Cell.vars.inMythic = false
@@ -697,9 +709,16 @@ function eventFrame:PLAYER_ENTERING_WORLD()
     Cell.vars.inInstance = isIn
     Cell.vars.instanceType = iType
 
+    C_Timer.After(1, UpdateFallbackGroupType)
+
     if isIn then
         F.Debug("|cffff1111*** Entered Instance:|r", iType)
         Cell.Fire("EnterInstance", iType)
+
+        if isInitialLogin or isReloadingUi then
+            Cell.vars.groupType = CellDB.fallbackGroupType or "solo"
+            Cell.vars.inMythic = CellDB.fallbackInMythic or false
+        end
         PreUpdateLayout()
         inInstance = true
 
@@ -708,6 +727,8 @@ function eventFrame:PLAYER_ENTERING_WORLD()
             C_Timer.After(0.5, function()
                 local difficultyID, difficultyName = select(3, GetInstanceInfo()) --! can't get difficultyID, difficultyName immediately after entering an instance
                 Cell.vars.inMythic = difficultyID == 16
+                CellDB.fallbackInMythic = Cell.vars.inMythic
+
                 if Cell.vars.inMythic then
                     F.Debug("|cffff1111*** Entered Instance:|r", "raid-mythic")
                     Cell.Fire("EnterInstance", iType)

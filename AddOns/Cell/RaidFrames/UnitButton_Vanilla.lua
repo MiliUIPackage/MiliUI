@@ -132,15 +132,13 @@ local function ResetIndicators()
         elseif t["indicatorName"] == "actions" then
             I.EnableActions(t["enabled"])
 
+        -- update missingBuffs
+        elseif t["indicatorName"] == "missingBuffs" then
+            I.EnableMissingBuffs(t["enabled"])
+
         -- update healthThresholds
         elseif t["indicatorName"] == "healthThresholds" then
             I.UpdateHealthThresholds()
-
-        -- update missingBuffs
-        elseif t["indicatorName"] == "missingBuffs" then
-            I.UpdateMissingBuffsNum(t["num"], true)
-            I.UpdateMissingBuffsFilters(t["filters"], true)
-            I.EnableMissingBuffs(t["enabled"])
         end
 
         -- update extra
@@ -732,9 +730,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             end, true)
         elseif setting == "num" then
             indicatorNums[indicatorName] = value
-            if indicatorName == "missingBuffs" then
-                I.UpdateMissingBuffsNum(value)
-            elseif indicatorName == "targetedSpells" then
+            if indicatorName == "targetedSpells" then
                 I.UpdateTargetedSpellsNum(value)
             else
                 -- refresh
@@ -792,8 +788,6 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                     b.indicators[indicatorName]:Hide()
                 end
             end, true)
-        elseif setting == "missingBuffsFilters" then
-            I.UpdateMissingBuffsFilters()
         elseif setting == "targetCounterFilters" then
             I.UpdateTargetCounterFilters()
         elseif setting == "maxValue" then
@@ -1043,7 +1037,7 @@ local function UnitButton_UpdateDebuffs(self)
                 refreshing = false
             end
 
-            if enabledIndicators["debuffs"] and duration <= 600 and not Cell.vars.debuffBlacklist[spellId] then
+            if enabledIndicators["debuffs"] and not Cell.vars.debuffBlacklist[spellId] then
                 if not indicatorBooleans["debuffs"] or I.CanDispel(debuffType) then
                     if Cell.vars.bigDebuffs[spellId] then  -- isBigDebuff
                         self._debuffs_big[i] = refreshing
@@ -3251,8 +3245,8 @@ function CellUnitButton_OnLoad(button)
     I.CreateTargetCounter(button)
     I.CreateTargetedSpells(button)
     I.CreateActions(button)
-    I.CreateHealthThresholds(button)
     I.CreateMissingBuffs(button)
+    I.CreateHealthThresholds(button)
     U.CreateSpellRequestIcon(button)
     U.CreateDispelRequestText(button)
 

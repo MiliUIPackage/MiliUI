@@ -1,6 +1,6 @@
 ## Interface: 40402
 ## Title: Cell
-## Version: r253-release
+## Version: r261-release
 ## Author: enderneko
 ## X-Flavor: Cata
 ## SavedVariables: CellDB, CellDBBackup
@@ -37,7 +37,7 @@ RaidFrames\MainFrame.lua
 
 RaidDebuffs\ExpansionData\LoadExpansionData.xml
 Modules\LoadModules_Classic.xml
-Utilities\LoadUtilities_Cata.xml
+Utilities\LoadUtilities_Classic.xml
 RaidDebuffs\LoadRaidDebuffs_Cata.xml
 
 RaidFrames\UnitButton_Cata_Wrath.lua

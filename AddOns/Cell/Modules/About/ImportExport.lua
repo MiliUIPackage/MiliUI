@@ -25,9 +25,7 @@ local function DoImport(noReload)
     end
 
     -- deal with invalid
-    if Cell.isRetail then
-        imported["appearance"]["useLibHealComm"] = false
-    elseif Cell.isVanilla or Cell.isWrath or Cell.isCata then
+    if Cell.isMists or Cell.isVanilla or Cell.isWrath or Cell.isCata then
         imported["quickCast"] = nil
         imported["quickAssist"] = nil
         imported["appearance"]["healAbsorb"][1] = false
@@ -75,9 +73,9 @@ local function DoImport(noReload)
     -- click-castings
     local clickCastings
     if imported["clickCastings"] then
-        if Cell.isRetail then -- RETAIL -> RETAIL
+        if Cell.flavor == imported.flavor then -- same flavor
             clickCastings = imported["clickCastings"]
-        else -- RETAIL -> WRATH
+        else -- RETAIL -> CLASSIC
             clickCastings = nil
         end
         imported["clickCastings"] = nil
@@ -97,7 +95,7 @@ local function DoImport(noReload)
     -- layout auto switch
     local layoutAutoSwitch
     if imported["layoutAutoSwitch"] then
-        if Cell.isRetail then -- RETAIL -> RETAIL
+        if Cell.flavor == imported.flavor then -- same flavor
             layoutAutoSwitch = imported["layoutAutoSwitch"]
         else -- RETAIL -> WRATH
             layoutAutoSwitch = nil
@@ -139,7 +137,7 @@ local function DoImport(noReload)
     end
 
     --! overwrite
-    if Cell.isRetail then
+    if Cell.isRetail or Cell.isMists then
         if not ignoredIndices["clickCastings"] then
             CellDB["clickCastings"] = clickCastings
         end
@@ -185,6 +183,8 @@ local function GetExportString(includeNicknames, includeCharacter)
     end
 
     db["flavor"] = Cell.flavor
+    db["fallbackGroupType"] = nil
+    db["fallbackInMythic"] = nil
 
     local str = Serializer:Serialize(db) -- serialize
     str = LibDeflate:CompressDeflate(str, deflateConfig) -- compress
