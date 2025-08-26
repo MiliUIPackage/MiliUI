@@ -1,4 +1,4 @@
-## Interface: 110200, 110200
+## Interface: 110200
 ## Category: DBM
 ## Title:|cffffe00a<|r|cffff7d0aDBM Tests|r|cffffe00a>|r |cff69ccf0Tests for The War Within mods|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM 測試|r|cffffe00a>|r |cff69ccf0地心之戰的測試模組|r
@@ -12,22 +12,24 @@
 
 ManaforgeOmega/PlexusSentinel-Normal-Kill.lua
 ManaforgeOmega/PlexusSentinel-Heroic-Kill.lua
-ManaforgeOmega/PlexusSentinel-Mythic-Wipe.lua
+ManaforgeOmega/PlexusSentinel-Mythic-Kill.lua
 ManaforgeOmega/Loomithar-Normal-Kill.lua
-ManaforgeOmega/Loomithar-Heroic-Wipe.lua
+ManaforgeOmega/Loomithar-Heroic-Kill.lua
 ManaforgeOmega/Loomithar-Mythic-Wipe.lua
 ManaforgeOmega/SoulbinderNaazindhri-Normal-Kill.lua
-ManaforgeOmega/SoulbinderNaazindhri-Heroic-Wipe.lua
-ManaforgeOmega/SoulbinderNaazindhri-Mythic-Wipe.lua
+ManaforgeOmega/SoulbinderNaazindhri-Heroic-Kill.lua
+ManaforgeOmega/SoulbinderNaazindhri-Mythic-Kill.lua
 ManaforgeOmega/ForgeweaverAraz-Normal-Kill.lua
-ManaforgeOmega/ForgeweaverAraz-Heroic-Wipe.lua
+ManaforgeOmega/ForgeweaverAraz-Heroic-Kill.lua
 ManaforgeOmega/ForgeweaverAraz-Mythic-Wipe.lua
-ManaforgeOmega/SoulHunters-Normal-Wipe.lua
-ManaforgeOmega/SoulHunters-Heroic-Wipe.lua
+ManaforgeOmega/SoulHunters-Normal-Kill.lua
+ManaforgeOmega/SoulHunters-Heroic-Kill.lua
 ManaforgeOmega/SoulHunters-Mythic-Wipe.lua
 ManaforgeOmega/Fractillus-Normal-Kill.lua
-ManaforgeOmega/Fractillus-Heroic-Wipe.lua
+ManaforgeOmega/Fractillus-Heroic-Kill.lua
 ManaforgeOmega/Fractillus-Mythic-Wipe.lua
-ManaforgeOmega/Nexus-KingSalhadaar-Normal-Wipe.lua
-ManaforgeOmega/Nexus-KingSalhadaar-Heroic-Wipe.lua
+ManaforgeOmega/Nexus-KingSalhadaar-Normal-Kill.lua
+ManaforgeOmega/Nexus-KingSalhadaar-Heroic-Kill.lua
 ManaforgeOmega/Nexus-KingSalhadaar-Mythic-Wipe.lua
+ManaforgeOmega/Dimensius-Normal-Kill.lua
+ManaforgeOmega/Dimensius-Heroic-Kill.lua

@@ -1,23 +1,16 @@
 # DBM - Core
 
-## [11.2.6-14-g11fcf28](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/11fcf28c79a0cd32ed2340af0f40bac1dec36cd4) (2025-08-12)
-[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/11.2.6...11fcf28c79a0cd32ed2340af0f40bac1dec36cd4) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
+## [11.2.12](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/11.2.12) (2025-08-25)
+[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/11.2.11...11.2.12) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
 
-- Fix GUI options bugs. (Fixes #1179)  
-- Silence LuaLS warning.  
-- Fix export/import profile frame level (Fixes #1428)  
-- New DBM Tools (#1703)  
-    * New tools tab in GUI  
-      * Includes buttons to latency check, durability check, and creating break/pizza timers.  
-    * New latency check GUI  
-    * New durability check GUI  
-- finish dimensius drycode  
-- Minor fixes  
-- more fixes  
-- Fixes  
-- rework plexus Sentinel timers to be easier to update and organize. redid the timers to support multiple variances for multiple casts  
-- Didn't mean to push that unfinished mod, but might as well fix the errors  
-- quiet some timer errors on sentinel  
-- Remove 11.1.7 toc  
-- Remove no longer required load guards  
+- forgot to tag last night  
+- small cleanup  
+- Dimensius Update  
+     - Reworked p2 add timers to be more precise in all difficulties (but as a caveat they start later now)  
+     - Added support for Mythic  
+- fix missing targetname  
+- Fixed bug causing tank soak yell not to work on Araz  
+    Shortened yells of astral harvest and silencing tempest on araz  
+    Added optional off by default P1 taunt warning to Nexus King  
+- adjust first soul hunters chain timer, which must have been tweaked in last week or so  
 - bump alpha  

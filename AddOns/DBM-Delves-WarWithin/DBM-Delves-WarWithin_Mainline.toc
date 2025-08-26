@@ -1,4 +1,4 @@
-## Interface: 110200, 110200
+## Interface: 110107, 110200
 ## X-Min-Interface: 110002
 ## Category: DBM
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff4565ffDelves (TWW)|r
@@ -21,7 +21,7 @@
 ## X-DBM-Mod-MapID: 2664, 2679, 2680, 2681, 2682, 2683, 2684, 2685, 2686, 2687, 2688, 2689, 2690, 2767, 2768, 2831, 2815, 2826
 ## X-DBM-Mod-MinCoreRevision: 20200524142133
 ## X-DBM-Mod-MinExpansion: 10
-## Version: r203
+## Version: r207
 ## Category-zhTW: 團隊
 ## Category-zhTW: 副本
 localization.en.lua

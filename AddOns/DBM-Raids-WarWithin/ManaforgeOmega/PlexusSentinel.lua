@@ -1,10 +1,10 @@
 local mod	= DBM:NewMod(2684, "DBM-Raids-WarWithin", 1, 1302)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250812013529")
+mod:SetRevision("20250814042522")
 mod:SetCreatureID(233814)
 mod:SetEncounterID(3129)
-mod:SetHotfixNoticeRev(20250629000000)
+mod:SetHotfixNoticeRev(20250813000000)
 --mod:SetMinSyncRevision(20240921000000)
 mod:SetZone(2810)
 mod.respawnTime = 29
@@ -12,7 +12,7 @@ mod.respawnTime = 29
 mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
-	"SPELL_CAST_START 1219450 1219263 1219531 1220489 1220553 1220555",--1234733
+	"SPELL_CAST_START 1219450 1219263 1219531 1220489 1220553 1220555 1234733",
 --	"SPELL_CAST_SUCCESS",
 	"SPELL_AURA_APPLIED 1219459 1219439 1219607",
 --	"SPELL_AURA_APPLIED_DOSE",
@@ -55,6 +55,7 @@ local timerEradicatingSalvoCD						= mod:NewVarCountTimer("v34.0-36.5", 1219607,
 --Stage Two: The Sieve Awakens
 --mod:AddTimerLine(DBM:EJ_GetSectionInfo(31634))
 local specWarnProtocolPurge							= mod:NewSpecialWarningCount(1220489, nil, nil, nil, 3, 2)
+local warnCleansetheChamber							= mod:NewSpellAnnounce(1234733, 4)
 
 local timerProtocolPurgeCD							= mod:NewCDCountTimer(97.3, 1220489, nil, nil, nil, 6, nil, DBM_COMMON_L.DEADLY_ICON)
 local timerCleansetheChamberCD						= mod:NewCDCountTimer(97.3, 1234733, nil, nil, nil, 6, nil, DBM_COMMON_L.DEADLY_ICON)
@@ -69,68 +70,73 @@ local savedDifficulty = "normal"
 local allTimers = {
 	["mythic"] = {
 		[0] = {
-			[1219450] = {9.5, 28.5},--Manifest Matrices
-			[1219263] = {20.9, 30.4},--Obliteration Arcanocannon
-			[1219531] = {41.3},--Eradicating Salvo
+			[1219450] = {"v8.4-9.5", 28.1},--Manifest Matrices
+			[1219263] = {21.7, 30.4},--Obliteration Arcanocannon
+			[1219531] = {41.0},--Eradicating Salvo
 		},
 		[1] = {--1 and 2 should be identical
-			[1219450] = {"v4.7-5.6", "v26.5-28.1", "v26.9-29.2", 23.2},--Manifest Matrices
-			[1219263] = {"v12.6-14.1", "v28.0-29.2", "v28.0-29.2"},--Obliteration Arcanocannon
-			[1219531] = {"v20.0-21.4", 31.5, "v33.8-35"},--Eradicating Salvo
+			[1219450] = {"v4.7-5.8", "v23.1-26.8", "v23.1-28", "v24.4-26.8"},--Manifest Matrices
+			[1219263] = {"v12.6-14.3", "v28.0-29.2", "v28.0-29.3"},--Obliteration Arcanocannon
+			[1219531] = {"v19.4-21.6", "v31.6-35", "v32-35"},--Eradicating Salvo
+			[1234733] = {32.5},--Cleanse the Chamber
 		},
 		[2] = {--1 and 2 should be identical
-			[1219450] = {"v4.7-5.6", "v26.5-28.1", "v26.9-29.2", 23.2},--Manifest Matrices
-			[1219263] = {"v12.6-14.1", "v28.0-29.2", "v28.0-29.2"},--Obliteration Arcanocannon
-			[1219531] = {"v20.0-21.4", 31.5, "v33.8-35"},--Eradicating Salvo
+			[1219450] = {"v4.7-5.8", "v23.1-26.8", "v23.1-28", "v24.4-26.8"},--Manifest Matrices
+			[1219263] = {"v12.6-14.3", "v28.0-29.2", "v28.0-29.3"},--Obliteration Arcanocannon
+			[1219531] = {"v19.4-21.6", "v31.6-35", "v32-35"},--Eradicating Salvo
+			[1234733] = {27.3},--Cleanse the Chamber
 		},
 		[3] = {--Need more data to get soft enrage repeater
 			[1219450] = {5.4, 23.1, 23.1, "v31.6-33.1", "v31.6-33.1"},--Manifest Matrices
 			[1219263] = {13.3, 29.1, 29.2, "29.2-32.8", "30.4-32.8"},--Obliteration Arcanocannon
-			[1219531] = {21.2, 33.7, "v36.9-38.2", 31.6},--Eradicating Salvo
+			[1219531] = {"v20-21.2", 33.7, "v36.9-38.2", 31.6},--Eradicating Salvo
+			[1234733] = {65.3, 6, 9.7, 6.9, 11.3, 11, 7, 6.3, 11, 9.7, 7},--Cleanse the Chamber
 		},
 	},
 	["heroic"] = {
 		[0] = {
 			[1219450] = {10.4, 34.0},--Manifest Matrices
 			[1219263] = {21.2, 32.9},--Obliteration Arcanocannon
-			[1219531] = {30.1, 31.6},--Eradicating Salvo
+			[1219531] = {30.1},--Eradicating Salvo
 		},
 		[1] = {
 			[1219450] = {6.2, 35.2, 35.2},--Manifest Matrices
-			[1219263] = {"v17.9-20.2", 34.0, 34.0},--Obliteration Arcanocannon
-			[1219531] = {"v27.9-28.7", "v34.1-35.2"},--Eradicating Salvo
+			[1219263] = {"v17.9-20.3", "v34.0-35.2", 34.0},--Obliteration Arcanocannon
+			[1219531] = {"v27.9-28.7", "v34.0-35.2"},--Eradicating Salvo
 		},
 		[2] = {
 			[1219450] = {6.2, 35.2, 35.2},--Manifest Matrices
-			[1219263] = {"v18.2-20.2", 34.0, 34.0},--Obliteration Arcanocannon
-			[1219531] = {"v27.9-28.7", "v34.1-35.2"},--Eradicating Salvo
+			[1219263] = {"v18.2-20.2", "v34.0-35.2", 34.0},--Obliteration Arcanocannon
+			[1219531] = {"v27.9-28.7", "v34.0-35.2"},--Eradicating Salvo
 		},
 		[3] = {--Need more data to get soft enrage repeater
 			[1219450] = {6.4, 35.2, 35.2, 35.2, 36.4},--Manifest Matrices
 			[1219263] = {18.5, 34.0, 36.4, 35.2, 34.4},--Obliteration Arcanocannon
 			[1219531] = {28.2, 37.6, 35.2, 35.2},--Eradicating Salvo
+			[1234733] = {62.2, 11, 8, 5.2, 9.7, 11, 6, 6.9, 10, 12.1, 6.1, 7, 5.2, 9.7, 12, 5, 7, 5.2, 9.7},--Cleanse the Chamber
 		},
 	},
 	["normal"] = {
 		[0] = {
-			[1219450] = {10.6, 34.0},--Manifest Matrices
+			[1219450] = {10.6, 33.9},--Manifest Matrices
 			[1219263] = {20.9, 32.8},--Obliteration Arcanocannon
 			[1219531] = {30.0},--Eradicating Salvo
 		},
 		[1] = {
-			[1219450] = {"v5.4-6.5", 35.2, 35.2},--Manifest Matrices
-			[1219263] = {18.2, 34.0, 34.0},--Obliteration Arcanocannon
+			[1219450] = {"v5.4-6.5", 35.2, "v35.2-37.0"},--Manifest Matrices
+			[1219263] = {18.2, 34.0, "v33.5-34.0"},--Obliteration Arcanocannon
 			[1219531] = {27.9, "v34.0-35.2"},--Eradicating Salvo
 		},
 		[2] = {
-			[1219450] = {"v5.4-6.5", 35.2, 35.2},--Manifest Matrices
-			[1219263] = {18.2, 34.0, 34.0},--Obliteration Arcanocannon
+			[1219450] = {"v5.4-6.5", 35.2, "v35.2-37.0"},--Manifest Matrices
+			[1219263] = {18.2, 34.0, "v33.5-34.0"},--Obliteration Arcanocannon
 			[1219531] = {27.9, "v34.0-35.2"},--Eradicating Salvo
 		},
-		[3] = {--Eventually normal becomes 36.4 repeating
-			[1219450] = {6.1, 35.2, 35.2, 38.8, 36.4, 36.4, 36.4, 36.4},--Manifest Matrices
+		[3] = {--Eventually normal becomes 36.4 repeating?
+			[1219450] = {6.1, 35.2, 35.2, 38.8, 35.2, 36.4, 36.4, 36.4},--Manifest Matrices
 			[1219263] = {18.2, 34.0, 36.5, 34.0, 36.4, 36.4, 36.4, 36.4},--Obliteration Arcanocannon
 			[1219531] = {28.0, 34.0, 35.2, 36.4, 36.4, 36.4, 36.4},--Eradicating Salvo
+			[1234733] = {93, 11, 7.3, 7.3, 9.7, 10.9, 7.3, 7.3, 9.1, 11, 7.3, 7.3, 9.7, 11, 7.3, 7.3, 9.7, 11, 7.3, 7.3, 9.7},--Cleanse the Chamber
 		},
 	},
 }
@@ -149,10 +155,10 @@ function mod:OnCombatStart(delay)
 	else--Combine LFR and Normal
 		savedDifficulty = "normal"
 	end
-	timerManifestMatricesCD:Start(allTimers[savedDifficulty][0][1219450][1]-delay, 1)
-	timerObliterationArcanocannonCD:Start(allTimers[savedDifficulty][0][1219263][1]-delay, 1)
-	timerEradicatingSalvoCD:Start(allTimers[savedDifficulty][0][1219531][1]-delay, 1)
-	timerProtocolPurgeCD:Start(61.2-delay, 1)--Was 69 on heroic but not likely still 69 since it was 61 on normal and mythic
+	timerManifestMatricesCD:Start(allTimers[savedDifficulty][0][1219450][1], 1)
+	timerObliterationArcanocannonCD:Start(allTimers[savedDifficulty][0][1219263][1], 1)
+	timerEradicatingSalvoCD:Start(allTimers[savedDifficulty][0][1219531][1], 1)
+	timerProtocolPurgeCD:Start(60.8, 1)--Was 69 on heroic but not likely still 69 since it was 61 on normal and mythic
 end
 
 function mod:OnTimerRecovery()
@@ -195,8 +201,8 @@ function mod:SPELL_CAST_START(args)
 		timerManifestMatricesCD:Stop()
 		timerObliterationArcanocannonCD:Stop()
 		timerEradicatingSalvoCD:Stop()
---	elseif spellId == 1234733 and self.vb.purgeCount < 4 then
---		self.vb.purgeCount = 4
+	elseif spellId == 1234733 then
+		warnCleansetheChamber:Show()
 	end
 end
 
@@ -275,8 +281,13 @@ function mod:SPELL_AURA_REMOVED(args)
 		timerEradicatingSalvoCD:Start(allTimers[savedDifficulty][self.vb.purgeCount][1219531][1], 1)
 		if self.vb.purgeCount < 3 then
 			timerProtocolPurgeCD:Start(94, self.vb.purgeCount+1)
+			if self:IsMythic() then
+				--This only happens before final stage on mythic
+				timerCleansetheChamberCD:Start(allTimers[savedDifficulty][self.vb.purgeCount][1234733][1], 1)
+			end
 		else
-			timerCleansetheChamberCD:Start(93.3, self.vb.purgeCount+1)
+			--This happens on all difficulties after 3rd
+			timerCleansetheChamberCD:Start(allTimers[savedDifficulty][self.vb.purgeCount][1234733][1], 1)
 		end
 	end
 end

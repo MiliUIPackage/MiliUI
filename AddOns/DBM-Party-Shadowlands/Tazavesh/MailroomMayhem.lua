@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2436, "DBM-Party-Shadowlands", 9, 1194)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250808093443")
+mod:SetRevision("20250818212624")
 mod:SetCreatureID(175646)
 mod:SetEncounterID(2424)
 mod:SetHotfixNoticeRev(20220405000000)
@@ -49,7 +49,7 @@ function mod:OnCombatStart(delay)
 	self.vb.fanCount = 0
 	self.vb.liquidsCount = 0
 	self.vb.moCount = 0
-	timerHazardousLiquidsCD:Start(6.1-delay, 1)
+	timerHazardousLiquidsCD:Start(5-delay, 1)
 	timerFanMailCD:Start(15.8-delay, 1)
 	timerMoneyOrderCD:Start(23.0-delay, 1)
 	timerUnstableGoodsCD:Start(35.2-delay, 1)
