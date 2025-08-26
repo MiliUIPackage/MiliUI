@@ -1,6 +1,73 @@
 local GlobalAddonName, ExRT = ...
 
 ExRT.Options.Changelog = [=[
+v.5210
+* Data updates
+
+v.5210-MoP
+* Fixes
+
+v.5205
+* Data updates
+
+v.5205-MoP
+* Fixes
+
+v.5200
+* 11.2 update
+
+v.5200-MoP
+* Readded "Bonus Loot" module
+
+v.5195
+* Minor updates
+
+v.5195-MoP
+* Raid Check: updated MoP raid buffs
+
+v.5190
+* Fixes
+
+v.5190-MoP
+* Fixes
+* MoP updates
+
+v.5181
+* Pull timer fix
+
+v.5180
+* Fixes
+* 11.1.7 update
+
+v.5180-MoP
+* 5.5.0 Update
+
+v.5160
+* 11.1.5 update
+
+v.5150
+* Reminder: added timelines for Liberation of Undermine mythic bosses
+* Raid check: added custom ilvl column
+* Raid check: added sort by name
+
+v.5140
+* Note: added autoload support for Liberation of Undermine
+* Reminder: updated timelines for Liberation of Undermine HC bosses
+
+v.5120
+* 11.1 update
+* Raid groups: added "split raid" option
+* Note: added "text align" option
+* Reminder: added option to send timeline history after boss fight 
+
+v.5100
+* Reminder: you can directly select only boss from recorded m+ run 
+* Reminder: added players from custom roster to advanced settings window if it opened via shift-click on assignments page with "custom roster" selected
+* Raid Cooldowns: added custom icon option for spells that was added by users
+* Loot History: added icon for roll type (need/greed/transmog/pass)
+* Added profiling
+* Fixes
+
 v.5080
 * Reminder: changed load conditions logic for reminders with both boss+zone load
 * Reminder: "assignments"/"timeline": added dungeon bosses to list

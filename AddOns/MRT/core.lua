@@ -1,8 +1,8 @@
---	12.11.2024
+--	22.08.2025
 
 local GlobalAddonName, MRT = ...
 
-MRT.V = 5080
+MRT.V = 5210
 MRT.T = "R"
 
 MRT.Slash = {}			--> функции вызова из коммандной строки
@@ -15,8 +15,10 @@ MRT.Classic = {}		--> функции для работы на классик к�
 MRT.Debug = {}
 MRT.RaidVersions = {}
 MRT.Temp = {}
+MRT.Profiling = {}
 
 MRT.A = {}			--> ссылки на все модули
+MRT.F = {}
 
 MRT.msg_prefix = {
 	["EXRTADD"] = true,
@@ -62,6 +64,14 @@ elseif MRT.clientVersion < 60000 then
 	MRT.isCata = true
 	MRT.isMoP = true
 	MRT.T = "Pandaria"
+elseif MRT.clientVersion < 70000 then
+	MRT.isClassic = true
+	MRT.isBC = true
+	MRT.isLK = true
+	MRT.isCata = true
+	MRT.isMoP = true
+	MRT.isWoD = true
+	MRT.T = "Draenor"
 elseif MRT.clientVersion >= 110000 then
 	MRT.is11 = true
 end
@@ -101,9 +111,11 @@ MRT.mod = {}
 do
 	local function mod_LoadOptions(this)
 		this:SetScript("OnShow",nil)
+		--local t,c = debugprofilestop(),collectgarbage("count")	
 		if this.Load then
 			this:Load()
 		end
+		--local newc,newt = collectgarbage("count"),debugprofilestop() print(this.moduleName,'options',newc - c,newt - t)
 		this.Load = nil
 		MRT.F.dprint(this.moduleName.."'s options loaded")
 		this.isLoaded = true
@@ -157,6 +169,7 @@ do
 		self.db = {}
 		
 		self.name = moduleName
+		self.main.moduleName = moduleName
 		table.insert(MRT.Modules,self)
 		MRT.A[moduleName] = self
 		
@@ -168,6 +181,15 @@ end
 
 function MRT.mod:Event(event,...)
 	return self[event](self,...)
+end
+function MRT.mod:EventProfiling(event,...)
+	local t = debugprofilestop()
+	self[event](self,...)
+	t = debugprofilestop() - t
+	local eventKey = self.moduleName .. ":" .. event
+	MRT.Profiling.T[eventKey] = (MRT.Profiling.T[eventKey] or 0) + t
+	MRT.Profiling.M[eventKey] = max(t, MRT.Profiling.M[eventKey] or 0)
+	MRT.Profiling.C[eventKey] = (MRT.Profiling.C[eventKey] or 0) + 1
 end
 if MRT.T == "DU" then
 	local MRTDebug = MRT.Debug
@@ -235,6 +257,29 @@ local function CLEU_OnEvent_Recreate()
 	CLEUFrame:SetScript("OnEvent",CLEU_OnEvent)
 	CLEU_OnEvent()
 end
+local function CLEU_OnEvent_RecreateProfiling()
+	for i=1,#CLEUList do CLEUList[i]=nil end
+	CLEUListLen = 0
+	for mod,func in pairs(CLEUModules) do
+		CLEUListLen = CLEUListLen + 1
+		CLEUList[CLEUListLen] = function(...)
+			local t = debugprofilestop()
+			func(...)
+			t = debugprofilestop() - t
+			local eventKey = mod.name .. ":CLEU"
+			MRT.Profiling.T[eventKey] = (MRT.Profiling.T[eventKey] or 0) + t
+			MRT.Profiling.M[eventKey] = max(t, MRT.Profiling.M[eventKey] or 0)
+			MRT.Profiling.C[eventKey] = (MRT.Profiling.C[eventKey] or 0) + 1
+		end
+	end
+
+	if CLEUListLen == 0 then
+		CLEUFrame:UnregisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
+	end
+
+	CLEUFrame:SetScript("OnEvent",CLEU_OnEvent)
+	CLEU_OnEvent()
+end
 
 
 CLEUFrame:SetScript("OnEvent",CLEU_OnEvent_Recreate)
@@ -258,6 +303,9 @@ function MRT.mod:RegisterEvents(...)
 			if type(func) == "function" then
 				CLEUModules[self] = func
 				CLEUFrame:SetScript("OnEvent",CLEU_OnEvent_Recreate)
+				if MRT.Profiling.Enabled then
+					CLEUFrame:SetScript("OnEvent",CLEU_OnEvent_RecreateProfiling)
+				end
 				CLEUFrame:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
 			else
 				error("MRT: "..self.name..": wrong CLEU function.")
@@ -353,23 +401,155 @@ do
 	end
 end
 
+---------------> Profiling <---------------
+
+local profilingTicker
+function MRT.F:StartProfiling()
+	MRT.Profiling = {
+		T = {},
+		M = {},
+		C = {},
+		Enabled = true,
+		Start = debugprofilestop(),
+	}
+	for _,mod in pairs(MRT.Modules) do
+		mod.main:SetScript("OnEvent",MRT.mod.EventProfiling)
+	end
+	CLEUFrame:SetScript("OnEvent",CLEU_OnEvent_RecreateProfiling)
+	MRT.frame:OnUpdate_Recreate(0)
+end
+function MRT.F:StopProfiling()
+	MRT.Profiling.End = debugprofilestop()
+	MRT.Profiling.Enabled = false
+	for _,mod in pairs(MRT.Modules) do
+		mod.main:SetScript("OnEvent",MRT.mod.Event)
+	end
+	CLEUFrame:SetScript("OnEvent",CLEU_OnEvent_Recreate)
+	MRT.frame:OnUpdate_Recreate(0)
+
+	if profilingTicker then
+		profilingTicker:Cancel()
+		profilingTicker = nil
+	end
+end
+function MRT.F:StartStopProfiling()
+	if MRT.Profiling.Enabled then
+		MRT.F:StopProfiling()
+		print('MRT: profiling stopped')
+	else
+		MRT.F:StartProfiling()
+		print('MRT: profiling started')
+	end
+end
+function MRT.F:StartProfilingBoss()
+	if profilingTicker then
+		profilingTicker:Cancel()
+		profilingTicker = nil
+	end
+	MRT.F:StartProfiling()
+	profilingTicker = C_Timer.NewTicker(1,function(self)
+		if not IsEncounterInProgress() and not MRT.Profiling.BossStarted then
+			MRT.F:StartProfiling()
+		elseif not IsEncounterInProgress() and MRT.Profiling.BossStarted then
+			MRT.F:StopProfiling()
+			self:Cancel()
+			profilingTicker = nil
+		elseif IsEncounterInProgress() and not MRT.Profiling.BossStarted then
+			MRT.Profiling.BossStarted = true
+		end
+	end)
+end
+function MRT.F:IsProfilingBoss()
+	if profilingTicker then
+		return true
+	else
+		return false
+	end
+end
+function MRT.F:GetProfiling()
+	local now = (MRT.Profiling.End or debugprofilestop()) - MRT.Profiling.Start
+	local str = ""..MRT.V.." "..MRT.T.." "..now.."\n"
+	local r = {}
+	for event in pairs(MRT.Profiling.T) do
+		local t = MRT.Profiling.T[event]
+		local c = MRT.Profiling.C[event]
+		local m = MRT.Profiling.M[event]
+
+		r[#r+1] = {event,t,c,m,(t/c),t/now*1000}
+	end
+	sort(r,function(a,b) return a[2]>b[2] end)
+	for i=1,#r do
+		str = str .. r[i][1] .. " "..r[i][2].." "..r[i][3].." "..r[i][4].." "..r[i][5] .." "..r[i][6] .. "\n"
+	end
+	MRT.F:Export2(str)
+end
+function MRT.F:LiveProfiling()
+	debugStringFrame = CreateFrame("Frame",nil,UIParent)
+	debugStringFrame:SetAllPoints()
+	debugStringFrame:SetFrameStrata("DIALOG")
+	debugString = debugStringFrame:CreateFontString(nil,"ARTWORK")
+	debugString:SetPoint("TOPLEFT",5,-5)
+	debugString:SetJustifyH("LEFT")
+	debugString:SetJustifyV("TOP")
+	debugString:SetFont("Interface\\AddOns\\MRT\\media\\skurri.ttf", 12,"OUTLINE")
+
+	C_Timer.NewTicker(0.5,function()
+		local str = ""
+		local r = {}
+		local now = (MRT.Profiling.End or debugprofilestop()) - MRT.Profiling.Start
+		for event in pairs(MRT.Profiling.T) do
+			local t = MRT.Profiling.T[event]
+			local c = MRT.Profiling.C[event]
+			local m = MRT.Profiling.M[event]
+	
+			r[#r+1] = {event,t,c,m,(t/c),t/now*1000}
+		end
+		sort(r,function(a,b) return a[2]>b[2] end)
+		for i=1,#r do
+			str = str .. r[i][1] .. " "..format("%dms",r[i][2]).." c:"..r[i][3].." peak:"..format("%.1fms",r[i][4]).." per1:"..format("%.1fms",r[i][5]) .." persec:"..format("%.1fms",r[i][6]) .. "\n"
+		end
+		debugString:SetText(str)
+	end)
+	MRT.F:StartProfiling()
+end
+
+
 ---------------> Mods <---------------
-
-MRT.F = {}
-
--- Moved to Functions.lua
 
 do
 	local function TimerFunc(self)
 		self.func(unpack(self.args))
 	end
+	local function TimerFuncProfiling(self)
+		local t = debugprofilestop()
+		self.func(unpack(self.args))
+		t = debugprofilestop() - t
+		local eventKey = "delayed timers"..self.profilingevent
+		MRT.Profiling.T[eventKey] = (MRT.Profiling.T[eventKey] or 0) + t
+		MRT.Profiling.M[eventKey] = max(t, MRT.Profiling.M[eventKey] or 0)
+		MRT.Profiling.C[eventKey] = (MRT.Profiling.C[eventKey] or 0) + 1
+	end
 	function MRT.F.ScheduleTimer(func, delay, ...)
 		local self = nil
+		local isProfiling = MRT.Profiling.Enabled
+		local tf = isProfiling and TimerFuncProfiling or TimerFunc
 		if delay > 0 then
-			self = C_Timer_NewTicker(delay,TimerFunc,1)
+			self = C_Timer_NewTicker(delay,tf,1)
 			-- Avoid C_Timer.NewTimer here cuz it runs ticker with 1 iteration anyway
 		else
-			self = C_Timer_NewTicker(-delay,TimerFunc)
+			self = C_Timer_NewTicker(-delay,tf)
+		end
+		if isProfiling then
+			local path = debugstack()
+			local str
+			for s in path:gmatch("[^/%[%]]+%]:%d+") do
+				if not s:find("core.lua",1,true) then
+					str = ":"..s:gsub('"%]',"")
+					break
+				end
+			end
+			
+			self.profilingevent = str or ""
 		end
 		self.args = {...}
 		self.func = func
@@ -388,6 +568,11 @@ do
 	
 	MRT.F.NewTimer = MRT.F.ScheduleTimer
 	MRT.F.Timer = MRT.F.ScheduleTimer
+
+	local st = MRT.F.ScheduleTimer
+	MRT.F.After = function(delay, func, ...)
+		st(func, delay, ...)
+	end
 end
 
 -----------> Coroutinies <------------
@@ -569,22 +754,35 @@ end
 
 -------------> Callbacks <-------------
 
+local CallbackRecent
+local function CallbackErrorHandler(err)
+	print ("Callback Error", err)
+	print("Source:",CallbackRecent.root)
+end
+
 local callbacks = {}
-function MRT.F:RegisterCallback(eventName, func)
+function MRT.F:RegisterCallback(eventName, func, key)
 	if not callbacks[eventName] then
 		callbacks[eventName] = {}
 	end
-	tinsert(callbacks[eventName], func)
+	local callbackData = {
+		f = func,
+		root = debugstack(2),
+		k = key,
+	}
+	tinsert(callbacks[eventName], callbackData)
 
 	MRT.F:FireCallback("CallbackRegistered", eventName, func)
 end
-function MRT.F:UnregisterCallback(eventName, func)
+function MRT.F:UnregisterCallback(eventName, func, key)
 	if not callbacks[eventName] then
 		return
 	end
 	local count = 0
 	for i=#callbacks[eventName],1,-1 do
-		if callbacks[eventName][i] == func then
+		if key and callbacks[eventName][i].k == key then
+			tremove(callbacks[eventName], i)
+		elseif not key and callbacks[eventName][i].f == func then
 			tremove(callbacks[eventName], i)
 		else
 			count = count + 1
@@ -594,16 +792,13 @@ function MRT.F:UnregisterCallback(eventName, func)
 	MRT.F:FireCallback("CallbackUnregistered", eventName, func, count)
 end
 
-local function CallbackErrorHandler(err)
-	print ("Callback Error", err)
-end
-
 function MRT.F:FireCallback(eventName, ...)
 	if not callbacks[eventName] then
 		return
 	end
-	for _,func in pairs(callbacks[eventName]) do
-		xpcall(func, CallbackErrorHandler, eventName, ...)
+	for _,callbackData in pairs(callbacks[eventName]) do
+		CallbackRecent = callbackData
+		xpcall(callbackData.f, CallbackErrorHandler, eventName, ...)
 	end
 end
 
@@ -636,6 +831,8 @@ SlashCmdList["mrtSlash"] = function (arg)
 		MRT.frame:UnregisterAllEvents()
 		MRT.frame:SetScript("OnUpdate",nil)
 		print("MRT Disabled")
+	elseif argL == "profiler" or argL == "profiling" then
+		MRT.F:ProfilingWindow()
 	elseif string.len(argL) == 0 then
 		MRT.Options:Open()
 		return
@@ -751,8 +948,10 @@ MRT.frame:SetScript("OnEvent",function (self, event, ...)
 		
 		MRT.F.dprint("ADDON_LOADED event")
 		MRT.F.dprint("MODULES FIND",#MRT.Modules)
+		--local t,c = debugprofilestop(),collectgarbage("count") print('addon load event')		
 		for i=1,#MRT.Modules do
 			loader(self,MRT.Modules[i].main.ADDON_LOADED)
+			--local newc,newt = collectgarbage("count"),debugprofilestop() print(MRT.Modules[i].name,newc - c,newt - t) t,c = newt,newc
 
 			MRT.ModulesLoaded[i] = true
 			
@@ -808,6 +1007,28 @@ do
 			frameElapsed = 0
 		end
 	end
+	local function OnUpdateProfiling(self,elapsed)
+		frameElapsed = frameElapsed + elapsed
+		if frameElapsed >= 0.1 then
+			if not isEncounter and IsEncounterInProgress() then
+				isEncounter = true
+				encounterTime = GetTime()
+			elseif isEncounter and not IsEncounterInProgress() then
+				isEncounter = nil
+			end
+			
+			for mod, func in next, OnUpdate_Funcs do
+				local t = debugprofilestop()
+				func(mod, frameElapsed)
+				t = debugprofilestop() - t
+				local eventKey = mod.name .. ":OnUpdate"
+				MRT.Profiling.T[eventKey] = (MRT.Profiling.T[eventKey] or 0) + t
+				MRT.Profiling.M[eventKey] = max(t, MRT.Profiling.M[eventKey] or 0)
+				MRT.Profiling.C[eventKey] = (MRT.Profiling.C[eventKey] or 0) + 1
+			end
+			frameElapsed = 0
+		end
+	end
 
 	local function OnUpdate_Recreate(self,elapsed)
 		for k in pairs(OnUpdate_Funcs) do OnUpdate_Funcs[k]=nil end
@@ -815,6 +1036,11 @@ do
 			OnUpdate_Funcs[mod] = func
 		end
 		
+		if MRT.Profiling.Enabled then
+			self:SetScript("OnUpdate", OnUpdateProfiling)
+			OnUpdateProfiling(self,elapsed)
+			return
+		end
 		self:SetScript("OnUpdate", OnUpdate)
 		OnUpdate(self,elapsed)
 	end
@@ -987,8 +1213,20 @@ function MRT.F.GetExMsg(sender, prefix, ...)
 			print(sender..": "..msgver)
 		end
 	end
-	for _,mod in pairs(MRT.OnAddonMessage) do
-		mod:addonMessage(sender, prefix, ...)
+	if not MRT.Profiling.Enabled then
+		for _,mod in pairs(MRT.OnAddonMessage) do
+			mod:addonMessage(sender, prefix, ...)
+		end
+	else
+		for _,mod in pairs(MRT.OnAddonMessage) do
+			local t = debugprofilestop()
+			mod:addonMessage(sender, prefix, ...)
+			t = debugprofilestop() - t
+			local eventKey = mod.name .. ":CHAT_MSG_ADDON"
+			MRT.Profiling.T[eventKey] = (MRT.Profiling.T[eventKey] or 0) + t
+			MRT.Profiling.M[eventKey] = max(t, MRT.Profiling.M[eventKey] or 0)
+			MRT.Profiling.C[eventKey] = (MRT.Profiling.C[eventKey] or 0) + 1
+		end
 	end
 end
 

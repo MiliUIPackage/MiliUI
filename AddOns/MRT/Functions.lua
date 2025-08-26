@@ -10,6 +10,8 @@ local UnitGroupRolesAssigned = UnitGroupRolesAssigned or ExRT.NULLfunc
 local GetRaidRosterInfo = GetRaidRosterInfo
 local GetItemInfo, GetItemInfoInstant  = C_Item and C_Item.GetItemInfo or GetItemInfo,  C_Item and C_Item.GetItemInfoInstant or GetItemInfoInstant
 local GetSpecialization = GetSpecialization
+local GetSpecializationInfo = C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo or GetSpecializationInfo
+local SendChatMessage = C_ChatInfo and C_ChatInfo.SendChatMessage or SendChatMessage
 
 if not GetSpecialization and ExRT.isClassic then
 	GetSpecialization = function()
@@ -679,6 +681,14 @@ function ExRT.F.table_to_string(t)
 	return str
 end
 
+function ExRT.F.table_keys_to_string(t,sep)
+	local str = ""
+	for k in pairs(t) do
+		str = str .. (str ~= "" and (sep or " ") or "") .. k
+	end
+	return str
+end
+
 function ExRT.F.tohex(num,size)
 	return format("%0"..(size or "1").."X",num)
 end
@@ -732,7 +742,7 @@ end
 
 function ExRT.F.GetItemBonuses(link)
 	if link then 
-		local _,itemID,enchant,gem1,gem2,gem3,gem4,suffixID,uniqueID,level,specializationID,upgradeType,instanceDifficultyID,numBonusIDs,restLink = strsplit(":",link,15)
+		local _,itemID,enchant,gem1,gem2,gem3,gem4,suffixID,uniqueID,level,specializationID,upgradeType,instanceDifficultyID,numBonusIDs,restLink = strsplit(":",link:match("|H.-|h") or link,15)
 		numBonusIDs = tonumber(numBonusIDs or "?") or 0
 		local bonusStr = ""
 		for i=1,numBonusIDs do
@@ -771,7 +781,7 @@ end
 function ExRT.F.GetPlayerParty(unitName)
 	for i=1,GetNumGroupMembers() do
 		local name,_,subgroup = GetRaidRosterInfo(i)
-		if UnitIsUnit(name,unitName) then
+		if name and UnitIsUnit(name,unitName) then
 			return subgroup
 		end
 	end
@@ -781,7 +791,7 @@ end
 function ExRT.F.GetOwnPartyNum()
 	for i=1,GetNumGroupMembers() do
 		local name,_,subgroup = GetRaidRosterInfo(i)
-		if UnitIsUnit(name,'player') then
+		if name and UnitIsUnit(name,'player') then
 			return subgroup
 		end
 	end
@@ -797,8 +807,11 @@ function ExRT.F.CreateAddonMsg(...)
 	return result
 end
 
-function ExRT.F.GetPlayerRole()
+function ExRT.F.GetPlayerRole(checkNotInGroup)
 	local role = UnitGroupRolesAssigned('player')
+	if (not role or role == "NONE") and checkNotInGroup and GetSpecializationInfo then
+		role = select(5,GetSpecializationInfo(GetSpecialization() or 0))
+	end
 	if role == "HEALER" then
 		local _,class = UnitClass('player')
 		return role, (class == "PALADIN" or class == "MONK") and "MHEALER" or "RHEALER"
@@ -1644,6 +1657,82 @@ do
 		exportWindow:Show()
 	end
 end
+---------------> Profiling Window <---------------
+do
+	local profilingWindow
+	function ExRT.F:ProfilingWindow()
+		if not profilingWindow then
+			profilingWindow = ExRT.lib:Popup("Profiling"):Size(700,300)
+			local self = profilingWindow
+
+			profilingWindow.decorationLine = ELib:DecorationLine(self,true,"BACKGROUND",-5):Point("TOPLEFT",self,0,-15):Point("BOTTOMRIGHT",self,"TOPRIGHT",0,-35)
+		
+			profilingWindow.list = ELib:ScrollTableList(self,300,80,80,80,80,0):Size(700,300-35-25):Point("TOP",0,-35):FontSize(11):HideBorders()
+		
+			profilingWindow.headertext1 = ELib:Text(self,"  Event"):Point("LEFT",self.list,2,0):Point("TOP",self.decorationLine,0,0):Size(300,20):Left():Middle():Color():Shadow()
+			profilingWindow.headertext2 = ELib:Text(self,"Total, ms"):Point("LEFT",self.headertext1,"RIGHT",0,0):Point("TOP",self.decorationLine,0,0):Size(80,20):Left():Middle():Color():Shadow()
+			profilingWindow.headertext3 = ELib:Text(self,"Count"):Point("LEFT",self.headertext2,"RIGHT",0,0):Point("TOP",self.decorationLine,0,0):Size(80,20):Left():Middle():Color():Shadow()
+			profilingWindow.headertext4 = ELib:Text(self,"Peak"):Point("LEFT",self.headertext3,"RIGHT",0,0):Point("TOP",self.decorationLine,0,0):Size(80,20):Left():Middle():Color():Shadow()
+			profilingWindow.headertext5 = ELib:Text(self,"Per 1, ms"):Point("LEFT",self.headertext4,"RIGHT",0,0):Point("TOP",self.decorationLine,0,0):Size(80,20):Left():Middle():Color():Shadow()
+			profilingWindow.headertext6 = ELib:Text(self,"Per sec, ms"):Point("LEFT",self.headertext5,"RIGHT",0,0):Point("TOP",self.decorationLine,0,0):Size(80,20):Left():Middle():Color():Shadow()
+
+			local t = 0
+			profilingWindow:SetScript("OnUpdate",function(self,elapsed)
+				t = t + elapsed
+				if t < 0.5 then
+					return
+				end
+				t = t % 0.5
+
+				profilingWindow.nextBoss:SetEnabled(not ExRT.F:IsProfilingBoss())
+
+				if not ExRT.Profiling.Start then
+					return
+				end
+
+				local r,total = {},{"Total",0,"","","",0}
+				local now = (ExRT.Profiling.End or debugprofilestop()) - ExRT.Profiling.Start
+				for event in pairs(ExRT.Profiling.T) do
+					local t = ExRT.Profiling.T[event]
+					local c = ExRT.Profiling.C[event]
+					local m = ExRT.Profiling.M[event]
+			
+					r[#r+1] = {event,format("%.1f",t),c,format("%.1f",m),format("%.1f",t/c),format("%.1f",t/now*1000),sort=t}
+
+					total[2] = total[2] + t
+				end
+				sort(r,function(a,b) return a.sort>b.sort end)
+				total[6] = format("%.1f",total[2] / now*1000)
+				total[2] = format("%.1f",total[2])
+				tinsert(r,1,total)
+
+				if ExRT.F:IsProfilingBoss() and not ExRT.Profiling.BossStarted then
+					wipe(r)
+				end
+		
+				profilingWindow.list.L = r
+				profilingWindow.list:Update()
+
+				profilingWindow.startBut:SetText(ExRT.Profiling.Enabled and "Stop profiling" or "Start profiling")
+			end)
+
+			profilingWindow.startBut = ELib:Button(profilingWindow,"Start profiling"):Size(200,20):Point("BOTTOMLEFT",2,2):OnClick(function()
+				ExRT.F:StartStopProfiling()
+				t = 0.5
+			end)
+			profilingWindow.exportBut = ELib:Button(profilingWindow,"Export to string"):Size(200,20):Point("LEFT",profilingWindow.startBut,"RIGHT",2,0):OnClick(function()
+				ExRT.F:GetProfiling()
+			end)
+			profilingWindow.nextBoss = ELib:Button(profilingWindow,"Next boss encounter"):Size(200,20):Point("LEFT",profilingWindow.exportBut,"RIGHT",2,0):OnClick(function()
+				ExRT.F:StartProfilingBoss()
+			end)
+		end
+
+		profilingWindow:NewPoint("TOPLEFT",UIParent,5,-5)
+		profilingWindow:Show()
+	end
+end
+
 
 ---------------> Import/Export data <---------------
 do
@@ -2125,7 +2214,7 @@ ExRT.GDB.ClassID = {
 	EVOKER=13,
 }
 
-if ExRT.isCata then
+if ExRT.isCata and not ExRT.isMoP then
 	ExRT.GDB.ClassSpecializationList = {
 		WARRIOR = {746,815,845},	--Arms,Fury,Protection
 		PALADIN = {831,839,855},	--Holy,Protection,Retribution
@@ -2289,22 +2378,22 @@ ExRT.GDB.JournalInstance = {
 {9,1197,1203,1198,1199,1196,1202,1201,1204,1209,0,1200,1207,1208,1205},	--Dragonflight
 {-1,65,68,313,537,556,767,762,721,740,800,1001,968,1022,1021,1197,1203,1198,1199,1196,1202,1201,1204,1209,0,1200,1207,1208,1205,n=EXPANSION_NAME9,s=4},	--Current Season
 {-1,1270,1271,1274,1269,1182,1184,1023,71,n=EXPANSION_NAME10,s=1},	--Current Season
-{"11.0",10,1268,1267,1210,1269,1271,1272,1270,1274,0,1273,1278},	--The War Within
+{10,1268,1267,1210,1269,1271,1272,1270,1274,1298,1303,0,1273,1296,1278,1302},	--The War Within
 }
 --/run local s="" for i=1,100 do local id=EJ_GetInstanceByIndex(i,false) if not id then break end s=s..id.."," end GExRT.F:Export2(s)
 
 ExRT.GDB.MapIDToJournalInstance = {
-[2774]=1278,[2690]=1293,[2690]=1293,[2689]=1284,[2688]=1290,[2687]=1283,[2686]=1285,[2685]=1289,[2684]=1288,[2683]=1282,[2682]=1291,[2681]=1281,[2680]=1287,[2679]=1280,[2669]=1274,[2664]=1279,[2662]=1270,
-[2661]=1272,[2660]=1271,[2657]=1273,[2652]=1269,[2651]=1210,[2649]=1267,[2648]=1268,[2579]=1209,[2574]=1205,[2569]=1208,[2559]=1192,[2549]=1207,[2527]=1204,[2526]=1201,[2522]=1200,[2521]=1202,[2520]=1196,
-[2519]=1199,[2516]=1198,[2515]=1203,[2481]=1195,[2451]=1197,[2450]=1193,[2441]=1194,[2296]=1190,[2293]=1187,[2291]=1188,[2290]=1184,[2289]=1183,[2287]=1185,[2286]=1182,[2285]=1186,[2284]=1189,[2217]=1180,
-[2164]=1179,[2097]=1178,[2096]=1177,[2070]=1176,[1877]=1030,[1864]=1036,[1862]=1021,[1861]=1031,[1861]=1031,[1841]=1022,[1822]=1023,[1771]=1002,[1763]=968,[1762]=1041,[1754]=1001,[1753]=945,[1712]=946,
-[1677]=900,[1676]=875,[1651]=860,[1648]=861,[1594]=1012,[1571]=800,[1544]=777,[1530]=786,[1520]=959,[1520]=959,[1520]=959,[1516]=726,[1501]=740,[1493]=707,[1492]=727,[1477]=721,[1466]=762,[1458]=767,[1456]=716,
-[1448]=669,[1358]=559,[1279]=556,[1228]=557,[1228]=557,[1209]=476,[1208]=536,[1205]=457,[1195]=558,[1182]=547,[1176]=537,[1175]=385,[1136]=369,[1098]=362,[1011]=324,[1009]=330,[1008]=317,[1007]=246,[1004]=316,
-[1001]=311,[996]=322,[996]=322,[994]=321,[967]=187,[962]=303,[961]=302,[960]=313,[959]=312,[940]=186,[939]=185,[938]=184,[859]=76,[757]=75,[755]=69,[754]=74,[725]=67,[724]=761,[720]=78,[671]=72,[670]=71,
-[669]=73,[668]=276,[658]=278,[657]=68,[650]=284,[649]=757,[645]=66,[644]=70,[643]=65,[632]=280,[631]=758,[624]=753,[619]=271,[616]=756,[615]=755,[608]=283,[604]=274,[603]=759,[602]=275,[601]=272,[600]=273,
-[599]=277,[595]=279,[585]=249,[580]=752,[578]=282,[576]=281,[575]=286,[574]=285,[568]=77,[565]=746,[564]=751,[560]=251,[558]=247,[557]=250,[556]=252,[555]=253,[554]=258,[553]=257,[552]=254,[550]=749,[548]=748,
-[547]=260,[546]=262,[545]=261,[544]=747,[543]=248,[542]=256,[540]=259,[534]=750,[533]=754,[532]=745,[531]=744,[509]=743,[469]=742,[429]=230,[409]=741,[389]=226,[349]=232,[329]=236,[269]=255,[249]=760,[230]=228,
-[229]=229,[209]=241,[129]=233,[109]=237,[90]=231,[70]=239,[48]=227,[47]=234,[43]=240,[36]=63,[34]=238,[33]=64,
+[2830]=1303,[2810]=1302,[2792]=1301,[2774]=1278,[2773]=1298,[2769]=1296,[2669]=1274,[2662]=1270,[2661]=1272,[2660]=1271,[2657]=1273,[2652]=1269,[2651]=1210,[2649]=1267,[2648]=1268,[2579]=1209,[2574]=1205,
+[2569]=1208,[2559]=1192,[2549]=1207,[2527]=1204,[2526]=1201,[2522]=1200,[2521]=1202,[2520]=1196,[2519]=1199,[2516]=1198,[2515]=1203,[2481]=1195,[2451]=1197,[2450]=1193,[2441]=1194,[2296]=1190,[2293]=1187,
+[2291]=1188,[2290]=1184,[2289]=1183,[2287]=1185,[2286]=1182,[2285]=1186,[2284]=1189,[2217]=1180,[2164]=1179,[2097]=1178,[2096]=1177,[2070]=1176,[1877]=1030,[1864]=1036,[1862]=1021,[1861]=1031,[1861]=1031,
+[1841]=1022,[1822]=1023,[1771]=1002,[1763]=968,[1762]=1041,[1754]=1001,[1753]=945,[1712]=946,[1677]=900,[1676]=875,[1651]=860,[1648]=861,[1594]=1012,[1571]=800,[1544]=777,[1530]=786,[1520]=959,[1520]=959,
+[1520]=959,[1516]=726,[1501]=740,[1493]=707,[1492]=727,[1477]=721,[1466]=762,[1458]=767,[1456]=716,[1448]=669,[1358]=559,[1279]=556,[1228]=557,[1228]=557,[1209]=476,[1208]=536,[1205]=457,[1195]=558,[1182]=547,
+[1176]=537,[1175]=385,[1136]=369,[1098]=362,[1011]=324,[1009]=330,[1008]=317,[1007]=246,[1004]=316,[1001]=311,[996]=322,[996]=322,[994]=321,[967]=187,[962]=303,[961]=302,[960]=313,[959]=312,[940]=186,[939]=185,
+[938]=184,[859]=76,[757]=75,[755]=69,[754]=74,[725]=67,[724]=761,[720]=78,[671]=72,[670]=71,[669]=73,[668]=276,[658]=278,[657]=68,[650]=284,[649]=757,[645]=66,[644]=70,[643]=65,[632]=280,[631]=758,[624]=753,
+[619]=271,[616]=756,[615]=755,[608]=283,[604]=274,[603]=759,[602]=275,[601]=272,[600]=273,[599]=277,[595]=279,[585]=249,[580]=752,[578]=282,[576]=281,[575]=286,[574]=285,[568]=77,[565]=746,[564]=751,[560]=251,
+[558]=247,[557]=250,[556]=252,[555]=253,[554]=258,[553]=257,[552]=254,[550]=749,[548]=748,[547]=260,[546]=262,[545]=261,[544]=747,[543]=248,[542]=256,[540]=259,[534]=750,[533]=754,[532]=745,[531]=744,[509]=743,
+[469]=742,[429]=1277,[429]=1277,[429]=1277,[409]=741,[389]=226,[349]=232,[329]=1292,[329]=1292,[269]=255,[249]=760,[230]=228,[229]=229,[209]=241,[129]=233,[109]=237,[90]=231,[70]=239,[48]=227,[47]=234,
+[43]=240,[36]=63,[34]=238,[33]=64,
 }
 
 ExRT.GDB.EncountersList = {
@@ -2447,14 +2536,16 @@ ExRT.GDB.EncountersList = {
 	{2082,2615,2616,2617,2618},
 	{2190,2666,2667,2668,2669,2670,2671,2672,2672,2673},
 
-	{"11.0",2316,2816,2861,2836},	--The Rookery:Dung
-	{"11.0",2308,2847,2835,2848},	--Priory of the Sacred Flame:Dung
-	{"11.0",2303,2829,2826,2787,2788},	--Darkflame Cleft:Dung
-	{"11.0",2341,2854,2880,2888,2883},	--The Stonevault:Dung
-	{"11.0",2357,2926,2906,2901},	--Ara-Kara, City of Echoes:Dung
-	{"11.0",2335,2900,2931,2929,2930},	--Cinderbrew Meadery:Dung
-	{"11.0",2359,2837,2838,2839},	--The Dawnbreaker:Dung
-	{"11.0",2343,2907,2908,2905,2909},	--City of Threads:Dung
+	{2316,2816,2861,2836},	--The Rookery:Dung
+	{2308,2847,2835,2848},	--Priory of the Sacred Flame:Dung
+	{2303,2829,2826,2787,2788},	--Darkflame Cleft:Dung
+	{2341,2854,2880,2888,2883},	--The Stonevault:Dung
+	{2357,2926,2906,2901},	--Ara-Kara, City of Echoes:Dung
+	{2335,2900,2931,2929,2930},	--Cinderbrew Meadery:Dung
+	{2359,2837,2838,2839},	--The Dawnbreaker:Dung
+	{2343,2907,2908,2905,2909},	--City of Threads:Dung
+	{2387,3020,3019,3053,3054},	--Operation: Floodgate:Dung
+	{2449,3107,3108,3109},	--Eco-Dome Al'dani:Dung
 
 	{232,663,664,665,666,667,668,669,670,671,672},
 	{287,610,611,612,613,614,615,616,617},
@@ -2506,7 +2597,9 @@ ExRT.GDB.EncountersList = {
 	{2166,2688,2682,2687,2693,2680,2689,2683,2684,2685},	--a
 	{2232,2820,2709,2737,2731,2728,2708,2824,2786,2677},	--d
 
-	{"11.0",2292,2902,2917,2898,2918,2919,2920,2921,2922},	--Nerub-ar Palace:Raid
+	{2292,2902,2917,2898,2918,2919,2920,2921,2922},	--Nerub-ar Palace:Raid
+	{2406,3009,3010,3011,3012,3013,3014,3015,3016},	--Liberation of Undermine:Raid
+	{2460,3129,3131,3130,3132,3122,3133,3134,3135},	--Manaforge Omega
 }
 
 function ExRT.F.EJ_AutoScan()

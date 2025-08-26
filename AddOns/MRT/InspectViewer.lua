@@ -113,7 +113,8 @@ module.db.socketsBonusIDs = {
 	[11168]=true,	[11169]=true,	[11170]=true,	[11171]=true,	[11172]=true,
 	[11173]=true,	[11174]=true,	[11180]=true,	[11181]=true,	[11182]=true,
 	[11183]=true,	[11184]=true,	[11185]=true,	[11186]=true,	[11187]=true,
-	[11188]=true,	[11189]=true,	[11307]=true,
+	[11188]=true,	[11189]=true,	[11307]=true,	[12055]=true,	[12056]=true,
+	[12365]=true,	[12922]=true,
 }
 
 local IS_LOW = UnitLevel'player' < 50
@@ -150,6 +151,8 @@ module.db.topEnchGems = IS_TWW and {
 	[221896]=1,	[221897]=2,	[221898]=3,	[221900]=1,	[221901]=2,
 	[221902]=3,	[221904]=1,	[221905]=2,	[221906]=3,	[221908]=1,
 	[221909]=2,	[221910]=3,
+
+	[238045]=3,	[238042]=3,	[238046]=3,	[238044]=3,
 
 	[7419]=1,	[7420]=2,	[7421]=3,	[7416]=1,	[7417]=2,
 	[7418]=3,	[7422]=1,	[7423]=2,	[7329]=1,	[7330]=2,
@@ -189,7 +192,8 @@ module.db.topEnchGems = IS_TWW and {
 	[7540]=1,	[7543]=1,	[7544]=2,	[7545]=3,	[7546]=1,
 	[7547]=2,	[7548]=3,	[7549]=1,	[7550]=2,	[7551]=3,
 	[7593]=1,	[7594]=2,	[7595]=3,	[7596]=1,	[7597]=2,
-	[7598]=3,	[7599]=1,	[7600]=2,	[7601]=3,
+	[7598]=3,	[7599]=1,	[7600]=2,	[7601]=3,	[7652]=1,
+	[7653]=2,	[7654]=3,
 } or IS_SL and {
 	[6202]="cloak:stamina:speed",
 	[6208]="cloak:stamina",
@@ -341,7 +345,13 @@ module.db.topEnchGems = IS_TWW and {
 
 
 module.db.achievementsList = {
-	{	--N
+	{	--MF
+		L.S_ZoneT34,
+		41601,41602,41603,41598,41604,41605,41606,41607,41608,41609,41610,41611,41624,41625,
+	},{	--LoD
+		L.S_ZoneT33,
+		41222,41225,41226,41227,41228,41229,41230,41231,41232,41233,41234,41235,41236,41298,41297,
+	},{	--N
 		L.S_ZoneT32,
 		40244,40247,40248,40249,40236,40237,40238,40239,40240,40241,40242,40243,40253,40254,
 	},{	--A
@@ -431,7 +441,11 @@ module.db.achievementsList = {
 	},
 }
 module.db.achievementsList_statistic = {
-	{	--N
+	{	--MF
+		0,0,0,0,{41633,41634,41635,41636},{41637,41638,41639,41640},{41641,41642,41643,41644},{41645,41646,41647,41648},{41649,41650,41651,41652},{41653,41654,41655,41656},{41657,41658,41659,41660},{41661,41662,41663,41664},
+	},{	--LoD
+		0,0,0,0,0,{41299,41300,41301,41302},{41303,41304,41305,41306},{41307,41308,41309,41310},{41311,41312,41313,41314},{41315,41316,41317,41318},{41319,41320,41321,41322},{41323,41324,41325,41326},{41327,41328,41329,41330},
+	},{	--N
 		0,0,0,0,{40267,40268,40269,40270},{40271,40272,40273,40274},{40275,40276,40277,40278},{40279,40280,40281,40282},{40283,40284,40285,40286},{40287,40288,40289,40290},{40291,40292,40293,40294},{40295,40296,40297,40298},
 	},{
 
@@ -495,6 +509,20 @@ module.db.achievementsList_statistic = {
 		{6799,7926},{6800,7927},{6811,7963},{6812,7964},{6819,7971},{6820,7972},{8199,8200},{8202,8201},{8203,8256},{8635},{8637},{8636},{8638},
 	},
 }
+
+if ExRT.isClassic and ExRT.isMoP then
+	local c = 0
+	for i=1,#module.db.achievementsList do
+		if module.db.achievementsList[i][1] == EXPANSION_NAME4 then
+			break
+		end
+		c = c + 1
+	end
+	for i=1,c do
+		tremove(module.db.achievementsList, 1)
+		tremove(module.db.achievementsList_statistic, 1)
+	end
+end
 
 do
 	local array = parentModule.db.acivementsIDs
@@ -633,7 +661,7 @@ function module.options:Load()
 	self:CreateTilte()
 
 	local GetSpecializationInfoByID = GetSpecializationInfoByID
-	if ExRT.isClassic then
+	if ExRT.isClassic and not ExRT.isMoP then
 		GetSpecializationInfoByID = GetSpecializationInfoForSpecID or ExRT.Classic.GetSpecializationInfoByID
 	end
 
@@ -763,8 +791,8 @@ function module.options:Load()
 		colorizeLowIlvl685 = 482
 	end
 	if IS_TWW then
-		colorizeLowIlvl630 = 606
-		colorizeLowIlvl685 = 619
+		colorizeLowIlvl630 = 680
+		colorizeLowIlvl685 = 710
 	end
 
 	self.chkItemsTrackDropDown = ELib:DropDown(self,300,8):Point(50,0):Size(50)
@@ -864,7 +892,7 @@ function module.options:Load()
 		{
 			text = "",
 			isTitle = true,	
-			slider = {min = 500, max = 800, val = module.db.colorizeLowIlvlCustomN, func = function(self,val)
+			slider = {min = 600, max = 850, val = module.db.colorizeLowIlvlCustomN, func = function(self,val)
 				val = floor(val + .5)
 				module.db.colorizeLowIlvlCustomN = val
 				VMRT.InspectViewer.ColorizeLowIlvlCustomN = val
@@ -1048,7 +1076,9 @@ function module.options:Load()
 	if ExRT.isClassic then
 		--self.tab.tabs[2].button:Hide()
 		self.tab.tabs[3].button:Hide()
-		self.tab.tabs[4].button:Hide()
+		if not ExRT.isMoP then
+			self.tab.tabs[4].button:Hide()
+		end
 		if self.tab.tabs[5] then self.tab.tabs[5].button:Hide() end
 		self.chkItemsTrack:Hide()
 
@@ -1277,7 +1307,9 @@ function module.options:Load()
 								local slotID = module.db.itemsSlotTable[j]
 								local item = items[slotID]
 								if item then
-									local itemID,enchantID = string.match(item,"item:(%d+):(%d+):")
+									item = item:match("|H.-|h") or item
+
+									local itemID,enchantID = string.match(item,"item:(%d*):(%d*):")
 									itemID = itemID and tonumber(itemID) or 0
 									enchantID = enchantID and tonumber(enchantID) or 0
 
@@ -1329,7 +1361,7 @@ function module.options:Load()
 								end
 							end
 						end
-					elseif module.db.page == 2 and ExRT.isClassic then
+					elseif module.db.page == 2 and ExRT.isClassic and not ExRT.isMoP then
 						local data = data.talentsStr or (VMRT.Inspect and VMRT.Inspect.TalentsClassic and VMRT.Inspect.TalentsClassic[name])
 
 						line.spec:Hide()
@@ -1391,7 +1423,7 @@ function module.options:Load()
 									t = (j-1)*3+t
 									local _,_,spellTexture = GetTalentInfoByID( data.talentsIDs[j] )
 									icon.texture:SetTexture(spellTexture)
-									icon.link = GetTalentLink( data.talentsIDs[j] )
+									icon.link = data[-j] and GetSpellLink(data[-j]) or GetTalentLink( data.talentsIDs[j] )
 								else
 									local _,_,spellTexture = GetSpellInfo(t)
 									icon.texture:SetTexture(spellTexture)
@@ -1402,15 +1434,29 @@ function module.options:Load()
 							end
 						end
 
-						for j=9,14 do
-							local t = data[module.db.glyphsIDs[j-8]]
-							local icon = line.items[j]
-							if t then
-								local _,_,spellTexture = GetPvpTalentInfoByID( data.talentsIDs[ j - 1 ] )
-								icon.texture:SetTexture(spellTexture)
-								icon.link = GetPvpTalentLink( data.talentsIDs[ j - 1 ] )
-								icon.sid = nil
-								icon:Show()
+						if ExRT.isMoP then
+							for j=9,14 do
+								local t = data[j-1]
+								local icon = line.items[j]
+								if t then
+									local _,_,spellTexture = GetSpellInfo( t )
+									icon.texture:SetTexture(spellTexture)
+									icon.link = GetSpellLink( t)
+									icon.sid = nil
+									icon:Show()
+								end
+							end
+						else
+							for j=9,14 do
+								local t = data[module.db.glyphsIDs[j-8]]
+								local icon = line.items[j]
+								if t then
+									local _,_,spellTexture = GetPvpTalentInfoByID( data.talentsIDs[ j - 1 ] )
+									icon.texture:SetTexture(spellTexture)
+									icon.link = GetPvpTalentLink( data.talentsIDs[ j - 1 ] )
+									icon.sid = nil
+									icon:Show()
+								end
 							end
 						end
 					elseif module.db.page == 3 then

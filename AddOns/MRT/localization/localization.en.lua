@@ -132,6 +132,7 @@ L.NoteBossAutoLoadSendAsRL = "Send autoloaded note to raid (only for raid leader
 L.NoteUndo = "Undo"
 L.NoteUndoTip = "Undo recent updates"
 L.NoteBossAutoLoadPersonal = "Use autoload for personal note"
+L.NoteFontTextAlign = "Text align"
 
 L.setminimap1 = "Hide minimap icon"
 L.setauthor = "Author"
@@ -298,6 +299,7 @@ L.RaidCheckOwnOilItem = "Use own weapon buff item"
 L.RaidCheckOwnOilItemTip = "Type item ID, this option is personal for every character"
 L.RaidCheckOnlyUnlimRune = "Use only unlimited rune"
 L.RaidCheckMinRank = "Minimal rank"
+L.RaidCheckSortByName = "Sort by name"
 
 L.marksbarstart = "Clear"
 L.marksbardel = "Delete"
@@ -1133,6 +1135,10 @@ L.RaidGroupsExport = "Export current groups"
 L.RaidGroupsKeepPosInGroup = "Keep positions in groups"
 L.RaidGroupsSaveCurrent = "Keep changes"
 L.RaidGroupsSaveCurrentTip = "Automatic save any editing for currently selected preset."
+L.RaidGroupsSplitRoster = "Split roster"
+L.RaidGroupsSplitGroups = "Groups affected by sort"
+L.RaidGroupsSplitParts = "Number of parts for split"
+L.RaidGroupsSplitRule = "Split rule"
 
 L.panelmarksclear = "Clear"
 L.panelmarkstooltip = "Use macro /rt mark 1, /rt mark 2, /rt mark 3, /rt mark 4 for placing group of marks and /rt mark 5 for clearing all marks"
@@ -1688,6 +1694,7 @@ L.ReminderSearchStringTip = "Use \"|cff00ff00=|r\" at the beginning of the strin
 L.ReminderSoundDelay = "Sound delay"
 L.ReminderSoundDelayTip = "Delay in seconds before playing sound after reminder is triggered.\nYou can specify more than one comma separated.\nLeave empty for immediately sound activation."
 L.ReminderRecent = "Recent"
+L.ReminderHistorySync = "Send timeline history to raid after recent boss fight"
 
 L.OtherCovHelper = "Help me with choice"
 

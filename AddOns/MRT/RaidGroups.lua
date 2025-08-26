@@ -20,6 +20,13 @@ function module.main:ADDON_LOADED()
 		VMRT.RaidGroups.upd4550 = true
 	end
 
+	if not VMRT.RaidGroups.SplitGroups then
+		VMRT.RaidGroups.SplitGroups = {true,true,true,true}
+	end
+	if not VMRT.RaidGroups.SplitParts then
+		VMRT.RaidGroups.SplitParts = 2
+	end
+
 	module:RegisterSlash()
 end
 
@@ -265,7 +272,7 @@ function module.options:Load()
 		end)
 	end)
 
-	self.updateRoster = ELib:Button(self,L.RaidGroupsCurrentRoster):Size(315,20):Point("TOPLEFT",10,-565):OnClick(function() 
+	self.updateRoster = ELib:Button(self,L.RaidGroupsCurrentRoster):Size(ExRT.isClassic and not ExRT.isCata and 315 or 155,20):Point("TOPLEFT",10,-565):OnClick(function() 
 		module.options:ResetCurrentSave()
 	
 		local roster = {}
@@ -287,7 +294,217 @@ function module.options:Load()
 		module.options:UpdateNotInList()
 	end) 
 
-	self.processRoster = ELib:Button(self,L.RaidGroupsSetGroups):Size(315,30):Point("TOP",self.updateRoster,"BOTTOM",0,-5):OnClick(function(self) 
+	self.splitRoster = ELib:Button(self,L.RaidGroupsSplitRoster):Size(135,20):Point("LEFT",self.updateRoster,"RIGHT",5,0):Shown(not ExRT.isClassic or ExRT.isCata):OnClick(function() 
+		module.options:SplitRoster()
+	end)
+
+	self.splitRosterOptions = ELib:DropDownButton(self,"|TInterface\\AddOns\\"..GlobalAddonName.."\\media\\DiesalGUIcons16x256x128:14:14:0:0:256:128:16:32:64:80|t",200,-1):Size(20,20):Point("LEFT",self.splitRoster,"RIGHT",0,0):Shown(not ExRT.isClassic or ExRT.isCata)
+	do
+		local gfs = {}
+		local function gfs_check(_,g)
+			VMRT.RaidGroups.SplitGroups[g] = not VMRT.RaidGroups.SplitGroups[g]
+			ELib.ScrollDropDown.UpdateChecks()
+		end
+		for i=1,8 do
+			gfs[#gfs+1] = {
+				text = (GROUP or "Group").." "..i,
+				checkable = true,
+				func = gfs_check,
+				arg1 = i,
+			}
+		end
+
+		local nfs = {}
+		local function nfs_check(_,g)
+			VMRT.RaidGroups.SplitParts = g
+			ELib.ScrollDropDown.UpdateChecks()
+		end
+		for i=1,8 do
+			nfs[#nfs+1] = {
+				text = i,
+				radio = true,
+				func = nfs_check,
+				arg1 = i,
+			}
+		end
+
+		local sr = {}
+		local function sr_check(_,g)
+			VMRT.RaidGroups.SplitRule = g
+			ELib.ScrollDropDown.UpdateChecks()
+		end
+		sr[#sr+1] = {
+			text = "1,2,3,4 vs 5,6,7,8",
+			radio = true,
+			func = sr_check,
+			arg1 = 1,
+		}
+		sr[#sr+1] = {
+			text = "1,3,5,7 vs 2,4,6,8",
+			radio = true,
+			func = sr_check,
+			arg1 = 2,
+		}
+
+		self.splitRosterOptions.List = {
+			{
+				text = L.RaidGroupsSplitGroups,
+				subMenu = gfs,
+			},
+			{
+				text = L.RaidGroupsSplitParts,
+				subMenu = nfs,
+			},
+			{
+				text = L.RaidGroupsSplitRule,
+				subMenu = sr,
+			},
+			{ text = CLOSE, func = function() ELib.ScrollDropDown.Close() end, notCheckable = true },
+		}
+		function self.splitRosterOptions:PreUpdate()
+			for i=1,#gfs do
+				local line = gfs[i]
+				line.checkState = VMRT.RaidGroups.SplitGroups[i]
+			end
+			for i=1,#nfs do
+				local line = nfs[i]
+				line.checkState = i == VMRT.RaidGroups.SplitParts
+				if line.checkState then
+					line.colorCode = "|cff00ff00"
+				else
+					line.colorCode = nil
+				end
+			end
+			for i=1,#sr do
+				local line = sr[i]
+				line.checkState = (i == VMRT.RaidGroups.SplitRule) or (i==1 and not VMRT.RaidGroups.SplitRule)
+				if line.checkState then
+					line.colorCode = "|cff00ff00"
+				else
+					line.colorCode = nil
+				end
+			end
+		end
+		function self.splitRosterOptions:additionalToggle()
+			self:PreUpdate()
+		end
+	end
+
+	local splitClassPrio = {
+		[1]=15,--WARRIOR
+		[2]=14,--PALADIN
+		[4]=13,--ROGUE
+		[6]=12,--DEATHKNIGHT
+		[12]=11,--DEMONHUNTER
+		[7]=10,--SHAMAN
+		[10]=9,--MONK
+		[11]=8,--DRUID
+		[3]=7,--HUNTER
+		[5]=6,--PRIEST
+		[8]=5,--MAGE
+		[9]=4,--WARLOCK
+		[13]=3,--EVOKER
+		[14]=1,
+		[15]=2,
+	}
+
+	function module.options:SplitRoster()
+		local GROUPS_OPT = VMRT.RaidGroups.SplitGroups
+		local SPLIT_MAX = VMRT.RaidGroups.SplitParts
+
+		local roster = {}
+		local groups_opted_max = 0
+		for i=1,8 do 
+			if GROUPS_OPT[i] then
+				groups_opted_max = groups_opted_max + 1
+				for j=1,5 do
+					local edit = module.options.edits[(i-1)*5+j]
+					local name = edit:GetText()
+					if name and name:trim() ~= "" then
+						local prio = 0
+						if UnitName(name) then
+							prio = prio + 100
+						end
+						local role = UnitGroupRolesAssigned(name)
+						if role == "TANK" then
+							prio = prio + 60
+						elseif role == "DAMAGER" then
+							prio = prio + 40
+						elseif role == "HEALER" then
+							prio = prio + 20
+						end
+						local classNum = select(3,UnitClass(name))
+						if classNum then
+							prio = prio + splitClassPrio[classNum] or classNum
+						end
+						roster[#roster+1] = {name = name, prio = prio}
+					end
+				end
+			end
+		end
+
+		if (groups_opted_max / SPLIT_MAX) % 1 ~= 0 then
+			print('Groups are imbalanced, sorting is impossible.')
+			print('Change number of parts or number of affected groups.')
+			return
+		end
+
+		sort(roster,function(a,b) if a.prio == b.prio then return a.name < b.name else return a.prio > b.prio end end)
+
+		local splits = {}
+		local groups_opted_num = 0
+		for i=1,8 do 
+			if GROUPS_OPT[i] then
+				groups_opted_num = groups_opted_num + 1
+				local split_num
+				if VMRT.RaidGroups.SplitRule == 2 then
+					split_num = ((groups_opted_num - 1) % SPLIT_MAX) + 1
+				else
+					split_num = floor((groups_opted_num - 1) / ceil(groups_opted_max / SPLIT_MAX)) + 1
+				end
+				if not splits[split_num] then
+					splits[split_num] = { groups = {},curr = 1 }
+				end
+				tinsert(splits[split_num].groups, i)
+			end
+		end
+
+		--DevTools_Dump(splits)
+
+		local pos = 1
+		for i=1,groups_opted_num*5 do
+			local s = splits[pos]
+
+			local group = s.groups[ floor((s.curr - 1) / 5) + 1 ]
+			local gpos = ((s.curr - 1) % 5) + 1
+
+			local edit = module.options.edits[(group-1)*5+gpos]
+			edit:SetText(roster[i] and roster[i].name or "")
+			edit:SetCursorPosition(1)
+
+			s.curr = s.curr + 1
+
+			pos = pos + 1
+			if pos > SPLIT_MAX then
+				pos = 1
+			end
+		end
+
+		for _,s in pairs(splits) do
+			for i=s.curr,#s.groups*5 do
+				local group = s.groups[ floor((i - 1) / 5) + 1 ]
+				local gpos = ((i - 1) % 5) + 1
+
+				local edit = module.options.edits[(group-1)*5+gpos]
+				edit:SetText("")
+				edit:SetCursorPosition(1)
+			end
+		end
+
+		module.options:UpdateNotInList()
+	end
+
+	self.processRoster = ELib:Button(self,L.RaidGroupsSetGroups):Size(315,30):Point("TOPLEFT",self.updateRoster,"BOTTOMLEFT",0,-5):OnClick(function(self) 
 		local list = {}
 		for i=1,40 do
 			list[i] = module.options.edits[i]:GetText()

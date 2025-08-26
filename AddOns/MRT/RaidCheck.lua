@@ -4,6 +4,7 @@ local IsEncounterInProgress, GetTime = IsEncounterInProgress, GetTime
 local IsAddOnLoaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
 local GetSpellInfo = ExRT.F.GetSpellInfo or GetSpellInfo
 local GetItemInfo, GetItemInfoInstant, GetItemCount  = C_Item and C_Item.GetItemInfo or GetItemInfo, C_Item and C_Item.GetItemInfoInstant or GetItemInfoInstant, C_Item and C_Item.GetItemCount or GetItemCount
+local SendChatMessage = C_ChatInfo and C_ChatInfo.SendChatMessage or SendChatMessage
 
 local VMRT = nil
 
@@ -45,6 +46,12 @@ module.db.tableFood = not ExRT.isClassic and {
 	[87550]=true,	[87699]=true,	[87548]=true,	[87551]=true,	[87561]=true,	[87563]=true,	[87634]=true,	[87555]=true,	[87557]=true,	
 	[87558]=true,	[87559]=true,	[87697]=true,	[87560]=true,	[100368]=true,	[100373]=true,	[100375]=true,	[100377]=true,	[87565]=true,	
 	[87546]=true,	[87547]=true,	[87545]=true,
+
+	--mop
+	[104283]=true,	[104280]=true,	[104277]=true,	[104275]=true,	[104272]=true,
+	[146808]=true,	[146807]=true,	[146806]=true,	[146805]=true,	[146804]=true,	[146809]=true,--5.4 food
+	[104282]=true,	[104279]=true,	[104276]=true,	[104274]=true,	[104271]=true,
+	[104281]=true,	[104278]=true,	[104264]=true,	[104273]=true,	[104267]=true,
 
 }
 module.db.StaminaFood = {[201638]=true,[259457]=true,[288075]=true,[288074]=true,[297119]=true,[297040]=true,}
@@ -91,9 +98,26 @@ module.db.tableFlask = not ExRT.isClassic and {
 	[79471]=true,	[79470]=true,	[79472]=true,	[92731]=true,	[79469]=true,	[92729]=true,	[94160]=true,	[92730]=true,	
 	[92725]=true,
 
+	--sod
+	[1213886]=true,	[1213892]=true,	[1213901]=true,	[1213897]=true,
+	[1213904]=true,	[1213914]=true,
+
+	--mop
+	[105694]=true,	[105693]=true,	[105691]=true,	[105689]=true,	[105696]=true,
 }
 module.db.tableFlask_headers = ExRT.isClassic and {0,1} or {0,25,38}
-module.db.tablePotion = {
+module.db.tablePotion = ExRT.isMoP and {
+	[105702]=true,	--Int
+	[105697]=true,	--Agi	
+	[105706]=true,	--Str
+	[105709]=true,	--Mana 30k
+	[105701]=true,	--Mana 45k
+	[105707]=true,	--Run haste
+	[105698]=true,	--Armor
+	[105708]=true,	--Health
+	[105704]=true,	--Mana + Health [alchim]
+	[125282]=true,	--Kafa Boost
+} or {
 	[188024]=true,	--Run haste
 	[250871]=true,	--Mana
 	[252753]=true,	--Mana channel
@@ -343,7 +367,18 @@ if not ExRT.isClassic and UnitLevel'player' > 50 then
 	module.db.tableAP = {[6673]=true,}
 end
 
-if ExRT.isCata then
+if ExRT.isMoP then
+	module.db.classicBuffs = {
+		{"druid","5% Stats",136078,{[1126]=true,[115921]=true,[90363]=true,[20217]=true,[117666]=true,[117667]=true}},
+		{"spd","SPD",135932,{[1459]=true,[126309]=true,[77747]=true,[109773]=true,[61316]=true,}},
+		{"hastecast","Spell haste",136057,{[24907]=true,[49868]=true,[15473]=true,[51470]=true}},
+		{"str","AP",132333,{[57330]=true,[19506]=true,[6673]=true}},
+		{"hasteatk","Atk speed",133076,{[55610]=true,[128432]=true,[128433]=true,[113742]=true,[30809]=true}},
+		{"crit","Crit",136112,{[17007]=true,[90309]=true,[126309]=true,[24604]=true,[1459]=true,[116781]=true,[24932]=true,[61316]=true,[24597]=true,}},
+		{"mastery","Mastery",135908,{[93435]=true,[128997]=true,[19740]=true,[116956]=true,[127830]=true,}},
+		{"stamina","Stamina",135987,{[90364]=true,[21562]=true,[109773]=true,[469]=true}},
+	}
+elseif ExRT.isCata then
 	module.db.classicBuffs = {
 		{"druid","5% Stats",136078,{[79061]=true,[90363]=true,[79063]=true}},	--Gift of the Wild
 		{"int","Int",135932,{[79058]=true,[61316]=true,[54424]=true,[79038]=true}},	--Arcane Intellect
@@ -665,7 +700,7 @@ local function GetFood(checkType)
 					local spellId = auraData.spellId
 					local stats = auraData.points and auraData.points[1]
 					local foodType = module.db.tableFood[spellId]
-					if foodType or auraData.icon == 136000 then
+					if foodType or auraData.icon == 136000 or auraData.icon == 132805 or auraData.icon == 133950 then
 						local _,unitRace = UnitRace(name)
 
 						if unitRace == "Pandaren" and stats then
@@ -692,7 +727,7 @@ local function GetFood(checkType)
 						if ExRT.isClassic then
 							stats = 375
 						end
-						if auraData.icon == 136000 then
+						if auraData.icon == 136000 or auraData.icon == 132805 or auraData.icon == 133950 then
 							stats = true
 						end
 						if type(stats) ~= "number" then
@@ -1404,20 +1439,40 @@ function module.options:Load()
 	self.chkReadyCheckFrameClassSort = ELib:Check(self.tab.tabs[2],L.RaidCheckSortByClass,VMRT.RaidCheck.ReadyCheckSortClass):Point(15,-235):OnClick(function(self) 
 		if self:GetChecked() then
 			VMRT.RaidCheck.ReadyCheckSortClass = true
+			VMRT.RaidCheck.ReadyCheckSortName = nil
+			module.options.chkReadyCheckFrameClassName:SetChecked(false)
 		else
 			VMRT.RaidCheck.ReadyCheckSortClass = nil
 		end
 	end)
 
-	self.chkReadyCheckColDecLine = ELib:DecorationLine(self.tab.tabs[2]):Point("TOP",self.chkReadyCheckFrameClassSort,"BOTTOM",0,-5):Size(0,1):Point("LEFT",0,0):Point("RIGHT",0,0)
+	self.chkReadyCheckFrameClassName = ELib:Check(self.tab.tabs[2],L.RaidCheckSortByName,VMRT.RaidCheck.ReadyCheckSortName):Point(15,-260):OnClick(function(self) 
+		if self:GetChecked() then
+			VMRT.RaidCheck.ReadyCheckSortName = true
+			VMRT.RaidCheck.ReadyCheckSortClass = nil
+			module.options.chkReadyCheckFrameClassSort:SetChecked(false)
+		else
+			VMRT.RaidCheck.ReadyCheckSortName = nil
+		end
+	end)
 
-	self.chkReadyCheckColText = ELib:Text(self.tab.tabs[2],L.cd2Columns..":",12):Point("TOPLEFT",self.chkReadyCheckFrameClassSort,"BOTTOMLEFT",0,-10)
+	self.chkReadyCheckColDecLine = ELib:DecorationLine(self.tab.tabs[2]):Point("TOP",self.chkReadyCheckFrameClassName,"BOTTOM",0,-5):Size(0,1):Point("LEFT",0,0):Point("RIGHT",0,0)
+
+	self.chkReadyCheckColText = ELib:Text(self.tab.tabs[2],L.cd2Columns..":",12):Point("TOPLEFT",self.chkReadyCheckFrameClassName,"BOTTOMLEFT",0,-10)
 	
-	self.chkReadyCheckColSoulstone = ELib:Check(self.tab.tabs[2],GetSpellInfo(20707) or "Soulstone",VMRT.RaidCheck.ReadyCheckSoulstone):Point("TOPLEFT",self.chkReadyCheckFrameClassSort,"BOTTOMLEFT",0,-30):OnClick(function(self) 
+	self.chkReadyCheckColSoulstone = ELib:Check(self.tab.tabs[2],GetSpellInfo(20707) or "Soulstone",VMRT.RaidCheck.ReadyCheckSoulstone):Point("TOPLEFT",self.chkReadyCheckFrameClassName,"BOTTOMLEFT",0,-30):OnClick(function(self) 
 		if self:GetChecked() then
 			VMRT.RaidCheck.ReadyCheckSoulstone = true
 		else
 			VMRT.RaidCheck.ReadyCheckSoulstone = nil
+		end
+	end)	
+
+	self.chkReadyCheckColIlvl = ELib:Check(self.tab.tabs[2],STAT_AVERAGE_ITEM_LEVEL or "Item level",VMRT.RaidCheck.ReadyCheckIlvl):Point("TOPLEFT",self.chkReadyCheckColSoulstone,"BOTTOMLEFT",0,-5):OnClick(function(self) 
+		if self:GetChecked() then
+			VMRT.RaidCheck.ReadyCheckIlvl = true
+		else
+			VMRT.RaidCheck.ReadyCheckIlvl = nil
 		end
 	end)	
 
@@ -2092,20 +2147,45 @@ function module.frame:UpdateCols()
 		end
 		header:SetText(RCW_iconsListHeaders[RCW_iconsList_ORIGIN+colsAdd])
 	end
+	if VMRT.RaidCheck.ReadyCheckIlvl then
+		colsAdd = colsAdd + 1
+		RCW_iconsList[RCW_iconsList_ORIGIN+colsAdd] = "ilvl"
+		RCW_iconsListHeaders[RCW_iconsList_ORIGIN+colsAdd] = STAT_AVERAGE_ITEM_LEVEL or "Item level"
+		RCW_iconsListDebugIcons[RCW_iconsList_ORIGIN+colsAdd] = 132281
+		local header = module.frame.headers[RCW_iconsList_ORIGIN+colsAdd]
+		if not header then
+			header = ELib:Text(module.frame.headers,"",10):Color(1,1,1):Point("BOTTOMLEFT",module.frame.headers[RCW_iconsList_ORIGIN+colsAdd-1],"BOTTOMLEFT",30,0)--:Font(VMRT.RaidCheck.ReadyCheckFont or ExRT.F.defFont,(VMRT.RaidCheck.ReadyCheckFontSize or 12)-2)
+			module.frame.headers[RCW_iconsList_ORIGIN+colsAdd] = header
+		end
+		header:SetText(RCW_iconsListHeaders[RCW_iconsList_ORIGIN+colsAdd])
+	end
 	for i=1,40 do
 		local line = module.frame.lines[i]
 		line:SetSize(420+60+30+(ExRT.isClassic and 30*RCW_liveToClassicDiff or 0)+RCW_liveToslDiff+colsAdd*30,14)
 
 		local prevPointer = line[ RCW_iconsList[RCW_iconsList_ORIGIN].."pointer" ]
 
+		local colsAdd = 0
 		if VMRT.RaidCheck.ReadyCheckSoulstone then
+			colsAdd = colsAdd + 1
 			if not line["ss"] then
-				CreateCol(line,"ss",RCW_iconsList_ORIGIN+1)
+				CreateCol(line,"ss",RCW_iconsList_ORIGIN+colsAdd)
 			end
 			prevPointer = line["ss"]:UpdatePos(prevPointer)
 			line["ss"]:Show()
 		elseif line["ss"] then
 			line["ss"]:Hide()
+		end
+
+		if VMRT.RaidCheck.ReadyCheckIlvl then
+			colsAdd = colsAdd + 1
+			if not line["ilvl"] then
+				CreateCol(line,"ilvl",RCW_iconsList_ORIGIN+colsAdd)
+			end
+			prevPointer = line["ilvl"]:UpdatePos(prevPointer)
+			line["ilvl"]:Show()
+		elseif line["ilvl"] then
+			line["ilvl"]:Hide()
 		end
 		
 	end	
@@ -2210,7 +2290,29 @@ function module.frame:UpdateFont()
 	self.timeLeftLine.time:SetFont(font,fontsize,"")
 
 end
-module.frame:Create()
+--module.frame:Create()
+
+do
+	local scheduledUpdate
+	local function zoneCheck()
+		scheduledUpdate = nil
+		local zoneName, instanceType, difficultyID, _, _, _, _, zoneID = GetInstanceInfo()
+		if instanceType == "raid" then
+			module.frame:Create()
+		end
+	end
+	function module.main:ZONE_CHANGED_NEW_AREA()
+		if module.frame.isCreated then 
+			module:UnregisterEvents('ZONE_CHANGED_NEW_AREA')
+			return
+		end
+		zoneCheck()
+		if not scheduledUpdate then
+			scheduledUpdate = C_Timer.NewTimer(1,zoneCheck)
+		end
+	end
+end
+
 
 do
 	local line = CreateFrame("Frame",nil,module.frame)
@@ -2478,18 +2580,25 @@ function module.frame:UpdateRoster()
 			result[#result+1] = {
 				name = ExRT.F.delUnitNameServer(name),
 				unit = unit,
-				class = class,
+				class = class or "",
 			}
 		end
 	end
-	if VMRT and VMRT.RaidCheck and VMRT.RaidCheck.ReadyCheckSortClass then
-		sort(result,function(a,b)
-			if a.class == b.class then
+	if VMRT and VMRT.RaidCheck then
+		if VMRT.RaidCheck.ReadyCheckSortName then
+			sort(result,function(a,b)
 				return a.name < b.name
-			else
-				return a.class < b.class
-			end
-		end)
+			end)
+		end
+		 if VMRT.RaidCheck.ReadyCheckSortClass then
+			sort(result,function(a,b)
+				if a.class == b.class then
+					return a.name < b.name
+				else
+					return a.class < b.class
+				end
+			end)
+		end
 	end
 	for i=1,#result do
 		count = count + 1
@@ -2607,7 +2716,7 @@ function module.frame:UpdateData(onlyLine)
 						end
 
 						buffCount = buffCount + 1
-					elseif auraData.icon == 134062 or auraData.icon == 132805 then
+					elseif auraData.icon == 134062 or auraData.icon == 132805 or auraData.icon == 133950 then
 						line.food.texture:SetTexture(134062)
 						line.food.text:SetText("")
 					elseif auraData.icon == 136000 then
@@ -2768,6 +2877,19 @@ function module.frame:UpdateData(onlyLine)
 						line.dur.bigText:SetTextColor(1,1,1)
 					end
 				end
+				if line.ilvl and not self.isTest then
+					local inspectDB = ExRT.A.Inspect and ExRT.A.Inspect.db.inspectDB
+					local data = inspectDB and inspectDB[line.unit_name]
+					if inspectDB and not data then
+						for n,d in pairs(inspectDB) do
+							if strsplit("-",n) == line.unit_name then
+								data = d
+								break
+							end
+						end
+					end
+					line.ilvl.bigText:SetText(data and format("%.1f",data.ilvl) or "-")
+				end
 				if line.kit and not self.isTest then
 					local durTab, dur = module.db.kit[line.unit_name]
 					if durTab and (durTab.time + (line.rc_status ~= 4 and 60 or 600) > currTime) then
@@ -2923,6 +3045,13 @@ function module.frame:UpdateData(onlyLine)
 							line.dur.bigText:SetTextColor(1,1,1)
 						end
 					end
+					if line.ilvl then
+						line.ilvl.texture:SetTexture("")
+						local ilvl = self.testData[line.pos].ilvl or math.random(1000,9999) / 10
+						self.testData[line.pos].ilvl = ilvl
+
+						line.ilvl.bigText:SetText(ilvl and format("%.1f",ilvl) or "-")
+					end
 
 					buffCount = self.testData[line.pos].buffCount or math.random(4,5)
 					self.testData[line.pos].buffCount = buffCount
@@ -2973,6 +3102,39 @@ module.frame:SetScript("OnEvent",function(self,event,unit)
 end)
 
 
+local isLibDurabilityRegistered
+local function LibDurabilityCallback(percent, broken, pName, channel)
+	if not percent or not pName then
+		return
+	end
+	percent = tonumber(percent or "100") or 100
+	module.db.durability[pName] = {
+		time = time(),
+		dur = percent,
+	}
+	local shortName = ExRT.F.delUnitNameServer(pName)
+	module.db.durability[shortName] = module.db.durability[pName]
+
+	local line = RCW_UnitToLine[shortName]
+	if line and module.frame:IsShown() then
+		module.frame:UpdateData(line)
+	end
+end
+function module:LibDurability(onlyReg)
+	local LD = LibStub("LibDurability",true)
+	if LD then
+		if not isLibDurabilityRegistered then
+			LD:Register(GlobalAddonName, LibDurabilityCallback)
+			isLibDurabilityRegistered = true
+		end
+		if onlyReg then
+			return
+		end
+		LD:RequestDurability()
+	end
+end
+
+
 function module:ReadyCheckWindow(starter,isTest,manual)
 	if manual and self.frame:IsShown() then
 		self.frame:Hide()
@@ -2985,7 +3147,10 @@ function module:ReadyCheckWindow(starter,isTest,manual)
 
 	local colsAdd = 0
 	if VMRT.RaidCheck.ReadyCheckSoulstone then
-		colsAdd = bit.bor(colsAdd,0x1)
+		colsAdd = bit.bor(colsAdd,bit.lshift(1,0))
+	end
+	if VMRT.RaidCheck.ReadyCheckIlvl then
+		colsAdd = bit.bor(colsAdd,bit.lshift(1,1))
 	end
 	if (self.frame.colsAdd or -1) ~= colsAdd then
 		self.frame.colsAdd = colsAdd
@@ -3006,8 +3171,10 @@ function module:ReadyCheckWindow(starter,isTest,manual)
 		for i=1,#self.frame.lines do 
 			self.frame.lines[i].rc_status = 4
 		end
-		if UnitLevel'player' >= 50 and not ExRT.isClassic then
+		if UnitLevel'player' >= 50 and (not ExRT.isClassic or ExRT.isMoP) then
 			ExRT.F.SendExMsg("raidcheckreq","REQ\t1")
+
+			module:LibDurability()
 		end
 	end
 	self.frame:UpdateData()
@@ -3076,7 +3243,7 @@ function module.main:ADDON_LOADED()
 		VMRT.RaidCheck.WeaponEnch = {}
 	end
 
-	module:RegisterEvents('READY_CHECK')
+	module:RegisterEvents('READY_CHECK','ZONE_CHANGED_NEW_AREA')
 
 	module:RegisterSlash()
 	module:RegisterAddonMessage()
@@ -3210,6 +3377,7 @@ do
 			module.main:READY_CHECK_CONFIRM(ExRT.F.delUnitNameServer(starter),true,isTest)
 		end
 		if not isTest then
+			module:LibDurability(true)
 			module:SendConsumeData()
 		end
 	end
@@ -4117,7 +4285,7 @@ if (not ExRT.isClassic) and UnitLevel'player' >= 60 then
 		elseif event == "READY_CHECK_FINISHED" then
 			module.consumables:OnHide()
 
-			if self.isRLpos then
+			if self.isRLpos and not InCombatLockdown() then
 				self.rlpointer:Hide()
 			end
 		elseif event == "UNIT_AURA" then

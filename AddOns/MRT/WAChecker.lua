@@ -10,6 +10,8 @@ module.db.responces2 = {}
 module.db.lastReq = {}
 module.db.lastReq2 = {}
 module.db.lastCheck = {}
+module.db.lastCheckName = {}
+local sync_db = {}
 
 function module.options:Load()
 	self:CreateTilte()
@@ -61,7 +63,7 @@ function module.options:Load()
 	raidSlider.High.Show = raidSlider.High.Hide
 
 	
-	local icon5 = C_Texture.GetAtlasInfo("Islands-QuestBangDisable")
+	local icon5 = C_Texture.GetAtlasInfo("Islands-QuestBangDisable") or C_Texture.GetAtlasInfo("QuestTurnin")
 	local function SetIcon(self,type)
 		if self.texturechanged then
 			self:SetTexture("Interface\\AddOns\\"..GlobalAddonName.."\\media\\DiesalGUIcons16x256x128")
@@ -82,8 +84,10 @@ function module.options:Load()
 			self:SetTexCoord(0.875,0.9375,0.5,0.625)
 			self:SetVertexColor(.8,.8,0,1)
 		elseif type == 5 then
-			self:SetTexture(icon5.file)
-			self:SetTexCoord(icon5.leftTexCoord,icon5.rightTexCoord,icon5.topTexCoord,icon5.bottomTexCoord)
+			if icon5 then
+				self:SetTexture(icon5.file)
+				self:SetTexCoord(icon5.leftTexCoord,icon5.rightTexCoord,icon5.topTexCoord,icon5.bottomTexCoord)
+			end
 			self:SetVertexColor(1,1,1,1)
 			self.texturechanged = true
 		elseif type == -1 or type < 0 then
@@ -399,8 +403,13 @@ function module.options:Load()
 
 	local function NameHover(self)
 		local t = self.lastCheck
+		local name = strsplit("-",self.lastCheckName)
+		if UnitName(name) then
+			local class = select(2,UnitClass(name))
+			name = "|c"..ExRT.F.classColor(class)..name.."|r"
+		end
 		local n = time()
-		return "Last check: "..date("%X",t).." ("..(n-t).." "..SECONDS.." ago)"
+		return "Last check: "..date("%X",t).."\n"..(n-t).." "..SECONDS.." ago by "..name
 	end
 
 	function UpdatePageView()
@@ -450,6 +459,7 @@ function module.options:Load()
 			local lastCheck = module.db.lastCheck[ aura.name ]
 			if lastCheck then
 				line.name.lastCheck = lastCheck
+				line.name.lastCheckName = module.db.lastCheckName[ aura.name ]
 				line.name.extraTip = NameHover
 			else
 				line.name.extraTip = nil
@@ -921,7 +931,7 @@ function module:SendReq2(ownList)
 end
 --/run GExRT.F.table_to_string(GMRT.A.WAChecker:wa_clear(WeakAurasSaved.displays[]))
 
-function module:SendResp2()
+function module:SendResp2(reqTable)
 	SendRespSch = nil
 
 	if not WeakAurasSaved then
@@ -931,10 +941,11 @@ function module:SendResp2()
 
 	ExRT.F.SendExMsg("wachk", ExRT.F.CreateAddonMsg("Y","DATA",tostring(WeakAuras.versionString)))
 
+	local reqTable = ExRT.F.table_copy2(reqTable)
 	ExRT.F:AddCoroutine(function()
 		local res = ""
 		local c = 0
-		for i,data in pairs(module.db.lastReq2) do
+		for i,data in pairs(reqTable) do
 			if IsEncounterInProgress() then return end	--stop on encounter
 			local wa_name, wa_hash = data[1],data[2]
 			c = c + 1
@@ -1084,8 +1095,7 @@ function module:addonMessage(sender, prefix, prefix2, ...)
 			end
 			local str = table.concat({select(... == "H" and 2 or 1,...)}, "\t")
 
-			module.db.syncStr2[ sender ] = module.db.syncStr2[ sender ] or ""
-			module.db.syncStr2[ sender ] = module.db.syncStr2[ sender ] .. str
+			module.db.syncStr2[ sender ] = (module.db.syncStr2[ sender ] or "") .. str
 			if module.db.syncStr2[ sender ]:find("#F#$") then
 				local str = module.db.syncStr2[ sender ]:sub(1,-4)
 				module.db.syncStr2[ sender ] = nil
@@ -1095,8 +1105,19 @@ function module:addonMessage(sender, prefix, prefix2, ...)
 
 				decompressed = decompressed
 
-				for i=1,#decompressed do
-					module.db.responces2[ sender ][  module.db.lastReq2[i][1] ] = tonumber( decompressed:sub(i,i),10 )
+				local workingReq
+				for j=#module.db.lastReq2,1,-1 do
+					local lastReq = module.db.lastReq2[j]
+					if type(lastReq)=="table" and #lastReq == #decompressed and not lastReq[sender] then
+						workingReq = lastReq
+						break
+					end
+				end
+				if workingReq then
+					workingReq[sender] = true
+					for i=1,#decompressed do
+						module.db.responces2[ sender ][ workingReq[i][1] ] = tonumber( decompressed:sub(i,i),10 )
+					end
 				end
 			end
 			
@@ -1190,28 +1211,31 @@ function module:addonMessage(sender, prefix, prefix2, ...)
 	elseif prefix == "wac3" then
 		if prefix2 == "G" then
 			local now = GetTime()
-			if lastSender ~= sender and (now - lastSenderTime) < 2 then
-				return
-			end
-			lastSender = sender
-			lastSenderTime = now
+			if not sync_db.wac3_G_syncStr then sync_db.wac3_G_syncStr = {} end
+			if not sync_db.wac3_G_senderToCount then sync_db.wac3_G_senderToCount = {} end
+
 			if ... == "H" then
-				wipe(module.db.lastReq2)
-				module.db.syncStr = ""
+				sync_db.wac3_G_count = (sync_db.wac3_G_count or 0) + 1
+				sync_db.wac3_G_senderToCount[sender] = sync_db.wac3_G_count
+				module.db.lastReq2[sync_db.wac3_G_count] = {}
+				sync_db.wac3_G_syncStr[sender] = ""
+			end
+			if not sync_db.wac3_G_senderToCount[sender] then
+				return
 			end
 
 			local str = table.concat({select(... == "H" and 2 or 1,...)}, "\t")
-			module.db.syncStr = module.db.syncStr or ""
-			module.db.syncStr = module.db.syncStr .. str
-			if module.db.syncStr:find("##F##$") then
-				local str = module.db.syncStr:sub(1,-6)
-				module.db.syncStr = nil
+			sync_db.wac3_G_syncStr[sender] = (sync_db.wac3_G_syncStr[sender] or "") .. str
+			if sync_db.wac3_G_syncStr[sender]:find("##F##$") then
+				local str = sync_db.wac3_G_syncStr[sender]:sub(1,-6)
+				sync_db.wac3_G_syncStr[sender] = nil
 		
 				local decoded = LibDeflate:DecodeForWoWAddonChannel(str)
 				local decompressed = LibDeflate:DecompressDeflate(decoded)
 
 				decompressed = decompressed
 
+				local c = sync_db.wac3_G_senderToCount[sender]
 				local now_time = time()
 				local pos = 1
 				while true do
@@ -1222,13 +1246,15 @@ function module:addonMessage(sender, prefix, prefix2, ...)
 					if hs then hs = hs-1 end
 					local wa_hash = decompressed:sub(ne+1,hs)
 
-					module.db.lastReq2[#module.db.lastReq2 + 1] = {wa_name,wa_hash}
+					module.db.lastReq2[c][#module.db.lastReq2[c] + 1] = {wa_name,wa_hash}
 					module.db.lastCheck[wa_name] = now_time
+					module.db.lastCheckName[wa_name] = sender
 					if not he then break end
 					pos = he + 1
 				end
-							
-				module:SendResp2()
+				
+				C_Timer.After(60,function() module.db.lastReq2[c] = 0 end)	--kill outdated table
+				module:SendResp2(module.db.lastReq2[c])
 			end
 		elseif prefix2 == "D" then
 			if IsInRaid() and not ExRT.F.IsPlayerRLorOfficer(sender) then
@@ -1248,7 +1274,7 @@ function module:addonMessage(sender, prefix, prefix2, ...)
 				local str = module.db.synqTextWA[sender]:sub(1,-6)
 
 				module.db.synqTextWA[sender] = nil
-				module.db.synqIndexWA[sender] = ni
+				module.db.synqIndexWA[sender] = nil
 				module.db.synqWAData[sender] = str
 			end
 		end
@@ -1394,5 +1420,6 @@ function module:SendWA(id)
 		end
 		ExRT.F.SendExMsgExt(opt,"wac3","D\t"..newIndex.."\t"..msg)
 	end
-	ExRT.F.SendExMsg("wachk", "SWA\t"..id.."\t"..fullName)
+	ExRT.F.SendExMsgExt({maxPer5Sec=50},"wachk", "SWA\t"..id.."\t"..fullName)
+	
 end
