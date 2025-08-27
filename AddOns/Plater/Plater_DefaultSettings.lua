@@ -191,7 +191,7 @@ PLATER_DEFAULT_SETTINGS = {
 				castbar_offset = 0,
 				
 				actorname_text_spacing = 10,
-				actorname_text_size = 14,
+				actorname_text_size = 10,
 				actorname_text_font = "Arial Narrow",
 				actorname_use_class_color = true,
 				actorname_text_color = {1, 1, 1, 1},
@@ -315,14 +315,14 @@ PLATER_DEFAULT_SETTINGS = {
 				percent_text_anchor = {side = 9, x = 0, y = 0},
 				percent_text_alpha = 1,
 				
-				big_actortitle_text_size = 11,
+				big_actortitle_text_size = 10,
 				big_actortitle_text_font = "Arial Narrow",
 				big_actortitle_text_color = {1, .8, .0},
 				big_actortitle_text_outline = "OUTLINE",
 				big_actortitle_text_shadow_color = {0, 0, 0, 1},
 				big_actortitle_text_shadow_color_offset = {1, -1},
 				
-				big_actorname_text_size = 9,
+				big_actorname_text_size = 10,
 				big_actorname_text_font = "Arial Narrow",
 				big_actorname_text_color = {.5, 1, .5},
 				big_actorname_text_outline = "OUTLINE",
@@ -403,14 +403,14 @@ PLATER_DEFAULT_SETTINGS = {
 				quest_color_enabled = true,
 				quest_color = {.5, 1, 0, 1},
 				
-				big_actortitle_text_size = 11,
+				big_actortitle_text_size = 10,
 				big_actortitle_text_font = "Arial Narrow",
 				big_actortitle_text_color = {1, .8, .0},
 				big_actortitle_text_outline = "OUTLINE",
 				big_actortitle_text_shadow_color = {0, 0, 0, 1},
 				big_actortitle_text_shadow_color_offset = {1, -1},
 				
-				big_actorname_text_size = 14,
+				big_actorname_text_size = 10,
 				big_actorname_text_font = "Arial Narrow",
 				big_actorname_text_color = {.5, 1, .5},
 				big_actorname_text_outline = "OUTLINE",
@@ -3067,7 +3067,7 @@ PLATER_DEFAULT_SETTINGS = {
 		
 		indicator_extra_raidmark = true,
 		indicator_raidmark_scale = 1,
-		indicator_raidmark_anchor = {side = 10, x = 10, y = 0},
+		indicator_raidmark_anchor = {side = 10, x = -10, y = 0},
 		
 		target_indicator = "Arrow",
 		
