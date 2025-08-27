@@ -1,4 +1,15 @@
-## Bugfixes
-- Raid boss order
-- TWW season 3 catalyst non-set items
-- Raid boss npc ids
+## Other Changes
+- Update deDE.lua
+- Update esES.lua
+- Update deDE.lua
+- Update frFR.lua
+- Update itIT.lua
+- Update koKR.lua
+- Update ptBR.lua
+- Update ruRU.lua
+- Update zhCN.lua
+- Update zhTW.lua
+- Merge pull request [#39](https://github.com/Wolkenschutz/KeystoneLoot/pull/39) by [rustynail1984](https://github.com/rustynail1984) from rustynail1984/main
+- Add the cloak cosmetic from the raid to the blacklist for upgrading
+- Merge branch 'main' of https://github.com/Wolkenschutz/KeystoneLoot
+- Change the default naming for the Catalyst
