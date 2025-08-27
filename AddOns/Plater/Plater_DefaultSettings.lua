@@ -803,7 +803,7 @@ PLATER_DEFAULT_SETTINGS = {
 		
 		aura_cooldown_reverse = true,
 		aura_cooldown_show_swipe = true,
-		aura_cooldown_edge_texture = [[Interface\AddOns\Plater\images\cooldown_edge_2]],
+		aura_cooldown_edge_texture = "Interface\\AddOns\\Plater\\images\\transparent",
 		
 		aura_enabled = true,
 		aura_show_tooltip = false,
