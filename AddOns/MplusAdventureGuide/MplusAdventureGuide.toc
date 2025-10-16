@@ -1,7 +1,7 @@
-## Interface: 110200
+## Interface: 110205
 ## Title: Mythic+ Miscellaneous
 ## Author: Teelo - Jubei'thos (US)
-## Version: 11.2-002
+## Version: 11.2-008
 ## Notes: Shows the Loot tab in your Encounter Journal in Dragonflight, as well as a few other things
 ## X-Curse-Project-ID: 655714
 ## SavedVariables: MPlusAdventureGuideADB
@@ -41,9 +41,12 @@ item-upgrade.lua
 watermark.lua
 portal-buttons.lua
 achievement-expansion-features.lua
+achievement-tracker-fix.lua
 keystone-movable.lua
 acronyms.lua
 wardrobe-class-colours.lua
 warband-transferable.lua
 delves-progress-tooltip.lua
+inspect-ilvl.lua
+premade-finder-red-x.lua
 init.lua

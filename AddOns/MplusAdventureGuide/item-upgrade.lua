@@ -184,7 +184,7 @@ local db = {
             },
             TWWseason3 = {
                 lower = 694,
-                upper = 710,
+                upper = 717,
             },
         },
     },
@@ -215,7 +215,7 @@ local db = {
             },
             TWWseason3 = {
                 lower = 707,
-                upper = 723,
+                upper = 730,
             },
         },
     },
