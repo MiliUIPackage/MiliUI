@@ -12,8 +12,8 @@ function addon:setupOptions()
             keystoneMovable = true,
             acronyms = false,
             wardrobeClassColours = true,
-            delvesProgressTooltip = true,
-            inspectilvl = true,
+            delvesProgressTooltip = false,
+            inspectilvl = false,
             premadeFinderRedX = true,
         },
     }
