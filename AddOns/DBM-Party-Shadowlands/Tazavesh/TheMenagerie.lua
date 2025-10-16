@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2454, "DBM-Party-Shadowlands", 9, 1194)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250818212624")
+mod:SetRevision("20250906092635")
 mod:SetCreatureID(176556, 176555, 176705)
 mod:SetEncounterID(2441)
 mod:SetUsedIcons(1)
@@ -43,7 +43,7 @@ local specWarnGripofHunger			= mod:NewSpecialWarningRun(349663, nil, nil, nil, 4
 local specWarnGrandConsumption		= mod:NewSpecialWarningDodge(349663, nil, nil, nil, 2, 2)
 
 local timerGripofHungerCD			= mod:NewCDTimer(23, 349663, nil, nil, nil, 2)--23-30
-local timerGrandconsumptionCD		= mod:NewCDTimer(30.3, 349797, nil, nil, nil, 3)
+local timerGrandconsumptionCD		= mod:NewCDTimer(30, 349797, nil, nil, nil, 3)
 
 mod:AddSetIconOption("SetIconOnGluttony", 349627, true, 0, {1})
 --Achillite
@@ -114,7 +114,7 @@ function mod:SPELL_CAST_START(args)
 		self.vb.chainsCast = self.vb.chainsCast + 1
 		specWarnChainsofDamnation:Show()
 		specWarnChainsofDamnation:Play("targetchange")
-		timerChainsofDamnationCD:Start(self.vb.chainsCast == 1 and 21.8 or 30.3, self.vb.chainsCast+1)
+		timerChainsofDamnationCD:Start(self.vb.chainsCast == 1 and 21.8 or 29.1, self.vb.chainsCast+1)
 	end
 end
 

@@ -1,21 +1,24 @@
-## Interface: 110200
+## Interface: 110205, 120000
 ## X-Min-Interface: 110200
 ## Category: DBM
 ## Title:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Main Core|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0核心|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0核心|r
+## Title-koKR:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0핵심 모듈|r
+## Title-esES:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Núcleo|r
+## Title-esMX:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Núcleo|r
+## Title-frFR:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Noyau|r
 ## Notes: Deadly Boss Mods
 ## Dependencies: DBM-StatusBarTimers
 ## OptionalDependencies: LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibChatAnims, LibDBIcon-1.0, LibDeflate, LibSerialize, LibSpecialization, LibKeystone, CustomNames, Masque, ChatThrottleLib
-## SavedVariables: DBM_AllSavedOptions, DBM_MinimapIcon, DBM_AnnoyingPopupDisables, DBM_ModsToLoadWithFullTestSupport
+## SavedVariables: DBM_AllSavedOptions, DBM_MinimapIcon, DBM_AnnoyingPopupDisables, DBM_ModsToLoadWithFullTestSupport, DBM_Keystones
 ## SavedVariablesPerCharacter: DBM_UsedProfile, DBM_UseDualProfile, DBM_CharSavedRevision
 ## IconTexture: Interface\AddOns\DBM-Core\textures\dbm_airhorn
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 11.2.12
+## Version: 12.0.1
 ## X-Curse-Project-ID: 3358
-## X-WoWI-ID: 8814
 ## X-Wago-ID: qv633o6b
 ## X-Website: https://deadlybossmods.com
 ## Category-zhTW: 團隊
@@ -45,9 +48,9 @@ commonlocal.tw.lua
 commonlocal.cn.lua
 
 # Pre-core modules
+modules\objects\GameVersion.lua
 modules\objects\PrototypeRegistry.lua
 modules\objects\Testing.lua
-modules\objects\GameVersion.lua
 modules\objects\StringUtils.lua
 modules\objects\TableUtils.lua
 modules\objects\StandardFont.lua
@@ -71,6 +74,7 @@ DBM-Nameplate.lua
 # GUI Features
 modules\gui\Latency.lua
 modules\gui\Durability.lua
+modules\gui\Keystones.lua
 
 # Modules
 modules\Commands.lua

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2580, "DBM-Party-WarWithin", 5, 1270)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250824013231")
+mod:SetRevision("20250906064714")
 mod:SetCreatureID(211087)
 mod:SetEncounterID(2837)
 mod:SetHotfixNoticeRev(20241005000000)
@@ -56,7 +56,7 @@ mod.vb.shadowsCount = 0
 local allTimers = {
 	[1] = {
 		[425264] = {6, 34.3},--Obsidian Blast (Non Mythic)
-		[453212] = {7.1, 31.9, 26.0},--Obsidian Beam (Mythic)
+		[453212] = {7.1, 31.9, 25.3},--Obsidian Beam (Mythic)
 		[445996] = {13.1},--Collapsing Darkness (Non Mythic)
 		[453140] = {23.3, 28.1, 25.9},--Collapsing Night (Mythic)
 		[4267341] = {9.3, 35.5},--Burning Shadows (Non Mythic)

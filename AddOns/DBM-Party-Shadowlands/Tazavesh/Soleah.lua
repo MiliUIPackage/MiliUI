@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2455, "DBM-Party-Shadowlands", 9, 1194)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250823214319")
+mod:SetRevision("20250909053250")
 mod:SetCreatureID(177269)
 mod:SetEncounterID(2442)
 mod:SetHotfixNoticeRev(20220405000000)
@@ -69,7 +69,7 @@ function mod:OnCombatStart(delay)
 	table.wipe(castsPerGUID)
 	timerSummonAssassinsCD:Start(6.0-delay)
 	timerHyperlightSparkCD:Start(11.1-delay)
-	timerCollapsingStarCD:Start(20.6-delay)
+	timerCollapsingStarCD:Start(20.2-delay)
 end
 
 function mod:OnCombatEnd()

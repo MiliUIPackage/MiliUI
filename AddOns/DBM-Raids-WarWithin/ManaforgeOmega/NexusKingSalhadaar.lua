@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2690, "DBM-Raids-WarWithin", 1, 1302)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250822050535")
+mod:SetRevision("20250921225218")
 mod:SetCreatureID(237763)
 mod:SetEncounterID(3134)
 mod:SetBossHPInfoToHighest()--Boss Heals
@@ -13,8 +13,8 @@ mod.respawnTime = 29
 mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
-	"SPELL_CAST_START 1224787 1224812 1227529 1224906 1225010 1225016 1228065 1230302 1232399 1228075 1230263 1227734 1228115 1228163 1234529 1228265 1225319 1234904 1228053 1237106",
-	"SPELL_CAST_SUCCESS 1234904 1226442",
+	"SPELL_CAST_START 1224787 1224812 1227529 1224906 1225010 1225016 1228065 1230302 1232399 1228075 1230263 1227734 1228115 1228163 1234529 1228265 1225319 1234904 1237106",
+	"SPELL_CAST_SUCCESS 1234904 1226442 1228053",
 	"SPELL_AURA_APPLIED 1224737 1224767 1224776 1227549 1237105 1234529 1226413",
 	"SPELL_AURA_APPLIED_DOSE 1224737 1226413",
 	"SPELL_AURA_REMOVED 1224737 1227549 1237105 1228284 1228265",
@@ -40,8 +40,8 @@ mod:AddTimerLine(DBM:EJ_GetSectionInfo(32227))
 local warnKingsThrall								= mod:NewTargetNoFilterAnnounce(1224767, 2)--Could be spammy
 
 local specWarnSubjugationRule						= mod:NewSpecialWarningTaunt(1224776, false, nil, nil, 1, 2)--Optional "taunt everything" feature for P1
-local specWarnConquer								= mod:NewSpecialWarningSoakCount(1224787, nil, nil, nil, 2, 2)
-local specWarnVanquish								= mod:NewSpecialWarningSpell(1224812, nil, nil, nil, 2, 15)
+local specWarnConquer								= mod:NewSpecialWarningSoakCount(1224787, nil, nil, DBM_COMMON_L.GROUPSOAK, 2, 2)
+local specWarnVanquish								= mod:NewSpecialWarningSpell(1224812, nil, nil, DBM_COMMON_L.FRONTAL, 2, 15)
 local specWarnBanishment							= mod:NewSpecialWarningMoveAway(1227549, nil, nil, nil, 1, 2)
 local yellBanishmentFades							= mod:NewShortFadesYell(1227549)
 local specWarnInvokeTheOath							= mod:NewSpecialWarningSpell(1224906, nil, nil, nil, 2, 2)
@@ -78,7 +78,7 @@ local specWarnDreadMortar							= mod:NewSpecialWarningDodge(1232399, nil, nil, 
 
 local timerSelfDestructCD							= mod:NewCDTimer(64, 1230302, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
 local timerSelfDestruct								= mod:NewCastNPTimer(10, 1230302, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
-local timerDreadMortarCD							= mod:NewCDNPTimer(24.3, 1232399, nil, nil, nil, 3)
+local timerDreadMortarCD							= mod:NewCDTimer(24.3, 1232399, nil, nil, nil, 3)
 ----Nexus-Prince Ky'vor + Nexus-Prince Xevvos
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(33469))
 local specWarnNexusBeam								= mod:NewSpecialWarningDodge(1228075, nil, 207544, nil, 2, 2)
@@ -98,20 +98,20 @@ mod:AddPrivateAuraSoundOption(1237108, true, 1237106, 1)--Twilight Massacre
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(31574))
 ----Nexus-King Salhadaar
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(32227))
-local specWarnCoalesceVoidwing						= mod:NewSpecialWarningDodge(1227734, nil, nil, nil, 3, 2)
+local specWarnCoalesceVoidwing						= mod:NewSpecialWarningDodge(1227734, nil, 28405, nil, 3, 2)
 local specWarnNetherBreakerMythic					= mod:NewSpecialWarningDodgeCount(1228115, nil, nil, nil, 2, 2)--On mythic it also spawns ground circles
 
 local timerCoalesceVoidwing							= mod:NewCastTimer(6.2, 1227734, 28405, nil, nil, 2)--Shorttext Knockback
-local timerNetherbreakerCD							= mod:NewCDCountTimer(10, 1228115, nil, nil, nil, 3)
+local timerNetherbreakerCD							= mod:NewCDCountTimer(10, 1228115, nil, nil, nil, 3)--DBM_COMMON_L.CIRCLES.." (%s)"
 
 mod:AddPrivateAuraSoundOption(1228114, true, 1228115, 1)--Netherbreaker
 ----Royal Voidwing
 mod:AddTimerLine(royalVoidWing)
-local specWarnDimensionBreath						= mod:NewSpecialWarningCount(1228163, nil, nil, nil, 2, 2)
+local specWarnDimensionBreath						= mod:NewSpecialWarningCount(1228163, nil, 207544, nil, 2, 2)
 local specWarnCosmicMaw								= mod:NewSpecialWarningDefensive(1234529, nil, nil, nil, 1, 2)
 local specWarnCosmicMawTaunt						= mod:NewSpecialWarningTaunt(1234529, nil, nil, nil, 1, 2)
 
-local timerDimensionBreathCD						= mod:NewCDCountTimer(97.3, 1228163, nil, nil, nil, 3, nil, DBM_COMMON_L.TANK_ICON)
+local timerDimensionBreathCD						= mod:NewCDCountTimer(97.3, 1228163, 207544, nil, nil, 3, nil, DBM_COMMON_L.TANK_ICON)--Shortname "Beams"
 local timerCosmicMawCD								= mod:NewCDCountTimer(97.3, 1234529, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 --Intermission Two: King's Hunger
 local specWarnKingsHunger							= mod:NewSpecialWarningSwitchCustom(1228265, "-Healer", nil, nil, 1, 2)
@@ -206,6 +206,12 @@ function mod:OnCombatEnd()
 	end
 end
 
+local function delayedTankCheck(self)
+	local targetName = self:GetBossTarget(237763)
+	specWarnSubjugationRule:Schedule(1.5, targetName)
+	specWarnSubjugationRule:ScheduleVoice(1.5, "tauntboss")
+end
+
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
 	if spellId == 1224787 then
@@ -218,17 +224,13 @@ function mod:SPELL_CAST_START(args)
 			specWarnConquer:Play("sharetwo")
 		end
 		if self:IsTank() and not self:IsTanking("player", "boss1", nil, true) then
-			local targetName = self:GetBossTarget(237763)
-			specWarnSubjugationRule:Schedule(1.5, targetName)
-			specWarnSubjugationRule:ScheduleVoice(1.5, "tauntboss")
+			self:Schedule(1.5, delayedTankCheck, self)
 		end
 	elseif spellId == 1224812 then
 		specWarnVanquish:Show()
 		specWarnVanquish:Play("frontal")
 		if self:IsTank() and not self:IsTanking("player", "boss1", nil, true) then
-			local targetName = self:GetBossTarget(237763)
-			specWarnSubjugationRule:Schedule(1.5, targetName)
-			specWarnSubjugationRule:ScheduleVoice(1.5, "tauntboss")
+			self:Schedule(1.5, delayedTankCheck, self)
 		end
 	elseif spellId == 1227529 then
 		self.vb.banishmentCount = self.vb.banishmentCount + 1
@@ -282,8 +284,8 @@ function mod:SPELL_CAST_START(args)
 		if self:CheckBossDistance(args.sourceGUID, false, 32698, 48) then
 			specWarnDreadMortar:Show()
 			specWarnDreadMortar:Play("watchstep")
+			timerDreadMortarCD:Start(nil, args.sourceGUID)--24.3
 		end
-		timerDreadMortarCD:Start(nil, args.sourceGUID)--24.3
 	elseif spellId == 1228075 then
 		if self:CheckBossDistance(args.sourceGUID, false, 32698, 48) then
 			specWarnNexusBeam:Show()
@@ -326,7 +328,7 @@ function mod:SPELL_CAST_START(args)
 			timerCosmicMawCD:Start(15.5, 1)
 			timerDimensionBreathCD:Start(20.5, 1)
 		else
-			timerNetherbreakerCD:Start(11.5, 1)
+			timerNetherbreakerCD:Start(11.4, 1)
 			timerBeheadCD:Start(20.5, 1)
 			timerCosmicMawCD:Start(22.5, 1)
 			timerDimensionBreathCD:Start(28.5, 1)
@@ -371,8 +373,6 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 1225319 then
 		self.vb.smashCount = self.vb.smashCount + 1
 		timerGalacticSmashCD:Start(55, self.vb.smashCount+1)
-	elseif spellId == 1228053 then
-		timerReapCD:Start(nil, args.sourceGUID)
 	elseif spellId == 1237106 then
 		timerTwilightMassacreCD:Stop(args.sourceGUID)--Just to clear initial timer for now
 		--timerTwilightMassacreCD:Start(nil, args.sourceGUID)--repeat cast timer not known yet
@@ -385,8 +385,10 @@ function mod:SPELL_CAST_SUCCESS(args)
 		self.vb.beheadCount = self.vb.beheadCount + 1
 	elseif spellId == 1226442 then
 		self.vb.swingCount = self.vb.swingCount + 1
-		local timer = self.vb.swingCount % 2 == 0 and 40 or 15
-		timerStarkillerSwingCD:Start(self:IsEasy() and 55 or timer, self.vb.swingCount+1)
+		local timer = self:IsEasy() and 55 or self.vb.swingCount % 2 == 0 and 40 or 15
+		timerStarkillerSwingCD:Start(timer - 2, self.vb.swingCount+1)--Minus 2 to be when images spawn
+	elseif spellId == 1228053 then
+		timerReapCD:Start(nil, args.sourceGUID)
 	end
 end
 

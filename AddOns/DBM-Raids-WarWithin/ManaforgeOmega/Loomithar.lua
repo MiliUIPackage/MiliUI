@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2686, "DBM-Raids-WarWithin", 1, 1302)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250818012243")
+mod:SetRevision("20250924040842")
 mod:SetCreatureID(233815)
 mod:SetEncounterID(3131)
 mod:SetUsedIcons(1, 2)
@@ -29,41 +29,41 @@ ability.id = 1228070 and type = "applybuff"
 --]]
 --Phase 1: The Silkbound Beast
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(32296))
-local warnPrimalSpellstorm							= mod:NewCountAnnounce(1226867, 3)
+local warnPrimalSpellstorm							= mod:NewCountAnnounce(1226867, 3, nil, nil, nil, nil, DBM_COMMON_L.SWIRLS)
 local warnInfusionTether							= mod:NewTargetAnnounce(1226311, 2)
 local warnInfusionTetherOver						= mod:NewFadesAnnounce(1226311, 1)
 local warnInfusionPylon								= mod:NewCountAnnounce(1246921, 3)
 
-local specWarnLairWeaving							= mod:NewSpecialWarningDodgeCount(1237272, nil, nil, nil, 2, 2)
-local specWarnOverinfusionBurst						= mod:NewSpecialWarningDodge(1226395, nil, nil, nil, 3, 2)
-local specWarnInfusionTether						= mod:NewSpecialWarningYou(1226311, nil, nil, nil, 1, 2)
+local specWarnLairWeaving							= mod:NewSpecialWarningCount(1237272, nil, 157317, nil, 2, 2)
+local specWarnOverinfusionBurst						= mod:NewSpecialWarningRunCount(1226395, nil, nil, nil, 3, 2)
+local specWarnInfusionTether						= mod:NewSpecialWarningYou(1226311, nil, 395745, nil, 1, 2)
 local yellInfusionTether							= mod:NewShortYell(1226311, nil, false)
 local specWarnPiercingStrands						= mod:NewSpecialWarningDefensive(1237212, nil, nil, nil, 1, 2)
 local specWarnPiercingStrandsOther					= mod:NewSpecialWarningTaunt(1237212, nil, nil, nil, 1, 2)
 local specWarnGTFO									= mod:NewSpecialWarningGTFO(1243771, nil, nil, nil, 1, 8)
 
-local timerLairWeavingCD							= mod:NewNextCountTimer(85, 1237272, nil, nil, nil, 2)
-local timerPrimalSpellstormCD						= mod:NewCDCountTimer(97.3, 1226867, nil, nil, nil, 3)
+local timerLairWeavingCD							= mod:NewNextCountTimer(85, 1237272, 157317, nil, nil, 2)--Shortname "Webs"
+local timerPrimalSpellstormCD						= mod:NewCDCountTimer(97.3, 1226867, DBM_COMMON_L.SWIRLS.." (%s)", nil, nil, 3)
 local timerOverinfusionBurstCD						= mod:NewNextCountTimer(85, 1226395, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)--???
-local timerInfusionTetherCD							= mod:NewCDCountTimer(97.3, 1226311, nil, nil, nil, 3)
+local timerInfusionTetherCD							= mod:NewCDCountTimer(97.3, 1226311, 395745, nil, nil, 3)--Shortname "Pull in"
 local timerPiercingStrandsCD						= mod:NewCDCountTimer(97.3, 1237212, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerInfusionPylonCD							= mod:NewCDCountTimer(97.3, 1246921, nil, nil, nil, 5, nil, DBM_COMMON_L.MYTHIC_ICON)
 
 mod:AddNamePlateOption("NPAuraOnWovenWard", 1238502)
 --Phase 2: The Deathbound Beast
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(32303))
-local specWarnUnboundRage							= mod:NewSpecialWarningSpell(1228059, nil, nil, nil, 2, 2)
-local warnArcaneOutrage								= mod:NewCountAnnounce(1227782, 3)
+local specWarnUnboundRage							= mod:NewSpecialWarningSpell(1228059, nil, 28405, nil, 2, 2)
+local warnArcaneOutrage								= mod:NewCountAnnounce(1227782, 3, nil, nil, nil, nil, DBM_COMMON_L.PUSHBACK)
 
-local specWarnWrithingWave							= mod:NewSpecialWarningCount(1227226, nil, nil, nil, 2, 2)
+local specWarnWrithingWave							= mod:NewSpecialWarningCount(1227226, nil, nil, DBM_COMMON_L.GROUPSOAK, 2, 2)
 local specWarnWrithingWaveTaunt						= mod:NewSpecialWarningTaunt(1227226, nil, nil, nil, 1, 2)
 
 local timerUnboundrageCast							= mod:NewCastTimer(5.8, 1228059, nil, nil, nil, 2)
-local timerArcaneOutrageCD							= mod:NewNextCountTimer(20, 1227782, nil, nil, nil, 3)
-local timerWrithingWaveCD							= mod:NewNextCountTimer(20, 1227226, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerArcaneOutrageCD							= mod:NewNextCountTimer(20, 1227782, DBM_COMMON_L.PUSHBACK.." (%s)", nil, nil, 3)
+local timerWrithingWaveCD							= mod:NewNextCountTimer(20, 1227226, DBM_COMMON_L.GROUPSOAK.." (%s)", nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 
 mod.vb.weavingCount = 0
-mod.vb.primalSpellstormCount = 0
+mod.vb.primalSpellstormCount = 1
 mod.vb.overinfusionBurstCount = 0--Stage 1 only
 mod.vb.pylonCount = 0
 mod.vb.infusionTetherCount = 0--Also used for Arcane Outrage (mechanic that replaces it)
@@ -88,7 +88,7 @@ function mod:OnCombatStart(delay)
 	self.vb.pylonCount = 0
 	self.vb.infusionTetherCount = 0
 	self.vb.piercingStrandsCount = 0
-	timerPiercingStrandsCD:Start((self:IsMythic() and 12.4 or 9.5)-delay, 1)
+	timerPiercingStrandsCD:Start((self:IsLFR() and 13 or self:IsMythic() and 12.4 or 9.5)-delay, 1)
 	timerInfusionTetherCD:Start(22-delay, 1)
 	if self:IsEasy() then--Used instantly on pull for heroic and mythic
 		timerLairWeavingCD:Start(44-delay, 1)
@@ -152,13 +152,13 @@ function mod:SPELL_CAST_SUCCESS(args)
 	local spellId = args.spellId
 	if spellId == 1226395 then
 		self.vb.overinfusionBurstCount = self.vb.overinfusionBurstCount + 1
-		specWarnOverinfusionBurst:Show()
-		specWarnOverinfusionBurst:Play("watchstep")
+		specWarnOverinfusionBurst:Show(self.vb.overinfusionBurstCount)
+		specWarnOverinfusionBurst:Play("justrun")
 		timerOverinfusionBurstCD:Start(nil, self.vb.overinfusionBurstCount+1)
 	elseif spellId == 1237272 then
 		self.vb.weavingCount = self.vb.weavingCount + 1
 		specWarnLairWeaving:Show(self.vb.weavingCount)
-		specWarnLairWeaving:Play("specialsoon")--Generic for now
+		specWarnLairWeaving:Play("specialsoon")
 		if self:IsMythic() then
 			if self.vb.weavingCount % 2 == 1 then
 				timerLairWeavingCD:Start(7, self.vb.weavingCount+1)
@@ -264,7 +264,7 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
 	if spellId == 1228059 and self:GetStage(1) then--Unbound Rage (comes 6 seconds sooner than CLEU
 		self:SetStage(2)
 		self.vb.weavingCount = 0
-		self.vb.primalSpellstormCount = 0
+		self.vb.primalSpellstormCount = 1
 		self.vb.infusionTetherCount = 0--Also used for Arcane Outrage (mechanic that replaces it)
 		self.vb.piercingStrandsCount = 0--Also used for Writhing Wave (mechanic that replaces it)
 		timerLairWeavingCD:Stop()

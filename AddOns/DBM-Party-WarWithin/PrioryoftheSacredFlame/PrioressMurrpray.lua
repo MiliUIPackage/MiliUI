@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2573, "DBM-Party-WarWithin", 2, 1267)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250513075136")
+mod:SetRevision("20250928201927")
 mod:SetCreatureID(207940)
 mod:SetEncounterID(2848)
 mod:SetHotfixNoticeRev(20240608000000)
@@ -42,7 +42,7 @@ local specWarnHolySmite						= mod:NewSpecialWarningInterruptCount(423536, false
 local specWarnBlindingLight					= mod:NewSpecialWarningLookAway(428169, nil, nil, nil, 2, 2, 4)
 local specWarnGTFO							= mod:NewSpecialWarningGTFO(425556, nil, nil, nil, 1, 8)
 
-local timerPurifyingLightCD					= mod:NewVarCountTimer("v28.7-35.2", 444546, nil, nil, nil, 3)
+local timerPurifyingLightCD					= mod:NewVarCountTimer("v28.2-35.2", 444546, nil, nil, nil, 3)
 local timerInnerFireCD						= mod:NewVarCountTimer("v21.8-25.5", 423539, nil, nil, nil, 2)
 local timerHolyFlameCD						= mod:NewVarCountTimer("v12.1-21.8", 451606, nil, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)
 local timerBlindingLightCD					= mod:NewVarCountTimer("v24.3-36.4", 428169, nil, nil, nil, 2, nil, DBM_COMMON_L.MYTHIC_ICON)
@@ -110,13 +110,13 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 444609 then--Stoke the flame (cast after interrupting Inner Light
 --		self.vb.holyFlameCount = 0
 		self:SetStage(2)
-		timerHolyFlameCD:Start("v12.1-14.5", self.vb.holyFlameCount+1)
+		timerHolyFlameCD:Start("v12.1-27.1", self.vb.holyFlameCount+1)
 		--Inner and purify can swap positions
 		--Whichever is 15.8-18.2 the other is 20.6
-		timerInnerFireCD:Start("v15.8-20.6", self.vb.innerCount+1)
-		timerPurifyingLightCD:Start("v15.8-20.6", self.vb.purifyingCount+1)
+		timerInnerFireCD:Start("v15.8-21.9", self.vb.innerCount+1)
+		timerPurifyingLightCD:Start("v15.8-21", self.vb.purifyingCount+1)
 		if self:IsMythic() then
-			timerBlindingLightCD:Start("v21.9-24.2", self.vb.blindingCount+1)
+			timerBlindingLightCD:Start("v21.9-24.6", self.vb.blindingCount+1)
 		end
 	elseif spellId == 428169 then
 		self.vb.blindingCount = self.vb.blindingCount + 1

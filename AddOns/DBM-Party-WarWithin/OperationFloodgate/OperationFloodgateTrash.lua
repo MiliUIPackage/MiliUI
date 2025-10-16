@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("OperationFloodgateTrash", "DBM-Party-WarWithin", 9)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250823202500")
+mod:SetRevision("20250909044153")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
@@ -287,7 +287,7 @@ end
 function mod:StartEngageTimers(guid, cid, delay)
 	if cid == 230740 then--Shredinator 3000
 		timerShreddationCD:Start(2.4-delay, guid)
-		timerFlamethrowerCD:Start(7-delay, guid)
+		timerFlamethrowerCD:Start(6.6-delay, guid)
 	elseif cid == 229212 then--Darkfuse Demolitionist
 		timerRPGGCD:Start(2-delay, guid)
 	elseif cid == 231385 then--Darkfuse Inspector

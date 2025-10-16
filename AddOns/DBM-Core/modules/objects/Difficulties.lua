@@ -96,6 +96,7 @@ if private.isRetail then
 		[2296] = {60, 3}, [2450] = {60, 3}, [2481] = {60, 3},--Shadowlands Raids (yes, only 3 kekw, seconded)
 		[2522] = {70, 3}, [2569] = {70, 3}, [2549] = {70, 3},--Dragonflight Raids
 		[2657] = {80, 3}, [2792] = {80, 3}, [2769] = {80, 3}, [2810] = {80, 3},--War Within Raids
+		[2912] = {90, 3}, [2939] = {90, 3}, [2913] = {90, 3},--Midnight Raids
 		--Dungeons
 		[48] = {30, 2}, [230] = {30, 2}, [429] = {30, 2}, [389] = {30, 2}, [34] = {30, 2},--Classic Dungeons
 		[540] = {30, 2}, [558] = {30, 2}, [556] = {30, 2}, [555] = {30, 2}, [542] = {30, 2}, [546] = {30, 2}, [545] = {30, 2}, [547] = {30, 2}, [553] = {30, 2}, [554] = {30, 2}, [552] = {30, 2}, [557] = {30, 2}, [269] = {30, 2}, [560] = {30, 2}, [543] = {30, 2}, [585] = {30, 2},--BC Dungeons
@@ -108,8 +109,10 @@ if private.isRetail then
 		[2286] = {60, 2}, [2289] = {60, 2}, [2290] = {60, 2}, [2287] = {60, 2}, [2285] = {60, 2}, [2293] = {60, 2}, [2291] = {60, 2}, [2284] = {60, 2}, [2441] = {60, 2},--Shadowlands Dungeons
 		[2520] = {70, 2}, [2451] = {70, 2}, [2516] = {70, 2}, [2519] = {70, 2}, [2526] = {70, 2}, [2515] = {70, 2}, [2521] = {70, 2}, [2527] = {70, 2}, [2579] = {70, 2},--Dragonflight Dungeons
 		[2652] = {80, 2}, [2662] = {80, 2}, [2660] = {80, 2}, [2669] = {80, 2}, [2651] = {80, 2}, [2649] = {80, 2}, [2648] = {80, 2}, [2661] = {80, 2}, [2773] = {80, 2}, [2830] = {80, 2},--War Within Dungeons
+		[2805] = {90, 2}, [2811] = {90, 2}, [2813] = {90, 2}, [2825] = {90, 2}, [2859] = {90, 2}, [2874] = {90, 2}, [2915] = {90, 2}, [2923] = {90, 2},--Midnight Dungeons
 		--Delves
 		[2664] = {80, 4}, [2679] = {80, 4}, [2680] = {80, 4}, [2681] = {80, 4}, [2682] = {80, 4}, [2683] = {80, 4}, [2684] = {80, 4}, [2685] = {80, 4}, [2686] = {80, 4}, [2687] = {80, 4}, [2688] = {80, 4}, [2689] = {80, 4}, [2690] = {80, 4}, [2767] = {80, 4}, [2768] = {80, 4}, [2831] = {80, 4}, [2815] = {80, 4}, [2826] = {80, 4}, [2803] = {80, 4}, [2951] = {80, 4},--War Within Delves
+		[3003] = {90, 4}, [2961] = {90, 4}, [2962] = {90, 4}, [2963] = {90, 4}, [2964] = {90, 4}, [2953] = {90, 4}, [2933] = {90, 4}, [2952] = {90, 4}, [2979] = {90, 4}, [2965] = {90, 4}, [2966] = {90, 4},--Midnight Delves
 		--Challenges (Mage tower, visions, torghast, proving grounds)
 		[2212] = {50, 5}, [2213] = {50, 5}, [2827] = {80, 5}, [2828] = {80, 5}, [2162]= {80, 5}, [1148] = {80, 5}, [1698] = {80, 5}, [1710] = {80, 5}, [1703] = {80, 5}, [1702] = {80, 5}, [1684] = {80, 5}, [1673] = {80, 5}, [1616] = {80, 5},
 	}
@@ -339,7 +342,7 @@ end
 ---Pretty much ANYTHING that has mythic mode, with mythic+ included
 function bossModPrototype:IsMythic()
 	local diff = difficulties.savedDifficulty or DBM:GetCurrentInstanceDifficulty()
-	return (diff == "mythic" or diff == "challenge5" or diff == "mythicisland" or diff == "mythic5") and not self:IsMop()
+	return diff == "mythic" or (diff == "challenge5" and not self:IsMop()) or diff == "mythicisland" or diff == "mythic5"
 end
 
 function bossModPrototype:IsMythicPlus()
@@ -554,7 +557,7 @@ function DBM:GetCurrentInstanceDifficulty()
 	elseif difficulty == 208 then--Delves (War Within 11.0.0+)
 		local delveInfo, delveInfo2, delveInfo3 = C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo(6183), C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo(6184), C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo(6185)
 		local usedDelveInfo
-		--Zekvir Hack to normal/mythic since his tiers aren't numbers
+		--Nemesis Hack to normal/mythic since tiers aren't numbers
 		if delveInfo2 and delveInfo2.shownState and delveInfo2.shownState == 1 then
 			return "normal", difficultyName .. "(?) - ", 1, instanceGroupSize, 0--Returns 1 for normal 1-5man
 		elseif delveInfo3 and delveInfo3.shownState and delveInfo3.shownState == 1 then
@@ -575,19 +578,11 @@ function DBM:GetCurrentInstanceDifficulty()
 	elseif difficulty == 220 then--Story (Raid Dungeon - War Within 11.0.0+)
 		return "story", difficultyName .. " - ", difficulty, instanceGroupSize, 0
 	elseif difficulty == 231 then--SoD BWL (and other raids?)
-		--Do fancy stuff here, TODO for paul :D
-		--if Enum.SeasonID and private.currentSeason == Enum.SeasonID.SeasonOfDiscovery then--Molten Core SoD
-		--	if self:UnitDebuff("player", 458841) then--Sweltering Heat
-		--		return "normal", difficultyName .. " - ", difficulty, instanceGroupSize, 0
-		--	elseif self:UnitDebuff("player", 458842) then--Blistering Heat
-		--		return "heroic", difficultyName .. " - ", difficulty, instanceGroupSize, 0
-		--	elseif self:UnitDebuff("player", 458843) then--Molten Heat
-		--		return "mythic", difficultyName .. " - ", difficulty, instanceGroupSize, 0
-		--	end
-		--end
 		return "normal", "", difficulty, instanceGroupSize, 0
 	elseif difficulty == 232 then--Duos
 		return "duos", "", difficulty, instanceGroupSize, 0
+	elseif difficulty == 237 then--5 man Celestial Dungeon (MoP classic). We'll store it in mythic5 stat since it's unused in MoP
+		return "mythic5", difficultyName .. " - ", difficulty, instanceGroupSize, 0
 	else--failsafe
 		return "normal", "", difficulty, instanceGroupSize, 0
 	end

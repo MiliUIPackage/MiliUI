@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2691, "DBM-Raids-WarWithin", 1, 1302)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250824154422")
+mod:SetRevision("20250910053613")
 mod:SetCreatureID(233824, 241517, 234478)--Yes, they're all used
 mod:SetEncounterID(3135)
 mod:SetBossHPInfoToHighest()--Boss Heals
@@ -79,9 +79,9 @@ local warnInverseGravityFaded						= mod:NewFadesAnnounce(1234244, 1)
 local warnGravitationalDistortion					= mod:NewCountAnnounce(1234242, 2)
 
 local specWarnExtinction							= mod:NewSpecialWarningDodgeCount(1238765, nil, nil, nil, 3, 2)
-local specWarnGammaBurst							= mod:NewSpecialWarningCount(1237319, nil, DBM_COMMON_L.PUSHBACK, nil, 2, 2)
-local specWarnCrushingGravity						= mod:NewSpecialWarningYou(1234243, nil, nil, nil, 3, 2, 4)
-local specWarnInverseGravity						= mod:NewSpecialWarningYou(1234244, nil, nil, nil, 3, 2, 4)
+local specWarnGammaBurst							= mod:NewSpecialWarningCount(1237319, nil, nil, DBM_COMMON_L.PUSHBACK, 2, 13)
+local specWarnCrushingGravity						= mod:NewSpecialWarningYou(1234243, nil, nil, nil, 1, 2, 4)
+local specWarnInverseGravity						= mod:NewSpecialWarningYou(1234244, nil, nil, nil, 1, 2, 4)
 
 local timerSoaringReshiiCD							= mod:NewNextTimer(35.2, 1235114, 140013, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)--Short Text "Flight"
 local timerExtinctionCD								= mod:NewCDCountTimer(35.2, 1238765, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
@@ -202,17 +202,28 @@ local allTimers = {
 			[1229038] = {12.5, 100, 100},--Devour P1
 			[1230979] = {37.5, 46.2, 53.7, 46.2},--Dark Matter
 			[1243690] = {43.7, 50, 50, 50},--Shattered Space
-			[1243577] = {56.2, 45, 55, 45},--Reverse Gravity
+			[1243577] = {56.2, 45, 55, 45},--Reverse Gravity (normal only, not used in LFR)
 		},
 		[3] = {
-			[1233539] = {47.6, 100},--Devour P3
-			[1234044] = {29.7, 51.2, 33.1, 66.6, 33.1},--Darkened Sky
+			[1233539] = {47.4, 100},--Devour P3
+			[1234044] = {29.7, 51.2, 33.1, 66.6, 33.1},
 			[1234263] = {65, 33.3, 33.3, 33.3, 33.3, 33.3, 33.3},--Cosmic Collapse
-			[1232973] = {56.1, 14.4, 33.3, 33.3, 18.9, 14.5, 33.3, 33.3},--Super Nova
+			[1232973] = {56.1, 14.4, 33.3, 33.3, 18.9, 14.4, 33.3, 33.3},--Super Nova
 			[1250055] = {60, 33.3, 33.3, 33.3, 33.3, 33.3},--Voidgrasp
 		},
 	},
 }
+
+--Works around annoying bug where sometimes rings cast and even emote are missing events (but still happen)
+local function checkForSkippedRings(self)
+	self.vb.darkenedSkyCount = self.vb.darkenedSkyCount + 1
+	local timer = self:GetFromTimersTable(allTimers, savedDifficulty, self.vb.phase, 1234044, self.vb.darkenedSkyCount+1)
+	if timer then
+		timerDarkenedSkyCD:Start(timer-10, self.vb.darkenedSkyCount+1)
+		self:Unschedule(checkForSkippedRings)
+		self:Schedule(timer, checkForSkippedRings, self)
+	end
+end
 
 function mod:OnCombatStart(delay)
 	devourCasting = false
@@ -246,7 +257,9 @@ function mod:OnCombatStart(delay)
 	timerDevourP1CD:Start(allTimers[savedDifficulty][1][1229038][1]-delay, 1)
 	timerDarkMatterCD:Start(allTimers[savedDifficulty][1][1230979][1]-delay, 1)
 	timerShatteredSpaceCD:Start(allTimers[savedDifficulty][1][1243690][1]-delay, 1)
-	timerReverseGravityCD:Start(allTimers[savedDifficulty][1][1243577][1]-delay, 1)
+	if not self:IsLFR() then
+		timerReverseGravityCD:Start(allTimers[savedDifficulty][1][1243577][1]-delay, 1)
+	end
 end
 
 function mod:OnTimerRecovery()
@@ -587,6 +600,8 @@ function mod:UNIT_DIED(args)
 end
 
 --First cast is not in combat log (rest are)
+--First cast can also be missing emote too though so we also have to do backup scheduling
+--Because even emote doesn't COMPLETELY work around blizzard bug.
 function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg, npc, _, _, target)
 	if msg:find("spell:1234052") then
 		self.vb.darkenedSkyCount = self.vb.darkenedSkyCount + 1
@@ -595,6 +610,8 @@ function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg, npc, _, _, target)
 		local timer = self:GetFromTimersTable(allTimers, savedDifficulty, self.vb.phase, 1234044, self.vb.darkenedSkyCount+1)
 		if timer then
 			timerDarkenedSkyCD:Start(timer, self.vb.darkenedSkyCount+1)
+			self:Unschedule(checkForSkippedRings)
+			self:Schedule(timer+10, checkForSkippedRings, self)
 		end
 	end
 end
@@ -613,7 +630,7 @@ function mod:UNIT_SPELLCAST_START(_, _, spellId)
 	elseif spellId == 1237319 then
 		self.vb.gammaBurstCount = self.vb.gammaBurstCount + 1
 		specWarnGammaBurst:Show(self.vb.gammaBurstCount)
-		specWarnGammaBurst:Play("aesoon")
+		specWarnGammaBurst:Play("pushbackincoming")
 		timerGammaBurstCD:Start(self:IsMythic() and 31.5 or 35, self.vb.gammaBurstCount+1)
 	end
 end

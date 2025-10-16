@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("EcoDomeAldaniTrash", "DBM-Party-WarWithin", 10)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250818213247")
+mod:SetRevision("20251001061425")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
@@ -9,12 +9,10 @@ mod:SetZone(2830)
 mod:RegisterZoneCombat(2830)
 
 mod:RegisterEvents(
-	"SPELL_CAST_START 1229474 426893 1221190 1226111 1235368 1222356 1229510 1222815 1221532 1226306 1222341 1223007 1237195 1237220 1215850",
+	"SPELL_CAST_START 1229474 426893 1226111 1235368 1222356 1229510 1222815 1221532 1226306 1222341 1223007 1237195 1237220 1215850",
 	"SPELL_CAST_SUCCESS 426893 1221190 1226111 1235368 1222356 1221679 1229510 1223000 1222341 1221483",
 	"SPELL_INTERRUPT",
-	"SPELL_AURA_APPLIED 1221133 1221483 1231608 1223000 1239229",
---	"SPELL_AURA_APPLIED_DOSE",
---	"SPELL_AURA_REMOVED",
+	"SPELL_AURA_APPLIED 1221133 1221483 1231608 1223000 1239229 1221190",
 	"UNIT_DIED"
 )
 
@@ -61,7 +59,7 @@ local timerVolatileEjectionCD				= mod:NewCDNPTimer(16.6, 1226111, nil, nil, nil
 local timerArcaneSlashCD					= mod:NewCDNPTimer(15.2, 1235368, nil, nil, nil, 3)--18.2 but cast time adjusted
 local timerWarpCD							= mod:NewCDNPTimer(9.2, 1222356, nil, nil, nil, 3)--12.2 but cast time adjusted
 local timerFarstalkersLeapCD				= mod:NewCDNPTimer(11.8, 1221679, nil, nil, nil, 3)--11.8-13.3
-local timerArcingZapCD						= mod:NewCDPNPTimer(24.2, 1229510, nil, nil, nil, 4)
+local timerArcingZapCD						= mod:NewCDPNPTimer(23.8, 1229510, nil, nil, nil, 4)
 local timerArcingEnergyCD					= mod:NewCDNPTimer(9.4, 1221483, nil, nil, nil, 3)--actually alternates between 10.9 and 13.3 due to a spell queue
 local timerErraticRitualCD					= mod:NewCDPNPTimer(19.8, 1221532, nil, nil, nil, 2)--19.8-31.6
 local timerConsumeSpiritCD					= mod:NewCDPNPTimer(51.9, 1226306, nil, nil, nil, 1)--Iffy
@@ -103,11 +101,6 @@ function mod:SPELL_CAST_START(args)
 		if self:AntiSpam(3, 4) then
 			specWarnGorgingSmash:Show()
 			specWarnGorgingSmash:Play("aesoon")
-		end
-	elseif spellId == 1221190 then
-		if self:AntiSpam(3, 6) then
-			specWarnGluttonousMiasma:Show()
-			specWarnGluttonousMiasma:Play("scatter")
 		end
 	elseif spellId == 1226111 then
 		self:ScheduleMethod(0.1, "BossTargetScanner", args.sourceGUID, "VolatileTarget", 0.1, 4)
@@ -233,6 +226,11 @@ function mod:SPELL_AURA_APPLIED(args)
 		specWarnEmbraceOfKaresh:Play("dispelnow")
 	elseif spellId == 1239229 and args:IsPlayer() then
 		warnKareshiSurge:Show()
+	elseif spellId == 1221190 and args:IsPlayer() then
+		if self:AntiSpam(3, 1) then
+			specWarnGluttonousMiasma:Show()
+			specWarnGluttonousMiasma:Play("scatter")
+		end
 	end
 end
 --mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
@@ -279,10 +277,10 @@ function mod:StartEngageTimers(guid, cid, delay)
 --	elseif cid == 242631 then--Overcharged Sentinel
 --		timerArcaneSlashCD:Start(8-delay, guid)--UNKNOWN, placeholder
 	elseif cid == 234960 then--Tamed Ruinstalker
-		timerWarpCD:Start(6-delay, guid)--Iffy
+		timerWarpCD:Start(3.9-delay, guid)
 	elseif cid == 234962 then--Wastelander Farstalker
-		timerFarstalkersLeapCD:Start(3.8-delay, guid)--3.8-7
-		timerArcingZapCD:Start(9.9-delay, guid)
+--		timerFarstalkersLeapCD:Start(2.1-delay, guid)--0-7
+		timerArcingZapCD:Start(4.2-delay, guid)
 	elseif cid == 234957 then--Wastelander Ritualist
 		timerArcingEnergyCD:Start(8.5-delay, guid)
 	elseif cid == 234955 then--Wastelander Pactspeaker
@@ -292,7 +290,7 @@ function mod:StartEngageTimers(guid, cid, delay)
 		timerEmbraceOfKareshCD:Start(7.1-delay, guid)
 	elseif cid == 234918 then--Wastes Creeper
 		timerGloomBiteCD:Start(5.3-delay, guid)--Iff
-		timerBurrowingEruptionCD:Start(8.8-delay, guid)
+		timerBurrowingEruptionCD:Start(8.5-delay, guid)
 	elseif cid == 245092 then--Burrowing Creeper
 		timerBurrowChargeCD:Start(5.5-delay, guid)--Iffy
 		timerStingingSandstormCD:Start(13.8-delay, guid)--Iffy

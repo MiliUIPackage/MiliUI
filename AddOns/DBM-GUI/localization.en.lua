@@ -553,6 +553,7 @@ L.HideBossEmoteFrame				= "Hide raid boss emote frame during boss fights"
 L.HideWatchFrame					= "Hide watch (objectives) frame during boss fights if no achievements are being tracked and if not in a Mythic+"
 L.HideQuestTooltips					= "Hide quest objectives from tooltips during boss fights"--Currently hidden (NYI)
 L.HideTooltips						= "Completely hide tooltips during boss fights"
+L.HideBlizzardTimeline				= "Hide the Blizzard Raid Timeline during boss fights"
 
 -- Panel: Raid Leader Controls
 L.Tab_RLControls					= "Raid Leader Controls"
@@ -607,6 +608,7 @@ L.Panel_Range						= "Rangeframe"
 -- Panel: Nameplate
 L.Panel_Nameplates					= "Nameplates"
 L.Plater_Config						= "Open Plater Config"
+L.ThreatPlates_Config						= "Open Threat Plates Config"
 L.Area_NPStyle						= "Style (Note: Only configures style when not using Plater.)"
 L.NPAuraText						= "Show timer text on nameplate icons"
 L.NPAuraSize						= "Icon Pixel size (squared): %d"

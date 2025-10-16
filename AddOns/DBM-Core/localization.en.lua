@@ -6,12 +6,8 @@ DBM_CORE_L = L
 L.DEADLY_BOSS_MODS						= "Deadly Boss Mods" -- NO TRANSLATE
 L.DBM									= "DBM" -- NO TRANSLATE
 
-local guild = GetGuildInfo("player")
 local dateTable = date("*t")
-if C_Seasons and C_Seasons.GetActiveSeason and C_Seasons.GetActiveSeason() == 12 and guild == "OnlyFangs" then
-	L.DEADLY_BOSS_MODS					= "Deadly Boss Lua"
-	L.DBM								= "Boss Loa"
-elseif dateTable.day and dateTable.month and dateTable.day == 1 and dateTable.month == 4 then
+if dateTable.day and dateTable.month and dateTable.day == 1 and dateTable.month == 4 then
 	L.DEADLY_BOSS_MODS					= "Harmless Minion Mods"
 	L.DBM								= "HMM"
 end
@@ -44,6 +40,7 @@ L.TEXT_ONLY_RANGE						= "Range frame is limited to text only due to Blizzard di
 L.NO_RANGE								= "Range frame can not be used due to Blizzard disabling that functionality in this area."
 L.NO_ARROW								= "Arrow can not be used in instances"
 L.NO_HUD								= "HUDMap can not be used in instances"
+L.NO_COMMS								= "Addon communication can not be used during encounters or active M+ dungeons. Use this command again after encounter or dungeon ends."--Midnight+
 
 L.DYNAMIC_DIFFICULTY_CLUMP				= L.DBM .. " has disabled dynamic range frame on this fight do to insufficient information about number of players needed to affect clump check for a group of your size."
 L.DYNAMIC_ADD_COUNT						= L.DBM .. " has disabled add count warnings on this fight do to insufficient information about number of adds that spawn for a group of your size."
@@ -76,7 +73,8 @@ L.SCENARIO_COMPLETE_L					= "%s completed after %s! Your last clear took %s and 
 L.SCENARIO_COMPLETE_NR					= "%s completed after %s! This is a new record! (Old record was %s). You have %d total clears."
 L.COMBAT_ENDED_AT						= "Combat against %s (%s) ended after %s."
 L.COMBAT_ENDED_AT_LONG					= "Combat against %s (%s) ended after %s. You have %d total wipe(s) on this difficulty."
-L.GUILD_COMBAT_ENDED_AT					= "%s's Guild group has wiped on %s (%s) after %s."
+L.GUILD_COMBAT_ENDED_AT					= "%s's Guild group has wiped on %s (%s) after %s."--Health Included
+L.GUILD_COMBAT_ENDED					= "%s's Guild group has wiped on %s after %s."--No health (post midnight)
 L.SCENARIO_ENDED_AT						= "%s ended after %s."
 L.SCENARIO_ENDED_AT_LONG				= "%s ended after %s. You have %d total incompletes on this difficulty."
 L.COMBAT_STATE_RECOVERED				= "%s was engaged %s ago, recovering timers... "
@@ -267,26 +265,29 @@ L.INFOFRAME_ALT							= "Alt:"--Alternate Power
 
 L.LFG_INVITE							= "LFG Invite"
 
+--Common slash commands
 L.SLASHCMD_HELP							= {
 	"Available slash commands:",
 	"-----------------",
 	"/dbm unlock: Shows a movable status bar timer (alias: move).",
-	"/range <number> or /distance <number>: Shows range frame. /rrange or /rdistance to reverse colors.",
-	"/hudar <number>: Shows HUD based range finder.",
+	"/dbm pull <sec>: Sends a pull timer for <sec> seconds to the raid (requires promoted. alias: pull).",
+	"/dbm break <min>: Sends a break timer for <min> minutes to the raid (requires promoted. alias: break).",
 	"/dbm timer: Starts a custom " .. L.DBM .. " timer, see '/dbm timer' for details.",
-	"/dbm arrow: Shows the " .. L.DBM .. " arrow, see '/dbm arrow help' for details.",
-	"/dbm hud: Shows the " .. L.DBM .. " hud, see '/dbm hud' for details.",
-	"/dbm help2: Shows raid management slash commands"
+	"/dbm key: Performs M+ keystone and rating checks on party/guild and shortcuts to dungeon teleports. (alias: key, keys, keystone)",
+	"/dbm lag: Performs a raid-wide latency check.",
+	"/dbm durability: Performs a raid-wide durability check.",
+	"/dbm help2: Shows additional slash commands"
 }
+--Less used slash commands
 L.SLASHCMD_HELP2						= {
 	"Available slash commands:",
 	"-----------------",
-	"/dbm pull <sec>: Sends a pull timer for <sec> seconds to the raid (requires promoted. alias: pull).",
-	"/dbm break <min>: Sends a break timer for <min> minutes to the raid (requires promoted. alias: break).",
 	"/dbm version: Performs a boss mod version check (alias: ver).",
 	"/dbm version2: Performs a boss mod version check that also whispers out of date users (alias: ver2).",
-	"/dbm lag: Performs a raid-wide latency check.",
-	"/dbm durability: Performs a raid-wide durability check."
+	"/range <number> or /distance <number>: Shows range frame. /rrange or /rdistance to reverse colors.",
+	"/hudar <number>: Shows HUD based range finder.",
+	"/dbm arrow: Shows the " .. L.DBM .. " arrow, see '/dbm arrow help' for details.",
+	"/dbm hud: Shows the " .. L.DBM .. " hud, see '/dbm hud' for details."
 }
 L.TIMER_USAGE							= {
 	L.DBM .. " timer commands:",
@@ -691,6 +692,7 @@ L.TIMER_RESPAWN							= "%s Respawn"
 
 L.LAG_HEADER							= L.DBM.. " - Latency Results"
 L.DUR_HEADER							= L.DBM.. " - Durability Results"
+L.KEYSTONES_HEADER						= L.DBM.. " - Keystones"
 
 L.OVERRIDE_ACTIVATED					= "Configuration overrides have been activated for this encounter by RL"
 
@@ -740,3 +742,30 @@ L.TOOLTIP_FASTEST				= "Fastest kill (%s)"
 L.FOLLOWER						= "Follower"--i.e. the new dungeon type in 10.2.5. I haven't found a translated string yet
 L.STORY					    	= PLAYER_DIFFICULTY_STORY_RAID or "Story"--i.e. the new dungeon type in 11.0.0. I haven't found a translated string yet
 L.DUOS							= "Duos"
+
+-- Keystone dungeon names (keep to a max of 6 characters)
+-- See https://wago.tools/db2/MapChallengeMode for ID => Dungeon Names
+L.KEYSTONE_NAMES = {
+	[197] = 'EOA', -- Eye of Azshara
+	[198] = 'DHT', -- Darkheart Thicket
+	[199] = 'BRH', -- Black Rook Hold
+	[200] = 'HOV', -- Halls of Valor
+	[206] = 'NL', -- Neltharion's Lair
+	[207] = 'VOTW', -- Vault of the Wardens
+	[208] = 'MOS', -- Maw of Souls
+	[209] = 'ARC', -- The Arcway
+	[210] = 'COS', -- Court of Stars
+	[227] = 'LKARA', -- Return to Karazhan: Lower
+	[233] = 'COEN', -- Cathedral of Eternal Night
+	[234] = 'UKARA', -- Return to Karazhan: Upper
+	[239] = 'SOTT', -- Seat of the Triumvirate
+
+	[378] = 'HOA', -- Halls of Atonement
+	[391] = 'STREET', -- Tazavesh: Streets of Wonder
+	[392] = 'GAMBIT', -- Tazavesh: So'leah's Gambit
+	[499] = 'PRIORY', -- Priority of the Sacred Flame
+	[503] = 'ARAK', -- Ara-Kara, City of Echoes
+	[505] = 'DAWN', -- The Dawnbreaker
+	[525] = 'FLOOD', -- Operation Floodgate
+	[542] = 'DOME' -- Eco-Dome Al'dani
+}

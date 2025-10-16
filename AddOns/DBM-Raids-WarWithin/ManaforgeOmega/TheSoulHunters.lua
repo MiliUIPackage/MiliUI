@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2688, "DBM-Raids-WarWithin", 1, 1302)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250821214738")
+mod:SetRevision("20250906024126")
 mod:SetCreatureID(237660, 237661, 237662)
 mod:SetEncounterID(3122)
 mod:SetBossHPInfoToHighest()
@@ -59,7 +59,7 @@ local specWarnTheHunt								= mod:NewSpecialWarningYou(1227809, nil, nil, nil, 
 local yellTheHunt									= mod:NewShortYell(1227809, DBM_COMMON_L.GROUPSOAK, nil, nil, "YELL")
 local yellTheHuntFades								= mod:NewShortFadesYell(1227809, nil, nil, nil, "YELL")
 
-local timerTheHuntCD								= mod:NewNextCountTimer(31.9, 1227809, nil, nil, nil, 3)
+local timerTheHuntCD								= mod:NewNextCountTimer(31.9, 1227809, DBM_COMMON_L.GROUPSOAKS.." (%s)", nil, nil, 3)
 local timerBladeDanceCD								= mod:NewNextCountTimer(31.9, 1241306, nil, nil, nil, 3)
 local timerEyeBeamCD								= mod:NewNextCountTimer(31.9, 1218103, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerFelRushCD								= mod:NewNextTimer(97.3, 1233863, nil, nil, nil, 6)
@@ -68,12 +68,12 @@ mod:AddTimerLine(DBM:EJ_GetSectionInfo(31791))
 local specWarnFractured								= mod:NewSpecialWarningDefensive(1241833, nil, nil, nil, 1, 2)
 local specWarnFracturedTaunt						= mod:NewSpecialWarningTaunt(1241833, nil, nil, nil, 1, 2)
 local specWarnShatteredSoul							= mod:NewSpecialWarningTaunt(1226493, false, nil, nil, 1, 2)
-local specWarnSpiritBombs							= mod:NewSpecialWarningCount(1242259, nil, nil, nil, 2, 2)
-local specWarnSigilofChains							= mod:NewSpecialWarningCount(1240891, nil, nil, nil, 2, 12)
+local specWarnSpiritBombs							= mod:NewSpecialWarningCount(1242259, nil, nil, DBM_COMMON_L.AOEDAMAGE, 2, 2)
+local specWarnSigilofChains							= mod:NewSpecialWarningCount(1240891, nil, 395745, nil, 2, 12)
 
 local timerFracturedCD								= mod:NewNextCountTimer(31.9, 1241833, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
-local timerSpiritBombsCD							= mod:NewNextCountTimer(31.9, 1242259, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
-local timerSigilofChainsCD							= mod:NewNextCountTimer(31.9, 1240891, nil, nil, nil, 2, nil, DBM_COMMON_L.MYTHIC_ICON)--Mythic only
+local timerSpiritBombsCD							= mod:NewNextCountTimer(31.9, 1242259, DBM_COMMON_L.AOEDAMAGE.." (%s)", nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
+local timerSigilofChainsCD							= mod:NewNextCountTimer(31.9, 1240891, 395745, nil, nil, 2, nil, DBM_COMMON_L.MYTHIC_ICON)--Mythic only
 local timerFelDevastationCD							= mod:NewNextTimer(97.3, 1227117, nil, nil, nil, 6)
 --Intermission: The Ceaseless Hunger
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(32566))
@@ -87,7 +87,7 @@ local warnFelRushOver								= mod:NewEndAnnounce(1233863, 1)
 local specWarnFelRush								= mod:NewSpecialWarningDodge(1233863, nil, nil, nil, 2, 2)
 --Intermission: The Unrelenting Pain
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(32545))
-local warnInfernalStrike							= mod:NewSpellAnnounce(1227113, 2)
+local warnInfernalStrike							= mod:NewSpellAnnounce(1227113, 2, nil, nil, nil, nil, 47482)--Shortname "Leap"
 local warnFelDevastation							= mod:NewSpellAnnounce(1227117, 3)
 
 mod.vb.intermissionCount = 0
@@ -139,13 +139,13 @@ function mod:OnCombatStart(delay)
 		timerSpiritBombsCD:Start(32.4-delay, 1)
 		timerTheHuntCD:Start(42.5-delay, 1)
 		timerCollapsingStarCD:Start(110.3-delay)--First special
-	else--Easy
+	else
 		timerEyeBeamCD:Start(19.8-delay, 1)
 		timerVoidstepCD:Start(33-delay, 1)
 		timerBladeDanceCD:Start(29.9-delay, 1)
 		timerSpiritBombsCD:Start(32.9-delay, 1)
 		timerTheHuntCD:Start(43.1-delay, 1)
-		timerCollapsingStarCD:Start(110.3-delay)--First special
+		timerCollapsingStarCD:Start((self:IsLFR() and 113.3 or 110.3)-delay)--First special (maybe the LFR thing is a fluke?)
 	end
 end
 
@@ -255,9 +255,7 @@ end
 function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
 	if spellId == 1226493 then
-		if args:IsPlayer() then
-			--Warn to taunt the other boss?
-		else
+		if not args:IsPlayer() then
 			specWarnShatteredSoul:Show(args.destName)
 			specWarnShatteredSoul:Play("tauntboss")
 		end
@@ -307,7 +305,7 @@ function mod:SPELL_AURA_REMOVED(args)
 			if not self.vb.VelarnDead then
 				timerEyeBeamCD:Start(8, 1)--difference between difficulties is only .1 each, so we ignore it
 				timerBladeDanceCD:Start(self:IsMythic() and 17.7 or self:IsHeroic() and 18.0 or 18.3, 1)
-				timerTheHuntCD:Start(self:IsHeroic() and 30.4 or 31.6, 1)
+				timerTheHuntCD:Start(self:IsHeroic() and 30.4 or 31.5, 1)
 			end
 			if not self.vb.IlyssaDead then
 				timerFracturedCD:Start(3.5, 1)--Same in all

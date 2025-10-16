@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2747, "DBM-Raids-WarWithin", 1, 1302)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250818200146")
+mod:SetRevision("20251001061751")
 mod:SetCreatureID(237861)
 mod:SetEncounterID(3133)
 mod:SetHotfixNoticeRev(20250818000000)
@@ -31,13 +31,13 @@ mod:RegisterEventsInCombat(
 or (ability.id = 1233411 or ability.id = 1227367) and type = "cast"
 --]]
 --mod:AddTimerLine(DBM:EJ_GetSectionInfo(28754))
-local warnCrystallineShockwave						= mod:NewTargetNoFilterAnnounce(1233416, 3)
+local warnCrystallineShockwave						= mod:NewTargetNoFilterAnnounce(1233416, 3, nil, nil, nil, nil, 189161)
 
-local specWarnCrystallineShockwave					= mod:NewSpecialWarningYou(1233416, nil, nil, nil, 1, 17)
+local specWarnCrystallineShockwave					= mod:NewSpecialWarningYou(1233416, nil, 189161, nil, 1, 17)
 --local yellCrystallineShockwave					= mod:NewShortYell(1233416)
 --local yellCrystallineShockwaveFades				= mod:NewShortFadesYell(1233416)
-local specWarnNullConsumption						= mod:NewSpecialWarningMoveAway(1247424, nil, nil, nil, 1, 2, 3)
-local yellNullConsumption							= mod:NewShortYell(1247424, nil, false)
+local specWarnNullConsumption						= mod:NewSpecialWarningMoveAway(1247424, nil, 37859, nil, 1, 2, 3)--Shortname "Bomb"
+local yellNullConsumption							= mod:NewShortYell(1247424, 37859, false)
 local yellNullConsumptionFades						= mod:NewShortFadesYell(1247424, nil, false)
 local specWarnShatteringBackhand					= mod:NewSpecialWarningCount(1220394, nil, nil, nil, 2, 2)
 local specWarnShatterShell							= mod:NewSpecialWarningMoveTo(1227373, nil, nil, nil, 1, 13)
@@ -47,8 +47,8 @@ local specWarnShockwaveSlamTaunt					= mod:NewSpecialWarningTaunt(1231871, nil, 
 local specWarnEnragedShattering						= mod:NewSpecialWarningSpell(1225673, nil, nil, nil, 3, 2)--Fight failure, you're dead when cast finishes
 --local specWarnGTFO								= mod:NewSpecialWarningGTFO(459785, nil, nil, nil, 1, 8)
 
-local timerCrystallineShockwaveCD					= mod:NewVarCountTimer("v6.1-23.1", 1233416, nil, nil, nil, 2)--Can't be cast during other spells so it gets radically spell queued (hopefully blizzard fixes this)
-local timerShatteringBackhandCD						= mod:NewVarCountTimer(39.3, 1220394, nil, nil, nil, 2)
+local timerCrystallineShockwaveCD					= mod:NewVarCountTimer("v6.1-23.1", 1233416, 189161, nil, nil, 2)--Shortname "Walls"
+local timerShatteringBackhandCD						= mod:NewVarCountTimer(39.3, 1220394, 28405, nil, nil, 2)--Shortname "Knockback" (matches BW but questionable, most players don't actually get knocked back, just debuffed ones
 local timerShatterShellCD							= mod:NewVarCountTimer("v38.5-40.5", 1227373, nil, nil, nil, 3)
 local timerShockwaveSlamCD							= mod:NewVarCountTimer("v38.9-41.3", 1231871, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 
@@ -70,8 +70,8 @@ function mod:OnCombatStart(delay)
 		timerShatteringBackhandCD:Start(38.6-delay, 1)
 	else
 		timerShockwaveSlamCD:Start(18.1-delay, 1)
-		timerShatterShellCD:Start(40.8-delay, 1)
-		timerShatteringBackhandCD:Start(48.9-delay, 1)
+		timerShatterShellCD:Start(40.2-delay, 1)
+		timerShatteringBackhandCD:Start(48.4-delay, 1)
 	end
 end
 
