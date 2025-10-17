@@ -25,7 +25,7 @@
 ## X-WoWI-ID: 24904
 ## Version: r215
 ## Category-zhTW: 團隊
-
+## Category-zhTW: 副本
 localization.en.lua
 localization.cn.lua
 localization.tw.lua
