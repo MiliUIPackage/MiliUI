@@ -1,7 +1,9 @@
 # TinyInspect
 
-## [11.2.0](https://github.com/Witnesscm/TinyInspect/tree/11.2.0) (2025-08-02)
-[Full Changelog](https://github.com/Witnesscm/TinyInspect/compare/11.1.3...11.2.0) [Previous Releases](https://github.com/Witnesscm/TinyInspect/releases)
+## [11.2.1](https://github.com/Witnesscm/TinyInspect/tree/11.2.1) (2025-09-01)
+[Full Changelog](https://github.com/Witnesscm/TinyInspect/compare/11.2.0...11.2.1) [Previous Releases](https://github.com/Witnesscm/TinyInspect/releases)
 
+- feat: show tier set bonus progress  
+- chore: remove enchant slot options  
 - chore: cleanup  
-- fix: artifact item socket  
+- feat: update deprecated APIs  
