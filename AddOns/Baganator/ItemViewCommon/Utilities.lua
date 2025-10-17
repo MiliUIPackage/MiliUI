@@ -12,6 +12,7 @@ function addonTable.Utilities.GetAllCharacters(searchText)
         name = info.details.character,
         realmNormalized = info.details.realmNormalized,
         realm = info.details.realm,
+        faction = info.details.faction,
         className = info.details.className,
         race = info.details.race,
         sex = info.details.sex,
@@ -46,7 +47,7 @@ function addonTable.Utilities.GetAllGuilds(searchText)
         fullName = guild,
         name = info.details.guild,
         realmNormalized = info.details.realm,
-        realm = realmNormalizedToRealmMap[info.details.realm or info.details.realms[1]] or info.details.realm or info.details.realms[1],
+        realm = realmNormalizedToRealmMap[info.details.realm] or info.details.realm or "MISSING",
       })
     end
   end
@@ -299,7 +300,7 @@ function addonTable.Utilities.AddScrollBar(self)
     self.ScrollBox:SetSize(
       self.Container:GetWidth() + 4,
       math.min(
-        self.Container:GetHeight() + 4,
+        self.Container:GetHeight() + 5,
         UIParent:GetHeight() / scale - ySaved
       )
     )
@@ -344,6 +345,7 @@ end
 
 -- Anchor is relative to UIParent
 function addonTable.Utilities.ConvertAnchorToCorner(targetCorner, frame)
+  local _ = frame:GetRect() -- Force evaluation of the position of the frame
   if targetCorner == "TOPLEFT" then
     return "TOPLEFT", frame:GetLeft(), frame:GetTop() - UIParent:GetTop()/frame:GetScale()
   elseif targetCorner == "TOPRIGHT" then
@@ -377,37 +379,6 @@ function addonTable.Utilities.GetSpacing()
   end
 
   return sideSpacing, topSpacing, searchSpacing
-end
-
-addonTable.Utilities.MasqueRegistration = function() end
-
-if LibStub then
-  -- Establish a reference to Masque.
-  local Masque = LibStub("Masque", true)
-  if Masque ~= nil then
-    -- Retrieve a reference to a new or existing group.
-    local masqueGroup = Masque:Group("Baganator", "Bag")
-
-    addonTable.Utilities.MasqueRegistration = function(button)
-      xpcall(function()
-        if button.masqueApplied then
-          masqueGroup:ReSkin(button)
-        else
-          button.masqueApplied = true
-          masqueGroup:AddButton(button, nil, "Item")
-        end
-      end, CallErrorHandler)
-    end
-  end
-end
-
-function addonTable.Utilities.IsMasqueApplying()
-  if C_AddOns.IsAddOnLoaded("Masque") then
-    local Masque = LibStub("Masque", true)
-    local masqueGroup = Masque:Group("Baganator", "Bag")
-    return not masqueGroup.db.Disabled
-  end
-  return false
 end
 
 function addonTable.Utilities.AddButtons(allButtons, lastButton, parent, spacing, regionDetails)

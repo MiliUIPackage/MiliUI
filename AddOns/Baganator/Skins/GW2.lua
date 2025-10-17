@@ -408,7 +408,7 @@ end
 local function LoadSkin()
   GW = GW2_ADDON
 
-  if addonTable.Utilities.IsMasqueApplying() then
+  if addonTable.API.IsMasqueApplying() then
     skinners.ItemButton = function(frame, tags)
       if not tags.containerBag then
         frame.SlotBackground:SetParent(hidden)

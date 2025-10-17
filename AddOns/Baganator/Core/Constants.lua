@@ -89,6 +89,9 @@ addonTable.Constants.Events = {
   "BankViewChanged",
 
   "ItemContextChanged", -- Baganator specific context highlighting
+
+  "ItemSpellTargeted", -- Lockpicking (probably)
+  "ItemSpellUsed", -- Right-click item spell (maybe)
 }
 
 addonTable.Constants.SortStatus = {

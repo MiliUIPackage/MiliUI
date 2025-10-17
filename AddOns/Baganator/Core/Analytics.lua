@@ -12,7 +12,6 @@ function addonTable.Core.RunAnalytics()
   local WagoAnalytics = WagoAnalytics:Register("kGr09M6y")
   addonTable.WagoAnalytics = WagoAnalytics
 
-  WagoAnalytics:Switch("UsingSkinRaw", false)
   WagoAnalytics:Switch("UsingCategories", addonTable.Config.Get(addonTable.Config.Options.BAG_VIEW_TYPE) == "category" or addonTable.Config.Get(addonTable.Config.Options.BANK_VIEW_TYPE) == "category")
   WagoAnalytics:Switch("DifferentViews", addonTable.Config.Get(addonTable.Config.Options.BAG_VIEW_TYPE) ~= addonTable.Config.Get(addonTable.Config.Options.BANK_VIEW_TYPE))
 
@@ -24,7 +23,6 @@ function addonTable.Core.RunAnalytics()
   WagoAnalytics:Switch("UsingJunkPlugin", addonTable.Config.Get(addonTable.Config.Options.JUNK_PLUGIN) ~= "poor_quality" and addonTable.Config.Get(addonTable.Config.Options.JUNK_PLUGIN) ~= "none")
   WagoAnalytics:Switch("UsingUpgradePlugin", addonTable.Config.Get(addonTable.Config.Options.UPGRADE_PLUGIN) ~= "none")
 
-  WagoAnalytics:Switch("RecentCharacterTabs", addonTable.Config.Get(addonTable.Config.Options.SHOW_RECENTS_TABS))
   WagoAnalytics:Switch("AutoSort", addonTable.Config.Get(addonTable.Config.Options.AUTO_SORT_ON_OPEN))
 
   WagoAnalytics:Switch("UsingMasque", (C_AddOns.IsAddOnLoaded("Masque")))
@@ -73,7 +71,6 @@ function addonTable.Core.RunAnalytics()
     [addonTable.Config.Options.LOCK_FRAMES] = true,
     [addonTable.Config.Options.SHOW_SORT_BUTTON] = true,
     [addonTable.Config.Options.HIDE_BOE_ON_COMMON] = true,
-    [addonTable.Config.Options.SHOW_RECENTS_TABS] = true,
     [addonTable.Config.Options.ICON_TEXT_QUALITY_COLORS] = true,
     [addonTable.Config.Options.ICON_TEXT_FONT_SIZE] = true,
     [addonTable.Config.Options.ICON_GREY_JUNK] = true,

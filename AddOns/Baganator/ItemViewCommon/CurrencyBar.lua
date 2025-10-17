@@ -121,7 +121,7 @@ local function ShowCurrencies(self, character)
         fontString.button:SetScript("OnMouseDown", function()
           local GetCurrencyLink = C_CurrencyInfo.GetCurrencyLink or GetCurrencyLink
           if IsModifiedClick("CHATLINK") then
-            ChatEdit_InsertLink(GetCurrencyLink(details.currencyID, count))
+            addonTable.Utilities.ChatInsertLink(GetCurrencyLink(details.currencyID, count))
           end
         end)
       else

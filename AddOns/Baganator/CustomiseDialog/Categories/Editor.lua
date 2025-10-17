@@ -43,208 +43,14 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
     addonTable.Help.ShowSearchDialog()
   end)
 
-  local operationInProgress = false
-
-  local function Save()
-    if self.CategoryName:GetText() == "" or operationInProgress then
-      return
-    end
-    operationInProgress = true
-
-    local customCategories = addonTable.Config.Get(addonTable.Config.Options.CUSTOM_CATEGORIES)
-    local categoryMods = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_MODIFICATIONS)
-    local displayOrder = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER)
-    local mods = categoryMods[self.currentCategory]
-    local isNew, isDefault = self.currentCategory == "-1", customCategories[self.currentCategory] == nil
-    if not mods then
-      mods = {}
-    end
-    local oldMods = CopyTable(mods)
-    local oldCat = customCategories[self.currentCategory] or {}
-    if isNew then
-      self.currentCategory = tostring(1)
-      while customCategories[self.currentCategory] do
-        self.currentCategory = tostring(tonumber(self.currentCategory) + 1)
-      end
-    end
-    mods.priority = self.PrioritySlider:GetValue()
-    mods.showGroupPrefix = self.PrefixCheckBox:GetChecked()
-    if self.CategoryColorSwatch.pendingColor then
-      local c = self.CategoryColorSwatch.pendingColor
-      if c.r == 1 and c.g == 1 and c.b == 1 then
-        mods.color = nil
-      else
-        mods.color = c:GenerateHexColorNoAlpha()
-      end
-    end
-
-    local refreshState = {}
-
-    local hidden = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_HIDDEN)
-    local oldHidden = hidden[self.currentCategory] == true
-    if isNew or not isDefault then
-      local newName = self.CategoryName:GetText():gsub("_", " ")
-
-      customCategories[self.currentCategory] = {
-        name = newName,
-        search = self.CategorySearch:GetText(),
-      }
-      categoryMods[self.currentCategory] = mods
-
-      hidden[self.currentCategory] = self.HiddenCheckBox:GetChecked()
-
-      self.CategoryName:SetText(newName)
-
-      if isNew and tIndexOf(displayOrder, self.currentCategory) == nil then
-        refreshState[addonTable.Constants.RefreshReason.Searches] = true
-        refreshState[addonTable.Constants.RefreshReason.Layout] = true
-        table.insert(displayOrder, 1, self.currentCategory)
-      end
-
-      if not tCompare(oldCat, customCategories[self.currentCategory]) then
-        refreshState[addonTable.Constants.RefreshReason.Searches] = true
-        refreshState[addonTable.Constants.RefreshReason.Layout] = true
-      end
-    else
-      hidden[self.currentCategory] = self.HiddenCheckBox:GetChecked()
-      categoryMods[self.currentCategory] = mods
-    end
-
-    if hidden[self.currentCategory] ~= oldHidden then
-      refreshState[addonTable.Constants.RefreshReason.Layout] = true
-    end
-
-    for key, value in pairs(mods) do
-      if value ~= oldMods[key] and key ~= "color" and key ~= "addedItems" then
-        refreshState[addonTable.Constants.RefreshReason.Searches] = true
-        refreshState[addonTable.Constants.RefreshReason.Layout] = true
-      elseif value ~= oldMods[key] and key == "color" then
-        refreshState[addonTable.Constants.RefreshReason.Cosmetic] = true
-      end
-    end
-
-    for key, value in pairs(oldMods) do
-      if value ~= mods[key] and key ~= "color" and key ~= "addedItems" then
-        refreshState[addonTable.Constants.RefreshReason.Searches] = true
-        refreshState[addonTable.Constants.RefreshReason.Layout] = true
-      elseif value ~= mods[key] and key == "color" then
-        refreshState[addonTable.Constants.RefreshReason.Cosmetic] = true
-      end
-    end
-
-    if next(refreshState) ~= nil then
-      addonTable.CallbackRegistry:TriggerEvent("RefreshStateChange", refreshState)
-    end
-    if isNew then
-      addonTable.CallbackRegistry:TriggerEvent("SetSelectedCategory", self.currentCategory)
-    end
-    operationInProgress = false
-  end
-
-  local function SetState(value)
-    operationInProgress = true
-    local customCategories = addonTable.Config.Get(addonTable.Config.Options.CUSTOM_CATEGORIES)
-
-    for _, region in ipairs(self.ChangeAlpha) do
-      region:SetAlpha(1)
-    end
-    self.Blocker:SetPoint("TOPLEFT", self.CategoryName)
-    self.Blocker:SetPoint("BOTTOMRIGHT", self.CategorySearch)
-    self.DeleteButton:SetEnabled(tIndexOf(addonTable.CategoryViews.Constants.ProtectedCategories, value) == nil)
-    self.ItemsEditor:Enable()
-    self.CategoryColorSwatch:Enable()
-    self.CategoryColorSwatch.pendingColor = nil
-
-    if value == "" then
-      self.currentCategory = "-1"
-      self.CategoryName:SetText(addonTable.Locales.NEW_CATEGORY)
-      self.CategoryName:Enable()
-      self.CategorySearch:SetText("")
-      self.CategorySearch:Enable()
-      self.PrioritySlider:SetValue(0)
-      self.GroupDropDown:SetText(addonTable.Locales.NONE)
-      self.PrefixCheckBox:SetChecked(true)
-      self.HiddenCheckBox:SetChecked(false)
-      self.PrioritySlider:Enable()
-      self.Blocker:Hide()
-      self.ExportButton:Enable()
-      self.ItemsEditor:SetupItems()
-      self.HelpButton:Enable()
-      self.ChangeSearchModeButton:Enable()
-      self.CategoryColorSwatch.currentColor = CreateColor(1, 1, 1)
-      self.CategoryColorSwatch:SetColorRGB(self.CategoryColorSwatch.currentColor:GetRGBA())
-      self.LocationsDropDown:GenerateMenu()
-      operationInProgress = false
-      Save()
-      return
-    end
-
-    self.currentCategory = value
-
-    local category
-    if customCategories[value] then
-      category = customCategories[value]
-      self.Blocker:Hide()
-      self.ExportButton:Enable()
-      self.HelpButton:Enable()
-      self.CategoryName:Enable()
-      self.CategorySearch:Enable()
-      self.ChangeSearchModeButton:Enable()
-    else
-      category = addonTable.CategoryViews.Constants.SourceToCategory[value]
-      self.ItemsEditor:SetEnabled(not category.auto)
-      if category.auto then
-        self.ItemsEditor:SetAlpha(disabledAlpha)
-      end
-      self.CategoryName:SetAlpha(disabledAlpha)
-      self.CategoryName:Disable()
-      self.CategorySearch:SetAlpha(disabledAlpha)
-      self.CategorySearch:Disable()
-      self.ChangeSearchModeButton:SetAlpha(disabledAlpha)
-      self.ChangeSearchModeButton:Disable()
-      self.HelpButton:SetAlpha(disabledAlpha)
-      self.HelpButton:Disable()
-      self.Blocker:Show()
-      self.ExportButton:Disable()
-    end
-    self.LocationsDropDown:GenerateMenu()
-    self.HiddenCheckBox:SetChecked(addonTable.Config.Get(addonTable.Config.Options.CATEGORY_HIDDEN)[value])
-
-    local categoryMods = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_MODIFICATIONS)
-
-    self.CategoryName:SetText(category.name)
-    self.CategorySearch:SetText(category.search or "")
-    self.PrioritySlider:SetValue(categoryMods[value] and categoryMods[value].priority or -1)
-
-    self.GroupDropDown:Enable()
-    if categoryMods[value] and categoryMods[value].group then
-      self.GroupDropDown:SetText(groupingToLabel[categoryMods[value].group])
-      self.PrefixCheckBox:GetParent():Show()
-    else
-      self.PrefixCheckBox:GetParent():Hide()
-      self.GroupDropDown:SetText(addonTable.Locales.NONE)
-    end
-    self.ItemsEditor:SetupItems()
-    if categoryMods[value] and categoryMods[value].showGroupPrefix == false then
-      self.PrefixCheckBox:SetChecked(false)
-    else
-      self.PrefixCheckBox:SetChecked(true)
-    end
-    if categoryMods[value] and categoryMods[value].color then
-      self.CategoryColorSwatch.currentColor = CreateColorFromRGBAHexString(categoryMods[value].color .. "ff")
-    else
-      self.CategoryColorSwatch.currentColor = CreateColor(1, 1, 1)
-    end
-    self.CategoryColorSwatch:SetColorRGB(self.CategoryColorSwatch.currentColor:GetRGBA())
-
-    operationInProgress = false
-  end
+  self.operationInProgress = false
 
   addonTable.CallbackRegistry:RegisterCallback("EditCategory", function(_, value)
     if not self:GetParent():IsVisible() then
       return
     end
-    SetState(value)
+    self:Save()
+    self:SetState(value)
   end)
 
   local hiddenCheckBoxWrapper = addonTable.CustomiseDialog.GetCategoryEditorCheckBox(self)
@@ -264,7 +70,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
   self.PrioritySlider = CreateFrame("Frame", nil, self, "BaganatorCustomSliderTemplate")
   self.PrioritySlider:Init({
     text = addonTable.Locales.PRIORITY,
-    callback = Save,
+    callback = function() self:Save() end,
     min = -1,
     max = 3,
     valueToText = {
@@ -369,8 +175,8 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
   self.Blocker:SetFrameStrata("DIALOG")
   self.Blocker:SetFrameLevel(10000)
 
-  self.CategoryName:SetScript("OnEditFocusLost", Save)
-  self.CategoryName:SetScript("OnEnterPressed", Save)
+  self.CategoryName:SetScript("OnEditFocusLost", function() self:Save() end)
+  self.CategoryName:SetScript("OnEnterPressed", function() self:Save() end)
   self.CategoryName:SetScript("OnTabPressed", function()
     if self.TextCategorySearch:IsVisible() then
       self.CategoryName:ClearHighlightText()
@@ -378,7 +184,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
     end
   end)
 
-  self.CategoryColorSwatch = addonTable.CustomiseDialog.GetColorSwatch(self, self.NameLabel, Save)
+  self.CategoryColorSwatch = addonTable.CustomiseDialog.GetColorSwatch(self, self.NameLabel, function() self:Save() end)
   table.insert(self.ChangeAlpha, self.CategoryColorSwatch)
 
   self.CategorySearchOptions = {
@@ -391,14 +197,14 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
     self.VisualCategorySearchHolder:SetPoint("RIGHT")
     self.VisualCategorySearch = Syndicator.Search.GetSearchBuilderScrollable(self.VisualCategorySearchHolder, addonTable.Skins.AddFrame)
     self.VisualCategorySearch:RegisterCallback("OnChange", function()
-      Save()
+      self:Save()
     end)
     table.insert(self.ChangeAlpha, self.VisualCategorySearch)
 
     self.CategorySearchOptions["visual"] = {holder = self.VisualCategorySearchHolder, widget = self.VisualCategorySearch, changeText = addonTable.Locales.RAW_MODE}
   end
 
-  self.TextCategorySearch:SetScript("OnEnterPressed", Save)
+  self.TextCategorySearch:SetScript("OnEnterPressed", function() self:Save() end)
   addonTable.Skins.AddFrame("EditBox", self.TextCategorySearch)
   addonTable.Skins.AddFrame("IconButton", self.ChangeSearchModeButton, {"changeSearchMode"})
 
@@ -424,7 +230,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
     end
 
     if self.currentCategory ~= "-1" and oldSearch then
-      self.CategorySearch:SetText(oldSearch:GetText())
+      self.CategorySearch:SetText(addonTable.CustomiseDialog.CleanupSearch(oldSearch:GetText()))
     end
     if oldSearch then
       if oldSearch.IsEnabled then
@@ -456,8 +262,8 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
     end
   end)
 
-  self.HiddenCheckBox:SetScript("OnClick", Save)
-  self.PrefixCheckBox:SetScript("OnClick", Save)
+  self.HiddenCheckBox:SetScript("OnClick", function() self:Save() end)
+  self.PrefixCheckBox:SetScript("OnClick", function() self:Save() end)
 
   self.ItemsEditor = self:MakeItemsEditor()
   self.ItemsEditor:SetPoint("TOP", 0, -330)
@@ -467,7 +273,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
       return
     end
 
-    addonTable.Dialogs.ShowCopy(addonTable.CustomiseDialog.SingleCategoryExport(self.currentCategory):gsub("|n", "||n"))
+    addonTable.Dialogs.ShowCopy(addonTable.CustomiseDialog.CleanupSearch(addonTable.CustomiseDialog.SingleCategoryExport(self.currentCategory)))
   end)
 
   self.DeleteButton:SetScript("OnClick", function()
@@ -502,6 +308,201 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
   self:Disable()
 end
 
+function BaganatorCustomiseDialogCategoriesEditorMixin:Save()
+  if self.CategoryName:GetText() == "" or self.operationInProgress then
+    return
+  end
+  self.operationInProgress = true
+
+  local customCategories = addonTable.Config.Get(addonTable.Config.Options.CUSTOM_CATEGORIES)
+  local categoryMods = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_MODIFICATIONS)
+  local displayOrder = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER)
+  local mods = categoryMods[self.currentCategory]
+  local isNew, isDefault = self.currentCategory == "-1", customCategories[self.currentCategory] == nil
+  if not mods then
+    mods = {}
+  end
+  local oldMods = CopyTable(mods)
+  local oldCat = customCategories[self.currentCategory] or {}
+  if isNew then
+    self.currentCategory = tostring(1)
+    while customCategories[self.currentCategory] do
+      self.currentCategory = tostring(tonumber(self.currentCategory) + 1)
+    end
+  end
+  mods.priority = self.PrioritySlider:GetValue()
+  mods.showGroupPrefix = self.PrefixCheckBox:GetChecked()
+  if self.CategoryColorSwatch.pendingColor then
+    local c = self.CategoryColorSwatch.pendingColor
+    if c.r == 1 and c.g == 1 and c.b == 1 then
+      mods.color = nil
+    else
+      mods.color = c:GenerateHexColorNoAlpha()
+    end
+  end
+
+  local refreshState = {}
+
+  local hidden = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_HIDDEN)
+  local oldHidden = hidden[self.currentCategory] == true
+  if isNew or not isDefault then
+    local newName = self.CategoryName:GetText():gsub("_", " ")
+
+    customCategories[self.currentCategory] = {
+      name = newName,
+      search = self.CategorySearch:GetText(),
+    }
+    categoryMods[self.currentCategory] = mods
+
+    hidden[self.currentCategory] = self.HiddenCheckBox:GetChecked()
+
+    self.CategoryName:SetText(newName)
+
+    if isNew and tIndexOf(displayOrder, self.currentCategory) == nil then
+      refreshState[addonTable.Constants.RefreshReason.Searches] = true
+      refreshState[addonTable.Constants.RefreshReason.Layout] = true
+      table.insert(displayOrder, 1, self.currentCategory)
+    end
+
+    if not tCompare(oldCat, customCategories[self.currentCategory]) then
+      refreshState[addonTable.Constants.RefreshReason.Searches] = true
+      refreshState[addonTable.Constants.RefreshReason.Layout] = true
+    end
+  else
+    hidden[self.currentCategory] = self.HiddenCheckBox:GetChecked()
+    categoryMods[self.currentCategory] = mods
+  end
+
+  if hidden[self.currentCategory] ~= oldHidden then
+    refreshState[addonTable.Constants.RefreshReason.Layout] = true
+  end
+
+  for key, value in pairs(mods) do
+    if value ~= oldMods[key] and key ~= "color" and key ~= "addedItems" then
+      refreshState[addonTable.Constants.RefreshReason.Searches] = true
+      refreshState[addonTable.Constants.RefreshReason.Layout] = true
+    elseif value ~= oldMods[key] and key == "color" then
+      refreshState[addonTable.Constants.RefreshReason.Cosmetic] = true
+    end
+  end
+
+  for key, value in pairs(oldMods) do
+    if value ~= mods[key] and key ~= "color" and key ~= "addedItems" then
+      refreshState[addonTable.Constants.RefreshReason.Searches] = true
+      refreshState[addonTable.Constants.RefreshReason.Layout] = true
+    elseif value ~= mods[key] and key == "color" then
+      refreshState[addonTable.Constants.RefreshReason.Cosmetic] = true
+    end
+  end
+
+  if next(refreshState) ~= nil then
+    addonTable.CallbackRegistry:TriggerEvent("RefreshStateChange", refreshState)
+  end
+  if isNew then
+    addonTable.CallbackRegistry:TriggerEvent("SetSelectedCategory", self.currentCategory)
+  end
+  self.operationInProgress = false
+end
+
+function BaganatorCustomiseDialogCategoriesEditorMixin:SetState(value)
+  self.operationInProgress = true
+  local customCategories = addonTable.Config.Get(addonTable.Config.Options.CUSTOM_CATEGORIES)
+
+  for _, region in ipairs(self.ChangeAlpha) do
+    region:SetAlpha(1)
+  end
+  self.Blocker:SetPoint("TOPLEFT", self.CategoryName)
+  self.Blocker:SetPoint("BOTTOMRIGHT", self.CategorySearch)
+  self.DeleteButton:SetEnabled(tIndexOf(addonTable.CategoryViews.Constants.ProtectedCategories, value) == nil)
+  self.ItemsEditor:Enable()
+  self.CategoryColorSwatch:Enable()
+  self.CategoryColorSwatch.pendingColor = nil
+
+  if value == "" then
+    self.currentCategory = "-1"
+    self.CategoryName:SetText(addonTable.Locales.NEW_CATEGORY)
+    self.CategoryName:Enable()
+    self.CategorySearch:SetText("")
+    self.CategorySearch:Enable()
+    self.PrioritySlider:SetValue(0)
+    self.GroupDropDown:SetText(addonTable.Locales.NONE)
+    self.PrefixCheckBox:SetChecked(true)
+    self.HiddenCheckBox:SetChecked(false)
+    self.PrioritySlider:Enable()
+    self.Blocker:Hide()
+    self.ExportButton:Enable()
+    self.ItemsEditor:SetupItems()
+    self.HelpButton:Enable()
+    self.ChangeSearchModeButton:Enable()
+    self.CategoryColorSwatch.currentColor = CreateColor(1, 1, 1)
+    self.CategoryColorSwatch:SetColorRGB(self.CategoryColorSwatch.currentColor:GetRGBA())
+    self.LocationsDropDown:GenerateMenu()
+    self.operationInProgress = false
+    self:Save()
+    return
+  end
+
+  self.currentCategory = value
+
+  local category
+  if customCategories[value] then
+    category = customCategories[value]
+    self.Blocker:Hide()
+    self.ExportButton:Enable()
+    self.HelpButton:Enable()
+    self.CategoryName:Enable()
+    self.CategorySearch:Enable()
+    self.ChangeSearchModeButton:Enable()
+  else
+    category = addonTable.CategoryViews.Constants.SourceToCategory[value]
+    self.ItemsEditor:SetEnabled(not category.auto)
+    if category.auto then
+      self.ItemsEditor:SetAlpha(disabledAlpha)
+    end
+    self.CategoryName:SetAlpha(disabledAlpha)
+    self.CategoryName:Disable()
+    self.CategorySearch:SetAlpha(disabledAlpha)
+    self.CategorySearch:Disable()
+    self.ChangeSearchModeButton:SetAlpha(disabledAlpha)
+    self.ChangeSearchModeButton:Disable()
+    self.HelpButton:SetAlpha(disabledAlpha)
+    self.HelpButton:Disable()
+    self.Blocker:Show()
+    self.ExportButton:Disable()
+  end
+  self.LocationsDropDown:GenerateMenu()
+  self.HiddenCheckBox:SetChecked(addonTable.Config.Get(addonTable.Config.Options.CATEGORY_HIDDEN)[value])
+
+  local categoryMods = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_MODIFICATIONS)
+
+  self.CategoryName:SetText(category.name)
+  self.CategorySearch:SetText(category.search and addonTable.CustomiseDialog.CleanupSearch(category.search) or "")
+  self.PrioritySlider:SetValue(categoryMods[value] and categoryMods[value].priority or -1)
+
+  self.GroupDropDown:Enable()
+  if categoryMods[value] and categoryMods[value].group then
+    self.GroupDropDown:SetText(groupingToLabel[categoryMods[value].group])
+    self.PrefixCheckBox:GetParent():Show()
+  else
+    self.PrefixCheckBox:GetParent():Hide()
+    self.GroupDropDown:SetText(addonTable.Locales.NONE)
+  end
+  self.ItemsEditor:SetupItems()
+  if categoryMods[value] and categoryMods[value].showGroupPrefix == false then
+    self.PrefixCheckBox:SetChecked(false)
+  else
+    self.PrefixCheckBox:SetChecked(true)
+  end
+  if categoryMods[value] and categoryMods[value].color then
+    self.CategoryColorSwatch.currentColor = CreateColorFromRGBAHexString(categoryMods[value].color .. "ff")
+  else
+    self.CategoryColorSwatch.currentColor = CreateColor(1, 1, 1)
+  end
+  self.CategoryColorSwatch:SetColorRGB(self.CategoryColorSwatch.currentColor:GetRGBA())
+
+  self.operationInProgress = false
+end
+
 function BaganatorCustomiseDialogCategoriesEditorMixin:Disable()
   self.CategoryName:SetText("")
   self.CategoryName:Disable()
@@ -530,6 +531,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:Disable()
 end
 
 function BaganatorCustomiseDialogCategoriesEditorMixin:OnHide()
+  self:Save()
   self:Disable()
 end
 
@@ -802,7 +804,6 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:MakeItemsGrid(container)
         itemButton:SetScale(itemSize / 37)
         itemButton:SetPoint("LEFT", 37/itemSize * ((i - 1) * itemSize + (i - 1) * 3 + 4), 0)
         addonTable.Skins.AddFrame("ItemButton", itemButton)
-        addonTable.Utilities.MasqueRegistration(itemButton)
         itemButton:UpdateTextures()
         itemButton:SetScript("OnClick", function(_, mouseButton)
           if mouseButton == "RightButton" then

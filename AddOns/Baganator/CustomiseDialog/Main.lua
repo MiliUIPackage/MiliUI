@@ -123,11 +123,6 @@ local LAYOUT_OPTIONS = {
   },
   {
     type = "checkbox",
-    text = addonTable.Locales.RECENT_CHARACTER_TABS,
-    option = "show_recents_tabs_main_view",
-  },
-  {
-    type = "checkbox",
     text = addonTable.Locales.REDUCE_UI_SPACING,
     option = "reduce_spacing",
   },
@@ -355,9 +350,9 @@ local SORTING_OPTIONS = {
   {
     type = "slider",
     min = 0,
-    max = 128,
+    max = 240,
     lowText = "0",
-    highText = "128",
+    highText = "240",
     text = addonTable.Locales.IGNORED_BAG_SLOTS,
     option = "sort_ignore_slots_count_2",
   },
@@ -545,7 +540,7 @@ function BaganatorCustomiseDialogMixin:SetupGeneral()
     DynamicResizeButton_Resize(discordButton)
     discordButton:SetPoint("BOTTOMLEFT", logo, "BOTTOMRIGHT", 8, 0)
     discordButton:SetScript("OnClick", function()
-      addonTable.Dialogs.ShowCopy("https://discord.gg/TtSN6DxSky")
+      addonTable.Dialogs.ShowCopy("https://discord.gg/P2YwS8pM2N")
     end)
     addonTable.Skins.AddFrame("Button", discordButton)
     local discordText = infoInset:CreateFontString(nil, "ARTWORK", "GameFontHighlight")

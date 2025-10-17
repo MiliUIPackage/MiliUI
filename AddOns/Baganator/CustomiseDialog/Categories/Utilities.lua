@@ -67,3 +67,7 @@ function addonTable.CustomiseDialog.GetColorSwatch(parent, label, Save)
 
   return colorSwatch
 end
+
+function addonTable.CustomiseDialog.CleanupSearch(text)
+  return (text:gsub("%|%|", "|"):gsub("%|", "||"))
+end

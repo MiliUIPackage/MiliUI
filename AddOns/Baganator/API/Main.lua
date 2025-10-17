@@ -291,9 +291,6 @@ end
 
 function Baganator.API.Skins.RegisterListener(callback)
   table.insert(addonTable.Skins.skinListeners, callback)
-  if addonTable.WagoAnalytics then
-    addonTable.WagoAnalytics:Switch("UsingSkinRaw", true)
-  end
 end
 
 local blockedSkins = {

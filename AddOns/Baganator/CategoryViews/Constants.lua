@@ -266,11 +266,12 @@ tAppendAll(addonTable.CategoryViews.Constants.DefaultCategories, {
     key = "questitem",
     name = C_Item.GetItemClassInfo(Enum.ItemClass.Questitem),
     search = "#" .. C_Item.GetItemClassInfo(Enum.ItemClass.Questitem):lower(),
+    priorityOffset = -65,
   },
   {
     key = "miscellaneous",
     name = C_Item.GetItemClassInfo(Enum.ItemClass.Miscellaneous),
-    search = "#" .. C_Item.GetItemClassInfo(Enum.ItemClass.Miscellaneous):lower(),
+    search = "#" .. C_Item.GetItemClassInfo(Enum.ItemClass.Miscellaneous):lower() .. "&!#" .. Syndicator.Locales.KEYWORD_GEAR,
     priorityOffset = -30,
   },
   {

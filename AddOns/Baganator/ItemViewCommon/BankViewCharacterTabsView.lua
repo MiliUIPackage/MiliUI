@@ -176,18 +176,18 @@ function BaganatorItemViewCommonBankViewCharacterTabsViewMixin:ApplyTabButtonSea
     monitor:Stop()
   end
 
-  local characterData = Syndicator.API.GetCharacter(self.liveCharacter)
+  local characterData = Syndicator.API.GetCharacter(self.lastCharacter)
 
   for index, tab in ipairs(characterData.bankTabs) do
-    if not self.tabsSearchCache[self.liveCharacter] then
-      self.tabsSearchCache[self.liveCharacter] = {}
+    if not self.tabsSearchCache[self.lastCharacter] then
+      self.tabsSearchCache[self.lastCharacter] = {}
     end
 
-    if self.tabsSearchCache[self.liveCharacter][index] == nil then
-      self.tabsSearchCache[self.liveCharacter][index] = Syndicator.Search.GetBaseInfoFromList(tab.slots)
+    if self.tabsSearchCache[self.lastCharacter][index] == nil then
+      self.tabsSearchCache[self.lastCharacter][index] = Syndicator.Search.GetBaseInfoFromList(tab.slots)
     end
 
-    self.searchMonitors[index]:StartSearch(self.tabsSearchCache[self.liveCharacter][index], text, function(matches)
+    self.searchMonitors[index]:StartSearch(self.tabsSearchCache[self.lastCharacter][index], text, function(matches)
       if #matches > 0 then
         self.Tabs[index + 1].Icon:SetAlpha(1)
       else
@@ -281,28 +281,12 @@ end
 function BaganatorItemViewCommonBankViewCharacterTabsViewMixin:RemoveSearchMatches(getItems)
   local matches = (getItems and getItems()) or self:GetSearchMatches()
 
-  -- Limit to the first 5 items (avoids slots locking up)
-  local newMatches = {}
-  for i = 1, 5 do
-    table.insert(newMatches, matches[i])
-  end
-  matches = newMatches
-
   local bagSlots = addonTable.Transfers.GetBagsSlots(
     Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter()).bags,
     Syndicator.Constants.AllBagIndexes
   )
 
-  local status
-  local counts = addonTable.Transfers.CountByItemIDs(bagSlots)
-  -- Only move more items if the last set moved in, or the last transfer
-  -- completed.
-  if not self.transferState.counts or not tCompare(counts, self.transferState.counts, 2) then
-    self.transferState.counts = counts
-    status = addonTable.Transfers.FromBagsToBags(matches, Syndicator.Constants.AllBagIndexes, bagSlots)
-  else
-    status = addonTable.Constants.SortStatus.WaitingMove
-  end
+  local status = addonTable.Transfers.FromBagsToBags(matches, Syndicator.Constants.AllBagIndexes, bagSlots)
 
   self.transferManager:Apply(status, {"BagCacheUpdate"}, function()
     self:RemoveSearchMatches(getItems)
@@ -318,7 +302,7 @@ function BaganatorItemViewCommonBankViewCharacterTabsViewMixin:SetupBlizzardFram
     local bagID = Syndicator.Constants.AllBankIndexes[self.currentTab]
 
     -- Ensure right-clicking a bag item puts the item into this bank
-    BankFrame.BankPanel.bankType = Enum.BankType.Character
+    BankFrame.BankPanel:SetBankType(Enum.BankType.Character)
 
     -- Workaround so that the tab edit UI shows the details for the current tab
     self.TabSettingsMenu.GetBankPanel = function()
@@ -530,16 +514,19 @@ function BaganatorItemViewCommonBankViewCharacterTabsViewMixin:ShowTab(character
   self:GetParent().SearchWidget:SetShown(addonTable.Config.Get(addonTable.Config.Options.SHOW_SEARCH_BOX) and isBankData)
 
   if self.BankMissingHint:IsShown() then
-    self.BankMissingHint:SetText(addonTable.Locales.BANK_DATA_MISSING_HINT:format(characterData.details.character))
+    if self.isLive and C_Bank.CanPurchaseBankTab(Enum.BankType.Character) then
+      self.BankMissingHint:SetText(addonTable.Locales.CHARACTER_BANK_NOT_PURCHASED_HINT)
+    elseif self.isLive and C_Bank.FetchBankLockedReason(Enum.BankType.Account) == Enum.BankLockedReason.BankDisabled then
+      self.BankMissingHint:SetText(BANK_LOCKED_REASON_BANK_DISABLED)
+    else
+      self.BankMissingHint:SetText(addonTable.Locales.BANK_DATA_MISSING_HINT:format(characterData.details.character))
+    end
   end
 
   local searchText = self:GetParent().SearchWidget.SearchBox:GetText()
 
-  --self:UpdateCurrencies()
-
   self:GetParent().AllButtons = {}
   tAppendAll(self:GetParent().AllButtons, self:GetParent().AllFixedButtons)
-  tAppendAll(self:GetParent().AllButtons, self.LiveButtons)
   tAppendAll(self:GetParent().AllButtons, self.TopButtons)
 
   local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()

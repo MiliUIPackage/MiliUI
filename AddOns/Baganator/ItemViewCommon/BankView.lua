@@ -137,10 +137,6 @@ function BaganatorItemViewCommonBankViewMixin:OnEvent(eventName)
 end
 
 function BaganatorItemViewCommonBankViewMixin:OnShow()
-  if Syndicator.Constants.CharacterBankTabsActive then
-    BankFrame.BankPanel:Show()
-  end
-
   if Syndicator.Constants.WarbandBankActive then
     if C_PlayerInteractionManager.IsInteractingWithNpcOfType(Enum.PlayerInteractionType.AccountBanker) then
       self:SetTab(2)
@@ -217,6 +213,10 @@ function BaganatorItemViewCommonBankViewMixin:UpdateView()
   self.SearchWidget:SetSpacing(sideSpacing)
 
   self.currentTab:UpdateView()
+
+  if Syndicator.Constants.CharacterBankTabsActive then
+    BankFrame.BankPanel:SetShown(self.currentTab.isLive)
+  end
 
   addonTable.CallbackRegistry:TriggerEvent("ItemContextChanged")
 end

@@ -11,4 +11,9 @@ function addonTable.ItemViewCommon.Initialize()
   Mixin(addonTable.NewItems, BaganatorItemViewCommonNewItemsTrackingMixin)
   addonTable.NewItems:OnLoad()
   addonTable.NewItems:SetScript("OnEvent", addonTable.NewItems.OnEvent)
+
+  addonTable.BankTransferManager = CreateFrame("Frame")
+  Mixin(addonTable.BankTransferManager, addonTable.BankTransferManagerMixin)
+  addonTable.BankTransferManager:OnLoad()
+  addonTable.BankTransferManager:SetScript("OnEvent", addonTable.BankTransferManager.OnEvent)
 end

@@ -1,6 +1,6 @@
 # Baganator
 
-## [725-1-g43c29a9](https://github.com/Baganator/Baganator/tree/43c29a951f3297ff6b9a3e26431b4cd4686b0601) (2025-08-09)
-[Full Changelog](https://github.com/Baganator/Baganator/compare/725...43c29a951f3297ff6b9a3e26431b4cd4686b0601) 
+## [764](https://github.com/TheMouseNest/Baganator/tree/764) (2025-10-08)
+[Full Changelog](https://github.com/TheMouseNest/Baganator/compare/763...764) 
 
-- [Fixes #529] Support reversing Blizzard sort method by default on backpack  
+- Categories: Fix scroll bar appearing when "Reduce UI spacing" is enabled  

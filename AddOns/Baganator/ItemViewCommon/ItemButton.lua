@@ -133,14 +133,13 @@ function addonTable.ItemButtonUtil.UpdateSettings()
     if #callbacks > 0 then
       local function Callback(itemButton)
         local queued = false
-        local timeoutStatus = not addonTable.CheckTimeout()
 
         for index = 1, #callbacks do
           local cb = callbacks[index]
           local widget = itemButton.cornerPlugins[plugins[index]]
           if widget then
             local show
-            if timeoutStatus or fastStatus[index] then
+            if fastStatus[index] or not addonTable.CheckTimeout() then
               show = cb(widget, itemButton.BGR)
             end
             if show == nil then
@@ -150,6 +149,10 @@ function addonTable.ItemButtonUtil.UpdateSettings()
                   -- Ensure the item button's state is still the same
                   -- IsShown ensures the item hasn't been returned to the pool
                   if itemButton.BGR == BGR and itemButton:IsShown() then
+                    if addonTable.CheckTimeout() then
+                      QueueWidget(queueFunc)
+                      return
+                    end
                     -- Hide any widgets shown immediately because the widget
                     -- wasn't available
                     for i = 1, #callbacks do
@@ -158,11 +161,11 @@ function addonTable.ItemButtonUtil.UpdateSettings()
                         cornerWidget:Hide()
                       end
                     end
-                    if itemButton.BGR.guid and itemButton.BGR.guid ~= C_Item.GetItemGUID(itemButton.BGR.itemLocation) then
-                      QueueWidget(queueFunc)
-                    else
-                      Callback(itemButton)
+                    if itemButton.BGR.guid and (not C_Item.DoesItemExist(itemButton.BGR.itemLocation) or itemButton.BGR.guid ~= C_Item.GetItemGUID(itemButton.BGR.itemLocation)) then
+                      itemButton.BGR.guid = nil
+                      itemButton.BGR.itemLocation = nil
                     end
+                    Callback(itemButton)
                   end
                 end
                 QueueWidget(queueFunc)
@@ -470,7 +473,7 @@ end
 function BaganatorRetailCachedItemButtonMixin:SetItemDetails(details)
   self:SetItemButtonTexture(details.iconTexture)
   self:SetItemButtonQuality(details.quality, details.itemLink, false, details.isBound)
-  self:SetItemButtonCount(details.itemCount)
+  SetItemButtonCount(self, details.itemCount, details.itemCount and details.itemCount > 9999) -- true results in abbreviating large numbers
   SetItemButtonDesaturated(self, false);
   ReparentOverlays(self)
 
@@ -503,7 +506,7 @@ end
 
 function BaganatorRetailCachedItemButtonMixin:OnClick()
   if IsModifiedClick("CHATLINK") then
-    ChatEdit_InsertLink(self.BGR.itemLink)
+    addonTable.Utilities.ChatInsertLink(self.BGR.itemLink)
   elseif IsModifiedClick("DRESSUP") then
     DressUpLink(self.BGR.itemLink)
   elseif IsAltKeyDown() then
@@ -548,7 +551,7 @@ BaganatorRetailLiveContainerItemButtonMixin = {}
 
 function BaganatorRetailLiveContainerItemButtonMixin:MyOnLoad()
   AddRetailBackground(self)
-  self:HookScript("OnClick", function()
+  self:HookScript("OnClick", function(_, mouseButton)
     if not self.BGR or not self.BGR.itemID then
       return
     end
@@ -558,7 +561,6 @@ function BaganatorRetailLiveContainerItemButtonMixin:MyOnLoad()
     end
   end)
   self:HookScript("PreClick", self.PreClickHook)
-  self:HookScript("PostClick", self.PostClickHook)
 
   self:HookScript("OnShow", self.OnShowHook)
   self:HookScript("OnHide", self.OnHideHook)
@@ -584,51 +586,16 @@ function BaganatorRetailLiveContainerItemButtonMixin:MyOnLoad()
   end)
 end
 
-function BaganatorRetailLiveContainerItemButtonMixin:PreClickHook()
-  -- Automatically use the reagent bank when at the bank transferring crafting
-  -- reagents if there is space
-  if not Syndicator.Constants.CharacterBankTabsActive and BankFrame:IsShown() and self.BGR and self.BGR.itemID and BankFrame.activeTabIndex ~= addonTable.Constants.BlizzardBankTabConstants.Warband then
-    BankFrame.selectedTab = 1
-
-    local _
-    self.BGR.stackLimit, _, _, _, _, _, _, _, _, self.BGR.isReagent = select(8, C_Item.GetItemInfo(self.BGR.itemID))
-    if self.BGR.isReagent then
-      local bank = Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter()).bank
-      local reagentBank = bank[tIndexOf(Syndicator.Constants.AllBankIndexes, Enum.BagIndex.Reagentbank)]
-      local emptySlotFound = false
-      --Find a matching stack for the item, prioritising reagent bank
-      for _, item in ipairs(reagentBank) do
-        if item.itemID == self.BGR.itemID and self.BGR.stackLimit - item.itemCount >= self.BGR.itemCount then
-          BankFrame.selectedTab = 2
-          return
-        elseif item.itemID == nil then -- Got an empty slot, remember this for if no stacks found
-          emptySlotFound = true
-        end
-      end
-
-      -- Find a matching stack in the regular bank
-      for index, bag in ipairs(bank) do
-        if Syndicator.Constants.AllBankIndexes[index] ~= Enum.BagIndex.Reagentbank then
-          for _, slot in ipairs(bag) do
-            if slot.itemID == self.BGR.itemID and slot.itemCount + self.BGR.itemCount <= self.BGR.stackLimit then
-              return
-            end
-          end
-        end
-      end
-
-      -- No matching stacks, find an empty slot in the reagent bank (if
-      -- possible)
-      if emptySlotFound then
-        BankFrame.selectedTab = 2
-      end
+function BaganatorRetailLiveContainerItemButtonMixin:PreClickHook(mouseButton)
+  if mouseButton == "RightButton" and not IsModifiedClick() and BankFrame:IsShown() and BankPanel:IsShown() and tIndexOf(Syndicator.Constants.AllBagIndexes, self:GetParent():GetID()) ~= nil and 
+      self.BGR.itemLocation and C_Item.DoesItemExist(self.BGR.itemLocation) and C_Bank.IsItemAllowedInBankType(BankPanel:GetActiveBankType(), self.BGR.itemLocation) then
+    addonTable.BankTransferManager:Queue(self:GetParent():GetID(), self:GetID())
+  elseif self.BGR and self.BGR.itemID and not IsModifierKeyDown() then
+    if SpellCanTargetItem() or SpellCanTargetItemID() then
+      addonTable.CallbackRegistry:TriggerEvent("ItemSpellTargeted", self.BGR.itemID)
+    elseif C_Item.GetItemSpell(self.BGR.itemID) and mouseButton == "RightButton" then
+      addonTable.CallbackRegistry:TriggerEvent("ItemSpellUsed", self.BGR.itemID)
     end
-  end
-end
-
-function BaganatorRetailLiveContainerItemButtonMixin:PostClickHook()
-  if BankFrame:IsShown() and self.BGR and BankFrame.activeTabIndex ~= addonTable.Constants.BlizzardBankTabConstants.Warband then
-    BankFrame.selectedTab = 1
   end
 end
 
@@ -676,7 +643,7 @@ function BaganatorRetailLiveContainerItemButtonMixin:SetItemDetails(cacheData)
 
   self:SetItemButtonQuality(quality, nil, true, isBound);
 
-  SetItemButtonCount(self, itemCount);
+  SetItemButtonCount(self, itemCount, itemCount and itemCount > 9999); -- true results in abbreviating large numbers
   SetItemButtonDesaturated(self, locked);
 
   self:UpdateExtended();
@@ -968,7 +935,7 @@ function BaganatorClassicCachedItemButtonMixin:SetItemDetails(details)
   SetItemButtonTexture(self, details.iconTexture);
   SetItemButtonQuality(self, details.quality); -- Doesn't do much
   ApplyQualityBorderClassic(self, details.quality)
-  SetItemButtonCount(self, details.itemCount);
+  SetItemButtonCount(self, details.itemCount, details.itemCount and details.itemCount > 9999);
   SetItemButtonDesaturated(self, false)
 end
 
@@ -994,7 +961,7 @@ end
 
 function BaganatorClassicCachedItemButtonMixin:OnClick()
   if IsModifiedClick("CHATLINK") then
-    ChatEdit_InsertLink(self.BGR.itemLink)
+    addonTable.Utilities.ChatInsertLink(self.BGR.itemLink)
   elseif IsModifiedClick("DRESSUP") then
    return DressUpItemLink(self.BGR.itemLink) or DressUpBattlePetLink(self.BGR.itemLink) or DressUpMountLink(self.BGR.itemLink)
   elseif IsAltKeyDown() then
@@ -1045,6 +1012,8 @@ function BaganatorClassicLiveContainerItemButtonMixin:MyOnLoad()
     end
   end)
 
+  self:HookScript("PreClick", self.PreClickHook)
+
   self:SetScript("OnEnter", self.OnEnter)
   self:SetScript("OnLeave", self.OnLeave)
 
@@ -1057,6 +1026,18 @@ function BaganatorClassicLiveContainerItemButtonMixin:MyOnLoad()
   self.ItemContextOverlay:SetColorTexture(0, 0, 0, 0.8)
   self.ItemContextOverlay:SetAllPoints()
   self.ItemContextOverlay:Hide()
+end
+
+function BaganatorClassicLiveContainerItemButtonMixin:PreClickHook(mouseButton)
+  if mouseButton == "RightButton" and not IsModifiedClick() and BankFrame:IsShown() and tIndexOf(Syndicator.Constants.AllBagIndexes, self:GetParent():GetID()) ~= nil then
+    return
+  elseif self.BGR and self.BGR.itemID and not IsModifierKeyDown() then
+    if SpellCanTargetItem() or SpellCanTargetItemID() then
+      addonTable.CallbackRegistry:TriggerEvent("ItemSpellTargeted", self.BGR.itemID)
+    elseif C_Item.GetItemSpell(self.BGR.itemID) and mouseButton == "RightButton" then
+      addonTable.CallbackRegistry:TriggerEvent("ItemSpellUsed", self.BGR.itemID)
+    end
+  end
 end
 
 function BaganatorClassicLiveContainerItemButtonMixin:OnShowHook()
@@ -1161,7 +1142,7 @@ function BaganatorClassicLiveContainerItemButtonMixin:SetItemDetails(cacheData)
   SetItemButtonTexture(self, texture);
   SetItemButtonQuality(self, quality, itemID);
   ApplyQualityBorderClassic(self, quality)
-  SetItemButtonCount(self, itemCount);
+  SetItemButtonCount(self, itemCount, itemCount and itemCount > 9999);
   SetItemButtonDesaturated(self, locked);
   _G[self:GetName() .. "Cooldown"]:Hide()
 

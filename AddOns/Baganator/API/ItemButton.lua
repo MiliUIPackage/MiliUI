@@ -315,6 +315,10 @@ end, function(itemButton)
 end, nil, true)
 
 addonTable.Utilities.OnAddonLoaded("CanIMogIt", function()
+  if addonTable.Constants.IsClassic then
+    return
+  end
+
   local function IsPet(itemID)
     local classID, subClassID = select(6, C_Item.GetItemInfoInstant(itemID))
     return classID == Enum.ItemClass.Battlepet or classID == Enum.ItemClass.Miscellaneous and subClassID == Enum.ItemMiscellaneousSubclass.CompanionPet
@@ -494,3 +498,26 @@ end, function(itemButton)
   Type.padding = -1
   return Type
 end, {corner = "bottom_left", priority = 1}, true)
+
+addonTable.Utilities.OnAddonLoaded("ItemUpgradeQualityIcons", function()
+  if not IUQI_API then
+    return
+  end
+
+  Baganator.API.RegisterCornerWidget("Item Quality Upgrade Icons", "item_quality_upgrade_icons", function(IconText, details)
+    if not C_Item.IsItemDataCachedByID(details.itemID) then
+      return
+    end
+    local icon = IUQI_API.GetIconForLink(details.itemLink)
+    if icon then
+      IconText:SetText(icon)
+      return true
+    end
+    return false
+  end, function(itemButton)
+    local text = itemButton:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
+    text:SetTextScale(1.35)
+    text.padding = -2
+    return text
+  end, {corner = "top_left", priority = 1})
+end)

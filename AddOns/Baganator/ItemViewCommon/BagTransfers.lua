@@ -41,26 +41,12 @@ if Syndicator and Syndicator.Constants.WarbandBankActive then
   local warbandPrevCounts = nil
 
   TransferToBank = function(matches, characterName, callback)
-    local bankSlots
+    local bankSlots = addonTable.Transfers.GetCurrentBankSlots()
+    local bankIndexes
     if addonTable.Config.Get(addonTable.Config.Options.BANK_CURRENT_TAB) == addonTable.Constants.BankTabType.Character then
-      if Syndicator.Constants.CharacterBankTabsActive then
-        local tabIndex = addonTable.Config.Get(addonTable.Config.Options.CHARACTER_BANK_CURRENT_TAB)
-        if tabIndex > 0 then
-          local bagsData = {Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter()).bankTabs[tabIndex].slots}
-          local indexes = {Syndicator.Constants.AllBankIndexes[tabIndex]}
-          bankSlots = addonTable.Transfers.GetBagsSlots(bagsData, indexes)
-        else
-          local bagsData = {}
-          local indexes = Syndicator.Constants.AllBankIndexes
-          for _, tab in ipairs(Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter()).bankTabs) do
-            table.insert(bagsData, tab.slots)
-          end
-          bankSlots = addonTable.Transfers.GetBagsSlots(bagsData, indexes)
-        end
-      else
-        bankSlots = addonTable.Transfers.GetBagsSlots(Syndicator.API.GetCharacter(characterName).bank, Syndicator.Constants.AllBankIndexes)
-      end
+      bankIndexes = Syndicator.Constants.AllBankIndexes
     elseif addonTable.Config.Get(addonTable.Config.Options.BANK_CURRENT_TAB) == addonTable.Constants.BankTabType.Warband then
+      bankIndexes = Syndicator.Constants.AllWarbandIndexes
       local oldCount = #matches
       local missing = 0
       matches = tFilter(matches, function(m)
@@ -73,19 +59,6 @@ if Syndicator and Syndicator.Constants.WarbandBankActive then
       end, true)
       if oldCount ~= #matches + missing then
         UIErrorsFrame:AddMessage(ERR_NO_SOULBOUND_ITEM_IN_ACCOUNT_BANK, 1.0, 0.1, 0.1, 1.0)
-      end
-      local tabIndex = addonTable.Config.Get(addonTable.Config.Options.WARBAND_CURRENT_TAB)
-      if tabIndex > 0 then
-        local bagsData = {Syndicator.API.GetWarband(1).bank[tabIndex].slots}
-        local indexes = {Syndicator.Constants.AllWarbandIndexes[tabIndex]}
-        bankSlots = addonTable.Transfers.GetBagsSlots(bagsData, indexes)
-      else
-        local bagsData = {}
-        local indexes = Syndicator.Constants.AllWarbandIndexes
-        for _, tab in ipairs(Syndicator.API.GetWarband(1).bank) do
-          table.insert(bagsData, tab.slots)
-        end
-        bankSlots = addonTable.Transfers.GetBagsSlots(bagsData, indexes)
       end
       local counts = addonTable.Transfers.CountByItemIDs(bankSlots)
       -- Only move more items if the last set moved in, or the last transfer

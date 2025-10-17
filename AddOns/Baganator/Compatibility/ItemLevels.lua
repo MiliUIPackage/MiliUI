@@ -6,7 +6,9 @@ local frame = CreateFrame("Frame")
 local prevInstanceDifficulty
 local timewalking = {
   [24] = true, -- dungeon
+  [29] = true, -- PvP Scenario
   [33] = true, -- raid
+  [34] = true, -- PvP
   [232] = true, -- dastardly duos
 }
 

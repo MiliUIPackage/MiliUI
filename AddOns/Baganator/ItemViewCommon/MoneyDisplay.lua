@@ -20,7 +20,10 @@ function addonTable.ShowGoldSummaryRealm(anchor, point)
 
   local allCharacters = addonTable.Utilities.GetAllCharacters()
   local allGuilds = addonTable.Utilities.GetAllGuilds()
-  local currentRealm = Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter()).details.realmNormalized
+  local currentCharacterDetails = Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter()).details
+  local currentRealm = currentCharacterDetails.realmNormalized
+  local currentFaction = currentCharacterDetails.faction
+  local applyFaction = addonTable.Constants.IsClassic
   local multipleRealms = false
   -- Identify if any characters/guilds on a different realm to the current one
   -- will be shown
@@ -39,7 +42,7 @@ function addonTable.ShowGoldSummaryRealm(anchor, point)
   local lines = {}
   local total = 0
   for _, characterInfo in ipairs(allCharacters) do
-    if realmsToInclude[characterInfo.realmNormalized] and GetShowState(Syndicator.API.GetCharacter(characterInfo.fullName)) then
+    if realmsToInclude[characterInfo.realmNormalized] and GetShowState(Syndicator.API.GetCharacter(characterInfo.fullName)) and (not applyFaction or currentFaction == characterInfo.faction) then
       local money = Syndicator.API.GetCharacter(characterInfo.fullName).money
       local characterName = characterInfo.name
       if characterInfo.className then
@@ -58,7 +61,7 @@ function addonTable.ShowGoldSummaryRealm(anchor, point)
 
   for _, guildInfo in ipairs(allGuilds) do
     local guildData = Syndicator.API.GetGuild(guildInfo.fullName)
-    if realmsToInclude[guildInfo.realmNormalized] and guildData.details.show and guildData.details.show.gold then
+    if realmsToInclude[guildInfo.realmNormalized] and guildData.details.show and guildData.details.show.gold and (not applyFaction or currentFaction == guildData.details.faction) then
       local money = Syndicator.API.GetGuild(guildInfo.fullName).money
       local guildName = TRANSMOGRIFY_FONT_COLOR:WrapTextInColorCode(guildInfo.name)
       if multipleRealms then
@@ -70,7 +73,11 @@ function addonTable.ShowGoldSummaryRealm(anchor, point)
     end
   end
 
-  GameTooltip:AddDoubleLine(addonTable.Locales.REALM_WIDE_GOLD_X:format(""), WHITE_FONT_COLOR:WrapTextInColorCode(addonTable.Utilities.GetMoneyString(total, true)))
+  if applyFaction then
+    GameTooltip:AddDoubleLine(addonTable.Locales.FACTION_REALM_WIDE_GOLD_X:format(""), WHITE_FONT_COLOR:WrapTextInColorCode(addonTable.Utilities.GetMoneyString(total, true)))
+  else
+    GameTooltip:AddDoubleLine(addonTable.Locales.REALM_WIDE_GOLD_X:format(""), WHITE_FONT_COLOR:WrapTextInColorCode(addonTable.Utilities.GetMoneyString(total, true)))
+  end
   GameTooltip:AddLine(" ")
   for _, line in ipairs(lines) do
     GameTooltip:AddDoubleLine(line.left, line.right, nil, nil, nil, 1, 1, 1)

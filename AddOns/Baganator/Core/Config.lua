@@ -26,7 +26,6 @@ local settings = {
   SORT_IGNORE_SLOTS_AT_END = {key = "sort_ignore_slots_at_end", default = false},
   SORT_IGNORE_BAG_SLOTS_COUNT = {key = "sort_ignore_slots_count_2", default = 0},
   SORT_IGNORE_BANK_SLOTS_COUNT = {key = "sort_ignore_bank_slots_count", default = 0},
-  SHOW_RECENTS_TABS = {key = "show_recents_tabs_main_view", default = false, refresh = {Refresh.Layout}},
   AUTO_SORT_ON_OPEN = {key = "auto_sort_on_open", default = false},
   BAG_EMPTY_SPACE_AT_TOP = {key = "bag_empty_space_at_top", default = false, refresh = {Refresh.Flow, Refresh.Layout}},
   REDUCE_SPACING = {key = "reduce_spacing", default = false, refresh = {Refresh.Layout, Refresh.Flow}},
@@ -39,8 +38,6 @@ local settings = {
   CHARACTER_BANK_CURRENT_TAB = {key = "character_bank_current_tab", default = 1},
   WARBAND_CURRENT_TAB = {key = "warband_current_tab", default = 1},
   GUILD_CURRENT_TAB = {key = "guild_current_tab", default = 1},
-
-  RECENT_CHARACTERS_MAIN_VIEW = {key = "recent_characters_main_view", default = {}},
 
   HIDE_BOE_ON_COMMON = {key = "hide_boe_on_common", default = false, refresh = {Refresh.ItemWidgets}},
   ICON_TEXT_QUALITY_COLORS = {key = "icon_text_quality_colors", default = false, refresh = {Refresh.ItemWidgets}},

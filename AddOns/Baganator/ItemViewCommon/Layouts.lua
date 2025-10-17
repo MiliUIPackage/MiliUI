@@ -1,8 +1,6 @@
 ---@class addonTableBaganator
 local addonTable = select(2, ...)
 
-local MasqueRegistration = addonTable.Utilities.MasqueRegistration
-
 local function GetNameFromLink(itemLink)
   return (string.match(itemLink, "h%[(.*)%]|h"):gsub(" ?|A.-|a", ""))
 end
@@ -299,7 +297,6 @@ function BaganatorCachedBagLayoutMixin:RebuildLayout(newBags, indexes, indexesTo
         addonTable.Skins.AddFrame("ItemButton", button)
         if not button.setup then
           button.setup = true
-          MasqueRegistration(button)
           button:UpdateTextures()
           hooksecurefunc(button, "UpdateTooltip", TooltipAdditions)
         end
@@ -523,7 +520,6 @@ function BaganatorLiveBagLayoutMixin:RebuildLayout(indexes, indexesToUse, rowWid
         addonTable.Skins.AddFrame("ItemButton", button)
         if not button.setup then
           button.setup = true
-          MasqueRegistration(button)
           button:UpdateTextures()
           hooksecurefunc(button, "UpdateTooltip", TooltipAdditions)
           if button.OnUpdate then
@@ -889,7 +885,6 @@ function BaganatorLiveCategoryLayoutMixin:ShowGroup(cacheList, rowWidth, categor
         addonTable.Skins.AddFrame("ItemButton", newButton)
         if not newButton.texturesSetup then
           newButton.texturesSetup = true
-          MasqueRegistration(newButton)
           newButton:UpdateTextures()
         end
         newButton.label = cacheData.label
@@ -899,7 +894,6 @@ function BaganatorLiveCategoryLayoutMixin:ShowGroup(cacheList, rowWidth, categor
         addonTable.Skins.AddFrame("ItemButton", newButton)
         if not newButton.texturesSetup then
           newButton.texturesSetup = true
-          MasqueRegistration(newButton)
           newButton:UpdateTextures()
         end
         self:SetupButton(newButton)
@@ -1020,7 +1014,6 @@ function BaganatorCachedCategoryLayoutMixin:ShowGroup(cacheList, rowWidth)
     if not button.setup then
       button.setup = true
       addonTable.Skins.AddFrame("ItemButton", button)
-      MasqueRegistration(button)
       button:UpdateTextures()
       hooksecurefunc(button, "UpdateTooltip", TooltipAdditions)
     elseif self.updateTextures then
@@ -1081,7 +1074,6 @@ function BaganatorGeneralGuildLayoutMixin:RebuildLayout(rowWidth)
     addonTable.Skins.AddFrame("ItemButton", button)
     if not button.setup then
       button.setup = true
-      MasqueRegistration(button)
       button:UpdateTextures()
       hooksecurefunc(button, "UpdateTooltip", TooltipAdditions)
     end
@@ -1215,7 +1207,6 @@ function BaganatorUnifiedGuildLayoutMixin:RebuildLayout(tabCount, rowWidth)
       addonTable.Skins.AddFrame("ItemButton", button)
       if not button.setup then
         button.setup = true
-        MasqueRegistration(button)
         button:UpdateTextures()
         hooksecurefunc(button, "UpdateTooltip", TooltipAdditions)
       end
@@ -1356,7 +1347,6 @@ function BaganatorLiveWarbandLayoutMixin:RebuildLayout(tabSize, rowWidth)
     addonTable.Skins.AddFrame("ItemButton", button)
     if not button.setup then
       button.setup = true
-      MasqueRegistration(button)
       button:UpdateTextures()
       hooksecurefunc(button, "UpdateTooltip", TooltipAdditions)
       hooksecurefunc(button, "OnUpdate", TooltipAdditions)
@@ -1459,7 +1449,6 @@ function BaganatorCachedWarbandLayoutMixin:RebuildLayout(tabSize, rowWidth)
     addonTable.Skins.AddFrame("ItemButton", button)
     if not button.setup then
       button.setup = true
-      MasqueRegistration(button)
       button:UpdateTextures()
       hooksecurefunc(button, "UpdateTooltip", TooltipAdditions)
     end

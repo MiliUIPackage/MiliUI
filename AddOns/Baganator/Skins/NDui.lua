@@ -149,7 +149,7 @@ local function SkinFrame(details)
 end
 
 local function LoadSkin()
-  if addonTable.Utilities.IsMasqueApplying() then
+  if addonTable.API.IsMasqueApplying() then
     skinners.ItemButton = function(frame, tags)
       if not tags.containerBag then
         frame.SlotBackground:SetParent(hidden)

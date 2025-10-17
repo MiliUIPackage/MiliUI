@@ -7,16 +7,53 @@ local QueueReason = {
 }
 
 local itemsToSkip = {}
-local chargedItemSpells = {}
+local itemsWithCharges = {}
+
+local events = {
+  "UNIT_SPELLCAST_START",
+  "UNIT_SPELLCAST_FAILED",
+  "UNIT_SPELLCAST_FAILED_QUIET",
+  "UNIT_SPELLCAST_INTERRUPTED",
+  "UNIT_SPELLCAST_STOP",
+}
 
 local monitor = CreateFrame("Frame")
-monitor:RegisterEvent("UNIT_SPELLCAST_STOP")
+
+local timer
+local counter = 0
+
 monitor:SetScript("OnEvent", function(self, eventName, unit, castID, spellID)
-  if unit == "player" and chargedItemSpells[spellID] then
-    C_Timer.After(0.25, function()
+  if eventName == "UNIT_SPELLCAST_START" then
+    counter = counter + 1
+  elseif eventName == "UNIT_SPELLCAST_INTERRUPTED" or eventName == "UNIT_SPELLCAST_FAILED_QUIET" then
+    counter = counter - 1
+  elseif eventName == "UNIT_SPELLCAST_STOP" then
+    counter = counter - 1
+    C_Timer.After(0.5, function()
       Baganator.API.RequestItemButtonsRefresh()
     end)
   end
+  if counter == 0 then
+    monitor:UnregisterAllEvents()
+    timer:Cancel()
+    timer = nil
+  end
+end)
+
+addonTable.CallbackRegistry:RegisterCallback("ItemSpellUsed", function(_, itemID)
+  if not itemsWithCharges[itemID] then
+    return
+  end
+
+  for _, e in ipairs(events) do
+    monitor:RegisterUnitEvent(e, "player")
+  end
+  if timer then
+    timer:Cancel()
+  end
+  timer = C_Timer.NewTimer(15, function()
+    monitor:UnregisterAllEvents()
+  end)
 end)
 
 BaganatorCategoryViewsSpecialisedSplittingMixin = {}
@@ -107,10 +144,7 @@ function BaganatorCategoryViewsSpecialisedSplittingMixin:Process()
             itemsToSkip[info.itemID] = true
           else
             info.specialSplitting = tonumber((chargeText:match("%d+") or 0))
-            local _, spellID = C_Item.GetItemSpell(info.itemID)
-            if spellID then
-              chargedItemSpells[spellID] = true
-            end
+            itemsWithCharges[info.itemID] = true
           end
         end
         if info.specialSplitting then

@@ -257,7 +257,7 @@ end
 
 local function LoadSkin()
   showSlots = not addonTable.Config.Get("skins.dark.empty_slot_background")
-  if addonTable.Utilities.IsMasqueApplying() or not addonTable.Config.Get("skins.dark.square_icons") then
+  if addonTable.API.IsMasqueApplying() or not addonTable.Config.Get("skins.dark.square_icons") then
     skinners.ItemButton = function(frame, tags)
       if not tags.containerBag then
         table.insert(allItemButtons, frame)
