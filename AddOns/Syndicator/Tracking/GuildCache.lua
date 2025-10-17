@@ -67,54 +67,24 @@ function SyndicatorGuildCacheMixin:GetGuildKey()
     return
   end
 
-  local guildName = GetGuildInfo("player")
+  local guildName, _, _, realm = GetGuildInfo("player")
 
   if not guildName then
     return
   end
 
-  if seenGuilds[guildName] then
-    return seenGuilds[guildName]
-  end
-
   local oldGuild = self.currentGuild
 
   self.currentGuild = nil
+  realm = realm or GetNormalizedRealmName()
 
-  local gm, gmGUID
-  for i = 1, GetNumGuildMembers() do
-    local name, _, rankIndex, _, _, _, _, _, _, _, _, _, _, _, _, _, guid = GetGuildRosterInfo(i)
-    if rankIndex == 0 then
-      gm, gmGUID = name, guid
-    end
-  end
-
-  local _, gmRealm
-  if gm then
-    _, gmRealm = strsplit("-", gm)
-  end
-
-  if not gmRealm then
-    if gmGUID then
-      GetPlayerInfoByGUID(gmGUID)
-    else
-      C_GuildInfo.GuildRoster()
-    end
-    C_Timer.After(0, function()
-      if self.currentGuild == nil then
-        self:GetGuildKey()
-      end
-    end)
-    return
-  end
-
-  local gmKey = guildName .. "-" .. gmRealm
+  local guildKey = guildName .. "-" .. realm
 
   -- No guild found cached, create it
-  InitGuild(gmKey, guildName, gmRealm)
-  seenGuilds[guildName] = gmKey
+  InitGuild(guildKey, guildName, realm)
+  seenGuilds[guildName] = guildKey
 
-  self.currentGuild = gmKey
+  self.currentGuild = guildKey
 
   if oldGuild ~= self.currentGuild then
     Syndicator.CallbackRegistry:TriggerEvent("GuildNameSet", self.currentGuild)

@@ -116,6 +116,7 @@ Syndicator.Constants.Events = {
 -- Hidden currencies for all characters tooltips as they are shared between characters
 Syndicator.Constants.SharedCurrencies = {
   2032, -- Trader's Tender
+  3292, -- Infinite Knowledge
 }
 
 local AccountBoundTooltipLines = {

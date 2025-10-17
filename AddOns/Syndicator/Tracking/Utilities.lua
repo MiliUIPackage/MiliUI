@@ -21,7 +21,7 @@ function Syndicator.Utilities.GetItemKeyByItemID(itemID)
 end
 
 function Syndicator.Utilities.IsEquipment(itemLink)
-  local classID = select(6, C_Item.GetItemInfoInstant(itemLink))
+  local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(itemLink)
   return classID ~= nil and (
     -- Regular equipment
     classID == Enum.ItemClass.Armor or classID == Enum.ItemClass.Weapon

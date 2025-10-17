@@ -352,12 +352,18 @@ end
 
 function TermButtonMixin:OnLoad()
   self:SetHeight(22)
-  self:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-
   self:SetScript("OnEnter", self.OnEnter)
   self:SetScript("OnLeave", self.OnLeave)
 
-  self:SetScript("OnClick", self.OnClick)
+  self:SetScript("OnMouseDown", function()
+    self.Menu:OpenMenu()
+  end)
+
+  self.Menu = CreateFrame("DropdownButton", nil, self)
+  self.Menu:SetPoint("TOPLEFT", self)
+  self.Menu:SetPoint("BOTTOMRIGHT", self, "BOTTOMLEFT", 1, 0)
+  self.Menu:SetFrameStrata("LOW")
+  self.Menu:RegisterForMouse()
 
   SetupTextures(self)
 
@@ -387,8 +393,10 @@ function TermButtonMixin:OnLoad()
     input:HookScript("OnLeave", function()
       self:OnLeave()
     end)
-    input:HookScript("OnMouseUp", function(_, button)
-      self:OnClick(button)
+    input:HookScript("OnMouseDown", function(_, button)
+      if button == "RightButton" then
+        self.Menu:SetMenuOpen(not self.Menu:IsMenuOpen())
+      end
     end)
     input.WidthChecker = input:CreateFontString(nil, nil, "GameFontHighlight")
     input.WidthChecker:SetPoint("TOPLEFT")
@@ -707,6 +715,8 @@ function TermButtonMixin:Setup(callbackRegistry, component, index, color)
   self.component = component
   self.index = index
 
+  self:SetEnabled(self.callbackRegistry.enabled)
+
   if component.subType == TermType.Keyword then
     self.KeywordText:Show()
     self.KeywordText:SetText(component.value)
@@ -822,40 +832,35 @@ function TermButtonMixin:Setup(callbackRegistry, component, index, color)
   end
   component.isAdding = false
   component.addingPosition = nil
-end
-function TermButtonMixin:OnClick(button)
-  if not self.callbackRegistry.enabled then
-    return
-  end
 
-  if self.component.subType == TermType.Keyword or button == "RightButton" then
-    local index = self.index
-    MenuUtil.CreateContextMenu(self, function(_, rootDescription)
-      rootDescription:CreateTitle(REPLACE)
-      GetKeywordMenu(rootDescription, index, self.callbackRegistry, "Swap")
-      rootDescription:CreateDivider()
-      ---@diagnostic disable-next-line: missing-parameter
-      local wrapButton = rootDescription:CreateButton(Syndicator.Locales.WRAP_WITH)
-      GetOperatorMenu(wrapButton, index, self.callbackRegistry, "Wrap")
-      rootDescription:CreateDivider()
-      rootDescription:CreateButton(Syndicator.Locales.COPY, function()
-        self.callbackRegistry:TriggerEvent("Copy", self.component)
-      end)
-      rootDescription:CreateButton(Syndicator.Locales.CUT, function()
-        self.callbackRegistry:TriggerEvent("Copy", self.component)
-        self.callbackRegistry:TriggerEvent("Delete", index)
-      end)
-      local deleteButton = rootDescription:CreateButton(DELETE, function()
-        self.callbackRegistry:TriggerEvent("Delete", index)
-      end)
-      deleteButton:SetOnEnter(function()
-        self:SetAlpha(0.4)
-      end)
-      deleteButton:SetOnLeave(function()
-        self:SetAlpha(1)
-      end)
+  local index = self.index
+  self.Menu:Hide() -- Prevent menu generation
+  self.Menu:SetupMenu(function(_, rootDescription)
+    rootDescription:CreateTitle(REPLACE)
+    GetKeywordMenu(rootDescription, index, self.callbackRegistry, "Swap")
+    rootDescription:CreateDivider()
+    ---@diagnostic disable-next-line: missing-parameter
+    local wrapButton = rootDescription:CreateButton(Syndicator.Locales.WRAP_WITH)
+    GetOperatorMenu(wrapButton, index, self.callbackRegistry, "Wrap")
+    rootDescription:CreateDivider()
+    rootDescription:CreateButton(Syndicator.Locales.COPY, function()
+      self.callbackRegistry:TriggerEvent("Copy", self.component)
     end)
-  end
+    rootDescription:CreateButton(Syndicator.Locales.CUT, function()
+      self.callbackRegistry:TriggerEvent("Copy", self.component)
+      self.callbackRegistry:TriggerEvent("Delete", index)
+    end)
+    local deleteButton = rootDescription:CreateButton(DELETE, function()
+      self.callbackRegistry:TriggerEvent("Delete", index)
+    end)
+    deleteButton:SetOnEnter(function()
+      self:SetAlpha(0.4)
+    end)
+    deleteButton:SetOnLeave(function()
+      self:SetAlpha(1)
+    end)
+  end)
+  self.Menu:Show() -- Restore menu generation for when clicked
 end
 
 local OperatorButtonMixin = {}
@@ -870,11 +875,13 @@ end
 
 function OperatorButtonMixin:OnLoad()
   self:SetHeight(22)
-  self:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-
-  self:SetScript("OnClick", self.OnClick)
-
   SetupTextures(self)
+
+  self.Menu = CreateFrame("DropdownButton", nil, self)
+  self.Menu:SetPoint("TOPLEFT", self)
+  self.Menu:SetPoint("BOTTOMRIGHT", self, "BOTTOMLEFT", 1, 0)
+  self.Menu:SetFrameStrata("LOW")
+  self.Menu:RegisterForMouse()
 
   self.AddButton = CreateFrame("Button", nil, self, "UIPanelButtonTemplate")
   self.AddButton:SetSize(26, 24)
@@ -965,6 +972,7 @@ function OperatorButtonMixin:OnLoad()
   self.AddContextMenu = CreateFrame("DropdownButton", nil, self)
   self.AddContextMenu:SetAllPoints(self.AddButton)
   self.AddContextMenu:SetFrameStrata("LOW")
+  self.AddContextMenu:Hide() -- Prevent menu generation
   self.AddContextMenu:SetupMenu(function(_, rootDescription)
     if self.index == nil then
       return
@@ -993,6 +1001,7 @@ function OperatorButtonMixin:OnLoad()
       end
     end
   end)
+  self.AddContextMenu:Show() -- Restore menu generation for when clicked
   self.AddContextMenu:RegisterCallback("OnMenuClose", function()
     if not self.AddInput:IsVisible() then
       return
@@ -1019,12 +1028,14 @@ function OperatorButtonMixin:OnLoad()
   self.OperatorText:SetHeight(22)
   self.OperatorText:SetScript("OnEnter", function()
     self:OnEnter()
+    self:Enable()
   end)
   self.OperatorText:SetScript("OnLeave", function()
     self:OnLeave()
+    self:Disable()
   end)
-  self.OperatorText:SetScript("OnMouseUp", function()
-    self:OnClick()
+  self.OperatorText:SetScript("OnMouseDown", function()
+    self.Menu:OpenMenu()
   end)
 
   self.TailText = self:CreateFontString(nil, nil, "GameFontNormal")
@@ -1066,6 +1077,8 @@ function OperatorButtonMixin:Setup(callbackRegistry, component, index)
   self.OperatorText:SetText(display.label .. "( ")
   self.OperatorText:SetTextColor(display.color.r, display.color.g, display.color.b)
   self.TailText:SetTextColor(display.color.r, display.color.g, display.color.b)
+
+  self:SetEnabled(self.callbackRegistry.enabled)
 
   self.regions = {self.OperatorText}
 
@@ -1132,6 +1145,39 @@ function OperatorButtonMixin:Setup(callbackRegistry, component, index)
   end
   self.component.isAdding = false
 
+  local index = self.index
+  self.Menu:Hide() -- Prevent menu generation
+  self.Menu:SetupMenu(function(_, rootDescription)
+    rootDescription:CreateTitle(REPLACE)
+    GetOperatorMenu(rootDescription, index, self.callbackRegistry, "Swap")
+    rootDescription:CreateDivider()
+    ---@diagnostic disable-next-line: missing-parameter
+    local wrapButton = rootDescription:CreateButton(Syndicator.Locales.WRAP_WITH)
+    GetOperatorMenu(wrapButton, index, self.callbackRegistry, "Wrap")
+    if self.component.value[1] and (#index > 0 or self.component.value[1].type == RootType.Operator) then
+      rootDescription:CreateDivider()
+      rootDescription:CreateButton(Syndicator.Locales.UNWRAP, function() self.callbackRegistry:TriggerEvent("Unwrap", self.component, index) end)
+    end
+    rootDescription:CreateDivider()
+    rootDescription:CreateButton(Syndicator.Locales.COPY, function()
+      self.callbackRegistry:TriggerEvent("Copy", self.component)
+    end)
+    rootDescription:CreateButton(Syndicator.Locales.CUT, function()
+      self.callbackRegistry:TriggerEvent("Copy", self.component)
+      self.callbackRegistry:TriggerEvent("Delete", index)
+    end)
+    local deleteButton = rootDescription:CreateButton(DELETE, function()
+      self.callbackRegistry:TriggerEvent("Delete", index)
+    end)
+    deleteButton:SetOnEnter(function()
+      self:SetAlpha(0.4)
+    end)
+    deleteButton:SetOnLeave(function()
+      self:SetAlpha(1)
+    end)
+  end)
+  self.Menu:Show() -- Restore menu generation for when clicked
+
   self:Resize()
 end
 
@@ -1147,45 +1193,6 @@ function OperatorButtonMixin:Resize()
   self:SetWidth(width)
 
   self.onResizeFunc()
-end
-
-function OperatorButtonMixin:OnClick()
-  if not self.callbackRegistry.enabled then
-    return
-  end
-
-  if self.OperatorText:IsMouseOver() then
-    local index = self.index
-    MenuUtil.CreateContextMenu(self, function(_, rootDescription)
-      rootDescription:CreateTitle(REPLACE)
-      GetOperatorMenu(rootDescription, index, self.callbackRegistry, "Swap")
-      rootDescription:CreateDivider()
-      ---@diagnostic disable-next-line: missing-parameter
-      local wrapButton = rootDescription:CreateButton(Syndicator.Locales.WRAP_WITH)
-      GetOperatorMenu(wrapButton, index, self.callbackRegistry, "Wrap")
-      if self.component.value[1] and (#index > 0 or self.component.value[1].type == RootType.Operator) then
-        rootDescription:CreateDivider()
-        rootDescription:CreateButton(Syndicator.Locales.UNWRAP, function() self.callbackRegistry:TriggerEvent("Unwrap", self.component, index) end)
-      end
-      rootDescription:CreateDivider()
-      rootDescription:CreateButton(Syndicator.Locales.COPY, function()
-        self.callbackRegistry:TriggerEvent("Copy", self.component)
-      end)
-      rootDescription:CreateButton(Syndicator.Locales.CUT, function()
-        self.callbackRegistry:TriggerEvent("Copy", self.component)
-        self.callbackRegistry:TriggerEvent("Delete", index)
-      end)
-      local deleteButton = rootDescription:CreateButton(DELETE, function()
-        self.callbackRegistry:TriggerEvent("Delete", index)
-      end)
-      deleteButton:SetOnEnter(function()
-        self:SetAlpha(0.4)
-      end)
-      deleteButton:SetOnLeave(function()
-        self:SetAlpha(1)
-      end)
-    end)
-  end
 end
 
 local function CombineForOutput(joiner, elements)

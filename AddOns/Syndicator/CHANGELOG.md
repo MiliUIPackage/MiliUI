@@ -1,6 +1,6 @@
 # Syndicator
 
-## [225](https://github.com/Baganator/Syndicator/tree/225) (2025-08-07)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/224...225) 
+## [244](https://github.com/TheMouseNest/Syndicator/tree/244) (2025-10-15)
+[Full Changelog](https://github.com/TheMouseNest/Syndicator/compare/243...244) 
 
-- Remove C\_PlayerInfo.HasAccountInventoryLock use (replaced with C\_Bank function)  
+- Retail: Support searching for remix gear stats  

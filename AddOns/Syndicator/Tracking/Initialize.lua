@@ -168,6 +168,11 @@ local function SetupTooltips()
           if newItemLink ~= nil then
             itemLink = newItemLink
           end
+        elseif info and info.getterName == "GetMerchantItem" then
+          local newItemLink = GetMerchantItemLink(info.getterArgs[1])
+          if newItemLink ~= nil then
+            itemLink = newItemLink
+          end
         end
 
         if itemLink and AddItemCheck() then
