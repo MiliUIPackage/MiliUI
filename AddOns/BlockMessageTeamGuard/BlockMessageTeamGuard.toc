@@ -1,4 +1,4 @@
-## Interface: 110200
+## Interface: 110205
 ## Version: v1.4 Fix5
 ## IconTexture: Interface\Icons\inv_misc_bomb_04
 ## Title: BlockMessageTeamGuard
