@@ -1,6 +1,7 @@
 # Auctionator
 
-## [288](https://github.com/Auctionator/Auctionator/tree/288) (2025-08-04)
-[Full Changelog](https://github.com/Auctionator/Auctionator/compare/287...288) 
+## [296](https://github.com/TheMouseNest/Auctionator/tree/296) (2025-09-29)
+[Full Changelog](https://github.com/TheMouseNest/Auctionator/compare/295...296) 
 
-- Fix error when posting too low price with "Post next item" enabled  
+- Modern AH: Fix "Skip" sometimes skipping more than one item  
+- Selling: Fix "Skip" button in popup when posting overlapping "Cancel" button  
