@@ -5,13 +5,13 @@ local L = Exlist.L
 local colors = Exlist.Colors
 
 local rewardTypes = {
-   [Enum.WeeklyRewardChestThresholdType.Raid] = { title = L["Raid"], prio = 1 },
+   [Enum.WeeklyRewardChestThresholdType.Raid] = { title = "Raid", prio = 1 },
    [Enum.WeeklyRewardChestThresholdType.Activities] = {
       title = L["Dungeons"],
       prio = 2
    },
    [Enum.WeeklyRewardChestThresholdType.RankedPvP] = { title = "PvP", prio = 3 },
-   [Enum.WeeklyRewardChestThresholdType.World] = { title = L["World"], prio = 3 }
+   [Enum.WeeklyRewardChestThresholdType.World] = { title = "World", prio = 3 }
 }
 
 local slimDifficulty = {
@@ -150,7 +150,9 @@ local function getActivityTooltip(activity)
 end
 
 local function Updater(event)
-   local t = {}
+   local t = {
+      haveWeeklyRewards = C_WeeklyRewards.HasAvailableRewards()
+   }
 
    if event == "WEEKLY_REWARDS_UPDATE" or event == "PLAYER_ENTERING_WORLD_DELAYED" then
       t.activities = C_WeeklyRewards.GetActivities()
@@ -224,6 +226,15 @@ local function Linegenerator(tooltip, data, character)
          end
          Exlist.AddData(t[i])
       end
+   end
+   if (data.haveWeeklyRewards) then
+      Exlist.AddData({
+         priority = priority + 0.1,
+         character = character,
+         moduleName = L["Have Weekly Rewards"],
+         titleName = WrapTextInColorCode(L["Have Weekly Rewards"], colors.questTitle),
+         data = WrapTextInColorCode(L["Vault Ready!"], colors.available)
+      })
    end
 end
 

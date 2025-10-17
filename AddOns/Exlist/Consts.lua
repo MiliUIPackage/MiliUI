@@ -99,7 +99,15 @@ Exlist.ShortenedMPlus = {
    [168] = L["EB"],      -- Everbloom
    [456] = L["TotT"],    -- Throne of the Tides
    [463] = L["DotI:GF"], -- Dawn of the Infinite: Galagrond's Fall
-   [464] = L["DOTI:MR"]  -- Dawn of the Infinite: Murozond's Rise
+   [464] = L["DOTI:MR"], -- Dawn of the Infinite: Murozond's Rise
+
+   [499] = L["Priory"],
+   [542] = L["Eco-Dome"],
+   [378] = L["Halls"],
+   [525] = L["Flood"],
+   [503] = L["Ara-Kara"],
+   [505] = L["Dawn"],
+
 }
 
 local Colors = {
@@ -160,17 +168,17 @@ local Colors = {
    },
    ilvlColors = {
       -- TWW --
-      { ilvl = 530, str = "ff26ff3f" },
-      { ilvl = 540, str = "ff26ffba" },
-      { ilvl = 550, str = "ff26e2ff" },
-      { ilvl = 560, str = "ff26a0ff" },
-      { ilvl = 570, str = "ff2663ff" },
-      { ilvl = 580, str = "ff8e26ff" },
-      { ilvl = 590, str = "ffe226ff" },
-      { ilvl = 600, str = "ffff2696" },
-      { ilvl = 610, str = "ffff2634" },
-      { ilvl = 620, str = "ffff7526" },
-      { ilvl = 630, str = "ffffc526" }
+      { ilvl = 610, str = "ff26ff3f" },
+      { ilvl = 620, str = "ff26ffba" },
+      { ilvl = 630, str = "ff26e2ff" },
+      { ilvl = 635, str = "ff26a0ff" },
+      { ilvl = 640, str = "ff2663ff" },
+      { ilvl = 645, str = "ff8e26ff" },
+      { ilvl = 650, str = "ffe226ff" },
+      { ilvl = 655, str = "ffff2696" },
+      { ilvl = 660, str = "ffff2634" },
+      { ilvl = 665, str = "ffff7526" },
+      { ilvl = 670, str = "ffffc526" }
    },
    profColors = {
       { val = 20,  color = "c6c3b4" },

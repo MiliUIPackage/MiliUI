@@ -1,19 +1,12 @@
-## Interface: 110002, 110200
+## Interface: 110205
 ## Title: Exlist
 ## Notes: Shows various information about your characters
-## Title-zhTW: |cffFF7F00[分身]|r 我的分身名冊
-## Notes-zhTW: Exlist |n快速查看自己所有分身的地城/團隊/世界王擊殺進度、傳奇鑰石/最佳成績、每日/每週/世界任務、金錢、兌換通貨數量、專業、裝備... 還有更多!|n|cffffd200使用方法：|r點小地圖按鈕觀看資訊，從Esc>介面>插件>分身，進行設定。
-## X-Category-zhTW: 團隊
 ## Author: Exality
 ## SavedVariables: Exlist_DB, Exlist_Config
-## Version: 1.8.8
+## Version: 1.9.0
 ## X-Curse-Project-ID: 284907
 ## X-WoWI-ID: 24636
 ## X-Wago-ID: pkNMj6z9
-## Category: Info
-## Category-zhTW: 資訊
-
-## IconTexture: Interface\AddOns\Exlist\Media\Icons\logo
 
 #Libs
 Libs\LibStub\LibStub.lua

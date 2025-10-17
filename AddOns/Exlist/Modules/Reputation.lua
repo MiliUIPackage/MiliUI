@@ -265,7 +265,7 @@ local function AddOptions(refresh)
    -- Make reputation list
    local reps = {}
    local repLookup = {}
-   reps[0] = L["None"]
+   reps[0] = "None"
    repLookup[0] = 0
    for i, reputation in ipairs(settings.reputation.cache) do
       repLookup[i] = reputation.factionID
@@ -363,7 +363,7 @@ local function AddOptions(refresh)
       }
    }
    local enabledReps = {}
-   enabledReps[0] = L["None"]
+   enabledReps[0] = "None"
    -- Populate enabled factions
    local order = 50
    for factionID, info in pairs(settings.reputation.enabled) do

@@ -1,18 +1,19 @@
-# [1.8.8](https://github.com/sragia/Exlist/tree/1.8.8) (2024-10-26)
+# [1.9.0](https://github.com/sragia/Exlist/tree/1.9.0) (2025-08-09)
 
-[Full Changelog](https://github.com/sragia/Exlist/compare/1.8.7...1.8.8)
+[Full Changelog](https://github.com/sragia/Exlist/compare/1.8.9...1.9.0)
 
 ## Highlights
 
- 10.0.5 fixes 
+ Small updates for 11.2 
 
 ## Commits
 
-Aigars Bedeicis (1):
+Exality (2):
 
-- Bump TOC
+- Add new world boss
+- Some Small 11.2 changes
 
 MarkW (1):
 
-- Fix 11.0.5 error
+- Update affix thresholds
 

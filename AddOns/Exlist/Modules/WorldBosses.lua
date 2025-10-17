@@ -84,7 +84,8 @@ local worldBossIDs = {
    [81653] = { eid = 2636, expansion = 11, enabled = true, wq = true },                                   -- Shurrai
    [82653] = { eid = 2635, expansion = 11, enabled = true, wq = true },                                   -- Aggregation
    [81630] = { eid = 2637, expansion = 11, enabled = true, wq = true },                                   -- Kordac
-
+   [85088] = { eid = 2683, expansion = 11, enabled = true, wq = true },                                   -- The Gobfather
+   [87354] = { eid = 2762, expansion = 11, enabled = true, wq = true },                                   -- Reshanor
 
 }
 local lastUpdate = 0
@@ -441,7 +442,7 @@ local function AddWorldBossOptions()
    local numExpansions = #Exlist.Expansions
    local configOpt = {
       type = "group",
-      name = L["World Bosses"],
+      name = "World Bosses",
       args = {
          desc = {
             type = "description",

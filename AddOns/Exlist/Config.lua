@@ -7,7 +7,7 @@ local AceConfDia = LibStub("AceConfigDialog-3.0")
 
 local addonVersion = C_AddOns.GetAddOnMetadata(name, "version")
 -- @debug@
-if addonVersion == "1.8.8" then
+if addonVersion == "1.9.0" then
    addonVersion = "Development"
 end
 -- @end-debug@
@@ -45,7 +45,7 @@ end
 
 local function RegisterAdditionalOptions(modName, optionTbl, displayName)
    AceConfReg:RegisterOptionsTable(name .. modName, optionTbl, true)
-   AceConfDia:AddToBlizOptions(name .. modName, displayName, L[name])
+   AceConfDia:AddToBlizOptions(name .. modName, displayName, name)
 end
 local function RefreshAdditionalOptions(modName, optionTbl, displayName)
    AceConfReg:RegisterOptionsTable(name .. modName, optionTbl, true)
@@ -130,7 +130,7 @@ end
 Exlist.SetupConfig = function(refresh)
    local options = {
       type = "group",
-      name = L["Exlist "],
+      name = name,
       args = {
          logo = {
             order = 0,
@@ -711,7 +711,7 @@ Exlist.SetupConfig = function(refresh)
       charOptions.args[char .. "delete"] = {
          type = "execute",
          order = n,
-         name = L["Delete"],
+         name = "Delete",
          width = 0.5,
          func = function()
             StaticPopupDialogs["DeleteDataPopup_" .. charname .. realm] = {
@@ -720,8 +720,8 @@ Exlist.SetupConfig = function(refresh)
                   charname,
                   realm
                ),
-               button1 = OKAY,
-               button3 = CANCEL,
+               button1 = "Ok",
+               button3 = "Cancel",
                hasEditBox = 1,
                editBoxWidth = 200,
                OnShow = function(self)
@@ -793,7 +793,7 @@ end
 function Exlist.InitConfig()
    local options = {
       type = "group",
-      name = L["Exlist "],
+      name = name,
       args = {
          logo = {
             order = 0,
@@ -835,7 +835,7 @@ function Exlist.InitConfig()
    }
    SetupOrder()
    AceConfReg:RegisterOptionsTable(name, options)
-   AceConfDia:AddToBlizOptions(name, L[name])
+   AceConfDia:AddToBlizOptions(name)
 end
 
 Exlist.AddModuleOptions = RegisterAdditionalOptions

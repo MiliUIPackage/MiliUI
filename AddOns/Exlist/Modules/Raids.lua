@@ -47,7 +47,7 @@ local function AddRaidOptions()
    local numExpansions = #Exlist.Expansions
    local configOpt = {
       type = "group",
-      name = L["Raids"],
+      name = "Raids",
       args = {
          desc = {
             type = "description",
@@ -302,7 +302,7 @@ local function Linegenerator(tooltip, data, character)
                end
 
                local statusbar = { curr = raidInfo.done, total = raidInfo.max, color = "9b016a" }
-               info.data = raidInfo.done .. "/" .. raidInfo.max .. diffShortened[diffOrder[difIndex]]
+               info.data = raidInfo.done .. "/" .. (raidInfo.max or '?') .. diffShortened[diffOrder[difIndex]]
 
                info.colOff = cellIndex - 2
                info.OnEnter = Exlist.CreateSideTooltip(statusbar)
@@ -329,6 +329,8 @@ end
 local function init()
    defaultSettings = {
       -- The War Within
+      [GetLFGDungeonInfo(2805) or "Manaforge Omega"] = { enabled = true, expansion = 11, order = 7 },
+      [GetLFGDungeonInfo(2779) or "Liberation of Undermine"] = { enabled = true, expansion = 11, order = 9 },
       [GetLFGDungeonInfo(2645) or "Nerub-ar Palace"] = { enabled = true, expansion = 11, order = 10 },
       -- Dragonflight
       [GetLFGDungeonInfo(2502) or "Amirdrassil, the Dream's Hope"] = { enabled = false, expansion = 10, order = 8 },
@@ -591,6 +593,16 @@ local function init()
          [2709] = { name = "Edge of the Void (Awakened)", totalEncounters = 1, isModified = true, order = 4 },
       },
       [GetLFGDungeonInfo(2502) or "Amirdrassil, the Dream's Hope"] = {
+         [2466] = { name = "Incarnate's Wake", totalEncounters = 3, order = 1 },
+         [2467] = { name = "The Viridian Weave", totalEncounters = 2, order = 2 },
+         [2468] = { name = "Molten Incursion", totalEncounters = 2, order = 3 },
+         [2469] = { name = "Fate of Amirdrassil", totalEncounters = 2, order = 4 },
+         [2710] = { name = "Incarnate's Wake (Awakened)", totalEncounters = 3, isModified = true, order = 1 },
+         [2711] = { name = "The Viridian Weave (Awakened)", totalEncounters = 2, isModified = true, order = 2 },
+         [2712] = { name = "Molten Incursion (Awakened)", totalEncounters = 2, isModified = true, order = 3 },
+         [2713] = { name = "Fate of Amirdrassil (Awakened)", totalEncounters = 2, isModified = true, order = 4 },
+      },
+      [GetLFGDungeonInfo(2779) or "Amirdrassil, the Dream's Hope"] = {
          [2466] = { name = "Incarnate's Wake", totalEncounters = 3, order = 1 },
          [2467] = { name = "The Viridian Weave", totalEncounters = 2, order = 2 },
          [2468] = { name = "Molten Incursion", totalEncounters = 2, order = 3 },
