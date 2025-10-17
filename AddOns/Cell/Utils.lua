@@ -525,7 +525,7 @@ end
 -------------------------------------------------
 function F.Getn(t)
     local count = 0
-    for k, v in pairs(t) do
+    for _ in next, t do
         count = count + 1
     end
     return count
@@ -930,8 +930,10 @@ function F.IterateAllUnitButtons(func, updateCurrentGroupOnly, updateQuickAssist
         for _, b in pairs(Cell.unitButtons.arena) do
             func(b)
         end
+    end
 
-        -- group pet
+    -- group pet
+    if not updateCurrentGroupOnly or (updateCurrentGroupOnly and Cell.vars.groupType == "raid") or (updateCurrentGroupOnly and Cell.vars.groupType == "party") then
         for index, b in pairs(Cell.unitButtons.pet) do
             if index ~= "units" then
                 func(b)
