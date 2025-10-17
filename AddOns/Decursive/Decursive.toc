@@ -1,5 +1,5 @@
-## Interface: 110107, 110200
-## X-Max-Interface: 110200
+## Interface: 110107, 110205
+## X-Max-Interface: 110205
 ## X-Min-Interface: 11507
 ## X-Incompatible-With: 30405, 30406, 30407, 40402, 40403, 40404, 40405
 

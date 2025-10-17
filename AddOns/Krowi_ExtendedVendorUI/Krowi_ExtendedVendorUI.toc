@@ -1,4 +1,4 @@
-## Interface: 11507, 30404, 40402, 110100, 110200
+## Interface: 11507, 30404, 40402, 110100, 110205
 ## Title: Krowi's |cFF1D92C2Extended Vendor UI|r
 ## X-Prefix: KrowiEVU
 ## X-Acronym: KEVU

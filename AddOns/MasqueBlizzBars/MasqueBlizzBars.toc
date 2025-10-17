@@ -1,4 +1,4 @@
-## Interface: 11506, 30403, 40402, 110007, 110200
+## Interface: 11506, 30403, 40402, 110007, 110205
 ## Version: 11.1.5.0
 ## Title: Masque Blizzard Bars
 ## Title-zhTW: |cFF0099FF[介面]|r 快捷樣式 - 暴雪快捷列
