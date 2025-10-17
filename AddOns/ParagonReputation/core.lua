@@ -1,5 +1,5 @@
 		-------------------------------------------------
-		-- Paragon Reputation 1.62 by Fail US-Ragnaros --
+		-- Paragon Reputation 1.69 by Fail US-Ragnaros --
 		-------------------------------------------------
 
 		  --[[	  Special thanks to Ammako for
@@ -55,7 +55,7 @@ end
 
 -- [GameTooltip] Show the GameTooltip with the Item Reward on mouseover. (Thanks Brudarek)
 function ParagonReputation:Tooltip(self)
-	if not self.questID or not PR.PARAGON_DATA[self.questID] then return end
+	if not self.questID or not PR.PARAGON_DATA[self.questID] or self.tooLowLevelForParagon then return end
 	EmbeddedItemTooltip:ClearLines()
 	EmbeddedItemTooltip:SetOwner(self,"ANCHOR_RIGHT")
 	ReputationParagonFrame_SetupParagonTooltip(self)
@@ -65,7 +65,6 @@ function ParagonReputation:Tooltip(self)
 	EmbeddedItemTooltip:AddLine(string.format(ARCHAEOLOGY_COMPLETION,self.count))
 	EmbeddedItemTooltip:AddLine(" ")
 	EmbeddedItemTooltip:SetClampedToScreen(true)
-	EmbeddedItemTooltip.paragon_clamp = true
 	EmbeddedItemTooltip:Show()
 end
 
@@ -73,13 +72,12 @@ local ACTIVE_TOAST = false
 local WAITING_TOAST = {}
 
 -- [Paragon Toast] Show the Paragon Toast if a Paragon Reward Quest is accepted.
-function ParagonReputation:ShowToast(name,text)
+function ParagonReputation:ShowToast(name,questID)
 	ACTIVE_TOAST = true
 	if PR.DB.sound then PlaySound(44295,"master",true) end
 	PR.toast:EnableMouse(false)
 	PR.toast.title:SetText(name)
 	PR.toast.title:SetAlpha(0)
-	PR.toast.description:SetText(text)
 	PR.toast.description:SetAlpha(0)
 	PR.toast.reset:Hide()
 	PR.toast.lock:Hide()
@@ -88,6 +86,7 @@ function ParagonReputation:ShowToast(name,text)
 		UIFrameFadeIn(PR.toast.title,.5,0,1)
 	end)
 	C_Timer.After(.75,function()
+		PR.toast.description:SetText(GetQuestLogCompletionText(C_QuestLog.GetLogIndexForQuestID(questID)))
 		UIFrameFadeIn(PR.toast.description,.5,0,1)
 	end)
 	C_Timer.After(PR.DB.fade,function()
@@ -104,9 +103,9 @@ end
 
 -- [Paragon Toast] Get next Paragon Reward Quest if more than two are accepted at the same time.
 function ParagonReputation:WaitToast()
-	local name,text = unpack(WAITING_TOAST[1])
+	local name,questID = unpack(WAITING_TOAST[1])
 	table.remove(WAITING_TOAST,1)
-	PR:ShowToast(name,text)
+	PR:ShowToast(name,questID)
 end
 
 -- [Paragon Toast] Handle QUEST_ACCEPTED and GET_ITEM_INFO_RECEIVED events.
@@ -116,11 +115,10 @@ events:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 events:SetScript("OnEvent",function(self,event,arg1,arg2)
 	if event == "QUEST_ACCEPTED" and PR.DB.toast and PR.PARAGON_DATA[arg1] then
 		local data = C_Reputation.GetFactionDataByID(PR.PARAGON_DATA[arg1].factionID)
-		local text = GetQuestLogCompletionText(C_QuestLog.GetLogIndexForQuestID(arg1))
 		if ACTIVE_TOAST then
-			WAITING_TOAST[#WAITING_TOAST+1] = {data.name,text} --Toast is already active, put this info on the line.
+			WAITING_TOAST[#WAITING_TOAST+1] = {data.name,arg1} --Toast is already active, put this info on the line.
 		else
-			PR:ShowToast(data.name,text)
+			PR:ShowToast(data.name,arg1)
 		end
 	elseif event == "GET_ITEM_INFO_RECEIVED" and arg2 and ParagonItemInfoReceivedQueue[arg1] then
 		if ParagonItemInfoReceivedQueue[arg1]:IsMouseOver() and EmbeddedItemTooltip:GetOwner() == ParagonItemInfoReceivedQueue[arg1] then
@@ -161,9 +159,10 @@ local function UpdateBar(self)
 			end)
 			self.paragon_hook = true
 		end
-		local currentValue,threshold,rewardQuestID,hasRewardPending = C_Reputation.GetFactionParagonInfo(self.factionID)
+		local currentValue,threshold,rewardQuestID,hasRewardPending,tooLowLevelForParagon = C_Reputation.GetFactionParagonInfo(self.factionID)
 		self.count = floor(currentValue/threshold)-(hasRewardPending and 1 or 0)
 		self.questID = rewardQuestID
+		self.tooLowLevelForParagon = tooLowLevelForParagon
 		local r,g,b = PR.DB.value[1],PR.DB.value[2],PR.DB.value[3]
 		local value = currentValue%threshold
 		if hasRewardPending then
@@ -213,6 +212,7 @@ local function UpdateBar(self)
 	else
 		self.count = nil
 		self.questID = nil
+		self.tooLowLevelForParagon = nil
 		if self.Content.ReputationBar.ParagonOverlay then self.Content.ReputationBar.ParagonOverlay:Hide() end
 	end
 end
@@ -228,10 +228,4 @@ for _,children in ipairs({ReputationFrame.ScrollBox.ScrollTarget:GetChildren()})
 end
 hooksecurefunc(ReputationEntryMixin,"Initialize",function(self)
 	UpdateBar(self)
-end)
-EmbeddedItemTooltip:HookScript("OnHide",function(self)
-	if self.paragon_clamp then
-		self:SetClampedToScreen(false)
-		self.paragon_clamp = nil
-	end
 end)
