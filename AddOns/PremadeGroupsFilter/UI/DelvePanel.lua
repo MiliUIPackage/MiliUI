@@ -95,6 +95,31 @@ function DelvePanel:OnLoad()
 
     -- Delves
     self.Delves.Title:SetText(L["dialog.filters.delves"])
+    self.Delves.SelectNone:Init(L["dialog.button.selectnone.title"], L["dialog.button.selectnone.tooltip"])
+    self.Delves.SelectNone:SetScript("OnClick", function (btn)
+        for i = 1, NUM_DELVE_CHECKBOXES do
+            self.Delves["Delve"..i].Act:SetChecked(false)
+            self.state["delve"..i] = false
+        end
+        self:TriggerFilterExpressionChange()
+    end)
+    self.Delves.SelectAll:Init(L["dialog.button.selectall.title"], L["dialog.button.selectall.tooltip"])
+    self.Delves.SelectAll:SetScript("OnClick", function (btn)
+        for i = 1, NUM_DELVE_CHECKBOXES do
+            self.Delves["Delve"..i].Act:SetChecked(true)
+            self.state["delve"..i] = true
+        end
+        self:TriggerFilterExpressionChange()
+    end)
+    self.Delves.SelectBountiful:Init(L["dialog.button.selectbountiful.title"], L["dialog.button.selectbountiful.tooltip"])
+    self.Delves.SelectBountiful:SetScript("OnClick", function (btn)
+        for i = 1, NUM_DELVE_CHECKBOXES do
+            local isBountiful = self.Delves["Delve"..i].isBountiful or false
+            self.Delves["Delve"..i].Act:SetChecked(isBountiful)
+            self.state["delve"..i] = isBountiful
+        end
+        self:TriggerFilterExpressionChange()
+    end)
 
     for i = 1, NUM_DELVE_CHECKBOXES do
         local delve = self.Delves["Delve"..i]
@@ -163,13 +188,16 @@ function DelvePanel:UpdateDelves()
     local bountifulDelves = self:GetBountifulDelves()
     for i = 1, NUM_DELVE_CHECKBOXES do
         local color = WHITE_FONT_COLOR
+        local isBountiful = false
         local delve = self.Delves["Delve"..i]
         for _, bountifulDelveName in ipairs(bountifulDelves) do
             if PGF.IsMostLikelySameInstance(delve.name, bountifulDelveName) then
                 color = NORMAL_FONT_COLOR
+                isBountiful = true
             end
         end
         delve.Title:SetTextColor(color:GetRGB())
+        delve.isBountiful = isBountiful
     end
 end
 

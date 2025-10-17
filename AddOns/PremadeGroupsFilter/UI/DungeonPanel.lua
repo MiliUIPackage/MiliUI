@@ -82,6 +82,14 @@ local stripPrefixes = {
     "^무한의 여명: ",                -- Korean
     "^恆龍黎明：",                   -- Traditional Chinese
     "^永恒黎明：",                   -- Simplified Chinese
+    -- Tazavesh
+    "^Tazavesh: ",
+    "^Tazavesh : ",
+    "^Tazavesh : ",
+    "^Тазавеш: ",
+    "^타자베쉬: ",
+    "^塔扎维什：",
+    "^塔札維許：",
     -- Mechagon/Floodgate
     "^Operation: ",  -- English/German
     "^Operación: ",  -- Spanish
@@ -129,6 +137,31 @@ function DungeonPanel:OnLoad()
 
     -- Dungeons
     self.Dungeons.Title:SetText(L["dialog.filters.dungeons"])
+    self.Dungeons.SelectNone:Init(L["dialog.button.selectnone.title"], L["dialog.button.selectnone.tooltip"])
+    self.Dungeons.SelectNone:SetScript("OnClick", function (btn)
+        for i = 1, NUM_DUNGEON_CHECKBOXES do
+            self.Dungeons["Dungeon"..i].Act:SetChecked(false)
+            self.state["dungeon"..i] = false
+        end
+        self:TriggerFilterExpressionChange()
+    end)
+    self.Dungeons.SelectAll:Init(L["dialog.button.selectall.title"], L["dialog.button.selectall.tooltip"])
+    self.Dungeons.SelectAll:SetScript("OnClick", function (btn)
+        for i = 1, NUM_DUNGEON_CHECKBOXES do
+            self.Dungeons["Dungeon"..i].Act:SetChecked(true)
+            self.state["dungeon"..i] = true
+        end
+        self:TriggerFilterExpressionChange()
+    end)
+    self.Dungeons.SelectInvert:Init(L["dialog.button.selectinvert.title"], L["dialog.button.selectinvert.tooltip"])
+    self.Dungeons.SelectInvert:SetScript("OnClick", function (btn)
+        for i = 1, NUM_DUNGEON_CHECKBOXES do
+            local invertedState = not self.Dungeons["Dungeon"..i].Act:GetChecked()
+            self.Dungeons["Dungeon"..i].Act:SetChecked(invertedState)
+            self.state["dungeon"..i] = invertedState
+        end
+        self:TriggerFilterExpressionChange()
+    end)
 
     for i = 1, NUM_DUNGEON_CHECKBOXES do
         local dungeon = self.Dungeons["Dungeon"..i]

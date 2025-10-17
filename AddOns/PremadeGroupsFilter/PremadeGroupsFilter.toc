@@ -1,7 +1,7 @@
-## Interface: 110200
+## Interface: 110205
 ## Title: Premade Groups Filter
 ## Title-zhTW: |cFF00CCFF[團隊]|r 預組隊伍過濾
-## Version: 6.9.2
+## Version: 6.10.0
 ## IconTexture: 397907
 ## X-Flavor: Retail
 ## Notes: Allows filtering of premade groups using an UI or advanced filter expressions.
@@ -46,6 +46,7 @@ Plugins\PremadeRegions.lua
 Plugins\RaiderIO.lua
 Settings\Settings.xml
 Settings\Settings.lua
+UI\TextButtonMixin.lua
 UI\Common.lua
 UI\PopupMenu.xml
 UI\PopupMenu.lua
