@@ -1,5 +1,80 @@
 # Changelog
 
+## Changed in v2025.14
+
+* K'aresh:
+    * Add loot to rares now data is available
+    * Note that the Devoured Energy-Pod leads to a mount
+    * Add Dangerous Prowlers and Remnants achievements to tooltips
+
+## Changed in v2025.13
+
+* K'aresh:
+    * Added Reshanor
+    * Updated various non-achievement rares
+* Macros:
+    * New option: skip mobs with known vignettes
+    * New option: *don't* skip mobs that are already complete
+
+## Changed in v2025.12
+
+* Updated for 11.2.0
+* K'aresh: all the basics, missing some non-achievement rares
+* Show requirements, if known, in the broker tooltip
+
+## Changed in v2025.11
+
+* Make the treasure goblins go away once the event is done
+* Fix the locations for some mobs in subzones of instances in Throne of Thunder, Stratholme, and Uldum
+* Show loot on the Gobfather's world quest
+
+## Changed in v2025.10
+
+* Add a new Events data module that contains the Anniversary event mobs, and the Treasure Goblins for the current event
+
+## Changed in v2025.9
+
+* Blizzard hotfixed in protection for stopping dragging for some frames during combat, so I've disabled moving the target popups during combat
+* Added an option to stop showing ignored mobs in the broker dropdowns
+* Fixed Classic and Burning Crusade mobs not showing in Mists Classic
+* Silverpine: fixed Snarlmane being in Tirisfal instead, thanks onedeadhero
+* Azuremyst: added some missing Blood Elf Bandit coordinates, thanks derherrvonderheide
+* Added a category to the TOC, thanks soapmaker1696
+
+## Changed in v2025.8
+
+* Updated for 11.1.7, 5.5.0, 3.4.4
+* This is mainly a Mists Classic compatibility release, because vignettes aren't added until a later patch of that expansion.
+
+## Changed in v2025.7
+
+* Undermine: updated some changed quest IDs (thanks ywi!)
+* Show ignored mobs in the LDB dropdown
+
+## Changed in v2025.6
+
+* Updated for 11.1.5 and 1.15.7
+* The dark magic scanning method is now disabled as Blizzard has closed the loophole it relied on with a change to 11.1.5. If you're looking for non-vignette mobs, I recommend falling back on using the macro.
+
+## Changed in v2025.5
+
+* Undermine: added new loot for rares, consolidated the Steamboil / Handcrank parts
+* RangeExtender:
+    * Don't interfere with the tooltip for the native vignette when it *is* visible
+    * Show a tag in the tooltip so the source is more obvious
+    * Change the framelevels so they'll be a bit higher based on the Minimap frame
+
+## Changed in v2025.4
+
+* Undermine: update rare coordinates, add loot to the treasure vignettes
+* Bump the TOC for the SilverDragon_History plugin specifically (thanks Adal!)
+
+## Changed in v2025.3
+
+* Updated for 11.1.0
+* Rares for Undermine
+* Transform all Ringing Deeps coords because 11.1.0 shrunk it horizontally
+
 ## Changed in v2025.2
 
 * Siren Isle: update the storm phase mobs

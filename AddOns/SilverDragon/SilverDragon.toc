@@ -1,10 +1,10 @@
-## Interface: 11505, 30403, 40401, 110005, 110200
+## Interface: 11507, 30405, 50500, 110107, 110205
 ## Title: SilverDragon
 ## Notes: Remember where rares were
 ## Title-zhTW: SilverDragon
 ## Notes-zhTW: 協助記錄稀有怪位置,以及MouseOver時提示你.
 ## Notes-zhCN: 记录稀有怪物位置。
-## Version: v2025.2
+## Version: v2025.14
 ## Author: Kemayo
 ## eMail: kemayo at gmail dot com
 ## IconTexture: Interface\Icons\INV_Misc_Head_Dragon_01
@@ -16,14 +16,22 @@
 ## OptionalDependencies: Ace3, LibSharedMedia-3.0, TomTom, LibSink-2.0, LibQTip-1.0, LibDBIcon-1.0, ChatThrottleLib, AceGUI-3.0-SharedMediaWidgets, HereBeDragons, LibTextDump-1.0, LibWindow-1.1
 ## SavedVariables: SilverDragon3DB
 ## LoadOnDemand: 0
+## Category: Collections
+## Category-deDE: Kriegsmeutesammlungen
+## Category-esES: Colecciones de banda guerrera
+## Category-esMX: Colecciones de tropa
+## Category-frFR: Collections du bataillon
+## Category-itIT: Collezioni della Brigata
+## Category-koKR: 전투부대 수집품
+## Category-ptBR: Coleções do Bando de Guerra
+## Category-ruRU: Коллекции отряда
+## Category-zhCN: 战团藏品
 
 ## X-Embeds: Ace3, LibSink-2.0, LibSharedMedia-3.0, ChatThrottleLib, AceGUI-3.0-SharedMediaWidgets, HereBeDragons-2.0, LibTextDump-1.0
 
 ## Title-zhTW: |cff4DFF4D[地圖]|r 稀有怪通知
 ## Notes-zhTW: SilverDragon |n|n怪獸與牠們的產地，記錄稀有怪的位置和時間，發現時會通知你。|n|n支援舊地圖的稀有怪!|n|n|cffffd200使用方法: |r點小地圖按鈕，或從Esc>選項>插件>稀有怪，進行設定。
-## X-Category-zhTW: 地圖
 ## DefaultState: disabled
-## Category: Info
 ## Category-zhTW: 資訊
 
 #@no-lib-strip@
@@ -52,7 +60,7 @@ scan\targets.lua
 scan\macro.lua
 scan\vignettes.lua
 scan\chat.lua
-scan\darkmagic.lua
+#scan\darkmagic.lua
 
 # optional bits
 outputs\tooltip.lua

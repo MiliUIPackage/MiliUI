@@ -95,14 +95,25 @@ do
 		end
 		upgrade.quest = item.quest
 		upgrade.questComplete = item.questComplete
+		upgrade.warband = item.warband
 		upgrade.spell = item.spell
+		upgrade.note = item.note
 		if item.class then
-			upgrade.class = item.class
+			upgrade.class = item.class -- for icon display in the loot popup
 			table.insert(available, ns.conditions.Class(item.class))
 		end
 		if item.covenant then
-			upgrade.covenant = item.covenant
+			upgrade.covenant = item.covenant -- for icon display in the loot popup
 			table.insert(available, ns.conditions.Covenant(item.covenant))
+		end
+		if item.requires then
+			if ns.IsObject(item.requires) then
+				table.insert(available, item.requires)
+			else
+				for i,v in ipairs(item.requires) do
+					table.insert(available, v)
+				end
+			end
 		end
 		if #available > 0 then
 			upgrade.requires = available
@@ -171,7 +182,7 @@ local worldQuestMobLookup = {
 }
 ns.worldQuestMobLookup = worldQuestMobLookup
 local vignetteMobLookup = {
-	-- [name] = { [mobid] = true, ... }
+	-- [vignetteid] = { [mobid] = true, ... }
 }
 ns.vignetteMobLookup = vignetteMobLookup
 ns.vignetteTreasureLookup = {
@@ -335,6 +346,15 @@ do
 			lookup[quest][mobid] = true
 		end
 	end
+	local function addVignetteMobLookups(mobid, ...)
+		for i=1, select("#", ...) do
+			local vignetteID = select(i, ...)
+			if not vignetteMobLookup[vignetteID] then
+				vignetteMobLookup[vignetteID] = {}
+			end
+			vignetteMobLookup[vignetteID][mobid] = true
+		end
+	end
 	local function addMobToLookups(mobid, mobdata)
 		if mobdata.hidden then
 			return
@@ -355,12 +375,7 @@ do
 			addQuestMobLookup(worldQuestMobLookup, mobid, mobdata.worldquest)
 		end
 		if mobdata.vignette then
-			local vignetteMobs = vignetteMobLookup[mobdata.vignette]
-			if not vignetteMobs then
-				vignetteMobs = {}
-				vignetteMobLookup[mobdata.vignette] = vignetteMobs
-			end
-			vignetteMobs[mobid] = true
+			addVignetteMobLookups(mobid, ns.safe_unpack(mobdata.vignette))
 		end
 	end
 	function addon:BuildLookupTables()
@@ -637,6 +652,22 @@ do
 			[32491] = true, -- Time-Lost
 		},
 	}
+	function addon:ShouldShowMob(id, zone)
+		if zone and zone_ignores[zone] and zone_ignores[zone][id] then
+			return false
+		end
+		if mobdb[id] then
+			if mobdb[id].hidden then
+				return false
+			end
+			if mobdb[id].faction == faction then
+				--This checks unit faction and ignores mobs your faction cannot do anything with.
+				--TODO: add an option for this?
+				return false
+			end
+		end
+		return true
+	end
 	function addon:ShouldIgnoreMob(id, zone)
 		if globaldb.ignore[id] then
 			return true
@@ -646,22 +677,10 @@ do
 			-- (Unless you've also, weirdly, manually told it to be ignored as well.)
 			return false
 		end
-		if zone and zone_ignores[zone] and zone_ignores[zone][id] then
+		if mobdb[id] and mobdb[id].source and globaldb.ignore_datasource[mobdb[id].source] then
 			return true
 		end
-		if mobdb[id] then
-			if mobdb[id].hidden then
-				return true
-			end
-			if mobdb[id].faction == faction then
-				--This checks unit faction and ignores mobs your faction cannot do anything with.
-				--TODO: add an option for this?
-				return true
-			end
-			if mobdb[id].source and globaldb.ignore_datasource[mobdb[id].source] then
-				return true
-			end
-		end
+		return not self:ShouldShowMob(id, zone)
 	end
 end
 

@@ -1,4 +1,7 @@
-## Changed in v2025.2
+## Changed in v2025.14
 
-* Siren Isle: update the storm phase mobs
+* K'aresh:
+    * Add loot to rares now data is available
+    * Note that the Devoured Energy-Pod leads to a mount
+    * Add Dangerous Prowlers and Remnants achievements to tooltips
 
