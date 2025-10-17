@@ -13,7 +13,7 @@
 
 ## Category-enUS: Inventory
 ## Category-zhCN: 物品栏
-## Category-zhTW: 物品欄
+## Category-zhTW: 物品
 
 Embeds\json.lua
 
