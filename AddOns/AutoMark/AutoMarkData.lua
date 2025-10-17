@@ -2,6 +2,117 @@ local addonName, MyAddon = ...
 
 MyAddon.Mobs = {
 
+-- Eco-Dome Al'dani (2830) TWW Season 3
+-- [234893] = {name = "[BOSS] Azhiccar", instanceID = 2830, marks = "8"},
+	[234955] = {name = "Wastelander Pactspeaker", instanceID = 2830},
+	[234957] = {name = "Wastelander Ritualist", instanceID = 2830},
+	[234962] = {name = "Wastelander Farstalker", instanceID = 2830},
+--	[235151] = {name = "K'aresh Elemental", instanceID = 2830},
+-- [237514] = {name = "[BOSS] A'wazj", instanceID = 2830},
+-- [234933] = {name = "[BOSS] Taah'bat", instanceID = 2830},
+	[244302] = {name = "[BOSS ADD] Binding Javelin", instanceID = 2830, auto = "nameplate", marks = "87"},
+--	[234870] = {name = "Invading Mite", instanceID = 2830},
+--	[234872] = {name = "Wastelander Phaseblade", instanceID = 2830},
+--	[234883] = {name = "Voracious Gorger", instanceID = 2830},
+--	[234912] = {name = "Ravaging Scavenger", instanceID = 2830},
+--	[234918] = {name = "Wastes Creeper", instanceID = 2830},
+--	[234935] = {name = "[BOSS] Soul-Scribe", instanceID = 2830},
+--	[234960] = {name = "Tamed Ruinstalker", instanceID = 2830},
+--	[236190] = {name = "Frenzied Mite", instanceID = 2830},
+--	[236995] = {name = "Ravenous Destroyer", instanceID = 2830},
+--	[239379] = {name = "Unbound Ethereal", instanceID = 2830},
+	[242209] = {name = "Overgorged Mite", instanceID = 2830},
+	[242631] = {name = "Overcharged Sentinel", instanceID = 2830, marks = "*87"},
+--	[245092] = {name = "Burrowing Creeper", instanceID = 2830},
+--	[245411] = {name = "Ravaging Scavenger", instanceID = 2830},
+--	[245412] = {name = "Voracious Gorger", instanceID = 2830},
+	[240952] = {name = "Evoked Spirit", instanceID = 2830, auto = "nameplate", marks = "*87"},
+
+-- Halls of Atonement (2287) TWW Season 3
+	[164218] = {name = "Lord Chamberlain", instanceID = 2287, marks = "8"},
+	[164562] = {name = "Depraved Houndmaster", instanceID = 2287, marks = "87"},
+	[165410] = {name = "[BOSS] High Adjudicator Aleez", instanceID = 2287, marks = "8"},
+	[164363] = {name = "[BOSS ADD] Undying Stonefiend", instanceID = 2287, auto = "nameplate"},
+	[165414] = {name = "Depraved Obliterator", instanceID = 2287},
+--	[167612] = {name = "Stoneborn Reaver", instanceID = 2287},
+	[167876] = {name = "Inquisitor Sigar", instanceID = 2287, marks = "8"},
+	[165529] = {name = "Depraved Collector", instanceID = 2287},
+	[165737] = {name = "[BOSS ADD] Sinstone Statue", instanceID = 2287, auto = "*mouseover"},
+--	[164185] = {name = "[BOSS] Echelon", instanceID = 2287},
+--	[164557] = {name = "Shard of Halkias", instanceID = 2287},
+--	[164563] = {name = "Vicious Gargon", instanceID = 2287},
+--	[165408] = {name = "[BOSS] Halkias", instanceID = 2287},
+--	[165415] = {name = "Toiling Groundskeeper", instanceID = 2287},
+--	[165515] = {name = "Depraved Darkblade", instanceID = 2287},
+--	[165913] = {name = "Ghastly Parishioner", instanceID = 2287},
+--	[167607] = {name = "Stoneborn Slasher", instanceID = 2287},
+--	[167610] = {name = "Stonefiend Anklebiter", instanceID = 2287},
+--	[167611] = {name = "Stoneborn Eviscerator", instanceID = 2287},
+--	[167892] = {name = "Tormented Soul", instanceID = 2287},
+--	[167898] = {name = "Manifestation of Envy", instanceID = 2287},
+--	[174175] = {name = "Loyal Stoneborn", instanceID = 2287},
+--	[175577] = {name = "Sinfall Flyer", instanceID = 2287},
+
+-- Tazavesh, the Veiled Market (2441) TWW Season 3
+	[180399] = {name = "Evaile", instanceID = 2441, marks = "8"},	-- Hard Mode
+	[180640] = {name = "[BOSS ADD] Stormbound Breaker", instanceID = 2441, marks = "8"},	-- Hard Mode
+	[175806] = {name = "[BOSS] So'azmi", instanceID = 2441, marks = "8"},
+	[176396] = {name = "Defective Sorter", instanceID = 2441},
+	[177716] = {name = "[BOSS ADD] So' Cartel Assassin", instanceID = 2441, auto = "nameplate"},
+	[177808] = {name = "Armored Overseer", instanceID = 2441, marks = "87"},
+--	[177816] = {name = "Interrogation Specialist", instanceID = 2441},
+	[177817] = {name = "Support Officer", instanceID = 2441},
+	[178141] = {name = "Murkbrine Scalebinder", instanceID = 2441},
+	[178142] = {name = "Murkbrine Fishmancer", instanceID = 2441},
+	[178171] = {name = "Stormforged Guardian", instanceID = 2441, marks = "*8"},
+	[176565] = {name = "[BOSS ADD] Disruptive Patron", instanceID = 2441, auto = "nameplate"},
+	[179269] = {name = "[BOSS ADD] Oasis Security", instanceID = 2441, auto = "nameplate"},
+	[176563] = {name = "[BOSS] Zo'gron", instanceID = 2441, auto = "nameplate", marks = "8"},
+	[179388] = {name = "Hourglass Tidesage", instanceID = 2441},
+	[179733] = {name = "Invigorating Fish Stick", instanceID = 2441, auto = "nameplate", marks = "87"},
+	[179841] = {name = "Veteran Sparkcaster", instanceID = 2441},
+	[180091] = {name = "Ancient Core Hound", instanceID = 2441, marks = "87"},
+	[180335] = {name = "Cartel Smuggler", instanceID = 2441},
+	[180336] = {name = "Cartel Wiseguy", instanceID = 2441},
+	[180348] = {name = "Cartel Muscle", instanceID = 2441, marks = "87"},
+	[180431] = {name = "Focused Ritualist", instanceID = 2441},
+--	[180432] = {name = "Devoted Accomplice", instanceID = 2441},
+	[180433] = {name = "Wandering Pulsar", instanceID = 2441, auto = "nameplate", marks = "*87"},
+	[179334] = {name = "Portalmancer Zo'honn", instanceID = 2441},
+--	[180159] = {name = "[BOSS ADD] Brawling Patron", instanceID = 2441},
+--	[176562] = {name = "[BOSS ADD] Brawling Patron", instanceID = 2441},
+--	[175546] = {name = "[BOSS] Timecap'n Hooktail", instanceID = 2441},
+--	[175616] = {name = "[BOSS] Zo'phex", instanceID = 2441},
+--	[175646] = {name = "[BOSS] P.O.S.T. Master", instanceID = 2441},
+--	[175663] = {name = "[BOSS] Hylbrande", instanceID = 2441},
+--	[176394] = {name = "P.O.S.T. Worker", instanceID = 2441},
+--	[176395] = {name = "Overloaded Mailemental", instanceID = 2441},
+--	[176551] = {name = "[BOSS ADD] Vault Purifier", instanceID = 2441},
+--	[176555] = {name = "[BOSS] Achillite", instanceID = 2441},
+--	[176556] = {name = "[BOSS] Alcruux", instanceID = 2441},
+--	[176705] = {name = "[BOSS] Venza Goldfuse", instanceID = 2441},
+--	[177269] = {name = "[BOSS] So'leah", instanceID = 2441},
+--	[177500] = {name = "[BOSS ADD] Corsair Brute", instanceID = 2441},
+--	[177807] = {name = "Customs Security", instanceID = 2441},
+--	[178133] = {name = "Murkbrine Wavejumper", instanceID = 2441},
+--	[178139] = {name = "Murkbrine Shellcrusher", instanceID = 2441},
+--	[178163] = {name = "Murkbrine Shorerunner", instanceID = 2441},
+--	[178165] = {name = "Coastwalker Goliath", instanceID = 2441},
+--	[178388] = {name = "Bazaar Strongarm", instanceID = 2441},
+--	[178392] = {name = "Gatewarden Zo'mazz", instanceID = 2441},
+--	[178394] = {name = "Cartel Lackey", instanceID = 2441},
+--	[179334] = {name = "Portalmancer Zo'nyy", instanceID = 2441},
+--	[179386] = {name = "Corsair Officer", instanceID = 2441},
+--	[179821] = {name = "Commander Zo'far", instanceID = 2441},
+--	[179837] = {name = "Tracker Zo'korss", instanceID = 2441},
+--	[179840] = {name = "Market Peacekeeper", instanceID = 2441},
+--	[179842] = {name = "Commerce Enforcer", instanceID = 2441},
+--	[179893] = {name = "Cartel Skulker", instanceID = 2441},
+--	[180015] = {name = "Burly Deckhand", instanceID = 2441},
+--	[180429] = {name = "Adorned Starseer", instanceID = 2441},
+--	[180495] = {name = "Enraged Direhorn", instanceID = 2441},
+--	[180567] = {name = "Frenzied Nightclaw", instanceID = 2441},
+
 -- Siege of Boralus (1822) TWW Season 1
 --	[128650] = {name = "[BOSS] Chopper Redhook", instanceID = 1822},	-- elite Humanoid ENERGY 52 hostile attackable
 --	[128651] = {name = "[BOSS] Hadal Darkfathom", instanceID = 1822},	-- elite Giant POWER_TYPE_ENERGY 52 hostile attackable
@@ -120,9 +231,9 @@ MyAddon.Mobs = {
 --	[207197] = {name = "Cursed Rookguard", instanceID = 2648},	-- elite Humanoid RAGE 80 hostile attackable
 	[207198] = {name = "Cursed Thunderer", instanceID = 2648},	-- elite Humanoid MANA 80 hostile attackable
 	[207199] = {name = "Cursed Rooktender", instanceID = 2648},	-- elite Humanoid MANA 80 hostile attackable
-	[207202] = {name = "Void Fragment", instanceID = 2648},	-- elite Aberration MANA 80 hostile attackable
-	[207205] = {name = "[BOSS] Stormguard Gorren", instanceID = 2648},	-- elite Humanoid MANA 82 hostile attackable
-	[207207] = {name = "[BOSS] Voidstone Monstrosity", instanceID = 2648},	-- elite Aberration MANA 82 hostile attackable
+--	[207202] = {name = "Void Fragment", instanceID = 2648},	-- elite Aberration MANA 80 hostile attackable
+	[207205] = {name = "[BOSS] Stormguard Gorren", instanceID = 2648, marks = "8"},	-- elite Humanoid MANA 82 hostile attackable
+--	[207207] = {name = "[BOSS] Voidstone Monstrosity", instanceID = 2648},	-- elite Aberration MANA 82 hostile attackable
 --	[209230] = {name = "[BOSS] Kyrioss", instanceID = 2648},	-- elite Elemental POWER_TYPE_ENERGY 82 hostile attackable
 	[209801] = {name = "Quartermaster Koratite", instanceID = 2648, marks = "8"},	-- elite Humanoid MANA 81 hostile attackable
 --	[212739] = {name = "Radiating Voidstone", instanceID = 2648},	-- elite Aberration RAGE 81 hostile attackable
@@ -133,7 +244,7 @@ MyAddon.Mobs = {
 	[214439] = {name = "Corrupted Oracle", instanceID = 2648},	-- elite Humanoid MANA 80 hostile attackable
 --	[219066] = {name = "Inflicted Civilian", instanceID = 2648},	-- elite Humanoid RAGE 80 hostile attackable
 
--- Priory of the Sacred Flame (2649) TWW
+-- Priory of the Sacred Flame (2649) TWW Season 2 / TWW Season 3
 --	[206694] = {name = "Fervent Sharpshooter", instanceID = 2649},	-- elite Humanoid RAGE 80 hostile attackable
 --	[206696] = {name = "Arathi Knight", instanceID = 2649},	-- elite Humanoid POWER_TYPE_RED_POWER 81 hostile attackable
 	[206697] = {name = "Devout Priest", instanceID = 2649},	-- elite Humanoid MANA 80 hostile attackable
@@ -165,7 +276,7 @@ MyAddon.Mobs = {
 
 -- Darkflame Cleft (2651) TWW
 --	[208446] = {name = "Kobold Worker", instanceID = 2651},	-- elite Humanoid RAGE 80 hostile attackable
-	[208450] = {name = "Wandering Candle", instanceID = 2651},	-- elite Elemental MANA 81 hostile attackable
+--	[208450] = {name = "Wandering Candle", instanceID = 2651},	-- elite Elemental MANA 81 hostile attackable
 --	[208456] = {name = "Shuffling Horror", instanceID = 2651},	-- elite Aberration RAGE 80 hostile attackable
 --	[208457] = {name = "Skittering Darkness", instanceID = 2651},	-- normal Aberration RAGE 81 hostile attackable
 --	[208743] = {name = "[BOSS] Blazikon", instanceID = 2651},	-- elite Elemental MANA 82 hostile attackable
@@ -224,7 +335,7 @@ MyAddon.Mobs = {
 --	[224516] = {name = "Skardyn Invader", instanceID = 2652},	-- normal Mechanical RAGE 81 hostile attackable
 	[224962] = {name = "Cursedforge Mender", instanceID = 2652},	-- elite Humanoid MANA 80 hostile attackable
 
--- Ara-Kara, City of Echoes (2660) TWW Season 1
+-- Ara-Kara, City of Echoes (2660) TWW Season 1 / TWW Season 3
 --	[213179] = {name = "[BOSS] Avanoxx", instanceID = 2660},	-- elite Beast RAGE 82 hostile attackable
 --	[214840] = {name = "Engorged Crawler", instanceID = 2660},	-- elite Beast RAGE 80 hostile attackable
 --	[215405] = {name = "[BOSS] Anub'zekt", instanceID = 2660},	-- elite Humanoid POWER_TYPE_DARKNESS_ENERGY 82 hostile attackable
@@ -235,7 +346,7 @@ MyAddon.Mobs = {
 --	[216336] = {name = "Ravenous Crawler", instanceID = 2660},	-- normal Beast RAGE 80 hostile attackable
 --	[216337] = {name = "Bloodworker", instanceID = 2660},	-- normal Humanoid RAGE 80 hostile attackable
 --	[216338] = {name = "Hulking Bloodguard", instanceID = 2660},	-- elite Humanoid RAGE 81 hostile attackable
-	[216340] = {name = "Sentry Stagshell", instanceID = 2660, marks = "8"},	-- normal Beast RAGE 80 hostile attackable
+	[216340] = {name = "Sentry Stagshell", instanceID = 2660, marks = "87"},	-- normal Beast RAGE 80 hostile attackable
 --	[216341] = {name = "Jabbing Flyer", instanceID = 2660},	-- normal Beast RAGE 80 hostile attackable
 --	[216363] = {name = "Reinforced Drone", instanceID = 2660},	-- elite Humanoid RAGE 80 hostile attackable
 	[216364] = {name = "Blood Overseer", instanceID = 2660},	-- elite Humanoid MANA 81 hostile attackable
@@ -276,15 +387,15 @@ MyAddon.Mobs = {
 --	[223498] = {name = "Bee-let", instanceID = 2661},	-- minus Beast RAGE 80 hostile attackable
 --	[223562] = {name = "Brew Drop", instanceID = 2661},	-- normal Elemental RAGE 80 hostile attackable
 
--- The Dawnbreaker (2662) TWW Season 1
+-- The Dawnbreaker (2662) TWW Season 1 / TWW Season 3
 	[210966] = {name = "Sureki Webmage", instanceID = 2662},	-- elite Humanoid MANA 81 hostile attackable
 --	[211087] = {name = "[BOSS] Speaker Shadowcrown", instanceID = 2662},	-- elite Humanoid POWER_TYPE_SHADOW_ENERGY 82 hostile attackable
 --	[211089] = {name = "[BOSS] Anub'ikkaj", instanceID = 2662},	-- elite Humanoid POWER_TYPE_SHADOW_ENERGY 82 hostile attackable
-	[211261] = {name = "Ascendant Vis'coxria", instanceID = 2662},	-- elite Humanoid MANA 81 hostile attackable
---	[211262] = {name = "Ixkreten the Unbreakable", instanceID = 2662},	-- elite Humanoid RAGE 81 hostile attackable
-	[211263] = {name = "Deathscreamer Iken'tak", instanceID = 2662},	-- elite Humanoid MANA 81 hostile attackable
+	[211261] = {name = "Ascendant Vis'coxria", instanceID = 2662, marks = "*8"},	-- elite Humanoid MANA 81 hostile attackable
+	[211262] = {name = "Ixkreten the Unbreakable", instanceID = 2662, marks = "*8"},	-- elite Humanoid RAGE 81 hostile attackable
+	[211263] = {name = "Deathscreamer Iken'tak", instanceID = 2662, marks = "*8"},	-- elite Humanoid MANA 81 hostile attackable
 --	[211341] = {name = "Manifested Shadow", instanceID = 2662},	-- elite Elemental MANA 81 hostile attackable
-	[213885] = {name = "Nightfall Dark Architect", instanceID = 2662},	-- elite Humanoid MANA 81 hostile attackable
+	[213885] = {name = "Nightfall Dark Architect", instanceID = 2662, marks = "*8"},	-- elite Humanoid MANA 81 hostile attackable
 	[213892] = {name = "Nightfall Shadowmage", instanceID = 2662},	-- elite Humanoid MANA 80 hostile attackable
 	[213893] = {name = "Nightfall Darkcaster", instanceID = 2662},	-- elite Humanoid MANA 80 hostile attackable
 --	[213894] = {name = "Nightfall Curseblade", instanceID = 2662},	-- elite Humanoid RAGE 80 hostile attackable
@@ -293,13 +404,13 @@ MyAddon.Mobs = {
 --	[213932] = {name = "Sureki Militant", instanceID = 2662},	-- elite Humanoid RAGE 81 hostile attackable
 --	[213934] = {name = "Nightfall Tactician", instanceID = 2662},	-- elite Humanoid RAGE 81 hostile attackable
 --	[213937] = {name = "[BOSS] Rasha'nan", instanceID = 2662},	-- elite Humanoid ENERGY -1 hostile attackable
-	[214761] = {name = "Nightfall Ritualist", instanceID = 2662},	-- elite Humanoid MANA 81 hostile attackable
-	[214762] = {name = "Nightfall Commander", instanceID = 2662},	-- elite Humanoid RAGE 81 hostile attackable
+--	[214761] = {name = "Nightfall Ritualist", instanceID = 2662},	-- elite Humanoid MANA 81 hostile attackable
+--	[214762] = {name = "Nightfall Commander", instanceID = 2662},	-- elite Humanoid RAGE 81 hostile attackable
 --	[217124] = {name = "Arathi Bomb", instanceID = 2662},	-- normal Not specified RAGE 80 hostile attackable
-	[223994] = {name = "Nightfall Shadowmage", instanceID = 2662},	-- elite Humanoid MANA 81 hostile attackable
-	[223995] = {name = "Nightfall Curseblade", instanceID = 2662},	-- elite Humanoid MANA 81 hostile attackable
-	[225605] = {name = "Nightfall Darkcaster", instanceID = 2662},	-- elite Humanoid MANA 81 hostile attackable
-	[225606] = {name = "Nightfall Shadowalker", instanceID = 2662},	-- elite Humanoid MANA 80 hostile attackable
+--	[223994] = {name = "Nightfall Shadowmage", instanceID = 2662},	-- elite Humanoid MANA 81 hostile attackable
+--	[223995] = {name = "Nightfall Curseblade", instanceID = 2662},	-- elite Humanoid MANA 81 hostile attackable
+--	[225605] = {name = "Nightfall Darkcaster", instanceID = 2662},	-- elite Humanoid MANA 81 hostile attackable
+--	[225606] = {name = "Nightfall Shadowalker", instanceID = 2662},	-- elite Humanoid MANA 80 hostile attackable
 
 -- City of Threads (2669) TWW Season 1
 --	[216320] = {name = "[BOSS] The Coaglamation", instanceID = 2669},	-- elite Elemental POWER_TYPE_ENERGY 82 hostile attackable
@@ -386,7 +497,7 @@ MyAddon.Mobs = {
 	[174197] = {name = "Battlefield Ritualist", instanceID = 2293},	-- elite Humanoid MANA 60 hostile attackable
 	[174210] = {name = "Blighted Sludge-Spewer", instanceID = 2293},	-- elite Undead MANA 60 hostile attackable
 
--- The MOTHERLOAD!! (1594) TWW Season 2
+-- The MOTHERLODE!! (1594) TWW Season 2
 --	[129214] = {name = "[BOSS] Coin-Operated Crowd Pummeler", instanceID = 1594},	-- elite Mechanical ENERGY 62 hostile attackable
 --	[129227] = {name = "Azerokk", instanceID = 1594},	-- elite Elemental ENERGY 62 hostile attackable
 --	[129231] = {name = "[BOSS] Rixxa Fluxflame", instanceID = 1594},	-- elite Humanoid MANA 62 hostile attackable
@@ -448,8 +559,9 @@ MyAddon.Mobs = {
 --	[151773] = {name = "Junkyard D.0.G.", instanceID = 2097},	-- elite Mechanical RAGE 50 hostile attackable
 --	[151812] = {name = "Detect-o-Bot", instanceID = 2097},	-- normal Mechanical RAGE 50 hostile attackable
 --	[152033] = {name = "[BOSS ADD] Inconspicuous Plant", instanceID = 2097},	-- normal Mechanical RAGE 50 hostile attackable
+	[236033] = {name = "Metal Gunk", instanceID = 2097},
 
--- Operation: Floodgate (2773) TWW Season 2
+-- Operation: Floodgate (2773) TWW Season 2 / TWW Season 3
 --	[226396] = {name = "[BOSS] Swampface", instanceID = 2773},	-- elite Elemental ENERGY 82 hostile attackable
 --	[226398] = {name = "[BOSS] Big M.O.M.M.A.", instanceID = 2773},	-- elite Mechanical POWER_TYPE_ENERGY 82 hostile attackable
 --	[226402] = {name = "[BOSS] Bront", instanceID = 2773},	-- elite Humanoid ENERGY 82 hostile attackable
@@ -461,13 +573,13 @@ MyAddon.Mobs = {
 	[229069] = {name = "Mechadrone Sniper", instanceID = 2773},	-- elite Mechanical RAGE 80 hostile attackable
 --	[229212] = {name = "Darkfuse Demolitionist", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
 --	[229250] = {name = "Venture Co. Contractor", instanceID = 2773},	-- elite Humanoid RAGE 80 hostile attackable
-	[229251] = {name = "Venture Co. Architect", instanceID = 2773},	-- elite Humanoid MANA 81 hostile attackable
+--	[229251] = {name = "Venture Co. Architect", instanceID = 2773},	-- elite Humanoid MANA 81 hostile attackable
 --	[229252] = {name = "Darkfuse Hyena", instanceID = 2773},	-- elite Beast RAGE 80 hostile attackable
 	[229686] = {name = "Venture Co. Surveyor", instanceID = 2773},	-- elite Humanoid MANA 80 hostile attackable
 	[230740] = {name = "Shreddinator 3000", instanceID = 2773, marks = "87"},	-- elite Mechanical RAGE 81 hostile attackable
 	[230748] = {name = "Darkfuse Bloodwarper", instanceID = 2773},	-- elite Humanoid MANA 81 hostile attackable
 --	[231014] = {name = "Loaderbot", instanceID = 2773},	-- elite Mechanical RAGE 80 hostile attackable
---	[231176] = {name = "Scaffolding", instanceID = 2773},	-- normal Not specified RAGE 80 hostile attackable
+--	[231176] = {name = "Scaffolding", instanceID = 2773, auto = "nameplate", marks = "8"},	-- normal Not specified RAGE 80 hostile attackable
 --	[231197] = {name = "Bubbles", instanceID = 2773},	-- elite Beast RAGE 81 hostile attackable
 	[231223] = {name = "Disturbed Kelp", instanceID = 2773},	-- elite Elemental RAGE 80 hostile attackable
 	[231312] = {name = "Venture Co. Electrician", instanceID = 2773},	-- elite Humanoid MANA 80 hostile attackable
@@ -770,11 +882,104 @@ MyAddon.Mobs = {
 	[91008] = {name = "Rockbound Pelter", instanceID = 1458, marks = "87"},
 	[101437] = {name = "Burning Geode", instanceID = 1458, marks = "8"},
 
+-- Horrific Visions of Stormwind (2827)
+	[239437] = {name = "Hogger", instanceID = 2827, marks = "7"},
+	[233684] = {name = "Overlord Mathias Shaw", instanceID = 2827, marks = "8"},
+	[152809] = {name = "Alx'kov the Infested", instanceID = 2827, marks = "8"},
+	[233681] = {name = "Magister Umbric", instanceID = 2827, marks = "8"},
+	[233685] = {name = "Slavemaster Ul'rok", instanceID = 2827, marks = "8"},
+	[158452] = {name = "Mindtwist Tendril", instanceID = 2827},
+	[158146] = {name = "Fallen Riftwalker", instanceID = 2827},
+	[158371] = {name = "Zardeth of the Black Claw", instanceID = 2827, marks = "8"},
+	[156949] = {name = "Armsmaster Terenson", instanceID = 2827, marks = "8"},
+	[152722] = {name = "Fallen Voidspeaker", instanceID = 2827},
+	[159275] = {name = "Portal Keeper", instanceID = 2827},
+	[158690] = {name = "Cultist Tormenter", instanceID = 2827},
+	[158136] = {name = "Inquisitor Darkspeak", instanceID = 2827, marks = "8"},
+	[156795] = {name = "SI:7 Informant", instanceID = 2827},
+	[158158] = {name = "orge-Guard Hurrul", instanceID = 2827, marks = "8"},
+	[233679] = {name = "Therum Deepforge", instanceID = 2827, marks = "8"},
+	[153130] = {name = "Greater Void Elemental", instanceID = 2827},
+	[158437] = {name = "Fallen Taskmaster", instanceID = 2827},
+	[152939] = {name = "Boundless Corruption", marks = "8", instanceID = 2827},
+	[161293] = {name = "Neglected Guild Bank (Buff)", auto = "nameplate", marks = "8", instanceID = 2827},
+	[157700] = {name = "Agustus Moulaine (Buff)", auto = "nameplate", marks = "8", instanceID = 2827},
+	[241718] = {name = "Vengeful Voidspeaker", instanceID = 2827},
+	[242602] = {name = "Voidfire Deathcycle", instanceID = 2827, auto = "*mouseover", marks = "7"},
+	[242570] = {name = "Haymar the Devout", instanceID = 2827, marks = "7"},
+	[233675] = {name = "Alleria Windrunner", instanceID = 2827, marks = "8"},
+
+
+-- Horrific Visions of Orgrimmar (2828)
+
+	[153097] = {name = "Voidbound Shaman", marks = "87", instanceID = 2828},
+	[156406] = {name = "Voidbound Honor Guard", instanceID = 2828},
+	[155951] = {name = "[BOSS ADD] Ruffer", auto = "nameplate", instanceID = 2828},
+	[155953] = {name = "[BOSS ADD] C'Thuffer", auto = "nameplate", instanceID = 2828},
+	[155657] = {name = "[BOSS ADD] Huffer", auto = "nameplate", instanceID = 2828},
+	[155952] = {name = "[BOSS ADD] Suffer", auto = "nameplate", instanceID = 2828},
+	[157349] = {name = "[BOSS ADD] Void Boar", auto = "nameplate", marks = "87", instanceID = 2828},
+	[240675] = {name = "Barkeep Morag (Buff)", auto = "nameplate", marks = "8", instanceID = 2828},
+	[161140] = {name = "Bwemba (Buff)", auto = "nameplate", marks = "8", instanceID = 2828},
+	[158565] = {name = "Naros (Buff)", auto = "nameplate", marks = "8", instanceID = 2828},
+	[161198] = {name = "Warpweaver Dushar (Buff)", auto = "nameplate", marks = "8", instanceID = 2828},
+	[157825] = {name = "Crazed Tormenter", instanceID = 2828},
+	[156089] = {name = "Aqir Venomweaver", instanceID = 2828},
+	[157610] = {name = "K'thir Dominator", marks = "87", instanceID = 2828},
+	[153401] = {name = "K'thir Dominator", marks = "87", instanceID = 2828},
+	[244186] = {name = "K'thir Dominator", marks = "87", instanceID = 2828},
 }
 
-MyAddon.Icons = {1,2,3,6,7,8}
+MyAddon.DefaultIcons = {1,2,3,6,7,8}
 
-MyAddon.PlayerMarks = {
+MyAddon.DefaultPlayerMarks = {
 	["TANK"] = 4,
 	["HEALER"] = 0,
+}
+
+MyAddon.DefaultInstances = {
+[1822]	= {name = "Siege of Boralus"},
+[2286]	= {name = "The Necrotic Wake"},
+[2290]	= {name = "Mists of Tirna Scithe"},
+[2648]	= {name = "The Rookery"},
+[2649]	= {name = "Priory of the Sacred Flame", seasonal = true},
+[2651]	= {name = "Darkflame Cleft"},
+[2652]	= {name = "The Stonevault"},
+[2660]	= {name = "Ara-Kara, City of Echoes", seasonal = true},
+[2661]	= {name = "Cinderbrew Meadery"},
+[2662]	= {name = "The Dawnbreaker", seasonal = true},
+[2669]	= {name = "City of Threads"},
+[670]	= {name = "Grim Batol"},
+[2293]	= {name = "Theater of Pain"},
+[1594]	= {name = "The MOTHERLODE!!"},
+[2097]	= {name = "Operation: Mechagon"},
+[2773]	= {name = "Operation: Floodgate", seasonal = true},
+[2526]	= {name = "Algeth'ar Academy"},
+[2451]	= {name = "Uldaman: Legacy of Tyr"},
+[2516]	= {name = "The Nokhud Offensive"},
+[2515]	= {name = "The Azure Vault"},
+[2521]	= {name = "Ruby Life Pools"},
+[2519]	= {name = "Neltharus"},
+[2527]	= {name = "Halls of Infusion"},
+[2520]	= {name = "Brackenhide Hollow"},
+[1466]	= {name = "Darkheart Thicket"},
+[1501]	= {name = "Black Rook Hold"},
+[1862]	= {name = "Waycrest Manor"},
+[1763]	= {name = "Atal'Dazar"},
+[1279]	= {name = "The Everbloom"},
+[643]	= {name = "Throne of the Tides"},
+[2579]	= {name = "Dawn of the Infinite"},
+[960]	= {name = "Temple of the Jade Serpent"},
+[1176]	= {name = "Shadowmoon Burial Grounds"},
+[1571]	= {name = "Court of Stars"},
+[1477]	= {name = "Halls of Valor"},
+[1841]	= {name = "Underrot"},
+[1754]	= {name = "Freehold"},
+[657]	= {name = "The Vortex Pinnacle"},
+[1458]	= {name = "Neltharion's Lair"},
+[2287]	= {name = "Halls of Atonement", seasonal = true},
+[2441]	= {name = "Tazavesh, the Veiled Market", seasonal = true},
+[2830]	= {name = "Eco-Dome Al'dani", seasonal = true},
+[2827]	= {name = "Horrific Visions of Stormwind", instanceType = "scenario"},
+[2828]	= {name = "Horrific Visions of Orgrimmar", instanceType = "scenario"},
 }

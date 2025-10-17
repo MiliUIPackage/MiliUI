@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
--- AutoMark v1.1.10
--- ================
+-- AutoMark v1.2.4
+-- ===============
 --
 --	Auto Mark
 --
@@ -13,8 +13,11 @@ SLASH_AUTOMARK2 = "/am"
 
 local Frame = CreateFrame("Frame")
 
+-- Use namespace if available.
+local GetSpecializationInfo = C_SpecializationInfo.GetSpecializationInfo or GetSpecializationInfo
+local GetSpecialization = C_SpecializationInfo.GetSpecialization or GetSpecialization
+
 local Mobs = {}
-local Icons = {}
 local PlayerMarks = {}
 local MaxNameplates = 40
 local PlayerName
@@ -41,6 +44,12 @@ local MobsLoaded = 0
 local msgErrors = 0
 local Scan = false
 
+local MarkingDisabled = false
+
+MyAddon.Icons = {}
+
+MyAddon.Instances = {}
+
 local SoundFiles = {
 	update	=	{id=567489, t=0},
 	remark	=	{id=567422, t=0},
@@ -54,7 +63,10 @@ local UpdateTableForAllMarked = false
 -- Restore missing mark for all (not just those in Mobs).
 -- Note that this causes multiple attempts(!) until the mark has actually been placed.
 -- Could cause problems with mobs marked by DBM!
-ReMarkAll = false
+local ReMarkAll = false
+
+-- In a group with other players and no tank role assigned (e.g. scenario) mark the group leader instead.
+local MarkLeader = true
 
 local TestMode = false	-- Show group members as online and send dummy replies to REQUEST_INFO.
 local TestParty = false	-- Add dummy group members from TestPartyData.
@@ -73,6 +85,10 @@ local Marks = {
 	[7] = {active = false, color = "Red", shape = "Cross", icon = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_7:0|t"},
 	[8] = {active = false, color = "White", shape = "Skull", icon = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_8:0|t"},
 }
+
+MyAddon.Marks = Marks
+
+MyAddon.PlayerMarks = PlayerMarks
 
 -- Events registered when enabled.
 local MainEvents = {	
@@ -97,12 +113,206 @@ local ActiveEvents = {
 
 local GUIDs = {}
 
+-- Convert MDT Dungeon Name to Instance Name.
+local DungeonConvert = {
+	{"^Mechagon", "Operation: Mechagon"},
+	{"^Ara%-Kara", "Ara-Kara, City of Echoes"},
+}
+
+MyAddon.InstanceTypeList = {
+	{"Dungeon","party"},
+	{"Scenario","scenario"},
+	{"Raid","raid"},
+	{"Battleground","pvp"},
+	{"Arena","arena"},
+	{"Other","other"},
+}
+
+StaticPopupDialogs["AUTOMARK_NEW_CUSTOM_NPC"] = {
+	text = "NPC ID",
+	button1 = "OK",
+	button2 = "Cancel",
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	hasEditBox = true,
+	enterClicksFirstButton = true,
+	OnShow = function (self, data)
+		local button1 = self.button1 or self:GetButton1()
+		local editBox = self.editBox or self.EditBox
+		editBox:SetText("")
+		if IsInInstance() then
+			local guid = UnitGUID("target")
+			local npcId = MyAddon.GetNpcIdFromGUID(guid)
+			if npcId then
+				editBox:SetText(npcId)
+			end
+		end
+		button1:Disable()
+	end,
+	OnAccept = function (self, data, data2)
+		local editBox = self.editBox or self.EditBox
+		local npcId = editBox:GetText()
+		npcId = tonumber(npcId)
+		if MyAddon.Mobs[npcId] then
+			AutoMark_Mobs[npcId] = {
+				instanceID = MyAddon.Mobs[npcId].instanceID,
+				name = MyAddon.Mobs[npcId].name,
+				marks = MyAddon.Mobs[npcId].marks,
+				auto = MyAddon.Mobs[npcId].auto,
+			}
+		else
+-- Check MDT.
+			local data
+			if MDT and MDT.dungeonEnemies and MDT.dungeonList then
+				data = MyAddon.MDTGetNPCDetails(npcId)
+			end
+			if data then	-- Use name and instanceID from MDT
+				AutoMark_Mobs[npcId] = {name = data.name, instanceID = data.instanceID}
+			else	-- Mob not found in MDT. Use current instance (if any) or 0.
+				local iid = 0
+				local name = ""
+				if IsInInstance() then
+					local _, _, _, _, _, _, _, instanceID = GetInstanceInfo()
+					if instanceID and MyAddon.Instances[instanceID] then
+						iid = instanceID
+					end
+					local guid = UnitGUID("target")
+					local id = MyAddon.GetNpcIdFromGUID(guid)
+					if npcId == id then
+						if UnitName("target") then
+							name = UnitName("target")
+						end
+					end				
+				end
+				AutoMark_Mobs[npcId] = {name = name, instanceID = iid}
+			end
+		end
+		MyAddon.LoadMobs()
+		if MyAddon.NPCsFrame then
+			MyAddon.NPCsFrame.data.id.selectedValue = npcId
+			MyAddon.NPCsFrame:UpdateEdit()
+		end
+	end,
+	EditBoxOnTextChanged = function (self, data)
+		local button1 = self:GetParent().button1 or self:GetParent():GetButton1()
+		button1:Disable()
+		local npcId = self:GetText()
+		if string.match(npcId,"^%d+$") then
+			npcId = tonumber(npcId)
+			if npcId > 0 and not AutoMark_Mobs[npcId] then
+				button1:Enable()
+			end
+		end
+	end
+}
+
+StaticPopupDialogs["AUTOMARK_DELETE_CUSTOM_NPC"] = {
+	text = "%s",
+	button1 = "OK",
+	button2 = "Cancel",
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	showAlert = true,
+	OnAccept = function (self, data, data2)
+		MyAddon.DeleteCustomNPC(data)
+	end,
+}
+
+StaticPopupDialogs["AUTOMARK_DELETE_ALL_CUSTOM"] = {
+	text = "Remove ALL Custom NPCs and Instances?",
+	button1 = "OK",
+	button2 = "Cancel",
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	showAlert = true,
+	OnAccept = function (self, data, data2)
+		MyAddon.DeleteAllCustom()
+	end,
+}
+
+StaticPopupDialogs["AUTOMARK_NEW_INSTANCE"] = {
+	text = "Instance ID",
+	button1 = "OK",
+	button2 = "Cancel",
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	hasEditBox = true,
+	enterClicksFirstButton = true,
+	OnShow = function (self, data)
+		local button1 = self.button1 or self:GetButton1()
+		local editBox = self.editBox or self.EditBox
+		editBox:SetText("")
+		if IsInInstance() then
+			local name, _, _, _, _, _, _, instanceID = GetInstanceInfo()
+			if instanceID then
+				editBox:SetText(instanceID)
+			end
+		end
+		button1:Disable()
+	end,
+	OnAccept = function (self, data, data2)
+		local editBox = self.editBox or self.EditBox
+		local instanceId = editBox:GetText()
+		instanceId = tonumber(instanceId)
+		MyAddon.AutoMark_Instances[instanceId] = {name = ""}
+		if IsInInstance() then
+			local name, instanceType, _, _, _, _, _, iid = GetInstanceInfo()
+			if iid and iid == instanceId then
+				MyAddon.AutoMark_Instances[instanceId].name = name
+				MyAddon.AutoMark_Instances[instanceId].instanceType = "other"
+				for i = 1,#MyAddon.InstanceTypeList do
+					if MyAddon.InstanceTypeList[i][2] == instanceType then
+						MyAddon.AutoMark_Instances[instanceId].instanceType = instanceType
+						break
+					end
+				end
+			end
+		end
+		MyAddon.LoadInstances()
+		MyAddon.Initialize()
+		if MyAddon.InstancesFrame then
+			MyAddon.InstancesFrame.data.id.selectedValue = instanceId
+			MyAddon.InstancesFrame:UpdateEdit()
+		end
+	end,
+	EditBoxOnTextChanged = function (self, data)
+		local button1 = self:GetParent().button1 or self:GetParent():GetButton1()
+		button1:Disable()
+		local InstanceId = self:GetText()
+		if string.match(InstanceId,"^%d+$") then
+			InstanceId = tonumber(InstanceId)
+			if InstanceId > 0 and not MyAddon.DefaultInstances[InstanceId] and not MyAddon.AutoMark_Instances[InstanceId] then
+				button1:Enable()
+			end
+		end
+	end
+}
+
+
+StaticPopupDialogs["AUTOMARK_DELETE_INSTANCE"] = {
+	text = "%s",
+	button1 = "OK",
+	button2 = "Cancel",
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	showAlert = true,
+	OnAccept = function (self, data, data2)
+		MyAddon.DeleteInstance(data)
+	end,
+}
+
 --------------------------------------------------------------------------------
 function MyAddon.Init()
 
 if AutoMark_DB == nil then AutoMark_DB = {} end
 
 if AutoMark_Mobs == nil then AutoMark_Mobs = {} end
+if AutoMark_Instances == nil then AutoMark_Instances = {} end
 if AutoMark_DB.enabled == nil then AutoMark_DB.enabled = true end
 if AutoMark_DB.markerIndicator == nil then AutoMark_DB.markerIndicator = true end
 if AutoMark_DB.vip == nil then AutoMark_DB.vip = false end
@@ -112,9 +322,16 @@ if AutoMark_DB.updateMarked == nil then AutoMark_DB.updateMarked = true end
 if AutoMark_DB.verbose == nil then AutoMark_DB.verbose = false end
 if AutoMark_DB.playerMarks == nil then AutoMark_DB.playerMarks = {} end
 if AutoMark_DB.forceMouseover == nil then AutoMark_DB.forceMouseover = false end
+if AutoMark_DB.ignoreDefaultNPCs == nil then AutoMark_DB.ignoreDefaultNPCs = false end
+if AutoMark_DB.ignoreCustomNPCs == nil then AutoMark_DB.ignoreCustomNPCs = false end
+ if AutoMark_DB.leaderOnly == nil then AutoMark_DB.leaderOnly = false end
+
+MyAddon.AutoMark_Mobs = AutoMark_Mobs
+MyAddon.AutoMark_DB = AutoMark_DB
+MyAddon.AutoMark_Instances = AutoMark_Instances
 
 for _,k in ipairs({"TANK","HEALER"}) do
-	PlayerMarks[k] = AutoMark_DB.playerMarks[k] or MyAddon.PlayerMarks[k]
+	PlayerMarks[k] = AutoMark_DB.playerMarks[k] or MyAddon.DefaultPlayerMarks[k]
 end
 
 MyAddon.InitMinimapIcon(AutoMark_DB)
@@ -122,10 +339,12 @@ MyAddon.InitMinimapIcon(AutoMark_DB)
 MyAddon.UpdateIcon()
 
 if AutoMark_DB.icons then
-	Icons =  AutoMark_DB.icons
+	MyAddon.Icons =  AutoMark_DB.icons
 else
-	Icons = MyAddon.Icons
+	MyAddon.Icons = MyAddon.DefaultIcons
 end
+
+MyAddon.LoadInstances()
 
 StatusFrame = MyAddon.CreateStatusFrame()
 
@@ -206,12 +425,14 @@ end
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-function MyAddon.LoadMob(id,data)
+function MyAddon.LoadMob(id,data,custom)
 
 if not data then
 	Mobs[id] = nil
 	return
 end
+
+if data.instanceID < 0 then return end
 
 if data.instanceID ~= nil and data.instanceID ~= 0 and data.instanceID ~= InstanceID then return end
 
@@ -219,6 +440,10 @@ Mobs[id] = {}
 
 for a,v in pairs(data) do
 		Mobs[id][a] = v
+end
+
+if custom then
+	Mobs[id].custom = true
 end
 
 end
@@ -231,12 +456,16 @@ if not Active then return end
 
 Mobs = {}
 
-for id,data in pairs(MyAddon.Mobs) do
-	MyAddon.LoadMob(id,data)
+if not AutoMark_DB.ignoreDefaultNPCs then
+	for id,data in pairs(MyAddon.Mobs) do
+		MyAddon.LoadMob(id,data)
+	end
 end
 
-for id,data in pairs(AutoMark_Mobs) do
-	MyAddon.LoadMob(id,data)
+if not AutoMark_DB.ignoreCustomNPCs then
+	for id,data in pairs(AutoMark_Mobs) do
+		MyAddon.LoadMob(id,data,true)
+	end
 end
 
 local n = 0
@@ -250,9 +479,9 @@ for id,data in pairs(Mobs) do
 end
 
 if c > 0 then
-	MyAddon.Message("小怪：",n,"(" .. c .. ")")
+	MyAddon.Message("Mobs:",n,"(" .. c .. ")")
 else
-	MyAddon.Message("小怪：",n)
+	MyAddon.Message("Mobs:",n)
 end
 
 MobsLoaded = n
@@ -300,7 +529,7 @@ frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
 
 frame.head = frame:CreateFontString(nil, nil, "GameFontNormal")
 frame.head:SetPoint("BOTTOM",frame,"TOP")
-frame.head:SetText(addonName .. " 狀態")
+frame.head:SetText(addonName .. " Status")
 frame.head:Hide()
 
 frame.text = frame:CreateFontString(nil, nil, "GameFontNormalLarge")
@@ -484,7 +713,7 @@ end
 -------------------------------------------------------------------------------
 function MyAddon.Initialize()
 
--- Called on PLAYER_ENTERING_WORLD.
+-- Called on PLAYER_ENTERING_WORLD and after PLAYER_MAP_CHANGED.
 
 local name, instanceType, _, _, _, _, _, instanceID = GetInstanceInfo()
 
@@ -498,8 +727,12 @@ if IsInInstance() then
 	if InstanceID == nil then
 		InstanceID = 0
 	end
-		if AutoMark_DB.enabled and instanceType == "party" then
-			MyAddon.SetActive(true)
+		if AutoMark_DB.enabled then
+			if MyAddon.Instances[InstanceID] then
+				MyAddon.SetActive(true)
+			else
+				MyAddon.SetActive(false)
+			end
 		end
 else
 	InstanceName = nil
@@ -511,6 +744,11 @@ MyAddon.ResetMarks()
 
 MyAddon.UpdatePartyFrames()
 
+if AutoMark_DB.enabled then
+	MyAddon.GetGroupDetails()
+	MyAddon.RequestPlayerInfo()
+end
+		
 end
 -------------------------------------------------------------------------------
 
@@ -577,6 +815,8 @@ end
 
 if not AutoMark_DB.enabled then status = "0" end
 
+if MarkingDisabled then status = "0" end
+
 MyAddon.SendAddonMessage("PLAYER_INFO",status)
 
 MyAddon.SendWAInfo()
@@ -605,6 +845,8 @@ if IsInRaid() then return end
 
 local tank
 local healer
+local leader
+local players = false
 
 for i = 0, 4 do
 
@@ -614,12 +856,16 @@ for i = 0, 4 do
 	
 	if UnitExists(unit) then
 		local role = UnitGroupRolesAssigned(unit)
+		if unit ~= "player" and UnitIsPlayer(unit) then players = true end
+		if UnitIsGroupLeader(unit) then
+			if not leader then leader = unit end
+		end
 --		MyAddon.Debug(i,"UNIT",unit,UnitName(unit),role)
 		if role == "TANK" then
 			if not tank then tank = unit end
 		elseif role == "HEALER" then
 			if not healer then healer = unit end
-		else
+		elseif role == "DAMAGER" then
 			SetRaidTarget(unit,0)
 		end
 	end
@@ -629,6 +875,12 @@ if tank then
 --	MyAddon.Debug("TANK:",tank)
 	if PlayerMarks["TANK"] > 0 then
 		SetRaidTarget(tank,PlayerMarks["TANK"])
+	end
+else
+	if MarkLeader and players and leader then
+		if PlayerMarks["TANK"] > 0 then
+			SetRaidTarget(leader,PlayerMarks["TANK"])
+		end
 	end
 end
 
@@ -743,7 +995,7 @@ if data.marks and string.find(data.marks,"^\*") then
 	return
 end
 
-for _,i in ipairs(Icons) do
+for _,i in ipairs(MyAddon.Icons) do
 
 	if PlayerMarks["TANK"] ~= i and PlayerMarks["HEALER"] ~= i and (not Marks[i].active or GetTime() > Marks[i].time) then
 		m = i
@@ -903,7 +1155,7 @@ if GUIDs[guid] then
 end
 
 SetRaidTarget(unit,0)
-		
+
 end
 -------------------------------------------------------------------------------
 
@@ -1056,22 +1308,29 @@ local b
 
 GameTooltip:SetOwner(frame,"ANCHOR_LEFT")
 
-GameTooltip:SetText("自動標記")
+GameTooltip:SetText("AutoMark")
 
 local version = C_AddOns.GetAddOnMetadata(addonName,"Version")
 GameTooltip:AddLine(version,1,1,1)
 
 if AutoMark_DB.enabled then
-	GameTooltip:AddLine("啟用",0,1,0)
+	GameTooltip:AddLine("Enabled",0,1,0)
+	if Marker then
+		local buffer = ""
+		for _,i in ipairs(MyAddon.Icons) do
+			buffer = buffer .. MyAddon.Marks[i].icon
+		end
+		GameTooltip:AddLine(buffer,1,1,1)
+	end
 else
-	GameTooltip:AddLine("禁用",1,0,0)
+	GameTooltip:AddLine("Disabled",1,0,0)
 end
 
 GameTooltip:AddLine(" ",1,1,1)
 
 if verbose then
-	GameTooltip:AddLine("玩家名字：" .. tostring(PlayerName),1,1,1)
-	GameTooltip:AddLine("玩家GUID：" .. tostring(PlayerGUID),1,1,1)
+	GameTooltip:AddLine("Player Name: " .. tostring(PlayerName),1,1,1)
+	GameTooltip:AddLine("Player GUID: " .. tostring(PlayerGUID),1,1,1)
 end
 
 if Active then
@@ -1080,7 +1339,7 @@ else
 	c = ORANGE_FONT_COLOR_CODE
 end
 
-b = InstanceName or "無"
+b = InstanceName or "NONE"
 
 if InstanceID then
 	b = b .. " (" .. InstanceID .. ")"
@@ -1089,7 +1348,7 @@ if InstanceID then
 	end
 end
 
-GameTooltip:AddLine("副本：" .. c .. b .. FONT_COLOR_CODE_CLOSE,1,1,1)
+GameTooltip:AddLine("Instance: " .. c .. b .. FONT_COLOR_CODE_CLOSE,1,1,1)
 
 if Marker then
 	c = GREEN_FONT_COLOR_CODE
@@ -1097,12 +1356,22 @@ else
 	c = ORANGE_FONT_COLOR_CODE
 end
 
-GameTooltip:AddLine("標記者：" .. c .. tostring(MarkerName) .. FONT_COLOR_CODE_CLOSE,1,1,1)
+local m = MarkerName or "NONE"
+
+GameTooltip:AddLine("Marker: " .. c .. m .. FONT_COLOR_CODE_CLOSE,1,1,1)
 
 if Active then
-	GameTooltip:AddLine("啟用：" .. tostring(Active) .. " (" .. tostring(MobsLoaded) .. ")",1,1,1)
+	GameTooltip:AddLine("Active: " .. tostring(Active) .. " (" .. tostring(MobsLoaded) .. ")",1,1,1)
 else
-	GameTooltip:AddLine("啟用：" .. tostring(Active),1,1,1)
+	GameTooltip:AddLine("Active: " .. tostring(Active),1,1,1)
+end
+
+if AutoMark_DB.enabled and AutoMark_DB.leaderOnly then
+	if MarkingDisabled then
+		GameTooltip:AddLine("Group Leader Only: " .. tostring(AutoMark_DB.leaderOnly),1,0,0)
+	else
+		GameTooltip:AddLine("Group Leader Only: " .. tostring(AutoMark_DB.leaderOnly),1,1,1)
+	end
 end
 
 if AutoMark_DB.vip then
@@ -1117,6 +1386,14 @@ if AutoMark_DB.forceMouseover then
 	GameTooltip:AddLine("Force Mouseover: " .. tostring(AutoMark_DB.forceMouseover),1,1,1)
 end
 
+if AutoMark_DB.ignoreDefaultNPCs then
+	GameTooltip:AddLine("Ignore Default NPCs: " .. tostring(AutoMark_DB.ignoreDefaultNPCs),1,1,1)
+end
+
+if AutoMark_DB.ignoreCustomNPCs then
+	GameTooltip:AddLine("Ignore Custom NPCs: " .. tostring(AutoMark_DB.ignoreCustomNPCs),1,1,1)
+end
+
 if verbose then
 
 	if AutoMark_DB.enabled then
@@ -1127,7 +1404,7 @@ if verbose then
 			end
 		end
 		GameTooltip:AddLine(" ",1,1,1)
-		for _, i in ipairs(Icons) do
+		for _, i in ipairs(MyAddon.Icons) do
 			local t
 			if Marks[i].time then
 				local n = Marks[i].time - GetTime()
@@ -1172,26 +1449,28 @@ end
 GameTooltip:AddLine(" ",1,1,1)
 
 if Active and Marker then
-	GameTooltip:AddLine("左鍵-點擊 來清除標記",0.25,0.78,0.92)
+	GameTooltip:AddLine("Left-click to Clear Marks",0.25,0.78,0.92)
 	if AutoMark_DB.advancedMode then
-		GameTooltip:AddLine("Ctrl-左鍵-點擊 來顯示資訊",0.25,0.78,0.92)
+		GameTooltip:AddLine("Ctrl-Left-click to show Info",0.25,0.78,0.92)
 		if Hold then
-			GameTooltip:AddLine("Alt-左鍵-點擊 來恢復",0.25,0.78,0.92)
+			GameTooltip:AddLine("Alt-Left-click to Resume",0.25,0.78,0.92)
 		else
-			GameTooltip:AddLine("Alt-左鍵-點擊 來保留",0.25,0.78,0.92)
+			GameTooltip:AddLine("Alt-Left-click to Hold",0.25,0.78,0.92)
 		end
 	end
 end
 
 if Active then
-	GameTooltip:AddLine("中鍵-點擊 來重載小怪",0.25,0.78,0.92)
+	GameTooltip:AddLine("Middle-click to Reload Mobs",0.25,0.78,0.92)
 end
 
 if AutoMark_DB.enabled then
-	GameTooltip:AddLine("右鍵-點擊 來禁用",0.25,0.78,0.92)
+	GameTooltip:AddLine("Right-click to Disable",0.25,0.78,0.92)
 else
-	GameTooltip:AddLine("右鍵-點擊 來啟用",0.25,0.78,0.92)
+	GameTooltip:AddLine("Right-click to Enable",0.25,0.78,0.92)
 end
+
+GameTooltip:AddLine("Shift-click to Configure",0.25,0.78,0.92)
 
 GameTooltip:Show()
 
@@ -1270,6 +1549,18 @@ end
 
 -------------------------------------------------------------------------------
 function MyAddon.GetGroupDetails()
+
+-- MyAddon.Message("GETGROUPDETAILS",IsInGroup(),UnitIsGroupLeader("player"))
+
+MarkingDisabled = false
+
+if AutoMark_DB.leaderOnly then
+	if IsInGroup() and not UnitIsGroupLeader("player") then
+		MarkingDisabled = true
+	end
+end
+
+-- MyAddon.Message("No Marker",MarkingDisabled)
 
 if not IsInGroup() then
 	GroupDetails = {}
@@ -1378,19 +1669,17 @@ function MyAddon.Enable(enable)
 
 if enable then
 	if AutoMark_DB.enabled then
-		MyAddon.Message("已經啟用")
+		MyAddon.Message("Already Enabled")
 		return
 	end
 	MyAddon.MainEvents(true)
 	AutoMark_DB.enabled = true
 	MyAddon.UpdateIcon()
-	MyAddon.Message("啟用")
+	MyAddon.Message("Enabled")
 	MyAddon.Initialize()
-	MyAddon.GetGroupDetails()
-	MyAddon.RequestPlayerInfo()
 else
 	if not AutoMark_DB.enabled then
-		MyAddon.Message("已經啟用")
+		MyAddon.Message("Already Disabled")
 		return
 	end
 	MyAddon.SetActive(false)
@@ -1404,7 +1693,7 @@ else
 	MyAddon.UpdatePartyFrames()
 	MyAddon.SendPlayerInfo()
 	MyAddon.ResetMarks()
-	MyAddon.Message("已禁用")
+	MyAddon.Message("Disabled")
 end
 
 end
@@ -1424,7 +1713,7 @@ if not frame.AutoMarkIcon then
 	if name == "PlayerFrame" then
 		frame.AutoMarkIcon:SetPoint("TOP",PlayerFrame.PlayerFrameContainer.PlayerPortrait,"BOTTOM",0,0)
 	else
-		frame.AutoMarkIcon:SetPoint("RIGHT",frame,"LEFT",0,0)
+		frame.AutoMarkIcon:SetPoint("RIGHT",frame,"LEFT",0,0)	-- 8,0
 	end
 end
 
@@ -1459,7 +1748,7 @@ end
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
-function MyAddon.AddCustomMob(unit)
+function MyAddon.AddCustomMob(unit,manual)
 
 local iid = InstanceID or 0
 local name = UnitName(unit)
@@ -1470,6 +1759,7 @@ local level  = UnitLevel(unit)
 local classification  = UnitClassification(unit)
 local creatureType = UnitCreatureType(unit)
 local powerType, powerTypeString = UnitPowerType(unit)
+local auto = "never"
 
 if not guid then
 	return
@@ -1507,32 +1797,49 @@ end
 
 if action == "UPDATE" then
 	if attackable and not AutoMark_Mobs[npcId].attackable then
-		MyAddon.Message("ATTACKABLE",name,npcId)
+		MyAddon.Message("ATTACKABLE",npcId,AutoMark_Mobs[npcId].name)
 		PlaySound(130,"Master")
 	end
 	if not attackable and AutoMark_Mobs[npcId].attackable then
 		attackable = true
 	end
 	if hostile and not AutoMark_Mobs[npcId].hostile then
-		MyAddon.Message("HOSTILE",name,npcId)
+		MyAddon.Message("HOSTILE",npcId,AutoMark_Mobs[npcId].name)
 		PlaySound(180,"Master")
 	end
 	if not hostile and AutoMark_Mobs[npcId].hostile then
 		hostile = true
 	end
+	if name ~= AutoMark_Mobs[npcId].name then
+		MyAddon.Message("NAME",npcId,AutoMark_Mobs[npcId].name,name)
+		PlaySound(25,"Master")
+	end
+	if iid ~= AutoMark_Mobs[npcId].instanceID then
+		MyAddon.Message("INSTANCE",npcId,AutoMark_Mobs[npcId].name,AutoMark_Mobs[npcId].instanceID,iid)
+		PlaySound(25,"Master")
+	end
 end
 
-AutoMark_Mobs[npcId] = {
-	name = name,
-	instanceID = InstanceID,
-	custom = true,
-	level = level,
-	power = powerTypeString,
-	classification = classification,
-	creatureType = creatureType,
-	attackable = attackable,
-	hostile = hostile,
-}
+if action == "ADD" then
+	AutoMark_Mobs[npcId] = {}
+	if MyAddon.Mobs[npcId] then
+		AutoMark_Mobs[npcId].marks = MyAddon.Mobs[npcId].marks
+		AutoMark_Mobs[npcId].auto = MyAddon.Mobs[npcId].auto
+	else
+		if not manual then
+			AutoMark_Mobs[npcId].auto = "never"
+		end
+	end
+end
+
+AutoMark_Mobs[npcId].name = name
+AutoMark_Mobs[npcId].instanceID = iid
+AutoMark_Mobs[npcId].level = level
+AutoMark_Mobs[npcId].power = powerTypeString
+AutoMark_Mobs[npcId].classification = classification
+AutoMark_Mobs[npcId].creatureType = creatureType
+AutoMark_Mobs[npcId].attackable = attackable
+AutoMark_Mobs[npcId].hostile = hostile
 
 if action == "ADD" then
 	MyAddon.Message(action,name,npcId)
@@ -1549,14 +1856,14 @@ function MyAddon.RemoveCustomMob(unit)
 local guid = UnitGUID(unit)
 
 if not guid then
-	MyAddon.Message("單位無效。")
+	MyAddon.Message("Unit invalid.")
 	return
 end
 
 local npcId = MyAddon.GetNpcIdFromGUID(guid)
 
 if not AutoMark_Mobs[npcId] then
-	MyAddon.Message("沒找到NPC。")
+	MyAddon.Message("NPC not found.")
 	return
 end
 
@@ -1566,10 +1873,565 @@ MyAddon.Message("REMOVE",npcId,name)
 
 AutoMark_Mobs[npcId] = nil
 
+PlaySound(700,"Master")
+
+MyAddon.LoadMobs()
+
+if MyAddon.NPCsFrame then
+	MyAddon.NPCsFrame.data.id.selectedValue = nil
+	MyAddon.NPCsFrame.data.id:Update()
+	MyAddon.NPCsFrame:ClearEdit()
+end
+
+end
+-------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+function MyAddon.DeleteCustomNPC(npcId)
+
+if npcId == nil then return end
+
+if MyAddon.AutoMark_Mobs[npcId] then
+	local name = AutoMark_Mobs[npcId].name
+	MyAddon.AutoMark_Mobs[npcId] = nil
+	if MyAddon.Mobs[npcId] then
+		MyAddon.Message("NPC Override Removed",npcId,name)
+	else
+		MyAddon.Message("Custom NPC Removed",npcId,name)
+	end
+	MyAddon.LoadMobs()
+	if MyAddon.NPCsFrame then
+		if MyAddon.Mobs[npcId] and MyAddon.Filters["DefaultNPCs"] then
+			MyAddon.NPCsFrame.data.id.selectedValue = npcId
+			MyAddon.NPCsFrame:UpdateEdit()
+		else
+			MyAddon.NPCsFrame.data.id.selectedValue = nil
+			MyAddon.NPCsFrame.data.id:Update()
+			MyAddon.NPCsFrame:ClearEdit()
+		end
+	end
+end
+			
+end
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+function MyAddon.DeleteAllCustom()
+
+local n = 0
+
+for id,data in pairs(MyAddon.AutoMark_Mobs) do
+	n = n + 1
+	MyAddon.AutoMark_Mobs[id] = nil
+end
+
+if n == 0 then
+	MyAddon.Message("No Custom NPCs found.")
+else
+	MyAddon.Message("All (" .. n .. ") Custom NPCs Removed.")
+end
+
+n = 0
+
+for id,data in pairs(MyAddon.AutoMark_Instances) do
+	n = n + 1
+	MyAddon.AutoMark_Instances[id] = nil
+end
+
+if n == 0 then
+	MyAddon.Message("No Custom Instances found.")
+else
+	MyAddon.Message("All (" .. n .. ") Custom Instances Removed.")
+end
+
+if MyAddon.NPCsFrame then
+	MyAddon.NPCsFrame.data.id.selectedValue = nil
+	MyAddon.NPCsFrame.data.id:Update()
+	MyAddon.NPCsFrame:ClearEdit()
+end
+
+if MyAddon.InstancesFrame then
+	MyAddon.InstancesFrame.data.id.selectedValue = nil
+	MyAddon.InstancesFrame.data.id:Update()
+	MyAddon.InstancesFrame:ClearEdit()
+end
+
+MyAddon.LoadInstances()
+
+MyAddon.Initialize()
+
+end
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+function MyAddon.DeleteInstance(instanceId)
+
+if instanceId == nil then
+	return
+end
+
+if not MyAddon.AutoMark_Instances[instanceId] then
+	return
+end
+
+local name = AutoMark_Instances[instanceId].name
+
+MyAddon.AutoMark_Instances[instanceId] = nil
+
+MyAddon.Message("Instance Removed",instanceId,name)
+
+if MyAddon.InstancesFrame then
+	MyAddon.InstancesFrame.data.id.selectedValue = nil
+	MyAddon.InstancesFrame.data.id:Update()
+	MyAddon.InstancesFrame:ClearEdit()
+end
+
+MyAddon.LoadInstances()
+
+MyAddon.Initialize()
+
+end
+--------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+function MyAddon.QuickAdd(unit)
+
+if UnitIsPlayer(unit) then
+	MyAddon.Message("Unit is a player.")
+	return
+end
+
+local iid = InstanceID or 0
+local name = UnitName(unit)
+local guid = UnitGUID(unit)
+
+if not guid then
+	return
+end
+
+local npcId = MyAddon.GetNpcIdFromGUID(guid)
+
+if npcId == nil then
+	MyAddon.Message("Invalid NPC ID.")
+	return
+end
+
+if MyAddon.Mobs[npcId] then
+	MyAddon.Message("Default NPC Already Exists.")
+	return
+end
+
+if AutoMark_Mobs[npcId] then
+	MyAddon.Message("Custom NPC Already Exists.")
+	return
+end
+
+-- Ignore Mystic Birdhat and Cousin Slowhands.
+if npcId == 62821 or npcId == 62822 then
+	return
+end
+
+-- Ignore Party
+for i = 1,4 do
+	if UnitIsUnit(unit,"party"..i) then
+		return
+	end
+	if UnitIsUnit(unit,"party"..i.."pet") then
+		return
+	end
+end
+
+-- Ignore Nyx (Austin Huxworth's Pet)
+if npcId == 209069 then
+	return
+end
+
+AutoMark_Mobs[npcId] = {name = name, instanceID = iid}
+
+MyAddon.Message("NPC " .. npcId .. " (" ..name .. ") added.")
+
 MyAddon.LoadMobs()
 
 end
 -------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+function MyAddon.MDTGetNPCDetails(npcId)
+
+for index, enemies in pairs(MDT.dungeonEnemies) do
+	
+	-- print(index,MDT.dungeonList[index])
+	
+	for _,enemy in pairs(enemies) do
+		-- print("  ",enemy.id, enemy.name, enemy.isBoss)
+		if enemy.id == npcId and enemy.name ~= nil then
+			local  enemyName = enemy.name
+			if enemy.isBoss then
+				enemyName = "[BOSS] " .. enemyName
+			end
+			local dungeonName = MDT.dungeonList[index]
+			for _,v in ipairs(DungeonConvert) do
+				if string.match(dungeonName,v[1]) then
+					dungeonName = v[2]
+					break
+				end
+			end
+			-- print("FOUND",enemyName,index,dungeonName)
+			local instanceID
+			for id,v in pairs(MyAddon.Instances) do
+				if v.name == dungeonName then
+					instanceID = id
+				end
+			end
+			if instanceID then
+				return {name = enemyName, instanceID = instanceID}
+			end
+		end
+	end
+
+end
+
+end
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+function MyAddon.AuditNPC(npcId,v,fix)
+
+local msg = {}
+
+local data = MyAddon.MDTGetNPCDetails(npcId)
+
+local err = false
+
+if data then
+	local instance = MyAddon.Instances[data.instanceID].name or "UNKNOWN"
+	if v.name == "" and v.name ~= data.name then
+		err = true
+		if fix then
+			v.name = data.name
+			msg[1] = string.format("++ Name changed to %s.",data.name)
+		else
+			msg[1] = string.format(">> Name should be %s.",data.name)
+		end
+	end
+	if v.instanceID ~= data.instanceID then
+		err = true
+		if fix and instance then
+			v.instanceID = data.instanceID
+			msg[2] = string.format("++ Instance ID changed to %d (%s).",data.instanceID,instance)
+		else
+			msg[2] = string.format(">> Instance should be %s.",instance)
+		end
+	end
+	if err then
+		local instanceName = MyAddon.Instances[v.instanceID].name or "UNKNOWN"
+		print(string.format("** ID: %d  Name: %s  Instance ID: %d (%s)",npcId,v.name,v.instanceID,instanceName))
+		for i = 1,2 do
+			if msg[i] then
+				print(msg[i])
+			end
+		end
+	end
+end
+
+end
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+function MyAddon.Audit(fix)
+
+if fix then
+	MyAddon.Message("AUDITING WITH FIXES")
+else
+	MyAddon.Message("AUDITING")
+end
+
+if not MDT or not MDT.dungeonEnemies or not MDT.dungeonList then
+	MyAddon.Message("MDT not found.")
+	return
+end
+
+for npcId,v in pairs(AutoMark_Mobs) do
+	MyAddon.AuditNPC(npcId,v,fix)
+end
+
+if fix and MyAddon.NPCsFrame then
+	MyAddon.NPCsFrame.data.id.selectedValue = nil
+	MyAddon.NPCsFrame.data.id:Update()
+	MyAddon.NPCsFrame:ClearEdit()
+end
+
+end
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+function MyAddon.TidyInstance()
+
+-- Remove non-attackable mobs from current Instance.
+
+MyAddon.Message("TIDYING")
+
+for npcId,v in pairs(AutoMark_Mobs) do
+	if v.instanceID == InstanceID then
+		if v.attackable == false and v.auto == "never" then
+			print(npcId,v.name,"REMOVED")
+			AutoMark_Mobs[npcId] = nil
+		end
+	end
+end
+
+if MyAddon.NPCsFrame then
+	MyAddon.NPCsFrame.data.id.selectedValue = nil
+	MyAddon.NPCsFrame.data.id:Update()
+	MyAddon.NPCsFrame:ClearEdit()
+end
+
+end
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+function MyAddon.MDTImport(instanceID,all)
+
+local index
+
+for i,dungeonName in pairs(MDT.dungeonList) do
+	local instName = dungeonName
+	for _,v in ipairs(DungeonConvert) do
+		if string.match(instName,v[1]) then
+			instName = v[2]
+			break
+		end
+	end
+	local iid
+	for id,v in pairs(MyAddon.Instances) do
+		if v.name == instName then
+			iid = id
+			break
+		end
+	end
+
+	if iid == instanceID then
+		index = i
+		break
+	end
+	
+end
+
+if index == nil then
+	MyAddon.Message("Dungeon not found in MDT.")
+	return
+end
+
+MyAddon.Message("MDT Dungeon index:",index)
+
+for _,npc in pairs(MDT.dungeonEnemies[index]) do
+	local npcId = npc.id
+	local npcName = npc.name
+	if npc.isBoss then
+		npcName = "[BOSS] " .. npcName
+	end
+	-- print(npcId,npcName)
+	local interrupt = false
+	if npc.spells then
+		for spellId, spellData in pairs(npc.spells) do
+			if spellData.interruptible then
+				interrupt = true
+				local info = C_Spell.GetSpellInfo(spellId)
+				-- print("  ",spellId,info.name)
+			end					
+		end
+	end
+	if npc.isBoss or interrupt or all then
+		if AutoMark_Mobs[npcId] then
+			print(npcId,npcName,"ALREADY EXISTS")
+		else
+			local marks
+			local auto
+			if npc.isBoss then
+				marks = "8"
+			else
+				if not interrupt then
+					auto = "never"
+				end
+			end
+			AutoMark_Mobs[npcId] = {name = npcName, instanceID = instanceID, marks = marks, auto = auto}
+			print(npcId,npcName,"IMPORTED")
+		end
+	end
+end
+
+end
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+function MyAddon.SetRoleMark(role,mark,verbose)
+
+if not mark or mark == MyAddon.DefaultPlayerMarks[role] then
+	AutoMark_DB.playerMarks[role] = nil
+	PlayerMarks[role] = MyAddon.DefaultPlayerMarks[role]
+	local x
+	if Marks[PlayerMarks[role]] then
+		x = Marks[PlayerMarks[role]].icon
+	else
+		x = "NONE"
+	end
+	if verbose then
+		MyAddon.Message(role .. " Mark reset to default (" .. x .. ").")
+	end
+else
+	AutoMark_DB.playerMarks[role] = mark
+	PlayerMarks[role] = AutoMark_DB.playerMarks[role]
+	if verbose then
+		if mark > 0 then
+			MyAddon.Message(role .. " Mark:",Marks[PlayerMarks[role]].icon)
+		else
+			MyAddon.Message(role .. " Mark: NONE")
+		end
+	end
+end
+
+if Active and Marker then
+	MyAddon.ResetMarks()
+	MyAddon.UpdatePlayerMarks()
+end
+
+end
+-------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+function MyAddon.SetIcons(data,verbose)
+
+if data == nil then
+	AutoMark_DB.icons = nil
+	MyAddon.Icons =  MyAddon.DefaultIcons
+	if verbose then
+		MyAddon.Message("Default Icons")
+	end
+	return
+end
+
+local m = false
+
+local list = {false,false,false,false,false,false,false,false}
+
+local icons = {}
+
+for c in string.gmatch(data,"%d") do
+	c = tonumber(c)
+	if c and c >= 1 and c <= 8 then
+		m = true
+		if not list[c] then
+			list[c] = true
+			table.insert(icons,c)
+		end
+	end
+end
+
+
+AutoMark_DB.icons = {}
+
+for _,v in ipairs(icons) do
+	table.insert(AutoMark_DB.icons,v)
+end
+
+MyAddon.Icons =  AutoMark_DB.icons
+
+local buffer = ""
+local icons = ""
+
+for i,n in ipairs(MyAddon.Icons) do
+	icons = icons .. Marks[n].icon
+	if i == 1 then
+		buffer = buffer .. n
+	else
+		buffer = buffer .. "," .. n
+	end
+end
+
+if verbose then
+	MyAddon.Message("Icons:",buffer,icons)
+end
+	
+end
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+function MyAddon.LoadInstances()
+
+MyAddon.Instances = {}
+
+for id, v in pairs(MyAddon.DefaultInstances) do
+	local instanceType = v.instanceType or "party"
+	local seasonal
+	if v.seasonal then seasonal = true end
+	MyAddon.Instances[id] = {name = v.name, instanceType = instanceType, seasonal = seasonal}
+end
+
+for id, v in pairs(AutoMark_Instances) do
+
+	if not MyAddon.DefaultInstances[id] then
+		MyAddon.Instances[id] = {name = v.name, instanceType = v.instanceType}
+	else
+		if v.name ~= MyAddon.Instances[id].name then
+			MyAddon.Message("Custom Instance " .. id .. " is a default instance (" .. MyAddon.Instances[id].name .. ").")
+		else
+			MyAddon.Message("Custom Instance " .. id .. " is a default instance.")
+		end
+	end
+
+end
+
+end
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+function MyAddon.CheckInstance()
+
+-- Called after PLAYER_MAP_CHANGED.
+
+if IsInInstance() then
+	local name, instanceType, _, _, _, _, _, instanceID = GetInstanceInfo()
+	if InstanceName ~= name then
+		-- MyAddon.Message("Entered Instance")
+		MyAddon.Initialize()
+	-- else
+		-- MyAddon.Message("Already In Instance")
+	end
+else
+	if InstanceName ~= nil then
+		-- MyAddon.Message("Left Instance")
+		MyAddon.Initialize()
+	-- else
+		-- MyAddon.Message("Not In Instance")
+	end
+end
+
+end
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+function MyAddon.ShowConfig()
+
+if MyAddon.ConfigFrame == nil then
+	MyAddon.ConfigFrame = MyAddon.CreateConfigFrame()
+	MyAddon.NPCsFrame = MyAddon.CreateNPCsFrame(MyAddon.ConfigFrame)
+	MyAddon.MarksFrame = MyAddon.CreateMarksFrame(MyAddon.ConfigFrame)
+	MyAddon.OptionsFrame = MyAddon.CreateOptionsFrame(MyAddon.ConfigFrame)
+	MyAddon.InstancesFrame = MyAddon.CreateInstancesFrame(MyAddon.ConfigFrame)
+end
+
+if InCombatLockdown() then
+	MyAddon.Message("Configuration will open after combat ends.")
+	MyAddon.ConfigFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+	return
+end
+
+MyAddon.NPCsFrame:UpdateEdit()
+
+MyAddon.ConfigFrame:Show()
+
+end
+--------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
 function SlashCmdList.AUTOMARK(msg,editbox)
@@ -1585,6 +2447,68 @@ if #words > 0 then
 end
 
 if cmd == nil then return end
+
+if cmd == "" then
+	MyAddon.ShowConfig()
+	return
+end
+
+if cmd == "removeallcustom" then
+	local dialog = StaticPopup_Show("AUTOMARK_DELETE_ALL_CUSTOM")
+	return
+end
+
+if cmd == "addnpc" then
+	local unit = words[2]
+	if unit == "" or unit == nil then unit = "target" end
+	if unit == "target" or unit == "mouseover" or unit == "focus" then
+		MyAddon.QuickAdd(unit)
+	else
+		MyAddon.Message("Unit invalid.")
+	end
+	return
+end
+
+if cmd == "mdtimport" then
+	local iid = words[2]
+	if not iid then
+		MyAddon.Message("Instance ID not specified.")
+		return
+	end
+	local option = words[3]
+	iid = tonumber(iid)
+	if not MyAddon.Instances[iid] then
+		MyAddon.Message("Invalid Instance ID.")
+		return
+	end
+	local all = false
+	if option and option ~= "all" then
+		return
+	end
+	if option == "all" then
+		all = true
+	end
+	if not MDT or not MDT.dungeonEnemies or not MDT.dungeonList then
+		MyAddon.Message("MDT not found.")
+		return
+	end
+	MyAddon.MDTImport(iid,all)
+	return
+end
+
+if cmd == "audit" then
+	local fix = false
+	if words[2] == "fix" then
+		fix = true
+	end
+	MyAddon.Audit(fix)
+	return
+end
+
+if cmd == "tidy" then
+	MyAddon.TidyInstance()
+	return
+end
 
 if cmd == "minimap" then
 	MyAddon.ToggleMinimapIcon()
@@ -1616,10 +2540,10 @@ if cmd == "reset" then
 		return
 	end
 	if not Marker then
-		MyAddon.Message("非標記者。")
+		MyAddon.Message("Not Marker.")
 		return
 	end
-	MyAddon.Message("重設標記")
+	MyAddon.Message("Resetting Marks")
 	MyAddon.ResetMarks()
 	return
 end
@@ -1629,10 +2553,10 @@ if cmd == "clear" then
 		return
 	end
 	if not Marker then
-		MyAddon.Message("非標記者。")
+		MyAddon.Message("Not Marker.")
 		return
 	end
-	MyAddon.Message("清除標記")
+	MyAddon.Message("Clearing Marks")
 	MyAddon.RemoveAllMarks()
 	MyAddon.ResetMarks()
 	MyAddon.UpdatePlayerMarks()
@@ -1644,23 +2568,23 @@ if cmd == "remove" then
 		return
 	end
 	if not Marker then
-		MyAddon.Message("非標記者。")
+		MyAddon.Message("Not Marker.")
 		return
 	end
-	MyAddon.Message("移除標記")
+	MyAddon.Message("Removing Marks")
 	MyAddon.RemoveAllMarks()
 	MyAddon.UpdatePlayerMarks()
 	return
 end
 
 if cmd == "player" then
-	MyAddon.Message("更新玩家標記")
+	MyAddon.Message("Updating Player Marks")
 	MyAddon.UpdatePlayerMarks()
 	return
 end
 
 if cmd == "update" then
-	MyAddon.Message("請求更新")
+	MyAddon.Message("Requesting Update")
 	MyAddon.RequestPlayerInfo()
 	return
 end
@@ -1703,13 +2627,6 @@ if cmd == "debug" then
 	return
 end
 
-if cmd == "indicator" then
-	AutoMark_DB.markerIndicator = not AutoMark_DB.markerIndicator
-	MyAddon.Message("標記圖示：",AutoMark_DB.markerIndicator)
-	MyAddon.UpdatePartyFrames()
-	return
-end
-
 if cmd == "vip" then
 	AutoMark_DB.vip = not AutoMark_DB.vip
 	MyAddon.Message("VIP:",AutoMark_DB.vip)
@@ -1725,19 +2642,23 @@ end
 
 if cmd == "advanced" then
 	AutoMark_DB.advancedMode = not AutoMark_DB.advancedMode
-	MyAddon.Message("進階模式：",AutoMark_DB.advancedMode)
+	MyAddon.Message("Advanced Mode:",AutoMark_DB.advancedMode)
 	return
 end
 
 if cmd == "sounds" then
 	AutoMark_DB.sounds = not AutoMark_DB.sounds
-	MyAddon.Message("聲音：",AutoMark_DB.sounds)
+	MyAddon.Message("Sounds:",AutoMark_DB.sounds)
 	return
 end
 
 if cmd == "forcemouseover" then
 	AutoMark_DB.forceMouseover = not AutoMark_DB.forceMouseover
 	MyAddon.Message("Force Mouseover:",AutoMark_DB.forceMouseover)
+	if MyAddon.OptionsFrame:IsShown() then
+		MyAddon.OptionsFrame:Hide()
+		MyAddon.OptionsFrame:Show()
+	end
 	return
 end
 
@@ -1761,36 +2682,6 @@ if cmd == "status" then
 	return
 end
 
-if cmd == "tank" or cmd == "healer" then
-	local k = string.upper(cmd)
-	if not words[2] then
-		AutoMark_DB.playerMarks[k] = nil
-		PlayerMarks[k] = MyAddon.PlayerMarks[k]
-		local x
-		if Marks[PlayerMarks[k]] then
-			x = Marks[PlayerMarks[k]].icon
-		else
-			x = "NONE"
-		end
-		MyAddon.Message(k .. " 標記重置回預設 (" .. x .. ").")
-	else
-		local n = -1
-		if words[2] then n = tonumber(words[2]) end
-		if n >= 0 and n <= 8 then
-			AutoMark_DB.playerMarks[k] = n
-			PlayerMarks[k] = AutoMark_DB.playerMarks[k]
-			MyAddon.Message(k .. " Mark:",Marks[PlayerMarks[k]].icon)
-		else
-			MyAddon.Message("無效值。")
-		end
-	end
-	if Active and Marker then
-		MyAddon.ResetMarks()
-		MyAddon.UpdatePlayerMarks()
-	end
-	return
-end
-
 if cmd == "hold" then
 	if Active and Marker then
 		MyAddon.SetHold(not Hold,true)
@@ -1805,7 +2696,7 @@ if cmd == "extend" then
 				Marks[i].time = GetTime() + Marks[i].duration
 			end
 		end
-		MyAddon.Message("標記時間延展")
+		MyAddon.Message("Mark Times Extended")
 	end
 	return
 end
@@ -1814,7 +2705,7 @@ if cmd == "lock" then
 	StatusFrame.texture:Hide()
 	StatusFrame.head:Hide()
 	StatusFrame:EnableMouse(false)
-	MyAddon.Message("狀態框架鎖定")
+	MyAddon.Message("Status Frame Locked")
 	return
 end
 
@@ -1822,86 +2713,20 @@ if cmd == "unlock" then
 	StatusFrame.texture:Show()
 	StatusFrame.head:Show()
 	StatusFrame:EnableMouse(true)
-	MyAddon.Message("狀態框架未鎖定")
+	MyAddon.Message("Status Frame Unlocked")
 	return
 end
 
 if cmd == "resetpos" then
 	StatusFrame:ClearAllPoints()
 	StatusFrame:SetPoint("TOP")
-	MyAddon.Message("狀態框架位置重設")
-	return
-end
-
-if cmd == "updatemarked" then
-	AutoMark_DB.updateMarked = not AutoMark_DB.updateMarked
-	MyAddon.Message("更新標記：",AutoMark_DB.updateMarked)
-	return
-end
-
-if cmd == "remark" then
-	AutoMark_DB.reMark = not AutoMark_DB.reMark
-	MyAddon.Message("重新標記：",AutoMark_DB.reMark)
+	MyAddon.Message("Status Frame Position Reset")
 	return
 end
 
 if cmd == "modify" then
 	AutoMark_DB.modify = not AutoMark_DB.modify
-	MyAddon.Message("更改：",AutoMark_DB.modify)
-	return
-end
-
-if cmd == "icons" then
-	local data = words[2] or "0"
-	local m = false
-	local list = {false,false,false,false,false,false,false,false}
-	local icons = {}
-	for c in string.gmatch(data,"%d") do
-		c = tonumber(c)
-		if c and c >= 1 and c<= 8 then
-			m = true
-			if not list[c] then
-				list[c] = true
-				table.insert(icons,c)
-			end
-		end
-	end
-	if m then
-		AutoMark_DB.icons = {}
-		for _,v in ipairs(icons) do
-			table.insert(AutoMark_DB.icons,v)
-		end
-		Icons =  AutoMark_DB.icons
-	else
-		AutoMark_DB.icons = nil
-		Icons =  MyAddon.Icons
-	end
-	if AutoMark_DB.icons then
-		local buffer = ""
-		local icons = ""
-		for i,n in ipairs(AutoMark_DB.icons) do
-			icons = icons .. Marks[n].icon
-			if i == 1 then
-				buffer = buffer .. n
-			else
-				buffer = buffer .. "," .. n
-			end
-		end
-		MyAddon.Message("圖示：",buffer,icons)
-	else
-		MyAddon.Message("預設圖示")
-	end
-	return
-end
-
-if cmd == "instance" then
-	local n = tonumber(words[2])
-	if not n then
-		MyAddon.Message("Instance ID Invalid")
-		return
-	end
-	MobInstance = n
-	MyAddon.Message("Mob Instance:",MobInstance)
+	MyAddon.Message("Modify:",AutoMark_DB.modify)
 	return
 end
 
@@ -1918,206 +2743,6 @@ if cmd == "mobs" then
 	return
 end
 
-if cmd == "npc" then
-	if words[2] == "find" then
-		local pattern
-		if words[3] then
-			pattern = string.gsub(msg,"^%w+%s%w+%s","")
-		else
-			pattern = ""
-		end
-		MyAddon.Message("Custom Mobs Matching Pattern",pattern)
-		local n = 0
-		for id,v in pairs(AutoMark_Mobs) do
-			if string.find(string.lower(v.name),string.lower(pattern),1,true) then
-				n = n + 1
-				print(id,v.name,v.instanceID)
-			end
-		end
-		if n == 0 then print("NONE") end
-		return
-	end
-	if words[2] == "list" then
-		MyAddon.Message("Custom Mobs")
-		local n = 0
-		for id,v in pairs(AutoMark_Mobs) do
-			n = n + 1
-			print(id,v.name,v.instanceID)
-		end
-		if n == 0 then print("NONE") end
-		return	
-	end
-	if words[2] == "removeall" then
-		AutoMark_Mobs = {}
-		MyAddon.Message("All NPC IDs Reset")
-		MyAddon.LoadMobs()
-		return		
-	end
-	local id
-	local data
-	if words[2] == "target" then
-		local guid = UnitGUID("target")
-		local name = UnitName("target")
-		local npcId = MyAddon.GetNpcIdFromGUID(guid)
-		id = npcId
-		if action == "add" then
-			data = name
-		end
-	else
-		id = tonumber(words[2])
-	end
-	if id == nil then
-		MyAddon.Message("NPC ID Missing")
-		return
-	end
-	local action = words[3]
-	local w4 = words[4]
-	if w4 then
-		data = string.gsub(msg,"^%w+%s+%w+%s+%w+%s+","")
-	end
-	if action == "add" or action == "name" then
-		if not data and MyAddon.Mobs[id] then
-			data = MyAddon.Mobs[id].name
-		end
-	end
-	if action ~= "view" and action ~= "remove" then
-		if not data then
-			MyAddon.Message("Value Missing")
-			return
-		end
-	end
-	if action == "add" then
-		if AutoMark_Mobs[id] then
-			MyAddon.Message("NPC ID",id,"Already Exists")
-			return
-		end
-		if not Active and not MobInstance then
-			MyAddon.Message("Mob Instance Not Set")
-			return		
-		end
-	else
-		if not AutoMark_Mobs[id] then
-			MyAddon.Message("NPC ID",id,"Not Found")
-			return
-		end
-	end
-	if action == "view" then
-		MyAddon.ShowMob(id,AutoMark_Mobs[id])
-		return
-	elseif action == "add" then
-		local iid = MobInstance or InstanceID
-		if iid == 0 then iid = nil end
-		AutoMark_Mobs[id] = {name = data, instanceID = iid, custom = true}
-		if MyAddon.Mobs[id] then
-			MyAddon.Message("NPC ID",id,"Override Added")
-		else
-			MyAddon.Message("NPC ID",id,"Added")
-		end
-	elseif action == "name" then
-		AutoMark_Mobs[id].name = data
-	elseif action == "instance" then
-		local iid = tonumber(data)
-		if iid == 0 then iid = nil end
-		AutoMark_Mobs[id].instanceID = iid
-	elseif action == "auto" then
-		if data ~= "default" and data ~= "*mouseover" and data ~= "nameplate" and data ~= "never" and data ~= "nameplate" and data ~= "combat" then
-			MyAddon.Message("Action Invalid")
-			return
-		end
-		if data == "default" then data = nil end
-		AutoMark_Mobs[id].auto = data
-	elseif action == "time" then
-		local n = tonumber(data)
-		if n then
-			AutoMark_Mobs[id].time = n
-		else
-			AutoMark_Mobs[id].time = nil
-		end
-	elseif action == "marks" then
-		local m = false
-		local list = {false,false,false,false,false,false,false,false}
-		local icons = ""
-		for c in string.gmatch(data,"%d") do
-			c = tonumber(c)
-			if c and c >= 1 and c<= 8 then
-				m = true
-				if not list[c] then
-					list[c] = true
-					icons = icons .. c
-				end
-			end
-		end
-		if string.find(data,"^\*") then
-			icons = "*" .. icons
-		end
-		if string.find(data,"^\+") then
-			icons = "+" .. icons
-		end
-		if string.find(data,"^\!") then
-			icons = "!" .. icons
-		end
-		if m then
-			AutoMark_Mobs[id].marks = icons
-		else
-			AutoMark_Mobs[id].marks = nil
-		end
-	elseif action == "remove" then
-		AutoMark_Mobs[id] = nil
-	else
-		MyAddon.Message("Action Invalid")
-		return
-	end
-	if action == "remove" then
-		if MyAddon.Mobs[id] then
-			MyAddon.Message("NPC ID",id,"Override Removed")
-		else
-			MyAddon.Message("NPC ID",id,"Removed")
-		end
-	else
-		MyAddon.ShowMob(id,AutoMark_Mobs[id])
-	end
-	MyAddon.LoadMobs()
-	return
-end
-
-if cmd == "addcustom" then
-	if InstanceID == nil then
-		MyAddon.Message("Instance ID not set.")
-		return
-	end
-	MyAddon.AddCustomMob("target")
-	return
-end
-
-if cmd == "removecustom" then
-	MyAddon.RemoveCustomMob("target")
-	return
-end
-
-if cmd == "removeallcustom" then
-	if InstanceID == nil then
-		MyAddon.Message("Instance ID not set.")
-		return
-	end
-	for k, v in pairs(AutoMark_Mobs) do
-		if v.instanceID == InstanceID then
-			MyAddon.Message("REMOVE",k,v.name)
-			AutoMark_Mobs[k] = nil
-		end
-	end
-	MyAddon.LoadMobs()
-	return
-end
-
-if cmd == "initcustom" then
-	for k, v in pairs(AutoMark_Mobs) do
-		MyAddon.Message("REMOVE",k,v.name)
-		AutoMark_Mobs[k] = nil
-	end
-	MyAddon.LoadMobs()
-	return
-end
-
 if cmd == "scan" then
 	Scan = not Scan
 	MyAddon.UpdateIcon()
@@ -2127,14 +2752,11 @@ end
 
 MyAddon.Message(
 	"Usage:\n" .. 
-	"/am minimap - 切換小地圖按鈕\n" ..
-	"/am minimaplock - 切換小地圖按鈕鎖定\n" ..
-	"/am indicator - 切換標記指示\n" ..
-	"/am mobs - 顯示將被標記的小怪 (在地下城中)\n" ..
-	"/am tank n - 更改坦克標記\n" ..
-	"/am healer n - 更改治療者標記\n" ..
-	"/am remark - 切換重新標記缺少功能\n" ..
-	"/am updatemarked - 切換更新標記功能\n"
+	"/am - Configure\n" ..
+	"/am minimap - Toggle the minimap icon\n" ..
+	"/am minimaplock - Toggle lock minimap icon\n" ..
+	"/am mobs - Show mobs that will be marked (in a dungeon)\n" ..
+	""
 	)
 
 end
@@ -2151,12 +2773,10 @@ if buttonName == "RightButton" then
 	end
 elseif buttonName == "MiddleButton" then
 	MyAddon.Initialize()
-	if AutoMark_DB.enabled then
-		MyAddon.GetGroupDetails()
-		MyAddon.RequestPlayerInfo()
-	end
 else
-	if Active and Marker then
+	if IsShiftKeyDown() then
+		MyAddon.ShowConfig()
+	elseif Active and Marker then
 		if IsAltKeyDown() and AutoMark_DB.advancedMode then
 			MyAddon.SetHold(not Hold,true)
 		elseif IsControlKeyDown() and AutoMark_DB.advancedMode then
@@ -2234,10 +2854,18 @@ end
 if event == "PLAYER_ENTERING_WORLD" then
 	-- MyAddon.Debug(event)
 	MyAddon.Initialize()
-	if AutoMark_DB.enabled then
-		MyAddon.GetGroupDetails()
-		MyAddon.RequestPlayerInfo()
+	return
+end
+
+if event == "PLAYER_MAP_CHANGED" then
+-- oldZone = -1 indicates a loading screen which is dealt with by PLAYER_ENTERING_WORLD.
+	local oldZone, newZone = ...
+	-- MyAddon.Message(event,oldZone,newZone)
+	if oldZone == -1 then
+		return
 	end
+	C_Timer.After(5,function() MyAddon.CheckInstance() end)
+	return
 end
 
 -- Event only triggers if enabled.
@@ -2268,6 +2896,7 @@ if event == "CHALLENGE_MODE_START" then
 		MyAddon.ResetMarks()
 		MyAddon.UpdatePlayerMarks()
 	end
+	return
 end
 
 -- Events only triggers if enabled.
@@ -2291,8 +2920,9 @@ if event == "UPDATE_MOUSEOVER_UNIT" or (event == "MODIFIER_STATE_CHANGED" and Un
 	if guid == nil then return end
 	if IsAltKeyDown() then
 		if IsControlKeyDown() and AutoMark_DB.modify then
-			MyAddon.AddCustomMob(unit)
+			MyAddon.AddCustomMob(unit,true)
 		elseif IsShiftKeyDown() and AutoMark_DB.modify then
+			MyAddon.UnmarkUnit(unit,guid)
 			MyAddon.RemoveCustomMob(unit)
 		else
 			MyAddon.UnmarkUnit(unit,guid)
@@ -2401,5 +3031,6 @@ end
 Frame:RegisterEvent("ADDON_LOADED")
 Frame:RegisterEvent("PLAYER_LOGIN")
 Frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+Frame:RegisterEvent("PLAYER_MAP_CHANGED")
 
 Frame:SetScript("OnEvent", MyAddon.EventHandler)

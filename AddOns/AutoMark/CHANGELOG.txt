@@ -143,3 +143,61 @@ The Rookery
 Darkflame Cleft
 	Blazikon - Removed.
 TOC updated for 11.1.5.
+
+v1.2
+TOC updated for 11.1.7.
+New Configuration window added which replaces some of the old command line options.
+	Shift-click on the minimap icon or type /automark.
+Custom NPCs can be added or existing default NPCs overridden. See the file README.txt in the addon folder for more details.
+Default mark list order shown on minimap button tooltip.
+Operation: Mechagon - Workshop
+	Added Metal Gunk (for stuns).
+The Rookery
+	Stormguard Gorren - Changed to Skull just for visibility (no interrupts).
+	Void Fragment (207202) - Removed. (Mob no longer exists.)
+	Voidstone Monstrosity - Removed. No need to mark this boss.
+Horrific Visions added.
+
+v1.2.1
+Added support for Season 3 dungeons: Eco-Dome Al'dani, Halls of Atonement & Tazavesh, the Veiled Market.
+Allow for Static Popup object name changes in patch 11.2.
+Prepare for API namespace changes in 11.2.
+Default mark list only shown on minimap button tooltip if you are the current marker.
+Disable Configuration window in combat.
+Darkflame Cleft
+	Wandering Candle (208450) - Removed.
+Operation: Floodgate
+	Venture Co. Architect - Removed.
+
+v1.2.2
+Season 3 dungeons now marked as current.
+Eco-Dome Al'dani
+	Overgorged Mite (242209) - Added.
+	Evoked Spirit (240952) - Added.
+	Overcharged Sentinel (242631) - Added as skull/cross.
+	K'aresh Elemental (235151) - Removed.
+Halls of Atonement
+	Stoneborn Reaver (167612) - Removed.
+The Dawnbreaker
+	Nightfall Commander (214762) - Removed.
+	Nightfall Dark Architect (213885) - Changed to skull.
+	Ixkreten the Unbreakable (211262) - Added as skull.
+	Deathscreamer Iken'tak (211263) - Changed to skull.
+	Nightfall Ritualist (214761) - Removed.
+Ara-Kara, City of Echoes
+	Sentry Stagshell (216340) - Changed to use skull/cross.
+Tazavesh (Gambit)
+	Devoted Accomplice (180432) - Removed.
+
+v1.2.3
+Tazavesh (Streets)
+	Interrogation Specialist (177816) - Removed.
+	Portalmancer Zo'honn (179334) - Added.
+	Evaile (180399) - Added (hard mode).
+	Stormbound Breaker (180640) - Added (hard mode).
+Configuration - Show marks on ID drop-down.
+
+v1.2.4
+TOC updated for 11.2.5.
+The Dawnbreaker
+	Removed the entries for NPCs that are fighting allies -	223994 (Shadowmage), 223995 (Curseblade), 225605 (Darkcaster) & 225606 (Shadowwalker).
