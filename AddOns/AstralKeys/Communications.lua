@@ -78,7 +78,7 @@ function AstralComs:OnEvent(event, prefix, msg, channel, sender)
 	local arg, content = msg:match("^(%S*)%s*(.-)$")
 
 	for _, obj in pairs(objs) do
-		if (obj.prefix == arg) and obj.method then -- 暫時修正
+		if obj.prefix == arg then
 			obj.method(content, sender, msg)
 		end
 	end

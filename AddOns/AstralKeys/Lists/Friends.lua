@@ -1,8 +1,8 @@
 local _, addon = ...
 local L = addon.L
 
-local SYNC_VERSION = 'sync4'
-local UPDATE_VERSION = 'update4'
+local SYNC_VERSION = 'sync6'
+local UPDATE_VERSION = 'update5'
 
 local COLOR_BLUE_BNET = 'ff82c5ff'
 
@@ -110,7 +110,7 @@ local function UpdateNonBNetFriendList()
 		NonBNFriend_List[name] = {isConnected = friendInfo.connected}
 		if FRIEND_LIST[name] then
 			FRIEND_LIST[name].isConnected = true
-			FRIEND_LIST[name].guid = friendInfo.guid -- 暫時修正
+			FRIEND_LIST[name].guid = guid
 		end
 	end
 
@@ -128,7 +128,7 @@ local function RecieveKey(msg, sender)
 	if not AstralKeysSettings.friendOptions.friend_sync.isEnabled then return end
 	
 	local timeStamp = addon.WeekTime()
-	local unit, class, dungeonID, keyLevel, weekly_best, week, faction = strsplit(':', msg)
+	local unit, class, dungeonID, keyLevel, weekly_best, week, faction, mplus_score = strsplit(':', msg)
 
 	local btag
 
@@ -140,6 +140,7 @@ local function RecieveKey(msg, sender)
 	keyLevel = tonumber(keyLevel)
 	week = tonumber(week)
 	weekly_best = tonumber(weekly_best)
+	mplus_score = tonumber(mplus_score)
 
 	local id = addon.UnitID(unit)
 
@@ -149,9 +150,11 @@ local function RecieveKey(msg, sender)
 		AstralKeys[id].week = week
 		AstralKeys[id].time_stamp = timeStamp
 		AstralKeys[id].weekly_best = weekly_best
+		AstralKeys[id].mplus_score = mplus_score
 		AstralKeys[id].btag = btag
+		addon.PrintDebug('ReceiveKey', addon.DebugTableToString(AstralKeys[id]))
 	else
-		table.insert(AstralKeys, {
+		local character = {
 			unit = unit,
 			btag = btag,
 			class = class,
@@ -161,12 +164,16 @@ local function RecieveKey(msg, sender)
 			time_stamp = timeStamp,
 			faction = faction,
 			weekly_best = weekly_best,
+			mplus_score = mplus_score,
 			source = 'friend',
-		})
+		}
+		table.insert(AstralKeys, character)
+		addon.PrintDebug('ReceiveKey', addon.DebugTableToString(character), '(inserted)')
 		addon.SetUnitID(unit, #AstralKeys)
 		C_FriendList.ShowFriends()
 	end
-	addon.AddUnitToSortTable(unit, btag, class, faction, dungeonID, keyLevel, weekly_best, 'FRIENDS')
+
+	addon.AddUnitToSortTable(unit, btag, class, faction, dungeonID, keyLevel, weekly_best, mplus_score, 'FRIENDS')
 	addon.AddUnitToList(unit, 'FRIENDS', btag)
 
 	msg = nil
@@ -199,8 +206,7 @@ local function SyncFriendUpdate(entry, sender)
 
 	local _pos = 0
 	while find(entry, '_', _pos) do
-
-		class, dungeonID, keyLevel, week, timeStamp, faction, weekly_best = entry:match(':(%a+):(%d+):(%d+):(%d+):(%d+):(%d+):(%d+)', entry:find(':', _pos))
+		class, dungeonID, keyLevel, week, timeStamp, faction, weekly_best, mplus_score = entry:match(':(%a+):(%d+):(%d+):(%d+):(%d+):(%d+):(%d+):(%d+)', entry:find(':', _pos))
 		unit = entry:sub(_pos, entry:find(':', _pos) - 1)
 		_pos = find(entry, '_', _pos) + 1
 
@@ -209,8 +215,9 @@ local function SyncFriendUpdate(entry, sender)
 		week = tonumber(week)
 		timeStamp = tonumber(timeStamp)
 		weekly_best = tonumber(weekly_best)
+		mplus_score = tonumber(mplus_score)
 
-		if week and week >= addon.Week then -- 暫時修正
+		if week >= addon.Week then
 			local id = addon.UnitID(unit)
 			if id then
 				AstralKeys[id].dungeon_id = dungeonID
@@ -218,9 +225,11 @@ local function SyncFriendUpdate(entry, sender)
 				AstralKeys[id].week = week
 				AstralKeys[id].time_stamp = timeStamp
 				AstralKeys[id].weekly_best = weekly_best
+				AstralKeys[id].mplus_score = mplus_score
 				AstralKeys[id].btag = btag
+				addon.PrintDebug('SyncFriendUpdate', addon.DebugTableToString(AstralKeys[id]))
 			else
-				table.insert(AstralKeys, {
+				local character = {
 					unit = unit,
 					btag = btag,
 					class = class,
@@ -230,14 +239,17 @@ local function SyncFriendUpdate(entry, sender)
 					time_stamp = timeStamp,
 					faction = faction,
 					weekly_best = weekly_best,
+					mplus_score = mplus_score,
 					source = 'friend'
-				})
+				}
+				table.insert(AstralKeys, character)
 				addon.SetUnitID(unit, #AstralKeys)
 				C_FriendList.ShowFriends()
+				addon.PrintDebug('SyncFriendUpdate', addon.DebugTableToString(character), '(inserted)')
 			end
 			addon.AddUnitToList(unit, 'FRIENDS', btag)
-			addon.AddUnitToSortTable(unit, btag, class, faction, dungeonID, keyLevel, weekly_best, 'FRIENDS')
-			--e.AddUnitToTable(unit, class, faction, 'FRIENDS', dungeonID, keyLevel, weekly_best, btag)
+			addon.AddUnitToSortTable(unit, btag, class, faction, dungeonID, keyLevel, weekly_best, mplus_score, 'FRIENDS')
+			--e.AddUnitToTable(unit, class, faction, 'FRIENDS', dungeonID, keyLevel, weekly_best, mplus_score, btag)
 		end
 	end
 	entry = nil
@@ -246,14 +258,18 @@ AstralComs:RegisterPrefix('BNET', SYNC_VERSION, SyncFriendUpdate)
 AstralComs:RegisterPrefix('WHISPER', SYNC_VERSION, SyncFriendUpdate)
 
 local function UpdateWeekly(msg)
-	local unit, weekly_best = strsplit(':', msg)
+	local unit, weekly_best, mplus_score = strsplit(':', msg)
 
 	local id = addon.UnitID(unit)
+
 	if id then
 		AstralKeys[id].weekly_best = tonumber(weekly_best)
+		AstralKeys[id].mplus_score = tonumber(mplus_score)
 		AstralKeys[id].time_stamp = addon.WeekTime()
+		addon.PrintDebug('Friends/UpdateWeekly', addon.DebugTableToString(AstralKeys[id]))
 	end
 end
+
 AstralComs:RegisterPrefix('BNET', 'friendWeekly', UpdateWeekly)
 AstralComs:RegisterPrefix('WHISPER', 'friendWeekly', UpdateWeekly)
 
@@ -267,9 +283,9 @@ local function PushKeysToFriends(target)
 
 	for i = 1, #AstralCharacters do
 		local id = addon.UnitID(AstralCharacters[i].unit)
-		if id and addon.UnitClass(id) then -- 暫時修正 We have a key for this character, let's get the message and queue it up
+		if id then -- We have a key for this character, let's get the message and queue it up
 			local map, level = addon.UnitMapID(id), addon.UnitKeyLevel(id)
-			messageStack[#messageStack + 1] = strformat('%s_', strformat('%s:%s:%d:%d:%d:%d:%d:%d', AstralCharacters[i].unit, addon.UnitClass(id), map, level, addon.Week, AstralKeys[id][7], AstralCharacters[i].faction, AstralCharacters[i].weekly_best)) -- name-server:class:mapID:keyLevel:week#:weekTime:faction:weekly
+			messageStack[#messageStack + 1] = strformat('%s_', strformat('%s:%s:%d:%d:%d:%d:%d:%d:%d', AstralCharacters[i].unit, addon.UnitClass(id), map, level, addon.Week, AstralKeys[id][7], AstralCharacters[i].faction, AstralCharacters[i].weekly_best, AstralCharacters[i].mplus_score)) -- name-server:class:mapID:keyLevel:week#:weekTime:faction:weekly
 		end
 	end
 
@@ -604,7 +620,7 @@ do
 						if id then
 							local keyLevel, dungeonID = AstralKeys[id].key_level, AstralKeys[id].dungeon_id
 							astralKeyString:SetWordWrap(false)
-							astralKeyString:SetFormattedText("|cffffd200"..L["Current Keystone"].."|r\n%d - %s", keyLevel, addon.GetMapName(dungeonID))
+							astralKeyString:SetFormattedText("|cffffd200Current Keystone|r\n%d - %s", keyLevel, addon.GetMapName(dungeonID))
 							astralKeyString:SetWordWrap(true)
 							astralKeyString:SetPoint('TOP', characterNameString, 'BOTTOM', 3, -4)
 							gameInfoString:SetPoint('TOP', astralKeyString, 'BOTTOM', 0, 0)
@@ -650,7 +666,8 @@ do
 end
 
 local function TooltipHook(self)
-    if not AstralKeysSettings.general.show_tooltip_key.isEnabled then return end
+	if not AstralKeysSettings.general.show_tooltip_key.isEnabled then return end
+
 	if self.GetUnit~=nil then 
     local _, uid = self:GetUnit()
     if not UnitIsPlayer(uid) then return end
@@ -663,7 +680,7 @@ local function TooltipHook(self)
     if id then
     	GameTooltip:AddLine(' ')
         GameTooltip:AddLine(L['Current Keystone'])
-        GameTooltip:AddDoubleLine(addon.GetMapName(addon.UnitMapID(id) or UNKONW), addon.UnitKeyLevel(id) or "", 1, 1, 1, 1, 1, 1) -- 暫時修正
+        GameTooltip:AddDoubleLine(addon.GetMapName(addon.UnitMapID(id)), addon.UnitKeyLevel(id), 1, 1, 1, 1, 1, 1)
         return
     end
 	end
@@ -671,26 +688,35 @@ end
 
 TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, TooltipHook)
 
-local function FriendUnitFunction(self, unit, class, mapID, keyLevel, weekly_best, faction, btag)
+local function FriendUnitFunction(self, unit, class, mapID, keyLevel, weekly_best, mplus_score, faction, btag)
 	self.unitID = addon.UnitID(unit)
 	self.levelString:SetText(keyLevel)
 	self.dungeonString:SetText(addon.GetMapName(mapID))
+
 	if weekly_best and weekly_best > 1 then
-		local color_code = addon.GetDifficultyColour(weekly_best)
-		self.bestString:SetText(WrapTextInColorCode(weekly_best, color_code))
+		self.bestString:SetText(weekly_best)
 	else
 		self.bestString:SetText(nil)
 	end
 	--self.weeklyTexture:SetShown(cache == 1)
+
+	if mplus_score then
+		local colour = addon.GetScoreColour(mplus_score)
+		self.scoreString:SetText(WrapTextInColorCode(mplus_score, colour))
+	else
+		self.scoreString:SetText(nil)
+	end
+
 	if btag then
 		if tonumber(faction) == addon.FACTION then
-			self.nameString:SetText( string.format('%s (%s)', WrapTextInColorCode(btag:sub(1, btag:find('#') - 1), COLOR_BLUE_BNET), WrapTextInColorCode(unit:sub(1, unit:find('-') - 1), select(4, GetClassColor(class)))))
+			self.nameString:SetText(string.format('%s (%s)', WrapTextInColorCode(btag:sub(1, btag:find('#') - 1), COLOR_BLUE_BNET), WrapTextInColorCode(unit:sub(1, unit:find('-') - 1), select(4, GetClassColor(class)))))
 		else
-			self.nameString:SetText( string.format('%s (%s)', WrapTextInColorCode(btag:sub(1, btag:find('#') - 1), COLOR_BLUE_BNET), WrapTextInColorCode(unit:sub(1, unit:find('-') - 1), 'ff9d9d9d')))
+			self.nameString:SetText(string.format('%s (%s)', WrapTextInColorCode(btag:sub(1, btag:find('#') - 1), COLOR_BLUE_BNET), WrapTextInColorCode(unit:sub(1, unit:find('-') - 1), 'ff9d9d9d')))
 		end
 	else
 		self.nameString:SetText(WrapTextInColorCode(unit:sub(1, unit:find('-') - 1), select(4, GetClassColor(class))))
 	end
+
 	if addon.IsUnitOnline(unit) then
 		self:SetAlpha(1)
 	else

@@ -132,7 +132,7 @@ local function LoadDefaultSettings(addonName)
 		isEnabled = true,
 	})
 	addon:AddDefaultSettings('frame', 'mingle_offline', {
-		isEnabled = true,
+		isEnabled = false,
 	})
 	addon:AddDefaultSettings('frame', 'rank_filter',
 	{

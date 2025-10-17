@@ -17,7 +17,7 @@ local COLOR_BLUE_BNET = 'ff82c5ff'
 local SCROLL_TEXTURE_ALPHA_MIN = 0.25
 local SCROLL_TEXTURE_ALPHA_MAX = 0.6
 
-local FRAME_WIDTH_MINIMIZED = 575
+local FRAME_WIDTH_MINIMIZED = 645
 local CHARACTER_INFO_FRAME_SIZE = 275
 local FRAME_WIDTH_EXPANDED = FRAME_WIDTH_MINIMIZED + CHARACTER_INFO_FRAME_SIZE
 
@@ -49,6 +49,7 @@ function AstralKeysCharacterMixin:UpdateUnit(characterID)
 	local unitClass = addon.GetCharacterClass(characterID)
 
 	local bestKey = addon.GetCharacterBestLevel(characterID)
+	local mplusScore = addon.GetCharacterMplusScore(characterID)
 	local currentMapID = addon.GetCharacterMapID(unit .. '-' .. realm)
 	local currentKeyLevel = addon.GetCharacterKeyLevel(unit .. '-' .. realm)
 
@@ -61,6 +62,12 @@ function AstralKeysCharacterMixin:UpdateUnit(characterID)
 		self.weeklyStringValue:SetText(bestKey)
 	else
 		self.weeklyStringValue:SetText(WrapTextInColorCode(L['CHARACTER_DUNGEON_NOT_RAN'], COLOR_GRAY))
+	end
+
+	if mplusScore then
+		self.mplusScoreValue:SetText(WrapTextInColorCode(mplusScore, addon.GetScoreColour(mplusScore)))
+	else
+		self.mplusScoreValue:SetText(WrapTextInColorCode(L['CHARACTER_SCORE_NOT_FOUND'], COLOR_GRAY))
 	end
 
 	if currentMapID then
@@ -85,19 +92,31 @@ end
 function AstralKeysCharacterMixin:OnLoad()
 	self.weeklyString:SetText(L['WEEKLY_BEST'])
 	self.keyString:SetText(L['CURRENT_KEY'])
+	self.mplusScoreString:SetText(L['MPLUS_SCORE'])
 end
 
-function AstralKeysListMixin:SetUnit(unit, class, mapID, keyLevel, weekly_best, faction, btag)
+function AstralKeysListMixin:SetUnit(unit, class, mapID, keyLevel, weekly_best, mplus_score, faction, btag)
 	self.unitID = addon.UnitID(unit)
 	self.levelString:SetText(keyLevel)
 	self.dungeonString:SetText(addon.GetMapName(mapID))
 	self.dungeonString:SetWidth(200)
+
+	if mplus_score and mplus_score > 0 then
+		local colour = addon.GetScoreColour(mplus_score)
+		-- TODO: this is all such a mess to figure out widths (just the whole list frame in general); clean up
+		self.scoreString:SetText(WrapTextInColorCode(mplus_score, colour))
+		self.scoreString:SetWidth(math.max(self.scoreString:GetUnboundedStringWidth() + 15, 55))
+	else
+		self.scoreString:SetText(nil)
+		self.scoreString:SetWidth(55)
+	end
+
 	if weekly_best and weekly_best > 1 then
-		local color_code = addon.GetDifficultyColour(weekly_best)
-		self.bestString:SetText(WrapTextInColorCode(weekly_best, color_code))
-		self.bestString:SetWidth(self.bestString:GetUnboundedStringWidth() + 15)
+		self.bestString:SetText(weekly_best)
+		self.bestString:SetWidth(math.max(self.bestString:GetUnboundedStringWidth() + 15, 55))
 	else
 		self.bestString:SetText(nil)
+		self.bestString:SetWidth(55)
 	end
 
 	if addon.FrameListShown() == 'GUILD' then
@@ -105,9 +124,9 @@ function AstralKeysListMixin:SetUnit(unit, class, mapID, keyLevel, weekly_best, 
 	else
 		if btag then
 			if tonumber(faction) == addon.FACTION then
-				self.nameString:SetText( string.format('%s (%s)', WrapTextInColorCode(btag:sub(1, btag:find('#') - 1), COLOR_BLUE_BNET), WrapTextInColorCode(unit:sub(1, unit:find('-') - 1), select(4, GetClassColor(class)))))
+				self.nameString:SetText(string.format('%s (%s)', WrapTextInColorCode(btag:sub(1, btag:find('#') - 1), COLOR_BLUE_BNET), WrapTextInColorCode(unit:sub(1, unit:find('-') - 1), select(4, GetClassColor(class)))))
 			else
-				self.nameString:SetText( string.format('%s (%s)', WrapTextInColorCode(btag:sub(1, btag:find('#') - 1), COLOR_BLUE_BNET), WrapTextInColorCode(unit:sub(1, unit:find('-') - 1), 'ff9d9d9d')))
+				self.nameString:SetText(string.format('%s (%s)', WrapTextInColorCode(btag:sub(1, btag:find('#') - 1), COLOR_BLUE_BNET), WrapTextInColorCode(unit:sub(1, unit:find('-') - 1), 'ff9d9d9d')))
 			end
 		else
 			self.nameString:SetText(WrapTextInColorCode(unit:sub(1, unit:find('-') - 1), select(4, GetClassColor(class))))
@@ -226,11 +245,11 @@ local function InviteUnit(self)
 		end
 	else
 		if self.inviteType == 'INVITE' then
-			C_PartyInfo.InviteUnit(addon.Unit(AstralMenuFrameUnit1.unit)) -- 暫時修正
+			InviteToGroup(addon.Unit(AstralMenuFrameUnit1.unit))
 		elseif self.inviteType == 'REQUEST_INVITE' then
 			RequestInviteFromUnit(addon.Unit(AstralMenuFrameUnit1.unit))
 		elseif self.inviteType == 'SUGGEST_INVITE' then
-			C_PartyInfo.InviteUnit(addon.Unit(AstralMenuFrameUnit1.unit)) -- 暫時修正
+			InviteToGroup(addon.Unit(AstralMenuFrameUnit1.unit))
 		end
 	end
 end
@@ -454,7 +473,7 @@ reportButton:SetPoint('TOP', divider, 'BOTTOM', 0, -20)
 reportButton:SetScript('OnEnter', function(self)
 	self:GetNormalTexture():SetVertexColor(126/255, 126/255, 126/255, 0.8)
 	AstralKeyToolTip:SetOwner(self, 'ANCHOR_BOTTOMLEFT', 7, -2)
-	AstralKeyToolTip:AddLine(L['Report'], 1, 1, 1)
+	AstralKeyToolTip:AddLine('Report', 1, 1, 1)
 	AstralKeyToolTip:Show()
 end)
 reportButton:SetScript('OnLeave', function(self)
@@ -589,7 +608,7 @@ end)
 -- CENTER Frame CHARACTER_INFO_FRAME_SIZEpx
 tabFrame = CreateFrame('FRAME', '$parentTabFrame', AstralKeyFrame)
 tabFrame.offSet = 0
-tabFrame:SetSize(460, 45)
+tabFrame:SetSize(530, 45)
 tabFrame:SetPoint('TOPRIGHT', AstralKeyFrame, 'TOPRIGHT', -60, 10)
 tabFrame.buttons = {}
 
@@ -842,7 +861,6 @@ do
 		frame:SetSize(32, 32)
 		frame.icon = frame:CreateTexture(nil, 'ARTWORK')
 
-
 		if i == 1 then
 			frame:SetPoint('TOPLEFT', affixTitle, 'BOTTOMLEFT', 0, -15)
 		else
@@ -885,22 +903,10 @@ local affixFrame = CreateFrame('FRAME', '$parentAffixFrame', AstralKeyFrameChara
 affixFrame:SetSize(185, 15)
 affixFrame:SetPoint('TOPLEFT', AstralKeyFrameCharacterFrameAffix1, 'BOTTOMLEFT', 0 , -10)
 
-local affixExpandButton = CreateFrame('BUTTON', '$parentAffixExpandButton', characterFrame)
-affixExpandButton:SetNormalTexture('Interface\\AddOns\\AstralKeys\\Media\\Texture\\baseline_keyboard_arrow_down_white_18dp')
-affixExpandButton:SetSize(24, 14)
-affixExpandButton:GetNormalTexture():SetVertexColor(0.8, 0.8, 0.8, 0.8)
-affixExpandButton:SetPoint('BOTTOM', affixFrame, 'BOTTOM', 0, 0)
-
 do
 	for i = 1, (2 * addon.NUM_AFFIXES) do
 		local frame = CreateFrame('FRAME', '$parentAffix' .. i, affixFrame)
 		frame.id = (i % addon.NUM_AFFIXES) == 0 and addon.NUM_AFFIXES or i % addon.NUM_AFFIXES
-		if i < (addon.NUM_AFFIXES + 1) then
-			frame.weekOffset = 1
-		else
-			frame.weekOffset = 2
-		end
-
 		frame.affixID = 0
 		frame:SetSize(32, 32)
 		frame.texture = frame:CreateTexture(nil, 'ARTWORK')
@@ -920,7 +926,7 @@ do
 		frame.texture:SetAllPoints(frame)
 
 		function frame:UpdateInfo()
-			self.affixID = addon.GetAffixID(self.id, self.weekOffset)
+			self.affixID = addon.GetAffixID(self.id)
 			if self.affixID and self.affixID ~= 0 then
 				local _, _, texture = C_ChallengeMode.GetAffixInfo(self.affixID)
 				self.texture:SetTexture(texture)
@@ -943,103 +949,6 @@ do
 		frame:Hide()
 	end
 end
-
-affixFrame.expand = affixFrame:CreateAnimationGroup()
-
-local affixExpand = affixFrame.expand:CreateAnimation('Alpha')
-affixExpand:SetFromAlpha(0)
-affixExpand:SetToAlpha(1)
-affixExpand:SetDuration(.12)
-affixExpand:SetSmoothing('IN_OUT')
-
-affixExpand:SetScript('OnPlay', function()
-	affixExpandButton:SetNormalTexture('Interface\\AddOns\\AstralKeys\\Media\\Texture\\baseline_keyboard_arrow_up_white_18dp')
-	affixExpandButton:GetNormalTexture():SetVertexColor(0.8, 0.8, 0.8, 0.8)
-	AstralKeyFrame.affixesExpanded = true
-	end)
-
-affixExpand:SetScript('OnUpdate', function(self)
-	local progress = self:GetProgress()
-
-	AstralKeyFrameCharacterFrameAffixFrame:SetHeight((progress * 85) + 15)
-	AstralKeyFrameCharacterFrameCharacterContainer:SetHeight(((1-progress) * 85) + 230)
-	AstralKeyFrameCharacterFrameCharacterTitle:SetPoint('TOPLEFT', affixFrame, 'BOTTOMLEFT', 0, -10)
-	affixExpandButton:SetPoint('BOTTOM', affixFrame, 'BOTTOM', 0, 0)
-	end)
-
-local affixIconsExpand = affixFrame.expand:CreateAnimation('Alpha')
-affixIconsExpand:SetDuration(0.08)
-affixIconsExpand:SetFromAlpha(0)
-affixIconsExpand:SetToAlpha(1)
-affixIconsExpand:SetSmoothing('IN_OUT')
-affixIconsExpand:SetStartDelay(0.1)
-
-affixIconsExpand:SetScript('OnPlay', function()
-	for i = 1, (addon.NUM_AFFIXES * 2) do
-		_G['AstralKeyFrameCharacterFrameAffixFrameAffix' .. i]:Show()
-	end
-	end)
-
-affixIconsExpand:SetScript('OnUpdate', function(self)
-	local alpha = self:GetSmoothProgress()
-	for i = 1, (addon.NUM_AFFIXES * 2) do
-		_G['AstralKeyFrameCharacterFrameAffixFrameAffix' .. i]:SetAlpha(alpha)
-	end
-	end)
-
-affixIconsExpand:SetScript('OnFinished', function()
-	end)
-
-affixFrame.collapse = affixFrame:CreateAnimationGroup()
-
-local affixIconsCollapse = affixFrame.collapse:CreateAnimation('Alpha')
-affixIconsCollapse:SetDuration(0.08)
-affixIconsCollapse:SetFromAlpha(1)
-affixIconsCollapse:SetToAlpha(0)
-affixIconsCollapse:SetSmoothing('IN_OUT')
-affixIconsCollapse:SetStartDelay(0.1)
-
-affixIconsCollapse:SetScript('OnFinished', function()
-	for i = 1, (addon.NUM_AFFIXES * 2) do
-		_G['AstralKeyFrameCharacterFrameAffixFrameAffix' .. i]:Hide()
-	end
-	end)
-
-affixIconsCollapse:SetScript('OnUpdate', function(self)
-	local alpha = self:GetSmoothProgress()
-	for i = 1, (addon.NUM_AFFIXES * 2) do
-		_G['AstralKeyFrameCharacterFrameAffixFrameAffix' .. i]:SetAlpha(alpha)
-	end
-	end)
-
-local affixCollapse = affixFrame.collapse:CreateAnimation('Alpha')
-affixCollapse:SetFromAlpha(1)
-affixCollapse:SetToAlpha(0)
-affixCollapse:SetDuration(.12)
-affixCollapse:SetSmoothing('IN_OUT')
-
-affixCollapse:SetScript('OnPlay', function()
-	affixExpandButton:SetNormalTexture('Interface\\AddOns\\AstralKeys\\Media\\Texture\\baseline_keyboard_arrow_down_white_18dp')
-	affixExpandButton:GetNormalTexture():SetVertexColor(0.8, 0.8, 0.8, 0.8)
-	AstralKeyFrame.affixesExpanded = false
-	end)
-
-affixCollapse:SetScript('OnUpdate', function(self)
-	local progress = self:GetSmoothProgress()
-
-	AstralKeyFrameCharacterFrameAffixFrame:SetHeight(((1-progress) * 85) + 15)
-	AstralKeyFrameCharacterFrameCharacterContainer:SetHeight((progress * 85) + 230)
-	AstralKeyFrameCharacterFrameCharacterTitle:SetPoint('TOPLEFT', affixFrame, 'BOTTOMLEFT', 0, -10)
-	affixExpandButton:SetPoint('BOTTOM', affixFrame, 'BOTTOM', 0, 0)
-	end)
-
-affixExpandButton:SetScript('OnClick', function()
-	if AstralKeyFrame.affixesExpanded then
-		affixFrame.collapse:Play()		
-	else
-		affixFrame.expand:Play()
-	end
-	end)
 
 -- Character Frames
 ----------------------------------------------------------------
@@ -1075,7 +984,7 @@ astralGuildInfo:SetPoint('BOTTOM', UIParent, 'TOP', 0, -300)
 
 astralGuildInfo.text = astralGuildInfo:CreateFontString(nil, 'OVERLAY', 'InterUIRegular_Normal')
 astralGuildInfo.text:SetPoint('TOP', astralGuildInfo,'TOP', 0, -10)
-astralGuildInfo.text:SetText(L['Visit Astral at'])
+astralGuildInfo.text:SetText('Visit Astral at')
 
 astralGuildInfo.editBox = CreateFrame('EditBox', nil, astralGuildInfo, "BackdropTemplate")
 astralGuildInfo.editBox:SetSize(180, 20)
@@ -1105,7 +1014,7 @@ astralGuildInfo.editBox:SetScript('OnEditFocusLost', function(self)
 local button = CreateFrame('BUTTON', nil, astralGuildInfo, "BackdropTemplate")
 button:SetSize(40, 20)
 button:SetNormalFontObject(InterUIRegular_Normal)
-button:SetText(CLOSE)
+button:SetText('Close')
 button:SetBackdrop(BACKDROPBUTTON)
 button:SetBackdropBorderColor(.2, .2, .2, 1)
 button:SetPoint('BOTTOM', astralGuildInfo, 'BOTTOM', 0, 10)
@@ -1171,7 +1080,7 @@ scrollButton:SetHeight(50)
 scrollButton:SetWidth(8)
 scrollButton:SetColorTexture(204/255, 204/255, 204/255, SCROLL_TEXTURE_ALPHA_MAX)
 
-characterScrollFrame.buttonHeight = 45
+characterScrollFrame.buttonHeight = 60
 characterScrollFrame.update = CharacterScrollFrame_Update
 
 -- Key List Frames
@@ -1194,11 +1103,12 @@ function ListScrollFrame_Update()
 	for i = 1, math.min(sortTable.num_shown, #buttons) do
 		for j = lastIndex, #sortTable do
 			if sortTable[j+offset] and sortTable[j+offset].isShown then
+				local entry = sortTable[j+offset]
 				usedHeight = usedHeight + height
 				lastIndex = j + 1
-				buttons[i]:SetUnit(sortTable[j+offset].character_name, sortTable[j+offset].character_class, sortTable[j+offset].dungeon_id, sortTable[j+offset].key_level, sortTable[j+offset].weekly_best, sortTable[j+offset]['faction'], sortTable[j+offset]['btag'])
+				buttons[i]:SetUnit(entry.character_name, entry.character_class, entry.dungeon_id, entry.key_level, entry.weekly_best, entry.mplus_score, entry['faction'], entry['btag'])
 				buttons[i]:Show()
-				if selectCount > 1 and selectedUnits[sortTable[j+offset].character_name] then
+				if selectCount > 1 and selectedUnits[entry.character_name] then
 					buttons[i].Highlight:Show()
 				else
 					buttons[i].Highlight:Hide()
@@ -1211,6 +1121,7 @@ function ListScrollFrame_Update()
 	for i = math.min(sortTable.num_shown, #buttons) + 1, #buttons do
 		buttons[i]:Hide()
 	end
+
 	AstralKeyFrameListContainer.stepSize = (sortTable.num_shown / #buttons) * height
 	HybridScrollFrame_Update(AstralKeyFrameListContainer, height * sortTable.num_shown, usedHeight)
 end
@@ -1224,7 +1135,7 @@ local function ListScrollFrame_OnLeave()
 end
 
 local listScrollFrame = CreateFrame('ScrollFrame', '$parentListContainer', AstralKeyFrame, 'HybridScrollFrameTemplate')
-listScrollFrame:SetSize(485, 375)
+listScrollFrame:SetSize(555, 375)
 listScrollFrame:SetPoint('TOPLEFT', tabFrame, 'BOTTOMLEFT', 10, -35)
 listScrollFrame.update = ListScrollFrame_Update
 listScrollFrame:SetScript('OnEnter',  ListScrollFrame_OnEnter)
@@ -1251,7 +1162,7 @@ listScrollButton:SetAlpha(SCROLL_TEXTURE_ALPHA_MIN)
 listScrollFrame.buttonHeight = 15
 
 local contentFrame = CreateFrame('FRAME', 'AstralContentFrame', AstralKeyFrame)
-contentFrame:SetSize(485, 390)
+contentFrame:SetSize(555, 390)
 contentFrame:SetPoint('TOPLEFT', tabFrame, 'BOTTOMLEFT', 0, -30)
 
 local function ListButton_OnClick(self)
@@ -1618,6 +1529,16 @@ characterSearchCloseButton:SetScript('OnClick', function(self)
 	addon.UpdateFrames()
 	end)
 
+local mplusScoreButton = CreateFrame('BUTTON', '$parentMplusScoreButton', contentFrame)
+mplusScoreButton.sortMethod = 'mplus_score'
+mplusScoreButton:SetSize(70, 20)
+mplusScoreButton:SetNormalFontObject(InterUIBlack_Small)
+characterButton:GetNormalFontObject():SetJustifyH('CENTER')
+mplusScoreButton:SetText(L['MPLUS_SCORE'])
+mplusScoreButton:SetAlpha(0.5)
+mplusScoreButton:SetPoint('LEFT', characterButton, 'RIGHT')
+mplusScoreButton:SetScript('OnClick', function(self) ListButton_OnClick(self) end)
+
 local weeklyBestButton = CreateFrame('BUTTON', '$parentWeeklyBestButton', contentFrame)
 weeklyBestButton.sortMethod = 'weekly_best'
 weeklyBestButton:SetSize(70, 20)
@@ -1625,7 +1546,7 @@ weeklyBestButton:SetNormalFontObject(InterUIBlack_Small)
 characterButton:GetNormalFontObject():SetJustifyH('CENTER')
 weeklyBestButton:SetText(L['WEEKLY_BEST'])
 weeklyBestButton:SetAlpha(0.5)
-weeklyBestButton:SetPoint('LEFT', characterButton, 'RIGHT')
+weeklyBestButton:SetPoint('LEFT', mplusScoreButton, 'RIGHT')
 weeklyBestButton:SetScript('OnClick', function(self) ListButton_OnClick(self) end)
 
 function AstralKeyFrame:OnUpdate(elapsed)
@@ -1802,6 +1723,7 @@ function addon.UpdateSortTable()
 							dungeon_id =AstralKeys[unitID].dungeon_id,
 							key_level = AstralKeys[unitID].key_level,
 							weekly_best = AstralKeys[unitID].weekly_best,
+							mplus_score = AstralKeys[unitID].mplus_score,
 							faction = AstralKeys[unitID].faction,
 							btag = btag or AstralKeys[unitID].btag,
 							source = AstralKeys[unitID].source
@@ -1813,7 +1735,7 @@ function addon.UpdateSortTable()
 	end
 end
 
-function addon.AddUnitToSortTable(unit, btag, class, faction, mapID, level, weekly_best, source)
+function addon.AddUnitToSortTable(unit, btag, class, faction, mapID, level, weekly_best, mplus_score, source)
 	if not addon.DoesUnitBelongToList(unit, addon.FrameListShown()) then return end
 
 	if addon.FrameListShown() == 'GUILD' then
@@ -1828,6 +1750,7 @@ function addon.AddUnitToSortTable(unit, btag, class, faction, mapID, level, week
 			sortTable[i].dungeon_id = mapID
 			sortTable[i].key_level = level
 			sortTable[i].weekly_best = weekly_best
+			sortTable[i].mplus_score = mplus_score
 			found = true
 			break
 		end
@@ -1839,9 +1762,10 @@ function addon.AddUnitToSortTable(unit, btag, class, faction, mapID, level, week
 				btag = btag,
 				character_class = class,
 				faction = faction,
-				dungeon_id =mapID,
+				dungeon_id = mapID,
 				key_level = level,
 				weekly_best = weekly_best,
+				mplus_score = mplus_score,
 				source = source,
 			})
 	end
@@ -1849,7 +1773,7 @@ end
 
 		
 -- Old function.
-function addon.AddUnitToTable(unit, class, faction, listType, mapID, level, weekly_best, btag)
+function addon.AddUnitToTable(unit, class, faction, listType, mapID, level, weekly_best, mplus_score, btag)
 	if not sortedTable[listType] then
 		sortedTable[listType] = {}
 	end
@@ -1859,18 +1783,38 @@ function addon.AddUnitToTable(unit, class, faction, listType, mapID, level, week
 			sortedTable[listType][i].mapID = mapID
 			sortedTable[listType][i].key_level = level
 			sortedTable[listType][i].weekly_best = weekly_best
+			sortedTable[listType][i].mplus_score = mplus_score
 			found = true
 			break
 		end
 	end
 
 	if not found then
-		sortedTable[listType][#sortedTable[listType] + 1] = {character_name = unit, character_class = class, mapID = mapID, key_level = level, weekly_best = weekly_best, faction = faction, btag = btag}
+		sortedTable[listType][#sortedTable[listType] + 1] = {character_name = unit, character_class = class, mapID = mapID, key_level = level, weekly_best = weekly_best, mplus_score = mplus_score, faction = faction, btag = btag}
 	end
 end
 
-function addon.Console(msg)
-	print(string.format('%s %s', WrapTextInColorCode('[AK]', '008888FF'), msg))
+function addon.Console(...)
+	print(WrapTextInColorCode('[AK]', '008888FF'), ...)
+end
+
+function addon.PrintDebug(...)
+    if addon.Debug then
+        addon.Console(WrapTextInColorCode('D', 'C1E1C1FF'), ...)
+    end
+end
+
+function addon.DebugTableToString(o)
+    if type(o) == 'table' then
+        local s = '{ '
+        for k,v in pairs(o) do
+            if type(k) ~= 'number' then k = '"'..k..'"' end
+            s = s .. '['..k..'] = ' .. addon.DebugTableToString(v) .. ','
+        end
+        return s .. '} '
+    else
+        return tostring(o)
+    end
 end
 
 function addon.AstralMain(arg)

@@ -2,12 +2,14 @@ local _, addon = ...
 local L = addon.L
 local strformat = string.format
 
-local COLOUR = {}
-COLOUR[1] = 'ffffffff' -- Common
-COLOUR[2] = 'ff0070dd' -- Rare
-COLOUR[3] = 'ffa335ee' -- Epic
-COLOUR[4] = 'ffff8000' -- Legendary
-COLOUR[5] = 'ffe6cc80' -- Artifact
+local QUALITIES = {}
+QUALITIES.Poor = 'ff9d9d9d'
+QUALITIES.Common = 'ffffffff'
+QUALITIES.Uncommon = 'ff1eff00'
+QUALITIES.Rare = 'ff0070dd'
+QUALITIES.Epic = 'ffa335ee'
+QUALITIES.Legendary = 'ffff8000'
+QUALITIES.Artifact = 'ffe6cc80'
 
 addon.keystone = {}
 addon.inKey = false
@@ -19,14 +21,19 @@ addon.MYTHICKEY_CITY_NPCID = 197711
 
 local function UpdateWeekly()
 	addon.UpdateCharacterBest()
+
 	local characterID = addon.GetCharacterID(addon.Player())
 	local characterWeeklyBest = addon.GetCharacterBestLevel(characterID)
+	local characterScore = addon.GetCharacterMplusScore(characterID)
+
 	if IsInGuild() then
 		AstralComs:NewMessage('AstralKeys', 'updateWeekly ' .. characterWeeklyBest, 'GUILD')
 	else
 		local id = addon.UnitID(addon.Player())
 		if id then
 			AstralKeys[id].weekly_best = characterWeeklyBest
+			AstralKeys[id].mplus_score = characterScore
+			addon.PrintDebug('Keystone/UpdateWeekly', addon.DebugTableToString(AstralKeys[id]))
 			addon.UpdateFrames()
 		end
 	end
@@ -49,7 +56,6 @@ function addon.CheckKeystone()
 end
 
 --|cffa335ee|Hkeystone:158923:251:12:10:5:13:117|h[Keystone: The Underrot (12)]|h|r
--- COLOUR[3] returns epic color hex code
 function addon.CreateKeyLink(mapID, keyLevel)
 	local mapName
 	if mapID == 369 or mapID == 370 then
@@ -59,29 +65,26 @@ function addon.CreateKeyLink(mapID, keyLevel)
 	end
 	keyLevel = keyLevel or C_MythicPlus.GetOwnedKeystoneLevel()
 	if not mapName or not keyLevel then return end
-	local a1, a2, a3, a4
-	if keyLevel > 1 then
+	local a1, a2, a3
+	if keyLevel > 3 then
 		a1 = addon.AffixOne()
 	end 
-	if keyLevel > 3 then
+	if keyLevel > 6 then
 		a2 = addon.AffixTwo()
 	end
-	if keyLevel > 6 then
+	if keyLevel > 9 then
 		a3 = addon.AffixThree()
 	end
-	if keyLevel > 9 then
-		a4 = addon.AffixFour()
-	end
+
 	-- For 12+ keys, the first Xalatath's affix gets dropped and everything shifts forward,
 	-- then the fourth affix becomes Xalatath's Guile
-	if keyLevel > 12 then
+	if keyLevel > 11 then
 		a1 = a2
 		a2 = a3
-		a3 = a4
-		a4 = addon.AffixFive()
+		a3 = addon.AffixFour()
 	end
 	-- /script SendChatMessage("\124cffa335ee\124Hkeystone:180653:375:20:148:9:152:10\124h[Keystone: Mists of Tirna Scithe (20)]\124h\124r", 'SAY')
-	return strformat('|c' .. COLOUR[3] .. '|Hkeystone:%d:%d:%d:%d:%d:%d:%d:%d|h[%s %s (%d)]|h|r', addon.MYTHICKEY_ITEMID, mapID, keyLevel, a1, a2, a3, a4, 0, L['KEYSTONE'] or 'Keystone:', mapName, keyLevel):gsub('\124\124', '\124')
+	return strformat('|c' .. QUALITIES.Epic .. '|Hkeystone:%d:%d:%d:%d:%d:%d:%d:%d|h[%s %s (%d)]|h|r', addon.MYTHICKEY_ITEMID, mapID, keyLevel, a1, a2, a3, 0, 0, L['KEYSTONE'] or 'Keystone:', mapName, keyLevel):gsub('\124\124', '\124')
 end
 
 -- Prints out the same link as the CreateKeyLink but only if the Timewalking Key is found. Otherwise nothing is done.
@@ -100,7 +103,7 @@ function addon.CreateTimewalkingKeyLink(mapID, keyLevel)
 	if keyLevel > 8 then
 	 a4 = addon.TimewalkingAffixFour()
 	end
-	return strformat('|c' .. COLOUR[3] .. '|Hkeystone:%d:%d:%d:%d:%d:%d:%d|h[%s %s (%d)]|h|r', addon.TIMEWALKINGKEY_ITEMID, mapID, keyLevel, a1, a2, a3, a4, L['KEYSTONE'] or 'Keystone:', mapName, keyLevel):gsub('\124\124', '\124')
+	return strformat('|c' .. QUALITIES.Epic .. '|Hkeystone:%d:%d:%d:%d:%d:%d:%d|h[%s %s (%d)]|h|r', addon.TIMEWALKINGKEY_ITEMID, mapID, keyLevel, a1, a2, a3, a4, L['KEYSTONE'] or 'Keystone:', mapName, keyLevel):gsub('\124\124', '\124')
 end
 
 function addon.PushKeystone(announceKey, mapID, keyLevel)
@@ -111,6 +114,8 @@ function addon.PushKeystone(announceKey, mapID, keyLevel)
 	end
 
 	local weeklyBest = 0
+	local mplusSummary = C_PlayerInfo.GetPlayerMythicPlusRatingSummary('player')
+	local mplusScore = mplusSummary.currentSeasonScore
 	local runHistory = C_MythicPlus.GetRunHistory(false, true)
 
 	addon.keystone = {level = keyLevel, id = mapID}
@@ -125,7 +130,7 @@ function addon.PushKeystone(announceKey, mapID, keyLevel)
 
 	local msg = ''
 	if mapID then
-		msg = string.format('%s:%s:%d:%d:%d:%d:%s', addon.Player(), addon.PlayerClass(), mapID, keyLevel, weeklyBest, addon.Week, addon.FACTION)
+		msg = string.format('%s:%s:%d:%d:%d:%d:%s', addon.Player(), addon.PlayerClass(), mapID, keyLevel, weeklyBest, addon.Week, mplusScore, addon.FACTION)
 	end
 	if msg ~= '' then
 		addon.PushKeyDataToFriends(msg)
@@ -164,6 +169,8 @@ function addon.UpdateCharacterBest()
 	if UnitLevel('player') < addon.EXPANSION_LEVEL then return end
 
 	local weeklyBest = 0
+	local mplusSummary = C_PlayerInfo.GetPlayerMythicPlusRatingSummary('player')
+	local mplusScore = mplusSummary.currentSeasonScore
 	local runHistory = C_MythicPlus.GetRunHistory(false, true)
 
 	for i = 1, #runHistory do
@@ -179,37 +186,55 @@ function addon.UpdateCharacterBest()
 		if AstralCharacters[i].unit == addon.Player() then
 			found = true
 			AstralCharacters[i].weekly_best = weeklyBest
+			AstralCharacters[i].mplus_score = mplusScore
+			addon.PrintDebug('UpdateCharacterBest', addon.DebugTableToString(AstralCharacters[i]), 'Found: ', found)
 			break
 		end
 	end
 
 	if not found then
-		table.insert(AstralCharacters, { unit = addon.Player(), class = addon.PlayerClass(), weekly_best = weeklyBest, faction = addon.FACTION})
+		local character = { unit = addon.Player(), class = addon.PlayerClass(), weekly_best = weeklyBest, mplus_score = mplusScore, faction = addon.FACTION }
+		table.insert(AstralCharacters, character)
+		addon.PrintDebug('UpdateCharacterBest', addon.DebugTableToString(character), 'Found: ', found)
 		addon.SetCharacterID(addon.Player(), #AstralCharacters)
 	end
+
 end
 
 function addon.GetDifficultyColour(keyLevel)
-	if type(keyLevel) ~= 'number' then return COLOUR[1] end -- return white for any strings or non-number values
-	if keyLevel <= 2 then
-		return COLOUR[1]
-	elseif keyLevel <= 4 then
-		return COLOUR[2]
-	elseif keyLevel <= 7 then
-		return COLOUR[3]
-	elseif keyLevel <= 10 then
-		return COLOUR[4]
-	else
-		return COLOUR[5]
+	if type(keyLevel) ~= 'number' or keyLevel < 2 then return QUALITIES.Common end
+	local colour = C_ChallengeMode.GetKeystoneLevelRarityColor(keyLevel)
+	return colour:GenerateHexColor()
+end
+
+function addon.GetScoreColour(mplusScore)
+	local colour = C_ChallengeMode.GetDungeonScoreRarityColor(mplusScore)
+	return colour:GenerateHexColor()
+end
+
+function addon.GetDungeonTimerForChests(time, level, tier)
+	if tier == 3 then
+		time = time * 0.6
+	elseif tier == 2 then
+		time = time * 0.8
 	end
+
+	local seasonID = AstralAffixes.season_id or 0
+	if seasonID == 13 and level >= 7 then
+		time = time + 90 -- wut?
+	end
+
+	return time
 end
 
 function InitKeystoneData()
 	AstralEvents:Unregister('PLAYER_ENTERING_WORLD', 'initData')
+
 	C_MythicPlus.RequestRewards()
 	C_ChatInfo.RegisterAddonMessagePrefix('AstralKeys')
 	addon.PushKeystone(false)
 	addon.UpdateCharacterBest()
+
 	if IsInGuild() then
 		AstralComs:NewMessage('AstralKeys', 'request', 'GUILD')
 	end

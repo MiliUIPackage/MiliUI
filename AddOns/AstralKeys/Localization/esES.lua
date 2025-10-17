@@ -1,4 +1,4 @@
-local L = select(2, ...).L('enUS')
+local L = select(2, ...).L('esES')
 
 -- Default string for keystone
 L['KEYSTONE'] = 'Keystone:'
@@ -41,13 +41,13 @@ L['REMOVE_UNIT_FROM_LIST'] = 'Remove from list'
 L['ADD_TO_LIST'] = 'Add unit(s) to list'
 L['ADD_REMOVE_LIST'] = 'Add or Delete List'
 L['DELETE_LIST'] = 'Delete List'
-L['LIST_ADD_HELPER_TEXT'] = 'Add units to list by right clicking a unit in your GUILD or FRIENDS list'
+L['LIST_ADD_HELPER_TEXT'] = 'Add units to list by right clicking a unit in your Astral Key\'s Guild or Friends list'
 L['OKAY'] = OKAY
 
 -- Announce messages
 L['ANNOUNCE_NEW_KEY'] = 'Astral Keys: New key %s'
 L['NO_KEY'] = 'No key'
-L['KEYS_RESPOND_ON_NO_KEY'] = 'Respond even if no key'
+L['KEYS_RESPOND_ON_NO_KEY'] = 'Respond even if you do not have a key'
 L['KEYS_RESPOND_WITH_ALL_CHARACTERS'] = 'Respond with all characters'
 
 -- Search field texts
