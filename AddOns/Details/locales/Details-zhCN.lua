@@ -178,8 +178,7 @@ L["STRING_DODGE"] = "闪避"
 L["STRING_DOT"] = " (DoT)"
 L["STRING_DPS"] = "每秒伤害"
 L["STRING_EMPTY_SEGMENT"] = "空片段"
---[[Translation missing --]]
-L["STRING_ENABLE_DO_NOT_DISTURB"] = "Enable Do Not Disturb"
+L["STRING_ENABLE_DO_NOT_DISTURB"] = "启用勿扰模式"
 L["STRING_ENABLED"] = "启用"
 L["STRING_ENVIRONMENTAL_DROWNING"] = "环境伤害 (溺水)"
 L["STRING_ENVIRONMENTAL_FALLING"] = "环境伤害 (坠落)"
@@ -299,27 +298,18 @@ L["STRING_KEYBIND_TOGGLE_WINDOWS"] = "显示/隐藏所有窗口"
 L["STRING_KEYBIND_WINDOW_CONTROL"] = "窗口控制"
 L["STRING_KEYBIND_WINDOW_REPORT"] = "将报告数据显示在窗口#%s。"
 L["STRING_KEYBIND_WINDOW_REPORT_HEADER"] = "报告数据"
---[[Translation missing --]]
-L["STRING_KEYSTONE_ADD_TO_FRIENDS_TOOLTIP"] = "Add to friends list as character (not battlenet friend request)."
---[[Translation missing --]]
-L["STRING_KEYSTONE_CLICK_TO_VIEW_SCOREBOARD"] = "Click to view the scoreboard."
---[[Translation missing --]]
-L["STRING_KEYSTONE_DND_TOOLTIP"] = "Your key won't be sent to your guild or friends. While in a group, it will still be sent."
---[[Translation missing --]]
-L["STRING_KEYSTONE_LIFETIME_LIKES_YOU_GAVE"] = [=[Life-time likes you gave for this player through the 'GG' button in the |cFFFFFF00Details! Damage Meter Mythic+|r addon.
-
-View run breakdown by selecting a Mythic+ run you did with this player.]=]
---[[Translation missing --]]
-L["STRING_KEYSTONE_NO_MYTHICPLUS_ADDON"] = "Mythic+ addon not found."
---[[Translation missing --]]
-L["STRING_KEYSTONE_REQUEST_FROM_GUILD"] = "Request from Guild"
+L["STRING_KEYSTONE_ADD_TO_FRIENDS_TOOLTIP"] = "添加角色为好友（非战网好友请求）。"
+L["STRING_KEYSTONE_CLICK_TO_VIEW_SCOREBOARD"] = "点击查看分数榜。"
+L["STRING_KEYSTONE_DND_TOOLTIP"] = "您的钥石信息不会发送给公会或好友。但在组队状态下，仍会正常发送。"
+L["STRING_KEYSTONE_LIFETIME_LIKES_YOU_GAVE"] = "您通过|cFFFFFF00Details! Damage Meter Mythic+|r 插件的“GG”按钮向该玩家发送累计的点赞数。选择您与该玩家共同完成的某次史诗+即可查看详细数据。"
+L["STRING_KEYSTONE_NO_MYTHICPLUS_ADDON"] = "未检测到史诗+相关插件。"
+L["STRING_KEYSTONE_REQUEST_FROM_GUILD"] = "来自公会的请求"
 L["STRING_KILLED"] = "已击杀"
 L["STRING_LAST_COOLDOWN"] = "使用的最后CD"
 L["STRING_LEFT"] = "左"
 L["STRING_LEFT_CLICK_SHARE"] = "左键点击报告。"
 L["STRING_LEFT_TO_RIGHT"] = "从左往右"
---[[Translation missing --]]
-L["STRING_LIKES_YOU_GAVE"] = "Likes you gave"
+L["STRING_LIKES_YOU_GAVE"] = "您给出的点赞"
 L["STRING_LOCK_DESC"] = "锁定或解锁窗口"
 L["STRING_LOCK_WINDOW"] = "锁定"
 L["STRING_MASTERY"] = "精通"
@@ -384,13 +374,11 @@ L["STRING_NEWS_REINSTALL"] = "更新后发现问题? 尝试 '/details reinstall'
 L["STRING_NEWS_TITLE"] = "最近更新"
 L["STRING_NO"] = "否"
 L["STRING_NO_DATA"] = "数据已经被清除"
---[[Translation missing --]]
-L["STRING_NO_MYTHIC_PLUS_ADDON"] = "To track your Mythic+ runs including loot, score, damage, healing done, and who you played with, install the |cFFFFAA00Details! Damage Meter Mythic+|r addon on |cFFfff1c1Wago AddOns|r or |cFFfff1c1Curse Forge|r."
+L["STRING_NO_MYTHIC_PLUS_ADDON"] = "要追踪您的史诗钥石地下城记录-包括战利品、评分、伤害/治疗量及队友信息，请安装 |cFFFFAA00Details! Damage Meter Mythic+|r 插件。您可在 |cFFfff1c1Wago 插件站|r 或 |cFFfff1c1CurseForge 平台|r 获取该插件。"
 L["STRING_NO_SPELL"] = "没有已用法术"
 L["STRING_NO_TARGET"] = "没有找到目标."
 L["STRING_NO_TARGET_BOX"] = "没有目标可用"
---[[Translation missing --]]
-L["STRING_NO_TELEPORTER"] = "You don't have this teleporter"
+L["STRING_NO_TELEPORTER"] = "您尚未解锁该传送。"
 L["STRING_NOCLOSED_INSTANCES"] = [=[没有关闭的窗口，
 点击打开一个新的。]=]
 L["STRING_NOLAST_COOLDOWN"] = "没有CD可用"
@@ -1365,6 +1353,7 @@ L["STRING_QUERY_INSPECT_REFRESH"] = "需要刷新"
 L["STRING_RAID_WIDE"] = "[*] 团队CD"
 L["STRING_RAIDCHECK_PLUGIN_DESC"] = "当在一个团队副本中时，在Details!的标题栏上会出现一个图标显示合剂，食物，药水的使用。"
 L["STRING_RAIDCHECK_PLUGIN_NAME"] = "团队检查"
+L["STRING_RECENT_PLAYERS"] = "最近的玩家："
 L["STRING_REPORT"] = "到"
 L["STRING_REPORT_BUTTON_TOOLTIP"] = "点击打开报告对话框"
 L["STRING_REPORT_FIGHT"] = "战斗"
@@ -1477,10 +1466,8 @@ L["STRING_SWITCH_WARNING"] = "角色改变。开关：|cFFFFAA00%s|r  "
 L["STRING_TARGET"] = "目标"
 L["STRING_TARGETS"] = "目标"
 L["STRING_TARGETS_OTHER1"] = "宠物和其他目标"
---[[Translation missing --]]
-L["STRING_TELEPORT"] = "Teleport"
---[[Translation missing --]]
-L["STRING_TELEPORTERS"] = "Teleporters"
+L["STRING_TELEPORT"] = "传送"
+L["STRING_TELEPORTERS"] = "传送"
 L["STRING_TEXTURE"] = "材质"
 L["STRING_TIME_OF_DEATH"] = "死亡"
 L["STRING_TOOOLD"] = "不能安装因为你的Details!版本过低。"

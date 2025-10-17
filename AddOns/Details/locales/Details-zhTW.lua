@@ -1467,6 +1467,8 @@ L["STRING_QUERY_INSPECT_REFRESH"] = "需要重新整理"
 L["STRING_RAID_WIDE"] = "[*] 團隊冷卻時間"
 L["STRING_RAIDCHECK_PLUGIN_DESC"] = "在團隊副本內時，在 Details! 的標題列顯示圖示，表示精煉、食物和偷爆發藥水的使用狀態。"
 L["STRING_RAIDCHECK_PLUGIN_NAME"] = "準備確認"
+--[[Translation missing --]]
+L["STRING_RECENT_PLAYERS"] = "Recent Players:"
 L["STRING_REPORT"] = "來自"
 L["STRING_REPORT_BUTTON_TOOLTIP"] = "點一下打開報告對話框"
 L["STRING_REPORT_FIGHT"] = "戰鬥"

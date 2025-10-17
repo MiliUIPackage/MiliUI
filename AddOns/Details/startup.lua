@@ -897,6 +897,9 @@ function Details222.StartUp.StartMeUp()
 			end
 		end)
 	end
+
+	--all in one window
+	Details222.AllInOneWindow:Initialize()
 end
 
 Details.AddOnLoadFilesTime = _G.GetTime()
