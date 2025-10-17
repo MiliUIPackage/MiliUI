@@ -8,9 +8,16 @@ function Plater.GetChangelogTable()
 	if (not Plater.ChangeLogTable) then
 		Plater.ChangeLogTable = {
 
-			{1755715831, "Backend Change", "Aug 3rd, 2025", "Correction to tank recognition adjustments for MoP.", "cont1nuity"},
-			{1755715831, "Bug Fix", "Aug 20th, 2025", "Recognizing 'Twist of Fate' as 35% execute for priests.", "cont1nuity"},
-			{1755715831, "Bug Fix", "Aug 20th, 2025", "Fixing send to party/raid functionality.", "cont1nuity"},
+			{1758569637, "Bug Fix", "Sept 26th, 2025", "Fixing soft-interact icons on classic and era.", "cont1nuity"},
+			{1758569637, "New Feature", "Sept 22nd, 2025", "Adding combat auto toggle option for 'Always Show Nameplates'.", "cont1nuity"},
+			{1758569637, "Bug Fix", "Sept 14th, 2025", "Adding 'Dispatch' as rogue execute in MoP.", "cont1nuity"},
+			{1758569637, "New Feature", "Sept 4th, 2025", "Adding possiblitly to add new NPCs via '/plater add <npcID>' with automatic name but 'UNKNOWN' zone.", "cont1nuity"},
+			{1758569637, "Bug Fix", "Sept 3rd, 2025", "Removing 'Twist of Fate' as 35% execute for priests. Use a mod if you need this.", "cont1nuity"},
+			
+			{1755715831, "Backend Change", "Aug 25th, 2025", "Fixing texture artifacts and unifying to tga.", "cont1nuity"},
+			{1755715831, "Backend Change", "Aug 25th, 2025", "Correction to tank recognition adjustments for MoP.", "cont1nuity"},
+			{1755715831, "Bug Fix", "Aug 25th, 2025", "Recognizing 'Twist of Fate' as 35% execute for priests.", "cont1nuity"},
+			{1755715831, "Bug Fix", "Aug 25th, 2025", "Fixing send to party/raid functionality.", "cont1nuity"},
 			
 			{1754345972, "Backend Change", "Aug 10th, 2025", "MoP has spec specific ghost auras.", "cont1nuity"},
 			{1754345972, "Bug Fix", "Aug 9th, 2025", "Recognizing 'Deathspeaker' as 35% execute for priests.", "cont1nuity"},

@@ -1,6 +1,6 @@
 
 
-local dversion = 618
+local dversion = 624
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary(major, minor)
 
@@ -14,6 +14,7 @@ _G["DetailsFramework"] = DF
 ---@cast DF detailsframework
 
 local detailsFramework = DF
+local Mixin = Mixin
 
 --store functions to call when the PLAYER_LOGIN event is triggered
 detailsFramework.OnLoginSchedules = {}
@@ -1130,6 +1131,7 @@ DF.strings = {}
 
 ---@class df_strings
 ---@field Acronym fun(phrase:string):string return the first upper case letter of each word of a string
+---@field GetSortValueFromString fun(value:string):number return a number based on the first two letters of the string, useful to sort strings
 ---@field FormatDateByLocale fun(timestamp:number, ignoreYear:boolean?):string given a timestamp return a formatted date string
 
 function DF.string.Acronym(phrase)
@@ -1142,6 +1144,13 @@ function DF.string.Acronym(phrase)
 		end
 	end)
 	return acronym
+end
+
+---@param value string
+function DF.string.GetSortValueFromString(value)
+	value = value:upper()
+	local byte1 = math.abs(string.byte(value, 2) - 91) / 1000000
+	return byte1 + math.abs(string.byte(value, 1) - 91) / 10000
 end
 
 function DF.string.FormatDateByLocale(timestamp, ignoreYear)
@@ -3590,14 +3599,8 @@ end
 ---@param object table
 ---@param ... any
 ---@return any
-function DF:Mixin(object, ...) --safe copy from blizz api
-	for i = 1, select("#", ...) do
-		local mixin = select(i, ...)
-		for key, value in pairs(mixin) do
-			object[key] = value
-		end
-	end
-	return object
+function DF:Mixin(object, ...)
+	return Mixin(object, ...)
 end
 
 -----------------------------

@@ -190,6 +190,7 @@ GameCooltipFrame2 = {}
 ---@field TalentExporter table
 ---@field FormatNumber fun(number:number) : string abbreviate a number, e.g. 1000 -> 1k 1000 -> 1천, depending on the client language
 ---@field UnitGroupRolesAssigned fun(unitId: unit, bUseSupport:boolean?, specId: specializationid?) : string there's no self here
+---@field GetPlayerRole fun(self:detailsframework) : string only get the role of the player
 ---@field ConvertRole fun(self:table, value:string|number, valueType:string?) : string|number if passed a role name return a number, if passed a number return the role name, if value type is passed it forces the return to be a number or a string
 ---@field IsDragonflight fun():boolean
 ---@field IsDragonflightAndBeyond fun():boolean
@@ -281,6 +282,7 @@ GameCooltipFrame2 = {}
 ---@field CreateTitleBar fun(self:table, parent:frame, titleText:string) : df_titlebar
 ---@field CreateElapsedTimeFrame fun(self:table, parent:frame, name:string?, options:df_elapsedtime_options?) : df_elapsedtime
 ---@field CreateIconRow fun(self:table, parent:frame, name:string?, options:table?) : df_iconrow
+---@field CreateRightClickToClose fun(self:table, parent:uiobject, xOffset:number?, yOffset:number?, color:any?, fontSize:number?) : df_label create a label at the top-right corner of the parent frame with the text "Right Click to Close", when clicked with right mouse button it'll hide the parent frame
 ---@field ConvertAnchorPointToInside fun(self:table, anchorPoint:anchorid) : anchorid
 ---@field ExpansionHasAugEvoker fun():boolean
 ---@field ExpansionHasEvoker fun():boolean
