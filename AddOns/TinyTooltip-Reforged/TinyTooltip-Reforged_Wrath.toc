@@ -1,0 +1,27 @@
+## Interface: 30402
+## Title: TinyTooltip-Reforged |cFF69CCF0by Beezer|r
+## Notes: |cff4488ffTinyTooltip (Reforged)|r v9.3|n Options use /ttr|n Reset use /ttr reset
+## Author: Beezer
+## Version: 9.3
+## SavedVariables: BigTipReforgedDB
+## SavedVariablesPerCharacter: TinyTooltipReforgedCharacterDB
+## X-Category: Tooltip
+
+libs\lib_wrath.xml
+wotlk\Core.lua
+wotlk\Config.lua
+wotlk\General.lua
+wotlk\Anchor.lua
+wotlk\Unit.lua
+wotlk\Target.lua
+wotlk\Model.lua
+wotlk\Item.lua
+wotlk\Spell.lua
+wotlk\Quest.lua
+wotlk\LinkID.lua
+wotlk\Mount.lua
+wotlk\SkinFrames.lua
+
+libs\Template.xml
+locales\locales.xml
+wotlk\Options.lua
