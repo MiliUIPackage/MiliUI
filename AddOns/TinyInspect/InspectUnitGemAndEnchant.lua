@@ -57,13 +57,15 @@ local function GetItemAddableSockets(link, slot, itemLevel)
 end
 
 local INVSLOT_ENCHANT = {
+    [INVSLOT_HEAD] = ns.IsMidnight,
+    [INVSLOT_SHOULDER] = ns.IsMidnight,
     [INVSLOT_CHEST] = true,
     [INVSLOT_LEGS] = true,
     [INVSLOT_FEET] = true,
-    [INVSLOT_WRIST] = true,
+    [INVSLOT_WRIST] = not ns.IsMidnight,
     [INVSLOT_FINGER1] = true,
     [INVSLOT_FINGER2] = true,
-    [INVSLOT_BACK] = true,
+    [INVSLOT_BACK] = not ns.IsMidnight,
     [INVSLOT_MAINHAND] = true,
     [INVSLOT_OFFHAND] = true,
 }
@@ -264,6 +266,7 @@ end
 
 --功能附着
 hooksecurefunc("ShowInspectItemListFrame", function(unit, parent, itemLevel, maxLevel)
+    if PlayerIsTimerunning() then return end
     local frame = parent.inspectFrame
     if (not frame) then return end
     if (TinyInspectDB and TinyInspectDB.ShowGemAndEnchant) then

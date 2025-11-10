@@ -7,6 +7,8 @@ local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local LibSchedule = LibStub:GetLibrary("LibSchedule.7000")
 local LibItemInfo = LibStub:GetLibrary("LibItemInfo.7000")
 
+local ChatFrame_AddMessageEventFilter = ChatFrame_AddMessageEventFilter or ChatFrameUtil.AddMessageEventFilter
+
 local ARMOR = ARMOR or "Armor"
 local WEAPON = WEAPON or "Weapon"
 local MOUNTS = MOUNTS or "Mount"
@@ -45,9 +47,8 @@ local function GetItemLevelFrame(self, category)
         LibEvent:trigger("ITEMLEVEL_FRAME_CREATED", self.ItemLevelFrame, self)
     end
     if (TinyInspectDB and TinyInspectDB.EnableItemLevel) then
-        -- 移除讀取緩存，避免升級或轉化欄位出現不正常的裝等與部位 by Mili
-        -- self.ItemLevelFrame:Show()
-        -- LibEvent:trigger("ITEMLEVEL_FRAME_SHOWN", self.ItemLevelFrame, self, category or "")
+        self.ItemLevelFrame:Show()
+        LibEvent:trigger("ITEMLEVEL_FRAME_SHOWN", self.ItemLevelFrame, self, category or "")
     else
         self.ItemLevelFrame:Hide()
     end
@@ -80,7 +81,7 @@ local function SetItemSlotString(self, class, equipSlot, link)
             slotText = class
         elseif (link and C_Item.IsArtifactPowerItem(link)) then
             slotText = ARTIFACT_POWER
-        elseif (link and IsArtifactRelicItem(link)) then
+        elseif (link and C_ItemSocketInfo.IsArtifactRelicItem(link)) then
             slotText = RELICSLOT
         end
     end
@@ -215,7 +216,7 @@ hooksecurefunc("SetItemButtonQuality", function(self, quality, itemIDOrLink, sup
     if (itemIDOrLink) then
         local link
         --Artifact
-        if (IsArtifactRelicItem(itemIDOrLink) or C_Item.IsArtifactPowerItem(itemIDOrLink)) then
+        if (C_ItemSocketInfo.IsArtifactRelicItem(itemIDOrLink) or C_Item.IsArtifactPowerItem(itemIDOrLink)) then
             SetItemLevel(self)
         --QuestInfo
         elseif (self.type and self.objectType == "item") then
