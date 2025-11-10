@@ -167,8 +167,8 @@ L["The MOTHERLODE!!"] = "晶喜鎮"
 L["Operation: Floodgate"] = "水閘行動"
 L["Eco-Dome Al'dani"] = "埃達尼秘境"
 L["Halls of Atonement"] = "贖罪之殿"
-L["Tazavesh: So'leah's Gambit"] = "塔札維許的險招"
-L["Tazavesh: Streets of Wonder"] = "塔札維許街道"
+L["Tazavesh: So'leah's Gambit"] = "塔札維許：索利亞的險招"
+L["Tazavesh: Streets of Wonder"] = "塔札維許：奇觀街道"
 
 -- 自行加入
 L["Astral Keys"] = "M+ 鑰石名單"
