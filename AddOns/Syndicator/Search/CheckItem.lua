@@ -2336,7 +2336,7 @@ function Syndicator.Search.InitializeSearchEngine()
   if C_Item.GetItemClassInfo(20) then -- Housing
     local decorToCheck = {
       [0] = "decor",
-      [1] = "dye",
+      [1] = "housing dye",
       [2] = "room",
       [3] = "room customization",
       [4] = "exterior customization",

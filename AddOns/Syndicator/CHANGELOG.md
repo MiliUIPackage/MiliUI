@@ -1,6 +1,7 @@
 # Syndicator
 
-## [244](https://github.com/TheMouseNest/Syndicator/tree/244) (2025-10-15)
-[Full Changelog](https://github.com/TheMouseNest/Syndicator/compare/243...244) 
+## [246](https://github.com/TheMouseNest/Syndicator/tree/246) (2025-10-29)
+[Full Changelog](https://github.com/TheMouseNest/Syndicator/compare/245...246) 
 
-- Retail: Support searching for remix gear stats  
+- MoP: Update toc for 5.5.2  
+- Fixes for latest Midnight alpha  
