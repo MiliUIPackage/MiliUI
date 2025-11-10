@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2687, "DBM-Raids-WarWithin", 1, 1302)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20251016040912")
+mod:SetRevision("20251023043114")
 mod:SetCreatureID(233817)
 mod:SetEncounterID(3132)
 mod:SetHotfixNoticeRev(20250821000000)
@@ -112,7 +112,7 @@ local allTimers = {
 			--Void Tear
 			[1248133] = {21.5, 45.5, 14.4, 28.5, 14.4, 15},--14.4s can sometimes be 15.5
 			--Astral Harvest
-			[1228213] = {23.4, 46, 15.5, 28.9, 14.5, 15.5},
+			[1228213] = {23.4, 46, 14.5, 28.9, 14.5, 15.5},
 		},
 		[2] = {
 			--Overwhelming Power

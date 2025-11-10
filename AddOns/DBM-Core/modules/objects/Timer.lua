@@ -1517,6 +1517,7 @@ end
 --TODO, Fire callbacks instead and then have modules with their own checkbox determine if timers should start or not per boss level if blizzard ever provides spellIds/names
 --IE each boss will have a checkbox to enable/disable timers for that specific boss
 --TODO, make sure DBM core can track timers in startedTimers table?
+--TODO, re-enable icon when blizzard unfucks SetTexture
 --/run C_EncounterTimeline.AddEditModeEvents()
 function DBM:ENCOUNTER_TIMELINE_EVENT_ADDED(eventInfo, barState)
 	local source = eventInfo.source--(0-Encounter, 1-Script, 2-EditMode)
@@ -1528,7 +1529,7 @@ function DBM:ENCOUNTER_TIMELINE_EVENT_ADDED(eventInfo, barState)
 	local spellId = eventInfo.tooltipSpellID
 	local spellName = C_Spell.GetSpellName(spellId)--Must use blizzard fucntion, wrapper taints secret
 	local iconId = eventInfo.iconFileID
---	local dispelType = eventInfo.dispelType ("None", "Poison", "Magic", "Curse", "Disease")
+--	local effectType = eventInfo.dispelType ("None", "Poison", "Magic", "Curse", "Disease", "Enrage", "Bleed")
 --	local role = eventInfo.role ("None", "Tank", "Healer", "Damager")
 --	local priority = eventInfo.priority ("Normal", "Deadly")
 
@@ -1575,7 +1576,7 @@ function DBM:RecoverBlizzardTimers()
 		for _, v in ipairs(eventList) do
 			local eventId = C_EncounterTimeline.GetEventInfo(v)
 			local eventState = C_EncounterTimeline.GetEventState(v)
-			self:ENCOUNTER_TIMELINE_EVENT_ADDED(eventId, eventState)--Only flaw is we can't get the state of a bar
+			self:ENCOUNTER_TIMELINE_EVENT_ADDED(eventId, eventState)
 		end
 	end
 end

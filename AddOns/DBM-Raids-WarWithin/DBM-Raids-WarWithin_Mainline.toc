@@ -1,6 +1,6 @@
 ## Interface: 110205, 120000
 ## X-Min-Interface: 100206
-## Version: 12.0.1
+## Version: 12.0.2
 ## Category: DBM
 
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010Raids (WW)|r

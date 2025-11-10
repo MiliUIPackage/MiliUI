@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("DelveTrashCommon", "DBM-Delves-WarWithin")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250929050822")
+mod:SetRevision("20251023050431")
 mod:SetZone(DBM_DISABLE_ZONE_DETECTION)--Stays active in all zones for zone change handlers, but registers events based on dungeon ids
 local validZones = {[2664] = true, [2679] = true, [2680] = true, [2681] = true, [2683] = true, [2684] = true, [2685] = true, [2686] = true, [2687] = true, [2688] = true, [2689] = true, [2690] = true, [2767] = true, [2768] = true, [2815] = true, [2826] = true, [2803] = true, [2951] = true}
 for v, _ in pairs(validZones) do
@@ -1051,7 +1051,7 @@ function mod:StartEngageTimers(guid, cid, delay)
 	elseif cid == 244415 then--Pactsworn Dustblade
 		timerSandCrashCD:Start(9.8-delay, guid)
 	elseif cid == 244448 then--Invasive Phasecrawler
-		timerEssenceCleaveCD:Start(20-delay, guid)--Probably very wrong, single pull of data
+		timerEssenceCleaveCD:Start(6.8-delay, guid)
 		--timerGravityShatterCD:Start(10.6-delay, guid)
 	elseif cid == 244755 then--Nexus-Princess Ky'veza
 		timerDarkMassacreCD:Start(15.5-delay, guid)

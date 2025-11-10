@@ -76,16 +76,16 @@ end
 ---@class DBM
 local DBM = private:GetPrototype("DBM")
 _G.DBM = DBM
-DBM.Revision = parseCurseDate("20251016042852")
+DBM.Revision = parseCurseDate("20251101204125")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 local fakeBWVersion, fakeBWHash = 398, "3d79f92"--398.5
 local PForceDisable
 -- The string that is shown as version
-DBM.DisplayVersion = "12.0.1"--Core version
+DBM.DisplayVersion = "12.0.3"--Core version
 DBM.classicSubVersion = 0
 DBM.dungeonSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2025, 10, 16) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2025, 11, 1) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 PForceDisable = 19--When this is incremented, trigger force disable regardless of major patch
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -889,6 +889,9 @@ function DBM:MidRestrictionsActive(includeAuras)
 	if private.IsEncounterInProgress() or C_ChallengeMode.IsChallengeModeActive() then
 		return true
 	end
+	--if GetActiveMatchState() == 3 then--In active PVP match
+	--	return true
+	--end
 	--Comms and chat messages blocked. might be redundant to above but for good measure
 	if C_ChatInfo.InChatMessagingLockdown() then
 		return true
@@ -4575,7 +4578,11 @@ end
 do
 	local GetItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
 	local function checkForActualPull()
-		if (DBM.Options.RecordOnlyBosses and #inCombat == 0) or (not private.isRetail and difficulties.difficultyIndex ~= 8) then
+		-- We don't need to check `RecordOnlyBosses` as it's already checked in where this function is called
+		-- If you have more than 1 mob, keep logging
+		-- If you're in mythic+, keep logging
+		-- Otherwise, stop logging post-pull timer ended
+		if #inCombat == 0 and difficulties.difficultyIndex ~= 8 then
 			DBM:StopLogging()
 		end
 	end
@@ -7057,6 +7064,7 @@ do
 end
 
 do
+	--TODO, use GetUnitAuraBySpellID and GetUnitAuraBySpellName when possible for better performance
 	local UnitAura = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex or UnitAura
 	local GetPlayerAuraBySpellID = C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID
 	local GetAuraDataBySpellName = C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName
@@ -7725,22 +7733,22 @@ do
 				testSpecialWarning2 = testMod:NewSpecialWarning(" %s ", nil, nil, nil, 2, 2)
 				testSpecialWarning3 = testMod:NewSpecialWarning("  %s  ", nil, nil, nil, 3, 2) -- hack: non auto-generated special warnings need distinct names (we could go ahead and give them proper names with proper localization entries, but this is much easier)
 			end
-		testTimer1:Stop("測試條顯示5秒差異")
-		testTimer2:Stop("小怪")
-		testTimer3:Stop("惡魔減益")
-		testTimer4:Stop("重要的打斷")
-		testTimer5:Stop("蹦!")
-		testTimer6:Stop("掌握你的職責")
-		testTimer7:Stop("下一階段")
-		testTimer8:Stop("用戶自訂義條")
-		testTimer1:Start("v5-10", "測試條顯示5秒差異")
-		testTimer2:Start("v25-30", "小怪")
-		testTimer3:Start(43, "惡魔減益")
-		testTimer4:Start(20, "重要的打斷")
-		testTimer5:Start(60, "蹦!")
-		testTimer6:Start("v32-35", "掌握你的職責")
-		testTimer7:Start(50, "下一階段")
-		testTimer8:Start(55, "用戶自訂義條")
+			testTimer1:Stop("測試條顯示5秒差異")
+			testTimer2:Stop("小怪")
+			testTimer3:Stop("惡魔減益")
+			testTimer4:Stop("重要的打斷")
+			testTimer5:Stop("蹦!")
+			testTimer6:Stop("掌握你的職責")
+			testTimer7:Stop("下一階段")
+			testTimer8:Stop("用戶自訂義條")
+			testTimer1:Start("v5-10", "測試條顯示5秒差異")
+			testTimer2:Start("v25-30", "小怪")
+			testTimer3:Start(43, "惡魔減益")
+			testTimer4:Start(20, "重要的打斷")
+			testTimer5:Start(60, "蹦!")
+			testTimer6:Start("v32-35", "掌握你的職責")
+			testTimer7:Start(50, "下一階段")
+			testTimer8:Start(55, "用戶自訂義條")
 			testWarning1:Cancel()
 			testWarning2:Cancel()
 			testWarning3:Cancel()
@@ -7750,19 +7758,19 @@ do
 			testSpecialWarning2:CancelVoice()
 			testSpecialWarning3:Cancel()
 			testSpecialWarning3:CancelVoice()
-		testWarning1:Show("測試模式開始...")
-		testWarning1:Schedule(62, "測試模式已結束!")
-		testWarning3:Schedule(50, "10秒後爆炸!")
-		testWarning3:Schedule(20, "皮皮雷射貓頭鷹!")
-		testWarning2:Schedule(38, "惡魔法術5秒後!")
-		testWarning2:Schedule(43, "惡魔法術!")
-		testWarning1:Schedule(10, "測試條已過期!")
-		testSpecialWarning1:Schedule(20, "PiuPiu雷射貓頭鷹")
-		testSpecialWarning1:ScheduleVoice(20, "跑開人群")
-		testSpecialWarning2:Schedule(43, "恐懼!")
-		testSpecialWarning2:ScheduleVoice(43, "恐懼準備")
-		testSpecialWarning3:Schedule(60, "蹦!")
-		testSpecialWarning3:ScheduleVoice(60, "開啟減傷")
+			testWarning1:Show("測試模式開始...")
+			testWarning1:Schedule(62, "測試模式已結束!")
+			testWarning3:Schedule(50, "10秒後爆炸!")
+			testWarning3:Schedule(20, "皮皮雷射貓頭鷹!")
+			testWarning2:Schedule(38, "惡魔法術5秒後!")
+			testWarning2:Schedule(43, "惡魔法術!")
+			testWarning1:Schedule(10, "測試條已過期!")
+			testSpecialWarning1:Schedule(20, "PiuPiu雷射貓頭鷹")
+			testSpecialWarning1:ScheduleVoice(20, "跑開人群")
+			testSpecialWarning2:Schedule(43, "恐懼!")
+			testSpecialWarning2:ScheduleVoice(43, "恐懼準備")
+			testSpecialWarning3:Schedule(60, "蹦!")
+			testSpecialWarning3:ScheduleVoice(60, "開啟減傷")
 		end
 	end
 end
@@ -9422,7 +9430,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20251016042852" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20251101204125" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then
