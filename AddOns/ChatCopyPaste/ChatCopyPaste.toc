@@ -1,8 +1,8 @@
-## Interface: 11507, 40402, 50500, 110205
+## Interface: 11508, 40402, 50502, 110207
 ## Notes: A simple chat copy paste addon.
 ## Title: ChatCopyPaste
 ## Author: Novaspark-Arugal OCE
-## Version: 1.26
+## Version: 1.28
 ## SavedVariables: CCPOptions
 ## Title-zhTW: |cffFF9999[聊天]|r 複製聊天視窗文字與網址
 ## Notes-zhTW: ChatCopyPaste |n簡單的聊天增強，可點擊聊天視窗右下的剪刀圖示來複製對話，或點擊網址來複製網址。

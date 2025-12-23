@@ -350,15 +350,31 @@ function CCP:loadChatButtons()
 end
 
 --Add buttons to new frames as they load (whispers etc).
-hooksecurefunc("ChatFrame_OnLoad", function(...)
-	local frame = ...;
-	if (frame and frame.GetName) then
-		local num = string.match(frame:GetName(), "ChatFrame(%d+)");
-		if (num) then
-			CCP.makeChatWindowButtons(num);
-		end
-	end
-end)
+local function CCP_AddButtonsForChatFrame(frame)
+    if (not frame or not frame.GetName) then
+    	return
+    end
+
+    local name = frame:GetName();
+    if (not name) then
+    	return
+    end
+
+    local num = name:match("ChatFrame(%d+)");
+    if (num) then
+        CCP.makeChatWindowButtons(num);
+    end
+end
+
+if (type(ChatFrame_OnLoad) == "function") then
+    hooksecurefunc("ChatFrame_OnLoad", function(frame, ...)
+        CCP_AddButtonsForChatFrame(frame);
+    end)
+elseif (ChatFrameUtil and type(ChatFrameUtil.OnLoad) == "function") then
+    hooksecurefunc(ChatFrameUtil, "OnLoad", function(frame, ...)
+        CCP_AddButtonsForChatFrame(frame);
+    end)
+end
 
 --Clickable website links.
 local urlColorCode = "";
@@ -398,12 +414,21 @@ ChatFrame_AddMessageEventFilter("CHAT_MSG_RAID_WARNING", CCP.ccpChatWebLinks);
 
 
 --Hook the chat link click func.
-hooksecurefunc("ChatFrame_OnHyperlinkShow", function(...)
-	local chatFrame, link, text, button = ...;
-    if (link == "ccpCustomLink:url") then
-		CCP.createUrlLinkFrame(chatFrame, link, text, button);
-	end
-end)
+if (type(ChatFrame_OnHyperlinkShow) == "function") then
+    -- Pre-11.2.7 (or environments where the global still exists)
+    hooksecurefunc("ChatFrame_OnHyperlinkShow", function(chatFrame, link, text, button, ...)
+        if (link == "ccpCustomLink:url") then
+            CCP.createUrlLinkFrame(chatFrame, link, text, button);
+        end
+    end)
+else
+    -- Retail 11.2.7+ fallback: hook SetItemRef for our custom link
+    hooksecurefunc("SetItemRef", function(link, text, button, chatFrame, ...)
+        if (link == "ccpCustomLink:url") then
+            CCP.createUrlLinkFrame(chatFrame, link, text, button);
+        end
+    end)
+end
 
 --Thanks to Ellypse and TotalRP3 for helping with this.
 --Insert our custom link type into blizzards SetHyperlink() func.
@@ -444,7 +469,7 @@ function SlashCmdList.CCPOPTIONSCMD(msg, editBox)
 end
 
 CCP.options = {
-	name = "ChatCopyPaste v" .. GetAddOnMetadata("ChatCopyPaste", "Version"),
+	name = "ChatCopyPaste v" .. string.format("%.2f", GetAddOnMetadata("ChatCopyPaste", "Version")),
 	handler = CCP,
 	type = 'group',
 	args = {
