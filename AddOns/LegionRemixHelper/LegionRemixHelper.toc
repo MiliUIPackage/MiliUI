@@ -1,7 +1,7 @@
 ## Interface: 110205
 ## Version: 1.6.2
 ## Title: Legion Remix Helper
-## Title-zhTW: 軍團混搭再造助手
+## Title-zhTW: |cffffffff[其他]|r 軍團混搭再造助手
 ## Author: Rasu | Larsj_02
 ## DefaultState: enabled
 ## IconTexture: Interface\Addons\LegionRemixHelper\Media\Textures\logo.tga
