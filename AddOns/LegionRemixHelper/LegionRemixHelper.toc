@@ -1,0 +1,13 @@
+## Interface: 110205
+## Version: 1.6.2
+## Title: Legion Remix Helper
+## Title-zhTW: 軍團混搭再造助手
+## Author: Rasu | Larsj_02
+## DefaultState: enabled
+## IconTexture: Interface\Addons\LegionRemixHelper\Media\Textures\logo.tga
+## SavedVariables: LegionRemixHelperDB
+## SavedVariablesPerCharacter: LegionRemixHelperCharDB
+## X-Curse-Project-ID: 1352479
+## X-Wago-ID: aNDmz26o
+
+embed.xml
