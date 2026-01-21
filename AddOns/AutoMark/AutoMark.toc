@@ -1,4 +1,4 @@
-## Interface: 110200, 110205
+## Interface: 110200, 120000
 ## Title: |cff00ff00Auto Mark|r
 ## Notes: Auto Mark
 ## Title-zhTW: |cffFF7F00[副本]|r 自動標記

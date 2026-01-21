@@ -1,4 +1,4 @@
-## Interface: 110205
+## Interface: 120000
 ## Title: Mythic+ Miscellaneous
 ## Author: Teelo - Jubei'thos (US)
 ## Version: 11.2-008

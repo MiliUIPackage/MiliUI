@@ -1,4 +1,4 @@
-## Interface: 110205, 120000
+## Interface: 120000, 120000
 ## Category: DBM
 ## Title:|cffffe00a<|r|cffff7d0aDBM Tests|r|cffffe00a>|r |cff69ccf0Tests for The War Within mods|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM 測試|r|cffffe00a>|r |cff69ccf0地心之戰的測試模組|r

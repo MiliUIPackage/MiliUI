@@ -1,4 +1,4 @@
-## Interface: 110205
+## Interface: 120000
 ## Title: Stuf_Options
 ## Author: TotalPackage
 ## Notes: Configuration Menu for Stuf.

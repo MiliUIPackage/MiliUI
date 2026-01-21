@@ -1,4 +1,4 @@
-## Interface: 110205
+## Interface: 120000
 ## Title: Masque: |cffffffffFlatSquares|r
 ## Version: 1.0.9
 ## Author: ccfreak

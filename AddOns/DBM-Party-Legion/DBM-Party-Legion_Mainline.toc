@@ -1,4 +1,4 @@
-## Interface: 110205
+## Interface: 120000
 ## X-Min-Interface: 80000
 ## Category: DBM
 

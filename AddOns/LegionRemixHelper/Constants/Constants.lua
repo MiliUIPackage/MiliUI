@@ -12,7 +12,7 @@ constants.ADDON_NAME = ADDON_NAME
 constants.ADDON_VERSION = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version")
 constants.ADDON_MEDIA_PATH = [[Interface\AddOns\]] .. constants.ADDON_NAME .. [[\Media]]
 constants.INTERFACE_VERSION = select(4, GetBuildInfo())
-constants.IS_REMIX_VERSION = (constants.INTERFACE_VERSION >= 110205)
+constants.IS_REMIX_VERSION = (constants.INTERFACE_VERSION >= 120000)
 
 constants.MEDIA = {
     TEXTURES = {

@@ -1,4 +1,4 @@
-## Interface: 110205
+## Interface: 120000
 ## Title: Method Raid Tools
 ## Author: ykiigor
 ## Notes: Method Raid Tools
