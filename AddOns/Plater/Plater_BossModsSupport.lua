@@ -18,6 +18,10 @@ local C_NamePlate = _G.C_NamePlate
 local GetTime = _G.GetTime
 local LCG = LibStub:GetLibrary("LibCustomGlow-1.0")
 
+
+local IS_WOW_PROJECT_MAINLINE = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
+local IS_WOW_PROJECT_MIDNIGHT = DF.IsAddonApocalypseWow()
+
 local UNIT_BOSS_MOD_AURAS_ACTIVE = {} --contains for each [GUID] a list of {texture, duration, desaturate}
 local UNIT_BOSS_MOD_AURAS_TO_BE_REMOVED = {} --contains for each [GUID] a list of texture-ids to be removed
 local UNIT_BOSS_MOD_BARS = {} --contains for each [GUID] the bar information
@@ -233,11 +237,12 @@ function Plater.UpdateBossModAuraFrameSettings(unitFrame, refreshID)
 end
 
 function Plater.EnsureUpdateBossModAuras(guid)
-	if not guid then return end
+	if IS_WOW_PROJECT_MIDNIGHT or not guid then return end
 	UNIT_BOSS_MOD_NEEDS_UPDATE_IN[guid] = -1
 end
 
 function Plater.UpdateBossModAuras(unitFrame)
+	if IS_WOW_PROJECT_MIDNIGHT then return end
 
 	Plater.StartLogPerformanceCore("Plater-Core", "Update", "UpdateBossModAuras")
 
@@ -453,7 +458,7 @@ end
 
 
 function Plater.RegisterBossModAuras()
-	if IS_REGISTERED then return end
+	if IS_REGISTERED or IS_WOW_PROJECT_MIDNIGHT then return end
 
 	if Plater.db.profile.bossmod_support_enabled then
 		if DBM and DBM.RegisterCallback then

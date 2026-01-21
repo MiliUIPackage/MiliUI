@@ -141,7 +141,9 @@ function SlashCmdList.PLATER (msg, editbox)
 
 	elseif (msg == "npcs" or msg == "ids") then
 
-
+	elseif (msg == "editmode") then
+		Plater.ToggleDesignerWindow() --not yet
+		return
 
 	--elseif (msg == "add" or msg == "addnpc") then
 	elseif (msg and (msg:find("^add") or msg:find("^addnpc"))) then
@@ -292,6 +294,11 @@ function SlashCmdList.PLATER (msg, editbox)
 	elseif (msg and msg:find("^resetcvar[s]?")) then
 		Plater.ResetCVars(msg:gsub("^cvar[s]? ?", ""))
 		return
+	
+	elseif (msg == "uninstall") then
+		Plater.ResetCVars()
+		C_AddOns.DisableAddOn("Plater", UnitName("player"))
+		ReloadUI()
 
 	elseif msg ~= "" then
 		local usage = "Usage Info:"

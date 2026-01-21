@@ -6,6 +6,9 @@ local Plater = Plater
 local DF = DetailsFramework
 local _
 
+local IS_WOW_PROJECT_MAINLINE = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
+local IS_WOW_PROJECT_MIDNIGHT = DF.IsAddonApocalypseWow()
+
 function platerInternal.CreateCastBarOptions()
     if platerInternal.LoadOnDemand_IsLoaded.CastOptions then return end
 
@@ -481,6 +484,22 @@ function platerInternal.CreateCastBarOptions()
         {
             type = "color",
             get = function()
+                local color = Plater.db.profile.cast_statusbar_color_important
+                return {color[1], color[2], color[3], color[4]}
+            end,
+            set = function (self, r, g, b, a)
+                local color = Plater.db.profile.cast_statusbar_color_important
+                color[1], color[2], color[3], color[4] = r, g, b, a
+                Plater.UpdateAllPlates()
+                Plater.DoCastBarTest (true)
+            end,
+            name = "Important",
+            desc = "Important",
+            hidden = not IS_WOW_PROJECT_MIDNIGHT,
+        },
+        {
+            type = "color",
+            get = function()
                 local color = Plater.db.profile.cast_statusbar_color_nointerrupt
                 return {color[1], color[2], color[3], color[4]}
             end,
@@ -563,6 +582,7 @@ function platerInternal.CreateCastBarOptions()
             end,
             name = "OPTIONS_CAST_SHOW_TARGETNAME_TANK",
             desc = "OPTIONS_CAST_SHOW_TARGETNAME_TANK_DESC",
+            hidden = IS_WOW_PROJECT_MIDNIGHT,
         },
 
         {

@@ -520,7 +520,7 @@ L["OPTIONS_THREAT_USE_AGGRO_FLASH"] = "Enable aggro flash"
 --[[Translation missing --]]
 L["OPTIONS_THREAT_USE_AGGRO_FLASH_DESC"] = "Enables the -AGGRO- flash animation on the nameplates when gaining aggro as dps."
 --[[Translation missing --]]
-L["OPTIONS_THREAT_USE_AGGRO_GLOW"] = "Enable aggro glow"
+L["OPTIONS_THREAT_USE_AGGRO_GLOW"] = "Enable health bar aggro glow"
 --[[Translation missing --]]
 L["OPTIONS_THREAT_USE_AGGRO_GLOW_DESC"] = "Enables the healthbar glow on the nameplates when gaining aggro as dps or losing aggro as tank."
 --[[Translation missing --]]

@@ -14,7 +14,6 @@
 ---@field CurrentUnitNameString fontstring
 ---@field debugAreaTexture texture
 ---@field debugAreaText fontstring
----@field FadedIn boolean
 ---@field FocusIndicator texture
 ---@field HasUpdateScheduled ctimer
 ---@field isFriend boolean
@@ -70,10 +69,87 @@
 ---@field encounterID number?
 ---@field encounterName string?
 
----@class unitframe : table
----@field healthBar table
----@field castBar table
----@field powerBar table
+---@class unitframe : df_unitframe
+---@field namePlateUnitToken string
+---@field targetUnitID string
+---@field nameplateScaleAdjust number
+---@field HasHideHookRegistered boolean
+---@field isPerformanceUnit boolean
+---@field isPerformanceUnitAura boolean
+---@field isPerformanceUnitThreat boolean
+---@field isPerformanceUnitCast boolean
+---@field hasUnitTypeColor boolean true when the unit frame is using a color from the unit type coloring feature in midnight
+---@field DenyColorChange boolean
+---@field IsSelf boolean
+---@field isPlayer boolean
+---@field QuestAmountCurrent number?
+---@field QuestAmountTotal number?
+---@field QuestText string?
+---@field QuestName string?
+---@field QuestIsCampaign boolean
+---@field customHealthBarWidth number?
+---@field customHealthBarHeight number?
+---@field customCastBarWidth number?
+---@field customCastBarHeight number?
+---@field customPowerBarWidth number?
+---@field customPowerBarHeight number?
+---@field customBorderColor number[]?
+---@field UsingCustomColor boolean
+---@field isWidgetOnlyMode boolean
+---@field isBattlePet boolean
+---@field InExecuteRange boolean
+---@field IsInRange boolean
+---@field ScheduleNameUpdate boolean
+---@field InCombat boolean
+---@field unitNameInternal string
+---@field namePlateThreatPercent number
+---@field namePlateThreatIsTanking boolean?
+---@field namePlateThreatStatus number?
+---@field namePlateThreatOffTankIsTanking boolean
+---@field namePlateThreatOffTankName string?
+---@field healthBar healthbar
+---@field castBar castbar
+---@field powerBar df_powerbar
+---@field FocusIndicator texture
+---@field ExtraIconFrame df_iconrow
+---@field BuffFrame buffframe
+---@field BuffFrame2 buffframe
+---@field TargetNeonUp texture
+---@field TargetNeonDown texture
+---@field targetOverlayTexture texture
+---@field PlaterRaidTargetFrame frame
+---@field RaidTargetIcon texture
+---@field TargetTextures2Sides texture[]
+---@field TargetTextures4Sides texture[]
+---@field CustomIndicators texture[]
+
+---@class castbar : df_castbar
+---@field TargetName fontstring
+
+---@class healthbar : df_healthbar
+---@field A number?
+---@field R number?
+---@field G number?
+---@field B number?
+---@field IsAnimating boolean
+---@field actorLevel fontstring
+---@field lifePercent fontstring
+---@field FrameOverlay texture
+---@field DetailsRealTime fontstring
+---@field DetailsRealTimeFromPlayer fontstring
+---@field DetailsDamageTaken fontstring
+---@field FocusIndicator texture
+---@field healthCutOff texture
+---@field ExecuteRangeHealthCutOff texture
+---@field shieldIndicator texture
+---@field executeRange texture
+---@field executeRangeUpper texture
+---@field ExecuteGlowUp texture
+---@field ExecuteGlowDown texture
+---@field ExecuteGlowUpperUp texture
+---@field ExecuteGlowUpperDown texture
+---@field ExtraRaidMark texture
+
 
 ---@class npccolordb : {[number]: npccolortable} dictionary of npccolortable indexed by npcId
 ---@class npccolortable : {key1: boolean, key2: boolean, key3: string} [1] enabled [2] scriptOnly [3] colorID
@@ -166,6 +242,7 @@
 ---@field GetHealthCutoffValue fun() update the execute range by the class, spec and talents the player is using
 ---@field CheckRange fun(plateFrame: table, onAdded: boolean) check if the nameplate is in range and update the alpha
 ---@field PlayAudioForScript fun(canUseScriptAudio: boolean, audioFilePath: string, envTable: scriptenv) play an audio for a script
+---@field UpdateCastbarTargetText fun(castBar: castbar, targetFontString: fontstring?) update the castbar target text settings, if targetFontString is provided it will update that fontstring instead of the default one
 
 ---@class scriptenv : table
 ---@field _SpellID number

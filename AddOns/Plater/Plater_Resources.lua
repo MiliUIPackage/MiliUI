@@ -12,6 +12,7 @@ local IS_WOW_PROJECT_NOT_MAINLINE = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE
 local IS_WOW_PROJECT_CLASSIC_ERA = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 local IS_WOW_PROJECT_CLASSIC_WRATH = IS_WOW_PROJECT_NOT_MAINLINE and ClassicExpansionAtLeast and LE_EXPANSION_WRATH_OF_THE_LICH_KING and ClassicExpansionAtLeast(LE_EXPANSION_WRATH_OF_THE_LICH_KING)
 --local IS_WOW_PROJECT_CLASSIC_CATACLYSM = IS_WOW_PROJECT_NOT_MAINLINE and ClassicExpansionAtLeast and LE_EXPANSION_CATACLYSM and ClassicExpansionAtLeast(LE_EXPANSION_CATACLYSM)
+local IS_WOW_PROJECT_MIDNIGHT = DF.IsAddonApocalypseWow()
 
 local PlayerClass = select(2, UnitClass("player"))
 
@@ -249,7 +250,7 @@ end
 		--resourceGlobalSettings: where options for all resources are stored
 		local resourceGlobalSettings = profile.resources_settings.global_settings
 
-		DB_USE_PLATER_RESOURCE_BAR = resourceGlobalSettings.show
+		DB_USE_PLATER_RESOURCE_BAR = resourceGlobalSettings.show or false
 		DB_PLATER_RESOURCE_BAR_ON_PERSONAL = resourceGlobalSettings.personal_bar
 		DB_PLATER_RESOURCE_BAR_ANCHOR = resourceGlobalSettings.anchor
 		--DB_PLATER_RESOURCE_BAR_HEIGHT = resourceGlobalSettings.width
@@ -1172,7 +1173,7 @@ end
 
 		--amount of resources the player has now
 		local currentResources
-		if Plater.PlayerHasTargetNonSelf then
+		if Plater.PlayerHasTargetNonSelf and IS_WOW_PROJECT_NOT_MAINLINE then
 			currentResources = GetComboPoints("player", "target")
 		else
 			currentResources = UnitPower("player", Plater.Resources.playerResourceId)

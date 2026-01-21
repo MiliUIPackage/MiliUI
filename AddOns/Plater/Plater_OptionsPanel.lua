@@ -6,6 +6,7 @@ local DF = DetailsFramework
 local LibSharedMedia = LibStub:GetLibrary ("LibSharedMedia-3.0")
 local LibRangeCheck = LibStub:GetLibrary ("LibRangeCheck-3.0")
 local _
+local IsBetaBuild = IsBetaBuild or function() return false end
 
 local IS_WOW_PROJECT_MAINLINE = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 local IS_WOW_PROJECT_NOT_MAINLINE = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE
@@ -13,6 +14,7 @@ local IS_WOW_PROJECT_CLASSIC_ERA = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 local IS_WOW_PROJECT_CLASSIC_TBC = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC
 local IS_WOW_PROJECT_CLASSIC_WRATH = IS_WOW_PROJECT_NOT_MAINLINE and ClassicExpansionAtLeast and LE_EXPANSION_WRATH_OF_THE_LICH_KING and ClassicExpansionAtLeast(LE_EXPANSION_WRATH_OF_THE_LICH_KING)
 --local IS_WOW_PROJECT_CLASSIC_CATACLYSM = IS_WOW_PROJECT_NOT_MAINLINE and ClassicExpansionAtLeast and LE_EXPANSION_CATACLYSM and ClassicExpansionAtLeast(LE_EXPANSION_CATACLYSM)
+local IS_WOW_PROJECT_MIDNIGHT = DF.IsAddonApocalypseWow()
 
 local PixelUtil = PixelUtil or DFPixelUtil
 
@@ -518,6 +520,8 @@ function Plater.OpenOptionsPanel(pageNumber, bIgnoreLazyLoad)
 		{name = "SearchFrame", text = "OPTIONS_TABNAME_SEARCH", createOnDemandFunc = platerInternal.CreateSearchOptions},
 		{name = "PluginsFrame", text = "Plugins"}, --localize-me
 		{name = "BossModConfig", text = "Boss-Mods", createOnDemandFunc = platerInternal.CreateBossModOptions}, --localize-me
+		{name = "Designer", text = "Designer", createOnDemandFunc = Plater.CreateDesignerWindow}, --localize-me
+		--{name = "ProfileSelector", text = "Templates", createOnDemandFunc = Plater.CreateDesignerWindow}, --localize-me
 		
 	}, 
 	frame_options, hookList, languageInfo)
@@ -633,6 +637,7 @@ function Plater.OpenOptionsPanel(pageNumber, bIgnoreLazyLoad)
 	local searchFrame			= mainFrame.AllFrames [26]
 	local pluginsFrame			= mainFrame.AllFrames [27]
 	local bossModFrame			= mainFrame.AllFrames [28]
+	local profileTemplatesFrame	= mainFrame.AllFrames [29]; platerInternal.TemplateFrameIndex = 29; --profile templates
 
 	local scriptButton		= mainFrame.AllButtons [6] --also need update on ~changeindex1 and ~changeindex2
 	local modButton		 	= mainFrame.AllButtons [7]
@@ -1968,7 +1973,7 @@ local debuff_options = {
 	
 	{type = "blank"},
 
-	{type = "label", get = function() return "Automatic Aura Tracking:" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE")},
+	{type = "label", get = function() return "Automatic Aura Tracking:" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE"), hidden = IS_WOW_PROJECT_MIDNIGHT},
 
 	{
 		type = "toggle",
@@ -1980,7 +1985,8 @@ local debuff_options = {
 			Plater.UpdateAllPlates()
 		end,
 		name = "Show Auras Casted by You",
-		desc = "Show Auras Casted by You.",
+		desc = "Show Auras Casted by You and your pets.",
+		--hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	
 	{
@@ -1994,6 +2000,7 @@ local debuff_options = {
 		end,
 		name = "Show Auras Casted by other Players",
 		desc = "Show Auras Casted by other Players.\n\n|cFFFFFF00 Important |r: This may cause a lot of auras to show!",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 
 	{type = "blank"},
@@ -2009,6 +2016,7 @@ local debuff_options = {
 		end,
 		name = "Show Important Auras",
 		desc = "Show buffs and debuffs which the game tag as important.",
+		--hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	
 	{
@@ -2022,6 +2030,7 @@ local debuff_options = {
 		end,
 		name = "Show Dispellable Buffs",
 		desc = "Show auras which can be dispelled or stolen.",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	
 	{
@@ -2035,6 +2044,7 @@ local debuff_options = {
 		end,
 		name = "Only short Dispellable Buffs on Players",
 		desc = "Show auras which can be dispelled or stolen on players if they are below 120sec duration (only applicable when 'Show Dispellable Buffs' is enabled).",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	
 	{
@@ -2048,6 +2058,7 @@ local debuff_options = {
 		end,
 		name = "Show Enrage Buffs",
 		desc = "Show auras which are in the enrage category.",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	
 	{
@@ -2061,6 +2072,7 @@ local debuff_options = {
 		end,
 		name = "Show Magic Buffs",
 		desc = "Show auras which are in the magic type category.",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	
 	{
@@ -2074,6 +2086,7 @@ local debuff_options = {
 		end,
 		name = "Show Crowd Control",
 		desc = "Show crowd control effects.",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	
 	{type = "blank"},
@@ -2089,6 +2102,7 @@ local debuff_options = {
 		end,
 		name = "Show Buffs Casted by the NPC",
 		desc = "Show Buffs Casted by the NPC itself",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	{
 		type = "toggle",
@@ -2101,6 +2115,7 @@ local debuff_options = {
 		end,
 		name = "Show Debuffs Casted by the NPC",
 		desc = "Show Debuffs Casted by the NPC itself",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	{
 		type = "toggle",
@@ -2113,6 +2128,7 @@ local debuff_options = {
 		end,
 		name = "Show Auras Casted by other NPCs",
 		desc = "Show Auras Casted not from players and not from the unit itself.\n\n|cFFFFFF00 Important |r: This may cause a lot of auras to show!",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	
 	{type = "blank"},
@@ -2128,6 +2144,7 @@ local debuff_options = {
 		end,
 		name = "Show offensive player CDs",
 		desc = "Show offensive CDs on enemy/friendly players.",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	
 	{
@@ -2141,6 +2158,7 @@ local debuff_options = {
 		end,
 		name = "Show defensive player CDs",
 		desc = "Show defensive CDs on enemy/friendly players.",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	
 	{type = "breakline"},
@@ -2380,6 +2398,7 @@ local debuff_options = {
 		end,
 		name = "Important Auras Border Color",
 		desc = "Important Auras Border Color",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	{
 		type = "color",
@@ -2395,6 +2414,7 @@ local debuff_options = {
 		end,
 		name = "Dispellable Buffs Border Color",
 		desc = "Dispellable Buffs Border Color",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	{
 		type = "color",
@@ -2410,6 +2430,7 @@ local debuff_options = {
 		end,
 		name = "Enrage Buffs Border Color",
 		desc = "Enrage Buffs Border Color",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	--border color is buff
 	{
@@ -2426,6 +2447,22 @@ local debuff_options = {
 		end,
 		name = "Buffs Border Color",
 		desc = "Buffs Border Color",
+	},
+		--border color is debuff
+	{
+		type = "color",
+		boxfirst = true,
+		get = function()
+			local color = Plater.db.profile.aura_border_colors.is_debuff
+			return {color[1], color[2], color[3], color[4]}
+		end,
+		set = function (self, r, g, b, a) 
+			local color = Plater.db.profile.aura_border_colors.is_debuff
+			color[1], color[2], color[3], color[4] = r, g, b, a
+			Plater.UpdateAllPlates()
+		end,
+		name = "Debuffs Border Color",
+		desc = "Debuffs Border Color",
 	},
 	--border color is offensive
 	{
@@ -2458,6 +2495,7 @@ local debuff_options = {
 		end,
 		name = "Offensive CD Border Color",
 		desc = "Offensive CD Border Color",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	--border color is offensive
 	{
@@ -2474,6 +2512,7 @@ local debuff_options = {
 		end,
 		name = "Defensive CD Border Color",
 		desc = "Defensive CD Border Color",
+		hidden = IS_WOW_PROJECT_MIDNIGHT,
 	},
 	--border color is default
 	{
@@ -2838,7 +2877,9 @@ Plater.CreateAuraTesting()
 	auraFilterFrame:SetSize (f:GetWidth(), f:GetHeight() + startY)
 
 	auraFilterFrame:SetScript("OnShow", function()
-		DF:LoadSpellCache(Plater.SpellHashTable, Plater.SpellIndexTable, Plater.SpellSameNameTable)
+		if not IsBetaBuild() then
+			DF:LoadSpellCache(Plater.SpellHashTable, Plater.SpellIndexTable, Plater.SpellSameNameTable)
+		end
 	end)
 	auraFilterFrame:SetScript("OnHide", function()
 		--DF:UnloadSpellCache()
@@ -3651,7 +3692,9 @@ Plater.CreateAuraTesting()
 		
 		specialAuraFrame:SetScript ("OnShow", function()
 			special_auras_added:Refresh()
-			DF:LoadSpellCache(Plater.SpellHashTable, Plater.SpellIndexTable, Plater.SpellSameNameTable)
+			if not IsBetaBuild() then
+				DF:LoadSpellCache(Plater.SpellHashTable, Plater.SpellIndexTable, Plater.SpellSameNameTable)
+			end
 		end)
 		specialAuraFrame:SetScript ("OnHide", function()
 			--DF:UnloadSpellCache()
@@ -3930,7 +3973,7 @@ do
 		
 		--{type = "blank"},
 	
-		{type = "label", get = function() return "Personal Bar Constrain:" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE")},
+		{type = "label", get = function() return "Personal Bar Constrain:" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE"), hidden = IS_WOW_PROJECT_MIDNIGHT},
 		
 		{
 			type = "execute",
@@ -3942,17 +3985,18 @@ do
 			name = "Reset to Automatic Position" .. CVarIcon,
 			nocombat = true,
 			width = 140,
+			hidden = IS_WOW_PROJECT_MIDNIGHT,
 		},
 		
 		{
 			type = "range",
-			get = function() return tonumber (GetCVar ("nameplateSelfBottomInset")*100) end,
+			get = function() return tonumber (GetCVar ("nameplateSelfBottomInset")) or 0 * 100 end,
 			set = function (self, fixedparam, value) 
 				--Plater.db.profile.plate_config.player.y_position_offset = value
 
 				if (InCombatLockdown()) then
 					Plater:Msg (L["OPTIONS_ERROR_CVARMODIFY"])
-					self:SetValue (tonumber (GetCVar ("nameplateSelfBottomInset")*100))
+					self:SetValue (tonumber (GetCVar ("nameplateSelfBottomInset")) or 0 * 100)
 					return
 				end
 
@@ -4010,6 +4054,7 @@ do
 			nocombat = true,
 			name = "Fixed Position" .. CVarIcon,
 			desc = "With a fixed position, personal bar won't move.\n\nTo revert this, click the button above." .. CVarDesc,
+			hidden = IS_WOW_PROJECT_MIDNIGHT,
 		},
 		
 		--{type = "blank"},
@@ -5380,6 +5425,23 @@ local relevance_options = {
 			desc = "OPTIONS_NAMEPLATE_SHOW_FRIENDLY_DESC",
 			nocombat = true,
 		},
+
+		{
+			type = "toggle",
+			boxfirst = true,
+			get = function() return GetCVarBool ("nameplateShowOnlyNameForFriendlyPlayerUnits") end,
+			set = function (self, fixedparam, value) 
+				if (not InCombatLockdown()) then
+					SetCVar ("nameplateShowOnlyNameForFriendlyPlayerUnits", value and "1" or "0")
+				else
+					Plater:Msg (L["OPTIONS_ERROR_CVARMODIFY"])
+					self:SetValue (GetCVarBool ("nameplateShowOnlyNameForFriendlyPlayerUnits"))
+				end
+			end,
+			name = "Hide Friendly Health Bar", --show friendly nameplates
+			desc = "Hide Friendly Health Bar\nCVar: nameplateShowOnlyNameForFriendlyPlayerUnits",
+			nocombat = true,
+		},
 		
 		{
 			type = "toggle",
@@ -5403,6 +5465,26 @@ local relevance_options = {
 		{
 			type = "toggle",
 			boxfirst = true,
+			get = function() return GetCVarBool ("nameplateUseClassColorForFriendlyPlayerUnitNames") end,
+			set = function (self, fixedparam, value) 
+				if (not InCombatLockdown()) then
+					SetCVar ("nameplateUseClassColorForFriendlyPlayerUnitNames", value and "1" or "0")
+				else
+					Plater:Msg (L["OPTIONS_ERROR_CVARMODIFY"])
+					self:SetValue (GetCVarBool ("nameplateUseClassColorForFriendlyPlayerUnitNames"))
+				end
+
+				Plater.UpdateBaseNameplateOptions()
+			end,
+			name = "Class-Color Blizzard Names",
+			desc = "Class coloring for blizzard nameplate names",
+			nocombat = true,
+			hidden = not IS_WOW_PROJECT_MIDNIGHT,
+		},
+		
+		{
+			type = "toggle",
+			boxfirst = true,
 			get = function() return GetCVar ("nameplateShowSelf") == CVAR_ENABLED end,
 			set = function (self, fixedparam, value) 
 				if (not InCombatLockdown()) then
@@ -5415,7 +5497,7 @@ local relevance_options = {
 			name = "OPTIONS_CVAR_ENABLE_PERSONAL_BAR",
 			desc = "OPTIONS_CVAR_ENABLE_PERSONAL_BAR_DESC",
 			nocombat = true,
-			hidden = IS_WOW_PROJECT_NOT_MAINLINE,
+			hidden = IS_WOW_PROJECT_NOT_MAINLINE or IS_WOW_PROJECT_MIDNIGHT,
 		},
 		{
 			type = "toggle",
@@ -5451,38 +5533,6 @@ local relevance_options = {
 			desc = "OPTIONS_CVAR_NAMEPLATES_ALWAYSSHOW_DESC",
 			nocombat = true,
 		},
-
-		{
-			type = "toggle",
-			boxfirst = true,
-			get = function() return Plater.db.profile.honor_blizzard_plate_alpha end,
-			set = function (self, fixedparam, value) 
-				Plater.db.profile.honor_blizzard_plate_alpha = value
-				Plater.UpdateAllPlates()
-			end,
-			name = "Use Blizzard's Nameplate Alpha",
-			desc = "Use the 'occluded' and other blizzard nameplate alpha values from blizzard settings.\n\nThis setting only works with 'Use custom strata channels' enabled.",
-			id = "transparency_blizzard_alpha",
-		},
-		{
-			type = "range",
-			get = function() return tonumber (GetCVar ("nameplateOccludedAlphaMult")) end,
-			set = function (self, fixedparam, value) 
-				if (not InCombatLockdown()) then
-					SetCVar ("nameplateOccludedAlphaMult", value)
-				else
-					Plater:Msg (L["OPTIONS_ERROR_CVARMODIFY"])
-				end
-			end,
-			min = 0,
-			max = 1,
-			step = 0.1,
-			thumbscale = 1.7,
-			usedecimals = true,
-			name = "Occluded Alpha Multiplier" .. CVarIcon,
-			desc = "Alpha multiplyer for 'occluded' plates (when they are not in line of sight)." .. CVarDesc,
-			nocombat = true,
-		},
 		
 		{type = "blank"},
 		
@@ -5502,6 +5552,45 @@ local relevance_options = {
 			name = "OPTIONS_NAMEPLATES_STACKING",
 			desc = "OPTIONS_NAMEPLATES_STACKING_DESC",
 			nocombat = true,
+			hidden = IS_WOW_PROJECT_MIDNIGHT,
+		},
+		
+		{
+			type = "toggle",
+			boxfirst = true,
+			get = function() return C_CVar.GetCVarBitfield("nameplateStackingTypes", Enum.NamePlateStackType.Enemy) end,
+			set = function (self, fixedparam, value) 
+				if (not InCombatLockdown()) then
+					C_CVar.SetCVarBitfield("nameplateStackingTypes", Enum.NamePlateStackType.Enemy, value and true or false)
+					Plater.db.profile.stacking_nameplates_enabled = C_CVar.GetCVarBitfield("nameplateStackingTypes", Enum.NamePlateStackType.Enemy) or C_CVar.GetCVarBitfield("nameplateStackingTypes", Enum.NamePlateStackType.Friendly)
+				else
+					Plater:Msg (L["OPTIONS_ERROR_CVARMODIFY"])
+					self:SetValue (C_CVar.GetCVarBitfield("nameplateStackingTypes", Enum.NamePlateStackType.Enemy))
+				end
+			end,
+			name = "Stacking Enemy Nameplates",
+			desc = "OPTIONS_NAMEPLATES_STACKING_DESC",
+			nocombat = true,
+			hidden = not IS_WOW_PROJECT_MIDNIGHT,
+		},
+		
+		{
+			type = "toggle",
+			boxfirst = true,
+			get = function() return C_CVar.GetCVarBitfield("nameplateStackingTypes", Enum.NamePlateStackType.Friendly) end,
+			set = function (self, fixedparam, value) 
+				if (not InCombatLockdown()) then
+					C_CVar.SetCVarBitfield("nameplateStackingTypes", Enum.NamePlateStackType.Friendly, value and true or false)
+					Plater.db.profile.stacking_nameplates_enabled = C_CVar.GetCVarBitfield("nameplateStackingTypes", Enum.NamePlateStackType.Enemy) or C_CVar.GetCVarBitfield("nameplateStackingTypes", Enum.NamePlateStackType.Friendly)
+				else
+					Plater:Msg (L["OPTIONS_ERROR_CVARMODIFY"])
+					self:SetValue (C_CVar.GetCVarBitfield("nameplateStackingTypes", Enum.NamePlateStackType.Friendly))
+				end
+			end,
+			name = "Stacking Friendly Nameplates",
+			desc = "OPTIONS_NAMEPLATES_STACKING_DESC",
+			nocombat = true,
+			hidden = not IS_WOW_PROJECT_MIDNIGHT,
 		},
 		
 		{
@@ -5522,7 +5611,10 @@ local relevance_options = {
 			name = "OPTIONS_NAMEPLATES_OVERLAP",
 			desc = "OPTIONS_NAMEPLATES_OVERLAP_DESC",
 			nocombat = true,
+			hidden = IS_WOW_PROJECT_MIDNIGHT,
 		},
+		
+		{type = "blank", hidden = not IS_WOW_PROJECT_MIDNIGHT},
 		
 		{
 			type = "range",
@@ -5856,6 +5948,42 @@ local relevance_options = {
 		},
 
 		{type = "blank"},
+
+		{
+			type = "toggle",
+			boxfirst = true,
+			get = function() return Plater.db.profile.honor_blizzard_plate_alpha end,
+			set = function (self, fixedparam, value) 
+				Plater.db.profile.honor_blizzard_plate_alpha = value
+				Plater.UpdateAllPlates()
+			end,
+			name = "Use Blizzard's Nameplate Alpha",
+			desc = "Use the 'occluded' and other blizzard nameplate alpha values from blizzard settings.\n\nThis setting only works with 'Use custom strata channels' enabled.",
+			id = "transparency_blizzard_alpha",
+		},
+
+		{
+			type = "range",
+			get = function() return tonumber (GetCVar ("nameplateOccludedAlphaMult")) end,
+			set = function (self, fixedparam, value) 
+				if (not InCombatLockdown()) then
+					SetCVar ("nameplateOccludedAlphaMult", value)
+				else
+					Plater:Msg (L["OPTIONS_ERROR_CVARMODIFY"])
+				end
+			end,
+			min = 0,
+			max = 1,
+			step = 0.1,
+			thumbscale = 1.7,
+			usedecimals = true,
+			name = "Occluded Alpha Multiplier" .. CVarIcon,
+			desc = "Alpha multiplyer for 'occluded' plates (when they are not in line of sight)." .. CVarDesc,
+			nocombat = true,
+		},		
+
+		{type = "blank"},
+
 		{type = "label", get = function() return "General:" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE")},
 		{
 			type = "toggle",
@@ -6103,6 +6231,7 @@ local relevance_options = {
 			name = "OPTIONS_POWERBAR",
 			desc = "OPTIONS_ALPHABYFRAME_ALPHAMULTIPLIER",
 			usedecimals = true,
+			hidden = IS_WOW_PROJECT_MIDNIGHT,
 		},
 		{
 			type = "range",
@@ -6213,6 +6342,7 @@ local relevance_options = {
 			name = "OPTIONS_POWERBAR",
 			desc = "OPTIONS_ALPHABYFRAME_ALPHAMULTIPLIER",
 			usedecimals = true,
+			hidden = IS_WOW_PROJECT_MIDNIGHT,
 		},
 		{
 			type = "range",
@@ -6271,6 +6401,7 @@ local relevance_options = {
 			end,
 			name = "OPTIONS_SHIELD_BAR",
 			desc = "OPTIONS_SHIELD_BAR",
+			hidden = IS_WOW_PROJECT_MIDNIGHT,
 		},
 		
 		{
@@ -6972,7 +7103,22 @@ end
 			usedecimals = true,
 			name = "OPTIONS_YOFFSET",
 			desc = "OPTIONS_YOFFSET_DESC",
-		},	
+		},
+		--name text length
+		{
+			type = "range",
+			get = function() return Plater.db.profile.plate_config.friendlyplayer.actorname_text_max_length end,
+			set = function (self, fixedparam, value) 
+				Plater.db.profile.plate_config.friendlyplayer.actorname_text_max_length = value
+				Plater.UpdateAllPlates()
+			end,
+			min = 0,
+			max = 100,
+			step = 1,
+			usedecimals = false,
+			name = "Max length",
+			desc = "Name text length limitation.\n100 = no limit.",
+		},
 		
 		--cast text size
 		{type = "breakline"},
@@ -7877,7 +8023,22 @@ end
 			usedecimals = true,
 			name = "OPTIONS_YOFFSET",
 			desc = "OPTIONS_YOFFSET_DESC",
-		},	
+		},
+		--name text length
+		{
+			type = "range",
+			get = function() return Plater.db.profile.plate_config.enemyplayer.actorname_text_max_length end,
+			set = function (self, fixedparam, value) 
+				Plater.db.profile.plate_config.enemyplayer.actorname_text_max_length = value
+				Plater.UpdateAllPlates()
+			end,
+			min = 0,
+			max = 100,
+			step = 1,
+			usedecimals = false,
+			name = "Max length",
+			desc = "Name text length limitation.\n100 = no limit.",
+		},
 		
 		{type = "breakline"},
 		
@@ -8787,7 +8948,22 @@ end
 			usedecimals = true,
 			name = "OPTIONS_YOFFSET",
 			desc = "OPTIONS_YOFFSET_DESC",
-		},	
+		},
+		--name text length
+		{
+			type = "range",
+			get = function() return Plater.db.profile.plate_config.friendlynpc.actorname_text_max_length end,
+			set = function (self, fixedparam, value) 
+				Plater.db.profile.plate_config.friendlynpc.actorname_text_max_length = value
+				Plater.UpdateAllPlates()
+			end,
+			min = 0,
+			max = 100,
+			step = 1,
+			usedecimals = false,
+			name = "Max length",
+			desc = "Name text length limitation.\n100 = no limit.",
+		},
 		
 		{type = "breakline"},
 		
@@ -9968,7 +10144,22 @@ end
 				usedecimals = true,
 				name = "OPTIONS_YOFFSET",
 				desc = "OPTIONS_YOFFSET_DESC",
-			},	
+			},
+			--name text length
+			{
+				type = "range",
+				get = function() return Plater.db.profile.plate_config.enemynpc.actorname_text_max_length end,
+				set = function (self, fixedparam, value) 
+					Plater.db.profile.plate_config.enemynpc.actorname_text_max_length = value
+					Plater.UpdateAllPlates()
+				end,
+				min = 0,
+				max = 100,
+				step = 1,
+				usedecimals = false,
+				name = "Max length",
+				desc = "Name text length limitation.\n100 = no limit.",
+			},
 			
 			{type = "breakline"},
 			
@@ -11442,34 +11633,21 @@ end
 		
 		{type = "breakline"},
 	
-	}
-	
-	
-	if IS_WOW_PROJECT_NOT_MAINLINE and not IS_WOW_PROJECT_CLASSIC_WRATH then
-		local thread_options_tank = {
-			{type = "label", get = function() return "Tank or DPS Colors:" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE")},
+		{type = "label", get = function() return "Tank or DPS Colors:" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE"), hidden = not IS_WOW_PROJECT_NOT_MAINLINE},
 			
-			{
-				type = "toggle",
-				get = function() return Plater.db.profile.tank_threat_colors end,
-				set = function (self, fixedparam, value) 
-					Plater.db.profile.tank_threat_colors = value
-					Plater.RefreshTankCache()
-				end,
-				name = "OPTIONS_THREAT_CLASSIC_USE_TANK_COLORS",
-				desc = "OPTIONS_THREAT_CLASSIC_USE_TANK_COLORS",
-			},
-		
-			{type = "blank"},
-			
-		}
-		
-		for _, t in ipairs (thread_options_tank) do
-			tinsert (thread_options, t)
-		end
-	end
+		{
+			type = "toggle",
+			get = function() return Plater.db.profile.tank_threat_colors end,
+			set = function (self, fixedparam, value) 
+				Plater.db.profile.tank_threat_colors = value
+				Plater.RefreshTankCache()
+			end,
+			name = "OPTIONS_THREAT_CLASSIC_USE_TANK_COLORS",
+			desc = "OPTIONS_THREAT_CLASSIC_USE_TANK_COLORS",
+			hidden = not IS_WOW_PROJECT_NOT_MAINLINE
+		},
 	
-	local thread_options2 = {
+		{type = "blank", hidden = not IS_WOW_PROJECT_NOT_MAINLINE},
 		
 		{type = "label", get = function() return "OPTIONS_THREAT_COLOR_OVERRIDE_ANCHOR_TITLE" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE")},
 		
@@ -11550,20 +11728,184 @@ end
 			desc = "OPTIONS_THREAT_USE_AGGRO_GLOW_DESC",
 		},
 		
+		{type = "breakline"},
+		
+		{type = "label", id = "UNIT_TYPE_COLORING_LABEL", get = function() return "Unit Type Coloring" .. ":" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE")},
+		{
+			type = "toggle",
+			get = function() return Plater.db.profile.unit_type_coloring_enabled end,
+			set = function (self, fixedparam, value) 
+				Plater.db.profile.unit_type_coloring_enabled = value
+				Plater.UpdateAllNameplateColors()
+			end,
+			name = "OPTIONS_ENABLED",
+			desc = "Enable unit type coloring with the colors below.\n\nOnly active in dungeons and raids.\n\nBad threat states will override this color.",
+		},
+		{
+			type = "toggle",
+			get = function() return Plater.db.profile.unit_type_coloring_no_override_threat end,
+			set = function (self, fixedparam, value) 
+				Plater.db.profile.unit_type_coloring_no_override_threat = value
+				Plater.UpdateAllNameplateColors()
+			end,
+			name = "Don't override Threat colors",
+			desc = "Threat coloring will have priority over unit type colors.",
+		},
+		
+		{type = "blank"},
+
+		{
+			type = "color",
+			get = function()
+				local color = Plater.db.profile.unit_type_coloring_boss
+				return {color[1], color[2], color[3], color[4]}
+			end,
+			set = function (self, r, g, b, a) 
+				local color = Plater.db.profile.unit_type_coloring_boss
+				color[1], color[2], color[3], color[4] = r, g, b, a
+				Plater.UpdateAllNameplateColors()
+			end,
+			name = "Boss",
+			desc = "Color for raid or dungeon bosses.",
+		},
+		{
+			type = "color",
+			get = function()
+				local color = Plater.db.profile.unit_type_coloring_miniboss
+				return {color[1], color[2], color[3], color[4]}
+			end,
+			set = function (self, r, g, b, a) 
+				local color = Plater.db.profile.unit_type_coloring_miniboss
+				color[1], color[2], color[3], color[4] = r, g, b, a
+				Plater.UpdateAllNameplateColors()
+			end,
+			name = "Miniboss",
+			desc = "Color for minibosses.",
+		},
+		{
+			type = "color",
+			get = function()
+				local color = Plater.db.profile.unit_type_coloring_caster
+				return {color[1], color[2], color[3], color[4]}
+			end,
+			set = function (self, r, g, b, a) 
+				local color = Plater.db.profile.unit_type_coloring_caster
+				color[1], color[2], color[3], color[4] = r, g, b, a
+				Plater.UpdateAllNameplateColors()
+			end,
+			name = "Caster",
+			desc = "Color for caster units.",
+		},
+
+		{type = "blank"},
+		{
+			type = "toggle",
+			get = function() return Plater.db.profile.unit_type_coloring_enable_elite end,
+			set = function (self, fixedparam, value)
+				Plater.db.profile.unit_type_coloring_enable_elite = value
+				local eliteColorPicker = threatFrame:GetWidgetById("UNIT_TYPE_ELITE_COLOR_PICKER")
+				if value then
+					eliteColorPicker:Enable()
+				else
+					eliteColorPicker:Disable()
+				end
+				Plater.UpdateAllNameplateColors()
+			end,
+			name = "Enable elite",
+			desc = "Will override non-elite colors as 'elite'.",
+		},
+		{
+			type = "color",
+			get = function()
+				local color = Plater.db.profile.unit_type_coloring_elite
+				return {color[1], color[2], color[3], color[4]}
+			end,
+			set = function (self, r, g, b, a) 
+				local color = Plater.db.profile.unit_type_coloring_elite
+				color[1], color[2], color[3], color[4] = r, g, b, a
+				Plater.UpdateAllNameplateColors()
+			end,
+			name = "Elite",
+			desc = "Color for elite units.",
+			id = "UNIT_TYPE_ELITE_COLOR_PICKER",
+		},
+
+		{type = "blank"},
+		{
+			type = "toggle",
+			get = function() return Plater.db.profile.unit_type_coloring_enable_trivial end,
+			set = function (self, fixedparam, value) 
+				Plater.db.profile.unit_type_coloring_enable_trivial = value
+				local trivialColorPicker = threatFrame:GetWidgetById("UNIT_TYPE_TRIVIAL_COLOR_PICKER")
+				if value then
+					trivialColorPicker:Enable()
+				else
+					trivialColorPicker:Disable()
+				end
+				Plater.UpdateAllNameplateColors()
+			end,
+			name = "Enable trivial",
+			desc = "Will override non-elite colors as 'trivial'.",
+		},
+		{
+			type = "color",
+			get = function()
+				local color = Plater.db.profile.unit_type_coloring_trivial
+				return {color[1], color[2], color[3], color[4]}
+			end,
+			set = function (self, r, g, b, a) 
+				local color = Plater.db.profile.unit_type_coloring_trivial
+				color[1], color[2], color[3], color[4] = r, g, b, a
+				Plater.UpdateAllNameplateColors()
+			end,
+			name = "Trivial",
+			desc = "Color for non-elite/trivial units.",
+			id = "UNIT_TYPE_TRIVIAL_COLOR_PICKER",
+		},
 	}
-	
-	for _, t in ipairs (thread_options2) do
-		tinsert (thread_options, t)
-	end
 	
 	_G.C_Timer.After(0.990, function() --~delay
 		thread_options.always_boxfirst = true
 		thread_options.language_addonId = addonId
 		thread_options.Name = "Threat Options"
 		DF:BuildMenu (threatFrame, thread_options, startX, startY, heightSize, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
+
+		local eliteColorPicker = threatFrame:GetWidgetById("UNIT_TYPE_ELITE_COLOR_PICKER")
+		if Plater.db.profile.unit_type_coloring_enable_elite then
+			eliteColorPicker:Enable()
+		else
+			eliteColorPicker:Disable()
+		end
+
+		local trivialColorPicker = threatFrame:GetWidgetById("UNIT_TYPE_TRIVIAL_COLOR_PICKER")
+		if Plater.db.profile.unit_type_coloring_enable_trivial then
+			trivialColorPicker:Enable()
+		else
+			trivialColorPicker:Disable()
+		end
+
+		local titleLabel = threatFrame:GetWidgetById("UNIT_TYPE_COLORING_LABEL")
+		local lastLabel = threatFrame:GetWidgetById("UNIT_TYPE_TRIVIAL_COLOR_PICKER")
+
+		local roundedPanelOptions = {
+			scale = 1,
+			width = 300,
+			height = 300,
+			roundness = 8,
+		}
+		local colorTypeBackground = DF:CreateRoundedPanel(threatFrame, "$parentColorTypeBackground", roundedPanelOptions)
+		colorTypeBackground:SetPoint("topleft", titleLabel.widget, "topleft", -10, 6)
+		colorTypeBackground:SetPoint("bottomright", lastLabel.widget, "bottomright", 200, -10)
+		colorTypeBackground:SetFrameLevel(threatFrame:GetFrameLevel()-1)
+
+		---@type texture
+		local t = colorTypeBackground:CreateTexture("PlaterColorTypeBackground", "artwork")
+		t:SetAtlas("shop-card-large-1120-midnight-nonexpansion-base-epic")
+		t:SetTexCoord(0.62, 0.90, 0.12, 0.6)
+		t:SetPoint("bottomright", colorTypeBackground, "bottomright", -2, 2)
+		t:SetSize(128, 128)
+		t:SetAlpha(0.1)
 	end)
-	
-	
 
 
 	PlaterOptionsPanelFrame.AllSettingsTable = {
