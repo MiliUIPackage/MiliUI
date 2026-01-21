@@ -465,7 +465,7 @@ end
 --Open the options GUI
 SLASH_CCPOPTIONSCMD1, SLASH_CCPOPTIONSCMD2 = '/chatcopypaste', '/ccp';
 function SlashCmdList.CCPOPTIONSCMD(msg, editBox)
-	Settings.OpenToCategory("ChatCopyPaste");
+	Settings.OpenToCategory(CCP.CCPOptions.name);
 end
 
 CCP.options = {
