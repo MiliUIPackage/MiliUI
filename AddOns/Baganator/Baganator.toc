@@ -1,6 +1,6 @@
-## Interface: 120000, 50502, 40402, 30405, 11508
+## Interface: 120000, 110207, 50503, 38000, 20505, 11508
 ## Title: Baganator
-## Version: 768
+## Version: 781
 ## Author: plusmouse
 ## OptionalDeps: Syndicator, Masque
 ## SavedVariables: BAGANATOR_CONFIG, BAGANATOR_DATA
@@ -12,10 +12,16 @@
 ## Notes-zhTW: Baganator|n功能強大的整合背包。
 
 ## Category-enUS: Inventory
+## Category-deDE: Inventar
+## Category-esES: Inventario
+## Category-esMX: Inventario
+## Category-frFR: Inventaire
+## Category-itIT: Inventario
+## Category-koKR: 소지품
+## Category-ptBR: Inventário
+## Category-ruRU: Предметы
 ## Category-zhCN: 物品栏
 ## Category-zhTW: 物品
-
-Embeds\json.lua
 
 Locales.lua
 
@@ -167,3 +173,4 @@ Compatibility\Refunds.lua
 Compatibility\Contexts.lua
 Compatibility\ItemLevels.lua
 Compatibility\AuctionValue.lua
+Compatibility\Midnight.lua

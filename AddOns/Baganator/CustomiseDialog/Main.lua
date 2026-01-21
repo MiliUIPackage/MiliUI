@@ -251,12 +251,6 @@ local OPEN_CLOSE_OPTIONS = {
   },
   {
     type = "checkbox",
-    text = addonTable.Locales.VOID_STORAGE,
-    option = "auto_open.void_storage",
-    check = IsRetailCheck,
-  },
-  {
-    type = "checkbox",
     text = addonTable.Locales.MAIL,
     option = "auto_open.mail",
   },
@@ -780,7 +774,7 @@ function BaganatorCustomiseDialogMixin:SetupGeneral()
     DynamicResizeButton_Resize(button)
     button:SetPoint("LEFT", tooltipButtonFrame, "CENTER", -35, 0)
     button:SetScript("OnClick", function()
-      Settings.OpenToCategory(Syndicator.Locales.SYNDICATOR)
+      Settings.OpenToCategory(Syndicator.OptionsCategory and Syndicator.OptionsCategory:GetID() or SYNDICATOR_L_SYNDICATOR)
     end)
     addonTable.Skins.AddFrame("Button", button)
     table.insert(allFrames, tooltipButtonFrame)

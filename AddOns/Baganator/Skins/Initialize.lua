@@ -36,14 +36,17 @@ function addonTable.Skins.Initialize()
     currentSkin = addonTable.Skins.availableSkins[addonTable.Config.Get(addonTable.Config.Options.CURRENT_SKIN)]
   end
 
-  local frame = CreateFrame("Frame")
-  frame:RegisterEvent("PLAYER_LOGIN")
-  frame:SetScript("OnEvent", function()
-    frame:UnregisterEvent("PLAYER_LOGIN")
+  local function Generate()
     currentSkin.constants()
     xpcall(currentSkin.initializer, CallErrorHandler)
     currentSkinner = currentSkin.skinner
     addonTable.ViewManagement.GenerateFrameGroup(currentSkinKey)
+  end
+  local frame = CreateFrame("Frame")
+  frame:RegisterEvent("PLAYER_LOGIN")
+  frame:SetScript("OnEvent", function()
+    frame:UnregisterEvent("PLAYER_LOGIN")
+    Generate()
   end)
 
   addonTable.CallbackRegistry:RegisterCallback("SettingChanged", function(_, settingName)
@@ -86,7 +89,7 @@ function addonTable.Skins.AddFrame(regionType, region, tags)
   end
 end
 
-function addonTable.Skins.RegisterSkin(label, key, initializer, skinner, constants, options, autoEnable)
+function addonTable.Skins.RegisterSkin(label, key, initializer, skinner, constants, options, autoEnable, isBaseline)
   addonTable.Skins.availableSkins[key] = {
     label = label,
     key = key,
@@ -95,6 +98,7 @@ function addonTable.Skins.RegisterSkin(label, key, initializer, skinner, constan
     constants = constants,
     options = options or {},
     autoEnable = autoEnable,
+    isBaseline = isBaseline,
   }
 end
 

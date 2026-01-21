@@ -1,6 +1,6 @@
 # Baganator
 
-## [768](https://github.com/TheMouseNest/Baganator/tree/768) (2025-10-29)
-[Full Changelog](https://github.com/TheMouseNest/Baganator/compare/767...768) 
+## [781](https://github.com/TheMouseNest/Baganator/tree/781) (2026-01-21)
+[Full Changelog](https://github.com/TheMouseNest/Baganator/compare/780...781) 
 
-- Fix changing slider for recent timeout not working  
+- Disable skins if the associated addon is incompatible with current wow version  
