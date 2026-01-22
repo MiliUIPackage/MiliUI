@@ -5,6 +5,8 @@ local _, tpm = ...
 --------------------------------------
 
 local L = LibStub("AceLocale-3.0"):GetLocale("TeleportMenu")
+local MSQ = LibStub("Masque", true)
+local MasqueGroup = MSQ and MSQ:Group(L["ADDON_NAME"])
 
 --------------------------------------
 -- Locales
@@ -14,6 +16,7 @@ local db = {}
 local APPEND = L["AddonNamePrint"]
 local DEFAULT_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
 local globalWidth, globalHeight = 40, 40 -- defaults
+local SPACING = 3
 
 local IsSpellKnown = C_SpellBook.IsSpellKnown
 
@@ -208,11 +211,14 @@ local GetItemCount = C_Item.GetItemCount
 --------------------------------------
 
 local function SetTextureByItemId(frame, itemId)
-	frame:SetNormalTexture(DEFAULT_ICON) -- Temp while loading
+	if frame:GetNormalTexture() then
+		frame:GetNormalTexture():SetTexture(nil)
+	end
+	frame.Icon:SetTexture(DEFAULT_ICON) -- Temp while loading
 	local item = Item:CreateFromItemID(tonumber(itemId))
 	item:ContinueOnItemLoad(function()
 		local icon = item:GetItemIcon()
-		frame:SetNormalTexture(icon)
+		frame.Icon:SetTexture(icon)
 	end)
 end
 
@@ -347,6 +353,8 @@ local function createFlyOutButton(flyOutFrame, flyoutData, tooltipData, side) --
 		flyOutButton = table.remove(flyOutButtonsPool)
 	else
 		flyOutButton = CreateFrame("Button", nil, side == "LEFT" and TeleportMeButtonsFrameLeft or TeleportMeButtonsFrameRight, "SecureActionButtonTemplate")
+		flyOutButton.Icon = flyOutButton:CreateTexture(nil, "BACKGROUND")
+		flyOutButton.Icon:SetAllPoints()
 		flyOutButton.text = flyOutButton:CreateFontString(nil, "OVERLAY")
 		flyOutButton.text:SetPoint("BOTTOM", flyOutButton, "BOTTOM", 0, 5)
 
@@ -401,7 +409,10 @@ local function createFlyOutButton(flyOutFrame, flyoutData, tooltipData, side) --
 	end
 
 	-- Texture
-	flyOutButton:SetNormalTexture(flyoutData.iconId)
+	if flyOutButton:GetNormalTexture() then
+		flyOutButton:GetNormalTexture():SetTexture(nil)
+	end
+	flyOutButton.Icon:SetTexture(flyoutData.iconId)
 
 	-- Positioning/Size
 	flyOutButton:SetFrameStrata("HIGH")
@@ -409,6 +420,9 @@ local function createFlyOutButton(flyOutFrame, flyoutData, tooltipData, side) --
 	flyOutButton:SetSize(globalWidth, globalHeight)
 
 	flyOutButton:Show()
+	if MasqueGroup then
+		MasqueGroup:AddButton(flyOutButton, { Icon = flyOutButton.Icon })
+	end
 	return flyOutButton
 end
 
@@ -483,6 +497,8 @@ local function CreateSecureButton(frame, type, text, id, hearthstone)
 			button:LockHighlight()
 			button.text:SetPoint("BOTTOM", button, "BOTTOM", 0, 5)
 			button.cooldownFrame = createCooldownFrame(button)
+			button.Icon = button:CreateTexture(nil, "BACKGROUND")
+			button.Icon:SetAllPoints()
 			housingButton = button
 		end
 	else
@@ -494,6 +510,8 @@ local function CreateSecureButton(frame, type, text, id, hearthstone)
 			button.text = button:CreateFontString(nil, "OVERLAY")
 			button:LockHighlight()
 			button.text:SetPoint("BOTTOM", button, "BOTTOM", 0, 5)
+			button.Icon = button:CreateTexture(nil, "BACKGROUND")
+			button.Icon:SetAllPoints()
 			table.insert(secureButtons, button)
 		end
 	end
@@ -547,12 +565,15 @@ local function CreateSecureButton(frame, type, text, id, hearthstone)
 	button.cooldownFrame:CheckCooldown(id, type)
 
 	-- Textures
+	if button:GetNormalTexture() then
+		button:GetNormalTexture():SetTexture(nil)
+	end
 	if type == "spell" then
 		local spellTexture = C_Spell.GetSpellTexture(id)
-		button:SetNormalTexture(spellTexture)
+		button.Icon:SetTexture(spellTexture)
 	elseif type == "housing" then
 		local spellTexture = C_Spell.GetSpellTexture(1263273)
-		button:SetNormalTexture(spellTexture)
+		button.Icon:SetTexture(spellTexture)
 	else -- item or toy
 		SetTextureByItemId(button, id)
 	end
@@ -575,6 +596,9 @@ local function CreateSecureButton(frame, type, text, id, hearthstone)
 	button:SetFrameLevel(102) -- This needs to be lower than the flyout frame
 
 	button:Show()
+	if MasqueGroup then
+		MasqueGroup:AddButton(button, { Icon = button.Icon })
+	end
 	return button
 end
 
@@ -668,7 +692,7 @@ function tpm:CreateFlyout(flyoutData, side)
 		return
 	end
 
-	local yOffset = -globalHeight * ButtonFrame:GetButtonAmount()
+	local yOffset = -(globalHeight + SPACING) * ButtonFrame:GetButtonAmount()
 	local flyOutFrame = createFlyOutFrame(side)
 	flyOutFrame:SetPoint(side == "LEFT" and "RIGHT" or "LEFT", ButtonFrame, side == "LEFT" and "TOPLEFT" or "TOPRIGHT", side == "LEFT" and globalWidth or 0, yOffset)
 
@@ -693,10 +717,10 @@ function tpm:CreateFlyout(flyoutData, side)
 			end
 			flyoutsCreated = flyoutsCreated + 1
 			local flyOutButton = CreateSecureButton(flyOutFrame, "spell", shortNames[spellId], spellId)
-			local offsetY = (rowNr - 1) * - globalHeight
-			local offsetX = globalWidth * flyoutsCreated
+			local offsetY = (rowNr - 1) * -(globalHeight + SPACING)
+			local offsetX = (globalWidth + SPACING) * flyoutsCreated
 			if side == "LEFT" then
-				offsetX = -globalWidth * flyoutsCreated
+				offsetX = -(globalWidth + SPACING) * flyoutsCreated
 			end
 			flyOutButton:SetPoint(side == "LEFT" and "TOPRIGHT" or "TOPLEFT", flyOutFrame, side == "LEFT" and "TOPRIGHT" or "TOPLEFT", offsetX, offsetY)
 			table.insert(childButtons, flyOutButton)
@@ -704,7 +728,7 @@ function tpm:CreateFlyout(flyoutData, side)
 	end
 
 	local frameWidth = rowNr > 1 and globalWidth * (db["Flyout:Max_Per_Row"] + 1) or globalWidth * (flyoutsCreated + 1)
-	flyOutFrame:SetSize(frameWidth, globalHeight * rowNr)
+	flyOutFrame:SetSize(frameWidth, (globalHeight + SPACING) * rowNr)
 	button.childButtons = childButtons
 	return button
 end
@@ -716,7 +740,7 @@ function tpm:CreateSeasonalTeleportFlyout()
 
 	local tooltipData = { type = "seasonalteleport" }
 	local seasonalFlyOutData = { id = -1, name = L["Season " .. tpm.settings.current_season], iconId = 5927657 }
-	local yOffset = -globalHeight * TeleportMeButtonsFrameRight:GetButtonAmount()
+	local yOffset = -(globalHeight + SPACING) * TeleportMeButtonsFrameRight:GetButtonAmount()
 
 	local flyOutFrame = createFlyOutFrame()
 	flyOutFrame:SetPoint("LEFT", TeleportMeButtonsFrameRight, "TOPRIGHT", 0, yOffset)
@@ -735,11 +759,11 @@ function tpm:CreateSeasonalTeleportFlyout()
 			flyoutsCreated = flyoutsCreated + 1
 			local text = tpm:GetIconText(spellId)
 			local flyOutButton = CreateSecureButton(flyOutFrame, "spell", text, spellId)
-			flyOutButton:SetPoint("TOPLEFT", flyOutFrame, "TOPLEFT", globalWidth * flyoutsCreated, (rowNr - 1) * - globalHeight)
+			flyOutButton:SetPoint("TOPLEFT", flyOutFrame, "TOPLEFT", (globalWidth + SPACING) * flyoutsCreated, (rowNr - 1) * -(globalHeight + SPACING))
 		end
 	end
 	local frameWidth = rowNr > 1 and globalWidth * (db["Flyout:Max_Per_Row"] + 1) or globalWidth * (flyoutsCreated + 1)
-	flyOutFrame:SetSize(frameWidth, globalHeight * rowNr)
+	flyOutFrame:SetSize(frameWidth, (globalHeight + SPACING) * rowNr)
 
 	return button
 end
@@ -750,7 +774,7 @@ function tpm:CreateWormholeFlyout(flyoutData)
 		return
 	end
 
-	local yOffset = -globalHeight * TeleportMeButtonsFrameLeft:GetButtonAmount()
+	local yOffset = -(globalHeight + SPACING) * TeleportMeButtonsFrameLeft:GetButtonAmount()
 
 	local flyOutFrame = createFlyOutFrame("LEFT")
 	flyOutFrame:SetPoint("RIGHT", TeleportMeButtonsFrameLeft, "TOPLEFT", globalWidth, yOffset)
@@ -767,10 +791,10 @@ function tpm:CreateWormholeFlyout(flyoutData)
 		end
 		flyoutsCreated = flyoutsCreated + 1
 		local flyOutButton = CreateSecureButton(flyOutFrame, "toy", nil, wormholeId)
-		flyOutButton:SetPoint("TOPRIGHT", flyOutFrame, "TOPRIGHT", -globalWidth * flyoutsCreated, (rowNr - 1) * - globalHeight)
+		flyOutButton:SetPoint("TOPRIGHT", flyOutFrame, "TOPRIGHT", -(globalWidth + SPACING) * flyoutsCreated, (rowNr - 1) * -(globalHeight + SPACING))
 	end
 	local frameWidth = rowNr > 1 and globalWidth * (db["Flyout:Max_Per_Row"] + 1) or globalWidth * (flyoutsCreated + 1)
-	flyOutFrame:SetSize(frameWidth, globalHeight * rowNr)
+	flyOutFrame:SetSize(frameWidth, (globalHeight + SPACING) * rowNr)
 
 	return button
 end
@@ -780,10 +804,10 @@ function tpm:CreateItemTeleportsFlyout(flyoutData)
 		return
 	end
 
-	local yOffset = -globalHeight * TeleportMeButtonsFrameLeft:GetButtonAmount()
+	local yOffset = -(globalHeight + SPACING) * TeleportMeButtonsFrameLeft:GetButtonAmount()
 
 	local flyOutFrame = createFlyOutFrame("LEFT")
-	flyOutFrame:SetPoint("RIGHT", TeleportMeButtonsFrameLeft, "TOPLEFT", 0, yOffset)
+	flyOutFrame:SetPoint("RIGHT", TeleportMeButtonsFrameLeft, "TOPLEFT", globalWidth, yOffset)
 
 	local button = createFlyOutButton(flyOutFrame, flyoutData, { type = "item_teleports" }, "LEFT")
 	button:SetPoint("LEFT", TeleportMeButtonsFrameLeft, "TOPRIGHT", 0, yOffset)
@@ -798,11 +822,11 @@ function tpm:CreateItemTeleportsFlyout(flyoutData)
 		flyoutsCreated = flyoutsCreated + 1
 		local isToy = tpm:IsToyTeleport(itemTeleportId)
 		local flyOutButton = CreateSecureButton(flyOutFrame, isToy and "toy" or "item", nil, itemTeleportId)
-		flyOutButton:SetPoint("TOPLEFT", flyOutFrame, "TOPLEFT", globalWidth * flyoutsCreated, (rowNr - 1) * - globalHeight)
+		flyOutButton:SetPoint("TOPRIGHT", flyOutFrame, "TOPRIGHT", -(globalWidth + SPACING) * flyoutsCreated, (rowNr - 1) * -(globalHeight + SPACING))
 	end
 
 	local frameWidth = rowNr > 1 and globalWidth * (db["Flyout:Max_Per_Row"] + 1) or globalWidth * (flyoutsCreated + 1)
-	flyOutFrame:SetSize(frameWidth, globalHeight * rowNr)
+	flyOutFrame:SetSize(frameWidth, (globalHeight + SPACING) * rowNr)
 
 	return button
 end
@@ -815,7 +839,10 @@ function tpm:updateHearthstone()
 
 	if db["Teleports:Hearthstone"] == "rng" then
 		local rng = math.random(#tpm.AvailableHearthstones)
-		hearthstoneButton:SetNormalTexture(1669494) -- misc_rune_pvp_random
+		if hearthstoneButton:GetNormalTexture() then
+			hearthstoneButton:GetNormalTexture():SetTexture(nil)
+		end
+		hearthstoneButton.Icon:SetTexture(1669494) -- misc_rune_pvp_random
 		hearthstoneButton:SetAttribute("type", "toy")
 		hearthstoneButton:SetAttribute("toy", tpm.AvailableHearthstones[rng])
 	elseif db["Teleports:Hearthstone"] == "disabled" then
@@ -929,7 +956,7 @@ local function createAnchors()
 		if known and (teleport.type == "toy" or teleport.type == "item" or teleport.type == "spell" or (showHearthstone and teleport.hearthstone)) then
 			tpm:DebugPrint(teleport.hearthstone)
 			local button = CreateSecureButton(buttonsFrameLeft, teleport.type, nil, teleport.id --[[@as integer]], teleport.hearthstone)
-			local yOffset = -globalHeight * buttonsFrameLeft:GetButtonAmount()
+			local yOffset = -(globalHeight + SPACING) * buttonsFrameLeft:GetButtonAmount()
 			button:SetPoint("LEFT", buttonsFrameLeft, "TOPRIGHT", 0, yOffset)
 			if teleport.hearthstone then -- store to replace item later
 				buttonsFrameLeft.hearthstoneButton = button
@@ -937,7 +964,7 @@ local function createAnchors()
 			buttonsFrameLeft:IncrementButtons()
 		elseif teleport.type == "housing" and C_Housing and C_Housing.HasHousingExpansionAccess() then
 			local button = CreateSecureButton(buttonsFrameLeft, teleport.type)
-			local yOffset = -globalHeight * buttonsFrameLeft:GetButtonAmount()
+			local yOffset = -(globalHeight + SPACING) * buttonsFrameLeft:GetButtonAmount()
 			button:SetPoint("LEFT", buttonsFrameLeft, "TOPRIGHT", 0, yOffset)
 			buttonsFrameLeft:IncrementButtons()
 		elseif teleport.type == "wormholes" then
