@@ -1,17 +1,25 @@
-## Interface: 120000, 110200
+## Interface: 110207, 120000
 ## Title: Teleport Menu
 ## Notes: Hearthstone and teleport buttons attached to the game menu.
 ## Notes-zhCN: 主菜单显示炉石玩具和各种传送按钮等。
-## Notes-zhTW: 主選單顯示爐石玩具和各種傳送按鈕等。
 ## Title-zhTW: |cff0099FF[介面]|r 傳送選單
 ## Notes-zhTW: Teleport Menu |n|n一個附掛在遊戲選單右側的快捷傳送選單。
+## Notes-ruRU: Аддон, который добавляет кнопки в игровое меню (клавиша Esc), чтобы быстро и легко использовать камни возвращения и телепорты.
 ## IconTexture: Interface\Icons\inv_hearthstonepet
 ## Category: User Interface
+## Category-deDE: Benutzerinterface
+## Category-esES: Interfaz de usuario
+## Category-esMX: Interfaz de usuario
+## Category-frFR: Interface utilisateur
+## Category-itIT: Interfaccia utente
+## Category-koKR: 사용자 인터페이스
+## Category-ptBR: Interface do usuário
+## Category-ruRU: Интерфейс пользователя
 ## Category-zhCN: 用户界面
 ## Category-zhTW: 介面
 
 ## Author: Justwait
-## Version: v11.2
+## Version: v11.3
 ## SavedVariables: TeleportMenuDB
 
 ## X-Curse-Project-ID: 1087836

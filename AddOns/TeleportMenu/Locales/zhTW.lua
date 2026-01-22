@@ -1,7 +1,7 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("TeleportMenu", "zhTW")
 if not L then return end
 
-L["AddonNamePrint"] = "\124cFFFF0000傳送選單：\124r " -- 1 space after the :
+L["AddonNamePrint"] = "\124cFFFF0000TeleportMenu：\124r " -- 1 space after the :
 L["Common:Loading"] = "載入中"
 L["Not In Combat Tooltip"] = "\124cFFFF0000<戰鬥中不可用>\124r"
 L["Random Hearthstone"] = "隨機爐石"
@@ -79,18 +79,19 @@ L["Darkflame Cleft"] = "暗焰"
 L["Operation: Floodgate"] = "水閘"
 L["Liberation of Undermine"] = "幽坑城"
 L["Eco-Dome Al'dani"] = "秘境"
+L["Manaforge Omega"] = "歐美加"
 
 -- expansion abreviated Text
-L["Cataclysm"] = "浩劫重生"
-L["Mists of Pandaria"] = "潘達利亞"
+L["Cataclysm"] = "浩劫"
+L["Mists of Pandaria"] = "潘達"
 L["Warlords of Draenor"] = "德拉諾"
-L["Legion"] = "軍臨天下"
-L["Battle for Azeroth"] = "決戰艾澤"
-L["Shadowlands"] = "暗影之境"
+L["Legion"] = "軍臨"
+L["Battle for Azeroth"] = "決戰"
+L["Shadowlands"] = "暗影"
 L["Shadowlands Raids"] = "暗影團本"
-L["Dragonflight"] = "巨龍崛起"
+L["Dragonflight"] = "巨龍"
 L["Dragonflight Raids"] = "巨龍團本"
-L["The War Within"] = "地心之戰"
+L["The War Within"] = "地心"
 L["The War Within Raids"] = "地心團本"
 L["Season 1"] = "賽季1"
 L["Season 2"] = "賽季2"
@@ -156,8 +157,8 @@ L["Teleports:Items:Filters:Held_Items"] = "您擁有的物品"
 L["Teleports:Items:Filters:Items_To_Be_Obtained"] = "不可用的物品"
 
 -- Settings
-L["ADDON_NAME"] = "傳送選單"
-L["TITLE"] = "傳送選單設定"
+L["ADDON_NAME"] = "TeleportMenu"
+L["TITLE"] = "TeleportMenu設定"
 L["GENERAL"] = "一般設定"
 L["BUTTON_SETTINGS"] = "按鈕設定"
 L["TELEPORT_SETTINGS"] = "傳送設定"
