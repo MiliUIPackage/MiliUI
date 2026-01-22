@@ -86,7 +86,6 @@ L['options_icons_signal_transmitter'] = '龙洞发生器信号发射机'
 L['options_icons_signal_transmitter_desc'] = '显示 {item:198156} 的 {object:关闭的信号发射机} 的位置。'
 
 L['rare_14h'] = '此稀有与其他稀有构成14小时的循环，每30分钟出现一个稀有。\n\n下次出现：{note:%s}'
-L['now'] = '现在'
 L['spawns_at_night'] = '{note:只可能在夜间出现。（服务器时间18:30之后）}'
 
 L['elemental_storm'] = '元素风暴'
@@ -583,7 +582,7 @@ L['prismatic_leaper_school_label'] = '棱光跃鲑鱼群'
 L['prismatic_leaper_school_note'] = '与 {location:伊斯卡拉} 的 {npc:195935} 交谈以进行升级。\n\n从整个 {location:欧恩哈拉平原} 的 {object:棱光跃鲑鱼群} 中钓取以下物品：\n\n{item:%d}\n{item:%d}\n{item:%d}\n{item:%d}\n{item:%d}'
 
 L['aylaag_spear'] = '艾拉格长矛'
-L['dedication_plaquard'] = '奉献壁橱'
+L['dedication_plaquard'] = '专心标牌'
 
 -------------------------------------------------------------------------------
 --------------------------------- THALDRASZUS ---------------------------------
@@ -838,7 +837,7 @@ L['phoenix_wishwing_talisman'] = [[
 
 这是位于 {location:阿兰卡峰林} 的 {npc:88045} {dot:Gold} 出售。如果 {npc:88045} 不在，完成任务 {quest:35010} 就能见到他。
 需要以下物品才能购买：]]
-L['phoenix_wishwing_phoenix_ember'] = '%s {item:199099}\n从 {location:火焰之地时光漫游} 的 {npc:52530} 掉落'
+L['phoenix_wishwing_phoenix_ember'] = '%s {item:199099}\n从 {location:火焰之地时光漫游} 的 {npc:52530} 掉落。'
 L['phoenix_wishwing_sacred_ash'] = '%s {item:199097}\n可以在 {object:烹锅} 中找到，位于 {location:阿兰卡峰林} 附近。'
 L['phoenix_wishwing_inert_ash'] = '%s {item:199092}\n位于 {location:安戈洛环形山} {dot:Gray} 中心的 {npc:6520} 和 {npc:6521} 少量掉落。'
 L['phoenix_wishwing_smoldering_ash'] = [[
@@ -903,7 +902,7 @@ L['nal_kskol_reliquary_label'] = '纳·克斯寇圣物匣'
 L['nal_kskol_reliquary_note'] = '使用 {object:圣物匣开启控制台} 并解开拼图以打开 {object:纳·克斯寇圣物匣}。'
 
 L['busted_wyrmhole_generator_note'] = '从 {object:坏掉的龙洞发生器} 一起拾取的 {item:205954}。\n使用后为 {item:198156} 解锁 {location:查拉雷克洞窟} 的虫洞选项。'
-L['molten_scoutbot_note'] = '打开 {object:熔火斥候机器人} 并拾取 {item:204855}.'
+L['molten_scoutbot_note'] = '打开 {object:熔火斥候机器人} 并拾取 {item:204855}。'
 L['bolts_and_brass_note'] = '打开 {object:螺栓和黄铜} 并拾取 {item:204850}。'
 
 L['sniffen_sage_suffix'] = '找到特殊物品'
@@ -923,6 +922,7 @@ L['smelly_treasure_chest_label'] = '臭垃圾箱'
 L['options_icons_smelly_treasure_chest'] = '臭垃圾箱'
 L['options_icons_smelly_treasure_chest_desc'] = '显示 {object:臭垃圾箱} 可能的位置。'
 
+L['seething_cache'] = '沸燃之箱'
 L['seething_cache_treasure_note'] = '为了能够看到 {object:沸燃之箱} 并拾取 {item:192779}，需要从位于 {location:查拉雷克洞窟} 的 {location:扎卡利喷口} 区域的 {object:沸燃宝珠} 获得3层 {spell:399342} 负面效果。'
 L['chest_of_the_flights_treasure_note'] = '要打开宝箱，需要按 {note:红 > 黑 > 蓝 > 黄 > 绿} 的顺序点击 {object:强化宝石}。'
 L['curious_top_hat_note'] = '在拥有 {spell:410288} 增益时与 {npc:205010} 互动并得到 {item:205021}。如果没有增益并靠近他，他就会逃跑。'
@@ -1253,7 +1253,7 @@ L['soa_13_great_place_c_note'] = '在一座小建筑里，两个 {npc:197035} �
 L['soa_13_great_place_d_label'] = '研究员的笔记'
 L['soa_13_great_place_d_note'] = '在一栋小建筑内，一些书旁边。'
 L['soa_13_great_place_e_label'] = '字迹潦草的字条'
-L['soa_13_great_place_e_note'] = '在 {ocation:匠人集市} 的供应商摊位后面。'
+L['soa_13_great_place_e_note'] = '在 {location:匠人集市} 的供应商摊位后面。'
 L['soa_13_great_place_f_label'] = '给克里沙的便条'
 L['soa_13_great_place_f_note'] = '在 {location:巨龙宝藏} 内的一个箱子上。\n\n需要对 {location:脆烤山羊旅店} 中的 {npc:189827} 进行表情 {emote:/鞠躬}，{emote:/bow} 才能进入秘密酒吧。'
 

@@ -1,5 +1,5 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd">
-  <Frame name="HandyNotes_DragonflightWorldMapPinTemplate" hidden="true" mixin="HandyNotes_DragonflightWorldMapPinMixin" virtual="true">
+  <Frame name="HandyNotes_DragonflightWorldMapPinTemplate" hidden="true" enableMouse="true" mixin="HandyNotes_DragonflightWorldMapPinMixin" virtual="true">
     <Size x="30" y="30"/>
     <Layers>
       <Layer>
@@ -9,7 +9,7 @@
     </Layers>
   </Frame>
 
-  <Button name="HandyNotes_DragonflightMinimapPinTemplate" hidden="true" mixin="HandyNotes_DragonflightMinimapPinMixin" virtual="true">
+  <Button name="HandyNotes_DragonflightMinimapPinTemplate" hidden="true" enableMouse="true" mixin="HandyNotes_DragonflightMinimapPinMixin" virtual="true">
     <Size x="12" y="12"/>
     <Layers>
       <Layer level="OVERLAY">
@@ -17,6 +17,10 @@
         </Texture>
       </Layer>
     </Layers>
+    <Scripts>
+      <OnEnter method="OnMouseEnter"/>
+      <OnLeave function="GameTooltip_Hide"/>
+    </Scripts>
   </Button>
 
   <DropDownToggleButton name="HandyNotes_DragonflightWorldMapOptionsButtonTemplate" frameStrata="HIGH" mixin="HandyNotes_DragonflightWorldMapOptionsButtonMixin" virtual="true">

@@ -72,21 +72,10 @@ ns.groups.DRAGONBANE_SIEGE = Group('dragonbane_siege', 3753264, {
     type = ns.group_types.EXPANSION
 })
 
-ns.groups.DRAGONRACE = Group('dragonrace', 1100022, {
-    defaults = ns.GROUP_HIDDEN,
-    type = ns.group_types.EXPANSION
-})
-
 ns.groups.DRUID_GLYPH = Group('druid_glyph', 625999, {
     defaults = ns.GROUP_HIDDEN,
     type = ns.group_types.EXPANSION,
-    IsEnabled = function() return ns.class == 'DRUID' end
-})
-
-ns.groups.EASTERN_KINGDOMS_CUP = Group('dragonrace', 1100022, {
-    defaults = ns.GROUP_HIDDEN,
-    type = ns.group_types.EXPANSION,
-    IsEnabled = function() return ns.IsCalendarEventActive(1400) end
+    class = 'DRUID'
 })
 
 ns.groups.ELEMENTAL_STORM = Group('elemental_storm', 538566, {
@@ -129,12 +118,6 @@ ns.groups.ICEMAW_STORAGE_CACHE = Group('icemaw_storage_cache', 'chest_nv', {
     type = ns.group_types.EXPANSION
 })
 
-ns.groups.KALIMDOR_CUP = Group('dragonrace', 1100022, {
-    defaults = ns.GROUP_HIDDEN,
-    type = ns.group_types.EXPANSION,
-    IsEnabled = function() return ns.IsCalendarEventActive(1395) end
-})
-
 ns.groups.LIGHTNING_BOUND_CHEST = Group('lightning_bound_chest', 'chest_pp', {
     defaults = ns.GROUP_HIDDEN,
     type = ns.group_types.EXPANSION
@@ -145,18 +128,7 @@ ns.groups.MAGICBOUND_CHEST = Group('magicbound_chest', 'chest_tl', {
     type = ns.group_types.EXPANSION
 })
 
-ns.groups.OUTLAND_CUP = Group('dragonrace', 1100022, {
-    defaults = ns.GROUP_HIDDEN,
-    type = ns.group_types.EXPANSION,
-    IsEnabled = function() return ns.IsCalendarEventActive(1407) end
-})
-
 ns.groups.PROFESSION_RARES = Group('profession_rares', 'peg_rd', {
-    defaults = ns.GROUP_HIDDEN,
-    type = ns.group_types.EXPANSION
-})
-
-ns.groups.PROFESSION_TREASURES = Group('profession_treasures', 4620676, {
     defaults = ns.GROUP_HIDDEN,
     type = ns.group_types.EXPANSION
 })
@@ -497,57 +469,6 @@ local RareElite = Class('RareElite', Rare, {
 })
 
 ns.node.RareElite = RareElite
-
--------------------------------------------------------------------------------
------------------------------ PROFESSION TREASURES ----------------------------
--------------------------------------------------------------------------------
-
-local ProfessionMaster = Class('ProfessionMaster', ns.node.NPC, {
-    scale = 0.9,
-    group = ns.groups.PROFESSION_TREASURES
-})
-
-function ProfessionMaster:IsEnabled()
-    if not ns.PlayerHasProfession(self.skillID) then return false end
-    return ns.node.NPC.IsEnabled(self)
-end
-
-local ProfessionTreasure = Class('ProfessionTreasure', ns.node.Item, {
-    scale = 0.9,
-    group = ns.groups.PROFESSION_TREASURES
-})
-
-function ProfessionTreasure:IsEnabled()
-    if not ns.PlayerHasProfession(self.skillID) then return false end
-    return ns.node.Item.IsEnabled(self)
-end
-
-ns.node.ProfessionMasters = {}
-ns.node.ProfessionTreasures = {}
-
-local PM = ns.node.ProfessionMasters
-local PT = ns.node.ProfessionTreasures
-
-for _, profession in pairs(ns.professions) do
-    if profession.variantID ~= nil then
-        local name = profession.name
-        local icon = profession.icon
-        local skillID = profession.skillID
-        local variantID = profession.variantID[10]
-
-        PM[name] = Class(name .. 'Master', ProfessionMaster, {
-            icon = icon,
-            skillID = skillID,
-            requires = ns.requirement.Profession(skillID, variantID, 25)
-        })
-
-        PT[name] = Class(name .. 'Treasure', ProfessionTreasure, {
-            icon = icon,
-            skillID = skillID,
-            requires = ns.requirement.Profession(skillID, variantID, 25)
-        })
-    end
-end
 
 -------------------------------------------------------------------------------
 -------------------------------- DRAGON GLYPHS --------------------------------
@@ -1123,8 +1044,8 @@ local Scoutpack = Class('Scoutpack', Node, {
         Item({item = 198852, quest = 70407}), -- Bear Termination Orders
         Item({item = 198843, quest = 70392}), -- Emerald Gardens Explorer's Notes
         Item({item = 192055}), -- Dragon Isles Artifact
-        Currency({id = 2003}), -- Dragon Isles Supplies
-        Currency({id = 2245}) -- Flightstones
+        Currency({id = 2003}) -- Dragon Isles Supplies
+        -- Currency({id = 2245}) -- Flightstones
     }
 })
 
@@ -1399,7 +1320,12 @@ local Interval = Class('Interval', ns.Interval, {
 })
 
 ns.Intervals.Interval14h = Class('Interval14h', Interval, {
-    initial = {eu = 1676237400, us = 1677335400, tw = 1675701000}, -- initial spawn time of the first rare to calculate other rares
+    initial = {
+        eu = 1676237400,
+        us = 1677335400,
+        cn = 1676255400,
+        tw = 1675701000
+    }, -- initial spawn time of the first rare to calculate other rares
     offset = 1800, -- time between rares
     interval = 50400, -- inverval of a single rare
     yellow = 14400,
@@ -1408,7 +1334,12 @@ ns.Intervals.Interval14h = Class('Interval14h', Interval, {
 })
 
 ns.Intervals.BrackenhideInterval = Class('BrackenhideInterval', Interval, {
-    initial = {us = 1672531800, eu = 1672531200, tw = 1677162000},
+    initial = {
+        us = 1672531800,
+        eu = 1672531200,
+        cn = 1672560600,
+        tw = 1677162000
+    },
     offset = 600,
     interval = 2400,
     yellow = 1200,
@@ -1417,7 +1348,12 @@ ns.Intervals.BrackenhideInterval = Class('BrackenhideInterval', Interval, {
 })
 
 ns.Intervals.FeastInterval = Class('FeastInterval', Interval, {
-    initial = {us = 1677164400, eu = 1677168000, tw = 1677166200},
+    initial = {
+        us = 1677164400,
+        eu = 1677168000,
+        cn = 1677193200,
+        tw = 1677166200
+    },
     offset = 5400,
     interval = 5400,
     id = 0,
@@ -1427,7 +1363,12 @@ ns.Intervals.FeastInterval = Class('FeastInterval', Interval, {
 })
 
 ns.Intervals.AylaagCampInterval = Class('AylaagCampInterval', Interval, {
-    initial = {us = 1677456000, eu = 1677502800, tw = 1677571200},
+    initial = {
+        us = 1677456000,
+        eu = 1677502800,
+        cn = 1726171200,
+        tw = 1677571200
+    },
     offset = 270000,
     interval = 810000,
     id = 0,
@@ -1845,28 +1786,28 @@ ns.node.MoteOfNaszuro = Class('MoteOfNaszuro', Collectible, {
 --------------------------------- GRAND HUNTS ---------------------------------
 -------------------------------------------------------------------------------
 
-local GRAND_HUNT_AREA_POIS = {
-    [7089] = 'Western Ohnahran Plains Hunt',
-    [7090] = 'Eastern Ohnahran Plains Hunt',
-    [7091] = 'Southern Waking Shore',
-    [7092] = 'Eastern Waking Shore',
-    [7093] = 'Northern Waking Shore',
-    [7094] = 'Western Azure Span Hunt',
-    [7095] = 'Eastern Azure Span Hunt',
-    [7096] = 'Southern Azure Span Hunt',
-    [7097] = 'Southern Thaldrazus Hunt',
-    [7053] = 'Northern Ohnahran Plains Hunt',
-    [7099] = 'Northern Thaldraszus Hunt',
-    [7342] = 'Grand Hunts (Ohnahran Plains',
-    [7343] = 'Grand Hunts (The Waking Shore)',
-    [7344] = 'Grand Hunts (Thaldraszus)',
-    [7345] = 'Grand Hunts (The Azure Span)'
-}
-
 local GRAND_HUNT_BAG_REWARDS = {
     Mount({item = 192791, id = 1635}), -- Plainswalker Bearer
     Pet({item = 200276, id = 3311}), -- Ohuna Companion
     Pet({item = 200290, id = 3325}) -- Bakar Companion
+}
+
+local GRAND_HUNT_AREA_POIS = {
+    [7089] = GRAND_HUNT_BAG_REWARDS, -- Western Ohnahran Plains Hunt
+    [7090] = GRAND_HUNT_BAG_REWARDS, -- Eastern Ohnahran Plains Hunt
+    [7091] = GRAND_HUNT_BAG_REWARDS, -- Southern Waking Shore
+    [7092] = GRAND_HUNT_BAG_REWARDS, -- Eastern Waking Shore
+    [7093] = GRAND_HUNT_BAG_REWARDS, -- Northern Waking Shore
+    [7094] = GRAND_HUNT_BAG_REWARDS, -- Western Azure Span Hunt
+    [7095] = GRAND_HUNT_BAG_REWARDS, -- Eastern Azure Span Hunt
+    [7096] = GRAND_HUNT_BAG_REWARDS, -- Southern Azure Span Hunt
+    [7097] = GRAND_HUNT_BAG_REWARDS, -- Southern Thaldrazus Hunt
+    [7053] = GRAND_HUNT_BAG_REWARDS, -- Northern Ohnahran Plains Hunt
+    [7099] = GRAND_HUNT_BAG_REWARDS, -- Northern Thaldraszus Hunt
+    [7342] = GRAND_HUNT_BAG_REWARDS, -- Grand Hunts (Ohnahran Plains
+    [7343] = GRAND_HUNT_BAG_REWARDS, -- Grand Hunts (The Waking Shore)
+    [7344] = GRAND_HUNT_BAG_REWARDS, -- Grand Hunts (Thaldraszus)
+    [7345] = GRAND_HUNT_BAG_REWARDS -- Grand Hunts (The Azure Span)
 }
 
 local GrandHunt = Class('GrandHunt', Collectible, {
@@ -1919,25 +1860,7 @@ end
 
 ns.node.GrandHunt = GrandHunt
 
-hooksecurefunc(AreaPOIEventPinMixin, 'TryShowTooltip', function(self)
-    if self and self.areaPoiID then
-        local mapID = self:GetMap().mapID
-        local group = ns.groups.GRAND_HUNTS
-        if GRAND_HUNT_AREA_POIS[self.areaPoiID] then
-            if group:GetDisplay(mapID) then
-                if ns:GetOpt('show_loot') then
-                    GameTooltip:AddLine(' ')
-                    for i, reward in ipairs(GRAND_HUNT_BAG_REWARDS) do
-                        if reward:IsEnabled() then
-                            reward:Render(GameTooltip)
-                        end
-                    end
-                end
-                GameTooltip:Show()
-            end
-        end
-    end
-end)
+ns.hooks.areapoievent.Add(ns.groups.GRAND_HUNTS, GRAND_HUNT_AREA_POIS)
 
 ------------------------------------------------------------------------------
 --------------------------- RARE VIGNETTE TOOLTIPS ---------------------------

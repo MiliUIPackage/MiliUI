@@ -217,6 +217,15 @@ function WorldMapOptionsButtonMixin:InitializeDropDown(level)
             end
         })
         LibDD:UIDropDownMenu_AddButton({
+            text = L['options_toggle_hide_done_treasure'],
+            isNotRadio = true,
+            keepShownOnClick = true,
+            checked = ns:GetOpt('hide_done_treasures'),
+            func = function(button, option)
+                ns:SetOpt('hide_done_treasures', button.checked)
+            end
+        })
+        LibDD:UIDropDownMenu_AddButton({
             text = L['options_toggle_use_char_achieves'],
             isNotRadio = true,
             keepShownOnClick = true,
@@ -225,7 +234,25 @@ function WorldMapOptionsButtonMixin:InitializeDropDown(level)
                 ns:SetOpt('use_char_achieves', button.checked)
             end
         })
-
+        LibDD:UIDropDownMenu_AddSeparator()
+        LibDD:UIDropDownMenu_AddButton({
+            text = L['ignore_class_restrictions'],
+            isNotRadio = true,
+            keepShownOnClick = true,
+            checked = ns:GetOpt('ignore_class_restrictions'),
+            func = function(button, option)
+                ns:SetOpt('ignore_class_restrictions', button.checked)
+            end
+        })
+        LibDD:UIDropDownMenu_AddButton({
+            text = L['ignore_faction_restrictions'],
+            isNotRadio = true,
+            keepShownOnClick = true,
+            checked = ns:GetOpt('ignore_faction_restrictions'),
+            func = function(button, option)
+                ns:SetOpt('ignore_faction_restrictions', button.checked)
+            end
+        })
         LibDD:UIDropDownMenu_AddSeparator()
         LibDD:UIDropDownMenu_AddButton({
             text = L['options_open_settings_panel'],
@@ -234,9 +261,13 @@ function WorldMapOptionsButtonMixin:InitializeDropDown(level)
             disabled = not map.settings,
             func = function(button, option)
                 HideUIPanel(WorldMapFrame)
-                Settings.OpenToCategory(L["map_button_title"])
+                for _, category in ipairs(SettingsPanel:GetAllCategories()) do
+                    if category:GetName() == 'HandyNotes' then
+                        Settings.OpenToCategory(category:GetID())
+                    end
+                end
                 LibStub('AceConfigDialog-3.0'):SelectGroup('HandyNotes',
-                    'plugins', EJ_GetTierInfo(ns.expansion), 'ZonesTab', 'Zone_' .. map.id)
+                    'plugins', ADDON_NAME, 'ZonesTab', 'Zone_' .. map.id)
             end
         })
     elseif level == 2 then
@@ -249,8 +280,7 @@ function WorldMapOptionsButtonMixin:InitializeDropDown(level)
             end
         elseif L_UIDROPDOWNMENU_MENU_VALUE == 'rewards' then
             for i, type in ipairs({
-                'manuscript', 'mount', 'pet', 'recipe', 'toy', 'transmog',
-                'all_transmog'
+                'rep', 'mount', 'pet', 'recipe', 'toy', 'transmog'
             }) do
                 LibDD:UIDropDownMenu_AddButton({
                     text = L['options_' .. type .. '_rewards'],
@@ -262,6 +292,53 @@ function WorldMapOptionsButtonMixin:InitializeDropDown(level)
                     end
                 }, 2)
             end
+
+            -- Only show manuscripts for the dragonflight plugin. A bit hacky, maybe
+            -- we can find a better way to do this in the future.
+            if ADDON_NAME == 'HandyNotes_Dragonflight' then
+                LibDD:UIDropDownMenu_AddButton({
+                    text = L['options_manuscript_rewards'],
+                    isNotRadio = true,
+                    keepShownOnClick = true,
+                    checked = ns:GetOpt('show_manuscript_rewards'),
+                    func = function(button, option)
+                        ns:SetOpt('show_manuscript_rewards', button.checked)
+                    end
+                }, 2)
+            end
+
+            if ns.expansion >= 11 then -- TWW and beyond
+                LibDD:UIDropDownMenu_AddButton({
+                    text = L['options_decor_rewards'],
+                    isNotRadio = true,
+                    keepShownOnClick = true,
+                    checked = ns:GetOpt('show_decor_rewards'),
+                    func = function(button, option)
+                        ns:SetOpt('show_decor_rewards', button.checked)
+                    end
+                }, 2)
+            end
+
+            -- Additional options tweaking the behavior of the above filters
+            LibDD:UIDropDownMenu_AddSeparator(2)
+            LibDD:UIDropDownMenu_AddButton({
+                text = L['options_all_transmog_rewards'],
+                isNotRadio = true,
+                keepShownOnClick = true,
+                checked = ns:GetOpt('show_all_transmog_rewards'),
+                func = function(button, option)
+                    ns:SetOpt('show_all_transmog_rewards', button.checked)
+                end
+            }, 2)
+            LibDD:UIDropDownMenu_AddButton({
+                text = L['options_claimed_rep_rewards'],
+                isNotRadio = true,
+                keepShownOnClick = true,
+                checked = ns:GetOpt('show_claimed_rep_rewards'),
+                func = function(button, option)
+                    ns:SetOpt('show_claimed_rep_rewards', button.checked)
+                end
+            }, 2)
         else
             -- add opacity/scale menu for non-achievements
             self:AddGroupOptions(L_UIDROPDOWNMENU_MENU_VALUE, 2)

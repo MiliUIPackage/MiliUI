@@ -483,8 +483,8 @@ map.nodes[39465371] = Rare({
     id = 209574,
     quest = 76367,
     rewards = {
-        DG.Guardian.HibernatingRunebear,
-        Transmog({item = 210433, type = L['cosmetic']}), -- Visage of Aurostor
+        Transmog({item = 210433}), -- Visage of Aurostor
+        DG.Guardian.HibernatingRunebear, --
         DC.FlourishingWhimsydrake.SunriseScales
     }
 }) -- Aurostor
@@ -511,7 +511,7 @@ map.nodes[72002700] = Node({
         DC.GrottoNetherwingDrake.BarbedTail,
         DC.GrottoNetherwingDrake.ShortHorns,
         DC.GrottoNetherwingDrake.TripleSpikedCrest, Spacer(),
-        Currency({id = 2245}), -- Flightstones
+        -- Currency({id = 2245}), -- Flightstones
         Currency({id = 2003}) -- Dragon Isles Supplies
     }
 })
@@ -697,11 +697,12 @@ map.nodes[69575284] = UnwakingEcho({
 -------------------------------------------------------------------------------
 -- https://www.wowhead.com/ptr-2/items/quality:4?filter=168:99:82;2:11:2;0:0:100200
 
-map.nodes[54043264] = PT.Alchemy({id = 210184, quest = 78264}) -- Half-Filled Dreamless Sleep Potion
+map.nodes[54043264] = PT.Alchemy({id = 210184, quest = 78264, level = 25}) -- Half-Filled Dreamless Sleep Potion
 
 bor.nodes[50934991] = PT.Alchemy({
     id = 210185,
     quest = 78269,
+    level = 25,
     parent = {
         id = map.id,
         note = L['in_cave'],
@@ -709,96 +710,109 @@ bor.nodes[50934991] = PT.Alchemy({
     }
 }) -- Splash Potion of Narcolepsy
 
-map.nodes[36264653] = PT.Alchemy({id = 210190, quest = 78275}) -- Blazeroot
+map.nodes[36264653] = PT.Alchemy({id = 210190, quest = 78275, level = 25}) -- Blazeroot
 
-map.nodes[46152058] = PT.Enchanting({id = 210231, quest = 78309}) -- Everburning Core
+map.nodes[46152058] = PT.Enchanting({id = 210231, quest = 78309, level = 25}) -- Everburning Core
 
-map.nodes[38373020] = PT.Enchanting({id = 210228, quest = 78308}) -- Pure Dream Water
+map.nodes[38373020] = PT.Enchanting({id = 210228, quest = 78308, level = 25}) -- Pure Dream Water
 
 map.nodes[66367419] = PT.Enchanting({
     id = 210234,
     quest = 78310,
+    level = 25,
     note = L['essence_of_dreams_note']
 }) -- Essence of Dreams
 
-map.nodes[55642751] = PT.Inscription({id = 210458, quest = 78411}) -- Winnie's Notes on Flora and Fauna
+map.nodes[55642751] = PT.Inscription({id = 210458, quest = 78411, level = 25}) -- Winnie's Notes on Flora and Fauna
 
 map.nodes[63507151] = PT.Inscription({
     id = 210459,
     quest = 78412,
+    level = 25,
     note = L['grove_keepers_pillar_note']
 }) -- Grove Keeper's Pillar
 
-map.nodes[36044664] = PT.Inscription({id = 210460, quest = 78413}) -- Primalist Shadowbinding Rune
+map.nodes[36044664] = PT.Inscription({id = 210460, quest = 78413, level = 25}) -- Primalist Shadowbinding Rune
 
-map.nodes[37262292] = PT.Blacksmithing({id = 210466, quest = 78419}) -- Flamesworn Render
+map.nodes[37262292] = PT.Blacksmithing({id = 210466, quest = 78419, level = 25}) -- Flamesworn Render
 
 map.nodes[49836299] = PT.Blacksmithing({
     id = 210464,
     quest = 78417,
+    level = 25,
     note = L['amirdrassil_defenders_shield_note']
 }) -- Amirdrassil Defender's Shield
 
-map.nodes[36344680] = PT.Blacksmithing({id = 210465, quest = 78418}) -- Deathstalker Chasis
+map.nodes[36344680] = PT.Blacksmithing({id = 210465, quest = 78418, level = 25}) -- Deathstalker Chasis
 
 map.nodes[39575227] = PT.Engineering({
     id = 210193,
     quest = 78278,
+    level = 25,
     note = L['experimental_dreamcatcher_note']
 }) -- Experimental Dreamcatcher
 
 bor.nodes[49486918] = PT.Engineering({
     id = 210194,
     quest = 78279,
+    level = 25,
     location = L['in_cave'],
     parent = map.id
 }) -- Insomniotron
 
-map.nodes[62683626] = PT.Engineering({id = 210197, quest = 78281}) -- Unhatched Battery
+map.nodes[62683626] = PT.Engineering({id = 210197, quest = 78281, level = 25}) -- Unhatched Battery
 
 map.nodes[53272791] = PT.Tailoring({
     id = 210461,
     quest = 78414,
+    level = 25,
     note = L['exceedingly_soft_wildercloth_note']
 }) -- Exceedingly Soft Wildercloth
 
 map.nodes[49826149] = PT.Tailoring({
     id = 210462,
     quest = 78415,
+    level = 25,
     note = L['plush_pillow_note']
 }) -- Plush Pillow
 
 map.nodes[40708615] = PT.Tailoring({
     id = 210463,
     quest = 78416,
+    level = 25,
     note = L['snuggle_buddy_note']
 }) -- Snuggle Buddy
 
 map.nodes[33204656] = PT.Jewelcrafting({
     id = 210200,
     quest = 78282,
+    level = 25,
     note = L['petrified_hope_note']
 }) -- Petrified Hope
 
 map.nodes[43513336] = PT.Jewelcrafting({
     id = 210201,
     quest = 78283,
+    level = 25,
     note = L['handful_of_pebbles_note']
 }) -- Handful of Pebbles
 
-map.nodes[58945389] = PT.Jewelcrafting({id = 210202, quest = 78285}) -- Coalesced Dreamstone
+map.nodes[58945389] = PT.Jewelcrafting({id = 210202, quest = 78285, level = 25}) -- Coalesced Dreamstone
 
-map.nodes[41766650] = PT.Leatherworking({id = 210208, quest = 78298}) -- Tuft of Dreamsaber Fur
+map.nodes[41766650] =
+    PT.Leatherworking({id = 210208, quest = 78298, level = 25}) -- Tuft of Dreamsaber Fur
 
 map.nodes[37467101] = PT.Leatherworking({
     id = 210211,
     quest = 78299,
+    level = 25,
     note = L['molted_faerie_dragon_scales_note']
 }) -- Molted Faerie Dragon Scales
 
 map.nodes[33992968] = PT.Leatherworking({
     id = 210215,
     quest = 78305,
+    level = 25,
     note = L['dreamtalon_claw_note']
 }) -- Dreamtalon Claw
 
@@ -1002,27 +1016,11 @@ map.nodes[63035284] = EmeraldBounty({criteriaID = 62031}) -- Singing Weedling
 map.nodes[63504710] = EmeraldBounty({criteriaID = 62032}) -- Fuzzy Licorice
 map.nodes[63966484] = EmeraldBounty({criteriaID = 62030}) -- Dragon's Daffodil
 
-hooksecurefunc(VignettePinMixin, 'DisplayNormalTooltip', function(self)
-    if self.vignetteID ~= 5971 then return end
-
-    local mapID = self:GetMap().mapID
-    local group = ns.groups.DREAM_OF_SEEDS
-    if not ns.maps[mapID] or not group:GetDisplay(mapID) then return end
-
-    local x, y =
-        C_VignetteInfo.GetVignettePosition(self.vignetteGUID, mapID):GetXY()
-    local node = ns.maps[mapID].nodes[HandyNotes:getCoord(x, y)]
-    if not node then return end
-
-    -- GameTooltip:AddLine(node.requires, true, 1, 1, 1)
-    if ns:GetOpt('show_notes') then
-        GameTooltip:AddLine(' ')
-        GameTooltip:AddLine(ns.RenderLinks(node.note), 1, 1, 1, true)
-    end
-    if ns:GetOpt('show_loot') then node:RenderRewards(GameTooltip) end
-
-    GameTooltip:Show()
-end)
+ns.hook.Vignette({
+    group = ns.groups.DREAM_OF_SEEDS,
+    showNote = true,
+    vignetteID = 5971
+})
 
 -------------------------------------------------------------------------------
 --------------------------------- SUPERBLOOM ----------------------------------

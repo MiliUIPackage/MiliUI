@@ -86,7 +86,6 @@ L['options_icons_signal_transmitter'] = 'Wyrmhole Generator Signal Transmitters'
 L['options_icons_signal_transmitter_desc'] = 'Display {object:Deactivated Signal Transmitters} locations for the {item:198156}.'
 
 L['rare_14h'] = 'This rare is on a 14 hour rotation with other rares with one rare spawning every 30 minutes.\n\nNext spawn in: {note:%s}'
-L['now'] = 'Now'
 L['spawns_at_night'] = '{note:Spawns only at night. (After 18:30 server time)}'
 
 L['elemental_storm'] = 'Elemental Storm'
@@ -838,9 +837,9 @@ L['phoenix_wishwing_talisman'] = [[
 
 This is sold by {npc:88045} {dot:Gold} in {location:Spires of Arak}. If {npc:88045} is not present, complete the quest {quest:35010} to be able to see him.
 You need following Items to buy it:]]
-L['phoenix_wishwing_phoenix_ember'] = '%s {item:199099}\nDrops from {npc:52530} in {location:Firelands Timewalking}'
+L['phoenix_wishwing_phoenix_ember'] = '%s {item:199099}\nDrops from {npc:52530} in {location:Firelands Timewalking}.'
 L['phoenix_wishwing_sacred_ash'] = '%s {item:199097}\nCan be found within {object:Cookpots}, located around {location:Spires of Arak}.'
-L['phoenix_wishwing_inert_ash'] = '%s {item:199092}\nDrops rarely from {npc:6520} and {npc:6521} at the center of {location:Un\'Goro Crater} {dot:Gray}'
+L['phoenix_wishwing_inert_ash'] = '%s {item:199092}\nDrops rarely from {npc:6520} and {npc:6521} at the center of {location:Un\'Goro Crater} {dot:Gray}.'
 L['phoenix_wishwing_smoldering_ash'] = [[
 %s {item:199080}
 
@@ -923,6 +922,7 @@ L['smelly_treasure_chest_label'] = 'Smelly Treasure Chest'
 L['options_icons_smelly_treasure_chest'] = 'Smelly Treasure Chest'
 L['options_icons_smelly_treasure_chest_desc'] = 'Display possible locations of {object:Smelly Treasure Chest}.'
 
+L['seething_cache'] = 'Seething Cache'
 L['seething_cache_treasure_note'] = 'To be able to see the {object:Seething Cache} and loot the {item:192779} you\'ll need to pick up 3x stacks of a {spell:399342} debuff from {object:Seething Orbs} located in the {location:Zaqali Caldera} area in {location:Zaralek Cavern}.'
 L['chest_of_the_flights_treasure_note'] = 'To open the treasure chest you need to click on the {object:Empowered Gems} in the order {note:Red > Black > Blue > Yellow > Green}.'
 L['curious_top_hat_note'] = 'Interact with {npc:205010} while you have the {spell:410288} Buff to recieve {item:205021}. If you dont have the Buff and go near him he will run away.'
