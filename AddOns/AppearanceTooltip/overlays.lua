@@ -25,6 +25,32 @@ function f:ADDON_LOADED(addon)
 end
 f:RegisterEvent("ADDON_LOADED")
 
+function ns:SetIconAppearance(icon, link, hasAppearance, appearanceFromOtherItem, probablyEnsemble)
+    if LAI:IsAppropriate(link) or probablyEnsemble then
+        -- this character can use it
+        icon:SetSize(16, 16)
+        icon:SetAtlas("transmog-icon-hidden")
+        icon:SetRotation(0)
+
+        icon.background:SetSize(12, 12)
+
+        if appearanceFromOtherItem then
+            -- blue eye
+            icon:SetVertexColor(0, 1, 1)
+        else
+            -- regular purple trasmog-eye
+            icon:SetVertexColor(1, 1, 1)
+        end
+    else
+        -- mail icon
+        icon:SetSize(14, 14)
+        icon:SetAtlas("mailbox")
+        icon:SetRotation(1.7 * math.pi)
+        icon:SetVertexColor(1, 1, 1)
+        -- icon:SetVertexColor(0, 1, 1)
+    end
+end
+
 local function PrepareItemButton(button, point, offsetx, offsety)
     if button.appearancetooltipoverlay then
         return
@@ -40,38 +66,41 @@ local function PrepareItemButton(button, point, offsetx, offsety)
         sublevel = select(2, button.IconOverlay:GetDrawLayer())
     end
 
+    local icon = overlayFrame:CreateTexture(nil, "OVERLAY", nil, sublevel + 1)
+    icon:SetPoint(point or 'BOTTOMLEFT', offsetx or 0, offsety or 0)
+    overlayFrame.icon = icon
+
     local background = overlayFrame:CreateTexture(nil, "OVERLAY", nil, sublevel)
-    background:SetSize(12, 12)
-    background:SetPoint(point or 'BOTTOMLEFT', offsetx or 0, offsety or 0)
+    background:SetPoint("CENTER", icon, "CENTER")
     background:SetColorTexture(0, 0, 0, 0.4)
 
-    button.appearancetooltipoverlay.icon = overlayFrame:CreateTexture(nil, "OVERLAY", nil, sublevel + 1)
-    button.appearancetooltipoverlay.icon:SetSize(16, 16)
-    button.appearancetooltipoverlay.icon:SetPoint("CENTER", background, "CENTER")
-    button.appearancetooltipoverlay.icon:SetAtlas("transmog-icon-hidden")
+    local mask = overlayFrame:CreateMaskTexture()
+    mask:SetAllPoints(background)
+    mask:SetTexture("Interface/CHARACTERFRAME/TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    background:AddMaskTexture(mask)
 
-    button.appearancetooltipoverlay.iconInappropriate = overlayFrame:CreateTexture(nil, "OVERLAY", nil, sublevel + 1)
-    button.appearancetooltipoverlay.iconInappropriate:SetSize(14, 14)
-    button.appearancetooltipoverlay.iconInappropriate:SetPoint("CENTER", background, "CENTER")
-    button.appearancetooltipoverlay.iconInappropriate:SetAtlas("mailbox")
-    button.appearancetooltipoverlay.iconInappropriate:SetRotation(1.7 * math.pi)
-    -- button.appearancetooltipoverlay.iconInappropriate:SetVertexColor(0, 1, 1)
+    icon.background = background
 
     overlayFrame:Hide()
 end
 local function IsRelevantItem(link)
     if not link then return end
     if ns.db.learnable then
-        local itemID = C_Item.GetItemInfoInstant(link)
+        local itemID, _, _, _, _, classID, subclassID = C_Item.GetItemInfoInstant(link)
         if itemID then
             if C_ToyBox and C_ToyBox.GetToyInfo(itemID) then
                 return true
             end
-            if C_MountJournal and C_MountJournal.GetMountFromItem(itemID) then
+            if classID == Enum.ItemClass.Miscellaneous and subclassID == Enum.ItemMiscellaneousSubclass.Mount then
+                -- if C_MountJournal and C_MountJournal.GetMountFromItem(itemID) then
                 return true
             end
-            local petID = C_PetJournal and C_PetJournal.GetPetInfoByItemID and select(13, C_PetJournal.GetPetInfoByItemID(itemID))
-            if petID then
+            if classID == Enum.ItemClass.Miscellaneous and subclassID == Enum.ItemMiscellaneousSubclass.CompanionPet then
+                -- local petID = C_PetJournal and C_PetJournal.GetPetInfoByItemID and select(13, C_PetJournal.GetPetInfoByItemID(itemID))
+                -- if petID then
+                return true
+            end
+            if _G.HOUSING_DECOR_OWNED_COUNT_FORMAT and classID == Enum.ItemClass.Housing and subclassID == Enum.ItemHousingSubclass.Decor then
                 return true
             end
         end
@@ -96,21 +125,7 @@ local function UpdateOverlay(button, link, ...)
     -- ns.Debug("Considering item", link, hasAppearance, appearanceFromOtherItem, appropriateItem, probablyEnsemble)
     if OverlayShouldApplyToItem(link, hasAppearance, appearanceFromOtherItem, probablyEnsemble) then
         PrepareItemButton(button, ...)
-        button.appearancetooltipoverlay.icon:Hide()
-        button.appearancetooltipoverlay.iconInappropriate:Hide()
-        if LAI:IsAppropriate(link) or probablyEnsemble then
-            button.appearancetooltipoverlay.icon:Show()
-            if appearanceFromOtherItem then
-                -- blue eye
-                button.appearancetooltipoverlay.icon:SetVertexColor(0, 1, 1)
-            else
-                -- regular purple trasmog-eye
-                button.appearancetooltipoverlay.icon:SetVertexColor(1, 1, 1)
-            end
-        else
-            -- mail icon
-            button.appearancetooltipoverlay.iconInappropriate:Show()
-        end
+        ns:SetIconAppearance(button.appearancetooltipoverlay.icon, link, hasAppearance, appearanceFromOtherItem, probablyEnsemble)
         button.appearancetooltipoverlay:Show()
         return true
     elseif button.appearancetooltipoverlay then
@@ -507,7 +522,7 @@ f:RegisterAddonHook("Baganator", function()
         -- onInit
         function(itemButton)
             local frame = CreateFrame("Frame", nil, itemButton)
-            frame:SetSize(6, 6)
+            frame:SetSize(12, 12)
             PrepareItemButton(frame, "CENTER", 0, 0)
             return frame
         end,

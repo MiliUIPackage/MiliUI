@@ -1,7 +1,8 @@
 # AppearanceTooltip
 
-## [v63](https://github.com/kemayo/wow-appearancetooltip/tree/v63) (2025-08-09)
-[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v62...v63) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
+## [v70](https://github.com/kemayo/wow-appearancetooltip/tree/v70) (2026-01-21)
+[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v69...v70) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
 
-- Fix pet-related error in classic  
-    It has C\_PetJournal for some reason...  
+- Avoid some secret value issues in Midnight prepatch  
+- Avoid a very intermittent error when showing comparisons  
+    Either the center or the scale of the comparison tooltip was nil...  

@@ -1,4 +1,4 @@
-## Interface: 110002
+## Interface: 120001, 120000, 110207
 ## Title: Lib: AppropriateItems-1.0
 ## Notes: What items are appropriate for a given class
 ## Author: Kemayo
