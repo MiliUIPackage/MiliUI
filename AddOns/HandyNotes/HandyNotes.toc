@@ -1,21 +1,17 @@
-## Interface: 120000,110200
+## Interface: 110207,120000,120001,11508,20505,50503
 ## Title: HandyNotes
 ## Notes: Handy notes for your maps
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-主程式
 ## Notes-zhTW: HandyNotes |n|n在地圖上提供方便的標註功能，搭配相關模組一起使用，可以在地圖上顯示寶箱、稀有怪...的位置。|n|cffffd200使用方法：|r從Esc>介面>插件>地圖標記，進行設定。
-## Notes-frFR: Notes pratiques pour vos cartes.
+## Notes-zhTW: HandyNotes |n在地圖上提供方便的標註功能，搭配相關模組一起使用，可以在地圖上顯示寶箱、稀有怪...的位置。|n|cffffd200使用方法：|r從Esc>介面>插件>地圖標記，進行設定。
 ## Author: Xinhuan
-## Version: v1.6.24
+## Version: v1.6.28
 ## DefaultState: enabled
-## X-Category: Map
 ## X-eMail: xinhuan @ gmail DOT com
 ## OptionalDeps: Ace3, TomTom, HereBeDragons
 ## X-Curse-Project-ID: 14154
 ## X-WoWI-ID: 15716
 ## X-Wago-ID: mNwQMlKo
-## X-Category-zhTW: 地圖
-## LoadManagers: AddonLoader
-## X-LoadOn-Always: delayed
 ## Category: Info
 ## Category-zhTW: 資訊
 
@@ -40,11 +36,6 @@ Libs\HereBeDragons\HereBeDragons-Migrate.lua
 
 # Locale files
 Locales\Locale-enUS.lua
-Locales\Locale-deDE.lua
-Locales\Locale-esES.lua
-Locales\Locale-frFR.lua
-Locales\Locale-koKR.lua
-Locales\Locale-ruRU.lua
 Locales\Locale-zhCN.lua
 Locales\Locale-zhTW.lua
 
