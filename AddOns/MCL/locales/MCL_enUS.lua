@@ -70,6 +70,7 @@ if L then
     L["LEGION"] = "LEGION"
     L["Leatherworking"] = "Leatherworking"
     L["Legion"] = "Legion"
+    L["Legion Remix"] = "Legion Remix"
     L["Love is in the Air"] = "Love is in the Air"
     L["Lunar Festival"] = "Lunar Festival"
     L["MOP"] = "MOP"
@@ -172,6 +173,7 @@ if L then
     L["Horrific Visions"] = "Horrific Visions"
     L["Ashran"] = "Ashran"
     L["Mists of Pandaria Remix"] = "Mists of Pandaria Remix"
+    L["Midnight Pre-Patch"] = "Midnight Pre-Patch"
 
     ------ setting panel ------
     L["Ctrl + Right Click to pin uncollected mounts"] = "Ctrl + Right Click to pin/unpin mounts"
@@ -198,6 +200,8 @@ if L then
     L["Reset to default colors"] = "Reset to default colors"
     L["Layout Settings"] = "Layout Settings"
     L["Mounts Per Row"] = "Mounts Per Row"
+    L["Refresh Layout"] = "Refresh Layout"
+    L["Refreshes the mount collection display"] = "Refreshes the mount collection display"
     L["Set the number of mounts to display per row in the mount grid. Requires UI reload."] = "Set the number of mounts to display per row in the mount grid. Requires UI reload."
     L["Unobtainable Settings"] = "Unobtainable Settings"
     L["Hide Unobtainable from overview"] = "Hide Unobtainable from overview"

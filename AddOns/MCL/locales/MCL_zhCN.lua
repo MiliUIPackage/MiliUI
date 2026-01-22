@@ -70,6 +70,7 @@ if L then
     L["LEGION"] = "军团再临"
     L["Leatherworking"] = "制皮"
     L["Legion"] = "军团再临"
+    L["Legion Remix"] = "军团再临重置版"
     L["Love is in the Air"] = "情人节"
     L["Lunar Festival"] = "春节"
     L["MOP"] = "熊猫人之谜"
@@ -171,7 +172,7 @@ if L then
     L["Incursion"] = "突袭"
     L["Horrific Visions"] = "恐怖幻象"
     L["Ashran"] = "阿什兰"
-    L["RemixLEGION"] = "幻境新生: 军团再临"
+    L["Mists of Pandaria Remix"] = "熊猫人之谜重置版"
     
     ------ setting panel ------
     L["Ctrl + Right Click to pin uncollected mounts"] = "Ctrl + 右键 标记/取消标记坐骑"
@@ -210,6 +211,8 @@ if L then
     L["NO"] = "否"
     L["Layout Settings"] = "布局设置"
     L["Mounts Per Row"] = "每行坐骑数"
+    L["Refresh Layout"] = "刷新布局"
+    L["Refreshes the mount collection display"] = "刷新坐骑收藏的显示"
     L["Set the number of mounts to display per row in the mount grid. Requires UI reload."] = "设置坐骑网格中每行显示的坐骑数量。需要重载界面。"
     L["Use Blizzard Theme"] = "使用暴雪主题"
     L["If enabled, the addon will use Blizzard's default UI theme. Requires UI reload."] = "启用后，插件将使用暴雪默认的界面主题。需要重载界面。"

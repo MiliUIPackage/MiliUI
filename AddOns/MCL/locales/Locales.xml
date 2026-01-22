@@ -5,4 +5,12 @@
     <Script file="MCL_enUS.lua"/>
     <Script file="MCL_zhCN.lua"/>
     <Script file="MCL_zhTW.lua"/>
+    <Script file="MCL_frFR.lua"/>
+    <Script file="MCL_deDE.lua"/>
+    <Script file="MCL_esES.lua"/>
+    <Script file="MCL_esMX.lua"/>
+    <Script file="MCL_ruRU.lua"/>
+    <Script file="MCL_ptBR.lua"/>
+    <Script file="MCL_koKR.lua"/>
+    <Script file="MCL_itIT.lua"/>
 </Ui>
