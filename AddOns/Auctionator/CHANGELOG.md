@@ -1,7 +1,7 @@
 # Auctionator
 
-## [296](https://github.com/TheMouseNest/Auctionator/tree/296) (2025-09-29)
-[Full Changelog](https://github.com/TheMouseNest/Auctionator/compare/295...296) 
+## [311](https://github.com/TheMouseNest/Auctionator/tree/311) (2026-01-21)
+[Full Changelog](https://github.com/TheMouseNest/Auctionator/compare/310...311) 
 
-- Modern AH: Fix "Skip" sometimes skipping more than one item  
-- Selling: Fix "Skip" button in popup when posting overlapping "Cancel" button  
+- Fix "Open Options" button in Auctionator tab  
+- Retail: Fix displaying crafted item qualities in AH UI  
