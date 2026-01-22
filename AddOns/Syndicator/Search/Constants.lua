@@ -1,4 +1,7 @@
-Syndicator.Search.Constants = {}
+---@class addonTableSyndicator
+local addonTable = select(2, ...)
+
+addonTable.Search.Constants = {}
 
 local ClassData = {
   [1] = { -- Warrior
@@ -134,60 +137,60 @@ local ClassData = {
   }
 }
 
-Syndicator.Search.Constants.AllClassSpecializations = {}
+addonTable.Search.Constants.AllClassSpecializations = {}
 for classID in ipairs(ClassData) do
   local index = 1
   local id
   while true do
     id = GetSpecializationInfoForClassID(classID, index)
     index = index + 1
-    table.insert(Syndicator.Search.Constants.AllClassSpecializations, id)
+    table.insert(addonTable.Search.Constants.AllClassSpecializations, id)
     if id == nil then
       break
     end
   end
 end
 
-Syndicator.Search.Constants.ClassGear = {}
+addonTable.Search.Constants.ClassGear = {}
 
 local currentClass = select(3, UnitClass("player"))
 
-Syndicator.Search.Constants.ClassGear = {}
+addonTable.Search.Constants.ClassGear = {}
 local classDetails = ClassData[currentClass]
 for _, typeDetails in ipairs(classDetails) do
-  Syndicator.Search.Constants.ClassGear[typeDetails[1]] = Syndicator.Search.Constants.ClassGear[typeDetails[1]] or {}
-  Syndicator.Search.Constants.ClassGear[typeDetails[1]][typeDetails[2]] = Syndicator.Search.Constants.ClassGear[typeDetails[1]][typeDetails[2]] or {}
+  addonTable.Search.Constants.ClassGear[typeDetails[1]] = addonTable.Search.Constants.ClassGear[typeDetails[1]] or {}
+  addonTable.Search.Constants.ClassGear[typeDetails[1]][typeDetails[2]] = addonTable.Search.Constants.ClassGear[typeDetails[1]][typeDetails[2]] or {}
   if typeDetails[3] then
-    Syndicator.Search.Constants.ClassGear[typeDetails[1]][typeDetails[2]][typeDetails[3]] = true
+    addonTable.Search.Constants.ClassGear[typeDetails[1]][typeDetails[2]][typeDetails[3]] = true
   end
 end
 
-Syndicator.Search.Constants.KeywordGroupOrder = {
-  Syndicator.Locales.GROUP_ITEM_TYPE,
-  Syndicator.Locales.GROUP_ITEM_DETAIL,
-  Syndicator.Locales.GROUP_BINDING_TYPE,
-  Syndicator.Locales.GROUP_QUALITY,
+addonTable.Search.Constants.KeywordGroupOrder = {
+  addonTable.Locales.GROUP_ITEM_TYPE,
+  addonTable.Locales.GROUP_ITEM_DETAIL,
+  addonTable.Locales.GROUP_BINDING_TYPE,
+  addonTable.Locales.GROUP_QUALITY,
 
-  Syndicator.Locales.GROUP_SLOT,
-  Syndicator.Locales.GROUP_WEAPON_TYPE,
-  Syndicator.Locales.GROUP_ARMOR_TYPE,
-  Syndicator.Locales.GROUP_STAT,
-  Syndicator.Locales.GROUP_SOCKET,
+  addonTable.Locales.GROUP_SLOT,
+  addonTable.Locales.GROUP_WEAPON_TYPE,
+  addonTable.Locales.GROUP_ARMOR_TYPE,
+  addonTable.Locales.GROUP_STAT,
+  addonTable.Locales.GROUP_SOCKET,
 
-  Syndicator.Locales.GROUP_TRADE_GOODS,
-  Syndicator.Locales.GROUP_RECIPE,
-  Syndicator.Locales.GROUP_GLYPH,
-  Syndicator.Locales.GROUP_CONSUMABLE,
+  addonTable.Locales.GROUP_TRADE_GOODS,
+  addonTable.Locales.GROUP_RECIPE,
+  addonTable.Locales.GROUP_GLYPH,
+  addonTable.Locales.GROUP_CONSUMABLE,
 
-  Syndicator.Locales.GROUP_EXPANSION,
-  Syndicator.Locales.GROUP_BATTLE_PET,
-  Syndicator.Locales.GROUP_HOUSING,
+  addonTable.Locales.GROUP_EXPANSION,
+  addonTable.Locales.GROUP_BATTLE_PET,
+  addonTable.Locales.GROUP_HOUSING,
 }
 
 -- Special case for era because Blizzard doesn't tag the consumables or trade
 -- goods by their subtype (and the subtype doesn't exist in era's data)
-if Syndicator.Constants.IsEra then
-  Syndicator.Search.Constants.TypeOverrides = {
+if addonTable.Constants.IsEra then
+  addonTable.Search.Constants.TypeOverrides = {
     [0] = { -- Consumables
       [0] = {
         5514, 19697
@@ -385,12 +388,14 @@ if Syndicator.Constants.IsEra then
     }
   }
 
-  Syndicator.Search.Constants.TypeOverridesMap = {}
-  for classID, subClasses in pairs(Syndicator.Search.Constants.TypeOverrides) do
+  addonTable.Search.Constants.TypeOverridesMap = {}
+  for classID, subClasses in pairs(addonTable.Search.Constants.TypeOverrides) do
     for subClassID, items in pairs(subClasses) do
       for _, itemID in ipairs(items) do
-        Syndicator.Search.Constants.TypeOverridesMap[itemID] = {classID = classID, subClassID = subClassID}
+        addonTable.Search.Constants.TypeOverridesMap[itemID] = {classID = classID, subClassID = subClassID}
       end
     end
   end
 end
+
+Syndicator.Search.Constants = {KeywordGroupOrder = addonTable.Search.KeywordGroupOrder}

@@ -1,17 +1,20 @@
+---@class addonTableSyndicator
+local addonTable = select(2, ...)
+
 local function AddItemCheck()
-  return Syndicator.Config.Get(Syndicator.Config.Options.SHOW_INVENTORY_TOOLTIPS) and (not Syndicator.Config.Get(Syndicator.Config.Options.SHOW_TOOLTIPS_ON_SHIFT) or IsShiftKeyDown())
+  return addonTable.Config.Get(addonTable.Config.Options.SHOW_INVENTORY_TOOLTIPS) and (not addonTable.Config.Get(addonTable.Config.Options.SHOW_TOOLTIPS_ON_SHIFT) or IsShiftKeyDown())
 end
 
 local function AddToItemTooltip(tooltip, summaries, itemLink)
-  Syndicator.Tooltips.AddItemLines(tooltip, summaries, itemLink)
+  addonTable.Tooltips.AddItemLines(tooltip, summaries, itemLink)
 end
 
 local function AddCurrencyCheck()
-  return Syndicator.Config.Get(Syndicator.Config.Options.SHOW_CURRENCY_TOOLTIPS) and (not Syndicator.Config.Get(Syndicator.Config.Options.SHOW_TOOLTIPS_ON_SHIFT) or IsShiftKeyDown())
+  return addonTable.Config.Get(addonTable.Config.Options.SHOW_CURRENCY_TOOLTIPS) and (not addonTable.Config.Get(addonTable.Config.Options.SHOW_TOOLTIPS_ON_SHIFT) or IsShiftKeyDown())
 end
 
 local function AddToCurrencyTooltip(tooltip, currencyID)
-  Syndicator.Tooltips.AddCurrencyLines(tooltip, currencyID)
+  addonTable.Tooltips.AddCurrencyLines(tooltip, currencyID)
 end
 
 local function InitializeSavedVariables()
@@ -59,7 +62,7 @@ end
 
 local currentCharacter
 local function InitCurrentCharacter()
-  currentCharacter = Syndicator.Utilities.GetCharacterFullName()
+  currentCharacter = addonTable.Utilities.GetCharacterFullName()
 
   if SYNDICATOR_DATA.Characters[currentCharacter] == nil or SYNDICATOR_DATA.Characters[currentCharacter].details.realmNormalized == nil then
     SYNDICATOR_DATA.Characters[currentCharacter] = {
@@ -99,12 +102,12 @@ local function SetupCacheMixin(mixin, key)
     Mixin(cache, mixin)
     cache:OnLoad()
     cache:SetScript("OnEvent", cache.OnEvent)
-    Syndicator[key] = cache
+    addonTable[key] = cache
   end, CallErrorHandler)
 end
 
 local function SetupDataProcessing()
-  Syndicator.Utilities.CacheConnectedRealms()
+  addonTable.Utilities.CacheConnectedRealms()
 
   SetupCacheMixin(SyndicatorBagCacheMixin, "BagCache")
 
@@ -118,7 +121,7 @@ local function SetupDataProcessing()
 
   SetupCacheMixin(SyndicatorGuildCacheMixin, "GuildCache")
 
-  if Syndicator.Constants.IsLegacyAH then
+  if addonTable.Constants.IsLegacyAH then
     SetupCacheMixin(SyndicatorAuctionCacheLegacyMixin, "AuctionCache")
   else
     SetupCacheMixin(SyndicatorAuctionCacheModernMixin, "AuctionCache")
@@ -129,7 +132,7 @@ local function SetupItemSummaries()
   local summaries = CreateFrame("Frame")
   Mixin(summaries, SyndicatorItemSummariesMixin)
   summaries:OnLoad()
-  Syndicator.ItemSummaries = summaries
+  addonTable.ItemSummaries = summaries
 end
 
 local function SetupTooltips()
@@ -139,7 +142,7 @@ local function SetupTooltips()
     end
 
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tooltip)
-      if ValidateTooltip(tooltip) and Syndicator.ItemSummaries then
+      if ValidateTooltip(tooltip) and addonTable.ItemSummaries then
         local _, itemLink = TooltipUtil.GetDisplayedItem(tooltip)
 
         local info = tooltip.processingInfo
@@ -176,12 +179,12 @@ local function SetupTooltips()
         end
 
         if itemLink and AddItemCheck() then
-          AddToItemTooltip(tooltip, Syndicator.ItemSummaries, itemLink)
+          AddToItemTooltip(tooltip, addonTable.ItemSummaries, itemLink)
         end
       end
     end)
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Currency, function(tooltip)
-      if ValidateTooltip(tooltip) and Syndicator.ItemSummaries then
+      if ValidateTooltip(tooltip) and addonTable.ItemSummaries then
         local data = tooltip:GetPrimaryTooltipData()
         if AddCurrencyCheck() then
           AddToCurrencyTooltip(tooltip, data.id)
@@ -192,12 +195,12 @@ local function SetupTooltips()
     local function SetItemTooltipHandler(tooltip)
       local ready = true
       tooltip:HookScript("OnTooltipSetItem", function()
-        if not ready or not Syndicator.ItemSummaries then
+        if not ready or not addonTable.ItemSummaries then
           return
         end
         local _, itemLink = tooltip:GetItem()
         if AddItemCheck() then
-          AddToItemTooltip(tooltip, Syndicator.ItemSummaries, itemLink)
+          AddToItemTooltip(tooltip, addonTable.ItemSummaries, itemLink)
         end
         ready = false
       end)
@@ -228,7 +231,7 @@ local function SetupTooltips()
     if GameTooltip.SetCraftItem then
       hooksecurefunc(GameTooltip, "SetCraftItem", function(_, recipeIndex, reagentIndex)
         if AddItemCheck() then
-          AddToItemTooltip(GameTooltip, Syndicator.ItemSummaries, GetCraftReagentItemLink(recipeIndex, reagentIndex))
+          AddToItemTooltip(GameTooltip, addonTable.ItemSummaries, GetCraftReagentItemLink(recipeIndex, reagentIndex))
         end
       end)
     end
@@ -236,7 +239,7 @@ local function SetupTooltips()
 
   if BattlePetToolTip_Show then
     local function PetTooltipShow(tooltip, speciesID, level, breedQuality, maxHealth, power, speed)
-      if not AddItemCheck() or not Syndicator.ItemSummaries then
+      if not AddItemCheck() or not addonTable.ItemSummaries then
         return
       end
       -- Reconstitute item link from tooltip arguments
@@ -249,7 +252,7 @@ local function SetupTooltips()
       local quality = ITEM_QUALITY_COLORS[breedQuality].color
       local itemLink = quality:WrapTextInColorCode("|H" .. itemString .. "|h[" .. name .. "]|h")
 
-      AddToItemTooltip(tooltip, Syndicator.ItemSummaries, itemLink)
+      AddToItemTooltip(tooltip, addonTable.ItemSummaries, itemLink)
     end
     hooksecurefunc("BattlePetToolTip_Show", function(...)
       PetTooltipShow(BattlePetTooltip, ...)
@@ -262,33 +265,30 @@ local function SetupTooltips()
   end
 end
 
-function Syndicator.Tracking.Initialize()
+function addonTable.Tracking.Initialize()
   local frame = CreateFrame("Frame")
-  -- We initialize everything at PLAYER_LOGIN for 2 reasons
-  -- 1. Character normalized realm name is only available at this point
-  -- 2. To ensure data from Baganator is imported
-  frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+  -- We initialize everything at PLAYER_LOGIN because character normalized
+  -- realm name is only available at this point
+  frame:RegisterEvent("PLAYER_LOGIN")
   frame:SetScript("OnEvent", function()
-    frame:UnregisterEvent("PLAYER_ENTERING_WORLD")
-    C_Timer.After(0, function()
-      InitializeSavedVariables()
-      InitCurrentCharacter()
-      SetupDataProcessing()
-      SetupItemSummaries()
+    frame:UnregisterEvent("PLAYER_LOGIN")
+    InitializeSavedVariables()
+    InitCurrentCharacter()
+    SetupDataProcessing()
+    SetupItemSummaries()
 
-      Syndicator.CallbackRegistry:TriggerEvent("Ready")
-      Syndicator.Tracking.isReady = true
-    end)
+    addonTable.CallbackRegistry:TriggerEvent("Ready")
+    addonTable.Tracking.isReady = true
   end)
 
-  Syndicator.CallbackRegistry:RegisterCallback("CharacterDeleted", function(_, name)
+  addonTable.CallbackRegistry:RegisterCallback("CharacterDeleted", function(_, name)
     if name == currentCharacter then
       InitCurrentCharacter()
     end
   end)
 
-  Syndicator.CallbackRegistry:RegisterCallback("GuildNameSet", function(_, guild)
-    SYNDICATOR_DATA.Characters[Syndicator.BagCache.currentCharacter].details.guild = guild
+  addonTable.CallbackRegistry:RegisterCallback("GuildNameSet", function(_, guild)
+    SYNDICATOR_DATA.Characters[addonTable.BagCache.currentCharacter].details.guild = guild
   end)
 
   xpcall(SetupTooltips, CallErrorHandler)

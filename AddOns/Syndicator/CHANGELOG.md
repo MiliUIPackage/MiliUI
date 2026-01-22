@@ -1,7 +1,8 @@
 # Syndicator
 
-## [246](https://github.com/TheMouseNest/Syndicator/tree/246) (2025-10-29)
-[Full Changelog](https://github.com/TheMouseNest/Syndicator/compare/245...246) 
+## [259](https://github.com/TheMouseNest/Syndicator/tree/259) (2026-01-15)
+[Full Changelog](https://github.com/TheMouseNest/Syndicator/compare/258...259) 
 
-- MoP: Update toc for 5.5.2  
-- Fixes for latest Midnight alpha  
+- Remove usage of PLAYER\_ENTERING\_WORLD for initialization  
+    This mitigates any impact of the new CPU consumption restrictions  
+- Update constants (as workaround to detect TBC anniversary no longer needed)  

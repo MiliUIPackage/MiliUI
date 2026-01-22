@@ -1,13 +1,18 @@
-Syndicator.CallbackRegistry = CreateFromMixins(CallbackRegistryMixin)
-Syndicator.CallbackRegistry:OnLoad()
-Syndicator.CallbackRegistry:GenerateCallbackEvents(Syndicator.Constants.Events)
+---@class addonTableSyndicator
+local addonTable = select(2, ...)
 
-Syndicator.Utilities.OnAddonLoaded("Syndicator", function()
-  Syndicator.Config.InitializeData()
-  Syndicator.SlashCmd.Initialize()
-  Syndicator.Options.Initialize()
+addonTable.CallbackRegistry = CreateFromMixins(CallbackRegistryMixin)
+addonTable.CallbackRegistry:OnLoad()
+addonTable.CallbackRegistry:GenerateCallbackEvents(addonTable.Constants.Events)
 
-  Syndicator.Tracking.Initialize()
+Syndicator.CallbackRegistry = addonTable.CallbackRegistry
 
-  Syndicator.Search.Initialize()
+addonTable.Utilities.OnAddonLoaded("Syndicator", function()
+  addonTable.Config.InitializeData()
+  addonTable.SlashCmd.Initialize()
+  addonTable.Options.Initialize()
+
+  addonTable.Tracking.Initialize()
+
+  addonTable.Search.Initialize()
 end)

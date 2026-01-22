@@ -1,4 +1,7 @@
-function Syndicator.Search.GetBaseInfo(cacheData)
+---@class addonTableSyndicator
+local addonTable = select(2, ...)
+
+function addonTable.Search.GetBaseInfo(cacheData)
   local info = {}
 
   info.itemLink = cacheData.itemLink
@@ -15,11 +18,13 @@ function Syndicator.Search.GetBaseInfo(cacheData)
   elseif cacheData.itemID == Syndicator.Constants.BattlePetCageID then
     info.tooltipGetter = function() return nil end
   else
-    info.tooltipGetter = function() return Syndicator.Search.DumpClassicTooltip(function(t) t:SetHyperlink(cacheData.itemLink) end) end
+    info.tooltipGetter = function() return addonTable.Utilities.DumpClassicTooltip(function(t) t:SetHyperlink(cacheData.itemLink) end) end
   end
 
   return info
 end
+
+Syndicator.Search.GetBaseInfo = addonTable.Search.GetBaseInfo
 
 --[[
 You can potentially add the following keys after calling this function to alter

@@ -1,4 +1,7 @@
-Syndicator.Constants = {
+---@class addonTableSyndicator
+local addonTable = select(2, ...)
+
+addonTable.Constants = {
   AllBagIndexes = {
     Enum.BagIndex.Backpack,
     Enum.BagIndex.Bag_1,
@@ -17,6 +20,8 @@ Syndicator.Constants = {
   IsBC = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC,
   IsEra = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC,
 
+  IsTitan = GetBuildInfo():match("^3%.8") ~= nil,
+
   IsLegacyAH = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC or IsUsingLegacyAuctionClient ~= nil and IsUsingLegacyAuctionClient(),
 
   BattlePetCageID = 82800,
@@ -32,16 +37,16 @@ Syndicator.Constants = {
   MailExpiryDuration = 30 * 24 * 60 * 60,
 }
 
-Syndicator.Constants.IsBrokenTooltipScanning = false
+addonTable.Constants.IsBrokenTooltipScanning = false
 
-if Syndicator.Constants.IsRetail then
-  Syndicator.Constants.WarbandBankActive = true
-  Syndicator.Constants.CharacterBankTabsActive = Enum.BagIndex.CharacterBankTab_1 ~= nil
-  table.insert(Syndicator.Constants.AllBagIndexes, Enum.BagIndex.ReagentBag)
-  Syndicator.Constants.BagSlotsCount = 5
-  Syndicator.Constants.MaxBagSize = 42
-  if Syndicator.Constants.CharacterBankTabsActive then
-    Syndicator.Constants.AllBankIndexes = {
+if addonTable.Constants.IsRetail then
+  addonTable.Constants.WarbandBankActive = true
+  addonTable.Constants.CharacterBankTabsActive = Enum.BagIndex.CharacterBankTab_1 ~= nil
+  table.insert(addonTable.Constants.AllBagIndexes, Enum.BagIndex.ReagentBag)
+  addonTable.Constants.BagSlotsCount = 5
+  addonTable.Constants.MaxBagSize = 42
+  if addonTable.Constants.CharacterBankTabsActive then
+    addonTable.Constants.AllBankIndexes = {
       Enum.BagIndex.CharacterBankTab_1,
       Enum.BagIndex.CharacterBankTab_2,
       Enum.BagIndex.CharacterBankTab_3,
@@ -49,9 +54,9 @@ if Syndicator.Constants.IsRetail then
       Enum.BagIndex.CharacterBankTab_5,
       Enum.BagIndex.CharacterBankTab_6,
     }
-    Syndicator.Constants.BankBagSlotsCount = 0
+    addonTable.Constants.BankBagSlotsCount = 0
   else
-    Syndicator.Constants.AllBankIndexes = {
+    addonTable.Constants.AllBankIndexes = {
       Enum.BagIndex.Bank,
       Enum.BagIndex.BankBag_1,
       Enum.BagIndex.BankBag_2,
@@ -62,9 +67,9 @@ if Syndicator.Constants.IsRetail then
       Enum.BagIndex.BankBag_7,
       Enum.BagIndex.Reagentbank,
     }
-    Syndicator.Constants.BankBagSlotsCount = 7
+    addonTable.Constants.BankBagSlotsCount = 7
   end
-  Syndicator.Constants.AllWarbandIndexes = {
+  addonTable.Constants.AllWarbandIndexes = {
     Enum.BagIndex.AccountBankTab_1,
     Enum.BagIndex.AccountBankTab_2,
     Enum.BagIndex.AccountBankTab_3,
@@ -73,27 +78,27 @@ if Syndicator.Constants.IsRetail then
   }
 end
 
-if Syndicator.Constants.IsEra or KeyRingButtonIDToInvSlotID then
-  table.insert(Syndicator.Constants.AllBagIndexes, Enum.BagIndex.Keyring)
+if addonTable.Constants.IsEra or KeyRingButtonIDToInvSlotID then
+  table.insert(addonTable.Constants.AllBagIndexes, Enum.BagIndex.Keyring)
 end
-if Syndicator.Constants.IsEra then
-  Syndicator.Constants.BankBagSlotsCount = 6
-elseif Syndicator.Constants.IsClassic then
-  Syndicator.Constants.BankBagSlotsCount = 7
+if addonTable.Constants.IsEra then
+  addonTable.Constants.BankBagSlotsCount = 6
+elseif addonTable.Constants.IsClassic then
+  addonTable.Constants.BankBagSlotsCount = 7
 end
-if Syndicator.Constants.IsClassic then
-  Syndicator.Constants.AllBankIndexes = {
+if addonTable.Constants.IsClassic then
+  addonTable.Constants.AllBankIndexes = {
     Enum.BagIndex.Bank,
   }
   -- Workaround for the enum containing the wrong values for the bank bag slots
-  for i = 1, Syndicator.Constants.BankBagSlotsCount do
-    Syndicator.Constants.AllBankIndexes[i + 1] = NUM_BAG_SLOTS + i
+  for i = 1, addonTable.Constants.BankBagSlotsCount do
+    addonTable.Constants.AllBankIndexes[i + 1] = NUM_BAG_SLOTS + i
   end
-  Syndicator.Constants.BagSlotsCount = 4
-  Syndicator.Constants.MaxBagSize = 36
+  addonTable.Constants.BagSlotsCount = 4
+  addonTable.Constants.MaxBagSize = 36
 end
 
-Syndicator.Constants.Events = {
+addonTable.Constants.Events = {
   "CharacterDeleted",
   "GuildDeleted",
 
@@ -114,7 +119,7 @@ Syndicator.Constants.Events = {
 }
 
 -- Hidden currencies for all characters tooltips as they are shared between characters
-Syndicator.Constants.SharedCurrencies = {
+addonTable.Constants.SharedCurrencies = {
   2032, -- Trader's Tender
   3292, -- Infinite Knowledge
 }
@@ -129,12 +134,14 @@ local AccountBoundTooltipLinesNotBound = {
   ITEM_ACCOUNTBOUND_UNTIL_EQUIP,
   ITEM_BIND_TO_ACCOUNT_UNTIL_EQUIP,
 }
-Syndicator.Constants.AccountBoundTooltipLines = {}
-Syndicator.Constants.AccountBoundTooltipLinesNotBound = {}
+addonTable.Constants.AccountBoundTooltipLines = {}
+addonTable.Constants.AccountBoundTooltipLinesNotBound = {}
 -- Done this way because not all the lines exist on all clients
 for _, line in pairs(AccountBoundTooltipLines) do
-  table.insert(Syndicator.Constants.AccountBoundTooltipLines, line)
+  table.insert(addonTable.Constants.AccountBoundTooltipLines, line)
 end
 for _, line in pairs(AccountBoundTooltipLinesNotBound) do
-  table.insert(Syndicator.Constants.AccountBoundTooltipLinesNotBound, line)
+  table.insert(addonTable.Constants.AccountBoundTooltipLinesNotBound, line)
 end
+
+Syndicator.Constants = CopyTable(addonTable.Constants)

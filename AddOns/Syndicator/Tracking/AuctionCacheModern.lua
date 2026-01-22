@@ -1,4 +1,7 @@
-if Syndicator.Constants.IsLegacyAH then
+---@class addonTableSyndicator
+local addonTable = select(2, ...)
+
+if addonTable.Constants.IsLegacyAH then
   return
 end
 
@@ -20,7 +23,7 @@ local function FindMatchingKeys(originalLocation)
   local queue = {}
 
   local startingKey = C_AuctionHouse.GetItemKeyFromItem(originalLocation)
-  local startingData = bags[tIndexOf(Syndicator.Constants.AllBagIndexes, originalLocation.bagID)][originalLocation.slotIndex]
+  local startingData = bags[tIndexOf(addonTable.Constants.AllBagIndexes, originalLocation.bagID)][originalLocation.slotIndex]
 
   if not startingData or not startingData.itemLink then
     return
@@ -35,7 +38,7 @@ local function FindMatchingKeys(originalLocation)
     isBound = false,
   })
 
-  for index, bagID in ipairs(Syndicator.Constants.AllBagIndexes) do
+  for index, bagID in ipairs(addonTable.Constants.AllBagIndexes) do
     for slotID = 1, C_Container.GetContainerNumSlots(bagID) do
       local location = {bagID = bagID, slotIndex = slotID}
       if (location.bagID ~= originalLocation.bagID or location.slotIndex ~= originalLocation.slotIndex) and
@@ -70,7 +73,7 @@ local durationToTime = {
 
 function SyndicatorAuctionCacheModernMixin:OnLoad()
   FrameUtil.RegisterFrameForEvents(self, AUCTIONS_UPDATED_EVENTS)
-  self.currentCharacter = Syndicator.Utilities.GetCharacterFullName()
+  self.currentCharacter = addonTable.Utilities.GetCharacterFullName()
 
   hooksecurefunc(C_AuctionHouse, "PostItem", function(itemLocation, duration)
     self:ClearAuctionPending()
@@ -103,7 +106,7 @@ function SyndicatorAuctionCacheModernMixin:OnLoad()
     }
     -- Ensure we have a perfect item link
     if not C_Item.IsItemDataCachedByID(auctionInfo.itemKey.itemID) then
-      Syndicator.Utilities.LoadItemData(auctionInfo.itemKey.itemID, function()
+      addonTable.Utilities.LoadItemData(auctionInfo.itemKey.itemID, function()
         auctionInfo = C_AuctionHouse.GetAuctionInfoByID(auctionID) --[[@as table]]
         if not auctionInfo then
           if self.purchasedItem.auctionInfo.itemLink then
@@ -130,7 +133,7 @@ local function ConvertAuctionInfoToItem(auctionInfo, itemCount)
   local iconTexture = itemInfo[10]
   local quality = itemInfo[3]
 
-  if auctionInfo.itemKey.itemID == Syndicator.Constants.BattlePetCageID then
+  if auctionInfo.itemKey.itemID == addonTable.Constants.BattlePetCageID then
     local speciesIDText, qualityText = itemLink:match("battlepet:(%d+):%d+:(%d+)")
     iconTexture = select(2, C_PetJournal.GetPetInfoBySpeciesID(tonumber(speciesIDText)))
     quality = tonumber(qualityText)
@@ -147,9 +150,9 @@ local function ConvertAuctionInfoToItem(auctionInfo, itemCount)
 end
 
 function SyndicatorAuctionCacheModernMixin:AddToMail(item)
-  item.expirationTime = time() + Syndicator.Constants.MailExpiryDuration
+  item.expirationTime = time() + addonTable.Constants.MailExpiryDuration
   table.insert(SYNDICATOR_DATA.Characters[self.currentCharacter].mail, item)
-  Syndicator.CallbackRegistry:TriggerEvent("MailCacheUpdate", self.currentCharacter)
+  addonTable.CallbackRegistry:TriggerEvent("MailCacheUpdate", self.currentCharacter)
 end
 
 function SyndicatorAuctionCacheModernMixin:AddAuction(auctionInfo, itemCount)
@@ -160,14 +163,14 @@ function SyndicatorAuctionCacheModernMixin:AddAuction(auctionInfo, itemCount)
     SYNDICATOR_DATA.Characters[self.currentCharacter].auctions,
     item
   )
-  Syndicator.CallbackRegistry:TriggerEvent("AuctionsCacheUpdate", self.currentCharacter)
+  addonTable.CallbackRegistry:TriggerEvent("AuctionsCacheUpdate", self.currentCharacter)
 end
 
 function SyndicatorAuctionCacheModernMixin:RemoveAuctionByID(auctionID, addToMail)
   for index, item in ipairs(SYNDICATOR_DATA.Characters[self.currentCharacter].auctions) do
     if item.auctionID == auctionID then
       table.remove(SYNDICATOR_DATA.Characters[self.currentCharacter].auctions, index)
-      Syndicator.CallbackRegistry:TriggerEvent("AuctionsCacheUpdate", self.currentCharacter)
+      addonTable.CallbackRegistry:TriggerEvent("AuctionsCacheUpdate", self.currentCharacter)
       item.auctionID = nil
       if addToMail then
         self:AddToMail(item)
@@ -202,7 +205,7 @@ function SyndicatorAuctionCacheModernMixin:OnEvent(eventName, ...)
         if C_Item.IsItemDataCachedByID(auctionInfo.itemKey.itemID) then
           self:AddAuction(auctionInfo, auctionInfo.quantity)
         else
-          Syndicator.Utilities.LoadItemData(auctionInfo.itemKey.itemID, function()
+          addonTable.Utilities.LoadItemData(auctionInfo.itemKey.itemID, function()
             auctionInfo = C_AuctionHouse.GetOwnedAuctionInfo(index) --[[@as OwnedAuctionInfo]]
             if not auctionInfo then
               return
@@ -262,7 +265,7 @@ function SyndicatorAuctionCacheModernMixin:ProcessItemPurchase(auctionID)
     local item = ConvertAuctionInfoToItem(auctionInfo, itemCount)
     self:AddToMail(item)
   else
-    Syndicator.Utilities.LoadItemData(auctionInfo.itemKey.itemID, function()
+    addonTable.Utilities.LoadItemData(auctionInfo.itemKey.itemID, function()
       local item = ConvertAuctionInfoToItem(auctionInfo, itemCount)
       self:AddToMail(item)
     end)
@@ -295,7 +298,7 @@ function SyndicatorAuctionCacheModernMixin:ProcessCommodityPurchase()
     local item = GetItem()
     self:AddToMail(item)
   else
-    Syndicator.Utilities.LoadItemData(itemID, function()
+    addonTable.Utilities.LoadItemData(itemID, function()
       local item = GetItem()
       self:AddToMail(item)
     end)
@@ -325,13 +328,13 @@ function SyndicatorAuctionCacheModernMixin:ProcessAuctionCreated(auctionID)
         SYNDICATOR_DATA.Characters[self.currentCharacter].auctions,
         item
       )
-      Syndicator.CallbackRegistry:TriggerEvent("AuctionsCacheUpdate", self.currentCharacter)
+      addonTable.CallbackRegistry:TriggerEvent("AuctionsCacheUpdate", self.currentCharacter)
     end
 
     if C_Item.IsItemDataCachedByID(itemID) then
       DoItem()
     else
-      Syndicator.Utilities.LoadItemData(itemID, function()
+      addonTable.Utilities.LoadItemData(itemID, function()
         DoItem()
       end)
     end
@@ -346,7 +349,7 @@ function SyndicatorAuctionCacheModernMixin:ProcessAuctionCreated(auctionID)
     if #self.lastPostedItem == 0 then
       self.lastPostedItem = nil
     end
-    Syndicator.CallbackRegistry:TriggerEvent("AuctionsCacheUpdate", self.currentCharacter)
+    addonTable.CallbackRegistry:TriggerEvent("AuctionsCacheUpdate", self.currentCharacter)
   end
 end
 

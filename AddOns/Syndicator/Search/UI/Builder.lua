@@ -1,5 +1,8 @@
+---@class addonTableSyndicator
+local addonTable = select(2, ...)
+
 local function GetKeywordGroups()
-  local searchTerms = Syndicator.Search.GetKeywords()
+  local searchTerms = addonTable.Search.GetKeywords()
   local groups = {}
   local seenInGroup = {}
   for _, term in ipairs(searchTerms) do
@@ -13,7 +16,7 @@ local function GetKeywordGroups()
   end
 
   local result = {}
-  for _, groupTitle in ipairs(Syndicator.Search.Constants.KeywordGroupOrder) do
+  for _, groupTitle in ipairs(addonTable.Search.Constants.KeywordGroupOrder) do
     if groups[groupTitle] then
       table.sort(groups[groupTitle])
       table.insert(result, {
@@ -27,7 +30,7 @@ local function GetKeywordGroups()
 end
 
 local function GetMatches(text)
-  local searchTerms = Syndicator.Search.GetKeywords()
+  local searchTerms = addonTable.Search.GetKeywords()
   local result = {}
   local seen = {}
 
@@ -277,9 +280,9 @@ local function ProcessTerms(rawText)
 end
 
 local OperatorMap = {
-  [OperatorType.Any] = {label = Syndicator.Locales.ANY_UPPER, tooltip = Syndicator.Locales.ANY_TOOLTIP_TEXT, color = CreateColor(185/255, 225/255, 146/255)},
-  [OperatorType.All] = {label = Syndicator.Locales.ALL_UPPER, tooltip = Syndicator.Locales.ALL_TOOLTIP_TEXT, color = CreateColor(179/255, 199/255, 247/255)},
-  [OperatorType.Not] = {label = Syndicator.Locales.NOT_UPPER, tooltip = Syndicator.Locales.NOT_TOOLTIP_TEXT, color = CreateColor(241/255, 148/255, 184/255)},
+  [OperatorType.Any] = {label = addonTable.Locales.ANY_UPPER, tooltip = addonTable.Locales.ANY_TOOLTIP_TEXT, color = CreateColor(185/255, 225/255, 146/255)},
+  [OperatorType.All] = {label = addonTable.Locales.ALL_UPPER, tooltip = addonTable.Locales.ALL_TOOLTIP_TEXT, color = CreateColor(179/255, 199/255, 247/255)},
+  [OperatorType.Not] = {label = addonTable.Locales.NOT_UPPER, tooltip = addonTable.Locales.NOT_TOOLTIP_TEXT, color = CreateColor(241/255, 148/255, 184/255)},
 }
 
 local function SetupTextures(self)
@@ -302,30 +305,30 @@ local function GetOperatorMenu(rootDescription, index, callbackRegistry, event)
 end
 
 local function GetKeywordMenu(rootDescription, index, callbackRegistry, event)
-  rootDescription:CreateButton(Syndicator.Locales.CUSTOM_SEARCH, function()
+  rootDescription:CreateButton(addonTable.Locales.CUSTOM_SEARCH, function()
     callbackRegistry:TriggerEvent(event, CreateAndInitFromMixin(ComponentMixin, RootType.Term, TermType.Custom, ""), index)
   end)
-  local itemLevelButton = rootDescription:CreateButton(Syndicator.Locales.ITEM_LEVEL)
-  itemLevelButton:CreateButton(Syndicator.Locales.ITEM_LEVEL_LESS, function()
+  local itemLevelButton = rootDescription:CreateButton(addonTable.Locales.ITEM_LEVEL)
+  itemLevelButton:CreateButton(addonTable.Locales.ITEM_LEVEL_LESS, function()
     callbackRegistry:TriggerEvent(event, CreateAndInitFromMixin(ComponentMixin, RootType.Term, TermType.ItemLevelLess, {-1, -1}), index)
   end)
-  itemLevelButton:CreateButton(Syndicator.Locales.ITEM_LEVEL_MORE, function()
+  itemLevelButton:CreateButton(addonTable.Locales.ITEM_LEVEL_MORE, function()
     callbackRegistry:TriggerEvent(event, CreateAndInitFromMixin(ComponentMixin, RootType.Term, TermType.ItemLevelMore, {-1, -1}), index)
   end)
-  itemLevelButton:CreateButton(Syndicator.Locales.ITEM_LEVEL_RANGE, function()
+  itemLevelButton:CreateButton(addonTable.Locales.ITEM_LEVEL_RANGE, function()
     callbackRegistry:TriggerEvent(event, CreateAndInitFromMixin(ComponentMixin, RootType.Term, TermType.ItemLevelRange, {-1, -1}), index)
   end)
-  itemLevelButton:CreateButton(Syndicator.Locales.ITEM_LEVEL_EQUALS, function()
+  itemLevelButton:CreateButton(addonTable.Locales.ITEM_LEVEL_EQUALS, function()
     callbackRegistry:TriggerEvent(event, CreateAndInitFromMixin(ComponentMixin, RootType.Term, TermType.ItemLevelEquals, {-1, -1}), index)
   end)
-  local auctionValueButton = rootDescription:CreateButton(Syndicator.Locales.AUCTION_VALUE)
-  auctionValueButton:CreateButton(Syndicator.Locales.ITEM_LEVEL_LESS, function()
+  local auctionValueButton = rootDescription:CreateButton(addonTable.Locales.AUCTION_VALUE)
+  auctionValueButton:CreateButton(addonTable.Locales.ITEM_LEVEL_LESS, function()
     callbackRegistry:TriggerEvent(event, CreateAndInitFromMixin(ComponentMixin, RootType.Term, TermType.AuctionValueLess, {0}), index)
   end)
-  auctionValueButton:CreateButton(Syndicator.Locales.ITEM_LEVEL_MORE, function()
+  auctionValueButton:CreateButton(addonTable.Locales.ITEM_LEVEL_MORE, function()
     callbackRegistry:TriggerEvent(event, CreateAndInitFromMixin(ComponentMixin, RootType.Term, TermType.AuctionValueMore, {0}), index)
   end)
-  auctionValueButton:CreateButton(Syndicator.Locales.ITEM_LEVEL_EQUALS, function()
+  auctionValueButton:CreateButton(addonTable.Locales.ITEM_LEVEL_EQUALS, function()
     callbackRegistry:TriggerEvent(event, CreateAndInitFromMixin(ComponentMixin, RootType.Term, TermType.AuctionValueEquals, {0}), index)
   end)
   rootDescription:CreateDivider()
@@ -808,11 +811,11 @@ function TermButtonMixin:Setup(callbackRegistry, component, index, color)
   elseif component.subType == TermType.AuctionValueLess or component.subType == TermType.AuctionValueMore or component.subType == TermType.AuctionValueEquals then
     self.AuctionValueWrapper:Show()
     if component.subType == TermType.AuctionValueLess then
-      self.AuctionValueText:SetText(Syndicator.Locales.AUCTION_LOWER .. " < ")
+      self.AuctionValueText:SetText(addonTable.Locales.AUCTION_LOWER .. " < ")
     elseif component.subType == TermType.AuctionValueMore then
-      self.AuctionValueText:SetText(Syndicator.Locales.AUCTION_LOWER .. " > ")
+      self.AuctionValueText:SetText(addonTable.Locales.AUCTION_LOWER .. " > ")
     else
-      self.AuctionValueText:SetText(Syndicator.Locales.AUCTION_LOWER .. " = ")
+      self.AuctionValueText:SetText(addonTable.Locales.AUCTION_LOWER .. " = ")
     end
     self.AuctionValueCopperInput:SetText(component.value[1]%100)
     self.AuctionValueCopperInput:GetScript("OnTextChanged")(self.AuctionValueCopperInput)
@@ -840,13 +843,13 @@ function TermButtonMixin:Setup(callbackRegistry, component, index, color)
     GetKeywordMenu(rootDescription, index, self.callbackRegistry, "Swap")
     rootDescription:CreateDivider()
     ---@diagnostic disable-next-line: missing-parameter
-    local wrapButton = rootDescription:CreateButton(Syndicator.Locales.WRAP_WITH)
+    local wrapButton = rootDescription:CreateButton(addonTable.Locales.WRAP_WITH)
     GetOperatorMenu(wrapButton, index, self.callbackRegistry, "Wrap")
     rootDescription:CreateDivider()
-    rootDescription:CreateButton(Syndicator.Locales.COPY, function()
+    rootDescription:CreateButton(addonTable.Locales.COPY, function()
       self.callbackRegistry:TriggerEvent("Copy", self.component)
     end)
-    rootDescription:CreateButton(Syndicator.Locales.CUT, function()
+    rootDescription:CreateButton(addonTable.Locales.CUT, function()
       self.callbackRegistry:TriggerEvent("Copy", self.component)
       self.callbackRegistry:TriggerEvent("Delete", index)
     end)
@@ -981,12 +984,12 @@ function OperatorButtonMixin:OnLoad()
     table.insert(insertIndex, #self.component.value + 1)
 
     if self.AddInput:GetText():match("^%s*$") then
-      rootDescription:CreateTitle(Syndicator.Locales.INSERT)
+      rootDescription:CreateTitle(addonTable.Locales.INSERT)
       GetOperatorMenu(rootDescription, insertIndex, self.callbackRegistry, "Insert")
       rootDescription:CreateDivider()
       GetKeywordMenu(rootDescription, insertIndex, self.callbackRegistry, "Insert")
       rootDescription:CreateDivider()
-      rootDescription:CreateButton(Syndicator.Locales.PASTE, function()
+      rootDescription:CreateButton(addonTable.Locales.PASTE, function()
         self.callbackRegistry:TriggerEvent("Paste", insertIndex)
       end)
     else
@@ -997,7 +1000,7 @@ function OperatorButtonMixin:OnLoad()
         end)
       end
       if #matches == 0 then
-        rootDescription:CreateTitle(RED_FONT_COLOR:WrapTextInColorCode(Syndicator.Locales.NO_MATCHING_KEYWORDS))
+        rootDescription:CreateTitle(RED_FONT_COLOR:WrapTextInColorCode(addonTable.Locales.NO_MATCHING_KEYWORDS))
       end
     end
   end)
@@ -1152,17 +1155,17 @@ function OperatorButtonMixin:Setup(callbackRegistry, component, index)
     GetOperatorMenu(rootDescription, index, self.callbackRegistry, "Swap")
     rootDescription:CreateDivider()
     ---@diagnostic disable-next-line: missing-parameter
-    local wrapButton = rootDescription:CreateButton(Syndicator.Locales.WRAP_WITH)
+    local wrapButton = rootDescription:CreateButton(addonTable.Locales.WRAP_WITH)
     GetOperatorMenu(wrapButton, index, self.callbackRegistry, "Wrap")
     if self.component.value[1] and (#index > 0 or self.component.value[1].type == RootType.Operator) then
       rootDescription:CreateDivider()
-      rootDescription:CreateButton(Syndicator.Locales.UNWRAP, function() self.callbackRegistry:TriggerEvent("Unwrap", self.component, index) end)
+      rootDescription:CreateButton(addonTable.Locales.UNWRAP, function() self.callbackRegistry:TriggerEvent("Unwrap", self.component, index) end)
     end
     rootDescription:CreateDivider()
-    rootDescription:CreateButton(Syndicator.Locales.COPY, function()
+    rootDescription:CreateButton(addonTable.Locales.COPY, function()
       self.callbackRegistry:TriggerEvent("Copy", self.component)
     end)
-    rootDescription:CreateButton(Syndicator.Locales.CUT, function()
+    rootDescription:CreateButton(addonTable.Locales.CUT, function()
       self.callbackRegistry:TriggerEvent("Copy", self.component)
       self.callbackRegistry:TriggerEvent("Delete", index)
     end)

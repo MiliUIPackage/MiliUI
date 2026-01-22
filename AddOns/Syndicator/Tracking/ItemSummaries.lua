@@ -1,3 +1,6 @@
+---@class addonTableSyndicator
+local addonTable = select(2, ...)
+
 SyndicatorItemSummariesMixin = {}
 
 local CharacterUpdates = {
@@ -41,19 +44,19 @@ function SyndicatorItemSummariesMixin:OnLoad()
   end
   self.SV = SYNDICATOR_SUMMARIES
   -- Optimisation as bags are most frequently updated container
-  Syndicator.CallbackRegistry:RegisterCallback("BagCacheUpdate", function(_, characterName, updates)
+  addonTable.CallbackRegistry:RegisterCallback("BagCacheUpdate", function(_, characterName, updates)
     if next(updates.bags) and not next(updates.bank) and not self.SV.Characters.Pending[characterName] and updates.containerBags and not updates.containerBags.bags and not updates.containerBags.bank then
       self.SV.Characters.Pending[characterName] = CharacterUpdates.Bags
     else
       self.SV.Characters.Pending[characterName] = CharacterUpdates.All
     end
   end)
-  Syndicator.CallbackRegistry:RegisterCallback("WarbandBankCacheUpdate", self.WarbandCacheUpdate, self)
-  Syndicator.CallbackRegistry:RegisterCallback("MailCacheUpdate", self.CharacterCacheUpdate, self)
-  Syndicator.CallbackRegistry:RegisterCallback("GuildCacheUpdate", self.GuildCacheUpdate, self)
-  Syndicator.CallbackRegistry:RegisterCallback("EquippedCacheUpdate", self.CharacterCacheUpdate, self)
-  Syndicator.CallbackRegistry:RegisterCallback("VoidCacheUpdate", self.CharacterCacheUpdate, self)
-  Syndicator.CallbackRegistry:RegisterCallback("AuctionsCacheUpdate", self.CharacterCacheUpdate, self)
+  addonTable.CallbackRegistry:RegisterCallback("WarbandBankCacheUpdate", self.WarbandCacheUpdate, self)
+  addonTable.CallbackRegistry:RegisterCallback("MailCacheUpdate", self.CharacterCacheUpdate, self)
+  addonTable.CallbackRegistry:RegisterCallback("GuildCacheUpdate", self.GuildCacheUpdate, self)
+  addonTable.CallbackRegistry:RegisterCallback("EquippedCacheUpdate", self.CharacterCacheUpdate, self)
+  addonTable.CallbackRegistry:RegisterCallback("VoidCacheUpdate", self.CharacterCacheUpdate, self)
+  addonTable.CallbackRegistry:RegisterCallback("AuctionsCacheUpdate", self.CharacterCacheUpdate, self)
 
   self:Cleanup()
 end
@@ -110,12 +113,6 @@ function SyndicatorItemSummariesMixin:GenerateCharacterSummary(characterName, st
     end
   end
 
-  -- Edge case sometimes removed characters are leftover in the queue, so check
-  -- details exist
-  if details == nil then
-    return
-  end
-
   local function GenerateBase(key)
     if not summary[key] then
       summary[key] = {
@@ -132,7 +129,7 @@ function SyndicatorItemSummariesMixin:GenerateCharacterSummary(characterName, st
   for _, bag in pairs(details.bags) do
     for _, item in pairs(bag) do
       if item.itemLink then
-        local key = Syndicator.Utilities.GetItemKey(item.itemLink)
+        local key = addonTable.Utilities.GetItemKey(item.itemLink)
         GenerateBase(key)
         summary[key].bags = summary[key].bags + item.itemCount
       end
@@ -143,7 +140,7 @@ function SyndicatorItemSummariesMixin:GenerateCharacterSummary(characterName, st
     if details.containerInfo then
       for _, item in ipairs(details.containerInfo.bags or {}) do
         if item.itemLink then
-          local key = Syndicator.Utilities.GetItemKey(item.itemLink)
+          local key = addonTable.Utilities.GetItemKey(item.itemLink)
           GenerateBase(key)
           summary[key].equipped = summary[key].equipped + item.itemCount
         end
@@ -151,7 +148,7 @@ function SyndicatorItemSummariesMixin:GenerateCharacterSummary(characterName, st
 
       for _, item in ipairs(details.containerInfo.bank or {}) do
         if item.itemLink then
-          local key = Syndicator.Utilities.GetItemKey(item.itemLink)
+          local key = addonTable.Utilities.GetItemKey(item.itemLink)
           GenerateBase(key)
           summary[key].equipped = summary[key].equipped + item.itemCount
         end
@@ -161,7 +158,7 @@ function SyndicatorItemSummariesMixin:GenerateCharacterSummary(characterName, st
     for _, bag in pairs(details.bank) do
       for _, item in pairs(bag) do
         if item.itemLink then
-          local key = Syndicator.Utilities.GetItemKey(item.itemLink)
+          local key = addonTable.Utilities.GetItemKey(item.itemLink)
           GenerateBase(key)
           summary[key].bank = summary[key].bank + item.itemCount
         end
@@ -171,7 +168,7 @@ function SyndicatorItemSummariesMixin:GenerateCharacterSummary(characterName, st
     for _, tab in pairs(details.bankTabs or {}) do
       for _, item in pairs(tab.slots) do
         if item.itemLink then
-          local key = Syndicator.Utilities.GetItemKey(item.itemLink)
+          local key = addonTable.Utilities.GetItemKey(item.itemLink)
           GenerateBase(key)
           summary[key].bank = summary[key].bank + item.itemCount
         end
@@ -182,7 +179,7 @@ function SyndicatorItemSummariesMixin:GenerateCharacterSummary(characterName, st
     -- character yet
     for _, item in pairs(details.mail or {}) do
       if item.itemLink then
-        local key = Syndicator.Utilities.GetItemKey(item.itemLink)
+        local key = addonTable.Utilities.GetItemKey(item.itemLink)
         GenerateBase(key)
         summary[key].mail = summary[key].mail + item.itemCount
       end
@@ -192,7 +189,7 @@ function SyndicatorItemSummariesMixin:GenerateCharacterSummary(characterName, st
     -- character yet
     for _, item in pairs(details.equipped or {}) do
       if item.itemLink then
-        local key = Syndicator.Utilities.GetItemKey(item.itemLink)
+        local key = addonTable.Utilities.GetItemKey(item.itemLink)
         GenerateBase(key)
         summary[key].equipped = summary[key].equipped + item.itemCount
       end
@@ -203,7 +200,7 @@ function SyndicatorItemSummariesMixin:GenerateCharacterSummary(characterName, st
     for _, page in pairs(details.void or {}) do
       for _, item in ipairs(page) do
         if item.itemLink then
-          local key = Syndicator.Utilities.GetItemKey(item.itemLink)
+          local key = addonTable.Utilities.GetItemKey(item.itemLink)
           GenerateBase(key)
           summary[key].void = summary[key].void + item.itemCount
         end
@@ -214,7 +211,7 @@ function SyndicatorItemSummariesMixin:GenerateCharacterSummary(characterName, st
     -- character yet
     for _, item in pairs(details.auctions or {}) do
       if item.itemLink then
-        local key = Syndicator.Utilities.GetItemKey(item.itemLink)
+        local key = addonTable.Utilities.GetItemKey(item.itemLink)
         GenerateBase(key)
         summary[key].auctions = summary[key].auctions + item.itemCount
       end
@@ -238,7 +235,7 @@ function SyndicatorItemSummariesMixin:GenerateGuildSummary(guildName)
     if tab.isViewable then
       for _, item in pairs(tab.slots) do
         if item.itemLink then
-          local key = Syndicator.Utilities.GetItemKey(item.itemLink)
+          local key = addonTable.Utilities.GetItemKey(item.itemLink)
           if not summary[key] then
             summary[key] = {
               bank = 0,
@@ -263,7 +260,7 @@ function SyndicatorItemSummariesMixin:GenerateWarbandSummary()
   for _, tab in ipairs(details) do
     for _, item in ipairs(tab.slots) do
       if item.itemLink then
-        local key = Syndicator.Utilities.GetItemKey(item.itemLink)
+        local key = addonTable.Utilities.GetItemKey(item.itemLink)
         if not summary[key] then
           summary[key] = 0
         end
@@ -284,7 +281,7 @@ function SyndicatorItemSummariesMixin:GetTooltipInfo(key, sameConnectedRealm, sa
       self.SV.Characters.Pending[character] = nil
       self:GenerateCharacterSummary(character, state)
     end
-    if Syndicator.Config.Get(Syndicator.Config.Options.DEBUG_TIMERS) then
+    if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
       print("summaries char", debugprofilestop() - start)
     end
   end
@@ -294,21 +291,21 @@ function SyndicatorItemSummariesMixin:GetTooltipInfo(key, sameConnectedRealm, sa
       self.SV.Guilds.Pending[guild] = nil
       self:GenerateGuildSummary(guild)
     end
-    if Syndicator.Config.Get(Syndicator.Config.Options.DEBUG_TIMERS) then
+    if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
       print("summaries guild", debugprofilestop() - start)
     end
   end
   if self.SV.Warband.Pending[1] then
     local start = debugprofilestop()
     self:GenerateWarbandSummary()
-    if Syndicator.Config.Get(Syndicator.Config.Options.DEBUG_TIMERS) then
+    if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
       print("summaries warband", debugprofilestop() - start)
     end
   end
 
   local realms = {}
   if sameConnectedRealm then
-    for _, r in ipairs(Syndicator.Utilities.GetConnectedRealms()) do
+    for _, r in ipairs(addonTable.Utilities.GetConnectedRealms()) do
       realms[r] = true
     end
   else

@@ -1,3 +1,6 @@
+---@class addonTableSyndicator
+local addonTable = select(2, ...)
+
 SyndicatorGuildCacheMixin = {}
 
 local function InitGuild(key, guild, realm)
@@ -63,7 +66,7 @@ end
 
 function SyndicatorGuildCacheMixin:GetGuildKey()
   if not IsInGuild() then
-    Syndicator.CallbackRegistry:TriggerEvent("GuildNameSet", nil)
+    addonTable.CallbackRegistry:TriggerEvent("GuildNameSet", nil)
     return
   end
 
@@ -87,7 +90,7 @@ function SyndicatorGuildCacheMixin:GetGuildKey()
   self.currentGuild = guildKey
 
   if oldGuild ~= self.currentGuild then
-    Syndicator.CallbackRegistry:TriggerEvent("GuildNameSet", self.currentGuild)
+    addonTable.CallbackRegistry:TriggerEvent("GuildNameSet", self.currentGuild)
   end
 end
 
@@ -116,7 +119,7 @@ function SyndicatorGuildCacheMixin:OnEvent(eventName, ...)
     local data = SYNDICATOR_DATA.Guilds[self.currentGuild]
     if data then
       data.money = GetGuildBankMoney()
-      Syndicator.CallbackRegistry:TriggerEvent("GuildCacheUpdate", self.currentGuild)
+      addonTable.CallbackRegistry:TriggerEvent("GuildCacheUpdate", self.currentGuild)
     end
   -- Potential change to guild name
   elseif eventName == "GUILD_ROSTER_UPDATE" or eventName == "PLAYER_GUILD_UPDATE" then
@@ -186,10 +189,10 @@ function SyndicatorGuildCacheMixin:ExamineGeneralTabInfo()
 
   if numTabs == 0 then
     data.bank = {}
-    if Syndicator.Config.Get(Syndicator.Config.Options.DEBUG_TIMERS) then
+    if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
       print("guild clear took", debugprofilestop() - start)
     end
-    Syndicator.CallbackRegistry:TriggerEvent("GuildCacheUpdate", self.currentGuild)
+    addonTable.CallbackRegistry:TriggerEvent("GuildCacheUpdate", self.currentGuild)
     self.isUpdatePending = false
     return
   end
@@ -207,11 +210,11 @@ function SyndicatorGuildCacheMixin:ExamineGeneralTabInfo()
     tab.iconTexture = icon
   end
 
-  if Syndicator.Config.Get(Syndicator.Config.Options.DEBUG_TIMERS) then
+  if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
     print("guild general", debugprofilestop() - start)
   end
   self.isUpdatePending = false
-  Syndicator.CallbackRegistry:TriggerEvent("GuildCacheUpdate", self.currentGuild)
+  addonTable.CallbackRegistry:TriggerEvent("GuildCacheUpdate", self.currentGuild)
 end
 
 function SyndicatorGuildCacheMixin:ExamineAllBankTabs()
@@ -230,11 +233,11 @@ function SyndicatorGuildCacheMixin:ExamineAllBankTabs()
       waiting = waiting - 1
       if waiting == 0 then
         self:ProcessTransfers(changed)
-        if Syndicator.Config.Get(Syndicator.Config.Options.DEBUG_TIMERS) then
+        if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
           print("guild full scan", debugprofilestop() - start)
         end
         self.isUpdatePending = false
-        Syndicator.CallbackRegistry:TriggerEvent("GuildCacheUpdate", self.currentGuild, changed)
+        addonTable.CallbackRegistry:TriggerEvent("GuildCacheUpdate", self.currentGuild, changed)
       end
     end)
   end
@@ -257,7 +260,7 @@ function SyndicatorGuildCacheMixin:ExamineBankTab(tabIndex, callback)
         break
       end
     end
-    if Syndicator.Config.Get(Syndicator.Config.Options.DEBUG_TIMERS) then
+    if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
       print("guild tab " .. tabIndex .. " took", debugprofilestop() - start)
     end
     callback(tabIndex, changed)
@@ -275,14 +278,14 @@ function SyndicatorGuildCacheMixin:ExamineBankTab(tabIndex, callback)
 
       local texture, itemCount, locked, isFiltered, quality = GetGuildBankItemInfo(tabIndex, slotIndex)
 
-      if itemID == Syndicator.Constants.BattlePetCageID then
+      if itemID == addonTable.Constants.BattlePetCageID then
         local tooltipInfo
         if C_TooltipInfo then
           tooltipInfo = C_TooltipInfo.GetGuildBankItem(tabIndex, slotIndex)
         else
-          tooltipInfo = Syndicator.Utilities.MapPetReturnsToTooltipInfo(Syndicator.Utilities.ScanningTooltip:SetGuildBankItem(tabIndex, slotIndex))
+          tooltipInfo = addonTable.Utilities.MapPetReturnsToTooltipInfo(addonTable.Utilities.ScanningTooltip:SetGuildBankItem(tabIndex, slotIndex))
         end
-        itemLink, quality = Syndicator.Utilities.RecoverBattlePetLink(tooltipInfo, itemLink, quality)
+        itemLink, quality = addonTable.Utilities.RecoverBattlePetLink(tooltipInfo, itemLink, quality)
       end
 
       tab.slots[slotIndex] = {
@@ -295,7 +298,7 @@ function SyndicatorGuildCacheMixin:ExamineBankTab(tabIndex, callback)
     end
 
     local loopComplete = false
-    for slotIndex = 1, Syndicator.Constants.MaxGuildBankTabItemSlots do
+    for slotIndex = 1, addonTable.Constants.MaxGuildBankTabItemSlots do
       local itemLink = GetGuildBankItemLink(tabIndex, slotIndex)
       tab.slots[slotIndex] = {}
       if itemLink ~= nil then
@@ -304,7 +307,7 @@ function SyndicatorGuildCacheMixin:ExamineBankTab(tabIndex, callback)
           DoSlot(slotIndex, itemID)
         else
           waiting = waiting + 1
-          Syndicator.Utilities.LoadItemData(itemID, function()
+          addonTable.Utilities.LoadItemData(itemID, function()
             DoSlot(slotIndex, itemID)
             waiting = waiting - 1
             if loopComplete and waiting == 0 then

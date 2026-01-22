@@ -1,3 +1,6 @@
+---@class addonTableSyndicator
+local addonTable = select(2, ...)
+
 SyndicatorMailCacheMixin = {}
 
 local PENDING_OUTGOING_EVENTS = {
@@ -19,9 +22,9 @@ local function ExtractBattlePetLink(mailIndex, attachmentIndex, itemLink, qualit
   if C_TooltipInfo then
     tooltipInfo = C_TooltipInfo.GetInboxItem(mailIndex, attachmentIndex)
   else
-    tooltipInfo = Syndicator.Utilities.MapPetReturnsToTooltipInfo(Syndicator.Utilities.ScanningTooltip:SetInboxItem(mailIndex, attachmentIndex))
+    tooltipInfo = addonTable.Utilities.MapPetReturnsToTooltipInfo(addonTable.Utilities.ScanningTooltip:SetInboxItem(mailIndex, attachmentIndex))
   end
-  return Syndicator.Utilities.RecoverBattlePetLink(tooltipInfo, itemLink, quality)
+  return addonTable.Utilities.RecoverBattlePetLink(tooltipInfo, itemLink, quality)
 end
 
 local function DoAttachment(attachments, mailIndex, attachmentIndex, expirationTime)
@@ -30,7 +33,7 @@ local function DoAttachment(attachments, mailIndex, attachmentIndex, expirationT
     return
   end
   local itemLink = GetInboxItemLink(mailIndex, attachmentIndex)
-  if itemID == Syndicator.Constants.BattlePetCageID then
+  if itemID == addonTable.Constants.BattlePetCageID then
     itemLink, quality = ExtractBattlePetLink(mailIndex, attachmentIndex, itemLink, quality)
   end
   table.insert(attachments, {
@@ -49,7 +52,7 @@ function SyndicatorMailCacheMixin:OnLoad()
     "MAIL_INBOX_UPDATE",
   })
 
-  self.currentCharacter = Syndicator.Utilities.GetCharacterFullName()
+  self.currentCharacter = addonTable.Utilities.GetCharacterFullName()
 
   -- Track outgoing mail to alts
   hooksecurefunc("SendMail", function(recipient, subject, body)
@@ -66,7 +69,7 @@ function SyndicatorMailCacheMixin:OnLoad()
       return
     end
 
-    local expirationTime = time() + Syndicator.Constants.MailExpiryDuration
+    local expirationTime = time() + addonTable.Constants.MailExpiryDuration
     for index = 1, ATTACHMENTS_MAX_SEND do
       local itemLink = GetSendMailItemLink(index)
       if itemLink ~= nil then
@@ -126,7 +129,7 @@ function SyndicatorMailCacheMixin:OnLoad()
           DoAttachment(mail.items, mailIndex, attachmentIndex, expirationTime)
         else
           waiting = waiting + 1
-          Syndicator.Utilities.LoadItemData(itemID, function()
+          addonTable.Utilities.LoadItemData(itemID, function()
             DoAttachment(mail.items, mailIndex, attachmentIndex, expirationTime)
             waiting = waiting - 1
             if loopComplete and waiting == 0 then
@@ -159,7 +162,7 @@ function SyndicatorMailCacheMixin:OnEvent(eventName, ...)
     for _, item in ipairs(self.pendingOutgoingMail.items) do
       table.insert(characterData.mail, item)
     end
-    Syndicator.CallbackRegistry:TriggerEvent("MailCacheUpdate", self.pendingOutgoingMail.recipient)
+    addonTable.CallbackRegistry:TriggerEvent("MailCacheUpdate", self.pendingOutgoingMail.recipient)
 
     FrameUtil.UnregisterFrameForEvents(self, PENDING_OUTGOING_EVENTS)
     self.pendingOutgoingMail = nil
@@ -173,11 +176,11 @@ function SyndicatorMailCacheMixin:ScanMail()
   local start = debugprofilestop()
 
   local function FireMailChange(attachments)
-    if Syndicator.Config.Get(Syndicator.Config.Options.DEBUG_TIMERS) then
+    if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
       print("mail finish", debugprofilestop() - start)
     end
     SYNDICATOR_DATA.Characters[self.currentCharacter].mail = attachments
-    Syndicator.CallbackRegistry:TriggerEvent("MailCacheUpdate", self.currentCharacter)
+    addonTable.CallbackRegistry:TriggerEvent("MailCacheUpdate", self.currentCharacter)
   end
 
   local attachments = {}
@@ -195,7 +198,7 @@ function SyndicatorMailCacheMixin:ScanMail()
           DoAttachment(attachments, mailIndex, attachmentIndex, expirationTime)
         else
           waiting = waiting + 1
-          Syndicator.Utilities.LoadItemData(itemID, function()
+          addonTable.Utilities.LoadItemData(itemID, function()
             DoAttachment(attachments, mailIndex, attachmentIndex, expirationTime)
             waiting = waiting - 1
             if loopsComplete and waiting == 0 then

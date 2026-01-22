@@ -1,15 +1,18 @@
-function Syndicator.Search.GetBaseInfoFromList(cachedItems)
+---@class addonTableSyndicator
+local addonTable = select(2, ...)
+
+function addonTable.Search.GetBaseInfoFromList(cachedItems)
   local results = {}
   for _, item in ipairs(cachedItems) do
     if item.itemID ~= nil and C_Item.GetItemInfoInstant(item.itemID) ~= nil then
-      local info = Syndicator.Search.GetBaseInfo(item)
+      local info = addonTable.Search.GetBaseInfo(item)
       table.insert(results, info)
     end
   end
   return results
 end
 
-function Syndicator.Search.GetExpansionInfo(itemID)
+function addonTable.Search.GetExpansionInfo(itemID)
   if ItemVersion then
     local itemVersionDetails = ItemVersion.API:getItemVersion(itemID, true)
     if itemVersionDetails then
@@ -41,10 +44,7 @@ function Syndicator.Search.GetExpansionInfo(itemID)
   end
 end
 
--- Compatibility
-Syndicator.Search.DumpClassicTooltip = Syndicator.Utilities.DumpClassicTooltip
-
-if Syndicator.Constants.IsRetail then
+if addonTable.Constants.IsRetail then
   local modelScene = CreateFrame("ModelScene", nil, UIParent, "ModelSceneMixinTemplate")
   modelScene:TransitionToModelSceneID(596, CAMERA_TRANSITION_TYPE_IMMEDIATE, CAMERA_MODIFICATION_TYPE_DISCARD, true)
   modelScene:Hide()
@@ -84,7 +84,7 @@ if Syndicator.Constants.IsRetail then
 
   -- Used to get appearance source ID for transmog when the C_TransmogCollection
   -- APIs don't work.
-  function Syndicator.Search.RecoverTransmogInfo(itemLink)
+  function addonTable.Search.RecoverTransmogInfo(itemLink)
     if not C_Item.IsDressableItemByID(itemLink) then
       return nil
     end
@@ -115,7 +115,7 @@ if Syndicator.Constants.IsRetail then
     return nil
   end
 else
-  function Syndicator.Search.RecoverTransmogInfo(itemLink)
+  function addonTable.Search.RecoverTransmogInfo(itemLink)
     return nil
   end
 end
@@ -189,9 +189,9 @@ do
   local frame = CreateFrame("Frame")
   frame:RegisterEvent("PLAYER_LOGIN")
   frame:SetScript("OnEvent", function()
-    local key = Syndicator.Config.Get(Syndicator.Config.Options.AUCTION_VALUE_SOURCE)
+    local key = addonTable.Config.Get(addonTable.Config.Options.AUCTION_VALUE_SOURCE)
     local current = priceSources[key]
-    if not current or not current.validation() or (key == "none" and not Syndicator.Config.Get(Syndicator.Config.Options.NO_AUCTION_VALUE_SOURCE)) then
+    if not current or not current.validation() or (key == "none" and not addonTable.Config.Get(addonTable.Config.Options.NO_AUCTION_VALUE_SOURCE)) then
       local options = {}
       for key, details in pairs(priceSources) do
         if details.priority and details.validation() then
@@ -202,17 +202,22 @@ do
       table.sort(options, function(a, b) return a.priority < b.priority end)
       if #options > 0 then
         current = options[1]
-        Syndicator.Config.Set(Syndicator.Config.Options.AUCTION_VALUE_SOURCE, options[1].key)
+        addonTable.Config.Set(addonTable.Config.Options.AUCTION_VALUE_SOURCE, options[1].key)
       else
         error("unexpected missing \"none\" price source")
       end
     end
-    Syndicator.Search.GetAuctionValue = current.func
+    addonTable.Search.GetAuctionValue = current.func
   end)
-  Syndicator.CallbackRegistry:RegisterCallback("AuctionValueSourceChanged", function()
-    local key = Syndicator.Config.Get(Syndicator.Config.Options.AUCTION_VALUE_SOURCE)
-    Syndicator.Config.Set(Syndicator.Config.Options.NO_AUCTION_VALUE_SOURCE, key == "none")
+  addonTable.CallbackRegistry:RegisterCallback("AuctionValueSourceChanged", function()
+    local key = addonTable.Config.Get(addonTable.Config.Options.AUCTION_VALUE_SOURCE)
+    addonTable.Config.Set(addonTable.Config.Options.NO_AUCTION_VALUE_SOURCE, key == "none")
     local current = priceSources[key]
-    Syndicator.Search.GetAuctionValue = current.func
+    addonTable.Search.GetAuctionValue = current.func
   end)
 end
+
+-- Compatibility
+Syndicator.Search.DumpClassicTooltip = addonTable.Utilities.DumpClassicTooltip
+-- Exposed
+Syndicator.Search.GetBaseInfoFromList = addonTable.Search.GetBaseInfoFromList

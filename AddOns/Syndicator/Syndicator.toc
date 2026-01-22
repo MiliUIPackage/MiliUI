@@ -1,6 +1,6 @@
-## Interface: 120000, 50502, 40402, 30405, 11508
+## Interface: 120000, 110207, 50503, 38000, 20505, 11508
 ## Title: Syndicator
-## Version: 246
+## Version: 259
 ## Author: plusmouse
 ## SavedVariables: SYNDICATOR_CONFIG, SYNDICATOR_DATA, SYNDICATOR_SUMMARIES
 ## IconTexture: Interface\AddOns\Syndicator\Assets\logo.tga
@@ -8,6 +8,14 @@
 ## Notes-zhTW: Syndicator|n儲存角色背包和銀行的物品資訊。
 
 ## Category-enUS: Inventory
+## Category-deDE: Inventar
+## Category-esES: Inventario
+## Category-esMX: Inventario
+## Category-frFR: Inventaire
+## Category-itIT: Inventario
+## Category-koKR: 소지품
+## Category-ptBR: Inventário
+## Category-ruRU: Предметы
 ## Category-zhCN: 物品栏
 ## Category-zhTW: 物品
 
@@ -26,7 +34,6 @@ Core\Initialize.lua
 
 Options\Initialize.lua
 
-Tracking\Utilities.lua
 Tracking\BagCache.lua
 Tracking\MailCache.lua
 Tracking\EquippedCache.lua

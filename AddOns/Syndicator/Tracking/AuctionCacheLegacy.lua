@@ -1,3 +1,6 @@
+---@class addonTableSyndicator
+local addonTable = select(2, ...)
+
 SyndicatorAuctionCacheLegacyMixin = {}
 
 local AUCTIONS_UPDATED_EVENTS = {
@@ -7,7 +10,7 @@ local AUCTIONS_UPDATED_EVENTS = {
 
 function SyndicatorAuctionCacheLegacyMixin:OnLoad()
   FrameUtil.RegisterFrameForEvents(self, AUCTIONS_UPDATED_EVENTS)
-  self.currentCharacter = Syndicator.Utilities.GetCharacterFullName()
+  self.currentCharacter = addonTable.Utilities.GetCharacterFullName()
 
   self.lastBid = nil
   hooksecurefunc("PlaceAuctionBid", function(listType, index, amount)
@@ -43,7 +46,7 @@ function SyndicatorAuctionCacheLegacyMixin:AddAuction(auctionInfo, itemLink)
         isBound = false,
     }
   )
-  Syndicator.CallbackRegistry:TriggerEvent("AuctionsCacheUpdate", self.currentCharacter)
+  addonTable.CallbackRegistry:TriggerEvent("AuctionsCacheUpdate", self.currentCharacter)
 end
 
 function SyndicatorAuctionCacheLegacyMixin:OnEvent(eventName, ...)
@@ -61,7 +64,7 @@ function SyndicatorAuctionCacheLegacyMixin:OnEvent(eventName, ...)
       if C_Item.IsItemDataCachedByID(itemID) then
         self:AddAuction(auctionInfo, GetAuctionItemLink("owner", index))
       else
-        Syndicator.Utilities.LoadItemData(itemID, function()
+        addonTable.Utilities.LoadItemData(itemID, function()
           auctionInfo = { GetAuctionItemInfo("owner", index) }
           self:AddAuction(auctionInfo, GetAuctionItemLink("owner", index))
         end)
@@ -78,9 +81,9 @@ function SyndicatorAuctionCacheLegacyMixin:OnEvent(eventName, ...)
       local item = self.lastBid
       self:UnregisterEvent("CHAT_MSG_SYSTEM")
       self.lastBid = nil
-      item.expirationTime = time() + Syndicator.Constants.MailExpiryDuration
+      item.expirationTime = time() + addonTable.Constants.MailExpiryDuration
       table.insert(SYNDICATOR_DATA.Characters[self.currentCharacter].mail, item)
-      Syndicator.CallbackRegistry:TriggerEvent("MailCacheUpdate", self.currentCharacter)
+      addonTable.CallbackRegistry:TriggerEvent("MailCacheUpdate", self.currentCharacter)
     end
   end
 end
