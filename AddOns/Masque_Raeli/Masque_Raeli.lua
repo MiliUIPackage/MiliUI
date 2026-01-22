@@ -25,8 +25,8 @@ MSQ:AddSkin('Raeli - Square Edge', {
 		Texture = [[Interface\AddOns\Masque_Raeli\Textures\Raeli\No_Backdrop]],
 	},
 	Icon = {
-		Width = 36,
-		Height = 36,
+		Width = 35,
+		Height = 35,
 		TexCoords = {0.07, 0.93, 0.07, 0.93},
 	},
 	Flash = {
@@ -48,9 +48,9 @@ MSQ:AddSkin('Raeli - Square Edge', {
 		Texture = [[Interface\AddOns\Masque_Raeli\Textures\Raeli\Pushed]],
 	},
 	Normal = {
-		Width = 38,
-		Height = 38,
-		Color = {0, 0, 0, 0.9},
+		Width = 36,
+		Height = 36,
+		Color = {0, 0, 0, 1},
 		Texture = [[Interface\AddOns\Masque_Raeli\Textures\Raeli\Normal]],
 	},
 	-- Disabled
@@ -142,8 +142,8 @@ MSQ:AddSkin('Raeli - Square Edge', {
 		DrawLevel = 10,
 		Point = "BOTTOMRIGHT",
 		RelPoint = "BOTTOMRIGHT",
-		OffsetX = 0,
-		OffsetY = 2,
+		OffsetX = 1,
+		OffsetY = 1,
 	},
 	HotKey = {
 		JustifyH = "RIGHT",
@@ -285,8 +285,8 @@ MSQ:AddSkin('Raeli - Ring Edge', {
 		Color = {0, 0, 0, 0.75},
 	},
 	Pushed = {
-		Width = 33,
-		Height = 33,
+		Width = 35,
+		Height = 35,
 		Color = {0, 204/255, 1, 0.4},
 		BlendMode = 'ADD',
 		Texture = [[Interface\AddOns\Masque_Raeli\Textures\RaeliRing\Pushed]],
