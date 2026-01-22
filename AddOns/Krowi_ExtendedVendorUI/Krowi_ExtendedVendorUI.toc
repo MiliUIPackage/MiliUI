@@ -1,8 +1,8 @@
-## Interface: 11507, 30404, 40402, 110100, 120000
+## Interface: 120000, 110207, 50503, 20505, 11508
 ## Title: Krowi's |cFF1D92C2Extended Vendor UI|r
 ## X-Prefix: KrowiEVU
 ## X-Acronym: KEVU
-## Version: 13.3
+## Version: 21.0
 ## Author: Krowi-Frostmane EU
 ## LoadWith: Blizzard_MerchantFrame
 ## SavedVariables: KrowiEVU_Options, KrowiEVU_Filters, KrowiEVU_Debug
@@ -22,14 +22,9 @@
 ## Category-ruRU: Предметы
 ## Category-zhCN: 物品栏
 ## Category-zhTW: 物品欄
-## X-Discord-Invite-Link: https://discord.gg/mdBFQJYeQZ
-## X-Discord-Server-Name: Krowi's Addons
-## X-CurseForge: https://www.curseforge.com/wow/addons/krowi-extended-vendor-ui
-## X-Curse-Project-ID: 872787
-## X-Wago: https://addons.wago.io/addons/krowi-extended-vendor-ui
+## X-Slug: krowi-extended-vendor-ui
+## X-CurseForge-ID: 872787
 ## X-Wago-ID: mNwQwWKo
-## X-WoWInterface: https://www.wowinterface.com/downloads/info26611-KrowisExtendedVendorUI
-## X-WoWInterface-Project-ID: 26611
 
 ## Title-zhTW: |cffFFFF99[商人]|r 介面增強
 ## Notes-zhTW: Krowi's |cFF1D92C2Extended Vendor UI|r|n|n加大商人的購買視窗，方便選購，可自訂商人視窗大小。|n可隱藏已有的寵物、坐騎和玩具，避免重複購買。|n|n|cffffd200使用方法: 點商人視窗左上角的選項，自訂商人視窗大小。|n點商人視窗右上角的過濾設定來篩選/隱藏物品。|n從Esc>選項>插件>商人，開啟其他設定選項。
@@ -38,7 +33,7 @@
 
 Libs\Files.xml
 
-API.lua
+Api\Files.xml
 
 Plugins\Files.xml
 

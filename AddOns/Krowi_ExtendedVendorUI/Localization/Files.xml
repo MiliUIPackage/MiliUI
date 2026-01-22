@@ -1,10 +1,9 @@
 <Ui>
-    <Script file="Localization.lua" />
-    <Script file="enUS.lua" />
-    <Script file="enUS.Plugins.lua" />
-    <Script file="zhTW.lua" />
-    <Script file="zhTW.Plugins.lua" />
-    <Script file="zhCN.lua" />
-    <Script file="zhCN.Plugins.lua" />
-    <Script file="GlobalStrings.lua" />
+    <Script file='enUS.lua' />
+    <Script file='deDE.lua' />
+    <Script file='frFR.lua' />
+    <Script file='itIT.lua' />
+    <Script file='ruRU.lua' />
+    <Script file='zhCN.lua' />
+    <Script file='Shared.lua' />
 </Ui>

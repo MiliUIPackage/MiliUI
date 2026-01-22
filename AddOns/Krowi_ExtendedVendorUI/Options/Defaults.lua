@@ -1,15 +1,26 @@
-local _, addon = ...;
+local _, addon = ...
 
 addon.Options.Defaults = {
     profile = {
         ShowMinimapIcon = false,
         NumRows = 5,
         NumColumns = 4,
-        Direction = addon.L["Columns first"],
+        Direction = 'Columns',
         Minimap = {
             hide = true -- not ShowMinimapIcon
         },
         ShowOptionsButton = true,
-        ShowHideOption = true
+        ShowHideOption = true,
+        RememberFilter = false,
+        RememberSearch = false,
+        RememberSearchBetweenVendors = false,
+        TokenBanner = {
+            MoneyLabel = 'Icon',
+            MoneyAbbreviate = 'None',
+            ThousandsSeparator = 'Comma',
+            MoneyGoldOnly = false,
+            MoneyColored = false,
+	        CurrencyAbbreviate = 'None',
+        }
     }
-};
+}
