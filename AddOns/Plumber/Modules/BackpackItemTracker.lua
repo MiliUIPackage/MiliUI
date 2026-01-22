@@ -2,8 +2,9 @@ local _, addon = ...
 local API = addon.API;
 local L = addon.L;
 local TooltipFrame = addon.SharedTooltip;
+local UpgradeCurrencies = addon.ItemUpgradeConstant.Crests;
 
-local ENABLE_THIS_MODULE = true;        --DB.BackpackItemTracker
+local ENABLE_THIS_MODULE = false;        --DB.BackpackItemTracker
 local HIDE_ZERO_COUNT_ITEM = true;      --DB.HideZeroCountItem      Dock items inside a flyout menu
 local USE_CONSISE_TOOLTIP = true;       --DB.ConciseTokenTooltip
 local TRACK_UPGRADE_CURRENCY = true;    --DB.TrackItemUpgradeCurrency
@@ -56,8 +57,6 @@ local HolidayItems = {
     hallowsendend = 33226,      --Tricky Treat
     --winterveil
 };
-
-local UpgradeCurrencies = addon.UpgradeCurrencies;  --Defined in SharedTooltip.lua
 
 
 local EL = CreateFrame("Frame");
@@ -574,7 +573,7 @@ local function OptionButton_TrackItemUpgradeCurrency_OnEnter(self)
     local tooltip = GameTooltip;
     tooltip:Hide();
     tooltip:SetOwner(self, "ANCHOR_RIGHT");
-    tooltip:SetText(L["Track Upgrade Currency"], 1, 1, 1, true);
+    tooltip:SetText(L["Track Upgrade Currency"], 1, 1, 1, 1, true);
     tooltip:AddLine(L["Track Upgrade Currency Tooltip"], 1, 0.82, 0, true);
 
     local currencyName = CrestUtil:GetBestCrestName(true);
@@ -611,13 +610,23 @@ function SettingsFrame:Init()
         f:Hide();
         DragUtil:Stop();
         self:StopArranging();
+        addon.CallbackRegistry:Trigger("SettingsPanel.ModuleOptionClosed");
     end);
 
     function SettingsFrame:CloseUI()
-        f:Hide();
-        PlaySound(SOUNDKIT.IG_MAINMENU_QUIT);
+        if f:IsShown() then
+            f:Hide();
+            PlaySound(SOUNDKIT.IG_MAINMENU_QUIT);
+            return true
+        end
     end
     f.CloseUI = SettingsFrame.CloseUI;
+    addon.AddModuleOptionExitMethod(SettingsFrame, SettingsFrame.CloseUI);
+
+    function SettingsFrame:IsShown()
+        return f:IsShown()
+    end
+
 
     local PADDING = 12;
     local HEADER_HEIGHT = 18;
@@ -659,7 +668,7 @@ function SettingsFrame:Init()
         end
     end
 
-    local contentSpan = math.floor( math.max(checkboxWidth, FRAME_MIN_WIDTH - 2*PADDING) + 0.5);
+    local contentSpan = math.floor( math.max(maxButtonWidth, FRAME_MIN_WIDTH - 2*PADDING) + 0.5);
     local frameWidth = contentSpan + 2*PADDING;
 
     --List of tracked items
@@ -841,6 +850,8 @@ function SettingsFrame:Init()
     f:SetPoint("BOTTOMLEFT", TrackerFrame, "TOPLEFT", 0, 4);
 
     f:SetClampedToScreen(true);
+    local d = 2;
+    f:SetClampRectInsets(-d, d, d, -d);
     f:SetFrameStrata("DIALOG");
     f:SetFixedFrameStrata(true);
 
@@ -2607,6 +2618,9 @@ do
         categoryID = 1,
         uiOrder = 1,
         optionToggleFunc = SettingsFrame_ToggleUIAtCursorPosition,
+		categoryKeys = {
+			"Inventory",
+		},
     };
 
     addon.ControlCenter:AddModule(moduleData);

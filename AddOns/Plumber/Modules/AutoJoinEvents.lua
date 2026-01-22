@@ -4,7 +4,7 @@ local _, addon = ...
 local API = addon.API;
 
 local EL = CreateFrame("Frame");
-local UnitName = UnitName;
+local UnitName = addon.API.Secret_GetUnitName;
 local TARGET_NPC_NAME;
 local TARGET_OPTION_ID;
 local MODULE_ENABLED = true;
@@ -103,6 +103,9 @@ do
         toggleFunc = EnableModule,
         categoryID = 2,
         uiOrder = 2,
+		categoryKeys = {
+			"Quest",
+		},
     };
 
     addon.ControlCenter:AddModule(moduleData);

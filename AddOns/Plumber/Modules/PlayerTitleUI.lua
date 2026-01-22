@@ -123,6 +123,7 @@ do  --TitleDataProvider
     function TitleDataProvider:ClearKnownTitles()
         self.knownTitles = nil;
     end
+
     function TitleDataProvider:GetFilteredData()
         if self.filteredData then
             self.numEntry = #self.filteredData;
@@ -357,6 +358,10 @@ function Module:Init()
 
     API.Mixin(FilterButton, FilterButtonMixin);
     FilterButton:OnLoad();
+
+
+    --3rd Party Addon Skin
+    API.SetupSkinExternal(Searchbox);
 end
 
 function Module:SetSearchboxInstructions(text)
@@ -369,7 +374,7 @@ end
 local function TitlesPane_UpdateScrollBox()
 	local dataProvider = CreateDataProvider();
 	for index, titleInfo in ipairs(TitleDataProvider:GetFilteredData()) do
-		dataProvider:Insert({index = index, titleInfo = titleInfo});
+		dataProvider:Insert({index = index, playerTitle = titleInfo});
 	end
 	Manager.ScrollBox:SetDataProvider(dataProvider, ScrollBoxConstants.RetainScrollPosition);
 end
@@ -377,7 +382,7 @@ end
 local function TitlesPane_InitButton(button, elementData)
 	local index = elementData.index;
 
-	local info = elementData.titleInfo;
+	local info = elementData.playerTitle;
 	button.text:SetText(info.name);
 	button.titleId = info.id;
 
@@ -616,6 +621,9 @@ do
         categoryID = 1,
         uiOrder = 1163,
         moduleAddedTime = 1736240000,
+		categoryKeys = {
+			"Signature",
+		},
     };
 
     addon.ControlCenter:AddModule(moduleData);

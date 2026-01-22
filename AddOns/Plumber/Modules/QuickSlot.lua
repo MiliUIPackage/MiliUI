@@ -388,9 +388,9 @@ local function ItemButton_OnEnter(self)
         tooltip:SetOwner(self, "ANCHOR_RIGHT");
         for i, text in ipairs(self.tooltipLines) do
             if i == 1 then
-                tooltip:SetText(text, 1, 1, 1, true);
+                tooltip:SetText(text, 1, 1, 1, 1, true);
             else
-                tooltip:AddLine(text, 1, 1, 1, true);
+                tooltip:AddLine(text, 1, 1, 1, 1, true);
             end
         end
         tooltip:Show();
@@ -1046,8 +1046,8 @@ function QuickSlot:EnableEditMode(state)
                 self.closeUIAfterEditing = nil;
                 self:CloseUI();
             end
-        else
-            return
+
+            addon.CallbackRegistry:Trigger("SettingsPanel.ModuleOptionClosed");
         end
     end
 end
@@ -1116,11 +1116,16 @@ function QuickSlot:ShowUI()
     return true
 end
 
-function QuickSlot:CloseUI()
+function QuickSlot:CloseUI(instant)
     if self:IsShown() then
         self:EnableEditMode(false);
         self.isClosing = true;
-        UIFrameFade(self, 0.5, 0);
+        if instant then
+            self:Hide();
+            self:SetAlpha(0);
+        else
+            UIFrameFade(self, 0.5, 0);
+        end
         self:UnregisterEvent("PLAYER_REGEN_DISABLED");
         self:UnregisterEvent("PLAYER_REGEN_ENABLED");
         self:UnregisterEvent("UI_SCALE_CHANGED");
@@ -1184,9 +1189,17 @@ function QuickSlot:UpdateItemCooldowns()
     end
 end
 
+function QuickSlot:ExitEditMode()
+    if self:IsShown() and self:IsInEditMode() then
+        QuickSlot:CloseUI(true);
+        return true
+    end
+end
+addon.AddModuleOptionExitMethod(QuickSlot, QuickSlot.ExitEditMode);
+
 do  --Spell Cooldown
-    local GetSpellCooldown = C_Spell.GetSpellCooldown;
-    local GetSpellCharges = C_Spell.GetSpellCharges;
+    local GetSpellCooldown = API.GetSpellCooldown;
+    local GetSpellCharges = API.GetSpellCharges;
 
     local Throttler = CreateFrame("Frame", nil, QuickSlot);
     QuickSlot.Throttler = Throttler;
@@ -1216,6 +1229,7 @@ do  --Spell Cooldown
     end
 
     function QuickSlot:UpdateSpellCooldowns()
+        if not self.SpellButtons then return end;
         local cooldownInfo, chargeInfo, startTime, duration, modRate, fromChargeCooldown;
         for _, button in ipairs(self.SpellButtons) do
             if button.id and button.actionType == "spell" then

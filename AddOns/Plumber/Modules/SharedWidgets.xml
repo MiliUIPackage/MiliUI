@@ -1,5 +1,7 @@
 <Ui xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
 	<Script file="SharedWidgets.lua"/>
+    <Script file="SharedWidgets_ReorderController.lua"/>
+    <Script file="SharedWidgets_StaticPopup.lua"/>
 
     <Frame name="PlumberBarPulseTemplate" virtual="true">
         <!--Derivative of Blizzard FullResourcePulseFrame-->
@@ -198,20 +200,32 @@
         </Layers>
     </Frame>
 
-	<Cooldown name="PlumberRadialProgressBarTemplate" reverse="true" hideCountdownNumbers="true" rotation="180" useParentLevel="true" virtual="true">
+	<Cooldown name="PlumberRadialProgressBarTemplate" reverse="true" hideCountdownNumbers="true" rotation="180" virtual="true">
 		<Size x="68" y="68"/>
 		<Layers>
-			<Layer level="BORDER">
+			<Layer level="OVERLAY" textureSubLevel="1">
 				<Texture parentKey="Border" setAllPoints="true"/>
 			</Layer>
-			<Layer level="BORDER" textureSubLevel="1">
+			<Layer level="OVERLAY" textureSubLevel="2">
 				<Texture parentKey="BorderHighlight" setAllPoints="true" hidden="true" alphaMode="ADD" alpha="0.5"/>
+			</Layer>
+			<Layer level="ARTWORK" textureSubLevel="1">
+				<Texture parentKey="Spinner" setAllPoints="true" hidden="true"/>
+			</Layer>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="Background" setAllPoints="true"/>
 			</Layer>
 		</Layers>
 		<SwipeTexture file="Interface\PVPFrame\pvpqueue-sidebar-honorbar-fill"/>
+        <EdgeTexture file="Interface\AddOns\Plumber\Art\Cooldown\QueueStatusProgress-Edge"/>
         <KeyValues>
             <KeyValue key="noCooldownCount" value="true" type="boolean"/> <!--OmniCC-->
         </KeyValues>
+        <Animations>
+            <AnimationGroup parentKey="AnimSpin" looping="REPEAT">
+                <Rotation degrees="-360" duration="4" order="1" childKey="Spinner"/>
+            </AnimationGroup>
+        </Animations>
 	</Cooldown>
 
     <Frame name="PlumberWoWProgressBarTemplate" virtual="true">
@@ -429,7 +443,7 @@
         </Frames>
     </Button>
 
-    <Button name="PlumberSmallItemButtonTemplate" hidden="true" virtual="true">
+    <Button name="PlumberSmallIconButtonTemplate" virtual="true">
         <Size x="32" y="32"/>
         <Layers>
             <Layer level="BORDER">
@@ -440,8 +454,7 @@
                         <Anchor point="CENTER"/>
                     </Anchors>
                 </Texture>
-                <MaskTexture parentKey="IconMask" file="Interface\AddOns\Plumber\Art\BasicShape\Mask-Circle" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
-                    <Size x="30" y="30"/>
+                <MaskTexture parentKey="IconMask" file="Interface\AddOns\Plumber\Art\BasicShape\Mask-Chamfer" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
                     <Anchors>
                         <Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="TOPLEFT" x="0" y="0"/>
                         <Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
@@ -452,13 +465,19 @@
                 </MaskTexture>
             </Layer>
             <Layer level="ARTWORK">
-                <Texture parentKey="Border" file="Interface\AddOns\Plumber\Art\Button\SmallCircle-Border">
-                    <Size x="64" y="64"/>
+                <Texture parentKey="Border">
+                    <Size x="72" y="72"/>
                     <Anchors>
                         <Anchor point="CENTER"/>
                     </Anchors>
                 </Texture>
             </Layer>
+        </Layers>
+    </Button>
+
+    <Button name="PlumberSmallItemButtonTemplate" inherits="PlumberSmallIconButtonTemplate" hidden="true" virtual="true">
+        <Size x="32" y="32"/>
+        <Layers>
             <Layer level="OVERLAY" textureSubLevel="6">
                 <FontString parentKey="Count" inherits="NumberFontNormal" justifyH="RIGHT">
                     <Anchors>
@@ -468,4 +487,239 @@
             </Layer>
         </Layers>
     </Button>
+
+    <Button name="PlumberActionBarButtonTemplate" registerForClicks="LeftButtonUp, RightButtonUp" virtual="true">
+        <Size x="45" y="45"/>
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture parentKey="Icon">
+                    <TexCoords left="0.0625" right="0.9375" top="0.0625" bottom="0.9375"/>
+                    <Size x="40" y="40"/>
+                    <Anchors>
+                        <Anchor point="CENTER"/>
+                    </Anchors>
+                </Texture>
+                <MaskTexture parentKey="IconMask" file="Interface\AddOns\Plumber\Art\BasicShape\Mask-Chamfer" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="TOPELFT"/>
+                        <Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon" relativePoint="BOTTOMRIGHT"/>
+                    </Anchors>
+                    <MaskedTextures>
+                        <MaskedTexture childKey="Icon"/>
+                    </MaskedTextures>
+                </MaskTexture>
+            </Layer>
+            <!--Layer level="ARTWORK" textureSubLevel="1">
+                <Texture parentKey="Flash" atlas="UI-HUD-ActionBar-IconFrame-Flash" useAtlasSize="true" hidden="true">
+                    <Anchors>
+                        <Anchor point="TOPLEFT"/>
+                    </Anchors>
+                </Texture>
+            </Layer-->
+            <Layer level="ARTWORK" textureSubLevel="1">
+                <FontString parentKey="Count" inherits="NumberFontNormal" justifyH="RIGHT">
+                    <Anchors>
+                        <Anchor point="BOTTOMRIGHT" x="-5" y="5"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+            <Layer level="OVERLAY" textureSubLevel="4">
+                <!--FontString parentKey="Name" inherits="GameFontHighlightSmallOutline">
+                    <Size x="36" y="10"/>
+                    <Anchors>
+                        <Anchor point="BOTTOM" x="0" y="2"/>
+                    </Anchors>
+                </FontString-->
+                <Texture parentKey="IconOverlay" hidden="true">
+                    <Size x="24" y="24"/>
+                    <Anchors>
+                        <Anchor point="BOTTOMRIGHT" relativeKey="$parent" relativePoint="CENTER"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+        </Layers>
+        <NormalTexture parentKey="NormalTexture">
+            <Size x="48" y="48"/>
+            <Anchors>
+                <Anchor point="CENTER"/>
+            </Anchors>
+        </NormalTexture>
+        <PushedTexture parentKey="PushedTexture">
+            <Size x="48" y="48"/>
+            <Anchors>
+                <Anchor point="CENTER"/>
+            </Anchors>
+        </PushedTexture>
+        <HighlightTexture parentKey="HighlightTexture">
+            <Size x="48" y="48"/>
+            <Anchors>
+                <Anchor point="CENTER"/>
+            </Anchors>
+        </HighlightTexture>
+        <!--CheckedTexture parentKey="CheckedTexture" atlas="UI-HUD-ActionBar-IconFrame-Mouseover">
+            <Size x="48" y="48"/>
+            <Anchors>
+                <Anchor point="CENTER"/>
+            </Anchors>
+        </CheckedTexture-->
+        <Frames>
+            <Cooldown parentKey="Cooldown" inherits="CooldownFrameTemplate" drawBling="false" drawEdge="false" useParentLevel="true">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.Icon" x="0" y="0"/>
+                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon" x="0" y="0"/>
+                </Anchors>        
+                <SwipeTexture>
+                    <Color r="0" g="0" b="0" a="0.8"/>
+                </SwipeTexture>
+            </Cooldown>
+        </Frames>
+    </Button>
+
+    <Button name="PlumberSecureActionBarButtonTemplate" inherits="SecureActionButtonTemplate" propagateMouseInput="Both" hidden="true" virtual="true">
+        <Size x="45" y="45"/>
+        <!--Layers>
+            <Layer level="BACKGROUND" textureSubLevel="-1">
+                <Texture parentKey="DebugArea" setAllPoints="true">
+                    <Color r="1" a="0.5"/>
+                </Texture>
+            </Layer>
+        </Layers-->
+        <Scripts>
+            <OnShow>
+                if self.VisualButton then
+                    self.VisualButton:Show();
+                end
+            </OnShow>
+            <OnHide>
+                if self.VisualButton then
+                    self.VisualButton:Hide();
+                    self.VisualButton:ClearAction();
+                end
+            </OnHide>
+        </Scripts>
+    </Button>
+
+    <Button name="PlumberBlizzardCheckButtonTemplate" virtual="true">
+        <Size x="225" y="32"/>
+        <Frames>
+            <CheckButton parentKey="Button" motionScriptsWhileDisabled="true">
+                <Size x="32" y="32"/>
+                <Anchors>
+                    <Anchor point="LEFT"/>
+                </Anchors>
+                <NormalTexture file="Interface\Buttons\UI-CheckBox-Up"/>
+                <PushedTexture file="Interface\Buttons\UI-CheckBox-Down"/>
+                <HighlightTexture file="Interface\Buttons\UI-CheckBox-Highlight" alphaMode="ADD"/>
+                <CheckedTexture file="Interface\Buttons\UI-CheckBox-Check"/>
+                <DisabledCheckedTexture file="Interface\Buttons\UI-CheckBox-Check-Disabled"/>
+            </CheckButton>
+        </Frames>
+        <Layers>
+            <Layer level="ARTWORK">
+                <FontString parentKey="Label" wordwrap="false" justifyH="LEFT" inherits="GameFontHighlightMedium">
+                    <Size y="32"/>
+                    <Anchors>
+                        <Anchor point="LEFT" relativeKey="$parent.Button" relativePoint="RIGHT" x="5"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+    </Button>
+
+    <Frame name="PlumberRepositionFrameTemplate" registerForDrag="LeftButton" virtual="true">
+        <Size x="8" y="8"/>
+        <Scripts>
+            <OnDragStart>
+                self.isMoving = true;
+                self:GetParent():StartMoving(true);
+            </OnDragStart>
+            <OnDragStop>
+                self.isMoving = false;
+                self:GetParent():StopMovingOrSizing();
+            </OnDragStop>
+            <OnHide>
+                if self.isMoving then
+                    self.isMoving = false;
+                    self:GetParent():StopMovingOrSizing();
+                end
+            </OnHide>
+            <OnMouseDown>
+                if button == "RightButton" then
+                    local parent = self:GetParent();
+                    if parent.ResetPosition then
+                        parent:ResetPosition();
+                    end
+                end
+            </OnMouseDown>
+        </Scripts>
+    </Frame>
+
+    <Frame name="PlumberLoadingIndicatorTemplate" hidden="true" virtual="true">
+        <Size x="16" y="16"/>
+        <Layers>
+            <Layer level="OVERLAY">
+				<Texture parentKey="Spinner" setAllPoints="true" file="Interface\AddOns\Plumber\Art\Button\LoadingIndicator32" texelSnappingBias="0.0" snapToPixelGrid="false"/>
+            </Layer>
+        </Layers>
+        <Animations>
+            <AnimationGroup parentKey="Anim" looping="REPEAT">
+                <Rotation degrees="-360" duration="1" order="1" childKey="Spinner"/>
+            </AnimationGroup>
+            <AnimationGroup parentKey="Anim2">
+                <Rotation degrees="-720" duration="2" order="1" childKey="Spinner"/>
+                <Scripts>
+                    <OnFinished>
+                        self:GetParent():Hide();
+                    </OnFinished>
+                </Scripts>
+            </AnimationGroup>
+        </Animations>
+        <Scripts>
+            <OnShow>
+                if self.autoHide then
+                    self.Anim2:Play();
+                else
+                    self.Anim:Play();
+                end
+            </OnShow>
+            <OnHide>
+                self.Anim:Stop();
+                self.Anim2:Stop();
+            </OnHide>
+        </Scripts>
+    </Frame>
+
+    <Frame name="PlumberPropagateMouseTemplate" propagateMouseInput="Both" virtual="true"/>
+    <Frame name="PlumberPropagateMouseMotionTemplate" propagateMouseInput="Motion" virtual="true"/>
+    <Frame name="PlumberPropagateMouseClicksTemplate" propagateMouseInput="Clicks" virtual="true"/>
+
+    <Frame name="PlumberSharedPopupFrameTemplate" parent="UIParent" frameStrata="DIALOG" toplevel="true" hidden="true" virtual="true">
+        <Size x="320" y="72"/>
+        <Anchors>
+            <Anchor point="TOP" x="0" y="-135"/>
+        </Anchors>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString parentKey="Text" inherits="GameFontHighlight" justifyH="CENTER" justifyV="TOP"/>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Frame parentKey="BackgroundFrame" inherits="DialogBorderDarkTemplate"/> <!--DialogBorderTemplate-->
+
+            <Button parentKey="CloseButton" inherits="UIPanelCloseButton">
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-3" y="-3"/>
+                </Anchors>
+            </Button>
+
+            <EditBox parentKey="EditBox" multiLine="false" autoFocus="false">
+                <Size x="130" y="24"/>
+                <FontString inherits="NumberFont_Shadow_Small" justifyH="LEFT"/>
+                <TextInsets left="8" right="8"/>
+                <HighlightColor r="0.05" g="0.41" b="0.85"/>
+            </EditBox>
+
+            <Frame parentKey="KeyListener" propagateKeyboardInput="true" frameLevel="1208"/>
+        </Frames>
+    </Frame>
 </Ui>

@@ -13,12 +13,14 @@ local IsWarningColor = API.IsWarningColor;
 
 local _G = _G;
 local InCombatLockdown = InCombatLockdown;
-local IsSpellKnown = IsSpellKnown;
+local IsSpellKnown = C_SpellBook.IsSpellKnown or IsSpellKnown;
 local SpellIsTargeting = SpellIsTargeting;
 local GetMouseFocus = API.GetMouseFocus;
 local GetSpellInfo = API.GetSpellInfo;
 local GetCursorInfo = GetCursorInfo;
+local GetCVarBool = C_CVar.GetCVarBool;
 local match = string.match;
+local find = string.find;
 local IsInteractingWithNpcOfType = (C_PlayerInteractionManager and C_PlayerInteractionManager.IsInteractingWithNpcOfType) or function(type) return false end
 
 
@@ -303,14 +305,15 @@ end
 local function IsMouseoverItemLocked(lineIndex)
     local toIndex;
     if lineIndex then
-        toIndex = 2;
+        toIndex = GetCVarBool("colorblindMode") and 3 or 2;    --Colorblind Mode: Quality becomes the 2nd line
     else
         toIndex = TooltipFrame:NumLines();
     end
-    local line;
+    local line, lineText;
     for i = 2, toIndex do
         line = _G["GameTooltipTextLeft"..i];
-        if line and line:GetText() == TEXT_LOCKED then
+        lineText = line and line:GetText();
+        if lineText and find(lineText, TEXT_LOCKED, 1, true) then      --Colorblind Mode: [++]Locked(Yellow), [-]Locked(Red)
             local r, g, b = line:GetTextColor();
             if IsWarningColor(r, g, b) then
                 return false
@@ -358,6 +361,7 @@ local function SetupButtonAndTooltip(bag, slot, tradeItem)
         CursorProgressIndicator:SetParent(UIParent);
         CursorProgressIndicator:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y);
         CursorProgressIndicator:WatchSpell(SPELL_ID_PICK_LOCK);
+        CursorProgressIndicator:SetEdgeScale(1);
     end
 end
 
@@ -493,6 +497,9 @@ do
         toggleFunc = EnableModule,
         categoryID = 1,
         uiOrder = 100,
+		categoryKeys = {
+			"Inventory",
+		},
     };
 
     addon.ControlCenter:AddModule(moduleData);

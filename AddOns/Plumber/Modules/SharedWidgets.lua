@@ -45,6 +45,8 @@ do  -- Slice Frame
         NineSlice_GenericBox = true,            --used by BackpackItemTracker
         NineSlice_GenericBox_Border = true,     --used by BackpackItemTracker
         NineSlice_GenericBox_Black = true,
+        NineSlice_GenericBox_Black_Shadowed = true, --CustomSpellFlyout
+        NineSlice_DarkBrownBox = true,
     };
 
     local ThreeSliceLayouts = {
@@ -82,6 +84,37 @@ do  -- Slice Frame
 
     local function NiceSlice_SetTexture(frame, texture)
         frame.NineSlice:SetTexture(texture);
+    end
+
+    function API.CreateThreeSliceTextures(parent, layer, sideWidth, sideHeight, sideOffset, file, disableSharpenging, useTrilinearFilter)
+        local slices = {};
+        slices[1] = parent:CreateTexture(nil, layer);
+        slices[2] = parent:CreateTexture(nil, layer);
+        slices[3] = parent:CreateTexture(nil, layer);
+        slices[1]:SetPoint("LEFT", parent, "LEFT", -sideOffset, 0);
+        slices[3]:SetPoint("RIGHT", parent, "RIGHT", sideOffset, 0);
+        slices[2]:SetPoint("TOPLEFT", slices[1], "TOPRIGHT", 0, 0);
+        slices[2]:SetPoint("BOTTOMRIGHT", slices[3], "BOTTOMLEFT", 0, 0);
+
+        if sideWidth and sideHeight then
+            slices[1]:SetSize(sideWidth, sideHeight);
+            slices[3]:SetSize(sideWidth, sideHeight);
+        end
+
+        if file then
+            local filter = useTrilinearFilter and "TRILINEAR" or "LINEAR";
+            slices[1]:SetTexture(file, nil, nil, filter);
+            slices[2]:SetTexture(file, nil, nil, filter);
+            slices[3]:SetTexture(file, nil, nil, filter);
+        end
+
+        if disableSharpenging then
+            DisableSharpening(slices[1]);
+            DisableSharpening(slices[2]);
+            DisableSharpening(slices[3]);
+        end
+
+        return slices
     end
 
     function SliceFrameMixin:CreatePieces(n)
@@ -134,7 +167,7 @@ do  -- Slice Frame
             self.pieces[6]:SetPoint("BOTTOMRIGHT", self.pieces[9], "TOPRIGHT", 0, 0);
             self.pieces[8]:SetPoint("TOPLEFT", self.pieces[7], "TOPRIGHT", 0, 0);
             self.pieces[8]:SetPoint("BOTTOMRIGHT", self.pieces[9], "BOTTOMLEFT", 0, 0);
-    
+
             self.pieces[1]:SetTexCoord(0, 0.25, 0, 0.25);
             self.pieces[2]:SetTexCoord(0.25, 0.75, 0, 0.25);
             self.pieces[3]:SetTexCoord(0.75, 1, 0, 0.25);
@@ -163,6 +196,10 @@ do  -- Slice Frame
         end
     end
 
+    function SliceFrameMixin:SetCornerSizeByScale(scale)
+        self:SetCornerSize(16 * scale);
+    end
+
     function SliceFrameMixin:SetTexture(tex)
         --if self.NineSlice then
         --    NiceSlice_SetTexture(self, tex);
@@ -170,6 +207,12 @@ do  -- Slice Frame
         --end
         for i = 1, #self.pieces do
             self.pieces[i]:SetTexture(tex);
+        end
+    end
+
+    function SliceFrameMixin:SetDisableSharpening(state)
+        for i = 1, #self.pieces do
+            self.pieces[i]:SetSnapToPixelGrid(not state);
         end
     end
 
@@ -236,7 +279,6 @@ do  -- Slice Frame
         frame.TextureSlice:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", offset, -offset);
         frame.TextureSlice:SetTexture("Interface/AddOns/Plumber/Art/Frame/PixelBorder_Dashed_Moving");
     end
-
     addon.CreateTextureSlice = CreateTextureSlice;
 end
 
@@ -249,15 +291,17 @@ do  -- Checkbox
 
     local CheckboxMixin = {};
 
-    function CheckboxMixin:OnEnter()
-        if IsMouseButtonDown() then return end;
-
+    function CheckboxMixin:ShowTooltip()
         if self.tooltip then
             local f = GameTooltip;
             f:Hide();
             f:SetOwner(self, "ANCHOR_RIGHT");
-            f:SetText(self.Label:GetText(), 1, 1, 1, true);
-            f:AddLine(self.tooltip, 1, 0.82, 0, true);
+            f:SetText(self.Label:GetText(), 1, 1, 1, 1, true);
+            if type(self.tooltip) == "function" then
+                f:AddLine(self.tooltip(), 1, 0.82, 0, true);
+            else
+                f:AddLine(self.tooltip, 1, 0.82, 0, true);
+            end
             if self.tooltip2 then
                 local tooltip2;
                 if type(self.tooltip2) == "function" then
@@ -272,7 +316,11 @@ do  -- Checkbox
             end
             f:Show();
         end
+    end
 
+    function CheckboxMixin:OnEnter()
+        if IsMouseButtonDown() then return end;
+        self:ShowTooltip();
         if self.onEnterFunc then
             self.onEnterFunc(self);
         end
@@ -310,6 +358,28 @@ do  -- Checkbox
         end
 
         GameTooltip:Hide();
+
+        if self.keepTooltipAfterClicks then
+            if self:IsMouseMotionFocus() then
+                self:ShowTooltip();
+            end
+        end
+    end
+
+    function CheckboxMixin:OnEnable()
+        self.CheckedTexture:SetDesaturated(false);
+        self.CheckedTexture:SetVertexColor(1, 1, 1);
+        if self.useWhiteLabel then
+            self.Label:SetTextColor(1, 1, 1);
+        else
+            self.Label:SetTextColor(1, 0.82, 0);
+        end
+    end
+
+    function CheckboxMixin:OnDisable()
+        self.CheckedTexture:SetDesaturated(true);
+        self.CheckedTexture:SetVertexColor(0.5, 0.5, 0.5);
+        self.Label:SetTextColor(0.5, 0.5, 0.5);
     end
 
     function CheckboxMixin:GetChecked()
@@ -361,6 +431,7 @@ do  -- Checkbox
         self.onClickFunc = data.onClickFunc;
         self.onEnterFunc = data.onEnterFunc;
         self.onLeaveFunc = data.onLeaveFunc;
+        self.keepTooltipAfterClicks = data.keepTooltipAfterClicks;
 
         if data.label then
             return self:SetLabel(data.label)
@@ -406,6 +477,8 @@ do  -- Checkbox
         b:SetScript("OnClick", CheckboxMixin.OnClick);
         b:SetScript("OnEnter", CheckboxMixin.OnEnter);
         b:SetScript("OnLeave", CheckboxMixin.OnLeave);
+        b:SetScript("OnEnable", CheckboxMixin.OnEnable);
+        b:SetScript("OnDisable", CheckboxMixin.OnDisable);
 
         return b
     end
@@ -577,8 +650,19 @@ do  -- Common Frame with Header (and close button)
 
         return f
     end
-
     addon.CreateHeaderFrame = CreateHeaderFrame;
+
+
+    local function CreateCommonFrame(parent)
+        local showCloseButton = false;
+        local f = CreateHeaderFrame(parent, showCloseButton);
+        local texture = "Interface/AddOns/Plumber/Art/Frame/CommonFrameNoHeader";
+        for _, p in ipairs(f.pieces) do
+            p:SetTexture(texture);
+        end
+        return f
+    end
+    addon.CreateCommonFrame = CreateCommonFrame;
 
 
     local ExpandCollapseButtonMixin = {};
@@ -993,6 +1077,7 @@ do  -- TokenFrame   -- Money   -- Coin
 
 
     local TokenDisplayMixin = {};
+    local ITEM_COUNT_HANDLED_ALIENT;
 
     local function CreateTokenDisplay(parent, layoutName)
         local f = addon.CreateThreeSliceFrame(parent, layoutName);
@@ -1072,7 +1157,30 @@ do  -- TokenFrame   -- Money   -- Coin
     end
 
 
-    local function AppendItemCount(tooltip, itemID)
+    local function CheckOtherItemAddOns()
+        ITEM_COUNT_HANDLED_ALIENT = false;
+        local addons = {
+            "Syndicator", "Bagnon",
+            "ElvUI", "NDui",
+        };
+        local IsAddOnLoaded = C_AddOns.IsAddOnLoaded;
+        for _, name in ipairs(addons) do
+            if IsAddOnLoaded(name) then
+                ITEM_COUNT_HANDLED_ALIENT = true;
+                return
+            end
+        end
+    end
+
+    local function AppendItemCount(tooltip, itemID, questionableData)
+        if ITEM_COUNT_HANDLED_ALIENT == nil then
+            CheckOtherItemAddOns();
+        end
+
+        if ITEM_COUNT_HANDLED_ALIENT then
+            return
+        end
+
         local inBag = GetItemCount(itemID);
         local total = GetItemCount(itemID, true, false, true, true);
         local inBank = total - inBag;
@@ -1084,7 +1192,12 @@ do  -- TokenFrame   -- Money   -- Coin
         end
 
         tooltip:AddLine(text, 1, 0.82, 0, true);
+        if questionableData and total > 0 then
+            tooltip:AddLine(L["Questionable Item Count Tooltip"], 0.5, 0.5, 0.5, true);
+        end
         tooltip:Show();
+
+        return true
     end
 
     local function TokenButton_OnEnter(self)
@@ -1093,15 +1206,17 @@ do  -- TokenFrame   -- Money   -- Coin
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
         if self.tokenType == 0 and self.currencyID then
             GameTooltip:SetCurrencyByID(self.currencyID);
-        elseif self.tokenType == 1 and self.itemID then
+        elseif self.tokenType == 1 and self.item then
             if self.merchantSlot and self.metchantCostIndex then
                 GameTooltip:SetMerchantCostItem(self.merchantSlot, self.metchantCostIndex)
-            elseif self.link then
-                GameTooltip:SetHyperlink(self.link);
+            elseif self.link or type(self.item) == "string" then
+                GameTooltip:SetHyperlink(self.link or self.item);
             else
-                GameTooltip:SetItemByID(self.itemID);
+                GameTooltip:SetItemByID(self.item);
             end
-            AppendItemCount(GameTooltip, self.itemID);
+            if not AppendItemCount(GameTooltip, self.item, self.questionableData) then
+                GameTooltip:Show();
+            end
             self.UpdateTooltip = function()
                 TokenButton_OnEnter(self)
             end
@@ -1113,6 +1228,39 @@ do  -- TokenFrame   -- Money   -- Coin
     local function TokenButton_OnLeave(self)
         self.UpdateTooltip = nil;
         GameTooltip:Hide();
+    end
+
+    local function TokenButton_OnClick(self)
+        if (not self.owner.clickable) or InCombatLockdown() then return end;
+
+        if IsModifiedClick("CHATLINK") then
+            local link;
+            if self.tokenType == 0 and self.currencyID then
+                link = C_CurrencyInfo.GetCurrencyLink(self.currencyID);
+            elseif self.tokenType == 1 and self.item then
+                local _;
+                _, link = C_Item.GetItemInfo(self.item);
+            end
+            local linkedToChat = link and HandleModifiedItemClick(link);
+            if linkedToChat then
+                return
+            end
+        end
+
+        if self.tokenType == 0 and self.currencyID then
+            API.ToggleBlizzardTokenUIIfWarbandCurrency(self.currencyID);
+
+            --[[    --Taint!!
+            C_Timer.After(0, function()
+                if not InCombatLockdown() then
+                    local function FindSelectedTokenButton(elementData)
+                        return elementData.currencyID == self.currencyID;
+                    end
+                    TokenFrame.ScrollBox:ScrollToElementDataByPredicate(FindSelectedTokenButton);
+                end
+            end);
+            --]]
+        end
     end
 
     function TokenDisplayMixin:SetupTokenButton(tokenButton, currencyData, currencyInfoCache)
@@ -1130,12 +1278,13 @@ do  -- TokenFrame   -- Money   -- Coin
         tokenButton.link = link;
         tokenButton.merchantSlot = currencyData[6];
         tokenButton.metchantCostIndex = currencyData[7];
+        tokenButton.questionableData = nil;
 
         if tokenType == TOKEN_TYPE_CURRENCY then
             --Currency
             self.anyCurrency = true;
             tokenButton.currencyID = id;
-            tokenButton.itemID = nil;
+            tokenButton.item = nil;
 
             local info;
 
@@ -1157,8 +1306,13 @@ do  -- TokenFrame   -- Money   -- Coin
             --Item
             self.anyItem = true;
             tokenButton.currencyID = nil;
-            tokenButton.itemID = id;
+            tokenButton.item = id;
             icon = GetItemIconByID(id)
+
+            if type(id) == "string" then
+                --here "id" can be itemlink, but the count may not be accurate
+                tokenButton.questionableData = true;
+            end
 
             if self.includeBank then
                 quantity = GetItemCount(id, true, false, true, true);
@@ -1170,9 +1324,9 @@ do  -- TokenFrame   -- Money   -- Coin
         if quantity then
             tokenButton.Icon:SetTexture(icon);
             if numRequired then
-                tokenButton.Count:SetText(numRequired);
+                tokenButton.Count:SetText(BreakUpLargeNumbers(numRequired));
             else
-                tokenButton.Count:SetText(quantity);
+                tokenButton.Count:SetText(BreakUpLargeNumbers(quantity));
             end
             if numRequired and numRequired > quantity then
                 grayColor = true;
@@ -1198,8 +1352,8 @@ do  -- TokenFrame   -- Money   -- Coin
 
     function TokenDisplayMixin:AcquireTokenButton(index)
         if not self.tokenButtons[index] then
-            local button = CreateFrame("Frame", nil, self);
-
+            local button = CreateFrame("Button", nil, self);
+            button.owner = self;
             button:SetSize(TOKEN_BUTTON_ICON_SIZE, TOKEN_BUTTON_HEIGHT);
 
             button.Icon = button:CreateTexture(nil, "ARTWORK");
@@ -1213,6 +1367,7 @@ do  -- TokenFrame   -- Money   -- Coin
 
             button:SetScript("OnEnter", TokenButton_OnEnter);
             button:SetScript("OnLeave", TokenButton_OnLeave);
+            button:SetScript("OnClick", TokenButton_OnClick);
 
             self.tokenButtons[index] = button;
         end
@@ -1266,14 +1421,14 @@ do  -- TokenFrame   -- Money   -- Coin
         end
     end
 
-    function TokenDisplayMixin:SetFrameOwner(owner, position, offsetX, offsetY)
+    function TokenDisplayMixin:SetFrameOwner(owner, position, offsetX, offsetY, frameStrata)
         --local b = owner:GetBottom();
         --local r = owner:GetRight();
         offsetX = offsetX or 0;
         offsetY = offsetY or 0;
 
         self:ClearAllPoints();
-        self:SetFrameStrata("FULLSCREEN");
+        self:SetFrameStrata(frameStrata or "FULLSCREEN");
 
         local realParent = owner;   --UIParent
 
@@ -1292,6 +1447,69 @@ do  -- TokenFrame   -- Money   -- Coin
     function TokenDisplayMixin:DisplayCurrencyOnFrame(tokens, owner, position, offsetX, offsetY)
         self:SetFrameOwner(owner, position, offsetX, offsetY);
         self:SetTokens(tokens);
+    end
+
+    function TokenDisplayMixin:DisplayMerchantPriceOnFrame(tokens, owner, offsetX, offsetY, merchantSlotIndexList)
+        local position = "BOTTOMRIGHT";
+        local fullyLoaded = true;
+        if merchantSlotIndexList then
+            --We use C_Tooltip.GetMerchantCostItem to get the real itemlink b/c GetMerchantItemCostItem only returns the basic itemlink
+            local GetMerchantCostItem = C_TooltipInfo.GetMerchantCostItem;
+            local numCost, slot;
+            local uniqueLinks = {};
+            for _, v in ipairs(merchantSlotIndexList) do
+                slot, numCost = v[1], v[2];
+                if numCost > 0 then
+                    for costIndex = 1, numCost do
+                        local info = GetMerchantCostItem(slot, costIndex);
+                        local itemLevel = 0;
+                        if info and info.hyperlink then
+                            for _, line in ipairs(info.lines) do
+                                if line.itemLevel then
+                                    itemLevel = line.itemLevel;
+                                    break
+                                end
+                            end
+                            uniqueLinks[info.hyperlink] = itemLevel;
+                        else
+                            fullyLoaded = false;
+                        end
+                    end
+                end
+            end
+            local linkList = {};
+            for link, itemLevel in pairs(uniqueLinks) do
+                tinsert(linkList, {link, itemLevel});
+            end
+
+            table.sort(linkList, function(a, b)
+                --Sort by itemLevel then link
+                if a[2] ~= b[2] and a[2] > 0 and b[2] > 0 then
+                    return a[2] < b[2]
+                end
+                return a[1] < b[1]
+            end);
+
+            tokens = {};
+            local match = string.match;
+            local currencyType;
+            local id;
+            for i, v in ipairs(linkList) do
+                local hyperlink = v[1];
+                id = match(hyperlink, "currency:(%d+)");
+                if id then
+                    currencyType = 0;
+                    id = tonumber(id);
+                    tokens[i] = {currencyType, id, nil, nil, hyperlink};
+                else    --item
+                    currencyType = 1;
+                    tokens[i] = {currencyType, hyperlink, nil, nil, hyperlink};
+                end
+            end
+        end
+
+        self:DisplayCurrencyOnFrame(tokens, owner, position, offsetX, offsetY);
+        return fullyLoaded
     end
 
     function TokenDisplayMixin:ShowMoneyFrame(state)
@@ -1354,6 +1572,11 @@ do  -- TokenFrame   -- Money   -- Coin
 
     function TokenDisplayMixin:SetIncludeBank(includeBank)
         self.includeBank = includeBank == true;
+    end
+
+    function TokenDisplayMixin:SetButtonClickable(state)
+        --Click to open WoW's TokenFrame
+        self.clickable = state;
     end
 
 
@@ -1809,6 +2032,36 @@ do  --(In)Secure Button Pool
         self:SetScript("OnMouseUp", nil);
     end
 
+    function SecureButtonMixin:CoverObject(object, padding)
+        padding = padding or 0;
+        self:ClearAllPoints();
+        self:SetPoint("TOPLEFT", object, "TOPLEFT", -padding, padding);
+        self:SetPoint("BOTTOMRIGHT", object, "BOTTOMRIGHT", padding, -padding);
+    end
+
+    function SecureButtonMixin:CoverParent(padding)
+        local parent = self:GetParent();
+        if parent then
+            self:CoverObject(parent, padding);
+        end
+    end
+
+    function SecureButtonMixin:SetUseItem(item, mouseButton)
+        mouseButton = mouseButton or "LeftButton";
+
+        if mouseButton == "RightButton" then
+            self:SetAttribute("type2", "macro");
+        else
+            self:SetAttribute("type1", "macro");
+        end
+
+        if type(item) == "number" then
+            self:SetMacroText("/use item:"..item);
+        else
+            self:SetMacroText("/use "..item);
+        end
+    end
+
     local function CreateSecureActionButton()
         if InCombatLockdown() then return end;
         local index = #SecureButtons + 1;
@@ -1827,7 +2080,7 @@ do  --(In)Secure Button Pool
         return button
     end
 
-    local function AcquireSecureActionButton(privateKey)
+    local function AcquireSecureActionButton(privateKey, propagateMouseMotion)
         if InCombatLockdown() then return end;
 
         local button;
@@ -1852,10 +2105,19 @@ do  --(In)Secure Button Pool
             end
         end
 
-        button.isActive = true;
-        SecureButtonContainer:RegisterEvent("PLAYER_REGEN_DISABLED");
+        if button then
+            button.isActive = true;
+            button:SetPropagateMouseMotion(propagateMouseMotion or false);
+            SecureButtonContainer:RegisterEvent("PLAYER_REGEN_DISABLED");
 
-        return button
+            if GetCVarBool("ActionButtonUseKeyDown") then
+                button:RegisterForClicks("LeftButtonDown", "RightButtonDown");
+            else
+                button:RegisterForClicks("LeftButtonUp", "RightButtonUp");
+            end
+
+            return button
+        end
     end
     addon.AcquireSecureActionButton = AcquireSecureActionButton;
 
@@ -3586,7 +3848,7 @@ do  --Shared Context Menu
                 tooltip:SetPoint("TOPLEFT", self.focusedButton, "TOPRIGHT", 4, 6);
             end
 
-            tooltip:SetText(self.focusedButton.Text:GetText(), 1, 1, 1, true);
+            tooltip:SetText(self.focusedButton.Text:GetText(), 1, 1, 1, 1, true);
             tooltip:AddLine(self.focusedButton.tooltip, 1, 0.82, 0, true);
             tooltip:Show();
         end
@@ -3912,13 +4174,46 @@ do  --Slider
     function SliderScripts:OnMouseDown()
         if self:IsEnabled() then
             self:LockHighlight();
+            self:GetParent().isDraggingThumb = true;
+            if self.onMouseDownFunc then
+                self.onMouseDownFunc(self);
+            end
+        else
+            self:GetParent().isDraggingThumb = false;
         end
+        GameTooltip:Hide();
     end
 
     function SliderScripts:OnMouseUp()
         self:UnlockHighlight();
+        self:GetParent().isDraggingThumb = false;
+        if self.onMouseUpFunc then
+            self.onMouseUpFunc(self);
+        end
     end
 
+
+    local ValueFormatter = {};
+
+    function ValueFormatter.NoChange(value)
+        return value
+    end
+
+    function ValueFormatter.Percentage(value)
+        return string.format("%.0f%%", value * 100);
+    end
+
+    function ValueFormatter.Decimal0(value)
+        return string.format("%.0f", value);
+    end
+
+    function ValueFormatter.Decimal1(value)
+        return string.format("%.1f", value);
+    end
+
+    function ValueFormatter.Decimal2(value)
+        return string.format("%.2f", value);
+    end
 
     local function BackForwardButton_OnClick(self)
         if self.delta then
@@ -3984,6 +4279,8 @@ do  --Slider
         self.Forward:SetScript("OnLeave", OnLeave);
         self.Slider:SetScript("OnEnter", OnEnter);
         self.Slider:SetScript("OnLeave", OnLeave);
+
+        self:SetFormatValueFunc(nil);
     end
 
     function SliderFrameMixin:Enable()
@@ -4041,13 +4338,28 @@ do  --Slider
     end
 
     function SliderFrameMixin:SetFormatValueFunc(formatValueFunc)
+        if not formatValueFunc then
+            formatValueFunc = ValueFormatter.NoChange;
+        end
         self.Slider.formatValueFunc = formatValueFunc;
         self.RightText:SetText(formatValueFunc(self:GetValue() or 0));
+    end
+
+    function SliderFrameMixin:SetFormatValueMethod(method)
+        self:SetFormatValueFunc(ValueFormatter[method]);
     end
 
     function SliderFrameMixin:SetOnValueChangedFunc(onValueChangedFunc)
         self.Slider.onValueChangedFunc = onValueChangedFunc;
         self.onValueChangedFunc = onValueChangedFunc;
+    end
+
+    function SliderFrameMixin:SetOnMouseDownFunc(onMouseDownFunc)
+        self.Slider.onMouseDownFunc = onMouseDownFunc;
+    end
+
+    function SliderFrameMixin:SetOnMouseUpFunc(onMouseUpFunc)
+        self.Slider.onMouseUpFunc = onMouseUpFunc;
     end
 
     function SliderFrameMixin:SetLabelWidth(width)
@@ -4061,7 +4373,7 @@ do  --Slider
             local f = GameTooltip;
             f:Hide();
             f:SetOwner(self, "ANCHOR_RIGHT");
-            f:SetText(self.Label:GetText(), 1, 1, 1, true);
+            f:SetText(self.Label:GetText(), 1, 1, 1, 1, true);
             f:AddLine(self.tooltip, 1, 0.82, 0, true);
             if self.tooltip2 then
                 local tooltip2;
@@ -4077,14 +4389,28 @@ do  --Slider
             end
             f:Show();
         end
+        if self.onEnterFunc then
+            self.onEnterFunc(self);
+        end
     end
 
     function SliderFrameMixin:OnLeave()
         GameTooltip:Hide();
+        if self.onLeaveFunc and not self.isDraggingThumb then
+            self.onLeaveFunc(self);
+        end
     end
 
-    local function FormatValue(value)
-        return value
+    function SliderFrameMixin:IsDraggingThumb()
+        return self.isDraggingThumb
+    end
+
+    function SliderFrameMixin:SetEnabled(enabled)
+        if enabled then
+            self:Enable();
+        else
+            self:Disable();
+        end
     end
 
     local function CreateSlider(parent)
@@ -4095,7 +4421,6 @@ do  --Slider
         f.Slider.Back = f.Back;
         f.Slider.Forward = f.Forward;
 
-        f:SetFormatValueFunc(FormatValue);
         f:OnLoad();
 
         return f
@@ -4304,7 +4629,7 @@ do  --KeybindButton
             local f = GameTooltip;
             f:Hide();
             f:SetOwner(self, "ANCHOR_RIGHT");
-            f:SetText(self.Label:GetText(), 1, 1, 1, true);
+            f:SetText(self.Label:GetText(), 1, 1, 1, 1, true);
             f:AddLine(self.tooltip, 1, 0.82, 0, true);
             f:Show();
         end
@@ -4406,6 +4731,7 @@ do  --EditMode
         self.isSelected = true;
         self.Background:SetTexture("Interface/AddOns/Plumber/Art/Frame/EditModeSelected");
         self:Show();
+        GameTooltip:Hide();
 
         if not self.hideLabel then
             self.Label:Show();
@@ -4413,7 +4739,7 @@ do  --EditMode
     end
 
     function EditModeSelectionMixin:OnShow()
-        local offset = API.GetPixelForWidget(self, 6);
+        local offset = 8; --API.GetPixelForWidget(self, 6);
         self.Background:SetPoint("TOPLEFT", self, "TOPLEFT", -offset, offset);
         self.Background:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", offset, -offset);
         self:RegisterEvent("GLOBAL_MOUSE_DOWN");
@@ -4423,9 +4749,21 @@ do  --EditMode
         self:UnregisterEvent("GLOBAL_MOUSE_DOWN");
     end
 
+    function EditModeSelectionMixin:OnEnter()
+        if (not self.isSelected) and self.uiName then
+            GameTooltip:SetOwner(self, "ANCHOR_CURSOR");
+            GameTooltip:SetText(L["Addon Name Colon"]..self.uiName, 1, 0.82, 0, 1, true);
+            GameTooltip:Show();
+        end
+    end
+
+    function EditModeSelectionMixin:OnLeave()
+        GameTooltip:Hide();
+    end
+
     local function IsMouseOverOptionToggle()
         local obj = GetMouseFocus();
-        if obj and obj.isPlumberEditModeToggle then
+        if obj and obj.isPlumberSettingsPanelToggle then
             return true
         else
             return false
@@ -4436,7 +4774,9 @@ do  --EditMode
         if event == "GLOBAL_MOUSE_DOWN" then
             if self:IsShown() and not(self.parent:IsFocused() or IsMouseOverOptionToggle()) then
                 self:ShowHighlighted();
-                self.parent:ShowOptions(false);
+                if self.parent.ShowOptions then
+                    self.parent:ShowOptions(false);
+                end
 
                 if self.parent.ExitEditMode and not API.IsInEditMode() then
                     self.parent:ExitEditMode();
@@ -4445,12 +4785,20 @@ do  --EditMode
         end
     end
 
-    function EditModeSelectionMixin:OnMouseDown()
+    function EditModeSelectionMixin:OnMouseDown(button)
         self:ShowSelected();
-        self.parent:ShowOptions(true);
+        if self.parent.ShowOptions then
+            self.parent:ShowOptions(true);
+        end
 
         if EditModeManagerFrame and EditModeManagerFrame.ClearSelectedSystem then
-            EditModeManagerFrame:ClearSelectedSystem()
+            EditModeManagerFrame:ClearSelectedSystem();
+        end
+
+        if button == "RightButton" then
+            if self.parent.OnRightButtonDown then
+                self.parent:OnRightButtonDown();
+            end
         end
     end
 
@@ -4458,7 +4806,19 @@ do  --EditMode
     local function CreateEditModeSelection(parent, uiName, hideLabel)
         local f = CreateFrame("Frame", nil, parent);
         f:Hide();
-        f:SetAllPoints(true);
+
+        local offsetH = parent.selectionOffsetH;
+        local offsetTop = parent.selectionOffsetTop;
+        local offsetBottom = parent.selectionOffsetBottom;
+
+        if offsetH or offsetTop or offsetBottom then
+            offsetH = offsetH or 0;
+            f:SetPoint("TOPLEFT", parent, "TOPLEFT", -offsetH, offsetTop or 0);
+            f:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", offsetH, offsetBottom or 0);
+        else
+            f:SetAllPoints(true);
+        end
+
         f:SetFrameStrata(parent:GetFrameStrata());
         f:SetToplevel(true);
         f:SetFrameLevel(999);
@@ -4470,6 +4830,7 @@ do  --EditMode
         f.Label:SetText(uiName);
         f.Label:SetJustifyH("CENTER");
         f.Label:SetPoint("CENTER", f, "CENTER", 0, 0);
+        f.Label:Hide();
 
         f.Background = f:CreateTexture(nil, "BACKGROUND");
         f.Background:SetTexture("Interface/AddOns/Plumber/Art/Frame/EditModeHighlighted");
@@ -4482,6 +4843,8 @@ do  --EditMode
 
         f:SetScript("OnShow", f.OnShow);
         f:SetScript("OnHide", f.OnHide);
+        f:SetScript("OnEnter", f.OnEnter);
+        f:SetScript("OnLeave", f.OnLeave);
         f:SetScript("OnEvent", f.OnEvent);
         f:SetScript("OnMouseDown", f.OnMouseDown);
         f:SetScript("OnDragStart", f.OnDragStart);
@@ -4489,6 +4852,7 @@ do  --EditMode
 
         parent.Selection = f;
         f.parent = parent;
+        f.uiName = uiName;
         f.hideLabel = hideLabel;
 
         return f
@@ -4531,6 +4895,7 @@ do  --EditMode
         self.texturePool:ReleaseAll();
         self.fontStringPool:ReleaseAll();
         self.keybindButtonPool:ReleaseAll();
+        self.newFeatureLabelPool:ReleaseAll();
     end
 
     function EditModeSettingsDialogMixin:Layout()
@@ -4612,6 +4977,7 @@ do  --EditMode
 
         checkbox.Label:SetFontObject("GameFontHighlightMedium");    --Fonts in EditMode and Options are different
         checkbox.Label:SetTextColor(1, 1, 1);
+        checkbox.useWhiteLabel = true;
 
         checkbox:SetData(widgetData);
         checkbox:SetChecked(addon.GetDBValue(checkbox.dbKey));
@@ -4634,12 +5000,20 @@ do  --EditMode
 
         if widgetData.formatValueFunc then
             slider:SetFormatValueFunc(widgetData.formatValueFunc);
+        elseif widgetData.formatValueMethod then
+            slider:SetFormatValueMethod(widgetData.formatValueMethod);
         else
-            slider:SetFormatValueFunc(function(value) return value end);
+            slider:SetFormatValueFunc(nil);
         end
 
         slider:SetOnValueChangedFunc(widgetData.onValueChangedFunc);
+        slider:SetOnMouseDownFunc(widgetData.onMouseDownFunc);
+        slider:SetOnMouseUpFunc(widgetData.onMouseUpFunc);
+
         slider.tooltip = widgetData.tooltip;
+        slider.onEnterFunc = widgetData.onEnterFunc;
+        slider.onLeaveFunc = widgetData.onLeaveFunc;
+        slider.isDraggingThumb = false;
 
         if widgetData.dbKey and addon.GetDBValue(widgetData.dbKey) then
             slider:SetValue(addon.GetDBValue(widgetData.dbKey));
@@ -4699,6 +5073,7 @@ do  --EditMode
             for order, widgetData in ipairs(schematic.widgets) do
                 local widget;
                 if (not widgetData.validityCheckFunc) or (widgetData.validityCheckFunc()) then
+
                     if widgetData.type == "Checkbox" then
                         widget = self:CreateCheckbox(widgetData);
                     elseif widgetData.type == "RadioGroup" then
@@ -4728,6 +5103,15 @@ do  --EditMode
                         tinsert(self.activeWidgets, widget);
                         widget.widgetKey = widgetData.widgetKey;
                         widget.widgetType = widgetData.type;
+                        if widget.SetEnabled then
+                            local enabled = (widgetData.shouldEnableOption == nil) or (widgetData.shouldEnableOption and widgetData.shouldEnableOption());
+                            widget:SetEnabled(enabled);
+                        end
+                        if widgetData.newFeature then
+                            local label = self.newFeatureLabelPool:Acquire();
+                            label:SetPoint("LEFT", widget.Label, "RIGHT", -12, 0);
+                            label:Show();
+                        end
                     end
                 end
             end
@@ -4781,6 +5165,17 @@ do  --EditMode
         end
     end
 
+    function EditModeSettingsDialogMixin:CloseUI()
+        if self:IsShown() then
+            self:Exit();
+            return true
+        end
+    end
+
+    function EditModeSettingsDialogMixin:OnHide()
+        addon.CallbackRegistry:Trigger("SettingsPanel.ModuleOptionClosed");
+    end
+
     local function SetupSettingsDialog(parent, schematic, forceUpdate)
         if not EditModeSettingsDialog then
             local f = CreateFrame("Frame", nil, UIParent);
@@ -4800,6 +5195,7 @@ do  --EditMode
             f.requireResetPosition = true;
 
             Mixin(f, EditModeSettingsDialogMixin);
+            addon.AddModuleOptionExitMethod(f, f.CloseUI);
 
             f.Border = CreateFrame("Frame", nil, f, "DialogBorderTranslucentTemplate");
             f.CloseButton = CreateFrame("Button", nil, f, "UIPanelCloseButtonNoScripts");
@@ -4813,7 +5209,7 @@ do  --EditMode
 
             f:SetScript("OnDragStart", f.OnDragStart);
             f:SetScript("OnDragStop", f.OnDragStop);
-
+            f:SetScript("OnHide", f.OnHide);
 
             local function CreateCheckbox()
                 return addon.CreateCheckbox(f);
@@ -4844,6 +5240,11 @@ do  --EditMode
                 return addon.CreateKeybindButton(f);
             end
             f.keybindButtonPool = API.CreateObjectPool(CreateKeybindButton);
+
+            local function CreateNewFeatureLabel()
+                return CreateFrame("Frame", nil, f, "NewFeatureLabelNoAnimateTemplate");
+            end
+            f.newFeatureLabelPool = API.CreateObjectPool(CreateNewFeatureLabel);
         end
 
         if EditModeSettingsDialog:IsShown() and not EditModeSettingsDialog:IsOwner(parent) then
@@ -4888,16 +5289,17 @@ do  --Radial Progress Bar
     function RadialProgressBarMixin:SetPercentage(percentage)
         local seconds = 100;
 
-        if percentage > 1 then
+        if percentage >= 1 then
             percentage = 1;
-        elseif percentage < 0 then
+        elseif percentage <= 0 then
             percentage = 0;
+        else
+            percentage = self.visualOffset * (1- percentage) + (1 - self.visualOffset) * percentage;    --Additional shrinking due to level background   --Remap 0-100 to 7-93
         end
-
-        percentage = self.visualOffset * (1- percentage) + (1 - self.visualOffset) * percentage;    --Additional shrinking due to level background   --Remap 0-100 to 7-93
 
         self:Pause();
         self:SetCooldown(GetTime() - (seconds * percentage), seconds);
+        self:SetDrawEdge(percentage > 0);
     end
 
     function RadialProgressBarMixin:SetValue(currentValue, maxValue)
@@ -4913,7 +5315,9 @@ do  --Radial Progress Bar
         if showNumber then
             if self.showNumber ~= true then
                 self.showNumber = true;
-                self.ValueText:Show();
+                if self.ValueText then
+                    self.ValueText:Show();
+                end
                 self.visualOffset = 0.07;
                 self.Border:SetTexCoord(0, 80/256, 80/256, 160/256);
                 self.BorderHighlight:SetTexCoord(0, 80/256, 80/256, 160/256);
@@ -4932,7 +5336,9 @@ do  --Radial Progress Bar
         else
             if self.showNumber ~= false then
                 self.showNumber = false;
-                self.ValueText:Hide();
+                if self.ValueText then
+                    self.ValueText:Hide();
+                end
                 self.visualOffset = 0.01;
                 self.Border:SetTexCoord(0, 80/256, 0/256, 80/256);
                 self.BorderHighlight:SetTexCoord(0, 80/256, 0/256, 80/256);
@@ -4951,7 +5357,21 @@ do  --Radial Progress Bar
         end
     end
 
-    local function CreateRadialProgressBar(parent)
+    function RadialProgressBarMixin:SetSwipeTexCoord(l, r, t, b)
+        local lowTexCoords =
+        {
+            x = l,
+            y = t,
+        };
+        local highTexCoords =
+        {
+            x = r,
+            y = b,
+        };
+        self:SetTexCoordRange(lowTexCoords, highTexCoords);
+    end
+
+    local function CreateRadialProgressBar(parent, createValueText)
         local f = CreateFrame("Cooldown", nil, parent, "PlumberRadialProgressBarTemplate");
         Mixin(f, RadialProgressBarMixin);
 
@@ -4961,10 +5381,12 @@ do  --Radial Progress Bar
         f.BorderHighlight:SetTexture(tex);
         f:SetSwipeTexture(tex);
 
-        f.ValueText = f:CreateFontString("OVERLAY", nil, "GameFontNormalLargeOutline");
-        f.ValueText:SetJustifyH("CENTER");
-        f.ValueText:SetPoint("CENTER", f, "BOTTOM", 2, 14);
-        f.ValueText:SetTextColor(1, 0.82, 0);
+        if createValueText then
+            f.ValueText = f:CreateFontString("OVERLAY", nil, "GameFontNormalLargeOutline");
+            f.ValueText:SetJustifyH("CENTER");
+            f.ValueText:SetPoint("CENTER", f, "BOTTOM", 2, 14);
+            f.ValueText:SetTextColor(1, 0.82, 0);
+        end
 
         f:ShowNumber(true);
 
@@ -4973,6 +5395,8 @@ do  --Radial Progress Bar
         return f
     end
     addon.CreateRadialProgressBar = CreateRadialProgressBar;
+
+    addon.RadialProgressBarMixin = RadialProgressBarMixin;
 end
 
 do  --Progress Bar With Level
@@ -5337,8 +5761,6 @@ do  --Displayed required items on nameplate widget set
     end
 
     function NameplateTokenMixin:OnLoad()
-        self:SetScript("OnShow", self.OnShow);
-        self:SetScript("OnHide", self.OnHide);
         self:SetScript("OnEnter", self.OnEnter);
         self:SetScript("OnLeave", self.OnLeave);
         self:Release();
@@ -5480,12 +5902,12 @@ do  --Displayed required items on nameplate widget set
     end
 
     function NameplateTokenMixin:OnEnter()
-        GameTooltip:Hide();
+        NamePlateTooltip:Hide();
         DelayedTooltip:OnObjectEnter(self);
     end
 
     function NameplateTokenMixin:OnLeave()
-        GameTooltip:Hide();
+        NamePlateTooltip:Hide();
         DelayedTooltip:OnObjectLeave(self);
     end
 
@@ -5496,16 +5918,16 @@ do  --Displayed required items on nameplate widget set
 
         if self.type == "item" then
             method = "SetItemByID";
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-
         elseif self.type == "currency" then
             method = "GetCurrencyByID";
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
         end
 
         if method then
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-            GameTooltip[method](GameTooltip, self.id);
+            --Anchor the GameTooltip to nameplate nullify its "clampedToScreen"
+            --Blizzard_NamePlates use NamePlateTooltip, so we'll do that too.
+            local tooltip = NamePlateTooltip;
+            tooltip:SetOwner(self, "ANCHOR_RIGHT");
+            tooltip[method](tooltip, self.id);
         end
     end
 
@@ -5515,11 +5937,15 @@ do  --Displayed required items on nameplate widget set
         self:EnableMouseMotion(state);
     end
 
-    function API.CreateNameplateToken(parent)
+    function API.CreateNameplateToken(parent, selfDrivenUpdate)
         local f = CreateFrame("Frame", nil, parent, "PlumberSmallItemButtonTemplate");
         Mixin(f, NameplateTokenMixin);
         f:OnLoad();
         f:SetInteractable(true);
+        if selfDrivenUpdate then
+            f:SetScript("OnShow", f.OnShow);
+            f:SetScript("OnHide", f.OnHide);
+        end
         return f
     end
 end
@@ -5596,4 +6022,167 @@ do  --Simple Tooltip (2 FontString)
         return f
     end
     addon.CreateSimpleTooltip = CreateSimpleTooltip;
+end
+
+do  --SliceFrame
+    local NewSliceFrameMixin = {};
+
+    local LayoutInfo = {
+        RoughWideFrame = {
+            file = "Interface/AddOns/Plumber/Art/Frame/MacroForge.png",
+            imageWidth = 512, imageHeight = 512,
+            coords = {0, 264, 0, 72},
+            margins = {8, 8, 8, 8},
+            pixelOffset = 4,
+        };
+    };
+
+    function NewSliceFrameMixin:UpdatePixel()
+        local scale = API.GetPixelForScale(self:GetEffectiveScale());
+        self.Background:SetScale(scale);
+
+        local pixelOffset = self.Background.pixelOffset;
+        --local scale = self.Background:GetEffectiveScale()
+        --local offset = API.GetPixelForScale(scale, pixelOffset);
+        local offset = pixelOffset * scale;
+        self.Background:ClearAllPoints();
+        self.Background:SetPoint("TOPLEFT", self, "TOPLEFT", -offset, offset);
+        self.Background:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", offset, -offset);
+    end
+
+    function NewSliceFrameMixin:SetLayoutByName(layoutName)
+        local info = LayoutInfo[layoutName];
+        if info then
+            self.Background:SetTexture(info.file);
+            self.Background:SetTexCoord(info.coords[1]/info.imageWidth, info.coords[2]/info.imageWidth, info.coords[3]/info.imageHeight, info.coords[4]/info.imageHeight);
+            self.Background:SetTextureSliceMargins(unpack(info.margins));
+            self.Background.pixelOffset = info.pixelOffset or 0;
+        end
+    end
+
+    function API.CreateNewSliceFrame(parent, layoutName)
+        local f = CreateFrame("Frame", nil, parent);
+        f.Background = f:CreateTexture(nil, "BACKGROUND");
+        f.Background:SetTextureSliceMode(1);    --Tiled
+        API.Mixin(f, NewSliceFrameMixin);
+        f:SetLayoutByName(layoutName);
+        f:UpdatePixel();
+        return f
+    end
+end
+
+do  --Small Golden Border Circle, See "MainHelpPlateButton" in Blizzard_SharedXML/SharedUIPanelTemplates
+    function API.CreateGoldPlateButton(parent, onEnterFunc, onLeaveFunc, onClickFunc)
+        local f = CreateFrame("Button", nil, parent);
+        f:SetSize(32, 32);
+
+        f.Ring = f:CreateTexture(nil, "BORDER");
+        f.Ring:SetSize(64, 64);
+        f.Ring:SetPoint("CENTER", f, "CENTER", 12 ,-13);
+        f.Ring:SetTexture("Interface/Minimap/MiniMap-TrackingBorder");
+
+        f.Icon = f:CreateTexture(nil, "BACKGROUND");
+        f.Icon:SetSize(23, 23);
+        f.Icon:SetPoint("CENTER", f, "CENTER", 0, 0);
+        f.Icon:SetColorTexture(1, 0, 0)
+
+        f:SetScript("OnEnter", onEnterFunc);
+        f:SetScript("OnLeave", onLeaveFunc);
+        f:SetScript("OnClick", onClickFunc);
+
+        return f
+    end
+end
+
+do  --Blizzard Check Button
+    local BlizzardCheckButtonMixin = {};
+
+    BlizzardCheckButtonMixin.ButtonMixin = {};
+    do
+        function BlizzardCheckButtonMixin.ButtonMixin:OnEnter()
+            if self.tooltip1 then
+                local tooltip1, tooltip2;
+                if type(self.tooltip1 == "function") then
+                    tooltip1, tooltip2 = self.tooltip1();
+                else
+                    tooltip1 = self.tooltip1;
+                    tooltip2 = self.tooltip2;
+                end
+
+                if tooltip1 then
+                    local GameTooltip = GameTooltip;
+                    GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+                    GameTooltip:SetText(tooltip1, 1, 1, 1);
+                    if tooltip2 then
+                        GameTooltip:AddLine(tooltip2, 1, 0.82, 0, true);
+                    end
+                    GameTooltip:Show();
+                end
+            end
+        end
+
+        function BlizzardCheckButtonMixin.ButtonMixin:OnLeave()
+            GameTooltip:Hide();
+        end
+
+        function BlizzardCheckButtonMixin.ButtonMixin:OnClick()
+            local checked = self:GetChecked();
+            local dbKey = self:GetParent().dbKey;
+
+            if dbKey then
+                addon.SetDBValue(dbKey, checked, true);
+            end
+            if self.onCheckedFunc then
+                self.onCheckedFunc(self, checked);
+            end
+
+            if checked then
+                PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+            else
+                PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF);
+            end
+        end
+    end
+
+    function BlizzardCheckButtonMixin:SetLabel(label)
+        self.Label:SetText(label);
+        self:Layout();
+    end
+
+    function BlizzardCheckButtonMixin:Layout()
+        local textWidth = 5 + self.Label:GetWrappedWidth();
+        self:SetSize(API.Round(32 + textWidth + 6), 32);
+        self.Button:SetHitRectInsets(0, -textWidth, 0, 0);
+    end
+
+    function BlizzardCheckButtonMixin:SetTooltip(tooltip1, tooltip2)
+        self.Button.tooltip1 = tooltip1;
+        self.Button.tooltip2 = tooltip2;
+    end
+
+    function BlizzardCheckButtonMixin:SetChecked(state)
+        self.Button:SetChecked(state);
+    end
+
+    function BlizzardCheckButtonMixin:GetChecked()
+        return self.Button:GetChecked();
+    end
+
+    function BlizzardCheckButtonMixin:SetDBKey(dbKey)
+        self.dbKey = dbKey;
+    end
+
+    function BlizzardCheckButtonMixin:SetOnCheckedFunc(onCheckedFunc)
+        self.Button.onCheckedFunc = onCheckedFunc;
+    end
+
+    function API.CreateBlizzardCheckButton(parent)
+        local f = CreateFrame("Frame", nil, parent, "PlumberBlizzardCheckButtonTemplate");
+        Mixin(f, BlizzardCheckButtonMixin);
+        Mixin(f.Button, BlizzardCheckButtonMixin.ButtonMixin);
+        for method, func in pairs(BlizzardCheckButtonMixin.ButtonMixin) do
+            f.Button:SetScript(method, func);
+        end
+        return f
+    end
 end

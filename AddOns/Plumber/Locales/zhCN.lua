@@ -1,22 +1,80 @@
-﻿if not (GetLocale() == "zhCN") then return end;
+﻿--
 
-
+if not (GetLocale() == "zhCN") then return end;
 
 local _, addon = ...
 local L = addon.L;
 
 
+--Globals
+BINDING_HEADER_PLUMBER = "Plumber插件";
+BINDING_NAME_TOGGLE_PLUMBER_LANDINGPAGE = "打开/关闭资料片概要";   --Show/hide Expansion Summary UI
+BINDING_NAME_PLUMBER_QUESTWATCH_NEXT = "设下一个任务为焦点";
+BINDING_NAME_PLUMBER_QUESTWATCH_PREVIOUS = "设上一个任务为焦点";
+
+
 --Module Control Panel
+L["Addon Name Colon"] =  "Plumber：";
 L["Module Control"] = "功能选项";
 L["Quick Slot Generic Description"] = "\n\n*快捷按钮是一组在特定情形下出现的、可交互的按钮。";
 L["Quick Slot Edit Mode"] = "更改布局";
+L["Quick Slot High Contrast Mode"] = "切换高对比度模式";
 L["Quick Slot Reposition"] = "调整位置";
 L["Quick Slot Layout"] = "布局";
 L["Quick Slot Layout Linear"] = "线性";
 L["Quick Slot Layout Radial"] = "环形";
-L["Quick Slot High Contrast Mode"] = "切换高对比度模式";
 L["Restriction Combat"] = "战斗中不可用";    --Indicate a feature can only work when out of combat
 L["Map Pin Change Size Method"] = "\n\n*如需更改标记大小，请打开 世界地图 - 地图筛选 - Plumber";
+L["Toggle Plumber UI"] = "Plumber界面可见性";
+L["Toggle Plumber UI Tooltip"] = "在编辑模式中显示以下Plumber界面：\n\n%s\n\n此选项仅控制它们在编辑模式下是否可见，并不会启用或禁用这些功能。";
+L["Remove New Feature Marker"] = "移除新功能标记";
+L["Remove New Feature Marker Tooltip"] = "新功能标记 %s 通常在一周后消失，你也可以现在就移除它们。";
+L["Modules"] = "模块控制";
+L["Release Notes"] = "版本说明";
+L["Option AutoShowChangelog"] = "自动显示版本说明";
+L["Option AutoShowChangelog Tooltip"] = "在插件更新后自动打开版本说明。";
+L["Category Colon"] = "类别：";
+L["Module Wrong Game Version"] = "此功能对当前游戏版本无效。";
+L["Changelog Wrong Game Version"] = "以下更新对当前游戏版本无效。";
+L["Settings Panel"] = "设置界面";
+L["Version"] = "版本";
+L["New Features"] = "新功能";
+L["New Feature Abbr"] = "新";
+L["Format Month Day"] = "%s%d日";
+L["Always On Module"] = "此模块将被一直启用。";
+L["Return To Module List"] = "返回模块列表";
+
+
+--Settings Category
+L["SC Signature"] = "特色功能";
+L["SC Current"] = "当前内容";
+L["SC ActionBar"] = "动作条";
+L["SC Chat"] = "聊天";
+L["SC Collection"] = "战团藏品";
+L["SC Instance"] = "副本";
+L["SC Inventory"] = "物品栏";
+L["SC Loot"] = "战利品";
+L["SC Map"] = "地图";
+L["SC Profession"] = "专业";
+L["SC Quest"] = "任务";
+L["SC UnitFrame"] = "单位框体";
+L["SC Old"] = "旧内容";
+L["SC Housing"] = AUCTION_CATEGORY_HOUSING or "房屋";
+L["SC Uncategorized"] = "未分类";
+
+--Settings Search Keywords, Search Tags
+L["KW Tooltip"] = "鼠标小提示鼠标提示";
+L["KW Transmog"] = "幻化";
+L["KW Vendor"] = "商人";
+L["KW LegionRemix"] = "军团再临";
+L["KW Housing"] = "房屋住宅";
+L["KW Combat"] = "战斗";
+L["KW ActionBar"] = "动作条技能栏";
+L["KW Console"] = "主机手柄";
+
+--Filter Sort Method
+L["SortMethod 1"] = "名称";  --Alphabetical Order
+L["SortMethod 2"] = "加入时间";  --New on the top
 
 
 --Module Categories
@@ -30,8 +88,16 @@ L["Module Category NPC Interaction"] = "NPC 交互";
 L["Module Category Tooltip"] = "鼠标提示";   --Additional Info on Tooltips
 --- order: 4
 L["Module Category Class"] = "职业";   --Player Class (rogue, paladin...)
+--- order: 5
+L["Module Category Reduction"] = "做减法";   --Reduce UI elements
+--- order: -1
+L["Module Category Timerunning"] = "军团再临：幻境新生";    --Change this based on timerunning season
+--- order: -2
+L["Module Category Beta"] = "测试服";
+
 
 L["Module Category Dragonflight"] = "巨龙时代";
+L["Module Category Plumber"] = "Plumber";   --This addon's name
 
 --Deprecated
 L["Module Category Dreamseeds"] = "梦境之种";     --Added in patch 10.2.0
@@ -75,6 +141,7 @@ L["ModuleDescription GossipFrameMedal Format"] = "将默认图标 %s 替换为�
 --DruidModelFix (Disabled after 10.2.0)
 L["ModuleName DruidModelFix"] = "德鲁伊模型修复";
 L["ModuleDescription DruidModelFix"] = "修复使用群星雕文导致人物界面模型变白的问题。\n\n暴雪将在10.2.0版本修复这个问题。";
+L["Model Layout"] = "模型布局";
 
 
 --PlayerChoiceFrameToken (PlayerChoiceFrame)
@@ -112,10 +179,11 @@ L["ModuleDescription BlizzFixEventToast"] = "让事件通知不挡住你的鼠�
 --Talking Head
 L["ModuleName TalkingHead"] = "对话特写头像";
 L["ModuleDescription TalkingHead"] = "用简洁的界面取代默认的对话特写头像。";
-L["EditMode TalkingHead"] = "Plumber: "..L["ModuleName TalkingHead"];
 L["TalkingHead Option InstantText"] = "立即显示文本";   --Should texts immediately, no gradual fading
 L["TalkingHead Option TextOutline"] = "文字描边";
 L["TalkingHead Option Condition Header"] = "隐藏来自以下情形的文字：";
+L["TalkingHead Option Hide Everything"] = "隐藏所有字幕";
+L["TalkingHead Option Hide Everything Tooltip"] = "|cffff4800不再显示字幕。|r\n\n仍然会播放语音，并在聊天窗口内显示文本。";
 L["TalkingHead Option Condition WorldQuest"] = "世界任务";
 L["TalkingHead Option Condition WorldQuest Tooltip"] = "隐藏来自世界任务的文字。\n有时对话会在接受世界任务之前触发，此时我们将无法隐藏这段文字。";
 L["TalkingHead Option Condition Instance"] = "副本";
@@ -178,6 +246,44 @@ L["ModuleDescription TooltipSnapdragonTreats"] = "在毒鳍龙鼠标提示上显
 L["Color Applied"] = "你正在使用这个配色。";
 
 
+--Tooltip Item Reagents
+L["ModuleName TooltipItemReagents"] = "合成材料";
+L["ModuleDescription TooltipItemReagents"] = "如果一个物品可被使用来合成新物品，显示所有所需的物品和你拥有的数量。\n\n如果游戏支持的话，按住Shift键可显示最终物品的信息。";
+L["Can Create Multiple Item Format"] = "你拥有的材料能够合成|cffffffff%d|r件物品。";
+
+
+--Tooltip DelvesItem
+L["ModuleName TooltipDelvesItem"] = "地下堡宝匣钥匙";
+L["ModuleDescription TooltipDelvesItem"] = "在周常宝箱的鼠标提示上显示你本CD已获得的宝匣钥匙及碎片数量。";
+L["You Have Received Weekly Item Format"] = "你本周已获得%s。";
+
+
+--Tooltip ItemQuest
+L["ModuleName TooltipItemQuest"] = "任务起始物品";
+L["ModuleDescription TooltipItemQuest"] = "在任务起始物品的鼠标提示上显示任务详情。\n\n如果你已经接受了相关任务，你可以按住Ctrl并左键点击此物品来在浏览任务日志。";
+L["Instruction Show In Quest Log"] = "<按住Ctrl点击浏览任务日志>";
+
+
+L["ModuleName TooltipTransmogEnsemble"] = "团本外观套装";
+L["ModuleDescription TooltipTransmogEnsemble"] = "- 显示套装内可收集外观的数量。\n\n- 军团再临团本外观商人出售的大多数物品可以解锁所有难度的配色。在这些物品的鼠标提示上显示你的收藏进度。";
+L["Collected Appearances"] = "已收集外观";
+L["Collected Items"] = "已收集物品";
+
+
+--Tooltip Housing
+L["ModuleName TooltipHousing"] = "房屋";
+L["ModuleDescription TooltipHousing"] = "房屋";
+L["Instruction View In Dressing Room"] = "<按住Ctrl点击在试衣间中查看>";
+L["Data Loading In Progress"] = "Plumber正在加载数据";
+
+
+--Plunderstore
+L["ModuleName Plunderstore"] = "霸业风暴：珍宝商店";
+L["ModuleDescription Plunderstore"] = "调整从队伍查找器界面打开的珍宝商店：\n\n- 允许仅显示未收集物品。\n\n- 在类别按钮上显示未收集物品的数量。\n\n- 在武器和护甲的鼠标提示上显示其穿戴位置。\n\n- 允许你在试衣间里显示可穿戴的物品。";
+L["Store Full Purchase Price Format"] = "再获取|cffffffff%s|r枚珍宝就能购买商店里所有物品。";
+L["Store Item Fully Collected"] = "你已经拥有商店里的所有物品！";
+
+
 --Merchant UI Price
 L["ModuleName MerchantPrice"] = "商品价格";
 L["ModuleDescription MerchantPrice"] = "改变商人界面的默认行为：\n\n- 只把数量不足的货币变灰。\n\n- 在钱币方框内显示当前页面所需的所有货币。";
@@ -185,13 +291,31 @@ L["Num Items In Bank Format"] = "银行: |cffffffff%d|r";
 L["Num Items In Bag Format"] = "背包: |cffffffff%d|r";
 L["Number Thousands"] = "K";
 L["Number Millions"] = "M";
+L["Questionable Item Count Tooltip"] = "受技术所限该物品数量可能不准确。";
+
+
+--QueueStatus
+L["ModuleName QueueStatus"] = "随机本队列信息";
+L["ModuleDescription QueueStatus"] = "在队伍查找器眼睛上添加一个进度条，显示有多少百分比的队友已被找到。坦克和治疗有更高的权重。\n\n（可选）显示平均等待时间和你在队列中的时间的差值。";
+L["QueueStatus Show Time"] = "显示时间";
+L["QueueStatus Show Time Tooltip"] = "显示平均等待时间和你在队列中的时间的差值。";
 
 
 --Landing Page (Expansion Summary Minimap)
 L["ModuleName ExpansionLandingPage"] = "卡兹阿加概要";
-L["ModuleDescription ExpansionLandingPage"] = "在概要界面上显示额外信息：\n\n- 斩离之丝等级";
+L["ModuleDescription ExpansionLandingPage"] = "在概要界面上显示额外信息：\n\n- 巅峰进度\n\n- 斩离之丝等级\n\n- 安德麦财阀声望";
 L["Instruction Track Reputation"] = "<按住Shift点击追踪此声望>";
 L["Instruction Untrack Reputation"] = "<按住Shift点击停止追踪>";
+L["Error Show UI In Combat"] = "无法在战斗中打开或关闭此界面。";
+L["Error Show UI In Combat 1"] = "真的无法在战斗中打开或关闭此界面。";
+L["Error Show UI In Combat 2"] = "请不要再点啦";
+
+
+--Landing Page Switch
+L["ModuleName LandingPageSwitch"] = "小地图要塞任务报告";
+L["ModuleDescription LandingPageSwitch"] = "右键单击小地图上的名望概要按钮来访问要塞和职业大厅任务报告。";
+L["Mission Complete Count Format"] = "已完成%d项任务";
+L["Open Mission Report Tooltip"] = "右键单击来打开任务报告。";
 
 
 --WorldMapPin_TWW (Show Pins On Continent Map)
@@ -206,6 +330,16 @@ L["Item Level Abbr"] = "装等";
 L["Delves Reputation Name"] = "地下堡赛季进度";
 L["ModuleName Delves_SeasonProgress"] = "地下堡: 赛季进度";
 L["ModuleDescription Delves_SeasonProgress"] = "在你提升“地下堡行者的旅程”时显示一个进度条。";
+L["ModuleName Delves_Dashboard"] = "地下堡: 每周奖励";
+L["ModuleDescription Delves_Dashboard"] = "在地下堡赛季界面显示宏伟宝库和鎏金藏匿物的进度。";
+L["ModuleName Delves_Automation"] = "地下堡: 自动选择特效";
+L["ModuleDescription Delves_Automation"] = "当你在地下堡内时，自动选择宝藏或稀有精英掉落的特效。";
+L["Delve Crest Stash No Info"] = "你所在区域无法获取该信息。";
+L["Delve Crest Stash Requirement"] = "仅在11层丰裕地下堡出现。";
+L["Overcharged Delve"] = "超载地下堡";
+L["Delves History Requires AddOn"] = "地下堡记录由Plumber插件在本地保存。";
+L["Auto Select"] = "自动选择";
+L["Power Borrowed"] = "获得特效";
 
 
 --WoW Anniversary
@@ -241,12 +375,13 @@ L["Chat Leave All Characters"] = "在所有角色上离开此频道";
 L["Chat Leave All Characters Tooltip"] = "当你登录一个角色后自动离开此频道。";
 L["Chat Auto Leave Alert Format"] = "你是否希望你所有角色都自动离开 |cffffc0c0[%s]|r ？";
 L["Chat Auto Leave Cancel Format"] = "此频道的自动离开已禁用： %s。请使用 /join 命令重新加入频道。";
+L["Auto Leave Channel Format"] = "自动离开 \"%s\"";
 L["Click To Disable"] = "点击禁用";
 
 
 --NameplateWidget
-L["ModuleName NameplateWidget"] = "姓名版: 钥焰";
-L["ModuleDescription NameplateWidget"] = "在钥焰的姓名版进度条上显示你拥有的光耀残渣的数量。";
+L["ModuleName NameplateWidget"] = "姓名板: 钥焰";
+L["ModuleDescription NameplateWidget"] = "在钥焰的姓名板进度条上显示你拥有的光耀残渣的数量。";
 
 
 --PartyInviterInfo
@@ -269,6 +404,122 @@ L["Unearned"] = "未获得";
 L["Unearned Filter Tooltip"] = "某些头衔可能重复，且无法由当前阵营获取。";
 
 
+--BlizzardSuperTrack
+L["ModuleName BlizzardSuperTrack"] = "导航：事件倒计时";
+L["ModuleDescription BlizzardSuperTrack"] = "如果你正在追踪的地图标记的鼠标提示里包含时间信息，在屏幕导航下方显示此时间。";
+
+
+--ProfessionsBook
+L["ModuleName ProfessionsBook"] = "未使用的知识";
+L["ModuleDescription ProfessionsBook"] = "在专业技能书界面上显示你未使用的专精知识点数。";
+L["Unspent Knowledge Tooltip Format"] = "你有|cffffffff%s|r点未使用的专业专精知识。";
+
+
+--TooltipProfessionKnowledge
+L["ModuleName TooltipProfessionKnowledge"] = "未使用的知识";
+L["ModuleDescription TooltipProfessionKnowledge"] = "在专业技能的鼠标提示上显示你未使用的知识总数。";
+L["Available Knowledge Format"] = "可用知识：|cffffffff%s|r";
+
+
+--MinimapMouseover (click to /tar creature on the minimap)
+L["ModuleName MinimapMouseover"] = "小地图目标";
+L["ModuleDescription MinimapMouseover"] = "按住Alt键并点击小地图上的一个生物来尝试将其设为你的目标。".."\n\n|cffd4641c- " ..L["Restriction Combat"].."|r";
+
+
+--BossBanner
+L["ModuleName BossBanner"] = "首领拾取通知";
+L["ModuleDescription BossBanner"] = "修改当你或者你队友获得首领掉落物品时出现在屏幕上方的通知。\n\n- 单刷时隐藏\n\n- 仅显示稀有物品";
+L["BossBanner Hide When Solo"] = "单刷时隐藏";
+L["BossBanner Hide When Solo Tooltip"] = "如果你队伍里没有其他玩家，隐藏此通知。";
+L["BossBanner Valuable Item Only"] = "仅显示稀有物品";
+L["BossBanner Valuable Item Only Tooltip"] = "仅显示坐骑、职业套装兑换物和地下城手册中标注为稀有掉落的物品。";
+
+
+--AppearanceTab
+L["ModuleName AppearanceTab"] = "外观页面";
+L["ModuleDescription AppearanceTab"] = "修改战团藏品-外观页面：\n\n- 调整模型加载进程并减少每页显示的模型数量来改善显卡负载，从而此降低你使用此界面时显卡崩溃的几率。\n\n- 当你改变装备栏时，自动跳转到上次浏览的页码。";
+
+
+--SoftTargetName
+L["ModuleName SoftTargetName"] = "姓名板: 软目标";
+L["ModuleDescription SoftTargetName"] = "显示软目标物体的名字。";
+L["SoftTargetName Req Title"] = "|cffd4641c你还需要手动更改以下设置来使此功能生效：|r";
+L["SoftTargetName Req 1"] = "前往游戏选项> 游戏功能> 控制，|cffffd100开启交互按键|r";
+L["SoftTargetName Req 2"] = "将CVar |cffffd100SoftTargetIconGameObject|r 的值设为 |cffffffff1|r";
+L["SoftTargetName CastBar"] = "显示施法条";
+L["SoftTargetName CastBar Tooltip"] = "在姓名版上显示环形施法条。\n\n|cffff4800此插件无法辨别你的软目标是否为当前施法目标。|r"
+L["SoftTargetName QuestObjective"] = "显示任务目标";
+L["SoftTargetName QuestObjective Tooltip"] = "在名字下方显示任务目标（如果存在的话）。";
+L["SoftTargetName QuestObjective Alert"] = "此功能需要你前往游戏选项> 辅助功能> 综合，并勾选|cffffffff动作瞄准提示信息|r。";   --See globals: TARGET_TOOLTIP_OPTION
+L["SoftTargetName ShowNPC"] = "包括NPC";
+L["SoftTargetName ShowNPC Tooltip"] = "若禁用此选项，我们将只显示可互动物体（Game Objects）的名字。";
+L["SoftTargetName HideIcon"] = "隐藏交互图标";
+L["SoftTargetName HideIcon Tooltip"] = "在房屋区域内不显示交互图标和环形施法条。";
+L["SoftTargetName HideName"] = "隐藏物体名字";
+L["SoftTargetName HideName Tooltip"] = "在房屋区域内不显示物体名字。"
+
+
+--LegionRemix
+L["ModuleName LegionRemix"] = "军团再临：幻境新生";
+L["ModuleDescription LegionRemix"] = "- 自动解锁神器特质。\n\n- 在角色界面上显示一个提供各种信息的小部件。你可以点击它来打开全新的神器UI。";
+L["ModuleName LegionRemix_HideWorldTier"] = "隐藏世界难度图标";
+L["ModuleDescription LegionRemix_HideWorldTier"] = "隐藏小地图下方的世界难度图标。";
+L["ModuleName LegionRemix_LFGSpam"] = "随机团本拒绝邀请通知";
+L["ModuleDescription LegionRemix_LFGSpam"] = "阻止以下信息在短时间内反复出现：\n\n有人拒绝了你的组队邀请。你已被添加到队列的前端。";
+L["Artifact Weapon"] = "神器武器";
+L["Artifact Ability"] = "神器技能";
+L["Artifact Traits"] = "神器特质";
+L["Earn X To Upgrade Y Format"] = "还差 |cffffffff%s|r %s 即可升级%s";
+L["Until Next Upgrade Format"] = "距下一级还差 %s";
+L["New Trait Available"] = "有新特质可用。";
+L["Rank Format"] = "等级 %s";
+L["Rank Increased"] = "等级已提升";
+L["Infinite Knowledge Tooltip"] = "某些军团再临成就会奖励你永恒知识。";
+L["Stat Bonuses"] = "属性提升";
+L["Bonus Traits"] = "特质加成：";
+L["Instruction Open Artifact UI"] = "左键点击显示神器界面\n右键点击显示设置";
+L["LegionRemix Widget Title"] = "Plumber小部件";
+L["Trait Icon Mode"] = "特质图标样式：";
+L["Trait Icon Mode Hidden"] = "不显示";
+L["Trait Icon Mode Mini"] = "显示小型图标";
+L["Trait Icon Mode Replace"] = "替换装备图标";
+L["Error Drag Spell In Combat"] = "战斗中不可拖拽技能。";
+L["Error Change Trait In Combat"] = "战斗中不能更改特质。";
+L["Amount Required To Unlock Format"] = "%s 后解锁";   --Earn another x amount to unlock (something)
+L["Soon To Unlock"] = "即将解锁";
+L["You Can Unlock Title"] = "可以解锁";
+L["Artifact Ability Auto Unlock Tooltip"] = "此特质将在你获得足够的永恒能量后自动解锁。";
+L["Require More Bag Slot Alert"] = "你需要腾出一些背包格子才能进行此操作。";
+L["Spell Not Known"] = "未找到法术";
+L["Fully Upgraded"] = "已升至顶级";
+L["Unlock Level Requirement Format"] = "角色升至%d级后解锁";
+L["Auto Learn Traits"] = "自动升级特质";
+L["Auto Learn Traits Tooltip"] = "当你有足够的永恒能量时自动升级神器特质。";
+L["Infinite Power Yield Format"] = "在你当前知识等级下将奖励|cffffffff%s|r点永恒能量。";
+L["Infinite Knowledge Bonus Format"] = "当前增益：|cffffffff%s|r";
+L["Infinite Knowledge Bonus Next Format"] = "下级增益：%s";
+
+
+--ItemUpgradeUI
+L["ModuleName ItemUpgradeUI"] = "物品升级：自动打开装备栏";
+L["ModuleDescription ItemUpgradeUI"] = "当你与物品升级NPC交互时自动打开角色面板。";
+
+
+--HolidayDungeon
+L["ModuleName HolidayDungeon"] = "自动选择节日地下城";
+L["ModuleDescription HolidayDungeon"] = "当你第一次打开队伍查找器时自动选择节日或时空漫游地下城。";
+
+
+--PlayerPing
+L["ModuleName PlayerPing"] = "地图标记：玩家高亮";
+L["ModuleDescription PlayerPing"] = "在以下情形时高亮你在世界地图上的位置:\n\n- 打开世界地图\n\n- 按下Alt键\n\n- 点击最大化按钮\n\n|cffd4641c默认情况下游戏只会在你改变地图后高亮你的位置。|r";
+
+
+--StaticPopup_Confirm
+L["ModuleName StaticPopup_Confirm"] = "不可退款物品警告";
+L["ModuleDescription StaticPopup_Confirm"] = "调整购买不可退款物品时出现的确认窗口，给确认键增加一个短暂的倒计时，用红色高亮关键词。\n\n此模块还将“确认职业套装转化”的倒计时减半。";
+
+
 --Loot UI
 L["ModuleName LootUI"] = "拾取窗口";
 L["ModuleDescription LootUI"] = "替换默认的拾取窗口并提供以下功能：\n\n- 快速拾取所有物品\n\n- 修复自动拾取有时失效的问题\n\n- 手动拾取时显示“全部拾取”按钮";
@@ -279,8 +530,10 @@ L["Sample Item 4"] = "炫酷的史诗物品";
 L["Sample Item 3"] = "超棒的精良物品";
 L["Sample Item 2"] = "不错的优秀物品";
 L["Sample Item 1"] = "一般的普通物品";
-L["EditMode LootUI"] =  "Plumber: 拾取窗口";
 L["Manual Loot Instruction Format"] = "如想暂时取消一次自动拾取，请按住|cffffffff%s|r键直到拾取窗口出现。";
+L["LootUI Option Hide Window"] = "隐藏Plumber拾取窗口";
+L["LootUI Option Hide Window Tooltip"] = "隐藏Plumber拾取物品提示窗口，但仍然在后台执行其他功能例如强制自动拾取。";
+L["LootUI Option Hide Window Tooltip 2"] = "此选项不影响暴雪自带的拾取窗口。";
 L["LootUI Option Force Auto Loot"] = "强制自动拾取";
 L["LootUI Option Force Auto Loot Tooltip"] = "强制使用自动拾取以修复自动拾取有时失效的问题。\n\n如想暂时取消一次自动拾取，请按住%s键直到拾取窗口出现。";
 L["LootUI Option Owned Count"] = "显示已拥有的数量";
@@ -297,19 +550,222 @@ L["LootUI Option Loot Under Mouse"] = "鼠标位置打开拾取窗口";
 L["LootUI Option Loot Under Mouse Tooltip"] = "处于|cffffffff手动拾取|r模式时, 在鼠标位置打开拾取窗口。";
 L["LootUI Option Use Default UI"] = "使用默认拾取窗口";
 L["LootUI Option Use Default UI Tooltip"] = "使用WoW默认的拾取窗口。\n\n|cffff4800勾选此选项会使以上所有选项无效。|r";
+L["LootUI Option Background Opacity"] = "不透明度";
+L["LootUI Option Background Opacity Tooltip"] = "改变通知模式下背景的不透明度。\n\n此选项不影响手动拾取模式。";
+L["LootUI Option Custom Quality Color"] = "使用自定义品质颜色";
+L["LootUI Option Custom Quality Color Tooltip"] = "使用你在 游戏设置> 辅助功能> 颜色 中设置的颜色。"
+L["LootUI Option Grow Direction"] = "向上生长";
+L["LootUI Option Grow Direction Tooltip 1"] = "勾选时：窗口左下角位置保持不变，新提示出现在旧提示的上方。";
+L["LootUI Option Grow Direction Tooltip 2"] = "未勾选时：窗口左上角位置保持不变，新提示出现在旧提示的下方。";
+L["Junk Items"] = "垃圾物品";
+L["LootUI Option Combine Items"] = "合并相似物品";
+L["LootUI Option Combine Items Tooltip"] = "在同一行显示相似物品。目前支持的分类为：\n\n- 垃圾物品\n- 纪元纪念品（军团再临：幻境新生）";
+L["LootUI Option Low Frame Strata"] = "置于底层";
+L["LootUI Option Low Frame Strata Tooltip"] = "在处于通知模式时，将拾取窗口置于其他界面的后方。\n\n此选项不影响手动拾取模式。";
+L["LootUI Option Show Reputation"] = "显示声望变化";
+L["LootUI Option Show Reputation Tooltip"] = "在拾取窗口内显示获得的声望。\n\n在战斗中或是战场内获得的声望将在结束后合并显示。";
+
+
+--Quick Slot For Third-party Dev
+L["Quickslot Module Info"] = "模块信息";
+L["QuickSlot Error 1"] = "快捷按钮：You have already added this controller.";
+L["QuickSlot Error 2"] = "快捷按钮：YThe controller is missing \"%s\"";
+L["QuickSlot Error 3"] = "快捷按钮：A controller with the same key \"%s\" already exists.";
+
+
+--Plumber Macro
+L["PlumberMacro Drive"] = "Plumber赛车坐骑宏";
+L["PlumberMacro Drawer"] = "Plumber技能收纳宏";
+L["PlumberMacro Housing"] = "Plumber房屋宏";
+L["PlumberMacro Torch"] = "Plumber火把宏";
+L["PlumberMacro Outfit"] = "Plumber幻化外观宏";
+L["PlumberMacro DrawerFlag Combat"] = "技能收纳宏将在你离开战斗后更新。";
+L["PlumberMacro DrawerFlag Stuck"] = "更新技能收纳宏时遇到了错误。";
+L["PlumberMacro Error Combat"] = "战斗中不可用";
+L["PlumberMacro Error NoAction"] = "无可用技能";
+L["PlumberMacro Error EditMacroInCombat"] = "战斗中不可编辑";
+L["Random Favorite Mount"] = "召唤随机偏好坐骑";
+L["Dismiss Battle Pet"] = "解散小宠物";
+L["Drag And Drop Item Here"] = "拖拽一个东西放在这里";
+L["Drag To Reorder"] = "左键单击并拖拽以更改位置";
+L["Click To Set Macro Icon"] = "按住Ctrl点击来设为宏图标";
+L["Unsupported Action Type Format"] = "不支持的动作类别： %s";
+L["Drawer Add Action Format"] = "添加 |cffffffff%s|r";
+L["Drawer Add Profession1"] = "第一个专业技能";
+L["Drawer Add Profession2"] = "第二个专业技能";
+L["Drawer Option Global Tooltip"] = "所有的收纳宏共用此设置。";
+L["Drawer Option CloseAfterClick"] = "点击后关闭";
+L["Drawer Option CloseAfterClick Tooltip"] = "在你点击菜单中任何一个按钮后关闭菜单，无论动作是否成功。";
+L["Drawer Option SingleRow"] = "单行排布";
+L["Drawer Option SingleRow Tooltip"] = "勾选此选项后，所有按钮都在一排显示，而不是每排最多4个。";
+L["Drawer Option Hide Unusable"] = "隐藏不可用的动作";
+L["Drawer Option Hide Unusable Tooltip"] = "隐藏身上没有的物品和未学会的法术。";
+L["Drawer Option Hide Unusable Tooltip 2"] = "消耗品例如药水不受此选项影响。"
+L["Drawer Option Update Frequently"] = "频繁更新";
+L["Drawer Option Update Frequently Tooltip"] = "在你背包或法术书发生变化时更新所有收纳宏。启用此选项可能会略微增加运算量。";
+L["ModuleName DrawerMacro"] = "技能收纳宏";
+L["ModuleDescription DrawerMacro"] = "创建自定义弹出菜单来整理你的物品、法术、宠物、坐骑、玩具。\n\n要创建技能收纳宏, 请先创建一个新宏，然后在宏编辑框中输入 |cffd7c0a3#plumber:drawer|r";
+L["No Slot For New Character Macro Alert"] = "需要一个空的角色专用宏栏位来完成此操作。";
+
+
+--New Expansion Landing Page
+L["ModuleName NewExpansionLandingPage"] = "资料片概要";
+L["ModuleDescription NewExpansionLandingPage"] = "一个显示声望、每周事件和团本进度的界面。你可从以下方式访问：\n\n- 点击小地图上的卡兹阿加概要按钮。\n\n- 在游戏设置-快捷键中设置一个快捷键。";
+L["Reward Available"] = "奖励待领取";  --As brief as possible
+L["Paragon Reward Available"] = "巅峰奖励待领取";
+L["Until Next Level Format"] = "离下一级还有 %d";   --Earn x reputation to reach the next level
+L["Until Paragon Reward Format"] = "离巅峰宝箱还有 %d";
+L["Instruction Click To View Renown"] = "<点击查看名望>";
+L["Not On Quest"] = "你没有接到该任务";
+L["Factions"] = "声望总览";
+L["Activities"] = "每周活动";
+L["Raids"] = "团队副本";
+L["Instruction Track Achievement"] = "<按住Shift点击追踪此成就>";
+L["Instruction Untrack Achievement"] = "<按住Shift点击取消追踪>";
+L["No Data"] = "没有数据";
+L["No Raid Boss Selected"] = "未选择首领战";
+L["Your Class"] = "(你的职业)";
+L["Great Vault"] = "宏伟宝库";
+L["Item Upgrade"] = "物品升级";
+L["Resources"] = "资源";
+L["Plumber Experimental Feature Tooltip"] = "Plumber插件中的实验性功能。";
+L["Bountiful Delves Rep Tooltip"] = "打开丰裕宝匣有几率奖励此阵营的声望。";
+L["Warband Weekly Reward Tooltip"] = "你的战团每周只能获取一次此奖励。";
+L["Completed"] = "已完成";
+L["Filter Hide Completed Format"] = "隐藏已完成的条目 (%d)";
+L["Weekly Reset Format"] = "周常重置：%s";
+L["Daily Reset Format"] = "日常重置：%s";
+L["Ready To Turn In Tooltip"] = "可以上交任务。";
+L["Weekly Coffer Key Tooltip"] = "每周获得的前四个周常宝箱里有一把修复的宝匣钥匙。";
+L["Weekly Coffer Key Shards Tooltip"] = "每周获得的前四个周常宝箱里有宝匣钥匙碎片。";
+L["Weekly Cap"] = "每周上限";
+L["Weekly Cap Reached"] = "已达到每周上限。";
+L["Instruction Right Click To Use"] = "<右键单击来使用>"
+L["Join Queue"] = "加入队列";
+L["In Queue"] = "在队列中";
+L["Click To Switch"] = "点击以切换为|cffffffff%s|r";
+L["Click To Queue"] = "点击以加入|cffffffff%s|r";
+L["Click to Open Format"] = "点击以打开%s";
+L["List Is Empty"] = "暂无可显示内容";
+
+
+--RaidCheck
+L["ModuleName InstanceDifficulty"] = "副本难度选择器";
+L["ModuleDescription InstanceDifficulty"] = "- 在副本门口外显示难度选择界面\n\n- 当你进入副本时，在屏幕上方显示当前副本难度和进度。";
+L["Cannot Change Difficulty"] = "你暂时无法更改副本难度。";
+L["Cannot Reset Instance"] = "你暂时无法重置副本。";
+L["Difficulty Not Accurate"] = "无法准确显示难度，因为你不是队长";
+L["Instruction Click To Open Adventure Guide"] = "左键单击：|cffffffff打开冒险指南|r";
+L["Instruction Alt Click To Reset Instance"] = "按住Alt并右键单击：|cffffffff重置所有副本|r";
+L["Instruction Link Progress In Chat"] = "<按住Shift点击将副本进度链接到聊天框内>";
+L["Instance Name"] = "副本名称";
+L["EditMode Instruction InstanceDifficulty"] = "此窗口的实际宽度由选项数量决定。";
+
+
+--TransmogChatCommand
+L["ModuleName TransmogChatCommand"] = "幻化指令";
+L["ModuleDescription TransmogChatCommand"] = "- 当你使用幻化聊天指令时, 移除已装备的外观，避免它们影响新的外观方案。\n\n- 当你与幻化师交互时，使用幻化指令将自动把外观方案所含的物品设为待确认外观。";
+L["Copy To Clipboard"] = "复制到剪贴板";
+L["Copy Current Outfit Tooltip"] = "复制当前外观方案以在网上分享。";
+L["Missing Appearances Format"] = "%d个外观缺失";
+L["Press Key To Copy Format"] = "按|cffffd100%s|r来复制";
+
+
+--TransmogOutfitSelect
+L["ModuleName TransmogOutfitSelect"] = "快捷访问外观列表";
+L["ModuleDescription TransmogOutfitSelect"] = "允许你随时随地打开外观列表并切换已保存的外观。\n\n要实现这个功能：首先打开幻化界面，然后将|cffd7c0a3“快捷访问”|r按钮拖动到技能栏上。";
+L["Outfit Collection"] = "外观列表";
+L["Quick Access Outfit Button"] = "快捷访问";
+L["Quick Access Outfit Button Tooltip"] = "点击并拖动此按钮到技能栏上，以便随时随地访问外观列表。";
+
+
+--QuestWatchCycle
+L["ModuleName QuestWatchCycle"] = "快捷键：任务焦点";
+L["ModuleDescription QuestWatchCycle"] = "允许你设置快捷键来设下一个或上一个任务为焦点。\n\n|cffd4641c请前往以下位置设置按键：游戏设置> 快捷键> Plumber 插件.|r";
+
+
+--CraftSearchExtended
+L["ModuleName CraftSearchExtended"] = "搜索结果拓展";
+L["ModuleDescription CraftSearchExtended"] = "在搜索某些词语时显示更多结果。\n\n- 炼金和铭文：可通过搜索染料名字找到所需颜料。";
+
+
+--DecorModelScaleRef
+L["ModuleName DecorModelScaleRef"] = "装饰品: 参照物";
+L["ModuleDescription DecorModelScaleRef"] = "- 为装饰品预览窗口增加一个参照物（一根香蕉），帮助你理解物体的大小。\n\n- 允许你按住鼠标左键并在模型上上下拖动来改变镜头的俯仰角。";
+
+
+--Player Housing
+L["ModuleName Housing_Macro"] = "房屋宏";
+L["ModuleDescription Housing_Macro"] = "要创建一个回家宏：请先创建一个新宏，然后在宏编辑框中输入 |cffd7c0a3#plumber:home|r";
+L["Teleport Home"] = "传送到房屋";
+L["Instruction Drag To Action Bar"] = "<可点击并拖动到技能栏>";
+L["Leave Home"] = "返回之前的位置";
+L["Toggle Torch"] = "勾选火把";
+L["ModuleName Housing_DecorHover"] = "编辑器：1 装饰模式";
+L["ModuleDescription Housing_DecorHover"] = "装饰模式下：\n\n- 将光标悬停在装饰物上，可显示其占用空间、名称以及库存数量。\n\n- 允许你按下Alt键来摆放一个同样的物体。\n\n新物体不会继承当前的选择角度和缩放比例。";
+L["Duplicate"] = "复制";
+L["Duplicate Decor Key"] = "“复制”键";
+L["Enable Duplicate"] = "启用“复制”";
+L["Enable Duplicate tooltip"] = "在装饰模式下，将光标悬停在装饰物上并按下特定按键，即可摆放一个同样的物体。";
+L["ModuleName Housing_CustomizeMode"] = "编辑器：3 自定义模式";
+L["ModuleDescription Housing_CustomizeMode"] = "自定义模式下：\n\n- 允许你将一个装饰物的染料组合复制到另一个物体上。\n\n- 将染料栏的名字从其序号更改为颜色名称。";
+L["Copy Dyes"] = "复制";
+L["Dyes Copied"] = "已复制";
+L["Apply Dyes"] = "应用";
+L["Preview Dyes"] = "预览";
+L["ModuleName TooltipDyeDeez"] = "鼠标提示：染料颜料";
+L["ModuleDescription TooltipDyeDeez"] = "在颜料的鼠标提示上显示其可制作的颜色名称。";
+L["Instruction Show More Info"] = "<按Alt键显示更多信息>";
+L["Instruction Show Less Info"] = "<按Alt键显示更少信息>";
+L["ModuleName Housing_ItemAcquiredAlert"] = "装饰品收集通知";
+L["ModuleDescription Housing_ItemAcquiredAlert"] = "允许你左键点击装饰品收集通知来预览其模型。";
+
+
+--Housing Clock
+L["ModuleName Housing_Clock"] = "编辑器：时钟";
+L["ModuleDescription Housing_Clock"] = "在使用房屋编辑器时，在屏幕上方显示一个时钟。\n\n记录你使用编辑器的时长。";
+L["Time Spent In Editor"] = "已使用编辑器时长";
+L["This Session Colon"] = "本次登录期间：";
+L["Time Spent Total Colon"] = "总计时间：";
+L["Right Click Show Settings"] = "右键单击以打开设置。";
+L["Plumber Clock"] = "Plumber时钟";
+L["Clock Type"] = "时钟类型";
+L["Clock Type Analog"] = "指针式时钟";
+L["Clock Type Digital"] = "数字时钟";
+
+
+--CatalogExtendedSearch
+L["ModuleName Housing_CatalogSearch"] = "装饰品: 搜索结果拓展";
+L["ModuleDescription Housing_CatalogSearch"] = "拓展装饰品搜索结果，允许你通过搜索成就、商人、区域或是所需货币来找到相关装饰品。\n\n在装饰品类别右侧显示搜索结果数量。";
+L["Match Sources"] = "匹配来源";
+
+
+--SourceAchievementLink
+L["ModuleName SourceAchievementLink"] = "可交互的来源信息";
+L["ModuleDescription SourceAchievementLink"] = "将以下界面上的成就名称变为可点击的链接，允许你查看成就详情或追踪它。\n\n- 装饰类别\n\n- 坐骑手册";
 
 
 --Generic
+L["Total Colon"] = "总计：";
 L["Reposition Button Horizontal"] = "水平方向移动";   --Move the window horizontally
 L["Reposition Button Vertical"] = "竖直方向移动";
 L["Reposition Button Tooltip"] = "左键点击并拖拉来移动这个窗口。";
 L["Font Size"] = "字体大小";
+L["Icon Size"] = "图标大小";
 L["Reset To Default Position"] = "重置到默认位置";
 L["Renown Level Label"] = "名望 ";  --There is a space
 L["Paragon Reputation"] = "巅峰";
 L["Level Maxed"] = "已满级";   --Reached max level
 L["Current Colon"] = "当前：";
 L["Unclaimed Reward Alert"] = "你有未领取的巅峰宝箱";
+L["Uncollected Set Counter Format"] = "你有|cffffffff%d|r套未收集的幻化套装。";
+
+
+--Plumber AddOn Settings
+L["ModuleName EnableNewByDefault"] = "默认开启新功能";
+L["ModuleDescription EnableNewByDefault"] = "自动开启所有新加入的功能。\n\n*如果一个功能因此自动启用，你将会在聊天窗口内看到相关提示。";
+L["New Feature Auto Enabled Format"] = "已开启新功能 %s";
+L["Click To See Details"] = "点击以查看详情";
 
 
 
@@ -325,10 +781,20 @@ L["currency-2915"] = "蚀刻";
 L["currency-2916"] = "符文";
 L["currency-2917"] = "鎏金";
 
-
 L["Scenario Delves"] = "地下堡";
 L["GameObject Door"] = "门";
 L["Delve Chest 1 Rare"] = "丰裕宝匣";
+
+L["Season Maximum Colon"] = "赛季上限："
+L["Item Changed"] = "已被替换为";   --CHANGED_OWN_ITEM
+L["Completed CHETT List"] = "完成的C.H.E.T.T.清单";
+L["Devourer Attack"] = "吞噬者入侵";
+L["Restored Coffer Key"] = "修复的宝匣钥匙";
+L["Coffer Key Shard"] = "宝匣钥匙碎片";
+L["Epoch Mementos"] = "纪元纪念品";
+L["Timeless Scrolls"] = "越时卷轴";
+
+L["CONFIRM_PURCHASE_NONREFUNDABLE_ITEM"] = "你确定要将%s兑换为下列物品吗？\n\n|cffff2020本次购买将无法退还。|r\n %s";
 
 
 --Map Pin Filter Name (name should be plural)
@@ -340,5 +806,18 @@ L["Match Pattern Gold"] = "([%d%,]+) 金";
 L["Match Pattern Silver"] = "([%d]+) 银";
 L["Match Pattern Copper"] = "([%d]+) 铜";
 
-L["Match Patter Rep 1"] = "你的战团在(.+)中的声望值提高了([%d%,]+)点";   --FACTION_STANDING_INCREASED_ACCOUNT_WIDE
-L["Match Patter Rep 2"] = "你在(.+)中的声望值提高了([%d%,]+)点";   --FACTION_STANDING_INCREASED
+L["Match Pattern Rep 1"] = "你的战团在(.+)中的声望值提高了([%d%,]+)点";   --FACTION_STANDING_INCREASED_ACCOUNT_WIDE
+L["Match Pattern Rep 2"] = "你在(.+)中的声望值提高了([%d%,]+)点";   --FACTION_STANDING_INCREASED
+
+L["Match Pattern Transmog Set Partially Known"] = "^包含(%d)";   --TRANSMOG_SET_PARTIALLY_KNOWN_CLASS
+
+L["DyeColorNameAbbr Black"] = "黑色";
+L["DyeColorNameAbbr Blue"] = "蓝色";
+L["DyeColorNameAbbr Brown"] = "棕色";
+L["DyeColorNameAbbr Green"] = "绿色";
+L["DyeColorNameAbbr Orange"] = "橙色";
+L["DyeColorNameAbbr Purple"] = "紫色";
+L["DyeColorNameAbbr Red"] = "红色";
+L["DyeColorNameAbbr Teal"] = "青绿色";
+L["DyeColorNameAbbr White"] = "白色";
+L["DyeColorNameAbbr Yellow"] = "黄色";

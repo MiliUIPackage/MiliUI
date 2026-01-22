@@ -7,6 +7,7 @@ local tonumber = tonumber;
 local match = string.match;
 local format = string.format;
 local gsub = string.gsub;
+local find = string.find;
 local tinsert = table.insert;
 local tremove = table.remove;
 local floor = math.floor;
@@ -20,6 +21,17 @@ local securecallfunction = securecallfunction;
 local function Nop(...)
 end
 API.Nop = Nop;
+
+
+--Midnight
+local issecretvalue = issecretvalue or function(_) return false end;
+local canaccessvalue = canaccessvalue or function(_) return true end;
+API.Secret_IsSecret = issecretvalue;
+
+function API.Secret_CanAccess(v)
+    return canaccessvalue(v) and v
+end
+
 
 do  -- Table
     local function Mixin(object, ...)
@@ -123,7 +135,7 @@ do  -- String
 
     local function GetUnitIDGeneral(unit)
         local guid = UnitGUID(unit);
-        if guid then
+        if API.Secret_CanAccess(guid) then
             local unitType, id = match(guid, "(%a+)%-0%-%d*%-%d*%-%d*%-(%d*)");
             if id and unitType and ValidUnitTypes[unitType] then
                 return tonumber(id)
@@ -155,6 +167,29 @@ do  -- String
         end
     end
     API.JoinText = JoinText;
+
+
+    function API.StringTrim(text)
+        if text then
+            text = gsub(text, "^(%s+)", "");
+            text = gsub(text, "(%s+)$", "");
+            if text ~= "" then
+                return text
+            end
+        end
+    end
+
+    local UnitName = UnitName;
+
+    function API.Secret_GetUnitName(unit)
+        local name = UnitName(unit);
+        if canaccessvalue(name) and name and name ~= "" then
+            return name
+        end
+    end
+
+
+    API.StripHyperlinks = C_StringUtil and C_StringUtil.StripHyperlinks or StripHyperlinks;
 end
 
 do  -- DEBUG
@@ -181,7 +216,7 @@ do  -- DEBUG
     API.SaveDataUnderKey = SaveDataUnderKey;
 end
 
-do  --Math
+do  -- Math
     local function Clamp(value, min, max)
         if value > max then
             return max
@@ -295,7 +330,7 @@ do  -- Time
     local SHOW_HOUR_BELOW_DAYS = 3;
     local SHOW_MINUTE_BELOW_HOURS = 12;
     local SHOW_SECOND_BELOW_MINUTES = 10;
-    local COLOR_RED_BELOW_SECONDS = 172800;
+    local COLOR_RED_BELOW_SECONDS = 43200;
 
     local function BakePlural(number, singularPlural)
         singularPlural = gsub(singularPlural, ";", "");
@@ -317,7 +352,7 @@ do  -- Time
         end
     end
 
-    local function SecondsToTime(seconds, abbreviated, partialTime, bakePluralEscapeSequence)
+    local function SecondsToTime(seconds, abbreviated, partialTime, bakePluralEscapeSequence, colorized)
         --partialTime: Stop processing if the remaining units don't really matter. e.g. to display the remaining time of an event when there are still days left
         --bakePluralEscapeSequence: Convert EcsapeSequence like "|4Sec:Sec;" to its result so it can be sent to chat
         local intialSeconds = seconds;
@@ -376,7 +411,7 @@ do  -- Time
                 else
                     timeString = timeString.." "..minuteText;
                 end
-                if partialTime and minutes >= SHOW_SECOND_BELOW_MINUTES then
+                if partialTime and (minutes >= SHOW_SECOND_BELOW_MINUTES or hours > 0) then
                     isComplete = true;
                 end
             else
@@ -396,7 +431,7 @@ do  -- Time
             end
         end
 
-        if partialTime and intialSeconds < COLOR_RED_BELOW_SECONDS and not bakePluralEscapeSequence then
+        if colorized and partialTime and intialSeconds < COLOR_RED_BELOW_SECONDS and not bakePluralEscapeSequence then
             --WARNING_FONT_COLOR
             timeString = "|cffff4800"..timeString.."|r";
         end
@@ -407,7 +442,11 @@ do  -- Time
 
     local function SecondsToClock(seconds)
         --Clock: 00:00
-        return format("%s:%02d", math.floor(seconds / 60), math.floor(seconds % 60))
+        if seconds >= 3600 then
+            return format("%s:%02d:%02d", floor(seconds / 3600), floor((seconds - 3600 * floor(seconds / 3600)) / 60), floor(seconds % 60))
+        else
+            return format("%s:%02d", floor(seconds / 60), floor(seconds % 60))
+        end
     end
     API.SecondsToClock = SecondsToClock;
 
@@ -509,6 +548,7 @@ do  -- Time
 
     local function ConvertTextToSeconds(durationText)
         if not durationText then return 0 end;
+        if not match(durationText, "%d") then return 0 end;
 
         local hours = tonumber(match(durationText, PATTERN_HOURS) or 0);
         local minutes = tonumber(match(durationText, PATTERN_MINUTES) or 0);
@@ -517,11 +557,21 @@ do  -- Time
         return 3600 * hours + 60 * minutes + seconds;
     end
     API.TimeLeftTextToSeconds = ConvertTextToSeconds;
+
+
+    function API.SecondsToDate(seconds)
+        local timeString = date("%d %m %y", seconds);
+        local day, month, year = string.split(" ", timeString);
+        month = tonumber(month);
+        local monthName = CALENDAR_FULLDATE_MONTH_NAMES[month];
+        return string.format(L["Format Month Day"], monthName, day);
+    end
 end
 
 do  -- Item
     local C_Item = C_Item;
     local GetItemSpell = GetItemSpell;
+
 
     local function ColorizeTextByQuality(text, quality, allowColorBlind)
         if not (text and quality) then
@@ -538,6 +588,7 @@ do  -- Item
     end
     API.ColorizeTextByQuality = ColorizeTextByQuality;
 
+
     local function GetColorizedItemName(itemID)
         local name = C_Item.GetItemNameByID(itemID);
         local quality = C_Item.GetItemQualityByID(itemID);
@@ -546,11 +597,78 @@ do  -- Item
     end
     API.GetColorizedItemName = GetColorizedItemName;
 
+
+    function API.GetItemColor(itemID)
+        local quality = C_Item.GetItemQualityByID(itemID) or 1;
+        local color = API.GetItemQualityColor(quality);
+        if color then
+            return color.r, color.g, color.b
+        else
+            return 1, 1, 1
+        end
+    end
+
     local function GetItemSpellID(item)
         local spellName, spellID = GetItemSpell(item);
         return spellID
     end
     API.GetItemSpellID = GetItemSpellID;
+
+
+    function API.IsToyItem(item)
+       return C_ToyBox.GetToyInfo(item) ~= nil
+    end
+
+
+    function API.GetItemSellPrice(item)
+        if item then
+            local sellPrice = select(11, C_Item.GetItemInfo(item));
+            if sellPrice and sellPrice > 0 then
+                return sellPrice
+            end
+        end
+    end
+
+
+    function API.IsMountCollected(mountID)
+        local isCollected = select(11, C_MountJournal.GetMountInfoByID(mountID));
+        return isCollected
+    end
+
+
+    local InventorySlotName = {
+        "HEADSLOT",
+        "NECKSLOT",
+        "SHOULDERSLOT",
+        "SHIRTSLOT",
+        "CHESTSLOT",
+
+        "WAISTSLOT",
+        "LEGSSLOT",
+        "FEETSLOT",
+        "WRISTSLOT",
+        "HANDSSLOT",
+
+        "FINGER0SLOT_UNIQUE",   --FINGER0SLOT
+        "FINGER1SLOT_UNIQUE",   --FINGER1SLOT
+        "TRINKET0SLOT_UNIQUE",  --TRINKET0SLOT
+        "TRINKET1SLOT_UNIQUE",  --TRINKET1SLOT
+        "BACKSLOT",
+
+        "MAINHANDSLOT",
+        "SECONDARYHANDSLOT",
+        "RANGEDSLOT",
+        "TABARDSLOT",
+    };
+
+    function API.GetInventorySlotName(slotID)
+        local key = InventorySlotName[slotID];
+        if key and _G[key] then
+            return _G[key]
+        else
+            return "Slot"..slotID
+        end
+    end
 end
 
 do  -- Tooltip Parser
@@ -569,8 +687,43 @@ do  -- Tooltip Parser
             return GetLineText(tooltipData.lines, 1);
         end
     end
-
     API.GetCreatureName = GetCreatureName;
+
+
+    function API.LoadCreatureNameWithCallback(creatures, callback, fromRequery)
+        local failedCreatures;
+
+        if type(creatures) == "table" then
+            local name;
+            local n = 0;
+            for _, creatureID in ipairs(creatures) do
+                name = GetCreatureName(creatureID);
+                if name and name ~= "" then
+                    callback(creatureID, name);
+                else
+                    if not failedCreatures then
+                        failedCreatures = {};
+                    end
+                    n = n + 1;
+                    failedCreatures[n] = creatureID;
+                end
+            end
+        else
+            --when creatures is creatureID (number)
+            local name = GetCreatureName(creatures);
+            if name and name ~= "" then
+                callback(creatures, name);
+            else
+                failedCreatures = creatures;
+            end
+        end
+
+        if (not fromRequery) and failedCreatures then
+            C_Timer.After(1, function()
+                API.LoadCreatureNameWithCallback(failedCreatures, callback, true);
+            end);
+        end
+    end
 end
 
 do  -- Holiday
@@ -696,7 +849,7 @@ do  -- Holiday
     API.GetActiveMajorHolidayInfo = GetActiveMajorHolidayInfo;
 end
 
-do  --Fade Frame
+do  -- Fade Frame
     local abs = math.abs;
     local tinsert = table.insert;
     local wipe = wipe;
@@ -962,6 +1115,8 @@ do  -- Map
                 end
             end);
 
+            --Note: if the player enters an unmapped area like The Great Sea then re-enter a regular zone
+            --GetBestMapForUnit will still return the continent mapID when ZONE_CHANGED_NEW_AREA triggers
             controller:RegisterEvent("ZONE_CHANGED_NEW_AREA");
             controller:RegisterEvent("PLAYER_ENTERING_WORLD");
         end
@@ -1092,6 +1247,11 @@ do  -- Map
         end);
     end
     API.ConvertMapPositionToContinentPosition = ConvertMapPositionToContinentPosition;
+
+
+    function API.GetPlayerMap()
+        return GetBestMapForUnit("player");
+    end
 
 
     --Calculate a list of map positions (cache data) and run callback
@@ -1283,16 +1443,16 @@ do  -- Map
     end
     API.GetZoneName = GetZoneName;
 
-    local HasActiveDelve = C_DelvesUI and C_DelvesUI.HasActiveDelve or Nop;
-    local function IsInDelves()
-        --See Blizzard InstanceDifficulty.lua
-        local _, _, _, mapID = UnitPosition("player");
-        return HasActiveDelve(mapID);
+
+    function API.GetMapName(uiMapID)
+        local info = GetMapInfo(uiMapID);
+        if info then
+            return info.name
+        end
     end
-    API.IsInDelves = IsInDelves;
 end
 
-do  --Instance --Map
+do  -- Instance -- Map
     local GetInstanceInfo = GetInstanceInfo;
 
     local function GetMapID()
@@ -1302,7 +1462,7 @@ do  --Instance --Map
     API.GetMapID = GetMapID;
 end
 
-do  --Pixel
+do  -- Pixel
     local GetPhysicalScreenSize = GetPhysicalScreenSize;
 
     local function GetPixelForScale(scale, pixelSize)
@@ -1320,9 +1480,14 @@ do  --Pixel
         return GetPixelForScale(scale, pixelSize);
     end
     API.GetPixelForWidget = GetPixelForWidget;
+
+    function API.UpdateTextureSliceScale(textureSlice)
+        local SCREEN_WIDTH, SCREEN_HEIGHT = GetPhysicalScreenSize();
+        textureSlice:SetScale((768/SCREEN_HEIGHT));
+    end
 end
 
-do  --Easing
+do  -- Easing
     local EasingFunctions = {};
     addon.EasingFunctions = EasingFunctions;
 
@@ -1365,40 +1530,38 @@ do  --Easing
     end
 end
 
-do  --Currency
+do  -- Currency
     local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo;
+    local GetCurrencyContainerInfo = C_CurrencyInfo.GetCurrencyContainerInfo or Nop;
+
     local CurrencyDataProvider = CreateFrame("Frame");
-    CurrencyDataProvider.cache = {};
+    CurrencyDataProvider.names = {};
     CurrencyDataProvider.icons = {};
+    CurrencyDataProvider.qualities = {};
 
-    local RelevantKeys = {"name", "quantity", "iconFileID", "maxQuantity", "quality"};
+    function API.GetCurrencyName(currencyID, colorized)
+        local name = CurrencyDataProvider.names[currencyID];
+        local quality = colorized and CurrencyDataProvider.qualities[currencyID] or 1;
 
-    CurrencyDataProvider:SetScript("OnEvent", function(self, event, currencyID, quantity, quantityChange)
-        if currencyID and self.cache[currencyID] then
-            self.cache[currencyID] = nil;
-        end
-    end);
-
-    function CurrencyDataProvider:CacheAndGetCurrencyInfo(currencyID)
-        if not self.cache[currencyID] then
+        if not name then
             local info = GetCurrencyInfo(currencyID);
-            if not info then return end;
-            local vital = {};
+            name = info and info.name;
+            if name then
+                CurrencyDataProvider.names[currencyID] = name;
+                CurrencyDataProvider.qualities[currencyID] = info.quality;
+            else
+                name = "Currency:"..currencyID;
+                quality = 1;
+            end
         end
 
-        if not self.registered then
-            self.registered = true;
-            self:RegisterEvent("CURRENCY_DISPLAY_UPDATE");
+        if colorized then
+            return API.ColorizeTextByQuality(name, quality)
+        else
+            return name
         end
-
-        return self.cache[currencyID]
     end
 
-    function CurrencyDataProvider:GetIcon(currencyID)
-        if not self.icons[currencyID] then
-            self:CacheAndGetCurrencyInfo(currencyID);
-        end
-    end
 
     local IGNORED_OVERFLOW_ID = {
         [3068] = true,      --Delver's Journey
@@ -1411,7 +1574,8 @@ do  --Currency
         end
         local currencyInfo = GetCurrencyInfo(currencyID);
         local quantity = currencyInfo and (currencyInfo.useTotalEarnedForMaxQty and currencyInfo.totalEarned or currencyInfo.quantity);
-        return quantity and currencyInfo.maxQuantity > 0 and rewardQuantity + quantity > currencyInfo.maxQuantity, quantity
+        local overflow = quantity and currencyInfo.maxQuantity > 0 and rewardQuantity + quantity > currencyInfo.maxQuantity;
+        return overflow, quantity, currencyInfo.useTotalEarnedForMaxQty, currencyInfo.maxQuantity
     end
     API.WillCurrencyRewardOverflow = WillCurrencyRewardOverflow;
 
@@ -1442,9 +1606,55 @@ do  --Currency
 
         return rawCopper
     end
+
+    function API.GetCurrencyContainerInfo(currencyID, numItems, name, texture, quality)
+        --Used by Merchant UI
+        local entry = GetCurrencyContainerInfo(currencyID, numItems);
+        if entry then
+            return entry.name, entry.icon, entry.displayAmount, entry.quality
+        end
+        return name, texture, numItems, quality
+    end
+
+
+    CoinUtil.goldTextureFormat = "%s|TInterface\\MoneyFrame\\UI-GoldIcon:%s:%s:2:0|t";
+    CoinUtil.silverTextureFormat = "%s|TInterface\\MoneyFrame\\UI-SilverIcon:%s:%s:2:0|t";
+    CoinUtil.copperTextureFormat = "%s|TInterface\\MoneyFrame\\UI-CopperIcon:%s:%s:2:0|t";
+
+    function API.GenerateCoinTextureString(amount, height)
+        height = height or 14;
+        local gold = floor(amount / 10000);
+        local silver = floor((amount - (10000 * gold)) / 100);
+        local copper = floor((amount - (10000 * gold) - (100 * silver)));
+
+        local BreakUpLargeNumbers = BreakUpLargeNumbers;
+        local moneyString;
+
+        if gold > 0 then
+            moneyString = CoinUtil.goldTextureFormat:format(BreakUpLargeNumbers(gold), height, height);
+        end
+
+        if silver > 0 then
+            if moneyString then
+                moneyString = moneyString.." "..CoinUtil.silverTextureFormat:format(BreakUpLargeNumbers(silver), height, height);
+            else
+                moneyString = CoinUtil.silverTextureFormat:format(BreakUpLargeNumbers(silver), height, height);
+            end
+        end
+
+        if copper > 0 then
+            if moneyString then
+                moneyString = moneyString.." "..CoinUtil.copperTextureFormat:format(BreakUpLargeNumbers(copper), height, height);
+            else
+                moneyString = CoinUtil.copperTextureFormat:format(BreakUpLargeNumbers(copper), height, height);
+            end
+        end
+
+        return moneyString
+    end
 end
 
-do  --Chat Message
+do  -- Chat Message
     --Check if the a rare spawn info has been announced by other players
     local function SearchChatHistory(searchFunc)
         local pool = ChatFrame1 and ChatFrame1.fontStringPool;
@@ -1462,9 +1672,49 @@ do  --Chat Message
         return false
     end
     API.SearchChatHistory = SearchChatHistory;
+
+
+    function API.HasActiveChatBox()
+        local activeWindow = ChatFrameUtil and ChatFrameUtil.GetActiveWindow();
+        if activeWindow and activeWindow == GetCurrentKeyBoardFocus() then
+            return true
+        end
+    end
+
+    function API.ChatInsertLink(link)
+        if ChatEdit_InsertLink then
+            return ChatEdit_InsertLink(link)
+        elseif ChatFrameUtil and ChatFrameUtil.InsertLink then
+            return ChatFrameUtil.InsertLink(link)
+        end
+    end
+
+    function API.ChatLinkItem(itemID, itemLink)
+        if not itemID then return end;
+        if not itemLink then
+            itemLink = select(2, C_Item.GetItemInfo(itemID));
+        end
+
+        if itemLink then
+            return API.ChatInsertLink(itemLink)
+        end
+    end
+
+    function API.ChatForceLinkItem(itemID, itemLink)
+        --This set chat box focus
+        if not itemLink then
+            itemLink = select(2, C_Item.GetItemInfo(itemID));
+        end
+
+        if ChatEdit_LinkItem then
+            return ChatEdit_LinkItem(itemID, itemLink)
+        elseif ChatFrameUtil and ChatFrameUtil.LinkItem then
+            return ChatFrameUtil.LinkItem(itemID, itemLink)
+        end
+    end
 end
 
-do  --Cursor Position
+do  -- Cursor Position
     local UI_SCALE_RATIO = 1;
     local UIParent = UIParent;
     local EL = CreateFrame("Frame");
@@ -1480,9 +1730,15 @@ do  --Cursor Position
         return x*UI_SCALE_RATIO, y*UI_SCALE_RATIO
     end
     API.GetScaledCursorPosition = GetScaledCursorPosition;
+
+    function API.GetScaledCursorPositionForFrame(frame)
+        local uiScale = frame:GetEffectiveScale();
+        local x, y = GetCursorPosition();
+        return x / uiScale, y / uiScale;
+    end
 end
 
-do  --TomTom Compatibility
+do  -- TomTom Compatibility
     local TomTomUtil = {};
     addon.TomTomUtil = TomTomUtil;
 
@@ -1574,32 +1830,55 @@ do  --TomTom Compatibility
     end
 end
 
-do  --Game UI
+do  -- Game UI
     local function IsInEditMode()
         return EditModeManagerFrame and EditModeManagerFrame:IsEditModeActive();
     end
     API.IsInEditMode = IsInEditMode;
 end
 
-do  --Reputation
+do  -- Reputation
     local C_Reputation = C_Reputation;
     local C_MajorFactions = C_MajorFactions;
     local GetFriendshipReputation = C_GossipInfo.GetFriendshipReputation;
     local GetFriendshipReputationRanks = C_GossipInfo.GetFriendshipReputationRanks;
-    local GetFactionParagonInfo = C_Reputation.GetFactionParagonInfo;
-    local GetFactionInfoByID = C_Reputation.GetFactionDataByID;
+    local GetFactionParagonInfo = C_Reputation.GetFactionParagonInfo or Nop;
     local UnitSex = UnitSex;
     local GetText = GetText;
+
+    local GetFactionDataByID;
+    if C_Reputation.GetFactionDataByID then
+        GetFactionDataByID = C_Reputation.GetFactionDataByID;
+    else    --Classic
+        function GetFactionDataByID(factionID)
+            local name, description, standingID, barMin, barMax, barValue = GetFactionInfoByID(factionID);
+            if name then
+                local tbl = {
+                    name = name,
+                    factionID = factionID,
+                    reaction = standingID,
+                    currentStanding = barValue,
+                    currentReactionThreshold = barMin,
+                    nextReactionThreshold = barMax,
+                }
+                return tbl
+            end
+        end
+    end
 
     local function GetReputationProgress(factionID)
         if not factionID then return end;
 
-        local level, isFull, currentValue, maxValue, name, reputationType;
-
+        local level, isFull, currentValue, maxValue, name, reputationType, isUnlocked, reaction;
+        local isMajorFaction;
         local repInfo = GetFriendshipReputation(factionID);
+        local paragonRepEarned, paragonThreshold, rewardQuestID, hasRewardPending = GetFactionParagonInfo(factionID);
+
         if repInfo and repInfo.friendshipFactionID and repInfo.friendshipFactionID > 0 then
             reputationType = 2;
             name = repInfo.name;
+            reaction = repInfo.reaction;
+            isUnlocked = true;
             if repInfo.nextThreshold then
                 currentValue = repInfo.standing - repInfo.reactionThreshold;
                 maxValue = repInfo.nextThreshold - repInfo.reactionThreshold;
@@ -1617,11 +1896,27 @@ do  --Reputation
             isFull = level >= rankInfo.maxLevel;
         end
 
+        if C_Reputation.IsMajorFaction and C_Reputation.IsMajorFaction(factionID) then
+            local majorFactionData = C_MajorFactions.GetMajorFactionData(factionID);
+            if majorFactionData then
+                isMajorFaction = true;
+                reputationType = 3;
+                maxValue = majorFactionData.renownLevelThreshold;
+                local isCapped = C_MajorFactions.HasMaximumRenown(factionID);
+                currentValue = isCapped and majorFactionData.renownLevelThreshold or majorFactionData.renownReputationEarned or 0;
+                level = majorFactionData.renownLevel;
+                name = majorFactionData.name;
+                isUnlocked = majorFactionData.isUnlocked;
+            end
+        end
+
         if not reputationType then
-            repInfo = GetFactionInfoByID(factionID);
+            repInfo = GetFactionDataByID(factionID);
             if repInfo then
                 reputationType = 1;
                 name = repInfo.name;
+                isUnlocked = true;
+
                 if repInfo.currentReactionThreshold then
                     currentValue = repInfo.currentStanding - repInfo.currentReactionThreshold;
                     maxValue = repInfo.nextReactionThreshold - repInfo.currentReactionThreshold;
@@ -1635,9 +1930,21 @@ do  --Reputation
                 end
 
                 local zeroLevel = 4;    --Neutral
-                level = repInfo.reaction;
-                level = level - zeroLevel;
+                reaction = repInfo.reaction;
+                level = reaction - zeroLevel;
                 isFull = level >= 8; --TEMP DEBUG
+            end
+        end
+
+        if C_Reputation.IsFactionParagon and C_Reputation.IsFactionParagon(factionID) then
+            if not isMajorFaction or C_MajorFactions.HasMaximumRenown(factionID) then
+                isFull = true;
+                if paragonRepEarned and paragonThreshold and paragonThreshold ~= 0 then
+                    local paragonLevel = floor(paragonRepEarned / paragonThreshold);
+                    currentValue = paragonRepEarned - paragonLevel * paragonThreshold;
+                    maxValue = paragonThreshold;
+                    level = paragonLevel;
+                end
             end
         end
 
@@ -1649,7 +1956,11 @@ do  --Reputation
                 isFull = isFull,
                 name = name,
                 reputationType = reputationType,    --1:Standard, 2:Friendship
+                rewardPending = hasRewardPending,
+                isUnlocked = isUnlocked,
+                reaction = reaction,
             };
+
             return tbl
         end
     end
@@ -1668,27 +1979,45 @@ do  --Reputation
     API.GetParagonValuesAndLevel = GetParagonValuesAndLevel;
 
 
-    local function GetFactionStatusText(factionID)
+    local function GetReputationStandingText(reaction)
+        if type(reaction) == "string" then
+            --Friendship
+            return reaction
+        end
+        local gender = UnitSex("player");
+        local reputationStandingtext = GetText("FACTION_STANDING_LABEL"..reaction, gender);    --GetText: Game API that returns localized texts
+        return reputationStandingtext
+    end
+    API.GetReputationStandingText = GetReputationStandingText;
+
+
+    local function GetFactionStatusText(factionID, simplified, showFactionName)
         --Derived from Blizzard ReputationFrame_InitReputationRow in ReputationFrame.lua
         if not factionID then return end;
-        local p1, description, standingID, barMin, barMax, barValue = GetFactionInfoByID(factionID);
+        local factionName;
+        local p1, description, standingID, barMin, barMax, barValue = GetFactionDataByID(factionID);
 
         if type(p1) == "table" then
             standingID = p1.reaction;
             barMin = p1.currentReactionThreshold;
             barMax = p1.nextReactionThreshold;
             barValue = p1.currentStanding;
+            factionName = p1.name;
+        else
+            factionName = p1;
         end
 
-        local isParagon = C_Reputation.IsFactionParagon(factionID);
-        local isMajorFaction = C_Reputation.IsMajorFaction(factionID);
+        local isParagon = C_Reputation.IsFactionParagon and C_Reputation.IsFactionParagon(factionID);
+        local isMajorFaction = C_Reputation.IsMajorFaction and C_Reputation.IsMajorFaction(factionID);
         local repInfo = GetFriendshipReputation(factionID);
 
         local isCapped;
         local factionStandingtext;  --Revered/Junior/Renown 1
         local cappedAlert;
+        local isFriendship;
 
         if repInfo and repInfo.friendshipFactionID > 0 then --Friendship
+            isFriendship = true;
             factionStandingtext = repInfo.reaction;
 
             if repInfo.nextThreshold then
@@ -1700,7 +2029,7 @@ do  --Reputation
 
             local rankInfo = GetFriendshipReputationRanks(repInfo.friendshipFactionID);
             if rankInfo then
-                factionStandingtext = factionStandingtext .. string.format(" (Lv. %s/%s)", rankInfo.currentLevel, rankInfo.maxLevel);
+                factionStandingtext = factionStandingtext .. format(" (Lv. %s/%s)", rankInfo.currentLevel, rankInfo.maxLevel);
             end
 
         elseif isMajorFaction then
@@ -1710,67 +2039,82 @@ do  --Reputation
                 isCapped = C_MajorFactions.HasMaximumRenown(factionID);
                 barValue = isCapped and majorFactionData.renownLevelThreshold or majorFactionData.renownReputationEarned or 0;
                 factionStandingtext = L["Renown Level Label"] .. majorFactionData.renownLevel;
-
-                if isParagon then
-                    local totalEarned, threshold, rewardQuestID, hasRewardPending = C_Reputation.GetFactionParagonInfo(factionID);
-                    if totalEarned and threshold and threshold ~= 0 then
-                        local paragonLevel = floor(totalEarned / threshold);
-                        local currentValue = totalEarned - paragonLevel * threshold;
-                        factionStandingtext = ("|cff00ccff"..L["Paragon Reputation"].."|r %d/%d"):format(currentValue, threshold);
-                    end
-
-                    if hasRewardPending then
-                        cappedAlert = "|cffff4800"..L["Unclaimed Reward Alert"].."|r";
-                    end
-                else
-                    if isCapped then
-                        factionStandingtext = factionStandingtext.." "..L["Level Maxed"];
-                    end
-                end
             end
         elseif (standingID and standingID > 0) then
             isCapped = standingID == 8;  --MAX_REPUTATION_REACTION
-            local gender = UnitSex("player");
-		    factionStandingtext = GetText("FACTION_STANDING_LABEL"..standingID, gender);    --GetText: Game API that returns localized texts
+		    factionStandingtext = GetReputationStandingText(standingID);
+        end
+
+        if isParagon and isCapped then
+            local totalEarned, threshold, rewardQuestID, hasRewardPending = GetFactionParagonInfo(factionID);
+            if totalEarned and threshold and threshold ~= 0 then
+                local paragonLevel = floor(totalEarned / threshold);
+                local currentValue = totalEarned - paragonLevel * threshold;
+                --factionStandingtext = ("|cff00ccff"..L["Paragon Reputation"].."|r %d/%d"):format(currentValue, threshold);
+                factionStandingtext = "|cff00ccff"..L["Paragon Reputation"].."|r";
+                barMin = 0;
+                barValue = currentValue;
+                barMax = threshold;
+            end
+
+            if hasRewardPending then
+                cappedAlert = "|cffff4800"..L["Unclaimed Reward Alert"].."|r";
+            end
+        else
+            if isCapped and factionStandingtext then
+                factionStandingtext = factionStandingtext.." "..L["Level Maxed"];
+            end
         end
 
         local rolloverText; --(0/24000)
-        if barMin and barValue and barMax and (not isCapped) then
-            rolloverText = string.format("(%s/%s)", barValue - barMin, barMax - barMin);
+        if barMin and barValue and barMax and (isParagon or (not isCapped)) then
+            rolloverText = format("(%s/%s)", barValue - barMin, barMax - barMin);
+            if simplified then
+                factionStandingtext = isFriendship and repInfo.reaction or factionStandingtext or "";
+                local text = factionStandingtext.." "..rolloverText
+                if cappedAlert then
+                    text = text.."\n"..cappedAlert;
+                end
+                return text, factionName
+            end
         end
 
         local text;
 
         if factionStandingtext then
+            if showFactionName and not text then text = factionName.." "; end;
             if not text then text = L["Current Colon"] end;
             factionStandingtext = " |cffffffff"..factionStandingtext.."|r";
             text = text .. factionStandingtext;
         end
 
         if rolloverText then
+            if showFactionName and not text then text = factionName.." "; end;
             if not text then text = L["Current Colon"] end;
             rolloverText = "  |cffffffff"..rolloverText.."|r";
             text = text .. rolloverText;
         end
 
         if text then
-            text = " \n"..text;
+            if not showFactionName then
+                text = " \n"..text;
+            end
 
             if cappedAlert then
                 text = text.."\n"..cappedAlert;
             end
         end
 
-        return text
+        return text, factionName
     end
     API.GetFactionStatusText = GetFactionStatusText;
 
 
     local function GetReputationChangeFromText(text)
         local name, amount;
-        name, amount = match(text, L["Match Patter Rep 1"]);
+        name, amount = match(text, L["Match Pattern Rep 1"]);
         if not name then
-            name, amount = match(text, L["Match Patter Rep 2"]);
+            name, amount = match(text, L["Match Pattern Rep 2"]);
         end
         if name then
             if amount then
@@ -1781,31 +2125,82 @@ do  --Reputation
         end
     end
     API.GetReputationChangeFromText = GetReputationChangeFromText;
-end
 
-do  --Spell
-    if true then    --IS_TWW
-        local GetSpellInfo_Table = C_Spell.GetSpellInfo;
-        local SPELL_INFO_KEYS = {"name", "rank", "iconID", "castTime", "minRange", "maxRange", "spellID", "originalIconID"};
-        local function GetSpellInfo_Flat(spellID)
-            local info = spellID and GetSpellInfo_Table(spellID);
-            if info then
-                local tbl = {};
-                local n = 0;
-                for _, key in ipairs(SPELL_INFO_KEYS) do
-                    n = n + 1;
-                    tbl[n] = info[key];
-                end
-                return unpack(tbl)
-            end
+
+    function API.GetMaxRenownLevel(factionID)
+        local renownLevelsInfo = C_MajorFactions.GetRenownLevels(factionID);
+        if renownLevelsInfo then
+            return renownLevelsInfo[#renownLevelsInfo].level
         end
-        API.GetSpellInfo = GetSpellInfo_Flat;
-    else
-        API.GetSpellInfo = GetSpellInfo;
     end
 end
 
-do  --System
+do  -- Spell
+    local GetSpellInfo_Table = C_Spell.GetSpellInfo;
+    local SPELL_INFO_KEYS = {"name", "rank", "iconID", "castTime", "minRange", "maxRange", "spellID", "originalIconID"};
+    local function GetSpellInfo_Flat(spellID)
+        local info = spellID and GetSpellInfo_Table(spellID);
+        if info then
+            local tbl = {};
+            local n = 0;
+            for _, key in ipairs(SPELL_INFO_KEYS) do
+                n = n + 1;
+                tbl[n] = info[key];
+            end
+            return unpack(tbl)
+        end
+    end
+    API.GetSpellInfo = GetSpellInfo_Flat;
+
+    if C_Spell.GetSpellCooldown then
+        API.GetSpellCooldown = C_Spell.GetSpellCooldown;
+    else
+        local GetSpellCooldown = GetSpellCooldown;
+        function API.GetSpellCooldown(spell)
+            local startTime, duration, isEnabled, modRate = GetSpellCooldown(spell);
+            if startTime ~= nil then
+                local tbl = {
+                    startTime = startTime,
+                    duration = duration,
+                    isEnabled = isEnabled,
+                    modRate = modRate,
+                };
+                return tbl
+            end
+        end
+    end
+
+    if C_Spell.GetSpellCharges then
+        API.GetSpellCharges = C_Spell.GetSpellCharges;
+    else
+        local GetSpellCharges = GetSpellCharges;
+        function API.GetSpellCharges(spell)
+            local currentCharges, maxCharges, cooldownStartTime, cooldownDuration, chargeModRate = GetSpellCharges(spell);
+            if currentCharges then
+                local tbl = {
+                    currentCharges = currentCharges,
+                    maxCharges = maxCharges,
+                    cooldownStartTime = cooldownStartTime,
+                    cooldownDuration = cooldownDuration,
+                    chargeModRate = chargeModRate,
+                };
+                return tbl
+            end
+        end
+    end
+
+    if C_SpellBook and C_SpellBook.IsSpellInSpellBook then
+        function API.IsSpellKnown(spellID, isPet)
+            local spellBank = isPet and Enum.SpellBookSpellBank.Pet or Enum.SpellBookSpellBank.Player;
+            local includeOverrides = false;
+            return C_SpellBook.IsSpellInSpellBook(spellID, spellBank, includeOverrides);
+        end
+    else
+        API.IsSpellKnown = C_SpellBook.IsSpellKnown or IsSpellKnownOrOverridesKnown or IsSpellKnown;
+    end
+end
+
+do  -- System
     if true then    --IS_TWW
         local GetMouseFoci = GetMouseFoci;
 
@@ -1835,14 +2230,141 @@ do  --System
     ModifierKeyName.RCTRL = ModifierKeyName.LCTRL;
     ModifierKeyName.RALT = ModifierKeyName.LALT;
 
-    API.GetModifierKeyName = function(key)
+    function API.GetModifierKeyName(key)
         if key and ModifierKeyName[key] then
             return ModifierKeyName[key]
         end
     end
+
+
+    function API.HandleModifiedItemClick(link, itemLocation)
+        if InCombatLockdown() then return false end;
+
+        if IsModifiedClick("CHATLINK") then
+            if API.ChatInsertLink(link) then
+                return true
+            end
+        end
+
+        if IsModifiedClick("DRESSUP") then
+            if itemLocation then
+                return DressUpItemLocation(itemLocation)
+            end
+            return DressUpLink(link)
+        end
+    end
+
+
+    function API.ToggleBlizzardTokenUIIfWarbandCurrency(currencyID)
+        if InCombatLockdown() then return end;
+
+        local info = currencyID and C_CurrencyInfo.GetCurrencyInfo(currencyID);
+        if not (info and info.isAccountTransferable) then return end;
+
+        local onlyShow = false;      --If true, don't hide the frame when shown
+        ToggleCharacter("TokenFrame", onlyShow);
+    end
+
+
+    function API.AddButtonToAddonCompartment(identifier, name, icon, onClickFunc, onEnterFunc, onLeaveFunc)
+        local f = AddonCompartmentFrame;
+        if not f then return end;
+
+        for index, addonData in ipairs(f.registeredAddons) do
+            if addonData.identifier == identifier then
+                return
+            end
+        end
+
+        local addonData = {
+            identifier = identifier,
+            text = name,
+            icon = icon,
+            func = onClickFunc,
+            funcOnEnter = onEnterFunc,
+            funcOnLeave = onLeaveFunc,
+        };
+
+        f:RegisterAddon(addonData)
+    end
+
+
+    function API.RemoveButtonFromAddonCompartment(identifier)
+        local f = AddonCompartmentFrame;
+        if not f then return end;
+
+        for index, addonData in ipairs(f.registeredAddons) do
+            if addonData.identifier == identifier then
+                table.remove(f.registeredAddons, index);
+                f:UpdateDisplay();
+                return
+            end
+        end
+    end
+
+
+    function API.TriggerExpansionMinimapButtonAlert(text)
+        if ExpansionLandingPageMinimapButton then
+            ExpansionLandingPageMinimapButton:TriggerAlert(text);
+        end
+    end
+
+    function API.CloseBossBanner()
+        local banner = BossBanner;
+        if not banner then return end;
+
+        banner:StopAnimating();
+        banner:Hide();
+        banner.lootShown = 0;
+        banner.pendingLoot = {};
+
+        if banner.baseHeight then
+            banner:SetHeight(banner.baseHeight);
+        end
+
+        if banner.LootFrames then
+            for _, f in ipairs(banner.LootFrames) do
+                f:Hide();
+            end
+        end
+
+        local textureKeys = {
+            "BannerTop", "BannerBottom", "BannerMiddle", "BottomFillagree", "SkullSpikes", "RightFillagree", "LeftFillagree",
+            "Title", "SubTitle", "FlashBurst", "FlashBurstLeft", "FlashBurstCenter", "RedFlash",
+        };
+
+        for _, key in ipairs(textureKeys) do
+            if banner[key] then
+                banner[key]:SetAlpha(0);
+            end
+        end
+
+        TopBannerManager_BannerFinished();
+    end
+
+    function API.AddFrameToUISpecialFrames(frame, state)
+        local frameName = frame:GetName();
+        if not frameName then return end;
+
+        if state then
+            for i, name in ipairs(UISpecialFrames) do
+                if name == frameName then
+                    return
+                end
+            end
+            table.insert(UISpecialFrames, frameName);
+        else
+            for i, name in ipairs(UISpecialFrames) do
+                if name == frameName then
+                    table.remove(UISpecialFrames, i);
+                    return
+                end
+            end
+        end
+    end
 end
 
-do  --Player
+do  -- Player
     local function GetPlayerMaxLevel()
         local serverExpansionLevel = GetServerExpansionLevel();
 		local maxLevel = GetMaxLevelForExpansionLevel(serverExpansionLevel);
@@ -1850,15 +2372,21 @@ do  --Player
     end
     API.GetPlayerMaxLevel = GetPlayerMaxLevel;
 
+
     local function IsPlayerAtMaxLevel()
         local maxLevel = GetPlayerMaxLevel();
         local playerLevel = UnitLevel("player");
         return playerLevel >= maxLevel
     end
     API.IsPlayerAtMaxLevel = IsPlayerAtMaxLevel;
+
+
+    function API.IsGreatVaultFeatureAvailable()
+        return IsPlayerAtMaxLevel() and C_WeeklyRewards ~= nil;
+    end
 end
 
-do  --Scenario
+do  -- Scenario
     --[[
     local SCENARIO_DELVES = addon.L["Scenario Delves"] or "Delves";
 
@@ -1872,7 +2400,7 @@ do  --Scenario
     --]]
 end
 
-do  --ObjectPool
+do  -- ObjectPool
     local ObjectPoolMixin = {};
 
     function ObjectPoolMixin:RemoveObject(obj)
@@ -1881,6 +2409,10 @@ do  --ObjectPool
 
         if obj.OnRemoved then
             obj:OnRemoved();
+        end
+
+        if self.onRemovedFunc then
+            self.onRemovedFunc(obj);
         end
     end
 
@@ -1924,6 +2456,10 @@ do  --ObjectPool
         tinsert(self.activeObjects, obj);
         obj:Show();
 
+        if self.onAcquiredFunc then
+            self.onAcquiredFunc(obj);
+        end
+
         return obj
     end
 
@@ -1943,6 +2479,7 @@ do  --ObjectPool
 
         self.numUnused = #self.objects;
     end
+    ObjectPoolMixin.Release = ObjectPoolMixin.ReleaseAll;
 
     function ObjectPoolMixin:GetTotalObjects()
         return #self.objects
@@ -1958,7 +2495,15 @@ do  --ObjectPool
         --Override
     end
 
-    local function CreateObjectPool(createObjectFunc)
+    function ObjectPoolMixin:GetActiveObjects()
+        return self.activeObjects
+    end
+
+    function ObjectPoolMixin:EnumerateActive()
+        return ipairs(self.activeObjects)
+    end
+
+    local function CreateObjectPool(createObjectFunc, onRemovedFunc, onAcquiredFunc)
         local pool = {};
         API.Mixin(pool, ObjectPoolMixin);
 
@@ -1972,47 +2517,533 @@ do  --ObjectPool
         pool.unusedObjects = {};
         pool.numUnused = 0;
         pool.createObjectFunc = createObjectFunc;
+        pool.onRemovedFunc = onRemovedFunc;
+        pool.onAcquiredFunc = onAcquiredFunc;
 
         return pool
     end
     API.CreateObjectPool = CreateObjectPool;
 end
 
-do  --Transmog
-    local GetItemInfo = C_TransmogCollection.GetItemInfo;
-    local PlayerKnowsSource = C_TransmogCollection.PlayerHasTransmogItemModifiedAppearance;
+do  -- Transmog
+    if addon.IsToCVersionEqualOrNewerThan(40000) then
+        local GetSourceInfo = C_TransmogCollection.GetSourceInfo;
+        local GetAllAppearanceSources = C_TransmogCollection.GetAllAppearanceSources;
+        local GetItemInfo = C_TransmogCollection.GetItemInfo;
+        local PlayerKnowsSource = C_TransmogCollection.PlayerHasTransmogItemModifiedAppearance;
 
-    local function IsUncollectedTransmogByItemInfo(itemInfo)
-        --C_TransmogCollection.PlayerHasTransmogByItemInfo isn't reliable
-        local visualID, sourceID =GetItemInfo(itemInfo);
-        if sourceID and sourceID ~= 0 and (not PlayerKnowsSource(sourceID)) then
-            return true
+
+        function API.IsUncollectedTransmogByItemInfo(itemInfo)
+            --C_TransmogCollection.PlayerHasTransmogByItemInfo isn't reliable
+            local visualID, sourceID = GetItemInfo(itemInfo);
+            if sourceID and sourceID ~= 0 and (not PlayerKnowsSource(sourceID)) then
+                return true
+            end
         end
-    end
-    API.IsUncollectedTransmogByItemInfo = IsUncollectedTransmogByItemInfo
 
-    if not addon.IsToCVersionEqualOrNewerThan(40000) then
+
+        function API.IsAppearanceCollected(appearanceID)
+            local sources = GetAllAppearanceSources(appearanceID);
+            if sources then
+                for _, itemModifiedAppearanceID in ipairs(sources) do
+                    local sourceInfo = GetSourceInfo(itemModifiedAppearanceID);
+                    if sourceInfo and sourceInfo.isCollected then
+                        return true
+                    end
+                end
+            end
+            return false
+        end
+
+        function API.GetNumCollectedAppearanceSources(appearanceID)
+            local sources = GetAllAppearanceSources(appearanceID);
+            local numCollected = 0;
+            local numTotal = 0;
+            if sources then
+                for _, itemModifiedAppearanceID in ipairs(sources) do
+                    local sourceInfo = GetSourceInfo(itemModifiedAppearanceID);
+                    if sourceInfo then
+                        if sourceInfo.isCollected then
+                            numCollected = numCollected + 1;
+                        end
+                        numTotal = numTotal;
+                    end
+                end
+            end
+            return numCollected, numTotal
+        end
+    else
         API.IsUncollectedTransmogByItemInfo = Nop;
+        API.IsAppearanceCollected = Nop;
     end
 end
 
-do  --Quest
+do  -- Quest
+    local GetRegularQuestTitle = C_QuestLog.GetTitleForQuestID or C_QuestLog.GetQuestInfo;
+    local RequestLoadQuest = C_QuestLog.RequestLoadQuestByID or Nop;
+    local GetLogIndexForQuestID = C_QuestLog.GetLogIndexForQuestID or GetQuestLogIndexByID or Nop;
+
     local function GetQuestName(questID)
         local questName = C_TaskQuest.GetQuestInfoByQuestID(questID);
         if not questName then
-            questName = C_QuestLog.GetTitleForQuestID(questID);
-            if questName and questName ~= "" then
-                return questName
-            else
-                C_QuestLog.RequestLoadQuestByID(questID);
-            end
+            questName = GetRegularQuestTitle(questID);
         end
-        return questName
+        if questName and questName ~= "" then
+            return questName
+        else
+            RequestLoadQuest(questID);
+        end
     end
     API.GetQuestName = GetQuestName;
+
+    function API.IsQuestRewardCached(questID)
+        --We use this to query Faction Paragon rewards, so numQuestRewards should always > 0
+        --May be 0 during the first query
+
+        local numQuestRewards = GetNumQuestLogRewards(questID);
+        if numQuestRewards > 0 then
+            local getterFunc = GetQuestLogRewardInfo;
+            local itemName, itemTexture, quantity, quality, isUsable, itemID;
+            for i = 1, numQuestRewards do
+                itemName, itemTexture, quantity, quality, isUsable, itemID = getterFunc(i, questID);
+                if not itemName then
+                    return false
+                end
+            end
+            return true
+        else
+            return false
+        end
+    end
+
+    if addon.IS_CLASSIC then
+        --Classic
+        function API.GetQuestProgressPercent(questID, asText)
+            local value, max = 0, 0;
+            local questLogIndex = questID and GetLogIndexForQuestID(questID);
+
+            if questLogIndex and questLogIndex ~= 0 then
+                local numObjectives = GetNumQuestLeaderBoards(questLogIndex);
+                local text, objectiveType, finished, fulfilled, required;
+                for objectiveIndex = 1, numObjectives do
+                    text, objectiveType, finished = GetQuestLogLeaderBoard(objectiveIndex, questLogIndex);
+                    --print(questID, GetQuestName(questID), numObjectives, finished, fulfilled, required)
+                    if objectiveType ~= "spell" and objectiveType ~= "log" then
+                        fulfilled, required = match(text, "(%d+)/(%d+)");
+                        if not (fulfilled and required) then
+                            fulfilled = 0;
+                            required = 1;
+                        end
+                        if fulfilled > required then
+                            fulfilled = required;
+                        end
+                        value = value + fulfilled;
+                        max = max + required;
+                    end
+                end
+            else
+                return
+            end
+
+            if max == 0 then
+                value = 0;
+                max = 1;
+            end
+
+            if asText then
+                return floor(100 * value / max).."%"
+            else
+                return value / max
+            end
+        end
+
+        function API.GetQuestProgressTexts(questID, hideFinishedObjectives)
+            local questLogIndex = questID and GetLogIndexForQuestID(questID);
+
+            if questLogIndex and questLogIndex ~= 0 then
+                local texts = {};
+                if IsQuestComplete(questID) then
+                    texts[1] = QUEST_PROGRESS_TOOLTIP_QUEST_READY_FOR_TURN_IN or ("|cff20ff20"..L["Ready To Turn In Tooltip"].."|r");
+                    return texts
+                end
+
+                local numObjectives = GetNumQuestLeaderBoards(questLogIndex);
+                local text, objectiveType, finished, fulfilled, required;
+
+                for objectiveIndex = 1, numObjectives do
+                    text, objectiveType, finished = GetQuestLogLeaderBoard(objectiveIndex, questLogIndex);
+                    text = text or "";
+                    if (objectiveType ~= "spell" and objectiveType ~= "log") and ((not finished) or not hideFinishedObjectives) then
+                        if finished then
+                            tinsert(texts, format("|cff808080- %s|r", text));
+                        else
+                            tinsert(texts, format("- %s", text));
+                        end
+                    end
+                end
+
+                return texts
+            else
+                if not C_QuestLog.IsOnQuest(questID) then
+                    local texts = {};
+
+                    if C_QuestLog.IsQuestFlaggedCompleted(questID) then
+                        texts[1] = format("|cff808080%s|r", QUEST_COMPLETE);
+                    else
+                        texts[1] = format("|cffff2020%s|r", L["Not On Quest"]);
+                        local description = API.GetDescriptionFromTooltip(questID);
+                        if description and description ~= QUEST_TOOLTIP_REQUIREMENTS then
+                            tinsert(texts, " ");
+                            tinsert(texts, description);
+                        end
+                    end
+
+                    return texts;
+                end
+            end
+        end
+    else
+        --Retail
+        function API.GetQuestProgressPercent(questID, asText)
+            --Unify progression text and bar
+            --C_QuestLog.GetNumQuestObjectives
+
+            local value, max = 0, 0;
+            local questLogIndex = questID and GetLogIndexForQuestID(questID);
+
+            if questLogIndex and questLogIndex ~= 0 then
+                local numObjectives = GetNumQuestLeaderBoards(questLogIndex);
+                local text, objectiveType, finished, fulfilled, required;
+                for objectiveIndex = 1, numObjectives do
+                    text, objectiveType, finished, fulfilled, required = GetQuestObjectiveInfo(questID, objectiveIndex, false);
+                    --print(questID, GetQuestName(questID), numObjectives, finished, fulfilled, required)
+                    if fulfilled > required then
+                        fulfilled = required;
+                    end
+
+                    if objectiveType == "progressbar" then
+                        fulfilled = 0.01 * GetQuestProgressBarPercent(questID);
+                        required = 1;
+                    else
+                        if not finished then
+                            if fulfilled == required then
+                                --"Complete the scenario Nightfall" fulfilled = required = 1 when accepting the quest
+                                fulfilled = 0;
+                            end
+                        end
+                    end
+                    value = value + fulfilled;
+                    max = max + required;
+                end
+            else
+                return
+            end
+
+            if max == 0 then
+                value = 0;
+                max = 1;
+            end
+
+            if asText then
+                return floor(100 * value / max).."%"
+            else
+                return value / max
+            end
+        end
+
+        function API.GetQuestProgressTexts(questID, hideFinishedObjectives)
+            local questLogIndex = questID and GetLogIndexForQuestID(questID);
+
+            if questLogIndex and questLogIndex ~= 0 then
+                local texts = {};
+                if C_QuestLog.ReadyForTurnIn(questID) then
+                    texts[1] = QUEST_PROGRESS_TOOLTIP_QUEST_READY_FOR_TURN_IN;
+                    return texts
+                end
+
+                local numObjectives = GetNumQuestLeaderBoards(questLogIndex);
+                local text, objectiveType, finished, fulfilled, required;
+
+                for objectiveIndex = 1, numObjectives do
+                    text, objectiveType, finished, fulfilled, required = GetQuestObjectiveInfo(questID, objectiveIndex, false);
+                    text = text or "";
+                    if (not finished) or not hideFinishedObjectives then
+                        if objectiveType == "progressbar" then
+                            fulfilled = GetQuestProgressBarPercent(questID);
+                            fulfilled = floor(fulfilled);
+                            if finished then
+                                tinsert(texts, format("|cff808080- %s%% %s|r", fulfilled, text));
+                            else
+                                tinsert(texts, format("- %s", text));
+                            end
+                        else
+                            if finished then
+                                tinsert(texts, format("|cff808080- %s|r", text));
+                            else
+                                tinsert(texts, format("- %s", text));
+                            end
+                        end
+                    end
+                end
+
+                return texts
+            else
+                if not C_QuestLog.IsOnQuest(questID) then
+                    local texts = {};
+
+                    if C_QuestLog.IsQuestFlaggedCompleted(questID) then
+                        texts[1] = format("|cff808080%s|r", QUEST_COMPLETE);
+                    else
+                        texts[1] = format("|cffff2020%s|r", L["Not On Quest"]);
+                        local description = API.GetDescriptionFromTooltip(questID);
+                        if description and description ~= QUEST_TOOLTIP_REQUIREMENTS then
+                            tinsert(texts, " ");
+                            tinsert(texts, description);
+                        end
+                    end
+
+                    return texts;
+                end
+            end
+        end
+
+        function API.GetQuestProgressInfo(questID, hideFinishedObjectives)
+            local tbl = {};
+            local questLogIndex = questID and GetLogIndexForQuestID(questID);
+
+            if questLogIndex and questLogIndex ~= 0 then
+                tbl.isOnQuest = true;
+                tbl.readyForTurnIn = C_QuestLog.ReadyForTurnIn(questID);
+ 
+                if not (tbl.readyForTurnIn and hideFinishedObjectives) then
+                    local numObjectives = GetNumQuestLeaderBoards(questLogIndex);
+                    tbl.numObjectives = numObjectives;
+                    tbl.objectives = {};
+
+                    local text, objectiveType, finished, fulfilled, required;
+
+                    for objectiveIndex = 1, numObjectives do
+                        text, objectiveType, finished, fulfilled, required = GetQuestObjectiveInfo(questID, objectiveIndex, false);
+                        text = text or "";
+                        if (not finished) or not hideFinishedObjectives then
+                            if objectiveType == "progressbar" then
+                                fulfilled = GetQuestProgressBarPercent(questID);
+                                fulfilled = floor(fulfilled);
+                                if finished then
+                                    text = format("%s%% %s", fulfilled, text);
+                                else
+
+                                end
+                                tinsert(tbl.objectives, {
+                                    finished = finished,
+                                    text = text,
+                                });
+                            else
+                                tinsert(tbl.objectives, {
+                                    finished = finished,
+                                    text = text,
+                                });
+                            end
+                        end
+                    end
+                end
+            else
+                if not C_QuestLog.IsOnQuest(questID) then
+                    tbl.isOnQuest = false;
+                    if C_QuestLog.IsQuestFlaggedCompleted(questID) then
+                        tbl.isComplete = true;
+                    end
+                end
+            end
+
+            return tbl
+        end
+    end
+
+
+    function API.GetQuestRewards(questID)
+        --Ignore XP, Money     --GetQuestLogRewardXP()
+
+        local rewards;
+        local missingData = false;
+
+        local function SortFunc_QualityID(a, b)
+            if a.quality ~= b.quality then
+                return a.quality > b.quality
+            end
+
+            if a.id ~= b.id then
+                return a.id > b.id
+            end
+
+            if a.quantity ~= b.quantity then
+                return a.quantity > b.quantity
+            end
+
+            return true
+        end
+
+        if C_QuestLog.GetQuestRewardCurrencies and C_QuestInfoSystem.HasQuestRewardCurrencies(questID) then
+            local currencies = {};
+            local currencyRewards = C_QuestLog.GetQuestRewardCurrencies(questID);
+            local currencyID, quality;
+            local info;
+
+            for index, currencyReward in ipairs(currencyRewards) do
+                currencyID = currencyReward.currencyID;
+                quality = C_CurrencyInfo.GetCurrencyInfo(currencyID).quality;
+                info = {
+                    name = currencyReward.name,
+                    texture = currencyReward.texture,
+                    quantity = currencyReward.totalRewardAmount,
+                    id = currencyID,
+                    questRewardContextFlags = currencyReward.questRewardContextFlags,
+                    quality = quality,
+                };
+                tinsert(currencies, info);
+            end
+
+            table.sort(currencies, SortFunc_QualityID);
+
+            if not rewards then
+                rewards = {};
+            end
+            rewards.currencies = currencies;
+
+            if #currencyRewards == 0 then
+                missingData = true;
+            end
+        elseif GetQuestLogRewardCurrencyInfo then
+            local numCurrencies = GetNumQuestLogRewardCurrencies(questID) or 0;
+            local name, texture, quantity, currencyID, quality;
+            local currencies;
+            for i = 1, numCurrencies do
+                name, texture, quantity, currencyID, quality = GetQuestLogRewardCurrencyInfo(i, questID);
+                if name then
+                    if not currencies then
+                        currencies = {};
+                    end
+                    local info = {
+                        name = name,
+                        texture = texture,
+                        quantity = quantity,
+                        id = currencyID,
+                        questRewardContextFlags = 0,
+                        quality = quality,
+                    };
+                    tinsert(currencies, info);
+                else
+                    missingData = true;
+                end
+            end
+
+            if currencies then
+                table.sort(currencies, SortFunc_QualityID);
+                if not rewards then
+                    rewards = {};
+                end
+                rewards.currencies = currencies;
+            end
+        end
+
+        if C_QuestInfoSystem.GetQuestRewardSpells and C_QuestInfoSystem.HasQuestRewardSpells(questID) then
+            local spells = {};
+            local spellRewards = C_QuestInfoSystem.GetQuestRewardSpells(questID);
+            local info;
+            for index, spellID in ipairs(spellRewards) do
+                info = C_QuestInfoSystem.GetQuestRewardSpellInfo(questID, spellID);
+                info.id = spellID;
+                tinsert(spells, info);
+            end
+
+            table.sort(spells,
+                function(a, b)
+                    if a.id ~= b.id then
+                        return a.id > b.id
+                    end
+
+                    return true
+                end
+            );
+
+            if not rewards then
+                rewards = {};
+            end
+            rewards.spells = spells;
+        end
+
+        local numItems = GetNumQuestLogRewards(questID);
+
+        if numItems > 0 then
+            local items = {};
+            local name, texture, quantity, quality, isUsable, itemID, itemLevel;
+            local info;
+            for index = 1, numItems do
+                name, texture, quantity, quality, isUsable, itemID, itemLevel = GetQuestLogRewardInfo(index, questID);
+                if name and itemID then
+                    info = {
+                        name = name,
+                        texture = texture,
+                        quantity = quantity,
+                        quality = quality,
+                        id = itemID,
+                    };
+                    tinsert(items, info);
+                else
+                    missingData = true;
+                end
+            end
+
+            table.sort(items, SortFunc_QualityID);
+
+            if not rewards then
+                rewards = {};
+            end
+            rewards.items = items;
+        end
+
+        local honor = GetQuestLogRewardHonor(questID);
+        if honor > 0 then
+            if not rewards then
+                rewards = {};
+            end
+            rewards.honor = honor;
+        end
+
+        return rewards, missingData
+    end
+
+    --[[
+    function YeetQuestForMap(uiMapID)
+        --Only contains quests with visible marker on the map
+        if not uiMapID then
+            uiMapID = C_Map.GetBestMapForUnit("player");
+        end
+
+        local function PrintQuests(quests)
+            if not quests then return end;
+            local questID, name;
+            for k, v in ipairs(quests) do
+                questID = v.questID;
+                name = GetQuestName(questID);
+                if name then
+                    print(questID, name);
+                else
+                    CallbackRegistry:LoadQuest(questID, function(_questID)
+                        print(questID, GetQuestName(questID));
+                    end);
+                end
+            end
+        end
+
+        PrintQuests(C_TaskQuest.GetQuestsOnMap(uiMapID));
+        print(" ");
+        PrintQuests(C_QuestLog.GetQuestsOnMap(uiMapID));
+    end
+    --]]
 end
 
-do  --Tooltip
+do  -- Tooltip
     if C_TooltipInfo then
         addon.TooltipAPI = C_TooltipInfo;
     else
@@ -2146,6 +3177,7 @@ do  --Tooltip
                 SetSpellByID = "GetSpellByID",
                 SetItemByGUID = "GetItemByGUID",
                 SetHyperlink = "GetHyperlink",
+                SetMerchantItem = "GetMerchantItem",
             };
 
             for accessor, getterName in pairs(accessors) do
@@ -2175,9 +3207,180 @@ do  --Tooltip
         tooltip:ProcessInfo(tooltipInfo);
     end
     API.SetTooltipWithPostCall = SetTooltipWithPostCall;
+
+
+    function API.GetDescriptionFromTooltip(questID)
+        if questID then
+            local hyperlink = "|Hquest:"..questID.."|h";
+            local data = addon.TooltipAPI.GetHyperlink(hyperlink);
+            if data then    --line3 is for unaccepeted quest
+                local index;
+                if C_QuestLog.IsOnQuest(questID) then
+                    index = 4;
+                else
+                    index = 3;
+                end
+                return data.lines[index] and data.lines[index].leftText or nil
+            end
+        end
+    end
+
+
+    local PseudoTooltipInfoMixin = {};
+    do
+        function PseudoTooltipInfoMixin:AddBlankLine()
+            tinsert(self.tooltipData.lines, {
+                leftText = " ",
+                wrapText = true,
+            });
+        end
+
+        function PseudoTooltipInfoMixin:AddLine(text, r, g, b, wrapText)
+            local color;
+            if type(r) == "table" then
+                color = r;
+            else
+                color = CreateColor(r, g, b);
+            end
+            if wrapText == nil then
+                wrapText = true;
+            end
+
+            tinsert(self.tooltipData.lines, {
+                leftText = text,
+                leftColor = color,
+                wrapText = wrapText,
+            });
+        end
+
+        function PseudoTooltipInfoMixin:AddDoubleLine(leftText, rightText, leftR, leftG, leftB, rightR, rightG, rightB)
+            local leftColor, rightColor;
+            if type(leftR) == "table" then
+                leftColor = leftR;
+                rightColor = leftG;
+            else
+                leftColor = CreateColor(leftR, leftG, leftB);
+                rightColor = CreateColor(rightR, rightG, rightB);
+            end
+            tinsert(self.tooltipData.lines, {
+                leftText = leftText,
+                leftColor = leftColor,
+                rightText = rightText,
+                rightColor = rightColor,
+            });
+        end
+    end
+
+    function API.CreateAppendTooltipInfo()
+        local info = {};
+        info.append = true;
+        info.tooltipData = {};
+        info.tooltipData.lines = {};
+        API.Mixin(info, PseudoTooltipInfoMixin);
+        info:AddBlankLine();
+        return info
+    end
+
+    function API.DisplayTooltipInfoOnTooltip(tooltip, info)
+        if tooltip.ProcessInfo and tooltip:IsShown() then
+            tooltip:ProcessInfo(info);
+            tooltip:Show();
+        end
+    end
+
+    function API.ConvertTooltipInfoToOneString(text, getterName, ...)
+        -- where ... are getterArgs
+        -- Ignore textures
+
+        local data = C_TooltipInfo[getterName](...)
+        if data and data.lines then
+            local lineText;
+            for i, line in ipairs(data.lines) do
+                lineText = line.leftText;
+                if i == 1 and lineText == "" then
+                    lineText = nil;
+                end
+                if lineText then
+                    if line.leftColor then
+                        lineText = line.leftColor:WrapTextInColorCode(lineText);
+                    end
+                    if text then
+                        text = text.."\n"..lineText;
+                    else
+                        text = lineText;
+                    end
+                end
+                lineText = line.rightText;
+                if lineText and lineText ~= "" then
+                    if line.rightColor then
+                        lineText = line.rightColor:WrapTextInColorCode(lineText);
+                    end
+                    if text then
+                        text = text.."\n"..lineText;
+                    else
+                        text = lineText;
+                    end
+                end
+            end
+        end
+        return text
+    end
+
+
+    local TextureInfoTable = {
+        width = 14,
+        height = 14,
+        margin = { left = 0, right = 4, top = 0, bottom = 0 },
+        texCoords = { left = 0.0625, right = 0.9375, top = 0.0625, bottom = 0.9375 },
+    };
+
+    function API.AddTextureToTooltip(tooltip, texture)
+        tooltip:AddTexture(texture, TextureInfoTable);
+    end
+
+    function API.AddCraftingReagentToTooltip(tooltip, item, quantityRequired)
+        local name = C_Item.GetItemNameByID(item) or ("item:"..item);
+        local count = C_Item.GetItemCount(item, true, false, true, true);
+        local icon =  C_Item.GetItemIconByID(item);
+        local rightText;
+        local isRed;
+
+        if quantityRequired then
+            rightText = count.."/"..quantityRequired;
+            isRed = count < quantityRequired;
+        else
+            rightText = count;
+        end
+
+        if isRed then
+            tooltip:AddDoubleLine(name, rightText, 1, 0.125, 0.125, 1, 0.125, 0.125);
+        else
+            tooltip:AddDoubleLine(name, rightText, 1, 1, 1, 1, 1, 1);
+        end
+
+        tooltip:AddTexture(icon, TextureInfoTable);
+
+        return true
+    end
+
+
+    local AdditionalTooltip = {};
+
+    function API.SetExtraTooltipForCurrency(currencyID, line)
+        --line: string or function
+        AdditionalTooltip[currencyID] = line;
+    end
+
+    function API.GetExtraTooltipForCurrency(currencyID)
+        local text = AdditionalTooltip[currencyID];
+        if type(text) == "function" then
+            text = text();
+        end
+        return text
+    end
 end
 
-do  --AsyncCallback
+do  -- AsyncCallback
     local AsyncCallback = CreateFrame("Frame");
 
     --LoadQuestAPI is not available in 60 Classic
@@ -2185,6 +3388,8 @@ do  --AsyncCallback
     AsyncCallback.WoWAPI_LoadQuest = C_QuestLog.RequestLoadQuestByID;
     AsyncCallback.WoWAPI_LoadItem = C_Item.RequestLoadItemDataByID;
     AsyncCallback.WoWAPI_LoadSpell = C_Spell.RequestLoadSpellData;
+
+    local CreatureNameCache = {};
 
     function AsyncCallback:RunAllCallbacks(list)
         for id, callbacks in pairs(list) do
@@ -2255,6 +3460,26 @@ do  --AsyncCallback
                 self:RunAllCallbacks(self.spellCallbacks);
                 self.spellCallbacks = nil;
             end
+
+            if self.creatureCallbacks then
+                for id, callbacks in pairs(self.creatureCallbacks) do
+                    local name = API.GetCreatureName(id);
+                    if name and name ~= "" then
+                        CreatureNameCache[id] = name;
+                    else
+                        name = nil;
+                    end
+                    if name then
+                        for _, callbackInfo in ipairs(callbacks) do
+                            if not callbackInfo.processed then
+                                callbackInfo.processed = true;
+                                callbackInfo.func(id, name);
+                            end
+                        end
+                    end
+                end
+                self.creatureCallbacks = nil;
+            end
         end
     end
 
@@ -2316,10 +3541,31 @@ do  --AsyncCallback
         AsyncCallback.t = 0;
         AsyncCallback:SetScript("OnUpdate", AsyncCallback.OnUpdate);
     end
+
+    function CallbackRegistry:LoadCreature(id, callback)
+        --Usually used to get npc name
+        AsyncCallback:AddCallback("creatureCallbacks", id, callback);
+        AsyncCallback.t = 0;
+        AsyncCallback:SetScript("OnUpdate", AsyncCallback.OnUpdate);
+    end
+
+
+    function API.GetAndCacheCreatureName(creatureID)
+        if CreatureNameCache[creatureID] then
+            return CreatureNameCache[creatureID]
+        end
+        local name = API.GetCreatureName(creatureID);
+        if name and name ~= "" then
+            CreatureNameCache[creatureID] = name;
+        else
+            name = nil;
+        end
+        return name
+    end
 end
 
-do  --Container Item Processor
-    local GetItemCount = C_Item.GetItemCount
+do  -- Container Item Processor
+    local GetItemCount = C_Item.GetItemCount;
     local GetContainerNumSlots = C_Container.GetContainerNumSlots;
     local GetContainerItemID = C_Container.GetContainerItemID;
     local GetItemInfoInstant = C_Item.GetItemInfoInstant;
@@ -2342,31 +3588,6 @@ do  --Container Item Processor
     local Processor = CreateFrame("Frame");
     local ITEM_OPENABLE = ITEM_OPENABLE or "<Right Click to Open>";
     local OPENABLE_ITEM = {};
-
-    local function IsItemOpenable(item)
-        local itemID, _, _, _, _, classID, subClassID = GetItemInfoInstant(item);
-        if OPENABLE_ITEM[itemID] ~= nil then
-            return OPENABLE_ITEM[itemID]
-        end
-
-        if classID == 15 and subClassID == 4 then
-            local bag, slot = GetItemBagPosition(itemID);
-            if bag and slot then
-                local tooltipData = GetBagItem(bag, slot);
-                if tooltipData then
-                    local lines = tooltipData.lines;
-                    local leftText = lines[#lines].leftText;
-                    if leftText and leftText == ITEM_OPENABLE then
-                        OPENABLE_ITEM[itemID] = true;
-                        return true
-                    else
-                        OPENABLE_ITEM[itemID] = false;
-                    end
-                end
-            end
-        end
-        return false
-    end
 
     function Processor:OnUpdate_Queue(elapsed)
         self.t = self.t + elapsed;
@@ -2461,20 +3682,125 @@ do  --Container Item Processor
         Processor.t = 0;
         Processor:SetScript("OnUpdate", Processor.OnUpdate_Queue);
     end
+
+    function API.DoesItemReallyExist(item)
+        local a = item and GetItemInfoInstant(item);
+        return a ~= nil
+    end
+
+    function API.IsItemContextToken(item)
+        local _, _, _, _, _, classID, subClassID = GetItemInfoInstant(item);
+        return classID == 5 and subClassID == 2
+    end
 end
 
 do  -- Chat Message
-    local ADDON_ICON = "|TInterface\\AddOns\\Plumber\\Art\\Logo\\PlumberLogo32:0:0|t";
+    local CM = {};
+    CM.iconMarkup = "|TInterface\\AddOns\\Plumber\\Art\\Logo\\PlumberLogo32:0:0|t";
+    CM.errorCounter = 0;
+    CM.errorTime = 0;
+
     local function PrintMessage(msg)
         if not msg then
             msg = "";
         end
-        print(ADDON_ICON.." |cffb8c8d1Plumber:|r "..msg);
+        print(CM.iconMarkup.." |cffb8c8d1Plumber:|r "..msg);
     end
     API.PrintMessage = PrintMessage;
+
+    function API.DisplayErrorMessage(msg)
+        if not msg then return end;
+        local messageType = 0;
+        UIErrorsFrame:TryDisplayMessage(messageType, (CM.iconMarkup.." |cffb8c8d1Plumber:|r ")..msg, RED_FONT_COLOR:GetRGB());
+    end
+
+    function API.CheckAndDisplayErrorIfInCombat()
+        if InCombatLockdown() then
+            local timeStamp = GetTime();
+            if timeStamp > CM.errorTime + 2 then
+                CM.errorCounter = 0;
+            else
+                CM.errorCounter = CM.errorCounter + 1;
+            end
+            CM.errorTime = timeStamp;
+
+            if CM.errorCounter < 2 then
+                API.DisplayErrorMessage(L["Error Show UI In Combat"]);
+            elseif CM.errorCounter < 4 then
+                API.DisplayErrorMessage(L["Error Show UI In Combat 1"]);
+            elseif CM.errorCounter < 5 then
+                API.DisplayErrorMessage(L["Error Show UI In Combat 2"]);
+            end
+
+            return true
+        else
+            return false
+        end
+    end
 end
 
-do  --11.0 Menu Formatter
+do  -- Custom Hyperlink ItemRef
+
+    --[[--Example
+        local CustomLink = {};
+    
+        CustomLink.typeName = "Test";
+        CustomLink.colorCode = "66bbff";	--LINK_FONT_COLOR
+    
+        function CustomLink.callback(arg1, arg2, arg3)
+            print(arg1, arg2, arg3);
+        end
+    
+        API.AddCustomLinkType(CustomLink.typeName, CustomLink.callback, CustomLink.colorCode);
+    
+        function CustomLink.GenerateLink(arg1, arg2, arg3)
+            return API.GenerateCustomLink(CustomLink.typeName, L["Click To See Details"], arg1, arg2, arg3);
+        end
+    --]]
+
+    local CustomLinkUtil = {};
+
+    function API.AddCustomLinkType(typeName, callback, colorCode)
+        CustomLinkUtil[typeName] = {
+            callback = callback,
+            colorCode = colorCode,
+        };
+    end
+
+    function API.GenerateCustomLink(typeName, displayedText, ...)
+        if CustomLinkUtil[typeName] then
+            if not CustomLinkUtil.registered then
+                CustomLinkUtil.registered = true;
+                EventRegistry:RegisterCallback("SetItemRef", function(_, link, text, button, chatFrame)
+                    if link then
+                        local _typeName, subText = match(link, "plumber:([^:]+):([^|]+)");
+                        if _typeName and CustomLinkUtil[_typeName] then
+                            local args = {};
+                            for arg in string.gmatch(subText, "[^:]+") do
+                                tinsert(args, arg);
+                            end
+                            CustomLinkUtil[_typeName].callback(unpack(args));
+                        end
+                    end
+                end);
+            end
+
+            --|cffxxxxxx|Htype:payload|h[text]|h|r
+            local args = {...};
+            local link = "|Haddon:plumber:"..typeName;
+
+            for i, v in ipairs(args) do
+                link = link..":"..v;
+            end
+
+            link = format("|cff%s%s|h[%s]|h|r", CustomLinkUtil[typeName].colorCode or "ffd100", link, displayedText);
+
+            return link
+        end
+    end
+end
+
+do  -- 11.0 Menu Formatter
     function API.ShowBlizzardMenu(ownerRegion, schematic, contextData)
         contextData = contextData or {};
 
@@ -2496,14 +3822,61 @@ do  --11.0 Menu Formatter
                     elementDescription = rootDescription:CreateButton(info.name, info.OnClick);
                 elseif info.type == "Checkbox" then
                     elementDescription = rootDescription:CreateCheckbox(info.name, info.IsSelected, info.ToggleSelected);
+                elseif info.type == "Submenu" then
+                    elementDescription = rootDescription:CreateButton(L["Pin Size"]);
+
+                    local function IsSelected(index)
+                        --Override
+                        return false
+                    end
+
+                    local response = info.response and MenuResponse and MenuResponse[info.response] or 2;
+
+                    local function SetSelected(index)
+                        info.SetSelected(index);
+                        return response
+                    end
+
+                    for index, text in ipairs(info.radios) do
+                        elementDescription:CreateRadio(text, info.IsSelected or IsSelected, SetSelected, index);
+                    end
+                elseif info.type == "Radio" then
+                    local function IsSelected(index)
+                        --Override
+                        return false
+                    end
+
+                    local response = info.response and MenuResponse and MenuResponse[info.response] or 2;
+
+                    local function SetSelected(index)
+                        info.SetSelected(index);
+                        return response
+                    end
+
+                    for index, text in ipairs(info.radios) do
+                        elementDescription = rootDescription:CreateRadio(text, info.IsSelected or IsSelected, SetSelected, index);
+                    end
+                end
+
+                if info.IsEnabledFunc then
+                    local enabled = info.IsEnabledFunc();
+                    elementDescription:SetEnabled(enabled);
                 end
 
                 if info.tooltip then
                     elementDescription:SetTooltip(function(tooltip, elementDescription)
-                        GameTooltip_SetTitle(tooltip, MenuUtil.GetElementText(elementDescription));
-                        GameTooltip_AddNormalLine(tooltip, info.tooltip);
                         --GameTooltip_AddInstructionLine(tooltip, "Test Tooltip Instruction");
                         --GameTooltip_AddErrorLine(tooltip, "Test Tooltip Colored Line");
+                        if info.DynamicTooltipFunc then
+                            local text, r, g, b = info.DynamicTooltipFunc();
+                            if text then
+                                GameTooltip_SetTitle(tooltip, MenuUtil.GetElementText(elementDescription));
+                                tooltip:AddLine(text, r, g, b, true);
+                            end
+                        else
+                            GameTooltip_SetTitle(tooltip, MenuUtil.GetElementText(elementDescription));
+                            GameTooltip_AddNormalLine(tooltip, info.tooltip);
+                        end
                     end);
                 end
 
@@ -2558,7 +3931,539 @@ do  --11.0 Menu Formatter
     end
 end
 
+do  -- Slash Commands
+    local SlashCmdUtil = {};
+    SlashCmdUtil.functions = {};
+    SlashCmdUtil.alias = "plmr";
+    SlashCmdUtil.cmdID = {
+        DrawerMacro = 1,
+    };
 
+    function SlashCmdUtil.Process(input)
+        if input and type(input) == "string" then
+            input = " "..input;
+            local token;
+            local args = {};
+            for arg in string.gmatch(input, "%s+([%S]+)") do
+                if not token then
+                    token = arg;
+                else
+                    tinsert(args, arg);
+                end
+            end
+
+            if token and SlashCmdUtil.functions[token] then
+                SlashCmdUtil.functions[token](unpack(args));
+            end
+        end
+    end
+
+    function SlashCmdUtil.CreateSlashCommand(func, alias1, alias2)
+        local name = "PLUMBERCMD";
+        if alias1 then
+            _G["SLASH_"..name.."1"] = "/"..alias1;
+        end
+        if alias2 then
+            _G["SLASH_"..name.."2"] = "/"..alias2;
+        end
+        SlashCmdList[name] = func;
+    end
+    API.CreateSlashCommand = SlashCmdUtil.CreateSlashCommand;
+
+    function API.AddSlashSubcommand(name, func)
+        if not SlashCmdUtil.cmdID[name] then return end;
+
+        if not SlashCmdUtil.cmdAdded then
+            SlashCmdUtil.CreateSlashCommand(SlashCmdUtil.Process, SlashCmdUtil.alias);
+        end
+
+        local token = tostring(SlashCmdUtil.cmdID[name]);
+        SlashCmdUtil.functions[token] = func;
+    end
+
+    function API.GetSlashSubcommand(name)
+        if SlashCmdUtil.cmdID[name] then
+            return string.format("/%s %s", SlashCmdUtil.alias, SlashCmdUtil.cmdID[name]);
+        end
+    end
+end
+
+do  -- Macro Util
+    local WoWAPI = {
+        IsPlayerSpell = IsPlayerSpell,
+        PlayerHasToy = PlayerHasToy or Nop,
+        GetItemCount = C_Item.GetItemCount,
+        GetItemCraftedQualityByItemInfo = C_TradeSkillUI and C_TradeSkillUI.GetItemCraftedQualityByItemInfo or Nop,
+        GetItemReagentQualityByItemInfo = C_TradeSkillUI and C_TradeSkillUI.GetItemReagentQualityByItemInfo or Nop,
+        --IsConsumableItem = C_Item.IsConsumableItem or Nop,    --This is not what we thought it is
+        GetItemInfoInstant = C_Item.GetItemInfoInstant,
+        FindPetIDByName = C_PetJournal and C_PetJournal.FindPetIDByName or Nop,
+        GetPetInfoBySpeciesID = C_PetJournal and C_PetJournal.GetPetInfoBySpeciesID or Nop,
+    };
+
+    function API.CanPlayerPerformAction(actionType, arg1, arg2)
+        if actionType == "spell" then
+            return API.IsSpellKnown(arg1) or WoWAPI.IsPlayerSpell(arg1)
+        elseif actionType == "item" then
+            if API.IsToyItem(arg1) then
+                return WoWAPI.PlayerHasToy(arg1)
+            else
+                local _, _, _, _, _, classID, subClassID = WoWAPI.GetItemInfoInstant(arg1);
+
+                --always return true for conumable items in case player needs to restock
+                --if classID == 0 then
+                --    return true
+                --end
+                local isConsumable = classID == 0;
+
+                local count = WoWAPI.GetItemCount(arg1, true, true, true, true);
+                return count > 0, isConsumable
+            end
+        end
+
+        return true     --always return true for unrecognized action
+    end
+
+    function API.GetItemCraftingQuality(item)
+        local quality = WoWAPI.GetItemCraftedQualityByItemInfo(item);
+        if not quality then
+            quality = WoWAPI.GetItemReagentQualityByItemInfo(item);
+        end
+        return quality
+    end
+
+    function API.GetPetNameAndUsability(speciesID, checkUsability)
+        local name = WoWAPI.GetPetInfoBySpeciesID(speciesID);
+        if checkUsability then
+            local _, petGUID = WoWAPI.FindPetIDByName(name);
+            return name, petGUID ~= nil
+        else
+            return name
+        end
+    end
+end
+
+do  -- Professions
+    --/dump ProfessionsBook_GetSpellBookItemSlot(GetMouseFoci()[1]) --Used on ProfessionsBookFrame SpellButton
+
+    local GetProfessions = GetProfessions;
+    local GetProfessionInfo = GetProfessionInfo;
+    local GetSpellBookItemType = (C_SpellBook and C_SpellBook.GetSpellBookItemType) or GetSpellBookItemInfo;
+
+    function API.GetProfessionSpellInfo(professionOrderIndex)
+        local prof1, prof2, archaeology, fishing, cooking = GetProfessions();
+        local index;
+
+        if professionOrderIndex == 2 then
+            index = prof2;
+        else
+            index = prof1;
+        end
+
+        if not index then return end;
+
+        local name, texture, rank, maxRank, numSpells, spellOffset, skillLine, rankModifier, specializationIndex, specializationOffset, skillLineName = GetProfessionInfo(index);
+        if not spellOffset then return end;
+
+        local buttonID = 1;     --PrimaryProfessionSpellButtonBottom
+        local slotIndex = spellOffset + buttonID;
+        local activeSpellBank = 0;  --Enum.SpellBookSpellBank.Player
+        local itemType, actionID, spellID = GetSpellBookItemType(slotIndex, activeSpellBank);
+
+        --Classic
+        if not spellID then
+            spellID = actionID;
+        end
+
+        local tbl = {
+            spellID = spellID,
+            texture = texture,
+            name = name,
+            slotIndex = slotIndex,
+            activeSpellBank = activeSpellBank,
+            skillLine = skillLine,
+        };
+
+        return tbl
+    end
+
+    if C_TradeSkillUI and C_TradeSkillUI.OpenTradeSkill then
+        --Retail
+        function API.OpenProfessionFrame(professionOrderIndex)
+            local info = API.GetProfessionSpellInfo(professionOrderIndex);
+            if info then
+                local currBaseProfessionInfo = C_TradeSkillUI.GetBaseProfessionInfo();
+                if (not currBaseProfessionInfo) or (currBaseProfessionInfo.professionID ~= info.skillLine) then
+                    C_TradeSkillUI.OpenTradeSkill(info.skillLine);
+                    --C_SpellBook.CastSpellBookItem(info.slotIndex, info.activeSpellBank);
+                else
+                    C_TradeSkillUI.CloseTradeSkill();
+                end
+            end
+        end
+    else
+        --Classic
+        function API.OpenProfessionFrame(professionOrderIndex)
+            local info = API.GetProfessionSpellInfo(professionOrderIndex);
+            if info then
+                CastSpell(info.slotIndex, "professions");
+            end
+        end
+    end
+    PlumberGlobals.OpenProfessionFrame = API.OpenProfessionFrame;
+end
+
+do  -- Addon Skin
+    local AddOnSkinHandler = {
+        ElvUI = {
+            global = "ElvUI",
+            root = function() local E = ElvUI[1]; return E:GetModule("Skins") end,
+            handlerKey = {
+                editbox = "HandleEditBox";
+            };
+        },
+    };
+
+    function API.SetupSkinExternal(object)
+        local objectType = object:GetObjectType();
+        objectType = string.lower(objectType);
+
+        for addOnName, v in pairs(AddOnSkinHandler) do
+            if _G[v.global] then
+                local root = v.root();
+                if v.handlerKey[objectType] then
+                    root[v.handlerKey[objectType]](root, object);
+                    return true, addOnName
+                end
+            end
+        end
+    end
+end
+
+do  -- FrameUtil
+    function API.RegisterFrameForEvents(frame, events)
+        for i, event in ipairs(events) do
+            frame:RegisterEvent(event);
+        end
+    end
+
+    function API.UnregisterFrameForEvents(frame, events)
+        for i, event in ipairs(events) do
+            frame:UnregisterEvent(event);
+        end
+    end
+end
+
+do  -- Locale-dependent API
+    local locale = GetLocale();
+    if locale == "ruRU" then
+        function API.GetItemCountFromText(text)
+            --"r%s*[xх](%d+)" doesn't work
+            local count = match(text, "r%s*x(%d+)");
+            if not count then
+                count = match(text, "r%s*х(%d+)");
+            end
+            if count then
+                return tonumber(count)
+            else
+                return 1
+            end
+        end
+    elseif locale == "zhCN" or locale == "zhTW" then
+        function API.GetItemCountFromText(text)
+            local count = match(text, "r%s*x(%d+)");
+            if count then
+                return tonumber(count)
+            else
+                return 1
+            end
+        end
+    elseif locale == "frFR" then
+        function API.GetItemCountFromText(text)
+            local count = match(text, "|r[%s ]*x(%d+)");
+            if count then
+                return tonumber(count)
+            else
+                return 1
+            end
+        end
+    else
+        function API.GetItemCountFromText(text)
+            local count = match(text, "|r%s*x(%d+)");
+            if count then
+                return tonumber(count)
+            else
+                return 1
+            end
+        end
+    end
+
+    if locale == "zhCN" or locale == "zhTW" then
+        function API.RemoveTextBeforeColon(text)
+            if find(text, ": ") then
+                return match(text, ": (.+)");
+            elseif find(text, "：") then
+                return match(text, "：(.+)");
+            else
+                return text
+            end
+        end
+    else
+        function API.RemoveTextBeforeColon(text)
+            if find(text, ":") then
+                text = match(text, ":%s*(.+)");
+            end
+
+            if find(text, "- ") then
+                text = match(text, "- (.+)");
+            end
+
+            return text
+        end
+    end
+end
+
+do  -- Delves
+    local function IsInDelves()
+        --See Blizzard InstanceDifficulty.lua
+        --[[    --This fails when relogging inside a delve
+        local _, _, _, mapID = UnitPosition("player");
+        local HasActiveDelve = C_DelvesUI and C_DelvesUI.HasActiveDelve or Nop;
+        return mapID and HasActiveDelve(mapID);
+        --]]
+        return C_PartyInfo.IsPartyWalkIn and C_PartyInfo.IsPartyWalkIn()    --See INSTANCE_WALK_IN_LEAVE
+    end
+    API.IsInDelves = IsInDelves;
+
+    function API.DisplayDelvesGreatVaultTooltip(owner, tooltip, index, level, id, progressDelta)
+        --Set the tooltip owner prior to this
+        --for Delves, level is the tier number
+
+
+        if level == 0 then
+            GameTooltip_SetTitle(tooltip, WEEKLY_REWARDS_UNLOCK_REWARD);
+
+            local description;
+
+            if index == 2 then
+                description = GREAT_VAULT_REWARDS_WORLD_COMPLETED_FIRST;
+            elseif index == 3 then
+                description = GREAT_VAULT_REWARDS_WORLD_COMPLETED_SECOND;
+            else
+                description = GREAT_VAULT_REWARDS_WORLD_INCOMPLETE;
+            end
+
+            local formatRemainingProgress = true;
+
+            if formatRemainingProgress then
+                GameTooltip_AddNormalLine(tooltip, description:format(progressDelta));
+            else
+                GameTooltip_AddNormalLine(tooltip, description);
+            end
+        else
+            GameTooltip_SetTitle(tooltip, WEEKLY_REWARDS_CURRENT_REWARD);
+
+
+            --[[
+            --This default method is unreliable since 11.2.0, so we hardcode itemlevel
+            local itemLink, upgradeItemLink = C_WeeklyRewards.GetExampleRewardItemHyperlinks(id);
+            local itemLevel, upgradeItemLevel;
+
+            if itemLink then
+                itemLevel = C_Item.GetDetailedItemLevelInfo(itemLink);
+            end
+            if upgradeItemLink then
+                upgradeItemLevel = C_Item.GetDetailedItemLevelInfo(upgradeItemLink);
+            end
+            --]]
+
+            local itemLevel = API.GetDelvesGreatVaultItemLevel(level);
+
+            local nextLevel = level + 1;
+            local upgradeItemLevel = API.GetDelvesGreatVaultItemLevel(nextLevel);
+
+            if level > 0 and itemLevel then
+                GameTooltip_AddNormalLine(tooltip, string.format(WEEKLY_REWARDS_ITEM_LEVEL_WORLD, itemLevel, level));
+            end
+
+            GameTooltip_AddBlankLineToTooltip(tooltip);
+
+            if level == 0 or (upgradeItemLevel and upgradeItemLevel > itemLevel) then
+                GameTooltip_AddColoredLine(tooltip, string.format(WEEKLY_REWARDS_IMPROVE_ITEM_LEVEL, upgradeItemLevel), GREEN_FONT_COLOR);
+                GameTooltip_AddHighlightLine(tooltip, string.format(WEEKLY_REWARDS_COMPLETE_WORLD, nextLevel));
+            else
+                GameTooltip_AddColoredLine(tooltip, WEEKLY_REWARDS_MAXED_REWARD, GREEN_FONT_COLOR);
+            end
+        end
+
+        tooltip:Show();
+    end
+
+    if C_EventUtils.IsEventValid("WALK_IN_DATA_UPDATE") then
+        local EL = CreateFrame("Frame");
+        EL:RegisterEvent("PLAYER_ENTERING_WORLD");
+
+        function EL:UpdateInDelveStatus()
+            --print("IsInDelves", IsInDelves());
+            if IsInDelves() then
+                self:RegisterEvent("PLAYER_MAP_CHANGED");
+                self:RegisterEvent("PLAYER_ENTERING_WORLD");
+                if not self.wasInDelves then
+                    self.wasInDelves = true;
+                    CallbackRegistry:Trigger("PLAYER_IN_DELVES", true);
+                end
+                return true
+            else
+                self:RegisterEvent("WALK_IN_DATA_UPDATE");
+                self:UnregisterEvent("PLAYER_MAP_CHANGED");
+                self:UnregisterEvent("PLAYER_ENTERING_WORLD");
+                if self.wasInDelves then
+                    self.wasInDelves = nil;
+                    CallbackRegistry:Trigger("PLAYER_IN_DELVES", false);
+                end
+                return false
+            end
+        end
+
+        function EL:OnUpdate(elapsed)
+            self.t = self.t + elapsed;
+            if self.t > 0.5 then
+                --Mandatory delay because IsPartyWalkIn still returns true the moment you leave a delve
+                self.t = 0;
+                self:SetScript("OnUpdate", nil);
+                self:UpdateInDelveStatus();
+            end
+        end
+
+        function EL:OnEvent(event, ...)
+            self.t = 0;
+            self:SetScript("OnUpdate", self.OnUpdate);
+        end
+        EL:SetScript("OnEvent", EL.OnEvent);
+    end
+end
+
+do  -- FocusSolver (Run something when being hovered long enough)
+    local FocusSolverMixin = {};
+
+    function FocusSolverMixin:OnUpdate(elapsed)
+        self.t = self.t + elapsed;
+        if self.t > self.delay then
+            self.t = nil;
+            self:SetScript("OnUpdate", nil);
+            if self:IsObjectFocused() then
+                if self.useModifierKeys then
+                    self:RegisterEvent("MODIFIER_STATE_CHANGED");
+                end
+                self.object:OnFocused();
+            else
+                self:UnregisterEvent("MODIFIER_STATE_CHANGED");
+            end
+        end
+    end
+
+    function FocusSolverMixin:Stop()
+        self.t = nil;
+        self:SetScript("OnUpdate", nil);
+        self:UnregisterEvent("MODIFIER_STATE_CHANGED");
+    end
+
+    function FocusSolverMixin:SetFocus(object)
+        self.object = object;
+        if object then
+            if not self.t then
+                self:SetScript("OnUpdate", self.OnUpdate);
+            end
+            self.t = 0;
+        else
+            self:Stop();
+        end
+    end
+
+    function FocusSolverMixin:OnEvent(event, ...)
+        if event == "MODIFIER_STATE_CHANGED" then
+            if self.object and self.object:IsMouseMotionFocus() then
+                self.object:OnFocused();
+            end
+        end
+    end
+
+    function FocusSolverMixin:SetDelay(delay)
+        self.delay = delay;
+    end
+
+    function FocusSolverMixin:SetUseModifierKeys(useModifierKeys)
+        self.useModifierKeys = useModifierKeys;
+    end
+
+    function FocusSolverMixin:OnHide()
+        self:Stop();
+    end
+
+    function FocusSolverMixin:IsObjectFocused()
+        if self.object then
+            return self.object:IsMouseMotionFocus() or (self.gamepadMode and self:IsObjectGamePadCursorFocused(self.object))
+        end
+    end
+
+    function FocusSolverMixin:IsObjectGamePadCursorFocused(object)
+        return false
+    end
+
+    function FocusSolverMixin:SetGamePadMode(enabled)
+        self.gamepadMode = enabled;
+
+        if enabled then
+            if ConsolePort and ConsolePort.GetCursorNode then
+                function self:IsObjectGamePadCursorFocused(object)
+                    return ConsolePort:GetCursorNode() == object
+                end
+            end
+        end
+    end
+
+    function API.CreateFocusSolver(parent)
+        local f = CreateFrame("Frame", nil, parent);
+        API.Mixin(f, FocusSolverMixin);
+        f:SetScript("OnHide", f.OnHide);
+        f:SetDelay(0.05);
+        return f
+    end
+end
+
+do  -- Timerunning Remix
+    function API.GetTimerunningSeason()
+        return PlayerGetTimerunningSeasonID and PlayerGetTimerunningSeasonID()
+    end
+end
+
+do  -- Plumber Settings
+    local ModuleOptionFrames = {
+        --[frame] = "CloseMethod" (function)
+    };
+
+    addon.AddModuleOptionExitMethod = function(frame, method)
+        ModuleOptionFrames[frame] = method
+    end
+
+    addon.CloseAllModuleOptions = function()
+        --return true: any closed
+        for frame, method in pairs(ModuleOptionFrames) do
+            if method(frame) then
+                return true
+            end
+        end
+        return false
+    end
+
+    addon.AnyShownModuleOptions = function()
+        for frame in pairs(ModuleOptionFrames) do
+            if (frame.IsShown and frame:IsShown()) then
+                return true
+            end
+        end
+    end
+end
 
 
 --[[

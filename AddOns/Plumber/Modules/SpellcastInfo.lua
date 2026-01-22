@@ -1,6 +1,8 @@
 -- Show the info of your target's spell that's being cast
 
 local _, addon = ...
+if addon.IS_MIDNIGHT then return end;
+
 local API = addon.API;
 local L = addon.L;
 local CallbackRegistry = addon.CallbackRegistry;
@@ -282,7 +284,8 @@ local function AttachFrameToCastingBar(bar, overlay)
         f:OnLoad();
     end
 
-    if bar.Icon then
+    if bar.Icon and false then
+        --We temporarily disable this because we might encounter negative area if the icon is on the right
         f:SetPoint("TOPLEFT", bar.Icon, "TOPLEFT", 0, 0);
     else
         f:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, 0);
@@ -419,8 +422,12 @@ end
 
 
 local AttachedBars = {
+    --[GlobalName] = {unit = unit},
     TargetFrameSpellBar = {unit = "target"},
     FocusFrameSpellBar = {unit = "focus"},
+
+    ElvUF_Target_CastBar = {unit = "target"},
+    ElvUF_Focus_CastBar = {unit = "focus"},
 };
 
 
@@ -465,6 +472,9 @@ do
         categoryID = 1,
         uiOrder = 1155,
         moduleAddedTime = 1732700000,
+		categoryKeys = {
+			"UnitFrame",
+		},
     };
 
     addon.ControlCenter:AddModule(moduleData);

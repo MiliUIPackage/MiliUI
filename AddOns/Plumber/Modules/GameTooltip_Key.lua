@@ -3,13 +3,12 @@ local L = addon.L;
 local API = addon.API;
 
 local GetMapID = API.GetMapID;
-local StripHyperlinks = StripHyperlinks;
+local StripHyperlinks = API.StripHyperlinks;
+local Secret_CanAccess = API.Secret_CanAccess;
 local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo;
 local GetItemName = C_Item.GetItemNameByID;
 local GetItemCount = C_Item.GetItemCount;
 local GetItemIcon = C_Item.GetItemIconByID;
-local find = string.find;
-local GetMinimapZoneText = GetMinimapZoneText;
 
 local KEY_QUANTITY_FORMAT = "%d / %d |T%s:16:16|t";
 
@@ -38,7 +37,7 @@ local ZONE_DOORS = {
 local SUPPORTED_MAPS = {};
 
 do
-    local DELVE_INSTANCE = {
+    local DELVE_INSTANCE = {    --/dump GetInstanceInfo()
         2664,
         2679,
         2680,
@@ -53,6 +52,9 @@ do
         2689,
         2690,
         2767,
+        2815,
+        2826,
+        2803,
     };
 
     for _, mapID in ipairs(DELVE_INSTANCE) do
@@ -105,7 +107,7 @@ local function Post_GetWorldCursor(tooltip, tooltipData)
     if not (MODULE_ENABLED and IN_VALID_ZONE) then return end;
 
     local name = tooltipData.lines and tooltipData.lines[1] and tooltipData.lines[1].leftText;
-    if name and name ~= "" then
+    if Secret_CanAccess(name) and name and name ~= "" then
         name = StripHyperlinks(name);
 
         if NAME_KEYS[name] then
@@ -130,9 +132,9 @@ local function Post_GetWorldCursor(tooltip, tooltipData)
 
             if numOwned then
                 if numOwned < numRequired then
-                    tooltip:AddDoubleLine(keyName, string.format(KEY_QUANTITY_FORMAT, numRequired, numOwned, icon), 1.000, 0.125, 0.125, 1.000, 0.125, 0.125);
+                    tooltip:AddDoubleLine(keyName, string.format(KEY_QUANTITY_FORMAT, numOwned, numRequired, icon), 1.000, 0.125, 0.125, 1.000, 0.125, 0.125);
                 else
-                    tooltip:AddDoubleLine(keyName, string.format(KEY_QUANTITY_FORMAT, numRequired, numOwned, icon));
+                    tooltip:AddDoubleLine(keyName, string.format(KEY_QUANTITY_FORMAT, numOwned, numRequired, icon));
                 end
 
                 tooltip:Show();
@@ -204,6 +206,12 @@ do
         categoryID = 3,
         uiOrder = 1110,
         moduleAddedTime = 1718500000,
+		categoryKeys = {
+			"Instance",
+		},
+        searchTags = {
+            "Tooltip",
+        },
     };
 
     addon.ControlCenter:AddModule(moduleData);

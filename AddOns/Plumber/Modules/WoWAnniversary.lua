@@ -815,9 +815,13 @@ do
         toggleFunc = EnableModule,
         categoryID = 1,
         uiOrder = 1150,
-        moduleAddedTime = 1729500000,
+        moduleAddedTime = 1763300000,
         validityCheck = ValidityCheck,
         optionToggleFunc = OptionToggle_OnClick,
+        hasMovableWidget = true,
+		categoryKeys = {
+			"Collection",
+		},
     };
 
     addon.ControlCenter:AddModule(moduleData);

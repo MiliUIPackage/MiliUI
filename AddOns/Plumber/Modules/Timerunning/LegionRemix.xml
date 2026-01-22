@@ -1,0 +1,392 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\FrameXML\UI.xsd">
+	<Script file="LegionRemix_Core.lua"/>
+	<Script file="LegionRemix_Test.lua"/>
+	<Script file="LegionRemix_Macro.lua"/>
+	<Script file="LegionRemix_UI.lua"/>
+	<Script file="LegionRemix_HideWorldTier.lua"/>
+	<Script file="LegionRemix_LFGSpam.lua"/>
+
+
+	<Frame name="PlumberRemixArtifactUITemplate" hidden="true" virtual="true">
+		<Size x="32" y="160"/>
+	</Frame>
+
+	<Button name="PlumberLegionRemixThreeArrowsTemplate" virtual="true">
+		<Size x="24" y="24"/>
+		<Layers>
+			<Layer level="OVERLAY">
+				<Texture parentKey="Border">
+					<Size x="32" y="32"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+	</Button>
+
+	<Button name="PlumberLegionRemixNodeTemplate" virtual="true">
+		<Size x="40" y="40"/>
+		<Layers>
+			<Layer level="OVERLAY" textureSubLevel="5">
+				<FontString parentKey="RankText" inherits="SystemFont16_Shadow_ThickOutline">
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+			<Layer level="OVERLAY" textureSubLevel="-1">
+				<Texture parentKey="Border" texelSnappingBias="0.0" snapToPixelGrid="false">
+					<Size x="64" y="64"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY" textureSubLevel="0">
+				<Texture parentKey="GreenGlow" alphaMode="ADD" hidden="true">
+					<Size x="80" y="80"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+					<Animations>
+						<AnimationGroup parentKey="Anim" looping="REPEAT" setToFinalAlpha="true">
+							<Alpha fromAlpha="0" toAlpha="1" duration="0.25" order="1" smoothing="OUT"/>
+							<Alpha fromAlpha="1" toAlpha="0" duration="0.75" order="2" smoothing="IN"/>
+						</AnimationGroup>
+					</Animations>
+					<Scripts>
+						<OnShow>
+							self.Anim:Play();
+						</OnShow>
+						<OnHide>
+							self.Anim:Stop();
+						</OnHide>
+					</Scripts>
+				</Texture>
+
+				<Texture parentKey="Sheen" alphaMode="ADD" texelSnappingBias="0.0" snapToPixelGrid="false" hidden="true">
+					<Size x="92" y="92"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+
+				<MaskTexture parentKey="SheenMask" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE" hidden="true">
+					<Size x="80" y="80"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+					<MaskedTextures>
+						<MaskedTexture childKey="Sheen"/>
+					</MaskedTextures>
+				</MaskTexture>
+			</Layer>
+			<Layer level="ARTWORK">
+				<Texture parentKey="Icon">
+					<Size x="38" y="38"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+				<MaskTexture parentKey="IconMask" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
+					<Size x="38" y="38"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+					<MaskedTextures>
+						<MaskedTexture childKey="Icon"/>
+					</MaskedTextures>
+				</MaskTexture>
+			</Layer>
+		</Layers>
+		<Animations>
+			<AnimationGroup parentKey="AnimSheen">
+				<Alpha fromAlpha="0" toAlpha="1" duration="0.05" order="1" childKey="Sheen"/>
+				<Alpha fromAlpha="1" toAlpha="0" duration="0.5" startDelay="1.5" order="1" childKey="Sheen"/>
+				<Scale scaleX="8" scaleY="8" duration="1.5" order="1" smoothing="IN" childKey="SheenMask"/>
+			</AnimationGroup>
+		</Animations>
+	</Button>
+
+	<Frame name="PlumberLegionRemixTooltipTemplate" hidden="true" clampedToScreen="true" virtual="true">
+		<Size x="256" y="256"/>
+		<Layers>
+			<Layer level="OVERLAY">
+				<FontString parentKey="Header" inherits="GameTooltipHeaderText" justifyH="LEFT" spacing="2">
+					<Size x="240"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent" relativePoint="TOPLEFT" x="20" y="-20"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="Desc" inherits="GameTooltipText" justifyH="LEFT" justifyV="MIDDLE" spacing="2">
+					<Size x="240"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Header" relativePoint="BOTTOMLEFT" x="0" y="-4"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+			<Layer level="ARTWORK">
+				<Texture parentKey="Icon" alpha="0.5">
+					<Size x="64" y="64"/>
+					<TexCoords left="0.0625" right="0.9375" top="0.0625" bottom="0.9375"/>
+					<Anchors>
+						<Anchor point="TOPRIGHT" relativeKey="$parent" relativePoint="TOPRIGHT" x="-18" y="-18"/>
+					</Anchors>
+				</Texture>
+				<MaskTexture parentKey="IconMask" file="Interface/AddOns/Plumber/Art/Timerunning/TooltipIconMask" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="TOPLEFT"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon" relativePoint="BOTTOMRIGHT"/>
+					</Anchors>
+					<MaskedTextures>
+						<MaskedTexture childKey="Icon"/>
+					</MaskedTextures>
+				</MaskTexture>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Frame parentKey="BackgroundFrame" setAllPoints="true" useParentLevel="true">
+				<Size x="256" y="256"/>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture parentKey="Texture" setAllPoints="true" file="Interface/AddOns/Plumber/Art/Timerunning/TooltipBackground.png" alpha="0.8">
+							<TextureSliceMode mode="Tiled"/>
+							<TextureSliceMargins left="32" right="32" top="32" bottom="60"/>
+						</Texture>
+					</Layer>
+				</Layers>
+			</Frame>
+		</Frames>
+	</Frame>
+
+	<Button name="PlumberLegionRemixCardTemplate" enableMouse="true" enableMouseMotion="true" virtual="true">
+		<Size x="732" y="108"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="Background" texelSnappingBias="0.0" snapToPixelGrid="false">
+					<Size x="768" y="160"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="BACKGROUND" textureSubLevel="1">
+				<Texture parentKey="ActivateFX" texelSnappingBias="0.0" snapToPixelGrid="false" alpha="0" hidden="true">
+					<Size x="768" y="160"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Background" relativePoint="TOPLEFT"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Background" relativePoint="BOTTOMRIGHT"/>
+					</Anchors>
+				</Texture>
+				<MaskTexture parentKey="ActivateFXMask" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
+					<Size x="64" y="64"/>
+					<Anchors>
+						<Anchor point="CENTER" relativeKey="$parent" relativePoint="LEFT" x="104"/>
+					</Anchors>
+					<MaskedTextures>
+						<MaskedTexture childKey="ActivateFX"/>
+					</MaskedTextures>
+				</MaskTexture>
+			</Layer>
+			<Layer level="BACKGROUND" textureSubLevel="5">
+				<Texture parentKey="Div" texelSnappingBias="0.0" snapToPixelGrid="false">
+					<Size x="32" y="96"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+				<Texture parentKey="EdgeGlow1">
+					<Size x="1024" y="1024"/>
+					<Anchors>
+						<Anchor point="CENTER" relativeKey="$parent" relativePoint="TOPLEFT" x="80" y="64"/>
+					</Anchors>
+				</Texture>
+				<MaskTexture parentKey="EdgeMask1" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
+					<Size x="768" y="160"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Background" relativePoint="TOPLEFT"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Background" relativePoint="BOTTOMRIGHT"/>
+					</Anchors>
+					<MaskedTextures>
+						<MaskedTexture childKey="EdgeGlow1"/>
+					</MaskedTextures>
+				</MaskTexture>
+				<Texture parentKey="EdgeGlow2">
+					<Size x="1024" y="1024"/>
+					<Anchors>
+						<Anchor point="CENTER" relativeKey="$parent" relativePoint="TOP" x="0" y="64"/>
+					</Anchors>
+				</Texture>
+				<MaskTexture parentKey="EdgeMask2" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
+					<Size x="768" y="160"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Background" relativePoint="TOPLEFT"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Background" relativePoint="BOTTOMRIGHT"/>
+					</Anchors>
+					<MaskedTextures>
+						<MaskedTexture childKey="EdgeGlow2"/>
+					</MaskedTextures>
+				</MaskTexture>
+			</Layer>
+			<Layer level="OVERLAY">
+				<FontString parentKey="Title" inherits="ObjectiveTrackerHeaderFont" justifyH="CENTER" mixin="AutoScalingFontStringMixin" maxLines="1">
+					<Size x="176"/>
+					<Anchors>
+						<Anchor point="CENTER" relativeKey="$parent" relativePoint="LEFT" x="104" y="0"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="Subtitle" inherits="GameFontNormal" justifyH="CENTER">
+					<Anchors>
+						<Anchor point="TOP" relativeKey="$parent" relativePoint="LEFT" x="104" y="-4"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+			<Layer level="OVERLAY" textureSubLevel="5">
+				<Texture parentKey="HoverHighlight" alphaMode="ADD" hidden="true">
+					<Size x="512" y="160"/>
+					<Anchors>
+						<Anchor point="LEFT" relativeKey="$parent.Background" relativePoint="LEFT"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Frame parentKey="QuestIcon">
+				<Size x="24" y="24"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent" relativePoint="TOPLEFT" x="4" y="-4"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture parentKey="Texture" alpha="0.8">
+							<Size x="24" y="24"/>
+							<Anchors>
+								<Anchor point="CENTER"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+					<Layer level="HIGHLIGHT">
+						<Texture parentKey="HighlightTexture" alpha="0.4">
+							<Size x="24" y="24"/>
+							<Anchors>
+								<Anchor point="CENTER"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+			</Frame>
+		</Frames>
+		<Animations>
+			<AnimationGroup parentKey="AnimEdge" looping="REPEAT">
+				<Rotation degrees="360" duration="30" order="1" childKey="EdgeGlow1"/>
+				<Rotation degrees="360" duration="30" order="1" childKey="EdgeGlow2"/>
+			</AnimationGroup>
+			<AnimationGroup parentKey="AnimActivateFX" setToFinalAlpha="true">
+				<Alpha fromAlpha="0" toAlpha="1" duration="0.05" order="1" childKey="ActivateFX"/>
+				<Alpha fromAlpha="1" toAlpha="0" duration="0.5" startDelay="1.5" order="1" childKey="ActivateFX"/>
+				<Scale scaleX="28" scaleY="28" duration="1.5" order="1" smoothing="IN" childKey="ActivateFXMask"/>
+			</AnimationGroup>
+		</Animations>
+	</Button>
+
+	<Button name="PlumberLegionRemixPaperDollWidgetTemplate" virtual="true">
+		<Size x="48" y="48"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="Background">
+					<Size x="60" y="48"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="ARTWORK">
+				<Texture parentKey="LoopingGlow" hidden="true" alphaMode="ADD">
+					<Size x="60" y="48"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+            <Layer level="OVERLAY">
+                <Texture parentKey="Sheen" alphaMode="ADD" hidden="true">
+                    <Size x="60" y="48"/>
+                    <Anchors>
+                        <Anchor point="CENTER"/>
+                    </Anchors>
+                </Texture>
+				<MaskTexture parentKey="SheenMask" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
+					<Size x="16" y="16"/>
+					<Anchors>
+						<Anchor point="CENTER" y="6"/>
+					</Anchors>
+					<MaskedTextures>
+						<MaskedTexture childKey="Sheen"/>
+					</MaskedTextures>
+				</MaskTexture>
+            </Layer>
+		</Layers>
+		<Frames>
+			<Frame parentKey="Tooltip" frameStrata="TOOLTIP" hidden="true">
+				<Size x="256" y="256"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent" relativePoint="TOPRIGHT" x="0" y="12"/>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND" textureSubLevel="1">
+						<Texture parentKey="BackgroundArt" alpha="0.2" hidden="true">
+							<Size x="128" y="128"/>
+							<Anchors>
+								<Anchor point="BOTTOMRIGHT" relativeKey="$parent" relativePoint="BOTTOMRIGHT" x="-4" y="4"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+					<Layer level="OVERLAY">
+						<FontString parentKey="Text1" inherits="GameTooltipText" justifyH="LEFT" justifyV="MIDDLE" spacing="2">
+							<Size x="240"/>
+						</FontString>
+						<FontString parentKey="Text2" inherits="GameTooltipHeaderText" justifyH="LEFT" justifyV="MIDDLE" spacing="2">
+							<Size x="240"/>
+						</FontString>
+						<FontString parentKey="Text3" inherits="GameTooltipText" justifyH="LEFT" justifyV="MIDDLE" spacing="2">
+							<Size x="240"/>
+						</FontString>
+						<FontString parentKey="Instruction" inherits="GameTooltipText" justifyH="LEFT" justifyV="MIDDLE" spacing="2">
+							<Size x="240"/>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Frames>
+					<Frame parentKey="BackgroundFrame" setAllPoints="true" useParentLevel="true">
+						<Size x="256" y="256"/>
+						<Layers>
+							<Layer level="BACKGROUND">
+								<Texture parentKey="Texture" setAllPoints="true" file="Interface/AddOns/Plumber/Art/Timerunning/TooltipBackground.png" alpha="0.8">
+									<TextureSliceMode mode="Tiled"/>
+									<TextureSliceMargins left="32" right="32" top="32" bottom="60"/>
+								</Texture>
+							</Layer>
+						</Layers>
+					</Frame>
+				</Frames>
+			</Frame>
+		</Frames>
+		<Animations>
+			<AnimationGroup parentKey="AnimSheen" setToFinalAlpha="true">
+				<Alpha fromAlpha="0" toAlpha="1" duration="0.05" order="1" childKey="Sheen"/>
+				<Alpha fromAlpha="1" toAlpha="0" duration="0.2" startDelay="0.5" order="1" childKey="Sheen"/>
+				<Scale scaleX="6" scaleY="6" duration="0.6" order="1" smoothing="IN" childKey="SheenMask"/>
+			</AnimationGroup>
+			<AnimationGroup parentKey="AnimLoopPulse" looping="REPEAT">
+				<Alpha childKey="LoopingGlow" duration="0.5" order="1" fromAlpha="0" toAlpha="1"/>
+				<Alpha childKey="LoopingGlow" startDelay="0.5" duration="1" order="1" fromAlpha="1" toAlpha="0"/>
+				<Scale childKey="LoopingGlow" duration="0.75" order="1" fromScaleX="0.75" fromScaleY="0.75" toScaleX="1.1" toScaleY="1.1"/>
+			</AnimationGroup>
+		</Animations>
+	</Button>
+
+
+	<Script file="LegionRemix_PaperDoll.lua"/>
+</Ui>

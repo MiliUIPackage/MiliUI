@@ -1,9 +1,12 @@
 local _, addon = ...
+if addon.IS_MIDNIGHT then return end;
+
 local L = addon.L;
 local API = addon.API;
 local InCombatLockdown = InCombatLockdown;
 local CreateFrame = CreateFrame;
 local GetCurrentDelvesSeasonNumber = C_DelvesUI.GetCurrentDelvesSeasonNumber;
+--local IsDelveInProgress = C_PartyInfo.IsDelveInProgress;
 local IsPlayerAtMaxLevel = API.IsPlayerAtMaxLevel;
 
 local ITEMBUTTON_WIDTH, ITEMBUTTON_HEIGHT = 156, 40;
@@ -52,47 +55,8 @@ do
 
     function GreatVaultItemButtonMixin:ShowPreviewItemTooltip()
         local tooltip = GameTooltip;
-
         tooltip:SetOwner(self, "ANCHOR_RIGHT", 0, 0);
-        GameTooltip_SetTitle(tooltip, WEEKLY_REWARDS_CURRENT_REWARD);
-
-        local itemLink, upgradeItemLink = C_WeeklyRewards.GetExampleRewardItemHyperlinks(self.id);
-        local itemLevel, upgradeItemLevel;
-
-        if itemLink then
-            itemLevel = C_Item.GetDetailedItemLevelInfo(itemLink);
-        end
-        if upgradeItemLink then
-            upgradeItemLevel = C_Item.GetDetailedItemLevelInfo(upgradeItemLink);
-        end
-
-        if not itemLevel then
-            GameTooltip_AddErrorLine(tooltip, RETRIEVING_ITEM_INFO);
-            self.UpdateTooltip = self.ShowPreviewItemTooltip;
-        else
-            self.UpdateTooltip = nil;
-
-            local hasData, nextActivityTierID, nextLevel, nextItemLevel = C_WeeklyRewards.GetNextActivitiesIncrease(self.activityTierID, self.level);
-            if hasData then
-                upgradeItemLevel = nextItemLevel;
-            else
-                nextLevel = self.level + 1;
-            end
-
-            GameTooltip_AddNormalLine(tooltip, string.format(WEEKLY_REWARDS_ITEM_LEVEL_WORLD, itemLevel, self.level));
-
-            GameTooltip_AddBlankLineToTooltip(tooltip);
-            if upgradeItemLevel then
-                GameTooltip_AddColoredLine(tooltip, string.format(WEEKLY_REWARDS_IMPROVE_ITEM_LEVEL, upgradeItemLevel), GREEN_FONT_COLOR);
-                GameTooltip_AddHighlightLine(tooltip, string.format(WEEKLY_REWARDS_COMPLETE_WORLD, nextLevel));
-            else
-                GameTooltip_AddColoredLine(tooltip, WEEKLY_REWARDS_MAXED_REWARD, GREEN_FONT_COLOR);
-            end
-        end
-
-        self:AppendOpenGVInstruction(tooltip);
-
-        tooltip:Show();
+        API.DisplayDelvesGreatVaultTooltip(self, tooltip, self.index, self.level, self.id, self.progressDelta)
     end
 
     function GreatVaultItemButtonMixin:ShowIncompleteTooltip()
@@ -118,8 +82,6 @@ do
             GameTooltip_AddNormalLine(tooltip, description);
         end
 
-        self:AppendOpenGVInstruction(tooltip);
-
         tooltip:Show();
     end
 
@@ -130,12 +92,11 @@ do
     end
 
     function GreatVaultItemButtonMixin:OnEnter()
-        if self.unlocked then
-            self:ShowPreviewItemTooltip();
-        else
-            self:ShowIncompleteTooltip();
-        end
         GreatVaultFrame:HighlightButton(self);
+        self:ShowPreviewItemTooltip();
+        API.AddRecentDelvesRecordsToTooltip(GameTooltip, self.threshold);
+        --self:AppendOpenGVInstruction(GameTooltip);
+        GameTooltip:Show();
     end
 
     function GreatVaultItemButtonMixin:OnLeave()
@@ -149,6 +110,196 @@ do
         end
     end
 end
+
+
+local CrestProgressBarMixin = {};
+do  --Gilded Stash: 3 per week, 7 Gilded Crests each
+    local CREST_SPELL = 1216211;
+
+    local WidgetIDs = {
+        --Search in UiWidget https://wago.tools/db2/UiWidget?filter%5BWidgetTag%5D=delveDifficultyScaling&filter%5BOrderIndex%5D=6&page=1&sort%5BWidgetTag%5D=asc
+        --WidgetTag = delveDifficultyScaling, OrderIndex = 6
+        6659,
+        6718,
+        6719,
+        6720,
+        6721,
+        6722,
+        6723,
+        6724,
+        6725,
+        6726,
+        6727,
+        6728,
+        6729,
+        6794,
+        7193,
+    };
+
+    local KeyWidgets = {};
+    for _, widgetID in ipairs(WidgetIDs) do
+        KeyWidgets[widgetID] = true;
+    end
+
+    local Getter = C_UIWidgetManager.GetSpellDisplayVisualizationInfo;
+
+    local function GetCrestStashTooltip()
+        --This widget info is only available in Khaz Algar, outside Delves
+        local info;
+        for _, widgetID in ipairs(WidgetIDs) do
+            info = Getter(widgetID);
+            if info then
+                if info.spellInfo and info.spellInfo.spellID == CREST_SPELL and info.spellInfo.shownState == 1 then
+                    --print(widgetID, info.shownState, info.enabledState, info.spellInfo.shownState)
+                    return info.spellInfo.tooltip
+                end
+            end
+        end
+    end
+
+    local function GetCrestStashProgess()
+        local sourceText = GetCrestStashTooltip();
+        if sourceText then
+            local current, max = string.match(sourceText, "(%d+)/(%d+)");
+            if current and max then
+                current = tonumber(current);
+                max = tonumber(max);
+                if max > 0 then
+                    return current, max
+                end
+            end
+        end
+    end
+
+
+    function CrestProgressBarMixin:OnLoad()
+        local title = C_Spell.GetSpellName(CREST_SPELL);
+        if not title then
+            C_Timer.After(0.25, function()
+                title = C_Spell.GetSpellName(CREST_SPELL);
+                self.Title:SetText(title);
+            end);
+        end
+        self.Title:SetText(title);
+        self:SetScript("OnEnter", self.OnEnter);
+        self:SetScript("OnLeave", self.OnLeave);
+        self:SetScript("OnShow", self.OnShow);
+        self:SetScript("OnHide", self.OnHide);
+        self:SetScript("OnEvent", self.OnEvent);
+        if self:IsVisible() then
+            self:OnShow();
+        end
+    end
+
+    function CrestProgressBarMixin:OnShow()
+        self:RegisterEvent("UPDATE_UI_WIDGET");
+        self:RegisterEvent("ACTIVE_DELVE_DATA_UPDATE");
+        self:RegisterEvent("ZONE_CHANGED_NEW_AREA");
+    end
+
+    function CrestProgressBarMixin:OnHide()
+        self:UnregisterEvent("UPDATE_UI_WIDGET");
+        self:UnregisterEvent("ACTIVE_DELVE_DATA_UPDATE");
+        self:UnregisterEvent("ZONE_CHANGED_NEW_AREA");
+    end
+
+    function CrestProgressBarMixin:OnUpdate(elapsed)
+        self.t = self.t + elapsed;
+        if self.t > 0 then
+            self.t = nil;
+            self:SetScript("OnUpdate", nil);
+            self:Update();
+        end
+    end
+
+    function CrestProgressBarMixin:RequestUpdate()
+        self.t = -0.5;
+        self:SetScript("OnUpdate", self.OnUpdate);
+    end
+
+
+    function CrestProgressBarMixin:OnEvent(event, ...)
+        if event == "UPDATE_UI_WIDGET" then
+            local widgetInfo = ...
+            if widgetInfo.widgetID and KeyWidgets[widgetInfo.widgetID] then
+                self:RequestUpdate();
+            end
+        elseif event == "ACTIVE_DELVE_DATA_UPDATE" or event == "ZONE_CHANGED_NEW_AREA" then
+            self:RequestUpdate();
+        end
+    end
+
+    function CrestProgressBarMixin:OnEnter()
+        local tooltipText = GetCrestStashTooltip();
+        local tooltip = GameTooltip;
+        tooltip:SetOwner(self, "ANCHOR_RIGHT");
+        local title = C_Spell.GetSpellName(CREST_SPELL);
+        tooltip:SetText(title, 1, 1, 1);
+        if tooltipText then
+            tooltipText = string.gsub(tooltipText, title.."%c+", "");
+
+            tooltip:AddLine(L["Delve Crest Stash Requirement"], 1, 0.82, 0, true);
+            tooltip:AddLine(" ");
+            tooltip:AddLine(tooltipText, 1, 0.82, 0, true);
+            --tooltip:SetSpellByID(CREST_SPELL);    --wrong progress number
+
+            local info = C_CurrencyInfo.GetCurrencyInfo(addon.ItemUpgradeConstant.DelveWeeklyStashCurrencyID);
+            if info then    --Add total and season max
+                tooltip:AddLine(" ");
+                local r, g, b = C_Item.GetItemQualityColor(info.quality);
+                tooltip:AddLine(info.name, r, g, b, true);
+                tooltip:AddLine(L["Total Colon"].." |cffffffff"..(info.quantity or 0).."|r", 1, 0.82, 0);
+                local maxQuantity = info.useTotalEarnedForMaxQty and info.maxQuantity or 0;
+                if maxQuantity > 0 then
+                    local totalEarned = info.totalEarned or 0;
+                    local quantityText = ("|cffffd100"..L["Season Maximum Colon"].."|r ")..(totalEarned.."/"..maxQuantity);
+                    if totalEarned >= maxQuantity then
+                        tooltip:AddLine(quantityText, 1, 0.282, 0, true);
+                    else
+                        tooltip:AddLine(quantityText, 1, 1, 1, true);
+                    end
+                end
+            end
+        else
+            tooltip:AddLine(L["Delve Crest Stash No Info"], 1, 0.1, 0.1, true);
+        end
+        tooltip:Show();
+    end
+
+    function CrestProgressBarMixin:OnLeave()
+        GameTooltip:Hide();
+    end
+
+    function CrestProgressBarMixin:Update()
+        local current, max = GetCrestStashProgess();
+
+        if current then
+            self.Title:SetTextColor(1, 1, 1);
+            self.Texture:SetDesaturated(false);
+            self.Texture:SetVertexColor(1, 1, 1);
+        else
+            self.Title:SetTextColor(0.5, 0.5, 0.5);
+            self.Texture:SetDesaturated(true);
+            self.Texture:SetVertexColor(0.8, 0.8, 0.8);
+            if self.initialzed then
+               return
+            end
+        end
+
+        if current == 1 then
+            self.Texture:SetTexCoord(0, 224/512, 224/512, 256/512);
+        elseif current == 2 then
+            self.Texture:SetTexCoord(0, 224/512, 256/512, 288/512);
+        elseif current == 3 then
+            self.Texture:SetTexCoord(0, 224/512, 288/512, 320/512);
+        else
+            self.Texture:SetTexCoord(0, 224/512, 192/512, 224/512);
+        end
+
+        self.initialzed = true;
+    end
+end
+
 
 local function CreateThreeSliceBackground(f)
     local a = 0.8;  --scale
@@ -215,10 +366,33 @@ do
             return
         end
 
+        self.hiddenBlizzardFrames = {};
+
         if parent.GreatVaultButton then
             parent.GreatVaultButton:Hide();
-            self.BlizzardGreatVaultButton = parent.GreatVaultButton;
+            table.insert(self.hiddenBlizzardFrames, parent.GreatVaultButton);
         end
+
+        if parent.PanelDescription then
+            parent.PanelDescription:Hide();
+            table.insert(self.hiddenBlizzardFrames, parent.PanelDescription);
+        end
+
+        if parent.PanelTitle then
+            parent.PanelTitle:Hide();
+            table.insert(self.hiddenBlizzardFrames, parent.PanelTitle);
+        end
+
+        local NewPanelTitle = self:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge");
+        if AutoScalingFontStringMixin then
+            API.Mixin(NewPanelTitle, AutoScalingFontStringMixin);
+            NewPanelTitle:SetWidth(ITEMBUTTON_WIDTH);
+            NewPanelTitle.minLineHeight = 10;
+            NewPanelTitle:SetMaxLines(1);
+        end
+        NewPanelTitle:SetHeight(32);
+        NewPanelTitle:SetPoint("TOP", self, "TOP", 0, 0);
+        NewPanelTitle:SetText(PVP_WEEKLY_REWARD);
 
         self.Items = {};
 
@@ -230,15 +404,32 @@ do
         local buttonHeight = ITEMBUTTON_HEIGHT;
         local gap = 6;
         local numButtons = 3;
-
+        local fromOffsetY = -34;
         local button;
 
         for i = 1, numButtons do
             button = CreateGreatVaultItemButton(ButtonContainer);
             self.Items[i] = button;
+            button.index = i;
             button:SetSize(buttonWidth, buttonHeight);
-            button:SetPoint("TOP", self, "TOP", 0, (buttonHeight + gap) * (1 - i));
+            button:SetPoint("TOP", self, "TOP", 0, fromOffsetY + (buttonHeight + gap) * (1 - i));
         end
+
+
+        local CrestProgressBar = CreateFrame("Frame", nil, ButtonContainer);
+        self.CrestProgressBar = CrestProgressBar;
+        local barWidth = 174;
+        CrestProgressBar:SetSize(barWidth, barWidth * 32/244);
+        CrestProgressBar.Texture = CrestProgressBar:CreateTexture(nil, "ARTWORK");
+        CrestProgressBar.Texture:SetAllPoints(true);
+        CrestProgressBar.Texture:SetTexture("Interface/AddOns/Plumber/Art/Delves/DelvesDashboard.png");
+        API.Mixin(CrestProgressBar, CrestProgressBarMixin);
+        CrestProgressBar:SetPoint("BOTTOM", self, "BOTTOM", 0, 2);
+        CrestProgressBar.Title = CrestProgressBar:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
+        CrestProgressBar.Title:SetPoint("BOTTOM", CrestProgressBar, "TOP", 0, 4);
+        CrestProgressBar.Title:SetJustifyH("CENTER");
+        CrestProgressBar:OnLoad();
+
 
         local errorOffset = 16;
 
@@ -258,11 +449,11 @@ do
         ErrorText:SetTextColor(0.6, 0.6, 0.6);
         ErrorText:SetSpacing(2);
 
-        self:SetSize(buttonWidth, (buttonHeight + gap) * numButtons - gap);
+        self:SetSize(buttonWidth, (buttonHeight + gap) * numButtons - gap + 98);
 
         self:ClearAllPoints();
         self:SetParent(parent);
-        self:SetPoint("BOTTOM", parent, "BOTTOM", 0, 30);
+        self:SetPoint("TOP", parent, "TOP", 0, -29);
 
         self:Update();
 
@@ -358,6 +549,7 @@ do
         local requery = false;
 
         for i, activityInfo in ipairs(activities) do
+            --[[
             itemLink, upgradeItemLink = C_WeeklyRewards.GetExampleRewardItemHyperlinks(activityInfo.id);
             itemLevel, upgradeItemLevel = nil, nil;
 
@@ -368,8 +560,10 @@ do
             if upgradeItemLink then
                 upgradeItemLevel = C_Item.GetDetailedItemLevelInfo(upgradeItemLink);
             end
+            --]]
 
             tier = activityInfo.level;
+            itemLevel = API.GetDelvesGreatVaultItemLevel(activityInfo.level);
             progressDelta = activityInfo.threshold - activityInfo.progress;
 
             frame = self.Items[i];
@@ -378,6 +572,7 @@ do
                 frame.level = activityInfo.level;
                 frame.id = activityInfo.id;
                 frame.index = activityInfo.index;
+                frame.threshold = activityInfo.threshold;
 
                 if progressDelta <= 0 then
                     frame:SetVisualUnlocked();
@@ -397,6 +592,8 @@ do
             end
             --print(activityInfo.progress, "/", activityInfo.threshold, tier, itemLevel, upgradeItemLevel)
         end
+
+        self.CrestProgressBar:Update();
 
         if requery then
             self.t = 0;
@@ -429,8 +626,8 @@ local Module = {};
 do
     function Module:HookPVEFrame()
         if self.hookedPVEFrame then return end;
-
         self.hookedPVEFrame = true;
+
         hooksecurefunc("PVEFrame_ShowFrame", function(sidePanelName, selection)
             if self.isEnabled and (not self.blizzardDashboardLoaded) and sidePanelName == "DelvesDashboardFrame" then
                 self.blizzardDashboardLoaded = true;
@@ -442,23 +639,54 @@ do
     end
 
     function Module.EnableModule(state)
-        Module.isEnabled = state;
-
         if state then
-            Module:HookPVEFrame();
-            if not GreatVaultFrame.Init then
-                GreatVaultFrame:Show();
-                if GreatVaultFrame.BlizzardGreatVaultButton then
-                    GreatVaultFrame.BlizzardGreatVaultButton:Hide();
+            if not Module.isEnabled then
+                Module.isEnabled = true;
+                Module:HookPVEFrame();
+                if not GreatVaultFrame.Init then
+                    GreatVaultFrame:Show();
+                    if GreatVaultFrame.hiddenBlizzardFrames then
+                        for _, obj in ipairs(GreatVaultFrame.hiddenBlizzardFrames) do
+                            obj:Hide();
+                        end
+                    end
+                else
+                    local panel = DelvesDashboardFrame;
+                    if panel and panel:IsShown() then
+                        GreatVaultFrame:Init();
+                    end
                 end
             end
         else
-            GreatVaultFrame:Hide();
-            if GreatVaultFrame.BlizzardGreatVaultButton then
-                GreatVaultFrame.BlizzardGreatVaultButton:Show();
+            if Module.isEnabled then
+                Module.isEnabled = false;
+                GreatVaultFrame:Hide();
+                if GreatVaultFrame.hiddenBlizzardFrames then
+                    for _, obj in ipairs(GreatVaultFrame.hiddenBlizzardFrames) do
+                        obj:Show();
+                    end
+                end
             end
         end
     end
 end
 
-Module.EnableModule(true);  --debug
+
+
+
+do
+    local moduleData = {
+        name = addon.L["ModuleName Delves_Dashboard"],
+        dbKey = "Delves_Dashboard",
+        description = addon.L["ModuleDescription Delves_Dashboard"],
+        toggleFunc = Module.EnableModule,
+        categoryID = 1,
+        uiOrder = 1104,
+        moduleAddedTime = 1724100000,
+		categoryKeys = {
+			"Instance",
+		},
+    };
+
+    addon.ControlCenter:AddModule(moduleData);
+end

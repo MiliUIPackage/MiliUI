@@ -4,11 +4,14 @@ local _, addon = ...
 local EL = CreateFrame("Frame");
 
 local match = string.match;
-local UnitName = UnitName;
+local UnitName = addon.API.Secret_GetUnitName;
 
 local RACE_TIMES = "^Race Times";
-local NPC_NAME1 = "Bronze Timekeeper";
-local NPC_NAME2 = " ";
+local Timekeepers = {};
+
+local SpecialNPCs = {
+    234643,     --Omtroid, Ecological Succession
+};
 
 local RankIcons = {
     [1] = "Interface\\AddOns\\Plumber\\Art\\GossipIcons\\Medal_Gold",
@@ -17,16 +20,10 @@ local RankIcons = {
     [4] = "Interface\\AddOns\\Plumber\\Art\\GossipIcons\\Medal_None",
 };
 
-local function IsDragonRacingNPC_Genric()
-    return UnitName("npc") == NPC_NAME1
-end
-
-local function IsDragonRacingNPC_Variants()
+local function IsDragonRacingNPC()
     local name = UnitName("npc");
-    return name and (name == NPC_NAME1 or name == NPC_NAME2)
+    return name and Timekeepers[name] == true
 end
-
-local IsDragonRacingNPC = IsDragonRacingNPC_Genric;
 
 
 do
@@ -34,51 +31,91 @@ do
 
     if locale == "enUS" then
         RACE_TIMES = "^Race Times";
-        NPC_NAME1 = "Bronze Timekeeper";
+        Timekeepers = {
+            ["Grimy Timekeeper"] = true,
+            ["Bronze Timekeeper"] = true,
+        };
 
     elseif locale == "esMX" then
         RACE_TIMES = "^Tiempos de la carrera";
-        NPC_NAME1 = "Cronometradora bronce";
+        Timekeepers = {
+            ["Cronometradora bronce"] = true,
+            ["Cronometradora mugrienta"] = true,
+            ["Cronometrador bronce"] = true,
+            ["Cronometrador mugriento"] = true,
+        };
 
     elseif locale == "ptBR" then
         RACE_TIMES = "^Tempos da Corrida";
-        NPC_NAME1 = "Guarda-tempo Bronze";
-
-    elseif locale == "frFR" then
-        RACE_TIMES = "^Temps des courses";
-        NPC_NAME1 = "Chronométreuse de bronze";
-        NPC_NAME2 = "Chronométreur de bronze";
-        IsDragonRacingNPC = IsDragonRacingNPC_Variants;
+        Timekeepers = {
+            ["Guarda-tempo Bronze"] = true,
+            ["Guarda-tempo Limosa"] = true,
+        };
 
     elseif locale == "deDE" then
         RACE_TIMES = "^Rennzeiten";
-        NPC_NAME1 = "Bronzezeithüter";
-        NPC_NAME2 = "Bronzezeithüterin";
-        IsDragonRacingNPC = IsDragonRacingNPC_Variants;
+        Timekeepers = {
+            ["Schmuddelige Zeithüterin"] = true,
+            ["Schmuddeliger Zeithüter"] = true,
+            ["Bronzezeithüterin"] = true,
+            ["Bronzezeithüter"] = true,
+        };
 
     elseif locale == "esES" then
         RACE_TIMES = "^Tiempos de carrera";
-        NPC_NAME1 = "Vigilante del tiempo bronce";
+        Timekeepers = {
+            ["Vigilante del tiempo pringoso"] = true,
+            ["Vigilante del tiempo pringosa"] = true,
+            ["Vigilante del tiempo bronce"] = true,
+        };
+
+    elseif locale == "frFR" then
+        RACE_TIMES = "^Temps des courses";
+        Timekeepers = {
+            ["Chronométreuse crasseuse"] = true,
+            ["Chronométreur de bronze"] = true,
+            ["Chronométreur crasseux"] = true,
+            ["Chronométreuse de bronze"] = true,
+        };
 
     elseif locale == "itIT" then
         RACE_TIMES = "^Tempi della Corsa";
-        NPC_NAME1 = "Custode del Tempo Bronzea";
+        Timekeepers = {
+            ["Custode del Tempo Sporco"] = true,
+            ["Custode del Tempo Bronzea"] = true,
+            ["Custode del Tempo Sporca"] = true,
+            ["Custode del Tempo Bronzeo"] = true,
+        };
 
     elseif locale == "ruRU" then
         RACE_TIMES = "^Время гонки";
-        NPC_NAME1 = "Бронзовая хранительница времени";
+        Timekeepers = {
+            ["Бронзовая хранительница времени"] = true,
+            ["Бронзовый хранитель времени"] = true,
+            ["Закопченный хранитель времени"] = true,
+            ["Закопченная хранительница времени"] = true,
+        };
 
     elseif locale == "koKR" then
         RACE_TIMES = "^경주 시간";
-        NPC_NAME1 = "청동 시간지기";
+        Timekeepers = {
+            ["꾀죄죄한 시간지기"] = true,
+            ["청동 시간지기"] = true,
+        };
 
     elseif locale == "zhTW" then
         RACE_TIMES = "^競賽時間";
-        NPC_NAME1 = "青銅時空守衛者";
+        Timekeepers = {
+            ["髒兮兮的時空守衛者"] = true,
+            ["青銅時空守衛者"] = true,
+        };
 
     elseif locale == "zhCN" then
         RACE_TIMES = "^竞速时间";
-        NPC_NAME1 = "青铜时光守护者";
+        Timekeepers = {
+            ["青铜时光守护者"] = true,
+            ["满身油渍的时光守护者"] = true,
+        };
     end
 end
 
@@ -150,18 +187,17 @@ local function ProcessLines(...)
     end
 
     if k == 1 then
-        --print("No Data")
         EL:QueryAuraTooltipInto();
     else
         UpdateGossipIcons(ranks);
         EL:QueryAuraTooltipInto();    --Sometimes the tooltip data is partial so we keep querying x times
-        --EL:PostDataFullyRetrieved();
     end
 end
 
 local function ProcessAuraByAuraInstanceID(auraInstanceID)
     local info = C_TooltipInfo.GetUnitBuffByAuraInstanceID("player", auraInstanceID);
     if info and info.lines and info.lines[2] then
+        EL:WatchDataInstanceID(info.dataInstanceID);
         ProcessLines( string.split("\r", info.lines[2].leftText) );
     else
         --Tooltip data not ready
@@ -207,6 +243,13 @@ function EL:PostDataFullyRetrieved()
     self:SetScript("OnUpdate", nil);
 end
 
+function EL:WatchDataInstanceID(dataInstanceID)
+    self.dataInstanceID = dataInstanceID;
+    if dataInstanceID then
+        self:RegisterUnitEvent("TOOLTIP_DATA_UPDATE");
+    end
+end
+
 
 
 local function ProcessFunc(auraInfo)
@@ -243,6 +286,12 @@ local function EL_OnEvent(self, event, ...)
 
     elseif event == "UNIT_AURA" then
         EL:UpdateRaceTimesFromAura();
+
+    elseif event == "TOOLTIP_DATA_UPDATE" then
+        local dataInstanceID = ...
+        if dataInstanceID == self.dataInstanceID then
+            EL:UpdateRaceTimesFromAura();
+        end
     end
 end
 
@@ -270,6 +319,11 @@ local function UdpateGossipIcons_Storyline(ranks)
     end)
 end
 
+local function OnCreatureNameReceived(creatureID, creatureName)
+    if creatureName and creatureName ~= "" then
+        Timekeepers[creatureName] = true;
+    end
+end
 
 function EL:EnableModule()
     self:RegisterEvent("GOSSIP_SHOW");
@@ -286,12 +340,16 @@ function EL:EnableModule()
             UpdateGossipIcons = UdpateGossipIcons_Storyline;
         end
     end
+
+    addon.API.LoadCreatureNameWithCallback(SpecialNPCs, OnCreatureNameReceived);
 end
 
 function EL:DisableModule()
     self:UnregisterEvent("GOSSIP_SHOW");
     self:UnregisterEvent("GOSSIP_CLOSED");
     self:UnregisterEvent("UNIT_AURA");
+    self:UnregisterEvent("TOOLTIP_DATA_UPDATE");
+    self.dataInstanceID = nil;
 end
 
 local function EnableModule(state)
@@ -317,6 +375,9 @@ do
         toggleFunc = EnableModule,
         categoryID = 2,
         uiOrder = 1,
+		categoryKeys = {
+			"Quest",
+		},
     };
 
     addon.ControlCenter:AddModule(moduleData);

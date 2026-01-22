@@ -342,8 +342,11 @@ do
         dbKey = "EmeraldBountySeedList",
         description = addon.L["ModuleDescription EmeraldBountySeedList"],
         toggleFunc = EnableModule,
-        categoryID = 10020000,
+        categoryID = 1002,
         uiOrder = 1,
+		categoryKeys = {
+			"Old",
+		},
     };
 
     addon.ControlCenter:AddModule(moduleData);
@@ -1071,17 +1074,6 @@ do
     function YeetWidgetInfo()
         for widgetID, widgetType in pairs(EL.widgetData) do
             print("ID:", widgetID, "  Type:", widgetType)
-        end
-    end
-
-    function YeetPOI()
-        local uiMapID = C_Map.GetBestMapForUnit("player");
-        local areaPoiIDs = C_AreaPoiInfo.GetAreaPOIForMap(uiMapID);
-        local info;
-
-        for i, areaPoiID in ipairs(areaPoiIDs) do
-            info = C_AreaPoiInfo.GetAreaPOIInfo(uiMapID, areaPoiID);
-            print(i, info.name);
         end
     end
 
