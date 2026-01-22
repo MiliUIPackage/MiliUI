@@ -1,6 +1,6 @@
 local GlobalAddonName, ExRT = ...
 
-local GetTime, IsEncounterInProgress, RAID_CLASS_COLORS, GetInstanceInfo, GetSpellCharges, SecondsToTime, IsInJailersTower = GetTime, IsEncounterInProgress, RAID_CLASS_COLORS, GetInstanceInfo, ExRT.F.GetSpellCharges or GetSpellCharges, SecondsToTime, IsInJailersTower
+local GetTime, RAID_CLASS_COLORS, GetInstanceInfo, GetSpellCharges, SecondsToTime, IsInJailersTower = GetTime, RAID_CLASS_COLORS, GetInstanceInfo, ExRT.F.GetSpellCharges or GetSpellCharges, SecondsToTime, IsInJailersTower
 local string_gsub, wipe, tonumber, pairs, ipairs, string_trim, format, floor, ceil, abs, type, sort, select, Enum = string.gsub, table.wipe, tonumber, pairs, ipairs, string.trim, format, floor, ceil, abs, type, sort, select, Enum
 local UnitIsDeadOrGhost, UnitIsConnected, UnitName, UnitCreatureFamily, UnitIsDead, UnitIsGhost, UnitGUID, UnitInRange, UnitPhaseReason = UnitIsDeadOrGhost, UnitIsConnected, UnitName, UnitCreatureFamily, UnitIsDead, UnitIsGhost, UnitGUID, UnitInRange, UnitPhaseReason
 
@@ -18,6 +18,7 @@ local GetCVar = C_CVar and C_CVar.GetCVar or C_CVar
 local UnitGroupRolesAssigned = UnitGroupRolesAssigned or ExRT.NULLfunc
 local GetSpecializationInfo = C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo or GetSpecializationInfo
 local SendChatMessage = C_ChatInfo and C_ChatInfo.SendChatMessage or SendChatMessage
+local IsEncounterInProgress = C_InstanceEncounter and C_InstanceEncounter.IsEncounterInProgress or IsEncounterInProgress
 
 local GetSpellLevelLearned = C_Spell and C_Spell.GetSpellLevelLearned or GetSpellLevelLearned
 if ExRT.isClassic then
@@ -29,7 +30,7 @@ end
 
 local VMRT = nil
 
-local module = ExRT:New("ExCD2",ExRT.L.cd2)
+local module = ExRT:New("ExCD2",ExRT.L.cd2,ExRT.isMN and 2 or nil)
 local ELib,L = ExRT.lib,ExRT.L
 
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
@@ -4381,6 +4382,9 @@ do
 end
 
 function module:Enable()
+	if ExRT.isMN then
+		return
+	end
 	VMRT.ExCD2.enabled = true
 	module.frame.IsEnabled = true
 
@@ -4544,9 +4548,11 @@ function module.main:ADDON_LOADED()
 		module:RegisterEvents('PLAYER_ENTERING_WORLD')
 	end
 
-	for _ in pairs(module.db.spellCDSync) do
-		module:RegisterEvents('SPELL_UPDATE_COOLDOWN')
-		break
+	if not ExRT.isMN then
+		for _ in pairs(module.db.spellCDSync) do
+			module:RegisterEvents('SPELL_UPDATE_COOLDOWN')
+			break
+		end
 	end
 
 	module:RegisterSlash()
@@ -12132,7 +12138,7 @@ module.db.AllSpells = {
 		isTalent=true},
 	{288613,"HUNTER,DPS",3,--Меткий выстрел
 		nil,nil,{288613,120,15},nil,
-		isTalent=true,durationDiff={336849,3,339920,{"*1.20","*1.22","*1.24","*1.27","*1.29","*1.31","*1.33","*1.36","*1.38","*1.40","*1.42","*1.44","*1.46","*1.48","*1.50"},389449,3},cdDiff={203129,-20,{1236370,nil,44},-60,296320,"*0.80",336742,"*0.65"},reduceCdAfterCast={{257620,260404},-2.5,{185358,260404},-2.5}},
+		isTalent=true,durationDiff={336849,3,339920,{"*1.20","*1.22","*1.24","*1.27","*1.29","*1.31","*1.33","*1.36","*1.38","*1.40","*1.42","*1.44","*1.46","*1.48","*1.50"},389449,3},cdDiff={260404,-30,203129,-20,{1236370,nil,44},-60,296320,"*0.80",336742,"*0.65"}},
 	{131894,"HUNTER",3,--Стая воронов
 		nil,{131894,60,15},nil,nil,
 		isTalent=true},
@@ -12732,8 +12738,8 @@ module.db.AllSpells = {
 		nil,{194844,60,0},nil,nil,
 		isTalent=true},
 	{152279,"DEATHKNIGHT,DPS",3,--Дыхание Синдрагосы
-		nil,nil,{152279,120,0},nil,
-		isTalent=true},
+		nil,nil,{1249658,90,0},nil,
+		isTalent=true,sameTalent={152279,1249658}},
 	{274156,"DEATHKNIGHT",3,--Пожирание
 		nil,{274156,30,0},nil,nil,
 		isTalent=true},
@@ -14468,7 +14474,7 @@ module.db.AllSpells = {
 		isTalent=true,cdDiff={376150,-10}},
 	{357170,"EVOKER,DEFTAR",2,--Растяжение времени
 		nil,nil,{357170,60,8},
-		isTalent=true,durationDiff={376240,{"*1.15","*1.3"}}},
+		isTalent=true,durationDiff={376204,-10,376240,{"*1.15","*1.3"}},hasCharges=376204},
 	{370537,"EVOKER",3,--Стазис
 		nil,nil,{370537,90,0},
 		isTalent=true},
@@ -14834,7 +14840,7 @@ module.db.AllSpells = {
 		item=208616},
 	{431416,"ITEMS",3,--Algari Healing Potion
 		{431416,300,0},
-		sameSpell={307192,213664,216431,216802,216468,338447,301308,431416,431418},icon=5931169},
+		sameSpell={307192,213664,216431,216802,216468,338447,301308,431416,431418,1238009,1238009,1238009},icon=1385244},
 
 
 	{295373,"ESSENCES",3,--Сосредоточенный огонь

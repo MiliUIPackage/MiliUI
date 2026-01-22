@@ -1,10 +1,11 @@
 local GlobalAddonName, ExRT = ...
 
-local IsEncounterInProgress, GetTime = IsEncounterInProgress, GetTime
+local GetTime = GetTime
 local IsAddOnLoaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
 local GetSpellInfo = ExRT.F.GetSpellInfo or GetSpellInfo
 local GetItemInfo, GetItemInfoInstant, GetItemCount  = C_Item and C_Item.GetItemInfo or GetItemInfo, C_Item and C_Item.GetItemInfoInstant or GetItemInfoInstant, C_Item and C_Item.GetItemCount or GetItemCount
 local SendChatMessage = C_ChatInfo and C_ChatInfo.SendChatMessage or SendChatMessage
+local IsEncounterInProgress = C_InstanceEncounter and C_InstanceEncounter.IsEncounterInProgress or IsEncounterInProgress
 
 local VMRT = nil
 
@@ -192,6 +193,8 @@ module.db.tablePotion = ExRT.isMoP and {
 	[453040]=true,
 	[453162]=true,
 	[453205]=true,
+
+	[1247091]=true,
 }
 module.db.hsSpells = {
 	[6262] = true,
@@ -208,6 +211,8 @@ module.db.hsSpells = {
 
 	[431419] = true,
 	[431416] = true,
+
+	[1238009]=true,
 }
 module.db.raidBuffs = {
 	{ATTACK_POWER_TOOLTIP or "AP","WARRIOR",6673,264761},
@@ -465,7 +470,7 @@ module.db.RaidCheckReadyCheckTable = {}
 module.db.RaidCheckReadyPPLNum = 0
 module.db.RaidCheckReadyCheckHideSchedule = nil
 
-module.db.tableRunes = {[224001]=5,[270058]=6,[317065]=6,[347901]=18,[367405]=18,[393438]=87,[453250]=87}
+module.db.tableRunes = {[224001]=5,[270058]=6,[317065]=6,[347901]=18,[367405]=18,[393438]=87,[453250]=87,[1234969]=733,[1242347]=733}
 
 module.db.durability = {}
 module.db.oil = {}
@@ -1773,6 +1778,7 @@ do
 end
 
 function module.main:ENCOUNTER_START()
+	if ExRT.isMN then return end
 	ExRT.F.ScheduleTimer(CheckPotionsOnPull,1.5)
 
 	table.wipe(module.db.hsList)
@@ -2694,6 +2700,10 @@ function module.frame:UpdateData(onlyLine)
 					local auraData = C_UnitAuras.GetAuraDataByIndex(line.unit, i,"HELPFUL")
 					if not auraData then
 						break
+					elseif C_Secrets and C_Secrets.ShouldAurasBeSecret() then
+						break
+					elseif canaccessvalue and not canaccessvalue(auraData.spellId) then
+						break
 					elseif module.db.tableFood[auraData.spellId] then
 						local val = module.db.tableFood[auraData.spellId]
 
@@ -3554,6 +3564,10 @@ if (not ExRT.isClassic) and UnitLevel'player' >= 60 then
 
 	local rune_item_id = IS_TWW and 224572 or IS_DF and 201325 or 181468
 	local rune_texture = IS_TWW and 4549102 or IS_DF and 4644002 or 134078
+	local rune_item_id2 = 246492
+	local rune_texture2 = 1345086
+	local rune_unlim_item_id = IS_TWW and 243191 or IS_DF and 211495 or 190384
+	local rune_unlim_texture = IS_TWW and 3566863 or IS_DF and 348535 or 4224736
 
 	--[432021]=70,	[432473]=70,	[431971]=70,	[431972]=70,	[431974]=70,	[431973]=70,
 	local flasks_list = {
@@ -3800,6 +3814,15 @@ if (not ExRT.isClassic) and UnitLevel'player' >= 60 then
 	local isElvUIFix
 
 	function module.consumables:Update()
+		if C_Secrets and C_Secrets.ShouldAurasBeSecret() then
+			return
+		elseif canaccessvalue then
+			local accessData = C_UnitAuras.GetAuraDataByIndex("player", 1, "HELPFUL")
+			if accessData and not canaccessvalue(accessData.icon) then
+				return
+			end
+		end
+
 		if (IsAddOnLoaded("ElvUI") or IsAddOnLoaded("ShestakUI")) and not isElvUIFix then
 			self:SetParent(ReadyCheckFrame)
 			self:ClearAllPoints()
@@ -4130,15 +4153,22 @@ if (not ExRT.isClassic) and UnitLevel'player' >= 60 then
 		end
 
 		local runeCount = GetItemCount(rune_item_id,false,true)
-		local runeUnlim = IS_DF and GetItemCount(211495,false,true) or GetItemCount(190384,false,true)
+		local runeSecondItem
+		if runeCount == 0 then
+			runeCount = GetItemCount(rune_item_id2,false,true)
+			if runeCount and runeCount > 0 then
+				runeSecondItem = true
+			end
+		end
+		local runeUnlim = GetItemCount(rune_unlim_item_id,false,true)
 		if VMRT.RaidCheck.OnlyUnlimRune then
 			runeCount = 0
 		end
-		if runeUnlim and runeUnlim > 0 and (not IS_TWW or VMRT.RaidCheck.OnlyUnlimRune) then	--no rune yet
+		if runeUnlim and runeUnlim > 0 and (IS_TWW or VMRT.RaidCheck.OnlyUnlimRune) then	--no rune yet
 			self.buttons.rune.count:SetText("")
 			if not InCombatLockdown() then
-				self.buttons.rune.texture:SetTexture(IS_DF and 348535 or 4224736)
-				local itemName = GetItemInfo(IS_DF and 211495 or 190384)
+				self.buttons.rune.texture:SetTexture(rune_unlim_texture)
+				local itemName = GetItemInfo(rune_unlim_item_id)
 				if itemName then
 					self.buttons.rune.click:SetAttribute("macrotext1", format("/stopmacro [combat]\n/use %s", itemName))
 					self.buttons.rune.click:Show()
@@ -4151,8 +4181,8 @@ if (not ExRT.isClassic) and UnitLevel'player' >= 60 then
 		elseif runeCount and runeCount > 0 then
 			self.buttons.rune.count:SetFormattedText("%d",runeCount)
 			if not InCombatLockdown() then
-				self.buttons.rune.texture:SetTexture(rune_texture)
-				local itemName = GetItemInfo(rune_item_id)
+				self.buttons.rune.texture:SetTexture(runeSecondItem and rune_texture2 or rune_texture)
+				local itemName = GetItemInfo(runeSecondItem and rune_item_id2 or rune_item_id)
 				if itemName then
 					self.buttons.rune.click:SetAttribute("macrotext1", format("/stopmacro [combat]\n/use %s", itemName))
 					self.buttons.rune.click:Show()
