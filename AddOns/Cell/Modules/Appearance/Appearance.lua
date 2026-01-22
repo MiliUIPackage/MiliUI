@@ -151,7 +151,7 @@ local function CreateCellPane()
     Cell.RegisterForCloseDropdown(accentColorPicker)
 
     -- use game font
-    useGameFontCB = Cell.CreateCheckButton(cellPane, "Use Game Font", function(checked)
+    useGameFontCB = Cell.CreateCheckButton(cellPane, L["Use Game Font"], function(checked)
         CellDB["appearance"]["useGameFont"] = checked
         Cell.UpdateOptionsFont(CellDB["appearance"]["optionsFontSizeOffset"], checked)
     end)
@@ -1488,7 +1488,7 @@ local function CreateUnitButtonStylePane()
         Cell.Fire("UpdateAppearance", "shields")
     end)
     shieldCB:SetPoint("TOPLEFT", absorbCB, "BOTTOMLEFT", 0, -28)
-    shieldCB:SetEnabled(not Cell.isVanilla)
+    shieldCB:SetEnabled(not (Cell.isVanilla or Cell.isTBC))
 
     shieldColorPicker = Cell.CreateColorPicker(unitButtonPane, L["Shield Texture"], true, function(r, g, b, a)
         CellDB["appearance"]["shield"][2][1] = r
@@ -1513,7 +1513,7 @@ local function CreateUnitButtonStylePane()
         Cell.Fire("UpdateAppearance", "shields")
     end)
     oversCB:SetPoint("TOPLEFT", shieldCB, "BOTTOMLEFT", 0, -28)
-    oversCB:SetEnabled(not Cell.isVanilla)
+    oversCB:SetEnabled(not (Cell.isVanilla or Cell.isTBC))
 
     oversColorPicker = Cell.CreateColorPicker(unitButtonPane, L["Overshield Texture"], true, function(r, g, b, a)
         CellDB["appearance"]["overshield"][2][1] = r

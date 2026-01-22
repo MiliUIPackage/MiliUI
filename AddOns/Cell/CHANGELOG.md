@@ -1,3 +1,4 @@
-[View Full Changelog](https://github.com/enderneko/Cell/compare/r265-release...2a322cdfda4704076f29afdb800614630dcfdaf4)
+[View Full Changelog](https://github.com/enderneko/Cell/compare/r273-release...c376c32494926a90b93cc63bfc564234fb6e5cd6)
 
-- Delay creation of some indicators to avoid potential issues
+- Update Molten Core debuffs
+- Fix boss unit button mapping

@@ -15,8 +15,7 @@ Cell.isAsian = LOCALE_zhCN or LOCALE_zhTW or LOCALE_koKR
 
 Cell.isRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 Cell.isVanilla = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
--- Cell.isBCC = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC and LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_BURNING_CRUSADE
--- Cell.isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC and LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_WRATH_OF_THE_LICH_KING
+Cell.isTBC = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC
 Cell.isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
 Cell.isCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC
 Cell.isMists = WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC
@@ -30,6 +29,8 @@ elseif Cell.isCata then
     Cell.flavor = "cata"
 elseif Cell.isWrath then
     Cell.flavor = "wrath"
+elseif Cell.isTBC then
+    Cell.flavor = "tbc"
 elseif Cell.isVanilla then
     Cell.flavor = "vanilla"
 end
@@ -113,7 +114,7 @@ if Cell.isCata then
         return which, Cell.vars.playerSpecIcon, Cell.vars.playerSpecName
     end
 
-elseif Cell.isWrath or Cell.isVanilla then
+elseif Cell.isWrath or Cell.isTBC or Cell.isVanilla then
     function F.GetActiveTalentInfo()
         local which = GetActiveTalentGroup() == 1 and L["Primary Talents"] or L["Secondary Talents"]
 
@@ -1858,12 +1859,44 @@ else
     end
 end
 
-if Cell.isWrath or Cell.isVanilla then
+if Cell.isWrath or Cell.isTBC or Cell.isVanilla then
     local GetSpellInfo = GetSpellInfo
     local GetNumSpellTabs = GetNumSpellTabs
     local GetSpellTabInfo = GetSpellTabInfo
     local GetSpellBookItemName = GetSpellBookItemName
-    local PATTERN = TRADESKILL_RANK_HEADER:gsub(" ", ""):gsub("%%d", "%%s*(%%d+)")
+
+    local MATCH_PATTERN, FORMAT_PATTERN = "Rank (%d+)", "Rank %d"
+    if LOCALE_deDE or LOCALE_frFR then
+        MATCH_PATTERN = "Rang (%d+)"
+        FORMAT_PATTERN = "Rang %d"
+    elseif LOCALE_esES or LOCALE_esMX then
+        MATCH_PATTERN = "Rango (%d+)"
+        FORMAT_PATTERN = "Rango %d"
+    -- elseif LOCALE_itIT then -- not supported in classic
+    --     MATCH_PATTERN = "Grado (%d+)"
+    --     FORMAT_PATTERN = "Grado %d"
+    elseif LOCALE_koKR then
+        MATCH_PATTERN = "(%d+) 레벨"
+        FORMAT_PATTERN = "%d 레벨"
+    elseif LOCALE_ptBR then
+        MATCH_PATTERN = "Grau (%d+)"
+        FORMAT_PATTERN = "Grau %d"
+    elseif LOCALE_ruRU then
+        MATCH_PATTERN = "Уровень (%d+)"
+        FORMAT_PATTERN = "Уровень %d"
+    elseif LOCALE_zhCN then
+        MATCH_PATTERN = "等级 (%d+)"
+        FORMAT_PATTERN = "等级 %d"
+    elseif LOCALE_zhTW then
+        MATCH_PATTERN = "等級 (%d+)"
+        FORMAT_PATTERN = "等級 %d"
+    end
+
+    FORMAT_PATTERN = "(" .. FORMAT_PATTERN .. ")"
+
+    function F.GetRankSuffix(rank)
+        return FORMAT_PATTERN:format(rank)
+    end
 
     function F.GetMaxSpellRank(spellId)
         local spellName = select(1, GetSpellInfo(spellId))
@@ -1878,15 +1911,26 @@ if Cell.isWrath or Cell.isVanilla then
             totalSpells = totalSpells + numSpells
         end
 
+        -- local spellSubText
         for i = 1, totalSpells do
             local name, subText = GetSpellBookItemName(i, bookType)
             if name == spellName and subText then
-                local rank = tonumber(subText:match(PATTERN))
+                local rank = tonumber(subText:match(MATCH_PATTERN))
+                -- spellSubText = subText
                 if rank and rank > maxRank then
                     maxRank = rank
                 end
             end
         end
+
+        -- if spellSubText then
+        --     print("----------------------------------------------")
+        --     print(spellSubText, MATCH_PATTERN, tonumber(spellSubText:match(MATCH_PATTERN)))
+        --     print("Max Rank of " .. spellName .. ": " .. maxRank)
+        --     print("----------------------------------------------")
+        -- else
+        --     print("Rank info not found: " .. spellName)
+        -- end
 
         return maxRank
     end
@@ -2022,7 +2066,7 @@ end
 -- OmniCD
 -------------------------------------------------
 function F.UpdateOmniCDPosition(frame)
-    if OmniCD and OmniCD[1].db.position.uf == frame then
+    if OmniCD and OmniCD[1].db and OmniCD[1].db.position.uf == frame then
         C_Timer.After(0.5, function()
             OmniCD[1].Party:UpdatePosition()
         end)
@@ -2114,8 +2158,8 @@ local UnitInRange = UnitInRange
 local UnitCanAssist = UnitCanAssist
 local UnitCanAttack = UnitCanAttack
 local UnitCanCooperate = UnitCanCooperate
-local IsSpellInRange = (C_Spell and C_Spell.IsSpellInRange) and C_Spell.IsSpellInRange or IsSpellInRange
-local IsItemInRange = (C_Spell and C_Item.IsItemInRange) and C_Item.IsItemInRange or IsItemInRange
+local IsSpellInRange = C_Spell.IsSpellInRange
+local IsItemInRange = C_Item.IsItemInRange
 local CheckInteractDistance = CheckInteractDistance
 local UnitIsDead = UnitIsDead
 local IsSpellKnownOrOverridesKnown = IsSpellKnownOrOverridesKnown
@@ -2123,6 +2167,11 @@ local IsSpellKnownOrOverridesKnown = IsSpellKnownOrOverridesKnown
 -- local GetNumSpellTabs = GetNumSpellTabs
 -- local GetSpellBookItemName = GetSpellBookItemName
 -- local BOOKTYPE_SPELL = BOOKTYPE_SPELL
+local IsSpellBookKnown = C_SpellBook.IsSpellKnown
+
+local function IsSpellKnown(spellId)
+    return IsSpellKnownOrOverridesKnown(spellId) or IsSpellBookKnown(spellId)
+end
 
 local UnitInSamePhase
 if Cell.isRetail then
@@ -2138,7 +2187,7 @@ local playerClass = UnitClassBase("player")
 local friendSpells = {
     -- ["DEATHKNIGHT"] = 47541,
     -- ["DEMONHUNTER"] = ,
-    ["DRUID"] = (Cell.isWrath or Cell.isVanilla) and 5185 or 8936, -- 治疗之触 / 愈合
+    ["DRUID"] = (Cell.isWrath or Cell.isTBC or Cell.isVanilla) and 5185 or 8936, -- 治疗之触 / 愈合
     -- FIXME: [361469 活化烈焰] 会被英雄天赋 [431443 时序烈焰] 替代，但它而且有问题
     -- IsSpellInRange 始终返回 nil
     ["EVOKER"] = 355913, -- 翡翠之花
@@ -2146,11 +2195,11 @@ local friendSpells = {
     ["MAGE"] = 1459, -- 奥术智慧 / 奥术光辉
     ["MONK"] = 116670, -- 活血术
     ["PALADIN"] = Cell.isRetail and 19750 or 635, -- 圣光闪现 / 圣光术
-    ["PRIEST"] = (Cell.isWrath or Cell.isVanilla) and 2050 or 2061, -- 次级治疗术 / 快速治疗
+    ["PRIEST"] = (Cell.isWrath or Cell.isTBC or Cell.isVanilla) and 2050 or 2061, -- 次级治疗术 / 快速治疗
     -- ["ROGUE"] = Cell.isWrath and 57934,
     ["SHAMAN"] = Cell.isRetail and 8004 or 331, -- 治疗之涌 / 治疗波
     ["WARLOCK"] = 5697, -- 无尽呼吸
-    -- ["WARRIOR"] = 3411,
+    -- ["WARRIOR"] = 3411, -- 援护
 }
 
 local deadSpells = {
@@ -2254,32 +2303,28 @@ CELL_RANGE_CHECK_HOSTILE = {}
 CELL_RANGE_CHECK_DEAD = {}
 CELL_RANGE_CHECK_PET = {}
 
-local function SPELLS_CHANGED()
-    spell_friend = CELL_RANGE_CHECK_FRIENDLY[playerClass] or friendSpells[playerClass]
-    spell_harm = CELL_RANGE_CHECK_HOSTILE[playerClass] or harmSpells[playerClass]
-    spell_dead = CELL_RANGE_CHECK_DEAD[playerClass] or deadSpells[playerClass]
-    spell_pet = CELL_RANGE_CHECK_PET[playerClass] or petSpells[playerClass]
+local function LoadSpellName(spellID, callback)
+    if spellID and IsSpellKnown(spellID) then
+        local spell = Spell:CreateFromSpellID(spellID)
+        spell:ContinueOnSpellLoad(function()
+            callback(spell:GetSpellName())
+            -- print("Loaded spell for range check:", spellID, spell:GetSpellName())
+        end)
+    else
+        callback(nil)
+    end
+end
 
-    if spell_friend and IsSpellKnownOrOverridesKnown(spell_friend) then
-        spell_friend = F.GetSpellInfo(spell_friend)
-    else
-        spell_friend = nil
-    end
-    if spell_harm and IsSpellKnownOrOverridesKnown(spell_harm) then
-        spell_harm = F.GetSpellInfo(spell_harm)
-    else
-        spell_harm = nil
-    end
-    if spell_dead and IsSpellKnownOrOverridesKnown(spell_dead) then
-        spell_dead = F.GetSpellInfo(spell_dead)
-    else
-        spell_dead = nil
-    end
-    if spell_pet and IsSpellKnownOrOverridesKnown(spell_pet) then
-        spell_pet = F.GetSpellInfo(spell_pet)
-    else
-        spell_pet = nil
-    end
+local function SPELLS_CHANGED()
+    local friend_id = CELL_RANGE_CHECK_FRIENDLY[playerClass] or friendSpells[playerClass]
+    local harm_id = CELL_RANGE_CHECK_HOSTILE[playerClass] or harmSpells[playerClass]
+    local dead_id = CELL_RANGE_CHECK_DEAD[playerClass] or deadSpells[playerClass]
+    local pet_id = CELL_RANGE_CHECK_PET[playerClass] or petSpells[playerClass]
+
+    LoadSpellName(friend_id, function(name) spell_friend = name end)
+    LoadSpellName(harm_id, function(name) spell_harm = name end)
+    LoadSpellName(dead_id, function(name) spell_dead = name end)
+    LoadSpellName(pet_id, function(name) spell_pet = name end)
 
     -- F.Debug(
     --     "[RANGE CHECK]",

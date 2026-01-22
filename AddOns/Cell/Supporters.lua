@@ -113,6 +113,7 @@ local supporters1 = { -- wowIDs
         "|cfffb6f92露露緹婭丶-迅捷微风 (CN)|r",
         "|cfffb6f92露露缇娅丶-霜语 (CN)|r",
         "|cfffb6f92露露缇娅灬-霜语 (CN)|r",
+        "|cfffb6f92露露缇娅-时光III (CN)|r",
     }, -- 露露缇娅 (爱发电)
     {
         "|cfffb6f92Rëat-Silvermoon (EU)|r",
@@ -138,9 +139,30 @@ local supporters1 = { -- wowIDs
         "|cfffb6f92Floofe-Nightslayer (US)|r",
         "|cfffb6f92Mommie-Nightslayer (US)|r",
         "|cfffb6f92Flewf-Nightslayer (US)|r",
+        "|cfffb6f92Twoofe-Nightslayer (US)|r",
+        "|cfffb6f92Sloofe-Nightslayer (US)|r",
+        "|cfffb6f92Ploofe-Nightslayer (US)|r",
     }, -- Floofe (Ko-fi)
     {"无语了捏-回音山 (CN)"}, -- 我有脂肪肝 (爱发电)
     {"月弥-神圣之歌 (CN)"}, -- 爱发电用户_bb967 (爱发电)
+    {"|cfffb6f92Darkquinn-Proudmoore (US)|r"}, -- Quinn (Ko-fi)
+    {
+        "Ekkles-伊弗斯 (TW)",
+        "Ekkles-比斯巨兽 (CN)",
+        "Ekkles-国王之谷 (CN)",
+    }, -- 爱发电用户_ygpT
+    {"小凌宝-霜语 (CN)"}, -- 凌宝 (爱发电)
+    {
+        "無穷丶-霜语 (CN)",
+        "无窮丿-霜语 (CN)",
+        "無窮丿-霜语 (CN)",
+        "无穷灬-霜语 (CN)",
+        "无穷丶-霜语 (CN)",
+        "無穷灬-霜语 (CN)",
+        "無穷丿-霜语 (CN)",
+        "無窮丨-霜语 (CN)",
+    }, -- 无穷 (爱发电)
+    {"安格籤牛扒-日落沼澤 (TW)"}, -- 安格籤牛扒 @TW 日落沼澤 (Ko-fi)
 }
 
 local supporters2 = { -- 有些早期的发电记录已经丢失了……
@@ -267,6 +289,13 @@ local supporters2 = { -- 有些早期的发电记录已经丢失了……
     {"我有脂肪肝", "爱发电"}, -- 2025-08-07
     {"奶德史塔克-A'lar CN", "Ko-fi"}, -- 2025-08-15
     {"爱发电用户_bb967", "爱发电"}, -- 2025-08-22
+    {"施然", "爱发电"}, -- 2025-10-06
+    {"|cfffb6f92Quinn|r", "Ko-fi"}, -- 2025-10-28
+    {"爱发电用户_ygpT", "爱发电"}, -- 2025-11-06
+    {"Sc千寻", "爱发电"}, -- 2026-01-08
+    {"凌宝", "爱发电"}, -- 2026-01-18
+    {"无穷", "爱发电"}, -- 2026-01-18
+    {"安格籤牛扒 @TW 日落沼澤", "Ko-fi"}, -- 2026-01-22
 }
 
 -------------------------------------------------
