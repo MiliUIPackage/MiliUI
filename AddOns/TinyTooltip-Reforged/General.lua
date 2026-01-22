@@ -11,30 +11,7 @@ local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
 local addon = TinyTooltipReforged
 
 local function ColorStatusBar(self, value)
-    if (addon.db.general.statusbarColor == "auto") then        
-        local unit = "mouseover"
-        local focus = GetMouseFoci()
-        if (focus and focus.unit) then
-            unit = focus.unit
-        end
-        local r, g, b
-        if (UnitIsPlayer(unit)) then    
-            if (CUSTOM_CLASS_COLORS) then
-                local color = CUSTOM_CLASS_COLORS[select(2,UnitClass(unit))]
- 		self:SetStatusBarColor(color.r, color.g, color.b)
-            else      
-                r, g, b = GetClassColor(select(2,UnitClass(unit)))
-                self:SetStatusBarColor(r, g, b)
-            end
-        else
-            r, g, b = GameTooltip_UnitColor(unit)
-            if (g == 0.6) then g = 0.9 end
-            if (r==1 and g==1 and b==1) then r, g, b = 0, 0.9, 0.1 end
-            self:SetStatusBarColor(r, g, b)
-        end
-    elseif (value and addon.db.general.statusbarColor == "smooth") then
-        HealthBar_OnValueChanged(self, value, true)
-    end
+    -- Disabled by user request
 end
 
 local function IsTableEmpty(table)
@@ -42,42 +19,9 @@ local function IsTableEmpty(table)
 end
 
 local function UpdateHealthBar(self, hp)
-    if (not addon.db.general.statusbarText) then 
-        GameTooltipStatusBar.TextString:Hide() 
-    else
-        GameTooltipStatusBar.TextString:Show() 
-    end
-    local unit = "mouseover"
-    local focus = GetMouseFoci()
-    if (focus and focus.unit) then
-        unit = focus.unit
-    end
-    local hp = UnitHealth(unit) or 1
-    local maxhp = UnitHealthMax(unit) or 1
-    if (UnitIsDeadOrGhost(unit) or UnitIsGhost(unit)) then
-        local percent = 0
-	self.TextString:SetFormattedText("|cff999999%s|r |cffffcc33<%s>|r", AbbreviateLargeNumbers(maxhp), DEAD)
-    else
-        if (hp<=0) then
-            local percent = 0
-  	    self.TextString:SetFormattedText(addon.L["|cff999999Out of Range|r"])
-        else
-          local percent = ceil((hp*100)/maxhp)
-          if (addon.db.general.statusbarTextFormat == "healthmaxpercent") then
-              self.TextString:SetFormattedText("%s / %s (%d%%)", AbbreviateLargeNumbers(hp), AbbreviateLargeNumbers(maxhp), percent)
-          elseif (addon.db.general.statusbarTextFormat == "healthmax") then
-              self.TextString:SetFormattedText("%s / %s", AbbreviateLargeNumbers(hp), AbbreviateLargeNumbers(maxhp))
-          elseif (addon.db.general.statusbarTextFormat == "percent") then
-              self.TextString:SetFormattedText("%d%%", percent)
-          elseif (addon.db.general.statusbarTextFormat == "health") then
-              self.TextString:SetFormattedText("%s", AbbreviateLargeNumbers(hp))
-          elseif (addon.db.general.statusbarTextFormat == "healthpercent") then
-              self.TextString:SetFormattedText("%s (%d%%)", AbbreviateLargeNumbers(hp), percent)
-          else -- default
-              self.TextString:SetFormattedText("%s / %s (%d%%)", AbbreviateLargeNumbers(hp), AbbreviateLargeNumbers(maxhp), percent)
-          end
-        end
-    end
+    -- Disabled by user request
+    if (self.Hide) then self:Hide() end
+    if (self.TextString) then self.TextString:Hide() end
 end
 
 LibEvent:attachEvent("VARIABLES_LOADED", function()
@@ -148,12 +92,6 @@ end)
 
 LibEvent:attachTrigger("tooltip:show", function(self, tip)
     if (tip ~= GameTooltip) then return end
-    LibEvent:trigger("tooltip.statusbar.position", addon.db.general.statusbarPosition, addon.db.general.statusbarOffsetX, addon.db.general.statusbarOffsetY)
-    local w = GameTooltipStatusBar.TextString:GetWidth() + 10  
-    if (GameTooltipStatusBar:IsShown() and w > tip:GetWidth()) then
-        tip:SetMinimumWidth(w+2)
-        if (addon.db.general.statusbarEnabled) then
-            tip:Show()
-        end
-    end
+    if (GameTooltipStatusBar) then GameTooltipStatusBar:Hide() end
+    -- LibEvent:trigger("tooltip.statusbar.position", addon.db.general.statusbarPosition, addon.db.general.statusbarOffsetX, addon.db.general.statusbarOffsetY)
 end)
