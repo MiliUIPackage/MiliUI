@@ -146,22 +146,23 @@ local function getOptions()
 end
 
 local function optFunc()
-	Settings.OpenToCategory("Mapster")
+	Settings.OpenToCategory(Mapster.SettingsCategory)
 end
 
 function Mapster:SetupOptions()
 	-- setup options table
-	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Mapster", getOptions)
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Mapster", nil, nil, "general")
+	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("地圖增強", getOptions)
+	local _frame, category = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("地圖增強", nil, nil, "general")
+	self.SettingsCategory = category
 
-	self:RegisterModuleOptions("Profiles", LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db), "Profiles")
+	self:RegisterModuleOptions("設定檔", LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db), "設定檔")
 
 	LibStub("AceConsole-3.0"):RegisterChatCommand( "mapster", optFunc)
 end
 
 function Mapster:RegisterModuleOptions(name, optionTbl, displayName)
 	moduleOptions[name] = optionTbl
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Mapster", displayName, "Mapster", name)
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("地圖增強", displayName, "地圖增強", name)
 end
 
 function Mapster:SetupMapButton()
@@ -169,7 +170,7 @@ function Mapster:SetupMapButton()
 	self.optionsButton = CreateFrame("Button", "MapsterOptionsButton", WorldMapFrame.BorderFrame.TitleContainer or WorldMapFrame, "UIPanelButtonTemplate")
 	self.optionsButton:SetWidth(95)
 	self.optionsButton:SetHeight(18)
-	self.optionsButton:SetText("Mapster")
+	self.optionsButton:SetText("地圖增強")
 	self.optionsButton:ClearAllPoints()
 	self.optionsButton:SetPoint("TOPRIGHT", WorldMapFrame.BorderFrame.TitleContainer, "TOPRIGHT", -48, -1)
 
