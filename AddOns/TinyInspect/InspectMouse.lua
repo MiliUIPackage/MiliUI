@@ -4,7 +4,7 @@
 -------------------------------------
 local addon, ns = ...
 
-if ns.IsMidnight then return end
+-- if ns.IsMidnight then return end
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 
