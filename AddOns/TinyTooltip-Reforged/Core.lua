@@ -149,7 +149,8 @@ function addon:FindLine(tooltip, keyword)
         line = _G[tooltip:GetName() .. "TextLeft" .. i]
         if (not line) then return end
         text = line:GetText() or ""
-        if (strfind(text, keyword)) then
+        local isSafe, found = pcall(strfind, text, keyword)
+        if (isSafe and found) then
             return line, i, _G[tooltip:GetName() .. "TextRight" .. i]
         end
     end
@@ -859,6 +860,8 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
         hooksecurefunc(tip, "ProcessInfo", function(self, info)
             if (not info or not info.tooltipData) then return end
             local flag = info.tooltipData.type
+            if (type(flag) ~= "number") then return end
+            if (not pcall(function() return flag == 0 end)) then return end
             local guid = info.tooltipData.guid
             if (flag == 0) then
 		local link = select(2, C_Item.GetItemInfo(info.tooltipData.id))

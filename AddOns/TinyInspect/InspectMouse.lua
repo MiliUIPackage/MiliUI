@@ -48,7 +48,8 @@ if (GameTooltip.ProcessInfo) then
         if (not info or not info.tooltipData) then return end
         local flag = info.tooltipData.type
         local guid = info.tooltipData.guid
-        if (flag ~= 2) then return end
+        if (type(flag) ~= "number") then return end
+        if (not pcall(function() return flag == 2 end)) then return end
 
         if (TinyInspectDB and (TinyInspectDB.EnableMouseItemLevel or TinyInspectDB.EnableMouseSpecialization)) then
             local _, unit = self:GetUnit()
