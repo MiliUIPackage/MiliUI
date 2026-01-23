@@ -23,7 +23,7 @@ function addon:initWatermark()
                 slotEntered = false
             end)
             
-            TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tooltip, data)
+            TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tooltip)
                 if tooltip ~= GameTooltip then return end
                 if slotEntered then
                     local itemLink = GetInventoryItemLink("player", slot:GetID())

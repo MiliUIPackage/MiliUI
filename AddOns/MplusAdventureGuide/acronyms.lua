@@ -43,7 +43,7 @@ function addon:initAcronyms()
     ChallengesFrame.WeeklyInfo.Child.SeasonBest:Hide()
     
     hooksecurefunc(ChallengesFrame, "Update", function()
-        for i, icon in ipairs(ChallengesFrame.DungeonIcons) do
+        for _, icon in ipairs(ChallengesFrame.DungeonIcons) do
             icon.AcronymLabel = icon.AcronymLabel or icon:CreateFontString(nil, "BORDER", "SystemFont_Huge1_Outline")
             local label = icon.AcronymLabel
             label:SetJustifyH("CENTER")

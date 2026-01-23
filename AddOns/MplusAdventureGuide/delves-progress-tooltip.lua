@@ -27,9 +27,9 @@ function addon:initDelvesProgressTooltip()
     if not addon.db.profile.delvesProgressTooltip then return end
     if not hasActiveSeason() then return end
     
-    for i, activity in ipairs(WeeklyRewardsFrame.Activities) do
+    for _, activity in ipairs(WeeklyRewardsFrame.Activities) do
         if activity ~= WeeklyRewardsFrame.ConcessionFrame then
-            hooksecurefunc(activity, "ShowIncompleteTooltip", function(self, title, description, formatRemainingProgress, addProgressLineCallback)
+            hooksecurefunc(activity, "ShowIncompleteTooltip", function(self, _, description)
                 -- Check Blizzard_WeeklyRewards.lua for any important changes
                 if (description == GREAT_VAULT_REWARDS_WORLD_INCOMPLETE) then
                     addTopDelveRunsToTooltip(2)
@@ -40,7 +40,7 @@ function addon:initDelvesProgressTooltip()
                 end
             end)
             
-            hooksecurefunc(activity, "HandlePreviewWorldRewardTooltip", function(self, itemLevel, upgradeItemLevel, nextLevel)
+            hooksecurefunc(activity, "HandlePreviewWorldRewardTooltip", function(self, _, upgradeItemLevel)
                 if upgradeItemLevel then
                     local runsNeeded = 2^self.index
                     addTopDelveRunsToTooltip(runsNeeded)

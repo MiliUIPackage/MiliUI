@@ -9,12 +9,11 @@ function addon:initWardrobeClassColours()
     		return;
     	end
 
-    	local classInfo = C_CreatureInfo.GetClassInfo(classFilter);
-    	if not classInfo then
+    	if not C_CreatureInfo.GetClassInfo(classFilter) then
     		return;
     	end
 
-    	self:SetupMenu(function(dropdown, rootDescription)
+    	self:SetupMenu(function(_, rootDescription)
     		rootDescription:SetTag("MENU_WARDROBE_CLASS");
 
     		local function IsClassFilterSet(classInfo)
