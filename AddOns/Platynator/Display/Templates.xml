@@ -1,0 +1,42 @@
+<Ui>
+  <Frame name="PlatynatorNameplateBuffButtonTemplate" virtual="true" hidden="true" propagateMouseInput="Clicks">
+    <Size x="20" y="20"/>
+    <Layers>
+      <Layer level="BACKGROUND">
+        <Texture parentKey="Border" setAllPoints="true">
+          <Color r="0" g="0" b="0"/>
+        </Texture>
+      </Layer>
+      <Layer level="ARTWORK">
+        <Texture parentKey="Icon">
+          <Size x="19" y="19"/>
+          <Anchors>
+            <Anchor point="CENTER"/>
+          </Anchors>
+          <TexCoords left="0.05" right="0.95" top="0.05" bottom="0.95"/>
+        </Texture>
+      </Layer>
+    </Layers>
+    <Frames>
+      <Cooldown parentKey="Cooldown" inherits="CooldownFrameTemplate" hideCountdownNumbers="false" reverse="true" drawEdge="true" hidden="true">
+        <Anchors>
+          <Anchor point="CENTER" x="0" y="-1"/>
+        </Anchors>
+      </Cooldown>
+      <Frame parentKey="CountFrame" setAllPoints="true">
+        <Layers>
+          <Layer level="ARTWORK">
+            <FontString parentKey="Count" inherits="NumberFontNormalSmall" justifyH="RIGHT">
+              <Anchors>
+                <Anchor point="BOTTOMRIGHT" x="3" y="-2"/>
+              </Anchors>
+            </FontString>
+          </Layer>
+        </Layers>
+      </Frame>
+    </Frames>
+  </Frame>
+
+  <Frame name="PlatynatorPropagateMouseTemplate" virtual="true" hidden="true" propagateMouseInput="Motion">
+  </Frame>
+</Ui>

@@ -1,0 +1,86 @@
+## Interface: 120000, 110207, 50503, 38000, 20505, 11508
+## Title: Platynator
+## Version: 278
+## Author: plusmouse
+## SavedVariables: PLATYNATOR_CONFIG
+## SavedVariablesPerCharacter: PLATYNATOR_CURRENT_PROFILE, PLATYNATOR_LAST_INSTANCE
+## IconTexture: Interface\AddOns\Platynator\Assets\logo.tga
+
+## Category: Unit Frames
+## Category-deDE: Einheitenfenster
+## Category-esES: Marcos de unidades
+## Category-esMX: Marcos de unidades
+## Category-frFR: Portraits d'unités
+## Category-itIT: Riquadri delle unità
+## Category-koKR: 개체창
+## Category-ptBR: Quadros de unidade
+## Category-ruRU: Рамки юнитов
+## Category-zhCN: 单位框体
+## Category-zhTW: 單位框架
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibSharedMedia-3.0\lib.xml
+
+Locales.lua
+
+Core/Objects.lua
+Core/Locales.lua
+Core/Constants.lua
+Core/Config.lua
+Core/Utilities.lua
+Core/Dialogs.lua
+Core/SlashCmd.lua
+Core/Fonts.lua
+Core/Initialize.lua
+
+Display/Templates.xml
+
+Display/Initialize.lua
+Display/Utilities.lua
+Display/CVars.lua
+Display/Colors.lua
+Display/Nameplate.lua
+Display/Auras.lua
+Display/HealthBar.lua
+Display/CastBar.lua
+Display/PowerBar.lua
+Display/CreatureText.lua
+Display/CreatureTextMSP.lua
+Display/GuildText.lua
+Display/HealthText.lua
+Display/AbsorbText.lua
+Display/CastText.lua
+Display/CastTimeText.lua
+Display/CastTargetText.lua
+Display/CastInterrupterText.lua
+Display/LevelText.lua
+Display/UnitTargetText.lua
+Display/AutomaticHighlight.lua
+Display/TargetHighlight.lua
+Display/SoftTargetHighlight.lua
+Display/FocusHighlight.lua
+Display/MouseoverHighlight.lua
+Display/FixedHighlight.lua
+Display/QuestMarker.lua
+Display/CannotInterruptMarker.lua
+Display/CastIconMarker.lua
+Display/EliteMarker.lua
+Display/RareMarker.lua
+Display/RaidMarker.lua
+Display/PvPMarker.lua
+Display/Widgets.lua
+
+API/Main.lua
+
+Design.lua
+Assets.lua
+
+CustomiseDialog/Components.lua
+CustomiseDialog/ColorsConfiguration.lua
+CustomiseDialog/AddWidgetsList.lua
+CustomiseDialog/WidgetsConfiguration.lua
+CustomiseDialog/Designer.lua
+CustomiseDialog/ImportDialog.lua
+CustomiseDialog/Main.lua
+CustomiseDialog/Initialize.lua
