@@ -6,6 +6,7 @@ local EMPTY = EMPTY
 local TARGET = TARGET
 local TOOLTIP_UPDATE_TIME = TOOLTIP_UPDATE_TIME or 0.1
 
+local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
 local addon = TinyTooltipReforged
 
 local function GetTargetString(unit)
@@ -28,6 +29,7 @@ end
 
 
 GameTooltip:HookScript("OnUpdate", function(self, elapsed)
+    if (clientToc >= 120000 and IsInInstance()) then return end
     if (not UnitExists("mouseover")) then return end
     if (addon.db.unit.player.showTarget and UnitIsPlayer("mouseover"))
         or (addon.db.unit.npc.showTarget and not UnitIsPlayer("mouseover")) then

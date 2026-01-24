@@ -2,6 +2,8 @@
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local LibSchedule = LibStub:GetLibrary("LibSchedule.7000")
 
+local GetMouseFocus = GetMouseFocus or GetMouseFoci
+
 local addon = TinyTooltipReforged
 local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
 
@@ -66,7 +68,11 @@ end
 LibEvent:attachTrigger("tooltip:anchor", function(self, tip, parent)
     if (tip ~= GameTooltip) then return end
     local unit
-    local focus = GetMouseFoci()
+    if (clientToc < 110000) then
+      local focus = GetMouseFocus()
+    else
+      local focus = GetMouseFoci()
+    end
     local isUnitFrame = false
     if (focus and focus.unit) then
         unit = focus.unit

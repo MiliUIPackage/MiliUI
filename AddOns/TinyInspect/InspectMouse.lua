@@ -54,7 +54,8 @@ if (GameTooltip.ProcessInfo) then
         if (TinyInspectDB and (TinyInspectDB.EnableMouseItemLevel or TinyInspectDB.EnableMouseSpecialization)) then
             local _, unit = self:GetUnit()
             if (not unit) then return end
-            local hp = UnitHealthMax(unit)
+            local success, hp = pcall(UnitHealthMax, unit)
+            if (not success) then return end
             local data = GetInspectInfo(unit)
             if (data and data.hp == hp and data.ilevel > 0) then
                 return AppendToGameTooltip(guid, floor(data.ilevel), data.spec, data.weaponLevel, data.isArtifact)

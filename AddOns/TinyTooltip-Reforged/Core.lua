@@ -34,7 +34,7 @@ setmetatable(addon.L, {__index = function(_, k) return k end})
 setmetatable(addon.G, {__index = function(_, k) return _G[k] or k end})
 
 local actualVersion = C_AddOns.GetAddOnMetadata("TinyTooltip-Reforged", "Version") or "unknown"
--- print("|cff00d200TinyTooltip Reforged v",actualVersion," loaded.|r")
+--print("|cff00d200TinyTooltip Reforged v",actualVersion," loaded.|r")
 
 addon.tooltips = {
     GameTooltip,
@@ -134,8 +134,16 @@ end
 function addon:AutoSetTooltipWidth(tooltip)
     local width, w = 80
     for i = 1, tooltip:NumLines() do
-        w = tonumber(_G[tooltip:GetName() .. "TextLeft" .. i]:GetWidth())
-        width = max(width, w)
+        local line = _G[tooltip:GetName() .. "TextLeft" .. i]
+        if (line) then
+             local success, w = pcall(line.GetWidth, line)
+             if (success and w) then
+                 local s, result = pcall(max, width, w)
+                 if (s and result) then
+                     width = result
+                 end
+             end
+        end
     end
     width = width + 6
     tooltip:SetMinimumWidth(width)
@@ -148,9 +156,9 @@ function addon:FindLine(tooltip, keyword)
     for i = 2, tooltip:NumLines() do
         line = _G[tooltip:GetName() .. "TextLeft" .. i]
         if (not line) then return end
+        if Enum.SecretAspect and line:HasSecretAspect(Enum.SecretAspect.Text) then return end
         text = line:GetText() or ""
-        local isSafe, found = pcall(strfind, text, keyword)
-        if (isSafe and found) then
+        if (strfind(text, keyword)) then
             return line, i, _G[tooltip:GetName() .. "TextRight" .. i]
         end
     end
@@ -353,17 +361,18 @@ function addon:GetZone(unit, unitname, realm)
 end
 
 local t = {}
-function addon:GetUnitInfo(unit)  
+function addon:GetUnitInfo(unit, spec_n_class)  
     local name, realm = UnitName(unit)
     local pvpName = UnitPVPName(unit)
     local gender = UnitSex(unit)
     local level = UnitLevel(unit)
-	if UnitIsWildBattlePet and (UnitIsWildBattlePet(unit) or UnitIsBattlePetCompanion(unit)) then
+    if(UnitIsWildBattlePet(unit) or UnitIsBattlePetCompanion(unit)) then
         level = UnitBattlePetLevel(unit)
-    end   
+    end
     local effectiveLevel = UnitEffectiveLevel(unit)
     local raceName, race = UnitRace(unit)
-    local className, class = UnitClass(unit)
+    local class = select(2,UnitClass(unit))
+    local className = spec_n_class or UnitClass(unit)
     local factionGroup, factionName = UnitFactionGroup(unit)
     local reaction = UnitReaction(unit, "player")
     local guildName, guildRank, guildIndex, guildRealm = GetGuildInfo(unit)
@@ -451,11 +460,11 @@ function addon:FormatData(value, config, raw)
     end
 end
 
-function addon:GetUnitData(unit, elements, raw)
+function addon:GetUnitData(unit, elements, raw, spec_n_class)
     local data = {}
     local config, name, title
     if (not raw) then
-        raw = self:GetUnitInfo(unit)
+        raw = self:GetUnitInfo(unit, spec_n_class)
     end
     for i, v in ipairs(elements) do
         data[i] = {}
@@ -856,33 +865,32 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     tip:HookScript("OnHide", function(self) LibEvent:trigger("tooltip:hide", self) end)
 
     tip.TinyHookScript = addon.TinyHookScript
-    if(tip.ProcessInfo) then
-        hooksecurefunc(tip, "ProcessInfo", function(self, info)
-            if (not info or not info.tooltipData) then return end
-            local flag = info.tooltipData.type
-            if (type(flag) ~= "number") then return end
-            if (not pcall(function() return flag == 0 end)) then return end
-            local guid = info.tooltipData.guid
-            if (flag == 0) then
-		local link = select(2, C_Item.GetItemInfo(info.tooltipData.id))
-                if (self.GetItem) then
-                    local link = select(2, self:GetItem())
-                end
-                if (link) then LibEvent:trigger("tooltip:item", self, link) end
-            elseif (flag == 1) then
-                LibEvent:trigger("tooltip:spell", self)
-            elseif (flag == 2) then
-                if (not self.GetUnit) then return end
-                local unit = select(2, self:GetUnit())
-                if (unit) then
-                    LibEvent:trigger("tooltip:unit", self, unit, guid)
-                end
-            elseif (flag == 7) then
-                LibEvent:trigger("tooltip:aura", self, info.tooltipData.args)
+
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, function(self)
+        if (clientToc >= 120000 and IsInInstance()) then return end
+        LibEvent:trigger("tooltip:spell", self)
+    end)
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self, data)
+        if (clientToc >= 120000 and IsInInstance()) then return end
+
+        local unit = data.lines[1].unitToken
+        if (not unit) then return end
+
+        local spec_n_class
+        if (UnitIsPlayer(unit)) then
+            if data.lines[6] then
+                spec_n_class = data.lines[4].leftText
+            elseif not data.lines[6] and data.lines[5] then
+                spec_n_class = UnitIsPVP(unit) and data.lines[3].leftText or data.lines[4].leftText
+            else
+                spec_n_class = data.lines[3].leftText
             end
-        end)
-    end
+        end
+
+        LibEvent:trigger("tooltip:unit", self, unit, spec_n_class)
+    end)
     tip:TinyHookScript("OnEvent", function(self, event, ...) LibEvent:trigger("tooltip:event", self, event, ...) end)
+    --[[
     if (tip:HasScript("OnTooltipSetUnit")) then
         tip:TinyHookScript("OnTooltipSetUnit", function(self) 
           local unit = select(2, self:GetUnit()) 
@@ -900,12 +908,16 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     if (tip:HasScript("OnTooltipSetSpell")) then
         tip:TinyHookScript("OnTooltipSetSpell", function(self) LibEvent:trigger("tooltip:spell", self) end)
     end
+    ]]
     if (tip:HasScript("OnTooltipCleared")) then
+        if (clientToc >= 120000 and IsInInstance()) then return end
         tip:TinyHookScript("OnTooltipCleared", function(self) LibEvent:trigger("tooltip:cleared", self) end)
     end
+    --[[
     if (tip:HasScript("OnTooltipSetQuest")) then
         tip:TinyHookScript("OnTooltipSetQuest", function(self) LibEvent:trigger("tooltip:quest", self) end)
     end
+    ]]
     if (tip == GameTooltip or tip.identity == "diy") then
         tip.GetBackdrop = function(self) return self.style:GetBackdrop() end
         tip.GetBackdropColor = function(self) return self.style:GetBackdropColor() end
@@ -937,6 +949,7 @@ end)
 
 if (SharedTooltip_SetBackdropStyle) then
     hooksecurefunc("SharedTooltip_SetBackdropStyle", function(self, style, embedded)
+        if self == EmbeddedItemTooltip then return end
         if (self.style and self.NineSlice) then
             self.NineSlice:Hide()
         end
@@ -965,6 +978,7 @@ LibEvent:attachTrigger("TINYTOOLTIP_REFORGED_GENERAL_INIT", function(self)
     LibEvent:trigger("tooltip.statusbar.font", addon.db.general.statusbarFont, addon.db.general.statusbarFontSize, addon.db.general.statusbarFontFlag)
     LibEvent:trigger("tooltip.statusbar.texture", addon.db.general.statusbarTexture)
     for _, tip in pairs(addon.tooltips) do
+        if tip == EmbeddedItemTooltip then return end
         LibEvent:trigger("tooltip.style.init", tip)
         LibEvent:trigger("tooltip.scale", tip, addon.db.general.scale)
         LibEvent:trigger("tooltip.style.mask", tip, addon.db.general.mask)

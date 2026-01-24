@@ -70,8 +70,8 @@ local function ShowBigFactionIcon(tip, config, raw)
     end
 end
 
-local function PlayerCharacter(tip, unit, config, raw)
-    local data = addon:GetUnitData(unit, config.elements, raw)    
+local function PlayerCharacter(tip, unit, config, raw, spec_n_class)
+    local data = addon:GetUnitData(unit, config.elements, raw, spec_n_class)
     addon:HideLines(tip, 2, 4)
     addon:HideLine(tip, "^"..LEVEL)
     addon:HideLine(tip, "^"..FACTION_ALLIANCE)
@@ -136,8 +136,8 @@ local function NonPlayerCharacter(tip, unit, config, raw)
     addon:AutoSetTooltipWidth(tip)
 end
 
-LibEvent:attachTrigger("tooltip:unit", function(self, tip, unit)
-    local raw = addon:GetUnitInfo(unit)
+LibEvent:attachTrigger("tooltip:unit", function(self, tip, unit, spec_n_class)
+    local raw = addon:GetUnitInfo(unit, spec_n_class)
     if (UnitIsPlayer(unit)) then
         PlayerCharacter(tip, unit, addon.db.unit.player, raw)
     else

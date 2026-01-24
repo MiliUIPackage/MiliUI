@@ -13,7 +13,10 @@ local guids, inspecting = {}, false
 function GetInspectInfo(unit, timelimit, checkhp)
     local guid = UnitGUID(unit)
     if (not guid or not guids[guid]) then return end
-    if (checkhp and UnitHealthMax(unit) ~= guids[guid].hp) then return end
+    if (checkhp) then
+        local success, hp = pcall(UnitHealthMax, unit)
+        if (not success or hp ~= guids[guid].hp) then return end
+    end
     if (not timelimit or timelimit == 0) then
         return guids[guid]
     end
@@ -98,9 +101,12 @@ hooksecurefunc("NotifyInspect", function(unit)
             level  = UnitLevel(unit),
             ilevel = -1,
             spec   = nil,
-            hp     = UnitHealthMax(unit),
+            spec   = nil,
+            hp     = 0,
             timer  = time(),
         }
+        local success, hp = pcall(UnitHealthMax, unit)
+        if (success) then data.hp = hp end
         data.name, data.realm = UnitName(unit)
         guids[guid] = data
     end
@@ -136,7 +142,8 @@ LibEvent:attachEvent("INSPECT_READY", function(this, guid)
                         self.data.ilevel = ilevel
                         self.data.maxLevel = maxLevel
                         self.data.spec = GetInspectSpec(self.data.unit)
-                        self.data.hp = UnitHealthMax(self.data.unit)
+                        local success, hp = pcall(UnitHealthMax, self.data.unit)
+                        if (success) then self.data.hp = hp end
                         self.data.weaponLevel = weaponLevel
                         self.data.isArtifact = isArtifact
                         LibEvent:trigger("UNIT_INSPECT_READY", self.data)
