@@ -8,5 +8,5 @@
 #UiTitle.lua
 Focuser.lua
 SlashRL.xml
-SpellAnnouncer.lua
+# SpellAnnouncer.lua
 core.lua
