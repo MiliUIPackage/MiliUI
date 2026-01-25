@@ -16,7 +16,7 @@ L.OTabWorld					= "世界首領"
 L.OTabScenarios				= "事件"
 L.OTabPlugins				= "其他"
 L.OTabOptions				= "核心選項"
-L.OTabTools					= "工具"
+L.OTabTools					= "工具"--Such as break timer button, durability checks, latency checks, keystone checks (in future)
 L.OTabAbout					= "關於"
 
 --Main Tab, Tools checks
@@ -104,7 +104,7 @@ L.Editbox_WindowHeight		= "GUI視窗高度"
 L.UIGroupingOptions					= "界面分組選項 (更改這些需要輸入 /reload 來重載界面)"
 L.GroupOptionsExcludeIcon			= "按照技能分組排除“設置標記圖示”選項 (它們將一起分類為自己的“圖示”類別)"
 L.GroupOptionsExcludePrivateAura	= "按照技能分組排除“私人光環”選項 (它們將一起分類為自己的“私人光環”類別)"
-L.AutoExpandSpellGroups				= "按照技能分組自動擴展選項"
+L.AutoExpandSpellGroups2			= "按照技能分組自動擴展選項"
 L.ShowWAKeys						= "在法術名稱旁顯示WeakAuras鍵來使用首領模組觸發器協助編寫WeakAuras。"
 --L.ShowSpellDescWhenExpanded		= "分組擴展時繼續顯示技能描述"
 L.NoDescription						= "此技能無描述說明"
@@ -282,6 +282,8 @@ L.RoleSpecAlert				= "當你加入團隊時拾取專精不符合你目前專精�
 L.CheckGear					= "開怪時顯示裝備警告訊息 (當你裝備的裝備等級低於包包裡40等以上或主手武器沒有裝備時顯示警告訊息)"
 L.WorldBossAlert			= "當你的公會成員或是朋友可能在你的伺服器上開戰世界首領時顯示警告訊息(如果發送者是被戰復的會不準確)"
 L.WorldBuffAlert			= "當你的伺服器的世界增益啟動時顯示警告訊息以及計時器"
+L.RaidDiffChangedAlert		= "當團隊難度改變時顯示警告訊息"
+L.DungeonDiffChangedAlert	= "當地城難度改變時顯示警告訊息"
 
 L.Area_BugAlerts			= "錯誤回報警報選項"
 L.BadTimerAlert				= "當DBM檢測到計時器錯誤且至少有1秒不正確時顯示聊天訊息"
@@ -400,7 +402,7 @@ L.AreaTitle_BarSetupSmall 		= "小型計時條設置"
 L.AreaTitle_BarSetupHuge		= "大型計時條設置"
 L.AreaTitle_BarSetupVariance	= "差異條選項"
 L.EnableHugeBar 				= "開啟大型計時條(2號計時條)"
-L.EnableVarianceBar 			= "啟用差異條"
+L.EnableVarianceBar 			= "延長計時條以顯示技能的最大佇列時間"
 L.VarianceColor					= "差異顏色"
 L.VarianceTransparency			= "條透明度: %0.1f"
 L.VarianceTimerTextBehavior		= "設定差異計時器文字行為"
@@ -583,6 +585,7 @@ L.TabFooter							= "本面板中的所有選項僅在您是非地下城/隨機�
 
 -- Panel: Privacy
 L.Tab_Privacy 				= "自動回覆 & 隱私"
+L.Tab_PrivacyMidnight		= "插件通訊保密"
 L.Area_WhisperMessages		= "密語訊息選項"
 L.AutoRespond 				= "啟用戰鬥中自動密語回覆"
 L.WhisperStats 				= "在密語回應中加入戰勝/滅團狀態"

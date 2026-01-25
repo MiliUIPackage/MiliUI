@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2688, "DBM-Raids-WarWithin", 1, 1302)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20251024015154")
+mod:SetRevision("20260120005029")
 mod:SetCreatureID(237660, 237661, 237662)
 mod:SetEncounterID(3122)
 mod:SetBossHPInfoToHighest()
@@ -12,6 +12,18 @@ mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
 
+--TODO, add https://www.wowhead.com/beta/spell=1221490/fel-singed ?
+mod:AddPrivateAuraSoundOption(1227847, true, 1227847, 1)
+mod:AddPrivateAuraSoundOption(1222232, true, 1222232, 1)
+mod:AddPrivateAuraSoundOption(1235045, false, 1235045, 1)--GTFO for void step (LEAVE OFF BY DEFAULT)
+
+function mod:OnLimitedCombatStart()
+	self:EnablePrivateAuraSound(1227847, "lineyou", 17)
+	self:EnablePrivateAuraSound(1222232, "debuffyou", 17)
+	self:EnablePrivateAuraSound(1235045, "watchfeet", 8)
+end
+
+--[[
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 1227355 1227809 1218103 1241833 1222337 1242259 1231501 1232568 1232569 1227117 1240891 1245726",
 	"SPELL_CAST_SUCCESS 1233672 1241833",--1227058
@@ -25,22 +37,20 @@ mod:RegisterEventsInCombat(
 	"RAID_BOSS_WHISPER",
 	"UNIT_SPELLCAST_SUCCEEDED boss1 boss2 boss3"
 )
+--]]
 
---TODO, https://www.wowhead.com/ptr-2/spell=1222310/unending-hunger stack counter for personal?
---TODO, targetscan voidstep?
---TODO, warn https://www.wowhead.com/ptr-2/spell=1247415/weakened-prey ?
---TODO, tank swaps based on https://www.wowhead.com/ptr-2/spell=1221490/fel-singed or just after every eye beam pushback?
---TODO, warn https://www.wowhead.com/ptr-2/spell=1249198/unstable-soul ?
---TODO, https://www.wowhead.com/ptr-2/spell=1233381/withering-flames tracker?
 --[[
 (ability.id = 1231501 or ability.id = 1232568 or ability.id = 1232569) and type = "begincast" or (ability.id = 1242133 or ability.id = 1245978) and type = "removebuff"
 --]]
+--[[
 --General
 --local specWarnGTFO								= mod:NewSpecialWarningGTFO(459785, nil, nil, nil, 1, 8)
 
 local timerBerserkCD								= mod:NewBerserkTimer(600)
 --Adarus Duskblaze
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(32500))
+local warnEradicate									= mod:NewCountAnnounce(1245726, 3)
+
 local specWarnVoidstep								= mod:NewSpecialWarningDodgeCount(1227355, nil, nil, nil, 2, 2)
 local specWarnEradicate								= mod:NewSpecialWarningDodgeCount(1245726, nil, nil, nil, 2, 2)
 
@@ -213,6 +223,8 @@ function mod:SPELL_CAST_START(args)
 			end
 		else
 			self.vb.eradicateSubCount = self.vb.eradicateSubCount + 1
+			---@diagnostic disable-next-line: param-type-mismatch
+			warnEradicate:Show(self.vb.eradicateCount .. "-" .. self.vb.eradicateSubCount)
 			if self.vb.eradicateSubCount == 4 and self.vb.eradicateCount == 1 then
 				--This is the 4th shadow cast, so we can start the next set
 				timerEradicateCD:Start(20.7, self.vb.eradicateCount+1 .. "-" .. 1)
@@ -261,8 +273,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		end
 	elseif spellId == 1233093 then--Ultimate
 		specWarnCollapsingStar:Show()
-		specWarnCollapsingStar:Play("runtoedge")
-		specWarnCollapsingStar:ScheduleVoice(2, "helpsoak")
+		specWarnCollapsingStar:Play("helpsoak")
 	elseif spellId == 1233863 then--Ultimate
 		specWarnFelRush:Show()
 		specWarnFelRush:Play("watchstep")
@@ -325,17 +336,6 @@ function mod:SPELL_AURA_REMOVED(args)
 	end
 end
 
-
---[[
-function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId, spellName)
-	if spellId == 459785 and destGUID == UnitGUID("player") and self:AntiSpam(2, 3) then
-		specWarnGTFO:Show(spellName)
-		specWarnGTFO:Play("watchfeet")
-	end
-end
-mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
---]]
-
 function mod:UNIT_DIED(args)
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 237661 then--Adarus Duskblaze
@@ -396,3 +396,4 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(_, _, spellId)
 		timerBladeDanceCD:Start(self:IsMythic() and 34 or self:IsHeroic() and 34.7 or 35.6, self.vb.bladeDanceCount+1)
 	end
 end
+--]]

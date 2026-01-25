@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2747, "DBM-Raids-WarWithin", 1, 1302)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20251001061751")
+mod:SetRevision("20260118005334")
 mod:SetCreatureID(237861)
 mod:SetEncounterID(3133)
 mod:SetHotfixNoticeRev(20250818000000)
@@ -11,25 +11,34 @@ mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
 
+----TODO, add https://www.wowhead.com/beta/spell=1240005/shockwave-slam ? it's an unexposed script bunny
+mod:AddPrivateAuraSoundOption(1233411, true, 1233411, 3)
+mod:AddPrivateAuraSoundOption(1247424, true, 1247424, 1)
+mod:AddPrivateAuraSoundOption(1227373, true, 1227373, 1)
+
+function mod:OnLimitedCombatStart()
+	self:EnablePrivateAuraSound(1233411, "lineyou", 17)
+	self:EnablePrivateAuraSound(1247424, "runout", 2)
+	self:EnablePrivateAuraSound(1227373, "targetyou", 2)
+end
+
+--[[
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 1220394 1231871 1225673",
 	"SPELL_CAST_SUCCESS 1233411",
 	"SPELL_AURA_APPLIED 1227378 1227373 1231871 1247424",
---	"SPELL_AURA_APPLIED_DOSE",
 	"SPELL_AURA_REMOVED 1247424",
---	"SPELL_PERIODIC_DAMAGE",
---	"SPELL_PERIODIC_MISSED"
 	"RAID_BOSS_WHISPER",
 	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
+--]]
 
---TODO, what do with https://www.wowhead.com/ptr-2/spell=1236784/brittle-nexus
---TODO, what do with https://www.wowhead.com/ptr-2/spell=1236785/void-infused-nexus
 --NOTE: Conjunction debuff not in combat log, have to use UNIT_AURA or RBW, using RBW for now
 --[[
 (ability.id = 1220394 or ability.id = 1227367 or ability.id = 1231871 or ability.id = 1225673) and type = "begincast"
 or (ability.id = 1233411 or ability.id = 1227367) and type = "cast"
 --]]
+--[[
 --mod:AddTimerLine(DBM:EJ_GetSectionInfo(28754))
 local warnCrystallineShockwave						= mod:NewTargetNoFilterAnnounce(1233416, 3, nil, nil, nil, nil, 189161)
 
@@ -40,7 +49,7 @@ local specWarnNullConsumption						= mod:NewSpecialWarningMoveAway(1247424, nil,
 local yellNullConsumption							= mod:NewShortYell(1247424, 37859, false)
 local yellNullConsumptionFades						= mod:NewShortFadesYell(1247424, nil, false)
 local specWarnShatteringBackhand					= mod:NewSpecialWarningCount(1220394, nil, nil, nil, 2, 2)
-local specWarnShatterShell							= mod:NewSpecialWarningMoveTo(1227373, nil, nil, nil, 1, 13)
+local specWarnShatterShell							= mod:NewSpecialWarningMoveTo(1227373, nil, nil, nil, 1, 2)
 local specWarnCrystallized							= mod:NewSpecialWarningYou(1227378, nil, nil, nil, 1, 2)--Redundant to pre debuff already having warning
 local specWarnShockwaveSlam							= mod:NewSpecialWarningDefensive(1231871, nil, nil, nil, 1, 2)
 local specWarnShockwaveSlamTaunt					= mod:NewSpecialWarningTaunt(1231871, nil, nil, nil, 1, 2)
@@ -116,7 +125,7 @@ function mod:SPELL_AURA_APPLIED(args)
 	if spellId == 1227373 then
 		if args:IsPlayer() then
 			specWarnShatterShell:Show(crystal)
-			specWarnShatterShell:Play("movetopillar")--Maybe customa audio for crystals
+			specWarnShatterShell:Play("targetyou")--Maybe customa audio for crystals
 		end
 	elseif spellId == 1231871 and not args:IsPlayer() then
 		specWarnShockwaveSlamTaunt:Show(args.destName)
@@ -144,16 +153,6 @@ function mod:SPELL_AURA_REMOVED(args)
 	end
 end
 
---[[
-function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId, spellName)
-	if spellId == 459785 and destGUID == UnitGUID("player") and self:AntiSpam(2, 3) then
-		specWarnGTFO:Show(spellName)
-		specWarnGTFO:Play("watchfeet")
-	end
-end
-mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
---]]
-
 function mod:RAID_BOSS_WHISPER(msg)
 	if msg:find("spell:1233416") then
 		specWarnCrystallineShockwave:Show()
@@ -175,3 +174,4 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(_, _, spellId)
 		timerShatterShellCD:Start(self:IsMythic() and 40 or "v49.9-51.5", self.vb.crystallizationCount+1)
 	end
 end
+--]]

@@ -1,4 +1,4 @@
-## Interface: 120000, 120000
+## Interface: 110207, 120000
 ## Category: DBM
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010M+ Affixes|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010傳奇+詞綴|r

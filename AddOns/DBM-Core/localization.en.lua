@@ -71,8 +71,10 @@ L.SCENARIO_COMPLETE						= "%s completed after %s!"
 L.SCENARIO_COMPLETE_I					= "%s completed! You have %d total clears."
 L.SCENARIO_COMPLETE_L					= "%s completed after %s! Your last clear took %s and your fastest clear took %s. You have %d total clears."
 L.SCENARIO_COMPLETE_NR					= "%s completed after %s! This is a new record! (Old record was %s). You have %d total clears."
-L.COMBAT_ENDED_AT						= "Combat against %s (%s) ended after %s."
-L.COMBAT_ENDED_AT_LONG					= "Combat against %s (%s) ended after %s. You have %d total wipe(s) on this difficulty."
+L.COMBAT_ENDED_AT						= "Combat against %s (%s) ended after %s."--Health Included
+L.COMBAT_ENDED							= "Combat against %s ended after %s."--No health (post midnight)
+L.COMBAT_ENDED_AT_LONG					= "Combat against %s (%s) ended after %s. You have %d total wipe(s) on this difficulty."--Health Included
+L.COMBAT_ENDED_LONG						= "Combat against %s ended after %s. You have %d total wipe(s) on this difficulty."--No health (post midnight)
 L.GUILD_COMBAT_ENDED_AT					= "%s's Guild group has wiped on %s (%s) after %s."--Health Included
 L.GUILD_COMBAT_ENDED					= "%s's Guild group has wiped on %s after %s."--No health (post midnight)
 L.SCENARIO_ENDED_AT						= "%s ended after %s."
@@ -90,7 +92,8 @@ L.LOWHEALTH_WARNING						= "Low Health (%d percent health remaining), firing sou
 L.ENTERING_COMBAT						= "Entering combat"
 L.LEAVING_COMBAT						= "Leaving combat"
 
-L.COMBAT_STARTED_AI_TIMER				= "My CPU is a neural net processor; a learning computer. (This fight will use timer AI feature to generate timer approximations)"
+L.RAID_DIFFICULTY_CHANGED				= "Raid difficulty has been set to %s."
+L.DUNGEON_DIFFICULTY_CHANGED			= "Dungeon difficulty has been set to %s."
 
 L.PROFILE_NOT_FOUND						= "<" .. L.DBM .. "> Your current profile is corrupted. " .. L.DBM .. " will load 'Default' profile."
 L.PROFILE_CREATED						= "'%s' profile created."
@@ -272,6 +275,7 @@ L.SLASHCMD_HELP							= {
 	"/dbm unlock: Shows a movable status bar timer (alias: move).",
 	"/dbm pull <sec>: Sends a pull timer for <sec> seconds to the raid (requires promoted. alias: pull).",
 	"/dbm break <min>: Sends a break timer for <min> minutes to the raid (requires promoted. alias: break).",
+	"/dbm midwizard: Shows midnight setup wizard again (retail only).",
 	"/dbm timer: Starts a custom " .. L.DBM .. " timer, see '/dbm timer' for details.",
 	"/dbm key: Performs M+ keystone and rating checks on party/guild and shortcuts to dungeon teleports. (alias: key, keys, keystone)",
 	"/dbm lag: Performs a raid-wide latency check.",
@@ -769,3 +773,11 @@ L.KEYSTONE_NAMES = {
 	[525] = 'FLOOD', -- Operation Floodgate
 	[542] = 'DOME' -- Eco-Dome Al'dani
 }
+
+-- Midnight jazz
+L.MN_TIMELINE_HEADER	= "Do you want to use the Blizzard Timeline or DBM Bars?"
+L.MN_BLIZZARD_TIMELINE	= "Blizzard Timeline"
+L.MN_DBM_TIMELINE		= "DBM Bars"
+L.MN_WARNIGS_HEADER		= "Do you want to use Blizzard Encounter Warnings, or DBM Encounter Warnings?"
+L.MN_BLIZZARD_WARNINGS	= "Blizzard Warnings"
+L.MN_DBM_WARNINGS		= "DBM Warnings"

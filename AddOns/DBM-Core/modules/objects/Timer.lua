@@ -167,10 +167,10 @@ local function isNegativeZero(x)
 	return x == 0 and 1/x < 0  -- Only true for -0
 end
 
--- Parse variance from timer string (v30.5-40" or "dv30.5-40"), into minimum and maximum timer, and calculated variance duration
+-- Parse variance from timer string ("v30.5-40" or "dv30.5-40"), into minimum and maximum timer, and calculated variance duration
 ---@param timer string
 ---@return number maxTimer, number minTimer, number varianceDuration
-	local function parseVarianceFromTimer(timer)
+local function parseVarianceFromTimer(timer)
 	-- ^(d?v) matches starting character d (optional) or v
 	-- (%d+%.?%d*) matches any number of digits with optional decimal
 	-- %- matches literal character "-"
@@ -202,6 +202,7 @@ end
 
 function timerPrototype:Start(timer, ...)
 	if not self.mod.isDummyMod then--Don't apply following rulesets to pull timers and such
+		if DBM.Options.HideDBMBars then return end
 		if DBM.Options.DontShowBossTimers and not self.mod.isTrashMod then return end
 		if DBM.Options.DontShowTrashTimers and self.mod.isTrashMod then return end
 	end
@@ -238,8 +239,10 @@ function timerPrototype:Start(timer, ...)
 	if select("#", ...) > 0 then--If timer has args
 		for i = 1, select("#", ...) do
 			local v = select(i, ...)
-			if DBM:IsNonPlayableGUID(v) then--Then scan them for a mob guid
-				guid = v--If found, guid will be passed in DBM_TimerBegin callback
+			if not DBM:IsPostMidnight() then
+				if DBM:IsNonPlayableGUID(v) then--Then scan them for a mob guid
+					guid = v--If found, guid will be passed in DBM_TimerBegin callback
+				end
 			end
 			--Not most efficient way to do it, but since it's already being done for guid, it's best not to repeat the work
 			if isCountTimer and type(v) == "number" then
@@ -395,6 +398,7 @@ function timerPrototype:Start(timer, ...)
 		if self.option then
 			countVoice = self.mod.Options[self.option .. "CVoice"]
 			if not self.fade and (type(countVoice) == "string" or countVoice > 0) then--Started without faded and has count voice assigned
+				DBM:Unschedule(playCountSound, id) -- Prevents count sound if timer is started again before timer expires
 				-- minTimer checks for the minimum possible timer in the variance timer string sent from Start method, self.minTimer is from newTimer constructor. Else, use timer value
 				playCountdown(id, minTimer or (hasVariance and self.minTimer) or timer, countVoice, countVoiceMax, self.requiresCombat)--timerId, timer, voice, count
 			end
@@ -451,7 +455,7 @@ function timerPrototype:Start(timer, ...)
 	--Mods that have specifically flagged that it's safe to assume all timers from that boss mod belong to boss1
 	--This check is performed secondary to args scan so that no adds guids are overwritten
 	--NOTE: Begin fires regardless of enabled status, and includes additional enabled flag. Start only fires if option is enabled (old behavior)
-	if not guid and self.mod.sendMainBossGUID and not DBM.Options.DontSendBossGUIDs and (self.type == "cd" or self.type == "next" or self.type == "cdcount" or self.type == "nextcount" or self.type == "cdspecial" or self.type == "ai") then--Variance excluded for now while NP timers don't support yet
+	if not DBM:IsPostMidnight() and not guid and self.mod.sendMainBossGUID and not DBM.Options.DontSendBossGUIDs and (self.type == "cd" or self.type == "next" or self.type == "cdcount" or self.type == "nextcount" or self.type == "cdspecial" or self.type == "ai") then--Variance excluded for now while NP timers don't support yet
 		guid = UnitGUID("boss1")
 	end
 	if self.simpType and (self.simpType == "cdnp" or self.simpType == "castnp") then--Only send nampelate callback
@@ -601,9 +605,17 @@ function timerPrototype:DelayedStart(delay, ...)
 end
 timerPrototype.DelayedShow = timerPrototype.DelayedStart
 
+---@param t number
+---@param ... any
 function timerPrototype:Schedule(t, ...)
 	local id = DBMScheduler:Schedule(t, self.Start, self.mod, self, ...)
 	test:Trace(self.mod, "SetScheduleMethodName", id, self, "Schedule", testFixupScheduleMethodName(self, ...))
+end
+
+---@param t number
+---@param count number?
+function timerPrototype:Loop(t, count)
+	DBMScheduler:ScheduleLoop(t, self.Start, self.mod, self, count)
 end
 
 function timerPrototype:Unschedule(...)
@@ -717,6 +729,7 @@ function timerPrototype:SetTimer(timer)
 end
 
 function timerPrototype:Update(elapsed, totalTime, ...)
+	if DBM.Options.HideDBMBars then return end
 	if DBM.Options.DontShowBossTimers and not self.mod.isTrashMod then return end
 	if DBM.Options.DontShowTrashTimers and self.mod.isTrashMod then return end
 	local id = self.id .. pformat((("\t%s"):rep(select("#", ...))), ...)
@@ -724,6 +737,12 @@ function timerPrototype:Update(elapsed, totalTime, ...)
 	local bar = DBT:GetBar(id)
 	if not bar then
 		bar = self:Start(totalTime, ...)
+	end
+	-- parse variance from totalTime if necessary
+	local maxTimer, minTimer, correctedTimer
+	if type(totalTime) == "string" and totalTime:match("^v%d+%.?%d*-%d+%.?%d*$") then -- catch "timer variance" pattern, expressed like v10.5-20.5
+		maxTimer, minTimer = parseVarianceFromTimer(totalTime)
+		correctedTimer = DBT.Options.VarianceEnabled and maxTimer or minTimer
 	end
 	if bar then -- still need to check as :Start() can return nil instead of actually starting the timer
 		local guid
@@ -736,10 +755,11 @@ function timerPrototype:Update(elapsed, totalTime, ...)
 			end
 		end
 		if guid then
-			DBM:FireEvent("DBM_NameplateUpdate", id, elapsed, totalTime)
+			DBM:FireEvent("DBM_NameplateUpdate", id, elapsed, (correctedTimer or totalTime))
 		end
-		DBM:FireEvent("DBM_TimerUpdate", id, elapsed, totalTime)
-		local newRemaining = totalTime - elapsed
+		DBM:FireEvent("DBM_TimerUpdate", id, elapsed, (correctedTimer or totalTime))
+		local newRemaining = (correctedTimer or totalTime) - elapsed
+		local newMinRemaining = (minTimer or totalTime) - elapsed
 		self.mod:Unschedule(removeEntry, self.startedTimers, id)
 		if not bar.keep and newRemaining > 0 then
 			--Correct table for tracked timer objects for adjusted time, or else timers may get stuck if stop is called on them
@@ -749,23 +769,24 @@ function timerPrototype:Update(elapsed, totalTime, ...)
 			local countVoice = self.mod.Options[self.option .. "CVoice"] or 0
 			if (type(countVoice) == "string" or countVoice > 0) then
 				if not bar.fade then--Don't start countdown voice if it's faded bar
-					if newRemaining > 2 then
+					if newMinRemaining > 2 then
 						--Can't be called early beacuse then it won't unschedule countdown triggered by :Start if it was called
 						--Also doesn't need to be called early like it does in AddTime and RemoveTime since those early return
 						DBM:Unschedule(playCountSound, id)
-						playCountdown(id, newRemaining, countVoice, self.countdownMax, self.requiresCombat)--timerId, timer, voice, count
+						playCountdown(id, newMinRemaining, countVoice, self.countdownMax, self.requiresCombat)--timerId, timer, voice, count
 						DBM:Debug("Updating a countdown after a timer Update call for timer ID:" .. id)
 					end
 				end
 			end
 		end
 		local updated = DBT:UpdateBar(id, elapsed, totalTime)
-		test:Trace(self.mod, "UpdateTimer", self, id, elapsed, totalTime)
+		test:Trace(self.mod, "UpdateTimer", self, id, elapsed, (correctedTimer or totalTime)) -- REVIEW!
 		return updated
 	end
 end
 
 function timerPrototype:AddTime(extendAmount, ...)
+	if DBM.Options.HideDBMBars then return end
 	if DBM.Options.DontShowBossTimers and not self.mod.isTrashMod then return end
 	if DBM.Options.DontShowTrashTimers and self.mod.isTrashMod then return end
 	local id = self.id .. pformat((("\t%s"):rep(select("#", ...))), ...)
@@ -812,6 +833,7 @@ function timerPrototype:AddTime(extendAmount, ...)
 end
 
 function timerPrototype:RemoveTime(reduceAmount, ...)
+	if DBM.Options.HideDBMBars then return end
 	if DBM.Options.DontShowBossTimers and not self.mod.isTrashMod then return end
 	if DBM.Options.DontShowTrashTimers and self.mod.isTrashMod then return end
 	local id = self.id .. pformat((("\t%s"):rep(select("#", ...))), ...)
@@ -1518,20 +1540,24 @@ end
 --IE each boss will have a checkbox to enable/disable timers for that specific boss
 --TODO, make sure DBM core can track timers in startedTimers table?
 --TODO, re-enable icon when blizzard unfucks SetTexture
+--TODO, use EncounterTimelineIconMasks to get icon mask from
 --/run C_EncounterTimeline.AddEditModeEvents()
-function DBM:ENCOUNTER_TIMELINE_EVENT_ADDED(eventInfo, barState)
+function DBM:ENCOUNTER_TIMELINE_EVENT_ADDED(eventInfo, remaining)
 	local source = eventInfo.source--(0-Encounter, 1-Script, 2-EditMode)
+	if self.Options.HideDBMBars then return end
 	if self.Options.DontShowBossTimers and source == 0 then return end
 	if self.Options.DontShowUserTimers and source == 1 then return end
 	local eventID = eventInfo.id
-	local duration = eventInfo.duration
+	local eventState = C_EncounterTimeline.GetEventState(eventID)
+	local duration = remaining or eventInfo.duration
+	local maxQueueDuration = eventInfo.maxQueueDuration
 	--Secrets
-	local spellId = eventInfo.tooltipSpellID
-	local spellName = C_Spell.GetSpellName(spellId)--Must use blizzard fucntion, wrapper taints secret
+	local spellId = eventInfo.spellID
+	local spellName = eventInfo.spellName or C_Spell.GetSpellName(spellId)--Spell name associated with this event. For script events, this may instead be the contents of the 'overrideName' field if it wasn't empty."
 	local iconId = eventInfo.iconFileID
---	local effectType = eventInfo.dispelType ("None", "Poison", "Magic", "Curse", "Disease", "Enrage", "Bleed")
---	local role = eventInfo.role ("None", "Tank", "Healer", "Damager")
---	local priority = eventInfo.priority ("Normal", "Deadly")
+	local icons = eventInfo.icons
+--	local severity = eventInfo.severity ("Normal", "Deadly")
+--	local isApproximate = eventInfo.isApproximate
 
 	--We want to store timer references for secret timers so we can stop them later
 	--if not tContains(self.startedTimers, eventID) then--Make sure timer doesn't exist already before adding it
@@ -1539,22 +1565,29 @@ function DBM:ENCOUNTER_TIMELINE_EVENT_ADDED(eventInfo, barState)
 	--end
 	--self:Unschedule(removeEntry, self.startedTimers, eventID)
 	--self:Schedule(duration, removeEntry, self.startedTimers, eventID)
-	DBT:CreateBar(duration, eventID, iconId, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, spellName, true, barState == 1)--barState 1 is "paused"
+	if maxQueueDuration and maxQueueDuration > 0 then--Currently not functional due to a bug where maxQueueDuration always returns 0 even if it's not
+		DBT:CreateBar("v"..tostring(duration).."-"..tostring(maxQueueDuration+duration), eventID, iconId, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, spellName, true, eventState == 1, icons)--barState 1 is "paused"
+	else
+		DBT:CreateBar(duration, eventID, iconId, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, spellName, true, eventState == 1, icons)--barState 1 is "paused"
+	end
 end
 
 
---/run C_EncounterTimeline.AddScriptEvent({duration = 120,tooltipSpellID = 12345,iconFileID = 237550,expirationTime= C_EncounterTimeline.GetCurrentTime() + 120})
 --/run C_EncounterTimeline.HasActiveEvents()
 --/run C_EncounterTimeline.GetEventList()
 --/run C_EncounterTimeline.PauseScriptEvent()
 --/run C_EncounterTimeline.ResumeScriptEvent()
-function DBM:ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED(eventID, barState)
+--0 = Active, 1 = Paused, 2 = Finished, 3 = Canceled
+function DBM:ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED(eventID)
 	local newBar = DBT:GetBar(eventID)
 	if newBar then
-		if barState == 1 then
+		local eventState = C_EncounterTimeline.GetEventState(eventID)
+		if eventState == 1 then
 			newBar:Pause()
-		elseif barState == 0 then
+		elseif eventState == 0 then
 			newBar:Resume()
+		else--Finished or cancled (sometimes blizzard sends state changed instead of event removed when canceling events)
+			newBar:Cancel()
 		end
 	end
 --	self:Unschedule(playCountSound, self.startedTimers[i])--Unschedule countdown by timerId
@@ -1564,7 +1597,6 @@ end
 
 function DBM:ENCOUNTER_TIMELINE_EVENT_REMOVED(eventID)
 	DBT:CancelBar(eventID)
---	self:Unschedule(playCountSound, self.startedTimers[i])--Unschedule countdown by timerId
 --	self:Unschedule(removeEntry, self.startedTimers, eventID)
 --	tremove(self.startedTimers, eventID)
 end
@@ -1574,9 +1606,18 @@ function DBM:RecoverBlizzardTimers()
 	if C_EncounterTimeline.HasActiveEvents() then
 		local eventList = C_EncounterTimeline.GetEventList()
 		for _, v in ipairs(eventList) do
-			local eventId = C_EncounterTimeline.GetEventInfo(v)
-			local eventState = C_EncounterTimeline.GetEventState(v)
-			self:ENCOUNTER_TIMELINE_EVENT_ADDED(eventId, eventState)
+			local eventInfo = C_EncounterTimeline.GetEventInfo(v)
+			local remaining = C_EncounterTimeline.GetEventTimeRemaining(v)
+			self:ENCOUNTER_TIMELINE_EVENT_ADDED(eventInfo, remaining)
 		end
+	end
+end
+
+--/run DBM:GigaTimerTest(0, 5)
+--/run DBM:GigaTimerTest(1, 0)
+function DBM:GigaTimerTest(size, maxQueue)
+	for i = 1, size == 2 and 60 or size == 1 and 30 or 15 do
+		local duration = (10 * i)
+		C_EncounterTimeline.AddScriptEvent({duration = duration,spellID = 12345,overrideName = "Test Spell "..i,iconFileID = 237550,maxQueueDuration = maxQueue or 0})
 	end
 end

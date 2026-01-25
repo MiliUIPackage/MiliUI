@@ -410,13 +410,18 @@ do
 		{ text = "PvP Flag", value = 569200 },
 	})
 	if isRetail then
---		tinsert(sounds, { text = "Blizzard Raid Emote", value = 876098 })--TEMP, can't register media we're specifically muting
-		tinsert(sounds, { text = "Headless Horseman: Laugh", value = 551703 })
-		tinsert(sounds, { text = "Kaz'rogal: Marked", value = 553050 })
-		tinsert(sounds, { text = "Lady Malande: Flee", value = 553566 })
-		tinsert(sounds, { text = "Milhouse: Light You Up", value = 555337 })
-		tinsert(sounds, { text = "Void Reaver: Marked", value = 563787 })
-		tinsert(sounds, { text = "Yogg Saron: Laugh", value = 564859 })
+--		tinsert(sounds, { text = "Blizzard Raid Emote", value = 876098, sound = true })--TEMP, can't register media we're specifically muting
+		tinsert(sounds, { text = "Headless Horseman: Laugh", value = 551703, sound = true })
+		tinsert(sounds, { text = "Kaz'rogal: Marked", value = 553050, sound = true })
+		tinsert(sounds, { text = "Lady Malande: Flee", value = 553566, sound = true })
+		tinsert(sounds, { text = "Milhouse: Light You Up", value = 555337, sound = true })
+		tinsert(sounds, { text = "Void Reaver: Marked", value = 563787, sound = true })
+		tinsert(sounds, { text = "Yogg Saron: Laugh", value = 564859, sound = true })
+		if DBM:IsPostMidnight() then
+			tinsert(sounds, { text = "Blizzard: Low", value = 7670699, sound = true })
+			tinsert(sounds, { text = "Blizzard: Medium", value = 7670701, sound = true })
+			tinsert(sounds, { text = "Blizzard: Critical", value = 7670697, sound = true })
+		end
 	end
 
 	local function RGBPercToHex(r, g, b)
@@ -644,7 +649,7 @@ function PanelPrototype:CreateAbility(titleText, icon, spellID, isPrivate)
 	---@class DBMPanelAbility: Frame, BackdropTemplate
 	local area = CreateFrame("Frame", "DBM_GUI_Option_" .. self:GetNewID(), self.frame, "TooltipBorderBackdropTemplate")
 	area.mytype = "ability"
-	area.hidden = not DBM.Options.AutoExpandSpellGroups
+	area.hidden = not DBM.Options.AutoExpandSpellGroups2
 	area:SetBackdropColor(0.15, 0.15, 0.15, 0.2)
 	area:SetBackdropBorderColor(0.4, 0.4, 0.4)
 	area:SetHyperlinksEnabled(true)

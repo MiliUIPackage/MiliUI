@@ -1,4 +1,6 @@
-## Interface: 120000
+## Interface: 110207, 120000, 120001
+## Category: DBM
+
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (WW)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0队伍首领 (地心之战)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領 (地心之戰)|r
@@ -22,7 +24,7 @@
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
 ## X-Wago-ID: xZKxZENk
-## Version: r218
+## Version: r223
 ## Category-zhTW: 團隊
 ## Category-zhTW: 副本
 localization.en.lua
