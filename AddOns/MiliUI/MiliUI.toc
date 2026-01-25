@@ -9,4 +9,5 @@
 Focuser.lua
 SlashRL.xml
 # SpellAnnouncer.lua
+PlatynatorConfig.lua
 core.lua
