@@ -26,6 +26,12 @@ local truncateMap = {
 
 function addonTable.Core.UpgradeDesign(design)
   design.appliesToAll = nil
+  design.addon = nil
+  design.kind = nil
+
+  if design.scale == nil then
+    design.scale = 1
+  end
 
   for _, text in ipairs(design.texts) do
     if not text.color then
@@ -506,7 +512,7 @@ local function UpdateRect(design)
     end
   end
 
-  addonTable.Rect = {left = left, bottom = bottom, width = right ~= left and right - left or 125, height = top ~= bottom and top - bottom or 10}
+  addonTable.Rect = {left = left * design.scale, bottom = bottom * design.scale, width = (right ~= left and right - left or 125) * design.scale, height = (top ~= bottom and top - bottom or 10) * design.scale}
 
   for _, textDetails in ipairs(design.texts) do
     if textDetails.kind == "creatureName" then
@@ -515,13 +521,15 @@ local function UpdateRect(design)
     end
   end
 
-  addonTable.StackRect = {left = left, bottom = bottom, width = right ~= left and right - left or 125, height = top ~= bottom and top - bottom or 10}
+  addonTable.StackRect = {left = left * design.scale, bottom = bottom * design.scale, width = (right ~= left and right - left or 125) * design.scale, height = (top ~= bottom and top - bottom or 10) * design.scale}
 end
 
 function addonTable.Core.GetDesignByName(name)
   if addonTable.Design.Defaults[name] then
     if not addonTable.Design.ParsedDefaults[name] then
       local design = C_EncodingUtil.DeserializeJSON(addonTable.Design.Defaults[name])
+      design.kind = nil
+      design.addon = nil
       addonTable.Core.UpgradeDesign(design)
       addonTable.Design.ParsedDefaults[name] = design
     end

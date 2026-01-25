@@ -15,7 +15,6 @@ local cvars = {
   ["nameplateMaxScale"] = "1",
   ["nameplateMinScale"] = "1",
   ["nameplateMotionSpeed"] = "0.025",
-  ["nameplateOccludedAlphaMult"] = "0.4",
   ["nameplatePlayerLargerScale"] = "1",
   ["nameplateTargetBehindMaxDistance"] = "30",
   ["nameplateTargetRadialPosition"] = "1",
@@ -23,10 +22,8 @@ local cvars = {
 }
 
 if addonTable.Constants.IsMidnight then
-  cvars["nameplateStyle"] = "0"
   cvars["nameplateOverlapH"] = "1"
   cvars["nameplateOverlapV"] = "1"
-  cvars["nameplateSize"] = "1"
 end
 
 function addonTable.Display.SetCVars()

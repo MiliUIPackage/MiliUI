@@ -276,9 +276,9 @@ end
 function addonTable.Display.NameplateMixin:InitializeWidgets(design, scale)
   self.offsetScale = (scale or 1) * UIParent:GetEffectiveScale() * addonTable.Config.Get(addonTable.Config.Options.GLOBAL_SCALE)
   if addonTable.Constants.ParentedToNameplates then
-    self.scale = 1
+    self.scale = design.scale
   else
-    self.scale = scale or 1
+    self.scale = scale * design.scale or design.scale
   end
 
   self.lastScale = self:GetEffectiveScale()
@@ -361,6 +361,10 @@ function addonTable.Display.NameplateMixin:Install(nameplate)
   -- We force a sizing immediately to avoid 0 size widgets breaking the textures from the Blizz animations
   self:ApplyPixelPerfectSizing()
   self:SetScript("OnUpdate", nil)
+
+  if not addonTable.Constants.ParentedToNameplates then
+    self:SetAlpha(0)
+  end
 end
 
 function addonTable.Display.NameplateMixin:SetUnit(unit)

@@ -68,6 +68,14 @@ local function SetupGeneral(parent)
     table.insert(allFrames, donateFrame)
   end
 
+  local globalScale = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.GLOBAL_SCALE, 1, 300, function(val) return ("%d%%"):format(val) end, function(value)
+    addonTable.Config.Set(addonTable.Config.Options.GLOBAL_SCALE, value/100)
+  end)
+  globalScale:SetValue(addonTable.Config.Get(addonTable.Config.Options.GLOBAL_SCALE) * 100)
+
+  globalScale:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
+  table.insert(allFrames, globalScale)
+
   local styleDropdown = addonTable.CustomiseDialog.GetStyleDropdown(container)
   styleDropdown:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
   table.insert(allFrames, styleDropdown)
@@ -99,6 +107,9 @@ local function SetupGeneral(parent)
         end)
         if name ~= "DEFAULT" and name ~= PLATYNATOR_CURRENT_PROFILE then
           button:AddInitializer(function(button, description, menu)
+            if InCombatLockdown() then
+              return
+            end
             local delete = MenuTemplates.AttachAutoHideButton(button, "transmog-icon-remove")
             delete:SetPoint("RIGHT")
             delete:SetSize(18, 18)
@@ -163,50 +174,26 @@ local function SetupGeneral(parent)
           addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.INVALID_IMPORT)
           return
         end
-        import.version = nil
-        import.addon = nil
         if import.kind == nil or import.kind == "style" then
-          import.kind = nil
-          addonTable.Core.UpgradeDesign(import)
           addonTable.Dialogs.ShowEditBox(addonTable.Locales.ENTER_THE_NEW_STYLE_NAME, OKAY, CANCEL, function(value)
             local designs = addonTable.Config.Get(addonTable.Config.Options.DESIGNS)
             if designs[value] or value:match("^_") then
               addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.THAT_STYLE_NAME_ALREADY_EXISTS)
             else
-              addonTable.Config.Get(addonTable.Config.Options.DESIGNS)[value] = import
-              addonTable.Config.Set(addonTable.Config.Options.STYLE, value)
+              addonTable.CustomiseDialog.ImportData(import, value, false)
               styleDropdown.DropDown:GenerateMenu()
             end
           end)
         elseif import.kind == "profile" then
-          import.kind = nil
           addonTable.Dialogs.ShowDualChoice(addonTable.Locales.OVERWRITE_CURRENT_PROFILE, addonTable.Locales.OVERWRITE, addonTable.Locales.MAKE_NEW,
             function()
-              local oldDesigns = PLATYNATOR_CONFIG.Profiles[PLATYNATOR_CURRENT_PROFILE].designs
-              local old = addonTable.Config.CurrentProfile
-              PLATYNATOR_CONFIG.Profiles[PLATYNATOR_CURRENT_PROFILE] = import
-              local designs = PLATYNATOR_CONFIG.Profiles[PLATYNATOR_CURRENT_PROFILE].designs
-              for key, design in pairs(oldDesigns) do
-                if designs[key] == nil then
-                  designs[key] = design
-                end
-              end
-              if import.style and not import.designs[import.style] then
-                import.style = import.designs_assigned["enemy"]
-              end
-              addonTable.Config.ChangeProfile(PLATYNATOR_CURRENT_PROFILE, old)
+              addonTable.CustomiseDialog.ImportData(import, PLATYNATOR_CURRENT_PROFILE, true)
               profileDropdown.DropDown:GenerateMenu()
             end,
             function()
               addonTable.Dialogs.ShowEditBox(addonTable.Locales.ENTER_THE_NEW_PROFILE_NAME, OKAY, CANCEL, function(value)
                 if PLATYNATOR_CONFIG.Profiles[value] == nil then
-                  addonTable.Config.MakeProfile(value, false)
-                  local old = addonTable.Config.CurrentProfile
-                  PLATYNATOR_CONFIG.Profiles[PLATYNATOR_CURRENT_PROFILE] = import
-                  if import.style and not import.designs[import.style] then
-                    import.style = import.designs_assigned["enemy"]
-                  end
-                  addonTable.Config.ChangeProfile(PLATYNATOR_CURRENT_PROFILE, old)
+                  addonTable.CustomiseDialog.ImportData(import, value, false)
                   profileDropdown.DropDown:GenerateMenu()
                 else
                   addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.THAT_PROFILE_NAME_ALREADY_EXISTS)
@@ -222,10 +209,11 @@ local function SetupGeneral(parent)
 
   container:SetScript("OnShow", function()
     for _, f in ipairs(allFrames) do
-      if f.SetValue then
+      if f.SetValue and f.option then
         f:SetValue(addonTable.Config.Get(f.option))
       end
     end
+    globalScale:SetValue(addonTable.Config.Get(addonTable.Config.Options.GLOBAL_SCALE) * 100)
   end)
 
   return container
@@ -418,6 +406,12 @@ local function SetupBehaviour(parent)
   notTargetTransparencySlider:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, 0)
   table.insert(allFrames, notTargetTransparencySlider)
 
+  local obscuredTransparencySlider = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.OBSCURED_TRANSPARENCY, 0, 100, function(value) return ("%d%%"):format(value) end, function(value)
+    addonTable.Config.Set(addonTable.Config.Options.OBSCURED_ALPHA, 1 - value / 100)
+  end)
+  obscuredTransparencySlider:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
+  table.insert(allFrames, obscuredTransparencySlider)
+
   local applyCvarsCheckbox = addonTable.CustomiseDialog.Components.GetCheckbox(container, addonTable.Locales.APPLY_OTHER_CVARS, 28, function(value)
     if InCombatLockdown() then
       return
@@ -433,6 +427,7 @@ local function SetupBehaviour(parent)
     castScaleSlider:SetValue(addonTable.Config.Get(addonTable.Config.Options.CAST_SCALE) * 100)
     castTransparencySlider:SetValue(100 - addonTable.Config.Get(addonTable.Config.Options.CAST_ALPHA) * 100)
     notTargetTransparencySlider:SetValue(100 - addonTable.Config.Get(addonTable.Config.Options.NOT_TARGET_ALPHA) * 100)
+    obscuredTransparencySlider:SetValue(100 - addonTable.Config.Get(addonTable.Config.Options.OBSCURED_ALPHA) * 100)
 
     if simplifiedScaleSlider then
       simplifiedScaleSlider:SetValue(addonTable.Config.Get(addonTable.Config.Options.SIMPLIFIED_SCALE) * 100)
@@ -711,6 +706,9 @@ function addonTable.CustomiseDialog.GetStyleDropdown(parent)
       end)
 
       button:AddInitializer(function(button, description, menu)
+        if InCombatLockdown() then
+          return
+        end
         local delete = MenuTemplates.AttachAutoHideButton(button, "transmog-icon-remove")
         delete:SetPoint("RIGHT")
         delete:SetSize(18, 18)
