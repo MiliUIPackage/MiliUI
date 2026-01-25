@@ -18,6 +18,10 @@
 ## Category-zhCN: 单位框体
 ## Category-zhTW: 單位框架
 
+## Title-zhTW: |cff0099FF[名條]|r Platynator 名條
+## Notes-zhTW: Platynator|r |n|n可高度客製化名條。|n|n|cffffd200使用方法: |r輸入 /platy 進行設定。
+## Category-zhTW: 名條
+
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
 Libs\LibSharedMedia-3.0\lib.xml
