@@ -4,6 +4,7 @@
 ## IconTexture: Interface\AddOns\MiliUI\icon
 ## Category: Pack
 ## Category-zhTW: [整合]
+## SavedVariables: MiliUI_DB
 
 #UiTitle.lua
 Focuser.lua
@@ -11,3 +12,4 @@ SlashRL.xml
 # SpellAnnouncer.lua
 PlatynatorConfig.lua
 core.lua
+Chatbar.lua
