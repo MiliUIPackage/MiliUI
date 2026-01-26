@@ -238,6 +238,7 @@ bgFrame:SetFrameLevel(Chatbar:GetFrameLevel() - 1)
 
 -- Layout Logic
 local function UpdateLayout()
+    local orientation = (MiliUI_DB and MiliUI_DB.Chatbar and MiliUI_DB.Chatbar.Orientation) or "HORIZONTAL"
     local visibleButtons = {}
     for _, bu in ipairs(buttonList) do
         if bu:IsShown() then
@@ -245,25 +246,55 @@ local function UpdateLayout()
         end
     end
 
-    local barWidth = ChatFrame1:GetWidth()
-    local totalButtonWidth = (#visibleButtons * width) + ((#visibleButtons - 1) * padding)
-    
-    -- If content overflows, expand
-    if totalButtonWidth > barWidth then
-        barWidth = totalButtonWidth + (padding * 2)
-    end
-    
-    Chatbar:SetWidth(barWidth)
-    
-    local startOffset = (barWidth - totalButtonWidth) / 2
-    
-    for i, bu in ipairs(visibleButtons) do
-        bu:ClearAllPoints()
-        if i == 1 then
-            bu:SetPoint("LEFT", Chatbar, "LEFT", startOffset, 0)
-        else
-            bu:SetPoint("LEFT", visibleButtons[i-1], "RIGHT", padding, 0)
+    if orientation == "VERTICAL" then
+        local barHeight = (#visibleButtons * height) + ((#visibleButtons - 1) * padding) + (padding * 2)
+        -- Ensure minimum size for background
+        local bgHeight = math.max(barHeight, 50)
+        Chatbar:SetSize(width, bgHeight)
+        
+        for i, bu in ipairs(visibleButtons) do
+            bu:ClearAllPoints()
+            if i == 1 then
+                bu:SetPoint("TOP", Chatbar, "TOP", 0, -padding)
+            else
+                bu:SetPoint("TOP", visibleButtons[i-1], "BOTTOM", 0, -padding)
+            end
         end
+        
+        -- Adjust background for vertical
+        bgFrame:ClearAllPoints()
+        bgFrame:SetPoint("TOP", Chatbar, "TOP")
+        bgFrame:SetPoint("BOTTOM", Chatbar, "BOTTOM")
+        bgFrame:SetWidth(width + 10)
+        bgFrame:SetHeight(bgHeight)
+        
+    else
+        -- HORIZONTAL
+        local barWidth = ChatFrame1:GetWidth()
+        local totalButtonWidth = (#visibleButtons * width) + ((#visibleButtons - 1) * padding)
+        
+        if totalButtonWidth > barWidth then
+            barWidth = totalButtonWidth + (padding * 2)
+        end
+        
+        Chatbar:SetSize(barWidth, height)
+        
+        local startOffset = (barWidth - totalButtonWidth) / 2
+        
+        for i, bu in ipairs(visibleButtons) do
+            bu:ClearAllPoints()
+            if i == 1 then
+                bu:SetPoint("LEFT", Chatbar, "LEFT", startOffset, 0)
+            else
+                bu:SetPoint("LEFT", visibleButtons[i-1], "RIGHT", padding, 0)
+            end
+        end
+        
+        -- Adjust background for horizontal
+        bgFrame:ClearAllPoints()
+        bgFrame:SetPoint("LEFT", Chatbar, "LEFT")
+        bgFrame:SetPoint("RIGHT", Chatbar, "RIGHT")
+        bgFrame:SetHeight(18)
     end
 end
 
@@ -282,12 +313,78 @@ local grad = bgFrame:CreateTexture(nil, "BACKGROUND")
 grad:SetAllPoints()
 grad:SetColorTexture(0, 0, 0, 0.5)
 
+-- Context Menu
+local contextMenu
+local function CreateContextMenu()
+    if contextMenu then return end
+    contextMenu = CreateFrame("Frame", "MiliUI_ChatbarContextMenu", UIParent, "BackdropTemplate")
+    contextMenu:SetSize(120, 90)
+    contextMenu:SetFrameStrata("DIALOG")
+    CreateSD(contextMenu)
+    contextMenu:SetBackdropColor(0, 0, 0, 0.9)
+    contextMenu:Hide()
+    
+    local function CreateMenuButton(text, func)
+        local btn = CreateFrame("Button", nil, contextMenu, "UIPanelButtonTemplate")
+        btn:SetSize(110, 20)
+        btn:SetText(text)
+        btn:SetScript("OnClick", function() 
+            func() 
+            contextMenu:Hide() 
+        end)
+        return btn
+    end
+    
+    local lockBtn = CreateMenuButton("鎖定/解鎖", function()
+        MiliUI_DB.Chatbar.Locked = not MiliUI_DB.Chatbar.Locked
+        if MiliUI_DB.Chatbar.Locked then
+            Mover:EnableMouse(false)
+            print("|cff00ff00MiliUI Chatbar:|r 已鎖定")
+        else
+            Mover:EnableMouse(true)
+            print("|cff00ff00MiliUI Chatbar:|r 已解鎖")
+        end
+    end)
+    lockBtn:SetPoint("TOP", 0, -10)
+    
+    local resetBtn = CreateMenuButton("重置位置", function()
+        Chatbar:ClearAllPoints()
+        Chatbar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 20)
+        UpdateLayout()
+        print("|cff00ff00MiliUI Chatbar:|r 位置已重置")
+    end)
+    resetBtn:SetPoint("TOP", lockBtn, "BOTTOM", 0, -5)
+    
+    local orientBtn = CreateMenuButton("切換方向", function()
+        if MiliUI_DB.Chatbar.Orientation == "VERTICAL" then
+            MiliUI_DB.Chatbar.Orientation = "HORIZONTAL"
+        else
+            MiliUI_DB.Chatbar.Orientation = "VERTICAL"
+        end
+        UpdateLayout()
+    end)
+    orientBtn:SetPoint("TOP", resetBtn, "BOTTOM", 0, -5)
+end
+
+-- Right click on background to show context menu
+bgFrame:EnableMouse(true)
+bgFrame:SetScript("OnMouseUp", function(self, btn)
+    if btn == "RightButton" then
+        if not contextMenu then CreateContextMenu() end
+        -- Position menu at cursor
+        local x, y = GetCursorPosition()
+        local scale = UIParent:GetEffectiveScale()
+        contextMenu:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x/scale, y/scale)
+        contextMenu:Show()
+    end
+end)
+
 -- Config Menu
 local configFrame
 local function CreateConfigMenu()
     if configFrame then return end
     configFrame = CreateFrame("Frame", "MiliUI_ChatbarConfig", UIParent, "BackdropTemplate")
-    configFrame:SetSize(200, 300)
+    configFrame:SetSize(250, 350)
     configFrame:SetPoint("CENTER")
     configFrame:SetFrameStrata("DIALOG")
     
@@ -303,16 +400,87 @@ local function CreateConfigMenu()
     local close = CreateFrame("Button", nil, configFrame, "UIPanelCloseButton")
     close:SetPoint("TOPRIGHT", 0, 0)
     
-    local scrollFrame = CreateFrame("ScrollFrame", nil, configFrame, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", 10, -40)
+    -- Tabs
+    local tab1 = CreateFrame("Button", nil, configFrame, "UIPanelButtonTemplate")
+    tab1:SetSize(80, 22)
+    tab1:SetPoint("TOPLEFT", 10, -40)
+    tab1:SetText("一般")
+    
+    local tab2 = CreateFrame("Button", nil, configFrame, "UIPanelButtonTemplate")
+    tab2:SetSize(80, 22)
+    tab2:SetPoint("LEFT", tab1, "RIGHT", 5, 0)
+    tab2:SetText("頻道")
+    
+    -- Content Frames
+    local generalFrame = CreateFrame("Frame", nil, configFrame)
+    generalFrame:SetPoint("TOPLEFT", 10, -70)
+    generalFrame:SetPoint("BOTTOMRIGHT", -10, 10)
+    
+    local channelsFrame = CreateFrame("Frame", nil, configFrame)
+    channelsFrame:SetPoint("TOPLEFT", 10, -70)
+    channelsFrame:SetPoint("BOTTOMRIGHT", -10, 10)
+    channelsFrame:Hide()
+    
+    -- Tab Logic
+    tab1:SetScript("OnClick", function()
+        generalFrame:Show()
+        channelsFrame:Hide()
+    end)
+    tab2:SetScript("OnClick", function()
+        generalFrame:Hide()
+        channelsFrame:Show()
+    end)
+    
+    -- General Settings
+    local function CreateGenButton(text, func)
+        local btn = CreateFrame("Button", nil, generalFrame, "UIPanelButtonTemplate")
+        btn:SetSize(120, 25)
+        btn:SetText(text)
+        btn:SetScript("OnClick", func)
+        return btn
+    end
+    
+    local lockBtn = CreateGenButton("鎖定/解鎖", function(self)
+        MiliUI_DB.Chatbar.Locked = not MiliUI_DB.Chatbar.Locked
+        if MiliUI_DB.Chatbar.Locked then
+            Mover:EnableMouse(false)
+            print("|cff00ff00MiliUI Chatbar:|r 已鎖定")
+        else
+            Mover:EnableMouse(true)
+            print("|cff00ff00MiliUI Chatbar:|r 已解鎖")
+        end
+    end)
+    lockBtn:SetPoint("TOPLEFT", 10, 0)
+    
+    local resetBtn = CreateGenButton("重置位置", function()
+        Chatbar:ClearAllPoints()
+        Chatbar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 20)
+        UpdateLayout()
+        print("|cff00ff00MiliUI Chatbar:|r 位置已重置")
+    end)
+    resetBtn:SetPoint("TOPLEFT", lockBtn, "BOTTOMLEFT", 0, -10)
+    
+    local orientBtn = CreateGenButton("切換垂直/水平", function()
+        if MiliUI_DB.Chatbar.Orientation == "VERTICAL" then
+            MiliUI_DB.Chatbar.Orientation = "HORIZONTAL"
+        else
+            MiliUI_DB.Chatbar.Orientation = "VERTICAL"
+        end
+        UpdateLayout()
+    end)
+    orientBtn:SetPoint("TOPLEFT", resetBtn, "BOTTOMLEFT", 0, -10)
+    
+    -- Channels Settings (ScrollFrame)
+    local scrollFrame = CreateFrame("ScrollFrame", nil, channelsFrame, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", 0, 0)
     scrollFrame:SetPoint("BOTTOMRIGHT", -30, 10)
     
     local child = CreateFrame("Frame")
-    child:SetSize(160, 10) -- Height updated dynamically
+    child:SetSize(180, 10) 
     scrollFrame:SetScrollChild(child)
     
-    configFrame.child = child
-    configFrame:Hide() -- Hidden by default
+    configFrame.child = child -- For ToggleConfigFrame to populate
+    configFrame:Hide()
 end
 
 local function ToggleConfigFrame()
@@ -320,12 +488,12 @@ local function ToggleConfigFrame()
     if configFrame:IsShown() then
         configFrame:Hide()
     else
-        -- Ensure DB exists just in case
+        -- Ensure DB exists
         if not MiliUI_DB then MiliUI_DB = {} end
         if not MiliUI_DB.Chatbar then MiliUI_DB.Chatbar = {} end
         if not MiliUI_DB.Chatbar.Hidden then MiliUI_DB.Chatbar.Hidden = {} end
 
-        -- Refresh buttons
+        -- Populate Channels Tab
         local child = configFrame.child
         local lastItem
         
@@ -334,7 +502,6 @@ local function ToggleConfigFrame()
         for i, bu in ipairs(buttonList) do
             local ck = child.checks[i]
             if not ck then
-                -- Use UICheckButtonTemplate which is the gold standard base
                 ck = CreateFrame("CheckButton", nil, child, "UICheckButtonTemplate") 
                 child.checks[i] = ck
             end
@@ -346,24 +513,21 @@ local function ToggleConfigFrame()
                 ck:SetPoint("TOPLEFT", child.checks[i-1], "BOTTOMLEFT", 0, 0)
             end
             
-            -- OptionsBaseCheckButtonTemplate usually doesn't have .Text, but we can check or create
             if not ck.Text then
                 ck.Text = ck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
                 ck.Text:SetPoint("LEFT", ck, "RIGHT", 5, 0)
             end
             
             local name = bu.tooltipText or (bu.fs and bu.fs:GetText()) or bu.configKey
-            
             ck.Text:SetText(name)
             
             local isHidden = MiliUI_DB.Chatbar.Hidden[bu.configKey]
-            
             ck:SetChecked(not isHidden)
             
             ck:SetScript("OnClick", function(self)
                 local isShown = self:GetChecked()
                 if isShown then
-                    MiliUI_DB.Chatbar.Hidden[bu.configKey] = nil -- Save space
+                    MiliUI_DB.Chatbar.Hidden[bu.configKey] = nil
                     bu:Show()
                 else
                     MiliUI_DB.Chatbar.Hidden[bu.configKey] = true
@@ -376,7 +540,7 @@ local function ToggleConfigFrame()
             lastItem = ck
         end
         
-        -- Hide extra checks if any
+        -- Hide extra checks
         for i = #buttonList + 1, #child.checks do
             child.checks[i]:Hide()
         end
@@ -398,6 +562,7 @@ loader:SetScript("OnEvent", function()
     if not MiliUI_DB.Chatbar then MiliUI_DB.Chatbar = {} end
     if not MiliUI_DB.Chatbar.Hidden then MiliUI_DB.Chatbar.Hidden = {} end
     if MiliUI_DB.Chatbar.Locked == nil then MiliUI_DB.Chatbar.Locked = true end
+    if not MiliUI_DB.Chatbar.Orientation then MiliUI_DB.Chatbar.Orientation = "HORIZONTAL" end
     
     if MiliUI_DB.Chatbar.Locked then
         Mover:EnableMouse(false)
