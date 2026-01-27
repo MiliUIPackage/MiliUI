@@ -56,14 +56,14 @@ SCRB:SetScript("OnEvent", function(_, event, arg1)
         if not SenseiClassResourceBarDB then
             -- MiliUI Profile
             if MiliUI_Luxthos_SenseiDB then
-                 print("MiliUI: Injecting Sensei defaults")
+                --  print("MiliUI: Injecting Sensei defaults")
                  SenseiClassResourceBarDB = CopyTable(MiliUI_Luxthos_SenseiDB)
             else
-                 print("MiliUI: Sensei defaults not found")
+                --  print("MiliUI: Sensei defaults not found")
                  SenseiClassResourceBarDB = {}
             end
         else
-            print("MiliUI: Sensei DB already exists")
+            -- print("MiliUI: Sensei DB already exists")
         end
 
         addonTable.barInstances = addonTable.barInstances or {}

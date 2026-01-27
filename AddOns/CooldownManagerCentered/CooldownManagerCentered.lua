@@ -27,7 +27,7 @@ function addon:OnInitialize()
         for k, v in pairs(luxthosDefaults) do
             ns.DEFAULT_SETTINGS.profile[k] = v
         end
-        print("MiliUI: Injected Luxthos settings into CMC defaults.")
+        -- print("MiliUI: Injected Luxthos settings into CMC defaults.")
     end
 
     self.db = LibStub("AceDB-3.0"):New("CooldownManagerCenteredDB", ns.DEFAULT_SETTINGS, true)
