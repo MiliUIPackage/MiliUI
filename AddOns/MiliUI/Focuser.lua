@@ -2,7 +2,10 @@ local modifier = "shift"
 local mouseButton = "1"
 
 local function SetFocusHotkey(frame)
-    frame:SetAttribute(modifier.."-type"..mouseButton, "focus")
+    if not frame then return end
+    if not InCombatLockdown() then
+        frame:SetAttribute(modifier.."-type"..mouseButton, "focus")
+    end
 end
 
 local function CreateFrame_Hook(type, name, parent, template)
@@ -20,6 +23,8 @@ f:RegisterForClicks("AnyDown", "AnyUp")
 SetOverrideBindingClick(FocuserButton, true, modifier.."-BUTTON"..mouseButton, "FocuserButton")
 
 local duf = {
+    PlayerFrame,
+    FocusFrame,
     PetFrame,
     PartyMemberFrame1,
     PartyMemberFrame2,
@@ -38,6 +43,10 @@ local duf = {
     TargetFrameToTTargetFrame,
 }
 
-for i, frame in pairs(duf) do
-SetFocusHotkey(frame)
-end
+local eventFrame = CreateFrame("Frame")
+eventFrame:RegisterEvent("PLAYER_LOGIN")
+eventFrame:SetScript("OnEvent", function()
+    for i, frame in pairs(duf) do
+        SetFocusHotkey(frame)
+    end
+end)
