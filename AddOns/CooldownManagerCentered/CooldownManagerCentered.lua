@@ -31,7 +31,6 @@ function addon:OnInitialize()
     end
 
     self.db = LibStub("AceDB-3.0"):New("CooldownManagerCenteredDB", ns.DEFAULT_SETTINGS, true)
-
     ns.db = self.db
 
     -- Register database callbacks for profile changes
@@ -66,6 +65,7 @@ function addon:RefreshConfig()
     ns.Stacks:Initialize()
     ns.Keybinds:Initialize()
     ns.Assistant:Initialize()
+    ns.Swipe:Initialize()
 
     ns.API:RefreshCooldownManager()
     ns.API:ShowReloadUIConfirmation()
@@ -96,6 +96,7 @@ function addon:OnEnable()
     ns.Stacks:Initialize()
     ns.Keybinds:Initialize()
     ns.Assistant:Initialize()
+    ns.Swipe:Initialize()
 
     _cleanup()
 end

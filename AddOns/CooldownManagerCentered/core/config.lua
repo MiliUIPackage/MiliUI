@@ -17,6 +17,15 @@ ns.DEFAULT_SETTINGS = {
         cooldownManager_utility_dimWhenNotOnCD = false,
         cooldownManager_utility_dimOpacity = 0.3,
 
+        cooldownManager_cooldownFontName = "Friz Quadrata TT",
+        cooldownManager_cooldownFontFlags = { OUTLINE = true },
+        cooldownManager_cooldownFontSizeEssential_enabled = false,
+        cooldownManager_cooldownFontSizeEssential = "NIL",
+        cooldownManager_cooldownFontSizeUtility_enabled = false,
+        cooldownManager_cooldownFontSizeUtility = "NIL",
+        cooldownManager_cooldownFontSizeBuffIcons_enabled = false,
+        cooldownManager_cooldownFontSizeBuffIcons = "NIL",
+
         cooldownManager_stackFontName = "Friz Quadrata TT",
         cooldownManager_stackFontFlags = { OUTLINE = true },
 

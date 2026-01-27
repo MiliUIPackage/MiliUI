@@ -2,15 +2,25 @@
 ## Title: |cff008945Cool|r|cff1e9a4e|r|cff3faa4fdown Ma|r|cff5fb64anag|r|cff7ac243er Ce|r|cff8ccd00ntered|r
 ## Notes: Cooldown Manager tweaks and styling
 ## Author: Wildu
-## Version: 1.11.2
+## Version: 1.12.4
 ## X-Wago-ID: b6mvbYKP
 ## SavedVariables: CooldownManagerCenteredDB
 ## IconTexture: Interface\Addons\CooldownManagerCentered\Media\CooldownManagerCenteredIcon
-
 ## OptionalDeps: MiliUI
-## Title-zhTW: |cFF0099FF[介面]|r 技能監控美化
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 技能監控美化
 ## Notes-zhTW: Cooldown Manager Centered|n|n美化與優化技能冷卻監控，可從置中處延伸，使排版更順眼。
-## Category-zhTW: 介面
+
+## Category: Combat
+## Category-deDE: Kampf
+## Category-esES: Combate
+## Category-esMX: Combate
+## Category-frFR: Combat
+## Category-itIT: Combattimento
+## Category-koKR: 전투
+## Category-ptBR: Combate
+## Category-ruRU: Бой
+## Category-zhCN: 战斗
+## Category-zhTW: 戰鬥
 
 loadLibs.xml
 
@@ -33,6 +43,8 @@ modules/stacks.lua
 modules/keybinds.lua
 modules/assistant.lua
 modules/onCooldownTracker.lua
+modules/swipe.lua
+modules/cooldownFont.lua
 
 # TO NOTE last one to registerCallback is called... first
 modules/runtime.lua

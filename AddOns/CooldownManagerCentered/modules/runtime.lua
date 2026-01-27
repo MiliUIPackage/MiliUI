@@ -32,10 +32,6 @@ EventRegistry:RegisterCallback("CooldownViewerSettings.OnHide", function()
 end)
 
 function Runtime:IsReady(viewerNameOrFrame)
-    if Runtime.stop then
-        return false
-    end
-
     local viewer = nil
     if type(viewerNameOrFrame) == "string" then
         viewer = _G[viewerNameOrFrame]

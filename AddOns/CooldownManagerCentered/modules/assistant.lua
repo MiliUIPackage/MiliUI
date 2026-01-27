@@ -334,13 +334,11 @@ function Assistant:PrepareRotationBorders()
 end
 
 local eventFrame = CreateFrame("Frame")
-local timeSinceLastUpdate = 0
-local UPDATE_INTERVAL = 0.05
 
 eventFrame:SetScript("OnEvent", function(self, event, ...)
     if not isModuleAssistantEnabled then
         return
-    end -- Don't process events when disabled
+    end
 
     if event == "EDIT_MODE_LAYOUTS_UPDATED" then
         PrintDebug("EditMode layout changed - rebuilding cache")
@@ -362,38 +360,24 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         or event == "TRAIT_CONFIG_UPDATED"
     then
         rotationSpellsCacheValid = false
-        -- if not ns.API:IsSomeAddOnRestrictionActive() then
         Assistant:PrepareRotationBorders()
-        -- end
         Assistant:UpdateAllHighlights()
     end
 end)
 
--- Uses cached data (spell names as strings) so safe during combat
-eventFrame:SetScript("OnUpdate", function(self, elapsed)
-    if not isModuleAssistantEnabled then
-        return
-    end -- Don't process updates when disabled
-
-    timeSinceLastUpdate = timeSinceLastUpdate + elapsed
-
-    if timeSinceLastUpdate >= UPDATE_INTERVAL then
-        timeSinceLastUpdate = 0
-
-        -- Only update if feature is enabled for at least one viewer
-        if ns.db and ns.db.profile then
-            local shouldUpdate = false
-            for _, settingName in pairs(viewersSettingKey) do
-                local enabledKey = "cooldownManager_showHighlight_" .. settingName
-                if ns.db.profile[enabledKey] then
-                    shouldUpdate = true
-                    break
-                end
+hooksecurefunc(AssistedCombatManager, "UpdateAllAssistedHighlightFramesForSpell", function(self, spellID)
+    if ns.db and ns.db.profile then
+        local shouldUpdate = false
+        for _, settingName in pairs(viewersSettingKey) do
+            local enabledKey = "cooldownManager_showHighlight_" .. settingName
+            if ns.db.profile[enabledKey] then
+                shouldUpdate = true
+                break
             end
+        end
 
-            if shouldUpdate then
-                Assistant:UpdateAllHighlights()
-            end
+        if shouldUpdate then
+            Assistant:UpdateAllHighlights()
         end
     end
 end)
@@ -421,6 +405,9 @@ function Assistant:Shutdown()
 end
 
 function Assistant:Enable()
+    if C_CVar.GetCVar("assistedCombatHighlight") ~= "1" then
+        C_CVar.SetCVar("assistedCombatHighlight", "1")
+    end
     if isModuleAssistantEnabled then
         return
     end
@@ -482,7 +469,6 @@ function Assistant:Initialize()
     PrintDebug("Initializing module")
     self:Enable()
 
-    --  CLEANUPS:
     ns.db.profile.assistantCache = nil
 end
 

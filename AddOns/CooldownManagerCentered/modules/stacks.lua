@@ -40,7 +40,7 @@ local function GetStackFontName()
     if ns.db and ns.db.profile and ns.db.profile.cooldownManager_stackFontName then
         return ns.db.profile.cooldownManager_stackFontName
     end
-    return ns.DEFAULT_FONT_NAME or "Friz Quadrata TT"
+    return "Friz Quadrata TT"
 end
 
 local function GetViewerStackSettings(viewerName)

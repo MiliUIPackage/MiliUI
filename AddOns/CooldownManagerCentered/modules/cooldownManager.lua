@@ -421,15 +421,23 @@ local function PositionRowHorizontal(viewer, row, yOffset, w, padding, iconDirec
     local xOffsets = LayoutEngine.CenteredRowXOffsets(count, w, padding, iconDirectionModifier)
     for i, icon in ipairs(row) do
         local x = xOffsets[i] or 0
-        local point, relativeTo, relativePoint, offsetX, offsetY = icon:GetPoint()
-        local xDiff = math.abs(x - offsetX)
-        local yDiff = math.abs(yOffset - offsetY)
-        if point == rowAnchor and relativePoint == rowAnchor and xDiff < 1 and yDiff < 1 then
-            -- No need to reposition
-        else
-            if xDiff <= 1 then
-                x = offsetX
+        local stillNeedToSet = true
+        if icon.GetPoint then
+            local point, relativeTo, relativePoint, offsetX, offsetY = icon:GetPoint()
+            if offsetX ~= nil and offsetY ~= nil then
+                local xDiff = math.abs(x - offsetX)
+                local yDiff = math.abs(yOffset - offsetY)
+                if point == rowAnchor and relativePoint == rowAnchor and xDiff < 1 and yDiff < 1 then
+                    stillNeedToSet = false
+                -- No need to reposition
+                else
+                    if xDiff <= 1 then
+                        x = offsetX
+                    end
+                end
             end
+        end
+        if stillNeedToSet then
             icon:ClearAllPoints()
             icon:SetPoint(rowAnchor, viewer, rowAnchor, x, yOffset)
         end
