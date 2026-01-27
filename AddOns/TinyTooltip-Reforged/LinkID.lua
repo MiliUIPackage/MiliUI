@@ -83,9 +83,11 @@ end
 -- Spell
 if (clientToc>=100002) then
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, function(self)
-      if not pcall(function() ShowId(self, "Spell", (select(2,self:GetSpell()))) end) then
-         return 
-      end
+        pcall(function()
+          if not pcall(function() ShowId(self, "Spell", (select(2,self:GetSpell()))) end) then
+             return 
+          end
+        end)
     end)
 else
     GameTooltip:HookScript("OnTooltipSetSpell", function(self) ShowId(self, "Spell", (select(2,self:GetSpell()))) end)

@@ -867,10 +867,13 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     tip.TinyHookScript = addon.TinyHookScript
 
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, function(self)
-        if (clientToc >= 120000 and IsInInstance()) then return end
-        LibEvent:trigger("tooltip:spell", self)
+        pcall(function()
+            if (clientToc >= 120000 and IsInInstance()) then return end
+            LibEvent:trigger("tooltip:spell", self)
+        end)
     end)
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self, data)
+      pcall(function()
         if (clientToc >= 120000 and IsInInstance()) then return end
 
         local unit = data.lines[1].unitToken
@@ -888,6 +891,7 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
         end
 
         LibEvent:trigger("tooltip:unit", self, unit, spec_n_class)
+      end)
     end)
     tip:TinyHookScript("OnEvent", function(self, event, ...) LibEvent:trigger("tooltip:event", self, event, ...) end)
     --[[
