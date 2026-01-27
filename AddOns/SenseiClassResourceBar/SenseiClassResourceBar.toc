@@ -9,9 +9,9 @@
 ## SavedVariables: SenseiClassResourceBarDB
 
 ## OptionalDeps: MiliUI
-## Title-zhTW: |cFF0099FF[介面]|r 職業資源條
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 職業資源條
 ## Notes-zhTW: Sensei Class Resource Bar|n|n為所有職業提供獨立的資源條。
-## Category-zhTW: 介面
+## Category-zhTW: 戰鬥
 
 ## X-Wago-ID: ANzk0V64
 ## X-Curse-Project-ID: 1383623
