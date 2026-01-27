@@ -338,6 +338,7 @@ bgFrame:SetFrameLevel(Chatbar:GetFrameLevel() - 1)
 
 -- Layout Logic
 UpdateLayout = function()
+    if InCombatLockdown() then return end
     local orientation = (MiliUI_DB and MiliUI_DB.Chatbar and MiliUI_DB.Chatbar.Orientation) or "HORIZONTAL"
     -- Layout Logic
     -- Layout Logic
@@ -801,6 +802,8 @@ loader:RegisterEvent("CHANNEL_UI_UPDATE")
 loader:RegisterEvent("PLAYER_ENTERING_WORLD") -- For zone changes
 loader:RegisterEvent("UPDATE_CHAT_WINDOWS")
 loader:RegisterEvent("CHANNEL_FLAGS_UPDATED")
+loader:RegisterEvent("PLAYER_REGEN_ENABLED")
+
 
 -- Throttled Update to prevent massive spam on login/zone change
 local pendingDelay = 0
@@ -833,6 +836,11 @@ loader:SetScript("OnEvent", function(self, event)
         else
              RequestChannelUpdate(false)
         end
+        return
+    end
+
+    if event == "PLAYER_REGEN_ENABLED" then
+        UpdateLayout()
         return
     end
 
