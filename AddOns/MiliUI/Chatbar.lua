@@ -306,7 +306,8 @@ roll:SetAttribute("macrotext", "/roll")
 roll:RegisterForClicks("AnyUp", "AnyDown")
 
 -- DBM (Left: Pull, Right: Ready Check)
-local dbm = AddButton("DBM", 0.8, 0.568, 0.937, "左鍵:倒數 | 右鍵:確認", "DBM", nil, 51)
+local dbm = AddButton("DBM", 0.8, 0.568, 0.937, "左鍵:倒數 | 右鍵:確認", "開", nil, 51)
+
 dbm:SetAttribute("type", "macro")
 dbm:SetAttribute("macrotext", "/dbm pull 10")
 dbm:SetAttribute("type2", "macro")
