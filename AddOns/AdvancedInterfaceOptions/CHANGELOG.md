@@ -1,12 +1,18 @@
 # Advanced Interface Options
 
-## [1.9.0-3-gc90c107](https://github.com/Stanzilla/AdvancedInterfaceOptions/tree/c90c107b16d79dbafb031a95a087cb287e77c915) (2024-06-11)
-[Full Changelog](https://github.com/Stanzilla/AdvancedInterfaceOptions/compare/1.9.0...c90c107b16d79dbafb031a95a087cb287e77c915) [Previous Releases](https://github.com/Stanzilla/AdvancedInterfaceOptions/releases)
+## [2.1.5](https://github.com/Stanzilla/AdvancedInterfaceOptions/tree/2.1.5) (2026-01-01)
+[Full Changelog](https://github.com/Stanzilla/AdvancedInterfaceOptions/compare/2.1.4...2.1.5) [Previous Releases](https://github.com/Stanzilla/AdvancedInterfaceOptions/releases)
 
-- Add TWW TOC  
-- Switch to new Settings API  
-- Fix CvarUtil pattern matching  
-    Seems like all the different clients have slightly different SharedXML/CvarUtil now.  
-    This should catch anything SharedXML/CvarUtil.lua or SharedXML/ClassicCvarUtil.lua (SoD)  
-    or Blizzard\_SharedXML/CvarUtil.lua  (Cata Classic) now.  
-    Fixes #80  
+- Bump actions/upload-artifact from 4 to 6  
+    Bumps [actions/upload-artifact](https://github.com/actions/upload-artifact) from 4 to 6.  
+    - [Release notes](https://github.com/actions/upload-artifact/releases)  
+    - [Commits](https://github.com/actions/upload-artifact/compare/v4...v6)  
+    ---  
+    updated-dependencies:  
+    - dependency-name: actions/upload-artifact  
+      dependency-version: '6'  
+      dependency-type: direct:production  
+      update-type: version-update:semver-major  
+    ...  
+    Signed-off-by: dependabot[bot] <support@github.com>  
+- feat: add midnight toc  
