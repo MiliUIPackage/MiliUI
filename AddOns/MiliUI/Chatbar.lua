@@ -275,9 +275,9 @@ local function UpdateChannelButtons()
              
              -- Ensure visibility if not hidden by DB
              if MiliUI_DB.Chatbar.Hidden[key] then
-                 btn:Hide()
+                 if not InCombatLockdown() then btn:Hide() end
              else
-                 btn:Show()
+                 if not InCombatLockdown() then btn:Show() end
              end
         end
     end
@@ -287,7 +287,7 @@ local function UpdateChannelButtons()
     for _, bu in ipairs(buttonList) do
         if string.find(bu.configKey, "^CHANNEL") then
              if not activeChannels[bu.configKey] then
-                 bu:Hide()
+                 if not InCombatLockdown() then bu:Hide() end
                  -- Note: We don't remove from buttonList to preserve frame, just hide
              end
         end
