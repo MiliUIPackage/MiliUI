@@ -331,7 +331,8 @@ local function createCooldownFrame(frame)
 			duration = cooldown.duration
 			enabled = true
 		end
-		if enabled and duration > 0 then
+		local success, result = pcall(function() return enabled and duration > 0 end)
+		if success and result then
 			self:SetCooldown(start, duration)
 		else
 			self:Clear()
