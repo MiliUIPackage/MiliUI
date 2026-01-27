@@ -267,8 +267,8 @@ function addon:GetFactionIcon(factionGroup)
 end
 
 function addon:GetRaidIcon(unit)
-    local index = GetRaidTargetIndex(unit)
-    if (index and ICON_LIST[index]) then
+    local success, index = pcall(GetRaidTargetIndex, unit)
+    if (success and index and ICON_LIST[index]) then
         return ICON_LIST[index] .. "0|t"
     end
 end
