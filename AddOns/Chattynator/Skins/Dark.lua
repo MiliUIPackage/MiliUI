@@ -454,7 +454,7 @@ addonTable.Skins.RegisterSkin(addonTable.Locales.DARK, "dark", LoadSkin, SkinFra
     type = "checkbox",
     text = addonTable.Locales.SOLID_CHAT_BACKGROUND,
     option = "solid_chat_background",
-    default = false,
+    default = true,
   },
   {
     type = "slider",

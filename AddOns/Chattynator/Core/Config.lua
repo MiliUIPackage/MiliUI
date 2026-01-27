@@ -110,7 +110,7 @@ local settings = {
   LINK_URLS = {key = "link_urls", default = true, refresh = {addonTable.Constants.RefreshReason.MessageModifier}},
   REDUCE_REDUNDANT_TEXT = {key = "reduce_redundant_text", default = false, refresh = {addonTable.Constants.RefreshReason.MessageModifier}},
 
-  NEW_WHISPER_NEW_TAB = {key = "new_whisper_new_tab", default = 0},
+  NEW_WHISPER_NEW_TAB = {key = "new_whisper_new_tab", default = 1},
   BUTTON_POSITION = {key = "button_position", default = "outside_left"},
   SHOW_BUTTONS = {key = "show_buttons", default = "unset"},
   SHOW_TABS = {key = "show_tabs_1", default = "always", refresh = {addonTable.Constants.RefreshReason.Tabs}},
