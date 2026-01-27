@@ -306,13 +306,15 @@ roll:SetAttribute("macrotext", "/roll")
 roll:RegisterForClicks("AnyUp", "AnyDown")
 
 -- DBM (Left: Pull, Right: Ready Check)
-local dbm = AddButton("DBM", 0.8, 0.568, 0.937, "左鍵:倒數 | 右鍵:確認", "開", nil, 51)
-
+local dbm = AddButton("DBM", 0.8, 0.568, 0.937, "左鍵:確認 | 中鍵:倒數5秒 | 右鍵:倒數10秒", "開", nil, 51)
 dbm:SetAttribute("type", "macro")
-dbm:SetAttribute("macrotext", "/dbm pull 10")
+dbm:SetAttribute("macrotext", "/readycheck")
 dbm:SetAttribute("type2", "macro")
-dbm:SetAttribute("macrotext2", "/readycheck")
+dbm:SetAttribute("macrotext2", "/dbm pull 10")
+dbm:SetAttribute("type3", "macro")
+dbm:SetAttribute("macrotext3", "/dbm pull 5")
 dbm:RegisterForClicks("AnyUp", "AnyDown")
+
 
 -- Reset Instance
 local reset = AddButton("RESET", "PARTY", "左鍵:重置副本 | 右鍵:重載介面", "重", function(_, btn)
