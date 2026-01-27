@@ -1,25 +1,29 @@
 # DBM - Core
 
-## [12.0.14](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/12.0.14) (2026-01-24)
-[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/12.0.13...12.0.14) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
+## [12.0.16](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/12.0.16) (2026-01-27)
+[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/12.0.15...12.0.16) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
 
-- fix quick bug with hiding  
-- Support up to 2 icons instead of capping at 1.  
-    Next update will focus on more configuration options like choosing number of icons, or whether they are large or small and stacked like timeline.  
-- prep new tag  
-- Support journal icons next to timers in midnight  
-- auto expand options by default in midnight  
-- Sometimes blizzard uses State to cancel bars instead of the actual cancel event. support this as well to fix bars not hiding in some cases (like exiting edit mode) when blizzard cancels them  
-- honor new viewtype setting and set it to correct type on show  
-- Add proper defines and now first fix should work  
-- Last should have been valid,b ut just fix it this way to appease LS  
-- Fix errors in last  
-- Fix timeline code for 12.0.1 beta 7  
-- Fix bug that caused "your next" brawlers alert not to fire  
-- make brawlers update classic compatible  
-- Add a way for event handlers to bypass the restricted events in midnight when mods wish to call them in a safe manor  
-    Restore even more brawlers guild functionality as a result such as fight berserk timers for OTHER fighters  
-- Add DBM-Affixes to banned mods and remove custom GUI code for it  
-- Delete DBM-Affixes . It's retired in midnight.  
-- add protection against new beta 7 secrets  
+- Update localization.ru.lua (#1875)  
+- tweal default sounds for retail (this will not change your sounds if they are already set, if you don't like your defaults, change them yourself)  
+- Update localization.fr.lua (#1871)  
+- Update localization.ru.lua (#1874)  
+- Update localization.br.lua (#1870)  
+- Update localization.es.lua (#1869)  
+- Plz  
+- *cries quietly in a corner*  
+- GAH.  
+- FIX?  
+- Fix some luals stuff?  
+- Fix some luals stuff?  
+- Fix some luals stuff?  
+- Add new Journal icon features to go with artemis journal icon gui  
+- Done gui options.  
+- push ui code thus far  
+- Hardcode to our BLP path.  
+- make it possible to run old demo mode in midnight  
+- Double tripple check on TableUtils if table is a table  
+- Bugfix for findChatFrameUnderCursor  
+- new journal icons.  
+- Fix and close https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1841  
+- make combat only event unregister more robust now that it's checking two diff tables (which means at least one table will usually be nil) Should fix https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1868  
 - bump alpha  

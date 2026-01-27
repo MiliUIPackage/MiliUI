@@ -76,16 +76,16 @@ end
 ---@class DBM
 local DBM = private:GetPrototype("DBM")
 _G.DBM = DBM
-DBM.Revision = parseCurseDate("20260124072330")
+DBM.Revision = parseCurseDate("20260127000504")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 local fakeBWVersion, fakeBWHash = 402, "6f82943"--402.3
 local PForceDisable
 -- The string that is shown as version
-DBM.DisplayVersion = "12.0.14"--Core version
+DBM.DisplayVersion = "12.0.16"--Core version
 DBM.classicSubVersion = 0
 DBM.dungeonSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2026, 1, 23) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2026, 1, 26) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 PForceDisable = private.isRetail and 21 or 20--When this is incremented, trigger force disable regardless of major patch
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -125,8 +125,8 @@ DBM.DefaultOptions = {
 	},
 	RaidWarningSound = 566558,--"Sound\\Doodad\\BellTollNightElf.ogg"
 	SpecialWarningSound = 569200,--"Sound\\Spells\\PVPFlagTaken.ogg"
-	SpecialWarningSound2 = private.isRetail and 543587 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\UR_Algalon_BHole01.ogg",--"Sound\\Creature\\AlgalonTheObserver\\UR_Algalon_BHole01.ogg"
-	SpecialWarningSound3 = "Interface\\AddOns\\DBM-Core\\sounds\\AirHorn.ogg",
+	SpecialWarningSound2 = private.isRetail and 569200 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\UR_Algalon_BHole01.ogg",--"Sound\\Creature\\AlgalonTheObserver\\UR_Algalon_BHole01.ogg"
+	SpecialWarningSound3 = "Interface\\AddOns\\DBM-Core\\sounds\\SoundClips\\dontdie.ogg",
 	SpecialWarningSound4 = not private.isClassic and 552035 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\HoodWolfTransformPlayer01.ogg",--"Sound\\Creature\\HoodWolf\\HoodWolfTransformPlayer01.ogg"
 	SpecialWarningSound5 = 554236,--"Sound\\Creature\\Loathstare\\Loa_Naxx_Aggro02.ogg"
 	ModelSoundValue = "Short",
@@ -1473,7 +1473,7 @@ do
 				local i = 1
 				while mods[i] do
 					if mods[i] == self and event == "SPELL_AURA_REMOVED" then
-						local findEvent = findRealEvent(self.inCombatOnlyEvents, "SPELL_AURA_REMOVED")
+						local findEvent = self.inCombatOnlyEvents and findRealEvent(self.inCombatOnlyEvents, "SPELL_AURA_REMOVED")
 						if findEvent then
 							unregisterCLEUEvent(self, findEvent)
 							break
@@ -1485,7 +1485,7 @@ do
 				local i = 1
 				while mods[i] do
 					if mods[i] == self and (srmIncluded or event ~= "SPELL_AURA_REMOVED") then
-						local findEvent = findRealEvent(self.inCombatOnlyEvents, event)
+						local findEvent = self.inCombatOnlyEvents and findRealEvent(self.inCombatOnlyEvents, event)
 						if findEvent then
 							unregisterCLEUEvent(self, findEvent)
 							break
@@ -1496,7 +1496,7 @@ do
 			else
 				local match = false
 				for i = #mods, 1, -1 do
-					if mods[i] == self and (checkEntry(self.inCombatOnlyEvents, event) or checkEntry(self.inCombatOnlySafeEvents, event)) then
+					if mods[i] == self and (self.inCombatOnlyEvents and checkEntry(self.inCombatOnlyEvents, event) or self.inCombatOnlySafeEvents and checkEntry(self.inCombatOnlySafeEvents, event)) then
 						test:Trace(self, "UnregisterEvents", "InCombat", event)
 						tremove(mods, i)
 						match = true
@@ -7923,8 +7923,8 @@ do
 	local testWarning1, testWarning2, testWarning3
 	local testTimer1, testTimer2, testTimer3, testTimer4, testTimer5, testTimer6, testTimer7, testTimer8
 	local testSpecialWarning1, testSpecialWarning2, testSpecialWarning3
-	function DBM:DemoMode()
-		if self:IsPostMidnight() then
+	function DBM:DemoMode(forceOld)
+		if self:IsPostMidnight() and not forceOld then
 			--Run the encounter timeline demo mode instead of DBM test Bars
 			C_EncounterTimeline.AddEditModeEvents()
 		else
@@ -9639,7 +9639,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260124070850" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260126235922" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then
