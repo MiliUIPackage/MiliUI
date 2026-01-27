@@ -1,11 +1,11 @@
-## Interface: 120000
+## Interface: 120000, 120001
 ## Title: Premade Groups Filter
-## Title-zhTW: |cFF00CCFF[團隊]|r 預組隊伍過濾
-## Version: 6.10.0
+## Version: 7.1.0
 ## IconTexture: 397907
 ## X-Flavor: Retail
 ## Notes: Allows filtering of premade groups using an UI or advanced filter expressions.
 ## Notes-zhCN: 允许使用用户界面或高级过滤器表达式过滤预制组。
+## Title-zhTW: |cFF00CCFF[團隊]|r 預組隊伍過濾
 ## Notes-zhTW: Premade Groups Filter|n顯示預組隊伍中的職業角色資訊，提供方便的過濾選項來篩選隊伍，還有進階的過濾方式。
 ## Author: Bernhard Saumweber
 ## SavedVariables: PremadeGroupsFilterSettings
@@ -20,7 +20,6 @@ Localization\enUS.lua
 Localization\zhCN.lua
 Localization\zhTW.lua
 Modules\Logger.lua
-Fixes\FixReportAdvertisement.lua
 UI\StaticPopup.xml
 UI\StaticPopup.lua
 Modules\Util.lua
@@ -41,6 +40,7 @@ Modules\RatingInfo.lua
 Modules\OneClickSignUp.lua
 Modules\PersistSignUpNote.lua
 Modules\SignUpOnEnter.lua
+Modules\CompactListEntries.lua
 Main.lua
 Plugins\PremadeRegions.lua
 Plugins\RaiderIO.lua

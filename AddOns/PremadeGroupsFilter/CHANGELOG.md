@@ -1,10 +1,9 @@
 # Premade Groups Filter
 
-## [6.10.0](https://github.com/0xbs/premade-groups-filter/tree/6.10.0) (2025-10-09)
-[Full Changelog](https://github.com/0xbs/premade-groups-filter/compare/6.9.5...6.10.0) [Previous Releases](https://github.com/0xbs/premade-groups-filter/releases)
+## [7.1.0](https://github.com/0xbs/premade-groups-filter/tree/7.1.0) (2026-01-22)
+[Full Changelog](https://github.com/0xbs/premade-groups-filter/compare/7.0.3...7.1.0) [Previous Releases](https://github.com/0xbs/premade-groups-filter/releases)
 
-- Add button to invert dungeon selection (fixes #344)  
-- Merge pull request #348 from Hollicsh/master  
-    Upd the .toc files  
-- Update PremadeGroupsFilter.toc  
-- Update PremadeGroupsFilter\_Mists.toc  
+- Rename playstyle keywords to learning, relaxed, competitive, carry  
+    This is in fact the new "generalPlaystyle", the old "playstyle" is no longer set  
+- Update copyright year  
+- Add new option to make list entries more compact (hide the playstyle)  
