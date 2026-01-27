@@ -81,7 +81,7 @@ local function WilduSettings_BuildCooldown(category, layout)
         key = "cooldownManager_centerEssential_growFromDirection",
         name = "Essential Icons|cffff0000*|r",
         searchtags = { "Grow", "Direction", "Alignment", "Position", "Layout", "Anchor", "Row", "Column", "Essential" },
-        default = "TOP",
+        default = "BOTTOM",
         optionfunc = function()
             return {
                 BOTTOM = EssentialCooldownViewer.isHorizontal and "New Rows on |cff8ccd00Top|r"
@@ -178,7 +178,7 @@ local function WilduSettings_BuildCooldown(category, layout)
         key = "cooldownManager_squareIcons_BuffIcons",
         name = "Square Buff Icons",
         searchtags = { "Square", "Shape", "Style", "Rectangular", "Flat", "Modern", "Buff", "Icon", "Texture" },
-        default = false,
+        default = true,
         get = function()
             return ns.db.profile.cooldownManager_squareIcons_BuffIcons
         end,
@@ -194,7 +194,7 @@ local function WilduSettings_BuildCooldown(category, layout)
         key = "cooldownManager_squareIconsBorder_BuffIcons",
         name = "Border Thickness",
         searchtags = { "Border", "Thickness", "Width", "Edge", "Frame", "Outline", "Buff", "Size" },
-        default = 4,
+        default = 1,
         min = 1,
         max = 6,
         step = 1,
@@ -222,7 +222,7 @@ local function WilduSettings_BuildCooldown(category, layout)
         key = "cooldownManager_squareIconsZoom_BuffIcons",
         name = "Zoom",
         searchtags = { "Zoom", "Scale", "Crop", "Magnify", "Enlarge", "Texture", "Buff", "Icon" },
-        default = 0,
+        default = 0.2,
         min = 0,
         max = 0.5,
         step = 0.01,
@@ -249,7 +249,7 @@ local function WilduSettings_BuildCooldown(category, layout)
         key = "cooldownManager_squareIcons_Essential",
         name = "Square Essential Cooldowns",
         searchtags = { "Square", "Shape", "Style", "Rectangular", "Flat", "Modern", "Essential", "Icon", "Texture" },
-        default = false,
+        default = true,
         get = function()
             return ns.db.profile.cooldownManager_squareIcons_Essential
         end,
@@ -266,7 +266,7 @@ local function WilduSettings_BuildCooldown(category, layout)
         key = "cooldownManager_squareIconsBorder_Essential",
         name = "Border Thickness",
         searchtags = { "Border", "Thickness", "Width", "Edge", "Frame", "Outline", "Essential", "Size" },
-        default = 4,
+        default = 1,
         min = 1,
         max = 6,
         step = 1,
@@ -293,7 +293,7 @@ local function WilduSettings_BuildCooldown(category, layout)
         key = "cooldownManager_squareIconsZoom_Essential",
         name = "Icon Zoom",
         searchtags = { "Zoom", "Scale", "Crop", "Magnify", "Enlarge", "Texture", "Essential", "Icon" },
-        default = 0,
+        default = 0.2,
         min = 0,
         max = 0.5,
         step = 0.01,
@@ -322,7 +322,7 @@ local function WilduSettings_BuildCooldown(category, layout)
         key = "cooldownManager_squareIcons_Utility",
         name = "Square Utility Cooldowns",
         searchtags = { "Square", "Shape", "Style", "Rectangular", "Flat", "Modern", "Utility", "Icon", "Texture" },
-        default = false,
+        default = true,
         get = function()
             return ns.db.profile.cooldownManager_squareIcons_Utility
         end,
@@ -339,7 +339,7 @@ local function WilduSettings_BuildCooldown(category, layout)
         key = "cooldownManager_squareIconsBorder_Utility",
         name = "Border Thickness",
         searchtags = { "Border", "Thickness", "Width", "Edge", "Frame", "Outline", "Utility", "Size" },
-        default = 4,
+        default = 1,
         min = 1,
         max = 6,
         step = 1,
@@ -367,7 +367,7 @@ local function WilduSettings_BuildCooldown(category, layout)
         key = "cooldownManager_squareIconsZoom_Utility",
         name = "Icon Zoom",
         searchtags = { "Zoom", "Scale", "Crop", "Magnify", "Enlarge", "Texture", "Utility", "Icon" },
-        default = 0,
+        default = 0.2,
         min = 0,
         max = 0.5,
         step = 0.01,
@@ -567,8 +567,8 @@ local function WilduSettings_BuildCooldown(category, layout)
         dropdownKey = "cooldownManager_stackAnchorBuffIcons_point",
         name = "Enable & Anchor|cffff0000*|r",
         searchtags = { "Stack", "Count", "Number", "Anchor", "Position", "Buff", "Enable", "Corner" },
-        default = false,
-        dropdownDefault = "BOTTOMRIGHT",
+        default = true,
+        dropdownDefault = "TOP",
         get = function()
             return ns.db.profile.cooldownManager_stackAnchorBuffIcons_enabled
         end,
@@ -631,7 +631,7 @@ local function WilduSettings_BuildCooldown(category, layout)
         prefix = "CMC_",
         key = "cooldownManager_stackAnchorBuffIcons_offsetY",
         name = "Y Offset",
-        default = 0,
+        default = 7,
         min = -40,
         max = 40,
         step = 1,
@@ -659,8 +659,8 @@ local function WilduSettings_BuildCooldown(category, layout)
         dropdownKey = "cooldownManager_stackAnchorEssential_point",
         name = "Enable & Anchor|cffff0000*|r",
         searchtags = { "Stack", "Count", "Number", "Anchor", "Position", "Essential", "Enable", "Corner" },
-        default = false,
-        dropdownDefault = "BOTTOMRIGHT",
+        default = true,
+        dropdownDefault = "TOP",
         get = function()
             return ns.db.profile.cooldownManager_stackAnchorEssential_enabled
         end,
@@ -723,7 +723,7 @@ local function WilduSettings_BuildCooldown(category, layout)
         prefix = "CMC_",
         key = "cooldownManager_stackAnchorEssential_offsetY",
         name = "Y Offset",
-        default = 0,
+        default = 8,
         min = -40,
         max = 40,
         step = 1,
@@ -751,8 +751,8 @@ local function WilduSettings_BuildCooldown(category, layout)
         dropdownKey = "cooldownManager_stackAnchorUtility_point",
         name = "Enable & Anchor|cffff0000*|r",
         searchtags = { "Stack", "Count", "Number", "Anchor", "Position", "Utility", "Enable", "Corner" },
-        default = false,
-        dropdownDefault = "BOTTOMRIGHT",
+        default = true,
+        dropdownDefault = "TOP",
         get = function()
             return ns.db.profile.cooldownManager_stackAnchorUtility_enabled
         end,
@@ -815,7 +815,7 @@ local function WilduSettings_BuildCooldown(category, layout)
         prefix = "CMC_",
         key = "cooldownManager_stackAnchorUtility_offsetY",
         name = "Y Offset",
-        default = 0,
+        default = 7,
         min = -40,
         max = 40,
         step = 1,
@@ -974,7 +974,7 @@ local function WilduSettings_BuildCooldown(category, layout)
             prefix = "CMC_",
             key = key,
             name = name,
-            default = "14",
+            default = "16",
             values = keybindFontSizeValues,
             order = keybindFontSizeOrder,
             get = getFn,
@@ -990,7 +990,7 @@ local function WilduSettings_BuildCooldown(category, layout)
         dropdownKey = "cooldownManager_keybindAnchor_Essential",
         name = "Essential Enable & Anchor",
         searchtags = { "Keybind", "Hotkey", "Binding", "Key", "Shortcut", "Essential", "Show", "Display", "Anchor" },
-        default = false,
+        default = true,
         dropdownDefault = "TOPRIGHT",
         get = function()
             return ns.db.profile.cooldownManager_showKeybinds_Essential
@@ -1036,10 +1036,10 @@ local function WilduSettings_BuildCooldown(category, layout)
     })
 
     CreateKeybindFontSizeDropdown(keybindsSection, "cooldownManager_keybindFontSize_Essential", "Font Size", function()
-        return tostring(ns.db.profile.cooldownManager_keybindFontSize_Essential or 14)
+        return tostring(ns.db.profile.cooldownManager_keybindFontSize_Essential or 16)
     end, function(value)
         local n = tonumber(value)
-        ns.db.profile.cooldownManager_keybindFontSize_Essential = n and math.floor(n + 0.5) or 14
+        ns.db.profile.cooldownManager_keybindFontSize_Essential = n and math.floor(n + 0.5) or 16
         if ns.Keybinds then
             ns.Keybinds:ApplyKeybindSettings("EssentialCooldownViewer")
         end
@@ -1153,10 +1153,10 @@ local function WilduSettings_BuildCooldown(category, layout)
     })
 
     CreateKeybindFontSizeDropdown(keybindsSection, "cooldownManager_keybindFontSize_Utility", "Font Size", function()
-        return tostring(ns.db.profile.cooldownManager_keybindFontSize_Utility or 10)
+        return tostring(ns.db.profile.cooldownManager_keybindFontSize_Utility or 16)
     end, function(value)
         local n = tonumber(value)
-        ns.db.profile.cooldownManager_keybindFontSize_Utility = n and math.floor(n + 0.5) or 14
+        ns.db.profile.cooldownManager_keybindFontSize_Utility = n and math.floor(n + 0.5) or 16
         if ns.Keybinds then
             ns.Keybinds:ApplyKeybindSettings("UtilityCooldownViewer")
         end
@@ -1263,7 +1263,7 @@ local function WilduSettings_BuildCooldown(category, layout)
         key = "cooldownManager_limitUtilitySizeToEssential",
         name = "Sync Utility width to Essential",
         searchtags = { "Sync", "Width", "Size", "Match", "Limit", "Utility", "Essential", "Constrain" },
-        default = false,
+        default = true,
         get = function()
             return ns.db.profile.cooldownManager_limitUtilitySizeToEssential
         end,

@@ -12,23 +12,25 @@ function addon:OpenSettings()
 end
 
 function addon:OnInitialize()
-    -- MiliUI Profile
-    if not CooldownManagerCenteredDB then
-        if MiliUI_Luxthos_CMCDB then
-            print("MiliUI: Injecting CMC defaults")
-            CooldownManagerCenteredDB = CopyTable(MiliUI_Luxthos_CMCDB)
-        else
-            print("MiliUI: CMC defaults not found")
+    -- MiliUI Profile Injection (Clean & Robust)
+    -- Instead of just checking if DB is nil, we also update the addon's internal default settings.
+    -- This ensures that even if the user resets their profile later, it reverts to THESE defaults
+    -- rather than the addon's original factory settings.
+    if MiliUI_Luxthos_CMCDB and MiliUI_Luxthos_CMCDB.profiles and MiliUI_Luxthos_CMCDB.profiles["Luxthos"] then
+        local luxthosDefaults = MiliUI_Luxthos_CMCDB.profiles["Luxthos"]
+        
+        -- Ensure profile defaults table exists
+        if not ns.DEFAULT_SETTINGS then ns.DEFAULT_SETTINGS = {} end
+        if not ns.DEFAULT_SETTINGS.profile then ns.DEFAULT_SETTINGS.profile = {} end
+        
+        -- Overwrite internal defaults with Luxthos settings
+        for k, v in pairs(luxthosDefaults) do
+            ns.DEFAULT_SETTINGS.profile[k] = v
         end
-    else
-        print("MiliUI: CMC DB already exists")
+        print("MiliUI: Injected Luxthos settings into CMC defaults.")
     end
+
     self.db = LibStub("AceDB-3.0"):New("CooldownManagerCenteredDB", ns.DEFAULT_SETTINGS, true)
-    
-    
-    if self.db:GetCurrentProfile() == "Default" then
-        self.db:SetProfile("Luxthos")
-    end
 
     ns.db = self.db
 

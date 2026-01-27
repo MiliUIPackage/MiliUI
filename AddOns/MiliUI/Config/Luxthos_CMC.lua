@@ -6,7 +6,7 @@ MiliUI_Luxthos_CMCDB = {
         ["Luxthos"] = {
             ["cooldownManager_squareIcons_Essential"] = true,
             ["cooldownManager_stackAnchorBuffIcons_enabled"] = true,
-            ["cooldownManager_squareIconsZoom_BuffIcons"] = 0.199999988079071,
+            ["cooldownManager_squareIconsZoom_BuffIcons"] = 0.2,
             ["cooldownManager_forceCenterX_BuffIcons"] = false,
             ["cooldownManager_squareIconsBorder_Utility_Overlap"] = true,
             ["cooldownManager_forceCenterX_Utility_lastY"] = {
@@ -17,7 +17,7 @@ MiliUI_Luxthos_CMCDB = {
             ["cooldownManager_forceCenterX_Essential_lastY"] = {
             },
             ["cooldownManager_stackAnchorEssential_point"] = "TOP",
-            ["cooldownManager_squareIconsZoom_Essential"] = 0.199999988079071,
+            ["cooldownManager_squareIconsZoom_Essential"] = 0.2,
             ["cooldownManager_forceCenterX_BuffIcons_lastY"] = {
             },
             ["cooldownManager_squareIcons_BuffIcons"] = true,
@@ -29,7 +29,8 @@ MiliUI_Luxthos_CMCDB = {
             ["cooldownManager_keybindFontSize_Essential"] = 16,
             ["cooldownManager_stackAnchorBuffIcons_offsetY"] = 7,
             ["cooldownManager_limitUtilitySizeToEssential"] = true,
-            ["cooldownManager_squareIconsZoom_Utility"] = 0.199999988079071,
+            ["cooldownManager_squareIconsZoom_Utility"] = 0.2,
+            ["cooldownManager_keybindFontSize_Utility"] = 16,
             ["cooldownManager_stackAnchorBuffIcons_point"] = "TOP",
             ["cooldownManager_stackAnchorUtility_offsetY"] = 7,
             ["cooldownManager_forceCenterX_Utility"] = false,
@@ -37,6 +38,7 @@ MiliUI_Luxthos_CMCDB = {
             ["cooldownManager_stackFontSizeUtility"] = 18,
             ["cooldownManager_stackAnchorUtility_point"] = "TOP",
             ["cooldownManager_centerEssential_growFromDirection"] = "BOTTOM",
+            ["cooldownManager_showKeybinds_Essential"] = true,
         },
     },
 }
