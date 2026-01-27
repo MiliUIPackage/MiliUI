@@ -5,8 +5,12 @@
 ## Version: 1.11.2
 ## X-Wago-ID: b6mvbYKP
 ## SavedVariables: CooldownManagerCenteredDB
-## OptionalDeps: MiliUI
 ## IconTexture: Interface\Addons\CooldownManagerCentered\Media\CooldownManagerCenteredIcon
+
+## OptionalDeps: MiliUI
+## Title-zhTW: |cFF0099FF[介面]|r 技能監控美化
+## Notes-zhTW: Cooldown Manager Centered|n|n美化與優化技能冷卻監控，可從置中處延伸，使排版更順眼。
+## Category-zhTW: 介面
 
 loadLibs.xml
 
