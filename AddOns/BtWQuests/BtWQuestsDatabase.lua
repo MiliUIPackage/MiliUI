@@ -3531,16 +3531,19 @@ function Database:AddSearchBucket(key, t)
         self.buckets[key] = {}
     end
 
+    -- self.buckets[key][#self.buckets[key]+1] = t
     local u = self.buckets[key]
     for _,v in ipairs(t) do
         u[#u+1] = v
         -- table.insert(u,v)
     end
 end
+-- local profiles = {}
 function Database:AddSearchBuckets(t)
-    for k,v in pairs(t) do
-        self:AddSearchBucket(k,v)
-    end
+    self.buckets[#self.buckets+1] = t
+    -- for k,v in pairs(t) do
+    --     self:AddSearchBucket(k,v)
+    -- end
 end
 function Database:SearchScore(a, b)
     local startChar, endChar = b:find(a)
@@ -3561,6 +3564,7 @@ function Database:SearchTargetExists(item)
     end
     return true
 end
+test = {}
 local keywords, results, keywordCharacters = {}, {}, {}
 function Database:Search(tbl, query, character)
     local tbl = tbl or {};
@@ -3583,6 +3587,18 @@ function Database:Search(tbl, query, character)
         start = start .. character
         if self.buckets[start] ~= nil then
             prefixlist = self.buckets[start]
+        end
+        for i,items in ipairs(self.buckets) do
+            if items[start] ~= nil then
+                for i,item in ipairs(items[start]) do
+                    prefixlist = prefixlist or {}
+                    prefixlist[#prefixlist+1] = item
+                end
+                items[start] = nil
+            end
+        end
+        if prefixlist then
+            self.buckets[start] = prefixlist
             break
         end
     end

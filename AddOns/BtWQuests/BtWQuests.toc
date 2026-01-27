@@ -1,6 +1,6 @@
-## Interface: 110107, 120000
+## Interface: 50500, 110205, 110207, 120000
 ## Title: BtWQuests
-## Version: 2.55.0
+## Version: 2.60.0
 ## Notes: 
 ## Author: Breen
 ## SavedVariables: BtWQuests_Characters BtWQuests_AccountSettings

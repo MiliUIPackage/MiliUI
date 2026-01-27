@@ -20,7 +20,7 @@
 					<Anchors>
 						<Anchor point="TOPLEFT" x="0" y="0"/>
 					</Anchors>
-					<TexCoords left="0.625" right="0.8046875" top="0.0078125" bottom="0.265625"/>>
+					<TexCoords left="0.625" right="0.8046875" top="0.0078125" bottom="0.265625"/>
 				</Texture>
 				<Texture parentKey="Middle">
 					<Size>

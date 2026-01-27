@@ -1,3 +1,5 @@
+local ADDON_NAME = ...
+
 local GetCursorPosition = GetCursorPosition;
 -- This is very important, the global functions gives different responses than the math functions
 local cos, sin = math.cos, math.sin;
@@ -27,10 +29,14 @@ local minimapShapes = {
 	["TRICORNER-BOTTOMLEFT"] 	= { true,  true, false,  true},
 	["TRICORNER-BOTTOMRIGHT"] 	= { true,  true,  true, false},
 }
+function BtWQuests.ShowMinimap()
+    BtWQuestsMinimapButton:Show()
+end
+function BtWQuests.HideMinimap()
+    BtWQuestsMinimapButton:Hide()
+end
 function BtWQuestsMinimapButton_Toggle()
 	BtWQuests.Settings.minimapShown = not BtWQuests.Settings.minimapShown
-
-    BtWQuestsMinimapButton:SetShown(BtWQuests.Settings.minimapShown)
 end
 function BtWQuestsMinimapButton_Reposition(degrees)
 	local rounding = 10;
@@ -96,4 +102,91 @@ function BtWQuestsMinimapButton_OnEnter(self)
 end
 function BtWQuestsMinimapButton_OnLeave()
     GameTooltip:Hide();
+end
+
+local launcher
+function BtWQuests.CreateLauncher()
+	local LDB = LibStub and LibStub("LibDataBroker-1.1", true)
+	if LDB then
+		local tempTooltip
+		launcher = LDB:NewDataObject(ADDON_NAME, {
+			type = "data source",
+			label = "BtWQuests",
+			icon = "Interface\\QuestFrame\\UI-QuestLog-BookIcon",
+			OnClick = function(clickedframe, button)
+				if button == "LeftButton" then
+					if BtWQuestsFrame:IsShown() then
+						BtWQuestsFrame:Hide()
+					else
+						BtWQuestsFrame:Show()
+					end
+				elseif button == "RightButton" then
+                    if tempTooltip then
+                        tempTooltip:Hide()
+                    end
+
+					BtWQuestsOptionsMenu:Toggle(clickedframe, 0, 0)
+				end
+			end,
+			OnTooltipShow = function(tooltip)
+				tempTooltip = tooltip
+
+				tooltip:SetText("BtWQuests", 1, 1, 1);
+				tooltip:AddLine(L["MINIMAP_TOOLTIP_MESSAGE"], nil, nil, nil, true);
+				tooltip:Show();
+			end,
+		})
+	end
+end
+function BtWQuests.CreateLauncherMinimapIcon()
+	local icon = LibStub and LibStub("LibDBIcon-1.0", true)
+	if icon and launcher then
+		BtWQuests.Settings.LDBIcon = BtWQuests.Settings.LDBIcon or {
+			minimapPos = BtWQuests.Settings.minimapAngle,
+		}
+
+		BtWQuestsMinimapButton:SetEnabled(false)
+
+		icon:Register(ADDON_NAME, launcher, setmetatable({}, {
+			__index = function (t, k)
+				return BtWQuests.Settings.LDBIcon[k]
+			end,
+			__newindex = function (t, k, v)
+				BtWQuests.Settings.LDBIcon[k] = v
+			end,
+		}))
+		icon:Refresh(ADDON_NAME)
+
+		if ElvUI and ElvUI[1] and ElvUI[1].GetModule then
+			local MB = ElvUI[1]:GetModule("MinimapButtons", true)
+			if MB then
+				MB:SkinMinimapButtons()
+			end
+		end
+
+		function BtWQuests.ShowMinimap()
+			icon:Show(ADDON_NAME)
+		end
+		function BtWQuests.HideMinimap()
+			icon:Hide(ADDON_NAME)
+		end
+
+		C_Timer.After(0, function ()
+			if not BtWQuests.Settings.minimapShown then
+				icon:Hide(ADDON_NAME)
+			end
+		end)
+	else
+		BtWQuestsMinimapButton.isSkinned = nil
+	end
+end
+function BtWQuests.RefreshLauncherMinimapIcon()
+	local icon = LibStub and LibStub("LibDBIcon-1.0", true)
+	if icon then
+		BtWQuests.Settings.LDBIcon = BtWQuests.Settings.LDBIcon or {
+			minimapPos = BtWQuests.Settings.minimapAngle,
+		}
+
+		icon:Refresh(ADDON_NAME)
+	end
 end

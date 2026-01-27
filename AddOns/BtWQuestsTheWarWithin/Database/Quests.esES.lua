@@ -6,6 +6,102 @@ end
 
 loadstring([[
 BtWQuestsDatabase:UpdateQuestsTable({
+    [10339] = {
+        name = "El Etereum",
+    },
+    [10384] = {
+        name = "Datos de El Etereum",
+    },
+    [10385] = {
+        name = "Potencial de daño cerebral = Alto",
+    },
+    [10406] = {
+        name = "Entregar el mensaje",
+    },
+    [10408] = {
+        name = "El rey-nexo Salhadaar",
+    },
+    [10437] = {
+        name = "Receta para la destrucción",
+    },
+    [10439] = {
+        name = "Dimensius el Devoratodo",
+    },
+    [12291] = {
+        name = "La historia olvidada",
+    },
+    [12301] = {
+        name = "La verdad nos hará libres",
+    },
+    [12305] = {
+        name = "Pensamientos de despedida",
+    },
+    [12478] = {
+        name = "La Caverna Agonía de Escarcha",
+    },
+    [47203] = {
+        name = "Como una sombra",
+    },
+    [47217] = {
+        name = "Fuentes de oscuridad",
+    },
+    [47218] = {
+        name = "La incursión de la Guardia de las Sombras",
+    },
+    [47219] = {
+        name = "Un sacrificio adecuado",
+    },
+    [48962] = {
+        name = "Falla de Telogrus",
+    },
+    [49354] = {
+        name = "Recuerda La Fuente del Sol",
+    },
+    [49787] = {
+        name = "Las Tierras Fantasma",
+    },
+    [53735] = {
+        name = "Los primeros en caer",
+    },
+    [53737] = {
+        name = "El día que murió la esperanza",
+    },
+    [53882] = {
+        name = "Escrito en el muro",
+    },
+    [54096] = {
+        name = "Caída de La Fuente del Sol",
+    },
+    [63855] = {
+        name = "Facilidad de paso",
+    },
+    [63895] = {
+        name = "Bolsa de sorpresas",
+    },
+    [63976] = {
+        name = "Al'gato callejero de Oribos",
+    },
+    [63977] = {
+        name = "Comercio interior",
+    },
+    [63979] = {
+        name = "Que no se sepa",
+    },
+    [63980] = {
+        name = "Buscando contrabandistas",
+    },
+    [63982] = {
+        name = "Estación inalcanzable",
+    },
+    [63983] = {
+        name = "Ariete destructor",
+    },
+    [63984] = {
+        name = "Monedas para el barquero",
+    },
+    [63985] = {
+        name = "El Mercado Velado",
+    },
     [76169] = {
         name = "Brillo en la oscuridad",
     },
@@ -372,6 +468,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [78688] = {
         name = "Jaulas y fuego",
     },
+    [78689] = {
+        name = "Si manda, puede morir",
+    },
     [78690] = {
         name = "Percepción de la situación",
     },
@@ -413,6 +512,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [78706] = {
         name = "El secreto del alto orador",
+    },
+    [78713] = {
+        name = "La guerra interior",
     },
     [78714] = {
         name = "Una mala recepción",
@@ -555,6 +657,21 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [78939] = {
         name = "La llama oscurecida",
     },
+    [78941] = {
+        name = "Hora de cambiar las tornas",
+    },
+    [78942] = {
+        name = "El poderío de Khaz Algar",
+    },
+    [78943] = {
+        name = "Acero y llamas",
+    },
+    [78948] = {
+        name = "Una luz en las tinieblas",
+    },
+    [78950] = {
+        name = "Cortarles las piernas",
+    },
     [78951] = {
         name = "Una sombra creciente",
     },
@@ -569,6 +686,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [78974] = {
         name = "Mentalidad de alfazaque",
+    },
+    [78995] = {
+        name = "El revuelto de trufas",
     },
     [78996] = {
         name = "Armas y guerreros",
@@ -676,7 +796,7 @@ BtWQuestsDatabase:UpdateQuestsTable({
         name = "Metal y piedra",
     },
     [79146] = {
-        name = "Fuerzas de choque terrestres",
+        name = "Choque de fuerzas terrestres",
     },
     [79147] = {
         name = "Clases de vuelo para novatos",
@@ -1389,6 +1509,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [80409] = {
         name = "Polarizado",
     },
+    [80412] = {
+        name = "Rechazar la oscuridad",
+    },
     [80434] = {
         name = "Hacia las profundidades",
     },
@@ -1470,6 +1593,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [80572] = {
         name = "Medidas discordantes",
     },
+    [80573] = {
+        name = "Asomar la oreja: Botín de guerra",
+    },
     [80576] = {
         name = "Oyente perdido",
     },
@@ -1478,6 +1604,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [80578] = {
         name = "El atuendo corriente",
+    },
+    [80592] = {
+        name = "Forjar un Pacto",
     },
     [80593] = {
         name = "Un sorbo de ceniza",
@@ -1578,8 +1707,17 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [81497] = {
         name = "Componentes salvajes: Cloacas de Salien",
     },
+    [81498] = {
+        name = "Componentes salvajes: Garganta Espasmódica",
+    },
+    [81499] = {
+        name = "Control de información: Intriga de los ascendidos",
+    },
     [81500] = {
         name = "Trabajos turbios: Colarse en la recepción",
+    },
+    [81501] = {
+        name = "Pruebas de fórmulas: Elixir enturbiado",
     },
     [81502] = {
         name = "Pruebas de fórmulas: Filtro maloliente",
@@ -1628,6 +1766,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [81620] = {
         name = "Trabajo de recuperación",
+    },
+    [81622] = {
+        name = "Campanas de la Luz",
     },
     [81630] = {
         name = "Protocolo de activación",
@@ -1683,6 +1824,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [81690] = {
         name = "La luz al final del túnel",
     },
+    [81691] = {
+        name = "Tarea especial: Las sombras de abajo",
+    },
     [81692] = {
         name = "La llama interior",
     },
@@ -1725,6 +1869,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [81808] = {
         name = "Carreras de surcacielos - Paseo por las Cavernas Resonantes",
     },
+    [81810] = {
+        name = "Carreras de surcacielos - Circuito de las Cavernas Chasqueadoras",
+    },
     [81819] = {
         name = "Carreras de surcacielos - Palmo de Piedraserena",
     },
@@ -1745,6 +1892,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [81890] = {
         name = "Solicitudes sin completar",
+    },
+    [81896] = {
+        name = "Nueva y mejorada",
     },
     [81912] = {
         name = "Clases de vuelo",
@@ -1948,7 +2098,7 @@ BtWQuestsDatabase:UpdateQuestsTable({
         name = "La modesta araña mensajera",
     },
     [82333] = {
-        name = "Misiones desgastadas",
+        name = "Blasones desgastados",
     },
     [82335] = {
         name = "Cristales",
@@ -1970,6 +2120,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [82355] = {
         name = "Tarea especial: Oleada de cenizabejas",
+    },
+    [82363] = {
+        name = "Fuerzas opuestas",
     },
     [82364] = {
         name = "Documentación de disonancia",
@@ -2034,11 +2187,23 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [82518] = {
         name = "Hay que apañar esas tuberías",
     },
+    [82519] = {
+        name = "Tú ir a llevarte vela",
+    },
+    [82521] = {
+        name = "Peones de los maestros oscuros",
+    },
     [82524] = {
         name = "Exterminar",
     },
     [82526] = {
         name = "Que les den por bicho",
+    },
+    [82531] = {
+        name = "Tarea especial: Bombas por la retaguardia",
+    },
+    [82533] = {
+        name = "¡Tin-te mato! ¡Tin-te mato!",
     },
     [82536] = {
         name = "Operación de extracción",
@@ -2079,6 +2244,42 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [82690] = {
         name = "Sombras persistentes",
     },
+    [82691] = {
+        name = "Sin espacio",
+    },
+    [82692] = {
+        name = "El precio de una misión",
+    },
+    [82693] = {
+        name = "Un escollo en el camino",
+    },
+    [82694] = {
+        name = "Juntos, solos",
+    },
+    [82695] = {
+        name = "La Voz",
+    },
+    [82696] = {
+        name = "Resuenan las cavernas",
+    },
+    [82697] = {
+        name = "Ayuda de calidad",
+    },
+    [82698] = {
+        name = "Averiadas y malvadas",
+    },
+    [82699] = {
+        name = "¡Hola! ¿Qué te cuentas?",
+    },
+    [82700] = {
+        name = "Construido para romper",
+    },
+    [82701] = {
+        name = "Murciélago contra el mundo",
+    },
+    [82702] = {
+        name = "Amigos encontrados",
+    },
     [82706] = {
         name = "Profundidades: Investigación mundial",
     },
@@ -2090,6 +2291,18 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [82774] = {
         name = "Desnieblador",
+    },
+    [82775] = {
+        name = "Artista del cambio rápido",
+    },
+    [82778] = {
+        name = "Competición de pesca de Santificación",
+    },
+    [82781] = {
+        name = "Soy el centro de atención",
+    },
+    [82782] = {
+        name = "Autenticidad al vestir",
     },
     [82785] = {
         name = "Fantasmas en la máquina",
@@ -2174,6 +2387,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [83028] = {
         name = "Olisqueadores ladrones",
+    },
+    [83031] = {
+        name = "La parte más difícil",
     },
     [83048] = {
         name = "Caminantes desencaminados",
@@ -2334,6 +2550,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83155] = {
         name = "Basta de tropiezos",
     },
+    [83159] = {
+        name = "Solo las puntas",
+    },
     [83160] = {
         name = "La reserva de Tragoceniza",
     },
@@ -2375,6 +2594,12 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [83176] = {
         name = "Es una corazonada",
+    },
+    [83177] = {
+        name = "Medicina social",
+    },
+    [83178] = {
+        name = "Reglas y consecuencias",
     },
     [83181] = {
         name = "Amigos del alma, mismo final",
@@ -2469,6 +2694,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83325] = {
         name = "Escarabajos pródigos",
     },
+    [83326] = {
+        name = "La vela final",
+    },
     [83331] = {
         name = "Preservar y aparentar",
     },
@@ -2482,7 +2710,7 @@ BtWQuestsDatabase:UpdateQuestsTable({
         name = "El Sangratierras",
     },
     [83337] = {
-        name = "Tormenta cicatrizada",
+        name = "Tormentos y cicatrices",
     },
     [83338] = {
         name = "El asesino de magos",
@@ -2529,6 +2757,15 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83497] = {
         name = "Una amistad preocupada",
     },
+    [83499] = {
+        name = "Páramo Arcano",
+    },
+    [83502] = {
+        name = "Lecciones de magia defensiva",
+    },
+    [83503] = {
+        name = "Vuelve a Dornogal.",
+    },
     [83519] = {
         name = "¿Y qué hay del casino?",
     },
@@ -2559,8 +2796,14 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83535] = {
         name = "Saqueo fiestero a tope",
     },
+    [83536] = {
+        name = "Enterrador Bajamarea",
+    },
     [83537] = {
         name = "Tratamiento de gemas geotérmicas",
+    },
+    [83539] = {
+        name = "Sin más remedio que avanzar",
     },
     [83540] = {
         name = "A la cola",
@@ -2585,6 +2828,18 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [83551] = {
         name = "Santificación",
+    },
+    [83553] = {
+        name = "Kóbolds ladrones de magia",
+    },
+    [83554] = {
+        name = "Abalorios, curiosidades y otros objetos poderosos",
+    },
+    [83555] = {
+        name = "El collar misterioso",
+    },
+    [83556] = {
+        name = "Quizá sería mejor que no toques eso",
     },
     [83558] = {
         name = "El casino a juicio",
@@ -2619,6 +2874,12 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83639] = {
         name = "Comunicaciones abiertas",
     },
+    [83641] = {
+        name = "Atrapado entre la vida y la muerte",
+    },
+    [83643] = {
+        name = "De algún modo hemos sobrevivido",
+    },
     [83715] = {
         name = "Recuperación obtenida",
     },
@@ -2627,6 +2888,18 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [83719] = {
         name = "Quitinas mayores",
+    },
+    [83720] = {
+        name = "¿Veneno? Pues a por ellos, ¿no?",
+    },
+    [83721] = {
+        name = "Un pequeño océano de sangre",
+    },
+    [83723] = {
+        name = "Una ayuda para los magos",
+    },
+    [83743] = {
+        name = "La Guerra Fría Arcana",
     },
     [83749] = {
         name = "Profundidades: Estación de Bombeo",
@@ -2639,6 +2912,15 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [83761] = {
         name = "Profundidades: El Infrastillo",
+    },
+    [83762] = {
+        name = "Masa crítica",
+    },
+    [83763] = {
+        name = "Proteger nuestro legado",
+    },
+    [83764] = {
+        name = "Demasiado poderosos y demasiado peligrosos",
     },
     [83766] = {
         name = "Llamada de explorador de profundidades: Foso del Pavor",
@@ -2657,6 +2939,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [83771] = {
         name = "Llamada de explorador de profundidades: Abismo de Tak-Rethan",
+    },
+    [83773] = {
+        name = "Adiós, ciudad de la magia",
     },
     [83930] = {
         name = "Solución desparasitadora",
@@ -2700,6 +2985,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [84221] = {
         name = "El papeleo hundirá la mina",
     },
+    [84223] = {
+        name = "La culpa del superviviente",
+    },
     [84242] = {
         name = "A las Chatarrerías se ha dicho",
     },
@@ -2726,6 +3014,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [84304] = {
         name = "Un quebradero de cabeza",
+    },
+    [84371] = {
+        name = "Paseo por la historia: La Daga y el sumo sacerdote",
     },
     [84376] = {
         name = "Propiedad devaluada",
@@ -2811,6 +3102,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [84683] = {
         name = "A la cloaca",
     },
+    [84701] = {
+        name = "El Portavoz",
+    },
     [84704] = {
         name = "Un punto de vista diferente",
     },
@@ -2853,6 +3147,36 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [84717] = {
         name = "El ascenso del Alba Roja",
     },
+    [84719] = {
+        name = "La expedición aguarda",
+    },
+    [84720] = {
+        name = "¡A la Isla de la Sirena!",
+    },
+    [84721] = {
+        name = "Cómo escanear un cristal",
+    },
+    [84722] = {
+        name = "Señales polifacéticas",
+    },
+    [84723] = {
+        name = "Secretos enterrados",
+    },
+    [84724] = {
+        name = "La Cámara Radiante",
+    },
+    [84725] = {
+        name = "La llamada del aro",
+    },
+    [84726] = {
+        name = "Misterios descubiertos",
+    },
+    [84727] = {
+        name = "La segunda señal",
+    },
+    [84728] = {
+        name = "Reforjado de nuevo",
+    },
     [84740] = {
         name = "Un puente a ninguna parte",
     },
@@ -2873,6 +3197,18 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [84765] = {
         name = "Despedida familiar",
+    },
+    [84779] = {
+        name = "Paseo por la historia: Gambito de Daga",
+    },
+    [84782] = {
+        name = "Paseo por la historia: El pasado de la Daga",
+    },
+    [84784] = {
+        name = "Paseo por la historia: Las némesis de la Daga",
+    },
+    [84789] = {
+        name = "Paseo por la historia: La caída de la Daga",
     },
     [84820] = {
         name = "Por sangre y por voto",
@@ -3000,6 +3336,48 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [84915] = {
         name = "La limpieza de las dunas",
     },
+    [84935] = {
+        name = "Extirpar la incursión",
+    },
+    [84936] = {
+        name = "Para purificar la mancha de la sombra",
+    },
+    [84937] = {
+        name = "Ecos lejanos",
+    },
+    [84938] = {
+        name = "Control del caos",
+    },
+    [84939] = {
+        name = "El espacio de la locura",
+    },
+    [84940] = {
+        name = "Competición amistosa",
+    },
+    [84941] = {
+        name = "Irrupción en la cueva",
+    },
+    [84942] = {
+        name = "El último peligro",
+    },
+    [84943] = {
+        name = "La larga vigilia",
+    },
+    [84944] = {
+        name = "Preludios y preparativos",
+    },
+    [84945] = {
+        name = "El arrepentimiento de los Altonato",
+    },
+    [84946] = {
+        name = "Volver a la vida",
+    },
+    [84947] = {
+        name = "Determinación",
+    },
+    [84949] = {
+        name = "En el último momento",
+    },
     [84956] = {
         name = "Una invitación sombría",
     },
@@ -3039,6 +3417,21 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [84974] = {
         name = "Fragmentos de esperanza",
     },
+    [84996] = {
+        name = "La historia de Vereesa",
+    },
+    [84997] = {
+        name = "Lo que quizá esté por llegar",
+    },
+    [84998] = {
+        name = "Portadora del Vacío",
+    },
+    [85001] = {
+        name = "Que las bendiciones sean contigo",
+    },
+    [85002] = {
+        name = "Hacia Tazavesh",
+    },
     [85003] = {
         name = "Restaurar la eficiencia operativa",
     },
@@ -3053,6 +3446,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [85009] = {
         name = "Los que aún no hemos salvado",
+    },
+    [85011] = {
+        name = "Hay que encontrar a Alleria Brisaveloz en K'aresh",
     },
     [85018] = {
         name = "Paquetes de promesas",
@@ -3069,8 +3465,23 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [85022] = {
         name = "Sacerdote de las antiguas artes",
     },
+    [85027] = {
+        name = "Paseo por la historia: El Protectorado",
+    },
+    [85028] = {
+        name = "Paseo por la historia: Los Especuladores",
+    },
+    [85029] = {
+        name = "Paseo por la historia: El Peregrino",
+    },
     [85032] = {
         name = "Lo que queda de nuestro hogar",
+    },
+    [85035] = {
+        name = "El Peregrino, custodio de Telogrus",
+    },
+    [85036] = {
+        name = "Veni, Vidi, Ve'nari",
     },
     [85037] = {
         name = "Envolturas para terminar",
@@ -3120,8 +3531,23 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [85084] = {
         name = "Fuerte como una abeja",
     },
+    [85151] = {
+        name = "A su sombra",
+    },
+    [85155] = {
+        name = "¿Tienes de repuesto?",
+    },
     [85174] = {
         name = "Sal ahí fuera",
+    },
+    [85184] = {
+        name = "La recuperación es nueve décimas partes de la ley",
+    },
+    [85185] = {
+        name = "Y esos también",
+    },
+    [85186] = {
+        name = "Una jaula para Alleria",
     },
     [85189] = {
         name = "Un día en los tribunales",
@@ -3134,6 +3560,18 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [85192] = {
         name = "Vuelta a casa",
+    },
+    [85196] = {
+        name = "Etiquetado y listo para el envío",
+    },
+    [85212] = {
+        name = "Prueba de voluntades en el Vacío",
+    },
+    [85213] = {
+        name = "Otra vez hacia Tazavesh",
+    },
+    [85214] = {
+        name = "A ver qué pasa",
     },
     [85238] = {
         name = "Tras la pista de un extraño",
@@ -3149,6 +3587,12 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [85249] = {
         name = "Una prueba abejil",
+    },
+    [85252] = {
+        name = "Paseo por la historia: Hijos de la sangre",
+    },
+    [85254] = {
+        name = "Paseo por la historia: Hijos del Vacío",
     },
     [85255] = {
         name = "Tranquiliabeja",
@@ -3239,6 +3683,24 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [85780] = {
         name = "Justo donde lo queremos",
+    },
+    [85804] = {
+        name = "Trampa paterna",
+    },
+    [85862] = {
+        name = "El deber de un príncipe",
+    },
+    [85871] = {
+        name = "Paseo por la historia: Las fuerzas de la Daga",
+    },
+    [85875] = {
+        name = "Ascenso del Rey Exánime",
+    },
+    [85884] = {
+        name = "Paseo por la historia: El príncipe que se convertiría en rey",
+    },
+    [85885] = {
+        name = "Paseo por la historia: Ningún rey gobierna para siempre",
     },
     [85941] = {
         name = "Ajuste de actitud",
@@ -3383,6 +3845,15 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [86417] = {
         name = "Comprobación",
+    },
+    [86456] = {
+        name = "Elegía por un mundo en silencio",
+    },
+    [86457] = {
+        name = "Una nana de esperanza",
+    },
+    [86458] = {
+        name = "Una canción por nuestro futuro",
     },
     [86495] = {
         name = "El lazo reshii",
@@ -3558,6 +4029,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [90517] = {
         name = "Mi parte del trato",
     },
+    [90705] = {
+        name = "Paseo por la historia",
+    },
     [90938] = {
         name = "Un salto a través del Vacío",
     },
@@ -3575,6 +4049,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [91454] = {
         name = "Aventurero perdido en fase",
+    },
+    [92405] = {
+        name = "Reunión con Arator",
     },
 })
 ]])()

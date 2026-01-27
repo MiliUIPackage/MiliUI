@@ -1,3 +1,20 @@
+# v11.0
+
+- Added Arcane Desolation questline
+- Added Strength Amidst Ruins questline
+- Added The Light of Karesh questline
+- Added Lorewarlking questlines
+- Added Visions of a Shadowed Sun questlines
+- Updated for Midnight Prepatch
+
+# v10.2
+
+- Updated for 11.2.7
+
+# v10.1
+
+- Updated for 11.2.5
+
 # v10.0
 
 - Added questlines for Ghosts of Ka'resh

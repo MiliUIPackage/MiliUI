@@ -10,6 +10,8 @@ local Chain = BtWQuests.Constant.Chain.TheWarWithin
 local LEVEL_RANGE = {80, 80}
 
 Chain.RiseOfTheRedDawn = 110010
+Chain.ArcaneDesolation = 110011
+Chain.StrengthAmidstRuins = 110012
 
 Database:AddChain(Chain.RiseOfTheRedDawn, {
     name = { -- Rise of the Red Dawn
@@ -305,12 +307,215 @@ Database:AddChain(Chain.RiseOfTheRedDawn, {
         },
     }
 })
+Database:AddChain(Chain.ArcaneDesolation, {
+    name = BtWQuests_GetAchievementCriteriaNameDelayed(40791, 1), -- Arcane Desolation
+    expansion = EXPANSION_ID,
+    range = LEVEL_RANGE,
+    questline = 5664,
+    prerequisites = {
+        {
+            type = "level",
+            level = 80,
+        },
+    },
+    active = {
+        type = "quest",
+        id = 84223,
+        status = {'active', 'completed'}
+    },
+    completed = {
+        type = "quest",
+        id = 83643,
+    },
+    items = {
+        {
+            type = "npc",
+            id = 227436,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        { -- Survivor's Guilt
+            type = "quest",
+            id = 84223,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        { -- The Hardest Part
+            type = "quest",
+            id = 83031,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        { -- Arcane Wasteland
+            type = "quest",
+            id = 83499,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        { -- Lessons in Defensive Magic
+            type = "quest",
+            id = 83502,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        { -- Feeling Blue
+            type = "quest",
+            id = 83539,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        { -- Magic-stealing Kobolds
+            type = "quest",
+            id = 83553,
+            x = 0,
+            connections = {
+                1, 2, 
+            },
+        },
+        { -- Trinkets, Curios and Other Powerful Objects
+            type = "quest",
+            id = 83554,
+            x = -1,
+            connections = {
+                2, 
+            },
+        },
+        { -- Mysterious Necklace
+            type = "quest",
+            id = 83555,
+            connections = {
+                1, 
+            },
+        },
+        { -- Maybe You Shouldn't Touch That
+            type = "quest",
+            id = 83556,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        { -- Trapped Between Life and Death
+            type = "quest",
+            id = 83641,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        { -- Somehow We Survived
+            type = "quest",
+            id = 83643,
+            x = 0,
+        },
+    }
+})
+Database:AddChain(Chain.StrengthAmidstRuins, {
+    name = BtWQuests_GetAchievementCriteriaNameDelayed(40791, 2), -- Strength Amidst Ruins
+    expansion = EXPANSION_ID,
+    range = LEVEL_RANGE,
+    questline = 5666,
+    prerequisites = {
+        {
+            type = "level",
+            level = 80,
+        },
+        {
+            type = "chain",
+            id = Chain.ArcaneDesolation,
+        }
+    },
+    active = {
+        type = "quest",
+        id = 83723,
+        status = {'active', 'completed'}
+    },
+    completed = {
+        type = "quest",
+        id = 83773,
+    },
+    items = {
+        {
+            type = "npc",
+            id = 212829,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        { -- A Helping Hand
+            type = "quest",
+            id = 83723,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        { -- Arcane Cold War
+            type = "quest",
+            id = 83743,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        { -- Critical Mass
+            type = "quest",
+            id = 83762,
+            x = 0,
+            connections = {
+                1, 2, 
+            },
+        },
+        { -- Preserve the Legacy
+            type = "quest",
+            id = 83763,
+            x = -1,
+            connections = {
+                2, 
+            },
+        },
+        { -- Too Powerful, Too Dangerous
+            type = "quest",
+            id = 83764,
+            connections = {
+                1, 
+            },
+        },
+        { -- Farewell, City of Magic
+            type = "quest",
+            id = 83773,
+            x = 0,
+        },
+    }
+})
 
 BtWQuestsDatabase:AddExpansionItems(EXPANSION_ID, {
     {
         type = "chain",
         id = Chain.RiseOfTheRedDawn,
     },
+    {
+        type = "chain",
+        id = Chain.ArcaneDesolation,
+    },
+    {
+        type = "chain",
+        id = Chain.StrengthAmidstRuins,
+    },
 })
 
 BtWQuestsDatabase:AddQuestItemsForChain(Chain.RiseOfTheRedDawn)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.ArcaneDesolation)

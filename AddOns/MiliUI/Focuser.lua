@@ -23,8 +23,6 @@ f:RegisterForClicks("AnyDown", "AnyUp")
 SetOverrideBindingClick(FocuserButton, true, modifier.."-BUTTON"..mouseButton, "FocuserButton")
 
 local duf = {
-    PlayerFrame,
-    FocusFrame,
     PetFrame,
     PartyMemberFrame1,
     PartyMemberFrame2,

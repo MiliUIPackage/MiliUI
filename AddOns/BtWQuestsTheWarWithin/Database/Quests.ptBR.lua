@@ -6,6 +6,102 @@ end
 
 loadstring([[
 BtWQuestsDatabase:UpdateQuestsTable({
+    [10339] = {
+        name = "O Etéreum",
+    },
+    [10384] = {
+        name = "Dados do Etéreum",
+    },
+    [10385] = {
+        name = "Risco de dano cerebral: Alto",
+    },
+    [10406] = {
+        name = "A entrega da mensagem",
+    },
+    [10408] = {
+        name = "Rei do Nexus Salhadaar",
+    },
+    [10437] = {
+        name = "Receita de destruição",
+    },
+    [10439] = {
+        name = "Dimensius, O que Tudo Devora",
+    },
+    [12291] = {
+        name = "A história esquecida",
+    },
+    [12301] = {
+        name = "A verdade nos libertará",
+    },
+    [12305] = {
+        name = "Pensamentos finais",
+    },
+    [12478] = {
+        name = "Caverna Gélido Lamento",
+    },
+    [47203] = {
+        name = "Lavando a roupa suja",
+    },
+    [47217] = {
+        name = "Fontes da escuridão",
+    },
+    [47218] = {
+        name = "A incursão da Guarda Sombria",
+    },
+    [47219] = {
+        name = "Pronta para a próxima",
+    },
+    [48962] = {
+        name = "Fissura de Telogrus",
+    },
+    [49354] = {
+        name = "Lembrem-se da Nascente do Sol",
+    },
+    [49787] = {
+        name = "A Terra Fantasma",
+    },
+    [53735] = {
+        name = "Os primeiros a cair",
+    },
+    [53737] = {
+        name = "O dia que a esperança morreu",
+    },
+    [53882] = {
+        name = "Já estava escrito",
+    },
+    [54096] = {
+        name = "A queda da Nascente do Sol",
+    },
+    [63855] = {
+        name = "Passagem facilitada",
+    },
+    [63895] = {
+        name = "Sacolão",
+    },
+    [63976] = {
+        name = "O gato de Oribos",
+    },
+    [63977] = {
+        name = "Informação privilegiada",
+    },
+    [63979] = {
+        name = "Coisas irreveláveis",
+    },
+    [63980] = {
+        name = "Em busca de contrabandistas",
+    },
+    [63982] = {
+        name = "Fora da minha alçada",
+    },
+    [63983] = {
+        name = "Esconderijo",
+    },
+    [63984] = {
+        name = "Óbolos para o barqueiro",
+    },
+    [63985] = {
+        name = "O Mercado Oculto",
+    },
     [76169] = {
         name = "Brilho no escuro",
     },
@@ -2697,6 +2793,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [84221] = {
         name = "Papelada pra que te quero",
     },
+    [84223] = {
+        name = "Culpa de sobrevivente",
+    },
     [84242] = {
         name = "Mergulho nas Montoeiras",
     },
@@ -3554,6 +3653,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [90517] = {
         name = "Minha parte do acordo",
+    },
+    [90705] = {
+        name = "Trilha das Lendas",
     },
     [90938] = {
         name = "Saltitando pelo Caos",

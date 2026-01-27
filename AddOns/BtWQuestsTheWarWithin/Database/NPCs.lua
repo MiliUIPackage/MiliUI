@@ -1,6 +1,215 @@
 ----- AUTO GENERATED - DO NOT EDIT
 
 BtWQuestsDatabase:AddNPCsTable({
+    [20448] = {
+        name = "Commander Ameer",
+        locations = {
+            [109] = {
+                {
+                    x = 0.595002,
+                    y = 0.323824,
+                },
+            },
+        },
+    },
+    [20482] = {
+        name = "Image of Commander Ameer",
+        locations = {
+            [109] = {
+                {
+                    x = 0.568131,
+                    y = 0.386973,
+                },
+            },
+        },
+    },
+    [20907] = {
+        name = "Professor Dabiri",
+        locations = {
+            [109] = {
+                {
+                    x = 0.601059,
+                    y = 0.31725,
+                },
+            },
+        },
+    },
+    [27314] = {
+        name = "Zelig the Visionary",
+        locations = {
+            [115] = {
+                {
+                    x = 0.791515,
+                    y = 0.471711,
+                },
+            },
+        },
+    },
+    [27347] = {
+        name = "Orik Trueheart",
+        locations = {
+            [115] = {
+                {
+                    x = 0.87175,
+                    y = 0.574875,
+                },
+            },
+        },
+    },
+    [121230] = {
+        name = "Alleria Windrunner",
+        locations = {
+            [882] = {
+                {
+                    x = 0.353331,
+                    y = 0.595362,
+                },
+            },
+        },
+    },
+    [121597] = {
+        name = "Locus-Walker",
+        locations = {
+            [882] = {
+                {
+                    x = 0.319232,
+                    y = 0.373283,
+                },
+            },
+        },
+    },
+    [130133] = {
+        name = "Lady Liadrin",
+        locations = {
+            [110] = {
+                {
+                    x = 0.581228,
+                    y = 0.198491,
+                },
+            },
+        },
+    },
+    [130919] = {
+        name = "High Elf Ranger",
+        locations = {
+            [95] = {
+                {
+                    x = 0.796264,
+                    y = 0.196668,
+                },
+            },
+        },
+    },
+    [145005] = {
+        name = "Farstrider Elite",
+        locations = {
+            [95] = {
+                {
+                    x = 0.474759,
+                    y = 0.840655,
+                },
+            },
+        },
+    },
+    [145015] = {
+        name = "Lor'themar Theron",
+        locations = {
+            [95] = {
+                {
+                    x = 0.462967,
+                    y = 0.319787,
+                },
+            },
+        },
+    },
+    [145793] = {
+        name = "Lady Liadrin",
+        locations = {
+            [122] = {
+                {
+                    x = 0.483595,
+                    y = 0.360023,
+                },
+            },
+        },
+    },
+    [156688] = {
+        name = "Host Ta'rela",
+        locations = {
+            [1670] = {
+                {
+                    x = 0.674701,
+                    y = 0.503224,
+                },
+            },
+        },
+    },
+    [158890] = {
+        name = "Bounty Hunter Ta'oku",
+        locations = {
+            [1533] = {
+                {
+                    x = 0.325123,
+                    y = 0.323336,
+                },
+            },
+        },
+    },
+    [160090] = {
+        name = "Ta'nla the Identifier",
+        locations = {
+            [1525] = {
+                {
+                    x = 0.51335,
+                    y = 0.827074,
+                },
+            },
+        },
+    },
+    [162804] = {
+        name = "Ve'nari",
+        locations = {
+            [1543] = {
+                {
+                    x = 0.469532,
+                    y = 0.417087,
+                },
+            },
+        },
+    },
+    [178470] = {
+        name = "Ve'nari",
+        locations = {
+            [1961] = {
+                {
+                    x = 0.659939,
+                    y = 0.22966,
+                },
+            },
+        },
+    },
+    [178792] = {
+        name = "Ta'meri",
+        locations = {
+            [1670] = {
+                {
+                    x = 0.298165,
+                    y = 0.666055,
+                },
+            },
+        },
+    },
+    [178908] = {
+        name = "Al'dalil",
+        locations = {
+            [1672] = {
+                {
+                    x = 0.566667,
+                    y = 0.32,
+                },
+            },
+        },
+    },
     [206528] = {
         name = "Aliya Hillhelm",
         locations = {
@@ -349,6 +558,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.747792,
                     y = 0.42343,
+                },
+            },
+        },
+    },
+    [212829] = {
+        name = "Lady Jaina Proudmoore",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.309683,
+                    y = 0.57717,
                 },
             },
         },
@@ -3684,6 +3904,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [225355] = {
+        name = "Archmage Aethas Sunreaver",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.295758,
+                    y = 0.581558,
+                },
+            },
+        },
+    },
     [225426] = {
         name = "Saradi",
         locations = {
@@ -4487,6 +4718,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [226895] = {
+        name = "Archmage Aethas Sunreaver",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.297279,
+                    y = 0.579276,
+                },
+            },
+        },
+    },
     [226899] = {
         name = "Chancellor Gnome",
         locations = {
@@ -4542,6 +4784,28 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [227063] = {
+        name = "Kalecgos",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.617202,
+                    y = 0.415357,
+                },
+            },
+        },
+    },
+    [227067] = {
+        name = "Kalecgos",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.297748,
+                    y = 0.578399,
+                },
+            },
+        },
+    },
     [227158] = {
         name = "Hannan",
         locations = {
@@ -4586,6 +4850,50 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [227375] = {
+        name = "Kalecgos",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.615212,
+                    y = 0.42852,
+                },
+            },
+        },
+    },
+    [227392] = {
+        name = "Kalecgos",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.615212,
+                    y = 0.42852,
+                },
+            },
+        },
+    },
+    [227409] = {
+        name = "Lady Jaina Proudmoore",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.298099,
+                    y = 0.578399,
+                },
+            },
+        },
+    },
+    [227436] = {
+        name = "Archmage Khadgar",
+        locations = {
+            [2339] = {
+                {
+                    x = 0.425555,
+                    y = 0.271429,
+                },
+            },
+        },
+    },
     [227477] = {
         name = "Brann Bronzebeard",
         locations = {
@@ -4615,6 +4923,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.435044,
                     y = 0.563073,
+                },
+            },
+        },
+    },
+    [227529] = {
+        name = "Lady Jaina Proudmoore",
+        locations = {
+            [2255] = {
+                {
+                    x = 0.352686,
+                    y = 0.531226,
                 },
             },
         },
@@ -4817,6 +5136,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [228520] = {
+        name = "Kobold Thief",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.621506,
+                    y = 0.416404,
+                },
+            },
+        },
+    },
     [228566] = {
         name = "Jazz Mokkitz",
         locations = {
@@ -4949,6 +5279,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [229763] = {
+        name = "Lady Jaina Proudmoore",
+        locations = {
+            [2255] = {
+                {
+                    x = 0.355447,
+                    y = 0.524469,
+                },
+            },
+        },
+    },
     [229940] = {
         name = "Colonel Veronica Nials",
         locations = {
@@ -5059,6 +5400,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [230246] = {
+        name = "Lorewalker Cho",
+        locations = {
+            [2339] = {
+                {
+                    x = 0.496508,
+                    y = 0.315,
+                },
+            },
+        },
+    },
     [230268] = {
         name = "Monte Gazlowe",
         locations = {
@@ -5099,6 +5451,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.709824,
                     y = 0.580405,
+                },
+            },
+        },
+    },
+    [230321] = {
+        name = "Xithixxin",
+        locations = {
+            [2381] = {
+                {
+                    x = 0.525981,
+                    y = 0.728787,
                 },
             },
         },
@@ -5345,6 +5708,39 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [231030] = {
+        name = "Arator",
+        locations = {
+            [1543] = {
+                {
+                    x = 0.253743,
+                    y = 0.325574,
+                },
+            },
+        },
+    },
+    [231033] = {
+        name = "Sylvanas Windrunner",
+        locations = {
+            [1543] = {
+                {
+                    x = 0.234242,
+                    y = 0.212407,
+                },
+            },
+        },
+    },
+    [231039] = {
+        name = "Arator",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.285929,
+                    y = 0.447123,
+                },
+            },
+        },
+    },
     [231128] = {
         name = "Locus-Walker",
         locations = {
@@ -5385,6 +5781,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.7666,
                     y = 0.343196,
+                },
+            },
+        },
+    },
+    [231266] = {
+        name = "Arator",
+        locations = {
+            [2472] = {
+                {
+                    x = 0.600885,
+                    y = 0.913131,
                 },
             },
         },
@@ -5554,6 +5961,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [231706] = {
+        name = "Locus-Walker",
+        locations = {
+            [971] = {
+                {
+                    x = 0.275131,
+                    y = 0.283652,
+                },
+            },
+        },
+    },
     [231748] = {
         name = "Maggie Wiltshire",
         locations = {
@@ -5719,6 +6137,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [231987] = {
+        name = "Alleria Windrunner",
+        locations = {
+            [2371] = {
+                {
+                    x = 0.552353,
+                    y = 0.279003,
+                },
+            },
+        },
+    },
     [232005] = {
         name = "Chancellor Gnome",
         locations = {
@@ -5748,6 +6177,28 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.44788,
                     y = 0.356969,
+                },
+            },
+        },
+    },
+    [232110] = {
+        name = "Alleria Windrunner",
+        locations = {
+            [2371] = {
+                {
+                    x = 0.608695,
+                    y = 0.282448,
+                },
+            },
+        },
+    },
+    [232124] = {
+        name = "Ve'nari",
+        locations = {
+            [2472] = {
+                {
+                    x = 0.605246,
+                    y = 0.927857,
                 },
             },
         },
@@ -5884,6 +6335,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [233252] = {
+        name = "Vereesa Windrunner",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.265919,
+                    y = 0.422903,
+                },
+            },
+        },
+    },
     [233296] = {
         name = "Fleet Master Seahorn",
         locations = {
@@ -5891,6 +6353,28 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.639675,
                     y = 0.171629,
+                },
+            },
+        },
+    },
+    [233312] = {
+        name = "Arator",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.265685,
+                    y = 0.422903,
+                },
+            },
+        },
+    },
+    [233314] = {
+        name = "Vereesa Windrunner",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.265919,
+                    y = 0.422903,
                 },
             },
         },
@@ -5913,6 +6397,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.684482,
                     y = 0.964558,
+                },
+            },
+        },
+    },
+    [233463] = {
+        name = "Sylvanas Windrunner",
+        locations = {
+            [1543] = {
+                {
+                    x = 0.258836,
+                    y = 0.319795,
                 },
             },
         },
@@ -5950,6 +6445,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [233567] = {
+        name = "Arator",
+        locations = {
+            [2472] = {
+                {
+                    x = 0.606364,
+                    y = 0.924796,
+                },
+            },
+        },
+    },
     [233603] = {
         name = "Locus-Walker",
         locations = {
@@ -5972,6 +6478,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [233752] = {
+        name = "Uther Lightbringer",
+        locations = {
+            [2418] = {
+                {
+                    x = 0.341391,
+                    y = 0.840423,
+                },
+            },
+        },
+    },
     [233878] = {
         name = "Xal'atath",
         locations = {
@@ -5983,6 +6500,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [233885] = {
+        name = "Alleria Windrunner",
+        locations = {
+            [2371] = {
+                {
+                    x = 0.607607,
+                    y = 0.280272,
+                },
+            },
+        },
+    },
     [233946] = {
         name = "Xal'atath",
         locations = {
@@ -5990,6 +6518,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.481743,
                     y = 0.366589,
+                },
+            },
+        },
+    },
+    [233980] = {
+        name = "Arator",
+        locations = {
+            [2371] = {
+                {
+                    x = 0.60797,
+                    y = 0.280635,
                 },
             },
         },
@@ -6016,6 +6555,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [234111] = {
+        name = "Om'rajula",
+        locations = {
+            [2339] = {
+                {
+                    x = 0.493173,
+                    y = 0.31142,
+                },
+            },
+        },
+    },
     [234190] = {
         name = "Narathe",
         locations = {
@@ -6034,6 +6584,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.498737,
                     y = 0.574498,
+                },
+            },
+        },
+    },
+    [234263] = {
+        name = "Magister Umbric",
+        locations = {
+            [2472] = {
+                {
+                    x = 0.513693,
+                    y = 0.197844,
                 },
             },
         },
@@ -6477,5 +7038,30 @@ BtWQuestsDatabase:AddNPCsTable({
                 },
             },
         },
+    },
+    [248948] = {
+        name = "Missing NPC248948",
+        locations = {
+            [2339] = {
+                {
+                    x = 0.495209,
+                    y = 0.318795,
+                },
+            },
+        },
+    },
+    [250839] = {
+        name = "Silver Hand Squire",
+        locations = {
+            [2339] = {
+                {
+                    x = 0.515408,
+                    y = 0.457732,
+                },
+            },
+        },
+    },
+    [322824] = {
+        name = "Dimensius"
     },
 })

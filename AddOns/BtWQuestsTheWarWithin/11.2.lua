@@ -679,15 +679,6 @@ Database:AddChain(Chain.ShadowsEnGarde, {
             type = "quest",
             id = 85037,
             x = 0,
-            connections = {
-                1, 
-            },
-        },
-        { -- Manaforge Omega: Dimensius Looms
-            type = "quest",
-            id = 86820,
-            aside = true,
-            x = 0,
         },
     }
 })
@@ -740,9 +731,51 @@ Database:AddChain(Chain.TheLightOfKaresh, {
     },
     completed = {
         type = "quest",
-        id = 86820,
+        id = 86458,
     },
     items = {
+        {
+            type = "npc",
+            id = 231522,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        { -- Manaforge Omega: Dimensius Looms
+            type = "quest",
+            id = 86820,
+            x = -1,
+        },
+        {
+            type = "kill",
+            id = 322824,
+            x = 1,
+            connections = {
+                1, 
+            },
+        },
+        { -- An Elegy for a Silent World
+            type = "quest",
+            id = 86456,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        { -- A Lullaby of Hope
+            type = "quest",
+            id = 86457,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        { -- A Song for Our Future
+            type = "quest",
+            id = 86458,
+            x = 0,
+        },
     }
 })
 
@@ -3068,10 +3101,10 @@ Database:AddCategory(CATEGORY_ID, {
             type = "chain",
             id = Chain.ShadowsEnGarde,
         },
-        -- {
-        --     type = "chain",
-        --     id = Chain.TheLightOfKaresh,
-        -- },
+        {
+            type = "chain",
+            id = Chain.TheLightOfKaresh,
+        },
         
         {
             type = "chain",

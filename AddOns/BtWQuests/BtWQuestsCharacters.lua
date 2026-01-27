@@ -648,8 +648,14 @@ end
 function BtWQuestsCharactersPlayerMixin:GetCovenant()
     return C_Covenants.GetActiveCovenantID()
 end
-function BtWQuestsCharactersPlayerMixin:GetChromieTimeID()
-    return UnitChromieTimeID("player")
+if UnitChromieTimeID then
+    function BtWQuestsCharactersPlayerMixin:GetChromieTimeID()
+        return UnitChromieTimeID("player")
+    end
+else
+    function BtWQuestsCharactersPlayerMixin:GetChromieTimeID()
+        return 0
+    end
 end
 
 local xpTooltip = CreateFrame("GameTooltip", "BtWQuestsCharactersXPTooltip", UIParent, "GameTooltipTemplate");

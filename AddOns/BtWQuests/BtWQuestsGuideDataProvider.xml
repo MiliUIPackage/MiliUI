@@ -14,12 +14,11 @@
 				</Texture>
 			</Layer>
 			<Layer level="ARTWORK">
-				<Texture parentKey="Texture" file="Interface/WorldMap/UI-QuestPoi-NumberIcons">
+				<Texture parentKey="Texture" file="Interface/Addons/BtWQuests/UI-QuestPoi">
 		            <Size x="28" y="28"/>
 					<Anchors>
 						<Anchor point="CENTER" />
 					</Anchors>
-                    <TexCoords left="0.25" right="0.375" top="0.375" bottom="0.5"/>
 				</Texture>
 			</Layer>
 		</Layers>

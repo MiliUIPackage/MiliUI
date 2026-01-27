@@ -1,6 +1,1103 @@
 ----- AUTO GENERATED - DO NOT EDIT
 
 BtWQuestsDatabase:AddQuestsTable({
+    [10339] = {
+        name = "The Ethereum",
+        contentTuningID = 42,
+        source = {
+            type = "npc",
+            id = 20448,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 40, 
+                        },
+                        minLevel = 25,
+                        maxLevel = 50,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            3450, 3600, 3700, 3850, 4000, 4100, 4100, 3300, 2450, 1650, 825, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 45, 
+                        },
+                        minLevel = 25,
+                        maxLevel = 50,
+                    },
+                },
+            },
+            {
+                type = "reputation",
+                id = 933,
+                amount = 250,
+            },
+        },
+    },
+    [10384] = {
+        name = "Ethereum Data",
+        contentTuningID = 42,
+        source = {
+            type = "npc",
+            id = 20482,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 20, 
+                        },
+                        minLevel = 25,
+                        maxLevel = 50,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            1700, 1800, 1850, 1950, 2000, 2050, 2050, 1650, 1250, 825, 410, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 25, 
+                        },
+                        minLevel = 25,
+                        maxLevel = 50,
+                    },
+                },
+            },
+            {
+                type = "reputation",
+                id = 933,
+                amount = 75,
+            },
+        },
+    },
+    [10385] = {
+        name = "Potential for Brain Damage = High",
+        contentTuningID = 42,
+        source = {
+            type = "npc",
+            id = 20482,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 40, 
+                        },
+                        minLevel = 25,
+                        maxLevel = 50,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            3450, 3600, 3700, 3850, 4000, 4100, 4100, 3300, 2450, 1650, 825, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 45, 
+                        },
+                        minLevel = 25,
+                        maxLevel = 50,
+                    },
+                },
+            },
+            {
+                type = "reputation",
+                id = 933,
+                amount = 250,
+            },
+        },
+    },
+    [10406] = {
+        name = "Delivering the Message",
+        contentTuningID = 42,
+        source = {
+            type = "npc",
+            id = 20482,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 40, 
+                        },
+                        minLevel = 25,
+                        maxLevel = 50,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            3450, 3600, 3700, 3850, 4000, 4100, 4100, 3300, 2450, 1650, 825, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 45, 
+                        },
+                        minLevel = 25,
+                        maxLevel = 50,
+                    },
+                },
+            },
+            {
+                type = "reputation",
+                id = 933,
+                amount = 250,
+            },
+        },
+    },
+    [10408] = {
+        name = "Nexus-King Salhadaar",
+        contentTuningID = 42,
+        source = {
+            type = "npc",
+            id = 20482,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 55, 
+                        },
+                        minLevel = 25,
+                        maxLevel = 50,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            5150, 5350, 5550, 5750, 5950, 6200, 6200, 4950, 3700, 2450, 1250, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 70, 
+                        },
+                        minLevel = 25,
+                        maxLevel = 50,
+                    },
+                },
+            },
+            {
+                type = "money",
+                amounts = {
+                    237750, 253200, 268650, 284100, 299550, 315000, 
+                },
+                minLevel = 25,
+                maxLevel = 30,
+            },
+            {
+                type = "reputation",
+                id = 933,
+                amount = 500,
+            },
+        },
+    },
+    [10437] = {
+        name = "Recipe for Destruction",
+        contentTuningID = 42,
+        source = {
+            type = "npc",
+            id = 20907,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 340, 40, 
+                        },
+                        minLevel = 25,
+                        maxLevel = 50,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            3450, 3600, 3700, 3850, 4000, 4100, 4100, 3300, 2450, 1650, 825, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 45, 
+                        },
+                        minLevel = 25,
+                        maxLevel = 50,
+                    },
+                },
+            },
+            {
+                type = "reputation",
+                id = 933,
+                amount = 250,
+            },
+        },
+    },
+    [10439] = {
+        name = "Dimensius the All-Devouring",
+        contentTuningID = 42,
+        source = {
+            type = "npc",
+            id = 20907,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 55, 
+                        },
+                        minLevel = 25,
+                        maxLevel = 50,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            5150, 5350, 5550, 5750, 5950, 6200, 6200, 4950, 3700, 2450, 1250, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 70, 
+                        },
+                        minLevel = 25,
+                        maxLevel = 50,
+                    },
+                },
+            },
+            {
+                type = "money",
+                amounts = {
+                    237750, 253200, 268650, 284100, 299550, 315000, 
+                },
+                minLevel = 25,
+                maxLevel = 30,
+            },
+            {
+                type = "reputation",
+                id = 933,
+                amount = 500,
+            },
+        },
+    },
+    [12291] = {
+        name = "The Forgotten Tale",
+        contentTuningID = 46,
+        source = {
+            type = "npc",
+            id = 27347,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 25, 
+                        },
+                        minLevel = 15,
+                        maxLevel = 50,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            2100, 2250, 2350, 2500, 2650, 2750, 2900, 3050, 3150, 3300, 3450, 3600, 3700, 3850, 4000, 4100, 4100, 3300, 2450, 1650, 825, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 410, 45, 
+                        },
+                        minLevel = 15,
+                        maxLevel = 50,
+                    },
+                },
+            },
+            {
+                type = "reputation",
+                id = 1050,
+                amount = 250,
+                restrictions = 924,
+            },
+            {
+                type = "reputation",
+                id = 1106,
+                amount = 250,
+            },
+        },
+    },
+    [12301] = {
+        name = "The Truth Shall Set Us Free",
+        contentTuningID = 46,
+        source = {
+            type = "npc",
+            id = 27347,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 35, 
+                        },
+                        minLevel = 15,
+                        maxLevel = 50,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            3150, 3350, 3550, 3750, 3950, 4150, 4350, 4550, 4750, 4950, 5150, 5350, 5550, 5750, 5950, 6200, 6200, 4950, 3700, 2450, 1250, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 70, 
+                        },
+                        minLevel = 15,
+                        maxLevel = 50,
+                    },
+                },
+            },
+            {
+                type = "reputation",
+                id = 1050,
+                amount = 500,
+                restrictions = 924,
+            },
+            {
+                type = "reputation",
+                id = 1106,
+                amount = 500,
+            },
+        },
+    },
+    [12305] = {
+        name = "Parting Thoughts",
+        contentTuningID = 46,
+        source = {
+            type = "npc",
+            id = 27347,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 5, 
+                        },
+                        minLevel = 15,
+                        maxLevel = 50,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            525, 550, 600, 625, 650, 700, 725, 750, 800, 825, 850, 900, 925, 950, 1000, 1050, 1050, 825, 625, 410, 210, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 10, 
+                        },
+                        minLevel = 15,
+                        maxLevel = 50,
+                    },
+                },
+            },
+            {
+                type = "reputation",
+                id = 1050,
+                amount = 25,
+                restrictions = 924,
+            },
+        },
+    },
+    [12478] = {
+        name = "Frostmourne Cavern",
+        contentTuningID = 46,
+        source = {
+            type = "npc",
+            id = 27314,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 260, 30, 
+                        },
+                        minLevel = 15,
+                        maxLevel = 50,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            2600, 2800, 2950, 3100, 3300, 3450, 3650, 3800, 3950, 4150, 4300, 4450, 4650, 4800, 5000, 5150, 5150, 4100, 3100, 2050, 1050, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 525, 55, 
+                        },
+                        minLevel = 15,
+                        maxLevel = 50,
+                    },
+                },
+            },
+            {
+                type = "reputation",
+                id = 1050,
+                amount = 350,
+                restrictions = 924,
+            },
+        },
+    },
+    [47203] = {
+        name = "Throwing Shade",
+        contentTuningID = 337,
+        source = {
+            type = "npc",
+            id = 121230,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            625, 625, 625, 625, 625, 70, 
+                        },
+                        minLevel = 45,
+                        maxLevel = 50,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            6150, 6150, 4900, 3700, 2450, 140, 70, 
+                        },
+                        minLevel = 45,
+                        maxLevel = 51,
+                    },
+                },
+            },
+            {
+                type = "money",
+                amount = 101100,
+            },
+        },
+    },
+    [47217] = {
+        name = "Sources of Darkness",
+        contentTuningID = 337,
+        source = {
+            type = "npc",
+            id = 121230,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            625, 625, 625, 625, 625, 70, 
+                        },
+                        minLevel = 45,
+                        maxLevel = 50,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            6150, 6150, 4900, 3700, 2450, 140, 70, 
+                        },
+                        minLevel = 45,
+                        maxLevel = 51,
+                    },
+                },
+            },
+            {
+                type = "money",
+                amount = 101100,
+            },
+        },
+    },
+    [47218] = {
+        name = "The Shadowguard Incursion",
+        contentTuningID = 337,
+        source = {
+            type = "npc",
+            id = 121597,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            625, 625, 625, 625, 625, 70, 
+                        },
+                        minLevel = 45,
+                        maxLevel = 50,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            6150, 6150, 4900, 3700, 2450, 140, 70, 
+                        },
+                        minLevel = 45,
+                        maxLevel = 51,
+                    },
+                },
+            },
+            {
+                type = "money",
+                amount = 151650,
+            },
+        },
+    },
+    [47219] = {
+        name = "A Vessel Made Ready",
+        contentTuningID = 337,
+        source = {
+            type = "npc",
+            id = 121597,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            625, 625, 625, 625, 625, 70, 
+                        },
+                        minLevel = 45,
+                        maxLevel = 50,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            6150, 6150, 4900, 3700, 2450, 140, 70, 
+                        },
+                        minLevel = 45,
+                        maxLevel = 51,
+                    },
+                },
+            },
+            {
+                type = "money",
+                amount = 202200,
+            },
+        },
+    },
+    [48962] = {
+        name = "Telogrus Rift",
+        contentTuningID = 700,
+        source = {
+            type = "npc",
+            id = 130919,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 60, 
+                },
+                minLevel = 40,
+                maxLevel = 50,
+            },
+        },
+    },
+    [49354] = {
+        name = "Remember the Sunwell",
+        contentTuningID = 700,
+        source = {
+            type = "npc",
+            id = 130133,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 60, 
+                },
+                minLevel = 40,
+                maxLevel = 50,
+            },
+        },
+    },
+    [49787] = {
+        name = "The Ghostlands",
+        contentTuningID = 700,
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 60, 
+                },
+                minLevel = 40,
+                maxLevel = 50,
+            },
+        },
+    },
+    [53735] = {
+        name = "The First to Fall",
+        contentTuningID = 1281,
+        source = {
+            type = "npc",
+            id = 145005,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amount = 75,
+            },
+        },
+    },
+    [53737] = {
+        name = "The Day Hope Died",
+        contentTuningID = 1281,
+        source = {
+            type = "npc",
+            id = 145005,
+            locations = {
+                [95] = {
+                    {
+                        x = 0.12668,
+                        y = 0.568676,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "experience",
+                amount = 75,
+            },
+        },
+    },
+    [53882] = {
+        name = "Writing on the Wall",
+        contentTuningID = 1281,
+        source = {
+            type = "npc",
+            id = 145015,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amount = 75,
+            },
+        },
+    },
+    [54096] = {
+        name = "The Fall of the Sunwell",
+        contentTuningID = 1281,
+        source = {
+            type = "npc",
+            id = 145793,
+            locations = {
+                [122] = {
+                    {
+                        x = 0.483574,
+                        y = 0.359873,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "experience",
+                amount = 95,
+            },
+        },
+    },
+    [63855] = {
+        name = "Ease of Passage",
+        contentTuningID = 2043,
+        source = {
+            type = "npc",
+            id = 178470,
+        },
+        rewards = {
+            {
+                type = "reputation",
+                id = 2432,
+                amount = 250,
+                maxRank = -1,
+            },
+        },
+    },
+    [63895] = {
+        name = "Grab Bag",
+        contentTuningID = 2043,
+        source = {
+            type = "npc",
+            id = 162804,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            8150, 8150, 6550, 4900, 3250, 1650, 825, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            8150, 8150, 6550, 4900, 3250, 1650, 825, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                    },
+                },
+            },
+            {
+                type = "money",
+                variations = {
+                    {
+                        amount = 257400,
+                        restrictions = -1,
+                    },
+                    {
+                        amount = 257400,
+                    },
+                },
+            },
+            {
+                type = "reputation",
+                id = 2432,
+                amount = 250,
+                maxRank = -1,
+            },
+        },
+    },
+    [63976] = {
+        name = "The Al'ley Cat of Oribos",
+        contentTuningID = 2139,
+        source = {
+            type = "npc",
+            id = 156688,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            1000, 1000, 825, 600, 410, 200, 100, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            1000, 1000, 825, 600, 410, 200, 100, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                    },
+                },
+            },
+            {
+                type = "money",
+                variations = {
+                    {
+                        amount = 25740,
+                        restrictions = -1,
+                    },
+                    {
+                        amount = 25740,
+                    },
+                },
+            },
+        },
+    },
+    [63977] = {
+        name = "Insider Trading",
+        contentTuningID = 2139,
+        source = {
+            type = "npc",
+            id = 178908,
+            locations = {
+                [1672] = {
+                    {
+                        x = 0.56691,
+                        y = 0.31877,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            8150, 8150, 6550, 4900, 3250, 1650, 825, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            8150, 8150, 6550, 4900, 3250, 1650, 825, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                    },
+                },
+            },
+            {
+                type = "money",
+                variations = {
+                    {
+                        amount = 257400,
+                        restrictions = -1,
+                    },
+                    {
+                        amount = 257400,
+                    },
+                },
+            },
+        },
+    },
+    [63979] = {
+        name = "Things Best Kept Dark",
+        contentTuningID = 2139,
+        source = {
+            type = "npc",
+            id = 178908,
+            locations = {
+                [1672] = {
+                    {
+                        x = 0.56691,
+                        y = 0.31877,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            8150, 8150, 6550, 4900, 3250, 1650, 825, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            8150, 8150, 6550, 4900, 3250, 1650, 825, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                    },
+                },
+            },
+            {
+                type = "money",
+                variations = {
+                    {
+                        amount = 257400,
+                        restrictions = -1,
+                    },
+                    {
+                        amount = 257400,
+                    },
+                },
+            },
+        },
+    },
+    [63980] = {
+        name = "Seeking Smugglers",
+        contentTuningID = 2139,
+        source = {
+            type = "npc",
+            id = 178908,
+            locations = {
+                [1672] = {
+                    {
+                        x = 0.56691,
+                        y = 0.31877,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            1000, 1000, 825, 600, 410, 200, 100, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            1000, 1000, 825, 600, 410, 200, 100, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                    },
+                },
+            },
+            {
+                type = "money",
+                variations = {
+                    {
+                        amount = 25740,
+                        restrictions = -1,
+                    },
+                    {
+                        amount = 25740,
+                    },
+                },
+            },
+        },
+    },
+    [63982] = {
+        name = "Above My Station",
+        contentTuningID = 2043,
+        source = {
+            type = "npc",
+            id = 160090,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            1000, 1000, 825, 600, 410, 200, 100, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            1000, 1000, 825, 600, 410, 200, 100, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                    },
+                },
+            },
+            {
+                type = "money",
+                variations = {
+                    {
+                        amount = 25740,
+                        restrictions = -1,
+                    },
+                    {
+                        amount = 25740,
+                    },
+                },
+            },
+        },
+    },
+    [63983] = {
+        name = "Dead Drop",
+        contentTuningID = 2139,
+        source = {
+            type = "npc",
+            id = 158890,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            8150, 8150, 6550, 4900, 3250, 1650, 825, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            8150, 8150, 6550, 4900, 3250, 1650, 825, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                    },
+                },
+            },
+            {
+                type = "money",
+                variations = {
+                    {
+                        amount = 257400,
+                        restrictions = -1,
+                    },
+                    {
+                        amount = 257400,
+                    },
+                },
+            },
+        },
+    },
+    [63984] = {
+        name = "Coins for the Ferryman",
+        contentTuningID = 2139,
+        source = {
+            type = "npc",
+            id = 158890,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            1000, 1000, 825, 600, 410, 200, 100, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            1000, 1000, 825, 600, 410, 200, 100, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                    },
+                },
+            },
+            {
+                type = "money",
+                variations = {
+                    {
+                        amount = 25740,
+                        restrictions = -1,
+                    },
+                    {
+                        amount = 25740,
+                    },
+                },
+            },
+        },
+    },
+    [63985] = {
+        name = "The Veiled Market",
+        contentTuningID = 2139,
+        source = {
+            type = "npc",
+            id = 178792,
+        },
+        rewards = {
+            {
+                type = "experience",
+                variations = {
+                    {
+                        amounts = {
+                            1000, 1000, 825, 600, 410, 200, 100, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                        restrictions = -1,
+                    },
+                    {
+                        amounts = {
+                            1000, 1000, 825, 600, 410, 200, 100, 
+                        },
+                        minLevel = 60,
+                        maxLevel = 66,
+                    },
+                },
+            },
+            {
+                type = "money",
+                variations = {
+                    {
+                        amount = 25740,
+                        restrictions = -1,
+                    },
+                    {
+                        amount = 25740,
+                    },
+                },
+            },
+        },
+    },
     [76169] = {
         name = "Glow in the Dark",
         contentTuningID = 2809,
@@ -27,7 +1124,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -41,7 +1138,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -51,7 +1148,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -66,14 +1163,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5800, 5900, 
+                    5300, 5350, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    151900, 153400, 154900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -88,14 +1189,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5800, 5900, 
+                    5300, 5350, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    151900, 153400, 154900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -118,14 +1223,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -140,14 +1249,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -161,11 +1274,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -180,14 +1297,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -202,14 +1323,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -224,14 +1349,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -246,14 +1375,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    14500, 14700, 
+                    13250, 13400, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    607600, 613600, 619600, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -268,14 +1401,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5800, 5900, 
+                    5300, 5350, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    151900, 153400, 154900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -290,14 +1427,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -312,14 +1453,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -334,14 +1479,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -356,14 +1505,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    14500, 14700, 
+                    13250, 13400, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    607600, 613600, 619600, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -378,14 +1531,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -399,11 +1556,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -414,7 +1575,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    2600, 2650, 2700, 2700, 2750, 2800, 1600, 1050, 525, 260, 
+                    2400, 2400, 2450, 2500, 2500, 2550, 1450, 975, 480, 240, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -422,10 +1583,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    70225, 58500, 
+                    70225, 70900, 71600, 72300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -440,7 +1601,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -448,10 +1609,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -466,7 +1627,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -474,10 +1635,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -492,7 +1653,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -500,10 +1661,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -526,7 +1687,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    7800, 7950, 8050, 8150, 8250, 8400, 4750, 3150, 1600, 800, 
+                    7150, 7250, 7350, 7450, 7550, 7650, 4350, 2900, 1450, 725, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -534,10 +1695,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    210675, 175500, 
+                    210675, 212700, 214800, 216900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -560,7 +1721,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -568,10 +1729,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -593,11 +1754,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -612,14 +1777,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -634,14 +1803,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -656,14 +1829,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -678,14 +1855,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -700,14 +1881,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -722,14 +1907,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -744,14 +1933,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8700, 8850, 
+                    7950, 8050, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    227800, 230100, 232300, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -766,14 +1959,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8700, 8850, 
+                    7950, 8050, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    227800, 230100, 232300, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -792,7 +1989,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -800,10 +1997,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -822,7 +2019,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -830,10 +2027,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -848,7 +2045,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    4750, 4850, 4900, 4950, 5050, 5100, 2900, 1950, 975, 480, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -856,10 +2053,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    140450, 141800, 143200, 144600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -874,7 +2071,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -882,10 +2079,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -900,7 +2097,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    4750, 4850, 4900, 4950, 5050, 5100, 2900, 1950, 975, 480, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -908,10 +2105,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    140450, 141800, 143200, 144600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -926,7 +2123,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -934,10 +2131,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -952,7 +2149,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 7900, 5300, 2650, 1300, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -960,10 +2157,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -978,7 +2175,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -986,10 +2183,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1008,7 +2205,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1016,10 +2213,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1034,7 +2231,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    4750, 4850, 4900, 4950, 5050, 5100, 2900, 1950, 975, 480, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1042,10 +2239,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    140450, 141800, 143200, 144600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1060,7 +2257,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1068,10 +2265,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1086,7 +2283,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1094,10 +2291,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1112,7 +2309,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1120,10 +2317,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1138,7 +2335,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1146,10 +2343,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1164,7 +2361,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1172,10 +2369,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1190,7 +2387,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1198,10 +2395,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1216,7 +2413,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1224,10 +2421,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1242,7 +2439,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1250,10 +2447,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1268,7 +2465,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1276,10 +2473,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1294,7 +2491,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 7900, 5300, 2650, 1300, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1302,10 +2499,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1320,7 +2517,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1328,10 +2525,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1346,7 +2543,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1354,10 +2551,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1372,7 +2569,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1380,10 +2577,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1398,7 +2595,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1406,10 +2603,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1424,7 +2621,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1432,10 +2629,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1450,7 +2647,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1458,10 +2655,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1476,7 +2673,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1484,10 +2681,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1502,7 +2699,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 7900, 5300, 2650, 1300, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1510,10 +2707,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1528,7 +2725,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1536,10 +2733,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1554,7 +2751,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1562,10 +2759,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1580,14 +2777,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -1602,14 +2803,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -1624,14 +2829,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -1646,14 +2855,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -1668,14 +2881,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -1690,7 +2907,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1698,10 +2915,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1716,7 +2933,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1724,10 +2941,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1742,7 +2959,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1750,10 +2967,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1768,7 +2985,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1776,10 +2993,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1794,7 +3011,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 7900, 5300, 2650, 1300, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -1802,10 +3019,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -1824,14 +3041,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1400, 1400, 1450, 
+                    1300, 1300, 1300, 1350, 
                 },
                 minLevel = 75,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -1846,14 +3067,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8400, 8500, 8600, 8700, 8850, 
+                    7650, 7750, 7850, 7950, 8050, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    221200, 223400, 225600, 227800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -1876,14 +3101,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -1898,14 +3127,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1400, 1400, 1450, 
+                    1300, 1300, 1300, 1350, 
                 },
                 minLevel = 75,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -1928,14 +3161,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -1950,14 +3187,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -1980,14 +3221,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13950, 14150, 14350, 14500, 14700, 
+                    12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    590000, 595800, 601600, 607600, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2010,14 +3255,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2032,14 +3281,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    2800, 2850, 2850, 2900, 2950, 
+                    2550, 2600, 2600, 2650, 2700, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 58500,
+                amounts = {
+                    73700, 74400, 75200, 75900, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2062,14 +3315,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2092,14 +3349,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2122,14 +3383,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    16750, 17000, 17200, 17450, 17650, 
+                    15300, 15500, 15700, 15900, 16100, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 702000,
+                amounts = {
+                    885000, 893700, 902400, 911400, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2144,14 +3409,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8150, 8250, 8400, 8500, 8600, 4900, 3250, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -2166,14 +3435,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -2188,14 +3461,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -2210,14 +3487,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -2232,14 +3513,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -2254,14 +3539,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -2276,14 +3565,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8150, 8250, 8400, 8500, 8600, 4900, 3250, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -2298,14 +3591,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -2320,14 +3617,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -2342,14 +3643,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    16300, 16550, 16750, 17000, 17200, 9800, 6500, 
+                    19850, 20100, 20400, 20650, 20900, 11900, 7950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 702000,
+                amounts = {
+                    867900, 876300, 885000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -2359,7 +3664,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -2378,14 +3683,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1400, 1400, 1450, 
+                    1300, 1300, 1300, 1350, 
                 },
                 minLevel = 75,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2400,14 +3709,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1400, 1400, 1450, 
+                    1300, 1300, 1300, 1350, 
                 },
                 minLevel = 75,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2422,14 +3735,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2452,14 +3769,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2482,14 +3803,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2512,14 +3837,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1400, 1400, 1450, 
+                    1300, 1300, 1300, 1350, 
                 },
                 minLevel = 75,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2534,14 +3863,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2556,14 +3889,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13950, 14150, 14350, 14500, 14700, 
+                    12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    590000, 595800, 601600, 607600, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2586,14 +3923,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5600, 5650, 5750, 5800, 5900, 
+                    5100, 5150, 5250, 5300, 5350, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    147500, 148900, 150400, 151900, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2616,14 +3957,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13950, 14150, 14350, 14500, 14700, 
+                    12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    590000, 595800, 601600, 607600, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2638,14 +3983,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8150, 8250, 8400, 8500, 8600, 4900, 3250, 
+                    7450, 7550, 7650, 7750, 7850, 4450, 3000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    216900, 219000, 221200, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -2660,14 +4009,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1400, 1400, 1450, 
+                    1300, 1300, 1300, 1350, 
                 },
                 minLevel = 75,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2690,14 +4043,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2712,14 +4069,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2734,14 +4095,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2764,14 +4129,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2786,14 +4155,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13950, 14150, 14350, 14500, 14700, 
+                    12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    590000, 595800, 601600, 607600, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2816,14 +4189,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2846,14 +4223,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2876,14 +4257,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2906,14 +4291,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -2928,14 +4317,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -2950,14 +4343,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -2972,14 +4369,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -2994,14 +4395,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3016,14 +4421,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3046,14 +4455,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3076,14 +4489,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3098,14 +4515,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1350, 1400, 1400, 1400, 1450, 825, 550, 
+                    1250, 1250, 1300, 1300, 1300, 750, 500, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    28900, 29200, 29500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3128,7 +4549,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1050, 775, 525, 260, 130, 
+                    1200, 1200, 950, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 76,
@@ -3150,7 +4571,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1050, 775, 525, 260, 130, 
+                    1200, 1200, 950, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 76,
@@ -3172,7 +4593,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5200, 5200, 4150, 3150, 2100, 1050, 525, 
+                    4750, 4750, 3800, 2850, 1900, 950, 480, 
                 },
                 minLevel = 70,
                 maxLevel = 76,
@@ -3194,7 +4615,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1050, 775, 525, 260, 130, 
+                    1200, 1200, 950, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 76,
@@ -3224,7 +4645,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3232,10 +4653,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3250,7 +4671,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    7800, 7950, 8050, 8150, 8250, 8400, 4750, 3150, 1600, 800, 
+                    7150, 7250, 7350, 7450, 7550, 7650, 4350, 2900, 1450, 725, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3258,10 +4679,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    210675, 175500, 
+                    210675, 212700, 214800, 216900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3284,7 +4705,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    7800, 7950, 8050, 8150, 8250, 8400, 4750, 3150, 1600, 800, 
+                    7150, 7250, 7350, 7450, 7550, 7650, 4350, 2900, 1450, 725, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3292,10 +4713,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    210675, 175500, 
+                    210675, 212700, 214800, 216900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3310,7 +4731,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5200, 5300, 5350, 5450, 5500, 5600, 3150, 2100, 1050, 525, 
+                    4750, 4850, 4900, 4950, 5050, 5100, 2900, 1950, 975, 480, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3318,10 +4739,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    140450, 117000, 
+                    140450, 141800, 143200, 144600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3344,7 +4765,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3352,10 +4773,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3370,14 +4791,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3392,14 +4817,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3414,14 +4843,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3436,7 +4869,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3444,10 +4877,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3462,7 +4895,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3470,10 +4903,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3488,7 +4921,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3496,10 +4929,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3514,7 +4947,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3522,10 +4955,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3540,7 +4973,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3548,10 +4981,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3566,7 +4999,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3574,15 +5007,15 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
     [78749] = {
-        name = "Who Runs this Fine Establishment?",
+        name = "Who Runs This Fine Establishment?",
         contentTuningID = 2797,
         source = {
             type = "npc",
@@ -3592,7 +5025,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3600,10 +5033,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3618,7 +5051,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3626,10 +5059,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3644,7 +5077,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3652,10 +5085,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3670,7 +5103,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3678,10 +5111,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3696,7 +5129,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3704,10 +5137,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3722,7 +5155,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3730,10 +5163,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3748,7 +5181,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -3756,10 +5189,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -3774,14 +5207,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3796,14 +5233,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    16300, 16550, 16750, 17000, 17200, 9800, 6500, 
+                    14900, 15100, 15300, 15500, 15700, 8950, 5950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 702000,
+                amounts = {
+                    867900, 876300, 885000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3818,14 +5259,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3840,14 +5285,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    2700, 2750, 2800, 2850, 2850, 1650, 1100, 
+                    2500, 2500, 2550, 2600, 2600, 1500, 1000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 58500,
+                amounts = {
+                    72300, 73000, 73700, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3862,14 +5311,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3884,14 +5337,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8150, 8250, 8400, 8500, 8600, 4900, 3250, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3906,14 +5363,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3928,14 +5389,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3946,14 +5411,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3964,14 +5433,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -3982,14 +5455,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -4004,14 +5481,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -4026,14 +5507,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    14500, 14700, 
+                    13250, 13400, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    607600, 613600, 619600, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -4048,14 +5533,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -4078,14 +5567,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5800, 5900, 
+                    5300, 5350, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    151900, 153400, 154900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -4100,14 +5593,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -4122,14 +5619,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -4144,14 +5645,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -4166,14 +5671,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -4196,14 +5705,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -4226,14 +5739,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13950, 14150, 14350, 14500, 14700, 
+                    12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    590000, 595800, 601600, 607600, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -4248,14 +5765,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1400, 1400, 1450, 
+                    1300, 1300, 1300, 1350, 
                 },
                 minLevel = 75,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -4270,14 +5791,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5600, 5650, 5750, 5800, 5900, 
+                    5100, 5150, 5250, 5300, 5350, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    147500, 148900, 150400, 151900, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -4291,7 +5816,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -4305,7 +5830,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -4319,7 +5844,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -4333,7 +5858,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -4347,7 +5872,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -4370,14 +5895,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -4392,14 +5921,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13950, 14150, 14350, 14500, 14700, 
+                    12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    590000, 595800, 601600, 607600, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -4422,14 +5955,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    2800, 2850, 2850, 2900, 2950, 
+                    2550, 2600, 2600, 2650, 2700, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 58500,
+                amounts = {
+                    73700, 74400, 75200, 75900, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -4439,7 +5976,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -4462,7 +5999,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5200, 5300, 5350, 5450, 5500, 5600, 3150, 2100, 1050, 525, 
+                    4750, 4850, 4900, 4950, 5050, 5100, 2900, 1950, 975, 480, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -4470,10 +6007,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    140450, 117000, 
+                    140450, 141800, 143200, 144600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -4488,7 +6025,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -4496,10 +6033,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -4514,7 +6051,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -4522,10 +6059,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -4540,7 +6077,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 7900, 5300, 2650, 1300, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -4548,10 +6085,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -4565,7 +6102,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -4579,7 +6116,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -4593,7 +6130,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -4607,7 +6144,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -4621,7 +6158,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -4635,7 +6172,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -4649,7 +6186,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -4663,7 +6200,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -4677,7 +6214,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -4692,14 +6229,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -4714,7 +6255,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -4722,10 +6263,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -4748,7 +6289,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -4756,10 +6297,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -4773,7 +6314,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -4787,13 +6328,13 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
     [79109] = {
         name = "Follow Miral",
-        contentTuningID = 2462,
+        contentTuningID = 2809,
         source = {
             type = "npc",
             id = 206528,
@@ -4801,13 +6342,13 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
     [79110] = {
         name = "Save Tomothy",
-        contentTuningID = 2462,
+        contentTuningID = 2809,
         source = {
             type = "npc",
             id = 215041,
@@ -4815,7 +6356,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -4830,14 +6371,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -4851,11 +6396,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -4874,14 +6423,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -4895,11 +6448,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -4914,14 +6471,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -4944,14 +6505,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -4974,14 +6539,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -5004,14 +6573,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -5033,11 +6606,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -5051,7 +6628,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -5073,7 +6650,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -5088,14 +6665,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8700, 8850, 
+                    7950, 8050, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    227800, 230100, 232300, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -5109,7 +6690,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -5123,7 +6704,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -5137,7 +6718,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -5151,7 +6732,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -5166,14 +6747,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -5188,14 +6773,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -5209,7 +6798,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -5224,14 +6813,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -5246,14 +6839,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -5268,14 +6865,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13950, 14150, 14350, 14500, 14700, 
+                    12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    590000, 595800, 601600, 607600, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -5290,14 +6891,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -5306,7 +6911,7 @@ BtWQuestsDatabase:AddQuestsTable({
         contentTuningID = 2829,
         source = {
             type = "npc",
-            id = 214995,
+            id = 214916,
             locations = {
                 [2248] = {
                     {
@@ -5319,7 +6924,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -5333,7 +6938,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -5348,14 +6953,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -5370,14 +6979,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -5392,14 +7005,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5600, 5650, 5750, 5800, 5900, 
+                    5100, 5150, 5250, 5300, 5350, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    147500, 148900, 150400, 151900, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -5413,7 +7030,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -5427,7 +7044,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -5441,7 +7058,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -5455,7 +7072,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -5470,14 +7087,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -5492,14 +7113,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    2900, 2950, 
+                    2650, 2700, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 58500,
+                amounts = {
+                    75900, 76700, 77400, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -5514,7 +7139,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5200, 5300, 5350, 5450, 5500, 5600, 3150, 2100, 1050, 525, 
+                    4750, 4850, 4900, 4950, 5050, 5100, 2900, 1950, 975, 480, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -5522,10 +7147,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    140450, 117000, 
+                    140450, 141800, 143200, 144600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -5540,14 +7165,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -5562,14 +7191,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    2700, 2750, 2800, 2850, 2850, 1650, 1100, 
+                    2500, 2500, 2550, 2600, 2600, 1500, 1000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 58500,
+                amounts = {
+                    72300, 73000, 73700, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -5584,14 +7217,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5800, 5900, 
+                    5300, 5350, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    151900, 153400, 154900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -5606,14 +7243,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -5624,14 +7265,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8150, 8250, 8400, 8500, 8600, 4900, 3250, 
+                    7450, 7550, 7650, 7750, 7850, 4450, 3000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    216900, 219000, 221200, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -5646,7 +7291,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -5654,10 +7299,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -5667,7 +7312,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -5681,7 +7326,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -5695,7 +7340,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -5709,7 +7354,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -5723,7 +7368,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -5737,7 +7382,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -5751,7 +7396,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -5765,7 +7410,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -5779,7 +7424,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -5793,7 +7438,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -5807,7 +7452,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -5821,7 +7466,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -5835,7 +7480,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 702000,
+                amount = 929400,
             },
         },
     },
@@ -5850,14 +7495,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1350, 1400, 1400, 1400, 1450, 825, 550, 
+                    1250, 1250, 1300, 1300, 1300, 750, 500, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    28900, 29200, 29500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -5872,14 +7521,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -5894,14 +7547,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -5916,14 +7573,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -5938,14 +7599,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1350, 1400, 1400, 1400, 1450, 825, 550, 
+                    1250, 1250, 1300, 1300, 1300, 750, 500, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    28900, 29200, 29500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -5960,14 +7625,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -5982,14 +7651,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -6004,14 +7677,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1350, 1400, 1400, 1400, 1450, 825, 550, 
+                    1250, 1250, 1300, 1300, 1300, 750, 500, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    28900, 29200, 29500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -6026,14 +7703,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -6048,14 +7729,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1350, 1400, 1400, 1400, 1450, 825, 550, 
+                    1250, 1250, 1300, 1300, 1300, 750, 500, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    28900, 29200, 29500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -6070,14 +7755,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -6091,7 +7780,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -6110,14 +7799,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -6132,14 +7825,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8400, 8500, 8600, 8700, 8850, 
+                    7650, 7750, 7850, 7950, 8050, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    221200, 223400, 225600, 227800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -6154,14 +7851,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -6176,14 +7877,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -6198,14 +7903,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -6220,14 +7929,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1400, 1400, 1450, 
+                    1300, 1300, 1300, 1350, 
                 },
                 minLevel = 75,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -6242,14 +7955,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1400, 1400, 1450, 
+                    1300, 1300, 1300, 1350, 
                 },
                 minLevel = 75,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -6264,14 +7981,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8400, 8500, 8600, 8700, 8850, 
+                    7650, 7750, 7850, 7950, 8050, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    221200, 223400, 225600, 227800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -6286,14 +8007,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -6308,14 +8033,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -6338,14 +8067,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13950, 14150, 14350, 14500, 14700, 
+                    12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    590000, 595800, 601600, 607600, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -6359,7 +8092,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -6373,7 +8106,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -6388,14 +8121,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -6417,7 +8154,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -6435,7 +8172,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -6450,7 +8187,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -6458,10 +8195,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -6476,7 +8213,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -6484,10 +8221,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -6502,7 +8239,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    7800, 7950, 8050, 8150, 8250, 8400, 4750, 3150, 1600, 800, 
+                    7150, 7250, 7350, 7450, 7550, 7650, 4350, 2900, 1450, 725, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -6510,10 +8247,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    210675, 175500, 
+                    210675, 212700, 214800, 216900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -6528,7 +8265,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -6536,10 +8273,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -6554,7 +8291,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -6562,10 +8299,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -6580,7 +8317,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -6588,10 +8325,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -6606,7 +8343,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -6614,10 +8351,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -6632,7 +8369,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -6640,10 +8377,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -6654,14 +8391,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8150, 8250, 8400, 8500, 8600, 4900, 3250, 
+                    7450, 7550, 7650, 7750, 7850, 4450, 3000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    216900, 219000, 221200, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -6675,7 +8416,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -6689,11 +8430,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -6708,14 +8453,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -6730,14 +8479,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -6752,14 +8505,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -6774,14 +8531,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    14500, 14700, 
+                    13250, 13400, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    607600, 613600, 619600, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -6796,14 +8557,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -6818,14 +8583,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -6840,14 +8609,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -6862,14 +8635,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -6884,14 +8661,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -6906,14 +8687,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -6955,7 +8740,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -6977,7 +8762,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -6999,7 +8784,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -7021,7 +8806,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -7036,14 +8821,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -7058,14 +8847,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -7080,14 +8873,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -7102,14 +8899,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -7124,14 +8925,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -7146,14 +8951,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -7168,7 +8977,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -7176,10 +8985,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -7194,7 +9003,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -7202,10 +9011,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -7220,7 +9029,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -7228,10 +9037,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -7246,7 +9055,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -7254,10 +9063,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -7272,7 +9081,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -7280,10 +9089,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -7298,7 +9107,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -7306,10 +9115,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -7324,7 +9133,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -7332,10 +9141,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -7350,7 +9159,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -7358,10 +9167,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -7376,7 +9185,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 7900, 5300, 2650, 1300, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -7384,10 +9193,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -7402,14 +9211,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -7424,14 +9237,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -7446,14 +9263,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    2900, 2950, 
+                    2650, 2700, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 58500,
+                amounts = {
+                    75900, 76700, 77400, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -7476,14 +9297,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -7498,7 +9323,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -7506,10 +9331,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -7524,7 +9349,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -7532,10 +9357,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -7550,7 +9375,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5200, 5300, 5350, 5450, 5500, 5600, 3150, 2100, 1050, 525, 
+                    4750, 4850, 4900, 4950, 5050, 5100, 2900, 1950, 975, 480, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -7558,10 +9383,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    140450, 117000, 
+                    140450, 141800, 143200, 144600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -7576,7 +9401,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -7584,10 +9409,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -7602,7 +9427,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 7900, 5300, 2650, 1300, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -7610,10 +9435,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -7628,14 +9453,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -7650,7 +9479,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -7658,10 +9487,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -7676,14 +9505,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -7697,7 +9530,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 58500,
+                amount = 77400,
             },
         },
     },
@@ -7711,7 +9544,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -7725,7 +9558,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -7739,7 +9572,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -7754,14 +9587,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -7776,14 +9613,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5800, 5900, 
+                    5300, 5350, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    151900, 153400, 154900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -7798,14 +9639,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -7820,14 +9665,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -7842,14 +9691,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    2900, 2950, 
+                    2650, 2700, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 58500,
+                amounts = {
+                    75900, 76700, 77400, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -7863,11 +9716,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -7882,14 +9739,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -7904,14 +9765,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -7926,14 +9791,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -7948,14 +9817,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13950, 14150, 14350, 14500, 14700, 
+                    12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    590000, 595800, 601600, 607600, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -7978,14 +9851,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1400, 1400, 1450, 
+                    1300, 1300, 1300, 1350, 
                 },
                 minLevel = 75,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -8000,14 +9877,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -8022,14 +9903,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -8044,14 +9929,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -8074,14 +9963,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -8104,14 +9997,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -8126,14 +10023,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    22350, 22650, 22950, 23250, 23550, 
+                    20400, 20650, 20900, 21200, 21450, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 936000,
+                amounts = {
+                    1180000, 1191600, 1203200, 1215200, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -8147,11 +10048,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -8162,7 +10067,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    20850, 21150, 21450, 21750, 22050, 22350, 12700, 8450, 4250, 2100, 
+                    19050, 19300, 19550, 19850, 20100, 20400, 11600, 7700, 3850, 1950, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -8170,10 +10075,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    1123600, 936000, 
+                    1123600, 1134800, 1146000, 1157200, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -8188,14 +10093,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -8210,14 +10119,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -8232,14 +10145,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -8254,14 +10171,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -8284,14 +10205,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -8306,7 +10231,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -8314,10 +10239,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -8332,7 +10257,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -8340,10 +10265,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -8358,7 +10283,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -8366,10 +10291,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -8384,7 +10309,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -8392,10 +10317,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -8418,7 +10343,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -8426,10 +10351,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -8444,14 +10369,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -8466,14 +10395,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5800, 5900, 
+                    5300, 5350, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    151900, 153400, 154900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -8496,14 +10429,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -8526,14 +10463,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -8548,14 +10489,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    14500, 14700, 
+                    13250, 13400, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    607600, 613600, 619600, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -8570,7 +10515,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -8578,10 +10523,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -8596,14 +10541,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -8618,14 +10567,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -8640,7 +10593,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -8648,10 +10601,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -8670,14 +10623,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -8692,7 +10649,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -8700,10 +10657,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -8718,7 +10675,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -8726,10 +10683,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -8744,7 +10701,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -8752,10 +10709,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -8770,7 +10727,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -8778,10 +10735,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -8796,7 +10753,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -8804,10 +10761,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -8822,14 +10779,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -8852,14 +10813,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    607600, 613600, 619600, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -8874,14 +10839,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -8896,14 +10865,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -8918,14 +10891,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -8940,14 +10917,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    14500, 14700, 
+                    13250, 13400, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    607600, 613600, 619600, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -8962,14 +10943,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5800, 5900, 
+                    5300, 5350, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    151900, 153400, 154900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -8996,14 +10981,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -9026,14 +11015,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -9048,14 +11041,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -9065,7 +11062,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -9080,7 +11077,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -9088,10 +11085,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -9106,14 +11103,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -9128,14 +11129,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -9150,14 +11155,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -9172,14 +11181,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1350, 1400, 1400, 1400, 1450, 825, 550, 
+                    1250, 1250, 1300, 1300, 1300, 750, 500, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    28900, 29200, 29500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -9193,7 +11206,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -9207,7 +11220,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 309800,
             },
         },
     },
@@ -9221,7 +11234,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -9236,14 +11249,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1400, 1400, 1450, 
+                    1300, 1300, 1300, 1350, 
                 },
                 minLevel = 75,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -9258,14 +11275,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -9280,14 +11301,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -9302,14 +11327,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -9324,14 +11353,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13950, 14150, 14350, 14500, 14700, 
+                    12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    590000, 595800, 601600, 607600, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -9346,14 +11379,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -9368,14 +11405,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -9390,14 +11431,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -9412,14 +11457,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -9434,14 +11483,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -9456,7 +11509,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -9464,10 +11517,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -9486,7 +11539,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5200, 5300, 5350, 5450, 5500, 5600, 5650, 5750, 5800, 5900, 
+                    4750, 4850, 4900, 4950, 5050, 5100, 5150, 5250, 5300, 5350, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -9494,10 +11547,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    140450, 117000, 
+                    140450, 141800, 143200, 144600, 146000, 147500, 148900, 150400, 151900, 153400, 154900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -9512,18 +11565,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 1400, 1450, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 1300, 1300, 1350, 
                 },
                 minLevel = 70,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 29200, 29500, 29700, 30000, 30300, 30600, 30900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -9538,7 +11591,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -9546,10 +11599,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 292100, 295000, 297900, 300800, 303800, 306800, 309800, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -9564,18 +11617,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 1400, 1450, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 1300, 1300, 1350, 
                 },
                 minLevel = 70,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 29200, 29500, 29700, 30000, 30300, 30600, 30900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -9590,7 +11643,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -9598,10 +11651,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 292100, 295000, 297900, 300800, 303800, 306800, 309800, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -9616,18 +11669,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 1400, 1450, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 1300, 1300, 1350, 
                 },
                 minLevel = 70,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 29200, 29500, 29700, 30000, 30300, 30600, 30900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -9642,7 +11695,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -9650,10 +11703,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 292100, 295000, 297900, 300800, 303800, 306800, 309800, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -9668,7 +11721,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -9676,10 +11729,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 292100, 295000, 297900, 300800, 303800, 306800, 309800, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -9694,7 +11747,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5200, 5300, 5350, 5450, 5500, 5600, 5650, 5750, 5800, 5900, 
+                    4750, 4850, 4900, 4950, 5050, 5100, 5150, 5250, 5300, 5350, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -9702,10 +11755,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    140450, 117000, 
+                    140450, 141800, 143200, 144600, 146000, 147500, 148900, 150400, 151900, 153400, 154900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -9720,7 +11773,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 14150, 14350, 14500, 14700, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -9728,10 +11781,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 584200, 590000, 595800, 601600, 607600, 613600, 619600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -9758,14 +11811,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1400, 1400, 1450, 
+                    1300, 1300, 1300, 1350, 
                 },
                 minLevel = 75,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -9780,14 +11837,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -9802,14 +11863,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -9824,14 +11889,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13950, 14150, 14350, 14500, 14700, 
+                    12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    590000, 595800, 601600, 607600, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -9846,14 +11915,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8400, 8500, 8600, 8700, 8850, 
+                    7650, 7750, 7850, 7950, 8050, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    221200, 223400, 225600, 227800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -9876,7 +11949,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 7900, 5300, 2650, 1300, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -9884,10 +11957,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -9906,7 +11979,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -9914,10 +11987,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -9932,14 +12005,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -9953,7 +12030,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -9968,14 +12045,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -9998,14 +12079,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -10020,14 +12105,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10042,14 +12131,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10064,14 +12157,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8150, 8250, 8400, 8500, 8600, 4900, 3250, 
+                    7450, 7550, 7650, 7750, 7850, 4450, 3000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    216900, 219000, 221200, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10086,14 +12183,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10108,14 +12209,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10130,14 +12235,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10152,14 +12261,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    2700, 2750, 2800, 2850, 2850, 1650, 1100, 
+                    2500, 2500, 2550, 2600, 2600, 1500, 1000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 58500,
+                amounts = {
+                    72300, 73000, 73700, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10182,14 +12295,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    2700, 2750, 2800, 2850, 2850, 1650, 1100, 
+                    2500, 2500, 2550, 2600, 2600, 1500, 1000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 58500,
+                amounts = {
+                    72300, 73000, 73700, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10204,18 +12321,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 1400, 1450, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 1300, 1300, 1350, 
                 },
                 minLevel = 70,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 29200, 29500, 29700, 30000, 30300, 30600, 30900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -10234,7 +12351,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10400, 8350, 6250, 4150, 2100, 1050, 
+                    9500, 9500, 7600, 5700, 3800, 1900, 950, 
                 },
                 minLevel = 70,
                 maxLevel = 76,
@@ -10256,14 +12373,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -10278,14 +12399,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10308,14 +12433,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10338,14 +12467,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10368,14 +12501,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10390,14 +12527,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10412,14 +12553,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10434,14 +12579,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10464,14 +12613,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10486,14 +12639,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10507,7 +12664,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -10522,14 +12679,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -10539,7 +12700,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -10554,14 +12715,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -10576,14 +12741,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -10597,11 +12766,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -10616,14 +12789,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -10638,14 +12815,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5800, 5900, 
+                    5300, 5350, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    151900, 153400, 154900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -10660,14 +12841,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -10682,14 +12867,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    14500, 14700, 
+                    13250, 13400, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    607600, 613600, 619600, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -10704,14 +12893,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -10726,14 +12919,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -10748,14 +12945,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    14500, 14700, 
+                    13250, 13400, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    607600, 613600, 619600, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -10765,7 +12966,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -10780,14 +12981,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1350, 1400, 1400, 1400, 1450, 825, 550, 
+                    1250, 1250, 1300, 1300, 1300, 750, 500, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    28900, 29200, 29500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10810,14 +13015,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10840,14 +13049,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10874,14 +13087,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10907,7 +13124,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -10922,14 +13139,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -10943,7 +13164,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -10957,7 +13178,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -10971,7 +13192,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -10994,14 +13215,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -11016,14 +13241,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    2700, 2750, 2800, 2850, 2850, 1650, 1100, 
+                    2500, 2500, 2550, 2600, 2600, 1500, 1000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 58500,
+                amounts = {
+                    72300, 73000, 73700, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -11034,7 +13263,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -11059,17 +13288,17 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
     [81475] = {
-        name = "Breaking the Phalanx: Royal Appointee",
+        name = "Breaking the Phalanx: Royal Appointees",
         contentTuningID = 2861,
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11079,7 +13308,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11089,7 +13318,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11099,7 +13328,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11109,7 +13338,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11119,7 +13348,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11131,7 +13360,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11141,7 +13370,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11151,7 +13380,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11161,7 +13390,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11171,7 +13400,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11181,7 +13410,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11191,7 +13420,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11201,7 +13430,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11211,7 +13440,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11221,7 +13450,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11235,7 +13464,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11245,7 +13474,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11255,7 +13484,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11265,11 +13494,19 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
     [81499] = {
+        name = "Information Control: Ascended Intrigue",
+        contentTuningID = 2861,
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+        },
     },
     [81500] = {
         name = "Wet Work: Step Into Their Parlor",
@@ -11277,7 +13514,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11287,7 +13524,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11297,7 +13534,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11307,7 +13544,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11317,7 +13554,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11329,7 +13566,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 175500,
+                amount = 232300,
             },
         },
     },
@@ -11339,7 +13576,12 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
+            },
+            {
+                type = "currency",
+                id = 3008,
+                amount = 10,
             },
         },
     },
@@ -11350,7 +13592,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -11363,7 +13605,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -11373,7 +13615,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -11388,7 +13630,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -11396,10 +13638,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 292100, 295000, 297900, 300800, 303800, 306800, 309800, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -11414,7 +13656,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -11422,10 +13664,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 292100, 295000, 297900, 300800, 303800, 306800, 309800, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -11440,7 +13682,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -11448,10 +13690,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 292100, 295000, 297900, 300800, 303800, 306800, 309800, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -11466,7 +13708,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -11474,10 +13716,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 292100, 295000, 297900, 300800, 303800, 306800, 309800, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -11488,14 +13730,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    22350, 22650, 22950, 23250, 23550, 
+                    20400, 20650, 20900, 21200, 21450, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 936000,
+                amounts = {
+                    1180000, 1191600, 1203200, 1215200, 1227200, 
+                },
+                minLevel = 75,
+                maxLevel = 79,
             },
         },
     },
@@ -11510,14 +13756,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1350, 1400, 1400, 1400, 1450, 825, 550, 
+                    1250, 1250, 1300, 1300, 1300, 750, 500, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    28900, 29200, 29500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -11528,7 +13778,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -11542,7 +13792,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -11556,7 +13806,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -11578,7 +13828,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -11600,14 +13850,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -11626,7 +13880,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -11634,10 +13888,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -11652,14 +13906,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8700, 8850, 
+                    7950, 8050, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    227800, 230100, 232300, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -11674,14 +13932,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -11696,14 +13958,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -11714,14 +13980,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    14500, 14700, 
+                    13250, 13400, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    607600, 613600, 619600, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -11736,14 +14006,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -11757,7 +14031,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -11768,7 +14042,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -11786,14 +14060,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -11808,14 +14086,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    14500, 14700, 
+                    13250, 13400, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    607600, 613600, 619600, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -11825,11 +14107,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -11844,14 +14130,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -11865,11 +14155,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -11884,14 +14178,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1350, 1400, 1400, 1400, 1450, 825, 550, 
+                    1250, 1250, 1300, 1300, 1300, 750, 500, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    28900, 29200, 29500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -11906,18 +14204,24 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13950, 14150, 14350, 14500, 14700, 
+                    12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    590000, 595800, 601600, 607600, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
     [81691] = {
+        name = "Special Assignment: Shadows Below",
+        contentTuningID = 2869,
     },
     [81692] = {
         name = "The Flame Within",
@@ -11929,7 +14233,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -11944,14 +14248,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    2700, 2750, 2800, 2850, 2850, 1650, 1100, 
+                    2500, 2500, 2550, 2600, 2600, 1500, 1000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 58500,
+                amounts = {
+                    72300, 73000, 73700, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -11962,7 +14270,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -11980,14 +14288,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -12002,14 +14314,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -12027,7 +14343,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -12093,14 +14409,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -12111,14 +14431,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -12129,7 +14453,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12143,7 +14467,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12157,7 +14481,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12171,7 +14495,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12185,7 +14509,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12199,7 +14523,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12213,7 +14537,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12227,7 +14551,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12241,7 +14565,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12255,7 +14579,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12273,7 +14597,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12290,7 +14614,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -12304,11 +14628,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -12322,7 +14650,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -12344,7 +14672,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -12366,7 +14694,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -12380,7 +14708,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -12394,7 +14722,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -12415,14 +14743,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -12436,7 +14768,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -12459,7 +14791,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1050, 775, 525, 260, 130, 
+                    1200, 1200, 950, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 76,
@@ -12472,7 +14804,7 @@ BtWQuestsDatabase:AddQuestsTable({
     },
     [81945] = {
         name = "To Arathi's End",
-        contentTuningID = 2462,
+        contentTuningID = 2861,
         source = {
             type = "npc",
             id = 211409,
@@ -12480,13 +14812,13 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
     [81950] = {
         name = "BOOM Treats!",
-        contentTuningID = 2462,
+        contentTuningID = 2861,
         source = {
             type = "npc",
             id = 221977,
@@ -12494,7 +14826,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -12509,14 +14841,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -12531,14 +14867,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -12553,20 +14893,24 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
     [81964] = {
         name = "The Blacksmith's Fate",
-        contentTuningID = 2462,
+        contentTuningID = 2861,
         source = {
             type = "npc",
             id = 221961,
@@ -12574,13 +14918,13 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
     [81965] = {
         name = "Invasion Disruption",
-        contentTuningID = 2462,
+        contentTuningID = 2861,
         source = {
             type = "npc",
             id = 221961,
@@ -12588,7 +14932,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 585000,
+                amount = 774500,
             },
         },
     },
@@ -12599,7 +14943,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12607,16 +14951,16 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
     [81969] = {
         name = "An End to the End",
-        contentTuningID = 2462,
+        contentTuningID = 2861,
         source = {
             type = "npc",
             id = 221980,
@@ -12624,7 +14968,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -12635,7 +14979,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    20850, 21150, 21450, 21750, 22050, 22350, 22650, 22950, 23250, 23550, 
+                    19050, 19300, 19550, 19850, 20100, 20400, 20650, 20900, 21200, 21450, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12643,10 +14987,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    1123600, 936000, 
+                    1123600, 1134800, 1146000, 1157200, 1168400, 1180000, 1191600, 1203200, 1215200, 1227200, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 79,
             },
         },
     },
@@ -12660,7 +15004,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -12675,14 +15019,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1350, 1400, 1400, 1400, 1450, 825, 550, 
+                    1250, 1250, 1300, 1300, 1300, 750, 500, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    28900, 29200, 29500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -12693,7 +15041,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12707,7 +15055,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12721,7 +15069,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12737,14 +15085,26 @@ BtWQuestsDatabase:AddQuestsTable({
         },
         rewards = {
             {
+                type = "experience",
+                amounts = {
+                    10200, 10350, 10450, 10600, 10750, 
+                },
+                minLevel = 75,
+                maxLevel = 79,
+            },
+            {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 306800, 309800, 
+                },
+                minLevel = 75,
+                maxLevel = 80,
             },
         },
     },
     [82125] = {
         name = "A Spy Like Us",
-        contentTuningID = 2762,
+        contentTuningID = 2942,
         source = {
             type = "npc",
             id = 208782,
@@ -12752,17 +15112,25 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amounts = {
+                    1300, 1300, 1300, 1350, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 30600, 30900, 
+                },
+                minLevel = 75,
+                maxLevel = 80,
             },
         },
     },
     [82126] = {
         name = "Defense of the People",
-        contentTuningID = 2762,
+        contentTuningID = 2942,
         source = {
             type = "npc",
             id = 222790,
@@ -12771,20 +15139,24 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
-                minLevel = 78,
+                minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 306800, 309800, 
+                },
+                minLevel = 75,
+                maxLevel = 80,
             },
         },
     },
     [82127] = {
         name = "Make Them Prey",
-        contentTuningID = 2762,
+        contentTuningID = 2942,
         source = {
             type = "npc",
             id = 222790,
@@ -12793,20 +15165,24 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
-                minLevel = 78,
+                minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 306800, 309800, 
+                },
+                minLevel = 75,
+                maxLevel = 80,
             },
         },
     },
     [82130] = {
         name = "A Shot at the Top",
-        contentTuningID = 2762,
+        contentTuningID = 2942,
         source = {
             type = "npc",
             id = 222790,
@@ -12815,14 +15191,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    14500, 14700, 
+                    12750, 12900, 13100, 13250, 13400, 
                 },
-                minLevel = 78,
+                minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    590000, 595800, 601600, 607600, 613600, 619600, 
+                },
+                minLevel = 75,
+                maxLevel = 80,
             },
         },
     },
@@ -12835,7 +15215,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12844,7 +15224,7 @@ BtWQuestsDatabase:AddQuestsTable({
     },
     [82141] = {
         name = "To Kill a Queen",
-        contentTuningID = 2762,
+        contentTuningID = 2942,
         source = {
             type = "npc",
             id = 208782,
@@ -12853,14 +15233,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    23250, 23550, 
+                    20400, 20650, 20900, 21200, 21450, 
                 },
-                minLevel = 78,
+                minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 14040000,
+                amounts = {
+                    17700000, 17874000, 18048000, 18228000, 18408000, 18588000, 
+                },
+                minLevel = 75,
+                maxLevel = 80,
             },
         },
     },
@@ -12875,14 +15259,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5800, 5900, 
+                    5300, 5350, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    151900, 153400, 154900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -12905,14 +15293,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -12930,7 +15322,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -12949,14 +15341,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -12967,7 +15363,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12981,7 +15377,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13003,14 +15399,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -13025,14 +15425,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -13047,14 +15451,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -13069,14 +15477,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8400, 8500, 8600, 8700, 8850, 
+                    7650, 7750, 7850, 7950, 8050, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    221200, 223400, 225600, 227800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -13091,14 +15503,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -13113,14 +15529,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -13135,14 +15555,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -13157,14 +15581,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -13179,14 +15607,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -13201,14 +15633,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -13227,14 +15663,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11150, 8950, 6700, 4450, 
+                    9900, 10050, 10200, 10200, 8150, 6100, 4100, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -13249,7 +15689,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13270,7 +15710,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -13281,7 +15721,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13299,7 +15739,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13313,7 +15753,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13327,7 +15767,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13335,10 +15775,12 @@ BtWQuestsDatabase:AddQuestsTable({
         },
     },
     [82266] = {
+        name = "Tower Washing Simulator",
+        contentTuningID = 2861,
     },
     [82268] = {
         name = "The Sorrowful Journey Home",
-        contentTuningID = 2462,
+        contentTuningID = 2861,
         source = {
             type = "npc",
             id = 223467,
@@ -13346,13 +15788,13 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
     [82284] = {
         name = "Remembrance for the Fallen",
-        contentTuningID = 2462,
+        contentTuningID = 2861,
         source = {
             type = "npc",
             id = 220406,
@@ -13360,7 +15802,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -13371,7 +15813,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13385,7 +15827,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13399,7 +15841,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13413,7 +15855,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13427,7 +15869,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13441,7 +15883,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13455,7 +15897,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13469,7 +15911,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13483,7 +15925,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13499,8 +15941,8 @@ BtWQuestsDatabase:AddQuestsTable({
         contentTuningID = 2861,
     },
     [82333] = {
-        name = "Weathered Quests",
-        contentTuningID = 2832,
+        name = "Weathered Crests",
+        contentTuningID = 2892,
     },
     [82334] = {
         name = "DO NOT USE",
@@ -13521,14 +15963,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -13543,14 +15989,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -13565,14 +16015,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -13622,7 +16076,7 @@ BtWQuestsDatabase:AddQuestsTable({
     },
     [82390] = {
         name = "Weathered Crests",
-        contentTuningID = 2832,
+        contentTuningID = 2892,
     },
     [82414] = {
         name = "Special Assignment: A Pound of Cure",
@@ -13634,7 +16088,7 @@ BtWQuestsDatabase:AddQuestsTable({
     },
     [82418] = {
         name = "A Cache of Crests and Power",
-        contentTuningID = 2832,
+        contentTuningID = 2892,
     },
     [82419] = {
         name = "DO NOT USE",
@@ -13651,7 +16105,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13659,10 +16113,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -13677,7 +16131,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13693,7 +16147,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13707,7 +16161,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13725,7 +16179,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13733,10 +16187,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -13751,7 +16205,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13759,10 +16213,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -13777,7 +16231,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13785,10 +16239,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -13811,14 +16265,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -13833,14 +16291,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -13863,14 +16325,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8400, 8500, 8600, 8700, 8850, 
+                    7650, 7750, 7850, 7950, 8050, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    221200, 223400, 225600, 227800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -13885,14 +16351,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13950, 14150, 14350, 14500, 14700, 
+                    12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    590000, 595800, 601600, 607600, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -13905,7 +16375,7 @@ BtWQuestsDatabase:AddQuestsTable({
         contentTuningID = 2869,
     },
     [82519] = {
-        name = "You Go Take Candle 181",
+        name = "You Go Take Candle",
         contentTuningID = 2869,
     },
     [82521] = {
@@ -13953,7 +16423,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13967,7 +16437,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13981,7 +16451,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13989,13 +16459,13 @@ BtWQuestsDatabase:AddQuestsTable({
         },
     },
     [82585] = {
-        name = "With Great Pyrew?",
+        name = "With Great Pyre",
         contentTuningID = 2838,
         rewards = {
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -14013,7 +16483,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    20850, 21150, 21450, 21750, 22050, 22350, 22650, 22950, 23250, 23550, 
+                    19050, 19300, 19550, 19850, 20100, 20400, 20650, 20900, 21200, 21450, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -14021,10 +16491,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    1123600, 936000, 
+                    1123600, 1134800, 1146000, 1157200, 1168400, 1180000, 1191600, 1203200, 1215200, 1227200, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 79,
             },
         },
     },
@@ -14041,14 +16511,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1400, 1400, 1450, 
+                    1300, 1300, 1300, 1350, 
                 },
                 minLevel = 75,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -14087,7 +16561,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    2600, 2650, 2700, 2700, 2750, 2800, 1600, 1050, 525, 260, 
+                    2400, 2400, 2450, 2500, 2500, 2550, 1450, 975, 480, 240, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -14095,10 +16569,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    70225, 58500, 
+                    70225, 70900, 71600, 72300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -14113,7 +16587,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -14121,10 +16595,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -14139,7 +16613,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -14147,10 +16621,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -14164,7 +16638,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -14178,7 +16652,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
             {
                 type = "currency",
@@ -14197,7 +16671,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
             {
                 type = "currency",
@@ -14216,7 +16690,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
             {
                 type = "currency",
@@ -14235,7 +16709,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -14249,7 +16723,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
             {
                 type = "currency",
@@ -14268,7 +16742,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -14282,7 +16756,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
             {
                 type = "currency",
@@ -14301,7 +16775,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
             {
                 type = "currency",
@@ -14320,7 +16794,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
             {
                 type = "currency",
@@ -14339,7 +16813,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
             {
                 type = "currency",
@@ -14358,7 +16832,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
             {
                 type = "currency",
@@ -14377,7 +16851,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -14387,7 +16861,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -14398,7 +16872,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    15650, 15850, 16100, 16300, 16550, 16750, 17000, 17200, 17450, 17650, 
+                    14300, 14500, 14700, 14900, 15100, 15300, 15500, 15700, 15900, 16100, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -14406,10 +16880,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 584200, 590000, 595800, 601600, 607600, 613600, 619600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -14424,7 +16898,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -14432,10 +16906,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -14450,14 +16924,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -14472,14 +16950,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -14494,24 +16976,31 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 1400, 1450, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 1300, 1300, 1350, 
                 },
                 minLevel = 70,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 29200, 29500, 29700, 30000, 30300, 30600, 30900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
     [82778] = {
         name = "Hallowfall Fishing Derby",
         contentTuningID = 2862,
+        rewards = {
+            {
+                type = "currency",
+                id = 3055,
+                amount = 10,
+            },
+        },
     },
     [82781] = {
         name = "Attention-Getter",
@@ -14524,35 +17013,71 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 1400, 1450, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 1300, 1300, 1350, 
                 },
                 minLevel = 70,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 29200, 29500, 29700, 30000, 30300, 30600, 30900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
     [82782] = {
         name = "Authenticity in Dress",
-        contentTuningID = 0,
+        contentTuningID = 2832,
         source = {
             type = "npc",
             id = 215745,
         },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    1200, 1200, 1250, 1250, 1250, 1300, 1300, 1300, 1350, 
+                },
+                minLevel = 70,
+                maxLevel = 78,
+            },
+            {
+                type = "money",
+                amounts = {
+                    28090, 28300, 28600, 28900, 29200, 29500, 29700, 30000, 30300, 30600, 30900, 
+                },
+                minLevel = 70,
+                maxLevel = 80,
+            },
+        },
     },
     [82784] = {
         name = "Resonant Performance",
-        contentTuningID = 0,
+        contentTuningID = 2832,
         source = {
             type = "npc",
             id = 215744,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    1200, 1200, 1250, 1250, 1250, 1300, 1300, 1300, 1350, 
+                },
+                minLevel = 70,
+                maxLevel = 78,
+            },
+            {
+                type = "money",
+                amounts = {
+                    28090, 28300, 28600, 28900, 29200, 29500, 29700, 30000, 30300, 30600, 30900, 
+                },
+                minLevel = 70,
+                maxLevel = 80,
+            },
         },
     },
     [82785] = {
@@ -14566,14 +17091,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -14588,14 +17117,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -14614,7 +17147,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -14622,10 +17155,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -14640,7 +17173,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5200, 5300, 5350, 5450, 5500, 5600, 3150, 2100, 1050, 525, 
+                    4750, 4850, 4900, 4950, 5050, 5100, 2900, 1950, 975, 480, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -14648,10 +17181,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    140450, 117000, 
+                    140450, 141800, 143200, 144600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -14674,7 +17207,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5200, 5300, 5350, 5450, 5500, 5600, 3150, 2100, 1050, 525, 
+                    4750, 4850, 4900, 4950, 5050, 5100, 2900, 1950, 975, 480, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -14682,10 +17215,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    140450, 117000, 
+                    140450, 141800, 143200, 144600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -14700,7 +17233,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -14708,10 +17241,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -14726,7 +17259,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -14734,10 +17267,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -14760,7 +17293,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -14768,10 +17301,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -14794,7 +17327,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 7900, 5300, 2650, 1300, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -14802,10 +17335,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -14819,7 +17352,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -14833,7 +17366,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -14848,14 +17381,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -14870,14 +17407,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13950, 14150, 14350, 14500, 14700, 
+                    12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    590000, 595800, 601600, 607600, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -14892,14 +17433,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8400, 8500, 8600, 8700, 8850, 
+                    7650, 7750, 7850, 7950, 8050, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    221200, 223400, 225600, 227800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -14914,14 +17459,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -14936,14 +17485,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -14958,14 +17511,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -14984,14 +17541,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8400, 8500, 8600, 8700, 8850, 
+                    7650, 7750, 7850, 7950, 8050, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    221200, 223400, 225600, 227800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -15006,7 +17567,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -15014,10 +17575,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -15036,14 +17597,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -15058,14 +17623,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    2700, 2750, 2800, 2850, 2850, 1650, 1100, 
+                    2500, 2500, 2550, 2600, 2600, 1500, 1000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 58500,
+                amounts = {
+                    72300, 73000, 73700, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -15084,14 +17653,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -15114,14 +17687,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -15132,6 +17709,20 @@ BtWQuestsDatabase:AddQuestsTable({
     [83028] = {
         name = "Thieving Snufflers",
         contentTuningID = 2869,
+    },
+    [83031] = {
+        name = "The Hardest Part",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 225355,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+        },
     },
     [83048] = {
         name = "Wayward Walkers",
@@ -15156,14 +17747,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    14500, 14700, 
+                    13250, 13400, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    607600, 613600, 619600, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -15186,7 +17781,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -15194,10 +17789,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -15212,7 +17807,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -15220,10 +17815,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -15238,7 +17833,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 800, 525, 260, 130, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 725, 480, 240, 120, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -15246,10 +17841,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -15264,7 +17859,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 6350, 4250, 2100, 1050, 
+                    9500, 9650, 9800, 9900, 10050, 10200, 5800, 3850, 1950, 975, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -15272,10 +17867,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    280900, 283700, 286500, 289300, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -15290,7 +17885,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 7900, 5300, 2650, 1300, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -15298,10 +17893,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -15315,7 +17910,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15329,7 +17924,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -15343,7 +17938,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -15358,14 +17953,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -15379,7 +17978,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15389,7 +17988,7 @@ BtWQuestsDatabase:AddQuestsTable({
     },
     [83108] = {
         name = "Daily Diagnostics",
-        contentTuningID = 2798,
+        contentTuningID = 2975,
         source = {
             type = "npc",
             id = 225533,
@@ -15398,14 +17997,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    21750, 22050, 22350, 22650, 22950, 13050, 8700, 
+                    19850, 20100, 20400, 20650, 20900, 21200, 21450, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 936000,
+                amounts = {
+                    1157200, 1168400, 1180000, 1191600, 1203200, 1215200, 1227200, 1239200, 
+                },
+                minLevel = 73,
+                maxLevel = 80,
             },
         },
     },
@@ -15419,7 +18022,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15433,7 +18036,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15447,7 +18050,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -15461,7 +18064,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15475,7 +18078,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -15489,7 +18092,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15503,7 +18106,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15517,7 +18120,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -15531,7 +18134,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15545,7 +18148,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15559,7 +18162,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -15573,7 +18176,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -15587,7 +18190,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -15601,7 +18204,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15615,7 +18218,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -15629,7 +18232,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15643,7 +18246,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -15657,7 +18260,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -15671,7 +18274,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -15685,7 +18288,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15699,7 +18302,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15713,7 +18316,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15727,7 +18330,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15741,7 +18344,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15755,7 +18358,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 175500,
+                amount = 232300,
             },
         },
     },
@@ -15769,7 +18372,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15783,7 +18386,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15797,7 +18400,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -15811,7 +18414,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15825,7 +18428,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15839,7 +18442,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -15853,7 +18456,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15875,7 +18478,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15890,14 +18493,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -15912,14 +18519,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -15933,7 +18544,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -15948,14 +18559,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -15970,14 +18585,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13600, 13750, 13950, 14150, 14350, 8150, 5450, 
+                    12400, 12550, 12750, 12900, 13100, 7450, 4950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 468000,
+                amounts = {
+                    578600, 584200, 590000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -15992,14 +18611,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -16014,14 +18637,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -16035,7 +18662,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16050,14 +18677,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5450, 5500, 5600, 5650, 5750, 3250, 2150, 
+                    4950, 5050, 5100, 5150, 5250, 3000, 2000, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    144600, 146000, 147500, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -16071,7 +18702,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16085,7 +18716,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16099,7 +18730,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -16113,7 +18744,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16127,7 +18758,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16141,7 +18772,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -16155,7 +18786,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16169,7 +18800,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16183,7 +18814,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16197,7 +18828,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -16211,7 +18842,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16225,7 +18856,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16240,7 +18871,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 14150, 14350, 14500, 14700, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 12900, 13100, 13250, 13400, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -16248,10 +18879,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 584200, 590000, 595800, 601600, 607600, 613600, 619600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -16266,14 +18897,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -16287,7 +18922,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -16301,7 +18936,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16315,7 +18950,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16329,7 +18964,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16343,7 +18978,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16357,7 +18992,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16371,7 +19006,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16385,7 +19020,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -16399,7 +19034,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16413,7 +19048,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16427,7 +19062,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16441,7 +19076,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16455,7 +19090,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16469,7 +19104,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -16492,14 +19127,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -16513,7 +19152,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -16527,7 +19166,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16541,7 +19180,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16552,14 +19191,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -16574,14 +19217,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11150, 11300, 11450, 11600, 11750, 
+                    10200, 10350, 10450, 10600, 10750, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    295000, 297900, 300800, 303800, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -16595,7 +19242,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -16605,11 +19252,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -16623,7 +19274,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -16633,11 +19284,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -16651,7 +19306,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 936000,
+                amount = 1239200,
             },
         },
     },
@@ -16665,11 +19320,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -16683,11 +19342,15 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "experience",
-                amount = 1450,
+                amount = 1350,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    30300, 30600, 30900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -16702,14 +19365,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -16724,14 +19391,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10850, 11000, 11150, 11300, 11450, 6500, 4350, 
+                    9900, 10050, 10200, 10350, 10450, 5950, 3950, 
                 },
                 minLevel = 73,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    289300, 292100, 295000, 
+                },
+                minLevel = 73,
+                maxLevel = 75,
             },
         },
     },
@@ -16741,7 +19412,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -16756,7 +19427,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 7900, 5300, 2650, 1300, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -16764,10 +19435,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -16782,7 +19453,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 7900, 5300, 2650, 1300, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -16790,10 +19461,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -16808,7 +19479,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 7900, 5300, 2650, 1300, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -16816,10 +19487,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -16834,7 +19505,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 7900, 5300, 2650, 1300, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -16842,10 +19513,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -16860,7 +19531,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    13000, 13200, 13400, 13600, 13750, 13950, 7900, 5300, 2650, 1300, 
+                    11900, 12050, 12250, 12400, 12550, 12750, 7250, 4850, 2400, 1200, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -16868,10 +19539,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    561800, 468000, 
+                    561800, 567400, 573000, 578600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 73,
             },
         },
     },
@@ -16885,7 +19556,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16899,7 +19570,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16913,7 +19584,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16927,7 +19598,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16941,7 +19612,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -16955,7 +19626,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -16969,7 +19640,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -16983,7 +19654,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -16997,7 +19668,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -17011,7 +19682,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -17025,7 +19696,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 175500,
+                amount = 232300,
             },
         },
     },
@@ -17039,7 +19710,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -17049,11 +19720,49 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
+            },
+        },
+    },
+    [83499] = {
+        name = "Arcane Wasteland",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 225355,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+            {
+                type = "currency",
+                id = 3008,
+                amount = 10,
             },
         },
     },
     [83501] = {
+    },
+    [83502] = {
+        name = "Lessons in Defensive Magic",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 225355,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+            {
+                type = "currency",
+                id = 3008,
+                amount = 10,
+            },
+        },
     },
     [83503] = {
         name = "Return to Dornogal",
@@ -17065,7 +19774,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -17079,7 +19788,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -17093,7 +19802,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -17107,7 +19816,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -17121,7 +19830,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -17135,7 +19844,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -17176,7 +19885,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -17190,11 +19899,13 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
     [83536] = {
+        name = "Undertide Undertaker",
+        contentTuningID = 2861,
     },
     [83537] = {
         name = "Geothermal Gem Treatment",
@@ -17203,6 +19914,25 @@ BtWQuestsDatabase:AddQuestsTable({
     [83538] = {
         name = "Excavation Liberation",
         contentTuningID = 2869,
+    },
+    [83539] = {
+        name = "Feeling Blue",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 226895,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+            {
+                type = "currency",
+                id = 3008,
+                amount = 10,
+            },
+        },
     },
     [83540] = {
         name = "Work the Line",
@@ -17214,7 +19944,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -17228,7 +19958,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -17242,7 +19972,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -17253,18 +19983,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 1400, 1450, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 1300, 1300, 1350, 
                 },
                 minLevel = 70,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 29200, 29500, 29700, 30000, 30300, 30600, 30900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -17278,7 +20008,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -17289,18 +20019,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 1400, 1450, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 1300, 1300, 1350, 
                 },
                 minLevel = 70,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 29200, 29500, 29700, 30000, 30300, 30600, 30900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -17311,18 +20041,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 1400, 1450, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 1300, 1300, 1350, 
                 },
                 minLevel = 70,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 29200, 29500, 29700, 30000, 30300, 30600, 30900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -17333,18 +20063,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 1400, 1450, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 1300, 1300, 1350, 
                 },
                 minLevel = 70,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 29200, 29500, 29700, 30000, 30300, 30600, 30900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -17355,18 +20085,79 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 1400, 1450, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 1300, 1300, 1350, 
                 },
                 minLevel = 70,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 29200, 29500, 29700, 30000, 30300, 30600, 30900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
+            },
+        },
+    },
+    [83553] = {
+        name = "Magic-stealing Kobolds",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 227067,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 30900,
+            },
+        },
+    },
+    [83554] = {
+        name = "Trinkets, Curios and Other Powerful Objects",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 227063,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+            {
+                type = "currency",
+                id = 3008,
+                amount = 10,
+            },
+        },
+    },
+    [83555] = {
+        name = "Mysterious Necklace",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 228520,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 30900,
+            },
+        },
+    },
+    [83556] = {
+        name = "Maybe You Shouldn't Touch That",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 227375,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 30900,
             },
         },
     },
@@ -17380,7 +20171,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -17394,7 +20185,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -17416,7 +20207,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -17438,7 +20229,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -17451,8 +20242,20 @@ BtWQuestsDatabase:AddQuestsTable({
         },
         rewards = {
             {
+                type = "experience",
+                amounts = {
+                    1300, 1300, 1300, 1350, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
+            },
+            {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 30600, 30900, 
+                },
+                minLevel = 75,
+                maxLevel = 80,
             },
         },
     },
@@ -17467,14 +20270,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8700, 8850, 
+                    7950, 8050, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    227800, 230100, 232300, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -17490,7 +20297,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -17505,14 +20312,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    8700, 8850, 
+                    7950, 8050, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 175500,
+                amounts = {
+                    227800, 230100, 232300, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -17527,14 +20338,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -17549,14 +20364,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    11600, 11750, 
+                    10600, 10750, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 234000,
+                amounts = {
+                    303800, 306800, 309800, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
             },
         },
     },
@@ -17571,14 +20390,47 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    5800, 5900, 
+                    5300, 5350, 
                 },
                 minLevel = 78,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 117000,
+                amounts = {
+                    151900, 153400, 154900, 
+                },
+                minLevel = 78,
+                maxLevel = 80,
+            },
+        },
+    },
+    [83641] = {
+        name = "Trapped Between Life and Death",
+        contentTuningID = 2829,
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+            {
+                type = "currency",
+                id = 3008,
+                amount = 15,
+            },
+        },
+    },
+    [83643] = {
+        name = "Somehow We Survived",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 227392,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 30900,
             },
         },
     },
@@ -17600,7 +20452,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -17614,7 +20466,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -17628,7 +20480,40 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
+            },
+        },
+    },
+    [83723] = {
+        name = "A Helping Hand",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 212829,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+            {
+                type = "currency",
+                id = 3008,
+                amount = 10,
+            },
+        },
+    },
+    [83743] = {
+        name = "Arcane Cold War",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 227409,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 30900,
             },
         },
     },
@@ -17643,7 +20528,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    15650, 15850, 16100, 16300, 16550, 16750, 17000, 17200, 17450, 17650, 
+                    14300, 14500, 14700, 14900, 15100, 15300, 15500, 15700, 15900, 16100, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -17651,10 +20536,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    842700, 702000, 
+                    842700, 851100, 859500, 867900, 876300, 885000, 893700, 902400, 911400, 920400, 929400, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -17665,18 +20550,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1300, 1300, 1350, 1350, 1400, 1400, 1400, 1450, 
+                    1200, 1200, 1250, 1250, 1250, 1300, 1300, 1300, 1350, 
                 },
                 minLevel = 70,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
                 amounts = {
-                    28090, 23400, 
+                    28090, 28300, 28600, 28900, 29200, 29500, 29700, 30000, 30300, 30600, 30900, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -17691,7 +20576,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    15650, 15850, 16100, 16300, 16550, 16750, 17000, 17200, 17450, 17650, 
+                    14300, 14500, 14700, 14900, 15100, 15300, 15500, 15700, 15900, 16100, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -17699,10 +20584,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    842700, 702000, 
+                    842700, 851100, 859500, 867900, 876300, 885000, 893700, 902400, 911400, 920400, 929400, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -17717,7 +20602,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    15650, 15850, 16100, 16300, 16550, 16750, 17000, 17200, 17450, 17650, 
+                    14300, 14500, 14700, 14900, 15100, 15300, 15500, 15700, 15900, 16100, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -17725,10 +20610,67 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    842700, 702000, 
+                    842700, 851100, 859500, 867900, 876300, 885000, 893700, 902400, 911400, 920400, 929400, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
+            },
+        },
+    },
+    [83762] = {
+        name = "Critical Mass",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 227529,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+            {
+                type = "currency",
+                id = 3008,
+                amount = 15,
+            },
+        },
+    },
+    [83763] = {
+        name = "Preserve the Legacy",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 229763,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+            {
+                type = "currency",
+                id = 3008,
+                amount = 10,
+            },
+        },
+    },
+    [83764] = {
+        name = "Too Powerful, Too Dangerous",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 229763,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+            {
+                type = "currency",
+                id = 3008,
+                amount = 10,
             },
         },
     },
@@ -17743,7 +20685,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    15650, 15850, 16100, 16300, 16550, 16750, 17000, 17200, 17450, 17650, 
+                    14300, 14500, 14700, 14900, 15100, 15300, 15500, 15700, 15900, 16100, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -17751,10 +20693,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    842700, 702000, 
+                    842700, 851100, 859500, 867900, 876300, 885000, 893700, 902400, 911400, 920400, 929400, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -17769,7 +20711,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    62550, 63450, 64350, 65250, 66150, 67050, 67950, 68850, 69750, 70650, 
+                    57150, 57900, 58650, 59550, 60300, 61200, 61950, 62700, 63600, 64350, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -17777,10 +20719,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    3370800, 2808000, 
+                    3370800, 3404400, 3438000, 3471600, 3505200, 3540000, 3574800, 3609600, 3645600, 3681600, 3717600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -17795,7 +20737,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    62550, 63450, 64350, 65250, 66150, 67050, 67950, 68850, 69750, 70650, 
+                    57150, 57900, 58650, 59550, 60300, 61200, 61950, 62700, 63600, 64350, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -17803,16 +20745,16 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    3370800, 2808000, 
+                    3370800, 3404400, 3438000, 3471600, 3505200, 3540000, 3574800, 3609600, 3645600, 3681600, 3717600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
     [83769] = {
         name = "Delver's Call: Mycomancer Cavern",
-        contentTuningID = 2677,
+        contentTuningID = 2882,
         source = {
             type = "object",
             id = 455690,
@@ -17821,7 +20763,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    15650, 15850, 16100, 16300, 16550, 16750, 17000, 17200, 17450, 17650, 
+                    57150, 57900, 58650, 59550, 60300, 61200, 61950, 62700, 63600, 64350, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -17829,10 +20771,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    842700, 702000, 
+                    3370800, 3404400, 3438000, 3471600, 3505200, 3540000, 3574800, 3609600, 3645600, 3681600, 3717600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -17847,7 +20789,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    62550, 63450, 64350, 65250, 66150, 67050, 67950, 68850, 69750, 70650, 
+                    57150, 57900, 58650, 59550, 60300, 61200, 61950, 62700, 63600, 64350, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -17855,10 +20797,10 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    3370800, 2808000, 
+                    3370800, 3404400, 3438000, 3471600, 3505200, 3540000, 3574800, 3609600, 3645600, 3681600, 3717600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
             },
         },
     },
@@ -17873,7 +20815,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    62550, 63450, 64350, 65250, 66150, 67050, 67950, 68850, 69750, 70650, 
+                    57150, 57900, 58650, 59550, 60300, 61200, 61950, 62700, 63600, 64350, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -17881,10 +20823,38 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    3370800, 2808000, 
+                    3370800, 3404400, 3438000, 3471600, 3505200, 3540000, 3574800, 3609600, 3645600, 3681600, 3717600, 
                 },
                 minLevel = 70,
-                maxLevel = 71,
+                maxLevel = 80,
+            },
+        },
+    },
+    [83773] = {
+        name = "Farewell, City of Magic",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 227436,
+            locations = {
+                [2248] = {
+                    {
+                        x = 0.314453,
+                        y = 0.509191,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+            {
+                type = "reputation",
+                id = 1090,
+                amount = 1200,
+                restrictions = 924,
             },
         },
     },
@@ -17902,7 +20872,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -17924,7 +20894,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -17938,7 +20908,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -17952,7 +20922,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -17966,7 +20936,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -17980,7 +20950,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -17990,7 +20960,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18004,7 +20974,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -18018,7 +20988,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18032,7 +21002,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18046,7 +21016,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -18060,7 +21030,21 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
+            },
+        },
+    },
+    [84223] = {
+        name = "Survivor's Guilt",
+        contentTuningID = 2829,
+        source = {
+            type = "npc",
+            id = 227436,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 30900,
             },
         },
     },
@@ -18082,7 +21066,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -18096,7 +21080,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -18110,7 +21094,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -18124,7 +21108,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18138,7 +21122,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18152,7 +21136,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18174,7 +21158,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18196,7 +21180,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18218,7 +21202,25 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
+            },
+        },
+    },
+    [84371] = {
+        name = "Lorewalking: The Blade and the High Priest",
+        contentTuningID = 3011,
+        source = {
+            type = "npc",
+            id = 230246,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 0, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
             },
         },
     },
@@ -18232,7 +21234,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18246,7 +21248,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18260,7 +21262,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18274,7 +21276,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18288,7 +21290,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -18303,14 +21305,18 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    1400, 1400, 1450, 
+                    1300, 1300, 1300, 1350, 
                 },
                 minLevel = 75,
-                maxLevel = 77,
+                maxLevel = 78,
             },
             {
                 type = "money",
-                amount = 23400,
+                amounts = {
+                    29500, 29700, 30000, 30300, 
+                },
+                minLevel = 75,
+                maxLevel = 78,
             },
         },
     },
@@ -18336,7 +21342,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18352,7 +21358,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18366,7 +21372,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18380,7 +21386,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18390,7 +21396,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18404,7 +21410,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18418,7 +21424,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18432,7 +21438,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18446,7 +21452,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -18460,7 +21466,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -18474,7 +21480,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18488,7 +21494,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18502,7 +21508,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18516,7 +21522,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18530,7 +21536,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18544,7 +21550,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18558,7 +21564,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18572,7 +21578,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18586,7 +21592,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18600,7 +21606,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18614,7 +21620,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18628,7 +21634,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18642,7 +21648,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18656,7 +21662,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -18670,7 +21676,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18684,7 +21690,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18698,7 +21704,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18712,7 +21718,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18726,7 +21732,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18740,7 +21746,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -18754,7 +21760,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18768,7 +21774,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -18782,7 +21788,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18796,7 +21802,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18810,7 +21816,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18824,7 +21830,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18838,7 +21844,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 702000,
+                amount = 929400,
             },
         },
     },
@@ -18852,7 +21858,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -18866,7 +21872,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -18880,7 +21886,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18894,7 +21900,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18908,7 +21914,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18922,7 +21928,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -18936,7 +21942,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -18950,7 +21956,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -18964,7 +21970,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -18978,7 +21984,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 175500,
+                amount = 232300,
             },
         },
     },
@@ -18992,7 +21998,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -19006,7 +22012,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -19020,7 +22026,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -19034,7 +22040,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -19048,7 +22054,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -19062,7 +22068,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -19084,7 +22090,79 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
+            },
+        },
+    },
+    [84779] = {
+        name = "Lorewalking: The Blade's Gambit",
+        contentTuningID = 3011,
+        source = {
+            type = "npc",
+            id = 230246,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 0, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
+            },
+        },
+    },
+    [84782] = {
+        name = "Lorewalking: The Blade's Past",
+        contentTuningID = 3011,
+        source = {
+            type = "npc",
+            id = 230246,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 0, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
+            },
+        },
+    },
+    [84784] = {
+        name = "Lorewalking: The Blade's Nemeses",
+        contentTuningID = 3011,
+        source = {
+            type = "npc",
+            id = 230321,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 0, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
+            },
+        },
+    },
+    [84789] = {
+        name = "Lorewalking: The Blade's Downfall",
+        contentTuningID = 3011,
+        source = {
+            type = "npc",
+            id = 230321,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 0, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
             },
         },
     },
@@ -19106,7 +22184,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -19120,7 +22198,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19134,7 +22212,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -19148,7 +22226,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -19162,7 +22240,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19176,7 +22254,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19190,7 +22268,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19204,7 +22282,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -19218,7 +22296,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19232,7 +22310,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19246,7 +22324,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19260,7 +22338,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 58500,
+                amount = 77400,
             },
         },
     },
@@ -19274,7 +22352,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19288,7 +22366,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19302,7 +22380,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19316,7 +22394,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19330,7 +22408,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19344,7 +22422,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19358,7 +22436,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19372,7 +22450,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19386,7 +22464,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19400,7 +22478,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19414,7 +22492,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19428,7 +22506,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -19442,7 +22520,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19456,7 +22534,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 175500,
+                amount = 232300,
             },
         },
     },
@@ -19470,7 +22548,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -19484,7 +22562,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19498,7 +22576,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19512,7 +22590,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19526,7 +22604,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -19540,7 +22618,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19554,7 +22632,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19568,7 +22646,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19582,7 +22660,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19596,7 +22674,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19610,7 +22688,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19624,7 +22702,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19638,7 +22716,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19652,7 +22730,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -19666,7 +22744,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19680,7 +22758,93 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
+            },
+        },
+    },
+    [84935] = {
+        name = "Excising the Incursion",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231030,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+        },
+    },
+    [84936] = {
+        name = "To Cleanse Shadow's Stain",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231030,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+        },
+    },
+    [84937] = {
+        name = "Distant Echoes",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231030,
+            locations = {
+                [1543] = {
+                    {
+                        x = 0.269987,
+                        y = 0.318232,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+        },
+    },
+    [84938] = {
+        name = "Chaos Control",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231033,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+        },
+    },
+    [84939] = {
+        name = "Mad Space",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231030,
+            locations = {
+                [1543] = {
+                    {
+                        x = 0.23639,
+                        y = 0.214977,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
             },
         },
     },
@@ -19694,7 +22858,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -19708,7 +22872,145 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
+            },
+        },
+    },
+    [84942] = {
+        name = "The Final Hazard",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231030,
+            locations = {
+                [1543] = {
+                    {
+                        x = 0.282054,
+                        y = 0.1291,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 619600,
+            },
+        },
+    },
+    [84943] = {
+        name = "The Long Vigil",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231033,
+            locations = {
+                [1543] = {
+                    {
+                        x = 0.306002,
+                        y = 0.186592,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+        },
+    },
+    [84944] = {
+        name = "Preludes and Preparations",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231033,
+            locations = {
+                [1543] = {
+                    {
+                        x = 0.306002,
+                        y = 0.186592,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+        },
+    },
+    [84945] = {
+        name = "Repent of the Highborne",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231033,
+            locations = {
+                [1543] = {
+                    {
+                        x = 0.268687,
+                        y = 0.379578,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 232300,
+            },
+        },
+    },
+    [84946] = {
+        name = "Returning to Life",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231030,
+            locations = {
+                [1543] = {
+                    {
+                        x = 0.268888,
+                        y = 0.377816,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 232300,
+            },
+        },
+    },
+    [84947] = {
+        name = "Determination",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 233463,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 30900,
+            },
+        },
+    },
+    [84949] = {
+        name = "The Eleventh Hour",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 233567,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 929400,
             },
         },
     },
@@ -19722,7 +23024,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -19736,7 +23038,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -19750,7 +23052,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19764,7 +23066,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19778,7 +23080,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -19792,7 +23094,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19806,7 +23108,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19820,7 +23122,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19834,7 +23136,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19848,7 +23150,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -19862,7 +23164,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19876,7 +23178,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19890,7 +23192,77 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
+            },
+        },
+    },
+    [84996] = {
+        name = "Vereesa's Tale",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231039,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 154900,
+            },
+        },
+    },
+    [84997] = {
+        name = "What Might Come",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 233252,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 154900,
+            },
+        },
+    },
+    [84998] = {
+        name = "Bringer of the Void",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 233314,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 619600,
+            },
+        },
+    },
+    [85001] = {
+        name = "Blessings Be Upon You",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 233312,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+        },
+    },
+    [85002] = {
+        name = "Off to Tazavesh",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 233312,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 619600,
             },
         },
     },
@@ -19904,7 +23276,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19918,7 +23290,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19932,7 +23304,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19954,7 +23326,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -19976,7 +23348,21 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
+            },
+        },
+    },
+    [85011] = {
+        name = "Where in K'aresh is Alleria Windrunner?",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231266,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 154900,
             },
         },
     },
@@ -19990,7 +23376,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 175500,
+                amount = 232300,
             },
         },
     },
@@ -20004,7 +23390,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20018,7 +23404,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20032,7 +23418,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20046,7 +23432,61 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
+            },
+        },
+    },
+    [85027] = {
+        name = "Lorewalking: The Protectorate",
+        contentTuningID = 3011,
+        source = {
+            type = "npc",
+            id = 230246,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 25, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
+            },
+        },
+    },
+    [85028] = {
+        name = "Lorewalking: The Brokers",
+        contentTuningID = 3011,
+        source = {
+            type = "npc",
+            id = 230246,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 25, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
+            },
+        },
+    },
+    [85029] = {
+        name = "Lorewalking: Locus-Walker",
+        contentTuningID = 3011,
+        source = {
+            type = "npc",
+            id = 230246,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 25, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
             },
         },
     },
@@ -20060,7 +23500,43 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
+            },
+        },
+    },
+    [85035] = {
+        name = "Locus-Walker, Telogrus Ranger",
+        contentTuningID = 3011,
+        source = {
+            type = "npc",
+            id = 234111,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 15, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
+            },
+        },
+    },
+    [85036] = {
+        name = "Veni Vidi Ve'nari",
+        contentTuningID = 3011,
+        source = {
+            type = "npc",
+            id = 231706,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 10, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
             },
         },
     },
@@ -20074,7 +23550,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 702000,
+                amount = 929400,
             },
         },
     },
@@ -20088,7 +23564,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20102,7 +23578,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -20116,7 +23592,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20130,7 +23606,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -20144,7 +23620,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20158,7 +23634,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -20172,7 +23648,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20186,7 +23662,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20200,7 +23676,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20214,7 +23690,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20236,7 +23712,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20258,7 +23734,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20280,7 +23756,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -20302,7 +23778,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20324,7 +23800,35 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
+            },
+        },
+    },
+    [85151] = {
+        name = "In Her Shadow",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231987,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+        },
+    },
+    [85155] = {
+        name = "Do You Have a Spare?",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231987,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 30900,
             },
         },
     },
@@ -20338,7 +23842,49 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
+            },
+        },
+    },
+    [85184] = {
+        name = "Repossession is Nine-Tenths of the Law",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231820,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+        },
+    },
+    [85185] = {
+        name = "Those As Well",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231820,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+        },
+    },
+    [85186] = {
+        name = "A Cage for Alleria",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 231820,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 30900,
             },
         },
     },
@@ -20352,7 +23898,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -20366,7 +23912,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20380,7 +23926,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20394,7 +23940,63 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
+            },
+        },
+    },
+    [85196] = {
+        name = "Tag, You're It",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 232110,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 619600,
+            },
+        },
+    },
+    [85212] = {
+        name = "A Void Test of Wills",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 233885,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 154900,
+            },
+        },
+    },
+    [85213] = {
+        name = "Off to Tazavesh, Again",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 233980,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 30900,
+            },
+        },
+    },
+    [85214] = {
+        name = "Here Goes Something",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 232124,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 929400,
             },
         },
     },
@@ -20408,7 +24010,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20422,7 +24024,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20436,7 +24038,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20458,7 +24060,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -20472,7 +24074,39 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
+            },
+        },
+    },
+    [85252] = {
+        name = "Lorewalking: Children of the Blood",
+        contentTuningID = 3011,
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 15, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
+            },
+        },
+    },
+    [85254] = {
+        name = "Lorewalking: Children of the Void",
+        contentTuningID = 3011,
+        source = {
+            type = "npc",
+            id = 230246,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 15, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
             },
         },
     },
@@ -20494,7 +24128,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20516,7 +24150,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20538,7 +24172,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -20552,7 +24186,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20566,7 +24200,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20580,7 +24214,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20594,7 +24228,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20608,7 +24242,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -20622,7 +24256,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20636,7 +24270,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20650,7 +24284,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -20664,7 +24298,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20686,7 +24320,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -20700,7 +24334,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20714,7 +24348,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20728,7 +24362,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -20742,7 +24376,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20756,7 +24390,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20770,7 +24404,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -20784,7 +24418,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -20798,7 +24432,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20812,7 +24446,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20826,7 +24460,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20840,7 +24474,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20854,7 +24488,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -20868,7 +24502,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20882,7 +24516,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -20896,7 +24530,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20910,7 +24544,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -20924,7 +24558,121 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 175500,
+                amount = 232300,
+            },
+        },
+    },
+    [85804] = {
+        name = "The Parent Trap",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 234263,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 154900,
+            },
+        },
+    },
+    [85862] = {
+        name = "A Prince's Duty",
+        contentTuningID = 3011,
+        source = {
+            type = "npc",
+            id = 233752,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 15, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
+            },
+        },
+    },
+    [85871] = {
+        name = "Lorewalking: The Blade's Forces",
+        contentTuningID = 3011,
+        source = {
+            type = "npc",
+            id = 230321,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 0, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
+            },
+        },
+    },
+    [85875] = {
+        name = "Ascent of the Lich King",
+        contentTuningID = 3011,
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 20, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
+            },
+        },
+    },
+    [85878] = {
+        name = "O' Thanagor",
+        contentTuningID = 3011,
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 15, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
+            },
+        },
+    },
+    [85884] = {
+        name = "Lorewalking: The Prince Who Would Be King",
+        contentTuningID = 3011,
+        source = {
+            type = "npc",
+            id = 230246,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 15, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
+            },
+        },
+    },
+    [85885] = {
+        name = "Lorewalking: No King Rules Forever",
+        contentTuningID = 3011,
+        source = {
+            type = "npc",
+            id = 230246,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 140, 15, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
             },
         },
     },
@@ -20938,7 +24686,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20952,7 +24700,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20966,7 +24714,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -20980,7 +24728,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -20994,7 +24742,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21008,7 +24756,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21018,7 +24766,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21032,7 +24780,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21046,7 +24794,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21060,7 +24808,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21074,7 +24822,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21088,7 +24836,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -21102,7 +24850,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21124,7 +24872,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21138,7 +24886,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21152,12 +24900,12 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
     [86196] = {
-        name = "Give me Fuel",
+        name = "Give Me Fuel",
         contentTuningID = 3008,
         source = {
             type = "npc",
@@ -21166,12 +24914,12 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
     [86200] = {
-        name = "Give me Fire",
+        name = "Give Me Fire",
         contentTuningID = 3008,
         source = {
             type = "npc",
@@ -21180,12 +24928,12 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
     [86201] = {
-        name = "Watch me Make These Bugs Expire",
+        name = "Watch Me Make These Bugs Expire",
         contentTuningID = 3008,
         source = {
             type = "npc",
@@ -21194,7 +24942,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21207,8 +24955,20 @@ BtWQuestsDatabase:AddQuestsTable({
         },
         rewards = {
             {
+                type = "experience",
+                amounts = {
+                    20400, 20650, 20900, 21200, 21450, 
+                },
+                minLevel = 75,
+                maxLevel = 79,
+            },
+            {
                 type = "money",
-                amount = 14040000,
+                amounts = {
+                    17700000, 17874000, 18048000, 18228000, 18408000, 18588000, 
+                },
+                minLevel = 75,
+                maxLevel = 80,
             },
         },
     },
@@ -21222,7 +24982,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21236,7 +24996,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21250,7 +25010,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -21264,7 +25024,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21278,7 +25038,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21292,7 +25052,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21306,7 +25066,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21320,7 +25080,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21334,7 +25094,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -21348,7 +25108,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21362,7 +25122,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21376,7 +25136,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21390,7 +25150,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21404,7 +25164,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21418,7 +25178,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -21432,7 +25192,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21446,7 +25206,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21460,7 +25220,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21474,7 +25234,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21488,7 +25248,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21502,7 +25262,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21516,7 +25276,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -21530,7 +25290,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21544,7 +25304,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21558,7 +25318,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21572,7 +25332,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -21586,7 +25346,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -21600,7 +25360,45 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
+            },
+        },
+    },
+    [86456] = {
+        name = "An Elegy for a Silent World",
+        contentTuningID = 3008,
+        rewards = {
+            {
+                type = "money",
+                amount = 309800,
+            },
+        },
+    },
+    [86457] = {
+        name = "A Lullaby of Hope",
+        contentTuningID = 3008,
+        source = {
+            type = "npc",
+            id = 231820,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 154900,
+            },
+        },
+    },
+    [86458] = {
+        name = "A Song for Our Future",
+        contentTuningID = 3008,
+        source = {
+            type = "npc",
+            id = 231820,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 1239200,
             },
         },
     },
@@ -21614,7 +25412,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21634,7 +25432,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21648,7 +25446,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -21662,7 +25460,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -21676,7 +25474,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21690,7 +25488,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21704,7 +25502,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21718,7 +25516,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -21732,7 +25530,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21746,7 +25544,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -21760,7 +25558,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21774,7 +25572,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21788,7 +25586,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21802,7 +25600,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21816,7 +25614,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21830,7 +25628,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21844,7 +25642,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21858,7 +25656,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -21872,7 +25670,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -21886,7 +25684,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21900,7 +25698,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -21914,7 +25712,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -21928,7 +25726,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21942,7 +25740,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 14040000,
+                amount = 18588000,
             },
         },
     },
@@ -21956,7 +25754,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -21970,7 +25768,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -21992,7 +25790,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -22006,7 +25804,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -22020,7 +25818,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -22034,7 +25832,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -22048,7 +25846,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -22062,7 +25860,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -22076,7 +25874,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -22090,7 +25888,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -22104,7 +25902,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -22118,7 +25916,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -22132,7 +25930,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -22146,7 +25944,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -22160,7 +25958,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -22174,7 +25972,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -22188,7 +25986,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -22202,7 +26000,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -22216,7 +26014,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -22230,7 +26028,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -22244,7 +26042,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -22258,7 +26056,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 117000,
+                amount = 154900,
             },
         },
     },
@@ -22272,7 +26070,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -22286,7 +26084,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -22300,7 +26098,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -22314,7 +26112,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -22336,7 +26134,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -22358,7 +26156,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -22372,7 +26170,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -22386,7 +26184,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -22400,7 +26198,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -22422,7 +26220,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -22436,7 +26234,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -22450,7 +26248,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -22464,7 +26262,21 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
+            },
+        },
+    },
+    [90705] = {
+        name = "Lorewalking",
+        contentTuningID = 3011,
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 0, 
+                },
+                minLevel = 10,
+                maxLevel = 50,
             },
         },
     },
@@ -22474,7 +26286,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -22488,7 +26300,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -22498,7 +26310,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 23400,
+                amount = 30900,
             },
         },
     },
@@ -22520,7 +26332,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 619600,
             },
         },
     },
@@ -22534,7 +26346,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
         },
     },
@@ -22548,8 +26360,62 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 234000,
+                amount = 309800,
             },
+        },
+    },
+    [91843] = {
+        name = "Recap: The Harbinger",
+        contentTuningID = 0,
+        source = {
+            type = "npc",
+            id = 248948,
+        },
+    },
+    [91864] = {
+        name = "Recap: Fractured Visions",
+        contentTuningID = 0,
+        source = {
+            type = "npc",
+            id = 248948,
+        },
+    },
+    [91868] = {
+        name = "Recap: Shadowy Pursuits",
+        contentTuningID = 0,
+        source = {
+            type = "npc",
+            id = 248948,
+        },
+    },
+    [91871] = {
+        name = "Recap: The Dark Heart",
+        contentTuningID = 0,
+        source = {
+            type = "npc",
+            id = 248948,
+        },
+    },
+    [92405] = {
+        name = "Meet Arator",
+        contentTuningID = 3020,
+        source = {
+            type = "npc",
+            id = 250839,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 30900,
+            },
+        },
+    },
+    [93979] = {
+        name = "Lingering Memories",
+        contentTuningID = 0,
+        source = {
+            type = "npc",
+            id = 231128,
         },
     },
 })

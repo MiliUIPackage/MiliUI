@@ -6,6 +6,21 @@ end
 
 loadstring([[
 BtWQuestsDatabase:UpdateNPCsTable({
+    [20448] = {
+        name = "Comandante Ameer",
+    },
+    [20482] = {
+        name = "Imagem do Comandante Ameer",
+    },
+    [27314] = {
+        name = "Zelig, o Visionário",
+    },
+    [145005] = {
+        name = "Elite dos Andarilhos",
+    },
+    [156688] = {
+        name = "Anfitrião Ta'rela",
+    },
     [206528] = {
         name = "Ália Montelmo",
     },
@@ -206,6 +221,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     },
     [227222] = {
         name = "Isebel Refulgrado",
+    },
+    [227436] = {
+        name = "Arquimago Hadggar",
     },
     [227758] = {
         name = "Alleria Correventos",

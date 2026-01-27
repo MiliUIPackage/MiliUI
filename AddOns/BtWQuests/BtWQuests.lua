@@ -119,7 +119,11 @@ local Settings = SettingsCreate({
         name = L["SHOW_MINIMAP_ICON"],
         key = "minimapShown",
         onChange = function (_, id, value)
-            BtWQuestsMinimapButton:SetShown(value)
+            if value then
+                BtWQuests.ShowMinimap()
+            else
+                BtWQuests.HideMinimap()
+            end
         end,
         default = true,
     },
@@ -238,6 +242,8 @@ local Settings = SettingsCreate({
                     func(Settings, option.key, Settings[option.key]);
                 end
             end
+
+            BtWQuests.RefreshLauncherMinimapIcon()
         end,
         default = true,
     },
@@ -797,6 +803,7 @@ local GetAddOnEnableState = C_AddOns and function (character, addon)
 end or GetAddOnEnableState;
 local LoadAddOn = C_AddOns and C_AddOns.LoadAddOn or LoadAddOn;
 local GetAddOnInfo = C_AddOns and C_AddOns.GetAddOnInfo or GetAddOnInfo;
+local IsAddOnLoadable = C_AddOns and C_AddOns.IsAddOnLoadable or function () return true end;
 
 function BtWQuestsMixin:OnLoad()
     tinsert(UISpecialFrames, self:GetName());
@@ -822,7 +829,11 @@ function BtWQuestsMixin:OnLoad()
     else
         self.TitleText:SetText(L["BTWQUESTS_QUEST_JOURNAL"]);
     end
-    SetPortraitToTexture(self.portrait or self.PortraitContainer.portrait, "Interface\\QuestFrame\\UI-QuestLog-BookIcon");
+    if SetPortraitToTexture then
+        SetPortraitToTexture(self.portrait or self.PortraitContainer.portrait, "Interface\\QuestFrame\\UI-QuestLog-BookIcon");
+    else
+        (self.portrait or self.PortraitContainer.portrait):SetTexture("Interface\\QuestFrame\\UI-QuestLog-BookIcon");
+    end
 
     if self.NineSlice then
         if select(4, GetBuildInfo()) >= 100000 then
@@ -854,27 +865,12 @@ function BtWQuestsMixin:OnLoad()
     self.ExpansionScroll = nil
     self.HistoryIndex = 1
     self.History = {}
-
-	-- LDB launcher
-	local LDB = LibStub and LibStub("LibDataBroker-1.1", true)
-	if LDB then
-		BtWQuestsLauncher = LDB:NewDataObject("BtWQuests", {
-			type = "launcher",
-            label = "BtWQuests",
-			icon = "Interface\\QuestFrame\\UI-QuestLog-BookIcon",
-			OnClick = function(clickedframe, button)
-                if BtWQuestsFrame:IsShown() then
-                    BtWQuestsFrame:Hide()
-                else
-                    BtWQuestsFrame:Show()
-                end
-			end,
-		})
-	end
 end
 function BtWQuestsMixin:OnEvent(event, ...)
     if event == "ADDON_LOADED" then
         if ... == "BtWQuests" then
+            BtWQuests.CreateLauncher()
+
             if BtWQuests_Settings == nil then
                 BtWQuests_Settings = {}
             end
@@ -889,7 +885,7 @@ function BtWQuestsMixin:OnEvent(event, ...)
             BtWQuests_AutoLoad = BtWQuests_AutoLoad or {}
 
             for i=1,GetNumAddOns() do
-                if GetAddOnMetadata(i, "X-BtWQuests") and IsAddOnLoadOnDemand(i) and GetAddOnEnableState((UnitName("player")), i) ~= 0 then -- One of our child addons
+                if GetAddOnMetadata(i, "X-BtWQuests") and IsAddOnLoadOnDemand(i) and GetAddOnEnableState((UnitName("player")), i) ~= 0 and select(2, IsAddOnLoadable(i, (UnitName("player")))) ~= "INCOMPATIBLE" then -- One of our child addons
                     local name, title, notes, loadable, reason, security, newVersion = GetAddOnInfo(i)
                     local id = tonumber(GetAddOnMetadata(name, "X-BtWQuests-Expansion"))
 

@@ -15,6 +15,8 @@ BtWQuests.Constant.Category.TheWarWithin = {
     SirenIsle = 1105,
     Undermined = 1106,
     Karesh = 1107,
+    VisionsOfAShadowedSun = 1108,
+    Lorewalking = 1109,
 }
 BtWQuests.Constant.Chain.TheWarWithin = {
     IsleOfDorn = {},
@@ -24,6 +26,7 @@ BtWQuests.Constant.Chain.TheWarWithin = {
     SirenIsle = {},
     Undermined = {},
     Karesh = {},
+    TheWarning = {},
 }
 
 BtWQuests.Constant.Restrictions.TheWarWithinToF = -110001;
