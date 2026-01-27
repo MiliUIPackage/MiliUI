@@ -5,6 +5,7 @@
 ## Version: 1.11.2
 ## X-Wago-ID: b6mvbYKP
 ## SavedVariables: CooldownManagerCenteredDB
+## OptionalDeps: MiliUI
 ## IconTexture: Interface\Addons\CooldownManagerCentered\Media\CooldownManagerCenteredIcon
 
 loadLibs.xml

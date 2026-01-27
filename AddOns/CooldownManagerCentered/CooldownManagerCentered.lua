@@ -12,7 +12,24 @@ function addon:OpenSettings()
 end
 
 function addon:OnInitialize()
+    -- MiliUI Profile
+    if not CooldownManagerCenteredDB then
+        if MiliUI_Luxthos_CMCDB then
+            print("MiliUI: Injecting CMC defaults")
+            CooldownManagerCenteredDB = CopyTable(MiliUI_Luxthos_CMCDB)
+        else
+            print("MiliUI: CMC defaults not found")
+        end
+    else
+        print("MiliUI: CMC DB already exists")
+    end
     self.db = LibStub("AceDB-3.0"):New("CooldownManagerCenteredDB", ns.DEFAULT_SETTINGS, true)
+    
+    
+    if self.db:GetCurrentProfile() == "Default" then
+        self.db:SetProfile("Luxthos")
+    end
+
     ns.db = self.db
 
     -- Register database callbacks for profile changes

@@ -561,6 +561,7 @@ end
 function addonTable.Core.Initialize()
   addonTable.Config.InitializeData()
 
+  -- MiliUI Profile
   if MiliUI_PlatynatorProfile then
     local profileExists = PLATYNATOR_CONFIG and PLATYNATOR_CONFIG.Profiles and PLATYNATOR_CONFIG.Profiles["MiliUI"]
     if not profileExists then
