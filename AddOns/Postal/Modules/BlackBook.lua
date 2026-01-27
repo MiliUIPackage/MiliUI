@@ -57,11 +57,13 @@ function Postal_BlackBook:OnEnable()
 	local db = Postal.db.profile.BlackBook
 
 	SendMailNameEditBox:SetHistoryLines(15)
-	self:RawHook("SendMailFrame_Reset", true)
-	self:RawHook("MailFrameTab_OnClick", true)
+	SendMailNameEditBox:SetHistoryLines(15)
+	self:SecureHook("SendMailFrame_Reset")
+	self:SecureHook("MailFrameTab_OnClick")
 	if db.UseAutoComplete then
-		self:RawHookScript(SendMailNameEditBox, "OnChar")
+		self:HookScript(SendMailNameEditBox, "OnChar")
 	end
+	self:SecureHook("SendMail", "OnSendMail")
 	self:HookScript(SendMailNameEditBox, "OnEditFocusGained")
 	self:SecureHook("AutoComplete_Update")
 	if Postal.WOWBCClassic then
@@ -179,15 +181,20 @@ function Postal_BlackBook.DeleteAlt(dropdownbutton, arg1, arg2, checked)
 	CloseDropDownMenus()
 end
 
+function Postal_BlackBook:OnSendMail(target, subject, body)
+	self.lastSentName = target
+end
+
 -- Only called on a mail that is sent successfully
 function Postal_BlackBook:SendMailFrame_Reset()
-	local name = strtrim(SendMailNameEditBox:GetText())
-	if name == "" then return self.hooks["SendMailFrame_Reset"]() end
+	local name = strtrim(self.lastSentName or "")
+	if name == "" then return end
 	SendMailNameEditBox:AddHistoryLine(name)
+	self.lastSentName = nil
 
 	local realm = GetRealmName()
 	local faction = UnitFactionGroup("player")
-	if not realm or not faction then return self.hooks["SendMailFrame_Reset"]() end
+	if not realm or not faction then return end
 
 	local namestring = ("%s|%s|%s"):format(name, realm, faction)
 	local db = Postal.db.profile.BlackBook.recent
@@ -198,12 +205,10 @@ function Postal_BlackBook:SendMailFrame_Reset()
 	for k = #db, 21, -1 do
 		tremove(db, k)
 	end
-	local a, b, c = self.hooks["SendMailFrame_Reset"]()
 	if Postal.db.profile.BlackBook.AutoFill then
 		SendMailNameEditBox:SetText(name)
 		SendMailNameEditBox:HighlightText()
 	end
-	return a, b, c
 end
 
 function Postal_BlackBook.ClearRecent(dropdownbutton, arg1, arg2, checked)
@@ -212,7 +217,7 @@ function Postal_BlackBook.ClearRecent(dropdownbutton, arg1, arg2, checked)
 end
 
 function Postal_BlackBook:MailFrameTab_OnClick(button, tab)
-	self.hooks["MailFrameTab_OnClick"](button, tab)
+	-- self.hooks["MailFrameTab_OnClick"](button, tab)
 	if Postal.db.profile.BlackBook.AutoFill and tab == 2 then
 		local realm = GetRealmName()
 		local faction = UnitFactionGroup("player")
@@ -351,7 +356,7 @@ function Postal_BlackBook:OnChar(editbox, ...)
 	end
 
 	-- Call the original Blizzard function to autocomplete and for its popup
-	self.hooks[SendMailNameEditBox].OnChar(editbox, ...)
+	-- self.hooks[SendMailNameEditBox].OnChar(editbox, ...)
 
 	-- Set our match if we found one (overriding Blizzard's match if there's one)
 	if newname then

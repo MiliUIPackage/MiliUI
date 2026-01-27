@@ -77,7 +77,8 @@ end
 --@see InspectCore.lua
 LibEvent:attachTrigger("UNIT_INSPECT_READY", function(self, data)
     if (TinyInspectDB and not TinyInspectDB.EnableMouseItemLevel) then return end
-    if (data.guid == UnitGUID("mouseover")) then
+    local success, isMouseOver = pcall(function() return data.guid == UnitGUID("mouseover") end)
+    if (success and isMouseOver) then
         AppendToGameTooltip(data.guid, floor(data.ilevel), data.spec, data.weaponLevel, data.isArtifact)
     end
 end)

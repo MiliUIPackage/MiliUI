@@ -935,7 +935,7 @@ end
 function encounterDetails:OnEvent(self, event, ...)
 	if (event == "ENCOUNTER_START") then
 		--tracks if a enemy spell is instant cast
-		encounterDetails.CLEvents:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+		pcall(encounterDetails.CLEvents.RegisterEvent, encounterDetails.CLEvents, "COMBAT_LOG_EVENT_UNFILTERED")
 
 	elseif (event == "ENCOUNTER_END") then
 		encounterDetails.CLEvents:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
