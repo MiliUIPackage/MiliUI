@@ -339,7 +339,11 @@ bgFrame:SetFrameLevel(Chatbar:GetFrameLevel() - 1)
 -- Layout Logic
 UpdateLayout = function()
     local orientation = (MiliUI_DB and MiliUI_DB.Chatbar and MiliUI_DB.Chatbar.Orientation) or "HORIZONTAL"
-    
+    -- Layout Logic
+    -- Layout Logic
+    local endPadding = 10 -- Main axis padding
+    local sidePadding = 5 -- Cross axis padding
+
     -- Sort buttonList first
     table.sort(buttonList, function(a, b)
         return (a.order or 99) < (b.order or 99)
@@ -354,42 +358,45 @@ UpdateLayout = function()
 
     if orientation == "VERTICAL" then
         local spacing = 15
-        local barHeight = (#visibleButtons * height) + ((#visibleButtons - 1) * spacing) + (padding * 2)
+        local vTopPadding = 20
+        local vBottomPadding = 10
+        
+        -- Height calculation uses distinct top/bottom padding
+        local barHeight = (#visibleButtons * height) + ((#visibleButtons - 1) * spacing) + vTopPadding + vBottomPadding
         -- Dynamic sizing: fit content exactly
         Chatbar:SetSize(width, barHeight)
         
         for i, bu in ipairs(visibleButtons) do
             bu:ClearAllPoints()
             if i == 1 then
-                bu:SetPoint("TOP", Chatbar, "TOP", 0, -padding)
+                bu:SetPoint("TOP", Chatbar, "TOP", 0, -vTopPadding)
             else
                 bu:SetPoint("TOP", visibleButtons[i-1], "BOTTOM", 0, -spacing)
             end
         end
         
         -- Adjust background for vertical
+        -- Width calculation uses sidePadding (Left/Right)
         bgFrame:ClearAllPoints()
         bgFrame:SetPoint("TOP", Chatbar, "TOP")
         bgFrame:SetPoint("BOTTOM", Chatbar, "BOTTOM")
-        bgFrame:SetWidth(width + 10)
-        bgFrame:SetHeight(barHeight)
+        bgFrame:SetWidth(width + (sidePadding * 2)) -- Width + 10 (Default behavior)
+        bgFrame:SetPoint("CENTER", Chatbar, "CENTER")
         
     else
         -- HORIZONTAL
-        local barWidth = ChatFrame1:GetWidth()
-        -- Dynamic sizing based on buttons if not anchoring to chatframe width? 
-        -- Original logic used ChatFrame width as base, but we can make it fit content if desired.
-        -- User request: "Length calculated entirely" implies dynamic fitting.
         
+        -- Width calculation uses endPadding (Left/Right)
         local totalButtonWidth = (#visibleButtons * width) + ((#visibleButtons - 1) * padding)
-        local fitWidth = totalButtonWidth + (padding * 2)
+        local fitWidth = totalButtonWidth + (endPadding * 2)
         
-        -- Use fitWidth instead of ChatFrame1 width for exact fit
-        barWidth = fitWidth
+        local barWidth = fitWidth
+        -- Height calculation uses sidePadding (Top/Bottom)
+        local barHeight = height + (sidePadding * 2) -- e.g., 8 + 10 = 18
         
-        Chatbar:SetSize(barWidth, height)
+        Chatbar:SetSize(barWidth, barHeight)
         
-        local startOffset = padding -- Align left with padding
+        local startOffset = endPadding -- Align left with endPadding
         
         for i, bu in ipairs(visibleButtons) do
             bu:ClearAllPoints()
@@ -404,7 +411,8 @@ UpdateLayout = function()
         bgFrame:ClearAllPoints()
         bgFrame:SetPoint("LEFT", Chatbar, "LEFT")
         bgFrame:SetPoint("RIGHT", Chatbar, "RIGHT")
-        bgFrame:SetHeight(18)
+        bgFrame:SetPoint("CENTER", Chatbar, "CENTER")
+        bgFrame:SetHeight(barHeight)
     end
 end
 
@@ -494,8 +502,7 @@ local function CreateContextMenu()
 end
 
 -- Right click on background to show context menu
-bgFrame:EnableMouse(true)
-bgFrame:SetScript("OnMouseUp", function(self, btn)
+local function OnContextClick(self, btn)
     if btn == "RightButton" then
         if not contextMenu then CreateContextMenu() end
         -- Position menu at cursor
@@ -504,7 +511,12 @@ bgFrame:SetScript("OnMouseUp", function(self, btn)
         contextMenu:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x/scale, y/scale)
         contextMenu:Show()
     end
-end)
+end
+
+bgFrame:EnableMouse(true)
+bgFrame:SetScript("OnMouseUp", OnContextClick)
+-- Also allow Mover to trigger context menu on Right Click
+Mover:SetScript("OnMouseUp", OnContextClick)
 
 -- Config Menu
 local configFrame
