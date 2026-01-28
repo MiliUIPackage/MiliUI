@@ -5,6 +5,11 @@ local L = addonTable.L
 
 local PrimaryResourceBarMixin = Mixin({}, addonTable.PowerBarMixin)
 
+function PrimaryResourceBarMixin:OnLayoutChange(layoutName)
+    -- It was previously enabled when Maelstrom Weapon was primary, no longer the case so disable for now
+    SenseiClassResourceBarDB[self.config.dbName][layoutName].showTicks = false
+end
+
 function PrimaryResourceBarMixin:GetResource()
     local playerClass = select(2, UnitClass("player"))
     local primaryResources = {

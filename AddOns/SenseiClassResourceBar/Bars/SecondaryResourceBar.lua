@@ -10,6 +10,7 @@ function SecondaryResourceBarMixin:OnLoad()
 
     -- Modules for the special cases requiring more work
     addonTable.TipOfTheSpear:OnLoad(self)
+    addonTable.Whirlwind:OnLoad(self)
 end
 
 function SecondaryResourceBarMixin:OnEvent(event, ...)
@@ -17,6 +18,7 @@ function SecondaryResourceBarMixin:OnEvent(event, ...)
 
     -- Modules for the special cases requiring more work
     addonTable.TipOfTheSpear:OnEvent(self, event, ...)
+    addonTable.Whirlwind:OnEvent(self, event, ...)
 end
 
 function SecondaryResourceBarMixin:GetResource()
@@ -56,7 +58,9 @@ function SecondaryResourceBarMixin:GetResource()
             [263]  = "MAELSTROM_WEAPON", -- Enhancement
         },
         ["WARLOCK"]     = Enum.PowerType.SoulShards,
-        ["WARRIOR"]     = nil,
+        ["WARRIOR"]     = {
+            [72] = "WHIRLWIND",
+        },
     }
 
     local spec = C_SpecializationInfo.GetSpecialization()
@@ -124,8 +128,14 @@ function SecondaryResourceBarMixin:GetResourceValue(resource)
         local max = UnitPowerMax("player", resource)
         if max <= 0 then return nil, nil, nil, nil, nil end
 
+        -- Cache rune cooldown data to avoid redundant GetRuneCooldown calls in UpdateFragmentedPowerDisplay
+        if not self._runeCooldownCache then
+            self._runeCooldownCache = {}
+        end
+        
         for i = 1, max do
-            local runeReady = select(3, GetRuneCooldown(i))
+            local start, duration, runeReady = GetRuneCooldown(i)
+            self._runeCooldownCache[i] = { start = start, duration = duration, runeReady = runeReady }
             if runeReady then
                 current = current + 1
             end
@@ -154,6 +164,10 @@ function SecondaryResourceBarMixin:GetResourceValue(resource)
         return addonTable.TipOfTheSpear:GetStacks()
     end
 
+    if resource == "WHIRLWIND" then
+        return addonTable.Whirlwind:GetStacks()
+    end
+
     -- Regular secondary resource types
     local current = UnitPower("player", resource)
     local max = UnitPowerMax("player", resource)
@@ -168,7 +182,8 @@ function SecondaryResourceBarMixin:GetTagValues(resource, max, current, precisio
     local tagValues = addonTable.PowerBarMixin.GetTagValues(self, resource, max, current, precision)
 
     if resource == "STAGGER" then
-        tagValues["[percent]"] = function() return string.format(pFormat, self._lastStaggerPercent) end
+        local staggerPercentStr = string.format(pFormat, self._lastStaggerPercent)
+        tagValues["[percent]"] = function() return staggerPercentStr end
     end
 
     if resource == "SOUL_FRAGMENTS_VENGEANCE" then
@@ -176,31 +191,47 @@ function SecondaryResourceBarMixin:GetTagValues(resource, max, current, precisio
     end
 
     if resource == Enum.PowerType.SoulShards then
+        local currentStr = string.format("%s", AbbreviateNumbers(current / 10))
+        local percentStr = string.format(pFormat, UnitPowerPercent("player", resource, true, CurveConstants.ScaleTo100))
+        local maxStr = string.format("%s", AbbreviateNumbers(max / 10))
         tagValues = {
-            ["[current]"] = function() return string.format("%s", AbbreviateNumbers(current / 10)) end,
-            ["[percent]"] = function() return string.format(pFormat, UnitPowerPercent("player", resource, true, CurveConstants.ScaleTo100)) end,
-            ["[max]"] = function() return string.format("%s", AbbreviateNumbers(max / 10)) end,
+            ["[current]"] = function() return currentStr end,
+            ["[percent]"] = function() return percentStr end,
+            ["[max]"] = function() return maxStr end,
         }
     end
 
     if resource == "MAELSTROM_WEAPON" then
-        tagValues["[percent]"] = function() return string.format(pFormat, (current / (max * 2)) * 100) end
-        tagValues["[max]"] = function() return string.format("%s", AbbreviateNumbers(max * 2)) end
+        local percentStr = string.format(pFormat, (current / (max * 2)) * 100)
+        local maxStr = string.format("%s", AbbreviateNumbers(max * 2))
+        tagValues["[percent]"] = function() return percentStr end
+        tagValues["[max]"] = function() return maxStr end
     end
 
     return tagValues
 end
 
-function SecondaryResourceBarMixin:GetPoint(layoutName)
+function SecondaryResourceBarMixin:GetPoint(layoutName, ignorePositionMode)
     local data = self:GetData(layoutName)
 
-    if data and data.positionMode == "Use Primary Resource Bar Position If Hidden" then
-        local primaryResource = addonTable.barInstances and addonTable.barInstances["PrimaryResourceBar"]
+    if not ignorePositionMode then
+        if data and data.positionMode == "Use Primary Resource Bar Position If Hidden" then
+            local primaryResource = addonTable.barInstances and addonTable.barInstances["PrimaryResourceBar"]
 
-        if primaryResource then
-            primaryResource:ApplyVisibilitySettings(layoutName)
-            if not primaryResource:IsShown() then
-                return primaryResource:GetPoint(layoutName)
+            if primaryResource then
+                primaryResource:ApplyVisibilitySettings(layoutName)
+                if not primaryResource:IsShown() then
+                    return primaryResource:GetPoint(layoutName, true)
+                end
+            end
+        elseif data and data.positionMode == "Use Health Bar Position If Hidden" then
+            local health = addonTable.barInstances and addonTable.barInstances["HealthBar"]
+
+            if health then
+                health:ApplyVisibilitySettings(layoutName)
+                if not health:IsShown() then
+                    return health:GetPoint(layoutName, true)
+                end
             end
         end
     end
@@ -211,7 +242,7 @@ end
 function SecondaryResourceBarMixin:OnShow()
     local data = self:GetData()
 
-    if data and data.positionMode == "Use Primary Resource Bar Position If Hidden" then
+    if data and data.positionMode ~= nil and data.positionMode ~= "Self" then
         self:ApplyLayout()
     end
 end
@@ -219,7 +250,7 @@ end
 function SecondaryResourceBarMixin:OnHide()
     local data = self:GetData()
 
-    if data and data.positionMode == "Use Primary Resource Bar Position If Hidden" then
+    if data and data.positionMode ~= nil and data.positionMode ~= "Self" then
         self:ApplyLayout()
     end
 end
@@ -247,7 +278,8 @@ addonTable.RegisteredBar.SecondaryResourceBar = {
         useResourceAtlas = false,
     },
     lemSettings = function(bar, defaults)
-        local dbName = bar:GetConfig().dbName
+        local config = bar:GetConfig()
+        local dbName = config.dbName
 
         return {
             {
@@ -295,7 +327,7 @@ addonTable.RegisteredBar.SecondaryResourceBar = {
                 kind = LEM.SettingType.Dropdown,
                 default = defaults.positionMode,
                 useOldStyle = true,
-                values = addonTable.availablePositionModeOptions,
+                values = addonTable.availablePositionModeOptions(config),
                 get = function(layoutName)
                     return (SenseiClassResourceBarDB[dbName][layoutName] and SenseiClassResourceBarDB[dbName][layoutName].positionMode) or defaults.positionMode
                 end,

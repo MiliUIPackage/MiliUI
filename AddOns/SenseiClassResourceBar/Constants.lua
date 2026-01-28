@@ -103,10 +103,21 @@ addonTable.availableRoleOptions = {
     { text = "DPS", value = "DAMAGER" },
 }
 
-addonTable.availablePositionModeOptions = {
-    { text = "Self" },
-    { text = "Use Primary Resource Bar Position If Hidden" },
-}
+addonTable.availablePositionModeOptions = function(config)
+    local positions = {
+        { text = "Self" },
+    }
+
+    if config.frameName == "HealthBar" then
+        table.insert(positions, { text = "Use Primary Resource Bar Position If Hidden" })
+        table.insert(positions, { text = "Use Secondary Resource Bar Position If Hidden" })
+    elseif config.frameName == "SecondaryResourceBar" then
+        table.insert(positions, { text = "Use Primary Resource Bar Position If Hidden" })
+        table.insert(positions, { text = "Use Health Bar Position If Hidden" })
+    end
+
+    return positions;
+end
 
 addonTable.availableRelativeFrames = function(config)
     local frames = {
@@ -133,6 +144,7 @@ addonTable.availableRelativeFrames = function(config)
         { text = "TargetFrame" },
         { text = "Essential Cooldowns" },
         { text = "Utility Cooldowns" },
+        { text = "Tracked Buffs" },
         { text = "Action Bar" },
     }
 
@@ -157,6 +169,7 @@ addonTable.resolveRelativeFrames = function(relativeFrame)
         ["TargetFrame"] = TargetFrame,
         ["Essential Cooldowns"] = _G["EssentialCooldownViewer"],
         ["Utility Cooldowns"] = _G["UtilityCooldownViewer"],
+        ["Tracked Buffs"] = _G["BuffIconCooldownViewer"],
         ["Action Bar"] = _G["MainActionBar"],
         ["Action Bar 2"] = _G["MultiBarBottomLeft"],
         ["Action Bar 3"] = _G["MultiBarBottomRight"],
@@ -197,6 +210,7 @@ addonTable.availableWidthModes = {
     { text = "Manual" },
     { text = "Sync With Essential Cooldowns" },
     { text = "Sync With Utility Cooldowns" },
+    { text = "Sync With Tracked Buffs" },
 }
 
 addonTable.availableFillDirections = {
@@ -306,6 +320,7 @@ addonTable.tickedPowerTypes = {
     ["MAELSTROM_WEAPON"] = true,
     ["TIP_OF_THE_SPEAR"] = true,
     ["SOUL_FRAGMENTS_VENGEANCE"] = true,
+    ["WHIRLWIND"] = true,
 }
 
 -- Power types that are fragmented (multiple independent segments)

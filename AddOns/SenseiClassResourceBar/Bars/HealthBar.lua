@@ -35,10 +35,15 @@ end
 function HealthBarMixin:GetTagValues(_, max, current, precision)
     local pFormat = "%." .. (precision or 0) .. "f"
 
+    -- Pre-compute values instead of creating closures for better performance
+    local currentStr = string.format("%s", AbbreviateNumbers(current))
+    local percentStr = string.format(pFormat, UnitHealthPercent("player", true, CurveConstants.ScaleTo100))
+    local maxStr = string.format("%s", AbbreviateNumbers(max))
+
     return {
-        ["[current]"] = function() return string.format("%s", AbbreviateNumbers(current)) end,
-        ["[percent]"] = function() return string.format(pFormat, UnitHealthPercent("player", true, CurveConstants.ScaleTo100)) end,
-        ["[max]"] = function() return string.format("%s", AbbreviateNumbers(max)) end,
+        ["[current]"] = function() return currentStr end,
+        ["[percent]"] = function() return percentStr end,
+        ["[max]"] = function() return maxStr end,
     }
 end
 
@@ -77,6 +82,50 @@ function HealthBarMixin:OnEvent(event, ...)
     end
 end
 
+function HealthBarMixin:GetPoint(layoutName, ignorePositionMode)
+    local data = self:GetData(layoutName)
+
+    if not ignorePositionMode then
+        if data and data.positionMode == "Use Primary Resource Bar Position If Hidden" then
+            local primaryResource = addonTable.barInstances and addonTable.barInstances["PrimaryResourceBar"]
+
+            if primaryResource then
+                primaryResource:ApplyVisibilitySettings(layoutName)
+                if not primaryResource:IsShown() then
+                    return primaryResource:GetPoint(layoutName, true)
+                end
+            end
+        elseif data and data.positionMode == "Use Secondary Resource Bar Position If Hidden" then
+            local secondaryResource = addonTable.barInstances and addonTable.barInstances["SecondaryResourceBar"]
+
+            if secondaryResource then
+                secondaryResource:ApplyVisibilitySettings(layoutName)
+                if not secondaryResource:IsShown() then
+                    return secondaryResource:GetPoint(layoutName, true)
+                end
+            end
+        end
+    end
+
+    return addonTable.PowerBarMixin.GetPoint(self, layoutName)
+end
+
+function HealthBarMixin:OnShow()
+    local data = self:GetData()
+
+    if data and data.positionMode ~= nil and data.positionMode ~= "Self" then
+        self:ApplyLayout()
+    end
+end
+
+function HealthBarMixin:OnHide()
+    local data = self:GetData()
+
+    if data and data.positionMode ~= nil and data.positionMode ~= "Self" then
+        self:ApplyLayout()
+    end
+end
+
 addonTable.HealthBarMixin = HealthBarMixin
 
 addonTable.RegisteredBar = addonTable.RegisteredBar or {}
@@ -90,13 +139,15 @@ addonTable.RegisteredBar.HealthBar = {
         point = "CENTER",
         x = 0,
         y = 40,
+        positionMode = "Self",
         barVisible = "Hidden",
         hideHealthOnRole = {},
         hideBlizzardPlayerContainerUi = false,
         useClassColor = true,
     },
     lemSettings = function(bar, defaults)
-        local dbName = bar:GetConfig().dbName
+        local config = bar:GetConfig()
+        local dbName = config.dbName
 
         return {
             {
@@ -136,6 +187,23 @@ addonTable.RegisteredBar.HealthBar = {
                     bar:HideBlizzardPlayerContainer(layoutName)
                 end,
                 tooltip = L["HIDE_BLIZZARD_UI_HEALTH_BAR_TOOLTIP"],
+            },
+            {
+                parentId = L["CATEGORY_POSITION_AND_SIZE"],
+                order = 201,
+                name = L["POSITION"],
+                kind = LEM.SettingType.Dropdown,
+                default = defaults.positionMode,
+                useOldStyle = true,
+                values = addonTable.availablePositionModeOptions(config),
+                get = function(layoutName)
+                    return (SenseiClassResourceBarDB[dbName][layoutName] and SenseiClassResourceBarDB[dbName][layoutName].positionMode) or defaults.positionMode
+                end,
+                set = function(layoutName, value)
+                    SenseiClassResourceBarDB[dbName][layoutName] = SenseiClassResourceBarDB[dbName][layoutName] or CopyTable(defaults)
+                    SenseiClassResourceBarDB[dbName][layoutName].positionMode = value
+                    bar:ApplyLayout(layoutName)
+                end,
             },
             {
                 parentId = L["CATEGORY_BAR_STYLE"],
