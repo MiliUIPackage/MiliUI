@@ -1,0 +1,12 @@
+lightweight tag 8812b621b2fffd80f0a66e09c657c5c97227fe14 V31
+Author:	Aka-DoctorCode <37858279+Aka-DoctorCode@users.noreply.github.com>
+Date:	Wed Jan 28 00:17:49 2026 -0400
+
+commit 8812b621b2fffd80f0a66e09c657c5c97227fe14
+Author: Aka-DoctorCode <37858279+Aka-DoctorCode@users.noreply.github.com>
+Date:   Wed Jan 28 00:17:49 2026 -0400
+
+    V31
+    
+    Added: Icon in add-on list
+
