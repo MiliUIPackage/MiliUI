@@ -670,9 +670,10 @@ local function TooltipHook(self)
 
 	if self.GetUnit~=nil then 
     local _, uid = self:GetUnit()
-    if not uid then return end
-    local success, isPlayer = pcall(UnitIsPlayer, uid)
-    if not success or not isPlayer then return end
+
+	if type(uid) ~= "string" or not UnitExists(uid) or not UnitIsPlayer(uid) then
+		return
+	end
 
     local unitName, unitRealm = UnitFullName(uid)
     unitRealm = ((unitRealm ~= '' and unitRealm) or GetRealmName()):gsub('%s+', '')
