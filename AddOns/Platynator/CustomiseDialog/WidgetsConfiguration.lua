@@ -205,6 +205,21 @@ addonTable.CustomiseDialog.WidgetsConfig = {
     },
     ["health"] = {
       {
+        label = addonTable.Locales.GENERAL,
+        entries = {
+          {
+            label = addonTable.Locales.ANIMATE,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.animate = value
+            end,
+            getter = function(details)
+              return details.animate
+            end,
+          },
+        }
+      },
+      {
         label = addonTable.Locales.TEXTURES,
         entries = {
           {
@@ -323,12 +338,12 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             label = addonTable.Locales.WIDTH_RESTRICTION,
             kind = "slider",
             min = 0, max = 300,
-            valuePattern = "%dpx",
+            valuePattern = "%d%%",
             setter = function(details, value)
-              details.widthLimit = value
+              details.maxWidth = value / 100
             end,
             getter = function(details)
-              return details.widthLimit or 0
+              return details.maxWidth * 100
             end,
           },
           {
@@ -521,7 +536,7 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             getter = function(details)
               return details.applyClassColors
             end,
-            hide = addonTable.Constants.IsMidnight,t
+            hide = addonTable.Constants.IsRetail,
           },
         }
       }
@@ -558,6 +573,31 @@ addonTable.CustomiseDialog.WidgetsConfig = {
           },
         }
       },
+      {
+        label = addonTable.Locales.VALUES,
+        entries = {
+          {
+            label = addonTable.Locales.PLAYER_GUILD,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.playerGuild = value
+            end,
+            getter = function(details)
+              return details.playerGuild
+            end,
+          },
+          {
+            label = addonTable.Locales.NPC_ROLE,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.npcRole = value
+            end,
+            getter = function(details)
+              return details.npcRole
+            end,
+          },
+        }
+      }
     },
   },
   ["markers"] = {
@@ -952,6 +992,23 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             end,
             getter = function(details)
               return details.color
+            end,
+          },
+        },
+      },
+    },
+    ["mouseover"] = {
+      {
+        label = addonTable.Locales.GENERAL,
+        entries = {
+          {
+            label = addonTable.Locales.INCLUDE_TARGET,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.includeTarget = value
+            end,
+            getter = function(details)
+              return details.includeTarget
             end,
           },
         },

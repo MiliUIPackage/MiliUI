@@ -17,12 +17,14 @@ function addonTable.Display.HealthBarMixin:PostInit()
       end
     end
   end
-  if addonTable.Constants.IsMidnight then
+  if addonTable.Constants.IsRetail then
     self.calculator = CreateUnitHealPredictionCalculator()
     if self.calculator.SetMaximumHealthMode then
       self.calculator:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.WithAbsorbs)
       self.calculator:SetDamageAbsorbClampMode(Enum.UnitDamageAbsorbClampMode.MaximumHealth)
     end
+
+    self.animate = self.details.animate and Enum.StatusBarInterpolation.ExponentialEaseOut or Enum.StatusBarInterpolation.Immediate
   end
 end
 
@@ -34,22 +36,33 @@ function addonTable.Display.HealthBarMixin:SetUnit(unit)
     self:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", self.unit)
     self:UpdateHealth()
 
+    if self.details.animate then
+      self.oldHealth = UnitHealth(self.unit)
+      self.statusBarCutaway:SetAlpha(0)
+    end
+
     addonTable.Display.RegisterForColorEvents(self, self.details.autoColors)
     self:SetColor(addonTable.Display.GetColor(self.details.autoColors, self.colorState, self.unit))
   else
     self:UnregisterAllEvents()
+    self.statusBarCutawayAnimation:Stop()
     addonTable.Display.UnregisterForColorEvents(self)
   end
 end
 
 function addonTable.Display.HealthBarMixin:Strip()
   self:UnregisterAllEvents()
+  self.statusBarCutawayAnimation:Stop()
   addonTable.Display.UnregisterForColorEvents(self)
   self.modColors = nil
+  self.animate = nil
+  self.calculator = nil
+
 end
 
 function addonTable.Display.HealthBarMixin:SetColor(...)
   self.statusBar:GetStatusBarTexture():SetVertexColor(...)
+  self.statusBarCutaway:GetStatusBarTexture():SetVertexColor(...)
   if self.details.background.applyColor then
     local mod = self.details.background.color
     if self.modColors then
@@ -66,19 +79,30 @@ function addonTable.Display.HealthBarMixin:UpdateHealth()
   if self.calculator then
     if self.calculator.GetMaximumHealth then
       UnitGetDetailedHealPrediction(self.unit, nil, self.calculator)
+
+      self.calculator:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.WithAbsorbs)
       self.statusBar:SetMinMaxValues(0, self.calculator:GetMaximumHealth())
+
+      self.statusBarCutaway:SetMinMaxValues(self.statusBar:GetMinMaxValues())
       self.statusBarAbsorb:SetMinMaxValues(self.statusBar:GetMinMaxValues())
+
       local absorbs = self.calculator:GetDamageAbsorbs()
       self.statusBarAbsorb:SetValue(absorbs)
+      self.calculator:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.Default)
+      self.statusBar:SetValue(self.calculator:GetCurrentHealth(), self.animate)
     else
-      self.statusBar:SetMinMaxValues(0, UnitHealthMax(self.unit))
+      local maxHealth = UnitHealthMax(self.unit)
+      self.statusBar:SetMinMaxValues(0, maxHealth)
+      self.statusBarCutaway:SetMinMaxValues(0, maxHealth)
       self.statusBarAbsorb:SetMinMaxValues(self.statusBar:GetMinMaxValues())
-      self.statusBarAbsorb:SetValue(UnitGetTotalAbsorbs(self.unit))
+      self.statusBarAbsorb:SetValue(UnitGetTotalAbsorbs(self.unit), self.details.animate and Enum.StatusBarInterpolation.ExponentialEaseOut or Enum.StatusBarInterpolation.Immediate)
+      self.statusBar:SetValue(UnitHealth(self.unit), self.animate)
     end
-    self.statusBar:SetValue(UnitHealth(self.unit))
   else
     local absorbs = UnitGetTotalAbsorbs(self.unit)
-    self.statusBar:SetMinMaxValues(0, UnitHealthMax(self.unit) + absorbs)
+    local maxHealth = UnitHealthMax(self.unit)
+    self.statusBar:SetMinMaxValues(0, maxHealth + absorbs)
+    self.statusBarCutaway:SetMinMaxValues(0, maxHealth)
     self.statusBarAbsorb:SetMinMaxValues(self.statusBar:GetMinMaxValues())
     self.statusBar:SetValue(UnitHealth(self.unit, true))
     self.statusBarAbsorb:SetValue(absorbs)
@@ -88,6 +112,11 @@ end
 function addonTable.Display.HealthBarMixin:OnEvent(eventName)
   if eventName == "UNIT_HEALTH" then
     self:UpdateHealth()
+    if self.details.animate then
+      self.statusBarCutaway:SetValue(self.oldHealth)
+      self.statusBarCutawayAnimation:Play()
+      self.oldHealth = self.statusBar:GetValue()
+    end
   elseif eventName == "UNIT_MAXHEALTH" then
     self:UpdateHealth()
   elseif eventName == "UNIT_ABSORB_AMOUNT_CHANGED" then

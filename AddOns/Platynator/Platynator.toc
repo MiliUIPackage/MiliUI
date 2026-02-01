@@ -1,6 +1,6 @@
 ## Interface: 120000, 110207, 50503, 38000, 20505, 11508
 ## Title: Platynator
-## Version: 283
+## Version: 297
 ## Author: plusmouse
 ## SavedVariables: PLATYNATOR_CONFIG
 ## SavedVariablesPerCharacter: PLATYNATOR_CURRENT_PROFILE, PLATYNATOR_LAST_INSTANCE
@@ -61,6 +61,7 @@ Display/CastTargetText.lua
 Display/CastInterrupterText.lua
 Display/LevelText.lua
 Display/UnitTargetText.lua
+Display/QuestText.lua
 Display/AutomaticHighlight.lua
 Display/TargetHighlight.lua
 Display/SoftTargetHighlight.lua
