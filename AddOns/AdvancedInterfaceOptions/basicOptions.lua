@@ -283,7 +283,7 @@ end
 StaticPopupDialogs["AIO_BACKUP_SETTINGS"] = {
   text = "是否要儲存目前的 CVar 遊戲參數設定，以便日後能夠還原設定?",
   button1 = "備份設定",
-  button2 = "Cancel",
+  button2 = "取消",
   OnAccept = addon.BackupSettings,
   timeout = 0,
   whileDead = true,
@@ -319,7 +319,7 @@ end
 StaticPopupDialogs["AIO_RESTORE_SETTINGS"] = {
   text = "是否要從備份還原 CVar 遊戲參數設定？\n注意: 此動作無法復原！",
   button1 = "還原設定",
-  button2 = "Cancel",
+  button2 = "取消",
   OnAccept = addon.RestoreSettings,
   OnShow = function(self)
     -- Disable accept button if we don't have any backups

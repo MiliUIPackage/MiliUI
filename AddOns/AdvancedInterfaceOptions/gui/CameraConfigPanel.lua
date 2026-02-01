@@ -17,11 +17,11 @@ function addon:CreateCameraOptions()
   local cameraOptions = {
     type = "group",
     childGroups = "tree",
-    name = "Camera",
+    name = "鏡頭",
     args = {
       instructions = {
         type = "description",
-        name = "These options allow you to modify Camera Options.",
+        name = "這些選項可以調整鏡頭。",
         fontSize = "medium",
         order = 1,
       },
@@ -51,7 +51,7 @@ function addon:CreateCameraOptions()
       -------------------------------------------------
       cameraCollisionHeader = {
         type = "header",
-        name = "Camera Collision",
+        name = "鏡頭碰撞",
         order = 20,
         --this feature is only supported in 11.0 at the moment
         hidden = function()
@@ -60,8 +60,8 @@ function addon:CreateCameraOptions()
       },
       cameraIndirectVisibility = {
         type = "toggle",
-        name = "Camera Indirect Visibility",
-        desc = "Allow for the player character to be more obstructed by the environment before colliding and pushing the camera forward.",
+        name = "鏡頭間接可見性",
+        desc = "在碰撞和推動鏡頭向前之前，允許玩家角色受到環境的更多阻礙。",
         get = function()
           return C_CVar.GetCVarBool("cameraIndirectVisibility")
         end,
@@ -77,8 +77,8 @@ function addon:CreateCameraOptions()
       },
       cameraIndirectOffset = {
         type = "range",
-        name = "Camera Indirect Offset",
-        desc = "Control the sensitivity threshold for camera collisions when 'Camera Indirect Visibility' is enabled. [0] is the most sensitive, [10] is the least sensitive.",
+        name = "鏡頭間接偏移",
+        desc = "啟用「鏡頭間接可見性」時控制鏡頭碰撞的靈敏度。 [0] 是最敏感，[10] 是最不敏感。",
         min = 1,
         max = 10,
         step = 0.1,
@@ -101,18 +101,18 @@ function addon:CreateCameraOptions()
       -------------------------------------------------
       actionCameraHeader = {
         type = "header",
-        name = "Action Camera",
+        name = "動感鏡頭",
         order = 30,
       },
       actionCam = {
         type = "select",
-        name = "Select Action Cam mode:",
-        desc = "Select the mode for the Action Cam.",
+        name = "選擇動感鏡頭模式:",
+        desc = "選擇動感鏡頭模式。",
         values = {
-          ["default"] = "Default",
-          ["on"] = "On",
-          ["basic"] = "Basic",
-          ["full"] = "Full",
+          ["default"] = "預設",
+          ["on"] = "開啟",
+          ["basic"] = "基本",
+          ["full"] = "完整",
         },
         sorting = {
           "default",
