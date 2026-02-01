@@ -1,15 +1,26 @@
 local _, tpm = ...
-
 local Housing = {}
 tpm.Housing = Housing
+
+--------------------------------------
+-- Libraries
+--------------------------------------
 
 local L = LibStub("AceLocale-3.0"):GetLocale("TeleportMenu")
 local MSQ = LibStub("Masque", true)
 local MasqueGroup = MSQ and MSQ:Group(L["ADDON_NAME"])
 
+--------------------------------------
+-- Locales
+--------------------------------------
+
+
 local housingButtonsPool = {}
 local activeHousingButtons = {}
 
+--------------------------------------
+-- Functions
+--------------------------------------
 
 function Housing:CanReturn()
 	return C_HousingNeighborhood.CanReturnAfterVisitingHouse()
@@ -56,8 +67,6 @@ local function createCooldownFrame(frame)
 end
 
 function Housing:CreateSecureHousingButton(tpInfo)
-	local db = tpm:GetOptions()
-	local size = db["Button:Size"] or 40
 	local button, houseInfo = nil, nil
 
 	if #houseData == 1 or tpInfo.faction == "alliance" then
@@ -70,11 +79,8 @@ function Housing:CreateSecureHousingButton(tpInfo)
 		button = table.remove(housingButtonsPool)
 	else
 		button = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
-		button:SetSize(size, size)
 
 		button.text = button:CreateFontString(nil, "OVERLAY")
-		button.Icon = button:CreateTexture(nil, "BACKGROUND")
-		button.Icon:SetAllPoints()
 		button.text:SetPoint("BOTTOM", button, "BOTTOM", 0, 5)
 		button.cooldownFrame = createCooldownFrame(button)
 
@@ -83,6 +89,10 @@ function Housing:CreateSecureHousingButton(tpInfo)
 			self:ClearAllPoints()
 			self:Hide()
 			table.insert(housingButtonsPool, self)
+
+			if MasqueGroup then
+				MasqueGroup:RemoveButton(self)
+			end
 		end
 
 		button:EnableMouse(true)
@@ -105,19 +115,23 @@ function Housing:CreateSecureHousingButton(tpInfo)
 				self.cooldownFrame:CheckCooldown()
 			end
 		end)
+
+		-- Icon
+		button.icon = button:CreateTexture(nil, "BACKGROUND")
+		button.icon:SetAllPoints()
 	end
 
 	-- Textures
-	if button:GetNormalTexture() then
-		button:GetNormalTexture():SetTexture(nil)
-	end
-
 	if self:CanReturn() then
-		button.Icon:SetAtlas("dashboard-panel-homestone-teleport-out-button")
+		button.icon:SetAtlas("dashboard-panel-homestone-teleport-out-button")
 	else
 		local spellTexture =  C_Spell.GetSpellTexture(1263273)
-		button.Icon:SetTexture(spellTexture)
+		button.icon:SetTexture(spellTexture)
 	end
+
+	local zoomFactor = tpm.TEXTURE_SCALE
+	local offset = zoomFactor / 2
+	button.icon:SetTexCoord(offset, 1-offset, offset, 1-offset)
 
 	-- Attributes
 	if self:CanReturn() then
@@ -132,10 +146,14 @@ function Housing:CreateSecureHousingButton(tpInfo)
 	button.cooldownFrame:CheckCooldown()
 	table.insert(activeHousingButtons, button)
 
-	if MasqueGroup then
-		MasqueGroup:AddButton(button, { Icon = button.Icon })
-	end
+	local db = tpm:GetOptions()
+	local size = db["Button:Size"] or 40
+	button:SetSize(size, size)
+	button:Show()
 
+	if MasqueGroup then
+		MasqueGroup:AddButton(button, { Icon = button.icon })
+	end
 	return button
 end
 
@@ -153,6 +171,10 @@ end
 function Housing:HasAPlot()
 	return #houseData > 0
 end
+
+--------------------------------------
+-- Event Handlers
+--------------------------------------
 
 local events = {}
 local f = CreateFrame("Frame")

@@ -19,7 +19,7 @@
 ## Category-zhTW: 介面
 
 ## Author: Justwait
-## Version: v11.6
+## Version: v12
 ## SavedVariables: TeleportMenuDB
 ## OptionalDeps: Masque
 
