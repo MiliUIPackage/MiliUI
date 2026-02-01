@@ -1,4 +1,13 @@
-﻿12.0.01 - 23rd January 2026
+﻿12.0.02 - 28th January 2026
+- Midnight Beta: Updated for game patch 12.0.1.
+- Midnight Beta: For 'Enhance minimap', the 'Show who pinged' setting is not currently available.
+- For 'Automate quests' ('Automation'), fixed a situational issue which caused a Lua error when opening quest windows containing secrets.
+- For 'Automate gossip' ('Automation'), fixed a situational issue which caused a Lua error when opening gossip windows containing secrets.
+- For 'Enhance minimap' ('Interface'), the 'Minimap button bag' setting now has its own cogwheel button above the minimap which you can click to toggle the button bag.  This change is necessary due to game code changes coming in 12.0.1.  The button bag will no longer go off the screen if you have a massive number of minimap buttons.
+- For 'Show cooldowns' ('Interface'), increased the character limit for the spell ID editboxes.  Fixed a minor issue which caused the role icon to be hidden by cooldown icons.
+- For 'Media', added The War Within main title music ('Various' > 'Main Titles').  Added placeholders for Midnight dungeon music.
+
+12.0.01 - 23rd January 2026
 - For 'Invite from whispers' ('Social') fixed an issue which caused a Lua error when receiving secret messages.
 - For 'Recent chat window' ('Chat'), fixed an issue which caused a Lua error when showing chats containing secret messages.
 - For 'Restore chat messages' ('Chat'), fixed an issue which caused a Lua error when saving and restoring chats containing secret messages.

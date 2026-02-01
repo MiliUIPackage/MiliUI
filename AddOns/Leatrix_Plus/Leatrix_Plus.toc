@@ -4,26 +4,17 @@
 ## Title-zhCN: Leatrix Plus [|cffeda55f功能百宝箱|r]
 ## Title-zhTW: Leatrix Plus [|cffeda55f功能百寶箱|r]
 
-## Notes: For support, visit leatrix.com.
-## Notes-zhCN: 哆啦A梦的百宝袋
-## Title-zhTW: |cffffffff[其他]|r 功能百寶箱
-## Notes-zhTW: Leatrix Plus |n|n讓生活更美好的插件，提供多種各式各樣的遊戲功能設定。|n|n|cffffd200使用方法: |r左鍵點小地圖按鈕的藍色閃電，或輸入 /ltp 開啟設定。
-## X-Category-zhTW: 進階
-## Category: Other
-## Category-zhTW: 其他
 ## Notes: curseforge.com/wow/addons/leatrix-plus
-## Notes-deDE: curseforge.com/wow/addons/leatrix-plus
-## Notes-frFR: curseforge.com/wow/addons/leatrix-plus
-## Notes-esES: curseforge.com/wow/addons/leatrix-plus
-## Notes-esMX: curseforge.com/wow/addons/leatrix-plus
-## Notes-ptBR: curseforge.com/wow/addons/leatrix-plus
-## Notes-itIT: curseforge.com/wow/addons/leatrix-plus
-## Notes-ruRU: curseforge.com/wow/addons/leatrix-plus
-## Notes-koKR: curseforge.com/wow/addons/leatrix-plus
 ## Notes-zhTW: curseforge.com/wow/addons/leatrix-plus
 ## Notes-zhCN: curseforge.com/wow/addons/leatrix-plus
+## Category-zhTW: 進階
 
-## Version: 12.0.01
+
+## Title-zhTW: |cffffffff[進階]|r 功能百寶箱
+## Notes-zhTW: Leatrix Plus |n|n讓生活更美好的插件，提供多種各式各樣的遊戲功能設定。|n|n|cffffd200使用方法: |r左鍵點小地圖按鈕的藍色閃電，或輸入 /ltp 開啟設定。
+## Category-zhTW: 其他
+
+## Version: 12.0.02
 ## Author: Leatrix
 ## SavedVariables: LeaPlusDB
 ## LoadSavedVariablesFirst: true

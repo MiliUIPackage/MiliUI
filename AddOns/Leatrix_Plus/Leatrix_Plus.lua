@@ -1,5 +1,5 @@
 ﻿----------------------------------------------------------------------
--- 	Leatrix Plus 12.0.01 (23rd January 2026)
+-- 	Leatrix Plus 12.0.02 (28th January 2026)
 ----------------------------------------------------------------------
 
 --	01:Functions 02:Locks,  03:Restart 40:Player
@@ -18,7 +18,7 @@
 	local void
 
 	-- Version
-	LeaPlusLC["AddonVer"] = "12.0.01"
+	LeaPlusLC["AddonVer"] = "12.0.02"
 
 	-- Get locale table
 	local void, Leatrix_Plus = ...
@@ -34,7 +34,7 @@
 			end)
 			return
 		end
-		if gametocversion and gametocversion >= 120000 then -- 12.0.0
+		if gametocversion and gametocversion >= 120001 then -- 12.0.1
 			LeaPlusLC.NewPatch = true
 		end
 	end
@@ -637,7 +637,7 @@
 		or	(LeaPlusLC["SquareMinimap"]			~= LeaPlusDB["SquareMinimap"])			-- Square minimap
 		or	(LeaPlusLC["HideMiniAddonMenu"]		~= LeaPlusDB["HideMiniAddonMenu"])		-- Hide addon menu
 		or	(LeaPlusLC["UnclampMinimap"]		~= LeaPlusDB["UnclampMinimap"])			-- Unclamp minimap cluster
-		or	(LeaPlusLC["CombineAddonButtons"]	~= LeaPlusDB["CombineAddonButtons"])	-- Combine addon buttons
+		or	(LeaPlusLC["MinimapButtonBag"]		~= LeaPlusDB["MinimapButtonBag"])		-- Minimap button bag
 		or	(LeaPlusLC["MiniExcludeList"]		~= LeaPlusDB["MiniExcludeList"])		-- Minimap exclude list
 		or	(LeaPlusLC["TipModEnable"]			~= LeaPlusDB["TipModEnable"])			-- Enhance tooltip
 		or	(LeaPlusLC["TipNoHealthBar"]		~= LeaPlusDB["TipNoHealthBar"])			-- Tooltip hide health bar
@@ -2559,7 +2559,7 @@
 			gossipFrame:SetScript("OnEvent", function()
 				-- Special treatment for specific NPCs
 				local npcGuid = UnitGUID("npc") or nil -- target does not work with soft targeting
-				if npcGuid then
+				if npcGuid and canaccessvalue(npcGuid) then
 					local void, void, void, void, void, npcID = strsplit("-", npcGuid)
 					if npcID then
 						-- Open rogue doors in Dalaran (Broken Isles) automatically
@@ -2969,7 +2969,7 @@
 			-- Funcion to ignore specific NPCs
 			local function isNpcBlocked(actionType)
 				local npcGuid = UnitGUID("npc") or nil -- npc works when cvar SoftTargetInteract set to 3 (was target)
-				if npcGuid then
+				if npcGuid and canaccessvalue(npcGuid) then
 					local void, void, void, void, void, npcID = strsplit("-", npcGuid)
 					if npcID then
 						-- Ignore specific NPCs for selecting, accepting and turning-in quests (required if automation has consequences)
@@ -5172,6 +5172,35 @@
 			end
 
 			----------------------------------------------------------------------
+			-- Button test mode
+			----------------------------------------------------------------------
+
+			-- Create a ton of minimap buttons for test purposes
+			local useMinimapButtonTestMode = false
+			if useMinimapButtonTestMode then
+				local numberOfTestButtons = 50
+				local miniTable = {}
+				for i = 1, numberOfTestButtons do
+					miniTable[i] = LibStub("LibDataBroker-1.1"):NewDataObject("Leatrix_Plus" .. i, {
+						type = "data source",
+						text = "Test Addon " .. i,
+						icon = "Interface\\HELPFRAME\\ReportLagIcon-Movement",
+						OnClick = function(self, btn)
+							LeaPlusGlobalMiniBtnClickFunc(btn)
+						end,
+						OnTooltipShow = function(tooltip)
+							if not tooltip or not tooltip.AddLine then return end
+							tooltip:AddLine("Test Addon " .. i)
+						end,
+					})
+					miniTable[i].minimapPos = i * 50
+				end
+				for i = 1, numberOfTestButtons do
+					LibStub("LibDBIcon-1.0", true):Register("Leatrix_Plus" .. i, miniTable[i], miniTable[i])
+				end
+			end
+
+			----------------------------------------------------------------------
 			-- Configuration panel
 			----------------------------------------------------------------------
 
@@ -5181,11 +5210,16 @@
 			-- Add checkboxes
 			LeaPlusLC:MakeTx(SideMinimap, "Settings", 16, -72)
 			LeaPlusLC:MakeCB(SideMinimap, "HideMiniAddonButtons", "Hide addon buttons", 16, -92, false, "If checked, addon buttons will be hidden while the pointer is not over the minimap.")
-			LeaPlusLC:MakeCB(SideMinimap, "CombineAddonButtons", "MinimapButtonButton", 16, -112, true, "If checked, minimap buttons for addons will be collected and placed in a frame which you can toggle by right-clicking the minimap.|n|nThis setting will help you declutter the minimap without the need to install a separate addon just to do that.")
+			LeaPlusLC:MakeCB(SideMinimap, "MinimapButtonBag", "Minimap button bag", 16, -112, true, "If checked, minimap buttons for addons will be collected and placed in a bag which you can toggle by clicking the cogwheel above the minimap.|n|nThis setting will help you declutter the minimap without the need to install a separate addon to do that.")
 			LeaPlusLC:MakeCB(SideMinimap, "SquareMinimap", "Square minimap", 16, -132, true, "If checked, the minimap shape will be square.")
 			LeaPlusLC:MakeCB(SideMinimap, "ShowWhoPinged", "Show who pinged", 16, -152, false, "If checked, when someone pings the minimap, their name will be shown.  This does not apply to your pings.")
 			LeaPlusLC:MakeCB(SideMinimap, "HideMiniAddonMenu", "Hide addon menu", 16, -172, true, "If checked, the addon menu will be hidden.|n|nThe addon menu appears as a number in the corner of the minimap if you have any addons installed which make use of it.")
 			LeaPlusLC:MakeCB(SideMinimap, "UnclampMinimap", "Unclamp minimap cluster", 16, -192, true, "If checked, you will be able to drag the minimap cluster to the edge of the screen using Edit Mode.|n|nWhile positioning the minimap with Edit Mode, you may need to disable Snap to position the minimap precisely.")
+
+			-- LeaPlusLC.NewPatch
+			-- Lock item incompatible with 12.0.1
+			LeaPlusLC:LockItem(LeaPlusCB["ShowWhoPinged"], true)
+			LeaPlusCB["ShowWhoPinged"].tiptext = LeaPlusCB["ShowWhoPinged"].tiptext .. "|n|n|cff00AAFF" .. L["Not currently available for Midnight."]
 
 			-- Add excluded button
 			local MiniExcludedButton = LeaPlusLC:CreateButton("MiniExcludedButton", SideMinimap, "Buttons", "TOPLEFT", 16, -72, 0, 25, true, "Click to toggle the addon buttons editor.")
@@ -5194,7 +5228,7 @@
 
 			-- Set exclude button visibility
 			local function SetExcludeButtonsFunc()
-				if LeaPlusLC["HideMiniAddonButtons"] == "On" or LeaPlusLC["CombineAddonButtons"] == "On" then
+				if LeaPlusLC["HideMiniAddonButtons"] == "On" or LeaPlusLC["MinimapButtonBag"] == "On" then
 					LeaPlusLC:LockItem(LeaPlusCB["MiniExcludedButton"], false)
 				else
 					LeaPlusLC:LockItem(LeaPlusCB["MiniExcludedButton"], true)
@@ -5311,7 +5345,7 @@
 				SaveString()
 
 				-- Help button tooltip
-				ExcludedButtonsPanel.h.tiptext = L["If you use the 'Hide addon buttons' or 'Combine addon buttons' settings but you want some addon buttons to remain visible around the minimap, enter the addon names into the editbox separated by a comma.|n|nThe editbox tooltip shows the addon names that you can enter.  The names must match exactly with the names shown in the editbox tooltip though case does not matter.|n|nChanges to the list will require a UI reload to take effect."]
+				ExcludedButtonsPanel.h.tiptext = L["If you use the 'Hide addon buttons' or 'Minimap button bag' settings but you want some addon buttons to remain visible around the minimap, enter the addon names into the editbox separated by a comma.|n|nThe editbox tooltip shows the addon names that you can enter.  The names must match exactly with the names shown in the editbox tooltip though case does not matter.|n|nChanges to the list will require a UI reload to take effect."]
 
 				-- Back button handler
 				ExcludedButtonsPanel.b:SetScript("OnClick", function()
@@ -5379,85 +5413,89 @@
 			-- Show who pinged
 			----------------------------------------------------------------------
 
-			do
+			if not LeaPlusLC.NewPatch then
 
-				-- Create frame
-				local pFrame = CreateFrame("FRAME", nil, Minimap, "BackdropTemplate")
-				pFrame:SetSize(100, 20)
+				do
 
-				-- Set position
-				if LeaPlusLC["SquareMinimap"] == "On" then
-					pFrame:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 0, -3)
-				else
-					pFrame:SetPoint("BOTTOM", Minimap, "BOTTOM", 0, 2)
-				end
+					-- Create frame
+					local pFrame = CreateFrame("FRAME", nil, Minimap, "BackdropTemplate")
+					pFrame:SetSize(100, 20)
 
-				-- Set backdrop
-				pFrame.bg = {
-					bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-					edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-					insets = {left = 4, top = 4, right = 4, bottom = 4},
-					edgeSize = 16,
-					tile = true,
-				}
+					-- Set position
+					if LeaPlusLC["SquareMinimap"] == "On" then
+						pFrame:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 0, -3)
+					else
+						pFrame:SetPoint("BOTTOM", Minimap, "BOTTOM", 0, 2)
+					end
 
-				pFrame:SetBackdrop(pFrame.bg)
-				pFrame:SetBackdropColor(0, 0, 0, 0.7)
-				pFrame:SetBackdropBorderColor(0, 0, 0, 0)
+					-- Set backdrop
+					pFrame.bg = {
+						bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+						edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+						insets = {left = 4, top = 4, right = 4, bottom = 4},
+						edgeSize = 16,
+						tile = true,
+					}
 
-				-- Create fontstring
-				pFrame.f = pFrame:CreateFontString(nil, nil, "GameFontNormalSmall")
-				pFrame.f:SetAllPoints()
-				pFrame:Hide()
+					pFrame:SetBackdrop(pFrame.bg)
+					pFrame:SetBackdropColor(0, 0, 0, 0.7)
+					pFrame:SetBackdropBorderColor(0, 0, 0, 0)
 
-				-- Set variables
-				local pingTime
-				local lastUnit, lastX, lastY = "player", 0, 0
+					-- Create fontstring
+					pFrame.f = pFrame:CreateFontString(nil, nil, "GameFontNormalSmall")
+					pFrame.f:SetAllPoints()
+					pFrame:Hide()
 
-				-- Show who pinged
-				pFrame:SetScript("OnEvent", function(void, void, unit, x, y)
+					-- Set variables
+					local pingTime
+					local lastUnit, lastX, lastY = "player", 0, 0
 
-					-- Do nothing if unit is you or unit has not changed
-					if UnitIsUnit(unit, "player") or UnitIsUnit(unit, lastUnit) and x == lastX and y == lastY then return end
-					lastUnit, lastX, lastY = unit, x, y
+					-- Show who pinged
+					pFrame:SetScript("OnEvent", function(void, void, unit, x, y)
 
-					-- Show name in class color
-					local void, class = UnitClass(unit)
-					if class then
-						local color = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[class] or RAID_CLASS_COLORS[class]
-						if color then
+						-- Do nothing if unit is you or unit has not changed
+						if UnitIsUnit(unit, "player") or UnitIsUnit(unit, lastUnit) and x == lastX and y == lastY then return end
+						lastUnit, lastX, lastY = unit, x, y
 
-							-- Set frame details
-							pFrame.f:SetFormattedText("|cff%02x%02x%02x%s|r", color.r * 255, color.g * 255, color.b * 255, UnitName(unit))
-							pFrame:SetSize(pFrame.f:GetUnboundedStringWidth() + 12, 20)
+						-- Show name in class color
+						local void, class = UnitClass(unit)
+						if class then
+							local color = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[class] or RAID_CLASS_COLORS[class]
+							if color then
 
-							-- Hide frame after 5 seconds
-							pFrame:Show()
-							pingTime = GetTime()
-							C_Timer.After(5, function()
-								if GetTime() - pingTime >= 5 then
-								pFrame:Hide()
-								end
-							end)
+								-- Set frame details
+								pFrame.f:SetFormattedText("|cff%02x%02x%02x%s|r", color.r * 255, color.g * 255, color.b * 255, UnitName(unit))
+								pFrame:SetSize(pFrame.f:GetUnboundedStringWidth() + 12, 20)
 
+								-- Hide frame after 5 seconds
+								pFrame:Show()
+								pingTime = GetTime()
+								C_Timer.After(5, function()
+									if GetTime() - pingTime >= 5 then
+									pFrame:Hide()
+									end
+								end)
+
+							end
+						end
+
+					end)
+
+					-- Set event when option is clicked and on startup
+					local function SetPingFunc()
+						if LeaPlusLC["ShowWhoPinged"] == "On" then
+							pFrame:RegisterEvent("MINIMAP_PING")
+						else
+							pFrame:UnregisterEvent("MINIMAP_PING")
+							if pFrame:IsShown() then pFrame:Hide() end
 						end
 					end
 
-				end)
+					LeaPlusLC.SetPingFunc = SetPingFunc
+					LeaPlusCB["ShowWhoPinged"]:HookScript("OnClick", SetPingFunc)
+					SetPingFunc()
 
-				-- Set event when option is clicked and on startup
-				local function SetPingFunc()
-					if LeaPlusLC["ShowWhoPinged"] == "On" then
-						pFrame:RegisterEvent("MINIMAP_PING")
-					else
-						pFrame:UnregisterEvent("MINIMAP_PING")
-						if pFrame:IsShown() then pFrame:Hide() end
-					end
 				end
-
-				LeaPlusLC.SetPingFunc = SetPingFunc
-				LeaPlusCB["ShowWhoPinged"]:HookScript("OnClick", SetPingFunc)
-				SetPingFunc()
 
 			end
 
@@ -5477,19 +5515,20 @@
 			SetClusterScale()
 
 			----------------------------------------------------------------------
-			-- Combine addon buttons
+			-- Minimap button bag
 			----------------------------------------------------------------------
 
-			if LeaPlusLC["CombineAddonButtons"] == "On" then
+			if LeaPlusLC["MinimapButtonBag"] == "On" then
 
 				-- Lock out hide minimap buttons
 				LeaPlusLC:LockItem(LeaPlusCB["HideMiniAddonButtons"], true)
-				LeaPlusCB["HideMiniAddonButtons"].tiptext = LeaPlusCB["HideMiniAddonButtons"].tiptext .. "|n|n|cff00AAFF" .. L["Cannot be used with Combine addon buttons."]
+				LeaPlusCB["HideMiniAddonButtons"].tiptext = LeaPlusCB["HideMiniAddonButtons"].tiptext .. "|n|n|cff00AAFF" .. L["Cannot be used with Minimap button bag."]
 
 				-- Create button frame
 				local bFrame = CreateFrame("FRAME", nil, UIParent)
 				bFrame:ClearAllPoints()
 				bFrame:SetPoint("TOPLEFT", Minimap, "TOPRIGHT", 4, 4)
+				bFrame:SetClampedToScreen(true)
 				bFrame:Hide()
 
 				-- Set top level to ensure button frame shows on top of frames such as the main action bar
@@ -5566,10 +5605,31 @@
 				-- Hide new LibDBIcon icons
 				-- LibDBIcon_IconCreated: Done in LibDBIcon callback function
 
+				-- Create minimap button bag button
+				MinimapZoneText:SetWidth(MinimapZoneText:GetWidth() - 26)
+				MinimapCluster.ZoneTextButton:SetHitRectInsets(16, 0, 0, 0)
+
+				local mbtn = CreateFrame("Button", nil, MinimapCluster.BorderTop)
+				mbtn:Show()
+				mbtn:SetSize(18, 18)
+				mbtn:SetPoint("LEFT", MinimapCluster.BorderTop, "LEFT", -2, 0)
+				mbtn:SetNormalTexture("Interface\\WorldMap\\Gear_64.png")
+				mbtn:GetNormalTexture():SetTexCoord(0, 0.50, 0, 0.50)
+				mbtn:GetNormalTexture():SetVertexColor(1.0, 0.82, 0, 1.0)
+				mbtn:SetHighlightTexture("Interface\\WorldMap\\Gear_64.png")
+				mbtn:GetHighlightTexture():SetTexCoord(0, 0.50, 0, 0.50)
+
+				mbtn:HookScript("OnEnter", function()
+					 GameTooltip:SetOwner(mbtn, "ANCHOR_LEFT")
+					 GameTooltip:SetText(L["Minimap Button Bag"], 1, 1, 1)
+					 GameTooltip:AddLine(L["A feature of Leatrix Plus."], nil, nil, nil, true)
+					 GameTooltip:Show()
+				end)
+				mbtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
+
 				-- Toggle button frame
-				local MiniUpScript = Minimap:GetScript("OnMouseUp")
-				Minimap:SetScript("OnMouseUp", function(frame, button)
-					if button == "RightButton" then
+				mbtn:SetScript("OnMouseDown", function(frame, button)
+					if button == "LeftButton" or button == "RightButton" then
 						if bFrame:IsShown() then
 							bFrame:Hide()
 						else bFrame:Show()
@@ -5647,8 +5707,6 @@
 								end
 							end
 						end
-					else
-						MiniUpScript(frame, button)
 					end
 				end)
 
@@ -5815,7 +5873,7 @@
 					-- Function to anchor the tooltip to the custom button or the minimap
 					local function ReanchorTooltip(tip, myButton)
 						tip:ClearAllPoints()
-						if LeaPlusLC["CombineAddonButtons"] == "On" then
+						if LeaPlusLC["MinimapButtonBag"] == "On" then
 							if LeaPlusLC.bFrame and LeaPlusLC.bFrame:GetPoint() == "BOTTOMLEFT" then
 								tip:SetPoint("TOPLEFT", Minimap, "BOTTOMLEFT", 0, -6)
 							else
@@ -6002,7 +6060,7 @@
 			-- Hide addon buttons
 			----------------------------------------------------------------------
 
-			if LeaPlusLC["CombineAddonButtons"] == "Off" then
+			if LeaPlusLC["MinimapButtonBag"] == "Off" then
 
 				-- Function to set button state
 				local function SetHideButtons()
@@ -6089,8 +6147,8 @@
 			-- LibDBIcon callback (search LibDBIcon_IconCreated to find calls to this)
 			LibDBIconStub.RegisterCallback(miniFrame, "LibDBIcon_IconCreated", function(self, button, name)
 
-				-- Combine addon buttons: Hide new LibDBIcon icons
-				if LeaPlusLC["CombineAddonButtons"] == "On" then
+				-- Minimap button bag: Hide new LibDBIcon icons
+				if LeaPlusLC["MinimapButtonBag"] == "On" then
 					--C_Timer.After(0.1, function() -- Removed for now
 						local buttonName = strlower(name)
 
@@ -6118,7 +6176,7 @@
 				end
 
 				-- Hide addon buttons: Hide new LibDBIcon icons
-				if LeaPlusLC["CombineAddonButtons"] == "Off" then
+				if LeaPlusLC["MinimapButtonBag"] == "Off" then
 					local buttonName = strlower(name)
 					if LeaPlusLC["HideMiniAddonButtons"] == "On" then
 						-- Hide addon buttons is enabled
@@ -8581,7 +8639,7 @@
 			local function MakeSpellEB(num, x, y, tab, shifttab)
 
 				-- Create editbox for spell ID
-                SpellEB[num] = LeaPlusLC:CreateEditBox("Spell" .. num, CooldownPanel, 70, 6, "TOPLEFT", x, y - 20, "Spell" .. tab, "Spell" .. shifttab)
+                SpellEB[num] = LeaPlusLC:CreateEditBox("Spell" .. num, CooldownPanel, 80, 8, "TOPLEFT", x, y - 20, "Spell" .. tab, "Spell" .. shifttab)
 				SpellEB[num]:SetNumeric(true)
 
 				-- Set initial value (for current spec)
@@ -8597,14 +8655,14 @@
 				end)
 
 				-- Create checkbox for pet cooldown
-				LeaPlusLC:MakeCB(CooldownPanel, "Spell" .. num .."Pet", "", 462, y - 20, false, "")
+				LeaPlusLC:MakeCB(CooldownPanel, "Spell" .. num .."Pet", "", 472, y - 20, false, "")
 				LeaPlusCB["Spell" .. num .."Pet"]:SetHitRectInsets(0, 0, 0, 0)
 
 			end
 
 			-- Add titles
 			LeaPlusLC:MakeTx(CooldownPanel, "Spell ID", 384, -92)
-			LeaPlusLC:MakeTx(CooldownPanel, "Pet", 462, -92)
+			LeaPlusLC:MakeTx(CooldownPanel, "Pet", 472, -92)
 
 			-- Add editboxes and checkboxes
 			MakeSpellEB(1, 386, -92, "2", "5")
@@ -8791,6 +8849,36 @@
 
 			-- Add spell ID to tooltip when target frame buffs are hovered
 			hooksecurefunc(GameTooltip, 'SetUnitBuff', CooldownIDFunc)
+
+			-- Move player and target frame party leader icon
+			local void, playerParent = PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual.LeaderIcon:GetPoint()
+			local void, targetParent = TargetFrame.TargetFrameContent.TargetFrameContentContextual.LeaderIcon:GetPoint()
+
+			local function SetPartyLeaderIcon()
+				if LeaPlusLC["CooldownsOnPlayer"] == "On" then
+					if LeaPlusLC["ShowPlayerChain"] == "On" then
+						PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual.LeaderIcon:ClearAllPoints()
+						PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual.LeaderIcon:SetPoint("TOPLEFT", playerParent, "TOPLEFT", 70, 0)
+					else
+						PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual.LeaderIcon:ClearAllPoints()
+						PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual.LeaderIcon:SetPoint("TOPLEFT", playerParent, "TOPLEFT", 70, -6)
+					end
+				else
+					PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual.LeaderIcon:ClearAllPoints()
+					PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual.LeaderIcon:SetPoint("TOPLEFT", playerParent, "TOPLEFT", 86, -10)
+				end
+
+				if LeaPlusLC["CooldownsOnPlayer"] == "On" then
+					TargetFrame.TargetFrameContent.TargetFrameContentContextual.LeaderIcon:ClearAllPoints()
+					TargetFrame.TargetFrameContent.TargetFrameContentContextual.LeaderIcon:SetPoint("TOPRIGHT", targetParent, "TOPRIGHT", -85, -8)
+				else
+					TargetFrame.TargetFrameContent.TargetFrameContentContextual.LeaderIcon:ClearAllPoints()
+					TargetFrame.TargetFrameContent.TargetFrameContentContextual.LeaderIcon:SetPoint("TOPRIGHT", targetParent, "TOPRIGHT", -70, -5)
+				end
+			end
+
+			LeaPlusCB["CooldownsOnPlayer"]:HookScript("OnClick", SetPartyLeaderIcon)
+			SetPartyLeaderIcon()
 
 		end
 
@@ -10771,6 +10859,7 @@
 					if LeaPlusDB[oldvar] and not LeaPlusDB[newvar] then LeaPlusDB[newvar] = LeaPlusDB[oldvar]; LeaPlusDB[oldvar] = nil end
 				end
 
+				UpdateVars("CombineAddonButtons", "MinimapButtonBag")		-- 12.0.00 (24th January 2026)
 				UpdateVars("MinimapMod", "MinimapModder")					-- 9.2.26 (24th August 2022)
 				UpdateVars("RestorechatMessages", "RestoreChatMessages")	-- 9.2.36 (20th September 2022)
 
@@ -10907,7 +10996,7 @@
 				LeaPlusLC:LoadVarChk("ShowWhoPinged", "On")					-- Show who pinged
 				LeaPlusLC:LoadVarChk("HideMiniAddonMenu", "On")				-- Hide addon menu
 				LeaPlusLC:LoadVarChk("UnclampMinimap", "Off")				-- Unclamp minimap cluster
-				LeaPlusLC:LoadVarChk("CombineAddonButtons", "Off")			-- Combine addon buttons
+				LeaPlusLC:LoadVarChk("MinimapButtonBag", "Off")				-- Minimap button bag
 				LeaPlusLC:LoadVarStr("MiniExcludeList", "")					-- Minimap exclude list
 				LeaPlusLC:LoadVarChk("HideMiniAddonButtons", "On")			-- Hide addon buttons
 				LeaPlusLC:LoadVarNum("MinimapBorderWidth", 3, 1, 10)		-- Minimap border width
@@ -11271,7 +11360,7 @@
 			LeaPlusDB["ShowWhoPinged"]			= LeaPlusLC["ShowWhoPinged"]
 			LeaPlusDB["HideMiniAddonMenu"]		= LeaPlusLC["HideMiniAddonMenu"]
 			LeaPlusDB["UnclampMinimap"]			= LeaPlusLC["UnclampMinimap"]
-			LeaPlusDB["CombineAddonButtons"]	= LeaPlusLC["CombineAddonButtons"]
+			LeaPlusDB["MinimapButtonBag"]		= LeaPlusLC["MinimapButtonBag"]
 			LeaPlusDB["MiniExcludeList"] 		= LeaPlusLC["MiniExcludeList"]
 			LeaPlusDB["HideMiniAddonButtons"]	= LeaPlusLC["HideMiniAddonButtons"]
 			LeaPlusDB["MinimapBorderWidth"]		= LeaPlusLC["MinimapBorderWidth"]
@@ -12183,17 +12272,6 @@
 			elseif str == "zygor" then
 				-- Toggle Zygor addon
 				LeaPlusLC:ZygorToggle()
-				return
-			elseif str == "npcid" then
-				-- Print NPC ID
-				local npcName = UnitName("target")
-				local npcGuid = UnitGUID("target") or nil
-				if npcName and npcGuid then
-					local void, void, void, void, void, npcID = strsplit("-", npcGuid)
-					if npcID then
-						LeaPlusLC:Print(npcName .. ": |cffffffff" .. npcID)
-					end
-				end
 				return
 			elseif str == "id" then
 				pcall(function()
@@ -13998,7 +14076,7 @@
 				LeaPlusDB["ShowWhoPinged"] = "On"				-- Show who pinged
 				LeaPlusDB["HideMiniAddonMenu"] = "On"			-- Hide addon menu
 				LeaPlusDB["UnclampMinimap"] = "On"				-- Unclamp minimap cluster
-				LeaPlusDB["CombineAddonButtons"] = "On"			-- Combine addon buttons
+				LeaPlusDB["MinimapButtonBag"] = "On"			-- Minimap button bag
 				LeaPlusDB["MiniExcludeList"] = "BugSack, Leatrix_Plus" -- Excluded addon list
 				LeaPlusDB["MinimapBorderWidth"] = 3				-- Minimap border width
 				LeaPlusDB["MiniClusterScale"] = 1				-- Minimap cluster scale

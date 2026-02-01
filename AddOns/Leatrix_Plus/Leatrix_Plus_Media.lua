@@ -743,6 +743,26 @@
 	--	"mus_1100_lost_mines#265028",
 	--})
 
+	-- LeaPlusLC.NewPatch: Dungeons: Midnight (uncomment for 12.0.1)
+	Zn(L["Dungeons"], L["Midnight"], "|cffffd800", {""})
+	Zn(L["Dungeons"], L["Midnight"], "|cffffd800" .. L["Midnight"], {""})
+	Zn(L["Dungeons"], L["Midnight"], L["Blinding Vale"], {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Blinding Vale"], prefol,
+		-- Blinding Vale
+		--"theblindingvale_1#334584", "theblindingvale_2#336175", "theblindingvale_3#334586", "theblindingvale_4#337763", "theblindingvale_5#336751",
+	})
+	Zn(L["Dungeons"], L["Midnight"], L["Maisara Caverns"], {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Maisara Caverns"], prefol,
+		-- Maisara Caverns
+		--"mus_1100_maddening_deep_01#265382",
+	})
+	Zn(L["Dungeons"], L["Midnight"], L["Nexus-Point Xenas"], {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Nexus-Point Xenas"], prefol,
+		-- Nexus-Point Xenas
+		--"nexuspointxenas#335439",
+	})
+	Zn(L["Dungeons"], L["Midnight"], L["Voidscar Arena"], {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Voidscar Arena"], prefol,
+		-- Voidscar Arena
+		--"voidscararena_335461",
+	})
+
 	----------------------------------------------------------------------
 	-- Various
 	----------------------------------------------------------------------
@@ -981,14 +1001,16 @@
 	Zn(L["Various"], L["Various"], L["Main Titles"]								, {	"|cffffd800" .. L["Various"] .. ": " .. L["Main Titles"], prefol,
 		"GS_Retail#10924",
 		"GS_BurningCrusade#10925",
-		"GS_LichKing#12765", "GS_Cataclysm#23640",
+		"GS_LichKing#12765",
+		"GS_Cataclysm#23640",
 		"MUS_50_HeartofPandaria_MainTitle#28509",
 		"MUS_60_MainTitle#40169",
 		"MUS_70_MainTitle#56353",
 		"MUS_80_MainTitle#113559",
 		"MUS_90_MainTitle#170711",
-		"MUS_100_theislesawaken_maintitle#218033",
-		"mus_120_midnight_maintitle_beta.mp3#325421", -- Beta
+		"MUS_100_TheIslesAwaken_MainTitle#218033",
+		"MUS_110_TheWarWithin_MainTitle#262929",
+		"MUS_120_Midnight_Maintitle_Beta.mp3#325421", -- Beta
 	}) -- "MUS_1.0_MainTitle_Original#47598"
 
 	Zn(L["Various"], L["Various"], L["Music Rolls"]								, {	"|cffffd800" .. L["Various"] .. ": " .. L["Music Rolls"], prefol, "MUS_61_GarrisonMusicBox_01#49511", "MUS_61_GarrisonMusicBox_02#49512", "MUS_61_GarrisonMusicBox_03#49513", "MUS_61_GarrisonMusicBox_04#49514", "MUS_61_GarrisonMusicBox_05#49515", "MUS_61_GarrisonMusicBox_06#49516", "MUS_61_GarrisonMusicBox_07#49529", "MUS_61_GarrisonMusicBox_08#49530", "MUS_61_GarrisonMusicBox_09#49531", "MUS_61_GarrisonMusicBox_10#49533", "MUS_61_GarrisonMusicBox_11#49535", "MUS_61_GarrisonMusicBox_12#49536", "MUS_61_GarrisonMusicBox_13#49538", "MUS_61_GarrisonMusicBox_14#49539", "MUS_61_GarrisonMusicBox_15#49540", "MUS_61_GarrisonMusicBox_16#49541", "MUS_61_GarrisonMusicBox_17#49543", "MUS_61_GarrisonMusicBox_18#49544", "MUS_61_GarrisonMusicBox_19#49545", "MUS_61_GarrisonMusicBox_20#49546", "MUS_61_GarrisonMusicBox_21#49526", "MUS_61_GarrisonMusicBox_22#49528", "MUS_61_GarrisonMusicBox_23_Alliance#49517", "MUS_61_GarrisonMusicBox_24_Alliance#49518", "MUS_61_GarrisonMusicBox_25_Alliance#49519", "MUS_61_GarrisonMusicBox_26_Alliance#49520", "MUS_61_GarrisonMusicBox_27_Alliance#49521", "MUS_61_GarrisonMusicBox_28_Alliance#49522", "MUS_61_GarrisonMusicBox_29_Alliance#49523", "MUS_61_GarrisonMusicBox_30_Alliance#49524", "MUS_61_GarrisonMusicBox_31_Alliance#49525", "MUS_61_GarrisonMusicBox_23_Horde#49555", "MUS_61_GarrisonMusicBox_24_Horde#49554", "MUS_61_GarrisonMusicBox_25_Horde#49553", "MUS_61_GarrisonMusicBox_26_Horde#49552", "MUS_61_GarrisonMusicBox_27_Horde#49551", "MUS_61_GarrisonMusicBox_28_Horde#49550", "MUS_61_GarrisonMusicBox_29_Horde#49549", "MUS_61_GarrisonMusicBox_30_Horde#49548", "MUS_61_GarrisonMusicBox_31_Horde#49547",})
