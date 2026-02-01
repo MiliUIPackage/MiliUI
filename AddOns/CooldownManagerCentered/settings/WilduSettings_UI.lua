@@ -1231,20 +1231,6 @@ local function WilduSettings_BuildCooldown(category, layout)
         parentSection = keybindsSection,
     })
 
-    if C_AddOns.GetAddOnEnableState("Dominos", UnitGUID("player")) > 0 then
-        SettingsLib:CreateText(category, {
-            name = "|cffff0000Dominos detected|r - keybinds module may not function correctly with Dominos\naction bars |cffff00002 and 7,8,9,10,11|r - Those are |cffff0000not supported yet.|r",
-            parentSection = keybindsSection,
-        })
-    end
-
-    if C_AddOns.GetAddOnEnableState("ElvUI", UnitGUID("player")) > 0 then
-        SettingsLib:CreateText(category, {
-            name = "|cffff0000ElvUI detected|r - keybinds module may not function correctly with ElvUI\naction bars |cffff00002 and 7,8,9,10|r - Those are |cffff0000not supported yet.|r",
-            parentSection = keybindsSection,
-        })
-    end
-
     SettingsLib:CreateScrollDropdown(category, {
         parentSection = keybindsSection,
         prefix = "CMC_",

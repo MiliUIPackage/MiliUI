@@ -16,15 +16,7 @@ end
 
 local isModuleEnabled = false
 local areHooksInitialized = false
-
-local function IsDominosLoaded()
-    return C_AddOns.IsAddOnLoaded("Dominos")
-end
-local function IsElvUILoaded()
-    return C_AddOns.IsAddOnLoaded("ElvUI")
-end
-local NUM_ACTIONBAR_BUTTONS = 12
-local MAX_ACTION_SLOTS = 180
+local spellIDToKeyBindCache = {}
 
 local viewersSettingKey = {
     EssentialCooldownViewer = "Essential",
@@ -119,165 +111,169 @@ local function GetFormattedKeybind(key)
     return upperKey
 end
 
-local function CalculateActionSlot(buttonID, barType)
-    local page = GetActionBarPage and GetActionBarPage() or 1
-    local bonusOffset = GetBonusBarOffset and GetBonusBarOffset() or 0
-
-    if barType == "main" then
-        if bonusOffset > 0 then
-            page = 6 + bonusOffset
-        end
-    elseif barType == "multibarbottomleft" then
-        page = 5
-    elseif barType == "multibarbottomright" then
-        page = 6
-    elseif barType == "multibarright" then
-        page = 3
-    elseif barType == "multibarleft" then
-        page = 4
-    elseif barType == "multibar5" then
-        page = 13
-    elseif barType == "multibar6" then
-        page = 14
-    elseif barType == "multibar7" then
-        page = 15
-    end
-
-    return math.max(1, math.min(buttonID, NUM_ACTIONBAR_BUTTONS)) + ((math.max(1, page) - 1) * NUM_ACTIONBAR_BUTTONS)
-end
-
--- Build slot -> bindingKey mapping
-local function GetSlotToBindingMapping()
-    local mapping = {}
-
-    -- Main action bar
-    for buttonID = 1, NUM_ACTIONBAR_BUTTONS do
-        local slot = CalculateActionSlot(buttonID, "main")
-        mapping[slot] = "ACTIONBUTTON" .. buttonID
-    end
-
-    local barMappings = {
-        {
-            barType = "multibarbottomleft",
-            pattern = "MULTIACTIONBAR2BUTTON",
-        },
-        {
-            barType = "multibarbottomright",
-            pattern = "MULTIACTIONBAR1BUTTON",
-        },
-        { barType = "multibarright", pattern = "MULTIACTIONBAR3BUTTON" },
-        { barType = "multibarleft", pattern = "MULTIACTIONBAR4BUTTON" },
-        { barType = "multibar5", pattern = "MULTIACTIONBAR5BUTTON" },
-        { barType = "multibar6", pattern = "MULTIACTIONBAR6BUTTON" },
-        { barType = "multibar7", pattern = "MULTIACTIONBAR7BUTTON" },
-    }
-
-    for _, barData in ipairs(barMappings) do
-        for buttonID = 1, NUM_ACTIONBAR_BUTTONS do
-            local slot = CalculateActionSlot(buttonID, barData.barType)
-            mapping[slot] = barData.pattern .. buttonID
-        end
-    end
-
-    return mapping
-end
-
--- Build slot -> keybind mapping (raw keys)
-local function GetSlotToKeybindMapping()
-    local slotMapping = GetSlotToBindingMapping()
-    _WTD.slotMapping = slotMapping
-    local result = {}
-
-    for slot, bindingKey in pairs(slotMapping) do
-        local key = GetBindingKey(bindingKey)
-        if key and key ~= "" then
-            result[slot] = key
-        end
-    end
-
-    return result
-end
-
-local orderOfSlots = {
-    ["blizz"] = {
-        [2] = 5,
-        [3] = 4,
-        [4] = 2,
-        [5] = 3,
-        [6] = 12,
-        [7] = 13,
-        [8] = 14,
+local ButtonRowsPrefix = {
+    ["blizzard"] = {
+        [1] = "ActionButton",
+        [2] = "MultiBarBottomLeftButton",
+        [3] = "MultiBarBottomRightButton",
+        [4] = "MultiBarRightButton",
+        [5] = "MultiBarLeftButton",
+        [6] = "MultiBar5Button",
+        [7] = "MultiBar6Button",
+        [8] = "MultiBar7Button",
+    },
+    ["elvui"] = {
+        [1] = "ElvUI_Bar1Button",
+        [2] = "ElvUI_Bar2Button",
+        [3] = "ElvUI_Bar3Button",
+        [4] = "ElvUI_Bar4Button",
+        [5] = "ElvUI_Bar5Button",
+        [6] = "ElvUI_Bar6Button",
+        [7] = "ElvUI_Bar7Button",
+        [8] = "ElvUI_Bar8Button",
+        [9] = "ElvUI_Bar9Button",
+        [10] = "ElvUI_Bar10Button",
+        [11] = nil,
+        [12] = nil,
+        [13] = "ElvUI_Bar13Button",
+        [14] = "ElvUI_Bar14Button",
+        [15] = "ElvUI_Bar15Button",
+    },
+    ["dominos"] = {
+        [1] = "DominosActionButton",
+        [2] = "DominosActionButton",
+        [3] = "MultiBarRightActionButton",
+        [4] = "MultiBarLeftActionButton",
+        [5] = "MultiBarBottomRightActionButton",
+        [6] = "MultiBarBottomLeftActionButton",
+        [7] = "DominosActionButton",
+        [8] = "DominosActionButton",
+        [9] = "DominosActionButton",
+        [10] = "DominosActionButton",
+        [11] = "DominosActionButton",
+        [12] = "MultiBar5ActionButton",
+        [13] = "MultiBar6ActionButton",
+        [14] = "MultiBar7ActionButton",
     },
 }
 
-_WTD = {}
-
-function Keybinds:GetActionsTableBySpellId()
+function Keybinds:GetActionsTableBySpellId(slotToKeybind)
     PrintDebug("Building Actions Table By Spell ID")
 
-    local mainBarStartSlot = 1
-    local mainBarEndSlot = 12
+    local spellIdToKeyBind = {}
 
-    if GetBonusBarOffset() > 0 then
-        mainBarStartSlot = 72 + (GetBonusBarOffset() - 1) * NUM_ACTIONBAR_BUTTONS + 1
-        mainBarEndSlot = mainBarStartSlot + NUM_ACTIONBAR_BUTTONS - 1
+    local function assignResultForSlot(slot, keyBind)
+        local actionType, id, subType = GetActionInfo(slot)
+        if not spellIdToKeyBind[id] then
+            if (actionType == "macro" and subType == "spell") or (actionType == "spell") then
+                spellIdToKeyBind[id] = keyBind
+            elseif actionType == "macro" then
+                local macroSpellID = GetMacroSpell(id)
+                if macroSpellID then
+                    spellIdToKeyBind[macroSpellID] = keyBind
+                end
+            end
+        end
     end
-    if C_ActionBar.GetActionBarPage() == 2 then
-        mainBarStartSlot = 13
-        mainBarEndSlot = 24
-    end
-    local result = {}
+    if DominosActionButton1 then
+        for i = 1, 14 do
+            local bar = ButtonRowsPrefix["dominos"][i]
 
-    function analyzeRange(start, endd)
-        for slot = start, endd do
-            local actionType, id, subType = GetActionInfo(slot)
-            if not result[id] then
-                if (actionType == "macro" and subType == "spell") or (actionType == "spell") then
-                    result[id] = slot
-                elseif actionType == "macro" then
-                    local macroSpellID = GetMacroSpell(id)
-                    if macroSpellID then
-                        result[macroSpellID] = slot
+            if bar then
+                for j = 1, 12 do
+                    local buttonName = bar
+                    if bar == "DominosActionButton" then
+                        buttonName = bar .. ((i - 1) * 12 + j)
+                    else
+                        buttonName = bar .. j
+                    end
+                    local button = _G[buttonName]
+                    local slot = button and button.action
+                    local keyBind = button and button.HotKey and button.HotKey:GetText()
+                    if button and slot and keyBind and keyBind ~= "●" then
+                        assignResultForSlot(slot, keyBind)
+                    end
+                end
+            end
+        end
+    elseif BT4Button1 then
+        for i = 1, 180 do
+            local button = _G["BT4Button" .. i]
+
+            if button then
+                local slot = button and button.action
+                local keyBind = button and button.HotKey and button.HotKey:GetText()
+                if button and slot and keyBind and keyBind ~= "●" then
+                    assignResultForSlot(slot, keyBind)
+                end
+            end
+        end
+    elseif ElvUI_Bar1Button1 then
+        for i = 1, 15 do
+            local bar = ButtonRowsPrefix["elvui"][i]
+
+            if bar then
+                for j = 1, 12 do
+                    local buttonName = bar .. j
+                    local button = _G[buttonName]
+                    local slot = button and button.action
+                    if button and slot and button.config then
+                        local keyBind = GetBindingKey(button.config.keyBoundTarget)
+                        if keyBind then
+                            assignResultForSlot(slot, keyBind)
+                        end
+                    end
+                end
+            end
+        end
+    else
+        for i = 1, 8 do
+            local bar = ButtonRowsPrefix["blizzard"][i]
+
+            if bar then
+                for j = 1, 12 do
+                    local buttonName = bar .. j
+                    local button = _G[buttonName]
+                    local slot = button and button.action
+                    local keyBoundTarget = button and button.commandName
+                    if button and slot and keyBoundTarget then
+                        local keyBind = GetBindingKey(keyBoundTarget)
+                        if keyBind then
+                            assignResultForSlot(slot, keyBind)
+                        end
                     end
                 end
             end
         end
     end
-    analyzeRange(mainBarStartSlot, mainBarEndSlot)
-
-    for i = 2, 8 do
-        local slot = orderOfSlots["blizz"][i]
-        analyzeRange((slot * 12) + 1, ((slot + 1) * 12))
-    end
-    return result
+    return spellIdToKeyBind
 end
+_WTD = {}
+local function BuildSpellKeyBindMapping()
+    local spellIDToKeyBind = Keybinds:GetActionsTableBySpellId()
 
--- Build spellID -> formatted keybind mapping (one keybind per spell, one spell per keybind)
-local function BuildSpellKeybindMapping()
-    local spellIdToSlot = Keybinds:GetActionsTableBySpellId()
-    local slotToKeybind = GetSlotToKeybindMapping()
+    local spellIDToKeyBindFormatted = {}
 
-    local spellToKeybind = {} -- spellID -> formatted keybind
-    local usedKeybinds = {} -- keybind -> true (to ensure one spell per keybind)
-
-    for spellID, slot in pairs(spellIdToSlot) do
-        local rawKey = slotToKeybind[slot]
-        if rawKey and rawKey ~= "" then
+    for spellID, rawKey in pairs(spellIDToKeyBind) do
+        if rawKey and rawKey ~= "" and rawKey ~= "●" and not spellIDToKeyBindFormatted[spellID] then
             local formattedKey = GetFormattedKeybind(rawKey)
-            if formattedKey ~= "" and not usedKeybinds[formattedKey] then
-                spellToKeybind[spellID] = formattedKey
-                usedKeybinds[formattedKey] = true
+            if formattedKey ~= "" then
+                spellIDToKeyBindFormatted[spellID] = formattedKey
             end
         end
     end
-    _WTD.spellIdToSlot = spellIdToSlot
-    _WTD.slotToKeybind = slotToKeybind
-    _WTD.spellToKeybind = spellToKeybind
-
-    return spellToKeybind
+    for spellID, keyBind in pairs(spellIDToKeyBindCache) do
+        if not spellIDToKeyBindFormatted[spellID] then
+            spellIDToKeyBindFormatted[spellID] = keyBind
+        end
+    end
+    _WTD.spellIdToKeyBind = spellIDToKeyBind
+    _WTD.spellIDToFormattedKeyBind = spellIDToKeyBindFormatted
+    spellIDToKeyBindCache = spellIDToKeyBindFormatted
+    return spellIDToKeyBindFormatted
 end
 
-function Keybinds:FindKeybindForSpell(spellID, spellToKeybind)
+function Keybinds:FindKeyBindForSpell(spellID, spellToKeybind)
     if not spellID or spellID == 0 then
         return ""
     end
@@ -396,8 +392,7 @@ local function UpdateViewerKeybinds(viewerName)
 
     PrintDebug("UpdateViewerKeybinds for", viewerName)
 
-    local spellToKeybind = BuildSpellKeybindMapping()
-    local usedKeybinds = {} -- Track keybinds already assigned to an icon in this viewer
+    local spellToKeybind = BuildSpellKeyBindMapping()
 
     local children = { viewerFrame:GetChildren() }
     for _, child in ipairs(children) do
@@ -406,7 +401,7 @@ local function UpdateViewerKeybinds(viewerName)
             local keybind = ""
 
             if spellID then
-                keybind = Keybinds:FindKeybindForSpell(spellID, spellToKeybind)
+                keybind = Keybinds:FindKeyBindForSpell(spellID, spellToKeybind)
             end
 
             UpdateIconKeybind(child, settingName, keybind)
@@ -452,22 +447,18 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     end
 
     PrintDebug("Event:", event)
-
     if
-        event == "PLAYER_TALENT_UPDATE"
-        or event == "SPELLS_CHANGED"
-        or event == "PLAYER_SPECIALIZATION_CHANGED"
-        or event == "TRAIT_CONFIG_UPDATED"
-        or event == "PLAYER_REGEN_DISABLED"
+        event == "PLAYER_SPECIALIZATION_CHANGED"
+        or event == "UPDATE_BINDINGS"
         or event == "ACTIONBAR_HIDEGRID"
+        or event == "UPDATE_BONUS_ACTIONBAR"
     then
-        -- Delay slightly to let game state settle
-        C_Timer.After(0, function()
-            Keybinds:UpdateAllKeybinds()
-        end)
-    else
-        Keybinds:UpdateAllKeybinds()
+        spellIDToKeyBindCache = {}
     end
+
+    C_Timer.After(0.1, function()
+        Keybinds:UpdateAllKeybinds()
+    end)
 end)
 
 function Keybinds:Shutdown()
@@ -499,11 +490,8 @@ function Keybinds:Enable()
 
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     eventFrame:RegisterEvent("UPDATE_BONUS_ACTIONBAR")
-    eventFrame:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
     eventFrame:RegisterEvent("UPDATE_BINDINGS")
     eventFrame:RegisterEvent("PLAYER_TALENT_UPDATE")
-    eventFrame:RegisterEvent("SPELLS_CHANGED")
-    eventFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORM")
     eventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
     eventFrame:RegisterEvent("TRAIT_CONFIG_UPDATED")
     eventFrame:RegisterEvent("EDIT_MODE_LAYOUTS_UPDATED")
@@ -514,17 +502,6 @@ function Keybinds:Enable()
     -- Hook into viewer layout refresh to update keybinds
 
     if not areHooksInitialized then
-        if IsDominosLoaded() then
-            ns.Addon:Print(
-                "|cffff0000Dominos detected|r - keybinds module may not function correctly with Dominos action bars |cffff00002 and 7,8,9,10,11|r - Those are |cffff0000not supported yet.|r"
-            )
-        end
-
-        if IsElvUILoaded() then
-            ns.Addon:Print(
-                "|cffff0000ElvUI detected|r - keybinds module may not function correctly with ElvUI action bars |cffff00002 and 7,8,9,10|r - Those are |cffff0000not supported yet.|r"
-            )
-        end
         areHooksInitialized = true
 
         for viewerName, _ in pairs(viewersSettingKey) do

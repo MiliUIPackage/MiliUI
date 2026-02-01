@@ -2,7 +2,7 @@
 ## Title: |cff008945Cool|r|cff1e9a4e|r|cff3faa4fdown Ma|r|cff5fb64anag|r|cff7ac243er Ce|r|cff8ccd00ntered|r
 ## Notes: Cooldown Manager tweaks and styling
 ## Author: Wildu
-## Version: 1.12.4
+## Version: 1.13.3
 ## X-Wago-ID: b6mvbYKP
 ## SavedVariables: CooldownManagerCenteredDB
 ## IconTexture: Interface\Addons\CooldownManagerCentered\Media\CooldownManagerCenteredIcon

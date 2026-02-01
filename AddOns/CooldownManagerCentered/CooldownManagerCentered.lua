@@ -66,6 +66,7 @@ function addon:RefreshConfig()
     ns.Keybinds:Initialize()
     ns.Assistant:Initialize()
     ns.Swipe:Initialize()
+    ns.CooldownFont:Initialize()
 
     ns.API:RefreshCooldownManager()
     ns.API:ShowReloadUIConfirmation()
@@ -97,6 +98,7 @@ function addon:OnEnable()
     ns.Keybinds:Initialize()
     ns.Assistant:Initialize()
     ns.Swipe:Initialize()
+    ns.CooldownFont:Initialize()
 
     _cleanup()
 end
