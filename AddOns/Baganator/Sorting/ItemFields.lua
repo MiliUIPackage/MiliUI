@@ -162,11 +162,25 @@ keysMapping["invertedItemLevelRaw"] = function(self)
   return self.itemLevelRaw and -self.itemLevelRaw
 end
 
-keysMapping["invertedItemLevelEquipment"] = function(self)
-  if Syndicator.Utilities.IsEquipment(self.itemLink) then
-    return self.itemLevelRaw and -self.itemLevelRaw
-  else
-    return 0
+if addonTable.Constants.IsRetail then
+  keysMapping["invertedItemLevelEquipment"] = function(self)
+    if Syndicator.Utilities.IsEquipment(self.itemLink) then
+      if C_Item.IsItemDataCachedByID(self.itemID) then
+        return -addonTable.Utilities.ExtractItemLevel(self.itemLink)
+      else
+        C_Item.RequestLoadItemDataByID(self.itemID)
+      end
+    else
+      return 0
+    end
+  end
+else
+  keysMapping["invertedItemLevelEquipment"] = function(self)
+    if Syndicator.Utilities.IsEquipment(self.itemLink) then
+      return self.itemLevelRaw and -self.itemLevelRaw
+    else
+      return 0
+    end
   end
 end
 

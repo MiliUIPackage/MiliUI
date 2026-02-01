@@ -1,6 +1,7 @@
 # Baganator
 
-## [781](https://github.com/TheMouseNest/Baganator/tree/781) (2026-01-21)
-[Full Changelog](https://github.com/TheMouseNest/Baganator/compare/780...781) 
+## [784](https://github.com/TheMouseNest/Baganator/tree/784) (2026-01-30)
+[Full Changelog](https://github.com/TheMouseNest/Baganator/compare/783...784) 
 
-- Disable skins if the associated addon is incompatible with current wow version  
+- Retail: Fix "Item Level" corner widget for cached bag views  
+- Retail: Fix "Item Level" sorting method  
