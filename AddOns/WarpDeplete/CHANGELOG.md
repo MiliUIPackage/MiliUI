@@ -1,8 +1,10 @@
 # WarpDeplete
 
-## [v5.0.1](https://github.com/happenslol/WarpDeplete/tree/v5.0.1) (2026-01-23)
-[Full Changelog](https://github.com/happenslol/WarpDeplete/commits/v5.0.1) [Previous Releases](https://github.com/happenslol/WarpDeplete/releases)
+## [v5.0.2](https://github.com/happenslol/WarpDeplete/tree/v5.0.2) (2026-01-29)
+[Full Changelog](https://github.com/happenslol/WarpDeplete/commits/v5.0.2) [Previous Releases](https://github.com/happenslol/WarpDeplete/releases)
 
+- chore: Bump version  
+- fix: Add missing fonts and textures  
 - chore: Bump version  
 - fix: Check for secret values in UNIT\_DIED event (#141)  
 - chore: Bump version  
@@ -27,5 +29,3 @@
     * Added an alert for missing MDT Legacy when on a Timerunner  
     * Added Legion Remix affix names to the filters  
     * Fixed the MDT alert not showing when missing MDT Legacy on a Timerunner  
-- chore: Bump interface version (#121)  
-- chore: Bump version  
