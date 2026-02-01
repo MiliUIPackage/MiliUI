@@ -317,20 +317,20 @@ dbm:RegisterForClicks("AnyUp", "AnyDown")
 
 
 -- Reset Instance
-local reset = AddButton("RESET", "PARTY", "左鍵:重置副本 | 右鍵:重載介面", "重", function(_, btn)
+local reset = AddButton("RESET", "PARTY", "左鍵:重置副本 | 中鍵:戰鬥記錄 | 右鍵:重載介面", "重", function(_, btn)
     if btn == "RightButton" then
         StaticPopup_Show("MILIUI_CHATBAR_RELOAD")
-    else
+    elseif btn == "MiddleButton" then
+        if SlashCmdList["COMBATLOG"] then
+            SlashCmdList["COMBATLOG"]("")
+        end
+    elseif btn == "LeftButton" then
         StaticPopup_Show("CONFIRM_RESET_INSTANCES")
     end
 end, 52)
 reset:RegisterForClicks("AnyUp")
 
--- COMBATLOG
-local combat = AddButton("COMBATLOG", 0.6, 0.6, 0.6, BINDING_NAME_TOGGLECOMBATLOG, "戰", nil, 53)
-combat:SetAttribute("type", "macro")
-combat:SetAttribute("macrotext", "/combatlog")
-combat:RegisterForClicks("AnyUp", "AnyDown")
+
 
 -- Background styling
 local bgFrame = CreateFrame("Frame", nil, Chatbar)
