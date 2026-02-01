@@ -58,7 +58,7 @@ LibEvent:attachTrigger("INSPECT_FRAME_CREATED", function(this, frame, parent)
         bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
         edgeFile = "Interface\\Buttons\\WHITE8X8",
         tile     = true,
-        tileSize = 8,
+        tileSize = 10,
         edgeSize = 1,
         insets   = {left = 1, right = 1, top = 1, bottom = 1}
     }
@@ -70,13 +70,13 @@ LibEvent:attachTrigger("INSPECT_FRAME_CREATED", function(this, frame, parent)
         local j = 1
         for k, v in pairs(shown) do
             itemframe[k] = CreateFrame("Frame", nil, itemframe, BackdropTemplateMixin and "BackdropTemplate" or nil)
-            itemframe[k]:SetSize(16, 14)
+            itemframe[k]:SetSize(18, 16)
             itemframe[k]:SetPoint("LEFT", (j-1)*17, 0)
             itemframe[k]:SetBackdrop(backdrop)
             itemframe[k]:SetBackdropBorderColor(v.r, v.g, v.b, 0.25)
             itemframe[k]:SetBackdropColor(0, 0, 0, 0.5)
             itemframe[k].text = itemframe[k]:CreateFontString(nil, "ARTWORK")
-            itemframe[k].text:SetFont(UNIT_NAME_FONT, 12, "NORMAL")
+            itemframe[k].text:SetFont(UNIT_NAME_FONT, 15, "NORMAL")
             itemframe[k].text:SetPoint("CENTER")
             itemframe[k].text:SetText(strsubutf8(_G[k] or k,1,1))
             itemframe[k].text:SetTextColor(v.r, v.g, v.b)
