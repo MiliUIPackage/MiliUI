@@ -3,6 +3,23 @@ if not L then return end
 
 --------------------------------------------------------------------------------------------------------------------------------------------
 L = L or {}
+
+
+L["STRING_SIMPLE_TEXT_FORMAT_TITLE"] = "Midnight Right Text: Simple or Aligned"
+L["STRING_SIMPLE_TEXT_FORMAT"] = "Use Simple Text Formatting"
+L["STRING_SIMPLE_TEXT_FORMAT_DESC"] = "Enable the use of the three rules below."
+L["STRING_SIMPLE_TEXT_FORMAT_TYPE3"] = "When the line has information\nabout the total, per second and percent.\n|cFFAAAAAA%s order: total, per second, percent."
+L["STRING_SIMPLE_TEXT_FORMAT_TYPE2"] = "When the line has information\nabout the total and per second.\n|cFFAAAAAA%s order: total, per second."
+L["STRING_SIMPLE_TEXT_FORMAT_TYPE1"] = "When the line has information\nabout the total and percent.\n|cFFAAAAAA%s order: total, percent."
+L["STRING_SIMPLE_TEXT_FORMAT_ASLIGNED"] = "Use Aligned Text"
+L["STRING_SIMPLE_TEXT_FORMAT_ASLIGNED_DESC"] = "The text is aligned in columns, setup the spacing between columns."
+L["STRING_SIMPLE_TEXT_FORMAT_ASLIGNED_SPACE_BETWEEN"] = "Space Between Columns"
+L["STRING_SIMPLE_TEXT_FORMAT_TEMPLATE2"] = "Don't Show Percent"
+L["STRING_SIMPLE_TEXT_FORMAT_TEMPLATE3"] = "Only Show Total"
+L["STRING_SIMPLE_TEXT_FORMAT_TEMPLATE4"] = "Separate | by | Pipe"
+L["STRING_SIMPLE_TEXT_FORMAT_TEMPLATE5"] = "Separate [by, Brackets]"
+L["STRING_SIMPLE_TEXT_FORMAT_TEMPLATE6"] = "Total (DPS) Percent"
+
 L["ABILITY_ID"] = "ability id"
 L["STRING_"] = ""
 L["STRING_ABSORBED"] = "Absorbed"
@@ -3295,6 +3312,34 @@ L["STRING_SEGMENTS_LIST_WASTED_TIME"] = "Not In Combat"
 L["STRING_SHIELD_HEAL"] = "Prevented"
 L["STRING_SHIELD_OVERHEAL"] = "Wasted"
 L["STRING_SHORTCUT_RIGHTCLICK"] = "right click to close"
+L["STRING_SIMPLE_TEXT_FORMAT"] = "Use Simple Text Formatting"
+--[[Translation missing --]]
+L["STRING_SIMPLE_TEXT_FORMAT_ASLIGNED"] = ""
+--[[Translation missing --]]
+L["STRING_SIMPLE_TEXT_FORMAT_ASLIGNED_DESC"] = ""
+--[[Translation missing --]]
+L["STRING_SIMPLE_TEXT_FORMAT_ASLIGNED_SPACE_BETWEEN"] = ""
+L["STRING_SIMPLE_TEXT_FORMAT_DESC"] = "Enable the use of the three rules below."
+--[[Translation missing --]]
+L["STRING_SIMPLE_TEXT_FORMAT_TEMPLATE2"] = ""
+--[[Translation missing --]]
+L["STRING_SIMPLE_TEXT_FORMAT_TEMPLATE3"] = ""
+--[[Translation missing --]]
+L["STRING_SIMPLE_TEXT_FORMAT_TEMPLATE4"] = ""
+--[[Translation missing --]]
+L["STRING_SIMPLE_TEXT_FORMAT_TEMPLATE5"] = ""
+--[[Translation missing --]]
+L["STRING_SIMPLE_TEXT_FORMAT_TEMPLATE6"] = ""
+L["STRING_SIMPLE_TEXT_FORMAT_TITLE"] = "Midnight Right Text: Simple or Aligned"
+L["STRING_SIMPLE_TEXT_FORMAT_TYPE1"] = [=[When the line has information
+about the total and percent.
+|cFFAAAAAA%s order: total, percent.]=]
+L["STRING_SIMPLE_TEXT_FORMAT_TYPE2"] = [=[When the line has information
+about the total and per second.
+|cFFAAAAAA%s order: total, per second.]=]
+L["STRING_SIMPLE_TEXT_FORMAT_TYPE3"] = [=[When the line has information
+about the total, per second and percent.
+|cFFAAAAAA%s order: total, per second, percent.]=]
 L["STRING_SLASH_API_DESC"] = "open the API panel for build plugins, custom displays, auras, etc."
 L["STRING_SLASH_CAPTURE_DESC"] = "turn on or off all captures of data."
 L["STRING_SLASH_CAPTUREOFF"] = "all captures has been turned off."
