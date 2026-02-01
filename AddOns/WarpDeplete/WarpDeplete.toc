@@ -1,0 +1,36 @@
+## Interface: 120001, 120000
+## Title: WarpDeplete
+## Notes-ruRU: WarpDeplete - таймер для М+ подземелий с гибкими настройками
+## Author: Happens
+## Version: 5.0.1
+## SavedVariables: WarpDepleteDB
+## IconTexture: Interface\AddOns\WarpDeplete\logo
+## X-Curse-Project-ID: 460155
+## X-Wago-ID: 5bGoOqG0
+## Category-enUS: Mythic+ Dungeons
+## Category-deDE: Mythic+ Dungeons
+## Category-esES: Mythic+ Dungeons
+## Category-esMX: Mythic+ Dungeons
+## Category-frFR: Donjons Mythique+
+## Category-itIT: Mythic+ Dungeons
+## Category-koKR: Mythic+ Dungeons
+## Category-ptBR: Mythic+ Dungeons
+## Category-ruRU: Подземелья М+
+## Category-zhCN: Mythic+ Dungeons
+## Category-zhTW: 副本
+
+## Title-zhTW: |cffFF7F00[副本]|r 
+## Notes-zhTW: WarpDeplete |n|n
+
+embeds.xml
+Locales\Load_Locales.xml
+
+Core.lua
+Timer.lua
+DB.lua
+Util.lua
+State.lua
+Options.lua
+Splits.lua
+Events.lua
+Render.lua
