@@ -1,7 +1,7 @@
 # Chattynator
 
-## [188](https://github.com/TheMouseNest/Chattynator/tree/188) (2026-01-26)
-[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/187...188) 
+## [189](https://github.com/TheMouseNest/Chattynator/tree/189) (2026-01-27)
+[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/188...189) 
 
-- Fix extra print  
-- Flash tabs when mousover is on even when they're faded  
+- Fix toggling "Keep edit box visible" setting off  
+- Add option to keep edit box visible/clickable  
