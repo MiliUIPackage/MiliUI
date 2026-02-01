@@ -4,7 +4,7 @@
 ## Notes: Separate resource bars for all classes
 ## Notes-zhCN: 为所有职业提供独立的资源条
 ## Author: Sensei
-## Version: 1.4.6
+## Version: 1.4.8
 ## IconTexture: Interface\AddOns\SenseiClassResourceBar\Textures\icon-texture.png
 ## SavedVariables: SenseiClassResourceBarDB
 
