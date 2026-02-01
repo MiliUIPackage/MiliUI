@@ -1,6 +1,6 @@
 ## Interface: 120000, 110207, 50503, 38000, 20505, 11508
 ## Title: Auctionator
-## Version: 311
+## Version: 313
 ## Author: plusmouse, Borjamacare
 ## X-Website: https://www.curseforge.com/wow/addons/auctionator
 ## X-Category: Auction/Economy
