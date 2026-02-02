@@ -78,7 +78,12 @@ L["SHORT_RESET"] = "초"
 
 -- Tooltips
 L["TIP_DBM"] = "좌클릭: 확인 | 휠클릭: 5초 카운트 | 우클릭: 10초 카운트"
+L["TIP_DBM_FORMAT"] = "좌클릭: 확인 | 휠클릭: 5초 카운트 | 우클릭: %d초 카운트"
 L["TIP_RESET"] = "좌클릭: 인스턴스 초기화 | 휠클릭: 전투 기록 | 우클릭: UI 재시작"
+
+-- DBM Pull Timer
+L["DBM_PULL_SECONDS"] = "DBM 풀 초"
+L["DBM_PULL_SECONDS_DESC"] = "DBM 풀 타이머 카운트다운 초 설정 (우클릭)"
 
 -- Dialogs
 L["CONFIRM_RELOAD"] = "인터페이스를 다시 불러오시겠습니까?"

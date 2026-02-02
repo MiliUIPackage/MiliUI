@@ -391,6 +391,19 @@ dbm:SetAttribute("type3", "macro")
 dbm:SetAttribute("macrotext3", "/dbm pull 5")
 dbm:RegisterForClicks("AnyUp", "AnyDown")
 
+-- Function to update DBM button macro and tooltip based on saved seconds
+local function UpdateDBMButton()
+    local seconds = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds) or 10
+    if not InCombatLockdown() then
+        dbm:SetAttribute("macrotext2", "/dbm pull " .. seconds)
+    end
+    -- Update tooltip text with current seconds value
+    dbm.tooltipText = string.format(L["TIP_DBM_FORMAT"], seconds)
+end
+
+-- Expose globally for settings panel
+_G.MiliUI_UpdateDBMButton = UpdateDBMButton
+
 
 -- Reset Instance
 local reset = AddButton("RESET", "PARTY", L["TIP_RESET"], L["SHORT_RESET"], function(_, btn)
@@ -650,6 +663,7 @@ loader:SetScript("OnEvent", function(self, event)
     if not MiliUI_ChatBar_DB.Chatbar.CustomColors then MiliUI_ChatBar_DB.Chatbar.CustomColors = {} end
     if MiliUI_ChatBar_DB.Chatbar.Locked == nil then MiliUI_ChatBar_DB.Chatbar.Locked = true end
     if not MiliUI_ChatBar_DB.Chatbar.Orientation then MiliUI_ChatBar_DB.Chatbar.Orientation = "HORIZONTAL" end
+    if not MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds then MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds = 10 end
     
     -- Apply lock state (respects Edit Mode)
     UpdateMoverState()
@@ -687,6 +701,10 @@ loader:SetScript("OnEvent", function(self, event)
     
     -- Force font size update on login/reload to ensure all buttons (including early created ones) get the correct size
     UpdateFontSize()
+    
+    -- Update DBM button with saved pull seconds
+    UpdateDBMButton()
+
 
 end)
 
@@ -898,6 +916,51 @@ channelContainer:Show()
 
 channelContainer.checks = {}
 channelContainer.swatches = {}
+channelContainer.sliders = {}
+
+-- DBM Pull Seconds Slider (created once, positioned in RefreshChannelList)
+local dbmSlider = CreateFrame("Slider", "MiliUI_ChatBar_DBMPullSlider", channelContainer, "OptionsSliderTemplate")
+dbmSlider:SetWidth(140)
+dbmSlider:SetHeight(17)
+dbmSlider:SetMinMaxValues(1, 30)
+dbmSlider:SetValueStep(1)
+dbmSlider:SetObeyStepOnDrag(true)
+dbmSlider:Hide() -- Initially hidden, shown when DBM checkbox is visible
+
+dbmSlider.Low:SetText("1")
+dbmSlider.High:SetText("30")
+dbmSlider.Text:SetText(L["DBM_PULL_SECONDS"])
+
+-- Slider description
+local dbmSliderDesc = channelContainer:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+dbmSliderDesc:SetPoint("LEFT", dbmSlider, "RIGHT", 10, 0)
+dbmSliderDesc:SetText(L["DBM_PULL_SECONDS_DESC"])
+
+dbmSlider:SetScript("OnShow", function(self)
+    local val = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds) or 10
+    self:SetValue(val)
+    self.Text:SetText(L["DBM_PULL_SECONDS"] .. ": " .. val)
+end)
+
+dbmSlider:SetScript("OnValueChanged", function(self, value)
+    local val = math.floor(value)
+    self.Text:SetText(L["DBM_PULL_SECONDS"] .. ": " .. val)
+    
+    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
+    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
+    
+    if MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds ~= val then
+        MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds = val
+        if _G.MiliUI_UpdateDBMButton then
+            _G.MiliUI_UpdateDBMButton()
+        end
+    end
+end)
+
+-- Store slider reference for positioning in RefreshChannelList
+channelContainer.dbmSlider = dbmSlider
+channelContainer.dbmSliderDesc = dbmSliderDesc
+
 
 -- Helper for Color Picker
 local function ShowColorPicker(r, g, b, callback)
@@ -952,7 +1015,14 @@ local function RefreshChannelList()
         if i == 1 then
             ck:SetPoint("TOPLEFT", 0, 0)
         else
-            ck:SetPoint("TOPLEFT", channelContainer.checks[i-1], "BOTTOMLEFT", 0, -2)
+            -- Check if previous item was DBM (which has slider below it)
+            local prevButton = buttonList[i-1]
+            if prevButton and prevButton.configKey == "DBM" and channelContainer.dbmSlider then
+                -- Position below the slider instead of the checkbox
+                ck:SetPoint("TOPLEFT", channelContainer.dbmSlider, "BOTTOMLEFT", -20, -12)
+            else
+                ck:SetPoint("TOPLEFT", channelContainer.checks[i-1], "BOTTOMLEFT", 0, -2)
+            end
         end
         
         if not ck.Text then
@@ -1017,6 +1087,17 @@ local function RefreshChannelList()
         else
             if channelContainer.swatches[i] then channelContainer.swatches[i]:Hide() end
         end
+        
+        -- DBM Pull Slider positioning (below DBM checkbox)
+        if bu.configKey == "DBM" then
+            channelContainer.dbmSlider:ClearAllPoints()
+            channelContainer.dbmSlider:SetPoint("TOPLEFT", ck, "BOTTOMLEFT", 20, -8)
+            channelContainer.dbmSlider:Show()
+            -- Trigger OnShow to refresh value
+            if channelContainer.dbmSlider:GetScript("OnShow") then
+                channelContainer.dbmSlider:GetScript("OnShow")(channelContainer.dbmSlider)
+            end
+        end
     end
     
     -- Hide extra checks
@@ -1062,6 +1143,15 @@ end)
 local channelSubcategory = Settings.RegisterCanvasLayoutSubcategory(MiliUI_ChatbarSettingsCategory, channelPanel, channelPanel.name)
 Settings.RegisterAddOnCategory(channelSubcategory)
 
+-- Update OnRefresh for channel panel to ensure DBM slider persists
+channelPanel.OnRefresh = function()
+    if channelContainer.dbmSlider then
+        local val = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds) or 10
+        channelContainer.dbmSlider:SetValue(val)
+        channelContainer.dbmSlider.Text:SetText(L["DBM_PULL_SECONDS"] .. ": " .. val)
+    end
+end
+
 -- Pre-create checkboxes at load time (not waiting for panel to show)
 -- This ensures checkboxes exist before panel is ever opened
 C_Timer.After(0.5, function()
@@ -1072,6 +1162,7 @@ C_Timer.After(0.5, function()
     if not MiliUI_ChatBar_DB.Chatbar.Hidden then MiliUI_ChatBar_DB.Chatbar.Hidden = {} end
     if not MiliUI_ChatBar_DB.Chatbar.CustomColors then MiliUI_ChatBar_DB.Chatbar.CustomColors = {} end
     if not MiliUI_ChatBar_DB.Chatbar.FontSize then MiliUI_ChatBar_DB.Chatbar.FontSize = 9 end
+    if not MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds then MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds = 10 end
     
     -- Pre-create checkboxes
     RefreshChannelList()

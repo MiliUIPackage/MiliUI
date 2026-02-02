@@ -78,7 +78,12 @@ L["SHORT_RESET"] = "重"
 
 -- Tooltips
 L["TIP_DBM"] = "左鍵:確認 | 中鍵:倒數5秒 | 右鍵:倒數10秒"
+L["TIP_DBM_FORMAT"] = "左鍵:確認 | 中鍵:倒數5秒 | 右鍵:倒數%d秒"
 L["TIP_RESET"] = "左鍵:重置副本 | 中鍵:戰鬥記錄 | 右鍵:重載介面"
+
+-- DBM Pull Timer
+L["DBM_PULL_SECONDS"] = "DBM 開怪秒數"
+L["DBM_PULL_SECONDS_DESC"] = "設定 DBM 開怪倒數秒數（右鍵）"
 
 -- Dialogs
 L["CONFIRM_RELOAD"] = "確定要重新載入介面嗎？"

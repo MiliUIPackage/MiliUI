@@ -12,7 +12,7 @@
 ## Category-zhCN: 聊天
 ## Category-koKR: 대화
 ## Author: Mili
-## Version: 1.0
+## Version: 1.0.3
 ## SavedVariables: MiliUI_ChatBar_DB
 
 embeds.xml
