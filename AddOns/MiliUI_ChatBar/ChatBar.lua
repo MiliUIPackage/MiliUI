@@ -31,6 +31,21 @@ StaticPopupDialogs["MILIUI_CHATBAR_RELOAD"] = {
     preferredIndex = 3,
 }
 
+StaticPopupDialogs["MILIUI_CHATBAR_RESET_ALL"] = {
+    text = L["CONFIRM_RESET_ALL"],
+    button1 = YES,
+    button2 = NO,
+    OnAccept = function() 
+        MiliUI_ChatBar_DB = nil
+        if MiliUI_ChatBar then MiliUI_ChatBar:SetUserPlaced(false) end
+        ReloadUI()
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
 local function PixelIcon(parent, texturePath, isZoome)
     if not parent.Icon then
         parent.Icon = parent:CreateTexture(nil, "ARTWORK")
@@ -63,7 +78,7 @@ end
 --------
 local Chatbar = CreateFrame("Frame", "MiliUI_ChatBar", UIParent, "BackdropTemplate")
 Chatbar:SetSize(width, height)
-Chatbar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 20)
+Chatbar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
 Chatbar:SetMovable(true)
 Chatbar:SetUserPlaced(true)
 Chatbar:SetClampedToScreen(true)
@@ -127,6 +142,16 @@ local buttonList = {}
 
 local UpdateLayout
 local AddButton
+local UpdateFontSize
+
+UpdateFontSize = function()
+    local size = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.FontSize) or 9
+    for _, btn in ipairs(buttonList) do
+        if btn.fs then
+            btn.fs:SetFont(STANDARD_TEXT_FONT, size, "OUTLINE")
+        end
+    end
+end
 
 
 
@@ -189,7 +214,8 @@ AddButton = function(configKey, ...)
         
         -- Add overlay fontstring if not exists (only doing this for new buttons or ensure existing has it)
         local fs = bu:CreateFontString(nil, "OVERLAY")
-        fs:SetFont(STANDARD_TEXT_FONT, 9, "OUTLINE")
+        local fSize = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.FontSize) or 9
+        fs:SetFont(STANDARD_TEXT_FONT, fSize, "OUTLINE")
         fs:SetPoint("BOTTOM", bu, "TOP", 0, 1)
         bu.fs = fs
         
@@ -526,7 +552,7 @@ local function CreateContextMenu()
     
     local resetBtn = CreateMenuButton(L["CONTEXT_RESET_POSITION"], function()
         Chatbar:ClearAllPoints()
-        Chatbar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 20)
+        Chatbar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
         UpdateLayout()
         print(L["MSG_RESET"])
     end)
@@ -658,6 +684,9 @@ loader:SetScript("OnEvent", function(self, event)
     
     -- Request update on login as well
     RequestChannelUpdate(true)
+    
+    -- Force font size update on login/reload to ensure all buttons (including early created ones) get the correct size
+    UpdateFontSize()
 
 end)
 
@@ -761,7 +790,7 @@ lockDesc:SetText(L["LOCK_UNLOCK_DESC"])
 
 local resetBtn = CreateOptionButton(generalPanel, L["RESET_POSITION"], function()
     Chatbar:ClearAllPoints()
-    Chatbar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 20)
+    Chatbar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
     UpdateLayout()
     print(L["MSG_RESET"])
 end, lockBtn, 0, -10)
@@ -786,6 +815,59 @@ end, resetBtn, 0, -10)
 local orientDesc = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 orientDesc:SetPoint("LEFT", orientBtn, "RIGHT", 10, 0)
 orientDesc:SetText(L["TOGGLE_ORIENTATION_DESC"])
+
+local fontSlider = CreateFrame("Slider", "MiliUI_ChatBar_FontSlider", generalPanel, "OptionsSliderTemplate")
+fontSlider:SetPoint("TOPLEFT", orientBtn, "BOTTOMLEFT", 0, -30)
+fontSlider:SetWidth(200)
+fontSlider:SetMinMaxValues(6, 24)
+fontSlider:SetValueStep(1)
+fontSlider:SetObeyStepOnDrag(true)
+
+fontSlider.Low:SetText("6")
+fontSlider.High:SetText("24")
+fontSlider.Text:SetText(L["FONT_SIZE"])
+
+fontSlider:SetScript("OnShow", function(self)
+    local val = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.FontSize) or 9
+    self:SetValue(val)
+    self.Text:SetText(L["FONT_SIZE"] .. ": " .. val)
+end)
+
+fontSlider:SetScript("OnValueChanged", function(self, value)
+    local val = math.floor(value)
+    self.Text:SetText(L["FONT_SIZE"] .. ": " .. val)
+    
+    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
+    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
+    
+    if MiliUI_ChatBar_DB.Chatbar.FontSize ~= val then
+        MiliUI_ChatBar_DB.Chatbar.FontSize = val
+        UpdateFontSize()
+    end
+end)
+
+
+
+local fontDesc = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+fontDesc:SetPoint("LEFT", fontSlider, "RIGHT", 15, 0)
+fontDesc:SetText(L["FONT_SIZE_DESC"])
+
+local resetAllBtn = CreateOptionButton(generalPanel, L["RESET_ALL"], function()
+    StaticPopup_Show("MILIUI_CHATBAR_RESET_ALL")
+end, fontSlider, 0, -30)
+
+local resetAllDesc = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+resetAllDesc:SetPoint("LEFT", resetAllBtn, "RIGHT", 10, 0)
+resetAllDesc:SetText(L["RESET_ALL_DESC"])
+
+-- Update slider on refresh (Settings API)
+generalPanel.OnRefresh = function()
+    if fontSlider then
+        local val = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.FontSize) or 9
+        fontSlider:SetValue(val)
+        fontSlider.Text:SetText(L["FONT_SIZE"] .. ": " .. val)
+    end
+end
 
 -- Register as subcategory
 local generalSubcategory = Settings.RegisterCanvasLayoutSubcategory(MiliUI_ChatbarSettingsCategory, generalPanel, generalPanel.name)
@@ -987,7 +1069,9 @@ C_Timer.After(0.5, function()
     if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
     if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
     if not MiliUI_ChatBar_DB.Chatbar.Hidden then MiliUI_ChatBar_DB.Chatbar.Hidden = {} end
+    if not MiliUI_ChatBar_DB.Chatbar.Hidden then MiliUI_ChatBar_DB.Chatbar.Hidden = {} end
     if not MiliUI_ChatBar_DB.Chatbar.CustomColors then MiliUI_ChatBar_DB.Chatbar.CustomColors = {} end
+    if not MiliUI_ChatBar_DB.Chatbar.FontSize then MiliUI_ChatBar_DB.Chatbar.FontSize = 9 end
     
     -- Pre-create checkboxes
     RefreshChannelList()

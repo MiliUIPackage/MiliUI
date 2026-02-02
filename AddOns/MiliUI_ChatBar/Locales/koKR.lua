@@ -26,6 +26,11 @@ L["RESET_POSITION"] = "위치 초기화"
 L["RESET_POSITION_DESC"] = "채팅 바를 기본 위치로 이동"
 L["TOGGLE_ORIENTATION"] = "세로/가로 전환"
 L["TOGGLE_ORIENTATION_DESC"] = "세로 및 가로 레이아웃 간 전환"
+L["FONT_SIZE"] = "글꼴 크기"
+L["FONT_SIZE_DESC"] = "채팅 바 버튼의 글꼴 크기 조절"
+L["RESET_ALL"] = "모든 설정 초기화"
+L["RESET_ALL_DESC"] = "모든 설정을 기본값으로 초기화"
+L["CONFIRM_RESET_ALL"] = "모든 설정을 초기화하시겠습니까?"
 
 -- Channel Settings
 L["CHANNEL_SETTINGS_TITLE"] = "채널 설정"

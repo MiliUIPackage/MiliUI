@@ -25,6 +25,11 @@ L["RESET_POSITION"] = "Reset Position"
 L["RESET_POSITION_DESC"] = "Reset chat bar to default position"
 L["TOGGLE_ORIENTATION"] = "Toggle Vertical/Horizontal"
 L["TOGGLE_ORIENTATION_DESC"] = "Switch between vertical and horizontal layout"
+L["FONT_SIZE"] = "Font Size"
+L["FONT_SIZE_DESC"] = "Adjust the font size of ChatBar buttons"
+L["RESET_ALL"] = "Reset All Settings"
+L["RESET_ALL_DESC"] = "Reset all settings to default"
+L["CONFIRM_RESET_ALL"] = "Are you sure you want to reset all settings?"
 
 -- Channel Settings
 L["CHANNEL_SETTINGS_TITLE"] = "Channel Settings"

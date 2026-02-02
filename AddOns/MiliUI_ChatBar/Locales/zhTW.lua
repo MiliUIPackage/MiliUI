@@ -26,6 +26,11 @@ L["RESET_POSITION"] = "重置位置"
 L["RESET_POSITION_DESC"] = "將聊天列移回預設位置"
 L["TOGGLE_ORIENTATION"] = "切換垂直/水平"
 L["TOGGLE_ORIENTATION_DESC"] = "在垂直與水平佈局之間切換"
+L["FONT_SIZE"] = "字體大小"
+L["FONT_SIZE_DESC"] = "調整 ChatBar 按鈕的字體大小"
+L["RESET_ALL"] = "重置所有設定"
+L["RESET_ALL_DESC"] = "將所有設定恢復預設值"
+L["CONFIRM_RESET_ALL"] = "確定要重置所有設定嗎？"
 
 -- Channel Settings
 L["CHANNEL_SETTINGS_TITLE"] = "頻道設定"
