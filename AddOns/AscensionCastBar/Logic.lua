@@ -20,7 +20,7 @@ local function GetSafeCastInfo(unit, channel)
     local name, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID
     
     if channel then
-        name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID, _, numStages = UnitChannelInfo(unit) -- fix by MiliUI
+        name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID = UnitChannelInfo(unit)
     else
         name, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = UnitCastingInfo(unit)
     end
@@ -55,7 +55,7 @@ local function GetSafeCastInfo(unit, channel)
         spellID = spellID,
         notInterruptible = notInterruptible,
         castID = castID,
-        numStages = numStages or 0, -- fix by MiliUI
+        numStages = 0,
     }
 end
 
@@ -113,11 +113,23 @@ function AscensionCastBar:HandleCastStart(event, unit, ...)
         local validNumStages = (type(numStages) == "number" and numStages > 0) and numStages or 0
         local baseStages = validNumStages > 0 and validNumStages or (hasFontOfMagic and 4 or 3)
         cb.numStages = baseStages + 1
+        local weights = self:GetEmpoweredStageWeights(cb.numStages)
+        local castWeight = 0
+        local totalWeight = 0
 
-        -- fix by MiliUI
-        cb.numStages = baseStages + 1
-        
-        cb.duration = rawDuration
+        for i, w in ipairs(weights) do
+            totalWeight = totalWeight + w
+            if i < cb.numStages then
+                castWeight = castWeight + w
+            end
+        end
+
+        local multiplier = 1
+        if castWeight > 0 then
+            multiplier = totalWeight / castWeight
+        end
+
+        cb.duration = rawDuration * multiplier
         cb.endTime = startTime + cb.duration
     else
         cb.numStages = 0
@@ -160,19 +172,6 @@ end
 function AscensionCastBar:HandleCastStop(event, unit)
     if unit and unit ~= "player" then return end
 
-    -- fix by MiliUI
-    if event == "UNIT_SPELLCAST_EMPOWER_STOP" then
-        if self.castBar then
-             self.castBar.casting = false
-             self.castBar.channeling = false
-             self.castBar.isEmpowered = false
-             self.castBar.lastSpellName = nil
-             self.castBar:Hide()
-             self:UpdateSpark(0, 0)
-        end
-        return
-    end
-
     local castData = GetSafeCastInfo("player", false)
     local channelData = GetSafeCastInfo("player", true)
     
@@ -181,9 +180,13 @@ function AscensionCastBar:HandleCastStop(event, unit)
     
     local currentSpell = self.castBar and self.castBar.lastSpellName
 
+    local isEmpowerStop = (event == "UNIT_SPELLCAST_EMPOWER_STOP")
+
     if cName or chName then
         if (cName and cName == currentSpell) or (chName and chName == currentSpell) then
-            return 
+            if not isEmpowerStop then
+                return 
+            end
         else
             if chName then
                 self:HandleCastStart("UNIT_SPELLCAST_CHANNEL_START", "player")
