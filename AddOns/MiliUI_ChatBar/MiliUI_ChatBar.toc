@@ -6,7 +6,7 @@
 ## Title-zhCN: |cff4488FF[MiliUI]|r 快捷聊天栏
 ## Notes-zhCN: 快速访问各种聊天频道的快捷按钮栏
 ## Notes-koKR: 다양한 채팅 채널에 빠르게 접근할 수 있는 버튼 바
-## IconTexture: Interface\Icons\INV_Misc_Note_01
+## IconTexture: Interface\Icons\Achievement_Boss_HighMaul_King
 ## Category: Chat
 ## Category-zhTW: 聊天
 ## Category-zhCN: 聊天
