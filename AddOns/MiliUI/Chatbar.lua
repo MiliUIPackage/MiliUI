@@ -73,6 +73,53 @@ Mover:RegisterForDrag("LeftButton")
 Mover:SetScript("OnDragStart", function() Chatbar:StartMoving() end)
 Mover:SetScript("OnDragStop", function() Chatbar:StopMovingOrSizing() end)
 
+-- Edit Mode Integration
+-- When WoW's Edit Mode is active, allow dragging regardless of lock state
+local isInEditMode = false
+
+-- Create Edit Mode selection frame (visual highlight)
+local EditModeSelection = CreateFrame("Frame", nil, Chatbar, "EditModeSystemSelectionTemplate")
+EditModeSelection:SetAllPoints()
+EditModeSelection:Hide()
+
+-- Make EditModeSelection draggable
+EditModeSelection:RegisterForDrag("LeftButton")
+EditModeSelection:SetScript("OnDragStart", function() Chatbar:StartMoving() end)
+EditModeSelection:SetScript("OnDragStop", function() Chatbar:StopMovingOrSizing() end)
+
+-- Add system info for the selection template
+EditModeSelection.system = {
+    GetSystemName = function()
+        return "MiliUI Chatbar"
+    end
+}
+
+local function UpdateMoverState()
+    if isInEditMode then
+        -- Always allow dragging in Edit Mode
+        Mover:EnableMouse(true)
+        EditModeSelection:ShowHighlighted()
+    else
+        -- Respect lock setting when not in Edit Mode
+        local isLocked = MiliUI_DB and MiliUI_DB.Chatbar and MiliUI_DB.Chatbar.Locked
+        Mover:EnableMouse(not isLocked)
+        EditModeSelection:Hide()
+    end
+end
+
+-- Hook EditModeManagerFrame if it exists (Retail WoW)
+if EditModeManagerFrame then
+    EditModeManagerFrame:HookScript("OnShow", function()
+        isInEditMode = true
+        UpdateMoverState()
+    end)
+    
+    EditModeManagerFrame:HookScript("OnHide", function()
+        isInEditMode = false
+        UpdateMoverState()
+    end)
+end
+
 local buttonList = {}
 
 local UpdateLayout
@@ -465,11 +512,10 @@ local function CreateContextMenu()
     
     local lockBtn = CreateMenuButton("鎖定/解鎖", function()
         MiliUI_DB.Chatbar.Locked = not MiliUI_DB.Chatbar.Locked
+        UpdateMoverState()
         if MiliUI_DB.Chatbar.Locked then
-            Mover:EnableMouse(false)
             print("|cff00ff00MiliUI Chatbar:|r 已鎖定")
         else
-            Mover:EnableMouse(true)
             print("|cff00ff00MiliUI Chatbar:|r 已解鎖")
         end
     end)
@@ -576,9 +622,8 @@ loader:SetScript("OnEvent", function(self, event)
     if MiliUI_DB.Chatbar.Locked == nil then MiliUI_DB.Chatbar.Locked = true end
     if not MiliUI_DB.Chatbar.Orientation then MiliUI_DB.Chatbar.Orientation = "HORIZONTAL" end
     
-    if MiliUI_DB.Chatbar.Locked then
-        Mover:EnableMouse(false)
-    end
+    -- Apply lock state (respects Edit Mode)
+    UpdateMoverState()
     
     -- Update colors and visibility
     for _, bu in ipairs(buttonList) do
@@ -699,11 +744,10 @@ local lockBtn = CreateOptionButton(generalPanel, "鎖定/解鎖", function()
     if not MiliUI_DB then MiliUI_DB = {} end
     if not MiliUI_DB.Chatbar then MiliUI_DB.Chatbar = {} end
     MiliUI_DB.Chatbar.Locked = not MiliUI_DB.Chatbar.Locked
+    UpdateMoverState()
     if MiliUI_DB.Chatbar.Locked then
-        Mover:EnableMouse(false)
         print("|cff00ff00MiliUI Chatbar:|r 已鎖定")
     else
-        Mover:EnableMouse(true)
         print("|cff00ff00MiliUI Chatbar:|r 已解鎖")
     end
 end, genDesc, 0, -20)
