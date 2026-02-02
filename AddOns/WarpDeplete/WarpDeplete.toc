@@ -19,8 +19,8 @@
 ## Category-zhCN: Mythic+ Dungeons
 ## Category-zhTW: 副本
 
-## Title-zhTW: |cffFF7F00[副本]|r 
-## Notes-zhTW: WarpDeplete |n|n
+## Title-zhTW: |cffFF7F00[M+]|r 計時介面
+## Notes-zhTW: WarpDeplete |n|n強化傳奇+計時介面。|n|n|cffffd200使用方法: |rEsc>選項>插件>WarpDeplete設定。
 
 embeds.xml
 Locales\Load_Locales.xml

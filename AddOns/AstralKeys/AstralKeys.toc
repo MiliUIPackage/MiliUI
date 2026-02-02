@@ -9,10 +9,10 @@
 ## IconTexture: Interface\AddOns\AstralKeys\Media\Texture\Logo@2x
 ## AddonCompartmentFunc: OpenAstralKeysWindow
 
-## Title-zhTW: |cffFF7F00[副本]|r 鑰石名單
+## Title-zhTW: |cffFF7F00[M+]|r 鑰石名單
 ## Notes-zhTW: Astral |cffff8000Keys|r |n|n列出你的每個角色、公會成員和好友的鑰石，也會顯示保底打了沒，一起揪揪 M+！！|n|n|cffffd200使用方法: |r點小地圖按鈕。|n|n|cffFF2D2D特別注意: |r每週登入過的角色才會有記錄。|n|n需要安裝並載入這個插件的公會成員和好友，才能看到彼此的鑰石。
-## Category: Info
-## Category-zhTW: 資訊
+## Category: Mythic+ Dungeons
+## Category-zhTW: 副本
 
 Init.lua
 Localization\Localization.lua
