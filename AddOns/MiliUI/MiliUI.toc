@@ -14,5 +14,5 @@ Config\Luxthos_Platynator.lua
 Config\Luxthos_Sensei.lua
 Config\Luxthos_CMC.lua
 core.lua
-Chatbar.lua
+# Chatbar.lua
 AutoSlotKeystone.lua

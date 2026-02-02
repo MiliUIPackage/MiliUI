@@ -1,0 +1,20 @@
+## Interface: 120000, 120001
+## Title: MiliUI ChatBar
+## Notes: Quick access chat channel buttons
+## Title-zhTW: |cffFF9999[聊天]|r 快捷聊天列
+## Notes-zhTW: MiliUI ChatBar |n|n快捷聊天列，方便快速切換聊天頻道。|n|n|cffffd200使用方法: |rEsc>選項>插件>快捷聊天列設定。
+## Title-zhCN: |cff4488FF[MiliUI]|r 快捷聊天栏
+## Notes-zhCN: 快速访问各种聊天频道的快捷按钮栏
+## Notes-koKR: 다양한 채팅 채널에 빠르게 접근할 수 있는 버튼 바
+## IconTexture: Interface\Icons\INV_Misc_Note_01
+## Category: Chat
+## Category-zhTW: 聊天
+## Category-zhCN: 聊天
+## Category-koKR: 대화
+## Author: Mili
+## Version: 1.0
+## SavedVariables: MiliUI_ChatBar_DB
+
+embeds.xml
+Locales\Locales.xml
+ChatBar.lua

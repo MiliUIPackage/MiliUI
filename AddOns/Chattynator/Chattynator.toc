@@ -16,7 +16,7 @@
 ## Category-ptBR: Bate-papo
 ## Category-ruRU: Чат
 ## Category-zhCN: 聊天
-## Category-zhTW: 介面
+## Category-zhTW: 聊天
 
 ## Title-zhTW: |cffFF9999[聊天]|r 聊天視窗增強
 ## Notes-zhTW: Chattynator |n|n聊天增強。|n|n|cffffd200使用方法: |r輸入 /chattynator 設定。
