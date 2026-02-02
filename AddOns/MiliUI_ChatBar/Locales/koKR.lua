@@ -58,3 +58,25 @@ L["CHANNEL_ROLL"] = "주사위"
 L["CHANNEL_DBM"] = "DBM 풀"
 L["CHANNEL_RESET"] = "인스턴스 초기화"
 L["CHANNEL_COMBATLOG"] = "전투 기록"
+
+-- Short Labels (Button Text)
+L["SHORT_SAY"] = "일"
+L["SHORT_YELL"] = "외"
+L["SHORT_PARTY"] = "파"
+L["SHORT_INSTANCE"] = "인"
+L["SHORT_RAID"] = "공"
+L["SHORT_GUILD"] = "길"
+L["SHORT_WHISPER"] = "귓"
+L["SHORT_ROLL"] = "주"
+L["SHORT_DBM"] = "풀"
+L["SHORT_RESET"] = "초"
+
+-- Tooltips
+L["TIP_DBM"] = "좌클릭: 확인 | 휠클릭: 5초 카운트 | 우클릭: 10초 카운트"
+L["TIP_RESET"] = "좌클릭: 인스턴스 초기화 | 휠클릭: 전투 기록 | 우클릭: UI 재시작"
+
+-- Dialogs
+L["CONFIRM_RELOAD"] = "인터페이스를 다시 불러오시겠습니까?"
+
+
+

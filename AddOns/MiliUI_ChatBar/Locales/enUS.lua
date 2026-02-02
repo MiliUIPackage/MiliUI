@@ -57,3 +57,25 @@ L["CHANNEL_ROLL"] = "Roll"
 L["CHANNEL_DBM"] = "DBM Pull"
 L["CHANNEL_RESET"] = "Reset Instances"
 L["CHANNEL_COMBATLOG"] = "Combat Log"
+
+-- Short Labels (Button Text)
+L["SHORT_SAY"] = "S"
+L["SHORT_YELL"] = "Y"
+L["SHORT_PARTY"] = "P"
+L["SHORT_INSTANCE"] = "I"
+L["SHORT_RAID"] = "R"
+L["SHORT_GUILD"] = "G"
+L["SHORT_WHISPER"] = "W"
+L["SHORT_ROLL"] = "Rl"
+L["SHORT_DBM"] = "Pl"
+L["SHORT_RESET"] = "Rs"
+
+-- Tooltips
+L["TIP_DBM"] = "Left: Confirm | Middle: Pull 5s | Right: Pull 10s"
+L["TIP_RESET"] = "Left: Reset Instance | Middle: Combat Log | Right: Reload UI"
+
+-- Dialogs
+L["CONFIRM_RELOAD"] = "Are you sure you want to reload the UI?"
+
+
+

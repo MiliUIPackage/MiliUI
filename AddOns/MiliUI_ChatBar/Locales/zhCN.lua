@@ -58,3 +58,25 @@ L["CHANNEL_ROLL"] = "骰子"
 L["CHANNEL_DBM"] = "DBM 开怪"
 L["CHANNEL_RESET"] = "重置副本"
 L["CHANNEL_COMBATLOG"] = "战斗记录"
+
+-- Short Labels (Button Text)
+L["SHORT_SAY"] = "说"
+L["SHORT_YELL"] = "喊"
+L["SHORT_PARTY"] = "队"
+L["SHORT_INSTANCE"] = "副"
+L["SHORT_RAID"] = "团"
+L["SHORT_GUILD"] = "公"
+L["SHORT_WHISPER"] = "密"
+L["SHORT_ROLL"] = "骰"
+L["SHORT_DBM"] = "开"
+L["SHORT_RESET"] = "重"
+
+-- Tooltips
+L["TIP_DBM"] = "左键:确认 | 中键:倒数5秒 | 右键:倒数10秒"
+L["TIP_RESET"] = "左键:重置副本 | 中键:战斗记录 | 右键:重载界面"
+
+-- Dialogs
+L["CONFIRM_RELOAD"] = "确定要重新加载界面吗？"
+
+
+

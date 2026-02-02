@@ -21,7 +21,7 @@ local function CreateSD(parent)
 end
 
 StaticPopupDialogs["MILIUI_CHATBAR_RELOAD"] = {
-    text = "確定要重新載入介面嗎？",
+    text = L["CONFIRM_RELOAD"],
     button1 = YES,
     button2 = NO,
     OnAccept = function() ReloadUI() end,
@@ -235,7 +235,7 @@ end
 --------
 
 -- SAY / YELL
-AddButton("SAY", "SAY", SAY.."/"..YELL, "說", function(_, btn)
+AddButton("SAY", "SAY", SAY.."/"..YELL, L["SHORT_SAY"], function(_, btn)
     if btn == "RightButton" then
         OpenChat("/y ")
     else
@@ -244,7 +244,7 @@ AddButton("SAY", "SAY", SAY.."/"..YELL, "說", function(_, btn)
 end, 10)
 
 -- WHISPER
-AddButton("WHISPER", "WHISPER", WHISPER, "密", function(_, btn)
+AddButton("WHISPER", "WHISPER", WHISPER, L["SHORT_WHISPER"], function(_, btn)
     local chatFrame = SELECTED_DOCK_FRAME or DEFAULT_CHAT_FRAME
     if btn == "RightButton" then
         ChatFrame_ReplyTell(chatFrame)
@@ -259,10 +259,10 @@ AddButton("WHISPER", "WHISPER", WHISPER, "密", function(_, btn)
 end, 11)
 
 -- PARTY
-AddButton("PARTY", "PARTY", PARTY, "隊", function() OpenChat("/p ") end, 12)
+AddButton("PARTY", "PARTY", PARTY, L["SHORT_PARTY"], function() OpenChat("/p ") end, 12)
 
 -- INSTANCE / RAID
-AddButton("INSTANCE", "INSTANCE_CHAT", INSTANCE.."/"..RAID, "團", function()
+AddButton("INSTANCE", "INSTANCE_CHAT", INSTANCE.."/"..RAID, L["SHORT_RAID"], function()
     if IsPartyLFG() or IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
         OpenChat("/i ")
     else
@@ -271,7 +271,7 @@ AddButton("INSTANCE", "INSTANCE_CHAT", INSTANCE.."/"..RAID, "團", function()
 end, 13)
 
 -- GUILD / OFFICER
-AddButton("GUILD", "GUILD", GUILD.."/"..OFFICER, "公", function(_, btn)
+AddButton("GUILD", "GUILD", GUILD.."/"..OFFICER, L["SHORT_GUILD"], function(_, btn)
     if btn == "RightButton" and C_GuildInfo.CanEditOfficerNote() then -- Approximate check for officer
         OpenChat("/o ")
     else
@@ -350,13 +350,13 @@ end
 -- UpdateChannelButtons() -- Delayed to Events (PLAYER_LOGIN)
 
 -- ROLL
-local roll = AddButton("ROLL", 0.8, 1, 0.6, ROLL, "骰", nil, 50)
+local roll = AddButton("ROLL", 0.8, 1, 0.6, ROLL, L["SHORT_ROLL"], nil, 50)
 roll:SetAttribute("type", "macro")
 roll:SetAttribute("macrotext", "/roll")
 roll:RegisterForClicks("AnyUp", "AnyDown")
 
 -- DBM (Left: Pull, Right: Ready Check)
-local dbm = AddButton("DBM", 0.8, 0.568, 0.937, "左鍵:確認 | 中鍵:倒數5秒 | 右鍵:倒數10秒", "開", nil, 51)
+local dbm = AddButton("DBM", 0.8, 0.568, 0.937, L["TIP_DBM"], L["SHORT_DBM"], nil, 51)
 dbm:SetAttribute("type", "macro")
 dbm:SetAttribute("macrotext", "/readycheck")
 dbm:SetAttribute("type2", "macro")
@@ -367,7 +367,7 @@ dbm:RegisterForClicks("AnyUp", "AnyDown")
 
 
 -- Reset Instance
-local reset = AddButton("RESET", "PARTY", "左鍵:重置副本 | 中鍵:戰鬥記錄 | 右鍵:重載介面", "重", function(_, btn)
+local reset = AddButton("RESET", "PARTY", L["TIP_RESET"], L["SHORT_RESET"], function(_, btn)
     if btn == "RightButton" then
         StaticPopup_Show("MILIUI_CHATBAR_RELOAD")
     elseif btn == "MiddleButton" then
