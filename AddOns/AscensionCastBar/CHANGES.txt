@@ -1,14 +1,12 @@
-lightweight tag d6a5f5dae271b629d691ff34cb8cd298d0b5a84f V32
+lightweight tag af42507a60446241e73465cc81d2f39e82b0b024 V40
 Author:	Aka-DoctorCode <37858279+Aka-DoctorCode@users.noreply.github.com>
-Date:	Thu Jan 29 02:31:02 2026 -0400
+Date:	Tue Feb 10 21:48:03 2026 -0400
 
-commit d6a5f5dae271b629d691ff34cb8cd298d0b5a84f
+commit af42507a60446241e73465cc81d2f39e82b0b024
 Author: Aka-DoctorCode <37858279+Aka-DoctorCode@users.noreply.github.com>
-Date:   Thu Jan 29 02:31:02 2026 -0400
+Date:   Tue Feb 10 21:48:03 2026 -0400
 
-    V32
+    V40
     
-    Fixed:
-    - There was a bug after the last update that made the bar stay a "complete the cast" on empowered spells even when the spell would be released before the last stage.
-    - The amount of time in the last stage was not tuned correctly.
+    Update to dependencies on .pkgmate
 

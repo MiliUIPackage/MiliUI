@@ -2,7 +2,7 @@
 -- Project: AscensionCastBar
 -- Author: Aka-DoctorCode 
 -- File: Animations.lua
--- Version: 12.0.0
+-- Version: 40
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -171,7 +171,7 @@ function AscensionCastBar.AnimationStyles.Flux(self, castBar, db, progress, tail
         local rY = (math.random() * jitterY * 2) - jitterY
         local rX = (math.random() * jitterX * 2) - jitterX
 
-        local xPos = offset - baseOff + drift + rX
+        local xPos = offset - baseOff + drift + rX + (db.tailOffset or 0)
         xPos = math.max(b, math.min(w - b, xPos))
 
         tex:SetPoint("CENTER", castBar.tailMask, "LEFT", xPos, rY)
@@ -202,7 +202,7 @@ function AscensionCastBar.AnimationStyles.Helix(self, castBar, db, progress, tai
         if not tex then return end
 
         tex:ClearAllPoints()
-        local x = offset - baseOff + drift
+        local x = offset - baseOff + drift + (db.tailOffset or 0)
         x = math.max(b, math.min(w - b, x))
 
         tex:SetPoint("CENTER", castBar.tailMask, "LEFT", x, yOff)
@@ -363,13 +363,14 @@ end
 
 function AscensionCastBar.AnimationStyles.Comet(self, castBar, db, progress, tailProgress, time, offset, w, b)
     castBar.sparkGlow:Show()
+    castBar.sparkGlow:SetAlpha(self:ClampAlpha(db.glowIntensity))
     local params = db.animationParams.Comet or {}
 
     local function Comet(tex, rel_pos, int)
         if not tex then return end
 
         tex:ClearAllPoints()
-        local trailX = offset - (rel_pos * w)
+        local trailX = offset - (rel_pos * w) + (db.tailOffset or 0)
         trailX = math.max(b, math.min(w - b, trailX))
 
         tex:SetPoint("CENTER", castBar.tailMask, "LEFT", trailX, 0)
