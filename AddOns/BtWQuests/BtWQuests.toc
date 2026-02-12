@@ -1,4 +1,4 @@
-## Interface: 50500, 110205, 110207, 120000
+## Interface: 50500, 110205, 110207, 120001, 120000
 ## Title: BtWQuests
 ## Version: 2.60.0
 ## Notes: 

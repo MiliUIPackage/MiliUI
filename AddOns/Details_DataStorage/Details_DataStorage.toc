@@ -1,4 +1,4 @@
-## Interface: 120000, 20505
+## Interface: 120001, 120000, 20505
 ## Title: Details!: Storage
 ## Notes: Stores information for Details! Damage Meter
 ## LoadOnDemand: 1
