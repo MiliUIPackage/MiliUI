@@ -28,6 +28,7 @@ end
 
 function PowerBarMixin:OnEvent(event, ...)
     local unit = ...
+    self._curEvent = event
 
     if event == "PLAYER_ENTERING_WORLD"
         or event == "UPDATE_SHAPESHIFT_FORM"
@@ -35,6 +36,7 @@ function PowerBarMixin:OnEvent(event, ...)
 
         self:ApplyVisibilitySettings()
         self:ApplyLayout(nil, true)
+        self:UpdateDisplay()
 
     elseif event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_REGEN_DISABLED"
         or event == "PLAYER_TARGET_CHANGED"
@@ -43,6 +45,7 @@ function PowerBarMixin:OnEvent(event, ...)
         or event == "PET_BATTLE_OPENING_START" or event == "PET_BATTLE_CLOSE" then
 
         self:ApplyVisibilitySettings(nil, event == "PLAYER_REGEN_DISABLED")
+        self:ApplyLayout(nil, true)
         self:UpdateDisplay()
 
     elseif event == "UNIT_MAXPOWER" and unit == "player" then

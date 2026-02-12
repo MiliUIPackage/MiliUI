@@ -1,5 +1,5 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
-    <Frame name="LibEQOLecc1065_SettingsListSectionHintTemplate" mixin="SettingsListSectionHeaderMixin" virtual="true">
+    <Frame name="LibEQOL92fa092_SettingsListSectionHintTemplate" mixin="SettingsListSectionHeaderMixin" virtual="true">
         <Size x="30" y="29"/>
         <Layers>
         <Layer level="OVERLAY">
@@ -23,7 +23,7 @@
         </Scripts>
     </Frame>
 
-     <Button name="LibEQOLecc1065_MultiDropdownTemplate"
+     <Button name="LibEQOL92fa092_MultiDropdownTemplate"
         virtual="true"
         inherits="SettingsDropdownControlTemplate"
         mixin="LibEQOL_MultiDropdownMixin">
@@ -40,13 +40,23 @@
         </Layers>
     </Button>
 
-    <Button name="LibEQOLecc1065_ScrollDropdownTemplate"
+    <Button name="LibEQOL92fa092_ScrollDropdownTemplate"
         virtual="true"
         inherits="SettingsDropdownControlTemplate"
         mixin="LibEQOL_ScrollDropdownMixin">
     </Button>
 
-    <Frame name="LibEQOLecc1065_ColorOverridesPanel" mixin="LibEQOL_ColorOverridesMixin" virtual="true">
+    <Frame name="LibEQOL92fa092_InputControlTemplate"
+        virtual="true"
+        inherits="SettingsListElementTemplate"
+        mixin="LibEQOL_InputControlMixin">
+        <Size x="280" y="26"/>
+        <Scripts>
+            <OnLoad method="OnLoad"/>
+        </Scripts>
+    </Frame>
+
+    <Frame name="LibEQOL92fa092_ColorOverridesPanel" mixin="LibEQOL_ColorOverridesMixin" virtual="true">
 		<Size x="200" y="60"/>
 		<Layers>
 			<Layer level="ARTWORK">
@@ -78,7 +88,7 @@
 		</Scripts>
 	</Frame>
 
-	<Frame name="LibEQOLecc1065_ColorOverridesPanelNoHead" 
+	<Frame name="LibEQOL92fa092_ColorOverridesPanelNoHead" 
 		mixin="LibEQOL_ColorOverridesMixin" 
 		inherits="SettingsListElementTemplate"
 		virtual="true"
@@ -114,7 +124,7 @@
 		</Scripts>
 	</Frame>
 
-	<Frame name="LibEQOLecc1065_SoundDropdownTemplate"
+	<Frame name="LibEQOL92fa092_SoundDropdownTemplate"
 		inherits="SettingsListElementTemplate"
 		mixin="LibEQOL_SoundDropdownMixin"
 		virtual="true"

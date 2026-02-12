@@ -2,7 +2,7 @@
 ## Title: LibEQOL
 ## Notes: Lightweight Edit Mode helper for Blizzard Edit Mode.
 ## Author: R41Z0R
-## Version: 14
+## Version: 17
 ## X-Category: Library
 ## X-Curse-Project-ID: 1395337
 ## LoadOnDemand: 0

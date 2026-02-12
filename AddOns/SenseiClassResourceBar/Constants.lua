@@ -48,6 +48,7 @@ addonTable.commonDefaults = {
     x = 0, -- Shared
     y = 0, -- Shared
     -- SCRB settings
+    positionMode = "Self",
     relativeFrame = "UIParent",
     relativePoint = "CENTER",
     barVisible = "Always Visible",
@@ -108,12 +109,19 @@ addonTable.availablePositionModeOptions = function(config)
         { text = "Self" },
     }
 
-    if config.frameName == "HealthBar" then
-        table.insert(positions, { text = "Use Primary Resource Bar Position If Hidden" })
+    if config.frameName == "PrimaryResourceBar" then
+        table.insert(positions, { text = "Use Health Bar Position If Hidden" })
         table.insert(positions, { text = "Use Secondary Resource Bar Position If Hidden" })
     elseif config.frameName == "SecondaryResourceBar" then
-        table.insert(positions, { text = "Use Primary Resource Bar Position If Hidden" })
         table.insert(positions, { text = "Use Health Bar Position If Hidden" })
+        table.insert(positions, { text = "Use Primary Resource Bar Position If Hidden" })
+    elseif config.frameName == "TertiaryResourceBar" then
+        table.insert(positions, { text = "Use Health Bar Position If Hidden" })
+        table.insert(positions, { text = "Use Primary Resource Bar Position If Hidden" })
+        table.insert(positions, { text = "Use Secondary Resource Bar Position If Hidden" })
+    elseif config.frameName == "HealthBar" then
+        table.insert(positions, { text = "Use Primary Resource Bar Position If Hidden" })
+        table.insert(positions, { text = "Use Secondary Resource Bar Position If Hidden" })
     end
 
     return positions;
@@ -213,6 +221,9 @@ addonTable.availableWidthModes = {
     { text = "Sync With Tracked Buffs" },
 }
 
+addonTable.customFrameNamesToFrame = {}
+addonTable.availableCustomFrames = {}
+
 addonTable.availableFillDirections = {
     { text = "Left to Right" },
     { text = "Right to Left" },
@@ -288,7 +299,7 @@ addonTable.maskAndBorderStyles = {
     -- Add more styles here as needed
     -- ["style-name"] = {
     --     type = "", -- texture or fixed. Other value will not be displayed (i.e hidden)
-    --     mask = "path/to/mask.png", -- Default to the whole status bar 
+    --     mask = "path/to/mask.png", -- Default to the whole status bar
     --     border = "path/to/border.png", -- Only for texture type
     --     thickness = 1, -- Only for fixed type
     -- },

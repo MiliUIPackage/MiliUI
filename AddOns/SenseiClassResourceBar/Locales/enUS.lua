@@ -5,6 +5,8 @@ local baseLocale = {
     ["OKAY"] = OKAY,
     ["CLOSE"] = CLOSE,
     ["CANCEL"] = CANCEL,
+    ["RELOADUI"] = RELOADUI,
+    ["RELOADUI_TEXT"] = "Some changes require to reload your UI",
 
     -- Import / Export errors
     ["EXPORT"] = "Export",
@@ -83,6 +85,8 @@ local baseLocale = {
     ["HIDE_BLIZZARD_UI"] = "Hide Blizzard UI",
     ["HIDE_BLIZZARD_UI_HEALTH_BAR_TOOLTIP"] = "Hides the default Blizzard Player Frame UI",
     ["HIDE_BLIZZARD_UI_SECONDARY_POWER_BAR_TOOLTIP"] = "Hides the default Blizzard secondary resource UI (e.g. Rune Frame for Death Knights)",
+    ["ENABLE_HP_BAR_MOUSE_INTERACTION"] = "Clickable Health Bar",
+    ["ENABLE_HP_BAR_MOUSE_INTERACTION_TOOLTIP"] = "Enable default Player Frame click behavior on the Health Bar.",
 
     -- Position & Size category - Edit Mode
     ["CATEGORY_POSITION_AND_SIZE"] = "Position & Size",

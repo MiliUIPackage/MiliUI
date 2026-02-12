@@ -59,7 +59,7 @@ function SecondaryResourceBarMixin:GetResource()
         },
         ["WARLOCK"]     = Enum.PowerType.SoulShards,
         ["WARRIOR"]     = {
-            [72] = "WHIRLWIND",
+            [72] = "WHIRLWIND", -- Fury
         },
     }
 
@@ -132,7 +132,7 @@ function SecondaryResourceBarMixin:GetResourceValue(resource)
         if not self._runeCooldownCache then
             self._runeCooldownCache = {}
         end
-        
+
         for i = 1, max do
             local start, duration, runeReady = GetRuneCooldown(i)
             self._runeCooldownCache[i] = { start = start, duration = duration, runeReady = runeReady }
@@ -145,8 +145,14 @@ function SecondaryResourceBarMixin:GetResourceValue(resource)
     end
 
     if resource == Enum.PowerType.SoulShards then
-        local current = UnitPower("player", resource, true)
-        local max = UnitPowerMax("player", resource, true)
+        local spec = C_SpecializationInfo.GetSpecialization()
+        local specID = C_SpecializationInfo.GetSpecializationInfo(spec)
+
+        -- If true, current and max will be something like 14 for 1.4 shard, instead of 1
+        local preciseResourceCount = specID == 267
+
+        local current = UnitPower("player", resource, preciseResourceCount)
+        local max = UnitPowerMax("player", resource, preciseResourceCount)
         if max <= 0 then return nil, nil end
 
         return max, current
@@ -191,14 +197,18 @@ function SecondaryResourceBarMixin:GetTagValues(resource, max, current, precisio
     end
 
     if resource == Enum.PowerType.SoulShards then
-        local currentStr = string.format("%s", AbbreviateNumbers(current / 10))
-        local percentStr = string.format(pFormat, UnitPowerPercent("player", resource, true, CurveConstants.ScaleTo100))
-        local maxStr = string.format("%s", AbbreviateNumbers(max / 10))
-        tagValues = {
-            ["[current]"] = function() return currentStr end,
-            ["[percent]"] = function() return percentStr end,
-            ["[max]"] = function() return maxStr end,
-        }
+        local spec = C_SpecializationInfo.GetSpecialization()
+        local specID = C_SpecializationInfo.GetSpecializationInfo(spec)
+
+        if specID == 267 then
+            current = current / 10
+            max = max / 10
+        end
+
+        local currentStr = string.format("%s", AbbreviateNumbers(current))
+        local maxStr = string.format("%s", AbbreviateNumbers(max))
+        tagValues["[current]"] = function() return currentStr end
+        tagValues["[max]"] = function() return maxStr end
     end
 
     if resource == "MAELSTROM_WEAPON" then
@@ -211,47 +221,48 @@ function SecondaryResourceBarMixin:GetTagValues(resource, max, current, precisio
     return tagValues
 end
 
-function SecondaryResourceBarMixin:GetPoint(layoutName, ignorePositionMode)
+function SecondaryResourceBarMixin:ApplyVisibilitySettings(layoutName, inCombat)
     local data = self:GetData(layoutName)
+    if not data then return end
 
-    if not ignorePositionMode then
-        if data and data.positionMode == "Use Primary Resource Bar Position If Hidden" then
-            local primaryResource = addonTable.barInstances and addonTable.barInstances["PrimaryResourceBar"]
+    self:HideBlizzardSecondaryResource(layoutName, data)
 
-            if primaryResource then
-                primaryResource:ApplyVisibilitySettings(layoutName)
-                if not primaryResource:IsShown() then
-                    return primaryResource:GetPoint(layoutName, true)
+    addonTable.PowerBarMixin.ApplyVisibilitySettings(self, layoutName, inCombat)
+end
+
+function SecondaryResourceBarMixin:HideBlizzardSecondaryResource(layoutName, data)
+    data = data or self:GetData(layoutName)
+    if not data then return end
+
+    -- Blizzard Frames are protected in combat
+    if data.hideBlizzardSecondaryResourceUi == nil or InCombatLockdown() then return end
+
+    local playerClass = select(2, UnitClass("player"))
+    local blizzardResourceFrames = {
+        ["DEATHKNIGHT"] = RuneFrame,
+        ["DRUID"] = DruidComboPointBarFrame,
+        ["EVOKER"] = EssencePlayerFrame,
+        ["MAGE"] = MageArcaneChargesFrame,
+        ["MONK"] = MonkHarmonyBarFrame,
+        ["PALADIN"] = PaladinPowerBarFrame,
+        ["ROGUE"] = RogueComboPointBarFrame,
+        ["WARLOCK"] = WarlockPowerFrame,
+    }
+
+    for class, f in pairs(blizzardResourceFrames) do
+        if f and playerClass == class then
+            if data.hideBlizzardSecondaryResourceUi == true then
+                if LEM:IsInEditMode() then
+                    if class ~= "DRUID" or (class == "DRUID" and GetShapeshiftFormID() == DRUID_CAT_FORM) then
+                        f:Show()
+                    end
+                else
+                    f:Hide()
                 end
-            end
-        elseif data and data.positionMode == "Use Health Bar Position If Hidden" then
-            local health = addonTable.barInstances and addonTable.barInstances["HealthBar"]
-
-            if health then
-                health:ApplyVisibilitySettings(layoutName)
-                if not health:IsShown() then
-                    return health:GetPoint(layoutName, true)
-                end
+            elseif class ~= "DRUID" or (class == "DRUID" and GetShapeshiftFormID() == DRUID_CAT_FORM) then
+                f:Show()
             end
         end
-    end
-
-    return addonTable.PowerBarMixin.GetPoint(self, layoutName)
-end
-
-function SecondaryResourceBarMixin:OnShow()
-    local data = self:GetData()
-
-    if data and data.positionMode ~= nil and data.positionMode ~= "Self" then
-        self:ApplyLayout()
-    end
-end
-
-function SecondaryResourceBarMixin:OnHide()
-    local data = self:GetData()
-
-    if data and data.positionMode ~= nil and data.positionMode ~= "Self" then
-        self:ApplyLayout()
     end
 end
 
@@ -268,7 +279,6 @@ addonTable.RegisteredBar.SecondaryResourceBar = {
         point = "CENTER",
         x = 0,
         y = -40,
-        positionMode = "Self",
         hideBlizzardSecondaryResourceUi = false,
         hideManaOnRole = {},
         showManaAsPercent = false,
@@ -319,23 +329,6 @@ addonTable.RegisteredBar.SecondaryResourceBar = {
                     bar:HideBlizzardSecondaryResource(layoutName)
                 end,
                 tooltip = L["HIDE_BLIZZARD_UI_SECONDARY_POWER_BAR_TOOLTIP"],
-            },
-            {
-                parentId = L["CATEGORY_POSITION_AND_SIZE"],
-                order = 201,
-                name = L["POSITION"],
-                kind = LEM.SettingType.Dropdown,
-                default = defaults.positionMode,
-                useOldStyle = true,
-                values = addonTable.availablePositionModeOptions(config),
-                get = function(layoutName)
-                    return (SenseiClassResourceBarDB[dbName][layoutName] and SenseiClassResourceBarDB[dbName][layoutName].positionMode) or defaults.positionMode
-                end,
-                set = function(layoutName, value)
-                    SenseiClassResourceBarDB[dbName][layoutName] = SenseiClassResourceBarDB[dbName][layoutName] or CopyTable(defaults)
-                    SenseiClassResourceBarDB[dbName][layoutName].positionMode = value
-                    bar:ApplyLayout(layoutName)
-                end,
             },
             {
                 parentId = L["CATEGORY_BAR_SETTINGS"],

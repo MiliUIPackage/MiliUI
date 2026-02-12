@@ -15,7 +15,8 @@ local BarMixin = {}
 ------------------------------------------------------------
 
 function BarMixin:Init(config, parent, frameLevel)
-    local Frame = CreateFrame("Frame", config.frameName or "", parent or UIParent)
+    local Frame = CreateFrame(config.frameType or "Frame", config.frameName or "", parent or UIParent, config.frameTemplate or nil)
+    Frame:SetClampedToScreen(true)
 
     Frame:SetFrameLevel(frameLevel)
     self.config = config
@@ -71,7 +72,7 @@ function BarMixin:Init(config, parent, frameLevel)
     -- Fragmented powers (Runes, Essences) specific visual elements
     self.FragmentedPowerBars = {}
     self.FragmentedPowerBarTexts = {}
-    
+
     -- Performance optimizations: pre-allocated tables
     self._displayOrder = {}
     self._cachedTextFormat = nil
@@ -153,6 +154,34 @@ function BarMixin:InitCooldownManagerWidthHook(layoutName)
     end
 end
 
+function BarMixin:InitCustomFrameWidthHook(layoutName)
+    local data = self:GetData(layoutName)
+    if not data then return nil end
+
+    self._SCRB_Custom_Frames_hooked = self._SCRB_Custom_Frames_hooked or {}
+    self._SCRB_Custom_Frame = data.widthMode
+
+    local hookCustomFrame = function(customFrame, width)
+        if not self._SCRB_Custom_Frame or not _G[self._SCRB_Custom_Frame] or _G[self._SCRB_Custom_Frame] ~= customFrame then
+            return
+        end
+
+        if (width == nil) or (type(width) == "number" and math.floor(width) > 1) then
+            self:ApplyLayout(nil, true)
+        end
+    end
+
+    local v = _G[data.widthMode]
+    if v and not self._SCRB_Custom_Frames_hooked[v] then
+        self._SCRB_Custom_Frames_hooked[v] = true
+
+        hooksecurefunc(v, "SetSize", hookCustomFrame)
+        hooksecurefunc(v, "SetWidth", hookCustomFrame)
+        hooksecurefunc(v, "Show", hookCustomFrame)
+        hooksecurefunc(v, "Hide", hookCustomFrame)
+    end
+end
+
 ------------------------------------------------------------
 -- FRAME methods
 ------------------------------------------------------------
@@ -165,6 +194,22 @@ end
 function BarMixin:Hide()
     self:OnHide()
     self.Frame:Hide()
+end
+
+function BarMixin:OnShow()
+    local data = self:GetData()
+
+    if data and data.positionMode ~= nil and data.positionMode ~= "Self" then
+        self:ApplyLayout()
+    end
+end
+
+function BarMixin:OnHide()
+    local data = self:GetData()
+
+    if data and data.positionMode ~= nil and data.positionMode ~= "Self" then
+        self:ApplyLayout()
+    end
 end
 
 function BarMixin:IsShown()
@@ -227,12 +272,6 @@ end
 function BarMixin:OnLoad()
 end
 
-function BarMixin:OnShow()
-end
-
-function BarMixin:OnHide()
-end
-
 --- @param _ string The new layout
 function BarMixin:OnLayoutChange(_)
 end
@@ -251,6 +290,7 @@ function BarMixin:EnableFasterUpdates()
             if frame.elapsed >= 0.1 then
                 frame.elapsed = 0
                 self:UpdateDisplay()
+                self._curEvent = nil
             end
         end
     end
@@ -266,6 +306,7 @@ function BarMixin:DisableFasterUpdates()
             if frame.elapsed >= 0.25 then
                 frame.elapsed = 0
                 self:UpdateDisplay()
+                self._curEvent = nil
             end
         end
     end
@@ -281,7 +322,7 @@ function BarMixin:UpdateDisplay(layoutName, force)
 
     local data = self:GetData(layoutName)
     if not data then return end
-    
+
     -- Cache data to avoid redundant GetData() calls
 
     local resource = self:GetResource()
@@ -360,8 +401,10 @@ function BarMixin:ApplyVisibilitySettings(layoutName, inCombat)
     local data = self:GetData(layoutName)
     if not data then return end
 
-    self:HideBlizzardPlayerContainer(layoutName, data)
-    self:HideBlizzardSecondaryResource(layoutName, data)
+    -- Cannot touch Protected Frame in Combat
+    if self.Frame:IsProtected() and InCombatLockdown() then
+        return
+    end
 
     -- Don't hide while in edit mode...
     if LEM:IsInEditMode() then
@@ -386,11 +429,6 @@ function BarMixin:ApplyVisibilitySettings(layoutName, inCombat)
     local specID = C_SpecializationInfo.GetSpecializationInfo(spec)
     local role = select(5, C_SpecializationInfo.GetSpecializationInfo(spec))
     local formID = GetShapeshiftFormID()
-
-    if resource == "HEALTH" and data.hideHealthOnRole and data.hideHealthOnRole[role] then
-        self:Hide()
-        return
-    end
 
     -- Not on arcane mage!
     if resource == Enum.PowerType.Mana and data.hideManaOnRole and data.hideManaOnRole[role] and specID ~= 62 then
@@ -452,67 +490,11 @@ function BarMixin:ApplyTextVisibilitySettings(layoutName, data)
     end
 end
 
-function BarMixin:HideBlizzardPlayerContainer(layoutName, data)
-    data = data or self:GetData(layoutName)
-    if not data then return end
-
-    -- InCombatLockdown() means protected frames so we cannot touch it
-    if data.hideBlizzardPlayerContainerUi == nil or InCombatLockdown() then return end
-
-    if PlayerFrame then
-        if data.hideBlizzardPlayerContainerUi == true then
-            if LEM:IsInEditMode() then
-                PlayerFrame:Show()
-            else 
-                PlayerFrame:Hide()
-            end
-        else
-            PlayerFrame:Show()
-        end
-    end
-end
-
-function BarMixin:HideBlizzardSecondaryResource(layoutName, data)
-    data = data or self:GetData(layoutName)
-    if not data then return end
-
-    -- InCombatLockdown() means protected frames so we cannot touch it
-    if data.hideBlizzardSecondaryResourceUi == nil or InCombatLockdown() then return end
-    
-    local playerClass = select(2, UnitClass("player"))
-    local blizzardResourceFrames = {
-        ["DEATHKNIGHT"] = RuneFrame,
-        ["DRUID"] = DruidComboPointBarFrame,
-        ["EVOKER"] = EssencePlayerFrame,
-        ["MAGE"] = MageArcaneChargesFrame,
-        ["MONK"] = MonkHarmonyBarFrame,
-        ["PALADIN"] = PaladinPowerBarFrame,
-        ["ROGUE"] = RogueComboPointBarFrame,
-        ["WARLOCK"] = WarlockPowerFrame,
-    }
-
-    for class, f in pairs(blizzardResourceFrames) do
-        if f and playerClass == class then
-            if data.hideBlizzardSecondaryResourceUi == true then
-                if LEM:IsInEditMode() then
-                    if class ~= "DRUID" or (class == "DRUID" and GetShapeshiftFormID() == DRUID_CAT_FORM) then
-                        f:Show()
-                    end
-                else 
-                    f:Hide()
-                end
-            elseif class ~= "DRUID" or (class == "DRUID" and GetShapeshiftFormID() == DRUID_CAT_FORM) then
-                f:Show()
-            end
-        end
-    end
-end
-
 ------------------------------------------------------------
 -- LAYOUT related methods
 ------------------------------------------------------------
 
-function BarMixin:GetPoint(layoutName)
+function BarMixin:GetPoint(layoutName, ignorePositionMode)
     local defaults = self.defaults or {}
 
     local data = self:GetData(layoutName)
@@ -522,6 +504,37 @@ function BarMixin:GetPoint(layoutName)
             defaults.relativePoint or "CENTER",
             defaults.x or 0,
             defaults.y or 0
+    end
+
+    if not ignorePositionMode then
+        if data and data.positionMode == "Use Primary Resource Bar Position If Hidden" then
+            local primaryResource = addonTable.barInstances and addonTable.barInstances["PrimaryResourceBar"]
+
+            if primaryResource then
+                primaryResource:ApplyVisibilitySettings(layoutName, self._curEvent == "PLAYER_REGEN_DISABLED")
+                if not primaryResource:IsShown() then
+                    return primaryResource:GetPoint(layoutName, true)
+                end
+            end
+        elseif data and data.positionMode == "Use Secondary Resource Bar Position If Hidden" then
+            local secondaryResource = addonTable.barInstances and addonTable.barInstances["SecondaryResourceBar"]
+
+            if secondaryResource then
+                secondaryResource:ApplyVisibilitySettings(layoutName, self._curEvent == "PLAYER_REGEN_DISABLED")
+                if not secondaryResource:IsShown() then
+                    return secondaryResource:GetPoint(layoutName, true)
+                end
+            end
+        elseif data and data.positionMode == "Use Health Bar Position If Hidden" then
+            local health = addonTable.barInstances and addonTable.barInstances["HealthBar"]
+
+            if health then
+                health:ApplyVisibilitySettings(layoutName, self._curEvent == "PLAYER_REGEN_DISABLED")
+                if not health:IsShown() then
+                    return health:GetPoint(layoutName, true)
+                end
+            end
+        end
     end
 
     local x = data.x or defaults.x
@@ -550,7 +563,12 @@ function BarMixin:GetSize(layoutName, data)
     if not data then return defaults.width or 200, defaults.height or 15 end
 
     local width = nil
-    if data.widthMode ~= nil and data.widthMode ~= "Manual" then
+    if data.widthMode ~= nil and addonTable.customFrameNamesToFrame[data.widthMode] then
+        width = self:GetCustomFrameWidth(layoutName) or data.width or defaults.width
+        if data.minWidth and data.minWidth > 0 then
+            width = max(width, data.minWidth)
+        end
+    elseif data.widthMode ~= nil and data.widthMode ~= "Manual" then
         width = self:GetCooldownManagerWidth(layoutName) or data.width or defaults.width
         if data.minWidth and data.minWidth > 0 then
             width = max(width, data.minWidth)
@@ -580,17 +598,20 @@ function BarMixin:ApplyLayout(layoutName, force)
 
     local defaults = self.defaults or {}
 
-    local width, height = self:GetSize(layoutName, data)
-    self.Frame:SetSize(max(LEM:IsInEditMode() and 2 or 1, width), max(LEM:IsInEditMode() and 2 or 1, height))
+    -- Cannot touch Protected Frame in Combat
+    if not self.Frame:IsProtected() or (self.Frame:IsProtected() and not InCombatLockdown()) then
+        local width, height = self:GetSize(layoutName, data)
+        self.Frame:SetSize(max(LEM:IsInEditMode() and 2 or 1, width), max(LEM:IsInEditMode() and 2 or 1, height))
 
-    local point, relativeTo, relativePoint, x, y = self:GetPoint(layoutName)
-    self.Frame:ClearAllPoints()
-    self.Frame:SetPoint(point, relativeTo, relativePoint, x, y)
+        local point, relativeTo, relativePoint, x, y = self:GetPoint(layoutName)
+        self.Frame:ClearAllPoints()
+        self.Frame:SetPoint(point, relativeTo, relativePoint, x, y)
+        -- Disable drag & drop if the relative frame is not UIParent, due to LEM limitation making x and y position incorrect when dragging
+        LEM:SetFrameDragEnabled(self.Frame, relativeTo == UIParent)
 
-    -- Disable drag & drop if the relative frame is not UIParent, due to LEM limitation making x and y position incorrect when dragging
-    LEM:SetFrameDragEnabled(self.Frame, relativeTo == UIParent)
+        self:SetFrameStrata(data.barStrata or defaults.barStrata)
+    end
 
-    self:SetFrameStrata(data.barStrata or defaults.barStrata)
     self:ApplyFontSettings(layoutName, data)
     self:ApplyFillDirectionSettings(layoutName, data)
     self:ApplyMaskAndBorderSettings(layoutName, data)
@@ -753,7 +774,7 @@ function BarMixin:ApplyMaskAndBorderSettings(layoutName, data)
         -- Linear multiplier: for example, thickness grows 1x at scale 1, 2x at scale 2
         local thickness = (style.thickness or 1) * math.max(data.scale or defaults.scale, 1)
         local ppScale = addonTable.getPixelPerfectScale()
-        local pThickness = math.max(addonTable.rounded(thickness), 1) * ppScale
+        local pThickness = math.max(1, math.max(addonTable.rounded(thickness), 1) * ppScale)
 
         local borderColor = data.borderColor or defaults.borderColor
 
@@ -816,6 +837,18 @@ function BarMixin:GetCooldownManagerWidth(layoutName)
         if v then
             return v:IsShown() and v:GetWidth() or nil
         end
+    end
+
+    return nil
+end
+
+function BarMixin:GetCustomFrameWidth(layoutName)
+    local data = self:GetData(layoutName)
+    if not data then return nil end
+
+    local v = _G[addonTable.customFrameNamesToFrame[data.widthMode]]
+    if v then
+        return v:IsShown() and v:GetWidth() or nil
     end
 
     return nil
@@ -1179,7 +1212,7 @@ function BarMixin:UpdateFragmentedPowerDisplay(layoutName, data, maxPower)
         -- Clear previous data
         for i = #readyList, 1, -1 do readyList[i] = nil end
         for i = #cdList, 1, -1 do cdList[i] = nil end
-        
+
         local now = GetTime()
         local poolIdx = 1
         for i = 1, maxPower do
@@ -1191,7 +1224,7 @@ function BarMixin:UpdateFragmentedPowerDisplay(layoutName, data, maxPower)
             else
                 start, duration, runeReady = GetRuneCooldown(i)
             end
-            
+
             if runeReady then
                 -- Reuse pre-allocated struct
                 local info = self._runeInfoPool[poolIdx]

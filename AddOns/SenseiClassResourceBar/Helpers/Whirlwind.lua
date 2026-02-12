@@ -6,7 +6,7 @@ local iwStacks    = 0
 local iwExpiresAt = nil
 
 local playerInCombat     = false
-local hasRequiredTalent  = false
+local pendingGenToken    = 0
 local noConsumeUntil     = 0
 local seenCastGUID       = {}
 
@@ -15,41 +15,75 @@ local IW_DURATION   = 20
 
 -- Talents
 local REQUIRED_TALENT_ID = 12950   -- Improved Whirlwind talent . WITHOUT tracker is not working
+local CRASHING_THUNDER_TALENT_ID = 436707
+local CRACKLING_THUNDER_TALENT_ID = 203201
 local UNHINGED_TALENT_ID = 386628  -- Unhinged  - if enabled -> BT will not consume stacks during Bladestorm
 
 -- Generators
 local GENERATOR_IDS = {
-  [190411] = true, -- Whirlwind
-  [6343]   = true, -- Thunder Clap
-  [435222] = true, -- Thunder Blast
+    [190411] = true, -- Whirlwind
+    [6343]   = true, -- Thunder Clap
+    [435222] = true, -- Thunder Blast
 }
 
 -- Spenders consume
 local SPENDER_IDS = {
-  [23881]  = true, -- Bloodthirst
-  [85288]  = true, -- Raging Blow
-  [280735] = true, -- Execute
-  [202168] = true, -- Impending Victory
-  [184367] = true, -- Rampage
-  [335096] = true, -- Bloodbath
-  [335097] = true, -- Crushing Blow
-  [5308]   = true, -- Execute (base)
+    [23881]  = true, -- Bloodthirst
+    [85288]  = true, -- Raging Blow
+    [280735] = true, -- Execute
+    [202168] = true, -- Impending Victory
+    [184367] = true, -- Rampage
+    [335096] = true, -- Bloodbath
+    [335097] = true, -- Crushing Blow
+    [5308]   = true, -- Execute (base)
 }
 
+
+
 local function HasUnhingedTalent()
-  return C_SpellBook and C_SpellBook.IsSpellKnown(UNHINGED_TALENT_ID) or false
+    return C_SpellBook and C_SpellBook.IsSpellKnown(UNHINGED_TALENT_ID) or false
 end
 
-local function IsSpellInTargetRange(spellID)
-  if C_Spell and C_Spell.IsSpellInRange then
-    local ok = C_Spell.IsSpellInRange(spellID, "target")
-    if ok ~= nil then return ok end
-    if type(CheckInteractDistance) == "function" then
-      return CheckInteractDistance("target", 3) == true
+local function HasCracklingThunderTalent()
+    return (C_SpellBook and C_SpellBook.IsSpellKnown(CRACKLING_THUNDER_TALENT_ID)) or false
+end
+
+local function HasCrashingThunderTalent()
+    return (C_SpellBook and C_SpellBook.IsSpellKnown(CRASHING_THUNDER_TALENT_ID)) or false
+end
+
+local function HasNearbyHostileAoE(spellID)
+    if not playerInCombat and not UnitAffectingCombat("player") then
+        return false
     end
+
+    local spellRange = {
+        [190411] = function(unit)
+            return CheckInteractDistance(unit, 2) -- ~11 yards
+        end,
+        [6343]   = function(unit)
+            return CheckInteractDistance(unit, 2) or (HasCracklingThunderTalent() and CheckInteractDistance(unit, 5))
+        end,
+        [435222] = function(unit)
+            return CheckInteractDistance(unit, 2) or (HasCracklingThunderTalent() and CheckInteractDistance(unit, 5))
+        end,
+    }
+
+    -- check nameplates directly (AoE around player)
+    if CheckInteractDistance then
+        for i = 1, 40 do
+            local unit = "nameplate" .. i
+            if UnitExists(unit)
+                and UnitCanAttack("player", unit)
+                and not UnitIsDead(unit)
+                and (spellRange[spellID] and spellRange[spellID](unit) or false)
+            then
+                return true
+            end
+        end
+    end
+
     return false
-  end
-  return true
 end
 
 function Whirlwind:OnLoad(powerBar)
@@ -66,13 +100,22 @@ function Whirlwind:OnLoad(powerBar)
 end
 
 function Whirlwind:OnEvent(powerBar, event, ...)
-  if event == "PLAYER_TALENT_UPDATE" or event == "ACTIVE_PLAYER_SPECIALIZATION_CHANGED" or event == "TRAIT_CONFIG_UPDATED" then
-    powerBar:ApplyVisibilitySettings()
-    powerBar:UpdateDisplay()
-    return
-  end
+    if event == "PLAYER_TALENT_UPDATE" or event == "ACTIVE_PLAYER_SPECIALIZATION_CHANGED" or event == "TRAIT_CONFIG_UPDATED" then
+        powerBar:ApplyVisibilitySettings()
+        powerBar:UpdateDisplay()
+        return
+    end
 
-  -- Handle Death and Resurrection Reset
+    if event == "PLAYER_REGEN_DISABLED" then
+        playerInCombat = true
+        return
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        playerInCombat = false
+	    pendingGenToken = pendingGenToken + 1
+        return
+    end
+
+    -- Handle Death and Resurrection Reset
     if event == "PLAYER_DEAD" or event == "PLAYER_ALIVE" then
         iwStacks = 0
         iwExpiresAt = nil
@@ -89,40 +132,50 @@ function Whirlwind:OnEvent(powerBar, event, ...)
 
     -- Unhinged “no-consume window” Very important
     if HasUnhingedTalent() and (
-         spellID == 50622
-      or spellID == 46924
-      or spellID == 227847
-      or spellID == 184362
-      or spellID == 446035
+        spellID == 50622
+        or spellID == 46924
+        or spellID == 227847
+        or spellID == 184362
+        or spellID == 446035
     ) then
-      noConsumeUntil = GetTime() + 2
+        noConsumeUntil = GetTime() + 2
     end
 
     -- Generator -> award stacks
     if GENERATOR_IDS[spellID] then
-        local hasTarget =
-            UnitExists("target")
-            and UnitCanAttack("player", "target")
-            and not UnitIsDead("target")
+        if (spellID == 6343 or spellID == 435222) and not HasCrashingThunderTalent() then
+            return
+        end
 
-        if hasTarget and not IsSpellInTargetRange(spellID) then return end
+        -- IWT BUGFIX: instant-kill / combat ends instantly can block stacks.
+        -- Also: first hit from OOC may not set combat fast enough, so snapshot hostile target too.
+        local combatAtCast = InCombatLockdown() or playerInCombat
+        local hostileTargetAtCast = UnitExists("target") and UnitCanAttack("player", "target") and not UnitIsDead("target")
 
-        -- small delay 
+        pendingGenToken = pendingGenToken + 1
+        local myToken = pendingGenToken
+
+        -- small delay
         C_Timer.After(0.15, function()
-            if UnitAffectingCombat("player") then
-                iwStacks = Whirlwind.IW_MAX_STACKS
-                iwExpiresAt = GetTime() + IW_DURATION
-            end
+            if myToken ~= pendingGenToken then return end
+            if not (combatAtCast or hostileTargetAtCast) and not HasNearbyHostileAoE(spellID) then return end
+
+            iwStacks = Whirlwind.IW_MAX_STACKS
+            iwExpiresAt = GetTime() + IW_DURATION
         end)
+
         return
     end
 
     -- Spender -> consume stack
     if SPENDER_IDS[spellID] then
+        -- Bloodthirst special case (Unhinged protection)
         if (GetTime() < noConsumeUntil) and (spellID == 23881) then return end
-            if (iwStacks or 0) <= 0 then return end
-            iwStacks = math.max(0, (iwStacks or 0) - 1)
-            if iwStacks == 0 then iwExpiresAt = nil end
+        if (iwStacks or 0) <= 0 then return end
+
+        iwStacks = math.max(0, (iwStacks or 0) - 1)
+        if iwStacks == 0 then iwExpiresAt = nil end
+
         return
     end
 end

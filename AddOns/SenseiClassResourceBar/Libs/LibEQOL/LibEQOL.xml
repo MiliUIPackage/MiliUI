@@ -2,6 +2,7 @@
 	<Script file="LibEQOLSettingsMode.lua" />
 	<Script file="LibEQOLSettingsMultiDropdown.lua" />
 	<Script file="LibEQOLSettingsScrollDropdown.lua" />
+	<Script file="LibEQOLSettingsInput.lua" />
 	<Script file="LibEQOLSettingsColorOverrides.lua" />
 	<Script file="LibEQOLSettingsSoundDropdown.lua" />
 	<Include file="LibEQOLSettingsTemplates.xml" />
