@@ -1,4 +1,4 @@
-## Interface: 120000
+## Interface: 120001
 ## Title: HandyNotes: Dornogal
 ## Notes: Shows the NPC and POI locations in Dornogal.
 ## Title-zhCN: HandyNotes：多恩诺嘉尔

@@ -1,4 +1,4 @@
-## Interface: 120000
+## Interface: 120001
 ## Title: Masque Skinner: Blizz Buffs
 ## Version: 10.0.0 fix
 ## Author: Cybeloras of Aerie Peak

@@ -1,4 +1,4 @@
-## Interface: 120000
+## Interface: 120001
 ## Title: Ascension Cast Bar
 ## Author: AkaDoctorCode
 ## Notes: Customised casting bar with integration for Cooldown Manager.
