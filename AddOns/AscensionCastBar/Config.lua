@@ -144,9 +144,9 @@ AscensionCastBar.defaults = {
         latencyMaxPercent = 0.5,
 
         -- CDM
-        attachToCDM = false,
-        cdmTarget = "PlayerFrame",
-        cdmYOffset = -5,
+        attachToCDM = true,
+        cdmTarget = "Essential",
+        cdmYOffset = 0,
         previewEnabled = false,
         testModeState = "Cast",
 

@@ -350,7 +350,7 @@ function AscensionCastBar:UpdateBarColor()
         cb:SetScale(1.0) 
         
         local baseWidth = cb.baseWidth or db.manualWidth or 270
-        local widthMultiplier = 1 + ((s - 1) * 0.05)
+        local widthMultiplier = 1
         cb:SetWidth(baseWidth * widthMultiplier)
 
         if s >= 5 then
