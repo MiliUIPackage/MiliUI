@@ -196,7 +196,7 @@ L.YOUR_VERSION_OUTDATED     			= "Your version of " .. L.DEADLY_BOSS_MODS .. " i
 L.VOICE_PACK_OUTDATED					= "Your selected " .. L.DBM .. " voice pack is missing some sounds supported by " .. L.DBM .. ". Some warning sounds will still play default sounds. Please download a newer version of voice pack or contact pack author for an update that contains missing audio"
 L.VOICE_MISSING							= "You have a " .. L.DBM .. " voice pack selected that could not be found. If this is an error, make sure your voice pack is properly installed and enabled in addons."
 L.VOICE_DISABLED						= "You currently have at least one " .. L.DBM .. " voice pack installed but none enabled. If you intend to use a voice pack, make sure it's chosen in 'Spoken Alerts', else uninstall unused voice packs to hide this message"
-L.VOICE_COUNT_MISSING					= "Countdown voice %d is set to a voice/count pack that could not be found. It has been reset to default setting: %s."
+L.VOICE_COUNT_MISSING					= "Countdown voice %d is set to a voice/count pack that could not be found or is not currently supported. It has been reset to default setting: %s."
 L.BIG_WIGS								= "BigWigs" -- OPTIONAL
 L.WEAKAURA_KEY							= " (|cff308530WA Key:|r %s)"
 
@@ -650,6 +650,8 @@ L.AUTO_INFO_FRAME_OPTION_TEXT3			= "Show info frame for $spell:%s (when threshol
 L.AUTO_READY_CHECK_OPTION_TEXT			= "Play ready check sound when boss is pulled (even if it's not targeted)"
 L.AUTO_SPEEDCLEAR_OPTION_TEXT			= "Show timer for fastest clear of %s"
 L.AUTO_PRIVATEAURA_OPTION_TEXT			= "Play DBM sound alerts for $spell:%s private auras on this fight."
+L.AUTO_CUSTOMTIMER_OPTION_TEXT			= "Show timer for $spell:%s"--Used for Midnight timeline timers (ie we have no context of what type of timer it is, just a generic timer)
+L.AUTO_CUSTOMALERT_OPTION_TEXT			= "Set alert sound for when $spell:%s is about to be cast"--Used for Midnight custom alerts (ie we have no context of what type of alert it is, just a generic alert)
 
 L.AUTO_GOSSIP_BUFFS						= "Auto select gossip choice(s) for npc or profession buffs"
 L.AUTO_GOSSIP_PERFORM_ACTION			= "Auto select gossip choice(s) to perform actions (such as using transports)"

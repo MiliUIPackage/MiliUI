@@ -16,26 +16,57 @@ do
 		{	text	= "Pewsey",value 	= "Pewsey", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Pewsey\\", max = 10},
 		{	text	= "Bear (Child)",value = "Bear", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Bear\\", max = 10},
 		{	text	= "Moshne",	value 	= "Mosh", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Mosh\\", max = 5},
+		{	text	= "安妮海豹",value 	= "AnnieSeal", path = "Interface\\AddOns\\DBM-Core\\Sounds\\AnnieSeal\\", max = 10},
+		{	text	= "家豪",value 	= "SahaJh", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SahaJh\\", max = 10},
+		{	text	= "然然",value 	= "Ranran", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ranran\\", max = 10},
+		{	text	= "VV",value 	= "VV", path = "Interface\\AddOns\\DBM-Core\\Sounds\\VV\\", max = 10},
+	}
+	--Countdown audio that's been specifically edited to be a single 5 second count file
+	local midnightCounts = {
+		{	text	= "Corsica",value 	= "Corsica", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Corsica\\", max = 5},
+		{	text	= "Koltrane",value 	= "Kolt", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Kolt\\", max = 5},
+		{	text	= "Smooth",value 	= "Smooth", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Smooth\\", max = 5},
+		{	text	= "Smooth (Reverb)",value 	= "SmoothR", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SmoothReverb\\", max = 5},
+		{	text	= "安度因",value 	= "Anduin", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Anduin\\", max = 5},
+		{	text	= "安妮海豹",value 	= "AnnieSeal", path = "Interface\\AddOns\\DBM-Core\\Sounds\\AnnieSeal\\", max = 5},
+		{	text	= "家豪",value 	= "SahaJh", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SahaJh\\", max = 5},
+		{	text	= "然然",value 	= "Ranran", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ranran\\", max = 5},
+		{	text	= "VV",value 	= "VV", path = "Interface\\AddOns\\DBM-Core\\Sounds\\VV\\", max = 5},
 	}
 	local hasCached = false
 	local cachedTable
-	---@deprecated Use new utility functions
+	---@deprecated Use new utility functions. Midnight sounds cannot be added injectinginto DBM.Counts at all!
 	DBM.Counts = counts
 
 	function DBM:GetCountSounds()
 		if not hasCached then
-			cachedTable = {unpack(counts)}
+			cachedTable = {unpack(private.isRetail and midnightCounts or counts)}
 		end
 		return cachedTable
 	end
 
-	function DBM:AddCountSound(text, value, path, max)
-		tinsert(counts, {
-			text	= text,
-			value	= value or text,
-			path	= path,
-			max		= max or 10
-		})
+	---comment
+	---@param text string
+	---@param value string
+	---@param path string
+	---@param max number? Max count value 1-10 for classic and 1-5 for midnight
+	---@param isMidnightCompatible boolean? Pass this ONLY if your count pack supports "fivecount.ogg"
+	function DBM:AddCountSound(text, value, path, max, isMidnightCompatible)
+		if isMidnightCompatible then
+			tinsert(midnightCounts, {
+				text	= text,
+				value	= value or text,
+				path	= path,
+				max		= max or 5
+			})
+		else
+			tinsert(counts, {
+				text	= text,
+				value	= value or text,
+				path	= path,
+				max		= max or 10
+			})
+		end
 		hasCached = false
 	end
 end

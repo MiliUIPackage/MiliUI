@@ -76,17 +76,17 @@ end
 ---@class DBM
 local DBM = private:GetPrototype("DBM")
 _G.DBM = DBM
-DBM.Revision = parseCurseDate("20260127000504")
+DBM.Revision = parseCurseDate("20260211003300")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 local fakeBWVersion, fakeBWHash = 402, "6f82943"--402.3
 local PForceDisable
 -- The string that is shown as version
-DBM.DisplayVersion = "12.0.16"--Core version
+DBM.DisplayVersion = "12.0.18"--Core version
 DBM.classicSubVersion = 0
 DBM.dungeonSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2026, 1, 26) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
-PForceDisable = private.isRetail and 21 or 20--When this is incremented, trigger force disable regardless of major patch
+DBM.ReleaseRevision = releaseDate(2026, 2, 10, 12) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+PForceDisable = private.isRetail and 22 or 20--When this is incremented, trigger force disable regardless of major patch
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
 -- support for github downloads, which doesn't support curse keyword expansion
@@ -233,7 +233,7 @@ DBM.DefaultOptions = {
 	GUIWidth = 800,
 	GUIHeight = 600,
 	GroupOptionsExcludeIcon = false,
-	GroupOptionsExcludePA = false,
+--	GroupOptionsExcludePA = false,
 	AutoExpandSpellGroups2 = true,
 	ShowWAKeys = true,
 	--ShowSpellDescWhenExpanded = false,
@@ -413,6 +413,8 @@ DBM.DefaultOptions = {
 	EnableTooltipInCombat = true,
 	EnableTooltipHeader = true,
 	HasShownMidnightPopup = false,
+	IgnoreBlizzAPI = false,
+	DisableSWSound = false,
 }
 
 ---@type DBMMod[]
@@ -431,6 +433,7 @@ DBM_OPTION_SPACER = newproxy(false)
 --------------
 private.modSyncSpam = {}
 private.updateFunctions = {}
+private.updateFunctionsDirty = true
 --Raid Leader Disable variables
 private.statusGuildDisabled, private.statusWhisperDisabled, private.raidIconsDisabled, private.chatBubblesDisabled = false, false, false, false
 
@@ -906,6 +909,21 @@ function DBM:MidRestrictionsActive(includeAuras)
 	end
 end
 bossModPrototype.MidRestrictionsActive = DBM.MidRestrictionsActive
+
+---@param self DBMModOrDBM
+function DBM:IgnoreBlizzardAPI()
+	DBM.Options.IgnoreBlizzAPI = true
+end
+bossModPrototype.IgnoreBlizzardAPI = DBM.IgnoreBlizzardAPI
+
+---Disables special warning sounds from firing from blizz ENCOUNTER_WARNING api events. Use this when a module has aleady registered custom event sounds
+---@param self DBMModOrDBM
+function DBM:DisableSpecialWarningSounds()
+	if private.wowTOC >= 120005 then
+		DBM.Options.DisableSWSound = true
+	end
+end
+bossModPrototype.DisableSpecialWarningSounds = DBM.DisableSpecialWarningSounds
 
 do
 	local issecretvalue = issecretvalue or function(val) return false end
@@ -1502,7 +1520,7 @@ do
 						match = true
 					end
 				end
-				if #mods == 0 or (match and event:sub(0, 5) == "UNIT_" and event:sub(-11) ~= "_UNFILTERED" and event ~= "UNIT_DIED" and event ~= "UNIT_DESTROYED") then -- unit events have their own reference count
+				if #mods == 0 or (match and event:sub(0, 5) == "UNIT_" and event ~= "UNIT_DIED" and event ~= "UNIT_DESTROYED") then -- unit events have their own reference count
 					unregisterUEvent(self, event)
 				end
 				if #mods == 0 then
@@ -1563,7 +1581,7 @@ do
 							match = true
 						end
 					end
-					if #mods == 0 or (match and event:sub(0, 5) == "UNIT_" and event:sub(-11) ~= "_UNFILTERED" and event ~= "UNIT_DIED" and event ~= "UNIT_DESTROYED") then
+					if #mods == 0 or (match and event:sub(0, 5) == "UNIT_" and event ~= "UNIT_DIED" and event ~= "UNIT_DESTROYED") then
 						unregisterUEvent(self, event)
 						DBM:Debug("unregisterUEvent for unit event " .. event .. " unregistered", 3)
 					end
@@ -1574,6 +1592,30 @@ do
 				end
 			end
 			self.shortTermRegisterEvents = nil
+		end
+	end
+
+	---@param self DBM
+	---@param ... DBMEvent|string
+	---Don't Use this to unregister short term events or "InCombat" events most mods use.
+	---This is strictly for Core events boss mods do NOT use.
+	function DBM:UnregisterEvents(...)
+		test:Trace(self, "UnregisterEvents", "Regular", ...)
+		for i = 1, select('#', ...) do
+			local event = select(i, ...)
+			-- spell events with special care.
+			if event:sub(0, 6) == "SPELL_" and event ~= "SPELL_NAME_UPDATE" or event:sub(0, 6) == "RANGE_" or event:sub(0, 13) == "DAMAGE_SHIELD" or event:sub(0, 20) == "DAMAGE_SHIELD_MISSED" then
+				unregisterCLEUEvent(self, event)
+			else
+				if event:sub(0, 5) == "UNIT_" and event ~= "UNIT_DIED" and event ~= "UNIT_DESTROYED" then
+					unregisterUEvent(self, event)
+					DBM:Debug("unregisterUEvent for unit event " .. event .. " unregistered", 3)
+				else
+					registeredEvents[event] = nil
+					mainFrame:UnregisterEvent(event)
+					DBM:Debug("UnregisteredEvents for event " .. event .. " nilled", 3)
+				end
+			end
 		end
 	end
 
@@ -1831,6 +1873,10 @@ do
 			end
 			--Force show timeline or else we can't start timers because it won't fire events
 			if self:IsPostMidnight() then
+				C_CVar.SetCVar("encounterTimelineShowSequenceCount", "1")--Enable count on timers
+				--Another white bar hack to restore respawn timer back to users default bar color
+				local timerRed, timerGreen, timerBlue = DBT:GetColorForType(0)
+				C_EncounterEvents.SetEventColor(160, {r = timerRed, g = timerGreen, b = timerBlue})
 				if self.Options.HideBlizzardTimeline then
 					C_CVar.SetCVar("encounterTimelineEnabled", "0")
 					if EncounterTimeline.View then
@@ -1971,7 +2017,11 @@ do
 							self.VoiceVersions[voiceValue] = voiceVersion
 							self:Schedule(10, self.CheckVoicePackVersion, self, voiceValue)--Still at 1 since the count sounds won't break any mods or affect filter. V2 if support countsound path
 							if C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-HasCount") then--Supports adding countdown options, insert new countdown into table
-								DBM:AddCountSound(C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-Name"), "VP: " .. voiceValue, "Interface\\AddOns\\DBM-VP" .. voiceValue .. "\\count\\")
+								if C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-MidnightCompat") then--Add to TOC only if your count pack supports "fivecount.ogg"
+									DBM:AddCountSound(C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-Name"), "VP: " .. voiceValue, "Interface\\AddOns\\DBM-VP" .. voiceValue .. "\\count\\", nil, true)
+								else
+									DBM:AddCountSound(C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-Name"), "VP: " .. voiceValue, "Interface\\AddOns\\DBM-VP" .. voiceValue .. "\\count\\")
+								end
 							end
 						end)
 					end
@@ -2150,7 +2200,10 @@ do
 			self:ZONE_CHANGED_NEW_AREA()
 			playerName = UnitName("player")--In case it's unknown at login, we check it again
 			private.isRetail = WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1)--Can also fail to intialize on login on midnight alpha
+			self.Options.IgnoreBlizzAPI = false--In event it didn't get restored on combat end due to crash or reload
+			self.Options.DisableSWSound = false--In event it didn't get restored on combat end due to crash or reload
 		end
+		self:UnregisterEvents("ADDON_LOADED")
 	end
 
 	function DBM:PLAYER_ENTERING_WORLD(isLogin, isReload)
@@ -2196,6 +2249,7 @@ do
 			end
 			--RestoreSettingCustomMusic doens't need restoring here, since zone change transition will handle it
 		end
+		self:UnregisterEvents("PLAYER_ENTERING_WORLD")
 	end
 end
 
@@ -2756,6 +2810,10 @@ do
 				if name then
 					local id = "raid" .. i
 					local shortname = UnitName(id)
+					local guid = UnitGUID(id)
+					if self:issecretvalue(guid) then
+						guid = nil
+					end
 					if (not raid[name]) and inRaid then
 						fireEvent("DBM_raidJoin", name)
 					end
@@ -2767,10 +2825,12 @@ do
 					raid[name].class = className
 					raid[name].id = id
 					raid[name].groupId = i
-					raid[name].guid = UnitGUID(id) or ""
+					raid[name].guid = guid or ""
 					raid[name].updated = true
 					raid[name].isOnline = isOnline
-					raidGuids[UnitGUID(id) or ""] = name
+					if guid then
+						raidGuids[guid] = name
+					end
 					if rank == 2 then
 						lastGroupLeader = name
 					end
@@ -2930,7 +2990,7 @@ do
 
 	function DBM:GROUP_ROSTER_UPDATE(force)
 		self:Unschedule(updateAllRoster)
-		--Updated with no throttle on ADDON_LOADDED, DBM:LoadMod and if in combat with a boss
+		--Updated with no throttle on ADDON_LOADED, DBM:LoadMod and if in combat with a boss
 		if force or #inCombat > 0 then
 			updateAllRoster(self)
 		else
@@ -6561,6 +6621,8 @@ do
 			if mod.paSounds then
 				mod:DisablePrivateAuraSounds()
 			end
+			self.Options.IgnoreBlizzAPI = false
+			self.Options.DisableSWSound = false
 			if event then
 				self:Debug("EndCombat called by : " .. event .. ". LastInstanceMapID is " .. LastInstanceMapID)
 			end
@@ -7267,7 +7329,6 @@ do
 	local UnitAura = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex or UnitAura
 	local GetPlayerAuraBySpellID = C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID
 	local GetAuraDataBySpellName = C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName
-	local newUnitAuraAPIs = C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName and true--Purposely separate from GetAuraDataBySpellName upvalue because I don't want to spam check if a function exists in such a frequent API call
 	---Custom UnitAura wrapper that can check spells by spellID or spell name for up to 5 spells at once
 	---@param uId string
 	---@param spellInput number|string|nil|unknown --required, accepts spellname or spellid
@@ -7277,33 +7338,21 @@ do
 	---@param spellInput5 number|string|nil|unknown? --optional 5th spell, accepts spellname or spellid
 	function DBM:UnitAura(uId, spellInput, spellInput2, spellInput3, spellInput4, spellInput5)
 		if not uId then return end
-		if self:MidRestrictionsActive(true) then return end--Block access to UnitAura in combat in midnight
 		if private.isRetail and type(spellInput) == "number" and not spellInput2 and UnitIsUnit(uId, "player") then--A simple single spellId check should use more efficent direct blizzard method
 			local spellTable = GetPlayerAuraBySpellID(spellInput)
-			if not spellTable then return end
+			if not spellTable or self:issecretvalue(spellTable.name) then return end
 			return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
 		else--Either a multi spell check, spell name check, or C_UnitAuras.GetPlayerAuraBySpellID is unavailable
-			if newUnitAuraAPIs then
-				if type(spellInput) == "string" and not spellInput2 then--A simple single spellName check should use more efficent direct blizzard method
-					local spellTable = GetAuraDataBySpellName(uId, spellInput)
-					if not spellTable then return end
-					return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
-				else--Either a multi spell check, or a single spell id check on non player unit (C_UnitAuras.GetPlayerAuraBySpellID is unavailable)
-					for i = 1, 60 do
-						local spellTable = UnitAura(uId, i)
-						if not spellTable then return end
-						if spellInput == spellTable.name or spellInput == spellTable.spellId or spellInput2 == spellTable.name or spellInput2 == spellTable.spellId or spellInput3 == spellTable.name or spellInput3 == spellTable.spellId or spellInput4 == spellTable.name or spellInput4 == spellTable.spellId or spellInput5 == spellTable.name or spellInput5 == spellTable.spellId then
-							return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
-						end
-					end
-				end
-			else
+			if type(spellInput) == "string" and not spellInput2 then--A simple single spellName check should use more efficent direct blizzard method
+				local spellTable = GetAuraDataBySpellName(uId, spellInput)
+				if not spellTable or self:issecretvalue(spellTable.name) then return end
+				return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
+			else--Either a multi spell check, or a single spell id check on non player unit (C_UnitAuras.GetPlayerAuraBySpellID is unavailable)
 				for i = 1, 60 do
-					local spellName, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, value1, value2, value3 = UnitAura(uId, i)
-					if not spellName then return end
-					if spellInput == spellName or spellInput == spellId or spellInput2 == spellName or spellInput2 == spellId or spellInput3 == spellName or spellInput3 == spellId or spellInput4 == spellName or spellInput4 == spellId or spellInput5 == spellName or spellInput5 == spellId then
-						--In classic, instead of adding rank back in at beginning where it was pre 8.0, it's 15th arg return at end (value 1)
-						return spellName, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, value1, value2, value3
+					local spellTable = UnitAura(uId, i)
+					if not spellTable or self:issecretvalue(spellTable.name) then return end
+					if spellInput == spellTable.name or spellInput == spellTable.spellId or spellInput2 == spellTable.name or spellInput2 == spellTable.spellId or spellInput3 == spellTable.name or spellInput3 == spellTable.spellId or spellInput4 == spellTable.name or spellInput4 == spellTable.spellId or spellInput5 == spellTable.name or spellInput5 == spellTable.spellId then
+						return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
 					end
 				end
 			end
@@ -7319,33 +7368,23 @@ do
 	---@param spellInput5 number|string|nil|unknown? --optional 5th spell, accepts spellname or spellid
 	function DBM:UnitDebuff(uId, spellInput, spellInput2, spellInput3, spellInput4, spellInput5)
 		if not uId then return end
-		if self:MidRestrictionsActive(true) then return end--Block access to UnitAura in combat in midnight
 		if private.isRetail and type(spellInput) == "number" and not spellInput2 and UnitIsUnit(uId, "player") then--A simple single spellId check should use more efficent direct blizzard method
 			local spellTable = GetPlayerAuraBySpellID(spellInput)
-			if not spellTable then return end
+			if not spellTable or self:issecretvalue(spellTable.name) then return end
 			return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
 		else--Either a multi spell check, spell name check, or C_UnitAuras.GetPlayerAuraBySpellID is unavailable
-			if newUnitAuraAPIs then
-				if type(spellInput) == "string" and not spellInput2 then--A simple single spellName check should use more efficent direct blizzard method
-					local spellTable = GetAuraDataBySpellName(uId, spellInput, "HARMFUL")
-					if not spellTable then return end
-					return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
-				else--Either a multi spell check, or a single spell id check on non player unit (C_UnitAuras.GetPlayerAuraBySpellID is unavailable)
-					for i = 1, 60 do
-						local spellTable = UnitAura(uId, i, "HARMFUL")
-						if not spellTable then return end
-						if spellInput == spellTable.name or spellInput == spellTable.spellId or spellInput2 == spellTable.name or spellInput2 == spellTable.spellId or spellInput3 == spellTable.name or spellInput3 == spellTable.spellId or spellInput4 == spellTable.name or spellInput4 == spellTable.spellId or spellInput5 == spellTable.name or spellInput5 == spellTable.spellId then
-							return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
-						end
-					end
-				end
-			else
+			if type(spellInput) == "string" and not spellInput2 then--A simple single spellName check should use more efficent direct blizzard method
+				---@diagnostic disable-next-line: param-type-mismatch
+				local spellTable = GetAuraDataBySpellName(uId, spellInput, "HARMFUL")
+				if not spellTable or self:issecretvalue(spellTable.name) then return end
+				return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
+			else--Either a multi spell check, or a single spell id check on non player unit (C_UnitAuras.GetPlayerAuraBySpellID is unavailable)
 				for i = 1, 60 do
-					local spellName, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, value1, value2, value3 = UnitAura(uId, i, "HARMFUL")
-					if not spellName then return end
-					if spellInput == spellName or spellInput == spellId or spellInput2 == spellName or spellInput2 == spellId or spellInput3 == spellName or spellInput3 == spellId or spellInput4 == spellName or spellInput4 == spellId or spellInput5 == spellName or spellInput5 == spellId then
-						--In classic, instead of adding rank back in at beginning where it was pre 8.0, it's 15th arg return at end (value 1)
-						return spellName, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, value1, value2, value3
+					---@diagnostic disable-next-line: param-type-mismatch
+					local spellTable = UnitAura(uId, i, "HARMFUL")
+					if not spellTable or self:issecretvalue(spellTable.name) then return end
+					if spellInput == spellTable.name or spellInput == spellTable.spellId or spellInput2 == spellTable.name or spellInput2 == spellTable.spellId or spellInput3 == spellTable.name or spellInput3 == spellTable.spellId or spellInput4 == spellTable.name or spellInput4 == spellTable.spellId or spellInput5 == spellTable.name or spellInput5 == spellTable.spellId then
+						return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
 					end
 				end
 			end
@@ -7361,33 +7400,23 @@ do
 	---@param spellInput5 number|string|nil|unknown? --optional 5th spell, accepts spellname or spellid
 	function DBM:UnitBuff(uId, spellInput, spellInput2, spellInput3, spellInput4, spellInput5)
 		if not uId then return end
-		if self:MidRestrictionsActive(true) then return end--Block access to UnitAura in combat in midnight
 		if private.isRetail and type(spellInput) == "number" and not spellInput2 and UnitIsUnit(uId, "player") then--A simple single spellId check should use more efficent direct blizzard method
 			local spellTable = GetPlayerAuraBySpellID(spellInput)
-			if not spellTable then return end
+			if not spellTable or self:issecretvalue(spellTable.name) then return end
 			return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
 		else--Either a multi spell check, spell name check, or C_UnitAuras.GetPlayerAuraBySpellID is unavailable
-			if newUnitAuraAPIs then
-				if type(spellInput) == "string" and not spellInput2 then--A simple single spellName check should use more efficent direct blizzard method
-					local spellTable = GetAuraDataBySpellName(uId, spellInput, "HELPFUL")
-					if not spellTable then return end
-					return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
-				else--Either a multi spell check, or a single spell id check on non player unit (C_UnitAuras.GetPlayerAuraBySpellID is unavailable)
-					for i = 1, 60 do
-						local spellTable = UnitAura(uId, i, "HELPFUL")
-						if not spellTable then return end
-						if spellInput == spellTable.name or spellInput == spellTable.spellId or spellInput2 == spellTable.name or spellInput2 == spellTable.spellId or spellInput3 == spellTable.name or spellInput3 == spellTable.spellId or spellInput4 == spellTable.name or spellInput4 == spellTable.spellId or spellInput5 == spellTable.name or spellInput5 == spellTable.spellId then
-							return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
-						end
-					end
-				end
-			else
+			if type(spellInput) == "string" and not spellInput2 then--A simple single spellName check should use more efficent direct blizzard method
+				---@diagnostic disable-next-line: param-type-mismatch
+				local spellTable = GetAuraDataBySpellName(uId, spellInput, "HELPFUL")
+				if not spellTable or self:issecretvalue(spellTable.name) then return end
+				return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
+			else--Either a multi spell check, or a single spell id check on non player unit (C_UnitAuras.GetPlayerAuraBySpellID is unavailable)
 				for i = 1, 60 do
-					local spellName, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, value1, value2, value3 = UnitAura(uId, i, "HELPFUL")
-					if not spellName then return end
-					if spellInput == spellName or spellInput == spellId or spellInput2 == spellName or spellInput2 == spellId or spellInput3 == spellName or spellInput3 == spellId or spellInput4 == spellName or spellInput4 == spellId or spellInput5 == spellName or spellInput5 == spellId then
-						--In classic, instead of adding rank back in at beginning where it was pre 8.0, it's 15th arg return at end (value 1)
-						return spellName, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, value1, value2, value3
+					---@diagnostic disable-next-line: param-type-mismatch
+					local spellTable = UnitAura(uId, i, "HELPFUL")
+					if not spellTable or self:issecretvalue(spellTable.name) then return end
+					if spellInput == spellTable.name or spellInput == spellTable.spellId or spellInput2 == spellTable.name or spellInput2 == spellTable.spellId or spellInput3 == spellTable.name or spellInput3 == spellTable.spellId or spellInput4 == spellTable.name or spellInput4 == spellTable.spellId or spellInput5 == spellTable.name or spellInput5 == spellTable.spellId then
+						return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
 					end
 				end
 			end
@@ -7418,6 +7447,7 @@ do
 	---@param spellInput4 number|string|nil|unknown? --optional 4th spell, accepts spellname or spellid
 	---@param spellInput5 number|string|nil|unknown? --optional 5th spell, accepts spellname or spellid
 	function DBM:RaidUnitDebuff(spellInput, spellInput2, spellInput3, spellInput4, spellInput5)
+		--Still gonna globally block this function because in no situation should we itereate entire raid in a post midnight world
 		if self:MidRestrictionsActive(true) then return false end--Block access to UnitAura in combat in midnight
 		for uId in DBM:GetGroupMembers() do
 			local debuff = DBM:UnitDebuff(uId, spellInput, spellInput2, spellInput3, spellInput4, spellInput5)
@@ -7932,38 +7962,38 @@ do
 			if not testMod then
 				---@class DBMModTestMod: DBMMod
 				testMod = self:NewMod("TestMod")
-				self:GetModLocalization("TestMod"):SetGeneralLocalization{name = "Test Mod"}
+				self:GetModLocalization("TestMod"):SetGeneralLocalization{name = "測試模式"}
 				testWarning1 = testMod:NewAnnounce("%s", 1, "136116")--Interface\\Icons\\Spell_Nature_WispSplode
 				testWarning2 = testMod:NewAnnounce("%s", 2, private.isRetail and "136194" or "136221")
 				testWarning3 = testMod:NewAnnounce("%s", 3, "135826")
 				testTimer1 = testMod:NewTimer(20, "%s", "136116", nil, nil)
-				testTimer2 = testMod:NewTimer(20, "%s ", "134170", nil, nil, 1)
-				testTimer3 = testMod:NewTimer(20, "%s  ", private.isRetail and "136194" or "136221", nil, nil, 3, CL.MAGIC_ICON, nil, 1, 4, nil, nil, nil, nil, nil, nil, "next")
+				testTimer2 = testMod:NewTimer(20, "%s ", "134170", nil, nil, 1, CL.DAMAGE_ICON)
+				testTimer3 = testMod:NewTimer(20, "%s  ", private.isRetail and "136194" or "136221", nil, nil, 3, CL.HEALER_ICON..CL.MAGIC_ICON, nil, 1, 4, nil, nil, nil, nil, nil, nil, "next")
 				testTimer4 = testMod:NewTimer(20, "%s   ", "136116", nil, nil, 4, CL.INTERRUPT_ICON, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, true)--Flagged Priority for test mode
 				testTimer5 = testMod:NewTimer(20, "%s    ", "135826", nil, nil, 2, CL.HEALER_ICON, nil, 3, 4, nil, nil, nil, nil, nil, nil, "next")
-				testTimer6 = testMod:NewTimer(20, "%s     ", "136116", nil, nil, 5, CL.TANK_ICON, nil, 2, 4, nil, nil, nil, nil, nil, nil, "next")
+				testTimer6 = testMod:NewTimer(20, "%s     ", "136116", nil, nil, 5, CL.TANK_ICON..CL.BLEED_ICON, nil, 2, 4, nil, nil, nil, nil, nil, nil, "next")
 				testTimer7 = testMod:NewTimer(20, "%s      ", "136116", nil, nil, 6)
 				testTimer8 = testMod:NewTimer(20, "%s       ", "136116", nil, nil, 7)
 				testSpecialWarning1 = testMod:NewSpecialWarning("%s", nil, nil, nil, 1, 2)
 				testSpecialWarning2 = testMod:NewSpecialWarning(" %s ", nil, nil, nil, 2, 2)
 				testSpecialWarning3 = testMod:NewSpecialWarning("  %s  ", nil, nil, nil, 3, 2) -- hack: non auto-generated special warnings need distinct names (we could go ahead and give them proper names with proper localization entries, but this is much easier)
 			end
-			testTimer1:Stop("Test Bar showing 5s Variance")
-			testTimer2:Stop("Adds")
-			testTimer3:Stop("Evil Debuff")
-			testTimer4:Stop("Important Interrupt")
-			testTimer5:Stop("Boom!")
-			testTimer6:Stop("Handle your Role")
-			testTimer7:Stop("Next Stage")
-			testTimer8:Stop("Custom User Bar")
-			testTimer1:Start("v5-10", "Test Bar showing 5s Variance")
-			testTimer2:Start("v25-30", "Adds")
-			testTimer3:Start(43, "Evil Debuff")
-			testTimer4:Start(20, "Important Interrupt")
-			testTimer5:Start(60, "Boom!")
-			testTimer6:Start("v32-35", "Handle your Role")
-			testTimer7:Start(50, "Next Stage")
-			testTimer8:Start(55, "Custom User Bar")
+			testTimer1:Stop("測試條顯示5秒差異")
+			testTimer2:Stop("小怪")
+			testTimer3:Stop("惡魔減益")
+			testTimer4:Stop("重要的打斷")
+			testTimer5:Stop("蹦!")
+			testTimer6:Stop("掌握你的職責")
+			testTimer7:Stop("下一階段")
+			testTimer8:Stop("用戶自訂義條")
+			testTimer1:Start("v5-10", "測試條顯示5秒差異")
+			testTimer2:Start("v25-30", "小怪")
+			testTimer3:Start(43, "惡魔減益")
+			testTimer4:Start(20, "重要的打斷")
+			testTimer5:Start(60, "蹦!")
+			testTimer6:Start("v32-35", "掌握你的職責")
+			testTimer7:Start(50, "下一階段")
+			testTimer8:Start(55, "用戶自訂義條")
 			testWarning1:Cancel()
 			testWarning2:Cancel()
 			testWarning3:Cancel()
@@ -7973,19 +8003,19 @@ do
 			testSpecialWarning2:CancelVoice()
 			testSpecialWarning3:Cancel()
 			testSpecialWarning3:CancelVoice()
-			testWarning1:Show("Test-mode started...")
-			testWarning1:Schedule(62, "Test-mode finished!")
-			testWarning3:Schedule(50, "Boom in 10 sec!")
-			testWarning3:Schedule(20, "Pew Pew Laser Owl!")
-			testWarning2:Schedule(38, "Evil Spell in 5 sec!")
-			testWarning2:Schedule(43, "Evil Spell!")
-			testWarning1:Schedule(10, "Test Bar expired!")
-			testSpecialWarning1:Schedule(20, "Pew Pew Laser Owl")
-			testSpecialWarning1:ScheduleVoice(20, "runaway")
-			testSpecialWarning2:Schedule(43, "Fear!")
-			testSpecialWarning2:ScheduleVoice(43, "fearsoon")
-			testSpecialWarning3:Schedule(60, "Boom!")
-			testSpecialWarning3:ScheduleVoice(60, "defensive")
+			testWarning1:Show("測試模式開始...")
+			testWarning1:Schedule(62, "測試模式已結束!")
+			testWarning3:Schedule(50, "10秒後爆炸!")
+			testWarning3:Schedule(20, "皮皮雷射貓頭鷹!")
+			testWarning2:Schedule(38, "惡魔法術5秒後!")
+			testWarning2:Schedule(43, "惡魔法術!")
+			testWarning1:Schedule(10, "測試條已過期!")
+			testSpecialWarning1:Schedule(20, "PiuPiu雷射貓頭鷹")
+			testSpecialWarning1:ScheduleVoice(20, "跑開人群")
+			testSpecialWarning2:Schedule(43, "恐懼!")
+			testSpecialWarning2:ScheduleVoice(43, "恐懼準備")
+			testSpecialWarning3:Schedule(60, "蹦!")
+			testSpecialWarning3:ScheduleVoice(60, "開啟減傷")
 		end
 	end
 end
@@ -8785,10 +8815,49 @@ function bossModPrototype:AddPrivateAuraSoundOption(auraspellId, default, groupS
 	---@diagnostic disable-next-line: assign-type-mismatch
 	self.Options["PrivateAuraSound" .. auraspellId .. "SWSound"] = defaultSound or 1
 	self.localization.options["PrivateAuraSound" .. auraspellId] = L.AUTO_PRIVATEAURA_OPTION_TEXT:format(auraspellId)
-	if not DBM.Options.GroupOptionsExcludePA then
+--	if not DBM.Options.GroupOptionsExcludePA then
 		self:GroupSpellsPA(groupSpellId or auraspellId, "PrivateAuraSound" .. auraspellId)
-	end
+--	end
 	self:SetOptionCategory("PrivateAuraSound" .. auraspellId, "paura", nil, nil, true)
+end
+
+---Object for customizing blizzard timeline object with colors and sounds
+---@param spellId number SpellID used for option text and saved variables
+---@param default SpecFlags|boolean?
+---@param defaultColor number? ColorId 1-6 for color bar by type
+---@param defaultVoice number? VoiceId for countdown voice
+---@param groupSpellId number? is used if a diff option key is used in all other options with spell (will be quite common)
+function bossModPrototype:AddCustomTimerOptions(spellId, default, defaultColor, defaultVoice, groupSpellId)
+	self.DefaultOptions["CustomTimerOption" .. spellId] = (default == nil) or default
+	--Note:, TColor and CVoice are generated in AddBoolOption
+	if type(default) == "string" then
+		default = self:GetRoleFlagValue(default)
+	end
+	self.Options["CustomTimerOption" .. spellId] = (default == nil) or default
+
+	self.localization.options["CustomTimerOption" .. spellId] = L.AUTO_CUSTOMTIMER_OPTION_TEXT:format(spellId)
+	self:GroupSpellsPA(groupSpellId or spellId, "CustomTimerOption" .. spellId)
+	self:AddBoolOption("CustomTimerOption" .. spellId, default, "timer", nil, defaultColor, defaultVoice, spellId)
+end
+
+---Object for cusotmizing blizzard alerts to be shown or what sound plays for them
+---@param auraspellId number SpellID used for option text and saved variables
+---@param default SpecFlags|boolean?
+---@param defaultSound number? is used to set default Special announce sound (1-4) just like regular special announce objects
+---@param groupSpellId number? is used if a diff option key is used in all other options with spell (will be quite common)
+function bossModPrototype:AddCustomAlertSoundOption(auraspellId, default, defaultSound, groupSpellId)
+	self.DefaultOptions["CustomAlertOption" .. auraspellId] = (default == nil) or default
+	self.DefaultOptions["CustomAlertOption" .. auraspellId .. "SWSound"] = defaultSound or 1
+	if type(default) == "string" then
+		default = self:GetRoleFlagValue(default)
+	end
+	self.Options["CustomAlertOption" .. auraspellId] = (default == nil) or default
+	--LuaLS is just stupid here. There is no rule that says self.Options.Variable has to be a bool. Entire SWSound variable scope is always a number
+	---@diagnostic disable-next-line: assign-type-mismatch
+	self.Options["CustomAlertOption" .. auraspellId .. "SWSound"] = defaultSound or 1
+	self.localization.options["CustomAlertOption" .. auraspellId] = L.AUTO_CUSTOMALERT_OPTION_TEXT:format(auraspellId)
+	self:GroupSpellsPA(groupSpellId or auraspellId, "CustomAlertOption" .. auraspellId)
+	self:SetOptionCategory("CustomAlertOption" .. auraspellId, "paura")
 end
 
 ---@meta
@@ -9223,7 +9292,7 @@ function bossModPrototype:SetOptionCategory(name, cat, optionSubType, waCustomNa
 	for _, options in pairs(self.optionCategories) do
 		removeEntry(options, name)
 	end
-	if self.addon and self.groupSpells[name] and not (optionSubType == "gtfo" or optionSubType == "adds" or optionSubType == "addscount" or optionSubType == "addscustom" or optionSubType:find("stage") or cat == "icon" and DBM.Options.GroupOptionsExcludeIcon or cat == "paura" and DBM.Options.GroupOptionsExcludePA) then
+	if self.addon and self.groupSpells[name] and not (optionSubType == "gtfo" or optionSubType == "adds" or optionSubType == "addscount" or optionSubType == "addscustom" or optionSubType:find("stage") or cat == "icon" and DBM.Options.GroupOptionsExcludeIcon) then--or cat == "paura" and DBM.Options.GroupOptionsExcludePA
 		local sSpell = self.groupSpells[name]
 		if not self.groupOptions[sSpell] then
 			self.groupOptions[sSpell] = {}
@@ -9639,7 +9708,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260126235922" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260211003126" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then

@@ -1,4 +1,4 @@
-## Interface: 110207, 120000, 120001
+## Interface: 120000, 120001
 ## X-Min-Interface: 110200
 ## Category: DBM
 ## Group: DBM-Core
@@ -14,11 +14,11 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 12.0.16
+## Version: 12.0.18
 ## X-Curse-Project-ID: 3358
 ## X-Wago-ID: qv633o6b
 ## X-Website: https://deadlybossmods.com
-## Category-zhTW: 團隊
+## Category-zhTW: 地城與團隊
 
 ## Category-zhTW: 副本
 Libs\LibStub\LibStub.lua
