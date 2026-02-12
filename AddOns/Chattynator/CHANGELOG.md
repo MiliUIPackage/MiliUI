@@ -1,7 +1,6 @@
 # Chattynator
 
-## [189](https://github.com/TheMouseNest/Chattynator/tree/189) (2026-01-27)
-[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/188...189) 
+## [192](https://github.com/TheMouseNest/Chattynator/tree/192) (2026-02-12)
+[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/191...192) 
 
-- Fix toggling "Keep edit box visible" setting off  
-- Add option to keep edit box visible/clickable  
+- Fix issecretvalue call on classic  

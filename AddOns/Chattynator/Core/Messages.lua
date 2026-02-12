@@ -373,9 +373,9 @@ function addonTable.MessagesMonitorMixin:SetInset()
   else
     error("unknown format")
   end
-  self.inset = self.sizingFontString:GetUnboundedStringWidth() + 10
+  self.inset = self.sizingFontString:GetUnboundedStringWidth() + 8
   if self.timestampFormat == " " then
-    self.inset = 8
+    self.inset = 6
   end
 end
 
@@ -385,10 +385,10 @@ function addonTable.MessagesMonitorMixin:ShowGMOTD()
     return
   end
   local motd = C_Club.GetClubInfo(guildID).broadcast
-  if motd and motd ~= "" and motd ~= self.seenMOTD then
-    self.seenMOTD = motd
+  if motd and (((not issecretvalue or not issecretvalue(motd)) and motd ~= "" and motd ~= self.seenMOTD) or issecretvalue(motd)) then
+    self.seenMOTD = (not issecretvalue or not issecretvalue(motd)) and motd or nil
     local info = addonTable.Config.Get(addonTable.Config.Options.CHAT_COLORS)["GUILD"] or ChatTypeInfo["GUILD"]
-    local formatted = format(GUILD_MOTD_TEMPLATE, motd)
+    local formatted = string.format(GUILD_MOTD_TEMPLATE, motd)
     self:SetIncomingType({type = "GUILD", event = "GUILD_MOTD"})
     self:AddMessage(formatted, info.r, info.g, info.b, info.id)
   end
@@ -750,9 +750,11 @@ function addonTable.MessagesMonitorMixin:UpdateChannels()
       local streamInfo = C_Club.GetStreamInfo(communityIDStr, channelID)
       if clubInfo and streamInfo and ChatFrame_ContainsChannel(ChatFrame1, channelName) then
         local key = clubInfo.name .. " - " .. streamInfo.name
-        self.channelMap[index] = key
-        self.defaultChannels[key] = true
-        self.maxDisplayChannels = math.max(self.maxDisplayChannels, index)
+        if not issecretvalue or not issecretvalue(key) then
+          self.channelMap[index] = key
+          self.defaultChannels[key] = true
+          self.maxDisplayChannels = math.max(self.maxDisplayChannels, index)
+        end
       end
     end
   end
@@ -1165,7 +1167,7 @@ function addonTable.MessagesMonitorMixin:MessageEventHandler(event, ...)
       self:AddMessage(CHAT_MSG_BLOCK_CHAT_CHANNEL_INVITE, info.r, info.g, info.b, info.id);
     end
   elseif (type == "CHANNEL_NOTICE") then
-    if isSecret then
+    if isSecret or not tIndexOf(self.zoneChannelList, arg7) then
       return
     end
 
@@ -1241,7 +1243,7 @@ function addonTable.MessagesMonitorMixin:MessageEventHandler(event, ...)
   elseif ( type == "BN_INLINE_TOAST_BROADCAST" ) then
     if ( arg1 ~= "" ) then
       if C_StringUtil and C_StringUtil.RemoveContiguousSpaces then
-        arg1 = trim(C_StringUtil.RemoveContiguousSpaces(arg1, 4))
+        arg1 = C_StringUtil.RemoveContiguousSpaces(arg1, 4)
       else
         arg1 = RemoveNewlines(RemoveExtraSpaces(arg1));
       end
@@ -1303,7 +1305,7 @@ function addonTable.MessagesMonitorMixin:MessageEventHandler(event, ...)
         playerLinkDisplayText = playerWrapper:format(coloredName);
       end
 
-      local isCommunityType = type == "COMMUNITIES_CHANNEL";
+      local isCommunityType = (not issecretvalue or not issecretvalue(type)) and type == "COMMUNITIES_CHANNEL" or (issecretvalue and issecretvalue(type))
       if ( isCommunityType ) then
         local isBattleNetCommunity = bnetIDAccount ~= nil and bnetIDAccount ~= 0;
         local messageInfo, clubId, streamId, clubType = C_Club.GetInfoFromLastCommunityChatLine();
