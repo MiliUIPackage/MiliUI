@@ -21,12 +21,12 @@ addonTable.CustomiseDialog.DesignWidgets = {
       layer = 1,
       aggroColoursOnHostiles = true,
       background = {
-        asset = "wide/fade-bottom",
+        asset = "Platy: Fade Bottom",
         color = GetColor("FFFFFF", 1),
         applyColor = false,
       },
       foreground = {
-        asset = "wide/fade-bottom",
+        asset = "Platy: Fade Bottom",
       },
       border = {
         asset = "bold",
@@ -35,7 +35,7 @@ addonTable.CustomiseDialog.DesignWidgets = {
         height = 1,
       },
       absorb = {
-        asset = "wide/blizzard-absorb",
+        asset = "Platy: Absorb Wide",
         color = GetColor("FFFFFF", 1)
       },
       marker = {
@@ -68,12 +68,12 @@ addonTable.CustomiseDialog.DesignWidgets = {
         color = GetColor("FFFFFF"),
       },
       background = {
-        asset = "wide/fade-bottom",
+        asset = "Platy: Fade Bottom",
         color = GetColor("FFFFFF", 1),
         applyColor = false,
       },
       foreground = {
-        asset = "wide/fade-bottom",
+        asset = "Platy: Fade Bottom",
       },
       border = {
         asset = "bold",
@@ -190,6 +190,24 @@ addonTable.CustomiseDialog.DesignWidgets = {
     },
   },
   {
+    name = addonTable.Locales.ANIMATED_BORDER,
+    kind = "highlights",
+    default = {
+      anchor = {"TOPLEFT", -140, 50},
+      kind = "animatedBorder",
+      asset = "pandemic",
+      width = 1,
+      height = 1,
+      borderWidth = 1,
+      color = GetColor("FFFFFF", 1),
+      autoColors = {
+        addonTable.CustomiseDialog.AddAlphaToColors(CopyTable(addonTable.CustomiseDialog.ColorsConfig["importantCast"].default)),
+      },
+      scale = 1,
+      layer = 3,
+    },
+  },
+  {
     name = addonTable.Locales.AURAS,
     special = "header",
   },
@@ -235,6 +253,7 @@ addonTable.CustomiseDialog.DesignWidgets = {
         dispelable = false,
         important = true,
       },
+      showDispel = {enrage = true},
     },
   },
   {
@@ -291,6 +310,8 @@ addonTable.CustomiseDialog.DesignWidgets = {
       align = "CENTER",
       shorten = "NONE",
       truncate = false,
+      playerGuild = true,
+      npcRole = true,
     },
   },
   {
@@ -514,6 +535,18 @@ addonTable.CustomiseDialog.DesignWidgets = {
       scale = 1,
       layer = 3,
       asset = "normal/blizzard-pvp",
+      color = GetColor("ffffff"),
+      anchor = {"TOPLEFT", -140, 50},
+    },
+  },
+  {
+    name = addonTable.Locales.CLASS,
+    kind = "markers",
+    default = {
+      kind = "class",
+      scale = 1,
+      layer = 3,
+      asset = "normal/class",
       color = GetColor("ffffff"),
       anchor = {"TOPLEFT", -140, 50},
     },

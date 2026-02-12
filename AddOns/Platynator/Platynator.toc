@@ -1,6 +1,6 @@
-## Interface: 120001, 120000, 110207, 50503, 38000, 20505, 11508
+## Interface: 120001, 120000, 50503, 38000, 20505, 11508
 ## Title: Platynator
-## Version: 299
+## Version: 314
 ## Author: plusmouse
 ## SavedVariables: PLATYNATOR_CONFIG
 ## SavedVariablesPerCharacter: PLATYNATOR_CURRENT_PROFILE, PLATYNATOR_LAST_INSTANCE
@@ -68,6 +68,7 @@ Display/SoftTargetHighlight.lua
 Display/FocusHighlight.lua
 Display/MouseoverHighlight.lua
 Display/FixedHighlight.lua
+Display/AnimatedHighlight.lua
 Display/QuestMarker.lua
 Display/CannotInterruptMarker.lua
 Display/CastIconMarker.lua
@@ -75,6 +76,7 @@ Display/EliteMarker.lua
 Display/RareMarker.lua
 Display/RaidMarker.lua
 Display/PvPMarker.lua
+Display/ClassMarker.lua
 Display/Widgets.lua
 
 API/Main.lua

@@ -1,6 +1,8 @@
 ---@class addonTablePlatynator
 local addonTable = select(2, ...)
 
+local LSM = LibStub("LibSharedMedia-3.0")
+
 function addonTable.Display.ApplyAnchor(frame, anchor)
   frame:ClearAllPoints()
   if #anchor == 0 then
@@ -22,15 +24,15 @@ local function InitBar(frame, details)
   end
 
   local borderDetails = addonTable.Assets.BarBordersSliced[details.border.asset]
-  local foregroundDetails = addonTable.Assets.BarBackgrounds[details.foreground.asset]
+  local foreground = LSM:Fetch("statusbar", details.foreground.asset, true) or LSM:Fetch("statusbar", "Platy: Solid White")
   frame.statusBar:SetScale(1/borderDetails.lowerScale * details.scale)
   frame.statusBar:SetMinMaxValues(0, 1)
   frame.statusBar:SetValue(1)
-  frame.statusBar:SetStatusBarTexture(foregroundDetails.file)
+  frame.statusBar:SetStatusBarTexture(foreground)
   frame.statusBar:GetStatusBarTexture():SetDrawLayer("ARTWORK")
 
-  local backgroundDetails = addonTable.Assets.BarBackgrounds[details.background.asset]
-  frame.background:SetTexture(backgroundDetails.file)
+  local background = LSM:Fetch("statusbar", details.background.asset, true) or LSM:Fetch("statusbar", "Platy: Solid Grey")
+  frame.background:SetTexture(background)
   frame.background:SetAllPoints()
   frame.background:SetScale(1/borderDetails.lowerScale * details.scale)
   frame.background:SetVertexColor(details.background.color.r, details.background.color.g, details.background.color.b, details.background.color.a)
@@ -139,13 +141,13 @@ function addonTable.Display.GetHealthBar(frame, parent)
     frame.statusBar:SetFrameLevel(frame:GetFrameLevel() + 3)
     borderHolder:SetFrameLevel(frame:GetFrameLevel() + 5)
 
-    frame.statusBarAbsorb:SetStatusBarTexture(addonTable.Assets.BarBackgrounds[details.absorb.asset].file)
+    frame.statusBarAbsorb:SetStatusBarTexture(LSM:Fetch("statusbar", details.absorb.asset, true) or LSM:Fetch("statusbar", "Platy: Absorb Wide"))
     frame.statusBarAbsorb:GetStatusBarTexture():SetVertexColor(details.absorb.color.r, details.absorb.color.g, details.absorb.color.b, details.absorb.color.a)
     frame.statusBarAbsorb:SetPoint("LEFT", frame.statusBar:GetStatusBarTexture(), "RIGHT")
     frame.statusBarAbsorb:SetScale(1/borderDetails.lowerScale * details.scale)
     frame.statusBarAbsorb:GetStatusBarTexture():RemoveMaskTexture(frame.mask)
 
-    frame.statusBarCutaway:SetStatusBarTexture(addonTable.Assets.BarBackgrounds[details.foreground.asset].file)
+    frame.statusBarCutaway:SetStatusBarTexture(LSM:Fetch("statusbar", details.foreground.asset, true) or LSM:Fetch("statusbar", "Platy: Solid White"))
     frame.statusBarCutaway:SetScale(1/borderDetails.lowerScale * details.scale)
     frame.statusBarCutaway:GetStatusBarTexture():RemoveMaskTexture(frame.mask)
     frame.statusBarCutaway:SetAlpha(0)
@@ -233,7 +235,7 @@ function addonTable.Display.GetCastBar(frame, parent)
         frame.interruptMarker:SetFillStyle("STANDARD")
         frame.interruptPositioner:SetFillStyle("STANDARD")
       end
-      self.statusBar:SetStatusBarTexture(addonTable.Assets.BarBackgrounds[frame.details.foreground.asset].file)
+      self.statusBar:SetStatusBarTexture(LSM:Fetch("statusbar", frame.details.foreground.asset, true) or LSM:Fetch("statusbar", "Platy: Solid White"))
       self.reverseStatusTexture:Hide()
 
       frame.marker:SetPoint("CENTER", frame.statusBar:GetStatusBarTexture(), "RIGHT")
@@ -273,9 +275,9 @@ function addonTable.Display.GetCastBar(frame, parent)
     frame.interruptMarker:SetFrameLevel(frame:GetFrameLevel() + 5)
     borderHolder:SetFrameLevel(frame:GetFrameLevel() + 6)
 
-    local foregroundDetails = addonTable.Assets.BarBackgrounds[details.foreground.asset]
+    local foreground = LSM:Fetch("statusbar", details.foreground.asset, true) or LSM:Fetch("statusbar", "Platy: Solid White")
     frame.reverseStatusTexture:Hide()
-    frame.reverseStatusTexture:SetTexture(foregroundDetails.file)
+    frame.reverseStatusTexture:SetTexture(foreground)
     frame.reverseStatusTexture:SetPoint("RIGHT", frame.statusBar:GetStatusBarTexture(), "LEFT")
     frame.reverseStatusTexture:SetHorizTile(true)
 
@@ -287,8 +289,6 @@ function addonTable.Display.GetCastBar(frame, parent)
       local color = details.interruptMarker.color
       frame.interruptMarkerPoint:SetVertexColor(color.r, color.g, color.b)
     end
-
-    local backgroundDetails = addonTable.Assets.BarBackgrounds[details.background.asset]
 
     frame.reverseStatusTexture:RemoveMaskTexture(frame.mask)
     frame.interruptMarkerPoint:RemoveMaskTexture(frame.mask)
@@ -452,6 +452,102 @@ function addonTable.Display.GetHighlight(frame, parent)
   return frame
 end
 
+function addonTable.Display.GetAnimatedBorderHighlight(frame, parent)
+  frame = frame or CreateFrame("Frame", nil, parent or UIParent)
+
+  frame.Animation = frame:CreateAnimationGroup()
+  do
+    frame.Top = frame:CreateTexture()
+    frame.Top:SetPoint("TOPLEFT")
+    frame.Top:SetPoint("TOPRIGHT")
+    frame.Top:SetTexture("Interface/AddOns/Platynator/Assets/Special/pandemic.png")
+    frame.Bottom = frame:CreateTexture()
+    frame.Bottom:SetPoint("BOTTOMLEFT")
+    frame.Bottom:SetPoint("BOTTOMRIGHT")
+    frame.Bottom:SetTexture("Interface/AddOns/Platynator/Assets/Special/pandemic.png")
+    frame.Bottom:SetRotation(math.pi)
+    frame.Left = frame:CreateTexture()
+    frame.Left:SetPoint("TOPLEFT")
+    frame.Left:SetPoint("BOTTOMLEFT")
+    frame.Left:SetTexture("Interface/AddOns/Platynator/Assets/Special/pandemic-90.png")
+    frame.Right = frame:CreateTexture()
+    frame.Right:SetPoint("TOPRIGHT")
+    frame.Right:SetPoint("BOTTOMRIGHT")
+    frame.Right:SetTexture("Interface/AddOns/Platynator/Assets/Special/pandemic-90.png")
+    frame.Right:SetRotation(math.pi)
+    frame.TopFlipBook = frame.Animation:CreateAnimation("Flipbook")
+    frame.TopFlipBook:SetTarget(frame.Top)
+    frame.BottomFlipBook = frame.Animation:CreateAnimation("Flipbook")
+    frame.BottomFlipBook:SetTarget(frame.Bottom)
+    frame.LeftFlipBook = frame.Animation:CreateAnimation("Flipbook")
+    frame.LeftFlipBook:SetTarget(frame.Left)
+    frame.RightFlipBook = frame.Animation:CreateAnimation("Flipbook")
+    frame.RightFlipBook:SetTarget(frame.Right)
+    frame.Animation:SetLooping("REPEAT")
+    frame.Animation:Play()
+  end
+
+  function frame:Init(details)
+    local highlightDetails = addonTable.Assets.Highlights[details.asset]
+    frame.details = details
+
+    assert(highlightDetails.kind == "animatedBorder", "Needs an appropriate animated texture")
+
+    frame.Top:SetTexture(highlightDetails.horizontal)
+    frame.Bottom:SetTexture(highlightDetails.horizontal)
+    frame.Right:SetTexture(highlightDetails.vertical)
+    frame.Left:SetTexture(highlightDetails.vertical)
+    frame.Top:SetVertexColor(details.color.r, details.color.g, details.color.b, details.color.a)
+    frame.Bottom:SetVertexColor(details.color.r, details.color.g, details.color.b, details.color.a)
+    frame.Right:SetVertexColor(details.color.r, details.color.g, details.color.b, details.color.a)
+    frame.Left:SetVertexColor(details.color.r, details.color.g, details.color.b, details.color.a)
+
+    frame.TopFlipBook:SetFlipBookColumns(highlightDetails.columns)
+    frame.TopFlipBook:SetFlipBookRows(highlightDetails.rows)
+    frame.BottomFlipBook:SetFlipBookColumns(highlightDetails.columns)
+    frame.BottomFlipBook:SetFlipBookRows(highlightDetails.rows)
+    frame.RightFlipBook:SetFlipBookColumns(highlightDetails.rows)
+    frame.RightFlipBook:SetFlipBookRows(highlightDetails.columns)
+    frame.LeftFlipBook:SetFlipBookColumns(highlightDetails.rows)
+    frame.LeftFlipBook:SetFlipBookRows(highlightDetails.columns)
+
+    frame.TopFlipBook:SetDuration(highlightDetails.duration)
+    frame.BottomFlipBook:SetDuration(highlightDetails.duration)
+    frame.LeftFlipBook:SetDuration(highlightDetails.duration)
+    frame.RightFlipBook:SetDuration(highlightDetails.duration)
+
+    if details.kind == "animatedBorder" then
+      Mixin(frame, addonTable.Display.AnimatedBorderHighlightMixin)
+    else
+      assert(false)
+    end
+
+    frame:SetScript("OnEvent", frame.OnEvent)
+
+    if frame.PostInit then
+      frame:PostInit()
+    end
+  end
+
+  function frame:ApplyAnchor()
+    ApplyAnchor(frame, frame.details.anchor)
+  end
+
+  function frame:ApplySize()
+    local details = frame.details
+    local highlightDetails = addonTable.Assets.Highlights[details.asset]
+    PixelUtil.SetSize(frame, addonTable.Assets.BarBordersSize.width * details.width * details.scale, addonTable.Assets.BarBordersSize.height * details.height * details.scale)
+
+    local dim = PixelUtil.ConvertPixelsToUIForRegion(1 * details.borderWidth, frame)
+    frame.Top:SetHeight(dim)
+    frame.Bottom:SetHeight(dim)
+    frame.Left:SetWidth(dim)
+    frame.Right:SetWidth(dim)
+  end
+
+  return frame
+end
+
 function addonTable.Display.GetMarker(frame, parent)
   frame = frame or CreateFrame("Frame", nil, parent or UIParent)
 
@@ -485,6 +581,8 @@ function addonTable.Display.GetMarker(frame, parent)
       Mixin(frame, addonTable.Display.CastIconMarkerMixin)
     elseif details.kind == "pvp" then
       Mixin(frame, addonTable.Display.PvPMarkerMixin)
+    elseif details.kind == "class" then
+      Mixin(frame, addonTable.Display.ClassMarkerMixin)
     else
       assert(false)
     end
@@ -608,6 +706,7 @@ local livePools = {
   texts = CreateFramePool("Frame", UIParent, nil, nil, false, addonTable.Display.GetText),
   powers = CreateFramePool("Frame", UIParent, nil, nil, false, addonTable.Display.GetPower),
   highlights = CreateFramePool("Frame", UIParent, nil, nil, false, addonTable.Display.GetHighlight),
+  animatedBorderHighlights = CreateFramePool("Frame", UIParent, nil, nil, false, addonTable.Display.GetAnimatedBorderHighlight),
   markers = CreateFramePool("Frame", UIParent, nil, nil, false, addonTable.Display.GetMarker),
 }
 
@@ -617,6 +716,7 @@ local editorPools = {
   texts = CreateFramePool("Frame", UIParent, "PlatynatorPropagateMouseTemplate", nil, false, addonTable.Display.GetText),
   powers = CreateFramePool("Frame", UIParent, "PlatynatorPropagateMouseTemplate", nil, false, addonTable.Display.GetPower),
   highlights = CreateFramePool("Frame", UIParent, "PlatynatorPropagateMouseTemplate", nil, false, addonTable.Display.GetHighlight),
+  animatedBorderHighlights = CreateFramePool("Frame", UIParent, "PlatynatorPropagateMouseTemplate", nil, false, addonTable.Display.GetAnimatedBorderHighlight),
   markers = CreateFramePool("Frame", UIParent, "PlatynatorPropagateMouseTemplate", nil, false, addonTable.Display.GetMarker),
 }
 
@@ -658,8 +758,14 @@ function addonTable.Display.GetWidgets(design, parent, isEditor)
   end
 
   for index, highlightDetails in ipairs(design.highlights) do
-    local w = pools.highlights:Acquire()
-    poolType[w] = "highlights"
+    local w
+    if pools[highlightDetails.kind .. "Highlights"] then
+      w = pools[highlightDetails.kind .. "Highlights"]:Acquire()
+      poolType[w] = highlightDetails.kind .. "Highlights"
+    else
+      w = pools.highlights:Acquire()
+      poolType[w] = "highlights"
+    end
     w:SetParent(parent)
     w:Show()
     w:SetFrameStrata("MEDIUM")

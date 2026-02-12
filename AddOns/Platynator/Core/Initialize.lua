@@ -130,6 +130,11 @@ function addonTable.Core.UpgradeDesign(design)
         important = true,
       }
     end
+    if aura.kind == "buffs" and aura.showDispel == nil then
+      aura.showDispel = {enrage = true}
+    elseif aura.kind ~= "buffs" then
+      aura.showDispel = {}
+    end
     if aura.kind == "crowdControl" and not aura.filters then
       aura.filters = {
         fromYou = false,
@@ -307,6 +312,15 @@ function addonTable.Core.UpgradeDesign(design)
     if bar.autoColors then
       UpdateAutoColors(bar.autoColors)
       RemoveAutoColorsAlpha(bar.autoColors)
+    end
+    if addonTable.Assets.BarBackgroundsLegacyMap[bar.background.asset] then
+      bar.background.asset = addonTable.Assets.BarBackgroundsLegacyMap[bar.background.asset]
+    end
+    if addonTable.Assets.BarBackgroundsLegacyMap[bar.foreground.asset] then
+      bar.foreground.asset = addonTable.Assets.BarBackgroundsLegacyMap[bar.foreground.asset]
+    end
+    if bar.kind == "health" and addonTable.Assets.BarBackgroundsLegacyMap[bar.absorb.asset] then
+      bar.absorb.asset = addonTable.Assets.BarBackgroundsLegacyMap[bar.absorb.asset]
     end
   end
 
@@ -606,10 +620,6 @@ function addonTable.Core.Initialize()
     end
   end
   addonTable.SlashCmd.Initialize()
-
-  --if next(addonTable.Config.Get(addonTable.Config.Options.DESIGN)) == nil then
-  --  addonTable.Config.Set(addonTable.Config.Options.DESIGN, addonTable.Design.GetDefaultDesignSlight())
-  --end
 
   addonTable.Assets.ApplyScale()
 

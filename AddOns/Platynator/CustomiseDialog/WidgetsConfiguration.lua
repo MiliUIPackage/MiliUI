@@ -1,6 +1,8 @@
 ---@class addonTablePlatynator
 local addonTable = select(2, ...)
 
+local LSM = LibStub("LibSharedMedia-3.0")
+
 local function GetLabelsValues(allAssets, filter, showHeight)
   local labels, values = {}, {}
 
@@ -27,7 +29,7 @@ local function GetLabelsValues(allAssets, filter, showHeight)
         height = 180/width * height
         width = 180
       end
-      local text = "|T".. (details.preview or details.file) .. ":" .. (height - 1) .. ":" .. (width - 1) .. "|t"
+      local text = "|T".. (details.preview or details.file or details.horizontal) .. ":" .. (height - 1) .. ":" .. (width - 1) .. "|t"
       if details.isTransparent then
         text = addonTable.Locales.NONE
       end
@@ -36,6 +38,40 @@ local function GetLabelsValues(allAssets, filter, showHeight)
       elseif details.mode ~= nil and showHeight then
         text = text .. " " .. addonTable.Locales.PERCENT_BRACKETS:format(details.mode)
       end
+
+      table.insert(labels, text)
+      table.insert(values, key)
+    end
+  end
+
+  return labels, values
+end
+
+local function GetLabelsValuesBackgrounds()
+  local labels, values = {}, {}
+  local assets = LSM:List("statusbar")
+
+  local height = 20
+  local width = addonTable.Assets.BarBordersSize.width * height / addonTable.Assets.BarBordersSize.height
+
+  local allKeys = GetKeysArray(addonTable.Assets.BarBackgrounds)
+  table.sort(allKeys)
+  for _, key in ipairs(allKeys) do
+    local details = addonTable.Assets.BarBackgrounds[key]
+    local file = LSM:Fetch("statusbar", key)
+    local text = "|T".. file .. ":" .. (height - 1) .. ":" .. (width - 1) .. "|t " .. (key:gsub("Platy: ", ""))
+    if details.isTransparent then
+      text = addonTable.Locales.NONE
+    end
+
+    table.insert(labels, text)
+    table.insert(values, key)
+  end
+
+  for _, key in ipairs(assets) do
+    if not addonTable.Assets.BarBackgrounds[key] then
+      local file = LSM:Fetch("statusbar", key)
+      local text = "|T".. file .. ":" .. (height - 1) .. ":" .. (width - 1) .. "|t [Custom] " .. key
 
       table.insert(labels, text)
       table.insert(values, key)
@@ -148,7 +184,7 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             label = addonTable.Locales.FOREGROUND,
             kind = "dropdown",
             getInitData = function()
-              return GetLabelsValues(addonTable.Assets.BarBackgrounds, nil, true)
+              return GetLabelsValuesBackgrounds()
             end,
             setter = function(details, value)
               details.foreground.asset = value
@@ -161,7 +197,7 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             label = addonTable.Locales.BACKGROUND,
             kind = "dropdown",
             getInitData = function()
-              return GetLabelsValues(addonTable.Assets.BarBackgrounds, nil, true)
+              return GetLabelsValuesBackgrounds()
             end,
             setter = function(details, value)
               details.background.asset = value
@@ -226,7 +262,7 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             label = addonTable.Locales.ABSORB,
             kind = "dropdown",
             getInitData = function()
-              return GetLabelsValues(addonTable.Assets.BarBackgrounds, nil, true)
+              return GetLabelsValuesBackgrounds()
             end,
             setter = function(details, value)
               details.absorb.asset = value
@@ -861,6 +897,21 @@ addonTable.CustomiseDialog.WidgetsConfig = {
     },
     ["buffs"] = {
       {
+        label = addonTable.Locales.GENERAL,
+        entries = {
+          {
+            label = addonTable.Locales.SHOW_ENRAGE_DISPEL,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.showDispel.enrage = value
+            end,
+            getter = function(details)
+              return details.showDispel.enrage
+            end,
+          },
+        },
+      },
+      {
         label = addonTable.Locales.FILTERS,
         entries = {
           {
@@ -970,7 +1021,15 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             label = addonTable.Locales.VISUAL,
             kind = "dropdown",
             getInitData = function(details)
-              return GetLabelsValues(addonTable.Assets.Highlights)
+              if details.kind:match("^animated") then
+                return GetLabelsValues(addonTable.Assets.Highlights, function(asset)
+                  return asset.kind == details.kind
+                end)
+              else
+                return GetLabelsValues(addonTable.Assets.Highlights, function(asset)
+                  return not asset.kind or not asset.kind:match("^animated")
+                end)
+              end
             end,
             setter = function(details, value)
               details.asset = value
@@ -1015,6 +1074,40 @@ addonTable.CustomiseDialog.WidgetsConfig = {
       },
     },
     ["automatic"] = {
+      {
+        label = addonTable.Locales.COLORS,
+        entries = {
+          {
+            label = "",
+            kind = "autoColors",
+            lockedElements = {},
+            addAlpha = true,
+            setter = function() end,
+            getter = function(details)
+              return details.autoColors
+            end,
+          },
+        },
+      },
+    },
+    ["animatedBorder"] = {
+      {
+        label = addonTable.Locales.GENERAL,
+        entries = {
+          {
+            label = addonTable.Locales.BORDER_WIDTH,
+            kind = "slider",
+            min = 50, max = 500,
+            valuePattern = "%d%%",
+            setter = function(details, value)
+              details.borderWidth = value / 100
+            end,
+            getter = function(details)
+              return details.borderWidth * 100
+            end,
+          },
+        }
+      },
       {
         label = addonTable.Locales.COLORS,
         entries = {

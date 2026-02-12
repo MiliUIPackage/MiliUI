@@ -5,6 +5,8 @@ addonTable.Display.CastBarMixin = {}
 
 local ConvertColor = addonTable.Display.Utilities.ConvertColor
 
+local GetInterruptSpell = addonTable.Display.Utilities.GetInterruptSpell
+
 function addonTable.Display.CastBarMixin:PostInit()
   if self.details.background.applyColor then -- Apply tint to colours
     local mod = self.details.background.color
@@ -38,6 +40,10 @@ function addonTable.Display.CastBarMixin:SetUnit(unit)
 
     self:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTIBLE", self.unit)
     self:RegisterUnitEvent("UNIT_SPELLCAST_NOT_INTERRUPTIBLE", self.unit)
+
+    if self.showInterruptMarker then
+      self:RegisterEvent("SPELL_UPDATE_USABLE")
+    end
 
     self:ApplyCasting()
 
@@ -89,11 +95,15 @@ function addonTable.Display.CastBarMixin:OnEvent(eventName, ...)
     if self:IsShown() then
       self:ApplyCasting()
     end
+  elseif eventName == "SPELL_UPDATE_USABLE" and self.showInterruptMarker then
+    self:RefreshInterruptMarker()
   elseif eventName:match("^UNIT_SPELL") then
     self:ApplyCasting()
   end
 
-  self:ColorEventHandler(eventName)
+  if self:IsShown() then
+    self:ColorEventHandler(eventName)
+  end
 end
 
 function addonTable.Display.CastBarMixin:SetColor(...)
@@ -111,35 +121,45 @@ function addonTable.Display.CastBarMixin:SetColor(...)
   end
 end
 
-local GetInterruptSpell = addonTable.Display.Utilities.GetInterruptSpell
-
-function addonTable.Display.CastBarMixin:ApplyCasting()
-  local name, text, texture, startTime, endTime, _, _, notInterruptible, spellID = UnitCastingInfo(self.unit)
-  local isChanneled = false
-
-  if name == nil then
-    name, text, texture, startTime, endTime, _, notInterruptible, spellID = UnitChannelInfo(self.unit)
-    isChanneled = true
-  end
-
-  if name ~= nil then
-    self.interrupted = nil
-
-    self:SetReverseFill(isChanneled)
-    self:Show()
-
+function addonTable.Display.CastBarMixin:ClearCast()
+  if not self.interrupted then
     if self.timer then
       self.timer:Cancel()
       self.timer = nil
     end
+    self:Hide()
+  end
+  self.isChanneled = nil
+  self.notInterruptible = nil
+  self.uninterruptibleCheck = nil
+end
 
-    if C_Secrets then
-      local castDuration
-      if isChanneled then
-        castDuration = UnitChannelDuration(self.unit)
+if UnitCastingDuration then
+  function addonTable.Display.CastBarMixin:ApplyCasting()
+    self.isChanneled = false
+    local castDuration = UnitCastingDuration(self.unit)
+    if not castDuration then
+      castDuration = UnitChannelDuration(self.unit)
+      self.isChanneled = true
+    end
+    if castDuration ~= nil then
+      local notInterruptible, _
+      if self.isChanneled then
+        _, _, _, _, _, _, notInterruptible, _ = UnitChannelInfo(self.unit)
       else
-        castDuration = UnitCastingDuration(self.unit)
+        _, _, _, _, _, _, _, notInterruptible, _ = UnitCastingInfo(self.unit)
       end
+
+      self.interrupted = nil
+
+      if self.timer then
+        self.timer:Cancel()
+        self.timer = nil
+      end
+
+      self:SetReverseFill(self.isChanneled)
+      self:Show()
+
       self.statusBar:SetTimerDuration(castDuration)
       local spellID
       if self.showInterruptMarker then
@@ -150,16 +170,55 @@ function addonTable.Display.CastBarMixin:ApplyCasting()
       if spellID then
         local interruptDuration = C_Spell.GetSpellCooldownDuration(spellID)
         self.interruptPositioner:SetMinMaxValues(0, castDuration:GetTotalDuration())
-        self.interruptPositioner:SetValue(castDuration:GetElapsedDuration())
         self.interruptMarker:SetMinMaxValues(0, castDuration:GetTotalDuration())
+        self.uninterruptibleCheck = C_CurveUtil.EvaluateColorValueFromBoolean(notInterruptible, 0, 1)
+        self.interruptPositioner:SetValue(castDuration:GetElapsedDuration())
         self.interruptMarker:SetValue(interruptDuration:GetRemainingDuration())
-        local uninterruptibleCheck = C_CurveUtil.EvaluateColorValueFromBoolean(notInterruptible, 0, 1)
-        self.timer = C_Timer.NewTicker(0.005, function()
-          interruptDuration = C_Spell.GetSpellCooldownDuration(spellID)
-          self.interruptMarker:SetAlphaFromBoolean(interruptDuration:IsZero(), 0, uninterruptibleCheck)
+        self:RefreshInterruptMarker()
+        self.timer = C_Timer.NewTicker(0.1, function()
+          self:RefreshInterruptMarker()
         end)
+      else
+        self.isChanneled = nil
       end
     else
+      self:ClearCast()
+    end
+  end
+
+  function addonTable.Display.CastBarMixin:RefreshInterruptMarker()
+    if self.isChanneled == nil then
+      return
+    end
+    local spellID = GetInterruptSpell()
+    if spellID then
+      local interruptDuration = C_Spell.GetSpellCooldownDuration(spellID)
+      self.uninterruptibleCheck = C_CurveUtil.EvaluateColorValueFromBoolean(interruptDuration:IsZero(), 0, self.uninterruptibleCheck)
+      self.interruptMarker:SetAlpha(self.uninterruptibleCheck)
+    end
+  end
+else
+  function addonTable.Display.CastBarMixin:ApplyCasting()
+    local name, text, texture, startTime, endTime, _, _, notInterruptible, spellID = UnitCastingInfo(self.unit)
+    self.isChanneled = false
+
+    if name == nil then
+      name, text, texture, startTime, endTime, _, notInterruptible, spellID = UnitChannelInfo(self.unit)
+      self.isChanneled = true
+    end
+
+    if name ~= nil then
+      self.interrupted = nil
+      self.notInterruptible = notInterruptible
+
+      self:SetReverseFill(self.isChanneled)
+      self:Show()
+
+      if self.timer then
+        self.timer:Cancel()
+        self.timer = nil
+      end
+
       self.statusBar:SetMinMaxValues(0, (endTime - startTime) / 1000)
       self.statusBar:SetValue(GetTime() - startTime / 1000)
 
@@ -172,12 +231,16 @@ function addonTable.Display.CastBarMixin:ApplyCasting()
       local endTime
       if spellID then
         self.interruptPositioner:SetMinMaxValues(self.statusBar:GetMinMaxValues())
-        self.interruptPositioner:SetValue(self.statusBar:GetValue())
         self.interruptMarker:SetMinMaxValues(self.statusBar:GetMinMaxValues())
         local info = C_Spell.GetSpellCooldown(spellID)
         endTime = info.duration + info.startTime
         if endTime > 0 then
+          self.interruptMarker:Show()
+          self.interruptPositioner:SetValue(self.statusBar:GetValue())
           self.interruptMarker:SetValue(endTime - GetTime())
+          self.timer = C_Timer.NewTicker(0.1, function()
+            self:RefreshInterruptMarker()
+          end)
         else
           endTime = nil
           self.interruptMarker:Hide()
@@ -186,19 +249,22 @@ function addonTable.Display.CastBarMixin:ApplyCasting()
 
       self.timer = C_Timer.NewTicker(0.005, function()
         self.statusBar:SetValue(GetTime() - startTime / 1000)
-        if endTime and endTime <= GetTime() then
-          self.interruptMarker:Hide()
-        end
       end)
       self.statusBar:SetValue(GetTime() - startTime / 1000)
+    else
+      self:ClearCast()
     end
-  else
-    if not self.interrupted then
-      if self.timer then
-        self.timer:Cancel()
-        self.timer = nil
-      end
-      self:Hide()
+  end
+
+  function addonTable.Display.CastBarMixin:RefreshInterruptMarker()
+    if self.isChanneled == nil then
+      return
+    end
+    local spellID = GetInterruptSpell()
+    if spellID and not self.notInterruptible and self.interruptMarker:IsShown() then
+      local info = C_Spell.GetSpellCooldown(spellID)
+      endTime = info.duration + info.startTime
+      self.interruptMarker:SetShown(endTime > 0)
     end
   end
 end

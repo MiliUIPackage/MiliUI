@@ -124,6 +124,16 @@ local executeMap = {
   [48806] = 0.2,
 }
 
+local sootheSpells = {
+  2908,
+  374346,
+  19801,
+  5938,
+
+  -- Arcane Torrent (Blood Elf Racial)
+  28730, 25046, 202719, 129597, 80483, 69179, 155145, 50613, 232633
+}
+
 local executeCurve
 if C_CurveUtil then
   executeCurve = C_CurveUtil.CreateCurve()
@@ -132,6 +142,7 @@ end
 
 local currentInterrupt
 local currentExecute = 0
+local isSootheAvailable = false
 do
   local class = UnitClassBase("player")
   local interruptSpells = interruptMap[class] or {}
@@ -159,6 +170,14 @@ do
       executeCurve:AddPoint(0, 1)
       executeCurve:AddPoint(currentExecute, 0)
     end
+
+    isSootheAvailable = false
+    for _, spellID in ipairs(sootheSpells) do
+      if C_SpellBook.IsSpellKnown(spellID) then
+        isSootheAvailable = true
+        break
+      end
+    end
   end)
 end
 
@@ -174,7 +193,17 @@ function addonTable.Display.Utilities.GetExecuteCurve()
   return executeCurve
 end
 
-if addonTable.Constants.IsClassic then
+function addonTable.Display.Utilities.GetSootheAvailable()
+  return isSootheAvailable
+end
+
+local ignoredLocales = {
+  "zhTW",
+  "zhCN",
+  "koKR",
+  "ruRU",
+}
+if addonTable.Constants.IsMists and tIndexOf(ignoredLocales, GetLocale()) == nil then
   local NUMBER_ABBREVIATION_DATA_ALT = {
     { breakpoint = 10000000,	abbreviation = SECOND_NUMBER_CAP_NO_SPACE,	significandDivisor = 1000000,	fractionDivisor = 1 },
     { breakpoint = 1000000,		abbreviation = SECOND_NUMBER_CAP_NO_SPACE,	significandDivisor = 100000,		fractionDivisor = 10 },
@@ -220,7 +249,7 @@ if addonTable.Constants.IsRetail then
     if questData[unit] then
       return questData[unit]
     end
-    if addonTable.Display.Utilities.IsInRelevantInstance() then
+    if addonTable.Display.Utilities.IsInRelevantInstance() or C_Secrets.ShouldUnitIdentityBeSecret(unit) then
       questData[unit] = {}
       return questData[unit]
     end

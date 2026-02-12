@@ -1,8 +1,11 @@
 # Platynator
 
-## [299](https://github.com/TheMouseNest/Platynator/tree/299) (2026-02-02)
-[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/298...299) 
+## [314](https://github.com/TheMouseNest/Platynator/tree/314) (2026-02-12)
+[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/313...314) 
 
-- Revert "Fix transition detection between open-world and delves"  
-- Add "Raid Grey" texture for bar backgrounds  
-- Make scroll region for style dropdown in "Style Select" tab longer  
+- Revert "Optimisations to color processing" (didn't help)  
+- Remove unused event for colors  
+- Fixes for aura display  
+- Optimisations to color processing  
+- Update aura filtering to use addon-specific code where possible  
+- Cleanup  

@@ -18,8 +18,6 @@ addonTable.Constants = {
 
   CustomName = "_custom",
 
-  ParentedToNameplates = (select(4, GetBuildInfo())) ~= 120000,
-
   DefaultFont = "Roboto Condensed Bold",
   FontFamilies = {"roman", "korean", "simplifiedchinese", "traditionalchinese", "russian"},
 }
