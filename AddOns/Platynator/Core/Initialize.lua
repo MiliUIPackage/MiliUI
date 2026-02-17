@@ -629,12 +629,26 @@ end
 function addonTable.Core.Initialize()
   addonTable.Config.InitializeData()
 
-  -- MiliUI Profile
+  -- MiliUI Profile (版本檢查：無版本記錄或有新版本時強制更新)
   if MiliUI_PlatynatorProfile then
+    local needsImport = false
     local profileExists = PLATYNATOR_CONFIG and PLATYNATOR_CONFIG.Profiles and PLATYNATOR_CONFIG.Profiles["MiliUI"]
+
     if not profileExists then
+      needsImport = true
+    elseif MiliUI_PlatynatorVersion then
+      local storedVersion = PLATYNATOR_CONFIG.MiliUI_Version or 0
+      if MiliUI_PlatynatorVersion > storedVersion then
+        needsImport = true
+      end
+    end
+
+    if needsImport then
       addonTable.CustomiseDialog.ImportData(MiliUI_PlatynatorProfile, "MiliUI", true)
       addonTable.Config.ChangeProfile("MiliUI")
+      if MiliUI_PlatynatorVersion then
+        PLATYNATOR_CONFIG.MiliUI_Version = MiliUI_PlatynatorVersion
+      end
     end
   end
 

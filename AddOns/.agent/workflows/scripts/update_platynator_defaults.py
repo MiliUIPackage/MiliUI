@@ -5,6 +5,7 @@
 
 import sys
 import os
+from datetime import datetime
 
 SOURCE = "/Applications/World of Warcraft/_retail_/WTF/Account/LAXGENIUS/SavedVariables/Platynator.lua"
 TARGET = "/Applications/World of Warcraft/_retail_/Interface/AddOns/MiliUI/Config/Luxthos_Platynator.lua"
@@ -18,7 +19,6 @@ def extract_profile(content, profile_name):
     if start == -1:
         return None, f'找不到 profile "{profile_name}"'
 
-    # 跳過 marker，從 { 之後開始
     brace_start = start + len(marker)
     depth = 1
     i = brace_start
@@ -50,7 +50,6 @@ def validate_braces(content):
 
 
 def main():
-    # 讀取來源
     if not os.path.exists(SOURCE):
         print(f"❌ 來源檔案不存在: {SOURCE}")
         sys.exit(1)
@@ -58,13 +57,14 @@ def main():
     with open(SOURCE, 'r') as f:
         content = f.read()
 
-    # 提取 profile
     profile_content, err = extract_profile(content, PROFILE_NAME)
     if err:
         print(f"❌ {err}")
         sys.exit(1)
 
-    # 組合輸出
+    # 產生版本日期 (YYYYMMDD 格式的數字，方便 Lua 直接比較大小)
+    version = datetime.now().strftime("%Y%m%d")
+
     output = (
         f"MiliUI_PlatynatorProfile = {{\n"
         f"{profile_content}\n"
@@ -72,21 +72,21 @@ def main():
         f"\n"
         f'MiliUI_PlatynatorProfile.kind = "profile"\n'
         f'MiliUI_PlatynatorProfile.addon = "Platynator"\n'
+        f"MiliUI_PlatynatorVersion = {version}\n"
     )
 
-    # 驗證語法
     ok, err = validate_braces(output)
     if not ok:
         print(f"❌ 語法驗證失敗: {err}")
         sys.exit(1)
 
-    # 寫入目標
     with open(TARGET, 'w') as f:
         f.write(output)
 
     line_count = output.count('\n')
     print(f"✅ 已更新 Luxthos_Platynator.lua ({line_count} 行)")
-    print(f"✅ 語法驗證通過（大括號配對正確）")
+    print(f"✅ 版本日期: {version}")
+    print(f"✅ 語法驗證通過")
 
 
 if __name__ == "__main__":
