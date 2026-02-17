@@ -4,6 +4,7 @@ local addonTable = select(2, ...)
 local IsTapped = addonTable.Display.Utilities.IsTappedUnit
 local IsNeutral = addonTable.Display.Utilities.IsNeutralUnit
 local IsUnfriendly = addonTable.Display.Utilities.IsUnfriendlyUnit
+local IsInCombatWith = addonTable.Display.Utilities.IsInCombatWith
 
 local roleType = {
   Damage = 1,
@@ -285,7 +286,7 @@ function addonTable.Display.GetColor(settings, state, unit)
     elseif s.kind == "threat" then
       local threat = state.threat
       local hostile = state.hostile
-      if (inRelevantInstance or not s.instancesOnly) and (threat or (hostile and not s.combatOnly) or (inRelevantInstance and UnitAffectingCombat(unit))) then
+      if (inRelevantInstance or not s.instancesOnly) and (threat or (hostile and not s.combatOnly) or IsInCombatWith(unit)) then
         if (isTank and (threat == 0 or threat == nil) and not DoesOtherTankHaveAggro(unit)) or (not isTank and threat == 3) then
           table.insert(colorQueue, {color = s.colors.warning})
           break
@@ -314,19 +315,19 @@ function addonTable.Display.GetColor(settings, state, unit)
         if classification == "elite" then
           local level = UnitEffectiveLevel(unit)
           local playerLevel = PLATYNATOR_LAST_INSTANCE.level
-          if level >= playerLevel + 2 or level == -1 then
-            table.insert(colorQueue, {color = s.colors.boss})
-            break
-          elseif level == playerLevel + 1 then
-            table.insert(colorQueue, {color = s.colors.miniboss})
-            break
-          elseif level == playerLevel then
+          if level == playerLevel or addonTable.Constants.IsClassic then
             local class = UnitClassBase(unit)
             if class == "PALADIN" then
               table.insert(colorQueue, {color = s.colors.caster})
             else
               table.insert(colorQueue, {color = s.colors.melee})
             end
+            break
+          elseif level >= playerLevel + 2 or level == -1 then
+            table.insert(colorQueue, {color = s.colors.boss})
+            break
+          elseif level == playerLevel + 1 then
+            table.insert(colorQueue, {color = s.colors.miniboss})
             break
           end
         elseif classification == "normal" or classification == "trivial" then

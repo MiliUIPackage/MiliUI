@@ -184,6 +184,7 @@ function addonTable.Display.ManagerMixin:OnLoad()
       end
       if nameplate.UnitFrame.WidgetContainer then
         nameplate.UnitFrame.WidgetContainer:SetParent(nameplate)
+        nameplate.UnitFrame.WidgetContainer:SetScale(addonTable.Config.Get(addonTable.Config.Options.BLIZZARD_WIDGET_SCALE))
       end
       self.ModifiedUFs[unit] = nameplate.UnitFrame
     end
@@ -204,6 +205,7 @@ function addonTable.Display.ManagerMixin:OnLoad()
       end
       if UF.WidgetContainer then
         UF.WidgetContainer:SetParent(UF)
+        UF.WidgetContainer:SetScale(1)
       end
       self.ModifiedUFs[unit] = nil
     end
@@ -303,6 +305,10 @@ function addonTable.Display.ManagerMixin:OnLoad()
       addonTable.Display.SetCVars()
     elseif settingName == addonTable.Config.Options.OBSCURED_ALPHA then
       self:UpdateObscuredAlpha()
+    elseif settingName == addonTable.Config.Options.BLIZZARD_WIDGET_SCALE then
+      for unit, _ in pairs(self.nameplateDisplays) do
+        self.ModifiedUFs[unit].WidgetContainer:SetScale(addonTable.Config.Get(addonTable.Config.Options.BLIZZARD_WIDGET_SCALE))
+      end
     end
   end)
 end
@@ -438,17 +444,21 @@ end
 function addonTable.Display.ManagerMixin:ListenToBuffs(display, unit)
   if addonTable.Constants.IsRetail and self.ModifiedUFs[unit] then
     local UF = self.ModifiedUFs[unit]
-    if display.DebuffDisplay.details and display.DebuffDisplay.details.filters.important then
+    if display.DebuffDisplay.details and display.DebuffDisplay.details.filters.important or display.BuffDisplay.details and display.BuffDisplay.details.filters.important then
       UF:RegisterUnitEvent("UNIT_AURA", unit)
 
       local DebuffListFrame = UF.AurasFrame.DebuffListFrame
+      local BuffListFrame = UF.AurasFrame.BuffListFrame
 
       display.AurasManager:SetGetImportantAuras(function()
         local important = {}
 
-        for _, child in ipairs(DebuffListFrame:GetLayoutChildren()) do
-          important[child.auraInstanceID] = true
-        end
+        UF.AurasFrame.buffList:Iterate(function(auraInstanceID)
+          important[auraInstanceID] = true
+        end)
+        UF.AurasFrame.debuffList:Iterate(function(auraInstanceID)
+          important[auraInstanceID] = true
+        end)
 
         return important
       end)
@@ -867,7 +877,9 @@ function addonTable.Display.ManagerMixin:OnEvent(eventName, ...)
   elseif eventName == "VARIABLES_LOADED" then
     if addonTable.Constants.IsRetail then
       C_CVar.SetCVarBitfield(NamePlateConstants.ENEMY_NPC_AURA_DISPLAY_CVAR, Enum.NamePlateEnemyNpcAuraDisplay.Debuffs, true)
+      C_CVar.SetCVarBitfield(NamePlateConstants.ENEMY_NPC_AURA_DISPLAY_CVAR, Enum.NamePlateEnemyNpcAuraDisplay.Buffs, true)
       C_CVar.SetCVarBitfield(NamePlateConstants.ENEMY_PLAYER_AURA_DISPLAY_CVAR, Enum.NamePlateEnemyPlayerAuraDisplay.Debuffs, true)
+      C_CVar.SetCVarBitfield(NamePlateConstants.ENEMY_PLAYER_AURA_DISPLAY_CVAR, Enum.NamePlateEnemyPlayerAuraDisplay.Buffs, true)
 
       --C_CVar.SetCVarBitfield(NamePlateConstants.FRIENDLY_PLAYER_AURA_DISPLAY_CVAR, Enum.NamePlateFriendlyPlayerAuraDisplay.Debuffs, true)
     end

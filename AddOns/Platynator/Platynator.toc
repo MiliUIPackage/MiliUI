@@ -1,6 +1,6 @@
 ## Interface: 120001, 120000, 50503, 38000, 20505, 11508
 ## Title: Platynator
-## Version: 314
+## Version: 321
 ## Author: plusmouse
 ## SavedVariables: PLATYNATOR_CONFIG
 ## SavedVariablesPerCharacter: PLATYNATOR_CURRENT_PROFILE, PLATYNATOR_LAST_INSTANCE
@@ -83,6 +83,7 @@ API/Main.lua
 
 Design.lua
 Assets.lua
+AssetsLegacy.lua
 
 CustomiseDialog/Components.lua
 CustomiseDialog/ColorsConfiguration.lua
