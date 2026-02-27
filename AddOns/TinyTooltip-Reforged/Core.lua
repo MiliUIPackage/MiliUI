@@ -925,8 +925,14 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
         edgeSize = 14,
     }
-    if (tip.SetBackdrop) then
-        tip:SetBackdrop(nil)
+    if (tip.SetBackdropColor) then
+        tip:SetBackdropColor(0, 0, 0, 0)
+    end
+    if (tip.SetBackdropBorderColor) then
+        tip:SetBackdropBorderColor(0, 0, 0, 0)
+    end
+    if (tip.NineSlice) then
+        tip.NineSlice:SetAlpha(0)
     end
     tip.style = CreateFrame("Frame", nil, tip, BackdropTemplateMixin and "BackdropTemplate" or nil)
     tip.style:SetFrameLevel(tip:GetFrameLevel())
@@ -934,18 +940,33 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     tip.style:SetBackdrop(backdrop)
     tip.style:SetBackdropColor(0, 0, 0, 0.9)
     tip.style:SetBackdropBorderColor(0.6, 0.6, 0.6, 0.8)
+    tip.style:SetScript("OnSizeChanged", function(self)
+        local w, h = self:GetSize()
+        if (issecretvalue and (issecretvalue(w) or issecretvalue(h))) then return end
+        if (self.OnBackdropSizeChanged) then self:OnBackdropSizeChanged() end
+    end)
     tip.style.inside = CreateFrame("Frame", nil, tip.style, BackdropTemplateMixin and "BackdropTemplate" or nil)
     tip.style.inside:SetBackdrop({edgeSize=1,edgeFile="Interface\\Buttons\\WHITE8X8"})
     tip.style.inside:SetPoint("TOPLEFT", tip.style, "TOPLEFT", 1, -1)
     tip.style.inside:SetPoint("BOTTOMRIGHT", tip.style, "BOTTOMRIGHT", -1, 1)
     tip.style.inside:SetBackdropBorderColor(0.1, 0.1, 0.1, 0.8)
     tip.style.inside:Hide()
+    tip.style.inside:SetScript("OnSizeChanged", function(self)
+        local w, h = self:GetSize()
+        if (issecretvalue and (issecretvalue(w) or issecretvalue(h))) then return end
+        if (self.OnBackdropSizeChanged) then self:OnBackdropSizeChanged() end
+    end)
     tip.style.outside = CreateFrame("Frame", nil, tip.style, BackdropTemplateMixin and "BackdropTemplate" or nil)
     tip.style.outside:SetBackdrop({edgeSize=1,edgeFile="Interface\\Buttons\\WHITE8X8"})
     tip.style.outside:SetPoint("TOPLEFT", tip.style, "TOPLEFT", -1, 1)
     tip.style.outside:SetPoint("BOTTOMRIGHT", tip.style, "BOTTOMRIGHT", 1, -1)
     tip.style.outside:SetBackdropBorderColor(0, 0, 0, 0.5)
     tip.style.outside:Hide()
+    tip.style.outside:SetScript("OnSizeChanged", function(self)
+        local w, h = self:GetSize()
+        if (issecretvalue and (issecretvalue(w) or issecretvalue(h))) then return end
+        if (self.OnBackdropSizeChanged) then self:OnBackdropSizeChanged() end
+    end)
     tip.style.mask = tip.style:CreateTexture(nil, "OVERLAY")
     tip.style.mask:SetTexture("Interface\\Tooltips\\UI-Tooltip-Background")
     tip.style.mask:SetPoint("TOPLEFT", 3, -3)
@@ -1037,10 +1058,11 @@ end)
 if (SharedTooltip_SetBackdropStyle) then
     hooksecurefunc("SharedTooltip_SetBackdropStyle", function(self, style, embedded)
         if (self.style and self.NineSlice) then
-            self.NineSlice:Hide()
+            self.NineSlice:SetAlpha(0)
         end
-        if (self.style and self.SetBackdrop) then
-            self:SetBackdrop(nil)
+        if (self.style and self.SetBackdropColor) then
+            self:SetBackdropColor(0, 0, 0, 0)
+            self:SetBackdropBorderColor(0, 0, 0, 0)
         end
     end)
 end
@@ -1048,10 +1070,11 @@ end
 if (GameTooltip_SetBackdropStyle) then
     hooksecurefunc("GameTooltip_SetBackdropStyle", function(self, style)
         if (self.style and self.NineSlice) then
-            self.NineSlice:Hide()
+            self.NineSlice:SetAlpha(0)
         end
-        if (self.style and self.SetBackdrop) then
-            self:SetBackdrop(nil)
+        if (self.style and self.SetBackdropColor) then
+            self:SetBackdropColor(0, 0, 0, 0)
+            self:SetBackdropBorderColor(0, 0, 0, 0)
         end
     end)
 end

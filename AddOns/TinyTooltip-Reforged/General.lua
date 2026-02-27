@@ -154,8 +154,9 @@ LibEvent:attachTrigger("tooltip:cleared, tooltip:hide", function(self, tip)
     LibEvent:trigger("tooltip.style.border.color", tip, unpack(addon.db.general.borderColor))
     LibEvent:trigger("tooltip.style.background", tip, unpack(addon.db.general.background))
     if (tip.BigFactionIcon) then tip.BigFactionIcon:Hide() end
-    if (tip.SetBackdrop) then tip:SetBackdrop(nil) end
-    if (tip.NineSlice) then tip.NineSlice:Hide() end
+    if (tip.SetBackdropColor) then tip:SetBackdropColor(0, 0, 0, 0) end
+    if (tip.SetBackdropBorderColor) then tip:SetBackdropBorderColor(0, 0, 0, 0) end
+    if (tip.NineSlice) then tip.NineSlice:SetAlpha(0) end
 end)
 
 LibEvent:attachTrigger("tooltip:show", function(self, tip)
