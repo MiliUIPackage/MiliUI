@@ -1,6 +1,6 @@
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
-
+local GetSpellTexture = GetSpellTexture or C_Spell.GetSpellTexture
 local addon = TinyTooltipReforged
 
 local function ColorBorder(tip)
@@ -19,13 +19,10 @@ local function SpellIcon(tip)
     if (addon.db.spell.showIcon) then
         if not pcall(function() select(2, tip:GetSpell()) end) then return end
         local id = select(2, tip:GetSpell())
-        local texture = C_Spell.GetSpellTexture(id or 0)
+        local texture = GetSpellTexture(id or 0)
         local text = addon:GetLine(tip,1):GetText()
-        if (texture and text and type(text) == "string") then
-            local isSafe, found = pcall(strfind, text, "^|T")
-            if (isSafe and not found) then
-                addon:GetLine(tip,1):SetFormattedText("|T%s:16:16:0:0:32:32:2:30:2:30|t %s", texture, text)
-            end
+        if (texture and type(text) == "string" and not pcall(strfind, text, "^|T")) then
+            addon:GetLine(tip,1):SetFormattedText("|T%s:16:16:0:0:32:32:2:30:2:30|t %s", texture, text)
         end
     end
 end

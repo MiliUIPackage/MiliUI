@@ -1,10 +1,9 @@
-if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then return end
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
 local addon = TinyTooltipReforged
 local addonName = "TinyTooltip-Reforged"
--- local L = addon.L
+local L = addon.L
 
 addon.print = function(...)
     print(addonName, " ", ...);
@@ -45,9 +44,9 @@ function AddExpansionInfo(tooltip, data)
         local itemID, bonusIDList, bonusIDCount = addon:ParseItemLink(itemLink, true)
         if (not expID) then return end
         if (expID > 0) then
-            tooltip:AddLine(format("|cffffdd22%s:|r |cff64cd3c%s|r (%d)", addon.L["Expansion"], _G['EXPANSION_NAME' .. expID], tonumber(expID)+1))
+            tooltip:AddLine(format("|cffffdd22%s:|r |cff64cd3c%s|r (%d)", L["Expansion"], _G['EXPANSION_NAME' .. expID], tonumber(expID)+1))
         else
-            tooltip:AddLine(format("|cffffdd22%s:|r |cff64cd3c%s|r", addon.L["Expansion"], _G['EXPANSION_NAME' .. expID]))
+            tooltip:AddLine(format("|cffffdd22%s:|r |cff64cd3c%s|r", L["Expansion"], _G['EXPANSION_NAME' .. expID]))
         end
     end 
 end

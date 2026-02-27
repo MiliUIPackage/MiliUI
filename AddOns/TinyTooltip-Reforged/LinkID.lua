@@ -1,6 +1,7 @@
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
 local addon = TinyTooltipReforged
+local L = addon.L or {}
 
 local function ParseHyperLink(link)
     local name, value = string.match(link or "", "|?H(%a+):(%d+):")
@@ -9,9 +10,26 @@ local function ParseHyperLink(link)
     end
 end
 
+local function GetSpellIconId(spellId)
+    if (not spellId or not C_Spell or not C_Spell.GetSpellTexture) then return end
+    local icon = C_Spell.GetSpellTexture(spellId)
+    if (type(icon) == "number") then
+        return icon
+    end
+end
+
+local function GetItemIconId(linkOrId)
+    if (not linkOrId) then return end
+    local _, _, _, _, _, _, _, maxStack, _, icon = GetItemInfo(linkOrId)
+    if (type(icon) == "number") then
+        return icon
+    end
+end
+
 local function ShowId(tooltip, name, value, noBlankLine)
     if (not name or not value) then return end
-    local name = format("%s%s", addon.L[name] or name, " ID")
+    if (tooltip.IsForbidden and tooltip:IsForbidden()) then return end
+    local name = format("%s%s", name, " ID")
     if (IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown() or addon.db.general.alwaysShowIdInfo) then
         local line = addon:FindLine(tooltip, name)
         local idLine = format("%s: |cffffffff%s|r", name, value)
@@ -22,48 +40,28 @@ local function ShowId(tooltip, name, value, noBlankLine)
         else
             line:SetText(idLine)
         end
-        if (clientToc < 100002) then
-            LibEvent:trigger("tooltip.linkid", GameTooltip, name, value, noBlankLine)
-        end 
+        LibEvent:trigger("tooltip.linkid", tooltip, name, value, noBlankLine) 
     end
 end
 
-local function ShowLinkIdInfo(tooltip, data)
-    if data and (data.type == Enum.TooltipDataType.Item) then
+local function ShowSpellInfo(tooltip, spellId)
+    if (not spellId) then return end
+    ShowId(tooltip, L["id.spell"] or "Spell ID", spellId)
+    local iconId = GetSpellIconId(spellId)
+    if (iconId) then
+        ShowId(tooltip, L["id.icon"] or "Icon ID", iconId, true)
+    end
+end
+
+local function ShowLinkIdInfo(tooltip, data) 
+    if (data.type == Enum.TooltipDataType.Item) then
         local itemName, itemLink, itemID = TooltipUtil.GetDisplayedItem(tooltip)
         ShowId(tooltip, ParseHyperLink(itemLink))
+        -- icon ID
+        ShowId(tooltip, L["id.icon"] or "Icon ID", GetItemIconId(itemID), 1)
     end
 end
 
--- keystone (not working)
-local function KeystoneAffixDescription(self, link)
---    link = link or select(2, self:GetItem())
---    local data, name, description, AffixID
---    if (link and strfind(link, "keystone:")) then
---        link = link:gsub("|H(keystone:.-)|.+", "%1")
---        data = {strsplit(":", link)}
---        self:AddLine(" ")
---         for i = 5, 8 do
---            AffixID = tonumber(data[i])
---            if (AffixID and AffixID > 0) then
---                name, description = C_ChallengeMode.GetAffixInfo(AffixID)
---                if (name and description) then
---                    self:AddLine(format("|cffffcc33%s:|r%s", name, description), 0.1, 0.9, 0.1, true)
---                end
---            end
---        end
---        self:Show()
---    end
-end
-
-
-if (clientToc>=100002) then
-    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, KeystoneAffixDescription)
-    hooksecurefunc(ItemRefTooltip, "SetHyperlink", KeystoneAffixDescription)
-else 
-    GameTooltip:HookScript("OnTooltipSetItem", KeystoneAffixDescription)
-    hooksecurefunc(ItemRefTooltip, "SetHyperlink", KeystoneAffixDescription)
-end
 
 -- Item
 hooksecurefunc(GameTooltip, "SetHyperlink", ShowLinkIdInfo)
@@ -83,33 +81,16 @@ end
 -- Spell
 if (clientToc>=100002) then
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, function(self)
-        pcall(function()
-          if not pcall(function() ShowId(self, "Spell", (select(2,self:GetSpell()))) end) then
-             return 
-          end
-        end)
+       if not pcall(function() ShowSpellInfo(self, (select(2,self:GetSpell()))) end) then
+         return 
+       end
     end)
 else
     GameTooltip:HookScript("OnTooltipSetSpell", function(self) ShowId(self, "Spell", (select(2,self:GetSpell()))) end)
 end
-hooksecurefunc(GameTooltip, "SetUnitAura", function(self, ...) 
-	local aura = C_UnitAuras.GetAuraDataByIndex(...)
-	if aura then
-		ShowId(self, "Spell", aura.spellId) 
-	end
-end)
-hooksecurefunc(GameTooltip, "SetUnitBuff", function(self, ...)
-	local aura = C_UnitAuras.GetBuffDataByIndex(...)
-	if aura then
-		ShowId(self, "Spell", aura.spellId) 
-	end
-end)
-hooksecurefunc(GameTooltip, "SetUnitDebuff", function(self, ...)
-	local aura = C_UnitAuras.GetDebuffDataByIndex(...)
-	if aura then
-		ShowId(self, "Spell", aura.spellId) 
-	end
-end)
+--hooksecurefunc(GameTooltip, "SetUnitAura", function(self, ...) ShowId(self, "Spell", (select(10,C_UnitAuras.UnitAura(...)))) end)
+hooksecurefunc(GameTooltip, "SetUnitBuff", function(self, ...) ShowId(self, "Spell", (select(10,C_UnitAuras.UnitBuff(...)))) end)
+hooksecurefunc(GameTooltip, "SetUnitDebuff", function(self, ...) ShowId(self, "Spell", (select(10,C_UnitAuras.UnitDebuff(...)))) end)
 if (GameTooltip.SetArtifactPowerByID) then
     hooksecurefunc(GameTooltip, "SetArtifactPowerByID", function(self, powerID)
         ShowId(self, "Power", powerID)
@@ -147,15 +128,3 @@ if (HybridScrollFrame_CreateButtons) then
         end
     end)
 end
-
--- adds caster of buffs/debuffs to their tooltips
-hooksecurefunc(GameTooltip,"SetUnitAura",function(self,unit,index,filter)
-	if (IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown() or addon.db.general.alwaysShowIdInfo) then
-		local aura = C_UnitAuras.GetAuraDataByIndex(unit,index,filter)
-		local caster = aura and aura.sourceUnit or nil
-		if caster and UnitExists(caster) then
-				GameTooltip:AddLine(addon.L["Caster"]..": "..UnitName(caster),.65,.85,1,1)
-				GameTooltip:Show()
-		end
-	end
-end)

@@ -1,10 +1,10 @@
-## Interface: 110107, 120001, 120000
+## Interface: 110000, 110002, 110005, 110007, 110105, 120000, 120001
 
 ## Title: TinyTooltip-Reforged |cFF69CCF0by Beezer|r
 ## Description: |cff4488ffTinyTooltip (Reforged)|r|n Options use /ttr|n Reset use /ttr reset
 ## Notes: |cff4488ffTinyTooltip (Reforged)|r|n Options use /ttr|n Reset use /ttr reset
 ## Author: Beezer
-## Version: 9.6.4
+## Version: 12.0
 ## SavedVariables: TinyTooltipReforgedDB
 ## SavedVariablesPerCharacter: TinyTooltipReforgedCharacterDB
 ## X-Category: Tooltip
@@ -19,6 +19,7 @@
 
 libs\lib.xml
 libs\Template.xml
+locales\locales.xml
 
 Core.lua
 Config.lua
@@ -34,9 +35,5 @@ LinkID.lua
 Mount.lua
 SkinFrames.lua
 ExpansionInfo.lua
-
-
-locales\locales.xml
 Options.lua
-
 

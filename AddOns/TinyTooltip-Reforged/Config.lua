@@ -1,8 +1,8 @@
 
 local addon = TinyTooltipReforged
-
+ 
 addon.db = {
-    version = 11.0,
+    version = 12.0,
     general = {
         scale             = 1.2,
         mask              = false,
@@ -34,6 +34,7 @@ addon.db = {
         bodyFontFlag      = "default",
         SavedVariablesPerCharacter = false,
         ColorBlindMode 	  = false,
+	hideUnitFrameHint = true,
      },
     unit = {
         player = {
@@ -71,15 +72,20 @@ addon.db = {
                 isPlayer    = { enable = false, color = "ffffff",  wildcard = "(%s)", filter = "none" },
                 role        = { enable = false, color = "ffffff",  wildcard = "(%s)", filter = "none" },
                 moveSpeed   = { enable = false, color = "e8e7a8",  wildcard = "%d%%", filter = "none" },
+                mplusScore  = { enable = false,  color = "mplus",   wildcard = "%s",  filter = "none" },
                 zone        = { enable = true,  color = "ffffff",  wildcard = "%s", filter = "none" },
                 { "raidIcon", "roleIcon", "pvpIcon", "factionIcon", "classIcon", "title", "name", "realm", "statusAFK", "statusDND", "statusDC", },
+		mount       = { enable = true,  color = "ffffff",  wildcard = "%s", filter = "none" },
                 { "guildName", "guildIndex", "guildRank", "guildRealm", },
                 { "levelValue", "factionName", "gender", "raceName", "className", "isPlayer", "role", "moveSpeed", },
+                { "mount" },
+                { "mplusScore" },
                 { "zone" },
             },
         },
         npc = {
             background = { colorfunc = "default", alpha = 1, },
+            coloredBorder = "reaction",
             showTarget = true,
             showTargetBy = true,
             grayForDead = true,

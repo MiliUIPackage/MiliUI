@@ -34,7 +34,7 @@ setmetatable(addon.L, {__index = function(_, k) return k end})
 setmetatable(addon.G, {__index = function(_, k) return _G[k] or k end})
 
 local actualVersion = C_AddOns.GetAddOnMetadata("TinyTooltip-Reforged", "Version") or "unknown"
---print("|cff00d200TinyTooltip Reforged v",actualVersion," loaded.|r")
+print("|cff00d200TinyTooltip Reforged v",actualVersion," loaded.|r")
 
 addon.tooltips = {
     GameTooltip,
@@ -96,6 +96,33 @@ local function AutoValidateElements(src, dst)
     return dst
 end
 
+local function GetMythicPlusScore(unit)
+    local function SafeCall(fn, ...)
+        local ok, a, b, c, d = pcall(fn, ...)
+        if ok then return a, b, c, d end
+    end
+    if (not unit or not UnitIsPlayer or not SafeCall(UnitIsPlayer, unit)) then return end
+    if (C_PlayerInfo and C_PlayerInfo.GetPlayerMythicPlusRatingSummary) then
+        local summary = SafeCall(C_PlayerInfo.GetPlayerMythicPlusRatingSummary, unit)
+        if (summary and summary.currentSeasonScore) then
+            local score = summary.currentSeasonScore
+            local color = summary.currentSeasonScoreColor or summary.color
+            if (not color and C_ChallengeMode and C_ChallengeMode.GetDungeonScoreRarityColor) then
+                color = C_ChallengeMode.GetDungeonScoreRarityColor(score)
+            end
+            local bestLevel
+            if (summary.runs and type(summary.runs) == "table") then
+                for _, run in ipairs(summary.runs) do
+                    if (run and run.bestRunLevel and (not bestLevel or run.bestRunLevel > bestLevel)) then
+                        bestLevel = run.bestRunLevel
+                    end
+                end
+            end
+            return score, color, bestLevel
+        end
+    end
+end
+
 function addon:FixNumericKey(t)
     local key
     local tbl = {}
@@ -134,16 +161,8 @@ end
 function addon:AutoSetTooltipWidth(tooltip)
     local width, w = 80
     for i = 1, tooltip:NumLines() do
-        local line = _G[tooltip:GetName() .. "TextLeft" .. i]
-        if (line) then
-             local success, w = pcall(line.GetWidth, line)
-             if (success and w) then
-                 local s, result = pcall(max, width, w)
-                 if (s and result) then
-                     width = result
-                 end
-             end
-        end
+        w = tonumber(_G[tooltip:GetName() .. "TextLeft" .. i]:GetWidth())
+        width = max(width, w)
     end
     width = width + 6
     tooltip:SetMinimumWidth(width)
@@ -155,11 +174,18 @@ function addon:FindLine(tooltip, keyword)
     local line, text
     for i = 2, tooltip:NumLines() do
         line = _G[tooltip:GetName() .. "TextLeft" .. i]
-        if (not line) then return end
-        if Enum.SecretAspect and line:HasSecretAspect(Enum.SecretAspect.Text) then return end
-        text = line:GetText() or ""
-        if (strfind(text, keyword)) then
-            return line, i, _G[tooltip:GetName() .. "TextRight" .. i]
+        local check, value = pcall(function() return line and line:GetText() end)
+        if (check) then
+            local checkType, isStr = pcall(function() return type(value) == "string" end)
+            if (checkType and isStr) then
+                local checkNotEmpty, notEmpty = pcall(function() return value ~= "" end)
+                if (checkNotEmpty and notEmpty) then
+                    local checkFind, found = pcall(function() return strfind(value, keyword) end)
+                    if (checkFind and found) then
+                        return line, i, _G[tooltip:GetName() .. "TextRight" .. i]
+                    end
+                end
+            end
         end
     end
 end
@@ -267,8 +293,8 @@ function addon:GetFactionIcon(factionGroup)
 end
 
 function addon:GetRaidIcon(unit)
-    local success, index = pcall(GetRaidTargetIndex, unit)
-    if (success and index and ICON_LIST[index]) then
+    local index = GetRaidTargetIndex(unit)
+    if (index and ICON_LIST[index]) then
         return ICON_LIST[index] .. "0|t"
     end
 end
@@ -360,24 +386,46 @@ function addon:GetZone(unit, unitname, realm)
     end
 end
 
+-- Thanks to 星野绫-罗宁 CN HoshinoAya
 local t = {}
-function addon:GetUnitInfo(unit, spec_n_class)  
-    local name, realm = UnitName(unit)
-    local pvpName = UnitPVPName(unit)
-    local gender = UnitSex(unit)
-    local level = UnitLevel(unit)
-    if(UnitIsWildBattlePet(unit) or UnitIsBattlePetCompanion(unit)) then
-        level = UnitBattlePetLevel(unit)
+function addon:GetUnitInfo(unit)  
+    local function SafeCall(fn, ...)
+        local ok, a, b, c, d, e, f, g, h, i, j = pcall(fn, ...)
+        if ok then return a, b, c, d, e, f, g, h, i, j end
     end
-    local effectiveLevel = UnitEffectiveLevel(unit)
-    local raceName, race = UnitRace(unit)
-    local class = select(2,UnitClass(unit))
-    local className = spec_n_class or UnitClass(unit)
-    local factionGroup, factionName = UnitFactionGroup(unit)
-    local reaction = UnitReaction(unit, "player")
-    local guildName, guildRank, guildIndex, guildRealm = GetGuildInfo(unit)
-    local classif = UnitClassification(unit)
-    local role = UnitGroupRolesAssigned(unit)
+    local function SafeBool(fn, ...)
+        local ok, value = pcall(fn, ...)
+        if (not ok) then
+            return false
+        end
+        local okEval, result = pcall(function()
+            return value == true
+        end)
+        if (okEval) then
+            return result
+        end
+        return false
+    end
+    if (not unit or not SafeBool(UnitExists, unit)) then
+        t.unit = unit
+        return t
+    end
+    local name, realm = SafeCall(UnitName, unit)
+    local pvpName = SafeCall(UnitPVPName, unit)
+    local gender = SafeCall(UnitSex, unit)
+    local level = SafeCall(UnitLevel, unit)
+    if(SafeBool(UnitIsWildBattlePet,unit) or SafeBool(UnitIsBattlePetCompanion, unit)) then
+        level = SafeCall(UnitBattlePetLevel, unit)
+    end
+    local effectiveLevel = SafeCall(UnitEffectiveLevel, unit)
+    local raceName, race = SafeCall(UnitRace, unit)
+    local className, class = SafeCall(UnitClass, unit)
+    local factionGroup, factionName = SafeCall(UnitFactionGroup, unit)
+    local reaction = SafeCall(UnitReaction, unit, "player")
+    local guildName, guildRank, guildIndex, guildRealm = SafeCall(GetGuildInfo, unit)
+    local classif = SafeCall(UnitClassification,unit)
+    local role = SafeCall(UnitGroupRolesAssigned,unit)
+    local mplusScore, mplusColor, mplusBest = GetMythicPlusScore(unit)
 
     t.raidIcon     = self:GetRaidIcon(unit)
     t.pvpIcon      = self:GetPVPIcon(unit)
@@ -392,24 +440,35 @@ function addon:GetUnitInfo(unit, spec_n_class)
     t.name         = name
     t.gender       = self:GetGender(gender)
     t.realm        = realm or GetRealmName()
-    t.levelValue   = level >= 0 and level or "??"
+    t.levelValue   = (type(level) == "number" and level >= 0) and level or "??"
     t.className    = className
     t.raceName     = raceName
     t.guildName    = guildName
     t.guildRank    = guildRank
     t.guildIndex   = guildName and guildIndex
     t.guildRealm   = guildRealm
-    t.statusAFK    = UnitIsAFK(unit) and AFK
-    t.statusDND    = UnitIsDND(unit) and DND
-    t.statusDC     = not UnitIsConnected(unit) and OFFLINE
+    t.statusAFK    = SafeBool(UnitIsAFK, unit) and AFK
+    t.statusDND    = SafeBool(UnitIsDND, unit) and DND
+    t.statusDC     = SafeBool(UnitIsConnected,unit) == false and OFFLINE
     t.reactionName = reaction and _G["FACTION_STANDING_LABEL"..reaction]
-    t.creature     = UnitCreatureType(unit)
+    t.creature     = SafeCall(UnitCreatureType, unit)
+    t.mplusScore   = nil
+    t.mplusScoreColor = nil
     t.classifBoss  = (level==-1 or classif == "worldboss") and BOSS
     t.classifElite = (classif == "elite" or classif == "rareelite") and ELITE
     t.classifRare  = (classif == "rare" or classif == "rareelite") and RARE
-    t.isPlayer     = UnitIsPlayer(unit) and PLAYER
+    t.isPlayer     = SafeBool(UnitIsPlayer, unit) and PLAYER
     t.moveSpeed    = self:GetUnitSpeed(unit)
     t.zone         = self:GetZone(unit, t.name, t.realm)
+    local label = self.L and self.L["Mythic+ Score"] or "M+ Score"
+    if (mplusScore and mplusScore > 0) then
+        local bestText = (mplusBest and mplusBest > 0) and (" (" .. mplusBest .. ")") or ""
+        t.mplusScore = format("%s: %d%s", label, floor(mplusScore + 0.5), bestText)
+        t.mplusScoreColor = mplusColor
+    else
+        t.mplusScore = format("%s: %d (%d)", label, 0, 0)
+        t.mplusScoreColor = { r = 0.6, g = 0.6, b = 0.6 }
+    end
     t.unit         = unit                     --unit
     t.level        = level                    --1~123|-1
     t.effectiveLevel = effectiveLevel or level
@@ -460,17 +519,42 @@ function addon:FormatData(value, config, raw)
     end
 end
 
-function addon:GetUnitData(unit, elements, raw, spec_n_class)
+
+function addon:GetUnitData(unit, elements, raw)
     local data = {}
     local config, name, title
     if (not raw) then
-        raw = self:GetUnitInfo(unit, spec_n_class)
+        raw = self:GetUnitInfo(unit)
     end
     for i, v in ipairs(elements) do
         data[i] = {}
         for ii, e in ipairs(v) do
             config = elements[e]
-            if (self:CheckFilter(config, raw) and raw[e]) then
+            if (e == "mount") then
+                if (self:CheckFilter(config, raw) and raw.mountName) then
+                    local labelText = (self.L and self.L.Mount) or MOUNT or "Mount"
+                    local label = "|cffffd200" .. labelText .. ":|r"
+                    local nameText
+                    if (config and config.color and config.wildcard) then
+                        nameText = self:FormatData(raw.mountName, config, raw)
+                    else
+                        nameText = raw.mountName
+                    end
+                    local statusText
+                    if (raw.mountCollected == true) then
+                        local collectedText = (self.L and self.L.collected) or "collected"
+                        statusText = "|cff00ff00(" .. collectedText .. ")|r"
+                    elseif (raw.mountCollected == false) then
+                        local uncollectedText = (self.L and self.L.uncollected) or "uncollected"
+                        statusText = "|cff999999(" .. uncollectedText .. ")|r"
+                    end
+                    if (statusText) then
+                        tinsert(data[i], format("%s %s %s", label, nameText, statusText))
+                    else
+                        tinsert(data[i], format("%s %s", label, nameText))
+                    end
+                end
+            elseif (self:CheckFilter(config, raw) and raw[e]) then
                 if (e == "name") then name = #data[i]+1 end
                 if (e == "title") then title = #data[i]+1 end
                 if (config.color and config.wildcard) then
@@ -518,6 +602,14 @@ addon.colorfunc.class = function(raw)
     end
     local r, g, b = GetClassColor(raw.class)
     return r, g, b, addon:GetHexColor(r, g, b)
+end
+
+addon.colorfunc.mplus = function(raw)
+    local c = raw and raw.mplusScoreColor
+    if (c and c.r and c.g and c.b) then
+        return c.r, c.g, c.b, addon:GetHexColor(c.r, c.g, c.b)
+    end
+    return 1, 1, 1, "ffffff"
 end
 
 addon.colorfunc.level = function(raw)
@@ -865,36 +957,31 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     tip:HookScript("OnHide", function(self) LibEvent:trigger("tooltip:hide", self) end)
 
     tip.TinyHookScript = addon.TinyHookScript
-
-    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, function(self)
-        pcall(function()
-            if (clientToc >= 120000 and IsInInstance()) then return end
-            LibEvent:trigger("tooltip:spell", self)
-        end)
-    end)
-    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self, data)
-      pcall(function()
-        if (clientToc >= 120000 and IsInInstance()) then return end
-
-        local unit = data.lines[1].unitToken
-        if (not unit) then return end
-
-        local spec_n_class
-        if (UnitIsPlayer(unit)) then
-            if data.lines[6] then
-                spec_n_class = data.lines[4].leftText
-            elseif not data.lines[6] and data.lines[5] then
-                spec_n_class = UnitIsPVP(unit) and data.lines[3].leftText or data.lines[4].leftText
-            else
-                spec_n_class = data.lines[3].leftText
+    if(tip.ProcessInfo) then
+        hooksecurefunc(tip, "ProcessInfo", function(self, info)
+            if (not info or not info.tooltipData) then return end
+            local flag = info.tooltipData.type
+            local guid = info.tooltipData.guid
+            if (flag == 0) then
+		local link = select(2, C_Item.GetItemInfo(info.tooltipData.id))
+                if (self.GetItem) then
+                    local link = select(2, self:GetItem())
+                end
+                if (link) then LibEvent:trigger("tooltip:item", self, link) end
+            elseif (flag == 1) then
+                LibEvent:trigger("tooltip:spell", self)
+            elseif (flag == 2) then
+                if (not self.GetUnit) then return end
+                local unit = select(2, self:GetUnit())
+                if (unit) then
+                    LibEvent:trigger("tooltip:unit", self, unit, guid)
+                end
+            elseif (flag == 7) then
+                LibEvent:trigger("tooltip:aura", self, info.tooltipData.args)
             end
-        end
-
-        LibEvent:trigger("tooltip:unit", self, unit, spec_n_class)
-      end)
-    end)
+        end)
+    end
     tip:TinyHookScript("OnEvent", function(self, event, ...) LibEvent:trigger("tooltip:event", self, event, ...) end)
-    --[[
     if (tip:HasScript("OnTooltipSetUnit")) then
         tip:TinyHookScript("OnTooltipSetUnit", function(self) 
           local unit = select(2, self:GetUnit()) 
@@ -912,16 +999,12 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     if (tip:HasScript("OnTooltipSetSpell")) then
         tip:TinyHookScript("OnTooltipSetSpell", function(self) LibEvent:trigger("tooltip:spell", self) end)
     end
-    ]]
     if (tip:HasScript("OnTooltipCleared")) then
-        if (clientToc >= 120000 and IsInInstance()) then return end
         tip:TinyHookScript("OnTooltipCleared", function(self) LibEvent:trigger("tooltip:cleared", self) end)
     end
-    --[[
     if (tip:HasScript("OnTooltipSetQuest")) then
         tip:TinyHookScript("OnTooltipSetQuest", function(self) LibEvent:trigger("tooltip:quest", self) end)
     end
-    ]]
     if (tip == GameTooltip or tip.identity == "diy") then
         tip.GetBackdrop = function(self) return self.style:GetBackdrop() end
         tip.GetBackdropColor = function(self) return self.style:GetBackdropColor() end
@@ -953,7 +1036,6 @@ end)
 
 if (SharedTooltip_SetBackdropStyle) then
     hooksecurefunc("SharedTooltip_SetBackdropStyle", function(self, style, embedded)
-        if self == EmbeddedItemTooltip then return end
         if (self.style and self.NineSlice) then
             self.NineSlice:Hide()
         end
@@ -975,6 +1057,7 @@ if (GameTooltip_SetBackdropStyle) then
 end
 
 LibEvent:attachTrigger("TINYTOOLTIP_REFORGED_GENERAL_INIT", function(self)
+    addon._lastScale = addon.db.general.scale
     LibEvent:trigger("tooltip.style.font.header", GameTooltip, addon.db.general.headerFont, addon.db.general.headerFontSize, addon.db.general.headerFontFlag)
     LibEvent:trigger("tooltip.style.font.body", GameTooltip, addon.db.general.bodyFont, addon.db.general.bodyFontSize, addon.db.general.bodyFontFlag)
     LibEvent:trigger("tooltip.statusbar.height", addon.db.general.statusbarHeight)
@@ -982,7 +1065,6 @@ LibEvent:attachTrigger("TINYTOOLTIP_REFORGED_GENERAL_INIT", function(self)
     LibEvent:trigger("tooltip.statusbar.font", addon.db.general.statusbarFont, addon.db.general.statusbarFontSize, addon.db.general.statusbarFontFlag)
     LibEvent:trigger("tooltip.statusbar.texture", addon.db.general.statusbarTexture)
     for _, tip in pairs(addon.tooltips) do
-        if tip == EmbeddedItemTooltip then return end
         LibEvent:trigger("tooltip.style.init", tip)
         LibEvent:trigger("tooltip.scale", tip, addon.db.general.scale)
         LibEvent:trigger("tooltip.style.mask", tip, addon.db.general.mask)

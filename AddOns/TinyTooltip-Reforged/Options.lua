@@ -13,8 +13,28 @@ local UIDropDownMenuTemplate = "UIDropDownMenuTemplate"
 local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
 
 local addonName = ...
-local addon = TinyTooltipReforged
+local addon  = TinyTooltipReforged
 local CopyTable = CopyTable
+local LAYOUT
+local function RoundScale(value)
+    return floor(value + 0.5)
+end
+
+local function RescaleAnchorOffsets(anchor, ratio)
+    if (not anchor) then return end
+    if (anchor.x ~= nil) then anchor.x = RoundScale(anchor.x * ratio) end
+    if (anchor.y ~= nil) then anchor.y = RoundScale(anchor.y * ratio) end
+end
+
+local function RescaleStaticAnchorOffsets(oldScale, newScale)
+    if (not addon or not addon.db) then return end
+    if (oldScale == 0 or newScale == 0) then return end
+    if (oldScale == newScale) then return end
+    local ratio = oldScale / newScale
+    RescaleAnchorOffsets(addon.db.general and addon.db.general.anchor, ratio)
+    RescaleAnchorOffsets(addon.db.unit and addon.db.unit.player and addon.db.unit.player.anchor, ratio)
+    RescaleAnchorOffsets(addon.db.unit and addon.db.unit.npc and addon.db.unit.npc.anchor, ratio)
+end
 
 addon.L = addon.L or {}
 setmetatable(addon.L, { __index = function(self, k)
@@ -60,6 +80,7 @@ local function CallTrigger(keystring, value)
         LibEvent:trigger("tooltip.style.font.body", tip, addon.db.general.bodyFont, addon.db.general.bodyFontSize, addon.db.general.bodyFontFlag)
     end
 end
+
 
 local function GetVariable(keystring, tbl)
     if (keystring == "general.SavedVariablesPerCharacter") then
@@ -211,8 +232,7 @@ function widgets:colorpick(parent, config)
             end,
         }
         ColorPickerFrame.tipframe = self
-        if (not self.hasopacity) then OpacitySliderFrame:SetValue(info.opacity) end
---        OpenColorPicker(info)
+        if (not self.hasopacity) then pcall(function() return OpacitySliderFrame:SetValue(info.opacity) end) end
 	ColorPickerFrame:SetupColorPickerAndShow(info)
     end)
     return frame
@@ -484,17 +504,15 @@ end
 
 function widgets:anchor(parent, config)
     local frame = CreateFrame("Frame", nil, parent)
-    frame:SetSize(400, 30)
+    frame:SetSize(400, 40)
     frame.anchorbutton = self:anchorbutton(frame, config)
     frame.dropdown = self:dropdown(frame, {keystring=config.keystring..".position",dropdata=config.dropdata})
     frame.dropdown:SetPoint("LEFT", 0, 0)
     frame.anchorbutton:SetPoint("LEFT", frame.dropdown.Label, "LEFT", 5, 0)
     frame.checkbox1 = self:checkbox(frame, {keystring=config.keystring..".hiddenInCombat"})
-    frame.checkbox1:SetPoint("LEFT", frame.dropdown.Label, "RIGHT", 45, -1)
+    frame.checkbox1:SetPoint("LEFT", frame.dropdown.Label, "RIGHT", 25, -1)
     frame.checkbox2 = self:checkbox(frame, {keystring=config.keystring..".defaultInCombat"})
     frame.checkbox2:SetPoint("LEFT", frame.checkbox1.Text, "RIGHT", 3, 0)
---    frame.checkbox3 = self:checkbox(frame, {keystring=config.keystring..".defaultreturnOnUnitFrame"})
---    frame.checkbox3:SetPoint("LEFT", frame.checkbox2.Text, "RIGHT", 3, 0)
     return frame
 end
 
@@ -529,222 +547,117 @@ LibEvent:attachEvent("VARIABLES_LOADED", function()
         widgets.barDropdata = MergeTable(widgets.barDropdata, LibMedia:List("statusbar"))
     end
 end)
-local options
-if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
-	options = {
-		general = {
-			{ keystring = "general.mask",     	    type = "checkbox" },
-			{ keystring = "general.skinMoreFrames",     type = "checkbox" },
-			{ keystring = "general.background",         type = "colorpick", hasopacity = true },
-			{ keystring = "general.borderColor",        type = "colorpick", hasopacity = true },
-			-- { keystring = "general.scale",              type = "slider", min = 0.5, max = 4, step = 0.1 },
-			-- { keystring = "general.borderSize",         type = "slider", min = 1, max = 6, step = 1 },
-			{ keystring = "general.borderCorner",       type = "dropdown", dropdata = widgets.borderDropdata },
-			{ keystring = "general.bgfile",             type = "dropdown", dropdata = widgets.bgfileDropdata },
-			{ keystring = "general.anchor",             type = "anchor", dropdata = {"default","cursor", "cursorRight", "static"} },
-		{ keystring = "general.ColorBlindMode",     type = "checkbox" },
-			{ keystring = "item.showStackCount",        type = "checkbox" },
-			{ keystring = "item.showStackCountAlt",     type = "checkbox" },
-			{ keystring = "item.coloredItemBorder",     type = "checkbox" },
-			{ keystring = "item.showItemIcon",          type = "checkbox" },
-			{ keystring = "item.showExpansionInformation",          type = "checkbox" },
-			{ keystring = "quest.coloredQuestBorder",   type = "checkbox" },
-			{ keystring = "general.alwaysShowIdInfo",   type = "checkbox" },        
-			{ keystring = "general.SavedVariablesPerCharacter",   type = "checkbox" },
-		},
-		pc = {
-			{ keystring = "unit.player.showTarget",           type = "checkbox" },
-			{ keystring = "unit.player.showTargetBy",         type = "checkbox" },
-			{ keystring = "unit.player.showModel",            type = "checkbox" },
-			{ keystring = "unit.player.grayForDead",          type = "checkbox" },
-			{ keystring = "unit.player.coloredBorder",        type = "dropdown", dropdata = widgets.colorDropdata },
-			-- { keystring = "unit.player.background",           type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.1 },
-			{ keystring = "unit.player.anchor",               type = "anchor", dropdata = {"inherit", "default","cursor", "cursorRight", "static"} },
-			{ keystring = "unit.player.elements.factionBig",  type = "element", filter = false,},
-			{ keystring = "unit.player.elements.raidIcon",    type = "element", filter = true, },
-			{ keystring = "unit.player.elements.roleIcon",    type = "element", filter = true, },
-			{ keystring = "unit.player.elements.pvpIcon",     type = "element", filter = true, },
-			{ keystring = "unit.player.elements.factionIcon", type = "element", filter = true, },
-			{ keystring = "unit.player.elements.classIcon",   type = "element", filter = true, },
-			{ keystring = "unit.player.elements.friendIcon",  type = "element", filter = true, },
-			{ keystring = "unit.player.elements.title",       type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.name",        type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.realm",       type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.statusAFK",   type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.statusDND",   type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.statusDC",    type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.guildName",   type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.guildIndex",  type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.guildRank",   type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.guildRealm",  type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.levelValue",  type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.factionName", type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.gender",      type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.raceName",    type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.className",   type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.isPlayer",    type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.role",        type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.moveSpeed",   type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.zone",        type = "element", color = true, wildcard = true, filter = true, },
-		},
-		npc = {
-			{ keystring = "unit.npc.showTarget",            type = "checkbox" },
-			{ keystring = "unit.npc.showTargetBy",          type = "checkbox" },
-			{ keystring = "unit.npc.showModel",             type = "checkbox" },
-			{ keystring = "unit.npc.grayForDead",           type = "checkbox" },
-			{ keystring = "unit.npc.coloredBorder",         type = "dropdown", dropdata = widgets.colorDropdata },
-			-- { keystring = "unit.npc.background",            type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.1 },
-			{ keystring = "unit.npc.anchor",                type = "anchor", dropdata = {"inherit","default","cursor", "cursorRight", "static"} },
-			{ keystring = "unit.npc.elements.factionBig",   type = "element", filter = false,},
-			{ keystring = "unit.npc.elements.raidIcon",     type = "element", filter = true, },
-			{ keystring = "unit.npc.elements.classIcon",    type = "element", filter = true, },
-			{ keystring = "unit.npc.elements.questIcon",    type = "element", filter = true, },
-			{ keystring = "unit.npc.elements.npcTitle",     type = "element", color = true, wildcard = true, },
-			{ keystring = "unit.npc.elements.name",         type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.npc.elements.levelValue",   type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.npc.elements.classifBoss",  type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.npc.elements.classifElite", type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.npc.elements.classifRare",  type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.npc.elements.creature",     type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.npc.elements.reactionName", type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.npc.elements.moveSpeed",    type = "element", color = true, wildcard = true, filter = true, },
-		},
-		statusbar = {
-			{ keystring = "general.statusbarEnabled",   type = "checkbox" },
-			{ keystring = "general.statusbarText",      type = "checkbox" },
-			-- { keystring = "general.statusbarHeight",    type = "slider", min = 0, max = 24, step = 1 },
-			-- { keystring = "general.statusbarOffsetX",   type = "slider", min = -50, max = 50, step = 1 },
-			-- { keystring = "general.statusbarOffsetY",   type = "slider", min = -50, max = 50, step = 1 },
-			-- { keystring = "general.statusbarFontSize",  type = "slider", min = 6, max = 30, step = 1 },
-			{ keystring = "general.statusbarFontFlag",  type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE", "MONOCHROME"} },
-			{ keystring = "general.statusbarFont",      type = "dropdown", dropdata = widgets.fontDropdata },
-			{ keystring = "general.statusbarTexture",   type = "dropdown", dropdata = widgets.barDropdata },
-			{ keystring = "general.statusbarPosition",  type = "dropdown", dropdata = {"default","bottom","top"} },
-			{ keystring = "general.statusbarColor",     type = "dropdown", dropdata = {"default","auto","smooth"} },
-			{ keystring = "general.statusbarTextFormat", type = "dropdown", dropdata = {"healthmaxpercent", "healthpercent", "healthmax", "health", "percent"} },
-		},
-		spell = {
-			{ keystring = "spell.showIcon",             type = "checkbox" },
-			{ keystring = "spell.background",           type = "colorpick", hasopacity = true },
-			{ keystring = "spell.borderColor",          type = "colorpick", hasopacity = true },
-		},
-		font = {
-			{ keystring = "general.headerFont",         type = "dropdown", dropdata = widgets.fontDropdata },
-			{ keystring = "general.headerFontSize",     type = "dropdown", dropdata = {"default", 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 } },
-			{ keystring = "general.headerFontFlag",     type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE", "MONOCHROME"} },
-			{ keystring = "general.bodyFont",           type = "dropdown", dropdata = widgets.fontDropdata },
-			{ keystring = "general.bodyFontSize",       type = "dropdown", dropdata = {"default", 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 } },        
-		{ keystring = "general.bodyFontFlag",       type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE", "MONOCHROME"} },
-		},
-	}
-else
-	options = {
-		general = {
-			{ keystring = "general.mask",     	    type = "checkbox" },
-			{ keystring = "general.skinMoreFrames",     type = "checkbox" },
-			{ keystring = "general.background",         type = "colorpick", hasopacity = true },
-			{ keystring = "general.borderColor",        type = "colorpick", hasopacity = true },
-			{ keystring = "general.scale",              type = "slider", min = 0.5, max = 4, step = 0.1 },
-			{ keystring = "general.borderSize",         type = "slider", min = 1, max = 6, step = 1 },
-			{ keystring = "general.borderCorner",       type = "dropdown", dropdata = widgets.borderDropdata },
-			{ keystring = "general.bgfile",             type = "dropdown", dropdata = widgets.bgfileDropdata },
-			{ keystring = "general.anchor",             type = "anchor", dropdata = {"default","cursor", "cursorRight", "static"} },
-		{ keystring = "general.ColorBlindMode",     type = "checkbox" },
-			{ keystring = "item.showStackCount",        type = "checkbox" },
-			{ keystring = "item.showStackCountAlt",     type = "checkbox" },
-			{ keystring = "item.coloredItemBorder",     type = "checkbox" },
-			{ keystring = "item.showItemIcon",          type = "checkbox" },
-			{ keystring = "item.showExpansionInformation",          type = "checkbox" },
-			{ keystring = "quest.coloredQuestBorder",   type = "checkbox" },
-			{ keystring = "general.alwaysShowIdInfo",   type = "checkbox" },        
-			{ keystring = "general.SavedVariablesPerCharacter",   type = "checkbox" },
-		},
-		pc = {
-			{ keystring = "unit.player.showTarget",           type = "checkbox" },
-			{ keystring = "unit.player.showTargetBy",         type = "checkbox" },
-			{ keystring = "unit.player.showModel",            type = "checkbox" },
-			{ keystring = "unit.player.grayForDead",          type = "checkbox" },
-			{ keystring = "unit.player.coloredBorder",        type = "dropdown", dropdata = widgets.colorDropdata },
-			{ keystring = "unit.player.background",           type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.1 },
-			{ keystring = "unit.player.anchor",               type = "anchor", dropdata = {"inherit", "default","cursor", "cursorRight", "static"} },
-			{ keystring = "unit.player.elements.factionBig",  type = "element", filter = false,},
-			{ keystring = "unit.player.elements.raidIcon",    type = "element", filter = true, },
-			{ keystring = "unit.player.elements.roleIcon",    type = "element", filter = true, },
-			{ keystring = "unit.player.elements.pvpIcon",     type = "element", filter = true, },
-			{ keystring = "unit.player.elements.factionIcon", type = "element", filter = true, },
-			{ keystring = "unit.player.elements.classIcon",   type = "element", filter = true, },
-			{ keystring = "unit.player.elements.friendIcon",  type = "element", filter = true, },
-			{ keystring = "unit.player.elements.title",       type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.name",        type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.realm",       type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.statusAFK",   type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.statusDND",   type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.statusDC",    type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.guildName",   type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.guildIndex",  type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.guildRank",   type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.guildRealm",  type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.levelValue",  type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.factionName", type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.gender",      type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.raceName",    type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.className",   type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.isPlayer",    type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.role",        type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.moveSpeed",   type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.player.elements.zone",        type = "element", color = true, wildcard = true, filter = true, },
-		},
-		npc = {
-			{ keystring = "unit.npc.showTarget",            type = "checkbox" },
-			{ keystring = "unit.npc.showTargetBy",          type = "checkbox" },
-			{ keystring = "unit.npc.showModel",             type = "checkbox" },
-			{ keystring = "unit.npc.grayForDead",           type = "checkbox" },
-			{ keystring = "unit.npc.coloredBorder",         type = "dropdown", dropdata = widgets.colorDropdata },
-			{ keystring = "unit.npc.background",            type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.1 },
-			{ keystring = "unit.npc.anchor",                type = "anchor", dropdata = {"inherit","default","cursor", "cursorRight", "static"} },
-			{ keystring = "unit.npc.elements.factionBig",   type = "element", filter = false,},
-			{ keystring = "unit.npc.elements.raidIcon",     type = "element", filter = true, },
-			{ keystring = "unit.npc.elements.classIcon",    type = "element", filter = true, },
-			{ keystring = "unit.npc.elements.questIcon",    type = "element", filter = true, },
-			{ keystring = "unit.npc.elements.npcTitle",     type = "element", color = true, wildcard = true, },
-			{ keystring = "unit.npc.elements.name",         type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.npc.elements.levelValue",   type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.npc.elements.classifBoss",  type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.npc.elements.classifElite", type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.npc.elements.classifRare",  type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.npc.elements.creature",     type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.npc.elements.reactionName", type = "element", color = true, wildcard = true, filter = true, },
-			{ keystring = "unit.npc.elements.moveSpeed",    type = "element", color = true, wildcard = true, filter = true, },
-		},
-		statusbar = {
-			{ keystring = "general.statusbarEnabled",   type = "checkbox" },
-			{ keystring = "general.statusbarText",      type = "checkbox" },
-			{ keystring = "general.statusbarHeight",    type = "slider", min = 0, max = 24, step = 1 },
-			{ keystring = "general.statusbarOffsetX",   type = "slider", min = -50, max = 50, step = 1 },
-			{ keystring = "general.statusbarOffsetY",   type = "slider", min = -50, max = 50, step = 1 },
-			{ keystring = "general.statusbarFontSize",  type = "slider", min = 6, max = 30, step = 1 },
-			{ keystring = "general.statusbarFontFlag",  type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE", "MONOCHROME"} },
-			{ keystring = "general.statusbarFont",      type = "dropdown", dropdata = widgets.fontDropdata },
-			{ keystring = "general.statusbarTexture",   type = "dropdown", dropdata = widgets.barDropdata },
-			{ keystring = "general.statusbarPosition",  type = "dropdown", dropdata = {"default","bottom","top"} },
-			{ keystring = "general.statusbarColor",     type = "dropdown", dropdata = {"default","auto","smooth"} },
-			{ keystring = "general.statusbarTextFormat", type = "dropdown", dropdata = {"healthmaxpercent", "healthpercent", "healthmax", "health", "percent"} },
-		},
-		spell = {
-			{ keystring = "spell.showIcon",             type = "checkbox" },
-			{ keystring = "spell.background",           type = "colorpick", hasopacity = true },
-			{ keystring = "spell.borderColor",          type = "colorpick", hasopacity = true },
-		},
-		font = {
-			{ keystring = "general.headerFont",         type = "dropdown", dropdata = widgets.fontDropdata },
-			{ keystring = "general.headerFontSize",     type = "dropdown", dropdata = {"default", 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 } },
-			{ keystring = "general.headerFontFlag",     type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE", "MONOCHROME"} },
-			{ keystring = "general.bodyFont",           type = "dropdown", dropdata = widgets.fontDropdata },
-			{ keystring = "general.bodyFontSize",       type = "dropdown", dropdata = {"default", 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 } },        
-		{ keystring = "general.bodyFontFlag",       type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE", "MONOCHROME"} },
-		},
-	}
-end
+
+local options = {
+    general = {
+        { keystring = "general.mask",     	    type = "checkbox" },
+        { keystring = "general.skinMoreFrames",     type = "checkbox" },
+        { keystring = "general.background",         type = "colorpick", hasopacity = true },
+        { keystring = "general.borderColor",        type = "colorpick", hasopacity = true },
+        { keystring = "general.scale",              type = "slider", min = 0.5, max = 4, step = 0.1 },
+        { keystring = "general.borderSize",         type = "slider", min = 1, max = 6, step = 1 },
+        { keystring = "general.borderCorner",       type = "dropdown", dropdata = widgets.borderDropdata },
+        { keystring = "general.bgfile",             type = "dropdown", dropdata = widgets.bgfileDropdata },
+        { keystring = "general.anchor",             type = "anchor", dropdata = {"default","cursor", "cursorRight", "static"} },
+	{ keystring = "general.ColorBlindMode",     type = "checkbox" },
+        { keystring = "item.showStackCount",        type = "checkbox" },
+        { keystring = "item.showStackCountAlt",     type = "checkbox" },
+        { keystring = "item.coloredItemBorder",     type = "checkbox" },
+        { keystring = "item.showItemIcon",          type = "checkbox" },
+	{ keystring = "item.showExpansionInformation", type = "checkbox" },
+        { keystring = "quest.coloredQuestBorder",   type = "checkbox" },
+        { keystring = "general.alwaysShowIdInfo",   type = "checkbox" },        
+        { keystring = "general.SavedVariablesPerCharacter",   type = "checkbox" },
+        { keystring = "general.hideUnitFrameHint",   type = "checkbox" },
+    },
+    pc = {
+        { keystring = "unit.player.showTarget",           type = "checkbox" },
+        { keystring = "unit.player.showTargetBy",         type = "checkbox" },
+        { keystring = "unit.player.showModel",            type = "checkbox" },
+        { keystring = "unit.player.grayForDead",          type = "checkbox" },
+        { keystring = "unit.player.coloredBorder",        type = "dropdown", dropdata = widgets.colorDropdata },
+        { keystring = "unit.player.background",           type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.1 },
+        { keystring = "unit.player.anchor",               type = "anchor", dropdata = {"inherit", "default","cursor", "cursorRight", "static"} },
+        { keystring = "unit.player.elements.factionBig",  type = "element", filter = false,},
+        { keystring = "unit.player.elements.raidIcon",    type = "element", filter = true, },
+        { keystring = "unit.player.elements.roleIcon",    type = "element", filter = true, },
+        { keystring = "unit.player.elements.pvpIcon",     type = "element", filter = true, },
+        { keystring = "unit.player.elements.factionIcon", type = "element", filter = true, },
+        { keystring = "unit.player.elements.classIcon",   type = "element", filter = true, },
+        { keystring = "unit.player.elements.friendIcon",  type = "element", filter = true, },
+        { keystring = "unit.player.elements.title",       type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.name",        type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.realm",       type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.statusAFK",   type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.statusDND",   type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.statusDC",    type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.guildName",   type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.guildIndex",  type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.guildRank",   type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.guildRealm",  type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.levelValue",  type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.factionName", type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.gender",      type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.raceName",    type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.className",   type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.classSpecAndName",   type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.isPlayer",    type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.role",        type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.moveSpeed",   type = "element", color = true, wildcard = true, filter = true, },
+	{ keystring = "unit.player.elements.mplusScore",  type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.zone",        type = "element", color = true, wildcard = true, filter = true, },
+	{ keystring = "unit.player.elements.mount",       type = "element", color = true, wildcard = true, filter = true, },
+    },
+    npc = {
+        { keystring = "unit.npc.showTarget",            type = "checkbox" },
+        { keystring = "unit.npc.showTargetBy",          type = "checkbox" },
+        { keystring = "unit.npc.showModel",             type = "checkbox" },
+        { keystring = "unit.npc.grayForDead",           type = "checkbox" },
+        { keystring = "unit.npc.coloredBorder",         type = "dropdown", dropdata = widgets.colorDropdata },
+        { keystring = "unit.npc.background",            type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.1 },
+        { keystring = "unit.npc.anchor",                type = "anchor", dropdata = {"inherit","default","cursor", "cursorRight", "static"} },
+        { keystring = "unit.npc.elements.factionBig",   type = "element", filter = false,},
+        { keystring = "unit.npc.elements.raidIcon",     type = "element", filter = true, },
+        { keystring = "unit.npc.elements.classIcon",    type = "element", filter = true, },
+        { keystring = "unit.npc.elements.questIcon",    type = "element", filter = true, },
+        { keystring = "unit.npc.elements.npcTitle",     type = "element", color = true, wildcard = true, },
+        { keystring = "unit.npc.elements.name",         type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.npc.elements.levelValue",   type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.npc.elements.classifBoss",  type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.npc.elements.classifElite", type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.npc.elements.classifRare",  type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.npc.elements.creature",     type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.npc.elements.reactionName", type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.npc.elements.moveSpeed",    type = "element", color = true, wildcard = true, filter = true, },
+    },
+    statusbar = {
+        { keystring = "general.statusbarEnabled",   type = "checkbox" },
+        { keystring = "general.statusbarText",      type = "checkbox" },
+        { keystring = "general.statusbarHeight",    type = "slider", min = 0, max = 24, step = 1 },
+        { keystring = "general.statusbarOffsetX",   type = "slider", min = -50, max = 50, step = 1 },
+        { keystring = "general.statusbarOffsetY",   type = "slider", min = -50, max = 50, step = 1 },
+        { keystring = "general.statusbarFontSize",  type = "slider", min = 6, max = 30, step = 1 },
+        { keystring = "general.statusbarFontFlag",  type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE", "MONOCHROME"} },
+        { keystring = "general.statusbarFont",      type = "dropdown", dropdata = widgets.fontDropdata },
+        { keystring = "general.statusbarTexture",   type = "dropdown", dropdata = widgets.barDropdata },
+        { keystring = "general.statusbarPosition",  type = "dropdown", dropdata = {"default","bottom","top"} },
+        { keystring = "general.statusbarColor",     type = "dropdown", dropdata = {"default","auto","smooth"} },
+        { keystring = "general.statusbarTextFormat", type = "dropdown", dropdata = {"Health / Max (Percent)", "Health (Percent)", "Health / Max", "Health", "Percent"} },
+    },
+    spell = {
+        { keystring = "spell.showIcon",             type = "checkbox" },
+        { keystring = "spell.background",           type = "colorpick", hasopacity = true },
+        { keystring = "spell.borderColor",          type = "colorpick", hasopacity = true },
+    },
+    font = {
+        { keystring = "general.headerFont",         type = "dropdown", dropdata = widgets.fontDropdata },
+        { keystring = "general.headerFontSize",     type = "dropdown", dropdata = {"default", 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 } },
+        { keystring = "general.headerFontFlag",     type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE", "MONOCHROME"} },
+        { keystring = "general.bodyFont",           type = "dropdown", dropdata = widgets.fontDropdata },
+        { keystring = "general.bodyFontSize",       type = "dropdown", dropdata = {"default", 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 } },        
+ 	{ keystring = "general.bodyFontFlag",       type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE", "MONOCHROME"} },
+    },
+}
 
 local frame = CreateFrame("Frame", "TinyTooltipReforgedFrame", UIParent)
 frame.anchor = CreateFrame("Frame", nil, frame)
@@ -756,12 +669,27 @@ else
 end
 frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frame.title:SetPoint("TOPLEFT", 18, -16)
-frame.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["General"]))
-frame.name = L["Tooltip"]
+frame.title:SetText(format("%s |cff33eeff%s|r", addonName, "General"))
+frame.name = addonName
 
 frame.text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 frame.text:SetPoint("TOPLEFT", 30, -35)
 frame.text:SetText(format("by |cffF58CBA%s|r |cffff00ff<%s>|r - |cff33eeff%s|r", "Beezer", "The Dragon Fighters", "Aggramar EU"))
+
+
+frame:SetSize(500, 700)
+local frameScrollFrame = CreateFrame("ScrollFrame", "TinyTooltipReforgedScrollFrame", UIParent, "UIPanelScrollFrameTemplate")
+frameScrollFrame.ScrollBar:Hide()
+frameScrollFrame.ScrollBar:ClearAllPoints()
+frameScrollFrame.ScrollBar:SetPoint("TOPLEFT", frameScrollFrame, "TOPRIGHT", -20, -22)
+frameScrollFrame.ScrollBar:SetPoint("BOTTOMLEFT", frameScrollFrame, "BOTTOMRIGHT", -20, 26)
+frameScrollFrame:HookScript("OnScrollRangeChanged", function(self, xrange, yrange)
+    self.ScrollBar:SetShown(floor(yrange) ~= 0)
+end)
+frameScrollFrame:SetScrollChild(frame)
+frameScrollFrame.parent = addonName
+frameScrollFrame.name = " - General"
+frameScrollFrame:Hide()
 
 local framePC = CreateFrame("Frame", "TinyTooltipReforgedPC", UIParent)
 framePC.anchor = CreateFrame("Frame", nil, framePC)
@@ -773,9 +701,9 @@ else
 end
 framePC.title = framePC:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 framePC.title:SetPoint("TOPLEFT", 18, -16)
-framePC.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Unit Is Player"]))
-framePC.parent = L["Tooltip"]
-framePC.name = L["Player"]
+framePC.title:SetText(format("%s |cff33eeff%s|r", addonName, "Unit Is Player"))
+framePC.parent = addonName
+framePC.name = " - Player"
 
 framePC.diy = CreateFrame("Button", "TinyTooltipReforgedPCDIY", framePC)
 framePC.diy:SetSize(400, 67)
@@ -799,8 +727,8 @@ framePCScrollFrame:HookScript("OnScrollRangeChanged", function(self, xrange, yra
     self.ScrollBar:SetShown(floor(yrange) ~= 0)
 end)
 framePCScrollFrame:SetScrollChild(framePC)
-framePCScrollFrame.parent = L["Tooltip"]
-framePCScrollFrame.name = L["Player"]
+framePCScrollFrame.parent = addonName
+framePCScrollFrame.name = " - Player"
 framePCScrollFrame:Hide()
 
 local frameNPC = CreateFrame("Frame", nil, UIParent)
@@ -813,9 +741,9 @@ else
 end
 frameNPC.title = frameNPC:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameNPC.title:SetPoint("TOPLEFT", 18, -16)
-frameNPC.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Unit Is NPC"]))
-frameNPC.parent = L["Tooltip"]
-frameNPC.name = "NPC"
+frameNPC.title:SetText(format("%s |cff33eeff%s|r", addonName, "Unit Is NPC"))
+frameNPC.parent = addonName
+frameNPC.name = " - NPC"
 
 frameNPC:SetSize(500, #options.npc*30)
 local frameNPCScrollFrame = CreateFrame("ScrollFrame", nil, UIParent, "UIPanelScrollFrameTemplate")
@@ -827,8 +755,8 @@ frameNPCScrollFrame:HookScript("OnScrollRangeChanged", function(self, xrange, yr
     self.ScrollBar:SetShown(floor(yrange) ~= 0)
 end)
 frameNPCScrollFrame:SetScrollChild(frameNPC)
-frameNPCScrollFrame.parent = L["Tooltip"]
-frameNPCScrollFrame.name = "NPC"
+frameNPCScrollFrame.parent = addonName
+frameNPCScrollFrame.name = " - NPC"
 
 local frameStatusbar = CreateFrame("Frame", nil, UIParent)
 frameStatusbar.anchor = CreateFrame("Frame", nil, frameStatusbar)
@@ -840,9 +768,9 @@ else
 end
 frameStatusbar.title = frameStatusbar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameStatusbar.title:SetPoint("TOPLEFT", 18, -16)
-frameStatusbar.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["StatusBar"]))
-frameStatusbar.parent = L["Tooltip"]
-frameStatusbar.name = L["StatusBar"]
+frameStatusbar.title:SetText(format("%s |cff33eeff%s|r", addonName, "StatusBar"))
+frameStatusbar.parent = addonName
+frameStatusbar.name = " - StatusBar"
 
 local frameSpell = CreateFrame("Frame", nil, UIParent)
 frameSpell.anchor = CreateFrame("Frame", nil, frameSpell)
@@ -854,9 +782,9 @@ else
 end
 frameSpell.title = frameSpell:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameSpell.title:SetPoint("TOPLEFT", 18, -16)
-frameSpell.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Spell"]))
-frameSpell.parent = L["Tooltip"]
-frameSpell.name = L["Spell"]
+frameSpell.title:SetText(format("%s |cff33eeff%s|r", addonName, "Spell"))
+frameSpell.parent = addonName
+frameSpell.name = " - Spell"
 
 local frameFont = CreateFrame("Frame", nil, UIParent)
 frameFont.anchor = CreateFrame("Frame", nil, frameFont)
@@ -868,9 +796,9 @@ else
 end
 frameFont.title = frameFont:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameFont.title:SetPoint("TOPLEFT", 18, -16)
-frameFont.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Font"]))
-frameFont.parent = L["Tooltip"]
-frameFont.name = L["Font"]
+frameFont.title:SetText(format("%s |cff33eeff%s|r", addonName, "Font"))
+frameFont.parent = addonName
+frameFont.name = " - Font"
 
 local frameVariables = CreateFrame("Frame", nil, UIParent)
 frameVariables.anchor = CreateFrame("Frame", nil, frameVariables)
@@ -882,9 +810,9 @@ else
 end
 frameVariables.title = frameVariables:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameVariables.title:SetPoint("TOPLEFT", 18, -16)
-frameVariables.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Variables"]))
-frameVariables.parent = L["Tooltip"]
-frameVariables.name = L["Variables"]
+frameVariables.title:SetText(format("%s |cff33eeff%s|r", addonName, "Variables"))
+frameVariables.parent = addonName
+frameVariables.name = " - Variables"
 
 local function InitVariablesFrame()
     frameVariables.panel = CreateFrame("Frame", nil, frameVariables, "TinyTooltipReforgedVariablesTemplate")
@@ -905,13 +833,42 @@ local function InitVariablesFrame()
             TinyTooltipReforgedDB = db
             addon.db = db
             frameVariables.panel.textarea.text:SetText("")
-            LibEvent:trigger("TINYTOOLTIP_REFORGED_GENERAL_INIT")
-            print(L["|cffFFE4E1[TinyTooltipReforged]|r|cff00FFFF variables has been imported successfully. |r"])
+             LibEvent:trigger("TINYTOOLTIP_REFORGED_GENERAL_INIT")
+            print("|cffFFE4E1[TinyTooltipReforged]|r|cff00FFFF variables has been imported successfully. |r")
         else
-            print(L["|cffFFE4E1[TinyTooltipReforged]|r|cffFF3333 unvalidated variables. |r"])
+            print("|cffFFE4E1[TinyTooltipReforged]|r|cffFF3333 unvalidated variables. |r")
         end
     end)
 end
+
+
+local frameAbout = CreateFrame("ScrollFrame", "TinyTooltipReforgedAboutScrollFrame", UIParent, "UIPanelScrollFrameTemplate")
+frameAbout:SetSize(500, 700)
+frameAbout.ScrollBar:Hide()
+frameAbout.ScrollBar:ClearAllPoints()
+frameAbout.ScrollBar:SetPoint("TOPLEFT", frameAbout, "TOPRIGHT", -20, -22)
+frameAbout.ScrollBar:SetPoint("BOTTOMLEFT", frameAbout, "BOTTOMRIGHT", -20, 26)
+frameAbout:HookScript("OnScrollRangeChanged", function(self, xrange, yrange)
+    self.ScrollBar:SetShown(floor(yrange) ~= 0)
+end)
+frameAbout.anchor = CreateFrame("Frame", nil, frameAbout)
+frameAbout.anchor:SetPoint("TOPLEFT", 32, -16)
+if (clientToc == 30400) then
+  frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
+else
+  frame.anchor:SetSize(SettingsPanel:GetWidth()-64, 1)
+end
+frameAbout.title = frameAbout:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+frameAbout.title:SetPoint("TOPLEFT", 18, -16)
+frameAbout.title:SetText(format("%s |cff33eeff%s|r", addonName, "About"))
+frameAbout.parent = addonName
+frameAbout.name = " - About"
+frameAbout:Hide()
+
+local actualVersion = C_AddOns.GetAddOnMetadata("TinyTooltip-Reforged", "Version") or "unknown"
+frameAbout.version = frameAbout:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+frameAbout.version:SetPoint("TOPLEFT", 35, -50)
+frameAbout.version:SetText(format("Version v%s", actualVersion));
 
 local function InitOptions(list, parent, height)
     local element, offsetX
@@ -929,57 +886,48 @@ local function InitOptions(list, parent, height)
 end
 
 LibEvent:attachEvent("VARIABLES_LOADED", function()
-    InitOptions(options.general, frame, 32)
-    InitOptions(options.pc, framePC, 29)
-    InitOptions(options.npc, frameNPC, 27)
-    InitOptions(options.statusbar, frameStatusbar, 36)
-    InitOptions(options.spell, frameSpell, 32)
-    InitOptions(options.font, frameFont, 32)
+    InitOptions(options.general, frame)
+    InitOptions(options.pc, framePC)
+    InitOptions(options.npc, frameNPC)
+    InitOptions(options.statusbar, frameStatusbar)
+    InitOptions(options.spell, frameSpell)
+    InitOptions(options.font, frameFont)
     InitVariablesFrame()
 end)
 
-
 if Settings and Settings.RegisterCanvasLayoutCategory then
-  local category = Settings.RegisterCanvasLayoutCategory(frame, frame.name)
+  local category = Settings.RegisterCanvasLayoutCategory(frameScrollFrame, "TinyTooltip Reforged")
   Settings.RegisterAddOnCategory(category)
   frame.categoryID = category:GetID()
 
-  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, framePCScrollFrame, framePCScrollFrame.name)
+  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, framePCScrollFrame, "- Player")
   Settings.RegisterAddOnCategory(category1)
---  framePCScrollFrame.categoryID = category1:GetID()
-
-  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameNPCScrollFrame, frameNPCScrollFrame.name)
+  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameNPCScrollFrame, "- NPC")
   Settings.RegisterAddOnCategory(category1)
---  framePCScrollFrame.categoryID = category2:GetID()
-
-  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameStatusbar, frameStatusbar.name)
+  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameStatusbar, "- Status Bar")
   Settings.RegisterAddOnCategory(category1)
---  framePCScrollFrame.categoryID = category1:GetID()
-
-  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameSpell, frameSpell.name)
+  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameSpell, "- Spells")
   Settings.RegisterAddOnCategory(category1)
---  framePCScrollFrame.categoryID = category1:GetID()
-
-  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameFont, frameFont.name)
+  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameFont, "- Font")
   Settings.RegisterAddOnCategory(category1)
---  framePCScrollFrame.categoryID = category1:GetID()
-
-  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameVariables, frameVariables.name)
+  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameVariables, "- Variables")
   Settings.RegisterAddOnCategory(category1)
---  framePCScrollFrame.categoryID = category1:GetID()
+  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameAbout, "- About")
+  Settings.RegisterAddOnCategory(category1)
 else
-  InterfaceOptions_AddCategory(frame)
+  InterfaceOptions_AddCategory(frameScrollFrame)
   InterfaceOptions_AddCategory(framePCScrollFrame)
   InterfaceOptions_AddCategory(frameNPCScrollFrame)
   InterfaceOptions_AddCategory(frameStatusbar)
   InterfaceOptions_AddCategory(frameSpell)
   InterfaceOptions_AddCategory(frameFont)
   InterfaceOptions_AddCategory(frameVariables)
+  InterfaceOptions_AddCategory(frameAbout)
 end
 
-SLASH_TinyTooltipReforged1 = "/tinytooltipr"
+SLASH_TinyTooltipReforged1 = "/tinytooltip"
 SLASH_TinyTooltipReforged2 = "/ttr"
-SLASH_TinyTooltipReforged3 = "/tip"
+SLASH_TinyTooltipReforged3 = "/tinytooltipr"
 
 function SlashCmdList.TinyTooltipReforged(msg, editbox)
     if (msg == "reset") then     
@@ -988,18 +936,6 @@ function SlashCmdList.TinyTooltipReforged(msg, editbox)
         ReloadUI()
     elseif (msg == "reload") then
         ReloadUI()
-    --elseif (msg == "npc") then
-    --    InterfaceOptionsFrame_OpenToCategory(frameNPC)
-    --    InterfaceOptionsFrame_OpenToCategory(frameNPC)
-    --elseif (msg == "player") then
-    --    InterfaceOptionsFrame_OpenToCategory(framePCScrollFrame)
-    --    InterfaceOptionsFrame_OpenToCategory(framePCScrollFrame)
-    --elseif (msg == "spell") then
-    --    InterfaceOptionsFrame_OpenToCategory(frameSpell)
-    --    InterfaceOptionsFrame_OpenToCategory(frameSpell)
-    --elseif (msg == "statusbar") then
-    --    InterfaceOptionsFrame_OpenToCategory(frameStatusbar)
-    --    InterfaceOptionsFrame_OpenToCategory(frameStatusbar)
     else
         if Settings and Settings.RegisterCanvasLayoutCategory then 
             local settingsCategoryID = _G["TinyTooltipReforgedFrame"].categoryID
@@ -1010,8 +946,6 @@ function SlashCmdList.TinyTooltipReforged(msg, editbox)
         end
     end
 end
-
-
 
 ----------------
 -- DIY Frame 
@@ -1193,6 +1127,7 @@ local placeholder = {
     pvpIcon    = addon.icons.pvp,
     roleIcon   = addon.icons.DAMAGER,
     raidIcon   = ICON_LIST[8] .. "0|t",
+    mount      = L["mount"] or "mount",
 }
 setmetatable(placeholder, {__index = function(_, k) return k end})
 
