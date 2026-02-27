@@ -164,7 +164,7 @@ function widgets:editbox(parent, config)
     frame.keystring = config.keystring
     frame:SetAutoFocus(false)
     frame:SetSize(88, 14)
-    frame:SetText(GetVariable(config.keystring))
+    frame:SetText(GetVariable(config.keystring) or "")
     frame:SetCursorPosition(0)
     frame:SetScript("OnEnterPressed", function(self)
         SetVariable(self.keystring, self:GetText())

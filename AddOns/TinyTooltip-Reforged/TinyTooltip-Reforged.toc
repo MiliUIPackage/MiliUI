@@ -19,7 +19,6 @@
 
 libs\lib.xml
 libs\Template.xml
-locales\locales.xml
 
 Core.lua
 Config.lua
@@ -35,5 +34,8 @@ LinkID.lua
 Mount.lua
 SkinFrames.lua
 ExpansionInfo.lua
+
+locales\locales.xml
+
 Options.lua
 
