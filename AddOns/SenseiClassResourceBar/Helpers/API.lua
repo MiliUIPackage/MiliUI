@@ -228,10 +228,24 @@ addonTable.rounded = function(num, idp)
     return math.floor(num * mult + 0.5) / mult
 end
 
-addonTable.getPixelPerfectScale = function()
-    local _, screenHeight = GetPhysicalScreenSize()
-    local scale = UIParent:GetEffectiveScale()
+addonTable.getPixelPerfectScale = function(customUIScale)
+    local screenHeight = select(2, GetPhysicalScreenSize())
+    local scale = customUIScale or UIParent:GetEffectiveScale()
+
+    if scale == 0 or screenHeight == 0 then
+        return 1
+    end
+
     return 768 / screenHeight / scale
+end
+
+addonTable.getNearestPixel = function(value, customUIScale)
+    if value == 0 then
+        return 0
+    end
+
+    local ppScale = addonTable.getPixelPerfectScale(customUIScale)
+    return addonTable.rounded(value / ppScale) * ppScale
 end
 
 addonTable.registerCustomFrame = function(customFrame, customFrameName)

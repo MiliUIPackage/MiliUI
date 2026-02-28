@@ -51,8 +51,8 @@ local function CreateBarInstance(config, parent, frameLevel)
     end)
 
     bar:ApplyVisibilitySettings()
-    bar:ApplyLayout(true)
-    bar:UpdateDisplay(true)
+    bar:ApplyLayout(nil, true)
+    bar:UpdateDisplay(nil, true)
 
     return bar
 end

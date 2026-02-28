@@ -1,10 +1,10 @@
-## Interface: 120000, 120001
+## Interface: 120001
 ## Title: Sensei Class Resource Bar
 ## Title-zhCN: Sensei职业资源条
 ## Notes: Separate resource bars for all classes
 ## Notes-zhCN: 为所有职业提供独立的资源条
 ## Author: Sensei
-## Version: 1.5.6
+## Version: 1.5.10
 ## IconTexture: Interface\AddOns\SenseiClassResourceBar\Textures\icon-texture.png
 ## SavedVariables: SenseiClassResourceBarDB
 
@@ -20,3 +20,4 @@
 embeds.xml
 
 SenseiClassResourceBar.xml
+

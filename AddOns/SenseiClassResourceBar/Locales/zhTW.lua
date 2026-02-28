@@ -5,6 +5,8 @@ local baseLocale = {
     ["OKAY"] = OKAY,
     ["CLOSE"] = CLOSE,
     ["CANCEL"] = CANCEL,
+	["RELOADUI"] = RELOADUI,
+    ["RELOADUI_TEXT"] = "一些更改需要重新載入你的UI",
 
     -- Import / Export errors
     ["EXPORT"] = "導出",
@@ -24,8 +26,8 @@ local baseLocale = {
     ["SETTINGS_HEADER_POWER_COLORS"] = "能量顏色",
     ["SETTINGS_HEADER_HEALTH_COLOR"] = "生命值顏色",
     ["SETTINGS_CATEGORY_IMPORT_EXPORT"] = "導入 / 導出",
-    ["SETTINGS_IMPORT_EXPORT_TEXT_1"] = "此處生成的導出字符串包含當前編輯模式布局的所有條形。\n如果您只想導出某個特定條形，請檢查編輯模式中該條形設置面板中的導出按鈕。",
-    ["SETTINGS_IMPORT_EXPORT_TEXT_2"] = "下方的導入按鈕支持全局和單個條形導出字符串。編輯模式中每個條形設置中的導入按鈕僅限於該特定條形。\n例如，如果您導出了所有條形，但只想導入主要資源條，請使用編輯模式中主要資源條的導入按鈕。",
+    ["SETTINGS_IMPORT_EXPORT_TEXT_1"] = "此處生成的導出字串包含當前編輯模式布局的所有條形。\n如果您只想導出某個特定條形，請檢查編輯模式中該條形設置面板中的導出按鈕。",
+    ["SETTINGS_IMPORT_EXPORT_TEXT_2"] = "下方的導入按鈕支持全局和單個條形導出字串。編輯模式中每個條形設置中的導入按鈕僅限於該特定條形。\n例如，如果您導出了所有條形，但只想導入主要資源條，請使用編輯模式中主要資源條的導入按鈕。",
     ["SETTINGS_BUTTON_EXPORT_ONLY_POWER_COLORS"] = "僅導出能量顏色",
     ["SETTINGS_BUTTON_EXPORT_WITH_POWER_COLORS"] = "導出（包含能量顏色）",
     ["SETTINGS_BUTTON_EXPORT_WITHOUT_POWER_COLORS"] = "導出（不含能量顏色）",
@@ -54,9 +56,9 @@ local baseLocale = {
     ["SOUL_SHARDS"] = SOUL_SHARDS,
     ["HOLY_POWER"] = HOLY_POWER,
     ["CHI"] = CHI,
-    ["STAGGER_LOW"] = "輕度醉拳",
-    ["STAGGER_MEDIUM"] ="中度醉拳",
-    ["STAGGER_HIGH"] = "重度醉拳",
+    ["STAGGER_LOW"] = "輕度醉仙",
+    ["STAGGER_MEDIUM"] ="中度醉仙",
+    ["STAGGER_HIGH"] = "重度醉仙",
     ["ARCANE_CHARGES"] = POWER_TYPE_ARCANE_CHARGES,
     ["SOUL_FRAGMENTS_VENGEANCE"] = "復仇靈魂殘片",
     ["SOUL_FRAGMENTS_DDH"] = "吞噬者靈魂殘片",
@@ -79,7 +81,7 @@ local baseLocale = {
     ["HIDE_WHILE_MOUNTED_OR_VEHICULE_TOOLTIP"] = "包括德魯伊旅行形態",
     ["HIDE_MANA_ON_ROLE"] = "在特定職責下隱藏法力值",
     ["HIDE_HEALTH_ON_ROLE"] = "在特定職責下隱藏",
-    ["HIDE_MANA_ON_ROLE_PRIMARY_BAR_TOOLTIP"] = "對奧術法師無效",
+    ["HIDE_MANA_ON_ROLE_PRIMARY_BAR_TOOLTIP"] = "對祕法法師無效",
     ["HIDE_BLIZZARD_UI"] = "隱藏暴雪自帶界面",
     ["HIDE_BLIZZARD_UI_HEALTH_BAR_TOOLTIP"] = "隱藏暴雪自帶的玩家框架界面",
     ["HIDE_BLIZZARD_UI_SECONDARY_POWER_BAR_TOOLTIP"] = "隱藏暴雪自帶的次要資源界面（例如死亡騎士的符文條）",
@@ -120,6 +122,13 @@ local baseLocale = {
     ["USE_BAR_COLOR_FOR_BACKGROUND_COLOR"] = "使用條形顏色作為背景顏色",
     ["BORDER"] = "邊框",
 
+    --  (Heal) Absorb bar style category - Edit Mode
+    ["CATEGORY_ABSORB_BAR_STYLE"] = "吸收條樣式",
+    ["CATEGORY_HEAL_ABSORB_BAR_STYLE"] = "治療吸收條樣式",
+    ["ENABLE"] = "啟用",
+    ["ABSORB_BAR_POSITION"] = "樣式",
+    ["HEAL_ABSORB_BAR_POSITION"] = "樣式",
+
     -- Text settings category - Edit Mode
     ["CATEGORY_TEXT_SETTINGS"] = "文字設置",
     ["SHOW_RESOURCE_NUMBER"] = "顯示資源數值",
@@ -139,7 +148,89 @@ local baseLocale = {
     ["FONT_OUTLINE"] = "描邊",
     
     -- Other
-    ["POWER_COLOR_SETTINGS"] = "能量顏色設置",
+    ["POWER_COLOR_SETTINGS"] = "能量顏色設置",	
+
+    -- Edit Mode Settings dropdown --
+
+    -- Visibility Options
+    ["ALWAYS_VISIBLE"] = "始終可見",
+    ["IN_COMBAT"] = "戰鬥中",
+    ["HAS_TARGET_SELECTED"] = "目標已選擇",
+    ["HAS_TARGET_SELECTED_OR_IN_COMBAT"] = "目標已選擇或戰鬥中",
+    ["HIDDEN"] = "隱藏",
+
+    -- Strata Options -- Maybe keep it the same in all language ?
+    ["TOOLTIP"] = "工具提示",
+    ["DIALOG"] = "對話",
+    ["HIGH"] = "高",
+    ["MEDIUM"] = "中",
+    ["LOW"] = "低",
+    ["BACKGROUND"] = "背景",
+
+    -- Role Options
+    ["TANK"] = TANK,
+    ["HEALER"] = HEALER,
+    ["DPS"] = "DPS",
+
+    -- Position Options
+    ["POSITION_SELF"] = "自己",
+    ["USE_HEALTH_BAR_POSITION_IF_HIDDEN"] = "如果隱藏則使用生命條位置",
+    ["USE_PRIMARY_RESOURCE_BAR_POSITION_IF_HIDDEN"] = "如果隱藏則使用主要資源條位置",
+    ["USE_SECONDARY_RESOURCE_BAR_POSITION_IF_HIDDEN"] = "如果隱藏則使用次要資源條位置",
+
+    -- Frame Names
+    ["UI_PARENT"] = "UI父框架(螢幕)",
+    ["HEALTH_BAR"] = "生命條",
+    ["PRIMARY_RESOURCE_BAR"] = "主要資源條",
+    ["SECONDARY_RESOURCE_BAR"] = "次要資源條",
+    ["PLAYER_FRAME"] = "玩家框架",
+    ["TARGET_FRAME"] = "目標框架",
+    ["ESSENTIAL_COOLDOWNS"] = "重要技能冷卻",
+    ["UTILITY_COOLDOWNS"] = "效能技能冷卻",
+    ["TRACKED_BUFFS"] = "追蹤增益",
+    ["ACTION_BAR"] = "動作條",
+    ["ACTION_BAR_X"] = "動作條%d",
+
+    -- Anchor & Relative Points -- Maybe keep it the same in all language ?
+    ["TOPLEFT"] = "左上",
+    ["TOP"] = "頂部",
+    ["TOPRIGHT"] = "右上",
+    ["LEFT"] = "左",
+    ["CENTER"] = "中心",
+    ["RIGHT"] = "右",
+    ["BOTTOMLEFT"] = "左下",
+    ["BOTTOM"] = "底部",
+    ["BOTTOMRIGHT"] = "右下",
+
+    -- Width Modes
+    ["MANUAL"] = "手動",
+    ["SYNC_WITH_ESSENTIAL_COOLDOWNS"] = "同步重要技能冷卻",
+    ["SYNC_WITH_UTILITY_COOLDOWNS"] = "同步效能技能冷卻",
+    ["SYNC_WITH_TRACKED_BUFFS"] = "同步追蹤增益",
+
+    -- Fill Directions
+    ["LEFT_TO_RIGHT"] = "從左到右",
+    ["RIGHT_TO_LEFT"] = "從右到左",
+    ["TOP_TO_BOTTOM"] = "從頂部到底部",
+    ["BOTTOM_TO_TOP"] = "從底部到頂部",
+
+    -- (Heal) Absorb Bar Styles
+    ["BAR_POSITION_FIXED"] = "固定",
+    ["BAR_POSITION_REVERSED"] = "反向",
+    ["BAR_POSITION_ATTACH_HEALTH"] = "黏附到生命",
+
+    -- Outline Styles -- Maybe keep it the same in all language ?
+    ["NONE"] = "無",
+    ["OUTLINE"] = "描邊",
+    ["THICKOUTLINE"] = "粗描邊",
+
+    -- Text Formats
+    ["CURRENT"] = "當前",
+    ["CURRENT_MAXIMUM"] = "當前 / 最大值",
+    ["PERCENT"] = "百分比",
+    ["PERCENT_SYMBOL"] = "百分比%",
+    ["CURRENT_PERCENT"] = "當前 - 百分比",
+    ["CURRENT_PERCENT_SYMBOL"] = "當前 - 百分比%",   
 }
 
 addonTable:RegisterLocale("zhTW", baseLocale)

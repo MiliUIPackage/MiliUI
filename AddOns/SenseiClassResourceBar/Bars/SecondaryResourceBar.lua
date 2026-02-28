@@ -23,7 +23,7 @@ end
 
 function SecondaryResourceBarMixin:GetResource()
     local playerClass = select(2, UnitClass("player"))
-    local secondaryResources = {
+    self._resourceTable = self._resourceTable or {
         ["DEATHKNIGHT"] = Enum.PowerType.Runes,
         ["DEMONHUNTER"] = {
             [581] = "SOUL_FRAGMENTS_VENGEANCE", -- Vengeance
@@ -66,7 +66,7 @@ function SecondaryResourceBarMixin:GetResource()
     local spec = C_SpecializationInfo.GetSpecialization()
     local specID = C_SpecializationInfo.GetSpecializationInfo(spec)
 
-    local resource = secondaryResources[playerClass]
+    local resource = self._resourceTable[playerClass]
 
     -- Druid: form-based
     if playerClass == "DRUID" then
@@ -89,6 +89,11 @@ function SecondaryResourceBarMixin:GetResourceValue(resource)
     if resource == "STAGGER" then
         local stagger = UnitStagger("player") or 0
         local maxHealth = UnitHealthMax("player") or 1
+
+        -- Sometimes the stagger is secret (even though Blizzard said it's not), so just skip the computation if secret
+        if issecretvalue(stagger) then
+            return maxHealth, stagger
+        end
 
         self._lastStaggerPercent = self._lastStaggerPercent or ((stagger / maxHealth) * 100)
         local staggerPercent = (stagger / maxHealth) * 100
@@ -274,7 +279,7 @@ addonTable.RegisteredBar.SecondaryResourceBar = {
     dbName = "SecondaryResourceBarDB",
     editModeName = L["SECONDARY_POWER_BAR_EDIT_MODE_NAME"],
     frameName = "SecondaryResourceBar",
-    frameLevel = 2,
+    frameLevel = 6,
     defaultValues = {
         point = "CENTER",
         x = 0,
@@ -376,16 +381,16 @@ addonTable.RegisteredBar.SecondaryResourceBar = {
                 valueStep = 1,
                 get = function(layoutName)
                     local data = SenseiClassResourceBarDB[dbName][layoutName]
-                    return data and data.tickThickness or defaults.tickThickness
+                    return data and addonTable.rounded(data.tickThickness) or defaults.tickThickness
                 end,
                 set = function(layoutName, value)
                     SenseiClassResourceBarDB[dbName][layoutName] = SenseiClassResourceBarDB[dbName][layoutName] or CopyTable(defaults)
-                    SenseiClassResourceBarDB[dbName][layoutName].tickThickness = value
+                    SenseiClassResourceBarDB[dbName][layoutName].tickThickness = addonTable.rounded(value)
                     bar:UpdateTicksLayout(layoutName)
                 end,
                 isEnabled = function(layoutName)
                     local data = SenseiClassResourceBarDB[dbName][layoutName]
-                    return data.showTicks
+                    return data.showTicks == true
                 end,
             },
             {
@@ -410,7 +415,7 @@ addonTable.RegisteredBar.SecondaryResourceBar = {
             },
             {
                 parentId = L["CATEGORY_TEXT_SETTINGS"],
-                order = 505,
+                order = 605,
                 name = L["SHOW_MANA_AS_PERCENT"],
                 kind = LEM.SettingType.Checkbox,
                 default = defaults.showManaAsPercent,
@@ -429,18 +434,18 @@ addonTable.RegisteredBar.SecondaryResourceBar = {
                 end,
                 isEnabled = function(layoutName)
                     local data = SenseiClassResourceBarDB[dbName][layoutName]
-                    return data.showText
+                    return data.showText == true
                 end,
                 tooltip = L["SHOW_MANA_AS_PERCENT_TOOLTIP"],
             },
             {
                 parentId = L["CATEGORY_TEXT_SETTINGS"],
-                order = 506,
+                order = 606,
                 kind = LEM.SettingType.Divider,
             },
             {
                 parentId = L["CATEGORY_TEXT_SETTINGS"],
-                order = 507,
+                order = 607,
                 name = L["SHOW_RESOURCE_CHARGE_TIMER"],
                 kind = LEM.SettingType.CheckboxColor,
                 default = defaults.showFragmentedPowerBarText,
@@ -470,7 +475,7 @@ addonTable.RegisteredBar.SecondaryResourceBar = {
             },
             {
                 parentId = L["CATEGORY_TEXT_SETTINGS"],
-                order = 508,
+                order = 608,
                 name = L["CHARGE_TIMER_PRECISION"],
                 kind = LEM.SettingType.Dropdown,
                 default = defaults.fragmentedPowerBarTextPrecision,
@@ -486,7 +491,7 @@ addonTable.RegisteredBar.SecondaryResourceBar = {
                 end,
                 isEnabled = function(layoutName)
                     local data = SenseiClassResourceBarDB[dbName][layoutName]
-                    return data.showFragmentedPowerBarText
+                    return data.showFragmentedPowerBarText == true
                 end,
             },
         }

@@ -7,7 +7,7 @@ local TertiaryResourceBarMixin = Mixin({}, addonTable.PowerBarMixin)
 
 function TertiaryResourceBarMixin:GetResource()
     local playerClass = select(2, UnitClass("player"))
-    local tertiaryResources = {
+    self._resourceTable = self._resourceTable or {
         ["DEATHKNIGHT"] = nil,
         ["DEMONHUNTER"] = nil,
         ["DRUID"]       = nil,
@@ -28,7 +28,7 @@ function TertiaryResourceBarMixin:GetResource()
     local spec = C_SpecializationInfo.GetSpecialization()
     local specID = C_SpecializationInfo.GetSpecializationInfo(spec)
 
-    local resource = tertiaryResources[playerClass]
+    local resource = self._resourceTable[playerClass]
 
     -- Druid: form-based
     if playerClass == "DRUID" then
@@ -81,7 +81,7 @@ addonTable.RegisteredBar.TertiaryResourceBar = {
     dbName = "tertiaryResourceBarDB",
     editModeName = L["TERNARY_POWER_BAR_EDIT_MODE_NAME"],
     frameName = "TertiaryResourceBar",
-    frameLevel = 1,
+    frameLevel = 3,
     defaultValues = {
         point = "CENTER",
         x = 0,

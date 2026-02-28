@@ -33,7 +33,7 @@ local baseLocale = {
     ["SETTINGS_BUTTON_EXPORT_WITHOUT_POWER_COLORS"] = "Export Without Power Colors",
     ["SETTINGS_BUTTON_IMPORT"] = "Import",
     ["SETTING_OPEN_AFTER_EDIT_MODE_CLOSE"] = "Settings will open after leaving Edit Mode",
-    
+
     -- Power
     ["HEALTH"] = HEALTH,
     ["MANA"] = POWER_TYPE_MANA,
@@ -118,9 +118,16 @@ local baseLocale = {
     ["USE_CLASS_COLOR"] = "Use Class Color",
     ["USE_RESOURCE_TEXTURE_AND_COLOR"] = "Use Resource Texture And Color",
     ["BAR_TEXTURE"] = "Bar Texture",
-    ["BACKGROUND"] = "Background",
+    ["BAR_BACKGROUND"] = "Background",
     ["USE_BAR_COLOR_FOR_BACKGROUND_COLOR"] = "Use Bar Color For Background Color",
-    ["BORDER"] = "Border",
+    ["BAR_BORDER"] = "Border",
+
+    --  (Heal) Absorb bar style category - Edit Mode
+    ["CATEGORY_ABSORB_BAR_STYLE"] = "Absorb Bar Style",
+    ["CATEGORY_HEAL_ABSORB_BAR_STYLE"] = "Heal Absorb Bar Style",
+    ["ENABLE"] = "Enable",
+    ["ABSORB_BAR_POSITION"] = "Style",
+    ["HEAL_ABSORB_BAR_POSITION"] = "Style",
 
     -- Text settings category - Edit Mode
     ["CATEGORY_TEXT_SETTINGS"] = "Text Settings",
@@ -139,9 +146,91 @@ local baseLocale = {
     ["FONT"] = "Font",
     ["FONT_SIZE"] = "Size",
     ["FONT_OUTLINE"] = "Outline",
-    
+
     -- Other
     ["POWER_COLOR_SETTINGS"] = "Power Color Settings",
+
+    -- Edit Mode Settings dropdown --
+
+    -- Visibility Options
+    ["ALWAYS_VISIBLE"] = "Always Visible",
+    ["IN_COMBAT"] = "In Combat",
+    ["HAS_TARGET_SELECTED"] = "Has Target Selected",
+    ["HAS_TARGET_SELECTED_OR_IN_COMBAT"] = "Has Target Selected OR In Combat",
+    ["HIDDEN"] = "Hidden",
+
+    -- Strata Options -- Maybe keep it the same in all language ?
+    ["TOOLTIP"] = "Tooltip",
+    ["DIALOG"] = "Dialog",
+    ["HIGH"] = "High",
+    ["MEDIUM"] = "Medium",
+    ["LOW"] = "Low",
+    ["BACKGROUND"] = "Background",
+
+    -- Role Options
+    ["TANK"] = TANK,
+    ["HEALER"] = HEALER,
+    ["DPS"] = "DPS",
+
+    -- Position Options
+    ["POSITION_SELF"] = "Self",
+    ["USE_HEALTH_BAR_POSITION_IF_HIDDEN"] = "Use Health Bar Position If Hidden",
+    ["USE_PRIMARY_RESOURCE_BAR_POSITION_IF_HIDDEN"] = "Use Primary Resource Bar Position If Hidden",
+    ["USE_SECONDARY_RESOURCE_BAR_POSITION_IF_HIDDEN"] = "Use Secondary Resource Bar Position If Hidden",
+
+    -- Frame Names
+    ["UI_PARENT"] = "UIParent",
+    ["HEALTH_BAR"] = "Health Bar",
+    ["PRIMARY_RESOURCE_BAR"] = "Primary Resource Bar",
+    ["SECONDARY_RESOURCE_BAR"] = "Secondary Resource Bar",
+    ["PLAYER_FRAME"] = "PlayerFrame",
+    ["TARGET_FRAME"] = "TargetFrame",
+    ["ESSENTIAL_COOLDOWNS"] = "Essential Cooldowns",
+    ["UTILITY_COOLDOWNS"] = "Utility Cooldowns",
+    ["TRACKED_BUFFS"] = "Tracked Buffs",
+    ["ACTION_BAR"] = "Action Bar",
+    ["ACTION_BAR_X"] = "Action Bar %d",
+
+    -- Anchor & Relative Points -- Maybe keep it the same in all language ?
+    ["TOPLEFT"] = "Top Left",
+    ["TOP"] = "Top",
+    ["TOPRIGHT"] = "Top Right",
+    ["LEFT"] = "Left",
+    ["CENTER"] = "Center",
+    ["RIGHT"] = "Right",
+    ["BOTTOMLEFT"] = "Bottom Left",
+    ["BOTTOM"] = "Bottom",
+    ["BOTTOMRIGHT"] = "Bottom Right",
+
+    -- Width Modes
+    ["MANUAL"] = "Manual",
+    ["SYNC_WITH_ESSENTIAL_COOLDOWNS"] = "Sync With Essential Cooldowns",
+    ["SYNC_WITH_UTILITY_COOLDOWNS"] = "Sync With Utility Cooldowns",
+    ["SYNC_WITH_TRACKED_BUFFS"] = "Sync With Tracked Buffs",
+
+    -- Fill Directions
+    ["LEFT_TO_RIGHT"] = "Left to Right",
+    ["RIGHT_TO_LEFT"] = "Right to Left",
+    ["TOP_TO_BOTTOM"] = "Top to Bottom",
+    ["BOTTOM_TO_TOP"] = "Bottom to Top",
+
+    -- (Heal) Absorb Bar Styles
+    ["BAR_POSITION_FIXED"] = "Fixed",
+    ["BAR_POSITION_REVERSED"] = "Reversed",
+    ["BAR_POSITION_ATTACH_HEALTH"] = "Attach to Health",
+
+    -- Outline Styles -- Maybe keep it the same in all language ?
+    ["NONE"] = "None",
+    ["OUTLINE"] = "Outline",
+    ["THICKOUTLINE"] = "Thick Outline",
+
+    -- Text Formats
+    ["CURRENT"] = "Current",
+    ["CURRENT_MAXIMUM"] = "Current / Maximum",
+    ["PERCENT"] = "Percent",
+    ["PERCENT_SYMBOL"] = "Percent%",
+    ["CURRENT_PERCENT"] = "Current - Percent",
+    ["CURRENT_PERCENT_SYMBOL"] = "Current - Percent%",
 }
 
 addonTable:RegisterLocale("enUS", baseLocale)

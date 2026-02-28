@@ -286,7 +286,7 @@ local function BuildLemSettings(bar, defaults)
             tooltip = L["MINIMUM_WIDTH_TOOLTIP"],
             isEnabled = function (layoutName)
                 local data = SenseiClassResourceBarDB[config.dbName][layoutName]
-                return data ~= nil and data ~= "Manual"
+                return data ~= nil and data.widthMode ~= "Manual"
             end,
         },
         {
@@ -385,35 +385,79 @@ local function BuildLemSettings(bar, defaults)
         },
         {
             parentId = L["CATEGORY_BAR_STYLE"],
-            order = 405,
-            name = L["BORDER"],
-            kind = LEM.SettingType.DropdownColor,
-            default = defaults.maskAndBorderStyle,
-            colorDefault = defaults.borderColor,
+            order = 402,
+            name = L["BAR_TEXTURE"],
+            kind = LEM.SettingType.Dropdown,
+            default = defaults.foregroundStyle,
             useOldStyle = true,
-            values = addonTable.availableMaskAndBorderStyles,
-            get = function(layoutName)
-                return (SenseiClassResourceBarDB[config.dbName][layoutName] and SenseiClassResourceBarDB[config.dbName][layoutName].maskAndBorderStyle) or defaults.maskAndBorderStyle
-            end,
-            colorGet = function(layoutName)
+            height = 200,
+            generator = function(dropdown, rootDescription, settingObject)
+                dropdown.texturePool = {}
+
+                local layoutName = LEM.GetActiveLayoutName() or "Default"
                 local data = SenseiClassResourceBarDB[config.dbName][layoutName]
-                return data and data.borderColor or defaults.borderColor
+                if not data then return end
+
+                if not dropdown._SCRB_Foreground_Dropdown_OnMenuClosed_hooked then
+                    hooksecurefunc(dropdown, "OnMenuClosed", function()
+                        for _, texture in pairs(dropdown.texturePool) do
+                            texture:Hide()
+                        end
+                    end)
+                    dropdown._SCRB_Foreground_Dropdown_OnMenuClosed_hooked = true
+                end
+
+                dropdown:SetDefaultText(settingObject.get(layoutName))
+
+                local textures = LSM:HashTable(LSM.MediaType.STATUSBAR)
+                local sortedTextures = {}
+                for textureName in pairs(textures) do
+                    table.insert(sortedTextures, textureName)
+                end
+                table.sort(sortedTextures)
+
+                for index, textureName in ipairs(sortedTextures) do
+                    local texturePath = textures[textureName]
+
+                    local button = rootDescription:CreateButton(textureName, function()
+                        dropdown:SetDefaultText(textureName)
+                        settingObject.set(layoutName, textureName)
+                    end)
+
+                    if texturePath then
+                        button:AddInitializer(function(self)
+                            local textureStatusBar = dropdown.texturePool[index]
+                            if not textureStatusBar then
+                                textureStatusBar = dropdown:CreateTexture(nil, "BACKGROUND")
+                                dropdown.texturePool[index] = textureStatusBar
+                            end
+
+                            textureStatusBar:SetParent(self)
+                            textureStatusBar:SetAllPoints(self)
+                            textureStatusBar:SetTexture(texturePath)
+
+                            textureStatusBar:Show()
+                        end)
+                    end
+                end
+            end,
+            get = function(layoutName)
+                return (SenseiClassResourceBarDB[config.dbName][layoutName] and SenseiClassResourceBarDB[config.dbName][layoutName].foregroundStyle) or defaults.foregroundStyle
             end,
             set = function(layoutName, value)
                 SenseiClassResourceBarDB[config.dbName][layoutName] = SenseiClassResourceBarDB[config.dbName][layoutName] or CopyTable(defaults)
-                SenseiClassResourceBarDB[config.dbName][layoutName].maskAndBorderStyle = value
-                bar:ApplyMaskAndBorderSettings(layoutName)
+                SenseiClassResourceBarDB[config.dbName][layoutName].foregroundStyle = value
+                bar:ApplyLayout(layoutName)
             end,
-            colorSet = function(layoutName, value)
-                SenseiClassResourceBarDB[config.dbName][layoutName] = SenseiClassResourceBarDB[config.dbName][layoutName] or CopyTable(defaults)
-                SenseiClassResourceBarDB[config.dbName][layoutName].borderColor = value
-                bar:ApplyMaskAndBorderSettings(layoutName)
+            isEnabled = function(layoutName)
+                local data = SenseiClassResourceBarDB[config.dbName][layoutName]
+                return not data.useResourceAtlas
             end,
         },
         {
             parentId = L["CATEGORY_BAR_STYLE"],
             order = 403,
-            name = L["BACKGROUND"],
+            name = L["BAR_BACKGROUND"],
             kind = LEM.SettingType.DropdownColor,
             default = defaults.backgroundStyle,
             colorDefault = defaults.backgroundColor,
@@ -509,77 +553,33 @@ local function BuildLemSettings(bar, defaults)
         },
         {
             parentId = L["CATEGORY_BAR_STYLE"],
-            order = 402,
-            name = L["BAR_TEXTURE"],
-            kind = LEM.SettingType.Dropdown,
-            default = defaults.foregroundStyle,
+            order = 405,
+            name = L["BAR_BORDER"],
+            kind = LEM.SettingType.DropdownColor,
+            default = defaults.maskAndBorderStyle,
+            colorDefault = defaults.borderColor,
             useOldStyle = true,
-            height = 200,
-            generator = function(dropdown, rootDescription, settingObject)
-                dropdown.texturePool = {}
-
-                local layoutName = LEM.GetActiveLayoutName() or "Default"
-                local data = SenseiClassResourceBarDB[config.dbName][layoutName]
-                if not data then return end
-
-                if not dropdown._SCRB_Foreground_Dropdown_OnMenuClosed_hooked then
-                    hooksecurefunc(dropdown, "OnMenuClosed", function()
-                        for _, texture in pairs(dropdown.texturePool) do
-                            texture:Hide()
-                        end
-                    end)
-                    dropdown._SCRB_Foreground_Dropdown_OnMenuClosed_hooked = true
-                end
-
-                dropdown:SetDefaultText(settingObject.get(layoutName))
-
-                local textures = LSM:HashTable(LSM.MediaType.STATUSBAR)
-                local sortedTextures = {}
-                for textureName in pairs(textures) do
-                    table.insert(sortedTextures, textureName)
-                end
-                table.sort(sortedTextures)
-
-                for index, textureName in ipairs(sortedTextures) do
-                    local texturePath = textures[textureName]
-
-                    local button = rootDescription:CreateButton(textureName, function()
-                        dropdown:SetDefaultText(textureName)
-                        settingObject.set(layoutName, textureName)
-                    end)
-
-                    if texturePath then
-                        button:AddInitializer(function(self)
-                            local textureStatusBar = dropdown.texturePool[index]
-                            if not textureStatusBar then
-                                textureStatusBar = dropdown:CreateTexture(nil, "BACKGROUND")
-                                dropdown.texturePool[index] = textureStatusBar
-                            end
-
-                            textureStatusBar:SetParent(self)
-                            textureStatusBar:SetAllPoints(self)
-                            textureStatusBar:SetTexture(texturePath)
-
-                            textureStatusBar:Show()
-                        end)
-                    end
-                end
-            end,
+            values = addonTable.availableMaskAndBorderStyles,
             get = function(layoutName)
-                return (SenseiClassResourceBarDB[config.dbName][layoutName] and SenseiClassResourceBarDB[config.dbName][layoutName].foregroundStyle) or defaults.foregroundStyle
+                return (SenseiClassResourceBarDB[config.dbName][layoutName] and SenseiClassResourceBarDB[config.dbName][layoutName].maskAndBorderStyle) or defaults.maskAndBorderStyle
+            end,
+            colorGet = function(layoutName)
+                local data = SenseiClassResourceBarDB[config.dbName][layoutName]
+                return data and data.borderColor or defaults.borderColor
             end,
             set = function(layoutName, value)
                 SenseiClassResourceBarDB[config.dbName][layoutName] = SenseiClassResourceBarDB[config.dbName][layoutName] or CopyTable(defaults)
-                SenseiClassResourceBarDB[config.dbName][layoutName].foregroundStyle = value
-                bar:ApplyLayout(layoutName)
+                SenseiClassResourceBarDB[config.dbName][layoutName].maskAndBorderStyle = value
+                bar:ApplyMaskAndBorderSettings(layoutName)
             end,
-            isEnabled = function(layoutName)
-                local data = SenseiClassResourceBarDB[config.dbName][layoutName]
-                return not data.useResourceAtlas
+            colorSet = function(layoutName, value)
+                SenseiClassResourceBarDB[config.dbName][layoutName] = SenseiClassResourceBarDB[config.dbName][layoutName] or CopyTable(defaults)
+                SenseiClassResourceBarDB[config.dbName][layoutName].borderColor = value
+                bar:ApplyMaskAndBorderSettings(layoutName)
             end,
         },
         {
-            order = 500,
+            order = 600,
             name = L["CATEGORY_TEXT_SETTINGS"],
             kind = LEM.SettingType.Collapsible,
             id = L["CATEGORY_TEXT_SETTINGS"],
@@ -587,7 +587,7 @@ local function BuildLemSettings(bar, defaults)
         },
         {
             parentId = L["CATEGORY_TEXT_SETTINGS"],
-            order = 501,
+            order = 601,
             name = L["SHOW_RESOURCE_NUMBER"],
             kind = LEM.SettingType.CheckboxColor,
             default = defaults.showText,
@@ -617,7 +617,7 @@ local function BuildLemSettings(bar, defaults)
         },
         {
             parentId = L["CATEGORY_TEXT_SETTINGS"],
-            order = 502,
+            order = 602,
             name = L["RESOURCE_NUMBER_FORMAT"],
             kind = LEM.SettingType.Dropdown,
             default = defaults.textFormat,
@@ -634,12 +634,12 @@ local function BuildLemSettings(bar, defaults)
             tooltip = L["RESOURCE_NUMBER_FORMAT_TOOLTIP"],
             isEnabled = function(layoutName)
                 local data = SenseiClassResourceBarDB[config.dbName][layoutName]
-                return data.showText
+                return data.showText == true
             end,
         },
         {
             parentId = L["CATEGORY_TEXT_SETTINGS"],
-            order = 503,
+            order = 603,
             name = L["RESOURCE_NUMBER_PRECISION"],
             kind = LEM.SettingType.Dropdown,
             default = defaults.textPrecision,
@@ -660,7 +660,7 @@ local function BuildLemSettings(bar, defaults)
         },
         {
             parentId = L["CATEGORY_TEXT_SETTINGS"],
-            order = 504,
+            order = 604,
             name = L["RESOURCE_NUMBER_ALIGNMENT"],
             kind = LEM.SettingType.Dropdown,
             default = defaults.textAlign,
@@ -676,11 +676,11 @@ local function BuildLemSettings(bar, defaults)
             end,
             isEnabled = function(layoutName)
                 local data = SenseiClassResourceBarDB[config.dbName][layoutName]
-                return data.showText
+                return data.showText == true
             end,
         },
         {
-            order = 600,
+            order = 700,
             name = L["CATEGORY_FONT"],
             kind = LEM.SettingType.Collapsible,
             id = L["CATEGORY_FONT"],
@@ -688,7 +688,7 @@ local function BuildLemSettings(bar, defaults)
         },
         {
             parentId = L["CATEGORY_FONT"],
-            order = 601,
+            order = 701,
             name = L["FONT"],
             kind = LEM.SettingType.Dropdown,
             default = defaults.font,
@@ -758,7 +758,7 @@ local function BuildLemSettings(bar, defaults)
         },
         {
             parentId = L["CATEGORY_FONT"],
-            order = 602,
+            order = 702,
             name = L["FONT_SIZE"],
             kind = LEM.SettingType.Slider,
             default = defaults.fontSize,
@@ -777,7 +777,7 @@ local function BuildLemSettings(bar, defaults)
         },
         {
             parentId = L["CATEGORY_FONT"],
-            order = 603,
+            order = 703,
             name = L["FONT_OUTLINE"],
             kind = LEM.SettingType.Dropdown,
             default = defaults.fontOutline,

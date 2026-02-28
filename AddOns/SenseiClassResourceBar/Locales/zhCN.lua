@@ -5,6 +5,8 @@ local baseLocale = {
     ["OKAY"] = OKAY,
     ["CLOSE"] = CLOSE,
     ["CANCEL"] = CANCEL,
+    ["RELOADUI"] = RELOADUI,
+    ["RELOADUI_TEXT"] = "一些更改需要重新加载你的UI",
 
     -- Import / Export errors
     ["EXPORT"] = "导出",
@@ -31,7 +33,7 @@ local baseLocale = {
     ["SETTINGS_BUTTON_EXPORT_WITHOUT_POWER_COLORS"] = "导出（不含能量颜色）",
     ["SETTINGS_BUTTON_IMPORT"] = "导入",
     ["SETTING_OPEN_AFTER_EDIT_MODE_CLOSE"] = "退出编辑模式后将打开设置",
-    
+
     -- Power
     ["HEALTH"] = HEALTH,
     ["MANA"] = POWER_TYPE_MANA,
@@ -116,9 +118,9 @@ local baseLocale = {
     ["USE_CLASS_COLOR"] = "使用职业颜色",
     ["USE_RESOURCE_TEXTURE_AND_COLOR"] = "使用资源纹理和颜色",
     ["BAR_TEXTURE"] = "条形纹理",
-    ["BACKGROUND"] = "背景",
+    ["BAR_BACKGROUND"] = "背景",
     ["USE_BAR_COLOR_FOR_BACKGROUND_COLOR"] = "使用条形颜色作为背景颜色",
-    ["BORDER"] = "边框",
+    ["BAR_BORDER"] = "边框",
 
     -- Text settings category - Edit Mode
     ["CATEGORY_TEXT_SETTINGS"] = "文本设置",
@@ -137,9 +139,78 @@ local baseLocale = {
     ["FONT"] = "字体",
     ["FONT_SIZE"] = "大小",
     ["FONT_OUTLINE"] = "描边",
-    
+
     -- Other
     ["POWER_COLOR_SETTINGS"] = "能量颜色设置",
+
+    -- Edit Mode Settings dropdown --
+
+    -- Visibility Options
+    ["ALWAYS_VISIBLE"] = "始终可见",
+    ["IN_COMBAT"] = "战斗中",
+    ["HAS_TARGET_SELECTED"] = "目标已选择",
+    ["HAS_TARGET_SELECTED_OR_IN_COMBAT"] = "目标已选择或战斗中",
+    ["HIDDEN"] = "隐藏",
+
+    -- Role Options
+    ["TANK"] = TANK,
+    ["HEALER"] = HEALER,
+    ["DPS"] = "DPS",
+
+    -- Position Options
+    ["POSITION_SELF"] = "自己",
+    ["USE_HEALTH_BAR_POSITION_IF_HIDDEN"] = "如果隐藏则使用生命条位置",
+    ["USE_PRIMARY_RESOURCE_BAR_POSITION_IF_HIDDEN"] = "如果隐藏则使用主要资源条位置",
+    ["USE_SECONDARY_RESOURCE_BAR_POSITION_IF_HIDDEN"] = "如果隐藏则使用次要资源条位置",
+
+    -- Frame Names
+    ["UI_PARENT"] = "UI父框架(屏幕)",
+    ["HEALTH_BAR"] = "生命条",
+    ["PRIMARY_RESOURCE_BAR"] = "主要资源条",
+    ["SECONDARY_RESOURCE_BAR"] = "次要资源条",
+    ["PLAYER_FRAME"] = "玩家框架",
+    ["TARGET_FRAME"] = "目标框架",
+    ["ESSENTIAL_COOLDOWNS"] = "重要技能冷却",
+    ["UTILITY_COOLDOWNS"] = "效能技能冷却",
+    ["TRACKED_BUFFS"] = "追踪增益",
+    ["ACTION_BAR"] = "动作条",
+    ["ACTION_BAR_X"] = "动作条%d",
+
+    -- Anchor & Relative Points -- Maybe keep it the same in all language ?
+    ["TOPLEFT"] = "左上角",
+    ["TOP"] = "顶部",
+    ["TOPRIGHT"] = "右上角",
+    ["LEFT"] = "左侧",
+    ["CENTER"] = "中心",
+    ["RIGHT"] = "右侧",
+    ["BOTTOMLEFT"] = "左下角",
+    ["BOTTOM"] = "底部",
+    ["BOTTOMRIGHT"] = "右下角",
+
+    -- Width Modes
+    ["MANUAL"] = "手动",
+    ["SYNC_WITH_ESSENTIAL_COOLDOWNS"] = "同步重要技能冷却",
+    ["SYNC_WITH_UTILITY_COOLDOWNS"] = "同步效能技能冷却",
+    ["SYNC_WITH_TRACKED_BUFFS"] = "同步追踪增益",
+
+    -- Fill Directions
+    ["LEFT_TO_RIGHT"] = "从左到右",
+    ["RIGHT_TO_LEFT"] = "从右到左",
+    ["TOP_TO_BOTTOM"] = "从顶部到底部",
+    ["BOTTOM_TO_TOP"] = "从底部到顶部",
+
+    -- Outline Styles -- Maybe keep it the same in all language ?
+    ["NONE"] = "无",
+    ["OUTLINE"] = "描边",
+    ["THICKOUTLINE"] = "粗描边",
+
+    -- Text Formats
+    ["CURRENT"] = "当前",
+    ["CURRENT_MAXIMUM"] = "当前 / 最大值",
+    ["PERCENT"] = "百分比",
+    ["PERCENT_SYMBOL"] = "百分比%",
+    ["CURRENT_PERCENT"] = "当前 - 百分比",
+    ["CURRENT_PERCENT_SYMBOL"] = "当前 - 百分比%",
 }
 
 addonTable:RegisterLocale("zhCN", baseLocale)
