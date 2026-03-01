@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2661, "DBM-Party-Midnight", 3, 1300)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260226065527")
+mod:SetRevision("20260227161342")
 mod:SetCreatureID(231863)
 mod:SetEncounterID(3072)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -31,12 +31,12 @@ mod:AddPrivateAuraSoundOption(1225787, true, 1225787, 1, 1)--Runic Mark
 function mod:OnLimitedCombatStart()
 	self:EnableAlertOptions(1224903, 93, "watchstep", 2)
 	self:EnableAlertOptions(1248689, 94, "dispelboss", 2)
-	self:EnableAlertOptions(1225193, 96, "movetopool", 15)--Maybe "findshield" instead
+	self:EnableAlertOptions(1225193, 96, "findshield", 15)
 
 	self:EnableTimelineOptions(1224903, 93)
 	self:EnableTimelineOptions(1248689, 94)
 	self:EnableTimelineOptions(1225787, {95, 513})
 	self:EnableTimelineOptions(1225193, 96)
 
-	self:EnablePrivateAuraSound({1225787,1225792}, "debuffyou", 17)
+	self:EnablePrivateAuraSound({1225787,1225792}, "scatter", 2)
 end

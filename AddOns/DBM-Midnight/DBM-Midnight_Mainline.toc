@@ -1,5 +1,5 @@
 ## Interface: 120001
-## Version: 12.0.24
+## Version: 12.0.27
 ## Category: DBM
 
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10World Bosses (Midnight)|r
@@ -21,7 +21,7 @@
 ## X-DBM-Mod-MapID: 2930
 ## X-DBM-Mod-LoadCID: 249776,244424,244762,248864
 ## X-DBM-Mod-MinCoreRevision: 17286
-## X-DBM-Mod-MinExpansion: 12
+## X-DBM-Mod-MinExpansion: 11
 ## Category-zhTW: 地城與團隊
 
 Cragpine.lua
