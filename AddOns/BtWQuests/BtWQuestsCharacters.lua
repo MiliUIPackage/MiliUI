@@ -920,7 +920,7 @@ local function GetFactions(tbl)
                 wipe(data);
             end
 
-            data.name = name;
+            data.name = factionData.name;
 
             data.standing = factionData.reaction;
 

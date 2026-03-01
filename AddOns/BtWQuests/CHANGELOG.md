@@ -1,3 +1,10 @@
+# v2.61.0
+
+- Added support for account bound quests
+- Added leveling campaign and leveling zone side questlines for Midnight
+- Updated prerequisites for Against the Current
+- Updated for Midnight release
+
 # v2.60.0
 
 - Added Midnight Prologue

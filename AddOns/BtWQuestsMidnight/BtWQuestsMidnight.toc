@@ -1,17 +1,18 @@
-## Interface: 110205, 110207, 120000, 120001
-## Title: BtWQuests: The War Within
-## Version: 11.1
-## Notes: The War Within quest data for BtWQuests
+## Interface: 120001
+## Title: BtWQuests: Midnight
+## Version: 1.0
+## Notes: Midnight quest data for BtWQuests
 ## Author: Breen
 ## Dependencies: BtWQuests
-## OptionalDeps: BtWQuestsTheWarWithinPrologue
 ## LoadOnDemand: 1
-## X-BtWQuests: The War Within
-## X-BtWQuests-Expansion: 10
+## X-BtWQuests: Midnight
+## X-BtWQuests-Expansion: 11
 ## X-BtWQuests-Expansion-Image: UI-Expansion 0 0.90625 0 0.8125
 ## X-BtWQuests-AutoLoad: 1
 ## X-Part-Of: BtWQuests
 ## Group: BtWQuests
+## Title-zhTW: |cFF00AA99[任務]|r 任務指南 - 至暗之夜模組
+## Notes-zhTW: BtWQuests: Midnight |n|n至暗之夜模組。
 
 Defines.lua
 
@@ -76,12 +77,8 @@ Database/Index.zhCN.lua
 Database/Index.zhTW.lua
 
 General.lua
-IsleOfDorn.lua
-TheRingingDeeps.lua
-Hallowfall.lua
-AzjKahet.lua
-SirenIsle.lua
-11.1.lua
-11.1.7.lua
-11.2.lua
-11.2.7.lua
+EversongWoods.lua
+Zulaman.lua
+Harandar.lua
+Arator.lua
+Voidstorm.lua

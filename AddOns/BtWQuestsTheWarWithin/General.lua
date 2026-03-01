@@ -232,7 +232,27 @@ Database:AddChain(Chain.AgainstTheCurrent, {
             type = "quest",
             id = 78248,
             status = {'active', 'completed'},
-        }
+        },
+        {
+            type = "currency",
+            id = 2900,
+            amount = 4,
+        },
+        {
+            type = "currency",
+            id = 2898,
+            amount = 4,
+        },
+        {
+            type = "currency",
+            id = 2901,
+            amount = 4,
+        },
+        {
+            type = "currency",
+            id = 2904,
+            amount = 4,
+        },
     },
     active = {
         type = "quest",

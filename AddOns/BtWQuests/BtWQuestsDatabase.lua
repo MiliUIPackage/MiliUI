@@ -206,6 +206,8 @@ local function CheckQuestStatus(id, item, character)
                 return true
             end
         end
+    elseif item.onAccount then
+        return C_QuestLog.IsQuestFlaggedCompletedOnAccount(id)
     elseif item.active == true then
         if character:IsQuestActive(id) then
             return true

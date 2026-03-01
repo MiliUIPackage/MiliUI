@@ -1,3 +1,8 @@
+# v11.1
+
+- Updated prerequisites for Against the Current
+- Updated for Midnight release
+
 # v11.0
 
 - Added Arcane Desolation questline
