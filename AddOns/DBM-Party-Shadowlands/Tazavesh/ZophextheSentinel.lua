@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2437, "DBM-Party-Shadowlands", 9, 1194)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260211022037")
+mod:SetRevision("20260221022657")
 mod:SetCreatureID(175616)
 mod:SetEncounterID(2425)
 mod:SetHotfixNoticeRev(20250916000000)
@@ -24,7 +24,6 @@ mod:AddPrivateAuraSoundOption(345990, true, 348350, 1)--Containment Cell
 mod:AddPrivateAuraSoundOption(345770, true, 346006, 1)--Impound Contraband
 
 function mod:OnLimitedCombatStart()
-	self:DisableSpecialWarningSounds()
 	self:EnableAlertOptions(1236348, 562, "frontal", 15)
 
 	self:EnableTimelineOptions(1236348, 562)

@@ -1,4 +1,4 @@
-## Interface: 120000, 120001
+## Interface: 120001
 ## Category: DBM
 ## Group: DBM-Core
 ## Title:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Options GUI|r
@@ -12,9 +12,10 @@
 ## LoadOnDemand: 1
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 12.0.17
+## Version: 12.0.26
 ## X-Website: https://deadlybossmods.com
-## Category-zhTW: 團隊
+## Category-zhTW: 地城與團隊
+
 ## Category-zhTW: 副本
 Polyfills.xml
 
@@ -41,6 +42,7 @@ modules\options\general\Profile.lua
 modules\options\alerts\Alerts.lua
 modules\options\alerts\Announcements.lua
 modules\options\alerts\SpecialAnnouncements.lua
+modules\options\alerts\PrivateAurasOptions.lua
 modules\options\alerts\ChatframeMessages.lua
 modules\options\alerts\SpokenAlerts.lua
 modules\options\alerts\EventSounds.lua

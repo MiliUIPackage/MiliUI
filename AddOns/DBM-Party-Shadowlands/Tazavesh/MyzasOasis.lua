@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2452, "DBM-Party-Shadowlands", 9, 1194)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260210082755")
+mod:SetRevision("20260221022657")
 mod:SetCreatureID(176564)
 mod:SetEncounterID(2440)
 mod:SetHotfixNoticeRev(20220405000000)
@@ -23,7 +23,6 @@ mod:AddPrivateAuraSoundOption(353835, true, 353835, 1)
 mod:AddPrivateAuraSoundOption(355439, true, 355439, 1)
 
 function mod:OnLimitedCombatStart()
-	self:DisableSpecialWarningSounds()
 	if self:IsTank() then
 		self:EnableAlertOptions(359028, 578, "defensive", 2)
 	end

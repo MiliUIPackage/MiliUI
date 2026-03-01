@@ -69,8 +69,11 @@ L.SCENARIO_COMPLETE_I			= "%s完成! 你總共完成了%d次。"
 L.SCENARIO_COMPLETE_L			= "%s完成!本次用了%s，上次用了%s，最快紀錄為%s。你總共完成了%d次。"
 L.SCENARIO_COMPLETE_NR			= "%s完成!用了%s! 這是一個新記錄! (舊紀錄為%s) 你總共完成了%d次。"
 L.COMBAT_ENDED_AT				= "%s(%s)的戰鬥經過%s結束。"
+L.COMBAT_ENDED					= "%s的戰鬥經過%s結束。"--No health (post midnight)
 L.COMBAT_ENDED_AT_LONG			= "%s(%s)的戰鬥經過%s結束。你在這個難度總共滅團了%d次。"
-L.GUILD_COMBAT_ENDED_AT			= "%s的公會團隊在%s (%s)的戰鬥滅團，經過%s."
+L.COMBAT_ENDED_LONG				= "%s的戰鬥經過%s結束。你在這個難度總共滅團了%d次。"--No health (post midnight)
+L.GUILD_COMBAT_ENDED_AT			= "%s的公會團隊在%s (%s)的戰鬥滅團，經過%s。"
+L.GUILD_COMBAT_ENDED			= "%s的公會團隊在%s的戰鬥滅團，經過%s。"--No health (post midnight)
 L.SCENARIO_ENDED_AT				= "%s結束!用了%s!"
 L.SCENARIO_ENDED_AT_LONG		= "%s結束!本次用了%s，你已有共%d次未完成的嘗試在這個難度裡。"
 L.COMBAT_STATE_RECOVERED		= "%s的戰鬥在%s前開始，恢復計時器中..."
@@ -216,6 +219,7 @@ L.OUT_OF_DATE_NAG					= "你的"..L.DEADLY_BOSS_MODS.."版本已經過期，新�
 L.PLATER_NP_AURAS_MSG				= L.DBM .. "包含一個進階功能，用於使用名條上的圖示顯示敵人冷卻時間。 對於大多數用戶而言，預設情況下是這樣的，但是對於Plater用戶而言，除非您啟用它，否則預設情況下它會在Plater選項中關閉。 為了充分利用DBM（和Plater），建議您在“ Buff Special”部分的Plater中啟用此功能。 如果您不想再次看到此訊息，也可以在DBM全局禁用或名條選項面板中的“名條上的冷卻圖標”選項中禁用。"
 
 L.MOVABLE_BAR					= "拖動我!"
+L.MOVABLE_FRAMES				= "框架可拖動"
 
 L.PIZZA_SYNC_INFO				= "|Hplayer:%1$s|h[%1$s]|h 向你發送了" .. L.DBM .. "的倒數計時: '%2$s'\n|Hgarrmission:DBM:cancel:%2$s:nil|h|cff3588ff[取消此倒數計時]|r|h  |Hgarrmission:DBM:ignore:%2$s:%1$s|h|cff3588ff[忽略來自 %1$s 的倒數計時]|r|h"
 --L.PIZZA_SYNC_INFO				= "|Hplayer:%1$s|h[%1$s]|h向你發送了一個倒數計時"
@@ -610,7 +614,9 @@ L.AUTO_INFO_FRAME_OPTION_TEXT2			= "為戰鬥概覽顯示訊息框架"
 L.AUTO_INFO_FRAME_OPTION_TEXT3			= "為$spell:%s顯示訊息框架(當達到%%s的閥值時)"
 L.AUTO_READY_CHECK_OPTION_TEXT			= "當首領開打時撥放準備檢查的音效(即使沒有選定目標)"
 L.AUTO_SPEEDCLEAR_OPTION_TEXT			= "顯示 %s 的最快清除計時器"
-L.AUTO_PRIVATEAURA_OPTION_TEXT			= "為這場戰鬥的私人光環$spell:%s播放DBM音效警告。"
+L.AUTO_PRIVATEAURA_OPTION_TEXT			= "為這場戰鬥的私人光環$spell:%s播放DBM音效警告。"--Generic (most common)
+L.AUTO_PRIVATEAURA_OPTION_TARGET_TEXT	= "當你被$spell:%s鎖定目標時播放DBM私人光環音效警告。"
+L.AUTO_PRIVATEAURA_OPTION_GTFO_TEXT		= "當你需要遠離$spell:%s時播放DBM私人光環音效警告。"
 
 L.AUTO_GOSSIP_BUFFS						= "自動選擇npc的對話選項或專業增益"
 L.AUTO_GOSSIP_PERFORM_ACTION			= "自動選擇對話選項來執行動作 (例如使用傳送功能)"
@@ -621,6 +627,9 @@ L.MOVE_WARNING_BAR			= "可移動提示"
 L.MOVE_WARNING_MESSAGE		= "感謝您使用"..L.DEADLY_BOSS_MODS..""
 L.MOVE_SPECIAL_WARNING_BAR	= "可拖動的特別警告"
 L.MOVE_SPECIAL_WARNING_TEXT	= "特別警告"
+
+L.MOVE_PRIVATE_AURA_TEXT				= "<secret value> 瞄準你使用法術 <secret value>"
+L.MOVE_PRIVATE_AURA_DISABLED			= "預覽被禁用，因為私有光環框架在選項中全域禁用。"
 
 L.HUD_INVALID_TYPE			= "無效的HUD類型定義"
 L.HUD_INVALID_TARGET		= "無有效的HUD目標"

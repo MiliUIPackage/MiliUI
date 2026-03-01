@@ -26,7 +26,8 @@
 ## X-DBM-Mod-MinExpansion: 10
 ## X-Curse-Project-ID: 3358
 ## X-Wago-ID: qv633o6b
-## Category-zhTW: 團隊
+## Category-zhTW: 地城與團隊
+
 ## Category-zhTW: 副本
 localization.en.lua
 localization.cn.lua

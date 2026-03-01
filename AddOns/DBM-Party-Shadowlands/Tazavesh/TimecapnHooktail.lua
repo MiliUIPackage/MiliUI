@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2449, "DBM-Party-Shadowlands", 9, 1194)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260211022037")
+mod:SetRevision("20260221022657")
 mod:SetCreatureID(175546)
 mod:SetEncounterID(2419)
 mod:SetHotfixNoticeRev(20220405000000)
@@ -23,7 +23,6 @@ mod:AddPrivateAuraSoundOption(352345, true, 352345, 1)--Anchor Shot
 mod:AddPrivateAuraSoundOption(358947, true, 358947, 1)--GTFO
 
 function mod:OnLimitedCombatStart()
-	self:DisableSpecialWarningSounds()
 	self:EnableAlertOptions(350134, 591, "breathsoon", 2)
 
 	self:EnableTimelineOptions(350134, 591)

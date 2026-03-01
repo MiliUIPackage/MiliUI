@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2560, "DBM-Party-WarWithin", 1, 1210)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20250324070519")
+mod:SetRevision("20260216034437")
 mod:SetCreatureID(208745)
 mod:SetEncounterID(2787)
 mod:SetUsedIcons(8, 7, 6, 5, 4)
@@ -72,8 +72,7 @@ function mod:OnCombatStart(delay)
 	timerParanoidMindCD:Start(9.4-delay, 1)
 	if self:IsMythic() then
 		timerThrowDarkflameCD:Start(20.7-delay, 1)
-		self:EnablePrivateAuraSound(420696, "movetostatue", 17)--Throw Darkflame
-		self:EnablePrivateAuraSound(453278, "movetostatue", 17, 420696)--Register Additional Throw Darkflame ID
+		self:EnablePrivateAuraSound({420696,453278}, "movetostatue", 17)--Throw Darkflame
 	end
 end
 

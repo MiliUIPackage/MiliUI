@@ -1,4 +1,4 @@
-## Interface: 110207, 120000, 120001
+## Interface: 120001
 ## Category: DBM
 
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (WW)|r
@@ -24,8 +24,9 @@
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
 ## X-Wago-ID: xZKxZENk
-## Version: r223
-## Category-zhTW: 團隊
+## Version: r233
+## Category-zhTW: 地城與團隊
+
 ## Category-zhTW: 副本
 localization.en.lua
 localization.cn.lua

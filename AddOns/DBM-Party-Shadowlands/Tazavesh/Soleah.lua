@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2455, "DBM-Party-Shadowlands", 9, 1194)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260211022037")
+mod:SetRevision("20260221022657")
 mod:SetCreatureID(177269)
 mod:SetEncounterID(2442)
 mod:SetHotfixNoticeRev(20220405000000)
@@ -26,7 +26,6 @@ mod:AddCustomTimerOptions(351096, true, 3, 0)
 mod:AddCustomTimerOptions(351646, true, 3, 0)
 
 function mod:OnLimitedCombatStart()
-	self:DisableSpecialWarningSounds()
 	self:EnableAlertOptions(350796, 595, "specialsoon", 2)
 	self:EnableAlertOptions(351124, 596, "mobsoon", 2)
 	self:EnableAlertOptions(353632, 597, "helpsoak", 1)

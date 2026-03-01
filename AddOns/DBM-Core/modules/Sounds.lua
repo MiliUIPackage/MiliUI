@@ -13,12 +13,11 @@ do
 		{	text	= "Koltrane",value 	= "Kolt", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Kolt\\", max = 10},
 		{	text	= "Smooth",value 	= "Smooth", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Smooth\\", max = 10},
 		{	text	= "Smooth (Reverb)",value 	= "SmoothR", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SmoothReverb\\", max = 10},
-		{	text	= "Pewsey",value 	= "Pewsey", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Pewsey\\", max = 10},
-		{	text	= "Bear (Child)",value = "Bear", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Bear\\", max = 10},
-		{	text	= "Moshne",	value 	= "Mosh", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Mosh\\", max = 5},
+		{	text	= "Pewsey",value 	= "Pewsey", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Pewsey\\", max = 10},		
 		{	text	= "安妮海豹",value 	= "AnnieSeal", path = "Interface\\AddOns\\DBM-Core\\Sounds\\AnnieSeal\\", max = 10},
 		{	text	= "家豪",value 	= "SahaJh", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SahaJh\\", max = 10},
 		{	text	= "然然",value 	= "Ranran", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ranran\\", max = 10},
+		{	text	= "忘忧景久",value 	= "忘忧景久", path = "Interface\\AddOns\\DBM-Core\\Sounds\\WYJJ\\", max = 10},
 		{	text	= "VV",value 	= "VV", path = "Interface\\AddOns\\DBM-Core\\Sounds\\VV\\", max = 10},
 	}
 	--Countdown audio that's been specifically edited to be a single 5 second count file
@@ -27,10 +26,10 @@ do
 		{	text	= "Koltrane",value 	= "Kolt", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Kolt\\", max = 5},
 		{	text	= "Smooth",value 	= "Smooth", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Smooth\\", max = 5},
 		{	text	= "Smooth (Reverb)",value 	= "SmoothR", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SmoothReverb\\", max = 5},
-		{	text	= "安度因",value 	= "Anduin", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Anduin\\", max = 5},
 		{	text	= "安妮海豹",value 	= "AnnieSeal", path = "Interface\\AddOns\\DBM-Core\\Sounds\\AnnieSeal\\", max = 5},
 		{	text	= "家豪",value 	= "SahaJh", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SahaJh\\", max = 5},
 		{	text	= "然然",value 	= "Ranran", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ranran\\", max = 5},
+		{	text	= "忘忧景久",value 	= "忘忧景久", path = "Interface\\AddOns\\DBM-Core\\Sounds\\WYJJ\\", max = 5},
 		{	text	= "VV",value 	= "VV", path = "Interface\\AddOns\\DBM-Core\\Sounds\\VV\\", max = 5},
 	}
 	local hasCached = false

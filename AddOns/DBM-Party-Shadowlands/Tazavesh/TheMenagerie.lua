@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2454, "DBM-Party-Shadowlands", 9, 1194)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260211022037")
+mod:SetRevision("20260221022657")
 mod:SetCreatureID(176556, 176555, 176705)
 mod:SetEncounterID(2441)
 mod:SetUsedIcons(1)
@@ -28,7 +28,6 @@ mod:AddPrivateAuraSoundOption(349627, true, 349627, 1)--Gluttony
 mod:AddPrivateAuraSoundOption(350101, true, 350101, 1)--Chains of Damnation
 
 function mod:OnLimitedCombatStart()
-	self:DisableSpecialWarningSounds()
 	self:EnableAlertOptions(349663, 567, "justrun", 2)
 	self:EnableAlertOptions(349797, 568, "watchorb", 2)
 	self:EnableAlertOptions(349987, 569, "watchorb", 2)

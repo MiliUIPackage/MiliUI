@@ -1,4 +1,4 @@
-## Interface: 110207, 120000, 120001
+## Interface: 120001
 ## X-Min-Interface: 80000
 ## Category: DBM
 
@@ -23,77 +23,14 @@
 ## X-DBM-Mod-MapID: 619,601,595,600,604,602,599,576,578,574,575,608,658,632,668,650,2849
 ## X-DBM-Mod-MinCoreRevision: 20200524142133
 ## X-DBM-Mod-MinExpansion: 2
-## Version: r225
+## Version: r233
 ## Category-zhTW: 地城與團隊
 ## Category-zhTW: 副本
 
 localization.en.lua
 localization.cn.lua
 localization.tw.lua
-AhnKahet\Taldaram.lua
-AhnKahet\Nadox.lua
-AhnKahet\JedogaShadowseeker.lua
-AhnKahet\Volazj.lua
-AhnKahet\Amanitar.lua
-AzjolNerub\Krikthir.lua
-AzjolNerub\Hadronox.lua
-AzjolNerub\Anubarak.lua
-OldStratholme\Meathook.lua
-OldStratholme\SalrammTheFleshCrafter.lua
-OldStratholme\ChronoLordEpoch.lua
-OldStratholme\MalGanis.lua
-OldStratholme\OldStratholmeWaves.lua
-DrakTharon\Trollgore.lua
-DrakTharon\NovosTheSummoner.lua
-DrakTharon\Dred.lua
-DrakTharon\ProphetTharonja.lua
-Gundrak\Sladran.lua
-Gundrak\Moorabi.lua
-Gundrak\BloodstoneAnnihilator.lua
-Gundrak\Galdarah.lua
-Gundrak\Eck.lua
-HallsOfLightning\Bjarngrin.lua
-HallsOfLightning\Volkhan.lua
-HallsOfLightning\Ionar.lua
-HallsOfLightning\Loken.lua
-HallsofReflection\WaveTimers.lua
-HallsofReflection\Falric.lua
-HallsofReflection\Marwyn.lua
-HallsofReflection\LichKingEvent.lua
-HallsOfStone\MaidenOfGrief.lua
-HallsOfStone\Krystallus.lua
-HallsOfStone\BrannBronzebeard.lua
-HallsOfStone\SjonnirTheIronshaper.lua
-TheNexus\Commander.lua
-TheNexus\GrandMagusTelestra.lua
-TheNexus\Anomalus.lua
-TheNexus\OrmorokTheTreeShaper.lua
-TheNexus\Keristrasza.lua
-TheOculus\DrakosTheInterrogator.lua
-TheOculus\MageLordUrom.lua
-TheOculus\VarosCloudstrider.lua
-TheOculus\LeyGuardianEregos.lua
-UtgardeKeep\Keleseth.lua
-UtgardeKeep\ConstructorAndController.lua
-UtgardeKeep\IngvarThePlunderer.lua
-UtgardePinnacle\SvalaSorrowgrave.lua
-UtgardePinnacle\GortokPalehoof.lua
-UtgardePinnacle\SkadiTheRuthless.lua
-UtgardePinnacle\Ymiron.lua
-VioletHold\Erekem.lua
-VioletHold\Ichoron.lua
-VioletHold\Lavanthor.lua
-VioletHold\Moragg.lua
-VioletHold\Xevoss.lua
-VioletHold\Zuramat.lua
-VioletHold\Cyanigosa.lua
-VioletHold\PortalTimers.lua
-TrialoftheChampion\Champions.lua
-TrialoftheChampion\Eadric_the_Pure.lua
-TrialoftheChampion\Confessor.lua
-TrialoftheChampion\Black_Knight.lua
-ForgeofSouls\Bronjahm.lua
-ForgeofSouls\DevourerofSouls.lua
+
 PitofSaron\Ick.lua
 PitofSaron\ForgemasterGarfrost.lua
 PitofSaron\ScourgelordTyrannus.lua
