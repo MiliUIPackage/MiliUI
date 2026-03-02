@@ -32,6 +32,9 @@ local function GetLabelsValues(allAssets, filter, showHeight)
         width = 180
       end
       local text = "|T".. (details.preview or details.file or details.horizontal) .. ":" .. (height - 1) .. ":" .. (width - 1) .. "|t"
+      if details.text then
+        text = text .. " " .. details.text
+      end
       if details.isTransparent then
         text = addonTable.Locales.NONE
       end
@@ -105,7 +108,7 @@ local function GetLabelsValuesBorders()
 
   for _, key in ipairs(assets) do
     if not addonTable.Assets.BarBordersSliced[key] then
-      local file = LSM:Fetch(LSM:Fetch("ninesliceborder", key).nineslice).file
+      local file = LSM:Fetch("nineslice", LSM:Fetch("ninesliceborder", key).nineslice).file
       local text = "|T".. file .. ":" .. (height - 1) .. ":" .. (height - 1) .. "|t [Custom] " .. key
 
       table.insert(labels, text)
@@ -201,7 +204,7 @@ local function GetLabelsValuesHighlightsNotAnimated()
   for _, key in ipairs(slicedAssets) do
     if not seen[key] then
       local file = LSM:Fetch("nineslice", key).file
-      local text = "|T".. file .. ":" .. height .. ":" .. height .. "|t [Custom]" .. key
+      local text = "|T".. file .. ":" .. height .. ":" .. height .. "|t [Custom] " .. key
 
       table.insert(labels, text)
       table.insert(values, {sliced = true, asset = key})
@@ -218,7 +221,7 @@ local function GetLabelsValuesHighlightsNotAnimated()
         width = 180
       end
 
-      local text = "|T".. details.file .. ":" .. height .. ":" .. width .. "|t [Custom]" .. key
+      local text = "|T".. details.file .. ":" .. height .. ":" .. width .. "|t [Custom] " .. key
 
       table.insert(labels, text)
       table.insert(values, {sliced = false, asset = key})
@@ -703,7 +706,6 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             getter = function(details)
               return details.applyClassColors
             end,
-            hide = addonTable.Constants.IsRetail,
           },
         }
       }
@@ -1054,6 +1056,17 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             getter = function(details)
               return details.filters.important
             end,
+          },
+          {
+            label = addonTable.Locales.DEFENSIVE,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.filters.defensive = value
+            end,
+            getter = function(details)
+              return details.filters.defensive
+            end,
+            hide = addonTable.Constants.IsClassic,
           },
           {
             label = addonTable.Locales.DISPELLABLE,

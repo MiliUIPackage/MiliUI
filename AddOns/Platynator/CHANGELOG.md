@@ -1,12 +1,6 @@
 # Platynator
 
-## [321](https://github.com/TheMouseNest/Platynator/tree/321) (2026-02-17)
-[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/320...321) [Previous Releases](https://github.com/TheMouseNest/Platynator/releases)
+## [332-1-gf2e75da](https://github.com/TheMouseNest/Platynator/tree/f2e75da898f288c9639d3464f978ac304c891123) (2026-03-01)
+[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/332...f2e75da898f288c9639d3464f978ac304c891123) [Previous Releases](https://github.com/TheMouseNest/Platynator/releases)
 
-- Add GH releases  
-- Remove Wago from build script  
-- Tweak bar edge highlight to avoid appearing to have slightly more health  
-- Remove fallback for old health calculator  
-- Fix wrong parameter  
-- Better "In Combat" check  
-- [Fixes #204] Retail: Workaround duplicate auras in sorted list due to Blizz API  
+- [Fixes #229] Fix interrupt ready point being in the wrong position for channels  
