@@ -1,123 +1,128 @@
 -------------------------------------------------------------------------------
 -- Project: AscensionCastBar
--- Author: Aka-DoctorCode 
+-- Author: Aka-DoctorCode
 -- File: Empower.lua
--- Version: 40
+-- Version: V45
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
 -- This software and its source code are the exclusive property of the author.
--- No part of this file may be copied, modified, redistributed, or used in 
+-- No part of this file may be copied, modified, redistributed, or used in
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
 local ADDON_NAME = "Ascension Cast Bar"
+---@class AscensionCastBar
 local AscensionCastBar = LibStub("AceAddon-3.0"):GetAddon(ADDON_NAME)
+
+local function GetStageDurationMS(unit, stage, numStages)
+    if stage == numStages then
+        return GetUnitEmpowerHoldAtMaxTime(unit or "player") or 0
+    end
+    return GetUnitEmpowerStageDuration(unit or "player", stage - 1) or 0
+end
 
 function AscensionCastBar:EmpowerStart(info)
     local cb = self.castBar
-    local db = self.db.profile
-    
+    if not cb then return end
+
     cb.casting = false
     cb.channeling = true
     cb.isEmpowered = true
     cb.lastSpellName = info.name
-    
-    local startMS = info.startTime
-    local endMS = info.endTime
+
     local numStages = info.numStages or 0
-    
-    local startTime = startMS / 1000
-    local rawDuration = (endMS - startMS) / 1000
+    if numStages == 0 then
+        local _, _, _, _, _, _, _, _, _, apiNumStages = UnitChannelInfo("player")
+        numStages = apiNumStages or 0
+    end
 
-    local hasFontOfMagic = IsPlayerSpell(411212) or IsPlayerSpell(408083) or IsPlayerSpell(375783)
-    local validNumStages = (type(numStages) == "number" and numStages > 0) and numStages or 0
-    local baseStages = validNumStages > 0 and validNumStages or (hasFontOfMagic and 4 or 3)
-    
-    cb.numStages = baseStages + 1
-    local weights = self:GetEmpoweredStageWeights(cb.numStages)
-    local castWeight = 0
-    local totalWeight = 0
+    if numStages < 2 then
+        -- Fallback to old logic or hide if invalid
+        self:CastStart(info)
+        return
+    end
 
-    for i, w in ipairs(weights) do
-        totalWeight = totalWeight + w
-        if i < cb.numStages then
-            castWeight = castWeight + w
+    cb.numStages = numStages + 1 -- Add final hold stage
+    cb.startTime = info.startTime / 1000
+
+    -- Calculate true total duration and stage points
+    local stageMaxMS = 0
+    cb.stagePoints = {}
+    for i = 1, cb.numStages do
+        local d = GetStageDurationMS("player", i, cb.numStages)
+        if d and d > 0 then
+            stageMaxMS = stageMaxMS + d
+            if i < cb.numStages then
+                cb.stagePoints[i] = stageMaxMS
+            end
         end
     end
 
-    local multiplier = 1
-    if castWeight > 0 then
-        multiplier = totalWeight / castWeight
+    if stageMaxMS <= 0 then
+        self:CastStart(info)
+        return
     end
 
-    cb.duration = rawDuration * multiplier
-    cb.endTime = startTime + cb.duration
-    cb.startTime = startTime
+    cb.duration = stageMaxMS / 1000
+    cb.endTime = cb.startTime + cb.duration
     cb.currentStage = 1
-    
+
     cb:Show()
-    
+
     self:SetupCastBarShared(info)
     self:UpdateBarColor(info.notInterruptible)
-    self:UpdateTicks(nil, cb.numStages, cb.duration)
+
+    -- Visuals (Pips and Tiers) will be handled in UI.lua called by this or Logic
+    self:AddEmpowerStages(numStages)
+    
+    if self.UpdateEmpowerStageHighlight then
+        self:UpdateEmpowerStageHighlight(1)
+    end
 end
 
 function AscensionCastBar:EmpowerUpdate(now, db)
     local cb = self.castBar
+    if not cb or not cb.duration or cb.duration <= 0 then return end
+
     local start = cb.startTime
     local duration = cb.duration
     local endTime = cb.endTime
-    
+
     local rem = endTime - now
     rem = math.max(0, rem)
     local elap = now - start
 
-    local pct = math.max(0, math.min(elap / duration, 1))
-    local stages = cb.numStages or 1
-    local weights = self:GetEmpoweredStageWeights(stages)
-
-    local currentStage = 1
-    local cumulative = 0
-    local totalWeight = 0
-    for _, w in ipairs(weights) do totalWeight = totalWeight + w end
-
-    for i, w in ipairs(weights) do
-        cumulative = cumulative + (w / totalWeight)
-        if pct <= (cumulative + 0.001) then
-            currentStage = i
-            break
+    local stageValueMS = (elap / duration) * (cb.duration * 1000)
+    local maxStage = 0
+    if cb.stagePoints then
+        for i = 1, #cb.stagePoints do
+            if stageValueMS > cb.stagePoints[i] then
+                maxStage = i
+            else
+                break
+            end
         end
     end
 
-    if pct >= 0.98 then currentStage = stages end
+    local currentStage = math.max(1, math.min(cb.numStages or 1, maxStage + 1))
 
     if currentStage ~= cb.currentStage then
         cb.currentStage = currentStage
         self:UpdateBarColor()
-        self:UpdateTicks(nil, cb.numStages, cb.duration)
+        -- Pulse animation logic could go here or in UI.lua
+        if self.UpdateEmpowerStageHighlight then
+            self:UpdateEmpowerStageHighlight(currentStage)
+        end
     end
 
     cb.timer:SetText(db.hideTimerOnChannel and "" or self:GetFormattedTimer(rem, duration))
-    
+
     cb:SetMinMaxValues(0, duration)
     cb:SetValue(elap)
-    
+
     local prog = 0
     if duration > 0 then prog = elap / duration end
     self:UpdateSpark(prog, prog)
-    
-    self:UpdateLatencyBar(cb)
-end
 
-function AscensionCastBar:GetEmpoweredStageWeights(numStages)
-    if numStages == 4 then
-        return { 1.5, 1.0, 1.0, 1.5 }
-    elseif numStages == 5 then
-        return { 1.5, 1.0, 1.0, 1.0, 1.5 }
-    end
-    local w = {}
-    if numStages and numStages > 0 then
-        for i = 1, numStages do w[i] = 1 end
-    end
-    return w
+    self:UpdateLatencyBar(cb)
 end

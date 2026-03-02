@@ -1,16 +1,17 @@
 -------------------------------------------------------------------------------
 -- Project: AscensionCastBar
--- Author: Aka-DoctorCode 
+-- Author: Aka-DoctorCode
 -- File: Config.lua
--- Version: 40
+-- Version: V45
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
 -- This software and its source code are the exclusive property of the author.
--- No part of this file may be copied, modified, redistributed, or used in 
+-- No part of this file may be copied, modified, redistributed, or used in
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
 local ADDON_NAME = "Ascension Cast Bar"
+---@class AscensionCastBar
 local AscensionCastBar = LibStub("AceAddon-3.0"):GetAddon(ADDON_NAME)
 local LSM = LibStub("LibSharedMedia-3.0")
 
@@ -34,19 +35,16 @@ end
 
 AscensionCastBar.defaults = {
     profile = {
-        showChannelTicks = true,
-        channelTicksThickness = 1,
-        
         height = 24,
         testAttached = false,
 
         -- Manual / Fallback Settings
-        manualWidth = 270,
+        manualWidth = 220,
         manualHeight = 24,
         point = "CENTER",
         relativePoint = "CENTER",
         manualX = 0,
-        manualY = -85,
+        manualY = -130,
 
         -- Empower Colors
         empowerStage1Color = { 0, 1, 0, 1 },    -- Green
@@ -54,6 +52,7 @@ AscensionCastBar.defaults = {
         empowerStage3Color = { 1, 0.64, 0, 1 }, -- Orange
         empowerStage4Color = { 1, 0, 0, 1 },    -- Red
         empowerStage5Color = { 0.6, 0, 1, 1 },  -- Purple (Default)
+        empowerWidthScale = false,
 
         -- Channel Ticks
         showChannelTicks = true,
@@ -90,12 +89,12 @@ AscensionCastBar.defaults = {
 
         -- Colors
         barColor = { 0, 0, 0.25, 1 },
-        barLSMName = "Solid",
-        useClassColor = false,
+        barLSMName = "TukTex",
+        useClassColor = true,
 
         -- Anim
-        enableSpark = true,
-        enableTails = true,
+        enableSpark = false,
+        enableTails = false,
         animStyle = "Comet",
         sparkColor = { 1, 1, 1, 0.9 },
         glowColor = { 1, 1, 1, 1 },
@@ -206,7 +205,7 @@ AscensionCastBar.defaults = {
 -- ==========================================================
 function AscensionCastBar:SetupOptions()
     local defaults = self.defaults.profile
-    -- Helper para obtener fuentes (Evita errores si LSM no carga)
+    -- Helper to get fonts (Avoids errors if LSM doesn't load)
     local function GetFontList()
         local fonts = {}
         if LSM then
@@ -217,7 +216,7 @@ function AscensionCastBar:SetupOptions()
         return fonts
     end
 
-    -- Helper para obtener texturas (Evita el error AceGUIWidgetLSMlists)
+    -- Helper to get textures (Avoids AceGUIWidgetLSMlists error)
     local function GetStatusBarList()
         local textures = {}
         if LSM then
@@ -232,32 +231,32 @@ function AscensionCastBar:SetupOptions()
     local hasLSMWidgets = AceGUI and (AceGUI.WidgetRegistry["LSM30_Statusbar"] ~= nil)
 
     local anchors = {
-        ["CENTER"] = "Center",
-        ["TOP"] = "Top",
-        ["BOTTOM"] = "Bottom",
-        ["LEFT"] = "Left",
-        ["RIGHT"] = "Right",
+        ["CENTER"] = "中央",
+        ["TOP"] = "上",
+        ["BOTTOM"] = "下",
+        ["LEFT"] = "左",
+        ["RIGHT"] = "右",
     }
 
     local options = {
-        name = "Ascension Cast Bar",
+        name = "施法條美化",
         handler = AscensionCastBar,
         type = "group",
-        childGroups = "tab", -- Interfaz con pestañas
+        childGroups = "tab", -- Tabbed interface
         args = {
             -- ==========================================================
             -- TAB 1: GENERAL (Positioning, Size, Testing)
             -- ==========================================================
             general = {
-                name = "General & Layout",
+                name = "一般與佈局",
                 type = "group",
                 order = 1,
                 args = {
                     -- SECTION: TEST MODE
-                    headerTest = { name = "Setup & Testing", type = "header", order = 1 },
+                    headerTest = { name = "設定與測試", type = "header", order = 1 },
                     preview = {
-                        name = "Enable Test Mode",
-                        desc = "Shows a preview bar to help you configure the layout.",
+                        name = "啟用測試模式",
+                        desc = "顯示預覽條以協助你調整佈局。",
                         type = "toggle",
                         width = "full",
                         order = 2,
@@ -269,10 +268,10 @@ function AscensionCastBar:SetupOptions()
                         end,
                     },
                     testModeState = {
-                        name = "Animation Type",
-                        desc = "Simulate different spell types.",
+                        name = "動畫類型",
+                        desc = "模擬不同的施法類型。",
                         type = "select",
-                        values = { ["Cast"] = "Normal Cast", ["Channel"] = "Channel", ["Empowered"] = "Empowered" },
+                        values = { ["Cast"] = "普通施法", ["Channel"] = "引導", ["Empowered"] = "蓄力" },
                         order = 3,
                         disabled = function() return not self.db.profile.previewEnabled end,
                         get = function(info) return self.db.profile.testModeState end,
@@ -282,7 +281,7 @@ function AscensionCastBar:SetupOptions()
                         end,
                     },
                     hideDefaultCastbar = {
-                        name = "Hide Blizzard Cast Bar",
+                        name = "隱藏暴雪內建施法條",
                         type = "toggle",
                         order = 4,
                         get = function(info) return self.db.profile.hideDefaultCastbar end,
@@ -293,17 +292,25 @@ function AscensionCastBar:SetupOptions()
                     },
 
                     -- SECTION: SIZE
-                    headerSize = { name = "Dimensions", type = "header", order = 10 },
+                    headerSize = { name = "尺寸", type = "header", order = 10 },
                     manualWidth = {
-                        name = "Bar Width",
-                        type = "range", min = 50, max = 1000, step = 1,
+                        name = "施法條寬度",
+                        type = "range",
+                        min = 50,
+                        max = 1000,
+                        step = 1,
                         order = 11,
                         get = function(info) return self.db.profile.manualWidth end,
-                        set = function(info, val) self.db.profile.manualWidth = val; self:UpdateAnchor() end,
+                        set = function(info, val)
+                            self.db.profile.manualWidth = val; self:UpdateAnchor()
+                        end,
                     },
                     height = {
-                        name = "Bar Height",
-                        type = "range", min = 10, max = 150, step = 1,
+                        name = "施法條高度",
+                        type = "range",
+                        min = 10,
+                        max = 150,
+                        step = 1,
                         order = 12,
                         get = function(info) return self.db.profile.manualHeight end,
                         set = function(info, val)
@@ -316,10 +323,10 @@ function AscensionCastBar:SetupOptions()
                     },
 
                     -- SECTION: POSITIONING
-                    headerPos = { name = "Positioning", type = "header", order = 20 },
+                    headerPos = { name = "位置", type = "header", order = 20 },
                     attachToCDM = {
-                        name = "Attach to UI Frame",
-                        desc = "Attaches the bar to UI elements (like PlayerFrame) automatically.",
+                        name = "附著到 UI 框架",
+                        desc = "自動將施法條附著到 UI 元素（如玩家框架）。",
                         type = "toggle",
                         width = "full",
                         order = 21,
@@ -329,8 +336,8 @@ function AscensionCastBar:SetupOptions()
                         end,
                     },
                     testAttached = {
-                        name = "Test Attachment", -- Renamed
-                        desc = "Toggle between testing the attached position (ON) or the manual position (OFF).",
+                        name = "測試附著",
+                        desc = "切換為測試附著位置（開啟）或手動位置（關閉）。",
                         type = "toggle",
                         width = "full",
                         order = 22,
@@ -345,96 +352,130 @@ function AscensionCastBar:SetupOptions()
                     },
                     -- Coordinates Group
                     posGroup = {
-                        name = "Coordinates",
+                        name = "座標",
                         type = "group",
                         inline = true,
                         order = 23,
                         args = {
                             -- Manual
                             point = {
-                                name = "Anchor Point",
-                                type = "select", values = anchors,
+                                name = "錨點",
+                                type = "select",
+                                values = anchors,
                                 order = 1,
                                 hidden = function() return self.db.profile.attachToCDM end,
                                 get = function(info) return self.db.profile.point end,
-                                set = function(info, val) self.db.profile.point = val; self:UpdateAnchor() end,
+                                set = function(info, val)
+                                    self.db.profile.point = val; self:UpdateAnchor()
+                                end,
                             },
                             relativePoint = {
-                                name = "Relative Point",
-                                desc = "The point on the parent frame (or screen) to anchor to.",
-                                type = "select", values = anchors,
+                                name = "相對錨點",
+                                desc = "錨定到父框架（或螢幕）上的位置。",
+                                type = "select",
+                                values = anchors,
                                 order = 1.5,
                                 hidden = function() return self.db.profile.attachToCDM end,
                                 get = function(info) return self.db.profile.relativePoint end,
-                                set = function(info, val) self.db.profile.relativePoint = val; self:UpdateAnchor() end,
+                                set = function(info, val)
+                                    self.db.profile.relativePoint = val; self:UpdateAnchor()
+                                end,
                             },
                             manualX = {
-                                name = "X Offset", type = "range", min = -2000, max = 2000, step = 1, order = 2,
+                                name = "X 偏移",
+                                type = "range",
+                                min = -2000,
+                                max = 2000,
+                                step = 1,
+                                order = 2,
                                 hidden = function() return self.db.profile.attachToCDM end,
                                 get = function(info) return self.db.profile.manualX end,
-                                set = function(info, val) self.db.profile.manualX = val; self:UpdateAnchor() end,
+                                set = function(info, val)
+                                    self.db.profile.manualX = val; self:UpdateAnchor()
+                                end,
                             },
                             manualY = {
-                                name = "Y Offset", type = "range", min = -2000, max = 2000, step = 1, order = 3,
+                                name = "Y 偏移",
+                                type = "range",
+                                min = -2000,
+                                max = 2000,
+                                step = 1,
+                                order = 3,
                                 hidden = function() return self.db.profile.attachToCDM end,
                                 get = function(info) return self.db.profile.manualY end,
-                                set = function(info, val) self.db.profile.manualY = val; self:UpdateAnchor() end,
+                                set = function(info, val)
+                                    self.db.profile.manualY = val; self:UpdateAnchor()
+                                end,
                             },
                             -- Attached
                             cdmTarget = {
-                                name = "Attach Target",
-                                type = "select", style = "dropdown", width = "normal",
+                                name = "附著目標",
+                                type = "select",
+                                style = "dropdown",
+                                width = "normal",
                                 order = 1,
                                 hidden = function() return not self.db.profile.attachToCDM end,
                                 get = function(info) return self.db.profile.cdmTarget end,
-                                set = function(info, val) self.db.profile.cdmTarget = val; self:InitCDMHooks(); self:UpdateAnchor() end,
-                                
-                                -- 1. THE DISPLAY NAMES (The text the user sees)
-                                values = { 
-                                    -- Standard Frames
-                                    ["PlayerFrame"] = "Player Frame",
-                                    ["PersonalResource"] = "Personal Resource Display",
-                                    
-                                    -- CDM Specific
-                                    ["Buffs"] = "Tracked Buffs (CDM)", 
-                                    ["Essential"] = "Essential Cooldowns (CDM)", 
-                                    ["Utility"] = "Utility Cooldowns (CDM)",
-                                    
-                                    -- Standard Action Bars
-                                    ["ActionBar1"] = "Action Bar 1",
-                                    ["ActionBar2"] = "Action Bar 2",
-                                    ["ActionBar3"] = "Action Bar 3",
-                                    ["ActionBar4"] = "Action Bar 4",
-                                    ["ActionBar5"] = "Action Bar 5",
-                                    ["ActionBar6"] = "Action Bar 6",
-                                    ["ActionBar7"] = "Action Bar 7",
-                                    ["ActionBar8"] = "Action Bar 8",
+                                set = function(info, val)
+                                    self.db.profile.cdmTarget = val; self:InitCDMHooks(); self:UpdateAnchor()
+                                end,
 
-                                    -- Bartender4 Support
-                                    ["BT4Bar1"] = "Bartender Bar 1",
-                                    ["BT4Bar2"] = "Bartender Bar 2",
-                                    ["BT4Bar3"] = "Bartender Bar 3",
-                                    ["BT4Bar4"] = "Bartender Bar 4",
-                                    ["BT4Bar5"] = "Bartender Bar 5",
-                                    ["BT4Bar6"] = "Bartender Bar 6",
-                                    ["BT4Bar7"] = "Bartender Bar 7",
-                                    ["BT4Bar8"] = "Bartender Bar 8",
-                                    ["BT4Bar9"] = "Bartender Bar 9",
-                                    ["BT4Bar10"] = "Bartender Bar 10",
-                                    ["BT4PetBar"] = "Bartender Pet Bar",
-                                    ["BT4StanceBar"] = "Bartender Stance Bar",
+                                -- 1. THE DISPLAY NAMES (The text the user sees)
+                                values = {
+                                    -- 標準框架
+                                    ["PlayerFrame"] = "玩家框架",
+                                    ["PersonalResource"] = "個人資源顯示",
+
+                                    -- CDM 專用
+                                    ["Buffs"] = "追蹤增益 (CDM)",
+                                    ["Essential"] = "核心冷卻 (CDM)",
+                                    ["Utility"] = "實用冷卻 (CDM)",
+
+                                    -- 標準動作條
+                                    ["ActionBar1"] = "動作條 1",
+                                    ["ActionBar2"] = "動作條 2",
+                                    ["ActionBar3"] = "動作條 3",
+                                    ["ActionBar4"] = "動作條 4",
+                                    ["ActionBar5"] = "動作條 5",
+                                    ["ActionBar6"] = "動作條 6",
+                                    ["ActionBar7"] = "動作條 7",
+                                    ["ActionBar8"] = "動作條 8",
+
+                                    -- Bartender4 支援
+                                    ["BT4Bar1"] = "Bartender 快捷列 1",
+                                    ["BT4Bar2"] = "Bartender 快捷列 2",
+                                    ["BT4Bar3"] = "Bartender 快捷列 3",
+                                    ["BT4Bar4"] = "Bartender 快捷列 4",
+                                    ["BT4Bar5"] = "Bartender 快捷列 5",
+                                    ["BT4Bar6"] = "Bartender 快捷列 6",
+                                    ["BT4Bar7"] = "Bartender 快捷列 7",
+                                    ["BT4Bar8"] = "Bartender 快捷列 8",
+                                    ["BT4Bar9"] = "Bartender 快捷列 9",
+                                    ["BT4Bar10"] = "Bartender 快捷列 10",
+                                    ["BT4PetBar"] = "Bartender 寵物列",
+                                    ["BT4StanceBar"] = "Bartender 姿態列",
                                 },
 
                                 -- 2. THE SORTING ORDER (The list of KEYS in the desired order)
                                 sorting = {
-                                    "PlayerFrame", "PersonalResource", "Buffs", "Essential", "Utility", "ActionBar1", "ActionBar2", "ActionBar3", "ActionBar4", "ActionBar5", "ActionBar6", "ActionBar7", "ActionBar8", "BT4Bar1", "BT4Bar2", "BT4Bar3", "BT4Bar4", "BT4Bar5", "BT4Bar6", "BT4Bar7", "BT4Bar8", "BT4Bar9", "BT4Bar10", "BT4PetBar", "BT4StanceBar"
+                                    "PlayerFrame", "PersonalResource", "Buffs", "Essential", "Utility", "ActionBar1",
+                                    "ActionBar2", "ActionBar3", "ActionBar4", "ActionBar5", "ActionBar6", "ActionBar7",
+                                    "ActionBar8", "BT4Bar1", "BT4Bar2", "BT4Bar3", "BT4Bar4", "BT4Bar5", "BT4Bar6",
+                                    "BT4Bar7", "BT4Bar8", "BT4Bar9", "BT4Bar10", "BT4PetBar", "BT4StanceBar"
                                 },
                             },
                             cdmYOffset = {
-                                name = "Vertical Offset", type = "range", min = -200, max = 200, step = 1, order = 2,
+                                name = "垂直偏移",
+                                type = "range",
+                                min = -200,
+                                max = 200,
+                                step = 1,
+                                order = 2,
                                 hidden = function() return not self.db.profile.attachToCDM end,
                                 get = function(info) return self.db.profile.cdmYOffset end,
-                                set = function(info, val) self.db.profile.cdmYOffset = val; self:UpdateAnchor() end,
+                                set = function(info, val)
+                                    self.db.profile.cdmYOffset = val; self:UpdateAnchor()
+                                end,
                             },
                         }
                     }
@@ -445,110 +486,193 @@ function AscensionCastBar:SetupOptions()
             -- TAB 2: APPEARANCE (Colors, Textures, Icons)
             -- ==========================================================
             appearance = {
-                name = "Style & Colors",
+                name = "樣式與顏色",
                 type = "group",
                 order = 2,
                 args = {
-                    headerBar = { name = "Bar Style", type = "header", order = 1 },
+                    headerBar = { name = "施法條樣式", type = "header", order = 1 },
                     barTexture = {
-                        name = "Texture",
+                        name = "材質",
                         type = "select",
-                        dialogControl = hasLSMWidgets and "LSM30_Statusbar" or nil, 
+                        dialogControl = hasLSMWidgets and "LSM30_Statusbar" or nil,
                         values = GetStatusBarList,
                         order = 2,
                         get = function(info) return self.db.profile.barLSMName end,
-                        set = function(info, val) self.db.profile.barLSMName = val; self:UpdateBarTexture() end,
+                        set = function(info, val)
+                            self.db.profile.barLSMName = val; self:UpdateBarTexture()
+                        end,
                     },
                     useClassColor = {
-                        name = "Use Class Color",
-                        type = "toggle", order = 2.1,
+                        name = "使用職業顏色",
+                        type = "toggle",
+                        order = 2.1,
                         get = function(info) return self.db.profile.useClassColor end,
-                        set = function(info, val) self.db.profile.useClassColor = val; self:UpdateBarColor() end,
+                        set = function(info, val)
+                            self.db.profile.useClassColor = val; self:UpdateBarColor()
+                        end,
                     },
                     barColor = {
-                        name = "Bar Color",
-                        type = "color", hasAlpha = true, order = 3,
+                        name = "施法條顏色",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 3,
                         disabled = function() return self.db.profile.useClassColor end,
-                        get = function(info) local c = self.db.profile.barColor; return c[1], c[2], c[3], c[4] end,
-                        set = function(info, r, g, b, a) self.db.profile.barColor = { r, g, b, a }; self:UpdateBarColor() end,
+                        get = function(info)
+                            local c = self.db.profile.barColor; return c[1], c[2], c[3], c[4]
+                        end,
+                        set = function(info, r, g, b, a)
+                            self.db.profile.barColor = { r, g, b, a }; self:UpdateBarColor()
+                        end,
                     },
                     barColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 3.1,
-                        func = function() self.db.profile.barColor = {unpack(defaults.barColor)}; self:UpdateBarColor() end,
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 3.1,
+                        func = function()
+                            self.db.profile.barColor = { unpack(defaults.barColor) }; self:UpdateBarColor()
+                        end,
                     },
                     bgColor = {
-                        name = "Background Color",
-                        type = "color", hasAlpha = true, order = 4,
-                        get = function(info) local c = self.db.profile.bgColor; return c[1], c[2], c[3], c[4] end,
-                        set = function(info, r, g, b, a) self.db.profile.bgColor = { r, g, b, a }; self:UpdateBackground() end,
+                        name = "背景顏色",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 4,
+                        get = function(info)
+                            local c = self.db.profile.bgColor; return c[1], c[2], c[3], c[4]
+                        end,
+                        set = function(info, r, g, b, a)
+                            self.db.profile.bgColor = { r, g, b, a }; self:UpdateBackground()
+                        end,
                     },
                     bgColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 4.1,
-                        func = function() self.db.profile.bgColor = {unpack(defaults.bgColor)}; self:UpdateBackground() end,
-                    },
-                    
-                    headerBorder = { name = "Border", type = "header", order = 10 },
-                    borderEnabled = {
-                        name = "Enable Border",
-                        type = "toggle", order = 11,
-                        get = function(info) return self.db.profile.borderEnabled end,
-                        set = function(info, val) self.db.profile.borderEnabled = val; self:UpdateBorder() end,
-                    },
-                    borderColor = {
-                        name = "Border Color",
-                        type = "color", hasAlpha = true, order = 12,
-                        disabled = function() return not self.db.profile.borderEnabled end,
-                        get = function(info) local c = self.db.profile.borderColor; return c[1], c[2], c[3], c[4] end,
-                        set = function(info, r, g, b, a) self.db.profile.borderColor = { r, g, b, a }; self:UpdateBorder() end,
-                    },
-                    borderColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 12.1,
-                        disabled = function() return not self.db.profile.borderEnabled end,
-                        func = function() self.db.profile.borderColor = {unpack(defaults.borderColor)}; self:UpdateBorder() end,
-                    },
-                    borderThickness = {
-                        name = "Thickness", type = "range", min = 1, max = 10, step = 1, order = 13,
-                        disabled = function() return not self.db.profile.borderEnabled end,
-                        get = function(info) return self.db.profile.borderThickness end,
-                        set = function(info, val) self.db.profile.borderThickness = val; self:UpdateBorder() end,
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 4.1,
+                        func = function()
+                            self.db.profile.bgColor = { unpack(defaults.bgColor) }; self:UpdateBackground()
+                        end,
                     },
 
-                    headerIcon = { name = "Spell Icon", type = "header", order = 20 },
+                    headerBorder = { name = "邊框", type = "header", order = 10 },
+                    borderEnabled = {
+                        name = "啟用邊框",
+                        type = "toggle",
+                        order = 11,
+                        get = function(info) return self.db.profile.borderEnabled end,
+                        set = function(info, val)
+                            self.db.profile.borderEnabled = val; self:UpdateBorder()
+                        end,
+                    },
+                    borderColor = {
+                        name = "邊框顏色",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 12,
+                        disabled = function() return not self.db.profile.borderEnabled end,
+                        get = function(info)
+                            local c = self.db.profile.borderColor; return c[1], c[2], c[3], c[4]
+                        end,
+                        set = function(info, r, g, b, a)
+                            self.db.profile.borderColor = { r, g, b, a }; self:UpdateBorder()
+                        end,
+                    },
+                    borderColorReset = {
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 12.1,
+                        disabled = function() return not self.db.profile.borderEnabled end,
+                        func = function()
+                            self.db.profile.borderColor = { unpack(defaults.borderColor) }; self:UpdateBorder()
+                        end,
+                    },
+                    borderThickness = {
+                        name = "厚度",
+                        type = "range",
+                        min = 1,
+                        max = 10,
+                        step = 1,
+                        order = 13,
+                        disabled = function() return not self.db.profile.borderEnabled end,
+                        get = function(info) return self.db.profile.borderThickness end,
+                        set = function(info, val)
+                            self.db.profile.borderThickness = val; self:UpdateBorder()
+                        end,
+                    },
+
+                    headerIcon = { name = "法術圖示", type = "header", order = 20 },
                     showIcon = {
-                        name = "Show Icon",
-                        type = "toggle", order = 21,
+                        name = "顯示圖示",
+                        type = "toggle",
+                        order = 21,
                         get = function(info) return self.db.profile.showIcon end,
-                        set = function(info, val) self.db.profile.showIcon = val; self:UpdateIcon() end,
+                        set = function(info, val)
+                            self.db.profile.showIcon = val; self:UpdateIcon()
+                        end,
                     },
                     iconGroup = {
-                        name = "Icon Settings",
-                        type = "group", inline = true, order = 22,
+                        name = "圖示設定",
+                        type = "group",
+                        inline = true,
+                        order = 22,
                         hidden = function() return not self.db.profile.showIcon end,
                         args = {
                             detachIcon = {
-                                name = "Detach", type = "toggle", order = 1,
+                                name = "分離",
+                                type = "toggle",
+                                order = 1,
                                 get = function(info) return self.db.profile.detachIcon end,
-                                set = function(info, val) self.db.profile.detachIcon = val; self:UpdateIcon() end,
+                                set = function(info, val)
+                                    self.db.profile.detachIcon = val; self:UpdateIcon()
+                                end,
                             },
                             iconAnchor = {
-                                name = "Position", type = "select", values = { ["Left"] = "Left", ["Right"] = "Right" }, order = 2,
+                                name = "位置",
+                                type = "select",
+                                values = { ["Left"] = "左", ["Right"] = "右" },
+                                order = 2,
                                 get = function(info) return self.db.profile.iconAnchor end,
-                                set = function(info, val) self.db.profile.iconAnchor = val; self:UpdateIcon() end,
+                                set = function(info, val)
+                                    self.db.profile.iconAnchor = val; self:UpdateIcon()
+                                end,
                             },
                             iconSize = {
-                                name = "Size", type = "range", min = 10, max = 128, step = 1, order = 3,
+                                name = "大小",
+                                type = "range",
+                                min = 10,
+                                max = 128,
+                                step = 1,
+                                order = 3,
                                 get = function(info) return self.db.profile.iconSize end,
-                                set = function(info, val) self.db.profile.iconSize = val; self:UpdateIcon() end,
+                                set = function(info, val)
+                                    self.db.profile.iconSize = val; self:UpdateIcon()
+                                end,
                             },
                             iconX = {
-                                name = "X Offset", type = "range", min = -200, max = 200, step = 1, order = 4,
+                                name = "X 偏移",
+                                type = "range",
+                                min = -200,
+                                max = 200,
+                                step = 1,
+                                order = 4,
                                 get = function(info) return self.db.profile.iconX end,
-                                set = function(info, val) self.db.profile.iconX = val; self:UpdateIcon() end,
+                                set = function(info, val)
+                                    self.db.profile.iconX = val; self:UpdateIcon()
+                                end,
                             },
                             iconY = {
-                                name = "Y Offset", type = "range", min = -200, max = 200, step = 1, order = 5,
+                                name = "Y 偏移",
+                                type = "range",
+                                min = -200,
+                                max = 200,
+                                step = 1,
+                                order = 5,
                                 get = function(info) return self.db.profile.iconY end,
-                                set = function(info, val) self.db.profile.iconY = val; self:UpdateIcon() end,
+                                set = function(info, val)
+                                    self.db.profile.iconY = val; self:UpdateIcon()
+                                end,
                             },
                         }
                     }
@@ -559,13 +683,13 @@ function AscensionCastBar:SetupOptions()
             -- TAB 3: TEXT (Fonts, Labels)
             -- ==========================================================
             text = {
-                name = "Text & Fonts",
+                name = "文字與字型",
                 type = "group",
                 order = 3,
                 args = {
-                    headerFont = { name = "Global Font Settings", type = "header", order = 1 },
+                    headerFont = { name = "全域字型設定", type = "header", order = 1 },
                     font = {
-                        name = "Font Face",
+                        name = "字型",
                         type = "select",
                         dialogControl = hasLSMWidgets and "LSM30_Font" or nil,
                         values = GetFontList,
@@ -576,164 +700,226 @@ function AscensionCastBar:SetupOptions()
                         end,
                     },
                     outline = {
-                        name = "Font Outline",
-                        type = "select", values = { ["NONE"] = "None", ["OUTLINE"] = "Outline", ["THICKOUTLINE"] = "Thick Outline", ["MONOCHROME"] = "Monochrome" },
+                        name = "字型描邊",
+                        type = "select",
+                        values = { ["NONE"] = "無", ["OUTLINE"] = "描邊", ["THICKOUTLINE"] = "粗描邊", ["MONOCHROME"] = "單色" },
                         order = 3,
                         get = function(info) return self.db.profile.outline end,
-                        set = function(info, val) self.db.profile.outline = val; self:ApplyFont() end,
+                        set = function(info, val)
+                            self.db.profile.outline = val; self:ApplyFont()
+                        end,
                     },
-                    headerName = { name = "Spell Name", type = "header", order = 10 },
+                    headerName = { name = "法術名稱", type = "header", order = 10 },
                     showSpellText = {
-                        name = "Show Name",
-                        type = "toggle", order = 11,
+                        name = "顯示名稱",
+                        type = "toggle",
+                        order = 11,
                         get = function(info) return self.db.profile.showSpellText end,
-                        set = function(info, val) self.db.profile.showSpellText = val; self:UpdateTextVisibility() end,
+                        set = function(info, val)
+                            self.db.profile.showSpellText = val; self:UpdateTextVisibility()
+                        end,
                     },
                     truncateSpellName = {
-                        name = "Truncate Name",
-                        type = "toggle", order = 11.1,
+                        name = "截斷名稱",
+                        type = "toggle",
+                        order = 11.1,
                         get = function(info) return self.db.profile.truncateSpellName end,
                         set = function(info, val) self.db.profile.truncateSpellName = val end,
                     },
                     truncateLength = {
-                        name = "Max Characters",
-                        type = "range", min = 5, max = 100, step = 1, order = 11.2,
+                        name = "最大字數",
+                        type = "range",
+                        min = 5,
+                        max = 100,
+                        step = 1,
+                        order = 11.2,
                         disabled = function() return not self.db.profile.truncateSpellName end,
                         get = function(info) return self.db.profile.truncateLength end,
                         set = function(info, val) self.db.profile.truncateLength = val end,
                     },
                     fontSizeSpell = {
-                        name = "Size", type = "range", min = 8, max = 32, step = 1, order = 12,
+                        name = "大小",
+                        type = "range",
+                        min = 8,
+                        max = 32,
+                        step = 1,
+                        order = 12,
                         get = function(info) return self.db.profile.spellNameFontSize end,
-                        set = function(info, val) self.db.profile.spellNameFontSize = val; self:ApplyFont() end,
+                        set = function(info, val)
+                            self.db.profile.spellNameFontSize = val; self:ApplyFont()
+                        end,
                     },
                     fontColor = {
-                        name = "Color", type = "color", hasAlpha = true, order = 13,
-                        get = function(info) local c = self.db.profile.fontColor; return c[1], c[2], c[3], c[4] end,
-                        set = function(info, r, g, b, a) self.db.profile.fontColor = { r, g, b, a }; self:ApplyFont() end,
+                        name = "顏色",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 13,
+                        get = function(info)
+                            local c = self.db.profile.fontColor; return c[1], c[2], c[3], c[4]
+                        end,
+                        set = function(info, r, g, b, a)
+                            self.db.profile.fontColor = { r, g, b, a }; self:ApplyFont()
+                        end,
                     },
                     fontColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 13.1,
-                        func = function() self.db.profile.fontColor = {unpack(defaults.fontColor)}; self:ApplyFont() end,
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 13.1,
+                        func = function()
+                            self.db.profile.fontColor = { unpack(defaults.fontColor) }; self:ApplyFont()
+                        end,
                     },
-                    headerTimer = { name = "Timer", type = "header", order = 20 },
+                    headerTimer = { name = "計時器", type = "header", order = 20 },
                     showTimerText = {
-                        name = "Show Timer", type = "toggle", order = 21,
+                        name = "顯示計時器",
+                        type = "toggle",
+                        order = 21,
                         get = function(info) return self.db.profile.showTimerText end,
                         set = function(info, val) self.db.profile.showTimerText = val end,
                     },
                     hideTimerOnChannel = {
-                        name = "Hide on Channel",
-                        type = "toggle", order = 21.1,
+                        name = "引導時隱藏",
+                        type = "toggle",
+                        order = 21.1,
                         get = function(info) return self.db.profile.hideTimerOnChannel end,
                         set = function(info, val) self.db.profile.hideTimerOnChannel = val end,
                     },
                     timerFormat = {
-                        name = "Format", type = "select", values = { ["Remaining"] = "Remaining", ["Duration"] = "Duration", ["Total"] = "Total" }, order = 22,
+                        name = "格式",
+                        type = "select",
+                        values = { ["Remaining"] = "剩餘時間", ["Duration"] = "已用時間", ["Total"] = "總時間" },
+                        order = 22,
                         get = function(info) return self.db.profile.timerFormat end,
                         set = function(info, val) self.db.profile.timerFormat = val end,
                     },
                     fontSizeTimer = {
-                        name = "Size", type = "range", min = 8, max = 32, step = 1, order = 23,
+                        name = "大小",
+                        type = "range",
+                        min = 8,
+                        max = 32,
+                        step = 1,
+                        order = 23,
                         get = function(info) return self.db.profile.timerFontSize end,
-                        set = function(info, val) self.db.profile.timerFontSize = val; self:ApplyFont() end,
+                        set = function(info, val)
+                            self.db.profile.timerFontSize = val; self:ApplyFont()
+                        end,
                     },
                     useSharedColor = {
-                        name = "Use Shared Color", desc = "Use same color as Spell Name.", type = "toggle", order = 24,
+                        name = "使用共用顏色",
+                        desc = "使用與法術名稱相同的顏色。",
+                        type = "toggle",
+                        order = 24,
                         get = function(info) return self.db.profile.useSharedColor end,
-                        set = function(info, val) self.db.profile.useSharedColor = val; self:ApplyFont() end,
+                        set = function(info, val)
+                            self.db.profile.useSharedColor = val; self:ApplyFont()
+                        end,
                     },
                     timerColor = {
-                        name = "Timer Color", type = "color", hasAlpha = true, order = 25,
+                        name = "計時器顏色",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 25,
                         disabled = function() return self.db.profile.useSharedColor end,
-                        get = function(info) local c = self.db.profile.timerColor; return c[1], c[2], c[3], c[4] end,
-                        set = function(info, r, g, b, a) self.db.profile.timerColor = { r, g, b, a }; self:ApplyFont() end,
+                        get = function(info)
+                            local c = self.db.profile.timerColor; return c[1], c[2], c[3], c[4]
+                        end,
+                        set = function(info, r, g, b, a)
+                            self.db.profile.timerColor = { r, g, b, a }; self:ApplyFont()
+                        end,
                     },
                     timerColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 25.1,
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 25.1,
                         disabled = function() return self.db.profile.useSharedColor end,
-                        func = function() self.db.profile.timerColor = {unpack(defaults.timerColor)}; self:ApplyFont() end,
-                    },
-                    headerTextPos = { name = "Positioning & Backdrop", type = "header", order = 14 },
-                    detachText = {
-                        name = "Detach Text", type = "toggle", order = 15,
-                        get = function(info) return self.db.profile.detachText end,
-                        set = function(info, val) self.db.profile.detachText = val; self:UpdateTextLayout() end,
-                    },
-                    textX = {
-                        name = "X Offset", type = "range", min = -200, max = 200, step = 1, order = 16,
-                        hidden = function() return not self.db.profile.detachText end,
-                        get = function(info) return self.db.profile.textX end,
-                        set = function(info, val) self.db.profile.textX = val; self:UpdateTextLayout() end,
-                    },
-                    textY = {
-                        name = "Y Offset", type = "range", min = -200, max = 200, step = 1, order = 17,
-                        hidden = function() return not self.db.profile.detachText end,
-                        get = function(info) return self.db.profile.textY end,
-                        set = function(info, val) self.db.profile.textY = val; self:UpdateTextLayout() end,
-                    },
-                    textWidth = {
-                        name = "Text Area Width", type = "range", min = 50, max = 500, step = 1, order = 18,
-                        hidden = function() return not self.db.profile.detachText end,
-                        get = function(info) return self.db.profile.textWidth end,
-                        set = function(info, val) self.db.profile.textWidth = val; self:UpdateTextLayout() end,
-                    },
-                    textBackdropEnabled = {
-                        name = "Enable Backdrop", type = "toggle", order = 19,
-                        get = function(info) return self.db.profile.textBackdropEnabled end,
-                        set = function(info, val) self.db.profile.textBackdropEnabled = val; self:UpdateTextLayout() end,
-                    },
-                    textBackdropColor = {
-                        name = "Backdrop Color", type = "color", hasAlpha = true, order = 36,
-                        hidden = function() return not self.db.profile.textBackdropEnabled end,
-                        get = function(info) local c = self.db.profile.textBackdropColor; return c[1], c[2], c[3], c[4] end,
-                        set = function(info, r, g, b, a) self.db.profile.textBackdropColor = { r, g, b, a }; self:UpdateTextLayout() end,
-                    },
-                    textBackdropColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 36.1,
-                        hidden = function() return not self.db.profile.textBackdropEnabled end,
-                        func = function() self.db.profile.textBackdropColor = {unpack(defaults.textBackdropColor)}; self:UpdateTextLayout() end,
+                        func = function()
+                            self.db.profile.timerColor = { unpack(defaults.timerColor) }; self:ApplyFont()
+                        end,
                     },
                     -- TEXT POSITIONING & BACKDROP
-                    headerTextPos = { name = "Positioning & Backdrop", type = "header", order = 30 },
+                    headerTextPos = { name = "位置與背景板", type = "header", order = 30 },
                     detachText = {
-                        name = "Detach Text", type = "toggle", order = 31,
+                        name = "分離文字",
+                        type = "toggle",
+                        order = 31,
                         get = function(info) return self.db.profile.detachText end,
-                        set = function(info, val) self.db.profile.detachText = val; self:UpdateTextLayout() end,
+                        set = function(info, val)
+                            self.db.profile.detachText = val; self:UpdateTextLayout()
+                        end,
                     },
                     textX = {
-                        name = "X Offset", type = "range", min = -200, max = 200, step = 1, order = 32,
+                        name = "X 偏移",
+                        type = "range",
+                        min = -200,
+                        max = 200,
+                        step = 1,
+                        order = 32,
                         hidden = function() return not self.db.profile.detachText end,
                         get = function(info) return self.db.profile.textX end,
-                        set = function(info, val) self.db.profile.textX = val; self:UpdateTextLayout() end,
+                        set = function(info, val)
+                            self.db.profile.textX = val; self:UpdateTextLayout()
+                        end,
                     },
                     textY = {
-                        name = "Y Offset", type = "range", min = -200, max = 200, step = 1, order = 33,
+                        name = "Y 偏移",
+                        type = "range",
+                        min = -200,
+                        max = 200,
+                        step = 1,
+                        order = 33,
                         hidden = function() return not self.db.profile.detachText end,
                         get = function(info) return self.db.profile.textY end,
-                        set = function(info, val) self.db.profile.textY = val; self:UpdateTextLayout() end,
+                        set = function(info, val)
+                            self.db.profile.textY = val; self:UpdateTextLayout()
+                        end,
                     },
                     textWidth = {
-                        name = "Text Area Width", type = "range", min = 50, max = 500, step = 1, order = 34,
+                        name = "文字區域寬度",
+                        type = "range",
+                        min = 50,
+                        max = 500,
+                        step = 1,
+                        order = 34,
                         hidden = function() return not self.db.profile.detachText end,
                         get = function(info) return self.db.profile.textWidth end,
-                        set = function(info, val) self.db.profile.textWidth = val; self:UpdateTextLayout() end,
+                        set = function(info, val)
+                            self.db.profile.textWidth = val; self:UpdateTextLayout()
+                        end,
                     },
                     textBackdropEnabled = {
-                        name = "Enable Backdrop", type = "toggle", order = 35,
+                        name = "啟用背景板",
+                        type = "toggle",
+                        order = 35,
                         get = function(info) return self.db.profile.textBackdropEnabled end,
-                        set = function(info, val) self.db.profile.textBackdropEnabled = val; self:UpdateTextLayout() end,
+                        set = function(info, val)
+                            self.db.profile.textBackdropEnabled = val; self:UpdateTextLayout()
+                        end,
                     },
                     textBackdropColor = {
-                        name = "Backdrop Color", type = "color", hasAlpha = true, order = 36,
+                        name = "背景板顏色",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 36,
                         hidden = function() return not self.db.profile.textBackdropEnabled end,
-                        get = function(info) local c = self.db.profile.textBackdropColor; return c[1], c[2], c[3], c[4] end,
-                        set = function(info, r, g, b, a) self.db.profile.textBackdropColor = { r, g, b, a }; self:UpdateTextLayout() end,
+                        get = function(info)
+                            local c = self.db.profile.textBackdropColor; return c[1], c[2], c[3], c[4]
+                        end,
+                        set = function(info, r, g, b, a)
+                            self.db.profile.textBackdropColor = { r, g, b, a }; self:UpdateTextLayout()
+                        end,
                     },
                     textBackdropColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 36.1,
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 36.1,
                         hidden = function() return not self.db.profile.textBackdropEnabled end,
-                        func = function() self.db.profile.textBackdropColor = {unpack(defaults.textBackdropColor)}; self:UpdateTextLayout() end,
+                        func = function()
+                            self.db.profile.textBackdropColor = { unpack(defaults.textBackdropColor) }; self
+                                :UpdateTextLayout()
+                        end,
                     },
                 }
             },
@@ -742,47 +928,73 @@ function AscensionCastBar:SetupOptions()
             -- TAB 4: MECHANICS (Latency, Empower, Channels)
             -- ==========================================================
             mechanics = {
-                name = "Mechanics",
+                name = "機制",
                 type = "group",
                 order = 4,
                 args = {
-                    headerLatency = { name = "Latency", type = "header", order = 1 },
+                    headerLatency = { name = "延遲", type = "header", order = 1 },
                     showLatency = {
-                        name = "Show Latency", type = "toggle", order = 2,
+                        name = "顯示延遲",
+                        type = "toggle",
+                        order = 2,
                         get = function(info) return self.db.profile.showLatency end,
-                        set = function(info, val) 
+                        set = function(info, val)
                             self.db.profile.showLatency = val
                             if self.db.profile.previewEnabled then self:UpdateLatencyBar(self.castBar) end
                         end,
                     },
                     latencyColor = {
-                        name = "Latency Color", type = "color", hasAlpha = true, order = 34.6,
-                        get = function(info) local c = self.db.profile.latencyColor; return c[1], c[2], c[3], c[4] end,
+                        name = "延遲顏色",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 34.6,
+                        get = function(info)
+                            local c = self.db.profile.latencyColor; return c[1], c[2], c[3], c[4]
+                        end,
                         set = function(info, r, g, b, a) self.db.profile.latencyColor = { r, g, b, a } end,
                     },
                     latencyColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 34.7,
-                        func = function() self.db.profile.latencyColor = {unpack(defaults.latencyColor)} end,
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 34.7,
+                        func = function() self.db.profile.latencyColor = { unpack(defaults.latencyColor) } end,
                     },
                     latencyMaxPercent = {
-                        name = "Max Width %", desc = "Sets the maximum width percentage of the cast bar that the latency indicator can occupy.", type = "range", min = 0.1, max = 1.0, step = 0.05, order = 34.8,
+                        name = "最大寬度 %",
+                        desc = "設定延遲指示器可佔用施法條的最大寬度百分比。",
+                        type = "range",
+                        min = 0.1,
+                        max = 1.0,
+                        step = 0.05,
+                        order = 34.8,
                         get = function(info) return self.db.profile.latencyMaxPercent end,
-                        set = function(info, val) 
-                            self.db.profile.latencyMaxPercent = val 
+                        set = function(info, val)
+                            self.db.profile.latencyMaxPercent = val
                             if self.db.profile.previewEnabled then self:UpdateLatencyBar(self.castBar) end
                         end,
                     },
 
-                    headerChannel = { name = "Channeled Spells", type = "header", order = 10 },
+                    headerChannel = { name = "引導法術", type = "header", order = 10 },
                     reverseChanneling = {
-                        name = "Reverse Channel", desc = "Fill bar instead of empty.", type = "toggle", order = 11,
+                        name = "反向引導",
+                        desc = "填充施法條而非清空。",
+                        type = "toggle",
+                        order = 11,
                         get = function(info) return self.db.profile.reverseChanneling end,
-                        set = function(info, val) self.db.profile.reverseChanneling = val; if self.db.profile.previewEnabled then self:ToggleTestMode(true) end end,
+                        set = function(info, val)
+                            self.db.profile.reverseChanneling = val; if self.db.profile.previewEnabled then
+                                self
+                                    :ToggleTestMode(true)
+                            end
+                        end,
                     },
                     showChannelTicks = {
-                        name = "Show Ticks", type = "toggle", order = 12,
+                        name = "顯示刻度",
+                        type = "toggle",
+                        order = 12,
                         get = function(info) return self.db.profile.showChannelTicks end,
-                        set = function(info, val) 
+                        set = function(info, val)
                             self.db.profile.showChannelTicks = val
                             if self.db.profile.previewEnabled and self.db.profile.testModeState == "Channel" then
                                 self:UpdateTicks(234153, 0, 10)
@@ -790,10 +1002,15 @@ function AscensionCastBar:SetupOptions()
                         end,
                     },
                     channelTicksThickness = {
-                        name = "Tick Thickness", type = "range", min = 1, max = 10, step = 1, order = 12.1,
+                        name = "刻度厚度",
+                        type = "range",
+                        min = 1,
+                        max = 10,
+                        step = 1,
+                        order = 12.1,
                         disabled = function() return not self.db.profile.showChannelTicks end,
                         get = function(info) return self.db.profile.channelTicksThickness end,
-                        set = function(info, val) 
+                        set = function(info, val)
                             self.db.profile.channelTicksThickness = val
                             if self.db.profile.previewEnabled and self.db.profile.testModeState == "Channel" then
                                 self:UpdateTicks(234153, 0, 10)
@@ -801,10 +1018,15 @@ function AscensionCastBar:SetupOptions()
                         end,
                     },
                     channelTicksColor = {
-                        name = "Tick Color", type = "color", hasAlpha = true, order = 12.2,
+                        name = "刻度顏色",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 12.2,
                         disabled = function() return not self.db.profile.showChannelTicks end,
-                        get = function(info) local c = self.db.profile.channelTicksColor; return c[1], c[2], c[3], c[4] end,
-                        set = function(info, r, g, b, a) 
+                        get = function(info)
+                            local c = self.db.profile.channelTicksColor; return c[1], c[2], c[3], c[4]
+                        end,
+                        set = function(info, r, g, b, a)
                             self.db.profile.channelTicksColor = { r, g, b, a }
                             if self.db.profile.previewEnabled and self.db.profile.testModeState == "Channel" then
                                 self:UpdateTicks(234153, 0, 10)
@@ -812,78 +1034,163 @@ function AscensionCastBar:SetupOptions()
                         end,
                     },
                     channelTicksColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 12.3,
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 12.3,
                         disabled = function() return not self.db.profile.showChannelTicks end,
-                        func = function() 
-                            self.db.profile.channelTicksColor = {unpack(defaults.channelTicksColor)} 
+                        func = function()
+                            self.db.profile.channelTicksColor = { unpack(defaults.channelTicksColor) }
                             if self.db.profile.previewEnabled and self.db.profile.testModeState == "Channel" then
                                 self:UpdateTicks(234153, 0, 10)
                             end
                         end,
                     },
-                    
-                    headerChannelStyle = { name = "Channel Styling", type = "header", order = 13 },
+
+                    headerChannelStyle = { name = "引導樣式", type = "header", order = 13 },
                     useChannelColor = {
-                        name = "Custom Channel Color", type = "toggle", order = 13.1,
+                        name = "自訂引導顏色",
+                        type = "toggle",
+                        order = 13.1,
                         get = function(info) return self.db.profile.useChannelColor end,
-                        set = function(info, val) self.db.profile.useChannelColor = val; self:UpdateBarColor() end,
+                        set = function(info, val)
+                            self.db.profile.useChannelColor = val; self:UpdateBarColor()
+                        end,
                     },
                     channelColor = {
-                        name = "Channel Color", type = "color", hasAlpha = true, order = 13.2,
+                        name = "引導顏色",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 13.2,
                         disabled = function() return not self.db.profile.useChannelColor end,
-                        get = function(info) local c = self.db.profile.channelColor; return c[1], c[2], c[3], c[4] end,
-                        set = function(info, r, g, b, a) self.db.profile.channelColor = { r, g, b, a }; self:UpdateBarColor() end,
+                        get = function(info)
+                            local c = self.db.profile.channelColor; return c[1], c[2], c[3], c[4]
+                        end,
+                        set = function(info, r, g, b, a)
+                            self.db.profile.channelColor = { r, g, b, a }; self:UpdateBarColor()
+                        end,
                     },
                     channelColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 13.25,
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 13.25,
                         disabled = function() return not self.db.profile.useChannelColor end,
-                        func = function() self.db.profile.channelColor = {unpack(defaults.channelColor)}; self:UpdateBarColor() end,
+                        func = function()
+                            self.db.profile.channelColor = { unpack(defaults.channelColor) }; self:UpdateBarColor()
+                        end,
                     },
-                    headerEmpower = { name = "Empowered Spells (Evoker)", type = "header", order = 20 },
+                    headerEmpower = { name = "蓄力法術（喚龍師）", type = "header", order = 20 },
+                    empowerWidthScale = {
+                        name = "縮放施法條寬度",
+                        desc = "在蓄力階段增加施法條的水平長度。",
+                        type = "toggle",
+                        width = "full",
+                        order = 20.1,
+                        get = function(info) return self.db.profile.empowerWidthScale end,
+                        set = function(info, val)
+                            self.db.profile.empowerWidthScale = val; self:UpdateBarColor()
+                        end,
+                    },
                     empowerStage1Color = {
-                        name = "Stage 1", type = "color", hasAlpha = true, order = 21,
-                        get = function(info) local c = self.db.profile.empowerStage1Color; return c[1], c[2], c[3], c[4] end,
+                        name = "階段 1",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 21,
+                        get = function(info)
+                            local c = self.db.profile.empowerStage1Color; return c[1], c[2], c[3], c[4]
+                        end,
                         set = function(info, r, g, b, a) self.db.profile.empowerStage1Color = { r, g, b, a } end,
                     },
                     empowerStage1ColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 21.1,
-                        func = function() self.db.profile.empowerStage1Color = {unpack(defaults.empowerStage1Color)}; self:UpdateBarColor() end,
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 21.1,
+                        func = function()
+                            self.db.profile.empowerStage1Color = { unpack(defaults.empowerStage1Color) }; self
+                                :UpdateBarColor()
+                        end,
                     },
                     empowerStage2Color = {
-                        name = "Stage 2", type = "color", hasAlpha = true, order = 22,
-                        get = function(info) local c = self.db.profile.empowerStage2Color; return c[1], c[2], c[3], c[4] end,
+                        name = "階段 2",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 22,
+                        get = function(info)
+                            local c = self.db.profile.empowerStage2Color; return c[1], c[2], c[3], c[4]
+                        end,
                         set = function(info, r, g, b, a) self.db.profile.empowerStage2Color = { r, g, b, a } end,
                     },
                     empowerStage2ColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 22.1,
-                        func = function() self.db.profile.empowerStage2Color = {unpack(defaults.empowerStage2Color)}; self:UpdateBarColor() end,
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 22.1,
+                        func = function()
+                            self.db.profile.empowerStage2Color = { unpack(defaults.empowerStage2Color) }; self
+                                :UpdateBarColor()
+                        end,
                     },
                     empowerStage3Color = {
-                        name = "Stage 3", type = "color", hasAlpha = true, order = 23,
-                        get = function(info) local c = self.db.profile.empowerStage3Color; return c[1], c[2], c[3], c[4] end,
+                        name = "階段 3",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 23,
+                        get = function(info)
+                            local c = self.db.profile.empowerStage3Color; return c[1], c[2], c[3], c[4]
+                        end,
                         set = function(info, r, g, b, a) self.db.profile.empowerStage3Color = { r, g, b, a } end,
                     },
                     empowerStage3ColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 23.1,
-                        func = function() self.db.profile.empowerStage3Color = {unpack(defaults.empowerStage3Color)}; self:UpdateBarColor() end,
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 23.1,
+                        func = function()
+                            self.db.profile.empowerStage3Color = { unpack(defaults.empowerStage3Color) }; self
+                                :UpdateBarColor()
+                        end,
                     },
                     empowerStage4Color = {
-                        name = "Stage 4", type = "color", hasAlpha = true, order = 24,
-                        get = function(info) local c = self.db.profile.empowerStage4Color; return c[1], c[2], c[3], c[4] end,
+                        name = "階段 4",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 24,
+                        get = function(info)
+                            local c = self.db.profile.empowerStage4Color; return c[1], c[2], c[3], c[4]
+                        end,
                         set = function(info, r, g, b, a) self.db.profile.empowerStage4Color = { r, g, b, a } end,
                     },
                     empowerStage4ColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 24.1,
-                        func = function() self.db.profile.empowerStage4Color = {unpack(defaults.empowerStage4Color)}; self:UpdateBarColor() end,
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 24.1,
+                        func = function()
+                            self.db.profile.empowerStage4Color = { unpack(defaults.empowerStage4Color) }; self
+                                :UpdateBarColor()
+                        end,
                     },
                     empowerStage5Color = {
-                        name = "Stage 5", type = "color", hasAlpha = true, order = 25,
-                        get = function(info) local c = self.db.profile.empowerStage5Color; return c[1], c[2], c[3], c[4] end,
+                        name = "階段 5",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 25,
+                        get = function(info)
+                            local c = self.db.profile.empowerStage5Color; return c[1], c[2], c[3], c[4]
+                        end,
                         set = function(info, r, g, b, a) self.db.profile.empowerStage5Color = { r, g, b, a } end,
                     },
                     empowerStage5ColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 25.1,
-                        func = function() self.db.profile.empowerStage5Color = {unpack(defaults.empowerStage5Color)}; self:UpdateBarColor() end,
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 25.1,
+                        func = function()
+                            self.db.profile.empowerStage5Color = { unpack(defaults.empowerStage5Color) }; self
+                                :UpdateBarColor()
+                        end,
                     },
                 }
             },
@@ -892,16 +1199,24 @@ function AscensionCastBar:SetupOptions()
             -- TAB 5: ANIMATION (Visual FX)
             -- ==========================================================
             animation = {
-                name = "Visual FX",
+                name = "視覺特效",
                 type = "group",
                 order = 5,
                 args = {
                     animStyle = {
-                        name = "Main Style", type = "select", order = 1,
+                        name = "主要樣式",
+                        type = "select",
+                        order = 1,
                         values = {
-                            ["Comet"] = "Comet", ["Orb"] = "Orb", ["Flux"] = "Flux",
-                            ["Helix"] = "Helix", ["Pulse"] = "Pulse", ["Starfall"] = "Starfall",
-                            ["Wave"] = "Wave", ["Glitch"] = "Glitch", ["Lightning"] = "Lightning",
+                            ["Comet"] = "Comet",
+                            ["Orb"] = "Orb",
+                            ["Flux"] = "Flux",
+                            ["Helix"] = "Helix",
+                            ["Pulse"] = "Pulse",
+                            ["Starfall"] = "Starfall",
+                            ["Wave"] = "Wave",
+                            ["Glitch"] = "Glitch",
+                            ["Lightning"] = "Lightning",
                         },
                         get = function(info) return self.db.profile.animStyle end,
                         set = function(info, val)
@@ -911,366 +1226,638 @@ function AscensionCastBar:SetupOptions()
                             end
                         end,
                     },
-                    headerGlobalFX = { name = "Global Glow & Offsets", type = "header", order = 2.1 },
-                    glowColor = {
-                        name = "Global Glow Color", type = "color", hasAlpha = true, order = 2.2,
-                        get = function(info) local c = self.db.profile.glowColor; return c[1], c[2], c[3], c[4] end,
-                        set = function(info, r, g, b, a) self.db.profile.glowColor = { r, g, b, a }; self:UpdateSparkColors() end,
-                    },
-                    glowIntensity = {
-                        name = "Glow Intensity", type = "range", min = 0, max = 5, step = 0.1, order = 2.3,
-                        get = function(info) return self.db.profile.glowIntensity end,
-                        set = function(info, val) self.db.profile.glowIntensity = val end,
-                    },
-                    headLengthOffset = {
-                        name = "Head Offset (Global)", type = "range", min = -100, max = 100, step = 1, order = 2.4,
-                        get = function(info) return self.db.profile.headLengthOffset end,
-                        set = function(info, val) self.db.profile.headLengthOffset = val end,
-                    },
-                    tailOffset = {
-                        name = "Tail Offset (Global)", type = "range", min = -100, max = 100, step = 1, order = 2.41,
-                        get = function(info) return self.db.profile.tailOffset end,
-                        set = function(info, val) self.db.profile.tailOffset = val end,
-                    },
-                    tailLength = {
-                        name = "Tail Length (Global)", type = "range", min = 10, max = 500, step = 1, order = 2.42,
-                        get = function(info) return self.db.profile.tailLength end,
-                        set = function(info, val) self.db.profile.tailLength = val; self:UpdateSparkSize() end,
-                    },
                     enableSpark = {
-                        name = "Enable Spark", type = "toggle", order = 2,
+                        name = "啟用火花",
+                        type = "toggle",
+                        order = 2,
                         get = function(info) return self.db.profile.enableSpark end,
                         set = function(info, val) self.db.profile.enableSpark = val end,
                     },
-                    
+
                     -- GLOBAL FX SETTINGS
-                    headerGlobalFX = { name = "Global Glow & Offsets", type = "header", order = 5 },
+                    headerGlobalFX = { name = "全域光暈與偏移", type = "header", order = 5 },
                     glowColor = {
-                        name = "Global Glow Color", type = "color", hasAlpha = true, order = 6,
-                        get = function(info) local c = self.db.profile.glowColor; return c[1], c[2], c[3], c[4] end,
-                        set = function(info, r, g, b, a) self.db.profile.glowColor = { r, g, b, a }; self:UpdateSparkColors() end,
+                        name = "全域光暈顏色",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 6,
+                        get = function(info)
+                            local c = self.db.profile.glowColor; return c[1], c[2], c[3], c[4]
+                        end,
+                        set = function(info, r, g, b, a)
+                            self.db.profile.glowColor = { r, g, b, a }; self:UpdateSparkColors()
+                        end,
                     },
                     glowColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 6.1,
-                        func = function() self.db.profile.glowColor = {unpack(defaults.glowColor)}; self:UpdateSparkColors() end,
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 6.1,
+                        func = function()
+                            self.db.profile.glowColor = { unpack(defaults.glowColor) }; self:UpdateSparkColors()
+                        end,
                     },
                     glowIntensity = {
-                        name = "Glow Intensity", type = "range", min = 0, max = 5, step = 0.1, order = 7,
+                        name = "光暈強度",
+                        type = "range",
+                        min = 0,
+                        max = 5,
+                        step = 0.1,
+                        order = 7,
                         get = function(info) return self.db.profile.glowIntensity end,
                         set = function(info, val) self.db.profile.glowIntensity = val end,
                     },
                     headLengthOffset = {
-                        name = "Head Offset (Global)", type = "range", min = -100, max = 100, step = 1, order = 8,
+                        name = "頭部偏移（全域）",
+                        type = "range",
+                        min = -100,
+                        max = 100,
+                        step = 1,
+                        order = 8,
                         get = function(info) return self.db.profile.headLengthOffset end,
                         set = function(info, val) self.db.profile.headLengthOffset = val end,
                     },
                     tailOffset = {
-                        name = "Tail Offset (Global)", type = "range", min = -100, max = 100, step = 1, order = 9,
+                        name = "尾部偏移（全域）",
+                        type = "range",
+                        min = -100,
+                        max = 100,
+                        step = 1,
+                        order = 9,
                         get = function(info) return self.db.profile.tailOffset end,
                         set = function(info, val) self.db.profile.tailOffset = val end,
                     },
                     tailLength = {
-                        name = "Tail Length (Global)", type = "range", min = 10, max = 500, step = 1, order = 9.5,
+                        name = "尾部長度（全域）",
+                        type = "range",
+                        min = 10,
+                        max = 500,
+                        step = 1,
+                        order = 9.5,
                         get = function(info) return self.db.profile.tailLength end,
-                        set = function(info, val) 
+                        set = function(info, val)
                             self.db.profile.tailLength = val
                             self.db.profile.tail1Length = val
                             self.db.profile.tail2Length = val
                             self.db.profile.tail3Length = val
                             self.db.profile.tail4Length = val
-                            self:UpdateSparkSize() 
+                            self:UpdateSparkSize()
                         end,
                     },
 
                     -- TAIL CONFIGURATION
-                    headerTails = { name = "Spark & Tail Colors", type = "header", order = 10 },
+                    headerTails = { name = "火花與尾巴顏色", type = "header", order = 10 },
                     sparkColor = {
-                        name = "Spark Head Color", type = "color", hasAlpha = true, order = 11,
-                        get = function(info) local c = self.db.profile.sparkColor; return c[1], c[2], c[3], c[4] end,
-                        set = function(info, r, g, b, a) self.db.profile.sparkColor = { r, g, b, a }; self:UpdateSparkColors() end,
-                    },  
+                        name = "火花頭部顏色",
+                        type = "color",
+                        hasAlpha = true,
+                        order = 11,
+                        get = function(info)
+                            local c = self.db.profile.sparkColor; return c[1], c[2], c[3], c[4]
+                        end,
+                        set = function(info, r, g, b, a)
+                            self.db.profile.sparkColor = { r, g, b, a }; self:UpdateSparkColors()
+                        end,
+                    },
                     sparkColorReset = {
-                        name = "Reset", type = "execute", width = "half", order = 11.05,
-                        func = function() self.db.profile.sparkColor = {unpack(defaults.sparkColor)}; self:UpdateSparkColors() end,
+                        name = "重置",
+                        type = "execute",
+                        width = "half",
+                        order = 11.05,
+                        func = function()
+                            self.db.profile.sparkColor = { unpack(defaults.sparkColor) }; self:UpdateSparkColors()
+                        end,
                     },
                     sparkIntensity = {
-                        name = "Spark Intensity", type = "range", min = 0, max = 5, step = 0.05, order = 11.1,
+                        name = "火花強度",
+                        type = "range",
+                        min = 0,
+                        max = 5,
+                        step = 0.05,
+                        order = 11.1,
                         get = function(info) return self.db.profile.sparkIntensity end,
                         set = function(info, val) self.db.profile.sparkIntensity = val end,
                     },
                     sparkScale = {
-                        name = "Spark Scale", type = "range", min = 0.5, max = 3, step = 0.1, order = 11.2,
+                        name = "火花縮放",
+                        type = "range",
+                        min = 0.5,
+                        max = 3,
+                        step = 0.1,
+                        order = 11.2,
                         get = function(info) return self.db.profile.sparkScale end,
-                        set = function(info, val) self.db.profile.sparkScale = val; self:UpdateSparkSize() end,
+                        set = function(info, val)
+                            self.db.profile.sparkScale = val; self:UpdateSparkSize()
+                        end,
                     },
                     sparkOffset = {
-                        name = "Spark X Offset", type = "range", min = -100, max = 100, step = 0.1, order = 11.3,
+                        name = "火花 X 偏移",
+                        type = "range",
+                        min = -100,
+                        max = 100,
+                        step = 0.1,
+                        order = 11.3,
                         get = function(info) return self.db.profile.sparkOffset end,
                         set = function(info, val) self.db.profile.sparkOffset = val end,
                     },
-                    
+
                     enableTails = {
-                        name = "Enable Tails", type = "toggle", order = 12,
+                        name = "啟用尾巴",
+                        type = "toggle",
+                        order = 12,
                         get = function(info) return self.db.profile.enableTails end,
                         set = function(info, val) self.db.profile.enableTails = val end,
                     },
-                    
+
                     -- Tails (Inline groups)
                     tail1Group = {
-                        name = "Tail 1 (Primary)", type = "group", inline = true, order = 13,
+                        name = "尾巴 1（主要）",
+                        type = "group",
+                        inline = true,
+                        order = 13,
                         args = {
                             color = {
-                                name = "Color", type = "color", hasAlpha = true, order = 1,
-                                get = function(info) local c = self.db.profile.tail1Color; return c[1], c[2], c[3], c[4] end,
-                                set = function(info, r, g, b, a) self.db.profile.tail1Color = { r, g, b, a }; self:UpdateSparkColors() end,
+                                name = "顏色",
+                                type = "color",
+                                hasAlpha = true,
+                                order = 1,
+                                get = function(info)
+                                    local c = self.db.profile.tail1Color; return c[1], c[2], c[3], c[4]
+                                end,
+                                set = function(info, r, g, b, a)
+                                    self.db.profile.tail1Color = { r, g, b, a }; self:UpdateSparkColors()
+                                end,
                             },
                             colorReset = {
-                                name = "Reset", type = "execute", width = "half", order = 1.1,
-                                func = function() self.db.profile.tail1Color = {unpack(defaults.tail1Color)}; self:UpdateSparkColors() end,
+                                name = "重置",
+                                type = "execute",
+                                width = "half",
+                                order = 1.1,
+                                func = function()
+                                    self.db.profile.tail1Color = { unpack(defaults.tail1Color) }; self:UpdateSparkColors()
+                                end,
                             },
                             intensity = {
-                                name = "Intensity", type = "range", min = 0, max = 5, step = 0.05, order = 2,
+                                name = "強度",
+                                type = "range",
+                                min = 0,
+                                max = 5,
+                                step = 0.05,
+                                order = 2,
                                 get = function(info) return self.db.profile.tail1Intensity end,
                                 set = function(info, val) self.db.profile.tail1Intensity = val end,
                             },
                             length = {
-                                name = "Length", type = "range", min = 10, max = 400, step = 1, order = 3,
+                                name = "長度",
+                                type = "range",
+                                min = 10,
+                                max = 400,
+                                step = 1,
+                                order = 3,
                                 get = function(info) return self.db.profile.tail1Length end,
-                                set = function(info, val) self.db.profile.tail1Length = val; self:UpdateSparkSize() end,
+                                set = function(info, val)
+                                    self.db.profile.tail1Length = val; self:UpdateSparkSize()
+                                end,
                             },
                         }
                     },
                     tail2Group = {
-                        name = "Tail 2", type = "group", inline = true, order = 14,
+                        name = "尾巴 2",
+                        type = "group",
+                        inline = true,
+                        order = 14,
                         args = {
                             color = {
-                                name = "Color", type = "color", hasAlpha = true, order = 1,
-                                get = function(info) local c = self.db.profile.tail2Color; return c[1], c[2], c[3], c[4] end,
-                                set = function(info, r, g, b, a) self.db.profile.tail2Color = { r, g, b, a }; self:UpdateSparkColors() end,
+                                name = "顏色",
+                                type = "color",
+                                hasAlpha = true,
+                                order = 1,
+                                get = function(info)
+                                    local c = self.db.profile.tail2Color; return c[1], c[2], c[3], c[4]
+                                end,
+                                set = function(info, r, g, b, a)
+                                    self.db.profile.tail2Color = { r, g, b, a }; self:UpdateSparkColors()
+                                end,
                             },
                             colorReset = {
-                                name = "Reset", type = "execute", width = "half", order = 1.1,
-                                func = function() self.db.profile.tail2Color = {unpack(defaults.tail2Color)}; self:UpdateSparkColors() end,
+                                name = "重置",
+                                type = "execute",
+                                width = "half",
+                                order = 1.1,
+                                func = function()
+                                    self.db.profile.tail2Color = { unpack(defaults.tail2Color) }; self:UpdateSparkColors()
+                                end,
                             },
                             intensity = {
-                                name = "Intensity", type = "range", min = 0, max = 5, step = 0.05, order = 2,
+                                name = "強度",
+                                type = "range",
+                                min = 0,
+                                max = 5,
+                                step = 0.05,
+                                order = 2,
                                 get = function(info) return self.db.profile.tail2Intensity end,
                                 set = function(info, val) self.db.profile.tail2Intensity = val end,
                             },
                             length = {
-                                name = "Length", type = "range", min = 10, max = 400, step = 1, order = 3,
+                                name = "長度",
+                                type = "range",
+                                min = 10,
+                                max = 400,
+                                step = 1,
+                                order = 3,
                                 get = function(info) return self.db.profile.tail2Length end,
-                                set = function(info, val) self.db.profile.tail2Length = val; self:UpdateSparkSize() end,
+                                set = function(info, val)
+                                    self.db.profile.tail2Length = val; self:UpdateSparkSize()
+                                end,
                             },
                         }
                     },
                     tail3Group = {
-                        name = "Tail 3", type = "group", inline = true, order = 15,
+                        name = "尾巴 3",
+                        type = "group",
+                        inline = true,
+                        order = 15,
                         args = {
                             color = {
-                                name = "Color", type = "color", hasAlpha = true, order = 1,
-                                get = function(info) local c = self.db.profile.tail3Color; return c[1], c[2], c[3], c[4] end,
-                                set = function(info, r, g, b, a) self.db.profile.tail3Color = { r, g, b, a }; self:UpdateSparkColors() end,
+                                name = "顏色",
+                                type = "color",
+                                hasAlpha = true,
+                                order = 1,
+                                get = function(info)
+                                    local c = self.db.profile.tail3Color; return c[1], c[2], c[3], c[4]
+                                end,
+                                set = function(info, r, g, b, a)
+                                    self.db.profile.tail3Color = { r, g, b, a }; self:UpdateSparkColors()
+                                end,
                             },
                             colorReset = {
-                                name = "Reset", type = "execute", width = "half", order = 1.1,
-                                func = function() self.db.profile.tail3Color = {unpack(defaults.tail3Color)}; self:UpdateSparkColors() end,
+                                name = "重置",
+                                type = "execute",
+                                width = "half",
+                                order = 1.1,
+                                func = function()
+                                    self.db.profile.tail3Color = { unpack(defaults.tail3Color) }; self:UpdateSparkColors()
+                                end,
                             },
                             intensity = {
-                                name = "Intensity", type = "range", min = 0, max = 5, step = 0.05, order = 2,
+                                name = "強度",
+                                type = "range",
+                                min = 0,
+                                max = 5,
+                                step = 0.05,
+                                order = 2,
                                 get = function(info) return self.db.profile.tail3Intensity end,
                                 set = function(info, val) self.db.profile.tail3Intensity = val end,
                             },
                             length = {
-                                name = "Length", type = "range", min = 10, max = 400, step = 1, order = 3,
+                                name = "長度",
+                                type = "range",
+                                min = 10,
+                                max = 400,
+                                step = 1,
+                                order = 3,
                                 get = function(info) return self.db.profile.tail3Length end,
-                                set = function(info, val) self.db.profile.tail3Length = val; self:UpdateSparkSize() end,
+                                set = function(info, val)
+                                    self.db.profile.tail3Length = val; self:UpdateSparkSize()
+                                end,
                             },
                         }
                     },
                     tail4Group = {
-                        name = "Tail 4", type = "group", inline = true, order = 16,
+                        name = "尾巴 4",
+                        type = "group",
+                        inline = true,
+                        order = 16,
                         args = {
                             color = {
-                                name = "Color", type = "color", hasAlpha = true, order = 1,
-                                get = function(info) local c = self.db.profile.tail4Color; return c[1], c[2], c[3], c[4] end,
-                                set = function(info, r, g, b, a) self.db.profile.tail4Color = { r, g, b, a }; self:UpdateSparkColors() end,
+                                name = "顏色",
+                                type = "color",
+                                hasAlpha = true,
+                                order = 1,
+                                get = function(info)
+                                    local c = self.db.profile.tail4Color; return c[1], c[2], c[3], c[4]
+                                end,
+                                set = function(info, r, g, b, a)
+                                    self.db.profile.tail4Color = { r, g, b, a }; self:UpdateSparkColors()
+                                end,
                             },
                             colorReset = {
-                                name = "Reset", type = "execute", width = "half", order = 1.1,
-                                func = function() self.db.profile.tail4Color = {unpack(defaults.tail4Color)}; self:UpdateSparkColors() end,
+                                name = "重置",
+                                type = "execute",
+                                width = "half",
+                                order = 1.1,
+                                func = function()
+                                    self.db.profile.tail4Color = { unpack(defaults.tail4Color) }; self:UpdateSparkColors()
+                                end,
                             },
                             intensity = {
-                                name = "Intensity", type = "range", min = 0, max = 5, step = 0.05, order = 2,
+                                name = "強度",
+                                type = "range",
+                                min = 0,
+                                max = 5,
+                                step = 0.05,
+                                order = 2,
                                 get = function(info) return self.db.profile.tail4Intensity end,
                                 set = function(info, val) self.db.profile.tail4Intensity = val end,
                             },
                             length = {
-                                name = "Length", type = "range", min = 10, max = 400, step = 1, order = 3,
+                                name = "長度",
+                                type = "range",
+                                min = 10,
+                                max = 400,
+                                step = 1,
+                                order = 3,
                                 get = function(info) return self.db.profile.tail4Length end,
-                                set = function(info, val) self.db.profile.tail4Length = val; self:UpdateSparkSize() end,
+                                set = function(info, val)
+                                    self.db.profile.tail4Length = val; self:UpdateSparkSize()
+                                end,
                             },
                         }
                     },
 
                     -- ADVANCED STYLE PARAMETERS
-                    headerAdvanced = { name = "Advanced Style Settings", type = "header", order = 20 },
+                    headerAdvanced = { name = "進階樣式設定", type = "header", order = 20 },
                     styleSpecificGroup = {
-                        name = "Fine Tune Animation",
-                        type = "group", inline = true, order = 21,
+                        name = "微調動畫",
+                        type = "group",
+                        inline = true,
+                        order = 21,
                         hidden = function()
                             local style = self.db.profile.animStyle
                             return style == "Comet" or not self.db.profile.animationParams[style]
                         end,
                         args = {
-                             -- Orb Settings
-                             orbRotationSpeed = {
-                                name = "Rotation Speed", type = "range", min = 1, max = 20, step = 1, order = 1,
+                            -- Orb Settings
+                            orbRotationSpeed = {
+                                name = "旋轉速度",
+                                type = "range",
+                                min = 1,
+                                max = 20,
+                                step = 1,
+                                order = 1,
                                 hidden = function() return self.db.profile.animStyle ~= "Orb" end,
                                 get = function(info) return self.db.profile.animationParams["Orb"].rotationSpeed end,
                                 set = function(info, val) self.db.profile.animationParams["Orb"].rotationSpeed = val end,
                             },
                             orbRadius = {
-                                name = "Orb Radius", type = "range", min = 0.1, max = 1.0, step = 0.1, order = 2,
+                                name = "球體半徑",
+                                type = "range",
+                                min = 0.1,
+                                max = 1.0,
+                                step = 0.1,
+                                order = 2,
                                 hidden = function() return self.db.profile.animStyle ~= "Orb" end,
                                 get = function(info) return self.db.profile.animationParams["Orb"].radiusMultiplier end,
                                 set = function(info, val) self.db.profile.animationParams["Orb"].radiusMultiplier = val end,
                             },
                             orbGlowPulse = {
-                                name = "Glow Pulse", type = "range", min = 0.1, max = 2.0, step = 0.1, order = 3,
+                                name = "光暈脈動",
+                                type = "range",
+                                min = 0.1,
+                                max = 2.0,
+                                step = 0.1,
+                                order = 3,
                                 hidden = function() return self.db.profile.animStyle ~= "Orb" end,
                                 get = function(info) return self.db.profile.animationParams["Orb"].glowPulse end,
                                 set = function(info, val) self.db.profile.animationParams["Orb"].glowPulse = val end,
                             },
                             -- Pulse Settings
                             pulseMaxScale = {
-                                name = "Max Scale", type = "range", min = 1.0, max = 5.0, step = 0.1, order = 10,
+                                name = "最大縮放",
+                                type = "range",
+                                min = 1.0,
+                                max = 5.0,
+                                step = 0.1,
+                                order = 10,
                                 hidden = function() return self.db.profile.animStyle ~= "Pulse" end,
                                 get = function(info) return self.db.profile.animationParams["Pulse"].maxScale end,
                                 set = function(info, val) self.db.profile.animationParams["Pulse"].maxScale = val end,
                             },
                             pulseRippleCycle = {
-                                name = "Ripple Cycle", type = "range", min = 0.5, max = 3.0, step = 0.1, order = 11,
+                                name = "漣漪週期",
+                                type = "range",
+                                min = 0.5,
+                                max = 3.0,
+                                step = 0.1,
+                                order = 11,
                                 hidden = function() return self.db.profile.animStyle ~= "Pulse" end,
                                 get = function(info) return self.db.profile.animationParams["Pulse"].rippleCycle end,
                                 set = function(info, val) self.db.profile.animationParams["Pulse"].rippleCycle = val end,
                             },
-                            pulseFadeSpeed = { -- RESTAURADO: Faltaba
-                                name = "Fade Speed", type = "range", min = 0.1, max = 3.0, step = 0.1, order = 12,
+                            pulseFadeSpeed = { -- RESTORED: Was missing
+                                name = "淡化速度",
+                                type = "range",
+                                min = 0.1,
+                                max = 3.0,
+                                step = 0.1,
+                                order = 12,
                                 hidden = function() return self.db.profile.animStyle ~= "Pulse" end,
                                 get = function(info) return self.db.profile.animationParams["Pulse"].fadeSpeed end,
                                 set = function(info, val) self.db.profile.animationParams["Pulse"].fadeSpeed = val end,
                             },
                             -- Starfall Settings
                             starfallFallSpeed = {
-                                name = "Fall Speed", type = "range", min = 1.0, max = 10.0, step = 0.5, order = 20,
+                                name = "下落速度",
+                                type = "range",
+                                min = 1.0,
+                                max = 10.0,
+                                step = 0.5,
+                                order = 20,
                                 hidden = function() return self.db.profile.animStyle ~= "Starfall" end,
                                 get = function(info) return self.db.profile.animationParams["Starfall"].fallSpeed end,
                                 set = function(info, val) self.db.profile.animationParams["Starfall"].fallSpeed = val end,
                             },
                             starfallSwayAmount = {
-                                name = "Sway Amount", type = "range", min = 0, max = 20, step = 1, order = 21,
+                                name = "擺動幅度",
+                                type = "range",
+                                min = 0,
+                                max = 20,
+                                step = 1,
+                                order = 21,
                                 hidden = function() return self.db.profile.animStyle ~= "Starfall" end,
                                 get = function(info) return self.db.profile.animationParams["Starfall"].swayAmount end,
                                 set = function(info, val) self.db.profile.animationParams["Starfall"].swayAmount = val end,
                             },
-                            starfallParticleSpeed = { -- RESTAURADO: Faltaba
-                                name = "Particle Speed", type = "range", min = 0.1, max = 10.0, step = 0.1, order = 22,
+                            starfallParticleSpeed = { -- RESTORED: Was missing
+                                name = "粒子速度",
+                                type = "range",
+                                min = 0.1,
+                                max = 10.0,
+                                step = 0.1,
+                                order = 22,
                                 hidden = function() return self.db.profile.animStyle ~= "Starfall" end,
                                 get = function(info) return self.db.profile.animationParams["Starfall"].particleSpeed end,
                                 set = function(info, val) self.db.profile.animationParams["Starfall"].particleSpeed = val end,
                             },
                             -- Flux Settings
                             fluxJitterY = {
-                                name = "Vertical Jitter", type = "range", min = 1.0, max = 10.0, step = 0.5, order = 30,
+                                name = "垂直抱動",
+                                type = "range",
+                                min = 1.0,
+                                max = 10.0,
+                                step = 0.5,
+                                order = 30,
                                 hidden = function() return self.db.profile.animStyle ~= "Flux" end,
                                 get = function(info) return self.db.profile.animationParams["Flux"].jitterY end,
                                 set = function(info, val) self.db.profile.animationParams["Flux"].jitterY = val end,
                             },
                             fluxJitterX = {
-                                name = "Horizontal Jitter", type = "range", min = 1.0, max = 10.0, step = 0.5, order = 31,
+                                name = "水平抱動",
+                                type = "range",
+                                min = 1.0,
+                                max = 10.0,
+                                step = 0.5,
+                                order = 31,
                                 hidden = function() return self.db.profile.animStyle ~= "Flux" end,
                                 get = function(info) return self.db.profile.animationParams["Flux"].jitterX end,
                                 set = function(info, val) self.db.profile.animationParams["Flux"].jitterX = val end,
                             },
-                            fluxDrift = { -- RESTAURADO: Faltaba
-                                name = "Drift Speed", type = "range", min = 0, max = 1, step = 0.01, order = 32,
+                            fluxDrift = { -- RESTORED: Was missing
+                                name = "漂移速度",
+                                type = "range",
+                                min = 0,
+                                max = 1,
+                                step = 0.01,
+                                order = 32,
                                 hidden = function() return self.db.profile.animStyle ~= "Flux" end,
                                 get = function(info) return self.db.profile.animationParams["Flux"].driftMultiplier end,
                                 set = function(info, val) self.db.profile.animationParams["Flux"].driftMultiplier = val end,
                             },
                             -- Helix Settings
                             helixDriftMultiplier = {
-                                name = "Drift Multiplier", type = "range", min = 0.01, max = 0.3, step = 0.01, order = 40,
+                                name = "漂移乘數",
+                                type = "range",
+                                min = 0.01,
+                                max = 0.3,
+                                step = 0.01,
+                                order = 40,
                                 hidden = function() return self.db.profile.animStyle ~= "Helix" end,
                                 get = function(info) return self.db.profile.animationParams["Helix"].driftMultiplier end,
                                 set = function(info, val) self.db.profile.animationParams["Helix"].driftMultiplier = val end,
                             },
                             helixAmplitude = {
-                                name = "Wave Amplitude", type = "range", min = 0.1, max = 1.0, step = 0.1, order = 41,
+                                name = "波幅",
+                                type = "range",
+                                min = 0.1,
+                                max = 1.0,
+                                step = 0.1,
+                                order = 41,
                                 hidden = function() return self.db.profile.animStyle ~= "Helix" end,
                                 get = function(info) return self.db.profile.animationParams["Helix"].amplitude end,
                                 set = function(info, val) self.db.profile.animationParams["Helix"].amplitude = val end,
                             },
                             helixWaveSpeed = {
-                                name = "Wave Speed", type = "range", min = 1, max = 20, step = 1, order = 42,
+                                name = "波速",
+                                type = "range",
+                                min = 1,
+                                max = 20,
+                                step = 1,
+                                order = 42,
                                 hidden = function() return self.db.profile.animStyle ~= "Helix" end,
                                 get = function(info) return self.db.profile.animationParams["Helix"].waveSpeed end,
                                 set = function(info, val) self.db.profile.animationParams["Helix"].waveSpeed = val end,
                             },
                             -- Wave Settings
                             waveCount = {
-                                name = "Wave Count", type = "range", min = 1, max = 10, step = 1, order = 50,
+                                name = "波數",
+                                type = "range",
+                                min = 1,
+                                max = 10,
+                                step = 1,
+                                order = 50,
                                 hidden = function() return self.db.profile.animStyle ~= "Wave" end,
                                 get = function(info) return self.db.profile.animationParams["Wave"].waveCount end,
                                 set = function(info, val) self.db.profile.animationParams["Wave"].waveCount = val end,
                             },
                             waveSpeed = {
-                                name = "Wave Speed", type = "range", min = 0.1, max = 2.0, step = 0.1, order = 51,
+                                name = "波速",
+                                type = "range",
+                                min = 0.1,
+                                max = 2.0,
+                                step = 0.1,
+                                order = 51,
                                 hidden = function() return self.db.profile.animStyle ~= "Wave" end,
                                 get = function(info) return self.db.profile.animationParams["Wave"].waveSpeed end,
                                 set = function(info, val) self.db.profile.animationParams["Wave"].waveSpeed = val end,
                             },
                             waveAmplitude = {
-                                name = "Amplitude", type = "range", min = 0.01, max = 0.2, step = 0.01, order = 52,
+                                name = "振幅",
+                                type = "range",
+                                min = 0.01,
+                                max = 0.2,
+                                step = 0.01,
+                                order = 52,
                                 hidden = function() return self.db.profile.animStyle ~= "Wave" end,
                                 get = function(info) return self.db.profile.animationParams["Wave"].amplitude end,
                                 set = function(info, val) self.db.profile.animationParams["Wave"].amplitude = val end,
                             },
                             waveWidth = {
-                                name = "Width", type = "range", min = 0.1, max = 0.5, step = 0.05, order = 53,
+                                name = "寬度",
+                                type = "range",
+                                min = 0.1,
+                                max = 0.5,
+                                step = 0.05,
+                                order = 53,
                                 hidden = function() return self.db.profile.animStyle ~= "Wave" end,
                                 get = function(info) return self.db.profile.animationParams["Wave"].waveWidth end,
                                 set = function(info, val) self.db.profile.animationParams["Wave"].waveWidth = val end,
                             },
                             -- Glitch Settings
                             glitchChance = {
-                                name = "Glitch Intensity", type = "range", min = 0.01, max = 0.5, step = 0.01, order = 70,
+                                name = "故障強度",
+                                type = "range",
+                                min = 0.01,
+                                max = 0.5,
+                                step = 0.01,
+                                order = 70,
                                 hidden = function() return self.db.profile.animStyle ~= "Glitch" end,
                                 get = function(info) return self.db.profile.animationParams["Glitch"].glitchChance end,
                                 set = function(info, val) self.db.profile.animationParams["Glitch"].glitchChance = val end,
                             },
                             glitchMaxOffset = {
-                                name = "Max Glitch Offset", type = "range", min = 1, max = 20, step = 1, order = 71,
+                                name = "最大故障偏移",
+                                type = "range",
+                                min = 1,
+                                max = 20,
+                                step = 1,
+                                order = 71,
                                 hidden = function() return self.db.profile.animStyle ~= "Glitch" end,
                                 get = function(info) return self.db.profile.animationParams["Glitch"].maxOffset end,
                                 set = function(info, val) self.db.profile.animationParams["Glitch"].maxOffset = val end,
                             },
                             glitchColorIntensity = {
-                                name = "Color Intensity", type = "range", min = 0, max = 1, step = 0.05, order = 72,
+                                name = "顏色強度",
+                                type = "range",
+                                min = 0,
+                                max = 1,
+                                step = 0.05,
+                                order = 72,
                                 hidden = function() return self.db.profile.animStyle ~= "Glitch" end,
                                 get = function(info) return self.db.profile.animationParams["Glitch"].colorIntensity end,
                                 set = function(info, val) self.db.profile.animationParams["Glitch"].colorIntensity = val end,
                             },
                             -- Lightning Settings
                             lightningChance = {
-                                name = "Frequency", type = "range", min = 0.1, max = 1.0, step = 0.1, order = 80,
+                                name = "頻率",
+                                type = "range",
+                                min = 0.1,
+                                max = 1.0,
+                                step = 0.1,
+                                order = 80,
                                 hidden = function() return self.db.profile.animStyle ~= "Lightning" end,
                                 get = function(info) return self.db.profile.animationParams["Lightning"].lightningChance end,
-                                set = function(info, val) self.db.profile.animationParams["Lightning"].lightningChance = val end,
+                                set = function(info, val)
+                                    self.db.profile.animationParams["Lightning"].lightningChance =
+                                        val
+                                end,
                             },
                             lightningSegmentCount = {
-                                name = "Segment Count", type = "range", min = 1, max = 10, step = 1, order = 81,
+                                name = "分段數",
+                                type = "range",
+                                min = 1,
+                                max = 10,
+                                step = 1,
+                                order = 81,
                                 hidden = function() return self.db.profile.animStyle ~= "Lightning" end,
                                 get = function(info) return self.db.profile.animationParams["Lightning"].segmentCount end,
                                 set = function(info, val) self.db.profile.animationParams["Lightning"].segmentCount = val end,
@@ -1278,19 +1865,20 @@ function AscensionCastBar:SetupOptions()
                         }
                     },
                     resetStyleSettings = {
-                        name = "Reset Animation Defaults",
+                        name = "重置動畫預設值",
                         type = "execute",
                         width = "full",
                         order = 100,
                         func = function()
                             local currentStyle = self.db.profile.animStyle
                             if currentStyle and defaults.animationParams[currentStyle] then
-                                self.db.profile.animationParams[currentStyle] = CopyTable(defaults.animationParams[currentStyle])
+                                self.db.profile.animationParams[currentStyle] = CopyTable(defaults.animationParams
+                                    [currentStyle])
                             end
 
                             -- Reset Global Anim Settings
                             local keysToReset = {
-                                "enableSpark", "enableTails", "sparkColor", "glowColor", 
+                                "enableSpark", "enableTails", "sparkColor", "glowColor",
                                 "sparkIntensity", "glowIntensity", "sparkScale", "sparkOffset", "headLengthOffset",
                                 "tailLength", "tailOffset",
                                 "tail1Color", "tail1Intensity", "tail1Length",
@@ -1314,7 +1902,7 @@ function AscensionCastBar:SetupOptions()
                     },
                 }
             },
-            
+
             profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
         }
     }

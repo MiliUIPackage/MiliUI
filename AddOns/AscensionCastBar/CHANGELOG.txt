@@ -1,0 +1,5 @@
+<h1>V45</h1>
+<ul>
+    <li>Re-added missing features from old config mode</li>
+    <li>Change the required dependencies to it's own add on AscensionSuit instead of AscensionQoL</li>
+</ul>
