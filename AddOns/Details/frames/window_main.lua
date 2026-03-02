@@ -144,7 +144,7 @@ function Details:RefreshScrollBar(x) --x = amount of bars being refreshed
 			local nao_mostradas = self.rows_showing - self.rows_fit_in_window
 			local slider_height = nao_mostradas * self.row_height
 			self.scroll.scrollMax = slider_height
-			self.scroll:SetMinMaxValues(0, slider_height)
+			self.scroll:SetMinMaxValues(0, max(slider_height, 0))
 
 		else	--diminuiu a quantidade, acontece depois de uma coleta de lixo
 			self.rows_showing = x
@@ -1027,6 +1027,9 @@ local BGFrame_scripts_onmousedown = function(self, button)
 		end
 
 	elseif (button == "RightButton") then
+		if not Details.__initialized then
+			return
+		end
 		if (self.is_toolbar and not Details.disable_alldisplays_window) then
 			self._instance:ShowAllSwitch()
 		else
@@ -1950,10 +1953,22 @@ local lineScript_Onmousedown = function(self, button)
 		return
 	end
 
-	if detailsFramework.IsAddonApocalypseWow() then
+	if (button == "RightButton") then
+		if not Details.__initialized then
+			return
+		end
+		return Details.switch:ShowMe(self._instance)
+
+	elseif (button == "LeftButton") then
+
+	end
+
+	local isAddonApocalypseWow = detailsFramework.IsAddonApocalypseWow()
+
+	if isAddonApocalypseWow then
 		if Details222.BParser.InSecretLockdown() then
 			if button == "LeftButton" then
-				return
+				--return
 			end
 		end
 	end
@@ -1964,14 +1979,9 @@ local lineScript_Onmousedown = function(self, button)
 		Details.left_anti_truncate:Hide()
 	end
 
-	if (button == "RightButton") then
-		return Details.switch:ShowMe(self._instance)
-
-	elseif (button == "LeftButton") then
-
+	if not isAddonApocalypseWow then
+		self._instance:HandleTextsOnMouseClick (self, "down")
 	end
-
-	self._instance:HandleTextsOnMouseClick (self, "down")
 
 	self.mouse_down = GetTime()
 	self.button = button
@@ -1985,6 +1995,7 @@ local lineScript_Onmousedown = function(self, button)
 	end
 end
 
+---@param self detailsline (row)
 local lineScript_Onmouseup = function(self, button)
 	local bIsShiftDown = _IsShiftKeyDown()
 	local bIsControlDown = _IsControlKeyDown()
@@ -2007,44 +2018,102 @@ local lineScript_Onmouseup = function(self, button)
 	x = floor(x)
 	y = floor(y)
 
-	if detailsFramework.IsAddonApocalypseWow() then
-		if Details222.BParser.InSecretLockdown() then
-			return
-		end
-	end
-
 	if (self.mouse_down and (self.mouse_down+0.4 > GetTime() and (x == self.x and y == self.y)) or (x == self.x and y == self.y)) then
 		if (self.button == "LeftButton" or self.button == "MiddleButton") then
             --Temporary disabling of Resource breakdowns since not implemented
-			if (instanceObject.atributo == 5 or instanceObject.atributo == 3 or bIsShiftDown) then
-				--report
-				if (instanceObject.atributo == 5 and bIsShiftDown) then
-					local custom = instanceObject:GetCustomObject()
-					if (custom and custom.on_shift_click) then
-						local func = loadstring(custom.on_shift_click)
-						if (func) then
-							local successful, errortext = pcall(func, self, self.minha_tabela, instanceObject)
-							if (not successful) then
-								Details:Msg(Loc["error occurred custom script shift+click:"], errortext)
+			if not detailsFramework.IsAddonApocalypseWow() then
+				if (instanceObject.atributo == 5 or instanceObject.atributo == 3 or bIsShiftDown) then
+					--report
+					if (instanceObject.atributo == 5 and bIsShiftDown) then
+						local custom = instanceObject:GetCustomObject()
+						if (custom and custom.on_shift_click) then
+							local func = loadstring(custom.on_shift_click)
+							if (func) then
+								local successful, errortext = pcall(func, self, self.minha_tabela, instanceObject)
+								if (not successful) then
+									Details:Msg("error occurred custom script shift+click:", errortext)
+								end
+								return
 							end
-							return
 						end
 					end
-				end
 
-				--if there's a function to overwrite the default behavior
-				if (Details.row_singleclick_overwrite[instanceObject.atributo] and type(Details.row_singleclick_overwrite[instanceObject.atributo][instanceObject.sub_atributo]) == "function") then
-					return Details.row_singleclick_overwrite[instanceObject.atributo][instanceObject.sub_atributo](_, self.minha_tabela, instanceObject, bIsShiftDown, bIsControlDown)
-				end
+					--if there's a function to overwrite the default behavior
+					if (Details.row_singleclick_overwrite[instanceObject.atributo] and type(Details.row_singleclick_overwrite[instanceObject.atributo][instanceObject.sub_atributo]) == "function") then
+						return Details.row_singleclick_overwrite[instanceObject.atributo][instanceObject.sub_atributo](_, self.minha_tabela, instanceObject, bIsShiftDown, bIsControlDown)
+					end
 
-				return Details:ReportSingleLine(instanceObject, self)
+					return Details:ReportSingleLine(instanceObject, self)
+				end
+			end
+
+			if detailsFramework.IsAddonApocalypseWow() then
+				if Details222.BParser.InSecretLockdown() then
+					--return
+				end
 			end
 
 			if (not self.minha_tabela) then
-				return Details:Msg(Loc["this bar is waiting update."])
+				if Details:IsUsingBlizzardAPI() then
+					local instanceLine = self
+
+					if InCombatLockdown() then
+						Details:Msg("Can't open breakdown during combat (blizzard restrictions).")
+						return
+					end
+
+					if instanceLine.isTotalBar then
+						return
+					end
+
+					local newSegmentId = instanceObject:GetNewSegmentId()
+					local segmentType = instanceObject:GetSegmentType()
+					local lineIndex = instanceLine.row_id
+					local sourceData = instanceLine.sourceData
+					local actorName = instanceLine.actorName
+					local actorGUID = instanceLine.actorGUID
+					local classFilename = instanceLine.classFilename
+					local damageMeterType = Details222.BParser.GetAttributeTypeFromDisplay(instanceLine.mainDisplay, instanceLine.subDisplay)
+					local blzSpecIcon = instanceLine.sourceData.specIconID
+
+					local adapterSettings = {
+						sessionId = newSegmentId,
+						sessionType = segmentType,
+						sourceData = sourceData,
+						actorName = actorName,
+						actorGUID = actorGUID,
+						classFilename = classFilename,
+						damageMeterType = damageMeterType,
+						specIconID = blzSpecIcon,
+						mainDisplay = instanceLine.mainDisplay,
+						subDisplay = instanceLine.subDisplay,
+						blzSpecIcon = blzSpecIcon,
+						isPlayer = instanceLine.isPlayer,
+					}
+
+					local adapter = Details:MakeActorAdapter(adapterSettings)
+
+					if instanceObject:IsShowingDeathLog() then
+						if issecretvalue(actorName) then
+							Details.ShowDeathTooltip2(instanceObject, self)
+						else
+							Details:OpenBreakdownWindow(instanceObject, adapter, nil, nil, bIsShiftDown, bIsControlDown, nil, nil, nil, self)
+						end
+						return
+					end
+
+					if InCombatLockdown() then
+						return
+					end
+
+					Details:OpenBreakdownWindow(instanceObject, adapter, nil, nil, bIsShiftDown, bIsControlDown, nil, nil, nil, self)
+					return
+				else
+					return Details:Msg("this bar is waiting update.")
+				end
 			end
 
-			Details:OpenBreakdownWindow(instanceObject, self.minha_tabela, nil, nil, bIsShiftDown, bIsControlDown)
+			Details:OpenBreakdownWindow(instanceObject, self.minha_tabela, nil, nil, bIsShiftDown, bIsControlDown, nil, nil, nil, self)
 		end
 	end
 end
@@ -4095,6 +4164,10 @@ local windowLineMixin = {
 		return self.instance_id
 	end,
 
+	GetInstance = function(self)
+		return Details:GetInstance(self:GetInstanceId())
+	end,
+
 	GetLineId = function(self)
 		return self.row_id
 	end,
@@ -4137,7 +4210,7 @@ function gump:NewRow(instancia, index)
 	return gump:CreateNewLine(instancia, index)
 end
 
---search key: ~row ~barra  ~newbar ~createbar ~createrow
+--search key: ~row ~barra  ~newbar ~createbar ~createrow ~bar ~line
 function gump:CreateNewLine(instance, index)
 	--instance = window object, index = row number
 	local baseframe = instance.baseframe
@@ -4236,16 +4309,25 @@ function gump:CreateNewLine(instance, index)
 	---@field instance_id number
 	---@field animacao_fim number
 	---@field animacao_fim2 number
+	---@field blzSpecIcon number
 	---@field isInstanceLine boolean
 	---@field maxindex_size number
 	---@field sourceData damagemeter_combat_source
 	---@field sourceSpells damagemeter_unit_spells
-	---@field sessionType string
-	---@field sessionNumber number
-	---@field sessionTypeParam number
+	---@field sessionType number
+	---@field sessionId number
+	---@field isPlayer boolean?
+	---@field isTotalBar boolean?
+	---@field mainDisplay number
+	---@field subDisplay number
+	---@field actorName string can be secret while in combat
+	---@field actorGUID string can be secret while in combat
+	---@field classFilename string
+	---@field deathTime number
 	---@field damageMeterType number
 	---@field lineIndex number
 	---@field statusbar statusbar
+	---@field deathRecapId number
 	---@field extraStatusbar statusbar
 	---@field textura texture statusbar texture
 	---@field lineBorder frame border frame
@@ -4270,6 +4352,7 @@ function gump:CreateNewLine(instance, index)
 	---@field SetLineTexture fun(self: detailsline, texture: string, coords: number[], vertexColor: string)
 	---@field SetLineIconTexture fun(self: detailsline, texture: string, coords: number[], vertexColor: string)
 	---@field GetActor fun(self: detailsline): table
+	---@field GetInstance fun(self: detailsline): instance
 	---@field GetInstanceId fun(self: detailsline): number
 	---@field GetLineId fun(self: detailsline): number
 	---@field GetClassIcon fun(self: detailsline): texture
@@ -5565,10 +5648,15 @@ function Details:SetWindowAlphaForCombat(enteringInCombat, trueHide, alphaAmount
 	else
 		self.baseframe:Show()
 		self.baseframe:SetAlpha(maxAlpha)
+		self.rowframe:Show()
+		self.rowframe:SetAlpha(maxAlpha)
 
 		self:InstanceAlpha(min(amount, self.color[4]))
-		Details.FadeHandler.Fader(self.rowframe, "ALPHAANIM", parseRowFrameAlpha(rowsamount))
-		Details.FadeHandler.Fader(self.baseframe, "ALPHAANIM", rowsamount)
+		--this function is passing the same value as the current alpha in the row, so the fader does not pass the alpha > currentValue and hide the bar
+		if not Details:IsUsingBlizzardAPI() then
+			Details.FadeHandler.Fader(self.rowframe, "ALPHAANIM", parseRowFrameAlpha(rowsamount))
+			Details.FadeHandler.Fader(self.baseframe, "ALPHAANIM", rowsamount)
+		end
 	end
 
 	if (self.show_statusbar) then
@@ -6647,6 +6735,7 @@ local wallpaperColor = {1, 1, 1, 0.5}
 local buildSegmentTooltip = function(self, deltaTime, allInOneWindowFrame)
 	local gameCooltip = GameCooltip
 
+	---@type instance
 	local instance = allInOneWindowFrame or parameters_table[1]
 	parameters_table[2] = parameters_table[2] or 0
 	parameters_table[2] = parameters_table[2] + deltaTime
@@ -6669,29 +6758,41 @@ local buildSegmentTooltip = function(self, deltaTime, allInOneWindowFrame)
 
 		Details:AddRoundedCornerToTooltip()
 
-		if Details222.BParser.IsDamageMeterSwapped() then
+		if detailsFramework.IsAddonApocalypseWow() and Details:IsUsingBlizzardAPI() then
+			local bForceRefresh = true
+			local afterSetSession = function()
+				instance:RefreshWindow(bForceRefresh)
+			end
+
 			local selectExpired = function(_, _, sessionId)
-				Details222.BParser.ChangeSegment(instance.blzWindow, nil, sessionId)
+				instance:SetNewSegmentId(sessionId)
+				instance:SetSegmentType(2, bForceRefresh)
+				afterSetSession()
 			end
 			local selectCurrent = function()
-				Details222.BParser.ChangeSegment(instance.blzWindow, Enum.DamageMeterSessionType.Current)
+				--instance:SetNewSegmentId(1)
+				instance:SetSegmentType(1, bForceRefresh)
+				afterSetSession()
 			end
 			local selectOverall = function()
-				Details222.BParser.ChangeSegment(instance.blzWindow, Enum.DamageMeterSessionType.Overall)
+				--instance:SetNewSegmentId(1)
+				instance:SetSegmentType(0, bForceRefresh)
+				afterSetSession()
 			end
 
 			local amountLinesAdded = 0
 
-			---@type damagemeter_combat_session[]
-			local blzSegments = C_DamageMeter.GetAvailableCombatSessions()
+			---@type damagemeter_availablecombat_session[]
+			local blzSegments = Details222.B.GetAllSegments()
 			for i, combatSession in ipairs(blzSegments) do
+				local sessionId = combatSession.sessionID
 				local sessionName = combatSession.name
 				if not combatSession.name or combatSession.name == "" then
-					sessionName = DAMAGE_METER_COMBAT_NUMBER:format(combatSession.sessionID)
+					sessionName = DAMAGE_METER_COMBAT_NUMBER:format(sessionId)
 				end
 
 				gameCooltip:AddLine(sessionName, _, 1, "white")
-				gameCooltip:AddMenu(1, selectExpired, combatSession.sessionID)
+				gameCooltip:AddMenu(1, selectExpired, sessionId)
 				gameCooltip:AddIcon(Details:GetTextureAtlas("segment-icon-current"), "main", "left")
 
 				amountLinesAdded = amountLinesAdded + 1
@@ -6708,14 +6809,12 @@ local buildSegmentTooltip = function(self, deltaTime, allInOneWindowFrame)
 			gameCooltip:AddMenu(1, selectOverall, -1)
 			gameCooltip:AddIcon(Details:GetTextureAtlas("segment-icon-current"), "main", "left")
 
-			---@type blzwindow
-			local blzWindow = instance.blzWindow
-			local sessionId = blzWindow.sessionID
-			local sessionType = blzWindow.sessionType
+			local sessionId = instance:GetNewSegmentId()
+			local sessionType = instance:GetSegmentType()
 
-			if sessionType == Enum.DamageMeterSessionType.Current then
+			if sessionType == 1 then
 				gameCooltip:SetLastSelected("main", amountLinesAdded + 1)
-			elseif sessionType == Enum.DamageMeterSessionType.Overall then
+			elseif sessionType == 0 then
 				gameCooltip:SetLastSelected("main", amountLinesAdded + 2)
 			else
 				for i, combatSession in ipairs(blzSegments) do
@@ -6725,8 +6824,6 @@ local buildSegmentTooltip = function(self, deltaTime, allInOneWindowFrame)
 					end
 				end
 			end
-
-
 		else
 			local menuIndex = 0
 			Details.segments_amount = floor(Details.segments_amount)
@@ -6830,6 +6927,10 @@ local buildSegmentTooltip = function(self, deltaTime, allInOneWindowFrame)
 								gameCooltip:AddStatusBar(100, 2, 0, 0, 0, 0.25, false, false, statusBarTexture)
 
 								gameCooltip:AddLine(Loc["STRING_SEGMENT_END"] .. ":", dateEnd or "in progress", 2, "white", "white")
+								gameCooltip:AddIcon(Details:GetTextureAtlas("small-pin-yellow"), 2, 1)
+								gameCooltip:AddStatusBar(100, 2, 0, 0, 0, 0.25, false, false, statusBarTexture)
+
+								gameCooltip:AddLine("Session:", thisCombat.combatSessionId, 2, "white", "white")
 								gameCooltip:AddIcon(Details:GetTextureAtlas("small-pin-yellow"), 2, 1)
 								gameCooltip:AddStatusBar(100, 2, 0, 0, 0, 0.25, false, false, statusBarTexture)
 
@@ -8159,7 +8260,8 @@ function Details:AdjustAlphaByContext(interacting)
 	end
 
 	--mythic+
-	if (self.hide_on_context[8].enabled) then
+	if (self.hide_on_context[8].enabled) then --DetailsRowFrame1 visibility is false, DetailsRowFrame1 is the parent of lines
+		--if ((_G.DetailsMythicPlusFrame and _G.DetailsMythicPlusFrame.IsDoingMythicDungeon) or select(4, GetInstanceInfo()) == "Follower") then
 		if (_G.DetailsMythicPlusFrame and _G.DetailsMythicPlusFrame.IsDoingMythicDungeon) then
 			--player is inside a dungeon mythic+
 			if (not self.hide_on_context[8].inverse) then

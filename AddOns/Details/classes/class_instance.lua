@@ -221,6 +221,8 @@ local instanceMixins = {
 	---set the combatObject by the segmentId the instance is showing
 	---@param instance instance
 	RefreshCombat = function(instance)
+		Details:StopTestBarUpdate()
+
 		---@type segmentid
 		local segmentId = instance:GetSegmentId()
 		if (segmentId == DETAILS_SEGMENTID_OVERALL) then
@@ -270,6 +272,8 @@ local instanceMixins = {
 	---@param resetType number|nil
 	---@param segmentId segmentid|nil
 	ResetWindow = function(instance, resetType, segmentId) --deprecates Details:ResetaGump()
+		Details:StopTestBarUpdate()
+
 		--check the reset type, 0x1: entering in combat
 		if (resetType and resetType == 0x1) then
 			--if is showing the overall data, do nothing
@@ -310,7 +314,7 @@ local instanceMixins = {
 		local combatObject = instance:GetCombat()
 
 		--check if the combat object exists, if not, freeze the window
-		if (not combatObject) then
+		if (not combatObject and not Details:IsUsingBlizzardAPI()) then
 			if (not instance.freezed) then
 				return instance:Freeze()
 			end
@@ -318,7 +322,7 @@ local instanceMixins = {
 		end
 
 		--debug: check if the if combatObject has been destroyed
-		if (combatObject.__destroyed) then
+		if (combatObject.__destroyed and not Details:IsUsingBlizzardAPI()) then
 			Details:Msg("a deleted combat object was found refreshing a window, please report this bug on discord:")
 			Details:Msg("combat destroyed by:", combatObject.__destroyedBy)
 			local bForceChange = true
@@ -332,7 +336,7 @@ local instanceMixins = {
 		local actorContainer = combatObject:GetContainer(mainAttribute)
 		local needRefresh = actorContainer.need_refresh
 		if (not needRefresh and not bForceRefresh) then
-			return
+			--return --do refresh each time this function is called
 		end
 
 		if (mainAttribute == 1) then --damage
@@ -389,6 +393,21 @@ local instanceMixins = {
 	---@param instance instance
 	---@return combat
 	GetCombat = function(instance)
+		if not instance.showing then
+			local cs = Details:GetCurrentCombat()
+			if cs then
+				instance.showing = cs
+			else
+				local c = Details:GetCombat(1)
+				if c then
+					instance.showing = c
+				else
+					Details222.StartCombat()
+					Details:EndCombat()
+					instance.showing = Details:GetCurrentCombat()
+				end
+			end
+		end
 		return instance.showing
 	end,
 
@@ -414,9 +433,130 @@ local instanceMixins = {
 		return instance.segmento
 	end,
 
+	---@param instance instance
+	---@param segmentId segmentid
 	SetSegmentId = function(instance, segmentId)
 		instance.segmento = segmentId
 	end,
+
+	---@param instance instance
+	---@return number
+	GetNewSegmentId = function(instance)
+		instance.sessionId = instance.sessionId or 1
+		return instance.sessionId
+	end,
+
+	---@param instance instance
+	---@param sessionId number
+	---@param bForceRefresh boolean?
+	SetNewSegmentId = function(instance, sessionId, bForceRefresh)
+		Details:StopTestBarUpdate()
+
+		local old = instance:GetNewSegmentId()
+		if sessionId == old then
+			if not bForceRefresh then
+				return
+			end
+		end
+
+		instance.sessionId = sessionId
+		Details222.BParser.lastEventTime = 0
+		if bForceRefresh then
+			instance:RefreshWindow(bForceRefresh)
+		end
+
+		if sessionId ~= old then
+			Details:SendEvent("DETAILS_INSTANCE_CHANGESESSION", nil, instance, instance.sessionType, instance.sessionId)
+		end
+	end,
+
+	IsShowingDeathLog = function(instance)
+		local mainDisplay, subDisplay = instance:GetDisplay()
+		if mainDisplay == 4 and subDisplay == 5 then
+			return true
+		end
+		if instance:GetAttributeType() == 9 then
+			return true
+		end
+	end,
+
+	---@param instance instance
+	---@return number
+	GetSegmentType = function(instance)
+		instance.sessionType = instance.sessionType or 1
+		return instance.sessionType
+	end,
+
+	---@param instance instance
+	---@param sessionType number
+	---@param bForceRefresh boolean?
+	SetSegmentType = function(instance, sessionType, bForceRefresh)
+		Details:StopTestBarUpdate()
+
+		local old = instance:GetSegmentType()
+		if sessionType == old then
+			if not bForceRefresh then
+				return
+			end
+		end
+
+		instance.sessionType = sessionType
+		Details222.BParser.lastEventTime = 0
+
+		if bForceRefresh then
+			instance:RefreshWindow(bForceRefresh)
+		end
+
+		if sessionType ~= old then
+			Details:SendEvent("DETAILS_INSTANCE_CHANGESESSION", nil, instance, instance.sessionType, instance.sessionId)
+		end
+	end,
+
+	GetNewSegmentIdFromCurrent = function(instance)
+		return Details222.B.GetSegmentIdFromCurrent()
+	end,
+
+	---@param instance instance
+	---@return damagemeter_type
+	GetAttributeType = function(instance)
+		local mainDisplay, subDisplay = instance:GetDisplay()
+		return Details222.BParser.GetAttributeTypeFromDisplay(mainDisplay, subDisplay)
+	end,
+
+	GetSources = function(instance)
+		local thisSegment = instance:GetSegmentObject()
+		if (thisSegment) then
+			return thisSegment.combatSources
+		end
+	end,
+
+	---@param instance instance
+	---@return number
+	GetCombatTime = function(instance)
+		if Details:IsUsingBlizzardAPI() then
+			local thisSegment = instance:GetSegmentObject()
+			return thisSegment.durationSeconds or 60
+		else
+			local combat = instance:GetCombat()
+			return combat:GetCombatTime()
+		end
+	end,
+
+	---@param instance instance
+	---@param actorName string
+	---@return damagemeter_combat_source
+	GetSourceActorFromName = function(instance, actorName)
+		--if not issecretvalue(actorName) then
+			local sources = instance:GetSources()
+			for i = 1, #sources do
+				if sources[i].name == actorName then
+					return sources[i]
+				end
+			end
+		--end
+	end,
+
+	---------END OF SESSION
 
 	---return the mais attribute id and the sub attribute
 	---@param instance instance
@@ -429,6 +569,8 @@ local instanceMixins = {
 	---@param instance instance
 	---@param modeId modeid
 	SetMode = function(instance, modeId)
+		Details:StopTestBarUpdate()
+
 		instance.LastModo = instance.modo
 		instance.modo = modeId
 		instance:CheckIntegrity()
@@ -436,6 +578,7 @@ local instanceMixins = {
 	end,
 
 	SetSegmentFromCooltip = function(_, instance, segmentId, bForceChange)
+		Details:StopTestBarUpdate()
 		return instance:SetSegment(segmentId, bForceChange)
 	end,
 
@@ -444,6 +587,13 @@ local instanceMixins = {
 	---@param segmentId segmentid
 	---@param bForceChange boolean|nil
 	SetSegment = function(instance, segmentId, bForceChange)
+		if Details:IsUsingBlizzardAPI() then
+			--shutdown SetSegment if using blizzard parser
+			--todo: on swap to details temporarly, this function should be reactivated
+			return
+		end
+
+		Details:StopTestBarUpdate()
 		local currentSegment = instance:GetSegmentId()
 		if (segmentId ~= currentSegment or bForceChange) then
 			--check if the instance is frozen
@@ -500,6 +650,8 @@ local instanceMixins = {
 	---@param modeId modeid
 	---@param quickMode boolean?
 	SetDisplay = function(instance, segmentId, attributeId, subAttributeId, modeId, quickMode)
+		Details:StopTestBarUpdate()
+
 		--change the mode of the window if the mode is different
 		---@type modeid
 		local currentModeId = instance:GetMode()
@@ -595,12 +747,12 @@ local instanceMixins = {
 		--if there's no combat object to show, freeze the window
 		---@type combat
 		local combatObject = instance:GetCombat()
-		if not quickMode then
+		--if not quickMode then
 			if (not combatObject) then
 				instance:Freeze()
 				return false
 			end
-		end
+		--end
 
 		instance.v_barras = true
 		combatObject[attributeId].need_refresh = true
@@ -623,7 +775,7 @@ local instanceMixins = {
 	end,
 
 	CheckForSecretsAndAspects = function(self)
-		Details:ClearSecretFontStrings(self)
+		Details:ClearSecretFontStrings(self) --only affect strings from 11 to 14
 
 		local lines = self.barras
 		local needRefreshRows = false
@@ -647,6 +799,8 @@ local instanceMixins = {
 
 			if (needRefreshRows) then
 				line.lineText1:SetToDefaults()
+				line.lineText1:SetFontObject("GameFontHighlight")
+				line.lineText1:SetText("defaults")
 				line.lineText2:SetToDefaults()
 				line.lineText3:SetToDefaults()
 				line.lineText4:SetToDefaults()
@@ -739,8 +893,19 @@ function Details:GetInstanceId()
 	return self.meu_id
 end
 
+---@param self instance
 function Details:GetSegment()
 	return self.segmento
+end
+
+function Details:GetSegmentObject()
+	if self:GetSegmentType() > 1 then
+		local s = Details222.B.GetSegment(DETAILS_SEGMENTTYPE_ID, self:GetNewSegmentId(), self:GetAttributeType())
+		return s
+	else
+		local s = Details222.B.GetSegment(DETAILS_SEGMENTTYPE_TYPE, self:GetSegmentType(), self:GetAttributeType())
+		return s
+	end
 end
 
 function Details:GetSoloMode()
@@ -2634,7 +2799,18 @@ end
 
 function Details:CheckSwitchToCurrent()
 	for _, instance in ipairs(Details.tabela_instancias) do
-		if (instance.ativa and instance.auto_current and instance.baseframe and instance.segmento > 0) then
+		---@type instance
+		instance = instance
+		---@type boolean?
+		local canSwap = false
+
+		if Details:IsUsingBlizzardAPI() then
+			canSwap = instance.ativa and instance.auto_current and instance.baseframe and instance:GetSegmentType() and instance:GetSegmentType() > 1
+		else
+			canSwap = instance.ativa and instance.auto_current and instance.baseframe and instance.segmento > 0
+		end
+
+		if (canSwap) then
 			if (instance.is_interacting and instance.last_interaction < Details._tempo) then
 				instance.last_interaction = Details._tempo
 			end
@@ -2644,10 +2820,41 @@ function Details:CheckSwitchToCurrent()
 				--instance._postponing_switch = Details:ScheduleTimer("PostponeSwitchToCurrent", 1, instance)
 				instance._postponing_switch = Details.Schedules.NewTimer(1, Details.PostponeSwitchToCurrent, Details, instance)
 			else
-				instance:TrocaTabela(0) --muda o segmento pra current
-				instance:InstanceAlert (Loc ["STRING_CHANGED_TO_CURRENT"], {[[Interface\AddOns\Details\images\toolbar_icons]], 18, 18, false, 32/256, 64/256, 0, 1}, 6)
-				instance._postponing_switch = nil
+				if Details:IsUsingBlizzardAPI() then
+					instance:SetSegmentType(1, true)
+					--instance:InstanceAlert (Loc ["STRING_CHANGED_TO_CURRENT"], {[[Interface\AddOns\Details\images\toolbar_icons]], 18, 18, false, 32/256, 64/256, 0, 1}, 6)
+					instance._postponing_switch = nil
+				else
+					instance:TrocaTabela(0) --muda o segmento pra current
+					--instance:InstanceAlert (Loc ["STRING_CHANGED_TO_CURRENT"], {[[Interface\AddOns\Details\images\toolbar_icons]], 18, 18, false, 32/256, 64/256, 0, 1}, 6)
+					instance._postponing_switch = nil
+				end
 			end
+		end
+	end
+end
+
+---@param self instance
+function Details:ShowLastBoss()
+	local currentSession = self:GetSegmentObject()
+	local encounterName = currentSession and currentSession.name or ""
+	if encounterName:find("%(!") then
+		return
+	end
+
+	local segmentType = self:GetSegmentType()
+	if segmentType and segmentType == 0 then
+		return
+	end
+
+	---@type damagemeter_availablecombat_session[]
+	local blzSegments = Details222.B.GetAllSegments()
+	for i = #blzSegments, 1, -1 do
+		local combatSession = blzSegments[i]
+		if combatSession.name:find("%(!") then
+			self:SetSegmentType(2)
+			self:SetNewSegmentId(combatSession.sessionID, true)
+			return
 		end
 	end
 end
@@ -2900,7 +3107,7 @@ function Details:TrocaTabela(instance, segmentId, attributeId, subAttributeId, f
 		Details:Msg("invalid attribute, switching to damage done.")
 	end
 
-	if (Details.auto_swap_to_dynamic_overall and Details.in_combat and UnitAffectingCombat("player")) then
+	if (not detailsFramework:IsAddonApocalypseWow() and Details.auto_swap_to_dynamic_overall and Details.in_combat and UnitAffectingCombat("player")) then
 		if (segmentId >= 0) then
 			if (attributeId == 5) then
 				local dynamicOverallDataCustomID = Details222.GetCustomDisplayIDByName(Loc["STRING_CUSTOM_DYNAMICOVERAL"])
@@ -3232,7 +3439,7 @@ function Details:MontaAtributosOption (instancia, func)
 			local doNothingFunction = function()end
 			for o = 1, atributos [i] do
 				local mainDisplay, subDisplay = i, o
-				local damageMeterType = Details222.BParser.GetDamageMeterTypeFromDisplay(mainDisplay, subDisplay)
+				local damageMeterType = Details222.BParser.GetAttributeTypeFromDisplay(mainDisplay, subDisplay)
 
 				if (Details:CaptureIsEnabled ( Details.atributos_capture [gindex] ) and damageMeterType < 100) then
 					CoolTip:AddMenu (2, func, true, i, o, options[o], nil, true)

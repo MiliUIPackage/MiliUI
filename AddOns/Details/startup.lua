@@ -63,6 +63,28 @@ function Details222.StartUp.StartMeUp()
 		LIB_OPEN_RAID_MYTHIC_PLUS_DND = true
 	end
 
+	if detailsFramework.IsAddonApocalypseWow() then
+		Details.auto_swap_to_dynamic_overall = false
+
+		if (Details.breakdown_spell_tab.spellcontainer_headers["casts"]) then
+			Details.breakdown_spell_tab.spellcontainer_headers["casts"].enabled = false
+		end
+		if (Details.breakdown_spell_tab.spellcontainer_headers["critpercent"]) then
+			Details.breakdown_spell_tab.spellcontainer_headers["critpercent"].enabled = false
+		end
+		if (Details.breakdown_spell_tab.spellcontainer_headers["hits"]) then
+			Details.breakdown_spell_tab.spellcontainer_headers["hits"].enabled = false
+		end
+		if (Details.breakdown_spell_tab.spellcontainer_headers["castavg"]) then
+			Details.breakdown_spell_tab.spellcontainer_headers["castavg"].enabled = false
+		end
+		if (Details.breakdown_spell_tab.spellcontainer_headers["uptime"]) then
+			Details.breakdown_spell_tab.spellcontainer_headers["uptime"].enabled = false
+		end
+	end
+
+	Details.disable_lock_ungroup_buttons = false
+
 	-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	--row single click, this determines what happen when the user click on a bar
 
@@ -165,6 +187,7 @@ function Details222.StartUp.StartMeUp()
 	--/run Details.ocd_tracker.show_options = true; ReloadUI()
 	--custom window
 	Details.custom = Details.custom or {}
+
 	--Details222.InitRecap()
 
 	--micro button alert
@@ -214,8 +237,7 @@ function Details222.StartUp.StartMeUp()
 			Details.Schedules.Cancel(Details.scheduled_window_update)
 			Details.scheduled_window_update = nil
 		end
-		Details.scheduled_window_update = Details.Schedules.NewTimer(time or 1, Details.ScheduledWindowUpdate, Details,
-			bIsForced)
+		Details.scheduled_window_update = Details.Schedules.NewTimer(time or 1, Details.ScheduledWindowUpdate, Details, bIsForced)
 	end
 
 	--do the first refresh here, not waiting for the regular refresh schedule to kick in
@@ -226,9 +248,18 @@ function Details222.StartUp.StartMeUp()
 	for instanceId = 1, Details:GetNumInstances() do
 		local instance = Details:GetInstance(instanceId)
 		if (instance:IsEnabled()) then
-			Details.Schedules.NewTimer(1, Details.RefreshBars, Details, instance)
-			Details.Schedules.NewTimer(1, Details.InstanceReset, Details, instance)
-			Details.Schedules.NewTimer(1, Details.InstanceRefreshRows, Details, instance)
+			local r = 5
+
+			local refresh = function()
+				instance:RefreshBars()
+				instance:InstanceReset()
+				instance:InstanceRefreshRows()
+
+				Details:RefreshMainWindow(-1, bForceRefresh)
+				Details:RefreshUpdater()
+			end
+
+			C_Timer.After(r, refresh)
 		end
 	end
 
@@ -294,7 +325,7 @@ function Details222.StartUp.StartMeUp()
 		--need to refresh wallpaper a few frames or seconds after the game starts
 		function Details:CheckWallpaperAfterStartup()
 			if (not Details.profile_loaded) then
-				Details.Schedules.NewTimer(5, Details.CheckWallpaperAfterStartup, Details)
+				Details.Schedules.NewTimer(2, Details.CheckWallpaperAfterStartup, Details)
 			end
 
 			for instanceId = 1, Details.instances_amount do
@@ -315,10 +346,10 @@ function Details222.StartUp.StartMeUp()
 			Details.profile_loaded = nil
 		end
 
-		Details.Schedules.NewTimer(5, Details.CheckWallpaperAfterStartup, Details)
+		Details.Schedules.NewTimer(2, Details.CheckWallpaperAfterStartup, Details)
 	end
 
-	Details.Schedules.NewTimer(5, Details.RefreshAfterStartup, Details)
+	Details.Schedules.NewTimer(1, function() DetailsSwitchPanel:Hide() Details.RefreshAfterStartup(Details) end)
 
 	--start garbage collector
 	Details222.GarbageCollector.lastCollectTime = 0
@@ -455,6 +486,13 @@ function Details222.StartUp.StartMeUp()
 			Details.mythic_plus.autoclose_time = 90
 		end
 
+		if detailsFramework.IsAddonApocalypseWow() then
+			--remove all custom displays from the previous version of the addon, because they are not compatible with 12.x.x and can cause errors.
+			for i = #Details.custom, 1, -1 do
+				table.remove(Details.custom, i)
+			end
+		end
+
 		local lowerInstanceId = Details:GetLowerInstanceNumber()
 		if (lowerInstanceId) then
 			lowerInstanceId = Details:GetInstance(lowerInstanceId)
@@ -488,7 +526,7 @@ function Details222.StartUp.StartMeUp()
 					Details.last_changelog_size = #Loc["STRING_VERSION_LOG"]
 
 					if (Details.auto_open_news_window) then
-						C_Timer.After(5, function()
+						C_Timer.After(1, function()
 							Details.OpenNewsWindow()
 						end)
 					end
@@ -916,18 +954,16 @@ function Details222.StartUp.StartMeUp()
 		_G["UpdateAddOnMemoryUsage"] = Details.UpdateAddOnMemoryUsage_Custom
 	end
 
+	
 	Details.InitializeSpellBreakdownTab()
-
 	pcall(Details222.ClassCache.MakeCache)
 
-	if (time() > 1740761826 + 31622400) then
-		wipe(Details)
-		return
-	end
+	--here was a code of the Details! Doomsday!
+
 
 	Details:BuildSpecsNameCache()
-
 	Details222.Cache.DoMaintenance()
+
 
 	function Details:InstallOkey()
 		return true
@@ -963,6 +999,8 @@ function Details222.StartUp.StartMeUp()
 
 	--all in one window
 	Details222.AllInOneWindow:Initialize()
+
+	Details.__initialized = true
 end
 
 Details.AddOnLoadFilesTime = _G.GetTime()

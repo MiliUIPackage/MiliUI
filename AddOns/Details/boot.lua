@@ -17,12 +17,12 @@
 		end
 		local addonName, Details222 = ...
 		local version, build, date, tvs = GetBuildInfo()
-		Details.build_counter = 14358
-		Details.alpha_build_counter = 14358 --if this is higher than the regular counter, use it instead
+		Details.build_counter = 14700
+		Details.alpha_build_counter = 14700 --if this is higher than the regular counter, use it instead
 		Details.dont_open_news = true
 		Details.game_version = version
 		Details.userversion = version .. " " .. Details.build_counter
-		Details.realversion = 168 --core version, this is used to check API version for scripts and plugins (see alias below)
+		Details.realversion = 170 --core version, this is used to check API version for scripts and plugins (see alias below)
 		Details.gametoc = tvs
 		Details.APIVersion = Details.realversion --core version
 		Details.version = Details.userversion .. " (core " .. Details.realversion .. ")" --simple stirng to show to players
@@ -68,6 +68,7 @@
 			return Details.gameVersionPrefix .. " " .. Details.build_counter .. " " .. alphaId .. " " .. Details.game_version .. ""
 		end
 
+		Details.DM = C_DamageMeter
 		Details.DefaultTooltipIconSize = 20
 		local isWowApocalypse = (tvs >= 120000)
 
@@ -122,6 +123,15 @@
 			[114840] = true, --orgrimmar
 			[114832] = true, --stormwind
 			[153292] = true, --stormwind
+			[225982] = true, --dornogal
+			[225977] = true, --dornogal
+			[225983] = true, --dornogal
+			[225978] = true, --dornogal
+			[219250] = true, --dornogal
+			[225985] = true, --dornogal
+			[225976] = true, --dornogal
+			[225984] = true, --dornogal
+			
 		}
 
 		---@type details_storage_feature
@@ -197,6 +207,7 @@
 		Details222.Mixins = {}
 		Details222.Cache = {}
 		Details222.Perf = {}
+		Details222.Recap = {}
 		Details222.Cooldowns = {}
 		Details222.GarbageCollector = {}
 		Details222.BreakdownWindow = {}
@@ -240,6 +251,135 @@
 		Details222.EncounterJournalDump = {}
 		--aura scanner
 		Details222.AuraScan = {}
+
+		Details222.B = {}
+
+		--simplify and reduce the amount of functions to work with
+		local mainFName = "GetCombatSession"
+		local getSegmentFName = mainFName .. "From"
+		local getSpellFname = mainFName .. "SourceFrom"
+
+		---return a segment
+		---@param type string
+		---@param identifier number
+		---@param attribute number
+		---@return damagemeter_combat_session
+		function Details222.B.GetSegment(type, identifier, attribute)
+			local result = Details.DM[(getSegmentFName .. type)](identifier, attribute)
+			return result
+		end
+
+		---return a spell container
+		---@param type string
+		---@param identifier number
+		---@param attribute number
+		---@param guid string
+		---@return damagemeter_combat_session_source
+		function Details222.B.GetSpells(type, identifier, attribute, guid, x)
+			if Details222.B.IsSegmentType(type) then
+				return Details.DM[(getSpellFname .. DETAILS_SEGMENTTYPE_TYPE)](identifier, attribute, guid, x)
+			else
+				return Details.DM[(getSpellFname .. type)](identifier, attribute, guid, x)
+			end
+		end
+
+		---usage: local actorList, amountOfActors, totalAmount, combatTime = Details222.B.GetSegmentInfo(segment)
+		---@param s damagemeter_combat_session
+		---@return damagemeter_combat_source[] actorList
+		---@return number amountOfActors
+		---@return number totalAmount
+		---@return number combatTime
+		function Details222.B.GetSegmentInfo(s)
+			return s.combatSources, #s.combatSources, s.totalAmount, s.durationSeconds
+		end
+
+		---usage: local spellList, amountOfSpells, totalAmount, maxAmount = Details222.B.GetSpellContainerInfo(spellContainer)
+		---@param s damagemeter_combat_session_source
+		---@return damagemeter_combat_spell[] spells
+		---@return number totalSpells
+		---@return number totalAmount
+		---@return number maxAmount
+		function Details222.B.GetSpellContainerInfo(s)
+			return s.combatSpells, #s.combatSpells, s.totalAmount, s.maxAmount
+		end
+
+		---usage: local spellId, total, perSecond, creatureName, overkill, isAvoidable, isDeadly, spellDetails = Details222.B.GetSpellInfo(spell)
+		---@param s damagemeter_combat_spell
+		---@return number spellID
+		---@return number totalAmount
+		---@return number amountPerSecond
+		---@return string creatureName
+		---@return number overkillAmount
+		---@return boolean isAvoidable
+		---@return boolean isDeadly
+		---@return damagemeter_combat_spell_unit_details[] combatSpellDetails
+		function Details222.B.GetSpellDetails(s)
+			return s.spellID, s.totalAmount, s.amountPerSecond, s.creatureName, s.overkillAmount, s.isAvoidable, s.isDeadly, s.combatSpellDetails
+		end
+
+		---usage: local actorName, actorGUID, total, perSecond, icon, class, deathId, deathTime, creatureId, classification, isLocalPlayer = Details222.B.GetActorDetails(actor)
+		---@param s damagemeter_combat_source
+		---@return string actorName
+		---@return string actorGUID
+		---@return number totalAmount
+		---@return number amountPerSecond
+		---@return number specIconID
+		---@return string classFilename
+		---@return number deathRecapID
+		---@return number deathTimeSeconds
+		---@return number sourceCreatureID
+		---@return string classification
+		---@return boolean isLocalPlayer
+		function Details222.B.GetActorDetails(s)
+			return s.name, s.sourceGUID, s.totalAmount, s.amountPerSecond, s.specIconID,
+			s.classFilename, s.deathRecapID, s.deathTimeSeconds, s.sourceCreatureID, s.classification, s.isLocalPlayer
+		end
+
+		function Details222.B.GetAllCombatTypes(type, identifier)
+			local result = {}
+			for i = 0, 10 do
+				local segment = Details222.B.GetSegment(type, identifier, i)
+				if segment then
+					result[#result + 1] = segment
+				end
+			end
+			return result
+		end
+
+		function Details222.B.IsSegmentType(id)
+			if type(id) == "number" and id <= 1 then
+				return true
+			end
+			return false
+		end
+
+		---return the amount of segments available in Details!
+		---usage: local amountOfSegments = Details222.B.GetAmountOfSegments()
+		---@return number
+		function Details222.B.GetAmountOfSegments()
+			return #Details.DM.GetAvailableCombatSessions()
+		end
+
+		---usage: local allSegments = Details222.B.GetAllSegments()
+		function Details222.B.GetAllSegments()
+			return Details.DM.GetAvailableCombatSessions()
+		end
+
+		function Details222.B.GetSegmentIdFromCurrent()
+			local s = Details222.B.GetAllSegments()
+			if s[#s] then
+				return s[#s].sessionID
+			end
+			return 1
+		end
+
+		function Details222.B.GetCombatTime(id)
+			return Details222.B.GetSegment("ID", id, 0).durationSeconds
+		end
+
+		function Details222.B.GetCurrentTime(segmentType)
+			return Details222.B.GetSegment("Type", segmentType, 0).durationSeconds
+		end
 
 		---@type instancedifficulty
 		Details222.InstanceDifficulty = {
@@ -520,6 +660,9 @@
 
 		local UnitDebuff = C_UnitAuras and C_UnitAuras.GetDebuffDataByIndex or UnitDebuff
 		Details222.UnitDebuff = UnitDebuff
+
+		local dr = C_DeathRecap
+		Details.DR = dr
 
         if (C_Spell and C_Spell.GetSpellInfo) then
             Details222.GetSpellInfo = function(...)
@@ -1490,7 +1633,7 @@ do
 			Details.Schedules.After(5, _detalhes.wipe_combat_after_failed_load)
 		end
 
-		Details.failed_to_load = C_Timer.NewTimer(1, function() Details.Schedules.NewTimer(20, _detalhes.WelcomeMsgLogon) end)
+		--Details.failed_to_load = C_Timer.NewTimer(1, function() Details.Schedules.NewTimer(20, _detalhes.WelcomeMsgLogon) end)
 
 	--key binds
 	--[=
@@ -1767,10 +1910,10 @@ function Details:DestroyActor(actorObject, actorContainer, combatObject, callSta
 
 	--remove the actor from the parser cache
 	local c1, c2, c3, c4 = Details222.Cache.GetParserCacheTables()
-	c1[actorObject.serial] = nil
-	c2[actorObject.serial] = nil
-	c3[actorObject.serial] = nil
-	c4[actorObject.serial] = nil
+	c1[actorObject.serial or "a"] = nil
+	c2[actorObject.serial or "a"] = nil
+	c3[actorObject.serial or "a"] = nil
+	c4[actorObject.serial or "a"] = nil
 
 	if (not actorObject.ownerName) then --not a pet
 		if (containerType == 1 or containerType == 2) then --damage|healing done

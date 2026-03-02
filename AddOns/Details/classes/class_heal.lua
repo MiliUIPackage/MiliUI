@@ -207,6 +207,13 @@ function healingClass:ReportSingleDamagePreventedLine (actor, instancia)
 end
 
 function healingClass:RefreshWindow (instancia, tabela_do_combate, forcar, exportar)
+	if detailsFramework.IsAddonApocalypseWow() then
+		if Details:IsUsingBlizzardAPI() then
+			Details222.BParser.UpdateAppocalypse(instancia, forcar)
+			return
+		end
+	end
+
 	if not Details222.UpdateIsAllowed() then return end --temporary stop updates in th new dlc
 
 	local showing = tabela_do_combate [class_type] --o que esta sendo mostrado -> [1] - dano [2] - cura
@@ -1358,12 +1365,19 @@ end
 local background_heal_vs_absorbs = {value = 100, color = {1, 1, 0, .25}, specialSpark = false, texture = [[Interface\AddOns\Details\images\bar4_glass]]}
 
 function healingClass:ToolTip_HealingDone (instance, numero, barra, keydown)
-
 	local owner = self.owner
 	if (owner and owner.classe) then
-		r, g, b = unpack(_detalhes.class_colors [owner.classe])
+		local thisColor = _detalhes.class_colors[owner.classe]
+		if not thisColor then
+			thisColor = _detalhes.class_colors["UNKNOW"]
+		end
+		r, g, b = unpack(thisColor)
 	else
-		r, g, b = unpack(_detalhes.class_colors [self.classe])
+		local thisColor = _detalhes.class_colors[self.classe]
+		if not thisColor then
+			thisColor = _detalhes.class_colors["UNKNOW"]
+		end
+		r, g, b = unpack(thisColor)
 	end
 
 	local combatObject = instance:GetCombat()
@@ -2177,9 +2191,9 @@ function healingClass:MontaInfoHealingDone()
 
 	--get the targets table: in the class heal, an actor has two targets table, one for normal healing and one for overheal
 	---@type targettable
-	local normalTargetsTable = self:GetTargets("targets")
+	local normalTargetsTable = self:GetTargets("targets") or {}
 	---@type targettable
-	local overhealTargetsTable = self:GetTargets("targets_overheal")
+	local overhealTargetsTable = self:GetTargets("targets_overheal") or {}
 
 	local targetTotalValue = 0
 	local targetOverhealTotalValue = 0

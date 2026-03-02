@@ -5594,6 +5594,9 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 	end
 
 	function Details.parser_functions:PLAYER_ENTERING_WORLD ()
+		--refresh title bar for shared media textures
+		Details:InstanceCall(Details.RefreshTitleBar)
+
 		return Details.parser_functions:ZONE_CHANGED_NEW_AREA()
 	end
 
@@ -5954,7 +5957,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 
 		table.wipe(interruptOverlapCache)
 
-		if (Details.auto_swap_to_dynamic_overall) then
+		if (not detailsFramework:IsAddonApocalypseWow() and Details.auto_swap_to_dynamic_overall) then
 			Details:InstanceCall(autoSwapDynamicOverallData, true)
 		end
 
@@ -6179,13 +6182,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		if (Details.debug) then
 		end
 
-		if detailsFramework.IsAddonApocalypseWow() then
-			pcall(function()
-				if C_DamageMeter and C_DamageMeter.ResetAllCombatSessions then
-					C_DamageMeter.ResetAllCombatSessions()
-				end
-			end)
-		end
+		Details222.BParser.ResetServerDM()
 
 		detailsFramework.Schedules.NewTimer (10, function()
 			Details222.MythicPlus.LogStep("CHALLENGE_MODE_START timer ended, starting the dungeon.")
@@ -6383,7 +6380,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 			end
 		end
 
-		if (Details.auto_swap_to_dynamic_overall) then
+		if (not detailsFramework:IsAddonApocalypseWow() and Details.auto_swap_to_dynamic_overall) then
 			Details:InstanceCall(autoSwapDynamicOverallData, false)
 		end
 
@@ -6738,7 +6735,9 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 	local playerLogin = CreateFrame("frame")
 	playerLogin:RegisterEvent("PLAYER_LOGIN")
 	playerLogin:SetScript("OnEvent", function()
-		Details222.StartUp.StartMeUp()
+		C_Timer.After(0, function()
+			Details222.StartUp.StartMeUp()
+		end)
 		crowdControlSpells = Details.CrowdControlSpellIdsCache
 	end)
 
