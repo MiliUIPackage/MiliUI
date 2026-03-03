@@ -168,7 +168,14 @@ local T = {
     ["menu.spell"] = "法術",
     ["menu.font"] = "字體",
     ["menu.variables"] = "變量",
-    
+
+    ["unit.player.elements.mount"] = "坐騎",
+    ["mount"]         = "坐騎",
+    ["Mount"]         = "坐騎",
+    ["collected"]     = "已收集",
+    ["uncollected"]   = "未收集",
+    ["ItemLevel"]     = "物品等級",
+    ["Achievement"]   = "成就",
 }
 for k, v in pairs(T) do
     L[k] = v
