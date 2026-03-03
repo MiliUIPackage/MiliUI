@@ -4,7 +4,7 @@
 ## IconTexture: Interface\AddOns\MiliUI\icon
 ## Category: Pack
 ## Category-zhTW: [整合]
-## SavedVariables: MiliUI_DB
+## SavedVariables: MiliUI_DB, MiliUI_CastBarEnhanceDB
 
 #UiTitle.lua
 Focuser.lua
@@ -14,6 +14,7 @@ Config\Luxthos_Platynator.lua
 # Config\Luxthos_Sensei.lua
 # Config\Luxthos_CMC.lua
 Config\Ayije_CDM.lua
+CastBarEnhance.lua
 Settings.lua
 core.lua
 # Chatbar.lua

@@ -128,7 +128,7 @@ StaticPopupDialogs["MILIUI_IMPORT_CONFIRM"] = {
 ------------------------------------------------------------
 local function InitSettings()
     -- 建立主分類
-    local category = Settings.RegisterCanvasLayoutCategory(CreateFrame("Frame"), "|cffffe00a米利UI|r 設定")
+    local category = Settings.RegisterCanvasLayoutCategory(CreateFrame("Frame"), "|cffffe00a米利UI|r設定")
     category.ID = "MiliUI_Settings"
     Settings.RegisterAddOnCategory(category)
 
@@ -201,6 +201,81 @@ local function InitSettings()
 
     local importCategory = Settings.RegisterCanvasLayoutSubcategory(category, importFrame, "預設值匯入")
     importCategory.ID = "MiliUI_Import"
+
+    -- ============================================================
+    -- 子分類: 插件強化
+    -- ============================================================
+    local enhanceFrame = CreateFrame("Frame")
+    enhanceFrame:SetSize(600, 400)
+
+    local eTitle = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    eTitle:SetPoint("TOPLEFT", 16, -16)
+    eTitle:SetText("|cffffe00a插件強化|r")
+
+    local eDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    eDesc:SetPoint("TOPLEFT", eTitle, "BOTTOMLEFT", 0, -8)
+    eDesc:SetText("替已安裝的插件注入額外功能，不修改原始插件。")
+    eDesc:SetTextColor(0.7, 0.7, 0.7)
+
+    -- Ayije_CDM 區塊標題
+    local cdmLabel = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    cdmLabel:SetPoint("TOPLEFT", eDesc, "BOTTOMLEFT", 0, -20)
+    cdmLabel:SetText("Ayije_CDM 施法條")
+
+    local cdmDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    cdmDesc:SetPoint("LEFT", cdmLabel, "RIGHT", 8, 0)
+    cdmDesc:SetText("— 冷卻管理器")
+    cdmDesc:SetTextColor(0.6, 0.6, 0.6)
+
+    -- 引導刻度 checkbox
+    local tickCB = CreateFrame("CheckButton", "MiliUI_ChannelTicksCB", enhanceFrame, "UICheckButtonTemplate")
+    tickCB:SetPoint("TOPLEFT", cdmLabel, "BOTTOMLEFT", 0, -8)
+    tickCB.text:SetText("引導刻度")
+    tickCB.text:SetFontObject("GameFontHighlight")
+
+    local tickDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    tickDesc:SetPoint("TOPLEFT", tickCB, "BOTTOMLEFT", 26, -2)
+    tickDesc:SetText("在引導法術施法條上顯示每一跳的刻度線")
+    tickDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    -- 延遲顯示 checkbox
+    local latCB = CreateFrame("CheckButton", "MiliUI_LatencyBarCB", enhanceFrame, "UICheckButtonTemplate")
+    latCB:SetPoint("TOPLEFT", tickDesc, "BOTTOMLEFT", -26, -12)
+    latCB.text:SetText("延遲顯示")
+    latCB.text:SetFontObject("GameFontHighlight")
+
+    local latDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    latDesc:SetPoint("TOPLEFT", latCB, "BOTTOMLEFT", 26, -2)
+    latDesc:SetText("在施法條尾端顯示紅色延遲區塊")
+    latDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    -- 初始化 checkbox 狀態（建立時就設定，不只等 OnShow）
+    local function SyncCheckboxes()
+        local edb = MiliUI_CastBarEnhance and MiliUI_CastBarEnhance.GetDB() or {}
+        tickCB:SetChecked(edb.channelTicks ~= false)
+        latCB:SetChecked(edb.latencyBar ~= false)
+    end
+    SyncCheckboxes()
+    enhanceFrame:SetScript("OnShow", SyncCheckboxes)
+
+    tickCB:HookScript("OnClick", function(self)
+        local enabled = self:GetChecked() and true or false
+        print("|cff00ff00[MiliUI]|r 引導刻度:", enabled and "開" or "關")
+        if MiliUI_CastBarEnhance then
+            MiliUI_CastBarEnhance.SetChannelTicks(enabled)
+        end
+    end)
+
+    latCB:HookScript("OnClick", function(self)
+        local enabled = self:GetChecked() and true or false
+        print("|cff00ff00[MiliUI]|r 延遲顯示:", enabled and "開" or "關")
+        if MiliUI_CastBarEnhance then
+            MiliUI_CastBarEnhance.SetLatencyBar(enabled)
+        end
+    end)
+
+    local enhanceCategory = Settings.RegisterCanvasLayoutSubcategory(category, enhanceFrame, "插件強化")
+    enhanceCategory.ID = "MiliUI_Enhance"
 
     return category
 end
