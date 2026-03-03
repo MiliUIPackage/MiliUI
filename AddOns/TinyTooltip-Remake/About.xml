@@ -1,0 +1,101 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\FrameXML\UI.xsd">
+
+<Frame name="TinyTooltipRemakeAboutTemplate" virtual="true">
+    <Layers>
+        <Layer level="ARTWORK">
+            <FontString parentKey="Title" inherits="GameFontNormalLarge" justifyH="LEFT">
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="18" y="-16" />
+                </Anchors>
+            </FontString>
+
+            <FontString parentKey="Tagline" inherits="GameFontHighlight" justifyH="LEFT">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" y="-12" />
+                    <Anchor point="RIGHT" x="-16" />
+                </Anchors>
+            </FontString>
+
+            <FontString parentKey="VersionText" inherits="GameFontNormal" justifyH="RIGHT">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.Tagline" relativePoint="BOTTOMLEFT" x="54" y="-12" />
+                </Anchors>
+            </FontString>
+
+            <FontString parentKey="Version" inherits="GameFontHighlight" justifyH="LEFT">
+                <Anchors>
+                    <Anchor point="LEFT" relativeKey="$parent.VersionText" relativePoint="RIGHT" x="4" />
+                </Anchors>
+            </FontString>
+
+            <FontString parentKey="AuthorText" inherits="GameFontNormal" justifyH="RIGHT">
+                <Anchors>
+                    <Anchor point="TOPRIGHT" relativeKey="$parent.VersionText" relativePoint="BOTTOMRIGHT" y="-8" />
+                </Anchors>
+            </FontString>
+
+            <FontString parentKey="Author" inherits="GameFontHighlight" justifyH="LEFT">
+                <Anchors>
+                    <Anchor point="LEFT" relativeKey="$parent.AuthorText" relativePoint="RIGHT" x="4" />
+                </Anchors>
+            </FontString>
+
+            <FontString parentKey="HelpText" inherits="GameFontNormal" justifyH="LEFT">
+                <Anchors>
+                    <Anchor point="LEFT" relativeKey="$parent.Title" x="16" />
+                    <Anchor point="TOP" relativeKey="$parent.AuthorText" relativePoint="BOTTOM" y="-24" />
+                </Anchors>
+            </FontString>
+
+        </Layer>
+    </Layers>
+    <Frames>
+        <EditBox parentKey="HelpURL" autoFocus="false" ignoreArrows="true">
+            <Size y="16" />
+            <FontString inherits="GameFontHighlight" />
+            <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.HelpText" relativePoint="BOTTOMLEFT" y="-8" x="16" />
+                <Anchor point="RIGHT" x="-16" />
+            </Anchors>
+            <Scripts>
+                <OnShow>
+                    self:SetText(self.url or "")
+                </OnShow>
+                <OnTextChanged>
+                    self:SetText(self.url or "")
+                    self:HighlightText()
+                </OnTextChanged>
+                <OnEditFocusGained>
+                    self:HighlightText()
+                </OnEditFocusGained>
+                <OnEscapePressed function="EditBox_ClearFocus" />
+            </Scripts>
+        </EditBox>
+    </Frames>
+    <Layers>
+        <Layer level="ARTWORK">
+            <FontString parentKey="CreditsText" inherits="GameFontNormal" justifyH="RIGHT">
+                <Anchors>
+                    <Anchor point="LEFT" relativeKey="$parent.HelpText" />
+                    <Anchor point="TOP" relativeKey="$parent.HelpURL" relativePoint="BOTTOM" y="-32" />
+                </Anchors>
+            </FontString>
+
+            <FontString parentKey="Credits" inherits="GameFontNormalSmall" spacing="8" justifyH="LEFT">
+                <Color r="0.8" g="1" b="0.8" a="1" />
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.CreditsText" relativePoint="BOTTOMLEFT" x="16" y="-8" />
+                    <Anchor point="RIGHT" x="-16" />
+                </Anchors>
+            </FontString>
+        </Layer>
+    </Layers>
+
+    <Scripts>
+        <OnLoad>
+            TinyTooltipRemake_About_OnLoad(self)
+        </OnLoad>
+    </Scripts>
+</Frame>
+
+</Ui>

@@ -1,0 +1,33 @@
+## Interface: 120000 , 120001, 110002
+## Title: TinyTooltip-Remake
+## Notes: A powerful tooltip enhancement addon based on TinyTooltip.
+## Author: 星野绫-罗宁 CN
+## Version: 1.3.2
+## SavedVariables: TinyTooltipRemakeDB 
+## SavedVariablesPerCharacter: TinyTooltipRemakeCharacterDB
+
+## Title-zhTW: |cff0099FF[介面]|r 浮動提示資訊增強
+## Notes-zhTW: TinyTooltip (Reforged)|n|n提供更多的選項讓你可以自訂滑鼠指向時所顯示的提示說明。|n|n|cffffd200使用方法: |r在遊戲內建的編輯模式中勾選 "浮動提示資訊" 來移動位置。|n|n從Esc>選項>插件>浮動提示資訊，進行設定。|n|n發生任何問題請輸入 /tip reset |n恢復成預設值。
+## Category-zhTW: 介面
+
+libs\lib.xml
+About.xml
+Core.lua
+DialogueUICompat.lua
+Config.lua
+General.lua
+Anchor.lua
+Unit.lua
+Model.lua
+Target.lua
+Item.lua
+Spell.lua
+Quest.lua
+LinkID.lua
+Mount.lua
+SkinFrames.lua
+
+
+libs\Template.xml
+locales\locales.xml
+Options.lua
