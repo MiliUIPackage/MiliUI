@@ -1,0 +1,657 @@
+local AddonName = "Ayije_CDM"
+local CDM = _G[AddonName]
+local CDM_C = CDM.CONST
+local SetPixelPerfectPoint = CDM_C.SetPixelPerfectPoint
+local INVERTED_ANCHORS = {
+    TOPLEFT = "BOTTOMLEFT",
+    TOPRIGHT = "BOTTOMRIGHT",
+    BOTTOMLEFT = "TOPLEFT",
+    BOTTOMRIGHT = "TOPRIGHT",
+}
+local TRACKER_ANCHOR_INVALIDATION_EVENTS = {
+    "PLAYER_ENTERING_WORLD",
+    "LOADING_SCREEN_DISABLED",
+    "GROUP_ROSTER_UPDATE",
+    "PLAYER_ROLES_ASSIGNED",
+}
+
+local trackerAnchorCache = setmetatable({}, { __mode = "k" })
+local trackerAnchorCacheVersion = 0
+local anchorInvalidationInitialized = false
+
+local playerFrameSettled = false
+
+local cachedPlayerFrame = nil
+local cachedPlayerFrameVersion = -1
+local cachedRacialsPartyFrame = nil
+local cachedRacialsPartyFrameVersion = -1
+local racialsPartyAnchorCacheVersion = 0
+local trackerPositionCallbacks = {}
+local positionNotifyPending = false
+local trackerVisibleFramesScratch = {}
+local trackerWidthsPxScratch = {}
+local trackerHeightsPxScratch = {}
+
+local function InvalidateTrackerAnchorCache(container)
+    if container then
+        trackerAnchorCache[container] = nil
+        return
+    end
+    trackerAnchorCacheVersion = trackerAnchorCacheVersion + 1
+end
+
+CDM.InvalidateTrackerAnchorCache = InvalidateTrackerAnchorCache
+
+local effectiveIDCache = {}
+
+local function GetEffectiveSpellID(spellID)
+    if not spellID then return spellID end
+    local cached = effectiveIDCache[spellID]
+    if cached then return cached end
+    if not C_Spell.GetOverrideSpell then
+        effectiveIDCache[spellID] = spellID
+        return spellID
+    end
+    local overrideID = C_Spell.GetOverrideSpell(spellID)
+    if CDM.IsSafeNumber(overrideID) and overrideID ~= spellID and overrideID > 0 then
+        effectiveIDCache[spellID] = overrideID
+        return overrideID
+    end
+    effectiveIDCache[spellID] = spellID
+    return spellID
+end
+
+CDM.GetEffectiveSpellID = GetEffectiveSpellID
+
+function CDM.WipeEffectiveIDCache()
+    table.wipe(effectiveIDCache)
+end
+
+local function GetMultiChargeCache()
+    if Ayije_CDMDB and Ayije_CDMDB.global then
+        if not Ayije_CDMDB.global.multiChargeSpells then
+            Ayije_CDMDB.global.multiChargeSpells = {}
+        end
+        return Ayije_CDMDB.global.multiChargeSpells
+    end
+end
+
+function CDM.CacheMultipleCharges(entry, spellID)
+    if not entry or not spellID then return end
+    local effectiveID = GetEffectiveSpellID(spellID)
+    local chargeInfo = C_Spell.GetSpellCharges(effectiveID)
+    if chargeInfo and chargeInfo.maxCharges and not issecretvalue(chargeInfo.maxCharges) then
+        local result = chargeInfo.maxCharges > 1
+        entry.hasMultipleCharges = result
+        local saved = GetMultiChargeCache()
+        if saved then
+            saved[spellID] = result or nil
+        end
+    else
+        local saved = GetMultiChargeCache()
+        if saved and entry.hasMultipleCharges == nil then
+            entry.hasMultipleCharges = saved[spellID] or false
+        end
+    end
+end
+
+local function InvalidateRacialsPartyAnchorCache()
+    racialsPartyAnchorCacheVersion = racialsPartyAnchorCacheVersion + 1
+end
+
+local function NotifyTrackerPositionCallbacks()
+    for _, cb in pairs(trackerPositionCallbacks) do
+        cb()
+    end
+end
+
+local function SchedulePositionNotify()
+    if positionNotifyPending then return end
+    positionNotifyPending = true
+    C_Timer.After(0, function()
+        positionNotifyPending = false
+        NotifyTrackerPositionCallbacks()
+    end)
+end
+
+function CDM.ScheduleTrackerPositionRefresh()
+    InvalidateTrackerAnchorCache()
+    SchedulePositionNotify()
+end
+
+local playerFrameRecheckTimer
+
+local function EnsureAnchorInvalidation()
+    if anchorInvalidationInitialized then return end
+    anchorInvalidationInitialized = true
+    local f = CreateFrame("Frame")
+    for _, eventName in ipairs(TRACKER_ANCHOR_INVALIDATION_EVENTS) do
+        f:RegisterEvent(eventName)
+    end
+    f:SetScript("OnEvent", function(_, event)
+        InvalidateTrackerAnchorCache()
+        InvalidateRacialsPartyAnchorCache()
+        SchedulePositionNotify()
+        if event == "PLAYER_ENTERING_WORLD" or event == "LOADING_SCREEN_DISABLED" then
+            if playerFrameRecheckTimer then
+                playerFrameRecheckTimer:Cancel()
+            end
+            playerFrameRecheckTimer = C_Timer.NewTimer(1, function()
+                playerFrameRecheckTimer = nil
+                InvalidateTrackerAnchorCache()
+                InvalidateRacialsPartyAnchorCache()
+                SchedulePositionNotify()
+            end)
+        end
+    end)
+end
+
+function CDM.CreateStartupSettleGate(onSettled)
+    local settled = false
+    local token = 0
+
+    local gate = {}
+
+    function gate:IsSettled()
+        return settled
+    end
+
+    function gate:Begin()
+        settled = false
+        token = token + 1
+    end
+
+    function gate:Cancel()
+        settled = false
+        token = token + 1
+    end
+
+    function gate:ScheduleSettle(callback)
+        local capturedToken = token
+        local settleCallback = callback or onSettled
+        C_Timer.After(0, function()
+            if capturedToken ~= token then
+                return
+            end
+            settled = true
+            if settleCallback then
+                settleCallback()
+            end
+        end)
+    end
+
+    return gate
+end
+
+function CDM.RegisterTrackerPositionCallback(name, callback)
+    trackerPositionCallbacks[name] = callback
+    EnsureAnchorInvalidation()
+end
+
+function CDM.UnregisterTrackerPositionCallback(name)
+    trackerPositionCallbacks[name] = nil
+end
+
+local function GetDandersFrameForUnit(unit)
+    if not (C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("DandersFrames")) then
+        return nil
+    end
+    if type(DandersFrames_IsReady) ~= "function" or not DandersFrames_IsReady() then
+        return nil
+    end
+
+    local getFrameForUnit = DandersFrames_GetFrameForUnit
+    if type(getFrameForUnit) ~= "function" then
+        return nil
+    end
+
+    local ok, frame = pcall(getFrameForUnit, unit)
+    if not ok then
+        return nil
+    end
+    return frame
+end
+
+local PLAYER_FRAME_CANDIDATES = {
+    "ElvUF_Player",
+    "SUFUnitplayer",
+    "UUF_Player",
+    "MSUF_player",
+    "EQOLUFPlayerFrame",
+}
+
+local function ResolvePlayerAnchorFrame()
+    if cachedPlayerFrameVersion ~= trackerAnchorCacheVersion then
+        playerFrameSettled = false
+    end
+    if playerFrameSettled then
+        if cachedPlayerFrame and cachedPlayerFrame.IsShown and cachedPlayerFrame:IsShown() then
+            return cachedPlayerFrame
+        end
+        playerFrameSettled = false
+    end
+
+    for _, name in ipairs(PLAYER_FRAME_CANDIDATES) do
+        local frame = _G[name]
+        if frame and frame.IsShown and frame:IsShown() then
+            cachedPlayerFrame = frame
+            cachedPlayerFrameVersion = trackerAnchorCacheVersion
+            playerFrameSettled = true
+            return cachedPlayerFrame
+        end
+    end
+
+    local blizzFrame = _G["PlayerFrame"]
+    if blizzFrame and blizzFrame.IsShown and blizzFrame:IsShown() then
+        cachedPlayerFrame = blizzFrame
+        cachedPlayerFrameVersion = trackerAnchorCacheVersion
+        -- Settle only if no addon frame candidate exists in the global namespace.
+        -- If one exists but isn't shown yet, don't settle so we re-check next call.
+        local addonFramePending = false
+        for _, name in ipairs(PLAYER_FRAME_CANDIDATES) do
+            if _G[name] then
+                addonFramePending = true
+                break
+            end
+        end
+        playerFrameSettled = not addonFramePending
+        return cachedPlayerFrame
+    end
+
+    cachedPlayerFrame = nil
+    cachedPlayerFrameVersion = trackerAnchorCacheVersion
+    return nil
+end
+
+local PARTY_BUTTON_COUNT = 5
+
+local function IsVisibleFrame(frame)
+    return frame and frame.IsVisible and frame:IsVisible()
+end
+
+local function FindPlayerPartyButton(prefix, count)
+    for i = 1, count do
+        local frame = _G[prefix .. i]
+        if frame and frame.GetAttribute and frame:GetAttribute("unit") == "player"
+           and IsVisibleFrame(frame) then
+            return frame
+        end
+    end
+end
+
+local function FindGrid2PlayerButton()
+    for h = 1, 8 do
+        local prefix = "Grid2LayoutHeader" .. h
+        if not _G[prefix] then break end
+        for k = 1, PARTY_BUTTON_COUNT do
+            local btn = _G[prefix .. "UnitButton" .. k]
+            if not btn then break end
+            if btn.GetAttribute and btn:GetAttribute("unit") == "player"
+               and IsVisibleFrame(btn) then
+                return btn
+            end
+        end
+    end
+end
+
+local PARTY_FRAME_SOURCES = {
+    { addon = "ElvUI", prefix = "ElvUF_PartyGroup1UnitButton" },
+    { addon = "Cell",  prefix = "CellPartyFrameMember" },
+    { addon = "Grid2", fn = true },
+    { addon = nil,     prefix = "CompactPartyFrameMember" },
+    { addon = nil,     prefix = "CompactRaidFrame" },
+}
+
+local RAID_CONTAINER_SOURCES = {
+    { addon = "ElvUI", name = "ElvUF_Raid1" },
+    { addon = "Cell",  name = "CellRaidFrame" },
+    { addon = "Grid2", name = "Grid2LayoutFrame" },
+    { addon = nil,     name = "CompactRaidFrameContainer" },
+}
+
+local function ResolveRacialsPartyAnchorFrame()
+    if cachedRacialsPartyFrameVersion == racialsPartyAnchorCacheVersion then
+        local f = cachedRacialsPartyFrame
+        if not f or IsVisibleFrame(f) then
+            return f
+        end
+    end
+
+    local frame
+    local dandersFrame = GetDandersFrameForUnit("player")
+    if IsVisibleFrame(dandersFrame) then
+        frame = dandersFrame
+    end
+
+    if not frame then
+        if IsInRaid() then
+            for _, c in ipairs(RAID_CONTAINER_SOURCES) do
+                if not c.addon or C_AddOns.IsAddOnLoaded(c.addon) then
+                    local f = _G[c.name]
+                    if IsVisibleFrame(f) then
+                        frame = f
+                        break
+                    end
+                end
+            end
+        else
+            for _, src in ipairs(PARTY_FRAME_SOURCES) do
+                if not src.addon or C_AddOns.IsAddOnLoaded(src.addon) then
+                    if src.fn then
+                        frame = FindGrid2PlayerButton()
+                    else
+                        frame = FindPlayerPartyButton(src.prefix, PARTY_BUTTON_COUNT)
+                    end
+                    if frame then break end
+                end
+            end
+        end
+    end
+
+    cachedRacialsPartyFrame = frame
+    if frame then
+        cachedRacialsPartyFrameVersion = racialsPartyAnchorCacheVersion
+    end
+    return frame
+end
+
+function CDM.GetRacialsPartyAnchorFrame(forceRefresh)
+    EnsureAnchorInvalidation()
+    if forceRefresh then
+        InvalidateRacialsPartyAnchorCache()
+    end
+    return ResolveRacialsPartyAnchorFrame()
+end
+
+function CDM.CreateTrackerIcon(parent, namePrefix, id, opts)
+    opts = opts or {}
+    local size = opts.size or { w = 40, h = 36 }
+    local frameName
+    if opts.named ~= false and namePrefix and id ~= nil then
+        frameName = namePrefix .. id
+    end
+    local frame = CreateFrame("Frame", frameName, parent)
+    frame:SetSize(size.w, size.h)
+
+    local icon = frame:CreateTexture(nil, "ARTWORK")
+    icon:SetAllPoints()
+    icon:SetSnapToPixelGrid(false)
+    icon:SetTexelSnappingBias(0)
+    frame.Icon = icon
+
+    local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
+    cooldown:SetAllPoints()
+    cooldown:SetReverse(false)
+    cooldown:SetDrawEdge(false)
+    if cooldown.SetSwipeColor then
+        cooldown:SetSwipeColor(CDM_C.SWIPE_COLOR.r, CDM_C.SWIPE_COLOR.g, CDM_C.SWIPE_COLOR.b, CDM_C.SWIPE_COLOR.a)
+    end
+    frame.Cooldown = cooldown
+
+    if not CDM._OnTrackerCooldownDone then
+        CDM._OnTrackerCooldownDone = function(self)
+            local parentFrame = self and self:GetParent()
+            if parentFrame and parentFrame.Icon then
+                parentFrame.Icon:SetDesaturation(0)
+            end
+        end
+    end
+    cooldown:HookScript("OnCooldownDone", CDM._OnTrackerCooldownDone)
+
+    if opts.showCharges then
+        frame.cdmChargeWidgetsEnabled = true
+    end
+
+    return frame
+end
+
+function CDM.EnsureTrackerChargeWidgets(frame)
+    if not frame or not frame.cdmChargeWidgetsEnabled then
+        return nil
+    end
+
+    local chargeCount = frame.ChargeCount
+    if chargeCount and chargeCount.Current then
+        return chargeCount.Current
+    end
+
+    chargeCount = CreateFrame("Frame", nil, frame)
+    chargeCount:SetAllPoints()
+    chargeCount:SetFrameLevel(frame:GetFrameLevel() + 4)
+    chargeCount.Current = chargeCount:CreateFontString(nil, "OVERLAY")
+    chargeCount.Current:SetFont(CDM_C.FONT_PATH, 12, CDM_C.FONT_OUTLINE)
+    chargeCount.Current:SetDrawLayer("OVERLAY", 7)
+    frame.ChargeCount = chargeCount
+
+    return chargeCount.Current
+end
+
+local ToPixelCountForRegion = CDM_C.ToPixelCountForRegion
+local PixelsToUIForRegion = CDM_C.PixelsToUIForRegion
+local SetPointPixels = CDM_C.SetPointPixels
+
+local function SetTrackerContainerAnchor(container, anchorPoint, offsetX, offsetY, targetFrame)
+    container:ClearAllPoints()
+    local containerAnchor = INVERTED_ANCHORS[anchorPoint] or anchorPoint
+    SetPixelPerfectPoint(container, containerAnchor, targetFrame, anchorPoint, offsetX, offsetY)
+end
+
+function CDM.PositionTrackerIcons(container, frames, size, spacing, anchorPoint)
+    local growLeft = (anchorPoint == "TOPRIGHT" or anchorPoint == "BOTTOMRIGHT")
+    local visibleFrames = trackerVisibleFramesScratch
+    local widthsPx = trackerWidthsPxScratch
+    local heightsPx = trackerHeightsPxScratch
+    local prevVisibleCount = #visibleFrames
+    local prevWidthsCount = #widthsPx
+    local visibleCount = 0
+
+    for _, frame in ipairs(frames) do
+        if frame and frame:IsShown() then
+            visibleCount = visibleCount + 1
+            visibleFrames[visibleCount] = frame
+        end
+    end
+    for i = visibleCount + 1, prevVisibleCount do
+        visibleFrames[i] = nil
+    end
+
+    local gapPx = CDM_C.GetCooldownIconGapPixels(spacing)
+
+    if visibleCount <= 0 then
+        for i = 1, prevWidthsCount do
+            widthsPx[i] = nil
+        end
+        local emptyHeightPx = ToPixelCountForRegion(size and size.h or 0, container, 0)
+        container:SetSize(0, PixelsToUIForRegion(emptyHeightPx, container))
+        return
+    end
+
+    local totalWidthPx = 0
+    local maxHeightPx = 0
+
+    for i, frame in ipairs(visibleFrames) do
+        local wPx = ToPixelCountForRegion((frame.GetWidth and frame:GetWidth()) or (size and size.w) or 0, container, 1)
+        local hPx = ToPixelCountForRegion((frame.GetHeight and frame:GetHeight()) or (size and size.h) or 0, container, 1)
+        widthsPx[i] = wPx
+        heightsPx[i] = hPx
+        totalWidthPx = totalWidthPx + wPx
+        if i > 1 then
+            totalWidthPx = totalWidthPx + gapPx
+        end
+        if hPx > maxHeightPx then
+            maxHeightPx = hPx
+        end
+    end
+    for i = visibleCount + 1, prevWidthsCount do
+        widthsPx[i] = nil
+        heightsPx[i] = nil
+    end
+
+    container:SetSize(PixelsToUIForRegion(totalWidthPx, container), PixelsToUIForRegion(maxHeightPx, container))
+
+    local cursorPx = 0
+    for i, frame in ipairs(visibleFrames) do
+        frame:SetSize(PixelsToUIForRegion(widthsPx[i], container), PixelsToUIForRegion(heightsPx[i], container))
+        frame:ClearAllPoints()
+        if growLeft then
+            SetPointPixels(frame, "TOPRIGHT", container, "TOPRIGHT", -cursorPx, 0, container)
+        else
+            SetPointPixels(frame, "TOPLEFT", container, "TOPLEFT", cursorPx, 0, container)
+        end
+        cursorPx = cursorPx + widthsPx[i] + gapPx
+    end
+end
+
+function CDM.AnchorToPlayerFrame(container, anchorPoint, offsetX, offsetY, moduleName, forceRefresh)
+    if not container then
+        return
+    end
+
+    EnsureAnchorInvalidation()
+
+    if forceRefresh then
+        InvalidateTrackerAnchorCache(container)
+    end
+
+    local cached = trackerAnchorCache[container]
+    local cacheCurrent = cached and cached.version == trackerAnchorCacheVersion
+
+    if cacheCurrent and cached.targetFrame then
+        local tf = cached.targetFrame
+        if not (tf.IsShown and tf:IsShown()) then
+            trackerAnchorCache[container] = nil
+        else
+            if cached.requestAnchorPoint == anchorPoint and cached.requestOffsetX == offsetX and cached.requestOffsetY == offsetY then
+                return
+            end
+            SetTrackerContainerAnchor(container, anchorPoint, offsetX, offsetY, tf)
+            cached.requestAnchorPoint = anchorPoint
+            cached.requestOffsetX = offsetX
+            cached.requestOffsetY = offsetY
+            return
+        end
+    end
+
+    local playerFrame = ResolvePlayerAnchorFrame()
+
+    if playerFrame then
+        if not container:IsShown() then
+            container:Show()
+        end
+        SetTrackerContainerAnchor(container, anchorPoint, offsetX, offsetY, playerFrame)
+    else
+        -- A recheck timer is pending: addon frame may appear soon, keep last position.
+        -- No recheck pending: resolve failure is final, hide the container.
+        if not playerFrameRecheckTimer and container:IsShown() then
+            container:Hide()
+        end
+        return
+    end
+
+    local entry = trackerAnchorCache[container]
+    if not entry then
+        entry = {}
+        trackerAnchorCache[container] = entry
+    else
+        table.wipe(entry)
+    end
+    entry.version = trackerAnchorCacheVersion
+    entry.targetFrame = playerFrame
+    entry.requestAnchorPoint = anchorPoint
+    entry.requestOffsetX = offsetX
+    entry.requestOffsetY = offsetY
+end
+
+function CDM.CreateTrackerUpdater(events, handler)
+    local updater = CreateFrame("Frame")
+    for _, event in ipairs(events) do
+        updater:RegisterEvent(event)
+    end
+    updater:SetScript("OnEvent", handler)
+    return updater
+end
+
+function CDM.CreateTrackerContainer(name)
+    local c = CreateFrame("Frame", name, UIParent)
+    c:SetSize(400, 40)
+    c:SetFrameStrata(CDM_C.STRATA_MAIN)
+    c:SetFrameLevel(10)
+    return c
+end
+
+function CDM.GetTrackerSpacing()
+    return CDM.db and CDM.db.spacing or 6
+end
+
+function CDM.AcquireFromTrackerPool(pool, container, namePrefix, id, opts)
+    local frame = table.remove(pool)
+    if frame then
+        frame:SetParent(container)
+        frame:ClearAllPoints()
+        local size = opts and opts.size
+        if size then
+            frame:SetSize(size.w, size.h)
+        end
+        if frame.Cooldown then
+            frame.Cooldown:Clear()
+        end
+        if frame.ChargeCount and frame.ChargeCount.Current then
+            frame.ChargeCount.Current:Hide()
+        end
+        return frame, false
+    end
+
+    frame = CDM.CreateTrackerIcon(container, namePrefix, id, opts)
+    return frame, true
+end
+
+function CDM.ReleaseToTrackerPool(pool, frame, extraCleanup)
+    frame:Hide()
+    frame:ClearAllPoints()
+    if frame.Cooldown then
+        frame.Cooldown:Clear()
+    end
+    if frame.ChargeCount and frame.ChargeCount.Current then
+        frame.ChargeCount.Current:Hide()
+    end
+    frame.cdmTrackerStyleVersion = nil
+    frame.cdmTrackerStyledW = nil
+    frame.cdmTrackerStyledH = nil
+    frame.cdmTrackerLastStyledVName = nil
+    if extraCleanup then
+        extraCleanup(frame)
+    end
+    pool[#pool + 1] = frame
+end
+
+function CDM.TrimTrackerPool(pool, activeCount)
+    local maxPool = activeCount + 2
+    while #pool > maxPool do
+        local excess = table.remove(pool)
+        if excess then
+            excess:SetParent(nil)
+            excess:Hide()
+        end
+    end
+end
+
+function CDM.ClearTrackerPool(pool)
+    while #pool > 0 do
+        local frame = table.remove(pool)
+        if frame then
+            frame:SetParent(nil)
+            frame:Hide()
+        end
+    end
+end
+
+function CDM.StyleChargeText(chargeText, frame, cachedStyles)
+    chargeText:SetIgnoreParentScale(true)
+    chargeText:ClearAllPoints()
+    chargeText:SetPoint(cachedStyles.chargePosition, frame, cachedStyles.chargePosition, cachedStyles.chargeOffsetX, cachedStyles.chargeOffsetY)
+    chargeText:SetFont(cachedStyles.fontPath, CDM_C.GetPixelFontSize(cachedStyles.chargeFontSize), cachedStyles.fontOutline)
+    chargeText:SetTextColor(cachedStyles.chargeColor.r, cachedStyles.chargeColor.g, cachedStyles.chargeColor.b)
+    chargeText:SetDrawLayer("OVERLAY", 7)
+    chargeText:SetShadowOffset(0, 0)
+    chargeText:Show()
+end

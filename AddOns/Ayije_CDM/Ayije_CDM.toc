@@ -1,0 +1,22 @@
+## Title: |cFF3bb273Ayije_CDM|r
+## Notes: Cooldown Manager
+## Author: Ayije
+## Version: 3.66
+## Interface: 120001, 120000
+## DefaultState: enabled
+## OptionalDeps: MiliUI
+## SavedVariables: Ayije_CDMDB
+## X-Curse-Project-ID: 1469668
+## X-Wago-ID: aNebMd62
+
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 冷卻管理器
+## Notes-zhTW: Cooldown Manager|n|n冷卻管理器。|n|n|cffffd200使用方法: |r輸入 /cdm 進行設定。
+## Category-zhTW: 戰鬥
+
+Libs\embeds.xml
+Init.lua
+Locales\embeds.xml
+Core\embeds.xml
+Config\embeds.xml
+Modules\embeds.xml
+Core\Main.lua

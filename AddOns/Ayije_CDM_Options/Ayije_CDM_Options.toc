@@ -1,0 +1,16 @@
+## Interface: 120001, 120000
+## Title: |cFF3bb273Ayije_CDM|r Options
+## Notes: Cooldown Manager Options UI
+## Author: Ayije
+## Version: 3.66
+## LoadOnDemand: 1
+## Dependencies: Ayije_CDM
+## X-Curse-Project-ID: 1469668
+## X-Wago-ID: aNebMd62
+
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 冷卻管理器-設定選項
+## Notes-zhTW: Cooldown Manager Options UI|n|n冷卻技能管理器設定選項介面。|n|n|cffffd200使用方法: |r輸入 /cdm 進行設定。
+## Category-zhTW: 戰鬥
+
+Init.lua
+embeds.xml

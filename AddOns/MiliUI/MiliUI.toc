@@ -13,6 +13,7 @@ SlashRL.xml
 Config\Luxthos_Platynator.lua
 Config\Luxthos_Sensei.lua
 Config\Luxthos_CMC.lua
+Config\Ayije_CDM.lua
 core.lua
 # Chatbar.lua
 AutoSlotKeystone.lua

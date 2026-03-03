@@ -1,0 +1,248 @@
+local AddonName = "Ayije_CDM"
+local CDM = _G[AddonName]
+local CDM_C = CDM.CONST
+local VIEWERS = CDM_C.VIEWERS
+
+CDM.Fading = CDM.Fading or {}
+local Fading = CDM.Fading
+
+local FADE_DURATION = 0.3
+
+local currentAlpha = 1.0
+local targetAlpha = 1.0
+local animStartTime = 0
+local animStartAlpha = 1.0
+local animating = false
+local isEnabled = false
+local inCombat = InCombatLockdown() and true or false
+
+local animFrame = CreateFrame("Frame")
+
+local function GetViewerFrames(viewerName)
+    local viewer = _G[viewerName]
+    if not viewer or not viewer.itemFramePool then return nil end
+    return viewer.itemFramePool
+end
+
+local function ApplyAlphaToAll(alpha)
+    local db = CDM.db
+    if not db then return end
+
+    local a = (db.fadingEssential ~= false) and alpha or 1.0
+    local pool = GetViewerFrames(VIEWERS.ESSENTIAL)
+    if pool then
+        for frame in pool:EnumerateActive() do
+            frame:SetAlpha(a)
+        end
+    end
+
+    a = (db.fadingUtility ~= false) and alpha or 1.0
+    pool = GetViewerFrames(VIEWERS.UTILITY)
+    if pool then
+        for frame in pool:EnumerateActive() do
+            frame:SetAlpha(a)
+        end
+    end
+
+    a = (db.fadingBuffs ~= false) and alpha or 1.0
+    pool = GetViewerFrames(VIEWERS.BUFF)
+    if pool then
+        for frame in pool:EnumerateActive() do
+            frame:SetAlpha(a)
+        end
+    end
+    if CDM.secBuffs then CDM.secBuffs:SetAlpha(a) end
+    if CDM.tertBuffs then CDM.tertBuffs:SetAlpha(a) end
+    if CDM.CustomBuffs and CDM.CustomBuffs.activeBuffs then
+        for _, buffData in pairs(CDM.CustomBuffs.activeBuffs) do
+            if buffData and buffData.frame then
+                buffData.frame:SetAlpha(a)
+            end
+        end
+    end
+
+    a = (db.fadingBuffBars ~= false) and alpha or 1.0
+    pool = GetViewerFrames(VIEWERS.BUFF_BAR)
+    if pool then
+        for frame in pool:EnumerateActive() do
+            frame:SetAlpha(a)
+        end
+    end
+
+    a = (db.fadingRacials ~= false) and alpha or 1.0
+    local racialsContainer = _G["CDM_RacialsContainer"]
+    if racialsContainer then racialsContainer:SetAlpha(a) end
+
+    a = (db.fadingDefensives ~= false) and alpha or 1.0
+    local defensivesContainer = _G["CDM_DefensivesContainer"]
+    if defensivesContainer then defensivesContainer:SetAlpha(a) end
+
+    local trinketMode = CDM.GetTrinketMode and CDM.GetTrinketMode()
+    if trinketMode == "essential" then
+        a = (db.fadingEssential ~= false) and alpha or 1.0
+        local tFrames = CDM.GetTrinketIconFrames and CDM.GetTrinketIconFrames()
+        if tFrames then
+            for _, frame in ipairs(tFrames) do
+                frame:SetAlpha(a)
+            end
+        end
+    else
+        if trinketMode == "defensives" then
+            a = (db.fadingDefensives ~= false) and alpha or 1.0
+        else
+            a = (db.fadingTrinkets ~= false) and alpha or 1.0
+        end
+        local trinketsContainer = _G["CDM_TrinketsContainer"]
+        if trinketsContainer then trinketsContainer:SetAlpha(a) end
+    end
+
+    a = (db.fadingResources ~= false) and alpha or 1.0
+    local rc = CDM.resourceContainer
+    if rc then
+        rc:SetAlpha(a)
+        if rc.separator then rc.separator:SetAlpha(a) end
+    end
+end
+
+local function StopAnimation()
+    animating = false
+    animFrame:SetScript("OnUpdate", nil)
+end
+
+local function OnAnimUpdate()
+    local now = GetTime()
+    local t = (now - animStartTime) / FADE_DURATION
+    if t >= 1.0 then
+        t = 1.0
+        StopAnimation()
+    end
+    currentAlpha = animStartAlpha + (targetAlpha - animStartAlpha) * t
+    ApplyAlphaToAll(currentAlpha)
+end
+
+function Fading:ShowImmediate()
+    StopAnimation()
+    currentAlpha = 1.0
+    targetAlpha = 1.0
+    ApplyAlphaToAll(1.0)
+end
+
+function Fading:BeginFadeOut()
+    local db = CDM.db
+    if not db then return end
+
+    local raw = tonumber(db.fadingOpacity) or 0
+    if raw < 0 then raw = 0 elseif raw > 100 then raw = 100 end
+    targetAlpha = raw / 100
+
+    if currentAlpha <= targetAlpha then
+        StopAnimation()
+        currentAlpha = targetAlpha
+        ApplyAlphaToAll(currentAlpha)
+        return
+    end
+
+    animStartTime = GetTime()
+    animStartAlpha = currentAlpha
+    if not animating then
+        animating = true
+        animFrame:SetScript("OnUpdate", OnAnimUpdate)
+    end
+end
+
+function Fading:Evaluate()
+    if not isEnabled then return end
+
+    if CDM.isEditModeActive then
+        self:ShowImmediate()
+        return
+    end
+
+    local db = CDM.db
+    local trigger = db and db.fadingTrigger or "notarget"
+    local shouldFade = false
+
+    if trigger == "notarget" then
+        shouldFade = not UnitExists("target")
+    elseif trigger == "ooc" then
+        shouldFade = not inCombat
+    end
+
+    if shouldFade then
+        self:BeginFadeOut()
+    else
+        self:ShowImmediate()
+    end
+end
+
+function Fading:ReapplyCurrent()
+    if currentAlpha >= 1.0 and not animating then return end
+    ApplyAlphaToAll(currentAlpha)
+end
+
+function Fading:GetAlpha(targetKey)
+    if not isEnabled then return 1.0 end
+    if CDM.db[targetKey] ~= false then
+        return currentAlpha
+    end
+    return 1.0
+end
+
+local function OnTargetChanged()
+    local db = CDM.db
+    if db and (db.fadingTrigger or "notarget") == "notarget" then
+        Fading:Evaluate()
+    end
+end
+
+local function OnRegenEnabled()
+    inCombat = false
+    local db = CDM.db
+    if db and db.fadingTrigger == "ooc" then
+        Fading:Evaluate()
+    end
+end
+
+local function OnRegenDisabled()
+    inCombat = true
+    local db = CDM.db
+    if db and db.fadingTrigger == "ooc" then
+        Fading:Evaluate()
+    end
+end
+
+local function Enable()
+    if isEnabled then return end
+    isEnabled = true
+    CDM:RegisterEvent("PLAYER_TARGET_CHANGED", OnTargetChanged)
+    CDM:RegisterEvent("PLAYER_REGEN_ENABLED", OnRegenEnabled)
+    CDM:RegisterEvent("PLAYER_REGEN_DISABLED", OnRegenDisabled)
+    Fading:Evaluate()
+end
+
+local function Disable()
+    if not isEnabled then return end
+    isEnabled = false
+    CDM:UnregisterEventHandler("PLAYER_TARGET_CHANGED", OnTargetChanged)
+    CDM:UnregisterEventHandler("PLAYER_REGEN_ENABLED", OnRegenEnabled)
+    CDM:UnregisterEventHandler("PLAYER_REGEN_DISABLED", OnRegenDisabled)
+    if currentAlpha < 1.0 or animating then
+        Fading:ShowImmediate()
+    end
+end
+
+function Fading:Initialize()
+    CDM:RegisterRefreshCallback("fading", function()
+        local db = CDM.db
+        if db and db.fadingEnabled then
+            Enable()
+            Fading:Evaluate()
+        else
+            Disable()
+        end
+    end, 80)
+
+    if CDM.db and CDM.db.fadingEnabled then
+        Enable()
+    end
+end

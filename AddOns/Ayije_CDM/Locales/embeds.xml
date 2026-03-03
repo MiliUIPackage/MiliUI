@@ -1,0 +1,7 @@
+<Ui>
+    <Script file="enUS.lua"/>
+    <Script file="zhCN.lua"/>
+    <Script file="zhTW.lua"/>
+    <Script file="ptBR.lua"/>
+    <Script file="deDE.lua"/>
+</Ui>

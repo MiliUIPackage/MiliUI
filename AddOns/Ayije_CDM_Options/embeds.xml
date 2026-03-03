@@ -1,0 +1,25 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\FrameXML\UI.xsd">
+    <Script file="UIHelpers.lua"/>
+    <Script file="ConfigKeys.lua"/>
+    <Script file="ConfigFrame.lua"/>
+    <Script file="Sizes.lua"/>
+    <Script file="Layout.lua"/>
+    <Script file="Positions.lua"/>
+    <Script file="Border.lua"/>
+    <Script file="Text.lua"/>
+    <Script file="Glow.lua"/>
+    <Script file="Fading.lua"/>
+    <Script file="Assist.lua"/>
+    <Script file="Icons.lua"/>
+
+    <Script file="ImportExport.lua"/>
+    <Script file="Profiles.lua"/>
+    <Script file="Racials.lua"/>
+    <Script file="Defensives.lua"/>
+    <Script file="Trinkets.lua"/>
+    <Script file="Resources.lua"/>
+    <Script file="CustomBuffs.lua"/>
+    <Script file="Bars.lua"/>
+    <Script file="CastBar.lua"/>
+</Ui>
