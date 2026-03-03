@@ -31,9 +31,12 @@ local T = {
     ["general.skinMoreFrames"]              = "樣式應用于更多框架 |cffcccc33(重載生效)|r",
     ["general.SavedVariablesPerCharacter"]  = "為每個角色保存獨立配置",
     ["general.hideUnitFrameHint"]            = "隱藏頭像框右鍵設置提示",
+    ["general.statusbarPercent"]             = "顯示生命值百分比",
+    ["general.statusbarHide"]                = "隱藏狀態條",
     
     ["item.coloredItemBorder"]              = "物品邊框染色",
     ["item.showItemIcon"]                   = "顯示物品圖標",
+    ["item.showExpansionInformation"]       = "顯示資料片資訊",
     ["quest.coloredQuestBorder"]            = "任務邊框染色",
     
     ["unit.player.anchor.position"]         = "框架錨點",
@@ -153,6 +156,11 @@ local T = {
     ["Anchor"]   = "錨點器",
     
     ["TargetBy"] = "被關注",
+    ["Expansion"] = "資料片",
+    ["id.spell"] = "法術 ID",
+    ["id.item"] = "物品 ID",
+    ["id.icon"] = "圖標 ID",
+    ["id.maxStack"] = "最大堆疊數量",
     ["menu.general"] = "綜合",
     ["menu.player"] = "玩家",
     ["menu.npc"] = "NPC",

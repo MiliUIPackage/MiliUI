@@ -21,6 +21,7 @@ Unit.lua
 Model.lua
 Target.lua
 Item.lua
+ExpansionInfo.lua
 Spell.lua
 Quest.lua
 LinkID.lua

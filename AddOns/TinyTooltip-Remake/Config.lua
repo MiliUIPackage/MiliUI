@@ -113,6 +113,7 @@ addon.db = {
     item = {
         coloredItemBorder = true,  --邊框按品質染色
         showItemIcon = true,      --物品圖標
+        showExpansionInformation = true, --顯示資料片資訊
     },
     spell = {
         borderColor = {0.133, 0.133, 0.133, 1},
