@@ -1,7 +1,7 @@
 -- MiliUI: Ayije_CDM 預設值
 -- 首次安裝時自動套用，已有設定則不覆蓋
 
-local MiliUI_AyijeCDM_Profile = {
+MiliUI_AyijeCDM_Profile = {
     ["trinketsIconWidth"] = 40,
     ["resourcesBar1TagFontSize"] = 32,
     ["hideBlizzardCastBar"] = true,
@@ -243,6 +243,8 @@ local MiliUI_AyijeCDM_Profile = {
 }
 
 -- 首次安裝注入：Ayije_CDMDB 不存在時建立預設設定檔
+-- 注意：OptionalDeps 使 MiliUI 先載入，此時 Ayije_CDMDB 永遠為 nil。
+-- 若玩家已有 SavedVariables，WoW 在載入 Ayije_CDM 時會覆蓋此值，所以不影響既有設定。
 if not Ayije_CDMDB then
     Ayije_CDMDB = {
         ["global"] = {},
@@ -252,7 +254,4 @@ if not Ayije_CDMDB then
             ["Default"] = MiliUI_AyijeCDM_Profile,
         },
     }
-    print("|cff00ff00[MiliUI]|r Ayije_CDM 預設值已套用。")
-else
-    print("|cffffff00[MiliUI]|r Ayije_CDM 已有設定，跳過注入。")
 end
