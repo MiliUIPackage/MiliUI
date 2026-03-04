@@ -119,15 +119,22 @@ local function SetBarTicks(frame, tickCount, duration, ticks)
     local barHeight = frame:GetHeight()
     if barWidth <= 0 then return end
 
+    local tf = EnsureTickFrame(frame)
+    print("|cFF00FF00[MiliUI-CastBar]|r SetBarTicks barW:", format("%.1f", barWidth), "barH:", format("%.1f", barHeight),
+        "tickFrame shown:", tf:IsShown(), "parent shown:", frame:IsShown(),
+        "tfLevel:", tf:GetFrameLevel(), "barObj shown:", barObj:IsShown())
+
     if tickCount and tickCount > 0 then
         for k = 1, tickCount do
             local t = GetTick(frame, k)
             t:ClearAllPoints()
-            t:SetSize(1, barHeight)
+            -- DEBUG: 加粗加紅，測試可見性
+            t:SetSize(5, barHeight)
             local x = ticks[k] / duration
             t:SetPoint("CENTER", barObj, "RIGHT", -barWidth * x, 0)
-            t:SetColorTexture(1, 1, 1, 0.6)
+            t:SetColorTexture(1, 0, 0, 1)
             t:Show()
+            print("|cFF00FF00[MiliUI-CastBar]|r  tick", k, "x:", format("%.2f", x), "offset:", format("%.1f", -barWidth * x), "visible:", t:IsShown(), "w:", t:GetWidth(), "h:", t:GetHeight())
         end
         -- 隱藏多餘的
         for k = tickCount + 1, #tickPool do
