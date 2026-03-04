@@ -291,6 +291,7 @@ local function HookCastBar()
 
     hooked = true
     cdmFrame = frame
+    print("|cFF00FF00[MiliUI-CastBar]|r Hooked! barObj exists:", frame.barObj ~= nil, "width:", frame:GetWidth(), "cachedWidth:", frame.cachedWidth)
 
     -- 天賦變更時更新 tick 表
     local talentFrame = CreateFrame("Frame")
@@ -305,13 +306,16 @@ local function HookCastBar()
     local lagFrame = CreateFrame("Frame")
     lagFrame:RegisterUnitEvent("UNIT_SPELLCAST_SENT", "player")
     lagFrame:SetScript("OnEvent", function()
-        cachedLag = select(4, GetNetStats())
+        local lag = select(4, GetNetStats())
+        cachedLag = lag
+        print("|cFF00FF00[MiliUI-CastBar]|r SENT fired, cachedLag:", lag)
     end)
 
     -- Hook OnEvent：Channel Start/Stop/Update
     frame:HookScript("OnEvent", function(self, event, unit, castID, spellID)
         if event == "UNIT_SPELLCAST_CHANNEL_START" then
             HideTickMarks()
+            print("|cFF00FF00[MiliUI-CastBar]|r ChannelStart spellID:", spellID, "barObj:", self.barObj ~= nil, "width:", self.cachedWidth or self:GetWidth(), "casting:", self.casting, "channeling:", self.channeling)
             if spellID then
                 local spell = UnitChannelInfo("player")
                 SetupChannelTicks(self, spell, spellID)
@@ -352,6 +356,7 @@ local function HookCastBar()
         elseif event == "UNIT_SPELLCAST_START" then
             HideTickMarks()
             channelData.tickCount = 0
+            print("|cFF00FF00[MiliUI-CastBar]|r CastStart - cachedLag:", cachedLag, "casting:", self.casting, "channeling:", self.channeling, "barWidth:", self.cachedWidth or self:GetWidth())
         end
     end)
 
