@@ -11,11 +11,11 @@ if not MiliUI_CastBarEnhanceDB then
     MiliUI_CastBarEnhanceDB = {
         channelTicks = true,
         latencyBar = true,
-        proportionalFont = false,
+        proportionalFont = true,
     }
 end
 if MiliUI_CastBarEnhanceDB.proportionalFont == nil then
-    MiliUI_CastBarEnhanceDB.proportionalFont = false
+    MiliUI_CastBarEnhanceDB.proportionalFont = true
 end
 
 local GetSpellName = C_Spell and C_Spell.GetSpellName or GetSpellInfo
