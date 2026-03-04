@@ -145,7 +145,8 @@ end
 local latencyTexture
 local latencyText
 local latencyFrame
-local cachedLag = 0  -- 施法開始時快照
+local cachedLag = 0       -- 實測延遲（ms）
+local sentTimestamp = 0   -- UNIT_SPELLCAST_SENT 時間戳
 
 local function EnsureLatencyFrame(parent)
     if latencyFrame then return latencyFrame end
@@ -302,20 +303,33 @@ local function HookCastBar()
         UpdateChannelingTicks()
     end)
 
-    -- 延遲快照：在 UNIT_SPELLCAST_SENT 時抓一次（Gnosis 方式）
+    -- 延遲快照：在 UNIT_SPELLCAST_SENT 時記錄時間戳（Gnosis 方式）
     local lagFrame = CreateFrame("Frame")
     lagFrame:RegisterUnitEvent("UNIT_SPELLCAST_SENT", "player")
     lagFrame:SetScript("OnEvent", function()
-        local lag = select(4, GetNetStats())
-        cachedLag = lag
-        print("|cFF00FF00[MiliUI-CastBar]|r SENT fired, cachedLag:", lag)
+        sentTimestamp = GetTime()
     end)
 
     -- Hook OnEvent：Channel Start/Stop/Update
     frame:HookScript("OnEvent", function(self, event, unit, castID, spellID)
+        if event == "UNIT_SPELLCAST_CHANNEL_START" or event == "UNIT_SPELLCAST_START" then
+            -- 實測延遲：SENT 到 START 的時間差（ms）
+            if sentTimestamp > 0 then
+                local measured = (GetTime() - sentTimestamp) * 1000
+                if measured > 0 and measured < 2000 then
+                    cachedLag = measured
+                end
+            end
+            -- 若實測為 0，fallback 到 home latency
+            if cachedLag <= 0 then
+                local _, _, latHome, latWorld = GetNetStats()
+                cachedLag = (latWorld > 0 and latWorld) or (latHome > 0 and latHome) or 0
+            end
+            print("|cFF00FF00[MiliUI-CastBar]|r", event, "cachedLag:", format("%.1f", cachedLag), "ms")
+        end
+
         if event == "UNIT_SPELLCAST_CHANNEL_START" then
             HideTickMarks()
-            print("|cFF00FF00[MiliUI-CastBar]|r ChannelStart spellID:", spellID, "barObj:", self.barObj ~= nil, "width:", self.cachedWidth or self:GetWidth(), "casting:", self.casting, "channeling:", self.channeling)
             if spellID then
                 local spell = UnitChannelInfo("player")
                 SetupChannelTicks(self, spell, spellID)
@@ -356,7 +370,6 @@ local function HookCastBar()
         elseif event == "UNIT_SPELLCAST_START" then
             HideTickMarks()
             channelData.tickCount = 0
-            print("|cFF00FF00[MiliUI-CastBar]|r CastStart - cachedLag:", cachedLag, "casting:", self.casting, "channeling:", self.channeling, "barWidth:", self.cachedWidth or self:GetWidth())
         end
     end)
 
