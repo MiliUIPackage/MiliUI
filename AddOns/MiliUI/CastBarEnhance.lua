@@ -74,8 +74,15 @@ local function UpdateChannelingTicks()
 end
 
 local function GetChannelingTicks(spell, spellID)
-    if not MiliUI_CastBarEnhanceDB.channelTicks then return 0 end
-    return channelingTicks[spellID] or channelingTicks[spell] or 0
+    if not MiliUI_CastBarEnhanceDB.channelTicks then
+        print("|cFF00FF00[MiliUI-CastBar]|r channelTicks DISABLED in DB")
+        return 0
+    end
+    local byID = channelingTicks[spellID]
+    local byName = channelingTicks[spell]
+    local result = byID or byName or 0
+    print("|cFF00FF00[MiliUI-CastBar]|r GetTicks spell:", spell, "spellID:", spellID, "byID:", tostring(byID), "byName:", tostring(byName), "result:", result)
+    return result
 end
 
 ------------------------------------------------------------
@@ -262,6 +269,8 @@ local function SetupChannelTicks(frame, spell, spellID)
     channelData.duration = duration
     channelData.endTime = endTime
     channelData.tickTime = count > 0 and (duration / count) or 0
+
+    print("|cFF00FF00[MiliUI-CastBar]|r SetupTicks count:", count, "duration:", format("%.2f", duration), "tickTime:", format("%.2f", channelData.tickTime))
 
     -- 從結尾倒推每一跳的剩餘時間（Quartz 方式）
     wipe(channelData.ticks)
