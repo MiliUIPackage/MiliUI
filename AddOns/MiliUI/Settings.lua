@@ -249,11 +249,23 @@ local function InitSettings()
     latDesc:SetText("在施法條尾端顯示紅色延遲區塊")
     latDesc:SetTextColor(0.5, 0.5, 0.5)
 
+    -- 等比例字型 checkbox
+    local fontCB = CreateFrame("CheckButton", "MiliUI_ProportionalFontCB", enhanceFrame, "UICheckButtonTemplate")
+    fontCB:SetPoint("TOPLEFT", latDesc, "BOTTOMLEFT", -26, -12)
+    fontCB.text:SetText("等比例字型")
+    fontCB.text:SetFontObject("GameFontHighlight")
+
+    local fontDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    fontDesc:SetPoint("TOPLEFT", fontCB, "BOTTOMLEFT", 26, -2)
+    fontDesc:SetText("將 CDM 的字型大小從「像素完美」改為「等比例縮放」。\n啟用後，不同解析度 / 視窗大小下字型佔螢幕的比例會一致，\n但不再保證相同的物理像素數。需重載介面生效。")
+    fontDesc:SetTextColor(0.5, 0.5, 0.5)
+
     -- 初始化 checkbox 狀態（建立時就設定，不只等 OnShow）
     local function SyncCheckboxes()
         local edb = MiliUI_CastBarEnhance and MiliUI_CastBarEnhance.GetDB() or {}
         tickCB:SetChecked(edb.channelTicks ~= false)
         latCB:SetChecked(edb.latencyBar ~= false)
+        fontCB:SetChecked(edb.proportionalFont == true)
     end
     SyncCheckboxes()
     enhanceFrame:SetScript("OnShow", SyncCheckboxes)
@@ -271,6 +283,14 @@ local function InitSettings()
         print("|cff00ff00[MiliUI]|r 延遲顯示:", enabled and "開" or "關")
         if MiliUI_CastBarEnhance then
             MiliUI_CastBarEnhance.SetLatencyBar(enabled)
+        end
+    end)
+
+    fontCB:HookScript("OnClick", function(self)
+        local enabled = self:GetChecked() and true or false
+        print("|cff00ff00[MiliUI]|r 等比例字型:", enabled and "開" or "關", "(需 /reload 生效)")
+        if MiliUI_CastBarEnhance then
+            MiliUI_CastBarEnhance.SetProportionalFont(enabled)
         end
     end)
 
