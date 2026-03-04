@@ -17,5 +17,6 @@ Config\Ayije_CDM.lua
 CastBarEnhance.lua
 Settings.lua
 core.lua
+AddonNames.lua
 # Chatbar.lua
 AutoSlotKeystone.lua

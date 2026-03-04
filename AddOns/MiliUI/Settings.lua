@@ -127,8 +127,94 @@ StaticPopupDialogs["MILIUI_IMPORT_CONFIRM"] = {
 -- SETTINGS PANEL (WoW Retail Settings API)
 ------------------------------------------------------------
 local function InitSettings()
-    -- 建立主分類
-    local category = Settings.RegisterCanvasLayoutCategory(CreateFrame("Frame"), "|cffffe00a米利UI|r設定")
+    -- 建立主分類（加入總覽內容）
+    local mainFrame = CreateFrame("Frame")
+    mainFrame:SetSize(600, 500)
+
+    -- ===== 標題 =====
+    local logo = mainFrame:CreateTexture(nil, "ARTWORK")
+    logo:SetTexture("Interface\\AddOns\\MiliUI\\icon")
+    logo:SetSize(48, 48)
+    logo:SetPoint("TOPLEFT", 16, -16)
+
+    local mainTitle = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    mainTitle:SetPoint("LEFT", logo, "RIGHT", 12, 8)
+    mainTitle:SetText("|cffffe00a米利UI套組|r")
+
+    local subtitle = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    subtitle:SetPoint("TOPLEFT", mainTitle, "BOTTOMLEFT", 0, -2)
+    subtitle:SetText("|cff999999Mili UI Suite|r")
+
+    -- ===== 分隔線 =====
+    local divider = mainFrame:CreateTexture(nil, "ARTWORK")
+    divider:SetColorTexture(0.3, 0.3, 0.3, 0.8)
+    divider:SetSize(540, 1)
+    divider:SetPoint("TOPLEFT", logo, "BOTTOMLEFT", 0, -12)
+
+    -- ===== 歡迎說明 =====
+    local welcome = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    welcome:SetPoint("TOPLEFT", divider, "BOTTOMLEFT", 0, -14)
+    welcome:SetWidth(540)
+    welcome:SetJustifyH("LEFT")
+    welcome:SetText("歡迎使用米利UI套組！這是一套為 |cffffd200繁體中文|r 玩家打造的介面整合包，\n整合多款實用插件的推薦設定，讓你快速上手無需繁瑣調校。")
+
+    -- ===== 功能列表 =====
+    local featureHeader = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    featureHeader:SetPoint("TOPLEFT", welcome, "BOTTOMLEFT", 0, -20)
+    featureHeader:SetText("|cffffe00a套組包含功能|r")
+
+    local features = {
+        "|cffffd200預設值匯入|r — 一鍵匯入 MiliUI 精心調校的插件設定",
+        "|cffffd200施法條美化|r — 引導刻度、延遲指示、美化施法條",
+        "|cffffd200鑰石自動放入|r — 自動將傳奇鑰石放入地城入口",
+        "|cffffd200快捷聊天列|r — 常用頻道一鍵切換",
+        "|cffffd200插件名稱中文化|r — 統一翻譯插件後台名稱",
+    }
+
+    local lastFeature = featureHeader
+    for _, text in ipairs(features) do
+        local line = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        line:SetPoint("TOPLEFT", lastFeature, "BOTTOMLEFT", lastFeature == featureHeader and 10 or 0, -8)
+        line:SetWidth(520)
+        line:SetJustifyH("LEFT")
+        line:SetText("|cff8888cc•|r  " .. text)
+        lastFeature = line
+    end
+
+    -- ===== 子分類指引 =====
+    local guideHeader = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    guideHeader:SetPoint("TOPLEFT", lastFeature, "BOTTOMLEFT", -10, -20)
+    guideHeader:SetText("|cffffe00a快速導覽|r")
+
+    local guide = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    guide:SetPoint("TOPLEFT", guideHeader, "BOTTOMLEFT", 10, -8)
+    guide:SetWidth(520)
+    guide:SetJustifyH("LEFT")
+    guide:SetText(
+        "|cff8888cc▸|r  點擊左側 |cffffd200預設值匯入|r 將推薦設定匯入到各插件\n" ..
+        "|cff8888cc▸|r  點擊左側 |cffffd200插件強化|r 調整施法條美化等額外功能"
+    )
+    guide:SetSpacing(4)
+
+    -- ===== 底部資訊 =====
+    local divider2 = mainFrame:CreateTexture(nil, "ARTWORK")
+    divider2:SetColorTexture(0.3, 0.3, 0.3, 0.8)
+    divider2:SetSize(540, 1)
+    divider2:SetPoint("TOPLEFT", guide, "BOTTOMLEFT", -10, -20)
+
+    local website = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    website:SetPoint("TOPLEFT", divider2, "BOTTOMLEFT", 0, -10)
+    website:SetText("|cff9c27b0奇樂 — 魔獸世界中文插件補給站|r")
+
+    local url = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    url:SetPoint("TOPLEFT", website, "BOTTOMLEFT", 0, -4)
+    url:SetText("|cffffd200https://addons.miliui.com|r")
+
+    local tip = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    tip:SetPoint("TOPLEFT", url, "BOTTOMLEFT", 0, -6)
+    tip:SetText("若有任何問題歡迎在米利UI套組頁面下方留言討論")
+
+    local category = Settings.RegisterCanvasLayoutCategory(mainFrame, "0米利UI設定")
     category.ID = "MiliUI_Settings"
     Settings.RegisterAddOnCategory(category)
 
@@ -257,6 +343,8 @@ local function InitSettings()
 
     local fontDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     fontDesc:SetPoint("TOPLEFT", fontCB, "BOTTOMLEFT", 26, -2)
+    fontDesc:SetWidth(520)
+    fontDesc:SetJustifyH("LEFT")
     fontDesc:SetText("將 CDM 的字型大小從「像素完美」改為「等比例縮放」。\n啟用後，不同解析度 / 視窗大小下字型佔螢幕的比例會一致，\n但不再保證相同的物理像素數。需重載介面生效。")
     fontDesc:SetTextColor(0.5, 0.5, 0.5)
 
