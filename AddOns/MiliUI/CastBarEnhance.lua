@@ -74,15 +74,8 @@ local function UpdateChannelingTicks()
 end
 
 local function GetChannelingTicks(spell, spellID)
-    if not MiliUI_CastBarEnhanceDB.channelTicks then
-        print("|cFF00FF00[MiliUI-CastBar]|r channelTicks DISABLED in DB")
-        return 0
-    end
-    local byID = channelingTicks[spellID]
-    local byName = channelingTicks[spell]
-    local result = byID or byName or 0
-    print("|cFF00FF00[MiliUI-CastBar]|r GetTicks spell:", spell, "spellID:", spellID, "byID:", tostring(byID), "byName:", tostring(byName), "result:", result)
-    return result
+    if not MiliUI_CastBarEnhanceDB.channelTicks then return 0 end
+    return channelingTicks[spellID] or channelingTicks[spell] or 0
 end
 
 ------------------------------------------------------------
@@ -119,22 +112,19 @@ local function SetBarTicks(frame, tickCount, duration, ticks)
     local barHeight = frame:GetHeight()
     if barWidth <= 0 then return end
 
-    local tf = EnsureTickFrame(frame)
-    print("|cFF00FF00[MiliUI-CastBar]|r SetBarTicks barW:", format("%.1f", barWidth), "barH:", format("%.1f", barHeight),
-        "tickFrame shown:", tf:IsShown(), "parent shown:", frame:IsShown(),
-        "tfLevel:", tf:GetFrameLevel(), "barObj shown:", barObj:IsShown())
+    -- 像素完美的刻度寬度：確保至少 1 個物理像素
+    local pixelUnit = PixelUtil.GetPixelToUIUnitFactor()
+    local tickWidth = math.max(pixelUnit, 1)
 
     if tickCount and tickCount > 0 then
         for k = 1, tickCount do
             local t = GetTick(frame, k)
             t:ClearAllPoints()
-            -- DEBUG: 加粗加紅，測試可見性
-            t:SetSize(5, barHeight)
+            t:SetSize(tickWidth, barHeight)
             local x = ticks[k] / duration
             t:SetPoint("CENTER", barObj, "RIGHT", -barWidth * x, 0)
-            t:SetColorTexture(1, 0, 0, 1)
+            t:SetColorTexture(1, 1, 1, 0.6)
             t:Show()
-            print("|cFF00FF00[MiliUI-CastBar]|r  tick", k, "x:", format("%.2f", x), "offset:", format("%.1f", -barWidth * x), "visible:", t:IsShown(), "w:", t:GetWidth(), "h:", t:GetHeight())
         end
         -- 隱藏多餘的
         for k = tickCount + 1, #tickPool do
@@ -277,8 +267,6 @@ local function SetupChannelTicks(frame, spell, spellID)
     channelData.endTime = endTime
     channelData.tickTime = count > 0 and (duration / count) or 0
 
-    print("|cFF00FF00[MiliUI-CastBar]|r SetupTicks count:", count, "duration:", format("%.2f", duration), "tickTime:", format("%.2f", channelData.tickTime))
-
     -- 從結尾倒推每一跳的剩餘時間（Quartz 方式）
     wipe(channelData.ticks)
     for i = 1, count do
@@ -308,7 +296,6 @@ local function HookCastBar()
 
     hooked = true
     cdmFrame = frame
-    print("|cFF00FF00[MiliUI-CastBar]|r Hooked! barObj exists:", frame.barObj ~= nil, "width:", frame:GetWidth(), "cachedWidth:", frame.cachedWidth)
 
     -- 天賦變更時更新 tick 表
     local talentFrame = CreateFrame("Frame")
@@ -341,7 +328,6 @@ local function HookCastBar()
                 local _, _, latHome, latWorld = GetNetStats()
                 cachedLag = (latWorld > 0 and latWorld) or (latHome > 0 and latHome) or 0
             end
-            print("|cFF00FF00[MiliUI-CastBar]|r", event, "cachedLag:", format("%.1f", cachedLag), "ms")
         end
 
         if event == "UNIT_SPELLCAST_CHANNEL_START" then
