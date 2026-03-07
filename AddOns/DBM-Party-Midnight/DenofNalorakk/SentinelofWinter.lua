@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2777, "DBM-Party-Midnight", 5, 1311)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260224135639")
+mod:SetRevision("20260306055821")
 mod:SetCreatureID(244100)
 mod:SetEncounterID(3208)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -15,6 +15,7 @@ mod:RegisterCombat("combat")
 
 --)
 
+--TODO, recheck if rimeshatter has an event?
 -- Custon Sounds on cast/cooldown expiring
 mod:AddCustomAlertSoundOption(1235548, "Healer", 2)--Glacial Torment
 mod:AddCustomAlertSoundOption(1235623, true, 2)--Raging Squall

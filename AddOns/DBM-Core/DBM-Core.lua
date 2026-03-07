@@ -76,16 +76,16 @@ end
 ---@class DBM
 local DBM = private:GetPrototype("DBM")
 _G.DBM = DBM
-DBM.Revision = parseCurseDate("20260301122006")
+DBM.Revision = parseCurseDate("20260306225023")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 local fakeBWVersion, fakeBWHash = 407, "a0f5bf5"--407.0
 local PForceDisable
 -- The string that is shown as version
-DBM.DisplayVersion = "12.0.27"--Core version
+DBM.DisplayVersion = "12.0.29"--Core version
 DBM.classicSubVersion = 0
 DBM.dungeonSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2026, 3, 1) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2026, 3, 6) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 PForceDisable = 22--When this is incremented, trigger force disable regardless of major patch
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -133,6 +133,7 @@ DBM.DefaultOptions = {
 	CountdownVoice = "AnnieSeal",
 	CountdownVoice2 = "AnnieSeal",
 	CountdownVoice3 = "AnnieSeal",
+	CountSize = 5,
 	PullVoice = "AnnieSeal",
 	ChosenVoicePack2 = "AnnieSeal",
 	VPReplacesAnnounce = true,
@@ -411,6 +412,7 @@ DBM.DefaultOptions = {
 	ZoneCombatSyncing = false,--HIDDEN power user feature to improve zone scanning accuracy in niche cases
 	HasShownMidnightPopup = false,
 	IgnoreBlizzAPI = false,
+	fixBlizzApi = false,
 	DisableSWSound = false,
 	--Private Aura Frame Options
 	--Player
@@ -947,8 +949,15 @@ bossModPrototype.MidRestrictionsActive = DBM.MidRestrictionsActive
 ---@param self DBMModOrDBM
 function DBM:IgnoreBlizzardAPI()
 	DBM.Options.IgnoreBlizzAPI = true
+	fireEvent("DBM_IgnoreBlizzAPI")
 end
 bossModPrototype.IgnoreBlizzardAPI = DBM.IgnoreBlizzardAPI
+
+---@param self DBMModOrDBM
+function DBM:FixBlizzardAPI()
+	DBM.Options.fixBlizzApi = true
+end
+bossModPrototype.FixBlizzardAPI = DBM.FixBlizzardAPI
 
 ---Disables special warning sounds from firing from blizz ENCOUNTER_WARNING api events. Use this when a module has aleady registered custom event sounds
 ---@param self DBMModOrDBM
@@ -2244,6 +2253,7 @@ do
 			playerName = UnitName("player")--In case it's unknown at login, we check it again
 			private.isRetail = WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1)--Can also fail to intialize on login on midnight alpha
 			self.Options.IgnoreBlizzAPI = false--In event it didn't get restored on combat end due to crash or reload
+			self.Options.fixBlizzApi = false
 			self.Options.DisableSWSound = false--In event it didn't get restored on combat end due to crash or reload
 		end
 		self:UnregisterEvents("ADDON_LOADED")
@@ -6701,8 +6711,12 @@ do
 			if private.isRetail then
 				self.PrivateAuras:UnregisterPrivateAuras(nil)--Sending no unit unregisters all
 			end
-			self.Options.IgnoreBlizzAPI = false
+			if self.Options.IgnoreBlizzAPI then
+				self.Options.IgnoreBlizzAPI = false
+				fireEvent("DBM_ResumeBlizzAPI")
+			end
 			self.Options.DisableSWSound = false
+			self.Options.fixBlizzApi = false
 			if event then
 				self:Debug("EndCombat called by : " .. event .. ". LastInstanceMapID is " .. LastInstanceMapID)
 			end
@@ -9190,7 +9204,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260301122006" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260306225023" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then

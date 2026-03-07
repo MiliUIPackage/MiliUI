@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2810, "DBM-Party-Midnight", 7, 1315)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260223141432")
+mod:SetRevision("20260303042556")
 mod:SetCreatureID(247570)--Muro, Nekraxx is 247572
 mod:SetEncounterID(3212)
 --mod:SetHotfixNoticeRev(20250823000000)

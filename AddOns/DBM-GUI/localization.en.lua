@@ -10,15 +10,16 @@ L.TranslationBy 					= nil -- your name here, localizers!
 L.Website							= "Please follow MysticalOS for news/updates |cFF73C2FBhttps://allmylinks.com/mysticalos|r. Thanks for years of support!"
 L.WebsiteButton						= "Website"
 
-L.OTabBosses						= "Boss Options"--Deprecated and will be deleted once tabs no longer use this
-L.OTabRaids							= "Raids"--Just pve raids
-L.OTabDungeons						= "Dungeons"--Just dungeons
+L.OTabRaids							= "Raids"
+L.OTabDungeons						= "Dungeons"
 L.OTabWorld							= "World Bosses"--Since there are so many world mods, enough to get their own tab
 L.OTabScenarios						= "Scenarios"--Future use, will be used for scenarios and delves, likely after there are more than 2 mods (so probably 12.x or later)
 L.OTabPlugins						= "Other"--Scenarios, PVP, Delves (11.x), Solo/Challenge content (torghast, mage tower, etc)
 L.OTabOptions						= "Core Options"
 L.OTabTools							= "Tools"--Such as break timer button, durability checks, latency checks, keystone checks (in future)
 L.OTabAbout							= "About"
+L.SearchMatch						= "%d match"
+L.SearchMatches						= "%d matches"
 
 --Main Tab, Tools checks
 L.Tools_LatencyCheck				= "Latency Check"
@@ -325,6 +326,8 @@ L.CountdownVoice2					= "Set secondary voice for count sounds"
 L.CountdownVoice3					= "Set tertiary voice for count sounds"
 L.PullVoice							= "Set voice for pull timers"
 L.VoicePackChoice					= "Set voice pack for spoken alerts"
+L.CountdownStartTime				= "Set countdown start time for Blizzard timers"
+L.CountStart						= "%d seconds remaining"
 L.MissingVoicePack					= "Missing Voice Pack (%s)"
 L.Area_CountdownOptions				= "Countdown Options"
 L.Area_VoicePackReplace				= "Voice Pack Replacement Options (which sounds voice packs, when enabled, mute and replace)"

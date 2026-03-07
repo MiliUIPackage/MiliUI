@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2656, "DBM-Party-Midnight", 1, 1299)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260221094926")
+mod:SetRevision("20260303042556")
 mod:SetCreatureID(231626)--Kalis flagged as main boss, Latch (231629) is secondary
 mod:SetEncounterID(3057)
 --mod:SetHotfixNoticeRev(20250823000000)

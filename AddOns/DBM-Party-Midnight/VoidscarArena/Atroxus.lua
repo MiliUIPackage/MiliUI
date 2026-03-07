@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2792, "DBM-Party-Midnight", 6, 1313)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260226065527")
+mod:SetRevision("20260303042556")
 mod:SetCreatureID(239008)
 mod:SetEncounterID(3286)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -32,7 +32,9 @@ mod:AddPrivateAuraSoundOption(1222484, true, 1222484, 1, 2)--Poison Pool
 
 function mod:OnLimitedCombatStart()
 	self:EnableAlertOptions(1222371, 46, "bigmob", 2, 2)
-	self:EnableAlertOptions(1222642, 47, "defensive", 2, 2)
+	if self:IsTank() then
+		self:EnableAlertOptions(1222642, 47, "defensive", 2, 2)
+	end
 	self:EnableAlertOptions(1263977, 54, "frontal", 15, 3)
 	self:EnableAlertOptions(1226120, 55, "watchstep", 2, 2)
 	self:EnableAlertOptions(1262497, 297, "carefly", 2, 3)

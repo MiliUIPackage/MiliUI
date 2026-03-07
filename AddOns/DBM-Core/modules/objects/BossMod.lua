@@ -964,13 +964,17 @@ do
 	---@param voice VPSound voice pack media path
 	---@param voiceVersion number Required voice pack verion (if not met, falls back to default special warning sounds)
 	function bossModPrototype:EnablePrivateAuraSound(auraspellId, voice, voiceVersion)
-		if DBM.Options.DontPlayPrivateAuraSound then return end
 		local optionId
 		if type(auraspellId) == "table" then
 			optionId = auraspellId[1]
 		else
 			optionId = auraspellId
 		end
+		if not C_UnitAuras.AuraIsPrivate(optionId) then
+			DBM:Debug("Attempting to register private aura sound for spell ID " .. optionId .. " which is not a private aura. This sound will not be registered.", 2)
+			return
+		end
+		if DBM.Options.DontPlayPrivateAuraSound then return end
 		if optionId and self.Options["PrivateAuraSound" .. optionId] then
 			if not self.paSounds then self.paSounds = {} end
 			local mediaPath = checkValidVPSound(self, "PrivateAuraSound", optionId, voice, voiceVersion)
@@ -1001,29 +1005,31 @@ do
 	---@param encounterEventId number|table EncounterEventID from EncounterEvent.db2 that matches event we're targetting
 	---@param customOption string? Used when event supports hardcoded timers and needs different option table lookup
 	function bossModPrototype:EnableTimelineOptions(optionId, encounterEventId, customOption)
-		if optionId and (customOption and self.Options[customOption] or self.Options["CustomTimerOption" .. optionId]) then
-			--Set Color
-			local colorType = customOption and self.Options[customOption .. "TColor"] or self.Options["CustomTimerOption" .. optionId .. "TColor"] or 0
-			local timerRed, timerGreen, timerBlue = DBT:GetColorForType(colorType)
-			if type(encounterEventId) == "table" then
-				for _, id in ipairs(encounterEventId) do
-					C_EncounterEvents.SetEventColor(id, {r = timerRed, g = timerGreen, b = timerBlue})
-				end
-			else
-				C_EncounterEvents.SetEventColor(encounterEventId, {r = timerRed, g = timerGreen, b = timerBlue})
+		--Set Color (done outside option check since right now option check isnt supported until 12.0.5
+		--And we want to set colors on any bar even if it's "disabled" for now
+		local colorType = customOption and self.Options[customOption .. "TColor"] or self.Options["CustomTimerOption" .. optionId .. "TColor"] or 0
+		local timerRed, timerGreen, timerBlue = DBT:GetColorForType(colorType, true)
+		if type(encounterEventId) == "table" then
+			for _, id in ipairs(encounterEventId) do
+				C_EncounterEvents.SetEventColor(id, {r = timerRed, g = timerGreen, b = timerBlue})
 			end
+		else
+			C_EncounterEvents.SetEventColor(encounterEventId, {r = timerRed, g = timerGreen, b = timerBlue})
+		end
+		if optionId and (customOption and self.Options[customOption] or self.Options["CustomTimerOption" .. optionId]) then
 			--Set Countdown
 			local timerCountdown = not DBM.Options.DontPlayCountdowns and (customOption and self.Options[customOption .. "CVoice"] or self.Options["CustomTimerOption" .. optionId .. "CVoice"]) or 0
 			if timerCountdown ~= 0 then
 				if not self.tlTimerEvents then self.tlTimerEvents = {} end
+				local countSizePath = DBM.Options.CountSize == 3 and "threecount.ogg" or "fivecount.ogg"
 				if type(timerCountdown) == "string" then
-					path = timerCountdown.."fivecount.ogg"
+					path = timerCountdown..countSizePath
 				elseif timerCountdown == 2 then
-					path = "Interface\\AddOns\\DBM-Core\\Sounds\\Kolt\\fivecount.ogg"
+					path = "Interface\\AddOns\\DBM-Core\\Sounds\\Kolt\\" .. countSizePath
 				elseif timerCountdown == 3 then
-					path = "Interface\\AddOns\\DBM-Core\\Sounds\\Smooth\\fivecount.ogg"
+					path = "Interface\\AddOns\\DBM-Core\\Sounds\\Smooth\\" .. countSizePath
 				elseif timerCountdown == 1 then
-					path = "Interface\\AddOns\\DBM-Core\\Sounds\\Corsica\\fivecount.ogg"
+					path = "Interface\\AddOns\\DBM-Core\\Sounds\\Corsica\\" .. countSizePath
 				end
 				--Unlike private aura sounds, this api accepts both file data ID AND path
 				local soundSetting = DBM.Options.UseSoundChannel or "Master"

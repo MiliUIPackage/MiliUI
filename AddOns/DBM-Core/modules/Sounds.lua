@@ -18,7 +18,6 @@ do
 		{	text	= "家豪",value 	= "SahaJh", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SahaJh\\", max = 10},
 		{	text	= "然然",value 	= "Ranran", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ranran\\", max = 10},
 		{	text	= "忘忧景久",value 	= "忘忧景久", path = "Interface\\AddOns\\DBM-Core\\Sounds\\WYJJ\\", max = 10},
-		{	text	= "VV",value 	= "VV", path = "Interface\\AddOns\\DBM-Core\\Sounds\\VV\\", max = 10},
 	}
 	--Countdown audio that's been specifically edited to be a single 5 second count file
 	local midnightCounts = {
@@ -30,8 +29,7 @@ do
 		{	text	= "家豪",value 	= "SahaJh", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SahaJh\\", max = 5},
 		{	text	= "然然",value 	= "Ranran", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ranran\\", max = 5},
 		{	text	= "忘忧景久",value 	= "忘忧景久", path = "Interface\\AddOns\\DBM-Core\\Sounds\\WYJJ\\", max = 5},
-		{	text	= "VV",value 	= "VV", path = "Interface\\AddOns\\DBM-Core\\Sounds\\VV\\", max = 5},
-	}
+		}
 	local hasCached = false
 	local cachedTable
 	---@deprecated Use new utility functions. Midnight sounds cannot be added injectinginto DBM.Counts at all!

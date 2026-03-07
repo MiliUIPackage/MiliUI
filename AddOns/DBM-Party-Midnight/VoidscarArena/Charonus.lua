@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2793, "DBM-Party-Midnight", 6, 1313)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260301003306")
+mod:SetRevision("20260303042556")
 mod:SetCreatureID(248015)
 mod:SetEncounterID(3287)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -39,7 +39,7 @@ function mod:OnLimitedCombatStart()
 	self:EnableTimelineOptions(1263982, 58)
 	self:EnableTimelineOptions(1222758, 171)
 
-	self:EnablePrivateAuraSound(1263983, "orbrun", 2)
+	self:EnablePrivateAuraSound(1263983, "orbrun", 2)--Doesn't seem to be working?
 	self:EnablePrivateAuraSound(1282770, "runout", 2)
 	self:EnablePrivateAuraSound(1248130, "watchfeet", 8)
 	DBM:Debug("check void cascade private aura")

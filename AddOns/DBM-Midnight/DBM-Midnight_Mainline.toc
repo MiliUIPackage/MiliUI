@@ -1,5 +1,5 @@
 ## Interface: 120001
-## Version: 12.0.27
+## Version: 12.0.28
 ## Category: DBM
 
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10World Bosses (Midnight)|r

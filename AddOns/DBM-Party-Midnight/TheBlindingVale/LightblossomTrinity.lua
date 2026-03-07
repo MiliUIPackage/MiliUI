@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2769, "DBM-Party-Midnight", 4, 1309)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260226065527")
+mod:SetRevision("20260306055821")
 mod:SetCreatureID(243028)--Meittik only one reported as a main boss
 mod:SetEncounterID(3199)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -37,7 +37,7 @@ function mod:OnLimitedCombatStart()
 		self:EnableAlertOptions(1234753, 173, "defensive", 2, 3)
 	end
 	self:EnableAlertOptions(1234850, 174, "chargemove", 2, 2)
-	self:EnableAlertOptions(1235564, 177, "soakbeam", 17, 2)
+	self:EnableAlertOptions(1235564, 177, "helpsoak", 2, 2)
 
 	self:EnableTimelineOptions(1234753, 173)
 	self:EnableTimelineOptions(1234850, 174)

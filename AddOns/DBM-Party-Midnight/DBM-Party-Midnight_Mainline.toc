@@ -23,7 +23,7 @@
 ## X-DBM-Mod-MinExpansion: 11
 ## X-Curse-Project-ID: 314994
 ## X-Wago-ID: xZKxZENk
-## Version: r234
+## Version: r235-5
 ## Category-zhTW: 地城與團隊
 
 # localization.en.lua
@@ -63,3 +63,4 @@ MaisaraCaverns\Raktul.lua
 NexusPointXenas\Lothraxion.lua
 NexusPointXenas\CorewardenNysarra.lua
 NexusPointXenas\ChiefCorewrightKasreth.lua
+
