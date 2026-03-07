@@ -236,6 +236,11 @@ local function RefreshWidget(widget, config)
     local t = config.type
     if (t == "checkbox") then
         widget:SetChecked(GetVariable(config.keystring))
+    elseif (t == "idinfo") then
+        widget.checkbox:SetChecked(GetVariable(config.keystring))
+        if (widget._updateIdInfoLayout) then
+            widget:_updateIdInfoLayout()
+        end
     elseif (t == "slider") then
         local v = GetVariable(config.keystring) or 0
         widget:SetValue(v)
@@ -248,6 +253,10 @@ local function RefreshWidget(widget, config)
         RefreshColorPick(widget, GetVariable(config.keystring))
     elseif (t == "dropdown") then
         RefreshDropdown(widget, GetVariable(config.keystring))
+    elseif (t == "quickfocus") then
+        if (widget._updateQuickFocusLayout) then
+            widget:_updateQuickFocusLayout()
+        end
     elseif (t == "dropdownslider") then
         RefreshDropdown(widget.dropdown, GetVariable(config.keystring..".colorfunc"))
         local v = GetVariable(config.keystring..".alpha") or 0
@@ -318,11 +327,314 @@ end
 function widgets:checkbox(parent, config, labelText)
     local frame = CreateFrame("CheckButton", nil, parent, "InterfaceOptionsCheckButtonTemplate")
     frame.keystring = config.keystring
-    frame.tooltipText = labelText or L[config.keystring]
+    local text = labelText or L[config.keystring]
+    frame.tooltipText = text
+    if (config.keystring == "general.alwaysShowIdInfo") then
+        text = labelText or L["general.alwaysShowIdInfo.short"] or L[config.keystring]
+        frame.tooltipText = L["general.alwaysShowIdInfo.hint"] or "If disabled, hold SHIFT/ALT to display."
+        frame:HookScript("OnEnter", function(self)
+            if (self.tooltipText and self.tooltipText ~= "") then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetText(self.tooltipText, 1, 1, 1, 1)
+                GameTooltip:Show()
+            end
+        end)
+        frame:HookScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+    end
     frame.Text:SetWidth(0)
-    frame.Text:SetText(labelText or L[config.keystring])
+    frame.Text:SetText(text)
     frame:SetChecked(GetVariable(config.keystring))
     frame:SetScript("OnClick", function(self) SetVariable(self.keystring, self:GetChecked()) end)
+    return frame
+end
+
+function widgets:idinfo(parent, config)
+    local frame = CreateFrame("Frame", nil, parent)
+    local parentWidth = parent and parent.anchor and parent.anchor:GetWidth()
+    frame:SetSize(parentWidth or 400, LAYOUT.ROW_HEIGHT)
+    frame.checkbox = self:checkbox(frame, {keystring = config.keystring}, L[config.keystring])
+    -- Keep the right-side dropdown aligned with other dropdown rows,
+    -- while restoring the checkbox/text column alignment with normal checkbox rows.
+    frame.checkbox:SetPoint("LEFT", 15, 0)
+
+    frame.optionButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    frame.optionButton:SetSize(220, 22)
+    frame.optionButton:SetPoint("RIGHT", frame, "RIGHT", -10, -1)
+    if (frame.optionButton.Text) then
+        frame.optionButton.Text:SetFont(STANDARD_TEXT_FONT, 12, "OUTLINE")
+        frame.optionButton.Text:ClearAllPoints()
+        frame.optionButton.Text:SetPoint("LEFT", 10, 0)
+        frame.optionButton.Text:SetPoint("RIGHT", -22, 0)
+        frame.optionButton.Text:SetJustifyH("LEFT")
+    end
+    frame.optionButton.arrow = frame.optionButton:CreateTexture(nil, "ARTWORK")
+    frame.optionButton.arrow:SetSize(16, 16)
+    frame.optionButton.arrow:SetPoint("RIGHT", -6, 0)
+    frame.optionButton.arrow:SetTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
+    frame.optionButton.arrow:SetTexCoord(0, 1, 0, 1)
+
+    frame.optionPanel = CreateFrame("Frame", nil, frame, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    frame.optionPanel:SetBackdrop({
+        bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 12,
+        insets   = {left = 4, right = 4, top = 4, bottom = 4},
+    })
+    frame.optionPanel:SetBackdropColor(0, 0, 0, 0.85)
+    frame.optionPanel:SetBackdropBorderColor(0.6, 0.6, 0.6, 0.8)
+    frame.optionPanel:SetPoint("TOPLEFT", frame.optionButton, "BOTTOMLEFT", 0, -2)
+    frame.optionPanel:SetPoint("TOPRIGHT", frame.optionButton, "BOTTOMRIGHT", 0, -2)
+    frame.optionPanel:SetFrameStrata("DIALOG")
+    frame.optionPanel:SetFrameLevel(frame:GetFrameLevel() + 10)
+    frame.optionPanel:Hide()
+
+    frame.checkboxSpellItem = CreateFrame("CheckButton", nil, frame.optionPanel, "InterfaceOptionsCheckButtonTemplate")
+    frame.checkboxSpellItem.Text:SetWidth(0)
+    frame.checkboxSpellItem.Text:SetText(L["general.idInfoMode.spellItem"] or "Show Spell/Item ID")
+    frame.checkboxSpellItem:SetPoint("TOPLEFT", 8, -6)
+    frame.checkboxIcon = CreateFrame("CheckButton", nil, frame.optionPanel, "InterfaceOptionsCheckButtonTemplate")
+    frame.checkboxIcon.Text:SetWidth(0)
+    frame.checkboxIcon.Text:SetText(L["general.idInfoMode.icon"] or "Show Icon ID")
+    frame.checkboxIcon:SetPoint("TOPLEFT", frame.checkboxSpellItem, "BOTTOMLEFT", 0, -6)
+
+    local modeKey = config.modeKeystring
+    local function GetModeTable()
+        local mode = GetVariable(modeKey)
+        if (type(mode) ~= "table") then
+            mode = {}
+        end
+        if (mode.spellItem == nil) then mode.spellItem = true end
+        if (mode.icon == nil) then mode.icon = true end
+        return mode
+    end
+    local function SetModeValue(key, enabled)
+        local mode = GetModeTable()
+        mode[key] = enabled and true or false
+        SetVariable(modeKey, mode)
+    end
+
+    local function UpdateOptionSummary()
+        local mode = GetModeTable()
+        local selections = {}
+        if (mode.spellItem) then
+            tinsert(selections, L["general.idInfoMode.spellItem"] or "Show Spell/Item ID")
+        end
+        if (mode.icon) then
+            tinsert(selections, L["general.idInfoMode.icon"] or "Show Icon ID")
+        end
+        local summary
+        if (#selections == 0) then
+            summary = L["id.display.none"] or L["dropdown.none"] or NONE
+        elseif (#selections == 2) then
+            summary = L["id.display.both"] or table.concat(selections, ", ")
+        else
+            summary = selections[1]
+        end
+        local text = summary
+        local fontString = frame.optionButton.Text
+        if (fontString and frame.optionButton.GetWidth) then
+            local maxWidth = frame.optionButton:GetWidth() - 36
+            if (maxWidth < 40) then maxWidth = 40 end
+            local function TruncateToFit(value)
+                fontString:SetText(value)
+                if (fontString:GetStringWidth() <= maxWidth) then
+                    return value
+                end
+                local ellipsis = "..."
+                local low, high = 0, #value
+                while (low < high) do
+                    local mid = math.floor((low + high) / 2)
+                    local candidate = value:sub(1, mid) .. ellipsis
+                    fontString:SetText(candidate)
+                    if (fontString:GetStringWidth() <= maxWidth) then
+                        low = mid + 1
+                    else
+                        high = mid
+                    end
+                end
+                local finalLen = math.max(0, low - 1)
+                return value:sub(1, finalLen) .. ellipsis
+            end
+            text = TruncateToFit(text)
+        end
+        frame.optionButton:SetText(text)
+    end
+
+    local function UpdatePanelLayout()
+        local mode = GetModeTable()
+        frame.checkboxSpellItem:SetChecked(mode.spellItem)
+        frame.checkboxIcon:SetChecked(mode.icon)
+        UpdateOptionSummary()
+        frame.optionPanel:SetHeight((LAYOUT.ROW_HEIGHT * 2) + 10)
+        frame.optionPanel:SetWidth(frame.optionButton:GetWidth())
+        frame:SetHeight(LAYOUT.ROW_HEIGHT)
+    end
+
+    frame.checkboxSpellItem:SetScript("OnClick", function(self)
+        SetModeValue("spellItem", self:GetChecked())
+        UpdatePanelLayout()
+    end)
+    frame.checkboxIcon:SetScript("OnClick", function(self)
+        SetModeValue("icon", self:GetChecked())
+        UpdatePanelLayout()
+    end)
+    frame.optionButton:SetScript("OnClick", function()
+        frame.optionPanel:SetShown(not frame.optionPanel:IsShown())
+        UpdatePanelLayout()
+    end)
+
+    frame:HookScript("OnShow", UpdatePanelLayout)
+    frame._updateIdInfoLayout = UpdatePanelLayout
+    UpdatePanelLayout()
+    return frame
+end
+
+function widgets:quickfocus(parent, config)
+    local frame = CreateFrame("Frame", nil, parent)
+    local parentWidth = parent and parent.anchor and parent.anchor:GetWidth()
+    frame:SetSize(parentWidth or 400, LAYOUT.ROW_HEIGHT)
+
+    frame.label = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    frame.label:SetPoint("LEFT", 39, 0)
+    frame.label:SetFontObject("GameFontNormal")
+    frame.label:SetTextColor(1, 0.82, 0)
+    frame.label:SetText(L[config.keystring] or config.keystring)
+
+    frame.optionButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    frame.optionButton:SetSize(220, 22)
+    frame.optionButton:SetPoint("RIGHT", frame, "RIGHT", -10, -1)
+    if (frame.optionButton.Text) then
+        frame.optionButton.Text:SetFont(STANDARD_TEXT_FONT, 12, "OUTLINE")
+        frame.optionButton.Text:ClearAllPoints()
+        frame.optionButton.Text:SetPoint("LEFT", 10, 0)
+        frame.optionButton.Text:SetPoint("RIGHT", -22, 0)
+        frame.optionButton.Text:SetJustifyH("LEFT")
+    end
+    frame.optionButton.arrow = frame.optionButton:CreateTexture(nil, "ARTWORK")
+    frame.optionButton.arrow:SetSize(16, 16)
+    frame.optionButton.arrow:SetPoint("RIGHT", -6, 0)
+    frame.optionButton.arrow:SetTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
+    frame.optionButton.arrow:SetTexCoord(0, 1, 0, 1)
+
+    frame.optionPanel = CreateFrame("Frame", nil, frame, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    frame.optionPanel:SetBackdrop({
+        bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 12,
+        insets   = {left = 4, right = 4, top = 4, bottom = 4},
+    })
+    frame.optionPanel:SetBackdropColor(0, 0, 0, 0.85)
+    frame.optionPanel:SetBackdropBorderColor(0.6, 0.6, 0.6, 0.8)
+    frame.optionPanel:SetPoint("TOPLEFT", frame.optionButton, "BOTTOMLEFT", 0, -2)
+    frame.optionPanel:SetPoint("TOPRIGHT", frame.optionButton, "BOTTOMRIGHT", 0, -2)
+    frame.optionPanel:SetFrameStrata("DIALOG")
+    frame.optionPanel:SetFrameLevel(frame:GetFrameLevel() + 10)
+    frame.optionPanel:Hide()
+
+    local helpText = L["quickfocus.help"] or "Hold the modifier key and click a target to set focus. Hold the modifier key and click empty space to clear focus."
+    local function ShowHelpTooltip(owner)
+        GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+        GameTooltip:SetText(helpText, 0.9, 0.9, 0.9, 1, true)
+        GameTooltip:Show()
+    end
+    local function HideHelpTooltip()
+        GameTooltip:Hide()
+    end
+
+    frame.optionButton:HookScript("OnEnter", function(self) ShowHelpTooltip(self) end)
+    frame.optionButton:HookScript("OnLeave", HideHelpTooltip)
+
+    frame.optionRows = {}
+    for i, value in ipairs(config.dropdata or {}) do
+        local row = CreateFrame("Button", nil, frame.optionPanel)
+        row.value = value
+        row:SetHeight(18)
+        row:SetPoint("TOPLEFT", 6, -((i - 1) * 18) - 6)
+        row:SetPoint("RIGHT", -6, 0)
+        row:SetHighlightTexture("Interface\\Buttons\\UI-ListBox-Highlight", "ADD")
+        row.text = row:CreateFontString(nil, "BORDER")
+        row.text:SetFont(GameFontHighlightSmall:GetFont(), 14, "THINOUTLINE")
+        row.text:SetPoint("LEFT", 24, 0)
+        row.text:SetText(L["dropdown."..value] or tostring(value))
+        row.check = row:CreateTexture(nil, "ARTWORK")
+        row.check:SetSize(16, 16)
+        row.check:SetPoint("LEFT", 6, 0)
+        row.check:SetTexture("Interface\\Common\\UI-DropDownRadioChecks")
+        row.check:SetTexCoord(0, 0.5, 0.5, 1)
+        row.uncheck = row:CreateTexture(nil, "ARTWORK")
+        row.uncheck:SetSize(16, 16)
+        row.uncheck:SetPoint("LEFT", 6, 0)
+        row.uncheck:SetTexture("Interface\\Common\\UI-DropDownRadioChecks")
+        row.uncheck:SetTexCoord(0.5, 1, 0.5, 1)
+        row:SetScript("OnClick", function(self)
+            SetVariable(config.keystring, self.value)
+            frame.optionPanel:Hide()
+            if (frame._updateQuickFocusLayout) then
+                frame:_updateQuickFocusLayout()
+            end
+        end)
+        row:HookScript("OnEnter", function(self) ShowHelpTooltip(self) end)
+        row:HookScript("OnLeave", HideHelpTooltip)
+        frame.optionRows[i] = row
+    end
+
+    local function UpdateOptionSummary()
+        local selected = GetVariable(config.keystring) or "none"
+        local text = L["dropdown."..tostring(selected)] or tostring(selected)
+        local fontString = frame.optionButton.Text
+        if (fontString and frame.optionButton.GetWidth) then
+            local maxWidth = frame.optionButton:GetWidth() - 36
+            if (maxWidth < 40) then maxWidth = 40 end
+            local function TruncateToFit(value)
+                fontString:SetText(value)
+                if (fontString:GetStringWidth() <= maxWidth) then
+                    return value
+                end
+                local ellipsis = "..."
+                local low, high = 0, #value
+                while (low < high) do
+                    local mid = math.floor((low + high) / 2)
+                    local candidate = value:sub(1, mid) .. ellipsis
+                    fontString:SetText(candidate)
+                    if (fontString:GetStringWidth() <= maxWidth) then
+                        low = mid + 1
+                    else
+                        high = mid
+                    end
+                end
+                local finalLen = math.max(0, low - 1)
+                return value:sub(1, finalLen) .. ellipsis
+            end
+            text = TruncateToFit(text)
+        end
+        frame.optionButton:SetText(text)
+        for _, row in ipairs(frame.optionRows) do
+            local isSelected = row.value == selected
+            row.check:SetShown(isSelected)
+            row.uncheck:SetShown(not isSelected)
+        end
+    end
+
+    local function UpdatePanelLayout()
+        UpdateOptionSummary()
+        local count = #frame.optionRows
+        frame.optionPanel:SetHeight((count * 18) + 12)
+        frame.optionPanel:SetWidth(frame.optionButton:GetWidth())
+        frame:SetHeight(LAYOUT.ROW_HEIGHT)
+    end
+
+    frame.optionButton:SetScript("OnClick", function()
+        frame.optionPanel:SetShown(not frame.optionPanel:IsShown())
+        UpdatePanelLayout()
+    end)
+    frame:HookScript("OnHide", function()
+        frame.optionPanel:Hide()
+    end)
+    frame:HookScript("OnShow", UpdatePanelLayout)
+    frame._updateQuickFocusLayout = UpdatePanelLayout
+    UpdatePanelLayout()
     return frame
 end
 
@@ -1160,6 +1472,8 @@ LAYOUT = {
     OFFSET_X = {
         checkbox = 0, colorpick = 5, slider = 15,
         dropdown = -15, dropdownslider = -15, anchor = -15,
+        idinfo = -15,
+        quickfocus = -15,
         element = 0,
     },
     -- Variables / DIY 面板
@@ -1193,12 +1507,19 @@ local options = {
         { keystring = "general.borderCorner",       type = "dropdown", dropdata = widgets.borderDropdata },
         { keystring = "general.bgfile",             type = "dropdown", dropdata = widgets.bgfileDropdata },
         { keystring = "general.anchor",             type = "anchor", dropdata = {"default","cursorRight","cursor","static"} },
-        { keystring = "item.coloredItemBorder",     type = "checkbox" },
-        { keystring = "item.showItemIcon",          type = "checkbox" },
         { keystring = "quest.coloredQuestBorder",   type = "checkbox" },
-        { keystring = "general.alwaysShowIdInfo",   type = "checkbox" },
         { keystring = "general.SavedVariablesPerCharacter",   type = "checkbox" },
         { keystring = "general.hideUnitFrameHint",  type = "checkbox" },
+        { keystring = "general.quickFocusModKey",   type = "quickfocus", dropdata = {"none", "alt", "ctrl", "shift"} },
+    },
+    item = {
+        { keystring = "item.modifierShowAll",       type = "checkbox" },
+        { keystring = "item.coloredItemBorder",     type = "checkbox" },
+        { keystring = "item.showItemIcon",          type = "checkbox" },
+        { keystring = "item.showItemId",            type = "checkbox" },
+        { keystring = "item.showItemMaxStack",      type = "checkbox" },
+        { keystring = "item.showItemIconId",        type = "checkbox" },
+        { keystring = "item.showItemExpansion",     type = "checkbox" },
     },
     pc = {
         { keystring = "unit.player.showTarget",           type = "checkbox" },
@@ -1276,7 +1597,10 @@ local options = {
         { keystring = "general.statusbarColor",     type = "dropdown", dropdata = {"default","auto","smooth"} },
     },
     spell = {
+        { keystring = "spell.modifierShowAll",      type = "checkbox" },
+        { keystring = "spell.showSpellId",          type = "checkbox" },
         { keystring = "spell.showIcon",             type = "checkbox" },
+        { keystring = "spell.showSpellIconId",      type = "checkbox" },
         { keystring = "spell.background",           type = "colorpick", hasopacity = true },
         { keystring = "spell.borderColor",          type = "colorpick", hasopacity = true },
     },
@@ -1406,6 +1730,16 @@ frameStatusbar.title:SetText(format("%s |cff33eeff%s|r", addonName, L["menu.stat
 frameStatusbar.parent = addonName
 frameStatusbar.name = L["menu.statusbar"]
 
+local frameItem = CreateFrame("Frame", nil, UIParent)
+frameItem.anchor = CreateFrame("Frame", nil, frameItem)
+frameItem.anchor:SetPoint("TOPLEFT", LAYOUT.ANCHOR_OFFSET, LAYOUT.ANCHOR_TOP)
+frameItem.anchor:SetSize(SettingsPanel.Container:GetWidth() - LAYOUT.PANEL_PADDING, 1)
+frameItem.title = frameItem:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+frameItem.title:SetPoint("TOPLEFT", LAYOUT.TITLE_LEFT, LAYOUT.ANCHOR_TOP)
+frameItem.title:SetText(format("%s |cff33eeff%s|r", addonName, L["menu.item"]))
+frameItem.parent = addonName
+frameItem.name = L["menu.item"]
+
 local frameSpell = CreateFrame("Frame", nil, UIParent)
 frameSpell.anchor = CreateFrame("Frame", nil, frameSpell)
 frameSpell.anchor:SetPoint("TOPLEFT", LAYOUT.ANCHOR_OFFSET, LAYOUT.ANCHOR_TOP)
@@ -1494,6 +1828,26 @@ local function ResetStatusbarSection()
     RefreshOptions(frameStatusbar)
 end
 
+local function ResetItemSection()
+    for _, v in ipairs(options.item) do
+        local value = GetDefaultValue(v.keystring)
+        if (value ~= nil) then
+            SetVariable(v.keystring, value)
+        end
+    end
+    RefreshOptions(frameItem)
+end
+
+local function ResetSpellSection()
+    for _, v in ipairs(options.spell) do
+        local value = GetDefaultValue(v.keystring)
+        if (value ~= nil) then
+            SetVariable(v.keystring, value)
+        end
+    end
+    RefreshOptions(frameSpell)
+end
+
 local function ResetAllSettings()
     if (not addon.defaults) then return end
     TinyTooltipRemakeDB = CopyTable(addon.defaults)
@@ -1505,6 +1859,7 @@ local function ResetAllSettings()
     RefreshOptions(framePC)
     RefreshOptions(frameNPC)
     RefreshOptions(frameStatusbar)
+    RefreshOptions(frameItem)
     RefreshOptions(frameSpell)
     RefreshOptions(frameFont)
     LibEvent:trigger("tinytooltip:diy:player", "player", true)
@@ -1514,6 +1869,8 @@ frame.reset = CreateResetButton(frame, resetAllText, ResetAllSettings)
 framePC.reset = CreateResetButton(framePC, resetSectionText, function() ResetUnitSection("player", framePC) end)
 frameNPC.reset = CreateResetButton(frameNPC, resetSectionText, function() ResetUnitSection("npc", frameNPC) end)
 frameStatusbar.reset = CreateResetButton(frameStatusbar, resetSectionText, ResetStatusbarSection)
+frameItem.reset = CreateResetButton(frameItem, resetSectionText, ResetItemSection)
+frameSpell.reset = CreateResetButton(frameSpell, resetSectionText, ResetSpellSection)
 
 local function InitOptions(list, parent)
     local element, offsetX
@@ -1531,6 +1888,7 @@ end
 
 LibEvent:attachEvent("VARIABLES_LOADED", function()
     InitOptions(options.general, frame)
+    InitOptions(options.item, frameItem)
     InitOptions(options.pc, framePC)
     InitOptions(options.npc, frameNPC)
     InitOptions(options.statusbar, frameStatusbar)
@@ -1568,6 +1926,7 @@ RegisterAddOnCategory(frame, frameRoot)
 RegisterAddOnCategory(framePCScrollFrame, frameRoot)
 RegisterAddOnCategory(frameNPCScrollFrame, frameRoot)
 RegisterAddOnCategory(frameStatusbar, frameRoot)
+RegisterAddOnCategory(frameItem, frameRoot)
 RegisterAddOnCategory(frameSpell, frameRoot)
 RegisterAddOnCategory(frameFont, frameRoot)
 RegisterAddOnCategory(frameVariables, frameRoot)
@@ -1582,6 +1941,8 @@ function SlashCmdList.TinyTooltip(msg, editbox)
         OpenToCategory(frameNPCScrollFrame)
     elseif (msg == "player") then
         OpenToCategory(framePCScrollFrame)
+    elseif (msg == "item") then
+        OpenToCategory(frameItem)
     elseif (msg == "spell") then
         OpenToCategory(frameSpell)
     elseif (msg == "statusbar") then

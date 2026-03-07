@@ -33,6 +33,7 @@ addon.db = {
         bodyFontFlag      = "default",
         SavedVariablesPerCharacter = false,
         hideUnitFrameHint = true,                  --隐藏头像框右键设置提示
+        quickFocusModKey = "none",                 --快速焦点修饰键 none|alt|ctrl|shift
     },
     unit = {
         player = {
@@ -111,14 +112,21 @@ addon.db = {
         },
     },
     item = {
+        modifierShowAll = false,
         coloredItemBorder = true,  --邊框按品質染色
-        showItemIcon = true,      --物品圖標
-        showExpansionInformation = true, --顯示資料片資訊
+        showItemIcon = true,       --物品圖標
+        showItemId = false,
+        showItemMaxStack = true,
+        showItemIconId = false,
+        showItemExpansion = true,
     },
     spell = {
         borderColor = {0.133, 0.133, 0.133, 1},
         background = {0.133, 0.133, 0.133, 1},
+        modifierShowAll = false,
         showIcon = true,
+        showSpellId = false,
+        showSpellIconId = false,
     },
     quest = {
         coloredQuestBorder = true,  --任務按等差染色

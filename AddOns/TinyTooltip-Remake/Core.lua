@@ -207,16 +207,14 @@ local function AutoValidateElements(src, dst)
     for k, v in ipairs(dst) do
         keys[k] = true
         for i = #v, 1, -1 do
-            if (not src[v[i]]) then
-                tremove(v, i)
-            elseif (v[i] == "itemLevel") then
+            if (v[i] == "itemLevel" and src.itemLevel) then
                 if (hasItemLevel) then
                     tremove(v, i)
                 else
                     hasItemLevel = true
                     keys[v[i]] = true
                 end
-            elseif (v[i] == "achievementPoints") then
+            elseif (v[i] == "achievementPoints" and src.achievementPoints) then
                 if (hasAchievementPoints) then
                     tremove(v, i)
                 else
@@ -230,9 +228,10 @@ local function AutoValidateElements(src, dst)
     end
     for k, v in pairs(src) do
         if (type(k) ~= "number" and not dst[k]) then
-            dst[k] = v
+            dst[k] = (type(v) == "table") and CopyTable(v) or v
             if (k == "factionBig" or k == "npcTitle" or k == "itemLevel" or k == "achievementPoints") then
             elseif (not keys[k]) then
+                if (not dst[1]) then dst[1] = {} end
                 tinsert(dst[1], 1, k)
             end
         end
@@ -676,13 +675,17 @@ end
 
 -- 配置合併
 function addon:MergeVariable(src, dst)
-    dst.version = src.version
+    if (type(src) ~= "table") then return dst end
+    if (type(dst) ~= "table") then
+        return CopyTable(src)
+    end
+
     for k, v in pairs(src) do
         if (dst[k] == nil) then
-            dst[k] = v
-        elseif (type(dst[k]) == "table" and k~="elements") then
+            dst[k] = (type(v) == "table") and CopyTable(v) or v
+        elseif (type(v) == "table" and type(dst[k]) == "table" and k~="elements") then
             self:MergeVariable(v, dst[k])
-        elseif (type(dst[k]) == "table" and k=="elements") then
+        elseif (type(v) == "table" and type(dst[k]) == "table" and k=="elements") then
             dst[k] = AutoValidateElements(v, dst[k])
         end
     end
@@ -692,16 +695,40 @@ end
 --自动调整宽度
 function addon:AutoSetTooltipWidth(tooltip)
     local width, w = 80
+    local measuredLines = 0
+    local totalLines = tooltip:NumLines()
+    local currentMinWidth
+    if (tooltip.GetMinimumWidth) then
+        local okMin, minValue = pcall(tooltip.GetMinimumWidth, tooltip)
+        if (okMin and type(minValue) == "number" and not (issecretvalue and issecretvalue(minValue))) then
+            currentMinWidth = minValue
+        end
+    end
     for i = 1, tooltip:NumLines() do
         local line = _G[tooltip:GetName() .. "TextLeft" .. i]
         local ok, value = pcall(function()
-            return line and line:GetWidth()
+            if (not line) then return end
+            local frameWidth
+            if (line.GetWidth) then
+                frameWidth = line:GetWidth()
+            end
+            if (type(frameWidth) == "number" and not (issecretvalue and issecretvalue(frameWidth))) then
+                return frameWidth
+            end
+            local strWidth
+            if (line.GetStringWidth) then
+                strWidth = line:GetStringWidth()
+            end
+            if (type(strWidth) == "number" and not (issecretvalue and issecretvalue(strWidth))) then
+                return strWidth
+            end
         end)
         if (ok) then
             local okType, isNum = pcall(function()
                 return type(value) == "number"
             end)
-            if (okType and isNum) then
+            if (okType and isNum and not (issecretvalue and issecretvalue(value))) then
+                measuredLines = measuredLines + 1
                 local okMax, newWidth = pcall(function()
                     return max(width, value)
                 end)
@@ -712,6 +739,20 @@ function addon:AutoSetTooltipWidth(tooltip)
         end
     end
     width = width + 6
+    local showFactionBig = false
+    if (tooltip and tooltip.BigFactionIcon and tooltip.BigFactionIcon.IsShown) then
+        local okShown, isShown = pcall(tooltip.BigFactionIcon.IsShown, tooltip.BigFactionIcon)
+        showFactionBig = okShown and isShown == true
+    end
+    if (showFactionBig) then
+        width = width + 30
+    end
+    if (measuredLines == 0) then
+        return currentMinWidth or width
+    end
+    if (measuredLines < totalLines and type(currentMinWidth) == "number") then
+        width = max(width, currentMinWidth)
+    end
     tooltip:SetMinimumWidth(width)
     tooltip:Show()
     return width

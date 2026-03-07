@@ -11,6 +11,40 @@ TinyTooltipRemakeDB = {}
 TinyTooltipRemakeCharacterDB = {}
 addon.defaults = CopyTable(addon.db)
 
+local function MigrateLegacyIdInfoSettings(db)
+    if (type(db) ~= "table") then return end
+    local general = db.general
+    local display = general and general.idInfoDisplay
+    if (type(display) ~= "table") then return end
+
+    db.item = db.item or {}
+    db.spell = db.spell or {}
+
+    if (db.item.showItemId == nil and display.spellItem ~= nil) then
+        db.item.showItemId = display.spellItem and true or false
+    end
+    if (db.item.showItemMaxStack == nil and display.spellItem ~= nil) then
+        db.item.showItemMaxStack = display.spellItem and true or false
+    end
+    if (db.item.showItemExpansion == nil and display.spellItem ~= nil) then
+        db.item.showItemExpansion = display.spellItem and true or false
+    end
+    if (db.item.showItemIconId == nil and display.icon ~= nil) then
+        db.item.showItemIconId = display.icon and true or false
+    end
+
+    if (db.item.showItemMaxStack == nil and db.item.showItemId ~= nil) then
+        db.item.showItemMaxStack = db.item.showItemId and true or false
+    end
+
+    if (db.spell.showSpellId == nil and display.spellItem ~= nil) then
+        db.spell.showSpellId = display.spellItem and true or false
+    end
+    if (db.spell.showSpellIconId == nil and display.icon ~= nil) then
+        db.spell.showSpellIconId = display.icon and true or false
+    end
+end
+
 local function GetStatusbarUnit()
     local unit = "mouseover"
     local focus = GetMouseFocus()
@@ -123,6 +157,8 @@ LibEvent:attachEvent("VARIABLES_LOADED", function()
         end
     end)
     --Variable
+    MigrateLegacyIdInfoSettings(TinyTooltipRemakeDB)
+    MigrateLegacyIdInfoSettings(TinyTooltipRemakeCharacterDB)
     addon.db = addon:MergeVariable(addon.db, TinyTooltipRemakeDB)
     if (addon.db.general.SavedVariablesPerCharacter) then
         local db = CopyTable(addon.db)

@@ -2,6 +2,7 @@
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 
 local addon = TinyTooltip
+local L = addon.L or {}
 
 local function GetItemInfoFromLink(linkOrId)
     local name, link, quality, _, _, _, _, stackCount, _, texture = GetItemInfo(linkOrId)
@@ -55,16 +56,50 @@ local function ItemStackCount(tip, itemInfo)
 end
 
 LibEvent:attachTrigger("tooltip:item", function(self, tip, link)
-    if (addon.db and addon.db.general) then
-        LibEvent:trigger("tooltip.style.bgfile", tip, addon.db.general.bgfile)
-        if (addon.db.general.background) then
-            LibEvent:trigger("tooltip.style.background", tip, unpack(addon.db.general.background))
+    local general = addon.db.general
+    LibEvent:trigger("tooltip.style.bgfile", tip, general.bgfile)
+    if (general.background) then
+        LibEvent:trigger("tooltip.style.background", tip, unpack(general.background))
+    end
+    LibEvent:trigger("tooltip.style.border.corner", tip, general.borderCorner)
+    if (general.borderCorner == "angular") then
+        LibEvent:trigger("tooltip.style.border.size", tip, general.borderSize)
+    end
+
+    if (tip and not (tip.IsForbidden and tip:IsForbidden())) then
+        local isModifierDown = IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown()
+        local showAllByModifier = addon.db.item.modifierShowAll
+        local showItemExpansion = addon.db.item.showItemExpansion
+        if (isModifierDown) then
+            if (not showAllByModifier) then
+                showItemExpansion = false
+            else
+                showItemExpansion = true
+            end
         end
-        LibEvent:trigger("tooltip.style.border.corner", tip, addon.db.general.borderCorner)
-        if (addon.db.general.borderCorner == "angular") then
-            LibEvent:trigger("tooltip.style.border.size", tip, addon.db.general.borderSize)
+        if (showItemExpansion) then
+            local itemLink = link or (tip and select(2, tip:GetItem()))
+            local _, _, _, _, _, _, _, _, _, _, _, _, _, _, expacId = GetItemInfo(itemLink)
+            local expansionName
+            if (type(expacId) == "number") then
+                expansionName = _G["EXPANSION_NAME" .. expacId]
+                if (type(expansionName) ~= "string" or expansionName == "") then
+                    expansionName = tostring(expacId)
+                end
+            end
+            local expansionLabel = L["id.expansion"] or "Expansion"
+            if (expansionName and not addon:FindLine(tip, expansionLabel)) then
+                local itemLabel = L["id.item"] or "Item ID"
+                if (not addon:FindLine(tip, itemLabel)) then
+                    tip:AddLine(" ")
+                end
+                local versionNum = (type(expacId) == "number") and format(" (%d.0)", expacId + 1) or ""
+                tip:AddLine(format("%s: |cffffffff%s%s|r", expansionLabel, expansionName, versionNum), 1, 0.82, 0)
+                tip:Show()
+            end
         end
     end
+
     local itemInfo = GetItemInfoFromLink(link)
     local quality = (itemInfo and itemInfo.itemQuality) or 0
     local r, g, b = GetItemQualityColor(quality)

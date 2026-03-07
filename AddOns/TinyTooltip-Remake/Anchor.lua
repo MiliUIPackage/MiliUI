@@ -80,6 +80,10 @@ end
 
 LibEvent:attachTrigger("tooltip:anchor", function(self, tip, parent)
     if (tip ~= GameTooltip) then return end
+    if (tip._tinySkipCustomAnchor) then
+        tip._tinySkipCustomAnchor = nil
+        return
+    end
     local unit
     local focus = GetMouseFocus()
     local isUnitFrame = false
