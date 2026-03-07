@@ -659,6 +659,9 @@ function addonTable.Core.Initialize()
       if MiliUI_PlatynatorVersion then
         PLATYNATOR_CONFIG.MiliUI_Version = MiliUI_PlatynatorVersion
       end
+    elseif PLATYNATOR_CURRENT_PROFILE == "DEFAULT" and profileExists then
+      -- 新角色首次登入：自動切換到 MiliUI profile
+      addonTable.Config.ChangeProfile("MiliUI")
     end
   end
 
