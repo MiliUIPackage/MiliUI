@@ -55,14 +55,41 @@ function addonTable.Display.Utilities.GetUnitDifficulty(unit)
   end
 end
 
-function addonTable.Display.Utilities.IsInCombatWith(unit)
-  return InCombatLockdown() and
-    UnitAffectingCombat(unit) and
-    (
-      UnitIsFriend("player", unit) or
-      UnitThreatSituation("player", unit) ~= nil or
-      IsInGroup() and (UnitInParty(unit .. "target") or UnitInRaid(unit .. "target")) and UnitThreatSituation(unit .. "target", unit) ~= nil
-    )
+do
+  local function IsInCombatWith(unit)
+    return UnitAffectingCombat(unit) and
+      (
+        UnitIsFriend("player", unit) and (UnitInParty(unit) == true or UnitInRaid(unit)== true ) or
+        UnitThreatSituation("player", unit) ~= nil or
+        UnitInParty(unit .. "target") == true or UnitInRaid(unit .. "target") == true
+      )
+  end
+
+  local watching = {}
+  C_Timer.NewTicker(0.08, function()
+    local units = GetKeysArray(watching)
+    for _, unit in ipairs(units) do
+      local newState = IsInCombatWith(unit)
+      if newState ~= watching[unit] then
+        watching[unit] = newState
+        addonTable.CallbackRegistry:TriggerEvent("CombatStatusChange", unit)
+      end
+    end
+  end)
+  local frame = CreateFrame("Frame")
+  frame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
+  frame:SetScript("OnEvent", function(_, _, unit)
+    watching[unit] = nil
+  end)
+
+  function addonTable.Display.Utilities.IsInCombatWith(unit)
+    if watching[unit] ~= nil then
+      return watching[unit]
+    else
+      watching[unit] = IsInCombatWith(unit)
+      return watching[unit]
+    end
+  end
 end
 
 function addonTable.Display.Utilities.ConvertColor(color)
@@ -87,21 +114,38 @@ function addonTable.Display.Utilities.IsInRelevantInstance(state)
   return false
 end
 
-local interruptMap = {
-  ["DEATHKNIGHT"] = {47528},
-  ["WARRIOR"] = {6552},
-  ["WARLOCK"] = {19647, 89766, 119910, 1276467, 132409},
-  ["SHAMAN"] = {57994},
-  ["ROGUE"] = {1766},
-  ["PRIEST"] = {15487},
-  ["PALADIN"] = {31935, 96231},
-  ["MONK"] = {116705},
-  ["MAGE"] = {2139},
-  ["HUNTER"] = {187707, 147362},
-  ["EVOKER"] = {351338},
-  ["DRUID"] = {38675, 78675, 106839},
-  ["DEMONHUNTER"] = {183752},
-}
+local interruptMap
+if addonTable.Constants.IsClassic then
+  interruptMap = {
+    ["DEATHKNIGHT"] = {47528},
+    ["WARRIOR"] = {6552},
+    ["WARLOCK"] = {19647, 89766},
+    ["SHAMAN"] = {57994},
+    ["ROGUE"] = {1766},
+    ["PRIEST"] = {15487},
+    ["PALADIN"] = {31935, 96231},
+    ["MONK"] = {116705},
+    ["MAGE"] = {2139},
+    ["HUNTER"] = {187707, 147362},
+    ["DRUID"] = {38675, 78675, 106839},
+  }
+else
+  interruptMap = {
+    ["DEATHKNIGHT"] = {47528},
+    ["WARRIOR"] = {6552},
+    ["WARLOCK"] = {89766, 119910},
+    ["SHAMAN"] = {57994},
+    ["ROGUE"] = {1766},
+    ["PRIEST"] = {15487},
+    ["PALADIN"] = {96231, 31935},
+    ["MONK"] = {116705},
+    ["MAGE"] = {2139},
+    ["HUNTER"] = {147362, 187707},
+    ["EVOKER"] = {351338},
+    ["DRUID"] = {38675, 78675, 106839},
+    ["DEMONHUNTER"] = {183752},
+  }
+end
 
 local executeMap = {
   -- Hunter
@@ -144,6 +188,10 @@ local executeMap = {
   [48806] = 0.2,
 }
 
+if addonTable.Constants.IsRetail then
+  executeMap[2948] = 0.3 -- Mage: Scorch (critical strike)
+end
+
 local sootheSpells = {
   2908,
   374346,
@@ -160,7 +208,7 @@ if C_CurveUtil then
   executeCurve:SetType(Enum.LuaCurveType.Step)
 end
 
-local currentInterrupt
+local currentInterrupt = {}
 local currentExecute = 0
 local isSootheAvailable = false
 do
@@ -171,10 +219,18 @@ do
   frame:RegisterEvent("PLAYER_LOGIN")
   frame:RegisterEvent("SPELLS_CHANGED")
   frame:SetScript("OnEvent", function()
-    currentInterrupt = nil
+    currentInterrupt = {}
     for _, s in ipairs(interruptSpells) do
       if C_SpellBook.IsSpellKnownOrInSpellBook(s) or C_SpellBook.IsSpellKnownOrInSpellBook(s, Enum.SpellBookSpellBank.Pet) then
-        currentInterrupt = s
+        table.insert(currentInterrupt, s)
+      end
+    end
+
+    if class == "WARLOCK" then
+      if C_SpellBook.IsSpellKnownOrInSpellBook(132409) then
+        table.insert(currentInterrupt, 132409)
+      elseif C_SpellBook.IsSpellKnownOrInSpellBook(1276467) then
+        table.insert(currentInterrupt, 1276467)
       end
     end
 
@@ -201,8 +257,12 @@ do
   end)
 end
 
-function addonTable.Display.Utilities.GetInterruptSpell()
+function addonTable.Display.Utilities.GetInterruptSpells()
   return currentInterrupt
+end
+
+function addonTable.Display.Utilities.GetInterruptSpellPriority()
+  return currentInterrupt[1]
 end
 
 function addonTable.Display.Utilities.GetExecuteRange()

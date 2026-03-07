@@ -169,7 +169,7 @@ function addonTable.Display.NameplateMixin:OnLoad()
         xOffset = step
       else -- CENTER
         xOffset = step
-        currentX = #keys * step / 2
+        currentX = -(#data - 1) * step / 2
       end
       local anchor = details.anchor[1]
       if type(anchor) ~= "string" then
@@ -518,20 +518,22 @@ function addonTable.Display.NameplateMixin:UpdateVisual()
   end
 
   local scale = 1
-  local alpha = 1
+  local alpha = 0
   local isTarget = UnitIsUnit("target", self.unit) or UnitIsUnit("softenemy", self.unit) or UnitIsUnit("softfriend", self.unit)
   if isTarget then
-    -- Nothing to do as its parented to the nameplate, as that will handle scaling for us
-  elseif UnitIsUnit("mouseover", self.unit) then
-    alpha = alpha * addonTable.Config.Get(addonTable.Config.Options.MOUSEOVER_ALPHA)
-    if self.casting then
-      scale = scale * addonTable.Config.Get(addonTable.Config.Options.CAST_SCALE)
-    end
-  elseif self.casting then
-    scale = scale * addonTable.Config.Get(addonTable.Config.Options.CAST_SCALE)
-    alpha = alpha * addonTable.Config.Get(addonTable.Config.Options.CAST_ALPHA)
+    alpha = 1
   else
-    alpha = alpha * addonTable.Config.Get(addonTable.Config.Options.NOT_TARGET_ALPHA)
+    local isMouseover = UnitIsUnit("mouseover", self.unit)
+    if isMouseover then
+      alpha = math.max(alpha, addonTable.Config.Get(addonTable.Config.Options.MOUSEOVER_ALPHA))
+    end
+    if self.casting then
+      scale = addonTable.Config.Get(addonTable.Config.Options.CAST_SCALE)
+      alpha = math.max(alpha, addonTable.Config.Get(addonTable.Config.Options.CAST_ALPHA))
+    end
+    if not isMouseover and not self.casting then
+      alpha = addonTable.Config.Get(addonTable.Config.Options.NOT_TARGET_ALPHA)
+    end
   end
   self:SetScale(self.scale * scale * addonTable.Config.Get(addonTable.Config.Options.GLOBAL_SCALE) * scaleMod)
   self:SetAlpha(alpha)

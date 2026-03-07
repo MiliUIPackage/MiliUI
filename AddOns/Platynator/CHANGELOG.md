@@ -1,6 +1,6 @@
 # Platynator
 
-## [332-1-gf2e75da](https://github.com/TheMouseNest/Platynator/tree/f2e75da898f288c9639d3464f978ac304c891123) (2026-03-01)
-[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/332...f2e75da898f288c9639d3464f978ac304c891123) [Previous Releases](https://github.com/TheMouseNest/Platynator/releases)
+## [340](https://github.com/TheMouseNest/Platynator/tree/340) (2026-03-07)
+[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/339...340) [Previous Releases](https://github.com/TheMouseNest/Platynator/releases)
 
-- [Fixes #229] Fix interrupt ready point being in the wrong position for channels  
+- Tune colors levelShift parameter to avoid issues on lower levels 80-85  

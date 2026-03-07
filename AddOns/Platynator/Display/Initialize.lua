@@ -83,28 +83,25 @@ function addonTable.Display.ManagerMixin:OnLoad()
   self:RegisterEvent("UNIT_FACTION")
 
   C_Timer.NewTicker(0.1, function() -- Used for transitioning mobs to attackable
-    local combat = addonTable.Config.Get(addonTable.Config.Options.DESIGNS_ENABLED).combat
-    local isInCombatWith = addonTable.Display.Utilities.IsInCombatWith
     local UnitCanAttack = UnitCanAttack
     for _, unit in ipairs(GetKeysArray(self.nameplateDisplays)) do
       local display = self.nameplateDisplays[unit]
       if (
           display.kind == "friend" and UnitCanAttack("player", unit) or
-          display.kind == "enemy" and not UnitCanAttack("player", unit
-        ) or
-        combat and (
-          display.kind == "friend" and isInCombatWith(unit) or
-          display.kind == "friendCombat" and not isInCombatWith(unit) or
-          display.kind == "enemy" and isInCombatWith(unit) or
-          display.kind == "enemyCombat" and not isInCombatWith(unit) or
-          display.kind == "enemySimplified" and isInCombatWith(unit) or
-          display.kind == "enemySimplifiedCombat" and not isInCombatWith(unit)
-        )
+          display.kind == "enemy" and not UnitCanAttack("player", unit)
       ) then
         self:Uninstall(unit)
-        self:Install(unit, nameplate)
+        self:Install(unit)
       end
       display:UpdateAurasForPandemic()
+    end
+  end)
+
+  addonTable.CallbackRegistry:RegisterCallback("CombatStatusChange", function(_, unit)
+    local display = self.nameplateDisplays[unit]
+    if display then
+      self:Uninstall(unit)
+      self:Install(unit)
     end
   end)
 
@@ -488,9 +485,6 @@ function addonTable.Display.ManagerMixin:ListenToBuffs(display, unit)
     local UF = self.ModifiedUFs[unit]
     if display.DebuffDisplay.details and display.DebuffDisplay.details.filters.important or display.BuffDisplay.details and display.BuffDisplay.details.filters.important then
       UF:RegisterUnitEvent("UNIT_AURA", unit)
-
-      local DebuffListFrame = UF.AurasFrame.DebuffListFrame
-      local BuffListFrame = UF.AurasFrame.BuffListFrame
 
       display.AurasManager:SetGetImportantAuras(function()
         local important = {}
@@ -891,7 +885,7 @@ function addonTable.Display.ManagerMixin:OnEvent(eventName, ...)
     local display = self.nameplateDisplays[unit]
     if display and ((display.kind == "friend" and UnitCanAttack("player", unit)) or (display.kind == "enemy" and not UnitCanAttack("player", unit))) then
       self:Uninstall(unit)
-      self:Install(unit, nameplate)
+      self:Install(unit)
     end
   elseif eventName == "GLOBAL_MOUSE_UP" then
     self:UpdateForMouseover()

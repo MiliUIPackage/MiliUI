@@ -487,8 +487,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
 
       iteration = iteration + 1
       snapped = false
-      local snapX, snapY, xLock, yLock = 0, 0
-      local endIndex = #selectionIndexes
+      local snapX, snapY, xLock, yLock = 0, 0, nil, nil
       for indexIndex, index in ipairs(selectionIndexes) do
         local w = widgets[index]
         snapX, snapY, xLock, yLock = UpdateWidgetPoints(w, snappingAmount, offsets[indexIndex].x, offsets[indexIndex].y)
@@ -503,7 +502,6 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
           if o.yLock then
             o.y = o.y + snapY
           end
-          endIndex = indexIndex
           snapped = true
           break
         else
@@ -611,7 +609,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
 
   local function OffsetWidgets(x, y)
     local offsets = {}
-    for _, index in ipairs(selectionIndexes) do
+    for _ in ipairs(selectionIndexes) do
       table.insert(offsets, {x = x, y = y, xLock = x == 0, yLock = y == 0})
     end
     AlignForRelativePoints(offsets, 0.4)
@@ -641,7 +639,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
   keyboardTrap:RegisterEvent("PLAYER_REGEN_ENABLED")
   keyboardTrap:RegisterEvent("PLAYER_REGEN_DISABLED")
   keyboardTrap:SetScript("OnEvent", function(_, event)
-    keyboardTrap:SetShown(event == "PLAYER_REGEN_ENABLED" and selectionIndex ~= 0)
+    keyboardTrap:SetShown(event == "PLAYER_REGEN_ENABLED" and #selectionIndexes > 0)
   end)
 
   local addButton = CreateFrame("DropdownButton", nil, previewInset, "UIPanelDynamicResizeButtonTemplate")
@@ -697,6 +695,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
       crowdControl = {135860},
     }
     local asset = LSM:Fetch("nineslice", "Platy: 1px")
+    assert(asset)
     for kind, w in pairs(auraContainers) do
       w:SetSize(10, 10)
       w.Wrapper = CreateFrame("Frame", nil, w)
@@ -707,7 +706,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
       for index, tex in ipairs(textures[kind]) do
         local buff = CreateFrame("Frame", nil, w.Wrapper, "PlatynatorNameplateBuffButtonTemplate")
         buff.Border = buff:CreateTexture(nil, "OVERLAY")
-        buff.Border:SetAllPoints(true)
+        buff.Border:SetAllPoints()
         buff.Border:SetScale(asset.scaleModifier)
         buff.Border:SetTexture(asset.file)
         buff.Border:SetTextureSliceMargins(asset.margins.left, asset.margins.top, asset.margins.right, asset.margins.bottom)

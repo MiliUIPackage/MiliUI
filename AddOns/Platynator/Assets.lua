@@ -27,6 +27,11 @@ local legacyMode = addonTable.Assets.Mode
 local renderMode = addonTable.Assets.RenderMode
 
 local LSM = LibStub("LibSharedMedia-3.0")
+LSM:Register(LSM.MediaType.FONT, addonTable.Constants.DefaultFont, "Interface/AddOns/Platynator/Assets/Fonts/RobotoCondensed-Bold.ttf", LSM.LOCALE_BIT_western + LSM.LOCALE_BIT_ruRU)
+LSM:Register(LSM.MediaType.FONT, "Lato", "Interface/AddOns/Platynator/Assets/Fonts/Lato-Regular.ttf")
+LSM:Register(LSM.MediaType.FONT, "Poppins SemiBold", "Interface/AddOns/Platynator/Assets/Fonts/Poppins-SemiBold.ttf")
+LSM:Register(LSM.MediaType.FONT, "Diablo Heavy", "Interface/AddOns/Platynator/Assets/Fonts/DiabloHeavy.ttf")
+LSM:Register(LSM.MediaType.FONT, "Atkinson Hyperlegible Next", "Interface/AddOns/Platynator/Assets/Fonts/AtkinsonHyperlegibleNext-Regular.otf")
 
 addonTable.Assets.BarBackgrounds = {
   ["Platy: Solid Transparency"] = {file = "Interface/AddOns/Platynator/Assets/Special/transparent.png", isTransparent = true},
@@ -92,7 +97,7 @@ addonTable.Assets.BarMasks = {
 }
 
 addonTable.Assets.Highlights = {
-  ["Platy: White"] = {file = "Interface/AddOns/Platynator/Assets/Special/white.png", width = 10, height = 10, mode = renderMode.Sliced, tag = "white", margin = 0.4, extra = 0, modifier = 1, minSize = 1, modifier = 1},
+  ["Platy: White"] = {file = "Interface/AddOns/Platynator/Assets/Special/white.png", width = 10, height = 10, mode = renderMode.Sliced, tag = "white", margin = 0.4, extra = 0, modifier = 1, minSize = 1},
 
   ["Platy: Blizzard Health Bold"] = {file = "Interface/AddOns/Platynator/Assets/%s/BarBorders/blizzard-health-square.png", width = 48, height = 48, has4k = true, masked = true, tag = "blizzard-health", margin = 0.4, extra = 0, minSize = 100, modifier = 0.3, DPIScale = 1/2, mode = renderMode.Sliced},
   ["Platy: Soft Glow"] = {file = "Interface/AddOns/Platynator/Assets/%s/Highlights/soft-glow-square.png", width = 59, height = 59, has4k = true, masked = true, tag = "soft", margin = 0.4, extra = 11, modifier = 0.3, DPIScale = 1/2, mode = renderMode.Sliced},
@@ -115,6 +120,8 @@ addonTable.Assets.Highlights = {
   ["Platy: Arrow Solid Down"] = {file = "Interface/AddOns/Platynator/Assets/%s/Highlights/arrow-solid-down.png", width = 207, height = 132, has4k = true, mode = renderMode.Fixed, tag = "arrows"},
   ["Platy: Arrow Hi-vis"] = {file = "Interface/AddOns/Platynator/Assets/%s/Highlights/hi-vis-arrows.png", width = 158, height = 50, has4k = true, margin = 0.5, extra = 0, modifier = 0.42, shiftModifierV = 1, DPIScale = 8/10, mode = renderMode.Sliced, tag = "arrows"},
   ["Platy: Arrow Hi-vis Down"] = {file = "Interface/AddOns/Platynator/Assets/%s/Highlights/hi-vis-arrow-down.png", width = 125, height = 185, has4k = true, mode = renderMode.Fixed, tag = "arrows"},
+
+  ["Platy: Brackets"] = {file = "Interface/AddOns/Platynator/Assets/%s/Highlights/brackets.png", width = 154, height = 56, has4k = true, margin = 0.45, extra = 0, modifier = 0.3, shiftModifierV = 1, DPIScale = 8/10, mode = renderMode.Sliced},
 
   ["Platy: Blizzard Classic Level"] = {file = "Interface/AddOns/Platynator/Assets/%s/Highlights/blizzard-classic-level.png", width = 178, height = 125, has4k = true, mode = renderMode.Fixed, tag = "blizzard-classic-level"},
 
@@ -293,10 +300,6 @@ function addonTable.Assets.ApplyScale()
     end
   end
 
-  local lowerScale = 1
-  if DPIScale == "DPI96" then
-    lowerScale = 2
-  end
   IterateLSMBackground(addonTable.Assets.BarBackgrounds)
   IterateLSMSlicedBorder(addonTable.Assets.BarBordersSliced, addonTable.Assets.BarMasks)
   IterateLSMHighlights(addonTable.Assets.Highlights)

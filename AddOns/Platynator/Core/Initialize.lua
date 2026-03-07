@@ -130,6 +130,9 @@ function addonTable.Core.UpgradeDesign(design)
         important = true,
       }
     end
+    if aura.kind == "buffs" and aura.filters.defensive == nil then
+      aura.filters.defensive = false
+    end
     if aura.kind == "buffs" and aura.showDispel == nil then
       aura.showDispel = {enrage = true}
     elseif aura.kind ~= "buffs" then
@@ -488,6 +491,14 @@ function addonTable.Core.MigrateSettings()
     simplified["instancesNormal"] = true
   end
 
+  if mapping["enemyCombat"] == nil then
+    mapping["friendCombat"] = "_name-only"
+    mapping["friendPvPPlayer"] = "_name-only"
+    mapping["enemyCombat"] = "_deer"
+    mapping["enemyPvPPlayer"] = "_deer"
+    mapping["enemySimplifiedCombat"] = "_hare_simplified"
+  end
+
   if type(addonTable.Config.Get(addonTable.Config.Options.STACKING_NAMEPLATES)) == "boolean" then
     local state = addonTable.Config.Get(addonTable.Config.Options.STACKING_NAMEPLATES)
     addonTable.Config.Set(addonTable.Config.Options.STACKING_NAMEPLATES, {
@@ -513,10 +524,13 @@ local function SetStyle(isInit)
 
   local styleName = addonTable.Config.Get(addonTable.Config.Options.STYLE)
   if not isInit then
-    if mapping["friend"] == mapping["enemy"] and mapping["enemySimplified"] ~= styleName then
-      mapping["friend"] = styleName
-      mapping["enemy"] = styleName
-    elseif mapping["friend"] ~= styleName and mapping["enemy"] ~= styleName and mapping["enemySimplified"] ~= styleName then
+    local found = false
+    for _, value in pairs(mapping) do
+      if value == styleName then
+        found = true
+      end
+    end
+    if not found then
       mapping["enemy"] = styleName
     end
   end
@@ -609,18 +623,14 @@ end
 
 function addonTable.Core.GetDesign(kind)
   local name = addonTable.Config.Get(addonTable.Config.Options.DESIGNS_ASSIGNED)[kind]
+    or addonTable.Config.Get(addonTable.Config.Options.DESIGNS_ASSIGNED_COMBAT)[kind]
+    or addonTable.Config.Get(addonTable.Config.Options.DESIGNS_ASSIGNED_PVP)[kind]
   return addonTable.Core.GetDesignByName(name)
 end
 
-local hasSimplifiedScale = C_CVar.GetCVarInfo("nameplateSimplifiedScale")
-
 function addonTable.Core.GetDesignScale(kind)
   if kind:find("Simplified") then
-    if hasSimplifiedScale then
-      return addonTable.Config.Get(addonTable.Config.Options.SIMPLIFIED_SCALE)
-    else
-      return 0.3
-    end
+    return addonTable.Config.Get(addonTable.Config.Options.SIMPLIFIED_SCALE)
   else
     return 1
   end
@@ -664,10 +674,12 @@ function addonTable.Core.Initialize()
       SetStyle()
     end
   end)
-  UpdateRect(addonTable.Core.GetDesign("enemy"))
+  local enabled = addonTable.Config.Get(addonTable.Config.Options.DESIGNS_ENABLED)
+  UpdateRect(addonTable.Core.GetDesign(enabled.combat and "enemyCombat" or "enemy"))
   addonTable.CallbackRegistry:RegisterCallback("RefreshStateChange", function(_, state)
     if state[addonTable.Constants.RefreshReason.Design] then
-      UpdateRect(addonTable.Core.GetDesign("enemy"))
+      enabled = addonTable.Config.Get(addonTable.Config.Options.DESIGNS_ENABLED)
+      UpdateRect(addonTable.Core.GetDesign(enabled.combat and "enemyCombat" or "enemy"))
     end
   end)
 
