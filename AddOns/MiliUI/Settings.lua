@@ -10,7 +10,7 @@ local addonName = "MiliUI"
 local importRegistry = {
     {
         name = "Platynator",
-        desc = "血條插件 (Nameplate)",
+        desc = "名條插件",
         addonName = "Platynator",           -- IsAddOnLoaded 用的名稱
         dataCheck = function()              -- 檢查 MiliUI 預設值資料是否存在
             return MiliUI_PlatynatorProfile ~= nil
@@ -36,7 +36,7 @@ local importRegistry = {
     },
     {
         name = "Ayije_CDM",
-        desc = "冷卻管理插件 (Cooldown Manager)",
+        desc = "冷卻管理插件",
         addonName = "Ayije_CDM",
         dataCheck = function()
             return MiliUI_AyijeCDM_Profile ~= nil
