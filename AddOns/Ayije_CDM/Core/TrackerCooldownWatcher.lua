@@ -205,16 +205,8 @@ function CDM.WatchItemCooldown(ownerKey, itemID, callback)
     return WatchTarget(itemWatches, "item", ownerKey, itemID, callback)
 end
 
-function CDM.UnwatchItemCooldown(ownerKey, itemID)
-    return UnwatchTarget(itemWatches, "item", ownerKey, itemID)
-end
-
 function CDM.WatchInventorySlotCooldown(ownerKey, slotID, callback)
     return WatchTarget(slotWatches, "slot", ownerKey, slotID, callback)
-end
-
-function CDM.UnwatchInventorySlotCooldown(ownerKey, slotID)
-    return UnwatchTarget(slotWatches, "slot", ownerKey, slotID)
 end
 
 function CDM.UnwatchAllCooldowns(ownerKey)

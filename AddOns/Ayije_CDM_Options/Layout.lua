@@ -1,6 +1,3 @@
--- Config/TabLayout.lua - Layout Settings Tab
--- Controls for spacing, max icons per row, and buff layout modes
-
 local Runtime = _G["Ayije_CDM"]
 if not Runtime then return end
 local API = Runtime.API
@@ -10,11 +7,9 @@ local UI = ns.ConfigUI
 local L = Runtime.L
 
 local function CreateLayoutTab(page, tabId)
-    -- Layout Settings Header
     local layoutHeader = UI.CreateHeader(page, L["Layout Settings"])
     layoutHeader:SetPoint("TOPLEFT", 35, -40)
 
-    -- Spacing and row controls
     page.controls.l1 = UI.CreateModernSlider(page, L["Icon Spacing"], -1, 30, CDM.db.spacing, function(v) CDM.db.spacing = v; API:RefreshConfig() end)
     page.controls.l1:SetPoint("TOPLEFT", layoutHeader, "BOTTOMLEFT", 0, -15)
 
@@ -24,26 +19,8 @@ local function CreateLayoutTab(page, tabId)
     page.controls.l3 = UI.CreateModernSlider(page, L["Utility Y Offset"], -600, 600, CDM.db.utilityYOffset, function(v) CDM.db.utilityYOffset = v; API:RefreshConfig() end)
     page.controls.l3:SetPoint("TOPLEFT", page.controls.l2, "BOTTOMLEFT", 0, -10)
 
-    -- Utility Wrap checkbox
-    local utilWrapSlider, unlockCheckbox, xOffsetSlider, verticalCheckbox, buffHeader
+    local utilWrapSlider, unlockCheckbox, xOffsetSlider, verticalCheckbox
 
-    -- Helper: find the bottom-most visible widget and re-anchor buffHeader
-    local function UpdateBuffHeaderAnchor()
-        local anchor = page.controls.utilWrapCheckbox
-        if CDM.db.utilityWrap then
-            if CDM.db.utilityUnlock then
-                -- verticalCheckbox is always the bottom-most unlock sub-control
-                anchor = verticalCheckbox
-            else
-                -- unlockCheckbox is the last visible control when unlock is off
-                anchor = unlockCheckbox
-            end
-        end
-        buffHeader:ClearAllPoints()
-        buffHeader:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -15)
-    end
-
-    -- Helper: show/hide the unlock sub-controls based on current state
     local function UpdateUnlockControls()
         local wrapOn = CDM.db.utilityWrap == true
         local unlockOn = CDM.db.utilityUnlock == true
@@ -51,7 +28,6 @@ local function CreateLayoutTab(page, tabId)
         unlockCheckbox:SetShown(wrapOn)
         xOffsetSlider:SetShown(wrapOn and unlockOn)
         verticalCheckbox:SetShown(wrapOn and unlockOn)
-        UpdateBuffHeaderAnchor()
     end
 
     page.controls.utilWrapCheckbox = UI.CreateModernCheckbox(
@@ -66,12 +42,10 @@ local function CreateLayoutTab(page, tabId)
     )
     page.controls.utilWrapCheckbox:SetPoint("TOPLEFT", page.controls.l3, "BOTTOMLEFT", 0, -10)
 
-    -- Utility Max Icons Per Row slider
     utilWrapSlider = UI.CreateModernSlider(page, L["Utility Max Icons Per Row"], 1, 20, CDM.db.maxRowUtil, function(v) CDM.db.maxRowUtil = v; API:RefreshConfig() end)
     utilWrapSlider:SetPoint("TOPLEFT", page.controls.utilWrapCheckbox, "BOTTOMLEFT", 0, -10)
     page.controls.utilWrapSlider = utilWrapSlider
 
-    -- Unlock utility bar checkbox (shown when wrap=true)
     unlockCheckbox = UI.CreateModernCheckbox(
         page,
         L["Unlock Utility Bar"],
@@ -85,12 +59,10 @@ local function CreateLayoutTab(page, tabId)
     unlockCheckbox:SetPoint("TOPLEFT", utilWrapSlider, "BOTTOMLEFT", 0, -10)
     page.controls.unlockCheckbox = unlockCheckbox
 
-    -- X Offset slider (shown when unlock=true, shifts whole utility viewer)
     xOffsetSlider = UI.CreateModernSlider(page, L["Utility X Offset"], -600, 600, CDM.db.utilityXOffset, function(v) CDM.db.utilityXOffset = v; API:RefreshConfig() end)
     xOffsetSlider:SetPoint("TOPLEFT", unlockCheckbox, "BOTTOMLEFT", 0, -10)
     page.controls.xOffsetSlider = xOffsetSlider
 
-    -- Display Vertical checkbox (shown when unlock=true)
     verticalCheckbox = UI.CreateModernCheckbox(
         page,
         L["Display Vertical"],
@@ -104,36 +76,7 @@ local function CreateLayoutTab(page, tabId)
     verticalCheckbox:SetPoint("TOPLEFT", xOffsetSlider, "BOTTOMLEFT", 0, -10)
     page.controls.verticalCheckbox = verticalCheckbox
 
-    -- Buff Layout Header (created before UpdateUnlockControls so anchor logic can position it)
-    buffHeader = UI.CreateHeader(page, L["Buff Layout"])
-
-    -- Initial visibility + anchor
     UpdateUnlockControls()
-
-    -- Secondary Buff Layout Mode
-    page.secBuffLayoutCheckbox = UI.CreateModernCheckbox(
-        page,
-        L["Secondary Buffs Grow Horizontally (Centered)"],
-        CDM.db.buffSecondaryHorizontal,
-        function(checked)
-            CDM.db.buffSecondaryHorizontal = checked
-            API:RefreshConfig()
-        end
-    )
-    page.secBuffLayoutCheckbox:SetPoint("TOPLEFT", buffHeader, "BOTTOMLEFT", 0, -15)
-
-    -- Tertiary Buff Layout Mode
-    page.tertBuffLayoutCheckbox = UI.CreateModernCheckbox(
-        page,
-        L["Tertiary Buffs Grow Horizontally (Centered)"],
-        CDM.db.buffTertiaryHorizontal,
-        function(checked)
-            CDM.db.buffTertiaryHorizontal = checked
-            API:RefreshConfig()
-        end
-    )
-    page.tertBuffLayoutCheckbox:SetPoint("TOPLEFT", page.secBuffLayoutCheckbox, "BOTTOMLEFT", 0, -10)
 end
 
--- Register this tab
 API:RegisterConfigTab("layout", L["Layout"], CreateLayoutTab, 2)

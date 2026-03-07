@@ -16,6 +16,8 @@
     <Script file="TrackerCooldownWatcher.lua"/>
     <Script file="TrackerSpellCooldownWatcher.lua"/>
     <Script file="Glow.lua"/>
+    <Script file="InternalCallbacks.lua"/>
+    <Script file="ModuleManager.lua"/>
     <Script file="SpecChange.lua"/>
     <Script file="Keybinds.lua"/>
     <Script file="Fading.lua"/>

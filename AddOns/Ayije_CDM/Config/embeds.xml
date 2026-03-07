@@ -3,5 +3,6 @@
     <Script file="Defaults.lua"/>
     <Script file="SpellRegistry.lua"/>
     <Script file="Core.lua"/>
+    <Script file="ProfileIO.lua"/>
     <Script file="WagoUI.lua"/>
 </Ui>

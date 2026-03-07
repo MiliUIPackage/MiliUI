@@ -197,31 +197,40 @@ function CDM:InitializeSpecChangeSystem()
         return self.loginFinished and not self.loadingScreenActive
     end
 
-    local function RegisterTalentBatchEvent(eventName, isFullChange)
-        self:RegisterEvent(eventName, function()
-            BatchTalentEvent(isFullChange)
-        end)
+    local function HandleTalentDataChanged(event)
+        if event == "SPELLS_CHANGED" then
+            if self.pendingSpecChange or self.pendingTalentChange then
+                ProcessSpecChange()
+            end
+            return
+        end
+
+        if event == "ACTIVE_TALENT_GROUP_CHANGED" then
+            BatchTalentEvent(true)
+            return
+        end
+
+        if event == "TRAIT_CONFIG_CREATED"
+            or event == "TRAIT_CONFIG_UPDATED"
+            or event == "PLAYER_TALENT_UPDATE"
+            or event == "PLAYER_PVP_TALENT_UPDATE"
+        then
+            BatchTalentEvent(false)
+        end
     end
 
-    -- data-ready signal; bypasses batching intentionally
-    self:RegisterEvent("SPELLS_CHANGED", function()
-        if self.pendingSpecChange or self.pendingTalentChange then
-            ProcessSpecChange()
+    local function HandleSpecStateChanged(unit, event)
+        if unit and unit ~= "player" then
+            return
         end
-    end)
-
-    self:RegisterUnitEvent("PLAYER_SPECIALIZATION_CHANGED", "player", function()
+        if event and event ~= "PLAYER_SPECIALIZATION_CHANGED" then
+            return
+        end
         BatchTalentEvent(true)
-    end)
+    end
 
-    self:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED", function()
-        BatchTalentEvent(true)
-    end)
-
-    RegisterTalentBatchEvent("TRAIT_CONFIG_CREATED", false)
-    RegisterTalentBatchEvent("TRAIT_CONFIG_UPDATED", false)
-    RegisterTalentBatchEvent("PLAYER_TALENT_UPDATE", false)
-    RegisterTalentBatchEvent("PLAYER_PVP_TALENT_UPDATE", false)
+    self:RegisterInternalCallback("OnTalentDataChanged", HandleTalentDataChanged)
+    self:RegisterInternalCallback("OnSpecStateChanged", HandleSpecStateChanged)
 
     local resourceUpdatePending = false
 
@@ -239,7 +248,7 @@ function CDM:InitializeSpecChangeSystem()
         end)
     end
 
-    self:RegisterEvent("SPELL_UPDATE_COOLDOWN", function()
+    local function HandleCooldownDataChanged()
         if _G[VIEWERS.BUFF] then
             self:QueueViewer(VIEWERS.BUFF)
         end
@@ -247,6 +256,8 @@ function CDM:InitializeSpecChangeSystem()
             self:QueueViewer(VIEWERS.BUFF_BAR)
         end
         QueueResourceUpdate()
-    end)
+    end
+
+    self:RegisterInternalCallback("OnCooldownDataChanged", HandleCooldownDataChanged)
 
 end

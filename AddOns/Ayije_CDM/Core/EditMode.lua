@@ -271,3 +271,327 @@ function CDM:SetupEditModeCooldownViewerLock()
         end)
     end
 end
+
+local COMPLIANCE_POPUP_KEY = "AYIJE_CDM_FIX_COOLDOWN_EDITMODE_SETTINGS"
+
+local function HasCooldownViewerEditModeApis()
+    return C_EditMode
+        and C_EditMode.GetLayouts
+        and C_EditMode.SaveLayouts
+        and Enum
+        and Enum.EditModeSystem
+        and Enum.EditModeSystem.CooldownViewer
+        and Enum.EditModeCooldownViewerSystemIndices
+        and Enum.EditModeCooldownViewerSetting
+        and Enum.CooldownViewerVisibleSetting
+end
+
+local function GetActiveLayout(layoutInfo)
+    if type(layoutInfo) ~= "table" then
+        return nil, nil
+    end
+
+    local layouts = layoutInfo.layouts
+    local activeIndex = layoutInfo.activeLayout
+    if type(layouts) ~= "table" or type(activeIndex) ~= "number" then
+        return nil, nil
+    end
+
+    local activeLayout = layouts[activeIndex]
+    if type(activeLayout) ~= "table" or type(activeLayout.systems) ~= "table" then
+        return nil, nil
+    end
+
+    return activeLayout, activeIndex
+end
+
+local function NormalizeLayoutInfo(layoutInfo)
+    if type(layoutInfo) ~= "table" or type(layoutInfo.layouts) ~= "table" then
+        return nil
+    end
+
+    if type(layoutInfo.activeLayout) ~= "number" then
+        return layoutInfo
+    end
+
+    if EditModePresetLayoutManager and EditModePresetLayoutManager.GetCopyOfPresetLayouts then
+        local presetLayouts = EditModePresetLayoutManager:GetCopyOfPresetLayouts()
+        if type(presetLayouts) == "table" then
+            tAppendAll(presetLayouts, layoutInfo.layouts)
+            layoutInfo.layouts = presetLayouts
+        end
+    end
+
+    return layoutInfo
+end
+
+local function GetLayoutInfo()
+    if not (C_EditMode and C_EditMode.GetLayouts) then
+        return nil
+    end
+
+    local layoutInfo = C_EditMode.GetLayouts()
+    return NormalizeLayoutInfo(layoutInfo)
+end
+
+local function GetSettingValue(settings, settingEnum)
+    if type(settings) ~= "table" then
+        return nil
+    end
+
+    for _, settingInfo in ipairs(settings) do
+        if settingInfo.setting == settingEnum then
+            return settingInfo.value
+        end
+    end
+
+    return nil
+end
+
+local function UpsertSetting(settings, settingEnum, desiredValue)
+    if type(settings) ~= "table" then
+        return false
+    end
+
+    for _, settingInfo in ipairs(settings) do
+        if settingInfo.setting == settingEnum then
+            if settingInfo.value ~= desiredValue then
+                settingInfo.value = desiredValue
+                return true
+            end
+            return false
+        end
+    end
+
+    settings[#settings + 1] = {
+        setting = settingEnum,
+        value = desiredValue,
+    }
+    return true
+end
+
+local function BuildDesiredCooldownViewerSettings(systemIndex)
+    local desired = {
+        [Enum.EditModeCooldownViewerSetting.VisibleSetting] = Enum.CooldownViewerVisibleSetting.Always,
+        [Enum.EditModeCooldownViewerSetting.ShowTimer] = 1,
+    }
+
+    if systemIndex == Enum.EditModeCooldownViewerSystemIndices.BuffIcon
+        or systemIndex == Enum.EditModeCooldownViewerSystemIndices.BuffBar then
+        desired[Enum.EditModeCooldownViewerSetting.HideWhenInactive] = 1
+    end
+
+    return desired
+end
+
+local function EnsureCompliancePopupDialog()
+    if StaticPopupDialogs[COMPLIANCE_POPUP_KEY] then
+        return
+    end
+
+    StaticPopupDialogs[COMPLIANCE_POPUP_KEY] = {
+        text = L["Cooldown Manager settings differ from AyijeCDM recommendations. Apply now?"],
+        button1 = L["Apply CDM Settings"],
+        button2 = L["Not now"],
+        OnAccept = function(self, data)
+            local status = CDM:ApplyCooldownViewerEditModeRecommendedSettings("popup_accept")
+            if status == "queued" then
+                print("|cffffd200Ayije_CDM:|r " .. L["Cooldown Manager settings will be applied after combat."])
+            elseif status == "applied" then
+                ReloadUI()
+            end
+
+            if data and data.layoutKey then
+                CDM._cooldownViewerPromptSnoozedLayout = nil
+            end
+        end,
+        OnCancel = function(self, data)
+            if data and data.layoutKey then
+                CDM._cooldownViewerPromptSnoozedLayout = data.layoutKey
+            end
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3,
+    }
+end
+
+function CDM:GetCooldownViewerEditModeCompliance()
+    local result = {
+        isCompliant = true,
+        isReady = false,
+        mismatches = {},
+        activeLayout = nil,
+    }
+
+    if not HasCooldownViewerEditModeApis() then
+        return result
+    end
+
+    local layoutInfo = GetLayoutInfo()
+    local activeLayout, activeLayoutIndex = GetActiveLayout(layoutInfo)
+    if not activeLayout then
+        return result
+    end
+
+    result.isReady = true
+    result.activeLayout = activeLayoutIndex
+
+    local cooldownSystem = Enum.EditModeSystem.CooldownViewer
+    local cooldownSystemsSeen = 0
+    for _, systemInfo in ipairs(activeLayout.systems) do
+        if systemInfo.system == cooldownSystem and type(systemInfo.settings) == "table" then
+            cooldownSystemsSeen = cooldownSystemsSeen + 1
+            local desiredSettings = BuildDesiredCooldownViewerSettings(systemInfo.systemIndex)
+            for settingEnum, desiredValue in pairs(desiredSettings) do
+                local currentValue = GetSettingValue(systemInfo.settings, settingEnum)
+                if currentValue ~= desiredValue then
+                    result.isCompliant = false
+                    result.mismatches[#result.mismatches + 1] = {
+                        systemIndex = systemInfo.systemIndex,
+                        setting = settingEnum,
+                        current = currentValue,
+                        desired = desiredValue,
+                    }
+                end
+            end
+        end
+    end
+
+    if cooldownSystemsSeen == 0 then
+        result.isReady = false
+        result.isCompliant = true
+    end
+
+    return result
+end
+
+function CDM:ApplyCooldownViewerEditModeRecommendedSettings(_reason)
+    if InCombatLockdown() then
+        self._pendingCooldownViewerPolicyApply = true
+        if _reason == "popup_accept" then
+            self._pendingCooldownViewerPolicyReload = true
+        end
+        return "queued"
+    end
+
+    if self._isApplyingCooldownViewerPolicy then
+        return "noop"
+    end
+
+    if not HasCooldownViewerEditModeApis() then
+        return "not_ready"
+    end
+
+    local layoutInfo = GetLayoutInfo()
+    local activeLayout = GetActiveLayout(layoutInfo)
+    if not activeLayout then
+        return "not_ready"
+    end
+
+    local changed = false
+    local cooldownSystem = Enum.EditModeSystem.CooldownViewer
+    for _, systemInfo in ipairs(activeLayout.systems) do
+        if systemInfo.system == cooldownSystem and type(systemInfo.settings) == "table" then
+            local desiredSettings = BuildDesiredCooldownViewerSettings(systemInfo.systemIndex)
+            for settingEnum, desiredValue in pairs(desiredSettings) do
+                if UpsertSetting(systemInfo.settings, settingEnum, desiredValue) then
+                    changed = true
+                end
+            end
+        end
+    end
+
+    self._pendingCooldownViewerPolicyApply = nil
+    self._cooldownViewerPromptSnoozedLayout = nil
+
+    if not changed then
+        return "noop"
+    end
+
+    self._isApplyingCooldownViewerPolicy = true
+    C_EditMode.SaveLayouts(layoutInfo)
+    self._isApplyingCooldownViewerPolicy = nil
+
+    return "applied"
+end
+
+function CDM:ShowCooldownViewerSettingsPrompt(triggerReason, complianceData)
+    if not complianceData or not complianceData.isReady or complianceData.isCompliant then
+        return
+    end
+
+    local layoutKey = tostring(complianceData.activeLayout or "")
+    if triggerReason ~= "slash_enable" and self._cooldownViewerPromptSnoozedLayout == layoutKey then
+        return
+    end
+
+    if StaticPopup_Visible and StaticPopup_Visible(COMPLIANCE_POPUP_KEY) then
+        return
+    end
+
+    EnsureCompliancePopupDialog()
+    StaticPopup_Show(COMPLIANCE_POPUP_KEY, nil, nil, { layoutKey = layoutKey })
+end
+
+function CDM:TriggerCooldownViewerSettingsComplianceFlow(triggerReason)
+    C_Timer.After(0, function()
+        self:RunCooldownViewerSettingsComplianceFlow(triggerReason)
+    end)
+end
+
+function CDM:RunCooldownViewerSettingsComplianceFlow(triggerReason)
+    local compliance = self:GetCooldownViewerEditModeCompliance()
+    if not compliance.isReady then
+        return
+    end
+
+    if compliance.isCompliant then
+        self._cooldownViewerPromptSnoozedLayout = nil
+        return
+    end
+
+    self:ShowCooldownViewerSettingsPrompt(triggerReason, compliance)
+end
+
+function CDM:SetupCooldownViewerEditModeCompliancePrompt()
+    if self._cooldownViewerCompliancePromptSetup then
+        return
+    end
+
+    self:RegisterEvent("PLAYER_LOGIN", function()
+        C_Timer.After(0, function()
+            self:TriggerCooldownViewerSettingsComplianceFlow("login")
+        end)
+    end)
+
+    self:RegisterEvent("EDIT_MODE_LAYOUTS_UPDATED", function()
+        if self._isApplyingCooldownViewerPolicy then
+            return
+        end
+        C_Timer.After(0.1, function()
+            self:TriggerCooldownViewerSettingsComplianceFlow("layout_update")
+        end)
+    end)
+
+    self:RegisterEvent("PLAYER_REGEN_ENABLED", function()
+        if not self._pendingCooldownViewerPolicyApply then
+            return
+        end
+        local shouldReload = self._pendingCooldownViewerPolicyReload == true
+        local status = self:ApplyCooldownViewerEditModeRecommendedSettings("combat_ended")
+        if status ~= "queued" then
+            self._pendingCooldownViewerPolicyReload = nil
+        end
+        if shouldReload and status == "applied" then
+            ReloadUI()
+        end
+    end)
+
+    self._cooldownViewerCompliancePromptSetup = true
+
+    C_Timer.After(0, function()
+        self:TriggerCooldownViewerSettingsComplianceFlow("setup")
+    end)
+end

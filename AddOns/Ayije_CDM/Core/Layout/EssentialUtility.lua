@@ -22,6 +22,32 @@ local tempIconPositionRecordCount = 0
 local nextStableFrameSortID = 0
 local tempTrinketReorder = {}
 local math_floor = math.floor
+
+local scratchPlacements = {}
+local scratchPlacementsCount = 0
+local scratchPlacementPool = {}
+local scratchRowBuckets = {}
+local scratchRowOrderSeen = {}
+local scratchRowOrderSeenCount = 0
+local scratchRowMetrics = {}
+
+local function ResetScratchPlacements()
+    for i = 1, scratchPlacementsCount do
+        scratchPlacements[i] = nil
+    end
+    scratchPlacementsCount = 0
+end
+
+local function AcquireScratchPlacement()
+    scratchPlacementsCount = scratchPlacementsCount + 1
+    local p = scratchPlacementPool[scratchPlacementsCount]
+    if not p then
+        p = {}
+        scratchPlacementPool[scratchPlacementsCount] = p
+    end
+    scratchPlacements[scratchPlacementsCount] = p
+    return p
+end
 local ToPixelCountForFrame = CDM_C.ToPixelCountForRegion
 local PixelsToUIForRegion = CDM_C.PixelsToUIForRegion
 local SetPointPixels = CDM_C.SetPointPixels
@@ -187,9 +213,20 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
         end
     end
 
-    local placements = {}
-    local rowBuckets = {}
-    local rowOrderSeen = {}
+    ResetScratchPlacements()
+    for k, bucket in pairs(scratchRowBuckets) do
+        for i = 1, #bucket do bucket[i] = nil end
+        scratchRowBuckets[k] = nil
+    end
+    for i = 1, scratchRowOrderSeenCount do
+        scratchRowOrderSeen[i] = nil
+    end
+    scratchRowOrderSeenCount = 0
+    table.wipe(scratchRowMetrics)
+
+    local placements = scratchPlacements
+    local rowBuckets = scratchRowBuckets
+    local rowOrderSeen = scratchRowOrderSeen
     local useMeasuredHorizontalLayout = isEssential or (not utilityVertical)
 
     for index, record in ipairs(tempIconPositionRecords) do
@@ -199,13 +236,19 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
             local row = GetRowForIndex(index, totalIcons, isEssential, maxRowEss, maxRowUtil, utilityVertical)
             GetFrameData(frame).cdmRow = row
             self:ApplyStyle(frame, vName)
-            local placement = { frame = frame, row = row }
-            placements[#placements + 1] = placement
+            local placement = AcquireScratchPlacement()
+            placement.frame = frame
+            placement.row = row
+            placement._wPx = nil
+            placement._hPx = nil
+            placement.x = nil
+            placement.y = nil
             local bucket = rowBuckets[row]
             if not bucket then
                 bucket = {}
                 rowBuckets[row] = bucket
-                rowOrderSeen[#rowOrderSeen + 1] = row
+                scratchRowOrderSeenCount = scratchRowOrderSeenCount + 1
+                rowOrderSeen[scratchRowOrderSeenCount] = row
             end
             bucket[#bucket + 1] = placement
         else
@@ -214,7 +257,13 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
             )
             GetFrameData(frame).cdmRow = row
             self:ApplyStyle(frame, vName)
-            placements[#placements + 1] = { frame = frame, row = row, x = x, y = y }
+            local placement = AcquireScratchPlacement()
+            placement.frame = frame
+            placement.row = row
+            placement.x = x
+            placement.y = y
+            placement._wPx = nil
+            placement._hPx = nil
         end
     end
 
@@ -232,12 +281,12 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
     local inCombat = InCombatLockdown()
     local gapPx = CDM_C.GetCooldownIconGapPixels(spacing)
 
-    if useMeasuredHorizontalLayout and #placements > 0 then
+    if useMeasuredHorizontalLayout and scratchPlacementsCount > 0 then
         table.sort(rowOrderSeen)
 
         local containerWidthPx = 0
         local containerHeightPx = 0
-        local rowMetrics = {}
+        local rowMetrics = scratchRowMetrics
 
         for orderIndex, row in ipairs(rowOrderSeen) do
             local bucket = rowBuckets[row]
@@ -271,11 +320,14 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
             if orderIndex > 1 then
                 containerHeightPx = containerHeightPx + gapPx
             end
-            rowMetrics[row] = {
-                widthPx = rowWidthPx,
-                heightPx = rowHeightPx,
-                topPx = containerHeightPx,
-            }
+            local rm = rowMetrics[row]
+            if not rm then
+                rm = {}
+                rowMetrics[row] = rm
+            end
+            rm.widthPx = rowWidthPx
+            rm.heightPx = rowHeightPx
+            rm.topPx = containerHeightPx
             containerHeightPx = containerHeightPx + rowHeightPx
         end
 

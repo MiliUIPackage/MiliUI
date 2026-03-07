@@ -31,12 +31,12 @@ local RACE_RACIALS = {
     Haranir           = { 1287685 },
 }
 
--- combatLockout: cooldown starts on PLAYER_REGEN_ENABLED
+-- combatLockout: cooldown starts after leaving combat
 local ITEMS = {
-    { itemID = 241304, spellID = 1234768 }, -- Silvermoon Health Potion
-    { itemID = 241308, spellID = 1236616 }, -- Light's Potential
-    { itemID = 5512,   spellID = 6262, combatLockout = true },   -- Healthstone
-    { itemID = 224464, spellID = 452930, class = "WARLOCK" }, -- Demonic Healthstone
+    { itemID = 241304, spellID = 1234768, alternateItemID = 241305 }, -- Silvermoon Health Potion
+    { itemID = 241308, spellID = 1236616, alternateItemID = 241309 }, -- Light's Potential
+    { itemID = 5512,   spellID = 6262, combatLockout = true, requiresWarlockAccess = true },   -- Healthstone
+    { itemID = 224464, spellID = 452930, class = "WARLOCK", requiresWarlockAccess = true }, -- Demonic Healthstone
 }
 
 local combatLockoutSpells = {}
@@ -57,6 +57,9 @@ end
 local BUILTIN_ITEM_SET = {}
 for _, item in ipairs(ITEMS) do
     BUILTIN_ITEM_SET[item.itemID] = true
+    if item.alternateItemID then
+        BUILTIN_ITEM_SET[item.alternateItemID] = true
+    end
 end
 
 local EMPTY = {}
@@ -66,6 +69,7 @@ local _, playerClass = UnitClass("player")
 local isInitialized = false
 local isEnabled = false
 local needsStyleUpdate = true
+local racialsCombatCallbackRegistered = false
 local lastRacialsSpecID = nil
 local racialsStartupCooldownGate
 local racialsContainer
@@ -83,6 +87,7 @@ local GCDFilterCurve = CDM_C.GCDFilterCurve
 local gcdActive = false
 local GCD_SPELL_ID = CDM_C.GCD_SPELL_ID
 local ITEM_COOLDOWN_MIN_SECONDS = 1.6 -- Match GCDFilterCurve threshold.
+local PACT_OF_GLUTTONY_TALENT_ID = 386689
 local RACIALS_UPDATE_SPELL_COOLDOWNS = "spellCooldowns"
 local RACIALS_UPDATE_SPELL_CHARGES = "spellCharges"
 local RACIALS_UPDATE_ITEMS = "items"
@@ -127,7 +132,7 @@ local function GetIconSize()
     return iconSizeCache
 end
 
-local function AcquireIconEntryRecord(id, isItem, itemSpellID, isCustom, combatLockout)
+local function AcquireIconEntryRecord(id, isItem, itemSpellID, isCustom, combatLockout, alternateItemID)
     local entry = table.remove(iconEntryPool)
     if entry then
         table.wipe(entry)
@@ -140,10 +145,13 @@ local function AcquireIconEntryRecord(id, isItem, itemSpellID, isCustom, combatL
     entry.itemSpellID = itemSpellID
     entry.isCustom = isCustom
     entry.combatLockout = combatLockout and true or false
+    entry.alternateItemID = alternateItemID
+    entry.requiresWarlockAccess = nil
     entry.inCombatLockout = nil
     entry._spellbookCached = nil
     entry._itemDisplayCount = nil
     entry._itemCountCacheToken = nil
+    entry._activeItemID = nil
     entry.frame = nil
     return entry
 end
@@ -165,7 +173,6 @@ local cachedRacialsStyles = {
     chargePosition = "BOTTOMRIGHT",
     chargeOffsetX = 0,
     chargeOffsetY = 0,
-    cooldownFontSize = 12,
 }
 local racialsChargeStyleVersion = 0
 local racialsItemCountCacheToken = 0
@@ -180,7 +187,20 @@ end
 local function GetCachedRacialItemDisplayCount(entry)
     if not entry then return nil end
     if entry._itemCountCacheToken ~= racialsItemCountCacheToken then
-        entry._itemDisplayCount = C_Item.GetItemCount(entry.id, false, true)
+        local count = C_Item.GetItemCount(entry.id, false, true)
+        if count <= 0 and entry.alternateItemID then
+            local altCount = C_Item.GetItemCount(entry.alternateItemID, false, true)
+            if altCount > 0 then
+                entry._itemDisplayCount = altCount
+                entry._activeItemID = entry.alternateItemID
+            else
+                entry._itemDisplayCount = count
+                entry._activeItemID = entry.id
+            end
+        else
+            entry._itemDisplayCount = count
+            entry._activeItemID = entry.id
+        end
         entry._itemCountCacheToken = racialsItemCountCacheToken
     end
     return entry._itemDisplayCount
@@ -195,7 +215,6 @@ local function RefreshCachedRacialsStyles()
     cachedRacialsStyles.fontOutline = CDM_C.GetBaseFontOutline()
 
     cachedRacialsStyles.chargeFontSize = db and db.racialsChargeFontSize or 10
-    cachedRacialsStyles.cooldownFontSize = db and db.racialsCooldownFontSize or 12
     cachedRacialsStyles.chargePosition = db and db.racialsChargePosition or "BOTTOMRIGHT"
     cachedRacialsStyles.chargeOffsetX = db and db.racialsChargeOffsetX or 0
     cachedRacialsStyles.chargeOffsetY = db and db.racialsChargeOffsetY or 0
@@ -236,7 +255,14 @@ function CDM.GetOrderedRacialEntries(specID)
 
     for _, itemData in ipairs(ITEMS) do
         if not itemData.class or itemData.class == playerClass then
-            local entry = { id = itemData.itemID, isItem = true, itemSpellID = itemData.spellID, combatLockout = itemData.combatLockout }
+            local entry = {
+                id = itemData.itemID,
+                isItem = true,
+                itemSpellID = itemData.spellID,
+                combatLockout = itemData.combatLockout,
+                requiresWarlockAccess = itemData.requiresWarlockAccess and true or false,
+                alternateItemID = itemData.alternateItemID,
+            }
             entries[#entries + 1] = entry
             entryByID[itemData.itemID] = entry
         end
@@ -318,6 +344,7 @@ local function SyncEntryToFrame(entry, frame)
     frame.isItem = entry.isItem
     frame.isCustomSpell = (entry.isCustom and not entry.isItem) or false
     frame.combatLockout = entry.combatLockout or false
+    frame.requiresWarlockAccess = entry.requiresWarlockAccess or false
     frame.inCombatLockout = entry.inCombatLockout
     frame._spellbookCached = entry._spellbookCached
     frame.cdmRacialEntry = entry
@@ -341,6 +368,7 @@ local function ResetRacialTrackerFrame(f)
     f.itemSpellID = nil
     f.isItem = nil
     f.combatLockout = nil
+    f.requiresWarlockAccess = nil
     f.inCombatLockout = nil
     f.isCustomSpell = nil
     f._spellbookCached = nil
@@ -366,6 +394,9 @@ local function ReleaseRacialFramesForLowMemory()
         CDM.ClearTrackerPool(iconFramePool)
     end
     lastVisibilityHash = -1
+    lastRacialsWidth = nil
+    lastRacialsHeight = nil
+    lastRacialsSpacing = nil
 end
 
 local function UpdateIcon(frame, updateCooldowns, updateCharges)
@@ -377,16 +408,30 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
     local desatDurationObject = nil
     local isOnGCD = false
     local itemCooldownActive = false
+    local itemCount = nil
+    local showEmptyItem = false
 
     if frame.isItem then
         local itemID = frame.itemID
         if not itemID then return end
 
         local itemSpellID = frame.itemSpellID
+        local entry = frame.cdmRacialEntry
+
+        if updateCooldowns or updateCharges then
+            itemCount = GetCachedRacialItemDisplayCount(entry)
+            if itemCount == nil then
+                itemCount = C_Item.GetItemCount(itemID, false, true)
+            end
+            showEmptyItem = itemCount ~= nil
+                and itemCount <= 0
+                and CDM.db
+                and CDM.db.racialsShowItemsAtZeroStacks == true
+        end
 
         if updateCooldowns and itemSpellID then
             local SCD = C_Spell.GetSpellCooldownDuration(itemSpellID)
-            local itemCdStart, itemCdDuration = C_Container.GetItemCooldown(itemID)
+            local itemCdStart, itemCdDuration = C_Container.GetItemCooldown(entry and entry._activeItemID or itemID)
             local hasItemCooldown = HasVisibleItemCooldown(itemCdStart, itemCdDuration)
 
             if gcdActive and SCD then
@@ -405,7 +450,7 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
 
             desatDurationObject = SCD
         elseif updateCooldowns then
-            local startTime, durationSeconds, enableCooldownTimer = C_Container.GetItemCooldown(itemID)
+            local startTime, durationSeconds, enableCooldownTimer = C_Container.GetItemCooldown(entry and entry._activeItemID or itemID)
 
             if HasVisibleItemCooldown(startTime, durationSeconds) then
                 frame.Cooldown:SetCooldown(startTime, durationSeconds)
@@ -416,17 +461,12 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
         end
 
         if updateCharges then
-            local entry = frame.cdmRacialEntry
-            local displayCount = GetCachedRacialItemDisplayCount(entry)
-            if displayCount == nil then
-                displayCount = C_Item.GetItemCount(itemID, false, true)
-            end
-            if displayCount then
+            if itemCount ~= nil then
                 local chargeText = CDM.EnsureTrackerChargeWidgets(frame)
                 if chargeText then
-                    if frame._cdmRacialChargeValue ~= displayCount then
-                        chargeText:SetText(displayCount)
-                        frame._cdmRacialChargeValue = displayCount
+                    if frame._cdmRacialChargeValue ~= itemCount then
+                        chargeText:SetText(itemCount)
+                        frame._cdmRacialChargeValue = itemCount
                     end
                 end
                 hasCharges = true
@@ -484,6 +524,8 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
             frame.Cooldown:Clear()
         elseif itemCooldownActive then
             frame.Icon:SetDesaturation(1)
+        elseif showEmptyItem then
+            frame.Icon:SetDesaturation(1)
         elseif desatDurationObject then
             local curve = isOnGCD and GCDFilterCurve or DesaturationCurve
             if curve and desatDurationObject.EvaluateRemainingDuration then
@@ -532,6 +574,43 @@ local function InvalidateSpellbookCache()
     end
 end
 
+local function PlayerHasWarlockAccess()
+    if playerClass == "WARLOCK" then
+        return true
+    end
+
+    if not IsInGroup() then
+        return false
+    end
+
+    if IsInRaid() then
+        for i = 1, GetNumGroupMembers() do
+            local _, classTag = UnitClass("raid" .. i)
+            if classTag == "WARLOCK" then
+                return true
+            end
+        end
+        return false
+    end
+
+    for i = 1, GetNumSubgroupMembers() do
+        local _, classTag = UnitClass("party" .. i)
+        if classTag == "WARLOCK" then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function PlayerHasPactOfGluttony()
+    if playerClass ~= "WARLOCK" then
+        return false
+    end
+
+    return IsPlayerSpell(PACT_OF_GLUTTONY_TALENT_ID) == true
+end
+
 PlayerHasAbility = function(entry)
     local id = entry.id
     if id and CDM.db and CDM.db.racialsDisabled and CDM.db.racialsDisabled[id] then
@@ -539,11 +618,24 @@ PlayerHasAbility = function(entry)
     end
 
     if entry.isItem then
+        if entry.requiresWarlockAccess and not PlayerHasWarlockAccess() then
+            return false
+        end
+        if entry.id == 5512 and PlayerHasPactOfGluttony() then
+            return false
+        end
+        if entry.id == 224464 and not PlayerHasPactOfGluttony() then
+            return false
+        end
+
         local itemCount = GetCachedRacialItemDisplayCount(entry)
         if itemCount and itemCount > 0 then
             return true
         end
         if entry.combatLockout and entry.inCombatLockout then
+            return true
+        end
+        if CDM.db and CDM.db.racialsShowItemsAtZeroStacks == true then
             return true
         end
         return false
@@ -876,6 +968,41 @@ local function UnregisterRacialSpellWatches()
     end
 end
 
+local function ClearRacialItemCombatLockouts()
+    for _, entry in ipairs(iconEntries) do
+        if entry.isItem then
+            entry.inCombatLockout = nil
+            if entry.frame then
+                entry.frame.inCombatLockout = nil
+            end
+        end
+    end
+end
+
+local function OnRacialsCombatStateChanged(isInCombat)
+    if isInCombat then
+        return
+    end
+    ClearRacialItemCombatLockouts()
+    QueueRacialsUpdate(RACIALS_UPDATE_ITEMS)
+end
+
+local function RegisterRacialsCombatStateListener()
+    if racialsCombatCallbackRegistered then
+        return
+    end
+    if CDM:RegisterInternalCallback("OnCombatStateChanged", OnRacialsCombatStateChanged) then
+        racialsCombatCallbackRegistered = true
+    end
+end
+
+local function UnregisterRacialsCombatStateListener()
+    if racialsCombatCallbackRegistered then
+        CDM:UnregisterInternalCallback("OnCombatStateChanged", OnRacialsCombatStateChanged)
+        racialsCombatCallbackRegistered = false
+    end
+end
+
 function CDM:InitializeRacials()
     if isInitialized then return end
 
@@ -891,13 +1018,16 @@ function CDM:InitializeRacials()
     lastRacialsSpecID = CDM:GetCurrentSpecID()
     local ordered = CDM.GetOrderedRacialEntries(lastRacialsSpecID)
     for _, entry in ipairs(ordered) do
-        iconEntries[#iconEntries + 1] = AcquireIconEntryRecord(
+        local iconEntry = AcquireIconEntryRecord(
             entry.id,
             entry.isItem,
             entry.itemSpellID,
             entry.isCustom,
-            entry.combatLockout
+            entry.combatLockout,
+            entry.alternateItemID
         )
+        iconEntry.requiresWarlockAccess = entry.requiresWarlockAccess and true or false
+        iconEntries[#iconEntries + 1] = iconEntry
     end
 
     EventUtil.RegisterOnceFrameEventAndCallback("PLAYER_ENTERING_WORLD", function()
@@ -911,10 +1041,10 @@ function CDM:InitializeRacials()
         "BAG_UPDATE_DELAYED",
         "GROUP_ROSTER_UPDATE",
         "PLAYER_ROLES_ASSIGNED",
-        "PLAYER_REGEN_ENABLED",
         "SPELLS_CHANGED",
     }, function(_, event, arg1, arg2, arg3)
         if event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_ROLES_ASSIGNED" then
+            QueueRacialsUpdate(RACIALS_UPDATE_ITEMS)
             QueueRacialsUpdate(RACIALS_UPDATE_LAYOUT)
         elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
             local castSpellID = arg3
@@ -949,16 +1079,6 @@ function CDM:InitializeRacials()
                     QueueRacialsUpdate(RACIALS_UPDATE_ITEMS)
                 end
             end
-        elseif event == "PLAYER_REGEN_ENABLED" then
-            for _, entry in ipairs(iconEntries) do
-                if entry.isItem then
-                    entry.inCombatLockout = nil
-                    if entry.frame then
-                        entry.frame.inCombatLockout = nil
-                    end
-                end
-            end
-            QueueRacialsUpdate(RACIALS_UPDATE_ITEMS)
         elseif event == "SPELLS_CHANGED" then
             InvalidateSpellbookCache()
             QueueRacialsUpdate(RACIALS_UPDATE_FULL)
@@ -970,6 +1090,7 @@ function CDM:InitializeRacials()
     end)
 
     updater:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+    RegisterRacialsCombatStateListener()
 
     CDM.racialsUpdater = updater
     isInitialized = true
@@ -990,8 +1111,8 @@ local function EnableRacials()
         updater:RegisterEvent("GROUP_ROSTER_UPDATE")
         updater:RegisterEvent("PLAYER_ROLES_ASSIGNED")
         updater:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-        updater:RegisterEvent("PLAYER_REGEN_ENABLED")
         updater:RegisterEvent("SPELLS_CHANGED")
+        RegisterRacialsCombatStateListener()
     end
     racialsStartupCooldownGate:Begin()
     RegisterRacialItemCooldownWatches()
@@ -1012,6 +1133,7 @@ local function DisableRacials()
     if updater then
         updater:UnregisterAllEvents()
     end
+    UnregisterRacialsCombatStateListener()
     UnregisterRacialItemCooldownWatches()
     UnregisterRacialSpellWatches()
     CDM.UnregisterTrackerPositionCallback("CDM_Racials")
@@ -1136,13 +1258,16 @@ function CDM:ReinitRacialIcons()
 
     local ordered = CDM.GetOrderedRacialEntries(CDM:GetCurrentSpecID())
     for _, entry in ipairs(ordered) do
-        iconEntries[#iconEntries + 1] = AcquireIconEntryRecord(
+        local iconEntry = AcquireIconEntryRecord(
             entry.id,
             entry.isItem,
             entry.itemSpellID,
             entry.isCustom,
-            entry.combatLockout
+            entry.combatLockout,
+            entry.alternateItemID
         )
+        iconEntry.requiresWarlockAccess = entry.requiresWarlockAccess and true or false
+        iconEntries[#iconEntries + 1] = iconEntry
     end
     needsStyleUpdate = true
     if isEnabled then
@@ -1244,27 +1369,46 @@ end
 --  REFRESH CALLBACK REGISTRATIONS
 -- =========================================================================
 
-CDM:RegisterRefreshCallback("racialsStyles", function()
-    if not isEnabled then return end
-    RefreshCachedRacialsStyles()
+local function OnRacialsProfileApplied()
     needsStyleUpdate = true
-end, 15)
+    lastRacialsSpecID = nil
+    lastRacialsWidth = nil
+    lastRacialsHeight = nil
+    lastRacialsSpacing = nil
+    lastVisibilityHash = -1
+    InvalidateSpellbookCache()
+end
 
-CDM:RegisterRefreshCallback("racials", function()
-    local wantEnabled = CDM.db.racialsEnabled ~= false
-    if wantEnabled and not isInitialized then
-        CDM:InitializeRacials()
-        return
-    end
-    if wantEnabled and not isEnabled then
-        EnableRacials()
-        return
-    end
-    if not wantEnabled and isEnabled then
-        DisableRacials()
-        return
-    end
+local function RefreshRacialsLifecycle()
     if not isEnabled then return end
     UpdateContainerPosition()
     CDM:UpdateRacials()
-end, 50)
+end
+
+if CDM.ModuleManager and CDM.ModuleManager.RegisterModule then
+    CDM.ModuleManager:RegisterModule({
+        id = "racials",
+        Initialize = function()
+            CDM:InitializeRacials()
+        end,
+        Enable = EnableRacials,
+        Disable = DisableRacials,
+        Refresh = RefreshRacialsLifecycle,
+        OnProfileApplied = OnRacialsProfileApplied,
+        ShouldBeEnabled = function(db)
+            return db and db.racialsEnabled ~= false
+        end,
+    })
+end
+
+CDM:RegisterRefreshCallback("racialsStyles", function()
+    RefreshCachedRacialsStyles()
+    needsStyleUpdate = true
+end, 15, { "text_visuals", "trackers_layout", "viewers" })
+
+CDM:RegisterRefreshCallback("racials", function()
+    local moduleManager = CDM.ModuleManager
+    if moduleManager and moduleManager.ReconcileModule then
+        moduleManager:ReconcileModule("racials")
+    end
+end, 50, { "trackers_layout", "viewers" })

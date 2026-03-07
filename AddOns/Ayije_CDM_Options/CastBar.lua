@@ -1,6 +1,3 @@
--- Config/CastBar.lua - Cast Bar Settings Tab
--- Controls for player cast bar dimensions, text, textures, colors, and positioning
-
 local Runtime = _G["Ayije_CDM"]
 if not Runtime then return end
 local API = Runtime.API
@@ -9,15 +6,22 @@ local CDM = Runtime
 local UI = ns.ConfigUI
 local L = Runtime.L
 
+local CASTBAR_REFRESH_SCOPES = { "castbar_visuals", "resources_visuals", "trackers_layout", "viewers" }
+
+local function RefreshCastBarConfig()
+    if API.RefreshScopes then
+        API:RefreshScopes(CASTBAR_REFRESH_SCOPES)
+        return
+    end
+    API:RefreshConfig()
+end
+
 local function CreateCastBarTab(page, tabId)
     local scrollChild = UI.CreateScrollableTab(page, "AyijeCDM_CastBarScrollFrame", 700, 370)
 
     local layout = UI.CreateVerticalLayout(0)
     local function NextY(spacing) return layout:Next(spacing) end
 
-    -- =====================================================================
-    --  ENABLE
-    -- =====================================================================
     local enabled = CDM.db.castBarEnabled
     if enabled == nil then enabled = true end
     page.controls.castBarEnabled = UI.CreateModernCheckbox(
@@ -26,7 +30,7 @@ local function CreateCastBarTab(page, tabId)
         enabled,
         function(checked)
             CDM.db.castBarEnabled = checked
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarEnabled:SetPoint("TOPLEFT", -34, NextY(0))
@@ -38,20 +42,16 @@ local function CreateCastBarTab(page, tabId)
         blizzHidden,
         function(checked)
             CDM.db.hideBlizzardCastBar = checked
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.hideBlizzardCastBar:SetPoint("LEFT", page.controls.castBarEnabled, "RIGHT", 0, 0)
     NextY(35)
 
-    -- =====================================================================
-    --  DIMENSIONS
-    -- =====================================================================
     local dimHeader = UI.CreateHeader(scrollChild, L["Dimensions"])
     dimHeader:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(30)
 
-    -- Width Slider (0 = auto-size to Essential row 1)
     page.controls.castBarWidthSlider = UI.CreateModernSlider(
         scrollChild,
         L["Width (0 = Auto)"],
@@ -59,19 +59,17 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarWidth or 300,
         function(v)
             local value = UI.RoundToInt(v)
-            -- Enforce minimum of 60 when not 0
             if value > 0 and value < 60 then
                 value = 60
                 page.controls.castBarWidthSlider.Slider:SetValue(60)
             end
             CDM.db.castBarWidth = value
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarWidthSlider:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(60)
 
-    -- Height Slider
     page.controls.castBarHeightSlider = UI.CreateModernSlider(
         scrollChild,
         L["Height"],
@@ -79,20 +77,16 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarHeight or 20,
         function(v)
             CDM.db.castBarHeight = UI.RoundToInt(v)
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarHeightSlider:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(60)
 
-    -- =====================================================================
-    --  SPELL ICON
-    -- =====================================================================
     local iconHeader = UI.CreateHeader(scrollChild, L["Spell Icon"])
     iconHeader:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(30)
 
-    -- Show Spell Icon Checkbox
     local showIcon = CDM.db.castBarShowIcon or false
     page.controls.castBarShowIcon = UI.CreateModernCheckbox(
         scrollChild,
@@ -100,13 +94,12 @@ local function CreateCastBarTab(page, tabId)
         showIcon,
         function(checked)
             CDM.db.castBarShowIcon = checked
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarShowIcon:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(35)
 
-    -- Icon Position Dropdown
     local iconPosLabel = scrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     iconPosLabel:SetText(L["Icon Position:"])
     iconPosLabel:SetPoint("TOPLEFT", 0, NextY(0))
@@ -129,12 +122,11 @@ local function CreateCastBarTab(page, tabId)
         function(value)
             CDM.db.castBarIconPosition = value
             ddIconPos:SetDefaultText(value)
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     NextY(50)
 
-    -- Icon-Bar Gap Slider
     page.controls.castBarIconGapSlider = UI.CreateModernSlider(
         scrollChild,
         L["Icon-Bar Gap"],
@@ -142,20 +134,16 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarIconGap or 1,
         function(v)
             CDM.db.castBarIconGap = UI.RoundToInt(v)
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarIconGapSlider:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(60)
 
-    -- =====================================================================
-    --  BAR TEXTURE
-    -- =====================================================================
     local texHeader = UI.CreateHeader(scrollChild, L["Bar Texture"])
     texHeader:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(30)
 
-    -- Use Blizzard Atlas Textures Checkbox
     local useAtlas = CDM.db.castBarUseAtlasTextures
     if useAtlas == nil then useAtlas = true end
     page.controls.castBarUseAtlas = UI.CreateModernCheckbox(
@@ -164,7 +152,6 @@ local function CreateCastBarTab(page, tabId)
         useAtlas,
         function(checked)
             CDM.db.castBarUseAtlasTextures = checked
-            -- Show/hide LSM controls and reposition elements below
             local showLSM = not checked
             if page.castBarLSMGroup then
                 page.castBarLSMGroup:SetShown(showLSM)
@@ -177,12 +164,11 @@ local function CreateCastBarTab(page, tabId)
                     page.castBarPositionHeader:SetPoint("TOPLEFT", page.controls.castBarUseAtlas, "BOTTOMLEFT", 0, -15)
                 end
             end
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarUseAtlas:SetPoint("TOPLEFT", 0, NextY(0))
 
-    -- LSM controls group (shown when atlas is disabled)
     local lsmGroup = CreateFrame("Frame", nil, scrollChild)
     lsmGroup:SetSize(600, 310)
     lsmGroup:SetPoint("TOPLEFT", page.controls.castBarUseAtlas, "BOTTOMLEFT", 0, -10)
@@ -195,7 +181,6 @@ local function CreateCastBarTab(page, tabId)
     local lsmLayout = UI.CreateVerticalLayout(0)
     local function LsmNextY(spacing) return lsmLayout:Next(spacing) end
 
-    -- Bar Texture Dropdown
     local textureLabel = lsmGroup:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     textureLabel:SetText(L["Bar Texture:"])
     textureLabel:SetPoint("TOPLEFT", 0, LsmNextY(0))
@@ -212,14 +197,13 @@ local function CreateCastBarTab(page, tabId)
         function() return CDM.db.castBarTexture or "Blizzard" end,
         function(name)
             CDM.db.castBarTexture = name
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end,
         function(name)
             ddTexture:SetDefaultText(name or "Blizzard")
         end
     )
 
-    -- Background Texture Dropdown
     local bgTextureLabel = lsmGroup:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     bgTextureLabel:SetText(L["Background Texture:"])
     bgTextureLabel:SetPoint("TOPLEFT", 0, LsmNextY(50))
@@ -236,32 +220,37 @@ local function CreateCastBarTab(page, tabId)
         function() return CDM.db.castBarBackgroundTexture or "Blizzard" end,
         function(name)
             CDM.db.castBarBackgroundTexture = name
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end,
         function(name)
             ddBgTexture:SetDefaultText(name or "Blizzard")
         end
     )
 
-    -- Background Color Swatch
-    page.controls.castBarBackgroundColor = UI.CreateColorSwatch(lsmGroup, L["Background Color"], "castBarBackgroundColor")
+    page.controls.castBarBackgroundColor = UI.CreateColorSwatch(lsmGroup, L["Background Color"], "castBarBackgroundColor", CASTBAR_REFRESH_SCOPES)
     page.controls.castBarBackgroundColor:SetPoint("TOPLEFT", 0, LsmNextY(50))
 
-    -- Cast Color Swatch
-    page.controls.castBarCastColor = UI.CreateColorSwatch(lsmGroup, L["Cast Color"], "castBarCastColor")
+    page.controls.castBarCastColor = UI.CreateColorSwatch(lsmGroup, L["Cast Color"], "castBarCastColor", CASTBAR_REFRESH_SCOPES)
     page.controls.castBarCastColor:SetPoint("TOPLEFT", 0, LsmNextY(40))
 
-    -- Channel Color Swatch
-    page.controls.castBarChannelColor = UI.CreateColorSwatch(lsmGroup, L["Channel Color"], "castBarChannelColor")
+    local useClassColor = CDM.db.castBarUseClassColor == true
+    page.controls.castBarUseClassColor = UI.CreateModernCheckbox(
+        lsmGroup,
+        L["Class Color"],
+        useClassColor,
+        function(checked)
+            CDM.db.castBarUseClassColor = checked
+            RefreshCastBarConfig()
+        end
+    )
+    page.controls.castBarUseClassColor:SetPoint("LEFT", page.controls.castBarCastColor, "RIGHT", 20, 0)
+
+    page.controls.castBarChannelColor = UI.CreateColorSwatch(lsmGroup, L["Channel Color"], "castBarChannelColor", CASTBAR_REFRESH_SCOPES)
     page.controls.castBarChannelColor:SetPoint("TOPLEFT", 0, LsmNextY(40))
 
-    -- Uninterruptible Color Swatch
-    page.controls.castBarUninterruptibleColor = UI.CreateColorSwatch(lsmGroup, L["Uninterruptible Color"], "castBarUninterruptibleColor")
+    page.controls.castBarUninterruptibleColor = UI.CreateColorSwatch(lsmGroup, L["Uninterruptible Color"], "castBarUninterruptibleColor", CASTBAR_REFRESH_SCOPES)
     page.controls.castBarUninterruptibleColor:SetPoint("TOPLEFT", 0, LsmNextY(40))
 
-    -- =====================================================================
-    --  POSITION (anchored dynamically based on LSM group visibility)
-    -- =====================================================================
     local posHeader = UI.CreateHeader(scrollChild, L["Position"])
     page.castBarPositionHeader = posHeader
     if not lsmUseAtlas then
@@ -270,7 +259,6 @@ local function CreateCastBarTab(page, tabId)
         posHeader:SetPoint("TOPLEFT", page.controls.castBarUseAtlas, "BOTTOMLEFT", 0, -15)
     end
 
-    -- Anchor to Resource Bars Checkbox
     local anchorToRes = CDM.db.castBarAnchorToResources or false
     page.controls.castBarAnchorToResources = UI.CreateModernCheckbox(
         scrollChild,
@@ -285,7 +273,7 @@ local function CreateCastBarTab(page, tabId)
                 end
             end
             page.UpdatePositionControls()
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarAnchorToResources:SetPoint("TOPLEFT", posHeader, "BOTTOMLEFT", 0, -15)
@@ -303,7 +291,6 @@ local function CreateCastBarTab(page, tabId)
         end
     end
 
-    -- Resources Spacing Slider (shown when anchor-to-resources is ON)
     page.controls.castBarResourcesSpacingSlider = UI.CreateModernSlider(
         scrollChild,
         L["Y Spacing"],
@@ -311,12 +298,11 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarResourcesSpacing or 2,
         function(v)
             CDM.db.castBarResourcesSpacing = UI.RoundToInt(v)
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarResourcesSpacingSlider:SetPoint("TOPLEFT", page.controls.castBarAnchorToResources, "BOTTOMLEFT", 0, -10)
 
-    -- Lock Position Checkbox (shown when anchor-to-resources is OFF)
     local locked = CDM.db.castBarContainerLocked
     if locked == nil then locked = true end
     page.controls.castBarLocked = UI.CreateModernCheckbox(
@@ -325,12 +311,11 @@ local function CreateCastBarTab(page, tabId)
         locked,
         function(checked)
             CDM.db.castBarContainerLocked = checked
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarLocked:SetPoint("TOPLEFT", page.controls.castBarAnchorToResources, "BOTTOMLEFT", 0, -10)
 
-    -- X Offset Slider (shown when anchor-to-resources is OFF)
     page.controls.castBarOffsetXSlider = UI.CreateModernSlider(
         scrollChild,
         L["X Offset"],
@@ -338,12 +323,11 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarOffsetX or 0,
         function(v)
             CDM.db.castBarOffsetX = UI.RoundToInt(v)
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarOffsetXSlider:SetPoint("TOPLEFT", page.controls.castBarLocked, "BOTTOMLEFT", 0, -10)
 
-    -- Y Offset Slider (shown when anchor-to-resources is OFF)
     page.controls.castBarOffsetYSlider = UI.CreateModernSlider(
         scrollChild,
         L["Y Offset"],
@@ -351,7 +335,7 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarOffsetY or -200,
         function(v)
             CDM.db.castBarOffsetY = UI.RoundToInt(v)
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarOffsetYSlider:SetPoint("TOPLEFT", page.controls.castBarOffsetXSlider, "BOTTOMLEFT", 0, -10)
@@ -365,13 +349,9 @@ local function CreateCastBarTab(page, tabId)
         end
     end)
 
-    -- =====================================================================
-    --  TEXT (anchored relative to position section)
-    -- =====================================================================
     local textHeader = UI.CreateHeader(scrollChild, L["Text"])
     page.castBarTextHeader = textHeader
 
-    -- Toggle position controls based on anchor-to-resources state
     function page.UpdatePositionControls()
         local anchored = CDM.db.castBarAnchorToResources == true and CDM.db.resourcesEnabled ~= false
         page.controls.castBarResourcesSpacingSlider:SetShown(anchored)
@@ -395,7 +375,6 @@ local function CreateCastBarTab(page, tabId)
     UpdateAnchorToResourcesCheckboxState()
     page.UpdatePositionControls()
 
-    -- Font Size Slider
     page.controls.castBarFontSizeSlider = UI.CreateModernSlider(
         scrollChild,
         L["Font Size"],
@@ -403,12 +382,11 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarFontSize or 15,
         function(v)
             CDM.db.castBarFontSize = UI.RoundToInt(v)
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarFontSizeSlider:SetPoint("TOPLEFT", textHeader, "BOTTOMLEFT", 0, -15)
 
-    -- Show Spell Name Checkbox
     local showName = CDM.db.castBarShowSpellName
     if showName == nil then showName = true end
     page.controls.castBarShowSpellName = UI.CreateModernCheckbox(
@@ -417,12 +395,11 @@ local function CreateCastBarTab(page, tabId)
         showName,
         function(checked)
             CDM.db.castBarShowSpellName = checked
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarShowSpellName:SetPoint("TOPLEFT", page.controls.castBarFontSizeSlider, "BOTTOMLEFT", 0, -10)
 
-    -- Spell Name X Offset
     page.controls.castBarNameOffsetX = UI.CreateModernSlider(
         scrollChild,
         L["Name X Offset"],
@@ -430,12 +407,11 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarNameOffsetX or 4,
         function(v)
             CDM.db.castBarNameOffsetX = UI.RoundToInt(v)
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarNameOffsetX:SetPoint("TOPLEFT", page.controls.castBarShowSpellName, "BOTTOMLEFT", 0, -10)
 
-    -- Spell Name Y Offset
     page.controls.castBarNameOffsetY = UI.CreateModernSlider(
         scrollChild,
         L["Name Y Offset"],
@@ -443,12 +419,11 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarNameOffsetY or 0,
         function(v)
             CDM.db.castBarNameOffsetY = UI.RoundToInt(v)
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarNameOffsetY:SetPoint("TOPLEFT", page.controls.castBarNameOffsetX, "BOTTOMLEFT", 0, -10)
 
-    -- Show Timer Checkbox
     local showTimer = CDM.db.castBarShowTimer
     if showTimer == nil then showTimer = true end
     page.controls.castBarShowTimer = UI.CreateModernCheckbox(
@@ -457,12 +432,11 @@ local function CreateCastBarTab(page, tabId)
         showTimer,
         function(checked)
             CDM.db.castBarShowTimer = checked
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarShowTimer:SetPoint("TOPLEFT", page.controls.castBarNameOffsetY, "BOTTOMLEFT", 0, -10)
 
-    -- Timer X Offset
     page.controls.castBarTimerOffsetX = UI.CreateModernSlider(
         scrollChild,
         L["Timer X Offset"],
@@ -470,12 +444,11 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarTimerOffsetX or -4,
         function(v)
             CDM.db.castBarTimerOffsetX = UI.RoundToInt(v)
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarTimerOffsetX:SetPoint("TOPLEFT", page.controls.castBarShowTimer, "BOTTOMLEFT", 0, -10)
 
-    -- Timer Y Offset
     page.controls.castBarTimerOffsetY = UI.CreateModernSlider(
         scrollChild,
         L["Timer Y Offset"],
@@ -483,12 +456,11 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarTimerOffsetY or 0,
         function(v)
             CDM.db.castBarTimerOffsetY = UI.RoundToInt(v)
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarTimerOffsetY:SetPoint("TOPLEFT", page.controls.castBarTimerOffsetX, "BOTTOMLEFT", 0, -10)
 
-    -- Show Spark Checkbox
     local showSpark = CDM.db.castBarShowSpark
     if showSpark == nil then showSpark = true end
     page.controls.castBarShowSpark = UI.CreateModernCheckbox(
@@ -497,14 +469,11 @@ local function CreateCastBarTab(page, tabId)
         showSpark,
         function(checked)
             CDM.db.castBarShowSpark = checked
-            API:RefreshConfig()
+            RefreshCastBarConfig()
         end
     )
     page.controls.castBarShowSpark:SetPoint("TOPLEFT", page.controls.castBarTimerOffsetY, "BOTTOMLEFT", 0, -10)
 
-    -- =====================================================================
-    --  EMPOWERED STAGES
-    -- =====================================================================
     local _, playerClass = UnitClass("player")
     local specID = CDM.GetCurrentSpecID and CDM:GetCurrentSpecID()
     local hasEmpoweredCasts = (playerClass == "EVOKER") or (specID == 250) or (specID == 269)
@@ -512,13 +481,13 @@ local function CreateCastBarTab(page, tabId)
         local empHeader = UI.CreateHeader(scrollChild, L["Empowered Stages"])
         empHeader:SetPoint("TOPLEFT", page.controls.castBarShowSpark, "BOTTOMLEFT", 0, -15)
 
-        page.controls.castBarEmpowerWindUpColor = UI.CreateColorSwatch(scrollChild, L["Wind Up Color"], "castBarEmpowerWindUpColor")
+        page.controls.castBarEmpowerWindUpColor = UI.CreateColorSwatch(scrollChild, L["Wind Up Color"], "castBarEmpowerWindUpColor", CASTBAR_REFRESH_SCOPES)
         page.controls.castBarEmpowerWindUpColor:SetPoint("TOPLEFT", empHeader, "BOTTOMLEFT", 0, -15)
 
-        page.controls.castBarEmpowerStage1Color = UI.CreateColorSwatch(scrollChild, L["Stage 1 Color"], "castBarEmpowerStage1Color")
+        page.controls.castBarEmpowerStage1Color = UI.CreateColorSwatch(scrollChild, L["Stage 1 Color"], "castBarEmpowerStage1Color", CASTBAR_REFRESH_SCOPES)
         page.controls.castBarEmpowerStage1Color:SetPoint("TOPLEFT", page.controls.castBarEmpowerWindUpColor, "BOTTOMLEFT", 0, -10)
 
-        page.controls.castBarEmpowerStage2Color = UI.CreateColorSwatch(scrollChild, L["Stage 2 Color"], "castBarEmpowerStage2Color")
+        page.controls.castBarEmpowerStage2Color = UI.CreateColorSwatch(scrollChild, L["Stage 2 Color"], "castBarEmpowerStage2Color", CASTBAR_REFRESH_SCOPES)
         page.controls.castBarEmpowerStage2Color:SetPoint("TOPLEFT", page.controls.castBarEmpowerStage1Color, "BOTTOMLEFT", 0, -10)
 
         -- Font of Magic talent: Preservation 375783, Devastation 411212, Augmentation 408083
@@ -526,14 +495,14 @@ local function CreateCastBarTab(page, tabId)
         local lastAnchor = page.controls.castBarEmpowerStage2Color
 
         if hasFontOfMagic then
-            page.controls.castBarEmpowerStage3Color = UI.CreateColorSwatch(scrollChild, L["Stage 3 Color"], "castBarEmpowerStage3Color")
+            page.controls.castBarEmpowerStage3Color = UI.CreateColorSwatch(scrollChild, L["Stage 3 Color"], "castBarEmpowerStage3Color", CASTBAR_REFRESH_SCOPES)
             page.controls.castBarEmpowerStage3Color:SetPoint("TOPLEFT", lastAnchor, "BOTTOMLEFT", 0, -10)
             lastAnchor = page.controls.castBarEmpowerStage3Color
         end
 
         -- Always visible: labeled "Stage 4" with Font of Magic, "Stage 3" without (hold-at-max color)
         local stage4Label = hasFontOfMagic and L["Stage 4 Color"] or L["Stage 3 Color"]
-        page.controls.castBarEmpowerStage4Color = UI.CreateColorSwatch(scrollChild, stage4Label, "castBarEmpowerStage4Color")
+        page.controls.castBarEmpowerStage4Color = UI.CreateColorSwatch(scrollChild, stage4Label, "castBarEmpowerStage4Color", CASTBAR_REFRESH_SCOPES)
         page.controls.castBarEmpowerStage4Color:SetPoint("TOPLEFT", lastAnchor, "BOTTOMLEFT", 0, -10)
     end
 end

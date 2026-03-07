@@ -1,6 +1,3 @@
--- Config/Defensives.lua - Defensives Settings Tab
--- Controls for defensives tracker icon size, position, cooldown, stacks, and spell toggles
-
 local Runtime = _G["Ayije_CDM"]
 if not Runtime then return end
 local API = Runtime.API
@@ -42,7 +39,6 @@ end
 
 table.sort(CLASS_LIST, function(a, b) return a.className < b.className end)
 
--- Save order to DB
 local function SaveOrder(specID, order)
     if not specID then return end
     if not CDM.db.defensivesOrder then CDM.db.defensivesOrder = {} end
@@ -69,7 +65,6 @@ local function CreateSpellsOverlay()
     local startY = -(paddingY + titleOffset + 14)
     local gold = (CDM.CONST and CDM.CONST.GOLD) or { r = 1, g = 0.82, b = 0, a = 1 }
 
-    -- Cross-class state
     local selectedClassTag = playerClassTag
     local selectedSpecID = API:GetCurrentSpecID()
 
@@ -77,18 +72,15 @@ local function CreateSpellsOverlay()
         return selectedClassTag == playerClassTag and selectedSpecID == API:GetCurrentSpecID()
     end
 
-    -- List container (rebuilt on changes)
     local listContainer = CreateFrame("Frame", nil, window)
     listContainer:SetSize(contentWidth, 400)
     listContainer:SetPoint("TOPLEFT", paddingX, startY)
 
-    -- Class/spec dropdown
     local specDropdown = CreateFrame("DropdownButton", nil, window, "WowStyle1DropdownTemplate")
     specDropdown:SetWidth(200)
     specDropdown:SetPoint("TOPRIGHT", window, "TOPRIGHT", -paddingX, -(paddingY + 16))
     specDropdown:SetDefaultText(L["Current Spec"])
 
-    -- Add section (fixed at bottom of window)
     local addLabel = window:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     addLabel:SetText(L["Add Custom Spell"])
     addLabel:SetTextColor(gold.r, gold.g, gold.b, gold.a or 1)
@@ -134,9 +126,6 @@ local function CreateSpellsOverlay()
         end
     end
 
-    -- =====================================================================
-    --  FORWARD DECLARATIONS
-    -- =====================================================================
     local RebuildList
 
     local function SetSelection(classTag, specID)
@@ -191,9 +180,6 @@ local function CreateSpellsOverlay()
         end
     end)
 
-    -- =====================================================================
-    --  REBUILD SPELL LIST
-    -- =====================================================================
     RebuildList = function()
         UI.ClearChildren(listContainer)
 
@@ -210,12 +196,10 @@ local function CreateSpellsOverlay()
             row:SetSize(contentWidth, rowHeight)
             row:SetPoint("TOPLEFT", 0, -y)
 
-            -- Arrow container
             local arrowContainer = CreateFrame("Frame", nil, row)
             arrowContainer:SetSize(58, 29)
             arrowContainer:SetPoint("TOPLEFT", 4, 0)
 
-            -- Up arrow
             local btnUp = CreateFrame("Button", nil, arrowContainer)
             btnUp:SetSize(29, 29)
             btnUp:SetPoint("LEFT", arrowContainer, "LEFT", 0, 0)
@@ -232,7 +216,6 @@ local function CreateSpellsOverlay()
                 RebuildList()
             end)
 
-            -- Down arrow
             local btnDown = CreateFrame("Button", nil, arrowContainer)
             btnDown:SetSize(29, 29)
             btnDown:SetPoint("LEFT", btnUp, "RIGHT", 0, 0)
@@ -249,7 +232,6 @@ local function CreateSpellsOverlay()
                 RebuildList()
             end)
 
-            -- Checkbox (built-in only) or spacer (custom)
             local iconAnchor
             if not isCustom then
                 local specDisabled = CDM.db.defensivesDisabledSpells and CDM.db.defensivesDisabledSpells[specID]
@@ -292,12 +274,10 @@ local function CreateSpellsOverlay()
                 iconTex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
             end
 
-            -- Name
             local nameText = row:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
             nameText:SetPoint("LEFT", iconTex, "RIGHT", 6, 0)
             nameText:SetText(C_Spell.GetSpellName(displayID) or tostring(spellID))
 
-            -- Remove button (custom spells only)
             if isCustom then
                 local removeBtn = CreateFrame("Button", nil, row)
                 removeBtn:SetSize(16, 16)
@@ -320,7 +300,6 @@ local function CreateSpellsOverlay()
         end
     end
 
-    -- Add spell handler
     local function DoAddSpell()
         local text = editBox:GetText()
         local spellID = tonumber(text)
@@ -359,7 +338,6 @@ local function CreateSpellsOverlay()
         self:ClearFocus()
     end)
 
-    -- Refresh on show
     overlay:HookScript("OnShow", function()
         selectedClassTag = playerClassTag
         selectedSpecID = API:GetCurrentSpecID()
@@ -377,9 +355,6 @@ local function CreateDefensivesTab(page, tabId)
     local layout = UI.CreateVerticalLayout(0)
     local function NextY(spacing) return layout:Next(spacing) end
 
-    -- =====================================================================
-    --  ENABLE
-    -- =====================================================================
     local enabled = CDM.db.defensivesEnabled
     if enabled == nil then enabled = true end
     local setControlsEnabled  -- forward declaration
@@ -396,7 +371,6 @@ local function CreateDefensivesTab(page, tabId)
     page.controls.defensivesEnabled:SetPoint("TOPLEFT", -34, NextY(0))
     NextY(35)
 
-    -- Hide from Viewers checkbox
     local hideFromViewers = CDM.db.defensivesHideFromViewers
     if hideFromViewers == nil then hideFromViewers = false end
     page.controls.defensivesHideFromViewers = UI.CreateModernCheckbox(
@@ -411,9 +385,6 @@ local function CreateDefensivesTab(page, tabId)
     page.controls.defensivesHideFromViewers:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(35)
 
-    -- =====================================================================
-    --  MANAGE SPELLS BUTTON
-    -- =====================================================================
     local spellsHeader = UI.CreateHeader(scrollChild, L["Tracked Spells"])
     spellsHeader:SetPoint("TOPLEFT", 0, NextY(0))
 
@@ -428,9 +399,6 @@ local function CreateDefensivesTab(page, tabId)
         spellsOverlay:Show()
     end)
 
-    -- =====================================================================
-    --  ICON SIZE
-    -- =====================================================================
     local iconSizeHeader = UI.CreateHeader(scrollChild, L["Icon Size"])
     iconSizeHeader:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(15)
@@ -461,9 +429,6 @@ local function CreateDefensivesTab(page, tabId)
     page.defensivesIconHeightSlider:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(60)
 
-    -- =====================================================================
-    --  POSITION
-    -- =====================================================================
     local positionHeader = UI.CreateHeader(scrollChild, L["Position"])
     positionHeader:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(15)
@@ -516,9 +481,6 @@ local function CreateDefensivesTab(page, tabId)
     page.defensivesOffsetYSlider:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(60)
 
-    -- =====================================================================
-    --  COOLDOWN
-    -- =====================================================================
     local cooldownHeader = UI.CreateHeader(scrollChild, L["Cooldown"])
     cooldownHeader:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(15)
@@ -536,9 +498,6 @@ local function CreateDefensivesTab(page, tabId)
     page.defensivesCooldownFontSizeSlider:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(60)
 
-    -- =====================================================================
-    --  STACKS
-    -- =====================================================================
     local stacksHeader = UI.CreateHeader(scrollChild, L["Stacks"])
     stacksHeader:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(15)
@@ -603,10 +562,8 @@ local function CreateDefensivesTab(page, tabId)
     page.defensivesChargeOffsetYSlider:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(60)
 
-    -- Fade controls when module is disabled
     setControlsEnabled = UI.SetupModuleToggle(scrollChild, page.controls.defensivesEnabled)
     setControlsEnabled(enabled)
 end
 
--- Register this tab
 API:RegisterConfigTab("defensives", L["Defensives"], CreateDefensivesTab, 10.1)

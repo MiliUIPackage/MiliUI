@@ -60,7 +60,7 @@ local function CreateTrinketsTab(page, tabId)
 
     local enabled = CDM.db.trinketsEnabled
     if enabled == nil then enabled = true end
-    local setControlsEnabled  -- forward declaration
+    local setControlsEnabled
     page.controls.trinketsEnabled = UI.CreateModernCheckbox(
         scrollChild,
         L["Enable Trinkets"],

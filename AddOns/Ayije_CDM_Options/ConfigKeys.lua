@@ -1,6 +1,3 @@
--- Config/ConfigKeys.lua - Centralized config key registry for import/export
--- Defines category labels and key lists to prevent drift across the UI and profile I/O
-
 local Runtime = _G["Ayije_CDM"]
 if not Runtime then return end
 local API = Runtime.API
@@ -9,7 +6,6 @@ local CDM = Runtime
 
 ns.ConfigKeys = {
     order = {
-        "icons",
         "sizes",
         "styling",
         "text",
@@ -24,14 +20,9 @@ ns.ConfigKeys = {
         "assist",
         "positions",
         "custombuffs",
+        "buffgroups",
     },
     categories = {
-        icons = {
-            label = "Spell Registry & Icon Order",
-            keys = {
-                "spellRegistry",
-            },
-        },
         sizes = {
             label = "Icon Sizes & Layout",
             keys = {
@@ -39,8 +30,6 @@ ns.ConfigKeys = {
                 "sizeEssRow2",
                 "sizeUtility",
                 "sizeBuff",
-                "sizeBuffSecondary",
-                "sizeBuffTertiary",
                 "spacing",
                 "maxRowEss",
                 "utilityYOffset",
@@ -49,8 +38,6 @@ ns.ConfigKeys = {
                 "utilityUnlock",
                 "utilityXOffset",
                 "utilityVertical",
-                "buffSecondaryHorizontal",
-                "buffTertiaryHorizontal",
             },
         },
         styling = {
@@ -82,15 +69,10 @@ ns.ConfigKeys = {
                 "countFontSize",
                 "countColor",
                 "buffCooldownFontSize",
+                "buffCooldownColor",
                 "countPositionMain",
                 "countOffsetXMain",
                 "countOffsetYMain",
-                "countPositionSec",
-                "countOffsetXSec",
-                "countOffsetYSec",
-                "countPositionTert",
-                "countOffsetXTert",
-                "countOffsetYTert",
                 "buffBarNameFontSize",
                 "buffBarNameColor",
                 "buffBarNameOffsetX",
@@ -163,11 +145,14 @@ ns.ConfigKeys = {
                 "resourcesSoulShardsRechargingColor",
                 "resourcesHolyPowerColor",
                 "resourcesComboPointsColor",
+                "resourcesComboPointsChargedColor",
+                "resourcesComboPointsChargedEmptyColor",
                 "resourcesArcaneChargesColor",
                 "resourcesRunesReadyColor",
                 "resourcesRunesRechargingColor",
                 "resourcesChiColor",
                 "resourcesSoulFragmentsColor",
+                "resourcesDevourerSoulFragmentsColor",
                 "resourcesBackgroundColor",
                 "resourcesStaggerLightColor",
                 "resourcesStaggerModerateColor",
@@ -196,6 +181,7 @@ ns.ConfigKeys = {
                 "racialsPartyFrameOffsetX",
                 "racialsPartyFrameOffsetY",
                 "racialsChargeColor",
+                "racialsShowItemsAtZeroStacks",
                 "racialsCustomEntries",
                 "racialsOrderPerSpec",
                 "racialsDisabled",
@@ -261,6 +247,7 @@ ns.ConfigKeys = {
                 "castBarTexture",
                 "castBarBackgroundTexture",
                 "castBarBackgroundColor",
+                "castBarUseClassColor",
                 "castBarCastColor",
                 "castBarChannelColor",
                 "castBarUninterruptibleColor",
@@ -333,16 +320,20 @@ ns.ConfigKeys = {
                 "buffContainerLocked",
                 "buffBarContainerLocked",
                 "editModePositions",
-                "buffSecondaryOffsetX",
-                "buffSecondaryOffsetY",
-                "buffTertiaryOffsetX",
-                "buffTertiaryOffsetY",
             },
         },
         custombuffs = {
             label = "Custom Timers",
             keys = {
                 "customBuffRegistry",
+            },
+        },
+        buffgroups = {
+            label = "Buff Groups",
+            keys = {
+                "buffGroups",
+                "ungroupedBuffOverrides",
+                "spellRegistry",
             },
         },
     },

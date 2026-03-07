@@ -4,11 +4,7 @@ local ctx = CDM._LayoutCtx
 
 local CDM_C = ctx.CDM_C
 local VIEWERS = ctx.VIEWERS
-local SECONDARY_SET = ctx.SECONDARY_SET
-local TERTIARY_SET = ctx.TERTIARY_SET
-
 local GetFrameData = ctx.GetFrameData
-local GetSpellIDCandidates = CDM.GetSpellIDCandidates
 local CheckBuffRegistryMatch = ctx.CheckBuffRegistryMatch
 local ResolveBaseSpellID = ctx.ResolveBaseSpellID
 local ToSortNumber = ctx.ToSortNumber
@@ -113,27 +109,14 @@ end
 local function ProvisionalPlaceBuffFrame(cdm, frame, viewer, matchType, buffContainer)
     if not frame or not viewer then return end
 
+    if matchType == "buffgroup" then
+        return
+    end
+
     local frameData = GetFrameData(frame)
     if frameData then
         local now = GetTime()
         frameData.cdmProvisionalReadyUntil = now + PROVISIONAL_READY_WINDOW
-    end
-
-    if matchType == "secondary" or matchType == "tertiary" then
-        local targetContainer = (matchType == "secondary") and cdm.secBuffs or cdm.tertBuffs
-        if not targetContainer then return end
-        local parent = frame:GetParent()
-        if parent ~= targetContainer or frame:GetNumPoints() == 0 then
-            if parent ~= targetContainer then
-                frame:SetParent(targetContainer)
-            end
-            frame:ClearAllPoints()
-            frame:SetPoint("BOTTOM", targetContainer, "BOTTOM", 0, 0)
-        end
-        if CDM.EnableSecTertCentering then
-            CDM.EnableSecTertCentering()
-        end
-        return
     end
 
     if not buffContainer then return end
@@ -210,62 +193,9 @@ local function SortAndPositionBuffFrames(frames, container)
     end
 end
 
-local groupRegistryRef
-local function CompareByGroupOrder(a, b)
-    local aData, bData = GetFrameData(a), GetFrameData(b)
-    local aID = aData.buffCategorySpellID or ResolveBaseSpellID(a)
-    local bID = bData.buffCategorySpellID or ResolveBaseSpellID(b)
-    local aPos = ToSortNumber(groupRegistryRef[aID], 99)
-    local bPos = ToSortNumber(groupRegistryRef[bID], 99)
-    if aPos ~= bPos then return aPos < bPos end
-    return GetStableFrameSortID(a) < GetStableFrameSortID(b)
-end
-
-local function PositionBuffGroup(frames, container, registrySet, horizontalKey, sizeBuff, spacing)
-    local count = #frames
-    if count == 0 or not container then return 0 end
-
-    if count > 1 then
-        groupRegistryRef = registrySet
-        table.sort(frames, CompareByGroupOrder)
-    end
-
-    local horizontalMode = CDM_C.GetConfigValue(horizontalKey, false)
-    local itemWPx, itemHPx, gapPx, stepPx = GetSnappedBuffMetricsPx(sizeBuff, spacing)
-    if horizontalMode then
-        local totalWidthPx = (count * itemWPx) + ((count - 1) * gapPx)
-        SetSizePixels(container, totalWidthPx, itemHPx, UIParent)
-        local leftSnapPx = 0
-        do
-            local uiScale = UIParent:GetEffectiveScale() or 1
-            local cl = container:GetLeft()
-            if cl then
-                local px = cl * uiScale
-                leftSnapPx = math.floor(px + 0.5) - px
-            end
-        end
-        for i, frame in ipairs(frames) do
-            local xPx = (i - 1) * stepPx
-            PlaceFramePixels(frame, container, "BOTTOMLEFT", container, "BOTTOMLEFT", xPx + leftSnapPx, 0, container)
-        end
-    else
-        local totalHeightPx = (count * itemHPx) + ((count - 1) * gapPx)
-        SetSizePixels(container, itemWPx, totalHeightPx, UIParent)
-        for i, frame in ipairs(frames) do
-            local yPx = (i - 1) * (itemHPx + gapPx)
-            PlaceFramePixels(frame, container, "BOTTOM", container, "BOTTOM", 0, yPx, container)
-        end
-    end
-
-    return count
-end
-
 ctx.SortAndPositionBuffFrames = SortAndPositionBuffFrames
-ctx.PositionBuffGroup = PositionBuffGroup
 
 local catMainBuffs = {}
-local catSecBuffs = {}
-local catTertBuffs = {}
 local lastCategorizationTime = -1
 
 local function CategorizeVisibleBuffs()
@@ -274,19 +204,15 @@ local function CategorizeVisibleBuffs()
     lastCategorizationTime = now
 
     table.wipe(catMainBuffs)
-    table.wipe(catSecBuffs)
-    table.wipe(catTertBuffs)
 
     local viewer = _G[VIEWERS.BUFF]
     if viewer and viewer.itemFramePool then
         for frame in viewer.itemFramePool:EnumerateActive() do
             if frame and frame:IsShown() then
                 local matchType = CheckBuffRegistryMatch(frame)
-                if matchType == "secondary" then
-                    catSecBuffs[#catSecBuffs + 1] = frame
-                elseif matchType == "tertiary" then
-                    catTertBuffs[#catTertBuffs + 1] = frame
-                else
+                if matchType == "buffgroup" then
+                    -- excluded from main; handled by BuffGroups module
+                elseif not matchType then
                     catMainBuffs[#catMainBuffs + 1] = frame
                 end
             end
@@ -412,21 +338,24 @@ local function MarkBuffCenteringDirty()
 end
 
 local function ApplyGlowsToFrames(frames, specID)
-    if not (specID and CDM.Glow) then return end
-    for _, frame in ipairs(frames) do
-        local glowEnabled, glowColor = false, nil
-        local candidates = GetSpellIDCandidates(CDM, frame, true)
-        for _, id in ipairs(candidates) do
-            if CDM:GetSpellGlowEnabled(specID, id) then
-                glowEnabled = true
-                glowColor = CDM:GetSpellGlowColor(specID, id)
-                break
-            end
+    if not CDM.Glow then return end
+    if not specID then
+        for _, frame in ipairs(frames) do
+            CDM.Glow:RequestBuffGlow(frame, false, nil, nil)
         end
-        if glowEnabled then
-            CDM.Glow:StartGlow(frame, glowColor)
+        return
+    end
+
+    for _, frame in ipairs(frames) do
+        local frameData = GetFrameData(frame)
+        if frameData and frameData.cdmVisualsHidden then
+            CDM.Glow:RequestBuffGlow(frame, false, nil, nil)
         else
-            CDM.Glow:StopGlow(frame)
+            local glowEnabled, glowColor, glowSourceID = false, nil, nil
+            if CDM.ResolveBuffGlowState then
+                glowEnabled, glowColor, glowSourceID = CDM:ResolveBuffGlowState(frame, specID, false)
+            end
+            CDM.Glow:RequestBuffGlow(frame, glowEnabled, glowColor, glowSourceID)
         end
     end
 end
@@ -509,171 +438,3 @@ CDM.MarkBuffCenteringDirty = MarkBuffCenteringDirty
 CDM.EnableBuffCentering = EnableBuffCentering
 CDM.DisableBuffCentering = DisableBuffCentering
 
-local secTertCenteringFrame = CreateFrame("Frame")
-local nextSecTertCenteringUpdate = 0
-local secTertCenteringEnabled = false
-local secTertCenteringDirty = true
-local secTertCenteringBurstTicksRemaining = 0
-local secTertCenteringLastActivityTime = 0
-local secLastVisibleSet = {}
-local tertLastVisibleSet = {}
-local secLastVisibleCount = 0
-local tertLastVisibleCount = 0
-local secLastMatchID = {}
-local tertLastMatchID = {}
-
-local DisableSecTertCentering
-
-local function CenterBuffGroup(container, registrySet, horizontalKey, sizeBuff, spacing, specID, lastSet, lastCount, lastMatchIDs, sourceList)
-    if not container then return 0, 0, false end
-
-    local count = #sourceList
-    if count == 0 then
-        wipe(lastSet)
-        wipe(lastMatchIDs)
-        return 0, 0, false
-    end
-
-    local changed = secTertCenteringDirty or HasVisibleSetChanged(sourceList, lastSet, lastCount)
-    if not changed then
-        for i = 1, count do
-            local frame = sourceList[i]
-            local frameData = GetFrameData(frame)
-            local matchID = frameData.buffCategorySpellID or ResolveBaseSpellID(frame) or 0
-            if lastMatchIDs[frame] ~= matchID then
-                changed = true
-                break
-            end
-        end
-    end
-    if not changed then
-        return count, lastCount, false
-    end
-
-    PositionBuffGroup(sourceList, container, registrySet, horizontalKey, sizeBuff, spacing)
-
-    ApplyGlowsToFrames(sourceList, specID)
-
-    local cachedCount = CacheVisibleSet(sourceList, lastSet)
-    wipe(lastMatchIDs)
-    for i = 1, count do
-        local frame = sourceList[i]
-        local frameData = GetFrameData(frame)
-        lastMatchIDs[frame] = frameData.buffCategorySpellID or ResolveBaseSpellID(frame) or 0
-    end
-
-    return count, cachedCount, true
-end
-
-local function MarkSecTertCenteringDirty()
-    secTertCenteringDirty = true
-    secTertCenteringBurstTicksRemaining = CENTERING_BURST_TICKS
-    secTertCenteringLastActivityTime = GetTime()
-    nextSecTertCenteringUpdate = 0
-end
-
-local function CenterSecondaryTertiaryImmediate()
-    local now = GetTime()
-    local throttle = (secTertCenteringDirty or secTertCenteringBurstTicksRemaining > 0)
-        and CENTERING_BURST_THROTTLE
-        or CENTERING_WATCHDOG_THROTTLE
-    if now < nextSecTertCenteringUpdate then return end
-    nextSecTertCenteringUpdate = now + throttle
-
-    CategorizeVisibleBuffs()
-
-    local sizes = CDM.Sizes or {}
-    local sizeBuff = sizes.SIZE_BUFF or { w = 40, h = 36 }
-    local sizeBuffSec = sizes.SIZE_BUFF_SEC or sizeBuff
-    local sizeBuffTert = sizes.SIZE_BUFF_TERT or sizeBuff
-    local spacing = sizes.SPACING or 1
-
-    local specID = CDM.GetCurrentSpecID and CDM:GetCurrentSpecID() or nil
-    if not specID then
-        local specIndex = GetSpecialization()
-        specID = specIndex and GetSpecializationInfo(specIndex)
-    end
-
-    local secCount, secChanged
-    secCount, secLastVisibleCount, secChanged = CenterBuffGroup(
-        CDM.secBuffs,
-        SECONDARY_SET,
-        "buffSecondaryHorizontal",
-        sizeBuffSec,
-        spacing,
-        specID,
-        secLastVisibleSet,
-        secLastVisibleCount,
-        secLastMatchID,
-        catSecBuffs
-    )
-
-    local tertCount, tertChanged
-    tertCount, tertLastVisibleCount, tertChanged = CenterBuffGroup(
-        CDM.tertBuffs,
-        TERTIARY_SET,
-        "buffTertiaryHorizontal",
-        sizeBuffTert,
-        spacing,
-        specID,
-        tertLastVisibleSet,
-        tertLastVisibleCount,
-        tertLastMatchID,
-        catTertBuffs
-    )
-    local changed = secChanged or tertChanged
-    if changed then
-        secTertCenteringDirty = false
-        secTertCenteringBurstTicksRemaining = CENTERING_BURST_TICKS
-        secTertCenteringLastActivityTime = now
-    else
-        if secTertCenteringDirty then
-            secTertCenteringDirty = false
-            secTertCenteringLastActivityTime = now
-        end
-        if secTertCenteringBurstTicksRemaining > 0 then
-            secTertCenteringBurstTicksRemaining = secTertCenteringBurstTicksRemaining - 1
-        end
-    end
-
-    if secCount == 0 and tertCount == 0 then
-        DisableSecTertCentering()
-        return
-    end
-
-    if (not changed)
-        and secTertCenteringBurstTicksRemaining == 0
-        and (now - secTertCenteringLastActivityTime) >= CENTERING_IDLE_DISABLE_SECONDS
-    then
-        DisableSecTertCentering()
-    end
-end
-
-local function EnableSecTertCentering()
-    MarkSecTertCenteringDirty()
-    if not secTertCenteringEnabled then
-        secTertCenteringFrame:SetScript("OnUpdate", CenterSecondaryTertiaryImmediate)
-        secTertCenteringEnabled = true
-    end
-end
-
-DisableSecTertCentering = function()
-    if secTertCenteringEnabled then
-        secTertCenteringFrame:SetScript("OnUpdate", nil)
-        secTertCenteringEnabled = false
-    end
-    secTertCenteringDirty = true
-    secTertCenteringBurstTicksRemaining = 0
-    secTertCenteringLastActivityTime = 0
-    nextSecTertCenteringUpdate = 0
-    secLastVisibleCount = 0
-    tertLastVisibleCount = 0
-    wipe(secLastVisibleSet)
-    wipe(tertLastVisibleSet)
-    wipe(secLastMatchID)
-    wipe(tertLastMatchID)
-end
-
-CDM.MarkSecTertCenteringDirty = MarkSecTertCenteringDirty
-CDM.EnableSecTertCentering = EnableSecTertCentering
-CDM.DisableSecTertCentering = DisableSecTertCentering

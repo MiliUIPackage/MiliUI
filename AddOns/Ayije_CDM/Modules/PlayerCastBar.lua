@@ -20,9 +20,18 @@ local CAST_STATE_CHANNEL = 2
 local CAST_STATE_NONBREAKABLE = 3
 
 local GetTime = _G.GetTime
+local UnitClass = _G.UnitClass
 
 local function CfgVal(key, default)
     return CDM_C.GetConfigValue(key, default)
+end
+
+local function GetPlayerClassColor()
+    local _, classTag = UnitClass("player")
+    local classColors = _G.CUSTOM_CLASS_COLORS or _G.RAID_CLASS_COLORS
+    local color = classTag and classColors and classColors[classTag]
+    if not color then return nil end
+    return color.r, color.g, color.b, color.a or 1
 end
 
 local IsPixelBorderMode = CDM_C.IsPixelIconBorderMode
@@ -478,6 +487,16 @@ ApplyBarTexture = function(frame, castState)
             frame.barObj:SetStatusBarTexture(texturePath)
         end
 
+        if castState == CAST_STATE_NORMAL and CfgVal("castBarUseClassColor", false) then
+            local r, g, b, a = GetPlayerClassColor()
+            if r then
+                frame.barObj:SetStatusBarColor(r, g, b, a)
+                frame.currentCastState = castState
+                ReanchorSpark(frame)
+                return
+            end
+        end
+
         local colorKey
         if castState == CAST_STATE_NONBREAKABLE then
             colorKey = "castBarUninterruptibleColor"
@@ -759,11 +778,17 @@ local function UpdateContainerPosition()
     if not container then return end
 
     local anchorToResources = IsCastBarResourceAnchorEnabled()
-    if anchorToResources and CDM.resourceContainer
-        and CDM.currentPowerTypes and #CDM.currentPowerTypes > 0 then
+    if anchorToResources and CDM.resourceContainer then
         local spacing = CfgVal("castBarResourcesSpacing", 2)
         container:ClearAllPoints()
-        SetPixelPerfectPoint(container, "BOTTOM", CDM.resourceContainer, "TOP", 0, spacing)
+
+        if CDM.currentPowerTypes and #CDM.currentPowerTypes > 0 then
+            SetPixelPerfectPoint(container, "BOTTOM", CDM.resourceContainer, "TOP", 0, spacing)
+            return
+        end
+
+        -- No active resource bars
+        SetPixelPerfectPoint(container, "BOTTOM", CDM.resourceContainer, "BOTTOM", 0, 0)
         return
     end
 
@@ -1117,4 +1142,4 @@ end
 
 CDM:RegisterRefreshCallback("playerCastBar", function()
     CDM:UpdatePlayerCastBar()
-end, 55)
+end, 55, { "castbar_visuals", "resources_visuals", "trackers_layout", "viewers" })

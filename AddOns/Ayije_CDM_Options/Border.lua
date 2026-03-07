@@ -1,6 +1,3 @@
--- Config/TabBorder.lua - Border Settings Tab
--- Controls for border texture, color, size, and offsets
-
 local Runtime = _G["Ayije_CDM"]
 if not Runtime then return end
 local API = Runtime.API
@@ -10,11 +7,9 @@ local UI = ns.ConfigUI
 local L = Runtime.L
 
 local function CreateBorderTab(page, tabId)
-    -- Border Settings Header
     local borderHeader = UI.CreateHeader(page, L["Border Settings"])
     borderHeader:SetPoint("TOPLEFT", 35, -40)
 
-    -- Border Texture Dropdown
     local lblDropdown = page:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     lblDropdown:SetText(L["Border Texture"])
     lblDropdown:SetPoint("TOPLEFT", borderHeader, "BOTTOMLEFT", 0, -15)
@@ -38,12 +33,10 @@ local function CreateBorderTab(page, tabId)
         end
     )
 
-    -- Border Color
     local colorPicker = UI.CreateColorSwatch(page, L["Border Color"], "borderColor")
     colorPicker:SetPoint("TOPLEFT", ddBorder, "BOTTOMLEFT", 0, -15)
     page.colorPicker = colorPicker
 
-    -- Border Size and Offsets
     page.controls.b0 = UI.CreateModernSlider(page, L["Border Size"], 1, 50, CDM.db.borderSize, function(v) CDM.db.borderSize = v; API:RefreshConfig() end)
     page.controls.b0:SetPoint("TOPLEFT", colorPicker, "BOTTOMLEFT", 0, -10)
 
@@ -53,7 +46,6 @@ local function CreateBorderTab(page, tabId)
     page.controls.b2 = UI.CreateModernSlider(page, L["Border Offset Y"], -50, 50, CDM.db.borderOffsetY, function(v) CDM.db.borderOffsetY = v; API:RefreshConfig() end)
     page.controls.b2:SetPoint("TOPLEFT", page.controls.b1, "BOTTOMLEFT", 0, -10)
 
-    -- Zoom Icons Toggle
     page.zoomCheckbox = UI.CreateModernCheckbox(
         page,
         L["Zoom Icons (Remove Borders & Overlay)"],
@@ -65,11 +57,9 @@ local function CreateBorderTab(page, tabId)
     )
     page.zoomCheckbox:SetPoint("TOPLEFT", page.controls.b2, "BOTTOMLEFT", 0, -10)
 
-    -- Visual Elements Header
     local visualHeader = UI.CreateHeader(page, L["Visual Elements"])
     visualHeader:SetPoint("TOPLEFT", page.zoomCheckbox, "BOTTOMLEFT", 0, -15)
 
-    -- Hide Debuff Border
     page.hideDebuffBorderCheckbox = UI.CreateModernCheckbox(
         page,
         L["Hide Debuff Border (red outline on harmful effects)"],
@@ -80,7 +70,6 @@ local function CreateBorderTab(page, tabId)
     )
     page.hideDebuffBorderCheckbox:SetPoint("TOPLEFT", visualHeader, "BOTTOMLEFT", 0, -15)
 
-    -- Hide Pandemic Indicator
     page.hidePandemicCheckbox = UI.CreateModernCheckbox(
         page,
         L["Hide Pandemic Indicator (animated refresh window border)"],
@@ -91,7 +80,6 @@ local function CreateBorderTab(page, tabId)
     )
     page.hidePandemicCheckbox:SetPoint("TOPLEFT", page.hideDebuffBorderCheckbox, "BOTTOMLEFT", 0, -10)
 
-    -- Hide Cooldown Bling
     page.hideCooldownBlingCheckbox = UI.CreateModernCheckbox(
         page,
         L["Hide Cooldown Bling (flash animation on cooldown completion)"],
@@ -102,12 +90,10 @@ local function CreateBorderTab(page, tabId)
     )
     page.hideCooldownBlingCheckbox:SetPoint("TOPLEFT", page.hidePandemicCheckbox, "BOTTOMLEFT", 0, -10)
 
-    -- Reload warning
     local reloadWarning = page:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
     reloadWarning:SetPoint("TOPLEFT", page.hideCooldownBlingCheckbox, "BOTTOMLEFT", 20, -15)
     reloadWarning:SetText(L["* These options require /reload to take effect"])
     UI.SetTextMuted(reloadWarning)
 end
 
--- Register this tab
 API:RegisterConfigTab("border", L["Borders"], CreateBorderTab, 4)

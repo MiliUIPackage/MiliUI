@@ -117,18 +117,35 @@ local function StopAllAnimations()
     end
 end
 
-local eventFrame = CreateFrame("Frame")
-eventFrame:Hide()
-
 local eventRegistryHandle = nil
+local combatStateCallbackRegistered = false
 
-local function OnCombatEvent(_, event)
-    if event == "PLAYER_REGEN_DISABLED" then
-        inCombat = true
+local function SetCombatState(nextInCombat)
+    inCombat = nextInCombat and true or false
+    if inCombat then
         PlayAllAnimations()
-    elseif event == "PLAYER_REGEN_ENABLED" then
-        inCombat = false
+    else
         StopAllAnimations()
+    end
+end
+
+local function OnCombatStateChanged(isInCombat)
+    SetCombatState(isInCombat)
+end
+
+local function RegisterCombatStateListener()
+    if combatStateCallbackRegistered then
+        return
+    end
+    if CDM:RegisterInternalCallback("OnCombatStateChanged", OnCombatStateChanged) then
+        combatStateCallbackRegistered = true
+    end
+end
+
+local function UnregisterCombatStateListener()
+    if combatStateCallbackRegistered then
+        CDM:UnregisterInternalCallback("OnCombatStateChanged", OnCombatStateChanged)
+        combatStateCallbackRegistered = false
     end
 end
 
@@ -172,11 +189,9 @@ local function Enable()
 
     InstallHooks()
 
-    eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
-    eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-    eventFrame:SetScript("OnEvent", OnCombatEvent)
+    RegisterCombatStateListener()
 
-    inCombat = InCombatLockdown()
+    SetCombatState(InCombatLockdown())
 
     if EventRegistry and EventRegistry.RegisterCallback then
         eventRegistryHandle = EventRegistry:RegisterCallback("AssistedCombatManager.OnSetUseAssistedHighlight", function()
@@ -197,8 +212,7 @@ local function Disable()
     ClearAllHighlights()
     currentHighlightSpellID = nil
 
-    eventFrame:UnregisterAllEvents()
-    eventFrame:SetScript("OnEvent", nil)
+    UnregisterCombatStateListener()
 
     if eventRegistryHandle and EventRegistry and EventRegistry.UnregisterCallback then
         EventRegistry:UnregisterCallback("AssistedCombatManager.OnSetUseAssistedHighlight", eventRegistryHandle)
@@ -226,5 +240,5 @@ function CDM.RotationAssist:Initialize()
             end
             RefreshHighlights()
         end
-    end, 56)
+    end, 56, { "assist", "viewers" })
 end

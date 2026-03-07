@@ -21,6 +21,7 @@ local currentMode = "independent"
 local lastTrinketsVisibilityHash = -1
 local lastTrinketsSpacing = nil
 local lastTrinketsPositionAnchor = nil
+local lastTrinketsWidth, lastTrinketsHeight = nil, nil
 local trinketsCooldownUpdatePending = false
 local TRINKETS_COOLDOWN_WATCH_OWNER = "CDM_Trinkets"
 local TRINKETS_SPELL_WATCH_OWNER = "CDM_Trinkets_Spells"
@@ -76,6 +77,8 @@ local function InvalidateTrinketsLayoutCache()
     lastTrinketsVisibilityHash = -1
     lastTrinketsSpacing = nil
     lastTrinketsPositionAnchor = nil
+    lastTrinketsWidth = nil
+    lastTrinketsHeight = nil
 end
 
 local function CreateIconFrame(slotID)
@@ -405,7 +408,6 @@ function CDM:InitializeTrinkets()
     RegisterTrinketCooldownWatches()
     RegisterTrinketSpellWatches()
     isInitialized = true
-    isEnabled = true
     trinketsStartupCooldownGate:ScheduleSettle()
 end
 
@@ -453,8 +455,6 @@ local function DisableTrinkets()
     end
 end
 
-local lastTrinketsWidth, lastTrinketsHeight = nil, nil
-
 -- Cooldown-only update: skip data refresh, position, and size checks
 UpdateTrinketCooldowns = function()
     if not trinketsContainer or not isEnabled then return end
@@ -476,7 +476,9 @@ function CDM:UpdateTrinkets()
             anyTrinketDataChanged = true
         end
     end
-    RegisterTrinketSpellWatches()
+    if anyTrinketDataChanged then
+        RegisterTrinketSpellWatches()
+    end
 
     local showPassive = true
     local db = CDM.db
@@ -498,6 +500,17 @@ function CDM:UpdateTrinkets()
             CDM:QueueViewer(CDM_C.VIEWERS.ESSENTIAL, true)
         end
         currentMode = mode
+
+        -- Hide keybind containers left over from essential mode
+        if mode ~= "essential" then
+            local GetFrameData = CDM.GetFrameData
+            for _, frame in ipairs(iconFrames) do
+                local frameData = GetFrameData(frame)
+                if frameData and frameData.cdmKeybindContainer then
+                    frameData.cdmKeybindContainer:Hide()
+                end
+            end
+        end
         lastTrinketsWidth = nil
         lastTrinketsHeight = nil
         InvalidateTrinketsLayoutCache()
@@ -617,27 +630,7 @@ end
 --  REFRESH CALLBACK REGISTRATIONS
 -- =========================================================================
 
-CDM:RegisterRefreshCallback("trinketsStyles", function()
-    if not isEnabled then return end
-    RefreshCachedTrinketsStyles()
-    needsStyleUpdate = true
-    InvalidateTrinketsLayoutCache()
-end, 17)
-
-CDM:RegisterRefreshCallback("trinkets", function()
-    local wantEnabled = CDM.db.trinketsEnabled ~= false
-    if wantEnabled and not isInitialized then
-        CDM:InitializeTrinkets()
-        return
-    end
-    if wantEnabled and not isEnabled then
-        EnableTrinkets()
-        return
-    end
-    if not wantEnabled and isEnabled then
-        DisableTrinkets()
-        return
-    end
+local function RefreshTrinketsLifecycle()
     if not isEnabled then return end
     local pendingMode = GetTrinketMode()
     if pendingMode == currentMode then
@@ -648,4 +641,41 @@ CDM:RegisterRefreshCallback("trinkets", function()
         end
     end
     CDM:UpdateTrinkets()
-end, 52)
+end
+
+local function OnTrinketsProfileApplied()
+    needsStyleUpdate = true
+    InvalidateTrinketsLayoutCache()
+    if trinketsContainer then
+        CDM.InvalidateTrackerAnchorCache(trinketsContainer)
+    end
+end
+
+if CDM.ModuleManager and CDM.ModuleManager.RegisterModule then
+    CDM.ModuleManager:RegisterModule({
+        id = "trinkets",
+        Initialize = function()
+            CDM:InitializeTrinkets()
+        end,
+        Enable = EnableTrinkets,
+        Disable = DisableTrinkets,
+        Refresh = RefreshTrinketsLifecycle,
+        OnProfileApplied = OnTrinketsProfileApplied,
+        ShouldBeEnabled = function(db)
+            return db and db.trinketsEnabled ~= false
+        end,
+    })
+end
+
+CDM:RegisterRefreshCallback("trinketsStyles", function()
+    RefreshCachedTrinketsStyles()
+    needsStyleUpdate = true
+    InvalidateTrinketsLayoutCache()
+end, 17, { "text_visuals", "trackers_layout", "viewers" })
+
+CDM:RegisterRefreshCallback("trinkets", function()
+    local moduleManager = CDM.ModuleManager
+    if moduleManager and moduleManager.ReconcileModule then
+        moduleManager:ReconcileModule("trinkets")
+    end
+end, 52, { "trackers_layout", "viewers" })

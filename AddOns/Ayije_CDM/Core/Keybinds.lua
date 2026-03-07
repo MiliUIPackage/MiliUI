@@ -7,6 +7,7 @@ local Keybinds = CDM.Keybinds
 
 local isEnabled = false
 local keybindCache = {}
+local itemKeybindCache = {}
 local keybindCacheVersion = 0
 local invalidatePending = false
 
@@ -42,7 +43,32 @@ local function GetKeybindForSlot(slot)
     if not key then return nil end
     local text = GetBindingText(key, 1)
     if text then
-        text = text:gsub("%-", ""):upper()
+        text = text:gsub("(%a)%-", "%1"):upper()
+        text = text:gsub("MOUSE ?WHEEL ?UP", "MwU")
+        text = text:gsub("MOUSE ?WHEEL ?DOWN", "MwD")
+        text = text:gsub("MOUSE ?BUTTON ?(%d+)", "M%1")
+        text = text:gsub("NUM ?PAD ?MULTIPLY", "N*")
+        text = text:gsub("NUM ?PAD ?DIVIDE", "N/")
+        text = text:gsub("NUM ?PAD ?PLUS", "N+")
+        text = text:gsub("NUM ?PAD ?MINUS", "N-")
+        text = text:gsub("NUM ?PAD ?DELETE", "NDEL")
+        text = text:gsub("NUM ?PAD ?DECIMAL", "NDEL")
+        text = text:gsub("NUM ?PAD ?ENTER", "NEnt")
+        text = text:gsub("NUM ?PAD ?(%d+)", "N%1")
+        text = text:gsub("NUM ?PAD ?%*", "N*")
+        text = text:gsub("NUM ?PAD ?%/", "N/")
+        text = text:gsub("NUM ?PAD ?%+", "N+")
+        text = text:gsub("NUM ?PAD ?%-", "N-")
+        text = text:gsub("NUM ?PAD ?%.", "NDEL")
+        text = text:gsub("CAPS ?LOCK", "CpLk")
+        text = text:gsub("BACKSPACE", "BkSp")
+        text = text:gsub("DELETE", "DEL")
+        text = text:gsub("INSERT", "Ins")
+        text = text:gsub("PAGE ?UP", "PU")
+        text = text:gsub("PAGE ?DOWN", "PD")
+        text = text:gsub("ENTER", "Ent")
+        text = text:gsub("HOME", "Hm")
+        text = text:gsub("SPACEBAR", "SPC")
     end
     return text
 end
@@ -62,6 +88,19 @@ local function GetShortestKeybind(baseSpellID)
     return shortest
 end
 
+local function GetShortestKeybindForItem(itemID)
+    for slot = 1, 180 do
+        local actionType, id = GetActionInfo(slot)
+        if actionType == "item" and id == itemID then
+            local text = GetKeybindForSlot(slot)
+            if text then
+                return text
+            end
+        end
+    end
+    return nil
+end
+
 function Keybinds:IsEnabled()
     return isEnabled
 end
@@ -77,12 +116,24 @@ function Keybinds:GetKeybindText(baseSpellID)
     return text
 end
 
+function Keybinds:GetKeybindTextForItem(itemID)
+    if not itemID then return nil end
+    local cached = itemKeybindCache[itemID]
+    if cached ~= nil then
+        return cached or nil
+    end
+    local text = GetShortestKeybindForItem(itemID)
+    itemKeybindCache[itemID] = text or false
+    return text
+end
+
 function Keybinds:GetCacheVersion()
     return keybindCacheVersion
 end
 
 function Keybinds:InvalidateCache()
     wipe(keybindCache)
+    wipe(itemKeybindCache)
     keybindCacheVersion = keybindCacheVersion + 1
 end
 
@@ -139,6 +190,7 @@ local function Disable()
     eventFrame:UnregisterAllEvents()
     eventFrame:SetScript("OnEvent", nil)
     wipe(keybindCache)
+    wipe(itemKeybindCache)
     HideAllKeybindContainers()
 end
 
@@ -151,7 +203,7 @@ function Keybinds:Initialize()
         else
             Disable()
         end
-    end, 36)
+    end, 36, { "assist", "viewers" })
 
     if CDM.db and CDM.db.assistEnabled then
         Enable()

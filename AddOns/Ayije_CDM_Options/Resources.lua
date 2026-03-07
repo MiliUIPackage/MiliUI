@@ -1,6 +1,3 @@
--- Config/Resources.lua - Resources Settings Tab
--- Controls for power bars (dimensions, textures, colors, tags)
-
 local Runtime = _G["Ayije_CDM"]
 if not Runtime then return end
 local API = Runtime.API
@@ -9,10 +6,15 @@ local CDM = Runtime
 local UI = ns.ConfigUI
 local L = Runtime.L
 
--- Use centralized utility functions from Config/Core.lua:
--- API:GetCurrentSpecID()
--- API:GetTagEnabled(isBar2)
--- API:SetTagEnabled(isBar2, enabled)
+local RESOURCES_REFRESH_SCOPES = { "resources_visuals", "castbar_visuals", "trackers_layout", "viewers" }
+
+local function RefreshResourcesConfig()
+    if API.RefreshScopes then
+        API:RefreshScopes(RESOURCES_REFRESH_SCOPES)
+        return
+    end
+    API:RefreshConfig()
+end
 
 local function ForEachTagTextFrame(fn)
     if not CDM.TAGS or not CDM.TAGS.textFrames then return end
@@ -53,6 +55,8 @@ local RESOURCE_COLOR_DEFS = {
     { key = "resourcesEssenceColor", label = L["Essence"] },
     { key = "resourcesEssenceRechargingColor", label = L["Essence Recharging"] },
     { key = "resourcesComboPointsColor", label = L["Combo Points"] },
+    { key = "resourcesComboPointsChargedColor", label = L["Charged"] },
+    { key = "resourcesComboPointsChargedEmptyColor", label = L["Charged Empty"] },
     { key = "resourcesHolyPowerColor", label = L["Holy Power"] },
     { key = "resourcesSoulShardsColor", label = L["Soul Shards"] },
     { key = "resourcesSoulShardsRechargingColor", label = L["Soul Shards Partial"] },
@@ -62,6 +66,7 @@ local RESOURCE_COLOR_DEFS = {
     { key = "resourcesRunesReadyColor", label = L["Runes Ready"] },
     { key = "resourcesRunesRechargingColor", label = L["Runes Recharging"] },
     { key = "resourcesSoulFragmentsColor", label = L["Soul Fragments"] },
+    { key = "resourcesDevourerSoulFragmentsColor", label = L["Devourer Souls"] },
     { key = "resourcesStaggerLightColor", label = L["Light (<30%)"] },
     { key = "resourcesStaggerModerateColor", label = L["Moderate (30-60%)"] },
     { key = "resourcesStaggerHeavyColor", label = L["Heavy (>60%)"] },
@@ -76,6 +81,7 @@ local CLASS_RESOURCE_KEYS = {
     DEMONHUNTER = {
         "resourcesFuryColor",
         "resourcesSoulFragmentsColor",
+        "resourcesDevourerSoulFragmentsColor",
     },
     DRUID = {
         "resourcesManaColor",
@@ -115,6 +121,8 @@ local CLASS_RESOURCE_KEYS = {
     ROGUE = {
         "resourcesEnergyColor",
         "resourcesComboPointsColor",
+        "resourcesComboPointsChargedColor",
+        "resourcesComboPointsChargedEmptyColor",
     },
     SHAMAN = {
         "resourcesManaColor",
@@ -144,15 +152,11 @@ local function BuildClassResourceSet(playerClass)
 end
 
 local function CreateResourcesTab(page, tabId)
-    -- Create scroll frame container
     local resourcesScrollChild = UI.CreateScrollableTab(page, "AyijeCDM_ResourcesScrollFrame", 1250, 370)
 
     local layout = UI.CreateVerticalLayout(0)
     local function NextY(spacing) return layout:Next(spacing) end
 
-    -- =====================================================================
-    --  ENABLE
-    -- =====================================================================
     local enabled = CDM.db.resourcesEnabled
     if enabled == nil then enabled = true end
     local setControlsEnabled  -- forward declaration
@@ -166,18 +170,16 @@ local function CreateResourcesTab(page, tabId)
                 CDM.db.castBarAnchorToResources = false
             end
             if setControlsEnabled then setControlsEnabled(checked) end
-            API:RefreshConfig()
+            RefreshResourcesConfig()
         end
     )
     page.controls.resourcesEnabled:SetPoint("TOPLEFT", -34, NextY(0))
     NextY(35)
 
-    -- Bar Size Header
     local resourcesBarSizeHeader = UI.CreateHeader(resourcesScrollChild, L["Bar Dimensions"])
     resourcesBarSizeHeader:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(30)
 
-    -- Bar 1 Height Slider
     page.resourcesBarHeightSlider = UI.CreateModernSlider(
         resourcesScrollChild,
         L["Bar 1 Height"],
@@ -186,13 +188,12 @@ local function CreateResourcesTab(page, tabId)
         CDM.db.resourcesBarHeight or 16,
         function(v)
             CDM.db.resourcesBarHeight = UI.RoundToInt(v)
-            API:RefreshConfig()
+            RefreshResourcesConfig()
         end
     )
     page.resourcesBarHeightSlider:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(60)
 
-    -- Bar 2 Height Slider
     page.resourcesBar2HeightSlider = UI.CreateModernSlider(
         resourcesScrollChild,
         L["Bar 2 Height"],
@@ -201,13 +202,12 @@ local function CreateResourcesTab(page, tabId)
         CDM.db.resourcesBar2Height or 16,
         function(v)
             CDM.db.resourcesBar2Height = UI.RoundToInt(v)
-            API:RefreshConfig()
+            RefreshResourcesConfig()
         end
     )
     page.resourcesBar2HeightSlider:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(60)
 
-    -- Bar Width Slider (0 = auto-size to Essential row 1)
     page.resourcesBarWidthSlider = UI.CreateModernSlider(
         resourcesScrollChild,
         L["Bar Width (0 = Auto)"],
@@ -216,19 +216,17 @@ local function CreateResourcesTab(page, tabId)
         CDM.db.resourcesBarWidth or 0,
         function(v)
             local value = UI.RoundToInt(v)
-            -- Enforce minimum of 60 when not 0
             if value > 0 and value < 60 then
                 value = 60
                 page.resourcesBarWidthSlider.Slider:SetValue(60)
             end
             CDM.db.resourcesBarWidth = value
-            API:RefreshConfig()
+            RefreshResourcesConfig()
         end
     )
     page.resourcesBarWidthSlider:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(60)
 
-    -- Bar Spacing Slider
     page.resourcesBarSpacingSlider = UI.CreateModernSlider(
         resourcesScrollChild,
         L["Bar Spacing (Vertical)"],
@@ -237,39 +235,36 @@ local function CreateResourcesTab(page, tabId)
         CDM.db.resourcesBarSpacing or 2,
         function(v)
             CDM.db.resourcesBarSpacing = UI.RoundToInt(v)
-            API:RefreshConfig()
+            RefreshResourcesConfig()
         end
     )
     page.resourcesBarSpacingSlider:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(50)
 
-    -- Unified Border Checkbox
     page.unifiedBorderCheckbox = UI.CreateModernCheckbox(
         resourcesScrollChild,
         L["Unified Border (wrap all bars)"],
         CDM.db.resourcesUnifiedBorder,
         function(checked)
             CDM.db.resourcesUnifiedBorder = checked
-            API:RefreshConfig()
+            RefreshResourcesConfig()
         end
     )
     page.unifiedBorderCheckbox:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(30)
 
-    -- Move Buffs Down Checkbox
     page.moveBuffsDownCheckbox = UI.CreateModernCheckbox(
         resourcesScrollChild,
         L["Move buffs down dynamically"],
         CDM.db.resourcesMoveBuffsDown,
         function(checked)
             CDM.db.resourcesMoveBuffsDown = checked
-            API:RefreshConfig()
+            RefreshResourcesConfig()
         end
     )
     page.moveBuffsDownCheckbox:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(30)
 
-    -- Show Mana Bar Checkbox (per-spec, only visible for mana-capable specs)
     local manaSpecsTable = CDM.MANA_SPECS
     local currentSpecID = API:GetCurrentSpecID()
     if not currentSpecID and manaSpecsTable and not page.manaRetryScheduled then
@@ -287,7 +282,7 @@ local function CreateResourcesTab(page, tabId)
             API:GetManaEnabled(),
             function(checked)
                 API:SetManaEnabled(checked)
-                API:RefreshConfig()
+                RefreshResourcesConfig()
             end
         )
         page.manaEnabledCheckbox:SetPoint("TOPLEFT", 0, NextY(0))
@@ -311,7 +306,6 @@ local function CreateResourcesTab(page, tabId)
 
     NextY(30)
 
-    -- Bar Texture Dropdown
     local barTextureLabel = resourcesScrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     barTextureLabel:SetText(L["Bar Texture:"])
     barTextureLabel:SetPoint("TOPLEFT", 0, NextY(0))
@@ -329,7 +323,7 @@ local function CreateResourcesTab(page, tabId)
         function() return CDM.db.resourcesBarTexture end,
         function(name)
             CDM.db.resourcesBarTexture = name
-            API:RefreshConfig()
+            RefreshResourcesConfig()
         end,
         function(name)
             ddBarTexture:SetDefaultText(name)
@@ -337,7 +331,6 @@ local function CreateResourcesTab(page, tabId)
     )
     NextY(60)
 
-    -- Background Texture Dropdown
     local bgTextureLabel = resourcesScrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     bgTextureLabel:SetText(L["Background Texture:"])
     bgTextureLabel:SetPoint("TOPLEFT", 0, NextY(0))
@@ -355,7 +348,7 @@ local function CreateResourcesTab(page, tabId)
         function() return CDM.db.resourcesBarBackgroundTexture end,
         function(name)
             CDM.db.resourcesBarBackgroundTexture = name
-            API:RefreshConfig()
+            RefreshResourcesConfig()
         end,
         function(name)
             ddBgTexture:SetDefaultText(name)
@@ -363,27 +356,24 @@ local function CreateResourcesTab(page, tabId)
     )
     NextY(50)
 
-    -- Position Header
     local resourcesPositionHeader = UI.CreateHeader(resourcesScrollChild, L["Position Offsets"])
     resourcesPositionHeader:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(30)
 
-    -- X Offset Slider
     page.resourcesOffsetXSlider = UI.CreateModernSlider(
         resourcesScrollChild,
         L["X Offset"],
-        -200,
-        200,
+        -600,
+        600,
         CDM.db.resourcesOffsetX or 0,
         function(v)
             CDM.db.resourcesOffsetX = UI.RoundToInt(v)
-            API:RefreshConfig()
+            RefreshResourcesConfig()
         end
     )
     page.resourcesOffsetXSlider:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(60)
 
-    -- Y Offset Slider
     page.resourcesOffsetYSlider = UI.CreateModernSlider(
         resourcesScrollChild,
         L["Y Offset"],
@@ -392,13 +382,12 @@ local function CreateResourcesTab(page, tabId)
         CDM.db.resourcesOffsetY or -200,
         function(v)
             CDM.db.resourcesOffsetY = UI.RoundToInt(v)
-            API:RefreshConfig()
+            RefreshResourcesConfig()
         end
     )
     page.resourcesOffsetYSlider:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(50)
 
-    -- Colors Header
     local resourcesColorsHeader = UI.CreateHeader(resourcesScrollChild, L["Power Type Colors"])
     resourcesColorsHeader:SetPoint("TOPLEFT", 0, NextY(0))
 
@@ -413,7 +402,7 @@ local function CreateResourcesTab(page, tabId)
     local colorItems = {}
 
     local function AddColorItem(def)
-        local swatch = UI.CreateColorSwatch(resourcesScrollChild, def.label, def.key)
+        local swatch = UI.CreateColorSwatch(resourcesScrollChild, def.label, def.key, RESOURCES_REFRESH_SCOPES)
         table.insert(colorItems, {
             frame = swatch,
             key = def.key,
@@ -444,7 +433,6 @@ local function CreateResourcesTab(page, tabId)
     end
 
     local function LayoutColorItems(startY)
-        -- Single pass: collect visible items, hide the rest
         local visibleItems = {}
         for _, item in ipairs(colorItems) do
             local showItem
@@ -461,7 +449,6 @@ local function CreateResourcesTab(page, tabId)
             end
         end
 
-        -- Layout visible items
         local y = startY
         for i, item in ipairs(visibleItems) do
             item.frame:Show()
@@ -578,10 +565,10 @@ local function CreateResourcesTab(page, tabId)
         local windowHeight = paddingY + titleOffset + backgroundHeight + maxColumnHeight + paddingY
         window:SetSize(windowWidth, windowHeight)
 
-        local backgroundSwatch = UI.CreateColorSwatch(window, L["Background"], "resourcesBackgroundColor")
+        local backgroundSwatch = UI.CreateColorSwatch(window, L["Background"], "resourcesBackgroundColor", RESOURCES_REFRESH_SCOPES)
         backgroundSwatch:SetPoint("TOPLEFT", paddingX, -(paddingY + titleOffset))
 
-        local manaSwatch = UI.CreateColorSwatch(window, L["Mana"], "resourcesManaColor")
+        local manaSwatch = UI.CreateColorSwatch(window, L["Mana"], "resourcesManaColor", RESOURCES_REFRESH_SCOPES)
         manaSwatch:SetPoint("TOPLEFT", paddingX + swatchWidth + columnGap, -(paddingY + titleOffset))
 
         local startY = -(paddingY + titleOffset) - backgroundHeight
@@ -600,7 +587,7 @@ local function CreateResourcesTab(page, tabId)
                 for _, key in ipairs(keys) do
                     if key ~= "resourcesManaColor" then  -- Mana shown globally next to Background
                         local label = labelByKey[key] or key
-                        local swatch = UI.CreateColorSwatch(window, label, key)
+                        local swatch = UI.CreateColorSwatch(window, label, key, RESOURCES_REFRESH_SCOPES)
                         swatch:SetPoint("TOPLEFT", column.x, y)
                         y = y - swatchRowSpacing
                     end
@@ -618,7 +605,6 @@ local function CreateResourcesTab(page, tabId)
         allColorsOverlay:Show()
     end)
 
-    -- Tags Header
     local resourcesTagsHeader = UI.CreateHeader(resourcesScrollChild, L["Tags (Power Value Text)"])
     resourcesTagsHeader:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(30)
@@ -629,7 +615,6 @@ local function CreateResourcesTab(page, tabId)
         { value = "RIGHT", label = L["Right"] },
     }
 
-    -- Bar 1 and Bar 2 tag controls (identical structure, different DB keys)
     for barNum = 1, 2 do
         local isBar2 = (barNum == 2)
         local label = string.format(L["Bar %s"], barNum)
@@ -640,7 +625,6 @@ local function CreateResourcesTab(page, tabId)
         local offsetYKey = "resourcesBar" .. barNum .. "TagOffsetY"
         local colorKey = "resourcesBar" .. barNum .. "TagColor"
 
-        -- Tag Enable Checkbox (per-spec setting)
         page[prefix .. "TagEnabledCheck"] = UI.CreateModernCheckbox(
             resourcesScrollChild,
             string.format(L["Enable %s Tag (current value)"], label),
@@ -653,7 +637,6 @@ local function CreateResourcesTab(page, tabId)
         page[prefix .. "TagEnabledCheck"]:SetPoint("TOPLEFT", 0, NextY(0))
         NextY(35)
 
-        -- Font Size Slider
         page[prefix .. "TagFontSizeSlider"] = UI.CreateModernSlider(
             resourcesScrollChild,
             string.format(L["%s Font Size"], label),
@@ -667,7 +650,6 @@ local function CreateResourcesTab(page, tabId)
         page[prefix .. "TagFontSizeSlider"]:SetPoint("TOPLEFT", 0, NextY(0))
         NextY(60)
 
-        -- Anchor Dropdown
         local anchorLabel = resourcesScrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
         anchorLabel:SetText(string.format(L["%s Anchor:"], label))
         anchorLabel:SetPoint("TOPLEFT", 0, NextY(0))
@@ -691,7 +673,6 @@ local function CreateResourcesTab(page, tabId)
         )
         NextY(60)
 
-        -- Offset X Slider
         page[prefix .. "TagOffsetXSlider"] = UI.CreateModernSlider(
             resourcesScrollChild,
             string.format(L["%s Offset X"], label),
@@ -705,7 +686,6 @@ local function CreateResourcesTab(page, tabId)
         page[prefix .. "TagOffsetXSlider"]:SetPoint("TOPLEFT", 0, NextY(0))
         NextY(60)
 
-        -- Offset Y Slider
         page[prefix .. "TagOffsetYSlider"] = UI.CreateModernSlider(
             resourcesScrollChild,
             string.format(L["%s Offset Y"], label),
@@ -719,17 +699,15 @@ local function CreateResourcesTab(page, tabId)
         page[prefix .. "TagOffsetYSlider"]:SetPoint("TOPLEFT", 0, NextY(0))
         NextY(60)
 
-        -- Tag Color Picker
-        page[prefix .. "TagColorPicker"] = UI.CreateColorSwatch(resourcesScrollChild, string.format(L["%s Text Color"], label), colorKey)
+        page[prefix .. "TagColorPicker"] = UI.CreateColorSwatch(resourcesScrollChild, string.format(L["%s Text Color"], label), colorKey, RESOURCES_REFRESH_SCOPES)
         page[prefix .. "TagColorPicker"].OnChange = RefreshTagStyle
         page[prefix .. "TagColorPicker"]:SetPoint("TOPLEFT", 0, NextY(0))
         NextY(50)
     end
 
-    -- Fade controls when module is disabled
     setControlsEnabled = UI.SetupModuleToggle(resourcesScrollChild, page.controls.resourcesEnabled)
     setControlsEnabled(enabled)
 end
 
--- Register this tab
 API:RegisterConfigTab("resources", L["Resources"], CreateResourcesTab, 10)
+

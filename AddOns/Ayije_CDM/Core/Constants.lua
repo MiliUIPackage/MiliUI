@@ -59,13 +59,15 @@ CDM.CONST = {
         ESSENTIAL = "EssentialCooldownViewer",
         UTILITY = "UtilityCooldownViewer",
         BUFF = "BuffIconCooldownViewer",
-        BUFF_SEC = "BuffIconCooldownViewer_Secondary",
-        BUFF_TERT = "BuffIconCooldownViewer_Tertiary",
         BUFF_BAR = "BuffBarCooldownViewer",
     },
 
     SOUL_CLEAVE_SPELL_ID = 228477,
     MAELSTROM_WEAPON_SPELL_ID = 344179,
+    DEVOURER_VOID_METAMORPHOSIS_SPELL_ID = 1217607,
+    DEVOURER_RESOURCE_AURA_SPELL_ID = 1225789,
+    DEVOURER_COLLAPSING_STAR_SPELL_ID = 1227702,
+    DEVOURER_SOUL_GLUTTON_TALENT_SPELL_ID = 1247534,
     GCD_SPELL_ID = 61304,
 }
 
@@ -244,7 +246,7 @@ function CDM.CONST.IsPixelIconBorderMode()
 end
 
 function CDM.CONST.GetCooldownIconGapPixels(spacing, region)
-    return CDM.CONST.ToPixelCountForRegion(spacing or 0, region or UIParent, 0)
+    return CDM.CONST.ToPixelCountForRegion(spacing or 0, region or UIParent, nil)
 end
 
 do

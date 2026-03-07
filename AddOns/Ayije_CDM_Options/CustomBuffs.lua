@@ -1,6 +1,3 @@
--- Config/CustomBuffs.lua - Custom Timers Tab
--- Allows users to add spells that trigger custom buff icons
-
 local Runtime = _G["Ayije_CDM"]
 if not Runtime then return end
 local API = Runtime.API
@@ -9,10 +6,6 @@ local CDM = Runtime
 local CDM_C = CDM and CDM.CONST or {}
 local UI = ns.ConfigUI
 local L = Runtime.L
-
--- =========================================================================
---  HELPER FUNCTIONS
--- =========================================================================
 
 local function UpdateLimitDisplay(page)
     if not page.countText or not page.addBtn then return end
@@ -52,31 +45,26 @@ local function RefreshSpellList(listContainer)
     for _, entry in ipairs(entries) do
         local spellID = entry.spellID
         local config = entry.config
-        -- Create row frame
         local row = CreateFrame("Frame", nil, listContainer)
         row:SetSize(340, 36)
         row:SetPoint("TOPLEFT", 0, yOffset)
 
-        -- Icon
         local icon = row:CreateTexture(nil, "ARTWORK")
         icon:SetSize(28, 28)
         icon:SetPoint("LEFT", 0, 0)
         icon:SetTexture(config.icon)
         CDM_C.ApplyIconTexCoord(icon, true)
 
-        -- Spell name
         local nameText = row:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
         nameText:SetPoint("LEFT", icon, "RIGHT", 8, 6)
         nameText:SetText(config.name or (L["Spell"] .. " " .. spellID))
         UI.SetTextWhite(nameText)
 
-        -- Spell ID and duration
         local infoText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         infoText:SetPoint("LEFT", icon, "RIGHT", 8, -8)
         infoText:SetText(string.format(L["ID: %s  |  Duration: %ss"], spellID, config.duration))
         UI.SetTextMuted(infoText)
 
-        -- Remove button
         local removeBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
         removeBtn:SetSize(60, 22)
         removeBtn:SetPoint("RIGHT", -5, 0)
@@ -89,23 +77,16 @@ local function RefreshSpellList(listContainer)
         yOffset = yOffset - 40
     end
 
-    -- Update container height
     listContainer:SetHeight(math.max(100, math.abs(yOffset)))
 end
-
--- =========================================================================
---  TAB CREATION
--- =========================================================================
 
 local function CreateCustomBuffsTab(page, tabId)
     local yOffset = -40
 
-    -- Header
     local header = UI.CreateHeader(page, L["Custom Timers"])
     header:SetPoint("TOPLEFT", 35, yOffset)
     yOffset = yOffset - 25
 
-    -- Description
     local desc = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     desc:SetPoint("TOPLEFT", 35, yOffset)
     desc:SetWidth(400)
@@ -114,12 +95,10 @@ local function CreateCustomBuffsTab(page, tabId)
     UI.SetTextSubtle(desc)
     yOffset = yOffset - 50
 
-    -- Add Spell Section Header
     local addHeader = UI.CreateSubHeader(page, L["Add Tracked Spell"])
     addHeader:SetPoint("TOPLEFT", 35, yOffset)
     yOffset = yOffset - 25
 
-    -- Spell ID input
     local spellIDLabel = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     spellIDLabel:SetPoint("TOPLEFT", 35, yOffset)
     spellIDLabel:SetText(L["Spell ID:"])
@@ -132,7 +111,6 @@ local function CreateCustomBuffsTab(page, tabId)
     spellIDInput:SetMaxLetters(10)
     page.spellIDInput = spellIDInput
 
-    -- Duration input
     local durationLabel = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     durationLabel:SetPoint("LEFT", spellIDInput, "RIGHT", 20, 0)
     durationLabel:SetText(L["Duration (sec):"])
@@ -148,20 +126,17 @@ local function CreateCustomBuffsTab(page, tabId)
 
     yOffset = yOffset - 35
 
-    -- Add button
     local addBtn = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
     addBtn:SetSize(100, 24)
     addBtn:SetPoint("TOPLEFT", 35, yOffset)
     addBtn:SetText(L["Add Spell"])
 
-    -- Preview text (shows spell name when valid ID entered)
     local previewText = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     previewText:SetPoint("LEFT", addBtn, "RIGHT", 15, 0)
     previewText:SetText("")
     UI.SetTextSuccess(previewText)
     page.previewText = previewText
 
-    -- Update preview when spell ID changes
     spellIDInput:SetScript("OnTextChanged", function(self)
         local text = self:GetText()
         local spellID = tonumber(text)
@@ -181,7 +156,6 @@ local function CreateCustomBuffsTab(page, tabId)
 
     yOffset = yOffset - 40
 
-    -- Tracked Spells List Header
     local listHeader = UI.CreateSubHeader(page, L["Tracked Spells"])
     listHeader:SetPoint("TOPLEFT", 35, yOffset)
 
@@ -192,13 +166,11 @@ local function CreateCustomBuffsTab(page, tabId)
 
     yOffset = yOffset - 25
 
-    -- Simple list container (no scroll frame needed for few items)
     local listContainer = CreateFrame("Frame", nil, page)
     listContainer:SetPoint("TOPLEFT", 35, yOffset)
     listContainer:SetSize(400, 300)
     page.listContainer = listContainer
 
-    -- Add button click handler
     addBtn:SetScript("OnClick", function()
         local spellIDText = spellIDInput:GetText()
         local durationText = durationInput:GetText()
@@ -236,14 +208,11 @@ local function CreateCustomBuffsTab(page, tabId)
         end
     end)
 
-    -- Initial list refresh
     RefreshSpellList(listContainer)
 
-    -- Store refresh function for external use
     page.RefreshList = function()
         RefreshSpellList(listContainer)
     end
 end
 
--- Register this tab (navOrder 10 puts it after resources in Features)
 API:RegisterConfigTab("custombuffs", L["Custom Timers"], CreateCustomBuffsTab, 11)

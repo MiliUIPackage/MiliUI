@@ -73,6 +73,16 @@ local function GetCurrentPower(powerType)
     if type(powerType) == "string" then
         if powerType == "SoulFragments" then
             return C_Spell.GetSpellCastCount(CDM_C.SOUL_CLEAVE_SPELL_ID) or 0
+        elseif powerType == "DevourerSoulFragments" then
+            if CDM.GetDevourerSoulValueMax then
+                local current = CDM.GetDevourerSoulValueMax()
+                return current or 0
+            end
+
+            local inVoidMetamorphosis = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID) ~= nil
+            local trackedAuraSpellID = inVoidMetamorphosis and CDM_C.DEVOURER_COLLAPSING_STAR_SPELL_ID or CDM_C.DEVOURER_RESOURCE_AURA_SPELL_ID
+            local auraData = trackedAuraSpellID and C_UnitAuras.GetPlayerAuraBySpellID(trackedAuraSpellID) or nil
+            return auraData and auraData.applications or 0
         elseif powerType == "MaelstromWeapon" then
             local auraData = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.MAELSTROM_WEAPON_SPELL_ID)
             return auraData and auraData.applications or 0
@@ -152,7 +162,7 @@ function TAGS:UpdateTagText(textFrame)
 
     if isSecret or lastSecret or (textFrame._lastDisplayValue ~= current) then
         textFrame._lastDisplayValue = isSecret and nil or current
-        if textFrame.powerType == "Stagger" or textFrame.powerType == "SoulFragments" then
+        if textFrame.powerType == "Stagger" or textFrame.powerType == "SoulFragments" or textFrame.powerType == "DevourerSoulFragments" then
             textFrame.text:SetText(C_StringUtil.TruncateWhenZero(current))
         elseif textFrame.powerType == Enum.PowerType.Mana then
             if CDM.db and CDM.db.resourcesManaPercentage then
@@ -295,4 +305,4 @@ end
 CDM:RegisterRefreshCallback("tags", function()
     CDM.TAGS:MarkDirty()
     RefreshAllTagsIfAny()
-end, 52)
+end, 52, { "resources_visuals", "text_visuals", "viewers" })

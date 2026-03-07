@@ -1,6 +1,3 @@
--- Config/ImportExport.lua - Profile Import/Export
--- Uses C_EncodingUtil APIs (Patch 11.1.5+) for CBOR serialization and compression
-
 local AddonName = "Ayije_CDM"
 local Runtime = _G[AddonName]
 if not Runtime then return end
@@ -9,16 +6,120 @@ local ns = Runtime._OptionsNS
 local CDM = Runtime
 local UI = ns.ConfigUI
 local L = Runtime.L
-
--- =========================================================================
--- EXPORT/IMPORT CONFIGURATION
--- =========================================================================
+local ProfileIO = CDM.ProfileIO
 
 local ConfigKeys = ns.ConfigKeys or {}
 local exportCategories = ConfigKeys.categories or {}
 local exportCategoryOrder = ConfigKeys.order or {}
 local METADATA_KEYS = { version = true, addon = true, timestamp = true, profileName = true }
+local IMPORT_STATUS_SUCCESS_DURATION = 3
+
+local LEGACY_MIGRATION_KEYS = {
+    "sizeBuffSecondary", "sizeBuffTertiary",
+    "buffSecondaryOffsetX", "buffSecondaryOffsetY",
+    "buffTertiaryOffsetX", "buffTertiaryOffsetY",
+    "buffSecondaryHorizontal", "buffTertiaryHorizontal",
+    "countPositionSec", "countOffsetXSec", "countOffsetYSec",
+    "countPositionTert", "countOffsetXTert", "countOffsetYTert",
+}
 local importExportLastStatus = nil
+local importExportStatusTimer = nil
+local activeStatusFontString = nil
+
+local function CancelImportStatusTimer()
+    if importExportStatusTimer then
+        importExportStatusTimer:Cancel()
+        importExportStatusTimer = nil
+    end
+end
+
+ns.CancelImportStatusTimer = CancelImportStatusTimer
+
+local function ClearImportStatus(fontString)
+    CancelImportStatusTimer()
+    importExportLastStatus = nil
+    if fontString then
+        fontString:SetText("")
+        UI.SetTextMuted(fontString)
+    end
+end
+
+local function ApplyImportStatus(fontString)
+    local status = importExportLastStatus
+    CancelImportStatusTimer()
+    if not fontString then
+        return
+    end
+
+    if not status or not status.message then
+        fontString:SetText("")
+        UI.SetTextMuted(fontString)
+        return
+    end
+
+    if status.expiresAt and status.expiresAt <= GetTime() then
+        ClearImportStatus(fontString)
+        return
+    end
+
+    fontString:SetText(status.message)
+    if status.success then
+        UI.SetTextSuccess(fontString)
+    else
+        UI.SetTextError(fontString)
+    end
+
+    if status.expiresAt then
+        importExportStatusTimer = C_Timer.NewTimer(math.max(0, status.expiresAt - GetTime()), function()
+            importExportStatusTimer = nil
+            importExportLastStatus = nil
+            if fontString then
+                fontString:SetText("")
+                UI.SetTextMuted(fontString)
+            end
+        end)
+    end
+end
+
+local function SetImportStatus(fontString, success, message)
+    importExportLastStatus = {
+        success = success,
+        message = message,
+        expiresAt = success and (GetTime() + IMPORT_STATUS_SUCCESS_DURATION) or nil,
+    }
+    ApplyImportStatus(activeStatusFontString or fontString)
+end
+
+local function MapImportErrorCode(errCode)
+    if errCode == "invalid_base64" then
+        return L["Invalid Base64 encoding"]
+    end
+    if errCode == "decompression_failed" then
+        return L["Decompression failed"]
+    end
+    if errCode == "combat_blocked" then
+        return L["Cannot open config while in combat"]
+    end
+    if errCode == "invalid_profile_version" then
+        return L["Invalid profile version"]
+    end
+    if errCode == "missing_profile_metadata" then
+        return L["Missing profile metadata"]
+    end
+    if errCode == "wrong_addon" then
+        return L["Profile is for a different addon"]
+    end
+    if errCode == "empty" then
+        return L["No import string provided"]
+    end
+    if errCode == "type_mismatch" then
+        return L["Invalid profile data"]
+    end
+    if errCode == "apply_failed" then
+        return L["Failed to import profile"]
+    end
+    return L["Invalid profile data"]
+end
 
 local function GetCategoryOrder()
     if exportCategoryOrder and #exportCategoryOrder > 0 then
@@ -33,182 +134,76 @@ local function GetCategoryOrder()
     return ordered
 end
 
-local function BuildKeysToExport(selectedCategories)
-    local keysToExport = {}
-    for categoryId, categoryDef in pairs(exportCategories) do
-        if not selectedCategories or selectedCategories[categoryId] then
-            for _, key in ipairs(categoryDef.keys) do
-                keysToExport[key] = true
-            end
-        end
-    end
-    return keysToExport
-end
-
-local function BuildValidKeys()
-    local validKeys = {}
-    for key in pairs(METADATA_KEYS) do
-        validKeys[key] = true
-    end
-    for _, categoryDef in pairs(exportCategories) do
-        for _, key in ipairs(categoryDef.keys) do
-            validKeys[key] = true
-        end
-    end
-    return validKeys
-end
-
--- =========================================================================
--- CORE EXPORT/IMPORT FUNCTIONS
--- =========================================================================
-
---- Export profile to Base64 string
--- @param categories table Optional table of category names to include (nil = all)
--- @return string Base64 encoded profile string
 function API:ExportProfile(categories)
-    local profile = {
-        version = 1,
-        addon = AddonName,
-        timestamp = time(),
-        profileName = CDM.activeProfileName,
-    }
-
-    -- Collect keys from selected categories
-    local keysToExport = BuildKeysToExport(categories)
-
-    -- Copy values from SavedVariables
-    for key in pairs(keysToExport) do
-        local value = CDM.db[key]
-        if value ~= nil then
-            -- Deep copy tables to avoid reference issues
-            if type(value) == "table" then
-                profile[key] = API:DeepCopy(value)
-            else
-                profile[key] = value
-            end
-        end
-    end
-
-    -- Serialize with CBOR, compress, and encode to Base64
-    local success, cbor = pcall(C_EncodingUtil.SerializeCBOR, profile)
-    if not success then
-        print("|cffff0000[CDM Export]|r " .. string.format(L["Serialization failed: %s"], tostring(cbor)))
+    if not ProfileIO or not ProfileIO.ExportSegmentedProfile then
         return nil
     end
 
-    local compressOk, compressed = pcall(C_EncodingUtil.CompressString, cbor)
-    if not compressOk or not compressed then
-        print("|cffff0000[CDM Export]|r " .. string.format(L["Compression failed: %s"], tostring(compressed)))
-        return nil
+    local exportString, errCode, errValue = ProfileIO:ExportSegmentedProfile(
+        CDM.db,
+        categories,
+        exportCategories,
+        CDM.activeProfileName
+    )
+
+    if exportString then
+        return exportString
     end
 
-    local encodeOk, base64 = pcall(C_EncodingUtil.EncodeBase64, compressed)
-    if not encodeOk or not base64 then
-        print("|cffff0000[CDM Export]|r " .. string.format(L["Base64 encoding failed: %s"], tostring(base64)))
-        return nil
+    if errCode == "serialization_failed" then
+        print("|cffff0000[CDM Export]|r " .. string.format(L["Serialization failed: %s"], tostring(errValue)))
+    elseif errCode == "compression_failed" then
+        print("|cffff0000[CDM Export]|r " .. string.format(L["Compression failed: %s"], tostring(errValue)))
+    elseif errCode == "base64_failed" then
+        print("|cffff0000[CDM Export]|r " .. string.format(L["Base64 encoding failed: %s"], tostring(errValue)))
+    elseif errCode == "no_categories_selected" then
+        print("|cffff0000[CDM Export]|r " .. L["Select at least one category to export."])
     end
-
-    return "!ACDM:" .. base64
+    return nil
 end
 
---- Import profile from Base64 string
--- @param encodedString string Base64 encoded profile string
--- @return boolean success, string message
 function API:ImportProfile(encodedString)
     if not encodedString or encodedString == "" then
         return false, L["No import string provided"]
     end
 
-    -- Clean up the string (remove whitespace)
-    encodedString = encodedString:gsub("%s+", "")
-
-    -- Strip prefix if present
-    if encodedString:sub(1, 6) == "!ACDM:" then
-        encodedString = encodedString:sub(7)
-    end
-
-    -- Decode Base64
-    local success, compressed = pcall(C_EncodingUtil.DecodeBase64, encodedString)
-    if not success or not compressed then
-        return false, L["Invalid Base64 encoding"]
-    end
-
-    -- Decompress
-    local decompressed
-    success, decompressed = pcall(C_EncodingUtil.DecompressString, compressed)
-    if not success or not decompressed then
-        return false, L["Decompression failed"]
-    end
-
-    -- Deserialize CBOR
-    local profile
-    success, profile = pcall(C_EncodingUtil.DeserializeCBOR, decompressed)
-    if not success or not profile then
+    if not ProfileIO then
         return false, L["Invalid profile data"]
     end
 
-    -- Validate profile
-    if not profile.version or not profile.addon then
-        return false, L["Missing profile metadata"]
+    local payload, decodeErr = ProfileIO:DecodePayload(encodedString)
+    if not payload then
+        return false, MapImportErrorCode(decodeErr)
     end
 
-    if profile.addon ~= AddonName then
-        return false, string.format(L["Profile is for a different addon: %s"], tostring(profile.addon))
-    end
-
-    -- Validate profile version (allow forward compatibility for minor versions)
-    if type(profile.version) ~= "number" or profile.version < 1 then
-        return false, L["Invalid profile version"]
-    end
-
-    -- Build whitelist of valid keys from exportCategories
-    local validKeys = BuildValidKeys()
-
-    local function IsValidType(key, value)
-        local default = CDM.defaults[key]
-        if default == nil then return true end
-        return type(value) == type(default)
-    end
-
-    -- Determine profile name (deduplicate if it already exists)
-    local profileName = profile.profileName or "Imported"
-    local baseName = profileName
-    local suffix = 1
-    while Ayije_CDMDB.profiles[profileName] do
-        suffix = suffix + 1
-        profileName = baseName .. " (" .. suffix .. ")"
-    end
-
-    -- Create new profile with defaults
-    local newProfile = {}
-    for key, value in pairs(CDM.defaults) do
-        if type(value) == "table" then
-            newProfile[key] = API:DeepCopy(value)
-        else
-            newProfile[key] = value
+    local prepared, buildErr = ProfileIO:BuildImportProfile(payload, {
+        addonName = AddonName,
+        metadataKeys = METADATA_KEYS,
+        categoryDefs = exportCategories,
+        defaults = CDM.defaults,
+        legacyMigrationKeys = LEGACY_MIGRATION_KEYS,
+        existingProfiles = Ayije_CDMDB and Ayije_CDMDB.profiles,
+    })
+    if not prepared then
+        local code = buildErr and buildErr.code
+        if code == "missing_profile_metadata" then
+            return false, MapImportErrorCode(code)
         end
-    end
-
-    -- Apply imported settings over defaults
-    local imported = 0
-    for key, value in pairs(profile) do
-        if validKeys[key] and not METADATA_KEYS[key] and IsValidType(key, value) then
-            if type(value) == "table" then
-                newProfile[key] = API:DeepCopy(value)
-            else
-                newProfile[key] = value
-            end
-            imported = imported + 1
+        if code == "wrong_addon" then
+            return false, string.format(L["Profile is for a different addon: %s"], tostring(buildErr.addon))
         end
+        if code == "type_mismatch" then
+            return false, string.format(L["Type mismatch on key '%s': expected %s, got %s"], tostring(buildErr.key), tostring(buildErr.expected), tostring(buildErr.actual))
+        end
+        return false, MapImportErrorCode(code)
     end
 
-    -- Register and activate the new profile
-    local ok, importErr = API:ImportProfileData(profileName, newProfile)
+    local ok, importErr = API:ImportProfileData(prepared.profileName, prepared.profileData)
     if not ok then
-        return false, importErr or L["Failed to import profile"]
+        local mapped = MapImportErrorCode(importErr)
+        return false, mapped or importErr or L["Failed to import profile"]
     end
 
-    -- Invalidate spell registry cache
     if API.InvalidateSpellRegistryCache then
         local specIndex = GetSpecialization()
         if specIndex then
@@ -219,15 +214,10 @@ function API:ImportProfile(encodedString)
         end
     end
 
-    return true, string.format(L["Imported %d settings as '%s'"], imported, profileName)
+    return true, string.format(L["Imported %d settings as '%s'"], prepared.importedCount, prepared.profileName)
 end
 
--- =========================================================================
--- UI CREATION
--- =========================================================================
-
 local function CreateImportExportTab(page, tabId)
-    -- Export Section
     local exportHeader = UI.CreateHeader(page, L["Export Profile"])
     exportHeader:SetPoint("TOPLEFT", 35, -40)
 
@@ -236,7 +226,6 @@ local function CreateImportExportTab(page, tabId)
     exportDesc:SetText(L["Select categories to include, then click Export."])
     UI.SetTextMuted(exportDesc)
 
-    -- Category checkboxes
     local checkboxes = {}
     local sortedCategories = GetCategoryOrder()
     local categoryCount = 0
@@ -269,7 +258,6 @@ local function CreateImportExportTab(page, tabId)
         end
     end
 
-    -- Export button
     local exportBtn = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
     exportBtn:SetSize(120, 26)
     local rowCount = math.max(1, math.ceil(categoryCount / 3))
@@ -277,7 +265,6 @@ local function CreateImportExportTab(page, tabId)
     exportBtn:SetPoint("TOPLEFT", exportDesc, "BOTTOMLEFT", 0, exportBtnYOffset)
     exportBtn:SetText(L["Export"])
 
-    -- Export result editbox (read-only, for copying)
     local exportBoxLabel = page:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     exportBoxLabel:SetPoint("TOPLEFT", exportBtn, "BOTTOMLEFT", 0, -16)
     exportBoxLabel:SetText(L["Export String (Ctrl+C to copy):"])
@@ -287,7 +274,6 @@ local function CreateImportExportTab(page, tabId)
     exportBoxFrame:SetPoint("TOPLEFT", exportBoxLabel, "BOTTOMLEFT", 0, -4)
 
     exportBtn:SetScript("OnClick", function()
-        -- Gather selected categories
         local selectedCategories = {}
         for categoryId, checkbox in pairs(checkboxes) do
             if checkbox:GetChecked() then
@@ -307,7 +293,6 @@ local function CreateImportExportTab(page, tabId)
         end
     end)
 
-    -- Import Section
     local importHeader = UI.CreateHeader(page, L["Import Profile"], exportBoxFrame, -15)
 
     local importDesc = page:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
@@ -318,66 +303,38 @@ local function CreateImportExportTab(page, tabId)
     local importBoxFrame, importEditBox = UI.CreateScrollableEditBox(page, 420, 80, 380)
     importBoxFrame:SetPoint("TOPLEFT", importDesc, "BOTTOMLEFT", 0, -8)
 
-    -- Import button
     local importBtn = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
     importBtn:SetSize(120, 26)
     importBtn:SetPoint("TOPLEFT", importBoxFrame, "BOTTOMLEFT", 0, -6)
     importBtn:SetText(L["Import"])
 
-    -- Import status text
     local importStatus = page:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     importStatus:SetPoint("LEFT", importBtn, "RIGHT", 12, 0)
     importStatus:SetText("")
     UI.SetTextMuted(importStatus)
-
-    local savedImportStatus = importExportLastStatus
-    if savedImportStatus and savedImportStatus.message then
-        importStatus:SetText(savedImportStatus.message)
-        if savedImportStatus.success then
-            UI.SetTextSuccess(importStatus)
-        else
-            UI.SetTextError(importStatus)
-        end
-    end
+    activeStatusFontString = importStatus
+    ApplyImportStatus(importStatus)
 
     importBtn:SetScript("OnClick", function()
         local importString = importEditBox:GetText()
         local success, message = API:ImportProfile(importString)
-        importExportLastStatus = {
-            success = success,
-            message = message,
-        }
+        SetImportStatus(importStatus, success, message)
 
-        if success then
-            importEditBox:SetText("")
-            if API.RebuildConfigFrame then
-                API:RebuildConfigFrame("importexport")
-            else
-                importStatus:SetText(message)
-                UI.SetTextSuccess(importStatus)
-            end
-        else
-            importStatus:SetText(message)
-            UI.SetTextError(importStatus)
-        end
+        -- RebuildConfigFrame is already triggered by ImportProfileData
+        -- via QueueCanonicalProfileRefresh; no explicit call needed here.
     end)
 
-    -- Clear button
     local clearBtn = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
     clearBtn:SetSize(80, 26)
     clearBtn:SetPoint("LEFT", importBtn, "RIGHT", 8, 0)
     clearBtn:SetText(L["Clear"])
     clearBtn:SetScript("OnClick", function()
-        importExportLastStatus = nil
         importEditBox:SetText("")
-        importStatus:SetText("")
-        UI.SetTextMuted(importStatus)
+        ClearImportStatus(importStatus)
     end)
 
-    -- Adjust status position after clear button
     importStatus:ClearAllPoints()
     importStatus:SetPoint("LEFT", clearBtn, "RIGHT", 12, 0)
 end
 
--- Register this tab
 API:RegisterConfigTab("importexport", L["Import/Export"], CreateImportExportTab, 12)

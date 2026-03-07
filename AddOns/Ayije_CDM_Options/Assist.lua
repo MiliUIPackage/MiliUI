@@ -6,10 +6,19 @@ local CDM = Runtime
 local UI = ns.ConfigUI
 local L = Runtime.L
 
+local ASSIST_REFRESH_SCOPES = { "assist", "viewers", "trackers_layout" }
+
+local function RefreshAssistConfig()
+    if API.RefreshScopes then
+        API:RefreshScopes(ASSIST_REFRESH_SCOPES)
+        return
+    end
+    API:RefreshConfig()
+end
+
 local function CreateAssistTab(page, tabId)
     local scrollChild = page
 
-    -- Rotation Assist section
     local raHeader = UI.CreateHeader(scrollChild, L["Rotation Assist"])
     raHeader:SetPoint("TOPLEFT", 35, -40)
 
@@ -21,7 +30,7 @@ local function CreateAssistTab(page, tabId)
         function(checked)
             CDM.db.rotationAssistEnabled = checked
             if setRAControlsEnabled then setRAControlsEnabled(checked) end
-            API:RefreshConfig()
+            RefreshAssistConfig()
         end
     )
     page.controls.rotationAssistEnabled:SetPoint("TOPLEFT", raHeader, "BOTTOMLEFT", 0, -15)
@@ -30,7 +39,7 @@ local function CreateAssistTab(page, tabId)
         scrollChild, L["Highlight Size"], 0.2, 0.4, CDM.db.rotationAssistGlowRatio or 0.33, 0.01, 2,
         function(v)
             CDM.db.rotationAssistGlowRatio = v
-            API:RefreshConfig()
+            RefreshAssistConfig()
         end
     )
     page.controls.rotationAssistGlowRatio:SetPoint("TOPLEFT", page.controls.rotationAssistEnabled, "BOTTOMLEFT", 0, -15)
@@ -48,7 +57,6 @@ local function CreateAssistTab(page, tabId)
     end
     setRAControlsEnabled(CDM.db.rotationAssistEnabled or false)
 
-    -- Keybindings section
     local mainHeader = UI.CreateHeader(scrollChild, L["Keybindings"])
     mainHeader:SetPoint("TOPLEFT", page.controls.rotationAssistGlowRatio, "BOTTOMLEFT", 0, -20)
 
@@ -60,7 +68,7 @@ local function CreateAssistTab(page, tabId)
         function(checked)
             CDM.db.assistEnabled = checked
             if setKBControlsEnabled then setKBControlsEnabled(checked) end
-            API:RefreshConfig()
+            RefreshAssistConfig()
         end
     )
     page.controls.assistEnabled:SetPoint("TOPLEFT", mainHeader, "BOTTOMLEFT", 0, -15)
@@ -69,12 +77,12 @@ local function CreateAssistTab(page, tabId)
         scrollChild, L["Font Size"], 1, 30, CDM.db.assistFontSize or 15,
         function(v)
             CDM.db.assistFontSize = v
-            API:RefreshConfig()
+            RefreshAssistConfig()
         end
     )
     page.controls.assistFontSize:SetPoint("TOPLEFT", page.controls.assistEnabled, "BOTTOMLEFT", 0, -15)
 
-    page.assistColorPicker = UI.CreateColorSwatch(scrollChild, L["Color"], "assistColor")
+    page.assistColorPicker = UI.CreateColorSwatch(scrollChild, L["Color"], "assistColor", ASSIST_REFRESH_SCOPES)
     page.assistColorPicker:SetPoint("TOPLEFT", page.controls.assistFontSize, "BOTTOMLEFT", 0, -15)
 
     local lblPos = scrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
@@ -93,7 +101,7 @@ local function CreateAssistTab(page, tabId)
         function(pos)
             CDM.db.assistPosition = pos
             ddPos:SetDefaultText(pos)
-            API:RefreshConfig()
+            RefreshAssistConfig()
         end
     )
 
@@ -101,7 +109,7 @@ local function CreateAssistTab(page, tabId)
         scrollChild, L["X Offset"], -20, 20, CDM.db.assistOffsetX or 0,
         function(v)
             CDM.db.assistOffsetX = v
-            API:RefreshConfig()
+            RefreshAssistConfig()
         end
     )
     page.controls.assistOffsetX:SetPoint("TOPLEFT", ddPos, "BOTTOMLEFT", 0, -15)
@@ -110,7 +118,7 @@ local function CreateAssistTab(page, tabId)
         scrollChild, L["Y Offset"], -20, 20, CDM.db.assistOffsetY or 0,
         function(v)
             CDM.db.assistOffsetY = v
-            API:RefreshConfig()
+            RefreshAssistConfig()
         end
     )
     page.controls.assistOffsetY:SetPoint("TOPLEFT", page.controls.assistOffsetX, "BOTTOMLEFT", 0, -15)

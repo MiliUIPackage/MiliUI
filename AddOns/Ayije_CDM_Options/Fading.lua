@@ -6,13 +6,22 @@ local CDM = Runtime
 local UI = ns.ConfigUI
 local L = Runtime.L
 
+local FADING_REFRESH_SCOPES = { "fading", "viewers" }
+
+local function RefreshFadingConfig()
+    if API.RefreshScopes then
+        API:RefreshScopes(FADING_REFRESH_SCOPES)
+        return
+    end
+    API:RefreshConfig()
+end
+
 local function CreateFadingTab(page, tabId)
     local scrollChild = page
 
     local mainHeader = UI.CreateHeader(scrollChild, L["Fading"])
     mainHeader:SetPoint("TOPLEFT", 35, -40)
 
-    -- Master toggle
     local setControlsEnabled
     page.controls.fadingEnabled = UI.CreateModernCheckbox(
         scrollChild,
@@ -21,12 +30,11 @@ local function CreateFadingTab(page, tabId)
         function(checked)
             CDM.db.fadingEnabled = checked
             if setControlsEnabled then setControlsEnabled(checked) end
-            API:RefreshConfig()
+            RefreshFadingConfig()
         end
     )
     page.controls.fadingEnabled:SetPoint("TOPLEFT", mainHeader, "BOTTOMLEFT", 0, -15)
 
-    -- Trigger section
     local triggerHeader = UI.CreateSubHeader(scrollChild, L["Fade Trigger"])
     triggerHeader:SetPoint("TOPLEFT", page.controls.fadingEnabled, "BOTTOMLEFT", 0, -15)
 
@@ -42,7 +50,7 @@ local function CreateFadingTab(page, tabId)
             CDM.db.fadingTrigger = "notarget"
             noTargetCheckbox:SetChecked(true)
             oocCheckbox:SetChecked(false)
-            API:RefreshConfig()
+            RefreshFadingConfig()
         end
     )
     noTargetCheckbox:SetPoint("TOPLEFT", triggerHeader, "BOTTOMLEFT", 0, -10)
@@ -56,23 +64,21 @@ local function CreateFadingTab(page, tabId)
             CDM.db.fadingTrigger = "ooc"
             oocCheckbox:SetChecked(true)
             noTargetCheckbox:SetChecked(false)
-            API:RefreshConfig()
+            RefreshFadingConfig()
         end
     )
     oocCheckbox:SetPoint("TOPLEFT", noTargetCheckbox, "BOTTOMLEFT", 0, -5)
     page.controls.oocCheckbox = oocCheckbox
 
-    -- Opacity slider
     page.controls.fadingOpacity = UI.CreateModernSlider(
         scrollChild, L["Faded Opacity"], 0, 100, CDM.db.fadingOpacity or 0,
         function(v)
             CDM.db.fadingOpacity = v
-            API:RefreshConfig()
+            RefreshFadingConfig()
         end
     )
     page.controls.fadingOpacity:SetPoint("TOPLEFT", oocCheckbox, "BOTTOMLEFT", 0, -15)
 
-    -- Targets section
     local targetsHeader = UI.CreateSubHeader(scrollChild, L["Apply Fading To"])
     targetsHeader:SetPoint("TOPLEFT", page.controls.fadingOpacity, "BOTTOMLEFT", 0, -15)
 
@@ -95,7 +101,7 @@ local function CreateFadingTab(page, tabId)
             CDM.db[def.key] ~= false,
             function(checked)
                 CDM.db[def.key] = checked
-                API:RefreshConfig()
+                RefreshFadingConfig()
             end
         )
         cb:SetPoint("TOPLEFT", prevControl, "BOTTOMLEFT", 0, prevControl == targetsHeader and -10 or -5)

@@ -22,7 +22,15 @@ local function BroadcastSwatchColor(key, r, g, b, a)
     end
 end
 
-function UI.CreateColorSwatch(parent, label, key)
+local function TriggerConfigRefresh(scopes)
+    if scopes and API.RefreshScopes then
+        API:RefreshScopes(scopes)
+        return
+    end
+    API:RefreshConfig()
+end
+
+function UI.CreateColorSwatch(parent, label, key, refreshScopes)
     local frame = CreateFrame("Frame", nil, parent)
     frame:SetSize(250, 30)
 
@@ -61,7 +69,7 @@ function UI.CreateColorSwatch(parent, label, key)
             local a = ColorPickerFrame:GetColorAlpha()
             CDM.db[key] = { r = r, g = g, b = b, a = a }
             BroadcastSwatchColor(key, r, g, b, a)
-            API:RefreshConfig()
+            TriggerConfigRefresh(refreshScopes)
         end
 
         local info = {
@@ -70,7 +78,7 @@ function UI.CreateColorSwatch(parent, label, key)
             cancelFunc = function(prev)
                 CDM.db[key] = prev
                 BroadcastSwatchColor(key, prev.r, prev.g, prev.b, prev.a)
-                API:RefreshConfig()
+                TriggerConfigRefresh(refreshScopes)
             end,
             r = color.r, g = color.g, b = color.b, opacity = color.a,
             hasOpacity = true,
@@ -102,7 +110,7 @@ function UI.CreateSimpleColorPicker(parent, initialColor, onChange)
         bgFile = CDM_C.TEX_WHITE8X8,
     })
 
-    local color = initialColor or {r = 1, g = 1, b = 1}
+    local color = initialColor and {r = initialColor.r, g = initialColor.g, b = initialColor.b} or {r = 1, g = 1, b = 1}
     button:SetBackdropColor(color.r, color.g, color.b, 1)
     button:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)
 
@@ -129,6 +137,7 @@ function UI.CreateSimpleColorPicker(parent, initialColor, onChange)
             end,
             r = color.r, g = color.g, b = color.b,
             hasOpacity = false,
+            previousValues = { r = prevR, g = prevG, b = prevB },
         }
         ColorPickerFrame:SetupColorPickerAndShow(info)
     end)
@@ -136,25 +145,28 @@ function UI.CreateSimpleColorPicker(parent, initialColor, onChange)
     return button
 end
 
-function UI.CreateModernSlider(parent, label, minVal, maxVal, currentVal, onValueChanged)
+function UI.CreateModernSlider(parent, label, minVal, maxVal, currentVal, onValueChanged, labelWidth, sliderWidth)
+    local lw = labelWidth or 200
+    local sw = sliderWidth or 240
+
     local function toInt(v)
         if v >= 0 then return math.floor(v) else return math.ceil(v) end
     end
 
     local panel = CreateFrame("Frame", nil, parent)
-    panel:SetSize(400, 40)
+    panel:SetSize(lw + 4 + sw, 40)
 
     panel.Label = panel:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     panel.Label:SetPoint("LEFT", 0, 0)
     panel.Label:SetText(label)
-    panel.Label:SetWidth(200)
+    panel.Label:SetWidth(lw)
     panel.Label:SetJustifyH("LEFT")
 
     local initVal = toInt(currentVal)
 
     panel.Slider = CreateFrame("Slider", nil, panel, "MinimalSliderWithSteppersTemplate")
     panel.Slider:SetPoint("LEFT", panel.Label, "RIGHT", 4, 0)
-    panel.Slider:SetWidth(240)
+    panel.Slider:SetWidth(sw)
     panel.Slider:Init(initVal, minVal, maxVal, (maxVal - minVal), {
         [MinimalSliderWithSteppersMixin.Label.Top] = nil,
         [MinimalSliderWithSteppersMixin.Label.Right] = nil
@@ -168,6 +180,17 @@ function UI.CreateModernSlider(parent, label, minVal, maxVal, currentVal, onValu
     eb:SetTextInsets(0, 0, 0, 0)
     eb:SetAutoFocus(false)
     panel.Input = eb
+    local suppressOnValueChanged = false
+
+    local function SetSliderValue(value, suppressCallback)
+        if suppressCallback then
+            suppressOnValueChanged = true
+        end
+        panel.Slider:SetValue(value)
+        if suppressCallback then
+            suppressOnValueChanged = false
+        end
+    end
 
     panel.Slider:RegisterCallback(MinimalSliderWithSteppersMixin.Event.OnValueChanged, function(_, value)
         local numVal = tonumber(value)
@@ -175,6 +198,9 @@ function UI.CreateModernSlider(parent, label, minVal, maxVal, currentVal, onValu
         local val = toInt(numVal)
 ---@diagnostic disable-next-line: param-type-mismatch
         if not panel.Input:HasFocus() then panel.Input:SetText(val) end
+        if suppressOnValueChanged then
+            return
+        end
         onValueChanged(val)
     end)
 
@@ -183,7 +209,7 @@ function UI.CreateModernSlider(parent, label, minVal, maxVal, currentVal, onValu
         if val then
             val = math.max(minVal, math.min(maxVal, val))
             self:SetText(val)
-            panel.Slider:SetValue(val)
+            SetSliderValue(val, false)
         end
         self:ClearFocus()
     end)
@@ -197,7 +223,7 @@ function UI.CreateModernSlider(parent, label, minVal, maxVal, currentVal, onValu
 
     function panel:UpdateUIValue(value)
         local clamped = math.max(minVal, math.min(maxVal, toInt(value)))
-        panel.Slider:SetValue(clamped)
+        SetSliderValue(clamped, true)
         panel.Input:SetText(clamped)
     end
 
@@ -279,18 +305,32 @@ function UI.CreateModernSliderPrecise(parent, label, minVal, maxVal, currentVal,
     eb:SetTextInsets(0, 0, 0, 0)
     eb:SetAutoFocus(false)
     panel.Input = eb
+    local suppressOnValueChanged = false
+
+    local function SetSliderValue(value, suppressCallback)
+        if suppressCallback then
+            suppressOnValueChanged = true
+        end
+        panel.Slider:SetValue(value)
+        if suppressCallback then
+            suppressOnValueChanged = false
+        end
+    end
 
     panel.Slider:RegisterCallback(MinimalSliderWithSteppersMixin.Event.OnValueChanged, function(_, value)
         local quantized = ClampAndQuantize((tonumber(value) or minScaled) / factor)
 ---@diagnostic disable-next-line: param-type-mismatch
         if not panel.Input:HasFocus() then panel.Input:SetText(FormatValue(quantized)) end
+        if suppressOnValueChanged then
+            return
+        end
         onValueChanged(quantized)
     end)
 
     panel.Input:SetScript("OnEnterPressed", function(self)
         local quantized = ClampAndQuantize(self:GetText())
         self:SetText(FormatValue(quantized))
-        panel.Slider:SetValue(ToScaled(quantized))
+        SetSliderValue(ToScaled(quantized), false)
         self:ClearFocus()
     end)
 
@@ -303,7 +343,7 @@ function UI.CreateModernSliderPrecise(parent, label, minVal, maxVal, currentVal,
 
     function panel:UpdateUIValue(value)
         local quantized = ClampAndQuantize(value)
-        panel.Slider:SetValue(ToScaled(quantized))
+        SetSliderValue(ToScaled(quantized), true)
         panel.Input:SetText(FormatValue(quantized))
     end
 
@@ -422,16 +462,36 @@ function UI.SetTextError(fontString)
     UI.SetTextColor(fontString, UI.TextColors.error)
 end
 
+function UI.CloseAllDropdownMenus()
+    if Menu and Menu.GetManager then
+        Menu.GetManager():CloseMenus()
+    end
+end
+
+function UI.AttachCloseMenusOnScroll(scrollFrame)
+    if not scrollFrame or scrollFrame._cdmCloseMenusOnScrollHooked then
+        return
+    end
+
+    scrollFrame._cdmCloseMenusOnScrollHooked = true
+    scrollFrame:HookScript("OnVerticalScroll", function()
+        UI.CloseAllDropdownMenus()
+    end)
+    scrollFrame:HookScript("OnHide", function()
+        UI.CloseAllDropdownMenus()
+    end)
+end
+
 function UI.CreateScrollableTab(page, frameName, contentHeight, contentWidth)
     local scrollFrame = CreateFrame("ScrollFrame", frameName, page, "ScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT", 0, -20)
     scrollFrame:SetPoint("BOTTOMRIGHT", -10, 20)
+    UI.AttachCloseMenusOnScroll(scrollFrame)
 
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
     scrollChild:SetSize(contentWidth or 460, contentHeight or 800)
     scrollFrame:SetScrollChild(scrollChild)
 
-    -- Offset to match non-scrollable tab positioning: page+(35,-40) → scroll+(35,-20)
     local contentContainer = CreateFrame("Frame", nil, scrollChild)
     contentContainer:SetPoint("TOPLEFT", 35, -20)
     contentContainer:SetPoint("TOPRIGHT", -25, -20)

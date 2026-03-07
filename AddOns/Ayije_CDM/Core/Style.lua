@@ -94,17 +94,11 @@ local function RefreshStyleCache()
     styleCache.countColor = CfgValue(db, defaults, "countColor", DEFAULT_WHITE_COLOR)
 
     styleCache.buffCooldownFontSize = CfgValue(db, defaults, "buffCooldownFontSize", 12)
+    styleCache.buffCooldownColor = CfgValue(db, defaults, "buffCooldownColor", DEFAULT_WHITE_COLOR)
 
     styleCache.countPositionMain = CfgValue(db, defaults, "countPositionMain", "TOP")
     styleCache.countOffsetXMain = CfgValue(db, defaults, "countOffsetXMain", 0)
     styleCache.countOffsetYMain = CfgValue(db, defaults, "countOffsetYMain", 0)
-    styleCache.countPositionSec = CfgValue(db, defaults, "countPositionSec", "RIGHT")
-    styleCache.countOffsetXSec = CfgValue(db, defaults, "countOffsetXSec", 4)
-    styleCache.countOffsetYSec = CfgValue(db, defaults, "countOffsetYSec", 0)
-    styleCache.countPositionTert = CfgValue(db, defaults, "countPositionTert", "LEFT")
-    styleCache.countOffsetXTert = CfgValue(db, defaults, "countOffsetXTert", -4)
-    styleCache.countOffsetYTert = CfgValue(db, defaults, "countOffsetYTert", 0)
-
     styleCache.borderColor = CfgValue(db, defaults, "borderColor", DEFAULT_WHITE_COLOR)
 
     styleCache.hideDebuffBorder = CfgValue(db, defaults, "hideDebuffBorder", false)
@@ -267,6 +261,9 @@ local function ApplyAuraStateBody(frame, spellID)
         end
     elseif durObj then
         frame.Cooldown:SetCooldownFromDurationObject(durObj)
+        if frame.Cooldown.SetDrawSwipe then
+            frame.Cooldown:SetDrawSwipe(true)
+        end
     elseif cdInfo and cdInfo.isOnGCD then
         if frame.Cooldown.Clear then
             frame.Cooldown:Clear()
@@ -482,13 +479,6 @@ end
 
 local function GetViewerIconSize(vName, frameData, sizes, isBuff)
     if isBuff then
-        if vName == VIEWERS.BUFF_SEC then
-            local s = sizes.SIZE_BUFF_SEC or sizes.SIZE_BUFF
-            return s.w, s.h
-        elseif vName == VIEWERS.BUFF_TERT then
-            local s = sizes.SIZE_BUFF_TERT or sizes.SIZE_BUFF
-            return s.w, s.h
-        end
         local s = sizes.SIZE_BUFF
         return s.w, s.h
     end
@@ -532,6 +522,11 @@ local function GetEffectiveCooldownFontSize(vName, isBuff)
     return styleCache.cooldownFontSize
 end
 
+local function GetEffectiveCooldownColor(vName, isBuff)
+    if isBuff then return styleCache.buffCooldownColor end
+    return styleCache.cooldownColor
+end
+
 local function ApplyIconTextureLayout(texture, frame, iconWidth, iconHeight, zoomIcons)
     CDM_C.ApplyIconTexCoord(texture, zoomIcons, iconWidth, iconHeight)
     texture:ClearAllPoints()
@@ -543,12 +538,6 @@ end
 local function GetBuffCountAnchor(vName)
     if vName == VIEWERS.BUFF then
         return styleCache.countPositionMain, styleCache.countOffsetXMain, styleCache.countOffsetYMain
-    end
-    if vName == VIEWERS.BUFF_SEC then
-        return styleCache.countPositionSec, styleCache.countOffsetXSec, styleCache.countOffsetYSec
-    end
-    if vName == VIEWERS.BUFF_TERT then
-        return styleCache.countPositionTert, styleCache.countOffsetXTert, styleCache.countOffsetYTert
     end
     return nil, nil, nil
 end
@@ -786,10 +775,7 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
     local sizes = CDM.Sizes
     if not sizes then return end
 
-    local isBuff =
-        vName == VIEWERS.BUFF
-        or vName == VIEWERS.BUFF_SEC
-        or vName == VIEWERS.BUFF_TERT
+    local isBuff = vName == VIEWERS.BUFF
 
     local isCooldown =
         vName == VIEWERS.ESSENTIAL
@@ -906,7 +892,7 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
 
         local textFontOutline = styleCache.textFontOutline
         local fontPath = styleCache.fontPath
-        local cooldownColor = styleCache.cooldownColor
+        local cooldownColor = GetEffectiveCooldownColor(vName, isBuff)
         local effectiveCooldownFontSize = GetEffectiveCooldownFontSize(vName, isBuff)
         local cooldownText = frame.Cooldown and (frame.Cooldown.Text or frame.Cooldown.text)
         local chargeText = frame.ChargeCount and frame.ChargeCount.Current
@@ -972,6 +958,8 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                     countText:ClearAllPoints()
                     countText:SetPoint("CENTER", frame, frameAnchor, offsetX, offsetY)
                 end
+
+                frameData.cdmLastCountFS = nil
             end
 
             if frame.Cooldown then
@@ -1022,6 +1010,9 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                 end
 
                 local kbText = baseSpellID and KB:GetKeybindText(baseSpellID) or nil
+                if not kbText and frame.itemID then
+                    kbText = KB:GetKeybindTextForItem(frame.itemID)
+                end
                 if kbText then
                     kbFS:SetText(kbText)
                     kbFS:Show()

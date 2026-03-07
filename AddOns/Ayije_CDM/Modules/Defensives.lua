@@ -5,6 +5,7 @@ local CDM_C = CDM and CDM.CONST or {}
 
 local DEFENSIVES = CDM_C.DEFENSIVE_SPELLS
 local DEFENSIVES_SET = CDM_C.DEFENSIVE_SPELLS_SET
+local EMPTY = {}
 
 local _, playerClass = UnitClass("player")
 
@@ -93,7 +94,7 @@ local GetEffectiveSpellID = CDM.GetEffectiveSpellID
 
 function CDM.GetBuiltinDefensiveSpells(specID)
     local classData = DEFENSIVES[playerClass]
-    if not classData then return {} end
+    if not classData then return EMPTY end
     local result = {}
     if classData.class then
         for _, id in ipairs(classData.class) do
@@ -110,7 +111,7 @@ end
 
 function CDM.GetBuiltinDefensiveSpellsForClass(classTag, specID)
     local classData = DEFENSIVES[classTag]
-    if not classData then return {} end
+    if not classData then return EMPTY end
     local result = {}
     if classData.class then
         for _, id in ipairs(classData.class) do
@@ -137,10 +138,10 @@ local function GetCurrentSpecID()
 end
 
 function CDM.GetCustomDefensiveSpells(specID)
-    if not specID then return {} end
+    if not specID then return EMPTY end
     local custom = CDM.db and CDM.db.defensivesCustomSpells
-    if not custom then return {} end
-    return custom[specID] or {}
+    if not custom then return EMPTY end
+    return custom[specID] or EMPTY
 end
 
 local customSpellSet = {}
@@ -226,6 +227,8 @@ local GCDFilterCurve = CDM_C.GCDFilterCurve
 local gcdActive = false
 local GCD_SPELL_ID = CDM_C.GCD_SPELL_ID
 local lastDefensivesVisibilityHash = 0
+local lastDefensivesWidth, lastDefensivesHeight = nil, nil
+local lastDefensivesSpacing = nil
 
 local iconSizeCache = { w = 40, h = 36 }
 local defensivesTrackerAcquireOpts = {
@@ -271,6 +274,7 @@ local cachedDefensivesStyles = {
     chargeOffsetX = 0,
     chargeOffsetY = 0,
 }
+local defensivesChargeStyleVersion = 0
 
 local function RefreshCachedDefensivesStyles()
     local db = CDM.db
@@ -290,6 +294,7 @@ local function RefreshCachedDefensivesStyles()
     cachedDefensivesStyles.chargeColor.g = srcColor.g or 1
     cachedDefensivesStyles.chargeColor.b = srcColor.b or 1
     cachedDefensivesStyles.chargeColor.a = srcColor.a or 1
+    defensivesChargeStyleVersion = defensivesChargeStyleVersion + 1
 end
 
 CDM.RefreshCachedDefensivesStyles = RefreshCachedDefensivesStyles
@@ -329,6 +334,7 @@ local function ResetDefensiveTrackerFrame(f)
     f.cdmDefensiveEntry = nil
     f.spellID = nil
     f._spellbookCached = nil
+    f._cdmDefensivesChargeStyleVersion = nil
 end
 
 local function ReleaseEntryFrame(entry)
@@ -348,6 +354,9 @@ local function ReleaseDefensiveFramesForLowMemory()
         CDM.ClearTrackerPool(iconFramePool)
     end
     lastDefensivesVisibilityHash = -1
+    lastDefensivesWidth = nil
+    lastDefensivesHeight = nil
+    lastDefensivesSpacing = nil
 end
 
 local function UpdateIcon(frame)
@@ -384,9 +393,6 @@ local function UpdateIcon(frame)
         desatDurationObject = SCD
     end
 
-    frame.Cooldown:SetSwipeColor(CDM_C.SWIPE_COLOR.r, CDM_C.SWIPE_COLOR.g, CDM_C.SWIPE_COLOR.b, CDM_C.SWIPE_COLOR.a)
-    frame.Cooldown:SetDrawEdge(false)
-
     local entry = frame.cdmDefensiveEntry
     if entry and entry.hasMultipleCharges then
         local chargeInfo = C_Spell.GetSpellCharges(effectiveID)
@@ -416,11 +422,14 @@ local function UpdateIcon(frame)
         local chargeText = frame.ChargeCount.Current
 
         if hasCharges then
-            local styles = cachedDefensivesStyles
-            if not styles.fontPath then
-                RefreshCachedDefensivesStyles()
+            if frame._cdmDefensivesChargeStyleVersion ~= defensivesChargeStyleVersion or not chargeText:IsShown() then
+                local styles = cachedDefensivesStyles
+                if not styles.fontPath then
+                    RefreshCachedDefensivesStyles()
+                end
+                CDM.StyleChargeText(chargeText, frame, styles)
+                frame._cdmDefensivesChargeStyleVersion = defensivesChargeStyleVersion
             end
-            CDM.StyleChargeText(chargeText, frame, styles)
         else
             chargeText:Hide()
         end
@@ -720,9 +729,6 @@ local function DisableDefensives()
     isEnabled = false
 end
 
-local lastDefensivesWidth, lastDefensivesHeight = nil, nil
-local lastDefensivesSpacing = nil
-
 UpdateDefensivesCooldownsOnly = function()
     if not defensivesContainer or not isEnabled then return end
 
@@ -936,38 +942,19 @@ end
 --  REFRESH CALLBACK REGISTRATIONS
 -- =========================================================================
 
-CDM:RegisterRefreshCallback("defensivesStyles", function()
-    if not isEnabled then return end
-    RefreshCachedDefensivesStyles()
+local function OnDefensivesProfileApplied()
     needsStyleUpdate = true
-end, 16)
+    lastDefensivesSpecID = nil
+    lastDefensivesVisibilityHash = -1
+    lastDefensivesWidth = nil
+    lastDefensivesHeight = nil
+    lastDefensivesSpacing = nil
+    InvalidateSpellbookCache()
+    InvalidateTalentTreeCache()
+    InvalidateOrderedSpellsCache()
+end
 
-CDM:RegisterRefreshCallback("defensives", function()
-    local wantEnabled = CDM.db.defensivesEnabled ~= false
-    if wantEnabled and not isInitialized then
-        CDM:InitializeDefensives()
-        if RebuildHiddenSet() then
-            InvalidateViewers()
-        end
-        return
-    end
-    if wantEnabled and not isEnabled then
-        EnableDefensives()
-        if RebuildHiddenSet() then
-            InvalidateViewers()
-        end
-        return
-    end
-    if not wantEnabled and isEnabled then
-        DisableDefensives()
-    end
-    if not isEnabled and not wantEnabled then
-        if next(defensivesHiddenSet) then
-            table.wipe(defensivesHiddenSet)
-            InvalidateViewers()
-        end
-        return
-    end
+local function RefreshDefensivesLifecycle()
     if not isEnabled then return end
 
     local currentSpec = GetCurrentSpecID()
@@ -983,4 +970,46 @@ CDM:RegisterRefreshCallback("defensives", function()
     RebuildCustomSpellSet(GetCurrentSpecID())
     UpdateContainerPosition()
     CDM:UpdateDefensives()
-end, 51)
+end
+
+if CDM.ModuleManager and CDM.ModuleManager.RegisterModule then
+    CDM.ModuleManager:RegisterModule({
+        id = "defensives",
+        Initialize = function()
+            CDM:InitializeDefensives()
+            if RebuildHiddenSet() then
+                InvalidateViewers()
+            end
+        end,
+        Enable = function()
+            EnableDefensives()
+            if RebuildHiddenSet() then
+                InvalidateViewers()
+            end
+        end,
+        Disable = function()
+            DisableDefensives()
+            if next(defensivesHiddenSet) then
+                table.wipe(defensivesHiddenSet)
+                InvalidateViewers()
+            end
+        end,
+        Refresh = RefreshDefensivesLifecycle,
+        OnProfileApplied = OnDefensivesProfileApplied,
+        ShouldBeEnabled = function(db)
+            return db and db.defensivesEnabled ~= false
+        end,
+    })
+end
+
+CDM:RegisterRefreshCallback("defensivesStyles", function()
+    RefreshCachedDefensivesStyles()
+    needsStyleUpdate = true
+end, 16, { "text_visuals", "trackers_layout", "viewers" })
+
+CDM:RegisterRefreshCallback("defensives", function()
+    local moduleManager = CDM.ModuleManager
+    if moduleManager and moduleManager.ReconcileModule then
+        moduleManager:ReconcileModule("defensives")
+    end
+end, 51, { "trackers_layout", "viewers" })

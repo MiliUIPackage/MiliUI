@@ -216,4 +216,10 @@ end
 
 CDM:RegisterRefreshCallback("borders", function()
     CDM.BORDER:UpdateAllBorders()
-end, 25)
+end, 25, {
+    "castbar_visuals",
+    "resources_visuals",
+    "text_visuals",
+    "trackers_layout",
+    "viewers",
+})

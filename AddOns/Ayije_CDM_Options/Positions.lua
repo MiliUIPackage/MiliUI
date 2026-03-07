@@ -1,6 +1,3 @@
--- Config/Positions.lua - Position Settings Tab
--- Controls for container positioning (Essential, Buff, Secondary/Tertiary offsets)
-
 local Runtime = _G["Ayije_CDM"]
 if not Runtime then return end
 local API = Runtime.API
@@ -107,38 +104,9 @@ local function CreatePositionControls(parent, anchor, page, cfg)
     return page.controls[cfg.yKey], display, UpdateDisplay
 end
 
-local function CreateOffsetSection(parent, anchor, page, cfg)
-    local header = UI.CreateHeader(parent, cfg.header)
-    header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -15)
-
-    local function OnChanged(dbKey, v)
-        CDM.db[dbKey] = v
-        if CDM.UpdateSecondaryTertiaryBuffPositions then
-            API:UpdateSecondaryTertiaryBuffPositions()
-        end
-    end
-
-    page.controls[cfg.xCtrl] = UI.CreateModernSlider(
-        parent, L["X Offset"], -500, 500, CDM.db[cfg.xDb] or cfg.xDefault,
-        function(v) OnChanged(cfg.xDb, v) end
-    )
-    page.controls[cfg.xCtrl]:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -15)
-
-    page.controls[cfg.yCtrl] = UI.CreateModernSlider(
-        parent, L["Y Offset"], -500, 500, CDM.db[cfg.yDb] or cfg.yDefault,
-        function(v) OnChanged(cfg.yDb, v) end
-    )
-    page.controls[cfg.yCtrl]:SetPoint("TOPLEFT", page.controls[cfg.xCtrl], "BOTTOMLEFT", 0, -10)
-
-    return page.controls[cfg.yCtrl]
-end
-
 local function CreatePositionsTab(page, tabId)
     local scrollChild = UI.CreateScrollableTab(page, "AyijeCDM_PosScrollFrame", 720, 700)
 
-    -- ============================================================
-    -- Essential Container
-    -- ============================================================
     local essHeader = UI.CreateHeader(scrollChild, L["Essential Container Position"])
     essHeader:SetPoint("TOPLEFT", 0, 0)
 
@@ -160,9 +128,6 @@ local function CreatePositionsTab(page, tabId)
         end,
     })
 
-    -- ============================================================
-    -- Main Buff Container
-    -- ============================================================
     local buffHeader = UI.CreateHeader(scrollChild, L["Main Buff Container Position"])
     buffHeader:SetPoint("TOPLEFT", essYSlider, "BOTTOMLEFT", 0, -15)
 
@@ -176,44 +141,10 @@ local function CreatePositionsTab(page, tabId)
         anchorPoint = "BOTTOM",
         xKey = "buffXPos",
         yKey = "buffYPos",
-        postMove = function()
-            if CDM.UpdateSecondaryTertiaryBuffPositions then
-                API:UpdateSecondaryTertiaryBuffPositions()
-            end
-        end,
     })
 
-    -- ============================================================
-    -- Secondary Buff Offset
-    -- ============================================================
-    local secYSlider = CreateOffsetSection(scrollChild, buffYSlider, page, {
-        header = L["Secondary Buff Offset (relative to Main)"],
-        xCtrl = "secBuffXOffset",
-        yCtrl = "secBuffYOffset",
-        xDb = "buffSecondaryOffsetX",
-        yDb = "buffSecondaryOffsetY",
-        xDefault = -120,
-        yDefault = 6,
-    })
-
-    -- ============================================================
-    -- Tertiary Buff Offset
-    -- ============================================================
-    local tertYSlider = CreateOffsetSection(scrollChild, secYSlider, page, {
-        header = L["Tertiary Buff Offset (relative to Main)"],
-        xCtrl = "tertBuffXOffset",
-        yCtrl = "tertBuffYOffset",
-        xDb = "buffTertiaryOffsetX",
-        yDb = "buffTertiaryOffsetY",
-        xDefault = 120,
-        yDefault = 6,
-    })
-
-    -- ============================================================
-    -- Buff Bar Container
-    -- ============================================================
     local buffBarHeader = UI.CreateHeader(scrollChild, L["Buff Bar Container Position"])
-    buffBarHeader:SetPoint("TOPLEFT", tertYSlider, "BOTTOMLEFT", 0, -15)
+    buffBarHeader:SetPoint("TOPLEFT", buffYSlider, "BOTTOMLEFT", 0, -15)
 
     local buffBarHelpText = CreateLockSection(scrollChild, buffBarHeader, page,
         "buffBarLockCheckbox", "buffBarContainerLocked", "BuffBarCooldownViewer")

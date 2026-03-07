@@ -3,8 +3,6 @@ local CDM = _G[AddonName]
 local ctx = CDM._LayoutCtx
 
 local VIEWERS = ctx.VIEWERS
-local SECONDARY_SET = ctx.SECONDARY_SET
-local TERTIARY_SET = ctx.TERTIARY_SET
 
 local GetFrameData = ctx.GetFrameData
 local CheckBuffRegistryMatch = ctx.CheckBuffRegistryMatch
@@ -13,9 +11,9 @@ local GetLayoutConfig = ctx.GetLayoutConfig
 local QueueReanchorRetry = ctx.QueueReanchorRetry
 
 local SortAndPositionBuffFrames = ctx.SortAndPositionBuffFrames
-local PositionBuffGroup = ctx.PositionBuffGroup
 
-local tempBuff, tempSec, tempTert = {}, {}, {}
+local tempBuff = {}
+local tempBuffGroups = {}
 local tempEssential, tempUtility = {}, {}
 local tempCustomBuffFrames, tempActiveSpellIDs = {}, {}
 local tempAllMainBuffs = {}
@@ -124,9 +122,13 @@ local function IsBuffFrameReadyForReanchor(frame, viewer)
         end
         if frameViewer == viewer and frame.cooldownInfo then
             local matchType = CheckBuffRegistryMatch(frame)
-            local hasVisibleInTargetGroup = HasVisibleBuffFramesForMatchType(viewer, matchType, frame)
-            if not hasVisibleInTargetGroup then
-                return true
+            if matchType == "buffgroup" then
+                if frameData then frameData.cdmProvisionalReadyUntil = nil end
+            else
+                local hasVisibleInTargetGroup = HasVisibleBuffFramesForMatchType(viewer, matchType, frame)
+                if not hasVisibleInTargetGroup then
+                    return true
+                end
             end
         end
     elseif provisionalUntil and frameData then
@@ -187,8 +189,7 @@ end
 
 local function ResetReanchorTempTables()
     table.wipe(tempBuff)
-    table.wipe(tempSec)
-    table.wipe(tempTert)
+    table.wipe(tempBuffGroups)
     table.wipe(tempEssential)
     table.wipe(tempUtility)
 end
@@ -201,12 +202,13 @@ local function CollectFramesForReanchor(activeViewer, activeVName, inEditMode)
     for frame in activeViewer.itemFramePool:EnumerateActive() do
         if activeVName == VIEWERS.BUFF then
             if inEditMode or IsBuffFrameReadyForReanchor(frame, activeViewer) then
-                local matchType = CheckBuffRegistryMatch(frame)
+                local matchType, matchID, groupIdx = CheckBuffRegistryMatch(frame)
 
-                if matchType == "tertiary" then
-                    tempTert[#tempTert + 1] = frame
-                elseif matchType == "secondary" then
-                    tempSec[#tempSec + 1] = frame
+                if matchType == "buffgroup" and groupIdx then
+                    if not tempBuffGroups[groupIdx] then
+                        tempBuffGroups[groupIdx] = {}
+                    end
+                    tempBuffGroups[groupIdx][#tempBuffGroups[groupIdx] + 1] = frame
                 else
                     tempBuff[#tempBuff + 1] = frame
                 end
@@ -221,7 +223,7 @@ local function CollectFramesForReanchor(activeViewer, activeVName, inEditMode)
     end
 end
 
-local function PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVName, sizeBuff, spacing, sizeBuffSec, sizeBuffTert)
+local function PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVName, sizeBuff, spacing)
     local buffContainer = activeSelf:GetOrCreateAnchorContainer(activeViewer)
 
     local customBuffFrames
@@ -231,39 +233,35 @@ local function PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVNa
         customBuffFrames = CollectActiveCustomBuffFrames(activeSelf, tempCustomBuffFrames, tempActiveSpellIDs)
     end
 
-    local totalBuffCount = #tempBuff + #tempSec + #tempTert + (customBuffFrames and #customBuffFrames or 0)
+    local groupFrameCount = 0
+    for _, groupFrames in pairs(tempBuffGroups) do
+        groupFrameCount = groupFrameCount + #groupFrames
+    end
+
+    local totalBuffCount = #tempBuff + groupFrameCount + (customBuffFrames and #customBuffFrames or 0)
     if totalBuffCount > 0 then
         if CDM.EnableBuffCentering then CDM.EnableBuffCentering() end
-        if (#tempSec > 0 or #tempTert > 0) and CDM.EnableSecTertCentering then
-            CDM.EnableSecTertCentering()
-        end
 
         for _, frame in ipairs(customBuffFrames) do
             frame:SetParent(UIParent)
         end
 
-        for _, frame in ipairs(tempSec) do
-            activeSelf:ApplyStyle(frame, VIEWERS.BUFF_SEC)
-            frame:SetParent(activeSelf.secBuffs or UIParent)
-        end
-
-        for _, frame in ipairs(tempTert) do
-            activeSelf:ApplyStyle(frame, VIEWERS.BUFF_TERT)
-            frame:SetParent(activeSelf.tertBuffs or UIParent)
-        end
-
-        if #tempSec > 0 and activeSelf.secBuffs then
-            PositionBuffGroup(tempSec, activeSelf.secBuffs, SECONDARY_SET, "buffSecondaryHorizontal", sizeBuffSec or sizeBuff, spacing)
-        end
-        if #tempTert > 0 and activeSelf.tertBuffs then
-            PositionBuffGroup(tempTert, activeSelf.tertBuffs, TERTIARY_SET, "buffTertiaryHorizontal", sizeBuffTert or sizeBuff, spacing)
+        for groupIdx, groupFrames in pairs(tempBuffGroups) do
+            if #groupFrames > 0 then
+                for _, frame in ipairs(groupFrames) do
+                    activeSelf:ApplyStyle(frame, VIEWERS.BUFF)
+                end
+                activeSelf:PositionBuffGroupFrames(groupIdx, groupFrames)
+            end
         end
 
         for _, frame in ipairs(tempBuff) do
+            activeSelf:RestoreCooldownTextIfHidden(frame)
+            activeSelf:RestoreVisualsIfHidden(frame)
             activeSelf:ApplyStyle(frame, activeVName)
             frame:SetParent(UIParent)
-            if CDM.Glow then
-                CDM.Glow:StopGlow(frame)
+            if activeSelf.ApplyUngroupedBuffOverrides then
+                activeSelf:ApplyUngroupedBuffOverrides(frame)
             end
         end
 
@@ -279,8 +277,14 @@ local function PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVNa
         end
     end
 
-    if activeSelf.UpdateSecondaryTertiaryBuffPositions then
-        activeSelf:UpdateSecondaryTertiaryBuffPositions()
+    local bgSets = CDM.BuffGroupSets
+    if bgSets and bgSets.groups then
+        local emptyFrames = {}
+        for groupIdx, groupData in ipairs(bgSets.groups) do
+            if groupData.staticDisplay and groupData.spells and not tempBuffGroups[groupIdx] then
+                activeSelf:PositionBuffGroupFrames(groupIdx, emptyFrames)
+            end
+        end
     end
 end
 
@@ -292,14 +296,28 @@ local function RunReanchor()
         return
     end
 
-    local _, _, _, sizeBuff, spacing, _, _, _, _, _, sizeBuffSec, sizeBuffTert = GetLayoutConfig()
+    local _, _, _, sizeBuff, spacing = GetLayoutConfig()
 
     local hasActiveCustomBuffs = activeVName == VIEWERS.BUFF
         and activeSelf.CustomBuffs
         and activeSelf.CustomBuffs.activeBuffs
         and next(activeSelf.CustomBuffs.activeBuffs)
 
+    local hasStaticBuffGroups = false
+    if activeVName == VIEWERS.BUFF then
+        local bgSets = CDM.BuffGroupSets
+        if bgSets and bgSets.groups then
+            for _, gd in ipairs(bgSets.groups) do
+                if gd.staticDisplay and gd.spells then
+                    hasStaticBuffGroups = true
+                    break
+                end
+            end
+        end
+    end
+
     local skipReadinessChecks = ShouldSkipReadinessChecksForViewer(activeVName, hasActiveCustomBuffs)
+        or hasStaticBuffGroups
 
     local editModeFrame = _G.EditModeManagerFrame
     local inEditMode = activeSelf.isEditModeActive or (editModeFrame and editModeFrame:IsShown())
@@ -348,7 +366,7 @@ local function RunReanchor()
         end
 
     elseif activeVName == VIEWERS.BUFF then
-        PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVName, sizeBuff, spacing, sizeBuffSec, sizeBuffTert)
+        PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVName, sizeBuff, spacing)
 
     elseif activeVName == VIEWERS.BUFF_BAR then
         activeSelf:PositionBuffBarFrames(activeViewer, activeVName)

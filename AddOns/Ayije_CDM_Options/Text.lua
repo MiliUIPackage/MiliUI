@@ -1,6 +1,3 @@
--- Config/TabText.lua - Text Settings Tab
--- Controls for font, outline, and text positioning across all viewers
-
 local Runtime = _G["Ayije_CDM"]
 if not Runtime then return end
 local API = Runtime.API
@@ -9,14 +6,24 @@ local CDM = Runtime
 local L = Runtime.L
 local UI = ns.ConfigUI
 
+local TEXT_REFRESH_SCOPES = { "text_visuals", "trackers_layout", "viewers" }
+
+local function RefreshTextConfig()
+    if API.RefreshScopes then
+        API:RefreshScopes(TEXT_REFRESH_SCOPES)
+        return
+    end
+    API:RefreshConfig()
+end
+
 local function CreateTextTab(page, tabId)
-    local textScrollChild = UI.CreateScrollableTab(page, "AyijeCDM_TextScrollFrame", 1000, 1280)
+    local textScrollChild = UI.CreateScrollableTab(page, "AyijeCDM_TextScrollFrame", 580, 1280)
 
     local layout = UI.CreateVerticalLayout(0)
     local function NextY(spacing) return layout:Next(spacing) end
 
     local function SetDB(key)
-        return function(v) CDM.db[key] = v; API:RefreshConfig() end
+        return function(v) CDM.db[key] = v; RefreshTextConfig() end
     end
 
     local globalHeader = UI.CreateHeader(textScrollChild, L["Global Settings"])
@@ -39,7 +46,7 @@ local function CreateTextTab(page, tabId)
         function() return CDM.db.textFont end,
         function(name)
             CDM.db.textFont = name
-            API:RefreshConfig()
+            RefreshTextConfig()
         end,
         function(name)
             ddFont:SetDefaultText(name)
@@ -69,7 +76,7 @@ local function CreateTextTab(page, tabId)
         function(value, label)
             CDM.db.textFontOutline = value
             ddOutline:SetDefaultText(label)
-            API:RefreshConfig()
+            RefreshTextConfig()
         end
     )
 
@@ -79,7 +86,7 @@ local function CreateTextTab(page, tabId)
     page.controls.cooldownFontSize = UI.CreateModernSlider(textScrollChild, L["Font Size"], 8, 32, CDM.db.cooldownFontSize, SetDB("cooldownFontSize"))
     page.controls.cooldownFontSize:SetPoint("TOPLEFT", 0, NextY(30))
 
-    page.cooldownColorPicker = UI.CreateColorSwatch(textScrollChild, L["Color"], "cooldownColor")
+    page.cooldownColorPicker = UI.CreateColorSwatch(textScrollChild, L["Color"], "cooldownColor", TEXT_REFRESH_SCOPES)
     page.cooldownColorPicker:SetPoint("TOPLEFT", 0, NextY(60))
     NextY(30)
 
@@ -89,7 +96,7 @@ local function CreateTextTab(page, tabId)
     page.controls.chargeFontSize = UI.CreateModernSlider(textScrollChild, L["Font Size"], 8, 32, CDM.db.chargeFontSize, SetDB("chargeFontSize"))
     page.controls.chargeFontSize:SetPoint("TOPLEFT", 0, NextY(30))
 
-    page.chargeColorPicker = UI.CreateColorSwatch(textScrollChild, L["Color"], "chargeColor")
+    page.chargeColorPicker = UI.CreateColorSwatch(textScrollChild, L["Color"], "chargeColor", TEXT_REFRESH_SCOPES)
     page.chargeColorPicker:SetPoint("TOPLEFT", 0, NextY(60))
 
     local lblChargePos = textScrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
@@ -109,7 +116,7 @@ local function CreateTextTab(page, tabId)
         function(pos)
             CDM.db.chargePosition = pos
             ddChargePos:SetDefaultText(pos)
-            API:RefreshConfig()
+            RefreshTextConfig()
         end
     )
 
@@ -120,77 +127,6 @@ local function CreateTextTab(page, tabId)
     page.controls.chargeOffsetY:SetPoint("TOPLEFT", 0, NextY(60))
     NextY(60)
 
-    local buffCooldownHeader = UI.CreateHeader(textScrollChild, L["Buff Cooldown Timer"])
-    buffCooldownHeader:SetPoint("TOPLEFT", 0, NextY(15))
-
-    page.controls.buffCooldownFontSize = UI.CreateModernSlider(textScrollChild, L["Font Size"], 8, 32, CDM.db.buffCooldownFontSize, SetDB("buffCooldownFontSize"))
-    page.controls.buffCooldownFontSize:SetPoint("TOPLEFT", 0, NextY(30))
-    NextY(60)
-
-    local countHeader = UI.CreateHeader(textScrollChild, L["Buff Stacks"])
-    countHeader:SetPoint("TOPLEFT", 0, NextY(15))
-
-    page.controls.countFontSize = UI.CreateModernSlider(textScrollChild, L["Font Size"], 8, 32, CDM.db.countFontSize, SetDB("countFontSize"))
-    page.controls.countFontSize:SetPoint("TOPLEFT", 0, NextY(30))
-
-    page.countColorPicker = UI.CreateColorSwatch(textScrollChild, L["Color"], "countColor")
-    page.countColorPicker:SetPoint("TOPLEFT", 0, NextY(60))
-    NextY(30)
-
-    local function CreatePositionSection(headerText, dbPosKey, dbOffsetXKey, dbOffsetYKey, defaultPos)
-        local header = textScrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
-        header:SetPoint("TOPLEFT", 0, NextY(15))
-        header:SetText(headerText)
-        UI.SetTextSubtle(header)
-
-        local lbl = textScrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
-        lbl:SetText(L["Anchor"])
-        lbl:SetPoint("TOPLEFT", 0, NextY(25))
-
-        local dd = CreateFrame("DropdownButton", nil, textScrollChild, "WowStyle1DropdownTemplate")
-        dd:SetPoint("TOPLEFT", lbl, "BOTTOMLEFT", 0, -10)
-        dd:SetWidth(180)
-        dd:SetDefaultText(CDM.db[dbPosKey] or CDM.defaults[dbPosKey] or defaultPos)
-        NextY(45)
-
-        UI.SetupPositionDropdown(
-            dd,
-            function() return CDM.db[dbPosKey] end,
-            function(pos)
-                CDM.db[dbPosKey] = pos
-                dd:SetDefaultText(pos)
-                API:RefreshConfig()
-            end
-        )
-
-        page.controls[dbOffsetXKey] = UI.CreateModernSlider(
-            textScrollChild,
-            L["X Offset"],
-            -50,
-            50,
-            CDM.db[dbOffsetXKey] or CDM.defaults[dbOffsetXKey] or 0,
-            SetDB(dbOffsetXKey)
-        )
-        page.controls[dbOffsetXKey]:SetPoint("TOPLEFT", 0, NextY(10))
-
-        page.controls[dbOffsetYKey] = UI.CreateModernSlider(
-            textScrollChild,
-            L["Y Offset"],
-            -50,
-            50,
-            CDM.db[dbOffsetYKey] or CDM.defaults[dbOffsetYKey] or 0,
-            SetDB(dbOffsetYKey)
-        )
-        page.controls[dbOffsetYKey]:SetPoint("TOPLEFT", 0, NextY(60))
-        NextY(60)
-
-        return dd
-    end
-
-    page.mainPosDropdown = CreatePositionSection(L["Main Buff Bar Position"], "countPositionMain", "countOffsetXMain", "countOffsetYMain", "TOP")
-    page.secPosDropdown = CreatePositionSection(L["Secondary Buff Bar Position"], "countPositionSec", "countOffsetXSec", "countOffsetYSec", "RIGHT")
-    page.tertPosDropdown = CreatePositionSection(L["Tertiary Buff Bar Position"], "countPositionTert", "countOffsetXTert", "countOffsetYTert", "LEFT")
-
     local function CreateBarTextSection(headerText, fontSizeKey, colorKey, offsetXKey, offsetXDefault, offsetYKey, offsetYDefault)
         local hdr = UI.CreateHeader(textScrollChild, headerText)
         hdr:SetPoint("TOPLEFT", 0, NextY(15))
@@ -199,7 +135,7 @@ local function CreateTextTab(page, tabId)
             CDM.db[fontSizeKey] or CDM.defaults[fontSizeKey] or 15, SetDB(fontSizeKey))
         page.controls[fontSizeKey]:SetPoint("TOPLEFT", 0, NextY(30))
 
-        local colorPicker = UI.CreateColorSwatch(textScrollChild, L["Color"], colorKey)
+        local colorPicker = UI.CreateColorSwatch(textScrollChild, L["Color"], colorKey, TEXT_REFRESH_SCOPES)
         colorPicker:SetPoint("TOPLEFT", 0, NextY(60))
 
         page.controls[offsetXKey] = UI.CreateModernSlider(textScrollChild, L["X Offset"], -50, 50,
@@ -233,7 +169,7 @@ local function CreateTextTab(page, tabId)
         CDM.db.buffBarApplicationsFontSize or CDM.defaults.buffBarApplicationsFontSize or 15, SetDB("buffBarApplicationsFontSize"))
     page.controls.buffBarAppFontSize:SetPoint("TOPLEFT", 0, NextY(30))
 
-    page.buffBarAppColorPicker = UI.CreateColorSwatch(textScrollChild, L["Color"], "buffBarApplicationsColor")
+    page.buffBarAppColorPicker = UI.CreateColorSwatch(textScrollChild, L["Color"], "buffBarApplicationsColor", TEXT_REFRESH_SCOPES)
     page.buffBarAppColorPicker:SetPoint("TOPLEFT", 0, NextY(60))
 
     local lblBarAppPos = textScrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
@@ -253,7 +189,7 @@ local function CreateTextTab(page, tabId)
         function(pos)
             CDM.db.buffBarApplicationsPosition = pos
             ddBarAppPos:SetDefaultText(pos)
-            API:RefreshConfig()
+            RefreshTextConfig()
         end
     )
 

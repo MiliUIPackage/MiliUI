@@ -13,8 +13,6 @@ CDM.defaults = {
     sizeEssRow2 = { w = 46, h = 40 },
     sizeUtility = { w = 46, h = 40 },
     sizeBuff = { w = 40, h = 36 },
-    sizeBuffSecondary = { w = 40, h = 36 },
-    sizeBuffTertiary = { w = 40, h = 36 },
     spacing = 1,
     maxRowEss = 9,
     utilityYOffset = 0,
@@ -25,11 +23,6 @@ CDM.defaults = {
     utilityVertical = false,
     containerLocked = true,
     buffContainerLocked = true,
-    buffSecondaryOffsetX = -120,
-    buffSecondaryOffsetY = 1,
-    buffTertiaryOffsetX = 120,
-    buffTertiaryOffsetY = 1,
-
     -- BuffBar viewer settings
     buffBarContainerLocked = true,
     buffBarWidth = 0,               -- 0 = auto (match Essential row 1 width)
@@ -87,6 +80,7 @@ CDM.defaults = {
     racialsChargePosition = "BOTTOM",
     racialsChargeOffsetX = 0,
     racialsChargeOffsetY = 0,
+    racialsShowItemsAtZeroStacks = false,
     racialsCustomEntries = {},
     racialsOrderPerSpec = {},
     racialsDisabled = {},
@@ -142,6 +136,8 @@ CDM.defaults = {
     resourcesEnergyColor = { r = 1, g = 1, b = 0.34, a = 1 },
     resourcesFocusColor = { r = 1, g = 0.5, b = 0.25, a = 1 },
     resourcesComboPointsColor = { r = 1, g = 0.96, b = 0.41, a = 1 },
+    resourcesComboPointsChargedColor = { r = 0.24, g = 0.60, b = 1.00, a = 1 },
+    resourcesComboPointsChargedEmptyColor = { r = 0.12, g = 0.30, b = 0.50, a = 1 },
     resourcesBackgroundColor = { r = 0.2, g = 0.2, b = 0.2, a = 0.5 },
 
     -- Death Knight specific colors
@@ -161,6 +157,7 @@ CDM.defaults = {
     -- Demon Hunter
     resourcesFuryColor = { r = 0.79, g = 0.26, b = 0.99, a = 1 },
     resourcesSoulFragmentsColor = { r = 0.0, g = 0.8, b = 0.0, a = 1 },  -- Vengeance DH Soul Fragments
+    resourcesDevourerSoulFragmentsColor = { r = 0.11, g = 0.34, b = 0.71, a = 1 },  -- Devourer DH Souls
 
     -- Mana (all mana-using classes)
     resourcesManaColor = { r = 0.0, g = 0.56, b = 1.0, a = 1 },
@@ -230,6 +227,7 @@ CDM.defaults = {
     castBarTexture = "Solid",
     castBarBackgroundTexture = "Solid",
     castBarBackgroundColor = { r = 0.15, g = 0.15, b = 0.15, a = 0.8 },
+    castBarUseClassColor = false,
     castBarCastColor = { r = 1.0, g = 0.7, b = 0.0, a = 1 },
     castBarChannelColor = { r = 0.0, g = 1.0, b = 0.0, a = 1 },
     castBarUninterruptibleColor = { r = 0.7, g = 0.7, b = 0.7, a = 1 },
@@ -239,8 +237,6 @@ CDM.defaults = {
     castBarEmpowerStage3Color = { r = 1.0, g = 0.80, b = 0.0, a = 1 },
     castBarEmpowerStage4Color = { r = 1.0, g = 0.35, b = 0.0, a = 1 },
 
-    buffSecondaryHorizontal = false,
-    buffTertiaryHorizontal = false,
     borderFile = "1 Pixel",
     borderSize = 1,
     borderOffsetX = 0,
@@ -249,6 +245,8 @@ CDM.defaults = {
     spellRegistry = {},
     editModePositions = {},
     customBuffRegistry = {},
+    buffGroups = {},
+    ungroupedBuffOverrides = {},
 
     -- Global Text Settings
     textFont = "Friz Quadrata TT",
@@ -270,21 +268,12 @@ CDM.defaults = {
 
     -- Buff cooldown timer text (applies to all buff containers)
     buffCooldownFontSize = 15,
+    buffCooldownColor = { r = 1, g = 1, b = 1, a = 1 },
 
     -- Main buff stack position
     countPositionMain = "TOP",
     countOffsetXMain = 0,
     countOffsetYMain = 0,
-
-    -- Secondary buff stack position
-    countPositionSec = "RIGHT",
-    countOffsetXSec = 4,
-    countOffsetYSec = 0,
-
-    -- Tertiary buff stack position
-    countPositionTert = "LEFT",
-    countOffsetXTert = -4,
-    countOffsetYTert = 0,
 
     zoomIcons = true,
 

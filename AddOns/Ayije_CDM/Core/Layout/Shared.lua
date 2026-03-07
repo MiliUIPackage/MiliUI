@@ -12,10 +12,6 @@ local function ResolveBaseSpellID(frame)
     return GetCachedBaseSpellID(CDM, frame) or GetBaseSpellID(frame)
 end
 
-local SECONDARY_SET = CDM.SpellSets and CDM.SpellSets.secondary
-local TERTIARY_SET = CDM.SpellSets and CDM.SpellSets.tertiary
-assert(SECONDARY_SET and TERTIARY_SET, "CDM: SpellUtils.lua must load before Layout/Shared.lua")
-
 local math_floor = math.floor
 local math_ceil = math.ceil
 
@@ -115,9 +111,7 @@ local function GetLayoutConfig()
         Val(sizes.UTILITY_Y_OFFSET, df.utilityYOffset, 0),
         Val(sizes.MAX_ROW_UTIL, df.maxRowUtil, 8),
         utilVertical,
-        Val(sizes.UTILITY_X_OFFSET, df.utilityXOffset, 0),
-        sizes.SIZE_BUFF_SEC or sizes.SIZE_BUFF or df.sizeBuff or DEFAULT_SIZE_BUFF,
-        sizes.SIZE_BUFF_TERT or sizes.SIZE_BUFF or df.sizeBuff or DEFAULT_SIZE_BUFF
+        Val(sizes.UTILITY_X_OFFSET, df.utilityXOffset, 0)
 end
 
 local reanchorRetry = {}
@@ -314,8 +308,6 @@ CDM._LayoutCtx = {
     VIEWERS = VIEWERS,
     defensivesHiddenSet = defensivesHiddenSet,
     CDM_C = CDM_C,
-    SECONDARY_SET = SECONDARY_SET,
-    TERTIARY_SET = TERTIARY_SET,
     ResolveBaseSpellID = ResolveBaseSpellID,
     ToSortNumber = ToSortNumber,
     GetLayoutConfig = GetLayoutConfig,

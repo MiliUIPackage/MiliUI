@@ -44,8 +44,6 @@ local SIZE_ESS_ROW1 = { w = d.sizeEssRow1.w, h = d.sizeEssRow1.h }
 local SIZE_ESS_ROW2 = { w = d.sizeEssRow2.w, h = d.sizeEssRow2.h }
 local SIZE_UTILITY = { w = d.sizeUtility.w, h = d.sizeUtility.h }
 local SIZE_BUFF = { w = d.sizeBuff.w, h = d.sizeBuff.h }
-local SIZE_BUFF_SEC = { w = d.sizeBuffSecondary.w, h = d.sizeBuffSecondary.h }
-local SIZE_BUFF_TERT = { w = d.sizeBuffTertiary.w, h = d.sizeBuffTertiary.h }
 local SIZE_RACIALS = { w = d.racialsIconWidth, h = d.racialsIconHeight }
 local SIZE_DEFENSIVES = { w = d.defensivesIconWidth, h = d.defensivesIconHeight }
 local SIZE_TRINKETS = { w = d.trinketsIconWidth, h = d.trinketsIconHeight }
@@ -61,8 +59,6 @@ CDM.Sizes.SIZE_ESS_ROW1 = SIZE_ESS_ROW1
 CDM.Sizes.SIZE_ESS_ROW2 = SIZE_ESS_ROW2
 CDM.Sizes.SIZE_UTILITY = SIZE_UTILITY
 CDM.Sizes.SIZE_BUFF = SIZE_BUFF
-CDM.Sizes.SIZE_BUFF_SEC = SIZE_BUFF_SEC
-CDM.Sizes.SIZE_BUFF_TERT = SIZE_BUFF_TERT
 CDM.Sizes.SIZE_RACIALS = SIZE_RACIALS
 CDM.Sizes.SIZE_DEFENSIVES = SIZE_DEFENSIVES
 CDM.Sizes.SIZE_TRINKETS = SIZE_TRINKETS
@@ -87,12 +83,6 @@ local function InitConstants()
     SIZE_UTILITY.h = sizeUtility.h or d.sizeUtility.h
     SIZE_BUFF.w = sizeBuff.w or d.sizeBuff.w
     SIZE_BUFF.h = sizeBuff.h or d.sizeBuff.h
-    local sizeBuffSec = CDM_C.GetConfigValue("sizeBuffSecondary", d.sizeBuffSecondary or d.sizeBuff)
-    local sizeBuffTert = CDM_C.GetConfigValue("sizeBuffTertiary", d.sizeBuffTertiary or d.sizeBuff)
-    SIZE_BUFF_SEC.w = sizeBuffSec.w or SIZE_BUFF.w
-    SIZE_BUFF_SEC.h = sizeBuffSec.h or SIZE_BUFF.h
-    SIZE_BUFF_TERT.w = sizeBuffTert.w or SIZE_BUFF.w
-    SIZE_BUFF_TERT.h = sizeBuffTert.h or SIZE_BUFF.h
     SIZE_RACIALS.w = CDM_C.GetConfigValue("racialsIconWidth", d.racialsIconWidth) or d.racialsIconWidth
     SIZE_RACIALS.h = CDM_C.GetConfigValue("racialsIconHeight", d.racialsIconHeight) or d.racialsIconHeight
     SIZE_DEFENSIVES.w = CDM_C.GetConfigValue("defensivesIconWidth", d.defensivesIconWidth) or d.defensivesIconWidth
@@ -129,19 +119,9 @@ end
 local function UpdateConstants()
     InitConstants()
 
-    if CDM.secBuffs then
-        CDM.secBuffs:SetSize(CDM_C.SnapContainerWidth(SIZE_BUFF_SEC.w, CDM.secBuffs), 400)
-    end
-    if CDM.tertBuffs then
-        CDM.tertBuffs:SetSize(CDM_C.SnapContainerWidth(SIZE_BUFF_TERT.w, CDM.tertBuffs), 400)
-    end
-
     local buffContainer = CDM.anchorContainers and CDM.anchorContainers["BuffIconCooldownViewer"]
     if buffContainer then
         buffContainer:SetSize(CDM_C.SnapContainerWidth(400, buffContainer), CDM_C.SnapOffsetToPixel(SIZE_BUFF.h, buffContainer))
-        if CDM.UpdateSecondaryTertiaryBuffPositions then
-            CDM:UpdateSecondaryTertiaryBuffPositions()
-        end
     end
 
     for _, methodName in ipairs(UPDATE_CONSTANTS_METHODS) do
@@ -256,12 +236,6 @@ local function QueueCooldownViewerSettingsVisualRefresh()
     CDM:QueueViewer(VIEWERS.BUFF)
     CDM:QueueViewer(VIEWERS.BUFF_BAR)
 
-    if _G[VIEWERS.BUFF_SEC] then
-        CDM:QueueViewer(VIEWERS.BUFF_SEC)
-    end
-    if _G[VIEWERS.BUFF_TERT] then
-        CDM:QueueViewer(VIEWERS.BUFF_TERT)
-    end
 end
 
 local function QueueAllViewersAfterSettingsClose()
@@ -335,7 +309,6 @@ function CDM:QueueViewer(name, immediate, version)
 
     if name == VIEWERS.BUFF then
         if self.MarkBuffCenteringDirty then self:MarkBuffCenteringDirty() end
-        if self.MarkSecTertCenteringDirty then self:MarkSecTertCenteringDirty() end
     elseif name == VIEWERS.UTILITY and self.InvalidateUtilityVisibleCountCache then
         self:InvalidateUtilityVisibleCountCache()
     end
@@ -364,6 +337,10 @@ function CDM:SetupViewer(vName)
         hooksecurefunc(v, "OnAcquireItemFrame", function(_, itemFrame)
             if itemFrame and itemFrame.SetScale then
                 itemFrame:SetScale(1)
+            end
+            local fd = CDM.GetFrameData(itemFrame)
+            if fd and fd.cdmCooldownTextHidden and itemFrame.Cooldown and itemFrame.Cooldown.SetHideCountdownNumbers then
+                itemFrame.Cooldown:SetHideCountdownNumbers(true)
             end
             RefreshFrameSpellIdentity(itemFrame)
             self:QueueViewer(vName)
@@ -457,15 +434,6 @@ local function CreateBuffContainers()
     local mainBuffs = _G[VIEWERS.BUFF]
     if mainBuffs then
         CDM:GetOrCreateAnchorContainer(mainBuffs)
-
-        CDM.secBuffs = CreateFrame("Frame", VIEWERS.BUFF_SEC, UIParent)
-        CDM.secBuffs:SetSize(CDM_C.SnapContainerWidth(SIZE_BUFF_SEC.w, CDM.secBuffs), 400)
-        CDM.secBuffs:Show()
-
-        CDM.tertBuffs = CreateFrame("Frame", VIEWERS.BUFF_TERT, UIParent)
-        CDM.tertBuffs:SetSize(CDM_C.SnapContainerWidth(SIZE_BUFF_TERT.w, CDM.tertBuffs), 400)
-        CDM.tertBuffs:Show()
-        CDM:UpdateSecondaryTertiaryBuffPositions()
     end
 
     local buffBar = _G[VIEWERS.BUFF_BAR]
@@ -551,23 +519,15 @@ local function SetupMixinHooks()
                 end
             end
 
-            local targetViewer = VIEWERS.BUFF
-            if matchType == "secondary" then
-                if CDM.secBuffs then
-                    targetViewer = VIEWERS.BUFF_SEC
-                else
-                    matchType = nil
-                end
-            elseif matchType == "tertiary" then
-                if CDM.tertBuffs then
-                    targetViewer = VIEWERS.BUFF_TERT
-                else
-                    matchType = nil
+            if matchType ~= "buffgroup" then
+                CDM:RestoreCooldownTextIfHidden(frame)
+                CDM:RestoreVisualsIfHidden(frame)
+                CDM:ApplyStyle(frame, VIEWERS.BUFF)
+                CDM:ProcessBuffViewerOverrides(frame)
+                if CDM.ApplyUngroupedBuffOverrides then
+                    CDM:ApplyUngroupedBuffOverrides(frame)
                 end
             end
-
-            CDM:ApplyStyle(frame, targetViewer)
-            CDM:ProcessBuffViewerOverrides(frame)
             ProvisionalPlaceBuffFrame(CDM, frame, viewer, matchType, buffContainer)
         end
 
@@ -587,6 +547,7 @@ local function SetupMixinHooks()
 
     if CooldownViewerBuffIconItemMixin and CooldownViewerBuffIconItemMixin.OnActiveStateChanged then
         hooksecurefunc(CooldownViewerBuffIconItemMixin, "OnActiveStateChanged", function(frame)
+            RefreshFrameSpellIdentity(frame)
             QueueBuffViewerFromFrame(frame, true)
         end)
     end
@@ -678,6 +639,10 @@ local function SetupEditModeIntegration()
     if CDM.SetupEditModeCooldownViewerLock then
         CDM:SetupEditModeCooldownViewerLock()
     end
+
+    if CDM.SetupCooldownViewerEditModeCompliancePrompt then
+        CDM:SetupCooldownViewerEditModeCompliancePrompt()
+    end
 end
 
 local function SetupZoneTransitionEvents()
@@ -749,15 +714,15 @@ local function SetupZoneTransitionEvents()
                 end
             end
 
-            if CDM.secBuffs and CDM.tertBuffs then
-                CDM:UpdateSecondaryTertiaryBuffPositions()
-            end
         end
 
         CDM:QueueAllViewers()
 
         if not CDM.loginFinished and (not missingViewer or attempt >= maxVisualSetupRetries) then
             CDM.loginFinished = true
+            if CDM.TryOpenQueuedConfig then
+                CDM:TryOpenQueuedConfig("login_ready")
+            end
             ProcessLoginQueue()
         end
 
@@ -833,20 +798,33 @@ local function SetupZoneTransitionEvents()
 end
 
 local function InitializeModules()
-    if CDM.InitializeRacials and CDM.db.racialsEnabled ~= false then
-        CDM:InitializeRacials()
+    local moduleManager = CDM.ModuleManager
+    if not (moduleManager and moduleManager.ReconcileModule) then
+        local startupErr = "ModuleManager is not available during startup module initialization"
+        print("|cffff0000[CDM]|r " .. startupErr)
+        local handler = geterrorhandler and geterrorhandler()
+        if handler then
+            handler(startupErr)
+        end
+        return
     end
 
-    if CDM.InitializeDefensives and CDM.db.defensivesEnabled ~= false then
-        CDM:InitializeDefensives()
+    local startupFailures
+    local startupModules = { "racials", "defensives", "trinkets", "resources" }
+    for _, moduleId in ipairs(startupModules) do
+        local ok, err = moduleManager:ReconcileModule(moduleId)
+        if not ok then
+            startupFailures = startupFailures or {}
+            startupFailures[#startupFailures + 1] = string.format("%s (%s)", tostring(moduleId), tostring(err))
+        end
     end
-
-    if CDM.InitializeTrinkets and CDM.db.trinketsEnabled ~= false then
-        CDM:InitializeTrinkets()
-    end
-
-    if CDM.InitializeResources and CDM.db.resourcesEnabled ~= false then
-        CDM:InitializeResources()
+    if startupFailures and #startupFailures > 0 then
+        local startupErr = "Startup module reconcile failed: " .. table.concat(startupFailures, "; ")
+        print("|cffff0000[CDM]|r " .. startupErr)
+        local handler = geterrorhandler and geterrorhandler()
+        if handler then
+            handler(startupErr)
+        end
     end
 
     if CDM.InitializeCustomBuffs then
@@ -871,6 +849,15 @@ local function InitializeModules()
 end
 
 local function RegisterRefreshCallbacks()
+    local VISUAL_STYLE_SCOPES = {
+        "castbar_visuals",
+        "resources_visuals",
+        "text_visuals",
+        "trackers_layout",
+        "glow",
+        "viewers",
+    }
+
     CDM:RegisterRefreshCallback("styleCache", function()
         CDM.styleCacheVersion = (CDM.styleCacheVersion or 0) + 1
         if RefreshStyleCache then
@@ -879,7 +866,7 @@ local function RegisterRefreshCallbacks()
         if CDM.InvalidateEssentialRow1WidthCache then
             CDM:InvalidateEssentialRow1WidthCache()
         end
-    end, 10)
+    end, 10, VISUAL_STYLE_SCOPES)
 
     CDM:RegisterRefreshCallback("constants", function()
         if CDM.InvalidateEssentialRow1WidthCache then
@@ -889,15 +876,21 @@ local function RegisterRefreshCallbacks()
             CDM:InvalidateUtilityVisibleCountCache()
         end
         UpdateConstants()
-    end, 20)
+    end, 20, {
+        "castbar_visuals",
+        "resources_visuals",
+        "text_visuals",
+        "trackers_layout",
+        "viewers",
+    })
 
     CDM:RegisterRefreshCallback("specData", function()
         CDM:RefreshSpecData()
-    end, 30)
+    end, 30, { "spec_data" })
 
     CDM:RegisterRefreshCallback("viewers", function()
         CDM:QueueAllViewers(true)
-    end, 40)
+    end, 40, { "viewers" })
 
     CDM:RegisterRefreshCallback("essentialPosition", function()
         CDM:UpdateEssentialContainerPosition()
@@ -905,19 +898,20 @@ local function RegisterRefreshCallbacks()
     -- resize for pixel-perfect icon placement. If we re-anchor the container after
     -- layout, we can undo that snap and leave 1px drift/gap artifacts until another
     -- reanchor (e.g. /reload) happens.
-    end, 35)
+    end, 35, { "trackers_layout" })
 
     CDM:RegisterRefreshCallback("buffPosition", function()
         CDM:UpdateBuffContainerPosition()
-    end, 60)
+    end, 60, { "trackers_layout" })
 
     CDM:RegisterRefreshCallback("buffBars", function()
+        CDM:UpdateBuffBarContainerPosition()
         CDM:QueueViewer(VIEWERS.BUFF_BAR, true)
-    end, 65)
+    end, 65, { "trackers_layout", "viewers" })
 
     CDM:RegisterRefreshCallback("containerLocks", function()
         CDM:UpdateContainerDragOverlays()
-    end, 70)
+    end, 70, { "trackers_layout" })
 end
 
 function CDM:OnEnable()
@@ -935,12 +929,19 @@ function CDM:OnEnable()
     RegisterPostLoginFontRefresh()
     RegisterCooldownViewerSettingsVisualRefresh()
 
-    self:RegisterEvent("PLAYER_REGEN_ENABLED", function()
+    local function FlushCombatDirtyViewers()
         local dirty = CDM.combatDirtyViewers
         if not next(dirty) then return end
         for vName in pairs(dirty) do
             CDM:QueueViewer(vName)
         end
         wipe(dirty)
+    end
+
+    self:RegisterInternalCallback("OnCombatStateChanged", function(isInCombat)
+        if isInCombat then
+            return
+        end
+        FlushCombatDirtyViewers()
     end)
 end

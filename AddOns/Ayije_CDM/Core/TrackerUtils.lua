@@ -28,6 +28,8 @@ local cachedRacialsPartyFrameVersion = -1
 local racialsPartyAnchorCacheVersion = 0
 local trackerPositionCallbacks = {}
 local positionNotifyPending = false
+local positionNotifyTimer = nil
+local positionNotifySeq = 0
 local trackerVisibleFramesScratch = {}
 local trackerWidthsPxScratch = {}
 local trackerHeightsPxScratch = {}
@@ -67,12 +69,17 @@ function CDM.WipeEffectiveIDCache()
     table.wipe(effectiveIDCache)
 end
 
+local multiChargeCacheRef = nil
 local function GetMultiChargeCache()
+    if multiChargeCacheRef then
+        return multiChargeCacheRef
+    end
     if Ayije_CDMDB and Ayije_CDMDB.global then
         if not Ayije_CDMDB.global.multiChargeSpells then
             Ayije_CDMDB.global.multiChargeSpells = {}
         end
-        return Ayije_CDMDB.global.multiChargeSpells
+        multiChargeCacheRef = Ayije_CDMDB.global.multiChargeSpells
+        return multiChargeCacheRef
     end
 end
 
@@ -108,7 +115,13 @@ end
 local function SchedulePositionNotify()
     if positionNotifyPending then return end
     positionNotifyPending = true
-    C_Timer.After(0, function()
+    positionNotifySeq = positionNotifySeq + 1
+    local notifySeq = positionNotifySeq
+    positionNotifyTimer = C_Timer.NewTimer(0, function()
+        if notifySeq ~= positionNotifySeq then
+            return
+        end
+        positionNotifyTimer = nil
         positionNotifyPending = false
         NotifyTrackerPositionCallbacks()
     end)
@@ -117,6 +130,17 @@ end
 function CDM.ScheduleTrackerPositionRefresh()
     InvalidateTrackerAnchorCache()
     SchedulePositionNotify()
+end
+
+function CDM.RunTrackerPositionRefreshNow()
+    InvalidateTrackerAnchorCache()
+    if positionNotifyTimer then
+        positionNotifyTimer:Cancel()
+        positionNotifyTimer = nil
+    end
+    positionNotifySeq = positionNotifySeq + 1
+    positionNotifyPending = false
+    NotifyTrackerPositionCallbacks()
 end
 
 local playerFrameRecheckTimer
@@ -388,6 +412,19 @@ function CDM.CreateTrackerIcon(parent, namePrefix, id, opts)
     end
     frame.Cooldown = cooldown
 
+    if cooldown.CooldownFlash then
+        hooksecurefunc(cooldown.CooldownFlash, "Show", function(self)
+            self:Hide()
+            if self.FlashAnim then self.FlashAnim:Stop() end
+        end)
+        if cooldown.CooldownFlash.FlashAnim and cooldown.CooldownFlash.FlashAnim.Play then
+            hooksecurefunc(cooldown.CooldownFlash.FlashAnim, "Play", function(self)
+                self:Stop()
+                cooldown.CooldownFlash:Hide()
+            end)
+        end
+    end
+
     if not CDM._OnTrackerCooldownDone then
         CDM._OnTrackerCooldownDone = function(self)
             local parentFrame = self and self:GetParent()
@@ -430,9 +467,9 @@ local ToPixelCountForRegion = CDM_C.ToPixelCountForRegion
 local PixelsToUIForRegion = CDM_C.PixelsToUIForRegion
 local SetPointPixels = CDM_C.SetPointPixels
 
-local function SetTrackerContainerAnchor(container, anchorPoint, offsetX, offsetY, targetFrame)
+local function SetTrackerContainerAnchor(container, anchorPoint, offsetX, offsetY, targetFrame, containerAnchorOverride)
     container:ClearAllPoints()
-    local containerAnchor = INVERTED_ANCHORS[anchorPoint] or anchorPoint
+    local containerAnchor = containerAnchorOverride or INVERTED_ANCHORS[anchorPoint] or anchorPoint
     SetPixelPerfectPoint(container, containerAnchor, targetFrame, anchorPoint, offsetX, offsetY)
 end
 
@@ -469,9 +506,16 @@ function CDM.PositionTrackerIcons(container, frames, size, spacing, anchorPoint)
     local totalWidthPx = 0
     local maxHeightPx = 0
 
+    local firstW = visibleFrames[1]:GetWidth() or 0
+    local firstH = visibleFrames[1]:GetHeight() or 0
+    local commonWPx = ToPixelCountForRegion(firstW > 0 and firstW or (size and size.w) or 0, container, 1)
+    local commonHPx = ToPixelCountForRegion(firstH > 0 and firstH or (size and size.h) or 0, container, 1)
+
     for i, frame in ipairs(visibleFrames) do
-        local wPx = ToPixelCountForRegion((frame.GetWidth and frame:GetWidth()) or (size and size.w) or 0, container, 1)
-        local hPx = ToPixelCountForRegion((frame.GetHeight and frame:GetHeight()) or (size and size.h) or 0, container, 1)
+        local rawW = (frame.GetWidth and frame:GetWidth()) or 0
+        local rawH = (frame.GetHeight and frame:GetHeight()) or 0
+        local wPx = (rawW == firstW) and commonWPx or ToPixelCountForRegion(rawW > 0 and rawW or (size and size.w) or 0, container, 1)
+        local hPx = (rawH == firstH) and commonHPx or ToPixelCountForRegion(rawH > 0 and rawH or (size and size.h) or 0, container, 1)
         widthsPx[i] = wPx
         heightsPx[i] = hPx
         totalWidthPx = totalWidthPx + wPx
@@ -502,7 +546,7 @@ function CDM.PositionTrackerIcons(container, frames, size, spacing, anchorPoint)
     end
 end
 
-function CDM.AnchorToPlayerFrame(container, anchorPoint, offsetX, offsetY, moduleName, forceRefresh)
+function CDM.AnchorToPlayerFrame(container, anchorPoint, offsetX, offsetY, moduleName, forceRefresh, containerAnchor)
     if not container then
         return
     end
@@ -521,13 +565,14 @@ function CDM.AnchorToPlayerFrame(container, anchorPoint, offsetX, offsetY, modul
         if not (tf.IsShown and tf:IsShown()) then
             trackerAnchorCache[container] = nil
         else
-            if cached.requestAnchorPoint == anchorPoint and cached.requestOffsetX == offsetX and cached.requestOffsetY == offsetY then
+            if cached.requestAnchorPoint == anchorPoint and cached.requestOffsetX == offsetX and cached.requestOffsetY == offsetY and cached.requestContainerAnchor == containerAnchor then
                 return
             end
-            SetTrackerContainerAnchor(container, anchorPoint, offsetX, offsetY, tf)
+            SetTrackerContainerAnchor(container, anchorPoint, offsetX, offsetY, tf, containerAnchor)
             cached.requestAnchorPoint = anchorPoint
             cached.requestOffsetX = offsetX
             cached.requestOffsetY = offsetY
+            cached.requestContainerAnchor = containerAnchor
             return
         end
     end
@@ -538,10 +583,8 @@ function CDM.AnchorToPlayerFrame(container, anchorPoint, offsetX, offsetY, modul
         if not container:IsShown() then
             container:Show()
         end
-        SetTrackerContainerAnchor(container, anchorPoint, offsetX, offsetY, playerFrame)
+        SetTrackerContainerAnchor(container, anchorPoint, offsetX, offsetY, playerFrame, containerAnchor)
     else
-        -- A recheck timer is pending: addon frame may appear soon, keep last position.
-        -- No recheck pending: resolve failure is final, hide the container.
         if not playerFrameRecheckTimer and container:IsShown() then
             container:Hide()
         end
@@ -560,6 +603,7 @@ function CDM.AnchorToPlayerFrame(container, anchorPoint, offsetX, offsetY, modul
     entry.requestAnchorPoint = anchorPoint
     entry.requestOffsetX = offsetX
     entry.requestOffsetY = offsetY
+    entry.requestContainerAnchor = containerAnchor
 end
 
 function CDM.CreateTrackerUpdater(events, handler)

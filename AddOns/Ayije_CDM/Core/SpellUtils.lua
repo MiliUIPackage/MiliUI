@@ -3,7 +3,6 @@ local CDM = _G[AddonName]
 
 local GetFrameData = CDM.GetFrameData
 
-local SECONDARY_SET, TERTIARY_SET = {}, {}
 local COLOR_REGISTRY = {}
 
 local lastRefreshSpecID = nil
@@ -84,9 +83,90 @@ function CDM:GetSpellIDCandidates(frame, includeBase, skipAura)
     return out
 end
 
+local buffGlowCandidateList = {}
+local buffGlowCandidateSeen = {}
+
+local function AddBuffGlowCandidate(id)
+    if not IsUsableID(id) then return end
+    if buffGlowCandidateSeen[id] then return end
+    buffGlowCandidateSeen[id] = true
+    buffGlowCandidateList[#buffGlowCandidateList + 1] = id
+end
+
+local function AddBuffGlowCandidateWithBase(id)
+    if not IsUsableID(id) then return end
+    AddBuffGlowCandidate(id)
+    local baseID = CDM.NormalizeToBase and CDM.NormalizeToBase(id) or nil
+    if baseID and baseID ~= id then
+        AddBuffGlowCandidate(baseID)
+    end
+end
+
+local function MoveBuffGlowCandidateToFront(id)
+    if not IsUsableID(id) then return end
+    if not buffGlowCandidateSeen[id] then return end
+    if buffGlowCandidateList[1] == id then return end
+    for i = 2, #buffGlowCandidateList do
+        if buffGlowCandidateList[i] == id then
+            table.remove(buffGlowCandidateList, i)
+            table.insert(buffGlowCandidateList, 1, id)
+            return
+        end
+    end
+end
+
+function CDM:ResolveBuffGlowState(frame, specID, preferCategory)
+    if not frame or not specID then
+        return false, nil, nil
+    end
+    if not self.GetSpellGlowEnabled or not self.GetSpellGlowColor then
+        return false, nil, nil
+    end
+
+    local frameData = GetFrameData(frame)
+    local cachedID = frameData.cdmBuffGlowSourceID
+
+    table.wipe(buffGlowCandidateList)
+    table.wipe(buffGlowCandidateSeen)
+
+    local groupedID = frameData.buffCategorySpellID
+    if preferCategory then
+        AddBuffGlowCandidateWithBase(groupedID)
+    end
+
+    local candidates = self.GetSpellIDCandidates and self:GetSpellIDCandidates(frame, true) or nil
+    if candidates then
+        for _, id in ipairs(candidates) do
+            AddBuffGlowCandidateWithBase(id)
+        end
+    end
+
+    if not preferCategory then
+        AddBuffGlowCandidateWithBase(groupedID)
+    end
+
+    -- Keep animation stable when the previous source is still among active candidates.
+    if cachedID then
+        MoveBuffGlowCandidateToFront(cachedID)
+        local cachedBase = CDM.NormalizeToBase and CDM.NormalizeToBase(cachedID) or nil
+        if cachedBase and cachedBase ~= cachedID then
+            MoveBuffGlowCandidateToFront(cachedBase)
+        end
+    end
+
+    for _, id in ipairs(buffGlowCandidateList) do
+        if self:GetSpellGlowEnabled(specID, id) then
+            local glowColor = self:GetSpellGlowColor(specID, id)
+            frameData.cdmBuffGlowSourceID = id
+            return true, glowColor, id
+        end
+    end
+
+    frameData.cdmBuffGlowSourceID = nil
+    return false, nil, nil
+end
+
 CDM.SpellSets = {
-    secondary = SECONDARY_SET,
-    tertiary = TERTIARY_SET,
     colors = COLOR_REGISTRY,
 }
 
@@ -159,14 +239,14 @@ end
 
 CDM.NormalizeToBase = NormalizeToBase
 
+local BUFF_GROUP_SET = {}
+
 local function CheckIDAgainstRegistry(id)
     if not IsUsableID(id) then return nil, nil end
-    if SECONDARY_SET[id] then return "secondary", id end
-    if TERTIARY_SET[id] then return "tertiary", id end
+    if BUFF_GROUP_SET[id] then return "buffgroup", id, BUFF_GROUP_SET[id] end
     local normalized = NormalizeToBase(id)
     if normalized and normalized ~= id then
-        if SECONDARY_SET[normalized] then return "secondary", normalized end
-        if TERTIARY_SET[normalized] then return "tertiary", normalized end
+        if BUFF_GROUP_SET[normalized] then return "buffgroup", normalized, BUFF_GROUP_SET[normalized] end
     end
     return nil, nil
 end
@@ -244,6 +324,7 @@ function CDM:ResetFrameSpellCache(frame)
     frameData.cdmAuraLastSpellID = nil
     frameData.cdmLastBorderColorID = nil
     frameData.cdmLastBorderStyleVersion = nil
+    frameData.cdmBuffGlowSourceID = nil
 end
 
 function CDM:GetCachedBaseSpellID(frame)
@@ -270,6 +351,8 @@ function CDM:InvalidateFrameCategoryCache()
             for frame in v.itemFramePool:EnumerateActive() do
                 local fd = GetFrameData(frame)
                 fd.buffCategorySpellID = nil
+                fd.cdmLastBorderColorID = nil
+                fd.cdmLastBorderStyleVersion = nil
             end
         end
     end
@@ -283,18 +366,17 @@ local function CheckBuffRegistryMatch(frame)
     local cached = frameData.buffCategorySpellID
     if cached ~= nil then
         if cached == false then return nil, nil end
-        if SECONDARY_SET[cached] then return "secondary", cached end
-        if TERTIARY_SET[cached] then return "tertiary", cached end
+        if BUFF_GROUP_SET[cached] then return "buffgroup", cached, BUFF_GROUP_SET[cached] end
     end
 
-    local matchType, matchID
+    local matchType, matchID, groupIdx
 
     local candidates = CDM.GetSpellIDCandidates and CDM:GetSpellIDCandidates(frame, true) or {}
     for _, id in ipairs(candidates) do
-        matchType, matchID = CheckIDAgainstRegistry(id)
+        matchType, matchID, groupIdx = CheckIDAgainstRegistry(id)
         if matchType then
             frameData.buffCategorySpellID = matchID
-            return matchType, matchID
+            return matchType, matchID, groupIdx
         end
     end
 
@@ -322,9 +404,8 @@ function CDM:RefreshSpecData()
 
     if specID == lastRefreshSpecID and not specDataDirty then return end
 
-    table.wipe(SECONDARY_SET)
-    table.wipe(TERTIARY_SET)
     table.wipe(COLOR_REGISTRY)
+    table.wipe(BUFF_GROUP_SET)
 
     self:ClearNormalizationCache()
     self:InvalidateFrameCategoryCache()
@@ -332,21 +413,19 @@ function CDM:RefreshSpecData()
     local registry = self:GetSpellRegistry(specID)
     if not registry then return end
 
-    if registry.secondary then
-        for i, id in ipairs(registry.secondary) do
-            StoreWithVariants(SECONDARY_SET, id, i)
-        end
-    end
-
-    if registry.tertiary then
-        for i, id in ipairs(registry.tertiary) do
-            StoreWithVariants(TERTIARY_SET, id, i)
-        end
-    end
-
     if registry.colors then
         for id, color in pairs(registry.colors) do
             StoreWithVariants(COLOR_REGISTRY, id, color)
+        end
+    end
+
+    if self.RefreshBuffGroupData then
+        self:RefreshBuffGroupData()
+    end
+    local groupSets = self.BuffGroupSets
+    if groupSets and groupSets.grouped then
+        for id, groupIdx in pairs(groupSets.grouped) do
+            StoreWithVariants(BUFF_GROUP_SET, id, groupIdx)
         end
     end
 

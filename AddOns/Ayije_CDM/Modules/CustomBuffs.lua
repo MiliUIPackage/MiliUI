@@ -36,7 +36,7 @@ local function RefreshCachedCustomBuffStyles()
     cachedCustomBuffStyles.fontPath = CDM_C.GetBaseFontPath()
     cachedCustomBuffStyles.fontOutline = CDM_C.GetBaseFontOutline()
     cachedCustomBuffStyles.fontSize = db and db.buffCooldownFontSize or defaults.buffCooldownFontSize or 12
-    cachedCustomBuffStyles.fontColor = (db and db.cooldownColor) or defaults.cooldownColor or CDM_C.WHITE
+    cachedCustomBuffStyles.fontColor = (db and db.buffCooldownColor) or defaults.buffCooldownColor or CDM_C.WHITE
 end
 
 CDM.RefreshCachedCustomBuffStyles = RefreshCachedCustomBuffStyles
@@ -470,4 +470,4 @@ end
 
 CDM:RegisterRefreshCallback("customBuffs", function()
     CDM:UpdateCustomBuffs()
-end, 50)
+end, 50, { "viewers" })

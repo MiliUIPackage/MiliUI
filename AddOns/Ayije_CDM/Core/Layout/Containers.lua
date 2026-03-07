@@ -112,23 +112,6 @@ function CDM:UpdateUtilityContainerPosition()
     SetPixelPerfectPoint(utilContainer, "TOP", essContainer, "BOTTOM", utilityXOffset, -spacing + utilityYOffset)
 end
 
-function CDM:UpdateSecondaryTertiaryBuffPositions()
-    local mainBuffContainer = self.anchorContainers[VIEWERS.BUFF]
-
-    if not mainBuffContainer or not self.secBuffs or not self.tertBuffs then return end
-
-    local secOffsetX = CDM_C.GetConfigValue("buffSecondaryOffsetX", -120)
-    local secOffsetY = CDM_C.GetConfigValue("buffSecondaryOffsetY", 6)
-    local tertOffsetX = CDM_C.GetConfigValue("buffTertiaryOffsetX", 120)
-    local tertOffsetY = CDM_C.GetConfigValue("buffTertiaryOffsetY", 6)
-
-    self.secBuffs:ClearAllPoints()
-    SetPixelPerfectPoint(self.secBuffs, "BOTTOM", mainBuffContainer, "TOP", secOffsetX, secOffsetY)
-
-    self.tertBuffs:ClearAllPoints()
-    SetPixelPerfectPoint(self.tertBuffs, "BOTTOM", mainBuffContainer, "TOP", tertOffsetX, tertOffsetY)
-end
-
 local FALLBACK_POSITION = {
     point = "CENTER",
     x = 0,
@@ -223,7 +206,6 @@ function CDM:UpdateBuffContainerPosition()
     buffContainer:ClearAllPoints()
     AnchorMainLayoutContainer(buffContainer, true, savedPos.point, savedPos.x, savedPos.y, yOffset)
 
-    self:UpdateSecondaryTertiaryBuffPositions()
 end
 
 function CDM:UpdateEssentialContainerPosition()
@@ -410,7 +392,6 @@ function CDM:GetOrCreateAnchorContainer(viewer)
                     CDM:UpdateUtilityContainerPosition()
                     CDM:NotifyPositionSliderUpdate("essential", settings.x, settings.y)
                 elseif vName == VIEWERS.BUFF then
-                    CDM:UpdateSecondaryTertiaryBuffPositions()
                     CDM:NotifyPositionSliderUpdate("buff", settings.x, settings.y)
                 end
             end

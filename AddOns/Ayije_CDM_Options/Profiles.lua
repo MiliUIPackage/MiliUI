@@ -1,5 +1,3 @@
--- Config/Profiles.lua - Profile Management Tab
-
 local Runtime = _G["Ayije_CDM"]
 if not Runtime then return end
 local API = Runtime.API
@@ -7,19 +5,47 @@ local ns = Runtime._OptionsNS
 local CDM = Runtime
 local UI = ns.ConfigUI
 local L = Runtime.L
--- References to dynamic UI elements (for refresh)
 local switchDropdown = nil
 local copyDropdown = nil
 local deleteDropdown = nil
 local defaultDropdown = nil
+local renameEditBox = nil
 local profilePage = nil
 local specToggle = nil
 local specSection = nil
 local specDropdowns = {}
 
--- =========================================================================
--- DROPDOWN HELPERS
--- =========================================================================
+local function MapProfileActionError(errCode, fallback)
+    if errCode == "combat_blocked" then
+        return L["Cannot open config while in combat"]
+    end
+    if errCode == "profile_exists" then
+        return L["Already exists"]
+    end
+    if errCode == "invalid_profile_name" then
+        return L["Enter a name"]
+    end
+    if errCode == "same_profile_name" then
+        return L["Already exists"]
+    end
+    if errCode == "apply_failed" or errCode == "db_not_initialized" then
+        return L["Failed to apply profile"]
+    end
+    if errCode == "profile_not_found" then
+        return L["Profile not found"]
+    end
+    if errCode == "source_is_active" then
+        return L["Cannot copy active profile"]
+    end
+    if errCode == "cannot_delete_active_profile" then
+        return L["Cannot delete active profile"]
+    end
+    return fallback or L["Invalid profile data"]
+end
+
+local function PrintActionError(errCode)
+    print("|cffff0000[CDM]|r " .. MapProfileActionError(errCode))
+end
 
 local function SetupSwitchDropdown(dropdown)
     dropdown:SetupMenu(function(_, rootDescription)
@@ -29,7 +55,10 @@ local function SetupSwitchDropdown(dropdown)
             rootDescription:CreateRadio(name, function()
                 return current == name
             end, function()
-                API:SetProfile(name)
+                local ok, errCode = API:SetProfile(name)
+                if not ok then
+                    PrintActionError(errCode)
+                end
             end)
         end
     end)
@@ -58,10 +87,16 @@ local function SetupSpecDropdown(dropdown, specIndex)
             rootDescription:CreateRadio(name, function()
                 return (API:GetSpecProfile(specIndex) or API:GetActiveProfileName()) == name
             end, function()
-                API:SetSpecProfile(specIndex, name)
-                if specIndex == GetSpecialization() then
-                    API:SetProfile(name)
+                local currentSpec = GetSpecialization()
+                if currentSpec and specIndex == currentSpec then
+                    local ok, errCode = API:SetProfile(name)
+                    if not ok then
+                        PrintActionError(errCode)
+                        return
+                    end
                 end
+                API:SetSpecProfile(specIndex, name)
+                RefreshSpecDropdowns()
             end)
         end
     end)
@@ -89,17 +124,16 @@ local function SetupDefaultProfileDropdown(dropdown)
     end)
 end
 
--- =========================================================================
--- REFRESH (called after profile switch/delete/create)
--- =========================================================================
-
 local function RefreshProfilesUI()
     if not profilePage then return end
 
-    -- Force dropdown menus to rebuild on next open
     if switchDropdown then
         switchDropdown:SetDefaultText(API:GetActiveProfileName())
         SetupSwitchDropdown(switchDropdown)
+    end
+
+    if renameEditBox then
+        renameEditBox:SetText(API:GetActiveProfileName())
     end
 
     if copyDropdown then
@@ -133,14 +167,9 @@ end
 
 ns.RefreshProfilesTab = RefreshProfilesUI
 
--- =========================================================================
--- TAB CREATION
--- =========================================================================
-
 local function CreateProfilesTab(page, tabId)
     profilePage = page
 
-    -- Switch Profile
     local h2 = UI.CreateHeader(page, L["Current Profile"])
     h2:SetPoint("TOPLEFT", 35, -40)
 
@@ -150,7 +179,6 @@ local function CreateProfilesTab(page, tabId)
     switchDropdown:SetDefaultText(API:GetActiveProfileName())
     SetupSwitchDropdown(switchDropdown)
 
-    -- New Profile
     local h3 = UI.CreateHeader(page, L["New Profile"])
     h3:SetPoint("TOPLEFT", switchDropdown, "BOTTOMLEFT", 0, -15)
 
@@ -181,12 +209,12 @@ local function CreateProfilesTab(page, tabId)
             return
         end
         name = name:match("^%s*(.-)%s*$")  -- trim whitespace
-        local ok = API:NewProfile(name)
+        local ok, errCode = API:NewProfile(name)
         if ok then
             newEditBox:SetText("")
             createStatus:SetText("")
         else
-            createStatus:SetText(L["Already exists"])
+            createStatus:SetText(MapProfileActionError(errCode, L["Already exists"]))
             UI.SetTextError(createStatus)
         end
     end)
@@ -200,7 +228,6 @@ local function CreateProfilesTab(page, tabId)
         self:ClearFocus()
     end)
 
-    -- Copy From
     local h4 = UI.CreateHeader(page, L["Copy From"])
     h4:SetPoint("TOPLEFT", newProfileRow, "BOTTOMLEFT", 0, -15)
 
@@ -217,7 +244,6 @@ local function CreateProfilesTab(page, tabId)
         StaticPopup_Show("AYIJE_CDM_CONFIRM_COPY_PROFILE", name, nil, { name = name })
     end)
 
-    -- Manage
     local h5 = UI.CreateHeader(page, L["Manage"])
     h5:SetPoint("TOPLEFT", copyDropdown, "BOTTOMLEFT", 0, -15)
 
@@ -225,7 +251,7 @@ local function CreateProfilesTab(page, tabId)
     renameRow:SetSize(400, 28)
     renameRow:SetPoint("TOPLEFT", h5, "BOTTOMLEFT", 0, -15)
 
-    local renameEditBox = CreateFrame("EditBox", nil, renameRow, "InputBoxTemplate")
+    renameEditBox = CreateFrame("EditBox", nil, renameRow, "InputBoxTemplate")
     renameEditBox:SetSize(200, 28)
     renameEditBox:SetPoint("LEFT", 0, 0)
     renameEditBox:SetAutoFocus(false)
@@ -253,11 +279,11 @@ local function CreateProfilesTab(page, tabId)
             renameStatus:SetText("")
             return
         end
-        local ok = API:RenameProfile(name)
+        local ok, errCode = API:RenameProfile(name)
         if ok then
             renameStatus:SetText("")
         else
-            renameStatus:SetText(L["Already exists"])
+            renameStatus:SetText(MapProfileActionError(errCode, L["Already exists"]))
             UI.SetTextError(renameStatus)
         end
     end)
@@ -292,7 +318,6 @@ local function CreateProfilesTab(page, tabId)
         StaticPopup_Show("AYIJE_CDM_CONFIRM_DELETE_PROFILE", name, nil, { name = name })
     end)
 
-    -- Default Profile for New Characters
     local h6 = UI.CreateHeader(page, L["Default Profile for New Characters"])
     h6:SetPoint("TOPLEFT", manageRow, "BOTTOMLEFT", 0, -15)
 
@@ -301,7 +326,6 @@ local function CreateProfilesTab(page, tabId)
     defaultDropdown:SetWidth(200)
     SetupDefaultProfileDropdown(defaultDropdown)
 
-    -- Specialization Profiles
     local h7 = UI.CreateHeader(page, L["Specialization Profiles"])
     h7:SetPoint("TOPLEFT", defaultDropdown, "BOTTOMLEFT", 0, -15)
 

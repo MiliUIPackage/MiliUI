@@ -1,5 +1,3 @@
--- Config/ConfigFrame.lua - Main config window and refresh system
-
 local Runtime = _G["Ayije_CDM"]
 if not Runtime then return end
 local API = Runtime.API
@@ -9,10 +7,6 @@ local L = Runtime.L
 local CDM_C = CDM and CDM.CONST or {}
 local UI = ns.ConfigUI
 local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
-
--- =========================================================================
---  MAIN CONFIG FRAME
--- =========================================================================
 
 local ConfigFrame = nil
 local categories = {}
@@ -33,6 +27,7 @@ local SCROLL_FRAME_NAMES = {
     resources = "AyijeCDM_ResourcesScrollFrame",
     bars = "AyijeCDM_BarsScrollFrame",
     castbar = "AyijeCDM_CastBarScrollFrame",
+    buffgroups = "AyijeCDM_BuffGroupsLeftScroll",
 }
 
 local function GetAddonVersionText()
@@ -55,11 +50,10 @@ local function ApplyFooterTextStyle(fontString)
     local fontPath = (LSM and LSM:Fetch("font", fontName)) or CDM_C.FONT_PATH
     local fontSize = (CDM_C.GetPixelFontSize and CDM_C.GetPixelFontSize(24)) or 24
 
-    -- Ensure the FontString always has a valid font, even if a custom font lookup fails.
     fontString:SetFontObject("GameFontHighlightSmall")
     local setOk = fontString:SetFont(fontPath, fontSize, fontOutline)
-    if not setOk and CDM_C.FONT_PATH then
-        fontString:SetFont(CDM_C.FONT_PATH, fontSize, fontOutline)
+    if not setOk then
+        fontString:SetFont(STANDARD_TEXT_FONT, fontSize, fontOutline)
     end
 end
 
@@ -76,6 +70,9 @@ end
 local function HideConfigUiForCombat()
     local frame = ConfigFrame or ns.ConfigFrame
     if frame and frame.IsShown and frame:IsShown() then
+        if UI and UI.CloseAllDropdownMenus then
+            UI.CloseAllDropdownMenus()
+        end
         frame:Hide()
     end
 
@@ -111,13 +108,15 @@ local function SetCategoryButtonState(button, isActive)
 end
 
 local function SelectCategory(id)
+    if UI and UI.CloseAllDropdownMenus then
+        UI.CloseAllDropdownMenus()
+    end
     currentTab = id
     for categoryId, frame in pairs(categories) do frame:SetShown(categoryId == id) end
     for buttonId, btn in pairs(buttons) do
         SetCategoryButtonState(btn, buttonId == id)
     end
 
-    -- Reset scroll position for tabs with scroll frames
     local scrollFrameName = SCROLL_FRAME_NAMES[id]
     if scrollFrameName then
         local scrollFrame = _G[scrollFrameName]
@@ -127,7 +126,6 @@ local function SelectCategory(id)
     end
 end
 
--- Expose SelectCategory for tab files
 ns.ConfigSelectCategory = SelectCategory
 
 local function CreateCategoryPage(id, name, Content)
@@ -139,14 +137,12 @@ local function CreateCategoryPage(id, name, Content)
     return page
 end
 
--- Expose CreateCategoryPage for tab files
 ns.ConfigCreatePage = CreateCategoryPage
 
--- Category header definitions for sidebar grouping
 local categoryHeaders = {
     { label = L["Display"], tabs = {"sizes", "layout", "positions"} },
     { label = L["Styling"], tabs = {"border", "text", "glow", "fading", "assist"} },
-    { label = L["Buffs"], tabs = {"icons", "bars", "custombuffs"} },
+    { label = L["Buffs"], tabs = {"buffgroups", "bars", "custombuffs"} },
     { label = L["Features"], tabs = {"racials", "resources", "defensives", "trinkets", "castbar"} },
     { label = L["Utility"], tabs = {"profiles", "importexport"} },
 }
@@ -160,8 +156,12 @@ local function CreateConfigFrame()
     ConfigFrame:SetFrameStrata("HIGH")
     ConfigFrame:Hide()
     tinsert(UISpecialFrames, "Ayije_CDMConfigFrame")
+    ConfigFrame:HookScript("OnHide", function()
+        if UI and UI.CloseAllDropdownMenus then
+            UI.CloseAllDropdownMenus()
+        end
+    end)
 
-    -- Fix default template elements
     if ConfigFrame.TitleText then
         ConfigFrame.TitleText:SetText("")
     end
@@ -169,25 +169,21 @@ local function CreateConfigFrame()
         ConfigFrame.Bg:SetFrameLevel(ConfigFrame:GetFrameLevel())
     end
 
-    -- Create a container frame for title text with higher frame level (above title bar)
     local titleContainer = CreateFrame("Frame", nil, ConfigFrame)
     titleContainer:SetPoint("TOP", ConfigFrame, "TOP", 0, 0)
     titleContainer:SetSize(200, 40)
     titleContainer:SetFrameLevel(ConfigFrame:GetFrameLevel() + 10)
 
-    -- Custom title at top of window
     local title = titleContainer:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font18")
     title:SetPoint("TOP", ConfigFrame, "TOP", 0, -30)
     title:SetText("Ayije CDM")
     UI.SetTextColor(title, CDM_C.GOLD or { r = 1, g = 0.82, b = 0, a = 1 })
 
-    -- Subtitle below title
     local subtitle = titleContainer:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     subtitle:SetPoint("TOP", title, "BOTTOM", 0, -2)
     subtitle:SetText(L["Cooldown Manager"])
     UI.SetTextSubtle(subtitle)
 
-    -- CDM button (opens Blizzard's CooldownViewerSettings)
     local cdmBtn = CreateFrame("Button", nil, titleContainer, "UIPanelButtonTemplate")
     cdmBtn:SetSize(90, 24)
     cdmBtn:SetPoint("TOPLEFT", ConfigFrame, "TOPLEFT", 22, -32)
@@ -207,15 +203,13 @@ local function CreateConfigFrame()
     ConfigFrame:SetScript("OnDragStart", ConfigFrame.StartMoving)
     ConfigFrame:SetScript("OnDragStop", ConfigFrame.StopMovingOrSizing)
 
-    -- Add recessed background for entire panel (matches Blizzard's Options_InnerFrame)
-    -- Hosted on a child frame so it renders above the template's Bg frame
+    -- Host the inner-frame atlas on a child so it renders above the template background.
     local panelBgHolder = CreateFrame("Frame", nil, ConfigFrame)
     panelBgHolder:SetAllPoints()
     local panelBg = panelBgHolder:CreateTexture(nil, "BACKGROUND")
     panelBg:SetAtlas("Options_InnerFrame", true)  -- true = use atlas native size
     panelBg:SetPoint("TOPLEFT", ConfigFrame, "TOPLEFT", 17, -64)  -- Matches Blizzard's positioning
 
-    -- Social links (bottom-left)
     local gold = CDM_C.GOLD or { r = 1, g = 0.82, b = 0, a = 1 }
 
     local discordBtn = CreateFrame("Button", nil, ConfigFrame)
@@ -274,7 +268,6 @@ local function CreateConfigFrame()
         UI.SetTextFaint(twitchText)
     end)
 
-    -- Version text (bottom-right)
     versionText = ConfigFrame:CreateFontString(nil, "OVERLAY")
     versionText:SetPoint("BOTTOMRIGHT", ConfigFrame, "BOTTOMRIGHT", -22, 10)
     ApplyFooterTextStyle(versionText)
@@ -294,19 +287,16 @@ local function CreateConfigFrame()
     Content:SetPoint("TOPLEFT", Sidebar, "TOPRIGHT", 35, 0)
     Content:SetPoint("BOTTOMRIGHT", -30, 25)
 
-    -- Store references for tab files
     ns.ConfigContent = Content
     ns.ConfigFrame = ConfigFrame
     ns.ConfigSidebar = Sidebar
 
-    -- Sort tabs by navOrder
     local sortedTabs = {}
     for id, tabDef in pairs(ns.ConfigTabs or {}) do
         table.insert(sortedTabs, tabDef)
     end
     table.sort(sortedTabs, function(a, b) return a.navOrder < b.navOrder end)
 
-    -- Create pages and call tab create functions
     for _, tabDef in ipairs(sortedTabs) do
         local page = CreateCategoryPage(tabDef.id, tabDef.label, Content)
         if tabDef.createFunc then
@@ -314,14 +304,12 @@ local function CreateConfigFrame()
         end
     end
 
-    -- Create category header using Blizzard's SettingsCategoryListHeaderTemplate
     local headerIndex = 1
     local function AddHeader(label, y)
         local header = CreateFrame("Frame", nil, Sidebar, "SettingsCategoryListHeaderTemplate")
         header:SetPoint("TOPLEFT", 0, y)
 
-        -- Initialize with the mixin pattern (simplified - no ScrollBox infrastructure needed)
-        -- Cycle headerIndex within 1-3 range (only 3 atlas textures exist: Options_CategoryHeader_1/2/3)
+        -- Cycle through the three available header atlases.
         local atlasIndex = ((headerIndex - 1) % 3) + 1
         local initializer = { data = { label = label, headerIndex = atlasIndex } }
         header:Init(initializer)
@@ -330,7 +318,6 @@ local function CreateConfigFrame()
         return header
     end
 
-    -- Create navigation button with indent support
     local function AddNav(id, label, y, indent)
         indent = indent or 0
         local btn = CreateFrame("Button", nil, Sidebar)
@@ -363,16 +350,13 @@ local function CreateConfigFrame()
         buttons[id] = btn
     end
 
-    -- Build navigation with headers and indented tabs
     local yOffset = -4
-    local tabIndent = 17  -- Indent for tabs under headers (visible child hierarchy)
+    local tabIndent = 17
 
     for _, category in ipairs(categoryHeaders) do
-        -- Add category header
         AddHeader(category.label, yOffset)
-        yOffset = yOffset - 34  -- Header height (30) + spacing (4)
+        yOffset = yOffset - 34
 
-        -- Add tabs belonging to this category
         for _, tabId in ipairs(category.tabs) do
             local tabDef = ns.ConfigTabs and ns.ConfigTabs[tabId]
             if tabDef then
@@ -383,7 +367,6 @@ local function CreateConfigFrame()
 
     end
 
-    -- Select first tab
     if sortedTabs[1] then
         SelectCategory(sortedTabs[1].id)
     end
@@ -391,14 +374,10 @@ local function CreateConfigFrame()
     if not footerRefreshRegistered then
         API:RegisterRefreshCallback("configFooterTextStyle", function()
             ApplyAllFooterTextStyles()
-        end, 95)
+        end, 95, { "text_visuals", "viewers" })
         footerRefreshRegistered = true
     end
 end
-
--- =========================================================================
---  PUBLIC API
--- =========================================================================
 
 function API:ShowConfig()
     if InCombatLockdown() then
@@ -425,8 +404,6 @@ function API:RebuildConfigFrame(targetTab)
                 if type(tokenEntry) == "table" then
                     eventName = tokenEntry.eventName or tokenEntry[1] or eventKey
                     token = tokenEntry.token or tokenEntry[2]
-                elseif type(eventKey) == "string" and eventKey:find("^Icons%.") then
-                    eventName = eventKey:gsub("^Icons%.", "")
                 end
 
                 if eventName and token then
@@ -443,7 +420,9 @@ function API:RebuildConfigFrame(targetTab)
 
         API:UnregisterRefreshCallback("configFooterTextStyle")
         footerRefreshRegistered = false
-        API:UnregisterRefreshCallback("icons-border-colors")
+        if ns.CancelImportStatusTimer then
+            ns.CancelImportStatusTimer()
+        end
 
         ConfigFrame:Hide()
         ConfigFrame:SetParent(nil)  -- orphan for GC

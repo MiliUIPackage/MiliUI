@@ -1,6 +1,3 @@
--- Config/Racials.lua - Racials Settings Tab
--- Controls for racials tracker icon size, position, and party frame anchoring
-
 local Runtime = _G["Ayije_CDM"]
 if not Runtime then return end
 local API = Runtime.API
@@ -277,26 +274,49 @@ local function CreateRacialsTab(page, tabId)
     local layout = UI.CreateVerticalLayout(0)
     local function NextY(spacing) return layout:Next(spacing) end
 
-    -- =====================================================================
-    --  ENABLE
-    -- =====================================================================
     local enabled = CDM.db.racialsEnabled
     if enabled == nil then enabled = true end
     local setControlsEnabled  -- forward declaration
+    local function UpdateShowItemsAtZeroStacksState()
+        local checkbox = page.controls.racialsShowItemsAtZeroStacks and page.controls.racialsShowItemsAtZeroStacks.checkbox
+        local frame = page.controls.racialsShowItemsAtZeroStacks
+        local controlsEnabled = CDM.db.racialsEnabled ~= false
+
+        if checkbox then
+            checkbox:SetEnabled(controlsEnabled)
+        end
+        if frame then
+            frame:SetAlpha(controlsEnabled and 1 or 0.5)
+        end
+    end
+
     page.controls.racialsEnabled = UI.CreateModernCheckbox(
         scrollChild,
         L["Enable Racials"],
         enabled,
         function(checked)
             CDM.db.racialsEnabled = checked
+            UpdateShowItemsAtZeroStacksState()
             if setControlsEnabled then setControlsEnabled(checked) end
             API:RefreshConfig()
         end
     )
     page.controls.racialsEnabled:SetPoint("TOPLEFT", -34, NextY(0))
+
+    local showItemsAtZeroStacks = CDM.db.racialsShowItemsAtZeroStacks or false
+    page.controls.racialsShowItemsAtZeroStacks = UI.CreateModernCheckbox(
+        scrollChild,
+        L["Show Items at 0 Stacks"],
+        showItemsAtZeroStacks,
+        function(checked)
+            CDM.db.racialsShowItemsAtZeroStacks = checked
+            API:RefreshConfig()
+        end
+    )
+    page.controls.racialsShowItemsAtZeroStacks:SetPoint("LEFT", page.controls.racialsEnabled, "RIGHT", 0, 0)
+    UpdateShowItemsAtZeroStacksState()
     NextY(35)
 
-    -- ====== Tracked Spells ======
     local spellsHeader = UI.CreateHeader(scrollChild, L["Tracked Spells"])
     spellsHeader:SetPoint("TOPLEFT", 0, NextY(0))
 
@@ -311,7 +331,6 @@ local function CreateRacialsTab(page, tabId)
         spellsOverlay:Show()
     end)
 
-    -- ====== Icon Size ======
     local iconSizeHeader = UI.CreateHeader(scrollChild, L["Icon Size"])
     iconSizeHeader:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(30)
@@ -338,12 +357,10 @@ local function CreateRacialsTab(page, tabId)
     page.racialsIconHeightSlider:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(60)
 
-    -- ====== Party Frame Anchoring ======
     local partyHeader = UI.CreateHeader(scrollChild, L["Party Frame Anchoring"])
     partyHeader:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(30)
 
-    -- Forward declare visibility toggle (assigned after all controls are created)
     local UpdateControls
 
     page.racialsUsePartyFrameCheckbox = UI.CreateModernCheckbox(
@@ -358,7 +375,6 @@ local function CreateRacialsTab(page, tabId)
     )
     page.racialsUsePartyFrameCheckbox:SetPoint("TOPLEFT", 0, NextY(0))
 
-    -- ====== Party Frame Controls (visible when checkbox enabled) ======
     local lblPartyFrameSide = scrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     lblPartyFrameSide:SetText(L["Side (relative to Party Frame)"])
     lblPartyFrameSide:SetPoint("TOPLEFT", page.racialsUsePartyFrameCheckbox, "BOTTOMLEFT", 0, -10)
@@ -407,7 +423,6 @@ local function CreateRacialsTab(page, tabId)
     )
     page.racialsPartyFrameOffsetYSlider:SetPoint("TOPLEFT", page.racialsPartyFrameOffsetXSlider, "BOTTOMLEFT", 0, -10)
 
-    -- ====== Position Controls (visible when checkbox disabled) ======
     local positionHeader = UI.CreateHeader(scrollChild, L["Position"], page.racialsUsePartyFrameCheckbox, -15)
 
     local lblAnchor = scrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
@@ -451,7 +466,6 @@ local function CreateRacialsTab(page, tabId)
     )
     page.racialsOffsetYSlider:SetPoint("TOPLEFT", page.racialsOffsetXSlider, "BOTTOMLEFT", 0, -10)
 
-    -- ====== Cooldown ======
     local cooldownHeader = UI.CreateHeader(scrollChild, L["Cooldown"])
 
     page.racialsCooldownFontSizeSlider = UI.CreateModernSlider(
@@ -464,7 +478,6 @@ local function CreateRacialsTab(page, tabId)
     )
     page.racialsCooldownFontSizeSlider:SetPoint("TOPLEFT", cooldownHeader, "BOTTOMLEFT", 0, -15)
 
-    -- ====== Stacks ======
     local stacksHeader = UI.CreateHeader(scrollChild, L["Stacks"], page.racialsCooldownFontSizeSlider, -15)
 
     page.racialsChargeFontSizeSlider = UI.CreateModernSlider(
@@ -520,24 +533,20 @@ local function CreateRacialsTab(page, tabId)
     )
     page.racialsChargeOffsetYSlider:SetPoint("TOPLEFT", page.racialsChargeOffsetXSlider, "BOTTOMLEFT", 0, -10)
 
-    -- ====== Visibility Toggle ======
     UpdateControls = function()
         local usePartyFrame = page.racialsUsePartyFrameCheckbox:GetChecked()
 
-        -- Party frame controls
         lblPartyFrameSide:SetShown(usePartyFrame)
         ddPartyFrameSide:SetShown(usePartyFrame)
         page.racialsPartyFrameOffsetXSlider:SetShown(usePartyFrame)
         page.racialsPartyFrameOffsetYSlider:SetShown(usePartyFrame)
 
-        -- Position controls
         positionHeader:SetShown(not usePartyFrame)
         lblAnchor:SetShown(not usePartyFrame)
         ddAnchor:SetShown(not usePartyFrame)
         page.racialsOffsetXSlider:SetShown(not usePartyFrame)
         page.racialsOffsetYSlider:SetShown(not usePartyFrame)
 
-        -- Re-anchor cooldown header to last visible element
         cooldownHeader:ClearAllPoints()
         if usePartyFrame then
             cooldownHeader:SetPoint("TOPLEFT", page.racialsPartyFrameOffsetYSlider, "BOTTOMLEFT", 0, -15)
@@ -546,10 +555,8 @@ local function CreateRacialsTab(page, tabId)
         end
     end
 
-    -- Set initial state
     UpdateControls()
 
-    -- Fade controls when module is disabled
     setControlsEnabled = UI.SetupModuleToggle(scrollChild, page.controls.racialsEnabled)
     setControlsEnabled(enabled)
 end

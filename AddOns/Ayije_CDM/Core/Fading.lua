@@ -51,12 +51,17 @@ local function ApplyAlphaToAll(alpha)
             frame:SetAlpha(a)
         end
     end
-    if CDM.secBuffs then CDM.secBuffs:SetAlpha(a) end
-    if CDM.tertBuffs then CDM.tertBuffs:SetAlpha(a) end
     if CDM.CustomBuffs and CDM.CustomBuffs.activeBuffs then
         for _, buffData in pairs(CDM.CustomBuffs.activeBuffs) do
             if buffData and buffData.frame then
                 buffData.frame:SetAlpha(a)
+            end
+        end
+    end
+    if CDM.buffGroupContainers then
+        for _, container in pairs(CDM.buffGroupContainers) do
+            if container:IsShown() then
+                container:SetAlpha(a)
             end
         end
     end
@@ -77,9 +82,9 @@ local function ApplyAlphaToAll(alpha)
     local defensivesContainer = _G["CDM_DefensivesContainer"]
     if defensivesContainer then defensivesContainer:SetAlpha(a) end
 
+    a = (db.fadingTrinkets ~= false) and alpha or 1.0
     local trinketMode = CDM.GetTrinketMode and CDM.GetTrinketMode()
     if trinketMode == "essential" then
-        a = (db.fadingEssential ~= false) and alpha or 1.0
         local tFrames = CDM.GetTrinketIconFrames and CDM.GetTrinketIconFrames()
         if tFrames then
             for _, frame in ipairs(tFrames) do
@@ -87,11 +92,6 @@ local function ApplyAlphaToAll(alpha)
             end
         end
     else
-        if trinketMode == "defensives" then
-            a = (db.fadingDefensives ~= false) and alpha or 1.0
-        else
-            a = (db.fadingTrinkets ~= false) and alpha or 1.0
-        end
         local trinketsContainer = _G["CDM_TrinketsContainer"]
         if trinketsContainer then trinketsContainer:SetAlpha(a) end
     end
@@ -195,16 +195,8 @@ local function OnTargetChanged()
     end
 end
 
-local function OnRegenEnabled()
-    inCombat = false
-    local db = CDM.db
-    if db and db.fadingTrigger == "ooc" then
-        Fading:Evaluate()
-    end
-end
-
-local function OnRegenDisabled()
-    inCombat = true
+local function OnCombatStateChanged(isInCombat)
+    inCombat = isInCombat and true or false
     local db = CDM.db
     if db and db.fadingTrigger == "ooc" then
         Fading:Evaluate()
@@ -215,8 +207,7 @@ local function Enable()
     if isEnabled then return end
     isEnabled = true
     CDM:RegisterEvent("PLAYER_TARGET_CHANGED", OnTargetChanged)
-    CDM:RegisterEvent("PLAYER_REGEN_ENABLED", OnRegenEnabled)
-    CDM:RegisterEvent("PLAYER_REGEN_DISABLED", OnRegenDisabled)
+    CDM:RegisterInternalCallback("OnCombatStateChanged", OnCombatStateChanged)
     Fading:Evaluate()
 end
 
@@ -224,8 +215,7 @@ local function Disable()
     if not isEnabled then return end
     isEnabled = false
     CDM:UnregisterEventHandler("PLAYER_TARGET_CHANGED", OnTargetChanged)
-    CDM:UnregisterEventHandler("PLAYER_REGEN_ENABLED", OnRegenEnabled)
-    CDM:UnregisterEventHandler("PLAYER_REGEN_DISABLED", OnRegenDisabled)
+    CDM:UnregisterInternalCallback("OnCombatStateChanged", OnCombatStateChanged)
     if currentAlpha < 1.0 or animating then
         Fading:ShowImmediate()
     end
@@ -240,7 +230,7 @@ function Fading:Initialize()
         else
             Disable()
         end
-    end, 80)
+    end, 80, { "fading", "viewers" })
 
     if CDM.db and CDM.db.fadingEnabled then
         Enable()

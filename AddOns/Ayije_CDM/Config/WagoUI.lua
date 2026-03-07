@@ -1,5 +1,6 @@
 local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
+local ProfileIO = CDM and CDM.ProfileIO
 
 local API = {}
 _G["Ayije_CDM_API"] = API
@@ -8,26 +9,43 @@ function API:ExportProfile(profileKey)
     if not Ayije_CDMDB or not Ayije_CDMDB.profiles then return nil end
     local profile = Ayije_CDMDB.profiles[profileKey]
     if not profile then return nil end
+    if not ProfileIO or not ProfileIO.ExportLegacyProfile then return nil end
+    return ProfileIO:ExportLegacyProfile(profile, profileKey)
+end
 
-    local data = CDM:DeepCopy(profile)
+function CDM:DecodeProfileString(profileString)
+    if not ProfileIO or not ProfileIO.DecodeProfileString then return nil, "invalid_profile_data" end
+    return ProfileIO:DecodeProfileString(profileString)
+end
 
-    local ok, cbor = pcall(C_EncodingUtil.SerializeCBOR, data)
-    if not ok or not cbor then return nil end
+function API:DecodeProfileString(profileString)
+    return CDM:DecodeProfileString(profileString)
+end
 
-    local ok2, compressed = pcall(C_EncodingUtil.CompressString, cbor)
-    if not ok2 or not compressed then return nil end
-
-    local ok3, base64 = pcall(C_EncodingUtil.EncodeBase64, compressed)
-    if not ok3 or not base64 then return nil end
-
-    return base64
+local function ReportWagoMutationError(prefix, errCode)
+    local handler = geterrorhandler and geterrorhandler()
+    if handler then
+        handler(string.format("%s: %s", tostring(prefix), tostring(errCode)))
+    end
 end
 
 function API:ImportProfile(profileString, profileKey)
-    local data = self:DecodeProfileString(profileString)
-    if not data then return end
+    if InCombatLockdown() then
+        ReportWagoMutationError("wago import blocked", "combat_blocked")
+        return
+    end
 
-    CDM:ImportProfileData(profileKey, data)
+    local data, decodeErr = CDM:DecodeProfileString(profileString)
+    if not data then
+        ReportWagoMutationError("wago import decode failed", decodeErr or "invalid_profile_data")
+        return
+    end
+
+    local ok, importErr = CDM:ImportProfileData(profileKey, data)
+    if not ok then
+        ReportWagoMutationError("wago import failed", importErr or "apply_failed")
+        return
+    end
 
     local specID = CDM:GetCurrentSpecID()
     if specID then
@@ -35,23 +53,11 @@ function API:ImportProfile(profileString, profileKey)
     end
 end
 
-function API:DecodeProfileString(profileString)
-    if not profileString or profileString == "" then return nil end
-
-    local ok, compressed = pcall(C_EncodingUtil.DecodeBase64, profileString)
-    if not ok or not compressed then return nil end
-
-    local ok2, decompressed = pcall(C_EncodingUtil.DecompressString, compressed)
-    if not ok2 or not decompressed then return nil end
-
-    local ok3, data = pcall(C_EncodingUtil.DeserializeCBOR, decompressed)
-    if not ok3 or not data then return nil end
-
-    return data
-end
-
 function API:SetProfile(profileKey)
-    CDM:SetProfile(profileKey)
+    local ok, errCode = CDM:SetProfile(profileKey)
+    if not ok then
+        ReportWagoMutationError("wago set profile failed", errCode or "apply_failed")
+    end
 end
 
 function API:GetProfileKeys()

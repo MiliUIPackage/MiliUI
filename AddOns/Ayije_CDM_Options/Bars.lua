@@ -1,6 +1,3 @@
--- Config/Bars.lua - Buff Bars Settings Tab
--- Controls for BuffBarCooldownViewer styling and positioning
-
 local Runtime = _G["Ayije_CDM"]
 if not Runtime then return end
 local API = Runtime.API
@@ -10,19 +7,14 @@ local UI = ns.ConfigUI
 local L = Runtime.L
 
 local function CreateBarsTab(page, tabId)
-    -- Create scroll frame container
     local barsScrollChild = UI.CreateScrollableTab(page, "AyijeCDM_BarsScrollFrame", 900, 370)
 
     local layout = UI.CreateVerticalLayout(0)
     local function NextY(spacing) return layout:Next(spacing) end
 
-    -- =========================================================================
-    -- DIMENSIONS
-    -- =========================================================================
     local dimensionsHeader = UI.CreateHeader(barsScrollChild, L["Dimensions"])
     dimensionsHeader:SetPoint("TOPLEFT", 0, NextY(0))
 
-    -- Bar Width Slider (0 = auto)
     page.controls.buffBarWidthSlider = UI.CreateModernSlider(
         barsScrollChild,
         L["Bar Width (0 = Auto)"],
@@ -31,7 +23,6 @@ local function CreateBarsTab(page, tabId)
         CDM.db.buffBarWidth or 0,
         function(v)
             local value = UI.RoundToInt(v)
-            -- Enforce minimum of 60 when not 0
             if value > 0 and value < 60 then
                 value = 60
                 page.controls.buffBarWidthSlider.Slider:SetValue(60)
@@ -42,7 +33,6 @@ local function CreateBarsTab(page, tabId)
     )
     page.controls.buffBarWidthSlider:SetPoint("TOPLEFT", 0, NextY(30))
 
-    -- Bar Height Slider
     page.controls.buffBarHeightSlider = UI.CreateModernSlider(
         barsScrollChild,
         L["Bar Height"],
@@ -56,7 +46,6 @@ local function CreateBarsTab(page, tabId)
     )
     page.controls.buffBarHeightSlider:SetPoint("TOPLEFT", 0, NextY(60))
 
-    -- Spacing Slider
     page.controls.buffBarSpacingSlider = UI.CreateModernSlider(
         barsScrollChild,
         L["Bar Spacing"],
@@ -70,13 +59,9 @@ local function CreateBarsTab(page, tabId)
     )
     page.controls.buffBarSpacingSlider:SetPoint("TOPLEFT", 0, NextY(60))
 
-    -- =========================================================================
-    -- APPEARANCE
-    -- =========================================================================
     local appearanceHeader = UI.CreateHeader(barsScrollChild, L["Appearance"])
     appearanceHeader:SetPoint("TOPLEFT", 0, NextY(70))
 
-    -- Bar Texture Dropdown
     local textureLabel = barsScrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     textureLabel:SetText(L["Bar Texture:"])
     textureLabel:SetPoint("TOPLEFT", 0, NextY(30))
@@ -100,21 +85,15 @@ local function CreateBarsTab(page, tabId)
         end
     )
 
-    -- Bar Color Picker
     page.controls.buffBarColorPicker = UI.CreateColorSwatch(barsScrollChild, L["Bar Color"], "buffBarColor")
     page.controls.buffBarColorPicker:SetPoint("TOPLEFT", 0, NextY(50))
 
-    -- Background Color Picker
     page.controls.buffBarBgColorPicker = UI.CreateColorSwatch(barsScrollChild, L["Background Color"], "buffBarBackgroundColor")
     page.controls.buffBarBgColorPicker:SetPoint("TOPLEFT", 0, NextY(50))
 
-    -- =========================================================================
-    -- LAYOUT
-    -- =========================================================================
     local layoutHeader = UI.CreateHeader(barsScrollChild, L["Layout"])
     layoutHeader:SetPoint("TOPLEFT", 0, NextY(60))
 
-    -- Growth Direction Dropdown
     local growLabel = barsScrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     growLabel:SetText(L["Growth Direction:"])
     growLabel:SetPoint("TOPLEFT", 0, NextY(30))
@@ -141,7 +120,6 @@ local function CreateBarsTab(page, tabId)
         end
     )
 
-    -- Icon Position Dropdown
     local iconPosLabel = barsScrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     iconPosLabel:SetText(L["Icon Position:"])
     iconPosLabel:SetPoint("TOPLEFT", 0, NextY(50))
@@ -169,7 +147,6 @@ local function CreateBarsTab(page, tabId)
         end
     )
 
-    -- Icon-Bar Gap Slider
     page.controls.buffBarIconGapSlider = UI.CreateModernSlider(
         barsScrollChild,
         L["Icon-Bar Gap"],
@@ -183,7 +160,6 @@ local function CreateBarsTab(page, tabId)
     )
     page.controls.buffBarIconGapSlider:SetPoint("TOPLEFT", 0, NextY(50))
 
-    -- Dual Mode Checkbox
     page.controls.buffBarDualModeCheck = UI.CreateModernCheckbox(
         barsScrollChild,
         L["Dual Bar Mode (2 bars per row)"],
@@ -195,13 +171,9 @@ local function CreateBarsTab(page, tabId)
     )
     page.controls.buffBarDualModeCheck:SetPoint("TOPLEFT", 0, NextY(60))
 
-    -- =========================================================================
-    -- TEXT
-    -- =========================================================================
     local textHeader = UI.CreateHeader(barsScrollChild, L["Text"])
     textHeader:SetPoint("TOPLEFT", 0, NextY(50))
 
-    -- Show Name Checkbox
     page.controls.buffBarShowNameCheck = UI.CreateModernCheckbox(
         barsScrollChild,
         L["Show Buff Name"],
@@ -213,7 +185,6 @@ local function CreateBarsTab(page, tabId)
     )
     page.controls.buffBarShowNameCheck:SetPoint("TOPLEFT", 0, NextY(30))
 
-    -- Show Duration Checkbox
     page.controls.buffBarShowDurationCheck = UI.CreateModernCheckbox(
         barsScrollChild,
         L["Show Duration Text"],
@@ -225,7 +196,6 @@ local function CreateBarsTab(page, tabId)
     )
     page.controls.buffBarShowDurationCheck:SetPoint("TOPLEFT", 0, NextY(30))
 
-    -- Show Applications (Stacks) Checkbox
     page.controls.buffBarShowApplicationsCheck = UI.CreateModernCheckbox(
         barsScrollChild,
         L["Show Stack Count"],
@@ -237,9 +207,6 @@ local function CreateBarsTab(page, tabId)
     )
     page.controls.buffBarShowApplicationsCheck:SetPoint("TOPLEFT", 0, NextY(30))
 
-    -- =========================================================================
-    -- NOTES
-    -- =========================================================================
     local notesHeader = UI.CreateHeader(barsScrollChild, L["Notes"])
     notesHeader:SetPoint("TOPLEFT", 0, NextY(50))
 
@@ -259,5 +226,4 @@ local function CreateBarsTab(page, tabId)
     posNote:SetPoint("TOPLEFT", 0, NextY(20))
 end
 
--- Register this tab (navOrder 8 places it between Icons=7 and Racials=9)
 API:RegisterConfigTab("bars", L["Bars"], CreateBarsTab, 8)
