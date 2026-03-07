@@ -142,6 +142,7 @@ MiliUI_AyijeCDM_Profile = {
     ["resourcesRunesRechargingColor"] = { ["a"] = 1, ["r"] = 0.3, ["g"] = 0.3, ["b"] = 0.3 },
     ["glowAutocastYOffset"] = 0,
     ["castBarCastColor"] = { ["a"] = 1, ["r"] = 1, ["g"] = 0.7, ["b"] = 0 },
+    ["castBarUseClassColor"] = true,
     ["defensivesCooldownFontSize"] = 16,
     ["glowProcYOffset"] = 0,
     ["utilityUnlock"] = false,
