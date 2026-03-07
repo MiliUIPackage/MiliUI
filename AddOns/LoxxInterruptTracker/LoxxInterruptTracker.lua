@@ -1585,7 +1585,7 @@ local function CreateConfigPanel()
     hdrTitle:SetShadowColor(0, 0, 0, 1)
     hdrTitle:SetPoint("TOP", 0, -34)
     hdrTitle:SetJustifyH("CENTER")
-    hdrTitle:SetText("|cFFFFD100Loxx 打斷追蹤器|r")
+    hdrTitle:SetText("|cFFFFD100Loxx 斷法追蹤器|r")
 
     -- Left-column section label: gold text + thin gold rule to divider
     local function SectionLabelL(text, yOff)
@@ -1877,7 +1877,7 @@ local function CreateUI()
     titleText:SetHeight(16)
     titleText:SetJustifyH("LEFT")
     titleText:SetJustifyV("MIDDLE")
-    titleText:SetText("|cFFFFD100打斷|r")
+    titleText:SetText("|cFFFFD100斷法|r")
     if not db.showTitle then titleText:Hide() end
 
     -- Resize handle (bottom-right corner)
@@ -2079,14 +2079,14 @@ end
 ------------------------------------------------------------
 local function RegisterBlizzardOptions()
     local panel = CreateFrame("Frame")
-    panel.name = "Loxx 打斷追蹤器"
+    panel.name = "斷法追蹤器"
 
     local yOff = -16
 
     -- Title
     local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, yOff)
-    title:SetText("|cFF00DDDDLoxx 打斷追蹤器|r")
+    title:SetText("|cFF00DDDDLoxx 斷法追蹤器|r")
     yOff = yOff - 30
 
     -- Helper: create a checkbox (UICheckButtonTemplate is the 12.0-safe replacement)
@@ -2320,7 +2320,7 @@ local function Initialize()
     end)
 
     C_Timer.After(2, AnnounceJoin)
-    print("|cFF00DDDD[Loxx 打斷追蹤器]|r v" .. LOXX_VERSION .. " | /loxx")
+    print("|cFF00DDDD[Loxx 斷法追蹤器]|r v" .. LOXX_VERSION .. " | /loxx")
 end
 
 ------------------------------------------------------------

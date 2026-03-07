@@ -10,4 +10,8 @@
 ## Version: 1.9.6
 ## SavedVariables: LOXXSavedVars
 
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 斷法追蹤器
+## Notes-zhTW: Loxxar 斷法追蹤器|n|n傳奇鑰石地城、團隊斷法冷卻追蹤器。|n|n|cffffd200使用方法: |r輸入 /loxx 進行設定。
+## Category-zhTW: 戰鬥
+
 LoxxInterruptTracker.lua
