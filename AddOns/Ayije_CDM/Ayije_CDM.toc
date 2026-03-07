@@ -10,7 +10,7 @@
 ## X-Wago-ID: aNebMd62
 
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 冷卻管理器
-## Notes-zhTW: Cooldown Manager|n|n冷卻管理器。|n|n|cffffd200使用方法: |r輸入 /cdm 進行設定。
+## Notes-zhTW: Ayije_CDM|n|n冷卻管理器。|n|n|cffffd200使用方法: |r輸入 /cdm 進行設定。
 ## Category-zhTW: 戰鬥
 
 Libs\embeds.xml
