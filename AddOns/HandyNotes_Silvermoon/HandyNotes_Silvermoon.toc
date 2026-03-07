@@ -1,0 +1,28 @@
+## Interface: 120001
+## Title: HandyNotes: Silvermoon
+## Title-zhCN: HandyNotes: 银月城
+## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-銀月城
+## Notes: Shows the NPC and POI locations in Silvermoon.
+## Notes-zhCN: 显示银月城各种NPC及传送门位置。
+## Notes-zhTW: 顯示銀月城各種NPC及傳送門位置。
+## Author: |cFFFF8C00Dathwada EU-Eredar|r
+## Version: v1
+## RequiredDeps: HandyNotes
+## DefaultState: enabled
+## SavedVariables: HandyNotes_SilvermoonDB
+## IconTexture: 135761
+## X-Date: 2026-02-26
+## X-Category: Map
+## Category-zhTW: 地圖
+
+# LOCALIZATION FILES
+localization\locales.xml
+
+# CORE FILES
+core\constants.lua
+core\handler.lua
+core\config.lua
+core\dev.lua
+
+# DATABASE
+data\DB.lua
