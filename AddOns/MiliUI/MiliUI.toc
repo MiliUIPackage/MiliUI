@@ -20,3 +20,4 @@ core.lua
 AddonNames.lua
 # Chatbar.lua
 AutoSlotKeystone.lua
+TeleportMenuEnhance.lua
