@@ -1,6 +1,8 @@
-## Other Changes
-- Update ruRU.lua
-- Remove raid loot reminder functionality and related options - thanks patch 12.0 restrictions
-- Merge branch 'main' of https://github.com/Wolkenschutz/KeystoneLoot
-- Merge pull request [#45](https://github.com/Wolkenschutz/KeystoneLoot/pull/45) by [Hollicsh](https://github.com/Hollicsh) from Hollicsh/main
-- Merge branch 'main' of https://github.com/Wolkenschutz/KeystoneLoot
+## New Features
+- KeystoneLoot V2
+* Midnight Season 1 ready
+* All Specializations in class filter
+* All Slots in slot filter
+* Multi-character favorites support
+* Brand new design
+Thank you all for your continued support!

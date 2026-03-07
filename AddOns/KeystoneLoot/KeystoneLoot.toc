@@ -2,45 +2,77 @@
 ## Title: |cff9d5db8KeystoneLoot|r
 ## Notes: Shows the items from the mythic plus instances in a compact overview
 ## Notes-ruRU: Компактный аддон, который показывает уровни предметов из подземелий М+
-## Title-zhTW: |cFF2DA267[裝備]|r 戰利品查詢
-## Notes-zhTW: KeystoneLoot |n|n 顯示所有地城的掉落，並可以標記最愛。|n|n|cffffd200使用方法：|r點小地圖旁按鈕。
 ## Author: Selina Ruesch
 ## X-Email: selina.ruesch@gmail.com
-## Version: 1.10.12
+## Version: 2.0.0
 ## IconTexture: Interface\Icons\INV_Relics_Hourglass_02
 ## Category-enUS: Dungeons & Raids
 ## Category-zhCN: 地下城和团队副本
 ## OptionalDeps: LibStub
 ## SavedVariables: KeystoneLootDB
 ## SavedVariablesPerCharacter: KeystoneLootCharDB
+
 ## Category-zhTW: 資訊
+## Title-zhTW: |cFF2DA267[裝備]|r 戰利品查詢
+## Notes-zhTW: KeystoneLoot |n|n 顯示所有地城的掉落，並可以標記最愛。|n|n|cffffd200使用方法：|r點小地圖旁按鈕。
 
-locale\_controller.lua
-locale\enUS.lua
-locale\zhCN.lua
-locale\zhTW.lua
-
-database\items.lua
-database\dungeons.lua
-database\catalyst.lua
-database\raids.lua
-
-xui\overview_frame.lua
-xui\minimap_button.lua
-xui\dropdown_menu.lua
-xui\options_button.lua
-xui\tab_button.lua
-xui\filter_button.lua
-xui\dungeon_frame.lua
-xui\item_button.lua
-xui\loot_reminder_frame.lua
-xui\catalyst_frame.lua
-xui\dungeons_tab.lua
-xui\raid_frame.lua
-xui\raid_tab_button.lua
-xui\raids_tab.lua
-
-upgrade_item.lua
-database.lua
-keystone_tooltip.lua
+# Initialization
+config.lua
 app.lua
+
+# Locales
+locales/locale.lua
+locales/enUS.lua
+locales/zhCN.lua
+locales/zhTW.lua
+
+# Data (generated)
+data/items.lua
+data/dungeons.lua
+data/raids.lua
+data/catalyst.lua
+data/upgrade_tracks.lua
+data/keystone_mapping.lua
+
+# Core Modules
+modules/db.lua
+modules/character.lua
+modules/query.lua
+modules/favorites.lua
+modules/upgrade.lua
+modules/keystone.lua
+
+# UI
+ui/keystone_tooltip.lua
+
+ui/templates/mixins/icon_button.lua
+ui/templates/mixins/entry_frame.lua
+ui/templates/mixins/teleport_button.lua
+ui/templates/templates.xml
+
+ui/dungeons_frame/mixins/dungeons_frame.lua
+ui/dungeons_frame/dungeons_frame.xml
+
+ui/raids_frame/mixins/raids_frame.lua
+ui/raids_frame/mixins/raid_dropdown.lua
+ui/raids_frame/raids_frame.xml
+
+ui/loot_reminder_frame/mixins/loot_reminder_frame.lua
+ui/loot_reminder_frame/mixins/icon_button.lua
+ui/loot_reminder_frame/mixins/spec_card.lua
+ui/loot_reminder_frame/loot_reminder_frame.xml
+
+ui/catalyst_frame/mixins/catalyst_frame.lua
+ui/catalyst_frame/mixins/catalyst_icon.lua
+ui/catalyst_frame/catalyst_frame.xml
+
+ui/minimap_button/mixins/minimap_button.lua
+ui/minimap_button/minimap_button.xml
+
+ui/keystoneloot_frame/mixins/class_dropdown.lua
+ui/keystoneloot_frame/mixins/slot_dropdown.lua
+ui/keystoneloot_frame/mixins/itemlevel_dropdown.lua
+ui/keystoneloot_frame/mixins/character_dropdown.lua
+ui/keystoneloot_frame/mixins/settings_dropdown.lua
+ui/keystoneloot_frame/mixins/keystoneloot_frame.lua
+ui/keystoneloot_frame/keystoneloot_frame.xml
