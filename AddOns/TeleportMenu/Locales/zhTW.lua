@@ -80,6 +80,12 @@ L["Operation: Floodgate"] = "水閘"
 L["Liberation of Undermine"] = "幽坑城"
 L["Eco-Dome Al'dani"] = "秘境"
 L["Manaforge Omega"] = "歐美加"
+L["Windrunner Spire"] = "風行者"
+L["Maisara Caverns"] = "梅薩拉"
+L["Nexus-Point Xenas"] = "奧核點"
+L["Magisters' Terrace"] = "博學者"
+L["Seat of the Triumvirate"] = "三傑"
+L["Pit of Saron"] = "薩倫"
 
 -- expansion abreviated Text
 L["Cataclysm"] = "浩劫"
@@ -128,6 +134,7 @@ L["Valdrakken"] = "沃卓肯"
 L["Dalaran - Ancient"] = "達拉-古"
 L["Hall of the Guardian"] = "守衛廳"
 L["Dornogal"] = "多恩"
+L["Silvermoon City"] = "銀月"
 
 -- Options
 L["Opening Options Menu"] = "開啟設定選單"

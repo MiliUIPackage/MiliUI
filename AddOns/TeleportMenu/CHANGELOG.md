@@ -1,7 +1,6 @@
 # Teleport Menu
 
-## [v12](https://github.com/Justw8/TeleportMenu/tree/v12) (2026-02-01)
-[Full Changelog](https://github.com/Justw8/TeleportMenu/compare/v11.9...v12) [Previous Releases](https://github.com/Justw8/TeleportMenu/releases)
+## [v12.2-1-g096f399](https://github.com/Justw8/TeleportMenu/tree/096f399827d09db203ac64f26ea6b01903034093) (2026-03-06)
+[Full Changelog](https://github.com/Justw8/TeleportMenu/compare/v12.2...096f399827d09db203ac64f26ea6b01903034093) [Previous Releases](https://github.com/Justw8/TeleportMenu/releases)
 
-- Fix a lua error with random hearthstones  
-- Update zhCN/zhTW (#178)  
+- Add Preyseeker's Hearthstone (#195)  

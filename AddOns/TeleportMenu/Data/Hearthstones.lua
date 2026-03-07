@@ -1,6 +1,6 @@
 local _, tpm = ...
 
-AvailableHearthstones = {}
+local AvailableHearthstones = {}
 local covenantsMaxed = nil
 local function GetCovenantData(id) -- the id is the achievement criteria index from Re-Re-Re-Renowned
 	if covenantsMaxed then
@@ -90,7 +90,10 @@ tpm.Hearthstones = {
 	[235016] = true, -- Redeployment Module
 	[245970] = true, -- P.O.S.T. Master's Express Hearthstone
 	[246565] = true, -- Cosmic Hearthstone
+	[257736] = true, -- Lightcalled Hearthstone 12.0
 	[263489] = true, -- Naaru's Enfold
+	[263933] = true, -- Preyseeker's Hearthstone 12.0
+	[265100] = true, -- Corewarden's Hearthstone 12.0
 }
 
 function tpm:GetAvailableHearthstoneToys()

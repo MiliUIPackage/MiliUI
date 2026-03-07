@@ -31,6 +31,7 @@ tpm.ItemTeleports = {
 	[65274] = UnitFactionGroup("player") == "Horde", -- Cloak of Coordination: Orgrimmar
 	[65360] = UnitFactionGroup("player") == "Alliance", -- Cloak of Coordination: Stormwind
 	-- Other items
+	[43824] = true, -- The Schools of Arcane Magic - Mastery
 	[46874] = true, -- Argent Crusader's Tabard
 	[50287] = true, -- Boots of the Bay
 	[58487] = true, -- Potion of Deepholm
@@ -61,9 +62,11 @@ tpm.ItemTeleports = {
 	[132120] = UnitFactionGroup("player") == "Alliance", -- Stormwind Portal Stone
 	[132517] = true, -- Intra-Dalaran Wormhole Generator
 	[132523] = true, -- Reaves Battery
+	[136849] = UnitClass("player") == "DRUID", -- Nature's Beacon (Druid Toy)
 	[138448] = true, -- Emblem of Margoss
 	[139590] = true, -- Scroll of Teleport: Ravenholdt
 	[139599] = true, -- Empowered Ring of the Kirin Tor
+	[140324] = true, -- Mobile Telemancy Beacon
 	[140493] = true, -- Adept's Guide to Dimensional Rifting
 	[141013] = true, -- Scroll of Town Portal: Shala'nir
 	[141014] = true, -- Scroll of Town Portal: Sashj'tar
@@ -122,8 +125,10 @@ tpm.ItemTeleports = {
 	[234393] = true, -- Gallagio Loyalty Rewards Card: Diamond
 	[234394] = true, -- Gallagio Loyalty Rewards Card: Legendary
 	[238727] = true, -- Nostwin's Voucher
-	[243056] = true, -- Delver's Mana-Bound Ethergate	
+	[243056] = true, -- Delver's Mana-Bound Ethergate
 	[249699] = true, -- Shadowguard Translocator
+	[253629] = true, -- Personal Key to the Arcantina
+	[266370] = true, -- Dundun's Abundant Travel Method
 }
 
 function tpm:GetAvailableItemTeleports()
