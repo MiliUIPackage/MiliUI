@@ -1,34 +1,16 @@
-lightweight tag ff2e15f0deb261a5eb0f7a8302eef578238d95c9 v2.8.2
+lightweight tag bb4d9dfc75cf537f8a5d65d4eec6f1749afb6add v3.0.4
 Author:	Camyana <117818293+Camyana@users.noreply.github.com>
-Date:	Thu Dec 11 18:37:03 2025 +0000
+Date:	Fri Mar 6 22:03:39 2026 +0000
 
-commit ff2e15f0deb261a5eb0f7a8302eef578238d95c9
+commit bb4d9dfc75cf537f8a5d65d4eec6f1749afb6add
 Author: Camyana <117818293+Camyana@users.noreply.github.com>
-Date:   Thu Dec 11 18:37:03 2025 +0000
+Date:   Fri Mar 6 22:03:39 2026 +0000
 
-    v2.8.2
+    v3.0.4
 
-commit 2d345e7625954bcbff750d8a0148387bee568608
+commit e87418b0d933086dc474df2326acc7dcd1cc20b0
 Author: Camyana <117818293+Camyana@users.noreply.github.com>
-Date:   Thu Dec 11 17:27:13 2025 +0000
+Date:   Fri Mar 6 15:38:40 2026 +0000
 
-    2025-12-11
-
-commit 2d345e7625954bcbff750d8a0148387bee568608
-Author: Camyana <117818293+Camyana@users.noreply.github.com>
-Date:   Thu Dec 11 17:27:13 2025 +0000
-
-    2025-12-11
-
-commit 137a69bbc419f8175e92aeb04d8e4b3017878eda
-Author: Camyana <117818293+Camyana@users.noreply.github.com>
-Date:   Thu Dec 11 17:26:33 2025 +0000
-
-    2025-12-11
-
-commit 0d3f007c76c0001c1ce343d134675410e30fc521
-Author: Camyana <117818293+Camyana@users.noreply.github.com>
-Date:   Thu Nov 27 21:33:32 2025 +0000
-
-    v2.8.1
+    2026-03-06
 
