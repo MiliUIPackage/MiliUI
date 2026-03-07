@@ -3,7 +3,7 @@
 
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (Midnight)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM 模组|r|cffffe00a>|r |cffc030c0队伍首领 (至暗之夜)|r
-## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM 模組|r|cffffe00a>|r |cffc030c0隊伍首領 (至暗之夜)|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領 (至暗之夜)|r
 ## LoadOnDemand: 1
 ## RequiredDeps: DBM-Core
 ## SavedVariables: DBMPartyMidnight_AllSavedVars
@@ -25,6 +25,8 @@
 ## X-Wago-ID: xZKxZENk
 ## Version: r235-5
 ## Category-zhTW: 地城與團隊
+
+## Category-zhTW: 副本
 
 # localization.en.lua
 

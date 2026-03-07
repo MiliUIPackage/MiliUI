@@ -28,6 +28,8 @@
 ## X-Wago-ID: qv633o6b
 ## Category-zhTW: 地城與團隊
 
+## Category-zhTW: 副本
+
 # localization.en.lua
 
 VoidSpire\ImperatorAverzian.lua

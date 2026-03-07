@@ -27,6 +27,8 @@
 ## Version: r235-5
 ## Category-zhTW: 地城與團隊
 
+## Category-zhTW: 副本
+
 localization.en.lua
 localization.cn.lua
 
