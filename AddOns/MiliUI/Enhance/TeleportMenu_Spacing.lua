@@ -3,10 +3,15 @@
 -- 在 TeleportMenu 按鈕之間加入垂直間距，
 -- 不修改 TeleportMenu 原始程式碼。
 --
--- 使用冪等 (idempotent) 演算法：
--- 無論目前定位是原始值還是已含間距值，都能推算出正確的
--- slot index 並套用 -(buttonSize + SPACING) * slot 的位置。
--- 因此不會疊加，多次呼叫結果一致。
+-- 原理：TeleportMenu 透過 hooksecurefunc("ToggleGameMenu")
+-- 建立按鈕。我們在第一次 GameMenuFrame:OnShow 後註冊
+-- 自己的 ToggleGameMenu hook，確保執行順序在 TeleportMenu
+-- 之後（hooksecurefunc 按註冊順序執行）。
+--
+-- 第一次開啟：先隱藏框架 → 等一幀 → 套用間距 → 顯示框架（無閃爍）
+-- 第二次起：hooksecurefunc 同步執行 → 無延遲
+--
+-- 使用冪等 (idempotent) 演算法，多次呼叫結果一致。
 ------------------------------------------------------------
 local SPACING = 3  -- 按鈕之間的垂直間距 (像素)
 local hooked = false
@@ -56,9 +61,6 @@ local function RespaceSide(frameName)
     if #anchors == 0 then return end
 
     -- 冪等定位：推算每個元素的 slot index，套用含間距的位置
-    -- 原始位置格式：yOfs = -buttonSize * slot
-    -- 含間距格式：  yOfs = -step * slot
-    -- 兩者取誤差較小的那個來決定 slot
     for _, a in ipairs(anchors) do
         local absY = math.abs(a.yOfs)
         local slotFromOrig   = math.floor(absY / buttonSize + 0.5)
@@ -79,15 +81,29 @@ local function ApplySpacing()
     RespaceSide("TeleportMeButtonsFrameRight")
 end
 
--- 第一次開啟：OnShow + C_Timer.After(0) → 1 幀延遲（幾乎看不到）
--- 第二次起：hooksecurefunc 同步執行 → 無延遲
+-- 第一次開啟：OnShow → 隱藏框架 → 等一幀（按鈕已建好）→ 套用間距 → 顯示
+-- 同時註冊 hooksecurefunc，之後的開啟都是同步執行、零延遲
 GameMenuFrame:HookScript("OnShow", function()
     C_Timer.After(0, function()
-        if not TeleportMeButtonsFrameRight then return end
-        ApplySpacing()
-        -- 註冊同步 hook（在 TeleportMenu 的 hook 之後執行）
+        local left  = TeleportMeButtonsFrameLeft
+        local right = TeleportMeButtonsFrameRight
+        if not right then return end
+
+        -- 第一次開啟：先隱藏 → 調整 → 再顯示，避免閃爍
         if not hooked then
+            if left  then left:SetAlpha(0) end
+            if right then right:SetAlpha(0) end
+        end
+
+        ApplySpacing()
+
+        if not hooked then
+            if left  then left:SetAlpha(1) end
+            if right then right:SetAlpha(1) end
+
             hooked = true
+            -- 此時 TeleportMenu 已註冊它的 hook，
+            -- 我們的 hook 會排在它之後（同一幀內同步執行）
             hooksecurefunc("ToggleGameMenu", function()
                 if GameMenuFrame:IsShown() then
                     ApplySpacing()
