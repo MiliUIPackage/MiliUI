@@ -1,16 +1,10 @@
-lightweight tag bb4d9dfc75cf537f8a5d65d4eec6f1749afb6add v3.0.4
+lightweight tag ed880b26eddfb4fe77003ac14e5555b00a48a338 v3.0.6
 Author:	Camyana <117818293+Camyana@users.noreply.github.com>
-Date:	Fri Mar 6 22:03:39 2026 +0000
+Date:	Sat Mar 7 23:27:01 2026 +0000
 
-commit bb4d9dfc75cf537f8a5d65d4eec6f1749afb6add
+commit ed880b26eddfb4fe77003ac14e5555b00a48a338
 Author: Camyana <117818293+Camyana@users.noreply.github.com>
-Date:   Fri Mar 6 22:03:39 2026 +0000
+Date:   Sat Mar 7 23:27:01 2026 +0000
 
-    v3.0.4
-
-commit e87418b0d933086dc474df2326acc7dcd1cc20b0
-Author: Camyana <117818293+Camyana@users.noreply.github.com>
-Date:   Fri Mar 6 15:38:40 2026 +0000
-
-    2026-03-06
+    v3.0.6
 
