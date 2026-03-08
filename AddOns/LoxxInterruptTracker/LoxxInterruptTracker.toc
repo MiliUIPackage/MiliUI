@@ -1,4 +1,4 @@
-## Interface: 120000, 120001, 120100
+## Interface: 120001, 120100
 ## Title: |cFF00DDDDLoxx Interrupt Tracker|r
 ## IconTexture: Interface\Icons\ability_kick
 ## Notes: Party interrupt cooldown tracker for M+ dungeons
@@ -7,7 +7,7 @@
 ## Notes-zhCN: 大秘境地下城团队打断冷却追踪器
 ## Notes-zhTW: 傳奇鑰石地城隊伍斷法冷卻追蹤器
 ## Author: Loxxar (original by KinderLine)
-## Version: 1.9.6
+## Version: 1.9.9.2
 ## SavedVariables: LOXXSavedVars
 
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 斷法追蹤器

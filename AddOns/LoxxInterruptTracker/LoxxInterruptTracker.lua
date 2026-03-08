@@ -15,8 +15,8 @@
 
 local ADDON_NAME = "LoxxInterruptTracker"
 local MSG_PREFIX = "LOXX"
-local LOXX_VERSION = "1.9.6"
-local LOXX_DB_VERSION = 2   -- bump when SavedVars schema changes
+local LOXX_VERSION = "1.9.9.2"
+local LOXX_DB_VERSION = 3   -- bump when SavedVars schema changes
 
 ------------------------------------------------------------
 -- Spell data (multiple possible interrupts per class/spec)
@@ -79,22 +79,23 @@ local CLASS_COLORS = {
 -- Defaults
 ------------------------------------------------------------
 local DEFAULTS = {
-    frameWidth  = 220,
-    barHeight   = 28,
-    locked      = false,
-    showTitle   = true,
-    growUp      = false,
-    alpha       = 0.9,
-    nameFontSize  = 14,   -- player name font size (2–32)
-    readyFontSize = 14,   -- cooldown timer font size (2–32)
-    readyTextSize = 14,   -- "READY" label font size (2–32)
-    showReady   = true,
+    frameWidth      = 220,  -- fixed — no auto-scaling
+    barHeight       = 24,   -- fixed — fits 12px font comfortably
+    locked          = false,
+    showTitle       = true,
+    growUp          = false,
+    alpha           = 0.9,
+    nameFontSize    = 14,
+    readyFontSize   = 14,
+    readyTextSize   = 14,
+    showReady       = true,
     showInDungeon   = true,
     showInOpenWorld = false,
     showInArena     = false,
     soundOnReady    = false,
-    soundID         = 8960,   -- default: Ready Check ding
-    showTooltip     = true,   -- show spell/CD tooltip on bar hover
+    soundID         = 8960,
+    showTooltip     = true,
+    hideOutOfCombat = false,
 }
 
 ------------------------------------------------------------
@@ -132,6 +133,7 @@ local isResizing = false
 local lastAnnounce = 0
 local testMode = false
 local testTicker = nil
+local inCombat = false
 local spyMode = false
 
 -- String-keyed version for laundered (still-tainted) spellID lookups
@@ -995,8 +997,10 @@ local function CheckZoneVisibility()
     else
         shouldShowByZone = db.showInOpenWorld
     end
+    -- Combat-only mode: hide when out of combat
+    local shouldShow = shouldShowByZone and (not db.hideOutOfCombat or inCombat)
     if mainFrame then
-        if shouldShowByZone then
+        if shouldShow then
             mainFrame:Show()
         else
             mainFrame:Hide()
@@ -1210,9 +1214,69 @@ local function UpdateDisplay()
 
     for i = barIdx, currentMaxBars do bars[i]:Hide() end
 
+    local numVisible = barIdx - 1
+
+    -- ── Ligne "prochaine dispo globale" — toujours visible ───────────────
+    local alertH = 0
+    if mainFrame.alertBand then
+        if numVisible == 0 then
+            mainFrame.alertBand:Hide()
+        else
+            alertH = 22
+            mainFrame.alertBand:Show()
+
+            -- Cherche : le 1er joueur prêt, et le prochain à revenir (minRem)
+            local minRem     = nil
+            local nextKicker = nil
+            local readyKicker = nil
+
+            -- Soi-même
+            if mySpellID and ALL_INTERRUPTS[mySpellID] then
+                if myKickCdEnd <= now then
+                    if readyKicker == nil then readyKicker = myName end
+                else
+                    local r = myKickCdEnd - now
+                    if minRem == nil or r < minRem then minRem = r; nextKicker = myName end
+                end
+            end
+
+            -- Groupe
+            for name, info in pairs(partyAddonUsers) do
+                if info.cdEnd then
+                    if info.cdEnd <= now then
+                        if readyKicker == nil then readyKicker = name end
+                    else
+                        local r = info.cdEnd - now
+                        if minRem == nil or r < minRem then minRem = r; nextKicker = name end
+                    end
+                end
+            end
+
+            if readyKicker then
+                -- Kick disponible maintenant
+                mainFrame.alertBand.bg:SetVertexColor(0.0, 0.28, 0.0, 0.9)
+                mainFrame.alertBand.label:SetText(
+                    "|cFF44FF44Kick dispo : " .. readyKicker .. "|r")
+            elseif minRem and minRem < 3 then
+                -- Kick bientôt disponible (< 3s)
+                mainFrame.alertBand.bg:SetVertexColor(0.55, 0.30, 0.0, 0.9)
+                mainFrame.alertBand.label:SetText(string.format(
+                    "|cFFFFAA00Prochain : %s  %.1fs|r", nextKicker or "?", minRem))
+            elseif minRem then
+                -- Aucun kick disponible (≥ 3s)
+                mainFrame.alertBand.bg:SetVertexColor(0.50, 0.0, 0.0, 0.9)
+                mainFrame.alertBand.label:SetText(string.format(
+                    "|cFFFF3030Prochain : %s  %.0fs|r", nextKicker or "?", minRem))
+            else
+                -- Aucune donnée
+                mainFrame.alertBand:Hide()
+                alertH = 0
+            end
+        end
+    end
+
     -- Auto-fit height to visible bars (skip during resize)
     if not isResizing then
-        local numVisible = barIdx - 1
         if numVisible > 0 then
             local x = mainFrame:GetLeft()
             if db.growUp then
@@ -1224,7 +1288,7 @@ local function UpdateDisplay()
                 mainFrame:ClearAllPoints()
                 mainFrame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, y)
             end
-            mainFrame:SetHeight(titleH + numVisible * (barH + 1))
+            mainFrame:SetHeight(titleH + numVisible * (barH + 1) + alertH)
         end
     end
 end
@@ -1673,6 +1737,19 @@ local function CreateConfigPanel()
     CreateCheckbox(configFrame, "鎖定位置", L_CBX1, yL, "locked")
     CreateCheckbox(configFrame, "顯示就緒",    L_CBX2, yL, "showReady")
 
+    yL = yL - 28
+    do
+        local cb = CreateFrame("CheckButton", nil, configFrame, "UICheckButtonTemplate")
+        cb:SetPoint("TOPLEFT", L_CBX1, yL)
+        local cbLabel = cb.text or cb.Text
+        if cbLabel then cbLabel:SetText("戰鬥外隱藏") end
+        cb:SetChecked(db.hideOutOfCombat)
+        cb:SetScript("OnClick", function(self)
+            db.hideOutOfCombat = self:GetChecked() and true or false
+            CheckZoneVisibility()
+        end)
+    end
+
     -- FONT SIZES (range 2–32)
     yL = yL - 40
     SectionLabelL("字體大小", yL)
@@ -1800,23 +1877,13 @@ local function CreateConfigPanel()
     -- ── FOOTER ───────────────────────────────────────────────────
     Sep(-466)
 
-    local resetBtn = CreateFrame("Button", nil, configFrame, "UIPanelButtonTemplate")
-    resetBtn:SetSize(160, 28)
-    resetBtn:SetPoint("BOTTOM", 0, 52)
-    resetBtn:SetText("重置回預設")
-    resetBtn:SetScript("OnClick", function()
-        for k, v in pairs(DEFAULTS) do db[k] = v end
-        ApplyAutoScale()
-        CheckZoneVisibility()
-        configFrame:Hide()
-        configFrame = nil
-        RebuildBars()
-        CreateConfigPanel()
-    end)
+    local footerMsg = configFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    footerMsg:SetPoint("BOTTOM", 0, 30)
+    footerMsg:SetText("感謝我最喜歡的厭惡者促使我繼續這個插件 #FUALL")
 
-    local info = configFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    info:SetPoint("BOTTOM", 0, 30)
-    info:SetText("拖拉右下角的拖把以改變追蹤器大小")
+    local footerVer = configFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    footerVer:SetPoint("BOTTOM", 0, 14)
+    footerVer:SetText("|cFF888888v" .. LOXX_VERSION .. "|r")
 
     configFrame:Show()
 end
@@ -1947,6 +2014,27 @@ local function CreateUI()
     resizeHandle:SetScript("OnLeave", function()
         pcall(ResetCursor)
     end)
+
+    -- Alert band (danger: no kick available) — attached inside mainFrame at bottom
+    local alertBand = CreateFrame("Frame", nil, mainFrame)
+    alertBand:SetHeight(22)
+    alertBand:SetPoint("BOTTOMLEFT",  mainFrame, "BOTTOMLEFT",  0, 0)
+    alertBand:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", 0, 0)
+    alertBand:SetFrameLevel(mainFrame:GetFrameLevel() + 5)
+    alertBand:Hide()
+    local alertBg = alertBand:CreateTexture(nil, "BACKGROUND")
+    alertBg:SetAllPoints()
+    alertBg:SetTexture(FLAT_TEX)
+    alertBg:SetVertexColor(0.55, 0.0, 0.0, 0.9)
+    alertBand.bg = alertBg
+    local alertLabel = alertBand:CreateFontString(nil, "OVERLAY")
+    alertLabel:SetFont(FONT_FACE, 11, FONT_FLAGS)
+    alertLabel:SetAllPoints()
+    alertLabel:SetJustifyH("CENTER")
+    alertLabel:SetJustifyV("MIDDLE")
+    alertLabel:SetText("")
+    alertBand.label = alertLabel
+    mainFrame.alertBand = alertBand
 
     mainFrame:Show()
     -- Normalize anchor to TOPLEFT after first render so GetLeft()/GetTop()
@@ -2101,7 +2189,7 @@ local function RegisterBlizzardOptions()
             if dbKey == "showTitle" or dbKey == "growUp" or dbKey == "showReady" then
                 RebuildBars()
             end
-            if dbKey:find("^show") then
+            if dbKey:find("^show") or dbKey == "hideOutOfCombat" then
                 CheckZoneVisibility()
             end
         end)
@@ -2229,7 +2317,9 @@ local function RegisterBlizzardOptions()
     miscHeader:SetText("|cFFFFFF00雜項|r")
     yOff = yOff - 25
 
-    MakeCheck("滑鼠停留顯示提示", "showTooltip", yOff)
+    MakeCheck("滑鼠停留顯示提示",    "showTooltip",      yOff)
+    yOff = yOff - 28
+    MakeCheck("戰鬥外隱藏",  "hideOutOfCombat",  yOff)
 
     -- Register with Settings API (TWW 12.0+)
     if Settings and Settings.RegisterAddOnCategory then
@@ -2241,41 +2331,15 @@ local function RegisterBlizzardOptions()
     end
 end
 
--- Compute screen-proportional bar dimensions.
--- GetScreenHeight() returns WoW UI units (already normalized by the game's own
--- UIScale slider), so these values are consistent across all resolutions and
--- display densities without any frame-level SetScale() call.
-local function ComputeAutoBarDefaults()
-    local screenH = GetScreenHeight() or 768
-    screenH = math.max(600, screenH)
-    -- Target ~3.5% of the WoW UI height per bar row (≈27px at standard 768-unit height)
-    local barH = math.floor(screenH * 0.035)
-    barH = math.max(16, math.min(50, barH))
-    -- Width: ~8× bar height gives a comfortable readable bar
-    local fw = math.max(160, math.min(420, barH * 8))
-    return barH, fw
-end
-
+-- ApplyAutoScale kept as no-op for call-site compatibility (previously triggered
+-- screen-proportional scaling; removed in 1.9.9.2 in favour of fixed defaults).
 local function ApplyAutoScale()
-    if not mainFrame then return end
-    -- Recompute proportional dimensions and apply them.
-    -- NOTE: We do NOT call mainFrame:SetScale(). WoW's UIParent already normalises
-    -- coordinates across physical resolutions. Applying a frame-level scale on top
-    -- of that causes double-scaling and inconsistent font/bar sizing.
-    local barH, fw = ComputeAutoBarDefaults()
-    db.barHeight  = barH
-    db.frameWidth = fw
     RebuildBars()
 end
 
 local function Initialize()
     LOXXSavedVars = LOXXSavedVars or {}
     db = LOXXSavedVars
-
-    -- Update DEFAULTS with screen-proportional sizes before filling SavedVars.
-    local autoBarH, autoFW = ComputeAutoBarDefaults()
-    DEFAULTS.barHeight  = autoBarH
-    DEFAULTS.frameWidth = autoFW
 
     -- SavedVars schema versioning: fill new keys, remove obsolete ones.
     local savedVer = db.dbVersion or 1
@@ -2288,6 +2352,16 @@ local function Initialize()
             if k ~= "dbVersion" and DEFAULTS[k] == nil then
                 db[k] = nil
             end
+        end
+        -- v3 migration: force-reset bar dimensions to fixed defaults.
+        -- Previous versions used screen-proportional auto-scaling which
+        -- produced inconsistent (sometimes enormous) bars across machines.
+        if savedVer < 3 then
+            db.barHeight   = DEFAULTS.barHeight
+            db.frameWidth  = DEFAULTS.frameWidth
+            db.nameFontSize  = DEFAULTS.nameFontSize
+            db.readyFontSize = DEFAULTS.readyFontSize
+            db.readyTextSize = DEFAULTS.readyTextSize
         end
     end
     db.dbVersion = LOXX_DB_VERSION
@@ -2335,6 +2409,7 @@ ef:RegisterEvent("CHAT_MSG_ADDON_LOGGED")
 -- SPELL_UPDATE_COOLDOWN removed (restricted in Midnight)
 ef:RegisterEvent("SPELLS_CHANGED")
 ef:RegisterEvent("PLAYER_REGEN_ENABLED")
+ef:RegisterEvent("PLAYER_REGEN_DISABLED")
 ef:RegisterEvent("INSPECT_READY")
 ef:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 ef:RegisterEvent("UNIT_PET")
@@ -2392,8 +2467,11 @@ playerCastFrame:SetScript("OnEvent", function(_, _, unit, castGUID, spellID)
                 else
                     local cd = myCachedCD or myBaseCd or data.cd
                     myKickCdEnd = GetTime() + cd
+                    -- Broadcast to party addon users (Warlock Felhunter Spell Lock
+                    -- fires on unit=="pet", not "player", so SendLOXX must be called here)
+                    SendLOXX("CAST:" .. cd)
                     if spyMode then
-                        print("|cFF00DDDD[SPY]|r   → PRIMARY kick: " .. data.name .. " CD=" .. cd)
+                        print("|cFF00DDDD[SPY]|r   → PRIMARY kick: " .. data.name .. " CD=" .. cd .. " (broadcast sent)")
                     end
                 end
             end
@@ -2588,7 +2666,12 @@ ef:SetScript("OnEvent", function(_, event, arg1, arg2, arg3, arg4)
             C_Timer.After(3.0, FindMyInterrupt)
         end
     elseif event == "PLAYER_REGEN_ENABLED" then
+        inCombat = false
+        CheckZoneVisibility()
         TryCacheCD()
+    elseif event == "PLAYER_REGEN_DISABLED" then
+        inCombat = true
+        CheckZoneVisibility()
     elseif event == "INSPECT_READY" then
         if inspectBusy and inspectUnit then
             local ok, err = pcall(ScanInspectTalents, inspectUnit)
@@ -2676,6 +2759,7 @@ ef:SetScript("OnEvent", function(_, event, arg1, arg2, arg3, arg4)
         -- Queue inspect for new members (1s delay for units to be ready)
         C_Timer.After(1, QueuePartyInspect)
     elseif event == "PLAYER_ENTERING_WORLD" then
+        inCombat = InCombatLockdown()  -- vrai si reload UI en combat
         pcall(C_ChatInfo.RegisterAddonMessagePrefix, MSG_PREFIX)
         CheckZoneVisibility()
         RegisterPartyWatchers()
