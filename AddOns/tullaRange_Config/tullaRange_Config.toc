@@ -1,7 +1,8 @@
-## Interface: 11506, 40401, 110005, 120001, 120000
+## Interface: 120001, 120000, 110207, 50503, 20505, 11508
 ## Title: tullaRange Config
 ## Author: Tuller
 ## Notes: tullaRange's configuration interface
+## Notes-ruRU: Конфигурация tullaRange
 ## Dependencies: tullaRange
 ## LoadOnDemand: 1
 ## IconTexture: Interface/Icons/Inv_misc_punchcards_red
@@ -10,5 +11,6 @@
 ## Notes-zhTW:  tullaRange Config |n|n提供射程著色圖形介面的設定選項功能。|n|n|cffffd200使用方法: |r從Esc>選項>插件>快捷列-著色，進行設定。
 ## X-Category-zhTW: 介面
 
-localization\localization.xml
+localization\_default.lua
+localization\[TextLocale].lua
 ui.lua

@@ -1,5 +1,53 @@
 # tullaRange release notes
 
+## 12.0.0
+
+* Fixed an error when trying to open the settings menu via the addon compartment button
+* Added a `/tullarange` command to show the options menu
+
+## 11.2.3
+
+* Added support for Burning Crusade Classic Anniversary Edition
+* Updated TOCs for Midnight Beta and latest game versions.
+
+## 11.2.2
+
+* Simplified oom detection for spells
+
+## 11.2.1
+
+* Fixed an issue causing action button range updating to not work properly
+* Improved out of mana handling for pet actions
+* Fixed a long standing issue where the unusuable state had a lower precedence
+  than out of range
+
+## 11.2.0
+
+* Update TOCs for 12.0.0 (Midnight), 11.2.7, 5.5.3, and 11.15.8
+* Use conditional directives to only load the classic range updater when on
+  classic and the modern when on modern versions of WoW
+* Use text locale directives to control which localized strings are loaded
+
+## 11.1.3
+
+* Update TOCs for 11.2.5 and 5.5.1
+
+## 11.1.2
+
+* Update TOCs for 11.2.0 (thanks Hollicsh)
+
+## 11.1.1
+
+* Update TOCs for 11.1.7 and 5.5.0 (thanks Hollicsh)
+
+## 11.1.0
+
+* Update TOCs for 11.1.5
+
+## 11.0.9
+
+* Update TOCs for 1.15.7
+
 ## 11.0.8
 
 * Update TOCs for 11.1.0, 4.4.2, and 1.15.6

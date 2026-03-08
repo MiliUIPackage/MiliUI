@@ -1,7 +1,7 @@
 local _, Addon = ...
 
 local L = Addon.L
-local AddonSettingsFrame = tullaRange.frame
+local AddonSettingsFrame = CreateFrame('Frame')
 local ColorChannels = { 'Red', 'Green', 'Blue', 'Opacity' }
 
 local function getRandomSpellIcon()
@@ -113,7 +113,7 @@ local function createColorSelector(state, parent)
     local previewButtonIcon = previewButton:CreateTexture(nil, 'ARTWORK')
     previewButtonIcon:SetAllPoints()
     previewButtonIcon:SetTexture(getRandomSpellIcon())
-    previewButtonIcon:SetTexCoord(0.06, 0.94, 0.06, 0.94)
+    previewButtonIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
     previewButton.Icon = previewButtonIcon
 
     -- add desaturate toggle
@@ -135,14 +135,14 @@ local function createColorSelector(state, parent)
         tullaRange:RequestUpdate()
     end)
 
-    desaturate:SetPoint('BOTTOM', -desaturate.Text:GetStringWidth()/2, 0)
+    desaturate:SetPoint('BOTTOM', -desaturate.Text:GetStringWidth() / 2, 0)
 
     -- add color channel siders
     local sliders = {}
     for i = 1, #ColorChannels do
         local color = ColorChannels[i]
 
-        local slider = createPercentSlider{
+        local slider = createPercentSlider {
             parent = colorsPanel,
 
             label = L[color],
@@ -175,7 +175,7 @@ local function createColorSelector(state, parent)
     return frame
 end
 
-local header = CreateFrame("Frame", nil,  AddonSettingsFrame)
+local header = CreateFrame("Frame", nil, AddonSettingsFrame)
 header:SetHeight(50)
 header:SetPoint("TOPLEFT")
 header:SetPoint("TOPRIGHT")
@@ -183,14 +183,14 @@ header:SetPoint("TOPRIGHT")
 local headerTitle = header:CreateFontString(nil, "ARTWORK", "GameFontHighlightHuge")
 headerTitle:SetJustifyH("LEFT")
 headerTitle:SetPoint("TOPLEFT", 7, -22)
-headerTitle:SetFormattedText("%s - %s", L.ColorSettingsTitle, COLORS)
+headerTitle:SetFormattedText("%s - %s", "tullaRange", COLORS)
 
 local headerDivider = header:CreateTexture(nil, "ARTWORK")
 headerDivider:SetAtlas("Options_HorizontalDivider", true)
 headerDivider:SetPoint("TOP", 0, -50)
 
 -- add color optons
-for i, type in ipairs{'oor', 'oom', 'unusable'} do
+for i, type in ipairs { 'oor', 'oom', 'unusable' } do
     local selector = createColorSelector(type, AddonSettingsFrame)
 
     selector:SetHeight(164)
@@ -202,8 +202,13 @@ for i, type in ipairs{'oor', 'oom', 'unusable'} do
     selector:SetPoint("TOPRIGHT", -21, y)
 end
 
-local category = Settings.RegisterCanvasLayoutCategory(AddonSettingsFrame, L.AddonNameLoc)
+-- meow
+do
+    local cat = Settings.RegisterCanvasLayoutCategory(AddonSettingsFrame, "tullaRange")
 
-category.ID = "tullaRange"
+    Settings.RegisterAddOnCategory(cat)
 
-Settings.RegisterAddOnCategory(category)
+    function tullaRange:OpenOptionsMenu()
+        Settings.OpenToCategory(cat:GetID())
+    end
+end
