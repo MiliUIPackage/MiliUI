@@ -57,22 +57,21 @@ local function GetItemAddableSockets(link, slot, itemLevel)
 end
 
 local INVSLOT_ENCHANT = {
-    [INVSLOT_HEAD] = ns.IsMidnight,
-    [INVSLOT_SHOULDER] = ns.IsMidnight,
-    [INVSLOT_CHEST] = true,
-    [INVSLOT_LEGS] = true,
-    [INVSLOT_FEET] = true,
-    [INVSLOT_WRIST] = not ns.IsMidnight,
-    [INVSLOT_FINGER1] = true,
-    [INVSLOT_FINGER2] = true,
-    [INVSLOT_BACK] = not ns.IsMidnight,
-    [INVSLOT_MAINHAND] = true,
-    [INVSLOT_OFFHAND] = true,
+    [INVSLOT_HEAD] = 120,
+    [INVSLOT_SHOULDER] = 120,
+    [INVSLOT_CHEST] = 120,
+    [INVSLOT_LEGS] = 120,
+    [INVSLOT_FEET] = 120,
+    [INVSLOT_FINGER1] = 120,
+    [INVSLOT_FINGER2] = 120,
+    [INVSLOT_MAINHAND] = 120,
+    [INVSLOT_OFFHAND] = 120,
 }
 
-local function CheckEnchantmentSlot(slotID, quality, classID)
-    if INVSLOT_ENCHANT[slotID] then
-        if quality == Enum.ItemQuality.Artifact and (slotID == INVSLOT_NECK or slotID == INVSLOT_MAINHAND or slotID == INVSLOT_OFFHAND) then
+local function CheckEnchantmentSlot(slotID, itemLevel, classID)
+    local minLevel = INVSLOT_ENCHANT[slotID]
+    if minLevel then
+        if itemLevel < minLevel then
             return false
         end
         if slotID == INVSLOT_OFFHAND and classID ~= Enum.ItemClass.Weapon then
@@ -179,6 +178,13 @@ local function UpdateIconTexture(type, icon, data)
                 icon.spellID = spell:GetSpellID()
             end
         )
+    elseif type == "socketItemId" then
+        local item = Item:CreateFromItemID(data)
+        item:ContinueOnItemLoad(
+            function()
+                icon.itemLink = item:GetItemLink()
+            end
+        )
     end
 end
 
@@ -209,12 +215,7 @@ local function ShowGemAndEnchant(frame, ItemLink, anchorFrame, itemframe)
             icon = GetIconFrame(frame)
             icon.bg:SetVertexColor(1, 0.82, 0, 0.5)
             icon.texture:SetTexture("Interface\\Cursor\\Quest")
-            local item = Item:CreateFromItemID(socketItemId)
-            item:ContinueOnItemLoad(
-                function()
-                    icon.itemLink = item:GetItemLink()
-                end
-            )
+            UpdateIconTexture("socketItemId", icon, socketItemId)
             icon:ClearAllPoints()
             icon:SetPoint("LEFT", anchorFrame, "RIGHT", num == 1 and 6 or 1, 0)
             icon:Show()
@@ -234,7 +235,7 @@ local function ShowGemAndEnchant(frame, ItemLink, anchorFrame, itemframe)
     elseif (enchantSpellID) then
         num = num + 1
         icon = GetIconFrame(frame)
-        icon.bg:SetVertexColor(1,0.82,0)
+        icon.bg:SetVertexColor(1, 0.82, 0)
         UpdateIconTexture("spellId", icon, enchantSpellID)
         icon:ClearAllPoints()
         icon:SetPoint("LEFT", anchorFrame, "RIGHT", num == 1 and 6 or 1, 0)
@@ -250,7 +251,7 @@ local function ShowGemAndEnchant(frame, ItemLink, anchorFrame, itemframe)
         icon:SetPoint("LEFT", anchorFrame, "RIGHT", num == 1 and 6 or 1, 0)
         icon:Show()
         anchorFrame = icon
-    elseif (not enchantID and CheckEnchantmentSlot(itemframe.index, itemframe.quality, itemframe.classID)) then
+    elseif (not enchantID and CheckEnchantmentSlot(itemframe.index, itemframe.level, itemframe.classID)) then
         num = num + 1
         icon = GetIconFrame(frame)
         icon.title = ENCHANTS..": "..itemframe.slot

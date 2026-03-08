@@ -13,7 +13,6 @@ ns.L = {
     ShowItemSlotString          = "顯示物品部位文字",
     ShowInspectAngularBorder    = "觀察面板直角邊框",
     ShowInspectColoredLabel     = "觀察面板顯著標示橘裝",
-    ShowInspectTierSets         = "觀察面板顯示套裝數量",
     ShowCharacterItemSheet      = "顯示玩家自己裝備列表",
     ShowInspectItemSheet        = "顯示觀察面板裝備列表",
     ShowOwnFrameWhenInspecting  = "觀察同時顯示自己裝備列表",
@@ -28,6 +27,7 @@ ns.L = {
     EnableMouseSpecialization   = "顯示專精",
     EnableMouseWeaponLevel      = "顯示武器等級",
 	ShowPluginGreenState        = "顯示副屬性前綴文字 |cffcccc33(需要重新載入 /reload)|r",
+    EnableMouseTierSet          = "顯示套裝數量",
     Bag                         = "背包",
     Bank                        = "銀行",
     Merchant                    = "商人",
@@ -39,9 +39,7 @@ ns.L = {
     PaperDoll                   = "角色視窗",
     Chat                        = "聊天",
     Loot                        = "拾取",
-	Other                       = "其他",
-    ShowGemAndEnchant           = "顯示寶石和附魔訊息",
-    HidePaperdollSlotString     = "隱藏人物界面部位文字",
+    ShowGemAndEnchant           = "顯示寶石和附魔信息",
 }
 
 BINDING_NAME_InspectRaidFrame = "顯示團隊觀察面板"
