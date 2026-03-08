@@ -1,0 +1,4 @@
+SlashCmdList["SLASHRLCOMMAND"] = function() ReloadUI() end
+SLASH_SLASHRLCOMMAND1 = "/rl"
+SLASH_SLASHRLCOMMAND2 = "/reload"
+SLASH_SLASHRLCOMMAND3 = "/reloadui"

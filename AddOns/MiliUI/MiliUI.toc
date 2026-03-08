@@ -6,18 +6,17 @@
 ## Category-zhTW: [整合]
 ## SavedVariables: MiliUI_DB, MiliUI_CastBarEnhanceDB
 
-#UiTitle.lua
-Focuser.lua
-SlashRL.xml
-# SpellAnnouncer.lua
 Config\Luxthos_Platynator.lua
 # Config\Luxthos_Sensei.lua
 # Config\Luxthos_CMC.lua
 Config\Ayije_CDM.lua
-CastBarEnhance.lua
 Settings.lua
-core.lua
-AddonNames.lua
-# Chatbar.lua
-AutoSlotKeystone.lua
-TeleportMenuEnhance.lua
+Core.lua
+
+Enhance\Focuser.lua
+Enhance\SlashRL.lua
+# Enhance\SpellAnnouncer.lua
+Enhance\AyijeCDM_CastBar.lua
+Enhance\AddonNames.lua
+Enhance\AutoSlotKeystone.lua
+Enhance\TeleportMenu_Spacing.lua
