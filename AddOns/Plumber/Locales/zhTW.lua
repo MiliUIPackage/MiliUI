@@ -259,6 +259,13 @@ L["ModuleName QuestItemDestroyAlert"] = "刪除任務物品確認";
 L["ModuleDescription QuestItemDestroyAlert"] = "當你試圖摧毀一件可以提供任務的物品時，顯示該任務的信息。\n\n|cffd4641c僅限於提供任務的物品，不適用於接受任務以後獲得的任務物品。|r";
 
 
+--Tooltip ItemQuest
+L["ModuleName TooltipItemQuest"] = "任務起始物品";
+L["ModuleDescription TooltipItemQuest"] = "在任務起始物品的滑鼠提示上顯示任務詳情。\n\n如果你已經接受了相關任務，你可以按住Ctrl並左鍵點擊此物品來瀏覽任務日誌。";
+L["Instruction Show In Quest Log"] = "<按住Ctrl點擊瀏覽任務日誌>";
+L["QuestID"] = "任務ID";
+
+
 --SpellcastingInfo
 L["ModuleName SpellcastingInfo"] = "目標施法信息";
 L["ModuleDescription SpellcastingInfo"] = "- 將鼠標懸停在目標框體施法條上可顯示正在讀條的法術信息。\n\n- 保存目標怪物的技能。你可以在目標框體的右鍵選單-技能裡找到它們。";
