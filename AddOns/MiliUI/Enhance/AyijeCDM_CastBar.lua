@@ -153,8 +153,9 @@ end
 local latencyTexture
 local latencyText
 local latencyFrame
-local cachedLag = 0       -- 實測延遲（ms）
+local cachedLag = 0       -- 本次施法使用的延遲（ms）
 local sentTimestamp = 0   -- UNIT_SPELLCAST_SENT 時間戳
+local sentSpellID = nil   -- SENT 時記錄的 spellID，用於配對
 
 local function EnsureLatencyFrame(parent)
     if latencyFrame then return latencyFrame end
@@ -310,28 +311,42 @@ local function HookCastBar()
         UpdateChannelingTicks()
     end)
 
-    -- 延遲快照：在 UNIT_SPELLCAST_SENT 時記錄時間戳（Gnosis 方式）
+    -- 延遲快照：在 UNIT_SPELLCAST_SENT 時記錄時間戳 + spellID（Gnosis 方式）
     local lagFrame = CreateFrame("Frame")
     lagFrame:RegisterUnitEvent("UNIT_SPELLCAST_SENT", "player")
-    lagFrame:SetScript("OnEvent", function()
+    lagFrame:SetScript("OnEvent", function(_, _, _, _, _, sID)
         sentTimestamp = GetTime()
+        sentSpellID = sID
     end)
 
     -- Hook OnEvent：Channel Start/Stop/Update
     frame:HookScript("OnEvent", function(self, event, unit, castID, spellID)
         if event == "UNIT_SPELLCAST_CHANNEL_START" or event == "UNIT_SPELLCAST_START" then
-            -- 實測延遲：SENT 到 START 的時間差（ms）
+            -- 每次施法重新計算延遲，避免舊值卡住
+            cachedLag = 0
+
+            -- 取得 GetNetStats() 作為基準和 fallback
+            local _, _, latHome, latWorld = GetNetStats()
+            local netLag = (latWorld > 0 and latWorld) or (latHome > 0 and latHome) or 0
+
+            -- 嘗試精確測量：SENT 到 START 的時間差
             if sentTimestamp > 0 then
                 local measured = (GetTime() - sentTimestamp) * 1000
-                if measured > 0 and measured < 2000 then
+                -- 合理性檢查：門檻為 GetNetStats 的 3 倍，最少 150ms
+                local threshold = math.max(netLag * 3, 150)
+                if measured > 0 and measured <= threshold then
                     cachedLag = measured
                 end
             end
-            -- 若實測為 0，fallback 到 home latency
+
+            -- 若精確測量無效或不合理，fallback 到 GetNetStats()
             if cachedLag <= 0 then
-                local _, _, latHome, latWorld = GetNetStats()
-                cachedLag = (latWorld > 0 and latWorld) or (latHome > 0 and latHome) or 0
+                cachedLag = netLag
             end
+
+            -- 清除 SENT 狀態，避免下次誤用
+            sentTimestamp = 0
+            sentSpellID = nil
         end
 
         if event == "UNIT_SPELLCAST_CHANNEL_START" then
