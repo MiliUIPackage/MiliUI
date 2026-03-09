@@ -360,6 +360,8 @@ do  --UI ItemButton
         end
     end
 
+    local IsMidnightCrafting = {};
+
     function ItemFrameMixin:SetIcon(texture, data)
         self.StackedIconContainer:Hide();
         self.showIcon = texture ~= nil;
@@ -391,7 +393,23 @@ do  --UI ItemButton
                         f.IconOverlay:Show();
                         self:SetBorderColor(1, 195/255, 41/255);
                     elseif data.craftQuality and data.craftQuality ~= 0 then
-                        f.IconOverlay:SetTexCoord((data.craftQuality - 1) * 0.125, data.craftQuality * 0.125, 0, 0.125);
+                        if (data.craftQuality == 1 or data.craftQuality == 2) then
+                            if IsMidnightCrafting[data.id] == nil then
+                                local info = C_TradeSkillUI.GetItemReagentQualityInfo(data.id);
+                                if info and info.icon and string.find(info.icon, "[Qq]uality%-12") then
+                                    IsMidnightCrafting[data.id] = true;
+                                else
+                                    IsMidnightCrafting[data.id] = false;
+                                end
+                            end
+                        end
+
+                        if IsMidnightCrafting[data.id] then
+                            f.IconOverlay:SetTexCoord((data.craftQuality + 1) * 0.125, (data.craftQuality + 2) * 0.125, 0.125, 0.25);
+                        else
+                            f.IconOverlay:SetTexCoord((data.craftQuality - 1) * 0.125, data.craftQuality * 0.125, 0, 0.125);
+                        end
+                        
                         f.IconOverlay:Show();
                     elseif data.id then
                         if IsCosmeticItem(data.id) then
@@ -787,6 +805,8 @@ do  --UI ItemButton
         self:ResetHoverVisual();
         FocusSolver:SetFocus(nil);
         MainFrame:SetFocused(false);
+        self:UnregisterEvent("MODIFIER_STATE_CHANGED");
+        self:SetScript("OnEvent", nil);
     end
 
     function ItemFrameMixin:ShowTooltip()
@@ -795,6 +815,7 @@ do  --UI ItemButton
         if self.enableState == 1 then   --Manual Loot
             if self.data.slotType == Defination.SLOT_TYPE_ITEM then
                 tooltip:SetOwner(self, "ANCHOR_RIGHT", -Formatter.BUTTON_SPACING, 0);
+                tooltip.suppressAutomaticCompareItem = true;
                 tooltip:SetLootItem(self.data.slotIndex);
             elseif self.data.slotType == Defination.SLOT_TYPE_CURRENCY then
                 tooltip:SetOwner(self, "ANCHOR_RIGHT", -Formatter.BUTTON_SPACING, 0);
@@ -803,11 +824,13 @@ do  --UI ItemButton
 
             local comparisonTooltip = ShoppingTooltip1;
             if comparisonTooltip and comparisonTooltip:IsShown() then
-                local left1 = tooltip:GetLeft() or 0;
-                local left2 = comparisonTooltip:GetLeft() or 0;
-                if left2 < left1 then
-                    tooltip:ClearAllPoints();
-                    tooltip:SetPoint("BOTTOMRIGHT", self, "TOPLEFT", 0, 0);
+                local left1 = tooltip:GetLeft();
+                local left2 = comparisonTooltip:GetLeft();
+                if API.Secret_CanAccessValues(left1, left2) then
+                    if left2 < left1 then
+                        tooltip:ClearAllPoints();
+                        tooltip:SetPoint("BOTTOMRIGHT", self, "TOPLEFT", 0, 0);
+                    end
                 end
             end
 
@@ -818,6 +841,7 @@ do  --UI ItemButton
             local offset = -(width - textWidth - (self.textOffset or 0));
             if hyperLink then
                 tooltip:SetOwner(self, "ANCHOR_RIGHT", offset, 0);
+                tooltip.suppressAutomaticCompareItem = true;
                 tooltip:SetHyperlink(hyperLink);
             elseif self.data.tooltipMethod then
                 tooltip:SetOwner(self, "ANCHOR_RIGHT", offset, 0);
@@ -827,6 +851,9 @@ do  --UI ItemButton
                 self.data.tooltipFunc(tooltip, self.data.id, self.data);
             end
         end
+
+        self:RegisterEvent("MODIFIER_STATE_CHANGED");
+        self:SetScript("OnEvent", self.OnEvent);
     end
 
     function ItemFrameMixin:OnFocused()
@@ -895,8 +922,17 @@ do  --UI ItemButton
         end
     end
 
-    function ItemFrameMixin:LayoutStackedItems()
-
+    function ItemFrameMixin:OnEvent(event, ...)
+        if event == "MODIFIER_STATE_CHANGED" then
+            local key, down = ...
+            if self:IsMouseMotionFocus() then  --IsModifiedClick("COMPAREITEMS")
+                if key == "LSHIFT" or key == "RSHIFT" then
+                    self:ShowTooltip();
+                end
+            else
+                self:UnregisterEvent(event);
+            end
+        end
     end
 
     local function CreateIconFrame(itemFrame)
@@ -1858,7 +1894,7 @@ do  --UI Basic
                     self:TryHide(true);
                 elseif (not (self.manualMode or self.inEditMode)) and button == "LeftButton" and not InCombatLockdown() then
                     local itemFrame = self:GetFocusedItemFrame();
-                    if itemFrame then
+                    if itemFrame and itemFrame.OnClick then
                         itemFrame:OnClick("EmulateLeftButton");
                     end
                 end

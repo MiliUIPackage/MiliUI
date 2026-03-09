@@ -4,7 +4,6 @@ local L = addon.L;
 local LandingPageUtil = addon.LandingPageUtil;
 local AtlasUtil = addon.AtlasUtil;
 local FactionUtil = addon.FactionUtil;
-local MajorFactionLayout = FactionUtil.MajorFactionLayout;
 
 
 local ipairs = ipairs;
@@ -14,7 +13,7 @@ local C_MajorFactions = C_MajorFactions;
 
 
 local FactionTab;
-local FactionButtons = {};
+local FactionButtons = {};  --Can be created by other tab
 
 
 local FACTION_BUTTON_SIZE = 80;
@@ -54,7 +53,8 @@ do
     end
 
     function ReputationTooltipScripts.AppendProgressBar(tooltip, min, max, value)
-        GameTooltip_ShowProgressBar(tooltip, min, max, value, REPUTATION_PROGRESS_FORMAT:format(value, max));
+        --GameTooltip_ShowProgressBar(tooltip, min, max, value, REPUTATION_PROGRESS_FORMAT:format(value, max));
+        tooltip:AddLine(string.format("|cffffd100%s|r %d/%d", L["Progress Label"], value, max), 1, 1, 1, false);
     end
 
     function ReputationTooltipScripts.ShowMajorFactionRenownTooltip(self)
@@ -76,7 +76,7 @@ do
         --GameTooltip_AddHighlightLine(tooltip, RENOWN_LEVEL_LABEL:format(data.renownLevel));
         local maxLevel = API.GetMaxRenownLevel(factionID);
 
-        tooltip:AddLine(string.format("%s %d/%d", LANDING_PAGE_RENOWN_LABEL, data.renownLevel, maxLevel), 1, 1, 1);
+        tooltip:AddLine(string.format("|cffffd100%s|r %d/%d", LANDING_PAGE_RENOWN_LABEL, data.renownLevel, maxLevel), 1, 1, 1);
         local value = data.renownReputationEarned;
         local threshold = data.renownLevelThreshold;
         ReputationTooltipScripts.AppendProgressBar(tooltip, 0, threshold, value);
@@ -146,13 +146,16 @@ do
             tooltip:AddLine(" ");
             tooltip:AddLine(description, 1, 0.82, 0, true);
 
-            GameTooltip_AddQuestRewardsToTooltip(tooltip, rewardQuestID);
+            if rewardQuestID then
+                --GameTooltip_AddQuestRewardsToTooltip(tooltip, rewardQuestID);
+            end
         end
 
-        ReputationTooltipScripts.AppendClickInstruction(tooltip, factionID, true);
+        tooltip:AddLine(" ");
+        ReputationTooltipScripts.AppendClickInstruction(tooltip, factionID);
 
-        --tooltip:Show();
-        GameTooltip_OnShow(tooltip);    --Recalculating padding
+        tooltip:Show();
+        --GameTooltip_OnShow(tooltip);    --Recalculating padding
 
         if rewardQuestID and not API.IsQuestRewardCached(rewardQuestID) then
             self.UpdateTooltip = self.ShowTooltip;
@@ -195,6 +198,11 @@ do
         end
 
         tooltip:AddLine(" ");
+
+        if self.playerCompanionID and not InCombatLockdown() then  --Delves Companion Level
+            GameTooltip_AddColoredLine(tooltip, L["Instruction Click To View Companion"], GREEN_FONT_COLOR, true);
+        end
+
         ReputationTooltipScripts.AppendClickInstruction(tooltip, factionID);
 
         tooltip:Show();
@@ -416,6 +424,15 @@ do
         else
             self.reputationType = 0;
         end
+
+
+        --debug
+        --[[
+        self.Level:SetText(6);
+        self:SetShowRenownLevel(true);
+        self.ProgressBar:SetValue(66, 100);
+        self.Glow:Hide();
+        --]]
     end
 
     function LandingPageMajorFactionButtonMixin:SetParentFactionID(parentFactionID)
@@ -465,7 +482,7 @@ do
         --See Blizzard_UIPanels_Game/ReputationFrame.lua
         self.UpdateTooltip = nil;
 
-        if (self.reputationType == 3 and C_MajorFactions.HasMaximumRenown(self.factionID)) or (self.reputationType ~= 3 and C_Reputation.IsFactionParagon(self.factionID)) then
+        if C_Reputation.IsFactionParagonForCurrentPlayer(self.factionID) then
             ReputationTooltipScripts.ShowParagonRewardsTooltip(self);
         elseif self.reputationType == 2 then    --Friendship
             ReputationTooltipScripts.ShowFriendshipReputationTooltip(self);
@@ -518,7 +535,7 @@ do
     end
 
     function LandingPageMajorFactionButtonMixin:SetIconByFileID(fileID)
-        self.FactionIcon:SetTexture(fileID)
+        self.FactionIcon:SetTexture(fileID);
     end
 
     function LandingPageMajorFactionButtonMixin:SetIconByCreatureDisplayID(creatureDisplayID)
@@ -546,6 +563,17 @@ local function FactionButton_OnClickFunc(self, button)
     if FactionTab then
         if FactionTab:DisplayMajorFactionDetail(self.factionID) then
             LandingPageUtil.PlayUISound("PageOpen");
+            return
+        end
+    end
+
+    if self.playerCompanionID and not InCombatLockdown() then
+        local f = DelvesCompanionConfigurationFrame;
+        if not f:IsShown() then
+            f.playerCompanionID = self.playerCompanionID;
+            ShowUIPanel(f);
+        else
+            HideUIPanel(f);
         end
     end
 end
@@ -692,10 +720,12 @@ do
 
         self.factionDirty = nil;
         for _, button in ipairs(FactionButtons) do
-            button:Refresh();
-            if button == focus then
-                if button:IsMouseMotionFocus() and button.onClickFunc then
-                    button:OnEnter();
+            if button.factionID then
+                button:Refresh();
+                if button == focus then
+                    if button:IsMouseMotionFocus() and button.onClickFunc then
+                        button:OnEnter();
+                    end
                 end
             end
         end
@@ -885,48 +915,7 @@ do
             end
 
 
-            --Create a List of FactionIconButtons
-            local button;
-            local buttons = {};
-            self.FactionIconButtons = buttons;
-            local gap = 0;
-            local iconButtonSize = 42;
-            local iconsPerRow = 5;
-            local factionList = {};
-            for row, rowInfo in ipairs(MajorFactionLayout) do
-                for _, factionInfo in ipairs(rowInfo) do
-                    table.insert(factionList, factionInfo.factionID);
-                end
-            end
-
-            local numFactions = #factionList;
-            local numRows = math.ceil(numFactions / iconsPerRow);
-            local iconsLastRow = numFactions + (1 - numRows) * iconsPerRow;
-            local spanLastRow = iconsLastRow * (iconButtonSize + gap) - gap;
-            local spanFullRow = iconsPerRow * (iconButtonSize + gap) - gap;
-            local row, col = 1, 0;
-            local fromY = 416;  --432
-            local offsetX, spanX;
-
-            for i, factionID in ipairs(factionList) do
-                button = CreateFactionIconButton(DetailFrame);
-                button:SetSize(iconButtonSize, iconButtonSize);
-                table.insert(buttons, button);
-                col = col + 1;
-                if col > iconsPerRow then
-                    col = 1;
-                    row = row + 1;
-                    fromY = fromY + iconButtonSize + gap;
-                end
-                if row >= numRows then
-                    spanX = spanLastRow;
-                else
-                    spanX = spanFullRow;
-                end
-                offsetX = -0.5 * spanX + (col - 1) * (iconButtonSize + gap);
-                button:SetPoint("TOPLEFT", LeftFrame, "TOP", offsetX, -fromY);
-                button:SetFaction(factionID);
-            end
+            self:UpdateFactionSelect();
         end
 
 
@@ -1031,8 +1020,8 @@ do
             end
         end
 
-        if self.FactionIconButtons then
-            for _, button in ipairs(self.FactionIconButtons) do
+        if self.factionIconButtonPool then
+            for _, button in self.factionIconButtonPool:EnumerateActive() do
                 button:SetSelected(button.factionID == factionID);
             end
         end
@@ -1133,6 +1122,124 @@ do
     function FactionTabMixin:UpdateRightSection()
         self:UpdateRewardsList(false, true);
     end
+
+    function FactionTabMixin:UpdateFactionSelect()
+        if not self.DetailFrame then return end;
+
+        if self.factionIconButtonPool then
+            self.factionIconButtonPool:ReleaseAll();
+        else
+            local function FactionIconButton_Create()
+                return CreateFactionIconButton(self.DetailFrame);
+            end
+
+            local function FactionButton_OnRemove(obj)
+                obj.playerCompanionID = nil;
+            end
+
+            self.factionIconButtonPool = LandingPageUtil.CreateObjectPool(FactionIconButton_Create, nil, FactionButton_OnRemove);
+        end
+
+        local button;
+        local gap = 0;
+        local iconButtonSize = 42;
+        local iconsPerRow = 5;
+        local factionList = {};
+        local LeftFrame = PlumberExpansionLandingPage.LeftSection;
+
+        for row, rowInfo in ipairs(FactionUtil.ActiveFactionLayout) do
+            for _, factionInfo in ipairs(rowInfo) do
+                table.insert(factionList, factionInfo.factionID);
+            end
+        end
+
+        local numFactions = #factionList;
+        local numRows = math.ceil(numFactions / iconsPerRow);
+        local iconsLastRow = numFactions + (1 - numRows) * iconsPerRow;
+        local spanLastRow = iconsLastRow * (iconButtonSize + gap) - gap;
+        local spanFullRow = iconsPerRow * (iconButtonSize + gap) - gap;
+        local row, col = 1, 0;
+        local fromY = 416;  --432
+        local offsetX, spanX;
+
+        for i, factionID in ipairs(factionList) do
+            button = self.factionIconButtonPool:Acquire();
+            button:SetSize(iconButtonSize, iconButtonSize);
+            col = col + 1;
+            if col > iconsPerRow then
+                col = 1;
+                row = row + 1;
+                fromY = fromY + iconButtonSize + gap;
+            end
+            if row >= numRows then
+                spanX = spanLastRow;
+            else
+                spanX = spanFullRow;
+            end
+            offsetX = -0.5 * spanX + (col - 1) * (iconButtonSize + gap);
+            button:SetPoint("TOPLEFT", LeftFrame, "TOP", offsetX, -fromY);
+            button:SetFaction(factionID);
+        end
+    end
+
+    function FactionTabMixin:OnLayoutChanged()
+        self.factionButtonPool:ReleaseAll();
+
+        local index = 0;
+        local offsetX;
+        local offsetY = 0;
+        local maxSpanX = 0;
+        local maxSpanY = #FactionUtil.ActiveFactionLayout * (FACTION_BUTTON_SIZE + FACTION_BUTTON_GAP_V) - FACTION_BUTTON_GAP_V;
+
+        for row, rowInfo in ipairs(FactionUtil.ActiveFactionLayout) do
+            offsetX = 0;
+            for _, factionInfo in ipairs(rowInfo) do
+                index = index + 1;
+                local f = self.factionButtonPool:Acquire();
+                local majorFactionID = factionInfo.factionID;
+                f:SetMinimized(false);
+                f:ClearAllPoints();
+                f:SetPoint("TOPLEFT", self.OverviewFrame, "TOPLEFT", offsetX, offsetY);
+                f:SetFaction(majorFactionID);
+
+                if factionInfo.subFactions then
+                    offsetX = offsetX + FACTION_BUTTON_SIZE + 0.5 * FACTION_BUTTON_GAP_H;
+                    local childOffsetY = offsetY - 0.5 * (FACTION_BUTTON_SIZE - SUBFACTION_BUTTON_SIZE);
+                    for _, v in ipairs(factionInfo.subFactions) do
+                        local widget = self.factionButtonPool:Acquire();
+                        widget:SetMinimized(true);
+                        widget:ClearAllPoints();
+                        widget:SetPoint("TOPLEFT", self.OverviewFrame, "TOPLEFT", offsetX, childOffsetY);
+                        offsetX = offsetX + 0.5 * (FACTION_BUTTON_SIZE + FACTION_BUTTON_GAP_H);
+                        widget:SetParentFactionID(majorFactionID);
+                        widget:SetFaction(v.factionID);
+                        widget.playerCompanionID = v.playerCompanionID;
+                        if v.creatureDisplayID then
+                            widget:SetIconByCreatureDisplayID(v.creatureDisplayID);
+                        else
+                            widget:SetIconByFileID(v.iconFileID);
+                        end
+                    end
+                    offsetX = offsetX + 0.5 * FACTION_BUTTON_GAP_H;
+                else
+                    offsetX = offsetX + (FACTION_BUTTON_SIZE + FACTION_BUTTON_GAP_H);
+                end
+
+            end
+            local spanX = offsetX - FACTION_BUTTON_GAP_H;
+            if spanX > maxSpanX then
+                maxSpanX = spanX;
+            end
+            offsetY = offsetY - (FACTION_BUTTON_SIZE + FACTION_BUTTON_GAP_V);
+        end
+
+        local TabContainer = self:GetParent();
+        self.OverviewFrame:ClearAllPoints();
+        self.OverviewFrame:SetSize(maxSpanX, maxSpanY);
+        self.OverviewFrame:SetPoint("TOPLEFT", TabContainer, "TOPLEFT", 0.5*(TabContainer:GetWidth() - maxSpanX), -0.5*(TabContainer:GetHeight() - maxSpanY));
+
+        self:UpdateFactionSelect();
+    end
 end
 
 
@@ -1149,58 +1256,27 @@ local function CreateFactionTab(factionTab)
     factionTab.OverviewFrame = OverviewFrame;
     factionTab.isOverview = true;
 
-    local offsetX;
-    local offsetY = 0;
-    local maxSpanX = 0;
-    local maxSpanY = #MajorFactionLayout * (FACTION_BUTTON_SIZE + FACTION_BUTTON_GAP_V) - FACTION_BUTTON_GAP_V;
 
-    for row, rowInfo in ipairs(MajorFactionLayout) do
-        offsetX = 0;
-        for _, factionInfo in ipairs(rowInfo) do
-            local f = CreateFactionButton(OverviewFrame, true);
-            local majorFactionID = factionInfo.factionID;
-            f:SetMinimized(false);
-            f:SetPoint("TOPLEFT", OverviewFrame, "TOPLEFT", offsetX, offsetY);
-            f:SetFaction(majorFactionID);
-
-            if factionInfo.subFactions then
-                offsetX = offsetX + FACTION_BUTTON_SIZE + 0.5 * FACTION_BUTTON_GAP_H;
-                local childOffsetY = offsetY - 0.5 * (FACTION_BUTTON_SIZE - SUBFACTION_BUTTON_SIZE);
-                for _, v in ipairs(factionInfo.subFactions) do
-                    local widget = CreateFactionButton(OverviewFrame, true);
-                    widget:SetMinimized(true);
-                    widget:SetPoint("TOPLEFT", OverviewFrame, "TOPLEFT", offsetX, childOffsetY);
-                    offsetX = offsetX + 0.5 * (FACTION_BUTTON_SIZE + FACTION_BUTTON_GAP_H);
-                    widget:SetParentFactionID(majorFactionID);
-                    widget:SetFaction(v.factionID);
-                    if v.creatureDisplayID then
-                        widget:SetIconByCreatureDisplayID(v.creatureDisplayID);
-                    else
-                        widget:SetIconByFileID(v.iconFileID);
-                    end
-                end
-                offsetX = offsetX + 0.5 * FACTION_BUTTON_GAP_H;
-            else
-                offsetX = offsetX + (FACTION_BUTTON_SIZE + FACTION_BUTTON_GAP_H);
-            end
-
-        end
-        local spanX = offsetX - FACTION_BUTTON_GAP_H;
-        if spanX > maxSpanX then
-            maxSpanX = spanX;
-        end
-        offsetY = offsetY - (FACTION_BUTTON_SIZE + FACTION_BUTTON_GAP_V);
+    local function FactionButton_Create()
+        return CreateFactionButton(OverviewFrame, true);
     end
 
-    local TabContainer = factionTab:GetParent();
-    OverviewFrame:ClearAllPoints();
-    OverviewFrame:SetSize(maxSpanX, maxSpanY);
-    OverviewFrame:SetPoint("TOPLEFT", TabContainer, "TOPLEFT", 0.5*(TabContainer:GetWidth() - maxSpanX), -0.5*(TabContainer:GetHeight() - maxSpanY));
+    local function FactionButton_OnRemove(f)
+        f.factionID = nil;
+        f.FactionIcon:SetTexCoord(0, 1, 0, 1);
+        f.FactionIcon:SetTexture(nil);
+    end
+
+    FactionTab.factionButtonPool = LandingPageUtil.CreateObjectPool(FactionButton_Create, nil, FactionButton_OnRemove);
+
+
+    FactionTab:OnLayoutChanged();
 end
 
 local function NotificationCheck(asTooltip)
+    local viewedExpansionOnly = true;
     if asTooltip then
-        local factionIDs = FactionUtil:GetFactionsWithRewardPending();
+        local factionIDs = FactionUtil:GetFactionsWithRewardPending(viewedExpansionOnly);
         if factionIDs then
             local tooltipLines = {};
             local n = 1;
@@ -1212,7 +1288,7 @@ local function NotificationCheck(asTooltip)
             return tooltipLines
         end
     else
-        return FactionUtil:IsAnyParagonRewardPending()
+        return FactionUtil:IsAnyParagonRewardPending(viewedExpansionOnly)
     end
 end
 
@@ -1233,3 +1309,14 @@ LandingPageUtil.AddTab(
         onTabSelected = FactionTab_OnSelected,
     }
 );
+
+addon.CallbackRegistry:Register("LandingPage.SetFactionLayout", function(factionLayout)
+    if not factionLayout then return end;
+
+    FactionUtil.ActiveFactionLayout = factionLayout;
+
+    if FactionTab and FactionTab:IsShown() then
+        FactionTab:OnLayoutChanged();
+        FactionTab:RequestFullUpdate(true);
+    end
+end);

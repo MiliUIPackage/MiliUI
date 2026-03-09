@@ -195,6 +195,64 @@ do
     end
 
 
+    local function TextureButton_SetupTexture(self, file, l, r, t, b)
+        if file then
+            self.Texture:SetTexture(file);
+            self.Highlight:SetTexture(file);
+        end
+        self.Texture:SetTexCoord(l, r, t, b);
+        self.Highlight:SetTexCoord(l, r, t, b);
+    end
+
+    function ScrollBarMixin:SetMinimized(minimized)
+        --Reduce the size of Up/Down buttons for smaller frame
+
+        local arrowOffsetY, arrowWidth, arrowHeight;
+        local sideOffsetY, railWidth, railHeight;
+        local railOffesetY;
+
+        if minimized then
+            arrowOffsetY = 4;
+            arrowWidth, arrowHeight = 16, 16;
+            sideOffsetY = -8;
+            railWidth, railHeight = 16, 16;
+            railOffesetY = -1;
+            TextureButton_SetupTexture(self.UpArrow, nil, 64/1024, 96/1024, 656/1024, 688/1024);
+            TextureButton_SetupTexture(self.DownArrow, nil, 96/1024, 64/1024, 688/1024, 656/1024);
+            TextureButton_SetupTexture(self.Thumb, nil, 64/1024, 96/1024, 768/1024, 840/1024);
+            self.Thumb.Texture:SetSize(16, 36);
+            self.Rail.Top:SetTexCoord(64/1024, 96/1024, 696/1024, 728/1024);
+            self.Rail.Bottom:SetTexCoord(64/1024, 96/1024, 728/1024, 760/1024);
+            self:SetWidth(8);
+        else
+            arrowOffsetY = -5;
+            arrowWidth, arrowHeight = 16, 20;
+            sideOffsetY = 6;
+            railWidth, railHeight = 32, 64;
+            railOffesetY = -22;
+            TextureButton_SetupTexture(self.UpArrow, nil, 64/1024, 96/1024, 616/1024, 656/1024);
+            TextureButton_SetupTexture(self.DownArrow, nil, 64/1024, 96/1024, 656/1024, 616/1024);
+            TextureButton_SetupTexture(self.Thumb, nil, 64/1024, 96/1024, 512/1024, 616/1024);
+            self.Thumb.Texture:SetSize(16, 52);
+            self.Rail.Top:SetTexCoord(0/1024, 64/1024, 512/1024, 640/1024);
+            self.Rail.Bottom:SetTexCoord(0/1024, 64/1024, 896/1024, 1024/1024);
+            self:SetWidth(16);
+        end
+
+        self.UpArrow.Texture:SetSize(arrowWidth, arrowHeight);
+        self.DownArrow.Texture:SetSize(arrowWidth, arrowHeight);
+        self.UpArrow:SetPoint("TOP", self, "TOP", 0, arrowOffsetY);
+        self.DownArrow:SetPoint("BOTTOM", self, "BOTTOM", 0, -arrowOffsetY);
+
+        self.Rail.Top:SetPoint("TOP", self, "TOP", 0, sideOffsetY);
+        self.Rail.Top:SetSize(railWidth, railHeight);
+        self.Rail.Bottom:SetPoint("BOTTOM", self, "BOTTOM", 0, -sideOffsetY);
+        self.Rail.Bottom:SetSize(railWidth, railHeight);
+
+        self.Rail:SetPoint("TOP", self, "TOP", 0, railOffesetY);
+        self.Rail:SetPoint("BOTTOM", self, "BOTTOM", 0, -railOffesetY);
+    end
+
 
     local function TextureButton_SharedOnMouseDown(self, button)
         if self:IsEnabled() and button == "LeftButton" then
@@ -204,13 +262,6 @@ do
 
     local function TextureButton_SharedOnMouseUp(self, button)
         self.Highlight:SetAlpha(0.2);
-    end
-
-    local function TextureButton_SetupTexture(self, file, l, r, t, b)
-        self.Texture:SetTexture(file);
-        self.Highlight:SetTexture(file);
-        self.Texture:SetTexCoord(l, r, t, b);
-        self.Highlight:SetTexCoord(l, r, t, b);
     end
 
     local function CreateTextureButton(parent)
@@ -271,17 +322,16 @@ do
         Rail.Top:SetPoint("TOP", f, "TOP", 0, 6);
         Rail.Top:SetSize(32, 64);
         Rail.Top:SetTexture(textureFile);
-        Rail.Top:SetTexCoord(0/1024, 64/1024, 512/1024, 640/1024);
 
         Rail.Bottom = f:CreateTexture(nil, "ARTWORK");
         Rail.Bottom:SetPoint("BOTTOM", f, "BOTTOM", 0, -6);
         Rail.Bottom:SetSize(32, 64);
         Rail.Bottom:SetTexture(textureFile);
-        Rail.Bottom:SetTexCoord(0/1024, 64/1024, 896/1024, 1024/1024);
 
         Rail.Middle = f:CreateTexture(nil, "ARTWORK");
-        Rail.Middle:SetPoint("TOPLEFT", Rail.Top, "BOTTOMLEFT", 0, 0);
-        Rail.Middle:SetPoint("BOTTOMRIGHT", Rail.Bottom, "TOPRIGHT", 0, 0);
+        Rail.Middle:SetSize(32, 32);
+        Rail.Middle:SetPoint("TOP", Rail.Top, "BOTTOM", 0, 0);
+        Rail.Middle:SetPoint("BOTTOM", Rail.Bottom, "TOP", 0, 0);
         Rail.Middle:SetTexture(textureFile);
         Rail.Middle:SetTexCoord(0/1024, 64/1024, 640/1024, 896/1024);
 
@@ -303,6 +353,7 @@ do
 
         f:UpdateThumbRange();
         f:SetValueByRatio(0);
+        f:SetMinimized(false);
 
         Thumb:SetScript("OnMouseDown", function(_, button)
             if button == "LeftButton" then
@@ -323,6 +374,10 @@ do
             Thumb:UnlockHighlight();
             Thumb:SharedOnMouseUp();
         end);
+
+        API.DisableSharpening(f.Rail.Top);
+        API.DisableSharpening(f.Rail.Middle);
+        API.DisableSharpening(f.Rail.Bottom);
 
         return f
     end
@@ -537,7 +592,8 @@ do  --ScrollView Basic Content Render
     end
 
     function ScrollViewMixin:SetContent(content, retainPosition)
-        self.content = content or {};
+        content = content or {};
+        self.content = content;
         self.numContent = #content;
 
         if self.numContent > 0 then
@@ -900,6 +956,12 @@ do  --ScrollView Scroll Behavior
             fs:SetPoint("LEFT", container, "LEFT", padding, padding);
             fs:SetPoint("RIGHT", container, "RIGHT", -padding, padding);
             fs:SetJustifyH("CENTER");
+        end
+    end
+
+    function ScrollViewMixin:MinimizeScrollBar(minimized)
+        if self.ScrollBar and self.ScrollBar.SetMinimized then
+            self.ScrollBar:SetMinimized(minimized);
         end
     end
 end

@@ -21,6 +21,12 @@ EL.staticEvents = {
     "PLAYER_ENTERING_WORLD",
 };
 
+EL.factionRemap = {
+    -- When one of Severed Threads rep changes, it triggers the major faction standing changed 3 times
+    [2600] = {2601, 2605, 2607},
+};
+
+local MAJOR_FACTION_THRESHOLD = 2500;
 
 function EL:CacheDefaultReputations()
     -- Include major factions and the currently watched faction
@@ -54,8 +60,8 @@ end
 function EL:CalculateMajorFactionEffectiveStanding(factionID)
     local data = C_MajorFactions.GetMajorFactionRenownInfo(factionID);
     if data then
-        local threshold = 2500; --Assumption
-        local value = data.renownLevel * threshold + data.renownReputationEarned;
+        --renownLevel may still be the old value when it just levels up
+        local value = data.renownLevel * MAJOR_FACTION_THRESHOLD + (data.renownReputationEarned or 0);
 
         if C_MajorFactions.HasMaximumRenown(factionID) then
             local extra = C_Reputation.GetFactionParagonInfo(factionID);
@@ -64,6 +70,15 @@ function EL:CalculateMajorFactionEffectiveStanding(factionID)
 
         return value
     end
+end
+
+function EL:TryAddParagonStanding(factionID, baseStanding)
+    if not baseStanding then return end;
+    if C_Reputation.IsFactionParagon(factionID) then
+        local extra = C_Reputation.GetFactionParagonInfo(factionID);
+        return baseStanding + extra;
+    end
+    return baseStanding
 end
 
 function EL:CacheMajorFaction(factionID)
@@ -77,6 +92,7 @@ function EL:CacheMajorFaction(factionID)
                     standing = standing,
                     isMajorFaction = true,
                 };
+                --print(factionID, data.name, standing)
             end
         end
     end
@@ -86,10 +102,12 @@ function EL:CacheStandardFaction(factionID)
     if not self.factionCache[factionID] then
         local data = GetFactionDataByID(factionID);
         if data then
+            local standing = self:TryAddParagonStanding(factionID, data.currentStanding);
             self.factionCache[factionID] = {
                 name = data.name,
-                standing = data.currentStanding,
+                standing = standing,
             };
+            --print(factionID, data.name, standard)
         end
     end
 end
@@ -98,11 +116,13 @@ function EL:CacheFriendshipFaction(factionID)
     if not self.factionCache[factionID] then
         local data = GetFriendshipReputation(factionID);
         if data then
+            local standing = self:TryAddParagonStanding(factionID, data.standing);
             self.factionCache[factionID] = {
                 name = data.name,
-                standing = data.standing,
+                standing = standing,
                 isFriendship = true,
             };
+            --print(factionID, data.name, standing)
         end
     end
 end
@@ -135,6 +155,12 @@ function EL:SetFactionStanding(factionID, updatedStanding)
         return
     end
 
+    if self.factionRemap[factionID] then
+        for _, _factionID in ipairs(self.factionRemap[factionID]) do
+            self:SetFactionStanding(_factionID);
+        end
+    end
+
     local info = self.factionCache[factionID];
     if info then
         if self.suppressed then
@@ -157,12 +183,14 @@ function EL:SetFactionStanding(factionID, updatedStanding)
             if not updatedStanding then
                 local data = GetFriendshipReputation(factionID);
                 updatedStanding = data and data.standing;
+                updatedStanding = self:TryAddParagonStanding(factionID, updatedStanding);
             end
             newStanding = updatedStanding;
         else
             if not updatedStanding then
                 local data = GetFactionDataByID(factionID);
                 updatedStanding = data and data.currentStanding;
+                updatedStanding = self:TryAddParagonStanding(factionID, updatedStanding);
             end
             newStanding = updatedStanding;
         end
@@ -170,7 +198,13 @@ function EL:SetFactionStanding(factionID, updatedStanding)
         if newStanding then
             delta = newStanding - info.standing;
             info.standing = newStanding;
+            if info.isMajorFaction and delta > MAJOR_FACTION_THRESHOLD then
+                --Assume rep granted one time can't exceed 2500
+                delta = delta - MAJOR_FACTION_THRESHOLD;
+            end
         end
+
+        --print(factionID, info.name, newStanding, delta);
 
         if delta and delta > 0 then
             addon.LootWindow:QueueDisplayReputation(factionID, info.name, delta);

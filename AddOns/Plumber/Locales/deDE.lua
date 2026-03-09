@@ -612,6 +612,7 @@ L["ModuleDescription DrawerMacro"] = "Wenn Ihr |cffd7c0a3#plumber:drawer|r in ei
 --New Expansion Landing Page
 L["ModuleName NewExpansionLandingPage"] = "Erweiterungszusammenfassung";
 L["ModuleDescription NewExpansionLandingPage"] = "Dies ist ein neues Menü, welches Informationen über die verschiedenen Fraktionen, wöchentlichen Aktivitäten und Schlachtzugs-Lockouts anzeigt.\n\nDas Menü kann mit einem Klick auf das Symbol an der Minimap angezeigt werden.\nDarüber hinaus gibt es einen Tastenkürzel, den man unter \'Optionen> Tastaturbelegung\' festlegen kann.";
+L["Abbr NewExpansionLandingPage"] = "Erw.-Übersicht";
 L["Reward Available"] = "Belohnung verfügbar";    --As brief as possible
 L["Paragon Reward Available"] = "Paragon-Belohnung verfügbar";
 L["Until Next Level Format"] = "%d bis zum nächsten Level";    --Earn x reputation to reach the next level
@@ -823,6 +824,7 @@ L["currency-2917"] = "Vergoldetes";
 L["Scenario Delves"] = "Tiefen";
 L["GameObject Door"] = "Tür";
 L["Delve Chest 1 Rare"] = "Großzügiger Kasten";    --We'll use the GameObjectID once it shows up in the database
+L["GameObject Rich Soil"] = "Fruchtbarer Boden";
 
 L["Season Maximum Colon"] = "Saisonmaximum:";    --CURRENCY_SEASON_TOTAL_MAXIMUM
 L["Item Changed"] = "hat sich verändert zu";    --CHANGED_OWN_ITEM
@@ -832,6 +834,8 @@ L["Restored Coffer Key"] = "Restaurierter Kastenschlüssel";
 L["Coffer Key Shard"] = "Kastenschlüsselsplitter";
 L["Epoch Mementos"] = "Epochenandenken";    --See currency:3293
 L["Timeless Scrolls"] = "Zeitlose Schriftrolle";    --item: 217605
+L["QuestName Runestone"] = "Die Runensteine verstärken";    --4 Mutually exclusive quests: 90575
+L["Prey System"] = "Beutejagd";
 
 L["CONFIRM_PURCHASE_NONREFUNDABLE_ITEM"] = "Seid Ihr sicher, dass Ihr %s gegen den folgenden Gegenstand eintauschen möchtet?\n\n|cffff2020Dieser Tausch kann nicht rückgängig gemacht werden.|r\n %s";    --Base: CONFIRM_PURCHASE_NONREFUNDABLE_ITEM Change the warning's color and added a new line.
 

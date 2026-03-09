@@ -7,7 +7,6 @@ local IS_MIDNIGHT = addon.IS_MIDNIGHT;
 
 
 local ipairs = ipairs;
-local pairs = pairs;
 local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo;
 local GetItemIconByID = C_Item.GetItemIconByID;
 local GetItemCount = C_Item.GetItemCount;
@@ -16,6 +15,8 @@ local BreakUpLargeNumbers = BreakUpLargeNumbers;
 
 
 local BUTTON_WIDTH, BUTTON_HEIGHT = 240, 24;
+local ResourceList = {};
+local MainFrame;
 
 
 local function GetResourcesQuantity(data)
@@ -202,12 +203,14 @@ do
     function CurrencyButtonMixin:UpdateVisual()
         if self:IsMouseMotionFocus() then
             self.Name:SetTextColor(1, 1, 1);
+            self.Background:Show();
         else
             if self.anyOwned then
                 self.Name:SetTextColor(0.922, 0.871, 0.761);
             else
                 self.Name:SetTextColor(0.5, 0.5, 0.5);
             end
+            self.Background:Hide();
         end
     end
 end
@@ -237,6 +240,13 @@ local function CreateButton(parent)
 
     f.Background = f:CreateTexture(nil, "BACKGROUND");
     f.Background:SetAllPoints(true);
+    f.Background:Hide();
+    f.Background:SetTextureSliceMode(1);
+    local m = 8;
+    f.Background:SetTextureSliceMargins(m, m, m, m);
+    f.Background:SetTexture("Interface/AddOns/Plumber/Art/ExpansionLandingPage/SmallListButtonHighlight");
+    f.Background:SetBlendMode("ADD");
+    f.Background:SetAlpha(0.08);
 
     f:SetScript("OnEnter", f.OnEnter);
     f:SetScript("OnLeave", f.OnLeave);
@@ -310,8 +320,9 @@ do
         local top, bottom;
         local objectHeight;
         local valid;
+        local uiMapID;
 
-        for _, v in ipairs(LandingPageUtil.ResourceList) do
+        for _, v in ipairs(ResourceList) do
             valid = true;
             if v.hidden then
                 valid = false;      --for transition between WoW content updates
@@ -319,6 +330,15 @@ do
                 valid = API.IsInDelves();
             elseif v.conditionFunc then
                 valid = v.conditionFunc();
+            elseif v.uiMapID then
+                if not uiMapID then
+                    uiMapID = C_Map.GetBestMapForUnit("player");
+                end
+                if uiMapID and uiMapID == v.uiMapID then
+                    valid = true;
+                else
+                    valid = false;
+                end
             elseif v.shownIfOwned then
                 valid = GetResourcesQuantity(v) > 0;
             end
@@ -430,6 +450,7 @@ end
 
 function LandingPageUtil.CreateCurrencyList(parent)
     local f = CreateFrame("Frame", nil, parent);
+    MainFrame = f;
     API.Mixin(f, CurrencyListMixin);
 
     local height = 7 * BUTTON_HEIGHT;
@@ -441,6 +462,7 @@ function LandingPageUtil.CreateCurrencyList(parent)
     ScrollView:Hide();
     ScrollView:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0);
     ScrollView:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0);
+    ScrollView:MinimizeScrollBar(true);
     ScrollView:OnSizeChanged();
     ScrollView:SetAlwaysShowScrollBar(false);
     ScrollView:SetSmartClipsChildren(true);
@@ -456,7 +478,7 @@ function LandingPageUtil.CreateCurrencyList(parent)
 
     local function CurrencyButton_OnAcquired(obj)
         if ScrollView:IsScrollable() then
-            obj:SetWidth(BUTTON_WIDTH - 20);
+            obj:SetWidth(BUTTON_WIDTH - 10);
         else
             obj:SetWidth(BUTTON_WIDTH);
         end
@@ -509,3 +531,12 @@ function LandingPageUtil.CreateCurrencyList(parent)
 
     return f, height
 end
+
+CallbackRegistry:Register("LandingPage.SetResourceList", function(list)
+    if list then
+        ResourceList = list;
+        if MainFrame and MainFrame:IsVisible() then
+            MainFrame:FullUpdate();
+        end
+    end
+end);

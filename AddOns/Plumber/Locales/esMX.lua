@@ -17,6 +17,8 @@ L["currency-2915"] = "tallado";
 L["currency-2916"] = "rúnico";
 L["currency-2917"] = "dorado";
 
+L["GameObject Rich Soil"] = "Suelo rico";
+
 L["Season Maximum Colon"] = "Máximo de temporada:";
 L["Item Changed"] = "pasó a ser";   --CHANGED_OWN_ITEM
 L["Completed CHETT List"] = "Lista de T.A.R.E.A.S. completa";
@@ -24,6 +26,8 @@ L["Restored Coffer Key"] = "Llave de arca restaurada";
 L["Coffer Key Shard"] = "Fragmento de llave de arca";
 L["Epoch Mementos"] = "Recuerdo de época";
 L["Timeless Scrolls"] = "Pergamino intemporal";
+L["QuestName Runestone"] = "Piedras rúnicas fortificadas";    --4 Mutually exclusive quests: 90575
+L["Prey System"] = "Presa";
 
 L["CONFIRM_PURCHASE_NONREFUNDABLE_ITEM"] = "¿Seguro que quieres intercambiar %s por el siguiente objeto?\n\n|cffff2020Tu compra no es reembolsable.|r\n %s";
 
@@ -34,6 +38,15 @@ L["Special Assignment"] = "Asignación especial";
 
 L["Match Pattern Rep 1"] = "La reputación de tu tropa con (.+) ha aumentado ([%d%,]+)";   --FACTION_STANDING_INCREASED_ACCOUNT_WIDE
 L["Match Pattern Rep 2"] = "Tu reputación con (.+) ha aumentado ([%d%,]+)";   --FACTION_STANDING_INCREASED
+
+L["Match Pattern Item Level"] = "^Nivel de objeto (%d+)";
+L["Match Pattern Item Upgrade Tooltip"] = "^Nivel de mejora: (.+) (%d+)/(%d+)";  --See ITEM_UPGRADE_TOOLTIP_FORMAT_STRING
+L["Upgrade Track 1"] = "Aventurero";
+L["Upgrade Track 2"] = "Explorador";
+L["Upgrade Track 3"] = "Veterano";
+L["Upgrade Track 4"] = "Campeón";
+L["Upgrade Track 5"] = "Héroe";
+L["Upgrade Track 6"] = "Mítico";
 
 L["Match Pattern Transmog Set Partially Known"] = "^Contiene (%d+) ";   --TRANSMOG_SET_PARTIALLY_KNOWN_CLASS
 

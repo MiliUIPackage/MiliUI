@@ -1,5 +1,6 @@
 -- Auto set holiday dungeon as the default selection when opening the PVE frame for the first time
 -- We don't check event quest completion or the rewards, dynamically changing the default option is more confusing
+-- [TODO] Check if supporting Turbulent Timeways
 
 
 local _, addon = ...
@@ -38,9 +39,10 @@ local function GetBestDungeon()
 
     for i = 1, GetNumRandomDungeons() do
         local id, name = GetLFGRandomDungeonInfo(i);
+        local isHoliday = select(16, GetLFGRandomDungeonInfo(i));
         local isAvailableForAll, isAvailableForPlayer, hideIfNotJoinable = IsLFGDungeonJoinable(id);
         if isAvailableForAll then
-            if SpecialDungeons[id] then
+            if SpecialDungeons[id] or isHoliday then
                 n = n + 1;
                 candidate[n]= id;
             end

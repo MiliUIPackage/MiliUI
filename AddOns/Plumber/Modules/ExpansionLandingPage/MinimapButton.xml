@@ -1,0 +1,97 @@
+<Ui xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+    <Script file="MinimapButton.lua"/>
+
+	<Button name="PlumberLandingPageMinimapButton" mixin="PlumberLandingPageMinimapButtonMixin" registerForClicks="LeftButtonUp, RightButtonUp" clampedToScreen="true" movable="true" dontSavePosition="true" parent="UIParent" frameStrata="MEDIUM" hidden="true">
+		<!--Parent will be changed to Minimap unless user opt not no-->
+
+		<Size x="36" y="36"/>
+		<Frames>
+			<Frame parentKey="VisualContainer">
+				<Size x="4" y="4"/>
+				<Anchors>
+					<Anchor point="CENTER"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture parentKey="BaseTexture">
+							<Size x="64" y="64"/>
+							<Anchors>
+								<Anchor point="CENTER"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+					<Layer level="OVERLAY">
+						<Texture parentKey="HighlightTexture" hidden="true">
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeKey="$parent.BaseTexture" relativePoint="TOPLEFT"/>
+								<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BaseTexture" relativePoint="BOTTOMRIGHT"/>
+							</Anchors>
+						</Texture>
+						<Texture parentKey="WarningTexture" hidden="true">
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeKey="$parent.BaseTexture" relativePoint="TOPLEFT"/>
+								<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BaseTexture" relativePoint="BOTTOMRIGHT"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+			</Frame>
+
+			<Frame parentKey="MouseoverFrame" propagateMouseInput="Both" hidden="true" frameStrata="HIGH" fixedFrameStrata="true">
+				<Size x="198" y="198"/>
+				<Anchors>
+					<Anchor point="CENTER"/>
+				</Anchors>
+			</Frame>
+
+			<Frame parentKey="InstructionFrame" hidden="true" clampedToScreen="true" frameStrata="TOOLTIP" fixedFrameStrata="true">
+				<Size x="32" y="32"/>
+				<Anchors>
+					<Anchor point="BOTTOM" relativeKey="$parent" relativePoint="TOP" y="8"/>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString parentKey="Text" inherits="GameFontNormal" justifyH="CENTER">
+							<Anchors>
+								<Anchor point="CENTER"/>
+							</Anchors>
+							<Color r="0.72" g="0.72" b="0.72"/>
+						</FontString> 
+					</Layer>
+					<Layer level="BACKGROUND">
+						<Texture parentKey="BackgroundCenter">
+							<Size x="32" y="64"/>
+							<Anchors>
+								<Anchor point="CENTER" relativeKey="$parent" relativePoint="CENTER"/>
+							</Anchors>
+						</Texture>
+						<Texture parentKey="BackgroundLeft">
+							<Size x="48" y="64"/>
+							<Anchors>
+								<Anchor point="TOPRIGHT" relativeKey="$parent.BackgroundCenter" relativePoint="TOPLEFT"/>
+								<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BackgroundCenter" relativePoint="BOTTOMLEFT"/>
+							</Anchors>
+						</Texture>
+						<Texture parentKey="BackgroundRight">
+							<Size x="48" y="64"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeKey="$parent.BackgroundCenter" relativePoint="TOPRIGHT"/>
+								<Anchor point="BOTTOMLEFT" relativeKey="$parent.BackgroundCenter" relativePoint="BOTTOMRIGHT"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+			</Frame>
+		</Frames>
+		<Scripts>
+			<OnLoad method="OnLoad"/>
+			<OnEnter method="OnEnter"/>
+			<OnLeave method="OnLeave"/>
+			<OnClick method="OnClick"/>
+			<OnHide method="OnHide"/>
+			<OnMouseDown method="OnMouseDown"/>
+			<OnMouseUp method="OnMouseUp"/>
+			<OnSizeChanged method="OnSizeChanged"/>
+		</Scripts>
+	</Button>
+</Ui>

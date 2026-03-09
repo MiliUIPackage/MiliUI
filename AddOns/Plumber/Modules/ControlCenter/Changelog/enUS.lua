@@ -10,11 +10,499 @@ local L = addon.L;
 local changelogs = addon.ControlCenter.changelogs;
 
 
+changelogs[10809] = {
+    {
+        type = "date",
+        versionText = "1.8.9",
+        timestamp = 1773000000,
+    },
+
+    {
+        type = "h1",
+        text = L["ModuleName TooltipRichSoil"],
+        dbKey = "TooltipRichSoil",
+    },
+
+    {
+        type = "Checkbox",
+        dbKey = "TooltipRichSoil",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "For Herbalists: Show Resilient Seed buttons when double-clicking on Rich Soil.",
+    },
+
+    {
+        type = "img",
+        dbKey = "TooltipRichSoil",
+    },
+
+    {
+        type = "br",
+    },
+
+    {
+        type = "h1",
+        text = MISCELLANEOUS,
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Nameplate: Soft Target: Show the number of owned Latent Arcana for Misplaced Tomes.",
+    },
+};
+
+
+changelogs[10808] = {
+    {
+        type = "date",
+        versionText = "1.8.8 e",
+        timestamp = 1772900000,
+    },
+
+    {
+        type = "h1",
+        text = "Added",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Expansion Summary: The Activities tab now supports Saltheril's Soiree and Prey.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Choice UI Item Cost: Shows the number of owned Latent Arcana on the \"Runic Shield Charge\" UI.",
+    },
+
+    {
+        type = "br",
+    },
+    {
+        type = "br",
+    },
+
+    {
+        type = "date",
+        versionText = "1.8.8 c-d",
+        timestamp = 1772630000,
+    },
+
+    {
+        type = "h1",
+        text = "Bug Fixes",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Event Toast: This module has been retired because most event toasts already support \"right click to close\" without using addons. Additionally, this module may have prevented you from viewing Abundance completion details.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Loot UI: Midnight ores, herbs, and skins should use the updated version of quality icons.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Expansion Summary: Clicking Valeera should show her abilities instead of Brann's.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Expansion Summary: To address the taint errors, the renown progress on the faction tooltip has been changed from a progress bar to text.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Plumber Torch Macro: Fixed an issue that affected typing in the macro edit box if you used Plumber Torch macro.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Fixed an error when pressing hotkeys to focus on the next/previous quest in the objective tracker.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Instance Difficulty Selector: Adjusted entrance coordinates for the two Utgarde dungeons.",
+    },
+
+    {
+        type = "br",
+    },
+
+    {
+        type = "h1",
+        text = "Added",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Break Time Reminder: Added an option to postpone the alert when you are in instance.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Break Time Reminder: Auto postpone schedule when AFK. The countdown to your next scheduled break will pause when you are AFK. It will continue pausing if the break time is over, but you have not performed any action.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Break Time Reminder: The time until your next scheduled break will be displayed on the Plumber minimap button's tooltip.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Updated the currencies (crests) used for upgrading Midnight items.",
+    },
+
+    {
+        type = "br",
+    },
+    {
+        type = "br",
+    },
+
+    {
+        type = "date",
+        versionText = "1.8.8",
+        timestamp = 1772120000,
+    },
+
+    {
+        type = "h1",
+        text = L["ModuleName BreakTime"],
+        dbKey = "BreakTime",
+    },
+
+    {
+        type = "Checkbox",
+        dbKey = "BreakTime",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Remind you to take a short break after a period of time.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "The default schedule is a 5-minute break every 30 min. You can change it in the settings.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "You can delay or cancel the break when the timer goes off.",
+    },
+
+    {
+        type = "img",
+        dbKey = "BreakTime",
+    },
+
+    {
+        type = "br",
+    },
+
+    {
+        type = "h1",
+        text = MISCELLANEOUS,
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Expansion Summary: You can now switch the expansion to Midnight, but the content is still a work in progress.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Map Pin modules have been retired. Displaying Bountiful Delves and Special Assignments on Quel'Thalas map is a WoW native feature now.",
+    },
+
+    {
+        type = "br",
+    },
+
+    {
+        type = "h1",
+        text = "Bug Fixes",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Expansion Summary Minimap Button: Fixed a reposition issue when the Minimap's scale was not 100%.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Expansion Summary Minimap Button: This button should correctly become hidden when you start pet battle.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Queue Status: Fixed the timer for PvP queues.",
+    },
+};
+
+
+changelogs[10807] = {
+    {
+        type = "date",
+        versionText = "1.8.7",
+        timestamp = 1771000000,
+    },
+
+    {
+        type = "h1",
+        text = L["ModuleName NewExpansionLandingPage"],
+        dbKey = "NewExpansionLandingPage",
+    },
+
+    {
+        type = "Checkbox",
+        dbKey = "NewExpansionLandingPage",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Added a new minimap button to toggle the Expansion Summary UI.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "You can right-click this button to access Order Hall UI from previous expansions.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "You can customize the button\'s appearance and behavior.",
+    },
+
+    {
+        type = "img",
+        fileName = "Changelog_LandingButton",
+    },
+
+    {
+        type = "br",
+    },
+
+    {
+        type = "h1",
+        text = MISCELLANEOUS,
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Nameplate Quest Indicator: Added an option to show quest progress on all NPC nameplates when pressing a modifier key.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Drawer Macros: Unusable toys should no longer appear in the flyout when \"Hide Unusable Actions\" is enabled.",
+    },
+
+    {
+        type = "br",
+    },
+
+    {
+        type = "h1",
+        text = "Bug Fixes",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Nameplate Quest Indicator: Fixed an error when calculating percentage-based quest progress.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Loot UI: Fixed an error when displaying the item comparison tooltip.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Expansion Summary: Fixed an issue where the reputation level text disappears before reaching Paragon.",
+    },
+};
+
+
+changelogs[10806] = {
+    {
+        type = "date",
+        versionText = "1.8.6 b",
+        timestamp = 1770130000,
+    },
+
+    {
+        type = "h1",
+        text = L["ModuleName LootUI"],
+        dbKey = "LootUI",
+    },
+
+    {
+        type = "Checkbox",
+        dbKey = "LootUI",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Added an option to show currencies earned from all sources, not just loot.",
+    },
+
+    {
+        type = "br",
+    },
+
+    {
+        type = "h1",
+        text = L["ModuleName NameplateQuest"],
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "You can now customize the progress text format to show Completed/Required or Remaining quantity, and keep the quest icon visible.",
+    },
+
+    {
+        type = "br",
+    },
+    {
+        type = "br",
+    },
+
+
+    {
+        type = "date",
+        versionText = "1.8.6",
+        timestamp = 1769870000,
+    },
+
+    {
+        type = "h1",
+        text = L["ModuleName NameplateQuest"],
+        dbKey = "NameplateQuest",
+    },
+
+    {
+        type = "Checkbox",
+        dbKey = "NameplateQuest",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Show quest indicator on nameplates. This indicator is customizable.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "(Optional) Show quest objective progress on your target or mouseover.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "(Optional) Show quest indicator if your party members haven't completed the objective.",
+    },
+
+    {
+        type = "img",
+        dbKey = "NameplateQuest",
+    },
+
+    {
+        type = "br",
+    },
+
+    {
+        type = "h1",
+        text = MISCELLANEOUS,
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Loot Window: Added an option to hide the \"You received\" text.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Fixed several secret-related errors. \"Trust me, bro.\"",
+    },
+};
+
+
 changelogs[10805] = {
     {
         type = "date",
-        versionText = "1.8.5 b",
-        timestamp = 1769050000,
+        versionText = "1.8.5 b-e",
+        timestamp = 1769530000,
+    },
+
+    {
+        type = "h1",
+        text = L["ModuleName LootUI"],
+        dbKey = "LootUI",
+    },
+
+    {
+        type = "Checkbox",
+        dbKey = "LootUI",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Added an option to display money earned from all sources, not just loot.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Money earned while interacting with mailbox or NPC will be displayed afterwards.",
+    },
+
+    {
+        type = "br",
     },
 
     {
@@ -41,6 +529,12 @@ changelogs[10805] = {
     },
 
     {
+        type = "p",
+        bullet = true,
+        text = "You can drag the top area of this window to move it.",
+    },
+
+    {
         type = "img",
         fileName = "Changelog_TransmogOutfitSelect",
         large = true,
@@ -58,6 +552,24 @@ changelogs[10805] = {
     {
         type = "p",
         bullet = true,
+        text = "Expansion Summary, Great Vault: World Activities should show the correct, post-stat-squished item levels.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Loot Window, Reputations: Fixed an issue that prevents the changes to Weaver, General, and Vizier from showing.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Drawer Macros should be able to work in combat again.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
         text = "Decor Catalog: Fixed an error when using the decor search box in house editing mode.",
     },
 
@@ -65,6 +577,18 @@ changelogs[10805] = {
         type = "p",
         bullet = true,
         text = "Expansion Summary: The UI should no longer display the paragon progress for factions that haven't reached maximum renown.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Appearances Tab: Fixed an error when Ctrl-clicking an appearance.",
+    },
+
+    {
+        type = "p",
+        bullet = true,
+        text = "Nameplate: Keyflame: Fixed an error when you were in specific areas in Hallowfall.",
     },
 
     {
@@ -874,35 +1398,6 @@ changelogs[10800] = {
         dbKey = "TooltipTransmogEnsemble",
     },
 
-
-    {
-        type = "br",
-    },
-
-    {
-        type = "h1",
-        text = L["ModuleName TransmogChatCommand"],
-        dbKey = "TransmogChatCommand",
-    },
-
-    {
-        type = "Checkbox",
-        dbKey = "TransmogChatCommand",
-    },
-
-    {
-        type = "p",
-        bullet = true,
-        text = "When using a transmog chat command (which starts with /outfit), undress your character first so the old items won't be carried over into the new outfit.",
-    },
-
-    {
-        type = "p",
-        bullet = true,
-        text = "When at the Transmogrifier, using a chat command automatically loads all available items to the Transmog UI instead of opening the Dressing Room.",
-    },
-
-
     {
         type = "br",
     },
@@ -921,7 +1416,7 @@ changelogs[10800] = {
     {
         type = "p",
         bullet = true,
-        text = "Loot UI, Link Item: You can link an item in chat by Shift + clicking an item in Manual Loot mode.",
+        text = "Loot Window, Link Item: You can link an item in chat by Shift + clicking an item in Manual Loot mode.",
     },
 };
 

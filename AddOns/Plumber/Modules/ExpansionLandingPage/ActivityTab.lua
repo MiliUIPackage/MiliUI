@@ -38,6 +38,19 @@ do  --Checklist Button
             else
                 LandingPageUtil.PlayUISound("CheckboxOn");
             end
+        else
+            local data = ActivityUtil.GetActivityData(self.dataIndex);
+            if data then
+                --[[    --Disabled because the API cause errors
+                if data.openMap then
+                    local questID = data.questID or (self.type == "Quest" and self.id);
+                    local mapID = questID and GetQuestUiMapID(questID);
+                    if mapID and not InCombatLockdown() then
+                        C_Map.OpenWorldMap(mapID);
+                    end
+                end
+                --]]
+            end
         end
     end
 
@@ -50,6 +63,7 @@ do  --Checklist Button
             self.completed = data.completed;
             self.flagQuest = data.flagQuest or data.questID;
             self.conditions = data.conditions;
+            self.Icon:Show();
 
             if self.completed then
                 self.Icon:SetAtlas("checkmark-minimal-disabled");
@@ -75,7 +89,11 @@ do  --Checklist Button
             else
                 self.type = nil;
                 self.id = nil;
-                self.Name:SetText(ActivityUtil.GetActivityName(dataIndex));
+                if data.setupFunc then
+                    data.setupFunc(self);
+                else
+                    self.Name:SetText(ActivityUtil.GetActivityName(dataIndex));
+                end
             end
 
             self:UpdateProgress();
@@ -156,13 +174,13 @@ do  --Checklist Button
 
             self.Text1:SetText(nil);
 
-            local name, isLocalized = ActivityUtil.GetActivityName(self.dataIndex);
+            local name, isLocalized = ActivityUtil.GetActivityName(self.dataIndex, questID);
             self.Name:SetText(name);
             if not isLocalized then
                 CallbackRegistry:LoadQuest(questID, function(_questID)
                     if questID == self.id then
                         local name = API.GetQuestName(_questID);
-                        ActivityUtil.StoreQuestActivityName( _questID, name);
+                        ActivityUtil.StoreQuestActivityName(_questID, name);
                         self.Name:SetText(name);
                         self:UpdateProgress();
                         if self:IsMouseMotionFocus() then
@@ -354,6 +372,7 @@ do
         self.ScrollView:SetContent(content, retainPosition);
 
         self.Checkbox_HideCompleted:SetFormattedText(numCompleted);
+        self.WIPLabel:SetShown(LandingPageUtil.IsCurrentExpansionWIP());
     end
 
     function ActivityTabMixin:OnShow()
@@ -383,6 +402,14 @@ do
     function ActivityTabMixin:InitChecklist()
         local headerWidgetOffsetY = -10;
 
+        --TEMP
+        self.WIPLabel = self:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+        self.WIPLabel:SetJustifyH("CENTER");
+        self.WIPLabel:SetText(TEMPSCENE);
+        self.WIPLabel:SetTextColor(1, 0.125, 0.125);
+        self.WIPLabel:SetHeight(24);
+        self.WIPLabel:SetPoint("TOP", self, "TOP", 0, headerWidgetOffsetY);
+        self.WIPLabel:Hide();
 
         local Checkbox_HideCompleted = LandingPageUtil.CreateCheckboxButton(self);
         self.Checkbox_HideCompleted = Checkbox_HideCompleted;
@@ -512,6 +539,12 @@ LandingPageUtil.AddTab(
         dimBackground = true,
     }
 );
+
+CallbackRegistry:Register("LandingPage.ExpansionChanged", function(expansionID)
+    if ActivityTab and ActivityTab:IsVisible() then
+        ActivityTab:FullUpdate();
+    end
+end);
 
 
 do  --Debug

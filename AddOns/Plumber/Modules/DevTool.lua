@@ -6,6 +6,7 @@ local M = {
     Quest = false,
     ModelStressTest = false;
     SetAlphaGradient = false,
+    MaxmimumSecret = false,
 };
 
 
@@ -20,6 +21,7 @@ local function IsEnabled(key)
         return true
     end
 end
+
 
 if IsEnabled("AuraWather") then  --Aura Watcher
     local GetAuraDataByIndex = C_UnitAuras.GetAuraDataByIndex;
@@ -379,4 +381,21 @@ if IsEnabled("SetAlphaGradient") then  --Frame SetAlphaGradient Test. Doesn't do
     end
 
     ApplyEdgeFade(f, CalculateEdgeFade());
+end
+
+if true then    --Secret Debug
+    local value = IsEnabled("MaxmimumSecret") and 1 or 0;
+    print("Secrecy: ", value);
+
+    local CVars = {
+        "ChallengeMode",
+        "Combat",
+        "Encounter",
+        "Map",
+        "PvPMatch",
+    };
+
+    for _, v in ipairs(CVars) do
+        C_CVar.SetCVar("secret"..v.."RestrictionsForced", value);
+    end
 end

@@ -609,6 +609,7 @@ L["ModuleDescription DrawerMacro"] = "Créer un menu déroulant personnalisé po
 --New Expansion Landing Page
 L["ModuleName NewExpansionLandingPage"] = "Résumé de l'extension";
 L["ModuleDescription NewExpansionLandingPage"] = "Interface affichant les factions, les activités hebdomadaires et les verrouillages de raids. Vous pouvez l'ouvrir de la manière suivante :\n\nCliquez sur le bouton Résumé de Khaz Algar sur la minicarte.\n\n- Attribuer un raccourci dans Options > Raccourcis clavier."
+L["Abbr NewExpansionLandingPage"] = "Résumé de l'extension";
 L["Reward Available"] = "Récompense disponible";  --As brief as possible
 L["Paragon Reward Available"] = "Récompense de Paragon disponible";
 L["Until Next Level Format"] = "%d jusqu'au prochain niveau";   --Earn x reputation to reach the next level
@@ -820,6 +821,7 @@ L["currency-2917"] = "Doré";
 L["Scenario Delves"] = "Gouffres";
 L["GameObject Door"] = "Porte";
 L["Delve Chest 1 Rare"] = "Coffre abondant";   --We'll use the GameObjectID once it shows up in the database
+L["GameObject Rich Soil"] = "Sol riche";
 
 L["Season Maximum Colon"] = "Maximum cette saison :";  --CURRENCY_SEASON_TOTAL_MAXIMUM
 L["Item Changed"] = "a été changé en";   --CHANGED_OWN_ITEM
@@ -829,6 +831,8 @@ L["Restored Coffer Key"] = "Clé de coffret réparée";
 L["Coffer Key Shard"] = "Fragment de clé de coffre";
 L["Epoch Mementos"] = "Souvenir d'époque";     --See currency:3293
 L["Timeless Scrolls"] = "Parchemin intemporel"; --item: 217605
+L["QuestName Runestone"] = "Renforcement des pierres runiques";    --4 Mutually exclusive quests: 90575
+L["Prey System"] = "Traque";
 
 L["CONFIRM_PURCHASE_NONREFUNDABLE_ITEM"] = "Souhaitez-vous vraiment échanger %s contre l'objet suivant ?\n\n|cffff2020Votre achat ne pourra pas être remboursé.|r\n %s";
 

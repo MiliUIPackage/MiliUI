@@ -1,13 +1,14 @@
 ## X-Flavor: retail
 ## X-Expansion: TWW
-## Interface: 110207, 120000, 120001
-## Version: 1.8.5
+## Interface: 120000, 120001
+## Version: 1.8.8 b
 
 ## Title: Plumber
 ## Title-zhTW: |cffffffff[其他]|r 實用工具包
 ## Notes: Provides a variety of quality-of-life features.|nMore details in the AddOn Settings.
 ## Notes-zhCN: 提供多种便捷功能。|n请前往插件设置来查看更多信息。
 ## Notes-zhTW: Plumber|n|n提供多種便捷功能。|n請前往插件設置來查看更多訊息。
+
 ## Author: Peterodox
 ## SavedVariables: PlumberDB, PlumberDevData, PlumberStorage
 ## SavedVariablesPerCharacter: PlumberDB_PC
@@ -20,11 +21,8 @@ Initialization.lua
 Locales\Localization.xml
 API.lua
 
-Modules\SharedData.lua
-Modules\SharedFonts.xml
-Modules\SharedWidgets.xml
-Modules\SharedTooltip.lua
-Modules\BlizzardEditMode.lua
+Modules\Shared\Load.xml
+
 Modules\ScenarioTracker.lua
 Modules\ReputationTracker.lua
 #Modules\DirectionArrow.lua
@@ -45,11 +43,11 @@ Modules\SpellFlyout_Secure.lua
 Modules\QuestAreaTrigger.lua
 Modules\Dreamseed.lua
 #Modules\EventMap.lua
-Modules\MapPin.xml
+#Modules\MapPin.xml
 Modules\RareAnnouncement.lua
 Modules\PlayerChoiceUI.lua
 Modules\Lockpicking.lua
-Modules\BlizzFix_EventToast.lua
+#Modules\BlizzFix_EventToast.lua
 Modules\TalkingHead.lua
 Modules\AzerothianArchives.lua
 Modules\MerchantPrice.lua
@@ -65,20 +63,20 @@ Modules\DelvesScenario.lua
 Modules\DelvesDashboard.lua
 Modules\DelvesAutomation.lua
 Modules\ExpansionLandingPage.xml
-Modules\LandingPageSwitch.lua
 Modules\GameTooltipExtension.xml
 Modules\LootUI.xml
 Modules\UnderlightAngler.lua
 Modules\SpellcastInfo.lua
 Modules\ChatOptions.lua
 Modules\NameplateResources.lua
+Modules\NameplateQuestIndicator.lua
 Modules\StaticPopupEnhancement.xml
 Modules\PlayerTitleUI.lua
 Modules\BlizzardSuperTrack.lua
 Modules\ItemUpgradeUI.xml
 Modules\Macros.lua
 Modules\ProfessionsBook.lua
-Modules\ExpansionLandingPage\ExpansionLandingPage_TWW.xml
+Modules\ExpansionLandingPage\ExpansionLandingPage_Retail.xml
 Modules\BlizzFix_ModelLoading.lua
 Modules\Timerunning\LegionRemix.xml
 Modules\HolidayDungeon.lua
@@ -89,6 +87,7 @@ Modules\QuestWatchCycle.lua
 Modules\CraftSearchExtended.lua
 Modules\SourceAchievementLink.lua
 Modules\OutfitSelect.lua
+Modules\BreakTime.xml
 
 #Modules\MerchantUI\MerchantUI.xml
 

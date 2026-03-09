@@ -34,16 +34,26 @@ EL.mapEvents = {
 };
 
 EL.instancePos = {
-    --hardcode XY for certain instance whose entrance position doesn't match the pin
+    --This overrides the info from map pin
+    --Hardcode XY for certain instance whose entrance position doesn't match the pin
+    --Some map pins don't show on map until you complete relevant quests or discover the map
     --[journalInstanceID] = {x, y, indoors}
-    [786] = {0.44148, 0.59743, true},     --Nighthold
-    [726] = {0.41068, 0.61744, true},     --The Arcway
-    [187] = {0.61534, 0.26397},           --Dragon Soul
-    [184] = {0.57381, 0.29142},           --End Time
-    [750] = {0.35528, 0.15325},           --The Battle For Mount Hyjal
-    [251] = {0.26814, 0.35114},           --Old Hillsbrad Foothills
-    [255] = {0.35972, 0.83893},           --The Black Morass
-    [279] = {0.57488, 0.82711},           --The Culling of Stratholme
+    [285] = {0.57287, 0.46811, true},   --Utgarde Keep
+    [286] = {0.57252, 0.46620, false},  --Utgarde Pinnacle
+    [786] = {0.44148, 0.59743, true},   --Nighthold
+    [726] = {0.41068, 0.61744, true},   --The Arcway
+    [187] = {0.61534, 0.26397},         --Dragon Soul
+    [184] = {0.57381, 0.29142},         --End Time
+    [750] = {0.35528, 0.15325},         --The Battle For Mount Hyjal
+    [251] = {0.26814, 0.35114},         --Old Hillsbrad Foothills
+    [255] = {0.35972, 0.83893},         --The Black Morass
+    [279] = {0.57488, 0.82711},         --The Culling of Stratholme
+    [1023]= {0.71979, 0.15423},         --Siege of Boralus (Alliance)
+    [1304]= {0.56979, 0.61049, false},  --Murder Row (Outdoor only)
+};
+
+EL.instancePos_Horde = {
+    [1023]= {0.88284, 0.51036},         --Siege of Boralus (Horde)
 };
 
 EL.mapsWithFloors = {
@@ -64,6 +74,10 @@ EL.extraPins = {
 
     [55] = {
         {position = {x = 0.25667, y = 0.50933}, journalInstanceID = 63},    --Deadmines
+    },
+
+    [1528] = {
+        {position = {x = 0.47607, y = 0.32849}, journalInstanceID = 1179},    --The Eternal Palace (not shown on map)
     },
 };
 
@@ -103,6 +117,14 @@ function EL:DoesMapHaveFloors(uiMapID)
         end
     end
     return self.mapsWithFloors[uiMapID]
+end
+
+function EL:LoadFactionOverride()
+    if API.GetPlayerFactionIndex() == 2 then
+        for k, v in ipairs(self.instancePos_Horde) do
+            self.instancePos[k] = v;
+        end
+    end
 end
 
 function EL:ListenEvents(state)
@@ -234,7 +256,7 @@ function EL:OnUpdate(elapsed)
                 for i = 1, self.total do
                     local d = self:GetMapPointsDistanceSquare(self.x, self.y, self.entranceInfo[i].x, self.entranceInfo[i].y);
                     if d < self.closestDistance then
-                        if (not self.entranceInfo[i].indoorsOnly) or IsIndoors() then
+                        if not (self.entranceInfo[i].indoorsOnly ~= nil and self.entranceInfo[i].indoorsOnly ~= IsIndoors()) then
                             self.closestDistance = d;
                             self.closestIndex = i;
                         end
@@ -263,6 +285,7 @@ end
 function EL:Enable(state)
     if state then
         self:ListenEvents(true);
+        self:LoadFactionOverride();
         self:RequestUpdateMap();
     else
         self:SetScript("OnUpdate", nil);

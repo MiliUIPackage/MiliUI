@@ -241,6 +241,17 @@ do
 
         return f
     end
+
+    function LandingPageUtil.GetModuleNameWithHotkey()
+        local hotkey1, hotkey2 = GetBindingKey("TOGGLE_PLUMBER_LANDINGPAGE");
+        local hotkey = hotkey1 or hotkey2;
+        local title = L["ModuleName NewExpansionLandingPage"];
+        if hotkey then
+            local bindingText = GetBindingText(hotkey) or hotkey;
+            title = title .. string.format(" |cffffd100(%s)|r", bindingText);
+        end
+        return title
+    end
 end
 
 
@@ -394,7 +405,7 @@ do  --TabUtil
     end
 
     function LandingPageUtil.AddTab(tabInfo)
-        table.insert(Tabs, tabInfo);
+        tinsert(Tabs, tabInfo);
         table.sort(Tabs, SortFunc_Tab);
     end
 
@@ -530,7 +541,15 @@ do  --Atlas
         [2685] = {640, 768, 0, 128},      --Gallagio Loyalty Rewards Club
         [2688] = {768, 896, 0, 128},      --Flame's Radiance
         [2658] = {896, 1024, 0, 128},     --The K'aresh Trust
-        [2736] = {0  , 128, 256, 384},    --Manaforge Vandals Debug
+        [2736] = {0  , 128, 256, 384},    --Manaforge Vandals
+
+        [2710] = {128, 256, 256, 384},    --Silvermoon Court
+        [2696] = {256, 384, 256, 384},    --Amani Tribe
+        [2704] = {384, 512, 256, 384},    --Hara'ti
+        [2699] = {512, 640, 256, 384},    --The Singularity
+
+        [2764] = {640, 768, 256, 384},    --Prey
+        [2742] = {768, 896, 256, 384},    --Delves
     };
 
     local function SetTextureDimension(textureObject, file, width, height, l, r, t, b, useTrilinearFilter)
@@ -590,7 +609,11 @@ do  --Dropdown Menu
 
     function MenuButtonMixin:UpdateVisual()
         if self.isHeader then
-            self.Text:SetTextColor(148/255, 124/255, 102/255);  --0.804, 0.667, 0.498
+            if self.blizzardTheme then
+                self.Text:SetTextureColor(1, 0.82, 0);
+            else
+                self.Text:SetTextColor(148/255, 124/255, 102/255);  --0.804, 0.667, 0.498
+            end
             return
         end
 
@@ -598,7 +621,11 @@ do  --Dropdown Menu
             if self.isDangerousAction then
                 self.Text:SetTextColor(1.000, 0.125, 0.125);
             else
-                self.Text:SetTextColor(215/255, 192/255, 163/255);  --0.922, 0.871, 0.761
+                if self.blizzardTheme then
+                    self.Text:SetTextColor(1, 1, 1);
+                else
+                    self.Text:SetTextColor(215/255, 192/255, 163/255);  --0.922, 0.871, 0.761
+                end
             end
             self.LeftTexture:SetDesaturated(false);
             self.LeftTexture:SetVertexColor(1, 1, 1);
@@ -712,6 +739,12 @@ do  --Dropdown Menu
         f.RightTexture:SetSize(18, 18);
         f.RightTexture:SetPoint("RIGHT", f, "RIGHT", -f.paddingH, 0);
 
+        f.RightText = f:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+        f.RightText:SetPoint("LEFT", f, "LEFT", f.paddingH, 0);
+        f.RightText:SetJustifyH("LEFT");
+        f.RightText:SetTextColor(0.922, 0.871, 0.761);
+        f.RightText:Hide();
+
         f:SetScript("OnEnter", f.OnEnter);
         f:SetScript("OnLeave", f.OnLeave);
         f:SetScript("OnClick", f.OnClick);
@@ -823,6 +856,7 @@ do  --Dropdown Menu
         self.buttonPool:ReleaseAll();
         self.owner = owner;
         self.independent = nil;
+        local blizzardTheme = menuInfo and menuInfo.blizzardTheme;
 
         if not owner then return end;
 
@@ -853,6 +887,7 @@ do  --Dropdown Menu
                 if v.type == "Checkbox" or v.type == "Radio" or v.type == "Button" or v.type == "Header" then
                     widget = self.buttonPool:Acquire();
                     widget:SetRightTexture(v.rightTexture);
+                    
                     if numWidgets == 1 then
                         widget:SetPoint("CENTER", f, "CENTER", 0, 0);
                     else
@@ -877,6 +912,7 @@ do  --Dropdown Menu
                     if v.disabled then
                         widget:Disable();
                     end
+                    widget.blizzardTheme = blizzardTheme;
                     widget:UpdateVisual();
                 elseif v.type == "Divider" then
                     widget = self.texturePool:Acquire();
@@ -927,6 +963,21 @@ do  --Dropdown Menu
                 self.Frame:Show();
                 self.visible = true;
             end
+        end
+
+        -- We also use this for EditModeDropdownFrame, whose border is greyscale
+        -- Desaturated to match color
+
+        local a = blizzardTheme and 0.9 or 1;
+        for _, p in ipairs(self.Frame.Background.pieces) do
+            p:SetDesaturated(blizzardTheme);
+            p:SetVertexColor(a, a, a);
+        end
+
+        if blizzardTheme then
+            self.Highlight.Texture:SetVertexColor(0.6, 0.6, 0.6);
+        else
+            self.Highlight.Texture:SetVertexColor(119/255, 96/255, 74/255);
         end
     end
 
@@ -1640,6 +1691,104 @@ do  --MajorDivider
         return f
     end
 end
+
+
+do  --Expansion Select
+    local ExpansionList;
+    local CurrentExpansionID;
+    local ExpansionData = {
+        [11] = {name = EXPANSION_NAME10},   --TWW
+        [12] = {name = EXPANSION_NAME11, isWIP = true},   --MID
+        [5] = {name = EXPANSION_NAME4},     --MOP
+    };
+
+    if addon.IS_MIDNIGHT then
+        ExpansionList = {11, 12};
+    else
+        ExpansionList = {5};
+    end
+
+    function LandingPageUtil.AddExpansionData(expansionID, field, data)
+        -- index: We treat Vanilla as 1
+        if not ExpansionData[expansionID] then
+            ExpansionData[expansionID] = {};
+        end
+
+        ExpansionData[expansionID][field] = data;
+    end
+
+    function LandingPageUtil.GetCurrentExpansionInfo()
+        if CurrentExpansionID then
+            local name = ExpansionData[CurrentExpansionID].name or "Unknown Expansion";
+            return name
+        end
+    end
+
+    function LandingPageUtil.GetAvailableExpansions()
+        return ExpansionList
+    end
+
+    function LandingPageUtil.SelectExpansion(expansionID)
+        if (not expansionID) or (not CurrentExpansionID and not ExpansionData[expansionID]) then
+            expansionID = ExpansionList[1];
+        end
+
+        if expansionID == CurrentExpansionID then return end;
+
+        local v = ExpansionData[expansionID];
+        if v then
+            CurrentExpansionID = expansionID;
+            local cb = addon.CallbackRegistry;
+            cb:Trigger("LandingPage.SetFactionLayout", v.factionLayout);
+            cb:Trigger("LandingPage.SetActivityData", v.activity);
+            cb:Trigger("LandingPage.SetActivityQuestMaps", v.activityQuestMap);
+            cb:Trigger("LandingPage.SetEncounterTabInfo", v.encounter);
+            cb:Trigger("LandingPage.SetResourceList", v.resource);
+            cb:Trigger("LandingPage.ExpansionChanged", expansionID);
+            cb:Trigger("LandingPage.UpdateNotification");
+
+            addon.SetDBValue("LaLandingPage_DefaultExpansion", expansionID);
+        end
+    end
+
+    function LandingPageUtil.GetLastSelectedExpansion()
+        return addon.GetDBValue("LaLandingPage_DefaultExpansion")
+    end
+
+    function LandingPageUtil.SwitchExpansion()
+        if CurrentExpansionID then
+            local nextExpansionID;
+            for i, expansionID in ipairs(ExpansionList) do
+                if expansionID == CurrentExpansionID then
+                    nextExpansionID = ExpansionList[i + 1] or ExpansionList[1];
+                end
+            end
+            LandingPageUtil.SelectExpansion(nextExpansionID);
+        else
+            LandingPageUtil.SelectExpansion();
+        end
+    end
+
+    function LandingPageUtil.GetAllExpansionNames()
+        local names = {};
+        for _, expansionID in ipairs(ExpansionList) do
+            table.insert(names, ExpansionData[expansionID].name);
+        end
+        return names
+    end
+
+    function LandingPageUtil.IsCurrentExpansionWIP()
+        return CurrentExpansionID and ExpansionData[CurrentExpansionID] and ExpansionData[CurrentExpansionID].isWIP;
+    end
+end
+
+
+do  --Minimap Button
+    LandingPageUtil.UpdateMinimapButtonVisibility = function()
+        --Override
+    end
+end
+
 
 --[[
 do  --SoftTargetName

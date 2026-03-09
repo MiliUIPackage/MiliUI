@@ -3,6 +3,7 @@ local L = addon.L;
 local API = addon.API;
 local UIFrameFade = API.UIFrameFade;
 local GetDBBool = addon.GetDBBool;
+local CooldownUtil = addon.CooldownUtil;
 
 
 local ACTION_BUTTON_SIZE = 46;
@@ -10,7 +11,6 @@ local ACTION_BUTTON_GAP = 4;
 local REPOSITION_BUTTON_OFFSET = 46;
 
 
-local GetItemCooldown = C_Container.GetItemCooldown;
 local UnitCastingInfo = UnitCastingInfo;
 local UnitChannelInfo = UnitChannelInfo;
 local InCombatLockdown = InCombatLockdown;
@@ -73,7 +73,7 @@ function Positioner:GetButtonGap()
 end
 
 function Positioner:GetRadius()
-    return math.floor( (0.5 * UIParent:GetHeight()*16/9 /3) + (self.buttonSize*0.5) + 0.5 ) - 180;
+    return math.floor( (0.5 * UIParent:GetHeight()*16/9 /3) + (self.buttonSize*0.5) + 0.5 );
 end
 
 function Positioner:GetButtonCenterGap()
@@ -103,7 +103,9 @@ function Positioner:GetFromRadian()
 end
 
 function Positioner:SetFromRadian(radian)
-    if not radian then return end;
+    if type(radian) ~= "number" then
+        radian = 0;
+    end
 
     local snappedRadian = math.rad(45);
 
@@ -332,9 +334,13 @@ local function ItemButton_OnEnter(self)
         QuickSlot:SetHeaderText(self.overrideName);
     else
         if self.actionType == "item" then
-            QuickSlot:SetHeaderText(API.GetColorizedItemName(self.id));
+            if self.overrideColor then
+                QuickSlot:SetHeaderText(C_Item.GetItemNameByID(self.id), nil, self.overrideColor);
+            else
+                QuickSlot:SetHeaderText(API.GetColorizedItemName(self.id));
+            end
         elseif self.actionType == "spell" then
-            QuickSlot:SetHeaderText(C_Spell.GetSpellName(self.id));
+            QuickSlot:SetHeaderText(C_Spell.GetSpellName(self.id), nil, self.overrideColor);
         end
     end
 
@@ -435,27 +441,34 @@ function QuickSlot:Init()
     --]]
 
     local HeaderShadow = self:CreateTexture(nil, "ARTWORK");
-    HeaderShadow:SetTexture("Interface/AddOns/Plumber/Art/Frame/SubtitleShadow_NineSlice_Darker");
-    HeaderShadow:SetTextureSliceMargins(30, 30, 30, 30);
+    HeaderShadow:SetTexture("Interface/AddOns/Plumber/Art/Frame/NameplateTextShadow");
+    HeaderShadow:SetTextureSliceMargins(40, 24, 40, 24);
     HeaderShadow:SetTextureSliceMode(0);
     HeaderShadow:Hide();
     HeaderShadow:SetAlpha(0);
-    HeaderShadow:SetPoint("TOPLEFT", Header, "TOPLEFT", -20, 20);
-    HeaderShadow:SetPoint("BOTTOMRIGHT", Header, "BOTTOMRIGHT", 20, -20);
+    HeaderShadow:SetPoint("TOPLEFT", Header, "TOPLEFT", -20, 16);
+    HeaderShadow:SetPoint("BOTTOMRIGHT", Header, "BOTTOMRIGHT", 20, -16);
 
-    function QuickSlot:SetHeaderText(text, transparentText)
+    function QuickSlot:SetHeaderText(text, transparentText, overrideColor)
         if self:IsInEditMode() then return end;
 
         if text then
             Header:SetSize(0, 0);
             Header:SetText(text);
+
+            if overrideColor then
+                Header:SetTextColor(overrideColor.r, overrideColor.g, overrideColor.b);
+            else
+                Header:SetTextColor(1, 1, 1);
+            end
+
             if transparentText then
                 local toAlpha = self.highContrastMode and 1.0 or 0.6;
                 UIFrameFade(Header, 0.5, toAlpha);
                 UIFrameFade(HeaderShadow, 0.25, 0);
             else
                 API.UIFrameFadeIn(Header, 0.25);
-                UIFrameFade(HeaderShadow, 0.25, 1);
+                UIFrameFade(HeaderShadow, 0.25, 0.4);
             end
 
             local textWidth = Header:GetWrappedWidth() - 2;
@@ -561,6 +574,7 @@ function QuickSlot:SetButtonData(buttonData)
             button.positionIndex = positionIndex;
             button.trackIndex = trackIndex;
             button.overrideName = info.name;
+            button.overrideColor = info.overrideColor;
             button.macroText = info.macroText;
             button.onClickFunc = info.onClickFunc;
             button.tooltipLines = info.tooltipLines;
@@ -1172,21 +1186,7 @@ function QuickSlot:UseHighContrast(state)
 end
 
 function QuickSlot:UpdateItemCooldowns()
-    if self.ItemButtons then
-        local startTime, duration, enable;
-        for _, button in ipairs(self.ItemButtons) do
-            if button.id and button.actionType == "item" then
-                startTime, duration, enable = GetItemCooldown(button.id);
-                if enable == 1 and startTime and startTime > 0 and duration and duration > 0 then
-                    button.Cooldown:SetCooldown(startTime, duration);
-                    button.Cooldown:Show();
-                    button.Cooldown:SetHideCountdownNumbers(false);
-                else
-                    button.Cooldown:Hide();
-                end
-            end
-        end
-    end
+    CooldownUtil.UpdateItemButtonCooldowns(self.ItemButtons);
 end
 
 function QuickSlot:ExitEditMode()
@@ -1198,9 +1198,6 @@ end
 addon.AddModuleOptionExitMethod(QuickSlot, QuickSlot.ExitEditMode);
 
 do  --Spell Cooldown
-    local GetSpellCooldown = API.GetSpellCooldown;
-    local GetSpellCharges = API.GetSpellCharges;
-
     local Throttler = CreateFrame("Frame", nil, QuickSlot);
     QuickSlot.Throttler = Throttler;
     Throttler:SetScript("OnHide", function(self)
@@ -1229,44 +1226,7 @@ do  --Spell Cooldown
     end
 
     function QuickSlot:UpdateSpellCooldowns()
-        if not self.SpellButtons then return end;
-        local cooldownInfo, chargeInfo, startTime, duration, modRate, fromChargeCooldown;
-        for _, button in ipairs(self.SpellButtons) do
-            if button.id and button.actionType == "spell" then
-                startTime, duration, modRate, fromChargeCooldown = nil, nil, nil, nil;
-
-                chargeInfo = GetSpellCharges(button.id);
-                if chargeInfo and chargeInfo.currentCharges > 0 then
-                    if chargeInfo.cooldownStartTime > 0 and chargeInfo.cooldownDuration > 0 then
-                        startTime = chargeInfo.cooldownStartTime;
-                        duration = chargeInfo.cooldownDuration;
-                        modRate = chargeInfo.chargeModRate;
-                        fromChargeCooldown = true;
-                    end
-                end
-
-                if not (startTime and duration) then
-                    cooldownInfo = GetSpellCooldown(button.id);
-                    if cooldownInfo and cooldownInfo.isEnabled and cooldownInfo.startTime > 0 and cooldownInfo.duration > 0 then
-                        startTime = cooldownInfo.startTime;
-                        duration = cooldownInfo.duration;
-                        modRate = cooldownInfo.modRate
-                    end
-                end
-
-                if startTime and duration then
-                    button.Cooldown:SetCooldown(startTime, duration, modRate);
-                    button.Cooldown:Show();
-                    if fromChargeCooldown then
-                        button.Cooldown:SetHideCountdownNumbers(true);
-                    else
-                        button.Cooldown:SetHideCountdownNumbers(false);
-                    end
-                else
-                    button.Cooldown:Hide();
-                end
-            end
-        end
+        CooldownUtil.UpdateSpellButtonCooldowns(self.SpellButtons);
     end
 end
 

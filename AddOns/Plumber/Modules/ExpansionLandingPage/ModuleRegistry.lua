@@ -12,20 +12,11 @@ local function ShouldShowWarWithinLandingPage()
     return IsExpansionLandingPageUnlockedForPlayer(10)
 end
 
-
-local ToggleExpansionLandingPage_Old = ToggleExpansionLandingPage;
-
 local function Plumber_ToggleLandingPage()
     PlumberExpansionLandingPage:ToggleUI();
 end
 
-local function ToggleExpansionLandingPage_New()
-    if ShouldShowWarWithinLandingPage() then
-        Plumber_ToggleLandingPage();
-    else
-        ToggleExpansionLandingPage_Old();
-    end
-end
+-- C_Garrison.IsOnGarrisonMap()
 
 --Global Declares
 _G.Plumber_ToggleLandingPage = Plumber_ToggleLandingPage;
@@ -43,13 +34,7 @@ local function AddonCompartment_OnEnter(menuButton, data)
     tooltip:SetOwner(menuButton, "ANCHOR_NONE");
     tooltip:SetPoint("TOPRIGHT", menuButton, "TOPLEFT", -12, 0);
 
-    local hotkey1, hotkey2 = GetBindingKey("TOGGLE_PLUMBER_LANDINGPAGE");
-    local hotkey = hotkey1 or hotkey2;
-    local title = L["ModuleName NewExpansionLandingPage"];
-    if hotkey then
-        local bindingText = GetBindingText(hotkey) or hotkey;
-        title = title .. string.format(" |cffffd100(%s)|r", bindingText);
-    end
+    local title = addon.LandingPageUtil.GetModuleNameWithHotkey();
     tooltip:SetText(title, 1, 1, 1, 1, true);
     tooltip:AddLine(L["Plumber Experimental Feature Tooltip"], 1, 0.82, 0, true);
     tooltip:Show();
@@ -94,20 +79,19 @@ function EL.EnableModule(state)
     if state then
         if not EL.enabled then
             EL.enabled = true;
-            _G.ToggleExpansionLandingPage = ToggleExpansionLandingPage_New;     --Override Default API
             EL:RegisterEvent("QUEST_ACCEPTED");
             EL:RegisterEvent("QUEST_TURNED_IN");
-            API.AddButtonToAddonCompartment(IDENTIFIER, L["ModuleName NewExpansionLandingPage"], nil, AddonCompartment_OnClick, AddonCompartment_OnEnter, AddonCompartment_OnLeave);
+            API.AddButtonToAddonCompartment(IDENTIFIER, L["Abbr NewExpansionLandingPage"], nil, AddonCompartment_OnClick, AddonCompartment_OnEnter, AddonCompartment_OnLeave);
         end
     else
         if EL.enabled then
             EL.enabled = false;
-            _G.ToggleExpansionLandingPage = ToggleExpansionLandingPage_Old;
             EL:UnregisterEvent("QUEST_ACCEPTED");
             EL:UnregisterEvent("QUEST_TURNED_IN");
             API.RemoveButtonFromAddonCompartment(IDENTIFIER);
         end
     end
+    addon.LandingPageUtil.UpdateMinimapButtonVisibility();
 end
 
 
@@ -120,6 +104,7 @@ do
         categoryID = 1,
         uiOrder = -10,
         moduleAddedTime = 1750160000,
+        optionToggleFunc = addon.LandingPageUtil.ToggleMinimapSettings,
         validityCheck = function()
             return addon.IsToCVersionEqualOrNewerThan(50000);
         end,

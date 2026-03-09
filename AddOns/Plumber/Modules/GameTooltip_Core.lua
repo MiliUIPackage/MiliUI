@@ -6,8 +6,10 @@ local After = C_Timer.After;
 local C_TooltipInfo = C_TooltipInfo;
 local GetItemIconByID = C_Item.GetItemIconByID;
 local GetItemLinkByGUID = C_Item.GetItemLinkByGUID;
-local gsub = string.gsub;
+--local gsub = string.gsub;
 local match = string.match;
+local Secret_CanAccess = addon.API.Secret_CanAccess;
+local StripHyperlinks = addon.API.StripHyperlinks;
 
 
 local ItemIconInfoTable = {
@@ -74,6 +76,31 @@ local function ToggleModuleAltMode(module)
 end
 
 
+local SubModuleMixin = {};
+do
+    function SubModuleMixin:ProcessData(tooltip, itemID)
+        if self.enabled then
+
+        else
+            return false
+        end
+    end
+
+    function SubModuleMixin:GetDBKey()
+        return "dbkey"
+    end
+
+    function SubModuleMixin:SetEnabled(enabled)
+        self.enabled = enabled == true
+        self.parentManager:RequestUpdate();
+    end
+
+    function SubModuleMixin:IsEnabled()
+        return self.enabled == true
+    end
+end
+
+
 local HandlerMixin = {};
 do
     local ipairs = ipairs;
@@ -87,12 +114,12 @@ do
         table.insert(self.modules, module);
     end
 
-    function HandlerMixin:CallSubModules(tooltip, itemID, hyperlink)
+    function HandlerMixin:CallSubModules(tooltip, id, hyperlink)
         self.hasAltMode = nil;
         self.currentTooltip = tooltip;
 
         for _, m in ipairs(self.modules) do
-            if m:ProcessData(tooltip, itemID, hyperlink) then
+            if m:ProcessData(tooltip, id, hyperlink) then
                 self.anyChange = true;
                 if m.hasAltMode then
                     self.hasAltMode = true;
@@ -187,6 +214,17 @@ do
         end
     end
 
+    function HandlerMixin:CreateSubModule(dbKey)
+        local module = Mixin({}, SubModuleMixin);
+
+        module.parentManager = self;
+        module.dbKey = dbKey;
+
+        self:AddSubModule(module);
+
+        return module
+    end
+
     function HandlerMixin:DebugAddField(tooltip, tbl, field, label, enumLookup)
         local leftText, rightText;
         if label then
@@ -249,13 +287,16 @@ do  --GameTooltipManager
                     local tooltipData = tooltip.infoList and tooltip.infoList[1] and tooltip.infoList[1].tooltipData;
                     if tooltipData and tooltipData.type == tooltipDataType then
                         local leftText = tooltipData.lines and tooltipData.lines[1] and tooltipData.lines[1].leftText;
-                        if leftText then
-                            leftText = gsub(leftText, "|T.+|t", "");
-                            leftText = gsub(leftText, "%\n.+", "");
-                            leftText = gsub(leftText, "|cff%w%w%w%w%w%w", "");
-                            leftText = gsub(leftText, "|r", "");
+                        if Secret_CanAccess(leftText) then
+                            --leftText = gsub(leftText, "|T.+|t", "");
+                            --leftText = gsub(leftText, "%\n.+", "");
+                            --leftText = gsub(leftText, "|cff%w%w%w%w%w%w", "");
+                            --leftText = gsub(leftText, "|r", "");
+                            leftText = StripHyperlinks(leftText);
+                            if leftText then
+                                handler:CallSubModules(tooltip, leftText);
+                            end
                         end
-                        handler:CallSubModules(tooltip, leftText);
                     end
                 end
             else
@@ -263,9 +304,9 @@ do  --GameTooltipManager
                     local tooltipData = tooltip.infoList and tooltip.infoList[1] and tooltip.infoList[1].tooltipData;
                     if tooltipData and tooltipData.type == tooltipDataType then
                         local arg1 = tooltipData.id;
-                        if arg1 then
+                        if Secret_CanAccess(arg1) then
                             local hyperlink;
-                            if handler.isItemHandler and tooltipData.guid then
+                            if handler.isItemHandler and Secret_CanAccess(tooltipData.guid) then
                                 hyperlink = GetItemLinkByGUID(tooltipData.guid);
                             else
                                 hyperlink = tooltipData.hyperlink;
@@ -280,49 +321,26 @@ do  --GameTooltipManager
     end
 
     function GameTooltipManager:GetItemManager()
-        return self:GetHandler(0)   ----Enum.TooltipDataType.Item
+        return self:GetHandler(Enum.TooltipDataType.Item)
     end
 
     function GameTooltipManager:GetSpellManager()
-        return self:GetHandler(1)   ----Enum.TooltipDataType.Spell
+        return self:GetHandler(Enum.TooltipDataType.Spell)
     end
 
     function GameTooltipManager:GetCurrencyManager()
-        return self:GetHandler(5)   ----Enum.TooltipDataType.Currency
+        return self:GetHandler(Enum.TooltipDataType.Currency)
     end
 
     function GameTooltipManager:GetMinimapManager()
         local useLeftTextAsArgument = true;
-        return self:GetHandler(21, useLeftTextAsArgument)   ----Enum.TooltipDataType.MinimapMouseover
-    end
-end
-
-
-do  --SubModuleMixin
---[[
-    local SubModule = {};
-
-    function SubModule:ProcessData(tooltip, itemID)
-        if self.enabled then
-
-        else
-            return false
-        end
+        return self:GetHandler(Enum.TooltipDataType.MinimapMouseover, useLeftTextAsArgument)
     end
 
-    function SubModule:GetDBKey()
-        return "dbkey"
+    function GameTooltipManager:GetWorldObjectManager()
+        local useLeftTextAsArgument = true;
+        return self:GetHandler(Enum.TooltipDataType.Object, useLeftTextAsArgument)
     end
-
-    function SubModule:SetEnabled(enabled)
-        self.enabled = enabled == true
-        GameTooltipManager:RequestUpdate();
-    end
-
-    function SubModule:IsEnabled()
-        return self.enabled == true
-    end
---]]
 end
 
 
