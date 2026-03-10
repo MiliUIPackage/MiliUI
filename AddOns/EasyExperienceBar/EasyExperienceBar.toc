@@ -1,0 +1,28 @@
+## Interface: 11508,20505,38000,50503,120001
+## Title: Easy Experience Bar
+## Notes: Experience Tracking Bar
+## Author: FurydinWow
+## Version: 2026.03.09.A
+## SavedVariables: EasyExperienceDB
+## Category: Quests
+## Category-zhCN: 任务
+## Category-zhTW: 任務
+
+## Title-zhTW: |cff0099FF[介面]|r 經驗條
+## Notes-zhTW: EasyExperienceBar |n|n顯示一個條用以指示完成任務可獲得多少經驗值。|n|n|cffffd200使用方法: |r從Esc>選項>插件>經驗條，進行設定。
+## Category-zhTW: 介面
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+Libs\LibSharedMedia-3.0\lib.xml
+Libs\AceAddon-3.0\AceAddon-3.0.xml
+Libs\AceConsole-3.0\AceConsole-3.0.xml
+Libs\AceGUI-3.0\AceGUI-3.0.xml
+Libs\AceGUI-3.0-SharedMediaWidgets\widget.xml
+Libs\AceDB-3.0\AceDB-3.0.xml
+Libs\AceConfig-3.0\AceConfig-3.0.xml
+Libs\AceLocale-3.0\AceLocale-3.0.xml
+
+Localization\Locales.xml
+
+EasyExperienceBar.lua

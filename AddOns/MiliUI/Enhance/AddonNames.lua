@@ -20,6 +20,7 @@ local addonNames = {
     ["Plumber"]                                             = "實用工具包",
     ["Masque"]                                              = "快捷列樣式",
     ["tullaRange"]                                          = "技能範圍提示",
+    ["EasyExperienceBar"]                                   = "經驗條",
 
     -- ==================== 拍賣 / 物品 / 背包 ====================
     ["Auctionator"]                                         = "拍賣小幫手",
