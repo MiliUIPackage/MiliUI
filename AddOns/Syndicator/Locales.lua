@@ -402,8 +402,7 @@ L["BANK_LOWER"] = "bank"
 L["BANK_X"] = "Bank: %s"
 L["CANNOT_SEARCH_BY_ITEM_LINK"] = "Suche nach Gegenstands-Link nicht möglich"
 L["CHARACTERS"] = "Charaktere"
---[[Translation missing --]]
-L["COPY"] = "Copy"
+L["COPY"] = "kopieren"
 --[[Translation missing --]]
 L["CUSTOM_SEARCH"] = "Custom search"
 --[[Translation missing --]]
@@ -439,8 +438,7 @@ L["HOLD_SHIFT_TO_DISPLAY"] = "Gedrückte Umschalttaste = zeigt Tooltip"
 --[[Translation missing --]]
 L["INSERT"] = "Insert"
 L["INVENTORY"] = "Inventar"
---[[Translation missing --]]
-L["ITEM_LEVEL"] = "Item level"
+L["ITEM_LEVEL"] = "Gegenstandsstufe"
 --[[Translation missing --]]
 L["ITEM_LEVEL_EQUALS"] = "Equal to, ="
 --[[Translation missing --]]
@@ -583,8 +581,7 @@ L["NO_RESULTS_FOUND"] = "Keine Ergebnisse gefunden"
 L["NOT_TOOLTIP_TEXT"] = "Not this entry"
 --[[Translation missing --]]
 L["NOT_UPPER"] = "NOT"
---[[Translation missing --]]
-L["PASTE"] = "Paste"
+L["PASTE"] = "Einfügen"
 L["SAME_CONNECTED_REALMS"] = "Gleiche verbundene Server"
 L["SAME_FACTION"] = "Gleiche Fraktion"
 L["SEARCHED_EVERYWHERE_COLON"] = "Überall gesucht:"

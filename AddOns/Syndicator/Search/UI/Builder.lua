@@ -335,8 +335,14 @@ local function GetKeywordMenu(rootDescription, index, callbackRegistry, event)
   for _, group in ipairs(groups) do
     local root = rootDescription:CreateButton(group.label)
     for _, entry in ipairs(group.elements) do
-      root:CreateButton(entry, function()
+      local button = root:CreateButton(entry, function()
         callbackRegistry:TriggerEvent(event, CreateAndInitFromMixin(ComponentMixin, RootType.Term, TermType.Keyword, entry), index)
+      end)
+      button:SetOnEnter(function()
+        callbackRegistry:TriggerEvent("OnMenuKeywordEnter", entry)
+      end)
+      button:SetOnLeave(function()
+        callbackRegistry:TriggerEvent("OnMenuKeywordLeave", entry)
       end)
       root:SetScrollMode(25 * 20)
     end
@@ -1260,6 +1266,7 @@ function Syndicator.Search.GetSearchBuilder(parent)
   cb:OnLoad()
   cb:GenerateCallbackEvents({
     "Insert", "Swap", "Delete", "Wrap", "Unwrap", "Copy", "Paste", "OnChange", "OnResize", "OnSkin",
+    "OnMenuKeywordEnter", "OnMenuKeywordLeave",
   })
 
   local root = CreateAndInitFromMixin(ComponentMixin, RootType.Operator, OperatorType.Any, {})

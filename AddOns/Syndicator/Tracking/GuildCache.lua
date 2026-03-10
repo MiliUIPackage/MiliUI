@@ -25,12 +25,11 @@ local function InitGuild(key, guild, realm)
   guildData.details.realm = realm
 end
 
-local seenGuilds = {}
-
 local GUILD_OPEN_EVENTS = {
   "GUILDBANKBAGSLOTS_CHANGED",
   "GUILDBANK_UPDATE_TABS",
   "GUILDBANK_UPDATE_MONEY",
+  "GUILDBANK_UPDATE_WITHDRAWMONEY",
 }
 
 local ROSTER_EVENTS = {
@@ -83,9 +82,17 @@ function SyndicatorGuildCacheMixin:GetGuildKey()
 
   local guildKey = guildName .. "-" .. realm
 
+  local isCreating = SYNDICATOR_DATA.Guilds[key] == nil
   -- No guild found cached, create it
   InitGuild(guildKey, guildName, realm)
-  seenGuilds[guildName] = guildKey
+
+  if isCreating and self.currentGuild == nil then
+    C_Timer.After(5, function()
+      if self.currentGuild ~= guildKey then
+        SYNDICATOR_DATA.Guilds[guildKey] = nil
+      end
+    end)
+  end
 
   self.currentGuild = guildKey
 
@@ -114,7 +121,7 @@ function SyndicatorGuildCacheMixin:OnEvent(eventName, ...)
   elseif eventName == "GUILDBANK_UPDATE_TABS" then
     self.isUpdatePending = true
     self:ExamineGeneralTabInfo()
-  elseif eventName == "GUILDBANK_UPDATE_MONEY" then
+  elseif eventName == "GUILDBANK_UPDATE_MONEY" or eventName == "GUILDBANK_UPDATE_WITHDRAWMONEY" then
     self:GetGuildKey()
     local data = SYNDICATOR_DATA.Guilds[self.currentGuild]
     if data then
@@ -123,7 +130,6 @@ function SyndicatorGuildCacheMixin:OnEvent(eventName, ...)
     end
   -- Potential change to guild name
   elseif eventName == "GUILD_ROSTER_UPDATE" or eventName == "PLAYER_GUILD_UPDATE" then
-    local oldGuild = self.currentGuild
     self:GetGuildKey()
   elseif eventName == "LOADING_SCREEN_DISABLED" then
     FrameUtil.RegisterFrameForEvents(self, ROSTER_EVENTS)

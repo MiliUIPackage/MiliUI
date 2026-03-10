@@ -1233,6 +1233,7 @@ local TextToExpansion = {
   ["the burning crusade"] = 1,
   ["wrath"] = 2,
   ["wotlk"] = 2,
+  ["cata"] = 3,
   ["cataclysm"] = 3,
   ["mop"] = 4,
   ["mists of pandaria"] = 4,

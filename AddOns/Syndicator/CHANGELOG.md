@@ -1,8 +1,8 @@
 # Syndicator
 
-## [259](https://github.com/TheMouseNest/Syndicator/tree/259) (2026-01-15)
-[Full Changelog](https://github.com/TheMouseNest/Syndicator/compare/258...259) 
+## [263](https://github.com/TheMouseNest/Syndicator/tree/263) (2026-02-21)
+[Full Changelog](https://github.com/TheMouseNest/Syndicator/compare/262...263) [Previous Releases](https://github.com/TheMouseNest/Syndicator/releases)
 
-- Remove usage of PLAYER\_ENTERING\_WORLD for initialization  
-    This mitigates any impact of the new CPU consumption restrictions  
-- Update constants (as workaround to detect TBC anniversary no longer needed)  
+- Fix missing event for guild bank currency updates  
+- Fix extra guilds being recorded if the guild isn't from current realm  
+- Workaround for tooltip taint error  

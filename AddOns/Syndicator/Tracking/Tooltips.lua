@@ -221,7 +221,9 @@ function addonTable.Tooltips.AddItemLines(tooltip, summaries, itemLink)
     AddDoubleLine(addonTable.Locales.INVENTORY, LINK_FONT_COLOR:WrapTextInColorCode(addonTable.Locales.TOTAL_X:format(WHITE_FONT_COLOR:WrapTextInColorCode(totals))))
   end
 
-  tooltip:Show()
+  if addonTable.Constants.IsClassic then
+    tooltip:Show()
+  end
 end
 
 function addonTable.Tooltips.AddCurrencyLines(tooltip, currencyID)
@@ -283,5 +285,8 @@ function addonTable.Tooltips.AddCurrencyLines(tooltip, currencyID)
   if #summary > addonTable.Config.Get("tooltips_character_limit") then
     tooltip:AddLine("  ...")
   end
-  tooltip:Show()
+
+  if addonTable.Constants.IsClassic then
+    tooltip:Show()
+  end
 end
