@@ -272,8 +272,6 @@ function CDM:SetupEditModeCooldownViewerLock()
     end
 end
 
-local COMPLIANCE_POPUP_KEY = "AYIJE_CDM_FIX_COOLDOWN_EDITMODE_SETTINGS"
-
 local function HasCooldownViewerEditModeApis()
     return C_EditMode
         and C_EditMode.GetLayouts
@@ -384,39 +382,6 @@ local function BuildDesiredCooldownViewerSettings(systemIndex)
     return desired
 end
 
-local function EnsureCompliancePopupDialog()
-    if StaticPopupDialogs[COMPLIANCE_POPUP_KEY] then
-        return
-    end
-
-    StaticPopupDialogs[COMPLIANCE_POPUP_KEY] = {
-        text = L["Cooldown Manager settings differ from AyijeCDM recommendations. Apply now?"],
-        button1 = L["Apply CDM Settings"],
-        button2 = L["Not now"],
-        OnAccept = function(self, data)
-            local status = CDM:ApplyCooldownViewerEditModeRecommendedSettings("popup_accept")
-            if status == "queued" then
-                print("|cffffd200Ayije_CDM:|r " .. L["Cooldown Manager settings will be applied after combat."])
-            elseif status == "applied" then
-                ReloadUI()
-            end
-
-            if data and data.layoutKey then
-                CDM._cooldownViewerPromptSnoozedLayout = nil
-            end
-        end,
-        OnCancel = function(self, data)
-            if data and data.layoutKey then
-                CDM._cooldownViewerPromptSnoozedLayout = data.layoutKey
-            end
-        end,
-        timeout = 0,
-        whileDead = true,
-        hideOnEscape = true,
-        preferredIndex = 3,
-    }
-end
-
 function CDM:GetCooldownViewerEditModeCompliance()
     local result = {
         isCompliant = true,
@@ -467,15 +432,7 @@ function CDM:GetCooldownViewerEditModeCompliance()
     return result
 end
 
-function CDM:ApplyCooldownViewerEditModeRecommendedSettings(_reason)
-    if InCombatLockdown() then
-        self._pendingCooldownViewerPolicyApply = true
-        if _reason == "popup_accept" then
-            self._pendingCooldownViewerPolicyReload = true
-        end
-        return "queued"
-    end
-
+function CDM:ApplyCooldownViewerEditModeRecommendedSettings()
     if self._isApplyingCooldownViewerPolicy then
         return "noop"
     end
@@ -503,9 +460,6 @@ function CDM:ApplyCooldownViewerEditModeRecommendedSettings(_reason)
         end
     end
 
-    self._pendingCooldownViewerPolicyApply = nil
-    self._cooldownViewerPromptSnoozedLayout = nil
-
     if not changed then
         return "noop"
     end
@@ -515,83 +469,4 @@ function CDM:ApplyCooldownViewerEditModeRecommendedSettings(_reason)
     self._isApplyingCooldownViewerPolicy = nil
 
     return "applied"
-end
-
-function CDM:ShowCooldownViewerSettingsPrompt(triggerReason, complianceData)
-    if not complianceData or not complianceData.isReady or complianceData.isCompliant then
-        return
-    end
-
-    local layoutKey = tostring(complianceData.activeLayout or "")
-    if triggerReason ~= "slash_enable" and self._cooldownViewerPromptSnoozedLayout == layoutKey then
-        return
-    end
-
-    if StaticPopup_Visible and StaticPopup_Visible(COMPLIANCE_POPUP_KEY) then
-        return
-    end
-
-    EnsureCompliancePopupDialog()
-    StaticPopup_Show(COMPLIANCE_POPUP_KEY, nil, nil, { layoutKey = layoutKey })
-end
-
-function CDM:TriggerCooldownViewerSettingsComplianceFlow(triggerReason)
-    C_Timer.After(0, function()
-        self:RunCooldownViewerSettingsComplianceFlow(triggerReason)
-    end)
-end
-
-function CDM:RunCooldownViewerSettingsComplianceFlow(triggerReason)
-    local compliance = self:GetCooldownViewerEditModeCompliance()
-    if not compliance.isReady then
-        return
-    end
-
-    if compliance.isCompliant then
-        self._cooldownViewerPromptSnoozedLayout = nil
-        return
-    end
-
-    self:ShowCooldownViewerSettingsPrompt(triggerReason, compliance)
-end
-
-function CDM:SetupCooldownViewerEditModeCompliancePrompt()
-    if self._cooldownViewerCompliancePromptSetup then
-        return
-    end
-
-    self:RegisterEvent("PLAYER_LOGIN", function()
-        C_Timer.After(0, function()
-            self:TriggerCooldownViewerSettingsComplianceFlow("login")
-        end)
-    end)
-
-    self:RegisterEvent("EDIT_MODE_LAYOUTS_UPDATED", function()
-        if self._isApplyingCooldownViewerPolicy then
-            return
-        end
-        C_Timer.After(0.1, function()
-            self:TriggerCooldownViewerSettingsComplianceFlow("layout_update")
-        end)
-    end)
-
-    self:RegisterEvent("PLAYER_REGEN_ENABLED", function()
-        if not self._pendingCooldownViewerPolicyApply then
-            return
-        end
-        local shouldReload = self._pendingCooldownViewerPolicyReload == true
-        local status = self:ApplyCooldownViewerEditModeRecommendedSettings("combat_ended")
-        if status ~= "queued" then
-            self._pendingCooldownViewerPolicyReload = nil
-        end
-        if shouldReload and status == "applied" then
-            ReloadUI()
-        end
-    end)
-
-    self._cooldownViewerCompliancePromptSetup = true
-
-    C_Timer.After(0, function()
-        self:TriggerCooldownViewerSettingsComplianceFlow("setup")
-    end)
 end

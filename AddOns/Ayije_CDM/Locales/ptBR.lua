@@ -519,10 +519,3 @@ L["Stage 4 Color"] = "Cor Estágio 4"
 -- L["Class Color"] = ""
 L["Cast Bar"] = "Barra de Lançamento"
 -----------------------------------------------------------------------
--- Core/EditMode.lua (placeholders)
------------------------------------------------------------------------
-
--- L["Cooldown Manager settings differ from AyijeCDM recommendations. Apply now?"] = ""
--- L["Apply CDM Settings"] = ""
--- L["Not now"] = ""
--- L["Cooldown Manager settings will be applied after combat."] = ""

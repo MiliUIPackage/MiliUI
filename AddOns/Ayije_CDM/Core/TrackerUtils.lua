@@ -407,6 +407,7 @@ function CDM.CreateTrackerIcon(parent, namePrefix, id, opts)
     cooldown:SetAllPoints()
     cooldown:SetReverse(false)
     cooldown:SetDrawEdge(false)
+    cooldown:SetDrawBling(false)
     if cooldown.SetSwipeColor then
         cooldown:SetSwipeColor(CDM_C.SWIPE_COLOR.r, CDM_C.SWIPE_COLOR.g, CDM_C.SWIPE_COLOR.b, CDM_C.SWIPE_COLOR.a)
     end

@@ -30,24 +30,23 @@ local function IsEmptyTable(t)
     return type(t) == "table" and next(t) == nil
 end
 
-local SPARSE_EMPTY_TABLE_DEFAULTS = {
-    resourcesManaSettings = true,
-    resourcesTagSettings = true,
-    spellRegistry = true,
-    buffGroups = true,
-    ungroupedBuffOverrides = true,
+local PROFILE_MT = {
+    __index = function(self, key)
+        local default = CDM.defaults[key]
+        if default == nil then return nil end
+        if type(default) == "table" then
+            if next(default) == nil then return nil end
+            local copy = {}
+            for k, v in pairs(default) do copy[k] = v end
+            rawset(self, key, copy)
+            return copy
+        end
+        return default
+    end,
 }
 
-local function ShouldSkipDefaultCopy(key, value)
-    return SPARSE_EMPTY_TABLE_DEFAULTS[key] and IsEmptyTable(value)
-end
-
-local function FillMissingDefaults(profile, defaults)
-    for key, value in pairs(defaults) do
-        if profile[key] == nil and not ShouldSkipDefaultCopy(key, value) then
-            profile[key] = CopyConfigValue(value)
-        end
-    end
+local function ApplyProfileMetatable(profile)
+    setmetatable(profile, PROFILE_MT)
 end
 
 local TAG_DEFAULT_BAR1 = true
@@ -71,18 +70,104 @@ local function GetNormalizedBaseSpellID(spellID)
     return nil
 end
 
-local function GetOverrideSpellID(spellID)
-    if not IsUsableSpellID(spellID) then return nil end
-    if not (C_Spell and C_Spell.GetOverrideSpell) then return nil end
+local NormalizeNumericKeys
 
-    local overrideID = C_Spell.GetOverrideSpell(spellID)
-    if IsUsableSpellID(overrideID) and overrideID ~= spellID then
-        return overrideID
+local function GetBuffGroupMatchCandidates(spellID)
+    if CDM.GetBuffGroupMatchCandidates then
+        return CDM:GetBuffGroupMatchCandidates(spellID) or {}
     end
-    return nil
+    return {}
 end
 
-local function NormalizeLegacyBuffGroupSpellList(spellList)
+local function GetBuffOverrideStorageKey(spellID)
+    if CDM.GetBuffOverrideStorageKey then
+        return CDM:GetBuffOverrideStorageKey(spellID)
+    end
+    if not IsUsableSpellID(spellID) then return nil end
+    return GetNormalizedBaseSpellID(spellID) or spellID
+end
+
+local function CompactSpellOverrideMap(overrideMap)
+    if type(overrideMap) ~= "table" then return end
+
+    NormalizeNumericKeys(overrideMap)
+
+    local groupedEntries = {}
+    for rawKey, entry in pairs(overrideMap) do
+        if IsUsableSpellID(rawKey) and type(entry) == "table" then
+            local storageKey = GetBuffOverrideStorageKey(rawKey)
+            if IsUsableSpellID(storageKey) then
+                if not groupedEntries[storageKey] then
+                    groupedEntries[storageKey] = {}
+                end
+                groupedEntries[storageKey][#groupedEntries[storageKey] + 1] = {
+                    key = rawKey,
+                    entry = entry,
+                }
+            end
+        end
+    end
+
+    local compacted = {}
+    for storageKey, entries in pairs(groupedEntries) do
+        table.sort(entries, function(left, right)
+            local leftIsStorage = left.key == storageKey
+            local rightIsStorage = right.key == storageKey
+            if leftIsStorage ~= rightIsStorage then
+                return leftIsStorage
+            end
+            return left.key < right.key
+        end)
+
+        local merged
+        for _, item in ipairs(entries) do
+            if not merged then
+                merged = (CDM.CopyBuffOverrideEntry and CDM:CopyBuffOverrideEntry(item.entry)) or CopyConfigValue(item.entry)
+            else
+                if CDM.MergeMissingBuffOverrideFields then
+                    CDM:MergeMissingBuffOverrideFields(merged, item.entry)
+                end
+            end
+        end
+
+        if merged then
+            compacted[storageKey] = merged
+        end
+    end
+
+    table.wipe(overrideMap)
+    for storageKey, entry in pairs(compacted) do
+        overrideMap[storageKey] = entry
+    end
+end
+
+local function CompactBuffOverrideTables(profile)
+    if type(profile) ~= "table" then return end
+
+    local bg = profile.buffGroups
+    if type(bg) == "table" then
+        for _, specGroups in pairs(bg) do
+            if type(specGroups) == "table" then
+                for _, group in pairs(specGroups) do
+                    if type(group) == "table" and type(group.spellOverrides) == "table" then
+                        CompactSpellOverrideMap(group.spellOverrides)
+                    end
+                end
+            end
+        end
+    end
+
+    local ubo = profile.ungroupedBuffOverrides
+    if type(ubo) == "table" then
+        for _, specOverrides in pairs(ubo) do
+            if type(specOverrides) == "table" then
+                CompactSpellOverrideMap(specOverrides)
+            end
+        end
+    end
+end
+
+local function NormalizeBuffGroupSpellList(spellList)
     if type(spellList) ~= "table" then
         return {}
     end
@@ -92,27 +177,24 @@ local function NormalizeLegacyBuffGroupSpellList(spellList)
 
     for _, rawID in ipairs(spellList) do
         if IsUsableSpellID(rawID) then
-            local baseID = GetNormalizedBaseSpellID(rawID)
-            local overrideID = GetOverrideSpellID(rawID)
-            local baseOverrideID = GetOverrideSpellID(baseID)
-            local canonicalID = baseID or rawID
+            local duplicate = false
+            local candidateKeys = GetBuffGroupMatchCandidates(rawID)
 
-            if not seen[rawID]
-                and not (baseID and seen[baseID])
-                and not (overrideID and seen[overrideID])
-                and not (baseOverrideID and seen[baseOverrideID]) then
-                normalized[#normalized + 1] = canonicalID
-                seen[rawID] = true
-                seen[canonicalID] = true
-                if baseID then
-                    seen[baseID] = true
+            for _, candidateID in ipairs(candidateKeys) do
+                if seen[candidateID] then
+                    duplicate = true
+                    break
                 end
-                if overrideID then
-                    seen[overrideID] = true
-                end
-                if baseOverrideID then
-                    seen[baseOverrideID] = true
-                end
+            end
+
+            if not duplicate then
+                local storageKey = GetBuffOverrideStorageKey(rawID)
+                normalized[#normalized + 1] = IsUsableSpellID(storageKey) and storageKey or rawID
+            end
+
+            seen[rawID] = true
+            for _, candidateID in ipairs(candidateKeys) do
+                seen[candidateID] = true
             end
         end
     end
@@ -120,7 +202,30 @@ local function NormalizeLegacyBuffGroupSpellList(spellList)
     return normalized
 end
 
-local function NormalizeNumericKeys(t)
+local function CompactBuffGroupSpellLists(profile)
+    if type(profile) ~= "table" then return end
+
+    local bg = profile.buffGroups
+    if type(bg) ~= "table" then
+        return
+    end
+
+    for _, specGroups in pairs(bg) do
+        if type(specGroups) == "table" then
+            for _, group in pairs(specGroups) do
+                if type(group) == "table" and type(group.spells) == "table" then
+                    group.spells = NormalizeBuffGroupSpellList(group.spells)
+                end
+            end
+        end
+    end
+end
+
+local function NormalizeLegacyBuffGroupSpellList(spellList)
+    return NormalizeBuffGroupSpellList(spellList)
+end
+
+NormalizeNumericKeys = function(t)
     if type(t) ~= "table" then return end
     local toRekey
     for k, v in pairs(t) do
@@ -148,6 +253,8 @@ local NUMERIC_KEYED_TABLES = {
     "defensivesDisabledSpells",
     "spellRegistry",
     "resourcesManaSettings",
+    "resourcesPrimaryResourceSettings",
+    "resourcesSecondaryResourceSettings",
     "resourcesTagSettings",
     "buffGroups",
     "ungroupedBuffOverrides",
@@ -166,37 +273,27 @@ local function NormalizeImportedProfile(profile)
         end
     end
 
-    local bg = profile.buffGroups
-    if type(bg) == "table" then
-        for _, specGroups in pairs(bg) do
-            if type(specGroups) == "table" then
-                for _, group in pairs(specGroups) do
-                    if type(group) == "table" and type(group.spellOverrides) == "table" then
-                        NormalizeNumericKeys(group.spellOverrides)
-                    end
-                end
-            end
-        end
-    end
-
-    local ubo = profile.ungroupedBuffOverrides
-    if type(ubo) == "table" then
-        for _, specOverrides in pairs(ubo) do
-            if type(specOverrides) == "table" then
-                NormalizeNumericKeys(specOverrides)
-            end
-        end
-    end
+    CompactBuffGroupSpellLists(profile)
+    CompactBuffOverrideTables(profile)
 end
 
 local function CompactSparseRuntimeData(profile)
     if type(profile) ~= "table" then return end
+
+    CompactBuffGroupSpellLists(profile)
+    CompactBuffOverrideTables(profile)
 
     if IsEmptyTable(profile.resourcesTagSettings) then
         profile.resourcesTagSettings = nil
     end
     if IsEmptyTable(profile.resourcesManaSettings) then
         profile.resourcesManaSettings = nil
+    end
+    if IsEmptyTable(profile.resourcesPrimaryResourceSettings) then
+        profile.resourcesPrimaryResourceSettings = nil
+    end
+    if IsEmptyTable(profile.resourcesSecondaryResourceSettings) then
+        profile.resourcesSecondaryResourceSettings = nil
     end
 
     if profile.spellRegistry ~= nil and type(profile.spellRegistry) ~= "table" then
@@ -328,7 +425,35 @@ local function MigrateSecondaryTertiaryToBuffGroups(prof)
     prof.countOffsetYTert = nil
 end
 
-local DB_SCHEMA_VERSION = 1
+local function TablesMatch(a, b)
+    if type(a) ~= "table" or type(b) ~= "table" then return false end
+    for k, v in pairs(a) do
+        if b[k] ~= v then return false end
+    end
+    for k in pairs(b) do
+        if a[k] == nil then return false end
+    end
+    return true
+end
+
+local function StripDefaultMatchingValues(profile)
+    for key, default in pairs(CDM.defaults) do
+        local raw = rawget(profile, key)
+        if raw == nil then
+            -- already absent
+        elseif type(default) ~= "table" then
+            if raw == default then
+                rawset(profile, key, nil)
+            end
+        elseif next(default) ~= nil then
+            if TablesMatch(raw, default) then
+                rawset(profile, key, nil)
+            end
+        end
+    end
+end
+
+local DB_SCHEMA_VERSION = 2
 
 local PROFILE_MIGRATIONS = {
     {
@@ -336,6 +461,10 @@ local PROFILE_MIGRATIONS = {
         run = function(profile)
             MigrateSecondaryTertiaryToBuffGroups(profile)
         end,
+    },
+    {
+        version = 2,
+        run = StripDefaultMatchingValues,
     },
 }
 
@@ -400,7 +529,8 @@ local function InitializeDB()
 
     local profile = Ayije_CDMDB.profiles[profileName]
 
-    FillMissingDefaults(profile, CDM.defaults)
+    StripDefaultMatchingValues(profile)
+    ApplyProfileMetatable(profile)
     CompactSparseRuntimeData(profile)
 
     CDM.db = profile
@@ -440,6 +570,7 @@ local function CommitActiveProfileReference(name)
     end
     Ayije_CDMDB.profileKeys[CDM.charKey] = name
     CDM.db = Ayije_CDMDB.profiles[name]
+    ApplyProfileMetatable(CDM.db)
     CDM.activeProfileName = name
     return true
 end
@@ -481,13 +612,13 @@ local function PrepareProfileDataForApply(profileData, fromSchemaVersion)
     if fromSchemaVersion and fromSchemaVersion < DB_SCHEMA_VERSION then
         CDM:RunProfileMigrations(prepared, fromSchemaVersion, DB_SCHEMA_VERSION)
     end
-    FillMissingDefaults(prepared, CDM.defaults)
     for key, value in pairs(prepared) do
         local defaultValue = CDM.defaults[key]
         if defaultValue ~= nil and type(defaultValue) ~= type(value) then
             prepared[key] = CopyConfigValue(defaultValue)
         end
     end
+    ApplyProfileMetatable(prepared)
     CompactSparseRuntimeData(prepared)
     return prepared
 end
@@ -865,6 +996,62 @@ function CDM:SetManaEnabled(enabled)
     end
 end
 
+function CDM:GetPrimaryResourceEnabled()
+    local specID = self:GetCurrentSpecID()
+    if not specID then return true end
+    local settings = CDM.db.resourcesPrimaryResourceSettings
+    if type(settings) == "table" and settings[specID] ~= nil then
+        return settings[specID]
+    end
+    return true
+end
+
+function CDM:SetPrimaryResourceEnabled(enabled)
+    local specID = self:GetCurrentSpecID()
+    if not specID then return end
+    if enabled == true or enabled == nil then
+        local settings = CDM.db.resourcesPrimaryResourceSettings
+        if type(settings) ~= "table" then return end
+        settings[specID] = nil
+        if IsEmptyTable(settings) then
+            CDM.db.resourcesPrimaryResourceSettings = nil
+        end
+    else
+        if not CDM.db.resourcesPrimaryResourceSettings then
+            CDM.db.resourcesPrimaryResourceSettings = {}
+        end
+        CDM.db.resourcesPrimaryResourceSettings[specID] = false
+    end
+end
+
+function CDM:GetSecondaryResourceEnabled()
+    local specID = self:GetCurrentSpecID()
+    if not specID then return true end
+    local settings = CDM.db.resourcesSecondaryResourceSettings
+    if type(settings) == "table" and settings[specID] ~= nil then
+        return settings[specID]
+    end
+    return true
+end
+
+function CDM:SetSecondaryResourceEnabled(enabled)
+    local specID = self:GetCurrentSpecID()
+    if not specID then return end
+    if enabled == true or enabled == nil then
+        local settings = CDM.db.resourcesSecondaryResourceSettings
+        if type(settings) ~= "table" then return end
+        settings[specID] = nil
+        if IsEmptyTable(settings) then
+            CDM.db.resourcesSecondaryResourceSettings = nil
+        end
+    else
+        if not CDM.db.resourcesSecondaryResourceSettings then
+            CDM.db.resourcesSecondaryResourceSettings = {}
+        end
+        CDM.db.resourcesSecondaryResourceSettings[specID] = false
+    end
+end
+
 function CDM:GetSpellRegistry(specID)
     if self.SpellRegistry and self.SpellRegistry.GetRaw then
         return self.SpellRegistry:GetRaw(specID)
@@ -930,6 +1117,22 @@ function CDM:GetSpellGlowEnabled(specID, spellID)
     local reg = CDM.db.spellRegistry[specID]
     if not reg or not reg.glowEnabled then return false end
     return reg.glowEnabled[spellID] or false
+end
+
+function CDM:HasAnySpellGlowConfigured(specID)
+    if not specID then return false end
+
+    local currentSpecID = self.GetCurrentSpecID and self:GetCurrentSpecID() or nil
+    if currentSpecID and specID == currentSpecID and self.SpellSets then
+        return self.SpellSets.hasBuffGlows == true
+    end
+
+    if not self.db or not self.db.spellRegistry then
+        return false
+    end
+
+    local reg = self.db.spellRegistry[specID]
+    return type(reg and reg.glowEnabled) == "table" and next(reg.glowEnabled) ~= nil or false
 end
 
 function CDM:SetSpellGlowEnabled(specID, spellID, enabled)
@@ -1108,28 +1311,4 @@ function CDM:RequestConfigOpen(origin, targetTab)
     end
 
     return OpenConfigNow(targetTab)
-end
-
-SLASH_AYIJECDM1 = "/cdm"
-SLASH_AYIJECDM2 = "/acdm"
-SlashCmdList["AYIJECDM"] = function(msg)
-    local command = ""
-    if type(msg) == "string" then
-        command = msg:match("^(%S+)") or ""
-        command = string.lower(command)
-    end
-
-    if command == "enable" then
-        if CDM.SetupCooldownViewerEditModeCompliancePrompt then
-            CDM:SetupCooldownViewerEditModeCompliancePrompt()
-        end
-        if CDM.TriggerCooldownViewerSettingsComplianceFlow then
-            CDM:TriggerCooldownViewerSettingsComplianceFlow("slash_enable")
-        elseif CDM.RunCooldownViewerSettingsComplianceFlow then
-            CDM:RunCooldownViewerSettingsComplianceFlow("slash_enable")
-        end
-        return
-    end
-
-    CDM:RequestConfigOpen("slash", nil)
 end

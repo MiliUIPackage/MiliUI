@@ -518,12 +518,3 @@ L["Stage 3 Color"] = "階段3顏色"
 L["Stage 4 Color"] = "階段4顏色"
 L["Class Color"] = "職業顏色"
 L["Cast Bar"] = "施法條"
-
------------------------------------------------------------------------
--- Core/EditMode.lua (placeholders)
------------------------------------------------------------------------
-
--- L["Cooldown Manager settings differ from AyijeCDM recommendations. Apply now?"] = ""
--- L["Apply CDM Settings"] = ""
--- L["Not now"] = ""
--- L["Cooldown Manager settings will be applied after combat."] = ""

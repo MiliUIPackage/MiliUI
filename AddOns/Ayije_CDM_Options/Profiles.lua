@@ -14,6 +14,7 @@ local profilePage = nil
 local specToggle = nil
 local specSection = nil
 local specDropdowns = {}
+local RefreshSpecDropdowns
 
 local function MapProfileActionError(errCode, fallback)
     if errCode == "combat_blocked" then
@@ -102,7 +103,7 @@ local function SetupSpecDropdown(dropdown, specIndex)
     end)
 end
 
-local function RefreshSpecDropdowns()
+RefreshSpecDropdowns = function()
     for i, dd in pairs(specDropdowns) do
         SetupSpecDropdown(dd, i)
     end

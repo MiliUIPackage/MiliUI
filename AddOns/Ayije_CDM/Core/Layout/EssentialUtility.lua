@@ -131,7 +131,15 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
     local injectedTrinketCount = 0
     local injFrames = isEssential and CDM.GetTrinketInjectionFrames and CDM.GetTrinketInjectionFrames() or nil
 
-    if #icons == 0 and not injFrames then return end
+    if #icons == 0 and not injFrames then
+        if isEssential then
+            self._essentialContentWidth = 0
+            self._essentialLeftPadPx = 0
+        else
+            self._utilityContentWidth = 0
+        end
+        return
+    end
 
     local container = self:GetOrCreateAnchorContainer(viewer)
     if not container then return end
@@ -281,6 +289,10 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
     local inCombat = InCombatLockdown()
     local gapPx = CDM_C.GetCooldownIconGapPixels(spacing)
 
+    if not isEssential then
+        CDM._utilityContentWidth = 0
+    end
+
     if useMeasuredHorizontalLayout and scratchPlacementsCount > 0 then
         table.sort(rowOrderSeen)
 
@@ -339,6 +351,8 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
         if isEssential then
             CDM._essentialContentWidth = PixelsToUIForRegion(contentWidthPx, container)
             CDM._essentialLeftPadPx = containerWidthPx - contentWidthPx
+        else
+            CDM._utilityContentWidth = PixelsToUIForRegion(contentWidthPx, container)
         end
 
         if containerWidthPx > 0 and containerHeightPx > 0 then
@@ -390,6 +404,10 @@ end
 
 function CDM:GetEssentialContentWidth()
     return self._essentialContentWidth or 0
+end
+
+function CDM:GetUtilityContentWidth()
+    return self._utilityContentWidth or 0
 end
 
 function CDM:GetEssentialContentCenterX()

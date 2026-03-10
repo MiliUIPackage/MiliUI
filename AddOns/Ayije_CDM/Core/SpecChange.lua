@@ -234,18 +234,27 @@ function CDM:InitializeSpecChangeSystem()
 
     local resourceUpdatePending = false
 
+    local function DoResourceUpdate()
+        resourceUpdatePending = false
+        if self.UpdateResourceValues then
+            self:UpdateResourceValues()
+        end
+    end
+
+    local resourceUpdateFrame = CreateFrame("Frame")
+    resourceUpdateFrame:Hide()
+    resourceUpdateFrame:SetScript("OnUpdate", function(f)
+        f:Hide()
+        DoResourceUpdate()
+    end)
+
     local function QueueResourceUpdate()
         if not self.UpdateResourceValues or resourceUpdatePending then
             return
         end
 
         resourceUpdatePending = true
-        C_Timer.After(0, function()
-            resourceUpdatePending = false
-            if self.UpdateResourceValues then
-                self:UpdateResourceValues()
-            end
-        end)
+        resourceUpdateFrame:Show()
     end
 
     local function HandleCooldownDataChanged()

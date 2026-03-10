@@ -520,10 +520,3 @@ L["Stage 4 Color"] = "Couleur phase 4"
 L["Cast Bar"] = "Barre d'incantation"
 
 -----------------------------------------------------------------------
--- Core/EditMode.lua (placeholders)
------------------------------------------------------------------------
-
--- L["Cooldown Manager settings differ from AyijeCDM recommendations. Apply now?"] = ""
--- L["Apply CDM Settings"] = ""
--- L["Not now"] = ""
--- L["Cooldown Manager settings will be applied after combat."] = ""

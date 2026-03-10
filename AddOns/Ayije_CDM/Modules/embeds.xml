@@ -9,5 +9,6 @@
     <Script file="BuffGroups.lua"/>
     <Script file="PlayerCastBar.lua"/>
     <Script file="RotationAssist.lua"/>
+    <Script file="PressOverlay.lua"/>
 </Ui>
 

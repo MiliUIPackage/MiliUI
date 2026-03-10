@@ -461,7 +461,7 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
         end
 
         if updateCharges then
-            if itemCount ~= nil then
+            if itemCount ~= nil and not showEmptyItem then
                 local chargeText = CDM.EnsureTrackerChargeWidgets(frame)
                 if chargeText then
                     if frame._cdmRacialChargeValue ~= itemCount then
@@ -695,6 +695,8 @@ local function UpdateContainerPosition()
 end
 
 local racialsUpdatePending = false
+local racialsDispatchFrame = CreateFrame("Frame")
+racialsDispatchFrame:Hide()
 local racialsQueuedFullUpdate = false
 local racialsQueuedSpellCooldownUpdate = false
 local racialsQueuedSpellChargeUpdate = false
@@ -886,6 +888,12 @@ local function DoRacialsUpdate()
         UpdateRacialSpellChargesOnly()
     end
 end
+
+racialsDispatchFrame:SetScript("OnUpdate", function(self)
+    self:Hide()
+    DoRacialsUpdate()
+end)
+
 QueueRacialsUpdate = function(reason)
     if reason == RACIALS_UPDATE_FULL then
         racialsQueuedFullUpdate = true
@@ -904,7 +912,7 @@ QueueRacialsUpdate = function(reason)
     end
     if racialsUpdatePending then return end
     racialsUpdatePending = true
-    C_Timer.After(0, DoRacialsUpdate)
+    racialsDispatchFrame:Show()
 end
 
 local function OnRacialItemCooldownWatchChanged()

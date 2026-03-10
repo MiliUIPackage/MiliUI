@@ -67,6 +67,18 @@ local function PrintConfigCombatBlocked(actionLabel)
     print("|cffff0000" .. string.format(L["Cannot %s while in combat"], actionLabel or L["open CDM config"]) .. "|r")
 end
 
+local function HideConfigPopups()
+    if not StaticPopup_Hide then
+        return
+    end
+
+    StaticPopup_Hide("AYIJE_CDM_COPY_URL")
+    StaticPopup_Hide("AYIJE_CDM_CONFIRM_RESET_PROFILE")
+    StaticPopup_Hide("AYIJE_CDM_CONFIRM_COPY_PROFILE")
+    StaticPopup_Hide("AYIJE_CDM_CONFIRM_DELETE_PROFILE")
+    StaticPopup_Hide("AYIJE_CDM_CONFIRM_DELETE_GROUP")
+end
+
 local function HideConfigUiForCombat()
     local frame = ConfigFrame or ns.ConfigFrame
     if frame and frame.IsShown and frame:IsShown() then
@@ -75,13 +87,7 @@ local function HideConfigUiForCombat()
         end
         frame:Hide()
     end
-
-    if StaticPopup_Hide then
-        StaticPopup_Hide("AYIJE_CDM_COPY_URL")
-        StaticPopup_Hide("AYIJE_CDM_CONFIRM_RESET_PROFILE")
-        StaticPopup_Hide("AYIJE_CDM_CONFIRM_COPY_PROFILE")
-        StaticPopup_Hide("AYIJE_CDM_CONFIRM_DELETE_PROFILE")
-    end
+    HideConfigPopups()
 end
 
 local function RegisterCombatConfigAutoClose()
@@ -160,6 +166,7 @@ local function CreateConfigFrame()
         if UI and UI.CloseAllDropdownMenus then
             UI.CloseAllDropdownMenus()
         end
+        HideConfigPopups()
     end)
 
     if ConfigFrame.TitleText then
@@ -194,6 +201,42 @@ local function CreateConfigFrame()
             frame:Hide()
         else
             frame:Show()
+        end
+    end)
+
+    local function UpdateComplianceButtonVisibility(btn)
+        if not CDM.GetCooldownViewerEditModeCompliance then
+            btn:Hide()
+            return
+        end
+        local result = CDM:GetCooldownViewerEditModeCompliance()
+        btn:SetShown(result.isReady and not result.isCompliant)
+    end
+
+    local complianceBtn = CreateFrame("Button", nil, titleContainer, "UIPanelButtonTemplate")
+    complianceBtn:SetSize(120, 24)
+    complianceBtn:SetPoint("LEFT", cdmBtn, "RIGHT", 6, 0)
+    complianceBtn:SetText(L["Fix Edit Mode"])
+    complianceBtn:Hide()
+
+    complianceBtn:SetScript("OnClick", function()
+        local status = CDM:ApplyCooldownViewerEditModeRecommendedSettings()
+        if status == "applied" then
+            ReloadUI()
+        else
+            complianceBtn:Hide()
+        end
+    end)
+
+    ConfigFrame:HookScript("OnShow", function()
+        UpdateComplianceButtonVisibility(complianceBtn)
+    end)
+
+    local complianceEventFrame = CreateFrame("Frame", nil, ConfigFrame)
+    complianceEventFrame:RegisterEvent("EDIT_MODE_LAYOUTS_UPDATED")
+    complianceEventFrame:SetScript("OnEvent", function()
+        if ConfigFrame:IsShown() then
+            UpdateComplianceButtonVisibility(complianceBtn)
         end
     end)
 

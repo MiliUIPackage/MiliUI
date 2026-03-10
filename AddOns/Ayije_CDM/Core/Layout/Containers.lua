@@ -47,6 +47,10 @@ local function GetUtilityVisibleCount()
     return count
 end
 
+function CDM:GetUtilityVisibleCount()
+    return GetUtilityVisibleCount()
+end
+
 local SetPixelPerfectPoint = CDM_C.SetPixelPerfectPoint
 local SnapContainerWidth = CDM_C.SnapContainerWidth
 

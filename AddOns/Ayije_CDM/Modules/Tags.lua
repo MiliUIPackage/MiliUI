@@ -33,15 +33,22 @@ local function IsBar2(textFrame)
         return false
     end
 
-    local powerTypes = CDM.currentPowerTypes
-    if powerTypes and #powerTypes >= 2 and powerTypes[2] == textFrame.powerType then
-        return true
+    local parentBar = textFrame.parentBar
+    if parentBar and parentBar.slotIndex ~= nil then
+        return parentBar.slotIndex == 2
+    end
+
+    if CDM.GetResourceBarSlotIndex then
+        local slotIndex = CDM:GetResourceBarSlotIndex(textFrame.powerType)
+        if slotIndex ~= nil then
+            return slotIndex == 2
+        end
     end
 
     return false
 end
 
-local function AlignCenteredTagToBar(textFrame)
+local function AlignCenteredTagToBar(textFrame, force)
     if not textFrame or textFrame._anchor ~= "CENTER" then
         return
     end
@@ -52,12 +59,17 @@ local function AlignCenteredTagToBar(textFrame)
         return
     end
 
-    local offsetXPx = ToPixelCountForRegion(textFrame._offsetX or 0, bar, 0)
-    local offsetYPx = ToPixelCountForRegion(textFrame._offsetY or 0, bar, 0)
+    if not force and textFrame._alignedCenterDone then
+        return
+    end
+
+    local offsetXPx = ToPixelCountForRegion(textFrame._offsetX or 0, bar)
+    local offsetYPx = ToPixelCountForRegion(textFrame._offsetY or 0, bar)
     local biasXSubPx, biasYPx = 0.5, 0
 
     text:ClearAllPoints()
     SetPointPixels(text, "CENTER", bar, "CENTER", offsetXPx + biasXSubPx, offsetYPx + biasYPx, bar)
+    textFrame._alignedCenterDone = true
 end
 
 
@@ -97,6 +109,10 @@ local function GetCurrentPower(powerType)
                 return 0
             end
             return math.floor((stagger / maxHealth) * 100 + 0.5)
+        elseif powerType == "Ironfur" then
+            return CDM.GetIronfurStackCount and CDM:GetIronfurStackCount() or 0
+        elseif powerType == "IgnorePain" then
+            return CDM.GetIgnorePainValue and CDM:GetIgnorePainValue() or 0
         end
         return 0
     end
@@ -162,7 +178,7 @@ function TAGS:UpdateTagText(textFrame)
 
     if isSecret or lastSecret or (textFrame._lastDisplayValue ~= current) then
         textFrame._lastDisplayValue = isSecret and nil or current
-        if textFrame.powerType == "Stagger" or textFrame.powerType == "SoulFragments" or textFrame.powerType == "DevourerSoulFragments" then
+        if textFrame.powerType == "Stagger" or textFrame.powerType == "SoulFragments" or textFrame.powerType == "DevourerSoulFragments" or textFrame.powerType == "Ironfur" or textFrame.powerType == "IgnorePain" then
             textFrame.text:SetText(C_StringUtil.TruncateWhenZero(current))
         elseif textFrame.powerType == Enum.PowerType.Mana then
             if CDM.db and CDM.db.resourcesManaPercentage then
@@ -214,7 +230,8 @@ function TAGS:UpdateTagPosition(textFrame)
     textFrame.text:SetJustifyH(anchor)
     textFrame.text:ClearAllPoints()
     SetPixelPerfectPoint(textFrame.text, anchor, textFrame.parentBar, anchor, offsetX, offsetY, textFrame.parentBar)
-    AlignCenteredTagToBar(textFrame)
+    textFrame._alignedCenterDone = false
+    AlignCenteredTagToBar(textFrame, true)
 end
 
 function TAGS:UpdateTagStyle(textFrame)

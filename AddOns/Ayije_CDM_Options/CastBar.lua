@@ -64,10 +64,23 @@ local function CreateCastBarTab(page, tabId)
                 page.controls.castBarWidthSlider.Slider:SetValue(60)
             end
             CDM.db.castBarWidth = value
+            page.UpdateAutoWidthLayout()
             RefreshCastBarConfig()
         end
     )
     page.controls.castBarWidthSlider:SetPoint("TOPLEFT", 0, NextY(0))
+
+    local autoSourceChecked = (CDM.db.castBarAutoWidthSource == "utility")
+    page.controls.castBarAutoWidthSource = UI.CreateModernCheckbox(
+        scrollChild,
+        L["Match Utility Width"],
+        autoSourceChecked,
+        function(checked)
+            CDM.db.castBarAutoWidthSource = checked and "utility" or "essential"
+            RefreshCastBarConfig()
+        end
+    )
+    page.controls.castBarAutoWidthSource:SetPoint("TOPLEFT", page.controls.castBarWidthSlider, "BOTTOMLEFT", 0, -5)
     NextY(60)
 
     page.controls.castBarHeightSlider = UI.CreateModernSlider(
@@ -81,6 +94,18 @@ local function CreateCastBarTab(page, tabId)
         end
     )
     page.controls.castBarHeightSlider:SetPoint("TOPLEFT", 0, NextY(0))
+
+    function page.UpdateAutoWidthLayout()
+        local isAuto = (CDM.db.castBarWidth or 300) == 0
+        page.controls.castBarAutoWidthSource:SetShown(isAuto)
+        page.controls.castBarHeightSlider:ClearAllPoints()
+        if isAuto then
+            page.controls.castBarHeightSlider:SetPoint("TOPLEFT", page.controls.castBarAutoWidthSource, "BOTTOMLEFT", 0, -10)
+        else
+            page.controls.castBarHeightSlider:SetPoint("TOPLEFT", page.controls.castBarWidthSlider, "BOTTOMLEFT", 0, -10)
+        end
+    end
+    page.UpdateAutoWidthLayout()
     NextY(60)
 
     local iconHeader = UI.CreateHeader(scrollChild, L["Spell Icon"])

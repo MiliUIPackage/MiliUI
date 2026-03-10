@@ -30,6 +30,7 @@ local reanchorVName = nil
 -- but keep distinct runtime reanchor policies here where their layout pipelines differ.
 local REANCHOR_READINESS_SKIP_VIEWERS = {
     [VIEWERS.BUFF_BAR] = true,
+    [VIEWERS.UTILITY] = true,
 }
 
 local REANCHOR_THROTTLE_INTERVALS = {
@@ -199,18 +200,26 @@ local function CollectFramesForReanchor(activeViewer, activeVName, inEditMode)
         return
     end
 
+    local hiddenBuffSet = CDM.resourcesHiddenBuffSet
     for frame in activeViewer.itemFramePool:EnumerateActive() do
         if activeVName == VIEWERS.BUFF then
             if inEditMode or IsBuffFrameReadyForReanchor(frame, activeViewer) then
-                local matchType, matchID, groupIdx = CheckBuffRegistryMatch(frame)
-
-                if matchType == "buffgroup" and groupIdx then
-                    if not tempBuffGroups[groupIdx] then
-                        tempBuffGroups[groupIdx] = {}
-                    end
-                    tempBuffGroups[groupIdx][#tempBuffGroups[groupIdx] + 1] = frame
+                local spellID = ResolveBaseSpellID(frame)
+                if spellID and hiddenBuffSet and hiddenBuffSet[spellID] then
+                    frame:ClearAllPoints()
+                    frame:SetParent(activeViewer)
+                    frame:Hide()
                 else
-                    tempBuff[#tempBuff + 1] = frame
+                    local matchType, matchID, groupIdx = CheckBuffRegistryMatch(frame)
+
+                    if matchType == "buffgroup" and groupIdx then
+                        if not tempBuffGroups[groupIdx] then
+                            tempBuffGroups[groupIdx] = {}
+                        end
+                        tempBuffGroups[groupIdx][#tempBuffGroups[groupIdx] + 1] = frame
+                    else
+                        tempBuff[#tempBuff + 1] = frame
+                    end
                 end
             end
         elseif frame:IsShown() or inEditMode or frame.cooldownInfo then
@@ -321,6 +330,7 @@ local function RunReanchor()
 
     local editModeFrame = _G.EditModeManagerFrame
     local inEditMode = activeSelf.isEditModeActive or (editModeFrame and editModeFrame:IsShown())
+
     if not activeViewer:IsShown() and not skipReadinessChecks and not inEditMode then
         if QueueReanchorRetryIfNotReady(activeSelf, activeViewer, activeVName) then
             return
@@ -360,9 +370,16 @@ local function RunReanchor()
         end
 
     elseif activeVName == VIEWERS.UTILITY then
+        local prevWidth = activeSelf._utilityContentWidth or 0
         activeSelf:PositionEssentialOrUtilityIcons(tempUtility, activeViewer, activeVName)
         if activeSelf.InvalidateUtilityVisibleCountCache then
             activeSelf:InvalidateUtilityVisibleCountCache()
+        end
+        local newWidth = activeSelf._utilityContentWidth or 0
+        if newWidth ~= prevWidth then
+            if activeSelf.UpdatePlayerCastBar then
+                activeSelf:UpdatePlayerCastBar()
+            end
         end
 
     elseif activeVName == VIEWERS.BUFF then

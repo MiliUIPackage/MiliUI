@@ -23,6 +23,8 @@ local lastTrinketsSpacing = nil
 local lastTrinketsPositionAnchor = nil
 local lastTrinketsWidth, lastTrinketsHeight = nil, nil
 local trinketsCooldownUpdatePending = false
+local trinketsDispatchFrame = CreateFrame("Frame")
+trinketsDispatchFrame:Hide()
 local TRINKETS_COOLDOWN_WATCH_OWNER = "CDM_Trinkets"
 local TRINKETS_SPELL_WATCH_OWNER = "CDM_Trinkets_Spells"
 
@@ -188,6 +190,11 @@ local function DoQueuedTrinketCooldowns()
     UpdateTrinketCooldowns()
 end
 
+trinketsDispatchFrame:SetScript("OnUpdate", function(self)
+    self:Hide()
+    DoQueuedTrinketCooldowns()
+end)
+
 local function QueueTrinketCooldownsUpdate()
     if not isEnabled or not trinketsStartupCooldownGate:IsSettled() then
         return
@@ -196,7 +203,7 @@ local function QueueTrinketCooldownsUpdate()
         return
     end
     trinketsCooldownUpdatePending = true
-    C_Timer.After(0, DoQueuedTrinketCooldowns)
+    trinketsDispatchFrame:Show()
 end
 
 local function OnTrinketCooldownWatchChanged()

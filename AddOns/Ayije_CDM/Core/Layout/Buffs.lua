@@ -239,6 +239,7 @@ local buffCenteringLastCustomStart = setmetatable({}, { __mode = "k" })
 local cachedVisibleCustomBuffFrames = {}
 local cachedVisibleCustomBuffCount = 0
 local cachedCustomBuffVersion = -1
+local hadCenteredBuffGlows = false
 
 local function HasVisibleSetChanged(visibleList, lastSet, lastCount)
     local count = #visibleList
@@ -343,8 +344,22 @@ local function ApplyGlowsToFrames(frames, specID)
         for _, frame in ipairs(frames) do
             CDM.Glow:RequestBuffGlow(frame, false, nil, nil)
         end
+        hadCenteredBuffGlows = false
         return
     end
+
+    local hasBuffGlows = CDM.HasAnySpellGlowConfigured and CDM:HasAnySpellGlowConfigured(specID) or false
+    if not hasBuffGlows then
+        if hadCenteredBuffGlows then
+            for _, frame in ipairs(frames) do
+                CDM.Glow:RequestBuffGlow(frame, false, nil, nil)
+            end
+        end
+        hadCenteredBuffGlows = false
+        return
+    end
+
+    hadCenteredBuffGlows = true
 
     for _, frame in ipairs(frames) do
         local frameData = GetFrameData(frame)
@@ -432,6 +447,7 @@ DisableBuffCentering = function()
     wipe(cachedVisibleCustomBuffFrames)
     cachedVisibleCustomBuffCount = 0
     cachedCustomBuffVersion = -1
+    hadCenteredBuffGlows = false
 end
 
 CDM.MarkBuffCenteringDirty = MarkBuffCenteringDirty

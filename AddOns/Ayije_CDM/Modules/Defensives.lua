@@ -600,6 +600,8 @@ end
 
 local UpdateDefensivesCooldownsOnly
 local defensivesUpdatePending = false
+local defensivesDispatchFrame = CreateFrame("Frame")
+defensivesDispatchFrame:Hide()
 local defensivesQueuedFullUpdate = false
 local defensivesQueuedCooldownUpdate = false
 local defensivesStartupCooldownGate = CDM.CreateStartupSettleGate(function()
@@ -626,6 +628,12 @@ local function DoDefensivesUpdate()
         UpdateDefensivesCooldownsOnly()
     end
 end
+
+defensivesDispatchFrame:SetScript("OnUpdate", function(self)
+    self:Hide()
+    DoDefensivesUpdate()
+end)
+
 local function QueueDefensivesUpdate(fullUpdate)
     if not fullUpdate and not defensivesStartupCooldownGate:IsSettled() then
         return
@@ -637,7 +645,7 @@ local function QueueDefensivesUpdate(fullUpdate)
     end
     if defensivesUpdatePending then return end
     defensivesUpdatePending = true
-    C_Timer.After(0, DoDefensivesUpdate)
+    defensivesDispatchFrame:Show()
 end
 
 local function OnDefensivesSpellWatchChanged(cooldownsChanged, chargesChanged)

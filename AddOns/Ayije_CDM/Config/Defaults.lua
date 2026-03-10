@@ -62,6 +62,14 @@ CDM.defaults = {
     assistOffsetX = 0,
     assistOffsetY = 0,
 
+    -- Press Overlay
+    pressOverlayEnabled = false,
+    pressOverlayTint = false,
+    pressOverlayTintColor = { r = 1, g = 1, b = 1, a = 0.35 },
+    pressOverlayHighlight = true,
+    pressOverlayBorder = false,
+    pressOverlayBorderColor = { r = 1, g = 1, b = 1, a = 1 },
+
     -- Module enable/disable toggles
     racialsEnabled = true,
     defensivesEnabled = true,
@@ -128,6 +136,7 @@ CDM.defaults = {
     resourcesOffsetY = -200,
     resourcesUnifiedBorder = false,
     resourcesMoveBuffsDown = false,
+    resourcesSmoothBars = true,
     resourcesBarTexture = "Solid",
     resourcesBarBackgroundTexture = "Solid",
 
@@ -147,6 +156,11 @@ CDM.defaults = {
 
     -- Druid / Balance
     resourcesLunarPowerColor = { r = 0.3, g = 0.52, b = 0.9, a = 1 },
+    resourcesIronfurColor = { r = 0.153, g = 0.616, b = 1.0, a = 1 },
+
+    -- Warrior / Protection
+    resourcesIgnorePainColor = { r = 0.9, g = 0.8, b = 0.2, a = 1 },
+    resourcesIgnorePainHideIcon = false,
 
     -- Shaman
     resourcesMaelstromColor = { r = 0, g = 0.5, b = 1, a = 1 },
@@ -163,6 +177,8 @@ CDM.defaults = {
     resourcesManaColor = { r = 0.0, g = 0.56, b = 1.0, a = 1 },
     resourcesManaSettings = {},  -- per-spec mana enabled: [specID] = true/false, nil = use default
     resourcesManaPercentage = false,  -- show mana as percentage (no % sign) instead of raw value
+    resourcesPrimaryResourceSettings = {},   -- per-spec: [specID] = false to hide, nil = show
+    resourcesSecondaryResourceSettings = {}, -- per-spec: [specID] = false to hide, nil = show
 
     -- Evoker
     resourcesEssenceColor = { r = 0.16, g = 0.57, b = 0.49, a = 1 },
@@ -206,6 +222,7 @@ CDM.defaults = {
     castBarEnabled = true,
     hideBlizzardCastBar = false,
     castBarWidth = 0,
+    castBarAutoWidthSource = "essential",
     castBarHeight = 20,
     castBarFontSize = 15,
     castBarShowSpellName = true,

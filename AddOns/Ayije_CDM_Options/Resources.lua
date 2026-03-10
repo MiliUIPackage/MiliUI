@@ -8,6 +8,15 @@ local L = Runtime.L
 
 local RESOURCES_REFRESH_SCOPES = { "resources_visuals", "castbar_visuals", "trackers_layout", "viewers" }
 
+local function OnResourcesSpecChanged()
+    if not ns.ConfigFrame or not ns.ConfigFrame:IsShown() then return end
+    C_Timer.After(0.3, function()
+        if not ns.ConfigFrame or not ns.ConfigFrame:IsShown() then return end
+        API:RebuildConfigFrame("resources")
+    end)
+end
+API:RegisterInternalCallback("OnSpecStateChanged", OnResourcesSpecChanged)
+
 local function RefreshResourcesConfig()
     if API.RefreshScopes then
         API:RefreshScopes(RESOURCES_REFRESH_SCOPES)
@@ -67,6 +76,8 @@ local RESOURCE_COLOR_DEFS = {
     { key = "resourcesRunesRechargingColor", label = L["Runes Recharging"] },
     { key = "resourcesSoulFragmentsColor", label = L["Soul Fragments"] },
     { key = "resourcesDevourerSoulFragmentsColor", label = L["Devourer Souls"] },
+    { key = "resourcesIronfurColor", label = L["Ironfur"] },
+    { key = "resourcesIgnorePainColor", label = L["Ignore Pain"], specID = 73 },
     { key = "resourcesStaggerLightColor", label = L["Light (<30%)"] },
     { key = "resourcesStaggerModerateColor", label = L["Moderate (30-60%)"] },
     { key = "resourcesStaggerHeavyColor", label = L["Heavy (>60%)"] },
@@ -89,6 +100,7 @@ local CLASS_RESOURCE_KEYS = {
         "resourcesEnergyColor",
         "resourcesComboPointsColor",
         "resourcesLunarPowerColor",
+        "resourcesIronfurColor",
     },
     EVOKER = {
         "resourcesManaColor",
@@ -135,6 +147,7 @@ local CLASS_RESOURCE_KEYS = {
     },
     WARRIOR = {
         "resourcesRageColor",
+        "resourcesIgnorePainColor",
     },
 }
 
@@ -152,7 +165,7 @@ local function BuildClassResourceSet(playerClass)
 end
 
 local function CreateResourcesTab(page, tabId)
-    local resourcesScrollChild = UI.CreateScrollableTab(page, "AyijeCDM_ResourcesScrollFrame", 1250, 370)
+    local resourcesScrollChild = UI.CreateScrollableTab(page, "AyijeCDM_ResourcesScrollFrame", 1285, 370)
 
     local layout = UI.CreateVerticalLayout(0)
     local function NextY(spacing) return layout:Next(spacing) end
@@ -174,6 +187,43 @@ local function CreateResourcesTab(page, tabId)
         end
     )
     page.controls.resourcesEnabled:SetPoint("TOPLEFT", -34, NextY(0))
+    NextY(35)
+
+    page.controls.primaryResourceCheckbox = UI.CreateModernCheckbox(
+        resourcesScrollChild,
+        L["Show Primary Resource"],
+        API:GetPrimaryResourceEnabled(),
+        function(checked)
+            API:SetPrimaryResourceEnabled(checked)
+            RefreshResourcesConfig()
+        end
+    )
+    page.controls.primaryResourceCheckbox:SetPoint("TOPLEFT", 0, NextY(0))
+
+    page.controls.secondaryResourceCheckbox = UI.CreateModernCheckbox(
+        resourcesScrollChild,
+        L["Show Secondary Resource"],
+        API:GetSecondaryResourceEnabled(),
+        function(checked)
+            API:SetSecondaryResourceEnabled(checked)
+            RefreshResourcesConfig()
+        end
+    )
+    page.controls.secondaryResourceCheckbox:SetPoint("LEFT", page.controls.primaryResourceCheckbox, "LEFT", 200, 0)
+    NextY(35)
+
+    local smoothBarsVal = CDM.db.resourcesSmoothBars
+    if smoothBarsVal == nil then smoothBarsVal = true end
+    page.controls.smoothBarsCheckbox = UI.CreateModernCheckbox(
+        resourcesScrollChild,
+        L["Smooth Bars"],
+        smoothBarsVal,
+        function(checked)
+            CDM.db.resourcesSmoothBars = checked
+            RefreshResourcesConfig()
+        end
+    )
+    page.controls.smoothBarsCheckbox:SetPoint("TOPLEFT", 0, NextY(0))
     NextY(35)
 
     local resourcesBarSizeHeader = UI.CreateHeader(resourcesScrollChild, L["Bar Dimensions"])
@@ -407,6 +457,7 @@ local function CreateResourcesTab(page, tabId)
             frame = swatch,
             key = def.key,
             always = def.always,
+            specID = def.specID,
             spacing = 60,
         })
         return swatch
@@ -430,6 +481,19 @@ local function CreateResourcesTab(page, tabId)
         if def.key == "resourcesBackgroundColor" then
             page.backgroundColorPicker = swatch
         end
+        if def.key == "resourcesIgnorePainColor" then
+            local hideIconCB = UI.CreateModernCheckbox(
+                resourcesScrollChild,
+                L["Hide Icon"],
+                CDM.db.resourcesIgnorePainHideIcon == true,
+                function(checked)
+                    CDM.db.resourcesIgnorePainHideIcon = checked
+                    RefreshResourcesConfig()
+                end
+            )
+            hideIconCB:SetPoint("LEFT", swatch, "LEFT", 200, 0)
+            swatch.hideIconCB = hideIconCB
+        end
     end
 
     local function LayoutColorItems(startY)
@@ -442,16 +506,26 @@ local function CreateResourcesTab(page, tabId)
                 showItem = item.always or classResourceSet[item.key]
             end
 
+            if showItem and item.specID then
+                showItem = (currentSpecID == item.specID)
+            end
+
             if showItem then
                 table.insert(visibleItems, item)
             else
                 item.frame:Hide()
+                if item.frame.hideIconCB then
+                    item.frame.hideIconCB:Hide()
+                end
             end
         end
 
         local y = startY
         for i, item in ipairs(visibleItems) do
             item.frame:Show()
+            if item.frame.hideIconCB then
+                item.frame.hideIconCB:Show()
+            end
             item.frame:ClearAllPoints()
             item.frame:SetPoint("TOPLEFT", 0, y)
             if i < #visibleItems then
@@ -631,7 +705,7 @@ local function CreateResourcesTab(page, tabId)
             API:GetTagEnabled(isBar2),
             function(checked)
                 API:SetTagEnabled(isBar2, checked)
-                if CDM.TAGS then CDM.TAGS:UpdateAllTags() end
+                RefreshResourcesConfig()
             end
         )
         page[prefix .. "TagEnabledCheck"]:SetPoint("TOPLEFT", 0, NextY(0))

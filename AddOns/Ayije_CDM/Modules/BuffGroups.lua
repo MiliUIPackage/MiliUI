@@ -6,6 +6,7 @@ local SetPixelPerfectPoint = CDM_C.SetPixelPerfectPoint
 local ToPixelCountForRegion = CDM_C.ToPixelCountForRegion
 local PixelsToUIForRegion = CDM_C.PixelsToUIForRegion
 local SetPointPixels = CDM_C.SetPointPixels
+local LSM = LibStub("LibSharedMedia-3.0")
 
 CDM.buffGroupContainers = {}
 
@@ -98,6 +99,88 @@ local scratchSlotToRawSpell = {}
 local spellVariantBaseCache = {}
 local spellVariantOverrideCache = {}
 
+local soundThrottles = {}
+local SOUND_THROTTLE = 1
+local playerIsDead = false
+local hadGroupedBuffGlows = false
+local groupedGlowCleanupGeneration = 0
+local groupedGlowCleanupActiveGeneration = 0
+
+local function UpdatePlayerDeathState()
+    playerIsDead = UnitIsDeadOrGhost("player") and true or false
+end
+
+local function AreBuffNotificationsReady()
+    if playerIsDead then
+        return false
+    end
+    if not CDM.loginFinished then
+        return false
+    end
+    if CDM.loadingScreenActive then
+        return false
+    end
+    local token = CDM.enterWorldToken or 0
+    if token <= 0 then
+        return false
+    end
+    return CDM.visualSetupToken == token
+end
+
+local function PlayBuffSound(soundName, spellID)
+    if not soundName then return end
+    local now = GetTime()
+    if soundThrottles[spellID] and now - soundThrottles[spellID] < SOUND_THROTTLE then return end
+    soundThrottles[spellID] = now
+    local path = LSM:Fetch("sound", soundName)
+    if path then PlaySoundFile(path, "Master") end
+end
+
+local function PlayBuffTTS(text, spellID)
+    if not text or text == "" then return end
+    local voiceID = C_TTSSettings and C_TTSSettings.GetVoiceOptionID(0)
+    if not voiceID then return end
+    local now = GetTime()
+    if soundThrottles[spellID] and now - soundThrottles[spellID] < SOUND_THROTTLE then return end
+    soundThrottles[spellID] = now
+    pcall(C_VoiceChat.SpeakText, voiceID, text, 0, 100, false)
+end
+
+local function GetOverrideEventValue(ov, onHide, hideKey, showKey)
+    if type(ov) ~= "table" then
+        return nil
+    end
+
+    if onHide then
+        return ov[hideKey]
+    end
+
+    return ov[showKey]
+end
+
+local function PlayBuffOverrideNotification(ov, spellID, onHide)
+    if type(ov) ~= "table" or not spellID then
+        return false
+    end
+
+    if ov.ttsEnabled and ((onHide and ov.ttsOnHideEnabled) or (not onHide and ov.ttsOnShowEnabled)) then
+        local text = GetOverrideEventValue(ov, onHide, "ttsOnHide", "ttsOnShow")
+        text = (text and text ~= "") and text or C_Spell.GetSpellName(spellID)
+        PlayBuffTTS(text, spellID)
+        return true
+    end
+
+    if ov.soundEnabled and ((onHide and ov.soundOnHideEnabled ~= false) or (not onHide and ov.soundOnShowEnabled ~= false)) then
+        local soundName = GetOverrideEventValue(ov, onHide, "soundOnHide", "soundOnShow")
+        if soundName then
+            PlayBuffSound(soundName, spellID)
+            return true
+        end
+    end
+
+    return false
+end
+
 local function GetConfiguredBorderColor()
     local fallback = (CDM.defaults and CDM.defaults.borderColor) or { r = 0, g = 0, b = 0, a = 1 }
     local color = CDM_C.GetConfigValue("borderColor", fallback)
@@ -148,6 +231,9 @@ if API then
 end
 
 local function ResolveSpellOverrideEntry(overrideMap, spellID)
+    if CDM.ResolveBuffOverrideEntry then
+        return CDM:ResolveBuffOverrideEntry(overrideMap, spellID)
+    end
     if not overrideMap or not spellID then return nil end
     if overrideMap[spellID] then return overrideMap[spellID] end
     local base = NormalizeToBase(spellID)
@@ -650,10 +736,34 @@ end
 
 local function ApplyGlowForGroupedFrame(frame, specID)
     if not (frame and CDM.Glow) then return end
+    local frameData = GetFrameData(frame)
     if not specID then
         CDM.Glow:RequestBuffGlow(frame, false, nil, nil)
+        if frameData then
+            frameData.cdmGroupedGlowCleanupGeneration = groupedGlowCleanupActiveGeneration
+        end
+        hadGroupedBuffGlows = false
         return
     end
+
+    local hasBuffGlows = CDM.HasAnySpellGlowConfigured and CDM:HasAnySpellGlowConfigured(specID) or false
+    if not hasBuffGlows then
+        if hadGroupedBuffGlows then
+            groupedGlowCleanupGeneration = groupedGlowCleanupGeneration + 1
+            groupedGlowCleanupActiveGeneration = groupedGlowCleanupGeneration
+            hadGroupedBuffGlows = false
+        end
+
+        if groupedGlowCleanupActiveGeneration ~= 0
+            and frameData
+            and frameData.cdmGroupedGlowCleanupGeneration ~= groupedGlowCleanupActiveGeneration then
+            frameData.cdmGroupedGlowCleanupGeneration = groupedGlowCleanupActiveGeneration
+            CDM.Glow:RequestBuffGlow(frame, false, nil, nil)
+        end
+        return
+    end
+
+    hadGroupedBuffGlows = true
 
     local glowEnabled, glowColor, glowSourceID = false, nil, nil
     if CDM.ResolveBuffGlowState then
@@ -827,6 +937,7 @@ function CDM:UpdateAllBuffGroupContainers()
 
     SyncPositionCallbacks()
 end
+
 
 function CDM:PositionBuffGroupFrames(groupIndex, frames)
     ClearSpellVariantResolutionCaches()
@@ -1038,6 +1149,7 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
             frameData.cdmStaticGroupSpellID = nil
             frameData.cdmStaticPlaceholderEligible = nil
         end
+
     end
 
     if isStatic then
@@ -1073,9 +1185,11 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
     else
         ReleaseGroupPlaceholders(groupIndex)
     end
+
 end
 
 CDM:RegisterRefreshCallback("buffGroups", function()
+    table.wipe(soundThrottles)
     local toRelease
     for idx in pairs(activePlaceholders) do
         if not toRelease then toRelease = {} end
@@ -1109,6 +1223,12 @@ CDM:RegisterEvent("PLAYER_ENTERING_WORLD", QueuePlaceholderReadinessRefresh)
 CDM:RegisterInternalCallback("OnTalentDataChanged", QueuePlaceholderReadinessRefresh)
 CDM:RegisterInternalCallback("OnSpecStateChanged", OnPlaceholderSpecStateChanged)
 
+UpdatePlayerDeathState()
+CDM:RegisterEvent("PLAYER_ENTERING_WORLD", UpdatePlayerDeathState)
+CDM:RegisterEvent("PLAYER_DEAD", UpdatePlayerDeathState)
+CDM:RegisterEvent("PLAYER_ALIVE", UpdatePlayerDeathState)
+CDM:RegisterEvent("PLAYER_UNGHOST", UpdatePlayerDeathState)
+
 function CDM:GetUngroupedBuffOverride(spellID)
     if not spellID then return nil end
     local specID = self.GetCurrentSpecID and self:GetCurrentSpecID()
@@ -1120,15 +1240,55 @@ function CDM:GetUngroupedBuffOverride(spellID)
     return ResolveSpellOverrideEntry(specOv, spellID)
 end
 
+local function OnBuffAuraNotification(frame, onHide)
+    if not AreBuffNotificationsReady() then return end
+    local candidates = CDM.GetSpellIDCandidates and CDM:GetSpellIDCandidates(frame, true)
+    if not candidates then return end
+
+    for _, id in ipairs(candidates) do
+        local matchType, matchID, groupIdx = CDM.CheckIDAgainstRegistry(id)
+        if matchType == "buffgroup" and groupIdx then
+            local sets = CDM.BuffGroupSets
+            local groupData = sets and sets.groups and sets.groups[groupIdx]
+            local ov = GetSpellOverride(groupData, matchID)
+            PlayBuffOverrideNotification(ov, matchID, onHide)
+            return
+        end
+    end
+
+    for _, id in ipairs(candidates) do
+        local ov = CDM:GetUngroupedBuffOverride(id)
+        if ov then
+            PlayBuffOverrideNotification(ov, id, onHide)
+            return
+        end
+    end
+end
+
+if CooldownViewerBuffIconItemMixin then
+    if CooldownViewerBuffIconItemMixin.TriggerAuraAppliedAlert then
+        hooksecurefunc(CooldownViewerBuffIconItemMixin, "TriggerAuraAppliedAlert", function(frame)
+            OnBuffAuraNotification(frame, false)
+        end)
+    end
+    if CooldownViewerBuffIconItemMixin.TriggerAuraRemovedAlert then
+        hooksecurefunc(CooldownViewerBuffIconItemMixin, "TriggerAuraRemovedAlert", function(frame)
+            OnBuffAuraNotification(frame, true)
+        end)
+    end
+end
+
 function CDM:ApplyUngroupedBuffOverrides(frame)
     if not frame then return end
     local frameData = GetFrameData(frame)
     local ov
+    local matchedSpellID
     if self.GetSpellIDCandidates then
         local candidates = self:GetSpellIDCandidates(frame, true)
         for _, candidateID in ipairs(candidates) do
             ov = self:GetUngroupedBuffOverride(candidateID)
             if ov then
+                matchedSpellID = candidateID
                 break
             end
         end
@@ -1138,8 +1298,10 @@ function CDM:ApplyUngroupedBuffOverrides(frame)
         local spellID = CDM.GetBaseSpellID and CDM.GetBaseSpellID(frame)
         if not spellID then return end
         ov = self:GetUngroupedBuffOverride(spellID)
+        if ov then matchedSpellID = spellID end
     end
     if not ov then return end
+    matchedSpellID = NormalizeToBase(matchedSpellID) or matchedSpellID
 
     local db = self.db
 

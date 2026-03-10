@@ -15,6 +15,7 @@ setmetatable(API, {
 })
 
 CDM.defensivesHiddenSet = {}
+CDM.resourcesHiddenBuffSet = {}
 
 local nativeRegisterEvent = CDM.RegisterEvent
 local nativeUnregisterEvent = CDM.UnregisterEvent

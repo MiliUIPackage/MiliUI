@@ -4,6 +4,8 @@ local CDM_C = CDM and CDM.CONST or {}
 
 local watcherFrame = CreateFrame("Frame")
 local dispatchPending = false
+local dispatchFrame = CreateFrame("Frame")
+dispatchFrame:Hide()
 local hasCooldownPending = false
 local hasChargesPending = false
 
@@ -54,13 +56,18 @@ local function DoDispatchSpellWatchers()
     end
 end
 
+dispatchFrame:SetScript("OnUpdate", function(self)
+    self:Hide()
+    DoDispatchSpellWatchers()
+end)
+
 local function QueueDispatchSpellWatchers()
     if dispatchPending or activeSpellCount <= 0 then
         return
     end
 
     dispatchPending = true
-    C_Timer.After(0, DoDispatchSpellWatchers)
+    dispatchFrame:Show()
 end
 
 watcherFrame:SetScript("OnEvent", function(_, event)

@@ -37,7 +37,7 @@ local function GetFrameCooldownInfo(frame)
     return frame.GetCooldownInfo and frame:GetCooldownInfo() or frame.cooldownInfo
 end
 
-function CDM:GetSpellIDCandidates(frame, includeBase, skipAura)
+function CDM:GetSpellIDCandidates(frame, includeBase)
     if not frame then return {} end
 
     local frameData = GetFrameData(frame)
@@ -57,18 +57,14 @@ function CDM:GetSpellIDCandidates(frame, includeBase, skipAura)
         table.wipe(seen)
     end
 
-    if not skipAura and frame.GetAuraSpellID then
-        AddCandidate(out, seen, frame:GetAuraSpellID())
-    end
-
     AddCandidate(out, seen, CallFrameMethod(frame, "GetSpellID"))
 
     local info = GetFrameCooldownInfo(frame)
     if info then
-        AddCandidate(out, seen, info.linkedSpellID)
-        AddCandidate(out, seen, info.overrideTooltipSpellID)
-        AddCandidate(out, seen, info.overrideSpellID)
         AddCandidate(out, seen, info.spellID)
+        AddCandidate(out, seen, info.overrideSpellID)
+        AddCandidate(out, seen, info.overrideTooltipSpellID)
+        AddCandidate(out, seen, info.linkedSpellID)
         if info.linkedSpellIDs then
             for _, linkedID in ipairs(info.linkedSpellIDs) do
                 AddCandidate(out, seen, linkedID)
@@ -168,6 +164,7 @@ end
 
 CDM.SpellSets = {
     colors = COLOR_REGISTRY,
+    hasBuffGlows = false,
 }
 
 local normalizeBaseCache = {}
@@ -239,22 +236,8 @@ end
 
 CDM.NormalizeToBase = NormalizeToBase
 
-local BUFF_GROUP_SET = {}
-
-local function CheckIDAgainstRegistry(id)
-    if not IsUsableID(id) then return nil, nil end
-    if BUFF_GROUP_SET[id] then return "buffgroup", id, BUFF_GROUP_SET[id] end
-    local normalized = NormalizeToBase(id)
-    if normalized and normalized ~= id then
-        if BUFF_GROUP_SET[normalized] then return "buffgroup", normalized, BUFF_GROUP_SET[normalized] end
-    end
-    return nil, nil
-end
-
-CDM.CheckIDAgainstRegistry = CheckIDAgainstRegistry
-
 local function GetBaseSpellIfDifferent(spellID)
-    if not spellID then return nil end
+    if not IsUsableID(spellID) then return nil end
     local base = NormalizeToBase(spellID)
     return (base and base ~= spellID) and base or nil
 end
@@ -267,16 +250,227 @@ local function GetOverrideSpellIfDifferent(spellID)
     end
 end
 
+local scratchMatchCandidates = {}
+local scratchMatchSeen = {}
+local scratchMatchCandidatesAlt = {}
+local scratchMatchSeenAlt = {}
+local scratchMatchShared = {}
+
+local function BuildBuffGroupMatchCandidatesInto(spellID, out, outSeen)
+    table.wipe(out)
+    table.wipe(outSeen)
+    if not IsUsableID(spellID) then return out end
+
+    AddCandidate(out, outSeen, spellID)
+
+    local baseID = GetBaseSpellIfDifferent(spellID)
+    if baseID then
+        AddCandidate(out, outSeen, baseID)
+    end
+
+    local overrideID = GetOverrideSpellIfDifferent(spellID)
+    if overrideID then
+        AddCandidate(out, outSeen, overrideID)
+        AddCandidate(out, outSeen, GetBaseSpellIfDifferent(overrideID))
+    end
+
+    if baseID then
+        AddCandidate(out, outSeen, GetOverrideSpellIfDifferent(baseID))
+    end
+
+    return out
+end
+
+local function BuildBuffGroupMatchCandidates(spellID)
+    return BuildBuffGroupMatchCandidatesInto(spellID, {}, {})
+end
+
+function CDM:GetBuffGroupMatchCandidates(spellID)
+    return BuildBuffGroupMatchCandidates(spellID)
+end
+
+function CDM:AreBuffGroupSpellIDsEquivalent(leftSpellID, rightSpellID)
+    if not IsUsableID(leftSpellID) or not IsUsableID(rightSpellID) then
+        return false
+    end
+    if leftSpellID == rightSpellID then
+        return true
+    end
+
+    table.wipe(scratchMatchShared)
+    for _, candidateID in ipairs(BuildBuffGroupMatchCandidatesInto(leftSpellID, scratchMatchCandidates, scratchMatchSeen)) do
+        scratchMatchShared[candidateID] = true
+    end
+    for _, candidateID in ipairs(BuildBuffGroupMatchCandidatesInto(rightSpellID, scratchMatchCandidatesAlt, scratchMatchSeenAlt)) do
+        if scratchMatchShared[candidateID] then
+            return true
+        end
+    end
+
+    return false
+end
+
+function CDM:GetPreferredBuffGroupSpellID(frame)
+    if not frame then return nil end
+    local candidates = self:GetSpellIDCandidates(frame, true)
+    return candidates and candidates[1] or nil
+end
+
+function CDM:GetBuffOverrideStorageKey(spellID)
+    if not IsUsableID(spellID) then
+        return nil
+    end
+    return NormalizeToBase(spellID)
+end
+
+local function CopyOverrideEntry(entry)
+    if type(entry) ~= "table" then return entry end
+
+    local copy = {}
+    for key, value in pairs(entry) do
+        if type(value) == "table" then
+            local subCopy = {}
+            for subKey, subValue in pairs(value) do
+                subCopy[subKey] = subValue
+            end
+            copy[key] = subCopy
+        else
+            copy[key] = value
+        end
+    end
+
+    return copy
+end
+
+function CDM:CopyBuffOverrideEntry(entry)
+    return CopyOverrideEntry(entry)
+end
+
+local function MergeMissingOverrideFields(target, source)
+    if type(target) ~= "table" or type(source) ~= "table" then return end
+
+    for key, value in pairs(source) do
+        if target[key] == nil then
+            target[key] = CopyOverrideEntry(value)
+        end
+    end
+end
+
+function CDM:MergeMissingBuffOverrideFields(target, source)
+    MergeMissingOverrideFields(target, source)
+end
+
+local function CollectMergedBuffOverrideEntry(overrideMap, spellID, removeEntries)
+    if type(overrideMap) ~= "table" or not IsUsableID(spellID) then
+        return nil, {}
+    end
+
+    local keys = BuildBuffGroupMatchCandidatesInto(spellID, scratchMatchCandidates, scratchMatchSeen)
+    local merged
+    for _, key in ipairs(keys) do
+        local entry = overrideMap[key]
+        if type(entry) == "table" then
+            if not merged then
+                merged = CopyOverrideEntry(entry)
+            else
+                MergeMissingOverrideFields(merged, entry)
+            end
+            if removeEntries then
+                overrideMap[key] = nil
+            end
+        end
+    end
+
+    return merged, keys
+end
+
+function CDM:ResolveBuffOverrideEntry(overrideMap, spellID)
+    if type(overrideMap) ~= "table" or not IsUsableID(spellID) then
+        return nil
+    end
+
+    for _, key in ipairs(BuildBuffGroupMatchCandidatesInto(spellID, scratchMatchCandidates, scratchMatchSeen)) do
+        local entry = overrideMap[key]
+        if type(entry) == "table" then
+            return entry
+        end
+    end
+
+    return nil
+end
+
+function CDM:GetMergedBuffOverrideEntry(overrideMap, spellID)
+    return (CollectMergedBuffOverrideEntry(overrideMap, spellID, false))
+end
+
+function CDM:EnsureBuffOverrideEntry(overrideMap, spellID)
+    if type(overrideMap) ~= "table" or not IsUsableID(spellID) then
+        return nil
+    end
+
+    local target, keys = CollectMergedBuffOverrideEntry(overrideMap, spellID, false)
+    local storageKey = self:GetBuffOverrideStorageKey(spellID)
+    if not IsUsableID(storageKey) then
+        return nil
+    end
+
+    if not target then
+        target = {}
+    end
+
+    overrideMap[storageKey] = target
+    for _, key in ipairs(keys) do
+        if key ~= storageKey then
+            overrideMap[key] = nil
+        end
+    end
+
+    return target
+end
+
+function CDM:ExtractMergedBuffOverrideEntry(overrideMap, spellID)
+    return (CollectMergedBuffOverrideEntry(overrideMap, spellID, true))
+end
+
+function CDM:StoreMergedBuffOverrideEntry(overrideMap, spellID, incoming)
+    if type(overrideMap) ~= "table" or type(incoming) ~= "table" or not IsUsableID(spellID) then
+        return
+    end
+
+    local storageKey = self:GetBuffOverrideStorageKey(spellID)
+    if not IsUsableID(storageKey) then
+        return
+    end
+
+    for _, key in ipairs(BuildBuffGroupMatchCandidatesInto(spellID, scratchMatchCandidates, scratchMatchSeen)) do
+        if key ~= storageKey then
+            overrideMap[key] = nil
+        end
+    end
+
+    overrideMap[storageKey] = CopyOverrideEntry(incoming)
+end
+
+local BUFF_GROUP_SET = {}
+
+local function CheckIDAgainstRegistry(id)
+    if not IsUsableID(id) then return nil, nil end
+
+    for _, candidateID in ipairs(BuildBuffGroupMatchCandidatesInto(id, scratchMatchCandidates, scratchMatchSeen)) do
+        if BUFF_GROUP_SET[candidateID] then
+            return "buffgroup", candidateID, BUFF_GROUP_SET[candidateID]
+        end
+    end
+
+    return nil, nil
+end
+
+CDM.CheckIDAgainstRegistry = CheckIDAgainstRegistry
+
 local function StoreWithVariants(targetSet, id, value)
     if not IsUsableID(id) then return end
-    targetSet[id] = value
-    local overrideID = GetOverrideSpellIfDifferent(id)
-    if overrideID then targetSet[overrideID] = value end
-    local baseID = GetBaseSpellIfDifferent(id)
-    if baseID then
-        targetSet[baseID] = value
-        local baseOverride = GetOverrideSpellIfDifferent(baseID)
-        if baseOverride then targetSet[baseOverride] = value end
+    for _, candidateID in ipairs(BuildBuffGroupMatchCandidatesInto(id, scratchMatchCandidates, scratchMatchSeen)) do
+        targetSet[candidateID] = value
     end
 end
 
@@ -324,6 +518,7 @@ function CDM:ResetFrameSpellCache(frame)
     frameData.cdmAuraLastSpellID = nil
     frameData.cdmLastBorderColorID = nil
     frameData.cdmLastBorderStyleVersion = nil
+    frameData.cdmResolvedBorderColor = nil
     frameData.cdmBuffGlowSourceID = nil
 end
 
@@ -353,6 +548,7 @@ function CDM:InvalidateFrameCategoryCache()
                 fd.buffCategorySpellID = nil
                 fd.cdmLastBorderColorID = nil
                 fd.cdmLastBorderStyleVersion = nil
+                fd.cdmResolvedBorderColor = nil
             end
         end
     end
@@ -375,8 +571,9 @@ local function CheckBuffRegistryMatch(frame)
     for _, id in ipairs(candidates) do
         matchType, matchID, groupIdx = CheckIDAgainstRegistry(id)
         if matchType then
-            frameData.buffCategorySpellID = matchID
-            return matchType, matchID, groupIdx
+            local canonicalID = NormalizeToBase(matchID) or matchID
+            frameData.buffCategorySpellID = canonicalID
+            return matchType, canonicalID, groupIdx
         end
     end
 
@@ -397,15 +594,22 @@ end
 
 function CDM:RefreshSpecData()
     local specIndex = GetSpecialization()
-    if not specIndex then return end
+    if not specIndex then
+        self.SpellSets.hasBuffGlows = false
+        return
+    end
 
     local specID = GetSpecializationInfo(specIndex)
-    if not specID then return end
+    if not specID then
+        self.SpellSets.hasBuffGlows = false
+        return
+    end
 
     if specID == lastRefreshSpecID and not specDataDirty then return end
 
     table.wipe(COLOR_REGISTRY)
     table.wipe(BUFF_GROUP_SET)
+    self.SpellSets.hasBuffGlows = false
 
     self:ClearNormalizationCache()
     self:InvalidateFrameCategoryCache()
@@ -418,6 +622,11 @@ function CDM:RefreshSpecData()
             StoreWithVariants(COLOR_REGISTRY, id, color)
         end
     end
+
+    local rawSpellRegistry = self.db and self.db.spellRegistry
+    local rawSpecRegistry = rawSpellRegistry and rawSpellRegistry[specID]
+    self.SpellSets.hasBuffGlows = type(rawSpecRegistry and rawSpecRegistry.glowEnabled) == "table"
+        and next(rawSpecRegistry.glowEnabled) ~= nil or false
 
     if self.RefreshBuffGroupData then
         self:RefreshBuffGroupData()

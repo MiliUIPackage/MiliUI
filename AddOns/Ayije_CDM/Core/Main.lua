@@ -541,6 +541,13 @@ local function SetupMixinHooks()
 
             RefreshFrameSpellIdentity(frame)
 
+            if CDM.NotifyBuffFrameSpellID then
+                local baseID = CDM.GetBaseSpellID(frame)
+                if baseID then
+                    CDM:NotifyBuffFrameSpellID(frame, baseID)
+                end
+            end
+
             QueueBuffViewerFromFrame(frame, true)
         end)
     end
@@ -548,6 +555,14 @@ local function SetupMixinHooks()
     if CooldownViewerBuffIconItemMixin and CooldownViewerBuffIconItemMixin.OnActiveStateChanged then
         hooksecurefunc(CooldownViewerBuffIconItemMixin, "OnActiveStateChanged", function(frame)
             RefreshFrameSpellIdentity(frame)
+
+            if CDM.NotifyBuffFrameSpellID then
+                local baseID = CDM.GetBaseSpellID(frame)
+                if baseID then
+                    CDM:NotifyBuffFrameSpellID(frame, baseID)
+                end
+            end
+
             QueueBuffViewerFromFrame(frame, true)
         end)
     end
@@ -640,9 +655,6 @@ local function SetupEditModeIntegration()
         CDM:SetupEditModeCooldownViewerLock()
     end
 
-    if CDM.SetupCooldownViewerEditModeCompliancePrompt then
-        CDM:SetupCooldownViewerEditModeCompliancePrompt()
-    end
 end
 
 local function SetupZoneTransitionEvents()
@@ -846,6 +858,10 @@ local function InitializeModules()
     if CDM.RotationAssist and CDM.RotationAssist.Initialize then
         CDM.RotationAssist:Initialize()
     end
+
+    if CDM.PressOverlay and CDM.PressOverlay.Initialize then
+        CDM.PressOverlay:Initialize()
+    end
 end
 
 local function RegisterRefreshCallbacks()
@@ -915,6 +931,12 @@ local function RegisterRefreshCallbacks()
 end
 
 function CDM:OnEnable()
+    SLASH_AYIJECDM1 = "/cdm"
+    SLASH_AYIJECDM2 = "/acdm"
+    SlashCmdList["AYIJECDM"] = function()
+        CDM:RequestConfigOpen("slash", nil)
+    end
+
     InitConstants()
 
     CreateBuffContainers()

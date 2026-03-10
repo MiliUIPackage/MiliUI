@@ -326,8 +326,14 @@ end
 
 local function GetCastBarWidth()
     local w = CfgVal("castBarWidth", 300)
-    if w == 0 and CDM.CalculateEssentialRow1Width then
-        w = CDM.CalculateEssentialRow1Width()
+    if w == 0 then
+        local source = CfgVal("castBarAutoWidthSource", "essential")
+        if source == "utility" and CDM:GetUtilityVisibleCount() > 0 then
+            w = CDM:GetUtilityContentWidth()
+        end
+        if w == 0 and CDM.CalculateEssentialRow1Width then
+            w = CDM.CalculateEssentialRow1Width()
+        end
     end
     if w == 0 then w = 200 end
     return w

@@ -6,10 +6,17 @@ CDM.Keybinds = CDM.Keybinds or {}
 local Keybinds = CDM.Keybinds
 
 local isEnabled = false
+local assistActive = false
+local eventsActive = false
 local keybindCache = {}
 local itemKeybindCache = {}
+local rawKeyCache = {}
+local itemRawKeyCache = {}
 local keybindCacheVersion = 0
 local invalidatePending = false
+local invalidateDispatchFrame = CreateFrame("Frame")
+invalidateDispatchFrame:Hide()
+local cachedMainBarPage = nil
 
 local eventFrame = CreateFrame("Frame")
 
@@ -28,17 +35,61 @@ local PAGE_TO_BINDING = {
     [15] = "MULTIACTIONBAR7BUTTON",
 }
 
-local function GetKeybindForSlot(slot)
+local MAIN_BAR_BUTTONS = {
+    "ElvUI_Bar1Button1",
+    "BT4Button1",
+    "DominosActionButton1",
+    "ActionButton1",
+}
+
+local function DetectMainBarPage()
+    for _, name in ipairs(MAIN_BAR_BUTTONS) do
+        local btn = _G[name]
+        if btn and btn.GetAttribute then
+            local action = btn:GetAttribute("action")
+            if action and type(action) == "number" and action > 0 then
+                return math.ceil(action / 12)
+            end
+            local page = btn:GetAttribute("actionpage")
+            if page and type(page) == "number" and page > 0 then
+                return page
+            end
+        end
+    end
+    if C_ActionBar.HasBonusActionBar() then
+        return C_ActionBar.GetBonusBarIndex()
+    end
+    return 1
+end
+
+local function GetMainBarPage()
+    if not cachedMainBarPage then
+        cachedMainBarPage = DetectMainBarPage()
+    end
+    return cachedMainBarPage
+end
+
+local function GetBindingCommandForSlot(slot)
     local page = math.ceil(slot / 12)
     local buttonID = ((slot - 1) % 12) + 1
-    local command
-    if page == 1 then
-        command = "ACTIONBUTTON" .. buttonID
-    else
-        local prefix = PAGE_TO_BINDING[page]
-        if not prefix then return nil end
-        command = prefix .. buttonID
+    local mainPage = GetMainBarPage()
+
+    if page == mainPage then
+        return "ACTIONBUTTON" .. buttonID
     end
+
+    if page == 1 and mainPage ~= 1 then
+        return nil
+    end
+
+    local prefix = PAGE_TO_BINDING[page]
+    if not prefix then return nil end
+    return prefix .. buttonID
+end
+
+local function GetKeybindForSlot(slot)
+    local command = GetBindingCommandForSlot(slot)
+    if not command then return nil end
     local key = GetBindingKey(command)
     if not key then return nil end
     local text = GetBindingText(key, 1)
@@ -46,6 +97,7 @@ local function GetKeybindForSlot(slot)
         text = text:gsub("(%a)%-", "%1"):upper()
         text = text:gsub("MOUSE ?WHEEL ?UP", "MwU")
         text = text:gsub("MOUSE ?WHEEL ?DOWN", "MwD")
+        text = text:gsub("MIDDLE ?MOUSE ?BUTTON", "M3")
         text = text:gsub("MOUSE ?BUTTON ?(%d+)", "M%1")
         text = text:gsub("NUM ?PAD ?MULTIPLY", "N*")
         text = text:gsub("NUM ?PAD ?DIVIDE", "N/")
@@ -71,6 +123,39 @@ local function GetKeybindForSlot(slot)
         text = text:gsub("SPACEBAR", "SPC")
     end
     return text
+end
+
+local function GetRawKeyForSlot(slot)
+    local command = GetBindingCommandForSlot(slot)
+    if not command then return nil end
+    local key = GetBindingKey(command)
+    if not key or key:find("MOUSEWHEEL", 1, true) then return nil end
+    return key
+end
+
+local function GetAllRawKeysForSpell(baseSpellID)
+    local slots = C_ActionBar.FindSpellActionButtons(baseSpellID)
+    if not slots or #slots == 0 then return nil end
+    local result
+    for _, slot in ipairs(slots) do
+        local raw = GetRawKeyForSlot(slot)
+        if raw then
+            if not result then result = {} end
+            result[#result + 1] = raw
+        end
+    end
+    return result
+end
+
+local function GetRawKeyForItem(itemID)
+    for slot = 1, 180 do
+        local actionType, id = GetActionInfo(slot)
+        if actionType == "item" and id == itemID then
+            local raw = GetRawKeyForSlot(slot)
+            if raw then return raw end
+        end
+    end
+    return nil
 end
 
 local function GetShortestKeybind(baseSpellID)
@@ -127,6 +212,28 @@ function Keybinds:GetKeybindTextForItem(itemID)
     return text
 end
 
+function Keybinds:GetRawKeysForSpell(baseSpellID)
+    if not baseSpellID then return nil end
+    local cached = rawKeyCache[baseSpellID]
+    if cached ~= nil then
+        return cached or nil
+    end
+    local keys = GetAllRawKeysForSpell(baseSpellID)
+    rawKeyCache[baseSpellID] = keys or false
+    return keys
+end
+
+function Keybinds:GetRawKeyForItem(itemID)
+    if not itemID then return nil end
+    local cached = itemRawKeyCache[itemID]
+    if cached ~= nil then
+        return cached or nil
+    end
+    local key = GetRawKeyForItem(itemID)
+    itemRawKeyCache[itemID] = key or false
+    return key
+end
+
 function Keybinds:GetCacheVersion()
     return keybindCacheVersion
 end
@@ -134,17 +241,29 @@ end
 function Keybinds:InvalidateCache()
     wipe(keybindCache)
     wipe(itemKeybindCache)
+    wipe(rawKeyCache)
+    wipe(itemRawKeyCache)
+    cachedMainBarPage = nil
     keybindCacheVersion = keybindCacheVersion + 1
 end
+
+local function DoInvalidate()
+    invalidatePending = false
+    Keybinds:InvalidateCache()
+    if assistActive then
+        CDM:QueueAllViewers(true)
+    end
+end
+
+invalidateDispatchFrame:SetScript("OnUpdate", function(self)
+    self:Hide()
+    DoInvalidate()
+end)
 
 local function DebouncedInvalidate()
     if invalidatePending then return end
     invalidatePending = true
-    C_Timer.After(0, function()
-        invalidatePending = false
-        Keybinds:InvalidateCache()
-        CDM:QueueAllViewers(true)
-    end)
+    invalidateDispatchFrame:Show()
 end
 
 local function OnEvent()
@@ -176,36 +295,48 @@ local function HideAllKeybindContainers()
     end
 end
 
-local function Enable()
-    if isEnabled then return end
-    isEnabled = true
+local function EnableEvents()
+    if eventsActive then return end
+    eventsActive = true
     eventFrame:RegisterEvent("UPDATE_BINDINGS")
     eventFrame:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
+    eventFrame:RegisterEvent("UPDATE_BONUS_ACTIONBAR")
     eventFrame:SetScript("OnEvent", OnEvent)
 end
 
-local function Disable()
-    if not isEnabled then return end
-    isEnabled = false
+local function DisableEvents()
+    if not eventsActive then return end
+    eventsActive = false
     eventFrame:UnregisterAllEvents()
     eventFrame:SetScript("OnEvent", nil)
-    wipe(keybindCache)
-    wipe(itemKeybindCache)
-    HideAllKeybindContainers()
+end
+
+local function RefreshConsumerState()
+    local db = CDM.db
+    local wantAssist = db and db.assistEnabled or false
+    local wantPressOverlay = db and db.pressOverlayEnabled or false
+    local wasAssistActive = assistActive
+
+    assistActive = wantAssist
+    isEnabled = assistActive
+
+    if assistActive or wantPressOverlay then
+        EnableEvents()
+        Keybinds:InvalidateCache()
+    else
+        DisableEvents()
+        Keybinds:InvalidateCache()
+    end
+
+    if wasAssistActive and not assistActive then
+        HideAllKeybindContainers()
+    end
 end
 
 function Keybinds:Initialize()
     CDM:RegisterRefreshCallback("assist", function()
-        local db = CDM.db
-        if db and db.assistEnabled then
-            Enable()
-            Keybinds:InvalidateCache()
-        else
-            Disable()
-        end
+        RefreshConsumerState()
     end, 36, { "assist", "viewers" })
 
-    if CDM.db and CDM.db.assistEnabled then
-        Enable()
-    end
+    RefreshConsumerState()
 end

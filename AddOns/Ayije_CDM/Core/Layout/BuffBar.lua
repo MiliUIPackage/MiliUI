@@ -11,6 +11,7 @@ local ResolveBaseSpellID = ctx.ResolveBaseSpellID
 local CompareByLayoutIndex = ctx.CompareByLayoutIndex
 local GetLayoutConfig = ctx.GetLayoutConfig
 local GetBuffBarPositionSettings = ctx.GetBuffBarPositionSettings
+local GetPixelSizeForRegion = CDM_C.GetPixelSizeForRegion
 
 local essentialRow1WidthCache = {
     valid = false,
@@ -25,6 +26,7 @@ local function CacheEssentialRow1Width(width)
     essentialRow1WidthCache.valid = true
     return width
 end
+
 
 local function CalculateEssentialRow1Width()
     local sizeEssRow1, _, _, _, spacing, maxRowEss = GetLayoutConfig()
@@ -70,6 +72,7 @@ end
 
 CDM.CalculateEssentialRow1Width = CalculateEssentialRow1Width
 
+
 local function AlignBuffBarContainerToEssentialCenter(container)
     local essentialCenterX = CDM:GetEssentialContentCenterX()
     if not essentialCenterX then
@@ -98,6 +101,16 @@ local function AlignBuffBarContainerToEssentialCenter(container)
 
     local snappedX = SnapToPixel(savedPos.x or 0, UIParent)
     local snappedY = SnapToPixel(savedPos.y or 0, UIParent)
+
+    local containerCenterX = select(1, container:GetCenter())
+    if containerCenterX then
+        local onePixel = GetPixelSizeForRegion(container) or 1
+        local targetCenterX = essentialCenterX + snappedX
+        if math.abs(targetCenterX - containerCenterX) < (onePixel * 0.05) then
+            return
+        end
+    end
+
     container:ClearAllPoints()
     container:SetPoint(anchorPoint, UIParent, sp, essentialCenterX - refX + snappedX, snappedY)
 end
@@ -106,14 +119,17 @@ function CDM:UpdateBuffBarContainerPosition()
     local container = self.anchorContainers and self.anchorContainers[VIEWERS.BUFF_BAR]
     if not container then return end
 
-    local savedPos = GetBuffBarPositionSettings()
-
     local db = CDM.db or {}
+    local savedPos = GetBuffBarPositionSettings()
     local growDirection = db.buffBarGrowDirection or "DOWN"
     local anchorPoint = growDirection == "DOWN" and "TOP" or "BOTTOM"
 
     container:ClearAllPoints()
     SetPixelPerfectPoint(container, anchorPoint, UIParent, savedPos.point, savedPos.x, savedPos.y)
+
+    if (db.buffBarWidth ~= nil and db.buffBarWidth or 0) == 0 then
+        AlignBuffBarContainerToEssentialCenter(container)
+    end
 end
 
 local tempBars = {}

@@ -6,6 +6,8 @@ local getInventoryItemCooldown = GetInventoryItemCooldown
 
 local watcherFrame = CreateFrame("Frame")
 local evaluatePending = false
+local dispatchFrame = CreateFrame("Frame")
+dispatchFrame:Hide()
 local activeTargetCount = 0
 
 local ownerTargets = {}
@@ -76,13 +78,18 @@ local function DoEvaluateCooldownWatches()
     EvaluateSlotWatches()
 end
 
+dispatchFrame:SetScript("OnUpdate", function(self)
+    self:Hide()
+    DoEvaluateCooldownWatches()
+end)
+
 local function QueueEvaluateCooldownWatches()
     if evaluatePending or activeTargetCount <= 0 then
         return
     end
 
     evaluatePending = true
-    C_Timer.After(0, DoEvaluateCooldownWatches)
+    dispatchFrame:Show()
 end
 
 watcherFrame:SetScript("OnEvent", function(_, event)

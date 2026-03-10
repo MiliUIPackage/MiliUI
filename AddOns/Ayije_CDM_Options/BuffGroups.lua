@@ -8,6 +8,34 @@ local CDM_C = CDM and CDM.CONST or {}
 local IsSafeNumber = API.IsSafeNumber
 local UI = ns.ConfigUI
 
+local CLASS_LIST = {}
+local CLASS_SPECS = {}
+
+for i = 1, GetNumClasses() do
+    local className, classTag, classID = GetClassInfo(i)
+    if classTag then
+        local color = RAID_CLASS_COLORS[classTag]
+        CLASS_LIST[#CLASS_LIST + 1] = {
+            classTag = classTag,
+            className = className,
+            classID = classID,
+            r = color and color.r or 1,
+            g = color and color.g or 1,
+            b = color and color.b or 1,
+        }
+        local specs = {}
+        for j = 1, GetNumSpecializationsForClassID(classID) do
+            local specID, specName = GetSpecializationInfoForClassID(classID, j)
+            if specID then
+                specs[#specs + 1] = { specID = specID, specName = specName }
+            end
+        end
+        CLASS_SPECS[classTag] = specs
+    end
+end
+
+table.sort(CLASS_LIST, function(a, b) return a.className < b.className end)
+
 StaticPopupDialogs["AYIJE_CDM_CONFIRM_DELETE_GROUP"] = {
     text = "",
     button1 = YES,
@@ -25,6 +53,7 @@ StaticPopupDialogs["AYIJE_CDM_CONFIRM_DELETE_GROUP"] = {
 local function CreateBuffGroupsTab(page)
     local specIndex = GetSpecialization()
     local currentSpecID = specIndex and GetSpecializationInfo(specIndex) or nil
+    local playerSpecID = currentSpecID
 
     local NormalizeToBase = API.NormalizeToBase
 
@@ -44,12 +73,17 @@ local function CreateBuffGroupsTab(page)
     local suppressPanelRefreshUntil = 0
     local ungroupedSelected = false
 
+    local function IsViewingPlayerSpec()
+        return currentSpecID == playerSpecID
+    end
+
     local function RefreshCurrentSpecID()
         local si = GetSpecialization()
-        if si then
-            currentSpecID = GetSpecializationInfo(si)
-        else
-            currentSpecID = nil
+        local newPlayerSpec = si and GetSpecializationInfo(si) or nil
+        local wasViewingPlayer = (currentSpecID == playerSpecID) or (currentSpecID == nil)
+        playerSpecID = newPlayerSpec
+        if wasViewingPlayer then
+            currentSpecID = newPlayerSpec
         end
         table.wipe(overrideKeyCandidateCache)
     end
@@ -119,30 +153,56 @@ local function CreateBuffGroupsTab(page)
         return IsSafeNumber(spellID) and spellID > 0 and spellID == math.floor(spellID)
     end
 
-    local function CopyShallowTable(src)
-        if type(src) ~= "table" then return src end
-        local out = {}
-        for k, v in pairs(src) do
-            if type(v) == "table" then
-                local sub = {}
-                for sk, sv in pairs(v) do
-                    sub[sk] = sv
-                end
-                out[k] = sub
-            else
-                out[k] = v
-            end
+    local function GetUniqueGroupName(groups, baseName)
+        if not groups then return baseName end
+        local nameSet = {}
+        for _, g in ipairs(groups) do
+            if g.name then nameSet[g.name] = true end
         end
-        return out
+        if not nameSet[baseName] then return baseName end
+        for i = 1, 99 do
+            local candidate = baseName .. " (" .. i .. ")"
+            if not nameSet[candidate] then return candidate end
+        end
+        return baseName .. " (" .. time() .. ")"
     end
 
-    local function MergeMissingFields(dst, src)
-        if type(dst) ~= "table" or type(src) ~= "table" then return end
-        for k, v in pairs(src) do
-            if dst[k] == nil then
-                dst[k] = CopyShallowTable(v)
-            end
-        end
+    local function CreateLayoutOnlyGroupClone(groups, groupData)
+        return {
+            name = GetUniqueGroupName(groups, groupData.name or "Group"),
+            spells = {},
+            grow = groupData.grow,
+            spacing = groupData.spacing,
+            iconWidth = groupData.iconWidth,
+            iconHeight = groupData.iconHeight,
+            staticDisplay = groupData.staticDisplay,
+            cooldownFontSize = groupData.cooldownFontSize,
+            cooldownColor = groupData.cooldownColor and { r = groupData.cooldownColor.r, g = groupData.cooldownColor.g, b = groupData.cooldownColor.b, a = groupData.cooldownColor.a },
+            countFontSize = groupData.countFontSize,
+            countColor = groupData.countColor and { r = groupData.countColor.r, g = groupData.countColor.g, b = groupData.countColor.b, a = groupData.countColor.a },
+            countPosition = groupData.countPosition,
+            countOffsetX = groupData.countOffsetX,
+            countOffsetY = groupData.countOffsetY,
+            anchorTarget = groupData.anchorTarget,
+            anchorPoint = groupData.anchorPoint,
+            anchorRelativeTo = groupData.anchorRelativeTo,
+            offsetX = groupData.offsetX,
+            offsetY = groupData.offsetY,
+        }
+    end
+
+    local function CopyGroupSettingsToSpec(groupData, targetSpecID)
+        if not CDM.db.buffGroups then CDM.db.buffGroups = {} end
+        if not CDM.db.buffGroups[targetSpecID] then CDM.db.buffGroups[targetSpecID] = {} end
+        local targetGroups = CDM.db.buffGroups[targetSpecID]
+        local newGroup = CreateLayoutOnlyGroupClone(targetGroups, groupData)
+        targetGroups[#targetGroups + 1] = newGroup
+    end
+
+    local function DuplicateGroup(groupData, specGroups)
+        local newGroup = CreateLayoutOnlyGroupClone(specGroups, groupData)
+        specGroups[#specGroups + 1] = newGroup
+        return #specGroups
     end
 
     local function BuildOverrideKeyCandidates(spellID)
@@ -151,37 +211,19 @@ local function CreateBuffGroupsTab(page)
         if cached then
             return cached
         end
-
-        local keys = {}
-        local seen = {}
-        local function Add(id)
-            if not IsUsableSpellID(id) or seen[id] then return end
-            seen[id] = true
-            keys[#keys + 1] = id
+        local keys = API.GetBuffGroupMatchCandidates and API:GetBuffGroupMatchCandidates(spellID) or EMPTY_OVERRIDE_KEYS
+        if type(keys) ~= "table" then
+            keys = EMPTY_OVERRIDE_KEYS
         end
-
-        Add(spellID)
-        local baseID = NormalizeToBase(spellID)
-        Add(baseID)
-        if C_Spell and C_Spell.GetOverrideSpell then
-            Add(C_Spell.GetOverrideSpell(spellID))
-            if IsUsableSpellID(baseID) then
-                Add(C_Spell.GetOverrideSpell(baseID))
-            end
-        end
-
-        local idx = 1
-        while idx <= #keys do
-            Add(NormalizeToBase(keys[idx]))
-            idx = idx + 1
-        end
-
         overrideKeyCandidateCache[spellID] = keys
         return keys
     end
 
     local function GetOverrideStorageKey(spellID)
-        if not IsUsableSpellID(spellID) then return spellID end
+        if API.GetBuffOverrideStorageKey then
+            return API:GetBuffOverrideStorageKey(spellID)
+        end
+        if not IsUsableSpellID(spellID) then return nil end
         local baseID = NormalizeToBase(spellID)
         if IsUsableSpellID(baseID) then
             return baseID
@@ -190,20 +232,18 @@ local function CreateBuffGroupsTab(page)
     end
 
     local function CollectMergedOverrideEntry(overrideMap, spellID, removeEntries)
-        if type(overrideMap) ~= "table" or not IsUsableSpellID(spellID) then return nil, EMPTY_OVERRIDE_KEYS end
+        if type(overrideMap) ~= "table" or not IsUsableSpellID(spellID) then
+            return nil, EMPTY_OVERRIDE_KEYS
+        end
         local keys = BuildOverrideKeyCandidates(spellID)
-        local merged = nil
-        for _, key in ipairs(keys) do
-            local entry = overrideMap[key]
-            if type(entry) == "table" then
-                if not merged then
-                    merged = CopyShallowTable(entry)
-                else
-                    MergeMissingFields(merged, entry)
-                end
-                if removeEntries then
-                    overrideMap[key] = nil
-                end
+        local merged
+        if removeEntries then
+            if API.ExtractMergedBuffOverrideEntry then
+                merged = API:ExtractMergedBuffOverrideEntry(overrideMap, spellID)
+            end
+        else
+            if API.GetMergedBuffOverrideEntry then
+                merged = API:GetMergedBuffOverrideEntry(overrideMap, spellID)
             end
         end
         return merged, keys
@@ -216,21 +256,15 @@ local function CreateBuffGroupsTab(page)
 
     local function EnsureResolvedOverrideEntry(overrideMap, spellID)
         if type(overrideMap) ~= "table" or not IsUsableSpellID(spellID) then return nil end
-
-        local target, keys = CollectMergedOverrideEntry(overrideMap, spellID, false)
+        if API.EnsureBuffOverrideEntry then
+            return API:EnsureBuffOverrideEntry(overrideMap, spellID)
+        end
         local storageKey = GetOverrideStorageKey(spellID)
-
-        if not target then
-            target = {}
+        if not IsUsableSpellID(storageKey) then return nil end
+        if type(overrideMap[storageKey]) ~= "table" then
+            overrideMap[storageKey] = {}
         end
-
-        overrideMap[storageKey] = target
-        for _, key in ipairs(keys) do
-            if key ~= storageKey then
-                overrideMap[key] = nil
-            end
-        end
-        return target
+        return overrideMap[storageKey]
     end
 
     local function ExtractMergedOverrideEntry(overrideMap, spellID)
@@ -240,15 +274,13 @@ local function CreateBuffGroupsTab(page)
 
     local function StoreMergedOverrideEntry(overrideMap, spellID, incoming)
         if type(overrideMap) ~= "table" or type(incoming) ~= "table" or not IsUsableSpellID(spellID) then return end
+        if API.StoreMergedBuffOverrideEntry then
+            API:StoreMergedBuffOverrideEntry(overrideMap, spellID, incoming)
+            return
+        end
         local storageKey = GetOverrideStorageKey(spellID)
         if not IsUsableSpellID(storageKey) then return end
-        local keys = BuildOverrideKeyCandidates(spellID)
-        for _, key in ipairs(keys) do
-            if key ~= storageKey then
-                overrideMap[key] = nil
-            end
-        end
-        overrideMap[storageKey] = CopyShallowTable(incoming)
+        overrideMap[storageKey] = incoming
     end
 
     local function EnsureSpellOverride(groupIndex, spellID)
@@ -296,24 +328,97 @@ local function CreateBuffGroupsTab(page)
         return false
     end
 
+    local function AreBuffGroupSpellIDsEquivalent(leftSpellID, rightSpellID)
+        if not IsUsableSpellID(leftSpellID) or not IsUsableSpellID(rightSpellID) then
+            return false
+        end
+        if API.AreBuffGroupSpellIDsEquivalent then
+            return API:AreBuffGroupSpellIDsEquivalent(leftSpellID, rightSpellID)
+        end
+        return leftSpellID == rightSpellID
+    end
+
+    local function MarkEquivalentSpellIDs(targetSet, spellID)
+        if type(targetSet) ~= "table" or not IsUsableSpellID(spellID) then return end
+        local candidates = API.GetBuffGroupMatchCandidates and API:GetBuffGroupMatchCandidates(spellID) or EMPTY_OVERRIDE_KEYS
+        if #candidates == 0 then
+            targetSet[spellID] = true
+            return
+        end
+        for _, candidateID in ipairs(candidates) do
+            targetSet[candidateID] = true
+        end
+    end
+
+    local function HasEquivalentSpellID(targetSet, spellID)
+        if type(targetSet) ~= "table" or not IsUsableSpellID(spellID) then return false end
+        local candidates = API.GetBuffGroupMatchCandidates and API:GetBuffGroupMatchCandidates(spellID) or EMPTY_OVERRIDE_KEYS
+        if #candidates == 0 then
+            return targetSet[spellID] or false
+        end
+        for _, candidateID in ipairs(candidates) do
+            if targetSet[candidateID] then
+                return true
+            end
+        end
+        return false
+    end
+
+    local function RemoveSpellFromGroupList(spellList, spellID)
+        if type(spellList) ~= "table" or not IsUsableSpellID(spellID) then
+            return nil
+        end
+        for i = #spellList, 1, -1 do
+            if AreBuffGroupSpellIDsEquivalent(spellList[i], spellID) then
+                return table.remove(spellList, i)
+            end
+        end
+        return nil
+    end
+
+    local function AddSpellToGroupList(spellList, spellID)
+        if type(spellList) ~= "table" or not IsUsableSpellID(spellID) then
+            return nil, false
+        end
+        if RemoveSpellFromGroupList(spellList, spellID) ~= nil then
+            -- Keep the new canonical entry at the end for stable drag ordering.
+        end
+        spellList[#spellList + 1] = spellID
+        return spellID
+    end
+
     local function GetUngroupedBuffSpells()
         local buffViewer = _G["BuffIconCooldownViewer"]
         if not buffViewer or not buffViewer.itemFramePool then return {} end
 
         local icons = {}
         local seen = {}
+        local groupedSet = {}
+        local specGroups = GetSpecGroups()
+        if type(specGroups) == "table" then
+            for _, groupData in ipairs(specGroups) do
+                if type(groupData) == "table" and type(groupData.spells) == "table" then
+                    for _, groupedSpellID in ipairs(groupData.spells) do
+                        MarkEquivalentSpellIDs(groupedSet, groupedSpellID)
+                    end
+                end
+            end
+        end
+
         for frame in buffViewer.itemFramePool:EnumerateActive() do
             local matchType = API.GetBuffRegistryMatch and API:GetBuffRegistryMatch(frame) or nil
             if not matchType then
-                local displayID = frame.GetSpellID and frame:GetSpellID()
-                if not IsSafeNumber(displayID) then
-                    displayID = frame.GetBaseSpellID and frame:GetBaseSpellID()
-                end
+                local displayID = API.GetPreferredBuffGroupSpellID and API:GetPreferredBuffGroupSpellID(frame)
                 if not IsSafeNumber(displayID) and API.GetCachedBaseSpellID then
                     displayID = API:GetCachedBaseSpellID(frame)
                 end
-                if IsSafeNumber(displayID) and not seen[displayID] then
-                    seen[displayID] = true
+                local hiddenBuffSet = CDM.resourcesHiddenBuffSet
+                if IsSafeNumber(displayID)
+                    and not HasEquivalentSpellID(groupedSet, displayID)
+                    and not HasEquivalentSpellID(seen, displayID)
+                    and not HasEquivalentSpellID(hiddenBuffSet, displayID)
+                then
+                    MarkEquivalentSpellIDs(seen, displayID)
                     local li = frame.layoutIndex
                     local safeLayoutIndex = IsSafeNumber(li) and li or 0
                     icons[#icons + 1] = { spellID = displayID, layoutIndex = safeLayoutIndex }
@@ -451,12 +556,7 @@ local function CreateBuffGroupsTab(page)
         if sourceGroup then
             local srcGroup = groups[sourceGroup]
             if srcGroup and srcGroup.spells then
-                for i, id in ipairs(srcGroup.spells) do
-                    if id == spellID then
-                        table.remove(srcGroup.spells, i)
-                        break
-                    end
-                end
+                RemoveSpellFromGroupList(srcGroup.spells, spellID)
             end
             if srcGroup and srcGroup.spellOverrides then
                 srcOvData = ExtractMergedOverrideEntry(srcGroup.spellOverrides, spellID)
@@ -472,11 +572,12 @@ local function CreateBuffGroupsTab(page)
             local tgtGroup = groups[targetGroupIndex]
             if tgtGroup then
                 if not tgtGroup.spells then tgtGroup.spells = {} end
-                tgtGroup.spells[#tgtGroup.spells + 1] = spellID
+                local storedSpellID = AddSpellToGroupList(tgtGroup.spells, spellID) or spellID
                 if srcOvData then
                     if not tgtGroup.spellOverrides then tgtGroup.spellOverrides = {} end
-                    StoreMergedOverrideEntry(tgtGroup.spellOverrides, spellID, srcOvData)
+                    StoreMergedOverrideEntry(tgtGroup.spellOverrides, storedSpellID, srcOvData)
                 end
+                spellID = storedSpellID
             end
         else
             if srcOvData then
@@ -650,8 +751,8 @@ local function CreateBuffGroupsTab(page)
 
         local cdColorInit = CDM.db.buffCooldownColor or { r = 1, g = 1, b = 1 }
         local cdColorPicker = UI.CreateSimpleColorPicker(rc, cdColorInit, function(r, g, b)
-            if not CDM.db.buffCooldownColor then CDM.db.buffCooldownColor = { r = 1, g = 1, b = 1, a = 1 } end
-            CDM.db.buffCooldownColor.r, CDM.db.buffCooldownColor.g, CDM.db.buffCooldownColor.b = r, g, b
+            local cur = CDM.db.buffCooldownColor or { r = 1, g = 1, b = 1, a = 1 }
+            CDM.db.buffCooldownColor = { r = r, g = g, b = b, a = cur.a }
             SaveAndRefresh()
         end)
         cdColorPicker:SetPoint("LEFT", cdColorLabel, "RIGHT", 6, 0)
@@ -669,8 +770,8 @@ local function CreateBuffGroupsTab(page)
 
         local countColorInit = CDM.db.countColor or { r = 1, g = 1, b = 1 }
         local countColorPicker = UI.CreateSimpleColorPicker(rc, countColorInit, function(r, g, b)
-            if not CDM.db.countColor then CDM.db.countColor = { r = 1, g = 1, b = 1, a = 1 } end
-            CDM.db.countColor.r, CDM.db.countColor.g, CDM.db.countColor.b = r, g, b
+            local cur = CDM.db.countColor or { r = 1, g = 1, b = 1, a = 1 }
+            CDM.db.countColor = { r = r, g = g, b = b, a = cur.a }
             SaveAndRefresh()
         end)
         countColorPicker:SetPoint("LEFT", countColorLabel, "RIGHT", 6, 0)
@@ -1042,6 +1143,267 @@ local function CreateBuffGroupsTab(page)
             yOff = yOff - 36
         end
 
+        local soundChecked = existingOv and existingOv.soundEnabled or false
+        local soundCheckbox = UI.CreateModernCheckbox(
+            rc,
+            L["Play Sound"] or "Play Sound",
+            soundChecked,
+            function(checked)
+                suppressPanelRefreshUntil = GetTime() + 0.15
+                local ov = ensureOv()
+                if not ov then return end
+                ov.soundEnabled = checked or nil
+                if checked then
+                    ov.ttsEnabled = nil
+                    ov.ttsOnShow = nil
+                    ov.ttsOnHide = nil
+                    ov.ttsOnShowEnabled = nil
+                    ov.ttsOnHideEnabled = nil
+                    if not ov.soundOnShowEnabled and not ov.soundOnHideEnabled then
+                        ov.soundOnShowEnabled = true
+                    end
+                else
+                    ov.soundOnShow = nil
+                    ov.soundOnHide = nil
+                    ov.soundOnShowEnabled = nil
+                    ov.soundOnHideEnabled = nil
+                end
+                SaveAndRefresh()
+                ShowSpellSettings(spellID, groupIndex)
+            end
+        )
+        soundCheckbox:SetPoint("TOPLEFT", 0, yOff)
+        yOff = yOff - 36
+
+        if soundChecked then
+            local ov = existingOv or {}
+
+            local soundOnShowEnabled = ov.soundOnShowEnabled or false
+            local soundOnShowCheckbox
+            soundOnShowCheckbox = UI.CreateModernCheckbox(rc, L["On Show"] or "On Show", soundOnShowEnabled,
+                function(checked)
+                    suppressPanelRefreshUntil = GetTime() + 0.15
+                    local o = ensureOv()
+                    if not o then return end
+                    if not checked and o.soundOnHideEnabled == false then
+                        soundOnShowCheckbox:SetChecked(true)
+                        return
+                    end
+                    o.soundOnShowEnabled = checked
+                    if not checked then o.soundOnShow = nil end
+                    SaveAndRefresh()
+                    ShowSpellSettings(spellID, groupIndex)
+                end
+            )
+            soundOnShowCheckbox:SetPoint("TOPLEFT", 20, yOff)
+            yOff = yOff - 28
+
+            if soundOnShowEnabled then
+                local showDropdown = RegisterRightPanelDropdown(
+                    CreateFrame("DropdownButton", nil, rc, "WowStyle1DropdownTemplate")
+                )
+                showDropdown:SetWidth(220)
+                showDropdown:SetPoint("TOPLEFT", 26, yOff)
+                showDropdown:SetDefaultText(ov.soundOnShow or "None")
+                UI.SetupMediaDropdown(showDropdown, "sound",
+                    function() return ov.soundOnShow or "None" end,
+                    function(name)
+                        suppressPanelRefreshUntil = GetTime() + 0.15
+                        local o = ensureOv()
+                        local val = (name ~= "None") and name or nil
+                        if o then o.soundOnShow = val end
+                        ov.soundOnShow = val
+                        showDropdown:SetDefaultText(name)
+                        SaveAndRefresh()
+                    end
+                )
+                yOff = yOff - 40
+            end
+
+            local soundOnHideEnabled = ov.soundOnHideEnabled or false
+            local soundOnHideCheckbox
+            soundOnHideCheckbox = UI.CreateModernCheckbox(rc, L["On Hide"] or "On Hide", soundOnHideEnabled,
+                function(checked)
+                    suppressPanelRefreshUntil = GetTime() + 0.15
+                    local o = ensureOv()
+                    if not o then return end
+                    if not checked and o.soundOnShowEnabled == false then
+                        soundOnHideCheckbox:SetChecked(true)
+                        return
+                    end
+                    o.soundOnHideEnabled = checked
+                    if not checked then o.soundOnHide = nil end
+                    SaveAndRefresh()
+                    ShowSpellSettings(spellID, groupIndex)
+                end
+            )
+            soundOnHideCheckbox:SetPoint("TOPLEFT", 20, yOff)
+            yOff = yOff - 28
+
+            if soundOnHideEnabled then
+                local hideDropdown = RegisterRightPanelDropdown(
+                    CreateFrame("DropdownButton", nil, rc, "WowStyle1DropdownTemplate")
+                )
+                hideDropdown:SetWidth(220)
+                hideDropdown:SetPoint("TOPLEFT", 26, yOff)
+                hideDropdown:SetDefaultText(ov.soundOnHide or "None")
+                UI.SetupMediaDropdown(hideDropdown, "sound",
+                    function() return ov.soundOnHide or "None" end,
+                    function(name)
+                        suppressPanelRefreshUntil = GetTime() + 0.15
+                        local o = ensureOv()
+                        local val = (name ~= "None") and name or nil
+                        if o then o.soundOnHide = val end
+                        ov.soundOnHide = val
+                        hideDropdown:SetDefaultText(name)
+                        SaveAndRefresh()
+                    end
+                )
+                yOff = yOff - 40
+            end
+        end
+
+        local ttsChecked = existingOv and existingOv.ttsEnabled or false
+        local ttsCheckbox = UI.CreateModernCheckbox(
+            rc,
+            L["Text to Speech"] or "Text to Speech",
+            ttsChecked,
+            function(checked)
+                suppressPanelRefreshUntil = GetTime() + 0.15
+                local ov = ensureOv()
+                if not ov then return end
+                ov.ttsEnabled = checked or nil
+                if checked then
+                    ov.soundEnabled = nil
+                    ov.soundOnShow = nil
+                    ov.soundOnHide = nil
+                    ov.soundOnShowEnabled = nil
+                    ov.soundOnHideEnabled = nil
+                    if not ov.ttsOnShowEnabled and not ov.ttsOnHideEnabled then
+                        ov.ttsOnShowEnabled = true
+                    end
+                else
+                    ov.ttsOnShow = nil
+                    ov.ttsOnHide = nil
+                    ov.ttsOnShowEnabled = nil
+                    ov.ttsOnHideEnabled = nil
+                end
+                SaveAndRefresh()
+                ShowSpellSettings(spellID, groupIndex)
+            end
+        )
+        ttsCheckbox:SetPoint("TOPLEFT", 0, yOff)
+        yOff = yOff - 36
+
+        if ttsChecked then
+            local ov = existingOv or {}
+
+            local voiceBtn = CreateFrame("Button", nil, rc, "UIPanelButtonTemplate")
+            voiceBtn:SetSize(120, 22)
+            voiceBtn:SetText(L["Voice Settings"] or "Voice Settings")
+            voiceBtn:SetPoint("LEFT", ttsCheckbox, "LEFT", 200, 0)
+            voiceBtn:SetScript("OnClick", function()
+                if ChatConfigFrame then
+                    ChatConfigFrame:Show()
+                    if ChatConfigFrameChatTabManager and VOICE_WINDOW_ID then
+                        ChatConfigFrameChatTabManager:UpdateSelection(VOICE_WINDOW_ID)
+                    end
+                end
+            end)
+
+            local ttsOnShowEnabled = ov.ttsOnShowEnabled or false
+            local ttsOnShowCheckbox
+            ttsOnShowCheckbox = UI.CreateModernCheckbox(rc, L["On Show"] or "On Show", ttsOnShowEnabled,
+                function(checked)
+                    suppressPanelRefreshUntil = GetTime() + 0.15
+                    local o = ensureOv()
+                    if not o then return end
+                    if not checked and not o.ttsOnHideEnabled then
+                        ttsOnShowCheckbox:SetChecked(true)
+                        return
+                    end
+                    o.ttsOnShowEnabled = checked or nil
+                    if not checked then o.ttsOnShow = nil end
+                    SaveAndRefresh()
+                    ShowSpellSettings(spellID, groupIndex)
+                end
+            )
+            ttsOnShowCheckbox:SetPoint("TOPLEFT", 20, yOff)
+            yOff = yOff - 28
+
+            if ttsOnShowEnabled then
+                local ttsShowBox = CreateFrame("EditBox", nil, rc, "InputBoxTemplate")
+                ttsShowBox:SetSize(140, 22)
+                ttsShowBox:SetPoint("TOPLEFT", 26, yOff)
+                ttsShowBox:SetFontObject("AyijeCDM_Font14")
+                ttsShowBox:SetAutoFocus(false)
+                ttsShowBox:SetMaxLetters(200)
+                ttsShowBox:SetText(ov.ttsOnShow or "")
+                ttsShowBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+                ttsShowBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+                ttsShowBox:SetScript("OnEditFocusLost", function(self)
+                    suppressPanelRefreshUntil = GetTime() + 0.15
+                    local o = ensureOv()
+                    local val = self:GetText()
+                    val = (val ~= "") and val or nil
+                    if o then o.ttsOnShow = val end
+                    ov.ttsOnShow = val
+                    SaveAndRefresh()
+                end)
+                local ttsShowHint = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font12")
+                ttsShowHint:SetText(L["(empty = spell name)"] or "(empty = spell name)")
+                UI.SetTextMuted(ttsShowHint)
+                ttsShowHint:SetPoint("LEFT", ttsShowBox, "RIGHT", 6, 0)
+                yOff = yOff - 28
+            end
+
+            local ttsOnHideEnabled = ov.ttsOnHideEnabled or false
+            local ttsOnHideCheckbox
+            ttsOnHideCheckbox = UI.CreateModernCheckbox(rc, L["On Hide"] or "On Hide", ttsOnHideEnabled,
+                function(checked)
+                    suppressPanelRefreshUntil = GetTime() + 0.15
+                    local o = ensureOv()
+                    if not o then return end
+                    if not checked and not o.ttsOnShowEnabled then
+                        ttsOnHideCheckbox:SetChecked(true)
+                        return
+                    end
+                    o.ttsOnHideEnabled = checked or nil
+                    if not checked then o.ttsOnHide = nil end
+                    SaveAndRefresh()
+                    ShowSpellSettings(spellID, groupIndex)
+                end
+            )
+            ttsOnHideCheckbox:SetPoint("TOPLEFT", 20, yOff)
+            yOff = yOff - 28
+
+            if ttsOnHideEnabled then
+                local ttsHideBox = CreateFrame("EditBox", nil, rc, "InputBoxTemplate")
+                ttsHideBox:SetSize(140, 22)
+                ttsHideBox:SetPoint("TOPLEFT", 26, yOff)
+                ttsHideBox:SetFontObject("AyijeCDM_Font14")
+                ttsHideBox:SetAutoFocus(false)
+                ttsHideBox:SetMaxLetters(200)
+                ttsHideBox:SetText(ov.ttsOnHide or "")
+                ttsHideBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+                ttsHideBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+                ttsHideBox:SetScript("OnEditFocusLost", function(self)
+                    suppressPanelRefreshUntil = GetTime() + 0.15
+                    local o = ensureOv()
+                    local val = self:GetText()
+                    val = (val ~= "") and val or nil
+                    if o then o.ttsOnHide = val end
+                    ov.ttsOnHide = val
+                    SaveAndRefresh()
+                end)
+                local ttsHideHint = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font12")
+                ttsHideHint:SetText(L["(empty = spell name)"] or "(empty = spell name)")
+                UI.SetTextMuted(ttsHideHint)
+                ttsHideHint:SetPoint("LEFT", ttsHideBox, "RIGHT", 6, 0)
+                yOff = yOff - 28
+            end
+        end
+
         local textOvChecked = existingOv and existingOv.textOverride or false
         local textOvCheckbox = UI.CreateModernCheckbox(
             rc,
@@ -1336,7 +1698,8 @@ local function CreateBuffGroupsTab(page)
         local lc = RecreateLeftChild()
         ClearDropTargets()
 
-        local activeSpellSet = BuildActiveSpellSet()
+        local isViewingPlayer = IsViewingPlayerSpec()
+        local activeSpellSet = isViewingPlayer and BuildActiveSpellSet() or nil
 
         local yOff = 0
         local ICON_SIZE = 30
@@ -1499,12 +1862,7 @@ local function CreateBuffGroupsTab(page)
                     local srcGroup = groups[sourceGroup]
                     local spells = srcGroup.spells
                     if spells then
-                        for i = #spells, 1, -1 do
-                            if spells[i] == spellID then
-                                table.remove(spells, i)
-                                break
-                            end
-                        end
+                        RemoveSpellFromGroupList(spells, spellID)
                     end
                     local srcOvData
                     if srcGroup.spellOverrides then
@@ -1578,55 +1936,69 @@ local function CreateBuffGroupsTab(page)
             return row
         end
 
-        local ungroupedHeader = UI.CreateHeader(lc, L["Ungrouped Buffs"])
-        ungroupedHeader:SetPoint("TOPLEFT", SCROLL_LEFT_PAD, yOff)
+        if isViewingPlayer then
+            local ungroupedHeader = UI.CreateHeader(lc, L["Ungrouped Buffs"])
+            ungroupedHeader:SetPoint("TOPLEFT", SCROLL_LEFT_PAD, yOff)
 
-        if ungroupedSelected then
-            ungroupedHeader:SetTextColor(1, 1, 1, 1)
+            if ungroupedSelected then
+                ungroupedHeader:SetTextColor(1, 1, 1, 1)
+            end
+
+            local settingsBtn = CreateFrame("Button", nil, lc)
+            settingsBtn:SetSize(27, 27)
+            settingsBtn:SetPoint("LEFT", ungroupedHeader, "RIGHT", 6, -4)
+            settingsBtn:SetNormalAtlas("common-dropdown-a-button-settings-shadowless")
+            settingsBtn:SetHighlightAtlas("common-dropdown-a-button-settings-hover-shadowless")
+            settingsBtn:SetPushedAtlas("common-dropdown-a-button-settings-pressed-shadowless")
+            settingsBtn:SetScript("OnClick", function()
+                ungroupedSelected = true
+                selectedGroupIndex = nil
+                selectedSpellID = nil
+                ShowUngroupedSettings()
+                RefreshLeftPanelIfNeeded()
+            end)
+
+            yOff = yOff - 24
+
+            local ungroupedContainer = CreateFrame("Frame", nil, lc)
+            ungroupedContainer:SetSize(LEFT_WIDTH, 10)
+            ungroupedContainer:SetPoint("TOPLEFT", SCROLL_LEFT_PAD, yOff)
+
+            local highlight = ungroupedContainer:CreateTexture(nil, "BACKGROUND")
+            highlight:SetAllPoints()
+            highlight:SetColorTexture(0.2, 0.6, 0.2, 0.2)
+            highlight:Hide()
+            ungroupedContainer.highlight = highlight
+
+            RegisterDropTarget(ungroupedContainer, nil)
+
+            local ungrouped = GetUngroupedBuffSpells()
+            local ungroupedY = 0
+            for _, spellID in ipairs(ungrouped) do
+                local active = not isViewingPlayer or HasEquivalentSpellID(activeSpellSet, spellID)
+                CreateSpellRow(ungroupedContainer, spellID, nil, ungroupedY, active)
+                ungroupedY = ungroupedY - ROW_HEIGHT
+            end
+
+            if #ungrouped == 0 then
+                CreateEmptyListRow(ungroupedContainer, L["No ungrouped buffs"])
+                ungroupedY = -ROW_HEIGHT
+            end
+
+            ungroupedContainer:SetHeight(math.abs(ungroupedY) + 4)
+            yOff = yOff + ungroupedY - SECTION_GAP
+        else
+            local ungroupedHeader = UI.CreateHeader(lc, L["Ungrouped Buffs"])
+            ungroupedHeader:SetPoint("TOPLEFT", SCROLL_LEFT_PAD, yOff)
+            UI.SetTextMuted(ungroupedHeader)
+            yOff = yOff - 24
+
+            local msg = lc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+            msg:SetPoint("TOPLEFT", SCROLL_LEFT_PAD + 8, yOff)
+            msg:SetText(L["Switch spec to view buffs"])
+            UI.SetTextFaint(msg)
+            yOff = yOff - ROW_HEIGHT - SECTION_GAP
         end
-
-        local settingsBtn = CreateFrame("Button", nil, lc)
-        settingsBtn:SetSize(27, 27)
-        settingsBtn:SetPoint("LEFT", ungroupedHeader, "RIGHT", 6, -4)
-        settingsBtn:SetNormalAtlas("common-dropdown-a-button-settings-shadowless")
-        settingsBtn:SetHighlightAtlas("common-dropdown-a-button-settings-hover-shadowless")
-        settingsBtn:SetPushedAtlas("common-dropdown-a-button-settings-pressed-shadowless")
-        settingsBtn:SetScript("OnClick", function()
-            ungroupedSelected = true
-            selectedGroupIndex = nil
-            selectedSpellID = nil
-            ShowUngroupedSettings()
-            RefreshLeftPanelIfNeeded()
-        end)
-
-        yOff = yOff - 24
-
-        local ungroupedContainer = CreateFrame("Frame", nil, lc)
-        ungroupedContainer:SetSize(LEFT_WIDTH, 10)
-        ungroupedContainer:SetPoint("TOPLEFT", SCROLL_LEFT_PAD, yOff)
-
-        local highlight = ungroupedContainer:CreateTexture(nil, "BACKGROUND")
-        highlight:SetAllPoints()
-        highlight:SetColorTexture(0.2, 0.6, 0.2, 0.2)
-        highlight:Hide()
-        ungroupedContainer.highlight = highlight
-
-        RegisterDropTarget(ungroupedContainer, nil)
-
-        local ungrouped = GetUngroupedBuffSpells()
-        local ungroupedY = 0
-        for _, spellID in ipairs(ungrouped) do
-            CreateSpellRow(ungroupedContainer, spellID, nil, ungroupedY, true)
-            ungroupedY = ungroupedY - ROW_HEIGHT
-        end
-
-        if #ungrouped == 0 then
-            CreateEmptyListRow(ungroupedContainer, L["No ungrouped buffs"])
-            ungroupedY = -ROW_HEIGHT
-        end
-
-        ungroupedContainer:SetHeight(math.abs(ungroupedY) + 4)
-        yOff = yOff + ungroupedY - SECTION_GAP
 
         local groups = GetSpecGroups()
         if groups then
@@ -1724,7 +2096,51 @@ local function CreateBuffGroupsTab(page)
                 local selectBtn = CreateFrame("Button", nil, headerRow)
                 selectBtn:SetPoint("TOPLEFT", 0, 0)
                 selectBtn:SetPoint("BOTTOMRIGHT", headerRow, "BOTTOMLEFT", ATLAS_W - hBgRight:GetWidth(), 0)
-                selectBtn:SetScript("OnClick", function()
+                selectBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+                selectBtn:SetScript("OnClick", function(_, button)
+                    if button == "RightButton" then
+                        MenuUtil.CreateContextMenu(selectBtn, function(_, rootDescription)
+                            rootDescription:CreateButton(L["Rename"], function()
+                                renameActiveGroupIndex = groupIndex
+                                RefreshLeftPanelIfNeeded()
+                            end)
+                            rootDescription:CreateButton(L["Duplicate"], function()
+                                local specGroups = EnsureBuffGroups()
+                                if not specGroups then return end
+                                local newIdx = DuplicateGroup(groupData, specGroups)
+                                expandedGroups[newIdx] = true
+                                selectedGroupIndex = newIdx
+                                selectedSpellID = nil
+                                ungroupedSelected = false
+                                if IsViewingPlayerSpec() then
+                                    SaveAndRefresh()
+                                end
+                                ShowGroupSettings(newIdx)
+                                RefreshLeftPanelIfNeeded()
+                            end)
+                            local copyMenu = rootDescription:CreateButton(L["Copy to"])
+                            for _, classInfo in ipairs(CLASS_LIST) do
+                                local color = RAID_CLASS_COLORS[classInfo.classTag]
+                                local coloredName = color and color:WrapTextInColorCode(classInfo.className) or classInfo.className
+                                local classMenu = copyMenu:CreateButton(coloredName)
+                                local specs = CLASS_SPECS[classInfo.classTag]
+                                if specs then
+                                    for _, specInfo in ipairs(specs) do
+                                        classMenu:CreateButton(specInfo.specName, function()
+                                            CopyGroupSettingsToSpec(groupData, specInfo.specID)
+                                            if specInfo.specID == currentSpecID then
+                                                RefreshLeftPanelIfNeeded()
+                                            end
+                                            if specInfo.specID == playerSpecID then
+                                                SaveAndRefresh()
+                                            end
+                                        end)
+                                    end
+                                end
+                            end
+                        end)
+                        return
+                    end
                     local now = GetTime()
                     if renameLastClickGroup == groupIndex and (now - renameLastClickTime) < 0.4 then
                         renameLastClickTime = 0
@@ -1839,7 +2255,7 @@ local function CreateBuffGroupsTab(page)
                     if groupData.spells then
                         local spellCount = #groupData.spells
                         for spellIdx, spellID in ipairs(groupData.spells) do
-                            local active = IsSpellActiveInViewer(spellID, activeSpellSet)
+                            local active = not isViewingPlayer or HasEquivalentSpellID(activeSpellSet, spellID)
                             CreateSpellRow(groupContainer, spellID, groupIndex, spellY, active, spellIdx, spellCount)
                             spellY = spellY - ROW_HEIGHT
                         end
@@ -1865,6 +2281,66 @@ local function CreateBuffGroupsTab(page)
     RefreshAll = function()
         BuildLeftPanel()
     end
+
+    local specDropdown = CreateFrame("DropdownButton", nil, page, "WowStyle1DropdownTemplate")
+    specDropdown:SetWidth(200)
+    specDropdown:SetPoint("TOPRIGHT", page, "TOPRIGHT", -6, -8)
+    specDropdown:SetDefaultText(L["Current Spec"])
+
+    local function GetSpecLabel(specID)
+        for _, classInfo in ipairs(CLASS_LIST) do
+            local specs = CLASS_SPECS[classInfo.classTag]
+            if specs then
+                for _, specInfo in ipairs(specs) do
+                    if specInfo.specID == specID then
+                        return classInfo.className .. " - " .. specInfo.specName
+                    end
+                end
+            end
+        end
+        return L["Current Spec"]
+    end
+
+    local function SetSpecSelection(specID)
+        currentSpecID = specID
+        selectedGroupIndex = nil
+        selectedSpellID = nil
+        selectedSpellGroupIndex = nil
+        ungroupedSelected = false
+        table.wipe(overrideKeyCandidateCache)
+        if IsViewingPlayerSpec() then
+            specDropdown:OverrideText(L["Current Spec"])
+        else
+            specDropdown:OverrideText(GetSpecLabel(specID))
+        end
+        ClearRightPanel()
+        BuildLeftPanel()
+    end
+
+    specDropdown:SetupMenu(function(_, rootDescription)
+        rootDescription:CreateRadio(L["Current Spec"], function()
+            return IsViewingPlayerSpec()
+        end, function()
+            SetSpecSelection(playerSpecID)
+        end)
+        rootDescription:CreateDivider()
+        for _, classInfo in ipairs(CLASS_LIST) do
+            local color = RAID_CLASS_COLORS[classInfo.classTag]
+            local coloredName = color and color:WrapTextInColorCode(classInfo.className) or classInfo.className
+            local submenu = rootDescription:CreateButton(coloredName)
+            local specs = CLASS_SPECS[classInfo.classTag]
+            if specs then
+                for _, specInfo in ipairs(specs) do
+                    submenu:CreateRadio(specInfo.specName, function()
+                        return currentSpecID == specInfo.specID
+                    end, function()
+                        SetSpecSelection(specInfo.specID)
+                    end)
+                end
+            end
+        end
+    end)
+
 
     page:SetScript("OnMouseUp", function()
         if dragState.active then
@@ -1911,8 +2387,12 @@ local function CreateBuffGroupsTab(page)
     end)
 
     page:HookScript("OnShow", function()
+        local si = GetSpecialization()
         local prevSpecID = currentSpecID
-        RefreshCurrentSpecID()
+        playerSpecID = si and GetSpecializationInfo(si) or nil
+        currentSpecID = playerSpecID
+        table.wipe(overrideKeyCandidateCache)
+        specDropdown:OverrideText(L["Current Spec"])
         RegisterBGEventCallbacks()
         if currentSpecID ~= prevSpecID then
             selectedGroupIndex = nil

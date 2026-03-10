@@ -1067,6 +1067,16 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                 r, g, b = customColor.r or r, customColor.g or g, customColor.b or b
             end
 
+            local resolvedBorderColor = frameData.cdmResolvedBorderColor
+            if not resolvedBorderColor then
+                resolvedBorderColor = {}
+                frameData.cdmResolvedBorderColor = resolvedBorderColor
+            end
+            resolvedBorderColor.r = r
+            resolvedBorderColor.g = g
+            resolvedBorderColor.b = b
+            resolvedBorderColor.a = 1
+
             if pixelBorderLines then
                 for _, line in ipairs(pixelBorderLines) do
                     if line and line.SetVertexColor then
