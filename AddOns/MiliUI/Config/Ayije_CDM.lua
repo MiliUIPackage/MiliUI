@@ -128,7 +128,7 @@ MiliUI_AyijeCDM_Profile = {
     ["racialsChargeColor"] = { ["a"] = 1, ["r"] = 1, ["g"] = 1, ["b"] = 1 },
     ["fadingTrigger"] = "notarget",
     ["hideDebuffBorder"] = true,
-    ["fadingEnabled"] = false,
+    ["fadingEnabled"] = true,
     ["glowColor"] = { ["a"] = 1, ["r"] = 0.95, ["g"] = 0.95, ["b"] = 0.32 },
     ["trinketsEnabled"] = true,
     ["buffContainerLocked"] = true,
