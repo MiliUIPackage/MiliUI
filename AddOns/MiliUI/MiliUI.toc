@@ -18,6 +18,7 @@ Enhance\Focuser.lua
 Enhance\SlashRL.lua
 # Enhance\SpellAnnouncer.lua
 Enhance\AyijeCDM_CastBar.lua
+Enhance\AyijeCDM_StufAnchor.lua
 Enhance\AddonNames.lua
 Enhance\AutoSlotKeystone.lua
 Enhance\TeleportMenu_Spacing.lua
