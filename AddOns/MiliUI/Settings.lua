@@ -57,6 +57,32 @@ local importRegistry = {
             return true
         end,
     },
+    {
+        name = "Stuf",
+        desc = "頭像插件",
+        addonName = "Stuf",
+        dataCheck = function()
+            return MiliUI_BuildStufDefaults ~= nil
+        end,
+        import = function()
+            if not MiliUI_BuildStufDefaults then return false, "MiliUI 預設值資料不存在" end
+            local defaults = MiliUI_BuildStufDefaults()
+            if not defaults then return false, "無法產生預設值" end
+
+            -- 直接覆寫 StufDB
+            if not StufDB then StufDB = {} end
+            for unit, data in pairs(defaults) do
+                StufDB[unit] = CopyTable(data)
+            end
+
+            -- 補上 init 標記，避免 Stuf 再次觸發 LoadDefaults
+            if StufDB.global then
+                StufDB.global.init = 9
+            end
+
+            return true
+        end,
+    },
     --[[
     {
         name = "SenseiClassResourceBar",
