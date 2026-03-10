@@ -67,22 +67,20 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
 
   table.insert(self.ChangeAlpha, self.PrefixCheckBox)
 
-  self.PrioritySlider = CreateFrame("Frame", nil, self, "BaganatorCustomSliderTemplate")
-  self.PrioritySlider:Init({
-    text = addonTable.Locales.PRIORITY,
-    callback = function() self:Save() end,
-    min = -1,
-    max = 3,
-    valueToText = {
-      [-1] = addonTable.Locales.LOW,
-      [0] = addonTable.Locales.NORMAL,
-      [1] = addonTable.Locales.HIGH,
-      [2] = addonTable.Locales.HIGHER,
-      [3] = addonTable.Locales.HIGHEST,
-    }
-  })
-  self.PrioritySlider:SetPoint("LEFT")
-  self.PrioritySlider:SetPoint("RIGHT")
+  local valueToText = {
+    [-1] = addonTable.Locales.LOW,
+    [0] = addonTable.Locales.NORMAL,
+    [1] = addonTable.Locales.HIGH,
+    [2] = addonTable.Locales.HIGHER,
+    [3] = addonTable.Locales.HIGHEST,
+  }
+  self.PrioritySlider = addonTable.CustomiseDialog.Components.GetSlider(self, addonTable.Locales.PRIORITY, -1, 3, nil, function(value)
+    return valueToText[value]
+  end, function()
+    self:Save()
+  end)
+  self.PrioritySlider:SetPoint("LEFT", -45, 0)
+  self.PrioritySlider:SetPoint("RIGHT", -10, 0)
   self.PrioritySlider:SetPoint("TOP", 0, -210)
   self.PrioritySlider:SetValue(0)
   table.insert(self.ChangeAlpha, self.PrioritySlider)
@@ -198,6 +196,12 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
     self.VisualCategorySearch = Syndicator.Search.GetSearchBuilderScrollable(self.VisualCategorySearchHolder, addonTable.Skins.AddFrame)
     self.VisualCategorySearch:RegisterCallback("OnChange", function()
       self:Save()
+    end)
+    self.VisualCategorySearch:RegisterCallback("OnMenuKeywordEnter", function(_, entry)
+      addonTable.CallbackRegistry:TriggerEvent("SearchTextChanged", "#" .. entry)
+    end)
+    self.VisualCategorySearch:RegisterCallback("OnMenuKeywordLeave", function(_, entry)
+      addonTable.CallbackRegistry:TriggerEvent("SearchTextChanged", "")
     end)
     table.insert(self.ChangeAlpha, self.VisualCategorySearch)
 
@@ -717,7 +721,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:MakeATTImportButton(conta
     local items = {}
     for _, path in ipairs(activePaths) do
       local hashes = {strsplit(">", path)}
-      local entry = ATTC.SearchForSourcePath(ATTC:GetDataCache().g, hashes, 2, #hashes)
+      local entry = ATTC.SearchForSourcePath(ATTC:GetDatabaseRoot().g, hashes, 2, #hashes)
 
       local label, value = hashes[#hashes]:match("(%a+)(%-?%d+)")
 
@@ -736,7 +740,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:MakeATTImportButton(conta
 
       if not entry then
         local tmp = {}
-        ATTC.BuildFlatSearchResponse(ATTC:GetDataCache().g, label, tonumber(value), tmp)
+        ATTC.BuildFlatSearchResponse(ATTC:GetDatabaseRoot().g, label, tonumber(value), tmp)
         if #tmp == 1 then
           entry = tmp[1]
         end

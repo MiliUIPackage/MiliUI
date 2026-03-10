@@ -336,10 +336,10 @@ addonTable.Utilities.OnAddonLoaded("CanIMogIt", function()
           return
       end
 
-      CIMI_SetIcon(self, CIMI_Update, CanIMogIt:GetTooltipText(details.itemLink))
+      CIMI_SetIcon(self, CIMI_Update, CanIMogIt:GetTooltipText(details.itemLink, details.itemLocation and details.itemLocation.bagID, details.itemLocation and details.itemLocation.slotIndex))
     end
-    CIMI_SetIcon(CIMIOverlay, CIMI_Update, CanIMogIt:GetTooltipText(details.itemLink))
-    return (IsEquipment(details.itemLink) or (C_ToyBox ~= nil and C_ToyBox.GetToyInfo(details.itemID) ~= nil) or IsPet(details.itemID) or (C_MountJournal ~= nil and C_MountJournal.GetMountFromItem(details.itemID) ~= nil))
+    CIMI_SetIcon(CIMIOverlay, CIMI_Update, CanIMogIt:GetTooltipText(details.itemLink, details.itemLocation and details.itemLocation.bagID, details.itemLocation and details.itemLocation.slotIndex))
+    return (IsEquipment(details.itemLink) or (C_ToyBox ~= nil and C_ToyBox.GetToyInfo(details.itemID) ~= nil) or IsPet(details.itemID) or (C_MountJournal ~= nil and C_MountJournal.GetMountFromItem(details.itemID) ~= nil) or (C_Item.IsDecorItem ~= nil and C_Item.IsDecorItem(details.itemID)))
   end,
   function(itemButton)
     CIMI_AddToFrame(itemButton, function() end)

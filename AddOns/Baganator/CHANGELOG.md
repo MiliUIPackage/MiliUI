@@ -1,7 +1,7 @@
 # Baganator
 
-## [784](https://github.com/TheMouseNest/Baganator/tree/784) (2026-01-30)
-[Full Changelog](https://github.com/TheMouseNest/Baganator/compare/783...784) 
+## [792](https://github.com/TheMouseNest/Baganator/tree/792) (2026-03-03)
+[Full Changelog](https://github.com/TheMouseNest/Baganator/compare/791...792) [Previous Releases](https://github.com/TheMouseNest/Baganator/releases)
 
-- Retail: Fix "Item Level" corner widget for cached bag views  
-- Retail: Fix "Item Level" sorting method  
+- Fix accidental global  
+- [Fixes #628] Match Blizzard's auto-open-close (don't close if already open)  

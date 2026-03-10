@@ -1,13 +1,11 @@
-## Interface: 120001, 120000, 110207, 50503, 38000, 20505, 11508
+## Interface: 120001, 120000, 50503, 38000, 20505, 11508
 ## Title: Baganator
-## Version: 784
+## Version: 792
 ## Author: plusmouse
 ## OptionalDeps: Syndicator, Masque
 ## SavedVariables: BAGANATOR_CONFIG, BAGANATOR_DATA
 ## SavedVariablesPerCharacter: BAGANATOR_CURRENT_PROFILE
 ## IconTexture: Interface\AddOns\Baganator\Assets\logo.tga
-## OptionalDependencies: WagoAnalytics
-## X-Category-zhTW: 物品
 ## Title-zhTW: |cFF2DA267[物品]|r 背包整合
 ## Notes-zhTW: Baganator|n功能強大的整合背包。
 
@@ -32,7 +30,6 @@ Core\Config.lua
 Core\Utilities.lua
 Core\SlashCmd.lua
 Core\Welcome.lua
-Core\Analytics.lua
 Core\Dialogs.lua
 Core\Initialize.lua
 
@@ -173,4 +170,3 @@ Compatibility\Refunds.lua
 Compatibility\Contexts.lua
 Compatibility\ItemLevels.lua
 Compatibility\AuctionValue.lua
-Compatibility\Midnight.lua
