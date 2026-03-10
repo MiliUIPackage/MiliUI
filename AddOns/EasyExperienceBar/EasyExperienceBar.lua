@@ -46,7 +46,7 @@ function EasyExperienceBar:Options()
     if EasyExperienceBar.global.questRestedText == nil then  EasyExperienceBar.global.questRestedText = true end
     if EasyExperienceBar.global.questXpBar == nil then EasyExperienceBar.global.questXpBar = true end
     if EasyExperienceBar.global.showMaxLevel == nil then EasyExperienceBar.global.showMaxLevel = false end
-    if EasyExperienceBar.global.resetReload == nil then EasyExperienceBar.global.resetReload = false end
+    if EasyExperienceBar.global.resetReload == nil then EasyExperienceBar.global.resetReload = true end
     if EasyExperienceBar.global.hideXpBar == nil then EasyExperienceBar.global.hideXpBar = true end
     if EasyExperienceBar.global.lockBar == nil then EasyExperienceBar.global.lockBar = false end
     if EasyExperienceBar.global.font == nil then
@@ -58,7 +58,7 @@ function EasyExperienceBar:Options()
         end
     end
     if EasyExperienceBar.global.fontOutline == nil then EasyExperienceBar.global.fontOutline = "THICKOUTLINE" end
-    if EasyExperienceBar.global.bartexture == nil then EasyExperienceBar.global.bartexture = "Interface\\Addons\\SharedMedia\\statusbar\\normT  ex" end
+    if EasyExperienceBar.global.bartexture == nil then EasyExperienceBar.global.bartexture = "Interface\\Addons\\SharedMedia\\statusbar\\normTex" end
     if EasyExperienceBar.global.barWidth == nil then EasyExperienceBar.global.barWidth = 600 end
     if EasyExperienceBar.global.barHeight == nil then EasyExperienceBar.global.barHeight = 30 end
     if EasyExperienceBar.global.fontSize == nil then EasyExperienceBar.global.fontSize = 14 end
