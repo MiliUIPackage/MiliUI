@@ -1,7 +1,8 @@
 # Auctionator
 
-## [313](https://github.com/TheMouseNest/Auctionator/tree/313) (2026-01-30)
-[Full Changelog](https://github.com/TheMouseNest/Auctionator/compare/312...313) 
+## [318](https://github.com/TheMouseNest/Auctionator/tree/318) (2026-03-08)
+[Full Changelog](https://github.com/TheMouseNest/Auctionator/compare/317...318) 
 
-- [Fixes #1761] Fix some searches in Selling tab not working  
-- Classic Anniversary: Fix time left text on list views  
+- Ensure tooltips of items in the auction house show the right price for the ilvl  
+- Fix prices shown for crafting enchants  
+- Update enchant spell mappings for Midnight (#1785)  
