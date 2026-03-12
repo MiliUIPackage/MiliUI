@@ -1,0 +1,22 @@
+## Interface: 120001
+## Title: Stuf Unit Frames BETA
+## Author: Systomatica
+## Notes: Main unitframes replacement. Assembly optional.
+## Version: 12.0.1
+
+## SavedVariables: StufDB
+## SavedVariablesPerCharacter: StufCharDB
+
+## X-Category: UnitFrame
+## OptionalDeps: LibSharedMedia-3.0, ButtonFacade, LibButtonFacade, StufLocale
+## LoadManagers: AddonLoader
+## X-LoadOn-Always: true
+
+embeds.xml
+cancelaura.xml
+core.lua
+infoCalc.lua
+bars.lua
+text.lua
+icons.lua
+aura.lua

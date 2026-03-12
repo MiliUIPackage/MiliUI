@@ -1,0 +1,14 @@
+## Interface: 120000
+## Title: Stuf_Range
+## Author: TotalPackage
+## Notes: Displays estimate distance using LibRangeCheck-3.0.
+
+## DefaultState: disabled
+## Dependencies: Stuf
+## OptionalDeps: LibRangeCheck-3.0
+
+## LoadManagers: AddonLoader
+## X-LoadOn-Always: delayed
+
+embeds.xml
+core.lua
