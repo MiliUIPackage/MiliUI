@@ -62,6 +62,7 @@ local TALENT_DISPATCH_PRIORITY = {
     TRAIT_CONFIG_UPDATED = 2,
     PLAYER_TALENT_UPDATE = 2,
     PLAYER_PVP_TALENT_UPDATE = 2,
+    WAR_MODE_STATUS_UPDATE = 2,
     SPELLS_CHANGED = 1,
 }
 
@@ -267,6 +268,7 @@ CDM:RegisterEvent("TRAIT_CONFIG_CREATED", DispatchTalentDataChanged)
 CDM:RegisterEvent("TRAIT_CONFIG_UPDATED", DispatchTalentDataChanged)
 CDM:RegisterEvent("PLAYER_TALENT_UPDATE", DispatchTalentDataChanged)
 CDM:RegisterEvent("PLAYER_PVP_TALENT_UPDATE", DispatchTalentDataChanged)
+CDM:RegisterEvent("WAR_MODE_STATUS_UPDATE", DispatchTalentDataChanged)
 CDM:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED", DispatchTalentDataChanged)
 
 CDM:RegisterUnitEvent("PLAYER_SPECIALIZATION_CHANGED", "player", DispatchSpecStateChanged)

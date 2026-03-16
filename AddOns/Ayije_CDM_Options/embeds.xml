@@ -11,7 +11,9 @@
     <Script file="Glow.lua"/>
     <Script file="Fading.lua"/>
     <Script file="Assist.lua"/>
+    <Script file="GroupEditorShared.lua"/>
     <Script file="BuffGroups.lua"/>
+    <Script file="CooldownGroups.lua"/>
 
     <Script file="ImportExport.lua"/>
     <Script file="Profiles.lua"/>
@@ -22,4 +24,5 @@
     <Script file="CustomBuffs.lua"/>
     <Script file="Bars.lua"/>
     <Script file="CastBar.lua"/>
+    <Script file="Externals.lua"/>
 </Ui>

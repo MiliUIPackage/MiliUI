@@ -53,7 +53,7 @@ local function RefreshSpellList(listContainer)
         icon:SetSize(28, 28)
         icon:SetPoint("LEFT", 0, 0)
         icon:SetTexture(config.icon)
-        CDM_C.ApplyIconTexCoord(icon, true)
+        CDM_C.ApplyIconTexCoord(icon, CDM_C.GetEffectiveZoomAmount())
 
         local nameText = row:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
         nameText:SetPoint("LEFT", icon, "RIGHT", 8, 6)

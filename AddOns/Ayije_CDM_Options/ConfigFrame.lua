@@ -48,7 +48,7 @@ local function ApplyFooterTextStyle(fontString)
     local fontName = db.textFont or defaults.textFont or "Friz Quadrata TT"
     local fontOutline = "NONE"
     local fontPath = (LSM and LSM:Fetch("font", fontName)) or CDM_C.FONT_PATH
-    local fontSize = (CDM_C.GetPixelFontSize and CDM_C.GetPixelFontSize(24)) or 24
+    local fontSize = (CDM.Pixel and CDM.Pixel.FontSize(24)) or 24
 
     fontString:SetFontObject("GameFontHighlightSmall")
     local setOk = fontString:SetFont(fontPath, fontSize, fontOutline)
@@ -77,6 +77,7 @@ local function HideConfigPopups()
     StaticPopup_Hide("AYIJE_CDM_CONFIRM_COPY_PROFILE")
     StaticPopup_Hide("AYIJE_CDM_CONFIRM_DELETE_PROFILE")
     StaticPopup_Hide("AYIJE_CDM_CONFIRM_DELETE_GROUP")
+    StaticPopup_Hide("AYIJE_CDM_CONFIRM_DELETE_CD_GROUP")
 end
 
 local function HideConfigUiForCombat()

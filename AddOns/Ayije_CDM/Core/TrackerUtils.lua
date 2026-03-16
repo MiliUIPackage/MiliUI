@@ -1,7 +1,8 @@
 local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
 local CDM_C = CDM.CONST
-local SetPixelPerfectPoint = CDM_C.SetPixelPerfectPoint
+local Pixel = CDM.Pixel
+local Snap = Pixel.Snap
 local INVERTED_ANCHORS = {
     TOPLEFT = "BOTTOMLEFT",
     TOPRIGHT = "BOTTOMRIGHT",
@@ -14,6 +15,8 @@ local TRACKER_ANCHOR_INVALIDATION_EVENTS = {
     "GROUP_ROSTER_UPDATE",
     "PLAYER_ROLES_ASSIGNED",
 }
+
+CDM._cdmCooldowns = CDM._cdmCooldowns or setmetatable({}, { __mode = "k" })
 
 local trackerAnchorCache = setmetatable({}, { __mode = "k" })
 local trackerAnchorCacheVersion = 0
@@ -242,6 +245,7 @@ local PLAYER_FRAME_CANDIDATES = {
     "UUF_Player",
     "MSUF_player",
     "EQOLUFPlayerFrame",
+    "oUF_Player",
 }
 
 local function ResolvePlayerAnchorFrame()
@@ -399,8 +403,7 @@ function CDM.CreateTrackerIcon(parent, namePrefix, id, opts)
 
     local icon = frame:CreateTexture(nil, "ARTWORK")
     icon:SetAllPoints()
-    icon:SetSnapToPixelGrid(false)
-    icon:SetTexelSnappingBias(0)
+    Pixel.DisableTextureSnap(icon)
     frame.Icon = icon
 
     local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
@@ -409,8 +412,10 @@ function CDM.CreateTrackerIcon(parent, namePrefix, id, opts)
     cooldown:SetDrawEdge(false)
     cooldown:SetDrawBling(false)
     if cooldown.SetSwipeColor then
-        cooldown:SetSwipeColor(CDM_C.SWIPE_COLOR.r, CDM_C.SWIPE_COLOR.g, CDM_C.SWIPE_COLOR.b, CDM_C.SWIPE_COLOR.a)
+        local sc = CDM.db and CDM.db.swipeColor or CDM_C.SWIPE_COLOR
+        cooldown:SetSwipeColor(sc.r, sc.g, sc.b, sc.a)
     end
+    CDM._cdmCooldowns[cooldown] = true
     frame.Cooldown = cooldown
 
     if cooldown.CooldownFlash then
@@ -443,6 +448,15 @@ function CDM.CreateTrackerIcon(parent, namePrefix, id, opts)
     return frame
 end
 
+function CDM.RefreshAllSwipeColors()
+    local sc = CDM.db and CDM.db.swipeColor or CDM_C.SWIPE_COLOR
+    for cd in pairs(CDM._cdmCooldowns) do
+        if cd.SetSwipeColor then
+            cd:SetSwipeColor(sc.r, sc.g, sc.b, sc.a)
+        end
+    end
+end
+
 function CDM.EnsureTrackerChargeWidgets(frame)
     if not frame or not frame.cdmChargeWidgetsEnabled then
         return nil
@@ -464,23 +478,19 @@ function CDM.EnsureTrackerChargeWidgets(frame)
     return chargeCount.Current
 end
 
-local ToPixelCountForRegion = CDM_C.ToPixelCountForRegion
-local PixelsToUIForRegion = CDM_C.PixelsToUIForRegion
-local SetPointPixels = CDM_C.SetPointPixels
-
 local function SetTrackerContainerAnchor(container, anchorPoint, offsetX, offsetY, targetFrame, containerAnchorOverride)
     container:ClearAllPoints()
     local containerAnchor = containerAnchorOverride or INVERTED_ANCHORS[anchorPoint] or anchorPoint
-    SetPixelPerfectPoint(container, containerAnchor, targetFrame, anchorPoint, offsetX, offsetY)
+    Pixel.SetPoint(container, containerAnchor, targetFrame, anchorPoint, offsetX, offsetY)
 end
 
 function CDM.PositionTrackerIcons(container, frames, size, spacing, anchorPoint)
     local growLeft = (anchorPoint == "TOPRIGHT" or anchorPoint == "BOTTOMRIGHT")
     local visibleFrames = trackerVisibleFramesScratch
-    local widthsPx = trackerWidthsPxScratch
-    local heightsPx = trackerHeightsPxScratch
+    local widths = trackerWidthsPxScratch
+    local heights = trackerHeightsPxScratch
     local prevVisibleCount = #visibleFrames
-    local prevWidthsCount = #widthsPx
+    local prevWidthsCount = #widths
     local visibleCount = 0
 
     for _, frame in ipairs(frames) do
@@ -493,57 +503,53 @@ function CDM.PositionTrackerIcons(container, frames, size, spacing, anchorPoint)
         visibleFrames[i] = nil
     end
 
-    local gapPx = CDM_C.GetCooldownIconGapPixels(spacing)
+    local gap = Snap(spacing or 0)
 
     if visibleCount <= 0 then
         for i = 1, prevWidthsCount do
-            widthsPx[i] = nil
+            widths[i] = nil
         end
-        local emptyHeightPx = ToPixelCountForRegion(size and size.h or 0, container, 0)
-        container:SetSize(0, PixelsToUIForRegion(emptyHeightPx, container))
+        container:SetSize(0, Snap(size and size.h or 0))
         return
     end
 
-    local totalWidthPx = 0
-    local maxHeightPx = 0
-
-    local firstW = visibleFrames[1]:GetWidth() or 0
-    local firstH = visibleFrames[1]:GetHeight() or 0
-    local commonWPx = ToPixelCountForRegion(firstW > 0 and firstW or (size and size.w) or 0, container, 1)
-    local commonHPx = ToPixelCountForRegion(firstH > 0 and firstH or (size and size.h) or 0, container, 1)
+    local totalWidth = 0
+    local maxHeight = 0
 
     for i, frame in ipairs(visibleFrames) do
         local rawW = (frame.GetWidth and frame:GetWidth()) or 0
         local rawH = (frame.GetHeight and frame:GetHeight()) or 0
-        local wPx = (rawW == firstW) and commonWPx or ToPixelCountForRegion(rawW > 0 and rawW or (size and size.w) or 0, container, 1)
-        local hPx = (rawH == firstH) and commonHPx or ToPixelCountForRegion(rawH > 0 and rawH or (size and size.h) or 0, container, 1)
-        widthsPx[i] = wPx
-        heightsPx[i] = hPx
-        totalWidthPx = totalWidthPx + wPx
+        local w = Snap(rawW > 0 and rawW or (size and size.w or 0))
+        local h = Snap(rawH > 0 and rawH or (size and size.h or 0))
+        if w < Pixel.GetSize() then w = Pixel.GetSize() end
+        if h < Pixel.GetSize() then h = Pixel.GetSize() end
+        widths[i] = w
+        heights[i] = h
+        totalWidth = totalWidth + w
         if i > 1 then
-            totalWidthPx = totalWidthPx + gapPx
+            totalWidth = totalWidth + gap
         end
-        if hPx > maxHeightPx then
-            maxHeightPx = hPx
+        if h > maxHeight then
+            maxHeight = h
         end
     end
     for i = visibleCount + 1, prevWidthsCount do
-        widthsPx[i] = nil
-        heightsPx[i] = nil
+        widths[i] = nil
+        heights[i] = nil
     end
 
-    container:SetSize(PixelsToUIForRegion(totalWidthPx, container), PixelsToUIForRegion(maxHeightPx, container))
+    container:SetSize(totalWidth, maxHeight)
 
-    local cursorPx = 0
+    local cursor = 0
     for i, frame in ipairs(visibleFrames) do
-        frame:SetSize(PixelsToUIForRegion(widthsPx[i], container), PixelsToUIForRegion(heightsPx[i], container))
+        frame:SetSize(widths[i], heights[i])
         frame:ClearAllPoints()
         if growLeft then
-            SetPointPixels(frame, "TOPRIGHT", container, "TOPRIGHT", -cursorPx, 0, container)
+            Pixel.SetPoint(frame, "TOPRIGHT", container, "TOPRIGHT", -cursor, 0)
         else
-            SetPointPixels(frame, "TOPLEFT", container, "TOPLEFT", cursorPx, 0, container)
+            Pixel.SetPoint(frame, "TOPLEFT", container, "TOPLEFT", cursor, 0)
         end
-        cursorPx = cursorPx + widthsPx[i] + gapPx
+        cursor = cursor + widths[i] + gap
     end
 end
 
@@ -690,11 +696,33 @@ function CDM.ClearTrackerPool(pool)
     end
 end
 
+function CDM.RefreshChargeStyleCache(target, prefix)
+    CDM_C.RefreshBaseFontCache()
+    target.fontPath = CDM_C.GetBaseFontPath()
+    target.fontOutline = CDM_C.GetBaseFontOutline()
+
+    local db = CDM.db
+    local defaults = CDM.defaults or {}
+    target.chargeFontSize = db and db[prefix .. "ChargeFontSize"] or 10
+    target.chargePosition = db and db[prefix .. "ChargePosition"] or "BOTTOMRIGHT"
+    target.chargeOffsetX = db and db[prefix .. "ChargeOffsetX"] or 0
+    target.chargeOffsetY = db and db[prefix .. "ChargeOffsetY"] or 0
+
+    local srcColor = (db and db[prefix .. "ChargeColor"])
+        or (db and db.chargeColor)
+        or defaults.chargeColor
+        or { r = 1, g = 1, b = 1, a = 1 }
+    target.chargeColor.r = srcColor.r or 1
+    target.chargeColor.g = srcColor.g or 1
+    target.chargeColor.b = srcColor.b or 1
+    target.chargeColor.a = srcColor.a or 1
+end
+
 function CDM.StyleChargeText(chargeText, frame, cachedStyles)
     chargeText:SetIgnoreParentScale(true)
     chargeText:ClearAllPoints()
     chargeText:SetPoint(cachedStyles.chargePosition, frame, cachedStyles.chargePosition, cachedStyles.chargeOffsetX, cachedStyles.chargeOffsetY)
-    chargeText:SetFont(cachedStyles.fontPath, CDM_C.GetPixelFontSize(cachedStyles.chargeFontSize), cachedStyles.fontOutline)
+    chargeText:SetFont(cachedStyles.fontPath, Pixel.FontSize(cachedStyles.chargeFontSize), cachedStyles.fontOutline)
     chargeText:SetTextColor(cachedStyles.chargeColor.r, cachedStyles.chargeColor.g, cachedStyles.chargeColor.b)
     chargeText:SetDrawLayer("OVERLAY", 7)
     chargeText:SetShadowOffset(0, 0)

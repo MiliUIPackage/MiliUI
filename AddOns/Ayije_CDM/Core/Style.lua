@@ -13,6 +13,8 @@ local GetSpellIDCandidates = CDM.GetSpellIDCandidates
 
 local VIEWERS = CDM_C.VIEWERS
 local VIEWERS_WITH_OVERRIDE = CDM_C.VIEWERS_WITH_OVERRIDE
+local Pixel = CDM.Pixel
+local Snap = Pixel.Snap
 
 local function GetAspectPreservingTexCoord(frameW, frameH, zoomPadding)
     if not frameH or frameH <= 0 then return 0, 1, 0, 1 end
@@ -31,17 +33,23 @@ local function GetAspectPreservingTexCoord(frameW, frameH, zoomPadding)
     return left, right, top, bottom
 end
 
-function CDM_C.ApplyIconTexCoord(texture, useZoom, frameW, frameH)
+function CDM_C.ApplyIconTexCoord(texture, zoomAmount, frameW, frameH)
     if not texture or not texture.SetTexCoord then return end
+    local padding = (type(zoomAmount) == "number") and zoomAmount or 0
     if frameW and frameH and frameW > 0 and frameH > 0 then
-        local zoomPadding = useZoom and CDM_C.ICON_TEXCOORD_MIN or 0
-        local left, right, top, bottom = GetAspectPreservingTexCoord(frameW, frameH, zoomPadding)
+        local left, right, top, bottom = GetAspectPreservingTexCoord(frameW, frameH, padding)
         texture:SetTexCoord(left, right, top, bottom)
-    elseif useZoom then
-        texture:SetTexCoord(CDM_C.ICON_TEXCOORD_MIN, CDM_C.ICON_TEXCOORD_MAX, CDM_C.ICON_TEXCOORD_MIN, CDM_C.ICON_TEXCOORD_MAX)
+    elseif padding > 0 then
+        texture:SetTexCoord(padding, 1 - padding, padding, 1 - padding)
     else
         texture:SetTexCoord(0, 1, 0, 1)
     end
+end
+
+function CDM_C.GetEffectiveZoomAmount()
+    if not CDM_C.GetConfigValue("zoomIcons", true) then return 0 end
+    local v = CDM_C.GetConfigValue("zoomAmount", 0.08)
+    return (type(v) == "number") and v or 0.08
 end
 
 local function IsBorderStyleActive()
@@ -74,6 +82,11 @@ local function RefreshStyleCache()
     local defaults = CDM.defaults or {}
 
     styleCache.zoomIcons = CfgValue(db, defaults, "zoomIcons", false)
+    styleCache.zoomAmount = CfgValue(db, defaults, "zoomAmount", 0.08)
+    styleCache.hideIconOverlay = CfgValue(db, defaults, "hideIconOverlay", true)
+    styleCache.hideIconOverlayTexture = CfgValue(db, defaults, "hideIconOverlayTexture", true)
+    styleCache.swipeColor = CfgValue(db, defaults, "swipeColor", CDM_C.SWIPE_COLOR)
+    styleCache.hideGCDSwipe = CfgValue(db, defaults, "hideGCDSwipe", false)
     styleCache.textFont = CfgValue(db, defaults, "textFont", "Friz Quadrata TT")
     local rawOutline = CfgValue(db, defaults, "textFontOutline", "OUTLINE")
     styleCache.textFontOutline = (rawOutline == "NONE") and "" or rawOutline
@@ -83,6 +96,7 @@ local function RefreshStyleCache()
     styleCache.racialsCooldownFontSize = CfgValue(db, defaults, "racialsCooldownFontSize", 12)
     styleCache.defensivesCooldownFontSize = CfgValue(db, defaults, "defensivesCooldownFontSize", 12)
     styleCache.trinketsCooldownFontSize = CfgValue(db, defaults, "trinketsCooldownFontSize", 12)
+    styleCache.externalsCooldownFontSize = CfgValue(db, defaults, "externalsCooldownFontSize", 15)
 
     styleCache.chargeFontSize = CfgValue(db, defaults, "chargeFontSize", 12)
     styleCache.chargeColor = CfgValue(db, defaults, "chargeColor", DEFAULT_WHITE_COLOR)
@@ -112,6 +126,7 @@ local function RefreshStyleCache()
     styleCache.buffBarIconPosition = CfgValue(db, defaults, "buffBarIconPosition", "LEFT")
     styleCache.buffBarIconGap = CfgValue(db, defaults, "buffBarIconGap", 2)
     styleCache.buffBarShowName = CfgValue(db, defaults, "buffBarShowName", true)
+    styleCache.buffBarNameMaxChars = CfgValue(db, defaults, "buffBarNameMaxChars", 0)
     styleCache.buffBarShowDuration = CfgValue(db, defaults, "buffBarShowDuration", true)
     styleCache.buffBarTexture = CfgValue(db, defaults, "buffBarTexture", "Blizzard")
     styleCache.buffBarColor = CfgValue(db, defaults, "buffBarColor", { r = 0.4, g = 0.6, b = 0.9, a = 1 })
@@ -138,17 +153,20 @@ local function RefreshStyleCache()
     styleCache.assistOffsetX = CfgValue(db, defaults, "assistOffsetX", 0)
     styleCache.assistOffsetY = CfgValue(db, defaults, "assistOffsetY", 0)
 
+    styleCache.isOneBorderMode = Pixel.IsOneBorderMode()
+
     CDM_C.RefreshBaseFontCache()
     styleCache.fontPath = CDM_C.GetBaseFontPath()
 
-    cdFont:SetFont(styleCache.fontPath, CDM_C.GetPixelFontSize(styleCache.cooldownFontSize), styleCache.textFontOutline)
-    cdFontBuff:SetFont(styleCache.fontPath, CDM_C.GetPixelFontSize(styleCache.buffCooldownFontSize), styleCache.textFontOutline)
+    cdFont:SetFont(styleCache.fontPath, Pixel.FontSize(styleCache.cooldownFontSize), styleCache.textFontOutline)
+    cdFontBuff:SetFont(styleCache.fontPath, Pixel.FontSize(styleCache.buffCooldownFontSize), styleCache.textFontOutline)
 end
 
 CDM.RefreshStyleCache = RefreshStyleCache
 
 local DesaturationCurve = CDM_C.DesaturationCurve
 local GCDFilterCurve = CDM_C.GCDFilterCurve
+local IsReadyCurve = CDM_C.IsReadyCurve
 
 
 local function StyleCooldownTextElement(text, fontPath, fontSize, fontOutline, color)
@@ -157,7 +175,7 @@ local function StyleCooldownTextElement(text, fontPath, fontSize, fontOutline, c
     text:SetIgnoreParentScale(true)
     text:ClearAllPoints()
     text:SetPoint("CENTER", 0, 0)
-    text:SetFont(fontPath, CDM_C.GetPixelFontSize(fontSize), fontOutline)
+    text:SetFont(fontPath, Pixel.FontSize(fontSize), fontOutline)
     text:SetJustifyH("CENTER")
     text:SetJustifyV("MIDDLE")
     text:SetTextColor(color.r, color.g, color.b)
@@ -169,38 +187,26 @@ local function SafeEquals(v, expected)
     return (type(v) ~= "number" or not issecretvalue(v)) and v == expected
 end
 
-local function HideBlizzardIconOverlayFromRegions(...)
-    for i = 1, select("#", ...) do
-        local region = select(i, ...)
-        if region and region.IsObjectType and region:IsObjectType("Texture") then
-            if SafeEquals(region:GetAtlas(), BLIZZARD_ICON_OVERLAY_ATLAS)
-                or SafeEquals(region:GetTexture(), BLIZZARD_ICON_OVERLAY_TEXTURE_FILE_ID) then
-                region:SetAlpha(0)
-                region:Hide()
-            end
-        end
-    end
-end
-
-local function RestoreBlizzardIconOverlayInRegions(...)
-    for i = 1, select("#", ...) do
-        local region = select(i, ...)
-        if region and region.IsObjectType and region:IsObjectType("Texture") then
-            if SafeEquals(region:GetAtlas(), BLIZZARD_ICON_OVERLAY_ATLAS)
-                or SafeEquals(region:GetTexture(), BLIZZARD_ICON_OVERLAY_TEXTURE_FILE_ID) then
-                region:SetAlpha(1)
-                region:Show()
-            end
-        end
-    end
-end
-
-local function HideBarIconOverlay(zoomIcons, ...)
+local function ApplyOverlayVisibility(hideAtlas, hideTexture, ...)
     for i = 1, select("#", ...) do
         local region = select(i, ...)
         if region and region.IsObjectType and region:IsObjectType("Texture") then
             if SafeEquals(region:GetAtlas(), BLIZZARD_ICON_OVERLAY_ATLAS) then
-                region:SetAlpha(zoomIcons and 0 or 1)
+                if hideAtlas then
+                    region:SetAlpha(0)
+                    region:Hide()
+                else
+                    region:SetAlpha(1)
+                    region:Show()
+                end
+            elseif SafeEquals(region:GetTexture(), BLIZZARD_ICON_OVERLAY_TEXTURE_FILE_ID) then
+                if hideTexture then
+                    region:SetAlpha(0)
+                    region:Hide()
+                else
+                    region:SetAlpha(1)
+                    region:Show()
+                end
             end
         end
     end
@@ -228,7 +234,7 @@ local function GetSpellIDForCooldown(frame)
     return IsSafeNumber(id) and id or nil
 end
 
-local function ApplyAuraStateBody(frame, spellID)
+local function ApplyAuraStateBody(frame, spellID, frameData)
     local cdInfo = spellID and C_Spell.GetSpellCooldown(spellID)
     local tex = frame.Icon
 
@@ -250,6 +256,14 @@ local function ApplyAuraStateBody(frame, spellID)
         end
     end
 
+    if frameData then
+        if (cdInfo and cdInfo.isOnGCD) or not durObj or not durObj.EvaluateRemainingDuration then
+            frameData.cdmReadyAlpha = nil
+        else
+            frameData.cdmReadyAlpha = durObj:EvaluateRemainingDuration(IsReadyCurve, 0)
+        end
+    end
+
     if frame.Cooldown.SetUseAuraDisplayTime then
         frame.Cooldown:SetUseAuraDisplayTime(false)
     end
@@ -262,7 +276,8 @@ local function ApplyAuraStateBody(frame, spellID)
     elseif durObj then
         frame.Cooldown:SetCooldownFromDurationObject(durObj)
         if frame.Cooldown.SetDrawSwipe then
-            frame.Cooldown:SetDrawSwipe(true)
+            local hideSwipe = cdInfo and cdInfo.isOnGCD and styleCache.hideGCDSwipe
+            frame.Cooldown:SetDrawSwipe(not hideSwipe)
         end
     elseif cdInfo and cdInfo.isOnGCD then
         if frame.Cooldown.Clear then
@@ -271,82 +286,165 @@ local function ApplyAuraStateBody(frame, spellID)
     end
 
     if frame.Cooldown.SetSwipeColor then
-        frame.Cooldown:SetSwipeColor(CDM_C.SWIPE_COLOR.r, CDM_C.SWIPE_COLOR.g, CDM_C.SWIPE_COLOR.b, CDM_C.SWIPE_COLOR.a)
+        local sc = styleCache.swipeColor or CDM_C.SWIPE_COLOR
+        frame.Cooldown:SetSwipeColor(sc.r, sc.g, sc.b, sc.a)
     end
     if frame.Cooldown.SetDrawEdge then
         frame.Cooldown:SetDrawEdge(false)
     end
 end
 
-function CDM:ApplyAuraState(frame, spellID)
-    if not frame or not frame.Cooldown then return end
-
-    local frameData = GetFrameData(frame)
-    if frameData.isUpdatingCD then return end
-
-    frameData.isUpdatingCD = true
-
-    local ok, err = pcall(ApplyAuraStateBody, frame, spellID)
-    frameData.isUpdatingCD = false
-    if not ok then ReportError(err) end
+local function FindAuraOverlayEntry(frame)
+    local map = CDM._auraOverlayEnabled
+    if not map then return nil end
+    for _, id in ipairs(CDM:GetSpellIDCandidates(frame, true)) do
+        local entry = map[id]
+        if entry then return entry end
+    end
+    return nil
 end
 
-local DOT_OVERRIDE_SPELLS = CDM_C.DOT_OVERRIDE_SPELLS
-
-local function ApplyDotOverride(frame)
-    if not frame or not frame.Cooldown then return end
-
+local function DetectAuraActive(frame)
     local swipeColor = frame.cooldownSwipeColor
-    local isActive = false
     if swipeColor and type(swipeColor) ~= "number" and swipeColor.GetRGBA then
         local r = swipeColor:GetRGBA()
         if r and type(r) == "number" and not issecretvalue(r) then
-            isActive = r ~= 0
+            return r ~= 0
         end
     end
+    return false
+end
 
-    if not isActive then
-        frame.Cooldown:SetAlpha(0)
-        if frame.Icon then
-            frame.Icon:SetDesaturation(1)
-        end
-    else
-        frame.Cooldown:SetReverse(true)
+local function ApplyAuraOverlayActive(frame, frameData, entry)
+    frame.Cooldown:SetReverse(true)
+    frame.Cooldown:SetAlpha(1)
+    local sc = styleCache.swipeColor or CDM_C.SWIPE_COLOR
+    frame.Cooldown:SetSwipeColor(sc.r, sc.g, sc.b, sc.a)
+    frame.Cooldown:SetDrawEdge(false)
+    if frame.Cooldown.SetUseAuraDisplayTime then
+        frame.Cooldown:SetUseAuraDisplayTime(false)
+    end
+    if frame.Icon then
+        frame.Icon:SetDesaturation(0)
+    end
+
+    if entry.auraGlowEnabled then
+        CDM.Glow:RequestBuffGlow(frame, true, entry.auraGlowColor, nil)
+        frameData.cdmAuraGlowActive = true
+    elseif frameData.cdmAuraGlowActive then
+        CDM.Glow:RequestBuffGlow(frame, false)
+        frameData.cdmAuraGlowActive = false
+    end
+
+    if entry.auraBorderEnabled then
+        BORDER:ApplyBorderColorOverride(frame, entry.auraBorderColor or DEFAULT_WHITE_COLOR)
+        frameData.cdmAuraBorderActive = true
+    elseif frameData.cdmAuraBorderActive then
+        BORDER:RestoreToCurrentBorderColor(frame)
+        frameData.cdmAuraBorderActive = false
+    end
+
+    frameData.cdmAuraOverrideActive = true
+end
+
+local function ApplyAuraOverlayInactive(frame, frameData)
+    if frame.Cooldown.SetDrawSwipe then
+        frame.Cooldown:SetDrawSwipe(false)
+    end
+    if frame.Icon then
+        frame.Icon:SetDesaturation(1)
+    end
+
+    if frameData.cdmAuraGlowActive then
+        CDM.Glow:RequestBuffGlow(frame, false)
+        frameData.cdmAuraGlowActive = false
+    end
+    if frameData.cdmAuraBorderActive then
+        BORDER:RestoreToCurrentBorderColor(frame)
+        frameData.cdmAuraBorderActive = false
+    end
+
+    frameData.cdmAuraOverrideActive = true
+end
+
+local function ClearAuraOverlay(frame, frameData)
+    if frameData.cdmAuraOverrideActive then
         frame.Cooldown:SetAlpha(1)
-        frame.Cooldown:SetSwipeColor(CDM_C.SWIPE_COLOR.r, CDM_C.SWIPE_COLOR.g, CDM_C.SWIPE_COLOR.b, CDM_C.SWIPE_COLOR.a)
-        frame.Cooldown:SetDrawEdge(false)
-        if frame.Cooldown.SetUseAuraDisplayTime then
-            frame.Cooldown:SetUseAuraDisplayTime(false)
-        end
+        frame.Cooldown:SetReverse(false)
         if frame.Icon then
             frame.Icon:SetDesaturation(0)
         end
+        frameData.cdmAuraOverrideActive = false
+    end
+    if frameData.cdmAuraGlowActive then
+        CDM.Glow:RequestBuffGlow(frame, false)
+        frameData.cdmAuraGlowActive = false
+    end
+    if frameData.cdmAuraBorderActive then
+        BORDER:RestoreToCurrentBorderColor(frame)
+        frameData.cdmAuraBorderActive = false
     end
 end
 
-local function ClearDotOverride(frame, frameData)
-    if frameData.cdmDotOverride and frame.Cooldown then
-        frameData.cdmDotOverride = false
-        frame.Cooldown:SetAlpha(1)
-        frame.Cooldown:SetReverse(false)
+local function ClearReadyGlow(frame, frameData)
+    if frameData.cdmReadyGlowActive then
+        if not frameData.cdmAuraGlowActive then
+            CDM.Glow:RequestBuffGlow(frame, false)
+        end
+        frameData.cdmReadyGlowActive = false
+        local host = frameData.cdmBuffGlowHost
+        if host then host:SetAlpha(1) end
+    end
+end
+
+local function ApplyReadyGlow(frame, frameData, entry)
+    if frameData.cdmGlowActive then
+        return
+    end
+
+    CDM.Glow:RequestBuffGlow(frame, true, entry.readyGlowColor, nil)
+    frameData.cdmReadyGlowActive = true
+
+    local host = frameData.cdmBuffGlowHost
+    if host then
+        host:SetAlpha(frameData.cdmReadyAlpha or 1)
     end
 end
 
 local function ProcessAuraOverrideBody(self, frame, frameData, spellID)
-    if spellID then
-        if DOT_OVERRIDE_SPELLS[spellID] then
-            frameData.cdmDotOverride = true
-            ApplyDotOverride(frame)
-        else
-            ClearDotOverride(frame, frameData)
-            self:ApplyAuraState(frame, spellID)
-        end
-        frameData.cdmAuraLastSpellID = spellID
-    else
-        ClearDotOverride(frame, frameData)
+    if not spellID then
+        ClearAuraOverlay(frame, frameData)
+        ClearReadyGlow(frame, frameData)
         frameData.cdmAuraLastSpellID = nil
+        frameData.cdmAuraOverlayVersion = nil
+        frameData.cdmAuraStateDirty = false
+        return
     end
 
+    local entry = FindAuraOverlayEntry(frame)
+
+    if entry and entry.auraOverlay then
+        if DetectAuraActive(frame) then
+            ApplyAuraOverlayActive(frame, frameData, entry)
+        elseif entry.auraDesaturateInactive then
+            ApplyAuraOverlayInactive(frame, frameData)
+        else
+            ClearAuraOverlay(frame, frameData)
+            ApplyAuraStateBody(frame, spellID, frameData)
+        end
+    else
+        ClearAuraOverlay(frame, frameData)
+        ApplyAuraStateBody(frame, spellID, frameData)
+    end
+
+    if entry and entry.readyGlowEnabled and not frameData.cdmAuraOverrideActive then
+        ApplyReadyGlow(frame, frameData, entry)
+    else
+        ClearReadyGlow(frame, frameData)
+    end
+
+    frameData.cdmAuraLastSpellID = spellID
+    frameData.cdmAuraOverlayVersion = CDM._auraOverlayVersion
     frameData.cdmAuraStateDirty = false
 end
 
@@ -362,6 +460,7 @@ function CDM:ProcessAuraOverride(frame)
     if spellID
         and not frameData.cdmAuraStateDirty
         and frameData.cdmAuraLastSpellID == spellID
+        and frameData.cdmAuraOverlayVersion == CDM._auraOverlayVersion
     then
         frameData.isProcessingOverride = false
         return
@@ -516,6 +615,9 @@ local function GetEffectiveCooldownFontSize(vName, isBuff)
     if vName == "CDM_Trinkets" then
         return styleCache.trinketsCooldownFontSize
     end
+    if vName == "CDM_Externals" then
+        return styleCache.externalsCooldownFontSize
+    end
     if isBuff then
         return styleCache.buffCooldownFontSize
     end
@@ -527,12 +629,11 @@ local function GetEffectiveCooldownColor(vName, isBuff)
     return styleCache.cooldownColor
 end
 
-local function ApplyIconTextureLayout(texture, frame, iconWidth, iconHeight, zoomIcons)
-    CDM_C.ApplyIconTexCoord(texture, zoomIcons, iconWidth, iconHeight)
+local function ApplyIconTextureLayout(texture, frame, iconWidth, iconHeight, zoomAmount)
+    CDM_C.ApplyIconTexCoord(texture, zoomAmount, iconWidth, iconHeight)
     texture:ClearAllPoints()
     texture:SetAllPoints(frame)
-    if texture.SetSnapToPixelGrid then texture:SetSnapToPixelGrid(false) end
-    if texture.SetTexelSnappingBias then texture:SetTexelSnappingBias(0) end
+    Pixel.DisableTextureSnap(texture)
 end
 
 local function GetBuffCountAnchor(vName)
@@ -546,10 +647,6 @@ local function EnsureFrameScaleOne(frame)
     if not (frame and frame.SetScale) then return end
     if frame.GetScale and frame:GetScale() == 1 then return end
     frame:SetScale(1)
-end
-
-local function SnapToPixel(value)
-    return CDM_C.SnapOffsetToPixel(value, UIParent)
 end
 
 local function GetResolvedBorderTexturePath()
@@ -568,19 +665,8 @@ local function GetResolvedBorderTexturePath()
     return "Interface\\AddOns\\Ayije_CDM\\Media\\Borders\\Ayije_Thin.tga"
 end
 
-local GetPixelForRegion = CDM_C.GetPixelSizeForRegion
-
-local IsPixelIconBorderMode = CDM_C.IsPixelIconBorderMode
-
-local function ConfigurePixelBorderLineTexture(line, texPath, r, g, b, a)
-    if not line then
-        return
-    end
-    line:SetTexture(texPath)
-    if line.SetHorizTile then line:SetHorizTile(false) end
-    if line.SetVertTile then line:SetVertTile(false) end
-    if line.SetSnapToPixelGrid then line:SetSnapToPixelGrid(false) end
-    if line.SetTexelSnappingBias then line:SetTexelSnappingBias(0) end
+local function ConfigurePixelBorderLineTexture(line, r, g, b, a)
+    if not line then return end
     line:SetVertexColor(r, g, b, a)
     line:Show()
 end
@@ -597,8 +683,7 @@ local function EnsurePixelIconBorder(frameData, frame)
 
         frameData.pixelIconBorderLines = {}
         for i = 1, 4 do
-            local line = overlay:CreateTexture(nil, "OVERLAY", nil, 6)
-            frameData.pixelIconBorderLines[i] = line
+            frameData.pixelIconBorderLines[i] = Pixel.CreateSolidTexture(overlay, "OVERLAY", 6)
         end
     end
 
@@ -642,8 +727,7 @@ end
 
 local function ApplyPixelIconBorder(frameData, frame, color)
     local overlay, lines = EnsurePixelIconBorder(frameData, frame)
-    local texPath = CDM_C.TEX_WHITE8X8
-    local onePx = GetPixelForRegion(overlay)
+    local onePx = Pixel.GetSize()
     local configuredSize = CDM_C.GetConfigValue("borderSize", 1) or 1
     local borderPixels = math.max(1, math.floor(configuredSize / onePx))
     local px = borderPixels * onePx
@@ -658,7 +742,7 @@ local function ApplyPixelIconBorder(frameData, frame, color)
     local right = lines[4]
 
     for _, line in ipairs(lines) do
-        ConfigurePixelBorderLineTexture(line, texPath, r, g, b, a)
+        ConfigurePixelBorderLineTexture(line, r, g, b, a)
     end
 
     top:ClearAllPoints()
@@ -690,6 +774,7 @@ local function EnsurePixelContentMask(frameData, frame)
     if not frameData.pixelContentMask then
         local mask = frame:CreateMaskTexture(nil, "ARTWORK")
         mask:SetTexture(CDM_C.TEX_WHITE8X8)
+        Pixel.DisableTextureSnap(mask)
         frameData.pixelContentMask = mask
     end
 
@@ -784,13 +869,28 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
         or vName == "CDM_Defensives"
         or vName == "CDM_Trinkets"
 
+    local groupData
+    if isCooldown then
+        local groupIdx = CDM.CheckCdGroupMatch and CDM.CheckCdGroupMatch(frame)
+        if groupIdx then
+            local sets = CDM.CooldownGroupSets
+            groupData = sets and sets.groups and sets.groups[groupIdx]
+        end
+    end
+
     local borderActive = IsBorderStyleActive()
-    local usePixelIconBorder = borderActive and (isCooldown or isBuff) and IsPixelIconBorderMode()
+    local usePixelIconBorder = borderActive and (isCooldown or isBuff) and styleCache.isOneBorderMode
     local pixelBorderModeChanged = (frameData.cdmUsePixelIconBorder ~= usePixelIconBorder)
 
-    local iconWidth, iconHeight = GetViewerIconSize(vName, frameData, sizes, isBuff)
-    iconWidth = SnapToPixel(iconWidth)
-    iconHeight = SnapToPixel(iconHeight)
+    local iconWidth, iconHeight
+    if groupData then
+        iconWidth = Snap(groupData.iconWidth or 30)
+        iconHeight = Snap(groupData.iconHeight or 30)
+    else
+        iconWidth, iconHeight = GetViewerIconSize(vName, frameData, sizes, isBuff)
+        iconWidth = Snap(iconWidth)
+        iconHeight = Snap(iconHeight)
+    end
 
     local actualW = frame:GetWidth() or 0
     local actualH = frame:GetHeight() or 0
@@ -818,11 +918,12 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
         end
 
         local zoomIcons = styleCache.zoomIcons
+        local zoomAmount = zoomIcons and styleCache.zoomAmount or 0
         local tex = frame.Icon
         local hasTexture = tex ~= nil and (type(tex) ~= "number" or not issecretvalue(tex))
 
         if hasTexture then
-            ApplyIconTextureLayout(tex, frame, iconWidth, iconHeight, zoomIcons)
+            ApplyIconTextureLayout(tex, frame, iconWidth, iconHeight, zoomAmount)
         end
 
         if frame.Cooldown then
@@ -845,16 +946,14 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
             end
         end
 
-        if zoomIcons then
-            if fullUpdate or not frameData.cdmOverlayHidden then
-                HideBlizzardIconOverlayFromRegions(frame:GetRegions())
-                frameData.cdmOverlayHidden = true
-            end
-        else
-            if fullUpdate or frameData.cdmOverlayHidden then
-                RestoreBlizzardIconOverlayInRegions(frame:GetRegions())
-            end
-            frameData.cdmOverlayHidden = false
+        local hideAtlas = styleCache.hideIconOverlay
+        local hideTexture = styleCache.hideIconOverlayTexture
+        if fullUpdate
+            or frameData.cdmOverlayAtlasHidden ~= hideAtlas
+            or frameData.cdmOverlayTextureHidden ~= hideTexture then
+            ApplyOverlayVisibility(hideAtlas, hideTexture, frame:GetRegions())
+            frameData.cdmOverlayAtlasHidden = hideAtlas
+            frameData.cdmOverlayTextureHidden = hideTexture
         end
 
         if borderActive then
@@ -871,7 +970,7 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                     frameData.borderFrame.border:Hide()
                 end
                 if pixelBorderRefreshNeeded then
-                    ApplyPixelIconBorder(frameData, frame, styleCache.borderColor)
+                    ApplyPixelIconBorder(frameData, frame, frameData.cdmBorderColorOverride or styleCache.borderColor)
                     ApplyPixelContentClip(frameData, frame)
                 end
                 frameData.borderVersionApplied = borderVersion
@@ -890,38 +989,12 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
             frameData.cdmUsePixelIconBorder = false
         end
 
-        local textFontOutline = styleCache.textFontOutline
-        local fontPath = styleCache.fontPath
-        local cooldownColor = GetEffectiveCooldownColor(vName, isBuff)
-        local effectiveCooldownFontSize = GetEffectiveCooldownFontSize(vName, isBuff)
-        local cooldownText = frame.Cooldown and (frame.Cooldown.Text or frame.Cooldown.text)
-        local chargeText = frame.ChargeCount and frame.ChargeCount.Current
-        local countText = frame.Applications and frame.Applications.Applications
-
-        StyleCooldownTextElement(cooldownText, fontPath, effectiveCooldownFontSize, textFontOutline, cooldownColor)
-
-        if frame.Cooldown then
-            StyleCooldownFontStringsInRegions(
-                fontPath,
-                effectiveCooldownFontSize,
-                textFontOutline,
-                cooldownColor,
-                frame.Cooldown:GetRegions()
-            )
-        end
-
-        if frame.Time then
-            StyleCooldownTextElement(frame.Time, fontPath, effectiveCooldownFontSize, textFontOutline, cooldownColor)
-        end
-        if frame.Duration then
-            StyleCooldownTextElement(frame.Duration, fontPath, effectiveCooldownFontSize, textFontOutline, cooldownColor)
-        end
-
         if isCooldown then
             if frame.ChargeCount then
                 frame.ChargeCount:SetFrameLevel(frame:GetFrameLevel() + 7)
             end
 
+            local chargeText = frame.ChargeCount and frame.ChargeCount.Current
             if chargeText then
                 if not frameData.cdmChargeTextHooked then
                     frameData.cdmChargeTextHooked = true
@@ -932,12 +1005,6 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                     end)
                 end
                 chargeText:SetIgnoreParentScale(true)
-                chargeText:ClearAllPoints()
-                chargeText:SetPoint(styleCache.chargePosition, frame, styleCache.chargePosition, styleCache.chargeOffsetX, styleCache.chargeOffsetY)
-                chargeText:SetFont(fontPath, CDM_C.GetPixelFontSize(styleCache.chargeFontSize), textFontOutline)
-                chargeText:SetTextColor(styleCache.chargeColor.r, styleCache.chargeColor.g, styleCache.chargeColor.b)
-                chargeText:SetDrawLayer("OVERLAY", 7)
-                chargeText:SetShadowOffset(0, 0)
             end
         end
 
@@ -946,9 +1013,12 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                 frame.Applications:SetFrameLevel(frame:GetFrameLevel() + 7)
             end
 
+            local countText = frame.Applications and frame.Applications.Applications
             if countText then
+                local fontPath = styleCache.fontPath
+                local textFontOutline = styleCache.textFontOutline
                 countText:SetIgnoreParentScale(true)
-                countText:SetFont(fontPath, CDM_C.GetPixelFontSize(styleCache.countFontSize), textFontOutline)
+                countText:SetFont(fontPath, Pixel.FontSize(styleCache.countFontSize), textFontOutline)
                 countText:SetTextColor(styleCache.countColor.r, styleCache.countColor.g, styleCache.countColor.b)
                 countText:SetDrawLayer("OVERLAY", 7)
                 countText:SetShadowOffset(0, 0)
@@ -956,7 +1026,7 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                 local frameAnchor, offsetX, offsetY = GetBuffCountAnchor(vName)
                 if frameAnchor then
                     countText:ClearAllPoints()
-                    countText:SetPoint("CENTER", frame, frameAnchor, offsetX, offsetY)
+                    countText:SetPoint(frameAnchor, frame, frameAnchor, offsetX, offsetY)
                 end
 
                 frameData.cdmLastCountFS = nil
@@ -971,6 +1041,94 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
         frameData.cdmLastStyledW = iconWidth
         frameData.cdmLastStyledH = iconHeight
         frameData.cdmLastStyledVName = vName
+    end
+
+    do
+        local fontPath = styleCache.fontPath
+        local textFontOutline = styleCache.textFontOutline
+        local effectiveCdFontSize, effectiveCdColor
+        local effectiveChargeFS, effectiveChargeColor
+        local effectiveChargePos, effectiveChargeOX, effectiveChargeOY
+
+        if isCooldown then
+            local spellID = GetSpellIDForCooldown(frame)
+
+            if groupData then
+                effectiveCdFontSize = groupData.cooldownFontSize or 12
+                effectiveCdColor = groupData.cooldownColor
+                effectiveChargeFS = groupData.chargeFontSize or 15
+                effectiveChargeColor = groupData.chargeColor
+                effectiveChargePos = groupData.chargePosition or "BOTTOMRIGHT"
+                effectiveChargeOX = groupData.chargeOffsetX or 0
+                effectiveChargeOY = groupData.chargeOffsetY or 0
+
+                local spellOv = CDM.GetCooldownGroupSpellOverride(groupData, spellID)
+                if spellOv and spellOv.textOverride then
+                    effectiveCdFontSize = spellOv.cooldownFontSize or effectiveCdFontSize
+                    effectiveCdColor = spellOv.cooldownColor or effectiveCdColor
+                    effectiveChargeFS = spellOv.chargeFontSize or effectiveChargeFS
+                    effectiveChargeColor = spellOv.chargeColor or effectiveChargeColor
+                    effectiveChargePos = spellOv.chargePosition or effectiveChargePos
+                    effectiveChargeOX = spellOv.chargeOffsetX or effectiveChargeOX
+                    effectiveChargeOY = spellOv.chargeOffsetY or effectiveChargeOY
+                end
+
+                effectiveCdColor = effectiveCdColor or styleCache.cooldownColor
+                effectiveChargeColor = effectiveChargeColor or styleCache.chargeColor
+            else
+                local ov = spellID and CDM:GetUngroupedCooldownOverride(spellID)
+                if ov and ov.textOverride then
+                    local db = CDM.db
+                    effectiveCdFontSize = ov.cooldownFontSize or (db and db.cooldownFontSize or 15)
+                    effectiveCdColor = ov.cooldownColor or (db and db.cooldownColor) or styleCache.cooldownColor
+                    effectiveChargeFS = ov.chargeFontSize or (db and db.chargeFontSize or 15)
+                    effectiveChargeColor = ov.chargeColor or (db and db.chargeColor) or styleCache.chargeColor
+                    effectiveChargePos = ov.chargePosition or (db and db.chargePosition or "BOTTOMRIGHT")
+                    effectiveChargeOX = ov.chargeOffsetX or (db and db.chargeOffsetX or 0)
+                    effectiveChargeOY = ov.chargeOffsetY or (db and db.chargeOffsetY or 0)
+                else
+                    effectiveCdFontSize = GetEffectiveCooldownFontSize(vName, isBuff)
+                    effectiveCdColor = GetEffectiveCooldownColor(vName, isBuff)
+                    effectiveChargeFS = styleCache.chargeFontSize
+                    effectiveChargeColor = styleCache.chargeColor
+                    effectiveChargePos = styleCache.chargePosition
+                    effectiveChargeOX = styleCache.chargeOffsetX
+                    effectiveChargeOY = styleCache.chargeOffsetY
+                end
+            end
+        else
+            effectiveCdFontSize = GetEffectiveCooldownFontSize(vName, isBuff)
+            effectiveCdColor = GetEffectiveCooldownColor(vName, isBuff)
+        end
+
+        local cooldownText = frame.Cooldown and (frame.Cooldown.Text or frame.Cooldown.text)
+        StyleCooldownTextElement(cooldownText, fontPath, effectiveCdFontSize, textFontOutline, effectiveCdColor)
+
+        if frame.Cooldown then
+            StyleCooldownFontStringsInRegions(
+                fontPath, effectiveCdFontSize, textFontOutline, effectiveCdColor,
+                frame.Cooldown:GetRegions()
+            )
+        end
+
+        if frame.Time then
+            StyleCooldownTextElement(frame.Time, fontPath, effectiveCdFontSize, textFontOutline, effectiveCdColor)
+        end
+        if frame.Duration then
+            StyleCooldownTextElement(frame.Duration, fontPath, effectiveCdFontSize, textFontOutline, effectiveCdColor)
+        end
+
+        if isCooldown then
+            local chargeText = frame.ChargeCount and frame.ChargeCount.Current
+            if chargeText then
+                chargeText:ClearAllPoints()
+                Pixel.SetPoint(chargeText, effectiveChargePos, frame, effectiveChargePos, effectiveChargeOX, effectiveChargeOY)
+                chargeText:SetFont(fontPath, Pixel.FontSize(effectiveChargeFS), textFontOutline)
+                chargeText:SetTextColor(effectiveChargeColor.r, effectiveChargeColor.g, effectiveChargeColor.b, effectiveChargeColor.a or 1)
+                chargeText:SetDrawLayer("OVERLAY", 7)
+                chargeText:SetShadowOffset(0, 0)
+            end
+        end
     end
 
     if vName == VIEWERS.ESSENTIAL or vName == VIEWERS.UTILITY then
@@ -1005,7 +1163,7 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                                   styleCache.assistOffsetX, styleCache.assistOffsetY)
                     local kbFontPath = styleCache.fontPath or CDM_C.GetBaseFontPath()
                     local kbOutline = styleCache.textFontOutline or ""
-                    kbFS:SetFont(kbFontPath, CDM_C.GetPixelFontSize(styleCache.assistFontSize), kbOutline)
+                    kbFS:SetFont(kbFontPath, Pixel.FontSize(styleCache.assistFontSize), kbOutline)
                     kbFS:SetTextColor(styleCache.assistColor.r, styleCache.assistColor.g, styleCache.assistColor.b)
                 end
 
@@ -1128,7 +1286,9 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                 frameData.cdmCooldownHooked = true
                 local function onCooldownSet()
                     local fd = GetFrameData(frame)
+                    if fd.cdmHiddenByDefensives then return end
                     if not fd.isUpdatingCD and not fd.isProcessingOverride then
+                        fd.cdmAuraStateDirty = true
                         self:ProcessAuraOverride(frame)
                     end
                 end
@@ -1140,9 +1300,10 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                 hooksecurefunc(frame.Cooldown, "SetSwipeColor", function(_, r)
                     if r ~= 1 then return end
                     local fd = GetFrameData(frame)
-                    local sid = fd and fd.cdmAuraLastSpellID or GetSpellIDForCooldown(frame)
-                    if sid and DOT_OVERRIDE_SPELLS[sid] then
-                        frame.Cooldown:SetSwipeColor(CDM_C.SWIPE_COLOR.r, CDM_C.SWIPE_COLOR.g, CDM_C.SWIPE_COLOR.b, CDM_C.SWIPE_COLOR.a)
+                    if fd.cdmHiddenByDefensives then return end
+                    if fd.cdmAuraOverrideActive then
+                        local sc = styleCache.swipeColor or CDM_C.SWIPE_COLOR
+                        frame.Cooldown:SetSwipeColor(sc.r, sc.g, sc.b, sc.a)
                     end
                 end)
             end
@@ -1184,12 +1345,12 @@ function CDM:ApplyTrackerStyle(frame, vName, forceUpdate)
 
     local styleVersion = CDM.styleCacheVersion or 0
     local borderActive = IsBorderStyleActive()
-    local usePixelIconBorder = borderActive and IsPixelIconBorderMode()
+    local usePixelIconBorder = borderActive and styleCache.isOneBorderMode
     local pixelBorderModeChanged = (store.cdmUsePixelIconBorder ~= usePixelIconBorder)
 
     local iconWidth, iconHeight = GetViewerIconSize(vName, store, sizes, false)
-    iconWidth = SnapToPixel(iconWidth)
-    iconHeight = SnapToPixel(iconHeight)
+    iconWidth = Snap(iconWidth)
+    iconHeight = Snap(iconHeight)
 
     local needsVisualUpdate = forceUpdate
         or store[lastVerKey] ~= styleVersion
@@ -1203,9 +1364,10 @@ function CDM:ApplyTrackerStyle(frame, vName, forceUpdate)
     frame:SetSize(iconWidth, iconHeight)
 
     local zoomIcons = styleCache.zoomIcons
+    local zoomAmount = zoomIcons and styleCache.zoomAmount or 0
     local tex = frame.Icon
     if tex then
-        ApplyIconTextureLayout(tex, frame, iconWidth, iconHeight, zoomIcons)
+        ApplyIconTextureLayout(tex, frame, iconWidth, iconHeight, zoomAmount)
     end
 
     if frame.Cooldown then
@@ -1428,8 +1590,8 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
                 local bar = frame.Bar
                 if bar then
                     bar:ClearAllPoints()
-                    CDM_C.SetPixelPerfectPoint(bar, "LEFT", frame, "LEFT", 0, 0)
-                    CDM_C.SetPixelPerfectPoint(bar, "RIGHT", frame, "RIGHT", 0, 0)
+                    Pixel.SetPoint(bar, "LEFT", frame, "LEFT", 0, 0)
+                    Pixel.SetPoint(bar, "RIGHT", frame, "RIGHT", 0, 0)
                 end
             end
         end)
@@ -1440,7 +1602,7 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
     end
 
     local barHeight = (targetFrameHeight and targetFrameHeight > 0) and targetFrameHeight or styleCache.buffBarHeight
-    local iconGap = CDM_C.SnapOffsetToPixel(styleCache.buffBarIconGap or 0, UIParent)
+    local iconGap = Snap(styleCache.buffBarIconGap or 0)
     local showName = styleCache.buffBarShowName
     local showDuration = styleCache.buffBarShowDuration
     local barTextureName = styleCache.buffBarTexture
@@ -1449,7 +1611,9 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
     local fontPath = styleCache.fontPath
     local textFontOutline = styleCache.textFontOutline
     local zoomIcons = styleCache.zoomIcons
+    local zoomAmount = zoomIcons and styleCache.zoomAmount or 0
     local nameFontSize = styleCache.buffBarNameFontSize
+    local nameMaxChars = styleCache.buffBarNameMaxChars
     local nameColor = styleCache.buffBarNameColor
     local nameOffsetX = styleCache.buffBarNameOffsetX
     local nameOffsetY = styleCache.buffBarNameOffsetY
@@ -1486,17 +1650,17 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
 
             iconFrame:ClearAllPoints()
             if iconPosition == "RIGHT" then
-                CDM_C.SetPixelPerfectPoint(iconFrame, "RIGHT", frame, "RIGHT", 0, 0)
+                Pixel.SetPoint(iconFrame, "RIGHT", frame, "RIGHT", 0, 0)
             else
-                CDM_C.SetPixelPerfectPoint(iconFrame, "LEFT", frame, "LEFT", 0, 0)
+                Pixel.SetPoint(iconFrame, "LEFT", frame, "LEFT", 0, 0)
             end
 
             local iconTex = iconFrame.Icon
             if iconTex then
                 if iconTex.ClearAllPoints then
                     iconTex:ClearAllPoints()
-                    if IsPixelIconBorderMode() then
-                        local onePx = GetPixelForRegion(iconFrame)
+                    if styleCache.isOneBorderMode then
+                        local onePx = Pixel.GetSize()
                         local configuredSize = CDM_C.GetConfigValue("borderSize", 1) or 1
                         local borderPixels = math.max(1, math.floor(configuredSize / onePx))
                         local inset = math.max(0, (borderPixels * onePx) - onePx)
@@ -1507,16 +1671,15 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
                     end
                 end
                 RemoveBarIconMask(iconFrame, iconTex, frameData)
-                CDM_C.ApplyIconTexCoord(iconTex, zoomIcons, iconSize, iconSize)
-                if iconTex.SetSnapToPixelGrid then iconTex:SetSnapToPixelGrid(false) end
-                if iconTex.SetTexelSnappingBias then iconTex:SetTexelSnappingBias(0) end
+                CDM_C.ApplyIconTexCoord(iconTex, zoomAmount, iconSize, iconSize)
+                Pixel.DisableTextureSnap(iconTex)
             end
 
-            HideBarIconOverlay(zoomIcons, iconFrame:GetRegions())
+            ApplyOverlayVisibility(styleCache.hideIconOverlay, styleCache.hideIconOverlayTexture, iconFrame:GetRegions())
 
             local borderActive = IsBorderStyleActive()
             if borderActive then
-                local usePixelBorder = IsPixelIconBorderMode()
+                local usePixelBorder = styleCache.isOneBorderMode
                 if not frameData.iconBorderFrame then
                     frameData.iconBorderFrame = CreateFrame("Frame", nil, iconFrame, "BackdropTemplate")
                     frameData.iconBorderFrame:SetAllPoints()
@@ -1560,14 +1723,14 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
         bar:SetHeight(barHeight)
 
         if iconPosition == "HIDDEN" then
-            CDM_C.SetPixelPerfectPoint(bar, "LEFT", frame, "LEFT", 0, 0)
-            CDM_C.SetPixelPerfectPoint(bar, "RIGHT", frame, "RIGHT", 0, 0)
+            Pixel.SetPoint(bar, "LEFT", frame, "LEFT", 0, 0)
+            Pixel.SetPoint(bar, "RIGHT", frame, "RIGHT", 0, 0)
         elseif iconPosition == "RIGHT" then
-            CDM_C.SetPixelPerfectPoint(bar, "LEFT", frame, "LEFT", 0, 0)
-            CDM_C.SetPixelPerfectPoint(bar, "RIGHT", iconFrame or frame, iconFrame and "LEFT" or "RIGHT", iconFrame and -iconGap or 0, 0)
+            Pixel.SetPoint(bar, "LEFT", frame, "LEFT", 0, 0)
+            Pixel.SetPoint(bar, "RIGHT", iconFrame or frame, iconFrame and "LEFT" or "RIGHT", iconFrame and -iconGap or 0, 0)
         else
-            CDM_C.SetPixelPerfectPoint(bar, "LEFT", iconFrame or frame, iconFrame and "RIGHT" or "LEFT", iconFrame and iconGap or 0, 0)
-            CDM_C.SetPixelPerfectPoint(bar, "RIGHT", frame, "RIGHT", 0, 0)
+            Pixel.SetPoint(bar, "LEFT", iconFrame or frame, iconFrame and "RIGHT" or "LEFT", iconFrame and iconGap or 0, 0)
+            Pixel.SetPoint(bar, "RIGHT", frame, "RIGHT", 0, 0)
         end
 
         bar:SetStatusBarTexture(barTexture)
@@ -1578,8 +1741,7 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
         end
         frameData.barBackground:ClearAllPoints()
         frameData.barBackground:SetAllPoints(bar)
-        frameData.barBackground:SetSnapToPixelGrid(false)
-        frameData.barBackground:SetTexelSnappingBias(0)
+        Pixel.DisableTextureSnap(frameData.barBackground)
         frameData.barBackground:SetTexture(barTexture)
         frameData.barBackground:SetVertexColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a or 0.8)
 
@@ -1598,18 +1760,50 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
 
             if nameText then
                 InstallBuffBarVisibilityShowHook(frameData, "cdmNameHooked", nameText, "buffBarShowName")
+                if not frameData.cdmNameSetTextHooked then
+                    frameData.cdmNameSetTextHooked = true
+                    hooksecurefunc(nameText, "SetText", function(self, text)
+                        if frameData.cdmTruncatingName then return end
+                        frameData.cdmOriginalBarName = text
+                        local mc = styleCache.buffBarNameMaxChars
+                        if mc and mc > 0 and text and #text > mc then
+                            frameData.cdmTruncatingName = true
+                            self:SetText(text:sub(1, mc) .. "...")
+                            frameData.cdmTruncatingName = false
+                        end
+                    end)
+                end
                 nameText:SetParent(frameData.barTextContainer)
                 if showName then
                     nameText:SetAlpha(1)
                     nameText:Show()
                     nameText:SetIgnoreParentScale(true)
-                    nameText:SetFont(fontPath, CDM_C.GetPixelFontSize(nameFontSize), textFontOutline)
+                    nameText:SetFont(fontPath, Pixel.FontSize(nameFontSize), textFontOutline)
                     nameText:SetTextColor(nameColor.r, nameColor.g, nameColor.b, nameColor.a or 1)
                     nameText:SetShadowOffset(0, 0)
                     nameText:SetDrawLayer("OVERLAY", 7)
                     nameText:ClearAllPoints()
-                    CDM_C.SetPixelPerfectPoint(nameText, "LEFT", bar, "LEFT", nameOffsetX, nameOffsetY)
-                    CDM_C.SetPixelPerfectPoint(nameText, "RIGHT", bar, "RIGHT", -30, nameOffsetY)
+                    Pixel.SetPoint(nameText, "LEFT", bar, "LEFT", nameOffsetX, nameOffsetY)
+                    Pixel.SetPoint(nameText, "RIGHT", bar, "RIGHT", -30, nameOffsetY)
+                    if nameMaxChars and nameMaxChars > 0 then
+                        local original = frameData.cdmOriginalBarName or nameText:GetText()
+                        if original then
+                            frameData.cdmOriginalBarName = frameData.cdmOriginalBarName or original
+                            if #original > nameMaxChars then
+                                frameData.cdmTruncatingName = true
+                                nameText:SetText(original:sub(1, nameMaxChars) .. "...")
+                                frameData.cdmTruncatingName = false
+                            else
+                                frameData.cdmTruncatingName = true
+                                nameText:SetText(original)
+                                frameData.cdmTruncatingName = false
+                            end
+                        end
+                    elseif frameData.cdmOriginalBarName then
+                        frameData.cdmTruncatingName = true
+                        nameText:SetText(frameData.cdmOriginalBarName)
+                        frameData.cdmTruncatingName = false
+                    end
                 else
                     nameText:Hide()
                     nameText:SetAlpha(0)
@@ -1623,12 +1817,12 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
                     durationText:SetAlpha(1)
                     durationText:Show()
                     durationText:SetIgnoreParentScale(true)
-                    durationText:SetFont(fontPath, CDM_C.GetPixelFontSize(durationFontSize), textFontOutline)
+                    durationText:SetFont(fontPath, Pixel.FontSize(durationFontSize), textFontOutline)
                     durationText:SetTextColor(durationColor.r, durationColor.g, durationColor.b, durationColor.a or 1)
                     durationText:SetShadowOffset(0, 0)
                     durationText:SetDrawLayer("OVERLAY", 7)
                     durationText:ClearAllPoints()
-                    CDM_C.SetPixelPerfectPoint(durationText, "RIGHT", bar, "RIGHT", durationOffsetX, durationOffsetY)
+                    Pixel.SetPoint(durationText, "RIGHT", bar, "RIGHT", durationOffsetX, durationOffsetY)
                 else
                     durationText:Hide()
                     durationText:SetAlpha(0)
@@ -1656,14 +1850,14 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
                 appText:SetAlpha(1)
                 appText:Show()
                 appText:SetIgnoreParentScale(true)
-                appText:SetFont(fontPath, CDM_C.GetPixelFontSize(appFontSize), textFontOutline)
+                appText:SetFont(fontPath, Pixel.FontSize(appFontSize), textFontOutline)
                 appText:SetTextColor(appColor.r, appColor.g, appColor.b, appColor.a or 1)
                 appText:SetShadowOffset(0, 0)
                 appText:SetDrawLayer("OVERLAY", 7)
                 appText:SetJustifyH("CENTER")
                 appText:SetSize(0, 0)
                 appText:ClearAllPoints()
-                CDM_C.SetPixelPerfectPoint(appText, "CENTER", bar, appPosition, appOffsetX, appOffsetY)
+                Pixel.SetPoint(appText, "CENTER", bar, appPosition, appOffsetX, appOffsetY)
             else
                 if frameData.barAppTextContainer then frameData.barAppTextContainer:Hide() end
                 appText:Hide()
@@ -1673,7 +1867,7 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
 
         local borderActive = IsBorderStyleActive()
         if borderActive then
-            local usePixelBorder = IsPixelIconBorderMode()
+            local usePixelBorder = styleCache.isOneBorderMode
             if not frameData.barBorderFrame then
                 frameData.barBorderFrame = CreateFrame("Frame", nil, frame, "BackdropTemplate")
             end

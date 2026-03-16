@@ -15,6 +15,7 @@ local animStartAlpha = 1.0
 local animating = false
 local isEnabled = false
 local inCombat = InCombatLockdown() and true or false
+local isMounted = IsMounted() and true or false
 
 local animFrame = CreateFrame("Frame")
 
@@ -159,13 +160,15 @@ function Fading:Evaluate()
     end
 
     local db = CDM.db
-    local trigger = db and db.fadingTrigger or "notarget"
+    if not db then return end
     local shouldFade = false
 
-    if trigger == "notarget" then
-        shouldFade = not UnitExists("target")
-    elseif trigger == "ooc" then
-        shouldFade = not inCombat
+    if db.fadingTriggerNoTarget ~= false and not UnitExists("target") then
+        shouldFade = true
+    elseif db.fadingTriggerOOC and not inCombat then
+        shouldFade = true
+    elseif db.fadingTriggerMounted and isMounted then
+        shouldFade = true
     end
 
     if shouldFade then
@@ -189,18 +192,17 @@ function Fading:GetAlpha(targetKey)
 end
 
 local function OnTargetChanged()
-    local db = CDM.db
-    if db and (db.fadingTrigger or "notarget") == "notarget" then
-        Fading:Evaluate()
-    end
+    Fading:Evaluate()
 end
 
 local function OnCombatStateChanged(isInCombat)
     inCombat = isInCombat and true or false
-    local db = CDM.db
-    if db and db.fadingTrigger == "ooc" then
-        Fading:Evaluate()
-    end
+    Fading:Evaluate()
+end
+
+local function OnMountChanged()
+    isMounted = IsMounted() and true or false
+    Fading:Evaluate()
 end
 
 local function Enable()
@@ -208,6 +210,8 @@ local function Enable()
     isEnabled = true
     CDM:RegisterEvent("PLAYER_TARGET_CHANGED", OnTargetChanged)
     CDM:RegisterInternalCallback("OnCombatStateChanged", OnCombatStateChanged)
+    CDM:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED", OnMountChanged)
+    isMounted = IsMounted() and true or false
     Fading:Evaluate()
 end
 
@@ -216,6 +220,7 @@ local function Disable()
     isEnabled = false
     CDM:UnregisterEventHandler("PLAYER_TARGET_CHANGED", OnTargetChanged)
     CDM:UnregisterInternalCallback("OnCombatStateChanged", OnCombatStateChanged)
+    CDM:UnregisterEventHandler("PLAYER_MOUNT_DISPLAY_CHANGED", OnMountChanged)
     if currentAlpha < 1.0 or animating then
         Fading:ShowImmediate()
     end

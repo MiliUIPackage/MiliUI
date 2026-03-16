@@ -180,10 +180,24 @@ local function CreateBarsTab(page, tabId)
         CDM.db.buffBarShowName ~= false,
         function(checked)
             CDM.db.buffBarShowName = checked
+            page.UpdateNameMaxCharsLayout()
             API:RefreshConfig()
         end
     )
     page.controls.buffBarShowNameCheck:SetPoint("TOPLEFT", 0, NextY(30))
+
+    page.controls.buffBarNameMaxCharsSlider = UI.CreateModernSlider(
+        barsScrollChild,
+        L["Max Name Length (0 = Full)"],
+        0,
+        30,
+        CDM.db.buffBarNameMaxChars or 0,
+        function(v)
+            CDM.db.buffBarNameMaxChars = UI.RoundToInt(v)
+            API:RefreshConfig()
+        end
+    )
+    page.controls.buffBarNameMaxCharsSlider:SetPoint("TOPLEFT", page.controls.buffBarShowNameCheck, "BOTTOMLEFT", 0, -10)
 
     page.controls.buffBarShowDurationCheck = UI.CreateModernCheckbox(
         barsScrollChild,
@@ -194,7 +208,18 @@ local function CreateBarsTab(page, tabId)
             API:RefreshConfig()
         end
     )
-    page.controls.buffBarShowDurationCheck:SetPoint("TOPLEFT", 0, NextY(30))
+
+    function page.UpdateNameMaxCharsLayout()
+        local shown = CDM.db.buffBarShowName ~= false
+        page.controls.buffBarNameMaxCharsSlider:SetShown(shown)
+        page.controls.buffBarShowDurationCheck:ClearAllPoints()
+        if shown then
+            page.controls.buffBarShowDurationCheck:SetPoint("TOPLEFT", page.controls.buffBarNameMaxCharsSlider, "BOTTOMLEFT", 0, -10)
+        else
+            page.controls.buffBarShowDurationCheck:SetPoint("TOPLEFT", page.controls.buffBarShowNameCheck, "BOTTOMLEFT", 0, -10)
+        end
+    end
+    page.UpdateNameMaxCharsLayout()
 
     page.controls.buffBarShowApplicationsCheck = UI.CreateModernCheckbox(
         barsScrollChild,
@@ -205,25 +230,25 @@ local function CreateBarsTab(page, tabId)
             API:RefreshConfig()
         end
     )
-    page.controls.buffBarShowApplicationsCheck:SetPoint("TOPLEFT", 0, NextY(30))
+    page.controls.buffBarShowApplicationsCheck:SetPoint("TOPLEFT", page.controls.buffBarShowDurationCheck, "BOTTOMLEFT", 0, -10)
 
     local notesHeader = UI.CreateHeader(barsScrollChild, L["Notes"])
-    notesHeader:SetPoint("TOPLEFT", 0, NextY(50))
+    notesHeader:SetPoint("TOPLEFT", page.controls.buffBarShowApplicationsCheck, "BOTTOMLEFT", 0, -15)
 
     local borderNote = barsScrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     borderNote:SetText(L["Border settings: see Borders tab"])
     UI.SetTextMuted(borderNote)
-    borderNote:SetPoint("TOPLEFT", 0, NextY(30))
+    borderNote:SetPoint("TOPLEFT", notesHeader, "BOTTOMLEFT", 0, -10)
 
     local textNote = barsScrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     textNote:SetText(L["Text styling (font size, color, offsets): see Text tab"])
     UI.SetTextMuted(textNote)
-    textNote:SetPoint("TOPLEFT", 0, NextY(20))
+    textNote:SetPoint("TOPLEFT", borderNote, "BOTTOMLEFT", 0, -5)
 
     local posNote = barsScrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     posNote:SetText(L["Position lock and X/Y controls: see Positions tab"])
     UI.SetTextMuted(posNote)
-    posNote:SetPoint("TOPLEFT", 0, NextY(20))
+    posNote:SetPoint("TOPLEFT", textNote, "BOTTOMLEFT", 0, -5)
 end
 
 API:RegisterConfigTab("bars", L["Bars"], CreateBarsTab, 8)

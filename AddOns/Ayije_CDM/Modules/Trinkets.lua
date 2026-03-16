@@ -3,7 +3,7 @@ local CDM = _G[AddonName]
 
 -- Ayije_CDM Trinkets Tracker
 local CDM_C = CDM and CDM.CONST or {}
-local SetPixelPerfectPoint = CDM_C.SetPixelPerfectPoint
+local Pixel = CDM.Pixel
 
 local TRINKET_SLOT_1 = 13
 local TRINKET_SLOT_2 = 14
@@ -359,7 +359,7 @@ local function UpdateContainerPositionDefensives()
 
     trinketsContainer:ClearAllPoints()
     -- Align to the fixed vertical edge of defensives container
-    SetPixelPerfectPoint(
+    Pixel.SetPoint(
         trinketsContainer,
         anchor.point,
         defContainer,
@@ -508,7 +508,6 @@ function CDM:UpdateTrinkets()
         end
         currentMode = mode
 
-        -- Hide keybind containers left over from essential mode
         if mode ~= "essential" then
             local GetFrameData = CDM.GetFrameData
             for _, frame in ipairs(iconFrames) do
@@ -539,8 +538,6 @@ function CDM:UpdateTrinkets()
     end
 
     if mode == "essential" then
-        -- In essential mode, trinket frames are positioned by the essential layout engine.
-        -- We still refresh data and show/hide, but skip our own positioning.
         local queueEssentialViewer = modeChanged or anyTrinketDataChanged or needsStyleUpdate or sizeChanged
         for _, frame in ipairs(iconFrames) do
             local hasItem = frame.itemID ~= nil
@@ -560,7 +557,6 @@ function CDM:UpdateTrinkets()
         if queueEssentialViewer then
             CDM:QueueViewer(CDM_C.VIEWERS.ESSENTIAL, true)
         end
-        -- Consume style invalidation in essential mode after queueing the viewer refresh.
         needsStyleUpdate = false
         return
     end
@@ -594,8 +590,7 @@ function CDM:UpdateTrinkets()
             visibilityHash = visibilityHash + vBit
             frame:Show()
             UpdateIcon(frame)
-            -- Fresh login can produce a hidden first pass before inventory/item data settles.
-            -- Ensure frames receive full style the first time they become visible.
+
             if (applyStyle or not wasShown) and CDM.ApplyTrackerStyle then
                 CDM:ApplyTrackerStyle(frame, "CDM_Trinkets")
             end
@@ -632,10 +627,6 @@ function CDM:UpdateTrinkets()
         end
     end
 end
-
--- =========================================================================
---  REFRESH CALLBACK REGISTRATIONS
--- =========================================================================
 
 local function RefreshTrinketsLifecycle()
     if not isEnabled then return end

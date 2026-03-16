@@ -15,6 +15,7 @@ local GetRowForIndex = ctx.GetRowForIndex
 local ComputeEssentialOrUtilityPosition = ctx.ComputeEssentialOrUtilityPosition
 local ComputeEssentialContainerSize = ctx.ComputeEssentialContainerSize
 local ComputeUtilityContainerSize = ctx.ComputeUtilityContainerSize
+local GetSnappedMetrics = ctx.GetSnappedMetrics
 
 local tempIconPositionRecords = {}
 local tempIconPositionRecordPool = {}
@@ -48,30 +49,24 @@ local function AcquireScratchPlacement()
     scratchPlacements[scratchPlacementsCount] = p
     return p
 end
-local ToPixelCountForFrame = CDM_C.ToPixelCountForRegion
-local PixelsToUIForRegion = CDM_C.PixelsToUIForRegion
-local SetPointPixels = CDM_C.SetPointPixels
-local SnapContainerWidth = CDM_C.SnapContainerWidth
+local Pixel = CDM.Pixel
+local Snap = Pixel.Snap
 
 local function ResizeLayoutContainerIfAllowed(container, inCombat, width, height)
     if inCombat or not container or not width or not height then
         return
     end
-    container:SetSize(SnapContainerWidth(width, container), height)
+    container:SetSize(Snap(width), Snap(height))
 end
 
-local function PlaceIconTopLeft(frame, container, x, y, usePixelOffsets, pixelRegion)
+local function PlaceIconTopLeft(frame, container, x, y)
     if not frame then
         return
     end
 
     frame:ClearAllPoints()
     frame:SetParent(UIParent)
-    if usePixelOffsets then
-        SetPointPixels(frame, "TOPLEFT", container, "TOPLEFT", x or 0, y or 0, pixelRegion or container or UIParent)
-    else
-        frame:SetPoint("TOPLEFT", container, "TOPLEFT", x or 0, y or 0)
-    end
+    Pixel.SetPoint(frame, "TOPLEFT", container, "TOPLEFT", x or 0, y or 0)
     frame:Show()
 end
 
@@ -132,12 +127,6 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
     local injFrames = isEssential and CDM.GetTrinketInjectionFrames and CDM.GetTrinketInjectionFrames() or nil
 
     if #icons == 0 and not injFrames then
-        if isEssential then
-            self._essentialContentWidth = 0
-            self._essentialLeftPadPx = 0
-        else
-            self._utilityContentWidth = 0
-        end
         return
     end
 
@@ -150,12 +139,10 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
         local spellID = ResolveBaseSpellID(frame)
         if spellID and defensivesHiddenSet[spellID] then
             frame:ClearAllPoints()
-            frame:SetParent(viewer)
             frame:Hide()
             GetFrameData(frame).cdmHiddenByDefensives = true
         elseif not spellID and hasHiddenSet then
             frame:ClearAllPoints()
-            frame:SetParent(viewer)
             frame:Hide()
             missingDataCount = missingDataCount + 1
         elseif spellID or frame.cooldownInfo then
@@ -237,6 +224,11 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
     local rowOrderSeen = scratchRowOrderSeen
     local useMeasuredHorizontalLayout = isEssential or (not utilityVertical)
 
+    local preSnapUtil
+    if not useMeasuredHorizontalLayout then
+        preSnapUtil = { GetSnappedMetrics(sizeUtility, spacing) }
+    end
+
     for index, record in ipairs(tempIconPositionRecords) do
         local frame = record.frame
 
@@ -261,7 +253,7 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
             bucket[#bucket + 1] = placement
         else
             local row, _, _, _, x, y = ComputeEssentialOrUtilityPosition(
-                index, totalIcons, isEssential, sizeEssRow1, sizeEssRow2, sizeUtility, spacing, maxRowEss, maxRowUtil, utilityVertical
+                index, totalIcons, isEssential, sizeEssRow1, sizeEssRow2, sizeUtility, spacing, maxRowEss, maxRowUtil, utilityVertical, nil, nil, preSnapUtil
             )
             GetFrameData(frame).cdmRow = row
             self:ApplyStyle(frame, vName)
@@ -287,23 +279,20 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
     end
 
     local inCombat = InCombatLockdown()
-    local gapPx = CDM_C.GetCooldownIconGapPixels(spacing)
-
-    if not isEssential then
-        CDM._utilityContentWidth = 0
-    end
+    local gap = Snap(spacing or 0)
 
     if useMeasuredHorizontalLayout and scratchPlacementsCount > 0 then
         table.sort(rowOrderSeen)
 
-        local containerWidthPx = 0
-        local containerHeightPx = 0
+        local pixelSize = Pixel.GetSize()
+        local measuredContainerWidth = 0
+        local measuredContainerHeight = 0
         local rowMetrics = scratchRowMetrics
 
         for orderIndex, row in ipairs(rowOrderSeen) do
             local bucket = rowBuckets[row]
-            local rowWidthPx = 0
-            local rowHeightPx = 0
+            local rowWidth = 0
+            local rowHeight = 0
 
             for i, placement in ipairs(bucket) do
                 local f = placement.frame
@@ -313,74 +302,67 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
                 if isEssential then
                     fallbackSize = (placement.row == 2) and sizeEssRow2 or sizeEssRow1
                 end
-                local fallbackWPx = math.max(1, ToPixelCountForFrame(container, fallbackSize and fallbackSize.w or 1, 1))
-                local fallbackHPx = math.max(1, ToPixelCountForFrame(container, fallbackSize and fallbackSize.h or 1, 1))
-                local wPx = rawW > 1 and ToPixelCountForFrame(container, rawW, 1) or fallbackWPx
-                local hPx = rawH > 1 and ToPixelCountForFrame(container, rawH, 1) or fallbackHPx
-                placement._wPx = wPx
-                placement._hPx = hPx
-                rowWidthPx = rowWidthPx + wPx
+                local fallbackW = math.max(pixelSize, Snap(fallbackSize and fallbackSize.w or 1))
+                local fallbackH = math.max(pixelSize, Snap(fallbackSize and fallbackSize.h or 1))
+                local w = rawW > 1 and Snap(rawW) or fallbackW
+                local h = rawH > 1 and Snap(rawH) or fallbackH
+                placement._w = w
+                placement._h = h
+                rowWidth = rowWidth + w
                 if i > 1 then
-                    rowWidthPx = rowWidthPx + gapPx
+                    rowWidth = rowWidth + gap
                 end
-                if hPx > rowHeightPx then
-                    rowHeightPx = hPx
+                if h > rowHeight then
+                    rowHeight = h
                 end
             end
 
-            containerWidthPx = math.max(containerWidthPx, rowWidthPx)
+            measuredContainerWidth = math.max(measuredContainerWidth, rowWidth)
             if orderIndex > 1 then
-                containerHeightPx = containerHeightPx + gapPx
+                measuredContainerHeight = measuredContainerHeight + gap
             end
             local rm = rowMetrics[row]
             if not rm then
                 rm = {}
                 rowMetrics[row] = rm
             end
-            rm.widthPx = rowWidthPx
-            rm.heightPx = rowHeightPx
-            rm.topPx = containerHeightPx
-            containerHeightPx = containerHeightPx + rowHeightPx
+            rm.width = rowWidth
+            rm.height = rowHeight
+            rm.top = measuredContainerHeight
+            measuredContainerHeight = measuredContainerHeight + rowHeight
         end
 
-        local contentWidthPx = containerWidthPx
-        if containerWidthPx % 2 ~= 0 then
-            containerWidthPx = containerWidthPx + 1
-        end
-
-        if isEssential then
-            CDM._essentialContentWidth = PixelsToUIForRegion(contentWidthPx, container)
-            CDM._essentialLeftPadPx = containerWidthPx - contentWidthPx
-        else
-            CDM._utilityContentWidth = PixelsToUIForRegion(contentWidthPx, container)
-        end
-
-        if containerWidthPx > 0 and containerHeightPx > 0 then
-            containerWidth = PixelsToUIForRegion(containerWidthPx, container)
-            containerHeight = PixelsToUIForRegion(containerHeightPx, container)
-        end
+        containerWidth = Snap(measuredContainerWidth)
+        containerHeight = Snap(measuredContainerHeight)
 
         ResizeLayoutContainerIfAllowed(container, inCombat, containerWidth, containerHeight)
+        if not inCombat then
+            self:ReanchorContainer(vName)
+        end
 
         for _, row in ipairs(rowOrderSeen) do
             local bucket = rowBuckets[row]
             local metrics = rowMetrics[row]
-            local leftPadPx = math_floor(math.max(0, (containerWidthPx - metrics.widthPx)) * 0.5)
-            local cursorPx = leftPadPx
-            local yPx = -(metrics.topPx or 0)
+            local leftPad = Pixel.HalfFloor(containerWidth) - Pixel.HalfFloor(metrics.width)
+            if leftPad < 0 then leftPad = 0 end
+            local cursor = leftPad
+            local yOff = Snap(-(metrics.top or 0))
 
             for _, placement in ipairs(bucket) do
                 local frame = placement.frame
-                PlaceIconTopLeft(frame, container, cursorPx, yPx, true, container)
-                cursorPx = cursorPx + (placement._wPx or 0) + gapPx
+                PlaceIconTopLeft(frame, container, Snap(cursor), yOff)
+                cursor = cursor + (placement._w or 0) + gap
             end
         end
     else
         ResizeLayoutContainerIfAllowed(container, inCombat, containerWidth, containerHeight)
+        if not inCombat then
+            self:ReanchorContainer(vName)
+        end
 
         for _, placement in ipairs(placements) do
             local frame = placement.frame
-            PlaceIconTopLeft(frame, container, placement.x or 0, placement.y or 0, false)
+            PlaceIconTopLeft(frame, container, placement.x or 0, placement.y or 0)
         end
     end
 
@@ -403,19 +385,11 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
 end
 
 function CDM:GetEssentialContentWidth()
-    return self._essentialContentWidth or 0
+    local c = self.anchorContainers and self.anchorContainers[VIEWERS.ESSENTIAL]
+    return c and c:GetWidth() or 0
 end
 
 function CDM:GetUtilityContentWidth()
-    return self._utilityContentWidth or 0
-end
-
-function CDM:GetEssentialContentCenterX()
-    local essContainer = self.anchorContainers and self.anchorContainers[VIEWERS.ESSENTIAL]
-    if not essContainer then return nil end
-    local cx = select(1, essContainer:GetCenter())
-    if not cx then return nil end
-    local padPx = self._essentialLeftPadPx or 0
-    local onePixel = CDM_C.GetPixelSizeForRegion(essContainer) or 1
-    return cx - padPx * 0.5 * onePixel
+    local c = self.anchorContainers and self.anchorContainers[VIEWERS.UTILITY]
+    return c and c:GetWidth() or 0
 end

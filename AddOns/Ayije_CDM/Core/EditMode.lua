@@ -126,7 +126,7 @@ function CDM:SetCooldownViewerLockText(systemFrame, shown)
         fontOutline = "OUTLINE"
     end
 
-    text:SetFont(fontPath, CDM_C.GetPixelFontSize(20), fontOutline)
+    text:SetFont(fontPath, CDM.Pixel.FontSize(20), fontOutline)
     text:SetTextColor(0.992, 0.071, 0, 1)
 
     local maxWidth = selection:GetWidth() - 12

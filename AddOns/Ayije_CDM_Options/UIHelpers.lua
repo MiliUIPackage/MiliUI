@@ -656,3 +656,96 @@ function UI.CreateModalOverlay()
     overlay.window = window
     return overlay
 end
+
+function UI.CreateSubTabBar(parent, tabs, initialTab)
+    local TAB_HEIGHT = 37
+    local barFrame = CreateFrame("Frame", nil, parent)
+    barFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 30, -2)
+    barFrame:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -30, -2)
+    barFrame:SetHeight(TAB_HEIGHT)
+
+    local subPages = {}
+    local tabButtons = {}
+    local selectedTab = nil
+
+    local function SelectTab(id)
+        if selectedTab == id then return end
+        selectedTab = id
+        for _, info in ipairs(tabs) do
+            local btn = tabButtons[info.id]
+            local pg = subPages[info.id]
+            if info.id == id then
+                btn.Left:SetAtlas("Options_Tab_Active_Left", true)
+                btn.Middle:SetAtlas("Options_Tab_Active_Middle")
+                btn.Right:SetAtlas("Options_Tab_Active_Right", true)
+                btn.label:ClearAllPoints()
+                btn.label:SetPoint("BOTTOM", 0, 6)
+                btn.label:SetFontObject("GameFontHighlightSmall")
+                pg:Show()
+            else
+                btn.Left:SetAtlas("Options_Tab_Left", true)
+                btn.Middle:SetAtlas("Options_Tab_Middle")
+                btn.Right:SetAtlas("Options_Tab_Right", true)
+                btn.label:ClearAllPoints()
+                btn.label:SetPoint("BOTTOM", 0, 4)
+                btn.label:SetFontObject("GameFontNormalSmall")
+                pg:Hide()
+            end
+        end
+    end
+
+    local prevBtn
+    for _, info in ipairs(tabs) do
+        local btn = CreateFrame("Button", nil, barFrame)
+        btn:SetHeight(TAB_HEIGHT)
+
+        local left = btn:CreateTexture(nil, "BACKGROUND")
+        left:SetAtlas("Options_Tab_Left", true)
+        left:SetPoint("BOTTOMLEFT")
+        btn.Left = left
+
+        local right = btn:CreateTexture(nil, "BACKGROUND")
+        right:SetAtlas("Options_Tab_Right", true)
+        right:SetPoint("BOTTOMRIGHT")
+        btn.Right = right
+
+        local middle = btn:CreateTexture(nil, "BACKGROUND")
+        middle:SetAtlas("Options_Tab_Middle")
+        middle:SetPoint("TOPLEFT", left, "TOPRIGHT")
+        middle:SetPoint("BOTTOMRIGHT", right, "BOTTOMLEFT")
+        btn.Middle = middle
+
+        local label = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        label:SetPoint("BOTTOM", 0, 4)
+        label:SetText(info.label)
+        btn.label = label
+
+        local textWidth = label:GetStringWidth()
+        btn:SetWidth(math.max(textWidth + 40, 80))
+
+        if prevBtn then
+            btn:SetPoint("BOTTOMLEFT", prevBtn, "BOTTOMRIGHT", 2, 0)
+        else
+            btn:SetPoint("BOTTOMLEFT", barFrame, "BOTTOMLEFT", 0, 0)
+        end
+        prevBtn = btn
+
+        btn:SetScript("OnClick", function() SelectTab(info.id) end)
+        tabButtons[info.id] = btn
+
+        local pg = CreateFrame("Frame", nil, parent)
+        pg:SetPoint("TOPLEFT", barFrame, "BOTTOMLEFT", -30, 0)
+        pg:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", 0, 0)
+        pg:Hide()
+        pg.controls = {}
+        subPages[info.id] = pg
+    end
+
+    SelectTab(initialTab or tabs[1].id)
+
+    return {
+        selectTab = SelectTab,
+        subPages = subPages,
+        barFrame = barFrame,
+    }
+end

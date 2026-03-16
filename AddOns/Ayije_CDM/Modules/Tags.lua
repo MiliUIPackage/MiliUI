@@ -5,15 +5,13 @@ local CDM_C = CDM and CDM.CONST or {}
 local LSM = LibStub("LibSharedMedia-3.0")
 local TAGS = {}
 CDM.TAGS = TAGS
-local SetPixelPerfectPoint = CDM_C.SetPixelPerfectPoint
-local ToPixelCountForRegion = CDM_C.ToPixelCountForRegion
-local SetPointPixels = CDM_C.SetPointPixels
+local Pixel = CDM.Pixel
+local Snap = Pixel.Snap
 
 TAGS.textFrames = {}
 TAGS.styleDirty = true
 TAGS.lastScale = nil
 
--- AbbreviateNumbers handles secret values natively (Blizzard API)
 local manaAbbrevData
 if CreateAbbreviateConfig then
     manaAbbrevData = {
@@ -63,12 +61,11 @@ local function AlignCenteredTagToBar(textFrame, force)
         return
     end
 
-    local offsetXPx = ToPixelCountForRegion(textFrame._offsetX or 0, bar)
-    local offsetYPx = ToPixelCountForRegion(textFrame._offsetY or 0, bar)
-    local biasXSubPx, biasYPx = 0.5, 0
+    local offsetX = Snap(textFrame._offsetX or 0)
+    local offsetY = Snap(textFrame._offsetY or 0)
 
     text:ClearAllPoints()
-    SetPointPixels(text, "CENTER", bar, "CENTER", offsetXPx + biasXSubPx, offsetYPx + biasYPx, bar)
+    Pixel.SetPoint(text, "CENTER", bar, "CENTER", offsetX, offsetY)
     textFrame._alignedCenterDone = true
 end
 
@@ -143,7 +140,7 @@ local function CreateTagText(bar, powerType)
     text:SetJustifyV("MIDDLE")
 
     text:SetIgnoreParentScale(true)
-    text:SetFont(CDM_C.FONT_PATH, CDM_C.GetPixelFontSize(14), CDM_C.FONT_OUTLINE)
+    text:SetFont(CDM_C.FONT_PATH, Pixel.FontSize(14), CDM_C.FONT_OUTLINE)
 
     textFrame.text = text
     textFrame.powerType = powerType
@@ -172,7 +169,6 @@ function TAGS:UpdateTagText(textFrame)
 
     local current = GetCurrentPower(textFrame.powerType)
 
-    -- type() check prevents "forbidden table" error when calling issecretvalue()
     local isSecret = (type(current) == "number" and issecretvalue(current))
     local lastSecret = (type(textFrame._lastDisplayValue) == "number" and issecretvalue(textFrame._lastDisplayValue))
 
@@ -229,7 +225,7 @@ function TAGS:UpdateTagPosition(textFrame)
 
     textFrame.text:SetJustifyH(anchor)
     textFrame.text:ClearAllPoints()
-    SetPixelPerfectPoint(textFrame.text, anchor, textFrame.parentBar, anchor, offsetX, offsetY, textFrame.parentBar)
+    Pixel.SetPoint(textFrame.text, anchor, textFrame.parentBar, anchor, offsetX, offsetY)
     textFrame._alignedCenterDone = false
     AlignCenteredTagToBar(textFrame, true)
 end
@@ -253,7 +249,7 @@ function TAGS:UpdateTagStyle(textFrame)
     local fontPath = LSM:Fetch("font", textFontName) or CDM_C.FONT_PATH
 
     textFrame.text:SetIgnoreParentScale(true)
-    textFrame.text:SetFont(fontPath, CDM_C.GetPixelFontSize(fontSize), textFontOutline)
+    textFrame.text:SetFont(fontPath, Pixel.FontSize(fontSize), textFontOutline)
     textFrame.text:SetTextColor(color.r, color.g, color.b, color.a)
     textFrame.text:SetShadowOffset(0, 0)
 end
@@ -314,10 +310,6 @@ function TAGS:RemoveTag(powerType)
         self.textFrames[powerType] = nil
     end
 end
-
--- =========================================================================
---  REFRESH CALLBACK REGISTRATION
--- =========================================================================
 
 CDM:RegisterRefreshCallback("tags", function()
     CDM.TAGS:MarkDirty()

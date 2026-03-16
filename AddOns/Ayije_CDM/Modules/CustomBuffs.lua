@@ -49,7 +49,7 @@ local function StyleCustomBuffTextElement(text)
     text:SetPoint("CENTER", 0, 0)
     text:SetFont(
         cachedCustomBuffStyles.fontPath,
-        CDM_C.GetPixelFontSize(cachedCustomBuffStyles.fontSize),
+        CDM.Pixel.FontSize(cachedCustomBuffStyles.fontSize),
         cachedCustomBuffStyles.fontOutline
     )
     text:SetJustifyH("CENTER")
@@ -221,8 +221,7 @@ local function CreateCustomBuffIcon(spellID, config)
 
         local icon = frame:CreateTexture(nil, "ARTWORK")
         icon:SetAllPoints()
-        icon:SetSnapToPixelGrid(false)
-        icon:SetTexelSnappingBias(0)
+        CDM.Pixel.DisableTextureSnap(icon)
         frame.Icon = icon
 
         local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
@@ -249,7 +248,7 @@ local function CreateCustomBuffIcon(spellID, config)
 
     if frame.Icon then
         frame.Icon:SetAllPoints()
-        CDM_C.ApplyIconTexCoord(frame.Icon, CDM.db.zoomIcons, size.w, size.h)
+        CDM_C.ApplyIconTexCoord(frame.Icon, CDM_C.GetEffectiveZoomAmount(), size.w, size.h)
         frame.Icon:SetTexture(config.icon)
         frame.Icon:SetDesaturation(0)
     end
@@ -423,7 +422,7 @@ function CDM:UpdateCustomBuffs()
         frame:SetSize(size.w, size.h)
 
         if frame.Icon then
-            CDM_C.ApplyIconTexCoord(frame.Icon, CDM.db.zoomIcons, size.w, size.h)
+            CDM_C.ApplyIconTexCoord(frame.Icon, CDM_C.GetEffectiveZoomAmount(), size.w, size.h)
         end
 
         ApplyCustomBuffCooldownTextStyle(frame)

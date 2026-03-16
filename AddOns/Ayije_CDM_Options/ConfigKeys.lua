@@ -6,7 +6,7 @@ local CDM = Runtime
 
 ns.ConfigKeys = {
     order = {
-        "sizes",
+        "cooldowngroups",
         "styling",
         "text",
         "bars",
@@ -23,9 +23,11 @@ ns.ConfigKeys = {
         "buffgroups",
     },
     categories = {
-        sizes = {
-            label = "Icon Sizes & Layout",
+        cooldowngroups = {
+            label = "Cooldown Groups",
             keys = {
+                "cooldownGroups",
+                "ungroupedCooldownOverrides",
                 "sizeEssRow1",
                 "sizeEssRow2",
                 "sizeUtility",
@@ -49,6 +51,9 @@ ns.ConfigKeys = {
                 "borderOffsetY",
                 "borderColor",
                 "zoomIcons",
+                "zoomAmount",
+                "hideIconOverlay",
+                "hideIconOverlayTexture",
                 "hideDebuffBorder",
                 "hidePandemicIndicator",
                 "hideCooldownBling",
@@ -93,6 +98,7 @@ ns.ConfigKeys = {
                 "buffBarIconPosition",
                 "buffBarIconGap",
                 "buffBarShowName",
+                "buffBarNameMaxChars",
                 "buffBarShowDuration",
                 "buffBarShowApplications",
                 "buffBarApplicationsFontSize",
@@ -238,6 +244,7 @@ ns.ConfigKeys = {
                 "castBarHeight",
                 "castBarFontSize",
                 "castBarShowSpellName",
+                "castBarNameMaxChars",
                 "castBarShowTimer",
                 "castBarShowSpark",
                 "castBarNameOffsetX",
@@ -314,7 +321,9 @@ ns.ConfigKeys = {
             label = "Fading Settings",
             keys = {
                 "fadingEnabled",
-                "fadingTrigger",
+                "fadingTriggerNoTarget",
+                "fadingTriggerOOC",
+                "fadingTriggerMounted",
                 "fadingOpacity",
                 "fadingEssential",
                 "fadingUtility",

@@ -6,9 +6,12 @@
     <Script file="Defensives.lua"/>
     <Script file="Trinkets.lua"/>
     <Script file="CustomBuffs.lua"/>
+    <Script file="BuffGroupPlaceholders.lua"/>
     <Script file="BuffGroups.lua"/>
+    <Script file="CooldownGroups.lua"/>
     <Script file="PlayerCastBar.lua"/>
     <Script file="RotationAssist.lua"/>
     <Script file="PressOverlay.lua"/>
+    <Script file="Externals.lua"/>
 </Ui>
 

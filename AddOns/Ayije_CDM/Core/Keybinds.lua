@@ -37,12 +37,22 @@ local PAGE_TO_BINDING = {
 
 local MAIN_BAR_BUTTONS = {
     "ElvUI_Bar1Button1",
+    "NDui_ActionBar1Button1",
     "BT4Button1",
     "DominosActionButton1",
     "ActionButton1",
 }
 
 local function DetectMainBarPage()
+    if HasVehicleActionBar() then
+        return GetVehicleBarIndex()
+    end
+    if HasOverrideActionBar() then
+        return GetOverrideBarIndex()
+    end
+    if HasTempShapeshiftActionBar() then
+        return GetTempShapeshiftBarIndex()
+    end
     for _, name in ipairs(MAIN_BAR_BUTTONS) do
         local btn = _G[name]
         if btn and btn.GetAttribute then
@@ -56,10 +66,10 @@ local function DetectMainBarPage()
             end
         end
     end
-    if C_ActionBar.HasBonusActionBar() then
+    if C_ActionBar.HasBonusActionBar() and GetActionBarPage() == 1 then
         return C_ActionBar.GetBonusBarIndex()
     end
-    return 1
+    return GetActionBarPage()
 end
 
 local function GetMainBarPage()
@@ -87,42 +97,77 @@ local function GetBindingCommandForSlot(slot)
     return prefix .. buttonID
 end
 
+local MOD_ABBREV = {
+    ["SHIFT"] = "S",
+    ["CTRL"]  = "C",
+    ["ALT"]   = "A",
+    ["META"]  = "M",
+}
+
+local KEY_ABBREV = {
+    ["MOUSEWHEELUP"]    = "MwU",
+    ["MOUSEWHEELDOWN"]  = "MwD",
+    ["BUTTON1"]         = "M1",
+    ["BUTTON2"]         = "M2",
+    ["BUTTON3"]         = "M3",
+    ["BUTTON4"]         = "M4",
+    ["BUTTON5"]         = "M5",
+    ["NUMPADMULTIPLY"]  = "N*",
+    ["NUMPADDIVIDE"]    = "N/",
+    ["NUMPADPLUS"]      = "N+",
+    ["NUMPADMINUS"]     = "N-",
+    ["NUMPADDECIMAL"]   = "NDEL",
+    ["NUMPADENTER"]     = "NEnt",
+    ["NUMPAD0"] = "N0", ["NUMPAD1"] = "N1", ["NUMPAD2"] = "N2",
+    ["NUMPAD3"] = "N3", ["NUMPAD4"] = "N4", ["NUMPAD5"] = "N5",
+    ["NUMPAD6"] = "N6", ["NUMPAD7"] = "N7", ["NUMPAD8"] = "N8",
+    ["NUMPAD9"] = "N9",
+    ["CAPSLOCK"]  = "CpLk",
+    ["BACKSPACE"] = "BkSp",
+    ["DELETE"]    = "DEL",
+    ["INSERT"]    = "Ins",
+    ["PAGEUP"]    = "PU",
+    ["PAGEDOWN"]  = "PD",
+    ["ENTER"]     = "Ent",
+    ["HOME"]      = "Hm",
+    ["SPACE"]     = "SPC",
+    ["END"]       = "End",
+    ["UP"]        = "Up",
+    ["DOWN"]      = "Dn",
+    ["LEFT"]      = "Lt",
+    ["RIGHT"]     = "Rt",
+    ["TAB"]       = "Tab",
+    ["ESCAPE"]    = "Esc",
+}
+
+local function FormatRawKey(key)
+    local modPrefix = ""
+    local remaining = key
+
+    while true do
+        local hyphen = remaining:find("-", 1, true)
+        if not hyphen then break end
+        local token = remaining:sub(1, hyphen - 1)
+        local abbrev = MOD_ABBREV[token]
+        if not abbrev then break end
+        modPrefix = modPrefix .. abbrev
+        remaining = remaining:sub(hyphen + 1)
+    end
+
+    local baseAbbrev = KEY_ABBREV[remaining]
+    if not baseAbbrev then
+        local n = remaining:match("^BUTTON(%d+)$")
+        baseAbbrev = n and ("M" .. n) or remaining
+    end
+    return modPrefix .. baseAbbrev
+end
+
 local function GetKeybindForSlot(slot)
     local command = GetBindingCommandForSlot(slot)
     if not command then return nil end
     local key = GetBindingKey(command)
     if not key then return nil end
-    local text = GetBindingText(key, 1)
-    if text then
-        text = text:gsub("(%a)%-", "%1"):upper()
-        text = text:gsub("MOUSE ?WHEEL ?UP", "MwU")
-        text = text:gsub("MOUSE ?WHEEL ?DOWN", "MwD")
-        text = text:gsub("MIDDLE ?MOUSE ?BUTTON", "M3")
-        text = text:gsub("MOUSE ?BUTTON ?(%d+)", "M%1")
-        text = text:gsub("NUM ?PAD ?MULTIPLY", "N*")
-        text = text:gsub("NUM ?PAD ?DIVIDE", "N/")
-        text = text:gsub("NUM ?PAD ?PLUS", "N+")
-        text = text:gsub("NUM ?PAD ?MINUS", "N-")
-        text = text:gsub("NUM ?PAD ?DELETE", "NDEL")
-        text = text:gsub("NUM ?PAD ?DECIMAL", "NDEL")
-        text = text:gsub("NUM ?PAD ?ENTER", "NEnt")
-        text = text:gsub("NUM ?PAD ?(%d+)", "N%1")
-        text = text:gsub("NUM ?PAD ?%*", "N*")
-        text = text:gsub("NUM ?PAD ?%/", "N/")
-        text = text:gsub("NUM ?PAD ?%+", "N+")
-        text = text:gsub("NUM ?PAD ?%-", "N-")
-        text = text:gsub("NUM ?PAD ?%.", "NDEL")
-        text = text:gsub("CAPS ?LOCK", "CpLk")
-        text = text:gsub("BACKSPACE", "BkSp")
-        text = text:gsub("DELETE", "DEL")
-        text = text:gsub("INSERT", "Ins")
-        text = text:gsub("PAGE ?UP", "PU")
-        text = text:gsub("PAGE ?DOWN", "PD")
-        text = text:gsub("ENTER", "Ent")
-        text = text:gsub("HOME", "Hm")
-        text = text:gsub("SPACEBAR", "SPC")
-    end
-    return text
+    return FormatRawKey(key)
 end
 
 local function GetRawKeyForSlot(slot)
@@ -266,8 +311,26 @@ local function DebouncedInvalidate()
     invalidateDispatchFrame:Show()
 end
 
-local function OnEvent()
+local delayedInvalidateVersion = 0
+
+local BAR_CHANGE_EVENTS = {
+    UPDATE_BONUS_ACTIONBAR = true,
+    ACTIONBAR_PAGE_CHANGED = true,
+    UPDATE_OVERRIDE_ACTIONBAR = true,
+    UPDATE_VEHICLE_ACTIONBAR = true,
+}
+
+local function OnEvent(_, event)
     DebouncedInvalidate()
+    if BAR_CHANGE_EVENTS[event] then
+        local ver = keybindCacheVersion + 1
+        delayedInvalidateVersion = ver
+        C_Timer.After(0.1, function()
+            if delayedInvalidateVersion == ver then
+                DebouncedInvalidate()
+            end
+        end)
+    end
 end
 
 local function HideAllKeybindContainers()
@@ -301,6 +364,9 @@ local function EnableEvents()
     eventFrame:RegisterEvent("UPDATE_BINDINGS")
     eventFrame:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
     eventFrame:RegisterEvent("UPDATE_BONUS_ACTIONBAR")
+    eventFrame:RegisterEvent("ACTIONBAR_PAGE_CHANGED")
+    eventFrame:RegisterEvent("UPDATE_OVERRIDE_ACTIONBAR")
+    eventFrame:RegisterEvent("UPDATE_VEHICLE_ACTIONBAR")
     eventFrame:SetScript("OnEvent", OnEvent)
 end
 

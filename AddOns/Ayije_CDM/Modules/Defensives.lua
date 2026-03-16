@@ -262,9 +262,6 @@ local function ReleaseDefensiveIconEntry(entry)
     iconEntryPool[#iconEntryPool + 1] = entry
 end
 
--- =========================================================================
--- CACHED STYLING
--- =========================================================================
 local cachedDefensivesStyles = {
     fontPath = nil,
     fontOutline = nil,
@@ -277,23 +274,7 @@ local cachedDefensivesStyles = {
 local defensivesChargeStyleVersion = 0
 
 local function RefreshCachedDefensivesStyles()
-    local db = CDM.db
-
-    CDM_C.RefreshBaseFontCache()
-    cachedDefensivesStyles.fontPath = CDM_C.GetBaseFontPath()
-    cachedDefensivesStyles.fontOutline = CDM_C.GetBaseFontOutline()
-
-    cachedDefensivesStyles.chargeFontSize = db and db.defensivesChargeFontSize or 10
-    cachedDefensivesStyles.chargePosition = db and db.defensivesChargePosition or "BOTTOMRIGHT"
-    cachedDefensivesStyles.chargeOffsetX = db and db.defensivesChargeOffsetX or 0
-    cachedDefensivesStyles.chargeOffsetY = db and db.defensivesChargeOffsetY or 0
-
-    local defaults = CDM.defaults or {}
-    local srcColor = db and db.chargeColor or defaults.chargeColor or { r = 1, g = 1, b = 1, a = 1 }
-    cachedDefensivesStyles.chargeColor.r = srcColor.r or 1
-    cachedDefensivesStyles.chargeColor.g = srcColor.g or 1
-    cachedDefensivesStyles.chargeColor.b = srcColor.b or 1
-    cachedDefensivesStyles.chargeColor.a = srcColor.a or 1
+    CDM.RefreshChargeStyleCache(cachedDefensivesStyles, "defensives")
     defensivesChargeStyleVersion = defensivesChargeStyleVersion + 1
 end
 
@@ -504,10 +485,6 @@ local function UpdateContainerPosition()
     CDM.AnchorToPlayerFrame(defensivesContainer, anchorPoint, offsetX, offsetY, "Defensives")
 end
 
--- =========================================================================
---  HIDDEN SET & VIEWER INVALIDATION
--- =========================================================================
-
 local VIEWERS = CDM_C.VIEWERS
 local RESHOW_VIEWERS = { VIEWERS.ESSENTIAL, VIEWERS.UTILITY }
 
@@ -571,11 +548,9 @@ local function ReshowViewerFrames()
         local viewer = _G[viewerName]
         if viewer and viewer.itemFramePool then
             for frame in viewer.itemFramePool:EnumerateActive() do
-                if not frame:IsShown() then
-                    local fd = CDM.GetFrameData and CDM.GetFrameData(frame)
-                    if not (fd and fd.cdmHiddenByDefensives) then
-                        frame:Show()
-                    end
+                local fd = CDM.GetFrameData and CDM.GetFrameData(frame)
+                if fd and fd.cdmHiddenByDefensives then
+                    fd.cdmHiddenByDefensives = false
                 end
             end
         end
@@ -593,10 +568,6 @@ local function InvalidateViewers()
     CDM:QueueViewer(VIEWERS.ESSENTIAL)
     CDM:QueueViewer(VIEWERS.UTILITY)
 end
-
--- =========================================================================
---  INITIALIZATION
--- =========================================================================
 
 local UpdateDefensivesCooldownsOnly
 local defensivesUpdatePending = false
@@ -853,10 +824,6 @@ function CDM:UpdateDefensives()
     end
 end
 
--- =========================================================================
---  CUSTOM SPELL ADD / REMOVE API
--- =========================================================================
-
 function CDM:ReinitDefensiveIcons()
     if not isInitialized then return end
     InvalidateTalentTreeCache()
@@ -960,6 +927,7 @@ local function OnDefensivesProfileApplied()
     InvalidateSpellbookCache()
     InvalidateTalentTreeCache()
     InvalidateOrderedSpellsCache()
+    RebuildHiddenSet()
 end
 
 local function RefreshDefensivesLifecycle()
@@ -1020,4 +988,4 @@ CDM:RegisterRefreshCallback("defensives", function()
     if moduleManager and moduleManager.ReconcileModule then
         moduleManager:ReconcileModule("defensives")
     end
-end, 51, { "trackers_layout", "viewers" })
+end, 38, { "trackers_layout", "viewers" })

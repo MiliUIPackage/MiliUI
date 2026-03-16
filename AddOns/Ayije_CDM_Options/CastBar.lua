@@ -42,7 +42,9 @@ local function CreateCastBarTab(page, tabId)
         blizzHidden,
         function(checked)
             CDM.db.hideBlizzardCastBar = checked
-            RefreshCastBarConfig()
+            if checked and API.DisableBlizzardPlayerCastBar then
+                API:DisableBlizzardPlayerCastBar()
+            end
         end
     )
     page.controls.hideBlizzardCastBar:SetPoint("LEFT", page.controls.castBarEnabled, "RIGHT", 0, 0)
@@ -425,6 +427,18 @@ local function CreateCastBarTab(page, tabId)
     )
     page.controls.castBarShowSpellName:SetPoint("TOPLEFT", page.controls.castBarFontSizeSlider, "BOTTOMLEFT", 0, -10)
 
+    page.controls.castBarNameMaxCharsSlider = UI.CreateModernSlider(
+        scrollChild,
+        L["Max Name Length (0 = Full)"],
+        0, 30,
+        CDM.db.castBarNameMaxChars or 0,
+        function(v)
+            CDM.db.castBarNameMaxChars = UI.RoundToInt(v)
+            RefreshCastBarConfig()
+        end
+    )
+    page.controls.castBarNameMaxCharsSlider:SetPoint("TOPLEFT", page.controls.castBarShowSpellName, "BOTTOMLEFT", 0, -10)
+
     page.controls.castBarNameOffsetX = UI.CreateModernSlider(
         scrollChild,
         L["Name X Offset"],
@@ -435,7 +449,7 @@ local function CreateCastBarTab(page, tabId)
             RefreshCastBarConfig()
         end
     )
-    page.controls.castBarNameOffsetX:SetPoint("TOPLEFT", page.controls.castBarShowSpellName, "BOTTOMLEFT", 0, -10)
+    page.controls.castBarNameOffsetX:SetPoint("TOPLEFT", page.controls.castBarNameMaxCharsSlider, "BOTTOMLEFT", 0, -10)
 
     page.controls.castBarNameOffsetY = UI.CreateModernSlider(
         scrollChild,

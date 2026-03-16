@@ -110,9 +110,9 @@ local function AnchorRacialsToPartyFrame(partyFrame, side, offsetX, offsetY)
 
     racialsContainer:ClearAllPoints()
     if side == "LEFT" then
-        CDM_C.SetPixelPerfectPoint(racialsContainer, "RIGHT", partyFrame, "LEFT", offsetX, offsetY)
+        CDM.Pixel.SetPoint(racialsContainer, "RIGHT", partyFrame, "LEFT", offsetX, offsetY)
     else
-        CDM_C.SetPixelPerfectPoint(racialsContainer, "LEFT", partyFrame, "RIGHT", offsetX, offsetY)
+        CDM.Pixel.SetPoint(racialsContainer, "LEFT", partyFrame, "RIGHT", offsetX, offsetY)
     end
     if not racialsContainer:IsShown() then
         racialsContainer:Show()
@@ -207,23 +207,7 @@ local function GetCachedRacialItemDisplayCount(entry)
 end
 
 local function RefreshCachedRacialsStyles()
-    local db = CDM.db
-    local defaults = CDM.defaults or {}
-
-    CDM_C.RefreshBaseFontCache()
-    cachedRacialsStyles.fontPath = CDM_C.GetBaseFontPath()
-    cachedRacialsStyles.fontOutline = CDM_C.GetBaseFontOutline()
-
-    cachedRacialsStyles.chargeFontSize = db and db.racialsChargeFontSize or 10
-    cachedRacialsStyles.chargePosition = db and db.racialsChargePosition or "BOTTOMRIGHT"
-    cachedRacialsStyles.chargeOffsetX = db and db.racialsChargeOffsetX or 0
-    cachedRacialsStyles.chargeOffsetY = db and db.racialsChargeOffsetY or 0
-
-    local srcColor = db and db.racialsChargeColor or db and db.chargeColor or defaults.chargeColor or { r = 1, g = 1, b = 1, a = 1 }
-    cachedRacialsStyles.chargeColor.r = srcColor.r or 1
-    cachedRacialsStyles.chargeColor.g = srcColor.g or 1
-    cachedRacialsStyles.chargeColor.b = srcColor.b or 1
-    cachedRacialsStyles.chargeColor.a = srcColor.a or 1
+    CDM.RefreshChargeStyleCache(cachedRacialsStyles, "racials")
     racialsChargeStyleVersion = racialsChargeStyleVersion + 1
 end
 

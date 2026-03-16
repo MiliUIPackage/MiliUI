@@ -1,9 +1,10 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\FrameXML\UI.xsd">
     <Script file="Constants.lua"/>
-    <Script file="Border.lua"/>
     <Script file="FrameData.lua"/>
+    <Script file="Border.lua"/>
     <Script file="SpellUtils.lua"/>
+    <Script file="SpellVariantCache.lua"/>
     <Script file="Style.lua"/>
     <Script file="EditMode.lua"/>
     <Script file="Layout/Shared.lua"/>
@@ -12,6 +13,7 @@
     <Script file="Layout/Buffs.lua"/>
     <Script file="Layout/BuffBar.lua"/>
     <Script file="Layout/Reanchor.lua"/>
+    <Script file="GroupContainerUtils.lua"/>
     <Script file="TrackerUtils.lua"/>
     <Script file="TrackerCooldownWatcher.lua"/>
     <Script file="TrackerSpellCooldownWatcher.lua"/>

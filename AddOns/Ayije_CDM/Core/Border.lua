@@ -43,8 +43,9 @@ local function GetBorderDef()
 
     if not borderFile then return nil, offsetX, offsetY end
 
+    local Pixel = CDM.Pixel
     local rawBorderSize = CDM_C.GetConfigValue("borderSize", 16)
-    local onePixel = (CDM_C.GetPixelSizeForRegion and CDM_C.GetPixelSizeForRegion(UIParent)) or 1
+    local onePixel = Pixel.GetSize()
     if not cachedBorderDef
         or cachedBorderFile ~= borderFile
         or cachedBorderSize ~= rawBorderSize
@@ -79,6 +80,7 @@ local function ApplyBorderPoints(frame, border, meta, offsetX, offsetY)
     local p4 = meta.p4 or -offsetY
 
     local anchor2 = meta.anchor2 or anchor
+    local Pixel = CDM.Pixel
     local w = anchor:GetWidth()
     local h = anchor:GetHeight()
 
@@ -86,14 +88,8 @@ local function ApplyBorderPoints(frame, border, meta, offsetX, offsetY)
         local borderW = w + p3 - p1
         local borderH = h + p2 - p4
         if borderW > 0 and borderH > 0 then
-            local snap = CDM_C.SnapOffsetToPixel
-            if snap then
-                CDM_C.SetPixelPerfectPoint(border, "TOPLEFT", anchor, "TOPLEFT", p1, p2)
-                CDM_C.SetPixelPerfectPoint(border, "BOTTOMRIGHT", anchor2, "BOTTOMRIGHT", p3, p4)
-            else
-                border:SetPoint("TOPLEFT", anchor, "TOPLEFT", p1, p2)
-                border:SetPoint("BOTTOMRIGHT", anchor2, "BOTTOMRIGHT", p3, p4)
-            end
+            Pixel.SetPoint(border, "TOPLEFT", anchor, "TOPLEFT", p1, p2)
+            Pixel.SetPoint(border, "BOTTOMRIGHT", anchor2, "BOTTOMRIGHT", p3, p4)
             return
         end
     end
@@ -156,18 +152,19 @@ function BORDER:CreateBorder(frame, opts)
     border:Show()
     ApplyBorderPoints(frame, border, meta, offsetX, offsetY)
 
-    local color = CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
+    local frameData = GetFrameData(frame)
+    local color = frameData.cdmBorderColorOverride or CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
     SetBorderColor(border, color)
 
     if event then
-        local frameData = GetFrameData(frame)
         if not frameData.cdmBorderHooked then
             frameData.cdmBorderHooked = true
             frame:HookScript("OnEnter", function()
                 border:SetBackdropBorderColor(1, 0.78, 0.03, 1)
             end)
             frame:HookScript("OnLeave", function()
-                local c = CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
+                local fd = GetFrameData(frame)
+                local c = fd.cdmBorderColorOverride or CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
                 SetBorderColor(border, c)
             end)
         end
@@ -187,7 +184,8 @@ function BORDER:UpdateBorder(frame)
     else
         frame.border:SetBackdrop(borderDef)
         frame.border:Show()
-        local color = CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
+        local frameData = GetFrameData(frame)
+        local color = frameData.cdmBorderColorOverride or CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
         SetBorderColor(frame.border, color)
         ApplyBorderPoints(frame, frame.border, meta, offsetX, offsetY)
     end
@@ -207,8 +205,53 @@ function BORDER:UpdateAllBorders()
             else
                 frame.border:SetBackdrop(borderDef)
                 frame.border:Show()
-                SetBorderColor(frame.border, color)
+                local frameData = GetFrameData(frame)
+                local c = frameData.cdmBorderColorOverride or color
+                SetBorderColor(frame.border, c)
                 ApplyBorderPoints(frame, frame.border, meta, offsetX, offsetY)
+            end
+        end
+    end
+end
+
+function BORDER:ApplyBorderColorOverride(frame, color)
+    if not frame then return end
+    local frameData = GetFrameData(frame)
+    frameData.cdmBorderColorOverride = color
+    if frame.border then
+        SetBorderColor(frame.border, color)
+    end
+    local wrapperBorder = frameData.borderFrame and frameData.borderFrame.border
+    if wrapperBorder then
+        SetBorderColor(wrapperBorder, color)
+    end
+    local lines = frameData.pixelIconBorderLines
+    if lines then
+        for _, line in ipairs(lines) do
+            if line and line.SetVertexColor then
+                line:SetVertexColor(color.r, color.g, color.b, color.a or 1)
+            end
+        end
+    end
+end
+
+function BORDER:RestoreToCurrentBorderColor(frame)
+    if not frame then return end
+    local frameData = GetFrameData(frame)
+    frameData.cdmBorderColorOverride = nil
+    local color = CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
+    if frame.border then
+        SetBorderColor(frame.border, color)
+    end
+    local wrapperBorder = frameData.borderFrame and frameData.borderFrame.border
+    if wrapperBorder then
+        SetBorderColor(wrapperBorder, color)
+    end
+    local lines = frameData.pixelIconBorderLines
+    if lines then
+        for _, line in ipairs(lines) do
+            if line and line.SetVertexColor then
+                line:SetVertexColor(color.r, color.g, color.b, color.a or 1)
             end
         end
     end

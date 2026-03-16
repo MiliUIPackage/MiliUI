@@ -35,40 +35,53 @@ local function CreateFadingTab(page, tabId)
     )
     page.controls.fadingEnabled:SetPoint("TOPLEFT", mainHeader, "BOTTOMLEFT", 0, -15)
 
-    local triggerHeader = UI.CreateSubHeader(scrollChild, L["Fade Trigger"])
+    local triggerHeader = UI.CreateSubHeader(scrollChild, L["Fade Triggers"])
     triggerHeader:SetPoint("TOPLEFT", page.controls.fadingEnabled, "BOTTOMLEFT", 0, -15)
 
-    local currentTrigger = CDM.db.fadingTrigger or "notarget"
+    local noTargetCb, oocCb
 
-    local noTargetCheckbox, oocCheckbox
-
-    noTargetCheckbox = UI.CreateModernCheckbox(
+    noTargetCb = UI.CreateModernCheckbox(
         scrollChild,
         L["Fade when no target"],
-        currentTrigger == "notarget",
+        CDM.db.fadingTriggerNoTarget ~= false,
         function(checked)
-            CDM.db.fadingTrigger = "notarget"
-            noTargetCheckbox:SetChecked(true)
-            oocCheckbox:SetChecked(false)
+            CDM.db.fadingTriggerNoTarget = checked
+            if checked then
+                CDM.db.fadingTriggerOOC = false
+                oocCb:SetChecked(false)
+            end
             RefreshFadingConfig()
         end
     )
-    noTargetCheckbox:SetPoint("TOPLEFT", triggerHeader, "BOTTOMLEFT", 0, -10)
-    page.controls.noTargetCheckbox = noTargetCheckbox
+    noTargetCb:SetPoint("TOPLEFT", triggerHeader, "BOTTOMLEFT", 0, -10)
+    page.controls.noTargetCheckbox = noTargetCb
 
-    oocCheckbox = UI.CreateModernCheckbox(
+    oocCb = UI.CreateModernCheckbox(
         scrollChild,
         L["Fade out of combat"],
-        currentTrigger == "ooc",
+        CDM.db.fadingTriggerOOC or false,
         function(checked)
-            CDM.db.fadingTrigger = "ooc"
-            oocCheckbox:SetChecked(true)
-            noTargetCheckbox:SetChecked(false)
+            CDM.db.fadingTriggerOOC = checked
+            if checked then
+                CDM.db.fadingTriggerNoTarget = false
+                noTargetCb:SetChecked(false)
+            end
             RefreshFadingConfig()
         end
     )
-    oocCheckbox:SetPoint("TOPLEFT", noTargetCheckbox, "BOTTOMLEFT", 0, -5)
-    page.controls.oocCheckbox = oocCheckbox
+    oocCb:SetPoint("TOPLEFT", noTargetCb, "BOTTOMLEFT", 0, -5)
+    page.controls.oocCheckbox = oocCb
+
+    page.controls.mountedCheckbox = UI.CreateModernCheckbox(
+        scrollChild,
+        L["Fade when mounted"],
+        CDM.db.fadingTriggerMounted or false,
+        function(checked)
+            CDM.db.fadingTriggerMounted = checked
+            RefreshFadingConfig()
+        end
+    )
+    page.controls.mountedCheckbox:SetPoint("TOPLEFT", page.controls.oocCheckbox, "BOTTOMLEFT", 0, -5)
 
     page.controls.fadingOpacity = UI.CreateModernSlider(
         scrollChild, L["Faded Opacity"], 0, 100, CDM.db.fadingOpacity or 0,
@@ -77,7 +90,7 @@ local function CreateFadingTab(page, tabId)
             RefreshFadingConfig()
         end
     )
-    page.controls.fadingOpacity:SetPoint("TOPLEFT", oocCheckbox, "BOTTOMLEFT", 0, -15)
+    page.controls.fadingOpacity:SetPoint("TOPLEFT", page.controls.mountedCheckbox, "BOTTOMLEFT", 0, -15)
 
     local targetsHeader = UI.CreateSubHeader(scrollChild, L["Apply Fading To"])
     targetsHeader:SetPoint("TOPLEFT", page.controls.fadingOpacity, "BOTTOMLEFT", 0, -15)

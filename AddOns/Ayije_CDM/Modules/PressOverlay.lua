@@ -5,7 +5,7 @@ local GetCachedBaseSpellID = CDM.GetCachedBaseSpellID
 local NormalizeToBase = CDM.NormalizeToBase
 local Keybinds = CDM.Keybinds
 local GetFrameData = CDM.GetFrameData
-local TEX_WHITE8X8 = CDM.CONST.TEX_WHITE8X8
+
 
 local isEnabled = false
 local isQueueHooked = false
@@ -125,9 +125,8 @@ local function GetOrCreateTint(frame)
     local f = CreateFrame("Frame", nil, frame)
     f:SetAllPoints()
     f:SetFrameLevel(frame:GetFrameLevel() + 1)
-    local tex = f:CreateTexture(nil, "OVERLAY")
+    local tex = CDM.Pixel.CreateSolidTexture(f, "OVERLAY")
     tex:SetAllPoints()
-    tex:SetTexture(TEX_WHITE8X8)
     f.texture = tex
     f:Hide()
     ov.tint = f

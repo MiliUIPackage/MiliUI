@@ -51,8 +51,9 @@ function CDM:GetUtilityVisibleCount()
     return GetUtilityVisibleCount()
 end
 
-local SetPixelPerfectPoint = CDM_C.SetPixelPerfectPoint
-local SnapContainerWidth = CDM_C.SnapContainerWidth
+local Pixel = CDM.Pixel
+local Snap = Pixel.Snap
+local HalfFloor = Pixel.HalfFloor
 
 local function AnchorMainLayoutContainer(frame, isBuffContainer, relativePoint, x, y, yOffset)
     if not frame then
@@ -60,11 +61,12 @@ local function AnchorMainLayoutContainer(frame, isBuffContainer, relativePoint, 
     end
 
     if isBuffContainer then
-        SetPixelPerfectPoint(frame, "BOTTOM", UIParent, relativePoint, x, (y or 0) + (yOffset or 0))
+        Pixel.SetPoint(frame, "BOTTOM", UIParent, relativePoint, x, (y or 0) + (yOffset or 0))
         return
     end
 
-    SetPixelPerfectPoint(frame, "TOP", UIParent, relativePoint, x, y)
+    local halfW = HalfFloor(frame:GetWidth() or 0)
+    Pixel.SetPoint(frame, "TOPLEFT", UIParent, relativePoint, x - halfW, y)
 end
 
 local function EnsureDBSubTable(parent, key)
@@ -100,20 +102,15 @@ function CDM:UpdateUtilityContainerPosition()
 
     local utilityCount = GetUtilityVisibleCount()
 
-    if utilityCount > 0 then
-        local containerWidth, containerHeight = ComputeUtilityContainerSize(
-            utilityCount, sizeUtility, spacing, maxRowUtil, utilityVertical
-        )
-        utilContainer:SetSize(SnapContainerWidth(containerWidth, utilContainer), containerHeight)
-    else
-        local containerWidth, containerHeight = ComputeUtilityContainerSize(
-            0, sizeUtility, spacing, maxRowUtil, utilityVertical
-        )
-        utilContainer:SetSize(SnapContainerWidth(containerWidth, utilContainer), containerHeight)
-    end
+    local containerWidth, containerHeight = ComputeUtilityContainerSize(
+        utilityCount > 0 and utilityCount or 0, sizeUtility, spacing, maxRowUtil, utilityVertical
+    )
+    utilContainer:SetSize(Snap(containerWidth), Snap(containerHeight))
 
+    local essHalfW = HalfFloor(essContainer:GetWidth() or 0)
+    local utilHalfW = HalfFloor(Snap(containerWidth))
     utilContainer:ClearAllPoints()
-    SetPixelPerfectPoint(utilContainer, "TOP", essContainer, "BOTTOM", utilityXOffset, -spacing + utilityYOffset)
+    Pixel.SetPoint(utilContainer, "TOPLEFT", essContainer, "BOTTOMLEFT", essHalfW - utilHalfW + utilityXOffset, -spacing + utilityYOffset)
 end
 
 local FALLBACK_POSITION = {
@@ -189,10 +186,8 @@ function CDM:GetBuffContainerYOffset()
         if not hasBar2 then
             local bar2Height = CDM_C.GetConfigValue("resourcesBar2Height", 16)
             local barSpacing = CDM_C.GetConfigValue("resourcesBarSpacing", 2)
-            local pixelRegion = self.resourceContainer or UIParent
-
-            bar2Height = CDM_C.SnapOffsetToPixel(bar2Height or 0, pixelRegion)
-            barSpacing = CDM_C.SnapOffsetToPixel(barSpacing or 0, pixelRegion)
+            bar2Height = Snap(bar2Height or 0)
+            barSpacing = Snap(barSpacing or 0)
 
             return -(bar2Height + barSpacing)
         end
@@ -212,19 +207,33 @@ function CDM:UpdateBuffContainerPosition()
 
 end
 
+function CDM:ReanchorContainer(vName)
+    if InCombatLockdown() then return end
+    local container = self.anchorContainers and self.anchorContainers[vName]
+    if not container then return end
+
+    if vName == VIEWERS.ESSENTIAL then
+        local savedPos = GetPositionSettings(VIEWERS.ESSENTIAL, "Default")
+        container:ClearAllPoints()
+        AnchorMainLayoutContainer(container, false, savedPos.point, savedPos.x, savedPos.y)
+    elseif vName == VIEWERS.UTILITY then
+        local essContainer = self.anchorContainers[VIEWERS.ESSENTIAL]
+        if not essContainer then return end
+        local _, _, _, _, spacing, _, utilityYOffset, _, _, utilityXOffset = GetLayoutConfig()
+        local essHalfW = HalfFloor(essContainer:GetWidth() or 0)
+        local utilHalfW = HalfFloor(container:GetWidth())
+        container:ClearAllPoints()
+        Pixel.SetPoint(container, "TOPLEFT", essContainer, "BOTTOMLEFT", essHalfW - utilHalfW + utilityXOffset, -spacing + utilityYOffset)
+    end
+end
+
 function CDM:UpdateEssentialContainerPosition()
     if InCombatLockdown() then
         CDM.combatDirtyViewers[VIEWERS.ESSENTIAL] = true
         return
     end
 
-    local essContainer = self.anchorContainers[VIEWERS.ESSENTIAL]
-    if not essContainer then return end
-
-    local savedPos = GetPositionSettings(VIEWERS.ESSENTIAL, "Default")
-    essContainer:ClearAllPoints()
-    AnchorMainLayoutContainer(essContainer, false, savedPos.point, savedPos.x, savedPos.y)
-
+    self:ReanchorContainer(VIEWERS.ESSENTIAL)
     self:UpdateUtilityContainerPosition()
 end
 
@@ -366,7 +375,11 @@ function CDM:GetOrCreateAnchorContainer(viewer)
     if vName == VIEWERS.ESSENTIAL or vName == VIEWERS.BUFF then
         local container = CreateBaseContainer(vName .. "_CDM_Container")
         local initH = (vName == VIEWERS.ESSENTIAL) and sizeEssRow1.h or sizeBuff.h
-        container:SetSize(SnapContainerWidth(400, container), CDM_C.SnapOffsetToPixel(initH, container))
+        if vName == VIEWERS.ESSENTIAL then
+            container:SetSize(Snap(400), Snap(initH))
+        else
+            container:SetSize(Pixel.SnapEven(400), Snap(initH))
+        end
 
         local lockKey = (vName == VIEWERS.BUFF) and "buffContainerLocked" or "containerLocked"
         SetupDraggableContainer(container, lockKey)
@@ -381,13 +394,13 @@ function CDM:GetOrCreateAnchorContainer(viewer)
 
                 local settings = GetPositionSettings(vName, "Default")
                 settings.point = relativePoint
-                settings.x = CDM_C.SnapOffsetToPixel(x, UIParent)
+                settings.x = Snap(x)
 
                 local yOffset = 0
                 if vName == VIEWERS.BUFF then
                     yOffset = CDM:GetBuffContainerYOffset()
                 end
-                settings.y = CDM_C.SnapOffsetToPixel(y - yOffset, UIParent)
+                settings.y = Snap(y - yOffset)
 
                 self:ClearAllPoints()
                 AnchorMainLayoutContainer(self, vName == VIEWERS.BUFF, relativePoint, settings.x, settings.y, yOffset)
@@ -430,11 +443,10 @@ function CDM:GetOrCreateAnchorContainer(viewer)
 
                 local settings = GetBuffBarPositionSettings()
                 settings.point = relativePoint
-                settings.x = CDM_C.SnapOffsetToPixel(x, UIParent)
-                settings.y = CDM_C.SnapOffsetToPixel(y, UIParent)
+                settings.x = Snap(x)
+                settings.y = Snap(y)
 
-                self:ClearAllPoints()
-                self:SetPoint(anchorPoint, UIParent, relativePoint, settings.x, settings.y)
+                CDM:UpdateBuffBarContainerPosition()
 
                 CDM:NotifyPositionSliderUpdate("buffBar", settings.x, settings.y, true)
             end

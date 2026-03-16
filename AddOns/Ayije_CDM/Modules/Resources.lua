@@ -31,6 +31,7 @@ local MAX_SOUL_FRAGMENTS = 6
 local MAX_MAELSTROM_WEAPON = 10
 local DEVOURER_BASE_SOULS_MAX = 50
 local DEVOURER_SOUL_GLUTTON_REDUCED_MAX = 35
+local DEVOURER_VOID_META_SOULS_MAX = 40
 local DEVOURER_STACKS_PER_PIP = 5
 
 local isInitialized = false
@@ -42,6 +43,7 @@ local resourcesSpecInitRetries = 0
 local _, resourcesPlayerClass = UnitClass("player")
 local lastMaelstromAuraUpdateTime = 0
 local lastDevourerAuraUpdateTime = 0
+local lastDevourerInVoidMeta = false
 
 local ironfurStacks = {}
 local guardianOfEluneExpiry = 0
@@ -76,48 +78,18 @@ local cachedBar2OffsetX = 0
 local cachedBar2OffsetY = 0
 local GetResourceConfigSlot
 
-local GetOnePixelSize = CDM_C.GetPixelSizeForRegion
-local SetPixelPerfectPoint = CDM_C.SetPixelPerfectPoint
-local ToPixelCountForRegion = CDM_C.ToPixelCountForRegion
+local Pixel = CDM.Pixel
+local Snap = Pixel.Snap
+local IsOneBorderMode = Pixel.IsOneBorderMode
 
 local function SnapWidthToPixelGrid(frame, width)
     if not width or width <= 0 then
         return width, 0, 1
     end
 
-    local onePixel = GetOnePixelSize(frame)
-    local pixelWidth = math.max(1, CDM_C.PixelPerfect(width / onePixel))
+    local onePixel = Pixel.GetSize()
+    local pixelWidth = math.max(1, math.floor(width / onePixel + 0.5))
     return pixelWidth * onePixel, pixelWidth, onePixel
-end
-
-local SnapToPixel = CDM_C.SnapOffsetToPixel
-
-local function SnapFrameVerticallyToPixelGrid(frame)
-    if not frame or not frame.GetPoint then return end
-
-    local point, relativeTo, relativePoint, xOfs, yOfs = frame:GetPoint(1)
-    if not point then
-        return
-    end
-
-    local onePixel = GetOnePixelSize(frame)
-    if not onePixel or onePixel <= 0 then
-        return
-    end
-
-    local top = frame:GetTop()
-    if not top then
-        return
-    end
-
-    local snappedTop = SnapToPixel(top, frame)
-    local dy = snappedTop - top
-    if math.abs(dy) < (onePixel * 0.05) then
-        return
-    end
-
-    frame:ClearAllPoints()
-    frame:SetPoint(point, relativeTo, relativePoint, (xOfs or 0), (yOfs or 0) + dy)
 end
 
 local function UpdateUnifiedBorderFrameGeometry(powerTypes)
@@ -145,7 +117,7 @@ local function UpdateUnifiedBorderFrameGeometry(powerTypes)
 
     if bottomBar and topBar then
         -- Follow the actual snapped bar bounds. The resource container itself can be
-        -- center-anchored with odd pixel widths, but the bars are snapped individually.
+        -- edge-anchored (BOTTOMLEFT + HalfFloor offset), bars are snapped individually.
         borderFrame:SetPoint("BOTTOMLEFT", bottomBar, "BOTTOMLEFT", 0, 0)
         borderFrame:SetPoint("TOPRIGHT", topBar, "TOPRIGHT", 0, 0)
         return
@@ -154,42 +126,66 @@ local function UpdateUnifiedBorderFrameGeometry(powerTypes)
     borderFrame:SetAllPoints(container)
 end
 
-local function AlignResourceContainerXToEssentialCenter()
-    local container = CDM.resourceContainer
-    if not (container and container.GetCenter) then
-        return
-    end
-
-    local essentialCenterX = CDM:GetEssentialContentCenterX()
-    local resourceCenterX = select(1, container:GetCenter())
-    if not (essentialCenterX and resourceCenterX) then
-        return
-    end
-
-    local onePixel = GetOnePixelSize(container) or 1
-    local targetCenterX = essentialCenterX + (CDM.db and CDM.db.resourcesOffsetX or 0)
-    local dx = targetCenterX - resourceCenterX
-    if math.abs(dx) < (onePixel * 0.05) then
-        return
-    end
-
-    local point, relativeTo, relativePoint, xOfs, yOfs = container:GetPoint(1)
-    if not point then
-        return
-    end
-
-    container:ClearAllPoints()
-    container:SetPoint(point, relativeTo, relativePoint, (xOfs or 0) + dx, yOfs or 0)
-end
-
 local function ConfigurePixelTexture(tex)
     if not tex then return end
     if tex.SetHorizTile then tex:SetHorizTile(false) end
     if tex.SetVertTile then tex:SetVertTile(false) end
-    if tex.SetSnapToPixelGrid then tex:SetSnapToPixelGrid(false) end
-    if tex.SetTexelSnappingBias then tex:SetTexelSnappingBias(0) end
+    Pixel.DisableTextureSnap(tex)
 end
 
+
+local function ApplyResourcePixelBorder(host, color)
+    if not host.pixelBorderLines then
+        host.pixelBorderLines = {}
+        for i = 1, 4 do
+            host.pixelBorderLines[i] = Pixel.CreateSolidTexture(host, "OVERLAY", 6)
+        end
+    end
+
+    local onePx = Pixel.GetSize()
+    local configuredSize = CDM_C.GetConfigValue("borderSize", 1) or 1
+    local px = math.max(1, math.floor(configuredSize / onePx)) * onePx
+    local r = (color and color.r) or 1
+    local g = (color and color.g) or 1
+    local b = (color and color.b) or 1
+    local a = (color and color.a) or 1
+
+    local lines = host.pixelBorderLines
+    for _, line in ipairs(lines) do
+        line:SetVertexColor(r, g, b, a)
+        line:Show()
+    end
+
+    local top, bottom, left, right = lines[1], lines[2], lines[3], lines[4]
+
+    top:ClearAllPoints()
+    top:SetPoint("TOPLEFT", host, "TOPLEFT", px, 0)
+    top:SetPoint("TOPRIGHT", host, "TOPRIGHT", -px, 0)
+    top:SetHeight(px)
+
+    bottom:ClearAllPoints()
+    bottom:SetPoint("BOTTOMLEFT", host, "BOTTOMLEFT", px, 0)
+    bottom:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", -px, 0)
+    bottom:SetHeight(px)
+
+    left:ClearAllPoints()
+    left:SetPoint("TOPLEFT", host, "TOPLEFT", 0, 0)
+    left:SetPoint("BOTTOMLEFT", host, "BOTTOMLEFT", 0, 0)
+    left:SetWidth(px)
+
+    right:ClearAllPoints()
+    right:SetPoint("TOPRIGHT", host, "TOPRIGHT", 0, 0)
+    right:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", 0, 0)
+    right:SetWidth(px)
+end
+
+local function HideResourcePixelBorder(host)
+    if host and host.pixelBorderLines then
+        for _, line in ipairs(host.pixelBorderLines) do
+            line:Hide()
+        end
+    end
+end
 
 local function HideBarSeparatorFill(bar)
     if bar and bar.separatorFill then
@@ -225,7 +221,7 @@ local function ResolvePipSeparatorXOffset(bar, index, barLeft, onePixel)
     if barLeft and pip and pip.GetRight then
         local pipRight = pip:GetRight()
         if pipRight then
-            xOffset = SnapToPixel(pipRight - barLeft, bar)
+            xOffset = Snap(pipRight - barLeft)
         end
     end
 
@@ -363,6 +359,9 @@ local function GetDevourerSoulValueMax()
     end
 
     local inVoidMetamorphosis = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID) ~= nil
+    if inVoidMetamorphosis then
+        max = DEVOURER_VOID_META_SOULS_MAX
+    end
     local trackedAuraSpellID = inVoidMetamorphosis and CDM_C.DEVOURER_COLLAPSING_STAR_SPELL_ID or CDM_C.DEVOURER_RESOURCE_AURA_SPELL_ID
 
     local auraData = trackedAuraSpellID and C_UnitAuras.GetPlayerAuraBySpellID(trackedAuraSpellID) or nil
@@ -875,15 +874,12 @@ local function CreatePips(bar, maxPips, barWidth, barHeight)
     bar.bgTexture:SetHorizTile(false)
     bar.bgTexture:SetVertTile(false)
     bar.bgTexture:SetAllPoints(bar)
-    bar.bgTexture:SetSnapToPixelGrid(false)
-    bar.bgTexture:SetTexelSnappingBias(0)
+    Pixel.DisableTextureSnap(bar.bgTexture)
     bar.bgTexture:SetVertexColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a)
     bar.bgTexture:Show()
 
     if not bar.separatorFill then
-        bar.separatorFill = bar:CreateTexture(nil, "ARTWORK", nil, -1)
-        bar.separatorFill:SetTexture(CDM_C.TEX_WHITE8X8)
-        ConfigurePixelTexture(bar.separatorFill)
+        bar.separatorFill = Pixel.CreateSolidTexture(bar, "ARTWORK", -1)
         bar.separatorFill:SetAllPoints(bar)
     end
     bar.separatorFill:SetVertexColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
@@ -907,7 +903,7 @@ local function CreatePips(bar, maxPips, barWidth, barHeight)
                 timerText:SetJustifyH("CENTER")
                 timerText:SetJustifyV("MIDDLE")
                 timerText:SetIgnoreParentScale(true)
-                timerText:SetFont(CDM_C.FONT_PATH, CDM_C.GetPixelFontSize(10), CDM_C.FONT_OUTLINE)
+                timerText:SetFont(CDM_C.FONT_PATH, Pixel.FontSize(10), CDM_C.FONT_OUTLINE)
                 pip.timerText = timerText
                 pip.timerFrame = timerFrame
             end
@@ -1038,11 +1034,7 @@ local function CreatePips(bar, maxPips, barWidth, barHeight)
         local separator = bar.separators[i]
 
         if not separator then
-            separator = bar.separatorOverlay:CreateTexture(nil, "OVERLAY", nil, 7)
-            separator:SetTexture(CDM_C.TEX_WHITE8X8)
-            separator:SetDrawLayer("OVERLAY", 7)
-            separator:SetSnapToPixelGrid(false)
-            separator:SetTexelSnappingBias(0)
+            separator = Pixel.CreateSolidTexture(bar.separatorOverlay, "OVERLAY", 7)
             bar.separators[i] = separator
         end
 
@@ -1104,8 +1096,7 @@ local function CreateBar(powerType)
     bg:SetHorizTile(false)
     bg:SetVertTile(false)
     bg:SetAllPoints()
-    bg:SetSnapToPixelGrid(false)
-    bg:SetTexelSnappingBias(0)
+    Pixel.DisableTextureSnap(bg)
     local bgColor = CDM.db.resourcesBackgroundColor or CDM.defaults.resourcesBackgroundColor
     bg:SetVertexColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a)
     bar.bg = bg
@@ -1168,7 +1159,7 @@ local function CreateVerticalSeparators(bar2)
     local pipWidths = bar2.pipWidths
     local fallbackPipWidth = bar2.pipWidth or (bar2.pips[1] and bar2.pips[1]:GetWidth() or 0)
 
-    local twoPixels = GetOnePixelSize(bar2) * 2
+    local twoPixels = Pixel.GetSize() * 2
 
     local separatorWidth = 16
     local separatorHeight = 10
@@ -1203,7 +1194,7 @@ local function CreateVerticalSeparators(bar2)
 
         local pw = (pipWidths and pipWidths[i]) or fallbackPipWidth
         local boundary = bar2.pipPositions[i] + pw
-        local xOffset = SnapToPixel(math_floor((boundary - 2) / twoPixels + 0.5) * twoPixels, bar2)
+        local xOffset = Snap(math_floor((boundary - 2) / twoPixels + 0.5) * twoPixels)
 
         separator:ClearAllPoints()
         separator:SetPoint("BOTTOMLEFT", bar2, "BOTTOMLEFT", xOffset, -1)
@@ -1240,12 +1231,17 @@ local function UpdateBorders(powerTypes)
                 if not bar.borderFrame then
                     bar.borderFrame = CreateFrame("Frame", nil, bar, "BackdropTemplate")
                     bar.borderFrame:SetAllPoints()
+                end
+                bar.borderFrame:Show()
 
+                if IsOneBorderMode() then
+                    if bar.borderFrame.border then bar.borderFrame.border:Hide() end
+                    ApplyResourcePixelBorder(bar.borderFrame, borderColor)
+                else
+                    HideResourcePixelBorder(bar.borderFrame)
                     if CDM.BORDER and CDM.BORDER.CreateBorder then
                         CDM.BORDER:CreateBorder(bar.borderFrame)
                     end
-                else
-                    bar.borderFrame:Show()
                 end
             end
         end
@@ -1255,15 +1251,21 @@ local function UpdateBorders(powerTypes)
         if not CDM.resourceContainer.unifiedBorderFrame then
             CDM.resourceContainer.unifiedBorderFrame = CreateFrame("Frame", nil, CDM.resourceContainer, "BackdropTemplate")
             CDM.resourceContainer.unifiedBorderFrame:SetAllPoints()
+        end
+        CDM.resourceContainer.unifiedBorderFrame:Show()
 
+        UpdateUnifiedBorderFrameGeometry(powerTypes)
+
+        if IsOneBorderMode() then
+            local ubf = CDM.resourceContainer.unifiedBorderFrame
+            if ubf.border then ubf.border:Hide() end
+            ApplyResourcePixelBorder(ubf, borderColor)
+        else
+            HideResourcePixelBorder(CDM.resourceContainer.unifiedBorderFrame)
             if CDM.BORDER and CDM.BORDER.CreateBorder then
                 CDM.BORDER:CreateBorder(CDM.resourceContainer.unifiedBorderFrame)
             end
-        else
-            CDM.resourceContainer.unifiedBorderFrame:Show()
         end
-
-        UpdateUnifiedBorderFrameGeometry(powerTypes)
 
         if #powerTypes > 1 then
             if not CDM.resourceContainer.separator then
@@ -1272,8 +1274,7 @@ local function UpdateBorders(powerTypes)
 
                 local tex = separator:CreateTexture(nil, "ARTWORK")
                 tex:SetTexture("Interface\\AddOns\\Ayije_CDM\\Media\\Textures\\Separator")
-                tex:SetSnapToPixelGrid(false)
-                tex:SetTexelSnappingBias(0)
+                Pixel.DisableTextureSnap(tex)
                 tex:SetVertexColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
                 separator.texture = tex
 
@@ -1345,7 +1346,7 @@ local function UpdateBorders(powerTypes)
 
                 local activeSeps = math.max(0, (bar.activePipCount or 0) - 1)
                 local barLeft = bar.GetLeft and bar:GetLeft() or nil
-                local onePixel = GetOnePixelSize(bar)
+                local onePixel = Pixel.GetSize()
                 local barHeight = bar.GetHeight and bar:GetHeight() or nil
                 for i = 1, activeSeps do
                     local sep = bar.separators[i]
@@ -1369,15 +1370,16 @@ local function UpdateBorders(powerTypes)
 end
 
 local function UpdateContainerPosition()
-    if not CDM.resourceContainer then
+    if not CDM.resourceContainer or not CDM.db then
         return
     end
 
     local offsetX = CDM.db.resourcesOffsetX or 0
     local offsetY = CDM.db.resourcesOffsetY or -200
+    local halfW = Pixel.HalfFloor(CDM.resourceContainer:GetWidth() or 0)
 
     CDM.resourceContainer:ClearAllPoints()
-    SetPixelPerfectPoint(CDM.resourceContainer, "BOTTOM", UIParent, "CENTER", offsetX, offsetY)
+    Pixel.SetPoint(CDM.resourceContainer, "BOTTOMLEFT", UIParent, "CENTER", offsetX - halfW, offsetY)
 end
 
 local runeUpdateTicker = nil
@@ -1402,8 +1404,6 @@ local function ApplyRuneStates(bar, readyColor, rechargingColor, textEnabled)
             end
         elseif rune.isReady then
             pip:SetValue(1, Enum.StatusBarInterpolation.Immediate)
-            pip.runeInitialRemaining = nil
-            pip.lastRuneIndex = nil
             pip:SetStatusBarColor(readyColor.r, readyColor.g, readyColor.b, readyColor.a)
             if pip.timerText then
                 pip.timerText:Hide()
@@ -1411,18 +1411,9 @@ local function ApplyRuneStates(bar, readyColor, rechargingColor, textEnabled)
         elseif rune.startTime and rune.duration and rune.duration > 0 then
             rechargingShown = rechargingShown + 1
             if rechargingShown <= MAX_VISIBLE_RECHARGING then
-                if pip.lastRuneIndex ~= runeIndex then
-                    pip.lastRuneIndex = runeIndex
-                    pip.runeInitialRemaining = rune.remaining
-                elseif not pip.runeInitialRemaining or rune.remaining > pip.runeInitialRemaining then
-                    pip.runeInitialRemaining = rune.remaining
-                end
-
-                local progress = 0
-                if pip.runeInitialRemaining and pip.runeInitialRemaining > 0 then
-                    progress = 1 - (rune.remaining / pip.runeInitialRemaining)
-                end
-
+                local now = GetTime()
+                local elapsed = now - rune.startTime
+                local progress = elapsed / rune.duration
                 if progress < 0 then progress = 0 end
                 if progress > 1 then progress = 1 end
 
@@ -1446,7 +1437,6 @@ local function ApplyRuneStates(bar, readyColor, rechargingColor, textEnabled)
                 end
             else
                 pip:SetValue(0, Enum.StatusBarInterpolation.Immediate)
-                pip.runeInitialRemaining = nil
                 pip:SetStatusBarColor(rechargingColor.r, rechargingColor.g, rechargingColor.b, rechargingColor.a)
                 if pip.timerText then
                     pip.timerText:Hide()
@@ -1492,7 +1482,7 @@ local function UpdateRuneCooldowns(bar)
     local textEnabled = cachedBar2TagEnabled
 
     if textEnabled then
-        local pixelSize = CDM_C.GetPixelFontSize(cachedFontSize)
+        local pixelSize = Pixel.FontSize(cachedFontSize)
         local cachedColor = bar._lastRuneFontColor
         local colorChanged = (not cachedColor) or
             cachedColor.r ~= cachedFontColor.r or
@@ -1616,7 +1606,7 @@ end
 local function ApplySoulShardStates(bar)
     local rawPower = UnitPower("player", POWER_TYPES.SoulShards, true) or 0
     local isRawSecret = type(rawPower) == "number" and issecretvalue(rawPower)
-    local specID = (CDM.GetCurrentSpecID and CDM:GetCurrentSpecID()) or currentSpecID
+    local specID = currentSpecID
     local wholePart, fractionalPart
 
     if isRawSecret then
@@ -1786,16 +1776,13 @@ local function UpdateIronfurBar()
 
     if not bar.ironfurTicks then bar.ironfurTicks = {} end
     local barWidth = bar:GetWidth()
-    local onePixel = GetOnePixelSize(bar)
+    local onePixel = Pixel.GetSize()
 
     for i = 1, stackCount do
         local stack = ironfurStacks[i]
         local tick = bar.ironfurTicks[i]
         if not tick then
-            tick = bar:CreateTexture(nil, "OVERLAY", nil, 7)
-            tick:SetTexture(CDM_C.TEX_WHITE8X8)
-            tick:SetSnapToPixelGrid(false)
-            tick:SetTexelSnappingBias(0)
+            tick = Pixel.CreateSolidTexture(bar, "OVERLAY", 7)
             bar.ironfurTicks[i] = tick
         end
         tick:SetVertexColor(1, 1, 1, 1)
@@ -1807,7 +1794,7 @@ local function UpdateIronfurBar()
             stackPct = math.max(0, math.min(1, (stack.expiry - now) / stack.duration))
         end
         local xOffset = stackPct * barWidth
-        local snappedXOffset = SnapToPixel(xOffset, bar)
+        local snappedXOffset = Snap(xOffset)
         local tickWidth = 2 * onePixel
         local tickHeight = bar:GetHeight()
         if tick._cdmLastIronfurTickX ~= snappedXOffset then
@@ -2073,7 +2060,8 @@ local function GetPipBarMax(powerType)
         return MAX_MAELSTROM_WEAPON
     end
     if powerType == CUSTOM_POWER_TYPES.DevourerSoulFragments then
-        return GetDevourerSoulMax() / DEVOURER_STACKS_PER_PIP
+        local _, max = GetDevourerSoulValueMax()
+        return max / DEVOURER_STACKS_PER_PIP
     end
     return UnitPowerMax("player", powerType)
 end
@@ -2164,9 +2152,9 @@ end
 
 local function GetBarHeightForSlot(slotIndex)
     if slotIndex == 2 then
-        return SnapToPixel(CDM.db.resourcesBar2Height or 16, CDM.resourceContainer)
+        return Snap(CDM.db.resourcesBar2Height or 16)
     end
-    return SnapToPixel(CDM.db.resourcesBarHeight or 16, CDM.resourceContainer)
+    return Snap(CDM.db.resourcesBarHeight or 16)
 end
 
 local function UpdateBarPositions()
@@ -2218,7 +2206,7 @@ local function UpdateBarPositions()
 
     barWidth = SnapWidthToPixelGrid(CDM.resourceContainer, barWidth)
 
-    local barSpacing = SnapToPixel(CDM.db.resourcesBarSpacing or 2, CDM.resourceContainer)
+    local barSpacing = Snap(CDM.db.resourcesBarSpacing or 2)
     local barTexturePath, bgTexturePath = GetBarTextures()
     local bgColor = CDM.db.resourcesBackgroundColor or CDM.defaults.resourcesBackgroundColor
     local borderColor = CDM.db.borderColor or CDM.defaults.borderColor or DEFAULT_WHITE_COLOR
@@ -2282,9 +2270,6 @@ local function UpdateBarPositions()
         end
 
         bar:Show()
-        -- Bars are positioned at x=0 inside a center-aligned container. Snapping bar X here
-        -- can introduce a 1px horizontal drift relative to icons; keep only vertical snapping.
-        SnapFrameVerticallyToPixelGrid(bar)
 
         if bar.isPipBar then
             bar.color = GetPowerColor(powerType) or bar.color
@@ -2301,11 +2286,7 @@ local function UpdateBarPositions()
     end
 
     CDM.resourceContainer:SetSize(barWidth, totalHeight)
-    -- In auto-width mode, match the essential container's rendered center exactly.
-    -- This avoids 1px parity drift across different row sizes and border modes.
-    if useAutoWidth then
-        AlignResourceContainerXToEssentialCenter()
-    end
+    UpdateContainerPosition()
 
     UpdateBorders(powerTypes)
 
@@ -2412,6 +2393,14 @@ local function OnDevourerUnitAura()
         return
     end
     lastDevourerAuraUpdateTime = now
+
+    local inVoidMeta = CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID
+        and C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID) ~= nil
+    if inVoidMeta ~= lastDevourerInVoidMeta then
+        lastDevourerInVoidMeta = inVoidMeta
+        UpdateBarPositions()
+        return
+    end
 
     UpdateBarValue(CUSTOM_POWER_TYPES.DevourerSoulFragments)
 end
@@ -2810,6 +2799,7 @@ local function DisableResources()
     end
         lastMaelstromAuraUpdateTime = 0
     lastDevourerAuraUpdateTime = 0
+    lastDevourerInVoidMeta = false
     currentSpecID = nil
     isEnabled = false
 end

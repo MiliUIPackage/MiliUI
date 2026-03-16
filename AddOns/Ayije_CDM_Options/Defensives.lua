@@ -406,7 +406,7 @@ local function CreateDefensivesTab(page, tabId)
     page.defensivesIconWidthSlider = UI.CreateModernSlider(
         scrollChild,
         L["Icon Width"],
-        20, 80,
+        20, 100,
         CDM.db.defensivesIconWidth or 40,
         function(v)
             CDM.db.defensivesIconWidth = UI.RoundToInt(v)
@@ -419,7 +419,7 @@ local function CreateDefensivesTab(page, tabId)
     page.defensivesIconHeightSlider = UI.CreateModernSlider(
         scrollChild,
         L["Icon Height"],
-        20, 80,
+        20, 100,
         CDM.db.defensivesIconHeight or 36,
         function(v)
             CDM.db.defensivesIconHeight = UI.RoundToInt(v)

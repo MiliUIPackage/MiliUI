@@ -186,6 +186,9 @@ function CDM:ClearNormalizationCache()
     table.wipe(normalizeBaseCache)
     normalizeBaseCacheSize = 0
     self.spellCacheGeneration = (self.spellCacheGeneration or 0) + 1
+    if self.SpellVariant and self.SpellVariant.ClearCaches then
+        self.SpellVariant.ClearCaches()
+    end
 end
 
 local normalizeSeen = {}
@@ -452,16 +455,27 @@ function CDM:StoreMergedBuffOverrideEntry(overrideMap, spellID, incoming)
 end
 
 local BUFF_GROUP_SET = {}
+local CD_GROUP_SET = {}
+
+local VIEWER_CATEGORIES = {}
+if Enum and Enum.CooldownViewerCategory then
+    local evc = Enum.CooldownViewerCategory
+    if evc.Essential then VIEWER_CATEGORIES[#VIEWER_CATEGORIES + 1] = evc.Essential end
+    if evc.Utility then VIEWER_CATEGORIES[#VIEWER_CATEGORIES + 1] = evc.Utility end
+    if evc.TrackedBuff then VIEWER_CATEGORIES[#VIEWER_CATEGORIES + 1] = evc.TrackedBuff end
+end
+
+local function CheckIDAgainstGroupSet(id, groupSet)
+    if not IsUsableID(id) then return nil, nil end
+    for _, cid in ipairs(BuildBuffGroupMatchCandidatesInto(id, scratchMatchCandidates, scratchMatchSeen)) do
+        if groupSet[cid] then return cid, groupSet[cid] end
+    end
+    return nil, nil
+end
 
 local function CheckIDAgainstRegistry(id)
-    if not IsUsableID(id) then return nil, nil end
-
-    for _, candidateID in ipairs(BuildBuffGroupMatchCandidatesInto(id, scratchMatchCandidates, scratchMatchSeen)) do
-        if BUFF_GROUP_SET[candidateID] then
-            return "buffgroup", candidateID, BUFF_GROUP_SET[candidateID]
-        end
-    end
-
+    local matchID, groupIdx = CheckIDAgainstGroupSet(id, BUFF_GROUP_SET)
+    if matchID then return "buffgroup", matchID, groupIdx end
     return nil, nil
 end
 
@@ -471,6 +485,44 @@ local function StoreWithVariants(targetSet, id, value)
     if not IsUsableID(id) then return end
     for _, candidateID in ipairs(BuildBuffGroupMatchCandidatesInto(id, scratchMatchCandidates, scratchMatchSeen)) do
         targetSet[candidateID] = value
+    end
+end
+
+local function ExpandGroupSetWithLinkedSpells(targetSet, categories)
+    if not (C_CooldownViewer and C_CooldownViewer.GetCooldownViewerCategorySet
+        and C_CooldownViewer.GetCooldownViewerCooldownInfo) then
+        return
+    end
+    for _, cat in ipairs(categories) do
+        local cooldownIDs = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
+        if cooldownIDs then
+            for _, cdID in ipairs(cooldownIDs) do
+                local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
+                if info then
+                    local matchGroupIdx = targetSet[info.spellID]
+                    if not matchGroupIdx and info.overrideSpellID then
+                        matchGroupIdx = targetSet[info.overrideSpellID]
+                    end
+                    if not matchGroupIdx and info.linkedSpellIDs then
+                        for _, lid in ipairs(info.linkedSpellIDs) do
+                            matchGroupIdx = targetSet[lid]
+                            if matchGroupIdx then break end
+                        end
+                    end
+                    if matchGroupIdx then
+                        StoreWithVariants(targetSet, info.spellID, matchGroupIdx)
+                        if info.overrideSpellID then
+                            StoreWithVariants(targetSet, info.overrideSpellID, matchGroupIdx)
+                        end
+                        if info.linkedSpellIDs then
+                            for _, lid in ipairs(info.linkedSpellIDs) do
+                                StoreWithVariants(targetSet, lid, matchGroupIdx)
+                            end
+                        end
+                    end
+                end
+            end
+        end
     end
 end
 
@@ -513,9 +565,12 @@ function CDM:ResetFrameSpellCache(frame)
     if not frame then return end
     local frameData = GetFrameData(frame)
     frameData.buffCategorySpellID = nil
+    frameData.cdGroupSpellID = nil
     frameData.cdmProvisionalReadyUntil = nil
     frameData.cdmAuraStateDirty = nil
     frameData.cdmAuraLastSpellID = nil
+    frameData.cdmAuraOverlayVersion = nil
+    frameData.cdmReadyGlowActive = nil
     frameData.cdmLastBorderColorID = nil
     frameData.cdmLastBorderStyleVersion = nil
     frameData.cdmResolvedBorderColor = nil
@@ -546,6 +601,7 @@ function CDM:InvalidateFrameCategoryCache()
             for frame in v.itemFramePool:EnumerateActive() do
                 local fd = GetFrameData(frame)
                 fd.buffCategorySpellID = nil
+                fd.cdGroupSpellID = nil
                 fd.cdmLastBorderColorID = nil
                 fd.cdmLastBorderStyleVersion = nil
                 fd.cdmResolvedBorderColor = nil
@@ -554,30 +610,38 @@ function CDM:InvalidateFrameCategoryCache()
     end
 end
 
-local function CheckBuffRegistryMatch(frame)
+local function CheckCooldownGroupMatch(frame, groupSet, cacheKey)
     if not frame then return nil, nil end
 
     local frameData = GetFrameData(frame)
-
-    local cached = frameData.buffCategorySpellID
+    local cached = frameData[cacheKey]
     if cached ~= nil then
         if cached == false then return nil, nil end
-        if BUFF_GROUP_SET[cached] then return "buffgroup", cached, BUFF_GROUP_SET[cached] end
+        if groupSet[cached] then return cached, groupSet[cached] end
     end
-
-    local matchType, matchID, groupIdx
 
     local candidates = CDM.GetSpellIDCandidates and CDM:GetSpellIDCandidates(frame, true) or {}
     for _, id in ipairs(candidates) do
-        matchType, matchID, groupIdx = CheckIDAgainstRegistry(id)
-        if matchType then
+        local matchID, groupIdx = CheckIDAgainstGroupSet(id, groupSet)
+        if matchID then
             local canonicalID = NormalizeToBase(matchID) or matchID
-            frameData.buffCategorySpellID = canonicalID
-            return matchType, canonicalID, groupIdx
+            frameData[cacheKey] = canonicalID
+            return canonicalID, groupIdx
         end
     end
 
-    frameData.buffCategorySpellID = false
+    if next(groupSet) then frameData[cacheKey] = false end
+    return nil, nil
+end
+
+function CDM.CheckCdGroupMatch(frame)
+    local _, groupIdx = CheckCooldownGroupMatch(frame, CD_GROUP_SET, "cdGroupSpellID")
+    return groupIdx
+end
+
+local function CheckBuffRegistryMatch(frame)
+    local matchID, groupIdx = CheckCooldownGroupMatch(frame, BUFF_GROUP_SET, "buffCategorySpellID")
+    if matchID then return "buffgroup", matchID, groupIdx end
     return nil, nil
 end
 
@@ -609,6 +673,7 @@ function CDM:RefreshSpecData()
 
     table.wipe(COLOR_REGISTRY)
     table.wipe(BUFF_GROUP_SET)
+    table.wipe(CD_GROUP_SET)
     self.SpellSets.hasBuffGlows = false
 
     self:ClearNormalizationCache()
@@ -637,6 +702,18 @@ function CDM:RefreshSpecData()
             StoreWithVariants(BUFF_GROUP_SET, id, groupIdx)
         end
     end
+    ExpandGroupSetWithLinkedSpells(BUFF_GROUP_SET, VIEWER_CATEGORIES)
+
+    if self.RefreshCooldownGroupData then
+        self:RefreshCooldownGroupData()
+    end
+    local cdGroupSets = self.CooldownGroupSets
+    if cdGroupSets and cdGroupSets.grouped then
+        for id, groupIdx in pairs(cdGroupSets.grouped) do
+            StoreWithVariants(CD_GROUP_SET, id, groupIdx)
+        end
+    end
+    ExpandGroupSetWithLinkedSpells(CD_GROUP_SET, VIEWER_CATEGORIES)
 
     lastRefreshSpecID = specID
     specDataDirty = false

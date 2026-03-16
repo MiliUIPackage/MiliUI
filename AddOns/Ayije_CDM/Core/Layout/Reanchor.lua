@@ -12,8 +12,11 @@ local QueueReanchorRetry = ctx.QueueReanchorRetry
 
 local SortAndPositionBuffFrames = ctx.SortAndPositionBuffFrames
 
+local CheckCdGroupMatch = ctx.CheckCdGroupMatch
+
 local tempBuff = {}
 local tempBuffGroups = {}
+local tempCdGroups = {}
 local tempEssential, tempUtility = {}, {}
 local tempCustomBuffFrames, tempActiveSpellIDs = {}, {}
 local tempAllMainBuffs = {}
@@ -191,6 +194,7 @@ end
 local function ResetReanchorTempTables()
     table.wipe(tempBuff)
     table.wipe(tempBuffGroups)
+    table.wipe(tempCdGroups)
     table.wipe(tempEssential)
     table.wipe(tempUtility)
 end
@@ -223,7 +227,13 @@ local function CollectFramesForReanchor(activeViewer, activeVName, inEditMode)
                 end
             end
         elseif frame:IsShown() or inEditMode or frame.cooldownInfo then
-            if activeVName == VIEWERS.ESSENTIAL then
+            local cdGroupIdx = CheckCdGroupMatch and CheckCdGroupMatch(frame)
+            if cdGroupIdx then
+                if not tempCdGroups[cdGroupIdx] then
+                    tempCdGroups[cdGroupIdx] = {}
+                end
+                tempCdGroups[cdGroupIdx][#tempCdGroups[cdGroupIdx] + 1] = frame
+            elseif activeVName == VIEWERS.ESSENTIAL then
                 tempEssential[#tempEssential + 1] = frame
             elseif activeVName == VIEWERS.UTILITY then
                 tempUtility[#tempUtility + 1] = frame
@@ -251,7 +261,7 @@ local function PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVNa
     if totalBuffCount > 0 then
         if CDM.EnableBuffCentering then CDM.EnableBuffCentering() end
 
-        for _, frame in ipairs(customBuffFrames) do
+        for _, frame in ipairs(customBuffFrames or {}) do
             frame:SetParent(UIParent)
         end
 
@@ -276,7 +286,7 @@ local function PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVNa
 
         if #tempBuff > 0 and buffContainer then
             table.wipe(tempAllMainBuffs)
-            for _, f in ipairs(customBuffFrames) do
+            for _, f in ipairs(customBuffFrames or {}) do
                 tempAllMainBuffs[#tempAllMainBuffs + 1] = f
             end
             for _, f in ipairs(tempBuff) do
@@ -293,6 +303,44 @@ local function PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVNa
             if groupData.staticDisplay and groupData.spells and not tempBuffGroups[groupIdx] then
                 activeSelf:PositionBuffGroupFrames(groupIdx, emptyFrames)
             end
+        end
+    end
+end
+
+local function CollectCrossViewerGroupFrames(activeVName, inEditMode)
+    local oppositeVName
+    if activeVName == VIEWERS.ESSENTIAL then
+        oppositeVName = VIEWERS.UTILITY
+    elseif activeVName == VIEWERS.UTILITY then
+        oppositeVName = VIEWERS.ESSENTIAL
+    else
+        return
+    end
+
+    local oppositeViewer = _G[oppositeVName]
+    if not oppositeViewer or not oppositeViewer.itemFramePool then return end
+
+    for frame in oppositeViewer.itemFramePool:EnumerateActive() do
+        if frame:IsShown() or inEditMode or frame.cooldownInfo then
+            local cdGroupIdx = CheckCdGroupMatch and CheckCdGroupMatch(frame)
+            if cdGroupIdx then
+                if not tempCdGroups[cdGroupIdx] then
+                    tempCdGroups[cdGroupIdx] = {}
+                end
+                tempCdGroups[cdGroupIdx][#tempCdGroups[cdGroupIdx] + 1] = frame
+            end
+        end
+    end
+end
+
+local function DispatchCooldownGroupFrames(activeSelf)
+    if CDM.SpellVariant and CDM.SpellVariant.ClearCaches then
+        CDM.SpellVariant.ClearCaches()
+    end
+
+    for groupIdx, groupFrames in pairs(tempCdGroups) do
+        if #groupFrames > 0 and activeSelf.PositionCooldownGroupFrames then
+            activeSelf:PositionCooldownGroupFrames(groupIdx, groupFrames)
         end
     end
 end
@@ -351,16 +399,16 @@ local function RunReanchor()
     CollectFramesForReanchor(activeViewer, activeVName, inEditMode)
 
     if activeVName == VIEWERS.ESSENTIAL then
-        local prevWidth = activeSelf._essentialContentWidth or 0
+        local essContainer = activeSelf.anchorContainers and activeSelf.anchorContainers[VIEWERS.ESSENTIAL]
+        local prevWidth = essContainer and essContainer:GetWidth() or 0
         activeSelf:PositionEssentialOrUtilityIcons(tempEssential, activeViewer, activeVName)
         if activeSelf.InvalidateEssentialRow1WidthCache then
             activeSelf:InvalidateEssentialRow1WidthCache()
         end
 
-        activeSelf:UpdateUtilityContainerPosition()
-
-        local newWidth = activeSelf._essentialContentWidth or 0
+        local newWidth = essContainer and essContainer:GetWidth() or 0
         if newWidth ~= prevWidth then
+            activeSelf:ReanchorContainer(VIEWERS.UTILITY)
             if activeSelf.UpdateResources then
                 activeSelf:UpdateResources()
             end
@@ -369,18 +417,25 @@ local function RunReanchor()
             end
         end
 
+        CollectCrossViewerGroupFrames(activeVName, inEditMode)
+        DispatchCooldownGroupFrames(activeSelf)
+
     elseif activeVName == VIEWERS.UTILITY then
-        local prevWidth = activeSelf._utilityContentWidth or 0
+        local utilContainer = activeSelf.anchorContainers and activeSelf.anchorContainers[VIEWERS.UTILITY]
+        local prevWidth = utilContainer and utilContainer:GetWidth() or 0
         activeSelf:PositionEssentialOrUtilityIcons(tempUtility, activeViewer, activeVName)
         if activeSelf.InvalidateUtilityVisibleCountCache then
             activeSelf:InvalidateUtilityVisibleCountCache()
         end
-        local newWidth = activeSelf._utilityContentWidth or 0
+        local newWidth = utilContainer and utilContainer:GetWidth() or 0
         if newWidth ~= prevWidth then
             if activeSelf.UpdatePlayerCastBar then
                 activeSelf:UpdatePlayerCastBar()
             end
         end
+
+        CollectCrossViewerGroupFrames(activeVName, inEditMode)
+        DispatchCooldownGroupFrames(activeSelf)
 
     elseif activeVName == VIEWERS.BUFF then
         PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVName, sizeBuff, spacing)
@@ -443,7 +498,7 @@ function CDM:ForceReanchor(viewer)
     end
     if reanchorPending[vName] then
         reanchorPending[vName] = nil
-        self:QueueViewer(vName, true)
+        self:QueueViewer(vName)
     end
     return ok
 end

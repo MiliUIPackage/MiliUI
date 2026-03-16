@@ -6,7 +6,7 @@ local CDM = Runtime
 local UI = ns.ConfigUI
 local C = CDM.CONST
 local L = Runtime.L
-local SetPixelPerfectPoint = C and C.SetPixelPerfectPoint
+local Pixel = CDM.Pixel
 
 
 local function RefreshAutoWidthLinkedElements()
@@ -81,9 +81,13 @@ local function CreatePositionControls(parent, anchor, page, cfg)
 
         local container = CDM.anchorContainers and CDM.anchorContainers[cfg.viewerName]
         if container then
-            container:ClearAllPoints()
-            local anchorPt = cfg.getAnchorPoint and cfg.getAnchorPoint() or cfg.anchorPoint
-            SetPixelPerfectPoint(container, anchorPt, UIParent, p.point, p.x, p.y)
+            if cfg.reanchor then
+                cfg.reanchor()
+            else
+                container:ClearAllPoints()
+                local anchorPt = cfg.getAnchorPoint and cfg.getAnchorPoint() or cfg.anchorPoint
+                Pixel.SetPoint(container, anchorPt, UIParent, p.point, p.x, p.y)
+            end
             if cfg.postMove then cfg.postMove() end
         end
         UpdateDisplay()
@@ -118,6 +122,7 @@ local function CreatePositionsTab(page, tabId)
         defaults = { point = "CENTER", x = 0, y = -201 },
         displayField = "posDisplay",
         anchorPoint = "TOP",
+        reanchor = function() CDM:ReanchorContainer("EssentialCooldownViewer") end,
         xKey = "xPos",
         yKey = "yPos",
         postMove = function()
@@ -155,6 +160,7 @@ local function CreatePositionsTab(page, tabId)
         displayField = "buffBarPosDisplay",
         xKey = "buffBarXPos",
         yKey = "buffBarYPos",
+        reanchor = function() CDM:UpdateBuffBarContainerPosition() end,
         getAnchorPoint = function()
             local growDirection = CDM.db.buffBarGrowDirection or "DOWN"
             return growDirection == "DOWN" and "TOP" or "BOTTOM"

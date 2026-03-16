@@ -164,24 +164,29 @@ CDM.RefreshScopeRegistry = {}
 CDM._positionSliderUpdaters = {}
 CDM._castBarSliderUpdater = nil
 
-local sortedCallbacks = {}
-local callbacksDirty = true
+local refreshCallbackList = {}
 local refreshCallbackSeq = 0
-local refreshScopeSeq = 0
 
-local function CallbackSort(a, b)
-    if a.priority ~= b.priority then
-        return a.priority < b.priority
+local function FindInsertPosition(list, priority, seq)
+    local lo, hi = 1, #list
+    while lo <= hi do
+        local mid = math.floor((lo + hi) / 2)
+        local entry = list[mid]
+        if entry.priority < priority or (entry.priority == priority and entry.seq < seq) then
+            lo = mid + 1
+        else
+            hi = mid - 1
+        end
     end
-    return a.seq < b.seq
+    return lo
 end
-
-local L = CDM.L
 
 local function SafeInvokeCallback(callbackID, callback, ...)
     local success, err = pcall(callback, ...)
     if not success then
-        print("|cffff0000[CDM] " .. string.format(L["Callback error in '%s':"], callbackID) .. "|r " .. tostring(err))
+        local L = CDM.L
+        local msg = L and string.format(L["Callback error in '%s':"], callbackID) or ("Callback error in '" .. callbackID .. "':")
+        print("|cffff0000[CDM] " .. msg .. "|r " .. tostring(err))
     end
 end
 
@@ -243,32 +248,35 @@ local function DebugRefresh(message)
 end
 
 function CDM:RegisterRefreshCallback(id, callback, priority, scopes)
+    if self.RefreshCallbacks[id] then
+        self:UnregisterRefreshCallback(id)
+    end
+
     refreshCallbackSeq = refreshCallbackSeq + 1
     local normalizedScopes = NormalizeRefreshScopeSet(scopes)
     RegisterRefreshScopeNames(normalizedScopes)
-    self.RefreshCallbacks[id] = {
+    local entry = {
         id = id,
         callback = callback,
         priority = priority or 50,
         seq = refreshCallbackSeq,
         scopes = normalizedScopes,
     }
-    callbacksDirty = true
+    self.RefreshCallbacks[id] = entry
+    local pos = FindInsertPosition(refreshCallbackList, entry.priority, entry.seq)
+    table.insert(refreshCallbackList, pos, entry)
 end
 
 function CDM:UnregisterRefreshCallback(id)
+    local entry = self.RefreshCallbacks[id]
+    if not entry then return end
     self.RefreshCallbacks[id] = nil
-    callbacksDirty = true
-end
-
-function CDM:RegisterRefreshScope(scopeName, callback, priority)
-    if type(scopeName) ~= "string" or scopeName == "" then return nil end
-    if type(callback) ~= "function" then return nil end
-
-    refreshScopeSeq = refreshScopeSeq + 1
-    local scopeID = "__scope__" .. scopeName .. "__" .. tostring(refreshScopeSeq)
-    self:RegisterRefreshCallback(scopeID, callback, priority, { scopeName })
-    return scopeID
+    for i = #refreshCallbackList, 1, -1 do
+        if refreshCallbackList[i] == entry then
+            table.remove(refreshCallbackList, i)
+            break
+        end
+    end
 end
 
 function CDM:RegisterRefreshCallbackScope(id, scopeNames)
@@ -340,17 +348,6 @@ local refreshPendingAll = false
 local refreshPendingScopes = {}
 local refreshThrottleFrame = CreateFrame("Frame")
 
-local function RebuildSortedRefreshCallbacks()
-    if callbacksDirty then
-        table.wipe(sortedCallbacks)
-        for _, entry in pairs(CDM.RefreshCallbacks) do
-            sortedCallbacks[#sortedCallbacks + 1] = entry
-        end
-        table.sort(sortedCallbacks, CallbackSort)
-        callbacksDirty = false
-    end
-end
-
 local function ShouldRunEntryForScopeSet(entry, scopeSet)
     if not entry or not entry.scopes then
         return false
@@ -364,11 +361,9 @@ local function ShouldRunEntryForScopeSet(entry, scopeSet)
 end
 
 local function DispatchRefreshCallbacks(executeAll, scopeSet, reasonLabel)
-    RebuildSortedRefreshCallbacks()
-
     if executeAll then
         DebugRefresh(reasonLabel or "dispatch:full")
-        for _, entry in ipairs(sortedCallbacks) do
+        for _, entry in ipairs(refreshCallbackList) do
             SafeInvokeCallback(entry.id, entry.callback)
         end
         return
@@ -376,14 +371,14 @@ local function DispatchRefreshCallbacks(executeAll, scopeSet, reasonLabel)
 
     if CDM.refreshScopeDebugFallbackToFull then
         DebugRefresh("dispatch:scoped_fallback_full:" .. ScopeSetToLabel(scopeSet))
-        for _, entry in ipairs(sortedCallbacks) do
+        for _, entry in ipairs(refreshCallbackList) do
             SafeInvokeCallback(entry.id, entry.callback)
         end
         return
     end
 
     DebugRefresh(reasonLabel or ("dispatch:scoped:" .. ScopeSetToLabel(scopeSet)))
-    for _, entry in ipairs(sortedCallbacks) do
+    for _, entry in ipairs(refreshCallbackList) do
         if ShouldRunEntryForScopeSet(entry, scopeSet) then
             SafeInvokeCallback(entry.id, entry.callback)
         end

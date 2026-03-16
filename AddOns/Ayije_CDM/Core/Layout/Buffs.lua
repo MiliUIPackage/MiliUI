@@ -10,52 +10,43 @@ local ResolveBaseSpellID = ctx.ResolveBaseSpellID
 local ToSortNumber = ctx.ToSortNumber
 local GetStableFrameSortID = ctx.GetStableFrameSortID
 
+local Pixel = CDM.Pixel
+local Snap = Pixel.Snap
+
 local PROVISIONAL_READY_WINDOW = 0.25
 
 local tempProvisionalMainBuffs = {}
 local CompareBuffFramesDeterministic
-local ToPixelCountForRegion = CDM_C.ToPixelCountForRegion
-local PixelsToUIForRegion = CDM_C.PixelsToUIForRegion
-local SetPointPixels = CDM_C.SetPointPixels
 
-local function GetSnappedBuffMetricsPx(sizeBuff, spacing)
-    local itemWPx = ToPixelCountForRegion((sizeBuff and sizeBuff.w) or 40, UIParent, 1)
-    local itemHPx = ToPixelCountForRegion((sizeBuff and sizeBuff.h) or 36, UIParent, 1)
-    local gapPx = CDM_C.GetCooldownIconGapPixels(spacing or 1)
-    local stepPx = itemWPx + gapPx
-    return itemWPx, itemHPx, gapPx, stepPx
+local function GetSnappedBuffMetrics(sizeBuff, spacing)
+    local itemW = math.max(Pixel.GetSize(), Snap((sizeBuff and sizeBuff.w) or 40))
+    local itemH = math.max(Pixel.GetSize(), Snap((sizeBuff and sizeBuff.h) or 36))
+    local gap = Snap(spacing or 1)
+    local step = itemW + gap
+    return itemW, itemH, gap, step
 end
 
-local function GetCenteredRowPlacementPx(containerWidth, count, itemWPx, gapPx)
-    local rowWidthPx = (count * itemWPx) + ((count - 1) * gapPx)
-    local snappedContainerWidthPx = containerWidth and ToPixelCountForRegion(containerWidth, UIParent, 0) or rowWidthPx
-    if snappedContainerWidthPx < rowWidthPx then
-        snappedContainerWidthPx = rowWidthPx
+local function GetCenteredRowPlacement(containerWidth, count, itemW, gap)
+    local rowWidth = (count * itemW) + ((count - 1) * gap)
+    local cWidth = containerWidth and Snap(containerWidth) or rowWidth
+    if cWidth < rowWidth then
+        cWidth = rowWidth
     end
-    local startLeftPx = math.floor((snappedContainerWidthPx - rowWidthPx) * 0.5)
-    return startLeftPx, rowWidthPx, snappedContainerWidthPx
+    local startLeft = Pixel.HalfFloor(cWidth) - Pixel.HalfFloor(rowWidth)
+    if startLeft < 0 then startLeft = 0 end
+    return startLeft, rowWidth, cWidth
 end
 
-local function PlaceFramePixels(frame, parent, point, relativeTo, relativePoint, xPx, yPx, pixelRegion)
+local function PlaceBuffFrame(frame, parent, point, relativeTo, relativePoint, x, y)
     if not frame then
         return
     end
     frame:SetParent(parent)
     frame:ClearAllPoints()
-    SetPointPixels(frame, point, relativeTo, relativePoint, xPx or 0, yPx or 0, pixelRegion or parent)
+    Pixel.SetPoint(frame, point, relativeTo, relativePoint, x or 0, y or 0)
 end
 
-local function SetSizePixels(frame, widthPx, heightPx, pixelRegion)
-    if not frame then
-        return
-    end
-    frame:SetSize(
-        PixelsToUIForRegion(widthPx or 0, pixelRegion or frame),
-        PixelsToUIForRegion(heightPx or 0, pixelRegion or frame)
-    )
-end
-
-local function ComputeProvisionalMainBuffXPx(cdm, frame, viewer, buffContainer)
+local function ComputeProvisionalMainBuffX(cdm, frame, viewer, buffContainer)
     if not frame or not viewer then return 0 end
 
     table.wipe(tempProvisionalMainBuffs)
@@ -91,15 +82,15 @@ local function ComputeProvisionalMainBuffXPx(cdm, frame, viewer, buffContainer)
     local df = CDM.defaults or {}
     local sizeBuff = sizes.SIZE_BUFF or df.sizeBuff or { w = 40, h = 36 }
     local spacing = sizes.SPACING or df.spacing or 1
-    local itemWPx, _, gapPx, stepPx = GetSnappedBuffMetricsPx(sizeBuff, spacing)
+    local itemW, _, gap, step = GetSnappedBuffMetrics(sizeBuff, spacing)
     local containerWidth = (buffContainer and buffContainer.GetWidth and buffContainer:GetWidth()) or nil
-    local startLeftPx, _, snappedContainerWidthPx = GetCenteredRowPlacementPx(containerWidth, count, itemWPx, gapPx)
-    local containerCenterXPx = math.floor(snappedContainerWidthPx * 0.5)
+    local startLeft, _, cWidth = GetCenteredRowPlacement(containerWidth, count, itemW, gap)
+    local containerCenterX = Pixel.HalfFloor(cWidth)
 
     for index, positionedFrame in ipairs(tempProvisionalMainBuffs) do
         if positionedFrame == frame then
-            local centerXFromLeftPx = startLeftPx + ((index - 1) * stepPx) + math.floor(itemWPx * 0.5)
-            return centerXFromLeftPx - containerCenterXPx
+            local centerXFromLeft = startLeft + ((index - 1) * step) + Pixel.HalfFloor(itemW)
+            return centerXFromLeft - containerCenterX
         end
     end
 
@@ -120,12 +111,12 @@ local function ProvisionalPlaceBuffFrame(cdm, frame, viewer, matchType, buffCont
     end
 
     if not buffContainer then return end
-    local xPx = ComputeProvisionalMainBuffXPx(cdm, frame, viewer, buffContainer)
+    local xOff = ComputeProvisionalMainBuffX(cdm, frame, viewer, buffContainer)
     if frame:GetParent() ~= UIParent then
         frame:SetParent(UIParent)
     end
     frame:ClearAllPoints()
-    SetPointPixels(frame, "BOTTOM", buffContainer, "BOTTOM", xPx, 0, UIParent)
+    Pixel.SetPoint(frame, "BOTTOM", buffContainer, "BOTTOM", xOff, 0)
 end
 
 CDM.ProvisionalPlaceBuffFrame = ProvisionalPlaceBuffFrame
@@ -174,22 +165,12 @@ local function SortAndPositionBuffFrames(frames, container)
     local sizes = CDM.Sizes or {}
     local sizeBuff = sizes.SIZE_BUFF or { w = 40, h = 36 }
     local spacing = sizes.SPACING or 1
-    local itemWPx, _, gapPx, stepPx = GetSnappedBuffMetricsPx(sizeBuff, spacing)
-    local startLeftPx = GetCenteredRowPlacementPx(container.GetWidth and container:GetWidth() or nil, count, itemWPx, gapPx)
-
-    local leftSnapPx = 0
-    do
-        local uiScale = UIParent:GetEffectiveScale() or 1
-        local cl = container:GetLeft()
-        if cl then
-            local px = cl * uiScale
-            leftSnapPx = math.floor(px + 0.5) - px
-        end
-    end
+    local itemW, _, gap, step = GetSnappedBuffMetrics(sizeBuff, spacing)
+    local startLeft = GetCenteredRowPlacement(container.GetWidth and container:GetWidth() or nil, count, itemW, gap)
 
     for i, frame in ipairs(frames) do
-        local xPx = startLeftPx + ((i - 1) * stepPx)
-        PlaceFramePixels(frame, UIParent, "BOTTOMLEFT", container, "BOTTOMLEFT", xPx + leftSnapPx, 0, UIParent)
+        local xOff = startLeft + ((i - 1) * step)
+        PlaceBuffFrame(frame, UIParent, "BOTTOMLEFT", container, "BOTTOMLEFT", xOff, 0)
     end
 end
 

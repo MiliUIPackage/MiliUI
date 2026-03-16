@@ -2,93 +2,49 @@ local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
 local API = CDM.API
 local CDM_C = CDM.CONST
-local SetPixelPerfectPoint = CDM_C.SetPixelPerfectPoint
-local ToPixelCountForRegion = CDM_C.ToPixelCountForRegion
-local PixelsToUIForRegion = CDM_C.PixelsToUIForRegion
-local SetPointPixels = CDM_C.SetPointPixels
+local Pixel = CDM.Pixel
+local Snap = Pixel.Snap
 local LSM = LibStub("LibSharedMedia-3.0")
 
 CDM.buffGroupContainers = {}
 
 local containers = CDM.buffGroupContainers
 
-local function GetXSide(point)
-    if point == "LEFT" or point == "TOPLEFT" or point == "BOTTOMLEFT" then
-        return "LEFT"
-    elseif point == "RIGHT" or point == "TOPRIGHT" or point == "BOTTOMRIGHT" then
-        return "RIGHT"
+local GCU = CDM.GroupContainerUtils
+local BGP = CDM.BuffGroupPlaceholders
+local ReleaseGroupPlaceholders = BGP.ReleaseGroup
+
+local function GetContainerForAnchorTarget(anchorTarget)
+    local anchorContainers = CDM.anchorContainers
+    if not anchorContainers then return nil end
+    if anchorTarget == "essential" then
+        return anchorContainers[CDM_C.VIEWERS.ESSENTIAL]
     end
-    return "CENTER"
+    if anchorTarget == "buff" then
+        return anchorContainers[CDM_C.VIEWERS.BUFF]
+    end
+    return nil
 end
 
-local function GetYSide(point)
-    if point == "TOP" or point == "TOPLEFT" or point == "TOPRIGHT" then
-        return "TOP"
-    elseif point == "BOTTOM" or point == "BOTTOMLEFT" or point == "BOTTOMRIGHT" then
-        return "BOTTOM"
-    end
-    return "CENTER"
-end
-
-local function ComposePoint(xSide, ySide)
-    if ySide == "TOP" then
-        if xSide == "LEFT" then return "TOPLEFT" end
-        if xSide == "RIGHT" then return "TOPRIGHT" end
-        return "TOP"
-    elseif ySide == "BOTTOM" then
-        if xSide == "LEFT" then return "BOTTOMLEFT" end
-        if xSide == "RIGHT" then return "BOTTOMRIGHT" end
-        return "BOTTOM"
-    end
-    if xSide == "LEFT" then return "LEFT" end
-    if xSide == "RIGHT" then return "RIGHT" end
-    return "CENTER"
-end
-
-local function DeriveSelfPoint(anchorPoint, grow)
-    local point = anchorPoint or "CENTER"
-    if grow == "CENTER_H" or grow == "CENTER_V" then
-        return point
-    end
-
-    local xSide = GetXSide(point)
-    local ySide = GetYSide(point)
-
-    if grow == "RIGHT" then
-        xSide = "LEFT"
-    elseif grow == "LEFT" then
-        xSide = "RIGHT"
-    elseif grow == "DOWN" then
-        ySide = "TOP"
-    elseif grow == "UP" then
-        ySide = "BOTTOM"
-    end
-
-    return ComposePoint(xSide, ySide)
-end
+local bgDescriptor = GCU.CreateDescriptor({
+    containers = containers,
+    namePrefix = "Ayije_CDM_BuffGroup",
+    callbackPrefix = "CDM_BuffGroup_",
+    getSets = function() return CDM.BuffGroupSets end,
+})
 
 local GetFrameData = CDM.GetFrameData
 local NormalizeToBase = CDM.NormalizeToBase
+local SV = CDM.SpellVariant
+local ClearSpellVariantCaches = SV.ClearCaches
+local GetCachedBaseSpellID = SV.GetBaseSpellID
+local StoreVariantValue = SV.StoreValue
+local ResolveVariantValue = SV.ResolveValue
 local layoutCtx = CDM._LayoutCtx
-local GetStableFrameSortID = layoutCtx and layoutCtx.GetStableFrameSortID
+local DeriveSelfPoint = layoutCtx.DeriveSelfPoint
+local GetStableFrameSortID = layoutCtx.GetStableFrameSortID
 
-local nextGroupedStableSortID = 0
-
-local function GetGroupedFrameStableSortID(frame)
-    if GetStableFrameSortID then
-        return GetStableFrameSortID(frame)
-    end
-
-    local frameData = GetFrameData(frame)
-    local sortID = frameData.cdmStableSortID
-    if sortID then
-        return sortID
-    end
-
-    nextGroupedStableSortID = nextGroupedStableSortID + 1
-    frameData.cdmStableSortID = nextGroupedStableSortID
-    return nextGroupedStableSortID
-end
+local EnsureAuraNotificationHook
 
 local scratchSpellOrder = {}
 local scratchSpellSlot = {}
@@ -96,10 +52,8 @@ local scratchActiveSpellIDs = {}
 local scratchGroupSpellLookup = {}
 local scratchPlaceholderBySpell = {}
 local scratchSlotToRawSpell = {}
-local spellVariantBaseCache = {}
-local spellVariantOverrideCache = {}
 
-local soundThrottles = {}
+local notificationThrottles = {}
 local SOUND_THROTTLE = 1
 local playerIsDead = false
 local hadGroupedBuffGlows = false
@@ -127,23 +81,38 @@ local function AreBuffNotificationsReady()
     return CDM.visualSetupToken == token
 end
 
-local function PlayBuffSound(soundName, spellID)
-    if not soundName then return end
+local function IsBuffNotificationThrottled(spellID, onHide, channel)
+    if not spellID or not channel then
+        return true
+    end
+
+    local key = tostring(spellID) .. ":" .. (onHide and "hide" or "show") .. ":" .. channel
     local now = GetTime()
-    if soundThrottles[spellID] and now - soundThrottles[spellID] < SOUND_THROTTLE then return end
-    soundThrottles[spellID] = now
+    local last = notificationThrottles[key]
+    if last and now - last < SOUND_THROTTLE then
+        return true
+    end
+
+    notificationThrottles[key] = now
+    return false
+end
+
+local function PlayBuffSound(soundName, spellID, onHide)
+    if not soundName then return end
+    if IsBuffNotificationThrottled(spellID, onHide, "sound") then return end
     local path = LSM:Fetch("sound", soundName)
     if path then PlaySoundFile(path, "Master") end
 end
 
-local function PlayBuffTTS(text, spellID)
+local function PlayBuffTTS(text, spellID, onHide)
     if not text or text == "" then return end
-    local voiceID = C_TTSSettings and C_TTSSettings.GetVoiceOptionID(0)
+    local voiceType = Enum and Enum.TtsVoiceType and Enum.TtsVoiceType.Standard or 0
+    local voiceID = C_TTSSettings and C_TTSSettings.GetVoiceOptionID and C_TTSSettings.GetVoiceOptionID(voiceType)
     if not voiceID then return end
-    local now = GetTime()
-    if soundThrottles[spellID] and now - soundThrottles[spellID] < SOUND_THROTTLE then return end
-    soundThrottles[spellID] = now
-    pcall(C_VoiceChat.SpeakText, voiceID, text, 0, 100, false)
+    if IsBuffNotificationThrottled(spellID, onHide, "tts") then return end
+    local speechRate = (C_TTSSettings and C_TTSSettings.GetSpeechRate and C_TTSSettings.GetSpeechRate()) or 0
+    local speechVolume = (C_TTSSettings and C_TTSSettings.GetSpeechVolume and C_TTSSettings.GetSpeechVolume()) or 100
+    pcall(C_VoiceChat.SpeakText, voiceID, text, speechRate, speechVolume, false)
 end
 
 local function GetOverrideEventValue(ov, onHide, hideKey, showKey)
@@ -166,28 +135,19 @@ local function PlayBuffOverrideNotification(ov, spellID, onHide)
     if ov.ttsEnabled and ((onHide and ov.ttsOnHideEnabled) or (not onHide and ov.ttsOnShowEnabled)) then
         local text = GetOverrideEventValue(ov, onHide, "ttsOnHide", "ttsOnShow")
         text = (text and text ~= "") and text or C_Spell.GetSpellName(spellID)
-        PlayBuffTTS(text, spellID)
+        PlayBuffTTS(text, spellID, onHide)
         return true
     end
 
     if ov.soundEnabled and ((onHide and ov.soundOnHideEnabled ~= false) or (not onHide and ov.soundOnShowEnabled ~= false)) then
         local soundName = GetOverrideEventValue(ov, onHide, "soundOnHide", "soundOnShow")
         if soundName then
-            PlayBuffSound(soundName, spellID)
+            PlayBuffSound(soundName, spellID, onHide)
             return true
         end
     end
 
     return false
-end
-
-local function GetConfiguredBorderColor()
-    local fallback = (CDM.defaults and CDM.defaults.borderColor) or { r = 0, g = 0, b = 0, a = 1 }
-    local color = CDM_C.GetConfigValue("borderColor", fallback)
-    if type(color) ~= "table" then
-        color = fallback
-    end
-    return color.r or 0, color.g or 0, color.b or 0, color.a or 1
 end
 
 local function BuildActiveSpellSet()
@@ -217,17 +177,13 @@ local function IsSpellActiveInViewer(spellID, cachedSet)
 end
 
 if API then
-    function API:GetConfiguredBorderColor()
-        return GetConfiguredBorderColor()
-    end
-
-    function API:BuildActiveSpellSet()
+    rawset(API, "BuildActiveSpellSet", function()
         return BuildActiveSpellSet()
-    end
+    end)
 
-    function API:IsSpellActiveInViewer(spellID, cachedSet)
+    rawset(API, "IsSpellActiveInViewer", function(_, spellID, cachedSet)
         return IsSpellActiveInViewer(spellID, cachedSet)
-    end
+    end)
 end
 
 local function ResolveSpellOverrideEntry(overrideMap, spellID)
@@ -238,105 +194,6 @@ local function ResolveSpellOverrideEntry(overrideMap, spellID)
     if overrideMap[spellID] then return overrideMap[spellID] end
     local base = NormalizeToBase(spellID)
     if base and base ~= spellID and overrideMap[base] then return overrideMap[base] end
-    return nil
-end
-
-local function IsUsableSpellID(id)
-    return type(id) == "number" and id > 0 and id == math.floor(id)
-end
-
-local function ClearSpellVariantResolutionCaches()
-    table.wipe(spellVariantBaseCache)
-    table.wipe(spellVariantOverrideCache)
-end
-
-local function GetCachedBaseSpellID(spellID)
-    if not IsUsableSpellID(spellID) then
-        return nil
-    end
-    local cached = spellVariantBaseCache[spellID]
-    if cached ~= nil then
-        return cached ~= false and cached or nil
-    end
-    local baseID = NormalizeToBase(spellID)
-    spellVariantBaseCache[spellID] = IsUsableSpellID(baseID) and baseID or false
-    return spellVariantBaseCache[spellID] ~= false and spellVariantBaseCache[spellID] or nil
-end
-
-local function GetOverrideSpellIfDifferent(spellID)
-    if not IsUsableSpellID(spellID) or not C_Spell.GetOverrideSpell then
-        return nil
-    end
-    local cached = spellVariantOverrideCache[spellID]
-    if cached ~= nil then
-        return cached ~= false and cached or nil
-    end
-    local overrideID = C_Spell.GetOverrideSpell(spellID)
-    if IsUsableSpellID(overrideID) and overrideID ~= spellID then
-        spellVariantOverrideCache[spellID] = overrideID
-        return overrideID
-    end
-    spellVariantOverrideCache[spellID] = false
-    return nil
-end
-
-local function StoreVariantValue(target, spellID, value, preserveExisting)
-    if type(target) ~= "table" or not IsUsableSpellID(spellID) then
-        return
-    end
-
-    local function StoreValue(id)
-        if not IsUsableSpellID(id) then return end
-        if preserveExisting and target[id] ~= nil then return end
-        target[id] = value
-    end
-
-    StoreValue(spellID)
-    StoreValue(GetOverrideSpellIfDifferent(spellID))
-
-    local baseID = GetCachedBaseSpellID(spellID)
-    if baseID and baseID ~= spellID then
-        StoreValue(baseID)
-        StoreValue(GetOverrideSpellIfDifferent(baseID))
-    end
-end
-
-local function ResolveVariantValue(sourceMap, spellID)
-    if type(sourceMap) ~= "table" or not IsUsableSpellID(spellID) then
-        return nil
-    end
-
-    local direct = sourceMap[spellID]
-    if direct ~= nil then
-        return direct
-    end
-
-    local baseID = GetCachedBaseSpellID(spellID)
-    if baseID and baseID ~= spellID then
-        local baseValue = sourceMap[baseID]
-        if baseValue ~= nil then
-            return baseValue
-        end
-    end
-
-    local overrideID = GetOverrideSpellIfDifferent(spellID)
-    if overrideID then
-        local overrideValue = sourceMap[overrideID]
-        if overrideValue ~= nil then
-            return overrideValue
-        end
-    end
-
-    if baseID and baseID ~= spellID then
-        local baseOverrideID = GetOverrideSpellIfDifferent(baseID)
-        if baseOverrideID then
-            local baseOverrideValue = sourceMap[baseOverrideID]
-            if baseOverrideValue ~= nil then
-                return baseOverrideValue
-            end
-        end
-    end
-
     return nil
 end
 
@@ -414,255 +271,11 @@ local function BuildStaticSlotLayout(groupData, activeSpellIDs, activeSpellSet, 
     return scratchSpellSlot, scratchPlaceholderBySpell, nextSlot
 end
 
-local placeholderPool = {}
-local activePlaceholders = {}
-local placeholderRefreshTimer = nil
-local placeholderRetryCount = 0
+local PositionFrameAtSlot = layoutCtx.PositionFrameAtSlot
 
-local function DoPlaceholderRefresh()
-    placeholderRefreshTimer = nil
-    local sets = CDM.BuffGroupSets
-    if not (sets and sets.groups) then
-        local specID = CDM:GetCurrentSpecID()
-        local hasData = specID and CDM.db and CDM.db.buffGroups and CDM.db.buffGroups[specID]
-        if not specID or hasData then
-            if placeholderRetryCount < 10 then
-                placeholderRetryCount = placeholderRetryCount + 1
-                placeholderRefreshTimer = C_Timer.NewTimer(0.15, DoPlaceholderRefresh)
-            end
-        end
-        return
-    end
-
-    CDM:UpdateAllBuffGroupContainers()
-    if CDM.QueueViewer then
-        CDM:QueueViewer(CDM_C.VIEWERS.BUFF, true)
-    end
-
-    local talentReady = not C_ClassTalents or not C_ClassTalents.GetActiveConfigID or C_ClassTalents.GetActiveConfigID()
-    if not talentReady and placeholderRetryCount < 10 then
-        placeholderRetryCount = placeholderRetryCount + 1
-        placeholderRefreshTimer = C_Timer.NewTimer(0.15, DoPlaceholderRefresh)
-    else
-        placeholderRetryCount = 0
-    end
-end
-
-local function QueuePlaceholderRefresh()
-    if placeholderRefreshTimer then
-        placeholderRefreshTimer:Cancel()
-    end
-    placeholderRetryCount = 0
-    placeholderRefreshTimer = C_Timer.NewTimer(0, DoPlaceholderRefresh)
-end
-
-local function PositionFrameAtSlot(frame, container, idx, iconWPx, iconHPx, spacingPx, grow, layoutCount, anchorPoint, selfPoint)
-    local xPx, yPx
-    if grow == "RIGHT" then
-        xPx, yPx = idx * (iconWPx + spacingPx), 0
-    elseif grow == "LEFT" then
-        xPx, yPx = -idx * (iconWPx + spacingPx), 0
-    elseif grow == "UP" then
-        xPx, yPx = 0, idx * (iconHPx + spacingPx)
-    elseif grow == "DOWN" then
-        xPx, yPx = 0, -idx * (iconHPx + spacingPx)
-    elseif grow == "CENTER_H" then
-        local startXPx = -math.floor((layoutCount - 1) * (iconWPx + spacingPx) / 2)
-        xPx, yPx = startXPx + idx * (iconWPx + spacingPx), 0
-    elseif grow == "CENTER_V" then
-        local startYPx = math.floor((layoutCount - 1) * (iconHPx + spacingPx) / 2)
-        xPx, yPx = 0, startYPx - idx * (iconHPx + spacingPx)
-    end
-    SetPointPixels(frame, selfPoint or "CENTER", container, anchorPoint or "CENTER", xPx or 0, yPx or 0, UIParent)
-end
-
-local function ApplyPlaceholderPixelBorder(frame, iconW, iconH)
-    if not frame.pixelBorderLines then
-        frame.pixelBorderLines = {}
-        for i = 1, 4 do
-            local line = frame:CreateTexture(nil, "OVERLAY", nil, 6)
-            line:SetTexture(CDM_C.TEX_WHITE8X8)
-            if line.SetSnapToPixelGrid then line:SetSnapToPixelGrid(false) end
-            if line.SetTexelSnappingBias then line:SetTexelSnappingBias(0) end
-            frame.pixelBorderLines[i] = line
-        end
-    end
-
-    local onePx = CDM_C.GetPixelSizeForRegion(frame)
-    local configuredSize = CDM_C.GetConfigValue("borderSize", 1) or 1
-    local borderPixels = math.max(1, math.floor(configuredSize / onePx))
-    local px = borderPixels * onePx
-    local r, g, b, a = GetConfiguredBorderColor()
-
-    local top, bottom, left, right = frame.pixelBorderLines[1], frame.pixelBorderLines[2], frame.pixelBorderLines[3], frame.pixelBorderLines[4]
-    for _, line in ipairs(frame.pixelBorderLines) do
-        line:SetVertexColor(r, g, b, a)
-        line:Show()
-    end
-
-    top:ClearAllPoints()
-    top:SetPoint("TOPLEFT", frame, "TOPLEFT", px, 0)
-    top:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -px, 0)
-    top:SetHeight(px)
-
-    bottom:ClearAllPoints()
-    bottom:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", px, 0)
-    bottom:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -px, 0)
-    bottom:SetHeight(px)
-
-    left:ClearAllPoints()
-    left:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-    left:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
-    left:SetWidth(px)
-
-    right:ClearAllPoints()
-    right:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
-    right:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
-    right:SetWidth(px)
-end
-
-local function HidePlaceholderPixelBorder(frame)
-    if frame.pixelBorderLines then
-        for _, line in ipairs(frame.pixelBorderLines) do
-            line:Hide()
-        end
-    end
-end
-
-local function ApplyPlaceholderVisuals(frame, spellID, iconW, iconH)
-    local bsv = CDM.borderStyleVersion or 0
-    local zoom = CDM.db and CDM.db.zoomIcons
-    if frame._cdmPHSpellID == spellID and frame._cdmPHW == iconW
-        and frame._cdmPHH == iconH and frame._cdmPHBSV == bsv
-        and frame._cdmPHZoom == zoom then
-        return
-    end
-    frame._cdmPHSpellID = spellID
-    frame._cdmPHW = iconW
-    frame._cdmPHH = iconH
-    frame._cdmPHBSV = bsv
-    frame._cdmPHZoom = zoom
-    local phWPx = ToPixelCountForRegion(iconW, UIParent, 1)
-    local phHPx = ToPixelCountForRegion(iconH, UIParent, 1)
-    local phWSnapped = PixelsToUIForRegion(phWPx, UIParent)
-    local phHSnapped = PixelsToUIForRegion(phHPx, UIParent)
-    frame:SetSize(phWSnapped, phHSnapped)
-    local tex = C_Spell.GetSpellTexture(spellID)
-    if tex then
-        frame.Icon:SetTexture(tex)
-    else
-        frame.Icon:SetColorTexture(0.15, 0.15, 0.15)
-        frame._cdmPHSpellID = nil
-    end
-    CDM_C.ApplyIconTexCoord(frame.Icon, CDM.db and CDM.db.zoomIcons, phWSnapped, phHSnapped)
-    frame.Icon:SetDesaturation(1)
-    frame.Icon:SetAlpha(1)
-
-    local isPixelBorder = CDM_C.IsPixelIconBorderMode and CDM_C.IsPixelIconBorderMode()
-    if isPixelBorder then
-        if frame.border then frame.border:Hide() end
-        ApplyPlaceholderPixelBorder(frame, iconW, iconH)
-    else
-        HidePlaceholderPixelBorder(frame)
-        if CDM.BORDER and CDM.BORDER.CreateBorder then
-            CDM.BORDER:CreateBorder(frame)
-            if CDM.BORDER.activeBorders then
-                CDM.BORDER.activeBorders[frame] = nil
-            end
-            if frame.border then
-                local r, g, b, a = GetConfiguredBorderColor()
-                frame.border:SetBackdropBorderColor(r, g, b, a)
-            end
-        end
-    end
-
-    frame:Show()
-end
-
-local function AcquirePlaceholder(container, spellID, iconW, iconH)
-    local frame = table.remove(placeholderPool)
-    if not frame then
-        frame = CreateFrame("Frame", nil, UIParent)
-        local icon = frame:CreateTexture(nil, "ARTWORK")
-        icon:SetAllPoints()
-        icon:SetSnapToPixelGrid(false)
-        icon:SetTexelSnappingBias(0)
-        frame.Icon = icon
-        frame.isPlaceholder = true
-    end
-    frame:SetParent(container)
-    frame:SetFrameLevel(1)
-    ApplyPlaceholderVisuals(frame, spellID, iconW, iconH)
-    if not frame:IsShown() then frame:Show() end
-    return frame
-end
-
-local function ReleasePlaceholder(frame)
-    frame:Hide()
-    frame:ClearAllPoints()
-    frame:SetParent(UIParent)
-    placeholderPool[#placeholderPool + 1] = frame
-end
-
-local function ReleaseGroupPlaceholders(groupIndex)
-    local group = activePlaceholders[groupIndex]
-    if not group then return end
-    for sid, frame in pairs(group) do
-        ReleasePlaceholder(frame)
-    end
-    activePlaceholders[groupIndex] = nil
-end
-
-local function OnGroupedBuffFrameHide(frame)
-    local frameData = GetFrameData(frame)
-    if not frameData.cdmStaticPlaceholderEligible then return end
-    local groupIdx = frameData.cdmStaticGroupIdx
-    local spellID = frameData.cdmStaticGroupSpellID
-    if not groupIdx or not spellID then return end
-    local group = activePlaceholders[groupIdx]
-    if not group then return end
-    local pFrame = group[spellID]
-    if not pFrame then return end
-    local container = containers[groupIdx]
-    if not container or pFrame:GetParent() ~= container then return end
-    pFrame:SetAlpha(1)
-end
-
-local function OverrideCooldownText(t, pixelSize, color)
-    if not t or not t.SetFont then return end
-    if pixelSize then
-        local fp, _, ff = t:GetFont()
-        if fp then t:SetFont(fp, pixelSize, ff) end
-    end
-    if color then
-        t:SetTextColor(color.r, color.g, color.b, color.a or 1)
-    end
-end
-
-local function GetCooldownFontRegions(cd, frameData)
-    local regions = frameData and frameData.cdmCdFontRegions
-    if regions then
-        return regions
-    end
-    regions = {}
-    for ri = 1, select("#", cd:GetRegions()) do
-        local region = select(ri, cd:GetRegions())
-        if region and region.IsObjectType and region:IsObjectType("FontString") then
-            regions[#regions + 1] = region
-        end
-    end
-    if frameData then
-        frameData.cdmCdFontRegions = regions
-    end
-    return regions
-end
-
-local function OverrideCooldownRegions(cd, pixelSize, color, frameData)
-    local regions = GetCooldownFontRegions(cd, frameData)
-    for _, region in ipairs(regions) do
-        OverrideCooldownText(region, pixelSize, color)
-    end
-end
+local OverrideCooldownText = layoutCtx.OverrideCooldownText
+local GetCooldownFontRegions = layoutCtx.GetCooldownFontRegions
+local OverrideCooldownRegions = layoutCtx.OverrideCooldownRegions
 
 local function GetSpellOverride(groupData, spellID)
     return ResolveSpellOverrideEntry(groupData and groupData.spellOverrides, spellID)
@@ -772,84 +385,8 @@ local function ApplyGlowForGroupedFrame(frame, specID)
     CDM.Glow:RequestBuffGlow(frame, glowEnabled, glowColor, glowSourceID)
 end
 
-local function GetOrCreateGroupContainer(groupIndex)
-    if containers[groupIndex] then
-        return containers[groupIndex]
-    end
-
-    local name = "Ayije_CDM_BuffGroup" .. groupIndex
-    local container = CreateFrame("Frame", name, UIParent)
-    container:SetSize(1, 1)
-    container:SetClampedToScreen(false)
-    container:Show()
-
-    containers[groupIndex] = container
-    return container
-end
-
-local function GetContainerForAnchorTarget(anchorTarget)
-    local anchorContainers = CDM.anchorContainers
-    if not anchorContainers then return nil end
-    if anchorTarget == "essential" then
-        return anchorContainers[CDM_C.VIEWERS.ESSENTIAL]
-    end
-    if anchorTarget == "buff" then
-        return anchorContainers[CDM_C.VIEWERS.BUFF]
-    end
-    return nil
-end
-
-local function AnchorContainerToTarget(container, targetContainer, anchorPoint, relativePoint, offsetX, offsetY)
-    if not targetContainer or not targetContainer:IsShown() then
-        container:Hide()
-        return false
-    end
-    container:ClearAllPoints()
-    SetPixelPerfectPoint(container, anchorPoint, targetContainer, relativePoint, offsetX, offsetY)
-    if not container:IsShown() then
-        container:Show()
-    end
-    return true
-end
-
-local function UpdateGroupContainerPosition(groupIndex, groupData)
-    local container = containers[groupIndex]
-    if not container or not groupData then return end
-
-    local anchorTarget = groupData.anchorTarget or "screen"
-    local anchorPoint = groupData.anchorPoint or "CENTER"
-    local relativePoint = groupData.anchorRelativeTo or "CENTER"
-    local offsetX = groupData.offsetX or 0
-    local offsetY = groupData.offsetY or 0
-
-    local iconW = groupData.iconWidth or 30
-    local iconH = groupData.iconHeight or 30
-    local iconWPx = ToPixelCountForRegion(iconW, UIParent, 1)
-    local iconHPx = ToPixelCountForRegion(iconH, UIParent, 1)
-    container:SetSize(PixelsToUIForRegion(iconWPx, UIParent), PixelsToUIForRegion(iconHPx, UIParent))
-
-    if anchorTarget == "playerFrame" then
-        CDM.AnchorToPlayerFrame(
-            container,
-            relativePoint,
-            offsetX, offsetY,
-            "CDM_BuffGroup_" .. groupIndex,
-            false,
-            anchorPoint
-        )
-    else
-        local targetContainer = GetContainerForAnchorTarget(anchorTarget)
-        if targetContainer then
-            AnchorContainerToTarget(container, targetContainer, anchorPoint, relativePoint, offsetX, offsetY)
-        else
-            container:ClearAllPoints()
-            SetPixelPerfectPoint(container, "CENTER", UIParent, "CENTER", offsetX, offsetY)
-        end
-    end
-end
-
 function CDM:CreateBuffGroupContainer(groupIndex)
-    return GetOrCreateGroupContainer(groupIndex)
+    return bgDescriptor:GetOrCreateContainer(groupIndex)
 end
 
 function CDM:UpdateBuffGroupContainerPosition(groupIndex)
@@ -857,53 +394,7 @@ function CDM:UpdateBuffGroupContainerPosition(groupIndex)
     if not sets or not sets.groups then return end
     local groupData = sets.groups[groupIndex]
     if not groupData then return end
-    UpdateGroupContainerPosition(groupIndex, groupData)
-end
-
-local CALLBACK_PREFIX = "CDM_BuffGroup_"
-local registeredCallbackIndices = {}
-
-local function SyncPositionCallbacks()
-    local sets = CDM.BuffGroupSets
-    local groups = sets and sets.groups
-    local needed = {}
-
-    if groups then
-        for idx, gd in ipairs(groups) do
-            if (gd.anchorTarget or "screen") == "playerFrame" then
-                needed[idx] = true
-            end
-        end
-    end
-
-    for idx in pairs(needed) do
-        if not registeredCallbackIndices[idx] then
-            local capturedIdx = idx
-            CDM.RegisterTrackerPositionCallback(CALLBACK_PREFIX .. capturedIdx, function()
-                local s = CDM.BuffGroupSets
-                local g = s and s.groups and s.groups[capturedIdx]
-                if g and (g.anchorTarget or "screen") == "playerFrame" then
-                    CDM.InvalidateTrackerAnchorCache(containers[capturedIdx])
-                    UpdateGroupContainerPosition(capturedIdx, g)
-                end
-            end)
-            registeredCallbackIndices[idx] = true
-        end
-    end
-
-    local toRemove
-    for idx in pairs(registeredCallbackIndices) do
-        if not needed[idx] then
-            if not toRemove then toRemove = {} end
-            toRemove[#toRemove + 1] = idx
-        end
-    end
-    if toRemove then
-        for _, idx in ipairs(toRemove) do
-            CDM.UnregisterTrackerPositionCallback(CALLBACK_PREFIX .. idx)
-            registeredCallbackIndices[idx] = nil
-        end
-    end
+    bgDescriptor:UpdateContainerPosition(groupIndex, groupData, GetContainerForAnchorTarget)
 end
 
 function CDM:UpdateAllBuffGroupContainers()
@@ -913,14 +404,14 @@ function CDM:UpdateAllBuffGroupContainers()
             container:Hide()
             ReleaseGroupPlaceholders(idx)
         end
-        SyncPositionCallbacks()
+        bgDescriptor:SyncCallbacks(GetContainerForAnchorTarget)
         return
     end
 
     local activeIndices = {}
     for groupIndex, groupData in ipairs(sets.groups) do
-        local container = GetOrCreateGroupContainer(groupIndex)
-        UpdateGroupContainerPosition(groupIndex, groupData)
+        local container = bgDescriptor:GetOrCreateContainer(groupIndex)
+        bgDescriptor:UpdateContainerPosition(groupIndex, groupData, GetContainerForAnchorTarget)
         local at = groupData.anchorTarget or "screen"
         if not container:IsShown() and at ~= "essential" and at ~= "buff" and at ~= "playerFrame" then
             container:Show()
@@ -935,12 +426,12 @@ function CDM:UpdateAllBuffGroupContainers()
         end
     end
 
-    SyncPositionCallbacks()
+    bgDescriptor:SyncCallbacks(GetContainerForAnchorTarget)
 end
 
 
 function CDM:PositionBuffGroupFrames(groupIndex, frames)
-    ClearSpellVariantResolutionCaches()
+    ClearSpellVariantCaches()
 
     local sets = self.BuffGroupSets
     if not sets or not sets.groups then return end
@@ -948,7 +439,7 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
     local groupData = sets.groups[groupIndex]
     if not groupData then return end
 
-    local container = GetOrCreateGroupContainer(groupIndex)
+    local container = bgDescriptor:GetOrCreateContainer(groupIndex)
 
     if not container:IsShown() then
         for _, frame in ipairs(frames) do
@@ -967,11 +458,9 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
     local iconH = groupData.iconHeight or 30
     local anchorPoint = groupData.anchorPoint or "CENTER"
     local selfPoint = DeriveSelfPoint(anchorPoint, grow)
-    local iconWPx = ToPixelCountForRegion(iconW, UIParent, 1)
-    local iconHPx = ToPixelCountForRegion(iconH, UIParent, 1)
-    local spacingPx = ToPixelCountForRegion(spacing, UIParent)
-    local iconWSnapped = PixelsToUIForRegion(iconWPx, UIParent)
-    local iconHSnapped = PixelsToUIForRegion(iconHPx, UIParent)
+    local iconWSnapped = Snap(iconW)
+    local iconHSnapped = Snap(iconH)
+    local spacingSnapped = Snap(spacing)
     local count = #frames
     local isStatic = groupData.staticDisplay and groupData.spells
     local layoutCount = isStatic and #groupData.spells or count
@@ -998,7 +487,7 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
                 local aOrd = aID and scratchSpellOrder[aID] or 999
                 local bOrd = bID and scratchSpellOrder[bID] or 999
                 if aOrd ~= bOrd then return aOrd < bOrd end
-                return GetGroupedFrameStableSortID(a) < GetGroupedFrameStableSortID(b)
+                return GetStableFrameSortID(a) < GetStableFrameSortID(b)
             end)
         end
     end
@@ -1033,6 +522,7 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
     local specID = CDM.GetCurrentSpecID and CDM:GetCurrentSpecID() or nil
 
     for i, frame in ipairs(frames) do
+        EnsureAuraNotificationHook(frame)
         local idx
         local rawSpellID
         if spellSlot then
@@ -1051,10 +541,10 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
         frame:ClearAllPoints()
         frame:SetSize(iconWSnapped, iconHSnapped)
         if frame.Icon then
-            CDM_C.ApplyIconTexCoord(frame.Icon, CDM.db and CDM.db.zoomIcons, iconWSnapped, iconHSnapped)
+            CDM_C.ApplyIconTexCoord(frame.Icon, CDM_C.GetEffectiveZoomAmount(), iconWSnapped, iconHSnapped)
         end
 
-        PositionFrameAtSlot(frame, container, idx, iconWPx, iconHPx, spacingPx, grow, layoutCount, anchorPoint, selfPoint)
+        PositionFrameAtSlot(frame, container, idx, iconWSnapped, iconHSnapped, spacingSnapped, grow, layoutCount, anchorPoint, selfPoint)
 
         local frameData = GetFrameData(frame)
         local fSpellID = frameData.buffCategorySpellID
@@ -1068,11 +558,11 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
         local fCountColor = (useTextOv and spellOv.countColor)  or countColor
         local fCdFS     = (useTextOv and spellOv.cooldownFontSize) or cdFS
         local fCdColor  = (useTextOv and spellOv.cooldownColor) or cdColor
-        local fCdPixelSize = fCdFS and CDM_C.GetPixelFontSize(fCdFS)
+        local fCdPixelSize = fCdFS and Pixel.FontSize(fCdFS)
 
         local countText = frame.Applications and frame.Applications.Applications
         if countText then
-            local fCountPixelSize = fCountFS and CDM_C.GetPixelFontSize(fCountFS)
+            local fCountPixelSize = fCountFS and Pixel.FontSize(fCountFS)
             if frameData.cdmLastCountFS ~= fCountPixelSize
                 or frameData.cdmLastCountPos ~= fCountPos
                 or frameData.cdmLastCountOX ~= fCountOX
@@ -1090,7 +580,7 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
                     countText:SetTextColor(fCountColor.r, fCountColor.g, fCountColor.b, fCountColor.a or 1)
                 end
                 countText:ClearAllPoints()
-                SetPixelPerfectPoint(countText, "CENTER", frame, fCountPos, fCountOX, fCountOY)
+                Pixel.SetPoint(countText, fCountPos, frame, fCountPos, fCountOX, fCountOY)
                 frameData.cdmLastCountFS = fCountPixelSize
                 frameData.cdmLastCountPos = fCountPos
                 frameData.cdmLastCountOX = fCountOX
@@ -1137,51 +627,33 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
         end
 
         if isStatic then
-            frameData.cdmStaticGroupIdx = groupIndex
-            frameData.cdmStaticGroupSpellID = rawSpellID
-            frameData.cdmStaticPlaceholderEligible = rawSpellID and placeholderBySpell and placeholderBySpell[rawSpellID] and true or false
-            if not frameData.cdmBuffGroupOnHideHooked then
-                frameData.cdmBuffGroupOnHideHooked = true
-                frame:HookScript("OnHide", OnGroupedBuffFrameHide)
-            end
+            local phEligible = rawSpellID and placeholderBySpell and placeholderBySpell[rawSpellID] and true or false
+            BGP.SyncGroupedFrameState(frame, groupIndex, rawSpellID, phEligible)
         else
-            frameData.cdmStaticGroupIdx = nil
-            frameData.cdmStaticGroupSpellID = nil
-            frameData.cdmStaticPlaceholderEligible = nil
+            BGP.SyncGroupedFrameState(frame, nil, nil, nil)
         end
 
     end
 
     if isStatic then
-        local existing = activePlaceholders[groupIndex]
-        if not existing then
-            existing = {}
-            activePlaceholders[groupIndex] = existing
-        end
-        for sid, pFrame in pairs(existing) do
-            local wantPlaceholder = placeholderBySpell and placeholderBySpell[sid]
-            if not spellSlot[sid] or not wantPlaceholder then
-                ReleasePlaceholder(pFrame)
-                existing[sid] = nil
-            end
-        end
-
-        for _, sid in ipairs(groupData.spells) do
-            local slotIdx = spellSlot[sid]
-            local wantPlaceholder = placeholderBySpell and placeholderBySpell[sid]
-            if slotIdx ~= nil and wantPlaceholder then
-                local pFrame = existing[sid]
-                if not pFrame then
-                    pFrame = AcquirePlaceholder(container, sid, iconW, iconH)
-                    existing[sid] = pFrame
-                else
-                    ApplyPlaceholderVisuals(pFrame, sid, iconW, iconH)
-                end
-                pFrame:ClearAllPoints()
-                PositionFrameAtSlot(pFrame, container, slotIdx, iconWPx, iconHPx, spacingPx, grow, layoutCount, anchorPoint, selfPoint)
-                pFrame:SetAlpha(IsSpellMarkedActive(sid, scratchActiveSpellIDs) and 0 or 1)
-            end
-        end
+        BGP.ReconcileGroup(groupIndex, {
+            spellSlot = spellSlot,
+            placeholderBySpell = placeholderBySpell,
+            groupData = groupData,
+            container = container,
+            iconW = iconW,
+            iconH = iconH,
+            iconWPx = iconWSnapped,
+            iconHPx = iconHSnapped,
+            spacingPx = spacingSnapped,
+            grow = grow,
+            layoutCount = layoutCount,
+            anchorPoint = anchorPoint,
+            selfPoint = selfPoint,
+            activeSpellIDs = scratchActiveSpellIDs,
+            positionFrameAtSlot = PositionFrameAtSlot,
+            isSpellMarkedActive = IsSpellMarkedActive,
+        })
     else
         ReleaseGroupPlaceholders(groupIndex)
     end
@@ -1189,17 +661,8 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
 end
 
 CDM:RegisterRefreshCallback("buffGroups", function()
-    table.wipe(soundThrottles)
-    local toRelease
-    for idx in pairs(activePlaceholders) do
-        if not toRelease then toRelease = {} end
-        toRelease[#toRelease + 1] = idx
-    end
-    if toRelease then
-        for _, idx in ipairs(toRelease) do
-            ReleaseGroupPlaceholders(idx)
-        end
-    end
+    table.wipe(notificationThrottles)
+    BGP.ReleaseAll()
     CDM:MarkSpecDataDirty()
     CDM:RefreshSpecData()
     CDM:UpdateAllBuffGroupContainers()
@@ -1208,23 +671,13 @@ CDM:RegisterRefreshCallback("buffGroups", function()
     end
 end, 29, { "spec_data", "viewers", "trackers_layout" })
 
-local function QueuePlaceholderReadinessRefresh()
-    QueuePlaceholderRefresh()
-end
-
-local function OnPlaceholderSpecStateChanged(unit)
-    if unit and unit ~= "player" then
-        return
-    end
-    QueuePlaceholderRefresh()
-end
-
-CDM:RegisterEvent("PLAYER_ENTERING_WORLD", QueuePlaceholderReadinessRefresh)
-CDM:RegisterInternalCallback("OnTalentDataChanged", QueuePlaceholderReadinessRefresh)
-CDM:RegisterInternalCallback("OnSpecStateChanged", OnPlaceholderSpecStateChanged)
+CDM:RegisterRefreshCallback("buffGroups_postViewer", function()
+    CDM:UpdateAllBuffGroupContainers()
+end, 45, { "viewers" })
 
 UpdatePlayerDeathState()
 CDM:RegisterEvent("PLAYER_ENTERING_WORLD", UpdatePlayerDeathState)
+CDM:RegisterEvent("PLAYER_ENTERING_WORLD", function() table.wipe(notificationThrottles) end)
 CDM:RegisterEvent("PLAYER_DEAD", UpdatePlayerDeathState)
 CDM:RegisterEvent("PLAYER_ALIVE", UpdatePlayerDeathState)
 CDM:RegisterEvent("PLAYER_UNGHOST", UpdatePlayerDeathState)
@@ -1265,21 +718,26 @@ local function OnBuffAuraNotification(frame, onHide)
     end
 end
 
-if CooldownViewerBuffIconItemMixin then
-    if CooldownViewerBuffIconItemMixin.TriggerAuraAppliedAlert then
-        hooksecurefunc(CooldownViewerBuffIconItemMixin, "TriggerAuraAppliedAlert", function(frame)
-            OnBuffAuraNotification(frame, false)
+local auraHookedFrames = setmetatable({}, { __mode = "k" })
+
+EnsureAuraNotificationHook = function(frame)
+    if auraHookedFrames[frame] then return end
+    auraHookedFrames[frame] = true
+    if frame.TriggerAuraAppliedAlert then
+        hooksecurefunc(frame, "TriggerAuraAppliedAlert", function(f)
+            OnBuffAuraNotification(f, false)
         end)
     end
-    if CooldownViewerBuffIconItemMixin.TriggerAuraRemovedAlert then
-        hooksecurefunc(CooldownViewerBuffIconItemMixin, "TriggerAuraRemovedAlert", function(frame)
-            OnBuffAuraNotification(frame, true)
+    if frame.TriggerAuraRemovedAlert then
+        hooksecurefunc(frame, "TriggerAuraRemovedAlert", function(f)
+            OnBuffAuraNotification(f, true)
         end)
     end
 end
 
 function CDM:ApplyUngroupedBuffOverrides(frame)
     if not frame then return end
+    EnsureAuraNotificationHook(frame)
     local frameData = GetFrameData(frame)
     local ov
     local matchedSpellID
@@ -1320,7 +778,7 @@ function CDM:ApplyUngroupedBuffOverrides(frame)
     if not ov.hideCooldown then
         local cdFS = (useTextOv and ov.cooldownFontSize) or (db and db.buffCooldownFontSize or 12)
         local cdColor = (useTextOv and ov.cooldownColor) or (db and db.buffCooldownColor)
-        local cdPixelSize = cdFS and CDM_C.GetPixelFontSize(cdFS)
+        local cdPixelSize = cdFS and Pixel.FontSize(cdFS)
         local cd = frame.Cooldown
         if cd then
             OverrideCooldownText(cd.Text or cd.text, cdPixelSize, cdColor)
@@ -1340,13 +798,13 @@ function CDM:ApplyUngroupedBuffOverrides(frame)
         if countFS then
             local fontPath, _, fontFlags = countText:GetFont()
             if fontPath then
-                countText:SetFont(fontPath, CDM_C.GetPixelFontSize(countFS), fontFlags)
+                countText:SetFont(fontPath, Pixel.FontSize(countFS), fontFlags)
             end
         end
         if countColor then
             countText:SetTextColor(countColor.r, countColor.g, countColor.b, countColor.a or 1)
         end
         countText:ClearAllPoints()
-        SetPixelPerfectPoint(countText, "CENTER", frame, countPos, countOX, countOY)
+        Pixel.SetPoint(countText, countPos, frame, countPos, countOX, countOY)
     end
 end

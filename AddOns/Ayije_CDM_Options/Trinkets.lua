@@ -155,7 +155,7 @@ local function CreateTrinketsTab(page, tabId)
     page.controls.trinketsIconWidthSlider = UI.CreateModernSlider(
         scrollChild,
         L["Icon Width"],
-        20, 80,
+        20, 100,
         CDM.db.trinketsIconWidth or 40,
         function(v)
             CDM.db.trinketsIconWidth = UI.RoundToInt(v)
@@ -168,7 +168,7 @@ local function CreateTrinketsTab(page, tabId)
     page.controls.trinketsIconHeightSlider = UI.CreateModernSlider(
         scrollChild,
         L["Icon Height"],
-        20, 80,
+        20, 100,
         CDM.db.trinketsIconHeight or 36,
         function(v)
             CDM.db.trinketsIconHeight = UI.RoundToInt(v)

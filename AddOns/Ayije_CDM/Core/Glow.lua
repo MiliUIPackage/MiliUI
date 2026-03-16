@@ -25,6 +25,9 @@ debounceDrainer:SetScript("OnUpdate", function(self)
     for frame in pairs(pendingHideFrames) do
         pendingHideFrames[frame] = nil
         HideCustomGlow(frame)
+        local frameData = CDM.GetFrameData(frame)
+        frameData.cdmAuraStateDirty = true
+        CDM:ProcessAuraOverride(frame)
     end
 end)
 
@@ -297,7 +300,7 @@ local function EnsureBuffGlowHostFrame(frame)
         return host
     end
 
-    host = CreateFrame("Frame", nil, UIParent)
+    host = CreateFrame("Frame", nil, frame)
     host:SetClampedToScreen(false)
     frameData.cdmBuffGlowHost = host
     frameData.cdmBuffGlowHostAnchorTarget = nil
@@ -312,6 +315,7 @@ local function SyncBuffGlowHostFrame(frame, host)
     local frameData = CDM.GetFrameData(frame)
 
     if frameData.cdmBuffGlowHostAnchorTarget ~= frame then
+        host:SetParent(frame)
         host:ClearAllPoints()
         host:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
         host:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
@@ -593,6 +597,10 @@ function Glow:HookAlertManager()
             return
         end
         ShowCustomGlow(frame)
+        if frameData.cdmReadyGlowActive then
+            Glow:RequestBuffGlow(frame, false)
+            frameData.cdmReadyGlowActive = false
+        end
     end)
 
     hooksecurefunc(alertManager, "HideAlert", function(_, frame)

@@ -47,6 +47,7 @@ local SIZE_BUFF = { w = d.sizeBuff.w, h = d.sizeBuff.h }
 local SIZE_RACIALS = { w = d.racialsIconWidth, h = d.racialsIconHeight }
 local SIZE_DEFENSIVES = { w = d.defensivesIconWidth, h = d.defensivesIconHeight }
 local SIZE_TRINKETS = { w = d.trinketsIconWidth, h = d.trinketsIconHeight }
+local SIZE_EXTERNALS = { w = d.externalsIconWidth, h = d.externalsIconHeight }
 local SPACING = d.spacing
 local MAX_ROW_ESS = d.maxRowEss
 local MAX_ROW_UTIL = d.maxRowUtil
@@ -62,6 +63,7 @@ CDM.Sizes.SIZE_BUFF = SIZE_BUFF
 CDM.Sizes.SIZE_RACIALS = SIZE_RACIALS
 CDM.Sizes.SIZE_DEFENSIVES = SIZE_DEFENSIVES
 CDM.Sizes.SIZE_TRINKETS = SIZE_TRINKETS
+CDM.Sizes.SIZE_EXTERNALS = SIZE_EXTERNALS
 CDM.Sizes.SPACING = SPACING
 CDM.Sizes.MAX_ROW_ESS = MAX_ROW_ESS
 CDM.Sizes.MAX_ROW_UTIL = MAX_ROW_UTIL
@@ -89,6 +91,8 @@ local function InitConstants()
     SIZE_DEFENSIVES.h = CDM_C.GetConfigValue("defensivesIconHeight", d.defensivesIconHeight) or d.defensivesIconHeight
     SIZE_TRINKETS.w = CDM_C.GetConfigValue("trinketsIconWidth", d.trinketsIconWidth) or d.trinketsIconWidth
     SIZE_TRINKETS.h = CDM_C.GetConfigValue("trinketsIconHeight", d.trinketsIconHeight) or d.trinketsIconHeight
+    SIZE_EXTERNALS.w = CDM_C.GetConfigValue("externalsIconWidth", d.externalsIconWidth) or d.externalsIconWidth
+    SIZE_EXTERNALS.h = CDM_C.GetConfigValue("externalsIconHeight", d.externalsIconHeight) or d.externalsIconHeight
     SPACING = CDM_C.GetConfigValue("spacing", d.spacing) or d.spacing
     MAX_ROW_ESS = CDM_C.GetConfigValue("maxRowEss", d.maxRowEss) or d.maxRowEss
     local utilityWrap = CDM_C.GetConfigValue("utilityWrap", d.utilityWrap)
@@ -117,11 +121,12 @@ local function InitConstants()
 end
 
 local function UpdateConstants()
+    CDM.Pixel.Update()
     InitConstants()
 
     local buffContainer = CDM.anchorContainers and CDM.anchorContainers["BuffIconCooldownViewer"]
     if buffContainer then
-        buffContainer:SetSize(CDM_C.SnapContainerWidth(400, buffContainer), CDM_C.SnapOffsetToPixel(SIZE_BUFF.h, buffContainer))
+        buffContainer:SetSize(CDM.Pixel.SnapEven(400), CDM.Pixel.Snap(SIZE_BUFF.h))
     end
 
     for _, methodName in ipairs(UPDATE_CONSTANTS_METHODS) do
@@ -335,14 +340,21 @@ function CDM:SetupViewer(vName)
     if v.OnAcquireItemFrame and not CDM_ViewerOnAcquireHooked[v] then
         CDM_ViewerOnAcquireHooked[v] = true
         hooksecurefunc(v, "OnAcquireItemFrame", function(_, itemFrame)
-            if itemFrame and itemFrame.SetScale then
+            if itemFrame and itemFrame.SetScale and itemFrame:GetScale() ~= 1 then
                 itemFrame:SetScale(1)
             end
             local fd = CDM.GetFrameData(itemFrame)
             if fd and fd.cdmCooldownTextHidden and itemFrame.Cooldown and itemFrame.Cooldown.SetHideCountdownNumbers then
                 itemFrame.Cooldown:SetHideCountdownNumbers(true)
             end
-            RefreshFrameSpellIdentity(itemFrame)
+            local baseSpellID = RefreshFrameSpellIdentity(itemFrame)
+            local hiddenSet = CDM.defensivesHiddenSet
+            if baseSpellID and hiddenSet and hiddenSet[baseSpellID] then
+                if fd then fd.cdmHiddenByDefensives = true end
+                if itemFrame.IsShown and itemFrame:IsShown() then
+                    itemFrame:Hide()
+                end
+            end
             self:QueueViewer(vName)
         end)
     end
@@ -420,7 +432,7 @@ function CDM:EnforceCooldownViewerScale(viewer)
     -- Never write viewer.iconScale (taints Blizzard table in WoW 12.0+)
     if viewer.itemFramePool then
         for frame in viewer.itemFramePool:EnumerateActive() do
-            if frame and frame.SetScale then
+            if frame and frame.SetScale and frame:GetScale() ~= 1 then
                 frame:SetScale(1)
             end
         end
@@ -474,15 +486,19 @@ local function SetupMixinHooks()
         local isHiddenByDefensives = baseSpellID and hiddenSet and hiddenSet[baseSpellID] or false
         local wasHiddenByDefensives = frameData and frameData.cdmHiddenByDefensives
 
-        if frameData then
+        if frameData and baseSpellID then
             frameData.cdmHiddenByDefensives = isHiddenByDefensives
         end
 
-        if wasHiddenByDefensives ~= nil and wasHiddenByDefensives ~= isHiddenByDefensives then
+        if isHiddenByDefensives then
+            if frame.IsShown and frame:IsShown() then
+                frame:Hide()
+            end
             CDM:QueueViewer(viewerName)
             return
         end
-        if isHiddenByDefensives and frame.IsShown and frame:IsShown() then
+
+        if wasHiddenByDefensives and not isHiddenByDefensives then
             CDM:QueueViewer(viewerName)
             return
         end
@@ -577,7 +593,6 @@ local function SetupMixinHooks()
             HandleFixedLayoutViewerSpellUpdate(frame, VIEWERS.ESSENTIAL)
         end)
     end
-
     if CooldownViewerUtilityItemMixin and CooldownViewerUtilityItemMixin.OnCooldownIDSet then
         hooksecurefunc(CooldownViewerUtilityItemMixin, "OnCooldownIDSet", function(frame)
             HandleFixedLayoutViewerSpellUpdate(frame, VIEWERS.UTILITY)
@@ -588,7 +603,6 @@ local function SetupMixinHooks()
             HandleFixedLayoutViewerSpellUpdate(frame, VIEWERS.UTILITY)
         end)
     end
-
     CDM:SetupViewer(VIEWERS.BUFF_BAR)
 
     if CooldownViewerBuffBarItemMixin and CooldownViewerBuffBarItemMixin.OnCooldownIDSet then
@@ -754,6 +768,7 @@ local function SetupZoneTransitionEvents()
     end)
 
     CDM:RegisterEvent("LOADING_SCREEN_DISABLED", function()
+        CDM.Pixel.Update()
         CDM.loadingScreenActive = false
         local token = CDM.enterWorldToken or 0
         RunVisualSetup(token, "loading_screen_disabled", 1)
@@ -769,6 +784,7 @@ local function SetupZoneTransitionEvents()
     end)
 
     CDM:RegisterEvent("UI_SCALE_CHANGED", function()
+        CDM.Pixel.Update()
         if CDM.UpdateEssentialContainerPosition then
             CDM:UpdateEssentialContainerPosition()
         end
@@ -785,6 +801,7 @@ local function SetupZoneTransitionEvents()
     end)
 
     CDM:RegisterEvent("PLAYER_ENTERING_WORLD", function(event, isInitialLogin, isReloadingUi)
+        CDM.Pixel.Update()
         CDM._pixelSettleRefreshDone = nil
         CDM.enterWorldToken = (CDM.enterWorldToken or 0) + 1
         local token = CDM.enterWorldToken
@@ -822,7 +839,7 @@ local function InitializeModules()
     end
 
     local startupFailures
-    local startupModules = { "racials", "defensives", "trinkets", "resources" }
+    local startupModules = { "racials", "defensives", "trinkets", "resources", "externals" }
     for _, moduleId in ipairs(startupModules) do
         local ok, err = moduleManager:ReconcileModule(moduleId)
         if not ok then
@@ -910,10 +927,6 @@ local function RegisterRefreshCallbacks()
 
     CDM:RegisterRefreshCallback("essentialPosition", function()
         CDM:UpdateEssentialContainerPosition()
-    -- Must run before "viewers": essential layout snaps the rendered top-left after
-    -- resize for pixel-perfect icon placement. If we re-anchor the container after
-    -- layout, we can undo that snap and leave 1px drift/gap artifacts until another
-    -- reanchor (e.g. /reload) happens.
     end, 35, { "trackers_layout" })
 
     CDM:RegisterRefreshCallback("buffPosition", function()
@@ -950,6 +963,9 @@ function CDM:OnEnable()
     RegisterLSMFontRefreshCallback()
     RegisterPostLoginFontRefresh()
     RegisterCooldownViewerSettingsVisualRefresh()
+    if self.DisableBlizzardPlayerCastBar then
+        self:DisableBlizzardPlayerCastBar()
+    end
 
     local function FlushCombatDirtyViewers()
         local dirty = CDM.combatDirtyViewers

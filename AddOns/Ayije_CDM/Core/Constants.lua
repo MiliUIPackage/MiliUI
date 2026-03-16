@@ -126,113 +126,103 @@ function CDM.CONST.GetConfigValue(key, defaultValue)
     return defaultValue
 end
 
-function CDM.CONST.GetPixelFontSize(desiredPixels)
-    return desiredPixels * PixelUtil.GetPixelToUIUnitFactor()
-end
-
 local math_floor = math.floor
 local math_ceil = math.ceil
 
-function CDM.CONST.PixelPerfect(value)
-    if value >= 0 then
-        return math_floor(value + 0.5)
-    else
-        return math_ceil(value - 0.5)
-    end
-end
+-- CDM.Pixel: unified pixel-perfect API
+-- Pre-snap only, never post-placement correction. UI units throughout.
+local Pixel = {}
+CDM.Pixel = Pixel
 
-local function GetPixelSizeForRegion(region)
-    local regionType = type(region)
-    local isRegionObject = (regionType == "table" or regionType == "userdata")
+local cachedPixelSize = 1
+local cachedPhysH = 0
+local cachedScale = 1
 
-    if PixelUtil and PixelUtil.ConvertPixelsToUIForRegion and isRegionObject then
-        local ok, px = pcall(PixelUtil.ConvertPixelsToUIForRegion, 1, region)
-        if ok and type(px) == "number" and px > 0 then
-            return px
+function Pixel.Update()
+    local physH = select(2, GetPhysicalScreenSize())
+    local scale = UIParent and UIParent.GetEffectiveScale and UIParent:GetEffectiveScale() or 1
+    if physH and physH > 0 and scale and scale > 0 then
+        if physH == cachedPhysH and scale == cachedScale then
+            return
         end
+        cachedPhysH = physH
+        cachedScale = scale
+        cachedPixelSize = 768 / (physH * scale)
     end
+end
 
-    local pixel = (PixelUtil and PixelUtil.GetPixelToUIUnitFactor and PixelUtil.GetPixelToUIUnitFactor()) or 1
-    local scale = (isRegionObject and region.GetEffectiveScale and region:GetEffectiveScale())
-        or (UIParent and UIParent.GetEffectiveScale and UIParent:GetEffectiveScale())
-        or 1
+function Pixel.GetSize()
+    return cachedPixelSize
+end
 
-    if scale and scale > 0 then
-        pixel = pixel / scale
+function Pixel.Snap(value)
+    if not value or value == 0 then return 0 end
+    local px = value / cachedPixelSize
+    if px >= 0 then
+        return math_floor(px + 0.5) * cachedPixelSize
+    else
+        return math_ceil(px - 0.5) * cachedPixelSize
     end
-    if not pixel or pixel <= 0 then
-        return 1
+end
+
+function Pixel.HalfFloor(value)
+    if not value or value == 0 then return 0 end
+    local px = math_floor(value / cachedPixelSize + 0.5)
+    return math_floor(px / 2) * cachedPixelSize
+end
+
+function Pixel.SnapEven(value)
+    if not value or value == 0 then return 0 end
+    local px = value / cachedPixelSize
+    if px >= 0 then
+        px = math_floor(px + 0.5)
+    else
+        px = math_ceil(px - 0.5)
     end
-    return pixel
+    if px % 2 ~= 0 then px = px + 1 end
+    return px * cachedPixelSize
 end
 
-CDM.CONST.GetPixelSizeForRegion = GetPixelSizeForRegion
-
-local function NormalizeRegionNumberArgs(a, b)
-    if type(a) ~= "number" and type(b) == "number" then
-        return b, a
-    end
-    return a, b
-end
-
-local function ResolvePointPixelRegion(frame, relativeTo, pixelRegion)
-    return pixelRegion or relativeTo or frame or UIParent
-end
-
-function CDM.CONST.ToPixelCountForRegion(value, region, minPixels)
-    -- Backward compatible with older callsites that passed (region, value, minPixels).
-    value, region = NormalizeRegionNumberArgs(value, region)
-    local pixel = GetPixelSizeForRegion(region)
-    local count = CDM.CONST.PixelPerfect((value or 0) / pixel)
-    if minPixels ~= nil and count < minPixels then
-        count = minPixels
-    end
-    return count
-end
-
-function CDM.CONST.PixelsToUIForRegion(pixels, region)
-    pixels, region = NormalizeRegionNumberArgs(pixels, region)
-    return (pixels or 0) * GetPixelSizeForRegion(region)
-end
-
-function CDM.CONST.SnapOffsetToPixel(value, region)
-    local pixel = GetPixelSizeForRegion(region)
-    return CDM.CONST.PixelPerfect((value or 0) / pixel) * pixel
-end
-
-function CDM.CONST.SnapContainerWidth(width, region)
-    local pixel = GetPixelSizeForRegion(region)
-    if not pixel or pixel <= 0 then return width end
-    local wPx = CDM.CONST.PixelPerfect(width / pixel)
-    if wPx % 2 ~= 0 then wPx = wPx + 1 end
-    return wPx * pixel
-end
-
-function CDM.CONST.SetPixelPerfectPoint(frame, point, relativeTo, relativePoint, x, y, pixelRegion)
+function Pixel.SetPoint(frame, point, relativeTo, relativePoint, x, y)
     if not frame then return end
-    local region = ResolvePointPixelRegion(frame, relativeTo, pixelRegion)
     frame:SetPoint(
         point,
         relativeTo,
         relativePoint,
-        CDM.CONST.SnapOffsetToPixel(x or 0, region),
-        CDM.CONST.SnapOffsetToPixel(y or 0, region)
+        Pixel.Snap(x or 0),
+        Pixel.Snap(y or 0)
     )
 end
 
-function CDM.CONST.SetPointPixels(frame, point, relativeTo, relativePoint, xPx, yPx, pixelRegion)
+function Pixel.SetSize(frame, w, h)
     if not frame then return end
-    local region = ResolvePointPixelRegion(frame, relativeTo, pixelRegion)
-    frame:SetPoint(
-        point,
-        relativeTo,
-        relativePoint,
-        CDM.CONST.PixelsToUIForRegion(xPx or 0, region),
-        CDM.CONST.PixelsToUIForRegion(yPx or 0, region)
-    )
+    frame:SetSize(Pixel.Snap(w), Pixel.Snap(h))
 end
 
-function CDM.CONST.IsPixelIconBorderMode()
+function Pixel.FontSize(desiredPx)
+    return desiredPx * cachedPixelSize * cachedScale
+end
+
+function Pixel.DisableTextureSnap(tex)
+    if not tex then return end
+    if tex.SetSnapToPixelGrid then
+        tex:SetSnapToPixelGrid(false)
+    end
+    if tex.SetTexelSnappingBias then
+        tex:SetTexelSnappingBias(0)
+    end
+end
+
+function Pixel.CreateSolidTexture(parent, layer, sublevel)
+    local tex = parent:CreateTexture(nil, layer or "OVERLAY", nil, sublevel or 0)
+    tex:SetTexture(CDM.CONST.TEX_WHITE8X8)
+    if tex.SetHorizTile then tex:SetHorizTile(false) end
+    if tex.SetVertTile then tex:SetVertTile(false) end
+    Pixel.DisableTextureSnap(tex)
+    return tex
+end
+
+function Pixel.IsOneBorderMode()
     local borderFile = CDM.CONST.GetConfigValue("borderFile", "Ayije_Thin")
     if borderFile == "None" then
         return false
@@ -240,41 +230,14 @@ function CDM.CONST.IsPixelIconBorderMode()
     if borderFile == "1 Pixel" then
         return true
     end
-
     local borderSize = CDM.CONST.GetConfigValue("borderSize", 16)
-    return math.max(0, CDM.CONST.ToPixelCountForRegion(borderSize, UIParent, 0)) <= 1
+    return math.max(0, math_floor(borderSize / cachedPixelSize + 0.5)) <= 1
 end
 
-function CDM.CONST.GetCooldownIconGapPixels(spacing, region)
-    return CDM.CONST.ToPixelCountForRegion(spacing or 0, region or UIParent, nil)
+if UIParent then
+    Pixel.Update()
 end
 
-do
-    local snapGenerations = setmetatable({}, { __mode = "k" })
-    function CDM.SchedulePixelSnap(container)
-        if not container then return end
-        local gen = (snapGenerations[container] or 0) + 1
-        snapGenerations[container] = gen
-        C_Timer.After(0, function()
-            if snapGenerations[container] ~= gen then return end
-            C_Timer.After(0, function()
-                if snapGenerations[container] ~= gen then return end
-                local cl = container:GetLeft()
-                local ct = container:GetTop()
-                if not (cl and ct) then return end
-                local onePixel = GetPixelSizeForRegion(UIParent) or 1
-                local snappedLeft = CDM.CONST.PixelPerfect(cl / onePixel) * onePixel
-                local snappedTop = CDM.CONST.PixelPerfect(ct / onePixel) * onePixel
-                if math.abs(cl - snappedLeft) < onePixel * 0.05
-                    and math.abs(ct - snappedTop) < onePixel * 0.05 then
-                    return
-                end
-                container:ClearAllPoints()
-                container:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", snappedLeft, snappedTop)
-            end)
-        end)
-    end
-end
 
 local baseFontCache = {
     fontPath = nil,
@@ -467,4 +430,9 @@ CDM.CONST.GCDFilterCurve = C_CurveUtil.CreateCurve()
 CDM.CONST.GCDFilterCurve:SetType(Enum.LuaCurveType.Step)
 CDM.CONST.GCDFilterCurve:AddPoint(0, 0)
 CDM.CONST.GCDFilterCurve:AddPoint(1.6, 1)
+
+CDM.CONST.IsReadyCurve = C_CurveUtil.CreateCurve()
+CDM.CONST.IsReadyCurve:SetType(Enum.LuaCurveType.Step)
+CDM.CONST.IsReadyCurve:AddPoint(0, 1)
+CDM.CONST.IsReadyCurve:AddPoint(0.0001, 0)
 

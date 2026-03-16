@@ -214,6 +214,7 @@ function CDM:InitializeSpecChangeSystem()
             or event == "TRAIT_CONFIG_UPDATED"
             or event == "PLAYER_TALENT_UPDATE"
             or event == "PLAYER_PVP_TALENT_UPDATE"
+            or event == "WAR_MODE_STATUS_UPDATE"
         then
             BatchTalentEvent(false)
         end

@@ -12,73 +12,39 @@ local function ResolveBaseSpellID(frame)
     return GetCachedBaseSpellID(CDM, frame) or GetBaseSpellID(frame)
 end
 
+local Pixel = CDM.Pixel
+local Snap = Pixel.Snap
 local math_floor = math.floor
-local math_ceil = math.ceil
 
-local function GetLayoutPixelSize()
-    local pixel = (PixelUtil and PixelUtil.GetPixelToUIUnitFactor and PixelUtil.GetPixelToUIUnitFactor()) or 1
-    local scale = (UIParent and UIParent.GetEffectiveScale and UIParent:GetEffectiveScale()) or 1
-    if scale and scale > 0 then
-        pixel = pixel / scale
-    end
-    if not pixel or pixel <= 0 then
-        return 1
-    end
-    return pixel
+local function GetSnappedMetrics(size, spacing)
+    local itemW = math.max(Pixel.GetSize(), Snap(size and size.w or 1))
+    local itemH = math.max(Pixel.GetSize(), Snap(size and size.h or 1))
+    local gap = Snap(spacing or 0)
+    return itemW, itemH, gap
 end
 
-local function RoundToNearestInt(value)
-    if value >= 0 then
-        return math_floor(value + 0.5)
-    end
-    return math_ceil(value - 0.5)
-end
-
-local function ToPixelCount(value)
-    return RoundToNearestInt((value or 0) / GetLayoutPixelSize())
-end
-
-local function PixelCountToUnits(pixelCount)
-    return pixelCount * GetLayoutPixelSize()
-end
-
-local function GetSnappedMetricsPx(size, spacing)
-    local itemWPx = math.max(1, ToPixelCount(size and size.w or 1))
-    local itemHPx = math.max(1, ToPixelCount(size and size.h or 1))
-    local gapPx = CDM_C.GetCooldownIconGapPixels(spacing)
-    return itemWPx, itemHPx, gapPx
-end
-
-local function RowWidthPx(count, itemWPx, gapPx)
+local function RowWidth(count, itemW, gap)
     if not count or count <= 0 then
         return 0
     end
-    return (count * itemWPx) + ((count - 1) * gapPx)
+    return (count * itemW) + ((count - 1) * gap)
 end
 
-local function CenteredRowLeftPx(containerWidthPx, rowWidthPx)
-    local slackPx = (containerWidthPx or rowWidthPx or 0) - (rowWidthPx or 0)
-    if slackPx < 0 then
-        slackPx = 0
-    end
-    return math_floor(slackPx * 0.5)
+local function CenteredRowLeft(containerWidth, rowWidth)
+    local result = Pixel.HalfFloor(containerWidth or rowWidth or 0) - Pixel.HalfFloor(rowWidth or 0)
+    return result >= 0 and result or 0
 end
 
-local function CenteredRowXForColPx(col, itemWPx, gapPx, containerWidthPx, rowWidthPx)
-    return CenteredRowLeftPx(containerWidthPx, rowWidthPx) + (col * (itemWPx + gapPx))
+local function CenteredRowXForCol(col, itemW, gap, containerWidth, rowWidth)
+    return CenteredRowLeft(containerWidth, rowWidth) + (col * (itemW + gap))
 end
 
-local function LayoutPositionFromPx(row, col, itemWPx, itemHPx, xPx, yPx, countInRow)
-    return row, col,
-        PixelCountToUnits(itemWPx),
-        PixelCountToUnits(itemHPx),
-        PixelCountToUnits(xPx),
-        -PixelCountToUnits(yPx),
-        countInRow
+local function LayoutPosition(row, col, itemW, itemH, x, y, countInRow)
+    return row, col, itemW, itemH, x, -y, countInRow
 end
 
-local function LayoutSizeFromPx(widthPx, heightPx)
-    return PixelCountToUnits(widthPx), PixelCountToUnits(heightPx)
+local function LayoutSize(width, height)
+    return width, height
 end
 
 local function HasPositiveLimit(value)
@@ -155,12 +121,12 @@ local function ComputeGridPosition(index, total, maxPerRow, size, spacing)
     local row = math.ceil(index / maxPerRow)
     local col = (index - 1) % maxPerRow
     local countInRow = math.min(maxPerRow, total - (row - 1) * maxPerRow)
-    local itemWPx, itemHPx, gapPx = GetSnappedMetricsPx(size, spacing)
-    local containerWidthPx = RowWidthPx(maxPerRow, itemWPx, gapPx)
-    local rowWidthPx = RowWidthPx(countInRow, itemWPx, gapPx)
-    local xPx = CenteredRowXForColPx(col, itemWPx, gapPx, containerWidthPx, rowWidthPx)
-    local yPx = (row - 1) * (itemHPx + gapPx)
-    return LayoutPositionFromPx(row, col, itemWPx, itemHPx, xPx, yPx, countInRow)
+    local itemW, itemH, gap = GetSnappedMetrics(size, spacing)
+    local cWidth = RowWidth(maxPerRow, itemW, gap)
+    local rWidth = RowWidth(countInRow, itemW, gap)
+    local x = CenteredRowXForCol(col, itemW, gap, cWidth, rWidth)
+    local y = (row - 1) * (itemH + gap)
+    return LayoutPosition(row, col, itemW, itemH, x, y, countInRow)
 end
 
 local function GetRowForIndex(index, total, isEssential, maxRowEss, maxRowUtil, utilityVertical)
@@ -176,106 +142,121 @@ local function GetRowForIndex(index, total, isEssential, maxRowEss, maxRowUtil, 
     return 1
 end
 
-local function ComputeEssentialOrUtilityPosition(index, total, isEssential, sizeEssRow1, sizeEssRow2, sizeUtility, spacing, maxRowEss, maxRowUtil, utilityVertical)
+local function ComputeEssentialOrUtilityPosition(index, total, isEssential, sizeEssRow1, sizeEssRow2, sizeUtility, spacing, maxRowEss, maxRowUtil, utilityVertical, _preEssRow1, _preEssRow2, _preUtil)
     if isEssential then
-        local row1WPx, row1HPx, gapPx = GetSnappedMetricsPx(sizeEssRow1, spacing)
-        local row2WPx, row2HPx = GetSnappedMetricsPx(sizeEssRow2, spacing)
+        local row1W, row1H, gap
+        if _preEssRow1 then
+            row1W, row1H, gap = _preEssRow1[1], _preEssRow1[2], _preEssRow1[3]
+        else
+            row1W, row1H, gap = GetSnappedMetrics(sizeEssRow1, spacing)
+        end
+        local row2W, row2H
+        if _preEssRow2 then
+            row2W, row2H = _preEssRow2[1], _preEssRow2[2]
+        else
+            row2W, row2H = GetSnappedMetrics(sizeEssRow2, spacing)
+        end
         local row1Count = math.min(maxRowEss, total)
         local row2Count = math.max(0, total - maxRowEss)
-        local row1WidthPx = RowWidthPx(row1Count, row1WPx, gapPx)
-        local row2WidthPx = RowWidthPx(row2Count, row2WPx, gapPx)
-        local containerWidthPx = math.max(row1WidthPx, row2WidthPx)
+        local row1Width = RowWidth(row1Count, row1W, gap)
+        local row2Width = RowWidth(row2Count, row2W, gap)
+        local cWidth = math.max(row1Width, row2Width)
 
         if index <= maxRowEss then
             local countInRow = row1Count
             local col = index - 1
-            local xPx = CenteredRowXForColPx(col, row1WPx, gapPx, containerWidthPx, row1WidthPx)
-            return LayoutPositionFromPx(1, col, row1WPx, row1HPx, xPx, 0, countInRow)
+            local x = CenteredRowXForCol(col, row1W, gap, cWidth, row1Width)
+            return LayoutPosition(1, col, row1W, row1H, x, 0, countInRow)
         else
             local countInRow = row2Count
             local col = index - maxRowEss - 1
-            local xPx = CenteredRowXForColPx(col, row2WPx, gapPx, containerWidthPx, row2WidthPx)
-            local yPx = row1HPx + gapPx
-            return LayoutPositionFromPx(2, col, row2WPx, row2HPx, xPx, yPx, countInRow)
+            local x = CenteredRowXForCol(col, row2W, gap, cWidth, row2Width)
+            local y = row1H + gap
+            return LayoutPosition(2, col, row2W, row2H, x, y, countInRow)
         end
     end
 
-    local utilWPx, utilHPx, gapPx = GetSnappedMetricsPx(sizeUtility, spacing)
+    local utilW, utilH, gap
+    if _preUtil then
+        utilW, utilH, gap = _preUtil[1], _preUtil[2], _preUtil[3]
+    else
+        utilW, utilH, gap = GetSnappedMetrics(sizeUtility, spacing)
+    end
 
     if utilityVertical and HasPositiveLimit(maxRowUtil) then
         local numCols = math.ceil(total / maxRowUtil)
         local colIndex = math.floor((index - 1) / maxRowUtil)
         local rowInCol = (index - 1) % maxRowUtil
         local iconsInThisCol = math.min(maxRowUtil, total - colIndex * maxRowUtil)
-        local xPx = colIndex * (utilWPx + gapPx)
-        local yPx = (iconsInThisCol - 1 - rowInCol) * (utilHPx + gapPx)
-        return LayoutPositionFromPx(colIndex + 1, rowInCol, utilWPx, utilHPx, xPx, yPx, iconsInThisCol)
+        local x = colIndex * (utilW + gap)
+        local y = (iconsInThisCol - 1 - rowInCol) * (utilH + gap)
+        return LayoutPosition(colIndex + 1, rowInCol, utilW, utilH, x, y, iconsInThisCol)
     end
 
     if HasPositiveLimit(maxRowUtil) and maxRowUtil < total then
         local row1Count = maxRowUtil
         local row2Count = total - maxRowUtil
-        local row1WidthPx = RowWidthPx(row1Count, utilWPx, gapPx)
-        local row2WidthPx = RowWidthPx(row2Count, utilWPx, gapPx)
-        local containerWidthPx = math.max(row1WidthPx, row2WidthPx)
+        local row1Width = RowWidth(row1Count, utilW, gap)
+        local row2Width = RowWidth(row2Count, utilW, gap)
+        local cWidth = math.max(row1Width, row2Width)
         if index <= maxRowUtil then
             local countInRow = row1Count
             local col = index - 1
-            local xPx = CenteredRowXForColPx(col, utilWPx, gapPx, containerWidthPx, row1WidthPx)
-            return LayoutPositionFromPx(1, col, utilWPx, utilHPx, xPx, 0, countInRow)
+            local x = CenteredRowXForCol(col, utilW, gap, cWidth, row1Width)
+            return LayoutPosition(1, col, utilW, utilH, x, 0, countInRow)
         else
             local countInRow = row2Count
             local col = index - maxRowUtil - 1
-            local xPx = CenteredRowXForColPx(col, utilWPx, gapPx, containerWidthPx, row2WidthPx)
-            local yPx = utilHPx + gapPx
-            return LayoutPositionFromPx(2, col, utilWPx, utilHPx, xPx, yPx, countInRow)
+            local x = CenteredRowXForCol(col, utilW, gap, cWidth, row2Width)
+            local y = utilH + gap
+            return LayoutPosition(2, col, utilW, utilH, x, y, countInRow)
         end
     end
     return ComputeGridPosition(index, total, total, sizeUtility, spacing)
 end
 
 local function ComputeEssentialContainerSize(total, sizeEssRow1, sizeEssRow2, spacing, maxRowEss)
-    local row1WPx, row1HPx, gapPx = GetSnappedMetricsPx(sizeEssRow1, spacing)
-    local row2WPx, row2HPx = GetSnappedMetricsPx(sizeEssRow2, spacing)
+    local row1W, row1H, gap = GetSnappedMetrics(sizeEssRow1, spacing)
+    local row2W, row2H = GetSnappedMetrics(sizeEssRow2, spacing)
     if total <= 0 then
-        return LayoutSizeFromPx(row1WPx, row1HPx)
+        return LayoutSize(row1W, row1H)
     end
     local row1Count = math.min(maxRowEss, total)
     local row2Count = math.max(0, total - maxRowEss)
-    local row1Width = RowWidthPx(row1Count, row1WPx, gapPx)
-    local row2Width = RowWidthPx(row2Count, row2WPx, gapPx)
-    local containerWidth = math.max(row1Width, row2Width)
-    local containerHeight = row1HPx
+    local r1Width = RowWidth(row1Count, row1W, gap)
+    local r2Width = RowWidth(row2Count, row2W, gap)
+    local cWidth = math.max(r1Width, r2Width)
+    local cHeight = row1H
     if row2Count > 0 then
-        containerHeight = row1HPx + gapPx + row2HPx
+        cHeight = row1H + gap + row2H
     end
-    return LayoutSizeFromPx(containerWidth, containerHeight)
+    return LayoutSize(cWidth, cHeight)
 end
 
 local function ComputeUtilityContainerSize(total, sizeUtility, spacing, maxRowUtil, utilityVertical)
-    local utilWPx, utilHPx, gapPx = GetSnappedMetricsPx(sizeUtility, spacing)
+    local utilW, utilH, gap = GetSnappedMetrics(sizeUtility, spacing)
     if total <= 0 then
-        return LayoutSizeFromPx(utilWPx, utilHPx)
+        return LayoutSize(utilW, utilH)
     end
     if utilityVertical and HasPositiveLimit(maxRowUtil) then
         local numCols = math.ceil(total / maxRowUtil)
         local tallestCol = math.min(maxRowUtil, total)
-        local containerWidth = RowWidthPx(numCols, utilWPx, gapPx)
-        local containerHeight = RowWidthPx(tallestCol, utilHPx, gapPx)
-        return LayoutSizeFromPx(containerWidth, containerHeight)
+        local cWidth = RowWidth(numCols, utilW, gap)
+        local cHeight = RowWidth(tallestCol, utilH, gap)
+        return LayoutSize(cWidth, cHeight)
     end
 
     if HasPositiveLimit(maxRowUtil) and maxRowUtil < total then
         local row2Count = total - maxRowUtil
-        local row1Width = RowWidthPx(maxRowUtil, utilWPx, gapPx)
-        local row2Width = RowWidthPx(row2Count, utilWPx, gapPx)
-        local containerWidth = math.max(row1Width, row2Width)
-        local containerHeight = (2 * utilHPx) + gapPx
-        return LayoutSizeFromPx(containerWidth, containerHeight)
+        local r1Width = RowWidth(maxRowUtil, utilW, gap)
+        local r2Width = RowWidth(row2Count, utilW, gap)
+        local cWidth = math.max(r1Width, r2Width)
+        local cHeight = (2 * utilH) + gap
+        return LayoutSize(cWidth, cHeight)
     end
-    local containerWidth = RowWidthPx(total, utilWPx, gapPx)
-    local containerHeight = utilHPx
-    return LayoutSizeFromPx(containerWidth, containerHeight)
+    local cWidth = RowWidth(total, utilW, gap)
+    local cHeight = utilH
+    return LayoutSize(cWidth, cHeight)
 end
 
 local function ToSortNumber(value, fallback)
@@ -302,12 +283,146 @@ end
 
 CDM.CountPopulatedFrames = CountPopulatedFrames
 
+local function GetXSide(point)
+    if point == "LEFT" or point == "TOPLEFT" or point == "BOTTOMLEFT" then
+        return "LEFT"
+    elseif point == "RIGHT" or point == "TOPRIGHT" or point == "BOTTOMRIGHT" then
+        return "RIGHT"
+    end
+    return "CENTER"
+end
+
+local function GetYSide(point)
+    if point == "TOP" or point == "TOPLEFT" or point == "TOPRIGHT" then
+        return "TOP"
+    elseif point == "BOTTOM" or point == "BOTTOMLEFT" or point == "BOTTOMRIGHT" then
+        return "BOTTOM"
+    end
+    return "CENTER"
+end
+
+local function ComposePoint(xSide, ySide)
+    if ySide == "TOP" then
+        if xSide == "LEFT" then return "TOPLEFT" end
+        if xSide == "RIGHT" then return "TOPRIGHT" end
+        return "TOP"
+    elseif ySide == "BOTTOM" then
+        if xSide == "LEFT" then return "BOTTOMLEFT" end
+        if xSide == "RIGHT" then return "BOTTOMRIGHT" end
+        return "BOTTOM"
+    end
+    if xSide == "LEFT" then return "LEFT" end
+    if xSide == "RIGHT" then return "RIGHT" end
+    return "CENTER"
+end
+
+local function DeriveSelfPoint(anchorPoint, grow)
+    local point = anchorPoint or "CENTER"
+    if grow == "CENTER_H" or grow == "CENTER_V" then
+        return point
+    end
+
+    local xSide = GetXSide(point)
+    local ySide = GetYSide(point)
+
+    if grow == "RIGHT" then
+        xSide = "LEFT"
+    elseif grow == "LEFT" then
+        xSide = "RIGHT"
+    elseif grow == "DOWN" then
+        ySide = "TOP"
+    elseif grow == "UP" then
+        ySide = "BOTTOM"
+    end
+
+    return ComposePoint(xSide, ySide)
+end
+
+local function PositionFrameAtSlot(frame, container, idx, iconW, iconH, spacingW, grow, layoutCount, anchorPoint, selfPoint)
+    local x, y
+    local stepW = Snap(iconW + spacingW)
+    local stepH = Snap(iconH + spacingW)
+    if grow == "RIGHT" then
+        x, y = idx * stepW, 0
+    elseif grow == "LEFT" then
+        x, y = -idx * stepW, 0
+    elseif grow == "UP" then
+        x, y = 0, idx * stepH
+    elseif grow == "DOWN" then
+        x, y = 0, -idx * stepH
+    elseif grow == "CENTER_H" then
+        local startX = -Pixel.HalfFloor((layoutCount - 1) * stepW)
+        x, y = startX + idx * stepW, 0
+    elseif grow == "CENTER_V" then
+        local startY = Pixel.HalfFloor((layoutCount - 1) * stepH)
+        x, y = 0, startY - idx * stepH
+    end
+    Pixel.SetPoint(frame, selfPoint or "CENTER", container, anchorPoint or "CENTER", x or 0, y or 0)
+end
+
+local function PlaceFrame(frame, container, selfPoint, anchorPoint, x, y)
+    Pixel.SetPoint(frame, selfPoint, container, anchorPoint, x, y)
+end
+
+local function OverrideCooldownText(t, pixelSize, color)
+    if not t or not t.SetFont then return end
+    if pixelSize then
+        local fp, _, ff = t:GetFont()
+        if fp then t:SetFont(fp, pixelSize, ff) end
+    end
+    if color then
+        t:SetTextColor(color.r, color.g, color.b, color.a or 1)
+    end
+end
+
+local function GetCooldownFontRegions(cd, frameData)
+    local regions = frameData and frameData.cdmCdFontRegions
+    if regions then
+        return regions
+    end
+    regions = {}
+    for ri = 1, select("#", cd:GetRegions()) do
+        local region = select(ri, cd:GetRegions())
+        if region and region.IsObjectType and region:IsObjectType("FontString") then
+            regions[#regions + 1] = region
+        end
+    end
+    if frameData then
+        frameData.cdmCdFontRegions = regions
+    end
+    return regions
+end
+
+local function OverrideCooldownRegions(cd, pixelSize, color, frameData)
+    local regions = GetCooldownFontRegions(cd, frameData)
+    for _, region in ipairs(regions) do
+        OverrideCooldownText(region, pixelSize, color)
+    end
+end
+
+local nextStableSortID = 0
+
+local function GetStableFrameSortID(frame)
+    local frameData = GetFrameData(frame)
+    local sortID = frameData.cdmStableSortID
+    if sortID then
+        return sortID
+    end
+
+    nextStableSortID = nextStableSortID + 1
+    frameData.cdmStableSortID = nextStableSortID
+    return nextStableSortID
+end
+
 CDM._LayoutCtx = {
     GetFrameData = GetFrameData,
     CheckBuffRegistryMatch = CheckBuffRegistryMatch,
+    CheckCdGroupMatch = CDM.CheckCdGroupMatch,
     VIEWERS = VIEWERS,
     defensivesHiddenSet = defensivesHiddenSet,
     CDM_C = CDM_C,
+    Pixel = Pixel,
+    Snap = Snap,
     ResolveBaseSpellID = ResolveBaseSpellID,
     ToSortNumber = ToSortNumber,
     GetLayoutConfig = GetLayoutConfig,
@@ -317,4 +432,17 @@ CDM._LayoutCtx = {
     ComputeEssentialOrUtilityPosition = ComputeEssentialOrUtilityPosition,
     ComputeEssentialContainerSize = ComputeEssentialContainerSize,
     ComputeUtilityContainerSize = ComputeUtilityContainerSize,
+    GetSnappedMetrics = GetSnappedMetrics,
+    RowWidth = RowWidth,
+    GetXSide = GetXSide,
+    GetYSide = GetYSide,
+    ComposePoint = ComposePoint,
+    DeriveSelfPoint = DeriveSelfPoint,
+    PositionFrameAtSlot = PositionFrameAtSlot,
+    PlaceFrame = PlaceFrame,
+    OverrideCooldownText = OverrideCooldownText,
+    GetCooldownFontRegions = GetCooldownFontRegions,
+    OverrideCooldownRegions = OverrideCooldownRegions,
+    CenteredRowLeft = CenteredRowLeft,
+    GetStableFrameSortID = GetStableFrameSortID,
 }

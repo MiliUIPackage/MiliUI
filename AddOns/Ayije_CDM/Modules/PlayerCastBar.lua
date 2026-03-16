@@ -3,9 +3,8 @@ local CDM = _G[AddonName]
 local L = CDM.L
 
 local CDM_C = CDM and CDM.CONST or {}
-local SnapToPixel = CDM_C.SnapOffsetToPixel
-local SetPixelPerfectPoint = CDM_C.SetPixelPerfectPoint
-local GetPixelSize = CDM_C.GetPixelSizeForRegion
+local Pixel = CDM.Pixel
+local Snap = Pixel.Snap
 
 local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
 
@@ -34,7 +33,7 @@ local function GetPlayerClassColor()
     return color.r, color.g, color.b, color.a or 1
 end
 
-local IsPixelBorderMode = CDM_C.IsPixelIconBorderMode
+local IsPixelBorderMode = Pixel.IsOneBorderMode
 
 local function EnsureManualPixelBorder(target)
     if not target then return nil, nil end
@@ -49,7 +48,7 @@ local function EnsureManualPixelBorder(target)
 
     local lines = {}
     for i = 1, 4 do
-        lines[i] = overlay:CreateTexture(nil, "OVERLAY", nil, 6)
+        lines[i] = Pixel.CreateSolidTexture(overlay, "OVERLAY", 6)
     end
 
     target.cdmManualPixelBorderOverlay = overlay
@@ -61,17 +60,6 @@ local function HideManualPixelBorder(target)
     if target and target.cdmManualPixelBorderOverlay then
         target.cdmManualPixelBorderOverlay:Hide()
     end
-end
-
-local function GetConfiguredPixelBorderThickness()
-    local onePixel = (GetPixelSize and GetPixelSize(UIParent)) or 1
-    local rawBorderSize = CfgVal("borderSize", 1) or 1
-    local borderPixels = math.max(1, math.floor(rawBorderSize / onePixel))
-    local thickness = borderPixels * onePixel
-    if thickness <= 0 then
-        thickness = onePixel
-    end
-    return thickness
 end
 
 local function ApplyManualPixelBorder(target)
@@ -90,52 +78,44 @@ local function ApplyManualPixelBorder(target)
         return
     end
 
-    local width = target:GetWidth() or 0
-    local height = target:GetHeight() or 0
-    if width <= 0 or height <= 0 then
-        overlay:Hide()
-        return
-    end
-
     overlay:SetAllPoints(target)
     overlay:SetFrameStrata(target:GetFrameStrata())
     overlay:SetFrameLevel((target:GetFrameLevel() or 0) + 4)
     overlay:Show()
 
     local color = CfgVal("borderColor", { r = 1, g = 1, b = 1, a = 1 })
-    local thickness = GetConfiguredPixelBorderThickness()
+    local onePx = Pixel.GetSize()
+    local px = math.max(1, math.floor((CfgVal("borderSize", 1) or 1) / onePx)) * onePx
 
-    local innerW = math.max(0, width - (2 * thickness))
     local top = lines[1]
     local bottom = lines[2]
     local left = lines[3]
     local right = lines[4]
 
     for _, line in ipairs(lines) do
-        line:SetTexture(CDM_C.TEX_WHITE8X8)
-        if line.SetHorizTile then line:SetHorizTile(false) end
-        if line.SetVertTile then line:SetVertTile(false) end
-        if line.SetSnapToPixelGrid then line:SetSnapToPixelGrid(false) end
-        if line.SetTexelSnappingBias then line:SetTexelSnappingBias(0) end
         line:SetVertexColor(color.r, color.g, color.b, color.a or 1)
         line:Show()
     end
 
     top:ClearAllPoints()
-    top:SetPoint("TOPLEFT", overlay, "TOPLEFT", thickness, 0)
-    top:SetSize(innerW, thickness)
+    top:SetPoint("TOPLEFT", overlay, "TOPLEFT", px, 0)
+    top:SetPoint("TOPRIGHT", overlay, "TOPRIGHT", -px, 0)
+    top:SetHeight(px)
 
     bottom:ClearAllPoints()
-    bottom:SetPoint("BOTTOMLEFT", overlay, "BOTTOMLEFT", thickness, 0)
-    bottom:SetSize(innerW, thickness)
+    bottom:SetPoint("BOTTOMLEFT", overlay, "BOTTOMLEFT", px, 0)
+    bottom:SetPoint("BOTTOMRIGHT", overlay, "BOTTOMRIGHT", -px, 0)
+    bottom:SetHeight(px)
 
     left:ClearAllPoints()
     left:SetPoint("TOPLEFT", overlay, "TOPLEFT", 0, 0)
-    left:SetSize(thickness, height)
+    left:SetPoint("BOTTOMLEFT", overlay, "BOTTOMLEFT", 0, 0)
+    left:SetWidth(px)
 
     right:ClearAllPoints()
     right:SetPoint("TOPRIGHT", overlay, "TOPRIGHT", 0, 0)
-    right:SetSize(thickness, height)
+    right:SetPoint("BOTTOMRIGHT", overlay, "BOTTOMRIGHT", 0, 0)
+    right:SetWidth(px)
 end
 
 local function SyncCastBarBorderVisual(target, borderHost)
@@ -190,15 +170,14 @@ local function UpdateEmpowerPips(frame, scaledPercentages)
     for i = 1, #scaledPercentages do
         local pip = frame.empowerPips[i]
         if not pip then
-            pip = frame.topOverlay:CreateTexture(nil, "OVERLAY", nil, 7)
-            pip:SetTexture(CDM_C.TEX_WHITE8X8)
+            pip = Pixel.CreateSolidTexture(frame.topOverlay, "OVERLAY", 7)
             frame.empowerPips[i] = pip
         end
 
         local xPos = barWidth * scaledPercentages[i]
-        pip:SetSize(GetPixelSize(frame.topOverlay) or 1, barHeight)
+        pip:SetSize(Pixel.GetSize(), barHeight)
         pip:ClearAllPoints()
-        SetPixelPerfectPoint(pip, "CENTER", frame.topOverlay, "LEFT", xPos, 0)
+        Pixel.SetPoint(pip, "CENTER", frame.topOverlay, "LEFT", xPos, 0)
         pip:SetVertexColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a or 1)
         pip:Show()
     end
@@ -254,12 +233,12 @@ local function SetupEmpowerSegments(frame, numStages, boundaries)
 
         stage.startPct = startPct
         stage.endPct = endPct
-        local onePixel = GetPixelSize(frame.stageFrame) or 1
-        stage.fullWidth = math.max(onePixel, SnapToPixel((endPct - startPct) * barWidth, frame.stageFrame))
+        local onePixel = Pixel.GetSize()
+        stage.fullWidth = math.max(onePixel, Snap((endPct - startPct) * barWidth))
 
         local bar = stage.bar
         bar:ClearAllPoints()
-        SetPixelPerfectPoint(bar, "TOPLEFT", frame.stageFrame, "TOPLEFT", startPct * barWidth, 0)
+        Pixel.SetPoint(bar, "TOPLEFT", frame.stageFrame, "TOPLEFT", startPct * barWidth, 0)
         bar:SetSize(stage.fullWidth, barHeight)
         ApplyStageTexture(bar)
         bar:SetStatusBarColor(color.r, color.g, color.b, color.a or 1)
@@ -632,7 +611,12 @@ local function RefreshBarData(frame, isChannel)
     end
 
     if frame.cdmShowSpellName ~= false then
-        frame.spellName:SetText(text or name)
+        local displayName = text or name
+        local mc = frame.cdmNameMaxChars
+        if mc and mc > 0 and displayName and #displayName > mc then
+            displayName = displayName:sub(1, mc) .. "..."
+        end
+        frame.spellName:SetText(displayName)
         frame.spellName:Show()
     else
         frame.spellName:Hide()
@@ -670,7 +654,7 @@ local function ApplyCastBarIconLayout(frame)
     end
 
     local position = CfgVal("castBarIconPosition", "LEFT")
-    local gap = SnapToPixel(CfgVal("castBarIconGap", 1), container)
+    local gap = Snap(CfgVal("castBarIconGap", 1))
     local containerW = container:GetWidth()
     local containerH = container:GetHeight()
 
@@ -719,18 +703,19 @@ local function UpdateCastBarFromConfig(frame)
     CDM_C.RefreshBaseFontCache()
     local fontPath = CDM_C.GetBaseFontPath()
     local fontOutline = CDM_C.GetBaseFontOutline()
-    local fontSize = CDM_C.GetPixelFontSize(CfgVal("castBarFontSize", 15))
+    local fontSize = Pixel.FontSize(CfgVal("castBarFontSize", 15))
 
     frame.spellName:SetFont(fontPath, fontSize, fontOutline)
     frame.spellName:ClearAllPoints()
-    SetPixelPerfectPoint(frame.spellName, "LEFT", frame, "LEFT", CfgVal("castBarNameOffsetX", 2), CfgVal("castBarNameOffsetY", 4))
+    Pixel.SetPoint(frame.spellName, "LEFT", frame, "LEFT", CfgVal("castBarNameOffsetX", 2), CfgVal("castBarNameOffsetY", 4))
 
     frame.timeText:SetFont(fontPath, fontSize, fontOutline)
     frame.timeText:ClearAllPoints()
-    SetPixelPerfectPoint(frame.timeText, "RIGHT", frame, "RIGHT", CfgVal("castBarTimerOffsetX", -2), CfgVal("castBarTimerOffsetY", 4))
+    Pixel.SetPoint(frame.timeText, "RIGHT", frame, "RIGHT", CfgVal("castBarTimerOffsetX", -2), CfgVal("castBarTimerOffsetY", 4))
 
     local showName = CfgVal("castBarShowSpellName", true)
     frame.cdmShowSpellName = showName
+    frame.cdmNameMaxChars = CfgVal("castBarNameMaxChars", 0)
     frame.spellName:SetShown(showName)
 
     local showTimer = CfgVal("castBarShowTimer", true)
@@ -748,13 +733,13 @@ local function UpdateCastBarFromConfig(frame)
         frame.sparkObj:SetTexCoord(0.222168, 0.232422, 0.294434, 0.317383)
         frame.sparkObj:SetDesaturated(true)
         frame.sparkObj:SetVertexColor(1, 1, 1, 1)
-        frame.sparkObj:SetSize(16, SnapToPixel(h * 2.1, frame))
+        frame.sparkObj:SetSize(16, Snap(h * 2.1))
     else
         frame.sparkObj:SetTexture(CDM_C.TEX_WHITE8X8)
         frame.sparkObj:SetTexCoord(0, 1, 0, 1)
         frame.sparkObj:SetDesaturated(false)
         frame.sparkObj:SetVertexColor(1, 1, 1, 0.8)
-        frame.sparkObj:SetSize(SnapToPixel(2, frame), SnapToPixel(h, frame))
+        frame.sparkObj:SetSize(Snap(2), Snap(h))
     end
 
     if useAtlas then
@@ -783,18 +768,21 @@ local function UpdateContainerPosition()
     local container = CDM.castBarContainer
     if not container then return end
 
+    local HalfFloor = Pixel.HalfFloor
+    local halfW = HalfFloor(container:GetWidth() or 0)
+
     local anchorToResources = IsCastBarResourceAnchorEnabled()
     if anchorToResources and CDM.resourceContainer then
         local spacing = CfgVal("castBarResourcesSpacing", 2)
         container:ClearAllPoints()
 
         if CDM.currentPowerTypes and #CDM.currentPowerTypes > 0 then
-            SetPixelPerfectPoint(container, "BOTTOM", CDM.resourceContainer, "TOP", 0, spacing)
+            local resHalfW = HalfFloor(CDM.resourceContainer:GetWidth() or 0)
+            Pixel.SetPoint(container, "BOTTOMLEFT", CDM.resourceContainer, "TOPLEFT", resHalfW - halfW, spacing)
             return
         end
 
-        -- No active resource bars
-        SetPixelPerfectPoint(container, "BOTTOM", CDM.resourceContainer, "BOTTOM", 0, 0)
+        Pixel.SetPoint(container, "BOTTOMLEFT", CDM.resourceContainer, "BOTTOMLEFT", HalfFloor(CDM.resourceContainer:GetWidth() or 0) - halfW, 0)
         return
     end
 
@@ -802,7 +790,7 @@ local function UpdateContainerPosition()
     local offsetY = CfgVal("castBarOffsetY", -166)
 
     container:ClearAllPoints()
-    SetPixelPerfectPoint(container, "BOTTOM", UIParent, "CENTER", offsetX, offsetY)
+    Pixel.SetPoint(container, "BOTTOMLEFT", UIParent, "CENTER", offsetX - halfW, offsetY)
 end
 
 local function UpdateContainerLockState()
@@ -849,6 +837,8 @@ local castBarEvents = {
     "UNIT_SPELLCAST_EMPOWER_UPDATE",
 }
 
+local blizzardCastBarDisabled = false
+
 local function EnableCastBar(frame)
     for _, event in ipairs(castBarEvents) do
         frame:RegisterUnitEvent(event, "player")
@@ -878,6 +868,20 @@ local function DisableCastBar(frame)
     if CDM.castBarContainer then
         CDM.castBarContainer:Hide()
     end
+end
+
+function CDM:DisableBlizzardPlayerCastBar()
+    if blizzardCastBarDisabled then
+        return true
+    end
+    if not CfgVal("hideBlizzardCastBar", false) or not PlayerCastingBarFrame then
+        return false
+    end
+
+    -- This is intentionally one-way for the current session; reloading restores Blizzard defaults.
+    PlayerCastingBarFrame:UnregisterAllEvents()
+    blizzardCastBarDisabled = true
+    return true
 end
 
 function CDM:InitializePlayerCastBar()
@@ -962,8 +966,7 @@ function CDM:InitializePlayerCastBar()
     iconFrame:SetFrameLevel(10)
     iconFrame.texture = iconFrame:CreateTexture(nil, "ARTWORK")
     iconFrame.texture:SetAllPoints()
-    iconFrame.texture:SetSnapToPixelGrid(false)
-    iconFrame.texture:SetTexelSnappingBias(0)
+    Pixel.DisableTextureSnap(iconFrame.texture)
     iconFrame.borderFrame = CreateFrame("Frame", nil, iconFrame, "BackdropTemplate")
     iconFrame.borderFrame:SetAllPoints()
     iconFrame.borderFrame:SetFrameLevel(12)
@@ -975,8 +978,7 @@ function CDM:InitializePlayerCastBar()
 
     f.bgTexture = f:CreateTexture(nil, "BACKGROUND")
     f.bgTexture:SetAllPoints()
-    f.bgTexture:SetSnapToPixelGrid(false)
-    f.bgTexture:SetTexelSnappingBias(0)
+    Pixel.DisableTextureSnap(f.bgTexture)
     f.bgTexture:SetTexture(CASTBAR_BG_TEXTURE)
 
     f.castBar = CreateFrame("StatusBar", nil, f)
@@ -995,7 +997,7 @@ function CDM:InitializePlayerCastBar()
 
     local fontPath = CDM_C.FONT_PATH
     local fontOutline = CDM_C.FONT_OUTLINE or "OUTLINE"
-    local fontSize = CDM_C.GetPixelFontSize(15)
+    local fontSize = Pixel.FontSize(15)
 
     f.spellName = f.topOverlay:CreateFontString(nil, "OVERLAY")
     f.spellName:SetIgnoreParentScale(true)
@@ -1102,7 +1104,7 @@ function CDM:InitializePlayerCastBar()
 
     local w = GetCastBarWidth()
     local h = CfgVal("castBarHeight", 20)
-    container:SetSize(SnapToPixel(w, container), SnapToPixel(h, container))
+    Pixel.SetSize(container, w, h)
     UpdateContainerPosition()
     UpdateCastBarFromConfig(f)
 
@@ -1133,17 +1135,12 @@ function CDM:UpdatePlayerCastBar()
     if self.castBarContainer then
         local w = GetCastBarWidth()
         local h = CfgVal("castBarHeight", 20)
-        self.castBarContainer:SetSize(SnapToPixel(w, self.castBarContainer), SnapToPixel(h, self.castBarContainer))
+        Pixel.SetSize(self.castBarContainer, w, h)
     end
 
     UpdateCastBarFromConfig(self.castBarFrame)
     UpdateContainerPosition()
     UpdateContainerLockState()
-
-    if CfgVal("hideBlizzardCastBar", false) and PlayerCastingBarFrame then
-        PlayerCastingBarFrame:UnregisterAllEvents()
-        PlayerCastingBarFrame:Hide()
-    end
 end
 
 CDM:RegisterRefreshCallback("playerCastBar", function()

@@ -336,7 +336,7 @@ local function CreateRacialsTab(page, tabId)
     NextY(30)
 
     page.racialsIconWidthSlider = UI.CreateModernSlider(
-        scrollChild, L["Icon Width"], 20, 80,
+        scrollChild, L["Icon Width"], 20, 100,
         CDM.db.racialsIconWidth or 40,
         function(v)
             CDM.db.racialsIconWidth = UI.RoundToInt(v)
@@ -347,7 +347,7 @@ local function CreateRacialsTab(page, tabId)
     NextY(60)
 
     page.racialsIconHeightSlider = UI.CreateModernSlider(
-        scrollChild, L["Icon Height"], 20, 80,
+        scrollChild, L["Icon Height"], 20, 100,
         CDM.db.racialsIconHeight or 36,
         function(v)
             CDM.db.racialsIconHeight = UI.RoundToInt(v)

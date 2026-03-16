@@ -165,6 +165,28 @@ local function CompactBuffOverrideTables(profile)
             end
         end
     end
+
+    local cg = profile.cooldownGroups
+    if type(cg) == "table" then
+        for _, specGroups in pairs(cg) do
+            if type(specGroups) == "table" then
+                for _, group in pairs(specGroups) do
+                    if type(group) == "table" and type(group.spellOverrides) == "table" then
+                        CompactSpellOverrideMap(group.spellOverrides)
+                    end
+                end
+            end
+        end
+    end
+
+    local uco = profile.ungroupedCooldownOverrides
+    if type(uco) == "table" then
+        for _, specOverrides in pairs(uco) do
+            if type(specOverrides) == "table" then
+                CompactSpellOverrideMap(specOverrides)
+            end
+        end
+    end
 end
 
 local function NormalizeBuffGroupSpellList(spellList)
@@ -188,8 +210,7 @@ local function NormalizeBuffGroupSpellList(spellList)
             end
 
             if not duplicate then
-                local storageKey = GetBuffOverrideStorageKey(rawID)
-                normalized[#normalized + 1] = IsUsableSpellID(storageKey) and storageKey or rawID
+                normalized[#normalized + 1] = rawID
             end
 
             seen[rawID] = true
@@ -202,15 +223,11 @@ local function NormalizeBuffGroupSpellList(spellList)
     return normalized
 end
 
-local function CompactBuffGroupSpellLists(profile)
-    if type(profile) ~= "table" then return end
+local function CompactGroupSpellListsForKey(profile, key)
+    local data = profile[key]
+    if type(data) ~= "table" then return end
 
-    local bg = profile.buffGroups
-    if type(bg) ~= "table" then
-        return
-    end
-
-    for _, specGroups in pairs(bg) do
+    for _, specGroups in pairs(data) do
         if type(specGroups) == "table" then
             for _, group in pairs(specGroups) do
                 if type(group) == "table" and type(group.spells) == "table" then
@@ -219,6 +236,12 @@ local function CompactBuffGroupSpellLists(profile)
             end
         end
     end
+end
+
+local function CompactBuffGroupSpellLists(profile)
+    if type(profile) ~= "table" then return end
+    CompactGroupSpellListsForKey(profile, "buffGroups")
+    CompactGroupSpellListsForKey(profile, "cooldownGroups")
 end
 
 local function NormalizeLegacyBuffGroupSpellList(spellList)
@@ -258,6 +281,8 @@ local NUMERIC_KEYED_TABLES = {
     "resourcesTagSettings",
     "buffGroups",
     "ungroupedBuffOverrides",
+    "cooldownGroups",
+    "ungroupedCooldownOverrides",
     "customBuffRegistry",
 }
 
@@ -453,7 +478,7 @@ local function StripDefaultMatchingValues(profile)
     end
 end
 
-local DB_SCHEMA_VERSION = 2
+local DB_SCHEMA_VERSION = 3
 
 local PROFILE_MIGRATIONS = {
     {
@@ -465,6 +490,18 @@ local PROFILE_MIGRATIONS = {
     {
         version = 2,
         run = StripDefaultMatchingValues,
+    },
+    {
+        version = 3,
+        run = function(profile)
+            local old = rawget(profile, "fadingTrigger")
+            if old ~= nil then
+                profile.fadingTriggerNoTarget = (old == "notarget")
+                profile.fadingTriggerOOC = (old == "ooc")
+                profile.fadingTriggerMounted = false
+                profile.fadingTrigger = nil
+            end
+        end,
     },
 }
 
@@ -682,6 +719,9 @@ function CDM:ApplyProfileAtomic(name, preparedProfileData, options)
     if CDM.ModuleManager and CDM.ModuleManager.NotifyProfileApplied then
         CDM.ModuleManager:NotifyProfileApplied()
     end
+    if CDM.DisableBlizzardPlayerCastBar then
+        CDM:DisableBlizzardPlayerCastBar()
+    end
 
     QueueCanonicalProfileRefresh(options)
     return true
@@ -897,6 +937,36 @@ function CDM:InvalidateSpecIDCache()
     cachedSpecID = nil
 end
 
+local function GetPerSpecSetting(dbFieldName, specID, default)
+    if not specID then return default end
+    local db = CDM.db
+    if not db then return default end
+    local settings = db[dbFieldName]
+    if type(settings) ~= "table" then return default end
+    local stored = settings[specID]
+    if stored ~= nil then return stored end
+    return default
+end
+
+local function SetPerSpecSetting(dbFieldName, specID, value, default)
+    if not specID then return end
+    local db = CDM.db
+    if not db then return end
+    local isDefault = (value == default) or (default == true and value == nil)
+    if isDefault then
+        local settings = db[dbFieldName]
+        if type(settings) == "table" then
+            settings[specID] = nil
+            if not next(settings) then db[dbFieldName] = nil end
+        end
+    else
+        if type(db[dbFieldName]) ~= "table" then
+            db[dbFieldName] = {}
+        end
+        db[dbFieldName][specID] = value
+    end
+end
+
 function CDM:GetTagEnabled(isBar2)
     local specID = self:GetCurrentSpecID()
     if not specID then return false end
@@ -964,92 +1034,33 @@ end
 function CDM:GetManaEnabled()
     local specID = self:GetCurrentSpecID()
     if not specID then return false end
-    local manaSpecs = CDM.MANA_SPECS
+    local manaSpecs = self.MANA_SPECS
     if not manaSpecs or manaSpecs[specID] == nil then return false end
-
-    local manaSettings = CDM.db.resourcesManaSettings
-    if type(manaSettings) == "table" and manaSettings[specID] ~= nil then
-        return manaSettings[specID]
-    end
-    return manaSpecs[specID]
+    return GetPerSpecSetting("resourcesManaSettings", specID, manaSpecs[specID])
 end
 
 function CDM:SetManaEnabled(enabled)
     local specID = self:GetCurrentSpecID()
     if not specID then return end
-
-    local manaSpecs = CDM.MANA_SPECS
-    local defaultEnabled = manaSpecs and manaSpecs[specID] or false
-
-    if enabled == defaultEnabled then
-        local manaSettings = CDM.db.resourcesManaSettings
-        if type(manaSettings) ~= "table" then return end
-        manaSettings[specID] = nil
-        if IsEmptyTable(manaSettings) then
-            CDM.db.resourcesManaSettings = nil
-        end
-    else
-        if not CDM.db.resourcesManaSettings then
-            CDM.db.resourcesManaSettings = {}
-        end
-        CDM.db.resourcesManaSettings[specID] = enabled
-    end
+    local manaSpecs = self.MANA_SPECS
+    local default = manaSpecs and manaSpecs[specID] or false
+    SetPerSpecSetting("resourcesManaSettings", specID, enabled, default)
 end
 
 function CDM:GetPrimaryResourceEnabled()
-    local specID = self:GetCurrentSpecID()
-    if not specID then return true end
-    local settings = CDM.db.resourcesPrimaryResourceSettings
-    if type(settings) == "table" and settings[specID] ~= nil then
-        return settings[specID]
-    end
-    return true
+    return GetPerSpecSetting("resourcesPrimaryResourceSettings", self:GetCurrentSpecID(), true)
 end
 
 function CDM:SetPrimaryResourceEnabled(enabled)
-    local specID = self:GetCurrentSpecID()
-    if not specID then return end
-    if enabled == true or enabled == nil then
-        local settings = CDM.db.resourcesPrimaryResourceSettings
-        if type(settings) ~= "table" then return end
-        settings[specID] = nil
-        if IsEmptyTable(settings) then
-            CDM.db.resourcesPrimaryResourceSettings = nil
-        end
-    else
-        if not CDM.db.resourcesPrimaryResourceSettings then
-            CDM.db.resourcesPrimaryResourceSettings = {}
-        end
-        CDM.db.resourcesPrimaryResourceSettings[specID] = false
-    end
+    SetPerSpecSetting("resourcesPrimaryResourceSettings", self:GetCurrentSpecID(), enabled, true)
 end
 
 function CDM:GetSecondaryResourceEnabled()
-    local specID = self:GetCurrentSpecID()
-    if not specID then return true end
-    local settings = CDM.db.resourcesSecondaryResourceSettings
-    if type(settings) == "table" and settings[specID] ~= nil then
-        return settings[specID]
-    end
-    return true
+    return GetPerSpecSetting("resourcesSecondaryResourceSettings", self:GetCurrentSpecID(), true)
 end
 
 function CDM:SetSecondaryResourceEnabled(enabled)
-    local specID = self:GetCurrentSpecID()
-    if not specID then return end
-    if enabled == true or enabled == nil then
-        local settings = CDM.db.resourcesSecondaryResourceSettings
-        if type(settings) ~= "table" then return end
-        settings[specID] = nil
-        if IsEmptyTable(settings) then
-            CDM.db.resourcesSecondaryResourceSettings = nil
-        end
-    else
-        if not CDM.db.resourcesSecondaryResourceSettings then
-            CDM.db.resourcesSecondaryResourceSettings = {}
-        end
-        CDM.db.resourcesSecondaryResourceSettings[specID] = false
-    end
+    SetPerSpecSetting("resourcesSecondaryResourceSettings", self:GetCurrentSpecID(), enabled, true)
 end
 
 function CDM:GetSpellRegistry(specID)
@@ -1211,6 +1222,36 @@ function CDM:RefreshBuffGroupData()
 
     if self.InvalidateFrameCategoryCache then
         self:InvalidateFrameCategoryCache()
+    end
+end
+
+CDM.CooldownGroupSets = {
+    grouped = {},
+    groups = nil,
+}
+
+function CDM:RefreshCooldownGroupData()
+    local sets = self.CooldownGroupSets
+    table.wipe(sets.grouped)
+    sets.groups = nil
+
+    local specID = self:GetCurrentSpecID()
+    if not specID then return end
+
+    local cg = self.db and self.db.cooldownGroups
+    if not cg then return end
+
+    local specGroups = cg[specID]
+    if not specGroups then return end
+
+    sets.groups = specGroups
+
+    for groupIndex, group in ipairs(specGroups) do
+        if group.spells then
+            for _, spellID in ipairs(group.spells) do
+                sets.grouped[spellID] = groupIndex
+            end
+        end
     end
 end
 

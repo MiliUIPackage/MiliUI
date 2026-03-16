@@ -4,14 +4,14 @@ local ctx = CDM._LayoutCtx
 
 local CDM_C = ctx.CDM_C
 local VIEWERS = ctx.VIEWERS
-local SnapToPixel = CDM_C.SnapOffsetToPixel
-local SetPixelPerfectPoint = CDM_C.SetPixelPerfectPoint
+local Pixel = CDM.Pixel
+local Snap = Pixel.Snap
+local HalfFloor = Pixel.HalfFloor
 local defensivesHiddenSet = ctx.defensivesHiddenSet
 local ResolveBaseSpellID = ctx.ResolveBaseSpellID
 local CompareByLayoutIndex = ctx.CompareByLayoutIndex
 local GetLayoutConfig = ctx.GetLayoutConfig
 local GetBuffBarPositionSettings = ctx.GetBuffBarPositionSettings
-local GetPixelSizeForRegion = CDM_C.GetPixelSizeForRegion
 
 local essentialRow1WidthCache = {
     valid = false,
@@ -73,48 +73,6 @@ end
 CDM.CalculateEssentialRow1Width = CalculateEssentialRow1Width
 
 
-local function AlignBuffBarContainerToEssentialCenter(container)
-    local essentialCenterX = CDM:GetEssentialContentCenterX()
-    if not essentialCenterX then
-        CDM.SchedulePixelSnap(container)
-        return
-    end
-
-    local savedPos = GetBuffBarPositionSettings()
-    local db = CDM.db or {}
-    local growDirection = db.buffBarGrowDirection or "DOWN"
-    local anchorPoint = growDirection == "DOWN" and "TOP" or "BOTTOM"
-
-    local sp = savedPos.point
-    local refX
-    if sp == "LEFT" or sp == "TOPLEFT" or sp == "BOTTOMLEFT" then
-        refX = UIParent:GetLeft()
-    elseif sp == "RIGHT" or sp == "TOPRIGHT" or sp == "BOTTOMRIGHT" then
-        refX = UIParent:GetRight()
-    else
-        refX = select(1, UIParent:GetCenter())
-    end
-    if not refX then
-        CDM.SchedulePixelSnap(container)
-        return
-    end
-
-    local snappedX = SnapToPixel(savedPos.x or 0, UIParent)
-    local snappedY = SnapToPixel(savedPos.y or 0, UIParent)
-
-    local containerCenterX = select(1, container:GetCenter())
-    if containerCenterX then
-        local onePixel = GetPixelSizeForRegion(container) or 1
-        local targetCenterX = essentialCenterX + snappedX
-        if math.abs(targetCenterX - containerCenterX) < (onePixel * 0.05) then
-            return
-        end
-    end
-
-    container:ClearAllPoints()
-    container:SetPoint(anchorPoint, UIParent, sp, essentialCenterX - refX + snappedX, snappedY)
-end
-
 function CDM:UpdateBuffBarContainerPosition()
     local container = self.anchorContainers and self.anchorContainers[VIEWERS.BUFF_BAR]
     if not container then return end
@@ -122,14 +80,15 @@ function CDM:UpdateBuffBarContainerPosition()
     local db = CDM.db or {}
     local savedPos = GetBuffBarPositionSettings()
     local growDirection = db.buffBarGrowDirection or "DOWN"
-    local anchorPoint = growDirection == "DOWN" and "TOP" or "BOTTOM"
+    local edgeAnchor = growDirection == "DOWN" and "TOPLEFT" or "BOTTOMLEFT"
+    local screenPoint = savedPos.point or "CENTER"
+    local snappedY = Snap(savedPos.y or 0)
+
+    local xOff = Snap(savedPos.x or 0)
+    local halfW = HalfFloor(container:GetWidth() or 0)
 
     container:ClearAllPoints()
-    SetPixelPerfectPoint(container, anchorPoint, UIParent, savedPos.point, savedPos.x, savedPos.y)
-
-    if (db.buffBarWidth ~= nil and db.buffBarWidth or 0) == 0 then
-        AlignBuffBarContainerToEssentialCenter(container)
-    end
+    Pixel.SetPoint(container, edgeAnchor, UIParent, screenPoint, xOff - halfW, snappedY)
 end
 
 local tempBars = {}
@@ -142,8 +101,8 @@ function CDM:PositionBuffBarFrames(viewer, vName)
 
     local db = CDM.db or {}
     local barWidth = db.buffBarWidth ~= nil and db.buffBarWidth or 0
-    local barHeight = SnapToPixel(db.buffBarHeight or 20, UIParent)
-    local spacing = SnapToPixel(db.buffBarSpacing ~= nil and db.buffBarSpacing or 2, UIParent)
+    local barHeight = Snap(db.buffBarHeight or 20)
+    local spacing = Snap(db.buffBarSpacing ~= nil and db.buffBarSpacing or 2)
     local growDirection = db.buffBarGrowDirection or "DOWN"
     local iconPosition = db.buffBarIconPosition or "LEFT"
     local dualMode = db.buffBarDualMode or false
@@ -152,7 +111,7 @@ function CDM:PositionBuffBarFrames(viewer, vName)
     if barWidth == 0 then
         effectiveWidth = CalculateEssentialRow1Width()
     end
-    effectiveWidth = SnapToPixel(effectiveWidth, UIParent)
+    effectiveWidth = Snap(effectiveWidth)
 
     table.wipe(tempBars)
     local bars = tempBars
@@ -168,11 +127,7 @@ function CDM:PositionBuffBarFrames(viewer, vName)
 
     if #bars == 0 then
         container:SetSize(effectiveWidth, barHeight)
-        if barWidth == 0 then
-            AlignBuffBarContainerToEssentialCenter(container)
-        else
-            CDM.SchedulePixelSnap(container)
-        end
+        self:UpdateBuffBarContainerPosition()
         return
     end
 
@@ -180,7 +135,7 @@ function CDM:PositionBuffBarFrames(viewer, vName)
     local containerWidth = effectiveWidth
 
     if dualMode and #bars >= 2 then
-        local leftWidth = SnapToPixel(math.max(1, (effectiveWidth - spacing) / 2), UIParent)
+        local leftWidth = math.max(Pixel.GetSize(), HalfFloor(effectiveWidth - spacing))
         local rightX = leftWidth + spacing
         local rightWidth = math.max(1, effectiveWidth - rightX)
         containerWidth = effectiveWidth
@@ -202,6 +157,7 @@ function CDM:PositionBuffBarFrames(viewer, vName)
                 local barLevel = container:GetFrameLevel() + 1
                 frame:SetFrameLevel(barLevel)
                 if frame.Bar then frame.Bar:SetFrameLevel(barLevel + 1) end
+                if frame.Icon then frame.Icon:SetFrameLevel(barLevel + 2) end
                 frame:SetSize(frameWidth, barHeight)
 
                 if growDirection == "DOWN" then
@@ -227,6 +183,7 @@ function CDM:PositionBuffBarFrames(viewer, vName)
                 local barLevel = container:GetFrameLevel() + 1
                 frame:SetFrameLevel(barLevel)
                 if frame.Bar then frame.Bar:SetFrameLevel(barLevel + 1) end
+                if frame.Icon then frame.Icon:SetFrameLevel(barLevel + 2) end
                 frame:SetSize(frameWidth, barHeight)
 
                 local xOff = isLeft and 0 or rightX
@@ -251,6 +208,7 @@ function CDM:PositionBuffBarFrames(viewer, vName)
             local barLevel = container:GetFrameLevel() + 1
             frame:SetFrameLevel(barLevel)
             if frame.Bar then frame.Bar:SetFrameLevel(barLevel + 1) end
+            if frame.Icon then frame.Icon:SetFrameLevel(barLevel + 2) end
             frame:SetSize(effectiveWidth, barHeight)
 
             if growDirection == "DOWN" then
@@ -265,9 +223,5 @@ function CDM:PositionBuffBarFrames(viewer, vName)
     end
 
     container:SetSize(containerWidth, math.max(barHeight, containerHeight))
-    if barWidth == 0 then
-        AlignBuffBarContainerToEssentialCenter(container)
-    else
-        CDM.SchedulePixelSnap(container)
-    end
+    self:UpdateBuffBarContainerPosition()
 end
