@@ -408,20 +408,6 @@ end
 
 EventUtil.ContinueOnAddOnLoaded("Ayije_CDM", function()
     C_Timer.After(0.5, HookCastBar)
-    -- 等比例字型覆寫：把 CDM 的像素完美字型改為等比例縮放
-    C_Timer.After(0.6, function()
-        if not MiliUI_CastBarEnhanceDB.proportionalFont then return end
-        local CDM = _G["Ayije_CDM"]
-        if CDM and CDM.CONST then
-            CDM.CONST.GetPixelFontSize = function(desiredPixels)
-                return desiredPixels * UIParent:GetEffectiveScale()
-            end
-            -- 刷新 CDM 字型
-            if CDM.UpdatePlayerCastBar then
-                CDM:UpdatePlayerCastBar()
-            end
-        end
-    end)
 end)
 
 ------------------------------------------------------------
@@ -438,21 +424,8 @@ MiliUI_CastBarEnhance = {
         if not enabled then HideLatencyBar() end
     end,
     SetProportionalFont = function(enabled)
-        MiliUI_CastBarEnhanceDB.proportionalFont = enabled
-        local CDM = _G["Ayije_CDM"]
-        if not CDM or not CDM.CONST then return end
-        if enabled then
-            CDM.CONST.GetPixelFontSize = function(desiredPixels)
-                return desiredPixels * UIParent:GetEffectiveScale()
-            end
-        else
-            CDM.CONST.GetPixelFontSize = function(desiredPixels)
-                return desiredPixels * PixelUtil.GetPixelToUIUnitFactor()
-            end
-        end
-        -- 刷新 CDM 字型
-        if CDM.UpdatePlayerCastBar then
-            CDM:UpdatePlayerCastBar()
+        if MiliUI_CastBarPixelFont then
+            MiliUI_CastBarPixelFont.Toggle(enabled)
         end
     end,
 }

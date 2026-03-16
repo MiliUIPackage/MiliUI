@@ -72,7 +72,7 @@ MiliUI_AyijeCDM_Profile = {
     ["resourcesHolyPowerColor"] = { ["a"] = 1, ["r"] = 0.95, ["g"] = 0.9, ["b"] = 0.6 },
     ["utilityYOffset"] = 0,
     ["assistColor"] = { ["a"] = 1, ["r"] = 1, ["g"] = 1, ["b"] = 1 },
-    ["assistFontSize"] = 12,
+    ["assistFontSize"] = 10,
     ["racialsChargePosition"] = "BOTTOM",
     ["defensivesHideFromViewers"] = true,
     ["castBarChannelColor"] = { ["a"] = 1, ["r"] = 1, ["g"] = 0.31, ["b"] = 0.26 },
