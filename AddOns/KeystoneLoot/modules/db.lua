@@ -6,7 +6,7 @@ local DB = KeystoneLoot.DB;
 
 local CURRENT_SEASON = KeystoneLoot.Config.season;
 
-local DB_VERSION = 1;
+local DB_VERSION = 2;
 local CHAR_DB_VERSION = 1;
 
 local observers = {};
@@ -18,7 +18,7 @@ end
 
 function DB:InitGlobalDB()
     -- TODO: Will be removed in the next version
-    if (KeystoneLootDB.minimapButtonEnabled ~= nil) then
+    if (KeystoneLootDB and KeystoneLootDB.minimapButtonEnabled ~= nil) then
         KeystoneLootDB = {};
     end
 
@@ -41,7 +41,7 @@ end
 
 function DB:InitCharDB()
     -- TODO: Will be removed in the next version
-    if (KeystoneLootCharDB.favoriteLoot ~= nil) then
+    if (KeystoneLootCharDB and KeystoneLootCharDB.favoriteLoot ~= nil) then
         KeystoneLootCharDB = {};
     end
 
@@ -81,6 +81,10 @@ function DB:MigrateGlobalDB(fromVersion)
         };
 
         KeystoneLootDB.favorites = {};
+    end
+
+    if (fromVersion == 1) then
+        KeystoneLootDB.settings.favoriteTooltip = true;
     end
 end
 

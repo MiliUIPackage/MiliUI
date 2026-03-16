@@ -1,6 +1,7 @@
 local AddonName, KeystoneLoot = ...;
 
 local DB = KeystoneLoot.DB;
+local Query = KeystoneLoot.Query;
 
 KeystoneLootRaidDropdownMixin = {};
 
@@ -11,13 +12,6 @@ function KeystoneLootRaidDropdownMixin:Init(raids)
     local raid = raids[self.selectedIndex];
     local raidName = EJ_GetInstanceInfo(raid.journalInstanceId);
     self:SetText(raidName);
-
-    -- Disable if only one raid
-    if (#raids == 1) then
-        self.NormalTexture:SetTexture(nil);
-        self.HighlightTexture:SetTexture(nil);
-        self:Disable();
-    end
 
     -- Generate menu
     local function IsSelected(index)

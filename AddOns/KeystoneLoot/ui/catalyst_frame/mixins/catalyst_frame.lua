@@ -2,7 +2,6 @@ local AddonName, KeystoneLoot  = ...;
 
 local DB                       = KeystoneLoot.DB;
 local Query                    = KeystoneLoot.Query;
-local Favorites                = KeystoneLoot.Favorites;
 
 local ICON_SIZE                = 34;
 local ICON_SPACING             = 8;
@@ -21,10 +20,9 @@ function KeystoneLootCatalystFrameMixin:Init()
         self:Refresh();
     end
 
-    DB:AddObserver("filters.classId", OnChanged);
+    DB:AddObserver("filters.specId", OnChanged);
     DB:AddObserver("filters.slotId", OnChanged);
     DB:AddObserver("ui.selectedCharacterKey", OnChanged);
-    DB:AddObserver("settings.highlighting.*", OnChanged);
 
     self:Refresh();
 end

@@ -4,10 +4,11 @@
 ## Notes-ruRU: Компактный аддон, который показывает уровни предметов из подземелий М+
 ## Author: Selina Ruesch
 ## X-Email: selina.ruesch@gmail.com
-## Version: 2.0.0
+## Version: 2.1.2
 ## IconTexture: Interface\Icons\INV_Relics_Hourglass_02
 ## Category-enUS: Dungeons & Raids
 ## Category-zhCN: 地下城和团队副本
+## Category-zhTW: 地城與團隊
 ## OptionalDeps: LibStub
 ## SavedVariables: KeystoneLootDB
 ## SavedVariablesPerCharacter: KeystoneLootCharDB
@@ -44,6 +45,7 @@ modules/keystone.lua
 
 # UI
 ui/keystone_tooltip.lua
+ui/item_tooltip.lua
 
 ui/templates/mixins/icon_button.lua
 ui/templates/mixins/entry_frame.lua
@@ -53,6 +55,7 @@ ui/templates/templates.xml
 ui/dungeons_frame/mixins/dungeons_frame.lua
 ui/dungeons_frame/dungeons_frame.xml
 
+ui/raids_frame/mixins/block_frame.lua
 ui/raids_frame/mixins/raids_frame.lua
 ui/raids_frame/mixins/raid_dropdown.lua
 ui/raids_frame/raids_frame.xml
