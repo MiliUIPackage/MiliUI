@@ -80,9 +80,55 @@ local function UpdateStatusBar(unit, uf, f, reset, frac)
 				UnitGetDetailedHealPrediction(unit, "player", f._hpCalc)
 			end
 
+			-- MASKING MODEL:
+			-- All three bars share SetAllPoints(barbase) and always draw from pixel 0.
+			-- SetMinMaxValues cannot spatially shift a bar's start position.
+			-- Visibility of deltas is achieved by layering: nativeBar (top) masks
+			-- 0→currentHP, leaving only the delta regions of lower bars visible.
+			--
+			-- shieldbar (lowest):  fills 0 → currentHP+absorb
+			-- incbar   (middle):   fills 0 → currentHP+heal   (covers shieldbar 0→healEnd)
+			-- nativeBar(top):      fills 0 → currentHP        (masks both for 0→currentHP)
+			--
+			-- Visible result: health | green heal delta | blue shield delta | empty
+
 			if db.inc and f.incbar then
-				-- GetIncomingHeals() -> allHeal, playerHeal, otherHeal, healClamped(bool)
-				-- allHeal (1st return) is the actual SECRET amount to pass to C.
+				-- MSUF texture-anchor approach:
+				-- Anchor incbar to the moving edge of nativeBar's StatusBarTexture.
+				-- Horizontal: anchor LEFT edge to texture RIGHT (or RIGHT to LEFT if reversed).
+				-- Vertical:   anchor BOTTOM edge to texture TOP (or TOP to BOTTOM if reversed).
+				local hpTex = f.nativeBar and f.nativeBar:GetStatusBarTexture()
+				if hpTex then
+					local rev  = db.reverse  and true or false
+					local vert = db.vertical and true or false
+					if f.incbar._anchorTex ~= hpTex or f.incbar._anchorRev ~= rev or f.incbar._anchorVert ~= vert then
+						f.incbar:ClearAllPoints()
+						if vert then
+							if rev then
+								-- Vertical reverse: health fills top-to-bottom; incbar extends above texture top edge
+								f.incbar:SetPoint("BOTTOMLEFT",  hpTex, "TOPLEFT",  0, 0)
+								f.incbar:SetPoint("BOTTOMRIGHT", hpTex, "TOPRIGHT", 0, 0)
+							else
+								-- Vertical normal: health fills bottom-to-top; incbar extends above texture top edge
+								f.incbar:SetPoint("BOTTOMLEFT",  hpTex, "TOPLEFT",  0, 0)
+								f.incbar:SetPoint("BOTTOMRIGHT", hpTex, "TOPRIGHT", 0, 0)
+							end
+						else
+							if rev then
+								-- Horizontal reverse: health fills right-to-left; incbar extends leftward
+								f.incbar:SetPoint("TOPRIGHT",    hpTex, "TOPLEFT",    0, 0)
+								f.incbar:SetPoint("BOTTOMRIGHT", hpTex, "BOTTOMLEFT", 0, 0)
+							else
+								-- Horizontal normal: health fills left-to-right; incbar extends rightward
+								f.incbar:SetPoint("TOPLEFT",    hpTex, "TOPRIGHT",    0, 0)
+								f.incbar:SetPoint("BOTTOMLEFT", hpTex, "BOTTOMRIGHT", 0, 0)
+							end
+						end
+						f.incbar._anchorTex  = hpTex
+						f.incbar._anchorRev  = rev
+						f.incbar._anchorVert = vert
+					end
+				end
 				local allHeal = f._hpCalc:GetIncomingHeals()
 				pcall(function()
 					f.incbar:SetMinMaxValues(0, maxHP)
@@ -92,8 +138,6 @@ local function UpdateStatusBar(unit, uf, f, reset, frac)
 			end
 
 			if db.shield and f.shieldbar then
-				-- GetDamageAbsorbs() -> damageAbsorbAmount, damageAbsorbClamped(bool)
-				-- damageAbsorbAmount (1st return) is the actual SECRET amount to pass to C.
 				local damageAbsorbAmount = f._hpCalc:GetDamageAbsorbs()
 				pcall(function()
 					f.shieldbar:SetMinMaxValues(0, maxHP)
@@ -197,20 +241,35 @@ local function UpdateBarLook(unit, uf, f, db)  -- update bar look for statusbars
 	end
 	-- incbar and shieldbar are native StatusBars; update them via StatusBar API.
 	if incbar and incbar.SetStatusBarTexture then
-		incbar:SetStatusBarTexture(texture)
-		incbar:SetStatusBarColor(0.4, 1, 0.4, 0.9)
-		incbar:ClearAllPoints()
-		incbar:SetAllPoints(barbase)
+		local inctexture = Stuf:GetMedia("statusbar", db.inctexture) or texture
+		incbar:SetStatusBarTexture(inctexture)
+		local ic = db.inccolor
+		if ic then
+			incbar:SetStatusBarColor(ic.r, ic.g, ic.b, db.incalpha or ic.a or 0.9)
+		else
+			incbar:SetStatusBarColor(0.4, 1, 0.4, db.incalpha or 0.9)
+		end
 		if db.vertical then
 			incbar:SetOrientation("VERTICAL")
 		else
 			incbar:SetOrientation("HORIZONTAL")
 		end
-		incbar:SetReverseFill(db.reverse and true or false)
+		incbar:SetReverseFill(db.reverse and true or false)  -- same direction as health bar
+		-- Size to full bar dimensions; anchor to nativeBar moving texture in UpdateStatusBar
+		incbar:SetSize(cw, ch)
+		incbar._anchorTex  = nil  -- force re-anchor on next update
+		incbar._anchorRev  = nil
+		incbar._anchorVert = nil
 	end
 	if shieldbar and shieldbar.SetStatusBarTexture then
-		shieldbar:SetStatusBarTexture(texture)
-		shieldbar:SetStatusBarColor(0.2, 0.6, 1.0, 0.85)
+		local shieldtexture = Stuf:GetMedia("statusbar", db.shieldtexture) or texture
+		shieldbar:SetStatusBarTexture(shieldtexture)
+		local sc = db.shieldcolor
+		if sc then
+			shieldbar:SetStatusBarColor(sc.r, sc.g, sc.b, db.shieldalpha or sc.a or 0.85)
+		else
+			shieldbar:SetStatusBarColor(0.2, 0.6, 1.0, db.shieldalpha or 0.85)
+		end
 		shieldbar:ClearAllPoints()
 		shieldbar:SetAllPoints(barbase)
 		if db.vertical then
@@ -275,14 +334,15 @@ local function UpdateBarLook(unit, uf, f, db)  -- update bar look for statusbars
 				nb:SetOrientation("HORIZONTAL")
 			end
 			nb:SetReverseFill(db.reverse and true or false)
-			local nbLevel = (f:GetFrameLevel() or 1) + 1
+			-- nativeBar level is driven by db.framelevel (config); never hardcoded.
+			-- shieldbar = nativeBar + 1, incbar = nativeBar + 2 (incbar has visual priority).
+			local nbLevel = db.framelevel or 1
 			nb:SetFrameLevel(nbLevel)
-			-- Keep overlay bars strictly below nativeBar so it paints over their left fill
 			if f.incbar and f.incbar.SetStatusBarTexture then
-				f.incbar:SetFrameLevel(math.max(1, nbLevel - 1))
+				f.incbar:SetFrameLevel(nbLevel + 2)
 			end
 			if f.shieldbar and f.shieldbar.SetStatusBarTexture then
-				f.shieldbar:SetFrameLevel(math.max(1, nbLevel - 2))
+				f.shieldbar:SetFrameLevel(nbLevel + 1)
 			end
 			nb:Show()
 		end
@@ -360,7 +420,7 @@ do  -- Health and Power Bars ---------------------------------------------------
 				-- "predicted heal" portion beyond the health fill is visible.
 				if not f.incbar then
 					local ib = CreateFrame("StatusBar", nil, f.barbase)
-					ib:SetAllPoints(f.barbase)
+					-- Size and anchor set in UpdateBarLook/UpdateStatusBar (MSUF texture-anchor approach)
 					ib:SetMinMaxValues(0, 1)
 					ib:SetValue(0)
 					ib:Hide()
@@ -863,15 +923,25 @@ do  -- Threat Bar --------------------------------------------------------------
 					isTanking, status, threatpct = UnitDetailedThreatSituation("player", unit)
 				end
 
-				if not threatpct or threatpct < 1 then
+				-- 12.0.1: threatpct and status are secret values; pcall-wrap all comparisons
+				local showThreat, frac, isHighThreat = false, 0.01, false
+				if threatpct then
+					pcall(function()
+						if threatpct >= 1 then
+							showThreat = true
+							frac = threatpct * 0.01
+							isHighThreat = (status > 0)
+						end
+					end)
+				end
+				if not showThreat then
 					f:Hide()
 				else
-					local frac = threatpct * 0.01
 					local r, g, b = GetThreatStatusColor(status)
 					f.text:SetFormattedText("%d%%", threatpct)
 					f.bar:SetValue(frac, f.bvalue)
 					f.bar:SetVertexColor(r, g, b, f.db.baralpha or 1)
-					if status > 0 then
+					if isHighThreat then
 						f:SetScript("OnUpdate", ThreatOnUpdate)
 					else
 						f:SetAlpha(f.db.alpha or 1)
@@ -975,19 +1045,26 @@ if CLS == "SHAMAN" or CLS == "DRUID" or CLS == "DEATHKNIGHT" or CLS == "PALADIN"
 				if not f or f.db.hide then return end
 
 				for i = 1, 4, 1 do
-					local haveTotem, name, startTime, duration, icon = GetTotemInfo(i)
+					-- 12.0.1: GetTotemInfo returns secret values for all returns.
+					-- haveTotem (1st return) is a secret boolean — cannot test with 'if'.
+					-- Use icon (a plain string: nil when empty, texture path when active) as proxy.
+					local _, totemName, startTime, duration, icon = GetTotemInfo(i)
 					if config then
-						haveTotem = true
 						startTime = GetTime()
 						duration = i * 20
 						icon = "Interface\\Icons\\Spell_ChargePositive"
 					end
 					local reorder = (i == 1 and 2) or (i == 2 and 1) or i  -- switch earth and fire
-					if haveTotem and duration > 0 then
+					if icon and icon ~= "" then  -- safe string check; nil/empty = no totem
 						local b = f[reorder]
 						local c = totcolors[reorder]
-						b.endtime = startTime + duration
-						b.duration = 1 / duration
+						-- startTime and duration are secret values; pcall-extract a safe remain
+						-- so that TotemOnUpdate can use safe GetTime() arithmetic thereafter.
+						local safeRemain = i * 20  -- fallback (config mode or pcall failure)
+						pcall(function() safeRemain = startTime + duration - GetTime() end)
+						if safeRemain < 0.1 then safeRemain = 0.1 end
+						b.endtime = GetTime() + safeRemain  -- safe non-secret value
+						b.duration = 1 / safeRemain          -- safe non-secret value
 						b.throt = 0.1
 						b.elapsed = 1
 						b.icon:SetTexture(icon)
@@ -1179,14 +1256,22 @@ if CLS == "DEATHKNIGHT" then  -- Rune Bar --------------------------------------
 		end
 
 		f:SetParent(uf)
+		-- Suppress Blizzard's own positioning scripts so they don't fight our anchor
+		if not f._stufOwned then
+		f:SetScript("OnUpdate", nil)
+		f:SetScript("OnEvent", nil)
+		f:UnregisterAllEvents()
+		f._stufOwned = true
+		end
+		f:ClearAllPoints()
 		f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0)
 		f:SetScale(db.scale or 1)
 		f:SetAlpha(db.alpha or 1)
 		if db.framelevel then
-			f:SetFrameLevel(db.framelevel)
+		f:SetFrameLevel(db.framelevel)
 		end
 		if db.strata then
-			f:SetFrameStrata(db.strata)
+		f:SetFrameStrata(db.strata)
 		end
 		f:EnableMouse(not db.nomouse)
 		f:Show()
@@ -1196,8 +1281,26 @@ if CLS == "DEATHKNIGHT" then  -- Rune Bar --------------------------------------
 end
 if CLS == "PALADIN" then  -- Holy Bar -------------------------------------------------------------------------------------------------------
 	-- PaladinPowerBarFrame no longer exists in 12.0.1 (Midnight).
-	-- Build a custom native StatusBar for Holy Power tracking.
+	-- 5 individual orbs using point.tga, styled after the comboframe individual-circles pattern.
 	local holyPowerType = (Enum.PowerType and Enum.PowerType.HolyPower) or 9
+	local HOLY_MAX = 5
+	local HOLY_TGA = "Interface\\AddOns\\Stuf\\media\\holy_tga.tga"
+
+	local function HolyGlowOnUpdate(this, a1)
+		-- Pulse the glow alpha on active orbs, same as comboframe
+		local dir = this.dir or 1
+		local alp = (this.alp or 0.7) + a1 * dir
+		if (dir == 1 and alp > 0.95) or (dir == -1 and alp < 0.45) then
+			this.dir = dir * -1
+		end
+		this.alp = alp
+		for i = 1, HOLY_MAX do
+			local orb = this[i]
+			if orb and orb.glow and orb.glow.active then
+				orb.glow:SetAlpha(alp)
+			end
+		end
+	end
 
 	Stuf:AddBuilder("holybar", function(unit, uf, name, db, a5, config)
 		if unit ~= "player" then return end
@@ -1207,78 +1310,101 @@ if CLS == "PALADIN" then  -- Holy Bar ------------------------------------------
 			return
 		end
 		if not f then
-			-- Create a standalone frame (not via CreateBase — holy bar has no w/h in db)
 			f = CreateFrame("Frame", nil, uf, BackdropTemplateMixin and 'BackdropTemplate')
 			f.db = db
 			uf[name] = f
+			f:SetScript("OnUpdate", HolyGlowOnUpdate)
 
-			-- Background texture
-			f.bg = f:CreateTexture(nil, "BACKGROUND")
-			f.bg:SetAllPoints(f)
+			-- Build 5 orb frames, each using the full holy_tga.tga image
+			for i = 1, HOLY_MAX do
+				local orb = CreateFrame("Frame", nil, f, BackdropTemplateMixin and 'BackdropTemplate')
+				local tex = orb:CreateTexture(nil, "ARTWORK")
+				tex:SetTexture(HOLY_TGA)
+				tex:SetTexCoord(0, 1, 0, 1)
+				tex:SetAllPoints(orb)
+				orb.texture = tex
+				-- glow is the same texture on a higher layer for the pulse effect
+				local glow = orb:CreateTexture(nil, "OVERLAY")
+				glow:SetTexture(HOLY_TGA)
+				glow:SetTexCoord(0, 1, 0, 1)
+				glow:SetAllPoints(orb)
+				glow:SetBlendMode("ADD")
+				glow.active = false
+				orb.glow = glow
+				f[i] = orb
+			end
 
-			-- barbase frame (nativeBar lives inside this)
-			f.barbase = CreateFrame("Frame", nil, f, BackdropTemplateMixin and 'BackdropTemplate')
-			f.barbase:SetAllPoints(f)
-
-			-- Native StatusBar: passes secret values to C safely
-			local nb = CreateFrame("StatusBar", nil, f.barbase)
-			nb:SetAllPoints(f.barbase)
-			nb:SetMinMaxValues(0, 5)
-			nb:SetValue(0)
-			f.nativeBar = nb
-
-			-- Update function: fires on UNIT_POWER_UPDATE / UNIT_MAXPOWER
+			-- Update: extract safe plain integer from secret Holy Power value
 			local function UpdateHolyPower(evtUnit, powerToken)
 				if evtUnit and evtUnit ~= "player" then return end
-				-- powerToken may be nil (manual call) or a string; only proceed for holy power
 				if powerToken and powerToken ~= "HOLY_POWER" then return end
 				local fuu = su["player"]
 				local ff = fuu and not fuu.hidden and fuu[name]
 				if not ff or ff.db.hide then return end
+				-- Secret value: pcall-extract a plain integer 0-5
 				local cur = UnitPower("player", holyPowerType)
-				local max = UnitPowerMax("player", holyPowerType)
-				-- Pass raw secret values directly to C; no Lua arithmetic or comparison needed.
-				-- The C-side StatusBar API handles secret values natively.
-				ff.nativeBar:SetMinMaxValues(0, max)
-				ff.nativeBar:SetValue(cur)
+				local points = 0
+				for i = 1, HOLY_MAX do
+					local match = false
+					pcall(function() match = (cur == i) end)
+					if match then points = i; break end
+				end
+				local cc = ff.db.barcolor or { r=1.0, g=0.82, b=0.0, a=1 }
+				local gc = ff.db.glowcolor or cc
+				for i = 1, HOLY_MAX do
+					local orb = ff[i]
+					if i <= points then
+						orb.texture:SetVertexColor(cc.r, cc.g, cc.b, ff.db.baralpha or cc.a or 1)
+						orb.glow:SetVertexColor(gc.r, gc.g, gc.b, gc.a or 0.8)
+						orb.glow.active = true
+						orb:Show()
+					else
+						orb.texture:SetVertexColor(cc.r * 0.25, cc.g * 0.25, cc.b * 0.25, 0.5)
+						orb.glow:SetAlpha(0)
+						orb.glow.active = false
+						orb:Show()  -- always visible as dim inactive orb
+					end
+				end
 			end
 			f.UpdateHolyPower = UpdateHolyPower
 			uf.refreshfuncs[name] = UpdateHolyPower
-			Stuf:AddEvent("UNIT_POWER_UPDATE",   UpdateHolyPower)
-			Stuf:AddEvent("UNIT_MAXPOWER",        UpdateHolyPower)
-			Stuf:AddEvent("UNIT_DISPLAYPOWER",    UpdateHolyPower)
+			Stuf:AddEvent("UNIT_POWER_UPDATE",    UpdateHolyPower)
+			Stuf:AddEvent("UNIT_MAXPOWER",         UpdateHolyPower)
+			Stuf:AddEvent("UNIT_DISPLAYPOWER",     UpdateHolyPower)
 			Stuf:AddEvent("PLAYER_ENTERING_WORLD", function() UpdateHolyPower() end)
 		end
 
-		-- Size: use db.w/h if configured, otherwise fall back to sensible defaults
-		local w = db.w or 160
-		local h = db.h or 14
-		f:SetWidth(w)
-		f:SetHeight(h)
-
-		-- Textures
-		local texture = Stuf:GetMedia("statusbar", db.bartexture)
-		f.bg:SetTexture(texture)
-		local bgc = db.bgcolor or { r=0, g=0, b=0, a=0.4 }
-		f.bg:SetVertexColor(bgc.r, bgc.g, bgc.b, db.bgalpha or bgc.a or 0.4)
-
-		-- Native bar appearance
-		f.nativeBar:SetStatusBarTexture(texture)
-		f.nativeBar:ClearAllPoints()
-		f.nativeBar:SetAllPoints(f.barbase)
-		if db.vertical then
-			f.nativeBar:SetOrientation("VERTICAL")
-		else
-			f.nativeBar:SetOrientation("HORIZONTAL")
+		-- Layout orbs: use db.w as orb size, db.spacing as gap (default 2)
+		local ow = db.w or 14
+		local oh = db.h or 14
+		local spacing = db.spacing or 2
+		local cc = db.barcolor or { r=1.0, g=0.82, b=0.0, a=1 }
+		local gc = db.glowcolor or cc
+		for i = 1, HOLY_MAX do
+			local orb = f[i]
+			orb:SetWidth(ow)
+			orb:SetHeight(oh)
+			orb:ClearAllPoints()
+			if i == 1 then
+				orb:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+			else
+				orb:SetPoint("LEFT", f[i-1], "RIGHT", spacing, 0)
+			end
+			-- base texture: dim when inactive
+			orb.texture:SetTexture(HOLY_TGA)
+			orb.texture:SetTexCoord(0, 1, 0, 1)
+			orb.texture:SetVertexColor(cc.r * 0.25, cc.g * 0.25, cc.b * 0.25, 0.5)
+			-- additive glow layer: pulsing when active, hidden when inactive
+			orb.glow:SetTexture(HOLY_TGA)
+			orb.glow:SetTexCoord(0, 1, 0, 1)
+			orb.glow:SetVertexColor(gc.r, gc.g, gc.b, gc.a or 0.8)
+			orb.glow.active = false
+			orb.glow:SetAlpha(0)
 		end
-		f.nativeBar:SetReverseFill(db.reverse and true or false)
-		f.nativeBar:SetFrameLevel((f:GetFrameLevel() or 1) + 1)
 
-		-- Bar color: golden holy power tint by default
-		local c = db.barcolor or { r=0.95, g=0.90, b=0.60, a=1 }
-		f.nativeBar:SetStatusBarColor(c.r, c.g, c.b, db.baralpha or c.a or 1)
-
-		-- Position relative to unit frame
+		-- Size the container to fit all orbs
+		f:SetWidth((ow * HOLY_MAX) + (spacing * (HOLY_MAX - 1)))
+		f:SetHeight(oh)
 		f:ClearAllPoints()
 		f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0)
 		f:SetScale(db.scale or 1)

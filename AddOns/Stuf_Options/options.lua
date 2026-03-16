@@ -1369,7 +1369,20 @@ local hpbar={ name=L["Health Bar"], type="group", order=3,
 		bartexture=bartexture, barcolormethod=barcolormethod, barcolor=barcolor, baralpha=baralpha, blank3=blank3,
 		fade=fade, smoothfade=smoothfade, reverse=reverse, deplete=deplete, vertical=vertical, hflip=hflip, vflip=vflip, blank4=blank4,
 		barinsetleft=barinsetleft, barinsetright=barinsetright, barinsettop=barinsettop, barinsetbottom=barinsetbottom,
-		inc={ name=L["Show Incoming Heals"], desc=L["Beta - only works with rectangular bar textures"], type="toggle", order=100, set=set, get=get, },
+		inc={ name=L["Show Incoming Heals"], desc=L["Shows predicted incoming heal amount beyond health fill (green). Requires rectangular bar texture."], type="toggle", order=100, set=set, get=get, },
+		inctexture={ name=L["Incoming Heal Texture"], type="select", dialogControl="LSM30_Statusbar", values=AceGUIWidgetLSMlists.statusbar, order=100.1, set=set, get=getorbar,
+			hidden=function(info) local unit, object = infobreakdown(info) return not (db[unit] and db[unit][object] and db[unit][object].inc) end, },
+		inccolor={ name=L["Incoming Heal Color"], type="color", hasAlpha=false, order=100.2, set=set, get=getcolororwhite,
+			hidden=function(info) local unit, object = infobreakdown(info) return not (db[unit] and db[unit][object] and db[unit][object].inc) end, },
+		incalpha={ name=L["Incoming Heal Opacity"], type="range", isPercent=true, min=0, max=1, step=0.02, order=100.3, set=set, get=getorone,
+			hidden=function(info) local unit, object = infobreakdown(info) return not (db[unit] and db[unit][object] and db[unit][object].inc) end, },
+		shield={ name=L["Show Absorb Shield"], desc=L["Shows absorb shield amount beyond health fill (blue). Requires rectangular bar texture."], type="toggle", order=101, set=set, get=get, },
+		shieldtexture={ name=L["Absorb Shield Texture"], type="select", dialogControl="LSM30_Statusbar", values=AceGUIWidgetLSMlists.statusbar, order=101.1, set=set, get=getorbar,
+			hidden=function(info) local unit, object = infobreakdown(info) return not (db[unit] and db[unit][object] and db[unit][object].shield) end, },
+		shieldcolor={ name=L["Absorb Shield Color"], type="color", hasAlpha=false, order=101.2, set=set, get=getcolororwhite,
+			hidden=function(info) local unit, object = infobreakdown(info) return not (db[unit] and db[unit][object] and db[unit][object].shield) end, },
+		shieldalpha={ name=L["Absorb Shield Opacity"], type="range", isPercent=true, min=0, max=1, step=0.02, order=101.3, set=set, get=getorone,
+			hidden=function(info) local unit, object = infobreakdown(info) return not (db[unit] and db[unit][object] and db[unit][object].shield) end, },
 	},
 }
 local function notplayer(info)
@@ -2460,6 +2473,145 @@ do  -- setup options for grouped colors
 	runeargs.DEATH={ name=COMBAT_TEXT_RUNE_DEATH or "Death", type="color", set=set, get=getcolororblank, order=4, }
 end
 
+
+-- ============================================================
+-- Export / Import
+-- ============================================================
+do
+	local exportString = ""
+	local importString = ""
+	local importStatus = ""
+
+	-- Simple recursive Lua-table serializer (no external libs needed)
+	local function Serialize(val, depth)
+		depth = depth or 0
+		local t = type(val)
+		if t == "string" then
+			return string.format("%q", val)
+		elseif t == "number" or t == "boolean" then
+			return tostring(val)
+		elseif t == "table" then
+			local parts = {}
+			for k, v in pairs(val) do
+				local key
+				if type(k) == "string" then
+					key = "["..string.format("%q", k).."]="
+				elseif type(k) == "number" then
+					key = "["..k.."]="
+				end
+				if key then
+					local sv = Serialize(v, depth + 1)
+					if sv then
+						tinsert(parts, key..sv)
+					end
+				end
+			end
+			return "{"..table.concat(parts, ",").."}"  
+		else
+			return nil  -- skip functions, userdata, threads
+		end
+	end
+
+	-- Safe deserializer via loadstring sandbox
+	local function Deserialize(str)
+		if not str or str == "" then return nil, "Empty string" end
+		local fn, err = loadstring("return "..str)
+		if not fn then return nil, "Parse error: "..(err or "unknown") end
+		local ok, result = pcall(fn)
+		if not ok then return nil, "Eval error: "..(result or "unknown") end
+		if type(result) ~= "table" then return nil, "Result is not a table" end
+		return result
+	end
+
+	-- Deep merge imported table into target (preserves keys not in import)
+	local function DeepMerge(target, source)
+		for k, v in pairs(source) do
+			if type(v) == "table" and type(target[k]) == "table" then
+				DeepMerge(target[k], v)
+			else
+				target[k] = v
+			end
+		end
+	end
+
+	options.args.importexport = {
+		name = "Export / Import",
+		type = "group",
+		order = 999,
+		args = {
+			desc = {
+				name = "Export your current settings to a string you can share or back up. Paste a previously exported string into the import box to restore settings.\n\n|cffff9900Note:|r Importing will overwrite your current settings and reload the UI.",
+				type = "description",
+				order = 1,
+				width = "full",
+			},
+			exportbtn = {
+				name = "Generate Export String",
+				type = "execute",
+				order = 2,
+				func = function()
+					local source = (StufDB == "perchar" and StufCharDB) or StufDB
+					if type(source) ~= "table" then
+						exportString = "-- No settings found"
+					else
+						exportString = Serialize(source) or "-- Serialization failed"
+					end
+				end,
+			},
+			exportbox = {
+				name = "Export String (select all and copy)",
+				type = "input",
+				order = 3,
+				width = "full",
+				multiline = 8,
+				get = function() return exportString end,
+				set = function(_, v) exportString = v end,
+			},
+			blankdiv = {
+				name = " ",
+				type = "header",
+				order = 4,
+			},
+			importbox = {
+				name = "Import String (paste here)",
+				type = "input",
+				order = 5,
+				width = "full",
+				multiline = 8,
+				get = function() return importString end,
+				set = function(_, v) importString = v end,
+			},
+			importbtn = {
+				name = "Import and Reload",
+				type = "execute",
+				order = 6,
+				confirm = true,
+				confirmText = "This will overwrite your current settings and reload the UI. Are you sure?",
+				func = function()
+					local result, err = Deserialize(importString)
+					if not result then
+						importStatus = "|cffff0000Import failed:|r "..( err or "unknown error")
+						print("|cff00ff00Stuf|r: "..importStatus)
+						return
+					end
+					if StufDB == "perchar" then
+						DeepMerge(StufCharDB, result)
+					else
+						DeepMerge(StufDB, result)
+					end
+					ReloadUI()
+				end,
+			},
+			statuslabel = {
+				name = function() return importStatus end,
+				type = "description",
+				order = 7,
+				width = "full",
+				hidden = function() return importStatus == "" end,
+			},
+		},
+	}
+end
 
 -------------------------------
 function Stuf:GetOptionsTable()

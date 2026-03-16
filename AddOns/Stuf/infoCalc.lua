@@ -192,8 +192,10 @@ function InfoCalc:GetHealthColor(unit, useSmooth)
 	if not unit then return 1, 1, 1 end
 
 	if useSmooth then
-		local pct = UnitHealthPercent(unit) or 100   -- safe 0-100
-		local frac = pct * 0.01                       -- safe 0-1
+		-- UnitHealthPercent is also secret in 12.0.1; pcall the multiply
+		local rawpct = UnitHealthPercent(unit)
+		local ok, frac = pcall(function() return rawpct * 0.01 end)
+		if not ok then return 0, 1, 0 end
 		local r, g, b
 		if frac < 0.5 then
 			-- red → yellow  (0% to 50%)

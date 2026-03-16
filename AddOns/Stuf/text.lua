@@ -77,37 +77,39 @@ do  -- custom text handlers ----------------------------------------------------
 	local metrotags = { "oor", "aggro", }
 	local reactiontags = { "reaction", "creature", "pvp", "hostile", "attack", "helpful", "afk", "dnd", "combat", "tapped", "offline", }
 	local lifestatus = { "dead", "ghost", "alive", }
+	-- Secret value detection and safe C-side formatter (same approach as MSUF)
+	local _issecret = _G.issecretvalue
+	local _abbreviate = _G.AbbreviateLargeNumbers or _G.ShortenNumber or _G.AbbreviateNumbers
+	local function IsSecret(v)
+		return _issecret and _issecret(v) and true or false
+	end
+	local _CSU = _G.C_StringUtil
+	local function SafeNumStr(t)
+		-- Secret: only C_StringUtil.RoundToNearestString returns a PLAIN string from a secret.
+		-- AbbreviateLargeNumbers returns a secret string which still can't be used in gsub.
+		if IsSecret(t) then
+			if _CSU and _CSU.RoundToNearestString then
+				local s = _CSU.RoundToNearestString(t, 1)
+				if s then return tostring(s) end
+			end
+			return ""  -- can't format safely
+		end
+		-- Plain number: normal K/M shortening
+		local n = t < 0 and -t or t
+		if n >= 1000000 then return format("%.1f%s", t * 0.000001, nM)
+		elseif n >= shortk then return format("%.1f%s", t * 0.001, nK)
+		else return tostring(t)
+		end
+	end
 	local function TextFormat(t, r, g, b)
-		-- Secret value guard: type() returns "number" for secrets but comparisons crash
-		if type(t) == "number" then
-			local ok = pcall(function() return t < 0 end)
-			if not ok then return "" end  -- secret value, can't format yet
+		if type(t) ~= "number" then
+			local ts = tostring(t)
+			if r then return format("|cff%02x%02x%02x%s|r", r*255, g*255, b*255, ts) end
+			return ts
 		end
-		if r then
-			if type(t) ~= "number" then
-				return format("|cff%02x%02x%02x%s|r", r * 255, g * 255, b * 255, t)
-			end
-			local tnum = t < 0 and t * -1 or t
-			if tnum < shortk then
-				return format("|cff%02x%02x%02x%s|r", r * 255, g * 255, b * 255, t)
-			elseif tnum < 1000000 then
-				return format("|cff%02x%02x%02x%.1f%s|r", r * 255, g * 255, b * 255, t * 0.001, nK)
-			else
-				return format("|cff%02x%02x%02x%.1f%s|r", r * 255, g * 255, b * 255, t * 0.000001, nM)
-			end
-		else
-			if type(t) ~= "number" then
-				return t
-			end
-			local tnum = t < 0 and t * -1 or t
-			if tnum < shortk then
-				return t
-			elseif tnum < 1000000 then
-				return format("%.1f%s", t * 0.001, nK)
-			else
-				return format("%.1f%s", t * 0.000001, nM)
-			end
-		end
+		local ts = SafeNumStr(t)
+		if r then return format("|cff%02x%02x%02x%s|r", r*255, g*255, b*255, ts) end
+		return ts
 	end
 	local function AddAdvanceText(fs, a1, ...)
 		fs:SetFormattedText(gsub(a1 or "", "||", "|"), ...)
@@ -120,6 +122,21 @@ do  -- custom text handlers ----------------------------------------------------
 			f:Show()
 		end
 	end
+	-- Secret-value tags: raw UnitHealth/Power values that can ONLY go to C-side APIs.
+	-- Never pass these through gsub — use SetFormattedText instead.
+	-- Plain percent tags are safe because UnitHealthPercent/UnitPowerPercent return plain numbers.
+	local DIRECT_TAGS = {
+		curhp  = function(u) return UnitHealth(u) end,
+		maxhp  = function(u) return UnitHealthMax(u) end,
+		curmp  = function(u) return UnitPower(u) end,
+		maxmp  = function(u) return UnitPowerMax(u) end,
+	}
+
+	local UnitHealth, UnitHealthMax = UnitHealth, UnitHealthMax
+	local UnitPower, UnitPowerMax   = UnitPower, UnitPowerMax
+	local UnitHealthPercent         = UnitHealthPercent
+	local UnitPowerPercent          = UnitPowerPercent
+
 	local function UpdateText(unit, uf, f, _, _, config)
 		if not f or f.db.hide then return end
 		local dbt, cache = f.db, uf.cache
@@ -127,6 +144,32 @@ do  -- custom text handlers ----------------------------------------------------
 			AddAdvanceText(f.fontstring, f.textcode(unit, cache, f))
 		else
 			local text = dbt.pattern or ""
+
+			-- Phase 1+2: ALL health/power values are secret in 12.0.1.
+			-- Replace every secret tag with a \001N marker and collect raw values.
+			-- SetFormattedText will pass them to C which handles secrets natively.
+			local rawArgs = {}
+			local argCount = 0
+			local function collectTag(placeholder, valueFn)
+				if strmatch(text, placeholder) then
+					argCount = argCount + 1
+					rawArgs[argCount] = valueFn(unit)
+					text = gsub(text, placeholder, "\001" .. argCount)
+				end
+			end
+				-- CurveConstants.ScaleTo100 scales the result to 0-100.
+			-- Fallback: passing 'true' achieves the same effect (MSUF pattern).
+			local _scale = (CurveConstants and CurveConstants.ScaleTo100) or true
+			collectTag("%[perchp%]", function(u) return UnitHealthPercent(u, false, _scale) end)
+			collectTag("%[percmp%]", function(u)
+				local pt = UnitPowerType(u)
+				return UnitPowerPercent(u, pt, false, _scale)
+			end)
+			for tag, valueFn in pairs(DIRECT_TAGS) do
+				collectTag("%[" .. tag .. "%]", valueFn)
+			end
+
+			-- Phase 3: normal gsub loop for all remaining safe tags
 			for i = 1, 20, 1 do
 				local pat = strmatch(text, "%[(.-)%]")
 				if not pat then break end
@@ -134,12 +177,15 @@ do  -- custom text handlers ----------------------------------------------------
 				if pat1 and pat2 then  -- [something:infotag]
 					local replace
 					itag = cache[pat2] or specialchars[pat2] or pat2
-					itag = (itag == true and pat2) or itag
-					if itag ~= "" then
+					if not IsSecret(itag) then
+						if itag == true then itag = pat2 end
+						if itag == "" then itag = nil end
+					end
+					if itag and not IsSecret(itag) then
 						local ct = colortags[pat1]
-						if ct then  -- [colortag:infotag]
+						if ct then
 							replace = ((pat1 == "custom" or pat1 == "solid") and TextFormat(itag)) or TextFormat(itag, ct(uf, dbt, nil, "fontcolor"))
-						else  -- probably [colortag_if_condition:infotag]
+						else
 							local clr, cond = strmatch(pat1, "(.+)_if_(.+)")
 							local iffy
 							if not clr then
@@ -155,12 +201,58 @@ do  -- custom text handlers ----------------------------------------------------
 							end
 						end
 					end
-					text = gsub(text, "%[(.-)%]", replace or "", 1)
+					local rep = replace or ""
+					if IsSecret(rep) then rep = "" end
+					text = gsub(text, "%[(.-)%]", rep, 1)
 				else  -- [infotag]
-					text = gsub(text, "%[(.-)%]", TextFormat(cache[pat] or specialchars[pat] or pat) or "", 1)
+					local val = cache[pat] or specialchars[pat] or pat
+					local rep2
+					if IsSecret(val) then
+						rep2 = ""
+					else
+						rep2 = TextFormat(val) or ""
+						if IsSecret(rep2) then rep2 = "" end
+					end
+					text = gsub(text, "%[(.-)%]", rep2, 1)
 				end
 			end
-			f.fontstring:SetTexty(text, f)
+
+			-- Phase 4: walk the text scanning for \001N markers (any index, any frequency).
+			-- AbbreviateLargeNumbers(secret) returns a secret string; .. concatenation is
+			-- allowed on secret strings; SetText(secretString) renders correctly.
+			if argCount > 0 then
+				local _abbrev = _G.AbbreviateLargeNumbers or _G.ShortenNumber
+				local result = ""
+				local pos = 1
+				local len = #text
+				while pos <= len do
+					local ms = text:find("\001", pos, true)
+					if not ms then
+						result = result .. text:sub(pos)
+						break
+					end
+					-- plain text before the marker
+					result = result .. text:sub(pos, ms - 1)
+					-- single digit index after \001
+					local idx = tonumber(text:sub(ms + 1, ms + 1))
+					if idx and rawArgs[idx] then
+						local abbrevd = _abbrev and _abbrev(rawArgs[idx]) or rawArgs[idx]
+						-- strip space before K/M/B/T suffixes e.g. "45.0 K" -> "45.0K"
+						-- only safe on plain strings; secret strings can't be gsub'd
+						if not IsSecret(abbrevd) then
+							abbrevd = gsub(abbrevd, " ([KMBTkmbt])", "%1")
+						end
+						result = result .. abbrevd
+						pos = ms + 2
+					else
+						result = result .. "\001"
+						pos = ms + 1
+					end
+				end
+				f.fontstring:SetTexty(result, f)
+			else
+				f.fontstring:SetTexty(text, f)
+			end
 		end
 	end
 	local function UpdateMouseText(unit, uf, f, _, _, config)
