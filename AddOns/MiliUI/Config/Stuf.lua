@@ -19,7 +19,7 @@ local TOT_OFFSET     = { x =  410, y = -200 }   -- target + 210
 local FOCUS_OFFSET   = { x =  200, y = -100 }   -- target x, player y + 100
 local FOCUST_OFFSET  = { x =  325, y = -100 }   -- target + 125
 local PET_OFFSET     = { x = -530, y = -200 }   -- player - 130
-local ARENA_OFFSET   = { x =  500, y = -200 }   -- 競技場區域
+local ARENA_OFFSET   = { x =  500, y = 300 }   -- 競技場區域
 
 --- 取得 TOPLEFT 座標 = 畫面中心 + 偏移
 local function CX(offset)
@@ -49,10 +49,10 @@ function MiliUI_BuildStufDefaults()
             bordermousecolor={ r=1, g=1, b=0, a=0, },
             alpha=1, shortk=100000,
             classification={
-                worldboss=" Boss",
-                rareelite="+ Rare",
-                elite="+",
-                rare=" Rare",
+                worldboss=" 首領",
+                rareelite=" 稀有精英",
+                elite=" 精英",
+                rare=" 稀有",
                 normal="",
             },
             classcolor={ },
@@ -272,14 +272,14 @@ function MiliUI_BuildStufDefaults()
                 fontcolor = {r=1, g=1, b=1, a=1, },
             },
             text5={
-                x=10, y=-48, w=200, h=10,
+                x=0, y=-48, w=200, h=10,
                 pattern="[percmp]%",
                 fontsize=10, justifyH="RIGHT", justifyV="BOTTOM",
                 fontflags="OUTLINE",
                 framelevel=11,
             },
             text6={
-                pattern="[gray_if_oor:\232\182\133\229\135\186\232\183\157\233\155\162 ][gray_if_tapped:\231\132\161\231\142\142\229\139\181\231\155\174\230\168\153 ][gray_if_offline:\233\155\162\231\183\154 ][gray_if_dead:\230\173\187\228\186\161 ][gray_if_ghost:\233\172\188\233\173\130 ]",
+                pattern="[gray_if_oor:超出距離 ][gray_if_tapped:無獎勵目標 ][gray_if_offline:離線 ][gray_if_dead:死亡 ][gray_if_ghost:鬼魂 ]",
                 x=0, y=3, w=200, h=50,
                 fontsize=14, justifyH="CENTER", justifyV="BOTTOM", shadowx=0, shadowy=0,
                 fontflags="OUTLINE",
@@ -649,6 +649,101 @@ function MiliUI_BuildStufDefaults()
         arenapet3={ frame={ hide=true, x=arenax - 37, y=arenay - 106, w=78, h=24, }, },
         arenapet4={ frame={ hide=true, x=arenax - 37, y=arenay - 153, w=78, h=24, }, },
         arenapet5={ frame={ hide=true, x=arenax - 37, y=arenay - 200, w=78, h=24, }, },
+        boss1={
+            frame={ x=arenax, y=arenay, w=120, h=10, },
+            portrait={ x=0, y=0, w=24, h=24, show3d=nil, hide=true, },
+            hpbar={
+                x=0, y=0, w=120, h=10, barcolormethod="hpred", bgcolormethod="hpreddark", bgalpha=1,
+                bartexture="TukTex",
+                border="Square Outline",
+                bordercolor={r=0, g=0, b=0, a=1, },
+            },
+            mpbar={ hide=true, x=24, y=-19, w=53, h=5, barcolormethod="power", bgcolormethod="powerdark", bgalpha=0.3, },
+            text1={
+                pattern="[name]", x=0, y=8, w=120, h=12,
+                fontsize=12, justifyH="LEFT", justifyV="TOP", shadowx=-1, shadowy=-1,
+                fontflags="OUTLINE",
+                framelevel=5,
+            },
+            text2={ hide=true, pattern="", x=0, y=0, w=54, h=10, },
+            text3={
+                pattern="[perchp]%", x=-12, y=0, w=120, h=10,
+                fontsize=10, justifyH="RIGHT", justifyV="CENTER",
+                fontflags="OUTLINE",
+                framelevel=5,
+            },
+            text4={ hide=true, pattern="", x=0, y=0, w=54, h=10, },
+            buffgroup={
+                hide=true,
+                x=0, y=-24, w=10, h=10,
+                count=8, rows=1, cols=8, growth="RLBT",
+            },
+            debuffgroup={
+                hide=true,
+                x=0, y=-24, w=10, h=10,
+                count=8, rows=1, cols=8, growth="LRTB",
+            },
+            infoicon={ hide=true, x=0, y=0, w=12, h=12, },
+            castbar={
+                x=0, y=-10, w=120, h=10, alpha=1,
+                baralpha=0, bgcolor={ r=1, g=1, b=0, a=0.8, },
+                spellx=0, spelly=0, spellw=120, spellh=10,
+                spellfontsize=10, spelljustifyH="CENTER", spelljustifyV="CENTER", spellshadowx=0, spellshadowy=0,
+                spellfontcolor={ r=1, g=0.5, b=0.2, a=1, },
+                timex=0, timey=0, timew=120, timeh=10,
+                timefontsize=8, timejustifyH="RIGHT", timejustifyV="CENTER",
+                timefontcolor={ r=1, g=1, b=1, a=1, },
+                iconx=-10, icony=0, iconw=10, iconh=10, iconalpha=1,
+                spellfontflags="OUTLINE",
+                timefontflags="OUTLINE",
+            },
+            raidtargeticon={ x=110, y=10, w=20, h=20, },
+            threatbar={ hide=true, x=10, y=12, w=32, h=12, bgcolor={ r=0, g=0, b=0, a=0.4, }, },
+        },
+        boss2={ frame={ x=arenax, y=arenay - 47, w=78, h=24, }, },
+        boss3={ frame={ x=arenax, y=arenay - 94, w=78, h=24, }, },
+        boss4={ frame={ x=arenax, y=arenay - 141, w=78, h=24, }, },
+        boss5={ frame={ x=arenax, y=arenay - 188, w=78, h=24, }, },
+        boss1target={
+            frame={ x=arenax + 130, y=arenay, w=80, h=10, },
+            portrait={ x=55, y=0, w=24, h=24, show3d=nil, hide=true, },
+            hpbar={
+                x=1, y=-1, w=80, h=10, barcolormethod="classreaction", bgcolormethod="classreactiondark", reverse=true, bgalpha=1,
+                bartexture="TukTex",
+                border="Square Outline",
+                bordercolor={r=0, g=0, b=0, a=1, },
+            },
+            mpbar={ hide=true, x=1, y=-19, w=53, h=5, barcolormethod="power", bgcolormethod="powerdark", reverse=true, bgalpha=0.3, },
+            text1={
+                pattern="[name]",
+                x=0, y=8, w=80, h=10,
+                fontsize=12, justifyH="CENTER", justifyV="TOP", shadowx=0, shadowy=0,
+                fontflags="OUTLINE",
+                framelevel=5,
+            },
+            text2={ hide=true, pattern="", x=1, y=-11, w=108, h=10, },
+            text3={
+                hide=true,
+                pattern="[perchp]%",
+                x=1, y=-13, w=54, h=10,
+                fontsize=10, justifyH="CENTER", justifyV="CENTER",
+            },
+            text4={ hide=true, pattern="", x=1, y=-24, w=54, h=10, },
+            buffgroup={
+                hide=true, x=0, y=-24, w=10, h=10,
+                count=8, rows=1, cols=8, growth="LRTB",
+            },
+            debuffgroup={
+                hide=true, x=0, y=-23, w=10, h=10,
+                count=8, rows=1, cols=8, growth="LRTB", push="v",
+            },
+            infoicon={ hide=true, x=0, y=0, w=12, h=12, },
+            raidtargeticon={ x=74, y=6, w=12, h=12, },
+        },
+        boss2target={ frame={ x=arenax + 130, y=arenay - 47, w=80, h=10, }, },
+        boss3target={ frame={ x=arenax + 130, y=arenay - 94, w=80, h=10, }, },
+        boss4target={ frame={ x=arenax + 130, y=arenay - 141, w=80, h=10, }, },
+        boss5target={ frame={ x=arenax + 130, y=arenay - 188, w=80, h=10, }, },
     }
 end
 

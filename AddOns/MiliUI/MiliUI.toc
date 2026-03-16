@@ -11,6 +11,7 @@ Config\Luxthos_Platynator.lua
 # Config\Luxthos_Sensei.lua
 # Config\Luxthos_CMC.lua
 Config\Ayije_CDM.lua
+Config\BugSack.lua
 Config\Stuf.lua
 Settings.lua
 Core.lua
