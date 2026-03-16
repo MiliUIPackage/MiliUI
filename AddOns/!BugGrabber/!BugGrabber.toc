@@ -1,20 +1,10 @@
-## Interface: 120001
+## Interface: 11508, 20505, 30405, 38000, 40402, 50503, 120001
 ## Title: BugGrabber
-## Version: v10.2.6
+## Version: v12.0.10
 ## Notes: Grabs bugs for the bug sack.
-## Notes-deDE: Grabs bugs for the bug sack.
-## Notes-ruRU: Grabs bugs for the bug sack.
-## Notes-zhCN: Grabs bugs for the bug sack.
-## Notes-zhTW: Grabs bugs for the bug sack.
-## Notes-koKR: Grabs bugs for the bug sack.
-## Notes-frFR: Grabs bugs for the bug sack.
-## Notes-esES: Grabs bugs for the bug sack.
-## Notes-esMX: Grabs bugs for the bug sack.
-## Notes-itIT: Grabs bugs for the bug sack.
-## Notes-ptBR: Grabs bugs for the bug sack.
 ## Title-zhTW: |r|cFFFFFFFF[其他]|r 錯誤訊息擷取
 ## Notes-zhTW: BugGrabber|n將錯誤訊息擷取至錯誤訊息收集袋
-## Author: Funkydude
+## Author: Funkeh
 ## X-Credits: Rabbit, Rowne, Ramble, kergoth, ckknight, Fritti
 ## X-License: All Rights Reserved
 ## X-Category: Development Tools
@@ -23,5 +13,3 @@
 ## Category-zhTW: 其他
 
 BugGrabber.lua
-locales.lua
-

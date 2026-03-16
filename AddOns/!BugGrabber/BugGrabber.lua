@@ -1,12 +1,11 @@
 
 local _G = _G
 local type, table, next, tostring, tonumber, print = type, table, next, tostring, tonumber, print
-local debuglocals, debugstack, wipe, IsEncounterInProgress, GetTime = debuglocals, debugstack, table.wipe, IsEncounterInProgress, GetTime
 local GetAddOnMetadata = C_AddOns.GetAddOnMetadata
-local DisableAddOn = C_AddOns.DisableAddOn or DisableAddOn
-local GetAddOnInfo = C_AddOns.GetAddOnInfo or GetAddOnInfo
-local IsAddOnLoaded = C_AddOns.IsAddOnLoaded or IsAddOnLoaded
-local GetNumAddOns = C_AddOns.GetNumAddOns or GetNumAddOns
+local DisableAddOn = C_AddOns.DisableAddOn
+local GetAddOnEnableState = C_AddOns.GetAddOnEnableState
+local GetNumAddOns = C_AddOns.GetNumAddOns
+local playerName = UnitNameUnmodified("player")
 
 -----------------------------------------------------------------------
 -- Check if we already exist in the global space
@@ -22,8 +21,8 @@ local STANDALONE_NAME = "!BugGrabber"
 if bugGrabberParentAddon ~= STANDALONE_NAME then
 	local tbl = { STANDALONE_NAME, "!Swatter", "!ImprovedErrorFrame" }
 	for i = 1, 3 do
-		local _, _, _, enabled = GetAddOnInfo(tbl[i])
-		if enabled then return end -- Bail out
+		local enabled = GetAddOnEnableState(tbl[i], playerName)
+		if enabled == 2 then return end -- Bail out
 	end
 end
 if not parentAddonTable.BugGrabber then parentAddonTable.BugGrabber = {} end
@@ -35,7 +34,7 @@ local real_seterrorhandler = seterrorhandler
 -- Global config variables
 --
 
-MAX_BUGGRABBER_ERRORS = 1000
+MAX_BUGGRABBER_ERRORS = 500
 
 -- If we get more errors than this per second, we stop all capturing
 BUGGRABBER_ERRORS_PER_SEC_BEFORE_THROTTLE = 10
@@ -46,7 +45,6 @@ BUGGRABBER_ERRORS_PER_SEC_BEFORE_THROTTLE = 10
 
 local L = {
 	ADDON_CALL_PROTECTED = "[%s] AddOn '%s' tried to call the protected function '%s'.",
-	ADDON_CALL_PROTECTED_MATCH = "^%[(.*)%] (AddOn '.*' tried to call the protected function '.*'.)$",
 	ADDON_DISABLED = "|cffffff00!BugGrabber and %s cannot coexist; %s has been forcefully disabled. If you want to, you may log out, disable !BugGrabber, and enable %s.|r",
 	BUGGRABBER_STOPPED = "|cffffff00There are too many errors in your UI. As a result, your game experience may be degraded. Disable or update the failing addons if you don't want to see this message again.|r",
 	ERROR_DETECTED = "%s |cffffff00captured, click the link for more information.|r",
@@ -58,6 +56,33 @@ local L = {
 	USAGE = "|cffffff00Usage: /buggrabber <1-%d>.|r",
 }
 
+do
+	local locale = GetLocale()
+	if locale == "zhTW" then
+		L.ADDON_CALL_PROTECTED = "[%s] 插件 '%s' 嘗試調用保護功能 '%s'。"
+		L.ADDON_DISABLED = "|cffffff00!BugGrabber和%s不能共存;%s已經被強制停用。如果你要使用它,你可能需要登出，然後禁用!BugGrabber，再啟用%s。|r"
+		L.BUGGRABBER_STOPPED = "|cffffff00你的UI有太多的錯誤。這可能導致糟糕的遊戲體驗。禁用或是更新錯誤的插件如果你不想看到再次看到這個訊息。|r"
+		L.ERROR_DETECTED = "%s |cffffff00已捕捉，點擊連結以獲得更多訊息。|r"
+		L.ERROR_UNABLE = "|cffffff00!BugGrabber 本身無法檢索其他玩家的錯誤。請安裝 BugSack 或類似的錯誤顯示插件，可能會包含這些功能。|r"
+		L.NO_DISPLAY_1 = "|cffffff00你似乎沒有與 !BugGrabber 一起運行的錯誤顯示插件。雖然斜線命令訪問錯誤報告，但錯誤顯示插件可以以更快捷的方式幫助您管理這些錯誤。|r"
+		L.NO_DISPLAY_2 = "|cffffff00標準的錯誤顯示插件名叫 BugSack，可以在找到 !BugGrabber 的網站上找到它。|r"
+		L.NO_DISPLAY_STOP = "|cffffff00如果你不希望再次被提醒，請輸入 /stopnag。|r"
+		L.STOP_NAG = "|cffffff00!BugGrabber將不再提示缺失錯誤顯示插件資訊直到下個版本發佈。|r"
+		L.USAGE = "|cffffff00用法：/buggrabber <1-%d>。|r"
+	elseif locale == "zhCN" then
+		L.ADDON_CALL_PROTECTED = "[%s] 插件 '%s' 尝试调用保护功能 '%s'。"
+		L.ADDON_DISABLED = "|cffffff00!BugGrabber|r 和 %s 不能共存。%s 已被强制停用。如果愿意，可在登出游戏后，停用 !BugGrabber 并启用 %s|r。"
+		L.BUGGRABBER_STOPPED = "|cffffff00用户界面有太多的错误。所以，游戏体验会被降低。如不想再看到此信息请禁用或升级失效插件。|r"
+		L.ERROR_DETECTED = "%s |cffffff00已抓取，点击链接获取更多信息。|r"
+		L.ERROR_UNABLE = "|cffffff00!BugGrabber 本身无法检索其他玩家的错误。请安装 BugSack 或类似的错误显示插件，可能会包含这些功能。|r"
+		L.NO_DISPLAY_1 = "|cffffff00似乎没有与 !BugGrabber 一起运行的错误显示插件。虽然斜线命令访问错误报告，但错误显示插件可以以更快捷的方式帮助您管理这些错误。|r"
+		L.NO_DISPLAY_2 = "|cffffff00标准的错误显示插件名叫 BugSack，可以在找到 !BugGrabber 的网站上找到它。|r"
+		L.NO_DISPLAY_STOP = "|cffffff00如果你不希望再次被提醒，请输入 /stopnag。|r"
+		L.STOP_NAG = "|cffffff00!BugGrabber 将不再提示缺失错误显示插件信息知道下个版本发布。|r"
+		L.USAGE = "|cffffff00用法：/buggrabber <1-%d>。|r"
+	end
+end
+
 -----------------------------------------------------------------------
 -- Locals
 --
@@ -67,8 +92,8 @@ local displayObjectName = nil
 for i = 1, GetNumAddOns() do
 	local meta = GetAddOnMetadata(i, "X-BugGrabber-Display")
 	if meta then
-		local _, _, _, enabled = GetAddOnInfo(i)
-		if enabled then
+		local enabled = GetAddOnEnableState(i, playerName)
+		if enabled == 2 then
 			displayObjectName = meta
 			break
 		end
@@ -84,33 +109,18 @@ local db = nil
 local loadErrors = {}
 
 local paused = nil
-local isBugGrabbedRegistered = nil
-local callbacks = nil
-local playerName = UnitName("player")
-local chatLinkFormat = "|Hbuggrabber:%s:%s:|h|cffff0000[Error %s]|r|h"
-local tableToString = "table: %s"
+local isDisplayRegistered = nil
 
 -----------------------------------------------------------------------
 -- Callbacks
 --
 
-local function setupCallbacks()
-	if not callbacks and LibStub and LibStub("CallbackHandler-1.0", true) then
-		callbacks = LibStub("CallbackHandler-1.0"):New(addon)
-		function callbacks:OnUsed(_, eventname)
-			if eventname == "BugGrabber_BugGrabbed" then isBugGrabbedRegistered = true end
-		end
-		function callbacks:OnUnused(_, eventname)
-			if eventname == "BugGrabber_BugGrabbed" then isBugGrabbedRegistered = nil end
-		end
-		setupCallbacks = nil
+do
+	local tbl = {}
+	local function callback()
+		isDisplayRegistered = true
 	end
-end
-addon.setupCallbacks = setupCallbacks; -- make it accessible from the outside for add-ons relying on BugGrabber events so they can make BugGrabber.RegisterCallback appear when they need it (CallbackHandler-1.0 is not embedded in BugGrabber)
-
-local function triggerEvent(...)
-	if not callbacks then setupCallbacks() end
-	if callbacks then callbacks:Fire(...) end
+	EventRegistry:RegisterCallback("BugGrabber.DisplayRegistered", callback, tbl)
 end
 
 -----------------------------------------------------------------------
@@ -121,10 +131,7 @@ local function fetchFromDatabase(database, target)
 	for i, err in next, database do
 		if err.message == target then
 			-- This error already exists
-			err.counter = err.counter + 1
-			err.session = addon:GetSessionId()
-
-			return table.remove(database, i)
+			return err, i
 		end
 	end
 end
@@ -165,97 +172,43 @@ local function slashHandler(index)
 end
 
 -----------------------------------------------------------------------
--- Error catching
+-- Error Handler
 --
 
-local findVersions -- Function set below
-do
-	local function scanObject(o)
-		local version, revision = nil, nil
-		for k, v in next, o do
-			if type(k) == "string" and (type(v) == "string" or type(v) == "number") then
-				local low = k:lower()
-				if not version and low:find("version") then
-					version = v
-				elseif not revision and low:find("revision") then
-					revision = v
-				end
-			end
-			if version and revision then break end
-		end
-		return version, revision
-	end
-
-	local matchCache = setmetatable({}, { __index = function(self, object)
-		if type(object) ~= "string" or #object < 3 then return end
-		local found = nil
-		-- First see if it's a library
-		if LibStub then
-			local _, minor = LibStub(object, true)
-			found = minor
-		end
-		-- Then see if we can get some addon metadata
-		if not found and IsAddOnLoaded(object) then
-			found = GetAddOnMetadata(object, "X-Curse-Packaged-Version")
-			if not found then
-				found = GetAddOnMetadata(object, "Version")
-			end
-		end
-		-- Perhaps it's a global object?
-		if not found then
-			local o = _G[object] or _G[object:upper()]
-			if type(o) == "table" then
-				local v, r = scanObject(o)
-				if v or r then
-					found = tostring(v) .. "." .. tostring(r)
-				end
-			elseif o then
-				found = o
-			end
-		end
-		if not found then
-			found = _G[object:upper() .. "_VERSION"]
-		end
-		if type(found) == "string" or type(found) == "number" then
-			self[object] = found
-			return found
-		end
-	end })
-
-	local tmp = {}
-	local function replacer(start, object, tail)
-		-- Have we matched this object before on the same line?
-		-- (another pattern could re-match a previous match...)
-		if tmp[object] then return end
-		local found = matchCache[object]
-		if found then
-			tmp[object] = true
-			return (type(start) == "string" and start or "") .. object .. "-" .. found .. (type(tail) == "string" and tail or "")
-		end
-	end
-
-	local matchers = {
-		"(\\)([^\\]+)(%.lua)",       -- \Anything-except-backslashes.lua
-		"^()([^\\]+)(\\)",           -- Start-of-the-line-until-first-backslash\
-		"()(%a+%-%d%.?%d?)()",       -- Anything-#.#, where .# is optional
-		"()(Lib%u%a+%-?%d?%.?%d?)()" -- LibXanything-#.#, where X is any capital letter and -#.# is optional
-	}
-	function findVersions(line)
-		if not line or line:find("FrameXML\\") then return line end
-		for i = 1, 4 do
-			line = line:gsub(matchers[i], replacer)
-		end
-		wipe(tmp)
-		return line
-	end
-end
-
--- Error handler
 local grabError
 do
+	local GetErrorStack
+	do
+		local GetCallstackHeight, GetErrorCallstackHeight, debugstack = GetCallstackHeight, GetErrorCallstackHeight, debugstack
+		function GetErrorStack() -- This code is lifted from Blizzard's error handler, and adapted to compensate for GetErrorCallstackHeight sometimes being nil
+			local currentStackHeight = GetCallstackHeight()
+			local errorCallStackHeight = GetErrorCallstackHeight()
+			if errorCallStackHeight then
+				local errorStackOffset = errorCallStackHeight - 1
+				local debugStackLevel = currentStackHeight - errorStackOffset
+
+				local stack = debugstack(debugStackLevel)
+				return stack, debugStackLevel
+			else
+				local stack = debugstack(3)
+				return stack, 3
+			end
+		end
+	end
+	local GetErrorLocals
+	do
+		local debuglocals = debuglocals
+		function GetErrorLocals(level)
+			local locals = debuglocals(level)
+			return locals
+		end
+	end
+
 	local msgsAllowed = BUGGRABBER_ERRORS_PER_SEC_BEFORE_THROTTLE
+	local GetTime, time = GetTime, time
 	local msgsAllowedLastTime = GetTime()
 	local lastWarningTime = 0
+	local issecretvalue = issecretvalue or function() return false end
 	function grabError(errorMessage, isSimple)
 		-- Flood protection --
 		msgsAllowed = msgsAllowed + (GetTime()-msgsAllowedLastTime)*BUGGRABBER_ERRORS_PER_SEC_BEFORE_THROTTLE
@@ -269,7 +222,6 @@ do
 					end
 				end
 				paused=true
-				triggerEvent("BugGrabber_CapturePaused")
 			end
 			return
 		end
@@ -278,72 +230,85 @@ do
 			msgsAllowed = BUGGRABBER_ERRORS_PER_SEC_BEFORE_THROTTLE
 		end
 		msgsAllowed = msgsAllowed - 1
-
-		-- Grab it --
 		errorMessage = tostring(errorMessage)
 
-		local looping = errorMessage:find("BugGrabber") and true or nil
-		if looping then
-			print(errorMessage)
+		if issecretvalue(errorMessage) or (not isSimple and errorMessage:find("BugGrabber", nil, true)) then
+			print("|cffffff00BugGrabber|r:", errorMessage)
 			return
 		end
 
-		local sanitizedMessage = findVersions(errorMessage)
-
 		-- Insert the error into the correct database if it's not there
 		-- already. If it is, just increment the counter.
-		local found
+		local errorObject, positionInDatabase
 		if db then
-			found = fetchFromDatabase(db, sanitizedMessage)
+			errorObject, positionInDatabase = fetchFromDatabase(db, errorMessage)
 		else
-			found = fetchFromDatabase(loadErrors, sanitizedMessage)
+			errorObject, positionInDatabase = fetchFromDatabase(loadErrors, errorMessage)
 		end
-		-- XXX Note that fetchFromDatabase will set the error objects
-		-- XXX session ID to the current one, if found - and it will also
-		-- XXX increment the counter on it. This is probably wrong, it should
-		-- XXX be done here instead, as "fetchFromDatabase" implies a simple
-		-- XXX :Get procedure.
 
-		local errorObject = found
-
-		if not errorObject then
+		if not errorObject then -- New error
 			-- Store the error
 			if isSimple then
 				errorObject = {
-					message = sanitizedMessage,
+					message = errorMessage,
 					session = addon:GetSessionId(),
-					time = date("%Y/%m/%d %H:%M:%S"),
+					time = time(),
 					counter = 1,
 				}
+				addon:StoreError(errorObject)
 			else
-				local stack = debugstack(3)
-				local tbl = {}
-
-				-- Scan for version numbers in the stack
-				if stack then
-					for line in stack:gmatch("(.-)\n") do
-						tbl[#tbl+1] = findVersions(line)
-					end
-				end
-				local inCombat = IsEncounterInProgress() -- debuglocals can be slow sometimes (200ms+)
 				errorObject = {
-					message = sanitizedMessage,
-					stack = stack and table.concat(tbl, "\n") or "Debugstack was nil.",
-					locals = inCombat and "Skipped (In Encounter)" or debuglocals(3),
+					message = errorMessage,
 					session = addon:GetSessionId(),
-					time = date("%Y/%m/%d %H:%M:%S"),
+					time = time(),
 					counter = 1,
 				}
+				addon:StoreError(errorObject) -- Always store the error before checking stack/locals incase something goes wrong whilst calling them
+				local stack, level = GetErrorStack()
+				errorObject.stack = stack or "Debugstack was nil."
+				local locals = GetErrorLocals(level)
+				errorObject.locals = locals or "Debuglocals was nil."
+			end
+		else -- Old error
+			errorObject.counter = errorObject.counter + 1
+			local session = addon:GetSessionId()
+			if errorObject.session ~= session then -- Error from a different session, update it
+				-- Do not re-arrange this error in the DB unless it's from an older session
+				table.remove(db or loadErrors, positionInDatabase)
+				addon:StoreError(errorObject)
+				errorObject.time = time()
+
+				errorObject.session = session
+				if not isSimple then
+					local stack, level = GetErrorStack()
+					errorObject.stack = stack or "Debugstack was nil."
+					local locals = GetErrorLocals(level)
+					errorObject.locals = locals or "Debuglocals was nil."
+				end
+			else
+				local curTime = time()
+				local errorTime = errorObject.time
+				errorObject.time = curTime
+				-- Do not re-arrange this error in the DB unless 10 seconds have elapsed since the last time the error occured (timer will reset if the error is spamming)
+				if curTime - errorTime > 10 then
+					table.remove(db or loadErrors, positionInDatabase)
+					addon:StoreError(errorObject)
+				end
+
+				if not isSimple and curTime - errorTime > 120 then -- More than 2 minutes, update the stack again
+					local stack, level = GetErrorStack()
+					errorObject.stack = stack or "Debugstack was nil."
+					local locals = GetErrorLocals(level)
+					errorObject.locals = locals or "Debuglocals was nil."
+				end
 			end
 		end
 
-		if not isBugGrabbedRegistered then
+		if not isDisplayRegistered then
 			print(L.ERROR_DETECTED:format(addon:GetChatLink(errorObject)))
 		end
 
-		addon:StoreError(errorObject)
-
-		triggerEvent("BugGrabber_BugGrabbed", errorObject)
+		EventRegistry:TriggerEvent("BugGrabber.BugGrabbed")
 	end
 end
 
@@ -364,51 +329,42 @@ function addon:StoreError(errorObject)
 end
 
 do
-	local function createChatHook()
-		-- Set up the ItemRef hook that allow us to link bugs.
-		local SetHyperlink = ItemRefTooltip.SetHyperlink
-		function ItemRefTooltip:SetHyperlink(link, ...)
-			local player, tableId = link:match("^buggrabber:([^:]+):([^:]+):")
-			if player then
-				addon:HandleBugLink(player, tableId, link)
-			else
-				SetHyperlink(self, link, ...)
-			end
+	EventRegistry:RegisterCallback("SetItemRef", function(_, link)
+		local player, tableId = link:match("^addon:buggrabber:([^:]+):(table: [^:]+):")
+		if player and tableId then
+			addon:HandleBugLink(player, tableId)
 		end
-	end
+	end)
 
-	-- We need to hook the chat frame when anyone requests a chat link from us,
-	-- in case some other addon has hooked :HandleBugLink to process it. If not,
-	-- we could've just created the hook in grabError when we do the print.
+	local chatLinkFormat = "|Haddon:buggrabber:%s:%s:|h|cffff0000[Error %s]|r|h"
 	function addon:GetChatLink(errorObject)
-		if createChatHook then createChatHook() createChatHook = nil end
-		local tableId = tostring(errorObject):sub(8)
-		return chatLinkFormat:format(playerName, tableId, tableId)
+		local tableId = tostring(errorObject)
+		local tableIdTrimmed = tableId:sub(8) -- Trim away "table: "
+		return chatLinkFormat:format(playerName, tableId, tableIdTrimmed)
 	end
 end
 
-function addon:GetErrorByPlayerAndID(player, id)
-	if player == playerName then return addon:GetErrorByID(id) end
+function addon:GetErrorByPlayerAndID(player, tableId)
+	if player == playerName then return addon:GetErrorByID(tableId) end
 	print(L.ERROR_UNABLE)
 end
 
-function addon:GetErrorByID(id)
-	local errorId = tableToString:format(id)
-	for _, err in next, db do
-		if tostring(err) == errorId then
-			return err
+function addon:GetErrorByID(tableId)
+	for _, errorObject in next, db do
+		if tostring(errorObject) == tableId then
+			return errorObject
 		end
 	end
 end
 
 function addon:GetErrorID(errorObject) return tostring(errorObject):sub(8) end
-function addon:Reset() if BugGrabberDB then wipe(BugGrabberDB.errors) end end
+function addon:Reset() if BugGrabberDB then db = {} BugGrabberDB.errors = db BugGrabberDB.session = 1 end end
 function addon:GetDB() return db or loadErrors end
 function addon:GetSessionId() return BugGrabberDB and BugGrabberDB.session or -1 end
 function addon:IsPaused() return paused end
 
-function addon:HandleBugLink(player, id)
-	local errorObject = addon:GetErrorByPlayerAndID(player, id)
+function addon:HandleBugLink(player, tableId)
+	local errorObject = addon:GetErrorByPlayerAndID(player, tableId)
 	if errorObject then
 		printErrorObject(errorObject)
 	end
@@ -439,25 +395,21 @@ local function initDatabase()
 	-- insert the relevant ones into our SV DB.
 	for _, err in next, loadErrors do
 		err.session = sv.session -- Update the session ID directly
-		local exists = fetchFromDatabase(db, err.message)
-		addon:StoreError(exists or err)
+		local exists, positionInDatabase = fetchFromDatabase(db, err.message)
+		if exists then
+			table.remove(db, positionInDatabase)
+			addon:StoreError(exists)
+		else
+			addon:StoreError(err)
+		end
 	end
-	wipe(loadErrors)
+	loadErrors = nil
 
 	if type(sv.lastSanitation) ~= "number" or sv.lastSanitation ~= 3 then
 		for i, v in next, db do
 			if type(v.message) == "table" then table.remove(db, i) end
 		end
 		sv.lastSanitation = 3
-	end
-
-	-- load locales
-	if type(addon.LoadTranslations) == "function" then
-		local locale = GetLocale()
-		if locale ~= "enUS" and locale ~= "enGB" then
-			addon:LoadTranslations(locale, L)
-		end
-		addon.LoadTranslations = nil
 	end
 
 	-- Only warn about missing display if we're running standalone.
@@ -484,7 +436,6 @@ do
 	local frame = CreateFrame("Frame")
 	frame:SetScript("OnEvent", function(_, event, ...) events[event](events, event, ...) end)
 	frame:RegisterEvent("ADDON_LOADED")
-	frame:RegisterEvent("PLAYER_LOGIN")
 	frame:RegisterEvent("ADDON_ACTION_BLOCKED")
 	frame:RegisterEvent("ADDON_ACTION_FORBIDDEN")
 	frame:RegisterEvent("LUA_WARNING")
@@ -509,7 +460,6 @@ do
 
 	local swatterDisabled = nil
 	function events:ADDON_LOADED(_, msg)
-		if not callbacks then setupCallbacks() end
 		if msg == "Stubby" then createSwatter() end
 		if initDatabase then
 			-- If we're running embedded, just init as soon as possible,
@@ -540,42 +490,43 @@ do
 			end
 			Swatter = nil
 
-			local _, _, _, enabled = GetAddOnInfo("Stubby")
-			if enabled then createSwatter() end
+			local enabled = GetAddOnEnableState("Stubby", playerName)
+			if enabled == 2 then createSwatter() end
 
 			real_seterrorhandler(grabError)
 		end
 	end
 end
 
-function events:PLAYER_LOGIN()
-	if not callbacks then setupCallbacks() end
-	real_seterrorhandler(grabError)
-end
 do
 	local badAddons = {}
 	function events:ADDON_ACTION_FORBIDDEN(event, addonName, addonFunc)
 		local name = addonName or "<name>"
 		if not badAddons[name] then
 			badAddons[name] = true
-			grabError(L.ADDON_CALL_PROTECTED:format(event, name or "<name>", addonFunc or "<func>"))
+			--grabError(L.ADDON_CALL_PROTECTED:format(event, name or "<name>", addonFunc or "<func>"))
 		end
 	end
-end
-events.ADDON_ACTION_BLOCKED = events.ADDON_ACTION_FORBIDDEN
-function events:LUA_WARNING(_, warnType, warningText)
-	-- Temporary hack for the few dropdown libraries that exist that were designed poorly
-	-- Hopefully we will see a rewrite of dropdowns soon
-	if warnType == 0 and warningText:find("DropDown", nil, true) then return end
-	grabError(warningText, true)
+	events.ADDON_ACTION_BLOCKED = events.ADDON_ACTION_FORBIDDEN
+	UIParent:UnregisterEvent("ADDON_ACTION_FORBIDDEN")
+	UIParent:UnregisterEvent("ADDON_ACTION_BLOCKED")
 end
 
-UIParent:UnregisterEvent("LUA_WARNING")
+function events:LUA_WARNING(_, warningText, pre11_1_5warningText) -- XXX changed in 11.1.5, need to wait until it's ported to all classic versions
+	local text = pre11_1_5warningText or warningText
+	if not text then text = "" end
+	text = "LUA_WARNING: " .. text
+	grabError(text, true)
+end
+UIParent:UnregisterEvent("LUA_WARNING") -- XXX pre-11.1.5
+if ScriptErrorsFrame then -- Post 11.1.5
+	ScriptErrorsFrame:UnregisterEvent("LUA_WARNING")
+end
+
 real_seterrorhandler(grabError)
-function seterrorhandler() --[[ noop ]] end
+function seterrorhandler() end
 
 -- Set up slash command
 SlashCmdList.BugGrabber = slashHandler
 SLASH_BugGrabber1 = "/buggrabber"
 BugGrabber = setmetatable({}, { __index = addon, __newindex = function() end, __metatable = false })
-

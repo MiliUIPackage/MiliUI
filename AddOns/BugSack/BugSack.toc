@@ -1,22 +1,15 @@
-## Interface: 120001
-## Version: v10.0.0
+## Interface: 11508, 11507, 20505, 30405, 38000, 40402, 50503, 50502, 120001
+## Version: v12.0.4
 ## Title: BugSack
 ## Title-zhTW: |r|cFFFFFFFF[其他]|r 錯誤訊息收集袋
 ## Notes: Toss those bugs inna sack.
-## Notes-deDE: Werft den Fehler in einen Sack.
-## Notes-ruRU: Аддон ловит текущие ошибки в мешок.
 ## Notes-zhCN: 错误信息收集器。
 ## Notes-zhTW: BugSack|n集中顯示錯誤訊息，避免中斷遊戲。
-## Notes-koKR: Toss those bugs inna sack.
-## Notes-frFR: Toss those bugs inna sack.
-## Notes-esES: Mete esos errores en un saco.
-## Notes-esMX: Mete esos errores en un saco.
-## Notes-ptBR: Toss those bugs inna sack.
-## Notes-itIT: Toss those bugs inna sack.
-## Author: Funkydude
+## Author: Funkeh
 ## SavedVariables: BugSackDB, BugSackLDBIconDB
 ## OptionalDeps: Ace3, LibSharedMedia-3.0, LibDBIcon-1.0, !BugGrabber
 ## IconTexture: Interface\AddOns\BugSack\Media\icon
+
 
 ## X-Category: Development Tools
 ## X-Credits: Archarodim, Zidomo, Rowne, Ramble, kergoth, ckknight, Gamefaq, thomasmo, damjau, Fritti, Rabbit
@@ -31,6 +24,7 @@
 
 embeds.xml
 
+retail.lua [AllowLoadGameType mainline]
 locales.lua
 core.lua
 sack.lua
