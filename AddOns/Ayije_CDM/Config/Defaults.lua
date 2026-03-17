@@ -282,9 +282,12 @@ CDM.defaults = {
 
     -- Cooldown Timer Text
     cooldownFontSize = 15,
+    essRow2CooldownFontSize = 15,
+    utilityCooldownFontSize = 15,
     cooldownColor = { r = 1, g = 1, b = 1, a = 1 },
     -- ChargeCount
     chargeFontSize = 15,
+    utilityChargeFontSize = 15,
     chargeColor = { r = 1, g = 1, b = 1, a = 1 },
     chargePosition = "BOTTOMRIGHT",
     chargeOffsetX = 0,

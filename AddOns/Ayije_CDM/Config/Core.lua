@@ -478,7 +478,7 @@ local function StripDefaultMatchingValues(profile)
     end
 end
 
-local DB_SCHEMA_VERSION = 3
+local DB_SCHEMA_VERSION = 7
 
 local PROFILE_MIGRATIONS = {
     {
@@ -500,6 +500,116 @@ local PROFILE_MIGRATIONS = {
                 profile.fadingTriggerOOC = (old == "ooc")
                 profile.fadingTriggerMounted = false
                 profile.fadingTrigger = nil
+            end
+        end,
+    },
+    {
+        version = 4,
+        run = function(profile)
+            local size = rawget(profile, "cooldownFontSize")
+            if size ~= nil then
+                if rawget(profile, "essRow2CooldownFontSize") == nil then
+                    profile.essRow2CooldownFontSize = size
+                end
+                if rawget(profile, "utilityCooldownFontSize") == nil then
+                    profile.utilityCooldownFontSize = size
+                end
+            end
+        end,
+    },
+    {
+        version = 5,
+        run = function(profile)
+            local bg = profile.buffGroups
+            local ubo = profile.ungroupedBuffOverrides
+
+            if type(bg) == "table" then
+                for specID, specGroups in pairs(bg) do
+                    if type(specGroups) == "table" then
+                        local specOv = type(ubo) == "table" and type(ubo[specID]) == "table" and ubo[specID]
+                        for _, group in pairs(specGroups) do
+                            if type(group) == "table" and type(group.spells) == "table" then
+                                -- Adopt orphaned ungrouped overrides (picker bug fix)
+                                -- Must run BEFORE re-key so that re-keyed entries don't block adoption
+                                if specOv then
+                                    for _, sid in ipairs(group.spells) do
+                                        local key = GetBuffOverrideStorageKey(sid)
+                                        if key and type(specOv[key]) == "table" then
+                                            if not group.spellOverrides then group.spellOverrides = {} end
+                                            if not group.spellOverrides[key] then
+                                                group.spellOverrides[key] = specOv[key]
+                                                specOv[key] = nil
+                                            end
+                                        end
+                                    end
+                                end
+                                -- Re-key mismatched overrides within the group (cross-contamination fix)
+                                local ov = group.spellOverrides
+                                if type(ov) == "table" and next(ov) and CDM.EnsureBuffOverrideEntry then
+                                    for _, sid in ipairs(group.spells) do
+                                        local entry = CDM:EnsureBuffOverrideEntry(ov, sid)
+                                        if entry and not next(entry) then
+                                            local key = GetBuffOverrideStorageKey(sid)
+                                            if key then ov[key] = nil end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end,
+    },
+    {
+        version = 6,
+        run = function(profile)
+            local size = rawget(profile, "chargeFontSize")
+            if size ~= nil then
+                if rawget(profile, "utilityChargeFontSize") == nil then
+                    profile.utilityChargeFontSize = size
+                end
+            end
+        end,
+    },
+    {
+        version = 7,
+        run = function(profile)
+            local cg = profile.cooldownGroups
+            local uco = profile.ungroupedCooldownOverrides
+
+            if type(cg) == "table" then
+                for specID, specGroups in pairs(cg) do
+                    if type(specGroups) == "table" then
+                        local specOv = type(uco) == "table" and type(uco[specID]) == "table" and uco[specID]
+                        for _, group in pairs(specGroups) do
+                            if type(group) == "table" and type(group.spells) == "table" then
+                                if specOv then
+                                    for _, sid in ipairs(group.spells) do
+                                        local key = GetBuffOverrideStorageKey(sid)
+                                        if key and type(specOv[key]) == "table" then
+                                            if not group.spellOverrides then group.spellOverrides = {} end
+                                            if not group.spellOverrides[key] then
+                                                group.spellOverrides[key] = specOv[key]
+                                                specOv[key] = nil
+                                            end
+                                        end
+                                    end
+                                end
+                                local ov = group.spellOverrides
+                                if type(ov) == "table" and next(ov) and CDM.EnsureBuffOverrideEntry then
+                                    for _, sid in ipairs(group.spells) do
+                                        local entry = CDM:EnsureBuffOverrideEntry(ov, sid)
+                                        if entry and not next(entry) then
+                                            local key = GetBuffOverrideStorageKey(sid)
+                                            if key then ov[key] = nil end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
             end
         end,
     },

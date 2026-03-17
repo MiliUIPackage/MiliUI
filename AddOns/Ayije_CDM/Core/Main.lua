@@ -344,7 +344,9 @@ function CDM:SetupViewer(vName)
                 itemFrame:SetScale(1)
             end
             local fd = CDM.GetFrameData(itemFrame)
-            if fd and fd.cdmCooldownTextHidden and itemFrame.Cooldown and itemFrame.Cooldown.SetHideCountdownNumbers then
+            if CDM.HideCooldownTextIfFlagged then
+                CDM:HideCooldownTextIfFlagged(itemFrame)
+            elseif fd and fd.cdmCooldownTextHidden and itemFrame.Cooldown and itemFrame.Cooldown.SetHideCountdownNumbers then
                 itemFrame.Cooldown:SetHideCountdownNumbers(true)
             end
             local baseSpellID = RefreshFrameSpellIdentity(itemFrame)
@@ -519,6 +521,16 @@ local function SetupMixinHooks()
     local function QueueBuffViewerFromFrame(frame, tryProvisional)
         local viewer = GetBuffViewerFromItemFrame(frame)
         if not viewer then return end
+
+        local hiddenBuffSet = CDM.resourcesHiddenBuffSet
+        if hiddenBuffSet then
+            local baseID = GetCachedBaseSpellID and GetCachedBaseSpellID(CDM, frame)
+            if baseID and hiddenBuffSet[baseID] then
+                frame:Hide()
+                QueueBuffLikeViewerFromItemHooks(VIEWERS.BUFF)
+                return
+            end
+        end
 
         local buffContainer = CDM.anchorContainers and CDM.anchorContainers[VIEWERS.BUFF]
         if not buffContainer and CDM.GetOrCreateAnchorContainer then

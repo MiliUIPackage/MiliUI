@@ -733,6 +733,7 @@ local function CreateBuffGroupsTab(page)
         yOff = yOff - 22
 
         local UpdateAnchorVisibility
+        local xSlider, ySlider
         local anchorTargetDropdown = RegisterRightPanelDropdown(CreateFrame("DropdownButton", nil, rc, "WowStyle1DropdownTemplate"))
         anchorTargetDropdown:SetWidth(180)
         anchorTargetDropdown:SetPoint("TOPLEFT", 0, yOff)
@@ -806,13 +807,13 @@ local function CreateBuffGroupsTab(page)
         yOff = yOff - 40
         local yAfterConditional = yOff
 
-        local xSlider = CreateSlider(rc, L["X Offset"], -840, 840, gd.offsetX or 0, function(v)
+        xSlider = CreateSlider(rc, L["X Offset"], -840, 840, gd.offsetX or 0, function(v)
             gd.offsetX = v; SaveAndRefresh()
         end)
         xSlider:SetPoint("TOPLEFT", 0, yOff)
         yOff = yOff - 50
 
-        local ySlider = CreateSlider(rc, L["Y Offset"], -470, 470, gd.offsetY or 0, function(v)
+        ySlider = CreateSlider(rc, L["Y Offset"], -470, 470, gd.offsetY or 0, function(v)
             gd.offsetY = v; SaveAndRefresh()
         end)
         ySlider:SetPoint("TOPLEFT", 0, yOff)
@@ -1640,6 +1641,16 @@ local function CreateBuffGroupsTab(page)
                     currentGroups[groupIndex].spells = {}
                 end
                 AddSpellToGroupList(currentGroups[groupIndex].spells, sid)
+                local specOv = EnsureUngroupedOverrides()
+                if specOv then
+                    local ovData = ExtractMergedOverrideEntry(specOv, sid)
+                    if ovData then
+                        if not currentGroups[groupIndex].spellOverrides then
+                            currentGroups[groupIndex].spellOverrides = {}
+                        end
+                        StoreMergedOverrideEntry(currentGroups[groupIndex].spellOverrides, sid, ovData)
+                    end
+                end
                 API:MarkSpecDataDirty()
                 API:RefreshSpecData()
                 SaveRefreshAndMaybeRebuildLeft()

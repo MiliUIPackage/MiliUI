@@ -97,8 +97,11 @@ local function RefreshStyleCache()
     styleCache.defensivesCooldownFontSize = CfgValue(db, defaults, "defensivesCooldownFontSize", 12)
     styleCache.trinketsCooldownFontSize = CfgValue(db, defaults, "trinketsCooldownFontSize", 12)
     styleCache.externalsCooldownFontSize = CfgValue(db, defaults, "externalsCooldownFontSize", 15)
+    styleCache.essRow2CooldownFontSize = CfgValue(db, defaults, "essRow2CooldownFontSize", 15)
+    styleCache.utilityCooldownFontSize = CfgValue(db, defaults, "utilityCooldownFontSize", 15)
 
     styleCache.chargeFontSize = CfgValue(db, defaults, "chargeFontSize", 12)
+    styleCache.utilityChargeFontSize = CfgValue(db, defaults, "utilityChargeFontSize", 12)
     styleCache.chargeColor = CfgValue(db, defaults, "chargeColor", DEFAULT_WHITE_COLOR)
     styleCache.chargePosition = CfgValue(db, defaults, "chargePosition", "BOTTOMRIGHT")
     styleCache.chargeOffsetX = CfgValue(db, defaults, "chargeOffsetX", 0)
@@ -605,7 +608,7 @@ local function GetViewerIconSize(vName, frameData, sizes, isBuff)
     return s.w, s.h
 end
 
-local function GetEffectiveCooldownFontSize(vName, isBuff)
+local function GetEffectiveCooldownFontSize(vName, isBuff, cdmRow)
     if vName == "CDM_Racials" then
         return styleCache.racialsCooldownFontSize
     end
@@ -620,6 +623,12 @@ local function GetEffectiveCooldownFontSize(vName, isBuff)
     end
     if isBuff then
         return styleCache.buffCooldownFontSize
+    end
+    if vName == VIEWERS.UTILITY then
+        return styleCache.utilityCooldownFontSize
+    end
+    if cdmRow == 2 then
+        return styleCache.essRow2CooldownFontSize
     end
     return styleCache.cooldownFontSize
 end
@@ -1087,9 +1096,9 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                     effectiveChargeOX = ov.chargeOffsetX or (db and db.chargeOffsetX or 0)
                     effectiveChargeOY = ov.chargeOffsetY or (db and db.chargeOffsetY or 0)
                 else
-                    effectiveCdFontSize = GetEffectiveCooldownFontSize(vName, isBuff)
+                    effectiveCdFontSize = GetEffectiveCooldownFontSize(vName, isBuff, frameData.cdmRow)
                     effectiveCdColor = GetEffectiveCooldownColor(vName, isBuff)
-                    effectiveChargeFS = styleCache.chargeFontSize
+                    effectiveChargeFS = vName == VIEWERS.UTILITY and styleCache.utilityChargeFontSize or styleCache.chargeFontSize
                     effectiveChargeColor = styleCache.chargeColor
                     effectiveChargePos = styleCache.chargePosition
                     effectiveChargeOX = styleCache.chargeOffsetX
@@ -1097,7 +1106,7 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                 end
             end
         else
-            effectiveCdFontSize = GetEffectiveCooldownFontSize(vName, isBuff)
+            effectiveCdFontSize = GetEffectiveCooldownFontSize(vName, isBuff, frameData.cdmRow)
             effectiveCdColor = GetEffectiveCooldownColor(vName, isBuff)
         end
 

@@ -111,10 +111,9 @@ local function ProvisionalPlaceBuffFrame(cdm, frame, viewer, matchType, buffCont
     end
 
     if not buffContainer then return end
+    if frame:GetParent() == UIParent then return end
     local xOff = ComputeProvisionalMainBuffX(cdm, frame, viewer, buffContainer)
-    if frame:GetParent() ~= UIParent then
-        frame:SetParent(UIParent)
-    end
+    frame:SetParent(UIParent)
     frame:ClearAllPoints()
     Pixel.SetPoint(frame, "BOTTOM", buffContainer, "BOTTOM", xOff, 0)
 end

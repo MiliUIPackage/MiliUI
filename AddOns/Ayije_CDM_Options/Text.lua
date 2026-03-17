@@ -90,11 +90,35 @@ local function CreateTextTab(page, tabId)
     page.cooldownColorPicker:SetPoint("TOPLEFT", 0, NextY(60))
     NextY(30)
 
+    -- Essential Row 2 Cooldown Timer
+    local essRow2Header = UI.CreateHeader(textScrollChild, L["Essential Row 2 - Cooldown Timer"])
+    essRow2Header:SetPoint("TOPLEFT", 0, NextY(15))
+
+    page.controls.essRow2CooldownFontSize = UI.CreateModernSlider(textScrollChild, L["Font Size"], 8, 32, CDM.db.essRow2CooldownFontSize, SetDB("essRow2CooldownFontSize"))
+    page.controls.essRow2CooldownFontSize:SetPoint("TOPLEFT", 0, NextY(30))
+    NextY(60)
+
+    -- Utility Cooldown Timer
+    local utilityHeader = UI.CreateHeader(textScrollChild, L["Utility - Cooldown Timer"])
+    utilityHeader:SetPoint("TOPLEFT", 0, NextY(15))
+
+    page.controls.utilityCooldownFontSize = UI.CreateModernSlider(textScrollChild, L["Font Size"], 8, 32, CDM.db.utilityCooldownFontSize, SetDB("utilityCooldownFontSize"))
+    page.controls.utilityCooldownFontSize:SetPoint("TOPLEFT", 0, NextY(30))
+    NextY(60)
+
     local chargeHeader = UI.CreateHeader(textScrollChild, L["Cooldown Stacks (Charges)"])
     chargeHeader:SetPoint("TOPLEFT", 0, NextY(15))
 
     page.controls.chargeFontSize = UI.CreateModernSlider(textScrollChild, L["Font Size"], 8, 32, CDM.db.chargeFontSize, SetDB("chargeFontSize"))
     page.controls.chargeFontSize:SetPoint("TOPLEFT", 0, NextY(30))
+
+    -- Utility Charge Text
+    local utilityChargeHeader = UI.CreateHeader(textScrollChild, L["Utility - Cooldown Stacks (Charges)"])
+    utilityChargeHeader:SetPoint("TOPLEFT", 0, NextY(30))
+
+    page.controls.utilityChargeFontSize = UI.CreateModernSlider(textScrollChild, L["Font Size"], 8, 32, CDM.db.utilityChargeFontSize, SetDB("utilityChargeFontSize"))
+    page.controls.utilityChargeFontSize:SetPoint("TOPLEFT", 0, NextY(30))
+    NextY(60)
 
     page.chargeColorPicker = UI.CreateColorSwatch(textScrollChild, L["Color"], "chargeColor", TEXT_REFRESH_SCOPES)
     page.chargeColorPicker:SetPoint("TOPLEFT", 0, NextY(60))

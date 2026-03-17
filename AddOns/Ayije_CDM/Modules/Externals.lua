@@ -141,20 +141,28 @@ local function ApplySizesAndRelayout()
     end
 end
 
+local function SetCooldownFromButtonInfo(fd, buttonInfo)
+    local cd = fd.cdmExternalCooldown
+    if not cd then return end
+
+    if buttonInfo and buttonInfo.auraInstanceID then
+        local dur = C_UnitAuras.GetAuraDuration("player", buttonInfo.auraInstanceID)
+        if dur then
+            cd:SetCooldownFromDurationObject(dur)
+            return
+        end
+    end
+
+    cd:Clear()
+end
+
 local function OnButtonUpdate(button, buttonInfo)
     if not isEnabled then return end
 
     local fd = GetFrameData(button)
     if not fd then return end
 
-    local cd = fd.cdmExternalCooldown
-    if cd then
-        if buttonInfo and buttonInfo.duration and buttonInfo.duration > 0 and buttonInfo.expirationTime then
-            cd:SetCooldown(buttonInfo.expirationTime - buttonInfo.duration, buttonInfo.duration)
-        else
-            cd:Clear()
-        end
-    end
+    SetCooldownFromButtonInfo(fd, buttonInfo)
 
     button.Duration:Hide()
 
@@ -230,12 +238,8 @@ local function EnableExternals()
             button.Duration:Hide()
             StyleButton(button)
             local fd = GetFrameData(button)
-            local cd = fd and fd.cdmExternalCooldown
-            if cd and button.buttonInfo then
-                local bi = button.buttonInfo
-                if bi.duration and bi.duration > 0 and bi.expirationTime then
-                    cd:SetCooldown(bi.expirationTime - bi.duration, bi.duration)
-                end
+            if fd and button.buttonInfo then
+                SetCooldownFromButtonInfo(fd, button.buttonInfo)
             end
         end
     end

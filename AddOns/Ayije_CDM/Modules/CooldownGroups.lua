@@ -300,31 +300,27 @@ function CDM:RebuildAuraOverlayEnabledMap()
             Enum.CooldownViewerCategory.Essential,
             Enum.CooldownViewerCategory.Utility,
         }
+        local initialMap = {}
+        for k, v in pairs(map) do initialMap[k] = v end
         for _, cat in ipairs(categories) do
             local cooldownIDs = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
             if cooldownIDs then
                 for _, cdID in ipairs(cooldownIDs) do
                     local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
                     if info then
-                        local matchEntry = map[info.spellID]
+                        local matchEntry = initialMap[info.spellID]
                         if not matchEntry and info.overrideSpellID then
-                            matchEntry = map[info.overrideSpellID]
+                            matchEntry = initialMap[info.overrideSpellID]
                         end
                         if not matchEntry and info.linkedSpellIDs then
                             for _, lid in ipairs(info.linkedSpellIDs) do
-                                matchEntry = map[lid]
+                                matchEntry = initialMap[lid]
                                 if matchEntry then break end
                             end
                         end
-                        if matchEntry then
-                            map[info.spellID] = matchEntry
-                            if info.overrideSpellID then
-                                map[info.overrideSpellID] = matchEntry
-                            end
-                            if info.linkedSpellIDs then
-                                for _, lid in ipairs(info.linkedSpellIDs) do
-                                    map[lid] = matchEntry
-                                end
+                        if matchEntry and info.linkedSpellIDs then
+                            for _, lid in ipairs(info.linkedSpellIDs) do
+                                map[lid] = matchEntry
                             end
                         end
                     end

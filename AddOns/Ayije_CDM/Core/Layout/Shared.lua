@@ -375,26 +375,21 @@ local function OverrideCooldownText(t, pixelSize, color)
     end
 end
 
-local function GetCooldownFontRegions(cd, frameData)
-    local regions = frameData and frameData.cdmCdFontRegions
-    if regions then
-        return regions
-    end
-    regions = {}
+local scratchCdFontRegions = {}
+
+local function GetCooldownFontRegions(cd)
+    table.wipe(scratchCdFontRegions)
     for ri = 1, select("#", cd:GetRegions()) do
         local region = select(ri, cd:GetRegions())
         if region and region.IsObjectType and region:IsObjectType("FontString") then
-            regions[#regions + 1] = region
+            scratchCdFontRegions[#scratchCdFontRegions + 1] = region
         end
     end
-    if frameData then
-        frameData.cdmCdFontRegions = regions
-    end
-    return regions
+    return scratchCdFontRegions
 end
 
-local function OverrideCooldownRegions(cd, pixelSize, color, frameData)
-    local regions = GetCooldownFontRegions(cd, frameData)
+local function OverrideCooldownRegions(cd, pixelSize, color)
+    local regions = GetCooldownFontRegions(cd)
     for _, region in ipairs(regions) do
         OverrideCooldownText(region, pixelSize, color)
     end

@@ -493,31 +493,27 @@ local function ExpandGroupSetWithLinkedSpells(targetSet, categories)
         and C_CooldownViewer.GetCooldownViewerCooldownInfo) then
         return
     end
+    local initialSet = {}
+    for k, v in pairs(targetSet) do initialSet[k] = v end
     for _, cat in ipairs(categories) do
         local cooldownIDs = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
         if cooldownIDs then
             for _, cdID in ipairs(cooldownIDs) do
                 local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
                 if info then
-                    local matchGroupIdx = targetSet[info.spellID]
+                    local matchGroupIdx = initialSet[info.spellID]
                     if not matchGroupIdx and info.overrideSpellID then
-                        matchGroupIdx = targetSet[info.overrideSpellID]
+                        matchGroupIdx = initialSet[info.overrideSpellID]
                     end
                     if not matchGroupIdx and info.linkedSpellIDs then
                         for _, lid in ipairs(info.linkedSpellIDs) do
-                            matchGroupIdx = targetSet[lid]
+                            matchGroupIdx = initialSet[lid]
                             if matchGroupIdx then break end
                         end
                     end
-                    if matchGroupIdx then
-                        StoreWithVariants(targetSet, info.spellID, matchGroupIdx)
-                        if info.overrideSpellID then
-                            StoreWithVariants(targetSet, info.overrideSpellID, matchGroupIdx)
-                        end
-                        if info.linkedSpellIDs then
-                            for _, lid in ipairs(info.linkedSpellIDs) do
-                                StoreWithVariants(targetSet, lid, matchGroupIdx)
-                            end
+                    if matchGroupIdx and info.linkedSpellIDs then
+                        for _, lid in ipairs(info.linkedSpellIDs) do
+                            StoreWithVariants(targetSet, lid, matchGroupIdx)
                         end
                     end
                 end

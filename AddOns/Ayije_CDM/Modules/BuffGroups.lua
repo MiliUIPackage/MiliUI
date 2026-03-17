@@ -291,7 +291,7 @@ local function SetCooldownTextHidden(frame, hidden, frameData)
         if t then
             if hidden then t:Hide(); t:SetAlpha(0) else t:Show(); t:SetAlpha(1) end
         end
-        local regions = GetCooldownFontRegions(cd, frameData)
+        local regions = GetCooldownFontRegions(cd)
         for _, region in ipairs(regions) do
             if hidden then region:Hide(); region:SetAlpha(0) else region:Show(); region:SetAlpha(1) end
         end
@@ -309,6 +309,13 @@ function CDM:RestoreCooldownTextIfHidden(frame)
     if frameData.cdmCooldownTextHidden then
         SetCooldownTextHidden(frame, false, frameData)
         frameData.cdmCooldownTextHidden = nil
+    end
+end
+
+function CDM:HideCooldownTextIfFlagged(frame)
+    local frameData = GetFrameData(frame)
+    if frameData.cdmCooldownTextHidden then
+        SetCooldownTextHidden(frame, true, frameData)
     end
 end
 
@@ -605,7 +612,7 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
                 local cd = frame.Cooldown
                 if cd then
                     OverrideCooldownText(cd.Text or cd.text, fCdPixelSize, fCdColor)
-                    OverrideCooldownRegions(cd, fCdPixelSize, fCdColor, frameData)
+                    OverrideCooldownRegions(cd, fCdPixelSize, fCdColor)
                 end
                 OverrideCooldownText(frame.Time, fCdPixelSize, fCdColor)
                 OverrideCooldownText(frame.Duration, fCdPixelSize, fCdColor)
@@ -782,7 +789,7 @@ function CDM:ApplyUngroupedBuffOverrides(frame)
         local cd = frame.Cooldown
         if cd then
             OverrideCooldownText(cd.Text or cd.text, cdPixelSize, cdColor)
-            OverrideCooldownRegions(cd, cdPixelSize, cdColor, frameData)
+            OverrideCooldownRegions(cd, cdPixelSize, cdColor)
         end
         OverrideCooldownText(frame.Time, cdPixelSize, cdColor)
         OverrideCooldownText(frame.Duration, cdPixelSize, cdColor)
