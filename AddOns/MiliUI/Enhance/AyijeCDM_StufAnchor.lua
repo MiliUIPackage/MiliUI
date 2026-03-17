@@ -27,8 +27,9 @@ EventUtil.ContinueOnAddOnLoaded("Ayije_CDM", function()
     local CDM = _G["Ayije_CDM"]
     if not CDM then return end
 
-    local SetPixelPerfectPoint = CDM.CONST and CDM.CONST.SetPixelPerfectPoint
-    if not SetPixelPerfectPoint then return end
+    -- CDM 重構後改用 CDM.Pixel 統一像素完美 API
+    local Pixel = CDM.Pixel
+    if not (Pixel and Pixel.SetPoint) then return end
 
     -- 保存原始函式
     local origAnchorToPlayerFrame = CDM.AnchorToPlayerFrame
@@ -59,7 +60,7 @@ EventUtil.ContinueOnAddOnLoaded("Ayije_CDM", function()
 
         container:ClearAllPoints()
         local cAnchor = containerAnchor or INVERTED_ANCHORS[anchorPoint] or anchorPoint
-        SetPixelPerfectPoint(container, cAnchor, stufFrame, anchorPoint, offsetX + gapX, offsetY + gapY)
+        Pixel.SetPoint(container, cAnchor, stufFrame, anchorPoint, offsetX + gapX, offsetY + gapY)
 
         if not container:IsShown() then
             container:Show()
