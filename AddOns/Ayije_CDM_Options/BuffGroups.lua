@@ -40,7 +40,6 @@ local function CreateBuffGroupsTab(page)
     local selectedSpellID = nil
     local selectedSpellGroupIndex = nil
     local expandedGroups = {}
-    local overrideKeyCandidateCache = {}
     local RefreshAll
     local ShowSpellSettings
     local renameLastClickTime = 0
@@ -63,7 +62,6 @@ local function CreateBuffGroupsTab(page)
         if wasViewingPlayer then
             currentSpecID = newPlayerSpec
         end
-        table.wipe(overrideKeyCandidateCache)
     end
 
     local function EnsureBuffGroups()
@@ -207,11 +205,11 @@ local function CreateBuffGroupsTab(page)
     end
 
     local function MarkEquivalentSpellIDs(targetSet, spellID)
-        Shared.MarkEquivalentSpellIDs(targetSet, spellID, overrideKeyCandidateCache)
+        Shared.MarkEquivalentSpellIDs(targetSet, spellID)
     end
 
     local function HasEquivalentSpellID(targetSet, spellID)
-        return Shared.HasEquivalentSpellID(targetSet, spellID, overrideKeyCandidateCache)
+        return Shared.HasEquivalentSpellID(targetSet, spellID)
     end
 
     local function RemoveSpellFromGroupList(spellList, spellID)
@@ -250,10 +248,10 @@ local function CreateBuffGroupsTab(page)
                 local hiddenBuffSet = CDM.resourcesHiddenBuffSet
                 if IsSafeNumber(displayID)
                     and not HasEquivalentSpellID(groupedSet, displayID)
-                    and not HasEquivalentSpellID(seen, displayID)
+                    and not seen[displayID]
                     and not HasEquivalentSpellID(hiddenBuffSet, displayID)
                 then
-                    MarkEquivalentSpellIDs(seen, displayID)
+                    seen[displayID] = true
                     local li = frame.layoutIndex
                     local safeLayoutIndex = IsSafeNumber(li) and li or 0
                     icons[#icons + 1] = { spellID = displayID, layoutIndex = safeLayoutIndex }
@@ -761,8 +759,8 @@ local function CreateBuffGroupsTab(page)
                 if val ~= prev then
                     gd.offsetX = 0
                     gd.offsetY = 0
-                    xSlider:SetValue(0)
-                    ySlider:SetValue(0)
+                    xSlider:UpdateUIValue(0)
+                    ySlider:UpdateUIValue(0)
                 end
                 SaveAndRefresh()
                 UpdateAnchorVisibility()
@@ -1313,6 +1311,8 @@ local function CreateBuffGroupsTab(page)
             return
         end
 
+        local displaySpellID = spellID
+
         local _, rc = CreateRightScrollContent(700)
 
         local yOff = 0
@@ -1323,7 +1323,7 @@ local function CreateBuffGroupsTab(page)
 
         local iconTex = iconContainer:CreateTexture(nil, "ARTWORK")
         iconTex:SetAllPoints()
-        local tex = C_Spell.GetSpellTexture(spellID)
+        local tex = C_Spell.GetSpellTexture(displaySpellID)
         if tex then iconTex:SetTexture(tex) end
         CDM_C.ApplyIconTexCoord(iconTex, CDM_C.GetEffectiveZoomAmount())
 
@@ -1341,7 +1341,7 @@ local function CreateBuffGroupsTab(page)
 
         local spellName = rc:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font18")
         spellName:SetPoint("LEFT", iconContainer, "RIGHT", 8, 0)
-        spellName:SetText(C_Spell.GetSpellName(spellID) or L["Unknown"])
+        spellName:SetText(C_Spell.GetSpellName(displaySpellID) or L["Unknown"])
         spellName:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
         yOff = yOff - 40
 
@@ -2172,7 +2172,6 @@ local function CreateBuffGroupsTab(page)
             selectedSpellID = nil
             selectedSpellGroupIndex = nil
             ungroupedSelected = false
-            table.wipe(overrideKeyCandidateCache)
             ClearRightPanel()
             BuildLeftPanel()
         end,
@@ -2195,7 +2194,6 @@ local function CreateBuffGroupsTab(page)
         local prevSpecID = currentSpecID
         playerSpecID = si and GetSpecializationInfo(si) or nil
         currentSpecID = playerSpecID
-        table.wipe(overrideKeyCandidateCache)
         RefreshSpecDropdownText()
         RegisterViewerCallbacks()
         if currentSpecID ~= prevSpecID then

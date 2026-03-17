@@ -88,7 +88,7 @@ local function CreateTextTab(page, tabId)
 
     page.cooldownColorPicker = UI.CreateColorSwatch(textScrollChild, L["Color"], "cooldownColor", TEXT_REFRESH_SCOPES)
     page.cooldownColorPicker:SetPoint("TOPLEFT", 0, NextY(60))
-    NextY(30)
+    NextY(60)
 
     -- Essential Row 2 Cooldown Timer
     local essRow2Header = UI.CreateHeader(textScrollChild, L["Essential Row 2 - Cooldown Timer"])
@@ -111,14 +111,14 @@ local function CreateTextTab(page, tabId)
 
     page.controls.chargeFontSize = UI.CreateModernSlider(textScrollChild, L["Font Size"], 8, 32, CDM.db.chargeFontSize, SetDB("chargeFontSize"))
     page.controls.chargeFontSize:SetPoint("TOPLEFT", 0, NextY(30))
+    NextY(60)
 
     -- Utility Charge Text
     local utilityChargeHeader = UI.CreateHeader(textScrollChild, L["Utility - Cooldown Stacks (Charges)"])
-    utilityChargeHeader:SetPoint("TOPLEFT", 0, NextY(30))
+    utilityChargeHeader:SetPoint("TOPLEFT", 0, NextY(15))
 
     page.controls.utilityChargeFontSize = UI.CreateModernSlider(textScrollChild, L["Font Size"], 8, 32, CDM.db.utilityChargeFontSize, SetDB("utilityChargeFontSize"))
     page.controls.utilityChargeFontSize:SetPoint("TOPLEFT", 0, NextY(30))
-    NextY(60)
 
     page.chargeColorPicker = UI.CreateColorSwatch(textScrollChild, L["Color"], "chargeColor", TEXT_REFRESH_SCOPES)
     page.chargeColorPicker:SetPoint("TOPLEFT", 0, NextY(60))

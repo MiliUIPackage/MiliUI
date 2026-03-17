@@ -96,7 +96,12 @@ end
 
 function CDM.SpellRegistry:GetColor(specID, spellID)
     EnsureCache(specID)
-    return colorRegistry[spellID]
+    if colorRegistry[spellID] then return colorRegistry[spellID] end
+    local base = CDM.NormalizeToBase and CDM.NormalizeToBase(spellID)
+    if base and base ~= spellID and colorRegistry[base] then return colorRegistry[base] end
+    local stable = CDM.ResolveStableBase and CDM:ResolveStableBase(spellID)
+    if stable and stable ~= spellID and stable ~= base and colorRegistry[stable] then return colorRegistry[stable] end
+    return nil
 end
 
 function CDM.SpellRegistry:GetColorRegistry(specID)
@@ -117,6 +122,10 @@ function CDM.SpellRegistry:Save(specID, spellID, color)
     if color then
         registry.colors[spellID] = { r = color.r, g = color.g, b = color.b, a = color.a or 1 }
     end
+    local base = CDM.NormalizeToBase and CDM.NormalizeToBase(spellID)
+    if base and base ~= spellID then registry.colors[base] = nil end
+    local stable = CDM.ResolveStableBase and CDM:ResolveStableBase(spellID)
+    if stable and stable ~= spellID and stable ~= base then registry.colors[stable] = nil end
 
     InvalidateCache()
 end
@@ -127,6 +136,10 @@ function CDM.SpellRegistry:ClearColor(specID, spellID)
     if not registry or not registry.colors then return end
 
     registry.colors[spellID] = nil
+    local base = CDM.NormalizeToBase and CDM.NormalizeToBase(spellID)
+    if base and base ~= spellID then registry.colors[base] = nil end
+    local stable = CDM.ResolveStableBase and CDM:ResolveStableBase(spellID)
+    if stable and stable ~= spellID and stable ~= base then registry.colors[stable] = nil end
 
     CompactRegistrySpec(specID)
     InvalidateCache()

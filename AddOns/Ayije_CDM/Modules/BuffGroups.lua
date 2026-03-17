@@ -5,6 +5,7 @@ local CDM_C = CDM.CONST
 local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
 local LSM = LibStub("LibSharedMedia-3.0")
+local IsSafeNumber = CDM.IsSafeNumber
 
 CDM.buffGroupContainers = {}
 
@@ -155,11 +156,12 @@ local function BuildActiveSpellSet()
     local buffViewer = _G["BuffIconCooldownViewer"]
     if buffViewer and buffViewer.itemFramePool then
         for frame in buffViewer.itemFramePool:EnumerateActive() do
-            local candidates = CDM.GetSpellIDCandidates and CDM:GetSpellIDCandidates(frame, true)
-            if candidates then
-                for _, id in ipairs(candidates) do
-                    active[id] = true
-                end
+            local id = frame.GetSpellID and frame:GetSpellID()
+            if IsSafeNumber(id) then active[id] = true end
+            local fd = GetFrameData(frame)
+            local catID = fd and fd.buffCategorySpellID
+            if catID and catID ~= false and IsSafeNumber(catID) then
+                active[catID] = true
             end
         end
     end
@@ -215,7 +217,6 @@ end
 local function IsSpellEligible(spellID, groupSpellLookup, activeSpellSet)
     if not spellID then return false end
 
-    -- Match placeholder eligibility to the same grouped buff registry used by runtime matching.
     local registryMatched = false
     if CDM.CheckIDAgainstRegistry then
         local matchType = CDM.CheckIDAgainstRegistry(spellID)
@@ -224,7 +225,6 @@ local function IsSpellEligible(spellID, groupSpellLookup, activeSpellSet)
         end
     end
 
-    -- Fallback for edge timing: if registry cache isn't ready yet, trust current group assignment.
     if not registryMatched then
         if type(groupSpellLookup) ~= "table" then
             return false
@@ -237,8 +237,6 @@ local function IsSpellEligible(spellID, groupSpellLookup, activeSpellSet)
         return false
     end
 
-    -- Match options desaturation logic: known/talented spells are active,
-    -- otherwise only spells currently seen in viewer are active.
     return IsSpellActiveInViewer(spellID, activeSpellSet)
 end
 
@@ -253,15 +251,14 @@ local function BuildStaticSlotLayout(groupData, activeSpellIDs, activeSpellSet, 
     local nextSlot = 0
 
     for _, sid in ipairs(groupData.spells or {}) do
-        local base = GetCachedBaseSpellID(sid)
-        local isActive = IsSpellMarkedActive(sid, activeSpellIDs)
         local ov = groupData.spellOverrides
-        local spellOv = ov and (ov[sid] or (base and base ~= sid and ov[base])) or nil
-        local isEligible = IsSpellEligible(sid, groupSpellLookup, activeSpellSet)
-        local wantPlaceholder = spellOv and spellOv.placeholder and isEligible or false
+        local spellOv = ov and ResolveSpellOverrideEntry(ov, sid) or nil
+        local base = GetCachedBaseSpellID(sid)
+        local isTracked = activeSpellSet and (activeSpellSet[sid] or (base and activeSpellSet[base])) or false
+        local wantPlaceholder = spellOv and spellOv.placeholder and isTracked or false
         scratchPlaceholderBySpell[sid] = wantPlaceholder or nil
 
-        if isActive or isEligible then
+        if isTracked then
             scratchSlotToRawSpell[nextSlot] = sid
             StoreVariantValue(scratchSpellSlot, sid, nextSlot, true)
             nextSlot = nextSlot + 1
@@ -488,11 +485,36 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
             StoreVariantValue(scratchSpellOrder, sid, i, true)
         end
         if count > 1 then
+            local spells = groupData.spells
             table.sort(frames, function(a, b)
                 local aID = GetFrameData(a).buffCategorySpellID
                 local bID = GetFrameData(b).buffCategorySpellID
-                local aOrd = aID and scratchSpellOrder[aID] or 999
-                local bOrd = bID and scratchSpellOrder[bID] or 999
+                local aOrd = aID and ResolveVariantValue(scratchSpellOrder, aID) or nil
+                local bOrd = bID and ResolveVariantValue(scratchSpellOrder, bID) or nil
+                if not aOrd then
+                    local aInfo = a.GetCooldownInfo and a:GetCooldownInfo() or a.cooldownInfo
+                    if aInfo and aInfo.linkedSpellIDs then
+                        for _, lid in ipairs(aInfo.linkedSpellIDs) do
+                            if IsSafeNumber(lid) then
+                                local ord = ResolveVariantValue(scratchSpellOrder, lid)
+                                if ord then aOrd = ord; break end
+                            end
+                        end
+                    end
+                end
+                if not bOrd then
+                    local bInfo = b.GetCooldownInfo and b:GetCooldownInfo() or b.cooldownInfo
+                    if bInfo and bInfo.linkedSpellIDs then
+                        for _, lid in ipairs(bInfo.linkedSpellIDs) do
+                            if IsSafeNumber(lid) then
+                                local ord = ResolveVariantValue(scratchSpellOrder, lid)
+                                if ord then bOrd = ord; break end
+                            end
+                        end
+                    end
+                end
+                aOrd = aOrd or 999
+                bOrd = bOrd or 999
                 if aOrd ~= bOrd then return aOrd < bOrd end
                 return GetStableFrameSortID(a) < GetStableFrameSortID(b)
             end)
@@ -540,10 +562,29 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
                     rawSpellID = scratchSlotToRawSpell[idx]
                 end
             end
-            idx = idx or (i - 1)
+            if not idx then
+                local fInfo = frame.GetCooldownInfo and frame:GetCooldownInfo() or frame.cooldownInfo
+                if fInfo and fInfo.linkedSpellIDs then
+                    for _, lid in ipairs(fInfo.linkedSpellIDs) do
+                        if IsSafeNumber(lid) then
+                            local slotIdx = ResolveVariantValue(spellSlot, lid)
+                            if slotIdx then
+                                idx = slotIdx
+                                rawSpellID = scratchSlotToRawSpell[slotIdx]
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+            if not idx then
+                frame:Hide()
+                BGP.SyncGroupedFrameState(frame, nil, nil, nil)
+            end
         else
             idx = i - 1
         end
+        if idx then
         frame:SetParent(UIParent)
         frame:ClearAllPoints()
         frame:SetSize(iconWSnapped, iconHSnapped)
@@ -638,6 +679,7 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
             BGP.SyncGroupedFrameState(frame, groupIndex, rawSpellID, phEligible)
         else
             BGP.SyncGroupedFrameState(frame, nil, nil, nil)
+        end
         end
 
     end

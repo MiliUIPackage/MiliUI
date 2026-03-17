@@ -4,10 +4,13 @@ local API = CDM.API
 local CDM_C = CDM.CONST
 local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
+local HalfFloor = Pixel.HalfFloor
 
 local GetFrameData = CDM.GetFrameData
 local NormalizeToBase = CDM.NormalizeToBase
+local IsSafeNumber = CDM.IsSafeNumber
 local StoreVariantValue = CDM.SpellVariant.StoreValue
+local ResolveVariantValue = CDM.SpellVariant.ResolveValue
 local VIEWERS = CDM_C.VIEWERS
 
 local cdContainers = {}
@@ -133,11 +136,36 @@ function CDM:PositionCooldownGroupFrames(groupIndex, frames)
         end
         if count > 1 then
             local stableSortIDFn = layout.GetStableFrameSortID
+            local spells = groupData.spells
             table.sort(frames, function(a, b)
                 local aID = GetFrameData(a)[cacheKey]
                 local bID = GetFrameData(b)[cacheKey]
-                local aOrd = aID and scratchSpellOrder[aID] or 999
-                local bOrd = bID and scratchSpellOrder[bID] or 999
+                local aOrd = aID and ResolveVariantValue(scratchSpellOrder, aID) or nil
+                local bOrd = bID and ResolveVariantValue(scratchSpellOrder, bID) or nil
+                if not aOrd then
+                    local aInfo = a.GetCooldownInfo and a:GetCooldownInfo() or a.cooldownInfo
+                    if aInfo and aInfo.linkedSpellIDs then
+                        for _, lid in ipairs(aInfo.linkedSpellIDs) do
+                            if IsSafeNumber(lid) then
+                                local ord = ResolveVariantValue(scratchSpellOrder, lid)
+                                if ord then aOrd = ord; break end
+                            end
+                        end
+                    end
+                end
+                if not bOrd then
+                    local bInfo = b.GetCooldownInfo and b:GetCooldownInfo() or b.cooldownInfo
+                    if bInfo and bInfo.linkedSpellIDs then
+                        for _, lid in ipairs(bInfo.linkedSpellIDs) do
+                            if IsSafeNumber(lid) then
+                                local ord = ResolveVariantValue(scratchSpellOrder, lid)
+                                if ord then bOrd = ord; break end
+                            end
+                        end
+                    end
+                end
+                aOrd = aOrd or 999
+                bOrd = bOrd or 999
                 if aOrd ~= bOrd then return aOrd < bOrd end
                 if stableSortIDFn then
                     return stableSortIDFn(a) < stableSortIDFn(b)
@@ -146,6 +174,10 @@ function CDM:PositionCooldownGroupFrames(groupIndex, frames)
             end)
         end
     end
+
+    local stepW = iconWSnapped + spacingSnapped
+    local stepH = iconHSnapped + spacingSnapped
+    local totalWraps = (maxPerRow > 0 and maxPerRow < count) and math.ceil(count / maxPerRow) or 0
 
     for i, frame in ipairs(frames) do
         local idx = i - 1
@@ -165,24 +197,31 @@ function CDM:PositionCooldownGroupFrames(groupIndex, frames)
         if row and col then
             local xPx, yPx
             if grow == "RIGHT" then
-                xPx = col * (iconWSnapped + spacingSnapped)
-                yPx = -row * (iconHSnapped + spacingSnapped)
+                xPx = col * stepW
+                yPx = -row * stepH
             elseif grow == "LEFT" then
-                xPx = -col * (iconWSnapped + spacingSnapped)
-                yPx = -row * (iconHSnapped + spacingSnapped)
+                xPx = -col * stepW
+                yPx = -row * stepH
             elseif grow == "DOWN" then
                 local dcol = math.floor(idx / maxPerRow)
                 local drow = idx - dcol * maxPerRow
-                xPx = dcol * (iconWSnapped + spacingSnapped)
-                yPx = -drow * (iconHSnapped + spacingSnapped)
+                xPx = dcol * stepW
+                yPx = -drow * stepH
             elseif grow == "UP" then
                 local ucol = math.floor(idx / maxPerRow)
                 local urow = idx - ucol * maxPerRow
-                xPx = ucol * (iconWSnapped + spacingSnapped)
-                yPx = urow * (iconHSnapped + spacingSnapped)
-            else
-                xPx = col * (iconWSnapped + spacingSnapped)
-                yPx = -row * (iconHSnapped + spacingSnapped)
+                xPx = ucol * stepW
+                yPx = urow * stepH
+            elseif grow == "CENTER_H" then
+                local countInRow = (row < totalWraps - 1) and maxPerRow or (count - row * maxPerRow)
+                xPx = -HalfFloor((countInRow - 1) * stepW) + col * stepW
+                yPx = HalfFloor((totalWraps - 1) * stepH) - row * stepH
+            elseif grow == "CENTER_V" then
+                local vcol = math.floor(idx / maxPerRow)
+                local vrow = idx - vcol * maxPerRow
+                local countInCol = (vcol < totalWraps - 1) and maxPerRow or (count - vcol * maxPerRow)
+                xPx = -HalfFloor((totalWraps - 1) * stepW) + vcol * stepW
+                yPx = HalfFloor((countInCol - 1) * stepH) - vrow * stepH
             end
             layout.PlaceFrame(frame, container, selfPoint, anchorPoint, xPx or 0, yPx or 0)
         else

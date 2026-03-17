@@ -100,59 +100,23 @@ function Shared.GetUniqueGroupName(groups, baseName)
     return baseName .. " (" .. time() .. ")"
 end
 
-local function BuildOverrideKeyCandidates(spellID, candidateCache)
-    if not Shared.IsUsableSpellID(spellID) then
-        return EMPTY_KEYS
-    end
-    if candidateCache and candidateCache[spellID] then
-        return candidateCache[spellID]
-    end
-    local keys = API.GetBuffGroupMatchCandidates and API:GetBuffGroupMatchCandidates(spellID) or EMPTY_KEYS
-    if type(keys) ~= "table" then
-        keys = EMPTY_KEYS
-    end
-    if candidateCache then
-        candidateCache[spellID] = keys
-    end
-    return keys
-end
-
 local function AreEquivalentSpellIDs(leftSpellID, rightSpellID)
     if not Shared.IsUsableSpellID(leftSpellID) or not Shared.IsUsableSpellID(rightSpellID) then
         return false
     end
-    if API.AreBuffGroupSpellIDsEquivalent then
-        return API:AreBuffGroupSpellIDsEquivalent(leftSpellID, rightSpellID)
-    end
     return leftSpellID == rightSpellID
 end
 
-function Shared.MarkEquivalentSpellIDs(targetSet, spellID, candidateCache)
+function Shared.MarkEquivalentSpellIDs(targetSet, spellID)
     if type(targetSet) ~= "table" or not Shared.IsUsableSpellID(spellID) then return end
-    local candidates = BuildOverrideKeyCandidates(spellID, candidateCache)
-    if #candidates == 0 then
-        targetSet[spellID] = true
-        return
-    end
-    for _, candidateID in ipairs(candidates) do
-        targetSet[candidateID] = true
-    end
+    targetSet[spellID] = true
 end
 
-function Shared.HasEquivalentSpellID(targetSet, spellID, candidateCache)
+function Shared.HasEquivalentSpellID(targetSet, spellID)
     if type(targetSet) ~= "table" or not Shared.IsUsableSpellID(spellID) then
         return false
     end
-    local candidates = BuildOverrideKeyCandidates(spellID, candidateCache)
-    if #candidates == 0 then
-        return targetSet[spellID] or false
-    end
-    for _, candidateID in ipairs(candidates) do
-        if targetSet[candidateID] then
-            return true
-        end
-    end
-    return false
+    return targetSet[spellID] or false
 end
 
 function Shared.RemoveSpellFromGroupList(spellList, spellID)

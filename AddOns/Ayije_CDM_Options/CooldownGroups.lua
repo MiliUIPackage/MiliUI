@@ -46,7 +46,6 @@ local function CreateCooldownGroupsPanel(subPage, page)
     local selectedSpellID = nil
     local selectedSpellGroupIndex = nil
     local expandedGroups = {}
-    local overrideKeyCandidateCache = {}
     local RefreshAll
     local ShowSpellSettings
     local BuildIconGrid
@@ -66,7 +65,6 @@ local function CreateCooldownGroupsPanel(subPage, page)
         local wasViewingPlayer = (currentSpecID == playerSpecID) or (currentSpecID == nil)
         playerSpecID = newPlayerSpec
         if wasViewingPlayer then currentSpecID = newPlayerSpec end
-        table.wipe(overrideKeyCandidateCache)
     end
 
     local function EnsureGroups()
@@ -110,12 +108,8 @@ local function CreateCooldownGroupsPanel(subPage, page)
             local viewer = _G[vName]
             if viewer and viewer.itemFramePool then
                 for frame in viewer.itemFramePool:EnumerateActive() do
-                    local candidates = API.GetSpellIDCandidates and API:GetSpellIDCandidates(frame, true)
-                    if candidates then
-                        for _, id in ipairs(candidates) do
-                            active[id] = true
-                        end
-                    end
+                    local id = frame.GetSpellID and frame:GetSpellID()
+                    if IsSafeNumber(id) then active[id] = true end
                 end
             end
         end
@@ -168,11 +162,11 @@ local function CreateCooldownGroupsPanel(subPage, page)
     end
 
     local function MarkEquivalentSpellIDs(targetSet, spellID)
-        Shared.MarkEquivalentSpellIDs(targetSet, spellID, overrideKeyCandidateCache)
+        Shared.MarkEquivalentSpellIDs(targetSet, spellID)
     end
 
     local function HasEquivalentSpellID(targetSet, spellID)
-        return Shared.HasEquivalentSpellID(targetSet, spellID, overrideKeyCandidateCache)
+        return Shared.HasEquivalentSpellID(targetSet, spellID)
     end
 
     local function ExpandGroupedSetWithLinkedSpells(groupedSet)
@@ -586,8 +580,8 @@ local function CreateCooldownGroupsPanel(subPage, page)
                 if val ~= prev then
                     gd.offsetX = 0
                     gd.offsetY = 0
-                    xSlider:SetValue(0)
-                    ySlider:SetValue(0)
+                    xSlider:UpdateUIValue(0)
+                    ySlider:UpdateUIValue(0)
                 end
                 SaveAndRefresh()
                 UpdateAnchorVisibility()
@@ -1858,7 +1852,6 @@ local function CreateCooldownGroupsPanel(subPage, page)
         getCurrentSpecID = function() return currentSpecID end,
         onSelectionChange = function(specID)
             currentSpecID = specID
-            table.wipe(overrideKeyCandidateCache)
             selectedGroupIndex = nil
             selectedSpellID = nil
             selectedSpellGroupIndex = nil

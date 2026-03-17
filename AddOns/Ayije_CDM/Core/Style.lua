@@ -300,10 +300,18 @@ end
 local function FindAuraOverlayEntry(frame)
     local map = CDM._auraOverlayEnabled
     if not map then return nil end
-    for _, id in ipairs(CDM:GetSpellIDCandidates(frame, true)) do
-        local entry = map[id]
-        if entry then return entry end
+
+    local info = frame and frame.cooldownInfo
+    if info then
+        local id = info.overrideSpellID
+        if IsSafeNumber(id) and map[id] then return map[id] end
+        id = info.spellID
+        if IsSafeNumber(id) and map[id] then return map[id] end
     end
+
+    local baseID = GetBaseSpellID(frame)
+    if IsSafeNumber(baseID) and map[baseID] then return map[baseID] end
+
     return nil
 end
 
@@ -454,6 +462,8 @@ end
 function CDM:ProcessAuraOverride(frame)
     if not frame then return end
     local frameData = GetFrameData(frame)
+    local vName = frameData.cdmViewerName
+    if vName and not VIEWERS_WITH_OVERRIDE[vName] then return end
     if frameData.isUpdatingCD then return end
     if frameData.isProcessingOverride then return end
 
@@ -1769,19 +1779,6 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
 
             if nameText then
                 InstallBuffBarVisibilityShowHook(frameData, "cdmNameHooked", nameText, "buffBarShowName")
-                if not frameData.cdmNameSetTextHooked then
-                    frameData.cdmNameSetTextHooked = true
-                    hooksecurefunc(nameText, "SetText", function(self, text)
-                        if frameData.cdmTruncatingName then return end
-                        frameData.cdmOriginalBarName = text
-                        local mc = styleCache.buffBarNameMaxChars
-                        if mc and mc > 0 and text and #text > mc then
-                            frameData.cdmTruncatingName = true
-                            self:SetText(text:sub(1, mc) .. "...")
-                            frameData.cdmTruncatingName = false
-                        end
-                    end)
-                end
                 nameText:SetParent(frameData.barTextContainer)
                 if showName then
                     nameText:SetAlpha(1)
@@ -1791,27 +1788,15 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
                     nameText:SetTextColor(nameColor.r, nameColor.g, nameColor.b, nameColor.a or 1)
                     nameText:SetShadowOffset(0, 0)
                     nameText:SetDrawLayer("OVERLAY", 7)
+                    nameText:SetWordWrap(false)
+                    nameText:SetNonSpaceWrap(false)
                     nameText:ClearAllPoints()
                     Pixel.SetPoint(nameText, "LEFT", bar, "LEFT", nameOffsetX, nameOffsetY)
-                    Pixel.SetPoint(nameText, "RIGHT", bar, "RIGHT", -30, nameOffsetY)
                     if nameMaxChars and nameMaxChars > 0 then
-                        local original = frameData.cdmOriginalBarName or nameText:GetText()
-                        if original then
-                            frameData.cdmOriginalBarName = frameData.cdmOriginalBarName or original
-                            if #original > nameMaxChars then
-                                frameData.cdmTruncatingName = true
-                                nameText:SetText(original:sub(1, nameMaxChars) .. "...")
-                                frameData.cdmTruncatingName = false
-                            else
-                                frameData.cdmTruncatingName = true
-                                nameText:SetText(original)
-                                frameData.cdmTruncatingName = false
-                            end
-                        end
-                    elseif frameData.cdmOriginalBarName then
-                        frameData.cdmTruncatingName = true
-                        nameText:SetText(frameData.cdmOriginalBarName)
-                        frameData.cdmTruncatingName = false
+                        nameText:SetWidth(nameMaxChars * Pixel.FontSize(nameFontSize) * 0.55)
+                    else
+                        Pixel.SetPoint(nameText, "RIGHT", bar, "RIGHT", -30, nameOffsetY)
+                        nameText:SetWidth(0)
                     end
                 else
                     nameText:Hide()

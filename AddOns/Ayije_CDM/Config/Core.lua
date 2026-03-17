@@ -198,25 +198,9 @@ local function NormalizeBuffGroupSpellList(spellList)
     local seen = {}
 
     for _, rawID in ipairs(spellList) do
-        if IsUsableSpellID(rawID) then
-            local duplicate = false
-            local candidateKeys = GetBuffGroupMatchCandidates(rawID)
-
-            for _, candidateID in ipairs(candidateKeys) do
-                if seen[candidateID] then
-                    duplicate = true
-                    break
-                end
-            end
-
-            if not duplicate then
-                normalized[#normalized + 1] = rawID
-            end
-
+        if IsUsableSpellID(rawID) and not seen[rawID] then
+            normalized[#normalized + 1] = rawID
             seen[rawID] = true
-            for _, candidateID in ipairs(candidateKeys) do
-                seen[candidateID] = true
-            end
         end
     end
 
@@ -478,7 +462,7 @@ local function StripDefaultMatchingValues(profile)
     end
 end
 
-local DB_SCHEMA_VERSION = 7
+local DB_SCHEMA_VERSION = 8
 
 local PROFILE_MIGRATIONS = {
     {
@@ -608,6 +592,25 @@ local PROFILE_MIGRATIONS = {
                                 end
                             end
                         end
+                    end
+                end
+            end
+        end,
+    },
+    {
+        version = 8,
+        run = function(profile)
+            local reg = profile.spellRegistry
+            if type(reg) ~= "table" then return end
+            for specID, node in pairs(reg) do
+                if type(node) == "table" and type(node.glowEnabled) == "table" then
+                    for k, v in pairs(node.glowEnabled) do
+                        if v ~= true then
+                            node.glowEnabled[k] = nil
+                        end
+                    end
+                    if not next(node.glowEnabled) then
+                        node.glowEnabled = nil
                     end
                 end
             end
@@ -1222,6 +1225,79 @@ function CDM:ClearSpellBorderColor(specID, spellID)
     RefreshBuffViewer()
 end
 
+local stableBaseCache = {}
+
+local ALL_VIEWER_CATEGORIES = {}
+if Enum and Enum.CooldownViewerCategory then
+    local evc = Enum.CooldownViewerCategory
+    if evc.Essential then ALL_VIEWER_CATEGORIES[#ALL_VIEWER_CATEGORIES + 1] = evc.Essential end
+    if evc.Utility then ALL_VIEWER_CATEGORIES[#ALL_VIEWER_CATEGORIES + 1] = evc.Utility end
+    if evc.TrackedBuff then ALL_VIEWER_CATEGORIES[#ALL_VIEWER_CATEGORIES + 1] = evc.TrackedBuff end
+    if evc.TrackedBar then ALL_VIEWER_CATEGORIES[#ALL_VIEWER_CATEGORIES + 1] = evc.TrackedBar end
+end
+
+local function ResolveStableBase(spellID)
+    if not IsUsableSpellID(spellID) then return nil end
+
+    local cached = stableBaseCache[spellID]
+    if cached ~= nil then
+        return cached ~= false and cached or nil
+    end
+
+    if not C_CooldownViewer or not C_CooldownViewer.GetCooldownViewerCategorySet
+        or not C_CooldownViewer.GetCooldownViewerCooldownInfo then
+        stableBaseCache[spellID] = false
+        return nil
+    end
+
+    for _, cat in ipairs(ALL_VIEWER_CATEGORIES) do
+        local cooldownIDs = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
+        if cooldownIDs then
+            for _, cdID in ipairs(cooldownIDs) do
+                local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
+                if info and info.spellID then
+                    local matched = false
+                    if info.spellID == spellID or info.overrideSpellID == spellID then
+                        matched = true
+                    end
+                    if not matched and info.linkedSpellIDs then
+                        for _, lid in ipairs(info.linkedSpellIDs) do
+                            if lid == spellID then
+                                matched = true
+                                break
+                            end
+                        end
+                    end
+                    if matched then
+                        local base = info.spellID
+                        stableBaseCache[base] = base
+                        if info.overrideSpellID then
+                            stableBaseCache[info.overrideSpellID] = base
+                        end
+                        if info.linkedSpellIDs then
+                            for _, lid in ipairs(info.linkedSpellIDs) do
+                                stableBaseCache[lid] = base
+                            end
+                        end
+                        return base
+                    end
+                end
+            end
+        end
+    end
+
+    stableBaseCache[spellID] = false
+    return nil
+end
+
+function CDM:ResolveStableBase(spellID)
+    return ResolveStableBase(spellID)
+end
+
+function CDM:ClearStableBaseCache()
+    table.wipe(stableBaseCache)
+end
+
 local function EnsureGlowRegistryNode(specID)
     if not CDM.db then return nil end
     if not CDM.db.spellRegistry then
@@ -1237,7 +1313,12 @@ function CDM:GetSpellGlowEnabled(specID, spellID)
     if not CDM.db or not CDM.db.spellRegistry then return false end
     local reg = CDM.db.spellRegistry[specID]
     if not reg or not reg.glowEnabled then return false end
-    return reg.glowEnabled[spellID] or false
+    if reg.glowEnabled[spellID] == true then return true end
+    local base = CDM.NormalizeToBase and CDM.NormalizeToBase(spellID)
+    if base and base ~= spellID and reg.glowEnabled[base] == true then return true end
+    local stable = self.ResolveStableBase and self:ResolveStableBase(spellID)
+    if stable and stable ~= spellID and stable ~= base and reg.glowEnabled[stable] == true then return true end
+    return false
 end
 
 function CDM:HasAnySpellGlowConfigured(specID)
@@ -1264,7 +1345,11 @@ function CDM:SetSpellGlowEnabled(specID, spellID, enabled)
         reg.glowEnabled = {}
     end
 
-    reg.glowEnabled[spellID] = enabled or nil  -- nil to remove false entries
+    reg.glowEnabled[spellID] = enabled and true or nil
+    local base = CDM.NormalizeToBase and CDM.NormalizeToBase(spellID)
+    if base and base ~= spellID then reg.glowEnabled[base] = nil end
+    local stable = CDM.ResolveStableBase and CDM:ResolveStableBase(spellID)
+    if stable and stable ~= spellID and stable ~= base then reg.glowEnabled[stable] = nil end
 
     if CDM.SpellRegistry and CDM.SpellRegistry.CompactSpec then
         CDM.SpellRegistry:CompactSpec(specID)
@@ -1277,7 +1362,12 @@ function CDM:GetSpellGlowColor(specID, spellID)
     if not CDM.db or not CDM.db.spellRegistry then return nil end
     local reg = CDM.db.spellRegistry[specID]
     if not reg or not reg.glowColors then return nil end
-    return reg.glowColors[spellID]
+    if reg.glowColors[spellID] then return reg.glowColors[spellID] end
+    local base = CDM.NormalizeToBase and CDM.NormalizeToBase(spellID)
+    if base and base ~= spellID and reg.glowColors[base] then return reg.glowColors[base] end
+    local stable = self.ResolveStableBase and self:ResolveStableBase(spellID)
+    if stable and stable ~= spellID and stable ~= base and reg.glowColors[stable] then return reg.glowColors[stable] end
+    return nil
 end
 
 function CDM:SetSpellGlowColor(specID, spellID, color)
@@ -1288,11 +1378,11 @@ function CDM:SetSpellGlowColor(specID, spellID, color)
         reg.glowColors = {}
     end
 
-    if color then
-        reg.glowColors[spellID] = { r = color.r, g = color.g, b = color.b }
-    else
-        reg.glowColors[spellID] = nil
-    end
+    reg.glowColors[spellID] = color and { r = color.r, g = color.g, b = color.b } or nil
+    local base = CDM.NormalizeToBase and CDM.NormalizeToBase(spellID)
+    if base and base ~= spellID then reg.glowColors[base] = nil end
+    local stable = CDM.ResolveStableBase and CDM:ResolveStableBase(spellID)
+    if stable and stable ~= spellID and stable ~= base then reg.glowColors[stable] = nil end
 
     if CDM.SpellRegistry and CDM.SpellRegistry.CompactSpec then
         CDM.SpellRegistry:CompactSpec(specID)
@@ -1322,10 +1412,17 @@ function CDM:RefreshBuffGroupData()
 
     sets.groups = specGroups
 
+    local NormalizeToBase = CDM.NormalizeToBase
     for groupIndex, group in ipairs(specGroups) do
         if group.spells then
             for _, spellID in ipairs(group.spells) do
                 sets.grouped[spellID] = groupIndex
+                if NormalizeToBase then
+                    local base = NormalizeToBase(spellID)
+                    if base and base ~= spellID and not sets.grouped[base] then
+                        sets.grouped[base] = groupIndex
+                    end
+                end
             end
         end
     end
@@ -1356,10 +1453,17 @@ function CDM:RefreshCooldownGroupData()
 
     sets.groups = specGroups
 
+    local NormalizeToBase = CDM.NormalizeToBase
     for groupIndex, group in ipairs(specGroups) do
         if group.spells then
             for _, spellID in ipairs(group.spells) do
                 sets.grouped[spellID] = groupIndex
+                if NormalizeToBase then
+                    local base = NormalizeToBase(spellID)
+                    if base and base ~= spellID and not sets.grouped[base] then
+                        sets.grouped[base] = groupIndex
+                    end
+                end
             end
         end
     end
