@@ -25,4 +25,4 @@ Enhance\AyijeCDM_StufAnchor.lua
 Enhance\AddonNames.lua
 Enhance\AutoSlotKeystone.lua
 Enhance\TeleportMenu_Spacing.lua
-Enhance\TooltipTaintFix.lua
+# Enhance\TooltipTaintFix.lua
