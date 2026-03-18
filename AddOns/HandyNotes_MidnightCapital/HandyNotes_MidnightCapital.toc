@@ -1,0 +1,25 @@
+## Interface: 120001
+## Title: HandyNotes: Midnight - Capital
+## Title-zhCN: HandyNotes：至暗之夜 - 主城
+## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記 - 至暗之夜主城
+## Notes: Displays important locations and services in the rebuilt Silvermoon City (Midnight's capital).
+## Notes-zhCN: 在重建后的银月城（午夜的主城）显示重要地点和服务。
+## Notes-zhTW: 在重建後的銀月城（至暗之夜的主城）顯示重要地點與服務。
+## Author: Anahkas
+## Version: 1.0.4
+## IconTexture: Interface\AddOns\HandyNotes_MidnightCapital\HandyNotes_MidnightCapital
+## RequiredDeps: HandyNotes
+## SavedVariables: HandyNotes_MidnightCapitalDB
+## Category-zhTW: 地圖
+
+Icons.lua
+Localization.lua
+locales\enUS.lua
+locales\zhCN.lua
+locales\zhTW.lua
+Data.lua
+Options.lua
+Tooltip.lua
+Pins.lua
+WorldMapOptions.lua
+Core.lua
