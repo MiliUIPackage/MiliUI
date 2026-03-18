@@ -15,7 +15,6 @@ function addon:setupOptions()
             delvesProgressTooltip = true,
             inspectilvl = true,
             premadeFinderRedX = true,
-            remixIP = false,
             houseDropdownFactionIcon = true,
         },
     }
@@ -115,13 +114,6 @@ function addon:setupOptions()
                 desc = "Hides that annoying Red X that appears over the Filter button but also clips over the Refresh button",
                 set = function(_, v) addon.db.profile.premadeFinderRedX = v end,
                 get = function() return addon.db.profile.premadeFinderRedX end,
-                width = "full",
-            },
-            remixIP = {
-                type = "toggle",
-                name = "Enable Remix Infinite Power Module",
-                set = function(_, v) addon.db.profile.remixIP = v end,
-                get = function() return addon.db.profile.remixIP end,
                 width = "full",
             },
             houseDropdownFactionIcon = {

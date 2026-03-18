@@ -37,8 +37,8 @@ local db = {
             },
             --]]
             TWWseason3 = {
-                lower = 642,
-                upper = 665,
+                lower = 98,
+                upper = 105,
             },
         },
     },
@@ -78,8 +78,12 @@ local db = {
             },
             --]]
             TWWseason3 = {
-                lower = 655,
-                upper = 678,
+                lower = 102,
+                upper = 118,
+            },
+            noonSeason1 = {
+                lower = 220,
+                upper = 237,
             },
         },
     },
@@ -119,8 +123,12 @@ local db = {
             },
             --]]
             TWWseason3 = {
-                lower = 668,
-                upper = 691,
+                lower = 108,
+                upper = 131,
+            },
+            noonSeason1 = {
+                lower = 233,
+                upper = 250,
             },
         },
     },
@@ -163,6 +171,10 @@ local db = {
                 lower = 121,
                 upper = 144,
             },
+            noonSeason1 = {
+                lower = 246,
+                upper = 263,
+            },
         },
     },
     hero = {
@@ -196,6 +208,10 @@ local db = {
                 lower = 134,
                 upper = 157,
             },
+            noonSeason1 = {
+                lower = 259,
+                upper = 276,
+            },
         },
     },
     myth = {
@@ -228,6 +244,10 @@ local db = {
             TWWseason3 = {
                 lower = 147,
                 upper = 170,
+            },
+            noonSeason1 = {
+                lower = 272,
+                upper = 289,
             },
         },
     },
@@ -281,13 +301,19 @@ local upgradePattern = ITEM_UPGRADE_TOOLTIP_FORMAT_STRING
 upgradePattern = upgradePattern:gsub("%%d", "%%s")
 upgradePattern = upgradePattern:format("(.+)", "(%d+)", "(%d+)")
 
-TooltipDataProcessor.AddTooltipPreCall(Enum.TooltipDataType.Item, function(_, data)
+-- Tooltips are, by default, written in this format, across two lines:
+-- Item Level ###
+-- Upgrade Level: Myth 1/8
+-- Because we have to check across two lines, we cannot use AddLinePreCall
+TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tooltip, data)
+    if not tooltip:GetName() then return end
     if not addon.db then return end
     if not addon.db.profile then return end
     if not addon.db.profile.itemUpgrade then return end
     
     local found, foundLower, foundUpper, foundCurrent
     
+    -- Find the current item level of the item based on the item level line
     for _, v in pairs(data.lines) do
         if type(v) == "table" then
             local text = v.leftText
@@ -300,6 +326,8 @@ TooltipDataProcessor.AddTooltipPreCall(Enum.TooltipDataType.Item, function(_, da
     end
     
     if not foundCurrent then return end
+    
+    -- Based on the upgrade level line, determine which known min/max applies
     for _, v in pairs(data.lines) do
         if type(v) == "table" then
             local text = v.leftText
@@ -327,7 +355,17 @@ TooltipDataProcessor.AddTooltipPreCall(Enum.TooltipDataType.Item, function(_, da
         if type(v) == "table" then
             local text = v.leftText 
             if text:find(itemLevelPattern) then
-                v.leftText = text.." "..DISABLED_FONT_COLOR:GenerateHexColorMarkup().."("..foundLower.."-"..foundUpper..")|r"
+                local newText = text.." "..DISABLED_FONT_COLOR:GenerateHexColorMarkup().."("..foundLower.."-"..foundUpper..")|r"
+                local i = 1
+                while (true) do
+                    local line = _G[tooltip:GetName().."TextLeft"..i]
+                    if not line then break end
+                    if line:GetText() == text then
+                        line:SetText(newText)
+                        break
+                    end
+                    i = i + 1
+                end
             end
         end
     end

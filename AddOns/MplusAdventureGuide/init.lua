@@ -6,8 +6,6 @@ EventUtil.ContinueOnAddOnLoaded(addonName, function()
     addon:initAchievementTrackerFix()
     
     RunNextFrame(function()
-        addon:initRemixInfinitePower()
-        
         EventUtil.ContinueOnAddOnLoaded("Blizzard_ChallengesUI", function()
             addon:initPortalButtons()
             addon:initKeystoneMovable()
