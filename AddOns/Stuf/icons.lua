@@ -743,7 +743,7 @@ do  -- Inspect Button ----------------------------------------------------------
 					if not DressUpFrame:IsShown() then 
 						ShowUIPanel(DressUpFrame) 
 					end
-					if IsAddOnLoaded("CloseUp") then
+					if (C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded)("CloseUp") then
 						DressUpFrameCancelButton:Click()
 					else
 						--DressUpModel:SetUnit("target")

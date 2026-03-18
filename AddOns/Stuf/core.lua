@@ -268,7 +268,7 @@ function events.ADDON_LOADED(a1)
 				Stuf.unitcopy["boss"..i.."target"] = "boss1target"
 
 				if not db[bu] then
-					C_AddOns.LoadAddOn("Stuf_Options")
+					LoadAddOn("Stuf_Options")
 					if Stuf.LoadDefaults then
 						Stuf:LoadDefaults(db, nil, nil, 1)
 					end

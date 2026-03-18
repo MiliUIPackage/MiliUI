@@ -923,16 +923,19 @@ do  -- Threat Bar --------------------------------------------------------------
 					isTanking, status, threatpct = UnitDetailedThreatSituation("player", unit)
 				end
 
-				-- 12.0.1: threatpct and status are secret values; pcall-wrap all comparisons
+				-- 12.0.1: threatpct and status are secret values.
+				-- pcall does NOT catch taint errors in 12.0.1 — use issecretvalue instead.
 				local showThreat, frac, isHighThreat = false, 0.01, false
 				if threatpct then
-					pcall(function()
+					local _issecret = _G.issecretvalue
+					if not (_issecret and (_issecret(threatpct) or _issecret(status))) then
 						if threatpct >= 1 then
 							showThreat = true
 							frac = threatpct * 0.01
 							isHighThreat = (status > 0)
 						end
-					end)
+					end
+					-- If values are secret (in combat), leave showThreat=false → bar hides silently
 				end
 				if not showThreat then
 					f:Hide()

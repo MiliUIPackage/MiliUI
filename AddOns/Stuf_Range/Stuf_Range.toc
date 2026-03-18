@@ -1,7 +1,8 @@
-## Interface: 120001, 120005
+## Interface: 120001
 ## Title: Stuf_Range
 ## Author: TotalPackage
 ## Notes: Displays estimate distance using LibRangeCheck-3.0. for 12.0.5
+## Version: 12.0.5a
 
 ## Title-zhTW: |cff4DD2FF[頭像]|r Stuf 頭像 - 顯示距離
 ## Notes-zhTW: Stuf_Range |n|n顯示目標的距離，使用 LibRangeCheck-3.0。

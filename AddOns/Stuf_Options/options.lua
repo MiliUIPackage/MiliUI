@@ -1418,7 +1418,10 @@ local texttagoptions={ hide=hide, copyelement=copyelement, blank=blank,
 				taghelp:RegisterForDrag("LeftButton")
 				taghelp:SetScript("OnDragStart", OnDragStart)
 				taghelp:SetScript("OnDragStop", OnDragStop)
-				taghelp:SetPoint("TOP", UIParent, "BOTTOMLEFT", InterfaceOptionsFrame:GetRight() - 100, InterfaceOptionsFrame:GetTop() + 100)
+				do
+					local sw, sh = GetScreenWidth(), GetScreenHeight()
+					taghelp:SetPoint("TOPLEFT", UIParent, "TOPLEFT", sw * 0.55, -sh * 0.05)
+				end
 				taghelp:SetBackdrop({ bgFile="Interface\\Tooltips\\UI-Tooltip-Background" })
 				taghelp:SetBackdropColor(0, 0, 0, 0.7)
 				
@@ -1885,7 +1888,7 @@ options={
 	type="group",
 	args={ 
 		configmode={
-			name=L["Config Mode"], desc=L["Preview everything."], type="toggle", order=1, 
+			name="Config", desc=L["Preview everything."], type="toggle", order=1, width="half", 
 			set=function(info, v)
 				if InCombatLockdown() then
 					return ChatFrame1:AddMessage("|cff00ff00Stuf|r: "..L["Unable to process while in combat."])
@@ -1896,7 +1899,7 @@ options={
 			get=function() return config end,
 		},
 		highlight={ 
-			name=L["Toggle Highlighter"], desc=L["Highlights currently selected element."], type="toggle", order=1, 
+			name="Highlight", desc=L["Highlights currently selected element."], type="toggle", order=2, width="half", 
 			set=function(info, v)
 				if not highlight then
 					highlight=CreateFrame("Frame", nil, Stuf, BackdropTemplateMixin and 'BackdropTemplate')
@@ -1914,8 +1917,183 @@ options={
 			end,
 			get=function() return highlight and highlight:IsShown() end,
 		},
+		tagreference={
+			name="Tag Ref", desc="Show a full reference of all valid pattern tags, colour tags and conditions.", type="toggle", order=3, width="half",
+			set=function(info, v)
+				if not Stuf.tagrefframe then
+					local f = CreateFrame("Frame", nil, UIParent, BackdropTemplateMixin and 'BackdropTemplate')
+					f:SetWidth(520)
+					f:SetHeight(560)
+					f:EnableMouse(true)
+					f:SetMovable(true)
+					f:RegisterForDrag("LeftButton")
+					f:SetScript("OnDragStart", function(this) this:StartMoving() end)
+					f:SetScript("OnDragStop",  function(this) this:StopMovingOrSizing() end)
+					f:SetFrameStrata("DIALOG")
+					do
+						local sw, sh = GetScreenWidth(), GetScreenHeight()
+						f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", sw * 0.35, -sh * 0.05)
+					end
+					f:SetBackdrop({ bgFile="Interface\\Tooltips\\UI-Tooltip-Background", edgeFile="Interface\\Tooltips\\UI-Tooltip-Border", edgeSize=12, insets={left=3,right=3,top=3,bottom=3} })
+					f:SetBackdropColor(0, 0, 0, 0.85)
+					f:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
+
+					-- title bar
+					local title = f:CreateFontString(nil, "OVERLAY")
+					title:SetFontObject(GameFontNormalLarge)
+					title:SetPoint("TOPLEFT", 10, -10)
+					title:SetText("|cff00ff00Stuf|r Pattern Tag Reference")
+
+					-- close button
+					local close = CreateFrame("Button", nil, f, "UIPanelCloseButton,BackdropTemplate")
+					close:SetWidth(24) close:SetHeight(24)
+					close:SetPoint("TOPRIGHT", 2, 2)
+					close:SetScript("OnClick", function() f:Hide() end)
+
+					-- scrollable content
+					local sf = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
+					sf:SetPoint("TOPLEFT", 8, -32)
+					sf:SetPoint("BOTTOMRIGHT", -26, 8)
+
+					local content = CreateFrame("Frame", nil, sf)
+					content:SetWidth(480)
+					content:SetHeight(1)  -- auto-expands with text
+					sf:SetScrollChild(content)
+
+					local txt = content:CreateFontString(nil, "ARTWORK")
+					txt:SetFontObject(GameFontHighlightSmall)
+					txt:SetJustifyH("LEFT")
+					txt:SetJustifyV("TOP")
+					txt:SetPoint("TOPLEFT", 4, -4)
+					txt:SetWidth(472)
+					txt:SetNonSpaceWrap(true)
+
+					local reftext =
+						"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+						"|cffFFD700  SYNTAX|r\n"..
+						"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+						"|cffaaaaaa[infotag]|r\n"..
+						"|cffaaaaaa[colortag:infotag]|r\n"..
+						"|cffaaaaaa[colortag_if_condition:infotag]|r\n"..
+						"|cffaaaaaa[colortag_ifnot_condition:infotag]|r\n"..
+						"Text outside brackets is shown as-is.\n"..
+						"\n"..
+						"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+						"|cffFFD700  INFO TAGS|r\n"..
+						"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+						"|cff00ff00name|r          Unit name\n"..
+						"|cff00ff00titlename|r     Name with PvP title prefix\n"..
+						"|cff00ff00level|r         Level number\n"..
+						"|cff00ff00classification|r  Elite / Boss / Rare etc.\n"..
+						"|cff00ff00class|r         Class name\n"..
+						"|cff00ff00race|r          Race or creature type\n"..
+						"|cff00ff00creaturetype|r  Creature type string\n"..
+						"|cff00ff00guild|r         Guild name in < >\n"..
+						"\n"..
+						"|cffaaaaaa-- Health --|r\n"..
+						"|cff00ff00curhp|r         Current health\n"..
+						"|cff00ff00maxhp|r         Maximum health\n"..
+						"|cff00ff00perchp|r        Health percentage (0-100)\n"..
+						"|cff00ff00deficithp|r     Missing health amount\n"..
+						"\n"..
+						"|cffaaaaaa-- Power --|r\n"..
+						"|cff00ff00curmp|r         Current power\n"..
+						"|cff00ff00maxmp|r         Maximum power\n"..
+						"|cff00ff00percmp|r        Power percentage (0-100)\n"..
+						"|cff00ff00deficitmp|r     Missing power amount\n"..
+						"|cff00ff00shards|r        Soul shards (Warlock only)\n"..
+						"\n"..
+						"|cffaaaaaa-- Special --|r\n"..
+						"|cff00ff00nl|r            New line\n"..
+						"|cff00ff00%|r             Literal % sign\n"..
+						"|cff00ff00lp|r            Literal (\n"..
+						"|cff00ff00rp|r            Literal )\n"..
+						"\n"..
+						"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+						"|cffFFD700  COLOUR TAGS|r\n"..
+						"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+						"|cffff9900class|r            Class colour\n"..
+						"|cffff9900classdark|r        Class colour darkened\n"..
+						"|cffff9900reaction|r         Friendly/hostile/neutral\n"..
+						"|cffff9900reactiondark|r     Reaction darkened\n"..
+						"|cffff9900classreaction|r    Reaction for NPC/PvP, class for players\n"..
+						"|cffff9900classreactiondark|r  Same, darkened\n"..
+						"|cffff9900reactionnpc|r      Reaction for NPCs, class for players\n"..
+						"|cffff9900reactionnpcdark|r  Same, darkened\n"..
+						"|cffff9900difficulty|r       Blizzard quest difficulty colour\n"..
+						"|cffff9900difficultydark|r   Difficulty darkened\n"..
+						"|cffff9900hpgreen|r          Configured HP green colour\n"..
+						"|cffff9900hpgreendark|r      HP green darkened\n"..
+						"|cffff9900hpred|r            Configured HP red colour\n"..
+						"|cffff9900hpreddark|r        HP red darkened\n"..
+						"|cffff9900hpthreshold|r      Gradient red to green by HP%%\n"..
+						"|cffff9900hpthresholddark|r  Same, darkened\n"..
+						"|cffff9900power|r            Power type colour\n"..
+						"|cffff9900powerdark|r        Power colour darkened\n"..
+						"|cffff9900gray|r             Configured gray colour\n"..
+						"|cffff9900solid|r            Uses the text element Font Colour\n"..
+						"|cffff9900custom|r           Same as solid\n"..
+						"\n"..
+						"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+						"|cffFFD700  CONDITIONS  (_if_ / _ifnot_)|r\n"..
+						"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+						"|cffffff00pc|r              Unit is player-controlled\n"..
+						"|cffffff00npc|r             Unit is NOT player-controlled\n"..
+						"|cffffff00pvp|r             Unit is PvP flagged\n"..
+						"|cffffff00male|r            Unit is male\n"..
+						"|cffffff00female|r          Unit is female\n"..
+						"|cffffff00helpful|r         You can assist this unit\n"..
+						"|cffffff00hostile|r         Unit can attack you\n"..
+						"|cffffff00attackable|r      You can attack this unit\n"..
+						"|cffffff00enemy|r           Unit is your enemy\n"..
+						"|cffffff00tapped|r          Unit is tapped by someone else\n"..
+						"|cffffff00alive|r           Unit is alive\n"..
+						"|cffffff00dead|r            Unit is dead\n"..
+						"|cffffff00ghost|r           Unit is a ghost\n"..
+						"|cffffff00offline|r         Unit is offline\n"..
+						"|cffffff00afk|r             Unit is AFK\n"..
+						"|cffffff00dnd|r             Unit is DND\n"..
+						"|cffffff00ingroup|r         Unit is in your group\n"..
+						"|cffffff00oor|r             Unit is out of range\n"..
+						"|cffffff00combat|r          Unit is in combat\n"..
+						"|cffffff00selfcombat|r      YOU are in combat\n"..
+						"|cffffff00aggro|r           Unit has aggro on you\n"..
+						"|cffffff00boss|r            Unit is a world boss\n"..
+						"|cffffff00hp10|r            HP below 10%%\n"..
+						"|cffffff00hp20|r            HP below 20%%\n"..
+						"|cffffff00hp35|r            HP below 35%%\n"..
+						"|cffffff00hp99|r            HP below 99%% (not full)\n"..
+						"|cffffff00mp15|r            Power below 15%%\n"..
+						"|cffffff00mp99|r            Power below 99%%\n"..
+						"|cffffff00manapower|r       Power type is mana\n"..
+						"\n"..
+						"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+						"|cffFFD700  EXAMPLES|r\n"..
+						"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+						"|cffaaaaaa[name]|r\n"..
+						"|cffaaaaaa[class:name]|r\n"..
+						"|cffaaaaaa[reaction:name]|r\n"..
+						"|cffaaaaaa[hpthreshold:curhp] / [maxhp]|r\n"..
+						"|cffaaaaaa[perchp][%][nl][curhp]/[maxhp]|r\n"..
+						"|cffaaaaaa[curmp]/[maxmp]|r\n"..
+						"|cffaaaaaa[difficulty:level][difficulty:classification]|r\n"..
+						"|cffaaaaaa[class_if_pc:class]|r\n"..
+						"|cffaaaaaa[solid_ifnot_alive:Dead]|r\n"..
+						"|cffaaaaaa[gray_if_offline:Offline]|r\n"..
+						"|cffaaaaaa[hpred_if_hp20:LOW HP]|r\n"..
+						"|cffaaaaaa[reaction_if_npc:creaturetype]|r\n"..
+						"|cffaaaaaa[name][nl][guild]|r"
+
+					txt:SetText(reftext)
+					content:SetHeight(txt:GetHeight() + 12)
+					Stuf.tagrefframe = f
+				end
+				if v then Stuf.tagrefframe:Show() else Stuf.tagrefframe:Hide() end
+			end,
+			get=function() return Stuf.tagrefframe and Stuf.tagrefframe:IsShown() end,
+		},
 		movable={
-			name=L["Toggle Drag"], desc=L["draghelp"], type="toggle", order=1,
+			name="Drag", desc=L["draghelp"], type="toggle", order=4, width="half",
 			set=function(info, v)
 				if InCombatLockdown() then
 					return ChatFrame1:AddMessage("|cff00ff00Stuf|r: "..L["Unable to process while in combat."])
@@ -2482,6 +2660,38 @@ do
 	local importString = ""
 	local importStatus = ""
 
+	-- Deep-copy a table, resolving __index metatables so default values are included.
+	-- This ensures the export string contains every setting, not just overrides.
+	local function FlattenDB(src, seen)
+		if type(src) ~= "table" then return src end
+		seen = seen or {}
+		if seen[src] then return {} end  -- break cycles
+		seen[src] = true
+		local out = {}
+		-- Walk __index chain to collect inherited (default) keys first
+		local mt = getmetatable(src)
+		if mt and type(mt.__index) == "table" then
+			for k, v in pairs(mt.__index) do
+				local t = type(v)
+				if t == "number" or t == "boolean" or t == "string" then
+					out[k] = v
+				elseif t == "table" then
+					out[k] = FlattenDB(v, seen)
+				end
+			end
+		end
+		-- Now overwrite with the actual saved values (they win over defaults)
+		for k, v in pairs(src) do
+			local t = type(v)
+			if t == "number" or t == "boolean" or t == "string" then
+				out[k] = v
+			elseif t == "table" then
+				out[k] = FlattenDB(v, seen)
+			end
+		end
+		return out
+	end
+
 	-- Simple recursive Lua-table serializer (no external libs needed)
 	local function Serialize(val, depth)
 		depth = depth or 0
@@ -2550,12 +2760,14 @@ do
 				type = "execute",
 				order = 2,
 				func = function()
-					local source = (StufDB == "perchar" and StufCharDB) or StufDB
-					if type(source) ~= "table" then
+					-- Use the live 'db' proxy so default values are included,
+					-- not just keys that were explicitly changed by the user.
+					if type(db) ~= "table" then
 						exportString = "-- No settings found"
-					else
-						exportString = Serialize(source) or "-- Serialization failed"
+						return
 					end
+					local flat = FlattenDB(db)
+					exportString = Serialize(flat) or "-- Serialization failed"
 				end,
 			},
 			exportbox = {
