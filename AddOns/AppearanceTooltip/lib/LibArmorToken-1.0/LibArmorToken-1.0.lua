@@ -1,7 +1,7 @@
 local lib, oldMinor = LibStub:NewLibrary("LibArmorToken-1.0", 2)
 if not lib then return end
 
-local items
+local ITEMDATA
 
 local armorTypes = {
     PLATE = {"PALADIN", "WARRIOR", "DEATHKNIGHT"},
@@ -19,10 +19,66 @@ for armorType, classes in pairs(armorTypes) do
     end
 end
 
+-- this mapping came from Blizzard_Reports.lua
+local fields = {
+   "itemID", "enchantID", "gemID1", "gemID2", "gemID3",
+   "gemID4", "suffixID", "uniqueID", "linkLevel", "specializationID",
+   "upgradeTypeID", "instanceDifficultyID", "numBonusIDs", -- [:bonusID1:bonusID2:...]
+   --[:upgradeValue1:upgradeValue2:...]:relic1NumBonusIDs[:relic1BonusID1:relic1BonusID2:...]:relic2NumBonusIDs[:relic2BonusID1:relic2BonusID2:...]:relic3NumBonusIDs[:relic3BonusID1:relic3BonusID2:...]
+}
+local function LinkOptions(link)
+    local linkType, linkOptions, displayText = LinkUtil.ExtractLink(link)
+    local splitOptions = {LinkUtil.SplitLinkOptions(linkOptions)}
+    local options = {}
+    for i, field in ipairs(fields) do
+        options[field] = tonumber(splitOptions[i])
+    end
+    local numBonusIDs = tonumber(options.numBonusIDs)
+    if numBonusIDs and numBonusIDs > 0 then
+        local b = {}
+        for i=1, numBonusIDs, 1 do
+            local bonusID = tonumber(splitOptions[#fields + i])
+            table.insert(b, bonusID)
+            options["bonusID"..i] = bonusID
+        end
+        options.bonusIDs = b
+    end
+    --TODO: support the rest of the fields if they ever become relevant
+    return options, linkType, displayText
+end
+local function IsVariantRelevant(linkOptions, variant)
+    -- variant is a linkoptions table
+    for field, value in pairs(variant) do
+        if field == "bonusIDs" then
+            for _, bonusID in ipairs(value) do
+                if not tContains(linkOptions.bonusIDs, bonusID) then
+                    return false
+                end
+            end
+        else
+            if linkOptions[field] ~= value then
+                return false
+            end
+        end
+    end
+    return true
+end
+local function RelevantVariants(itemLinkOrId, variants)
+    if not (variants and type(itemLinkOrId) == "string") then return end
+    local linkOptions = LinkOptions(itemLinkOrId)
+    local relevant = {}
+    for _, variant in ipairs(variants) do
+        if IsVariantRelevant(linkOptions, variant) then
+            table.insert(relevant, variant)
+        end
+    end
+    return #relevant > 0 and relevant or nil
+end
+
 -- API
 
 function lib:ItemIsToken(itemid)
-    if items[itemid] then
+    if ITEMDATA[itemid] then
         return true
     end
 end
@@ -30,11 +86,11 @@ end
 do
     local t = {}
     function lib:IterateClassesForToken(itemid)
-        if not items[itemid] then
+        if not ITEMDATA[itemid] then
             return ipairs({})
         end
         wipe(t)
-        for cl in pairs(items[itemid]) do
+        for cl in pairs(ITEMDATA[itemid]) do
             if classArmorType[cl] then
                 table.insert(t, cl)
             end
@@ -45,57 +101,80 @@ end
 
 do
     local t = {}
-    function lib:IterateItemsForTokenAndClass(itemid, class)
-        if not (items[itemid] and (items[itemid][class] or items[itemid][classArmorType[class]])) then
-            return ipairs({})
-        end
+    function lib:IterateItemsForTokenAndClass(itemLinkOrId, class)
+        -- TODO: this doesn't support variants, and the API would need to change for it to do so.
+        -- Insofar as it's a wrapper for IterateItemsForToken with a parameter provided, combining
+        -- it with GetTokenVariants should be sufficient.
         wipe(t)
-        if items[itemid][class] then
-            -- class-specific
-            tAppendAll(t, items[itemid][class])
-        end
-        if items[itemid][classArmorType[class]] then
-            -- armor-type
-            tAppendAll(t, items[itemid][classArmorType[class]])
-        end
-        if items[itemid]["ALL"] then
-            -- anyone
-            tAppendAll(t, items[itemid]["ALL"])
+        for itemid in self:IterateItemsForToken(itemLinkOrId, class) do
+            table.insert(t, itemid)
         end
         return ipairs(t)
     end
 end
 
+function lib:GetTokenVariants(itemLinkOrId)
+    local itemid = C_Item.GetItemInfoInstant(itemLinkOrId)
+    if not (itemid and ITEMDATA[itemid] and ITEMDATA[itemid]._variants) then return end
+    local relevantVariants = RelevantVariants(itemLinkOrId, ITEMDATA[itemid]._variants)
+    if relevantVariants then
+        return relevantVariants
+    end
+    return {unpack(ITEMDATA[itemid]._variants)}
+end
+
 do
-    local co = function(t, classOnly)
+    local co = function(tokenData, classOnly, itemLinkOrId)
+        local relevantVariants = RelevantVariants(itemLinkOrId, tokenData._variants)
         local playerClass = select(2, UnitClass("player"))
-        for class, citems in pairs(t) do
-            if (not classOnly) or (class == classOnly) or (class == "ALL") or (class == classArmorType[classOnly]) then
+        for class, citems in pairs(tokenData) do
+            if (class ~= "_variants") and ((not classOnly) or (class == classOnly) or (class == "ALL") or (class == classArmorType[classOnly])) then
                 for _, ci in ipairs(citems) do
                     -- relevant means "is specific to the player's class OR is non-class-specific and of the player's armor-type"
                     local relevant = class == playerClass or class == "ALL"
                     if not relevant and armorTypes[class] then
                         relevant = class == classArmorType[playerClass]
                     end
-                    coroutine.yield(ci, class, relevant)
+                    if tokenData._variants and not relevantVariants then
+                        coroutine.yield(ci, class, relevant, {unpack(tokenData._variants)})
+                    else
+                        coroutine.yield(ci, class, relevant, relevantVariants)
+                    end
                 end
             end
         end
     end
-    -- iterates over `itemid, restriction`, `relevant`
-    -- `restriction` will be either CLASSNAME or ARMORTYPE
+    -- iterates over `itemid, restriction, relevant[, variants]`
+    -- `restriction` will be either CLASSNAME, ARMORTYPE, or "ALL"
     -- `relevant` means it's either the armortype for the current player-class, or class-specific to the current player-class
-    function lib:IterateItemsForToken(itemid, classOnly)
-        if not items[itemid] then
+    -- `variants` will be nil or a table; if an itemLink was provided for the token, the table will be filtered to only variants that apply to the link
+    function lib:IterateItemsForToken(itemLinkOrId, classOnly)
+        local itemid = C_Item.GetItemInfoInstant(itemLinkOrId)
+        if not ITEMDATA[itemid] then
             return ipairs({})
         end
-        return coroutine.wrap(function() return co(items[itemid], classOnly) end)
+        return coroutine.wrap(function() return co(ITEMDATA[itemid], classOnly, itemLinkOrId) end)
     end
 end
 
+-- Helper function for the above, if you get a variant from it and need to e.g. check transmog.
+-- Its goal is to make just enough of a link for it to be valid input to core Blizzard functions
+function lib:GetBareLinkForItem(itemid, variant, itemName)
+    if not variant then return (string.format("|Hitem:%d|h[%s]|h", itemid, itemName or itemid)) end
+    local linkFields = {itemID=itemid, numBonusIDs=variant.numBonusIDs or (variant.bonusIDs and #variant.bonusIDs or 0)}
+    MergeTable(linkFields, variant)
+    local link = {}
+    for i, field in ipairs(fields) do
+        table.insert(link, linkFields[field] or "")
+    end
+    if variant.bonusIDs then
+        tAppendAll(link, variant.bonusIDs)
+    end
+    return (string.format("|Hitem:%s|h[%s]|h", table.concat(link, ":"), itemName or itemid))
+end
+
 -- DATA
-items = {
-    -- This is generated by update.py
+ITEMDATA = {
     [119305] = { -- Chest of the Iron Conqueror
         PALADIN = {115566},
         PRIEST = {115560},
@@ -1418,6 +1497,7 @@ items = {
         SHAMAN = {78836, 78834, 78828},
         WARRIOR = {78829, 78830},
     },
+    -- Terrace of Endless Spring / Heart of Fear
     [89234] = { -- Helm of the Shadowy Vanquisher
         DEATHKNIGHT = {85336, 85316},
         DRUID = {85307, 85357, 85381, 85311},
@@ -1673,6 +1753,7 @@ items = {
         SHAMAN = {86624, 86633, 86689},
         WARRIOR = {86664, 86669},
     },
+    -- Throne of Thunder
     [95569] = { -- Chest of the Crackling Vanquisher
         DEATHKNIGHT = {95225, 95230},
         DRUID = {95243, 95248, 95250, 95235},
@@ -1928,6 +2009,7 @@ items = {
         SHAMAN = {96688, 96698, 96693},
         WARRIOR = {96739, 96734},
     },
+    -- Siege of Orgrimmar
     [99667] = { -- Gauntlets of the Cursed Protector
         HUNTER = {99086},
         MONK = {99064, 99072, 99068},
@@ -2825,6 +2907,7 @@ items = {
     },
     -- 8.1 Relinquished
     -- 8.2 Nazjatar Benthic
+    -- These can generate items with bonuses 40 (avoidance), 41 (leech), 42 (speed), 43 (indestructable)
     [169479] = { -- Benthic Helm
         PLATE = {167778},
         MAIL = {167770},
@@ -2885,6 +2968,7 @@ items = {
     },
     -- 8.3 Black Empire
     -- Back to items > armor
+    -- These can generate items with bonuses 40 (avoidance), 41 (leech), 42 (speed), 43 (indestructable)
     [173396] = { -- Black Empire Plate Helm
         PLATE = {173457, 173836},
     },
@@ -2981,6 +3065,9 @@ items = {
     [173415] = { -- Black Empire Cloth Boots
         CLOTH = {173495, 173431, 173515, 173478},
     },
+    -- 9.0.1 Castle Nathria weapon tokens:
+
+    -- 9.2 Sepulcher of the First Ones class set tokens: below
     -- 10.0.7 Primalist
     [203611] = { -- Primalist Plate Helm
         PLATE = {199433},
@@ -3105,7 +3192,1118 @@ items = {
         PRIEST = {199312, 199325, 199316, 199309, 199322},
         WARLOCK = {199312, 199309, 199322},
     },
+    -- 10.0 Vault of the Incarnates: below
+    -- 10.1.0 Aberrus: below
     -- 10.1.7 Dreambound
-    -- 11.0.0 Adventurer's Warbound (Delve rewards)
+    [208911] = { -- Dreambound Cloth Belt
+        CLOTH = {209406}, -- Cord
+    },
+    [208917] = { -- Dreambound Cloth Boots
+        CLOTH = {209410}, -- Sandals
+    },
+    [208908] = { -- Dreambound Cloth Bracers
+        CLOTH = {209405}, -- Cuffs
+    },
+    [208895] = { -- Dreambound Cloth Chestpiece
+        CLOTH = {209411}, -- Vestment
+    },
+    [208918] = { -- Dreambound Cloth Gloves
+        CLOTH = {209409}, -- Mitts
+    },
+    [208891] = { -- Dreambound Cloth Helm
+        CLOTH = {209408}, -- Crown
+    },
+    [208900] = { -- Dreambound Cloth Leggings
+        CLOTH = {209407}, -- Pants
+    },
+    [208903] = { -- Dreambound Cloth Spaulders
+        CLOTH = {209380}, -- Shoulderpads
+    },
+    [208913] = { -- Dreambound Leather Belt
+        LEATHER = {209400}, -- Sash
+    },
+    [208914] = { -- Dreambound Leather Boots
+        LEATHER = {209404}, -- Waders
+    },
+    [208906] = { -- Dreambound Leather Bracers
+        LEATHER = {209399}, -- Bindings
+    },
+    [208897] = { -- Dreambound Leather Chestpiece
+        LEATHER = {209382}, -- Vest
+    },
+    [208921] = { -- Dreambound Leather Gloves
+        LEATHER = {209403}, -- Handwraps
+    },
+    [208893] = { -- Dreambound Leather Helm
+        LEATHER = {209402}, -- Cowl
+    },
+    [208898] = { -- Dreambound Leather Leggings
+        LEATHER = {209401}, -- Breeches
+    },
+    [208905] = { -- Dreambound Leather Spaulders
+        LEATHER = {209381}, -- Epaulets
+    },
+    [208912] = { -- Dreambound Mail Belt
+        MAIL = {209392}, -- Cinch
+    },
+    [208915] = { -- Dreambound Mail Boots
+        MAIL = {209397}, -- Striders
+    },
+    [208907] = { -- Dreambound Mail Bracers
+        MAIL = {209391}, -- Vambraces
+    },
+    [208896] = { -- Dreambound Mail Chestpiece
+        MAIL = {209398}, -- Chainmail
+    },
+    [208920] = { -- Dreambound Mail Gloves
+        MAIL = {209396}, -- Grips
+    },
+    [208892] = { -- Dreambound Mail Helm
+        MAIL = {209395}, -- Coif
+    },
+    [208899] = { -- Dreambound Mail Leggings
+        MAIL = {209394}, -- Greaves
+    },
+    [208904] = { -- Dreambound Mail Spaulders
+        MAIL = {209393}, -- Shoulderguards
+    },
+    [208910] = { -- Dreambound Plate Belt
+        PLATE = {209384}, -- Girdle
+    },
+    [208916] = { -- Dreambound Plate Boots
+        PLATE = {209388}, -- Sabatons
+    },
+    [208909] = { -- Dreambound Plate Bracers
+        PLATE = {209383}, -- Armplates
+    },
+    [208894] = { -- Dreambound Plate Chestpiece
+        PLATE = {209389}, -- Breastplate
+    },
+    [208919] = { -- Dreambound Plate Gloves
+        PLATE = {209387}, -- Gauntlets
+    },
+    [208890] = { -- Dreambound Plate Helm
+        PLATE = {209390}, -- Faceplate
+    },
+    [208901] = { -- Dreambound Plate Leggings
+        PLATE = {209386}, -- Legguards
+    },
+    [208902] = { -- Dreambound Plate Spaulders
+        PLATE = {209385}, -- Mantle
+    },
+    [208922] = { -- Dreambound Cloak
+        ALL = {
+            --209414, -- Drape (WH comments suggest this can't generate?)
+            209412, -- Greatcloak
+            209413, -- Cape
+            209357, -- Shawl
+        },
+    },
+    [208923] = { -- Dreambound Ring
+        ALL = {
+            {209368}, -- Loop
+            {209367}, -- Signet
+            {209358}, -- Band
+        },
+    },
+    [208924] = { -- Dreambound Necklace
+        ALL = {209356}, -- Choker
+    },
+    -- [208925] = { -- Dreambound Trinket
+    --     ALL = {},
+    -- },
+    [208926] = { -- Dreambound Weapon
+        -- These are a bit spec-based as well, but...
+        PALADIN = {209378, 209366, 209363, 209364, 209371, 209374, 209361, 209379, 209369}, -- Scepter (int Off-hand), Hacker (str 1h Axe), Mallet (str 1h Mace), Censer (int 1h Mace), Sword (1h Sword), Spellblade (1h Sword), Halberd (str Polearm), Barrier (Shield), Greatsword (2h sword)
+        WARRIOR = {209366, 209363, 209371, 209361, 209379, 209369}, -- Hacker (str 1h Axe), Mallet (str 1h Mace), Sword (1h Sword), Halberd (str Polearm), Barrier (Shield), Greatsword (2h sword)
+        DEATHKNIGHT = {209378, 209366, 209363, 209371, 209361, 209369}, -- Scepter (int Off-hand), Hacker (str 1h Axe), Mallet (str 1h Mace), Sword (1h Sword), Halberd (str Polearm), Greatsword (2h sword)
+        DEMONHUNTER = {209365, 209370, 209374, 209359}, -- Cleaver (agi 1h Axe), Blade (1h Sword), Spellblade (1h Sword), Warglaive
+        HUNTER = {209375, 209376}, -- Rifle (Gun), Polearm (agi Polearm)
+        ROGUE = {209373, 209365, 209362, 209370}, -- Shank (agi Dagger), Cleaver (agi 1h Axe), Cudgel (agi 1h Mace), Blade (1h Sword)
+        MONK = {209378, 209365, 209362, 209364, 209370, 209374, 209376, 209360}, -- Scepter (int Off-hand), Cleaver (agi 1h Axe), Cudgel (agi 1h Mace), Censer (int 1h Mace), Blade (1h Sword), Spellblade (1h Sword), Polearm (agi Polearm), Staff (int Staff)
+        MAGE = {209372, 209378, 209374, 209360, 209377}, -- Kris (int Dagger), Scepter (int Off-hand), Spellblade (1h Sword), Staff (int Staff), Wand (Wand)
+        DRUID = {209372, 209378, 209364, 209376, 209360}, -- Kris (int Dagger), Scepter (int Off-hand), Censer (int 1h Mace), Polearm (agi Polearm), Staff (int Staff)
+        PRIEST = {209372, 209378, 209364, 209360, 209377}, -- Kris (int Dagger), Scepter (int Off-hand), Censer (int 1h Mace), Staff (int Staff), Wand (Wand)
+        SHAMAN = {209372, 209378, 209365, 209362, 209364, 209379, 209360}, -- Kris (int Dagger), Scepter (int Off-hand), Cleaver (agi 1h Axe), Cudgel (agi 1h Mace), Censer (int 1h Mace), Barrier (Shield), Staff (int Staff)
+        WARLOCK = {209372, 209378, 209374, 209360, 209377}, -- Kris (int Dagger), Scepter (int Off-hand), Spellblade (1h Sword), Staff (int Staff), Wand (Wand)
+        EVOKER = {209372, 209378, 209364, 209374, 209360}, -- Kris (int Dagger), Scepter (int Off-hand), Censer (int 1h Mace), Spellblade (1h Sword), Staff (int Staff)
+    },
+    -- 10.2.0 Amirdrassil: below
+    -- 11.0.0 Adventurer's Warbound (Delve rewards -- turned into non-token gray after Season 1)
+    -- 11.1.0 Liberation of Undermine: below
+    -- 11.2.0 Manaforge Omega: below
+    -- 12.0 The Voidspire: below
 }
+
+-- Common case is everything from a given set having a shared set of link modifiers that represent the difficulty variants
+-- See https://warcraft.wiki.gg/wiki/ItemLink for values:
+local function addItemsWithVariants(variants, items)
+    for tokenid, tokenitems in pairs(items) do
+        tokenitems._variants = variants
+        ITEMDATA[tokenid] = tokenitems
+    end
+end
+local function addItemsWithBonuses(bonuses, items)
+    for i, bonusID in ipairs(bonuses) do
+        bonuses[i] = {bonusIDs={bonusID}}
+    end
+    return addItemsWithVariants(bonuses, items)
+end
+
+-- 9.2 Sepulcher of the First Ones class set tokens:
+-- Bonuses: LFR 9122, Normal 9123, Heroic 9124, Mythic 9125
+addItemsWithBonuses({9122, 9123, 9124, 9125}, {
+    -- Mystic
+    [191002] = { -- Mystic Helm Module
+        DRUID = {188847}, -- Headpiece of the Fixed Stars
+        HUNTER = {188859}, -- Godstalker's Sallet
+        MAGE = {188844}, -- Erudite Occultist's Hood
+    },
+    [191007] = { -- Mystic Shoulder Module
+        DRUID = {188851}, -- Shoulderpads of the Fixed Stars
+        HUNTER = {188856}, -- Godstalker's Pauldrons
+        MAGE = {188843}, -- Erudite Occultist's Mantle
+    },
+    [191011] = { -- Mystic Chest Module
+        DRUID = {188849}, -- Chestguard of the Fixed Stars
+        HUNTER = {188858}, -- Godstalker's Hauberk
+        MAGE = {188839}, -- Erudite Occultist's Robes
+    },
+    [191015] = { -- Mystic Hand Module
+        DRUID = {188853}, -- Handwraps of the Fixed Stars
+        HUNTER = {188861}, -- Godstalker's Gauntlets
+        MAGE = {188845}, -- Erudite Occultist's Handwraps
+    },
+    [191019] = { -- Mystic Leg Module
+        DRUID = {188848}, -- Leggings of the Fixed Stars
+        HUNTER = {188860}, -- Godstalker's Tassets
+        MAGE = {188842}, -- Erudite Occultist's Leggings
+    },
+    -- Venerated
+    [191003] = { --Venerated Helm Module
+        PALADIN = {188933}, -- Luminous Chevalier's Casque
+        PRIEST = {188880}, -- Amice of the Empyrean
+        SHAMAN = {188923}, -- Theurgic Starspeaker's Howl
+    },
+    [191008] = { --Venerated Shoulder Module
+        PALADIN = {188932}, -- Luminous Chevalier's Epaulettes
+        PRIEST = {188879}, -- Capelet of the Empyrean
+        SHAMAN = {188920}, -- Theurgic Starspeaker's Adornment
+    },
+    [191012] = { --Venerated Chest Module
+        PALADIN = {188929}, -- Luminous Chevalier's Plackart
+        PRIEST = {188875}, -- Habit of the Empyrean
+        SHAMAN = {188922}, -- Theurgic Starspeaker's Ringmail
+    },
+    [191016] = { --Venerated Hand Module
+        PALADIN = {188928}, -- Luminous Chevalier's Gauntlets
+        PRIEST = {188881}, -- Caress of the Empyrean
+        SHAMAN = {188925}, -- Theurgic Starspeaker's Runebindings
+    },
+    [191020] = { --Venerated Leg Module
+        PALADIN = {188931}, -- Luminous Chevalier's Robes
+        PRIEST = {188878}, -- Leggings of the Empyrean
+        SHAMAN = {188924}, -- Theurgic Starspeaker's Tassets
+    },
+    -- Zenith
+    [191004] = { -- Zenith Helm Module
+        MONK = {188910}, -- Crown of the Grand Upwelling
+        ROGUE = {188901}, -- Soulblade Guise
+        WARRIOR = {188942}, -- Gaze of the Infinite Infantry
+    },
+    [191009] = { -- Zenith Shoulder Module
+        MONK = {188914}, -- Tassets of the Grand Upwelling
+        ROGUE = {188905}, -- Soulblade Nightwings
+        WARRIOR = {188941}, -- Pauldrons of the Infinite Infantry
+    },
+    [191013] = { -- Zenith Chest Module
+        MONK = {188912}, -- Cuirass of the Grand Upwelling
+        ROGUE = {188903}, -- Soulblade Leathers
+        WARRIOR = {188938}, -- Breastplate of the Infinite Infantry
+    },
+    [191017] = { -- Zenith Hand Module
+        MONK = {188916}, -- Grips of the Grand Upwelling
+        ROGUE = {188907}, -- Soulblade Grasps
+        WARRIOR = {188937}, -- Grasps of the Infinite Infantry
+    },
+    [191021] = { -- Zenith Leg Module
+        MONK = {188911}, -- Legguards of the Grand Upwelling
+        ROGUE = {188902}, -- Soulblade Leggings
+        WARRIOR = {188940}, -- Legplates of the Infinite Infantry
+    },
+    -- Dreadful
+    [191005] = { -- Dreadful Helm Module
+        DEATHKNIGHT = {188868}, -- Visage of the First Eidolon
+        DEMONHUNTER = {188892}, -- Mercurial Punisher's Hood
+        WARLOCK = {188889}, -- Horns of the Demon Star
+    },
+    [191006] = { -- Dreadful Shoulder Module
+        DEATHKNIGHT = {188867}, -- Shoulderplates of the First Eidolon
+        DEMONHUNTER = {188896}, -- Mercurial Punisher's Shoulderpads
+        WARLOCK = {188888}, -- Mantle of the Demon Star
+    },
+    [191010] = { -- Dreadful Chest Module
+        DEATHKNIGHT = {188864}, -- Carapace of the First Eidolon
+        DEMONHUNTER = {188894}, -- Mercurial Punisher's Jerkin
+        WARLOCK = {188884}, -- Robes of the Demon Star
+    },
+    [191014] = { -- Dreadful Hand Module
+        DEATHKNIGHT = {188863}, -- Gauntlets of the First Eidolon
+        DEMONHUNTER = {188898}, -- Mercurial Punisher's Grips
+        WARLOCK = {188890}, -- Grasps of the Demon Star
+    },
+    [191018] = { -- Dreadful Leg Module
+        DEATHKNIGHT = {188866}, -- Chausses of the First Eidolon
+        DEMONHUNTER = {188893}, -- Mercurial Punisher's Breeches
+        WARLOCK = {188887}, -- Leggings of the Demon Star
+    },
+})
+
+-- 10.0 Vault of the Incarnates
+-- These are Topaz=Head, Lapis=Shoulder, Amethyst=Chest, Garnet=Hands, Jade=Legs
+addItemsWithBonuses({
+    -- LFR, Normal, Heroic, Mythic
+    13470, 13471, 13472, 13473
+}, {
+    -- Dreadful (Death Knight, Demon Hunter, Warlock)
+    [196586] = { -- Dreadful Amethyst Forgestone
+        DEATHKNIGHT = {200405}, -- Breastplate of the Haunted Frostbrood
+        DEMONHUNTER = {200342}, -- Skybound Avenger's Harness
+        WARLOCK = {200333}, -- Scalesworn Cultist's Frock
+    },
+    [196587] = { -- Dreadful Garnet Forgestone
+        DEATHKNIGHT = {200407}, -- Grasps of the Haunted Frostbrood
+        DEMONHUNTER = {200344}, -- Skybound Avenger's Grips
+        WARLOCK = {200335}, -- Scalesworn Cultist's Gloves
+    },
+    [196588] = { -- Dreadful Jade Forgestone
+        DEATHKNIGHT = {200409}, -- Greaves of the Haunted Frostbrood
+        DEMONHUNTER = {200346}, -- Skybound Avenger's Legguards
+        WARLOCK = {200337}, -- Scalesworn Cultist's Culottes
+    },
+    [196589] = { -- Dreadful Lapis Forgestone
+        DEATHKNIGHT = {200410}, -- Jaws of the Haunted Frostbrood
+        DEMONHUNTER = {200347}, -- Skybound Avenger's Ailerons
+        WARLOCK = {200338}, -- Scalesworn Cultist's Effigy
+    },
+    [196590] = { -- Dreadful Topaz Forgestone
+        DEATHKNIGHT = {200408}, -- Maw of the Haunted Frostbrood
+        DEMONHUNTER = {200345}, -- Skybound Avenger's Visor
+        WARLOCK = {200336}, -- Scalesworn Cultist's Scorn
+    },
+    -- Mystic (Druid, Hunter, Mage)
+    [196596] = { -- Mystic Amethyst Forgestone
+        DRUID = {200351}, -- Lost Landcaller's Robes
+        HUNTER = {200387}, -- Stormwing Harrier's Cuirass
+        MAGE = {200315}, -- Crystal Scholar's Tunic
+    },
+    [196597] = { -- Mystic Garnet Forgestone
+        DRUID = {200353}, -- Lost Landcaller's Claws
+        HUNTER = {200389}, -- Stormwing Harrier's Handguards
+        MAGE = {200317}, -- Crystal Scholar's Pageturners
+    },
+    [196598] = { -- Mystic Jade Forgestone
+        DRUID = {200355}, -- Lost Landcaller's Leggings
+        HUNTER = {200391}, -- Stormwing Harrier's Greaves
+        MAGE = {200319}, -- Crystal Scholar's Britches
+    },
+    [196599] = { -- Mystic Lapis Forgestone
+        DRUID = {200356}, -- Lost Landcaller's Mantle
+        HUNTER = {200392}, -- Stormwing Harrier's Pinions
+        MAGE = {200320}, -- Crystal Scholar's Beacons
+    },
+    [196600] = { -- Mystic Topaz Forgestone
+        DRUID = {200354}, -- Lost Landcaller's Antlers
+        HUNTER = {200390}, -- Stormwing Harrier's Skullmask
+        MAGE = {200318}, -- Crystal Scholar's Cowl
+    },
+})
+addItemsWithBonuses({
+    -- LFR, Normal, Heroic, Mythic
+    7982, 7979, 7980, 7981
+}, {
+    -- Zenith (Evoker, Monk, Rogue, Warrior)
+    [196591] = { -- Zenith Amethyst Forgestone
+        EVOKER = {200378}, -- Hauberk of the Awakened
+        MONK = {200360}, -- Chestwrap of the Waking Fist
+        ROGUE = {200369}, -- Vault Delver's Brigandine
+        WARRIOR = {200423}, -- Husk of the Walking Mountain
+    },
+    [196592] = { -- Zenith Garnet Forgestone
+        EVOKER = {200380}, -- Gauntlets of the Awakened
+        MONK = {200362}, -- Palms of the Waking Fist
+        ROGUE = {200371}, -- Vault Delver's Lockbreakers
+        WARRIOR = {200425}, -- Gauntlets of the Walking Mountain
+    },
+    [196593] = { -- Zenith Jade Forgestone
+        EVOKER = {200382}, -- Legguards of the Awakened
+        MONK = {200364}, -- Legguards of the Waking Fist
+        ROGUE = {200373}, -- Vault Delver's Pantaloons
+        WARRIOR = {200427}, -- Poleyns of the Walking Mountain
+    },
+    [196594] = { -- Zenith Lapis Forgestone
+        EVOKER = {200383}, -- Talons of the Awakened
+        MONK = {200365}, -- Mantle of the Waking Fist
+        ROGUE = {200374}, -- Vault Delver's Epaulets
+        WARRIOR = {200428}, -- Peaks of the Walking Mountain
+    },
+    [196595] = { -- Zenith Topaz Forgestone
+        EVOKER = {200381}, -- Crown of the Awakened
+        MONK = {200363}, -- Gaze of the Waking Fist
+        ROGUE = {200372}, -- Vault Delver's Vizard
+        WARRIOR = {200426}, -- Casque of the Walking Mountain
+    },
+    -- Venerated (Paladin, Priest, Shaman)
+    [196601] = { -- Venerated Amethyst Forgestone
+        PALADIN = {200414}, -- Virtuous Silver Breastplate
+        PRIEST = {200324}, -- Draconic Hierophant's Vestment
+        SHAMAN = {200396}, -- Robe of Infused Earth
+    },
+    [196602] = { -- Venerated Garnet Forgestone
+        PALADIN = {200416}, -- Virtuous Silver Gauntlets
+        PRIEST = {200326}, -- Draconic Hierophant's Grips
+        SHAMAN = {200398}, -- Gauntlets of Infused Earth
+    },
+    [196603] = { -- Venerated Jade Forgestone
+        PALADIN = {200418}, -- Virtuous Silver Cuisses
+        PRIEST = {200328}, -- Draconic Hierophant's Britches
+        SHAMAN = {200400}, -- Leggings of Infused Earth
+    },
+    [196604] = { -- Venerated Lapis Forgestone
+        PALADIN = {200419}, -- Virtuous Silver Pauldrons
+        PRIEST = {200329}, -- Draconic Hierophant's Wisdom
+        SHAMAN = {200401}, -- Calderas of Infused Earth
+    },
+    [196605] = { -- Venerated Topaz Forgestone
+        PALADIN = {200417}, -- Virtuous Silver Heaume
+        PRIEST = {200327}, -- Draconic Hierophant's Archcowl
+        SHAMAN = {200399}, -- Faceguard of Infused Earth
+    },
+})
+
+-- 10.1.0 Aberrus
+addItemsWithBonuses({
+    -- LFR, Normal, Heroic, Mythic
+    7982, 7979, 7980, 7981
+}, {
+    -- Dreadful (Death Knight, Demon Hunter, Warlock)
+    [202631] = { -- Dreadful Ventilation Fluid (Chest)
+        DEATHKNIGHT = {202464}, -- Lingering Phantom's Plackart
+        DEMONHUNTER = {202527}, -- Kinslayer's Vest
+        WARLOCK = {202536}, -- Cursed Robes of the Sinister Savant
+    },
+    [202624] = { -- Dreadful Mixing Fluid (Hands)
+        DEATHKNIGHT = {202462}, -- Lingering Phantom's Gauntlets
+        DEMONHUNTER = {202525}, -- Kinslayer's Bloodstained Grips
+        WARLOCK = {202534}, -- Grips of the Sinister Savant
+    },
+    [202627] = { -- Dreadful Melting Fluid (Helm)
+        DEATHKNIGHT = {202461}, -- Lingering Phantom's Dreadhorns
+        DEMONHUNTER = {202524}, -- Kinslayer's Hood
+        WARLOCK = {202533}, -- Grimhorns of the Sinister Savant
+    },
+    [202634] = { -- Dreadful Cooling Fluid (Legs)
+        DEATHKNIGHT = {202460}, -- Lingering Phantom's Schynbalds
+        DEMONHUNTER = {202523}, -- Kinslayer's Legguards
+        WARLOCK = {202532}, -- Leggings of the Sinister Savant
+    },
+    [202621] = { -- Dreadful Corrupting Fluid (Shoulders)
+        DEATHKNIGHT = {202459}, -- Lingering Phantom's Shoulderplates
+        DEMONHUNTER = {202522}, -- Kinslayer's Tainted Spaulders
+        WARLOCK = {202531}, -- Amice of the Sinister Savant
+    },
+    -- Mystic (Druid, Hunter, Mage)
+    [202632] = { -- Mystic Ventilation Fluid (Chest)
+        DRUID = {202518}, -- Chestroots of the Autumn Blaze
+        HUNTER = {202482}, -- Ashen Predator's Sling Vest
+        MAGE = {202554}, -- Underlight Conjurer's Vestment
+    },
+    [202625] = { -- Mystic Mixing Fluid (Hands)
+        DRUID = {202516}, -- Handguards of the Autumn Blaze
+        HUNTER = {202480}, -- Ashen Predator's Skinners
+        MAGE = {202552}, -- Underlight Conjurer's Gloves
+    },
+    [202628] = { -- Mystic Melting Fluid (Helm)
+        DRUID = {202515}, -- Bough of the Autumn Blaze
+        HUNTER = {202479}, -- Ashen Predator's Faceguard
+        MAGE = {202551}, -- Underlight Conjurer's Arcanocowl
+    },
+    [202635] = { -- Mystic Cooling Fluid (Legs)
+        DRUID = {202514}, -- Pants of the Autumn Blaze
+        HUNTER = {202478}, -- Ashen Predator's Poleyns
+        MAGE = {202550}, -- Underlight Conjurer's Trousers
+    },
+    [202622] = { -- Mystic Corrupting Fluid (Shoulders)
+        DRUID = {202513}, -- Mantle of the Autumn Blaze
+        HUNTER = {202477}, -- Ashen Predator's Trophy
+        MAGE = {202549}, -- Underlight Conjurer's Aurora
+    },
+    -- Venerated (Paladin, Priest, Shaman)
+    [202633] = { -- Venerated Ventilation Fluid (Chest)
+        PALADIN = {202455}, -- Heartfire Sentinel's Brigandine
+        PRIEST = {202545}, -- Command of the Furnace Seraph
+        SHAMAN = {202473}, -- Adornments of the Cinderwolf
+    },
+    [202626] = { -- Venerated Mixing Fluid (Hands)
+        PALADIN = {202453}, -- Heartfire Sentinel's Protectors
+        PRIEST = {202543}, -- Grasp of the Furnace Seraph
+        SHAMAN = {202471}, -- Knuckles of the Cinderwolf
+    },
+    [202629] = { -- Venerated Melting Fluid (Helm)
+        PALADIN = {202452}, -- Heartfire Sentinel's Forgehelm
+        PRIEST = {202542}, -- Mask of the Furnace Seraph
+        SHAMAN = {202470}, -- Spangenhelm of the Cinderwolf
+    },
+    [202636] = { -- Venerated Cooling Fluid (Legs)
+        PALADIN = {202451}, -- Heartfire Sentinel's Faulds
+        PRIEST = {202541}, -- Breeches of the Furnace Seraph
+        SHAMAN = {202469}, -- Braies of the Cinderwolf
+    },
+    [202623] = { -- Venerated Corrupting Fluid (Shoulders)
+        PALADIN = {202450}, -- Heartfire Sentinel's Steelwings
+        PRIEST = {202540}, -- Devotion of the Furnace Seraph
+        SHAMAN = {202468}, -- Thunderpads of the Cinderwolf
+    },
+    -- Zenith (Evoker, Monk, Rogue, Warrior)
+    [202639] = { -- Zenith Ventilation Fluid (Chest)
+        EVOKER = {202491}, -- Hauberk of Obsidian Secrets
+        MONK = {202509}, -- Cuirass of the Vermillion Forge
+        ROGUE = {202500}, -- Lurking Specter's Brigandine
+        WARRIOR = {202446}, -- Battlechest of the Onyx Crucible
+    },
+    [202638] = { -- Zenith Mixing Fluid (Hands)
+        EVOKER = {202489}, -- Claws of Obsidian Secrets
+        MONK = {202507}, -- Fists of the Vermillion Forge
+        ROGUE = {202498}, -- Lurking Specter's Handgrips
+        WARRIOR = {202444}, -- Handguards of the Onyx Crucible
+    },
+    [202630] = { -- Zenith Melting Fluid (Helm)
+        EVOKER = {202488}, -- Crown of Obsidian Secrets
+        MONK = {202506}, -- Cover of the Vermillion Forge
+        ROGUE = {202497}, -- Lurking Specter's Visage
+        WARRIOR = {202443}, -- Thraexhelm of the Onyx Crucible
+    },
+    [202640] = { -- Zenith Cooling Fluid (Legs)
+        EVOKER = {202487}, -- Chausses of Obsidian Secrets
+        MONK = {202505}, -- Pantaloons of the Vermillion Forge
+        ROGUE = {202496}, -- Lurking Specter's Tights
+        WARRIOR = {202442}, -- Legplates of the Onyx Crucible
+    },
+    [202637] = { -- Zenith Corrupting Fluid (Shoulders)
+        EVOKER = {202486}, -- Wingspan of Obsidian Secrets
+        MONK = {202504}, -- Spines of the Vermillion Forge
+        ROGUE = {202495}, -- Lurking Specter's Shoulderblades
+        WARRIOR = {202441}, -- Pauldrons of the Onyx Crucible
+    },
+})
+
+-- 10.2.0 Amirdrassil
+addItemsWithBonuses({
+    -- LFR, Normal, Heroic, Mythic
+    7982, 7979, 7980, 7981
+}, {
+    -- Dreadful (Death Knight, Demon Hunter, Warlock)
+    [207462] = { -- Dreadful Verdurous Dreamheart (Chest)
+        DEATHKNIGHT = {207203}, -- Casket of the Risen Nightmare
+        DEMONHUNTER = {207266}, -- Screaming Torchfiend's Binding
+        WARLOCK = {207275}, -- Devout Ashdevil's Razorhide
+    },
+    [207466] = { -- Dreadful Tormented Dreamheart (Hands)
+        DEATHKNIGHT = {207201}, -- Thorns of the Risen Nightmare
+        DEMONHUNTER = {207264}, -- Screaming Torchfiend's Grasp
+        WARLOCK = {207273}, -- Devout Ashdevil's Claws
+    },
+    [207470] = { -- Dreadful Blazing Dreamheart (Helm)
+        DEATHKNIGHT = {207200}, -- Piercing Gaze of the Risen Nightmare
+        DEMONHUNTER = {207263}, -- Screaming Torchfiend's Burning Scowl
+        WARLOCK = {207272}, -- Devout Ashdevil's Grimhorns
+    },
+    [207474] = { -- Dreadful Ashen Dreamheart (Legs)
+        DEATHKNIGHT = {207199}, -- Greaves of the Risen Nightmare
+        DEMONHUNTER = {207262}, -- Screaming Torchfiend's Blazewraps
+        WARLOCK = {207271}, -- Devout Ashdevil's Tights
+    },
+    [207478] = { -- Dreadful Smoldering Dreamheart (Shoulders)
+        DEATHKNIGHT = {207198}, -- Skewers of the Risen Nightmare
+        DEMONHUNTER = {207261}, -- Screaming Torchfiend's Horned Memento
+        WARLOCK = {207270}, -- Devout Ashdevil's Hatespikes
+    },
+    -- Mystic (Druid, Hunter, Mage)
+    [207463] = { -- Mystic Verdurous Dreamheart (Chest)
+        DRUID = {207257}, -- Benevolent Embersage's Robe
+        HUNTER = {207221}, -- Blazing Dreamstalker's Scaled Hauberk
+        MAGE = {207293}, -- Wayward Chronomancer's Patchwork
+    },
+    [207467] = { -- Mystic Tormented Dreamheart (Hands)
+        DRUID = {207255}, -- Benevolent Embersage's Talons
+        HUNTER = {207219}, -- Blazing Dreamstalker's Skinners
+        MAGE = {207291}, -- Wayward Chronomancer's Gloves
+    },
+    [207471] = { -- Mystic Blazing Dreamheart (Helm)
+        DRUID = {207254}, -- Benevolent Embersage's Casque
+        HUNTER = {207218}, -- Blazing Dreamstalker's Flamewaker Horns
+        MAGE = {207290}, -- Wayward Chronomancer's Chronocap
+    },
+    [207475] = { -- Mystic Ashen Dreamheart (Legs)
+        DRUID = {207253}, -- Benevolent Embersage's Leggings
+        HUNTER = {207217}, -- Blazing Dreamstalker's Shellgreaves
+        MAGE = {207289}, -- Wayward Chronomancer's Pantaloons
+    },
+    [207479] = { -- Mystic Smoldering Dreamheart (Shoulders)
+        DRUID = {207252}, -- Benevolent Embersage's Wisdom
+        HUNTER = {207216}, -- Blazing Dreamstalker's Finest Hunt
+        MAGE = {207288}, -- Wayward Chronomancer's Metronomes
+    },
+    -- Venerated (Paladin, Priest, Shaman)
+    [207464] = { -- Venerated Verdurous Dreamheart (Chest)
+        PALADIN = {207194}, -- Zealous Pyreknight's Warplate
+        PRIEST = {207284}, -- Cassock of Lunar Communion
+        SHAMAN = {207212}, -- Greatwolf Outcast's Harness
+    },
+    [207468] = { -- Venerated Tormented Dreamheart (Hands)
+        PALADIN = {207192}, -- Zealous Pyreknight's Jeweled Gauntlets
+        PRIEST = {207282}, -- Touch of Lunar Communion
+        SHAMAN = {207210}, -- Greatwolf Outcast's Grips
+    },
+    [207472] = { -- Venerated Blazing Dreamheart (Helm)
+        PALADIN = {207191}, -- Zealous Pyreknight's Barbute
+        PRIEST = {207281}, -- Crest of Lunar Communion
+        SHAMAN = {207209}, -- Greatwolf Outcast's Jaws
+    },
+    [207476] = { -- Venerated Ashen Dreamheart (Legs)
+        PALADIN = {207190}, -- Zealous Pyreknight's Cuisses
+        PRIEST = {207280}, -- Leggings of Lunar Communion
+        SHAMAN = {207208}, -- Greatwolf Outcast's Fur-Lined Kilt
+    },
+    [207480] = { -- Venerated Smoldering Dreamheart (Shoulders)
+        PALADIN = {207189}, -- Zealous Pyreknight's Ailettes
+        PRIEST = {207279}, -- Shoulderguardians of Lunar Communion
+        SHAMAN = {207207}, -- Greatwolf Outcast's Companions
+    },
+    -- Zenith (Evoker, Monk, Rogue, Warrior)
+    [207465] = { -- Zenith Verdurous Dreamheart (Chest)
+        EVOKER = {207230}, -- Weyrnkeeper's Timeless Raiment
+        MONK = {207248}, -- Mystic Heron's Burdens
+        ROGUE = {207239}, -- Lucid Shadewalker's Cuirass
+        WARRIOR = {207185}, -- Molten Vanguard's Plackart
+    },
+    [207469] = { -- Zenith Tormented Dreamheart (Hands)
+        EVOKER = {207228}, -- Weyrnkeeper's Timeless Clawguards
+        MONK = {207246}, -- Mystic Heron's Glovebills
+        ROGUE = {207237}, -- Lucid Shadewalker's Clawgrips
+        WARRIOR = {207183}, -- Molten Vanguard's Crushers
+    },
+    [207473] = { -- Zenith Blazing Dreamheart (Helm)
+        EVOKER = {207227}, -- Weyrnkeeper's Timeless Dracoif
+        MONK = {207245}, -- Mystic Heron's Hatsuburi
+        ROGUE = {207236}, -- Lucid Shadewalker's Deathmask
+        WARRIOR = {207182}, -- Molten Vanguard's Domeplate
+    },
+    [207477] = { -- Zenith Ashen Dreamheart (Legs)
+        EVOKER = {207226}, -- Weyrnkeeper's Timeless Breeches
+        MONK = {207244}, -- Mystic Heron's Waders
+        ROGUE = {207235}, -- Lucid Shadewalker's Chausses
+        WARRIOR = {207181}, -- Molten Vanguard's Steel Tassets
+    },
+    [207481] = { -- Zenith Smoldering Dreamheart (Shoulders)
+        EVOKER = {207225}, -- Weyrnkeeper's Timeless Sandbrace
+        MONK = {207243}, -- Mystic Heron's Hopeful Effigy
+        ROGUE = {207234}, -- Lucid Shadewalker's Bladed Spaulders
+        WARRIOR = {207180}, -- Molten Vanguard's Shouldervents
+    },
+})
+
+-- 11.0.0 Nerub-ar Palace
+addItemsWithVariants({
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidFinder, bonusIDs={3524}},
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidNormal, bonusIDs={3524}},
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidHeroic, bonusIDs={3524}},
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidMythic, bonusIDs={3524}},
+}, {
+    -- Dreadful (Death Knight, Demon Hunter, Warlock)
+    [225614] = { -- Dreadful Blasphemer's Effigy (Chest)
+        DEATHKNIGHT = {212005}, -- Exhumed Centurion's Breastplate
+        DEMONHUNTER = {212068}, -- Chestguard of the Hypogeal Nemesis
+        WARLOCK = {212077}, -- Hexflame Coven's Ritual Harness
+    },
+    [225618] = { -- Dreadful Stalwart's Emblem (Hands)
+        DEATHKNIGHT = {212003}, -- Exhumed Centurion's Gauntlets
+        DEMONHUNTER = {212066}, -- Claws of the Hypogeal Nemesis
+        WARLOCK = {212075}, -- Hexflame Coven's Sleeves
+    },
+    [225622] = { -- Dreadful Conniver's Badge (Helm)
+        DEATHKNIGHT = {212002}, -- Exhumed Centurion's Galea
+        DEMONHUNTER = {212065}, -- Impalers of the Hypogeal Nemesis
+        WARLOCK = {212074}, -- Hexflame Coven's All-Seeing Eye
+    },
+    [225626] = { -- Dreadful Slayer's Icon (Legs)
+        DEATHKNIGHT = {212001}, -- Exhumed Centurion's Chausses
+        DEMONHUNTER = {212064}, -- Pantaloons of the Hypogeal Nemesis
+        WARLOCK = {212073}, -- Hexflame Coven's Leggings
+    },
+    [225630] = { -- Dreadful Obscenity's Idol (Shoulders)
+        DEATHKNIGHT = {212000}, -- Exhumed Centurion's Spikes
+        DEMONHUNTER = {212063}, -- War-Mantle of the Hypogeal Nemesis
+        WARLOCK = {212072}, -- Hexflame Coven's Altar
+    },
+
+    -- Mystic (Druid, Hunter, Mage)
+    [225615] = { -- Mystic Blasphemer's Effigy (Chest)
+        DRUID = {212059}, -- Hide of the Greatlynx
+        HUNTER = {212023}, -- Lightless Scavenger's Tunic
+        MAGE = {212094}, -- Slippers of Violet Rebirth
+    },
+    [225619] = { -- Mystic Stalwart's Emblem (Hands)
+        DRUID = {212057}, -- Eviscerators of the Greatlynx
+        HUNTER = {212021}, -- Lightless Scavenger's Mitts
+        MAGE = {212093}, -- Jeweled Gauntlets of Violet Rebirth
+    },
+    [225623] = { -- Mystic Conniver's Badge (Helm)
+        DRUID = {212056}, -- Mask of the Greatlynx
+        HUNTER = {212020}, -- Lightless Scavenger's Skull
+        MAGE = {212092}, -- Hood of Violet Rebirth
+    },
+    [225627] = { -- Mystic Slayer's Icon (Legs)
+        DRUID = {212055}, -- Leggings of the Greatlynx
+        HUNTER = {212019}, -- Lightless Scavenger's Stalkings
+        MAGE = {212091}, -- Coattails of Violet Rebirth
+    },
+    [225631] = { -- Mystic Obscenity's Idol (Shoulders)
+        DRUID = {212054}, -- Maw of the Greatlynx
+        HUNTER = {212018}, -- Lightless Scavenger's Taxidermy
+        MAGE = {212090}, -- Beacons of Violet Rebirth
+    },
+
+    -- Venerated (Paladin, Priest, Shaman)
+    [225616] = { -- Venerated Blasphemer's Effigy (Chest)
+        PALADIN = {211996}, -- Entombed Seraph's Breastplate
+        PRIEST = {212086}, -- Living Luster's Raiment
+        SHAMAN = {212014}, -- Vestments of the Forgotten Reservoir
+    },
+    [225620] = { -- Venerated Stalwart's Emblem (Hands)
+        PALADIN = {211994}, -- Entombed Seraph's Castigation
+        PRIEST = {212084}, -- Living Luster's Touch
+        SHAMAN = {212012}, -- Covenant of the Forgotten Reservoir
+    },
+    [225624] = { -- Venerated Conniver's Badge (Helm)
+        PALADIN = {211993}, -- Entombed Seraph's Casque
+        PRIEST = {212083}, -- Living Luster's Semblance
+        SHAMAN = {212011}, -- Noetic of the Forgotten Reservoir
+    },
+    [225628] = { -- Venerated Slayer's Icon (Legs)
+        PALADIN = {211992}, -- Entombed Seraph's Greaves
+        PRIEST = {212082}, -- Living Luster's Trousers
+        SHAMAN = {212010}, -- Sarong of the Forgotten Reservoir
+    },
+    [225632] = { -- Venerated Obscenity's Idol (Shoulders)
+        PALADIN = {211991}, -- Entombed Seraph's Plumes
+        PRIEST = {212081}, -- Living Luster's Dominion
+        SHAMAN = {212009}, -- Concourse of the Forgotten Reservoir
+    },
+
+    -- Zenith (Evoker, Monk, Rogue, Warrior)
+    [225617] = { -- Zenith Blasphemer's Effigy (Chest)
+        EVOKER = {212032}, -- Scales of the Destroyer
+        MONK = {212050}, -- Gatecrasher's Gi
+        ROGUE = {212041}, -- K'areshi Phantom's Nexus Wraps
+        WARRIOR = {211987}, -- Warsculptor's Furred Plastron
+    },
+    [225621] = { -- Zenith Stalwart's Emblem (Hands)
+        EVOKER = {212030}, -- Rippers of the Destroyer
+        MONK = {212048}, -- Gatecrasher's Protectors
+        ROGUE = {212039}, -- K'areshi Phantom's Grips
+        WARRIOR = {211985}, -- Warsculptor's Crushers
+    },
+    [225625] = { -- Zenith Conniver's Badge (Helm)
+        EVOKER = {212029}, -- Horns of the Destroyer
+        MONK = {212047}, -- Gatecrasher's Horns
+        ROGUE = {212038}, -- K'areshi Phantom's Emptiness
+        WARRIOR = {211984}, -- Warsculptor's Barbute
+    },
+    [225629] = { -- Zenith Slayer's Icon (Legs)
+        EVOKER = {212028}, -- Legguards of the Destroyer
+        MONK = {212046}, -- Gatecrasher's Kilt
+        ROGUE = {212037}, -- K'areshi Phantom's Leggings
+        WARRIOR = {211983}, -- Warsculptor's Cuisses
+    },
+    [225633] = { -- Zenith Obscenity's Idol (Shoulders)
+        EVOKER = {212027}, -- Fumaroles of the Destroyer
+        MONK = {212045}, -- Gatecrasher's Enduring Effigy
+        ROGUE = {212036}, -- K'areshi Phantom's Shoulderpads
+        WARRIOR = {211982}, -- Warsculptor's Horned Spaulders
+    },
+})
+
+-- 11.1.0 Liberation of Undermine
+addItemsWithVariants({
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidFinder, bonusIDs={3524}},
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidNormal, bonusIDs={3524}},
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidHeroic, bonusIDs={3524}},
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidMythic, bonusIDs={3524}},
+}, {
+    -- Dreadful (Death Knight, Demon Hunter, Warlock)
+    [228799] = { -- Dreadful Greased Gallybux (Chest)
+        DEATHKNIGHT = {229256}, -- Cauldron Champion's Ribcage
+        DEMONHUNTER = {229319}, -- Fel-Dealer's Soul Engine
+        WARLOCK = {229328}, -- Spliced Fiendtrader's Surgical Gown
+    },
+    [228803] = { -- Dreadful Bloody Gallybux (Hands)
+        DEATHKNIGHT = {229254}, -- Cauldron Champion's Fistguards
+        DEMONHUNTER = {229317}, -- Fel-Dealer's Underhandlers
+        WARLOCK = {229326}, -- Spliced Fiendtrader's Demonic Grasp
+    },
+    [228807] = { -- Dreadful Gilded Gallybux (Helm)
+        DEATHKNIGHT = {229253}, -- Cauldron Champion's Crown
+        DEMONHUNTER = {229316}, -- Fel-Dealer's Visor
+        WARLOCK = {229325}, -- Spliced Fiendtrader's Transcendence
+    },
+    [228811] = { -- Dreadful Rusty Gallybux (Legs)
+        DEATHKNIGHT = {229252}, -- Cauldron Champion's Tattered Cuisses
+        DEMONHUNTER = {229315}, -- Fel-Dealer's Fur Kilt
+        WARLOCK = {229324}, -- Spliced Fiendtrader's Skin Tights
+    },
+    [228815] = { -- Dreadful Polished Gallybux (Shoulders)
+        DEATHKNIGHT = {229251}, -- Cauldron Champion's Screamplate
+        DEMONHUNTER = {229314}, -- Fel-Dealer's Recycled Reavers
+        WARLOCK = {229323}, -- Spliced Fiendtrader's Loyal Servants
+    },
+
+    -- Mystic (Druid, Hunter, Mage)
+    [228800] = { -- Mystic Greased Gallybux (Chest)
+        DRUID = {229310}, -- Robes of Reclaiming Blight
+        HUNTER = {229274}, -- Tireless Collector's Battlegear
+        MAGE = {229346}, -- Aspectral Emissary's Primal Robes
+    },
+    [228804] = { -- Mystic Bloody Gallybux (Hands)
+        DRUID = {229308}, -- Grips of Reclaiming Blight
+        HUNTER = {229272}, -- Tireless Collector's Gauntlets
+        MAGE = {229344}, -- Aspectral Emissary's Hardened Grasp
+    },
+    [228808] = { -- Mystic Gilded Gallybux (Helm)
+        DRUID = {229307}, -- Branches of Reclaiming Blight
+        HUNTER = {229271}, -- Tireless Collector's Chained Cowl
+        MAGE = {229343}, -- Aspectral Emissary's Crystalline Cowl
+    },
+    [228812] = { -- Mystic Rusty Gallybux (Legs)
+        DRUID = {229306}, -- Breeches of Reclaiming Blight
+        HUNTER = {229270}, -- Tireless Collector's Armored Breeches
+        MAGE = {229342}, -- Aspectral Emissary's Trousers
+    },
+    [228816] = { -- Mystic Polished Gallybux (Shoulders)
+        DRUID = {229305}, -- Jaws of Reclaiming Blight
+        HUNTER = {229269}, -- Tireless Collector's Hunted Heads
+        MAGE = {229341}, -- Aspectral Emissary's Arcane Vents
+    },
+
+    -- Venerated (Paladin, Priest, Shaman)
+    [228801] = { -- Venerated Greased Gallybux (Chest)
+        PALADIN = {229247}, -- Aureate Sentry's Encasement
+        PRIEST = {229337}, -- Confessor's Unshakable Vestment
+        SHAMAN = {229265}, -- Gale Sovereign's Clouded Hauberk
+    },
+    [228805] = { -- Venerated Bloody Gallybux (Hands)
+        PALADIN = {229245}, -- Aureate Sentry's Gauntlets
+        PRIEST = {229335}, -- Confessor's Unshakable Mitts
+        SHAMAN = {229263}, -- Gale Sovereign's Grasps
+    },
+    [228809] = { -- Venerated Gilded Gallybux (Helm)
+        PALADIN = {229244}, -- Aureate Sentry's Pledge
+        PRIEST = {229334}, -- Confessor's Unshakable Halo
+        SHAMAN = {229262}, -- Gale Sovereign's Charged Hood
+    },
+    [228813] = { -- Venerated Rusty Gallybux (Legs)
+        PALADIN = {229243}, -- Aureate Sentry's Legguards
+        PRIEST = {229333}, -- Confessor's Unshakable Leggings
+        SHAMAN = {229261}, -- Gale Sovereign's Pantaloons
+    },
+    [228817] = { -- Venerated Polished Gallybux (Shoulders)
+        PALADIN = {229242}, -- Aureate Sentry's Roaring Will
+        PRIEST = {229332}, -- Confessor's Unshakable Radiance
+        SHAMAN = {229260}, -- Gale Sovereign's Zephyrs
+    },
+
+    -- Zenith (Evoker, Monk, Rogue, Warrior)
+    [228802] = { -- Zenith Greased Gallybux (Chest)
+        EVOKER = {229283}, -- Opulent Treasurescale's Tunic
+        MONK = {229301}, -- Ageless Serpent's Inked Coils
+        ROGUE = {229292}, -- Spectral Gambler's Vest
+        WARRIOR = {229238}, -- Enforcer's Backalley Vestplate
+    },
+    [228806] = { -- Zenith Bloody Gallybux (Hands)
+        EVOKER = {229281}, -- Opulent Treasurescale's Gold-Counters
+        MONK = {229299}, -- Ageless Serpent's Handguards
+        ROGUE = {229290}, -- Spectral Gambler's Gloves
+        WARRIOR = {229236}, -- Enforcer's Backalley Crushers
+    },
+    [228810] = { -- Zenith Gilded Gallybux (Helm)
+        EVOKER = {229280}, -- Opulent Treasurescale's Crowned Jewel
+        MONK = {229298}, -- Ageless Serpent's Mane
+        ROGUE = {229289}, -- Spectral Gambler's Damned Visage
+        WARRIOR = {229235}, -- Enforcer's Backalley Faceshield
+    },
+    [228814] = { -- Zenith Rusty Gallybux (Legs)
+        EVOKER = {229279}, -- Opulent Treasurescale's Petticoat
+        MONK = {229297}, -- Ageless Serpent's Leggings
+        ROGUE = {229288}, -- Spectral Gambler's Pantaloons
+        WARRIOR = {229234}, -- Enforcer's Backalley Chausses
+    },
+    [228818] = { -- Zenith Polished Gallybux (Shoulders)
+        EVOKER = {229278}, -- Opulent Treasurescale's Gleaming Mantle
+        MONK = {229296}, -- Ageless Serpent's Shoulderpads
+        ROGUE = {229287}, -- Spectral Gambler's Bladed Mantle
+        WARRIOR = {229233}, -- Enforcer's Backalley Shoulderplates
+    },
+})
+
+-- 12.0 The Voidspire
+addItemsWithVariants({
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidFinder, bonusIDs={3524}},
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidNormal, bonusIDs={3524}},
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidHeroic, bonusIDs={3524}},
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidMythic, bonusIDs={3524}},
+}, {
+    -- Dreadful (Death Knight, Demon Hunter, Warlock)
+    [237581] = { -- Dreadful Voidglass Contaminant (Chest)
+        DEATHKNIGHT = {237631}, -- Hollow Sentinel's Breastplate
+        DEMONHUNTER = {237694}, -- Charhound's Vicious Bindings
+        WARLOCK = {237703}, -- Inquisitor's Robes of Madness
+    },
+    [237585] = { -- Dreadful Binding Agent (Hands)
+        DEATHKNIGHT = {237629}, -- Hollow Sentinel's Gauntlets
+        DEMONHUNTER = {237692}, -- Charhound's Vicious Felclaws
+        WARLOCK = {237701}, -- Inquisitor's Clutches of Madness
+    },
+    [237589] = { -- Dreadful Foreboding Beaker (Head)
+        DEATHKNIGHT = {237628}, -- Hollow Sentinel's Stonemask
+        DEMONHUNTER = {237691}, -- Charhound's Vicious Scalp
+        WARLOCK = {237700}, -- Inquisitor's Portal to Madness
+    },
+    [237593] = { -- Dreadful Silken Offering (Legs)
+        DEATHKNIGHT = {237627}, -- Hollow Sentinel's Stonekilt
+        DEMONHUNTER = {237690}, -- Charhound's Vicious Hidecoat
+        WARLOCK = {237699}, -- Inquisitor's Leggings of Madness
+    },
+    [237597] = { -- Dreadful Yearning Cursemark (Shoulders)
+        DEATHKNIGHT = {237626}, -- Hollow Sentinel's Perches
+        DEMONHUNTER = {237689}, -- Charhound's Vicious Hornguards
+        WARLOCK = {237698}, -- Inquisitor's Gaze of Madness
+    },
+
+    -- Mystic (Druid, Hunter, Mage)
+    [237582] = { -- Mystic Voidglass Contaminant (Chest)
+        DRUID = {237685}, -- Vest of the Mother Eagle
+        HUNTER = {237649}, -- Midnight Herald's Hauberk
+        MAGE = {237721}, -- Augur's Ephemeral Habiliments
+    },
+    [237586] = { -- Mystic Binding Agent (Hands)
+        DRUID = {237683}, -- Wings of the Mother Eagle
+        HUNTER = {237647}, -- Midnight Herald's Gloves
+        MAGE = {237719}, -- Augur's Ephemeral Mitts
+    },
+    [237590] = { -- Mystic Foreboding Beaker (Head)
+        DRUID = {237682}, -- Skymane of the Mother Eagle
+        HUNTER = {237646}, -- Midnight Herald's Cowl
+        MAGE = {237718}, -- Augur's Ephemeral Wide-Brim
+    },
+    [237594] = { -- Mystic Silken Offering (Legs)
+        DRUID = {237681}, -- Breeches of the Mother Eagle
+        HUNTER = {237645}, -- Midnight Herald's Petticoat
+        MAGE = {237717}, -- Augur's Ephemeral Trousers
+    },
+    [237598] = { -- Mystic Yearning Cursemark (Shoulders)
+        DRUID = {237680}, -- Ritual Pauldrons of the Mother Eagle
+        HUNTER = {237644}, -- Midnight Herald's Shadowguards
+        MAGE = {237716}, -- Augur's Ephemeral Orbs of Power
+    },
+
+    -- Venerated (Paladin, Priest, Shaman)
+    [237583] = { -- Venerated Voidglass Contaminant (Chest)
+        PALADIN = {237622}, -- Cuirass of the Lucent Battalion
+        PRIEST = {237712}, -- Dying Star's Cassock
+        SHAMAN = {237640}, -- Furs of Channeled Fury
+    },
+    [237587] = { -- Venerated Binding Agent (Hands)
+        PALADIN = {237620}, -- Protectors of the Lucent Battalion
+        PRIEST = {237710}, -- Dying Star's Caress
+        SHAMAN = {237638}, -- Claws of Channeled Fury
+    },
+    [237591] = { -- Venerated Foreboding Beaker (Head)
+        PALADIN = {237619}, -- Lightmane of the Lucent Battalion
+        PRIEST = {237709}, -- Dying Star's Veil
+        SHAMAN = {237637}, -- Aspect of Channeled Fury
+    },
+    [237595] = { -- Venerated Silken Offering (Legs)
+        PALADIN = {237618}, -- Cuisses of the Lucent Battalion
+        PRIEST = {237708}, -- Dying Star's Leggings
+        SHAMAN = {237636}, -- Tassets of Channeled Fury
+    },
+    [237599] = { -- Venerated Yearning Cursemark (Shoulders)
+        PALADIN = {237617}, -- Chargers of the Lucent Battalion
+        PRIEST = {237707}, -- Dying Star's Pyrelights
+        SHAMAN = {237635}, -- Fangs of Channeled Fury
+    },
+
+    -- Zenith (Evoker, Monk, Rogue, Warrior)
+    [237584] = { -- Zenith Voidglass Contaminant (Chest)
+        EVOKER = {237658}, -- Spellweaver's Immaculate Crestward
+        MONK = {237676}, -- Gi of Fallen Storms
+        ROGUE = {237667}, -- Tactical Vest of the Sudden Eclipse
+        WARRIOR = {237613}, -- Living Weapon's Bulwark
+    },
+    [237588] = { -- Zenith Binding Agent (Hands)
+        EVOKER = {237656}, -- Spellweaver's Immaculate Scaleguards
+        MONK = {237674}, -- Grasp of Fallen Storms
+        ROGUE = {237665}, -- Deathgrips of the Sudden Eclipse
+        WARRIOR = {237611}, -- Living Weapon's Crushers
+    },
+    [237592] = { -- Zenith Foreboding Beaker (Head)
+        EVOKER = {237655}, -- Spellweaver's Immaculate Focus
+        MONK = {237673}, -- Half-Mask of Fallen Storms
+        ROGUE = {237664}, -- Hood of the Sudden Eclipse
+        WARRIOR = {237610}, -- Living Weapon's Faceshield
+    },
+    [237596] = { -- Zenith Silken Offering (Legs)
+        EVOKER = {237654}, -- Spellweaver's Immaculate Runeslacks
+        MONK = {237672}, -- Legwraps of Fallen Storms
+        ROGUE = {237663}, -- Pants of the Sudden Eclipse
+        WARRIOR = {237609}, -- Living Weapon's Legguards
+    },
+    [237600] = { -- Zenith Yearning Cursemark (Shoulders)
+        EVOKER = {237653}, -- Spellweaver's Immaculate Pauldrons
+        MONK = {237671}, -- Glyphs of Fallen Storms
+        ROGUE = {237662}, -- Smokemantle of the Sudden Eclipse
+        WARRIOR = {237608}, -- Living Weapon's Ramparts
+    },
+})
+
+addItemsWithVariants({
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidFinder, bonusIDs={3524}},
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidNormal, bonusIDs={3524}},
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidHeroic, bonusIDs={3524}},
+    {instanceDifficultyID=Enum.ItemCreationContext.RaidMythic, bonusIDs={3524}},
+}, {
+    -- Voidforged (Warrior, Paladin, Death Knight)
+    [249354] = { -- Voidforged Hungering Nullcore (Hands)
+        WARRIOR = {249953}, -- Night Ender's Fists
+        PALADIN = {249962}, -- Luminant Verdict's Gauntlets
+        DEATHKNIGHT = {249971}, -- Relentless Rider's Bonegrasps
+    },
+    [249358] = { -- Voidforged Fanatical Nullcore (Head)
+        WARRIOR = {249952}, -- Night Ender's Tusks
+        PALADIN = {249961}, -- Luminant Verdict's Unwavering Gaze
+        DEATHKNIGHT = {249970}, -- Relentless Rider's Crown
+    },
+    [249362] = { -- Voidforged Corrupted Nullcore (Legs)
+        WARRIOR = {249951}, -- Night Ender's Chausses
+        PALADIN = {249960}, -- Luminant Verdict's Greaves
+        DEATHKNIGHT = {249969}, -- Relentless Rider's Legguards
+    },
+    [249366] = { -- Voidforged Unraveled Nullcore (Shoulders)
+        WARRIOR = {249950}, -- Night Ender's Pauldrons
+        PALADIN = {249959}, -- Luminant Verdict's Providence Watch
+        DEATHKNIGHT = {249968}, -- Relentless Rider's Dreadthorns
+    },
+
+    -- Voidcured (Rogue, Monk, Druid, Demon Hunter)
+    [249352] = { -- Voidcured Hungering Nullcore (Hands)
+        ROGUE = {250007}, -- Sleight of Hand of the Grim Jest
+        MONK = {250016}, -- Thunderfists of Ra-den's Chosen
+        DRUID = {250025}, -- Arbortenders of the Luminous Bloom
+        DEMONHUNTER = {250034}, -- Devouring Reaver's Essence Grips
+    },
+    [249356] = { -- Voidcured Fanatical Nullcore (Head)
+        ROGUE = {250006}, -- Masquerade of the Grim Jest
+        MONK = {250015}, -- Fearsome Visage of Ra-den's Chosen
+        DRUID = {250024}, -- Branches of the Luminous Bloom
+        DEMONHUNTER = {250033}, -- Devouring Reaver's Intake
+    },
+    [249360] = { -- Voidcured Corrupted Nullcore (Legs)
+        ROGUE = {250005}, -- Blade Holsters of the Grim Jest
+        MONK = {250014}, -- Swiftsweepers of Ra-den's Chosen
+        DRUID = {250023}, -- Phloemwraps of the Luminous Bloom
+        DEMONHUNTER = {250032}, -- Devouring Reaver's Pistons
+    },
+    [249364] = { -- Voidcured Unraveled Nullcore (Shoulders)
+        ROGUE = {250004}, -- Venom Casks of the Grim Jest
+        MONK = {250013}, -- Aurastones of Ra-den's Chosen
+        DRUID = {250022}, -- Seedpods of the Luminous Bloom
+        DEMONHUNTER = {250031}, -- Devouring Reaver's Exhaustplates
+    },
+
+    -- Voidcast (Hunter, Shaman, Evoker)
+    [249353] = { -- Voidcast Hungering Nullcore (Hands)
+        HUNTER = {249989}, -- Primal Sentry's Talonguards
+        SHAMAN = {249980}, -- Earthgrips of the Primal Core
+        EVOKER = {249998}, -- Enforcer's Grips of the Black Talon
+    },
+    [249357] = { -- Voidcast Fanatical Nullcore (Head)
+        HUNTER = {249988}, -- Primal Sentry's Maw
+        SHAMAN = {249979}, -- Locus of the Primal Core
+        EVOKER = {249997}, -- Hornhelm of the Black Talon
+    },
+    [249361] = { -- Voidcast Corrupted Nullcore (Legs)
+        HUNTER = {249987}, -- Primal Sentry's Legguards
+        SHAMAN = {249978}, -- Leggings of the Primal Core
+        EVOKER = {249996}, -- Greaves of the Black Talon
+    },
+    [249365] = { -- Voidcast Unraveled Nullcore (Shoulders)
+        HUNTER = {249986}, -- Primal Sentry's Trophies
+        SHAMAN = {249977}, -- Tempests of the Primal Core
+        EVOKER = {249995}, -- Beacons of the Black Talon
+    },
+
+    -- Voidwoven (Priest, Mage, Warlock)
+    [249351] = { -- Voidwoven Hungering Nullcore (Hands)
+        PRIEST = {250052}, -- Blind Oath's Touch
+        MAGE = {250061}, -- Voidbreaker's Gloves
+        WARLOCK = {250043}, -- Abyssal Immolator's Grasps
+    },
+    [249355] = { -- Voidwoven Fanatical Nullcore (Head)
+        PRIEST = {250051}, -- Blind Oath's Winged Crest
+        MAGE = {250060}, -- Voidbreaker's Veil
+        WARLOCK = {250042}, -- Abyssal Immolator's Smoldering Flames
+    },
+    [249359] = { -- Voidwoven Corrupted Nullcore (Legs)
+        PRIEST = {250050}, -- Blind Oath's Leggings
+        MAGE = {250059}, -- Voidbreaker's Britches
+        WARLOCK = {250041}, -- Abyssal Immolator's Pillars
+    },
+    [249363] = { -- Voidwoven Unraveled Nullcore (Shoulders)
+        PRIEST = {250049}, -- Blind Oath's Seraphguards
+        MAGE = {250058}, -- Voidbreaker's Leyline Nexi
+        WARLOCK = {250040}, -- Abyssal Immolator's Fury
+    },
+
+    -- Alnforged (Warrior, Paladin, Death Knight)
+    [249350] = { -- Alnforged Riftbloom (Chest)
+        WARRIOR = {249955}, -- Night Ender's Breastplate
+        PALADIN = {249964}, -- Luminant Verdict's Divine Warplate
+        DEATHKNIGHT = {249973}, -- Relentless Rider's Cuirass
+    },
+
+    -- Alncured (Rogue, Monk, Druid, Demon Hunter)
+    [249348] = { -- Alncured Riftbloom (Chest)
+        ROGUE = {250009}, -- Fantastic Finery of the Grim Jest
+        MONK = {250018}, -- Battle Garb of Ra-den's Chosen
+        DRUID = {250027}, -- Trunk of the Luminous Bloom
+        DEMONHUNTER = {250036}, -- Devouring Reaver's Engine
+    },
+
+    -- Alncast (Hunter, Shaman, Evoker)
+    [249349] = { -- Alncast Riftbloom (Chest)
+        HUNTER = {249991}, -- Primal Sentry's Scaleplate
+        SHAMAN = {249982}, -- Embrace of the Primal Core
+        EVOKER = {250000}, -- Frenzyward of the Black Talon
+    },
+
+    -- Alnwoven (Priest, Mage, Warlock)
+    [249347] = { -- Alnwoven Riftbloom (Chest)
+        PRIEST = {250054}, -- Blind Oath's Raiment
+        MAGE = {250063}, -- Voidbreaker's Robe
+        WARLOCK = {250045}, -- Abyssal Immolator's Dreadrobe
+    },
+})
+
 -- END DATA
+
+lib._ITEMDATA = ITEMDATA

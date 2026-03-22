@@ -1,9 +1,9 @@
-## Interface: 120001, 120000, 110207, 50503, 30405, 20505, 11508
+## Interface: 120001, 50503, 30405, 20505, 11508
 ## Title: AppearanceTooltip
 ## Author: Kemayo
 ## Notes: Show the item your mouse is over on your character in a tooltip
 ## IconAtlas: poi-transmogrifier
-## Version: v70
+## Version: v81
 ## LoadOnDemand: 0
 ## OptionalDeps: tekDebug, LibStub, LibArmorToken-1.0, LibAppropriateItems-1.0
 ## X-Embeds: LibStub, LibArmorToken-1.0, LibAppropriateItems-1.0
@@ -20,6 +20,7 @@
 ## Category-ptBR: Coleções do Bando de Guerra
 ## Category-ruRU: Коллекции отряда
 ## Category-zhCN: 战团藏品
+## Category-zhTW: 戰隊收藏
 
 ## SavedVariables: AppearanceTooltipDB
 ## SavedVariablesPerCharacter: AppearanceTooltipDBPC

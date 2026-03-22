@@ -12,6 +12,36 @@ local LAI = LibStub("LibAppropriateItems-1.0")
 -- minor compat:
 local IsDressableItem = _G.IsDressableItem or C_Item.IsDressableItemByID
 local issecretvalue = _G.issecretvalue or function() return false end
+local isanyvaluesecret = function(...)
+    for i=1, select("#", ...) do
+        if issecretvalue((select(i, ...))) then
+            return true
+        end
+    end
+    return false
+end
+local issecretframe = function(frame, aspect)
+    if frame.IsAnchoringSecret then
+        if aspect then
+            return frame:HasSecretAspect(aspect)
+        end
+        return frame:IsAnchoringSecret()
+    end
+    return false
+end
+
+local function PlayerHasTransmogByItemInfo(itemLinkOrID)
+    -- Cata classic is specifically missing C_TransmogCollection.PlayerHasTransmogByItemInfo
+    if C_TransmogCollection.PlayerHasTransmogByItemInfo then
+        return C_TransmogCollection.PlayerHasTransmogByItemInfo(itemLinkOrID)
+    end
+    local itemID = C_Item.GetItemInfoInstant(itemLinkOrID)
+    if itemID then
+        -- this is a bit worse, because of items with varying appearances based on the link-details
+        -- but because this path should only be hit in classic, we should be fine
+        return C_TransmogCollection.PlayerHasTransmog(itemID)
+    end
+end
 
 ns.CLASSIC = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE -- rolls forward
 ns.CLASSICERA = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC -- forever vanilla
@@ -39,14 +69,15 @@ function tooltip:ADDON_LOADED(addon)
         zoomWorn = true, -- zoom in on the item in question
         zoomHeld = true, -- zoom in on weapons
         zoomMasked = false, -- use the transmog mask while zoomed
-        dressed = true, -- whether the model should be wearing your current outfit, or be naked
+        dressed = false, -- whether the model should be wearing your current outfit, or be naked
+        dressed_ensemble = false, -- as above, but specifically for ensembles
         uncover = true, -- remove clothing to expose the previewed item
         customModel = false, -- use a model other than your current class, and if so:
         modelRace = 7, -- raceid (1:human)
         modelGender = 1, -- 0:male, 1:female
         notifyKnown = true, -- show text explaining the transmog state of the item previewed
         currentClass = false, -- only show for items the current class can transmog
-        anchor = "vertical", -- vertical / horizontal
+        anchor = "horizontal", -- vertical / horizontal
         byComparison = true, -- whether to show by the comparison, or fall back to vertical if needed
         tokens = true, -- try to preview tokens?
         learnable = true, -- show for other learnable items (toys, mounts, pets)
@@ -68,19 +99,38 @@ function tooltip:ADDON_LOADED(addon)
 end
 
 function tooltip:PLAYER_LOGIN()
-    tooltip.model:SetUnit("player")
-    tooltip.modelZoomed:SetUnit("player")
+    for _, model in pairs(tooltip.models) do
+        if model.SetUnit then
+            model:SetUnit("player")
+        end
+    end
     C_CVar.SetCVar("missingTransmogSourceInItemTooltips", "1")
+end
+
+local function scrollActiveModel(amount)
+    if not (tooltip.activeModel and tooltip.activeModel:IsVisible()) then
+        return
+    end
+    if tooltip.activeModel.GetActiveCamera then
+        local camera = tooltip.activeModel:GetActiveCamera()
+        local mode = ORBIT_CAMERA_MOUSE_MODE_YAW_ROTATION
+        local snapToValue = false
+        camera:HandleMouseMovement(mode, amount, snapToValue)
+    else
+        tooltip.activeModel:SetFacing(tooltip.activeModel:GetFacing() + amount)
+    end
+    return true
 end
 
 do
     local scrollup = CreateFrame("Button", "AppearanceTooltipScrollUpButton", tooltip)
     scrollup:SetScript("OnClick", function(self, button, down)
-        tooltip.activeModel:SetFacing(tooltip.activeModel:GetFacing() + 0.3)
+        scrollActiveModel(0.3)
     end)
+    scrollup:RegisterForClicks("AnyDown", "AnyUp")
     local scrolldown = CreateFrame("Button", "AppearanceTooltipScrollDownButton", tooltip)
     scrolldown:SetScript("OnClick", function(self, button, down)
-        tooltip.activeModel:SetFacing(tooltip.activeModel:GetFacing() - 0.3)
+        scrollActiveModel(-0.3)
     end)
 
     local function ClearBindings()
@@ -110,9 +160,6 @@ end
 do
     local function makeModel(frameType, template)
         local model = CreateFrame(frameType, nil, tooltip, template)
-        model:SetFrameLevel(1)
-        model:SetPoint("TOPLEFT", tooltip, "TOPLEFT", 5, -5)
-        model:SetPoint("BOTTOMRIGHT", tooltip, "BOTTOMRIGHT", -5, 5)
         return model
     end
     local function makeDressUpModel()
@@ -124,24 +171,27 @@ do
                 Model_ApplyUICamera(self, self.cameraID)
             end
         end)
-        -- Use the blacked-out model:
-        -- model:SetUseTransmogSkin(true)
-        -- Display in combat pose:
-        -- model:FreezeAnimation(1)
         return model
     end
-    tooltip.model = makeDressUpModel()
-    tooltip.modelZoomed = makeDressUpModel()
-    tooltip.modelWeapon = makeDressUpModel()
-    tooltip.modelScene = makeModel("ModelScene", "PanningModelSceneMixinTemplate")
+    local function makeModelScene()
+        return makeModel("ModelScene", "NoCameraControlModelSceneMixinTemplate")
+    end
+    tooltip.models = {
+        FullBody = makeDressUpModel(),
+        Zoomed = makeDressUpModel(),
+        Weapon = makeDressUpModel(),
+        Mount = makeModelScene(),
+        Pet = makeModelScene(),
+        Decor = makeModelScene(),
+    }
 end
 
-local known = tooltip:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-known:SetWordWrap(true)
-known:SetTextColor(0.5333, 0.6666, 0.9999, 0.9999)
-known:SetPoint("BOTTOMLEFT", tooltip, "BOTTOMLEFT", 6, 12)
-known:SetPoint("BOTTOMRIGHT", tooltip, "BOTTOMRIGHT", -6, 12)
-known:Show()
+local modelLabel = tooltip:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+modelLabel:SetWordWrap(true)
+modelLabel:SetTextColor(0.5333, 0.6666, 0.9999, 0.9999)
+modelLabel:SetPoint("BOTTOMLEFT", tooltip, "BOTTOMLEFT", 6, 12)
+modelLabel:SetPoint("BOTTOMRIGHT", tooltip, "BOTTOMRIGHT", -6, 12)
+modelLabel:Show()
 
 local classwarning = tooltip:CreateFontString(nil, "OVERLAY", "GameFontRed")
 classwarning:SetWordWrap(true)
@@ -149,26 +199,13 @@ classwarning:SetPoint("TOPLEFT", tooltip, "TOPLEFT", 6, -12)
 classwarning:SetPoint("TOPRIGHT", tooltip, "TOPRIGHT", -6, -12)
 -- ITEM_WRONG_CLASS = "That item can't be used by players of your class!"
 -- STAT_USELESS_TOOLTIP = "|cff808080Provides no benefit for your class|r"
-classwarning:SetText("Your class can't transmogrify this item")
+classwarning:SetText("你的職業無法使用這個物品塑形")
 classwarning:Show()
 
 -- Ye showing:
-local function GetTooltipItem(tip)
-    if _G.C_TooltipInfo then
-        if issecretvalue then
-            -- getdisplayeditem attempts this comparison...
-            local primaryInfo = tip:GetPrimaryTooltipInfo();
-            if issecretvalue(primaryInfo and primaryInfo.tooltipData and primaryInfo.tooltipData.type and primaryInfo.tooltipData.type) then
-                return
-            end
-        end
-        return TooltipUtil.GetDisplayedItem(tip)
-    end
-    return tip:GetItem()
-end
 do
     local function OnTooltipSetItem(self)
-        local name, link, id = GetTooltipItem(self)
+        local name, link, id = self:GetItem()
         ns:ShowItem(link, self)
     end
     local function OnHide(self)
@@ -191,7 +228,8 @@ do
         -- Cata-classic has TooltipDataProcessor, but doesn't actually use the new tooltips
         TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(self, data)
             if tooltips[self] then
-                OnTooltipSetItem(self)
+                local link = data.guid and C_Item.GetItemLinkByGUID(data.guid) or data.hyperlink
+                ns:ShowItem(link, self)
             end
         end)
     end
@@ -217,10 +255,28 @@ positioner:SetScript("OnUpdate", function(self, elapsed)
     end
     self.elapsed = 0
 
-    local owner, our_point, owner_point = ns:ComputeTooltipAnchors(tooltip.owner, db.anchor)
+    local anchor, owner, our_point, owner_point = ns:ComputeTooltipAnchors(tooltip.owner, db.anchor)
+    tooltip:ClearAllPoints()
     if our_point and owner_point then
-        tooltip:ClearAllPoints()
         tooltip:SetPoint(our_point, owner, owner_point)
+        --[[
+        -- TODO: this scales the tooltip to match its owner, but the model scale gets weird when this happens...
+        if anchor == "vertical" then
+            local ownerWidth = owner:GetWidth()
+            if not issecretvalue(ownerWidth) then
+                tooltip:SetScale(ownerWidth / tooltip:GetWidth())
+            end
+        else
+            local ownerHeight = owner:GetHeight()
+            if not issecretvalue(ownerHeight) then
+                tooltip:SetScale(ownerHeight / tooltip:GetHeight())
+            end
+        end
+        --]]
+    else
+        -- TODO: could fall back somewhere instead?
+        -- tooltip:SetPoint("CENTER", UIParent)
+        tooltip:Hide()
     end
 end)
 
@@ -245,13 +301,24 @@ do
             bottom = {"TOPLEFT", "TOPRIGHT"},
         },
     }
+    local safecenterscale = function(frame)
+        local scale = frame:GetEffectiveScale()
+        local x, y = frame:GetCenter()
+        if isanyvaluesecret(x, y) then
+            return
+        end
+        if issecretvalue(scale) then
+            return x, y
+        end
+        return x * scale, y * scale
+    end
     function ns:ComputeTooltipAnchors(owner, anchor)
         -- Because I always forget: x is left-right, y is bottom-top
         -- Logic here: our tooltip should trend towards the center of the screen, unless something is stopping it.
         -- If comparison tooltips are shown, we shouldn't overlap them
         local originalOwner = owner
         local x, y = owner:GetCenter()
-        if not (x and y) or issecretvalue(x) then
+        if not (x and y) or issecretvalue(x) or issecretframe(owner) then
             return
         end
         x = x * owner:GetEffectiveScale()
@@ -271,7 +338,7 @@ do
             if comparisonTooltip1:IsShown() or comparisonTooltip2:IsShown() then
                 if comparisonTooltip1:IsShown() and comparisonTooltip2:IsShown() then
                     local c1x, c2x = comparisonTooltip1:GetCenter(), comparisonTooltip2:GetCenter()
-                    if issecretvalue(c1x) then
+                    if isanyvaluesecret(c1x, c2x) then
                         outermostComparisonShown = nil
                     elseif c1x > c2x then
                         -- 1 is right of 2
@@ -284,9 +351,11 @@ do
                     outermostComparisonShown = comparisonTooltip1:IsShown() and comparisonTooltip1 or comparisonTooltip2
                 end
                 if outermostComparisonShown then
-                    local outerx = (outermostComparisonShown:GetCenter() or 0) * (outermostComparisonShown:GetEffectiveScale() or 1)
-                    local ownerx = (owner:GetCenter() or 0) * (owner:GetEffectiveScale() or 1)
-                    if
+                    local outerx = safecenterscale(outermostComparisonShown)
+                    local ownerx = safecenterscale(owner)
+                    if not (outerx and ownerx) then
+                        anchor = "vertical"
+                    elseif
                         -- outermost is right of owner while we're biasing left
                         (biasLeft and outerx > ownerx)
                         or
@@ -325,9 +394,8 @@ do
             end
         end
         if
-            (not issecretvalue or (not issecretvalue(owner:GetLeft()) and issecretvalue(tooltip:GetWidth()))) and
-            (
-                -- would we be pushing against the edge of the screen?
+            anchor ~= "vertical" and
+            not isanyvaluesecret(owner:GetLeft(), tooltip:GetWidth()) and (
                 (primary == "left" and (owner:GetLeft() - tooltip:GetWidth()) < 0)
                 or (primary == "right" and (owner:GetRight() + tooltip:GetWidth() > GetScreenWidth()))
             )
@@ -335,17 +403,16 @@ do
             return self:ComputeTooltipAnchors(originalOwner, "vertical")
         end
         -- ns.Debug("ComputeTooltipAnchors", owner:GetName(), primary, secondary)
-        return owner, unpack(points[primary][secondary])
+        return anchor, owner, unpack(points[primary][secondary])
     end
 end
 
 local spinner = CreateFrame("Frame", nil, tooltip);
 spinner:Hide()
 spinner:SetScript("OnUpdate", function(self, elapsed)
-    if not (tooltip.activeModel and tooltip.activeModel:IsVisible()) then
-        return self:Hide()
+    if not scrollActiveModel(elapsed) then
+        self:Hide()
     end
-    tooltip.activeModel:SetFacing(tooltip.activeModel:GetFacing() + elapsed)
 end)
 
 local hider = CreateFrame("Frame")
@@ -353,7 +420,16 @@ hider:Hide()
 local shouldHide = function(owner)
     if not owner then return true end
     if not owner:IsShown() then return true end
-    if not GetTooltipItem(owner) then return true end
+    if _G.C_TooltipInfo then
+        -- GetDisplayedItem compares this:
+        local primaryInfo = owner:GetPrimaryTooltipInfo()
+        if issecretvalue(primaryInfo and primaryInfo.tooltipData and primaryInfo.tooltipData.type) then
+            return true
+        end
+        if not TooltipUtil.GetDisplayedItem(owner) then return true end
+    else
+        if not owner:GetItem() then return true end
+    end
     return false
 end
 hider:SetScript("OnUpdate", function(self)
@@ -401,14 +477,21 @@ function ns:ShowItem(link, for_tooltip)
         local found
         local counts = {}
         local counts_known = {}
-        for itemid, tclass, relevant in LAT:IterateItemsForToken(id) do
-            found = found or itemid
-            if relevant then
-                found = itemid -- make *sure* the item shown is a relevant one, if one exists
-                AddItemToTooltip(itemid, for_tooltip, tclass == class and class_colored or tclass)
-            else
-                counts[tclass] = (counts[tclass] or 0) + 1
-                counts_known[tclass] = (counts_known[tclass] or 0) + (ns.PlayerHasAppearance(itemid) and 1 or 0)
+        for itemid, tclass, relevant, variants in LAT:IterateItemsForToken(link) do
+            local itemLinkOrID = itemid
+            for _, variant in ipairs(variants or {false}) do
+                if variant then
+                    itemLinkOrID = LAT:GetBareLinkForItem(itemid, variant)
+                end
+                found = found or itemLinkOrID
+                if relevant then
+                    found = itemLinkOrID -- make *sure* the item shown is a relevant one, if one exists
+
+                    AddItemToTooltip(itemLinkOrID, for_tooltip, tclass == class and class_colored or tclass)
+                else
+                    counts[tclass] = (counts[tclass] or 0) + 1
+                    counts_known[tclass] = (counts_known[tclass] or 0) + (ns.PlayerHasAppearance(itemLinkOrID) and 1 or 0)
+                end
             end
         end
         for tclass, count in pairs(counts) do
@@ -438,16 +521,21 @@ function ns:ShowItem(link, for_tooltip)
 
     local appropriateItem = LAI:IsAppropriate(id)
 
-    tooltip.model:Hide()
-    tooltip.modelZoomed:Hide()
-    tooltip.modelWeapon:Hide()
-    tooltip.modelScene:Hide()
+    -- Get us back to an unattached state
+    tooltip:ClearAllPoints()
+    for _, model in pairs(tooltip.models) do
+        model:Hide()
+    end
 
     if self.slot_facings[slot] and IsDressableItem(id) and (not db.currentClass or appropriateItem) then
         local model, cameraID
         local isHeld = self.slot_held[slot]
         local shouldZoom = (db.zoomWorn and not isHeld) or (db.zoomHeld and isHeld)
-        local appearanceID = C_TransmogCollection.GetItemInfo(link) or C_TransmogCollection.GetItemInfo(id)
+        local dressed = db.dressed
+        if slot == "INVTYPE_NON_EQUIP_IGNORE" then
+            dressed = db.dressed_ensemble
+        end
+        local appearanceID = ns.GetTransmogInfo(link)
 
         if shouldZoom then
             cameraID = appearanceID and C_TransmogCollection.GetAppearanceCameraID(appearanceID)
@@ -457,20 +545,21 @@ function ns:ShowItem(link, for_tooltip)
 
         if cameraID then
             if isHeld then
-                model = tooltip.modelWeapon
-            else
-                model = tooltip.modelZoomed
-                model:SetUseTransmogSkin(db.zoomMasked and slot ~= "INVTYPE_HEAD")
+                model = tooltip.models.Weapon
                 self:ResetModel(model)
+            else
+                model = tooltip.models.Zoomed
+                model:SetUseTransmogSkin(db.zoomMasked and slot ~= "INVTYPE_HEAD")
+                self:ResetModel(model, dressed)
             end
             model.cameraID = cameraID
             Model_ApplyUICamera(model, cameraID)
             -- ApplyUICamera locks the animation, but...
             model:SetAnimation(0, 0)
         else
-            model = tooltip.model
+            model = tooltip.models.FullBody
 
-            self:ResetModel(model)
+            self:ResetModel(model, dressed)
         end
         tooltip.activeModel = model
         model:Show()
@@ -512,15 +601,19 @@ function ns:ShowItem(link, for_tooltip)
         -- see: Blizzard_HousingModelPreview
         local decorInfo = C_HousingCatalog.GetCatalogEntryInfoByItem(id, true)
         if decorInfo and decorInfo.asset then
+            local modelScene = tooltip.models.Decor
+            self:ResetModelScene(modelScene)
             local modelSceneID = decorInfo.uiModelSceneID or Constants.HousingCatalogConsts.HOUSING_CATALOG_DECOR_MODELSCENEID_DEFAULT
             local forceSceneChange = true
-            tooltip.modelScene:TransitionToModelSceneID(modelSceneID, CAMERA_TRANSITION_TYPE_IMMEDIATE, CAMERA_MODIFICATION_TYPE_DISCARD, forceSceneChange)
-            local actor = tooltip.modelScene:GetActorByTag("decor");
+            modelScene:TransitionToModelSceneID(modelSceneID, CAMERA_TRANSITION_TYPE_IMMEDIATE, CAMERA_MODIFICATION_TYPE_DISCARD, forceSceneChange)
+            local actor = modelScene:GetActorByTag("decor");
             if actor then
                 actor:SetPreferModelCollisionBounds(true)
                 actor:SetModelByFileID(decorInfo.asset)
             end
-            tooltip.modelScene:Show()
+            modelScene:Show()
+
+            tooltip.activeModel = modelScene
 
             self:ShowTooltip(for_tooltip)
         end
@@ -530,12 +623,13 @@ function ns:ShowItem(link, for_tooltip)
         if mountID then
             local creatureDisplayID, _, _, isSelfMount, _, modelSceneID, animID, spellVisualKitID, disablePlayerMountPreview = C_MountJournal.GetMountInfoExtraByID(mountID)
             if creatureDisplayID then
-                tooltip.modelScene:ClearScene()
-                tooltip.modelScene:SetViewInsets(0, 0, 0, 0)
+                local modelScene = tooltip.models.Mount
+                self:ResetModelScene(modelScene)
+                modelScene:SetViewInsets(0, 0, 0, 0)
                 local forceEvenIfSame = true
-                tooltip.modelScene:TransitionToModelSceneID(modelSceneID, CAMERA_TRANSITION_TYPE_IMMEDIATE, CAMERA_MODIFICATION_TYPE_DISCARD, forceEvenIfSame)
+                modelScene:TransitionToModelSceneID(modelSceneID, CAMERA_TRANSITION_TYPE_IMMEDIATE, CAMERA_MODIFICATION_TYPE_DISCARD, forceEvenIfSame)
 
-                local mountActor = tooltip.modelScene:GetActorByTag("unwrapped")
+                local mountActor = modelScene:GetActorByTag("unwrapped")
                 if mountActor then
                     mountActor:SetModelByCreatureDisplayID(creatureDisplayID)
                 end
@@ -546,8 +640,10 @@ function ns:ShowItem(link, for_tooltip)
                     mountActor:SetAnimationBlendOperation(Enum.ModelBlendOperation.Anim)
                     mountActor:SetAnimation(0)
                 end
-                tooltip.modelScene:AttachPlayerToMount(mountActor, animID, isSelfMount, disablePlayerMountPreview)
-                tooltip.modelScene:Show()
+                modelScene:AttachPlayerToMount(mountActor, animID, isSelfMount, disablePlayerMountPreview)
+                modelScene:Show()
+
+                tooltip.activeModel = modelScene
 
                 self:ShowTooltip(for_tooltip)
             end
@@ -556,18 +652,21 @@ function ns:ShowItem(link, for_tooltip)
         -- see: DressUpFrames.lua
         local displayID, petID = select(12, C_PetJournal.GetPetInfoByItemID(id))
         if displayID and petID then
+            local modelScene = tooltip.models.Pet
             local _, loadoutModelSceneID = C_PetJournal.GetPetModelSceneInfoBySpeciesID(petID)
-            tooltip.modelScene:ClearScene()
-            tooltip.modelScene:SetViewInsets(0, 0, 50, 0)
-            tooltip.modelScene:TransitionToModelSceneID(loadoutModelSceneID, CAMERA_TRANSITION_TYPE_IMMEDIATE, CAMERA_MODIFICATION_TYPE_DISCARD, true)
+            self:ResetModelScene(modelScene)
+            modelScene:SetViewInsets(0, 0, 50, 0)
+            modelScene:TransitionToModelSceneID(loadoutModelSceneID, CAMERA_TRANSITION_TYPE_IMMEDIATE, CAMERA_MODIFICATION_TYPE_DISCARD, true)
 
-            local battlePetActor = tooltip.modelScene:GetActorByTag("pet")
+            local battlePetActor = modelScene:GetActorByTag("pet")
             if battlePetActor then
                 battlePetActor:SetModelByCreatureDisplayID(displayID, true)
                 battlePetActor:SetAnimationBlendOperation(Enum.ModelBlendOperation.None)
             end
 
-            tooltip.modelScene:Show()
+            tooltip.activeModel = modelScene
+
+            modelScene:Show()
             self:ShowTooltip(for_tooltip)
         end
     else
@@ -575,34 +674,39 @@ function ns:ShowItem(link, for_tooltip)
     end
 
     classwarning:Hide()
-    known:Hide()
+    modelLabel:Hide()
 
+    local label = {}
     if db.notifyKnown then
         local hasAppearance, appearanceFromOtherItem, probablyEnsemble = ns.PlayerHasAppearance(link)
 
-        local label
         if not ns.CanTransmogItem(link) and not probablyEnsemble then
-            label = "|c00ffff00" .. TRANSMOGRIFY_INVALID_DESTINATION
+            table.insert(label, "|c00ffff00" .. TRANSMOGRIFY_INVALID_DESTINATION .. "|r")
         else
             if hasAppearance then
                 if appearanceFromOtherItem then
-                    label = "|TInterface\\RaidFrame\\ReadyCheck-Ready:0|t " .. (TRANSMOGRIFY_TOOLTIP_ITEM_UNKNOWN_APPEARANCE_KNOWN):gsub(', ', ',\n')
+                    table.insert(label, "|TInterface\\RaidFrame\\ReadyCheck-Ready:0|t " .. (TRANSMOGRIFY_TOOLTIP_ITEM_UNKNOWN_APPEARANCE_KNOWN):gsub(', ', ',\n'))
                 else
-                    label = "|TInterface\\RaidFrame\\ReadyCheck-Ready:0|t " .. TRANSMOGRIFY_TOOLTIP_APPEARANCE_KNOWN
+                    table.insert(label, "|TInterface\\RaidFrame\\ReadyCheck-Ready:0|t " .. TRANSMOGRIFY_TOOLTIP_APPEARANCE_KNOWN)
                 end
             else
-                label = "|TInterface\\RaidFrame\\ReadyCheck-NotReady:0|t |cffff0000" .. TRANSMOGRIFY_TOOLTIP_APPEARANCE_UNKNOWN
+                table.insert(label, "|TInterface\\RaidFrame\\ReadyCheck-NotReady:0|t |cffff0000" .. TRANSMOGRIFY_TOOLTIP_APPEARANCE_UNKNOWN .. "|r")
             end
             classwarning:SetShown(not appropriateItem and not probablyEnsemble)
         end
-        if setID then
-            local setName = C_Item.GetItemSetInfo(setID)
-            if setName then
-                label = label .. '|r\n' .. ITEM_SET_BONUS:format(setName)
-            end
+    end
+    if token then
+        table.insert(label, (string.gsub(link, "[%[%]]", "")))
+    end
+    if setID then
+        local setName = C_Item.GetItemSetInfo(setID)
+        if setName then
+            table.insert(label, ITEM_SET_BONUS:format(setName))
         end
-        known:SetText(label)
-        known:Show()
+    end
+    if #label > 0 then
+        modelLabel:SetText(string.join("\n", unpack(label)))
+        modelLabel:Show()
     end
 end
 function ns:ShowTooltip(for_tooltip)
@@ -618,21 +722,41 @@ function ns:HideItem()
     hider:Show()
 end
 
-function ns:ResetModel(model)
-    -- This sort of works, but with a custom model it keeps some items (shoulders, belt...)
-    -- model:SetAutoDress(db.dressed)
-    -- So instead, more complicated:
-    if db.customModel then
-        model:SetUnit("none")
-        model:SetCustomRace(db.modelRace, db.modelGender)
-    else
-        model:SetUnit("player")
+do
+    local function ResetModelFrame(frame)
+        -- This is mostly in service of avoiding secret-spread
+        -- frame:SetToDefaults() -- this would be best, but is too destructive
+        frame:SetParent(tooltip)
+        frame:SetFrameLevel(tooltip:GetFrameLevel()) -- so the label overlays cover it
+        frame:ClearAllPoints()
+        frame:SetPoint("TOPLEFT", tooltip, "TOPLEFT", 5, -5)
+        frame:SetPoint("BOTTOMRIGHT", tooltip, "BOTTOMRIGHT", -5, 5)
     end
-    model:RefreshCamera()
-    if db.dressed then
-        model:Dress()
-    else
-        model:Undress()
+
+    function ns:ResetModel(model, dressed)
+        ResetModelFrame(model)
+        -- Use the blacked-out model:
+        -- model:SetUseTransmogSkin(true)
+        -- Display in combat pose:
+        -- model:FreezeAnimation(1)
+        -- This sort of works, but with a custom model it keeps some items (shoulders, belt...)
+        -- model:SetAutoDress(db.dressed)
+        -- So instead, more complicated:
+        if db.customModel then
+            model:SetUnit("none")
+            model:SetCustomRace(db.modelRace, db.modelGender)
+        else
+            model:SetUnit("player")
+        end
+        model:RefreshCamera()
+        model[dressed and "Dress" or "Undress"](model)
+    end
+
+    function ns:ResetModelScene(modelScene)
+        ResetModelFrame(modelScene)
+
+        modelScene:ClearScene()
+        modelScene:SetViewInsets(0, 0, 0, 0)
     end
 end
 
@@ -660,6 +784,7 @@ ns.slot_removals = {
     INVTYPE_HAND = {ns.SLOT_OFFHAND},
     INVTYPE_TABARD = {ns.SLOT_WAIST, ns.SLOT_OFFHAND},
     INVTYPE_HEAD = {ns.SLOT_SHOULDER},
+    INVTYPE_NON_EQUIP_IGNORE = {ns.SLOT_TABARD},
 }
 ns.always_remove = {
     INVTYPE_WEAPON = true,
@@ -713,6 +838,7 @@ ns.modifiers = {
 -- Utility fun
 
 --/dump C_Transmog.CanTransmogItem(C_Item.GetItemInfoInstant(""))
+--/dump C_TransmogCollection.GetSourceInfo(select(2, C_TransmogCollection.GetItemInfo("")))
 function ns.CanTransmogItem(itemLink)
     local itemID = C_Item.GetItemInfoInstant(itemLink)
     if itemID then
@@ -720,14 +846,22 @@ function ns.CanTransmogItem(itemLink)
             local canBeChanged, noChangeReason, canBeSource, noSourceReason = C_Transmog.CanTransmogItem(itemID)
             return canBeSource, noSourceReason
         else
-            -- Midnight
-            local appearanceID, sourceID = C_TransmogCollection.GetItemInfo(itemLink)
-            if sourceID then
-                local info = C_TransmogCollection.GetSourceInfo(sourceID)
-                return info and (info.playerCanCollect or info.isCollected or info.canDisplayOnPlayer) -- info.isValidSourceForPlayer also exists, seems to be whether the player could actually transmog it
+            -- Midnight; it *seems* that anything which this function returns
+            -- data for is usable as a transmog source now. Checked on
+            -- Warglaive of Azzinoth (32837) which returns nil.
+            -- 2026/1/23: Apart from Legion artifacts, but they've always been
+            -- weird and might be bugged at the moment anyway.
+            if ns.GetTransmogInfo(itemLink) then
+                return true
+            end
+            -- sometimes this doesn't return info for valid items, but
+            -- anything you have the transmog for *must* be transmoggable...
+            if PlayerHasTransmogByItemInfo(itemLink) then
+                return true
             end
         end
     end
+    return nil, 'NO_ITEM'
 end
 
 local brokenItems = {
@@ -737,6 +871,25 @@ local brokenItems = {
     [153268] = {25124, 90807}, -- Enclave Aspirant's Axe
     [153316] = {25123, 90885}, -- Praetor's Ornamental Edge
 }
+function ns.GetTransmogInfo(itemLinkOrID)
+    local appearanceID, sourceID = C_TransmogCollection.GetItemInfo(itemLinkOrID)
+    if appearanceID then
+        return appearanceID, sourceID
+    end
+    local itemID = C_Item.GetItemInfoInstant(itemLinkOrID)
+    if itemID then
+        -- sometimes the link won't actually give us an appearance, but itemID will
+        -- e.g. mythic Drape of Iron Sutures from Shadowmoon Burial Grounds
+        appearanceID, sourceID = C_TransmogCollection.GetItemInfo(itemID)
+        if appearanceID then
+            return appearanceID, sourceID
+        end
+        if brokenItems[itemID] then
+            -- ...and there's a few that just need to be hardcoded
+            return unpack(brokenItems[itemID])
+        end
+    end
+end
 -- /dump C_TransmogCollection.GetAppearanceSourceInfo(select(2, C_TransmogCollection.GetItemInfo("")))
 -- /dump C_TransmogCollection.GetAppearanceInfoBySource(select(2, C_TransmogCollection.GetItemInfo("")))
 function ns.PlayerHasAppearance(itemLinkOrID)
@@ -778,17 +931,16 @@ function ns.PlayerHasAppearance(itemLinkOrID)
             return false, false, true
         end
     end
-    local appearanceID, sourceID = C_TransmogCollection.GetItemInfo(itemLinkOrID)
+    local appearanceID, sourceID = ns.GetTransmogInfo(itemLinkOrID)
     if not appearanceID then
-        -- sometimes the link won't actually give us an appearance, but itemID will
-        -- e.g. mythic Drape of Iron Sutures from Shadowmoon Burial Grounds
-        appearanceID, sourceID = C_TransmogCollection.GetItemInfo(itemID)
+        if PlayerHasTransmogByItemInfo(itemLinkOrID) then
+            -- avoid more detailed checks if possible; we don't do
+            -- this *first* because it sometimes gets it wrong with items
+            -- that have variants based on link bonuses
+            return true, false
+        end
+        return
     end
-    if not appearanceID and brokenItems[itemID] then
-        -- ...and there's a few that just need to be hardcoded
-        appearanceID, sourceID = unpack(brokenItems[itemID])
-    end
-    if not appearanceID then return end
     -- /dump C_TransmogCollection.PlayerHasTransmogItemModifiedAppearance(C_TransmogCollection.GetItemInfo(""))
     local fromCurrentItem = C_TransmogCollection.PlayerHasTransmogItemModifiedAppearance(sourceID)
     if fromCurrentItem then

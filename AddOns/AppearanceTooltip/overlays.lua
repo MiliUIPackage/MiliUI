@@ -25,6 +25,14 @@ function f:ADDON_LOADED(addon)
 end
 f:RegisterEvent("ADDON_LOADED")
 
+ns.overlayFrames = {}
+
+function ns.RefreshOverlayFrames()
+    for button in pairs(ns.overlayFrames) do
+        ns.PrepareItemButton(button)
+    end
+end
+
 function ns:SetIconAppearance(icon, link, hasAppearance, appearanceFromOtherItem, probablyEnsemble)
     if LAI:IsAppropriate(link) or probablyEnsemble then
         -- this character can use it
@@ -57,6 +65,7 @@ local function PrepareItemButton(button, point, offsetx, offsety)
     end
 
     local overlayFrame = CreateFrame("FRAME", nil, button)
+    ns.overlayFrames[button] = overlayFrame
     overlayFrame:SetAllPoints()
     button.appearancetooltipoverlay = overlayFrame
 
@@ -83,6 +92,8 @@ local function PrepareItemButton(button, point, offsetx, offsety)
 
     overlayFrame:Hide()
 end
+ns.PrepareItemButton = PrepareItemButton
+
 local function IsRelevantItem(link)
     if not link then return end
     if ns.db.learnable then
@@ -150,6 +161,7 @@ local function UpdateButtonFromItem(button, item)
         end
     end)
 end
+ns.UpdateButtonFromItem = UpdateButtonFromItem
 
 local function UpdateContainerButton(button, bag, slot)
     local item = Item:CreateFromBagAndSlot(bag, slot or button:GetID())
@@ -448,7 +460,7 @@ f:RegisterAddonHook("AdiBags", function()
     local AdiBags = AA and AA:GetAddon("AdiBags", true)
     if not AdiBags then return end
     local filter = AdiBags:RegisterFilter("Appearance Unknown", 86, "ABEvent-1.0")
-    filter.uiName = "Unknown appearance"
+    filter.uiName = "未收藏外觀"
     filter.uiDesc = TRANSMOGRIFY_TOOLTIP_APPEARANCE_UNKNOWN
 
     function filter:OnInitialize()
@@ -474,14 +486,14 @@ f:RegisterAddonHook("AdiBags", function()
             IsDressableItem(slotData.link) and
             ns.CanTransmogItem(slotData.link)
         then
-            return appropriateItem and "Appearance Unknown" or "Appearance Unknown (other class)"
+            return appropriateItem and "未收藏外觀" or "未收藏外觀 (其他職業)"
         end
     end
     function filter:GetOptions()
         return {
             other = {
-                name = "Unlearnable items",
-                desc = "Include items that the current character can't learn",
+                name = "無法使用的物品",
+                desc = "包含當前角色無法使用的物品",
                 type = "toggle",
                 order = 60,
             },
