@@ -359,8 +359,21 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tool
                 local i = 1
                 while (true) do
                     local line = _G[tooltip:GetName().."TextLeft"..i]
+                    
+                    -- Unsure which part specifically may become secret, as the situation is very niche
+                    -- So lets just check for everything
+                    if issecrettable(line) then break end
+                    if issecretvalue(line) then break end
                     if not line then break end
-                    if line:GetText() == text then
+                    
+                    if issecrettable(line.GetText) then break end
+                    if issecretvalue(line.GetText) then break end
+                    
+                    local lineText = line:GetText()
+                    if issecrettable(lineText) then break end
+                    if issecretvalue(lineText) then break end
+                    
+                    if lineText == text then
                         line:SetText(newText)
                         break
                     end

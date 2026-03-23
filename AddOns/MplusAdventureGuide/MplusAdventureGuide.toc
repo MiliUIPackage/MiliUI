@@ -1,8 +1,8 @@
 ## Interface: 120001
 ## Title: Mythic+ Miscellaneous
 ## Author: Teelo - Jubei'thos (US)
-## Version: 12.0-004
-## Notes: Shows the Loot tab in your Encounter Journal in Dragonflight, as well as a few other things
+## Version: 12.0-005
+## Notes: Provides a number of Quality of Life improvements, such as portal buttons to your M+ Dungeon. See the list of Modules under Interface Options.
 ## X-Curse-Project-ID: 655714
 ## SavedVariables: MPlusAdventureGuideADB
 ## IconTexture: Interface\Icons\Spell_Mage_PresenceOfMind

@@ -1,7 +1,9 @@
 # Mythic+ Miscellaneous
 
-## [12.0-004](https://github.com/teelolws/MplusAG/tree/12.0-004) (2026-02-10)
-[Full Changelog](https://github.com/teelolws/MplusAG/compare/12.0-003...12.0-004) [Previous Releases](https://github.com/teelolws/MplusAG/releases)
+## [12.0-005](https://github.com/teelolws/MplusAG/tree/12.0-005) (2026-03-23)
+[Full Changelog](https://github.com/teelolws/MplusAG/compare/12.0-004...12.0-005) [Previous Releases](https://github.com/teelolws/MplusAG/releases)
 
-- Add midnight season 1 item levels  
-- Update item-upgrade.lua  
+- Item upgrade ilvls module: add some secret-value checks  
+    https://github.com/teelolws/MplusAG/issues/33#issuecomment-4107047596  
+- Update addon description  
+    Closes: https://github.com/teelolws/MplusAG/issues/32  
