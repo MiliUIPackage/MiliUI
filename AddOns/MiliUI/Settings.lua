@@ -427,7 +427,7 @@ local function InitSettings()
     ahCBDesc:SetPoint("TOPLEFT", ahCB, "BOTTOMLEFT", 26, -2)
     ahCBDesc:SetWidth(520)
     ahCBDesc:SetJustifyH("LEFT")
-    ahCBDesc:SetText("開啟後會在拍賣行介面右下角顯示篩選選項，\n瀏覽查詢時自動套用「僅限當前資料片」篩選。")
+    ahCBDesc:SetText("開啟後會在拍賣行介面右上角顯示篩選選項，\n瀏覽查詢時自動套用「僅限當前資料片」篩選。")
     ahCBDesc:SetTextColor(0.5, 0.5, 0.5)
 
     -- 初始化 MiliUI_DB 及 checkbox 狀態
