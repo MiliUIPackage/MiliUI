@@ -54,10 +54,7 @@ local function ShowSpellInfo(tooltip, spellId)
     local showAllByModifier = addon.db.spell.modifierShowAll
     local showSpellId = addon.db.spell.showSpellId ~= false
     local showSpellIconId = addon.db.spell.showSpellIconId ~= false
-    if (isModifierDown) then
-        if (not showAllByModifier) then
-            return
-        end
+    if (isModifierDown and showAllByModifier) then
         showSpellId = true
         showSpellIconId = true
     end
@@ -73,22 +70,88 @@ end
 local function ShowItemInfo(tooltip, linkOrId)
     if (not linkOrId) then return end
     local isModifierDown = IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown()
-    local showAllByModifier = addon.db.item.modifierShowAll
-    local showItemId = addon.db.item.showItemId ~= false
-    local showItemMaxStack = addon.db.item.showItemMaxStack ~= false
-    local showItemIconId = addon.db.item.showItemIconId ~= false
-    if (isModifierDown) then
-        if (not showAllByModifier) then
-            return
-        end
+    local itemSettings = addon.db.item
+    local showAllByModifier = itemSettings.modifierShowAll
+    local showItemId = itemSettings.showItemId ~= false
+    local showItemBonusId = itemSettings.showItemBonusId ~= false
+    local showItemEnhancementId = itemSettings.showItemEnhancementId ~= false
+    local showItemGemId = itemSettings.showItemGemId ~= false
+    local showItemMaxStack = itemSettings.showItemMaxStack ~= false
+    local showItemIconId = itemSettings.showItemIconId ~= false
+    if (isModifierDown and showAllByModifier) then
         showItemId = true
+        showItemBonusId = true
+        showItemEnhancementId = true
+        showItemGemId = true
         showItemMaxStack = true
         showItemIconId = true
     end
     local _, itemId = ParseHyperLink(linkOrId)
+    local isEquippable = IsEquippableItem and IsEquippableItem(linkOrId)
+    local itemEnhancementId = "n/a"
+    local itemBonusId = "n/a"
+    local itemGemId = "n/a"
+    if (type(linkOrId) == "string") then
+        local itemString = linkOrId:match("|?Hitem:([^|]+)") or linkOrId:match("^item:([^|]+)")
+        if (itemString and itemString ~= "") then
+            local segments = {}
+            for value in (itemString .. ":"):gmatch("(.-):") do
+                tinsert(segments, value)
+            end
+            local enhancementId = segments[2]
+            if (enhancementId and enhancementId ~= "" and enhancementId ~= "0") then
+                itemEnhancementId = enhancementId
+            end
+            local gemIds = {}
+            for i = 3, 6 do
+                local gemId = segments[i]
+                if (gemId and gemId ~= "" and gemId ~= "0") then
+                    tinsert(gemIds, gemId)
+                end
+            end
+            if (#gemIds > 0) then
+                itemGemId = table.concat(gemIds, ", ")
+            end
+            local bonusCount = tonumber(segments[14] or "")
+            if (bonusCount and bonusCount > 0) then
+                local bonusIds = {}
+                for i = 1, bonusCount do
+                    local bonusId = segments[14 + i]
+                    if (bonusId and bonusId ~= "") then
+                        tinsert(bonusIds, bonusId)
+                    end
+                end
+                if (#bonusIds > 0) then
+                    local bonusLabel = L["id.bonus"] or "Bonus ID"
+                    local bonusIndent = string.rep(" ", string.len(bonusLabel) + 2)
+                    local formattedBonus = {}
+                    for i, bonusId in ipairs(bonusIds) do
+                        tinsert(formattedBonus, bonusId)
+                        if (i < #bonusIds) then
+                            if (i % 4 == 0) then
+                                tinsert(formattedBonus, ",\n" .. bonusIndent)
+                            else
+                                tinsert(formattedBonus, ", ")
+                            end
+                        end
+                    end
+                    itemBonusId = table.concat(formattedBonus)
+                end
+            end
+        end
+    end
     if (showItemId) then
         local hasExpansionLine = addon:FindLine(tooltip, L["id.expansion"] or "Expansion")
         ShowId(tooltip, L["id.item"] or "Item ID", itemId, hasExpansionLine and true or false, true)
+    end
+    if (showItemBonusId and isEquippable) then
+        ShowId(tooltip, L["id.bonus"] or "Bonus ID", itemBonusId, true, true)
+    end
+    if (showItemEnhancementId and isEquippable) then
+        ShowId(tooltip, L["id.enhancement"] or "Enhancement ID", itemEnhancementId, true, true)
+    end
+    if (showItemGemId and isEquippable) then
+        ShowId(tooltip, L["id.gem"] or "Gem ID", itemGemId, true, true)
     end
     local iconId = GetItemIconId(linkOrId)
     if (iconId and showItemIconId) then
@@ -101,7 +164,11 @@ local function ShowItemInfo(tooltip, linkOrId)
 end
 
 local function ShowLinkIdInfo(tooltip, link)
-    ShowItemInfo(tooltip, link or select(2,tooltip:GetItem()))
+    local itemLink = link
+    if (not itemLink and tooltip and tooltip.GetItem) then
+        _, _, itemLink = pcall(tooltip.GetItem, tooltip)
+    end
+    ShowItemInfo(tooltip, itemLink)
 end
 
 local function GetSpellIdFromTooltip(tip)
@@ -181,7 +248,9 @@ end)
 -- Quest
 if (QuestMapLogTitleButton_OnEnter) then
     hooksecurefunc("QuestMapLogTitleButton_OnEnter", function(self)
-        if (self.questID) then ShowId(GameTooltip, "Quest", self.questID) end
+        if (self.questID and addon.db.quest.showQuestId ~= false) then
+            ShowId(GameTooltip, L["id.quest"] or "Quest ID", self.questID, nil, true)
+        end
     end)
 end
 

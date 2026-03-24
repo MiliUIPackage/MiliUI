@@ -9,6 +9,7 @@ if (type(addonFolderName) ~= "string" or addonFolderName == "") then
     addonFolderName = "TinyTooltip-Remake"
 end
 local addonTexturePath = ("Interface\\AddOns\\%s\\texture\\"):format(addonFolderName)
+local addonIconPath = ("Interface\\AddOns\\%s\\icon\\"):format(addonFolderName)
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local LibMedia = LibStub:GetLibrary("LibSharedMedia-3.0", true)
@@ -189,6 +190,11 @@ addon.icons = {
     HEALER     = "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:20:39:1:20|t",
     DAMAGER    = "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:20:39:22:41|t",
 }
+
+local mountCollectionIconTag = ("|T%smount.tga:14:14:0:0|t"):format(addonIconPath)
+local mplusScoreIconTag = ("|T%smplus.tga:14:14:0:0|t"):format(addonIconPath)
+local itemLevelIconTag = ("|T%sitem_level.blp:14:14:0:0|t"):format(addonIconPath)
+local achievementPointsIconTag = (type(CreateAtlasMarkup) == "function" and CreateAtlasMarkup("storyheader-cheevoicon", 14, 14)) or "|A:storyheader-cheevoicon:14:14|a"
 
 -- 背景
 addon.bgs = {
@@ -1091,6 +1097,7 @@ function addon:GetUnitInfo(unit)
     t.reactionName = reaction and _G["FACTION_STANDING_LABEL"..reaction]
     t.creature     = SafeCall(UnitCreatureType, unit)
     t.mplusScore = nil
+    t.mplusScoreValue = nil
     t.mplusScoreColor = nil
     t.classifBoss  = (level==-1 or classif == "worldboss") and BOSS
     t.classifElite = classif == "elite" and ELITE
@@ -1102,9 +1109,11 @@ function addon:GetUnitInfo(unit)
     if (mplusScore and mplusScore > 0) then
         local bestText = (mplusBest and mplusBest > 0) and (" (" .. mplusBest .. ")") or ""
         t.mplusScore = format("%s: %d%s", label, floor(mplusScore + 0.5), bestText)
+        t.mplusScoreValue = format("%d%s", floor(mplusScore + 0.5), bestText)
         t.mplusScoreColor = mplusColor
     else
         t.mplusScore = format("%s: %d (%d)", label, 0, 0)
+        t.mplusScoreValue = "0 (0)"
         t.mplusScoreColor = { r = 0.6, g = 0.6, b = 0.6 }
     end
     t.unit         = unit                     --unit
@@ -1187,6 +1196,9 @@ function addon:GetUnitData(unit, elements, raw)
                     else
                         nameText = raw.mountName
                     end
+                    if (config and config.icon) then
+                        label = mountCollectionIconTag .. "|cffffd200:|r"
+                    end
                     local statusText
                     if (raw.mountCollected == true) then
                         local collectedText = (self.L and self.L.collected) or "collected"
@@ -1201,10 +1213,62 @@ function addon:GetUnitData(unit, elements, raw)
                         tinsert(data[i], format("%s %s", label, nameText))
                     end
                 end
+            elseif (e == "className") then
+                if (self:CheckFilter(config, raw) and raw.className) then
+                    local classText
+                    if (config and config.color and config.wildcard) then
+                        classText = self:FormatData(raw.className, config, raw, raw.className)
+                    else
+                        classText = raw.className
+                    end
+                    if (config and config.icon) then
+                        local classIconText
+                        if (raw.classSpecIcon and raw.classSpecIcon ~= "") then
+                            classIconText = ("|T%s:14:14:0:0|t"):format(raw.classSpecIcon)
+                        elseif (type(raw.classIcon) == "string" and raw.classIcon ~= "") then
+                            classIconText = raw.classIcon
+                        end
+                        if (classIconText and classIconText ~= "") then
+                            classText = classIconText
+                        end
+                    end
+                    tinsert(data[i], classText)
+                end
+            elseif (e == "mplusScore") then
+                if (self:CheckFilter(config, raw) and raw.mplusScore) then
+                    local scoreText = raw.mplusScoreValue or raw.mplusScore
+                    if (type(scoreText) ~= "string") then
+                        scoreText = tostring(scoreText or "")
+                    elseif (not raw.mplusScoreValue) then
+                        local parsed = scoreText:match(":%s*(.+)$")
+                        if (parsed and parsed ~= "") then
+                            scoreText = parsed
+                        end
+                    end
+                    if (config and config.color and config.wildcard) then
+                        scoreText = self:FormatData(scoreText, config, raw, scoreText)
+                    end
+                    if (config and config.icon) then
+                        tinsert(data[i], format("%s|cffffd200:|r %s", mplusScoreIconTag, scoreText))
+                    else
+                        local fullText
+                        if (config and config.color and config.wildcard) then
+                            fullText = self:FormatData(raw.mplusScore, config, raw, raw.mplusScore)
+                        else
+                            fullText = raw.mplusScore
+                        end
+                        tinsert(data[i], fullText)
+                    end
+                end
             elseif (e == "itemLevel") then
                 if (self:CheckFilter(config, raw) and raw.itemLevel) then
                     local labelText = (self.L and self.L.ItemLevel) or "ItemLevel"
-                    local labelPart = format("|cffffd100%s:|r", labelText)
+                    local labelPart
+                    if (config and config.icon) then
+                        labelPart = itemLevelIconTag .. "|cffffd200:|r"
+                    else
+                        labelPart = format("|cffffd100%s:|r", labelText)
+                    end
                     local itemLevelValue = raw.itemLevel
                     local valuePart
                     if (tostring(itemLevelValue) == "??") then
@@ -1228,7 +1292,12 @@ function addon:GetUnitData(unit, elements, raw)
             elseif (e == "achievementPoints") then
                 if (self:CheckFilter(config, raw) and raw.achievementPoints ~= nil) then
                     local labelText = (self.L and self.L.Achievement) or "Achievement"
-                    local labelPart = format("|cffffd100%s:|r", labelText)
+                    local labelPart
+                    if (config and config.icon) then
+                        labelPart = achievementPointsIconTag .. "|cffffd200:|r"
+                    else
+                        labelPart = format("|cffffd100%s:|r", labelText)
+                    end
                     local pointValue = raw.achievementPoints
                     local valuePart
                     if (tostring(pointValue) == "??") then
@@ -1707,7 +1776,11 @@ UpdateStyleMaskVisibility = function(tip)
             end
         end
     end
-    mask:SetShown(show)
+    if (show) then
+        mask:Show()
+    else
+        mask:Hide()
+    end
 end
 
 local function ApplyBorderCorner(tip, corner)
@@ -1982,10 +2055,11 @@ end)
 
 LibEvent:attachTrigger("tooltip.statusbar.height", function(self, height)
     GameTooltipStatusBar:SetHeight(height or 12)
-    if (addon.db.general.statusbarHide) then
-        GameTooltipStatusBar:Hide()
-    elseif ((height or 12) > 0) then
+    local general = addon.db.general
+    if (GameTooltip and GameTooltip._tinyStatusBarUnitActive and not general.statusbarHide and (general.statusbarHeight or 12) > 0) then
         GameTooltipStatusBar:Show()
+    else
+        GameTooltipStatusBar:Hide()
     end
 end)
 
@@ -1998,12 +2072,31 @@ end)
 LibEvent:attachTrigger("tooltip.statusbar.visible", function(self, hide)
     if (hide) then
         GameTooltipStatusBar:Hide()
-    else
-        local height = addon.db.general.statusbarHeight or 12
-        if (height > 0) then
-            GameTooltipStatusBar:Show()
-        end
+        return
     end
+    local general = addon.db.general
+    if (GameTooltip and GameTooltip._tinyStatusBarUnitActive and not general.statusbarHide and (general.statusbarHeight or 12) > 0) then
+        GameTooltipStatusBar:Show()
+    else
+        GameTooltipStatusBar:Hide()
+    end
+end)
+
+LibEvent:attachTrigger("tooltip:unit", function(self, tip)
+    if (tip ~= GameTooltip) then return end
+    GameTooltip._tinyStatusBarUnitActive = true
+    local general = addon.db.general
+    if (not general.statusbarHide and (general.statusbarHeight or 12) > 0) then
+        GameTooltipStatusBar:Show()
+    else
+        GameTooltipStatusBar:Hide()
+    end
+end)
+
+LibEvent:attachTrigger("tooltip:item, tooltip:spell, tooltip:aura, tooltip:cleared, tooltip:hide", function(self, tip)
+    if (tip ~= GameTooltip) then return end
+    GameTooltip._tinyStatusBarUnitActive = false
+    GameTooltipStatusBar:Hide()
 end)
 
 LibEvent:attachTrigger("tooltip.statusbar.font", function(self, font, size, flag)
@@ -2101,10 +2194,8 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
                 else
                     link = select(2, GetItemInfo(info.tooltipData.id))
                 end
-                if (link) then
-                    LibEvent:trigger("tooltip:item", self, link)
-                    didTypedBackdropUpdate = true
-                end
+                LibEvent:trigger("tooltip:item", self, link)
+                didTypedBackdropUpdate = true
             --1 技能
             elseif (SafeEquals(flag, 1)) then
                 LibEvent:trigger("tooltip:spell", self, GetTooltipSpellId(self))
@@ -2166,7 +2257,6 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     tip:TinyHookScript("OnTooltipSetItem",
         function(self)
             local link = select(2, self:GetItem())
-            if (not link) then return end
             LibEvent:trigger("tooltip:item", self, link)
         end
     )

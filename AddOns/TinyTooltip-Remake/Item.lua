@@ -5,6 +5,9 @@ local addon = TinyTooltip
 local L = addon.L or {}
 
 local function GetItemInfoFromLink(linkOrId)
+    if (linkOrId == nil or linkOrId == "") then
+        return nil
+    end
     local name, link, quality, _, _, _, _, stackCount, _, texture = GetItemInfo(linkOrId)
     if (not name) then return nil end
     return {
@@ -70,16 +73,18 @@ LibEvent:attachTrigger("tooltip:item", function(self, tip, link)
         local isModifierDown = IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown()
         local showAllByModifier = addon.db.item.modifierShowAll
         local showItemExpansion = addon.db.item.showItemExpansion
-        if (isModifierDown) then
-            if (not showAllByModifier) then
-                showItemExpansion = false
-            else
-                showItemExpansion = true
-            end
+        if (isModifierDown and showAllByModifier) then
+            showItemExpansion = true
         end
         if (showItemExpansion) then
-            local itemLink = link or (tip and select(2, tip:GetItem()))
-            local _, _, _, _, _, _, _, _, _, _, _, _, _, _, expacId = GetItemInfo(itemLink)
+            local itemLink = link
+            if (not itemLink and tip and tip.GetItem) then
+                _, _, itemLink = pcall(tip.GetItem, tip)
+            end
+            local expacId
+            if (itemLink) then
+                _, _, _, _, _, _, _, _, _, _, _, _, _, _, expacId = GetItemInfo(itemLink)
+            end
             local expansionName
             if (type(expacId) == "number") then
                 expansionName = _G["EXPANSION_NAME" .. expacId]

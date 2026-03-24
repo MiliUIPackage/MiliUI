@@ -12,6 +12,11 @@ local UIDropDownMenu_SetSelectedValue = LibDropdown.SetSelectedValue
 local UIDropDownMenuTemplate = "UIDropDownMenuTemplate"
 
 local addonName = ...
+if (type(addonName) ~= "string" or addonName == "") then
+    addonName = "TinyTooltip-Remake"
+end
+local addonIconPath = ("Interface\\AddOns\\%s\\icon\\"):format(addonName)
+local achievementPointsIconTag = (type(CreateAtlasMarkup) == "function" and CreateAtlasMarkup("storyheader-cheevoicon", 14, 14)) or "|A:storyheader-cheevoicon:14:14|a"
 local addon = TinyTooltip
 local CopyTable = CopyTable
 local LAYOUT
@@ -257,6 +262,10 @@ local function RefreshWidget(widget, config)
         if (widget._updateQuickFocusLayout) then
             widget:_updateQuickFocusLayout()
         end
+    elseif (t == "combatmod") then
+        if (widget._updateCombatModifierLayout) then
+            widget:_updateCombatModifierLayout()
+        end
     elseif (t == "dropdownslider") then
         RefreshDropdown(widget.dropdown, GetVariable(config.keystring..".colorfunc"))
         local v = GetVariable(config.keystring..".alpha") or 0
@@ -272,6 +281,9 @@ local function RefreshWidget(widget, config)
         end
     elseif (t == "element") then
         widget.checkbox:SetChecked(GetVariable(config.keystring..".enable"))
+        if (widget.iconCheckbox) then
+            widget.iconCheckbox:SetChecked(GetVariable(config.keystring..".icon"))
+        end
         if (widget.colorpick) then
             local color = GetVariable(config.keystring..".color")
             RefreshColorPick(widget.colorpick, color)
@@ -635,6 +647,53 @@ function widgets:quickfocus(parent, config)
     frame:HookScript("OnShow", UpdatePanelLayout)
     frame._updateQuickFocusLayout = UpdatePanelLayout
     UpdatePanelLayout()
+    return frame
+end
+
+function widgets:combatmod(parent, config)
+    local frame = CreateFrame("Frame", nil, parent)
+    local parentWidth = parent and parent.anchor and parent.anchor:GetWidth()
+    frame:SetSize(parentWidth or 400, LAYOUT.ROW_HEIGHT)
+
+    frame.dropdown = self:dropdown(frame, {keystring = config.keystring, dropdata = config.dropdata}, L[config.labelKeystring] or L[config.keystring])
+    frame.dropdown:SetPoint("LEFT", 0, 0)
+
+    local function SetDropdownEnabled(enabled)
+        if (UIDropDownMenu_EnableDropDown and UIDropDownMenu_DisableDropDown) then
+            if (enabled) then
+                UIDropDownMenu_EnableDropDown(frame.dropdown)
+            else
+                UIDropDownMenu_DisableDropDown(frame.dropdown)
+            end
+        end
+        local button = frame.dropdown:GetName() and _G[frame.dropdown:GetName() .. "Button"]
+        if (button) then
+            button:SetEnabled(enabled)
+        end
+        frame.dropdown:SetAlpha(1)
+    end
+
+    local function UpdateEnabledState()
+        local hideInCombat = GetVariable(config.enableKeystring)
+        local canToggle = hideInCombat and true or false
+        SetDropdownEnabled(canToggle)
+    end
+
+    local function RefreshState()
+        RefreshDropdown(frame.dropdown, GetVariable(config.keystring))
+        UpdateEnabledState()
+    end
+
+    frame:HookScript("OnShow", RefreshState)
+    frame._updateCombatModifierLayout = RefreshState
+
+    LibEvent:attachTrigger("tooltip:variable:changed", function(self, keystring)
+        if (keystring == config.enableKeystring or keystring == config.keystring) then
+            RefreshState()
+        end
+    end)
+
+    RefreshState()
     return frame
 end
 
@@ -1233,6 +1292,25 @@ function widgets:element(parent, config)
     frame:SetBackdropBorderColor(0.6, 0.6, 0.6, 0.6)
     frame.checkbox = self:checkbox(frame, {keystring=config.keystring..".enable"}, L[config.keystring])
     frame.checkbox:SetPoint("LEFT", 5, 0)
+    if (config.iconToggle) then
+        frame.iconCheckbox = self:checkbox(frame, {keystring=config.keystring..".icon"}, L["unit.player.elements.icon"] or "Icon")
+        if (frame.checkbox and frame.checkbox.Text) then
+            frame.iconCheckbox:SetPoint("LEFT", frame.checkbox.Text, "RIGHT", 8, 0)
+        else
+            frame.iconCheckbox:SetPoint("LEFT", 300, 0)
+        end
+        frame.iconCheckbox.tooltipText = L[config.keystring..".icon"] or (L["unit.player.elements.icon"] or "Show icon")
+        frame.iconCheckbox:HookScript("OnEnter", function(self)
+            if (self.tooltipText and self.tooltipText ~= "") then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetText(self.tooltipText, 1, 1, 1)
+                GameTooltip:Show()
+            end
+        end)
+        frame.iconCheckbox:HookScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+    end
     if (config.color) then
         local colorDropdata = config.numeric and self.numericColorDropdata or self.colorDropdata
         frame.colorDropdata = colorDropdata
@@ -1348,7 +1426,11 @@ function widgets:anchor(parent, config)
         end
         local summary
         if (#selections == 0) then
-            summary = L["anchor.none"] or "None"
+            if (config.keystring == "unit.player.anchor" or config.keystring == "unit.npc.anchor") then
+                summary = L["dropdown.global"] or "Global Setting"
+            else
+                summary = L["anchor.none"] or "None"
+            end
         else
             summary = table.concat(selections, ", ")
         end
@@ -1472,6 +1554,7 @@ LAYOUT = {
     OFFSET_X = {
         checkbox = 0, colorpick = 5, slider = 15,
         dropdown = -15, dropdownslider = -15, anchor = -15,
+        combatmod = -15,
         idinfo = -15,
         quickfocus = -15,
         element = 0,
@@ -1507,7 +1590,9 @@ local options = {
         { keystring = "general.borderCorner",       type = "dropdown", dropdata = widgets.borderDropdata },
         { keystring = "general.bgfile",             type = "dropdown", dropdata = widgets.bgfileDropdata },
         { keystring = "general.anchor",             type = "anchor", dropdata = {"default","cursorRight","cursor","static"} },
+        { keystring = "general.anchor.modifierShowInCombatKey", type = "combatmod", labelKeystring = "general.anchor.modifierShowInCombat", enableKeystring = "general.anchor.hiddenInCombat", dropdata = {"none", "alt", "ctrl", "shift"} },
         { keystring = "quest.coloredQuestBorder",   type = "checkbox" },
+        { keystring = "quest.showQuestId",          type = "checkbox" },
         { keystring = "general.SavedVariablesPerCharacter",   type = "checkbox" },
         { keystring = "general.hideUnitFrameHint",  type = "checkbox" },
         { keystring = "general.quickFocusModKey",   type = "quickfocus", dropdata = {"none", "alt", "ctrl", "shift"} },
@@ -1520,6 +1605,9 @@ local options = {
         { keystring = "item.showItemMaxStack",      type = "checkbox" },
         { keystring = "item.showItemIconId",        type = "checkbox" },
         { keystring = "item.showItemExpansion",     type = "checkbox" },
+        { keystring = "item.showItemBonusId",       type = "checkbox" },
+        { keystring = "item.showItemEnhancementId", type = "checkbox" },
+        { keystring = "item.showItemGemId",         type = "checkbox" },
     },
     pc = {
         { keystring = "unit.player.showTarget",           type = "checkbox" },
@@ -1529,6 +1617,7 @@ local options = {
         { keystring = "unit.player.coloredBorder",        type = "dropdown", dropdata = widgets.colorDropdata },
         { keystring = "unit.player.background",           type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.01 },
         { keystring = "unit.player.anchor",               type = "anchor", dropdata = {"inherit", "default","cursorRight","cursor","static"} },
+        { keystring = "unit.player.anchor.modifierShowInCombatKey", type = "combatmod", labelKeystring = "general.anchor.modifierShowInCombat", enableKeystring = "unit.player.anchor.hiddenInCombat", dropdata = {"none", "global", "alt", "ctrl", "shift"} },
         { keystring = "unit.player.elements.factionBig",  type = "element", filter = false,},
         { keystring = "unit.player.elements.raidIcon",    type = "element", filter = true, },
         { keystring = "unit.player.elements.roleIcon",    type = "element", filter = true, },
@@ -1547,18 +1636,18 @@ local options = {
         { keystring = "unit.player.elements.guildRank",   type = "element", color = true, wildcard = true, filter = true, },
         { keystring = "unit.player.elements.guildRealm",  type = "element", color = true, wildcard = true, filter = true, },
         { keystring = "unit.player.elements.levelValue",  type = "element", color = true, wildcard = true, filter = true, numeric = true, },
-        { keystring = "unit.player.elements.itemLevel",   type = "element", color = true, wildcard = true, filter = true, numeric = true, },
-        { keystring = "unit.player.elements.achievementPoints", type = "element", color = true, wildcard = true, filter = true, numeric = true, },
+        { keystring = "unit.player.elements.itemLevel",   type = "element", color = true, wildcard = true, filter = true, numeric = true, iconToggle = true, },
+        { keystring = "unit.player.elements.achievementPoints", type = "element", color = true, wildcard = true, filter = true, numeric = true, iconToggle = true, },
         { keystring = "unit.player.elements.factionName", type = "element", color = true, wildcard = true, filter = true, },
         { keystring = "unit.player.elements.gender",      type = "element", color = true, wildcard = true, filter = true, },
         { keystring = "unit.player.elements.raceName",    type = "element", color = true, wildcard = true, filter = true, },
-        { keystring = "unit.player.elements.className",   type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.className",   type = "element", color = true, wildcard = true, filter = true, iconToggle = true, },
         { keystring = "unit.player.elements.isPlayer",    type = "element", color = true, wildcard = true, filter = true, },
         { keystring = "unit.player.elements.role",        type = "element", color = true, wildcard = true, filter = true, },
         { keystring = "unit.player.elements.moveSpeed",   type = "element", color = true, wildcard = true, filter = true, numeric = true, },
-        { keystring = "unit.player.elements.mplusScore",  type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.mplusScore",  type = "element", color = true, wildcard = true, filter = true, iconToggle = true, },
         { keystring = "unit.player.elements.zone",        type = "element", color = true, wildcard = true, filter = true, },
-        { keystring = "unit.player.elements.mount",       type = "element", color = true, wildcard = true, filter = true, },
+        { keystring = "unit.player.elements.mount",       type = "element", color = true, wildcard = true, filter = true, iconToggle = true, },
     },
     npc = {
         { keystring = "unit.npc.showTarget",            type = "checkbox" },
@@ -1568,6 +1657,7 @@ local options = {
         { keystring = "unit.npc.coloredBorder",         type = "dropdown", dropdata = widgets.colorDropdata },
         { keystring = "unit.npc.background",            type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.01 },
         { keystring = "unit.npc.anchor",                type = "anchor", dropdata = {"inherit","default","cursorRight","cursor","static"} },
+        { keystring = "unit.npc.anchor.modifierShowInCombatKey", type = "combatmod", labelKeystring = "general.anchor.modifierShowInCombat", enableKeystring = "unit.npc.anchor.hiddenInCombat", dropdata = {"none", "global", "alt", "ctrl", "shift"} },
         { keystring = "unit.npc.elements.factionBig",   type = "element", filter = false,},
         { keystring = "unit.npc.elements.raidIcon",     type = "element", filter = true, },
         { keystring = "unit.npc.elements.classIcon",    type = "element", filter = true, },
@@ -2046,7 +2136,9 @@ end
 
 local function OnEnter(self)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:SetText(L[self.key])
+    local localizedKey = "unit.player.elements." .. tostring(self.key or "")
+    local text = rawget(L, localizedKey) or rawget(L, self.key) or tostring(self.key or "")
+    GameTooltip:SetText(text)
     GameTooltip:Show()
 end
 
@@ -2139,6 +2231,7 @@ local placeholder = {
     raidIcon   = ICON_LIST[8] .. "0|t",
     mount      = L["mount"] or "mount",
     achievementPoints = 12345,
+    zone       = L["unit.player.elements.zone"] or "Zone",
 }
 setmetatable(placeholder, {__index = function(_, k) return k end})
 
@@ -2175,7 +2268,11 @@ LibEvent:attachTrigger("tinytooltip:diy:player", function(self, unit, skipDisabl
                     else
                         valuePart = tostring(ilvl)
                     end
-                    value = format("|cffffd100%s:|r %s", label, valuePart)
+                    if (config.icon) then
+                        value = ("|T%sitem_level.blp:14:14:0:0|t|cffffd200:|r "):format(addonIconPath) .. valuePart
+                    else
+                        value = format("|cffffd100%s:|r %s", label, valuePart)
+                    end
                     handled = true
                 elseif (e == "achievementPoints") then
                     local label = (L and L.Achievement) or "Achievement"
@@ -2186,7 +2283,55 @@ LibEvent:attachTrigger("tinytooltip:diy:player", function(self, unit, skipDisabl
                     else
                         valuePart = tostring(points)
                     end
-                    value = format("|cffffd100%s:|r %s", label, valuePart)
+                    if (config.icon) then
+                        value = achievementPointsIconTag .. "|cffffd200:|r " .. valuePart
+                    else
+                        value = format("|cffffd100%s:|r %s", label, valuePart)
+                    end
+                    handled = true
+                elseif (e == "className" and config.icon) then
+                    local classValue = value
+                    if (config.color and config.wildcard) then
+                        classValue = addon:FormatData(classValue, config, raw, classValue)
+                    end
+                    local specIcon
+                    if (GetSpecialization and GetSpecializationInfo) then
+                        local specIndex = GetSpecialization()
+                        if (type(specIndex) == "number" and specIndex > 0) then
+                            local okSpec, _, _, _, icon = pcall(GetSpecializationInfo, specIndex)
+                            if (okSpec and icon) then
+                                specIcon = ("|T%s:14:14:0:0|t"):format(icon)
+                            end
+                        end
+                    end
+                    specIcon = specIcon or raw.classIcon
+                    if (specIcon and specIcon ~= "") then
+                        value = specIcon
+                    else
+                        value = classValue
+                    end
+                    handled = true
+                elseif (e == "mount" and config.icon) then
+                    local mountValue = value
+                    if (config.color and config.wildcard) then
+                        mountValue = addon:FormatData(mountValue, config, raw, mountValue)
+                    end
+                    value = ("|T%smount.tga:14:14:0:0|t|cffffd200:|r "):format(addonIconPath) .. mountValue
+                    handled = true
+                elseif (e == "mplusScore" and config.icon) then
+                    local mplusValue = raw.mplusScoreValue or value
+                    if (type(mplusValue) ~= "string") then
+                        mplusValue = tostring(mplusValue or "")
+                    elseif (not raw.mplusScoreValue) then
+                        local parsed = mplusValue:match(":%s*(.+)$")
+                        if (parsed and parsed ~= "") then
+                            mplusValue = parsed
+                        end
+                    end
+                    if (config.color and config.wildcard) then
+                        mplusValue = addon:FormatData(mplusValue, config, raw, mplusValue)
+                    end
+                    value = ("|T%smplus.tga:14:14:0:0|t|cffffd200:|r "):format(addonIconPath) .. mplusValue
                     handled = true
                 end
                 if (not handled and config.color and config.wildcard) then
@@ -2255,3 +2400,4 @@ LibEvent:attachTrigger("tooltip:variable:changed", function(self, keystring, val
         LibEvent:trigger("TINYTOOLTIP_GENERAL_INIT")
     end
 end)
+

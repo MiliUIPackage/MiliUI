@@ -233,6 +233,44 @@ local function PlayerCharacter(tip, unit, config, raw)
         -- Keep specialization text during async inspect refresh.
         raw.className = tip._tinySpecLine
     end
+    raw.classSpecIcon = nil
+    local classNameConfig = config and config.elements and config.elements.className
+    if (classNameConfig and classNameConfig.enable and classNameConfig.icon and raw and raw.className and raw.className ~= "") then
+        if (GetSpecialization and GetSpecializationInfo and SafeBool(UnitIsUnit, unit, "player")) then
+            local specIndex = GetSpecialization()
+            if (type(specIndex) == "number" and specIndex > 0) then
+                local okSpec, _, _, _, icon = pcall(GetSpecializationInfo, specIndex)
+                if (okSpec and icon) then
+                    raw.classSpecIcon = icon
+                end
+            end
+        end
+        if ((not raw.classSpecIcon) and GetInspectSpecialization and GetSpecializationInfoByID and SafeBool(UnitIsPlayer, unit)) then
+            local okInspect, specID = pcall(GetInspectSpecialization, unit)
+            if (okInspect and type(specID) == "number" and specID > 0) then
+                local okSpecInfo, _, _, _, icon = pcall(GetSpecializationInfoByID, specID)
+                if (okSpecInfo and icon) then
+                    raw.classSpecIcon = icon
+                end
+            end
+        end
+        if ((not raw.classSpecIcon) and GetNumSpecializationsForClassID and GetSpecializationInfoForClassID and UnitClass) then
+            local _, _, classID = UnitClass(unit)
+            if (type(classID) == "number" and classID > 0) then
+                local classLine = strlower(raw.className)
+                local specCount = GetNumSpecializationsForClassID(classID) or 0
+                for i = 1, specCount do
+                    local okSpecInfo, _, specName, _, icon = pcall(GetSpecializationInfoForClassID, classID, i)
+                    if (okSpecInfo and type(specName) == "string" and specName ~= "" and icon) then
+                        if (strfind(classLine, strlower(specName), 1, true)) then
+                            raw.classSpecIcon = icon
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    end
     raw.mountName = nil
     raw.mountCollected = nil
     if (config and config.elements and config.elements.mount and config.elements.mount.enable) then

@@ -22,7 +22,7 @@ addon.db = {
         statusbarColor    = "auto",
         statusbarTexture  = "Interface\\AddOns\\TinyTooltip-Reforged\\texture\\StatusBar",
 	    statusbarTextFormat = "healthmaxpercent",
-        anchor            = { position = "cursorRight", hiddenInCombat = false, returnInCombat = false, returnOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", y = 240, x = -5, },
+        anchor            = { position = "cursorRight", hiddenInCombat = false, modifierShowInCombatKey = "none", returnInCombat = false, returnOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", }, --鼠標位置 default|cursor|static|cursorRight
         alwaysShowIdInfo  = false,
         skinMoreFrames    = true,
         headerFont        = "default",
@@ -39,7 +39,7 @@ addon.db = {
         player = {
             coloredBorder = "class",                --玩家邊框顔色 default|class|level|reaction|itemQuality|selection|faction|HEX
             background = { colorfunc = "default", alpha = 0.9, },
-            anchor = { position = "inherit", hiddenInCombat = false, defaultInCombat = false, defaultOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", },
+            anchor = { position = "inherit", hiddenInCombat = false, modifierShowInCombatKey = "global", returnInCombat = false, returnOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", },
             showTarget = true,                      --顯示目標
             showTargetBy = true,                    --顯示被關注
             showModel = true,                       --顯示模型
@@ -61,20 +61,21 @@ addon.db = {
                 guildName   = { enable = true, color = "ff00ff", wildcard = "<%s>", filter = "none" },
                 guildIndex  = { enable = true, color = "cc88ff", wildcard = "%s",  filter = "none" },
                 guildRank   = { enable = true, color = "cc88ff", wildcard = "(%s)", filter = "none" },
-                guildRealm  = { enable = false, color = "00cccc", wildcard = "%s",   filter = "none" },
-                levelValue  = { enable = true, color = "level",   wildcard = "%s",  filter = "none" },
-                factionName = { enable = true, color = "faction", wildcard = "%s",  filter = "none" },
-                gender      = { enable = false, color = "999999",  wildcard = "%s", filter = "none" },
-                raceName    = { enable = true, color = "cccccc",  wildcard = "%s",  filter = "none" },
-                className   = { enable = true, color = "ffffff",  wildcard = "%s",  filter = "none" },
-                classSpecAndName = { enable = false, color = "ffffff", wildcard = "%s", filter = "none" },
-                isPlayer    = { enable = false, color = "ffffff",  wildcard = "(%s)", filter = "none" },
+                guildRealm  = { enable = true, color = "00cccc", wildcard = "%s",   filter = "none" },
+                levelValue  = { enable = true, color = "level",   wildcard = "%s",  filter = "none" }, 
+                itemLevel   = { enable = true, color = "itemLevel", wildcard = "%s", filter = "none", icon = false },
+                achievementPoints = { enable = true, color = "ffffff", wildcard = "%s", filter = "none", icon = false },
+                factionName = { enable = true, color = "faction", wildcard = "%s",  filter = "none" }, 
+                gender      = { enable = false, color = "999999",  wildcard = "%s", filter = "none" }, 
+                raceName    = { enable = true, color = "cccccc",  wildcard = "%s",  filter = "none" }, 
+                className   = { enable = true, color = "class",   wildcard = "%s",  filter = "none", icon = false }, 
+                isPlayer    = { enable = false, color = "ffffff",  wildcard = "(%s)", filter = "none" }, 
                 role        = { enable = false, color = "ffffff",  wildcard = "(%s)", filter = "none" },
                 moveSpeed   = { enable = false, color = "e8e7a8",  wildcard = "%d%%", filter = "none" },
-                mplusScore  = { enable = false,  color = "mplus",   wildcard = "%s",  filter = "none" },
-                zone        = { enable = true,  color = "ffffff",  wildcard = "%s", filter = "none" },
-                { "raidIcon", "roleIcon", "pvpIcon", "factionIcon", "classIcon", "title", "name", "realm", "statusAFK", "statusDND", "statusDC", },
-		        mount       = { enable = true,  color = "ffffff",  wildcard = "%s", filter = "none" },
+                mplusScore  = { enable = true,  color = "mplus",   wildcard = "%s",  filter = "none", icon = true },
+                zone        = { enable = false,  color = "ffffff",  wildcard = "%s", filter = "none" },
+                mount       = { enable = true,  color = "ffffff",  wildcard = "%s", filter = "none", icon = true },
+                { "friendIcon", "raidIcon", "roleIcon", "pvpIcon", "factionIcon", "classIcon", "title", "name", "realm", "statusAFK", "statusDND", "statusDC", },
                 { "guildName", "guildIndex", "guildRank", "guildRealm", },
                 { "levelValue", "factionName", "gender", "raceName", "className", "classSpecAndName", "isPlayer", "role", "moveSpeed", },
                 { "mount" },
@@ -91,7 +92,7 @@ addon.db = {
             showTargetBy = true,
             grayForDead = true,
             showModel = false,
-            anchor = { position = "inherit", hiddenInCombat = false, defaultInCombat = false, defaultOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", },
+            anchor = { position = "inherit", hiddenInCombat = false, modifierShowInCombatKey = "global", returnInCombat = false, returnOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", },
             elements = {
                 factionBig   = { enable = false, filter = "none" },
                 raidIcon     = { enable = true,  filter = "none" },
@@ -116,6 +117,9 @@ addon.db = {
         coloredItemBorder = true,  --邊框按品質染色
         showItemIcon = true,       --物品圖標
         showItemId = false,
+        showItemBonusId = false,
+        showItemEnhancementId = false,
+        showItemGemId = false,
         showItemMaxStack = true,
         showItemIconId = false,
         showItemExpansion = true,
@@ -130,6 +134,7 @@ addon.db = {
     },
     quest = {
         coloredQuestBorder = true,  --任務按等差染色
+        showQuestId = true,
     },
     variables = {}, --用户配置数据
 }
