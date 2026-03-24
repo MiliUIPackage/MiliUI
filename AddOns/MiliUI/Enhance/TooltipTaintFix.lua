@@ -48,4 +48,21 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_GameTooltip", function()
         end
     end
 
+    -- Hook GameTooltip_ClearWidgetSet（地圖 Tooltip 的污染路徑）
+    -- 地圖 POI Tooltip 清除 WidgetSet 時，UpdateWidgetLayout → DefaultWidgetLayout
+    -- → LayoutFrame:Layout() 中比較框架寬高會觸發 secret number 錯誤。
+    if GameTooltip_ClearWidgetSet then
+        local OriginalClearWidgetSet = GameTooltip_ClearWidgetSet
+        GameTooltip_ClearWidgetSet = function(...)
+            local ok, err = pcall(OriginalClearWidgetSet, ...)
+            if not ok then
+                if type(err) == "string" and err:find("secret") then
+                    -- 靜默處理 secret number 比較錯誤
+                else
+                    error(err, 2)
+                end
+            end
+        end
+    end
+
 end)
