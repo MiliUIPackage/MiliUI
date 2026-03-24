@@ -28,6 +28,11 @@ local loadstring = loadstring
 local nK, nM = "K", "M"
 
 local specialchars = { ["nl"] = "\n", ["%"] = "%%", ["lp"] = "%(", ["rp"] = "%)", }
+-- WoW 12.0+: UnitIsVisible / UnitInRange return "secret booleans" that cannot
+-- be used with not / == / ~=.  tostring() is the only safe escape hatch.
+local function desecret(v)
+	return tostring(v) == "true"
+end
 local conditions = {
 	pc = function(ca, unit) return ca.pc end,
 	npc = function(ca, unit) return not ca.pc end,
@@ -48,9 +53,9 @@ local conditions = {
 	oor = function(ca, unit)
 		if ( unit == "player" or not ca.assist or ca.dead or not UnitIsConnected(unit) ) then
 			return false
-		elseif ( UnitIsVisible(unit) ~= true ) or
+		elseif ( not desecret(UnitIsVisible(unit)) ) or
 		       ( s40 and not C_SpellIsInRange and IsSpellInRange and IsSpellInRange(s40, unit) == 0 ) or
-			   ( not s40 and Stuf.ingroup and ca.ingroup and UnitInRange(unit) ~= true ) or
+			   ( not s40 and Stuf.ingroup and ca.ingroup and not desecret(UnitInRange(unit)) ) or
 		( s40 and C_SpellIsInRange and C_SpellIsInRange(s40, unit) == false ) then
 			return true
 		end
