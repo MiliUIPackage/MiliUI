@@ -26,4 +26,4 @@ Enhance\AddonNames.lua
 Enhance\AutoSlotKeystone.lua
 Enhance\AutoStoryStroll.lua
 Enhance\TeleportMenu_Spacing.lua
-# Enhance\TooltipTaintFix.lua
+Enhance\TooltipTaintFix.lua
