@@ -48,9 +48,9 @@ local conditions = {
 	oor = function(ca, unit)
 		if ( unit == "player" or not ca.assist or ca.dead or not UnitIsConnected(unit) ) then
 			return false
-		elseif ( not UnitIsVisible(unit) ) or
+		elseif ( UnitIsVisible(unit) ~= true ) or
 		       ( s40 and not C_SpellIsInRange and IsSpellInRange and IsSpellInRange(s40, unit) == 0 ) or
-			   ( not s40 and Stuf.ingroup and ca.ingroup and not UnitInRange(unit) ) or
+			   ( not s40 and Stuf.ingroup and ca.ingroup and UnitInRange(unit) ~= true ) or
 		( s40 and C_SpellIsInRange and C_SpellIsInRange(s40, unit) == false ) then
 			return true
 		end
