@@ -156,7 +156,12 @@ function DBM:AddSpecialWarning(text, force, specWarnObject, number, customIcon, 
 		end
 		if self.Options.ShowSWarningsInChat then
 			local colorCode = ("|cff%.2x%.2x%.2x"):format(DBM.Options.SpecialWarningFontCol[1] * 255, DBM.Options.SpecialWarningFontCol[2] * 255, DBM.Options.SpecialWarningFontCol[3] * 255)
-			local combinedText = C_StringUtil.WrapString(formatedText, colorCode .. "[" .. L.MOVE_SPECIAL_WARNING_TEXT .. "] ", "|r")
+			local combinedText
+			if C_StringUtil then
+				combinedText = C_StringUtil.WrapString(formatedText, colorCode .. "[" .. L.MOVE_SPECIAL_WARNING_TEXT .. "] ", "|r")
+			else
+				combinedText = colorCode .. "[" .. L.MOVE_SPECIAL_WARNING_TEXT .. "] " .. formatedText .. "|r"
+			end
 			self:AddMsg(combinedText)
 		end
 		--DUPLICATE CODE
@@ -405,9 +410,10 @@ local specTypeFilterTable = {
 ---@param voice VPSound voice pack media path
 ---@param voiceVersion number Required voice pack verion (if not met, falls back to default special warning sounds)
 ---@param color warningColorType? ColorId 1-4
-function specialWarningPrototype:SetAlert(encounterEventId, voice, voiceVersion, color)
+---@param overrideType number? Optional override type for the alert
+function specialWarningPrototype:SetAlert(encounterEventId, voice, voiceVersion, color, overrideType)
 	if self.option and self.mod.Options[self.option] then
-		self.mod:EnableAlertOptions(self.spellId, encounterEventId, voice, voiceVersion, color, nil, self.option)
+		self.mod:EnableAlertOptions(self.spellId, encounterEventId, voice, voiceVersion, color, overrideType, self.option)
 	end
 end
 
@@ -550,6 +556,13 @@ function specialWarningPrototype:Show(...)
 		--boolean: Whether or not this warning is a special warning (higher priority). BW would call this "emphasized"
 		--announceCount: If it's a count announce, this will provide access to the number value of that count. This, along with spellId should be used instead of message text scanning for most weak auras that need to target specific count casts
 		DBM:FireEvent("DBM_Announce", text, self.icon, self.type, self.spellId, self.mod.id, true, announceCount)
+		if DBM.Options.IgnoreBlizzAPI and self.spellId and self.spellName then
+			if announceCount then
+				DBM:Debug("|cff00ff00Showing hardcoded warning for |r spellID |cff69ccf0" .. self.spellId .. "|r spellName |cff69ccf0" .. self.spellName .. " (" .. announceCount .. ")|r", 2, nil, nil, true)
+			else
+				DBM:Debug("|cff00ff00Showing hardcoded warning for |r spellID |cff69ccf0" .. self.spellId .. "|r spellName |cff69ccf0" .. self.spellName .. "|r", 2, nil, nil, true)
+			end
+		end
 		if self.sound and not DBM.Options.DontPlaySpecialWarningSound and (not self.option or self.mod.Options[self.option .. "SWSound"] ~= "None") then
 			local soundId = self.option and self.mod.Options[self.option .. "SWSound"] or self.flash
 			if noteHasName and type(soundId) == "number" then soundId = noteHasName end--Change number to 5 if it's not a custom sound, else, do nothing with it

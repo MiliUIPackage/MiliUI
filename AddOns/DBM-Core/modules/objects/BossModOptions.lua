@@ -46,6 +46,7 @@ function bossModPrototype:AddBoolOption(name, default, cat, func, extraOption, e
 		self.Options[name .. "TColor"] = extraOption or 0
 		self.Options[name .. "CVoice"] = extraOptionTwo or 0
 	end
+	if self.noHardcodedOptions and (cat == "announce" or cat == "timer" or cat == "icon" or cat == "nameplate" or cat == "yell") and optionSubType ~= "roleplay" then return end
 	if spellId then
 		if waCustomName then--Do custom shit for options using invalid spellIds as weak auras keys
 			self:GroupWASpells(waCustomName, spellId, name)
@@ -79,7 +80,7 @@ function bossModPrototype:AddSpecialWarningOption(name, default, defaultSound, c
 	else
 		checkDuplicateObjects[name] = true
 	end
-	cat = cat or "misc"
+	cat = cat or "announce"
 	self.DefaultOptions[name] = (default == nil) or default
 	self.DefaultOptions[name .. "SWSound"] = defaultSound or 1
 	self.DefaultOptions[name .. "SWNote"] = true
@@ -89,6 +90,7 @@ function bossModPrototype:AddSpecialWarningOption(name, default, defaultSound, c
 	self.Options[name] = (default == nil) or default
 	self.Options[name .. "SWSound"] = defaultSound or 1
 	self.Options[name .. "SWNote"] = true
+	if self.noHardcodedOptions then return end
 	if spellId then
 		if waCustomName then--Do custom shit for options using invalid spellIds as weak auras keys
 			self:GroupWASpells(waCustomName, spellId, name)
@@ -104,37 +106,68 @@ end
 ---|0: Generic subtype for generalized use
 ---|1: Custom subtype for when targetted by the private aura spell
 ---|2: Custom subtype for when standing in the private aura spell (GTFO)
----@param auraspellId number must match debuff ID so EnablePrivateAuraSound function can call right option key and right debuff ID
+---|3: Custom subtype for lingering debuffs (such as dots, or increased damage taken)
+---@param auraspellId number|number[] must match debuff ID(s); if a table, first element is the option key and all IDs share the same sound
 ---@param default SpecFlags|boolean?
 ---@param groupSpellId number? is used if a diff option key is used in all other options with spell (will be quite common)
 ---@param defaultSound acceptedSASounds? is used to set default Special announce sound (1-4) just like regular special announce objects
----@param subType paSubTypes? 0/nil: default, 1: targetted, 2:gtfo
-function bossModPrototype:AddPrivateAuraSoundOption(auraspellId, default, groupSpellId, defaultSound, subType)
-	self.DefaultOptions["PrivateAuraSound" .. auraspellId] = (default == nil) or default
-	self.DefaultOptions["PrivateAuraSound" .. auraspellId .. "SWSound"] = defaultSound or 1
+---@param subType paSubTypes? 0/nil: default, 1: targetted, 2: gtfo, 3: post debuff. Also accepts a voice string as shorthand for migrated 6-arg calls.
+---@param voice VPSound|number? voice pack media path for zone-based private aura sound registration. Also accepts the shorthand voiceVersion number when subType is passed as a voice string.
+---@param voiceVersion number? required voice pack version; if voice pack version is below this value, falls back to default sound
+function bossModPrototype:AddPrivateAuraSoundOption(auraspellId, default, groupSpellId, defaultSound, subType, voice, voiceVersion)
+	if type(subType) == "string" then
+		local shorthandVoiceVersion = type(voice) == "number" and voice or nil
+		voice = subType
+		voiceVersion = shorthandVoiceVersion
+		subType = nil
+	end
+	local optionId
+	if type(auraspellId) == "table" then
+		optionId = auraspellId[1]
+	else
+		optionId = auraspellId
+	end
+	if type(optionId) ~= "number" then
+		DBM:Debug("Attempting to add private aura sound failed due to invalid optionId type for mod " .. self.id, 2)
+		return
+	end
+	self.DefaultOptions["PrivateAuraSound" .. optionId] = (default == nil) or default
+	self.DefaultOptions["PrivateAuraSound" .. optionId .. "SWSound"] = defaultSound or 1
 	if type(default) == "string" then
 		default = self:GetRoleFlagValue(default)
 	end
-	self.Options["PrivateAuraSound" .. auraspellId] = (default == nil) or default
+	self.Options["PrivateAuraSound" .. optionId] = (default == nil) or default
 	--Temp hide UI options for private auras that are flagged not private until 12.0.5 because reasons.
-	if not C_UnitAuras.AuraIsPrivate(auraspellId) then
+	if not C_UnitAuras.AuraIsPrivate(optionId) then
 		return
 	end
 	--LuaLS is just stupid here. There is no rule that says self.Options.Variable has to be a bool. Entire SWSound variable scope is always a number
 	---@diagnostic disable-next-line: assign-type-mismatch
-	self.Options["PrivateAuraSound" .. auraspellId .. "SWSound"] = defaultSound or 1
+	self.Options["PrivateAuraSound" .. optionId .. "SWSound"] = defaultSound or 1
 	subType = subType or 0
 	if subType == 1 then
-		self.localization.options["PrivateAuraSound" .. auraspellId] = L.AUTO_PRIVATEAURA_OPTION_TARGET_TEXT:format(auraspellId)
+		self.localization.options["PrivateAuraSound" .. optionId] = L.AUTO_PRIVATEAURA_OPTION_TARGET_TEXT:format(optionId)
 	elseif subType == 2 then
-		self.localization.options["PrivateAuraSound" .. auraspellId] = L.AUTO_PRIVATEAURA_OPTION_GTFO_TEXT:format(auraspellId)
+		self.localization.options["PrivateAuraSound" .. optionId] = L.AUTO_PRIVATEAURA_OPTION_GTFO_TEXT:format(optionId)
+	elseif subType == 3 then
+		self.localization.options["PrivateAuraSound" .. optionId] = L.AUTO_PRIVATEAURA_OPTION_POST_TEXT:format(optionId)
 	else
-		self.localization.options["PrivateAuraSound" .. auraspellId] = L.AUTO_PRIVATEAURA_OPTION_TEXT:format(auraspellId)
+		self.localization.options["PrivateAuraSound" .. optionId] = L.AUTO_PRIVATEAURA_OPTION_TEXT:format(optionId)
 	end
 --	if not DBM.Options.GroupOptionsExcludePA then
-		self:GroupSpellsPA(groupSpellId or auraspellId, "PrivateAuraSound" .. auraspellId)
+		self:GroupSpellsPA(groupSpellId or optionId, "PrivateAuraSound" .. optionId)
 --	end
-	self:SetOptionCategory("PrivateAuraSound" .. auraspellId, "paura", nil, nil, true)
+	self:SetOptionCategory("PrivateAuraSound" .. optionId, "paura", nil, nil, true)
+	-- Store for zone-based registration in SecondaryLoadCheck, keyed by exact zone IDs captured from SetZone at option registration time.
+	if voice then
+		if self.zones then
+			if not self.pendingPASoundsByZone then self.pendingPASoundsByZone = {} end
+			for zoneID in pairs(self.zones) do
+				self.pendingPASoundsByZone[zoneID] = self.pendingPASoundsByZone[zoneID] or {}
+				self.pendingPASoundsByZone[zoneID][#self.pendingPASoundsByZone[zoneID] + 1] = {auraspellId, voice, voiceVersion or 0}
+			end
+		end
+	end
 end
 
 ---Object for customizing blizzard timeline object with colors and sounds
@@ -150,7 +183,6 @@ function bossModPrototype:AddCustomTimerOptions(spellId, default, defaultColor, 
 		default = self:GetRoleFlagValue(default)
 	end
 	self.Options["CustomTimerOption" .. spellId] = (default == nil) or default
-
 	self.localization.options["CustomTimerOption" .. spellId] = L.AUTO_CUSTOMTIMER_OPTION_TEXT:format(spellId)
 	self:GroupSpellsPA(groupSpellId or spellId, "CustomTimerOption" .. spellId)
 	self:AddBoolOption("CustomTimerOption" .. spellId, default, "timer", nil, defaultColor, defaultVoice, spellId)
@@ -200,6 +232,7 @@ function bossModPrototype:AddSetIconOption(name, spellId, default, iconType, ico
 		default = self:GetRoleFlagValue(default)
 	end
 	self.Options[name] = (default == nil) or default
+	if self.noHardcodedOptions then return end
 	if (groupSpellId or spellId) and not DBM.Options.GroupOptionsExcludeIcon then
 		self:GroupSpells(groupSpellId or spellId, name)
 	end
@@ -291,44 +324,6 @@ function bossModPrototype:AddArrowOption(name, spellId, default, isRunTo)
 	end
 end
 
----Legacy object at this point. Range checks aren't added to new modules due to no longer being usable inside raids. they should NOT be removed from old modules in event blizzard ever adds built in functionality we can automate
----@param range number|string Non optional, should be number if fixed ranged or string with custom string such as "various" or "10/6"
----@param spellId number? if used, auto localizes using spell or journal id. if left blank uses generic description
----@param default SpecFlags|boolean?
-function bossModPrototype:AddRangeFrameOption(range, spellId, default)
-	self.DefaultOptions["RangeFrame"] = (default == nil) or default
-	if type(default) == "string" then
-		default = self:GetRoleFlagValue(default)
-	end
-	self.Options["RangeFrame"] = (default == nil) or default
-	if spellId then
-		self:GroupSpells(spellId, "RangeFrame")
-		self.localization.options["RangeFrame"] = L.AUTO_RANGE_OPTION_TEXT:format(range, spellId)
-	else
-		self.localization.options["RangeFrame"] = L.AUTO_RANGE_OPTION_TEXT_SHORT:format(range)
-	end
-	self:SetOptionCategory("RangeFrame", "misc")
-end
-
----Legacy object at this point. HUD checks aren't added to new modules due to no longer being usable inside raids.
----@param name string Option name
----@param spellId number? if used, auto localizes using spell or journal id. if left blank uses generic description
----@param default SpecFlags|boolean?
-function bossModPrototype:AddHudMapOption(name, spellId, default)
-	self.DefaultOptions[name] = (default == nil) or default
-	if type(default) == "string" then
-		default = self:GetRoleFlagValue(default)
-	end
-	self.Options[name] = (default == nil) or default
-	if spellId then
-		self:GroupSpells(spellId, name)
-		self.localization.options[name] = L.AUTO_HUD_OPTION_TEXT:format(spellId)
-	else
-		self.localization.options[name] = L.AUTO_HUD_OPTION_TEXT_MULTI
-	end
-	self:SetOptionCategory(name, "misc")
-end
-
 ---@param name string Option name
 ---@param spellId number if used, auto localizes using spell or journal id. if left blank uses generic description
 ---@param default SpecFlags|boolean?
@@ -342,6 +337,7 @@ function bossModPrototype:AddNamePlateOption(name, spellId, default, forceDBM)
 		default = self:GetRoleFlagValue(default)
 	end
 	self.Options[name] = (default == nil) or default
+	if self.noHardcodedOptions then return end
 	self:GroupSpells(spellId, name)
 	self:SetOptionCategory(name, "nameplate")
 	self.localization.options[name] = forceDBM and L.AUTO_NAMEPLATE_OPTION_TEXT_FORCED:format(spellId) or L.AUTO_NAMEPLATE_OPTION_TEXT:format(spellId)
@@ -359,6 +355,7 @@ function bossModPrototype:AddInfoFrameOption(spellId, default, optionVersion, op
 		default = self:GetRoleFlagValue(default)
 	end
 	self.Options["InfoFrame" .. oVersion] = (default == nil) or default
+	if self.noHardcodedOptions then return end
 	if spellId then
 		self:GroupSpells(spellId, "InfoFrame" .. oVersion)
 		if optionalThreshold then
@@ -422,6 +419,7 @@ function bossModPrototype:AddSpeedClearOption(name, default)
 		default = self:GetRoleFlagValue(default)
 	end
 	self.Options["SpeedClearTimer"] = (default == nil) or default
+	if self.noHardcodedOptions then return end
 	self:SetOptionCategory("SpeedClearTimer", "timer")
 	self.localization.options["SpeedClearTimer"] = L.AUTO_SPEEDCLEAR_OPTION_TEXT:format(name)
 end
@@ -438,6 +436,7 @@ function bossModPrototype:AddDropdownOption(name, options, default, cat, func, s
 	cat = cat or "misc"
 	self.DefaultOptions[name] = {type = "dropdown", value = default}
 	self.Options[name] = default
+	if self.noHardcodedOptions then return end
 	if spellId then
 		self:GroupSpells(spellId, name)
 	end
@@ -451,6 +450,7 @@ function bossModPrototype:AddDropdownOption(name, options, default, cat, func, s
 end
 
 function bossModPrototype:AddOptionSpacer(cat)
+	if self.noHardcodedOptions then return end
 	cat = cat or "misc"
 	if self.optionCategories[cat] then
 		tinsert(self.optionCategories[cat], DBM_OPTION_SPACER)
@@ -461,6 +461,7 @@ do
 	local lineCount = 1
 
 	function bossModPrototype:AddOptionLine(text, cat, forceIgnore)
+		if self.noHardcodedOptions then return end
 		if self.addon and not forceIgnore then
 			self.groupOptions["line" .. lineCount] = text
 			lineCount = lineCount + 1

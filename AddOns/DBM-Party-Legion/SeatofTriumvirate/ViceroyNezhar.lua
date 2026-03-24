@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1981, "DBM-Party-Legion", 13, 945)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260217053553")
+mod:SetRevision("20260322094133")
 mod:SetCreatureID(124874)
 mod:SetEncounterID(2067)
 
@@ -20,8 +20,8 @@ if DBM:IsPostMidnight() then
 	mod:AddCustomTimerOptions(1263528, true, 2, 0)
 	mod:AddCustomTimerOptions(1263542, true, 3, 0)
 	--Midnight private aura replacements
-	mod:AddPrivateAuraSoundOption(1263542, false, 1263542, 1)--Mass Void Infusion (just minor rot damage, off by default)
-	mod:AddPrivateAuraSoundOption(1263532, true, 1263532, 1)--Void Storm (GTFO)
+	mod:AddPrivateAuraSoundOption(1263542, false, 1263542, 1, 1, "debuffyou", 17)--Mass Void Infusion (just minor rot damage, off by default)
+	mod:AddPrivateAuraSoundOption(1263532, true, 1263532, 1, 1, "watchfeet", 8)--Void Storm (GTFO)
 
 	function mod:OnLimitedCombatStart()
 		self:DisableSpecialWarningSounds()
@@ -34,8 +34,6 @@ if DBM:IsPostMidnight() then
 		self:EnableTimelineOptions(1263528, 247)
 		self:EnableTimelineOptions(1277358, 376)
 
-		self:EnablePrivateAuraSound(1263542, "debuffyou", 17)
-		self:EnablePrivateAuraSound(1263532, "watchfeet", 8)
 	end
 else
 	mod:RegisterEventsInCombat(

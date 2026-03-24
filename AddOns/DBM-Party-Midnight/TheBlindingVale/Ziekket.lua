@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2772, "DBM-Party-Midnight", 4, 1309)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260303042556")
+mod:SetRevision("20260322092648")
 mod:SetCreatureID(247676)
 mod:SetEncounterID(3202)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -25,9 +25,9 @@ mod:AddCustomTimerOptions(1247685, true, 5, 0)--Thornspike
 mod:AddCustomTimerOptions(1253690, true, 3, 0)--Concentrated Lightbeam
 mod:AddCustomTimerOptions(1246858, true, 5, 0)--Lightbloom's Essence
 --Midnight private aura replacements
-mod:AddPrivateAuraSoundOption(1253690, true, 1253690, 1, 1)--Concentrated Lightbeam, FIX ME if not pre positioned spell
-mod:AddPrivateAuraSoundOption(1246751, true, 1246751, 1, 2)--Concentrated Lightbeam
-mod:AddPrivateAuraSoundOption(1246753, true, 1246753, 1, 2)--Lightsap
+mod:AddPrivateAuraSoundOption(1253690, true, 1253690, 1, 1, "movetomobs", 14)--Concentrated Lightbeam, FIX ME if not pre positioned spell
+mod:AddPrivateAuraSoundOption(1246751, true, 1246751, 1, 2, "watchfeet", 8)--Concentrated Lightbeam
+mod:AddPrivateAuraSoundOption(1246753, true, 1246753, 1, 2, "watchfeet", 8)--Lightsap
 
 function mod:OnLimitedCombatStart()
 	self:EnableAlertOptions(1246372, 189, "mobsoon", 2, 3)
@@ -41,9 +41,6 @@ function mod:OnLimitedCombatStart()
 	self:EnableTimelineOptions(1253690, 191)
 	self:EnableTimelineOptions(1246858, 192)
 
-	self:EnablePrivateAuraSound(1253690, "movetomobs", 14)
-	self:EnablePrivateAuraSound(1246751, "watchfeet", 8)
-	self:EnablePrivateAuraSound(1246753, "watchfeet", 8)
 
 	DBM:Debug("FIGURE OUT LIGHTBEAM")
 end

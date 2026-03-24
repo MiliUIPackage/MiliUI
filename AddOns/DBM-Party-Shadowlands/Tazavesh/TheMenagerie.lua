@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2454, "DBM-Party-Shadowlands", 9, 1194)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260221022657")
+mod:SetRevision("20260322094133")
 mod:SetCreatureID(176556, 176555, 176705)
 mod:SetEncounterID(2441)
 mod:SetUsedIcons(1)
@@ -24,8 +24,8 @@ mod:AddCustomTimerOptions(349954, true, 3, 0)--Purification Protocol
 mod:AddCustomTimerOptions(350086, true, 2, 0)
 mod:AddCustomTimerOptions(350101, true, 3, 0)
 --Midnight private aura replacements
-mod:AddPrivateAuraSoundOption(349627, true, 349627, 1)--Gluttony
-mod:AddPrivateAuraSoundOption(350101, true, 350101, 1)--Chains of Damnation
+mod:AddPrivateAuraSoundOption(349627, true, 349627, 1, 1, "debuffyou", 17)--Gluttony
+mod:AddPrivateAuraSoundOption(350101, true, 350101, 1, 1, "targetyou", 2)--Chains of Damnation
 
 function mod:OnLimitedCombatStart()
 	self:EnableAlertOptions(349663, 567, "justrun", 2)
@@ -41,8 +41,6 @@ function mod:OnLimitedCombatStart()
 	self:EnableTimelineOptions(350086, 572)
 	self:EnableTimelineOptions(350101, 573)
 
-	self:EnablePrivateAuraSound(349627, "debuffyou", 17)
-	self:EnablePrivateAuraSound(350101, "targetyou", 2)
 end
 
 --[[

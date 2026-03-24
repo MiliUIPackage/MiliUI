@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2658, "DBM-Party-Midnight", 1, 1299)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260303042556")
+mod:SetRevision("20260322092648")
 mod:SetCreatureID(231636)
 mod:SetEncounterID(3059)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -26,14 +26,14 @@ mod:AddCustomTimerOptions(472556, true, 3, 0)--Arrow Rain
 mod:AddCustomTimerOptions(472662, true, 5, 0)--Tempest Slash
 mod:AddCustomTimerOptions(1253979, true, 3, 0)--Gust Shot
 --Midnight private aura replacements
-mod:AddPrivateAuraSoundOption(1282911, true, 474528, 1, 1)--Bolt Gale
-mod:AddPrivateAuraSoundOption(1253979, true, 1253979, 1, 1)--Gust Shot
-mod:AddPrivateAuraSoundOption(472662, true, 472662, 1, 1)--Tempest Slash
-mod:AddPrivateAuraSoundOption(1216042, true, 1216042, 1, 1)--Squall Leap
+mod:AddPrivateAuraSoundOption(1282911, true, 474528, 1, 1, "lineyou", 17)--Bolt Gale
+mod:AddPrivateAuraSoundOption(1253979, true, 1253979, 1, 1, "movetopool", 15)--Gust Shot
+mod:AddPrivateAuraSoundOption(472662, true, 472662, 1, 1, "movetoarrow", 19)--Tempest Slash
+mod:AddPrivateAuraSoundOption(1216042, true, 1216042, 1, 1, "movetoarrow", 19)--Squall Leap
 
 function mod:OnLimitedCombatStart()
-	self:EnableAlertOptions(468429, 21, "watchstep", 2)
-	self:EnableAlertOptions(472556, 23, "specialsoon", 2)
+	self:EnableAlertOptions(468429, 21, "getknockedup", 15)
+	self:EnableAlertOptions(472556, 23, "watchstep", 2)
 	if self:IsTank() then
 		self:EnableAlertOptions(472662, 24, "defensive", 2)
 	end
@@ -44,8 +44,4 @@ function mod:OnLimitedCombatStart()
 	self:EnableTimelineOptions(472662, 24)
 	self:EnableTimelineOptions(1253979, 538)
 
-	self:EnablePrivateAuraSound(1282911, "lineyou", 17)
-	self:EnablePrivateAuraSound(1253979, "movetopool", 15)
-	self:EnablePrivateAuraSound(472662, "movetoarrow", 19)
-	self:EnablePrivateAuraSound(1216042, "movetoarrow", 19)
 end

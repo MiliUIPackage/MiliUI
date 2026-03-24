@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2657, "DBM-Party-Midnight", 1, 1299)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260303042556")
+mod:SetRevision("20260322092648")
 mod:SetCreatureID(231631)
 mod:SetEncounterID(3058)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -25,27 +25,25 @@ mod:AddCustomAlertSoundOption(472043, true, 2)--Rallying Bellow
 mod:AddCustomTimerOptions(467620, true, 5, 0)--Rampage
 mod:AddCustomTimerOptions(1253026, true, 2, 0)--Intimidating Shout
 mod:AddCustomTimerOptions(1283247, true, 3, 0)--Reckless Leap
-mod:AddCustomTimerOptions(472043, true, 1, 0)--Rallying Bellow
+--mod:AddCustomTimerOptions(472043, true, 1, 0)--Rallying Bellow
 mod:AddCustomTimerOptions(470966, true, 2, 0)--Bladestorm
 --Midnight private aura replacements
-mod:AddPrivateAuraSoundOption(470966, true, 470966, 4, 1)--Bladestorm target
-mod:AddPrivateAuraSoundOption(468924, true, 470966, 1, 2)--Bladestorm GTFO
-mod:AddPrivateAuraSoundOption(1283247, true, 1283247, 1, 1)--Reckless Leap target
+mod:AddPrivateAuraSoundOption(470966, true, 470966, 4, 1, "justrun", 2)--Bladestorm target
+mod:AddPrivateAuraSoundOption(468924, true, 470966, 1, 2, "watchfeet", 8)--Bladestorm GTFO
+mod:AddPrivateAuraSoundOption(1283247, true, 1283247, 1, 1, "runout", 2)--Reckless Leap target
 
 function mod:OnLimitedCombatStart()
+	self:FixBlizzardAPI()--Boss fires random 16 minute timers for no reason that aren't valid. we want to scrub them
 	if self:IsTank() then
 		self:EnableAlertOptions(467620, {210,556}, "defensive", 2)
 	end
 	self:EnableAlertOptions(1253026, {211,213}, "gathershare", 2)
-	self:EnableAlertOptions(472043, 215, "mobsoon", 2)
+	self:EnableAlertOptions(472043, 215, "mobsoon", 2, 3, 0)
 
 	self:EnableTimelineOptions(467620, {210, 556})
 	self:EnableTimelineOptions(1253026, {211, 213})
 	self:EnableTimelineOptions(1283247, {212, 214})
-	self:EnableTimelineOptions(472043, 215)
+--	self:EnableTimelineOptions(472043, 215)--Doesn't seem to have a timer (it's just cast after the gather mechanic)
 	self:EnableTimelineOptions(470966, 216)
 
-	self:EnablePrivateAuraSound(470966, "justrun", 2)
-	self:EnablePrivateAuraSound(468924, "watchfeet", 8)
-	self:EnablePrivateAuraSound(1283247, "runout", 2)
 end

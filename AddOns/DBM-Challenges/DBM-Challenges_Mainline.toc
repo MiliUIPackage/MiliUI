@@ -24,7 +24,7 @@
 ## X-DBM-Mod-MinExpansion: 4
 ## X-Curse-Project-ID: 61621
 ## X-Wago-ID: Rn6VLLGd
-## Version: r233
+## Version: r237-4
 ## Category-zhTW: 地城與團隊
 ## Category-zhTW: 副本
 

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2662, "DBM-Party-Midnight", 3, 1300)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260303042556")
+mod:SetRevision("20260322092648")
 mod:SetCreatureID(231865)
 mod:SetEncounterID(3074)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -26,7 +26,7 @@ mod:AddCustomTimerOptions(1215897, true, 3, 0)--Devouring Entropy
 mod:AddCustomTimerOptions(1215087, true, 5, 0)--Unstable Void Essence
 mod:AddCustomTimerOptions(1280113, true, 5, 0)--Hulking Fragment
 --Midnight private aura replacements
-mod:AddPrivateAuraSoundOption(1215897, true, 1215897, 1, 1)--Devouring Entropy
+mod:AddPrivateAuraSoundOption(1215897, true, 1215897, 1, 1, "scatter", 2)--Devouring Entropy
 
 function mod:OnLimitedCombatStart()
 	self:EnableAlertOptions(1215087, 292, "catchballs", 12)
@@ -38,5 +38,4 @@ function mod:OnLimitedCombatStart()
 	self:EnableTimelineOptions(1215087, 292)
 	self:EnableTimelineOptions(1280113, 420)
 
-	self:EnablePrivateAuraSound(1215897, "scatter", 2)
 end

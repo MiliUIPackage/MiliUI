@@ -4,7 +4,8 @@ local mod	= DBM:NewMod("SpinshroomMid", "DBM-Delves-Midnight", 2)
 mod.statTypes = "normal"
 mod.soloChallenge = true
 
-mod:SetRevision("20260306172133")
+mod:SetRevision("20260315034941")
+mod:DisableHardcodedOptions()
 --mod:SetCreatureID(0)--TODO
 mod:SetEncounterID(3363)--Midnight Version
 mod:SetZone()

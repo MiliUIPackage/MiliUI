@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,heroic,mythic,challenge,timewalker"
 
-mod:SetRevision("20260217034401")
+mod:SetRevision("20260322094133")
 mod:SetCreatureID(75964)
 mod:SetEncounterID(1698)
 
@@ -20,7 +20,7 @@ if DBM:IsPostMidnight() then
 	mod:AddCustomTimerOptions(1258148, true, 3, 0)
 	mod:AddCustomTimerOptions(156793, true, 6, 0)
 	--Midnight private aura replacements
-	mod:AddPrivateAuraSoundOption(1252733, true, 1252733, 1)--Gale Surge
+	mod:AddPrivateAuraSoundOption(1252733, true, 1252733, 1, 1, "debuffyou", 17)--Gale Surge
 
 	function mod:OnLimitedCombatStart()
 		self:DisableSpecialWarningSounds()
@@ -33,7 +33,6 @@ if DBM:IsPostMidnight() then
 		self:EnableTimelineOptions(1258148, 300)
 		self:EnableTimelineOptions(156793, 301)
 
-		self:EnablePrivateAuraSound(1252733, "debuffyou", 17)--Possibly revise later
 	end
 else
 	mod:RegisterEventsInCombat(
@@ -63,7 +62,6 @@ else
 		timerFourWindsCD:Start(-delay)
 		if skyTrashMod and skyTrashMod.Options.RangeFrame and skyTrashMod.vb.debuffCount ~= 0 then--In case of bug where range frame gets stuck open from trash pulls before this boss.
 			skyTrashMod.vb.debuffCount = 0--Fix variable
-			DBM.RangeCheck:Hide()--Close range frame.
 		end
 	end
 

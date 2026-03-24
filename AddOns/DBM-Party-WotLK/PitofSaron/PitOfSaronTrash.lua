@@ -1,7 +1,8 @@
 local mod	= DBM:NewMod("PitOfSaronTrash", "DBM-Party-WotLK", 15)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260215044639")
+mod:SetRevision("20260315034941")
+mod:DisableHardcodedOptions()
 --mod:SetModelID(47785)
 mod:SetZone(658)
 
@@ -18,7 +19,7 @@ function mod:GOSSIP_SHOW()
 	local gossipOptionID = self:GetGossipID()
 	if gossipOptionID then
 		--All 6 slave camps
-		if self.Options.AutoGossipBuff and (gossipOptionID == 136624 or gossipOptionID == 136271 or gossipOptionID == 136316 or gossipOptionID == 136280 or gossipOptionID == 136301 or gossipOptionID == 138618) then -- Buffs
+		if self.Options.AutoGossipAction and (gossipOptionID == 136624 or gossipOptionID == 136271 or gossipOptionID == 136316 or gossipOptionID == 136280 or gossipOptionID == 136301 or gossipOptionID == 138618) then -- Buffs
 			self:SelectGossip(gossipOptionID)
 		end
 	end

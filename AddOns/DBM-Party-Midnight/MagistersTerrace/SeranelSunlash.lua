@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2661, "DBM-Party-Midnight", 3, 1300)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260227161342")
+mod:SetRevision("20260322092648")
 mod:SetCreatureID(231863)
 mod:SetEncounterID(3072)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -26,7 +26,7 @@ mod:AddCustomTimerOptions(1248689, true, 5, 0)--Hastening Ward
 mod:AddCustomTimerOptions(1225787, true, 3, 0)--Runic Mark
 mod:AddCustomTimerOptions(1225193, true, 2, 0)--Wave of Silence
 -- Midnights private aura replacements
-mod:AddPrivateAuraSoundOption(1225787, true, 1225787, 1, 1)--Runic Mark
+mod:AddPrivateAuraSoundOption({1225787,1225792}, true, 1225787, 1, 1, "scatter", 2)--Runic Mark
 
 function mod:OnLimitedCombatStart()
 	self:EnableAlertOptions(1224903, 93, "watchstep", 2)
@@ -38,5 +38,4 @@ function mod:OnLimitedCombatStart()
 	self:EnableTimelineOptions(1225787, {95, 513})
 	self:EnableTimelineOptions(1225193, 96)
 
-	self:EnablePrivateAuraSound({1225787,1225792}, "scatter", 2)
 end

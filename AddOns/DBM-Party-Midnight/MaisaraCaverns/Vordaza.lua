@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2811, "DBM-Party-Midnight", 7, 1315)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260303042556")
+mod:SetRevision("20260322092648")
 mod:SetCreatureID(248595)
 mod:SetEncounterID(3213)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -32,8 +32,8 @@ mod:AddCustomTimerOptions(1251996, true, 3, 0)--Deaths' Embrace
 mod:AddCustomTimerOptions(1252130, true, 1, 0)--Wrest Phantoms
 mod:AddCustomTimerOptions(1250708, true, 4, 0)--Necrotic Convergence
 --Midnight private aura replacements
-mod:AddPrivateAuraSoundOption(1252130, true, 1252130, 1, 2)--Unmake damage
-mod:AddPrivateAuraSoundOption(1251775, true, 1251775, 1, 2)--Final Pursuit
+mod:AddPrivateAuraSoundOption(1252130, true, 1252130, 1, 2, "watchfeet", 8)--Unmake damage
+mod:AddPrivateAuraSoundOption(1251775, true, 1251775, 1, 2, "fixateyou", 19)--Final Pursuit (also encounterevent ID 688 which was hotfixed in recently. Indicating this private aura might zap soon)
 
 function mod:OnLimitedCombatStart()
 	if self:IsTank() then
@@ -50,6 +50,4 @@ function mod:OnLimitedCombatStart()
 	self:EnableTimelineOptions(1252130, 19)
 	self:EnableTimelineOptions(1250708, 20)
 
-	self:EnablePrivateAuraSound(1252130, "watchfeet", 8)--Change or remove if wrong
-	self:EnablePrivateAuraSound(1251775, "fixateyou", 19)
 end

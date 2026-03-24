@@ -5,7 +5,7 @@ if not mod:IsClassic() then
 	mod.statTypes = "normal,heroic,mythic,challenge,timewalker"
 end
 
-mod:SetRevision("20260215044639")
+mod:SetRevision("20260322094133")
 mod:SetCreatureID(36658, 36661)
 mod:SetEncounterID(2000)
 mod:SetZone(658)
@@ -33,11 +33,13 @@ if DBM:IsPostMidnight() then
 	mod:AddCustomTimerOptions(1263756, nil, 3, 0)--Death's Grasp
 	mod:AddCustomTimerOptions(1276948, nil, 3, 0)--Icy Barrage
 	--Midnight private aura replacements
-	mod:AddPrivateAuraSoundOption(1262772, true, 1262772, 1)--Rime Blast
+	mod:AddPrivateAuraSoundOption(1262772, true, 1262772, 1, 1, "debuffyou", 17)--Rime Blast
 	function mod:OnLimitedCombatStart()
 		self:DisableSpecialWarningSounds()
 
-		self:EnableAlertOptions(1262582, 164, "carefly", 2)
+		if self:IsTank() then
+			self:EnableAlertOptions(1262582, 164, "carefly", 2)
+		end
 		self:EnableAlertOptions(1263406, 165, "mobsoon", 2)
 		self:EnableAlertOptions(1263756, 168, "watchstep", 2)
 		self:EnableAlertOptions(1276948, 375, "watchstep", 2)
@@ -49,7 +51,6 @@ if DBM:IsPostMidnight() then
 		self:EnableTimelineOptions(1263756, 168)
 		self:EnableTimelineOptions(1276948, 375)
 
-		self:EnablePrivateAuraSound(1262772, "debuffyou", 17)--Mayb change later when I have access to amy again
 	end
 else
 	mod:RegisterEvents(
@@ -85,7 +86,6 @@ else
 	local timerForcefulSmash		= mod:NewCDTimer(40, 69155, nil, "Tank", 2, 5, nil, DBM_COMMON_L.TANK_ICON)--Highly Variable. 40-50
 
 	mod:AddSetIconOption("SetIconOnHoarfrostTarget", 69246, true, 0, {8})
-	mod:AddRangeFrameOption(8, 69246)
 
 	function mod:OnCombatStart(delay)
 		timerForcefulSmash:Start(9-delay)--Sems like a WTF
@@ -94,9 +94,6 @@ else
 	end
 
 	function mod:OnCombatEnd()
-		if self.Options.RangeFrame then
-			DBM.RangeCheck:Hide()
-		end
 	end
 
 	function mod:SPELL_CAST_START(args)
@@ -158,9 +155,6 @@ else
 				specWarnHoarfrost:Show()
 				specWarnHoarfrost:Play("targetyou")
 				yellHoarfrost:Yell()
-				if self.Options.RangeFrame then
-					DBM.RangeCheck:Show(8, nil, nil, nil, nil, 5)
-				end
 			else
 				warnHoarfrost:Show(target)
 			end

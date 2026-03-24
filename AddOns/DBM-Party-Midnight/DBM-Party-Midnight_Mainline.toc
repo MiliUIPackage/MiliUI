@@ -23,12 +23,12 @@
 ## X-DBM-Mod-MinExpansion: 11
 ## X-Curse-Project-ID: 314994
 ## X-Wago-ID: xZKxZENk
-## Version: r235-5
+## Version: r239
 ## Category-zhTW: 地城與團隊
-
 ## Category-zhTW: 副本
 
-# localization.en.lua
+localization.en.lua
+localization.tw.lua
 
 WindrunnerSpire\Emberdawn.lua
 WindrunnerSpire\DerelictDuo.lua
@@ -39,6 +39,7 @@ MurderRow\KystiaManaheart.lua
 MurderRow\ZaenBladesorrow.lua
 MurderRow\XathuuxtheAnnihilator.lua
 MurderRow\LithielCinderfury.lua
+MurderRow\MurderRowTrash.lua
 
 MagistersTerrace\ArcanotronCustos.lua
 MagistersTerrace\SeranelSunlash.lua
@@ -65,4 +66,5 @@ MaisaraCaverns\Raktul.lua
 NexusPointXenas\Lothraxion.lua
 NexusPointXenas\CorewardenNysarra.lua
 NexusPointXenas\ChiefCorewrightKasreth.lua
+
 

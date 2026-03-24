@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2814, "DBM-Party-Midnight", 8, 1316)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260221125955")
+mod:SetRevision("20260322092648")
 mod:SetCreatureID(254227)
 mod:SetEncounterID(3332)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -27,8 +27,8 @@ mod:AddCustomTimerOptions(1247937, true, 5, 0)--Umbral Lash
 mod:AddCustomTimerOptions(1252703, true, 1, 0)--Null Vanguard
 mod:AddCustomTimerOptions(1271684, true, 2, 0)--Devour the Unworthy
 --Private Auras
-mod:AddPrivateAuraSoundOption(1249020, true, 1249020, 1, 1)--Eclipsing Step
-mod:AddPrivateAuraSoundOption(1282678, true, 1282678, 1, 1)--Flailstorm
+mod:AddPrivateAuraSoundOption(1249020, true, 1249020, 1, 1, "scatter", 2)--Eclipsing Step
+mod:AddPrivateAuraSoundOption(1282678, true, 1282678, 1, 1, "justrun", 2)--Flailstorm
 
 function mod:OnLimitedCombatStart()
 	self:EnableAlertOptions(1264439, 34, "watchstep", 2)
@@ -44,6 +44,4 @@ function mod:OnLimitedCombatStart()
 	self:EnableTimelineOptions(1252703, 36)
 	self:EnableTimelineOptions(1271684, 37)
 
-	self:EnablePrivateAuraSound(1249020, "scatter", 2)
-	self:EnablePrivateAuraSound(1282678, "justrun", 2)
 end

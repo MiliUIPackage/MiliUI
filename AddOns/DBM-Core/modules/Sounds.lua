@@ -13,7 +13,7 @@ do
 		{	text	= "Koltrane",value 	= "Kolt", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Kolt\\", max = 10},
 		{	text	= "Smooth",value 	= "Smooth", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Smooth\\", max = 10},
 		{	text	= "Smooth (Reverb)",value 	= "SmoothR", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SmoothReverb\\", max = 10},
-		{	text	= "Pewsey",value 	= "Pewsey", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Pewsey\\", max = 10},		
+		{	text	= "Pewsey",value 	= "Pewsey", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Pewsey\\", max = 10},
 		{	text	= "安妮海豹",value 	= "AnnieSeal", path = "Interface\\AddOns\\DBM-Core\\Sounds\\AnnieSeal\\", max = 10},
 		{	text	= "家豪",value 	= "SahaJh", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SahaJh\\", max = 10},
 		{	text	= "然然",value 	= "Ranran", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ranran\\", max = 10},
@@ -29,7 +29,7 @@ do
 		{	text	= "家豪",value 	= "SahaJh", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SahaJh\\", max = 5},
 		{	text	= "然然",value 	= "Ranran", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ranran\\", max = 5},
 		{	text	= "忘忧景久",value 	= "忘忧景久", path = "Interface\\AddOns\\DBM-Core\\Sounds\\WYJJ\\", max = 5},
-		}
+	}
 	local hasCached = false
 	local cachedTable
 	---@deprecated Use new utility functions. Midnight sounds cannot be added injectinginto DBM.Counts at all!
@@ -47,14 +47,14 @@ do
 	---@param value string
 	---@param path string
 	---@param max number? Max count value 1-10 for classic and 1-5 for midnight
-	---@param isMidnightCompatible boolean? Pass this ONLY if your count pack supports "fivecount.ogg"
+	---@param isMidnightCompatible boolean? Pass this ONLY if your count pack supports "fivecount.ogg" or "threecount.ogg"
 	function DBM:AddCountSound(text, value, path, max, isMidnightCompatible)
 		if isMidnightCompatible then
 			tinsert(midnightCounts, {
 				text	= text,
 				value	= value or text,
 				path	= path,
-				max		= max or 5
+				max		= max or 3
 			})
 		else
 			tinsert(counts, {
