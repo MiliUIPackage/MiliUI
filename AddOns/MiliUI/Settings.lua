@@ -408,6 +408,50 @@ local function InitSettings()
         end
     end)
 
+    -- ===== 拍賣行區塊 =====
+    local ahDivider = enhanceFrame:CreateTexture(nil, "ARTWORK")
+    ahDivider:SetColorTexture(0.3, 0.3, 0.3, 0.5)
+    ahDivider:SetSize(520, 1)
+    ahDivider:SetPoint("TOPLEFT", fontDesc, "BOTTOMLEFT", -26, -20)
+
+    local ahLabel = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    ahLabel:SetPoint("TOPLEFT", ahDivider, "BOTTOMLEFT", 0, -12)
+    ahLabel:SetText("拍賣行")
+
+    local ahCB = CreateFrame("CheckButton", "MiliUI_AHCurrentExpCB", enhanceFrame, "UICheckButtonTemplate")
+    ahCB:SetPoint("TOPLEFT", ahLabel, "BOTTOMLEFT", 0, -8)
+    ahCB.text:SetText("啟用「僅限當前資料片」篩選")
+    ahCB.text:SetFontObject("GameFontHighlight")
+
+    local ahCBDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    ahCBDesc:SetPoint("TOPLEFT", ahCB, "BOTTOMLEFT", 26, -2)
+    ahCBDesc:SetWidth(520)
+    ahCBDesc:SetJustifyH("LEFT")
+    ahCBDesc:SetText("開啟後會在拍賣行介面右下角顯示篩選選項，\n瀏覽查詢時自動套用「僅限當前資料片」篩選。")
+    ahCBDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    -- 初始化 MiliUI_DB 及 checkbox 狀態
+    local function SyncAHCheckbox()
+        if not MiliUI_DB then MiliUI_DB = {} end
+        if MiliUI_DB.ahFeatureEnabled == nil then
+            MiliUI_DB.ahFeatureEnabled = true
+        end
+        ahCB:SetChecked(MiliUI_DB.ahFeatureEnabled)
+    end
+    SyncAHCheckbox()
+    enhanceFrame:HookScript("OnShow", SyncAHCheckbox)
+
+    ahCB:HookScript("OnClick", function(self)
+        if not MiliUI_DB then MiliUI_DB = {} end
+        local enabled = self:GetChecked() and true or false
+        MiliUI_DB.ahFeatureEnabled = enabled
+        print("|cff00ff00[MiliUI]|r 拍賣行篩選功能:", enabled and "開" or "關")
+        -- 即時更新 AH 上的 checkbox 可見性
+        if MiliUI_AHFilter and MiliUI_AHFilter.UpdateVisibility then
+            MiliUI_AHFilter.UpdateVisibility()
+        end
+    end)
+
     local enhanceCategory = Settings.RegisterCanvasLayoutSubcategory(category, enhanceFrame, "插件強化")
     enhanceCategory.ID = "MiliUI_Enhance"
 
