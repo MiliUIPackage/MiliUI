@@ -88,5 +88,8 @@ L["DBM_PULL_SECONDS_DESC"] = "設定 DBM 開怪倒數秒數（右鍵）"
 -- Dialogs
 L["CONFIRM_RELOAD"] = "確定要重新載入介面嗎？"
 
+-- Skip Reload Confirm
+L["SKIP_RELOAD_CONFIRM"] = "重載介面不需要確認"
+
 
 

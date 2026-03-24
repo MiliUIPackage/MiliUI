@@ -87,5 +87,8 @@ L["DBM_PULL_SECONDS_DESC"] = "Set the countdown seconds for DBM pull timer (righ
 -- Dialogs
 L["CONFIRM_RELOAD"] = "Are you sure you want to reload the UI?"
 
+-- Skip Reload Confirm
+L["SKIP_RELOAD_CONFIRM"] = "Skip reload confirmation"
+
 
 

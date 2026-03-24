@@ -408,7 +408,11 @@ _G.MiliUI_UpdateDBMButton = UpdateDBMButton
 -- Reset Instance
 local reset = AddButton("RESET", "PARTY", L["TIP_RESET"], L["SHORT_RESET"], function(_, btn)
     if btn == "RightButton" then
-        StaticPopup_Show("MILIUI_CHATBAR_RELOAD")
+        if MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm then
+            ReloadUI()
+        else
+            StaticPopup_Show("MILIUI_CHATBAR_RELOAD")
+        end
     elseif btn == "MiddleButton" then
         if SlashCmdList["COMBATLOG"] then
             SlashCmdList["COMBATLOG"]("")
@@ -664,6 +668,7 @@ loader:SetScript("OnEvent", function(self, event)
     if MiliUI_ChatBar_DB.Chatbar.Locked == nil then MiliUI_ChatBar_DB.Chatbar.Locked = true end
     if not MiliUI_ChatBar_DB.Chatbar.Orientation then MiliUI_ChatBar_DB.Chatbar.Orientation = "HORIZONTAL" end
     if not MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds then MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds = 10 end
+    if MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm == nil then MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm = false end
     
     -- Apply lock state (respects Edit Mode)
     UpdateMoverState()
@@ -961,6 +966,26 @@ end)
 channelContainer.dbmSlider = dbmSlider
 channelContainer.dbmSliderDesc = dbmSliderDesc
 
+-- Skip Reload Confirmation Checkbox (positioned below RESET in RefreshChannelList)
+local skipReloadCheck = CreateFrame("CheckButton", nil, channelContainer, "UICheckButtonTemplate")
+skipReloadCheck.Text = skipReloadCheck:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+skipReloadCheck.Text:SetPoint("LEFT", skipReloadCheck, "RIGHT", 5, 0)
+skipReloadCheck.Text:SetText(L["SKIP_RELOAD_CONFIRM"])
+skipReloadCheck:Hide()
+
+skipReloadCheck:SetScript("OnShow", function(self)
+    local val = MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm
+    self:SetChecked(val)
+end)
+
+skipReloadCheck:SetScript("OnClick", function(self)
+    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
+    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
+    MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm = self:GetChecked() and true or false
+end)
+
+channelContainer.skipReloadCheck = skipReloadCheck
+
 
 -- Helper for Color Picker
 local function ShowColorPicker(r, g, b, callback)
@@ -1020,6 +1045,9 @@ local function RefreshChannelList()
             if prevButton and prevButton.configKey == "DBM" and channelContainer.dbmSlider then
                 -- Position below the slider instead of the checkbox
                 ck:SetPoint("TOPLEFT", channelContainer.dbmSlider, "BOTTOMLEFT", -20, -12)
+            elseif prevButton and prevButton.configKey == "RESET" and channelContainer.skipReloadCheck then
+                -- Position below the skip reload checkbox
+                ck:SetPoint("TOPLEFT", channelContainer.skipReloadCheck, "BOTTOMLEFT", -20, -2)
             else
                 ck:SetPoint("TOPLEFT", channelContainer.checks[i-1], "BOTTOMLEFT", 0, -2)
             end
@@ -1098,6 +1126,16 @@ local function RefreshChannelList()
                 channelContainer.dbmSlider:GetScript("OnShow")(channelContainer.dbmSlider)
             end
         end
+
+        -- Skip Reload Confirmation checkbox positioning (below RESET checkbox)
+        if bu.configKey == "RESET" then
+            channelContainer.skipReloadCheck:ClearAllPoints()
+            channelContainer.skipReloadCheck:SetPoint("TOPLEFT", ck, "BOTTOMLEFT", 20, -2)
+            channelContainer.skipReloadCheck:Show()
+            if channelContainer.skipReloadCheck:GetScript("OnShow") then
+                channelContainer.skipReloadCheck:GetScript("OnShow")(channelContainer.skipReloadCheck)
+            end
+        end
     end
     
     -- Hide extra checks
@@ -1163,6 +1201,7 @@ C_Timer.After(0.5, function()
     if not MiliUI_ChatBar_DB.Chatbar.CustomColors then MiliUI_ChatBar_DB.Chatbar.CustomColors = {} end
     if not MiliUI_ChatBar_DB.Chatbar.FontSize then MiliUI_ChatBar_DB.Chatbar.FontSize = 9 end
     if not MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds then MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds = 10 end
+    if MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm == nil then MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm = false end
     
     -- Pre-create checkboxes
     RefreshChannelList()
