@@ -2,6 +2,7 @@
 	local _ = nil
 	_detalhes.custom_function_cache = {}
 	local addonName, Details222 = ...
+	---@type details
 	local Details = _detalhes
 	local detailsFramework = DetailsFramework
 
@@ -152,7 +153,7 @@
 					DetailsFramework:SetEnvironment(func)
 					Details.custom_function_cache [instanceObject.customName] = func
 				else
-					Details:Msg(Loc["|cFFFF9900error compiling code for custom display "] .. (instanceObject.customName or "") ..  " |r:", errortext)
+					Details:Msg("|cFFFF9900error compiling code for custom display " .. (instanceObject.customName or "") ..  " |r:", errortext)
 				end
 
 				if (customObject.tooltip and type(customObject.tooltip) == "string") then
@@ -161,7 +162,7 @@
 						DetailsFramework:SetEnvironment(tooltip_script)
 						Details.custom_function_cache [instanceObject.customName .. "Tooltip"] = tooltip_script
 					else
-						Details:Msg(Loc["|cFFFF9900error compiling tooltip code for custom display "] .. (instanceObject.customName or "") ..  " |r:", errortext)
+						Details:Msg("|cFFFF9900error compiling tooltip code for custom display " .. (instanceObject.customName or "") ..  " |r:", errortext)
 					end
 					scriptTypeName = "tooltip"
 				end
@@ -172,7 +173,7 @@
 						DetailsFramework:SetEnvironment(total_script)
 						Details.custom_function_cache [instanceObject.customName .. "Total"] = total_script
 					else
-						Details:Msg(Loc["|cFFFF9900error compiling total code for custom display "] .. (instanceObject.customName or "") ..  " |r:", errortext)
+						Details:Msg("|cFFFF9900error compiling total code for custom display " .. (instanceObject.customName or "") ..  " |r:", errortext)
 					end
 					scriptTypeName = "total"
 				end
@@ -183,7 +184,7 @@
 						DetailsFramework:SetEnvironment(percent_script)
 						Details.custom_function_cache [instanceObject.customName .. "Percent"] = percent_script
 					else
-						Details:Msg(Loc["|cFFFF9900error compiling percent code for custom display "] .. (instanceObject.customName or "") ..  " |r:", errortext)
+						Details:Msg("|cFFFF9900error compiling percent code for custom display " .. (instanceObject.customName or "") ..  " |r:", errortext)
 					end
 					scriptTypeName = "percent"
 				end
@@ -263,7 +264,7 @@
 					if (percent_script) then
 						okey, percent = xpcall (percent_script, geterrorhandler(), floor(actor.value), top, total, combatObject, instanceObject, actor)
 						if (not okey) then
-							Details:Msg(Loc["|cFFFF9900percent script error|r:"], percent)
+							Details:Msg("|cFFFF9900percent script error|r:", percent)
 							return Details:EndRefresh (instanceObject, 0, combatObject, combatObject [1])
 						end
 					else
@@ -273,7 +274,7 @@
 					if (total_script) then
 						local okey, value = xpcall (total_script, geterrorhandler(), floor(actor.value), top, total, combatObject, instanceObject, actor)
 						if (not okey) then
-							Details:Msg(Loc["|cFFFF9900total script error|r:"], value)
+							Details:Msg("|cFFFF9900total script error|r:", value)
 							return Details:EndRefresh (instanceObject, 0, combatObject, combatObject [1])
 						end
 
@@ -317,6 +318,7 @@
 		local total = 0
 		local top = 0
 		local amount = 0
+		---@cast instance instance
 
 		--check if is a spell target custom
 		if (custom_object:IsSpellTarget()) then
@@ -419,6 +421,7 @@
 --refresh functions
 
 	function classCustom:Refresh (instance, instance_container, combat, force, total, top, custom_object)
+		---@cast instance instance
 		local whichRowLine = 1
 		local barContainer = instance.barras
 		local percentageType = instance.row_info.percent_type
@@ -535,6 +538,7 @@
 	local actor_class_color_r, actor_class_color_g, actor_class_color_b
 
 	function classCustom:UpdateBar (row_container, index, percentage_type, rank, total, top, instance, is_forced, percent_script, total_script, combat, bars_show_data, bars_brackets, bars_separator)
+		---@cast instance instance
 		local row = row_container[index]
 
 		local previous_table = row.minha_tabela
@@ -550,7 +554,7 @@
 				--local value, top, total, combat, instance = ...
 				okey, percent = xpcall (percent_script, geterrorhandler(), self.value, top, total, combat, instance, self)
 				if (not okey) then
-					Details:Msg(Loc["|cFFFF9900error on custom display function|r:"], percent)
+					Details:Msg("|cFFFF9900error on custom display function|r:", percent)
 					return Details:EndRefresh (instance, 0, combat, combat [1])
 				end
 			else
@@ -569,7 +573,7 @@
 			if (total_script) then
 				local okey, value = xpcall (total_script, geterrorhandler(), self.value, top, total, combat, instance, self)
 				if (not okey) then
-					Details:Msg(Loc["|cFFFF9900error on custom display function|r:"], value)
+					Details:Msg("|cFFFF9900error on custom display function|r:", value)
 					return Details:EndRefresh (instance, 0, combat, combat [1])
 				end
 
@@ -632,7 +636,8 @@
 
 	end
 
-	function classCustom:RefreshBarra2 (esta_barra, instancia, tabela_anterior, forcar, esta_porcentagem, whichRowLine, barras_container)
+	function classCustom:RefreshBarra2 (esta_barra, instance, tabela_anterior, forcar, esta_porcentagem, whichRowLine, barras_container)
+		---@cast instance instance
 		--primeiro colocado
 		if (esta_barra.colocacao == 1) then
 			if (not tabela_anterior or tabela_anterior ~= esta_barra.minha_tabela or forcar) then
@@ -642,7 +647,7 @@
 					Details.FadeHandler.Fader(esta_barra, "out")
 				end
 
-				return self:RefreshBarra(esta_barra, instancia)
+				return self:RefreshBarra(esta_barra, instance)
 			else
 				return
 			end
@@ -653,14 +658,14 @@
 				esta_barra:SetValue(esta_porcentagem)
 				Details.FadeHandler.Fader(esta_barra, "out")
 
-				if (instancia.row_info.texture_class_colors) then
+				if (instance.row_info.texture_class_colors) then
 					esta_barra.textura:SetVertexColor(actor_class_color_r, actor_class_color_g, actor_class_color_b)
 				end
-				if (instancia.row_info.texture_background_class_color) then
+				if (instance.row_info.texture_background_class_color) then
 					esta_barra.background:SetVertexColor(actor_class_color_r, actor_class_color_g, actor_class_color_b)
 				end
 
-				return self:RefreshBarra(esta_barra, instancia)
+				return self:RefreshBarra(esta_barra, instance)
 
 			else
 				--agora esta comparando se a tabela da barra � diferente da tabela na atualiza��o anterior
@@ -675,7 +680,7 @@
 						esta_barra:SetScript("OnUpdate", nil)
 					end
 
-					return self:RefreshBarra(esta_barra, instancia)
+					return self:RefreshBarra(esta_barra, instance)
 
 				elseif (esta_porcentagem ~= esta_barra.last_value) then --continua mostrando a mesma tabela ent�o compara a porcentagem
 					--apenas atualizar
@@ -686,10 +691,10 @@
 							if (upRow.statusbar:GetValue() < esta_barra.statusbar:GetValue()) then
 								esta_barra:SetValue(esta_porcentagem)
 							else
-								instancia:AnimarBarra (esta_barra, esta_porcentagem)
+								instance:AnimarBarra (esta_barra, esta_porcentagem)
 							end
 						else
-							instancia:AnimarBarra (esta_barra, esta_porcentagem)
+							instance:AnimarBarra (esta_barra, esta_porcentagem)
 						end
 					else
 						esta_barra:SetValue(esta_porcentagem)
@@ -701,6 +706,7 @@
 	end
 
 	function classCustom:RefreshBarra(thisBar, instanceObject, bFromResize)
+		---@cast instanceObject instance
 		local class, enemy, arena_enemy, arena_ally = self.classe, self.enemy, self.arena_enemy, self.arena_ally
 
 		if (bFromResize) then
@@ -950,6 +956,7 @@
 	end
 
 	function classCustom:GetInstanceCustomActorContainer (instance)
+		---@cast instance instance
 		if (not classCustom._InstanceActorContainer [instance:GetId()]) then
 			classCustom._InstanceActorContainer [instance:GetId()] = self:CreateCustomActorContainer()
 		end
@@ -958,9 +965,9 @@
 
 	function classCustom:CreateCustomDisplayObject()
 		return setmetatable({
-			name = Loc["new custom"],
+			name = "new custom",
 			icon = [[Interface\ICONS\TEMP]],
-			author = UNKNOWN, -- 需要自行修改為大寫
+			author = "unknown",
 			attribute = "damagedone",
 			source = "[all]",
 			target = "[all]",
@@ -1009,7 +1016,7 @@
 				local func = Details.custom_function_cache [instanceObject.customName .. "Tooltip"]
 				local okey, errortext = xpcall(func, geterrorhandler(), actorObject, instanceObject.showing, instanceObject, keydown)
 				if (not okey) then
-					Details:Msg(Loc["|cFFFF9900error on custom display tooltip function|r:"], errortext)
+					Details:Msg("|cFFFF9900error on custom display tooltip function|r:", errortext)
 					return false
 				end
 			end
@@ -1114,6 +1121,7 @@
 		table.remove (Details.custom, index)
 
 		for _, instance in ipairs(Details.tabela_instancias) do
+			---@cast instance instance
 			if (instance.atributo == 5 and instance.sub_atributo == index) then
 				instance:ResetAttribute()
 			elseif (instance.atributo == 5 and instance.sub_atributo > index) then

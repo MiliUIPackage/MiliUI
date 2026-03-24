@@ -2,14 +2,13 @@
 
 local Details = _G.Details
 local DF = _G.DetailsFramework
-local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 
 local _
 
 function Details:InitializeMacrosWindow()
-    local DetailsMacrosPanel = DF:CreateSimplePanel(UIParent, 700, 480, Loc ["Details! Useful Macros"], "DetailsMacrosPanel")
+    local DetailsMacrosPanel = DF:CreateSimplePanel(UIParent, 700, 480, "Details! Useful Macros", "DetailsMacrosPanel")
     DetailsMacrosPanel.Frame = DetailsMacrosPanel
-    DetailsMacrosPanel.__name = Loc ["Macros"]
+    DetailsMacrosPanel.__name = "Macros"
     DetailsMacrosPanel.real_name = "DETAILS_MACROSWINDOW"
     DetailsMacrosPanel.__icon = [[Interface\MacroFrame\MacroFrame-Icon]]
     DetailsMacrosPanel.__iconcoords = {0, 1, 0, 1}
@@ -28,7 +27,7 @@ function Details.OpenMacrosWindow()
     if (not DetailsMacrosPanel or not DetailsMacrosPanel.Initialized) then
 
         DetailsMacrosPanel.Initialized = true
-        local f = DetailsMacrosPanel or DF:CreateSimplePanel(UIParent, 700, 480, Loc ["Details! Useful Macros"], "DetailsMacrosPanel")
+        local f = DetailsMacrosPanel or DF:CreateSimplePanel(UIParent, 700, 480, "Details! Useful Macros", "DetailsMacrosPanel")
         
         local scrollbox_line_backdrop_color = {0, 0, 0, 0.2}
         local scrollbox_line_backdrop_color_onenter = {.3, .3, .3, 0.5}
@@ -97,10 +96,10 @@ function Details.OpenMacrosWindow()
             line:SetBackdropBorderColor(0, 0, 0, 0.3)
             
             local titleLabel = DF:CreateLabel(line, "", DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE"))
-            titleLabel.textsize = 18
+            titleLabel.textsize = 14
             titleLabel.textcolor = "yellow"
             local descLabel = DF:CreateLabel(line, "", DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE"))
-            descLabel.textsize = 16
+            descLabel.textsize = 12
             
             local options_dropdown_template = DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE")
             options_dropdown_template = DF.table.copy({}, options_dropdown_template)

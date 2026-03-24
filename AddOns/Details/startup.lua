@@ -9,6 +9,8 @@ GetSpecializationInfo
 
 --start funtion
 function Details222.StartUp.StartMeUp()
+	---@type details
+	local Details = Details
 	if (Details.AndIWillNeverStop) then
 		return
 	end
@@ -425,9 +427,10 @@ function Details222.StartUp.StartMeUp()
 	Details.Schedules.NewTimer(10, Details.ShowDelayMsg, Details)
 
 	--send instance open event for each instance opened
-	for id, instancia in Details:ListInstances() do
-		if (instancia.ativa) then
-			Details:SendEvent("DETAILS_INSTANCE_OPEN", nil, instancia)
+	for id, instance in Details:ListInstances() do
+		---@cast instance instance
+		if (instance.ativa) then
+			Details:SendEvent("DETAILS_INSTANCE_OPEN", nil, instance)
 		end
 	end
 
@@ -454,9 +457,10 @@ function Details222.StartUp.StartMeUp()
 
 	--display the version right after the startup, this will fade out after a few seconds
 	function Details:AnnounceVersion()
-		for index, instancia in Details:ListInstances() do
-			if (instancia.ativa) then
-				Details.FadeHandler.Fader(instancia._version, "in", 0.1)
+		for index, instance in Details:ListInstances() do
+			---@cast instance instance
+			if (instance.ativa) then
+				Details.FadeHandler.Fader(instance._version, "in", 0.1)
 			end
 		end
 	end
@@ -537,7 +541,7 @@ function Details222.StartUp.StartMeUp()
 								lowerInstanceId:InstanceAlert(Loc["STRING_VERSION_UPDATE"],
 									{ [[Interface\GossipFrame\AvailableQuestIcon]], 16, 16, false }, 60,
 									{ Details.OpenNewsWindow }, true)
-								Details:Msg(Loc["A new version has been installed: /details news"]) --localize-me
+								Details:Msg("A new version has been installed: /details news") --localize-me
 							end
 						end)
 					end
@@ -763,7 +767,7 @@ function Details222.StartUp.StartMeUp()
 				---@type trinketdata
 				local thisTrinketData = {
 					itemName = C_Item.GetItemNameByID(trinketTable.itemId),
-					spellName = Details222.GetSpellInfo(spellId) or Loc["spell not found"],
+					spellName = Details222.GetSpellInfo(spellId) or "spell not found",
 					lastActivation = 0,
 					lastPlayerName = "",
 					totalCooldownTime = 0,
@@ -886,7 +890,7 @@ function Details222.StartUp.StartMeUp()
 
 	if (GetExpansionLevel() == 10) then
 		if (not Details.data_wipes_exp["11"]) then
-			Details:Msg(Loc["New expansion detected, clearing data..."])
+			Details:Msg("New expansion detected, clearing data...")
 			Details:Destroy(Details.encounter_spell_pool or {})
 			Details:Destroy(Details.boss_mods_timers or {})
 			Details:Destroy(Details.spell_school_cache or {})

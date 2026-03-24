@@ -14,7 +14,7 @@
 ## DefaultState: disabled
 
 enUS.lua
-zhTW.lua
+ptBR.lua
 
 Details_EncounterDetails.lua
 frames_chart.lua

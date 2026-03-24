@@ -1,7 +1,6 @@
 
 
 local Details = _G.Details
-local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 local addonName, Details222 = ...
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -17,9 +16,9 @@ DetailsFramework:ApplyStandardBackdrop(detailsOnDeathMenu)
 detailsOnDeathMenu:SetAlpha(0.75)
 
 --disable text
-detailsOnDeathMenu.disableLabel = Details.gump:CreateLabel(detailsOnDeathMenu, Loc["you can disable this at /details > Raid Tools"], 13)
+detailsOnDeathMenu.disableLabel = Details.gump:CreateLabel(detailsOnDeathMenu, "you can disable this at /details > Raid Tools", 9)
 
-detailsOnDeathMenu.warningLabel = Details.gump:CreateLabel(detailsOnDeathMenu, "", 15)
+detailsOnDeathMenu.warningLabel = Details.gump:CreateLabel(detailsOnDeathMenu, "", 11)
 detailsOnDeathMenu.warningLabel.textcolor = "red"
 detailsOnDeathMenu.warningLabel:SetPoint("bottomleft", detailsOnDeathMenu, "bottomleft", 5, 2)
 detailsOnDeathMenu.warningLabel:Hide()
@@ -32,20 +31,20 @@ end)
 
 function detailsOnDeathMenu.OpenEncounterBreakdown()
 	if (not Details:GetPlugin ("DETAILS_PLUGIN_ENCOUNTER_DETAILS")) then
-		detailsOnDeathMenu.warningLabel.text = Loc["Encounter Breakdown plugin is disabled! Please enable it in the Addon Control Panel."]
+		detailsOnDeathMenu.warningLabel.text = "Encounter Breakdown plugin is disabled! Please enable it in the Addon Control Panel."
 		detailsOnDeathMenu.warningLabel:Show()
 		C_Timer.After(5, function()
 			detailsOnDeathMenu.warningLabel:Hide()
 		end)
 	end
 
-	Details:OpenPlugin (Loc["Encounter Breakdown"])
+	Details:OpenPlugin ("Encounter Breakdown")
 	GameCooltip2:Hide()
 end
 
 function detailsOnDeathMenu.OpenPlayerEndurance()
 	if (not Details:GetPlugin ("DETAILS_PLUGIN_DEATH_GRAPHICS")) then
-		detailsOnDeathMenu.warningLabel.text = Loc["Advanced Death Logs plugin is disabled! Please enable it (or download) in the Addon Control Panel."]
+		detailsOnDeathMenu.warningLabel.text = "Advanced Death Logs plugin is disabled! Please enable it (or download) in the Addon Control Panel."
 		detailsOnDeathMenu.warningLabel:Show()
 		C_Timer.After(5, function()
 			detailsOnDeathMenu.warningLabel:Hide()
@@ -107,7 +106,7 @@ function detailsOnDeathMenu.OpenPlayerSpells()
 end
 
 --encounter breakdown button
-detailsOnDeathMenu.breakdownButton = Details.gump:CreateButton(detailsOnDeathMenu, detailsOnDeathMenu.OpenEncounterBreakdown, 120, 20, Loc["Encounter Breakdown"], "breakdownButton")
+detailsOnDeathMenu.breakdownButton = Details.gump:CreateButton(detailsOnDeathMenu, detailsOnDeathMenu.OpenEncounterBreakdown, 120, 20, "Encounter Breakdown", "breakdownButton")
 detailsOnDeathMenu.breakdownButton:SetTemplate(Details.gump:GetTemplate("button", "DETAILS_PLUGINPANEL_BUTTON_TEMPLATE"))
 detailsOnDeathMenu.breakdownButton:SetPoint("topleft", detailsOnDeathMenu, "topleft", 5, -5)
 detailsOnDeathMenu.breakdownButton:Hide()
@@ -116,18 +115,18 @@ detailsOnDeathMenu.breakdownButton.CoolTip = {
 	Type = "tooltip",
 	BuildFunc = function()
 		GameCooltip2:Preset(2)
-		GameCooltip2:AddLine(Loc["Show a panel with:"])
-		GameCooltip2:AddLine(Loc["- Player Damage Taken"])
-		GameCooltip2:AddLine(Loc["- Damage Taken by Spell"])
-		GameCooltip2:AddLine(Loc["- Enemy Damage Taken"])
-		GameCooltip2:AddLine(Loc["- Player Deaths"])
-		GameCooltip2:AddLine(Loc["- Interrupts and Dispels"])
-		GameCooltip2:AddLine(Loc["- Damage Done Chart"])
-		GameCooltip2:AddLine(Loc["- Damage Per Phase"])
-		GameCooltip2:AddLine(Loc["- Weakauras Tool"])
+		GameCooltip2:AddLine("Show a panel with:")
+		GameCooltip2:AddLine("- Player Damage Taken")
+		GameCooltip2:AddLine("- Damage Taken by Spell")
+		GameCooltip2:AddLine("- Enemy Damage Taken")
+		GameCooltip2:AddLine("- Player Deaths")
+		GameCooltip2:AddLine("- Interrupts and Dispels")
+		GameCooltip2:AddLine("- Damage Done Chart")
+		GameCooltip2:AddLine("- Damage Per Phase")
+		GameCooltip2:AddLine("- Weakauras Tool")
 		
 		if (not Details:GetPlugin ("DETAILS_PLUGIN_ENCOUNTER_DETAILS")) then
-			GameCooltip2:AddLine(Loc["Encounter Breakdown plugin is disabled in the Addon Control Panel."], "", 1, "red")
+			GameCooltip2:AddLine("Encounter Breakdown plugin is disabled in the Addon Control Panel.", "", 1, "red")
 		end
 		
 	end, --called when user mouse over the frame
@@ -151,7 +150,7 @@ detailsOnDeathMenu.breakdownButton.CoolTip = {
 GameCooltip2:CoolTipInject (detailsOnDeathMenu.breakdownButton)
 
 --player endurance button
-detailsOnDeathMenu.enduranceButton = Details.gump:CreateButton(detailsOnDeathMenu, detailsOnDeathMenu.OpenPlayerEndurance, 120, 20, Loc["Player Endurance"], "enduranceButton")
+detailsOnDeathMenu.enduranceButton = Details.gump:CreateButton(detailsOnDeathMenu, detailsOnDeathMenu.OpenPlayerEndurance, 120, 20, "Player Endurance", "enduranceButton")
 detailsOnDeathMenu.enduranceButton:SetTemplate(Details.gump:GetTemplate("button", "DETAILS_PLUGINPANEL_BUTTON_TEMPLATE"))
 detailsOnDeathMenu.enduranceButton:SetPoint("topleft", detailsOnDeathMenu.breakdownButton, "topright", 2, 0)
 detailsOnDeathMenu.enduranceButton:Hide()
@@ -160,15 +159,15 @@ detailsOnDeathMenu.enduranceButton.CoolTip = {
 	Type = "tooltip",
 	BuildFunc = function()
 		GameCooltip2:Preset(2)
-		GameCooltip2:AddLine(Loc["Open Player Endurance Breakdown"])
+		GameCooltip2:AddLine("Open Player Endurance Breakdown")
 		GameCooltip2:AddLine("")
-		GameCooltip2:AddLine(Loc["Player endurance is calculated using the amount of player deaths."])
-		GameCooltip2:AddLine(Loc["By default the plugin register the three first player deaths on each encounter to calculate who is under performing."])
+		GameCooltip2:AddLine("Player endurance is calculated using the amount of player deaths.")
+		GameCooltip2:AddLine("By default the plugin register the three first player deaths on each encounter to calculate who is under performing.")
 		
 		--GameCooltip2:AddLine(" ")
 		
 		if (not Details:GetPlugin ("DETAILS_PLUGIN_DEATH_GRAPHICS")) then
-			GameCooltip2:AddLine(Loc["Advanced Death Logs plugin is disabled or not installed, check the Addon Control Panel or download it from the Curseforge APP."], "", 1, "red")
+			GameCooltip2:AddLine("Advanced Death Logs plugin is disabled or not installed, check the Addon Control Panel or download it from the Curseforge APP.", "", 1, "red")
 		end
 
 	end, --called when user mouse over the frame
@@ -192,7 +191,7 @@ detailsOnDeathMenu.enduranceButton.CoolTip = {
 GameCooltip2:CoolTipInject (detailsOnDeathMenu.enduranceButton)
 
 --spells
-detailsOnDeathMenu.spellsButton = Details.gump:CreateButton(detailsOnDeathMenu, detailsOnDeathMenu.OpenPlayerSpells, 48, 20, Loc["Spells"], "SpellsButton")
+detailsOnDeathMenu.spellsButton = Details.gump:CreateButton(detailsOnDeathMenu, detailsOnDeathMenu.OpenPlayerSpells, 48, 20, "Spells", "SpellsButton")
 detailsOnDeathMenu.spellsButton:SetTemplate(Details.gump:GetTemplate("button", "DETAILS_PLUGINPANEL_BUTTON_TEMPLATE"))
 detailsOnDeathMenu.spellsButton:SetPoint("topleft", detailsOnDeathMenu.enduranceButton, "topright", 2, 0)
 detailsOnDeathMenu.spellsButton:Hide()
@@ -201,7 +200,7 @@ detailsOnDeathMenu.spellsButton.CoolTip = {
 	Type = "tooltip",
 	BuildFunc = function()
 		GameCooltip2:Preset(2)
-		GameCooltip2:AddLine(Loc["Open your player Details! breakdown."])
+		GameCooltip2:AddLine("Open your player Details! breakdown.")
 		
 	end, --called when user mouse over the frame
 	OnEnterFunc = function(self) 

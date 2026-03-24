@@ -45,7 +45,7 @@ do
 		local buildOptionsPanel = function()
 			local pluginIcon = "Interface\\AddOns\\Details_EncounterDetails\\images\\icon"
 			local pluginIconCoords = {0.15, 0.85, 0.15, 0.85}
-			local optionsFrame = encounterDetails:CreatePluginOptionsFrame("EncounterDetailsOptionsWindow", Loc["Encounter Breakdown Options"], 3, pluginIcon, pluginIconCoords)
+			local optionsFrame = encounterDetails:CreatePluginOptionsFrame("EncounterDetailsOptionsWindow", "Encounter Breakdown Options", 3, pluginIcon, pluginIconCoords)
 			-- 1 = only when inside a raid map
 			-- 2 = only when in raid group
 			-- 3 = only after a boss encounter
@@ -84,29 +84,29 @@ do
 			end
 
 			local on_show_menu = {
-				{value = 1, label = Loc["Inside Raid"], onclick = onShowIconCallback, desc = Loc["Only show the icon while inside a raid."]},
-				{value = 2, label = Loc["In Group"], onclick = onShowIconCallback, desc = Loc["Only show the icon while in group."]},
-				{value = 3, label = Loc["After Encounter"], onclick = onShowIconCallback, desc = Loc["Show the icon after a raid boss encounter."]},
-				{value = 4, label = Loc["Always"], onclick = onShowIconCallback, desc = Loc["Always show the icon."]},
-				{value = 5, label = Loc["Auto"], onclick = onShowIconCallback, desc = Loc["The plugin decides when the icon needs to be shown."]},
+				{value = 1, label = "Inside Raid", onclick = onShowIconCallback, desc = "Only show the icon while inside a raid."},
+				{value = 2, label = "In Group", onclick = onShowIconCallback, desc = "Only show the icon while in group."},
+				{value = 3, label = "After Encounter", onclick = onShowIconCallback, desc = "Show the icon after a raid boss encounter."},
+				{value = 4, label = "Always", onclick = onShowIconCallback, desc = "Always show the icon."},
+				{value = 5, label = "Auto", onclick = onShowIconCallback, desc = "The plugin decides when the icon needs to be shown."},
 			}
 
-			---@debug /dump DETAILS_PLUGIN_ENCOUNTER_DETAILS.db.show_icon
+			--/dump DETAILS_PLUGIN_ENCOUNTER_DETAILS.db.show_icon
 
 			local menu = {
 				{
 					type = "select",
 					get = function() return encounterDetails.db.show_icon end,
 					values = function() return on_show_menu end,
-					desc = Loc["When the icon is shown in the Details! tooltip."],
-					name = Loc["Show Icon"]
+					desc = "When the icon is shown in the Details! tooltip.",
+					name = "Show Icon"
 				},
 				{
 					type = "toggle",
 					get = function() return encounterDetails.db.hide_on_combat end,
 					set = function(self, fixedparam, value) encounterDetails.db.hide_on_combat = value end,
-					desc = Loc["Encounter Breakdown window automatically close when you enter in combat."],
-					name = Loc["Hide on Combat"]
+					desc = "Encounter Breakdown window automatically close when you enter in combat.",
+					name = "Hide on Combat"
 				},
 				{
 					type = "range",
@@ -115,8 +115,8 @@ do
 					min = 1,
 					max = 10,
 					step = 1,
-					desc = Loc["Keep how many segments emotes."],
-					name = Loc["Emote Segments Amount"],
+					desc = "Keep how many segments emotes.",
+					name = "Emote Segments Amount",
 					usedecimals = true,
 				},
 				{
@@ -126,8 +126,8 @@ do
 					min = 0.65,
 					max = 1.50,
 					step = 0.1,
-					desc = Loc["Set the window size"],
-					name = Loc["Window Scale"],
+					desc = "Set the window size",
+					name = "Window Scale",
 					usedecimals = true,
 				},
 
@@ -216,12 +216,12 @@ do
 		edFrame.bossIcon:SetHeight(46)
 
 		--raid name
-		detailsFramework:NewLabel(headerFrame, headerFrame, nil, "raidNameLabel", Loc["Unknown Raid"], "GameFontHighlightSmall")
+		detailsFramework:NewLabel(headerFrame, headerFrame, nil, "raidNameLabel", "Unknown Raid", "GameFontHighlightSmall")
 		edFrame.raidNameLabel = headerFrame.raidNameLabel
 		edFrame.raidNameLabel:SetPoint("topleft", edFrame, "topleft", 60, -34)
 
 		--encounter name
-		detailsFramework:NewLabel(headerFrame, headerFrame, nil, "bossNameLabel", Loc["Unknown Encounter"], "QuestFont_Large")
+		detailsFramework:NewLabel(headerFrame, headerFrame, nil, "bossNameLabel", "Unknown Encounter", "QuestFont_Large")
 		edFrame.bossNameLabel = headerFrame.bossNameLabel
 		edFrame.bossNameLabel:SetPoint("topleft", edFrame.raidNameLabel, "bottomleft", 0, -2)
 
@@ -414,48 +414,48 @@ do
 		--create selection tab buttons
 		do
 			--summary
-			edFrame.buttonSwitchNormal = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, Loc["Summary"], "main")
+			edFrame.buttonSwitchNormal = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, "Summary", "main")
 			edFrame.buttonSwitchNormal:SetIcon("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 18, 18, "overlay", {0, 32/256, 0, 0.505625})
 			edFrame.buttonSwitchNormal:SetTemplate(detailsFramework:GetTemplate("button", "DETAILS_PLUGIN_BUTTONSELECTED_TEMPLATE"))
 			edFrame.buttonSwitchNormal:SetWidth(BUTTON_WIDTH)
 				--summary for the breakdown window
-				edFrame.buttonSwitchNormalBreakdown = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, Loc["Summary"], "main")
+				edFrame.buttonSwitchNormalBreakdown = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, "Summary", "main")
 				edFrame.buttonSwitchNormalBreakdown:SetIcon("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 18, 18, "overlay", {0, 32/256, 0, 0.505625})
 				edFrame.buttonSwitchNormalBreakdown:SetTemplate(detailsFramework:GetTemplate("button", "DETAILS_PLUGIN_BUTTONSELECTED_TEMPLATE"))
 				edFrame.buttonSwitchNormalBreakdown:SetWidth(BUTTON_WIDTH)
 				_G.DetailsBreakdownWindow.RegisterPluginButton(edFrame.buttonSwitchNormalBreakdown, edTable.PluginObject, edTable.PluginAbsoluteName)
 
 			--phases
-			edFrame.buttonSwitchPhases = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, Loc["Phases"], "phases")
+			edFrame.buttonSwitchPhases = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, "Phases", "phases")
 			edFrame.buttonSwitchPhases:SetIcon("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 18, 18, "overlay", {65/256, 96/256, 0, 0.505625})
 			edFrame.buttonSwitchPhases:SetTemplate(detailsFramework:GetTemplate("button", "DETAILS_PLUGIN_BUTTON_TEMPLATE"))
 			edFrame.buttonSwitchPhases:SetWidth(BUTTON_WIDTH)
 				--phases for the breakdown window
-				edFrame.buttonSwitchPhasesBreakdown = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, Loc["Phases"], "phases")
+				edFrame.buttonSwitchPhasesBreakdown = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, "Phases", "phases")
 				edFrame.buttonSwitchPhasesBreakdown:SetIcon("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 18, 18, "overlay", {65/256, 96/256, 0, 0.505625})
 				edFrame.buttonSwitchPhasesBreakdown:SetTemplate(detailsFramework:GetTemplate("button", "DETAILS_PLUGIN_BUTTON_TEMPLATE"))
 				edFrame.buttonSwitchPhasesBreakdown:SetWidth(BUTTON_WIDTH)
 				_G.DetailsBreakdownWindow.RegisterPluginButton(edFrame.buttonSwitchPhasesBreakdown, edTable.PluginObject, edTable.PluginAbsoluteName)
 
 			--chart
-			edFrame.buttonSwitchGraphic = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, Loc["Damage Graphic"], "graph")
+			edFrame.buttonSwitchGraphic = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, "Damage Graphic", "graph")
 			edFrame.buttonSwitchGraphic:SetIcon("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 18, 18, "overlay", {97/256, 128/256, 0, 0.505625})
 			edFrame.buttonSwitchGraphic:SetTemplate(detailsFramework:GetTemplate("button", "DETAILS_PLUGIN_BUTTON_TEMPLATE"))
 			edFrame.buttonSwitchGraphic:SetWidth(BUTTON_WIDTH)
 				--charts for the breakdown window
-				edFrame.buttonSwitchGraphicBreakdown = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, Loc["Damage Graphic"], "graph")
+				edFrame.buttonSwitchGraphicBreakdown = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, "Damage Graphic", "graph")
 				edFrame.buttonSwitchGraphicBreakdown:SetIcon("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 18, 18, "overlay", {97/256, 128/256, 0, 0.505625})
 				edFrame.buttonSwitchGraphicBreakdown:SetTemplate(detailsFramework:GetTemplate("button", "DETAILS_PLUGIN_BUTTON_TEMPLATE"))
 				edFrame.buttonSwitchGraphicBreakdown:SetWidth(BUTTON_WIDTH)
 				_G.DetailsBreakdownWindow.RegisterPluginButton(edFrame.buttonSwitchGraphicBreakdown, edTable.PluginObject, edTable.PluginAbsoluteName)
 
 			--emotes
-			edFrame.buttonSwitchBossEmotes = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, Loc["Emotes"], "emotes")
+			edFrame.buttonSwitchBossEmotes = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, "Emotes", "emotes")
 			edFrame.buttonSwitchBossEmotes:SetIcon("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 18, 18, "overlay", {129/256, 160/256, 0, 0.505625})
 			edFrame.buttonSwitchBossEmotes:SetTemplate(detailsFramework:GetTemplate("button", "DETAILS_PLUGIN_BUTTON_TEMPLATE"))
 			edFrame.buttonSwitchBossEmotes:SetWidth(BUTTON_WIDTH)
 				--emotes for the breakdown window
-				edFrame.buttonSwitchBossEmotesBreakdown = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, Loc["Emotes"], "emotes")
+				edFrame.buttonSwitchBossEmotesBreakdown = detailsFramework:CreateButton(edFrame, edFrame.switch, BUTTON_WIDTH, BUTTON_HEIGHT, "Emotes", "emotes")
 				edFrame.buttonSwitchBossEmotesBreakdown:SetIcon("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 18, 18, "overlay", {129/256, 160/256, 0, 0.505625})
 				edFrame.buttonSwitchBossEmotesBreakdown:SetTemplate(detailsFramework:GetTemplate("button", "DETAILS_PLUGIN_BUTTON_TEMPLATE"))
 				edFrame.buttonSwitchBossEmotesBreakdown:SetWidth(BUTTON_WIDTH)
@@ -501,7 +501,7 @@ do
 			segmentDropdown:SetTemplate(detailsFramework:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
 
 			--options button
-			local optionsButton = detailsFramework:NewButton(edFrame, nil, "$parentOptionsButton", "OptionsButton", 120, 20, encounterDetails.OpenOptionsPanel, nil, nil, nil, Loc["Options"])
+			local optionsButton = detailsFramework:NewButton(edFrame, nil, "$parentOptionsButton", "OptionsButton", 120, 20, encounterDetails.OpenOptionsPanel, nil, nil, nil, "Options")
 			optionsButton:SetPoint("left", segmentDropdown, "right", 10, 0)
 			optionsButton:SetTemplate(detailsFramework:GetTemplate("button", "DETAILS_PLUGIN_BUTTON_TEMPLATE"))
 			optionsButton:SetIcon([[Interface\Buttons\UI-OptionsButton]], 14, 14, nil, {0, 1, 0, 1}, nil, 3)
@@ -519,7 +519,7 @@ do
 			C_Timer.After(0, function() edFrame.MacroEditBox:HighlightText() end)
 		end)
 
-		edFrame.MacroEditBox.BackgroundLabel = detailsFramework:CreateLabel(edFrame.MacroEditBox, Loc["macro"])
+		edFrame.MacroEditBox.BackgroundLabel = detailsFramework:CreateLabel(edFrame.MacroEditBox, "macro")
 		edFrame.MacroEditBox.BackgroundLabel:SetPoint("left", edFrame.MacroEditBox, "left", 6, 0)
 		edFrame.MacroEditBox.BackgroundLabel:SetTextColor(.3, .3, .3, .98)
 	end

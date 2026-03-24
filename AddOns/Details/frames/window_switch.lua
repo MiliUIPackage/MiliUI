@@ -107,7 +107,7 @@ function Details222.CreateAllDisplaysFrame()
 				elseif (Details.SoloTables.NameTable [self.pluginName]) then
 					Details.SoloTables:EnableSoloMode(instance, self.pluginName)
 				else
-					Details:Msg(Loc["Plugin not found."])
+					Details:Msg("Plugin not found.")
 				end
 
 				allDisplaysFrame:Hide()
@@ -974,7 +974,7 @@ function Details:FastSwitch(button, bookmark, bookmarkNumber, selectNew)
 		elseif (Details.SoloTables.NameTable [bookmark.sub_atributo]) then
 			Details.SoloTables:EnableSoloMode(Details.switch.current_instancia, bookmark.sub_atributo)
 		else
-			Details:Msg(Loc["Plugin not found."])
+			Details:Msg("Plugin not found.")
 		end
 	else
 		Details.switch.current_instancia:TrocaTabela(Details.switch.current_instancia, true, bookmark.atributo, bookmark.sub_atributo)
@@ -1307,10 +1307,10 @@ local bookmarkButtonIconOnEnter = function(self)
 	gameCooltip:Reset()
 	gameCooltip:SetOwner(self)
 
-	gameCooltip:AddLine(Loc["select bookmark"])
+	gameCooltip:AddLine("select bookmark")
 	gameCooltip:AddIcon([[Interface\TUTORIALFRAME\UI-TUTORIAL-FRAME]], 1, 1, 12, 14, 0.0019531, 0.1484375, 0.6269531, 0.8222656)
 
-	gameCooltip:SetOption("TextSize", 14)
+	gameCooltip:SetOption("TextSize", 10)
 	gameCooltip:SetOption("ButtonsYMod", 0)
 	gameCooltip:SetOption("YSpacingMod", 0)
 	gameCooltip:SetOption("IgnoreButtonAutoHeight", false)

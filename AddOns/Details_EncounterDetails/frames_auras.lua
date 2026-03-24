@@ -79,14 +79,14 @@ local info_onenter = function(self)
         GameCooltip:SetOption("FixedWidth", false)
 
         for token, _ in pairs(info.token) do
-            GameCooltip:AddLine(Loc["event:"], token, 1, nil, "white")
+            GameCooltip:AddLine("event:", token, 1, nil, "white")
         end
 
-        GameCooltip:AddLine(Loc["source:"], info.source, 1, nil, "white")
-        GameCooltip:AddLine(Loc["school:"], encounterDetails:GetSpellSchoolFormatedName(info.school), 1, nil, "white")
+        GameCooltip:AddLine("source:", info.source, 1, nil, "white")
+        GameCooltip:AddLine("school:", encounterDetails:GetSpellSchoolFormatedName(info.school), 1, nil, "white")
 
         if (info.type) then
-            GameCooltip:AddLine(Loc["aura type:"], info.type, 1, nil, "white")
+            GameCooltip:AddLine("aura type:", info.type, 1, nil, "white")
         end
         GameCooltip:ShowCooltip(self, "tooltip")
     end
@@ -98,12 +98,12 @@ local info_onleave = function(self)
     self:SetBackdropColor(.3, .3, .3, .5)
 end
 
-local bossModsTitle = detailsFramework:CreateLabel(edFrame, Loc["Boss Mods Time Bars:"], 16, "orange")
+local bossModsTitle = detailsFramework:CreateLabel(edFrame, "Boss Mods Time Bars:", 12, "orange")
 bossModsTitle:SetPoint(10, -85)
 table.insert(edFrame.EnemySpellsWidgets, bossModsTitle)
 bossModsTitle:Hide()
 
-local bossSpellsTitle = detailsFramework:CreateLabel(edFrame, Loc["Boss Spells and Auras:"], 16, "orange")
+local bossSpellsTitle = detailsFramework:CreateLabel(edFrame, "Boss Spells and Auras:", 12, "orange")
 bossSpellsTitle:SetPoint(444, -85)
 table.insert(edFrame.EnemySpellsWidgets, bossSpellsTitle)
 bossSpellsTitle:Hide()
@@ -130,7 +130,7 @@ for i = 1, CONST_MAX_AURA_LINES do
     spellname:SetHook("OnEnter", on_enter_spell)
     spellname:SetHook("OnLeave", on_leave_spell)
 
-    local create_aura = detailsFramework:NewButton(anchor_frame, nil, "$parentCreateAuraButton", "AuraButton", 90, 18, create_aura_func, nil, nil, nil, Loc["Make Aura"])
+    local create_aura = detailsFramework:NewButton(anchor_frame, nil, "$parentCreateAuraButton", "AuraButton", 90, 18, create_aura_func, nil, nil, nil, "Make Aura")
     create_aura:SetTemplate(aurasButtonTemplate)
 
     spellicon:SetPoint("topleft", edFrame, "topleft", 10, -85 +(i * 21 * -1))
@@ -188,10 +188,10 @@ for i = 1, CONST_MAX_AURA_LINES do
 
     local spellinfotext = spellinfo:CreateFontString(nil, "overlay", "GameFontNormal")
     spellinfotext:SetPoint("center", spellinfo, "center")
-    spellinfotext:SetText(Loc["info"])
+    spellinfotext:SetText("info")
     spellinfo:SetPoint("left", spellname.widget, "right", 4, 0)
 
-    local create_aura = detailsFramework:NewButton(anchor_frame, nil, "$parentCreateAuraButton", "AuraButton", 90, 18, create_aura_func, nil, nil, nil, Loc["Make Aura"])
+    local create_aura = detailsFramework:NewButton(anchor_frame, nil, "$parentCreateAuraButton", "AuraButton", 90, 18, create_aura_func, nil, nil, nil, "Make Aura")
     create_aura:SetPoint("left", spellinfo, "right", 4, 0)
     create_aura:SetTemplate(aurasButtonTemplate)
 
@@ -306,7 +306,7 @@ local refresh_bossmods_timers = function(self)
 
                 local func = function()
                     local timerId, spellname, spellicon, encounterid, spellid = unpack(data.value)
-                    encounterDetails:OpenAuraPanel(timerId, spellname, spellicon, encounterid, DETAILS_WA_TRIGGER_DBM_TIMER, DETAILS_WA_AURATYPE_TEXT, {dbm_timer_id = timerId, spellid = spellid, text = Loc["Next "] .. spellname .. Loc[" In"], text_size = 72, icon = spellicon})
+                    encounterDetails:OpenAuraPanel(timerId, spellname, spellicon, encounterid, DETAILS_WA_TRIGGER_DBM_TIMER, DETAILS_WA_AURATYPE_TEXT, {dbm_timer_id = timerId, spellid = spellid, text = "Next " .. spellname .. " In", text_size = 72, icon = spellicon})
                 end
 
                 bar.aurabutton:SetClickFunction(func)

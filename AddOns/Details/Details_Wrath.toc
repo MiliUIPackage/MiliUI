@@ -5,7 +5,7 @@
 ## SavedVariables: _detalhes_global, __details_backup
 ## SavedVariablesPerCharacter: _detalhes_database
 ## OptionalDeps: Ace3, LibSharedMedia-3.0, LibWindow-1.1, LibDBIcon-1.0, NickTag-1.0, LibDataBroker-1.1, LibItemUpgradeInfo-1.0, LibGroupInSpecT-1.1, LibGraph-2.0
-## Version: #Details.20260304.14718.170
+## Version: #Details.20260324.14811.171
 ## IconTexture: Interface\AddOns\Details\images\minimap
 
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計
@@ -18,6 +18,14 @@ Libs\libs.xml
 #@end-no-lib-strip@
 
 locales\Details-enUS.lua
+locales\Details-deDE.lua
+locales\Details-esES.lua
+locales\Details-esMX.lua
+locales\Details-frFR.lua
+locales\Details-itIT.lua
+locales\Details-koKR.lua
+locales\Details-ptBR.lua
+locales\Details-ruRU.lua
 locales\Details-zhCN.lua
 locales\Details-zhTW.lua
 

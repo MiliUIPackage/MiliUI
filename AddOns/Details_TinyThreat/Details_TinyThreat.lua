@@ -29,7 +29,7 @@ local ThreatMeter = Details:NewPluginObject ("Details_TinyThreat")
 --> Main Frame
 local ThreatMeterFrame = ThreatMeter.Frame
 
-ThreatMeter:SetPluginDescription (Loc["Small tool for track the threat you and other raid members have in your current target."])
+ThreatMeter:SetPluginDescription ("Small tool for track the threat you and other raid members have in your current target.")
 
 local _
 
@@ -769,7 +769,7 @@ end
 
 local build_options_panel = function()
 
-	local options_frame = ThreatMeter:CreatePluginOptionsFrame ("ThreatMeterOptionsWindow", Loc["Tiny Threat Options"], 1)
+	local options_frame = ThreatMeter:CreatePluginOptionsFrame ("ThreatMeterOptionsWindow", "Tiny Threat Options", 1)
 
 	local menu = {
 		--[=[]]
@@ -780,8 +780,8 @@ local build_options_panel = function()
 			min = 0.2,
 			max = 3,
 			step = 0.2,
-			desc = Loc["How fast the window get updates."],
-			name = Loc["Update Speed"],
+			desc = "How fast the window get updates.",
+			name = "Update Speed",
 			usedecimals = true,
 		},
 		--]=]
@@ -789,8 +789,8 @@ local build_options_panel = function()
 			type = "toggle",
 			get = function() return ThreatMeter.saveddata.useplayercolor end,
 			set = function (self, fixedparam, value) ThreatMeter.saveddata.useplayercolor = value end,
-			desc = Loc["When enabled, your bar get the following color."],
-			name = Loc["Player Color Enabled"]
+			desc = "When enabled, your bar get the following color.",
+			name = "Player Color Enabled"
 		},
 		{
 			type = "color",
@@ -799,15 +799,15 @@ local build_options_panel = function()
 				local current = ThreatMeter.saveddata.playercolor
 				current[1], current[2], current[3], current[4] = r, g, b, a
 			end,
-			desc = Loc["If Player Color is enabled, your bar have this color."],
-			name = Loc["Color"]
+			desc = "If Player Color is enabled, your bar have this color.",
+			name = "Color"
 		},
 		{
 			type = "toggle",
 			get = function() return ThreatMeter.saveddata.useclasscolors end,
 			set = function (self, fixedparam, value) ThreatMeter.saveddata.useclasscolors = value end,
-			desc = Loc["When enabled, threat bars uses the class color of the character."],
-			name = Loc["Use Class Colors"]
+			desc = "When enabled, threat bars uses the class color of the character.",
+			name = "Use Class Colors"
 		},
 
 		{type = "blank"},
@@ -816,29 +816,29 @@ local build_options_panel = function()
 			type = "toggle",
 			get = function() return ThreatMeter.saveddata.usefocus end,
 			set = function (self, fixedparam, value) ThreatMeter.saveddata.usefocus = value end,
-			desc = Loc["Show threat for the focus target if there's one."],
-			name = Loc["Track Focus Target (if any)"]
+			desc = "Show threat for the focus target if there's one.",
+			name = "Track Focus Target (if any)"
 		},
 		{
 			type = "toggle",
 			get = function() return not ThreatMeter.saveddata.hide_pull_bar end,
 			set = function (self, fixedparam, value) ThreatMeter.saveddata.hide_pull_bar = not value end,
-			desc = Loc["Show Pull Aggro Bar"],
-			name = Loc["Show Pull Aggro Bar"]
+			desc = "Show Pull Aggro Bar",
+			name = "Show Pull Aggro Bar"
 		},
 		{
 			type = "toggle",
 			get = function() return ThreatMeter.saveddata.absolute_mode end,
 			set = function(self, fixedparam, value) ThreatMeter.saveddata.absolute_mode = value end,
-			desc = Loc["If this is disabled, you see weighted threat percentages – aggro switches at 100%.\nIf this is enabled, you see absolute threat percentages – aggro switches at 110% in melee, and 130% at range."],
-			name = Loc["Display absolute threat"],
+			desc = "If this is disabled, you see weighted threat percentages – aggro switches at 100%.\nIf this is enabled, you see absolute threat percentages – aggro switches at 110% in melee, and 130% at range.",
+			name = "Display absolute threat",
 		},
 		{
 			type = "toggle",
 			get = function() return not ThreatMeter.saveddata.disable_gouge end,
 			set = function(self, fixedparam, value) ThreatMeter.saveddata.disable_gouge = not value end,
-			desc = Loc["If this is enabled, certain bosses will show an additional threat threshold at 90.9% of the off-tank's threat. Any player above this threshold might be targeted after the Main Tank is incapacitated."],
-			name = Loc["Enable Gouge mode"],
+			desc = "If this is enabled, certain bosses will show an additional threat threshold at 90.9% of the off-tank's threat. Any player above this threshold might be targeted after the Main Tank is incapacitated.",
+			name = "Enable Gouge mode",
 		},
         {
             type = "toggle",

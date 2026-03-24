@@ -438,7 +438,7 @@ function DropDownMetaFunctions:NoOption(state)
 		self:Disable()
 		self:SetAlpha(0.5)
 		self.no_options = true
-		self.label:SetText("沒有選項")
+		self.label:SetText("no options")
 		self.label:SetPoint("left", self.icon, "right", 2, 0)
 		self.label:SetTextColor(1, 1, 1, 0.4)
 		self.icon:SetTexture([[Interface\CHARACTERFRAME\UI-Player-PlayTimeUnhealthy]])
@@ -699,10 +699,14 @@ function DropDownMetaFunctions:Selected(thisOption)
 		self.label:SetFont(overrideFont, 10)
 
 	elseif (thisOption.font and not self.isSimpleHeader) then
-		self.label:SetFont(thisOption.font, 14)
+		self.label:SetFont(thisOption.font, 10)
 
 	else
-		self.label:SetFont("GameFontHighlight", 14)
+		if select(4, GetBuildInfo()) >= 120005 then
+			self.label:SetFont(GameFontHighlightSmall:GetFont(), 10)
+		else
+			self.label:SetFont("GameFontHighlightSmall", 10)
+		end
 	end
 
 	self:SetValue(thisOption.value)
@@ -951,13 +955,13 @@ function DetailsFrameworkDropDownOnMouseDown(button, buttontype)
 					thisOptionFrame.label:SetText(thisOption.label)
 
 					if (overrideFont) then
-						thisOptionFrame.label:SetFont(overrideFont, 14)
+						thisOptionFrame.label:SetFont(overrideFont, 10.5)
 
 					elseif (thisOption.font) then
-						thisOptionFrame.label:SetFont(thisOption.font, 14)
+						thisOptionFrame.label:SetFont(thisOption.font, 10.5)
 
 					else
-						thisOptionFrame.label:SetFont("GameFontHighlight", 14)
+						thisOptionFrame.label:SetFont("GameFontHighlightSmall", 10.5)
 					end
 
 					if (currentText and currentText == thisOption.label) then
@@ -1875,10 +1879,10 @@ function DF:CreateNewDropdownFrame(parent, name)
 	centerTexture:SetSize(20, 20)
 	newDropdownFrame.centerTexture = centerTexture
 
-	local text = newDropdownFrame:CreateFontString("$parent_Text", "ARTWORK", "GameFontHighlight")
+	local text = newDropdownFrame:CreateFontString("$parent_Text", "ARTWORK", "GameFontHighlightSmall")
 	text:SetPoint("left", icon, "right", 5, 0)
 	text:SetJustifyH("left")
-	text:SetText("尚未選擇選項")
+	text:SetText("no option selected")
 	text:SetTextColor(1, 1, 1, 0.4)
 	DF:SetFontSize(text, 10)
 	newDropdownFrame.text = text
@@ -1968,10 +1972,10 @@ function DF:CreateDropdownButton(parent, name)
 	icon:SetTexture([[Interface\ICONS\Spell_ChargePositive]])
 	newButton.icon = icon
 
-	local text = newButton:CreateFontString("$parent_Text", "OVERLAY", "GameFontHighlight")
+	local text = newButton:CreateFontString("$parent_Text", "OVERLAY", "GameFontHighlightSmall")
 	text:SetPoint("left", icon, "right", 5, 0)
 	text:SetJustifyH("left")
-	DF:SetFontSize(text, 14)
+	DF:SetFontSize(text, 10)
 	newButton.label = text
 
 	local rightButton = DF:CreateButton(newButton, function()end, 16, 16, "", 0, 0, "", "rightButton", "$parentRightButton", nil, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))

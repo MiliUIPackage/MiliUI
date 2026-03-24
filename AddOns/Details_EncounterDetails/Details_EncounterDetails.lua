@@ -45,12 +45,12 @@ edFrame.DefaultBarHeight = 20
 edFrame.CooltipStatusbarAlpha = .834
 edFrame.DefaultBarTexture = "Interface\\AddOns\\Details\\images\\bar_serenity"
 edFrame.encounterSummaryWidgets = {}
-encounterDetails:SetPluginDescription(Loc["Raid encounters summary, show basic stuff like dispels, interrupts and also graphic charts, boss emotes and the Weakaura Creation Tool."])
+encounterDetails:SetPluginDescription("Raid encounters summary, show basic stuff like dispels, interrupts and also graphic charts, boss emotes and the Weakaura Creation Tool.")
 
 --main combat object
 local _combat_object
 
-encounterDetails.name = Loc["Encounter Breakdown"]
+encounterDetails.name = "Encounter Breakdown"
 encounterDetails.debugmode = false
 
 function encounterDetails:FormatCooltipSettings()
@@ -113,7 +113,7 @@ local function CreatePluginFrames(data)
 				local raidGroupDamageDone = currentCombat:GetTotal(DETAILS_ATTRIBUTE_DAMAGE, nil, DETAILS_TOTALS_ONLYGROUP)
 				return raidGroupDamageDone or 0
 			]]
-			Details:TimeDataRegister(Loc["Raid Damage Done"], string_damage_done_func, nil, Loc["Encounter Details"], "v1.0", [[Interface\ICONS\Ability_DualWield]], true, true)
+			Details:TimeDataRegister("Raid Damage Done", string_damage_done_func, nil, "Encounter Details", "v1.0", [[Interface\ICONS\Ability_DualWield]], true, true)
 
 			if (encounterDetails.db.show_icon == 4) then
 				encounterDetails:ShowIcon()
@@ -143,7 +143,7 @@ local function CreatePluginFrames(data)
 				encounterDetails:AutoShowIcon()
 			end
 
-			local chartName = Loc["Raid Damage Done"]
+			local chartName = "Raid Damage Done"
 			local combatUniquieID = _combat_object:GetCombatNumber()
 			local chartData = _combat_object:GetTimeData(chartName)
 
@@ -319,22 +319,22 @@ local function CreatePluginFrames(data)
 		Details:SetTooltipMinWidth()
 
 		--summary
-		gameCooltip:AddLine(Loc["Encounter Summary"])
+		gameCooltip:AddLine("Encounter Summary")
 		gameCooltip:AddMenu(1, encounterDetails.Frame.switch, "main")
 		gameCooltip:AddIcon("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 1, 1, 20, 20, 0, 0.125, 0, 0.5)
 
 		--chart
-		gameCooltip:AddLine(Loc["Damage Graphic"])
+		gameCooltip:AddLine("Damage Graphic")
 		gameCooltip:AddMenu(1, encounterDetails.Frame.switch, "graph")
 		gameCooltip:AddIcon("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 1, 1, 20, 20, 0.125*3, 0.125*4, 0, 0.5)
 
 		--emotes
-		gameCooltip:AddLine(Loc["Boss Emotes"])
+		gameCooltip:AddLine("Boss Emotes")
 		gameCooltip:AddMenu(1, encounterDetails.Frame.switch, "emotes")
 		gameCooltip:AddIcon("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 1, 1, 20, 20, 0.125*4, 0.125*5, 0, 0.5)
 
 		--phases
-		gameCooltip:AddLine(Loc["Damage by Boss Phase"])
+		gameCooltip:AddLine("Damage by Boss Phase")
 		gameCooltip:AddMenu(1, encounterDetails.Frame.switch, "phases")
 		gameCooltip:AddIcon("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 1, 1, 20, 20,  0.125, 0.125*2, 0, 0.505625)
 
@@ -375,7 +375,7 @@ end
 		GameCooltip:SetType("tooltipbar")
 		GameCooltip:SetOwner(row)
 
-		GameCooltip:AddLine(Loc["Click to Report"], nil, 1, "orange")
+		GameCooltip:AddLine("Click to Report", nil, 1, "orange")
 		GameCooltip:AddIcon([[Interface\TUTORIALFRAME\UI-TUTORIAL-FRAME]], 1, 1, 12, 16, 0.015625, 0.13671875, 0.4375, 0.59765625)
 		GameCooltip:AddStatusBar(0, 1, 1, 1, 1, 1, false, {value = 100, color = {.3, .3, .3, .5}, specialSpark = false, texture = [[Interface\AddOns\Details\images\bar_serenity]]})
 
@@ -403,7 +403,7 @@ end
 					local overkill = event [10] or 0
 					if (overkill > 0) then
 						amount = amount - overkill
-						overkill = "(" .. Details:ToK(overkill) .. Loc[" |cFFFF8800overkill|r)"]
+						overkill = "(" .. Details:ToK(overkill) .. " |cFFFF8800overkill|r)"
 					else
 						overkill = ""
 					end

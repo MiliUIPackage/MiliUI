@@ -2,7 +2,6 @@
 
 local Details = _G.Details
 local DetailsFramework = _G.DetailsFramework
-local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 local C_Timer = _G.C_Timer
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -21,8 +20,9 @@ end
 function Details:Dump (...)
 	if (not DetailsDumpFrame) then
 		DetailsDumpFrame = DetailsFramework:CreateSimplePanel(_G.UIParent)
+		DetailsDumpFrame = DetailsDumpFrame --[[GLOBAL]]
 		DetailsDumpFrame:SetSize(700, 800)
-		DetailsDumpFrame:SetTitle(Loc["Details! Dump Table [|cFFFF3333Ready Only|r]"])
+		DetailsDumpFrame:SetTitle("Details! Dump Table [|cFFFF3333Ready Only|r]")
 
 		local text_editor = DetailsFramework:NewSpecialLuaEditorEntry(DetailsDumpFrame, 680, 760, "Editbox", "$parentEntry", true)
 		text_editor:SetPoint("topleft", DetailsDumpFrame, "topleft", 10, -30)
@@ -46,6 +46,66 @@ function Details:Dump (...)
 		text_editor.__background:SetVertTile(true)
 		text_editor.__background:SetHorizTile(true)
 		text_editor.__background:SetAllPoints()
+
+		local makeClass = function()
+			local content = DetailsDumpFrame.Content
+			if (type(content) == "table") then
+				local widgets = {}
+
+				for memberName, memberValue in pairs(content) do
+					local memberType = type(memberValue)
+					if (memberType == "number" or memberType == "string" or memberType == "boolean") then
+						local sortValue = memberType == "number" and 0 or (memberType == "string" and 1 or 2)
+						widgets[#widgets+1] = {name = memberName, type = memberType, value = memberValue, sort = sortValue}
+
+					elseif (memberType == "table") then
+						if memberValue.GetObjectType then
+							widgets[#widgets+1] = {name = memberName, type = memberType, value = memberValue:GetObjectType(), sort = 4}
+						else
+							widgets[#widgets+1] = {name = memberName, type = memberType, value = "table", sort = 3}
+						end
+
+					elseif (memberType == "function") then
+						widgets[#widgets+1] = {name = memberName, type = memberType, value = "fun()", sort = 5}
+					end
+				end
+
+				table.sort(widgets, function(t1, t2)
+					return t1.sort < t2.sort
+				end)
+
+				local result = "---@class a : table\n"
+
+				for i = 1, #widgets do
+					local widget = widgets[i]
+					if (widget.type == "number") then
+						result = result .. "---@field " .. widget.name .. " " .. widget.type .. "\n"
+
+					elseif (widget.type == "string") then
+						result = result .. "---@field " .. widget.name .. " " .. widget.type .. "\n"
+
+					elseif (widget.type == "boolean") then
+						result = result .. "---@field " .. widget.name .. " " .. widget.type .. "\n"
+
+					elseif (widget.type == "table") then
+						if widget.value == "table" then
+							result = result .. "---@field " .. widget.name .. " table\n"
+						else
+							result = result .. "---@field " .. widget.name .. " " .. widget.value .. "\n"
+						end
+
+					elseif (widget.type == "function") then
+						result = result .. "---@field " .. widget.name .. " fun()\n"
+					end
+				end
+
+				--result = result .. "---@field " .. memberName .. " fun())\n"
+
+				dumpt(result)
+			end
+		end
+		local makeClassButton = DetailsFramework:CreateButton(DetailsDumpFrame, function() makeClass() end, 120, 20, "Make Class", -1, nil, nil, nil, nil, nil, Details.gump:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), Details.gump:GetTemplate("font", "OPTIONS_FONT_TEMPLATE")) --localize-me
+		makeClassButton:SetPoint("bottomright", DetailsDumpFrame, "bottomright", -2, 2)
 	end
 
 	local t = select(1, ...)
@@ -63,6 +123,7 @@ function Details:Dump (...)
 		end
 	end
 
+	DetailsDumpFrame.Content = t
 	DetailsDumpFrame:Show()
 end
 
@@ -80,7 +141,7 @@ end
 
 function Details:ShowImportWindow (defaultText, confirmFunc, titleText)
 	if (not _G.DetailsExportWindow) then
-		local importWindow = DetailsFramework:CreateSimplePanel(_G.UIParent, 800, 610, Loc["Details! Dump String"], "DetailsExportWindow")
+		local importWindow = DetailsFramework:CreateSimplePanel(_G.UIParent, 800, 610, "Details! Dump String", "DetailsExportWindow")
 		importWindow:SetFrameStrata("FULLSCREEN")
 		importWindow:SetPoint("center")
 		DetailsFramework:ApplyStandardBackdrop(importWindow, false, 1.2)
@@ -118,12 +179,12 @@ function Details:ShowImportWindow (defaultText, confirmFunc, titleText)
 			end
 			importWindow:Hide()
 		end
-		local okayButton = DetailsFramework:CreateButton(importTextEditor, onClickImportButton, 120, 20, Loc["Okay"], -1, nil, nil, nil, nil, nil, Details.gump:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), Details.gump:GetTemplate("font", "OPTIONS_FONT_TEMPLATE")) --localize-me
+		local okayButton = DetailsFramework:CreateButton(importTextEditor, onClickImportButton, 120, 20, "Okay", -1, nil, nil, nil, nil, nil, Details.gump:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), Details.gump:GetTemplate("font", "OPTIONS_FONT_TEMPLATE")) --localize-me
 		okayButton:SetIcon ([[Interface\BUTTONS\UI-Panel-BiggerButton-Up]], 20, 20, "overlay", {0.1, .9, 0.1, .9})
 		importTextEditor.OkayButton = okayButton
 
 		--cancel button
-		local cancelButton = DetailsFramework:CreateButton(importTextEditor, function() importWindow:Hide() end, 120, 20, Loc["Cancel"], -1, nil, nil, nil, nil, nil, Details.gump:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), Details.gump:GetTemplate("font", "OPTIONS_FONT_TEMPLATE")) --localize-me
+		local cancelButton = DetailsFramework:CreateButton(importTextEditor, function() importWindow:Hide() end, 120, 20, "Cancel", -1, nil, nil, nil, nil, nil, Details.gump:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), Details.gump:GetTemplate("font", "OPTIONS_FONT_TEMPLATE")) --localize-me
 		cancelButton:SetIcon ([[Interface\BUTTONS\UI-Panel-MinimizeButton-Up]], 20, 20, "overlay", {0.1, .9, 0.1, .9})
 
 		okayButton:SetPoint("topright", importTextEditor, "bottomright", 0, -10)
@@ -135,7 +196,7 @@ function Details:ShowImportWindow (defaultText, confirmFunc, titleText)
 	_G.DetailsExportWindow.ImportEditor:SetText(defaultText or "")
 	_G.DetailsExportWindow:Show()
 
-	titleText = titleText or Loc["Details! Dump String"]
+	titleText = titleText or "Details! Dump String"
 	_G.DetailsExportWindow.Title:SetText(titleText)
 
 	C_Timer.After(.2, function()

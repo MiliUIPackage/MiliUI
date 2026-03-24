@@ -36,7 +36,7 @@ function Details:OpenProfiler()
     
     local string_profiler = f:CreateFontString(nil, "artwork", "GameFontNormal")
     string_profiler:SetPoint("top", logo, "bottom", -20, 10)
-    string_profiler:SetText(L["Profiler!"])
+    string_profiler:SetText("Profiler!")
     
     local string_profiler = f:CreateFontString(nil, "artwork", "GameFontNormal")
     string_profiler:SetPoint("topleft", f, "topleft", 10, -130)
@@ -80,7 +80,7 @@ function Details:OpenProfiler()
         end
         f:Hide()
     end
-    local confirm = Details.gump:NewButton(f, f, "DetailsProfilerProfileConfirmButton", "button", 150, 20, confirm_func, nil, nil, nil, L["Okey!"])
+    local confirm = Details.gump:NewButton(f, f, "DetailsProfilerProfileConfirmButton", "button", 150, 20, confirm_func, nil, nil, nil, "Okey!")
     confirm:SetPoint(50, -250)
     confirm:InstallCustomTexture()
 end

@@ -5,9 +5,6 @@ local LDBIcon = LDB and LibStub ("LibDBIcon-1.0", true)
 local LibWindow = LibStub ("LibWindow-1.1")
 local _
 
-local AceLocale = LibStub("AceLocale-3.0")
-local Loc = AceLocale:GetLocale ("Details")
-
 ---need cleanup Loc ["STRING_MEMORY_ALERT_BUTTON"],
 
 --> create the plugin object
@@ -161,11 +158,11 @@ local function CreatePluginFrames()
 	titlebar:SetBackdropColor (.1, .1, .1, .9)
 	titlebar.text = titlebar:CreateFontString (nil, "overlay", "GameFontNormal")
 	titlebar.text:SetPoint ("center", titlebar, "center")
-	titlebar.text:SetText (Loc["Details! Streamer: Action Tracker"])
+	titlebar.text:SetText ("Details! Streamer: Action Tracker")
 	titlebar:SetScript ("OnEnter", function (self)
 		GameTooltip:SetOwner (self)
 		GameTooltip:SetOwner (self, "ANCHOR_TOPLEFT")
-		GameTooltip:AddLine (Loc["|cFFFF7700Left Click|r: Open Options\n|cFFFF7700Right Click|r: Lock the Frame\n|cFFFF7700Slash Command|r: /streamer"])
+		GameTooltip:AddLine ("|cFFFF7700Left Click|r: Open Options\n|cFFFF7700Right Click|r: Lock the Frame\n|cFFFF7700Slash Command|r: /streamer")
 		GameTooltip:Show()
 	end)
 	titlebar:SetScript ("OnLeave", function()
@@ -1647,7 +1644,7 @@ end)
 screen_frame:SetScript ("OnEnter", function (self)
 	GameTooltip:SetOwner (self)
 	GameTooltip:SetOwner (self, "ANCHOR_TOPLEFT")
-	GameTooltip:AddLine (Loc["|cFFFF7700Left Click|r: Open Options\n|cFFFF7700Slash Command|r: /streamer"])
+	GameTooltip:AddLine ("|cFFFF7700Left Click|r: Open Options\n|cFFFF7700Slash Command|r: /streamer")
 	GameTooltip:Show()
 end)
 screen_frame:SetScript ("OnLeave", function()
@@ -1751,7 +1748,7 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 		local options_slider_template = detailsFramework:GetTemplate ("slider", "OPTIONS_SLIDER_TEMPLATE")
 		local options_button_template = detailsFramework:GetTemplate ("button", "OPTIONS_BUTTON_TEMPLATE")
 
-		local optionsFrame = StreamOverlay:CreatePluginOptionsFrame("StreamOverlayOptionsPanel", Loc["Details! Streamer: Action Tracker"], 1)
+		local optionsFrame = StreamOverlay:CreatePluginOptionsFrame("StreamOverlayOptionsPanel", "Details! Streamer: Action Tracker", 1)
 		optionsFrame:SetBackdrop({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
 		optionsFrame:SetBackdropColor(0, 0, 0, 0.5)
 		optionsFrame:SetBackdropBorderColor(0, 0, 0, 1)
@@ -1798,7 +1795,7 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 			selectedFrame:SetSize(240, 84)
 		end
 
-		local selectModeLabel = DetailsFramework:CreateLabel(selectModeFrame, Loc["Select Mode (test casting some spells)"], 14, "orange")
+		local selectModeLabel = DetailsFramework:CreateLabel(selectModeFrame, "Select Mode (test casting some spells)", 14, "orange")
 		selectModeLabel:SetPoint("top", optionsFrame, "top", 0, -100)
 
 		local classicModeSelectButton = DetailsFramework:CreateButton(selectModeFrame, selectClassicMode, 256, 77, "")
@@ -1892,11 +1889,11 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 			StreamerOverlayDpsHpsFrame:SetFrameStrata(strata)
 		end
 		local strataTable = {
-			{value = "BACKGROUND", label = Loc["Background"], onclick = setWindowStrataCallback, icon = [[Interface\Buttons\UI-MicroStream-Green]], iconcolor = {0, .5, 0, .8}, texcoord = nil},
-			{value = "LOW", label = Loc["Low"], onclick = setWindowStrataCallback, icon = [[Interface\Buttons\UI-MicroStream-Green]] , texcoord = nil},
-			{value = "MEDIUM", label = Loc["Medium"], onclick = setWindowStrataCallback, icon = [[Interface\Buttons\UI-MicroStream-Yellow]] , texcoord = nil},
-			{value = "HIGH", label = Loc["High"], onclick = setWindowStrataCallback, icon = [[Interface\Buttons\UI-MicroStream-Yellow]] , iconcolor = {1, .7, 0, 1}, texcoord = nil},
-			{value = "DIALOG", label = Loc["Dialog"], onclick = setWindowStrataCallback, icon = [[Interface\Buttons\UI-MicroStream-Red]] , iconcolor = {1, 0, 0, 1},  texcoord = nil},
+			{value = "BACKGROUND", label = "Background", onclick = setWindowStrataCallback, icon = [[Interface\Buttons\UI-MicroStream-Green]], iconcolor = {0, .5, 0, .8}, texcoord = nil},
+			{value = "LOW", label = "Low", onclick = setWindowStrataCallback, icon = [[Interface\Buttons\UI-MicroStream-Green]] , texcoord = nil},
+			{value = "MEDIUM", label = "Medium", onclick = setWindowStrataCallback, icon = [[Interface\Buttons\UI-MicroStream-Yellow]] , texcoord = nil},
+			{value = "HIGH", label = "High", onclick = setWindowStrataCallback, icon = [[Interface\Buttons\UI-MicroStream-Yellow]] , iconcolor = {1, .7, 0, 1}, texcoord = nil},
+			{value = "DIALOG", label = "Dialog", onclick = setWindowStrataCallback, icon = [[Interface\Buttons\UI-MicroStream-Red]] , iconcolor = {1, 0, 0, 1},  texcoord = nil},
 		}
 
 		--
@@ -1919,8 +1916,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 		local options = {
 			{
 				type = "toggle",
-				name = Loc["Locked"],
-				desc = Loc["Can't move or interact within the frame when it's locked."],
+				name = "Locked",
+				desc = "Can't move or interact within the frame when it's locked.",
 				order = 1,
 				get = function() return StreamOverlay.db.main_frame_locked end,
 				set = function (self, fixedParam, val)
@@ -1930,8 +1927,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 
 			{
 				type = "toggle",
-				name = Loc["Minimap Icon"],
-				desc = Loc["Show/Hide minimap icon."],
+				name = "Minimap Icon",
+				desc = "Show/Hide minimap icon.",
 				order = 1,
 				get = function() return not StreamOverlay.db.minimap.hide end,
 				set = function (self, fixedParam, val)
@@ -1948,8 +1945,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				set = function (self, r, g, b, a)
 					StreamOverlay:SetBackgroundColor (r, g, b, a)
 				end,
-				desc = Loc["Color used on the background."],
-				name = Loc["Background Color"]
+				desc = "Color used on the background.",
+				name = "Background Color"
 			},
 
 			{
@@ -1959,8 +1956,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				min = 0.6,
 				max = 2,
 				step = 0.1,
-				desc = Loc["Scale"],
-				name = Loc["Scale"],
+				desc = "Scale",
+				name = "Scale",
 				usedecimals = true,
 			},
 
@@ -1973,8 +1970,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				min = 10,
 				max = 30,
 				step = 1,
-				desc = Loc["How hight is each bar."],
-				name = Loc["Bar Height"],
+				desc = "How hight is each bar.",
+				name = "Bar Height",
 			},
 
 			{
@@ -1984,16 +1981,16 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				min = 8,
 				max = 31,
 				step = 1,
-				desc = Loc["How much space each bar use."],
-				name = Loc["Bar Space"],
+				desc = "How much space each bar use.",
+				name = "Bar Space",
 			},
 
 			{
 				type = "select",
 				get = function() return StreamOverlay.db.row_texture end,
 				values = function() return textureTable end,
-				desc = Loc["Which texture is used on bars."],
-				name = Loc["Bar Texture"]
+				desc = "Which texture is used on bars.",
+				name = "Bar Texture"
 			},
 
 			{
@@ -2004,8 +2001,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 					c[1], c[2], c[3], c[4] = r, g, b, a
 					StreamOverlay:RefreshAllBattleLineStyle()
 				end,
-				desc = Loc["Color used on the background."],
-				name = Loc["Bar Color"]
+				desc = "Color used on the background.",
+				name = "Bar Color"
 			},
 
 			{type = "space"},
@@ -2017,16 +2014,16 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				min = 8,
 				max = 32,
 				step = 1,
-				desc = Loc["The size of the text."],
-				name = Loc["Text Size"],
+				desc = "The size of the text.",
+				name = "Text Size",
 			},
 
 			{
 				type = "select",
 				get = function() return StreamOverlay.db.font_face end,
 				values = function() return fontTable end,
-				desc = Loc["Font used on texts."],
-				name = Loc["Text Font"]
+				desc = "Font used on texts.",
+				name = "Text Font"
 			},
 
 			{
@@ -2037,16 +2034,16 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 					c[1], c[2], c[3], c[4] = r, g, b, a
 					StreamOverlay:RefreshAllBattleLineStyle()
 				end,
-				desc = Loc["Color used on texts."],
-				name = Loc["Text Color"]
+				desc = "Color used on texts.",
+				name = "Text Color"
 			},
 
 			{type = "space"},
 
 			{
 				type = "toggle",
-				name = Loc["Show Dps/Hps"],
-				desc = Loc["Show in the screen your current Dps or Hps."],
+				name = "Show Dps/Hps",
+				desc = "Show in the screen your current Dps or Hps.",
 				order = 1,
 				get = function() return StreamOverlay.db.per_second.enabled end,
 				set = function (self, fixedParam, val)
@@ -2060,8 +2057,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				type = "select",
 				get = function() return StreamOverlay.db.per_second.attribute_type end,
 				values = function() return attributeTable end,
-				desc = Loc["Show DPS or HPS."],
-				name = Loc["Show"]
+				desc = "Show DPS or HPS.",
+				name = "Show"
 			},
 
 			{
@@ -2074,8 +2071,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				min = 8,
 				max = 32,
 				step = 1,
-				desc = Loc["The size of the text."],
-				name = Loc["Dps/Hps Text Size"],
+				desc = "The size of the text.",
+				name = "Dps/Hps Text Size",
 			},
 
 			{
@@ -2088,8 +2085,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				min = 0.65,
 				max = 1.5,
 				step = 1,
-				desc = Loc["The size of the text."],
-				name = Loc["Dps/Hps Scale"],
+				desc = "The size of the text.",
+				name = "Dps/Hps Scale",
 				usedecimals = true,
 			},
 
@@ -2103,15 +2100,15 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				min = 0.016,
 				max = 1,
 				step = 0.016,
-				desc = Loc["How fast the frame get updated."],
-				name = Loc["Dps/Hps Update Speed"],
+				desc = "How fast the frame get updated.",
+				name = "Dps/Hps Update Speed",
 				usedecimals = true,
 			},
 
 			{
 				type = "toggle",
-				name = Loc["Dps/Hps Text Shadow"],
-				desc = Loc["Enable text shadow."],
+				name = "Dps/Hps Text Shadow",
+				desc = "Enable text shadow.",
 				order = 1,
 				get = function() return StreamOverlay.db.per_second.font_shadow end,
 				set = function (self, fixedParam, val)
@@ -2133,8 +2130,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				min = 3,
 				max = 16,
 				step = 1,
-				desc = Loc["Square Amount"],
-				name = Loc["Square Amount"],
+				desc = "Square Amount",
+				name = "Square Amount",
 			},
 			{
 				type = "range",
@@ -2146,15 +2143,15 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				min = 10,
 				max = 256,
 				step = 1,
-				desc = Loc["Square Size"],
-				name = Loc["Square Size"],
+				desc = "Square Size",
+				name = "Square Size",
 			},
 			{
 				type = "select",
 				get = function() return StreamOverlay.db.square_grow_direction end,
 				values = function() return squareGrowOptions end,
-				desc = Loc["Square Direction"],
-				name = Loc["Square Direction"],
+				desc = "Square Direction",
+				name = "Square Direction",
 			},
 
 			{type = "blank"},
@@ -2163,8 +2160,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				type = "select",
 				get = function() return StreamOverlay.db.arrow_texture end,
 				values = function() return arrowIconTable end,
-				desc = Loc["The icon used on the middle of the bar"],
-				name = Loc["Arrow Icon"]
+				desc = "The icon used on the middle of the bar",
+				name = "Arrow Icon"
 			},
 
 			{
@@ -2174,8 +2171,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				min = 6,
 				max = 32,
 				step = 1,
-				desc = Loc["The size of the arrow."],
-				name = Loc["Arrow Size"],
+				desc = "The size of the arrow.",
+				name = "Arrow Size",
 			},
 
 			{
@@ -2186,8 +2183,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 					c[1], c[2], c[3], c[4] = r, g, b, a
 					StreamOverlay:RefreshAllBattleLineStyle()
 				end,
-				desc = Loc["The color used on the arrow."],
-				name = Loc["Arrow Color"]
+				desc = "The color used on the arrow.",
+				name = "Arrow Color"
 			},
 
 			{
@@ -2197,8 +2194,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				min = -16,
 				max = 16,
 				step = 1,
-				desc = Loc["Adjust the arrow positioning on X axis."],
-				name = Loc["Arrow Anchor X"],
+				desc = "Adjust the arrow positioning on X axis.",
+				name = "Arrow Anchor X",
 			},
 
 			{
@@ -2208,8 +2205,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				min = -16,
 				max = 16,
 				step = 1,
-				desc = Loc["Adjust the arrow positioning on Y axis."],
-				name = Loc["Arrow Anchor Y"],
+				desc = "Adjust the arrow positioning on Y axis.",
+				name = "Arrow Anchor Y",
 			},
 
 			{type = "space"},
@@ -2221,8 +2218,8 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				min = 150,
 				max = 800,
 				step = 1,
-				desc = Loc["Adjust the window width."],
-				name = Loc["Window Width"],
+				desc = "Adjust the window width.",
+				name = "Window Width",
 			},
 
 			{
@@ -2232,23 +2229,23 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				min = 40,
 				max = 1024,
 				step = 1,
-				desc = Loc["Adjust the window height."],
-				name = Loc["Window Height"],
+				desc = "Adjust the window height.",
+				name = "Window Height",
 			},
 
 			{
 				type = "select",
 				get = function() return StreamOverlay.db.main_frame_strata end,
 				values = function() return strataTable end,
-				desc = Loc["How high the frame is placed in your interface, high values makes it be shown above backpack, talents frame, etc."],
-				name = Loc["Window Strata"]
+				desc = "How high the frame is placed in your interface, high values makes it be shown above backpack, talents frame, etc.",
+				name = "Window Strata"
 			},
 
 			{type = "space"},
 			{
 				type = "toggle",
-				name = Loc["Show Spark"],
-				desc = Loc["Show or hide the spark at bars"],
+				name = "Show Spark",
+				desc = "Show or hide the spark at bars",
 				order = 1,
 				get = function() return StreamOverlay.db.use_spark end,
 				set = function (self, fixedParam, val)
@@ -2306,7 +2303,7 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 			return t
 		end
 
-		local label_profile = Details.gump:CreateLabel (optionsFrame, Loc["Profile"] .. ": ", Details.gump:GetTemplate ("font", "OPTIONS_FONT_TEMPLATE"))
+		local label_profile = Details.gump:CreateLabel (optionsFrame, "Profile" .. ": ", Details.gump:GetTemplate ("font", "OPTIONS_FONT_TEMPLATE"))
 		local dropdown_profile = Details.gump:CreateDropDown (optionsFrame, select_profile_fill, nil, 160, 20, "dropdown_profile", nil, Details.gump:GetTemplate ("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
 		dropdown_profile:SetPoint ("left", label_profile, "right", 2, 0)
 		label_profile:SetPoint ("topleft", optionsFrame, "topleft", 15, -65)
@@ -2337,7 +2334,7 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 				dropdown_profile:Select (Details_StreamerDB.characters [pname])
 
 			end
-			optionsFrame.NewProfileButton = Details.gump:CreateButton (optionsFrame, add_profile, 60, 18, Loc["New Profile"], _, _, _, _, _, _, Details.gump:GetTemplate ("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"), Details.gump:GetTemplate ("font", "OPTIONS_FONT_TEMPLATE"))
+			optionsFrame.NewProfileButton = Details.gump:CreateButton (optionsFrame, add_profile, 60, 18, "New Profile", _, _, _, _, _, _, Details.gump:GetTemplate ("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"), Details.gump:GetTemplate ("font", "OPTIONS_FONT_TEMPLATE"))
 			optionsFrame.NewProfileButton:SetPoint ("left", dropdown_profile, "right", 4, 0)
 		end
 
@@ -2350,20 +2347,20 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
                 pluginSavedTable.enabled = false
                 pluginObject.__enabled = false
 				Details:SendEvent("PLUGIN_DISABLED", pluginObject)
-				optionsFrame.toggleButton.text = Loc["Start Plugin"]
+				optionsFrame.toggleButton.text = "Start Plugin"
 
 			else
                 pluginSavedTable.enabled = true
                 pluginObject.__enabled = true
 				Details:SendEvent("PLUGIN_ENABLED", pluginObject)
-				optionsFrame.toggleButton.text = Loc["Disable Plugin"]
+				optionsFrame.toggleButton.text = "Disable Plugin"
 			end
 		end
 
 		--get the plugin state
 		local pluginStable = Details:GetPluginSavedTable("DETAILS_PLUGIN_STREAM_OVERLAY")
 
-		local toggleButton = DetailsFramework:CreateButton(optionsFrame, toggle_OnOff, 120, 20, pluginStable.enabled and Loc["Disable Plugin"] or Loc["Start Plugin"])
+		local toggleButton = DetailsFramework:CreateButton(optionsFrame, toggle_OnOff, 120, 20, pluginStable.enabled and "Disable Plugin" or "Start Plugin")
 		toggleButton:SetPoint ("topleft", optionsFrame, "topleft", 15, -35)
 		toggleButton:SetTemplate(DetailsFramework:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"))
 
@@ -2384,9 +2381,9 @@ function StreamOverlay.OpenOptionsPanel (fromOptionsPanel)
 
 			if (pluginObject) then
 				if (pluginStable.enabled) then
-					toggleButton:SetText(Loc["Disable Plugin"])
+					toggleButton:SetText("Disable Plugin")
 				else
-					toggleButton:SetText(Loc["Enable Plugin"])
+					toggleButton:SetText("Enable Plugin")
 				end
 			end
 		end)
@@ -2478,7 +2475,7 @@ function StreamOverlay:OnEvent (_, event, ...)
 				StreamOverlay.DefaultConfigTable = default_options_table
 
 				--> Install
-				local install, saveddata = _G.Details:InstallPlugin ("TOOLBAR", Loc["Action Tracker"], [[Interface\MINIMAP\MOVIERECORDINGICON]], StreamOverlay, "DETAILS_PLUGIN_STREAM_OVERLAY", MINIMAL_DETAILS_VERSION_REQUIRED, "Terciob", StreamOverlay.CurrentVersion, default_options_table)
+				local install, saveddata = _G.Details:InstallPlugin ("TOOLBAR", "Action Tracker", [[Interface\MINIMAP\MOVIERECORDINGICON]], StreamOverlay, "DETAILS_PLUGIN_STREAM_OVERLAY", MINIMAL_DETAILS_VERSION_REQUIRED, "Terciob", StreamOverlay.CurrentVersion, default_options_table)
 				if (type (install) == "table" and install.error) then
 					print (install.error)
 				end
@@ -2487,7 +2484,7 @@ function StreamOverlay:OnEvent (_, event, ...)
 
 				StreamOverlay:CreateMinimapIcon()
 
-				StreamOverlay:SetPluginDescription (Loc["Show in real time the spells you are casting.\n\nThe viewer can now follow what you are doing, what spells you are casting, learn your rotation.\n\nAlso tells who is the target and its class/spec on raiding or role if you are in arena.\n\nWhen you die, the panel is filled with your death log."])
+				StreamOverlay:SetPluginDescription ("Show in real time the spells you are casting.\n\nThe viewer can now follow what you are doing, what spells you are casting, learn your rotation.\n\nAlso tells who is the target and its class/spec on raiding or role if you are in arena.\n\nWhen you die, the panel is filled with your death log.")
 
 				if (StreamOverlay.db.is_first_run) then --problem with setting the plugin as disabled
 					if (Details:GetTutorialCVar ("STREAMER_PLUGIN_FIRSTRUN")) then
@@ -2524,7 +2521,7 @@ function StreamOverlay:OnEvent (_, event, ...)
 						local icon = welcomeWindow:CreateTexture (nil, "overlay")
 						icon:SetTexture ([[Interface\MINIMAP\MOVIERECORDINGICON]])
 						local title = welcomeWindow:CreateFontString (nil, "overlay", "GameFontNormal")
-						title:SetText (Loc["Details!: Action Tracker (plugin)"])
+						title:SetText ("Details!: Action Tracker (plugin)")
 						StreamOverlay:SetFontSize (title, 20)
 
 						local youtubeTwitchIcons = welcomeWindow:CreateTexture(nil, "overlay")
@@ -2622,9 +2619,9 @@ function StreamOverlay:CreateMinimapIcon()
 			end,
 
 			OnTooltipShow = function (tooltip)
-				tooltip:AddLine (Loc["Details!: Action Tracker"], 1, 1, 1)
-				tooltip:AddLine (Loc["|cFFFF7700Left Click|r: open options."])
-				tooltip:AddLine (Loc["|cFFFF7700Right Click|r: hide this icon."])
+				tooltip:AddLine ("Details!: Action Tracker", 1, 1, 1)
+				tooltip:AddLine ("|cFFFF7700Left Click|r: open options.")
+				tooltip:AddLine ("|cFFFF7700Right Click|r: hide this icon.")
 			end,
 		})
 

@@ -153,7 +153,7 @@
 	function Details:InstallPlugin(pluginType, pluginName, pluginIcon, pluginObject, pluginAbsoluteName, minVersion, authorName, version, defaultSavedTable)
 		if (minVersion and minVersion > Details.realversion) then
 			print(pluginName, Loc["STRING_TOOOLD"])
-			return Details:NewError(Loc["Details version is out of date."])
+			return Details:NewError("Details version is out of date.")
 		end
 
 		if (pluginType == "TANK") then
@@ -161,19 +161,19 @@
 		end
 
 		if (not pluginType) then
-			return Details:NewError(Loc["InstallPlugin parameter 1 (plugin type) not especified"])
+			return Details:NewError("InstallPlugin parameter 1 (plugin type) not especified")
 		elseif (not pluginName) then
-			return Details:NewError(Loc["InstallPlugin parameter 2 (plugin name) can't be nil"])
+			return Details:NewError("InstallPlugin parameter 2 (plugin name) can't be nil")
 		elseif (not pluginIcon) then
-			return Details:NewError(Loc["InstallPlugin parameter 3 (plugin icon) can't be nil"])
+			return Details:NewError("InstallPlugin parameter 3 (plugin icon) can't be nil")
 		elseif (not pluginObject) then
-			return Details:NewError(Loc["InstallPlugin parameter 4 (plugin object) can't be nil"])
+			return Details:NewError("InstallPlugin parameter 4 (plugin object) can't be nil")
 		elseif (not pluginAbsoluteName) then
-			return Details:NewError(Loc["InstallPlugin parameter 5 (plugin absolut name) can't be nil"])
+			return Details:NewError("InstallPlugin parameter 5 (plugin absolut name) can't be nil")
 		end
 
 		if (_G[pluginAbsoluteName]) then
-			print(Loc["STRING_PLUGIN_NAMEALREADYTAKEN"] .. ": " .. pluginName .. Loc[" name: "] .. pluginAbsoluteName)
+			print(Loc["STRING_PLUGIN_NAMEALREADYTAKEN"] .. ": " .. pluginName .. " name: " .. pluginAbsoluteName)
 			return
 		else
 			_G[pluginAbsoluteName] = pluginObject
@@ -208,7 +208,7 @@
 
 		if (pluginType == "SOLO") then
 			if (not pluginObject.Frame) then
-				return Details:NewError(Loc["plugin doesn't have a Frame, please check case-sensitive member name: Frame"])
+				return Details:NewError("plugin doesn't have a Frame, please check case-sensitive member name: Frame")
 			end
 
 			Details.SoloTables.Plugins[#Details.SoloTables.Plugins+1] = pluginObject
@@ -289,12 +289,12 @@
 
 	local temp_event_function = function()
 		print("=====================")
-		print(Loc["Hello There plugin developer!"])
-		print(Loc["Please make sure you are declaring"])
-		print(Loc["A member called 'OnDetailsEvent' on your plugin object"])
-		print(Loc["With a function to receive the events like bellow:"])
+		print("Hello There plugin developer!")
+		print("Please make sure you are declaring")
+		print("A member called 'OnDetailsEvent' on your plugin object")
+		print("With a function to receive the events like bellow:")
 		print("function PluginObject:OnDetailsEvent(event, ...) end")
-		print(Loc["Thank You Sir!==================="])
+		print("Thank You Sir!===================")
 	end
 
 	local registerEventFunc = function(self, event)
@@ -497,7 +497,7 @@
 
 	function Details:CreateRightClickToCloseLabel(parent)
 		local mouseIcon = detailsFramework:CreateAtlasString(Details:GetTextureAtlas("right-mouse-click"), 12, 9)
-		local rightClickToBackLabel = detailsFramework:CreateLabel(parent, mouseIcon .. Loc[" right click to close"], "GameFontNormal")
+		local rightClickToBackLabel = detailsFramework:CreateLabel(parent, mouseIcon .. " right click to close", "GameFontNormal")
 		rightClickToBackLabel:SetAlpha(0.834)
 		rightClickToBackLabel.textcolor = "gray"
 		parent.RightClickLabel = rightClickToBackLabel
@@ -583,7 +583,7 @@
 		titleBarTools:SetHeight(pluginContainerFrame.TitleHeight)
 
 		--tools title label
-		local titleBarTools_TitleLabel = detailsFramework:NewLabel(titleBarTools, titleBarTools, nil, "titulo", Loc["Tools"], "GameFontHighlightLeft", 12, {227/255, 186/255, 4/255})
+		local titleBarTools_TitleLabel = detailsFramework:NewLabel(titleBarTools, titleBarTools, nil, "titulo", "Tools", "GameFontHighlightLeft", 12, {227/255, 186/255, 4/255})
 		PixelUtil.SetPoint(titleBarTools_TitleLabel, "center", titleBarTools , "center", 0, 0)
 		PixelUtil.SetPoint(titleBarTools_TitleLabel, "top", titleBarTools , "top", 0, -5)
 
@@ -595,7 +595,7 @@
 					pluginContainerFrame:ClearAllPoints()
 					pluginContainerFrame:SetPoint("center", UIParent, "center", 0, 0)
 					LibWindow.SavePosition(pluginContainerFrame)
-					Details:Msg(Loc["detected options panel out of screen, position has reset"])
+					Details:Msg("detected options panel out of screen, position has reset")
 				end
 
 				local scaleFactor = pluginContainerFrame:GetScale()
@@ -892,6 +892,6 @@
 				end
 			end
 
-			Details:Msg(Loc["|cFFFF7700plugin not found|r:|cFFFFFF00"],(originalName or wildCard), Loc["|rcheck if it is enabled in the addons control panel."]) --localize-me
+			Details:Msg("|cFFFF7700plugin not found|r:|cFFFFFF00",(originalName or wildCard), "|rcheck if it is enabled in the addons control panel.") --localize-me
 		end
 	end

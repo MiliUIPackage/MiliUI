@@ -22,11 +22,13 @@ local bParser = Details222.BParser
 
 --tooltip settings
 local tooltipAmountOfLines = 20
+local tooltipEmptyLineHeight = 5
 local tooltipLineHeight = 20
 local tooltipFontStringPadding = 6 --space between each font string horizontally
 local tooltipPadding = 1 --space between each line
 local cantStartUpdater = false
 local updaterTicker = nil
+local amountOfTargetLines = 3
 
 local MAX_TOOLTIP_HELP = 30
 
@@ -48,6 +50,12 @@ local getTooltipFrame = function() --~tooltip
         self:Hide()
     end)
 
+    tooltip:SetScript("OnShow", function()
+        if DetailsMidnightSegmentSelectionFrame and DetailsMidnightSegmentSelectionFrame:IsShown() then
+            DetailsMidnightSegmentSelectionFrame:Hide()
+        end
+    end)
+
     tooltip.Background = tooltip:CreateTexture("$parentBackground", "background", nil, -4)
     tooltip.Background:SetColorTexture(.8, .8, .8, 1)
     tooltip.Background:SetAllPoints()
@@ -63,6 +71,41 @@ local getTooltipFrame = function() --~tooltip
 
     tooltip:SetHeight(50)
 
+    ---formats one tooltip line as a header row
+    ---@param line detailstooltipline
+    ---@param headerData table
+    ---@param iconTexture string?
+    ---@param iconCoords table?
+    local formatLineAsHeader = function(line, headerData, iconTexture, iconCoords)
+        --clear font strings
+        for j = 1, 6 do
+            local fontString = line.dataFontStrings[j]
+            fontString:SetText("")
+        end
+
+        line:SetHeight(tooltipLineHeight)
+        line.SpellName:SetText(headerData[1] or "")
+        line.StatusBar:SetPoint("left", line, "left", 0, 0)
+        line.StatusBar:SetSize(tooltip:GetWidth()-4, tooltipLineHeight)
+        line.StatusBar:SetMinMaxValues(0, 1)
+        line.StatusBar:SetValue(0)
+        line.SpellIcon:ClearAllPoints()
+        line.SpellIcon:SetPoint("left", line, "left", 2, 0)
+        line.SpellIcon:SetTexture(iconTexture or [[Interface\WORLDSTATEFRAME\CombatSwords]])
+        line.SpellIcon:SetTexCoord(unpack(iconCoords or {0, 1, 0, 1}))
+
+        local fontStringIndex = 1
+        for j = #headerData, 2, -1 do
+            --all headers are always passed, but data might be missing for some of them, so we check if there is data to show for each header column
+            if headerData[j] and headerData[j] ~= "" then
+                --if there is data for this header column, show it, otherwise leave it blank
+                local fontString = line.dataFontStrings[fontStringIndex]
+                fontString:SetText(headerData[j])
+                fontStringIndex = fontStringIndex + 1
+            end
+        end
+    end
+
     --refresh the scroll box lines
     ---@param self df_scrollbox
     ---@param data table an indexed table with subtables holding the data necessary to refresh each line
@@ -72,41 +115,7 @@ local getTooltipFrame = function() --~tooltip
 		local showHeader = Details.tooltip.show_header
 		local showHelp = Details.tooltip.show_help
 
-        local loopStart = showHeader and 2 or 1
-
-        if showHeader then
-            local headerData = data.header
-
-            --the first line will be used as a header line
-            local headerLine = self:GetLine(1)
-            ---@cast headerLine detailstooltipline
-            --clear font strings
-            for j = 1, 6 do
-                local fontString = headerLine.dataFontStrings[j]
-                fontString:SetText("")
-            end
-
-            headerLine.SpellName:SetText(headerData[1])
-            headerLine.StatusBar:SetPoint("left", headerLine, "left", 0, 0)
-            headerLine.StatusBar:SetSize(tooltip:GetWidth()-4, tooltipLineHeight)
-            headerLine.StatusBar:SetMinMaxValues(0, 1)
-            headerLine.StatusBar:SetValue(0)
-            headerLine.SpellIcon:ClearAllPoints()
-            headerLine.SpellIcon:SetPoint("left", headerLine, "left", 2, 0)
-            headerLine.SpellIcon:SetTexture([[Interface\WORLDSTATEFRAME\CombatSwords]])
-            headerLine.SpellIcon:SetTexCoord(0, .5, 0, .5)
-
-            local fontStringIndex = 1
-            for j = #headerData, 2, -1 do
-                --all headers are always passed, but data might be missing for some of them, so we check if there is data to show for each header column
-                if headerData[j] and headerData[j] ~= "" then
-                    --if there is data for this header column, show it, otherwise leave it blank
-                    local fontString = headerLine.dataFontStrings[fontStringIndex]
-                    fontString:SetText(headerData[j])
-                    fontStringIndex = fontStringIndex + 1
-                end
-            end
-        end
+        local loopStart = 1
 
         local nextLine = loopStart
         for i = loopStart, totalLines do
@@ -116,36 +125,66 @@ local getTooltipFrame = function() --~tooltip
                 local line = self:GetLine(i)
                 ---@cast line detailstooltipline
                 --update the line with the data
-                line.SpellName:SetText(thisData.name)
-                line.SpellIcon:SetTexture(thisData.icon)
-                line.SpellIcon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
-                line.StatusBar:SetMinMaxValues(0, tooltip.maxAmount)
-                line.StatusBar:SetValue(thisData.amount)
-                line.StatusBar:SetPoint("left", line, "left", tooltipLineHeight, 0)
-                line.StatusBar:SetSize(tooltip:GetWidth() - tooltipLineHeight - 4, tooltipLineHeight)
 
-                --clear font strings
-                for j = 1, 6 do
-                    local fontString = line.dataFontStrings[j]
-                    fontString:SetText("")
-                end
-
-                local dataAmount = #thisData.texts
-
-                local fontStringIndex = 1
-                for j = dataAmount, 1, -1 do
-                    --if data is an empty string, skip it: when the data is invalid or user choise to not show
-                    if not issecretvalue(thisData.texts[j]) and thisData.texts[j] and thisData.texts[j] ~= "" then
-                        local fontString = line.dataFontStrings[fontStringIndex]
-                        fontString:SetText(thisData.texts[j])
-                        fontStringIndex = fontStringIndex + 1
-                    else
-                        local fontString = line.dataFontStrings[fontStringIndex]
-                        fontString:SetText(thisData.texts[j])
-                        fontStringIndex = fontStringIndex + 1
+                local spellName = thisData.name
+                if not issecretvalue(spellName) and spellName == "EMPTY" then
+                    line:SetHeight(tooltipEmptyLineHeight)
+                    line.SpellName:SetText("")
+                    line.SpellIcon:SetTexture(nil)
+                    --clear font strings so only the help text shows
+                    for j = 1, 6 do
+                        local fontString = line.dataFontStrings[j]
+                        fontString:SetText("")
                     end
-                end
+                    line.StatusBar:SetMinMaxValues(0, 1)
+                    line.StatusBar:SetValue(0)
+                    line.StatusBar:SetPoint("left", line, "left", tooltipLineHeight, 0)
+                    line.StatusBar:SetSize(tooltip:GetWidth() - tooltipLineHeight - 4, tooltipEmptyLineHeight)
 
+                elseif thisData.isHeader then
+                    if showHeader then
+                        formatLineAsHeader(line, {thisData.name, unpack(thisData.texts or {})}, thisData.icon, thisData.iconcoords)
+                    end
+
+                else
+                    line.SpellName:SetText(spellName)
+
+                    line.SpellIcon:ClearAllPoints()
+                    line.SpellIcon:SetPoint("left", line.StatusBar, "left", -tooltipLineHeight, 0)
+                    line.SpellIcon:SetTexture(thisData.icon)
+                    line.SpellIcon:SetTexCoord(unpack(thisData.iconcoords or {0, 1, 0, 1}))
+                    local iconSize = thisData.iconsize or tooltipLineHeight
+                    line.SpellIcon:SetSize(iconSize, iconSize)
+
+                    line.StatusBar:SetMinMaxValues(0, tooltip.maxAmount)
+                    line.StatusBar:SetValue(thisData.amount)
+                    line.StatusBar:SetPoint("left", line, "left", tooltipLineHeight, 0)
+                    line.StatusBar:SetSize(tooltip:GetWidth() - tooltipLineHeight - 4, tooltipLineHeight)
+
+                    --clear font strings
+                    for j = 1, 6 do
+                        local fontString = line.dataFontStrings[j]
+                        fontString:SetText("")
+                    end
+
+                    local dataAmount = #thisData.texts
+
+                    local fontStringIndex = 1
+                    for j = dataAmount, 1, -1 do
+                        --if data is an empty string, skip it: when the data is invalid or user choise to not show
+                        if not issecretvalue(thisData.texts[j]) and thisData.texts[j] and thisData.texts[j] ~= "" then
+                            local fontString = line.dataFontStrings[fontStringIndex]
+                            fontString:SetText(thisData.texts[j])
+                            fontStringIndex = fontStringIndex + 1
+                        else
+                            local fontString = line.dataFontStrings[fontStringIndex]
+                            fontString:SetText(thisData.texts[j])
+                            fontStringIndex = fontStringIndex + 1
+                        end
+                    end
+
+                    line:SetHeight(tooltipLineHeight)
+                end
                 nextLine = i + 1
             end
         end
@@ -190,11 +229,16 @@ local getTooltipFrame = function() --~tooltip
         ---@cast line detailstooltipline
         line:EnableMouse(false)
 
-        local yPosition = (tooltipLineHeight + tooltipPadding) * (index - 1) * -1
-        yPosition = yPosition - 3
+        local linesCreated = self:GetLines()
+        local previousLine = linesCreated[#linesCreated]
 
-        line:SetPoint("topleft", self, "topleft", 2, yPosition)
-        line:SetPoint("topright", self, "topright", -2, yPosition)
+        if not previousLine then
+            line:SetPoint("topleft", self, "topleft", 2, 0)
+            line:SetPoint("topright", self, "topright", -2, 0)
+        else
+            line:SetPoint("topleft", previousLine, "bottomleft", 0, -tooltipPadding)
+            line:SetPoint("topright", previousLine, "bottomright", 0, -tooltipPadding)
+        end
         line:SetHeight(tooltipLineHeight)
 
         local statusBar = CreateFrame("statusbar", "$parentStatusBar", line)
@@ -377,6 +421,13 @@ function bParser.HideTooltip_Hook(instanceLine, mouse)
     end
 end
 
+function bParser.GetSerial(sourcePlayer, icon)
+    local thisSerial = not issecretvalue(sourcePlayer.sourceGUID) and sourcePlayer.sourceGUID or nil
+    thisSerial = thisSerial or bParser.guidCache[icon] or nil
+    local guid = thisSerial or (sourcePlayer.isLocalPlayer and UnitGUID("player")) or nil
+    return guid
+end
+
 --~tooltip
 ---@param instanceLine detailsline
 function bParser.ShowTooltip_Hook(instanceLine, mouse)
@@ -384,8 +435,10 @@ function bParser.ShowTooltip_Hook(instanceLine, mouse)
         return
     end
 
+    local instance = instanceLine:GetInstance()
+
     if not bParser.InSecretLockdown() then
-        if not Details:IsUsingBlizzardAPI() then
+        if not Details:IsUsingBlizzardAPI(instance) then
             return
         end
     end
@@ -394,7 +447,6 @@ function bParser.ShowTooltip_Hook(instanceLine, mouse)
         return
     end
 
-    local instance = instanceLine:GetInstance()
     local baseFrame = instance.baseframe
 
     local tooltip = Details:GetTooltip()
@@ -422,21 +474,7 @@ function bParser.ShowTooltip_Hook(instanceLine, mouse)
         tooltip:SetWidth(tooltipWidth)
     end
 
-    ---@type attributeid, attributeid
-    --local mainDisplay, subDisplay = instance:GetDisplay()
-
-    --fragile: Handle with care!
-    --local sourceGUID = instanceLine.secret_SourceGUID
-    --local actorName = instanceLine.secret_SourceName
-
-    ---@type damagemeter_type
-    --local damageMeterType = bParser.GetAttributeTypeFromDisplay(mainDisplay, subDisplay)
-    --local spells = GetSpells(DAMAGE_METER_SESSIONPARAMETER_TYPE, 0, 0, sourceGUID)
-    --local blzDamageContainer = Details222.B.GetSegment(DETAILS_SEGMENTTYPE_TYPE, Enum.DamageMeterSessionType.Current, Enum.DamageMeterType.DamageDone)
-    --local firstCombatant = blzDamageContainer.combatSources[1]
-    --local spells = Details222.B.GetSegment(DETAILS_SEGMENTTYPE_TYPE, 1, 0, UnitGUID("player"))
-
-    local sourceSpells
+    local sourceSpells, targets
 
     local sessionType = instanceLine.sessionType
     local sessionId = instanceLine.sessionId
@@ -444,32 +482,7 @@ function bParser.ShowTooltip_Hook(instanceLine, mouse)
     local damageMeterType = instanceLine.damageMeterType
     local sourcePlayer = instanceLine.sourceData
 
-    --[=[
-        ["classFilename"] = "", --no secret
-        ["deathRecapID"] = 0,
-        ["amountPerSecond"] = 273.32142857143,
-        ["sourceCreatureID"] = 225976,
-        ["name"] = "Normal Tank Dummy",
-        ["classification"] = "normal", --no secret
-        ["deathTimeSeconds"] = 0,
-        ["totalAmount"] = 7653,
-        ["isLocalPlayer"] = false,
-
-        ["classFilename"] = "HUNTER",
-        ["deathRecapID"] = 0,
-        ["amountPerSecond"] = 273.32142857143,
-        ["specIconID"] = 236179,
-        ["name"] = "Tiranaa",
-        ["classification"] = "", --no secret
-        ["deathTimeSeconds"] = 0,
-        ["totalAmount"] = 7653,
-        ["isLocalPlayer"] = true,
-        ["sourceGUID"] = "Player-3209-0514457A",
-    ]=]
-
-    local thisGUID = not issecretvalue(sourcePlayer.sourceGUID) and sourcePlayer.sourceGUID
-    thisGUID = thisGUID or bParser.guidCache[icon]
-    local guid = thisGUID or (sourcePlayer.isLocalPlayer and UnitGUID("player"))
+    local guid = bParser.GetSerial(sourcePlayer, icon)
     local hasSourceSpells = false
 
     if damageMeterType == 9 then
@@ -491,21 +504,13 @@ function bParser.ShowTooltip_Hook(instanceLine, mouse)
         end
         return
     else
-        if guid then
-            if Details222.B.IsSegmentType(sessionType) then
-                sourceSpells = Details222.B.GetSpells("Type", sessionType, damageMeterType, guid, sourcePlayer.sourceCreatureID)
-                hasSourceSpells = true
-            else
-                sourceSpells = Details222.B.GetSpells("ID", sessionId, damageMeterType, guid, sourcePlayer.sourceCreatureID)
-                hasSourceSpells = true
-            end
-        elseif (bParser.IsNotADude(sourcePlayer)) then
-            if Details222.B.IsSegmentType(sessionType) then
-                sourceSpells = Details222.B.GetSpells("Type", sessionType, damageMeterType, nil, sourcePlayer.sourceCreatureID)
-                hasSourceSpells = true
-            else
-                sourceSpells = Details222.B.GetSpells("ID", sessionId, damageMeterType, nil, sourcePlayer.sourceCreatureID)
-                hasSourceSpells = true
+        local creature = not issecretvalue(sourcePlayer.sourceCreatureID) and sourcePlayer.sourceCreatureID
+        if guid or creature then
+            sourceSpells = Details222.B.GetSpells(sessionType <= 1 and DETAILS_SEGMENTTYPE_TYPE or DETAILS_SEGMENTTYPE_ID, sessionType <= 1 and sessionType or sessionId, damageMeterType, guid, creature)
+            hasSourceSpells = true
+
+            if not issecretvalue(sourcePlayer.name) then
+                targets = Details222.BreakdownWindowMidnight.LoadTargets(sessionType, sessionId, sourcePlayer.name)
             end
         end
     end
@@ -555,15 +560,17 @@ function bParser.ShowTooltip_Hook(instanceLine, mouse)
         return
     end
 
-    local extraTooltipLines = (Details.tooltip.show_header and 1 or 0) + (Details.tooltip.show_help and 1 or 0)
-    local maxSpellLines = max(0, tooltipAmountOfLines - extraTooltipLines)
+    local extraTooltipLines = (Details.tooltip.show_help and 1 or 0)
+    --local targetLineCount = (targets and #targets > 0) and (#targets + 2) or 0
+    local targetLineCount = (targets and #targets > 0) and (min(#targets, amountOfTargetLines) + 2) or 0
+
+    local headerLineCount = Details.tooltip.show_header and 1 or 0
+    local maxSpellLines = max(0, tooltipAmountOfLines - extraTooltipLines - targetLineCount - headerLineCount)
     local amountOfSpellsToShow = min(#sourceSpells.combatSpells, maxSpellLines)
     local maxAmount = sourceSpells.maxAmount
     local totalAmount = sourceSpells.totalAmount
 
     tooltip:SetMaxAmount(maxAmount)
-    local totalVisibleLines = amountOfSpellsToShow + extraTooltipLines
-    tooltip:SetHeight((totalVisibleLines * (tooltipLineHeight + tooltipPadding)) + 4)
 
     if Details.tooltip.show_help then
         Details.tooltip.show_help_count = Details.tooltip.show_help_count + 1
@@ -571,167 +578,6 @@ function bParser.ShowTooltip_Hook(instanceLine, mouse)
             Details.tooltip.show_help = false
         end
     end
-
---[=[
-["combatSpells"] =  {
-   [1] =  {
-      ["overkillAmount"] = 0,
-      ["combatSpellDetails"] =  {
-         ["isPet"] = false,
-         ["unitClassFilename"] = "",
-         ["amount"] = 0,
-         ["unitName"] = "",
-         ["isMob"] = false,
-         ["classification"] = "",
-      },
-      ["isDeadly"] = false,
-      ["creatureName"] = "",
-      ["amountPerSecond"] = 181.95422363281,
-      ["totalAmount"] = 7903,
-      ["isAvoidable"] = false,
-      ["spellID"] = 193455,
-   },
-   [2] =  {
-      ["overkillAmount"] = 0,
-      ["combatSpellDetails"] =  {
-         ["isPet"] = false,
-         ["unitClassFilename"] = "",
-         ["amount"] = 0,
-         ["unitName"] = "",
-         ["isMob"] = false,
-         ["classification"] = "",
-      },
-      ["isDeadly"] = false,
-      ["creatureName"] = "",
-      ["amountPerSecond"] = 113.34438323975,
-      ["totalAmount"] = 4923,
-      ["isAvoidable"] = false,
-      ["spellID"] = 75,
-   },
-   [3] =  {
-      ["overkillAmount"] = 0,
-      ["combatSpellDetails"] =  {
-         ["isPet"] = false,
-         ["unitClassFilename"] = "",
-         ["amount"] = 0,
-         ["unitName"] = "",
-         ["isMob"] = false,
-         ["classification"] = "",
-      },
-      ["isDeadly"] = false,
-      ["creatureName"] = "",
-      ["amountPerSecond"] = 74.27360534668,
-      ["totalAmount"] = 3226,
-      ["isAvoidable"] = false,
-      ["spellID"] = 389839,
-   },
-   [4] =  {
-      ["overkillAmount"] = 0,
-      ["combatSpellDetails"] =  {
-         ["isPet"] = false,
-         ["unitClassFilename"] = "",
-         ["amount"] = 0,
-         ["unitName"] = "",
-         ["isMob"] = false,
-         ["classification"] = "",
-      },
-      ["isDeadly"] = false,
-      ["creatureName"] = "",
-      ["amountPerSecond"] = 57.650684356689,
-      ["totalAmount"] = 2504,
-      ["isAvoidable"] = false,
-      ["spellID"] = 217200,
-   },
-   [5] =  {
-      ["overkillAmount"] = 0,
-      ["combatSpellDetails"] =  {
-         ["isPet"] = false,
-         ["unitClassFilename"] = "",
-         ["amount"] = 0,
-         ["unitName"] = "",
-         ["isMob"] = false,
-         ["classification"] = "",
-      },
-      ["isDeadly"] = false,
-      ["creatureName"] = "CatTwo",
-      ["amountPerSecond"] = 56.246257781982,
-      ["totalAmount"] = 2443,
-      ["isAvoidable"] = false,
-      ["spellID"] = 6603,
-   },
-   [6] =  {
-      ["overkillAmount"] = 0,
-      ["combatSpellDetails"] =  {
-         ["isPet"] = false,
-         ["unitClassFilename"] = "",
-         ["amount"] = 0,
-         ["unitName"] = "",
-         ["isMob"] = false,
-         ["classification"] = "",
-      },
-      ["isDeadly"] = false,
-      ["creatureName"] = "CatTwo",
-      ["amountPerSecond"] = 52.746692657471,
-      ["totalAmount"] = 2291,
-      ["isAvoidable"] = false,
-      ["spellID"] = 17253,
-   },
-   [7] =  {
-      ["overkillAmount"] = 0,
-      ["combatSpellDetails"] =  {
-         ["isPet"] = false,
-         ["unitClassFilename"] = "",
-         ["amount"] = 0,
-         ["unitName"] = "",
-         ["isMob"] = false,
-         ["classification"] = "",
-      },
-      ["isDeadly"] = false,
-      ["creatureName"] = "",
-      ["amountPerSecond"] = 40.843578338623,
-      ["totalAmount"] = 1774,
-      ["isAvoidable"] = false,
-      ["spellID"] = 404884,
-   },
-   [8] =  {
-      ["overkillAmount"] = 0,
-      ["combatSpellDetails"] =  {
-         ["isPet"] = false,
-         ["unitClassFilename"] = "",
-         ["amount"] = 0,
-         ["unitName"] = "",
-         ["isMob"] = false,
-         ["classification"] = "",
-      },
-      ["isDeadly"] = false,
-      ["creatureName"] = "CatTwo",
-      ["amountPerSecond"] = 32.900489807129,
-      ["totalAmount"] = 1429,
-      ["isAvoidable"] = false,
-      ["spellID"] = 34026,
-   },
-   [9] =  {
-      ["overkillAmount"] = 0,
-      ["combatSpellDetails"] =  {
-         ["isPet"] = false,
-         ["unitClassFilename"] = "",
-         ["amount"] = 0,
-         ["unitName"] = "",
-         ["isMob"] = false,
-         ["classification"] = "",
-      },
-      ["isDeadly"] = false,
-      ["creatureName"] = "CatTwo",
-      ["amountPerSecond"] = 17.520835876465,
-      ["totalAmount"] = 761,
-      ["isAvoidable"] = false,
-      ["spellID"] = 201754,
-   },
-},
-["totalAmount"] = 27254,
-["maxAmount"] = 7903,
-
-]=]
 
     local couldGetPercent = false
     --for i = amountOfSpellsToShow, 1, -1 do
@@ -773,9 +619,6 @@ function bParser.ShowTooltip_Hook(instanceLine, mouse)
         ---@field texts (string|number)[]
         ---@field amount number
 
-        --
-        --print(issecretvalue(creatureName), "creatureName", creatureName)
-
         local leftText = ""
         if issecretvalue(creatureName) then
             if instanceLine.classFilename == "HUNTER" then
@@ -794,8 +637,6 @@ function bParser.ShowTooltip_Hook(instanceLine, mouse)
             curve:AddPoint(totalAmount, 100.0)
             return curve:Evaluate(spellAmount)
         end)
-
-        --need three outputs: amount, dps and percent
 
 		local showDPS = Details.tooltip.show_dps_column
 		local showPercent = Details.tooltip.show_percent_column
@@ -822,19 +663,81 @@ function bParser.ShowTooltip_Hook(instanceLine, mouse)
         }
     end
 
+    if targets and #targets > 0 then --~target ~targets
+        local showDPS = Details.tooltip.show_dps_column
+        local showPercent = Details.tooltip.show_percent_column and couldGetPercent
+
+        local targetHeaderTexts = {"Amount"}
+        if showDPS then
+            targetHeaderTexts[#targetHeaderTexts + 1] = "DPS"
+        end
+        if showPercent then
+            targetHeaderTexts[#targetHeaderTexts + 1] = "%"
+        end
+
+        --empty line
+        tooltipData[#tooltipData + 1] = {
+            name = "EMPTY",
+            icon = "",
+            texts = {""},
+            amount = 0,
+        }
+
+        tooltipData[#tooltipData + 1] = {
+            name = "Targets",
+            icon = [[Interface/MINIMAP/TRACKING/Target]],
+            iconcoords = {0.1, 0.9, 0.1, 0.9},
+            texts = targetHeaderTexts,
+            amount = 0,
+            isHeader = true,
+        }
+
+        for i = 1, min(#targets, amountOfTargetLines) do
+            tooltipData[#tooltipData + 1] = targets[i]
+        end
+    end
+
     local showDPS = Details.tooltip.show_dps_column
     local showPercent = Details.tooltip.show_percent_column and couldGetPercent
 
-    if showDPS and not showPercent then
-        tooltipData.header = {"Spell Name", "Amount", "DPS"}
-    elseif showDPS and showPercent then
-        tooltipData.header = {"Spell Name", "Amount", "DPS", "%"}
-    elseif not showDPS and showPercent then
-        tooltipData.header = {"Spell Name", "Amount", "%"}
+    if Details.tooltip.show_header then
+        local spellHeaderTexts = {"Amount"}
+        if showDPS then
+            spellHeaderTexts[#spellHeaderTexts + 1] = "DPS"
+        end
+        if showPercent then
+            spellHeaderTexts[#spellHeaderTexts + 1] = "%"
+        end
+
+        table.insert(tooltipData, 1, {
+            name = "Spell Name",
+            icon = [[Interface\\WORLDSTATEFRAME\\CombatSwords]],
+            iconcoords = {0, 0.5, 0, 0.5},
+            texts = spellHeaderTexts,
+            amount = 0,
+            isHeader = true,
+        })
     end
 
     tooltipData.class = instanceLine.sourceData.classFilename
     tooltipData.specIcon = instanceLine.sourceData.specIconID
+
+    local totalVisibleLines = min(tooltipAmountOfLines, #tooltipData + extraTooltipLines)
+    local visibleHeight = 0
+    for i = 1, totalVisibleLines do
+        local lineHeight = tooltipLineHeight
+        local thisLineData = tooltipData[i]
+        if thisLineData and not issecretvalue(thisLineData.name) and thisLineData.name == "EMPTY" then
+            lineHeight = tooltipEmptyLineHeight
+        end
+        visibleHeight = visibleHeight + lineHeight
+    end
+
+    if totalVisibleLines > 1 then
+        visibleHeight = visibleHeight + ((totalVisibleLines - 1) * tooltipPadding)
+    end
+
+    tooltip:SetHeight(visibleHeight + 4)
 
     tooltip.ScrollBox:RefreshMe(tooltipData)
     tooltip.showTime = GetTime()

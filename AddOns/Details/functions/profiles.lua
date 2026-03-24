@@ -190,7 +190,7 @@ local safe_load = function(func, param1, ...)
 			Details:CreatePanicWarning()
 		end
 		Details.do_not_save_skins = true
-		Details.instance_load_failed.text:SetText(Loc["Failed to load a Details! window.\n/reload or reboot the game client may fix the problem.\nIf the problem persist, try /details reinstall.\nError: "] .. errortext .. "")
+		Details.instance_load_failed.text:SetText("Failed to load a Details! window.\n/reload or reboot the game client may fix the problem.\nIf the problem persist, try /details reinstall.\nError: " .. errortext .. "")
 	end
 	return okey
 end
@@ -201,7 +201,7 @@ function Details:ApplyProfile(profileName, bNoSave, bIsCopy)
 
 	--if the profile doesn't exist, just quit
 		if (not profile) then
-			Details:Msg(Loc["Profile Not Found."])
+			Details:Msg("Profile Not Found.")
 			return false
 		end
 
@@ -355,10 +355,10 @@ function Details:ApplyProfile(profileName, bNoSave, bIsCopy)
 						instance.posicao = Details.CopyTable(skin.__pos)
 					else
 						if (not instance.posicao) then
-							print(Loc["|cFFFF2222Details!: Position for a window wasn't found! Moving it to the center of the screen.|r\nType '/details exitlog' to check for errors."])
+							print("|cFFFF2222Details!: Position for a window wasn't found! Moving it to the center of the screen.|r\nType '/details exitlog' to check for errors.")
 							instance.posicao = {normal = {x = 1, y = 1, w = 300, h = 200}, solo = {}}
 						elseif (not instance.posicao.normal) then
-							print(Loc["|cFFFF2222Details!: Normal position for a window wasn't found! Moving it to the center of the screen.|r\nType '/details exitlog' to check for errors."])
+							print("|cFFFF2222Details!: Normal position for a window wasn't found! Moving it to the center of the screen.|r\nType '/details exitlog' to check for errors.")
 							instance.posicao.normal = {x = 1, y = 1, w = 300, h = 200}
 						end
 					end
@@ -944,7 +944,7 @@ local default_profile = {
 		track_item_level = false,
 
 	--text settings
-		font_sizes = {menus = 14},
+		font_sizes = {menus = 10},
 		font_faces = {menus = "Friz Quadrata TT"},
 		ps_abbreviation = 3,
 		total_abbreviation = 2,
@@ -1012,7 +1012,7 @@ local default_profile = {
 		},
 
 	--bookmark
-		bookmark_text_size = 14,
+		bookmark_text_size = 11,
 
 	--cloud capture
 		cloud_capture = true,
@@ -1066,7 +1066,7 @@ local default_profile = {
 			},
 			options_frame = {},
 			enabled = false,
-			font_size = 14,
+			font_size = 10,
 			font_color = {1, 1, 1, 1},
 			font_shadow = "NONE",
 			font_face = "Friz Quadrata TT",
@@ -1121,8 +1121,8 @@ local default_profile = {
 	--tooltip
 		tooltip = {
 			fontface = "Friz Quadrata TT",
-			fontsize = 14,
-			fontsize_title = 14,
+			fontsize = 10,
+			fontsize_title = 10,
 			fontcolor = {1, 1, 1, 1},
 			fontcolor_right = {1, 0.7, 0, 1}, --{1, 0.9254, 0.6078, 1}
 			fontshadow = true,
@@ -1218,7 +1218,7 @@ local default_player_data = {
 			players = {
 				--damage done by each player
 				{
-					name = Loc["Damage of Each Individual Player"],
+					name = "Damage of Each Individual Player",
 					combatObjectContainer = 1,
 					playerOnly = true,
 					playerKey = "total",
@@ -1228,7 +1228,7 @@ local default_player_data = {
 			totals = {
 				--total damage done by the raid group
 				{
-					name = Loc["Damage of All Player Combined"],
+					name = "Damage of All Player Combined",
 					combatObjectSubTableName = "totals",
 					combatObjectSubTableKey = 1,
 				},
@@ -1413,7 +1413,7 @@ local default_global_data = {
 		immersion_special_units = true, --show a special unit as member of your group
 		immersion_unit_special_icons = true, --custom icons for specific units
 		immersion_pets_on_solo_play = false, --pets showing when solo play
-		damage_scroll_auto_open = false, -- 更改預設值
+		damage_scroll_auto_open = true,
 		damage_scroll_position = {
 			scale = 1,
 		},
@@ -1468,8 +1468,8 @@ local default_global_data = {
 		merge_pet_abilities = false,
 		merge_player_abilities = false,
 
-		played_class_time = false, -- 遊戲時間洗頻訊息
-		check_stuttering = false,  -- 檢查卡頓
+		played_class_time = true,
+		check_stuttering = false,
 
 		--[bossname] = texture
 		boss_icon_cache = {},
@@ -1489,7 +1489,7 @@ local default_global_data = {
 	--all switch settings (panel shown when right click the title bar)
 		all_switch_config = {
 			scale = 1,
-			font_size = 14,
+			font_size = 10,
 		},
 
 	--information about the transcriptor frame
@@ -1526,6 +1526,17 @@ local default_global_data = {
 	},
 
 	frame_background_color = {0.0549, 0.0549, 0.0549, 0.934},
+
+	breakdown_midnight = {
+		players = {width = 200, height = 296},
+		segments = {width = 200, height = 228},
+		spells = {width = 464, height = 398},
+		targets = {width = 300, height = 170},
+		spelldetails = {width = 231, height = 261},
+		compare = {width = 231, height = 200},
+		headers_width = {},
+		headers_shown = {},
+	},
 
 --/run Details.breakdown_spell_tab.spellcontainer_height = 311 --352
 	--breakdown spell tab
@@ -1585,7 +1596,7 @@ local default_global_data = {
 		genericcontainer_headers_right = {}, --store information about active headers and their sizes (generic right)
 
 		spellcontainer_header_height = 20,
-		spellcontainer_header_fontsize = 14,
+		spellcontainer_header_fontsize = 10,
 		spellcontainer_header_fontcolor = {1, 1, 1, 1},
 	},
 
@@ -1717,12 +1728,12 @@ local default_global_data = {
 
 	--run code
 		run_code = {
-			["on_specchanged"] = Loc["\n-- run when the player changes its spec"],
-			["on_zonechanged"] = Loc["\n-- when the player changes zone, this code will run"],
-			["on_init"] = Loc["\n-- code to run when Details! initializes, put here code which only will run once\n-- this also will run then the profile is changed\n\n--size of the death log tooltip in the Deaths display (default 350)\nDetails.death_tooltip_width = 350;\n\n--when in arena or battleground, details! silently switch to activity time (goes back to the old setting on leaving, default true)\nDetails.force_activity_time_pvp = true;\n\n--speed of the bar animations (default 33)\nDetails.animation_speed = 33;\n\n--threshold to trigger slow or fast speed (default 0.45)\nDetails.animation_speed_mintravel = 0.45;\n\n--call to update animations\nDetails:RefreshAnimationFunctions();\n\n--max window size, does require a /reload to work (default 480 x 450)\nDetails.max_window_size.width = 480;\nDetails.max_window_size.height = 450;\n\n--use the arena team color as the class color (default true)\nDetails.color_by_arena_team = true;\n\n--how much time the update warning is shown (default 10)\nDetails.update_warning_timeout = 10;"],
-			["on_leavecombat"] = Loc["\n-- this code runs when the player leave combat"],
-			["on_entercombat"] = Loc["\n-- this code runs when the player enters in combat"],
-			["on_groupchange"] = Loc["\n-- this code runs when the player enter or leave a group"],
+			["on_specchanged"] = "\n-- run when the player changes its spec",
+			["on_zonechanged"] = "\n-- when the player changes zone, this code will run",
+			["on_init"] = "\n-- code to run when Details! initializes, put here code which only will run once\n-- this also will run then the profile is changed\n\n--size of the death log tooltip in the Deaths display (default 350)\nDetails.death_tooltip_width = 350;\n\n--when in arena or battleground, details! silently switch to activity time (goes back to the old setting on leaving, default true)\nDetails.force_activity_time_pvp = true;\n\n--speed of the bar animations (default 33)\nDetails.animation_speed = 33;\n\n--threshold to trigger slow or fast speed (default 0.45)\nDetails.animation_speed_mintravel = 0.45;\n\n--call to update animations\nDetails:RefreshAnimationFunctions();\n\n--max window size, does require a /reload to work (default 480 x 450)\nDetails.max_window_size.width = 480;\nDetails.max_window_size.height = 450;\n\n--use the arena team color as the class color (default true)\nDetails.color_by_arena_team = true;\n\n--how much time the update warning is shown (default 10)\nDetails.update_warning_timeout = 10;",
+			["on_leavecombat"] = "\n-- this code runs when the player leave combat",
+			["on_entercombat"] = "\n-- this code runs when the player enters in combat",
+			["on_groupchange"] = "\n-- this code runs when the player enter or leave a group",
 		},
 
 	--plater integration
@@ -1979,7 +1990,7 @@ function Details:ExportCurrentProfile()
 	--data saved inside the profile
 	local profileObject = Details:GetProfile (Details:GetCurrentProfileName())
 	if (not profileObject) then
-		Details:Msg(Loc["fail to get the current profile."])
+		Details:Msg("fail to get the current profile.")
 		return false
 	end
 
@@ -2030,7 +2041,7 @@ end
 ---@return boolean
 function Details:ImportProfile (profileString, newProfileName, bImportAutoRunCode, bIsFromImportPrompt, overwriteExisting)
 	if (not newProfileName or type(newProfileName) ~= "string" or string.len(newProfileName) < 2) then
-		Details:Msg(Loc["invalid profile name or profile name is too short."]) --localize-me
+		Details:Msg("invalid profile name or profile name is too short.") --localize-me
 		return false
 	end
 
@@ -2053,7 +2064,7 @@ function Details:ImportProfile (profileString, newProfileName, bImportAutoRunCod
 			--profile doesn't exists, create new
 			profileObject = Details:CreateProfile (newProfileName)
 			if (not profileObject) then
-				Details:Msg(Loc["failed to create a new profile."])--localize-me
+				Details:Msg("failed to create a new profile.")--localize-me
 				return
 			end
 		end
@@ -2143,13 +2154,13 @@ function Details:ImportProfile (profileString, newProfileName, bImportAutoRunCod
 		end
 
 		if(nameWasDuplicate) then
-			Details:Msg(Loc["profile name already exists and was imported as:"], newProfileName)--localize-me
+			Details:Msg("profile name already exists and was imported as:", newProfileName)--localize-me
 		else
-			Details:Msg(Loc["profile successfully imported."])--localize-me
+			Details:Msg("profile successfully imported.")--localize-me
 		end
 		return true
 	else
-		Details:Msg(Loc["failed to decompress profile data."])--localize-me
+		Details:Msg("failed to decompress profile data.")--localize-me
 		return false
 	end
 end

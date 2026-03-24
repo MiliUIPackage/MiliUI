@@ -14,7 +14,7 @@
     local avoidance_create = function(tab, frame)
         --Percent Desc
             local percent_desc = frame:CreateFontString(nil, "artwork", "GameFontNormal")
-            percent_desc:SetText(Loc["Percent values are comparisons with the previous try."])
+            percent_desc:SetText("Percent values are comparisons with the previous try.")
             percent_desc:SetPoint("bottomleft", frame, "bottomleft", 13, 13 + PLAYER_DETAILS_STATUSBAR_HEIGHT)
             percent_desc:SetTextColor(.5, .5, .5, 1)
 
@@ -28,18 +28,18 @@
             local padding = 16
 
             local summary_text = summaryBox:CreateFontString(nil, "artwork", "GameFontNormal")
-            summary_text:SetText(Loc["Summary"])
+            summary_text:SetText("Summary")
             summary_text :SetPoint("topleft", summaryBox, "topleft", 5, y)
 
             y = y - padding
 
             --total damage received
-            local damagereceived = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local damagereceived = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             damagereceived:SetPoint("topleft", summaryBox, "topleft", 15, y)
-            damagereceived:SetText(Loc["Total Damage Taken:"]) --localize-me
+            damagereceived:SetText("Total Damage Taken:") --localize-me
             damagereceived:SetTextColor(.8, .8, .8, 1)
 
-            local damagereceived_amt = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local damagereceived_amt = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             damagereceived_amt:SetPoint("left", damagereceived,  "right", 2, 0)
             damagereceived_amt:SetText("0")
             tab.damagereceived = damagereceived_amt
@@ -47,11 +47,11 @@
             y = y - padding
 
             --per second
-            local damagepersecond = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local damagepersecond = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             damagepersecond:SetPoint("topleft", summaryBox, "topleft", 20, y)
-            damagepersecond:SetText(Loc["Per Second:"]) --localize-me
+            damagepersecond:SetText("Per Second:") --localize-me
 
-            local damagepersecond_amt = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local damagepersecond_amt = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             damagepersecond_amt:SetPoint("left", damagepersecond,  "right", 2, 0)
             damagepersecond_amt:SetText("0")
             tab.damagepersecond = damagepersecond_amt
@@ -59,12 +59,12 @@
             y = y - padding
 
             --total absorbs
-            local absorbstotal = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local absorbstotal = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             absorbstotal:SetPoint("topleft", summaryBox, "topleft", 15, y)
-            absorbstotal:SetText(Loc["Total Absorbs:"]) --localize-me
+            absorbstotal:SetText("Total Absorbs:") --localize-me
             absorbstotal:SetTextColor(.8, .8, .8, 1)
 
-            local absorbstotal_amt = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local absorbstotal_amt = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             absorbstotal_amt:SetPoint("left", absorbstotal,  "right", 2, 0)
             absorbstotal_amt:SetText("0")
             tab.absorbstotal = absorbstotal_amt
@@ -72,11 +72,11 @@
             y = y - padding
 
             --per second
-            local absorbstotalpersecond = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local absorbstotalpersecond = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             absorbstotalpersecond:SetPoint("topleft", summaryBox, "topleft", 20, y)
-            absorbstotalpersecond:SetText(Loc["Per Second:"]) --localize-me
+            absorbstotalpersecond:SetText("Per Second:") --localize-me
 
-            local absorbstotalpersecond_amt = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local absorbstotalpersecond_amt = summaryBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             absorbstotalpersecond_amt:SetPoint("left", absorbstotalpersecond,  "right", 2, 0)
             absorbstotalpersecond_amt:SetText("0")
             tab.absorbstotalpersecond = absorbstotalpersecond_amt
@@ -92,28 +92,28 @@
             meleeBox:SetSize(200, 160)
 
             local melee_text = meleeBox:CreateFontString(nil, "artwork", "GameFontNormal")
-            melee_text:SetText(Loc["Melee"])
+            melee_text:SetText("Melee")
             melee_text :SetPoint("topleft", meleeBox, "topleft", 5, y)
 
             y = y - padding
 
             --dodge
-            local dodge = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local dodge = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             dodge:SetPoint("topleft", meleeBox, "topleft", 15, y)
-            dodge:SetText(Loc["Dodge:"]) --localize-me
+            dodge:SetText("Dodge:") --localize-me
             dodge:SetTextColor(.8, .8, .8, 1)
-            local dodge_amt = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local dodge_amt = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             dodge_amt:SetPoint("left", dodge,  "right", 2, 0)
             dodge_amt:SetText("0")
             tab.dodge = dodge_amt
 
             y = y - padding
 
-            local dodgepersecond = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local dodgepersecond = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             dodgepersecond:SetPoint("topleft", meleeBox, "topleft", 20, y)
-            dodgepersecond:SetText(Loc["Per Second:"]) --localize-me
+            dodgepersecond:SetText("Per Second:") --localize-me
 
-            local dodgepersecond_amt = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local dodgepersecond_amt = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             dodgepersecond_amt:SetPoint("left", dodgepersecond,  "right", 2, 0)
             dodgepersecond_amt:SetText("0")
             tab.dodgepersecond = dodgepersecond_amt
@@ -121,21 +121,21 @@
             y = y - padding
 
             -- parry
-            local parry = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local parry = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             parry:SetPoint("topleft", meleeBox, "topleft", 15, y)
-            parry:SetText(Loc["Parry:"]) --localize-me
+            parry:SetText("Parry:") --localize-me
             parry:SetTextColor(.8, .8, .8, 1)
-            local parry_amt = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local parry_amt = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             parry_amt:SetPoint("left", parry,  "right", 2, 0)
             parry_amt:SetText("0")
             tab.parry = parry_amt
 
             y = y - padding
 
-            local parrypersecond = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local parrypersecond = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             parrypersecond:SetPoint("topleft", meleeBox, "topleft", 20, y)
-            parrypersecond:SetText(Loc["Per Second:"]) --localize-me
-            local parrypersecond_amt = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            parrypersecond:SetText("Per Second:") --localize-me
+            local parrypersecond_amt = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             parrypersecond_amt:SetPoint("left", parrypersecond,  "right", 2, 0)
             parrypersecond_amt:SetText("0")
             tab.parrypersecond = parrypersecond_amt
@@ -143,31 +143,31 @@
             y = y - padding
 
             -- block
-            local block = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local block = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             block:SetPoint("topleft", meleeBox, "topleft", 15, y)
-            block:SetText(Loc["Block:"]) --localize-me
+            block:SetText("Block:") --localize-me
             block:SetTextColor(.8, .8, .8, 1)
-            local block_amt = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local block_amt = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             block_amt:SetPoint("left", block,  "right", 2, 0)
             block_amt:SetText("0")
             tab.block = block_amt
 
             y = y - padding
 
-            local blockpersecond = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local blockpersecond = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             blockpersecond:SetPoint("topleft", meleeBox, "topleft", 20, y)
-            blockpersecond:SetText(Loc["Per Second:"]) --localize-me
-            local blockpersecond_amt = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            blockpersecond:SetText("Per Second:") --localize-me
+            local blockpersecond_amt = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             blockpersecond_amt:SetPoint("left", blockpersecond,  "right", 2, 0)
             blockpersecond_amt:SetText("0")
             tab.blockpersecond = blockpersecond_amt
 
             y = y - padding
 
-            local blockeddamage = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local blockeddamage = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             blockeddamage:SetPoint("topleft", meleeBox, "topleft", 20, y)
-            blockeddamage:SetText(Loc["Damage Blocked:"]) --localize-me
-            local blockeddamage_amt = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            blockeddamage:SetText("Damage Blocked:") --localize-me
+            local blockeddamage_amt = meleeBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             blockeddamage_amt:SetPoint("left", blockeddamage,  "right", 2, 0)
             blockeddamage_amt:SetText("0")
             tab.blockeddamage_amt = blockeddamage_amt
@@ -181,17 +181,17 @@
             absorbsBox:SetSize(200, 160)
 
             local absorb_text = absorbsBox:CreateFontString(nil, "artwork", "GameFontNormal")
-            absorb_text:SetText(Loc["Absorb"])
+            absorb_text:SetText("Absorb")
             absorb_text :SetPoint("topleft", absorbsBox, "topleft", 5, y)
 
             y = y - padding
 
             --full absorbs
-            local fullsbsorbed = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local fullsbsorbed = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             fullsbsorbed:SetPoint("topleft", absorbsBox, "topleft", 20, y)
-            fullsbsorbed:SetText(Loc["Full Absorbs:"]) --localize-me
+            fullsbsorbed:SetText("Full Absorbs:") --localize-me
             fullsbsorbed:SetTextColor(.8, .8, .8, 1)
-            local fullsbsorbed_amt = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local fullsbsorbed_amt = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             fullsbsorbed_amt:SetPoint("left", fullsbsorbed,  "right", 2, 0)
             fullsbsorbed_amt:SetText("0")
             tab.fullsbsorbed = fullsbsorbed_amt
@@ -199,11 +199,11 @@
             y = y - padding
 
             --partially absorbs
-            local partiallyabsorbed = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local partiallyabsorbed = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             partiallyabsorbed:SetPoint("topleft", absorbsBox, "topleft", 20, y)
-            partiallyabsorbed:SetText(Loc["Partially Absorbed:"]) --localize-me
+            partiallyabsorbed:SetText("Partially Absorbed:") --localize-me
             partiallyabsorbed:SetTextColor(.8, .8, .8, 1)
-            local partiallyabsorbed_amt = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local partiallyabsorbed_amt = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             partiallyabsorbed_amt:SetPoint("left", partiallyabsorbed,  "right", 2, 0)
             partiallyabsorbed_amt:SetText("0")
             tab.partiallyabsorbed = partiallyabsorbed_amt
@@ -211,10 +211,10 @@
             y = y - padding
 
             --partially absorbs per second
-            local partiallyabsorbedpersecond = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local partiallyabsorbedpersecond = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             partiallyabsorbedpersecond:SetPoint("topleft", absorbsBox, "topleft", 25, y)
-            partiallyabsorbedpersecond:SetText(Loc["Average:"]) --localize-me
-            local partiallyabsorbedpersecond_amt = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            partiallyabsorbedpersecond:SetText("Average:") --localize-me
+            local partiallyabsorbedpersecond_amt = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             partiallyabsorbedpersecond_amt:SetPoint("left", partiallyabsorbedpersecond,  "right", 2, 0)
             partiallyabsorbedpersecond_amt:SetText("0")
             tab.partiallyabsorbedpersecond = partiallyabsorbedpersecond_amt
@@ -222,11 +222,11 @@
             y = y - padding
 
             --no absorbs
-            local noabsorbs = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local noabsorbs = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             noabsorbs:SetPoint("topleft", absorbsBox, "topleft", 20, y)
-            noabsorbs:SetText(Loc["No Absorption:"]) --localize-me
+            noabsorbs:SetText("No Absorption:") --localize-me
             noabsorbs:SetTextColor(.8, .8, .8, 1)
-            local noabsorbs_amt = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local noabsorbs_amt = absorbsBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             noabsorbs_amt:SetPoint("left", noabsorbs,  "right", 2, 0)
             noabsorbs_amt:SetText("0")
             tab.noabsorbs = noabsorbs_amt
@@ -240,17 +240,17 @@
             healingBox:SetSize(200, 160)
 
             local healing_text = healingBox:CreateFontString(nil, "artwork", "GameFontNormal")
-            healing_text:SetText(Loc["Healing"])
+            healing_text:SetText("Healing")
             healing_text :SetPoint("topleft", healingBox, "topleft", 5, y)
 
             y = y - padding
 
             --self healing
-            local selfhealing = healingBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local selfhealing = healingBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             selfhealing:SetPoint("topleft", healingBox, "topleft", 20, y)
-            selfhealing:SetText(Loc["Self Healing:"]) --localize-me
+            selfhealing:SetText("Self Healing:") --localize-me
             selfhealing:SetTextColor(.8, .8, .8, 1)
-            local selfhealing_amt = healingBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local selfhealing_amt = healingBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             selfhealing_amt:SetPoint("left", selfhealing,  "right", 2, 0)
             selfhealing_amt:SetText("0")
             tab.selfhealing = selfhealing_amt
@@ -258,10 +258,10 @@
             y = y - padding
 
             --self healing per second
-            local selfhealingpersecond = healingBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            local selfhealingpersecond = healingBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             selfhealingpersecond:SetPoint("topleft", healingBox, "topleft", 25, y)
-            selfhealingpersecond:SetText(Loc["Per Second:"]) --localize-me
-            local selfhealingpersecond_amt = healingBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+            selfhealingpersecond:SetText("Per Second:") --localize-me
+            local selfhealingpersecond_amt = healingBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
             selfhealingpersecond_amt:SetPoint("left", selfhealingpersecond,  "right", 2, 0)
             selfhealingpersecond_amt:SetText("0")
             tab.selfhealingpersecond = selfhealingpersecond_amt
@@ -269,11 +269,11 @@
             y = y - padding
 
             for i = 1, 5 do
-                local healer = healingBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+                local healer = healingBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
                 healer:SetPoint("topleft", healingBox, "topleft", 20, y + ((i-1)*15)*-1)
-                healer:SetText(Loc["healer name:"]) --localize-me
+                healer:SetText("healer name:") --localize-me
                 healer:SetTextColor(.8, .8, .8, 1)
-                local healer_amt = healingBox:CreateFontString(nil, "artwork", "GameFontHighlight")
+                local healer_amt = healingBox:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
                 healer_amt:SetPoint("left", healer,  "right", 2, 0)
                 healer_amt:SetText("0")
                 tab ["healer" .. i] = {healer, healer_amt}
@@ -289,7 +289,7 @@
             spellsBox:SetSize(346, 160 * 2 + 5)
 
             local spells_text = spellsBox:CreateFontString(nil, "artwork", "GameFontNormal")
-            spells_text:SetText(Loc["Spells"])
+            spells_text:SetText("Spells")
             spells_text :SetPoint("topleft", spellsBox, "topleft", 5, y)
 
             local frame_tooltip_onenter = function(self)
@@ -325,12 +325,12 @@
                 icon:SetSize(14, 14)
                 icon:SetPoint("left", frame_tooltip, "left")
 
-                local spell = frame_tooltip:CreateFontString(nil, "artwork", "GameFontHighlight")
+                local spell = frame_tooltip:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
                 spell:SetPoint("left", icon, "right", 2, 0)
-                spell:SetText(Loc["spell name:"]) --localize-me
+                spell:SetText("spell name:") --localize-me
                 spell:SetTextColor(.8, .8, .8, 1)
 
-                local spell_amt = frame_tooltip:CreateFontString(nil, "artwork", "GameFontHighlight")
+                local spell_amt = frame_tooltip:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
                 spell_amt:SetPoint("left", spell,  "right", 2, 0)
                 spell_amt:SetText("0")
 
@@ -613,7 +613,7 @@
                                 --attempt to get the buff update
                                 local spellInfo = buffUpdateSpells:GetSpell (framebg.spellid)
                                 if (spellInfo) then
-                                    label2:SetText(esta_habilidade[2] .. " (" .. math.floor(spellInfo.uptime / encounter_time * 100) .. Loc["% uptime)"])
+                                    label2:SetText(esta_habilidade[2] .. " (" .. math.floor(spellInfo.uptime / encounter_time * 100) .. "% uptime)")
                                 else
                                     label2:SetText(esta_habilidade[2])
                                 end
@@ -654,7 +654,7 @@
                                                 local cooldownDuration = info and info.duration or 0
 
                                                 if (cooldownDuration > 0) then
-                                                    label2:SetText(amountCasted .. " (" .. "|cFFFFFF00" .. miscPlayer.nome .. "|r " .. math.floor(cooldownDuration / encounter_time * 100) .. Loc["% uptime)"])
+                                                    label2:SetText(amountCasted .. " (" .. "|cFFFFFF00" .. miscPlayer.nome .. "|r " .. math.floor(cooldownDuration / encounter_time * 100) .. "% uptime)")
                                                 else
                                                     label2:SetText(amountCasted)
                                                 end

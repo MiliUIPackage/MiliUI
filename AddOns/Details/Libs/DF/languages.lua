@@ -198,7 +198,7 @@ local fontLanguageCompatibility = {
 --new non-native game languages registered with DetailsFramework.Language.RegisterLanguage() will be added to this table
 local languagesAvailable = {
     deDE = {text = "Deutsch", font = "Fonts\\FRIZQT__.TTF"},
-    enUS = {text = "English (US)", font = STANDARD_TEXT_FONT},
+    enUS = {text = "English (US)", font = "Fonts\\FRIZQT__.TTF"},
     esES = {text = "Español (ES)", font = "Fonts\\FRIZQT__.TTF"},
     esMX = {text = "Español (MX)", font = "Fonts\\FRIZQT__.TTF"},
     frFR = {text = "Français", font = "Fonts\\FRIZQT__.TTF"},
@@ -206,8 +206,8 @@ local languagesAvailable = {
     koKR = {text = "한국어", font = [[Fonts\2002.TTF]]},
     ptBR = {text = "Português (BR)", font = "Fonts\\FRIZQT__.TTF"},
     ruRU = {text = "Русский", font = "Fonts\\FRIZQT___CYR.TTF"},
-    zhCN = {text = "简体中文", font = STANDARD_TEXT_FONT},
-    zhTW = {text = "繁體中文", font = STANDARD_TEXT_FONT},
+    zhCN = {text = "简体中文", font = [[Fonts\ARHei.ttf]]},
+    zhTW = {text = "繁體中文", font = [[Fonts\ARHei.ttf]]},
 }
 
 local ignoredCharacters = {}

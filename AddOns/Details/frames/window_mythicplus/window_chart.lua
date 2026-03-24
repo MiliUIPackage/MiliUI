@@ -2,7 +2,6 @@
 local Details = _G.Details
 local addonName, Details222 = ...
 local _
-local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 
 Details222.Debug.MythicPlusChartWindowDebug = false
 local verbosemode = false
@@ -60,7 +59,7 @@ function mythicDungeonCharts.ShowChart()
 			titlebar:SetBackdropBorderColor(0, 0, 0, 1)
 
 			--title
-			local titleLabel = detailsFramework:NewLabel(titlebar, titlebar, nil, "titulo", "Plugins", "GameFontHighlightLeft", 16, {227/255, 186/255, 4/255})
+			local titleLabel = detailsFramework:NewLabel(titlebar, titlebar, nil, "titulo", "Plugins", "GameFontHighlightLeft", 12, {227/255, 186/255, 4/255})
 			titleLabel:SetPoint("center", titlebar , "center")
 			titleLabel:SetPoint("top", titlebar , "top", 0, -5)
 			dungeonChartFrame.TitleText = titleLabel
@@ -75,7 +74,7 @@ function mythicDungeonCharts.ShowChart()
 			titlebarMinimized:SetBackdropBorderColor(0, 0, 0, 1)
 
 			--title
-			local titleLabelMinimized = detailsFramework:NewLabel(titlebarMinimized, titlebarMinimized, nil, "titulo", Loc["Dungeon Run Chart"], "GameFontHighlightLeft", 14, {227/255, 186/255, 4/255})
+			local titleLabelMinimized = detailsFramework:NewLabel(titlebarMinimized, titlebarMinimized, nil, "titulo", "Dungeon Run Chart", "GameFontHighlightLeft", 10, {227/255, 186/255, 4/255})
 			titleLabelMinimized:SetPoint("left", titlebarMinimized , "left", 4, 0)
 			--titleLabelMinimized:SetPoint("top", titlebarMinimized , "top", 0, -5)
 			dungeonChartFrame.TitleTextMinimized = titleLabelMinimized
@@ -211,10 +210,10 @@ function mythicDungeonCharts.ShowChart()
 		table.insert(bossTimeTable, bossTable[1] - combatTime)
 	end
 
-	--chartFrame:AddOverlay(bossTimeTable, {1, 1, 1, 0.05}, Loc["Show Boss"], "")
+	--chartFrame:AddOverlay(bossTimeTable, {1, 1, 1, 0.05}, "Show Boss", "")
 
 	--local phrase = " Average Dps (under development)\npress Escape to hide, Details! Alpha Build." .. _detalhes.build_counter .. "." .. _detalhes.realversion
-	local phrase = Loc["Details!: Average Dps for "]
+	local phrase = "Details!: Average Dps for "
 
 	--chartFrame:SetTitle("")
 	--detailsFramework:SetFontSize(chartFrame.chart_title, 14)
@@ -252,7 +251,7 @@ local PixelFrameOnEnter = function(self)
 
 	GameCooltip2:Preset(2)
 	GameCooltip2:SetOption("FixedWidth", 100)
-	GameCooltip2:SetOption("TextSize", 14)
+	GameCooltip2:SetOption("TextSize", 10)
 	local onlyName = Details:GetOnlyName(playerName)
 	GameCooltip2:AddLine(onlyName)
 

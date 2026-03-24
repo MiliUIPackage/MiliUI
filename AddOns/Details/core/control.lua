@@ -274,7 +274,7 @@
 				---@type instance
 				local lowerInstanceObject = Details:GetInstance(lowerInstanceId)
 				if (lowerInstanceObject) then
-					lowerInstanceObject:InstanceAlert(Loc["combat ignored: less than 5 seconds."], {[[Interface\BUTTONS\UI-GROUPLOOT-PASS-DOWN]], 18, 18, false, 0, 1, 0, 1}, 20, {function() Details:Msg(Loc["combat ignored: elapsed time less than 5 seconds."]); Details:Msg(Loc["add '|cFFFFFF00Details.minimum_combat_time = 2;|r' on Auto Run Code to change the minimum time."]) end})
+					lowerInstanceObject:InstanceAlert("combat ignored: less than 5 seconds.", {[[Interface\BUTTONS\UI-GROUPLOOT-PASS-DOWN]], 18, 18, false, 0, 1, 0, 1}, 20, {function() Details:Msg("combat ignored: elapsed time less than 5 seconds."); Details:Msg("add '|cFFFFFF00Details.minimum_combat_time = 2;|r' on Auto Run Code to change the minimum time.") end})
 					Details:SetTutorialCVar("MIN_COMBAT_TIME", true)
 				end
 			end
@@ -932,6 +932,29 @@
 		--issue: invalidCombat will be just floating around in memory if not destroyed
 	end --end of leaving combat function
 
+	if detailsFramework.IsAddonApocalypseWow() then
+		local getSegment = C_DamageMeter.GetCombatSessionFromType
+		local serverInCombat = false
+		C_Timer.NewTicker(0, function()
+			local thisSegment = getSegment(1, 6)
+			if thisSegment then
+				if issecretvalue(thisSegment.totalAmount) then
+					if not serverInCombat then
+						Details:SendEvent("SERVER_COMBAT_STARTED")
+					end
+					serverInCombat = true
+					Details222.Apocalypse.ServerInCombat = true
+				else
+					if serverInCombat then
+						Details:SendEvent("SERVER_COMBAT_ENDED")
+					end
+					serverInCombat = false
+					Details222.Apocalypse.ServerInCombat = false
+				end
+			end
+		end)
+	end
+
 	--~arena
 	---@class arena_ally : table
 	---@field role string
@@ -1090,11 +1113,11 @@
 		end
 
 		--register chart data
-		Details:TimeDataRegister(Loc["Your Team Damage"], string_arena_myteam_damage, nil, "Details!", "v1.0", [[Interface\ICONS\Ability_DualWield]], true, true)
-		Details:TimeDataRegister(Loc["Enemy Team Damage"], string_arena_enemyteam_damage, nil, "Details!", "v1.0", [[Interface\ICONS\Ability_DualWield]], true, true)
+		Details:TimeDataRegister("Your Team Damage", string_arena_myteam_damage, nil, "Details!", "v1.0", [[Interface\ICONS\Ability_DualWield]], true, true)
+		Details:TimeDataRegister("Enemy Team Damage", string_arena_enemyteam_damage, nil, "Details!", "v1.0", [[Interface\ICONS\Ability_DualWield]], true, true)
 
-		Details:TimeDataRegister(Loc["Your Team Healing"], string_arena_myteam_heal, nil, "Details!", "v1.0", [[Interface\ICONS\Ability_DualWield]], true, true)
-		Details:TimeDataRegister(Loc["Enemy Team Healing"], string_arena_enemyteam_heal, nil, "Details!", "v1.0", [[Interface\ICONS\Ability_DualWield]], true, true)
+		Details:TimeDataRegister("Your Team Healing", string_arena_myteam_heal, nil, "Details!", "v1.0", [[Interface\ICONS\Ability_DualWield]], true, true)
+		Details:TimeDataRegister("Enemy Team Healing", string_arena_enemyteam_heal, nil, "Details!", "v1.0", [[Interface\ICONS\Ability_DualWield]], true, true)
 
 		Details.lastArenaStartTime = GetTime()
 
@@ -1226,11 +1249,11 @@
 			Details:CancelTimer(Details.start_arena, true)
 		end
 
-		Details:TimeDataUnregister(Loc["Your Team Damage"])
-		Details:TimeDataUnregister(Loc["Enemy Team Damage"])
+		Details:TimeDataUnregister("Your Team Damage")
+		Details:TimeDataUnregister("Enemy Team Damage")
 
-		Details:TimeDataUnregister(Loc["Your Team Healing"])
-		Details:TimeDataUnregister(Loc["Enemy Team Healing"])
+		Details:TimeDataUnregister("Your Team Healing")
+		Details:TimeDataUnregister("Enemy Team Healing")
 
 		Details:EndCombat()
 

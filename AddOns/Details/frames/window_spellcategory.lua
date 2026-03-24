@@ -5,7 +5,6 @@
 local Details = _G.Details
 ---@type detailsframework
 local DF = _G.DetailsFramework
-local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 local _
 
 local startX = 5
@@ -264,7 +263,7 @@ end
 
 function Details.Survey.OpenSpellCategoryScreen()
     if (not Details.Survey.GetTargetCharacterForRealm()) then
-        Details:Msg(Loc["No survey at the moment."])
+        Details:Msg("No survey at the moment.")
         return
     end
 
@@ -272,7 +271,7 @@ function Details.Survey.OpenSpellCategoryScreen()
 		DetailsSpellCategoryFrame = DetailsFramework:CreateSimplePanel(UIParent)
         local detailsSpellCategoryFrame = DetailsSpellCategoryFrame
 		detailsSpellCategoryFrame:SetSize(scroll_width, windowHeight+26)
-		detailsSpellCategoryFrame:SetTitle(Loc["Details! Damage Meter: Spell Category Selection"])
+		detailsSpellCategoryFrame:SetTitle("Details! Damage Meter: Spell Category Selection")
 		detailsSpellCategoryFrame.Data = {}
         detailsSpellCategoryFrame.Title:ClearAllPoints()
         detailsSpellCategoryFrame.Title:SetPoint("left", detailsSpellCategoryFrame.TitleBar, "left", 5, 0)
@@ -300,21 +299,21 @@ function Details.Survey.OpenSpellCategoryScreen()
 		--create the header
         local defaultWidth = 70
 		local headerTable = {
-			{text = Loc["Icon"], width = 24},
-			{text = Loc["Spell Name"], width = 150},
-            {text = Loc["NONE"], width = defaultWidth},
-			{text = Loc["Offensive CD"], width = defaultWidth},
-			{text = Loc["Personal CD"], width = defaultWidth},
-			{text = Loc["Targeted CD"], width = defaultWidth},
-			{text = Loc["Raid CD"], width = defaultWidth},
-			{text = Loc["Utility CD"], width = defaultWidth},
-			{text = Loc["Interrupt"], width = defaultWidth},
-			{text = Loc["Dispel"], width = defaultWidth},
-			{text = Loc["CC"], width = defaultWidth},
-			{text = Loc["Racial"], width = defaultWidth},
-			{text = Loc["Cooldown"], width = defaultWidth},
-			{text = Loc["Duration"], width = defaultWidth},
-			{text = Loc["Export"], width = defaultWidth},
+			{text = "Icon", width = 24},
+			{text = "Spell Name", width = 150},
+            {text = "NONE", width = defaultWidth},
+			{text = "Offensive CD", width = defaultWidth},
+			{text = "Personal CD", width = defaultWidth},
+			{text = "Targeted CD", width = defaultWidth},
+			{text = "Raid CD", width = defaultWidth},
+			{text = "Utility CD", width = defaultWidth},
+			{text = "Interrupt", width = defaultWidth},
+			{text = "Dispel", width = defaultWidth},
+			{text = "CC", width = defaultWidth},
+			{text = "Racial", width = defaultWidth},
+			{text = "Cooldown", width = defaultWidth},
+			{text = "Duration", width = defaultWidth},
+			{text = "Export", width = defaultWidth},
 		}
 		local headerOptions = {
 			padding = 2,
@@ -329,18 +328,18 @@ function Details.Survey.OpenSpellCategoryScreen()
 
         local thisClassSavedTable = Details.Survey.GetCategorySpellListForClass()
         --local sendButton = DetailsFramework:CreateButton(statusBar, function() Details.Survey.SendSpellCatogeryDataToTargetCharacter(); DetailsSpellCategoryFrame:Hide() end, 800, 20, "SAVE and SEND")
-        local sendButton = DetailsFramework:CreateButton(statusBar, function() Details.Survey.ExportSpellCatogeryData(); DetailsSpellCategoryFrame:Hide() end, 800, 20, Loc["EXPORT ALL"])
+        local sendButton = DetailsFramework:CreateButton(statusBar, function() Details.Survey.ExportSpellCatogeryData(); DetailsSpellCategoryFrame:Hide() end, 800, 20, "EXPORT ALL")
         sendButton:SetPoint("center", statusBar, "center", 0, 0)
 
         detailsSpellCategoryFrame.Header = DetailsFramework:CreateHeader(detailsSpellCategoryFrame, headerTable, headerOptions)
         detailsSpellCategoryFrame.Header:SetPoint("topleft", detailsSpellCategoryFrame, "topleft", startX, headerY)
 
         local tooltipDesc = {}
-        tooltipDesc[2] = "|cffffff00" .. headerTable[4].text .. "|r|n" .. Loc["Examples:\nPower Infusion, Ice Veins, Combustion, Adrenaline Rush"] --ofensive cooldowns
-        tooltipDesc[3] = "|cffffff00" .. headerTable[5].text .. "|r|n" .. Loc["Examples:\nIce Block, Dispersion, Cloak of Shadows, Shield Wall "] --personal cooldowns
-        tooltipDesc[4] = "|cffffff00" .. headerTable[6].text .. "|r|n" .. Loc["Examples:\nBlessing of Sacrifice, Ironbark, Life Cocoon, Pain Suppression"] --targeted devense cooldowns
-        tooltipDesc[5] = "|cffffff00" .. headerTable[7].text .. "|r|n" .. Loc["Examples:\nPower Word: Barrier, Spirit Link Totem, Tranquility, Anti-Magic Zone"] --raid wide cooldowns
-        tooltipDesc[6] = "|cffffff00" .. headerTable[8].text .. "|r|n" .. Loc["Examples:\nStampeding Roar, Leap of Faith"]
+        tooltipDesc[2] = "|cffffff00" .. headerTable[4].text .. "|r|n" .. "Examples:\nPower Infusion, Ice Veins, Combustion, Adrenaline Rush" --ofensive cooldowns
+        tooltipDesc[3] = "|cffffff00" .. headerTable[5].text .. "|r|n" .. "Examples:\nIce Block, Dispersion, Cloak of Shadows, Shield Wall " --personal cooldowns
+        tooltipDesc[4] = "|cffffff00" .. headerTable[6].text .. "|r|n" .. "Examples:\nBlessing of Sacrifice, Ironbark, Life Cocoon, Pain Suppression" --targeted devense cooldowns
+        tooltipDesc[5] = "|cffffff00" .. headerTable[7].text .. "|r|n" .. "Examples:\nPower Word: Barrier, Spirit Link Totem, Tranquility, Anti-Magic Zone" --raid wide cooldowns
+        tooltipDesc[6] = "|cffffff00" .. headerTable[8].text .. "|r|n" .. "Examples:\nStampeding Roar, Leap of Faith"
         tooltipDesc[7] = ""
         tooltipDesc[8] = ""
         tooltipDesc[9] = ""

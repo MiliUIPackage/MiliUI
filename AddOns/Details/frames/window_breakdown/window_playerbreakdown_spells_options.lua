@@ -3,7 +3,6 @@ local Details = Details
 
 ---@type detailsframework
 local DF = DetailsFramework
-local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 
 --create the main frame for the options panel
 
@@ -21,7 +20,7 @@ local createOptionsPanel = function()
     local options_slider_template = DF:GetTemplate("slider", "OPTIONS_SLIDER_TEMPLATE")
     local options_button_template = DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE")
 
-    local optionsFrame = DF:CreateSimplePanel(UIParent, 550, 500, Loc["Details! Breakdown Options"], "DetailsSpellBreakdownOptionsPanel")
+    local optionsFrame = DF:CreateSimplePanel(UIParent, 550, 500, "Details! Breakdown Options", "DetailsSpellBreakdownOptionsPanel")
     optionsFrame:SetFrameStrata("DIALOG")
     optionsFrame:SetPoint("topleft", UIParent, "topleft", 2, -40)
     optionsFrame.Title:SetParent(optionsFrame)
@@ -74,17 +73,17 @@ local createOptionsPanel = function()
         DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
         DetailsSpellBreakdownOptionsPanel:RefreshOptions()
 
-        Details:Msg(Loc["Settings reseted to default."])
+        Details:Msg("Settings reseted to default.")
     end
 
-    local resetSettingsButton = DF:CreateButton(optionsFrame, resetSettings, 130, 20, Loc["Reset Settings"])
+    local resetSettingsButton = DF:CreateButton(optionsFrame, resetSettings, 130, 20, "Reset Settings")
     resetSettingsButton:SetPoint("bottomleft", optionsFrame, "bottomleft", 5, 5)
     resetSettingsButton:SetTemplate(options_button_template)
 
     local subSectionTitleTextTemplate = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")
 
     local optionsTable = {
-        {type = "label", get = function() return Loc["General Settings"] end, text_template = subSectionTitleTextTemplate},
+        {type = "label", get = function() return "General Settings" end, text_template = subSectionTitleTextTemplate},
         --background color from setting Details.frame_background_color
             { --background color
                 type = "color",
@@ -108,13 +107,13 @@ local createOptionsPanel = function()
                     colorTable[4] = a
                     Details:SetWindowColor(r, g, b, a)
                 end,
-                name = Loc["Background Color"],
-                desc = Loc["Background Color"],
+                name = "Background Color",
+                desc = "Background Color",
             },
 
         {type = "blank"},
 
-        {type = "label", get = function() return Loc["Spell Details Block"] end, text_template = subSectionTitleTextTemplate},
+        {type = "label", get = function() return "Spell Details Block" end, text_template = subSectionTitleTextTemplate},
             {--block height
                 type = "range",
                 get = function() return Details.breakdown_spell_tab.blockspell_height end,
@@ -125,13 +124,13 @@ local createOptionsPanel = function()
                 min = 50,
                 max = 80,
                 step = 1,
-                name = Loc["Block Height"],
-                desc = Loc["Block Height"],
+                name = "Block Height",
+                desc = "Block Height",
             },
 
         {type = "blank"},
 
-        {type = "label", get = function() return Loc["What to Show"] end, text_template = subSectionTitleTextTemplate},
+        {type = "label", get = function() return "What to Show" end, text_template = subSectionTitleTextTemplate},
             { --per second
                 type = "toggle",
                 get = function() return Details.breakdown_spell_tab.spellcontainer_headers["persecond"].enabled end,
@@ -139,8 +138,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["persecond"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = Loc["Per Second"],
-                desc = Loc["Per Second"],
+                name = "Per Second",
+                desc = "Per Second",
             },
 
             { --amount of casts
@@ -150,8 +149,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["casts"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = Loc["Casts"],
-                desc = Loc["Casts"],
+                name = "Casts",
+                desc = "Casts",
             },
 
             { --critical hits percent
@@ -161,8 +160,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["critpercent"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = Loc["Critical Hits Percent"],
-                desc = Loc["Critical Hits Percent"],
+                name = "Critical Hits Percent",
+                desc = "Critical Hits Percent",
             },
 
             { --amount of hits
@@ -172,8 +171,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["hits"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = Loc["Hits Amount"],
-                desc = Loc["Hits Amount"],
+                name = "Hits Amount",
+                desc = "Hits Amount",
             },
 
             { --average damage of healing per cast amount
@@ -183,8 +182,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["castavg"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = Loc["Cast Average"],
-                desc = Loc["Cast Average"],
+                name = "Cast Average",
+                desc = "Cast Average",
             },
 
             { --debuff uptime
@@ -194,8 +193,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["uptime"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = Loc["Uptime"],
-                desc = Loc["Uptime"],
+                name = "Uptime",
+                desc = "Uptime",
             },
 
             { --overheal
@@ -205,8 +204,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["overheal"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = Loc["Overheal"],
-                desc = Loc["Overheal"],
+                name = "Overheal",
+                desc = "Overheal",
             },
 
             { --absorbed
@@ -216,13 +215,13 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["absorbed"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = Loc["Heal Absorbed"],
-                desc = Loc["Heal Absorbed"],
+                name = "Heal Absorbed",
+                desc = "Heal Absorbed",
             },
 
         {type = "blank"},
 
-        {type = "label", get = function() return Loc["Text Options"] end, text_template = subSectionTitleTextTemplate},
+        {type = "label", get = function() return "Text Options" end, text_template = subSectionTitleTextTemplate},
             { --font color
                 type = "color",
                 get = function() return Details.breakdown_general.font_color[1], Details.breakdown_general.font_color[2], Details.breakdown_general.font_color[3], Details.breakdown_general.font_color[4] end,
@@ -235,8 +234,8 @@ local createOptionsPanel = function()
                     Details:UpdateBreakdownPlayerList()
                     DetailsAllAttributesFrame:UpdateFontStrings()
                 end,
-                name = Loc["Text Color"],
-                desc = Loc["Text Color"],
+                name = "Text Color",
+                desc = "Text Color",
             },
 
             { --font size
@@ -250,8 +249,8 @@ local createOptionsPanel = function()
                 min = 8,
                 max = 20,
                 step = 1,
-                name = Loc["Text Size"],
-                desc = Loc["Text Size"],
+                name = "Text Size",
+                desc = "Text Size",
             },
 
             { --font outline
@@ -262,8 +261,8 @@ local createOptionsPanel = function()
                     Details:UpdateBreakdownPlayerList()
                     DetailsAllAttributesFrame:UpdateFontStrings()
                 end,
-                name = Loc["Text Outline"],
-                desc = Loc["Text Outline"],
+                name = "Text Outline",
+                desc = "Text Outline",
             },
 
             {---font face
@@ -274,14 +273,14 @@ local createOptionsPanel = function()
                     Details:UpdateBreakdownPlayerList()
                     DetailsAllAttributesFrame:UpdateFontStrings()
                 end,
-                name = Loc["Font Face"],
-                desc = Loc["Font Face"],
+                name = "Font Face",
+                desc = "Font Face",
                 include_default = true,
             },
 
 
         {type = "breakline"},
-        {type = "label", get = function() return Loc["Scroll Options"] end, text_template = subSectionTitleTextTemplate},
+        {type = "label", get = function() return "Scroll Options" end, text_template = subSectionTitleTextTemplate},
 
             { --locked
                 type = "toggle",
@@ -294,8 +293,8 @@ local createOptionsPanel = function()
                     local container = DetailsSpellBreakdownTab.GetTargetScrollContainer()
                     container:SetResizeLocked(value)
                 end,
-                name = Loc["Is Locked"],
-                desc = Loc["Is Locked"],
+                name = "Is Locked",
+                desc = "Is Locked",
             },
 
             {--background alpha
@@ -309,24 +308,24 @@ local createOptionsPanel = function()
                 max = 1,
                 step = 0.1,
                 usedecimals = true,
-                name = Loc["Background Alpha"],
-                desc = Loc["Background Alpha"],
+                name = "Background Alpha",
+                desc = "Background Alpha",
             },
 
         {type = "blank"},
-        {type = "label", get = function() return Loc["Group Player Spells:"] end, text_template = subSectionTitleTextTemplate},
+        {type = "label", get = function() return "Group Player Spells:" end, text_template = subSectionTitleTextTemplate},
             { --nest player spells | merge player spells
                 type = "toggle",
                 get = function() return Details.breakdown_spell_tab.nest_players_spells_with_same_name end,
                 set = function(self, fixedparam, value)
                     Details.breakdown_spell_tab.nest_players_spells_with_same_name = value
                 end,
-                name = Loc["Group Player Spells With Same Name"],
-                desc = Loc["Group spells casted by players which has the same name"],
+                name = "Group Player Spells With Same Name",
+                desc = "Group spells casted by players which has the same name",
             },
 
         {type = "blank"},
-        {type = "label", get = function() return Loc["Group Pet Spells:"] end, text_template = subSectionTitleTextTemplate},
+        {type = "label", get = function() return "Group Pet Spells:" end, text_template = subSectionTitleTextTemplate},
 
             { --nest pet spells with the same name
                 type = "toggle",
@@ -334,8 +333,8 @@ local createOptionsPanel = function()
                 set = function(self, fixedparam, value)
                     Details.breakdown_spell_tab.nest_pet_spells_by_name = value
                 end,
-                name = Loc["Group Pet Names Under a Pet Spell Bar"],
-                desc = Loc["Group Pets By Name"],
+                name = "Group Pet Names Under a Pet Spell Bar",
+                desc = "Group Pets By Name",
                 hooks = {["OnSwitch"] = function()
                     if (Details.breakdown_spell_tab.nest_pet_spells_by_name) then
                         Details.breakdown_spell_tab.nest_pet_spells_by_caster = false
@@ -351,8 +350,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.nest_pet_spells_by_caster = value
 
                 end,
-                name = Loc["Group Pet Spells Under a Pet Name Bar"],
-                desc = Loc["Group Pets By Spell"],
+                name = "Group Pet Spells Under a Pet Name Bar",
+                desc = "Group Pets By Spell",
                 hooks = {["OnSwitch"] = function()
                     if (Details.breakdown_spell_tab.nest_pet_spells_by_caster) then
                         Details.breakdown_spell_tab.nest_pet_spells_by_name = false

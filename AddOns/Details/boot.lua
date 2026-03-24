@@ -17,12 +17,12 @@
 		end
 		local addonName, Details222 = ...
 		local version, build, date, tvs = GetBuildInfo()
-		Details.build_counter = 14718
-		Details.alpha_build_counter = 14718 --if this is higher than the regular counter, use it instead
+		Details.build_counter = 14811
+		Details.alpha_build_counter = 14811 --if this is higher than the regular counter, use it instead
 		Details.dont_open_news = true
 		Details.game_version = version
 		Details.userversion = version .. " " .. Details.build_counter
-		Details.realversion = 170 --core version, this is used to check API version for scripts and plugins (see alias below)
+		Details.realversion = 171 --core version, this is used to check API version for scripts and plugins (see alias below)
 		Details.gametoc = tvs
 		Details.APIVersion = Details.realversion --core version
 		Details.version = Details.userversion .. " (core " .. Details.realversion .. ")" --simple stirng to show to players
@@ -131,8 +131,8 @@
 			[225985] = true, --dornogal
 			[225976] = true, --dornogal
 			[225984] = true, --dornogal
-			
 		}
+
 
 		---@type details_storage_feature
 		---@diagnostic disable-next-line: missing-fields
@@ -254,10 +254,35 @@
 
 		Details222.B = {}
 
+		Details222.Apocalypse = {
+			ServerInCombat = false,
+			TypeDetails = 0,
+			TypeGame = 1,
+			segmentType = 1,
+			GetType = function() --addon wide segment type
+				return Details222.Apocalypse.segmentType
+			end,
+			SetType = function(newType)
+				Details222.Apocalypse.segmentType = newType
+			end,
+			IsServerInCombat = function()
+				return Details222.Apocalypse.ServerInCombat
+			end
+		}
+
 		--simplify and reduce the amount of functions to work with
 		local mainFName = "GetCombatSession"
 		local getSegmentFName = mainFName .. "From"
 		local getSpellFname = mainFName .. "SourceFrom"
+
+		function Details222.B.GetEmptySegment()
+			return {
+				combatSources = {},
+				totalAmount = 0,
+				maxAmount = 0,
+				durationSeconds = 0,
+			}
+		end
 
 		---return a segment
 		---@param type string
@@ -379,6 +404,12 @@
 
 		function Details222.B.GetCurrentTime(segmentType)
 			return Details222.B.GetSegment("Type", segmentType, 0).durationSeconds
+		end
+
+		function Details:BleachFontString(fontString)
+			fontString:SetToDefaults()
+			fontString:SetFontObject("GameFontHighlight")
+			fontString:SetText("")
 		end
 
 		---@type instancedifficulty
@@ -753,14 +784,14 @@ do
 			_detalhes.pvp_parser_frame = CreateFrame("Frame")
 
 			_detalhes.MacroList = {
-				{Name = Loc["Click on Your Own Bar"], Desc = Loc["To open the player details window on your character, like if you click on your bar in the damage window. The number '1' is the window number where it'll click."], MacroText = "/script Details:OpenPlayerDetails(1)"},
-				{Name = Loc["Open Encounter Breakdown"], Desc = Loc["Open the encounter breakdown plugin. Details! Encounter Breakdown (plugin) must be enabled."], MacroText = "/script Details:OpenPlugin ('Encounter Breakdown')"},
-				{Name = Loc["Open Damage per Phase"], Desc = Loc["Open the encounter breakdown plugin in the phase tab. Details! Encounter Breakdown (plugin) must be enabled."], MacroText = "/script Details:OpenPlugin ('Encounter Breakdown'); local a=Details_EncounterDetails and Details_EncounterDetails.buttonSwitchPhases:Click()"},
-				{Name = Loc["Reset Data"], Desc = Loc["Reset the overall and regular segments data. Use 'ResetSegmentOverallData' to reset only the overall."], MacroText = "/script Details:ResetSegmentData()"},
-				{Name = Loc["Change What the Window Shows"], Desc = Loc["Make a window show different data. SetDisplay uses (segment, displayGroup, displayID), the menu from the sword icon is in order (damage = group 1, overheal is: displayGroup 2 displayID 3."], MacroText = "/script Details:GetWindow(1):SetDisplay( DETAILS_SEGMENTID_CURRENT, 4, 5 )"},
-				{Name = Loc["Toggle Window Height to Max Size"], Desc = Loc["Make a window be 450 pixel height, pressing the macro again toggle back to the original size. The number '1' if the window number. Hold a click in any window to show their number."], MacroText = "/script Details:GetWindow(1):ToggleMaxSize()"},
+				{Name = "Click on Your Own Bar", Desc = "To open the player details window on your character, like if you click on your bar in the damage window. The number '1' is the window number where it'll click.", MacroText = "/script Details:OpenPlayerDetails(1)"},
+				{Name = "Open Encounter Breakdown", Desc = "Open the encounter breakdown plugin. Details! Encounter Breakdown (plugin) must be enabled.", MacroText = "/script Details:OpenPlugin ('Encounter Breakdown')"},
+				{Name = "Open Damage per Phase", Desc = "Open the encounter breakdown plugin in the phase tab. Details! Encounter Breakdown (plugin) must be enabled.", MacroText = "/script Details:OpenPlugin ('Encounter Breakdown'); local a=Details_EncounterDetails and Details_EncounterDetails.buttonSwitchPhases:Click()"},
+				{Name = "Reset Data", Desc = "Reset the overall and regular segments data. Use 'ResetSegmentOverallData' to reset only the overall.", MacroText = "/script Details:ResetSegmentData()"},
+				{Name = "Change What the Window Shows", Desc = "Make a window show different data. SetDisplay uses (segment, displayGroup, displayID), the menu from the sword icon is in order (damage = group 1, overheal is: displayGroup 2 displayID 3.", MacroText = "/script Details:GetWindow(1):SetDisplay( DETAILS_SEGMENTID_CURRENT, 4, 5 )"},
+				{Name = "Toggle Window Height to Max Size", Desc = "Make a window be 450 pixel height, pressing the macro again toggle back to the original size. The number '1' if the window number. Hold a click in any window to show their number.", MacroText = "/script Details:GetWindow(1):ToggleMaxSize()"},
 			--	/script Details:OpenPlugin ('Advanced Death Logs'); local a = Details_DeathGraphsModeEnduranceButton and Details_DeathGraphsModeEnduranceButton.MyObject:Click()
-				{Name = Loc["Report What is Shown In the Window"], Desc = Loc["Report the current data shown in the window, the number 1 is the window number, replace it to report another window."], MacroText = "/script Details:FastReportWindow(1)"},
+				{Name = "Report What is Shown In the Window", Desc = "Report the current data shown in the window, the number 1 is the window number, replace it to report another window.", MacroText = "/script Details:FastReportWindow(1)"},
 			}
 
 		--current instances of the exp (need to maintain) - deprecated july 2024 - should do this automatically
@@ -946,7 +977,7 @@ do
 
 		--armazena instancias inativas
 			_detalhes.unused_instances = {}
-			_detalhes.default_skin_to_use = "Serenity" -- 更改預設值
+			_detalhes.default_skin_to_use = "Minimalistic"
 			_detalhes.instance_title_text_timer = {}
 		--player detail skin
 			_detalhes.playerdetailwindow_skins = {}
@@ -959,12 +990,12 @@ do
 
 		--auto run code
 		_detalhes.RunCodeTypes = {
-			{Name = Loc["On Initialization"], Desc = Loc["Run code when Details! initialize or when a profile is changed."], Value = 1, ProfileKey = "on_init"},
-			{Name = Loc["On Zone Changed"], Desc = Loc["Run code when the zone where the player is in has changed (e.g. entered in a raid)."], Value = 2, ProfileKey = "on_zonechanged"},
-			{Name = Loc["On Enter Combat"], Desc = Loc["Run code when the player enters in combat."], Value = 3, ProfileKey = "on_entercombat"},
-			{Name = Loc["On Leave Combat"], Desc = Loc["Run code when the player left combat."], Value = 4, ProfileKey = "on_leavecombat"},
-			{Name = Loc["On Spec Change"], Desc = Loc["Run code when the player has changed its specialization."], Value = 5, ProfileKey = "on_specchanged"},
-			{Name = Loc["On Enter/Leave Group"], Desc = Loc["Run code when the player has entered or left a party or raid group."], Value = 6, ProfileKey = "on_groupchange"},
+			{Name = "On Initialization", Desc = "Run code when Details! initialize or when a profile is changed.", Value = 1, ProfileKey = "on_init"},
+			{Name = "On Zone Changed", Desc = "Run code when the zone where the player is in has changed (e.g. entered in a raid).", Value = 2, ProfileKey = "on_zonechanged"},
+			{Name = "On Enter Combat", Desc = "Run code when the player enters in combat.", Value = 3, ProfileKey = "on_entercombat"},
+			{Name = "On Leave Combat", Desc = "Run code when the player left combat.", Value = 4, ProfileKey = "on_leavecombat"},
+			{Name = "On Spec Change", Desc = "Run code when the player has changed its specialization.", Value = 5, ProfileKey = "on_specchanged"},
+			{Name = "On Enter/Leave Group", Desc = "Run code when the player has entered or left a party or raid group.", Value = 6, ProfileKey = "on_groupchange"},
 		}
 
 		--run a function without stopping the execution in case of an error
@@ -1033,7 +1064,7 @@ do
 				backdropbordercolor = {0, 0, 0, 1},
 				onentercolor = {1, 1, 1, .9},
 				textcolor = "DETAILS_PLUGIN_BUTTONTEXT_COLOR",
-				textsize = 14,
+				textsize = 10,
 				width = 120,
 				height = 20,
 			}
@@ -1045,7 +1076,7 @@ do
 				backdropbordercolor = {1, .7, 0, 1},
 				onentercolor = {1, 1, 1, .9},
 				textcolor = "DETAILS_PLUGIN_BUTTONTEXT_COLOR",
-				textsize = 14,
+				textsize = 10,
 				width = 120,
 				height = 20,
 			}
@@ -1166,6 +1197,10 @@ do
 				}
 		end
 
+		Details.HealingPotions = {
+			[1262857] = true
+		}
+
 		--[[global]] DETAILS_MODE_GROUP = 2
 		--[[global]] DETAILS_MODE_ALL = 3
 
@@ -1258,6 +1293,23 @@ do
 			current_standard = Loc ["STRING_CURRENTFIGHT"],
 			past = Loc ["STRING_FIGHTNUMBER"]
 		}
+
+		if DetailsFramework.IsAddonApocalypseWow() then
+			Details.ApocalypseAttributeNames = {
+				[Enum.DamageMeterType.DamageDone] = DAMAGE_METER_TYPE_DAMAGE_DONE,
+				[Enum.DamageMeterType.Dps] = DAMAGE_METER_TYPE_DPS,
+				[Enum.DamageMeterType.HealingDone] = DAMAGE_METER_TYPE_HEALING_DONE,
+				[Enum.DamageMeterType.Hps] = DAMAGE_METER_TYPE_HPS,
+				[Enum.DamageMeterType.Absorbs] = DAMAGE_METER_TYPE_ABSORBS,
+				[Enum.DamageMeterType.Interrupts] = DAMAGE_METER_TYPE_INTERRUPTS,
+				[Enum.DamageMeterType.Dispels] = DAMAGE_METER_TYPE_DISPELS,
+				[Enum.DamageMeterType.DamageTaken] = DAMAGE_METER_TYPE_DAMAGE_TAKEN,
+				[Enum.DamageMeterType.AvoidableDamageTaken] = DAMAGE_METER_TYPE_AVOIDABLE_DAMAGE_TAKEN,
+				[Enum.DamageMeterType.Deaths] = DAMAGE_METER_TYPE_DEATHS,
+				[Enum.DamageMeterType.EnemyDamageTaken] = DAMAGE_METER_TYPE_ENEMY_DAMAGE_TAKEN,
+			};
+		end
+
 
 		Details._detalhes_props["modo_nome"] = {
 				[_detalhes._detalhes_props["MODO_ALONE"]] = Loc ["STRING_MODE_SELF"],
@@ -1505,7 +1557,7 @@ do
                                 if (tooltipData.hyperlink) then
                                     local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType,
                                     itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType,
-                                    expacID, setID, isCraftingReagent = GetItemInfo(tooltipData.hyperlink)
+                                    expacID, setID, isCraftingReagent = C_Item.GetItemInfo(tooltipData.hyperlink)
 
                                     local itemInfo = {
                                         itemName = itemName,
@@ -1616,7 +1668,7 @@ do
 
 	--welcome
 		function _detalhes:WelcomeMsgLogon()
-			_detalhes:Msg(Loc["you can always reset the addon running the command |cFFFFFF00'/details reinstall'|r if it does fail to load after being updated."])
+			_detalhes:Msg("you can always reset the addon running the command |cFFFFFF00'/details reinstall'|r if it does fail to load after being updated.")
 
 			function _detalhes:wipe_combat_after_failed_load()
 				_detalhes.tabela_historico = _detalhes.historico:CreateNewSegmentDatabase()
@@ -1627,7 +1679,7 @@ do
 				_detalhes_database.tabela_overall = nil
 				_detalhes_database.tabela_historico = nil
 
-				_detalhes:Msg(Loc["seems failed to load, please type /reload to try again."])
+				_detalhes:Msg("seems failed to load, please type /reload to try again.")
 			end
 
 			Details.Schedules.After(5, _detalhes.wipe_combat_after_failed_load)

@@ -202,35 +202,35 @@ local spellContainerColumnData = {
 	{name = "target", width = 22, label = "", align = "left", enabled = true, offset = columnOffset},
 	{name = "rank", label = "#", width = 16, align = "center", enabled = true, offset = 6, dataType = "number"},
 	{name = "expand", label = "^", width = 16, align = "left", enabled = true, offset = -4}, --maybe -3
-	{name = "name", label = Loc["spell name"], width = 231, align = "left", enabled = true, offset = columnOffset},
-	{name = "amount", label =  Loc["total"], key = "total", selected = true, width = 50, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset},
-	{name = "persecond", label = Loc["ps"], key = "total", width = 50, align = "left", enabled = false, canSort = true, sortKey = Loc["ps"], offset = columnOffset, order = "DESC", dataType = "number"},
+	{name = "name", label = "spell name", width = 231, align = "left", enabled = true, offset = columnOffset},
+	{name = "amount", label = "total", key = "total", selected = true, width = 50, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset},
+	{name = "persecond", label = "ps", key = "total", width = 50, align = "left", enabled = false, canSort = true, sortKey = "ps", offset = columnOffset, order = "DESC", dataType = "number"},
 	{name = "percent", label = "%", key = "total", width = 50, align = "left", enabled = true, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
-	{name = "casts", label = Loc["casts"], key = "casts", width = 40, align = "left", enabled = false, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
-	{name = "critpercent", label = Loc["crit %"], key = "critpercent", width = 40, align = "left", enabled = true, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
-	{name = "hits", label = Loc["hits"], key = "counter", width = 40, align = "left", enabled = true, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
-	{name = "castavg", label = Loc["cast avg"], key = "castavg", width = 50, align = "left", enabled = false, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
-	{name = "uptime", label = Loc["uptime"], key = "uptime", width = 45, align = "left", enabled = true, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
-	{name = "overheal", label = Loc["overheal"], key = "overheal", width = 70, align = "left", enabled = true, canSort = true, order = "DESC", dataType = "number", attribute = DETAILS_ATTRIBUTE_HEAL, offset = columnOffset},
-	{name = "absorbed", label = Loc["absorbed"], key = "healabsorbed", width = 55, align = "left", enabled = false, canSort = true, order = "DESC", dataType = "number", attribute = DETAILS_ATTRIBUTE_HEAL, offset = columnOffset},
+	{name = "casts", label = "casts", key = "casts", width = 40, align = "left", enabled = false, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
+	{name = "critpercent", label = "crit %", key = "critpercent", width = 40, align = "left", enabled = true, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
+	{name = "hits", label = "hits", key = "counter", width = 40, align = "left", enabled = true, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
+	{name = "castavg", label = "cast avg", key = "castavg", width = 50, align = "left", enabled = false, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
+	{name = "uptime", label = "uptime", key = "uptime", width = 45, align = "left", enabled = true, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
+	{name = "overheal", label = "overheal", key = "overheal", width = 70, align = "left", enabled = true, canSort = true, order = "DESC", dataType = "number", attribute = DETAILS_ATTRIBUTE_HEAL, offset = columnOffset},
+	{name = "absorbed", label = "absorbed", key = "healabsorbed", width = 55, align = "left", enabled = false, canSort = true, order = "DESC", dataType = "number", attribute = DETAILS_ATTRIBUTE_HEAL, offset = columnOffset},
 }
 
 local targetContainerColumnData = {
 	{name = "icon", width = 22, label = "", align = "left", enabled = true, offset = columnOffset},
 	{name = "rank", label = "#", width = 20, align = "left", enabled = true, offset = columnOffset},
-	{name = "name", label =  Loc["name"], width = 185, align = "left", enabled = true, offset = columnOffset},
-	{name = "amount", label =  Loc["total"], key = "total", selected = true, width = 50, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset},
-	{name = "overheal", label =  Loc["overheal"], key = "overheal", width = 70, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset, attribute = DETAILS_ATTRIBUTE_HEAL},
+	{name = "name", label = "name", width = 185, align = "left", enabled = true, offset = columnOffset},
+	{name = "amount", label = "total", key = "total", selected = true, width = 50, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset},
+	{name = "overheal", label = "overheal", key = "overheal", width = 70, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset, attribute = DETAILS_ATTRIBUTE_HEAL},
 	{name = "percent", label = "%", key = "total", width = 50, align = "left", enabled = true, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
 }
 spellsTab.targetContainerColumnData = targetContainerColumnData
 
 local phaseContainerColumnData = {
 	{name = "icon", width = 22, label = "", align = "left", enabled = true, offset = columnOffset},
-	{name = "name", label = Loc["name"], width = 90, align = "left", enabled = true, offset = columnOffset},
+	{name = "name", label = "name", width = 90, align = "left", enabled = true, offset = columnOffset},
 	{name = "rank", label = "#", width = 30, align = "left", enabled = true, offset = columnOffset},
-	{name = "amount", label = Loc["total"], key = "total", width = 50, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset, selected = true},
-	{name = "persecond", label = Loc["ps"], key = "total", width = 44, align = "left", enabled = true, canSort = true, sortKey = "ps", dataType = "number", order = "DESC", offset = columnOffset},
+	{name = "amount", label = "total", key = "total", width = 50, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset, selected = true},
+	{name = "persecond", label = "ps", key = "total", width = 44, align = "left", enabled = true, canSort = true, sortKey = "ps", dataType = "number", order = "DESC", offset = columnOffset},
 	{name = "percent", label = "%", key = "total", width = 44, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset},
 }
 spellsTab.phaseContainerColumnData = phaseContainerColumnData
@@ -239,9 +239,9 @@ spellsTab.phaseContainerColumnData = phaseContainerColumnData
 local genericContainerLeftColumnData = {
 	{name = "icon", width = 22, label = "", align = "left", enabled = true, offset = columnOffset},
 	{name = "rank", label = "#", width = 30, align = "left", enabled = true, offset = columnOffset},
-	{name = "name", label = Loc["name"], width = 200, align = "left", enabled = true, offset = columnOffset},
-	{name = "amount", label = Loc["total"], key = "total", width = 50, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset, selected = true},
-	{name = "persecond", label = Loc["ps"], key = "total", width = 50, align = "left", enabled = true, canSort = true, sortKey = "ps", dataType = "number", order = "DESC", offset = columnOffset},
+	{name = "name", label = "name", width = 200, align = "left", enabled = true, offset = columnOffset},
+	{name = "amount", label = "total", key = "total", width = 50, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset, selected = true},
+	{name = "persecond", label = "ps", key = "total", width = 50, align = "left", enabled = true, canSort = true, sortKey = "ps", dataType = "number", order = "DESC", offset = columnOffset},
 	{name = "percent", label = "%", key = "total", width = 50, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset},
 }
 spellsTab.genericContainerLeftColumnData = genericContainerLeftColumnData
@@ -250,9 +250,9 @@ spellsTab.genericContainerLeftColumnData = genericContainerLeftColumnData
 local genericContainerRightColumnData = {
 	{name = "icon", width = 22, label = "", align = "left", enabled = true, offset = columnOffset},
 	{name = "rank", label = "#", width = 30, align = "left", enabled = true, offset = columnOffset},
-	{name = "name", label = Loc["name"], width = 190, align = "left", enabled = true, offset = columnOffset},
-	{name = "amount", label = Loc["total"], key = "total", width = 50, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset, selected = true},
-	{name = "persecond", label = Loc["ps"], key = "total", width = 50, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset},
+	{name = "name", label = "name", width = 190, align = "left", enabled = true, offset = columnOffset},
+	{name = "amount", label = "total", key = "total", width = 50, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset, selected = true},
+	{name = "persecond", label = "ps", key = "total", width = 50, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset},
 	{name = "percent", label = "%", key = "total", width = 50, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset},
 }
 spellsTab.genericContainerRightColumnData = genericContainerRightColumnData
@@ -565,7 +565,7 @@ function spellsTab.OnCreateTabCallback(tabButton, tabFrame) --~init
 	optionsButton:SetPoint("bottomright", tabFrame, "bottomright", -10, -16)
 	optionsButton:SetTemplate("STANDARD_GRAY")
 	optionsButton:SetIcon(Details:GetTextureAtlas("breakdown-icon-optionsbutton"))
-	optionsButton.textsize = 16
+	optionsButton.textsize = 12
 	optionsButton.textcolor = "DETAILS_STATISTICS_ICON"
 	optionsButton:SetAlpha(0.834)
 
@@ -828,7 +828,7 @@ function spellsTab.monta_relatorio(botao) --deprecated?
     local tabFrame = spellsTab.TabFrame
 
 	if (not player) then
-		Details:Msg(Loc["Player not found."])
+		Details:Msg("Player not found.")
 		return
 	end
 

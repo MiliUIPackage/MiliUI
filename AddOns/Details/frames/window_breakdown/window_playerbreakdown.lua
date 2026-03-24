@@ -859,7 +859,7 @@ function Details:CreateBreakdownWindow()
 	breakdownWindowFrame.closeButton = closeButton
 
 	--title
-	detailsFramework:NewLabel(breakdownWindowFrame, breakdownWindowFrame, nil, "titleText", Loc ["STRING_PLAYER_DETAILS"], "GameFontHighlightLeft", 16, {227/255, 186/255, 4/255})
+	detailsFramework:NewLabel(breakdownWindowFrame, breakdownWindowFrame, nil, "titleText", Loc ["STRING_PLAYER_DETAILS"], "GameFontHighlightLeft", 12, {227/255, 186/255, 4/255})
 	breakdownWindowFrame.titleText:SetPoint("center", breakdownWindowFrame, "center")
 	breakdownWindowFrame.titleText:SetPoint("top", breakdownWindowFrame, "top", 0, -5)
 
@@ -918,7 +918,7 @@ function Details:CreateBreakdownWindow()
 
 	function breakdownWindowFrame:SetStatusbarText(text, fontSize, fontColor)
 		if (not text) then
-			breakdownWindowFrame:SetStatusbarText(Loc["An AddOn by Terciob | Part of Details! Damage Meter | Click 'Options' button for settings."], 14, "gray")
+			breakdownWindowFrame:SetStatusbarText("An AddOn by Terciob | Part of Details! Damage Meter | Click 'Options' button for settings.", 10, "gray")
 			return
 		end
 		statusBar.Text.text = text

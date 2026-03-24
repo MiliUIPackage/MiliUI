@@ -161,7 +161,7 @@
 				GameCooltip:Hide()
 			end)
 
-			table.insert(UISpecialFrames, "DetailsCustomPanel")
+			tinsert(UISpecialFrames, "DetailsCustomPanel")
 
 			--menu title bar
 				local titlebar = CreateFrame("frame", nil, customWindow,"BackdropTemplate")
@@ -173,7 +173,7 @@
 				titlebar:SetBackdropBorderColor(0, 0, 0, 1)
 
 			--menu title
-				local titleLabel = _detalhes.gump:NewLabel(titlebar, titlebar, nil, "titulo", Loc["Details! Custom Displays"], "GameFontNormal", 16)
+				local titleLabel = _detalhes.gump:NewLabel(titlebar, titlebar, nil, "titulo", "Details! Custom Displays", "GameFontNormal", 12)
 				titleLabel:SetPoint("center", titlebar , "center")
 				titleLabel:SetPoint("top", titlebar , "top", 0, -4)
 
@@ -455,7 +455,7 @@
 						end
 
 						if (DetailsCustomPanel.IsImporting) then
-							table.insert(_detalhes.custom, object)
+							tinsert(_detalhes.custom, object)
 						end
 
 						DetailsCustomPanel.IsEditing = false
@@ -476,7 +476,7 @@
 							["tooltip"] = false,
 						}
 
-						table.insert(_detalhes.custom, new_custom_object)
+						tinsert(_detalhes.custom, new_custom_object)
 						setmetatable(new_custom_object, _detalhes.atributo_custom)
 						new_custom_object.__index = _detalhes.atributo_custom
 						_detalhes:Msg(Loc ["STRING_CUSTOM_CREATED"])
@@ -523,7 +523,7 @@
 						end
 
 						if (DetailsCustomPanel.IsImporting) then
-							table.insert(_detalhes.custom, object)
+							tinsert(_detalhes.custom, object)
 						end
 
 						DetailsCustomPanel.IsEditing = false
@@ -559,7 +559,7 @@
 							new_custom_object.percent_script = false
 						end
 
-						table.insert(_detalhes.custom, new_custom_object)
+						tinsert(_detalhes.custom, new_custom_object)
 						setmetatable(new_custom_object, _detalhes.atributo_custom)
 						new_custom_object.__index = _detalhes.atributo_custom
 						_detalhes:Msg(Loc ["STRING_CUSTOM_CREATED"])
@@ -702,7 +702,7 @@
 				customWindow.codeeditor:Show()
 				DetailsCustomPanel.CodeEditing = code
 
-				DetailsCustomPanel:SetAcceptButtonText (Loc["Save Code"]) --Loc ["STRING_CUSTOM_DONE"]
+				DetailsCustomPanel:SetAcceptButtonText ("Save Code") --Loc ["STRING_CUSTOM_DONE"]
 			end
 
 			--left menu
@@ -837,7 +837,7 @@
 
 				if (not customWindow.ImportBox) then
 
-					local export_string = gump:NewLabel(customWindow, customWindow, "$parenImportLabel", "exportLabel", Loc["Import String:"], "GameFontNormal") --Loc ["STRING_CUSTOM_PASTE"]
+					local export_string = gump:NewLabel(customWindow, customWindow, "$parenImportLabel", "exportLabel", "Import String:", "GameFontNormal") --Loc ["STRING_CUSTOM_PASTE"]
 					export_string:SetPoint("bottomleft", DetailsCustomPanel, "bottomleft", 10, 8)
 
 					local editbox = _detalhes.gump:NewTextEntry(customWindow, nil, "$parentImportBox", "ImportBox", CONST_EDITBOX_WIDTH - export_string.width - CONST_EDITBOX_BUTTON_WIDTH - 4, 20)
@@ -891,7 +891,7 @@
 				customWindow.ImportBox:SetFocus()
 
 			end
-			customWindow:CreateMenuButton (Loc ["STRING_CUSTOM_IMPORT"], "Interface\\ICONS\\INV_MISC_NOTE_02", import_display, nil, nil, nil, Loc["Import"], {0.00, 0.9, 0.07, 0.93}) --localize
+			customWindow:CreateMenuButton (Loc ["STRING_CUSTOM_IMPORT"], "Interface\\ICONS\\INV_MISC_NOTE_02", import_display, nil, nil, nil, "Import", {0.00, 0.9, 0.07, 0.93}) --localize
 
 			local box_types = {
 				{}, --normal
@@ -1083,10 +1083,10 @@
 					local source_icon = [[Interface\COMMON\Indicator-Yellow]]
 
 					local targeting_options = {
-						{value = "[all]", label = Loc["All Characters"], desc = Loc["Search for matches in all characters."], onclick = disable_source_field, icon = source_icon},
-						{value = "[raid]", label = Loc["Raid or Party Group"], desc = Loc["Search for matches in all characters which is part of your party or raid group."], onclick = disable_source_field, icon = source_icon},
-						{value = "[player]", label = Loc["Only You"], desc = Loc["Search for matches only in your character."], onclick = disable_source_field, icon = source_icon},
-						{value = false, label = Loc["Specific Character"], desc = Loc["Type the name of the character used to search."], onclick = enable_source_field, icon = source_icon},
+						{value = "[all]", label = "All Characters", desc = "Search for matches in all characters.", onclick = disable_source_field, icon = source_icon},
+						{value = "[raid]", label = "Raid or Party Group", desc = "Search for matches in all characters which is part of your party or raid group.", onclick = disable_source_field, icon = source_icon},
+						{value = "[player]", label = "Only You", desc = "Search for matches only in your character.", onclick = disable_source_field, icon = source_icon},
+						{value = false, label = "Specific Character", desc = "Type the name of the character used to search.", onclick = enable_source_field, icon = source_icon},
 					}
 					local build_source_list = function() return targeting_options end
 					local source_dropdown = gump:NewDropDown (box1, nil, "$parentSourceDropdown", "sourcedropdown", 178, 20, build_source_list, 1)
@@ -1304,11 +1304,11 @@
 					local target_icon2 = [[Interface\COMMON\Indicator-Gray]]
 
 					local targeting_options = {
-						{value = "[all]", label = Loc["All Characters"], desc = Loc["Search for matches in all characters."], onclick = disable_target_field, icon = target_icon},
-						{value = "[raid]", label = Loc["Raid or Party Group"], desc = Loc["Search for matches in all characters which is part of your party or raid group."], onclick = disable_target_field, icon = target_icon},
-						{value = "[player]", label = Loc["Only You"], desc = Loc["Search for matches only in your character."], onclick = disable_target_field, icon = target_icon},
-						{value = false, label = Loc["Specific Character"], desc = Loc["Type the name of the character used to search."], onclick = enable_target_field, icon = target_icon},
-						{value = "[none]", label = Loc["No Target"], desc = Loc["Do not search for targets."], onclick = disable_target_field, icon = target_icon2},
+						{value = "[all]", label = "All Characters", desc = "Search for matches in all characters.", onclick = disable_target_field, icon = target_icon},
+						{value = "[raid]", label = "Raid or Party Group", desc = "Search for matches in all characters which is part of your party or raid group.", onclick = disable_target_field, icon = target_icon},
+						{value = "[player]", label = "Only You", desc = "Search for matches only in your character.", onclick = disable_target_field, icon = target_icon},
+						{value = false, label = "Specific Character", desc = "Type the name of the character used to search.", onclick = enable_target_field, icon = target_icon},
+						{value = "[none]", label = "No Target", desc = "Do not search for targets.", onclick = disable_target_field, icon = target_icon2},
 					}
 					local build_target_list = function() return targeting_options end
 					local target_dropdown = gump:NewDropDown (box1, nil, "$parentTargetDropdown", "targetdropdown", 178, 20, build_target_list, 1)
@@ -1680,15 +1680,15 @@
 				tooltipcode_button:SetTemplate(CONST_CODETEXTENTRY_OPENCODEBUTTONS_TEMPLATE)
 
 				--edit total code
-				local totalcode_button = gump:NewButton(box2, nil, "$parentTotalCodeButton", "totalcodebutton", 160, 20, DetailsCustomPanel.StartEditCode, 3, nil, nil, Loc["Edit Total Code"])
+				local totalcode_button = gump:NewButton(box2, nil, "$parentTotalCodeButton", "totalcodebutton", 160, 20, DetailsCustomPanel.StartEditCode, 3, nil, nil, "Edit Total Code")
 				totalcode_button:SetPoint("topleft", tooltipcode_button, "bottomleft", 0, -8)
-				totalcode_button.tooltip = Loc["This code is responsible for edit the total number shown in the player bar.\n\nThis is not necessary if you want show exactly the value gotten in the search code."]
+				totalcode_button.tooltip = "This code is responsible for edit the total number shown in the player bar.\n\nThis is not necessary if you want show exactly the value gotten in the search code."
 				totalcode_button:SetTemplate(CONST_CODETEXTENTRY_OPENCODEBUTTONS_TEMPLATE)
 
 				--edit percent code
-				local percentcode_button = gump:NewButton(box2, nil, "$parentPercentCodeButton", "percentcodebutton", 160, 20, DetailsCustomPanel.StartEditCode, 4, nil, nil, Loc["Edit Percent Code"])
+				local percentcode_button = gump:NewButton(box2, nil, "$parentPercentCodeButton", "percentcodebutton", 160, 20, DetailsCustomPanel.StartEditCode, 4, nil, nil, "Edit Percent Code")
 				percentcode_button:SetPoint("topleft", totalcode_button, "bottomleft", 0, -8)
-				percentcode_button.tooltip = Loc["Edit the code responsible for the percent number in the player bar.\n\nThis is not required if you want to use simple percentage (comparing with total)."]
+				percentcode_button.tooltip = "Edit the code responsible for the percent number in the player bar.\n\nThis is not required if you want to use simple percentage (comparing with total)."
 				percentcode_button:SetTemplate(CONST_CODETEXTENTRY_OPENCODEBUTTONS_TEMPLATE)
 
 				box2:Hide()
@@ -1794,7 +1794,7 @@
 					local object = DetailsCustomPanel.IsEditing
 
 					if (type(object) ~= "table") then
-						return _detalhes:Msg(Loc["This object need to be saved before."])
+						return _detalhes:Msg("This object need to be saved before.")
 					end
 
 					object.script = main_code
@@ -1818,7 +1818,7 @@
 				local supportFrame = CreateFrame("frame", "$parentSupportFrame", customWindow)
 				supportFrame:SetFrameLevel(500)
 
-				local expand = gump:NewButton(supportFrame, nil, "$parentExpand", "expandbutton", CONST_EDITBOX_BUTTON_WIDTH, CONST_EDITBOX_BUTTON_HEIGHT, expand_func, 4, nil, nil, Loc["Expand"])
+				local expand = gump:NewButton(supportFrame, nil, "$parentExpand", "expandbutton", CONST_EDITBOX_BUTTON_WIDTH, CONST_EDITBOX_BUTTON_HEIGHT, expand_func, 4, nil, nil, "Expand")
 				expand:SetPoint("bottomleft", codeEditor, "topleft", 0, 1)
 				expand:SetTemplate(CONST_CODETEXTENTRYBUTTON_TEMPLATE)
 
@@ -1830,7 +1830,7 @@
 				font_size2:SetPoint("left", font_size1, "right", 2, 0)
 				font_size2:SetTemplate(CONST_CODETEXTENTRYBUTTON_TEMPLATE)
 
-				local apply1 = gump:NewButton(supportFrame, nil, "$parentApply", "applybutton", CONST_EDITBOX_BUTTON_WIDTH, CONST_EDITBOX_BUTTON_HEIGHT, apply_code, nil, nil, nil, Loc["Apply"])
+				local apply1 = gump:NewButton(supportFrame, nil, "$parentApply", "applybutton", CONST_EDITBOX_BUTTON_WIDTH, CONST_EDITBOX_BUTTON_HEIGHT, apply_code, nil, nil, nil, "Apply")
 				apply1:SetPoint("left", font_size2, "right", 2, 0)
 				apply1:SetTemplate(CONST_CODETEXTENTRYBUTTON_TEMPLATE)
 

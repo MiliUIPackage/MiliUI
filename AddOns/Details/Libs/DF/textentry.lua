@@ -563,7 +563,7 @@ detailsFramework.TextEntryCounter = detailsFramework.TextEntryCounter or 1
 		self.MagnifyingGlassTexture = magnifyingGlassTexture
 
 		local searchFontString = self:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-		searchFontString:SetText("搜尋")
+		searchFontString:SetText("search")
 		searchFontString:SetAlpha(0.3)
 		searchFontString:SetPoint("left", magnifyingGlassTexture, "right", 2, 0)
 		detailsFramework:SetFontSize(searchFontString, 10)
@@ -856,7 +856,7 @@ function detailsFramework:CreateSearchBox(parent, callback)
     searchBox:SetHook("OnTextChanged", callback)
 
     local file, size, flags = searchBox:GetFont()
-    searchBox:SetFont(file, 16, flags)
+    searchBox:SetFont(file, 12, flags)
     searchBox.ClearSearchButton:SetAlpha(0)
 
     searchBox.BottomLineTexture = searchBox:CreateTexture(nil, "border")

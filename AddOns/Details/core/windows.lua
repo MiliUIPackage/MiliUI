@@ -525,7 +525,7 @@
 			self.posicao[self.mostrando].h = pre_defined.altura
 
 		elseif (pre_defined and not pre_defined.x) then
-			Details:Msg(Loc["invalid pre_defined table for resize, please rezise the window manually."])
+			Details:Msg("invalid pre_defined table for resize, please rezise the window manually.")
 		end
 
 		self.baseframe:SetWidth(self.posicao[self.mostrando].w)
@@ -878,7 +878,7 @@
 		if (preset == 1) then
 			GameCooltip:SetOption("TextFont", "Friz Quadrata TT")
 			GameCooltip:SetOption("TextColor", "orange")
-			GameCooltip:SetOption("TextSize", 16)
+			GameCooltip:SetOption("TextSize", 12)
 			GameCooltip:SetOption("ButtonsYMod", -4)
 			GameCooltip:SetOption("YSpacingMod", -4)
 			GameCooltip:SetOption("IgnoreButtonAutoHeight", true)
@@ -887,7 +887,7 @@
 		elseif (preset == 2) then
 			GameCooltip:SetOption("TextFont", "Friz Quadrata TT")
 			GameCooltip:SetOption("TextColor", "orange")
-			GameCooltip:SetOption("TextSize", 16)
+			GameCooltip:SetOption("TextSize", 12)
 			GameCooltip:SetOption("FixedWidth", 220)
 			GameCooltip:SetOption("ButtonsYMod", -4)
 			GameCooltip:SetOption("YSpacingMod", -4)
@@ -902,7 +902,7 @@
 		elseif (preset == 2.1) then
 			GameCooltip:SetOption("TextFont", "Friz Quadrata TT")
 			GameCooltip:SetOption("TextColor", "orange")
-			GameCooltip:SetOption("TextSize", 14)
+			GameCooltip:SetOption("TextSize", 10)
 			GameCooltip:SetOption("FixedWidth", 220)
 			GameCooltip:SetOption("ButtonsYMod", 0)
 			GameCooltip:SetOption("YSpacingMod", -4)
@@ -914,7 +914,7 @@
 		elseif (preset == 3) then
 			GameCooltip:SetOption("TextFont", "Friz Quadrata TT")
 			GameCooltip:SetOption("TextColor", "orange")
-			GameCooltip:SetOption("TextSize", 16)
+			GameCooltip:SetOption("TextSize", 12)
 			GameCooltip:SetOption("FixedWidth", 220)
 			GameCooltip:SetOption("ButtonsYMod", -4)
 			GameCooltip:SetOption("YSpacingMod", -4)
@@ -1225,7 +1225,7 @@
 				if (instance1) then
 					return Details:OpenOptionsWindow (instance1)
 				else
-					Details:Msg(Loc["couldn't open options panel: no window available."])
+					Details:Msg("couldn't open options panel: no window available.")
 				end
 			end
 		end
@@ -1253,10 +1253,10 @@
 			updatewindow_frame:SetSize(512, 200)
 			--updatewindow_frame.portrait:SetTexture([[Interface\CHARACTERFRAME\TEMPORARYPORTRAIT-FEMALE-GNOME]])
 
-			--updatewindow_frame.TitleText:SetText(Loc["A New Version Is Available!"]) --10.0 fuck
+			--updatewindow_frame.TitleText:SetText("A New Version Is Available!") --10.0 fuck
 
 			updatewindow_frame.midtext = updatewindow_frame:CreateFontString(nil, "artwork", "GameFontNormal")
-			updatewindow_frame.midtext:SetText(Loc["Good news everyone!\nA new version has been forged and is waiting to be looted."])
+			updatewindow_frame.midtext:SetText("Good news everyone!\nA new version has been forged and is waiting to be looted.")
 			updatewindow_frame.midtext:SetPoint("topleft", updatewindow_frame, "topleft", 10, -90)
 			updatewindow_frame.midtext:SetJustifyH("center")
 			updatewindow_frame.midtext:SetWidth(370)
@@ -1286,7 +1286,7 @@
 
 			updatewindow_frame.close = CreateFrame("Button", "DetailsUpdateDialogCloseButton", updatewindow_frame)
 			updatewindow_frame.close:SetPoint("bottomleft", updatewindow_frame, "bottomleft", 8, 4)
-			updatewindow_frame.close:SetText(Loc["Close"])
+			updatewindow_frame.close:SetText("Close")
 
 			updatewindow_frame.close:SetScript("OnClick", function(self)
 				DetailsUpdateDialog:Hide()
@@ -1362,10 +1362,6 @@
 						end
 
 					elseif (button == "RightButton") then
-						if (IsControlKeyDown() and SlashCmdList["SCORE"]) then  -- 自行加入支援 M+計分板
-							SlashCmdList["SCORE"]("open")
-							return
-						end
 						--minimap menu
 						GameTooltip:Hide()
 						local GameCooltip = GameCooltip
@@ -1374,7 +1370,7 @@
 						GameCooltip:SetType ("menu")
 						GameCooltip:SetOption("ButtonsYMod", -5)
 						GameCooltip:SetOption("HeighMod", 5)
-						GameCooltip:SetOption("TextSize", 14)
+						GameCooltip:SetOption("TextSize", 10)
 
 						--reset
 						GameCooltip:AddMenu (1, Details.tabela_historico.ResetAllCombatData, true, nil, nil, Loc ["STRING_ERASE_DATA"], nil, true)
@@ -1440,10 +1436,7 @@
 						tooltip:AddLine(Loc ["STRING_MINIMAP_TOOLTIP12"])
 					end
 					tooltip:AddLine(Loc ["STRING_MINIMAP_TOOLTIP2"])
-					tooltip:AddLine(Loc["|cFFCFCFCFctrl + left click|r: show/hide windows"])
-					if SlashCmdList["SCORE"] then -- 自行加入支援 M+ 計分板
-						tooltip:AddLine(Loc["|cFFCFCFCFctrl + right click|r: show/hide Mythic+ scoreboard"])
-					end
+					tooltip:AddLine("|cFFCFCFCFctrl + left click|r: show/hide windows")
 				end,
 			})
 
@@ -1491,10 +1484,10 @@
 		local tooltip_hotcorner = function()
 			GameTooltip:AddLine("Details!", 1, 1, 1, 1)
 			if (Details.hotcorner_topleft.onclick_what_todo == 1) then
-				GameTooltip:AddLine(Loc["|cFF00FF00Left Click:|r open options panel."], 1, 1, 1, 1)
+				GameTooltip:AddLine("|cFF00FF00Left Click:|r open options panel.", 1, 1, 1, 1)
 
 			elseif (Details.hotcorner_topleft.onclick_what_todo == 2) then
-				GameTooltip:AddLine(Loc["|cFF00FF00Left Click:|r clear all segments."], 1, 1, 1, 1)
+				GameTooltip:AddLine("|cFF00FF00Left Click:|r clear all segments.", 1, 1, 1, 1)
 
 			end
 		end
@@ -1519,8 +1512,8 @@
 				nil,
 				--quick click
 				{
-					{func = quickclick_func1, name = Loc["Details! - Reset Data"]},
-					{func = quickclick_func2, name = Loc["Details! - Open Options"]}
+					{func = quickclick_func1, name = "Details! - Reset Data"},
+					{func = quickclick_func2, name = "Details! - Open Options"}
 				},
 				--onenter
 				nil,

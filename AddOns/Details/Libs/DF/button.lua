@@ -489,7 +489,7 @@ detailsFramework:Mixin(ButtonMetaFunctions, detailsFramework.ScriptHookMixin)
 
 			elseif (shortMethod == 1) then
 				local loop = true
-				local textSize = 15
+				local textSize = 11
 				while (loop) do
 					if (textWidth + 15 + iconWidth < buttonWidth or textSize < 8) then
 						loop = false
@@ -527,6 +527,10 @@ detailsFramework:Mixin(ButtonMetaFunctions, detailsFramework.ScriptHookMixin)
 	---@param self df_button
 	---@return unknown
 	function ButtonMetaFunctions:Enable()
+		--build menu add the key 'hasLabel' with the fontstring it create to show the option title
+		if self.hasLabel and self.hasLabel.__original_color then
+			self.hasLabel:SetTextColor(unpack(self.hasLabel.__original_color))
+		end
 		return self.button:Enable()
 	end
 
@@ -535,7 +539,13 @@ detailsFramework:Mixin(ButtonMetaFunctions, detailsFramework.ScriptHookMixin)
 	---@return unknown
 	function ButtonMetaFunctions:Disable()
 		if (self.color_texture) then
-			self.color_texture:SetVertexColor(0.14, 0.14, 0.14)
+			--no need to remove the color
+			--self.color_texture:SetVertexColor(0.14, 0.14, 0.14)
+		end
+		--build menu add the key 'hasLabel' with the fontstring it create to show the option title
+		if self.hasLabel then
+			self.hasLabel.__original_color = self.hasLabel.__original_color or {self.hasLabel:GetTextColor()}
+			self.hasLabel:SetTextColor(0.5, 0.5, 0.5)
 		end
 		return self.button:Disable()
 	end
@@ -913,7 +923,7 @@ end
 		self.text:SetJustifyH("CENTER")
 		self.text:SetPoint("CENTER", self, "CENTER", 0, 0)
 		self:SetFontString(self.text)
-		detailsFramework:SetFontSize(self.text, 14)
+		detailsFramework:SetFontSize(self.text, 10)
 
 		self.texture_disabled = self:CreateTexture("$parent_TextureDisabled", "OVERLAY")
 		self.texture_disabled:SetAllPoints()
@@ -1090,7 +1100,7 @@ end
 
 			elseif (shortMethod == 1) then
 				local loop = true
-				local textsize = 15
+				local textsize = 11
 				while (loop) do
 					if (textWidth + 15 < width or textsize < 8) then
 						loop = false

@@ -11,7 +11,7 @@ panel:SetPoint("center", UIParent, "center")
 panel:Hide()
 panel:SetFrameStrata("FULLSCREEN")
 detailsFramework:ApplyStandardBackdrop(panel)
-detailsFramework:CreateTitleBar(panel, Loc["Details! Custom Line Text Editor"])
+detailsFramework:CreateTitleBar(panel, "Details! Custom Line Text Editor")
 
 function panel:Open(text, callback, host, default)
     if (host) then

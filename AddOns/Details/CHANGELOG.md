@@ -1,6 +1,7 @@
 # Details! Damage Meter
 
-## [Details.20260304.14718.170](https://github.com/Tercioo/Details-Damage-Meter/tree/Details.20260304.14718.170) (2026-03-04)
-[Full Changelog](https://github.com/Tercioo/Details-Damage-Meter/compare/Details.20260304.14717.170...Details.20260304.14718.170) 
+## [Details.20260324.14811.171](https://github.com/Tercioo/Details-Damage-Meter/tree/Details.20260324.14811.171) (2026-03-24)
+[Full Changelog](https://github.com/Tercioo/Details-Damage-Meter/compare/Details.20260324.14810.171...Details.20260324.14811.171) 
 
-- Fix missing avoidable damage strings  
+- Version Up for Release  
+- Fix spell tooltips when viewing overall of a dungeon  

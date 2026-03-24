@@ -15,7 +15,7 @@ local gump = 			_detalhes.gump
 
 function gump:NewLabel2 (parent, container, member, text, font, size, color)
 
-	font = font or "GameFontHighlight"
+	font = font or "GameFontHighlightSmall"
 
 	local newFontString = parent:CreateFontString(nil, "OVERLAY", font)
 	if (member) then
@@ -265,7 +265,7 @@ function gump:NewTextBox (parent, container, member, func, param1, param2, w, h,
 	options = options or {}
 	
 	editbox:SetAutoFocus(false)
-	editbox:SetFontObject(GameFontHighlight)
+	editbox:SetFontObject(GameFontHighlightSmall)
 	
 	editbox:SetWidth(w)
 	editbox:SetHeight(h)
@@ -284,7 +284,7 @@ function gump:NewTextBox (parent, container, member, func, param1, param2, w, h,
 	editbox.tab_on_enter = options.TabOnEnterPress
 	editbox.space = options.MySpace
 	
-	gump:NewLabel(editbox, editbox, nil, "label", "", "GameFontHighlight")
+	gump:NewLabel(editbox, editbox, nil, "label", "", "GameFontHighlightSmall")
 	editbox ["label"]: SetPoint ("right", editbox, "left", -2, 0)
 	editbox.label:SetTextColor(.8, .8, .8, 1)
 	

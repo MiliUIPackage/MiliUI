@@ -27,7 +27,7 @@ local CreateImageEditorFrame = function()
 		self:StopMovingOrSizing()
 	end)
 
-	DF:CreateTitleBar (background_frame, "圖片編輯器")
+	DF:CreateTitleBar (background_frame, "Image Editor")
 	DF:ApplyStandardBackdrop(background_frame, false, 0.98)
 	DF:CreateStatusBar(background_frame)
 
@@ -237,23 +237,23 @@ local CreateImageEditorFrame = function()
 
 		local yMod = -10
 
-		local leftTexCoordButton = DF:NewButton(buttonsBackground, nil, "$parentLeftTexButton", nil, 100, 20, enableTexEdit, "left", nil, nil, "裁切左邊", 1)
+		local leftTexCoordButton = DF:NewButton(buttonsBackground, nil, "$parentLeftTexButton", nil, 100, 20, enableTexEdit, "left", nil, nil, "Crop Left", 1)
 		leftTexCoordButton:SetPoint("topright", buttonsBackground, "topright", -8, -10 + yMod)
 		leftTexCoordButton:SetTemplate(DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
 
-		local rightTexCoordButton = DF:NewButton(buttonsBackground, nil, "$parentRightTexButton", nil, 100, 20, enableTexEdit, "right", nil, nil, "裁切右邊", 1)
+		local rightTexCoordButton = DF:NewButton(buttonsBackground, nil, "$parentRightTexButton", nil, 100, 20, enableTexEdit, "right", nil, nil, "Crop Right", 1)
 		rightTexCoordButton:SetPoint("topright", buttonsBackground, "topright", -8, -30 + yMod)
 		rightTexCoordButton:SetTemplate(DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
 
-		local topTexCoordButton = DF:NewButton(buttonsBackground, nil, "$parentTopTexButton", nil, 100, 20, enableTexEdit, "top", nil, nil, "裁切上方", 1)
+		local topTexCoordButton = DF:NewButton(buttonsBackground, nil, "$parentTopTexButton", nil, 100, 20, enableTexEdit, "top", nil, nil, "Crop Top", 1)
 		topTexCoordButton:SetPoint("topright", buttonsBackground, "topright", -8, -50 + yMod)
 		topTexCoordButton:SetTemplate(DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
 
-		local bottomTexCoordButton = DF:NewButton(buttonsBackground, nil, "$parentBottomTexButton", nil, 100, 20, enableTexEdit, "bottom", nil, nil, "裁切下方", 1)
+		local bottomTexCoordButton = DF:NewButton(buttonsBackground, nil, "$parentBottomTexButton", nil, 100, 20, enableTexEdit, "bottom", nil, nil, "Crop Bottom", 1)
 		bottomTexCoordButton:SetPoint("topright", buttonsBackground, "topright", -8, -70 + yMod)
 		bottomTexCoordButton:SetTemplate(DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
 
-		local Alpha = DF:NewButton(buttonsBackground, nil, "$parentBottomAlphaButton", nil, 100, 20, alpha, nil, nil, nil, "透明度", 1)
+		local Alpha = DF:NewButton(buttonsBackground, nil, "$parentBottomAlphaButton", nil, 100, 20, alpha, nil, nil, nil, "Alpha", 1)
 		Alpha:SetPoint("topright", buttonsBackground, "topright", -8, -115 + yMod)
 		Alpha:SetTemplate(DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
 
@@ -304,7 +304,7 @@ local CreateImageEditorFrame = function()
 			end
 		end
 
-		local changeColorButton = DF:NewButton(buttonsBackground, nil, "$parentOverlayColorButton", nil, 100, 20, changeColor, nil, nil, nil, "顏色", 1)
+		local changeColorButton = DF:NewButton(buttonsBackground, nil, "$parentOverlayColorButton", nil, 100, 20, changeColor, nil, nil, nil, "Color", 1)
 		changeColorButton:SetPoint("topright", buttonsBackground, "topright", -8, -95 + yMod)
 		changeColorButton:SetTemplate(DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
 
@@ -415,7 +415,7 @@ local CreateImageEditorFrame = function()
 		end
 	end
 
-	local flipButtonH = DF:NewButton(buttonsBackground, nil, "$parentFlipButton", nil, 100, 20, flip, 1, nil, nil, "水平翻轉", 1)
+	local flipButtonH = DF:NewButton(buttonsBackground, nil, "$parentFlipButton", nil, 100, 20, flip, 1, nil, nil, "Flip H", 1)
 	flipButtonH:SetPoint("topright", buttonsBackground, "topright", -8, -140 + yMod)
 	flipButtonH:SetTemplate(DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
 
@@ -535,7 +535,7 @@ local CreateImageEditorFrame = function()
 		return editorWindow.callback_func(edit_texture.width, edit_texture.height, {edit_texture:GetVertexColor()}, edit_texture:GetAlpha(), coords, editorWindow.extra_param)
 	end
 
-	local acceptButton = DF:NewButton(buttonsBackground, nil, "$parentAcceptButton", nil, 100, 20, editorWindow.accept, nil, nil, nil, "完成", 1)
+	local acceptButton = DF:NewButton(buttonsBackground, nil, "$parentAcceptButton", nil, 100, 20, editorWindow.accept, nil, nil, nil, "Done", 1)
 	acceptButton:SetPoint("topright", buttonsBackground, "topright", -8, -200)
 	acceptButton:SetTemplate(DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
 

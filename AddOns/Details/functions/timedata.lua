@@ -70,7 +70,7 @@
 		end
 
 		if (thisCapture.do_not_save) then
-			return Details:Msg(Loc["This capture belongs to a plugin and cannot be edited."])
+			return Details:Msg("This capture belongs to a plugin and cannot be edited.")
 		end
 
 		thisCapture[INDEX_NAME] = name or thisCapture[INDEX_NAME]
@@ -97,19 +97,19 @@
 	function Details:TimeDataRegister(timeDataName, callbackFunc, matrix, author, version, icon, bIsEnabled, bForceNoSave)
 		--check name
 		if (not timeDataName) then
-			return Loc["Couldn't register the time capture, name was nil."]
+			return "Couldn't register the time capture, name was nil."
 		end
 
 		--check if the name already exists
 		for index, t in ipairs(Details.savedTimeCaptures) do
 			if (t [INDEX_NAME] == timeDataName) then
-				return Loc["Couldn't register the time capture, name already registred."]
+				return "Couldn't register the time capture, name already registred."
 			end
 		end
 
 		--check function
 		if (not callbackFunc) then
-			return Loc["Couldn't register the time capture, invalid function."]
+			return "Couldn't register the time capture, invalid function."
 		end
 
 		local no_save = nil
@@ -130,10 +130,10 @@
 
 		--check matrix
 		if (not matrix or type(matrix) ~= "table") then
-			return Loc["Couldn't register the time capture, matrix was invalid."]
+			return "Couldn't register the time capture, matrix was invalid."
 		end
 
-		author = author or Loc["Unknown"]
+		author = author or "Unknown"
 		version = version or "v1.0"
 		icon = icon or [[Interface\InventoryItems\WoWUnknownItem01]]
 
@@ -236,7 +236,7 @@
 	local execUserFunc = function(func, attributes, data, thisSecond)
 		local okey, result = pcall(func, attributes)
 		if (not okey) then
-			Details:Msg(Loc["|cFFFF9900error on chart script function|r:"], result)
+			Details:Msg("|cFFFF9900error on chart script function|r:", result)
 			result = 0
 		end
 
@@ -300,7 +300,7 @@
 		if (segundos < 10) then
 			segundos = "0" .. segundos
 		end
-		return minutos .. Loc["m "] .. segundos .. Loc["s"]
+		return minutos .. "m " .. segundos .. "s"
 	end
 
 	local get_damage_position = function()

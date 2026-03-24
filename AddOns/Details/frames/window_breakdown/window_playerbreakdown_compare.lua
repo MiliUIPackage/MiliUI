@@ -1,7 +1,6 @@
 
 local Details = Details
 local addonName, Details222 = ...
-local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 local red = "FFFFAAAA"
 local green = "FFAAFFAA"
 local _GetSpellInfo = Details.GetSpellInfo
@@ -33,6 +32,7 @@ local yLocation = -20
 local targetBars = 9
 
 local _unpack = unpack
+
 local IconTexCoord = {5/64, 59/64, 5/64, 59/64}
 
 local Loc = LibStub("AceLocale-3.0"):GetLocale( "Details" )
@@ -1437,7 +1437,7 @@ local compare_create = function(tab, frame)
             bar:SetScript("OnLeave", on_leave)
         end
 
-        bar.lefttext = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        bar.lefttext = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 
         local _, size, flags = bar.lefttext:GetFont()
         local font = SharedMedia:Fetch ("font", "Arial Narrow")
@@ -1454,7 +1454,7 @@ local compare_create = function(tab, frame)
             bar.lefttext:SetWidth(110)
         end
 
-        bar.righttext = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        bar.righttext = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 
         local _, size, flags = bar.righttext:GetFont()
         local font = SharedMedia:Fetch ("font", "Arial Narrow")
@@ -1464,7 +1464,7 @@ local compare_create = function(tab, frame)
         bar.righttext:SetJustifyH("right")
         bar.righttext:SetTextColor(1, 1, 1, 1)
 
-        bar.righttext2 = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        bar.righttext2 = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 
         local _, size, flags = bar.righttext2:GetFont()
         local font = SharedMedia:Fetch ("font", "Arial Narrow")
@@ -1498,67 +1498,67 @@ local compare_create = function(tab, frame)
         background:SetPoint("topleft", tooltip, "topleft", 0, 0)
         background:SetPoint("bottomright", tooltip, "bottomright", 0, 0)
 
-        tooltip.casts_label = tooltip:CreateFontString(nil, "overlay", "GameFontHighlight")
+        tooltip.casts_label = tooltip:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
         tooltip.casts_label:SetPoint("topleft", tooltip, "topleft", x_start, -2 + (y*0))
-        tooltip.casts_label:SetText(Loc["Total Casts:"])
+        tooltip.casts_label:SetText("Total Casts:")
         tooltip.casts_label:SetJustifyH("left")
-        tooltip.casts_label2 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlight")
+        tooltip.casts_label2 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
         tooltip.casts_label2:SetPoint("topright", tooltip, "topright", -x_start, -2 + (y*0))
         tooltip.casts_label2:SetText("0")
         tooltip.casts_label2:SetJustifyH("right")
-        tooltip.casts_label3 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlight")
+        tooltip.casts_label3 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
         tooltip.casts_label3:SetPoint("topright", tooltip, "topright", -x_start - 46, -2 + (y*0))
         tooltip.casts_label3:SetText("0")
         tooltip.casts_label3:SetJustifyH("right")
 
-        tooltip.hits_label = tooltip:CreateFontString(nil, "overlay", "GameFontHighlight")
+        tooltip.hits_label = tooltip:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
         tooltip.hits_label:SetPoint("topleft", tooltip, "topleft", x_start, -14 + (y*1))
-        tooltip.hits_label:SetText(Loc["Total Hits:"])
+        tooltip.hits_label:SetText("Total Hits:")
         tooltip.hits_label:SetJustifyH("left")
-        tooltip.hits_label2 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlight")
+        tooltip.hits_label2 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
         tooltip.hits_label2:SetPoint("topright", tooltip, "topright", -x_start, -14 + (y*1))
         tooltip.hits_label2:SetText("0")
         tooltip.hits_label2:SetJustifyH("right")
-        tooltip.hits_label3 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlight")
+        tooltip.hits_label3 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
         tooltip.hits_label3:SetPoint("topright", tooltip, "topright", -x_start - 46, -14 + (y*1))
         tooltip.hits_label3:SetText("0")
         tooltip.hits_label3:SetJustifyH("right")
 
-        tooltip.average_label = tooltip:CreateFontString(nil, "overlay", "GameFontHighlight")
+        tooltip.average_label = tooltip:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
         tooltip.average_label:SetPoint("topleft", tooltip, "topleft", x_start, -26 + (y*2))
         tooltip.average_label:SetText("Average:")
         tooltip.average_label:SetJustifyH("left")
-        tooltip.average_label2 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlight")
+        tooltip.average_label2 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
         tooltip.average_label2:SetPoint("topright", tooltip, "topright", -x_start, -26 + (y*2))
         tooltip.average_label2:SetText("0")
         tooltip.average_label2:SetJustifyH("right")
-        tooltip.average_label3 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlight")
+        tooltip.average_label3 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
         tooltip.average_label3:SetPoint("topright", tooltip, "topright", -x_start - 46, -26 + (y*2))
         tooltip.average_label3:SetText("0")
         tooltip.average_label3:SetJustifyH("right")
 
-        tooltip.crit_label = tooltip:CreateFontString(nil, "overlay", "GameFontHighlight")
+        tooltip.crit_label = tooltip:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
         tooltip.crit_label:SetPoint("topleft", tooltip, "topleft", x_start, -38 + (y*3))
-        tooltip.crit_label:SetText(Loc["Critical:"])
+        tooltip.crit_label:SetText("Critical:")
         tooltip.crit_label:SetJustifyH("left")
-        tooltip.crit_label2 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlight")
+        tooltip.crit_label2 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
         tooltip.crit_label2:SetPoint("topright", tooltip, "topright", -x_start, -38 + (y*3))
         tooltip.crit_label2:SetText("0")
         tooltip.crit_label2:SetJustifyH("right")
-        tooltip.crit_label3 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlight")
+        tooltip.crit_label3 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
         tooltip.crit_label3:SetPoint("topright", tooltip, "topright", -x_start - 46, -38 + (y*3))
         tooltip.crit_label3:SetText("0")
         tooltip.crit_label3:SetJustifyH("right")
 
-        tooltip.uptime_label = tooltip:CreateFontString(nil, "overlay", "GameFontHighlight")
+        tooltip.uptime_label = tooltip:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
         tooltip.uptime_label:SetPoint("topleft", tooltip, "topleft", x_start, -50 + (y*4))
-        tooltip.uptime_label:SetText(Loc["Uptime:"])
+        tooltip.uptime_label:SetText("Uptime:")
         tooltip.uptime_label:SetJustifyH("left")
-        tooltip.uptime_label2 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlight")
+        tooltip.uptime_label2 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
         tooltip.uptime_label2:SetPoint("topright", tooltip, "topright", -x_start, -50 + (y*4))
         tooltip.uptime_label2:SetText("0")
         tooltip.uptime_label2:SetJustifyH("right")
-        tooltip.uptime_label3 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlight")
+        tooltip.uptime_label3 = tooltip:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
         tooltip.uptime_label3:SetPoint("topright", tooltip, "topright", -x_start - 46, -50 + (y*4))
         tooltip.uptime_label3:SetText("0")
         tooltip.uptime_label3:SetJustifyH("right")
@@ -1635,7 +1635,7 @@ local compare_create = function(tab, frame)
             bar:SetHeight(14)
             bar.icon = spellicon
 
-            bar.lefttext = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+            bar.lefttext = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
             local _, size, flags = bar.lefttext:GetFont()
             local font = SharedMedia:Fetch ("font", "Arial Narrow")
             bar.lefttext:SetFont(font, 11)
@@ -1651,7 +1651,7 @@ local compare_create = function(tab, frame)
                 bar.lefttext:SetWidth(80)
             end
 
-            bar.righttext = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+            bar.righttext = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
             local _, size, flags = bar.righttext:GetFont()
             local font = SharedMedia:Fetch ("font", "Arial Narrow")
             bar.righttext:SetFont(font, 11)
@@ -1659,7 +1659,7 @@ local compare_create = function(tab, frame)
             bar.righttext:SetJustifyH("right")
             bar.righttext:SetTextColor(1, 1, 1, 1)
 
-            bar.righttext2 = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+            bar.righttext2 = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
             local _, size, flags = bar.righttext2:GetFont()
             local font = SharedMedia:Fetch ("font", "Arial Narrow")
             bar.righttext2:SetFont(font, 11)
@@ -1713,7 +1713,7 @@ local compare_create = function(tab, frame)
 
     local playername1 = frame1:CreateFontString(nil, "overlay", "GameFontNormal")
     playername1:SetPoint("bottomleft", frame1, "topleft", 2, 0)
-    playername1:SetText(Loc["Player 1"])
+    playername1:SetText("Player 1")
     frame1.name_label = playername1
 
     --criar as barras do frame1
@@ -1765,17 +1765,17 @@ local compare_create = function(tab, frame)
 
     local playername2 = frame2:CreateFontString(nil, "overlay", "GameFontNormal")
     playername2:SetPoint("bottomleft", frame2, "topleft", 2, 0)
-    playername2:SetText(Loc["Player 2"])
+    playername2:SetText("Player 2")
     frame2.name_label = playername2
 
-    local playername2_percent = frame2:CreateFontString(nil, "overlay", "GameFontHighlight")
+    local playername2_percent = frame2:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
     playername2_percent:SetPoint("bottomright", frame2, "topright", -2, 0)
-    playername2_percent:SetText(Loc["Player 1 %"])
+    playername2_percent:SetText("Player 1 %")
     playername2_percent:SetTextColor(.6, .6, .6)
 
-    local noPLayersToShow = frame2:CreateFontString(nil, "overlay", "GameFontHighlight")
+    local noPLayersToShow = frame2:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
     noPLayersToShow:SetPoint("center")
-    noPLayersToShow:SetText(Loc["There's no more players to compare (with the same class/spec)"])
+    noPLayersToShow:SetText("There's no more players to compare (with the same class/spec)")
     noPLayersToShow:SetSize(spell_compare_frame_width[2] - 10, spell_compare_frame_height)
     noPLayersToShow:SetJustifyH("center")
     noPLayersToShow:SetJustifyV ("middle")
@@ -1827,19 +1827,19 @@ local compare_create = function(tab, frame)
 
     local playername3 = frame3:CreateFontString(nil, "overlay", "GameFontNormal")
     playername3:SetPoint("bottomleft", frame3, "topleft", 2, 0)
-    playername3:SetText(Loc["Player 3"])
+    playername3:SetText("Player 3")
     frame3.name_label = playername3
 
-    local playername3_percent = frame3:CreateFontString(nil, "overlay", "GameFontHighlight")
+    local playername3_percent = frame3:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
     playername3_percent:SetPoint("bottomright", frame3, "topright", -2, 0)
-    playername3_percent:SetText(Loc["Player 1 %"])
+    playername3_percent:SetText("Player 1 %")
     playername3_percent:SetTextColor(.6, .6, .6)
     frame3.name_label_percent = playername3_percent
 
 
-    local noPLayersToShow = frame3:CreateFontString(nil, "overlay", "GameFontHighlight")
+    local noPLayersToShow = frame3:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
     noPLayersToShow:SetPoint("center")
-    noPLayersToShow:SetText(Loc["There's no more players to compare (with the same class/spec)"])
+    noPLayersToShow:SetText("There's no more players to compare (with the same class/spec)")
     noPLayersToShow:SetSize(spell_compare_frame_width[2] - 10, spell_compare_frame_height)
     noPLayersToShow:SetJustifyH("center")
     noPLayersToShow:SetJustifyV ("middle")

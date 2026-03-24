@@ -6,7 +6,6 @@ end
 local Details = _G.Details
 local DF = _G.DetailsFramework
 local libwindow = LibStub("LibWindow-1.1")
-local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 
 --this function isn't in use
     function Details.OpenDpsBenchmark()
@@ -60,7 +59,7 @@ local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
             f.Title = f.TitleBar:CreateFontString("$parentTitle", "overlay", "GameFontNormal")
             f.Title:SetPoint("center", f.TitleBar, "center")
             f.Title:SetTextColor(.8, .8, .8, 1)
-            f.Title:SetText(Loc["Details! Benchmark"])
+            f.Title:SetText("Details! Benchmark")
             
             DF:InstallTemplate("font", "DETAILS_BENCHMARK_NORMAL", {color = "white", size = 10, font = "Friz Quadrata TT"})
             
@@ -137,21 +136,21 @@ local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
             --time to test string and dropdown
                 local build_time_list = function()
                     local t = {
-                        {value = 40, label = Loc["40 seconds"]},
-                        {value = 60, label = Loc["60 seconds"]},
-                        {value = 90, label = Loc["90 seconds"]},
-                        {value = 120, label = Loc["2 minutes"]},
-                        {value = 180, label = Loc["3 minutes"]},
-                        {value = 300, label = Loc["5 minutes"]},
+                        {value = 40, label = "40 seconds"},
+                        {value = 60, label = "60 seconds"},
+                        {value = 90, label = "90 seconds"},
+                        {value = 120, label = "2 minutes"},
+                        {value = 180, label = "3 minutes"},
+                        {value = 300, label = "5 minutes"},
                     }
                     return t
                 end
                 
-                summaryFrame.TimeToTestLabel = DF:CreateLabel(summaryFrame, Loc["Amount of Time"], normal_text_template)
+                summaryFrame.TimeToTestLabel = DF:CreateLabel(summaryFrame, "Amount of Time", normal_text_template)
                 summaryFrame.TimeToTestDropdown = DF:CreateDropDown (summaryFrame, build_time_list, default, 150, 20, _, _, options_dropdown_template)
                 
             --description string and text entry
-                summaryFrame.DescriptionLabel = DF:CreateLabel(summaryFrame, Loc["Description"], normal_text_template)
+                summaryFrame.DescriptionLabel = DF:CreateLabel(summaryFrame, "Description", normal_text_template)
                 summaryFrame.DescriptionEntry = DF:CreateTextEntry(summaryFrame, function()end, 120, 20, nil, _, nil, options_dropdown_template)
                 
             --DPS Amount string
@@ -167,7 +166,7 @@ local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
                     }
                     return t
                 end
-                summaryFrame.BossSimulationLabel = DF:CreateLabel(summaryFrame, Loc["Boss Simulation"], normal_text_template)
+                summaryFrame.BossSimulationLabel = DF:CreateLabel(summaryFrame, "Boss Simulation", normal_text_template)
                 summaryFrame.BossSimulationDropdown = DF:CreateDropDown (summaryFrame, build_bosssimulation_list, default, 150, 20, _, _, options_dropdown_template)
                 
             --boss records line with a tooltip importing data from the storage

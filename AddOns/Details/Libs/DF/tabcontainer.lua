@@ -384,14 +384,14 @@ function detailsFramework:CreateTabContainer(parent, title, frameName, tabList, 
 
 		local rightClickToBack
 		if (tabIndex == 1 or optionsTable.rightbutton_always_close) then
-			rightClickToBack = detailsFramework:CreateLabel(tabFrame, "點右鍵關閉", 14, "gray")
+			rightClickToBack = detailsFramework:CreateLabel(tabFrame, "right click to close", 10, "gray")
 			rightClickToBack:SetPoint("bottomright", tabFrame, "bottomright", -1, optionsTable.right_click_y or 0)
 			if (optionsTable.close_text_alpha) then
 				rightClickToBack:SetAlpha(optionsTable.close_text_alpha)
 			end
 			tabFrame.bIsFrontPage = true
 		else
-			rightClickToBack = detailsFramework:CreateLabel(tabFrame, "點右鍵回主選單", 14, "gray")
+			rightClickToBack = detailsFramework:CreateLabel(tabFrame, "right click to go back to main menu", 10, "gray")
 			rightClickToBack:SetPoint("bottomright", tabFrame, "bottomright", -1, optionsTable.right_click_y or 0)
 			if (optionsTable.close_text_alpha) then
 				rightClickToBack:SetAlpha(optionsTable.close_text_alpha)

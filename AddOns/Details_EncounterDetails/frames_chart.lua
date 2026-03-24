@@ -65,7 +65,7 @@ local createMultiChartFrame = function()
     local phaseTooltip = encounterDetails:CreatePhaseTooltip(chartPanel)
     encounterDetails:CreatePhaseIndicators(chartPanel, phaseTooltip)
 
-    detailsFramework:NewLabel(chartPanel, chartPanel, nil, "phases_string", Loc["phases:"], "GameFontHighlightSmall")
+    detailsFramework:NewLabel(chartPanel, chartPanel, nil, "phases_string", "phases:", "GameFontHighlightSmall")
     chartPanel["phases_string"]:SetPoint("bottomleft", chartPanel, "bottomleft", 5, 10)
 
     chartPanel:SetScript("OnShow", function()
@@ -106,7 +106,7 @@ function encounterDetails:ShowChartFrame()
     local currentChartData = chartData and chartData["Raid Damage Done"]
 
     if (not currentChartData or not combatObject.start_time or not combatObject.end_time) then
-        encounterDetails:Msg(Loc["This segment doesn't have chart data."])
+        encounterDetails:Msg("This segment doesn't have chart data.")
         return
 
     elseif (currentChartData.max_value and currentChartData.max_value == 0) then
@@ -209,12 +209,12 @@ function encounterDetails:CreatePhaseTooltip(chartPanel)
     detailsFramework:ApplyStandardBackdrop(phaseTooltip)
 
     local damageTexture = detailsFramework:CreateImage(phaseTooltip,[[Interface\AddOns\Details\images\skins\classic_skin_v1]], 16, 16, "overlay", {11/1024, 24/1024, 376/1024, 390/1024})
-    local damageLabel = detailsFramework:CreateLabel(phaseTooltip, Loc["Damage Done:"])
+    local damageLabel = detailsFramework:CreateLabel(phaseTooltip, "Damage Done:")
     damageTexture:SetPoint("topleft", phaseTooltip, "topleft", 10, -10)
     damageLabel:SetPoint("left", damageTexture, "right", 4, 0)
 
     local healingTexture = detailsFramework:CreateImage(phaseTooltip,[[Interface\AddOns\Details\images\skins\classic_skin_v1]], 16, 16, "overlay", {43/1024, 57/1024, 376/1024, 390/1024})
-    local healingLabel = detailsFramework:CreateLabel(phaseTooltip, Loc["Healing Done:"])
+    local healingLabel = detailsFramework:CreateLabel(phaseTooltip, "Healing Done:")
     healingTexture:SetPoint("topleft", phaseTooltip, "topleft", 250, -10)
     healingLabel:SetPoint("left", healingTexture, "right", 4, 0)
 
@@ -222,7 +222,7 @@ function encounterDetails:CreatePhaseTooltip(chartPanel)
     phaseTooltip.phase_label.fontsize = 10
     phaseTooltip.time_label = detailsFramework:CreateLabel(phaseTooltip, "")
     phaseTooltip.time_label.fontsize = 10
-    phaseTooltip.report_label = detailsFramework:CreateLabel(phaseTooltip, Loc["|cFFffb400Left Click|r: Report Damage |cFFffb400Right Click|r: Report Heal"])
+    phaseTooltip.report_label = detailsFramework:CreateLabel(phaseTooltip, "|cFFffb400Left Click|r: Report Damage |cFFffb400Right Click|r: Report Heal")
     phaseTooltip.report_label.fontsize = 10
 
     phaseTooltip.phase_label:SetPoint("bottomleft", phaseTooltip, "bottomleft", 10, 5)
@@ -360,7 +360,7 @@ function encounterDetails:CreatePhaseIndicators(chartPanel, phaseTooltip)
             end
 
             --need to build here because the mouse will leave the block to click in the send button
-            table.insert(result, Loc["Details!: Damage for Phase "] .. self.phase .. Loc[" of "] .. (combatObject and combatObject.is_boss and combatObject.is_boss.name or Loc["Unknown"]) .. ":")
+            table.insert(result, "Details!: Damage for Phase " .. self.phase .. " of " .. (combatObject and combatObject.is_boss and combatObject.is_boss.name or "Unknown") .. ":")
             for i = 1, #self.damage_actors do
                 table.insert(result, encounterDetails:GetOnlyName(self.damage_actors[i][1]) .. ": " .. Details:ToK(math.floor(self.damage_actors[i][2])))
             end
@@ -378,7 +378,7 @@ function encounterDetails:CreatePhaseIndicators(chartPanel, phaseTooltip)
                 encounterDetails:SendReportLines(result)
             end
 
-            table.insert(result, Loc["Details!: Healing for Phase "] .. self.phase .. Loc[" of "] ..(combatObject and combatObject.is_boss and combatObject.is_boss.name or Loc["Unknown"]) .. ":")
+            table.insert(result, "Details!: Healing for Phase " .. self.phase .. " of " ..(combatObject and combatObject.is_boss and combatObject.is_boss.name or "Unknown") .. ":")
             for i = 1, #self.heal_actors do
                 table.insert(result, encounterDetails:GetOnlyName(self.heal_actors[i][1]) .. ": " .. Details:ToK(math.floor(self.heal_actors[i][2])))
             end
@@ -521,10 +521,10 @@ function encounterDetails:CreatePhaseIndicators(chartPanel, phaseTooltip)
             phaseTooltip:SetPoint("bottom", self, "top", 0, 10)
             phaseTooltip:Show()
 
-            phaseTooltip.phase_label.text = Loc["|cFFffb400Phase|r: "] .. self.phase
+            phaseTooltip.phase_label.text = "|cFFffb400Phase|r: " .. self.phase
 
             local m, s = math.floor(self.elapsed / 60), math.floor(self.elapsed % 60)
-            phaseTooltip.time_label.text = Loc["|cFFffb400Elapsed|r: "] .. m .. Loc["m "] .. s .. Loc["s"]
+            phaseTooltip.time_label.text = "|cFFffb400Elapsed|r: " .. m .. "m " .. s .. "s"
         end
     end
 
@@ -567,7 +567,7 @@ function encounterDetails:CreatePhaseIndicators(chartPanel, phaseTooltip)
 
         phase = math.min(phase, 5)
         if (not phaseColors[phase]) then
-            Details:Msg(Loc["Phase out of range:"], phase)
+            Details:Msg("Phase out of range:", phase)
             phase = math.max(phase, 1)
         end
 

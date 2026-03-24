@@ -163,7 +163,7 @@ function DetailsMythicPlusFrame.MythicDungeonStarted()
     local name, groupType, difficultyID, difficult = GetInstanceInfo()
     if (groupType == "party" and Details.overall_clear_newchallenge) then
         Details.historico:ResetOverallData()
-        Details:Msg(Loc["the overall data has been reset."]) --localize-me
+        Details:Msg("the overall data has been reset.") --localize-me
 
         if (Details.debug) then
             Details:Msg("(debug) timer is for a mythic+ dungeon, overall has been reseted.")

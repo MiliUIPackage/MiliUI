@@ -1,7 +1,6 @@
 
 
 local Details = _G.Details
-local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 local libwindow = LibStub("LibWindow-1.1")
 local DF = DetailsFramework
 local isDragonflight = DF.IsDragonflight()
@@ -18,7 +17,7 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 
 		local DF = Details.gump
 	
-		local f = DF:CreateSimplePanel(UIParent, 700, 400, Loc["Details! Arena Damage Bar Options"], "DetailsCurrentRealDPSOptions")
+		local f = DF:CreateSimplePanel(UIParent, 700, 400, "Details! Arena Damage Bar Options", "DetailsCurrentRealDPSOptions")
 		f:SetPoint("center", UIParent, "center")
 		f:SetScript("OnMouseDown", nil)
 		f:SetScript("OnMouseUp", nil)
@@ -60,11 +59,11 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 				Details:UpdateTheRealCurrentDPSFrame(testUsing)
 			end
 			local strataTable = {}
-			strataTable [1] = {value = "BACKGROUND", label = Loc ["BACKGROUND"], onclick = set_frame_strata}
-			strataTable [2] = {value = "LOW", label = Loc ["LOW"], onclick = set_frame_strata}
-			strataTable [3] = {value = "MEDIUM", label = Loc ["MEDIUM"], onclick = set_frame_strata}
-			strataTable [4] = {value = "HIGH", label = Loc ["HIGH"], onclick = set_frame_strata}
-			strataTable [5] = {value = "DIALOG", label = Loc ["DIALOG"], onclick = set_frame_strata}
+			strataTable [1] = {value = "BACKGROUND", label = "BACKGROUND", onclick = set_frame_strata}
+			strataTable [2] = {value = "LOW", label = "LOW", onclick = set_frame_strata}
+			strataTable [3] = {value = "MEDIUM", label = "MEDIUM", onclick = set_frame_strata}
+			strataTable [4] = {value = "HIGH", label = "HIGH", onclick = set_frame_strata}
+			strataTable [5] = {value = "DIALOG", label = "DIALOG", onclick = set_frame_strata}
 			
 		--font options
 			local set_font_shadow= function(_, _, shadow)
@@ -72,9 +71,9 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 				Details:UpdateTheRealCurrentDPSFrame(testUsing)
 			end
 			local fontShadowTable = {}
-			fontShadowTable [1] = {value = "NONE", label = Loc["None"], onclick = set_font_shadow}
-			fontShadowTable [2] = {value = "OUTLINE", label = Loc["Outline"], onclick = set_font_shadow}
-			fontShadowTable [3] = {value = "THICKOUTLINE", label = Loc["Thick Outline"], onclick = set_font_shadow}
+			fontShadowTable [1] = {value = "NONE", label = "None", onclick = set_font_shadow}
+			fontShadowTable [2] = {value = "OUTLINE", label = "Outline", onclick = set_font_shadow}
+			fontShadowTable [3] = {value = "THICKOUTLINE", label = "Thick Outline", onclick = set_font_shadow}
 			
 			local on_select_text_font = function(self, fixed_value, value)
 				Details.realtime_dps_meter.font_face = value
@@ -97,7 +96,7 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 		--options table
 		local options = {
 		
-			{type = "label", get = function() return Loc["Frame Settings:"] end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
+			{type = "label", get = function() return "Frame Settings:" end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
 			--enabled
 			{
 				type = "toggle",
@@ -112,8 +111,8 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 						end
 					end)
 				end,
-				desc = Loc["Enabled"],
-				name = Loc["Enabled"],
+				desc = "Enabled",
+				name = "Enabled",
 				text_template = options_text_template,
 			},
 			--locked
@@ -125,8 +124,8 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 					Details:UpdateTheRealCurrentDPSFrame(testUsing)
 					lockCallback()
 				end,
-				desc = Loc["Locked"],
-				name = Loc["Locked"],
+				desc = "Locked",
+				name = "Locked",
 				text_template = options_text_template,
 			},
 			--showtitle
@@ -137,8 +136,8 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 					Details.realtime_dps_meter.frame_settings.show_title = not Details.realtime_dps_meter.frame_settings.show_title
 					Details:UpdateTheRealCurrentDPSFrame(testUsing)
 				end,
-				desc = Loc["Show Title"],
-				name = Loc["Show Title"],
+				desc = "Show Title",
+				name = "Show Title",
 				text_template = options_text_template,
 			},
 			--backdrop color
@@ -152,8 +151,8 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 					color[1], color[2], color[3], color[4] = r, g, b, a
 					Details:UpdateTheRealCurrentDPSFrame(testUsing)
 				end,
-				desc = Loc["Backdrop Color"],
-				name = Loc["Backdrop Color"],
+				desc = "Backdrop Color",
+				name = "Backdrop Color",
 				text_template = options_text_template,
 			},
 			--statra
@@ -161,7 +160,7 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 				type = "select",
 				get = function() return Details.realtime_dps_meter.frame_settings.strata end,
 				values = function() return strataTable end,
-				name = Loc["Frame Strata"]
+				name = "Frame Strata"
 			},
 			--speed
 			{
@@ -174,8 +173,8 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 				min = 1,
 				max = 6,
 				step = 1,
-				name = Loc["Speed"],
-				desc = Loc["Low is faster"],
+				name = "Speed",
+				desc = "Low is faster",
 				text_template = options_text_template,
 			},
 			--width
@@ -189,7 +188,7 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 				min = 1,
 				max = 500,
 				step = 1,
-				name = Loc["Width"],
+				name = "Width",
 				text_template = options_text_template,
 			},			
 			--height
@@ -203,13 +202,13 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 				min = 1,
 				max = 300,
 				step = 1,
-				name = Loc["Height"],
+				name = "Height",
 				text_template = options_text_template,
 			},
 
 			--[=[
 			{type = "breakline"},
-			{type = "label", get = function() return Loc["Enabled On:"] end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
+			{type = "label", get = function() return "Enabled On:" end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
 			--arenas
 			{
 				type = "toggle",
@@ -218,7 +217,7 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 					Details.realtime_dps_meter.arena_enabled = not Details.realtime_dps_meter.arena_enabled
 					Details:LoadFramesForBroadcastTools()
 				end,
-				name = Loc["Arena Matches"],
+				name = "Arena Matches",
 				text_template = options_text_template,
 			},
 			--mythic dungeon
@@ -229,13 +228,13 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 					Details.realtime_dps_meter.mythic_dungeon_enabled = not Details.realtime_dps_meter.mythic_dungeon_enabled
 					Details:LoadFramesForBroadcastTools()
 				end,
-				name = Loc["Mythic Dungeons"],
+				name = "Mythic Dungeons",
 				text_template = options_text_template,
 			},
 			--]=]
 
 			{type = "breakline"},
-			{type = "label", get = function() return Loc["Text Settings:"] end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
+			{type = "label", get = function() return "Text Settings:" end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
 			--font size
 			{
 				type = "range",
@@ -247,7 +246,7 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 				min = 4,
 				max = 32,
 				step = 1,
-				name = Loc["Font Size"],
+				name = "Font Size",
 				text_template = options_text_template,
 			},
 			--font color
@@ -261,8 +260,8 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 					color[1], color[2], color[3], color[4] = r, g, b, a
 					Details:UpdateTheRealCurrentDPSFrame(testUsing)
 				end,
-				desc = Loc["Font Color"],
-				name = Loc["Font Color"],
+				desc = "Font Color",
+				name = "Font Color",
 				text_template = options_text_template,
 			},
 			--font shadow
@@ -270,14 +269,14 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 				type = "select",
 				get = function() return Details.realtime_dps_meter.font_shadow end,
 				values = function() return fontShadowTable end,
-				name = Loc["Font Shadow"]
+				name = "Font Shadow"
 			},
 			--font face
 			{
 				type = "select",
 				get = function() return Details.realtime_dps_meter.font_face end,
 				values = function() return DF:BuildDropDownFontList (on_select_text_font) end,
-				name = Loc["Font Face"],
+				name = "Font Face",
 				text_template = options_text_template,
 			},
 
@@ -291,7 +290,7 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 				min = 0,
 				max = 150,
 				step = 1,
-				name = Loc["Text Position"],
+				name = "Text Position",
 				text_template = options_text_template,
 			},
 		}
@@ -358,7 +357,7 @@ function Details:CreateCurrentDpsFrame(parent, name)
 		f:SetClampedToScreen(true)
 
 		f.movemeLabel = f:CreateFontString(nil, "overlay", "GameFontNormal")
-		f.movemeLabel:SetText(Loc["Move-Me"])
+		f.movemeLabel:SetText("Move-Me")
 
 		f.lockButton = DetailsFramework:CreateButton(f, function()
 			Details.realtime_dps_meter.frame_settings.locked = not Details.realtime_dps_meter.frame_settings.locked
@@ -367,7 +366,7 @@ function Details:CreateCurrentDpsFrame(parent, name)
 			f.lockButton:Hide()
 		end, 80, 20)
 		f.lockButton:SetPoint("center", f, "center", 0, -20)
-		f.lockButton.text = Loc["Lock"]
+		f.lockButton.text = "Lock"
 
 		if (Details.realtime_dps_meter.frame_settings.locked) then
 			f.movemeLabel:Hide()
@@ -477,7 +476,7 @@ function Details:CreateCurrentDpsFrame(parent, name)
 	--title bar
 		local TitleString = f:CreateFontString(nil, "overlay", "GameFontNormal")
 		TitleString:SetPoint("top", f, "top", 0, -5)
-		TitleString:SetText(Loc["Details! Arena Real Time DPS Tracker"])
+		TitleString:SetText("Details! Arena Real Time DPS Tracker")
 		DF:SetFontSize(TitleString, 9)
 		local TitleBackground = f:CreateTexture(nil, "artwork")
 		TitleBackground:SetTexture([[Interface\Tooltips\UI-Tooltip-Background]])
@@ -510,7 +509,7 @@ function Details:CreateCurrentDpsFrame(parent, name)
 
 	--labels for mythic dungeon / group party
 		local labelGroupDamage = f:CreateFontString(nil, "overlay", "GameFontNormal")
-		labelGroupDamage:SetText(Loc["Real Time Group DPS"])
+		labelGroupDamage:SetText("Real Time Group DPS")
 		DF:SetFontSize(labelGroupDamage, 14)
 		DF:SetFontOutline (labelGroupDamage, "NONE")
 		

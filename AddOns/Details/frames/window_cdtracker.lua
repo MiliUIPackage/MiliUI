@@ -2,7 +2,6 @@
 
 local Details = _G.Details
 local DF = _G.DetailsFramework
-local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 local openRaidLib = LibStub:GetLibrary("LibOpenRaid-1.0", true)
 local addonName, Details222 = ...
 
@@ -509,7 +508,7 @@ end
         local DetailsCDTrackerWindow = CreateFrame("frame", "DetailsCDTrackerWindow", UIParent, "BackdropTemplate")
         DetailsCDTrackerWindow:SetSize(700, 480)
         DetailsCDTrackerWindow.Frame = DetailsCDTrackerWindow
-        DetailsCDTrackerWindow.__name = Loc["Cooldown Tracker"]
+        DetailsCDTrackerWindow.__name = "Cooldown Tracker"
         DetailsCDTrackerWindow.real_name = "DETAILS_CDTRACKERWINDOW"
         DetailsCDTrackerWindow.__icon = [[Interface\TUTORIALFRAME\UI-TUTORIALFRAME-SPIRITREZ]]
         DetailsCDTrackerWindow.__iconcoords = {130/512, 256/512, 0, 1}
@@ -535,7 +534,7 @@ end
 
         --check if the window exists, if not create it
         if (not _G.DetailsCDTrackerWindow or not _G.DetailsCDTrackerWindow.Initialized) then
-            local f = _G.DetailsCDTrackerWindow or DF:CreateSimplePanel(UIParent, 700, 480, Loc["Details! Online CD Tracker"], "DetailsCDTrackerWindow")
+            local f = _G.DetailsCDTrackerWindow or DF:CreateSimplePanel(UIParent, 700, 480, "Details! Online CD Tracker", "DetailsCDTrackerWindow")
             _G.DetailsCDTrackerWindow.Initialized = true
             DF:ApplyStandardBackdrop(f)
             --enabled with a toggle button
@@ -561,8 +560,8 @@ end
                             Details222.CooldownTracking.DisableTracker()
                         end
                     end,
-                    name = Loc["Enable Experimental Cooldown Tracker"],
-                    desc = Loc["Enable Experimental Cooldown Tracker"],
+                    name = "Enable Experimental Cooldown Tracker",
+                    desc = "Enable Experimental Cooldown Tracker",
                 },
 
                 {--show only in group
@@ -572,8 +571,8 @@ end
                         Details.ocd_tracker.show_conditions.only_in_group = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = Loc["Only in Group"],
-                    desc = Loc["Only in Group"],
+                    name = "Only in Group",
+                    desc = "Only in Group",
                 },
 
                 {--show only inside instances
@@ -583,8 +582,8 @@ end
                         Details.ocd_tracker.show_conditions.only_inside_instance = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = Loc["Only Inside Instances"],
-                    desc = Loc["Only Inside Instances"],
+                    name = "Only Inside Instances",
+                    desc = "Only Inside Instances",
                 },
                 {--lock frame
                     type = "toggle",
@@ -593,8 +592,8 @@ end
                         Details.ocd_tracker.framme_locked = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = Loc["Lock Frame"],
-                    desc = Loc["Lock Frame"],
+                    name = "Lock Frame",
+                    desc = "Lock Frame",
                 },
 
                 {type = "breakline"},
@@ -606,8 +605,8 @@ end
                         Details.ocd_tracker.filters["defensive-raid"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = Loc["Defensive: Raid"],
-                    desc = Loc["Example: druid tranquility."],
+                    name = "Defensive: Raid",
+                    desc = "Example: druid tranquility.",
                 },
 
                 {--filter: show target defensive cooldowns
@@ -617,8 +616,8 @@ end
                         Details.ocd_tracker.filters["defensive-target"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = Loc["Defensive: Target"],
-                    desc = Loc["Example: priest pain suppression."],
+                    name = "Defensive: Target",
+                    desc = "Example: priest pain suppression.",
                 },
 
                 {--filter: show personal defensive cooldowns
@@ -628,8 +627,8 @@ end
                         Details.ocd_tracker.filters["defensive-personal"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = Loc["Defensive: Personal"],
-                    desc = Loc["Example: mage ice block."],
+                    name = "Defensive: Personal",
+                    desc = "Example: mage ice block.",
                 },
 
                 {--filter: show ofensive cooldowns
@@ -639,8 +638,8 @@ end
                         Details.ocd_tracker.filters["ofensive"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = Loc["Offensive Cooldowns"],
-                    desc = Loc["Example: priest power infusion."],
+                    name = "Offensive Cooldowns",
+                    desc = "Example: priest power infusion.",
                 },
 
                 {--filter: show utility cooldowns
@@ -650,8 +649,8 @@ end
                         Details.ocd_tracker.filters["utility"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = Loc["Utility Cooldowns"],
-                    desc = Loc["Example: druid roar."],
+                    name = "Utility Cooldowns",
+                    desc = "Example: druid roar.",
                 },
 
                 {--filter: show interrupt cooldowns
@@ -661,8 +660,8 @@ end
                         Details.ocd_tracker.filters["interrupt"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = Loc["Interrupt Cooldowns"],
-                    desc = Loc["Example: rogue kick."],
+                    name = "Interrupt Cooldowns",
+                    desc = "Example: rogue kick.",
                 },
 
                 {--filter: item cooldowns
@@ -672,8 +671,8 @@ end
                         Details.ocd_tracker.filters["itemheal"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = Loc["Item: Healing"],
-                    desc = Loc["Example: Healthstone."],
+                    name = "Item: Healing",
+                    desc = "Example: Healthstone.",
                 },
 
                 {--filter: item cooldowns
@@ -683,8 +682,8 @@ end
                         Details.ocd_tracker.filters["itempower"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = Loc["Item: Power Increase"],
-                    desc = Loc["Example: Elemental Potion of Power."],
+                    name = "Item: Power Increase",
+                    desc = "Example: Elemental Potion of Power.",
                 },
 
                 {--filter: item cooldowns
@@ -694,8 +693,8 @@ end
                         Details.ocd_tracker.filters["itemutil"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = Loc["Item: Utility"],
-                    desc = Loc["Example: Invisibility Potion."],
+                    name = "Item: Utility",
+                    desc = "Example: Invisibility Potion.",
                 },
 
                 {--filter: crowd control
@@ -705,8 +704,8 @@ end
                         Details.ocd_tracker.filters["crowdcontrol"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = Loc["Crowd Control"],
-                    desc = Loc["Example: Incapacitaion Roar."],
+                    name = "Crowd Control",
+                    desc = "Example: Incapacitaion Roar.",
                 },
 
                 {type = "breakline"},
@@ -721,8 +720,8 @@ end
                     min = 10,
                     max = 200,
                     step = 1,
-                    name = Loc["Width"],
-                    desc = Loc["Width"],
+                    name = "Width",
+                    desc = "Width",
                 },
 
                 {--bar height
@@ -735,8 +734,8 @@ end
                     min = 10,
                     max = 200,
                     step = 1,
-                    name = Loc["Height"],
-                    desc = Loc["Height"],
+                    name = "Height",
+                    desc = "Height",
                 },
                 
                 {--bar height
@@ -749,8 +748,8 @@ end
                     min = 1,
                     max = 30,
                     step = 1,
-                    name = Loc["Lines Per Column"],
-                    desc = Loc["Lines Per Column"],
+                    name = "Lines Per Column",
+                    desc = "Lines Per Column",
                 },
 
                 {--show anchor
@@ -760,8 +759,8 @@ end
                         Details.ocd_tracker.show_title = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = Loc["Show Title"],
-                    desc = Loc["Show Title"],
+                    name = "Show Title",
+                    desc = "Show Title",
                 },
 
                 {--show anchor
@@ -771,8 +770,8 @@ end
                         Details.ocd_tracker.group_frames = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = Loc["Group Frames"],
-                    desc = Loc["Group Frames"],
+                    name = "Group Frames",
+                    desc = "Group Frames",
                 },
 
             }
@@ -792,7 +791,7 @@ end
             warning2:SetJustifyH("left")
             warning2:SetPoint("topleft", f, "topleft", 5, -160)
             DF:SetFontColor(warning2, "lime")
-            --warning2:SetText(Loc["This is a concept of a cooldown tracker using the new library 'Open Raid' which uses comms to update cooldown timers.\nThe code to implement is so small that can fit inside a weakaura\nIf you're a coder, the implementation is on Details/frames/window_cdtracker.lua"])
+            --warning2:SetText("This is a concept of a cooldown tracker using the new library 'Open Raid' which uses comms to update cooldown timers.\nThe code to implement is so small that can fit inside a weakaura\nIf you're a coder, the implementation is on Details/frames/window_cdtracker.lua")
 
             cooldownSelectionFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
             --cooldownSelectionFrame:RegisterEvent("PLAYER_STARTED_MOVING") --debug

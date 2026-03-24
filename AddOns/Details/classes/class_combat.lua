@@ -843,7 +843,7 @@ local segmentTypeToString = {
 		--dungeon or raid
 		local instanceType = self.instance_type
 
-		if (instanceType == "party") then
+		if (instanceType == "party" or instanceType == "scenario") then
 			if (self.is_dungeon_overall) then
 				--self.combat_type = DETAILS_SEGMENTTYPE_DUNGEON_OVERALL
 				return DETAILS_SEGMENTTYPE_DUNGEON_OVERALL
@@ -1269,6 +1269,30 @@ local segmentTypeToString = {
 				return true
 			end
 		end
+	end
+
+	function classCombat:GetTwinCombat(twinIdentifier)
+		local segmentsTable = Details:GetCombatSegments()
+		for i = 1, #segmentsTable do
+			---@type combat
+			local thisCombat = segmentsTable[i]
+			if (thisCombat.twinIdentifier == twinIdentifier) then
+				return thisCombat
+			end
+		end
+		return nil
+	end
+
+	function Details:GetTwinCombat(twinIdentifier)
+		local segmentsTable = Details:GetCombatSegments()
+		for i = 1, #segmentsTable do
+			---@type combat
+			local thisCombat = segmentsTable[i]
+			if (thisCombat.twinIdentifier == twinIdentifier) then
+				return thisCombat
+			end
+		end
+		return nil
 	end
 
 	function Details:HasCombatWithSessionId(combatSessionId)

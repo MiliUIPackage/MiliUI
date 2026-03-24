@@ -461,7 +461,7 @@
 		local newLabel = detailsFramework:NewLabel(frame, nil, "$parentText", "text", "0")
 		newLabel:SetPoint("right", frame, "right", 0, 0)
 		newLabel:SetJustifyH("right")
-		Details:SetFontSize(newLabel, 13.8)
+		Details:SetFontSize(newLabel, 9.8)
 
 		frame:SetHook("OnEnter", OnEnter)
 		frame:SetHook("OnLeave", OnLeave)

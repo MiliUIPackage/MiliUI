@@ -78,7 +78,7 @@ local addonName, Details222 = ...
 		author = "Details!",
 		version = "1.0",
 		site = "unknown",
-		desc = Loc["This was the first skin made for Details!, inspired in the standard wow interface"],
+		desc = "This was the first skin made for Details!, inspired in the standard wow interface",
 		no_cache = true,
 
 		can_change_alpha_head = false,
@@ -138,7 +138,7 @@ local addonName, Details222 = ...
 					6, -- [1]
 					3, -- [2]
 				},
-				["text_size"] = 14,
+				["text_size"] = 10,
 				["enable_custom_text"] = false,
 			},
 			["micro_displays_side"] = 2,
@@ -314,14 +314,14 @@ local addonName, Details222 = ...
 		author = "Details!",
 		version = "1.0",
 		site = "unknown",
-		desc = Loc["Simple skin with soft gray color and half transparent frames."], --\n
+		desc = "Simple skin with soft gray color and half transparent frames.", --\n
 		no_cache = true,
 
 		--micro frames
 		micro_frames = {
 			color = {1, 1, 1, 1},
 			font = "Accidental Presidency",
-			size = 14,
+			size = 10,
 			textymod = 1,
 		},
 
@@ -378,7 +378,7 @@ local addonName, Details222 = ...
 				["enabled"] = true,
 				["shadow"] = false,
 				["side"] = 1,
-				["text_size"] = 16,
+				["text_size"] = 12,
 				["custom_text"] = "{name}",
 				["text_face"] = "Accidental Presidency",
 				["anchor"] = {
@@ -531,7 +531,7 @@ local addonName, Details222 = ...
 		end,
 
 		skin_options = {
-			{spacement = true, type = "button", name = Loc["Shadowy Title Bar"], func = Minimalistic_Shadow, desc = Loc["Adds shadow on title bar components."]},
+			{spacement = true, type = "button", name = "Shadowy Title Bar", func = Minimalistic_Shadow, desc = "Adds shadow on title bar components."},
 			{type = "button", name = Loc ["STRING_OPTIONS_SKIN_RESET_TOOLTIP"], func = reset_tooltip, desc = Loc ["STRING_OPTIONS_SKIN_RESET_TOOLTIP_DESC"]},
 			{type = "button", name = Loc ["STRING_OPTIONS_SKIN_ELVUI_BUTTON3"], func = set_tooltip_elvui2, desc = Loc ["STRING_OPTIONS_SKIN_ELVUI_BUTTON3_DESC"]},
 		}
@@ -543,14 +543,14 @@ local addonName, Details222 = ...
 		author = "Details!",
 		version = "1.0",
 		site = "unknown",
-		desc = Loc["Same as the first Minimalistic, but this one is more darker and less transparent."],
+		desc = "Same as the first Minimalistic, but this one is more darker and less transparent.",
 		no_cache = true,
 
 		--micro frames
 		micro_frames = {
 			color = {1, 1, 1, 0.7},
 			font = "Friz Quadrata TT",
-			size = 13,
+			size = 9,
 			textymod = 0,
 		},
 
@@ -743,7 +743,7 @@ local addonName, Details222 = ...
 					-18, -- [1]
 					5, -- [2]
 				},
-				["text_size"] = 15,
+				["text_size"] = 11,
 				["enable_custom_text"] = false,
 			},
 			["bg_b"] = 0.0941,
@@ -765,7 +765,7 @@ local addonName, Details222 = ...
 		author = "Details!",
 		version = "1.0",
 		site = "unknown",
-		desc = Loc["Light blue, this skin fits on almost all interfaces.\n\nFor ElvUI interfaces, change the window color to black to get an compatible visual."],
+		desc = "Light blue, this skin fits on almost all interfaces.\n\nFor ElvUI interfaces, change the window color to black to get an compatible visual.",
 		no_cache = true,
 
 		--micro frames
@@ -773,7 +773,7 @@ local addonName, Details222 = ...
 			left = "DETAILS_STATUSBAR_PLUGIN_PATTRIBUTE",
 			color = {1, 1, 1, 0.7},
 			font = "Accidental Presidency",
-			size = 14,
+			size = 10,
 			textymod = 0,
 		},
 
@@ -1005,7 +1005,7 @@ local addonName, Details222 = ...
 	local align_right_chat = function()
 
 		if (not RightChatPanel or not RightChatPanel:IsShown()) then
-			_detalhes:Msg(Loc["Right Chat Panel isn't shown."])
+			_detalhes:Msg("Right Chat Panel isn't shown.")
 			return
 		end
 
@@ -1082,7 +1082,7 @@ local addonName, Details222 = ...
 		author = "Details!",
 		version = "1.0",
 		site = "unknown",
-		desc = Loc["Very clean skin without textures and only with a black contour."],
+		desc = "Very clean skin without textures and only with a black contour.",
 		no_cache = true,
 
 		--general
@@ -1097,7 +1097,7 @@ local addonName, Details222 = ...
 		micro_frames = {
 			color = {.7, .7, .7, 0.7},
 			font = "FORCED SQUARE",
-			size = 14,
+			size = 10,
 			textymod = 1,
 		},
 
@@ -1167,7 +1167,7 @@ local addonName, Details222 = ...
 				-27,
 				1,
 			},
-			["name"] = Loc["new simple gray 2"],
+			["name"] = "new simple gray 2",
 			["attribute_text"] = {
 				["enabled"] = true,
 				["shadow"] = true,
@@ -1184,7 +1184,7 @@ local addonName, Details222 = ...
 					-15,
 					5,
 				},
-				["text_size"] = 14,
+				["text_size"] = 12,
 				["enable_custom_text"] = false,
 			},
 			["switch_damager_in_combat"] = false,
@@ -1344,7 +1344,7 @@ local addonName, Details222 = ...
 		author = "Details!",
 		version = "1.0",
 		site = "unknown",
-		desc = Loc["This skin is based on ElvUI's addons, relying with black and transparent frames."],
+		desc = "This skin is based on ElvUI's addons, relying with black and transparent frames.",
 		no_cache = true,
 
 		--general
@@ -1359,7 +1359,7 @@ local addonName, Details222 = ...
 		micro_frames = {
 			color = {1, 1, 1, 0.7},
 			font = "FORCED SQUARE",
-			size = 14,
+			size = 10,
 			textymod = 1,
 		},
 
@@ -1427,7 +1427,7 @@ local addonName, Details222 = ...
 				["enabled"] = true,
 				["shadow"] = true,
 				["side"] = 1,
-				["text_size"] = 14,
+				["text_size"] = 12,
 				["custom_text"] = "{name}",
 				["text_face"] = "FORCED SQUARE",
 				["anchor"] = {
@@ -1595,7 +1595,7 @@ local addonName, Details222 = ...
 		author = "Details!",
 		version = "1.0",
 		site = "unknown",
-		desc = Loc["based on AddonSkins for ElvUI, this skin has opaque title bar and background."],
+		desc = "based on AddonSkins for ElvUI, this skin has opaque title bar and background.",
 		no_cache = true,
 
 		--general
@@ -1610,7 +1610,7 @@ local addonName, Details222 = ...
 		micro_frames = {
 			color = {0.525490, 0.525490, 0.525490, 1},
 			font = "FORCED SQUARE",
-			size = 15,
+			size = 11,
 			textymod = 1,
 		},
 
@@ -1762,7 +1762,7 @@ local addonName, Details222 = ...
 				["text_face"] = "FORCED SQUARE",
 				["anchor"] = {-18, 5},
 				["text_color"] = {1,1,1,0.7},
-				["text_size"] = 16,
+				["text_size"] = 12,
 			},
 			["bg_b"] = 0.517647058823529,
 		},
@@ -1779,7 +1779,7 @@ local addonName, Details222 = ...
 		author = "Details!",
 		version = "1.0",
 		site = "unknown",
-		desc = Loc["Regular Details! skin but with a dark theme."],
+		desc = "Regular Details! skin but with a dark theme.",
 		no_cache = true,
 
 		--general
@@ -1794,7 +1794,7 @@ local addonName, Details222 = ...
 		micro_frames = {
 			color = {1, 1, 1, 0.7},
 			font = "Oswald",
-			size = 13,
+			size = 9,
 			textymod = 0,
 			["left"] = "DETAILS_STATUSBAR_PLUGIN_PSEGMENT",
 			["center"] = "DETAILS_STATUSBAR_PLUGIN_CLOCK",
@@ -1889,7 +1889,7 @@ local addonName, Details222 = ...
 					},
 					["size"] = 4,
 				},
-				["font_size"] = 16,
+				["font_size"] = 12,
 				["textL_translit_text"] = false,
 				["height"] = 21,
 				["texture_file"] = "Interface\\AddOns\\Details\\images\\bar_textures\\texture2020.blp",
@@ -2182,7 +2182,7 @@ local addonName, Details222 = ...
 				["enabled"] = true,
 				["shadow"] = false,
 				["side"] = 1,
-				["text_size"] = 16,
+				["text_size"] = 12,
 				["custom_text"] = "{name}",
 				["text_face"] = "Oswald",
 				["anchor"] = {
@@ -2268,14 +2268,14 @@ local addonName, Details222 = ...
 		author = "Details!",
 		version = "1.0",
 		site = "unknown",
-		desc = Loc["Simple skin with soft gray color and half transparent frames."], --\n
+		desc = "Simple skin with soft gray color and half transparent frames.", --\n
 		no_cache = true,
 
 		--micro frames
 		micro_frames = {
 			color = {1, 1, 1, 1},
 			font = "Accidental Presidency",
-			size = 14,
+			size = 10,
 			textymod = 1,
 		},
 
@@ -2354,7 +2354,7 @@ local addonName, Details222 = ...
 				},
 				["show_timer"] = true,
 				["enable_custom_text"] = false,
-				["text_size"] = 16,
+				["text_size"] = 12,
 			},
 			["bars_grow_direction"] = 1,
 			["menu_alpha"] = {
@@ -2516,7 +2516,7 @@ local addonName, Details222 = ...
 		end,
 
 		skin_options = {
-			{spacement = true, type = "button", name = Loc["Shadowy Title Bar"], func = Minimalistic_Shadow, desc = Loc["Adds shadow on title bar components."]},
+			{spacement = true, type = "button", name = "Shadowy Title Bar", func = Minimalistic_Shadow, desc = "Adds shadow on title bar components."},
 			{type = "button", name = Loc ["STRING_OPTIONS_SKIN_RESET_TOOLTIP"], func = reset_tooltip, desc = Loc ["STRING_OPTIONS_SKIN_RESET_TOOLTIP_DESC"]},
 			{type = "button", name = Loc ["STRING_OPTIONS_SKIN_ELVUI_BUTTON3"], func = set_tooltip_elvui2, desc = Loc ["STRING_OPTIONS_SKIN_ELVUI_BUTTON3_DESC"]},
 		}
@@ -2529,14 +2529,14 @@ local addonName, Details222 = ...
 		author = "Details!",
 		version = "1.0",
 		site = "unknown",
-		desc = Loc["Simple skin with soft gray color and half transparent frames."], --\n
+		desc = "Simple skin with soft gray color and half transparent frames.", --\n
 		no_cache = true,
 
 		--micro frames
 		micro_frames = {
 			color = {1, 1, 1, 1},
 			font = "Accidental Presidency",
-			size = 14,
+			size = 10,
 			textymod = 1,
 		},
 
@@ -2777,7 +2777,7 @@ local addonName, Details222 = ...
 				["enabled"] = true,
 				["shadow"] = false,
 				["side"] = 1,
-				["text_size"] = 16,
+				["text_size"] = 12,
 				["custom_text"] = "{name}",
 				["text_face"] = "Accidental Presidency",
 				["anchor"] = {
@@ -2801,7 +2801,7 @@ local addonName, Details222 = ...
 		end,
 
 		skin_options = {
-			{spacement = true, type = "button", name = Loc["Shadowy Title Bar"], func = Minimalistic_Shadow, desc = Loc["Adds shadow on title bar components."]},
+			{spacement = true, type = "button", name = "Shadowy Title Bar", func = Minimalistic_Shadow, desc = "Adds shadow on title bar components."},
 			{type = "button", name = Loc ["STRING_OPTIONS_SKIN_RESET_TOOLTIP"], func = reset_tooltip, desc = Loc ["STRING_OPTIONS_SKIN_RESET_TOOLTIP_DESC"]},
 			{type = "button", name = Loc ["STRING_OPTIONS_SKIN_ELVUI_BUTTON3"], func = set_tooltip_elvui2, desc = Loc ["STRING_OPTIONS_SKIN_ELVUI_BUTTON3_DESC"]},
 		}

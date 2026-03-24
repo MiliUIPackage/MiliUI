@@ -165,7 +165,7 @@ function Details:CreateOrOpenNewsWindow()
 		autoOpenCheckbox:SetAsCheckBox()
 		autoOpenCheckbox:SetPoint("left", statusBar, "left", 2, 0)
 
-		local autoOpenText = DetailsFramework:CreateLabel(statusBar, Loc["Auto Open on New Changes"])
+		local autoOpenText = DetailsFramework:CreateLabel(statusBar, "Auto Open on New Changes")
 		autoOpenText:SetPoint("left", autoOpenCheckbox, "right", 2, 0)
 
 		DetailsFramework:ApplyStandardBackdrop(statusBar)
