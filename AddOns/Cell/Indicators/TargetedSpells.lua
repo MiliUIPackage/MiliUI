@@ -176,7 +176,8 @@ local function CheckUnitCast(sourceUnit, isRecheck)
 
     -- print(sourceUnit, name, spellId)
 
-    if spellId and (Cell.vars.targetedSpellsList[spellId] or showAllSpells) then
+    -- WoW 12.0+: spellId from enemy casts can be secret; skip if so
+    if spellId and not (issecretvalue and issecretvalue(spellId)) and (Cell.vars.targetedSpellsList[spellId] or showAllSpells) then
         if casts[sourceGUID] then
             casts[sourceGUID]["startTime"] = startTimeMS/1000
             casts[sourceGUID]["endTime"] = endTimeMS/1000

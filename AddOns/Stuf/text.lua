@@ -29,9 +29,13 @@ local nK, nM = "K", "M"
 
 local specialchars = { ["nl"] = "\n", ["%"] = "%%", ["lp"] = "%(", ["rp"] = "%)", }
 -- WoW 12.0+: UnitIsVisible / UnitInRange return "secret booleans" that cannot
--- be used with not / == / ~=.  tostring() is the only safe escape hatch.
+-- be used with not / == / ~= / tostring-then-compare.
+-- issecretvalue() is a C-side function returning a plain boolean.
+-- When secret, default to true (assume visible/in-range) to avoid false OOR.
+local _issecretvalue = issecretvalue
 local function desecret(v)
-	return tostring(v) == "true"
+	if _issecretvalue and _issecretvalue(v) then return true end
+	return v and true or false
 end
 local conditions = {
 	pc = function(ca, unit) return ca.pc end,
