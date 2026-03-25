@@ -1,11 +1,11 @@
 ## Interface: 120000, 120001
 ## Title: MiliUI BloodlustMusic
-## Notes: Bloodlust music playback and countdown bar
-## Title-zhTW: |cffFF9999[戰鬥]|r 嗜血音樂
-## Notes-zhTW: MiliUI BloodlustMusic |n|n嗜血/英勇音樂播放與倒數條。|n|n|cffffd200使用方法: |rEsc>選項>插件>嗜血音樂設定。
+## Notes: Bloodlust / Heroism music playback and countdown bar.|n|n|cffffd200Usage: |rEsc>Options>AddOns>Bloodlust Music or type /blm to configure.
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 嗜血音樂
+## Notes-zhTW: MiliUI BloodlustMusic |n|n嗜血/英勇音樂播放與倒數條。|n|n|cffffd200使用方法: |rEsc>選項>插件>嗜血音樂或輸入指令 /blm 設定。
 ## Title-zhCN: |cff4488FF[MiliUI]|r 嗜血音乐
-## Notes-zhCN: 嗜血/英勇音乐播放与倒计时条
-## Notes-koKR: 영웅심/피의 욕망 음악 재생 및 카운트다운 바
+## Notes-zhCN: 嗜血/英勇音乐播放与倒计时条。|n|n|cffffd200使用方法: |rEsc>选项>插件>嗜血音乐或输入指令 /blm 设置。
+## Notes-koKR: 영웅심/피의 욕망 음악 재생 및 카운트다운 바。|n|n|cffffd200사용방법: |rEsc>옵션>플러그인>영웅심 음악 또는 입력 명령어 /blm 설정。
 ## IconTexture: Interface\Icons\Spell_Nature_Bloodlust
 ## Category: Battle
 ## Category-zhTW: 戰鬥

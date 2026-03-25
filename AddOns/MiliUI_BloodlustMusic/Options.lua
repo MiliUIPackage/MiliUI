@@ -57,7 +57,8 @@ local function PreviewTrack(index)
     StopPreview()
     local track = MUSIC_FILES[index]
     if track then
-        local _, handle = PlaySoundFile(track.path, "Master")
+        local channel = (db and db.channel) or "Master"
+        local _, handle = PlaySoundFile(track.path, channel)
         previewHandle = handle
     end
 end
@@ -267,6 +268,12 @@ local item3Desc = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightS
 item3Desc:SetPoint("LEFT", item1Desc, "LEFT", 0, 0)
 item3Desc:SetPoint("TOP", item3, "TOP", 0, 0)
 item3Desc:SetText("- " .. L["REMINDER_DESC"])
+
+local creditText = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+creditText:SetPoint("TOPLEFT", item3, "BOTTOMLEFT", 0, -24)
+creditText:SetJustifyH("LEFT")
+creditText:SetWidth(600)
+creditText:SetText("|cff888888" .. (L["CREDIT_DFTL"] or "Bloodlust Music and Reminder inspired by EnhBloodlust and Don't Forget to Lust") .. "|r")
 
 -- Register main category
 settingsCategory = Settings.RegisterCanvasLayoutCategory(mainPanel, mainPanel.name)

@@ -37,7 +37,7 @@ local LUST_DEBUFFS = {
 -- Music Configuration (easy to add new tracks)
 ----------------------------------------------------------------------
 local MUSIC_FILES = {
-    { name = "Bloodlust Mid",    path = "Interface\\AddOns\\MiliUI_BloodlustMusic\\Media\\bloodlust_mid.mp3" },
+    { name = "Power of the Horde",    path = "Interface\\AddOns\\MiliUI_BloodlustMusic\\Media\\power_of_the_horde.mp3" },
 }
 
 local MUSIC_DURATION = 40  -- seconds to play music
@@ -60,7 +60,7 @@ local DB_DEFAULTS = {
     -- Reminder settings
     reminderEnabled  = true,
     reminderSoundEnabled  = true,
-    reminderSound         = 8457,   -- SoundKit ID: Boss Kill
+    reminderSound         = 8457,
     reminderLustClassOnly = true,
     reminderDungeonPull   = true,
     reminderDebuffExpiry  = true,
