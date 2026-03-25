@@ -79,11 +79,6 @@ local function CreateLayoutTab(page, tabId)
     local utilHeader = UI.CreateHeader(content, L["Utility"] or "Utility")
     utilHeader:SetPoint("TOPLEFT", maxRowEssSlider, "BOTTOMLEFT", 0, -20)
 
-    local yOffsetSlider = UI.CreateModernSlider(content, L["Utility Y Offset"], -600, 600, CDM.db.utilityYOffset, function(v)
-        CDM.db.utilityYOffset = v; API:RefreshConfig()
-    end)
-    yOffsetSlider:SetPoint("TOPLEFT", utilHeader, "BOTTOMLEFT", 0, -15)
-
     local wrapCheckbox, utilWrapSlider, unlockCheckbox, xOffsetSlider, verticalCheckbox
 
     local function UpdateScrollHeight()
@@ -123,7 +118,7 @@ local function CreateLayoutTab(page, tabId)
             API:RefreshConfig()
         end
     )
-    wrapCheckbox:SetPoint("TOPLEFT", yOffsetSlider, "BOTTOMLEFT", 0, -10)
+    wrapCheckbox:SetPoint("TOPLEFT", utilHeader, "BOTTOMLEFT", 0, -15)
 
     utilWrapSlider = UI.CreateModernSlider(content, L["Utility Max Icons Per Row"], 1, 20, CDM.db.maxRowUtil, function(v)
         CDM.db.maxRowUtil = v; API:RefreshConfig()

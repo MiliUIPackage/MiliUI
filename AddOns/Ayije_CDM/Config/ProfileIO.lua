@@ -71,20 +71,17 @@ function ProfileIO:DecodePayload(profileString)
     return payload
 end
 
-function ProfileIO:ExtractProfileData(payload)
-    if type(payload) ~= "table" then return nil, nil end
-    if type(payload.data) == "table" and payload.profile_export_version then
-        return payload.data, payload
-    end
-    return payload, nil
-end
-
 function ProfileIO:DecodeProfileString(profileString)
     local payload, errCode = self:DecodePayload(profileString)
     if not payload then
         return nil, errCode
     end
-    local data = self:ExtractProfileData(payload)
+    local data
+    if type(payload) == "table" and type(payload.data) == "table" and payload.profile_export_version then
+        data = payload.data
+    else
+        data = payload
+    end
     if type(data) ~= "table" then
         return nil, "invalid_profile_data"
     end
@@ -223,7 +220,13 @@ end
 function ProfileIO:BuildImportProfile(payload, options)
     options = options or {}
 
-    local profileData, envelope = self:ExtractProfileData(payload)
+    local profileData, envelope
+    if type(payload) == "table" and type(payload.data) == "table" and payload.profile_export_version then
+        profileData = payload.data
+        envelope = payload
+    else
+        profileData = payload
+    end
     if type(profileData) ~= "table" then
         return nil, { code = "invalid_profile_data" }
     end

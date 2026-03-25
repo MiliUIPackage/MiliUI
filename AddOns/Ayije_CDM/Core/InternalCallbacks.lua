@@ -11,7 +11,6 @@ local INTERNAL_DISPATCH_ORDER = {
     "OnCombatStateChanged",
     "OnSpecStateChanged",
     "OnTalentDataChanged",
-    "OnCooldownDataChanged",
 }
 local INTERNAL_DISPATCH_ORDER_SET = {}
 for _, callbackName in ipairs(INTERNAL_DISPATCH_ORDER) do
@@ -99,11 +98,7 @@ local function FlushPendingDispatchPayload(callbackName, payload)
 
     payload.pending = false
     local count = payload.n or 0
-    if count > 0 then
-        CDM:TriggerInternalCallback(callbackName, unpack(payload, 1, count))
-    else
-        CDM:TriggerInternalCallback(callbackName)
-    end
+    CDM:TriggerInternalCallback(callbackName, unpack(payload, 1, count))
 end
 
 local function FlushInternalDispatchQueue()
@@ -251,10 +246,6 @@ local function DispatchCombatStateChanged(event)
     QueueInternalCallback("OnCombatStateChanged", event == "PLAYER_REGEN_DISABLED", event)
 end
 
-local function DispatchCooldownDataChanged(event, ...)
-    QueueInternalCallback("OnCooldownDataChanged", event, ...)
-end
-
 internalDispatchFrame:SetScript("OnUpdate", function(self)
     FlushInternalDispatchQueue()
     if not internalDispatchQueued then
@@ -275,5 +266,3 @@ CDM:RegisterUnitEvent("PLAYER_SPECIALIZATION_CHANGED", "player", DispatchSpecSta
 
 CDM:RegisterEvent("PLAYER_REGEN_ENABLED", DispatchCombatStateChanged)
 CDM:RegisterEvent("PLAYER_REGEN_DISABLED", DispatchCombatStateChanged)
-
-CDM:RegisterEvent("SPELL_UPDATE_COOLDOWN", DispatchCooldownDataChanged)

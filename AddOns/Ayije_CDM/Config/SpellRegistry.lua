@@ -1,5 +1,3 @@
--- Config/SpellRegistry.lua
-
 local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
 
@@ -8,10 +6,6 @@ CDM.SpellRegistry = {}
 local colorRegistry = {}
 local currentSpecID = nil
 local cacheValid = false
-
--- =========================================================================
--- INTERNAL HELPERS
--- =========================================================================
 
 local function InvalidateCache()
     cacheValid = false
@@ -49,9 +43,7 @@ local function CreateEmptyRegistry()
     }
 end
 
-local function IsEmptyTable(t)
-    return type(t) == "table" and next(t) == nil
-end
+local IsEmptyTable = CDM.CONST.IsEmptyTable
 
 local function IsRegistrySpecEmpty(node)
     if type(node) ~= "table" then return true end
@@ -90,9 +82,7 @@ local function EnsureRegistryStructure(specID)
     return CDM.db.spellRegistry[specID]
 end
 
--- =========================================================================
--- PUBLIC API - LOOKUPS (O(1))
--- =========================================================================
+CDM.SpellRegistry.EnsureStructure = EnsureRegistryStructure
 
 function CDM.SpellRegistry:GetColor(specID, spellID)
     EnsureCache(specID)
@@ -104,20 +94,9 @@ function CDM.SpellRegistry:GetColor(specID, spellID)
     return nil
 end
 
-function CDM.SpellRegistry:GetColorRegistry(specID)
-    EnsureCache(specID)
-    return colorRegistry
-end
-
--- =========================================================================
--- PUBLIC API - MUTATIONS
--- =========================================================================
-
 function CDM.SpellRegistry:Save(specID, spellID, color)
     local registry = EnsureRegistryStructure(specID)
     if not registry then return end
-
-    if not registry.colors then registry.colors = {} end
 
     if color then
         registry.colors[spellID] = { r = color.r, g = color.g, b = color.b, a = color.a or 1 }
@@ -169,25 +148,6 @@ function CDM.SpellRegistry:GetRaw(specID)
 
     return copy
 end
-
--- =========================================================================
--- DEBUG API
--- =========================================================================
-
-function CDM.SpellRegistry:GetCacheStatus()
-    local colorCount = 0
-    for _ in pairs(colorRegistry) do colorCount = colorCount + 1 end
-
-    return {
-        valid = cacheValid,
-        specID = currentSpecID,
-        colorCount = colorCount,
-    }
-end
-
--- =========================================================================
--- COMPACTION API
--- =========================================================================
 
 function CDM.SpellRegistry:CompactSpec(specID)
     CompactRegistrySpec(specID)

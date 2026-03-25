@@ -1,8 +1,8 @@
 local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
-local VIEWERS = CDM.CONST.VIEWERS
-local GetCachedBaseSpellID = CDM.GetCachedBaseSpellID
-local NormalizeToBase = CDM.NormalizeToBase
+local CDM_C = CDM.CONST
+local VIEWERS = CDM_C.VIEWERS
+local GetBaseSpellID = CDM.GetBaseSpellID
 local Keybinds = CDM.Keybinds
 local GetFrameData = CDM.GetFrameData
 
@@ -28,7 +28,7 @@ local emptyBorderEdgeFile = nil
 local POLL_INTERVAL = 0.05
 local elapsed = 0
 
-local VIEWER_NAMES = { VIEWERS.ESSENTIAL, VIEWERS.UTILITY }
+local VIEWER_NAMES = CDM_C.COOLDOWN_VIEWER_NAMES
 
 local function ParseRawKey(rawKey)
     if not rawKey or rawKey == "" then return nil end
@@ -70,10 +70,9 @@ local function RebuildBindingMapIfStale()
         local viewer = _G[vName]
         if viewer and viewer.itemFramePool then
             for frame in viewer.itemFramePool:EnumerateActive() do
-                local baseID = GetCachedBaseSpellID(CDM, frame)
+                local baseID = GetBaseSpellID(frame)
                 if baseID then
-                    baseID = NormalizeToBase(baseID)
-                    if baseID and not bindingMap[baseID] then
+                    if not bindingMap[baseID] then
                         local rawKeys = Keybinds:GetRawKeysForSpell(baseID)
                         if rawKeys then
                             local combos
@@ -294,10 +293,9 @@ pollFrame:SetScript("OnUpdate", function(_, dt)
         if viewer and viewer.itemFramePool then
             for frame in viewer.itemFramePool:EnumerateActive() do
                 local pressed = false
-                local baseID = GetCachedBaseSpellID(CDM, frame)
+                local baseID = GetBaseSpellID(frame)
                 if baseID then
-                    baseID = NormalizeToBase(baseID)
-                    local combos = baseID and bindingMap[baseID]
+                    local combos = bindingMap[baseID]
                     if combos then
                         pressed = IsAnyComboDown(combos)
                     end
@@ -321,10 +319,9 @@ pollFrame:SetScript("OnUpdate", function(_, dt)
                 pressed = IsAnyComboDown(combos)
             end
             if not pressed then
-                local baseID = GetCachedBaseSpellID(CDM, frame)
+                local baseID = GetBaseSpellID(frame)
                 if baseID then
-                    baseID = NormalizeToBase(baseID)
-                    combos = baseID and bindingMap[baseID]
+                    combos = bindingMap[baseID]
                     if combos then
                         pressed = IsAnyComboDown(combos)
                     end

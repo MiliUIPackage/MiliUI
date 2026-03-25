@@ -55,6 +55,11 @@ local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
 local HalfFloor = Pixel.HalfFloor
 
+local function SetUtilityAnchor(utilContainer, essContainer, utilHalfW, utilityXOffset, utilityYOffset, spacing)
+    local essHalfW = HalfFloor(essContainer:GetWidth() or 0)
+    Pixel.SetPoint(utilContainer, "TOPLEFT", essContainer, "BOTTOMLEFT", essHalfW - utilHalfW + utilityXOffset, -spacing + utilityYOffset)
+end
+
 local function AnchorMainLayoutContainer(frame, isBuffContainer, relativePoint, x, y, yOffset)
     if not frame then
         return
@@ -107,10 +112,9 @@ function CDM:UpdateUtilityContainerPosition()
     )
     utilContainer:SetSize(Snap(containerWidth), Snap(containerHeight))
 
-    local essHalfW = HalfFloor(essContainer:GetWidth() or 0)
     local utilHalfW = HalfFloor(Snap(containerWidth))
     utilContainer:ClearAllPoints()
-    Pixel.SetPoint(utilContainer, "TOPLEFT", essContainer, "BOTTOMLEFT", essHalfW - utilHalfW + utilityXOffset, -spacing + utilityYOffset)
+    SetUtilityAnchor(utilContainer, essContainer, utilHalfW, utilityXOffset, utilityYOffset, spacing)
 end
 
 local FALLBACK_POSITION = {
@@ -220,10 +224,9 @@ function CDM:ReanchorContainer(vName)
         local essContainer = self.anchorContainers[VIEWERS.ESSENTIAL]
         if not essContainer then return end
         local _, _, _, _, spacing, _, utilityYOffset, _, _, utilityXOffset = GetLayoutConfig()
-        local essHalfW = HalfFloor(essContainer:GetWidth() or 0)
         local utilHalfW = HalfFloor(container:GetWidth())
         container:ClearAllPoints()
-        Pixel.SetPoint(container, "TOPLEFT", essContainer, "BOTTOMLEFT", essHalfW - utilHalfW + utilityXOffset, -spacing + utilityYOffset)
+        SetUtilityAnchor(container, essContainer, utilHalfW, utilityXOffset, utilityYOffset, spacing)
     end
 end
 

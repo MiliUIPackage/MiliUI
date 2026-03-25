@@ -5,20 +5,19 @@ local CDM_C = CDM.CONST
 local GetFrameData = CDM.GetFrameData
 local IsSafeNumber = CDM.IsSafeNumber
 local GetBaseSpellID = CDM.GetBaseSpellID
-local GetCachedBaseSpellID = CDM.GetCachedBaseSpellID
 local CheckBuffRegistryMatch = CDM.CheckBuffRegistryMatch
-
-local function ResolveBaseSpellID(frame)
-    return GetCachedBaseSpellID(CDM, frame) or GetBaseSpellID(frame)
-end
 
 local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
 local math_floor = math.floor
+local math_max = math.max
+local math_min = math.min
+local math_ceil = math.ceil
+local table_wipe = table.wipe
 
 local function GetSnappedMetrics(size, spacing)
-    local itemW = math.max(Pixel.GetSize(), Snap(size and size.w or 1))
-    local itemH = math.max(Pixel.GetSize(), Snap(size and size.h or 1))
+    local itemW = math_max(Pixel.GetSize(), Snap(size and size.w or 1))
+    local itemH = math_max(Pixel.GetSize(), Snap(size and size.h or 1))
     local gap = Snap(spacing or 0)
     return itemW, itemH, gap
 end
@@ -41,10 +40,6 @@ end
 
 local function LayoutPosition(row, col, itemW, itemH, x, y, countInRow)
     return row, col, itemW, itemH, x, -y, countInRow
-end
-
-local function LayoutSize(width, height)
-    return width, height
 end
 
 local function HasPositiveLimit(value)
@@ -80,47 +75,13 @@ local function GetLayoutConfig()
         Val(sizes.UTILITY_X_OFFSET, df.utilityXOffset, 0)
 end
 
-local reanchorRetry = {}
-
-local function QueueReanchorRetry(cdm, vName, delay)
-    if not cdm or not vName then return end
-    local now = GetTime()
-    local state = reanchorRetry[vName]
-    if not state or (now - state.last) > 2 then
-        if not state then
-            state = { count = 0, last = now, pending = false }
-            reanchorRetry[vName] = state
-        else
-            state.count = 0
-            state.last = now
-            state.pending = false
-        end
-    end
-
-    if state.pending then
-        return
-    end
-
-    if state.count >= 5 then
-        return
-    end
-    state.count = state.count + 1
-    state.last = now
-    state.pending = true
-
-    C_Timer.After(delay or 0.1, function()
-        state.pending = false
-        cdm:QueueViewer(vName, true)
-    end)
-end
-
 local function ComputeGridPosition(index, total, maxPerRow, size, spacing)
     if not maxPerRow or maxPerRow <= 0 then
         maxPerRow = total
     end
-    local row = math.ceil(index / maxPerRow)
+    local row = math_ceil(index / maxPerRow)
     local col = (index - 1) % maxPerRow
-    local countInRow = math.min(maxPerRow, total - (row - 1) * maxPerRow)
+    local countInRow = math_min(maxPerRow, total - (row - 1) * maxPerRow)
     local itemW, itemH, gap = GetSnappedMetrics(size, spacing)
     local cWidth = RowWidth(maxPerRow, itemW, gap)
     local rWidth = RowWidth(countInRow, itemW, gap)
@@ -142,25 +103,15 @@ local function GetRowForIndex(index, total, isEssential, maxRowEss, maxRowUtil, 
     return 1
 end
 
-local function ComputeEssentialOrUtilityPosition(index, total, isEssential, sizeEssRow1, sizeEssRow2, sizeUtility, spacing, maxRowEss, maxRowUtil, utilityVertical, _preEssRow1, _preEssRow2, _preUtil)
+local function ComputeEssentialOrUtilityPosition(index, total, isEssential, sizeEssRow1, sizeEssRow2, sizeUtility, spacing, maxRowEss, maxRowUtil, utilityVertical, _preUtil)
     if isEssential then
-        local row1W, row1H, gap
-        if _preEssRow1 then
-            row1W, row1H, gap = _preEssRow1[1], _preEssRow1[2], _preEssRow1[3]
-        else
-            row1W, row1H, gap = GetSnappedMetrics(sizeEssRow1, spacing)
-        end
-        local row2W, row2H
-        if _preEssRow2 then
-            row2W, row2H = _preEssRow2[1], _preEssRow2[2]
-        else
-            row2W, row2H = GetSnappedMetrics(sizeEssRow2, spacing)
-        end
-        local row1Count = math.min(maxRowEss, total)
-        local row2Count = math.max(0, total - maxRowEss)
+        local row1W, row1H, gap = GetSnappedMetrics(sizeEssRow1, spacing)
+        local row2W, row2H = GetSnappedMetrics(sizeEssRow2, spacing)
+        local row1Count = math_min(maxRowEss, total)
+        local row2Count = math_max(0, total - maxRowEss)
         local row1Width = RowWidth(row1Count, row1W, gap)
         local row2Width = RowWidth(row2Count, row2W, gap)
-        local cWidth = math.max(row1Width, row2Width)
+        local cWidth = math_max(row1Width, row2Width)
 
         if index <= maxRowEss then
             local countInRow = row1Count
@@ -184,10 +135,10 @@ local function ComputeEssentialOrUtilityPosition(index, total, isEssential, size
     end
 
     if utilityVertical and HasPositiveLimit(maxRowUtil) then
-        local numCols = math.ceil(total / maxRowUtil)
-        local colIndex = math.floor((index - 1) / maxRowUtil)
+        local numCols = math_ceil(total / maxRowUtil)
+        local colIndex = math_floor((index - 1) / maxRowUtil)
         local rowInCol = (index - 1) % maxRowUtil
-        local iconsInThisCol = math.min(maxRowUtil, total - colIndex * maxRowUtil)
+        local iconsInThisCol = math_min(maxRowUtil, total - colIndex * maxRowUtil)
         local x = colIndex * (utilW + gap)
         local y = (iconsInThisCol - 1 - rowInCol) * (utilH + gap)
         return LayoutPosition(colIndex + 1, rowInCol, utilW, utilH, x, y, iconsInThisCol)
@@ -198,7 +149,7 @@ local function ComputeEssentialOrUtilityPosition(index, total, isEssential, size
         local row2Count = total - maxRowUtil
         local row1Width = RowWidth(row1Count, utilW, gap)
         local row2Width = RowWidth(row2Count, utilW, gap)
-        local cWidth = math.max(row1Width, row2Width)
+        local cWidth = math_max(row1Width, row2Width)
         if index <= maxRowUtil then
             local countInRow = row1Count
             local col = index - 1
@@ -219,44 +170,44 @@ local function ComputeEssentialContainerSize(total, sizeEssRow1, sizeEssRow2, sp
     local row1W, row1H, gap = GetSnappedMetrics(sizeEssRow1, spacing)
     local row2W, row2H = GetSnappedMetrics(sizeEssRow2, spacing)
     if total <= 0 then
-        return LayoutSize(row1W, row1H)
+        return row1W, row1H
     end
-    local row1Count = math.min(maxRowEss, total)
-    local row2Count = math.max(0, total - maxRowEss)
+    local row1Count = math_min(maxRowEss, total)
+    local row2Count = math_max(0, total - maxRowEss)
     local r1Width = RowWidth(row1Count, row1W, gap)
     local r2Width = RowWidth(row2Count, row2W, gap)
-    local cWidth = math.max(r1Width, r2Width)
+    local cWidth = math_max(r1Width, r2Width)
     local cHeight = row1H
     if row2Count > 0 then
         cHeight = row1H + gap + row2H
     end
-    return LayoutSize(cWidth, cHeight)
+    return cWidth, cHeight
 end
 
 local function ComputeUtilityContainerSize(total, sizeUtility, spacing, maxRowUtil, utilityVertical)
     local utilW, utilH, gap = GetSnappedMetrics(sizeUtility, spacing)
     if total <= 0 then
-        return LayoutSize(utilW, utilH)
+        return utilW, utilH
     end
     if utilityVertical and HasPositiveLimit(maxRowUtil) then
-        local numCols = math.ceil(total / maxRowUtil)
-        local tallestCol = math.min(maxRowUtil, total)
+        local numCols = math_ceil(total / maxRowUtil)
+        local tallestCol = math_min(maxRowUtil, total)
         local cWidth = RowWidth(numCols, utilW, gap)
         local cHeight = RowWidth(tallestCol, utilH, gap)
-        return LayoutSize(cWidth, cHeight)
+        return cWidth, cHeight
     end
 
     if HasPositiveLimit(maxRowUtil) and maxRowUtil < total then
         local row2Count = total - maxRowUtil
         local r1Width = RowWidth(maxRowUtil, utilW, gap)
         local r2Width = RowWidth(row2Count, utilW, gap)
-        local cWidth = math.max(r1Width, r2Width)
+        local cWidth = math_max(r1Width, r2Width)
         local cHeight = (2 * utilH) + gap
-        return LayoutSize(cWidth, cHeight)
+        return cWidth, cHeight
     end
     local cWidth = RowWidth(total, utilW, gap)
     local cHeight = utilH
-    return LayoutSize(cWidth, cHeight)
+    return cWidth, cHeight
 end
 
 local function ToSortNumber(value, fallback)
@@ -273,7 +224,7 @@ local function CountPopulatedFrames(viewer)
     for frame in viewer.itemFramePool:EnumerateActive() do
         if frame:IsShown() then
             total = total + 1
-            if GetBaseSpellID(frame) then
+            if frame.cooldownID then
                 populated = populated + 1
             end
         end
@@ -377,15 +328,19 @@ end
 
 local scratchCdFontRegions = {}
 
-local function GetCooldownFontRegions(cd)
-    table.wipe(scratchCdFontRegions)
-    for ri = 1, select("#", cd:GetRegions()) do
-        local region = select(ri, cd:GetRegions())
+local function CollectFontRegions(target, ...)
+    for i = 1, select("#", ...) do
+        local region = select(i, ...)
         if region and region.IsObjectType and region:IsObjectType("FontString") then
-            scratchCdFontRegions[#scratchCdFontRegions + 1] = region
+            target[#target + 1] = region
         end
     end
-    return scratchCdFontRegions
+    return target
+end
+
+local function GetCooldownFontRegions(cd)
+    table_wipe(scratchCdFontRegions)
+    return CollectFontRegions(scratchCdFontRegions, cd:GetRegions())
 end
 
 local function OverrideCooldownRegions(cd, pixelSize, color)
@@ -418,26 +373,21 @@ CDM._LayoutCtx = {
     CDM_C = CDM_C,
     Pixel = Pixel,
     Snap = Snap,
-    ResolveBaseSpellID = ResolveBaseSpellID,
+    ResolveBaseSpellID = GetBaseSpellID,
     ToSortNumber = ToSortNumber,
     GetLayoutConfig = GetLayoutConfig,
     CompareByLayoutIndex = CompareByLayoutIndex,
-    QueueReanchorRetry = QueueReanchorRetry,
     GetRowForIndex = GetRowForIndex,
     ComputeEssentialOrUtilityPosition = ComputeEssentialOrUtilityPosition,
     ComputeEssentialContainerSize = ComputeEssentialContainerSize,
     ComputeUtilityContainerSize = ComputeUtilityContainerSize,
     GetSnappedMetrics = GetSnappedMetrics,
     RowWidth = RowWidth,
-    GetXSide = GetXSide,
-    GetYSide = GetYSide,
-    ComposePoint = ComposePoint,
     DeriveSelfPoint = DeriveSelfPoint,
     PositionFrameAtSlot = PositionFrameAtSlot,
     PlaceFrame = PlaceFrame,
     OverrideCooldownText = OverrideCooldownText,
     GetCooldownFontRegions = GetCooldownFontRegions,
     OverrideCooldownRegions = OverrideCooldownRegions,
-    CenteredRowLeft = CenteredRowLeft,
     GetStableFrameSortID = GetStableFrameSortID,
 }

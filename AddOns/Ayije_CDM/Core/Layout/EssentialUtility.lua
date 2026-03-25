@@ -10,7 +10,6 @@ local defensivesHiddenSet = ctx.defensivesHiddenSet
 local ResolveBaseSpellID = ctx.ResolveBaseSpellID
 local ToSortNumber = ctx.ToSortNumber
 local GetLayoutConfig = ctx.GetLayoutConfig
-local QueueReanchorRetry = ctx.QueueReanchorRetry
 local GetRowForIndex = ctx.GetRowForIndex
 local ComputeEssentialOrUtilityPosition = ctx.ComputeEssentialOrUtilityPosition
 local ComputeEssentialContainerSize = ctx.ComputeEssentialContainerSize
@@ -20,17 +19,26 @@ local GetSnappedMetrics = ctx.GetSnappedMetrics
 local tempIconPositionRecords = {}
 local tempIconPositionRecordPool = {}
 local tempIconPositionRecordCount = 0
-local nextStableFrameSortID = 0
 local tempTrinketReorder = {}
 local math_floor = math.floor
+local math_max = math.max
+local math_min = math.min
+local table_sort = table.sort
+local table_wipe = table.wipe
+local InCombatLockdown = InCombatLockdown
 
 local scratchPlacements = {}
 local scratchPlacementsCount = 0
 local scratchPlacementPool = {}
 local scratchRowBuckets = {}
+local scratchRowBucketPool = {}
+local scratchRowBucketPoolCount = 0
 local scratchRowOrderSeen = {}
 local scratchRowOrderSeenCount = 0
 local scratchRowMetrics = {}
+local scratchRowMetricPool = {}
+local scratchRowMetricPoolCount = 0
+local scratchPreSnapUtil = {}
 
 local function ResetScratchPlacements()
     for i = 1, scratchPlacementsCount do
@@ -59,29 +67,20 @@ local function ResizeLayoutContainerIfAllowed(container, inCombat, width, height
     container:SetSize(Snap(width), Snap(height))
 end
 
-local function PlaceIconTopLeft(frame, container, x, y)
+local function PlaceIconTopLeft(frame, container, x, y, viewer)
     if not frame then
         return
     end
 
+    if viewer and frame:GetParent() ~= viewer then
+        frame:SetParent(UIParent)
+    end
     frame:ClearAllPoints()
-    frame:SetParent(UIParent)
     Pixel.SetPoint(frame, "TOPLEFT", container, "TOPLEFT", x or 0, y or 0)
     frame:Show()
 end
 
-local function GetStableFrameSortID(frame)
-    local frameData = GetFrameData(frame)
-    local sortID = frameData.cdmStableSortID
-    if sortID then
-        return sortID
-    end
-    nextStableFrameSortID = nextStableFrameSortID + 1
-    frameData.cdmStableSortID = nextStableFrameSortID
-    return nextStableFrameSortID
-end
-
-ctx.GetStableFrameSortID = GetStableFrameSortID
+local GetStableFrameSortID = ctx.GetStableFrameSortID
 
 local function ResetTempIconPositionRecords()
     for i = 1, tempIconPositionRecordCount do
@@ -133,22 +132,21 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
     local container = self:GetOrCreateAnchorContainer(viewer)
     if not container then return end
 
-    local missingDataCount = 0
     local hasHiddenSet = next(defensivesHiddenSet) ~= nil
     for _, frame in ipairs(icons) do
         local spellID = ResolveBaseSpellID(frame)
         if spellID and defensivesHiddenSet[spellID] then
             frame:ClearAllPoints()
             frame:Hide()
+            if frame.Cooldown and frame.Cooldown.SetDrawSwipe then
+                frame.Cooldown:SetDrawSwipe(false)
+            end
             GetFrameData(frame).cdmHiddenByDefensives = true
         elseif not spellID and hasHiddenSet then
             frame:ClearAllPoints()
             frame:Hide()
-            missingDataCount = missingDataCount + 1
         elseif spellID or frame.cooldownInfo then
             PushTempIconPositionRecord(frame, ToSortNumber(frame.layoutIndex, 0), GetStableFrameSortID(frame))
-        else
-            missingDataCount = missingDataCount + 1
         end
     end
 
@@ -171,18 +169,18 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
 
         if injRow == 2 then
             local essOnlyCount = tempIconPositionRecordCount - injectedTrinketCount
-            maxRowEss = math.min(maxRowEss, essOnlyCount)
+            maxRowEss = math_min(maxRowEss, essOnlyCount)
         end
     end
 
     local totalIcons = tempIconPositionRecordCount
     if totalIcons > 1 then
-        table.sort(tempIconPositionRecords, CompareIconPositionRecords)
+        table_sort(tempIconPositionRecords, CompareIconPositionRecords)
     end
 
     if injectedTrinketCount > 0 then
         if injRow == 2 and injPos == "start" then
-            table.wipe(tempTrinketReorder)
+            table_wipe(tempTrinketReorder)
             for i = 1, injectedTrinketCount do
                 tempTrinketReorder[i] = tempIconPositionRecords[i]
             end
@@ -194,8 +192,8 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
             end
 
         elseif injRow == 1 and injPos == "end" and totalIcons > maxRowEss then
-            local insertPos = math.max(1, maxRowEss - injectedTrinketCount + 1)
-            table.wipe(tempTrinketReorder)
+            local insertPos = math_max(1, maxRowEss - injectedTrinketCount + 1)
+            table_wipe(tempTrinketReorder)
             for i = 1, injectedTrinketCount do
                 tempTrinketReorder[i] = tempIconPositionRecords[totalIcons - injectedTrinketCount + i]
             end
@@ -212,12 +210,18 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
     for k, bucket in pairs(scratchRowBuckets) do
         for i = 1, #bucket do bucket[i] = nil end
         scratchRowBuckets[k] = nil
+        scratchRowBucketPoolCount = scratchRowBucketPoolCount + 1
+        scratchRowBucketPool[scratchRowBucketPoolCount] = bucket
     end
     for i = 1, scratchRowOrderSeenCount do
         scratchRowOrderSeen[i] = nil
     end
     scratchRowOrderSeenCount = 0
-    table.wipe(scratchRowMetrics)
+    for k, rm in pairs(scratchRowMetrics) do
+        scratchRowMetrics[k] = nil
+        scratchRowMetricPoolCount = scratchRowMetricPoolCount + 1
+        scratchRowMetricPool[scratchRowMetricPoolCount] = rm
+    end
 
     local placements = scratchPlacements
     local rowBuckets = scratchRowBuckets
@@ -226,7 +230,8 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
 
     local preSnapUtil
     if not useMeasuredHorizontalLayout then
-        preSnapUtil = { GetSnappedMetrics(sizeUtility, spacing) }
+        scratchPreSnapUtil[1], scratchPreSnapUtil[2], scratchPreSnapUtil[3] = GetSnappedMetrics(sizeUtility, spacing)
+        preSnapUtil = scratchPreSnapUtil
     end
 
     for index, record in ipairs(tempIconPositionRecords) do
@@ -239,13 +244,17 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
             local placement = AcquireScratchPlacement()
             placement.frame = frame
             placement.row = row
-            placement._wPx = nil
-            placement._hPx = nil
             placement.x = nil
             placement.y = nil
             local bucket = rowBuckets[row]
             if not bucket then
-                bucket = {}
+                if scratchRowBucketPoolCount > 0 then
+                    bucket = scratchRowBucketPool[scratchRowBucketPoolCount]
+                    scratchRowBucketPool[scratchRowBucketPoolCount] = nil
+                    scratchRowBucketPoolCount = scratchRowBucketPoolCount - 1
+                else
+                    bucket = {}
+                end
                 rowBuckets[row] = bucket
                 scratchRowOrderSeenCount = scratchRowOrderSeenCount + 1
                 rowOrderSeen[scratchRowOrderSeenCount] = row
@@ -253,7 +262,7 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
             bucket[#bucket + 1] = placement
         else
             local row, _, _, _, x, y = ComputeEssentialOrUtilityPosition(
-                index, totalIcons, isEssential, sizeEssRow1, sizeEssRow2, sizeUtility, spacing, maxRowEss, maxRowUtil, utilityVertical, nil, nil, preSnapUtil
+                index, totalIcons, isEssential, sizeEssRow1, sizeEssRow2, sizeUtility, spacing, maxRowEss, maxRowUtil, utilityVertical, preSnapUtil
             )
             GetFrameData(frame).cdmRow = row
             self:ApplyStyle(frame, vName)
@@ -262,8 +271,6 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
             placement.row = row
             placement.x = x
             placement.y = y
-            placement._wPx = nil
-            placement._hPx = nil
         end
     end
 
@@ -282,7 +289,7 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
     local gap = Snap(spacing or 0)
 
     if useMeasuredHorizontalLayout and scratchPlacementsCount > 0 then
-        table.sort(rowOrderSeen)
+        table_sort(rowOrderSeen)
 
         local pixelSize = Pixel.GetSize()
         local measuredContainerWidth = 0
@@ -302,8 +309,8 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
                 if isEssential then
                     fallbackSize = (placement.row == 2) and sizeEssRow2 or sizeEssRow1
                 end
-                local fallbackW = math.max(pixelSize, Snap(fallbackSize and fallbackSize.w or 1))
-                local fallbackH = math.max(pixelSize, Snap(fallbackSize and fallbackSize.h or 1))
+                local fallbackW = math_max(pixelSize, Snap(fallbackSize and fallbackSize.w or 1))
+                local fallbackH = math_max(pixelSize, Snap(fallbackSize and fallbackSize.h or 1))
                 local w = rawW > 1 and Snap(rawW) or fallbackW
                 local h = rawH > 1 and Snap(rawH) or fallbackH
                 placement._w = w
@@ -317,13 +324,19 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
                 end
             end
 
-            measuredContainerWidth = math.max(measuredContainerWidth, rowWidth)
+            measuredContainerWidth = math_max(measuredContainerWidth, rowWidth)
             if orderIndex > 1 then
                 measuredContainerHeight = measuredContainerHeight + gap
             end
             local rm = rowMetrics[row]
             if not rm then
-                rm = {}
+                if scratchRowMetricPoolCount > 0 then
+                    rm = scratchRowMetricPool[scratchRowMetricPoolCount]
+                    scratchRowMetricPool[scratchRowMetricPoolCount] = nil
+                    scratchRowMetricPoolCount = scratchRowMetricPoolCount - 1
+                else
+                    rm = {}
+                end
                 rowMetrics[row] = rm
             end
             rm.width = rowWidth
@@ -350,7 +363,7 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
 
             for _, placement in ipairs(bucket) do
                 local frame = placement.frame
-                PlaceIconTopLeft(frame, container, Snap(cursor), yOff)
+                PlaceIconTopLeft(frame, container, Snap(cursor), yOff, viewer)
                 cursor = cursor + (placement._w or 0) + gap
             end
         end
@@ -362,7 +375,7 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
 
         for _, placement in ipairs(placements) do
             local frame = placement.frame
-            PlaceIconTopLeft(frame, container, placement.x or 0, placement.y or 0)
+            PlaceIconTopLeft(frame, container, placement.x or 0, placement.y or 0, viewer)
         end
     end
 
@@ -376,10 +389,6 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
 
     else
         CDM.combatDirtyViewers[vName] = true
-    end
-
-    if missingDataCount > 0 and not self.pendingSpecChange and not self.pendingTalentChange then
-        QueueReanchorRetry(self, vName, 0.05)
     end
 
 end

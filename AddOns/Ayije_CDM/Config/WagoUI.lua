@@ -13,13 +13,9 @@ function API:ExportProfile(profileKey)
     return ProfileIO:ExportLegacyProfile(profile, profileKey)
 end
 
-function CDM:DecodeProfileString(profileString)
+function API:DecodeProfileString(profileString)
     if not ProfileIO or not ProfileIO.DecodeProfileString then return nil, "invalid_profile_data" end
     return ProfileIO:DecodeProfileString(profileString)
-end
-
-function API:DecodeProfileString(profileString)
-    return CDM:DecodeProfileString(profileString)
 end
 
 local function ReportWagoMutationError(prefix, errCode)
@@ -35,7 +31,7 @@ function API:ImportProfile(profileString, profileKey)
         return
     end
 
-    local data, decodeErr = CDM:DecodeProfileString(profileString)
+    local data, decodeErr = ProfileIO:DecodeProfileString(profileString)
     if not data then
         ReportWagoMutationError("wago import decode failed", decodeErr or "invalid_profile_data")
         return

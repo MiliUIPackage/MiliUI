@@ -1,7 +1,8 @@
 local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
-local VIEWERS = CDM.CONST.VIEWERS
-local GetCachedBaseSpellID = CDM.GetCachedBaseSpellID
+local CDM_C = CDM.CONST
+local VIEWERS = CDM_C.VIEWERS
+local GetBaseSpellID = CDM.GetBaseSpellID
 local NormalizeToBase = CDM.NormalizeToBase
 local IsSafeNumber = CDM.IsSafeNumber
 
@@ -15,7 +16,7 @@ local highlightFrames = setmetatable({}, { __mode = "k" })
 local dirtyFrame = CreateFrame("Frame")
 dirtyFrame:Hide()
 
-local VIEWER_NAMES = { VIEWERS.ESSENTIAL, VIEWERS.UTILITY }
+local VIEWER_NAMES = CDM_C.COOLDOWN_VIEWER_NAMES
 
 local glowRatio = 0.33
 
@@ -57,11 +58,11 @@ local function HideHighlight(frame)
 end
 
 local function ClearAllHighlights()
-    for k, hf in pairs(highlightFrames) do
+    for _, hf in pairs(highlightFrames) do
         hf.Flipbook.Anim:Stop()
         hf:Hide()
-        highlightFrames[k] = nil
     end
+    wipe(highlightFrames)
 end
 
 local function RefreshHighlights()
@@ -74,10 +75,7 @@ local function RefreshHighlights()
         local viewer = _G[vName]
         if viewer and viewer.itemFramePool then
             for frame in viewer.itemFramePool:EnumerateActive() do
-                local baseID = GetCachedBaseSpellID(CDM, frame)
-                if baseID then
-                    baseID = NormalizeToBase(baseID)
-                end
+                local baseID = GetBaseSpellID(frame)
                 if baseID and baseID == currentHighlightSpellID then
                     ShowHighlight(frame)
                 else
@@ -111,7 +109,6 @@ end
 local function StopAllAnimations()
     for _, hf in pairs(highlightFrames) do
         if hf:IsShown() then
-            hf.Flipbook.Anim:Play()
             hf.Flipbook.Anim:Stop()
         end
     end
@@ -129,22 +126,18 @@ local function SetCombatState(nextInCombat)
     end
 end
 
-local function OnCombatStateChanged(isInCombat)
-    SetCombatState(isInCombat)
-end
-
 local function RegisterCombatStateListener()
     if combatStateCallbackRegistered then
         return
     end
-    if CDM:RegisterInternalCallback("OnCombatStateChanged", OnCombatStateChanged) then
+    if CDM:RegisterInternalCallback("OnCombatStateChanged", SetCombatState) then
         combatStateCallbackRegistered = true
     end
 end
 
 local function UnregisterCombatStateListener()
     if combatStateCallbackRegistered then
-        CDM:UnregisterInternalCallback("OnCombatStateChanged", OnCombatStateChanged)
+        CDM:UnregisterInternalCallback("OnCombatStateChanged", SetCombatState)
         combatStateCallbackRegistered = false
     end
 end

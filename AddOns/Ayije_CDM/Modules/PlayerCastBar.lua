@@ -20,6 +20,21 @@ local CAST_STATE_NONBREAKABLE = 3
 
 local GetTime = _G.GetTime
 local UnitClass = _G.UnitClass
+local UnitCastingDuration = _G.UnitCastingDuration
+local UnitChannelDuration = _G.UnitChannelDuration
+local UnitEmpoweredChannelDuration = _G.UnitEmpoweredChannelDuration
+local UnitEmpoweredStagePercentages = _G.UnitEmpoweredStagePercentages
+
+local scratchBoundaries = {}
+
+local _empFrame
+local _empUseAtlas
+local _empLsmTexturePath
+local _empBarWidth
+local _empBarHeight
+
+local DEFAULT_BORDER_COLOR = { r = 1, g = 1, b = 1, a = 1 }
+local DEFAULT_BG_COLOR = { r = 0.15, g = 0.15, b = 0.15, a = 0.8 }
 
 local function CfgVal(key, default)
     return CDM_C.GetConfigValue(key, default)
@@ -83,39 +98,10 @@ local function ApplyManualPixelBorder(target)
     overlay:SetFrameLevel((target:GetFrameLevel() or 0) + 4)
     overlay:Show()
 
-    local color = CfgVal("borderColor", { r = 1, g = 1, b = 1, a = 1 })
+    local color = CfgVal("borderColor", DEFAULT_BORDER_COLOR)
     local onePx = Pixel.GetSize()
     local px = math.max(1, math.floor((CfgVal("borderSize", 1) or 1) / onePx)) * onePx
-
-    local top = lines[1]
-    local bottom = lines[2]
-    local left = lines[3]
-    local right = lines[4]
-
-    for _, line in ipairs(lines) do
-        line:SetVertexColor(color.r, color.g, color.b, color.a or 1)
-        line:Show()
-    end
-
-    top:ClearAllPoints()
-    top:SetPoint("TOPLEFT", overlay, "TOPLEFT", px, 0)
-    top:SetPoint("TOPRIGHT", overlay, "TOPRIGHT", -px, 0)
-    top:SetHeight(px)
-
-    bottom:ClearAllPoints()
-    bottom:SetPoint("BOTTOMLEFT", overlay, "BOTTOMLEFT", px, 0)
-    bottom:SetPoint("BOTTOMRIGHT", overlay, "BOTTOMRIGHT", -px, 0)
-    bottom:SetHeight(px)
-
-    left:ClearAllPoints()
-    left:SetPoint("TOPLEFT", overlay, "TOPLEFT", 0, 0)
-    left:SetPoint("BOTTOMLEFT", overlay, "BOTTOMLEFT", 0, 0)
-    left:SetWidth(px)
-
-    right:ClearAllPoints()
-    right:SetPoint("TOPRIGHT", overlay, "TOPRIGHT", 0, 0)
-    right:SetPoint("BOTTOMRIGHT", overlay, "BOTTOMRIGHT", 0, 0)
-    right:SetWidth(px)
+    Pixel.ApplyBorderLines(lines, overlay, px, color.r, color.g, color.b, color.a or 1)
 end
 
 local function SyncCastBarBorderVisual(target, borderHost)
@@ -141,7 +127,6 @@ local EMPOWER_DEFAULT_COLORS = {
     { r = 1.0, g = 0.35, b = 0.0, a = 1 },     -- Stage 4: Orange
 }
 local EMPOWER_FILL_EPSILON = 0.001
-local EMPOWER_BOUNDARY_EPSILON = 0.001
 
 local function GetEmpowerSegmentColor(segmentIndex)
     if segmentIndex <= 1 then
@@ -164,7 +149,7 @@ local function UpdateEmpowerPips(frame, scaledPercentages)
     local barWidth = frame.cachedWidth or frame:GetWidth()
     local barHeight = frame:GetHeight()
 
-    local borderColor = CfgVal("borderColor", { r = 1, g = 1, b = 1, a = 1 })
+    local borderColor = CfgVal("borderColor", DEFAULT_BORDER_COLOR)
     HideEmpowerPips(frame)
 
     for i = 1, #scaledPercentages do
@@ -194,56 +179,56 @@ local function HideEmpowerSegments(frame)
     HideEmpowerPips(frame)
 end
 
+local function ApplyStageTexture(bar)
+    if _empUseAtlas then
+        bar:SetStatusBarTexture(ATLAS_CAST)
+        local tex = bar:GetStatusBarTexture()
+        if tex then tex:SetDesaturated(true) end
+    else
+        if _empLsmTexturePath then
+            bar:SetStatusBarTexture(_empLsmTexturePath)
+        else
+            bar:SetStatusBarTexture(CDM_C.TEX_WHITE8X8)
+        end
+    end
+end
+
+local function ConfigureStage(index, startPct, endPct, color)
+    local stage = _empFrame.empowerStageData[index]
+    if not stage then
+        local bar = CreateFrame("StatusBar", nil, _empFrame.stageFrame)
+        bar:SetFrameLevel(_empFrame.stageFrame:GetFrameLevel())
+        bar:SetMinMaxValues(0, 1)
+        bar:SetValue(0)
+        stage = { bar = bar }
+        _empFrame.empowerStageData[index] = stage
+    end
+
+    stage.startPct = startPct
+    stage.endPct = endPct
+    local onePixel = Pixel.GetSize()
+    local fullWidth = math.max(onePixel, Snap((endPct - startPct) * _empBarWidth))
+
+    local bar = stage.bar
+    bar:ClearAllPoints()
+    Pixel.SetPoint(bar, "TOPLEFT", _empFrame.stageFrame, "TOPLEFT", startPct * _empBarWidth, 0)
+    bar:SetSize(fullWidth, _empBarHeight)
+    ApplyStageTexture(bar)
+    bar:SetStatusBarColor(color.r, color.g, color.b, color.a or 1)
+    bar:SetValue(0)
+    bar:Show()
+end
+
 local function SetupEmpowerSegments(frame, numStages, boundaries)
     frame.empowerStageData = frame.empowerStageData or {}
-    local barWidth = frame.cachedWidth or frame:GetWidth()
-    local barHeight = frame:GetHeight()
-    local useAtlas = CfgVal("castBarUseAtlasTextures", true)
-
-    local lsmTexturePath
-    if not useAtlas then
+    _empFrame = frame
+    _empBarWidth = frame.cachedWidth or frame:GetWidth()
+    _empBarHeight = frame:GetHeight()
+    _empUseAtlas = CfgVal("castBarUseAtlasTextures", true)
+    _empLsmTexturePath = nil
+    if not _empUseAtlas then
         local textureName = CfgVal("castBarTexture", "Blizzard")
-        lsmTexturePath = LSM and LSM:Fetch("statusbar", textureName)
-    end
-
-    local function ApplyStageTexture(bar)
-        if useAtlas then
-            bar:SetStatusBarTexture(ATLAS_CAST)
-            local tex = bar:GetStatusBarTexture()
-            if tex then tex:SetDesaturated(true) end
-        else
-            if lsmTexturePath then
-                bar:SetStatusBarTexture(lsmTexturePath)
-            else
-                bar:SetStatusBarTexture(CDM_C.TEX_WHITE8X8)
-            end
-        end
-    end
-
-    local function ConfigureStage(index, startPct, endPct, color)
-        local stage = frame.empowerStageData[index]
-        if not stage then
-            local bar = CreateFrame("StatusBar", nil, frame.stageFrame)
-            bar:SetFrameLevel(frame.stageFrame:GetFrameLevel())
-            bar:SetMinMaxValues(0, 1)
-            bar:SetValue(0)
-            stage = { bar = bar }
-            frame.empowerStageData[index] = stage
-        end
-
-        stage.startPct = startPct
-        stage.endPct = endPct
-        local onePixel = Pixel.GetSize()
-        stage.fullWidth = math.max(onePixel, Snap((endPct - startPct) * barWidth))
-
-        local bar = stage.bar
-        bar:ClearAllPoints()
-        Pixel.SetPoint(bar, "TOPLEFT", frame.stageFrame, "TOPLEFT", startPct * barWidth, 0)
-        bar:SetSize(stage.fullWidth, barHeight)
-        ApplyStageTexture(bar)
-        bar:SetStatusBarColor(color.r, color.g, color.b, color.a or 1)
-        bar:SetValue(0)
-        bar:Show()
+        _empLsmTexturePath = LSM and LSM:Fetch("statusbar", textureName)
     end
 
     for s = 1, numStages do
@@ -318,40 +303,20 @@ local function GetCastBarWidth()
     return w
 end
 
-local ShowPreview, HidePreview, ApplyBarTexture
+local ShowPreview, HidePreview, ApplyBarTexture, OnUpdate
 
 local function FadeOut(self)
-    if self.isFading then return end
-
-    self.isFading = true
-    self.fadeStart = GetTime()
-
     HideEmpowerSegments(self)
-end
+    self:Hide()
+    self.isEmpowered = false
+    self.txtObj:SetShown(self.cdmShowTimer ~= false)
+    self.spellName:SetShown(self.cdmShowSpellName ~= false)
 
-local function UpdateFade(self)
-    if not self.isFading then return end
-
-    local elapsed = GetTime() - self.fadeStart
-
-    if elapsed >= 0.2 then
-        self:SetAlpha(0)
-        self:Hide()
-        self.isFading = false
-        self.isEmpowered = false
-        self:SetAlpha(1)
-        self.txtObj:SetShown(self.cdmShowTimer ~= false)
-        self.spellName:SetShown(self.cdmShowSpellName ~= false)
-
-        if not IsCastBarContainerLocked() then
-            ShowPreview(self)
-        else
-            self:SetScript("OnUpdate", nil)
-        end
-        return
+    if not IsCastBarContainerLocked() then
+        ShowPreview(self)
+    else
+        self:SetScript("OnUpdate", nil)
     end
-
-    self:SetAlpha(1 - (elapsed / 0.2))
 end
 
 ShowPreview = function(frame)
@@ -359,8 +324,6 @@ ShowPreview = function(frame)
     if not frame:GetScript("OnUpdate") then
         frame:SetScript("OnUpdate", OnUpdate)
     end
-
-    frame.isFading = false
 
     frame.isPreview = true
     frame.curEndTime = nil
@@ -400,46 +363,27 @@ end
 HidePreview = function(frame)
     if not frame or not frame.isPreview then return end
     frame.isPreview = false
-    frame.isFading = false
     frame.casting = false
     frame.channeling = false
     frame:Hide()
 end
 
-local function OnUpdate(self)
-    UpdateFade(self)
-    if self.isFading or self.isPreview then return end
+OnUpdate = function(self)
+    if self.isPreview then return end
 
     if not self.casting and not self.channeling then
         FadeOut(self)
         return
     end
 
-    local now = GetTime()
-    local endTime = self.curEndTime
-    if not endTime then return end
-
-    if now >= endTime then
-        FadeOut(self)
-        return
-    end
-
-    local totalDuration = endTime - self.curStartTime
-    if totalDuration <= 0 then return end
-    local displayValue = self.isReverse and (endTime - now) or (now - self.curStartTime)
-
-    self.barObj:SetValue(displayValue)
-
     if self.isEmpowered then
         UpdateEmpowerFill(self)
     end
 
     if self.cdmShowTimer ~= false then
-        local remaining = endTime - now
-        local displayTenth = remaining > 0 and math.floor(remaining * 10) or 0
-        if displayTenth ~= self._lastTimerTenth then
-            self._lastTimerTenth = displayTenth
-            self.txtObj:SetFormattedText("%.1f", remaining)
+        local durationObject = self.barObj:GetTimerDuration()
+        if durationObject then
+            self.txtObj:SetFormattedText("%.1f", durationObject:GetRemainingDuration())
         end
     end
 end
@@ -476,7 +420,6 @@ ApplyBarTexture = function(frame, castState)
             local r, g, b, a = GetPlayerClassColor()
             if r then
                 frame.barObj:SetStatusBarColor(r, g, b, a)
-                frame.currentCastState = castState
                 ReanchorSpark(frame)
                 return
             end
@@ -497,7 +440,6 @@ ApplyBarTexture = function(frame, castState)
         end
     end
 
-    frame.currentCastState = castState
     ReanchorSpark(frame)
 end
 
@@ -505,7 +447,6 @@ local function FinishCast(frame)
     frame.casting = false
     frame.channeling = false
     frame.currentCastID = nil
-    if frame.isFading then return end
     FadeOut(frame)
 end
 
@@ -536,7 +477,6 @@ local function RefreshBarData(frame, isChannel)
     end
 
     frame.isPreview = false
-    frame.castSucceeded = false
     frame.casting = not isChannel
     frame.channeling = isChannel or false
     frame.isEmpowered = isEmpowered or false
@@ -544,43 +484,18 @@ local function RefreshBarData(frame, isChannel)
 
     if isEmpowered and numStages and numStages > 0 then
         local holdAtMax = GetUnitEmpowerHoldAtMaxTime("player") or 0
-        local stageTotal = 0
-        local boundaries = {}
-        for i = 0, numStages - 1 do
-            local stageDur = GetUnitEmpowerStageDuration("player", i) or 0
-            if stageDur < 0 then stageDur = 0 end
-            stageTotal = stageTotal + stageDur
-            boundaries[i + 1] = stageTotal
-        end
+        endTime = endTime + holdAtMax
 
-        local totalDuration = stageTotal + holdAtMax
-        if totalDuration <= 0 then
-            totalDuration = (endTime - startTime) + holdAtMax
-        end
-        if totalDuration <= 0 then
-            totalDuration = 1
-        end
-
-        local boundaryCount = #boundaries
-        for i = 1, boundaryCount do
-            local pct = boundaries[i] / totalDuration
-            if pct < 0 then pct = 0 elseif pct > 1 then pct = 1 end
-
-            local minPct = (i == 1) and 0 or (boundaries[i - 1] + EMPOWER_BOUNDARY_EPSILON)
-            local maxPct = 1 - ((boundaryCount - i) * EMPOWER_BOUNDARY_EPSILON)
-            if maxPct < minPct then
-                maxPct = minPct
+        local percentages = UnitEmpoweredStagePercentages("player")
+        if percentages then
+            local cumulative = 0
+            for i = 1, numStages do
+                cumulative = cumulative + (percentages[i] or 0)
+                scratchBoundaries[i] = cumulative
             end
-            if pct < minPct then
-                pct = minPct
-            elseif pct > maxPct then
-                pct = maxPct
-            end
-            boundaries[i] = pct
+            for i = numStages + 1, #scratchBoundaries do scratchBoundaries[i] = nil end
+            SetupEmpowerSegments(frame, numStages, scratchBoundaries)
         end
-
-        endTime = startTime + totalDuration
-        SetupEmpowerSegments(frame, numStages, boundaries)
     else
         HideEmpowerSegments(frame)
     end
@@ -591,10 +506,21 @@ local function RefreshBarData(frame, isChannel)
 
     local totalDuration = frame.curEndTime - frame.curStartTime
     frame.barObj:SetMinMaxValues(0, totalDuration)
-    local now = GetTime()
-    local initialValue = frame.isReverse and (frame.curEndTime - now) or (now - frame.curStartTime)
-    initialValue = math.max(0, math.min(totalDuration, initialValue))
-    frame.barObj:SetValue(initialValue)
+
+    local duration
+    if frame.isEmpowered then
+        duration = UnitEmpoweredChannelDuration("player")
+    elseif isChannel then
+        duration = UnitChannelDuration("player")
+    else
+        duration = UnitCastingDuration("player")
+    end
+    if duration then
+        local direction = frame.isReverse
+            and Enum.StatusBarTimerDirection.RemainingTime
+            or Enum.StatusBarTimerDirection.ElapsedTime
+        frame.barObj:SetTimerDuration(duration, Enum.StatusBarInterpolation.Immediate, direction)
+    end
 
     local castState
     if notInterruptible then
@@ -628,8 +554,6 @@ local function RefreshBarData(frame, isChannel)
         frame.txtObj:Hide()
     end
 
-    frame._lastTimerTenth = nil
-    frame.isFading = false
     frame:SetAlpha(1)
     frame:Show()
     SyncCastBarBorderVisual(frame, frame.borderFrame)
@@ -751,7 +675,7 @@ local function UpdateCastBarFromConfig(frame)
         if bgTexturePath then
             frame.bgTexture:SetTexture(bgTexturePath)
         end
-        local bgColor = CfgVal("castBarBackgroundColor", { r = 0.15, g = 0.15, b = 0.15, a = 0.8 })
+        local bgColor = CfgVal("castBarBackgroundColor", DEFAULT_BG_COLOR)
         frame.bgTexture:SetVertexColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a or 0.8)
     end
 
@@ -821,7 +745,6 @@ end
 
 local castBarEvents = {
     "UNIT_SPELLCAST_START",
-    "UNIT_SPELLCAST_SUCCEEDED",
     "UNIT_SPELLCAST_FAILED",
     "UNIT_SPELLCAST_FAILED_QUIET",
     "UNIT_SPELLCAST_INTERRUPTED",
@@ -859,9 +782,7 @@ local function DisableCastBar(frame)
     frame:Hide()
     frame.casting = false
     frame.channeling = false
-    frame.isFading = false
     frame.isEmpowered = false
-    frame.castSucceeded = false
     HideEmpowerSegments(frame)
     frame.cdmEnabled = false
 
@@ -878,8 +799,26 @@ function CDM:DisableBlizzardPlayerCastBar()
         return false
     end
 
-    -- This is intentionally one-way for the current session; reloading restores Blizzard defaults.
     PlayerCastingBarFrame:UnregisterAllEvents()
+    PlayerCastingBarFrame:Hide()
+
+    -- Prevent other addons (oUF, EllesmereUI, etc.) from re-registering events
+    hooksecurefunc(PlayerCastingBarFrame, "RegisterEvent", function(self)
+        if blizzardCastBarDisabled then
+            self:UnregisterAllEvents()
+        end
+    end)
+    hooksecurefunc(PlayerCastingBarFrame, "RegisterUnitEvent", function(self)
+        if blizzardCastBarDisabled then
+            self:UnregisterAllEvents()
+        end
+    end)
+    hooksecurefunc(PlayerCastingBarFrame, "Show", function(self)
+        if blizzardCastBarDisabled then
+            self:Hide()
+        end
+    end)
+
     blizzardCastBarDisabled = true
     return true
 end
@@ -1037,11 +976,6 @@ function CDM:InitializePlayerCastBar()
             frame.currentCastID = castID
             RefreshBarData(frame, false)
 
-        elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
-            if IsMatchingCast(frame, castID) then
-                frame.castSucceeded = true
-            end
-
         elseif event == "UNIT_SPELLCAST_CHANNEL_START" or event == "UNIT_SPELLCAST_EMPOWER_START" then
             frame.currentCastID = castID
             RefreshBarData(frame, true)
@@ -1054,12 +988,12 @@ function CDM:InitializePlayerCastBar()
             end
 
         elseif event == "UNIT_SPELLCAST_FAILED" then
-            if frame.casting and not frame.castSucceeded and IsMatchingCast(frame, castID) then
+            if frame.casting and IsMatchingCast(frame, castID) then
                 FinishCast(frame)
             end
 
         elseif event == "UNIT_SPELLCAST_FAILED_QUIET" then
-            if frame.casting and not frame.castSucceeded and IsMatchingCast(frame, castID) then
+            if frame.casting and IsMatchingCast(frame, castID) then
                 if not UnitCastingInfo("player") and not UnitChannelInfo("player") then
                     FinishCast(frame)
                 end
@@ -1083,18 +1017,21 @@ function CDM:InitializePlayerCastBar()
 
         elseif event == "UNIT_SPELLCAST_INTERRUPTIBLE"
             or event == "UNIT_SPELLCAST_NOT_INTERRUPTIBLE" then
-                    if not frame.isFading and frame.curEndTime then
+            if frame.curEndTime then
                 local isChannel = frame.channeling
                 local notInterruptible = (event == "UNIT_SPELLCAST_NOT_INTERRUPTIBLE")
                 local castState
                 if notInterruptible then
                     castState = CAST_STATE_NONBREAKABLE
-                elseif isChannel then
+                elseif isChannel and not frame.isEmpowered then
                     castState = CAST_STATE_CHANNEL
                 else
                     castState = CAST_STATE_NORMAL
                 end
                 ApplyBarTexture(frame, castState)
+                if frame.isEmpowered then
+                    frame.barObj:SetStatusBarColor(0, 0, 0, 0)
+                end
             end
         end
     end)

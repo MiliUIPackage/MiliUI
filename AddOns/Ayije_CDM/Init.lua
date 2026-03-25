@@ -71,7 +71,7 @@ end)
 
 local unitEventFrame = CreateFrame("Frame")
 local unitEventHandlers = {}
-local unitEventDispatchBuffer = {}
+
 
 local function EnsureUnitEventBucket(event, unit)
     local bucket = unitEventHandlers[event]
@@ -97,15 +97,6 @@ function CDM:RegisterUnitEvent(event, unit, handler)
 
     bucket.lookup[handler] = true
     bucket.list[#bucket.list + 1] = handler
-end
-
-function CDM:UnregisterUnitEvent(event)
-    if type(event) ~= "string" or event == "" then return end
-    local bucket = unitEventHandlers[event]
-    if not bucket then return end
-
-    unitEventHandlers[event] = nil
-    unitEventFrame:UnregisterEvent(event)
 end
 
 function CDM:UnregisterUnitEventHandler(event, handler)
@@ -146,13 +137,13 @@ unitEventFrame:SetScript("OnEvent", function(_, event, ...)
         return
     end
 
-    table.wipe(unitEventDispatchBuffer)
+    local buf = {}
     for i = 1, count do
-        unitEventDispatchBuffer[i] = handlers[i]
+        buf[i] = handlers[i]
     end
 
     for i = count, 1, -1 do
-        local handler = unitEventDispatchBuffer[i]
+        local handler = buf[i]
         if handler then
             handler(event, ...)
         end
@@ -228,25 +219,6 @@ local function RegisterRefreshScopeNames(scopeSet)
     end
 end
 
-local function ScopeSetToLabel(scopeSet)
-    if not scopeSet then
-        return ""
-    end
-    local labels = {}
-    for scopeName in pairs(scopeSet) do
-        labels[#labels + 1] = scopeName
-    end
-    table.sort(labels)
-    return table.concat(labels, ",")
-end
-
-local function DebugRefresh(message)
-    if not CDM.debugRefreshScopes then
-        return
-    end
-    print("|cff00ccff[CDM Refresh]|r " .. message)
-end
-
 function CDM:RegisterRefreshCallback(id, callback, priority, scopes)
     if self.RefreshCallbacks[id] then
         self:UnregisterRefreshCallback(id)
@@ -277,32 +249,6 @@ function CDM:UnregisterRefreshCallback(id)
             break
         end
     end
-end
-
-function CDM:RegisterRefreshCallbackScope(id, scopeNames)
-    if type(id) ~= "string" or id == "" then return false end
-    local entry = self.RefreshCallbacks[id]
-    if not entry then return false end
-
-    local normalizedScopes = NormalizeRefreshScopeSet(scopeNames)
-    if not normalizedScopes then return false end
-
-    if not entry.scopes then
-        entry.scopes = {}
-    end
-    for scopeName in pairs(normalizedScopes) do
-        entry.scopes[scopeName] = true
-    end
-    RegisterRefreshScopeNames(entry.scopes)
-    return true
-end
-
-function CDM:ClearRefreshCallbackScopes(id)
-    if type(id) ~= "string" or id == "" then return false end
-    local entry = self.RefreshCallbacks[id]
-    if not entry then return false end
-    entry.scopes = nil
-    return true
 end
 
 function CDM:RegisterCastBarSliderUpdater(callback)
@@ -360,24 +306,14 @@ local function ShouldRunEntryForScopeSet(entry, scopeSet)
     return false
 end
 
-local function DispatchRefreshCallbacks(executeAll, scopeSet, reasonLabel)
+local function DispatchRefreshCallbacks(executeAll, scopeSet)
     if executeAll then
-        DebugRefresh(reasonLabel or "dispatch:full")
         for _, entry in ipairs(refreshCallbackList) do
             SafeInvokeCallback(entry.id, entry.callback)
         end
         return
     end
 
-    if CDM.refreshScopeDebugFallbackToFull then
-        DebugRefresh("dispatch:scoped_fallback_full:" .. ScopeSetToLabel(scopeSet))
-        for _, entry in ipairs(refreshCallbackList) do
-            SafeInvokeCallback(entry.id, entry.callback)
-        end
-        return
-    end
-
-    DebugRefresh(reasonLabel or ("dispatch:scoped:" .. ScopeSetToLabel(scopeSet)))
     for _, entry in ipairs(refreshCallbackList) do
         if ShouldRunEntryForScopeSet(entry, scopeSet) then
             SafeInvokeCallback(entry.id, entry.callback)
@@ -393,7 +329,7 @@ local function ExecuteRefreshCallbacks()
     refreshPendingAll = false
     refreshPendingScopes = {}
 
-    DispatchRefreshCallbacks(executeAll, scopeSet, executeAll and "dispatch:full" or ("dispatch:scoped:" .. ScopeSetToLabel(scopeSet)))
+    DispatchRefreshCallbacks(executeAll, scopeSet)
 end
 
 refreshThrottleFrame:SetScript("OnUpdate", function(self)
@@ -435,7 +371,6 @@ local function QueueRefreshScopes(scopeNames)
 
     for scopeName in pairs(normalizedScopes) do
         if not CDM.RefreshScopeRegistry[scopeName] then
-            DebugRefresh("unknown_scope:" .. scopeName .. ":fallback_full")
             QueueRefreshAll()
             return
         end
@@ -469,15 +404,7 @@ end
 
 function CDM:RefreshConfigNow()
     ClearQueuedRefreshState()
-    DispatchRefreshCallbacks(true, nil, "dispatch:full:immediate")
-end
-
-function CDM:RefreshScopeNow(scopeName)
-    if type(scopeName) ~= "string" or scopeName == "" then
-        self:RefreshConfigNow()
-        return
-    end
-    self:RefreshScopesNow({ scopeName })
+    DispatchRefreshCallbacks(true, nil)
 end
 
 function CDM:RefreshScopesNow(scopeNames)
@@ -489,21 +416,13 @@ function CDM:RefreshScopesNow(scopeNames)
 
     for scopeName in pairs(normalizedScopes) do
         if not self.RefreshScopeRegistry[scopeName] then
-            DebugRefresh("unknown_scope:" .. scopeName .. ":fallback_full_now")
             self:RefreshConfigNow()
             return
         end
     end
 
     ClearQueuedRefreshState()
-    DispatchRefreshCallbacks(false, normalizedScopes, "dispatch:scoped:immediate:" .. ScopeSetToLabel(normalizedScopes))
-end
-
-function CDM:IsRefreshScopeRegistered(scopeName)
-    if type(scopeName) ~= "string" or scopeName == "" then
-        return false
-    end
-    return self.RefreshScopeRegistry[scopeName] == true
+    DispatchRefreshCallbacks(false, normalizedScopes)
 end
 
 function CDM.IsSafeNumber(value)

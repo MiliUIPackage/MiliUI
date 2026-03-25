@@ -319,9 +319,6 @@ local function CreateImportExportTab(page, tabId)
         local importString = importEditBox:GetText()
         local success, message = API:ImportProfile(importString)
         SetImportStatus(importStatus, success, message)
-
-        -- RebuildConfigFrame is already triggered by ImportProfileData
-        -- via QueueCanonicalProfileRefresh; no explicit call needed here.
     end)
 
     local clearBtn = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")

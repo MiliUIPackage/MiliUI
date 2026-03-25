@@ -242,8 +242,8 @@ local function CreateBuffGroupsTab(page)
             local matchType = API.GetBuffRegistryMatch and API:GetBuffRegistryMatch(frame) or nil
             if not matchType then
                 local displayID = API.GetPreferredBuffGroupSpellID and API:GetPreferredBuffGroupSpellID(frame)
-                if not IsSafeNumber(displayID) and API.GetCachedBaseSpellID then
-                    displayID = API:GetCachedBaseSpellID(frame)
+                if not IsSafeNumber(displayID) and API.GetBaseSpellID then
+                    displayID = API:GetBaseSpellID(frame)
                 end
                 local hiddenBuffSet = CDM.resourcesHiddenBuffSet
                 if IsSafeNumber(displayID)

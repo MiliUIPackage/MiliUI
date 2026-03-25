@@ -5,10 +5,10 @@ local VIEWERS = CDM_C.VIEWERS
 local L = CDM.L
 
 local LOCK_FRAME_NAMES = {
-    "EssentialCooldownViewer",
-    "UtilityCooldownViewer",
-    "BuffIconCooldownViewer",
-    "BuffBarCooldownViewer",
+    VIEWERS.ESSENTIAL,
+    VIEWERS.UTILITY,
+    VIEWERS.BUFF,
+    VIEWERS.BUFF_BAR,
 }
 
 local selectionState = setmetatable({}, { __mode = "k" })

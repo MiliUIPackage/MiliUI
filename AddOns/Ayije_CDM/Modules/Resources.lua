@@ -4,6 +4,12 @@ local CDM = _G[AddonName]
 local CDM_C = CDM and CDM.CONST or {}
 local IsSafeNumber = CDM.IsSafeNumber
 local math_floor = math.floor
+local math_max = math.max
+local math_min = math.min
+local GetTime = GetTime
+local issecretvalue = issecretvalue
+local UnitPower = UnitPower
+local UnitPowerMax = UnitPowerMax
 
 local POWER_TYPES = Enum.PowerType
 local LSM = LibStub("LibSharedMedia-3.0")
@@ -45,7 +51,8 @@ local lastMaelstromAuraUpdateTime = 0
 local lastDevourerAuraUpdateTime = 0
 local lastDevourerInVoidMeta = false
 
-local ironfurStacks = {}
+local ironfurExpiries = {}
+local ironfurDurations = {}
 local guardianOfEluneExpiry = 0
 
 local ignorePainFrame = nil
@@ -63,6 +70,7 @@ local BEAR_FORM_POWER_TYPE = Enum.PowerType.Rage
 local CAT_FORM_POWER_TYPE = Enum.PowerType.Energy
 local GUARDIAN_OF_ELUNE_DURATION = 15
 
+local cachedPrimaryPowerType
 local cachedFontPath
 local cachedFontSize
 local cachedFontOutline
@@ -88,7 +96,7 @@ local function SnapWidthToPixelGrid(frame, width)
     end
 
     local onePixel = Pixel.GetSize()
-    local pixelWidth = math.max(1, math.floor(width / onePixel + 0.5))
+    local pixelWidth = math_max(1, math_floor(width / onePixel + 0.5))
     return pixelWidth * onePixel, pixelWidth, onePixel
 end
 
@@ -143,40 +151,10 @@ local function ApplyResourcePixelBorder(host, color)
     end
 
     local onePx = Pixel.GetSize()
-    local configuredSize = CDM_C.GetConfigValue("borderSize", 1) or 1
-    local px = math.max(1, math.floor(configuredSize / onePx)) * onePx
-    local r = (color and color.r) or 1
-    local g = (color and color.g) or 1
-    local b = (color and color.b) or 1
-    local a = (color and color.a) or 1
-
-    local lines = host.pixelBorderLines
-    for _, line in ipairs(lines) do
-        line:SetVertexColor(r, g, b, a)
-        line:Show()
-    end
-
-    local top, bottom, left, right = lines[1], lines[2], lines[3], lines[4]
-
-    top:ClearAllPoints()
-    top:SetPoint("TOPLEFT", host, "TOPLEFT", px, 0)
-    top:SetPoint("TOPRIGHT", host, "TOPRIGHT", -px, 0)
-    top:SetHeight(px)
-
-    bottom:ClearAllPoints()
-    bottom:SetPoint("BOTTOMLEFT", host, "BOTTOMLEFT", px, 0)
-    bottom:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", -px, 0)
-    bottom:SetHeight(px)
-
-    left:ClearAllPoints()
-    left:SetPoint("TOPLEFT", host, "TOPLEFT", 0, 0)
-    left:SetPoint("BOTTOMLEFT", host, "BOTTOMLEFT", 0, 0)
-    left:SetWidth(px)
-
-    right:ClearAllPoints()
-    right:SetPoint("TOPRIGHT", host, "TOPRIGHT", 0, 0)
-    right:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", 0, 0)
-    right:SetWidth(px)
+    local px = math_max(1, math_floor((CDM_C.GetConfigValue("borderSize", 1) or 1) / onePx)) * onePx
+    Pixel.ApplyBorderLines(host.pixelBorderLines, host, px,
+        (color and color.r) or 1, (color and color.g) or 1,
+        (color and color.b) or 1, (color and color.a) or 1)
 end
 
 local function HideResourcePixelBorder(host)
@@ -393,7 +371,7 @@ local function RefreshCachedFontStyles()
     cachedSoulShardReadyColor = GetPowerColor(POWER_TYPES.SoulShards)
     cachedSoulShardRechargingColor = (db and db.resourcesSoulShardsRechargingColor)
         or defaults.resourcesSoulShardsRechargingColor or cachedSoulShardReadyColor
-    cachedBar2TagEnabled = CDM.GetTagEnabled and CDM:GetTagEnabled(true) or false
+    cachedBar2TagEnabled = CDM:GetTagEnabled(true) or false
     cachedBar2OffsetX = db and db.resourcesBar2TagOffsetX or 0
     cachedBar2OffsetY = db and db.resourcesBar2TagOffsetY or 0
 end
@@ -403,7 +381,7 @@ local function RefreshCachedRuneTimerSlot()
     local runesIsBar2 = (GetResourceConfigSlot(POWER_TYPES.Runes) == 2)
     local db = CDM.db
     local barKey = runesIsBar2 and "Bar2" or "Bar1"
-    cachedBar2TagEnabled = CDM:GetTagEnabled(runesIsBar2 and true or false) or false
+    cachedBar2TagEnabled = CDM:GetTagEnabled(runesIsBar2) or false
     cachedFontSize = db and db["resources" .. barKey .. "TagFontSize"] or 14
     cachedFontColor = db and db["resources" .. barKey .. "TagColor"] or DEFAULT_WHITE_COLOR
     cachedBar2OffsetX = db and db["resources" .. barKey .. "TagOffsetX"] or 0
@@ -1344,7 +1322,7 @@ local function UpdateBorders(powerTypes)
             if IsPipSeparatorBar(bar) then
                 HideBarSeparatorFill(bar)
 
-                local activeSeps = math.max(0, (bar.activePipCount or 0) - 1)
+                local activeSeps = math_max(0, (bar.activePipCount or 0) - 1)
                 local barLeft = bar.GetLeft and bar:GetLeft() or nil
                 local onePixel = Pixel.GetSize()
                 local barHeight = bar.GetHeight and bar:GetHeight() or nil
@@ -1404,7 +1382,7 @@ local function ApplyRuneStates(bar, readyColor, rechargingColor, textEnabled)
             end
         elseif rune.isReady then
             pip:SetValue(1, Enum.StatusBarInterpolation.Immediate)
-            pip:SetStatusBarColor(readyColor.r, readyColor.g, readyColor.b, readyColor.a)
+            SetStatusBarColorIfChanged(pip, readyColor)
             if pip.timerText then
                 pip.timerText:Hide()
             end
@@ -1418,7 +1396,7 @@ local function ApplyRuneStates(bar, readyColor, rechargingColor, textEnabled)
                 if progress > 1 then progress = 1 end
 
                 pip:SetValue(progress, Enum.StatusBarInterpolation.Immediate)
-                pip:SetStatusBarColor(rechargingColor.r, rechargingColor.g, rechargingColor.b, rechargingColor.a)
+                SetStatusBarColorIfChanged(pip, rechargingColor)
 
                 if pip.timerText and textEnabled then
                     if rune.remaining > 0 then
@@ -1437,7 +1415,7 @@ local function ApplyRuneStates(bar, readyColor, rechargingColor, textEnabled)
                 end
             else
                 pip:SetValue(0, Enum.StatusBarInterpolation.Immediate)
-                pip:SetStatusBarColor(rechargingColor.r, rechargingColor.g, rechargingColor.b, rechargingColor.a)
+                SetStatusBarColorIfChanged(pip, rechargingColor)
                 if pip.timerText then
                     pip.timerText:Hide()
                 end
@@ -1541,7 +1519,7 @@ local function ApplyEssenceStates(bar, current, max, readyColor, rechargingColor
         if not pip:IsShown() then break end
         if i <= current then
             pip:SetValue(1, Enum.StatusBarInterpolation.Immediate)
-            pip:SetStatusBarColor(readyColor.r, readyColor.g, readyColor.b, readyColor.a)
+            SetStatusBarColorIfChanged(pip, readyColor)
         elseif i == current + 1 and essenceRechargeStart and essenceRechargeRate and essenceRechargeRate > 0 then
             local elapsed = GetTime() - essenceRechargeStart
             local rechargeTime = 1 / essenceRechargeRate
@@ -1549,10 +1527,10 @@ local function ApplyEssenceStates(bar, current, max, readyColor, rechargingColor
             if progress < 0 then progress = 0 end
             if progress > 1 then progress = 1 end
             pip:SetValue(progress, Enum.StatusBarInterpolation.Immediate)
-            pip:SetStatusBarColor(rechargingColor.r, rechargingColor.g, rechargingColor.b, rechargingColor.a)
+            SetStatusBarColorIfChanged(pip, rechargingColor)
         else
             pip:SetValue(0, Enum.StatusBarInterpolation.Immediate)
-            pip:SetStatusBarColor(rechargingColor.r, rechargingColor.g, rechargingColor.b, rechargingColor.a)
+            SetStatusBarColorIfChanged(pip, rechargingColor)
         end
     end
 end
@@ -1733,15 +1711,16 @@ end
 
 local function PruneExpiredIronfurStacks()
     local now = GetTime()
-    while #ironfurStacks > 0 and ironfurStacks[1].expiry <= now do
-        table.remove(ironfurStacks, 1)
+    while #ironfurExpiries > 0 and ironfurExpiries[1] <= now do
+        table.remove(ironfurExpiries, 1)
+        table.remove(ironfurDurations, 1)
     end
 end
 
 local function UpdateIronfurBar()
     PruneExpiredIronfurStacks()
 
-    local stackCount = #ironfurStacks
+    local stackCount = #ironfurExpiries
 
     local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.Ironfur]
     if not bar or not bar:IsShown() then
@@ -1759,13 +1738,12 @@ local function UpdateIronfurBar()
     if stackCount > 0 then
         local maxExpiry = 0
         for i = 1, stackCount do
-            if ironfurStacks[i].expiry > maxExpiry then
-                maxExpiry = ironfurStacks[i].expiry
+            if ironfurExpiries[i] > maxExpiry then
+                maxExpiry = ironfurExpiries[i]
                 longestIdx = i
             end
         end
-        local longest = ironfurStacks[longestIdx]
-        fillPct = math.max(0, (longest.expiry - now) / longest.duration)
+        fillPct = math_max(0, (ironfurExpiries[longestIdx] - now) / ironfurDurations[longestIdx])
         bar:SetValue(fillPct, Enum.StatusBarInterpolation.Immediate)
     else
         bar:SetValue(0, Enum.StatusBarInterpolation.Immediate)
@@ -1779,19 +1757,18 @@ local function UpdateIronfurBar()
     local onePixel = Pixel.GetSize()
 
     for i = 1, stackCount do
-        local stack = ironfurStacks[i]
         local tick = bar.ironfurTicks[i]
         if not tick then
             tick = Pixel.CreateSolidTexture(bar, "OVERLAY", 7)
+            tick:SetVertexColor(1, 1, 1, 1)
             bar.ironfurTicks[i] = tick
         end
-        tick:SetVertexColor(1, 1, 1, 1)
 
         local stackPct
         if i == longestIdx then
             stackPct = fillPct
         else
-            stackPct = math.max(0, math.min(1, (stack.expiry - now) / stack.duration))
+            stackPct = math_max(0, math_min(1, (ironfurExpiries[i] - now) / ironfurDurations[i]))
         end
         local xOffset = stackPct * barWidth
         local snappedXOffset = Snap(xOffset)
@@ -1817,34 +1794,23 @@ local function UpdateIronfurBar()
 end
 
 local IRONFUR_UPDATE_INTERVAL = 0.021
-local ironfurElapsed = 0
 
 StartIronfurTicker = function()
     if ironfurUpdateTicker then return end
-    local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.Ironfur]
-    if bar then
-        ironfurUpdateTicker = true
-        ironfurElapsed = 0
-        bar:SetScript("OnUpdate", function(_, dt)
-            ironfurElapsed = ironfurElapsed + dt
-            if ironfurElapsed < IRONFUR_UPDATE_INTERVAL then return end
-            ironfurElapsed = 0
-            UpdateIronfurBar()
-        end)
-    end
+    ironfurUpdateTicker = C_Timer.NewTicker(IRONFUR_UPDATE_INTERVAL, function()
+        UpdateIronfurBar()
+    end)
 end
 
 StopIronfurTicker = function()
     if not ironfurUpdateTicker then return end
+    ironfurUpdateTicker:Cancel()
     ironfurUpdateTicker = nil
-    local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.Ironfur]
-    if bar then
-        bar:SetScript("OnUpdate", nil)
-    end
 end
 
 local function ClearIronfurState()
-    table.wipe(ironfurStacks)
+    table.wipe(ironfurExpiries)
+    table.wipe(ironfurDurations)
     StopIronfurTicker()
     local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.Ironfur]
     if bar and bar:IsShown() then
@@ -1858,7 +1824,7 @@ end
 
 function CDM:GetIronfurStackCount()
     PruneExpiredIronfurStacks()
-    return #ironfurStacks
+    return #ironfurExpiries
 end
 
 -- Ignore Pain stack tracking (via buff frame relay)
@@ -2162,8 +2128,6 @@ local function UpdateBarPositions()
         return
     end
 
-    UpdateContainerPosition()
-
     local basePowerTypes = GetPlayerPowerTypes()
     local powerTypes, powerSlots = ApplyResourceVisibilityFilter(basePowerTypes)
 
@@ -2312,6 +2276,7 @@ function CDM:UpdateResources()
         CDM.resourcesHiddenBuffSet[IGNORE_PAIN_SPELL_ID] = hideIcon or nil
     end
 
+    cachedPrimaryPowerType = UnitPowerType("player")
     RefreshCachedFontStyles()
     UpdateBarPositions()
     RefreshCachedRuneTimerSlot()
@@ -2330,6 +2295,7 @@ function CDM:UpdateResourceValues()
 end
 
 local function OnSpellUpdateUses(event, spellID, baseSpellID)
+    if spellID ~= CDM_C.SOUL_CLEAVE_SPELL_ID and baseSpellID ~= CDM_C.SOUL_CLEAVE_SPELL_ID then return end
     UpdateBarValue(CUSTOM_POWER_TYPES.SoulFragments)
 end
 
@@ -2420,7 +2386,9 @@ local function OnGuardianSpellCastSucceeded(event, unit, castGUID, spellID)
         local bonus = (hasGuardianOfElune and now < guardianOfEluneExpiry) and 3 or 0
         if bonus > 0 then guardianOfEluneExpiry = 0 end
         local duration = ironfurBaseDuration + bonus
-        ironfurStacks[#ironfurStacks + 1] = { expiry = now + duration, duration = duration }
+        local n = #ironfurExpiries + 1
+        ironfurExpiries[n] = now + duration
+        ironfurDurations[n] = duration
         UpdateIronfurBar()
         StartIronfurTicker()
     elseif spellID == MANGLE_SPELL_ID then
@@ -2616,7 +2584,7 @@ local function OnSpecChanged()
 end
 
 local function OnUnitPowerFrequent(event, unitTarget, powerToken)
-    local primaryPowerType = UnitPowerType("player")
+    local primaryPowerType = cachedPrimaryPowerType
     if primaryPowerType ~= nil then
         UpdateBarValue(primaryPowerType)
     end
@@ -2641,8 +2609,10 @@ local function OnUnitPowerPointCharge(event, unitTarget)
 end
 
 local function OnUpdateShapeshiftForm()
+    cachedPrimaryPowerType = UnitPowerType("player")
+
     if currentSpecID == 104 then
-        local currentPowerType = UnitPowerType("player")
+        local currentPowerType = cachedPrimaryPowerType
         local inBearForm = (currentPowerType == BEAR_FORM_POWER_TYPE)
         local inCatForm = (currentPowerType == CAT_FORM_POWER_TYPE)
         if not inBearForm and not (inCatForm and hasFluidicForce) then
@@ -2651,13 +2621,7 @@ local function OnUpdateShapeshiftForm()
     end
 
     CDM:UpdateResources()
-
-    if CDM.UpdateBuffContainerPosition then
-        CDM:UpdateBuffContainerPosition()
-    end
-    if CDM.UpdatePlayerCastBar then
-        CDM:UpdatePlayerCastBar()
-    end
+    UpdateAncillaryLayouts()
 end
 
 local function RunePowerBatchCallback()
@@ -2797,10 +2761,11 @@ local function DisableResources()
     if CDM.resourceContainer then
         CDM.resourceContainer:Hide()
     end
-        lastMaelstromAuraUpdateTime = 0
+    lastMaelstromAuraUpdateTime = 0
     lastDevourerAuraUpdateTime = 0
     lastDevourerInVoidMeta = false
     currentSpecID = nil
+    cachedPrimaryPowerType = nil
     isEnabled = false
 end
 

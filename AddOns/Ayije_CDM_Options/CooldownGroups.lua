@@ -1337,8 +1337,8 @@ local function CreateCooldownGroupsPanel(subPage, page)
                 for frame in viewer.itemFramePool:EnumerateActive() do
                     if frame:IsShown() or frame.cooldownInfo then
                         local displayID = API.GetPreferredBuffGroupSpellID and API:GetPreferredBuffGroupSpellID(frame)
-                        if not IsSafeNumber(displayID) and API.GetCachedBaseSpellID then
-                            displayID = API:GetCachedBaseSpellID(frame)
+                        if not IsSafeNumber(displayID) and API.GetBaseSpellID then
+                            displayID = API:GetBaseSpellID(frame)
                         end
                         if IsSafeNumber(displayID)
                             and not HasEquivalentSpellID(groupedSet, displayID)

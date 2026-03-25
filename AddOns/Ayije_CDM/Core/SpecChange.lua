@@ -148,18 +148,21 @@ function CDM:InitializeSpecChangeSystem()
 
         specChangeVersion = specChangeVersion + 1
         local myVersion = specChangeVersion
-        self.queueVersion = myVersion
         table.wipe(self.queue)
+
+        if self.NotifySpecChangeComplete then
+            self:NotifySpecChangeComplete()
+        end
 
         C_Timer.After(0, function()
             if specChangeVersion ~= myVersion then return end
-            self:QueueAllViewers(ShouldUseImmediateQueue(), myVersion)
+            self:QueueAllViewers(ShouldUseImmediateQueue())
         end)
 
         if wasFullSpecChange then
             C_Timer.After(0.3, function()
                 if specChangeVersion ~= myVersion then return end
-                self:QueueAllViewers(ShouldUseImmediateQueue(), myVersion)
+                self:QueueAllViewers(ShouldUseImmediateQueue())
             end)
         end
 
@@ -174,7 +177,7 @@ function CDM:InitializeSpecChangeSystem()
             end
 
             if total > 0 and populated < total then
-                self:QueueAllViewers(ShouldUseImmediateQueue(), myVersion)
+                self:QueueAllViewers(ShouldUseImmediateQueue())
             end
         end)
 
@@ -232,42 +235,5 @@ function CDM:InitializeSpecChangeSystem()
 
     self:RegisterInternalCallback("OnTalentDataChanged", HandleTalentDataChanged)
     self:RegisterInternalCallback("OnSpecStateChanged", HandleSpecStateChanged)
-
-    local resourceUpdatePending = false
-
-    local function DoResourceUpdate()
-        resourceUpdatePending = false
-        if self.UpdateResourceValues then
-            self:UpdateResourceValues()
-        end
-    end
-
-    local resourceUpdateFrame = CreateFrame("Frame")
-    resourceUpdateFrame:Hide()
-    resourceUpdateFrame:SetScript("OnUpdate", function(f)
-        f:Hide()
-        DoResourceUpdate()
-    end)
-
-    local function QueueResourceUpdate()
-        if not self.UpdateResourceValues or resourceUpdatePending then
-            return
-        end
-
-        resourceUpdatePending = true
-        resourceUpdateFrame:Show()
-    end
-
-    local function HandleCooldownDataChanged()
-        if _G[VIEWERS.BUFF] then
-            self:QueueViewer(VIEWERS.BUFF)
-        end
-        if _G[VIEWERS.BUFF_BAR] then
-            self:QueueViewer(VIEWERS.BUFF_BAR)
-        end
-        QueueResourceUpdate()
-    end
-
-    self:RegisterInternalCallback("OnCooldownDataChanged", HandleCooldownDataChanged)
 
 end

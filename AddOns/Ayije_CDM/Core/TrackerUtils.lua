@@ -243,6 +243,7 @@ local PLAYER_FRAME_CANDIDATES = {
     "ElvUF_Player",
     "SUFUnitplayer",
     "UUF_Player",
+    "EllesmereUIUnitFrames_Player",
     "MSUF_player",
     "EQOLUFPlayerFrame",
     "oUF_Player",
@@ -632,6 +633,22 @@ end
 
 function CDM.GetTrackerSpacing()
     return CDM.db and CDM.db.spacing or 6
+end
+
+local trackerIconSizeCache = { w = 40, h = 36 }
+function CDM.GetTrackerIconSize(widthKey, heightKey)
+    local db = CDM.db
+    trackerIconSizeCache.w = (db and db[widthKey]) or 40
+    trackerIconSizeCache.h = (db and db[heightKey]) or 36
+    return trackerIconSizeCache
+end
+
+function CDM.PositionTrackerIconsFromDB(container, iconFrames, widthKey, heightKey, spacingKey, anchorKey)
+    local db = CDM.db
+    local size = CDM.GetTrackerIconSize(widthKey, heightKey)
+    local spacing = (db and db[spacingKey]) or 2
+    local anchor = (db and db[anchorKey]) or "TOPLEFT"
+    CDM.PositionTrackerIcons(container, iconFrames, size, spacing, anchor)
 end
 
 function CDM.AcquireFromTrackerPool(pool, container, namePrefix, id, opts)

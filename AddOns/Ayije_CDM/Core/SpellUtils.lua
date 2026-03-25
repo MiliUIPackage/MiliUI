@@ -6,7 +6,6 @@ local GetFrameData = CDM.GetFrameData
 local COLOR_REGISTRY = {}
 
 local lastRefreshSpecID = nil
-local specDataDirty = true
 
 local IsSafeNumber = CDM.IsSafeNumber
 
@@ -61,10 +60,8 @@ function CDM:GetSpellIDCandidates(frame, includeBase)
 
     local info = GetFrameCooldownInfo(frame)
     if info then
-        AddCandidate(out, seen, info.spellID)
         AddCandidate(out, seen, info.overrideSpellID)
-        AddCandidate(out, seen, info.overrideTooltipSpellID)
-        AddCandidate(out, seen, info.linkedSpellID)
+        AddCandidate(out, seen, info.spellID)
         if info.linkedSpellIDs then
             for _, linkedID in ipairs(info.linkedSpellIDs) do
                 AddCandidate(out, seen, linkedID)
@@ -177,8 +174,6 @@ function CDM:ClearNormalizationCache()
     end
 end
 
-local normalizeSeen = {}
-
 local function NormalizeToBase(id)
     if not IsUsableID(id) then return nil end
 
@@ -186,40 +181,13 @@ local function NormalizeToBase(id)
         return normalizeBaseCache[id]
     end
 
-    local cursor = id
-    local resolved = id
-    local hops = 0
-    table.wipe(normalizeSeen)
-    normalizeSeen[id] = true
-    local terminatedOnSelf = false
-
-    while hops < 20 do
-        hops = hops + 1
-        local baseID = C_Spell.GetBaseSpell(cursor)
-        if baseID == cursor then
-            terminatedOnSelf = true
-            break
-        end
-        if not IsUsableID(baseID) then
-            break
-        end
-        if normalizeSeen[baseID] then
-            break
-        end
-        normalizeSeen[baseID] = true
-        resolved = baseID
-        cursor = baseID
+    local baseID = C_Spell.GetBaseSpell(id)
+    if IsUsableID(baseID) and baseID ~= id then
+        CacheNormalizedBase(id, baseID)
+        return baseID
     end
 
-    if resolved ~= id then
-        CacheNormalizedBase(id, resolved)
-        return resolved
-    end
-
-    if terminatedOnSelf then
-        CacheNormalizedBase(id, id)
-    end
-
+    CacheNormalizedBase(id, id)
     return id
 end
 
@@ -278,26 +246,6 @@ function CDM:GetBuffGroupMatchCandidates(spellID)
     return BuildBuffGroupMatchCandidates(spellID)
 end
 
-function CDM:AreBuffGroupSpellIDsEquivalent(leftSpellID, rightSpellID)
-    if not IsUsableID(leftSpellID) or not IsUsableID(rightSpellID) then
-        return false
-    end
-    if leftSpellID == rightSpellID then
-        return true
-    end
-
-    table.wipe(scratchMatchShared)
-    for _, candidateID in ipairs(BuildBuffGroupMatchCandidatesInto(leftSpellID, scratchMatchCandidates, scratchMatchSeen)) do
-        scratchMatchShared[candidateID] = true
-    end
-    for _, candidateID in ipairs(BuildBuffGroupMatchCandidatesInto(rightSpellID, scratchMatchCandidatesAlt, scratchMatchSeenAlt)) do
-        if scratchMatchShared[candidateID] then
-            return true
-        end
-    end
-
-    return false
-end
 
 function CDM:GetPreferredBuffGroupSpellID(frame)
     if not frame then return nil end
@@ -440,8 +388,8 @@ function CDM:StoreMergedBuffOverrideEntry(overrideMap, spellID, incoming)
     overrideMap[storageKey] = CopyOverrideEntry(incoming)
 end
 
-local BUFF_GROUP_SET = {}
-local CD_GROUP_SET = {}
+local CDID_TO_BASE = {}
+local EMPTY_SET = {}
 
 local function CheckIDAgainstGroupSet(id, groupSet)
     if not IsUsableID(id) then return nil, nil end
@@ -450,7 +398,9 @@ local function CheckIDAgainstGroupSet(id, groupSet)
 end
 
 local function CheckIDAgainstRegistry(id)
-    local matchID, groupIdx = CheckIDAgainstGroupSet(id, BUFF_GROUP_SET)
+    local sets = CDM.BuffGroupSets
+    local groupSet = sets and sets.grouped or EMPTY_SET
+    local matchID, groupIdx = CheckIDAgainstGroupSet(id, groupSet)
     if matchID then return "buffgroup", matchID, groupIdx end
     return nil, nil
 end
@@ -472,22 +422,23 @@ CDM.GetColorForSpellID = GetColorForSpellID
 local function GetBaseSpellID(frame)
     if not frame then return nil end
 
-    local rawSpellID
+    local cdid = frame.cooldownID
+    if cdid then
+        local fast = CDID_TO_BASE[cdid]
+        if fast then return fast end
+    end
+
     local info = GetFrameCooldownInfo(frame)
-    if info then
-        rawSpellID = info.overrideSpellID or info.spellID
+    if info and IsUsableID(info.spellID) then
+        return NormalizeToBase(info.spellID)
     end
 
-    if not rawSpellID then
-        local id = CallFrameMethod(frame, "GetSpellID")
-        if IsUsableID(id) then
-            rawSpellID = id
-        end
+    local id = CallFrameMethod(frame, "GetSpellID")
+    if IsUsableID(id) then
+        return NormalizeToBase(id)
     end
 
-    if not rawSpellID then return nil end
-
-    return NormalizeToBase(rawSpellID)
+    return nil
 end
 
 CDM.GetBaseSpellID = GetBaseSpellID
@@ -497,118 +448,63 @@ function CDM:ResetFrameSpellCache(frame)
     local frameData = GetFrameData(frame)
     frameData.buffCategorySpellID = nil
     frameData.cdGroupSpellID = nil
-    frameData.cdmProvisionalReadyUntil = nil
-    frameData.cdmAuraStateDirty = nil
-    frameData.cdmAuraLastSpellID = nil
-    frameData.cdmAuraOverlayVersion = nil
     frameData.cdmReadyGlowActive = nil
-    frameData.cdmLastBorderColorID = nil
-    frameData.cdmLastBorderStyleVersion = nil
     frameData.cdmResolvedBorderColor = nil
+    frameData.cdmLastBorderStyleVersion = nil
     frameData.cdmBuffGlowSourceID = nil
 end
 
-function CDM:GetCachedBaseSpellID(frame)
-    if not frame then return nil end
 
-    local id = GetBaseSpellID(frame)
-
-    if not id then
-        local raw = CallFrameMethod(frame, "GetBaseSpellID")
-        if IsUsableID(raw) then
-            id = NormalizeToBase(raw)
-        end
-    end
-
-    return IsUsableID(id) and id or nil
-end
+local frameCategoryCacheGeneration = 0
 
 function CDM:InvalidateFrameCategoryCache()
-    local VIEWERS = CDM.CONST and CDM.CONST.VIEWERS
-    if not VIEWERS then return end
-    for _, vName in ipairs({ VIEWERS.BUFF, VIEWERS.BUFF_BAR, VIEWERS.ESSENTIAL, VIEWERS.UTILITY }) do
-        local v = _G[vName]
-        if v and v.itemFramePool then
-            for frame in v.itemFramePool:EnumerateActive() do
-                local fd = GetFrameData(frame)
-                fd.buffCategorySpellID = nil
-                fd.cdGroupSpellID = nil
-                fd.cdmLastBorderColorID = nil
-                fd.cdmLastBorderStyleVersion = nil
-                fd.cdmResolvedBorderColor = nil
-            end
-        end
-    end
+    frameCategoryCacheGeneration = frameCategoryCacheGeneration + 1
 end
 
-local function CheckCooldownGroupMatch(frame, groupSet, cacheKey)
+local function CheckCooldownGroupMatch(frame, cdidGroupSet, spellGroupSet, cacheKey)
     if not frame then return nil, nil end
 
     local frameData = GetFrameData(frame)
+
+    local gen = frameData.cdmCategoryCacheGen
+    if gen ~= frameCategoryCacheGeneration then
+        frameData.buffCategorySpellID = nil
+        frameData.cdGroupSpellID = nil
+        frameData.cdmCategoryCacheGen = frameCategoryCacheGeneration
+        frameData.cdmResolvedBorderColor = nil
+    end
+
     local cached = frameData[cacheKey]
-    if cached ~= nil then
-        if cached == false then return nil, nil end
-        if groupSet[cached] then return cached, groupSet[cached] end
+    if cached and spellGroupSet[cached] then
+        return cached, spellGroupSet[cached]
     end
 
-    local id = CallFrameMethod(frame, "GetSpellID")
-    if IsUsableID(id) and groupSet[id] then
-        frameData[cacheKey] = id
-        return id, groupSet[id]
-    end
-
-    local info = GetFrameCooldownInfo(frame)
-    if info then
-        if IsUsableID(info.spellID) and groupSet[info.spellID] then
-            frameData[cacheKey] = info.spellID
-            return info.spellID, groupSet[info.spellID]
-        end
-        if IsUsableID(info.overrideSpellID) and groupSet[info.overrideSpellID] then
-            frameData[cacheKey] = info.overrideSpellID
-            return info.overrideSpellID, groupSet[info.overrideSpellID]
-        end
-        if IsUsableID(info.overrideTooltipSpellID) and groupSet[info.overrideTooltipSpellID] then
-            frameData[cacheKey] = info.overrideTooltipSpellID
-            return info.overrideTooltipSpellID, groupSet[info.overrideTooltipSpellID]
-        end
-        if IsUsableID(info.linkedSpellID) and groupSet[info.linkedSpellID] then
-            frameData[cacheKey] = info.linkedSpellID
-            return info.linkedSpellID, groupSet[info.linkedSpellID]
-        end
-        if info.linkedSpellIDs then
-            for _, lid in ipairs(info.linkedSpellIDs) do
-                if IsUsableID(lid) and groupSet[lid] then
-                    frameData[cacheKey] = lid
-                    return lid, groupSet[lid]
-                end
-            end
+    local cooldownID = frame.cooldownID
+    if cooldownID then
+        local entry = cdidGroupSet[cooldownID]
+        if entry then
+            frameData[cacheKey] = entry.storedID
+            return entry.storedID, entry.groupIdx
         end
     end
 
-    local baseID = IsUsableID(id) and NormalizeToBase(id) or nil
-    if baseID and baseID ~= id and groupSet[baseID] then
-        frameData[cacheKey] = baseID
-        return baseID, groupSet[baseID]
-    end
-    if info and IsUsableID(info.spellID) then
-        local infoBase = NormalizeToBase(info.spellID)
-        if infoBase and infoBase ~= info.spellID and infoBase ~= baseID and groupSet[infoBase] then
-            frameData[cacheKey] = infoBase
-            return infoBase, groupSet[infoBase]
-        end
-    end
-
-    if next(groupSet) then frameData[cacheKey] = false end
+    frameData[cacheKey] = nil
     return nil, nil
 end
 
 function CDM.CheckCdGroupMatch(frame)
-    local _, groupIdx = CheckCooldownGroupMatch(frame, CD_GROUP_SET, "cdGroupSpellID")
+    local sets = CDM.CooldownGroupSets
+    local cdidSet = sets and sets.cooldownIDGrouped or EMPTY_SET
+    local spellSet = sets and sets.grouped or EMPTY_SET
+    local _, groupIdx = CheckCooldownGroupMatch(frame, cdidSet, spellSet, "cdGroupSpellID")
     return groupIdx
 end
 
 local function CheckBuffRegistryMatch(frame)
-    local matchID, groupIdx = CheckCooldownGroupMatch(frame, BUFF_GROUP_SET, "buffCategorySpellID")
+    local sets = CDM.BuffGroupSets
+    local cdidSet = sets and sets.cooldownIDGrouped or EMPTY_SET
+    local spellSet = sets and sets.grouped or EMPTY_SET
+    local matchID, groupIdx = CheckCooldownGroupMatch(frame, cdidSet, spellSet, "buffCategorySpellID")
     if matchID then return "buffgroup", matchID, groupIdx end
     return nil, nil
 end
@@ -620,7 +516,6 @@ function CDM:GetBuffRegistryMatch(frame)
 end
 
 function CDM:MarkSpecDataDirty()
-    specDataDirty = true
     lastRefreshSpecID = nil
 end
 
@@ -637,18 +532,17 @@ function CDM:RefreshSpecData()
         return
     end
 
-    if specID == lastRefreshSpecID and not specDataDirty then return end
+    if specID == lastRefreshSpecID then return end
 
     table.wipe(COLOR_REGISTRY)
-    table.wipe(BUFF_GROUP_SET)
-    table.wipe(CD_GROUP_SET)
+    table.wipe(CDID_TO_BASE)
     self.SpellSets.hasBuffGlows = false
 
     self:ClearNormalizationCache()
     if self.ClearStableBaseCache then self:ClearStableBaseCache() end
     self:InvalidateFrameCategoryCache()
 
-    local registry = self:GetSpellRegistry(specID)
+    local registry = self.SpellRegistry:GetRaw(specID)
     if not registry then return end
 
     if registry.colors then
@@ -665,23 +559,37 @@ function CDM:RefreshSpecData()
     if self.RefreshBuffGroupData then
         self:RefreshBuffGroupData()
     end
-    local groupSets = self.BuffGroupSets
-    if groupSets and groupSets.grouped then
-        for id, groupIdx in pairs(groupSets.grouped) do
-            BUFF_GROUP_SET[id] = groupIdx
-        end
+    if self.InvalidateStaticGroupsCache then
+        self:InvalidateStaticGroupsCache()
     end
 
     if self.RefreshCooldownGroupData then
         self:RefreshCooldownGroupData()
     end
-    local cdGroupSets = self.CooldownGroupSets
-    if cdGroupSets and cdGroupSets.grouped then
-        for id, groupIdx in pairs(cdGroupSets.grouped) do
-            CD_GROUP_SET[id] = groupIdx
+
+    if C_CooldownViewer and C_CooldownViewer.GetCooldownViewerCategorySet
+        and C_CooldownViewer.GetCooldownViewerCooldownInfo
+        and Enum and Enum.CooldownViewerCategory then
+        local evc = Enum.CooldownViewerCategory
+        local categories = {}
+        if evc.Essential then categories[#categories + 1] = evc.Essential end
+        if evc.Utility then categories[#categories + 1] = evc.Utility end
+        if evc.TrackedBuff then categories[#categories + 1] = evc.TrackedBuff end
+        if evc.TrackedBar then categories[#categories + 1] = evc.TrackedBar end
+        for _, cat in ipairs(categories) do
+            local cooldownIDs = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
+            if cooldownIDs then
+                for _, cdID in ipairs(cooldownIDs) do
+                    if not CDID_TO_BASE[cdID] then
+                        local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
+                        if info and IsUsableID(info.spellID) then
+                            CDID_TO_BASE[cdID] = NormalizeToBase(info.spellID)
+                        end
+                    end
+                end
+            end
         end
     end
 
     lastRefreshSpecID = specID
-    specDataDirty = false
 end

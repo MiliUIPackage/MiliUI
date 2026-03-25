@@ -539,9 +539,7 @@ local function CreateCastBarTab(page, tabId)
             lastAnchor = page.controls.castBarEmpowerStage3Color
         end
 
-        -- Always visible: labeled "Stage 4" with Font of Magic, "Stage 3" without (hold-at-max color)
-        local stage4Label = hasFontOfMagic and L["Stage 4 Color"] or L["Stage 3 Color"]
-        page.controls.castBarEmpowerStage4Color = UI.CreateColorSwatch(scrollChild, stage4Label, "castBarEmpowerStage4Color", CASTBAR_REFRESH_SCOPES)
+        page.controls.castBarEmpowerStage4Color = UI.CreateColorSwatch(scrollChild, L["Hold At Max Color"], "castBarEmpowerStage4Color", CASTBAR_REFRESH_SCOPES)
         page.controls.castBarEmpowerStage4Color:SetPoint("TOPLEFT", lastAnchor, "BOTTOMLEFT", 0, -10)
     end
 end

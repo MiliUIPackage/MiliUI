@@ -295,8 +295,8 @@ end
 local function DoInvalidate()
     invalidatePending = false
     Keybinds:InvalidateCache()
-    if assistActive then
-        CDM:QueueAllViewers(true)
+    if assistActive and CDM.RefreshViewerKeybindText then
+        CDM:RefreshViewerKeybindText()
     end
 end
 
@@ -388,11 +388,10 @@ local function RefreshConsumerState()
 
     if assistActive or wantPressOverlay then
         EnableEvents()
-        Keybinds:InvalidateCache()
     else
         DisableEvents()
-        Keybinds:InvalidateCache()
     end
+    Keybinds:InvalidateCache()
 
     if wasAssistActive and not assistActive then
         HideAllKeybindContainers()

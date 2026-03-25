@@ -133,8 +133,13 @@ local function CreatePositionsTab(page, tabId)
         end,
     })
 
+    local utilYOffsetSlider = UI.CreateModernSlider(scrollChild, L["Utility Y Offset"], -600, 600, CDM.db.utilityYOffset, function(v)
+        CDM.db.utilityYOffset = v; API:RefreshConfig()
+    end)
+    utilYOffsetSlider:SetPoint("TOPLEFT", essYSlider, "BOTTOMLEFT", 0, -10)
+
     local buffHeader = UI.CreateHeader(scrollChild, L["Main Buff Container Position"])
-    buffHeader:SetPoint("TOPLEFT", essYSlider, "BOTTOMLEFT", 0, -15)
+    buffHeader:SetPoint("TOPLEFT", utilYOffsetSlider, "BOTTOMLEFT", 0, -15)
 
     local buffHelpText = CreateLockSection(scrollChild, buffHeader, page,
         "buffLockCheckbox", "buffContainerLocked", "BuffIconCooldownViewer")

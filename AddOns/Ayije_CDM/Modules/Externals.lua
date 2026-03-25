@@ -16,6 +16,9 @@ local container
 
 local TEX_WHITE8X8 = CDM_C.TEX_WHITE8X8
 local DEFAULT_SWIPE = "Interface\\HUD\\UI-HUD-CoolDownManager-Icon-Swipe"
+local DEFAULT_COOLDOWN_COLOR = { r = 1, g = 1, b = 1, a = 1 }
+local BORDER_OPTS_FORCE = { forceUpdate = true }
+local BORDER_OPTS_NORMAL = { forceUpdate = false }
 
 local function GetSize()
     local s = CDM.Sizes.SIZE_EXTERNALS
@@ -67,7 +70,7 @@ local function StyleButton(button)
         local fontPath = CDM_C.GetBaseFontPath()
         local fontOutline = CDM_C.GetBaseFontOutline()
         local fontSize = CDM.db and CDM.db.externalsCooldownFontSize or 15
-        local cooldownColor = CDM.db and CDM.db.cooldownColor or { r = 1, g = 1, b = 1, a = 1 }
+        local cooldownColor = CDM.db and CDM.db.cooldownColor or DEFAULT_COOLDOWN_COLOR
 
         local cdText = cd.Text or cd.text
         StyleCDText(cdText, fontPath, fontSize, fontOutline, cooldownColor)
@@ -88,7 +91,7 @@ local function StyleButton(button)
         local currentBorderVersion = CDM.borderStyleVersion or 0
         local borderForce = fd.cdmExternalBorderVersion ~= currentBorderVersion
         if not fd.cdmExternalBorderInit or borderForce then
-            BORDER:CreateBorder(fd.cdmExternalBorderFrame, { forceUpdate = borderForce })
+            BORDER:CreateBorder(fd.cdmExternalBorderFrame, borderForce and BORDER_OPTS_FORCE or BORDER_OPTS_NORMAL)
             fd.cdmExternalBorderInit = true
             fd.cdmExternalBorderVersion = currentBorderVersion
         end
@@ -171,9 +174,10 @@ end
 
 local function OnButtonOnUpdate(button)
     if not isEnabled then return end
-    button.Duration:Hide()
     if CDM.db and CDM.db.externalsDisableBlink ~= false then
-        button:SetAlpha(1)
+        if button:GetAlpha() ~= 1 then
+            button:SetAlpha(1)
+        end
     end
 end
 

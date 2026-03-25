@@ -43,6 +43,8 @@ local function GetContainerForAnchorTarget(anchorTarget)
     return nil
 end
 
+local scratchCdActiveIndices = {}
+
 function CDM:UpdateAllCooldownGroupContainers()
     local sets = CDM.CooldownGroupSets
 
@@ -52,7 +54,8 @@ function CDM:UpdateAllCooldownGroupContainers()
         end
         cdDescriptor:SyncCallbacks(GetContainerForAnchorTarget)
     else
-        local activeIndices = {}
+        local activeIndices = scratchCdActiveIndices
+        table.wipe(activeIndices)
         for groupIndex, groupData in ipairs(sets.groups) do
             local container = cdDescriptor:GetOrCreateContainer(groupIndex)
             cdDescriptor:UpdateContainerPosition(groupIndex, groupData, GetContainerForAnchorTarget)
@@ -136,37 +139,11 @@ function CDM:PositionCooldownGroupFrames(groupIndex, frames)
         end
         if count > 1 then
             local stableSortIDFn = layout.GetStableFrameSortID
-            local spells = groupData.spells
+            GCU.AssignGroupSortKeys(frames, scratchSpellOrder, cacheKey)
             table.sort(frames, function(a, b)
-                local aID = GetFrameData(a)[cacheKey]
-                local bID = GetFrameData(b)[cacheKey]
-                local aOrd = aID and ResolveVariantValue(scratchSpellOrder, aID) or nil
-                local bOrd = bID and ResolveVariantValue(scratchSpellOrder, bID) or nil
-                if not aOrd then
-                    local aInfo = a.GetCooldownInfo and a:GetCooldownInfo() or a.cooldownInfo
-                    if aInfo and aInfo.linkedSpellIDs then
-                        for _, lid in ipairs(aInfo.linkedSpellIDs) do
-                            if IsSafeNumber(lid) then
-                                local ord = ResolveVariantValue(scratchSpellOrder, lid)
-                                if ord then aOrd = ord; break end
-                            end
-                        end
-                    end
-                end
-                if not bOrd then
-                    local bInfo = b.GetCooldownInfo and b:GetCooldownInfo() or b.cooldownInfo
-                    if bInfo and bInfo.linkedSpellIDs then
-                        for _, lid in ipairs(bInfo.linkedSpellIDs) do
-                            if IsSafeNumber(lid) then
-                                local ord = ResolveVariantValue(scratchSpellOrder, lid)
-                                if ord then bOrd = ord; break end
-                            end
-                        end
-                    end
-                end
-                aOrd = aOrd or 999
-                bOrd = bOrd or 999
-                if aOrd ~= bOrd then return aOrd < bOrd end
+                local aKey = GetFrameData(a).cdmSortKey
+                local bKey = GetFrameData(b).cdmSortKey
+                if aKey ~= bKey then return aKey < bKey end
                 if stableSortIDFn then
                     return stableSortIDFn(a) < stableSortIDFn(b)
                 end
@@ -187,11 +164,10 @@ function CDM:PositionCooldownGroupFrames(groupIndex, frames)
             col = idx - row * maxPerRow
         end
 
-        local frameViewer = frame.viewerFrame or (frame.GetViewerFrame and frame:GetViewerFrame())
+        local frameViewer = frame.viewerFrame
         local frameVName = (frameViewer == _G[VIEWERS.ESSENTIAL]) and VIEWERS.ESSENTIAL or VIEWERS.UTILITY
         self:ApplyStyle(frame, frameVName)
 
-        frame:SetParent(UIParent)
         frame:ClearAllPoints()
 
         if row and col then
@@ -234,7 +210,7 @@ end
 
 local DOT_OVERRIDE_SPELLS = CDM_C.DOT_OVERRIDE_SPELLS
 
-local function AddToEnabledMap(map, spellID, entry, isDotDefault, auraOverlay)
+local function BuildMapEntry(entry, isDotDefault, auraOverlay)
     local mapEntry = {}
     if auraOverlay then
         mapEntry.auraOverlay = true
@@ -252,14 +228,22 @@ local function AddToEnabledMap(map, spellID, entry, isDotDefault, auraOverlay)
         if entry.readyGlowEnabled then mapEntry.readyGlowEnabled = true end
         if entry.readyGlowColor then mapEntry.readyGlowColor = entry.readyGlowColor end
     end
-    if CDM.GetBuffGroupMatchCandidates then
-        for _, id in ipairs(CDM:GetBuffGroupMatchCandidates(spellID)) do
-            map[id] = mapEntry
+    return mapEntry
+end
+
+local function AddToSpellMap(spellMap, spellID, mapEntry)
+    spellMap[spellID] = mapEntry
+    if NormalizeToBase then
+        local base = NormalizeToBase(spellID)
+        if base and base ~= spellID and not spellMap[base] then
+            spellMap[base] = mapEntry
         end
-    else
-        map[spellID] = mapEntry
     end
 end
+
+local scratchSeen = {}
+local scratchCategories = {}
+local scratchSpellToEntry = {}
 
 function CDM:RebuildAuraOverlayEnabledMap()
     local map = CDM._auraOverlayEnabled
@@ -272,7 +256,11 @@ function CDM:RebuildAuraOverlayEnabledMap()
         return
     end
 
-    local seen = {}
+    local seen = scratchSeen
+    table.wipe(seen)
+
+    local spellToEntry = scratchSpellToEntry
+    table.wipe(spellToEntry)
 
     local sets = CDM.CooldownGroupSets
     local groups = sets and sets.groups
@@ -286,14 +274,14 @@ function CDM:RebuildAuraOverlayEnabledMap()
                         local ov = GetSpellOverride(group, spellID)
                         if ov and ov.showAuraOverlay == false then
                             if ov.readyGlowEnabled then
-                                AddToEnabledMap(map, spellID, ov, false, false)
+                                AddToSpellMap(spellToEntry, spellID, BuildMapEntry(ov, false, false))
                             end
                         elseif ov and ov.showAuraOverlay == true then
-                            AddToEnabledMap(map, spellID, ov, DOT_OVERRIDE_SPELLS and DOT_OVERRIDE_SPELLS[spellID], true)
+                            AddToSpellMap(spellToEntry, spellID, BuildMapEntry(ov, DOT_OVERRIDE_SPELLS and DOT_OVERRIDE_SPELLS[spellID], true))
                         elseif DOT_OVERRIDE_SPELLS and DOT_OVERRIDE_SPELLS[spellID] then
-                            AddToEnabledMap(map, spellID, ov, true, true)
+                            AddToSpellMap(spellToEntry, spellID, BuildMapEntry(ov, true, true))
                         elseif ov and ov.readyGlowEnabled then
-                            AddToEnabledMap(map, spellID, ov, false, false)
+                            AddToSpellMap(spellToEntry, spellID, BuildMapEntry(ov, false, false))
                         end
                     end
                 end
@@ -309,14 +297,14 @@ function CDM:RebuildAuraOverlayEnabledMap()
                 seen[canonical] = true
                 if entry.showAuraOverlay == false then
                     if entry.readyGlowEnabled then
-                        AddToEnabledMap(map, sid, entry, false, false)
+                        AddToSpellMap(spellToEntry, sid, BuildMapEntry(entry, false, false))
                     end
                 elseif entry.showAuraOverlay == true then
-                    AddToEnabledMap(map, sid, entry, DOT_OVERRIDE_SPELLS and DOT_OVERRIDE_SPELLS[sid], true)
+                    AddToSpellMap(spellToEntry, sid, BuildMapEntry(entry, DOT_OVERRIDE_SPELLS and DOT_OVERRIDE_SPELLS[sid], true))
                 elseif DOT_OVERRIDE_SPELLS and DOT_OVERRIDE_SPELLS[sid] then
-                    AddToEnabledMap(map, sid, entry, true, true)
+                    AddToSpellMap(spellToEntry, sid, BuildMapEntry(entry, true, true))
                 elseif entry.readyGlowEnabled then
-                    AddToEnabledMap(map, sid, entry, false, false)
+                    AddToSpellMap(spellToEntry, sid, BuildMapEntry(entry, false, false))
                 end
             end
         end
@@ -327,7 +315,7 @@ function CDM:RebuildAuraOverlayEnabledMap()
             local canonical = NormalizeToBase(spellID) or spellID
             if not seen[canonical] then
                 seen[canonical] = true
-                AddToEnabledMap(map, spellID, nil, true, true)
+                AddToSpellMap(spellToEntry, spellID, BuildMapEntry(nil, true, true))
             end
         end
     end
@@ -335,32 +323,42 @@ function CDM:RebuildAuraOverlayEnabledMap()
     if C_CooldownViewer and C_CooldownViewer.GetCooldownViewerCategorySet
         and C_CooldownViewer.GetCooldownViewerCooldownInfo
         and Enum.CooldownViewerCategory then
-        local categories = {
-            Enum.CooldownViewerCategory.Essential,
-            Enum.CooldownViewerCategory.Utility,
-        }
-        local initialMap = {}
-        for k, v in pairs(map) do initialMap[k] = v end
+        local categories = scratchCategories
+        table.wipe(categories)
+        categories[1] = Enum.CooldownViewerCategory.Essential
+        categories[2] = Enum.CooldownViewerCategory.Utility
+
         for _, cat in ipairs(categories) do
             local cooldownIDs = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
             if cooldownIDs then
                 for _, cdID in ipairs(cooldownIDs) do
                     local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
                     if info then
-                        local matchEntry = initialMap[info.spellID]
-                        if not matchEntry and info.overrideSpellID then
-                            matchEntry = initialMap[info.overrideSpellID]
+                        local match
+                        local hasDistinctOverride = IsSafeNumber(info.overrideSpellID)
+                            and info.overrideSpellID ~= info.spellID
+                        if hasDistinctOverride then
+                            match = spellToEntry[info.overrideSpellID]
                         end
-                        if not matchEntry and info.linkedSpellIDs then
-                            for _, lid in ipairs(info.linkedSpellIDs) do
-                                matchEntry = initialMap[lid]
-                                if matchEntry then break end
+                        if not match then
+                            match = spellToEntry[info.spellID]
+                            if not match and NormalizeToBase and IsSafeNumber(info.spellID) then
+                                match = spellToEntry[NormalizeToBase(info.spellID)]
                             end
                         end
-                        if matchEntry and info.linkedSpellIDs then
+                        if not match and info.linkedSpellIDs then
                             for _, lid in ipairs(info.linkedSpellIDs) do
-                                map[lid] = matchEntry
+                                if IsSafeNumber(lid) then
+                                    match = spellToEntry[lid]
+                                    if not match and NormalizeToBase then
+                                        match = spellToEntry[NormalizeToBase(lid)]
+                                    end
+                                    if match then break end
+                                end
                             end
+                        end
+                        if match then
+                            map[cdID] = match
                         end
                     end
                 end
@@ -407,10 +405,6 @@ CDM:RegisterRefreshCallback("cooldownGroups", function()
     CDM:RefreshSpecData()
     CDM:RebuildAuraOverlayEnabledMap()
     CDM:UpdateAllCooldownGroupContainers()
-    if CDM.QueueViewer then
-        CDM:QueueViewer(CDM_C.VIEWERS.ESSENTIAL, true)
-        CDM:QueueViewer(CDM_C.VIEWERS.UTILITY, true)
-    end
 end, 29, { "spec_data", "viewers", "trackers_layout" })
 
 CDM:RegisterRefreshCallback("cooldownGroups_postViewer", function()

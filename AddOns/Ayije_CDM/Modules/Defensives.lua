@@ -93,20 +93,7 @@ CDM.IsSpecSpell = IsSpecSpell
 local GetEffectiveSpellID = CDM.GetEffectiveSpellID
 
 function CDM.GetBuiltinDefensiveSpells(specID)
-    local classData = DEFENSIVES[playerClass]
-    if not classData then return EMPTY end
-    local result = {}
-    if classData.class then
-        for _, id in ipairs(classData.class) do
-            table.insert(result, id)
-        end
-    end
-    if specID and classData[specID] then
-        for _, id in ipairs(classData[specID]) do
-            table.insert(result, id)
-        end
-    end
-    return result
+    return CDM.GetBuiltinDefensiveSpellsForClass(playerClass, specID)
 end
 
 function CDM.GetBuiltinDefensiveSpellsForClass(classTag, specID)
@@ -230,17 +217,11 @@ local lastDefensivesVisibilityHash = 0
 local lastDefensivesWidth, lastDefensivesHeight = nil, nil
 local lastDefensivesSpacing = nil
 
-local iconSizeCache = { w = 40, h = 36 }
 local defensivesTrackerAcquireOpts = {
-    size = iconSizeCache,
+    size = nil,
     showCharges = true,
     named = false,
 }
-local function GetIconSize()
-    iconSizeCache.w = CDM.db and CDM.db.defensivesIconWidth or 40
-    iconSizeCache.h = CDM.db and CDM.db.defensivesIconHeight or 36
-    return iconSizeCache
-end
 
 local function AcquireDefensiveIconEntry(spellID)
     local entry = table.remove(iconEntryPool)
@@ -278,12 +259,10 @@ local function RefreshCachedDefensivesStyles()
     defensivesChargeStyleVersion = defensivesChargeStyleVersion + 1
 end
 
-CDM.RefreshCachedDefensivesStyles = RefreshCachedDefensivesStyles
-
 local GetSpacing = CDM.GetTrackerSpacing
 
 local function CreateIconFrame(spellID)
-    GetIconSize()
+    defensivesTrackerAcquireOpts.size = CDM.GetTrackerIconSize("defensivesIconWidth", "defensivesIconHeight")
     local frame = CDM.AcquireFromTrackerPool(iconFramePool, defensivesContainer, "CDM_Defensive_", spellID, defensivesTrackerAcquireOpts)
 
     frame.spellID = spellID
@@ -418,10 +397,7 @@ local function UpdateIcon(frame)
 end
 
 local function PositionIcons()
-    local size = GetIconSize()
-    local spacing = GetSpacing()
-    local anchorPoint = CDM.db and CDM.db.defensivesAnchorPoint or "TOPLEFT"
-    CDM.PositionTrackerIcons(defensivesContainer, iconFrames, size, spacing, anchorPoint)
+    CDM.PositionTrackerIconsFromDB(defensivesContainer, iconFrames, "defensivesIconWidth", "defensivesIconHeight", "spacing", "defensivesAnchorPoint")
 end
 
 local function IsCustomSpell(spellID)
@@ -551,6 +527,9 @@ local function ReshowViewerFrames()
                 local fd = CDM.GetFrameData and CDM.GetFrameData(frame)
                 if fd and fd.cdmHiddenByDefensives then
                     fd.cdmHiddenByDefensives = false
+                    if frame.Cooldown and frame.Cooldown.SetDrawSwipe then
+                        frame.Cooldown:SetDrawSwipe(true)
+                    end
                 end
             end
         end
@@ -576,8 +555,6 @@ defensivesDispatchFrame:Hide()
 local defensivesQueuedFullUpdate = false
 local defensivesQueuedCooldownUpdate = false
 local defensivesStartupCooldownGate = CDM.CreateStartupSettleGate(function()
-    -- Run one cooldown-only pass after suppression lifts so early watcher events
-    -- (often fired during secret-value warmup) do not leave stale cooldown UI.
     if isEnabled then
         UpdateDefensivesCooldownsOnly()
     end
@@ -738,15 +715,13 @@ function CDM:UpdateDefensives()
     if currentSpec and currentSpec ~= lastDefensivesSpecID then
         lastDefensivesSpecID = currentSpec
         self:ReinitDefensiveIcons()
-        return  -- ReinitDefensiveIcons calls UpdateDefensives
+        return
     end
 
-    -- Full updates must re-check spellbook visibility because talent changes can
-    -- add/remove spells without changing spec, leaving cached known-state stale.
     InvalidateSpellbookCache()
     CDM.WipeEffectiveIDCache()
 
-    local size = GetIconSize()
+    local size = CDM.GetTrackerIconSize("defensivesIconWidth", "defensivesIconHeight")
     local spacing = GetSpacing()
 
     local sizeChanged = (lastDefensivesWidth ~= size.w or lastDefensivesHeight ~= size.h)
@@ -913,10 +888,6 @@ function CDM:RemoveDefensiveSpell(spellID, targetSpecID)
     end
 end
 
--- =========================================================================
---  REFRESH CALLBACK REGISTRATIONS
--- =========================================================================
-
 local function OnDefensivesProfileApplied()
     needsStyleUpdate = true
     lastDefensivesSpecID = nil
@@ -927,7 +898,9 @@ local function OnDefensivesProfileApplied()
     InvalidateSpellbookCache()
     InvalidateTalentTreeCache()
     InvalidateOrderedSpellsCache()
-    RebuildHiddenSet()
+    if RebuildHiddenSet() then
+        InvalidateViewers()
+    end
 end
 
 local function RefreshDefensivesLifecycle()

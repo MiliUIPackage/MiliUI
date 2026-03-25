@@ -214,10 +214,7 @@ function BORDER:UpdateAllBorders()
     end
 end
 
-function BORDER:ApplyBorderColorOverride(frame, color)
-    if not frame then return end
-    local frameData = GetFrameData(frame)
-    frameData.cdmBorderColorOverride = color
+local function UpdateAllBorderColorSurfaces(frame, frameData, color)
     if frame.border then
         SetBorderColor(frame.border, color)
     end
@@ -235,26 +232,18 @@ function BORDER:ApplyBorderColorOverride(frame, color)
     end
 end
 
+function BORDER:ApplyBorderColorOverride(frame, color)
+    if not frame then return end
+    local frameData = GetFrameData(frame)
+    frameData.cdmBorderColorOverride = color
+    UpdateAllBorderColorSurfaces(frame, frameData, color)
+end
+
 function BORDER:RestoreToCurrentBorderColor(frame)
     if not frame then return end
     local frameData = GetFrameData(frame)
     frameData.cdmBorderColorOverride = nil
-    local color = CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
-    if frame.border then
-        SetBorderColor(frame.border, color)
-    end
-    local wrapperBorder = frameData.borderFrame and frameData.borderFrame.border
-    if wrapperBorder then
-        SetBorderColor(wrapperBorder, color)
-    end
-    local lines = frameData.pixelIconBorderLines
-    if lines then
-        for _, line in ipairs(lines) do
-            if line and line.SetVertexColor then
-                line:SetVertexColor(color.r, color.g, color.b, color.a or 1)
-            end
-        end
-    end
+    UpdateAllBorderColorSurfaces(frame, frameData, CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR))
 end
 
 CDM:RegisterRefreshCallback("borders", function()

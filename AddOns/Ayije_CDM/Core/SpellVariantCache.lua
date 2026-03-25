@@ -5,7 +5,6 @@ CDM.SpellVariant = CDM.SpellVariant or {}
 
 local NormalizeToBase = CDM.NormalizeToBase
 
-local spellVariantBaseCache = {}
 local spellVariantOverrideCache = {}
 
 local function IsUsableSpellID(id)
@@ -13,23 +12,7 @@ local function IsUsableSpellID(id)
 end
 
 local function ClearSpellVariantResolutionCaches()
-    table.wipe(spellVariantBaseCache)
     table.wipe(spellVariantOverrideCache)
-end
-
-local function GetCachedBaseSpellID(spellID)
-    if not IsUsableSpellID(spellID) then
-        return nil
-    end
-
-    local cached = spellVariantBaseCache[spellID]
-    if cached ~= nil then
-        return cached ~= false and cached or nil
-    end
-
-    local baseID = NormalizeToBase(spellID)
-    spellVariantBaseCache[spellID] = IsUsableSpellID(baseID) and baseID or false
-    return spellVariantBaseCache[spellID] ~= false and spellVariantBaseCache[spellID] or nil
 end
 
 local function GetOverrideSpellIfDifferent(spellID)
@@ -52,28 +35,24 @@ local function GetOverrideSpellIfDifferent(spellID)
     return nil
 end
 
+local function StoreIfValid(target, id, value, preserveExisting)
+    if not IsUsableSpellID(id) then return end
+    if preserveExisting and target[id] ~= nil then return end
+    target[id] = value
+end
+
 local function StoreVariantValue(target, spellID, value, preserveExisting)
     if type(target) ~= "table" or not IsUsableSpellID(spellID) then
         return
     end
 
-    local function StoreValue(id)
-        if not IsUsableSpellID(id) then
-            return
-        end
-        if preserveExisting and target[id] ~= nil then
-            return
-        end
-        target[id] = value
-    end
+    StoreIfValid(target, spellID, value, preserveExisting)
+    StoreIfValid(target, GetOverrideSpellIfDifferent(spellID), value, preserveExisting)
 
-    StoreValue(spellID)
-    StoreValue(GetOverrideSpellIfDifferent(spellID))
-
-    local baseID = GetCachedBaseSpellID(spellID)
+    local baseID = NormalizeToBase(spellID)
     if baseID and baseID ~= spellID then
-        StoreValue(baseID)
-        StoreValue(GetOverrideSpellIfDifferent(baseID))
+        StoreIfValid(target, baseID, value, preserveExisting)
+        StoreIfValid(target, GetOverrideSpellIfDifferent(baseID), value, preserveExisting)
     end
 end
 
@@ -87,7 +66,7 @@ local function ResolveVariantValue(sourceMap, spellID)
         return direct
     end
 
-    local baseID = GetCachedBaseSpellID(spellID)
+    local baseID = NormalizeToBase(spellID)
     if baseID and baseID ~= spellID then
         local baseValue = sourceMap[baseID]
         if baseValue ~= nil then
@@ -117,7 +96,7 @@ local function ResolveVariantValue(sourceMap, spellID)
 end
 
 CDM.SpellVariant.ClearCaches = ClearSpellVariantResolutionCaches
-CDM.SpellVariant.GetBaseSpellID = GetCachedBaseSpellID
+CDM.SpellVariant.GetBaseSpellID = NormalizeToBase
 CDM.SpellVariant.GetOverrideIfDifferent = GetOverrideSpellIfDifferent
 CDM.SpellVariant.StoreValue = StoreVariantValue
 CDM.SpellVariant.ResolveValue = ResolveVariantValue

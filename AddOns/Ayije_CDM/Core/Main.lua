@@ -1,13 +1,9 @@
 local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
 local CDM_C = CDM.CONST
-local _G = _G
-local ProvisionalPlaceBuffFrame = CDM.ProvisionalPlaceBuffFrame
-local CheckIDAgainstRegistry = CDM.CheckIDAgainstRegistry
 local RefreshStyleCache = CDM.RefreshStyleCache
 local ResetFrameSpellCache = CDM.ResetFrameSpellCache
-local GetCachedBaseSpellID = CDM.GetCachedBaseSpellID
-local GetSpellIDCandidates = CDM.GetSpellIDCandidates
+local GetBaseSpellID = CDM.GetBaseSpellID
 
 local VIEWERS = CDM_C.VIEWERS
 local ALL_VIEWER_NAMES = {
@@ -27,15 +23,11 @@ local LSM_MEDIA_EVENT = "LibSharedMedia_Registered"
 
 local CDM_ViewerHooked = setmetatable({}, { __mode = "k" })
 local CDM_ViewerOnAcquireHooked = setmetatable({}, { __mode = "k" })
-local CDM_ViewerIconSizeHooked = setmetatable({}, { __mode = "k" })
 local CDM_ViewerPoolAcquireHooked = setmetatable({}, { __mode = "k" })
-local CDM_ViewerPoolReleaseHooked = setmetatable({}, { __mode = "k" })
 local CDM_ViewerOnShowHooked = setmetatable({}, { __mode = "k" })
 local CDM_ViewerSyncHooked = setmetatable({}, { __mode = "k" })
-
-local function QueueBuffLikeViewerFromItemHooks(name)
-    CDM:QueueViewer(name)
-end
+local CDM_FrameActiveStateHooked = setmetatable({}, { __mode = "k" })
+local CDM_FrameShownStateHooked = setmetatable({}, { __mode = "k" })
 
 CDM.combatDirtyViewers = {}
 
@@ -64,12 +56,6 @@ CDM.Sizes.SIZE_RACIALS = SIZE_RACIALS
 CDM.Sizes.SIZE_DEFENSIVES = SIZE_DEFENSIVES
 CDM.Sizes.SIZE_TRINKETS = SIZE_TRINKETS
 CDM.Sizes.SIZE_EXTERNALS = SIZE_EXTERNALS
-CDM.Sizes.SPACING = SPACING
-CDM.Sizes.MAX_ROW_ESS = MAX_ROW_ESS
-CDM.Sizes.MAX_ROW_UTIL = MAX_ROW_UTIL
-CDM.Sizes.UTILITY_Y_OFFSET = UTILITY_Y_OFFSET
-CDM.Sizes.UTILITY_VERTICAL = UTILITY_VERTICAL
-CDM.Sizes.UTILITY_X_OFFSET = UTILITY_X_OFFSET
 
 local function InitConstants()
     local sizeEssRow1 = CDM_C.GetConfigValue("sizeEssRow1", d.sizeEssRow1)
@@ -124,7 +110,7 @@ local function UpdateConstants()
     CDM.Pixel.Update()
     InitConstants()
 
-    local buffContainer = CDM.anchorContainers and CDM.anchorContainers["BuffIconCooldownViewer"]
+    local buffContainer = CDM.anchorContainers and CDM.anchorContainers[VIEWERS.BUFF]
     if buffContainer then
         buffContainer:SetSize(CDM.Pixel.SnapEven(400), CDM.Pixel.Snap(SIZE_BUFF.h))
     end
@@ -135,14 +121,7 @@ local function UpdateConstants()
     end
 end
 
-CDM.UpdateConstants = UpdateConstants
-
-function CDM:GetConstants()
-    return CDM.Sizes
-end
-
 CDM.queue = {}
-CDM.queueVersion = 0
 CDM.anchorContainers = {}
 CDM.loadingScreenActive = false
 CDM.enterWorldToken = 0
@@ -151,42 +130,13 @@ CDM.pendingSpecChange = false
 CDM.pendingTalentChange = false
 CDM.isEditModeActive = false
 
+
 local Updater = CreateFrame("Frame")
 
 local function RefreshFrameSpellIdentity(frame)
     if not frame then return end
     ResetFrameSpellCache(CDM, frame)
-    return GetCachedBaseSpellID(CDM, frame)
-end
-
-local function HookViewerLayout(viewer, name)
-    if CDM_ViewerHooked[viewer] then return end
-    CDM_ViewerHooked[viewer] = true
-
-    local isBuffLike = (name == VIEWERS.BUFF or name == VIEWERS.BUFF_BAR)
-    local queueOnRefreshLayout = (name == VIEWERS.ESSENTIAL) or (name == VIEWERS.UTILITY)
-    local function QueuePostLayoutViewer()
-        CDM:QueueViewer(name, true)
-    end
-
-    if viewer.RefreshData and isBuffLike then
-        hooksecurefunc(viewer, "RefreshData", function()
-            CDM:QueueViewer(name, true)
-        end)
-    end
-
-    if viewer.UpdateLayout then
-        hooksecurefunc(viewer, "UpdateLayout", QueuePostLayoutViewer)
-    elseif viewer.Layout then
-        hooksecurefunc(viewer, "Layout", QueuePostLayoutViewer)
-    end
-
-    if viewer.RefreshLayout and queueOnRefreshLayout then
-        hooksecurefunc(viewer, "RefreshLayout", function()
-            CDM:QueueViewer(name, true)
-        end)
-    end
-
+    return GetBaseSpellID(frame)
 end
 
 local updaterActive = false
@@ -208,10 +158,6 @@ local function OnLSMMediaRegistered(_, mediaType, key)
 end
 
 local function RegisterLSMFontRefreshCallback()
-    if CDM._lsmFontCallbackRegistered then
-        return
-    end
-
     local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
     local callbacks = LSM and LSM.callbacks
     if not (callbacks and callbacks.RegisterCallback) then
@@ -219,15 +165,9 @@ local function RegisterLSMFontRefreshCallback()
     end
 
     callbacks.RegisterCallback(CDM, LSM_MEDIA_EVENT, OnLSMMediaRegistered)
-    CDM._lsmFontCallbackRegistered = true
 end
 
 local function RegisterPostLoginFontRefresh()
-    if CDM._postLoginFontRefreshRegistered then
-        return
-    end
-    CDM._postLoginFontRefreshRegistered = true
-
     CDM:RegisterEvent("PLAYER_LOGIN", function()
         C_Timer.After(0, function()
             CDM:RefreshConfig()
@@ -235,25 +175,7 @@ local function RegisterPostLoginFontRefresh()
     end)
 end
 
-local function QueueCooldownViewerSettingsVisualRefresh()
-    CDM:QueueViewer(VIEWERS.ESSENTIAL)
-    CDM:QueueViewer(VIEWERS.UTILITY)
-    CDM:QueueViewer(VIEWERS.BUFF)
-    CDM:QueueViewer(VIEWERS.BUFF_BAR)
-
-end
-
-local function QueueAllViewersAfterSettingsClose()
-    C_Timer.After(0.1, function()
-        CDM:QueueAllViewers(true)
-    end)
-end
-
 local function RegisterCooldownViewerSettingsVisualRefresh()
-    if CDM._cooldownViewerSettingsVisualRefreshRegistered then
-        return
-    end
-
     local registry = EventRegistry
     if not (registry and registry.RegisterCallback) then
         return
@@ -261,15 +183,15 @@ local function RegisterCooldownViewerSettingsVisualRefresh()
 
     local onShowOwner = {}
     registry:RegisterCallback("CooldownViewerSettings.OnShow", function()
-        QueueCooldownViewerSettingsVisualRefresh()
+        CDM:QueueAllViewers()
     end, onShowOwner)
 
     local onHideOwner = {}
     registry:RegisterCallback("CooldownViewerSettings.OnHide", function()
-        QueueAllViewersAfterSettingsClose()
+        C_Timer.After(0.1, function()
+            CDM:QueueAllViewers(true)
+        end)
     end, onHideOwner)
-
-    CDM._cooldownViewerSettingsVisualRefreshRegistered = true
 end
 
 local function QueueProcessor()
@@ -283,16 +205,16 @@ local function QueueProcessor()
         return
     end
 
-    for name, version in pairs(CDM.queue) do
-        if version ~= CDM.queueVersion then
+    for _, name in ipairs(ALL_VIEWER_NAMES) do
+        if CDM.queue[name] then
             CDM.queue[name] = nil
-        else
             local v = _G[name]
-            if not v or CDM:ForceReanchor(v) ~= false then
-                CDM.queue[name] = nil
-                break
-            end
+            if v then CDM:ForceReanchor(v) end
         end
+    end
+
+    if CDM.Fading then
+        CDM.Fading:ReapplyCurrent()
     end
 
     if not next(CDM.queue) then
@@ -301,33 +223,50 @@ local function QueueProcessor()
     end
 end
 
-function CDM:QueueViewer(name, immediate, version)
-    local qv = version or self.queueVersion or 0
-
+function CDM:QueueViewer(name, immediate)
     if immediate and not self.pendingSpecChange then
         local v = _G[name]
         if v then self:ForceReanchor(v) end
+        if CDM.Fading then
+            CDM.Fading:ReapplyCurrent()
+        end
         return
     end
 
-    if self.queue[name] == qv then return end
+    if self.queue[name] then return end
 
-    if name == VIEWERS.BUFF then
-        if self.MarkBuffCenteringDirty then self:MarkBuffCenteringDirty() end
-    elseif name == VIEWERS.UTILITY and self.InvalidateUtilityVisibleCountCache then
+    if name == VIEWERS.UTILITY and self.InvalidateUtilityVisibleCountCache then
         self:InvalidateUtilityVisibleCountCache()
     end
 
-    self.queue[name] = qv
+    self.queue[name] = true
     if not updaterActive then
         updaterActive = true
         Updater:SetScript("OnUpdate", QueueProcessor)
     end
 end
 
-function CDM:QueueAllViewers(immediate, version)
+function CDM:QueueAllViewers(immediate)
     for _, vName in ipairs(ALL_VIEWER_NAMES) do
-        self:QueueViewer(vName, immediate, version)
+        self:QueueViewer(vName, immediate)
+    end
+end
+
+local function InstallScaleLockHook(frame)
+    local fd = CDM.GetFrameData(frame)
+    if fd.cdmSetScaleHooked then return end
+    fd.cdmSetScaleHooked = true
+    hooksecurefunc(frame, "SetScale", function(self, scale)
+        if scale ~= 1 then
+            self:SetScale(1)
+        end
+    end)
+end
+
+local function InstallScaleLockHooksOnViewer(viewer)
+    if not viewer or not viewer.itemFramePool then return end
+    for frame in viewer.itemFramePool:EnumerateActive() do
+        if frame then InstallScaleLockHook(frame) end
     end
 end
 
@@ -335,40 +274,44 @@ function CDM:SetupViewer(vName)
     local v = _G[vName]
     if not v then return end
 
-    HookViewerLayout(v, vName)
+    CDM_ViewerHooked[v] = true
 
     if v.OnAcquireItemFrame and not CDM_ViewerOnAcquireHooked[v] then
         CDM_ViewerOnAcquireHooked[v] = true
         hooksecurefunc(v, "OnAcquireItemFrame", function(_, itemFrame)
-            if itemFrame and itemFrame.SetScale and itemFrame:GetScale() ~= 1 then
-                itemFrame:SetScale(1)
-            end
+            InstallScaleLockHook(itemFrame)
             local fd = CDM.GetFrameData(itemFrame)
-            if CDM.HideCooldownTextIfFlagged then
-                CDM:HideCooldownTextIfFlagged(itemFrame)
-            elseif fd and fd.cdmCooldownTextHidden and itemFrame.Cooldown and itemFrame.Cooldown.SetHideCountdownNumbers then
-                itemFrame.Cooldown:SetHideCountdownNumbers(true)
-            end
-            local baseSpellID = RefreshFrameSpellIdentity(itemFrame)
-            local hiddenSet = CDM.defensivesHiddenSet
-            if baseSpellID and hiddenSet and hiddenSet[baseSpellID] then
-                if fd then fd.cdmHiddenByDefensives = true end
-                if itemFrame.IsShown and itemFrame:IsShown() then
-                    itemFrame:Hide()
-                end
-            end
+            CDM:HideCooldownTextIfFlagged(itemFrame)
             self:QueueViewer(vName)
+
+            if (vName == VIEWERS.ESSENTIAL or vName == VIEWERS.UTILITY) and not CDM_FrameShownStateHooked[itemFrame] then
+                CDM_FrameShownStateHooked[itemFrame] = true
+                hooksecurefunc(itemFrame, "UpdateShownState", function(frame)
+                    local fd2 = CDM.GetFrameData(frame)
+                    if fd2 and fd2.cdmHiddenByDefensives then
+                        frame:Hide()
+                    end
+                end)
+            end
+
+            if (vName == VIEWERS.BUFF or vName == VIEWERS.BUFF_BAR) and not CDM_FrameActiveStateHooked[itemFrame] then
+                CDM_FrameActiveStateHooked[itemFrame] = true
+                local hookVName = vName
+                hooksecurefunc(itemFrame, "OnActiveStateChanged", function(frame)
+                    if hookVName == VIEWERS.BUFF then
+                        local baseID = CDM.GetBaseSpellID(frame)
+                        if baseID then
+                            CDM:NotifyBuffFrameSpellID(frame, baseID)
+                        end
+                    end
+
+                    CDM:QueueViewer(hookVName)
+                end)
+            end
         end)
     end
 
-    if v.UpdateSystemSettingIconSize and not CDM_ViewerIconSizeHooked[v] then
-        CDM_ViewerIconSizeHooked[v] = true
-        hooksecurefunc(v, "UpdateSystemSettingIconSize", function()
-            self:EnforceCooldownViewerScale(v)
-        end)
-    end
-
-    self:EnforceCooldownViewerScale(v)
+    InstallScaleLockHooksOnViewer(v)
     if self.UpdateEditModeSelectionOverlay then
         self:UpdateEditModeSelectionOverlay(vName)
     end
@@ -377,24 +320,16 @@ function CDM:SetupViewer(vName)
         if not v.OnAcquireItemFrame and not CDM_ViewerPoolAcquireHooked[v] then
             CDM_ViewerPoolAcquireHooked[v] = true
             hooksecurefunc(v.itemFramePool, "Acquire", function()
-                self:EnforceCooldownViewerScale(v)
+                InstallScaleLockHooksOnViewer(v)
                 self:QueueViewer(vName)
             end)
         end
 
-        if (vName == VIEWERS.BUFF or vName == VIEWERS.BUFF_BAR or vName == VIEWERS.UTILITY) and not CDM_ViewerPoolReleaseHooked[v] then
-            CDM_ViewerPoolReleaseHooked[v] = true
-            hooksecurefunc(v.itemFramePool, "Release", function()
-                local immediate = (vName == VIEWERS.BUFF or vName == VIEWERS.BUFF_BAR)
-                self:QueueViewer(vName, immediate)
-            end)
-        end
     end
 
     if not CDM_ViewerOnShowHooked[v] then
         CDM_ViewerOnShowHooked[v] = true
         v:HookScript("OnShow", function()
-            self:EnforceCooldownViewerScale(v)
             if self.UpdateEditModeSelectionOverlay then
                 self:UpdateEditModeSelectionOverlay(vName)
             end
@@ -426,19 +361,6 @@ function CDM:SetupViewer(vName)
     end
 
     self:QueueViewer(vName)
-end
-
-
-function CDM:EnforceCooldownViewerScale(viewer)
-    if not viewer then return end
-    -- Never write viewer.iconScale (taints Blizzard table in WoW 12.0+)
-    if viewer.itemFramePool then
-        for frame in viewer.itemFramePool:EnumerateActive() do
-            if frame and frame.SetScale and frame:GetScale() ~= 1 then
-                frame:SetScale(1)
-            end
-        end
-    end
 end
 
 CDM.loginFinished = false
@@ -486,80 +408,34 @@ local function SetupMixinHooks()
         local frameData = CDM.GetFrameData and CDM.GetFrameData(frame)
         local hiddenSet = CDM.defensivesHiddenSet
         local isHiddenByDefensives = baseSpellID and hiddenSet and hiddenSet[baseSpellID] or false
-        local wasHiddenByDefensives = frameData and frameData.cdmHiddenByDefensives
 
         if frameData and baseSpellID then
             frameData.cdmHiddenByDefensives = isHiddenByDefensives
         end
 
         if isHiddenByDefensives then
-            if frame.IsShown and frame:IsShown() then
-                frame:Hide()
+            frame:Hide()
+            if frame.Cooldown and frame.Cooldown.SetDrawSwipe then
+                frame.Cooldown:SetDrawSwipe(false)
             end
-            CDM:QueueViewer(viewerName)
-            return
         end
 
-        if wasHiddenByDefensives and not isHiddenByDefensives then
-            CDM:QueueViewer(viewerName)
-            return
-        end
-
-        if frame.IsShown and not frame:IsShown() then
-            return
-        end
-
-        if frame.SetScale then
-            frame:SetScale(1)
-        end
-        if CDM.ApplyStyle then
-            CDM:ApplyStyle(frame, viewerName)
-        end
         CDM:QueueViewer(viewerName)
     end
 
-    local function QueueBuffViewerFromFrame(frame, tryProvisional)
+    local function QueueBuffViewerFromFrame(frame)
         local viewer = GetBuffViewerFromItemFrame(frame)
         if not viewer then return end
 
         local hiddenBuffSet = CDM.resourcesHiddenBuffSet
         if hiddenBuffSet then
-            local baseID = GetCachedBaseSpellID and GetCachedBaseSpellID(CDM, frame)
+            local baseID = GetBaseSpellID(frame)
             if baseID and hiddenBuffSet[baseID] then
                 frame:Hide()
-                QueueBuffLikeViewerFromItemHooks(VIEWERS.BUFF)
-                return
             end
         end
 
-        local buffContainer = CDM.anchorContainers and CDM.anchorContainers[VIEWERS.BUFF]
-        if not buffContainer and CDM.GetOrCreateAnchorContainer then
-            buffContainer = CDM:GetOrCreateAnchorContainer(viewer)
-        end
-
-        if tryProvisional and frame and buffContainer then
-            local matchType
-            if GetSpellIDCandidates then
-                local candidates = GetSpellIDCandidates(CDM, frame, true)
-                for _, id in ipairs(candidates) do
-                    matchType = CheckIDAgainstRegistry(id)
-                    if matchType then break end
-                end
-            end
-
-            if matchType ~= "buffgroup" then
-                CDM:RestoreCooldownTextIfHidden(frame)
-                CDM:RestoreVisualsIfHidden(frame)
-                CDM:ApplyStyle(frame, VIEWERS.BUFF)
-                CDM:ProcessBuffViewerOverrides(frame)
-                if CDM.ApplyUngroupedBuffOverrides then
-                    CDM:ApplyUngroupedBuffOverrides(frame)
-                end
-            end
-            ProvisionalPlaceBuffFrame(CDM, frame, viewer, matchType, buffContainer)
-        end
-
-        QueueBuffLikeViewerFromItemHooks(VIEWERS.BUFF)
+        CDM:QueueViewer(VIEWERS.BUFF)
     end
 
     if CooldownViewerBuffIconItemMixin and CooldownViewerBuffIconItemMixin.OnCooldownIDSet then
@@ -569,29 +445,12 @@ local function SetupMixinHooks()
 
             RefreshFrameSpellIdentity(frame)
 
-            if CDM.NotifyBuffFrameSpellID then
-                local baseID = CDM.GetBaseSpellID(frame)
-                if baseID then
-                    CDM:NotifyBuffFrameSpellID(frame, baseID)
-                end
+            local baseID = CDM.GetBaseSpellID(frame)
+            if baseID then
+                CDM:NotifyBuffFrameSpellID(frame, baseID)
             end
 
-            QueueBuffViewerFromFrame(frame, true)
-        end)
-    end
-
-    if CooldownViewerBuffIconItemMixin and CooldownViewerBuffIconItemMixin.OnActiveStateChanged then
-        hooksecurefunc(CooldownViewerBuffIconItemMixin, "OnActiveStateChanged", function(frame)
-            RefreshFrameSpellIdentity(frame)
-
-            if CDM.NotifyBuffFrameSpellID then
-                local baseID = CDM.GetBaseSpellID(frame)
-                if baseID then
-                    CDM:NotifyBuffFrameSpellID(frame, baseID)
-                end
-            end
-
-            QueueBuffViewerFromFrame(frame, true)
+            QueueBuffViewerFromFrame(frame)
         end)
     end
 
@@ -600,18 +459,8 @@ local function SetupMixinHooks()
             HandleFixedLayoutViewerSpellUpdate(frame, VIEWERS.ESSENTIAL)
         end)
     end
-    if CooldownViewerEssentialItemMixin and CooldownViewerEssentialItemMixin.OnActiveStateChanged then
-        hooksecurefunc(CooldownViewerEssentialItemMixin, "OnActiveStateChanged", function(frame)
-            HandleFixedLayoutViewerSpellUpdate(frame, VIEWERS.ESSENTIAL)
-        end)
-    end
     if CooldownViewerUtilityItemMixin and CooldownViewerUtilityItemMixin.OnCooldownIDSet then
         hooksecurefunc(CooldownViewerUtilityItemMixin, "OnCooldownIDSet", function(frame)
-            HandleFixedLayoutViewerSpellUpdate(frame, VIEWERS.UTILITY)
-        end)
-    end
-    if CooldownViewerUtilityItemMixin and CooldownViewerUtilityItemMixin.OnActiveStateChanged then
-        hooksecurefunc(CooldownViewerUtilityItemMixin, "OnActiveStateChanged", function(frame)
             HandleFixedLayoutViewerSpellUpdate(frame, VIEWERS.UTILITY)
         end)
     end
@@ -622,22 +471,10 @@ local function SetupMixinHooks()
             local viewer = GetViewerFromItemFrame(frame, VIEWERS.BUFF_BAR)
             if not viewer then return end
             RefreshFrameSpellIdentity(frame)
-            if frame and frame.SetScale then
-                frame:SetScale(1)
-            end
-            CDM:ApplyBarStyle(frame, VIEWERS.BUFF_BAR)
-            QueueBuffLikeViewerFromItemHooks(VIEWERS.BUFF_BAR)
+            CDM:QueueViewer(VIEWERS.BUFF_BAR)
         end)
     end
 
-    if CooldownViewerBuffBarItemMixin and CooldownViewerBuffBarItemMixin.OnActiveStateChanged then
-        hooksecurefunc(CooldownViewerBuffBarItemMixin, "OnActiveStateChanged", function(frame)
-            local viewer = GetViewerFromItemFrame(frame, VIEWERS.BUFF_BAR)
-            if viewer then
-                QueueBuffLikeViewerFromItemHooks(VIEWERS.BUFF_BAR)
-            end
-        end)
-    end
 end
 
 local function ActivateEditMode()
@@ -684,33 +521,24 @@ local function SetupEditModeIntegration()
 end
 
 local function SetupZoneTransitionEvents()
-    local maxVisualSetupRetries = 5
-    local postLoadSpellbookRecheckPending = false
     local postLoadSpellbookRecheckToken = nil
     local postLoadSpellbookRecheckDoneToken = nil
-
-    local function ProcessLoginQueue()
-        if CDM.ProcessDeferredLogin then
-            CDM:ProcessDeferredLogin()
-        end
-    end
+    local pendingPostSpecSetup = false
 
     local function QueuePostLoadSpellbookRecheck(token)
         if not token then return end
         if postLoadSpellbookRecheckDoneToken == token then
             return
         end
-        if postLoadSpellbookRecheckPending and postLoadSpellbookRecheckToken == token then
+        if postLoadSpellbookRecheckToken == token then
             return
         end
 
-        postLoadSpellbookRecheckPending = true
         postLoadSpellbookRecheckToken = token
         C_Timer.After(0, function()
             if postLoadSpellbookRecheckToken ~= token then
                 return
             end
-            postLoadSpellbookRecheckPending = false
             postLoadSpellbookRecheckToken = nil
 
             if token ~= CDM.enterWorldToken then
@@ -721,58 +549,36 @@ local function SetupZoneTransitionEvents()
             end
             postLoadSpellbookRecheckDoneToken = token
 
-            -- Spellbook may not be ready until after the loading screen;
-            -- re-evaluate modules that rely on C_SpellBook.IsSpellInSpellBook.
             if CDM.UpdateDefensives and CDM.db and CDM.db.defensivesEnabled ~= false then CDM:UpdateDefensives() end
             if CDM.UpdateRacials and CDM.db and CDM.db.racialsEnabled ~= false then CDM:UpdateRacials() end
         end)
     end
 
-    local function RunVisualSetup(token, _reason, attempt)
+    local function RunVisualSetup(token)
         if token ~= CDM.enterWorldToken then
             return
         end
 
-        attempt = attempt or 1
-
-        local missingViewer = false
-        for _, n in ipairs(ALL_VIEWER_NAMES) do
-            if not _G[n] then
-                missingViewer = true
-            end
-        end
-
-        local alreadySetup = CDM.visualSetupToken == token and not missingViewer
-
-        if not alreadySetup then
+        if CDM.visualSetupToken ~= token then
             for _, n in ipairs(ALL_VIEWER_NAMES) do
                 local v = _G[n]
                 if not v or not CDM_ViewerHooked[v] then
                     CDM:SetupViewer(n)
                 end
             end
-
         end
 
         CDM:QueueAllViewers()
 
-        if not CDM.loginFinished and (not missingViewer or attempt >= maxVisualSetupRetries) then
+        if not CDM.loginFinished then
             CDM.loginFinished = true
             if CDM.TryOpenQueuedConfig then
                 CDM:TryOpenQueuedConfig("login_ready")
             end
-            ProcessLoginQueue()
+            if CDM.ProcessDeferredLogin then CDM:ProcessDeferredLogin() end
         end
 
-        if not missingViewer or attempt >= maxVisualSetupRetries then
-            CDM.visualSetupToken = token
-        end
-
-        if missingViewer and attempt < maxVisualSetupRetries then
-            C_Timer.After(0.1, function()
-                RunVisualSetup(token, _reason, attempt + 1)
-            end)
-        end
+        CDM.visualSetupToken = token
     end
 
     CDM:RegisterEvent("LOADING_SCREEN_ENABLED", function()
@@ -782,8 +588,14 @@ local function SetupZoneTransitionEvents()
     CDM:RegisterEvent("LOADING_SCREEN_DISABLED", function()
         CDM.Pixel.Update()
         CDM.loadingScreenActive = false
-        local token = CDM.enterWorldToken or 0
-        RunVisualSetup(token, "loading_screen_disabled", 1)
+        local token = CDM.enterWorldToken
+
+        if CDM.pendingSpecChange then
+            pendingPostSpecSetup = true
+        else
+            RunVisualSetup(token)
+        end
+
         QueuePostLoadSpellbookRecheck(token)
 
         if not CDM._pixelSettleRefreshDone then
@@ -806,9 +618,6 @@ local function SetupZoneTransitionEvents()
         if CDM.UpdateBuffBarContainerPosition then
             CDM:UpdateBuffBarContainerPosition()
         end
-        CDM:QueueAllViewers(true)
-        -- Trackers (defensives/trinkets/racials/resources) are not viewer-backed and
-        -- depend on pixel-perfect border/layout math. Refresh them after scale settles.
         CDM:RefreshConfig()
     end)
 
@@ -832,10 +641,18 @@ local function SetupZoneTransitionEvents()
 
         if not CDM.loadingScreenActive and not isInitialLogin then
             C_Timer.After(0, function()
-                RunVisualSetup(token, "entering_world_fallback", 1)
+                RunVisualSetup(token)
             end)
         end
     end)
+
+    function CDM:NotifySpecChangeComplete()
+        if pendingPostSpecSetup then
+            pendingPostSpecSetup = false
+            local token = self.enterWorldToken or 0
+            RunVisualSetup(token)
+        end
+    end
 end
 
 local function InitializeModules()
@@ -876,21 +693,19 @@ local function InitializeModules()
         CDM:InitializePlayerCastBar()
     end
 
-    if CDM.Keybinds and CDM.Keybinds.Initialize then
-        CDM.Keybinds:Initialize()
-    end
+    CDM.Keybinds:Initialize()
+    CDM.Fading:Initialize()
+    CDM.RotationAssist:Initialize()
+    CDM.PressOverlay:Initialize()
+end
 
-    if CDM.Fading and CDM.Fading.Initialize then
-        CDM.Fading:Initialize()
+local function FlushCombatDirtyViewers()
+    local dirty = CDM.combatDirtyViewers
+    if not next(dirty) then return end
+    for vName in pairs(dirty) do
+        CDM:QueueViewer(vName)
     end
-
-    if CDM.RotationAssist and CDM.RotationAssist.Initialize then
-        CDM.RotationAssist:Initialize()
-    end
-
-    if CDM.PressOverlay and CDM.PressOverlay.Initialize then
-        CDM.PressOverlay:Initialize()
-    end
+    wipe(dirty)
 end
 
 local function RegisterRefreshCallbacks()
@@ -910,6 +725,18 @@ local function RegisterRefreshCallbacks()
         end
         if CDM.InvalidateEssentialRow1WidthCache then
             CDM:InvalidateEssentialRow1WidthCache()
+        end
+        local buffViewer = _G[VIEWERS.BUFF]
+        if buffViewer and buffViewer.itemFramePool then
+            for frame in buffViewer.itemFramePool:EnumerateActive() do
+                if frame then CDM:ApplyStyle(frame, VIEWERS.BUFF, true) end
+            end
+        end
+        local barViewer = _G[VIEWERS.BUFF_BAR]
+        if barViewer and barViewer.itemFramePool then
+            for frame in barViewer.itemFramePool:EnumerateActive() do
+                if frame then CDM:ApplyBarStyle(frame, VIEWERS.BUFF_BAR) end
+            end
         end
     end, 10, VISUAL_STYLE_SCOPES)
 
@@ -947,8 +774,7 @@ local function RegisterRefreshCallbacks()
 
     CDM:RegisterRefreshCallback("buffBars", function()
         CDM:UpdateBuffBarContainerPosition()
-        CDM:QueueViewer(VIEWERS.BUFF_BAR, true)
-    end, 65, { "trackers_layout", "viewers" })
+    end, 65, { "trackers_layout" })
 
     CDM:RegisterRefreshCallback("containerLocks", function()
         CDM:UpdateContainerDragOverlays()
@@ -977,15 +803,6 @@ function CDM:OnEnable()
     RegisterCooldownViewerSettingsVisualRefresh()
     if self.DisableBlizzardPlayerCastBar then
         self:DisableBlizzardPlayerCastBar()
-    end
-
-    local function FlushCombatDirtyViewers()
-        local dirty = CDM.combatDirtyViewers
-        if not next(dirty) then return end
-        for vName in pairs(dirty) do
-            CDM:QueueViewer(vName)
-        end
-        wipe(dirty)
     end
 
     self:RegisterInternalCallback("OnCombatStateChanged", function(isInCombat)

@@ -86,7 +86,7 @@ local DesaturationCurve = CDM_C.DesaturationCurve
 local GCDFilterCurve = CDM_C.GCDFilterCurve
 local gcdActive = false
 local GCD_SPELL_ID = CDM_C.GCD_SPELL_ID
-local ITEM_COOLDOWN_MIN_SECONDS = 1.6 -- Match GCDFilterCurve threshold.
+local ITEM_COOLDOWN_MIN_SECONDS = 1.6
 local PACT_OF_GLUTTONY_TALENT_ID = 386689
 local RACIALS_UPDATE_SPELL_COOLDOWNS = "spellCooldowns"
 local RACIALS_UPDATE_SPELL_CHARGES = "spellCharges"
@@ -120,17 +120,11 @@ local function AnchorRacialsToPartyFrame(partyFrame, side, offsetX, offsetY)
     return true
 end
 
-local iconSizeCache = { w = 40, h = 36 }
 local racialsTrackerAcquireOpts = {
-    size = iconSizeCache,
+    size = nil,
     showCharges = true,
     named = false,
 }
-local function GetIconSize()
-    iconSizeCache.w = CDM.db and CDM.db.racialsIconWidth or 40
-    iconSizeCache.h = CDM.db and CDM.db.racialsIconHeight or 36
-    return iconSizeCache
-end
 
 local function AcquireIconEntryRecord(id, isItem, itemSpellID, isCustom, combatLockout, alternateItemID)
     local entry = table.remove(iconEntryPool)
@@ -162,9 +156,6 @@ local function ReleaseIconEntryRecord(entry)
     iconEntryPool[#iconEntryPool + 1] = entry
 end
 
--- =========================================================================
--- CACHED STYLING
--- =========================================================================
 local cachedRacialsStyles = {
     fontPath = nil,
     fontOutline = nil,
@@ -210,8 +201,6 @@ local function RefreshCachedRacialsStyles()
     CDM.RefreshChargeStyleCache(cachedRacialsStyles, "racials")
     racialsChargeStyleVersion = racialsChargeStyleVersion + 1
 end
-
-CDM.RefreshCachedRacialsStyles = RefreshCachedRacialsStyles
 
 local GetSpacing = CDM.GetTrackerSpacing
 
@@ -276,7 +265,6 @@ function CDM.GetOrderedRacialEntries(specID)
             result[#result + 1] = entryByID[id]
             added[id] = true
         elseif BUILTIN_SPELL_SET[id] then
-            -- Racial from another race; substitute current race's racials here
             for _, entry in ipairs(entries) do
                 if not entry.isItem and not entry.isCustom and not added[entry.id] then
                     result[#result + 1] = entry
@@ -296,7 +284,7 @@ function CDM.GetOrderedRacialEntries(specID)
 end
 
 local function CreateIconFrame(id, isItem, itemSpellID, isCustom)
-    GetIconSize()
+    racialsTrackerAcquireOpts.size = CDM.GetTrackerIconSize("racialsIconWidth", "racialsIconHeight")
     local frame = CDM.AcquireFromTrackerPool(iconFramePool, racialsContainer, "CDM_Racial_", id, racialsTrackerAcquireOpts)
 
     frame.spellID = isItem and nil or id
@@ -424,7 +412,12 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
             end
 
             if hasItemCooldown then
-                frame.Cooldown:SetCooldown(itemCdStart, itemCdDuration)
+                local fd = CDM.GetFrameData(frame)
+                if not fd.cdmDurationObj then
+                    fd.cdmDurationObj = C_DurationUtil.CreateDuration()
+                end
+                fd.cdmDurationObj:SetTimeFromStart(itemCdStart, itemCdDuration)
+                frame.Cooldown:SetCooldownFromDurationObject(fd.cdmDurationObj)
                 itemCooldownActive = true
             elseif not isOnGCD and SCD then
                 frame.Cooldown:SetCooldownFromDurationObject(SCD)
@@ -437,7 +430,12 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
             local startTime, durationSeconds, enableCooldownTimer = C_Container.GetItemCooldown(entry and entry._activeItemID or itemID)
 
             if HasVisibleItemCooldown(startTime, durationSeconds) then
-                frame.Cooldown:SetCooldown(startTime, durationSeconds)
+                local fd = CDM.GetFrameData(frame)
+                if not fd.cdmDurationObj then
+                    fd.cdmDurationObj = C_DurationUtil.CreateDuration()
+                end
+                fd.cdmDurationObj:SetTimeFromStart(startTime, durationSeconds)
+                frame.Cooldown:SetCooldownFromDurationObject(fd.cdmDurationObj)
                 itemCooldownActive = true
             else
                 frame.Cooldown:Clear()
@@ -542,10 +540,7 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
 end
 
 local function PositionIcons()
-    local size = GetIconSize()
-    local spacing = GetSpacing()
-    local anchorPoint = CDM.db and CDM.db.racialsAnchorPoint or "TOPLEFT"
-    CDM.PositionTrackerIcons(racialsContainer, iconFrames, size, spacing, anchorPoint)
+    CDM.PositionTrackerIconsFromDB(racialsContainer, iconFrames, "racialsIconWidth", "racialsIconHeight", "spacing", "racialsAnchorPoint")
 end
 
 local function InvalidateSpellbookCache()
@@ -1155,7 +1150,7 @@ function CDM:UpdateRacials()
         return
     end
 
-    local size = GetIconSize()
+    local size = CDM.GetTrackerIconSize("racialsIconWidth", "racialsIconHeight")
     local spacing = GetSpacing()
 
     local sizeChanged = (lastRacialsWidth ~= size.w or lastRacialsHeight ~= size.h)
@@ -1356,10 +1351,6 @@ function CDM:RemoveRacialEntry(id)
     self:ReinitRacialIcons()
     CDM:RefreshConfig()
 end
-
--- =========================================================================
---  REFRESH CALLBACK REGISTRATIONS
--- =========================================================================
 
 local function OnRacialsProfileApplied()
     needsStyleUpdate = true

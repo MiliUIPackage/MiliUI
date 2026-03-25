@@ -34,7 +34,6 @@ ns.ConfigKeys = {
                 "sizeBuff",
                 "spacing",
                 "maxRowEss",
-                "utilityYOffset",
                 "utilityWrap",
                 "maxRowUtil",
                 "utilityUnlock",
@@ -345,6 +344,7 @@ ns.ConfigKeys = {
                 "buffContainerLocked",
                 "buffBarContainerLocked",
                 "editModePositions",
+                "utilityYOffset",
             },
         },
         custombuffs = {

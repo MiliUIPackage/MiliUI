@@ -1,6 +1,5 @@
 local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
-local CDM_C = CDM and CDM.CONST or {}
 local L = CDM.L
 
 function CDM:DeepCopy(original)
@@ -26,9 +25,7 @@ local function CopyConfigValue(value)
     return value
 end
 
-local function IsEmptyTable(t)
-    return type(t) == "table" and next(t) == nil
-end
+local IsEmptyTable = CDM.CONST.IsEmptyTable
 
 local PROFILE_MT = {
     __index = function(self, key)
@@ -53,39 +50,10 @@ local TAG_DEFAULT_BAR1 = true
 local TAG_DEFAULT_BAR2 = false
 
 local function IsUsableSpellID(spellID)
-    if CDM.IsSafeNumber then
-        return CDM.IsSafeNumber(spellID) and spellID > 0 and spellID == math.floor(spellID)
-    end
-    return type(spellID) == "number" and spellID > 0 and spellID == math.floor(spellID)
-end
-
-local function GetNormalizedBaseSpellID(spellID)
-    if not IsUsableSpellID(spellID) then return nil end
-    if type(CDM.NormalizeToBase) ~= "function" then return nil end
-
-    local baseID = CDM.NormalizeToBase(spellID)
-    if IsUsableSpellID(baseID) then
-        return baseID
-    end
-    return nil
+    return CDM.IsSafeNumber(spellID) and spellID > 0 and spellID == math.floor(spellID)
 end
 
 local NormalizeNumericKeys
-
-local function GetBuffGroupMatchCandidates(spellID)
-    if CDM.GetBuffGroupMatchCandidates then
-        return CDM:GetBuffGroupMatchCandidates(spellID) or {}
-    end
-    return {}
-end
-
-local function GetBuffOverrideStorageKey(spellID)
-    if CDM.GetBuffOverrideStorageKey then
-        return CDM:GetBuffOverrideStorageKey(spellID)
-    end
-    if not IsUsableSpellID(spellID) then return nil end
-    return GetNormalizedBaseSpellID(spellID) or spellID
-end
 
 local function CompactSpellOverrideMap(overrideMap)
     if type(overrideMap) ~= "table" then return end
@@ -95,7 +63,7 @@ local function CompactSpellOverrideMap(overrideMap)
     local groupedEntries = {}
     for rawKey, entry in pairs(overrideMap) do
         if IsUsableSpellID(rawKey) and type(entry) == "table" then
-            local storageKey = GetBuffOverrideStorageKey(rawKey)
+            local storageKey = CDM:GetBuffOverrideStorageKey(rawKey)
             if IsUsableSpellID(storageKey) then
                 if not groupedEntries[storageKey] then
                     groupedEntries[storageKey] = {}
@@ -141,52 +109,34 @@ local function CompactSpellOverrideMap(overrideMap)
     end
 end
 
+local function CompactGroupedOverrides(groups)
+    if type(groups) ~= "table" then return end
+    for _, specGroups in pairs(groups) do
+        if type(specGroups) == "table" then
+            for _, group in pairs(specGroups) do
+                if type(group) == "table" and type(group.spellOverrides) == "table" then
+                    CompactSpellOverrideMap(group.spellOverrides)
+                end
+            end
+        end
+    end
+end
+
+local function CompactUngroupedOverrides(ungrouped)
+    if type(ungrouped) ~= "table" then return end
+    for _, specOverrides in pairs(ungrouped) do
+        if type(specOverrides) == "table" then
+            CompactSpellOverrideMap(specOverrides)
+        end
+    end
+end
+
 local function CompactBuffOverrideTables(profile)
     if type(profile) ~= "table" then return end
-
-    local bg = profile.buffGroups
-    if type(bg) == "table" then
-        for _, specGroups in pairs(bg) do
-            if type(specGroups) == "table" then
-                for _, group in pairs(specGroups) do
-                    if type(group) == "table" and type(group.spellOverrides) == "table" then
-                        CompactSpellOverrideMap(group.spellOverrides)
-                    end
-                end
-            end
-        end
-    end
-
-    local ubo = profile.ungroupedBuffOverrides
-    if type(ubo) == "table" then
-        for _, specOverrides in pairs(ubo) do
-            if type(specOverrides) == "table" then
-                CompactSpellOverrideMap(specOverrides)
-            end
-        end
-    end
-
-    local cg = profile.cooldownGroups
-    if type(cg) == "table" then
-        for _, specGroups in pairs(cg) do
-            if type(specGroups) == "table" then
-                for _, group in pairs(specGroups) do
-                    if type(group) == "table" and type(group.spellOverrides) == "table" then
-                        CompactSpellOverrideMap(group.spellOverrides)
-                    end
-                end
-            end
-        end
-    end
-
-    local uco = profile.ungroupedCooldownOverrides
-    if type(uco) == "table" then
-        for _, specOverrides in pairs(uco) do
-            if type(specOverrides) == "table" then
-                CompactSpellOverrideMap(specOverrides)
-            end
-        end
-    end
+    CompactGroupedOverrides(profile.buffGroups)
+    CompactUngroupedOverrides(profile.ungroupedBuffOverrides)
+    CompactGroupedOverrides(profile.cooldownGroups)
+    CompactUngroupedOverrides(profile.ungroupedCooldownOverrides)
 end
 
 local function NormalizeBuffGroupSpellList(spellList)
@@ -226,10 +176,6 @@ local function CompactBuffGroupSpellLists(profile)
     if type(profile) ~= "table" then return end
     CompactGroupSpellListsForKey(profile, "buffGroups")
     CompactGroupSpellListsForKey(profile, "cooldownGroups")
-end
-
-local function NormalizeLegacyBuffGroupSpellList(spellList)
-    return NormalizeBuffGroupSpellList(spellList)
 end
 
 NormalizeNumericKeys = function(t)
@@ -319,6 +265,12 @@ local function CompactSparseRuntimeData(profile)
     if IsEmptyTable(profile.ungroupedBuffOverrides) then
         profile.ungroupedBuffOverrides = nil
     end
+    if profile.cooldownGroups and IsEmptyTable(profile.cooldownGroups) then
+        profile.cooldownGroups = nil
+    end
+    if profile.ungroupedCooldownOverrides and IsEmptyTable(profile.ungroupedCooldownOverrides) then
+        profile.ungroupedCooldownOverrides = nil
+    end
 end
 
 local function MigrateSecondaryTertiaryToBuffGroups(prof)
@@ -363,7 +315,7 @@ local function MigrateSecondaryTertiaryToBuffGroups(prof)
 
                     if #groups == 0 then
                         if hasSec then
-                            local spells = NormalizeLegacyBuffGroupSpellList(specData.secondary)
+                            local spells = NormalizeBuffGroupSpellList(specData.secondary)
                             groups[#groups + 1] = {
                                 name = "Secondary",
                                 spells = spells,
@@ -387,7 +339,7 @@ local function MigrateSecondaryTertiaryToBuffGroups(prof)
                         end
 
                         if hasTert then
-                            local spells = NormalizeLegacyBuffGroupSpellList(specData.tertiary)
+                            local spells = NormalizeBuffGroupSpellList(specData.tertiary)
                             groups[#groups + 1] = {
                                 name = "Tertiary",
                                 spells = spells,
@@ -464,6 +416,43 @@ end
 
 local DB_SCHEMA_VERSION = 8
 
+local function MigrateGroupOverrides(profile, groupsKey, ungroupedKey)
+    local groups = profile[groupsKey]
+    local ungrouped = profile[ungroupedKey]
+    if type(groups) ~= "table" then return end
+    for specID, specGroups in pairs(groups) do
+        if type(specGroups) == "table" then
+            local specOv = type(ungrouped) == "table" and type(ungrouped[specID]) == "table" and ungrouped[specID]
+            for _, group in pairs(specGroups) do
+                if type(group) == "table" and type(group.spells) == "table" then
+                    if specOv then
+                        for _, sid in ipairs(group.spells) do
+                            local key = CDM:GetBuffOverrideStorageKey(sid)
+                            if key and type(specOv[key]) == "table" then
+                                if not group.spellOverrides then group.spellOverrides = {} end
+                                if not group.spellOverrides[key] then
+                                    group.spellOverrides[key] = specOv[key]
+                                    specOv[key] = nil
+                                end
+                            end
+                        end
+                    end
+                    local ov = group.spellOverrides
+                    if type(ov) == "table" and next(ov) and CDM.EnsureBuffOverrideEntry then
+                        for _, sid in ipairs(group.spells) do
+                            local entry = CDM:EnsureBuffOverrideEntry(ov, sid)
+                            if entry and not next(entry) then
+                                local key = CDM:GetBuffOverrideStorageKey(sid)
+                                if key then ov[key] = nil end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
 local PROFILE_MIGRATIONS = {
     {
         version = 1,
@@ -504,45 +493,7 @@ local PROFILE_MIGRATIONS = {
     {
         version = 5,
         run = function(profile)
-            local bg = profile.buffGroups
-            local ubo = profile.ungroupedBuffOverrides
-
-            if type(bg) == "table" then
-                for specID, specGroups in pairs(bg) do
-                    if type(specGroups) == "table" then
-                        local specOv = type(ubo) == "table" and type(ubo[specID]) == "table" and ubo[specID]
-                        for _, group in pairs(specGroups) do
-                            if type(group) == "table" and type(group.spells) == "table" then
-                                -- Adopt orphaned ungrouped overrides (picker bug fix)
-                                -- Must run BEFORE re-key so that re-keyed entries don't block adoption
-                                if specOv then
-                                    for _, sid in ipairs(group.spells) do
-                                        local key = GetBuffOverrideStorageKey(sid)
-                                        if key and type(specOv[key]) == "table" then
-                                            if not group.spellOverrides then group.spellOverrides = {} end
-                                            if not group.spellOverrides[key] then
-                                                group.spellOverrides[key] = specOv[key]
-                                                specOv[key] = nil
-                                            end
-                                        end
-                                    end
-                                end
-                                -- Re-key mismatched overrides within the group (cross-contamination fix)
-                                local ov = group.spellOverrides
-                                if type(ov) == "table" and next(ov) and CDM.EnsureBuffOverrideEntry then
-                                    for _, sid in ipairs(group.spells) do
-                                        local entry = CDM:EnsureBuffOverrideEntry(ov, sid)
-                                        if entry and not next(entry) then
-                                            local key = GetBuffOverrideStorageKey(sid)
-                                            if key then ov[key] = nil end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
+            MigrateGroupOverrides(profile, "buffGroups", "ungroupedBuffOverrides")
         end,
     },
     {
@@ -559,42 +510,7 @@ local PROFILE_MIGRATIONS = {
     {
         version = 7,
         run = function(profile)
-            local cg = profile.cooldownGroups
-            local uco = profile.ungroupedCooldownOverrides
-
-            if type(cg) == "table" then
-                for specID, specGroups in pairs(cg) do
-                    if type(specGroups) == "table" then
-                        local specOv = type(uco) == "table" and type(uco[specID]) == "table" and uco[specID]
-                        for _, group in pairs(specGroups) do
-                            if type(group) == "table" and type(group.spells) == "table" then
-                                if specOv then
-                                    for _, sid in ipairs(group.spells) do
-                                        local key = GetBuffOverrideStorageKey(sid)
-                                        if key and type(specOv[key]) == "table" then
-                                            if not group.spellOverrides then group.spellOverrides = {} end
-                                            if not group.spellOverrides[key] then
-                                                group.spellOverrides[key] = specOv[key]
-                                                specOv[key] = nil
-                                            end
-                                        end
-                                    end
-                                end
-                                local ov = group.spellOverrides
-                                if type(ov) == "table" and next(ov) and CDM.EnsureBuffOverrideEntry then
-                                    for _, sid in ipairs(group.spells) do
-                                        local entry = CDM:EnsureBuffOverrideEntry(ov, sid)
-                                        if entry and not next(entry) then
-                                            local key = GetBuffOverrideStorageKey(sid)
-                                            if key then ov[key] = nil end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
+            MigrateGroupOverrides(profile, "cooldownGroups", "ungroupedCooldownOverrides")
         end,
     },
     {
@@ -622,9 +538,6 @@ local function GetCurrentSchemaVersion(globalData)
     local schemaVersion = globalData and tonumber(globalData.schemaVersion)
     if schemaVersion then
         return schemaVersion
-    end
-    if globalData and globalData.buffGroupsMigrated then
-        return 1
     end
     return 0
 end
@@ -654,9 +567,6 @@ local function RunDatabaseMigrations()
         globalData.schemaVersion = currentVersion
     end
 
-    if globalData.schemaVersion >= 1 then
-        globalData.buffGroupsMigrated = true
-    end
 end
 
 local function InitializeDB()
@@ -766,6 +676,12 @@ local function PrepareProfileDataForApply(profileData, fromSchemaVersion)
         local defaultValue = CDM.defaults[key]
         if defaultValue ~= nil and type(defaultValue) ~= type(value) then
             prepared[key] = CopyConfigValue(defaultValue)
+        elseif type(value) == "table" and type(defaultValue) == "table" then
+            for dk, dv in pairs(defaultValue) do
+                if value[dk] == nil and type(dv) ~= "table" then
+                    value[dk] = dv
+                end
+            end
         end
     end
     ApplyProfileMetatable(prepared)
@@ -778,9 +694,7 @@ local function QueueCanonicalProfileRefresh(options)
         RebuildOptionsIfLoaded(options.targetTab)
     end
 
-    if CDM.RefreshConfig then
-        CDM:RefreshConfig()
-    end
+    CDM:RefreshConfig()
 end
 
 function CDM:ApplyProfileAtomic(name, preparedProfileData, options)
@@ -879,6 +793,9 @@ end
 function CDM:DeleteProfile(name)
     if name == self.activeProfileName then return false, "cannot_delete_active_profile" end
     if not Ayije_CDMDB.profiles[name] then return false, "profile_not_found" end
+    local fallback = Ayije_CDMDB.global.defaultProfile or "Default"
+    if fallback == name then fallback = "Default" end
+
     Ayije_CDMDB.profiles[name] = nil
     for charKey, profileName in pairs(Ayije_CDMDB.profileKeys) do
         if profileName == name then
@@ -889,7 +806,7 @@ function CDM:DeleteProfile(name)
         for _, specData in pairs(Ayije_CDMDB.specProfiles) do
             for i = 1, 4 do
                 if specData[i] == name then
-                    specData[i] = nil
+                    specData[i] = fallback
                 end
             end
         end
@@ -969,6 +886,7 @@ function CDM:SetSpecProfileEnabled(enabled)
         end
         data.enabled = true
         local classId = select(3, UnitClass("player"))
+        if not classId then return end
         local numSpecs = C_SpecializationInfo.GetNumSpecializationsForClassID(classId)
         for i = 1, numSpecs do
             if not data[i] then
@@ -1176,28 +1094,6 @@ function CDM:SetSecondaryResourceEnabled(enabled)
     SetPerSpecSetting("resourcesSecondaryResourceSettings", self:GetCurrentSpecID(), enabled, true)
 end
 
-function CDM:GetSpellRegistry(specID)
-    if self.SpellRegistry and self.SpellRegistry.GetRaw then
-        return self.SpellRegistry:GetRaw(specID)
-    end
-
-    local registry = {
-        colors = {}
-    }
-
-    local spellReg = CDM.db and CDM.db.spellRegistry
-    local userRegistry = spellReg and spellReg[specID]
-    if userRegistry then
-        if userRegistry.colors then
-            for id, color in pairs(userRegistry.colors) do
-                registry.colors[id] = color
-            end
-        end
-    end
-
-    return registry
-end
-
 function CDM:InvalidateSpellRegistryCache(specID)
     if self.SpellRegistry and self.SpellRegistry.Refresh then
         self.SpellRegistry:Refresh(specID)
@@ -1209,8 +1105,11 @@ end
 
 local function RefreshBuffViewer()
     if CDM.RefreshSpecData then CDM:RefreshSpecData() end
-    if CDM.InvalidateFrameCategoryCache then CDM:InvalidateFrameCategoryCache() end
-    if CDM.QueueViewer then CDM:QueueViewer("BuffIconCooldownViewer", true) end
+    CDM.styleCacheVersion = (CDM.styleCacheVersion or 0) + 1
+    local BUFF = CDM.CONST.VIEWERS and CDM.CONST.VIEWERS.BUFF
+    if BUFF and CDM.QueueViewer then
+        CDM:QueueViewer(BUFF)
+    end
 end
 
 function CDM:SaveSpell(specID, spellID, color)
@@ -1226,6 +1125,14 @@ function CDM:ClearSpellBorderColor(specID, spellID)
 end
 
 local stableBaseCache = {}
+local cooldownViewerDataReady = false
+
+if CDM.RegisterEvent then
+    CDM:RegisterEvent("COOLDOWN_VIEWER_DATA_LOADED", function()
+        cooldownViewerDataReady = true
+        table.wipe(stableBaseCache)
+    end)
+end
 
 local ALL_VIEWER_CATEGORIES = {}
 if Enum and Enum.CooldownViewerCategory then
@@ -1246,7 +1153,9 @@ local function ResolveStableBase(spellID)
 
     if not C_CooldownViewer or not C_CooldownViewer.GetCooldownViewerCategorySet
         or not C_CooldownViewer.GetCooldownViewerCooldownInfo then
-        stableBaseCache[spellID] = false
+        if cooldownViewerDataReady then
+            stableBaseCache[spellID] = false
+        end
         return nil
     end
 
@@ -1286,7 +1195,9 @@ local function ResolveStableBase(spellID)
         end
     end
 
-    stableBaseCache[spellID] = false
+    if cooldownViewerDataReady then
+        stableBaseCache[spellID] = false
+    end
     return nil
 end
 
@@ -1299,14 +1210,7 @@ function CDM:ClearStableBaseCache()
 end
 
 local function EnsureGlowRegistryNode(specID)
-    if not CDM.db then return nil end
-    if not CDM.db.spellRegistry then
-        CDM.db.spellRegistry = {}
-    end
-    if not CDM.db.spellRegistry[specID] then
-        CDM.db.spellRegistry[specID] = { colors = {} }
-    end
-    return CDM.db.spellRegistry[specID]
+    return CDM.SpellRegistry.EnsureStructure(specID)
 end
 
 function CDM:GetSpellGlowEnabled(specID, spellID)
@@ -1324,7 +1228,7 @@ end
 function CDM:HasAnySpellGlowConfigured(specID)
     if not specID then return false end
 
-    local currentSpecID = self.GetCurrentSpecID and self:GetCurrentSpecID() or nil
+    local currentSpecID = self:GetCurrentSpecID()
     if currentSpecID and specID == currentSpecID and self.SpellSets then
         return self.SpellSets.hasBuffGlows == true
     end
@@ -1393,80 +1297,109 @@ end
 
 CDM.BuffGroupSets = {
     grouped = {},
+    cooldownIDGrouped = {},
     groups = nil,
 }
 
-function CDM:RefreshBuffGroupData()
-    local sets = self.BuffGroupSets
+CDM.CooldownGroupSets = {
+    grouped = {},
+    cooldownIDGrouped = {},
+    groups = nil,
+}
+
+local function RefreshGroupData(self, sets, dbKey, categories, shouldInvalidateCache)
     table.wipe(sets.grouped)
+    table.wipe(sets.cooldownIDGrouped)
     sets.groups = nil
 
     local specID = self:GetCurrentSpecID()
     if not specID then return end
 
-    local bg = self.db and self.db.buffGroups
-    if not bg then return end
+    local groupDB = self.db and self.db[dbKey]
+    if not groupDB then return end
 
-    local specGroups = bg[specID]
+    local specGroups = groupDB[specID]
     if not specGroups then return end
 
     sets.groups = specGroups
 
     local NormalizeToBase = CDM.NormalizeToBase
+    local spellToGroup = {}
+
     for groupIndex, group in ipairs(specGroups) do
         if group.spells then
             for _, spellID in ipairs(group.spells) do
                 sets.grouped[spellID] = groupIndex
+                local entry = { groupIdx = groupIndex, storedID = spellID }
+                spellToGroup[spellID] = entry
                 if NormalizeToBase then
                     local base = NormalizeToBase(spellID)
-                    if base and base ~= spellID and not sets.grouped[base] then
-                        sets.grouped[base] = groupIndex
+                    if base and base ~= spellID then
+                        if not sets.grouped[base] then
+                            sets.grouped[base] = groupIndex
+                        end
+                        if not spellToGroup[base] then
+                            spellToGroup[base] = entry
+                        end
                     end
                 end
             end
         end
     end
 
-    if self.InvalidateFrameCategoryCache then
+    if C_CooldownViewer and C_CooldownViewer.GetCooldownViewerCategorySet
+        and C_CooldownViewer.GetCooldownViewerCooldownInfo
+        and Enum and Enum.CooldownViewerCategory then
+        for _, cat in ipairs(categories) do
+            local cooldownIDs = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
+            if cooldownIDs then
+                for _, cdID in ipairs(cooldownIDs) do
+                    local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
+                    if info then
+                        local match
+                        if IsUsableSpellID(info.overrideSpellID) and info.overrideSpellID ~= info.spellID then
+                            match = spellToGroup[info.overrideSpellID]
+                            if not match and NormalizeToBase then
+                                match = spellToGroup[NormalizeToBase(info.overrideSpellID)]
+                            end
+                        end
+                        if not match then
+                            match = spellToGroup[info.spellID]
+                            if not match and NormalizeToBase and IsUsableSpellID(info.spellID) then
+                                match = spellToGroup[NormalizeToBase(info.spellID)]
+                            end
+                        end
+                        if not match and info.linkedSpellIDs then
+                            for _, lid in ipairs(info.linkedSpellIDs) do
+                                if IsUsableSpellID(lid) then
+                                    match = spellToGroup[lid]
+                                    if not match and NormalizeToBase then
+                                        match = spellToGroup[NormalizeToBase(lid)]
+                                    end
+                                    if match then break end
+                                end
+                            end
+                        end
+                        if match then
+                            sets.cooldownIDGrouped[cdID] = match
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if shouldInvalidateCache and self.InvalidateFrameCategoryCache then
         self:InvalidateFrameCategoryCache()
     end
 end
 
-CDM.CooldownGroupSets = {
-    grouped = {},
-    groups = nil,
-}
+function CDM:RefreshBuffGroupData()
+    RefreshGroupData(self, self.BuffGroupSets, "buffGroups", ALL_VIEWER_CATEGORIES, true)
+end
 
 function CDM:RefreshCooldownGroupData()
-    local sets = self.CooldownGroupSets
-    table.wipe(sets.grouped)
-    sets.groups = nil
-
-    local specID = self:GetCurrentSpecID()
-    if not specID then return end
-
-    local cg = self.db and self.db.cooldownGroups
-    if not cg then return end
-
-    local specGroups = cg[specID]
-    if not specGroups then return end
-
-    sets.groups = specGroups
-
-    local NormalizeToBase = CDM.NormalizeToBase
-    for groupIndex, group in ipairs(specGroups) do
-        if group.spells then
-            for _, spellID in ipairs(group.spells) do
-                sets.grouped[spellID] = groupIndex
-                if NormalizeToBase then
-                    local base = NormalizeToBase(spellID)
-                    if base and base ~= spellID and not sets.grouped[base] then
-                        sets.grouped[base] = groupIndex
-                    end
-                end
-            end
-        end
-    end
+    RefreshGroupData(self, self.CooldownGroupSets, "cooldownGroups", ALL_VIEWER_CATEGORIES, false)
 end
 
 local configOpenQueueEventsRegistered = false

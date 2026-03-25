@@ -42,18 +42,12 @@ CDM.CONST = {
     },
 
     TEX_WHITE8X8 = "Interface\\Buttons\\WHITE8X8",
-    TEX_SEPARATOR = "Interface\\AddOns\\Ayije_CDM\\Media\\Textures\\Separator",
 
     STRATA_MAIN = "MEDIUM",
     STRATA_OVERLAY = "HIGH",
-    FRAME_LEVEL_BORDER = 2,
-    FRAME_LEVEL_TEXT = 4,
-    FRAME_LEVEL_OVERLAY = 10,
 
     ICON_TEXCOORD_MIN = 0.08,
     ICON_TEXCOORD_MAX = 0.92,
-
-    PIP_SEPARATOR_WIDTH = 1,
 
     VIEWERS = {
         ESSENTIAL = "EssentialCooldownViewer",
@@ -71,10 +65,14 @@ CDM.CONST = {
     GCD_SPELL_ID = 61304,
 }
 
+local VIEWERS = CDM.CONST.VIEWERS
+CDM.CONST.COOLDOWN_VIEWER_NAMES = { VIEWERS.ESSENTIAL, VIEWERS.UTILITY }
+
 CDM.CONST.VIEWERS_WITH_OVERRIDE = {
-    [CDM.CONST.VIEWERS.ESSENTIAL] = true,
-    [CDM.CONST.VIEWERS.UTILITY] = true,
+    [VIEWERS.ESSENTIAL] = true,
+    [VIEWERS.UTILITY] = true,
 }
+
 
 CDM.CONST.DOT_OVERRIDE_SPELLS = {
     -- Druid
@@ -82,8 +80,8 @@ CDM.CONST.DOT_OVERRIDE_SPELLS = {
     [155625] = true, -- Moonfire                  -- Feral
     [33763]  = true, -- Lifebloom                 -- Restoration
     [93402]  = true, -- Sunfire
-    [1822]   = true, -- Rake                      
-    [1079]   = true, -- Rip                       
+    [1822]   = true, -- Rake
+    [1079]   = true, -- Rip
     [155722] = true, -- Rake (Stealthed)          -- Feral
 
     -- Priest
@@ -104,12 +102,15 @@ CDM.CONST.DOT_OVERRIDE_SPELLS = {
     [121411] = true, -- Crimson Tempest           -- Assassination
 }
 
-local _SHADOW_COLOR = CDM.CONST.SHADOW_COLOR
-local _SHADOW_OFFSET = CDM.CONST.SHADOW_OFFSET
+function CDM.CONST.IsEmptyTable(t)
+    return type(t) == "table" and next(t) == nil
+end
 
 function CDM.CONST.ApplyShadow(fontString)
-    fontString:SetShadowColor(_SHADOW_COLOR.r, _SHADOW_COLOR.g, _SHADOW_COLOR.b, _SHADOW_COLOR.a)
-    fontString:SetShadowOffset(_SHADOW_OFFSET.x, _SHADOW_OFFSET.y)
+    local c = CDM.CONST.SHADOW_COLOR
+    local o = CDM.CONST.SHADOW_OFFSET
+    fontString:SetShadowColor(c.r, c.g, c.b, c.a)
+    fontString:SetShadowOffset(o.x, o.y)
 end
 
 function CDM.CONST.GetConfigValue(key, defaultValue)
@@ -124,118 +125,6 @@ function CDM.CONST.GetConfigValue(key, defaultValue)
         if v ~= nil then return v end
     end
     return defaultValue
-end
-
-local math_floor = math.floor
-local math_ceil = math.ceil
-
--- CDM.Pixel: unified pixel-perfect API
--- Pre-snap only, never post-placement correction. UI units throughout.
-local Pixel = {}
-CDM.Pixel = Pixel
-
-local cachedPixelSize = 1
-local cachedPhysH = 0
-local cachedScale = 1
-
-function Pixel.Update()
-    local physH = select(2, GetPhysicalScreenSize())
-    local scale = UIParent and UIParent.GetEffectiveScale and UIParent:GetEffectiveScale() or 1
-    if physH and physH > 0 and scale and scale > 0 then
-        if physH == cachedPhysH and scale == cachedScale then
-            return
-        end
-        cachedPhysH = physH
-        cachedScale = scale
-        cachedPixelSize = 768 / (physH * scale)
-    end
-end
-
-function Pixel.GetSize()
-    return cachedPixelSize
-end
-
-function Pixel.Snap(value)
-    if not value or value == 0 then return 0 end
-    local px = value / cachedPixelSize
-    if px >= 0 then
-        return math_floor(px + 0.5) * cachedPixelSize
-    else
-        return math_ceil(px - 0.5) * cachedPixelSize
-    end
-end
-
-function Pixel.HalfFloor(value)
-    if not value or value == 0 then return 0 end
-    local px = math_floor(value / cachedPixelSize + 0.5)
-    return math_floor(px / 2) * cachedPixelSize
-end
-
-function Pixel.SnapEven(value)
-    if not value or value == 0 then return 0 end
-    local px = value / cachedPixelSize
-    if px >= 0 then
-        px = math_floor(px + 0.5)
-    else
-        px = math_ceil(px - 0.5)
-    end
-    if px % 2 ~= 0 then px = px + 1 end
-    return px * cachedPixelSize
-end
-
-function Pixel.SetPoint(frame, point, relativeTo, relativePoint, x, y)
-    if not frame then return end
-    frame:SetPoint(
-        point,
-        relativeTo,
-        relativePoint,
-        Pixel.Snap(x or 0),
-        Pixel.Snap(y or 0)
-    )
-end
-
-function Pixel.SetSize(frame, w, h)
-    if not frame then return end
-    frame:SetSize(Pixel.Snap(w), Pixel.Snap(h))
-end
-
-function Pixel.FontSize(desiredPx)
-    return desiredPx * cachedPixelSize * cachedScale
-end
-
-function Pixel.DisableTextureSnap(tex)
-    if not tex then return end
-    if tex.SetSnapToPixelGrid then
-        tex:SetSnapToPixelGrid(false)
-    end
-    if tex.SetTexelSnappingBias then
-        tex:SetTexelSnappingBias(0)
-    end
-end
-
-function Pixel.CreateSolidTexture(parent, layer, sublevel)
-    local tex = parent:CreateTexture(nil, layer or "OVERLAY", nil, sublevel or 0)
-    tex:SetTexture(CDM.CONST.TEX_WHITE8X8)
-    if tex.SetHorizTile then tex:SetHorizTile(false) end
-    if tex.SetVertTile then tex:SetVertTile(false) end
-    Pixel.DisableTextureSnap(tex)
-    return tex
-end
-
-function Pixel.IsOneBorderMode()
-    local borderFile = CDM.CONST.GetConfigValue("borderFile", "Ayije_Thin")
-    if borderFile == "None" then
-        return false
-    end
-    if borderFile == "1 Pixel" then
-        return true
-    end
-    local borderSize = CDM.CONST.GetConfigValue("borderSize", 16)
-    return math.max(0, math_floor(borderSize / cachedPixelSize + 0.5)) <= 1
-end
-
-if UIParent then
-    Pixel.Update()
 end
 
 
@@ -416,11 +305,6 @@ for _, classData in pairs(CDM.CONST.DEFENSIVE_SPELLS) do
     end
 end
 
-CDM.CONST.IsActiveCurve = C_CurveUtil.CreateCurve()
-CDM.CONST.IsActiveCurve:SetType(Enum.LuaCurveType.Step)
-CDM.CONST.IsActiveCurve:AddPoint(0, 0)
-CDM.CONST.IsActiveCurve:AddPoint(0.0001, 1)
-
 CDM.CONST.DesaturationCurve = C_CurveUtil.CreateCurve()
 CDM.CONST.DesaturationCurve:SetType(Enum.LuaCurveType.Step)
 CDM.CONST.DesaturationCurve:AddPoint(0, 0)
@@ -435,4 +319,3 @@ CDM.CONST.IsReadyCurve = C_CurveUtil.CreateCurve()
 CDM.CONST.IsReadyCurve:SetType(Enum.LuaCurveType.Step)
 CDM.CONST.IsReadyCurve:AddPoint(0, 1)
 CDM.CONST.IsReadyCurve:AddPoint(0.0001, 0)
-

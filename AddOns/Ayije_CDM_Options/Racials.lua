@@ -276,7 +276,7 @@ local function CreateRacialsTab(page, tabId)
 
     local enabled = CDM.db.racialsEnabled
     if enabled == nil then enabled = true end
-    local setControlsEnabled  -- forward declaration
+    local setControlsEnabled
     local function UpdateShowItemsAtZeroStacksState()
         local checkbox = page.controls.racialsShowItemsAtZeroStacks and page.controls.racialsShowItemsAtZeroStacks.checkbox
         local frame = page.controls.racialsShowItemsAtZeroStacks

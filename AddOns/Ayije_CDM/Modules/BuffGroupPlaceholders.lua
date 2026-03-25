@@ -75,40 +75,9 @@ local function ApplyPlaceholderPixelBorder(frame, iconW, iconH)
     end
 
     local onePx = Pixel.GetSize()
-    local configuredSize = CDM_C.GetConfigValue("borderSize", 1) or 1
-    local borderPixels = math.max(1, math.floor(configuredSize / onePx))
-    local px = borderPixels * onePx
+    local px = math.max(1, math.floor((CDM_C.GetConfigValue("borderSize", 1) or 1) / onePx)) * onePx
     local r, g, b, a = GetConfiguredBorderColor()
-
-    local top = frame.pixelBorderLines[1]
-    local bottom = frame.pixelBorderLines[2]
-    local left = frame.pixelBorderLines[3]
-    local right = frame.pixelBorderLines[4]
-
-    for _, line in ipairs(frame.pixelBorderLines) do
-        line:SetVertexColor(r, g, b, a)
-        line:Show()
-    end
-
-    top:ClearAllPoints()
-    top:SetPoint("TOPLEFT", frame, "TOPLEFT", px, 0)
-    top:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -px, 0)
-    top:SetHeight(px)
-
-    bottom:ClearAllPoints()
-    bottom:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", px, 0)
-    bottom:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -px, 0)
-    bottom:SetHeight(px)
-
-    left:ClearAllPoints()
-    left:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-    left:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
-    left:SetWidth(px)
-
-    right:ClearAllPoints()
-    right:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
-    right:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
-    right:SetWidth(px)
+    Pixel.ApplyBorderLines(frame.pixelBorderLines, frame, px, r, g, b, a)
 end
 
 local function HidePlaceholderPixelBorder(frame)

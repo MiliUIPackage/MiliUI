@@ -172,7 +172,7 @@ local function CreateResourcesTab(page, tabId)
 
     local enabled = CDM.db.resourcesEnabled
     if enabled == nil then enabled = true end
-    local setControlsEnabled  -- forward declaration
+    local setControlsEnabled
     page.controls.resourcesEnabled = UI.CreateModernCheckbox(
         resourcesScrollChild,
         L["Enable Resources"],

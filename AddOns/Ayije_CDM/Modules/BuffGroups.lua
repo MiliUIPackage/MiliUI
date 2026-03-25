@@ -37,8 +37,6 @@ local bgDescriptor = GCU.CreateDescriptor({
 local GetFrameData = CDM.GetFrameData
 local NormalizeToBase = CDM.NormalizeToBase
 local SV = CDM.SpellVariant
-local ClearSpellVariantCaches = SV.ClearCaches
-local GetCachedBaseSpellID = SV.GetBaseSpellID
 local StoreVariantValue = SV.StoreValue
 local ResolveVariantValue = SV.ResolveValue
 local layoutCtx = CDM._LayoutCtx
@@ -52,6 +50,7 @@ local scratchSpellSlot = {}
 local scratchActiveSpellIDs = {}
 local scratchGroupSpellLookup = {}
 local scratchPlaceholderBySpell = {}
+local scratchActiveSet = {}
 local scratchSlotToRawSpell = {}
 
 local notificationThrottles = {}
@@ -87,7 +86,8 @@ local function IsBuffNotificationThrottled(spellID, onHide, channel)
         return true
     end
 
-    local key = tostring(spellID) .. ":" .. (onHide and "hide" or "show") .. ":" .. channel
+    local channelBit = (channel == "tts") and 1 or 0
+    local key = spellID * 4 + (onHide and 2 or 0) + channelBit
     local now = GetTime()
     local last = notificationThrottles[key]
     if last and now - last < SOUND_THROTTLE then
@@ -116,32 +116,20 @@ local function PlayBuffTTS(text, spellID, onHide)
     pcall(C_VoiceChat.SpeakText, voiceID, text, speechRate, speechVolume, false)
 end
 
-local function GetOverrideEventValue(ov, onHide, hideKey, showKey)
-    if type(ov) ~= "table" then
-        return nil
-    end
-
-    if onHide then
-        return ov[hideKey]
-    end
-
-    return ov[showKey]
-end
-
 local function PlayBuffOverrideNotification(ov, spellID, onHide)
     if type(ov) ~= "table" or not spellID then
         return false
     end
 
     if ov.ttsEnabled and ((onHide and ov.ttsOnHideEnabled) or (not onHide and ov.ttsOnShowEnabled)) then
-        local text = GetOverrideEventValue(ov, onHide, "ttsOnHide", "ttsOnShow")
+        local text = ov[onHide and "ttsOnHide" or "ttsOnShow"]
         text = (text and text ~= "") and text or C_Spell.GetSpellName(spellID)
         PlayBuffTTS(text, spellID, onHide)
         return true
     end
 
     if ov.soundEnabled and ((onHide and ov.soundOnHideEnabled ~= false) or (not onHide and ov.soundOnShowEnabled ~= false)) then
-        local soundName = GetOverrideEventValue(ov, onHide, "soundOnHide", "soundOnShow")
+        local soundName = ov[onHide and "soundOnHide" or "soundOnShow"]
         if soundName then
             PlayBuffSound(soundName, spellID, onHide)
             return true
@@ -152,20 +140,20 @@ local function PlayBuffOverrideNotification(ov, spellID, onHide)
 end
 
 local function BuildActiveSpellSet()
-    local active = {}
-    local buffViewer = _G["BuffIconCooldownViewer"]
+    table.wipe(scratchActiveSet)
+    local buffViewer = _G[CDM_C.VIEWERS.BUFF]
     if buffViewer and buffViewer.itemFramePool then
         for frame in buffViewer.itemFramePool:EnumerateActive() do
             local id = frame.GetSpellID and frame:GetSpellID()
-            if IsSafeNumber(id) then active[id] = true end
+            if IsSafeNumber(id) then scratchActiveSet[id] = true end
             local fd = GetFrameData(frame)
             local catID = fd and fd.buffCategorySpellID
             if catID and catID ~= false and IsSafeNumber(catID) then
-                active[catID] = true
+                scratchActiveSet[catID] = true
             end
         end
     end
-    return active
+    return scratchActiveSet
 end
 
 local function IsSpellActiveInViewer(spellID, cachedSet)
@@ -189,14 +177,7 @@ if API then
 end
 
 local function ResolveSpellOverrideEntry(overrideMap, spellID)
-    if CDM.ResolveBuffOverrideEntry then
-        return CDM:ResolveBuffOverrideEntry(overrideMap, spellID)
-    end
-    if not overrideMap or not spellID then return nil end
-    if overrideMap[spellID] then return overrideMap[spellID] end
-    local base = NormalizeToBase(spellID)
-    if base and base ~= spellID and overrideMap[base] then return overrideMap[base] end
-    return nil
+    return CDM:ResolveBuffOverrideEntry(overrideMap, spellID)
 end
 
 local function BuildGroupSpellLookup(spells)
@@ -253,7 +234,7 @@ local function BuildStaticSlotLayout(groupData, activeSpellIDs, activeSpellSet, 
     for _, sid in ipairs(groupData.spells or {}) do
         local ov = groupData.spellOverrides
         local spellOv = ov and ResolveSpellOverrideEntry(ov, sid) or nil
-        local base = GetCachedBaseSpellID(sid)
+        local base = NormalizeToBase(sid)
         local isTracked = activeSpellSet and (activeSpellSet[sid] or (base and activeSpellSet[base])) or false
         local wantPlaceholder = spellOv and spellOv.placeholder and isTracked or false
         scratchPlaceholderBySpell[sid] = wantPlaceholder or nil
@@ -278,7 +259,7 @@ local function GetSpellOverride(groupData, spellID)
     return ResolveSpellOverrideEntry(groupData and groupData.spellOverrides, spellID)
 end
 
-local function SetCooldownTextHidden(frame, hidden, frameData)
+local function SetCooldownTextHidden(frame, hidden)
     local cd = frame.Cooldown
     if cd then
         if cd.SetHideCountdownNumbers then
@@ -304,7 +285,7 @@ end
 function CDM:RestoreCooldownTextIfHidden(frame)
     local frameData = GetFrameData(frame)
     if frameData.cdmCooldownTextHidden then
-        SetCooldownTextHidden(frame, false, frameData)
+        SetCooldownTextHidden(frame, false)
         frameData.cdmCooldownTextHidden = nil
     end
 end
@@ -312,7 +293,7 @@ end
 function CDM:HideCooldownTextIfFlagged(frame)
     local frameData = GetFrameData(frame)
     if frameData.cdmCooldownTextHidden then
-        SetCooldownTextHidden(frame, true, frameData)
+        SetCooldownTextHidden(frame, true)
     end
 end
 
@@ -401,6 +382,8 @@ function CDM:UpdateBuffGroupContainerPosition(groupIndex)
     bgDescriptor:UpdateContainerPosition(groupIndex, groupData, GetContainerForAnchorTarget)
 end
 
+local scratchBgActiveIndices = {}
+
 function CDM:UpdateAllBuffGroupContainers()
     local sets = self.BuffGroupSets
     if not sets or not sets.groups then
@@ -412,7 +395,8 @@ function CDM:UpdateAllBuffGroupContainers()
         return
     end
 
-    local activeIndices = {}
+    local activeIndices = scratchBgActiveIndices
+    table.wipe(activeIndices)
     for groupIndex, groupData in ipairs(sets.groups) do
         local container = bgDescriptor:GetOrCreateContainer(groupIndex)
         bgDescriptor:UpdateContainerPosition(groupIndex, groupData, GetContainerForAnchorTarget)
@@ -434,9 +418,7 @@ function CDM:UpdateAllBuffGroupContainers()
 end
 
 
-function CDM:PositionBuffGroupFrames(groupIndex, frames)
-    ClearSpellVariantCaches()
-
+function CDM:PositionBuffGroupFrames(groupIndex, frames, activeSpellSetParam)
     local sets = self.BuffGroupSets
     if not sets or not sets.groups then return end
 
@@ -466,8 +448,17 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
     local iconHSnapped = Snap(iconH)
     local spacingSnapped = Snap(spacing)
     local count = #frames
+    local shownCount = 0
+    for _, f in ipairs(frames) do
+        if f:IsShown() then shownCount = shownCount + 1 end
+    end
     local isStatic = groupData.staticDisplay and groupData.spells
-    local layoutCount = isStatic and #groupData.spells or count
+    local layoutCount
+    if isStatic then
+        layoutCount = #groupData.spells
+    else
+        layoutCount = shownCount > 0 and shownCount or count
+    end
 
     container:SetSize(iconWSnapped, iconHSnapped)
 
@@ -485,49 +476,25 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
             StoreVariantValue(scratchSpellOrder, sid, i, true)
         end
         if count > 1 then
-            local spells = groupData.spells
+            GCU.AssignGroupSortKeys(frames, scratchSpellOrder, "buffCategorySpellID")
             table.sort(frames, function(a, b)
-                local aID = GetFrameData(a).buffCategorySpellID
-                local bID = GetFrameData(b).buffCategorySpellID
-                local aOrd = aID and ResolveVariantValue(scratchSpellOrder, aID) or nil
-                local bOrd = bID and ResolveVariantValue(scratchSpellOrder, bID) or nil
-                if not aOrd then
-                    local aInfo = a.GetCooldownInfo and a:GetCooldownInfo() or a.cooldownInfo
-                    if aInfo and aInfo.linkedSpellIDs then
-                        for _, lid in ipairs(aInfo.linkedSpellIDs) do
-                            if IsSafeNumber(lid) then
-                                local ord = ResolveVariantValue(scratchSpellOrder, lid)
-                                if ord then aOrd = ord; break end
-                            end
-                        end
-                    end
-                end
-                if not bOrd then
-                    local bInfo = b.GetCooldownInfo and b:GetCooldownInfo() or b.cooldownInfo
-                    if bInfo and bInfo.linkedSpellIDs then
-                        for _, lid in ipairs(bInfo.linkedSpellIDs) do
-                            if IsSafeNumber(lid) then
-                                local ord = ResolveVariantValue(scratchSpellOrder, lid)
-                                if ord then bOrd = ord; break end
-                            end
-                        end
-                    end
-                end
-                aOrd = aOrd or 999
-                bOrd = bOrd or 999
-                if aOrd ~= bOrd then return aOrd < bOrd end
+                local aKey = GetFrameData(a).cdmSortKey
+                local bKey = GetFrameData(b).cdmSortKey
+                if aKey ~= bKey then return aKey < bKey end
                 return GetStableFrameSortID(a) < GetStableFrameSortID(b)
             end)
         end
     end
 
     if isStatic then
-        activeSpellSet = BuildActiveSpellSet()
+        activeSpellSet = activeSpellSetParam or BuildActiveSpellSet()
         table.wipe(scratchActiveSpellIDs)
         for _, frame in ipairs(frames) do
-            local sid = GetFrameData(frame).buffCategorySpellID
-            if sid then
-                StoreVariantValue(scratchActiveSpellIDs, sid, true, false)
+            if frame:IsShown() then
+                local sid = GetFrameData(frame).buffCategorySpellID
+                if sid then
+                    StoreVariantValue(scratchActiveSpellIDs, sid, true, false)
+                end
             end
         end
         local groupSpellLookup = BuildGroupSpellLookup(groupData.spells)
@@ -550,6 +517,7 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
     local cdColor = groupData.cooldownColor or { r = 1, g = 1, b = 1 }
     local specID = CDM.GetCurrentSpecID and CDM:GetCurrentSpecID() or nil
 
+    local shownIdx = 0
     for i, frame in ipairs(frames) do
         EnsureAuraNotificationHook(frame)
         local idx
@@ -582,10 +550,15 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
                 BGP.SyncGroupedFrameState(frame, nil, nil, nil)
             end
         else
-            idx = i - 1
+            if frame:IsShown() then
+                idx = shownIdx
+                shownIdx = shownIdx + 1
+            else
+                idx = layoutCount + (i - 1)
+            end
         end
         if idx then
-        frame:SetParent(UIParent)
+        self:ApplyStyle(frame, CDM_C.VIEWERS.BUFF)
         frame:ClearAllPoints()
         frame:SetSize(iconWSnapped, iconHSnapped)
         if frame.Icon then
@@ -642,11 +615,11 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames)
         local fHideCooldown = spellOv and spellOv.hideCooldown
 
         if fHideCooldown then
-            SetCooldownTextHidden(frame, true, frameData)
+            SetCooldownTextHidden(frame, true)
             frameData.cdmCooldownTextHidden = true
         else
             if frameData.cdmCooldownTextHidden then
-                SetCooldownTextHidden(frame, false, frameData)
+                SetCooldownTextHidden(frame, false)
                 frameData.cdmCooldownTextHidden = nil
             end
             if fCdFS or fCdColor then
@@ -715,9 +688,6 @@ CDM:RegisterRefreshCallback("buffGroups", function()
     CDM:MarkSpecDataDirty()
     CDM:RefreshSpecData()
     CDM:UpdateAllBuffGroupContainers()
-    if CDM.QueueViewer then
-        CDM:QueueViewer(CDM_C.VIEWERS.BUFF, true)
-    end
 end, 29, { "spec_data", "viewers", "trackers_layout" })
 
 CDM:RegisterRefreshCallback("buffGroups_postViewer", function()
@@ -801,19 +771,13 @@ function CDM:ApplyUngroupedBuffOverrides(frame)
         end
     end
 
-    if not ov then
-        local spellID = CDM.GetBaseSpellID and CDM.GetBaseSpellID(frame)
-        if not spellID then return end
-        ov = self:GetUngroupedBuffOverride(spellID)
-        if ov then matchedSpellID = spellID end
-    end
     if not ov then return end
     matchedSpellID = NormalizeToBase(matchedSpellID) or matchedSpellID
 
     local db = self.db
 
     if ov.hideCooldown then
-        SetCooldownTextHidden(frame, true, frameData)
+        SetCooldownTextHidden(frame, true)
         frameData.cdmCooldownTextHidden = true
     end
 

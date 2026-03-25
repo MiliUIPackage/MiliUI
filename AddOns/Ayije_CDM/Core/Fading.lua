@@ -19,39 +19,20 @@ local isMounted = IsMounted() and true or false
 
 local animFrame = CreateFrame("Frame")
 
-local function GetViewerFrames(viewerName)
-    local viewer = _G[viewerName]
-    if not viewer or not viewer.itemFramePool then return nil end
-    return viewer.itemFramePool
+local viewerTargets = {
+    { dbKey = "fadingEssential", viewer = VIEWERS.ESSENTIAL },
+    { dbKey = "fadingUtility",   viewer = VIEWERS.UTILITY },
+    { dbKey = "fadingBuffs",     viewer = VIEWERS.BUFF },
+    { dbKey = "fadingBuffBars",  viewer = VIEWERS.BUFF_BAR },
+}
+
+local extraTargets = {}
+
+function Fading:RegisterTarget(dbKey, applyFn)
+    extraTargets[#extraTargets + 1] = { dbKey = dbKey, apply = applyFn }
 end
 
-local function ApplyAlphaToAll(alpha)
-    local db = CDM.db
-    if not db then return end
-
-    local a = (db.fadingEssential ~= false) and alpha or 1.0
-    local pool = GetViewerFrames(VIEWERS.ESSENTIAL)
-    if pool then
-        for frame in pool:EnumerateActive() do
-            frame:SetAlpha(a)
-        end
-    end
-
-    a = (db.fadingUtility ~= false) and alpha or 1.0
-    pool = GetViewerFrames(VIEWERS.UTILITY)
-    if pool then
-        for frame in pool:EnumerateActive() do
-            frame:SetAlpha(a)
-        end
-    end
-
-    a = (db.fadingBuffs ~= false) and alpha or 1.0
-    pool = GetViewerFrames(VIEWERS.BUFF)
-    if pool then
-        for frame in pool:EnumerateActive() do
-            frame:SetAlpha(a)
-        end
-    end
+Fading:RegisterTarget("fadingBuffs", function(a)
     if CDM.CustomBuffs and CDM.CustomBuffs.activeBuffs then
         for _, buffData in pairs(CDM.CustomBuffs.activeBuffs) do
             if buffData and buffData.frame then
@@ -66,24 +47,19 @@ local function ApplyAlphaToAll(alpha)
             end
         end
     end
+end)
 
-    a = (db.fadingBuffBars ~= false) and alpha or 1.0
-    pool = GetViewerFrames(VIEWERS.BUFF_BAR)
-    if pool then
-        for frame in pool:EnumerateActive() do
-            frame:SetAlpha(a)
-        end
-    end
+Fading:RegisterTarget("fadingRacials", function(a)
+    local c = _G["CDM_RacialsContainer"]
+    if c then c:SetAlpha(a) end
+end)
 
-    a = (db.fadingRacials ~= false) and alpha or 1.0
-    local racialsContainer = _G["CDM_RacialsContainer"]
-    if racialsContainer then racialsContainer:SetAlpha(a) end
+Fading:RegisterTarget("fadingDefensives", function(a)
+    local c = _G["CDM_DefensivesContainer"]
+    if c then c:SetAlpha(a) end
+end)
 
-    a = (db.fadingDefensives ~= false) and alpha or 1.0
-    local defensivesContainer = _G["CDM_DefensivesContainer"]
-    if defensivesContainer then defensivesContainer:SetAlpha(a) end
-
-    a = (db.fadingTrinkets ~= false) and alpha or 1.0
+Fading:RegisterTarget("fadingTrinkets", function(a)
     local trinketMode = CDM.GetTrinketMode and CDM.GetTrinketMode()
     if trinketMode == "essential" then
         local tFrames = CDM.GetTrinketIconFrames and CDM.GetTrinketIconFrames()
@@ -93,15 +69,36 @@ local function ApplyAlphaToAll(alpha)
             end
         end
     else
-        local trinketsContainer = _G["CDM_TrinketsContainer"]
-        if trinketsContainer then trinketsContainer:SetAlpha(a) end
+        local c = _G["CDM_TrinketsContainer"]
+        if c then c:SetAlpha(a) end
     end
+end)
 
-    a = (db.fadingResources ~= false) and alpha or 1.0
+Fading:RegisterTarget("fadingResources", function(a)
     local rc = CDM.resourceContainer
     if rc then
         rc:SetAlpha(a)
         if rc.separator then rc.separator:SetAlpha(a) end
+    end
+end)
+
+local function ApplyAlphaToAll(alpha)
+    local db = CDM.db
+    if not db then return end
+
+    for _, entry in ipairs(viewerTargets) do
+        local a = (db[entry.dbKey] ~= false) and alpha or 1.0
+        local viewer = _G[entry.viewer]
+        if viewer and viewer.itemFramePool then
+            for frame in viewer.itemFramePool:EnumerateActive() do
+                frame:SetAlpha(a)
+            end
+        end
+    end
+
+    for _, target in ipairs(extraTargets) do
+        local a = (db[target.dbKey] ~= false) and alpha or 1.0
+        target.apply(a)
     end
 end
 

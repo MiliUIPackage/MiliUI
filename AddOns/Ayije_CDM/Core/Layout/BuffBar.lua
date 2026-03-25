@@ -91,6 +91,16 @@ function CDM:UpdateBuffBarContainerPosition()
     Pixel.SetPoint(container, edgeAnchor, UIParent, screenPoint, xOff - halfW, snappedY)
 end
 
+local function SetupBarFrame(frame, containerLevel, frameWidth, barHeight)
+    frame:ClearAllPoints()
+    frame:SetFrameStrata(CDM_C.STRATA_MAIN)
+    local barLevel = containerLevel + 1
+    frame:SetFrameLevel(barLevel)
+    if frame.Bar then frame.Bar:SetFrameLevel(barLevel + 1) end
+    if frame.Icon then frame.Icon:SetFrameLevel(barLevel + 2) end
+    frame:SetSize(frameWidth, barHeight)
+end
+
 local tempBars = {}
 
 function CDM:PositionBuffBarFrames(viewer, vName)
@@ -118,6 +128,8 @@ function CDM:PositionBuffBarFrames(viewer, vName)
     for frame in viewer.itemFramePool:EnumerateActive() do
         if frame:IsShown() then
             bars[#bars + 1] = frame
+        elseif frame.cooldownInfo then
+            self:ApplyBarStyle(frame, vName)
         end
     end
 
@@ -133,6 +145,8 @@ function CDM:PositionBuffBarFrames(viewer, vName)
 
     local containerHeight = 0
     local containerWidth = effectiveWidth
+
+    local containerLevel = container:GetFrameLevel()
 
     if dualMode and #bars >= 2 then
         local leftWidth = math.max(Pixel.GetSize(), HalfFloor(effectiveWidth - spacing))
@@ -151,14 +165,7 @@ function CDM:PositionBuffBarFrames(viewer, vName)
                 frameWidth = effectiveWidth
 
                 local overridePos = (iconPosition == "HIDDEN") and "HIDDEN" or nil
-                frame:ClearAllPoints()
-                frame:SetParent(UIParent)
-                frame:SetFrameStrata(CDM_C.STRATA_MAIN)
-                local barLevel = container:GetFrameLevel() + 1
-                frame:SetFrameLevel(barLevel)
-                if frame.Bar then frame.Bar:SetFrameLevel(barLevel + 1) end
-                if frame.Icon then frame.Icon:SetFrameLevel(barLevel + 2) end
-                frame:SetSize(frameWidth, barHeight)
+                SetupBarFrame(frame, containerLevel, frameWidth, barHeight)
 
                 if growDirection == "DOWN" then
                     frame:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -rowOffset)
@@ -177,14 +184,7 @@ function CDM:PositionBuffBarFrames(viewer, vName)
                 else
                     dualIconPosition = isLeft and "RIGHT" or "LEFT"
                 end
-                frame:ClearAllPoints()
-                frame:SetParent(UIParent)
-                frame:SetFrameStrata(CDM_C.STRATA_MAIN)
-                local barLevel = container:GetFrameLevel() + 1
-                frame:SetFrameLevel(barLevel)
-                if frame.Bar then frame.Bar:SetFrameLevel(barLevel + 1) end
-                if frame.Icon then frame.Icon:SetFrameLevel(barLevel + 2) end
-                frame:SetSize(frameWidth, barHeight)
+                SetupBarFrame(frame, containerLevel, frameWidth, barHeight)
 
                 local xOff = isLeft and 0 or rightX
                 if growDirection == "DOWN" then
@@ -202,14 +202,7 @@ function CDM:PositionBuffBarFrames(viewer, vName)
         for i, frame in ipairs(bars) do
             local offset = (i - 1) * (barHeight + spacing)
 
-            frame:ClearAllPoints()
-            frame:SetParent(UIParent)
-            frame:SetFrameStrata(CDM_C.STRATA_MAIN)
-            local barLevel = container:GetFrameLevel() + 1
-            frame:SetFrameLevel(barLevel)
-            if frame.Bar then frame.Bar:SetFrameLevel(barLevel + 1) end
-            if frame.Icon then frame.Icon:SetFrameLevel(barLevel + 2) end
-            frame:SetSize(effectiveWidth, barHeight)
+            SetupBarFrame(frame, containerLevel, effectiveWidth, barHeight)
 
             if growDirection == "DOWN" then
                 frame:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -offset)

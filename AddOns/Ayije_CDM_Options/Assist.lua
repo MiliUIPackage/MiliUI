@@ -19,7 +19,6 @@ end
 local function CreateAssistTab(page, tabId)
     local scrollChild = UI.CreateScrollableTab(page, "AyijeCDM_AssistScrollFrame", 700, 370)
 
-    -- Press Overlay section
     local poHeader = UI.CreateHeader(scrollChild, L["Press Overlay"])
     poHeader:SetPoint("TOPLEFT", 0, 0)
 
@@ -90,7 +89,6 @@ local function CreateAssistTab(page, tabId)
     )
     page.controls.pressOverlayBorder:SetPoint("TOPLEFT", page.controls.pressOverlayHighlight, "BOTTOMLEFT", 0, -10)
 
-    -- Prevent unchecking the active style — only switching is allowed
     for _, ctrl in ipairs({ page.controls.pressOverlayTint, page.controls.pressOverlayHighlight, page.controls.pressOverlayBorder }) do
         local cb = ctrl.checkbox
         local origScript = cb:GetScript("OnClick")
@@ -132,8 +130,7 @@ local function CreateAssistTab(page, tabId)
         poOverlay:SetShown(not en)
     end
     setPOControlsEnabled(CDM.db.pressOverlayEnabled or false)
-
-    -- Rotation Assist section
+    
     local raHeader = UI.CreateHeader(scrollChild, L["Rotation Assist"])
     raHeader:SetPoint("TOPLEFT", page.pressOverlayBorderColorPicker, "BOTTOMLEFT", 0, -20)
 
@@ -172,7 +169,6 @@ local function CreateAssistTab(page, tabId)
     end
     setRAControlsEnabled(CDM.db.rotationAssistEnabled or false)
 
-    -- Keybindings section
     local mainHeader = UI.CreateHeader(scrollChild, L["Keybindings"])
     mainHeader:SetPoint("TOPLEFT", page.controls.rotationAssistGlowRatio, "BOTTOMLEFT", 0, -20)
 

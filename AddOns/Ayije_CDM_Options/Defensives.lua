@@ -357,7 +357,7 @@ local function CreateDefensivesTab(page, tabId)
 
     local enabled = CDM.db.defensivesEnabled
     if enabled == nil then enabled = true end
-    local setControlsEnabled  -- forward declaration
+    local setControlsEnabled
     page.controls.defensivesEnabled = UI.CreateModernCheckbox(
         scrollChild,
         L["Enable Defensives"],

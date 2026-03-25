@@ -83,15 +83,7 @@ local function GetCurrentPower(powerType)
         if powerType == "SoulFragments" then
             return C_Spell.GetSpellCastCount(CDM_C.SOUL_CLEAVE_SPELL_ID) or 0
         elseif powerType == "DevourerSoulFragments" then
-            if CDM.GetDevourerSoulValueMax then
-                local current = CDM.GetDevourerSoulValueMax()
-                return current or 0
-            end
-
-            local inVoidMetamorphosis = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID) ~= nil
-            local trackedAuraSpellID = inVoidMetamorphosis and CDM_C.DEVOURER_COLLAPSING_STAR_SPELL_ID or CDM_C.DEVOURER_RESOURCE_AURA_SPELL_ID
-            local auraData = trackedAuraSpellID and C_UnitAuras.GetPlayerAuraBySpellID(trackedAuraSpellID) or nil
-            return auraData and auraData.applications or 0
+            return CDM.GetDevourerSoulValueMax() or 0
         elseif powerType == "MaelstromWeapon" then
             local auraData = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.MAELSTROM_WEAPON_SPELL_ID)
             return auraData and auraData.applications or 0

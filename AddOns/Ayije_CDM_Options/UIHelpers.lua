@@ -146,6 +146,7 @@ function UI.CreateSimpleColorPicker(parent, initialColor, onChange)
 end
 
 function UI.CreateModernSlider(parent, label, minVal, maxVal, currentVal, onValueChanged, labelWidth, sliderWidth)
+    currentVal = tonumber(currentVal) or minVal
     local lw = labelWidth or 200
     local sw = sliderWidth or 240
 
@@ -196,7 +197,6 @@ function UI.CreateModernSlider(parent, label, minVal, maxVal, currentVal, onValu
         local numVal = tonumber(value)
         if not numVal then numVal = minVal end
         local val = toInt(numVal)
----@diagnostic disable-next-line: param-type-mismatch
         if not panel.Input:HasFocus() then panel.Input:SetText(val) end
         if suppressOnValueChanged then
             return
@@ -231,6 +231,7 @@ function UI.CreateModernSlider(parent, label, minVal, maxVal, currentVal, onValu
 end
 
 function UI.CreateModernSliderPrecise(parent, label, minVal, maxVal, currentVal, step, decimals, onValueChanged)
+    currentVal = tonumber(currentVal) or minVal
     local panel = CreateFrame("Frame", nil, parent)
     panel:SetSize(400, 40)
 
@@ -319,7 +320,6 @@ function UI.CreateModernSliderPrecise(parent, label, minVal, maxVal, currentVal,
 
     panel.Slider:RegisterCallback(MinimalSliderWithSteppersMixin.Event.OnValueChanged, function(_, value)
         local quantized = ClampAndQuantize((tonumber(value) or minScaled) / factor)
----@diagnostic disable-next-line: param-type-mismatch
         if not panel.Input:HasFocus() then panel.Input:SetText(FormatValue(quantized)) end
         if suppressOnValueChanged then
             return

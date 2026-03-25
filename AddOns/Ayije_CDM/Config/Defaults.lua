@@ -1,12 +1,5 @@
--- Config/Defaults.lua - Default Configuration Values
--- This file defines all default settings for the addon
-
 local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
-
--- =========================================================================
---  DEFAULT CONFIGURATION
--- =========================================================================
 
 CDM.defaults = {
     sizeEssRow1 = { w = 46, h = 40 },
@@ -23,6 +16,7 @@ CDM.defaults = {
     utilityVertical = false,
     containerLocked = true,
     buffContainerLocked = true,
+
     -- BuffBar viewer settings
     buffBarContainerLocked = true,
     buffBarWidth = 0,               -- 0 = auto (match Essential row 1 width)
@@ -341,7 +335,7 @@ CDM.defaults = {
     glowProcXOffset = 0,
     glowProcYOffset = 0,
 
-    -- Visual element hiding (requires /reload)
+    -- Visual elements
     hideDebuffBorder = true,
     hidePandemicIndicator = true,
     hideCooldownBling = true,
