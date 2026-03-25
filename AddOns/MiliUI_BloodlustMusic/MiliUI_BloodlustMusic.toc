@@ -1,0 +1,20 @@
+## Interface: 120000, 120001
+## Title: MiliUI BloodlustMusic
+## Notes: Bloodlust music playback and countdown bar
+## Title-zhTW: |cffFF9999[戰鬥]|r 嗜血音樂
+## Notes-zhTW: MiliUI BloodlustMusic |n|n嗜血/英勇音樂播放與倒數條。|n|n|cffffd200使用方法: |rEsc>選項>插件>嗜血音樂設定。
+## Title-zhCN: |cff4488FF[MiliUI]|r 嗜血音乐
+## Notes-zhCN: 嗜血/英勇音乐播放与倒计时条
+## Notes-koKR: 영웅심/피의 욕망 음악 재생 및 카운트다운 바
+## IconTexture: Interface\Icons\Spell_Nature_Bloodlust
+## Category: Battle
+## Category-zhTW: 戰鬥
+## Category-zhCN: 战斗
+## Category-koKR: 전투
+## Author: Mili
+## Version: 1.0.0
+## SavedVariables: MiliUI_BloodlustMusic_DB
+
+embeds.xml
+Locales\Locales.xml
+BloodlustMusic.lua
