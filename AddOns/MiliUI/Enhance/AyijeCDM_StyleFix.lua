@@ -3,27 +3,21 @@ if AddonName ~= "MiliUI" then return end
 
 local function RemoveRogueBlackShadow(frame)
     if not frame or not frame.GetRegions then return end
-    local w, h = frame:GetSize()
     
     for _, r in ipairs({frame:GetRegions()}) do
         if r:GetObjectType() == "Texture" then
-            local rw, rh = r:GetSize()
-            -- Find the rogue black background texture
-            -- A 1px border line will have rw or rh extremely small (e.g. 0.8)
-            -- The rogue background is a large block, so rw > 10 and rh > 10
-            if rw > 10 and rh > 10 then
-                local cr, cg, cb, ca = r:GetVertexColor()
-                if cr and math.abs(cr - 0) < 0.05 and math.abs(cg - 0) < 0.05 and math.abs(cb - 0) < 0.05 and ca > 0.5 then
-                    local tex = r:GetTexture() or r:GetAtlas()
-                    if type(tex) == "number" or tex == "Interface\\Buttons\\WHITE8X8" then
-                        -- This is exactly the black background shadow causing the thick border
-                        if r:GetAlpha() > 0 or r:IsShown() then
-                            r:SetAlpha(0)
-                            r:Hide()
-                            r:SetTexture(nil)
-                            r:SetColorTexture(0, 0, 0, 0)
-                            return true
-                        end
+            local cr, cg, cb, ca = r:GetVertexColor()
+            if cr and math.abs(cr - 0) < 0.05 and math.abs(cg - 0) < 0.05 and math.abs(cb - 0) < 0.05 and ca > 0.5 then
+                local tex = r:GetTexture() or r:GetAtlas()
+                if type(tex) == "number" or tex == "Interface\\Buttons\\WHITE8X8" then
+                    -- This is exactly the black background shadow causing the thick border
+                    -- We omit the GetSize() check because secure frames return 'secret numbers' which crash on arithmetic
+                    if r:GetAlpha() > 0 or r:IsShown() then
+                        r:SetAlpha(0)
+                        r:Hide()
+                        r:SetTexture(nil)
+                        r:SetColorTexture(0, 0, 0, 0)
+                        return true
                     end
                 end
             end
@@ -34,7 +28,14 @@ end
 
 local function SweepAll()
     local count = 0
-    for k, v in pairs(_G) do
+    -- Provide a strict list of viewers instead of pairs(_G) to avoid forbidden tables
+    local viewers = {
+        "EssentialCooldownViewer", "BuffIconCooldownViewer", "UtilityCooldownViewer",
+        "DefensiveCooldownViewer", "ExternalCooldownViewer", "CDM_Trinkets", "BuffBarCooldownViewer"
+    }
+
+    for _, vName in ipairs(viewers) do
+        local v = _G[vName]
         if type(v) == "table" and v.itemFramePool and type(v.itemFramePool) == "table" and v.itemFramePool.EnumerateActive then
             for frame in v.itemFramePool:EnumerateActive() do
                 if RemoveRogueBlackShadow(frame) then count = count + 1 end
@@ -42,8 +43,6 @@ local function SweepAll()
             end
         end
     end
-    -- Also sweep Masque groups or general standalone frames if applicable
-    -- but Ayije_CDM frames are mostly pooled
     return count
 end
 
