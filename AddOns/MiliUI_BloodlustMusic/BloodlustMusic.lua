@@ -41,7 +41,7 @@ local MUSIC_FILES = {
 }
 
 local MUSIC_DURATION = 40  -- seconds to play music
-local CHANNELS = { "Master", "SFX" }
+local CHANNELS = { "Master", "SFX", "Dialog" }
 
 ----------------------------------------------------------------------
 -- SavedVariables Defaults

@@ -364,6 +364,8 @@ local function UpdateChannelButton()
     channelBtn:SetText(L["CHANNEL"] .. ": " .. ch)
     if ch == "Master" then
         channelExplain:SetText("|cff888888" .. L["CHANNEL_MASTER_DESC"] .. "|r")
+    elseif ch == "Dialog" then
+        channelExplain:SetText("|cff888888" .. (L["CHANNEL_DIALOG_DESC"] or "") .. "|r")
     else
         channelExplain:SetText("|cff888888" .. L["CHANNEL_SFX_DESC"] .. "|r")
     end
