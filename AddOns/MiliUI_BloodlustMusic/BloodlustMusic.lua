@@ -60,10 +60,8 @@ local DB_DEFAULTS = {
     -- Reminder settings
     reminderEnabled  = true,
     reminderSoundEnabled  = true,
-    reminderSound         = 8959,   -- SoundKit ID: Raid Warning (changeable)
-    reminderTTSEnabled    = false,
-    reminderTTSVoice      = "",
-    reminderLustClassOnly = false,
+    reminderSound         = 8457,   -- SoundKit ID: Boss Kill
+    reminderLustClassOnly = true,
     reminderDungeonPull   = true,
     reminderDebuffExpiry  = true,
     reminderDuration      = 5,

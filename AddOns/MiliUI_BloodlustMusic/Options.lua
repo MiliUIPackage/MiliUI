@@ -742,22 +742,30 @@ end)
 
 local function GetAvailableSounds()
     local list = {}
-    -- 15 Default WoW Sounds
-    table.insert(list, { name = "Raid Warning", val = 8959, previewFunc = function() PlaySound(8959, "Master") end })
-    table.insert(list, { name = "Ready Check", val = 8960, previewFunc = function() PlaySound(8960, "Master") end })
-    table.insert(list, { name = "Alarm Clock", val = 7279, previewFunc = function() PlaySound(7279, "Master") end })
-    table.insert(list, { name = "PvP Warning", val = 8332, previewFunc = function() PlaySound(8332, "Master") end })
-    table.insert(list, { name = "Level Up", val = 8454, previewFunc = function() PlaySound(8454, "Master") end })
-    table.insert(list, { name = "Quest Complete", val = 3081, previewFunc = function() PlaySound(3081, "Master") end })
-    table.insert(list, { name = "Epic Loot", val = 48149, previewFunc = function() PlaySound(48149, "Master") end })
-    table.insert(list, { name = "Legendary Loot", val = 48150, previewFunc = function() PlaySound(48150, "Master") end })
-    table.insert(list, { name = "Auction Window Open", val = 5874, previewFunc = function() PlaySound(5874, "Master") end })
-    table.insert(list, { name = "Map Ping", val = 102607, previewFunc = function() PlaySound(102607, "Master") end })
-    table.insert(list, { name = "Looking For Group", val = 8455, previewFunc = function() PlaySound(8455, "Master") end })
-    table.insert(list, { name = "Error Message", val = 8414, previewFunc = function() PlaySound(8414, "Master") end })
-    table.insert(list, { name = "Simon Chime", val = 56747, previewFunc = function() PlaySound(56747, "Master") end })
-    table.insert(list, { name = "Gong", val = 5674, previewFunc = function() PlaySound(5674, "Master") end })
-    table.insert(list, { name = "PVP Flag", val = 3175, previewFunc = function() PlaySound(3175, "Master") end })
+    local p = (L["SOUND_PREFIX"] or "Sound") .. " "
+    table.insert(list, { name = p.."1", val = 8457, previewFunc = function() PlaySound(8457, "Master") end })
+    table.insert(list, { name = p.."2", val = 8959, previewFunc = function() PlaySound(8959, "Master") end })
+    table.insert(list, { name = p.."3", val = 8960, previewFunc = function() PlaySound(8960, "Master") end })
+    table.insert(list, { name = p.."4", val = 8332, previewFunc = function() PlaySound(8332, "Master") end })
+    table.insert(list, { name = p.."5", val = 8414, previewFunc = function() PlaySound(8414, "Master") end })
+    table.insert(list, { name = p.."6", val = 8454, previewFunc = function() PlaySound(8454, "Master") end })
+    table.insert(list, { name = p.."7", val = 3081, previewFunc = function() PlaySound(3081, "Master") end })
+    table.insert(list, { name = p.."8", val = 48149, previewFunc = function() PlaySound(48149, "Master") end })
+    table.insert(list, { name = p.."9", val = 48150, previewFunc = function() PlaySound(48150, "Master") end })
+    table.insert(list, { name = p.."10", val = 56747, previewFunc = function() PlaySound(56747, "Master") end })
+    table.insert(list, { name = p.."11", val = 5674, previewFunc = function() PlaySound(5674, "Master") end })
+    table.insert(list, { name = p.."12", val = 102607, previewFunc = function() PlaySound(102607, "Master") end })
+    table.insert(list, { name = p.."13", val = 8458, previewFunc = function() PlaySound(8458, "Master") end })
+    table.insert(list, { name = p.."14", val = 8455, previewFunc = function() PlaySound(8455, "Master") end })
+    table.insert(list, { name = p.."15", val = 5874, previewFunc = function() PlaySound(5874, "Master") end })
+    table.insert(list, { name = p.."16", val = 3175, previewFunc = function() PlaySound(3175, "Master") end })
+    table.insert(list, { name = p.."17", val = 8463, previewFunc = function() PlaySound(8463, "Master") end })
+    table.insert(list, { name = p.."18", val = 11466, previewFunc = function() PlaySound(11466, "Master") end })
+    table.insert(list, { name = p.."19", val = 17316, previewFunc = function() PlaySound(17316, "Master") end })
+    table.insert(list, { name = p.."20", val = 3439, previewFunc = function() PlaySound(3439, "Master") end })
+    table.insert(list, { name = p.."21", val = 111370, previewFunc = function() PlaySound(111370, "Master") end })
+    table.insert(list, { name = p.."22", val = 39517, previewFunc = function() PlaySound(39517, "Master") end })
+    table.insert(list, { name = p.."23", val = 895, previewFunc = function() PlaySound(895, "Master") end })
 
     -- LibSharedMedia Sounds (includes Ayije_CDM sounds if loaded)
     local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
@@ -778,52 +786,10 @@ local soundDropdown = CreateCustomDropdown(reminderPanel, "MiliUI_BLM_SoundDropd
 )
 soundDropdown:SetPoint("TOPLEFT", soundRemCheck, "BOTTOMLEFT", 6, -18)
 
--- TTS Checkbox
-local ttsRemCheck = CreateFrame("CheckButton", nil, reminderPanel, "UICheckButtonTemplate")
-ttsRemCheck:SetPoint("TOPLEFT", soundDropdown, "BOTTOMLEFT", -6, -15)
-ttsRemCheck:SetChecked(DB_DEFAULTS.reminderTTSEnabled)
-ttsRemCheck.Text = ttsRemCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-ttsRemCheck.Text:SetPoint("LEFT", ttsRemCheck, "RIGHT", 5, 0)
-ttsRemCheck.Text:SetText(L["REMINDER_TTS"] or "Enable TTS")
-
-local ttsRemDesc = reminderPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-ttsRemDesc:SetPoint("LEFT", ttsRemCheck.Text, "RIGHT", 10, 0)
-ttsRemDesc:SetText("- " .. (L["REMINDER_TTS_DESC"] or "Read text via Text-to-Speech"))
-
-ttsRemCheck:SetScript("OnShow", function(self) local d = GetDB() if d then self:SetChecked(d.reminderTTSEnabled) end end)
-ttsRemCheck:SetScript("OnClick", function(self) local d = GetDB() if d then d.reminderTTSEnabled = self:GetChecked() and true or false end end)
-
--- TTS Voice Dropdown
-local function GetAvailableVoices()
-    local list = {}
-    local voices = C_VoiceChat.GetTtsVoices()
-    if voices then
-        for i, v in ipairs(voices) do
-            table.insert(list, {
-                name = v.name,
-                val = v.name,  -- Save by Name, not ID!
-                previewFunc = function() 
-                    local dest = (Enum and Enum.VoiceTtsDestination and Enum.VoiceTtsDestination.LocalPlayback) or 0
-                    pcall(C_VoiceChat.SpeakText, v.voiceID, L["REMINDER_EDITMODE_TEXT"] or "Lust available!", dest, 0, 100) 
-                end
-            })
-        end
-    end
-    if #list == 0 then
-        table.insert(list, { name = "No Voices Available", val = "" })
-    end
-    return list
-end
-local ttsDropdown = CreateCustomDropdown(reminderPanel, "MiliUI_BLM_TTSDropdown", L["REMINDER_TTS_VOICE"] or "TTS Voice", GetAvailableVoices,
-    function() local d = GetDB() return d and d.reminderTTSVoice or DB_DEFAULTS.reminderTTSVoice end,
-    function(val) local d = GetDB() if d then d.reminderTTSVoice = val end end
-)
-ttsDropdown:SetPoint("TOPLEFT", ttsRemCheck, "BOTTOMLEFT", 6, -18)
-
 -- Duration Slider (localized units)
 local unit = L["REMINDER_DURATION_UNIT"] or "s"
 local durationSlider = CreateFrame("Slider", "MiliUI_BLM_ReminderDurationSlider", reminderPanel, "OptionsSliderTemplate")
-durationSlider:SetPoint("TOPLEFT", ttsDropdown, "BOTTOMLEFT", -2, -30)
+durationSlider:SetPoint("TOPLEFT", soundDropdown, "BOTTOMLEFT", -2, -30)
 durationSlider:SetWidth(200)
 durationSlider:SetMinMaxValues(1, 15)
 durationSlider:SetValueStep(1)
@@ -887,10 +853,8 @@ reminderPanel.OnRefresh = function()
         dungeonPullCheck:SetChecked(db.reminderDungeonPull)
         debuffExpiryCheck:SetChecked(db.reminderDebuffExpiry)
         soundRemCheck:SetChecked(db.reminderSoundEnabled)
-        ttsRemCheck:SetChecked(db.reminderTTSEnabled)
         durationSlider:SetValue(db.reminderDuration)
         soundDropdown.UpdateDisplay()
-        ttsDropdown.UpdateDisplay()
     end
 end
 reminderPanel:SetScript("OnShow", reminderPanel.OnRefresh)

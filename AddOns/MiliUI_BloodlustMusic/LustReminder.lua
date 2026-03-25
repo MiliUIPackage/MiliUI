@@ -116,47 +116,6 @@ local function PlayReminderSound()
 end
 ns.PlayReminderSound = PlayReminderSound
 
-----------------------------------------------------------------------
--- Play TTS
-----------------------------------------------------------------------
-local function PlayTTS(text)
-    if not db then db = ns.GetDB() end
-    if not db or not db.reminderTTSEnabled then return end
-    
-    local voiceName = db.reminderTTSVoice
-    local voices = C_VoiceChat.GetTtsVoices()
-    local voiceID = nil
-    ns.DebugPrint("PlayTTS called with voiceName:", voiceName)
-    
-    if voices and #voices > 0 then
-        -- Find by name
-        if voiceName and voiceName ~= "" then
-            for _, v in ipairs(voices) do
-                if v.name == voiceName then
-                    voiceID = v.voiceID
-                    break
-                end
-            end
-        end
-        -- Default to first if not found
-        if not voiceID then
-            voiceID = voices[1].voiceID
-            ns.DebugPrint("PlayTTS: voiceName not found, defaulting to", voices[1].name)
-        end
-    else
-        ns.DebugPrint("PlayTTS error: C_VoiceChat.GetTtsVoices() is empty!")
-    end
-    
-    if voiceID then
-        ns.DebugPrint("PlayTTS speaking with voiceID:", voiceID)
-        local destination = (Enum and Enum.VoiceTtsDestination and Enum.VoiceTtsDestination.LocalPlayback) or 0
-        local success, err = pcall(C_VoiceChat.SpeakText, voiceID, text, destination, 0, 100)
-        if not success then
-            ns.DebugPrint("TTS API Error caught:", err)
-        end
-    end
-end
-ns.PlayTTS = PlayTTS
 
 ----------------------------------------------------------------------
 -- Reminder frame creation
@@ -167,8 +126,8 @@ local function CreateReminderFrame()
 
     reminderFrame = CreateFrame("Frame", "MiliUI_LustReminderFrame", UIParent)
     reminderFrame:SetSize(400, 60)
-    reminderFrame:SetFrameStrata("HIGH")
-    reminderFrame:SetFrameLevel(50)
+    reminderFrame:SetFrameStrata("MEDIUM")
+    reminderFrame:SetFrameLevel(10)
     reminderFrame:SetMovable(true)
     reminderFrame:SetUserPlaced(false)
     reminderFrame:SetClampedToScreen(true)
@@ -355,9 +314,8 @@ local function ShowReminder()
 
     ns.DebugPrint("ShowReminder executing for:", spellName)
 
-    -- Play sound and TTS
+    -- Play sound
     PlayReminderSound()
-    PlayTTS(text)
 
     UpdateReminderPosition()
     reminderFrame.elapsed = 0
