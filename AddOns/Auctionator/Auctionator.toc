@@ -8,7 +8,7 @@
 ## Notes: A lightweight addon that makes it easy and fast to buy, sell and manage auctions
 ## Notes-zhCN: 一款轻量级拍卖行插件，让购买、出售和管理拍卖等物品变得简单快捷
 ## Title-zhTW: |cffFFFF99[拍賣]|r 拍賣小幫手
-## Notes-zhTW: Auctionator |n一個輕量級的插件，增強拍賣場的功能，方便快速的購買、銷售和管理拍賣。|n|cffffd200使用方法：|r開啟拍賣場時會自動顯示，從Esc>介面>插件>拍賣，進行設定。			  
+## Notes-zhTW: Auctionator |n一個輕量級的插件，增強拍賣場的功能，方便快速的購買、銷售和管理拍賣。|n|cffffd200使用方法：|r開啟拍賣場時會自動顯示，從Esc>介面>插件>拍賣，進行設定。
 ## Category-enUS: Auctions
 ## Category-zhCN: 拍卖
 ## Category-zhTW: 拍賣

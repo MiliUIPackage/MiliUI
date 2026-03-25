@@ -7,7 +7,7 @@
 ## OptionalDeps: YUI
 ## Category-zhTW: 拍賣
 ## Title-zhTW: |cffFFFF99[拍賣]|r 拍賣場購買助手
-## Notes-zhTW: YUI Auction Helper |n一個拍賣場購物的好助手，方便玩家快速搜尋需要的物品。	
+## Notes-zhTW: YUI Auction Helper |n一個拍賣場購物的好助手，方便玩家快速搜尋需要的物品。
 
 Libs\GUI.lua
 Core.lua
