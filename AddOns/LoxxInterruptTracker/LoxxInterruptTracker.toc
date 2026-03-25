@@ -1,18 +1,17 @@
-## Interface: 120001, 120005
+## Interface: 120001, 120100
 ## Title: |cFF00DDDDLoxx Interrupt Tracker|r
 ## IconTexture: Interface\Icons\ability_kick
 ## Notes: Party interrupt cooldown tracker for M+ dungeons
+## Notes-ruRU: Отслеживание кулдаунов прерываний группы в М+ подземельях
+## Notes-koKR: 쐐기돌 던전용 파티 차단기 쿨다운 추적기
 ## Notes-zhCN: 大秘境地下城团队打断冷却追踪器
 ## Notes-zhTW: 傳奇鑰石地城隊伍斷法冷卻追蹤器
-## Author: Loxxar
-## Version: 1.5.6.0
+## Author: Loxxar (original by KinderLine)
+## Version: 1.9.9.2
 ## SavedVariables: LOXXSavedVars
 
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 斷法追蹤器
 ## Notes-zhTW: Loxxar 斷法追蹤器|n|n傳奇鑰石地城、團隊斷法冷卻追蹤器。|n|n|cffffd200使用方法: |r輸入 /loxx 進行設定。
-## SavedVariablesPerAccount: LOXXAccountVars
 ## Category-zhTW: 戰鬥
 
-localization.lua
-RotationManager.lua
 LoxxInterruptTracker.lua
