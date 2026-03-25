@@ -15,11 +15,17 @@ local LUST_BUFFS = {
     264667,  -- Primal Rage      (Hunter pet)
     390386,  -- Fury of the Aspects (Evoker)
     466904,  -- Harrier's Cry    (Hunter - Marksmanship)
+    -- Drums (Leatherworking consumables, 15% haste)
+    1243972, -- Void Touched Drums (MidNight)
+    444257,  -- Thunderous Drums     (TWW / The War Within)
+    381301,  -- Feral Hide Drums     (Dragonflight)
+    309658,  -- Drums of Deathly Ferocity (Shadowlands)
+    292686,  -- Mallet of Thunderous Skins (BfA)
 }
 
 -- Lust DEBUFF spell IDs (exhaustion lockout, ~10min)
 local LUST_DEBUFFS = {
-    57723,   -- Exhaustion      (Heroism)
+    57723,   -- Exhaustion      (Heroism / Drums)
     57724,   -- Sated           (Bloodlust)
     80354,   -- Temporal Displacement (Time Warp)
     95809,   -- Insanity        (Ancient Hysteria / Hunter pet)
@@ -51,6 +57,18 @@ local DB_DEFAULTS = {
     barHeight        = 10,
     barX             = 0,
     barY             = 300,
+    -- Reminder settings
+    reminderEnabled  = true,
+    reminderSoundEnabled  = true,
+    reminderSound         = 8959,   -- SoundKit ID: Raid Warning (changeable)
+    reminderTTSEnabled    = false,
+    reminderTTSVoice      = "",
+    reminderLustClassOnly = false,
+    reminderDungeonPull   = true,
+    reminderDebuffExpiry  = true,
+    reminderDuration      = 5,
+    reminderX             = 0,
+    reminderY             = 360, -- absolute position, default above bar (barY=300 + 60)
 }
 
 ----------------------------------------------------------------------
@@ -91,6 +109,22 @@ local barTestTimer = nil
 local isInEditMode = false
 
 ----------------------------------------------------------------------
+-- Expose shared state to namespace (for Options.lua, LustReminder.lua)
+----------------------------------------------------------------------
+ns.L = L
+ns.DB_DEFAULTS = DB_DEFAULTS
+ns.LUST_BUFFS = LUST_BUFFS
+ns.LUST_DEBUFFS = LUST_DEBUFFS
+ns.MUSIC_FILES = MUSIC_FILES
+ns.CHANNELS = CHANNELS
+ns.DEFAULT_LUST_NAME = DEFAULT_LUST_NAME
+ns.DEFAULT_LUST_ICON = DEFAULT_LUST_ICON
+
+-- These will be populated after functions are defined
+ns.GetDB = function() return db end
+ns.InitDB = function() end  -- placeholder, set below
+
+----------------------------------------------------------------------
 -- Utility: Initialize DB
 ----------------------------------------------------------------------
 local function InitDB()
@@ -116,6 +150,7 @@ local function InitDB()
         end
     end
 end
+ns.InitDB = InitDB
 
 ----------------------------------------------------------------------
 -- Utility: Get enabled track list
@@ -538,7 +573,7 @@ local function ShowBar(spellID, spellName, spellIcon, duration, expirationTime)
 end
 
 local testBarShowing = false
-local testBarBtnRef = nil  -- will be set when button is created
+
 
 local function HideTestBar()
     testBarShowing = false
@@ -547,7 +582,7 @@ local function HideTestBar()
     activeLustExpiration = nil
     activeLustDuration = nil
     if barFrame then barFrame:Hide() end
-    if testBarBtnRef then testBarBtnRef:SetText(L["TEST_BAR"]) end
+    if ns.testBarBtnRef then ns.testBarBtnRef:SetText(L["TEST_BAR"]) end
 end
 
 local function ShowTestBar()
@@ -571,7 +606,7 @@ local function ShowTestBar()
     UpdateBarSize()
     barFrame:Show()
     testBarShowing = true
-    if testBarBtnRef then testBarBtnRef:SetText(L["HIDE_BAR"]) end
+    if ns.testBarBtnRef then ns.testBarBtnRef:SetText(L["HIDE_BAR"]) end
 
     -- Auto-hide after test
     if barTestTimer then barTestTimer:Cancel() end
@@ -579,6 +614,19 @@ local function ShowTestBar()
         HideTestBar()
     end)
 end
+
+----------------------------------------------------------------------
+-- Expose functions to namespace (for Options.lua, LustReminder.lua)
+----------------------------------------------------------------------
+ns.UpdateBarPosition = UpdateBarPosition
+ns.UpdateBarSize = UpdateBarSize
+ns.ShowTestBar = ShowTestBar
+ns.HideTestBar = HideTestBar
+ns.ShowBar = ShowBar
+ns.StopPreview = StopPreview
+ns.PreviewTrack = PreviewTrack
+ns.GetBarFrame = function() return barFrame end
+ns.DebugPrint = DebugPrint
 
 ----------------------------------------------------------------------
 -- Bloodlust Detection (Debuff-based, 12.0 combat safe)
@@ -690,6 +738,8 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             elseif input == "stop" then
                 StopMusic()
                 StopPreview()
+            elseif input == "reminder" then
+                if ns.ShowReminder then ns.ShowReminder() end
             elseif input == "debug" then
                 debugMode = not debugMode
                 print("|cffff8800[BLM]|r Debug mode:", debugMode and "|cff00ff00ON|r" or "|cffff0000OFF|r")
@@ -736,462 +786,6 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
 end)
 
 ----------------------------------------------------------------------
--- Settings Panel (Retail Settings API)
+-- Settings Panel is now in Options.lua
 ----------------------------------------------------------------------
-
--- Store category reference
-local settingsCategory
-
-local function OpenSettings()
-    if Settings and Settings.OpenToCategory and settingsCategory then
-        Settings.OpenToCategory(settingsCategory:GetID())
-    end
-end
-_G.MiliUI_OpenBloodlustMusicSettings = OpenSettings
-
-----------------------------------------------------------------------
--- Utility: CreateSD (pixel border)
-----------------------------------------------------------------------
-local function CreateSD(parent)
-    parent:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 2,
-    })
-    parent:SetBackdropColor(0, 0, 0, 0.5)
-    parent:SetBackdropBorderColor(0, 0, 0, 1)
-end
-
-----------------------------------------------------------------------
--- Main Panel (Overview)
-----------------------------------------------------------------------
-local mainPanel = CreateFrame("Frame", "MiliUI_BloodlustMusicMainPanel", UIParent, "BackdropTemplate")
-mainPanel.name = L["SETTINGS_MAIN"]
-mainPanel.OnCommit = function() end
-mainPanel.OnDefault = function() end
-mainPanel.OnRefresh = function() end
-
-local mainTitle = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-mainTitle:SetPoint("TOPLEFT", 16, -16)
-mainTitle:SetText(L["ADDON_NAME"])
-
-local mainDesc = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-mainDesc:SetPoint("TOPLEFT", mainTitle, "BOTTOMLEFT", 0, -8)
-mainDesc:SetText(L["SETTINGS_MAIN_DESC"])
-mainDesc:SetWidth(500)
-mainDesc:SetJustifyH("LEFT")
-
-local mainInfo = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-mainInfo:SetPoint("TOPLEFT", mainDesc, "BOTTOMLEFT", 0, -20)
-mainInfo:SetJustifyH("LEFT")
-mainInfo:SetText("|cffffd100" .. L["SELECT_SUBCATEGORY"] .. "|r")
-
-local item1 = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-item1:SetPoint("TOPLEFT", mainInfo, "BOTTOMLEFT", 0, -12)
-item1:SetText("• |cff00ff00" .. L["SETTINGS_MUSIC"] .. "|r")
-
-local item1Desc = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-item1Desc:SetPoint("LEFT", item1, "RIGHT", 8, 0)
-item1Desc:SetText("- " .. L["MUSIC_DESC"])
-
-local item2 = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-item2:SetPoint("TOPLEFT", item1, "BOTTOMLEFT", 0, -8)
-item2:SetText("• |cff00ff00" .. L["SETTINGS_BAR"] .. "|r")
-
-local item2Desc = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-item2Desc:SetPoint("LEFT", item1Desc, "LEFT", 0, 0)
-item2Desc:SetPoint("TOP", item2, "TOP", 0, 0)
-item2Desc:SetText("- " .. L["BAR_DESC"])
-
--- Register main category
-settingsCategory = Settings.RegisterCanvasLayoutCategory(mainPanel, mainPanel.name)
-Settings.RegisterAddOnCategory(settingsCategory)
-
-----------------------------------------------------------------------
--- Music Settings Subcategory
-----------------------------------------------------------------------
-local musicPanel = CreateFrame("Frame", "MiliUI_BloodlustMusicSettingsPanel", UIParent, "BackdropTemplate")
-musicPanel.name = L["SETTINGS_MUSIC"]
-musicPanel.OnCommit = function() end
-musicPanel.OnDefault = function() end
-musicPanel.OnRefresh = function() end
-
-local musicTitle = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-musicTitle:SetPoint("TOPLEFT", 16, -16)
-musicTitle:SetText(L["MUSIC_SETTINGS_TITLE"])
-
-local musicDesc = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-musicDesc:SetPoint("TOPLEFT", musicTitle, "BOTTOMLEFT", 0, -8)
-musicDesc:SetText(L["MUSIC_SETTINGS_DESC"])
-
--- Enable Music Checkbox
-local enableMusicCheck = CreateFrame("CheckButton", nil, musicPanel, "UICheckButtonTemplate")
-enableMusicCheck:SetPoint("TOPLEFT", musicDesc, "BOTTOMLEFT", -4, -15)
-enableMusicCheck:SetChecked(DB_DEFAULTS.musicEnabled)  -- immediate default
-enableMusicCheck.Text = enableMusicCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-enableMusicCheck.Text:SetPoint("LEFT", enableMusicCheck, "RIGHT", 5, 0)
-enableMusicCheck.Text:SetText(L["ENABLE_MUSIC"])
-
-local enableMusicDesc = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-enableMusicDesc:SetPoint("LEFT", enableMusicCheck.Text, "RIGHT", 10, 0)
-enableMusicDesc:SetText("- " .. L["ENABLE_MUSIC_DESC"])
-
-enableMusicCheck:SetScript("OnShow", function(self)
-    if db then self:SetChecked(db.musicEnabled) end
-end)
-enableMusicCheck:SetScript("OnClick", function(self)
-    if db then db.musicEnabled = self:GetChecked() and true or false end
-end)
-
--- Play Mode Toggle Button
-local playModeBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
-playModeBtn:SetSize(140, 28)
-playModeBtn:SetPoint("TOPLEFT", enableMusicCheck, "BOTTOMLEFT", 4, -15)
-playModeBtn:SetText(L["PLAY_MODE_RANDOM"])  -- immediate fallback text
-
-local function UpdatePlayModeButton()
-    local mode = (db and db.playMode) or "random"
-    if mode == "random" then
-        playModeBtn:SetText(L["PLAY_MODE_RANDOM"])
-    else
-        playModeBtn:SetText(L["PLAY_MODE_SEQUENTIAL"])
-    end
-end
-
-playModeBtn:SetScript("OnShow", function() UpdatePlayModeButton() end)
-playModeBtn:SetScript("OnClick", function()
-    if not db then return end
-    if db.playMode == "random" then
-        db.playMode = "sequential"
-    else
-        db.playMode = "random"
-    end
-    UpdatePlayModeButton()
-end)
-
-local playModeDesc = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-playModeDesc:SetPoint("LEFT", playModeBtn, "RIGHT", 10, 0)
-playModeDesc:SetText("- " .. L["PLAY_MODE_DESC"])
-
--- Channel Toggle Button
-local channelBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
-channelBtn:SetSize(140, 28)
-channelBtn:SetPoint("TOPLEFT", playModeBtn, "BOTTOMLEFT", 0, -10)
-channelBtn:SetText(L["CHANNEL"] .. ": Master")  -- immediate fallback text
-
-local channelDesc = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-channelDesc:SetPoint("LEFT", channelBtn, "RIGHT", 10, 0)
-channelDesc:SetText("- " .. L["CHANNEL_DESC"])
-
--- Dynamic channel explanation below the button
-local channelExplain = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-channelExplain:SetPoint("TOPLEFT", channelBtn, "BOTTOMLEFT", 2, -4)
-channelExplain:SetWidth(400)
-channelExplain:SetJustifyH("LEFT")
-channelExplain:SetText("|cff888888" .. L["CHANNEL_MASTER_DESC"] .. "|r")  -- immediate fallback
-
-local function UpdateChannelButton()
-    local ch = (db and db.channel) or "Master"
-    channelBtn:SetText(L["CHANNEL"] .. ": " .. ch)
-    if ch == "Master" then
-        channelExplain:SetText("|cff888888" .. L["CHANNEL_MASTER_DESC"] .. "|r")
-    else
-        channelExplain:SetText("|cff888888" .. L["CHANNEL_SFX_DESC"] .. "|r")
-    end
-end
-
-channelBtn:SetScript("OnShow", function() UpdateChannelButton() end)
-channelBtn:SetScript("OnClick", function()
-    if not db then return end
-    -- Cycle through channels
-    local current = db.channel or "Master"
-    for i, ch in ipairs(CHANNELS) do
-        if ch == current then
-            db.channel = CHANNELS[(i % #CHANNELS) + 1]
-            break
-        end
-    end
-    UpdateChannelButton()
-end)
-
--- Track List Header
-local trackHeader = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-trackHeader:SetPoint("TOPLEFT", channelExplain, "BOTTOMLEFT", -2, -12)
-trackHeader:SetText("|cffffd100" .. L["TRACK_ENABLED"] .. "|r")
-
--- Track List (checkboxes + preview buttons)
-local trackChecks = {}
-local trackPreviews = {}
-
-local function RefreshTrackList()
-    local lastAnchor = trackHeader
-
-    for i, track in ipairs(MUSIC_FILES) do
-        -- Checkbox
-        local ck = trackChecks[i]
-        if not ck then
-            ck = CreateFrame("CheckButton", nil, musicPanel, "UICheckButtonTemplate")
-            ck.Text = ck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            ck.Text:SetPoint("LEFT", ck, "RIGHT", 5, 0)
-            trackChecks[i] = ck
-        end
-
-        ck:ClearAllPoints()
-        ck:SetPoint("TOPLEFT", lastAnchor, "BOTTOMLEFT", i == 1 and 0 or 0, -5)
-        ck.Text:SetText(track.name)
-
-        if db then
-            ck:SetChecked(db.trackEnabled[i] ~= false)
-        end
-
-        ck:SetScript("OnClick", function(self)
-            if db then
-                db.trackEnabled[i] = self:GetChecked() and true or false
-            end
-        end)
-        ck:Show()
-
-        -- Preview button
-        local pvBtn = trackPreviews[i]
-        if not pvBtn then
-            pvBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
-            pvBtn:SetSize(60, 20)
-            trackPreviews[i] = pvBtn
-        end
-
-        pvBtn:ClearAllPoints()
-        pvBtn:SetPoint("LEFT", ck.Text, "RIGHT", 10, 0)
-        pvBtn:SetText(L["PREVIEW"])
-
-        pvBtn:SetScript("OnClick", function(self)
-            if previewHandle then
-                StopPreview()
-                self:SetText(L["PREVIEW"])
-            else
-                PreviewTrack(i)
-                self:SetText(L["STOP_PREVIEW"])
-                -- Auto-reset button text after a while
-                C_Timer.After(10, function()
-                    if not previewHandle then
-                        self:SetText(L["PREVIEW"])
-                    end
-                end)
-            end
-        end)
-        pvBtn:Show()
-
-        lastAnchor = ck
-    end
-
-    -- Hide extra
-    for i = #MUSIC_FILES + 1, #trackChecks do
-        trackChecks[i]:Hide()
-        if trackPreviews[i] then trackPreviews[i]:Hide() end
-    end
-end
-
--- Force-show all track UI elements
-local function ForceShowTrackList()
-    for i, ck in ipairs(trackChecks) do
-        if ck then ck:Show() end
-    end
-    for i, pvBtn in ipairs(trackPreviews) do
-        if pvBtn then pvBtn:Show() end
-    end
-end
-
-musicPanel:SetScript("OnShow", function()
-    InitDB()
-    RefreshTrackList()
-    UpdatePlayModeButton()
-    UpdateChannelButton()
-    if db then enableMusicCheck:SetChecked(db.musicEnabled) end
-
-    -- Force show all track elements
-    ForceShowTrackList()
-
-    -- Delayed refresh to handle Settings API timing (same pattern as ChatBar)
-    C_Timer.After(0.1, function()
-        if musicPanel:IsShown() then
-            InitDB()
-            RefreshTrackList()
-            UpdatePlayModeButton()
-            UpdateChannelButton()
-            if db then enableMusicCheck:SetChecked(db.musicEnabled) end
-            ForceShowTrackList()
-        end
-    end)
-end)
-
-musicPanel:SetScript("OnHide", function()
-    StopPreview()
-end)
-
--- Register as subcategory
-local musicSubcategory = Settings.RegisterCanvasLayoutSubcategory(settingsCategory, musicPanel, musicPanel.name)
-Settings.RegisterAddOnCategory(musicSubcategory)
-
-----------------------------------------------------------------------
--- Bar Settings Subcategory
-----------------------------------------------------------------------
-local barPanel = CreateFrame("Frame", "MiliUI_BloodlustMusicBarPanel", UIParent, "BackdropTemplate")
-barPanel.name = L["SETTINGS_BAR"]
-barPanel.OnCommit = function() end
-barPanel.OnDefault = function() end
-barPanel.OnRefresh = function() end
-
-local barTitle = barPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-barTitle:SetPoint("TOPLEFT", 16, -16)
-barTitle:SetText(L["BAR_SETTINGS_TITLE"])
-
-local barDesc2 = barPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-barDesc2:SetPoint("TOPLEFT", barTitle, "BOTTOMLEFT", 0, -8)
-barDesc2:SetText(L["BAR_SETTINGS_DESC"])
-
--- Enable Bar Checkbox
-local enableBarCheck = CreateFrame("CheckButton", nil, barPanel, "UICheckButtonTemplate")
-enableBarCheck:SetPoint("TOPLEFT", barDesc2, "BOTTOMLEFT", -4, -15)
-enableBarCheck:SetChecked(DB_DEFAULTS.barEnabled)  -- immediate default
-enableBarCheck.Text = enableBarCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-enableBarCheck.Text:SetPoint("LEFT", enableBarCheck, "RIGHT", 5, 0)
-enableBarCheck.Text:SetText(L["ENABLE_BAR"])
-
-local enableBarDesc = barPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-enableBarDesc:SetPoint("LEFT", enableBarCheck.Text, "RIGHT", 10, 0)
-enableBarDesc:SetText("- " .. L["ENABLE_BAR_DESC"])
-
-enableBarCheck:SetScript("OnShow", function(self)
-    if db then self:SetChecked(db.barEnabled) end
-end)
-enableBarCheck:SetScript("OnClick", function(self)
-    if db then
-        db.barEnabled = self:GetChecked() and true or false
-        if not db.barEnabled then
-            -- Immediately hide test bar and reset button
-            HideTestBar()
-        end
-    end
-end)
-
--- Bar Width Slider
-local widthSlider = CreateFrame("Slider", "MiliUI_BLM_WidthSlider", barPanel, "OptionsSliderTemplate")
-widthSlider:SetPoint("TOPLEFT", enableBarCheck, "BOTTOMLEFT", 4, -30)
-widthSlider:SetWidth(200)
-widthSlider:SetMinMaxValues(50, 400)
-widthSlider:SetValueStep(5)
-widthSlider:SetObeyStepOnDrag(true)
-
-widthSlider.Low:SetText("50")
-widthSlider.High:SetText("400")
-widthSlider.Text:SetText(L["BAR_WIDTH"] .. ": " .. DB_DEFAULTS.barWidth)
-widthSlider:SetValue(DB_DEFAULTS.barWidth)  -- immediate default
-
-widthSlider:SetScript("OnShow", function(self)
-    if db then
-        self:SetValue(db.barWidth)
-        self.Text:SetText(L["BAR_WIDTH"] .. ": " .. db.barWidth)
-    end
-end)
-widthSlider:SetScript("OnValueChanged", function(self, value)
-    local val = math.floor(value)
-    self.Text:SetText(L["BAR_WIDTH"] .. ": " .. val)
-    if db then
-        db.barWidth = val
-        UpdateBarSize()
-    end
-end)
-
--- Bar Height Slider
-local heightSlider = CreateFrame("Slider", "MiliUI_BLM_HeightSlider", barPanel, "OptionsSliderTemplate")
-heightSlider:SetPoint("TOPLEFT", widthSlider, "BOTTOMLEFT", 0, -30)
-heightSlider:SetWidth(200)
-heightSlider:SetMinMaxValues(5, 40)
-heightSlider:SetValueStep(1)
-heightSlider:SetObeyStepOnDrag(true)
-
-heightSlider.Low:SetText("5")
-heightSlider.High:SetText("40")
-heightSlider.Text:SetText(L["BAR_HEIGHT"] .. ": " .. DB_DEFAULTS.barHeight)
-heightSlider:SetValue(DB_DEFAULTS.barHeight)  -- immediate default
-
-heightSlider:SetScript("OnShow", function(self)
-    if db then
-        self:SetValue(db.barHeight)
-        self.Text:SetText(L["BAR_HEIGHT"] .. ": " .. db.barHeight)
-    end
-end)
-heightSlider:SetScript("OnValueChanged", function(self, value)
-    local val = math.floor(value)
-    self.Text:SetText(L["BAR_HEIGHT"] .. ": " .. val)
-    if db then
-        db.barHeight = val
-        UpdateBarSize()
-    end
-end)
-
--- Test Bar Button
-local testBarBtn = CreateFrame("Button", nil, barPanel, "UIPanelButtonTemplate")
-testBarBtn:SetSize(140, 28)
-testBarBtn:SetPoint("TOPLEFT", heightSlider, "BOTTOMLEFT", 0, -20)
-testBarBtn:SetText(L["TEST_BAR"])
-testBarBtnRef = testBarBtn  -- store reference for toggle text updates
-testBarBtn:SetScript("OnClick", function()
-    if not db or not db.barEnabled then return end
-    ShowTestBar()
-end)
-
-local testBarDesc = barPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-testBarDesc:SetPoint("LEFT", testBarBtn, "RIGHT", 10, 0)
-testBarDesc:SetText("- " .. L["TEST_BAR_DESC"])
-
--- Reset Position Button
-local resetPosBtn = CreateFrame("Button", nil, barPanel, "UIPanelButtonTemplate")
-resetPosBtn:SetSize(140, 28)
-resetPosBtn:SetPoint("TOPLEFT", testBarBtn, "BOTTOMLEFT", 0, -10)
-resetPosBtn:SetText(L["RESET_POSITION"])
-resetPosBtn:SetScript("OnClick", function()
-    if db then
-        db.barX = DB_DEFAULTS.barX
-        db.barY = DB_DEFAULTS.barY
-        UpdateBarPosition()
-        print(L["MSG_POSITION_RESET"])
-    end
-end)
-
-local resetPosDesc = barPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-resetPosDesc:SetPoint("LEFT", resetPosBtn, "RIGHT", 10, 0)
-resetPosDesc:SetText("- " .. L["RESET_POSITION_DESC"])
-
-barPanel:SetScript("OnShow", function()
-    InitDB()
-    if db then
-        enableBarCheck:SetChecked(db.barEnabled)
-        widthSlider:SetValue(db.barWidth)
-        heightSlider:SetValue(db.barHeight)
-    end
-end)
-
--- Register as subcategory
-local barSubcategory = Settings.RegisterCanvasLayoutSubcategory(settingsCategory, barPanel, barPanel.name)
-Settings.RegisterAddOnCategory(barSubcategory)
-
-----------------------------------------------------------------------
--- Pre-create track list at load time (same pattern as ChatBar)
-----------------------------------------------------------------------
-C_Timer.After(0.5, function()
-    InitDB()
-    RefreshTrackList()
-end)
-
--- Also refresh after PLAYER_LOGIN to ensure everything is ready
-local settingsLoader = CreateFrame("Frame")
-settingsLoader:RegisterEvent("PLAYER_LOGIN")
-settingsLoader:SetScript("OnEvent", function()
-    C_Timer.After(2, function()
-        InitDB()
-        RefreshTrackList()
-        UpdatePlayModeButton()
-        UpdateChannelButton()
-    end)
-end)
 

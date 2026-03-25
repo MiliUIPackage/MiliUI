@@ -18,3 +18,5 @@
 embeds.xml
 Locales\Locales.xml
 BloodlustMusic.lua
+LustReminder.lua
+Options.lua
