@@ -332,7 +332,7 @@ local function InitSettings()
     -- Ayije_CDM 區塊標題
     local cdmLabel = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     cdmLabel:SetPoint("TOPLEFT", eDesc, "BOTTOMLEFT", 0, -20)
-    cdmLabel:SetText("Ayije_CDM 施法條")
+    cdmLabel:SetText("Ayije_CDM")
 
     local cdmDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     cdmDesc:SetPoint("LEFT", cdmLabel, "RIGHT", 8, 0)
@@ -374,12 +374,29 @@ local function InitSettings()
     fontDesc:SetText("將 CDM 的字型大小從「像素完美」改為「等比例縮放」。\n啟用後，不同解析度 / 視窗大小下字型佔螢幕的比例會一致，\n但不再保證相同的物理像素數。需重載介面生效。")
     fontDesc:SetTextColor(0.5, 0.5, 0.5)
 
+    -- 細邊框修復 checkbox
+    local borderCB = CreateFrame("CheckButton", "MiliUI_CDMBorderFixCB", enhanceFrame, "UICheckButtonTemplate")
+    borderCB:SetPoint("TOPLEFT", fontDesc, "BOTTOMLEFT", -26, -12)
+    borderCB.text:SetText("細邊框修復")
+    borderCB.text:SetFontObject("GameFontHighlight")
+
+    local borderDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    borderDesc:SetPoint("TOPLEFT", borderCB, "BOTTOMLEFT", 26, -2)
+    borderDesc:SetWidth(520)
+    borderDesc:SetJustifyH("LEFT")
+    borderDesc:SetText("自動隱藏導致圖示邊框變粗的異常黑底材質。需重載介面生效。")
+    borderDesc:SetTextColor(0.5, 0.5, 0.5)
+
     -- 初始化 checkbox 狀態（建立時就設定，不只等 OnShow）
     local function SyncCheckboxes()
         local edb = MiliUI_CastBarEnhance and MiliUI_CastBarEnhance.GetDB() or {}
         tickCB:SetChecked(edb.channelTicks ~= false)
         latCB:SetChecked(edb.latencyBar ~= false)
         fontCB:SetChecked(edb.proportionalFont == true)
+        
+        if not MiliUI_DB then MiliUI_DB = {} end
+        if MiliUI_DB.cdmStyleFix == nil then MiliUI_DB.cdmStyleFix = true end
+        borderCB:SetChecked(MiliUI_DB.cdmStyleFix)
     end
     SyncCheckboxes()
     enhanceFrame:SetScript("OnShow", SyncCheckboxes)
@@ -408,11 +425,18 @@ local function InitSettings()
         end
     end)
 
+    borderCB:HookScript("OnClick", function(self)
+        if not MiliUI_DB then MiliUI_DB = {} end
+        local enabled = self:GetChecked() and true or false
+        MiliUI_DB.cdmStyleFix = enabled
+        print("|cff00ff00[MiliUI]|r 細邊框修復:", enabled and "開" or "關", "(需 /reload 生效)")
+    end)
+
     -- ===== 拍賣行區塊 =====
     local ahDivider = enhanceFrame:CreateTexture(nil, "ARTWORK")
     ahDivider:SetColorTexture(0.3, 0.3, 0.3, 0.5)
     ahDivider:SetSize(520, 1)
-    ahDivider:SetPoint("TOPLEFT", fontDesc, "BOTTOMLEFT", -26, -20)
+    ahDivider:SetPoint("TOPLEFT", borderDesc, "BOTTOMLEFT", -26, -20)
 
     local ahLabel = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     ahLabel:SetPoint("TOPLEFT", ahDivider, "BOTTOMLEFT", 0, -12)
