@@ -518,3 +518,198 @@ L["Stage 3 Color"] = "階段3顏色"
 L["Stage 4 Color"] = "階段4顏色"
 L["Class Color"] = "職業顏色"
 L["Cast Bar"] = "施法條"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Fading.lua (新增)
+-----------------------------------------------------------------------
+
+L["Fade Triggers"] = "淡出觸發條件"
+L["Fade when mounted"] = "騎乘時淡出"
+
+-----------------------------------------------------------------------
+-- Config/Core.lua (新增)
+-----------------------------------------------------------------------
+
+L["Config open queued until combat ends."] = "設定將在脫離戰鬥後開啟。"
+L["Config open queued until login setup finishes."] = "設定將在登入初始化完成後開啟。"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Border.lua (新增)
+-----------------------------------------------------------------------
+
+L["Zoom Icons"] = "縮放圖示"
+L["Zoom Amount"] = "縮放量"
+L["Remove Shadow Overlay"] = "移除陰影覆蓋層"
+L["Remove Default Icon Mask"] = "移除預設圖示遮罩"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Externals.lua (新增)
+-----------------------------------------------------------------------
+
+L["Enable Externals"] = "啟用外部技能"
+L["Externals"] = "外部技能"
+L["Disable Blink"] = "停用閃爍"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Assist.lua - Press Overlay (新增)
+-----------------------------------------------------------------------
+
+L["Enable Press Overlay"] = "啟用按壓覆蓋層"
+L["Press Overlay"] = "按壓覆蓋層"
+L["Color Tint"] = "顏色著色"
+L["Tint Color"] = "著色顏色"
+L["Highlight"] = "醒目提示"
+L["Border"] = "邊框"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Text.lua (新增)
+-----------------------------------------------------------------------
+
+L["Essential Row 2 - Cooldown Timer"] = "核心技能第2列 - 冷卻計時"
+L["Utility - Cooldown Timer"] = "輔助技能 - 冷卻計時"
+L["Utility - Cooldown Stacks (Charges)"] = "輔助技能 - 冷卻層數（充能）"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Border.lua - Swipe (新增)
+-----------------------------------------------------------------------
+
+L["Cooldown Swipe"] = "冷卻旋轉遮罩"
+L["Swipe Color"] = "旋轉遮罩顏色"
+L["Swipe Opacity"] = "旋轉遮罩不透明度"
+L["Hide GCD Swipe"] = "隱藏GCD旋轉遮罩"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/BuffGroups.lua & CooldownGroups.lua (新增)
+-----------------------------------------------------------------------
+
+L["Select a group or spell to edit settings"] = "選擇一個群組或法術來編輯設定"
+L["Grow Direction"] = "增長方向"
+L["Spacing"] = "間距"
+L["Cooldown Size"] = "冷卻計時字型大小"
+L["Charge Size"] = "充能字型大小"
+L["Anchor To"] = "錨定至"
+L["Screen"] = "螢幕"
+L["Player Frame"] = "玩家框架"
+L["Essential Viewer"] = "核心技能管理器"
+L["Buff Viewer"] = "增益管理器"
+L["Anchor Point"] = "錨定點"
+L["Player Frame Point"] = "玩家框架錨定點"
+L["Buff Viewer Point"] = "增益管理器錨定點"
+L["Essential Viewer Point"] = "核心技能管理器錨定點"
+L["Utility Viewer"] = "輔助技能管理器"
+L["Utility Viewer Point"] = "輔助技能管理器錨定點"
+L["Right-click icon to reset border color"] = "右鍵點擊圖示以重置邊框顏色"
+L["Per-Spell Overrides"] = "單一法術覆寫"
+L["Hide Cooldown Timer"] = "隱藏冷卻計時"
+L["Override Text Settings"] = "覆寫文字設定"
+L["Text Overrides"] = "文字覆寫"
+L["Cooldown Color"] = "冷卻顏色"
+L["Charge Color"] = "充能顏色"
+L["Charge Position"] = "充能位置"
+L["Charge X Offset"] = "充能X軸偏移"
+L["Charge Y Offset"] = "充能Y軸偏移"
+L["Ungrouped Buffs"] = "未分組增益"
+L["No ungrouped buffs"] = "沒有未分組的增益"
+L["Delete group with %d spell(s)?"] = "刪除包含 %d 個法術的群組？"
+L["Drag spells here"] = "將法術拖放到這裡"
+L["Add Group"] = "新增群組"
+L["Static Display"] = "靜態顯示"
+L["Hide Icon"] = "隱藏圖示"
+L["Show Placeholder"] = "顯示佔位符"
+L["Max Per Row"] = "每列最大數量"
+L["Cooldowns"] = "冷卻"
+L["Cooldown Groups"] = "冷卻群組"
+L["Ungrouped Cooldowns"] = "未分組冷卻"
+L["No ungrouped cooldowns"] = "沒有未分組的冷卻"
+L["Per-spell text overrides for ungrouped cooldowns"] = "未分組冷卻的單一法術文字覆寫"
+L["Switch spec to view cooldowns"] = "切換專精以檢視冷卻"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/ImportExport.lua (新增)
+-----------------------------------------------------------------------
+
+L["Select at least one category to export."] = "請至少選擇一個分類來匯出。"
+L["Profile is for a different addon"] = "該設定檔屬於其他插件"
+L["Type mismatch on key '%s': expected %s, got %s"] = "鍵「%s」類型不符：預期 %s，取得 %s"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Profiles.lua (新增)
+-----------------------------------------------------------------------
+
+L["Failed to apply profile"] = "套用設定檔失敗"
+L["Profile not found"] = "找不到設定檔"
+L["Cannot copy active profile"] = "無法複製使用中的設定檔"
+L["Cannot delete active profile"] = "無法刪除使用中的設定檔"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Racials.lua (新增)
+-----------------------------------------------------------------------
+
+L["Show Items at 0 Stacks"] = "在0層時顯示物品"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Resources.lua (新增)
+-----------------------------------------------------------------------
+
+L["Devourer Souls"] = "吞噬者靈魂"
+L["Show Primary Resource"] = "顯示主要資源"
+L["Show Secondary Resource"] = "顯示次要資源"
+L["Smooth Bars"] = "平滑條形"
+L["Ironfur"] = "鐵鬃"
+L["Ignore Pain"] = "無視苦痛"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Assist.lua - Aura Overlay (新增)
+-----------------------------------------------------------------------
+
+L["Show Aura Overlay"] = "顯示光環覆蓋效果"
+L["Desaturate when inactive"] = "非啟用時去色"
+L["Aura Border Color"] = "光環邊框顏色"
+L["Aura Glow"] = "光環發光"
+L["Glow When Ready"] = "就緒時發光"
+L["Hold At Max Color"] = "滿層時保持顏色"
+L["Border Color:"] = "邊框顏色："
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/CooldownGroups.lua (新增)
+-----------------------------------------------------------------------
+
+L["Copy to"] = "複製到"
+L["Duplicate"] = "複製"
+L["Add Icon"] = "新增圖示"
+L["Add Spell to:"] = "新增法術至："
+L["All available icons are assigned to groups"] = "所有可用的圖示已分配至群組"
+L["All spells are in groups"] = "所有法術均已在群組中"
+L["No untracked buff icons available for this spec"] = "此專精沒有未追蹤的增益圖示"
+L["No untracked cooldown icons available for this spec"] = "此專精沒有未追蹤的冷卻圖示"
+L["(empty = spell name)"] = "（空白 = 法術名稱）"
+L["Log %s to build spell list"] = "登入 %s 以建構法術列表"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Assist.lua - Sound (新增)
+-----------------------------------------------------------------------
+
+L["On Show"] = "顯示時"
+L["On Hide"] = "隱藏時"
+L["Play Sound"] = "播放音效"
+L["Text to Speech"] = "文字轉語音"
+L["Voice Settings"] = "語音設定"
+L["General"] = "一般"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Layout.lua (新增)
+-----------------------------------------------------------------------
+
+L["Match Utility Width"] = "匹配輔助欄寬度"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/CastBar.lua (新增)
+-----------------------------------------------------------------------
+
+L["Max Name Length (0 = Full)"] = "名稱最大長度（0 = 完整）"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/EditMode (新增)
+-----------------------------------------------------------------------
+
+L["Fix Edit Mode"] = "修復編輯模式"
