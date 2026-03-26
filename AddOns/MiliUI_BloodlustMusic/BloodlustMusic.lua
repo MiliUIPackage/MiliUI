@@ -99,6 +99,7 @@ local previewHandle = nil
 local savedMusicVol = nil
 local savedAmbienceVol = nil
 local restoreTimer = nil
+local lastPlayTime = 0
 local activeLustSpellID = nil
 local activeLustExpiration = nil
 local activeLustDuration = nil
@@ -188,10 +189,17 @@ local function StopMusic()
     end
 
     playing = false
+    lastPlayTime = 0
 end
 
 local function PlayLustMusic()
     if not db.musicEnabled then return end
+
+    -- 40s hard cooldown to prevent double execution and volume overwrites
+    local currentTime = GetTime()
+    if (currentTime - lastPlayTime) < 40 then return end
+    lastPlayTime = currentTime
+
     if playing then return end
 
     local tracks = GetEnabledTracks()
@@ -220,8 +228,17 @@ local function PlayLustMusic()
     end
 
     -- Save and mute background audio
-    savedMusicVol = tonumber(GetCVar("Sound_MusicVolume"))
-    savedAmbienceVol = tonumber(GetCVar("Sound_AmbienceVolume"))
+    local currentMusicVol = tonumber(GetCVar("Sound_MusicVolume")) or 0
+    local currentAmbienceVol = tonumber(GetCVar("Sound_AmbienceVolume")) or 0
+    
+    -- Only save if not zero, to prevent saving muted states accidentally
+    if currentMusicVol > 0 then
+        savedMusicVol = currentMusicVol
+    end
+    if currentAmbienceVol > 0 then
+        savedAmbienceVol = currentAmbienceVol
+    end
+
     SetCVar("Sound_MusicVolume", 0)
     SetCVar("Sound_AmbienceVolume", 0)
 
