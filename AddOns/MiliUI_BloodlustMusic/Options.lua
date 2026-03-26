@@ -57,7 +57,7 @@ local function PreviewTrack(index)
     StopPreview()
     local track = MUSIC_FILES[index]
     if track then
-        local channel = (db and db.channel) or "Master"
+        local channel = (db and db.channel) or "SFX"
         local _, handle = PlaySoundFile(track.path, channel)
         previewHandle = handle
     end
@@ -346,7 +346,7 @@ playModeDesc:SetText("- " .. L["PLAY_MODE_DESC"])
 local channelBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
 channelBtn:SetSize(140, 28)
 channelBtn:SetPoint("TOPLEFT", playModeBtn, "BOTTOMLEFT", 0, -10)
-channelBtn:SetText(L["CHANNEL"] .. ": Master")
+channelBtn:SetText(L["CHANNEL"] .. ": SFX")
 
 local channelDesc = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 channelDesc:SetPoint("LEFT", channelBtn, "RIGHT", 10, 0)
@@ -360,7 +360,7 @@ channelExplain:SetText("|cff888888" .. L["CHANNEL_MASTER_DESC"] .. "|r")
 
 local function UpdateChannelButton()
     local d = GetDB()
-    local ch = (d and d.channel) or "Master"
+    local ch = (d and d.channel) or "SFX"
     channelBtn:SetText(L["CHANNEL"] .. ": " .. ch)
     if ch == "Master" then
         channelExplain:SetText("|cff888888" .. L["CHANNEL_MASTER_DESC"] .. "|r")
@@ -374,7 +374,7 @@ end
 channelBtn:SetScript("OnShow", function() UpdateChannelButton() end)
 channelBtn:SetScript("OnClick", function()
     local d = GetDB(); if not d then return end
-    local current = d.channel or "Master"
+    local current = d.channel or "SFX"
     for i, ch in ipairs(CHANNELS) do
         if ch == current then
             d.channel = CHANNELS[(i % #CHANNELS) + 1]
@@ -482,7 +482,7 @@ musicPanel:SetScript("OnShow", function()
 end)
 
 musicPanel:SetScript("OnHide", function()
-    StopPreview()
+    -- StopPreview() removed intentionally to allow music to play while switching setting tabs
 end)
 
 -- Register as subcategory

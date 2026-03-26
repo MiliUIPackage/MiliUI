@@ -50,7 +50,7 @@ local DB_DEFAULTS = {
     musicEnabled     = true,
     barEnabled       = true,
     playMode         = "random",   -- "random" or "sequential"
-    channel          = "Master",
+    channel          = "SFX",
     trackEnabled     = {},         -- [index] = true/false per track
     lastTrackIndex   = 0,
     barWidth         = 185,
@@ -243,7 +243,7 @@ local function PlayLustMusic()
     SetCVar("Sound_AmbienceVolume", 0)
 
     -- Play
-    local success, handle = PlaySoundFile(track.path, db.channel or "Master")
+    local success, handle = PlaySoundFile(track.path, db.channel or "SFX")
     if success then
         playing = true
         playingHandle = handle
@@ -259,10 +259,27 @@ end
 ----------------------------------------------------------------------
 -- Preview Playback (for settings panel)
 ----------------------------------------------------------------------
+local previewSavedMusicVol = nil
+local previewSavedAmbienceVol = nil
+local previewRestoreTimer = nil
+
 local function StopPreview()
     if previewHandle then
         StopSound(previewHandle)
         previewHandle = nil
+    end
+    
+    if previewSavedMusicVol then
+        SetCVar("Sound_MusicVolume", previewSavedMusicVol)
+        previewSavedMusicVol = nil
+    end
+    if previewSavedAmbienceVol then
+        SetCVar("Sound_AmbienceVolume", previewSavedAmbienceVol)
+        previewSavedAmbienceVol = nil
+    end
+    if previewRestoreTimer then
+        previewRestoreTimer:Cancel()
+        previewRestoreTimer = nil
     end
 end
 
@@ -270,10 +287,21 @@ local function PreviewTrack(index)
     StopPreview()
     local track = MUSIC_FILES[index]
     if not track then return end
-    local channel = (db and db.channel) or "Master"
+    
+    local currentMusicVol = tonumber(GetCVar("Sound_MusicVolume")) or 0
+    local currentAmbienceVol = tonumber(GetCVar("Sound_AmbienceVolume")) or 0
+    
+    if currentMusicVol > 0 then previewSavedMusicVol = currentMusicVol end
+    if currentAmbienceVol > 0 then previewSavedAmbienceVol = currentAmbienceVol end
+    
+    SetCVar("Sound_MusicVolume", 0)
+    SetCVar("Sound_AmbienceVolume", 0)
+
+    local channel = (db and db.channel) or "SFX"
     local success, handle = PlaySoundFile(track.path, channel)
     if success then
         previewHandle = handle
+        previewRestoreTimer = C_Timer.NewTimer(MUSIC_DURATION or 40, function() StopPreview() end)
     end
 end
 
