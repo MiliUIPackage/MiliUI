@@ -59,7 +59,6 @@ do
 end
 
 local executeCurve = addonTable.Display.Utilities.GetExecuteCurve()
-local executeConverter = UIParent:CreateTexture()
 
 local GetInterruptSpells = addonTable.Display.Utilities.GetInterruptSpells
 
@@ -69,17 +68,19 @@ local function DoesOtherTankHaveAggro(unit)
   return IsInRaid() and UnitGroupRolesAssigned(unit .. "target") == "TANK"
 end
 
-local inRelevantThreatInstance = false
-local inRelevantEliteInstance = false
+local inRelevantThreatInstance, inRelevantEliteInstance, inRelevantDelveInstance = false, false, false
 
 -- Checking for party members below the player's level which indicates the mobs will be shifted down one
 -- Except when the dungeon is already at its minimum level, in which case the level won't shift.
 local instanceTracker = CreateFrame("Frame")
 instanceTracker:RegisterEvent("PLAYER_ENTERING_WORLD")
 instanceTracker:RegisterEvent("PLAYER_LEVEL_UP")
+instanceTracker:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+instanceTracker:RegisterEvent("INSTANCE_GROUP_SIZE_CHANGED")
 instanceTracker:SetScript("OnEvent", function(_, event)
   inRelevantThreatInstance = addonTable.Display.Utilities.IsInRelevantInstance({dungeon = true, raid = true, delve = true, pvp = true})
   inRelevantEliteInstance = addonTable.Display.Utilities.IsInRelevantInstance({dungeon = true, raid = true})
+  inRelevantDelveInstance = addonTable.Display.Utilities.IsInRelevantInstance({delve = true})
   local _, _, _, _, _, _, _, _, _, lfgDungeonID = GetInstanceInfo()
   if PLATYNATOR_LAST_INSTANCE == nil
     or (inRelevantThreatInstance or inRelevantEliteInstance) ~= PLATYNATOR_LAST_INSTANCE.inInstance
@@ -115,10 +116,16 @@ local stateToEvent = {
 }
 
 local stateToCalculator = {
-  cast = function(state, unit)
+  cast = function(state, unit, event)
     state.cast = true
-    state.castInfo = {UnitCastingInfo(unit)}
-    state.channelInfo = {UnitChannelInfo(unit)}
+    -- Special case, the cast info _might_ still exist even though the cast is over
+    if event == "UNIT_SPELLCAST_INTERRUPTED" or event == "UNIT_SPELLCAST_CHANNEL_STOP" then
+      state.castInfo = {}
+      state.channelInfo = {}
+    else
+      state.castInfo = {UnitCastingInfo(unit)}
+      state.channelInfo = {UnitChannelInfo(unit)}
+    end
   end,
   threat = function(state, unit)
     state.threat = UnitThreatSituation("player", unit)
@@ -199,21 +206,26 @@ local kindToEvent = {
     "UNIT_SPELLCAST_CHANNEL_START",
     "UNIT_SPELLCAST_CHANNEL_STOP",
   },
+  eliteType = {
+    "UNIT_CLASSIFICATION_CHANGED",
+  },
+  rarity = {
+    "UNIT_CLASSIFICATION_CHANGED",
+  },
+  delveType = {
+    "UNIT_CLASSIFICATION_CHANGED",
+  },
 }
 local kindToCallback = {
   quest = {"QuestInfoUpdate"},
+  mouseover = {"MouseoverUpdate"},
   threat = {"CombatStatusChange"},
 }
 
 function addonTable.Display.UnregisterForColorEvents(frame)
   if frame.colorState then
-    for _, s in ipairs(frame.colorSettings) do
-      local ec = kindToCallback[s.kind]
-      if ec then
-        for _, e in ipairs(ec) do
-          addonTable.CallbackRegistry:UnregisterCallback(e, frame.colorState)
-        end
-      end
+    for _, e in ipairs(frame.colorState.callbacks) do
+      addonTable.CallbackRegistry:UnregisterCallback(e, frame.colorState)
     end
     if frame.colorState.timer then
       frame.colorState.timer:Cancel()
@@ -222,16 +234,15 @@ function addonTable.Display.UnregisterForColorEvents(frame)
 
   frame.ColorEventHandler = nil
   frame.colorState = nil
-  frame.colorSettings = nil
 end
 
 function addonTable.Display.RegisterForColorEvents(frame, settings, defaultColor)
   local events = { FORCED = true }
   frame.colorState = {
     frequentUpdater = {},
-    isPlayer = UnitIsPlayer(frame.unit) or UnitTreatAsPlayerForDisplay and UnitTreatAsPlayerForDisplay(frame.unit)
+    isPlayer = UnitIsPlayer(frame.unit) or UnitTreatAsPlayerForDisplay and UnitTreatAsPlayerForDisplay(frame.unit),
+    callbacks = {},
   }
-  frame.colorSettings = settings
   frame.colorState.defaultColor = defaultColor or transparency
   for _, s in ipairs(settings) do
     local es = kindToEvent[s.kind]
@@ -241,7 +252,7 @@ function addonTable.Display.RegisterForColorEvents(frame, settings, defaultColor
         local stateKind = eventToState[e]
         local state = frame.colorState[stateKind]
         if stateKind and state == nil then
-          stateToCalculator[stateKind](frame.colorState, frame.unit)
+          stateToCalculator[stateKind](frame.colorState, frame.unit, "")
         end
         if e:match("^UNIT") then
           frame:RegisterUnitEvent(e, frame.unit)
@@ -253,6 +264,7 @@ function addonTable.Display.RegisterForColorEvents(frame, settings, defaultColor
     local ec = kindToCallback[s.kind]
     if ec then
       for _, e in ipairs(ec) do
+        table.insert(frame.colorState.callbacks, e)
         addonTable.CallbackRegistry:RegisterCallback(e, function()
           frame:SetColor(addonTable.Display.GetColor(settings, frame.colorState, frame.unit))
         end, frame.colorState)
@@ -264,7 +276,7 @@ function addonTable.Display.RegisterForColorEvents(frame, settings, defaultColor
     if events[eventName] then
       local calculator = eventToCalulator[eventName]
       if calculator then
-        calculator(self.colorState, self.unit)
+        calculator(self.colorState, self.unit, eventName)
       end
       self:SetColor(addonTable.Display.GetColor(settings, self.colorState, self.unit))
       if next(self.colorState.frequentUpdater) then
@@ -309,6 +321,11 @@ function addonTable.Display.GetColor(settings, state, unit)
     elseif s.kind == "focus" then
       if UnitIsUnit("focus", unit) then
         table.insert(colorQueue, {color = s.colors.focus})
+        break
+      end
+    elseif s.kind == "mouseover" then
+      if UnitIsUnit("mouseover", unit) and (s.includeTarget or not UnitIsUnit("target", unit)) then
+        table.insert(colorQueue, {color = s.colors.mouseover})
         break
       end
     elseif s.kind == "threat" then
@@ -361,7 +378,41 @@ function addonTable.Display.GetColor(settings, state, unit)
             end
             break
           end
-        elseif classification == "normal" or classification == "trivial" then
+        elseif classification == "normal" or classification == "trivial" or classification == "minus" then
+          table.insert(colorQueue, {color = s.colors.trivial})
+          break
+        end
+      end
+    elseif s.kind == "delveType" then
+      if (inRelevantDelveInstance and s.delves or not inRelevantThreatInstance and s.outsideInstances) and not addonTable.Display.Utilities.IsNeutralUnit(unit) then
+        local classification = UnitClassification(unit)
+        if classification == "elite" then
+          local level = UnitEffectiveLevel(unit)
+          local dungeonLevel = PLATYNATOR_LAST_INSTANCE.level
+          local isRetail = addonTable.Constants.IsRetail
+          local lieutentantLevel = PLATYNATOR_LAST_INSTANCE.instanceLieutenantLevel
+          if isRetail and UnitIsLieutenant(unit) then
+            PLATYNATOR_LAST_INSTANCE.instanceLieutenantLevel = level
+            table.insert(colorQueue, {color = s.colors.elite})
+            break
+          elseif isRetail and (level == dungeonLevel + 2 or lieutentantLevel and level == lieutentantLevel + 1) or level == -1 then
+            table.insert(colorQueue, {color = s.colors.boss})
+            break
+          else
+            table.insert(colorQueue, {color = s.colors.elite})
+          end
+        elseif classification == "rareelite" then
+          table.insert(colorQueue, {color = s.colors.rare})
+          break
+        elseif classification == "normal" then
+          local class = UnitClassBase(unit)
+          if class == "PALADIN" then
+            table.insert(colorQueue, {color = s.colors.caster})
+          else
+            table.insert(colorQueue, {color = s.colors.melee})
+          end
+          break
+        elseif classification == "trivial" or classification == "minus" then
           table.insert(colorQueue, {color = s.colors.trivial})
           break
         end
@@ -391,7 +442,7 @@ function addonTable.Display.GetColor(settings, state, unit)
     elseif s.kind == "classColors" then
       if state.isPlayer then
         local _, class = UnitClass(unit)
-        table.insert(colorQueue, {color = RAID_CLASS_COLORS[class]})
+        table.insert(colorQueue, {color = s.colors[class] or RAID_CLASS_COLORS[class]})
         break
       end
     elseif s.kind == "reaction" then
@@ -417,17 +468,18 @@ function addonTable.Display.GetColor(settings, state, unit)
       end
       state.frequentUpdater.interruptReady = nil
       if notInterruptible ~= nil then
+        local interruptSpells, useGCD = GetInterruptSpells()
         state.frequentUpdater.interruptReady = true
         if C_Spell.GetSpellCooldownDuration then
-          for _, spellID in ipairs(GetInterruptSpells()) do
+          for _, spellID in ipairs(interruptSpells) do
             local duration = C_Spell.GetSpellCooldownDuration(spellID)
             table.insert(colorQueue, {state = {{value = duration:IsZero()}, {value = notInterruptible, invert = true}}, color = s.colors.ready})
           end
-        else
+        elseif notInterruptible == false then
           local any = false
-          for _, spellID in ipairs(GetInterruptSpells()) do
+          for _, spellID in ipairs(interruptSpells) do
             local cooldownInfo = C_Spell.GetSpellCooldown(spellID)
-            if notInterruptible == false and cooldownInfo.startTime == 0 then
+            if cooldownInfo.startTime == 0 then
               any = true
               table.insert(colorQueue, {color = s.colors.ready})
               break
@@ -447,7 +499,7 @@ function addonTable.Display.GetColor(settings, state, unit)
       end
       state.frequentUpdater.interruptReady = nil
       if notInterruptible ~= nil then
-        local spells = GetInterruptSpells()
+        local spells, useGCD = GetInterruptSpells()
         if #spells > 0 then
           state.frequentUpdater.interruptReady = true
           if C_Spell.GetSpellCooldownDuration then
@@ -539,9 +591,9 @@ function addonTable.Display.GetColor(settings, state, unit)
       local executeRange = addonTable.Display.Utilities.GetExecuteRange()
       if executeRange > 0 then
         if UnitHealthPercent then
-          local alpha = UnitHealthPercent(unit, true, executeCurve)
-          executeConverter:SetDesaturation(alpha)
-          table.insert(colorQueue, {state = {{value = executeConverter:IsDesaturated()}}, color = s.colors.execute})
+          -- Unable to do the execute colour currently, waiting on a solution from Blizzard
+          --local alpha = UnitHealthPercent(unit, true, executeCurve)
+          --table.insert(colorQueue, {state = {{value = Convert10ToBoolean(alpha)}}, color = s.colors.execute})
         else
           local percent = UnitHealth(unit) / UnitHealthMax(unit)
           if percent <= addonTable.Display.Utilities.GetExecuteRange() then

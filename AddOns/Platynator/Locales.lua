@@ -70,6 +70,8 @@ L["HOSTILE"] = "Hostile"
 L["UNFRIENDLY"] = "Unfriendly"
 L["ONLY_APPLY_IN_COMBAT"] = "Only apply in combat"
 L["ONLY_APPLY_IN_INSTANCES"] = "Only apply in instances"
+L["USE_IN_DELVES"] = "Use in delves"
+L["USE_OUTSIDE_INSTANCES"] = "Use outside instances"
 L["USE_SAFE_COLOR"] = "Use safe color"
 L["MULTIPLE_SELECTED"] = "Multiple Selected"
 L["FADE"] = "Fade"
@@ -99,6 +101,7 @@ L["SHOW_WHEN_WOW_DOES"] = "Show when WoW does"
 L["MOVE"] = "Move"
 L["THREAT"] = "Threat"
 L["ELITE_TYPE"] = "Elite Type"
+L["DELVE_TYPE"] = "Delve Type"
 L["BOSS"] = "Boss"
 L["MINIBOSS"] = "Miniboss"
 L["CASTER"] = "Caster"
@@ -268,6 +271,8 @@ L["INTERRUPT_POINT_COLOR"] = "Interrupt point color"
 L["VALUES"] = "Values"
 L["SIGNIFICANT_FIGURES"] = "Significant figures"
 L["ROUNDED"] = "Rounded"
+L["SHOW_PERCENT_SYMBOL"] = "Show % symbol"
+L["MULTIPLE_VALUES_DISPLAY"] = "Multiple values display"
 L["INCLUDE_ELITE_RARES"] = "Include elite rares"
 L["PLAYER_GUILD"] = "Player guild"
 L["NPC_ROLE"] = "NPC role"
@@ -365,6 +370,7 @@ L["DEFAULT"] = "Par défaut"
 L["DEFAULT_BRACKETS"] = "(Défaut)"
 L["DEFENSIVE"] = "Défensif"
 L["DELETE_WIDGET"] = "Supprimer le widget"
+L["DELVE_TYPE"] = "Type de gouffre"
 L["DESIGNER"] = "Concepteur"
 L["DEVELOPMENT_IS_TIME_CONSUMING"] = "|cff04cca4Le développement prend énormément de temps.|r"
 L["DIFFICULT"] = "Difficile"
@@ -449,6 +455,7 @@ L["MINORS"] = "Mineurs"
 L["MOUSEOVER"] = "Survol de souris"
 L["MOVE"] = "Déplacer"
 L["MULTIPLE_SELECTED"] = "Sélection multiple"
+L["MULTIPLE_VALUES_DISPLAY"] = "Afficher plusieurs valeurs"
 L["NAME_ONLY"] = "Nom uniquement"
 L["NAME_ONLY_PLAYERS"] = "Nom seulement (joueurs)"
 L["NEUTRAL"] = "Neutre"
@@ -511,6 +518,7 @@ L["SHOW_NAMEPLATES_ONLY_IF_NEEDED"] = "Afficher les plaques de nom uniquement si
 L["SHOW_ONLY_IN_OPEN_WORLD"] = "Afficher seulement dans le monde ouvert"
 L["SHOW_OUTLINE"] = "Afficher le contour"
 L["SHOW_PANDEMIC"] = "Afficher pandémie"
+L["SHOW_PERCENT_SYMBOL"] = "Afficher le symbole %"
 L["SHOW_SHADOW"] = "Afficher l’ombre"
 L["SHOW_WHEN_WOW_DOES"] = "Afficher lorsque WoW le fait"
 L["SIGNIFICANT_FIGURES"] = "Chiffres significatifs"
@@ -554,7 +562,9 @@ L["TYPE_COLORS"] = "Couleurs de type"
 L["UNFRIENDLY"] = "Inamical"
 L["UNINTERRUPTABLE"] = "Ininterruptible"
 L["UNINTERRUPTABLE_CAST"] = "Incantation ininterruptible"
+L["USE_IN_DELVES"] = "Utiliser dans les gouffres"
 L["USE_NAMEPLATES_FOR"] = "Utiliser les barres d'info pour"
+L["USE_OUTSIDE_INSTANCES"] = "Utiliser en dehors des instances"
 L["USE_SAFE_COLOR"] = "Utiliser une couleur sûre"
 L["VALUES"] = "Valeurs"
 L["VERSION_COLON_X"] = "Version : %s"
@@ -632,6 +642,8 @@ L["DEFAULT"] = "Standard"
 L["DEFAULT_BRACKETS"] = "(Standard)"
 L["DEFENSIVE"] = "Defensiv"
 L["DELETE_WIDGET"] = "Widget löschen"
+--[[Translation missing --]]
+L["DELVE_TYPE"] = "Delve Type"
 L["DESIGNER"] = "Designer"
 L["DEVELOPMENT_IS_TIME_CONSUMING"] = "Entwicklung ist sehr zeitaufwändig"
 L["DIFFICULT"] = "Schwierig"
@@ -716,6 +728,8 @@ L["MINORS"] = "Trivial"
 L["MOUSEOVER"] = "Mouseover"
 L["MOVE"] = "Bewegen"
 L["MULTIPLE_SELECTED"] = "Mehrere ausgewählt"
+--[[Translation missing --]]
+L["MULTIPLE_VALUES_DISPLAY"] = "Multiple values display"
 L["NAME_ONLY"] = "Nur Name"
 L["NAME_ONLY_PLAYERS"] = "Nur Name (Spieler)"
 L["NEUTRAL"] = "Neutral"
@@ -779,6 +793,8 @@ L["SHOW_NAMEPLATES_ONLY_IF_NEEDED"] = "Namensleisten nur bei Bedarf anzeigen"
 L["SHOW_ONLY_IN_OPEN_WORLD"] = "Nur in freier Welt anzeigen"
 L["SHOW_OUTLINE"] = "Umriss anzeigen"
 L["SHOW_PANDEMIC"] = "Pandemic anzeigen"
+--[[Translation missing --]]
+L["SHOW_PERCENT_SYMBOL"] = "Show % symbol"
 L["SHOW_SHADOW"] = "Schatten anzeigen"
 L["SHOW_WHEN_WOW_DOES"] = "Anzeigen, wenn WoW es tut"
 L["SIGNIFICANT_FIGURES"] = "Dargestellte Zahlen"
@@ -822,7 +838,11 @@ L["TYPE_COLORS"] = "Schriftfarben"
 L["UNFRIENDLY"] = "Unfreundlich"
 L["UNINTERRUPTABLE"] = "nicht unterbrechbar"
 L["UNINTERRUPTABLE_CAST"] = "Nicht unterbrechbarer Zauber"
+--[[Translation missing --]]
+L["USE_IN_DELVES"] = "Use in delves"
 L["USE_NAMEPLATES_FOR"] = "Namensplaketten verwenden für"
+--[[Translation missing --]]
+L["USE_OUTSIDE_INSTANCES"] = "Use outside instances"
 L["USE_SAFE_COLOR"] = "Sichere Farbe verwenden"
 L["VALUES"] = "Werte"
 L["VERSION_COLON_X"] = "Version: %s"
@@ -908,6 +928,8 @@ L["DEFAULT_BRACKETS"] = "(По умолчанию)"
 --[[Translation missing --]]
 L["DEFENSIVE"] = "Defensive"
 L["DELETE_WIDGET"] = "Удалить виджет"
+--[[Translation missing --]]
+L["DELVE_TYPE"] = "Delve Type"
 L["DESIGNER"] = "Дизайн"
 L["DEVELOPMENT_IS_TIME_CONSUMING"] = "|cff04cca4Разработка требует огромного количества времени|r"
 L["DIFFICULT"] = "Сложно"
@@ -1001,6 +1023,8 @@ L["MINORS"] = "Незначительные"
 L["MOUSEOVER"] = "Наведение курсора"
 L["MOVE"] = "Перемещать"
 L["MULTIPLE_SELECTED"] = "Несколько выбранных"
+--[[Translation missing --]]
+L["MULTIPLE_VALUES_DISPLAY"] = "Multiple values display"
 L["NAME_ONLY"] = "Только имя"
 L["NAME_ONLY_PLAYERS"] = "Только имена (игроки)"
 L["NEUTRAL"] = "Равнодушие"
@@ -1071,6 +1095,8 @@ L["SHOW_ONLY_IN_OPEN_WORLD"] = "Показать только в открыто�
 L["SHOW_OUTLINE"] = "Показать контур"
 --[[Translation missing --]]
 L["SHOW_PANDEMIC"] = "Show pandemic"
+--[[Translation missing --]]
+L["SHOW_PERCENT_SYMBOL"] = "Show % symbol"
 L["SHOW_SHADOW"] = "Показать тень"
 L["SHOW_WHEN_WOW_DOES"] = "Аналогично настройкам WoW"
 L["SIGNIFICANT_FIGURES"] = "Значительные цифры"
@@ -1115,7 +1141,11 @@ L["TYPE_COLORS"] = "Цвета по типу"
 L["UNFRIENDLY"] = "Неприязнь"
 L["UNINTERRUPTABLE"] = "Непрерываемое"
 L["UNINTERRUPTABLE_CAST"] = "Непрерываемое"
+--[[Translation missing --]]
+L["USE_IN_DELVES"] = "Use in delves"
 L["USE_NAMEPLATES_FOR"] = "Использовать панели для"
+--[[Translation missing --]]
+L["USE_OUTSIDE_INSTANCES"] = "Use outside instances"
 L["USE_SAFE_COLOR"] = "Использовать безопасный цвет"
 L["VALUES"] = "Значения"
 L["VERSION_COLON_X"] = "Версия: %s"
@@ -1193,6 +1223,7 @@ L["DEFAULT"] = "Padrão"
 L["DEFAULT_BRACKETS"] = "(Padrão)"
 L["DEFENSIVE"] = "Defensivo"
 L["DELETE_WIDGET"] = "Excluir widget"
+L["DELVE_TYPE"] = "Tipo de imersão"
 L["DESIGNER"] = "Designer"
 L["DEVELOPMENT_IS_TIME_CONSUMING"] = "|cff04cca4O desenvolvimento leva muito tempo|r"
 L["DIFFICULT"] = "Difícil"
@@ -1277,6 +1308,7 @@ L["MINORS"] = "Menores"
 L["MOUSEOVER"] = "Mouseover"
 L["MOVE"] = "Mover"
 L["MULTIPLE_SELECTED"] = "Múltiplos selecionados"
+L["MULTIPLE_VALUES_DISPLAY"] = "Mostrar múltiplos valores"
 L["NAME_ONLY"] = "Somente nome"
 L["NAME_ONLY_PLAYERS"] = "Somente nome (jogadores)"
 L["NEUTRAL"] = "Tolerado"
@@ -1339,6 +1371,7 @@ L["SHOW_NAMEPLATES_ONLY_IF_NEEDED"] = "Mostrar placas de nome apenas se necessá
 L["SHOW_ONLY_IN_OPEN_WORLD"] = "Mostrar apenas no mundo aberto"
 L["SHOW_OUTLINE"] = "Mostrar contorno"
 L["SHOW_PANDEMIC"] = "Mostrar pandemia"
+L["SHOW_PERCENT_SYMBOL"] = "Mostrar símbolo %"
 L["SHOW_SHADOW"] = "Mostrar sombra"
 L["SHOW_WHEN_WOW_DOES"] = "Mostrar quando o WoW fizer"
 L["SIGNIFICANT_FIGURES"] = "Algarismos significativos"
@@ -1382,7 +1415,9 @@ L["TYPE_COLORS"] = "Cores do tipo"
 L["UNFRIENDLY"] = "Ignorado"
 L["UNINTERRUPTABLE"] = "Ininterruptível"
 L["UNINTERRUPTABLE_CAST"] = "Lançamento ininterruptível"
+L["USE_IN_DELVES"] = "Usar em imersões"
 L["USE_NAMEPLATES_FOR"] = "Usar placas de nome para"
+L["USE_OUTSIDE_INSTANCES"] = "Usar fora das instâncias"
 L["USE_SAFE_COLOR"] = "Usar cor segura"
 L["VALUES"] = "Valores"
 L["VERSION_COLON_X"] = "Versão: %s"
@@ -1460,6 +1495,7 @@ L["DEFAULT"] = "Predeterminado"
 L["DEFAULT_BRACKETS"] = "(Predeterminado)"
 L["DEFENSIVE"] = "Defensivo"
 L["DELETE_WIDGET"] = "Eliminar widget"
+L["DELVE_TYPE"] = "Tipo de profundidad"
 L["DESIGNER"] = "Diseñador"
 L["DEVELOPMENT_IS_TIME_CONSUMING"] = "|cff04cca4El desarrollo lleva mucho tiempo|r"
 L["DIFFICULT"] = "Difícil"
@@ -1544,6 +1580,7 @@ L["MINORS"] = "Menores"
 L["MOUSEOVER"] = "Pasar el ratón"
 L["MOVE"] = "Mover"
 L["MULTIPLE_SELECTED"] = "Varias seleccionadas"
+L["MULTIPLE_VALUES_DISPLAY"] = "Mostrar múltiples valores"
 L["NAME_ONLY"] = "Solo nombre"
 L["NAME_ONLY_PLAYERS"] = "Solo nombre (jugadores)"
 L["NEUTRAL"] = "Neutral"
@@ -1606,6 +1643,7 @@ L["SHOW_NAMEPLATES_ONLY_IF_NEEDED"] = "Mostrar placas de nombre solo si es neces
 L["SHOW_ONLY_IN_OPEN_WORLD"] = "Mostrar solo en mundo abierto"
 L["SHOW_OUTLINE"] = "Mostrar contorno"
 L["SHOW_PANDEMIC"] = "Mostrar pandemia"
+L["SHOW_PERCENT_SYMBOL"] = "Mostrar símbolo %"
 L["SHOW_SHADOW"] = "Mostrar sombra"
 L["SHOW_WHEN_WOW_DOES"] = "Mostrar cuando WoW lo haga"
 L["SIGNIFICANT_FIGURES"] = "Cifras significativas"
@@ -1649,7 +1687,9 @@ L["TYPE_COLORS"] = "Colores de tipo"
 L["UNFRIENDLY"] = "Adverso"
 L["UNINTERRUPTABLE"] = "Ininterrumpible"
 L["UNINTERRUPTABLE_CAST"] = "Lanzamiento ininterrumpible"
+L["USE_IN_DELVES"] = "Usar en profundidades"
 L["USE_NAMEPLATES_FOR"] = "Usar placas de nombre para"
+L["USE_OUTSIDE_INSTANCES"] = "Usar afuera de estancias"
 L["USE_SAFE_COLOR"] = "Usar color seguro"
 L["VALUES"] = "Valores"
 L["VERSION_COLON_X"] = "Versión: %s"
@@ -1727,6 +1767,7 @@ L["DEFAULT"] = "Predeterminado"
 L["DEFAULT_BRACKETS"] = "(Predeterminado)"
 L["DEFENSIVE"] = "Defensivo"
 L["DELETE_WIDGET"] = "Eliminar widget"
+L["DELVE_TYPE"] = "Tipo de abismo"
 L["DESIGNER"] = "Diseñador"
 L["DEVELOPMENT_IS_TIME_CONSUMING"] = "|cff04cca4El desarrollo lleva mucho tiempo|r"
 L["DIFFICULT"] = "Difícil"
@@ -1811,6 +1852,7 @@ L["MINORS"] = "Menores"
 L["MOUSEOVER"] = "Pasar el ratón"
 L["MOVE"] = "Mover"
 L["MULTIPLE_SELECTED"] = "Varias seleccionadas"
+L["MULTIPLE_VALUES_DISPLAY"] = "Mostrar múltiples valores"
 L["NAME_ONLY"] = "Solo nombre"
 L["NAME_ONLY_PLAYERS"] = "Solo nombre (jugadores)"
 L["NEUTRAL"] = "Neutral"
@@ -1873,6 +1915,7 @@ L["SHOW_NAMEPLATES_ONLY_IF_NEEDED"] = "Mostrar placas de nombre solo si es neces
 L["SHOW_ONLY_IN_OPEN_WORLD"] = "Mostrar solo en mundo abierto"
 L["SHOW_OUTLINE"] = "Mostrar contorno"
 L["SHOW_PANDEMIC"] = "Mostrar pandemia"
+L["SHOW_PERCENT_SYMBOL"] = "Mostrar símbolo %"
 L["SHOW_SHADOW"] = "Mostrar sombra"
 L["SHOW_WHEN_WOW_DOES"] = "Mostrar cuando WoW lo haga"
 L["SIGNIFICANT_FIGURES"] = "Cifras significativas"
@@ -1916,7 +1959,9 @@ L["TYPE_COLORS"] = "Colores de tipo"
 L["UNFRIENDLY"] = "Adverso"
 L["UNINTERRUPTABLE"] = "Ininterrumpible"
 L["UNINTERRUPTABLE_CAST"] = "Lanzamiento ininterrumpible"
+L["USE_IN_DELVES"] = "Usar en abismos"
 L["USE_NAMEPLATES_FOR"] = "Usar placas de nombre para"
+L["USE_OUTSIDE_INSTANCES"] = "Usar afuera de estancias"
 L["USE_SAFE_COLOR"] = "Usar color seguro"
 L["VALUES"] = "Valores"
 L["VERSION_COLON_X"] = "Versión: %s"
@@ -1994,6 +2039,7 @@ L["DEFAULT"] = "預設"
 L["DEFAULT_BRACKETS"] = "(預設)"
 L["DEFENSIVE"] = "防禦"
 L["DELETE_WIDGET"] = "刪除小工具"
+L["DELVE_TYPE"] = "探究類型"
 L["DESIGNER"] = "自訂設計"
 L["DEVELOPMENT_IS_TIME_CONSUMING"] = "|cff04cca4開發工作耗費大量時間|r"
 L["DIFFICULT"] = "難度"
@@ -2078,6 +2124,7 @@ L["MINORS"] = "小嘍囉"
 L["MOUSEOVER"] = "滑鼠停留"
 L["MOVE"] = "移動"
 L["MULTIPLE_SELECTED"] = "多重選擇"
+L["MULTIPLE_VALUES_DISPLAY"] = "多重數值顯示"
 L["NAME_ONLY"] = "只有名字"
 L["NAME_ONLY_PLAYERS"] = "只有名字 (玩家)"
 L["NEUTRAL"] = "中立"
@@ -2140,6 +2187,7 @@ L["SHOW_NAMEPLATES_ONLY_IF_NEEDED"] = "只在需要時顯示名條"
 L["SHOW_ONLY_IN_OPEN_WORLD"] = "只在開放世界中顯示"
 L["SHOW_OUTLINE"] = "顯示描線"
 L["SHOW_PANDEMIC"] = "顯示疊加效果"
+L["SHOW_PERCENT_SYMBOL"] = "顯示 % 符號"
 L["SHOW_SHADOW"] = "顯示陰影"
 L["SHOW_WHEN_WOW_DOES"] = "與遊戲同步顯示"
 L["SIGNIFICANT_FIGURES"] = "重要人物"
@@ -2183,7 +2231,9 @@ L["TYPE_COLORS"] = "類型顏色"
 L["UNFRIENDLY"] = "不友好"
 L["UNINTERRUPTABLE"] = "不可打斷"
 L["UNINTERRUPTABLE_CAST"] = "不可打斷施法"
+L["USE_IN_DELVES"] = "使用在探究"
 L["USE_NAMEPLATES_FOR"] = "使用名條在"
+L["USE_OUTSIDE_INSTANCES"] = "使用在戶外副本"
 L["USE_SAFE_COLOR"] = "使用安全顏色"
 L["VALUES"] = "數值"
 L["VERSION_COLON_X"] = "版本：%s"
@@ -2261,6 +2311,8 @@ L["DEFAULT"] = "默认"
 L["DEFAULT_BRACKETS"] = "（默认）"
 L["DEFENSIVE"] = "防御类"
 L["DELETE_WIDGET"] = "删除组件"
+--[[Translation missing --]]
+L["DELVE_TYPE"] = "Delve Type"
 L["DESIGNER"] = "设计"
 L["DEVELOPMENT_IS_TIME_CONSUMING"] = "|cff04cca4开发工作耗费大量时间|r"
 L["DIFFICULT"] = "困难"
@@ -2345,6 +2397,8 @@ L["MINORS"] = "杂兵"
 L["MOUSEOVER"] = "鼠标指向"
 L["MOVE"] = "移动"
 L["MULTIPLE_SELECTED"] = "已选择多项"
+--[[Translation missing --]]
+L["MULTIPLE_VALUES_DISPLAY"] = "Multiple values display"
 L["NAME_ONLY"] = "仅名字"
 L["NAME_ONLY_PLAYERS"] = "仅名字（玩家）"
 L["NEUTRAL"] = "中立"
@@ -2407,6 +2461,8 @@ L["SHOW_NAMEPLATES_ONLY_IF_NEEDED"] = "仅在需要时显示姓名板"
 L["SHOW_ONLY_IN_OPEN_WORLD"] = "仅在世界显示"
 L["SHOW_OUTLINE"] = "显示轮廓"
 L["SHOW_PANDEMIC"] = "显示叠加效果"
+--[[Translation missing --]]
+L["SHOW_PERCENT_SYMBOL"] = "Show % symbol"
 L["SHOW_SHADOW"] = "显示阴影"
 L["SHOW_WHEN_WOW_DOES"] = "与游戏同步显示"
 L["SIGNIFICANT_FIGURES"] = "有效数字"
@@ -2450,7 +2506,11 @@ L["TYPE_COLORS"] = "类型颜色"
 L["UNFRIENDLY"] = "冷淡"
 L["UNINTERRUPTABLE"] = "不可打断"
 L["UNINTERRUPTABLE_CAST"] = "无法被打断"
+--[[Translation missing --]]
+L["USE_IN_DELVES"] = "Use in delves"
 L["USE_NAMEPLATES_FOR"] = "使用姓名板"
+--[[Translation missing --]]
+L["USE_OUTSIDE_INSTANCES"] = "Use outside instances"
 L["USE_SAFE_COLOR"] = "使用安全颜色"
 L["VALUES"] = "数值"
 L["VERSION_COLON_X"] = "版本：%s"
@@ -2528,6 +2588,7 @@ L["DEFAULT"] = "기본값"
 L["DEFAULT_BRACKETS"] = "(기본값)"
 L["DEFENSIVE"] = "방어"
 L["DELETE_WIDGET"] = "구성 요소 삭제"
+L["DELVE_TYPE"] = "구렁 유형"
 L["DESIGNER"] = "스타일"
 L["DEVELOPMENT_IS_TIME_CONSUMING"] = "|cff04cca4개발에는 엄청난 시간이 소요됩니다.|r"
 L["DIFFICULT"] = "난이도"
@@ -2612,6 +2673,7 @@ L["MINORS"] = "하급"
 L["MOUSEOVER"] = "마우스 오버"
 L["MOVE"] = "이동"
 L["MULTIPLE_SELECTED"] = "다중 선택"
+L["MULTIPLE_VALUES_DISPLAY"] = "여러 값 표시"
 L["NAME_ONLY"] = "이름만"
 L["NAME_ONLY_PLAYERS"] = "이름만 (플레이어)"
 L["NEUTRAL"] = "중립"
@@ -2674,6 +2736,7 @@ L["SHOW_NAMEPLATES_ONLY_IF_NEEDED"] = "필요할 때만 이름표 표시"
 L["SHOW_ONLY_IN_OPEN_WORLD"] = "오픈 월드에서만 표시"
 L["SHOW_OUTLINE"] = "외곽선 표시"
 L["SHOW_PANDEMIC"] = "이전 범위 표시"
+L["SHOW_PERCENT_SYMBOL"] = "% 기호 표시"
 L["SHOW_SHADOW"] = "그림자 표시"
 L["SHOW_WHEN_WOW_DOES"] = "WoW가 실행될 때 표시"
 L["SIGNIFICANT_FIGURES"] = "유효숫자"
@@ -2717,7 +2780,9 @@ L["TYPE_COLORS"] = "유형 색상"
 L["UNFRIENDLY"] = "비우호적"
 L["UNINTERRUPTABLE"] = "차단 불가"
 L["UNINTERRUPTABLE_CAST"] = "차단 불가 시전"
+L["USE_IN_DELVES"] = "구렁에서 사용"
 L["USE_NAMEPLATES_FOR"] = "이름표 사용"
+L["USE_OUTSIDE_INSTANCES"] = "인스턴스 외부에서 사용"
 L["USE_SAFE_COLOR"] = "안전한 색상 사용"
 L["VALUES"] = "값"
 L["VERSION_COLON_X"] = "버전: %s"
@@ -2730,484 +2795,264 @@ L["WIDTH_RESTRICTION"] = "폭 제한"
 
 
 local L = Locales.itIT
---[[Translation missing --]]
-L["ABSOLUTE"] = "Absolute"
---[[Translation missing --]]
-L["ABSORB"] = "Absorb"
---[[Translation missing --]]
-L["ABSORB_COLOR"] = "Absorb color"
---[[Translation missing --]]
-L["ADD_COLORS"] = "Add Colors"
---[[Translation missing --]]
-L["ADD_WIDGET"] = "Add Widget"
---[[Translation missing --]]
-L["ALIGNMENT"] = "Alignment"
---[[Translation missing --]]
-L["ALWAYS_ALL"] = "Always (all)"
---[[Translation missing --]]
-L["ANIMATE"] = "Animate"
---[[Translation missing --]]
-L["ANIMATED_BORDER"] = "Animated Border"
---[[Translation missing --]]
-L["APPLY_MAIN_COLOR_TO_BACKGROUND"] = "Apply main color to background"
---[[Translation missing --]]
-L["APPLY_OTHER_CVARS"] = "Apply other CVars"
---[[Translation missing --]]
-L["ARCANE_FLURRY"] = "Arcane Flurry"
---[[Translation missing --]]
-L["AURAS"] = "Auras"
---[[Translation missing --]]
-L["AUTOMATIC"] = "Automatic"
---[[Translation missing --]]
-L["BACKGROUND"] = "Background"
---[[Translation missing --]]
-L["BACKGROUND_COLOR"] = "Background color"
---[[Translation missing --]]
-L["BARS"] = "Bars"
---[[Translation missing --]]
-L["BEAVER"] = "Beaver"
---[[Translation missing --]]
-L["BEHAVIOUR"] = "Behaviour"
+L["ABSOLUTE"] = "Assoluto"
+L["ABSORB"] = "Assorbire"
+L["ABSORB_COLOR"] = "Colore dell'Assorbire"
+L["ADD_COLORS"] = "Aggiungi Colori"
+L["ADD_WIDGET"] = "Aggiungi Widget"
+L["ALIGNMENT"] = "Allineamento"
+L["ALWAYS_ALL"] = "Sempre (tutti)"
+L["ANIMATE"] = "Animare"
+L["ANIMATED_BORDER"] = "Bordo Animato"
+L["APPLY_MAIN_COLOR_TO_BACKGROUND"] = "Applicare il colore principale allo sfondo"
+L["APPLY_OTHER_CVARS"] = "Applicare altri CVar"
+L["ARCANE_FLURRY"] = "Raffica Arcana"
+L["AURAS"] = "Aure"
+L["AUTOMATIC"] = "Automatico"
+L["BACKGROUND"] = "Sfondo"
+L["BACKGROUND_COLOR"] = "Colore dello sfondo"
+L["BARS"] = "Barre"
+L["BEAVER"] = "Castoro"
+L["BEHAVIOUR"] = "Comportamento"
 --[[Translation missing --]]
 L["BLIZZARD"] = "Blizzard"
 --[[Translation missing --]]
 L["BLIZZARD_CLASSIC"] = "Blizzard Classic"
---[[Translation missing --]]
-L["BLIZZARD_EXTRA_WIDGETS_SCALE"] = "Blizzard extra widgets scale"
---[[Translation missing --]]
-L["BORDER"] = "Border"
---[[Translation missing --]]
-L["BORDER_COLOR"] = "Border color"
---[[Translation missing --]]
-L["BORDER_WIDTH"] = "Border width"
+L["BLIZZARD_EXTRA_WIDGETS_SCALE"] = "Scala dei widget extra di Blizzard"
+L["BORDER"] = "Bordo"
+L["BORDER_COLOR"] = "Colore del bordo"
+L["BORDER_WIDTH"] = "Larghezza del bordo"
 --[[Translation missing --]]
 L["BOSS"] = "Boss"
---[[Translation missing --]]
-L["BUFFS"] = "Buffs"
+L["BUFFS"] = "Potenziamenti "
 --[[Translation missing --]]
 L["BY_PLUSMOUSE"] = "by plusmouse"
+L["CANNOT_INTERRUPT"] = "Non puoi interrompere"
+L["CAST"] = "Lancio"
+L["CAST_INTERRUPTER"] = "Interruttore del Lancio"
+L["CAST_NAME"] = "Nome del Lancio"
+L["CAST_TARGET"] = "Bersaglio del Lancio"
+L["CAST_TARGETS_YOU"] = "Sei il Bersaglio del Lancio"
+L["CAST_TIME_LEFT"] = "Tempo rimanente per il lancio"
+L["CASTER"] = "Lanciatore "
+L["CASTING"] = "Lanciando"
+L["CENTER"] = "Centro "
+L["CHANNEL"] = "Canale"
+L["CLASS"] = "Classe"
+L["CLASS_COLORED"] = "Classe colorata"
+L["CLASS_COLORS"] = "Colori della Classe"
+L["CLEAR_SELECTION"] = "Cancella Selezione"
+L["CLICK_ON_A_WIDGET"] = "Fai clic su un widget per le impostazioni"
+L["CLICK_REGION_HEIGHT"] = "Altezza della regione di clic"
+L["CLICK_REGION_WIDTH"] = "Larghezza della regione di clic"
+L["CLICKABLE_NAMEPLATES"] = "Targhette cliccabili"
+L["CLOSER_TO_SCREEN_EDGES"] = "Più vicino ai bordi dello schermo"
+L["COLOR"] = "Colore"
+L["COLORS"] = "Colori"
+L["COMBAT"] = "Combattere"
+L["CONFIRM_DELETE_PROFILE_X"] = "Sei sicuro di voler eliminare il profilo \"%s\"?"
+L["CONFIRM_DELETE_STYLE_X"] = "Sei sicuro di voler eliminare lo stile \"%s\"?"
+L["CREATURE_NAME"] = "Nome della Creatura"
+L["CROWD_CONTROL"] = "Controllo della Folla"
+L["CTRL_C_TO_COPY"] = "Ctrl+C per copiare"
+L["CUSTOM"] = "Personale"
+L["CUSTOMISE_PLATYNATOR"] = "Personalizza Platynator"
+L["DAMAGE_ABSORB_VALUE"] = "Valore di Assorbimento del Danno"
+L["DEBUFFS"] = "Penalità "
+L["DEER"] = "Cervo"
+L["DEFAULT"] = "Predefinito"
+L["DEFAULT_BRACKETS"] = "(Predefinito)"
+L["DEFENSIVE"] = "Difensivo"
+L["DELETE_WIDGET"] = "Cancella Widget"
 --[[Translation missing --]]
-L["CANNOT_INTERRUPT"] = "Cannot Interrupt"
---[[Translation missing --]]
-L["CAST"] = "Cast"
---[[Translation missing --]]
-L["CAST_INTERRUPTER"] = "Cast Interrupter"
---[[Translation missing --]]
-L["CAST_NAME"] = "Cast Name"
---[[Translation missing --]]
-L["CAST_TARGET"] = "Cast Target"
---[[Translation missing --]]
-L["CAST_TARGETS_YOU"] = "Cast Targets You"
---[[Translation missing --]]
-L["CAST_TIME_LEFT"] = "Cast Time Left"
---[[Translation missing --]]
-L["CASTER"] = "Caster"
---[[Translation missing --]]
-L["CASTING"] = "Casting"
---[[Translation missing --]]
-L["CENTER"] = "Center"
---[[Translation missing --]]
-L["CHANNEL"] = "Channel"
---[[Translation missing --]]
-L["CLASS"] = "Class"
---[[Translation missing --]]
-L["CLASS_COLORED"] = "Class colored"
---[[Translation missing --]]
-L["CLASS_COLORS"] = "Class Colors"
---[[Translation missing --]]
-L["CLEAR_SELECTION"] = "Clear Selection"
---[[Translation missing --]]
-L["CLICK_ON_A_WIDGET"] = "Click on a widget for settings"
---[[Translation missing --]]
-L["CLICK_REGION_HEIGHT"] = "Click region height"
---[[Translation missing --]]
-L["CLICK_REGION_WIDTH"] = "Click region width"
---[[Translation missing --]]
-L["CLICKABLE_NAMEPLATES"] = "Clickable nameplates"
---[[Translation missing --]]
-L["CLOSER_TO_SCREEN_EDGES"] = "Closer to screen edges"
---[[Translation missing --]]
-L["COLOR"] = "Color"
---[[Translation missing --]]
-L["COLORS"] = "Colors"
---[[Translation missing --]]
-L["COMBAT"] = "Combat"
---[[Translation missing --]]
-L["CONFIRM_DELETE_PROFILE_X"] = "Are you sure you want to delete profile \"%s\"?"
---[[Translation missing --]]
-L["CONFIRM_DELETE_STYLE_X"] = "Are you sure you want to delete style \"%s\"?"
---[[Translation missing --]]
-L["CREATURE_NAME"] = "Creature Name"
---[[Translation missing --]]
-L["CROWD_CONTROL"] = "Crowd Control"
---[[Translation missing --]]
-L["CTRL_C_TO_COPY"] = "Ctrl+C to copy"
---[[Translation missing --]]
-L["CUSTOM"] = "Custom"
---[[Translation missing --]]
-L["CUSTOMISE_PLATYNATOR"] = "Customise Platynator"
---[[Translation missing --]]
-L["DAMAGE_ABSORB_VALUE"] = "Damage Absorb Value"
---[[Translation missing --]]
-L["DEBUFFS"] = "Debuffs"
---[[Translation missing --]]
-L["DEER"] = "Deer"
---[[Translation missing --]]
-L["DEFAULT"] = "Default"
---[[Translation missing --]]
-L["DEFAULT_BRACKETS"] = "(Default)"
---[[Translation missing --]]
-L["DEFENSIVE"] = "Defensive"
---[[Translation missing --]]
-L["DELETE_WIDGET"] = "Delete Widget"
---[[Translation missing --]]
-L["DESIGNER"] = "Designer"
---[[Translation missing --]]
-L["DEVELOPMENT_IS_TIME_CONSUMING"] = "|cff04cca4Development takes a huge amount of time|r"
---[[Translation missing --]]
-L["DIFFICULT"] = "Difficult"
---[[Translation missing --]]
-L["DIFFICULTY"] = "Difficulty"
---[[Translation missing --]]
-L["DIFFICULTY_COLORED"] = "Difficulty colored"
---[[Translation missing --]]
-L["DIRECTION"] = "Direction"
---[[Translation missing --]]
-L["DISCORD_DESCRIPTION"] = "Updates, feature suggestions and support"
---[[Translation missing --]]
-L["DISPELLABLE"] = "Dispellable"
---[[Translation missing --]]
-L["DO_NOTHING"] = "Do nothing"
---[[Translation missing --]]
-L["DONATE"] = "Donate"
---[[Translation missing --]]
-L["DURATION"] = "Duration"
+L["DELVE_TYPE"] = "Delve Type"
+L["DESIGNER"] = "Designa"
+L["DEVELOPMENT_IS_TIME_CONSUMING"] = "|cff04cca4Lo sviluppo richiede un'enorme quantità di tempo|r"
+L["DIFFICULT"] = "Difficile"
+L["DIFFICULTY"] = "Difficoltà"
+L["DIFFICULTY_COLORED"] = "Colore della difficoltà"
+L["DIRECTION"] = "Direzione "
+L["DISCORD_DESCRIPTION"] = "Aggiornamenti, suggerimenti per nuove funzionalità e supporto"
+L["DISPELLABLE"] = "Dissipabile"
+L["DO_NOTHING"] = "Non fare nulla"
+L["DONATE"] = "Donare"
+L["DURATION"] = "Durata"
 --[[Translation missing --]]
 L["ELITE"] = "Elite"
---[[Translation missing --]]
-L["ELITE_TYPE"] = "Elite Type"
---[[Translation missing --]]
-L["EMPTY"] = "Empty"
---[[Translation missing --]]
-L["ENABLE_IF_LINES_FALLING_OFF_FONT"] = "Enable if lines falling off font"
---[[Translation missing --]]
-L["ENABLE_OVERRIDE"] = "Enable override"
---[[Translation missing --]]
-L["ENABLE_OVERRIDE_INSTANCES"] = "Enable override instances"
---[[Translation missing --]]
-L["ENABLE_OVERRIDE_WORLD"] = "Enable override world"
---[[Translation missing --]]
-L["ENEMIES"] = "Enemies"
---[[Translation missing --]]
-L["ENEMY"] = "Enemy"
---[[Translation missing --]]
-L["ENEMY_PLAYER"] = "Enemy Player"
---[[Translation missing --]]
-L["ENLARGE_NAMEPLATE"] = "Enlarge nameplate"
---[[Translation missing --]]
-L["ENTER_PROFILE_NAME"] = "Enter Profile Name:"
---[[Translation missing --]]
-L["ENTER_THE_CUSTOM_STYLE_NAME"] = "Enter the custom style name"
---[[Translation missing --]]
-L["ENTER_THE_NEW_PROFILE_NAME"] = "Enter the new profile name"
---[[Translation missing --]]
-L["ENTER_THE_NEW_STYLE_NAME"] = "Enter the new style name"
---[[Translation missing --]]
-L["EXECUTE"] = "Execute"
---[[Translation missing --]]
-L["EXPORT"] = "Export"
---[[Translation missing --]]
-L["FADE"] = "Fade"
---[[Translation missing --]]
-L["FILLED"] = "Filled"
---[[Translation missing --]]
-L["FILTERS"] = "Filters"
---[[Translation missing --]]
-L["FIXED"] = "Fixed"
+L["ELITE_TYPE"] = "Tipo di Elite"
+L["EMPTY"] = "Vuoto"
+L["ENABLE_IF_LINES_FALLING_OFF_FONT"] = "Abilita se le linee cadono dal carattere"
+L["ENABLE_OVERRIDE"] = "Abilita di sovrascrivere"
+L["ENABLE_OVERRIDE_INSTANCES"] = "Abilita di sovrascrivere le istanze"
+L["ENABLE_OVERRIDE_WORLD"] = "Abilita di sovrascrivere il mondo"
+L["ENEMIES"] = "Nemici"
+L["ENEMY"] = "Nemico"
+L["ENEMY_PLAYER"] = "Giocatore Nemico"
+L["ENLARGE_NAMEPLATE"] = "Ingrandire la targhetta"
+L["ENTER_PROFILE_NAME"] = "Inserisci il nome del profilo:"
+L["ENTER_THE_CUSTOM_STYLE_NAME"] = "Inserisci il nome dello stile personalizzato"
+L["ENTER_THE_NEW_PROFILE_NAME"] = "Inserisci il nuovo nome del profilo"
+L["ENTER_THE_NEW_STYLE_NAME"] = "Inserisci il nuovo nome dello stile"
+L["EXECUTE"] = "Esegui"
+L["EXPORT"] = "Esporta"
+L["FADE"] = "Dissolvenza"
+L["FILLED"] = "Riempito"
+L["FILTERS"] = "Filtri"
+L["FIXED"] = "Fisso"
 --[[Translation missing --]]
 L["FOCUS"] = "Focus"
---[[Translation missing --]]
-L["FOCUSED"] = "Focused"
---[[Translation missing --]]
-L["FONT"] = "Font"
---[[Translation missing --]]
-L["FOREGROUND"] = "Foreground"
---[[Translation missing --]]
-L["FRIENDLY"] = "Friendly"
---[[Translation missing --]]
-L["FRIENDLY_NPCS"] = "Friendly NPCs"
---[[Translation missing --]]
-L["FRIENDLY_PLAYER"] = "Friendly Player"
---[[Translation missing --]]
-L["FRIENDLY_PLAYERS"] = "Friendly Players"
---[[Translation missing --]]
-L["FROM_YOU"] = "From you"
---[[Translation missing --]]
-L["GENERAL"] = "General"
---[[Translation missing --]]
-L["GLOBAL_SCALE"] = "Global scale"
---[[Translation missing --]]
-L["GUILD"] = "Guild"
---[[Translation missing --]]
-L["HARE"] = "Hare"
---[[Translation missing --]]
-L["HARE_SIMPLIFIED"] = "Hare Simplified"
---[[Translation missing --]]
-L["HEALTH"] = "Health"
---[[Translation missing --]]
-L["HEALTH_VALUE"] = "Health Value"
---[[Translation missing --]]
-L["HEDGEHOG"] = "Hedgehog"
---[[Translation missing --]]
-L["HEIGHT"] = "Height"
---[[Translation missing --]]
-L["HIGHLIGHT_BAR_EDGE"] = "Highlight bar edge"
---[[Translation missing --]]
-L["HIGHLIGHTS"] = "Highlights"
---[[Translation missing --]]
-L["HOSTILE"] = "Hostile"
---[[Translation missing --]]
-L["ICONS"] = "Icons"
---[[Translation missing --]]
-L["IMPORT"] = "Import"
---[[Translation missing --]]
-L["IMPORT_DEFAULT_STYLE"] = "Import Default Style"
---[[Translation missing --]]
-L["IMPORTANT"] = "Important"
---[[Translation missing --]]
-L["IMPORTANT_CAST"] = "Important Cast"
---[[Translation missing --]]
-L["IMPOSSIBLE"] = "Impossible"
---[[Translation missing --]]
-L["INCLUDE_ELITE_RARES"] = "Include elite rares"
---[[Translation missing --]]
-L["INCLUDE_TARGET"] = "Include target"
---[[Translation missing --]]
-L["INTERRUPT_NOT_READY"] = "Interrupt Not Ready"
---[[Translation missing --]]
-L["INTERRUPT_POINT_COLOR"] = "Interrupt point color"
---[[Translation missing --]]
-L["INTERRUPT_READY"] = "Interrupt Ready"
---[[Translation missing --]]
-L["INTERRUPTED"] = "Interrupted"
---[[Translation missing --]]
-L["INTERRUPTED_CAST"] = "Interrupted cast"
---[[Translation missing --]]
-L["INVALID_IMPORT"] = "Invalid import"
---[[Translation missing --]]
-L["JOIN_THE_DISCORD"] = "Join the Discord"
---[[Translation missing --]]
-L["LAYER"] = "Layer"
---[[Translation missing --]]
-L["LEFT"] = "Left"
---[[Translation missing --]]
-L["LEVEL"] = "Level"
---[[Translation missing --]]
-L["LINK"] = "Link"
---[[Translation missing --]]
-L["MAKE_NEW"] = "Make new"
---[[Translation missing --]]
-L["MARK_INTERRUPT_READY_POINT"] = "Mark interrupt ready point"
---[[Translation missing --]]
-L["MELEE"] = "Melee"
---[[Translation missing --]]
-L["METHOD"] = "Method"
+L["FOCUSED"] = "Focalizzato"
+L["FONT"] = "Carattere"
+L["FOREGROUND"] = "Primo piano"
+L["FRIENDLY"] = "Amichevole"
+L["FRIENDLY_NPCS"] = "PNG Amichevoli"
+L["FRIENDLY_PLAYER"] = "Giocatore Amichevole "
+L["FRIENDLY_PLAYERS"] = "Giocatori Amichevoli "
+L["FROM_YOU"] = "Da te"
+L["GENERAL"] = "Generale "
+L["GLOBAL_SCALE"] = "Scala globale"
+L["GUILD"] = "Gilda"
+L["HARE"] = "Lepre"
+L["HARE_SIMPLIFIED"] = "Lepre Semplificata"
+L["HEALTH"] = "Salute"
+L["HEALTH_VALUE"] = "Valore della Salute"
+L["HEDGEHOG"] = "Cane della Prateria"
+L["HEIGHT"] = "Altezza"
+L["HIGHLIGHT_BAR_EDGE"] = "Evidenzia il bordo della barra"
+L["HIGHLIGHTS"] = "Punti Salienti"
+L["HOSTILE"] = "Ostile"
+L["ICONS"] = "Icone"
+L["IMPORT"] = "Importa"
+L["IMPORT_DEFAULT_STYLE"] = "Importa Stile Predefinito "
+L["IMPORTANT"] = "Importante "
+L["IMPORTANT_CAST"] = "Lancio Importante "
+L["IMPOSSIBLE"] = "Impossibile "
+L["INCLUDE_ELITE_RARES"] = "Includi rari d'élite"
+L["INCLUDE_TARGET"] = "Includi il Bersaglio "
+L["INTERRUPT_NOT_READY"] = "Interruzione non pronta"
+L["INTERRUPT_POINT_COLOR"] = "Colore del punto di interruzione"
+L["INTERRUPT_READY"] = "Interruzione Pronta"
+L["INTERRUPTED"] = "Interrotto"
+L["INTERRUPTED_CAST"] = "Lancio interrotto "
+L["INVALID_IMPORT"] = "Importazione non valida"
+L["JOIN_THE_DISCORD"] = "Unisciti al server Discord"
+L["LAYER"] = "Strato"
+L["LEFT"] = "Sinistra"
+L["LEVEL"] = "Livello "
+L["LINK"] = "Collegamento"
+L["MAKE_NEW"] = "Crea nuovo"
+L["MARK_INTERRUPT_READY_POINT"] = "Marchia il punto pronto per l'interruzione"
+L["MELEE"] = "Mischia"
+L["METHOD"] = "Metodo"
 --[[Translation missing --]]
 L["MINIBOSS"] = "Miniboss"
 --[[Translation missing --]]
 L["MINION"] = "Minion"
 --[[Translation missing --]]
 L["MINIONS"] = "Minions"
+L["MINOR"] = "Minore"
+L["MINORS"] = "Minori"
+L["MOUSEOVER"] = "Passaggio del Mouse"
+L["MOVE"] = "Muovi"
+L["MULTIPLE_SELECTED"] = "Selezione Multipla "
 --[[Translation missing --]]
-L["MINOR"] = "Minor"
---[[Translation missing --]]
-L["MINORS"] = "Minors"
---[[Translation missing --]]
-L["MOUSEOVER"] = "Mouseover"
---[[Translation missing --]]
-L["MOVE"] = "Move"
---[[Translation missing --]]
-L["MULTIPLE_SELECTED"] = "Multiple Selected"
---[[Translation missing --]]
-L["NAME_ONLY"] = "Name Only"
---[[Translation missing --]]
-L["NAME_ONLY_PLAYERS"] = "Name only (players)"
---[[Translation missing --]]
-L["NEUTRAL"] = "Neutral"
---[[Translation missing --]]
-L["NEVER"] = "Never"
---[[Translation missing --]]
-L["NEW_PROFILE_BLANK"] = "New Profile (blank)"
---[[Translation missing --]]
-L["NEW_PROFILE_CLONE"] = "New Profile (clone current)"
---[[Translation missing --]]
-L["NO_VALUE_UPPER"] = "NO VALUE"
---[[Translation missing --]]
-L["NONE"] = "None"
---[[Translation missing --]]
-L["NORMAL"] = "Normal"
---[[Translation missing --]]
-L["NORMAL_INSTANCES_ONLY"] = "Normal (instances only)"
---[[Translation missing --]]
-L["NOT_READY"] = "Not ready"
---[[Translation missing --]]
-L["NPC_ROLE"] = "NPC role"
---[[Translation missing --]]
-L["NPCS"] = "NPCs"
---[[Translation missing --]]
-L["OBSCURED_TRANSPARENCY"] = "Obscured transparency"
---[[Translation missing --]]
-L["OFFTANK"] = "Off-tank"
---[[Translation missing --]]
-L["ON_CAST_SCALE"] = "On cast scale"
---[[Translation missing --]]
-L["ON_CAST_TRANSPARENCY"] = "On cast transparency"
---[[Translation missing --]]
-L["ON_MOUSEOVER_TRANSPARENCY"] = "On mouseover transparency"
---[[Translation missing --]]
-L["ON_NON_TARGET_AND_NON_CASTING"] = "On non-target (and non-casting)"
---[[Translation missing --]]
-L["ON_NOT_TARGET_TRANSPARENCY"] = "On not target transparency"
---[[Translation missing --]]
-L["ON_TARGET_OR_CASTING"] = "On target (or casting)"
---[[Translation missing --]]
-L["ON_TARGET_SCALE"] = "On target scale"
---[[Translation missing --]]
-L["ONLY_APPLY_IN_COMBAT"] = "Only apply in combat"
---[[Translation missing --]]
-L["ONLY_APPLY_IN_INSTANCES"] = "Only apply in instances"
---[[Translation missing --]]
-L["OPEN_OPTIONS"] = "Open Options"
---[[Translation missing --]]
-L["OVERWRITE"] = "Overwrite"
---[[Translation missing --]]
-L["OVERWRITE_CURRENT_PROFILE"] = "Overwrite current profile?"
---[[Translation missing --]]
-L["PASTE_YOUR_IMPORT_STRING_HERE"] = "Paste your import string here"
+L["MULTIPLE_VALUES_DISPLAY"] = "Multiple values display"
+L["NAME_ONLY"] = "Solo il Nome"
+L["NAME_ONLY_PLAYERS"] = "Solo il Nome (Giocatori)"
+L["NEUTRAL"] = "Neutrale "
+L["NEVER"] = "Mai"
+L["NEW_PROFILE_BLANK"] = "Nuovo Profilo (vuoto)"
+L["NEW_PROFILE_CLONE"] = "Nuovo Profilo (clona attuale)"
+L["NO_VALUE_UPPER"] = "NESSUN VALORE"
+L["NONE"] = "Nessuno "
+L["NORMAL"] = "Normale "
+L["NORMAL_INSTANCES_ONLY"] = "Normale (Solo nelle Spedizioni)"
+L["NOT_READY"] = "Non pronto"
+L["NPC_ROLE"] = "Ruolo PNG"
+L["NPCS"] = "PNG"
+L["OBSCURED_TRANSPARENCY"] = "Trasparenza oscurata"
+L["OFFTANK"] = "Difensore Secondario"
+L["ON_CAST_SCALE"] = "Su scala di lancio"
+L["ON_CAST_TRANSPARENCY"] = "Sulla trasparenza del lancio"
+L["ON_MOUSEOVER_TRANSPARENCY"] = "Trasparenza al passaggio del mouse"
+L["ON_NON_TARGET_AND_NON_CASTING"] = "Non sul bersaglio (e non sul lancio)"
+L["ON_NOT_TARGET_TRANSPARENCY"] = "Trasparenza non sul bersaglio "
+L["ON_TARGET_OR_CASTING"] = "Sul bersaglio (o lancio)"
+L["ON_TARGET_SCALE"] = "Sulla scala del bersaglio"
+L["ONLY_APPLY_IN_COMBAT"] = "Applica solo in combattimento"
+L["ONLY_APPLY_IN_INSTANCES"] = "Applica solo nelle spedizioni "
+L["OPEN_OPTIONS"] = "Apri Opzioni "
+L["OVERWRITE"] = "Sovrascrivi "
+L["OVERWRITE_CURRENT_PROFILE"] = "Sovrascrivi l'attuale profilo?"
+L["PASTE_YOUR_IMPORT_STRING_HERE"] = "Incolla qui la tua stringa di importazione"
 --[[Translation missing --]]
 L["PERCENT_BRACKETS"] = "(%d%%)"
---[[Translation missing --]]
-L["PERCENTAGE"] = "Percentage"
---[[Translation missing --]]
-L["PETS"] = "Pets"
+L["PERCENTAGE"] = "Percentuale"
+L["PETS"] = "Animali Domestici"
 --[[Translation missing --]]
 L["PLATYNATOR"] = "Platynator"
---[[Translation missing --]]
-L["PLAYER_GUILD"] = "Player guild"
---[[Translation missing --]]
-L["PLAYERS_AND_FRIENDS"] = "Players and friends"
---[[Translation missing --]]
-L["POSITIONING"] = "Positioning"
---[[Translation missing --]]
-L["POWER"] = "Power"
---[[Translation missing --]]
-L["PROFILE"] = "Profile"
---[[Translation missing --]]
-L["PROFILES"] = "Profiles"
+L["PLAYER_GUILD"] = "Giocatore della Gilda"
+L["PLAYERS_AND_FRIENDS"] = "Giocatori e Amici"
+L["POSITIONING"] = "Posizionamento"
+L["POWER"] = "Potere"
+L["PROFILE"] = "Profilo"
+L["PROFILES"] = "Profili"
 --[[Translation missing --]]
 L["PVP"] = "PvP"
+L["QUEST"] = "Missione "
+L["QUEST_OBJECTIVE"] = "Obiettivo della Missione "
+L["RABBIT"] = "Coniglio"
+L["RAID_MARKER"] = "Marchio d'Incursione"
+L["RARE"] = "Raro"
+L["RARE_ELITE"] = "Elite Raro"
+L["RARITY"] = "Rarità "
+L["REACTION"] = "Reazione "
+L["READY"] = "Pronto "
+L["REVERSED"] = "Invertito"
+L["RIGHT"] = "Destra"
+L["ROUNDED"] = "Arrotondato"
+L["SAFE"] = "Sicuro "
+L["SAVE_AS"] = "Salva con nome"
+L["SAVE_CUSTOM_AS"] = "Salva personalizzato come"
+L["SCALE"] = "Scala"
+L["SHOW_COUNTDOWN"] = "Mostra il conto alla rovescia"
+L["SHOW_ENRAGE_DISPEL"] = "Mostra il dissipatore della rabbia"
+L["SHOW_FRIENDLY_IN_INSTANCES"] = "Mostra Amichevoli nelle Spedizioni"
+L["SHOW_NAMEPLATES_ONLY_IF_NEEDED"] = "Mostra le targhette solo se necessario"
+L["SHOW_ONLY_IN_OPEN_WORLD"] = "Mostra solo nel mondo aperto"
+L["SHOW_OUTLINE"] = "Mostra schema"
+L["SHOW_PANDEMIC"] = "Mostra la pandemia"
 --[[Translation missing --]]
-L["QUEST"] = "Quest"
---[[Translation missing --]]
-L["QUEST_OBJECTIVE"] = "Quest Objective"
---[[Translation missing --]]
-L["RABBIT"] = "Rabbit"
---[[Translation missing --]]
-L["RAID_MARKER"] = "Raid Marker"
---[[Translation missing --]]
-L["RARE"] = "Rare"
---[[Translation missing --]]
-L["RARE_ELITE"] = "Rare Elite"
---[[Translation missing --]]
-L["RARITY"] = "Rarity"
---[[Translation missing --]]
-L["REACTION"] = "Reaction"
---[[Translation missing --]]
-L["READY"] = "Ready"
---[[Translation missing --]]
-L["REVERSED"] = "Reversed"
---[[Translation missing --]]
-L["RIGHT"] = "Right"
---[[Translation missing --]]
-L["ROUNDED"] = "Rounded"
---[[Translation missing --]]
-L["SAFE"] = "Safe"
---[[Translation missing --]]
-L["SAVE_AS"] = "Save as"
---[[Translation missing --]]
-L["SAVE_CUSTOM_AS"] = "Save Custom as"
---[[Translation missing --]]
-L["SCALE"] = "Scale"
---[[Translation missing --]]
-L["SHOW_COUNTDOWN"] = "Show countdown"
---[[Translation missing --]]
-L["SHOW_ENRAGE_DISPEL"] = "Show enrage dispel"
---[[Translation missing --]]
-L["SHOW_FRIENDLY_IN_INSTANCES"] = "Show friendly in instances"
---[[Translation missing --]]
-L["SHOW_NAMEPLATES_ONLY_IF_NEEDED"] = "Show nameplates only if needed"
---[[Translation missing --]]
-L["SHOW_ONLY_IN_OPEN_WORLD"] = "Show only in open world"
---[[Translation missing --]]
-L["SHOW_OUTLINE"] = "Show outline"
---[[Translation missing --]]
-L["SHOW_PANDEMIC"] = "Show pandemic"
---[[Translation missing --]]
-L["SHOW_SHADOW"] = "Show shadow"
---[[Translation missing --]]
-L["SHOW_WHEN_WOW_DOES"] = "Show when WoW does"
---[[Translation missing --]]
-L["SIGNIFICANT_FIGURES"] = "Significant figures"
---[[Translation missing --]]
-L["SIMPLIFIED"] = "Simplified"
---[[Translation missing --]]
-L["SIMPLIFIED_NAMEPLATES"] = "Simplified nameplates"
---[[Translation missing --]]
-L["SIMPLIFIED_SCALE"] = "Simplified scale"
---[[Translation missing --]]
-L["SLASH_HELP"] = "Open the Platynator settings."
---[[Translation missing --]]
-L["SLASH_RESET"] = "reset"
---[[Translation missing --]]
-L["SLASH_RESET_HELP"] = "Reset all Platynator settings, then reload."
---[[Translation missing --]]
-L["SLASH_UNKNOWN_COMMAND"] = "Unknown command '%s'"
---[[Translation missing --]]
-L["SOFT_TARGET"] = "Soft Target"
---[[Translation missing --]]
-L["SOFT_TARGET_SENTENCE_CASE"] = "Soft target"
---[[Translation missing --]]
-L["SORTING"] = "Sorting"
---[[Translation missing --]]
-L["SPECIAL_BRACKETS"] = "(Special)"
---[[Translation missing --]]
-L["SQUARE"] = "Square"
---[[Translation missing --]]
-L["SQUIRREL"] = "Squirrel"
---[[Translation missing --]]
-L["STACKING_NAMEPLATES"] = "Stacking nameplates"
---[[Translation missing --]]
-L["STACKING_REGION_HEIGHT"] = "Stacking region height"
---[[Translation missing --]]
-L["STACKING_REGION_WIDTH"] = "Stacking region width"
+L["SHOW_PERCENT_SYMBOL"] = "Show % symbol"
+L["SHOW_SHADOW"] = "Mostra l'ombra"
+L["SHOW_WHEN_WOW_DOES"] = "Mostra quando WoW fa"
+L["SIGNIFICANT_FIGURES"] = "Figure significative"
+L["SIMPLIFIED"] = "Semplificato "
+L["SIMPLIFIED_NAMEPLATES"] = "Targhette semplificate"
+L["SIMPLIFIED_SCALE"] = "Scala semplificata "
+L["SLASH_HELP"] = "Apri le impostazioni di Platynator."
+L["SLASH_RESET"] = "Reimposta"
+L["SLASH_RESET_HELP"] = "Reimposta tutte le impostazioni di Platynator, quindi ricarica."
+L["SLASH_UNKNOWN_COMMAND"] = "Comando sconosciuto '%s'"
+L["SOFT_TARGET"] = "Bersaglio Semplice"
+L["SOFT_TARGET_SENTENCE_CASE"] = "Bersaglio semplice"
+L["SORTING"] = "Ordinamento"
+L["SPECIAL_BRACKETS"] = "(Speciale)"
+L["SQUARE"] = "Piazza"
+L["SQUIRREL"] = "Scoiattolo "
+L["STACKING_NAMEPLATES"] = "Targhette impilabili"
+L["STACKING_REGION_HEIGHT"] = "Altezza della regione di impilamento"
+L["STACKING_REGION_WIDTH"] = "Larghezza della regione di impilamento"
 --[[Translation missing --]]
 L["STANDARD"] = "Standard"
---[[Translation missing --]]
-L["STYLE"] = "Style"
---[[Translation missing --]]
-L["STYLE_SCALE"] = "Style scale"
---[[Translation missing --]]
-L["STYLE_SELECT"] = "Style Select"
---[[Translation missing --]]
-L["TAPPED"] = "Tapped"
---[[Translation missing --]]
-L["TARGET"] = "Target"
---[[Translation missing --]]
-L["TARGETED"] = "Targeted"
---[[Translation missing --]]
-L["TEXT_SCALE"] = "Text scale"
---[[Translation missing --]]
-L["TEXTS"] = "Texts"
+L["STYLE"] = "Stile"
+L["STYLE_SCALE"] = "Scala dello Stile"
+L["STYLE_SELECT"] = "Seleziona Stile"
+L["TAPPED"] = "Sfruttato"
+L["TARGET"] = "Bersaglio "
+L["TARGETED"] = "Bersagliato"
+L["TEXT_SCALE"] = "Scala di Testo"
+L["TEXTS"] = "Testi"
 --[[Translation missing --]]
 L["TEXTURES"] = "Textures"
 --[[Translation missing --]]
@@ -3239,7 +3084,11 @@ L["UNINTERRUPTABLE"] = "Uninterruptable"
 --[[Translation missing --]]
 L["UNINTERRUPTABLE_CAST"] = "Uninterruptable Cast"
 --[[Translation missing --]]
+L["USE_IN_DELVES"] = "Use in delves"
+--[[Translation missing --]]
 L["USE_NAMEPLATES_FOR"] = "Use nameplates for"
+--[[Translation missing --]]
+L["USE_OUTSIDE_INSTANCES"] = "Use outside instances"
 --[[Translation missing --]]
 L["USE_SAFE_COLOR"] = "Use safe color"
 --[[Translation missing --]]

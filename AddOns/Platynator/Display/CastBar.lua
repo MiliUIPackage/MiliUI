@@ -9,15 +9,7 @@ local GetInterruptSpell = addonTable.Display.Utilities.GetInterruptSpellPriority
 
 function addonTable.Display.CastBarMixin:PostInit()
   if self.details.background.applyColor then -- Apply tint to colours
-    local mod = self.details.background.color
-    if mod.r ~= 1 or mod.g ~= 1 or mod.b ~= 1 then
-      self.modColors = CopyTable(self.details.autoColors)
-      for _, s in ipairs(self.modColors) do
-        for l, c in pairs(s.colors) do
-          s.colors[l] = {r = mod.r * c.r, g = mod.g * c.g, b = mod.b * c.b, a = mod.a}
-        end
-      end
-    end
+    self.modColors = addonTable.Display.Utilities.TintAutoColors(self.details.autoColors, self.details.background.color)
   end
 
   self.showInterruptMarker = self.details.interruptMarker.asset ~= "none"
@@ -216,8 +208,10 @@ else
         self.timer = nil
       end
 
-      self.statusBar:SetMinMaxValues(0, (endTime - startTime) / 1000)
-      self.statusBar:SetValue(GetTime() - startTime / 1000)
+      local castEnd = (endTime - startTime) / 1000
+      self.statusBar:SetMinMaxValues(0, castEnd)
+      local castValue = GetTime() - startTime / 1000
+      self.statusBar:SetValue(castValue)
 
       local spellID
       if self.showInterruptMarker and not notInterruptible then
@@ -226,14 +220,14 @@ else
       self.interruptMarker:SetShown(spellID ~= nil)
       self.interruptPositioner:SetShown(spellID ~= nil)
       if spellID then
-        self.interruptPositioner:SetMinMaxValues(self.statusBar:GetMinMaxValues())
-        self.interruptMarker:SetMinMaxValues(self.statusBar:GetMinMaxValues())
+        self.interruptPositioner:SetMinMaxValues(0, castEnd)
+        self.interruptMarker:SetMinMaxValues(0, castEnd)
         local info = C_Spell.GetSpellCooldown(spellID)
         local interruptEndTime = info.duration + info.startTime
         if interruptEndTime > 0 then
           self:RefreshInterruptMarker()
           self.interruptMarker:Show()
-          self.interruptPositioner:SetValue(self.statusBar:GetValue())
+          self.interruptPositioner:SetValue(castValue)
           self.interruptMarker:SetValue(interruptEndTime - GetTime())
           self.timer = C_Timer.NewTicker(0.1, function()
             self:RefreshInterruptMarker()

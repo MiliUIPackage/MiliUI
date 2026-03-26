@@ -8,15 +8,15 @@ function addonTable.Display.CannotInterruptMarkerMixin:SetUnit(unit)
   if self.unit then
     self:RegisterUnitEvent("UNIT_SPELLCAST_START", self.unit)
     self:RegisterUnitEvent("UNIT_SPELLCAST_STOP", self.unit)
-    self:RegisterUnitEvent("UNIT_SPELLCAST_DELAYED", self.unit)
 
     self:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", self.unit)
     self:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", self.unit)
-    self:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", self.unit)
 
     self:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", self.unit)
     self:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", self.unit)
 
+    self:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTIBLE", self.unit)
+    self:RegisterUnitEvent("UNIT_SPELLCAST_NOT_INTERRUPTIBLE", self.unit)
 
     self:ApplyCasting()
   else
@@ -30,17 +30,21 @@ function addonTable.Display.CannotInterruptMarkerMixin:Strip()
 end
 
 function addonTable.Display.CannotInterruptMarkerMixin:OnEvent(eventName, ...)
-  self:ApplyCasting()
+  if eventName == "UNIT_SPELLCAST_INTERRUPTED" or eventName == "UNIT_SPELLCAST_CHANNEL_STOP" then
+    self.marker:Hide()
+  else
+    self:ApplyCasting()
+  end
 end
 
 function addonTable.Display.CannotInterruptMarkerMixin:ApplyCasting()
-  local name, _, _, _, _, _, _, notInterruptible, _ = UnitCastingInfo(self.unit)
+  local _, _, _, _, _, _, _, notInterruptible, _ = UnitCastingInfo(self.unit)
 
-  if type(name) == "nil" then
-    name, _, _, _, _, _, notInterruptible, _ = UnitChannelInfo(self.unit)
+  if notInterruptible == nil then
+    _, _, _, _, _, _, notInterruptible, _ = UnitChannelInfo(self.unit)
   end
 
-  if type(name) ~= "nil" then
+  if notInterruptible ~= nil then
     if self.marker.SetAlphaFromBoolean then
       self.marker:Show()
       self.marker:SetAlphaFromBoolean(notInterruptible)

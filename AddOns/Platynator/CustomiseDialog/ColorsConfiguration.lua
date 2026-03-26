@@ -295,6 +295,104 @@ addonTable.CustomiseDialog.ColorsConfig = {
       },
     },
   },
+  ["delveType"] = {
+    label = addonTable.Locales.DELVE_TYPE,
+    default = {
+      kind = "delveType",
+      colors = {
+        boss = GetColor("bc1c00"),
+        elite = GetColor("9000bc"),
+        rare = GetColor("bc5389"),
+        caster = GetColor("0074bc"),
+        melee = GetColor("fcfcfc"),
+        trivial = GetColor("b28e55"),
+      },
+      delves = true,
+      outsideInstances = false,
+    },
+    entries = {
+      {
+        label = addonTable.Locales.BOSS,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.boss = value
+        end,
+        getter = function(details)
+          return details.colors.boss
+        end,
+      },
+      {
+        label = addonTable.Locales.ELITE,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.elite = value
+        end,
+        getter = function(details)
+          return details.colors.elite
+        end,
+      },
+      {
+        label = addonTable.Locales.RARE,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.rare = value
+        end,
+        getter = function(details)
+          return details.colors.rare
+        end,
+      },
+      {
+        label = addonTable.Locales.CASTER,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.caster = value
+        end,
+        getter = function(details)
+          return details.colors.caster
+        end,
+      },
+      {
+        label = addonTable.Locales.MELEE,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.melee = value
+        end,
+        getter = function(details)
+          return details.colors.melee
+        end,
+      },
+      {
+        label = addonTable.Locales.TRIVIAL,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.trivial = value
+        end,
+        getter = function(details)
+          return details.colors.trivial
+        end,
+      },
+      {
+        label = addonTable.Locales.USE_IN_DELVES,
+        kind = "checkbox",
+        setter = function(details, value)
+          details.delves = value
+        end,
+        getter = function(details)
+          return details.delves
+        end,
+      },
+      {
+        label = addonTable.Locales.USE_OUTSIDE_INSTANCES,
+        kind = "checkbox",
+        setter = function(details, value)
+          details.outsideInstances = value
+        end,
+        getter = function(details)
+          return details.outsideInstances
+        end,
+      },
+    },
+  },
   ["quest"] = {
     label = addonTable.Locales.QUEST,
     default = {
@@ -687,6 +785,38 @@ addonTable.CustomiseDialog.ColorsConfig = {
       },
     }
   },
+  ["mouseover"] = {
+    label = addonTable.Locales.MOUSEOVER,
+    default = {
+      kind = "mouseover",
+      colors = {
+        mouseover = GetColor("B15FEB"),
+      },
+    },
+    entries = {
+      {
+        label = addonTable.Locales.MOUSEOVER,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.mouseover = value
+        end,
+        getter = function(details)
+          return details.colors.mouseover
+        end,
+      },
+      { kind = "spacer" },
+      {
+        label = addonTable.Locales.INCLUDE_TARGET,
+        kind = "checkbox",
+        setter = function(details, value)
+          details.includeTarget = value
+        end,
+        getter = function(details)
+          return details.includeTarget
+        end,
+      },
+    }
+  },
 }
 
 addonTable.CustomiseDialog.ColorsConfigOrder = {
@@ -694,7 +824,9 @@ addonTable.CustomiseDialog.ColorsConfigOrder = {
   "target",
   "softTarget",
   "focus",
+  "mouseover",
   "threat",
+  "delveType",
   "eliteType",
   "rarity",
   "quest",
@@ -709,4 +841,5 @@ addonTable.CustomiseDialog.ColorsConfigOrder = {
   "importantCast",
   "uninterruptableCast",
   "cast",
+  "fixed",
 }

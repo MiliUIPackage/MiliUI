@@ -96,23 +96,30 @@ function addonTable.Display.Utilities.ConvertColor(color)
   return CreateColor(color.r, color.g, color.b, color.a)
 end
 
+local rejectedInstanceTypes = {
+  ["none"] = true,
+  ["neighbourhood"] = true,
+  ["interior"] = true,
+}
+
 function addonTable.Display.Utilities.IsInRelevantInstance(state)
-  if not IsInInstance() then
+  local _, baseType = IsInInstance()
+  if rejectedInstanceTypes[baseType] then
     return false
   end
   state = state or {dungeon = true}
-  local _, instanceType, difficultyID = GetInstanceInfo()
+  local _, instanceType, _, label = GetInstanceInfo()
   if state.dungeon and (instanceType == "party") then
     return true
   end
   if state.raid and (instanceType == "raid") then
     return true
   end
-  if state.pvp and (instanceType == "arenas" or instanceType == "pvp") then
+  if state.pvp and (instanceType == "arena" or instanceType == "pvp") then
     return true
   end
-  if state.delve then
-    return difficultyID == 204
+  if state.delve and label == DELVES_LABEL then
+    return true
   end
   return false
 end
@@ -212,6 +219,7 @@ if C_CurveUtil then
 end
 
 local currentInterrupt = {}
+local interruptGcdRequired = false
 local currentExecute = 0
 local isSootheAvailable = false
 do
@@ -223,6 +231,7 @@ do
   frame:RegisterEvent("SPELLS_CHANGED")
   frame:SetScript("OnEvent", function()
     currentInterrupt = {}
+    interruptGcdRequired = false
     for _, s in ipairs(interruptSpells) do
       if C_SpellBook.IsSpellKnownOrInSpellBook(s) or C_SpellBook.IsSpellKnownOrInSpellBook(s, Enum.SpellBookSpellBank.Pet) then
         table.insert(currentInterrupt, s)
@@ -233,6 +242,7 @@ do
       if C_SpellBook.IsSpellKnownOrInSpellBook(132409) then
         table.insert(currentInterrupt, 132409)
       elseif C_SpellBook.IsSpellKnownOrInSpellBook(1276467) then
+        interruptGcdRequired = true
         table.insert(currentInterrupt, 1276467)
       end
     end
@@ -261,11 +271,11 @@ do
 end
 
 function addonTable.Display.Utilities.GetInterruptSpells()
-  return currentInterrupt
+  return currentInterrupt, interruptGcdRequired
 end
 
 function addonTable.Display.Utilities.GetInterruptSpellPriority()
-  return currentInterrupt[1]
+  return currentInterrupt[1], interruptGcdRequired
 end
 
 function addonTable.Display.Utilities.GetExecuteRange()
@@ -422,4 +432,22 @@ else
     return questData[unit] or {}
   end
 
+end
+
+function addonTable.Display.Utilities.TintAutoColors(autoColors, mod)
+  if mod.r ~= 1 or mod.g ~= 1 or mod.b ~= 1 then
+    local modColors = CopyTable(autoColors)
+    for _, s in ipairs(modColors) do
+      for l, c in pairs(s.colors) do
+        s.colors[l] = {r = mod.r * c.r, g = mod.g * c.g, b = mod.b * c.b, a = mod.a}
+      end
+      if s.kind == "classColors" then
+        for class, c in pairs(RAID_CLASS_COLORS) do
+          s.colors[class] = {r = mod.r * c.r, g = mod.g * c.g, b = mod.b * c.b, a = mod.a}
+        end
+      end
+    end
+
+    return modColors
+  end
 end
