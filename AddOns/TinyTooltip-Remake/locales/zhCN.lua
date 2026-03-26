@@ -209,6 +209,7 @@ local T = {
 
     ["button.resetAll"] = "恢复全部设置",
     ["button.resetSection"] = "恢复默认设置",
+    ["popup.reloadNotice.text"] = "提示示例：ipsum loream",
 
     ["about.author.label"] = "作者",
     ["about.author.name"] = "星野绫 - 罗宁 CN",
@@ -217,6 +218,11 @@ local T = {
     ["about.desc"] = "简单的鼠标提示工具, 基于TinyTooltip",
     ["about.help.title"] = "提交 Bug / 反馈",
     ["about.version.label"] = "版本",
+    ["about.notice.title"] = "注意",
+    ["about.notice.content"] = "据反馈，暴雪在最近一次服务器重启后引入了新问题，导致鼠标提示插件出现大量 Lua 报错。"
+    .. "为暂时规避该问题，请在设置页面取消勾选“显示物品图标”和“显示法术图标”。"
+    .. "我会持续关注；如果官方在合理时间内仍未修复，我会发布临时补丁，让这两个选项恢复可用。"
+    .. "你也可以在设置页面再次查看这条提示。感谢你的理解与支持。",
 
     ["wildcard.help"] = "自定义格式:按回车生效",
     ["wildcard.help.example"] = "示例:(%s) 或 [%s]",

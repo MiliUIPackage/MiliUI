@@ -176,6 +176,17 @@ LibEvent:attachEvent("VARIABLES_LOADED", function()
     Tooltip_Small:SetShadowColor(0, 0, 0, 0.9)
 end)
 
+LibEvent:attachEvent("PLAYER_LOGIN", function()
+    local title = addon.L["about.notice.title"] or ""
+    local content = addon.L["about.notice.content"] or ""
+    if (DEFAULT_CHAT_FRAME and title ~= "") then
+        DEFAULT_CHAT_FRAME:AddMessage(("|cff33eeff[TinyTooltip-Remake]|r %s"):format(title))
+    end
+    if (DEFAULT_CHAT_FRAME and content ~= "") then
+        DEFAULT_CHAT_FRAME:AddMessage(content)
+    end
+end)
+
 LibEvent:attachTrigger("tooltip:cleared, tooltip:hide", function(self, tip)
     if (addon.db and addon.db.general) then
         LibEvent:trigger("tooltip.style.bgfile", tip, addon.db.general.bgfile)

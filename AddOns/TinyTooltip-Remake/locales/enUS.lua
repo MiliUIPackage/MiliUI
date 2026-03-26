@@ -88,6 +88,7 @@ local T = {
 
     ["button.resetAll"] = "Reset All Settings",
     ["button.resetSection"] = "Reset to Defaults",
+    ["popup.reloadNotice.text"] = "ipsum loream",
 
     ["about.author.label"] = "Author",
     ["about.author.name"] = "HoshinoAya - Rhonin CN",
@@ -96,6 +97,11 @@ local T = {
     ["about.desc"] = "A simple tooltip addon",
     ["about.help.title"] = "Submit Bug / Feedback",
     ["about.help.url"] = "https://github.com/nc-hyw/TinyTooltip-Remake/issues",
+    ["about.notice.title"] = "Notice",
+    ["about.notice.content"] = "I was being told that in recent server restart, Blizzard has introduced new bugs that causing tooltip addons to raise tons of lua errors."
+    .. "To suppress this issue, uncheck 'Show Item Icon', 'Show Spell Icon' in setting page"
+    .. "I will monitor the situation and if they're not fixing the issue in a resonable time I will release a workaround patch to make these 2 setting work."
+    .. "You can find this message again in setting page. Thanks for your understanding and support.",
 
     ["wildcard.help"] = "Customize Format: Hit enter to take effect.",
     ["wildcard.help.example"] = "Example: (%s) or [%s]",

@@ -74,10 +74,25 @@
     </Frames>
     <Layers>
         <Layer level="ARTWORK">
+            <FontString parentKey="NoticeText" inherits="GameFontNormal" justifyH="RIGHT">
+                <Anchors>
+                    <Anchor point="LEFT" relativeKey="$parent.HelpText" />
+                    <Anchor point="TOP" relativeKey="$parent.HelpURL" relativePoint="BOTTOM" y="-24" />
+                </Anchors>
+            </FontString>
+
+            <FontString parentKey="Notice" inherits="GameFontHighlightSmall" spacing="8" justifyH="LEFT">
+                <Color r="1" g="0.95" b="0.7" a="1" />
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.NoticeText" relativePoint="BOTTOMLEFT" x="16" y="-8" />
+                    <Anchor point="RIGHT" x="-16" />
+                </Anchors>
+            </FontString>
+
             <FontString parentKey="CreditsText" inherits="GameFontNormal" justifyH="RIGHT">
                 <Anchors>
                     <Anchor point="LEFT" relativeKey="$parent.HelpText" />
-                    <Anchor point="TOP" relativeKey="$parent.HelpURL" relativePoint="BOTTOM" y="-32" />
+                    <Anchor point="TOP" relativeKey="$parent.Notice" relativePoint="BOTTOM" y="-24" />
                 </Anchors>
             </FontString>
 

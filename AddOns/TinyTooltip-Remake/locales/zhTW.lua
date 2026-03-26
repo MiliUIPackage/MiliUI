@@ -352,6 +352,7 @@ local T = {
     ["Achievement"]   = "成就",
     ["button.resetAll"] = "恢復全部設定",
     ["button.resetSection"] = "恢復預設設定",
+    ["popup.reloadNotice.text"] = "提示示例：ipsum loream",
 
     ["about.author.label"] = "作者",
     ["about.author.name"] = "星野綾 - 羅寧 CN",
@@ -361,6 +362,11 @@ local T = {
     ["about.help.title"] = "提交 Bug / 反饋",
     ["about.help.url"] = "https://github.com/nc-hyw/TinyTooltip-Remake/issues",
     ["about.version.label"] = "版本",
+    ["about.notice.title"] = "注意",
+    ["about.notice.content"] = "根據回報，暴雪在最近一次伺服器重啟後引入了新問題，導致滑鼠提示外掛出現大量 Lua 錯誤。"
+    .. "為暫時避開此問題，請在設定頁面取消勾選「顯示物品圖示」與「顯示法術圖示」。"
+    .. "我會持續關注；若官方在合理時間內仍未修復，我會發布臨時修補，讓這兩個選項恢復可用。"
+    .. "你也可以在設定頁面再次查看此提示。感謝你的理解與支持。",
 
     ["wildcard.help"] = "自訂格式：按 Enter 生效",
     ["wildcard.help.example"] = "示例：(%s) 或 [%s]",

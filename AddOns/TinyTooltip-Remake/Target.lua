@@ -94,13 +94,60 @@ end
 local function UpdateTargetLine(tip, targetUnit)
     local text = GetTargetString(targetUnit)
     local line = tip.ttTargetLine
+    local changed = false
+    if (line) then
+        local isInCurrentTooltip = false
+        local tipName = tip:GetName()
+        for i = 1, tip:NumLines() do
+            if (_G[tipName .. "TextLeft" .. i] == line) then
+                isInCurrentTooltip = true
+                break
+            end
+        end
+        if (not isInCurrentTooltip) then
+            line = nil
+        end
+    end
+    tip.ttTargetLine = line
+    if (not line and addon and addon.FindLine) then
+        line = addon:FindLine(tip, TARGET .. ":")
+        tip.ttTargetLine = line
+    end
+
     if (not text) then
-        if (line) then
-            line:SetText(nil)
-            tip.ttTargetLine = nil
-            if (addon.AutoSetTooltipWidth) then
+        local unitExists = false
+        if (type(targetUnit) == "string" and targetUnit ~= "") then
+            local okExists, exists = pcall(UnitExists, targetUnit)
+            if (okExists and exists) then
+                unitExists = true
+            end
+        end
+        if (unitExists) then
+            if (not line and type(tip.ttTargetFormatted) == "string" and tip.ttTargetFormatted ~= "") then
+                tip:AddLine(tip.ttTargetFormatted)
+                line = _G[tip:GetName() .. "TextLeft" .. tip:NumLines()]
+                tip.ttTargetLine = line
+                changed = true
+            end
+            if (changed and addon.AutoSetTooltipWidth) then
                 addon:AutoSetTooltipWidth(tip)
             end
+            if (changed) then
+                tip:Show()
+            end
+            return
+        end
+        if (line) then
+            line:SetText(nil)
+            changed = true
+        end
+        tip.ttTargetLine = nil
+        tip.ttTargetFormatted = nil
+        if (changed and addon.AutoSetTooltipWidth) then
+            addon:AutoSetTooltipWidth(tip)
+        end
+        if (changed) then
+            tip:Show()
         end
         return
     end
@@ -109,11 +156,32 @@ local function UpdateTargetLine(tip, targetUnit)
         tip:AddLine(formatted)
         line = _G[tip:GetName() .. "TextLeft" .. tip:NumLines()]
         tip.ttTargetLine = line
+        changed = true
     else
         line:SetText(formatted)
+        changed = true
     end
-    if (addon.AutoSetTooltipWidth) then
+    tip.ttTargetFormatted = formatted
+
+    for i = 2, tip:NumLines() do
+        local current = _G[tip:GetName() .. "TextLeft" .. i]
+        if (current and current ~= line and current.GetText) then
+            local ok, value = pcall(current.GetText, current)
+            if (ok and type(value) == "string" and not (issecretvalue and issecretvalue(value))) then
+                local okMatch, matched = pcall(strfind, value, TARGET .. ":", 1, true)
+                if (okMatch and matched) then
+                    current:SetText(nil)
+                    changed = true
+                end
+            end
+        end
+    end
+
+    if (changed and addon.AutoSetTooltipWidth) then
         addon:AutoSetTooltipWidth(tip)
+    end
+    if (changed) then
+        tip:Show()
     end
     -- tip:Show()
     if (addon and addon.HideLine) then
@@ -192,11 +260,13 @@ LibEvent:attachTrigger("tooltip:item, tooltip:spell", function(self, tip)
         tip.ttTargetLine:SetText(nil)
         tip.ttTargetLine = nil
     end
+    tip.ttTargetFormatted = nil
 end)
 
 LibEvent:attachTrigger("tooltip:cleared, tooltip:hide", function(self, tip)
     if (tip) then
         tip.ttTargetLine = nil
+        tip.ttTargetFormatted = nil
         tip.ttIsUnit = nil
     end
 end)

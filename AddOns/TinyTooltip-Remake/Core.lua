@@ -2002,9 +2002,7 @@ end)
 LibEvent:attachTrigger("tooltip.style.border.color", function(self, frame, r, g, b, a)
     LibEvent:trigger("tooltip.style.init", frame)
     local rr, gg, bb, aa = GetStyleBackdropBorderColor(frame)
-    if (rr ~= r or gg ~= g or bb ~= b or aa ~= a) then
-        SetStyleBackdropBorderColor(frame, r or rr, g or gg, b or bb, a or aa)
-    end
+    SetStyleBackdropBorderColor(frame, r or rr, g or gg, b or bb, a or aa)
     ApplyNativeBackdrop(frame)
 end)
 

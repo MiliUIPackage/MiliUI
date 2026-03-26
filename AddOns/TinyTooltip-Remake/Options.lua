@@ -89,6 +89,14 @@ function TinyTooltipRemake_About_OnLoad(self)
         self.HelpURL:SetText(self.HelpURL.url)
     end
 
+    if self.NoticeText then
+        self.NoticeText:SetText(GetText("about.notice.title") or "Notice")
+    end
+    if self.Notice then
+        if self.Notice.SetJustifyH then self.Notice:SetJustifyH("LEFT") end
+        self.Notice:SetText(GetText("about.notice.content") or "")
+    end
+
     if self.CreditsText then
         self.CreditsText:SetText(GetText("about.credits.title") or "Credits")
     end
