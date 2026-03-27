@@ -446,12 +446,7 @@ end
 local function FinishCast(frame)
     frame.casting = false
     frame.channeling = false
-    frame.currentCastID = nil
     FadeOut(frame)
-end
-
-local function IsMatchingCast(frame, castID)
-    return frame.currentCastID == nil or castID == frame.currentCastID
 end
 
 local function RefreshBarData(frame, isChannel)
@@ -745,8 +740,6 @@ end
 
 local castBarEvents = {
     "UNIT_SPELLCAST_START",
-    "UNIT_SPELLCAST_FAILED",
-    "UNIT_SPELLCAST_FAILED_QUIET",
     "UNIT_SPELLCAST_INTERRUPTED",
     "UNIT_SPELLCAST_STOP",
     "UNIT_SPELLCAST_CHANNEL_START",
@@ -971,38 +964,20 @@ function CDM:InitializePlayerCastBar()
         CDM.BORDER:CreateBorder(f.borderFrame)
     end
 
-    f:SetScript("OnEvent", function(frame, event, unit, castID, spellID, arg4)
+    f:SetScript("OnEvent", function(frame, event, unit)
         if event == "UNIT_SPELLCAST_START" then
-            frame.currentCastID = castID
             RefreshBarData(frame, false)
 
         elseif event == "UNIT_SPELLCAST_CHANNEL_START" or event == "UNIT_SPELLCAST_EMPOWER_START" then
-            frame.currentCastID = castID
             RefreshBarData(frame, true)
 
         elseif event == "UNIT_SPELLCAST_STOP"
             or event == "UNIT_SPELLCAST_CHANNEL_STOP"
             or event == "UNIT_SPELLCAST_EMPOWER_STOP" then
-            if IsMatchingCast(frame, castID) then
-                FinishCast(frame)
-            end
-
-        elseif event == "UNIT_SPELLCAST_FAILED" then
-            if frame.casting and IsMatchingCast(frame, castID) then
-                FinishCast(frame)
-            end
-
-        elseif event == "UNIT_SPELLCAST_FAILED_QUIET" then
-            if frame.casting and IsMatchingCast(frame, castID) then
-                if not UnitCastingInfo("player") and not UnitChannelInfo("player") then
-                    FinishCast(frame)
-                end
-            end
+            FinishCast(frame)
 
         elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
-            if IsMatchingCast(frame, castID) then
-                FinishCast(frame)
-            end
+            FinishCast(frame)
 
         elseif event == "UNIT_SPELLCAST_DELAYED" then
             RefreshBarData(frame, false)

@@ -139,17 +139,23 @@ local function PlayBuffOverrideNotification(ov, spellID, onHide)
     return false
 end
 
+local function MarkSafe(set, id)
+    if IsSafeNumber(id) then set[id] = true end
+end
+
 local function BuildActiveSpellSet()
     table.wipe(scratchActiveSet)
     local buffViewer = _G[CDM_C.VIEWERS.BUFF]
     if buffViewer and buffViewer.itemFramePool then
         for frame in buffViewer.itemFramePool:EnumerateActive() do
-            local id = frame.GetSpellID and frame:GetSpellID()
-            if IsSafeNumber(id) then scratchActiveSet[id] = true end
+            MarkSafe(scratchActiveSet, frame.GetSpellID and frame:GetSpellID())
             local fd = GetFrameData(frame)
             local catID = fd and fd.buffCategorySpellID
-            if catID and catID ~= false and IsSafeNumber(catID) then
-                scratchActiveSet[catID] = true
+            if catID and catID ~= false then MarkSafe(scratchActiveSet, catID) end
+            local info = frame.GetCooldownInfo and frame:GetCooldownInfo()
+            if info then
+                MarkSafe(scratchActiveSet, info.spellID)
+                MarkSafe(scratchActiveSet, info.overrideSpellID)
             end
         end
     end

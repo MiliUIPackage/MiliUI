@@ -7,7 +7,6 @@ local Snap = Pixel.Snap
 local HalfFloor = Pixel.HalfFloor
 
 local GetFrameData = CDM.GetFrameData
-local NormalizeToBase = CDM.NormalizeToBase
 local IsSafeNumber = CDM.IsSafeNumber
 local StoreVariantValue = CDM.SpellVariant.StoreValue
 local ResolveVariantValue = CDM.SpellVariant.ResolveValue
@@ -233,12 +232,6 @@ end
 
 local function AddToSpellMap(spellMap, spellID, mapEntry)
     spellMap[spellID] = mapEntry
-    if NormalizeToBase then
-        local base = NormalizeToBase(spellID)
-        if base and base ~= spellID and not spellMap[base] then
-            spellMap[base] = mapEntry
-        end
-    end
 end
 
 local scratchSeen = {}
@@ -268,9 +261,8 @@ function CDM:RebuildAuraOverlayEnabledMap()
         for _, group in ipairs(groups) do
             if group.spells then
                 for _, spellID in ipairs(group.spells) do
-                    local canonical = NormalizeToBase(spellID) or spellID
-                    if not seen[canonical] then
-                        seen[canonical] = true
+                    if not seen[spellID] then
+                        seen[spellID] = true
                         local ov = GetSpellOverride(group, spellID)
                         if ov and ov.showAuraOverlay == false then
                             if ov.readyGlowEnabled then
@@ -292,9 +284,8 @@ function CDM:RebuildAuraOverlayEnabledMap()
     local specOv = CDM.db and CDM.db.ungroupedCooldownOverrides and CDM.db.ungroupedCooldownOverrides[specID]
     if specOv then
         for sid, entry in pairs(specOv) do
-            local canonical = NormalizeToBase(sid) or sid
-            if type(entry) == "table" and not seen[canonical] then
-                seen[canonical] = true
+            if type(entry) == "table" and not seen[sid] then
+                seen[sid] = true
                 if entry.showAuraOverlay == false then
                     if entry.readyGlowEnabled then
                         AddToSpellMap(spellToEntry, sid, BuildMapEntry(entry, false, false))
@@ -312,9 +303,8 @@ function CDM:RebuildAuraOverlayEnabledMap()
 
     if DOT_OVERRIDE_SPELLS then
         for spellID in pairs(DOT_OVERRIDE_SPELLS) do
-            local canonical = NormalizeToBase(spellID) or spellID
-            if not seen[canonical] then
-                seen[canonical] = true
+            if not seen[spellID] then
+                seen[spellID] = true
                 AddToSpellMap(spellToEntry, spellID, BuildMapEntry(nil, true, true))
             end
         end
@@ -342,17 +332,11 @@ function CDM:RebuildAuraOverlayEnabledMap()
                         end
                         if not match then
                             match = spellToEntry[info.spellID]
-                            if not match and NormalizeToBase and IsSafeNumber(info.spellID) then
-                                match = spellToEntry[NormalizeToBase(info.spellID)]
-                            end
                         end
                         if not match and info.linkedSpellIDs then
                             for _, lid in ipairs(info.linkedSpellIDs) do
                                 if IsSafeNumber(lid) then
                                     match = spellToEntry[lid]
-                                    if not match and NormalizeToBase then
-                                        match = spellToEntry[NormalizeToBase(lid)]
-                                    end
                                     if match then break end
                                 end
                             end

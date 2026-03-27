@@ -113,8 +113,6 @@ function CDM.GetBuiltinDefensiveSpellsForClass(classTag, specID)
     return result
 end
 
-local defensivesHiddenSet = CDM.defensivesHiddenSet
-
 local isInitialized = false
 local isEnabled = false
 local needsStyleUpdate = true
@@ -210,9 +208,6 @@ local iconFrames = {}
 local iconFramePool = {}
 local iconEntryPool = {}
 local DesaturationCurve = CDM_C.DesaturationCurve
-local GCDFilterCurve = CDM_C.GCDFilterCurve
-local gcdActive = false
-local GCD_SPELL_ID = CDM_C.GCD_SPELL_ID
 local lastDefensivesVisibilityHash = 0
 local lastDefensivesWidth, lastDefensivesHeight = nil, nil
 local lastDefensivesSpacing = nil
@@ -333,13 +328,10 @@ local function UpdateIcon(frame)
     local CCD = C_Spell.GetSpellChargeDuration(effectiveID)
     local SCD = C_Spell.GetSpellCooldownDuration(effectiveID)
 
-    local isOnGCD = false
-    if gcdActive and SCD then
-        local cdInfo = C_Spell.GetSpellCooldown(effectiveID)
-        isOnGCD = cdInfo and cdInfo.isOnGCD
-    end
+    local chargeInfo = C_Spell.GetSpellCharges(effectiveID)
+    local isChargeSpell = chargeInfo and chargeInfo.maxCharges and chargeInfo.maxCharges > 1
 
-    if CCD then
+    if isChargeSpell and CCD then
         frame.Cooldown:SetCooldownFromDurationObject(CCD)
         frame.Cooldown:SetDrawSwipe(true)
     elseif SCD then
@@ -349,29 +341,24 @@ local function UpdateIcon(frame)
         frame.Cooldown:Clear()
     end
 
-    if SCD then
-        desatDurationObject = SCD
-    end
+    desatDurationObject = SCD
 
-    local entry = frame.cdmDefensiveEntry
-    if entry and entry.hasMultipleCharges then
-        local chargeInfo = C_Spell.GetSpellCharges(effectiveID)
-        if chargeInfo and chargeInfo.currentCharges then
-            local chargeText = CDM.EnsureTrackerChargeWidgets(frame)
-            if chargeText then
-                chargeText:SetText(C_StringUtil.TruncateWhenZero(chargeInfo.currentCharges))
-            end
-            hasCharges = true
+    if isChargeSpell and chargeInfo.currentCharges then
+        local chargeText = CDM.EnsureTrackerChargeWidgets(frame)
+        if chargeText then
+            chargeText:SetText(C_StringUtil.TruncateWhenZero(chargeInfo.currentCharges))
         end
+        hasCharges = true
     end
 
     if frame.Icon then
-        if desatDurationObject then
-            local curve = isOnGCD and GCDFilterCurve or DesaturationCurve
-            if curve and desatDurationObject.EvaluateRemainingDuration then
-                frame.Icon:SetDesaturation(desatDurationObject:EvaluateRemainingDuration(curve, 0) or 0)
+        local cdInfo = desatDurationObject and C_Spell.GetSpellCooldown(effectiveID)
+        if desatDurationObject and cdInfo and cdInfo.isActive and desatDurationObject.EvaluateRemainingDuration then
+            local gcdResult = CDM.EvaluateGCDFilteredDesaturation(desatDurationObject)
+            if gcdResult then
+                frame.Icon:SetDesaturation(gcdResult)
             else
-                frame.Icon:SetDesaturation(0)
+                frame.Icon:SetDesaturation(desatDurationObject:EvaluateRemainingDuration(DesaturationCurve, 0) or 0)
             end
         else
             frame.Icon:SetDesaturation(0)
@@ -407,7 +394,6 @@ end
 local function InvalidateSpellbookCache()
     for _, entry in ipairs(iconEntries) do
         entry._spellbookCached = nil
-        entry.hasMultipleCharges = nil
         if entry.frame then
             entry.frame._spellbookCached = nil
         end
@@ -462,91 +448,6 @@ local function UpdateContainerPosition()
 end
 
 local VIEWERS = CDM_C.VIEWERS
-local RESHOW_VIEWERS = { VIEWERS.ESSENTIAL, VIEWERS.UTILITY }
-
-local hiddenSetScratch = {}
-
-local function RebuildHiddenSet()
-    local db = CDM.db
-    local shouldHide = db and db.defensivesEnabled ~= false and db.defensivesHideFromViewers == true
-
-    local changed = false
-
-    if not shouldHide then
-        if next(defensivesHiddenSet) then
-            table.wipe(defensivesHiddenSet)
-            changed = true
-        end
-        return changed
-    end
-
-    local specID = GetCurrentSpecID()
-    local specDisabled = specID and db.defensivesDisabledSpells and db.defensivesDisabledSpells[specID] or {}
-    table.wipe(hiddenSetScratch)
-    for _, spellID in ipairs(CDM.GetBuiltinDefensiveSpells(specID)) do
-        if not specDisabled[spellID] then
-            hiddenSetScratch[spellID] = true
-        end
-    end
-    for _, spellID in ipairs(CDM.GetCustomDefensiveSpells(specID)) do
-        if not specDisabled[spellID] then
-            hiddenSetScratch[spellID] = true
-        end
-    end
-
-    for id in pairs(hiddenSetScratch) do
-        if not defensivesHiddenSet[id] then
-            changed = true
-            break
-        end
-    end
-    if not changed then
-        for id in pairs(defensivesHiddenSet) do
-            if not hiddenSetScratch[id] then
-                changed = true
-                break
-            end
-        end
-    end
-
-    if changed then
-        table.wipe(defensivesHiddenSet)
-        for id in pairs(hiddenSetScratch) do
-            defensivesHiddenSet[id] = true
-        end
-    end
-
-    return changed
-end
-
-local function ReshowViewerFrames()
-    for _, viewerName in ipairs(RESHOW_VIEWERS) do
-        local viewer = _G[viewerName]
-        if viewer and viewer.itemFramePool then
-            for frame in viewer.itemFramePool:EnumerateActive() do
-                local fd = CDM.GetFrameData and CDM.GetFrameData(frame)
-                if fd and fd.cdmHiddenByDefensives then
-                    fd.cdmHiddenByDefensives = false
-                    if frame.Cooldown and frame.Cooldown.SetDrawSwipe then
-                        frame.Cooldown:SetDrawSwipe(true)
-                    end
-                end
-            end
-        end
-    end
-end
-
-local function InvalidateViewers()
-    if CDM.InvalidateUtilityVisibleCountCache then
-        CDM:InvalidateUtilityVisibleCountCache()
-    end
-    if CDM.InvalidateEssentialRow1WidthCache then
-        CDM:InvalidateEssentialRow1WidthCache()
-    end
-    ReshowViewerFrames()
-    CDM:QueueViewer(VIEWERS.ESSENTIAL)
-    CDM:QueueViewer(VIEWERS.UTILITY)
-end
 
 local UpdateDefensivesCooldownsOnly
 local defensivesUpdatePending = false
@@ -645,8 +546,6 @@ function CDM:InitializeDefensives()
     isEnabled = true
     RegisterDefensiveSpellWatches()
     defensivesStartupCooldownGate:ScheduleSettle()
-
-    RebuildHiddenSet()
 end
 
 local function EnableDefensives()
@@ -700,7 +599,6 @@ UpdateDefensivesCooldownsOnly = function()
         return
     end
 
-    gcdActive = C_Spell.GetSpellCooldownDuration(GCD_SPELL_ID) ~= nil
     for _, frame in ipairs(iconFrames) do
         if frame:IsShown() then
             UpdateIcon(frame)
@@ -737,8 +635,6 @@ function CDM:UpdateDefensives()
 
     local applyStyle = needsStyleUpdate or sizeChanged
 
-    gcdActive = C_Spell.GetSpellCooldownDuration(GCD_SPELL_ID) ~= nil
-
     local visibilityHash = 0
     local bit = 1
     local visibleCount = 0
@@ -754,8 +650,6 @@ function CDM:UpdateDefensives()
                     frame.Icon:SetTexture(texture)
                 end
             end
-
-            CDM.CacheMultipleCharges(entry, entry.spellID)
 
             if sizeChanged then
                 frame:SetSize(size.w, size.h)
@@ -898,9 +792,6 @@ local function OnDefensivesProfileApplied()
     InvalidateSpellbookCache()
     InvalidateTalentTreeCache()
     InvalidateOrderedSpellsCache()
-    if RebuildHiddenSet() then
-        InvalidateViewers()
-    end
 end
 
 local function RefreshDefensivesLifecycle()
@@ -910,10 +801,6 @@ local function RefreshDefensivesLifecycle()
     if currentSpec and currentSpec ~= lastDefensivesSpecID then
         lastDefensivesSpecID = currentSpec
         CDM:ReinitDefensiveIcons()
-    end
-
-    if RebuildHiddenSet() then
-        InvalidateViewers()
     end
 
     RebuildCustomSpellSet(GetCurrentSpecID())
@@ -926,22 +813,12 @@ if CDM.ModuleManager and CDM.ModuleManager.RegisterModule then
         id = "defensives",
         Initialize = function()
             CDM:InitializeDefensives()
-            if RebuildHiddenSet() then
-                InvalidateViewers()
-            end
         end,
         Enable = function()
             EnableDefensives()
-            if RebuildHiddenSet() then
-                InvalidateViewers()
-            end
         end,
         Disable = function()
             DisableDefensives()
-            if next(defensivesHiddenSet) then
-                table.wipe(defensivesHiddenSet)
-                InvalidateViewers()
-            end
         end,
         Refresh = RefreshDefensivesLifecycle,
         OnProfileApplied = OnDefensivesProfileApplied,

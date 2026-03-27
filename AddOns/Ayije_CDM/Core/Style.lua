@@ -180,43 +180,6 @@ CDM.RefreshStyleCache = RefreshStyleCache
 local DesaturationCurve = CDM_C.DesaturationCurve
 local IsReadyCurve = CDM_C.IsReadyCurve
 
-local GCD_SPELL_ID = CDM_C.GCD_SPELL_ID
-local gcdFilterCurve = C_CurveUtil.CreateCurve()
-gcdFilterCurve:SetType(Enum.LuaCurveType.Step)
-local cachedGCDInfo = nil
-local cachedGCDTime = -1
-local cachedGCDCurveTime = -1
-
-
-local function GetGCDInfo()
-    local now = GetTime()
-    if now ~= cachedGCDTime then
-        cachedGCDInfo = C_Spell.GetSpellCooldown(GCD_SPELL_ID)
-        cachedGCDTime = now
-    end
-    return cachedGCDInfo
-end
-
-local function EvaluateGCDFilteredDesaturation(durObj)
-    local gcdInfo = GetGCDInfo()
-    if not gcdInfo or not gcdInfo.startTime or not gcdInfo.duration or gcdInfo.duration <= 0 then
-        return nil
-    end
-    local gcdRemaining = math_floor(((gcdInfo.startTime + gcdInfo.duration) - GetTime()) * 1000 + 0.5) / 1000
-    if gcdRemaining <= 0.0011 then
-        return nil
-    end
-    if cachedGCDTime ~= cachedGCDCurveTime then
-        cachedGCDCurveTime = cachedGCDTime
-        gcdFilterCurve:ClearPoints()
-        gcdFilterCurve:AddPoint(0,                     0)
-        gcdFilterCurve:AddPoint(0.0001,                1)
-        gcdFilterCurve:AddPoint(gcdRemaining - 0.001,  0)
-        gcdFilterCurve:AddPoint(gcdRemaining + 0.001,  0)
-        gcdFilterCurve:AddPoint(gcdRemaining + 0.0011, 1)
-    end
-    return durObj:EvaluateRemainingDuration(gcdFilterCurve, 0) or 0
-end
 
 local function StyleCooldownTextElement(text, fontPath, fontSize, fontOutline, color)
     if not text or not text.SetFont then return end
@@ -292,10 +255,12 @@ local function ApplyAuraStateBody(frame, spellID, frameData)
 
     local gcdDesatResult
 
-    if tex and (type(tex) ~= "number" or not issecretvalue(tex)) then
-        if durObj and not hasChargeSource and durObj.EvaluateRemainingDuration then
+    local cdInfo = spellID and C_Spell.GetSpellCooldown(spellID)
+
+    if tex and tex.SetDesaturation then
+        if durObj and not hasChargeSource and cdInfo and cdInfo.isActive and durObj.EvaluateRemainingDuration then
             if isOnGCD then
-                gcdDesatResult = EvaluateGCDFilteredDesaturation(durObj)
+                gcdDesatResult = CDM.EvaluateGCDFilteredDesaturation(durObj)
                 if gcdDesatResult then
                     tex:SetDesaturation(gcdDesatResult)
                 else
@@ -470,7 +435,6 @@ function CDM:ApplyAuraOverride(frame)
     local frameData = GetFrameData(frame)
     local vName = frameData.cdmViewerName
     if not vName or not VIEWERS_WITH_OVERRIDE[vName] then return end
-    if frameData.cdmHiddenByDefensives then return end
     if frameData.isProcessingOverride then return end
 
     frameData.isProcessingOverride = true
@@ -751,23 +715,6 @@ local function RemoveBarIconMask(iconFrame, iconTexture, frameData)
     end
 end
 
-local function NeutralizeBlizzardIconMask(frame, frameData)
-    if not frame or not frameData then return end
-    if frameData.cdmBlizzardMaskNeutralized then return end
-
-    local regions = { frame:GetRegions() }
-    for i = 1, #regions do
-        local region = regions[i]
-        if region and region.IsObjectType and region:IsObjectType("MaskTexture") then
-            if SafeEquals(region:GetAtlas(), BLIZZARD_ICON_MASK_ATLAS) then
-                region:SetTexture(CDM_C.TEX_WHITE8X8)
-                frameData.cdmBlizzardMaskNeutralized = true
-                break
-            end
-        end
-    end
-end
-
 local function HidePixelIconBorder(frameData)
     if frameData and frameData.pixelIconBorderFrame then
         frameData.pixelIconBorderFrame:Hide()
@@ -966,8 +913,6 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
             frameData.cdmOverlayAtlasHidden = hideAtlas
             frameData.cdmOverlayTextureHidden = hideTexture
         end
-
-        NeutralizeBlizzardIconMask(frame, frameData)
 
         if borderActive then
             if not frameData.borderFrame then
@@ -1307,7 +1252,6 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                 hooksecurefunc(frame.Cooldown, "SetSwipeColor", function(_, r, g, b, a)
                     local fd = GetFrameData(frame)
                     if fd.isProcessingOverride then return end
-                    if fd.cdmHiddenByDefensives then return end
                     local sc = styleCache.swipeColor or CDM_C.SWIPE_COLOR
                     if r == sc.r and g == sc.g and b == sc.b and a == sc.a then return end
                     frame.Cooldown:SetSwipeColor(sc.r, sc.g, sc.b, sc.a)
@@ -1470,8 +1414,6 @@ function CDM:ApplyTrackerStyle(frame, vName, forceUpdate)
             frame.Cooldown:SetCountdownFont("AyijeCDM_CDFont")
         end
     end
-
-    NeutralizeBlizzardIconMask(frame, store)
 
     if borderActive then
         local bdrFrame = store[borderRef]

@@ -114,10 +114,7 @@ local function CreatePositionsTab(page, tabId)
     local essHeader = UI.CreateHeader(scrollChild, L["Essential Container Position"])
     essHeader:SetPoint("TOPLEFT", 0, 0)
 
-    local essHelpText = CreateLockSection(scrollChild, essHeader, page,
-        "lockCheckbox", "containerLocked", "EssentialCooldownViewer")
-
-    local essYSlider, essDisplay, essUpdateDisplay = CreatePositionControls(scrollChild, essHelpText, page, {
+    local essYSlider, essDisplay, essUpdateDisplay = CreatePositionControls(scrollChild, essHeader, page, {
         viewerName = "EssentialCooldownViewer",
         defaults = { point = "CENTER", x = 0, y = -201 },
         displayField = "posDisplay",
@@ -141,10 +138,7 @@ local function CreatePositionsTab(page, tabId)
     local buffHeader = UI.CreateHeader(scrollChild, L["Main Buff Container Position"])
     buffHeader:SetPoint("TOPLEFT", utilYOffsetSlider, "BOTTOMLEFT", 0, -15)
 
-    local buffHelpText = CreateLockSection(scrollChild, buffHeader, page,
-        "buffLockCheckbox", "buffContainerLocked", "BuffIconCooldownViewer")
-
-    local buffYSlider, buffDisplay, buffUpdateDisplay = CreatePositionControls(scrollChild, buffHelpText, page, {
+    local buffYSlider, buffDisplay, buffUpdateDisplay = CreatePositionControls(scrollChild, buffHeader, page, {
         viewerName = "BuffIconCooldownViewer",
         defaults = { point = "CENTER", x = 0, y = -149 },
         displayField = "buffPosDisplay",

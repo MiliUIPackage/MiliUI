@@ -212,6 +212,16 @@ local function CreateBuffGroupsTab(page)
         return Shared.HasEquivalentSpellID(targetSet, spellID)
     end
 
+    local function IsSpellInActiveSet(activeSet, spellID)
+        if not activeSet then return false end
+        if activeSet[spellID] then return true end
+        if NormalizeToBase then
+            local base = NormalizeToBase(spellID)
+            if base and base ~= spellID and activeSet[base] then return true end
+        end
+        return false
+    end
+
     local function RemoveSpellFromGroupList(spellList, spellID)
         return Shared.RemoveSpellFromGroupList(spellList, spellID)
     end
@@ -1925,7 +1935,7 @@ local function CreateBuffGroupsTab(page)
             local ungrouped = GetUngroupedBuffSpells()
             local ungroupedY = 0
             for _, spellID in ipairs(ungrouped) do
-                local active = not isViewingPlayer or HasEquivalentSpellID(activeSpellSet, spellID)
+                local active = not isViewingPlayer or IsSpellInActiveSet(activeSpellSet, spellID)
                 ConfigureSpellRow(spellRowPool:Acquire(ungroupedContainer), ungroupedContainer, spellID, nil, ungroupedY, active)
                 ungroupedY = ungroupedY - ROW_HEIGHT
             end
@@ -2129,7 +2139,7 @@ local function CreateBuffGroupsTab(page)
                     if groupData.spells then
                         local spellCount = #groupData.spells
                         for spellIdx, spellID in ipairs(groupData.spells) do
-                            local active = not isViewingPlayer or HasEquivalentSpellID(activeSpellSet, spellID)
+                            local active = not isViewingPlayer or IsSpellInActiveSet(activeSpellSet, spellID)
                             ConfigureSpellRow(
                                 spellRowPool:Acquire(groupContainer),
                                 groupContainer,

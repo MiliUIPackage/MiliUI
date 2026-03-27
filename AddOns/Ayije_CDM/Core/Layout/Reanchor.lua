@@ -12,7 +12,6 @@ local GetLayoutConfig = ctx.GetLayoutConfig
 local SortAndPositionBuffFrames = ctx.SortAndPositionBuffFrames
 
 local CheckCdGroupMatch = ctx.CheckCdGroupMatch
-local defensivesHiddenSet = ctx.defensivesHiddenSet
 
 local tempBuff = {}
 local tempBuffGroups = {}
@@ -62,8 +61,6 @@ local function CollectFramesForReanchor(activeViewer, activeVName, inEditMode)
         return false
     end
 
-    local hasDefensivesHidden = next(defensivesHiddenSet) ~= nil
-
     local hiddenBuffSet = CDM.resourcesHiddenBuffSet
     for frame in activeViewer.itemFramePool:EnumerateActive() do
         if activeVName == VIEWERS.BUFF then
@@ -71,7 +68,6 @@ local function CollectFramesForReanchor(activeViewer, activeVName, inEditMode)
                 local spellID = ResolveBaseSpellID(frame)
                 if spellID and hiddenBuffSet and hiddenBuffSet[spellID] then
                     frame:ClearAllPoints()
-                    frame:SetParent(activeViewer)
                     frame:Hide()
                 else
                     local matchType, matchID, groupIdx = CheckBuffRegistryMatch(frame)
@@ -87,12 +83,7 @@ local function CollectFramesForReanchor(activeViewer, activeVName, inEditMode)
                 end
             end
         elseif frame:IsShown() or inEditMode or frame.cooldownInfo then
-            local isDefHidden = false
-            if hasDefensivesHidden then
-                local frameSpellID = ResolveBaseSpellID(frame)
-                isDefHidden = frameSpellID and defensivesHiddenSet[frameSpellID] or false
-            end
-            local cdGroupIdx = not isDefHidden and CheckCdGroupMatch and CheckCdGroupMatch(frame)
+            local cdGroupIdx = CheckCdGroupMatch and CheckCdGroupMatch(frame)
             if cdGroupIdx then
                 if not tempCdGroups[cdGroupIdx] then
                     tempCdGroups[cdGroupIdx] = {}
@@ -105,7 +96,6 @@ local function CollectFramesForReanchor(activeViewer, activeVName, inEditMode)
             end
         end
     end
-    return hasDefensivesHidden
 end
 
 local function PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVName)
@@ -183,7 +173,7 @@ local function PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVNa
     end
 end
 
-local function CollectCrossViewerGroupFrames(activeVName, inEditMode, hasDefensivesHidden)
+local function CollectCrossViewerGroupFrames(activeVName, inEditMode)
     local oppositeVName
     if activeVName == VIEWERS.ESSENTIAL then
         oppositeVName = VIEWERS.UTILITY
@@ -198,19 +188,12 @@ local function CollectCrossViewerGroupFrames(activeVName, inEditMode, hasDefensi
 
     for frame in oppositeViewer.itemFramePool:EnumerateActive() do
         if frame:IsShown() or inEditMode or frame.cooldownInfo then
-            local isDefHidden = false
-            if hasDefensivesHidden then
-                local frameSpellID = ResolveBaseSpellID(frame)
-                isDefHidden = frameSpellID and defensivesHiddenSet[frameSpellID] or false
-            end
-            if not isDefHidden then
-                local cdGroupIdx = CheckCdGroupMatch and CheckCdGroupMatch(frame)
-                if cdGroupIdx then
-                    if not tempCdGroups[cdGroupIdx] then
-                        tempCdGroups[cdGroupIdx] = {}
-                    end
-                    tempCdGroups[cdGroupIdx][#tempCdGroups[cdGroupIdx] + 1] = frame
+            local cdGroupIdx = CheckCdGroupMatch and CheckCdGroupMatch(frame)
+            if cdGroupIdx then
+                if not tempCdGroups[cdGroupIdx] then
+                    tempCdGroups[cdGroupIdx] = {}
                 end
+                tempCdGroups[cdGroupIdx][#tempCdGroups[cdGroupIdx] + 1] = frame
             end
         end
     end
@@ -236,7 +219,7 @@ local function RunReanchor()
     local inEditMode = activeSelf.isEditModeActive or (editModeFrame and editModeFrame:IsShown())
 
     ResetReanchorTempTables()
-    local hasDefensivesHidden = CollectFramesForReanchor(activeViewer, activeVName, inEditMode)
+    CollectFramesForReanchor(activeViewer, activeVName, inEditMode)
 
     if activeVName == VIEWERS.ESSENTIAL then
         local essContainer = activeSelf.anchorContainers and activeSelf.anchorContainers[VIEWERS.ESSENTIAL]
@@ -257,7 +240,7 @@ local function RunReanchor()
             end
         end
 
-        CollectCrossViewerGroupFrames(activeVName, inEditMode, hasDefensivesHidden)
+        CollectCrossViewerGroupFrames(activeVName, inEditMode)
         DispatchCooldownGroupFrames(activeSelf)
 
     elseif activeVName == VIEWERS.UTILITY then
@@ -274,7 +257,7 @@ local function RunReanchor()
             end
         end
 
-        CollectCrossViewerGroupFrames(activeVName, inEditMode, hasDefensivesHidden)
+        CollectCrossViewerGroupFrames(activeVName, inEditMode)
         DispatchCooldownGroupFrames(activeSelf)
 
     elseif activeVName == VIEWERS.BUFF then

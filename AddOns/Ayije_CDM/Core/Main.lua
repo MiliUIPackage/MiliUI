@@ -27,8 +27,12 @@ local CDM_ViewerPoolAcquireHooked = setmetatable({}, { __mode = "k" })
 local CDM_ViewerOnShowHooked = setmetatable({}, { __mode = "k" })
 local CDM_ViewerSyncHooked = setmetatable({}, { __mode = "k" })
 local CDM_FrameActiveStateHooked = setmetatable({}, { __mode = "k" })
-local CDM_FrameShownStateHooked = setmetatable({}, { __mode = "k" })
+local CDM_FrameSetPointHooked = setmetatable({}, { __mode = "k" })
+local CDM_ViewerRefreshLayoutHooked = setmetatable({}, { __mode = "k" })
 
+local anchorProxy = CreateFrame("Frame")
+local RawClearAllPoints = anchorProxy.ClearAllPoints
+local RawSetPoint = anchorProxy.SetPoint
 CDM.combatDirtyViewers = {}
 
 local d = CDM.defaults
@@ -281,16 +285,19 @@ function CDM:SetupViewer(vName)
         hooksecurefunc(v, "OnAcquireItemFrame", function(_, itemFrame)
             InstallScaleLockHook(itemFrame)
             local fd = CDM.GetFrameData(itemFrame)
+            fd.cdmAnchor = nil
             CDM:HideCooldownTextIfFlagged(itemFrame)
             self:QueueViewer(vName)
 
-            if (vName == VIEWERS.ESSENTIAL or vName == VIEWERS.UTILITY) and not CDM_FrameShownStateHooked[itemFrame] then
-                CDM_FrameShownStateHooked[itemFrame] = true
-                hooksecurefunc(itemFrame, "UpdateShownState", function(frame)
+            if vName ~= VIEWERS.BUFF_BAR and not CDM_FrameSetPointHooked[itemFrame] then
+                CDM_FrameSetPointHooked[itemFrame] = true
+                hooksecurefunc(itemFrame, "SetPoint", function(frame, point, relativeTo)
                     local fd2 = CDM.GetFrameData(frame)
-                    if fd2 and fd2.cdmHiddenByDefensives then
-                        frame:Hide()
-                    end
+                    if not fd2 or not fd2.cdmAnchor then return end
+                    local a = fd2.cdmAnchor
+                    if relativeTo == a[2] then return end
+                    RawClearAllPoints(frame)
+                    RawSetPoint(frame, a[1], a[2], a[3], a[4], a[5])
                 end)
             end
 
@@ -308,6 +315,7 @@ function CDM:SetupViewer(vName)
                     CDM:QueueViewer(hookVName)
                 end)
             end
+
         end)
     end
 
@@ -337,11 +345,24 @@ function CDM:SetupViewer(vName)
         end)
     end
 
+    if not CDM_ViewerRefreshLayoutHooked[v] then
+        CDM_ViewerRefreshLayoutHooked[v] = true
+        if vName ~= VIEWERS.BUFF_BAR then
+            hooksecurefunc(v, "RefreshLayout", function()
+                self.queue[vName] = nil
+                self:ForceReanchor(v)
+            end)
+        end
+    end
+
     if (vName == VIEWERS.ESSENTIAL or vName == VIEWERS.UTILITY) and not CDM_ViewerSyncHooked[v] then
         CDM_ViewerSyncHooked[v] = true
 
         local function SyncViewerToContainer()
-            if InCombatLockdown() then return end
+            if InCombatLockdown() then
+                CDM.combatDirtyViewers[vName] = true
+                return
+            end
             local container = CDM.anchorContainers and CDM.anchorContainers[vName]
             if container then
                 v:ClearAllPoints()
@@ -403,23 +424,7 @@ local function SetupMixinHooks()
     local function HandleFixedLayoutViewerSpellUpdate(frame, viewerName)
         if not frame then return end
 
-        local baseSpellID = RefreshFrameSpellIdentity(frame)
-
-        local frameData = CDM.GetFrameData and CDM.GetFrameData(frame)
-        local hiddenSet = CDM.defensivesHiddenSet
-        local isHiddenByDefensives = baseSpellID and hiddenSet and hiddenSet[baseSpellID] or false
-
-        if frameData and baseSpellID then
-            frameData.cdmHiddenByDefensives = isHiddenByDefensives
-        end
-
-        if isHiddenByDefensives then
-            frame:Hide()
-            if frame.Cooldown and frame.Cooldown.SetDrawSwipe then
-                frame.Cooldown:SetDrawSwipe(false)
-            end
-        end
-
+        RefreshFrameSpellIdentity(frame)
         CDM:QueueViewer(viewerName)
     end
 

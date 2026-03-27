@@ -14,7 +14,6 @@ setmetatable(API, {
     end,
 })
 
-CDM.defensivesHiddenSet = {}
 CDM.resourcesHiddenBuffSet = {}
 
 local nativeRegisterEvent = CDM.RegisterEvent
@@ -424,6 +423,45 @@ function CDM:RefreshScopesNow(scopeNames)
     ClearQueuedRefreshState()
     DispatchRefreshCallbacks(false, normalizedScopes)
 end
+
+--[[ 
+Expose API, so GetChildren() still works for addons wantng to use it, despite enumerating the frames being a better way of doing it.
+This is an option in case I need to reparent frames from default viewers, 
+however hooksecurefunc on SetPoint seems to have fixed the issues.
+The issue being CDM viewers being in default edit mode positions cause Blizzard trying to overwrite our positions,
+making the icons either overlap or break the layout, or even snap to the bottom of the screen (default viewers positions), 
+when users haven't moved them in their edit mode profiles.
+Reparenting the frames simply removes them from Blizzard's layout system, so it remains the best option but here we are to not annoy anyone.
+
+-- Item frames are reparented from Blizzard's viewer to ACDM containers at
+-- placement time. This prevents GridLayoutFrameMixin:Layout() from overwriting
+-- ACDM's positioning (it uses GetChildren to find frames).
+--
+-- Returns the ACDM container frame that holds item frames for a given viewer.
+-- container:GetChildren() returns the active Blizzard pool frames ACDM manages.
+--
+-- Valid viewer names:
+--   "EssentialCooldownViewer", "UtilityCooldownViewer",
+--   "BuffIconCooldownViewer", "BuffBarCooldownViewer"
+--
+-- Usage:
+--   local container = Ayije_CDM.API.GetViewerContainer("EssentialCooldownViewer")
+--   if container then
+--       for _, frame in pairs({container:GetChildren()}) do
+--           local cdid = frame.cooldownID
+--           if cdid then
+--               local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdid)
+--               -- info.spellID, frame:GetSpellID(), etc.
+--           end
+--       end
+--   end
+
+
+function CDM.GetViewerContainer(viewerName)
+    local containers = CDM.anchorContainers
+    return containers and containers[viewerName] or nil
+end
+--]]
 
 function CDM.IsSafeNumber(value)
     return value ~= nil

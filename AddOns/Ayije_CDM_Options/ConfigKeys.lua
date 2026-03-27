@@ -217,7 +217,6 @@ ns.ConfigKeys = {
                 "defensivesChargeOffsetY",
                 "defensivesDisabledSpells",
                 "defensivesCustomSpells",
-                "defensivesHideFromViewers",
                 "defensivesOrder",
             },
         },

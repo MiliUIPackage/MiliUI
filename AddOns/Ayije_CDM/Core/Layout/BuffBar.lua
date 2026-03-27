@@ -7,7 +7,6 @@ local VIEWERS = ctx.VIEWERS
 local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
 local HalfFloor = Pixel.HalfFloor
-local defensivesHiddenSet = ctx.defensivesHiddenSet
 local ResolveBaseSpellID = ctx.ResolveBaseSpellID
 local CompareByLayoutIndex = ctx.CompareByLayoutIndex
 local GetLayoutConfig = ctx.GetLayoutConfig
@@ -54,7 +53,7 @@ local function CalculateEssentialRow1Width()
         for frame in viewer.itemFramePool:EnumerateActive() do
             if frame:IsShown() then
                 local spellID = ResolveBaseSpellID(frame)
-                if spellID and not defensivesHiddenSet[spellID] then
+                if spellID then
                     activeCount = activeCount + 1
                 end
             end
@@ -165,6 +164,9 @@ function CDM:PositionBuffBarFrames(viewer, vName)
                 frameWidth = effectiveWidth
 
                 local overridePos = (iconPosition == "HIDDEN") and "HIDDEN" or nil
+                if frame:GetParent() ~= container then
+                    frame:SetParent(container)
+                end
                 SetupBarFrame(frame, containerLevel, frameWidth, barHeight)
 
                 if growDirection == "DOWN" then
@@ -184,6 +186,9 @@ function CDM:PositionBuffBarFrames(viewer, vName)
                 else
                     dualIconPosition = isLeft and "RIGHT" or "LEFT"
                 end
+                if frame:GetParent() ~= container then
+                    frame:SetParent(container)
+                end
                 SetupBarFrame(frame, containerLevel, frameWidth, barHeight)
 
                 local xOff = isLeft and 0 or rightX
@@ -202,6 +207,9 @@ function CDM:PositionBuffBarFrames(viewer, vName)
         for i, frame in ipairs(bars) do
             local offset = (i - 1) * (barHeight + spacing)
 
+            if frame:GetParent() ~= container then
+                frame:SetParent(container)
+            end
             SetupBarFrame(frame, containerLevel, effectiveWidth, barHeight)
 
             if growDirection == "DOWN" then

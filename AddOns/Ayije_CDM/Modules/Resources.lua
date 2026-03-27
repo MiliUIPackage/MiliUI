@@ -2144,6 +2144,7 @@ local function UpdateBarPositions()
             CDM.resourceContainer.separator:Hide()
         end
 
+        UpdateContainerPosition()
         return
     end
 

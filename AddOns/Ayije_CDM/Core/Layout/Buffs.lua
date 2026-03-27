@@ -9,6 +9,7 @@ local RowWidth = ctx.RowWidth
 local math_max = math.max
 local table_sort = table.sort
 
+local GetFrameData = CDM.GetFrameData
 local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
 
@@ -35,6 +36,8 @@ local function PlaceBuffFrame(frame, point, relativeTo, relativePoint, x, y)
     if not frame then
         return
     end
+    local fd = GetFrameData(frame)
+    fd.cdmAnchor = { point, relativeTo, relativePoint, Snap(x or 0), Snap(y or 0) }
     frame:ClearAllPoints()
     Pixel.SetPoint(frame, point, relativeTo, relativePoint, x or 0, y or 0)
 end

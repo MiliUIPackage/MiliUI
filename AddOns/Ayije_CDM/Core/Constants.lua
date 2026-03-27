@@ -310,11 +310,6 @@ CDM.CONST.DesaturationCurve:SetType(Enum.LuaCurveType.Step)
 CDM.CONST.DesaturationCurve:AddPoint(0, 0)
 CDM.CONST.DesaturationCurve:AddPoint(0.001, 1)
 
-CDM.CONST.GCDFilterCurve = C_CurveUtil.CreateCurve()
-CDM.CONST.GCDFilterCurve:SetType(Enum.LuaCurveType.Step)
-CDM.CONST.GCDFilterCurve:AddPoint(0, 0)
-CDM.CONST.GCDFilterCurve:AddPoint(1.6, 1)
-
 CDM.CONST.IsReadyCurve = C_CurveUtil.CreateCurve()
 CDM.CONST.IsReadyCurve:SetType(Enum.LuaCurveType.Step)
 CDM.CONST.IsReadyCurve:AddPoint(0, 1)

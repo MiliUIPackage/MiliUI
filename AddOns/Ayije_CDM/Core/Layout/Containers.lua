@@ -5,7 +5,6 @@ local ctx = CDM._LayoutCtx
 
 local CDM_C = ctx.CDM_C
 local VIEWERS = ctx.VIEWERS
-local defensivesHiddenSet = ctx.defensivesHiddenSet
 
 local ResolveBaseSpellID = ctx.ResolveBaseSpellID
 local GetLayoutConfig = ctx.GetLayoutConfig
@@ -27,7 +26,7 @@ local function ComputeUtilityVisibleCount()
         for frame in viewer.itemFramePool:EnumerateActive() do
             if frame:IsShown() then
                 local spellID = ResolveBaseSpellID(frame)
-                if spellID and not defensivesHiddenSet[spellID] then
+                if spellID then
                     utilityCount = utilityCount + 1
                 end
             end
@@ -383,39 +382,6 @@ function CDM:GetOrCreateAnchorContainer(viewer)
         else
             container:SetSize(Pixel.SnapEven(400), Snap(initH))
         end
-
-        local lockKey = (vName == VIEWERS.BUFF) and "buffContainerLocked" or "containerLocked"
-        SetupDraggableContainer(container, lockKey)
-
-        container:SetScript("OnDragStop", function(self)
-            self:StopMovingOrSizing()
-
-            local _, _, relativePoint, x, y = self:GetPoint()
-            if relativePoint and x and y then
-                local anchorPoint = (vName == VIEWERS.BUFF) and "BOTTOM" or "TOP"
-                x, y = ResolveDraggedCoords(self, anchorPoint, relativePoint, x, y)
-
-                local settings = GetPositionSettings(vName, "Default")
-                settings.point = relativePoint
-                settings.x = Snap(x)
-
-                local yOffset = 0
-                if vName == VIEWERS.BUFF then
-                    yOffset = CDM:GetBuffContainerYOffset()
-                end
-                settings.y = Snap(y - yOffset)
-
-                self:ClearAllPoints()
-                AnchorMainLayoutContainer(self, vName == VIEWERS.BUFF, relativePoint, settings.x, settings.y, yOffset)
-
-                if vName == VIEWERS.ESSENTIAL then
-                    CDM:UpdateUtilityContainerPosition()
-                    CDM:NotifyPositionSliderUpdate("essential", settings.x, settings.y)
-                elseif vName == VIEWERS.BUFF then
-                    CDM:NotifyPositionSliderUpdate("buff", settings.x, settings.y)
-                end
-            end
-        end)
 
         self.anchorContainers[vName] = container
         self:UpdateEditModeSelectionOverlay(vName)

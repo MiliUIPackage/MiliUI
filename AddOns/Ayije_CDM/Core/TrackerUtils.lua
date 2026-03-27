@@ -72,37 +72,42 @@ function CDM.WipeEffectiveIDCache()
     table.wipe(effectiveIDCache)
 end
 
-local multiChargeCacheRef = nil
-local function GetMultiChargeCache()
-    if multiChargeCacheRef then
-        return multiChargeCacheRef
+local GCD_SPELL_ID = CDM_C.GCD_SPELL_ID
+local DesaturationCurve = CDM_C.DesaturationCurve
+local gcdFilterCurve = C_CurveUtil.CreateCurve()
+gcdFilterCurve:SetType(Enum.LuaCurveType.Step)
+local cachedGCDInfo = nil
+local cachedGCDTime = -1
+local cachedGCDCurveTime = -1
+
+local function GetGCDInfo()
+    local now = GetTime()
+    if now ~= cachedGCDTime then
+        cachedGCDInfo = C_Spell.GetSpellCooldown(GCD_SPELL_ID)
+        cachedGCDTime = now
     end
-    if Ayije_CDMDB and Ayije_CDMDB.global then
-        if not Ayije_CDMDB.global.multiChargeSpells then
-            Ayije_CDMDB.global.multiChargeSpells = {}
-        end
-        multiChargeCacheRef = Ayije_CDMDB.global.multiChargeSpells
-        return multiChargeCacheRef
-    end
+    return cachedGCDInfo
 end
 
-function CDM.CacheMultipleCharges(entry, spellID)
-    if not entry or not spellID then return end
-    local effectiveID = GetEffectiveSpellID(spellID)
-    local chargeInfo = C_Spell.GetSpellCharges(effectiveID)
-    if chargeInfo and chargeInfo.maxCharges and not issecretvalue(chargeInfo.maxCharges) then
-        local result = chargeInfo.maxCharges > 1
-        entry.hasMultipleCharges = result
-        local saved = GetMultiChargeCache()
-        if saved then
-            saved[spellID] = result or nil
-        end
-    else
-        local saved = GetMultiChargeCache()
-        if saved and entry.hasMultipleCharges == nil then
-            entry.hasMultipleCharges = saved[spellID] or false
-        end
+function CDM.EvaluateGCDFilteredDesaturation(durObj)
+    local gcdInfo = GetGCDInfo()
+    if not gcdInfo or not gcdInfo.startTime or not gcdInfo.duration or gcdInfo.duration <= 0 then
+        return nil
     end
+    local gcdRemaining = math.floor(((gcdInfo.startTime + gcdInfo.duration) - GetTime()) * 1000 + 0.5) / 1000
+    if gcdRemaining <= 0.0011 then
+        return nil
+    end
+    if cachedGCDTime ~= cachedGCDCurveTime then
+        cachedGCDCurveTime = cachedGCDTime
+        gcdFilterCurve:ClearPoints()
+        gcdFilterCurve:AddPoint(0,                     0)
+        gcdFilterCurve:AddPoint(0.0001,                1)
+        gcdFilterCurve:AddPoint(gcdRemaining - 0.001,  0)
+        gcdFilterCurve:AddPoint(gcdRemaining + 0.001,  0)
+        gcdFilterCurve:AddPoint(gcdRemaining + 0.0011, 1)
+    end
+    return durObj:EvaluateRemainingDuration(gcdFilterCurve, 0) or 0
 end
 
 local function InvalidateRacialsPartyAnchorCache()

@@ -5,7 +5,6 @@ local ctx = CDM._LayoutCtx
 local CDM_C = ctx.CDM_C
 local GetFrameData = ctx.GetFrameData
 local VIEWERS = ctx.VIEWERS
-local defensivesHiddenSet = ctx.defensivesHiddenSet
 
 local ResolveBaseSpellID = ctx.ResolveBaseSpellID
 local ToSortNumber = ctx.ToSortNumber
@@ -75,6 +74,8 @@ local function PlaceIconTopLeft(frame, container, x, y, viewer)
     if viewer and frame:GetParent() ~= viewer then
         frame:SetParent(UIParent)
     end
+    local fd = GetFrameData(frame)
+    fd.cdmAnchor = { "TOPLEFT", container, "TOPLEFT", Snap(x or 0), Snap(y or 0) }
     frame:ClearAllPoints()
     Pixel.SetPoint(frame, "TOPLEFT", container, "TOPLEFT", x or 0, y or 0)
     frame:Show()
@@ -132,20 +133,9 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
     local container = self:GetOrCreateAnchorContainer(viewer)
     if not container then return end
 
-    local hasHiddenSet = next(defensivesHiddenSet) ~= nil
     for _, frame in ipairs(icons) do
         local spellID = ResolveBaseSpellID(frame)
-        if spellID and defensivesHiddenSet[spellID] then
-            frame:ClearAllPoints()
-            frame:Hide()
-            if frame.Cooldown and frame.Cooldown.SetDrawSwipe then
-                frame.Cooldown:SetDrawSwipe(false)
-            end
-            GetFrameData(frame).cdmHiddenByDefensives = true
-        elseif not spellID and hasHiddenSet then
-            frame:ClearAllPoints()
-            frame:Hide()
-        elseif spellID or frame.cooldownInfo then
+        if spellID or frame.cooldownInfo then
             PushTempIconPositionRecord(frame, ToSortNumber(frame.layoutIndex, 0), GetStableFrameSortID(frame))
         end
     end

@@ -371,20 +371,6 @@ local function CreateDefensivesTab(page, tabId)
     page.controls.defensivesEnabled:SetPoint("TOPLEFT", -34, NextY(0))
     NextY(35)
 
-    local hideFromViewers = CDM.db.defensivesHideFromViewers
-    if hideFromViewers == nil then hideFromViewers = false end
-    page.controls.defensivesHideFromViewers = UI.CreateModernCheckbox(
-        scrollChild,
-        L["Hide tracked defensives from Essential/Utility viewers"],
-        hideFromViewers,
-        function(checked)
-            CDM.db.defensivesHideFromViewers = checked
-            API:RefreshConfig()
-        end
-    )
-    page.controls.defensivesHideFromViewers:SetPoint("TOPLEFT", 0, NextY(0))
-    NextY(35)
-
     local spellsHeader = UI.CreateHeader(scrollChild, L["Tracked Spells"])
     spellsHeader:SetPoint("TOPLEFT", 0, NextY(0))
 

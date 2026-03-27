@@ -501,6 +501,10 @@ function Glow:RefreshActiveGlows()
         activeGlowSnapshot[i] = nil
         local frameData = CDM.GetFrameData(frame)
         if frameData.cdmGlowActive then
+            local stopFn = glowStopFunctions[frameData.cdmGlowType]
+            if stopFn then stopFn(frame) end
+            frameData.cdmGlowActive = false
+            frameData.cdmGlowType = nil
             ShowCustomGlow(frame, frameData.cdmGlowOverrideColor)
         else
             activeGlowFrames[frame] = nil

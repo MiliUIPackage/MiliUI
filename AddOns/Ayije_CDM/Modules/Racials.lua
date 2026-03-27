@@ -81,11 +81,8 @@ local playerRace
 local lastRacialsWidth, lastRacialsHeight = nil, nil
 local lastRacialsSpacing = nil
 local lastVisibilityHash = 0
-
 local DesaturationCurve = CDM_C.DesaturationCurve
-local GCDFilterCurve = CDM_C.GCDFilterCurve
-local gcdActive = false
-local GCD_SPELL_ID = CDM_C.GCD_SPELL_ID
+
 local ITEM_COOLDOWN_MIN_SECONDS = 1.6
 local PACT_OF_GLUTTONY_TALENT_ID = 386689
 local RACIALS_UPDATE_SPELL_COOLDOWNS = "spellCooldowns"
@@ -378,7 +375,7 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
 
     local hasCharges = false
     local desatDurationObject = nil
-    local isOnGCD = false
+    local desatSpellID = nil
     local itemCooldownActive = false
     local itemCount = nil
     local showEmptyItem = false
@@ -406,10 +403,14 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
             local itemCdStart, itemCdDuration = C_Container.GetItemCooldown(entry and entry._activeItemID or itemID)
             local hasItemCooldown = HasVisibleItemCooldown(itemCdStart, itemCdDuration)
 
-            if gcdActive and SCD then
+            local isOnGCD = false
+            if SCD then
                 local cdInfo = C_Spell.GetSpellCooldown(itemSpellID)
                 isOnGCD = cdInfo and cdInfo.isOnGCD or false
             end
+
+            desatDurationObject = SCD
+            desatSpellID = itemSpellID
 
             if hasItemCooldown then
                 local fd = CDM.GetFrameData(frame)
@@ -424,8 +425,6 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
             else
                 frame.Cooldown:Clear()
             end
-
-            desatDurationObject = SCD
         elseif updateCooldowns then
             local startTime, durationSeconds, enableCooldownTimer = C_Container.GetItemCooldown(entry and entry._activeItemID or itemID)
 
@@ -464,13 +463,20 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
             local CCD = C_Spell.GetSpellChargeDuration(effectiveID)
             local SCD = C_Spell.GetSpellCooldownDuration(effectiveID)
 
-            if gcdActive and SCD then
+            local isOnGCD = false
+            if SCD then
                 local cdInfo = C_Spell.GetSpellCooldown(effectiveID)
                 isOnGCD = cdInfo and cdInfo.isOnGCD or false
             end
 
+            local racialsChargeInfo = C_Spell.GetSpellCharges(effectiveID)
+            local isChargeSpell = racialsChargeInfo and racialsChargeInfo.maxCharges and racialsChargeInfo.maxCharges > 1
+
+            desatDurationObject = SCD
+            desatSpellID = effectiveID
+
             if not isOnGCD then
-                local durObj = CCD or SCD
+                local durObj = (isChargeSpell and CCD) or SCD
                 if durObj then
                     frame.Cooldown:SetCooldownFromDurationObject(durObj)
                 else
@@ -480,22 +486,16 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
                 frame.Cooldown:Clear()
             end
 
-            if SCD then
-                desatDurationObject = SCD
-            end
         end
 
         if updateCharges then
-            local entry = frame.cdmRacialEntry
-            if entry and entry.hasMultipleCharges then
-                local chargeInfo = C_Spell.GetSpellCharges(effectiveID)
-                if chargeInfo and chargeInfo.currentCharges then
-                    local chargeText = CDM.EnsureTrackerChargeWidgets(frame)
-                    if chargeText then
-                        chargeText:SetText(C_StringUtil.TruncateWhenZero(chargeInfo.currentCharges))
-                    end
-                    hasCharges = true
+            local chargeInfo = C_Spell.GetSpellCharges(effectiveID)
+            if chargeInfo and chargeInfo.maxCharges and chargeInfo.maxCharges > 1 and chargeInfo.currentCharges then
+                local chargeText = CDM.EnsureTrackerChargeWidgets(frame)
+                if chargeText then
+                    chargeText:SetText(C_StringUtil.TruncateWhenZero(chargeInfo.currentCharges))
                 end
+                hasCharges = true
             end
         end
     end
@@ -508,10 +508,15 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
             frame.Icon:SetDesaturation(1)
         elseif showEmptyItem then
             frame.Icon:SetDesaturation(1)
-        elseif desatDurationObject then
-            local curve = isOnGCD and GCDFilterCurve or DesaturationCurve
-            if curve and desatDurationObject.EvaluateRemainingDuration then
-                frame.Icon:SetDesaturation(desatDurationObject:EvaluateRemainingDuration(curve, 0) or 0)
+        elseif desatDurationObject and desatDurationObject.EvaluateRemainingDuration then
+            local cdInfo = desatSpellID and C_Spell.GetSpellCooldown(desatSpellID)
+            if cdInfo and cdInfo.isActive then
+                local gcdResult = CDM.EvaluateGCDFilteredDesaturation(desatDurationObject)
+                if gcdResult then
+                    frame.Icon:SetDesaturation(gcdResult)
+                else
+                    frame.Icon:SetDesaturation(desatDurationObject:EvaluateRemainingDuration(DesaturationCurve, 0) or 0)
+                end
             else
                 frame.Icon:SetDesaturation(0)
             end
@@ -546,7 +551,6 @@ end
 local function InvalidateSpellbookCache()
     for _, entry in ipairs(iconEntries) do
         entry._spellbookCached = nil
-        entry.hasMultipleCharges = nil
         if entry.frame then
             entry.frame._spellbookCached = nil
         end
@@ -682,8 +686,6 @@ local racialsQueuedSpellChargeUpdate = false
 local racialsQueuedItemUpdate = false
 local racialsQueuedItemCooldownUpdate = false
 local racialsQueuedLayoutUpdate = false
-local racialsSpellWatcherGcdActive = false
-local racialsSpellWatcherGcdActiveValid = false
 
 local function RacialsNeedFullUpdate()
     if needsStyleUpdate then
@@ -700,12 +702,6 @@ local function UpdateRacialSpellCooldownsOnly()
         return
     end
 
-    if racialsSpellWatcherGcdActiveValid then
-        gcdActive = racialsSpellWatcherGcdActive
-        racialsSpellWatcherGcdActiveValid = false
-    else
-        gcdActive = C_Spell.GetSpellCooldownDuration(GCD_SPELL_ID) ~= nil
-    end
     for _, frame in ipairs(iconFrames) do
         if frame:IsShown() and (not frame.isItem or frame.itemSpellID) then
             UpdateIcon(frame, true, false)
@@ -721,7 +717,6 @@ local function UpdateRacialSpellChargesOnly()
     end
 
     BeginRacialsItemCountPass()
-    gcdActive = C_Spell.GetSpellCooldownDuration(GCD_SPELL_ID) ~= nil
 
     for _, frame in ipairs(iconFrames) do
         if frame:IsShown() then
@@ -743,7 +738,6 @@ local function UpdateRacialItemCooldownsOnly()
         return
     end
 
-    gcdActive = C_Spell.GetSpellCooldownDuration(GCD_SPELL_ID) ~= nil
     for _, frame in ipairs(iconFrames) do
         if frame:IsShown() and frame.isItem and not frame.itemSpellID then
             UpdateIcon(frame, true, false)
@@ -767,7 +761,6 @@ local function UpdateRacialItemsOnly()
     end
 
     BeginRacialsItemCountPass()
-    gcdActive = C_Spell.GetSpellCooldownDuration(GCD_SPELL_ID) ~= nil
 
     local visibilityChanged = false
     for _, entry in ipairs(iconEntries) do
@@ -904,8 +897,6 @@ local function OnRacialSpellWatchChanged(cooldownsChanged, chargesChanged, watch
     if not isEnabled then return end
     if not racialsStartupCooldownGate:IsSettled() then return end
     if cooldownsChanged then
-        racialsSpellWatcherGcdActive = watcherGcdActive and true or false
-        racialsSpellWatcherGcdActiveValid = true
         QueueRacialsUpdate(RACIALS_UPDATE_SPELL_COOLDOWNS)
     end
     if chargesChanged then
@@ -1136,7 +1127,6 @@ local function DisableRacials()
     racialsQueuedItemCooldownUpdate = false
     racialsQueuedLayoutUpdate = false
     ReleaseRacialFramesForLowMemory()
-    racialsSpellWatcherGcdActiveValid = false
     isEnabled = false
 end
 
@@ -1167,7 +1157,6 @@ function CDM:UpdateRacials()
     local applyStyle = needsStyleUpdate or sizeChanged
 
     BeginRacialsItemCountPass()
-    gcdActive = C_Spell.GetSpellCooldownDuration(GCD_SPELL_ID) ~= nil
 
     local visibilityHash = 0
     local bit = 1
@@ -1184,8 +1173,6 @@ function CDM:UpdateRacials()
                     frame.Icon:SetTexture(texture)
                 end
             end
-
-            CDM.CacheMultipleCharges(entry, entry.id)
 
             if sizeChanged then
                 frame:SetSize(size.w, size.h)
@@ -1241,7 +1228,6 @@ function CDM:ReinitRacialIcons()
     table.wipe(iconEntries)
     table.wipe(iconFrames)
     lastVisibilityHash = 0
-    racialsSpellWatcherGcdActiveValid = false
 
     local ordered = CDM.GetOrderedRacialEntries(CDM:GetCurrentSpecID())
     for _, entry in ipairs(ordered) do

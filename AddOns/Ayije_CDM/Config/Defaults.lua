@@ -109,7 +109,6 @@ CDM.defaults = {
     defensivesDisabledSpells = {},
     defensivesCustomSpells = {},
     defensivesOrder = {},
-    defensivesHideFromViewers = false,
 
     -- Trinkets tracker settings
     trinketsIconWidth = 40,

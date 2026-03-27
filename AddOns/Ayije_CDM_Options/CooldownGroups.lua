@@ -551,6 +551,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
         yOff = yOff - 22
 
         local UpdateAnchorVisibility
+        local xSlider, ySlider
         local anchorTargetDropdown = RegisterRightPanelDropdown(CreateFrame("DropdownButton", nil, rc, "WowStyle1DropdownTemplate"))
         anchorTargetDropdown:SetWidth(180)
         anchorTargetDropdown:SetPoint("TOPLEFT", 0, yOff)
@@ -620,13 +621,13 @@ local function CreateCooldownGroupsPanel(subPage, page)
         yOff = yOff - 40
         local yAfterConditional = yOff
 
-        local xSlider = CreateSlider(rc, L["X Offset"], -840, 840, gd.offsetX or 0, function(v)
+        xSlider = CreateSlider(rc, L["X Offset"], -840, 840, gd.offsetX or 0, function(v)
             gd.offsetX = v; SaveAndRefresh()
         end)
         xSlider:SetPoint("TOPLEFT", 0, yOff)
         yOff = yOff - 50
 
-        local ySlider = CreateSlider(rc, L["Y Offset"], -470, 470, gd.offsetY or 0, function(v)
+        ySlider = CreateSlider(rc, L["Y Offset"], -470, 470, gd.offsetY or 0, function(v)
             gd.offsetY = v; SaveAndRefresh()
         end)
         ySlider:SetPoint("TOPLEFT", 0, yOff)
@@ -1429,12 +1430,6 @@ local function CreateCooldownGroupsPanel(subPage, page)
         local cfgColor = CDM_C.GetConfigValue("borderColor", { r = 0, g = 0, b = 0, a = 1 })
         if widget.iconContainer.border then
             widget.iconContainer.border:SetBackdropBorderColor(cfgColor.r, cfgColor.g, cfgColor.b, cfgColor.a or 1)
-        end
-        if currentSpecID and CDM.SpellRegistry then
-            local color = CDM.SpellRegistry:GetColor(currentSpecID, spellID)
-            if color and widget.iconContainer.border then
-                widget.iconContainer.border:SetBackdropBorderColor(color.r, color.g, color.b, 1)
-            end
         end
 
         if isActive == false then

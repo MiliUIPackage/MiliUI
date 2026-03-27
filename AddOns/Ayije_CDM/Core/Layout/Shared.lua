@@ -47,7 +47,6 @@ local function HasPositiveLimit(value)
 end
 
 local VIEWERS = CDM_C.VIEWERS
-local defensivesHiddenSet = CDM.defensivesHiddenSet
 
 local DEFAULT_SIZE_ESS = { w = 46, h = 40 }
 local DEFAULT_SIZE_BUFF = { w = 40, h = 36 }
@@ -308,10 +307,16 @@ local function PositionFrameAtSlot(frame, container, idx, iconW, iconH, spacingW
         local startY = Pixel.HalfFloor((layoutCount - 1) * stepH)
         x, y = 0, startY - idx * stepH
     end
-    Pixel.SetPoint(frame, selfPoint or "CENTER", container, anchorPoint or "CENTER", x or 0, y or 0)
+    local sp = selfPoint or "CENTER"
+    local ap = anchorPoint or "CENTER"
+    local fd = GetFrameData(frame)
+    fd.cdmAnchor = { sp, container, ap, Snap(x or 0), Snap(y or 0) }
+    Pixel.SetPoint(frame, sp, container, ap, x or 0, y or 0)
 end
 
 local function PlaceFrame(frame, container, selfPoint, anchorPoint, x, y)
+    local fd = GetFrameData(frame)
+    fd.cdmAnchor = { selfPoint, container, anchorPoint, Snap(x or 0), Snap(y or 0) }
     Pixel.SetPoint(frame, selfPoint, container, anchorPoint, x, y)
 end
 
@@ -369,7 +374,6 @@ CDM._LayoutCtx = {
     CheckBuffRegistryMatch = CheckBuffRegistryMatch,
     CheckCdGroupMatch = CDM.CheckCdGroupMatch,
     VIEWERS = VIEWERS,
-    defensivesHiddenSet = defensivesHiddenSet,
     CDM_C = CDM_C,
     Pixel = Pixel,
     Snap = Snap,

@@ -574,6 +574,7 @@ local function InitializeDB()
     if not Ayije_CDMDB.profileKeys then Ayije_CDMDB.profileKeys = {} end
     if not Ayije_CDMDB.profiles then Ayije_CDMDB.profiles = {} end
     if not Ayije_CDMDB.global then Ayije_CDMDB.global = {} end
+    Ayije_CDMDB.global.multiChargeSpells = nil
     if not Ayije_CDMDB.specProfiles then Ayije_CDMDB.specProfiles = {} end
 
     RunDatabaseMigrations()
@@ -1323,7 +1324,6 @@ local function RefreshGroupData(self, sets, dbKey, categories, shouldInvalidateC
 
     sets.groups = specGroups
 
-    local NormalizeToBase = CDM.NormalizeToBase
     local spellToGroup = {}
 
     for groupIndex, group in ipairs(specGroups) do
@@ -1332,17 +1332,6 @@ local function RefreshGroupData(self, sets, dbKey, categories, shouldInvalidateC
                 sets.grouped[spellID] = groupIndex
                 local entry = { groupIdx = groupIndex, storedID = spellID }
                 spellToGroup[spellID] = entry
-                if NormalizeToBase then
-                    local base = NormalizeToBase(spellID)
-                    if base and base ~= spellID then
-                        if not sets.grouped[base] then
-                            sets.grouped[base] = groupIndex
-                        end
-                        if not spellToGroup[base] then
-                            spellToGroup[base] = entry
-                        end
-                    end
-                end
             end
         end
     end
@@ -1359,23 +1348,14 @@ local function RefreshGroupData(self, sets, dbKey, categories, shouldInvalidateC
                         local match
                         if IsUsableSpellID(info.overrideSpellID) and info.overrideSpellID ~= info.spellID then
                             match = spellToGroup[info.overrideSpellID]
-                            if not match and NormalizeToBase then
-                                match = spellToGroup[NormalizeToBase(info.overrideSpellID)]
-                            end
                         end
                         if not match then
                             match = spellToGroup[info.spellID]
-                            if not match and NormalizeToBase and IsUsableSpellID(info.spellID) then
-                                match = spellToGroup[NormalizeToBase(info.spellID)]
-                            end
                         end
                         if not match and info.linkedSpellIDs then
                             for _, lid in ipairs(info.linkedSpellIDs) do
                                 if IsUsableSpellID(lid) then
                                     match = spellToGroup[lid]
-                                    if not match and NormalizeToBase then
-                                        match = spellToGroup[NormalizeToBase(lid)]
-                                    end
                                     if match then break end
                                 end
                             end
