@@ -41,7 +41,12 @@ local MUSIC_FILES = {
 }
 
 local MUSIC_DURATION = 40  -- seconds to play music
+local DEFAULT_CHANNEL = "Master"  -- fallback channel (Master / SFX / Dialog)
 local CHANNELS = { "Master", "SFX", "Dialog" }
+
+-- Sound engine boost values applied during Bloodlust playback
+local BOOST_NUM_CHANNELS = 128         -- Sound_NumChannels
+local BOOST_CACHE_SIZE   = 134217728   -- Sound_MaxCacheSizeInBytes (128 MB)
 
 ----------------------------------------------------------------------
 -- SavedVariables Defaults
@@ -50,7 +55,7 @@ local DB_DEFAULTS = {
     musicEnabled     = true,
     barEnabled       = true,
     playMode         = "random",   -- "random" or "sequential"
-    channel          = "SFX",
+    channel          = DEFAULT_CHANNEL,
     trackEnabled     = {},         -- [index] = true/false per track
     lastTrackIndex   = 0,
     barWidth         = 185,
@@ -98,6 +103,8 @@ local playingHandle = nil
 local previewHandle = nil
 local savedMusicVol = nil
 local savedAmbienceVol = nil
+local savedNumChannels = nil
+local savedCacheSize = nil
 local restoreTimer = nil
 local lastPlayTime = 0
 local activeLustSpellID = nil
@@ -116,6 +123,7 @@ ns.LUST_BUFFS = LUST_BUFFS
 ns.LUST_DEBUFFS = LUST_DEBUFFS
 ns.MUSIC_FILES = MUSIC_FILES
 ns.CHANNELS = CHANNELS
+ns.DEFAULT_CHANNEL = DEFAULT_CHANNEL
 ns.DEFAULT_LUST_NAME = DEFAULT_LUST_NAME
 ns.DEFAULT_LUST_ICON = DEFAULT_LUST_ICON
 
@@ -183,6 +191,16 @@ local function StopMusic()
         savedAmbienceVol = nil
     end
 
+    -- Restore sound engine settings
+    if savedNumChannels then
+        SetCVar("Sound_NumChannels", savedNumChannels)
+        savedNumChannels = nil
+    end
+    if savedCacheSize then
+        SetCVar("Sound_MaxCacheSizeInBytes", savedCacheSize)
+        savedCacheSize = nil
+    end
+
     if restoreTimer then
         restoreTimer:Cancel()
         restoreTimer = nil
@@ -242,8 +260,14 @@ local function PlayLustMusic()
     SetCVar("Sound_MusicVolume", 0)
     SetCVar("Sound_AmbienceVolume", 0)
 
+    -- Boost sound engine to prevent audio interruption
+    savedNumChannels = tonumber(GetCVar("Sound_NumChannels")) or 64
+    savedCacheSize   = tonumber(GetCVar("Sound_MaxCacheSizeInBytes")) or 0
+    SetCVar("Sound_NumChannels", BOOST_NUM_CHANNELS)
+    SetCVar("Sound_MaxCacheSizeInBytes", BOOST_CACHE_SIZE)
+
     -- Play
-    local success, handle = PlaySoundFile(track.path, db.channel or "SFX")
+    local success, handle = PlaySoundFile(track.path, db.channel or DEFAULT_CHANNEL)
     if success then
         playing = true
         playingHandle = handle
@@ -261,6 +285,8 @@ end
 ----------------------------------------------------------------------
 local previewSavedMusicVol = nil
 local previewSavedAmbienceVol = nil
+local previewSavedNumChannels = nil
+local previewSavedCacheSize = nil
 local previewRestoreTimer = nil
 
 local function StopPreview()
@@ -276,6 +302,14 @@ local function StopPreview()
     if previewSavedAmbienceVol then
         SetCVar("Sound_AmbienceVolume", previewSavedAmbienceVol)
         previewSavedAmbienceVol = nil
+    end
+    if previewSavedNumChannels then
+        SetCVar("Sound_NumChannels", previewSavedNumChannels)
+        previewSavedNumChannels = nil
+    end
+    if previewSavedCacheSize then
+        SetCVar("Sound_MaxCacheSizeInBytes", previewSavedCacheSize)
+        previewSavedCacheSize = nil
     end
     if previewRestoreTimer then
         previewRestoreTimer:Cancel()
@@ -297,7 +331,13 @@ local function PreviewTrack(index)
     SetCVar("Sound_MusicVolume", 0)
     SetCVar("Sound_AmbienceVolume", 0)
 
-    local channel = (db and db.channel) or "SFX"
+    -- Boost sound engine to prevent audio interruption
+    previewSavedNumChannels = tonumber(GetCVar("Sound_NumChannels")) or 64
+    previewSavedCacheSize   = tonumber(GetCVar("Sound_MaxCacheSizeInBytes")) or 0
+    SetCVar("Sound_NumChannels", BOOST_NUM_CHANNELS)
+    SetCVar("Sound_MaxCacheSizeInBytes", BOOST_CACHE_SIZE)
+
+    local channel = (db and db.channel) or DEFAULT_CHANNEL
     local success, handle = PlaySoundFile(track.path, channel)
     if success then
         previewHandle = handle

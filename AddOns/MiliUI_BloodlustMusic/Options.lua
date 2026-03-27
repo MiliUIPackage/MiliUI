@@ -3,6 +3,7 @@ local L = ns.L
 local DB_DEFAULTS = ns.DB_DEFAULTS
 local MUSIC_FILES = ns.MUSIC_FILES
 local CHANNELS = ns.CHANNELS
+local DEFAULT_CHANNEL = ns.DEFAULT_CHANNEL
 
 ----------------------------------------------------------------------
 -- Shared references (populated on show)
@@ -329,7 +330,7 @@ playModeDesc:SetText("- " .. L["PLAY_MODE_DESC"])
 local channelBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
 channelBtn:SetSize(140, 28)
 channelBtn:SetPoint("TOPLEFT", playModeBtn, "BOTTOMLEFT", 0, -10)
-channelBtn:SetText(L["CHANNEL"] .. ": SFX")
+channelBtn:SetText(L["CHANNEL"] .. ": " .. DEFAULT_CHANNEL)
 
 local channelDesc = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 channelDesc:SetPoint("LEFT", channelBtn, "RIGHT", 10, 0)
@@ -343,7 +344,7 @@ channelExplain:SetText("|cff888888" .. L["CHANNEL_MASTER_DESC"] .. "|r")
 
 local function UpdateChannelButton()
     local d = GetDB()
-    local ch = (d and d.channel) or "SFX"
+    local ch = (d and d.channel) or DEFAULT_CHANNEL
     channelBtn:SetText(L["CHANNEL"] .. ": " .. ch)
     if ch == "Master" then
         channelExplain:SetText("|cff888888" .. L["CHANNEL_MASTER_DESC"] .. "|r")
@@ -357,7 +358,7 @@ end
 channelBtn:SetScript("OnShow", function() UpdateChannelButton() end)
 channelBtn:SetScript("OnClick", function()
     local d = GetDB(); if not d then return end
-    local current = d.channel or "SFX"
+    local current = d.channel or DEFAULT_CHANNEL
     for i, ch in ipairs(CHANNELS) do
         if ch == current then
             d.channel = CHANNELS[(i % #CHANNELS) + 1]
