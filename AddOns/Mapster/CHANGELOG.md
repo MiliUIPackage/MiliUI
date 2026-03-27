@@ -1,8 +1,13 @@
 # Mapster
 
-## [1.13.0](https://github.com/Nevcairiel/Mapster/tree/1.13.0) (2026-01-20)
-[Full Changelog](https://github.com/Nevcairiel/Mapster/compare/1.12.5...1.13.0) [Previous Releases](https://github.com/Nevcairiel/Mapster/releases)
+## [1.13.1](https://github.com/Nevcairiel/Mapster/tree/1.13.1) (2026-03-08)
+[Full Changelog](https://github.com/Nevcairiel/Mapster/compare/1.13.0...1.13.1) [Previous Releases](https://github.com/Nevcairiel/Mapster/releases)
 
-- Update TOC for 12.0 prepatch  
-- Fix opening settings  
-- Set Category instead of X-Category  
+- Remove unused TOC entries  
+- Disable Quest/EJ scaling, as it taints the map quite a bit  
+    It may return in the future  
+- Fix playerarrow scale not applying on world map open  
+- Add Midnight FogClear data  
+    Fixes #119  
+- Fix quest pin scaling  
+    Fixes #108  
