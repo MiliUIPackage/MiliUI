@@ -1,6 +1,6 @@
 # Chattynator
 
-## [192](https://github.com/TheMouseNest/Chattynator/tree/192) (2026-02-12)
-[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/191...192) 
+## [200](https://github.com/TheMouseNest/Chattynator/tree/200) (2026-03-22)
+[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/199...200) 
 
-- Fix issecretvalue call on classic  
+- Fix error when dragging tabs  
