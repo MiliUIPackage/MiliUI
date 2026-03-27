@@ -245,6 +245,36 @@ local db = {
         primarySpell = 1237215,
         alternateSpells = {},
     },
+    
+    -- Midnight season 1
+    [557] = { -- Windrunner Spire
+        primarySpell = 1254400,
+        alternateSpells = {},
+    },
+    [559] = { -- Nexus-Point Xenas
+        primarySpell = 1254563,
+        alternateSpells = {},
+    },
+    [583] = { -- Seat of the Triumverate
+        primarySpell = 1254551,
+        alternateSpells = {},
+    },
+    [560] = { -- Maisara Caverns
+        primarySpell = 1254559,
+        alternateSpells = {},
+    },
+    [161] = { -- Skyreach
+         primarySpell = 159898,
+         alternateSpells = {},
+    },
+    [556] = { -- Pit of Saron
+        primarySpell = 1254555,
+        alternateSpells = {},
+    },
+    [558] = { -- Magister's Terrace
+        primarySpell = 1254572,
+        alternateSpells = {},
+    },
 }
 
 local loaded = false
