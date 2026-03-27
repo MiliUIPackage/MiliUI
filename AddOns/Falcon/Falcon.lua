@@ -1,24 +1,32 @@
 local addonName = ... ---@type string 'Falcon'
 local ns = select(2,...) ---@class (partial) namespace
----@class (partial) Falcon : Frame
+---@class Falcon : Frame
+---@field Center table
+---@field Label table
+---@field Selection table
+---@field shadow Texture
+---@field positionTicker TickerCallback
 local Falcon = CreateFrame('Frame', 'FalconAddOnFrame', UIParent)
 ns.Falcon = Falcon
 local API = ns.API
-local LEM = LibStub('LibEditMode')
+local LEM = ns.LibEditMode
 ns.LEM = LEM
 local F = ns.Flags
+local abs, min, pow, exp, floor, ceil = math.abs, math.min, math.pow, math.exp, math.floor, math.ceil
 
-local gameVersion = select(4, GetBuildInfo())
-
-local abs, min, pow = math.abs, math.min, math.pow
+---@class FalconDatabase
+---@field Settings table<string, defaultTableData>
+---@field FalconGlobalSettingsEnabled boolean
+FalconAddOnDB = FalconAddOnDB or {}
 
 ---@class FalconConfiguration
----@field updateSpeedRate number
 local Configuration = {
   updateSpeedRate = 0.0167,
   updateRate = 0.0167,
+  depletionSpeed = 20,
 }
 
+---@class MutableUIStates
 local MutableUIStates = {
   Width = 0.0,
   SpeedHeight = 0.0,
@@ -30,20 +38,45 @@ local MutableUIStates = {
 
 ns.Configuration = Configuration
 
+---@class MutableData
 local MutableData = {
-  chargeColor = { r = 0.3059, g = 0.8353, b = 0.9686 },
-  speedColor = { r = 0.5490, g = 0.8118, b = 0.3882 },
   elapsedSpeed = 0.0,
   elapsedChargeBarProgress = 0.0,
   elapsedUpdateChargeBarDepletion = 0.0,
-  noDisplayText = false,
+  HideDisplayText = false,
   GetRidingAbroadReciprocal = 0.01,
   prevSpeed = 0,
+  previousCharges = select(2, API:GetSharedInfo())
 }
+
+---@class MutableDataSharedInfo
+MutableDataSharedInfo = {
+  IsCharging = false,
+  Charges = 0.0,
+  MaxCharges = 0.0,
+  ChargeStart = 0.0,
+  ChargeDuration= 0.0,
+  IsThrill = false,
+  IsGroundSkimming = false,
+}
+
 ns.MutableData = MutableData
+
+---@class buffAnchorPoints <string, table>
+local buffAnchorPoints = {
+  ['Top Left'] = {'BOTTOMLEFT', 'TOPLEFT', 0, 8},
+  ['Top'] = {'BOTTOM', 'TOP', 0, 8},
+  ['Top Right'] = {'BOTTOMRIGHT', 'TOPRIGHT', 0, 8},
+  ['Left'] = {'RIGHT', 'LEFT', -8, 0},
+  ['Right'] = {'LEFT', 'RIGHT', 8, 0},
+  ['Bottom Left'] = {'TOPLEFT', 'BOTTOMLEFT', 0, -8},
+  ['Bottom'] = {'TOP', 'BOTTOM', 0, -8},
+  ['Bottom Right'] = {'TOPRIGHT', 'BOTTOMRIGHT', 0, -8}
+}
 
 local FrameDeltaLerp = FrameDeltaLerp
 
+---@class Skin
 local Skin = {
   Outline = {
     Inset = 1,
@@ -96,7 +129,7 @@ function Falcon:RefreshSpeedDisplay(elapsed)
   end
 
   local forwardSpeed = API:GetAdvFlyingForwardSpeed()
-  self:UpdateSpeedText(forwardSpeed * 14.286)
+  self:UpdateSpeedText(forwardSpeed * 14.285)
   if abs(MutableData.prevSpeed - forwardSpeed) < 0.0001 then
     return
   end
@@ -127,24 +160,13 @@ function Falcon:RefreshSpeedDisplay(elapsed)
     scaledSpeed = transition + mapped_delta
   end
 
-  if scaledSpeed >= transition then
-    self.SpeedBar.tick:Show()
-  else
-    self.SpeedBar.tick:Hide()
-  end
-  if MutableData.IsThrill then
-    self.SpeedBar:SetAlpha(1)
-  else
-    self.SpeedBar:SetAlpha(0.8)
-  end
-
   self.SpeedBar:SetValue(scaledSpeed)
   MutableData.prevSpeed = newSpeed
 end
 
 ---@param forwardSpeed number
 function Falcon:UpdateSpeedText(forwardSpeed)
-  if not MutableData.noDisplayText then
+  if not MutableData.HideDisplayText then
     local TextDisplay = self.TextDisplay
     if forwardSpeed <= 0 then
       if TextDisplay:IsShown() and not TextDisplay.AnimHide:IsPlaying() then
@@ -180,140 +202,113 @@ function Falcon:UpdateChargeBarDepletion(elapsed)
   MutableData.elapsedUpdateChargeBarDepletion = MutableData.elapsedUpdateChargeBarDepletion + elapsed
   if not (MutableData.elapsedUpdateChargeBarDepletion > Configuration.updateRate) then return end
   MutableData.elapsedUpdateChargeBarDepletion = 0
+
   if not MutableData.isDepleting then
     self:SetScript('OnUpdate', nil)
+    MutableData.LastDepletingState = nil
     return
   end
 
-  local prevProgress = MutableData.prevDepletionTotalProgress or MutableData.oldTotalProgress or 0
-  local targetProgress = MutableData.depletionTargetTotalProgress
+  local currentTime = GetTime()
+  local info = MutableDataSharedInfo
+  local targetProgress = info.Charges
+  if info.IsCharging and info.ChargeDuration > 0 then
+    targetProgress = info.Charges + min((currentTime - info.ChargeStart) / info.ChargeDuration, 1)
+  end
 
-  local lerpRate = 0.2
-  local newProgress = FrameDeltaLerp(prevProgress, targetProgress, lerpRate)
+  local currentDisplayProgress = MutableData.prevDepletionTotalProgress or MutableData.oldTotalProgress or 0
+
+  local decay = Configuration.depletionSpeed
+  local newProgress = targetProgress + (currentDisplayProgress - targetProgress) * exp(-decay * elapsed)
 
   MutableData.prevDepletionTotalProgress = newProgress
-  for i = 1, min(self.num_charges, MutableData.maxVigorCharges) do
+
+  local maxCharges = min(self.num_charges, info.MaxCharges)
+  for i = 1, maxCharges do
     local chargeBar = self.ChargeBars[i]
     local value = 0
-
-    if i <= math.floor(newProgress) then
+    if i <= floor(newProgress) then
       value = 1
-    elseif i == math.ceil(newProgress) then
-      value = newProgress - math.floor(newProgress)
+    elseif i == ceil(newProgress) then
+      value = newProgress - floor(newProgress)
     end
     chargeBar:SetValue(value)
   end
 
   local progressDifference = abs(newProgress - targetProgress)
-
-  if progressDifference < 0.005 then
+  if progressDifference < 0.001 or newProgress < targetProgress then
     MutableData.isDepleting = nil
-    MutableData.depletionTargetTotalProgress = 0
-    MutableData.prevDepletionTotalProgress = 0
-    MutableData.oldTotalProgress = 0
-
-    self:UpdateUI()
+    MutableData.prevDepletionTotalProgress = nil
+    MutableData.oldTotalProgress = targetProgress
+    self:UpdateUI('ACTIONBAR_UPDATE_COOLDOWN')
   end
 end
 
-local function UpdateUI(self)
-  if LEM:IsInEditMode() then return end
-  local isNotSkyriding = not API:IsSkyriding()
-
-  if API:IsDerbyRacing() or isNotSkyriding then
-    MutableData.previousCharges = 6
-    self:HideAnim()
-    self:SetScript('OnUpdate', nil)
-    MutableData.prevCooldownProgress = 0
-    MutableData.prevProgressChargeIndex = 0
-    MutableData.isDepleting = nil
-    MutableData.oldTotalProgress = 0
-    self.SpeedBar:SetScript('OnUpdate', nil)
-    return
-  end
-
+function Falcon:UpdateCharges()
+  local info = MutableDataSharedInfo
+  MutableData.maxVigorCharges = info.MaxCharges
+  MutableData.IsThrill = info.IsThrill
+  MutableData.IsGroundSkimming = info.IsGroundSkimming and not info.IsThrill
   MutableData.GetRidingAbroadReciprocal = API:GetRidingAbroadReciprocal()
 
-  local isCharging, vigorCharges, maxVigorCharges, vigorChargeStart, vigorChargeDuration, _, isThrill = API:GetSharedInfo()
-  MutableData.IsThrill = isThrill
-  MutableData.maxVigorCharges = maxVigorCharges
+  local startTime, duration = API:GetWhirlingSurgeInfo()
+  local visibility = MutableData.BuffSettings.Visibility
+  local shouldShowSurge = (visibility == 3) or (visibility == 2 and duration == 0) or (visibility == 1 and duration > 2)
 
-  do
-    local startTime, duration = API:GetWhirlingSurgeInfo()
-    local shouldShowSurge = false
-    if MutableData.whirlingSurgeState == 3 then
-      shouldShowSurge = true
-    elseif MutableData.whirlingSurgeState == 2 then
-      shouldShowSurge = (duration == 0)
-    elseif MutableData.whirlingSurgeState == 1 then
-      shouldShowSurge = (duration > 2)
+  if shouldShowSurge then
+    self.WhirlingSurge:Show()
+    if startTime > 0 and duration > 0 then
+      self.WhirlingSurge.Cooldown:SetCooldown(startTime, duration)
     end
-    if shouldShowSurge then
-      self.WhirlingSurge:Show()
-      if startTime > 0 and duration > 0 then
-        self.WhirlingSurge.Cooldown:SetCooldown(startTime, duration)
-      end
-    else
-      self.WhirlingSurge:Hide()
-    end
+  else
+    self.WhirlingSurge:Hide()
   end
 
-  local shouldHideFullAndGrounded = (not API:IsAdvFlying()) and (not isCharging) and MutableData.hideWhenGroundedAndFull
-  if shouldHideFullAndGrounded then
-    self:HideAnim()
-    return
-  end
+  local currentTime = GetTime()
+  local currentTotalProgress = (info.Charges < info.MaxCharges and info.ChargeDuration > 0)
+    and (info.Charges + min((currentTime - info.ChargeStart) / info.ChargeDuration, 1)) or info.Charges
 
-  local currentTotalProgress = (vigorCharges < maxVigorCharges and vigorChargeDuration > 0)
-    and (vigorCharges + min((GetTime() - vigorChargeStart) / vigorChargeDuration, 1)) or vigorCharges
+  MutableData.oldTotalProgress = MutableData.oldTotalProgress or currentTotalProgress
 
-  if MutableData.oldTotalProgress == nil then
-    MutableData.oldTotalProgress = currentTotalProgress
-  end
-
-  if currentTotalProgress < (MutableData.oldTotalProgress - 0.9) and not MutableData.isDepleting then
+  local diff = MutableData.oldTotalProgress - currentTotalProgress
+  if diff > 0.5 and not MutableData.isDepleting then
     MutableData.isDepleting = true
-    local instantaneousTarget = currentTotalProgress
-    local regenRate = (vigorChargeDuration and vigorChargeDuration > 0) and (1 / vigorChargeDuration) or 0
-    local animationTimeEstimate = 0.15
-    local forwardOffset = regenRate * animationTimeEstimate
-    MutableData.depletionTargetTotalProgress = instantaneousTarget + forwardOffset
     MutableData.prevDepletionTotalProgress = MutableData.oldTotalProgress
     MutableData.prevCooldownProgress = nil
-  elseif not MutableData.isDepleting then
-    MutableData.oldTotalProgress = currentTotalProgress
-    MutableData.previousCharges = vigorCharges
   end
 
   if not MutableData.isDepleting then
-    local progress_charge_index = vigorCharges + 1
-    if MutableData.prevProgressChargeIndex ~= progress_charge_index then
-      MutableData.prevCooldownProgress = nil
-    end
-    MutableData.prevProgressChargeIndex = progress_charge_index
+    MutableData.oldTotalProgress = currentTotalProgress
+    MutableData.previousCharges = info.Charges
   end
 
-  if isCharging and not MutableData.isDepleting then
-    Falcon.SharedChargeDurationObject:SetTimeFromStart(vigorChargeStart, vigorChargeDuration)
+  local colors = MutableData.StatusBarColors
+  local speedBarColor = info.IsThrill and colors.Thrill or (info.IsGroundSkimming and colors.GroundSkimming or colors.LowSpeed)
+
+  if MutableData.LastSpeedBarColor ~= speedBarColor then
+    self.SpeedBar:SetStatusBarColor(speedBarColor.r, speedBarColor.g, speedBarColor.b, speedBarColor.a)
+    self.SpeedBar.tick:SetShown(info.IsThrill)
+    MutableData.LastSpeedBarColor = speedBarColor
   end
 
   local _, secondWindCharges = API:GetSecondWindInfo()
-  local totalFilledCharges = vigorCharges + secondWindCharges
-  local progress_charge_index = vigorCharges + 1
+  local totalFilledCharges = info.Charges + secondWindCharges
+  local progressIndex = info.Charges + 1
+  local chargeBarColor = MutableData.ApplySpeedBarColorsToChargeBar and speedBarColor or colors.Charge
 
-  for i = 1, maxVigorCharges do
+  for i = 1, info.MaxCharges do
     local chargeBar = self.ChargeBars[i]
     local secondWindBar = self.SecondWindBars[i]
     chargeBar:SetMinMaxValues(0, 1)
 
-    if MutableData.isDepleting then
-    elseif i < progress_charge_index then
-      chargeBar:SetValue(1)
-    elseif i > progress_charge_index then
-      chargeBar:SetValue(0)
-    else
-      if isCharging then
-        chargeBar:SetTimerDuration(Falcon.SharedChargeDurationObject, 1)
+    if not MutableData.isDepleting then
+      if i < progressIndex then
+        chargeBar:SetValue(1)
+      elseif i > progressIndex then
+        chargeBar:SetValue(0)
+      elseif info.IsCharging then
+        self.SharedChargeDurationObject:SetTimeFromStart(info.ChargeStart, info.ChargeDuration)
+        chargeBar:SetTimerDuration(self.SharedChargeDurationObject, 1)
       else
         chargeBar:SetValue(0)
       end
@@ -321,27 +316,55 @@ local function UpdateUI(self)
 
     secondWindBar:SetMinMaxValues(0, 1)
     if MutableData.secondWindMode == 1 then
-      local sw_value = 0
-      if i <= totalFilledCharges then
-        sw_value = 1
-      end
-      secondWindBar:SetValue(sw_value, 1)
+      secondWindBar:SetValue((i <= totalFilledCharges) and 1 or 0, 1)
     else
       secondWindBar:SetValue(0)
     end
+    chargeBar:SetStatusBarColor(chargeBarColor.r, chargeBarColor.g, chargeBarColor.b, chargeBarColor.a)
   end
 
-  if MutableData.isDepleting then
-    self:SetScript('OnUpdate', self.UpdateChargeBarDepletion)
-  else
+  if MutableData.LastDepletingState ~= MutableData.isDepleting then
+    self:SetScript('OnUpdate', MutableData.isDepleting and function(f, e) self:UpdateChargeBarDepletion(e) end or nil)
+    MutableData.LastDepletingState = MutableData.isDepleting
+  end
+end
+
+function Falcon:UpdateUI(e,...)
+  if LEM:IsInEditMode() then return end
+
+  if API:IsDerbyRacing() or not API:IsSkyriding() then
+    MutableData.previousCharges = 6
+    MutableData.prevCooldownProgress = 0
+    MutableData.prevProgressChargeIndex = 0
+    MutableData.isDepleting = nil
+    MutableData.oldTotalProgress = 0
+    self.SpeedBar:SetScript('OnUpdate', nil)
     self:SetScript('OnUpdate', nil)
+    self:HideAnim()
+    return
   end
 
-  self:UpdateBarBehaviourVisibility(MutableUIStates.BarBehaviourFlags)
+  local isCharging, charges, maxCharges, chargeStart, chargeDuration, _, isThrill, isGroundSkimming = API:GetSharedInfo()
+  if (not API:IsAdvFlying()) and (not isCharging) and MutableData.hideWhenGroundedAndFull then
+    self:HideAnim()
+    return
+  end
+
+  MutableDataSharedInfo.IsCharging = isCharging
+  MutableDataSharedInfo.Charges = charges
+  MutableDataSharedInfo.MaxCharges = maxCharges
+  MutableDataSharedInfo.ChargeStart = chargeStart
+  MutableDataSharedInfo.ChargeDuration = chargeDuration
+  MutableDataSharedInfo.IsThrill = isThrill
+  MutableDataSharedInfo.IsGroundSkimming = isGroundSkimming
+  if e == 'ACTIONBAR_UPDATE_COOLDOWN' then
+    self:UpdateCharges()
+  end
+
   self.SpeedBar:SetScript('OnUpdate', function(_, elapsed) self:RefreshSpeedDisplay(elapsed) end)
+  self:UpdateBarBehaviourVisibility(MutableUIStates.BarBehaviourFlags)
   self:ShowAnim()
 end
-Falcon.UpdateUI = UpdateUI
 
 function Falcon:SetElementVisibility(frame, isVisible)
   if isVisible then
@@ -364,10 +387,41 @@ function Falcon:SetElementVisibility(frame, isVisible)
   end
 end
 
+function Falcon:UpdateBuffAnchor(layout)
+  C_Timer.After(0.05, function()
+  if not layout then return end
+  local swapPosition = layout.Styles[layout.CurrentStyle].SwapPositions
+  local anchor = layout.BuffSettings.Anchor
+  if not self.SpeedBarBG:IsShown() and not self.ChargesParent:IsShown() then
+    self.WhirlingSurge:Hide()
+    return
+  end
+  local target = self
+  local isTop = anchor:find('Top')
+  local isBottom = anchor:find('Bottom')
+  if isTop then
+    if not self.SpeedBarBG:IsShown() and not swapPosition then
+      target = self.ChargesParent
+    elseif not self.ChargesParent:IsShown() and swapPosition then
+      target = self.SpeedBarBG
+    end
+  elseif isBottom then
+    if not self.ChargesParent:IsShown() and not swapPosition then
+      target = self.SpeedBarBG
+    elseif not self.SpeedBarBG:IsShown() and swapPosition then
+      target = self.ChargesParent
+    end
+  end
+  local anchorConfig = buffAnchorPoints[anchor]
+  self.WhirlingSurge:ClearAllPoints()
+  self.WhirlingSurge:SetPoint(anchorConfig[1], target, anchorConfig[2], anchorConfig[3], anchorConfig[4])
+  end)
+end
+
 function Falcon:UpdateBarBehaviourVisibility(flags)
   local B = F.BarBehaviour
   local isAdvFlying = API:IsAdvFlying()
-  local isCharging = API:GetSharedInfo()
+  local isCharging = MutableDataSharedInfo.IsCharging
 
   local isGrounded = not isAdvFlying
   local isFullGrounded = isGrounded and not isCharging
@@ -390,9 +444,14 @@ function Falcon:UpdateBarBehaviourVisibility(flags)
     end
   end
 
+  if MutableData.LastHideCharges ~= shouldHideCharges or MutableData.LastHideSpeed ~= shouldHideSpeed then
+    self:SetElementVisibility(self.SpeedBarBG, not shouldHideSpeed)
+    self:SetElementVisibility(self.ChargesParent, not shouldHideCharges)
+    MutableData.LastHideCharges = shouldHideCharges
+    MutableData.LastHideSpeed = shouldHideSpeed
+  end
+  self:UpdateBuffAnchor()
   self:UpdateShadow(shouldHideCharges, shouldHideSpeed)
-  self:SetElementVisibility(self.SpeedBarBG, not shouldHideSpeed)
-  self:SetElementVisibility(self.ChargesParent, not shouldHideCharges)
 end
 
 function Falcon:UpdateUISizes(new_charge_width, new_speed_height, new_charge_height, new_padding, new_swap_position, new_bar_behaviour_flags)
@@ -428,8 +487,8 @@ function Falcon:UpdateUISizes(new_charge_width, new_speed_height, new_charge_hei
   local mainframeHeight = PixelUtil.GetNearestPixelSize(precisionSpeedBarHeight + precisionPadding + precisionChargeBarHeight, uiScale, 1)
 
   self:SetSize(totalWidth, mainframeHeight)
-  local iconSize = speedHeight + chargeHeight + precisionPadding
-  self.WhirlingSurge:SetSize(iconSize, iconSize)
+  local iconSize = MutableData.BuffSettings.Size
+  PixelUtil.SetSize(self.WhirlingSurge, iconSize, iconSize, iconSize, iconSize)
 
   self.SpeedBarBG:SetSize(totalWidth, precisionSpeedBarHeight)
   self.SpeedBarBG:ClearAllPoints()
@@ -476,7 +535,7 @@ end
 
 function Falcon:UpdateShadow(hideCharges, hideSpeed)
   local isZeroPadding = MutableUIStates.Padding == 0
-  local alpha = MutableData.shadowColor.a
+  local alpha = MutableData.FrameColors.ShadowColor.a
   self.shadow:SetAlpha(0)
   self.SpeedBarBG.shadow:SetAlpha(0)
   self.ChargesParent.shadow:SetAlpha(0)
@@ -487,7 +546,7 @@ function Falcon:UpdateShadow(hideCharges, hideSpeed)
   if hideCharges and hideSpeed then return end
 
   if not hideCharges and not hideSpeed and isZeroPadding then
-    self.shadow:SetAlpha(alpha)
+    self.shadow:SetAlpha(alpha or 0)
   else
     if not hideSpeed then
       self.SpeedBarBG.shadow:SetAlpha(alpha)
@@ -528,7 +587,6 @@ end
 function Falcon:CreateUI()
   self.num_charges = 6
   self:AddShadow(self)
-
   local surge = CreateFrame('Frame', nil, self)
   self.WhirlingSurge = surge
   surge.Icon = surge:CreateTexture(nil, 'ARTWORK')
@@ -536,11 +594,10 @@ function Falcon:CreateUI()
   surge.Icon:SetTexCoord(.08, .92, .08, .92)
   local icon = C_Spell.GetSpellTexture(1227921)
   surge.Icon:SetTexture(icon)
-  surge.Cooldown = CreateFrame('Cooldown', nil, surge, 'CooldownFrameTemplate')
+  surge.Cooldown = CreateFrame('Cooldown', nil, surge, 'CooldownFrameTemplate') ---@diagnostic disable-line: generic-constraint-mismatch
   surge.Cooldown:SetAllPoints()
   surge.Cooldown:SetHideCountdownNumbers(false)
-  surge.Cooldown:HookScript("OnCooldownDone", function() self:UpdateUI() end)
-  surge:SetPoint('LEFT', self, 'RIGHT', 8, 0)
+  surge.Cooldown:HookScript('OnCooldownDone', function() self:UpdateUI('ACTIONBAR_UPDATE_COOLDOWN') end)
   self:AddOutline(surge)
   self:AddShadow(surge)
 
@@ -585,14 +642,14 @@ function Falcon:CreateUI()
     local secondWindBar = CreateFrame('StatusBar', nil, chargesBG)
     self.SecondWindBars[i] = secondWindBar
     secondWindBar:SetStatusBarTexture('interface\\buttons\\white8x8')
-    secondWindBar:SetMinMaxValues(0, 1)
+    secondWindBar:SetMinMaxValues(0, 1.2)
     secondWindBar:SetValue(0)
 
     local chargeBar = CreateFrame('StatusBar', nil, chargesBG)
     self.ChargeBars[i] = chargeBar
     self:AddInsideGlow(chargeBar)
     chargeBar:SetStatusBarTexture('interface\\buttons\\white8x8')
-    chargeBar:SetMinMaxValues(0, 1)
+    chargeBar:SetMinMaxValues(0, 1.2)
     chargeBar:SetValue(0)
     chargeBar:SetFrameLevel(secondWindBar:GetFrameLevel() + 1)
   end
@@ -645,7 +702,6 @@ function Falcon:CreateAnimations()
   self.TextDisplay.AnimShow = API:CreateAnimationGroupFromConfig(self.TextDisplay, {
     setToFinalAlpha = true,
     onPlay = function(self) self:GetParent():Show() end,
-
     animations = {
       { type = 'Alpha', fromAlpha = 0, toAlpha = 1, duration = 0.2, smoothing = 'IN' }
     }
@@ -663,30 +719,36 @@ function Falcon:CreateAnimations()
 
   self.SpeedBarBG.AnimShow = API:CreateAnimationGroupFromConfig(self.SpeedBarBG, {
     setToFinalAlpha = true,
-    onPlay = function(anim) anim:GetParent():Show() end,
+    onPlay = function(anim)
+      anim:GetParent():Show()
+      Falcon:UpdateBuffAnchor(FalconAddOnDB.Settings[LEM:GetActiveLayoutName()])
+      end,
     animations = { { type = 'Alpha', fromAlpha = 0, toAlpha = 1, duration = 0.2, smoothing = 'OUT' } }
   })
 
   self.SpeedBarBG.AnimHide = API:CreateAnimationGroupFromConfig(self.SpeedBarBG, {
     setToFinalAlpha = true,
     onFinished = function(anim)
-      local f = anim:GetParent()
-      f:Hide()
+      Falcon:UpdateBuffAnchor(FalconAddOnDB.Settings[LEM:GetActiveLayoutName()])
+      anim:GetParent():Hide()
     end,
     animations = { { type = 'Alpha', fromAlpha = 1, toAlpha = 0, duration = 0.2, smoothing = 'OUT' } }
   })
 
   self.ChargesParent.AnimShow = API:CreateAnimationGroupFromConfig(self.ChargesParent, {
     setToFinalAlpha = true,
-    onPlay = function(anim) anim:GetParent():Show() end,
+    onPlay = function(anim)
+      anim:GetParent():Show()
+      Falcon:UpdateBuffAnchor(FalconAddOnDB.Settings[LEM:GetActiveLayoutName()])
+      end,
     animations = { { type = 'Alpha', fromAlpha = 0, toAlpha = 1, duration = 0.2, smoothing = 'OUT' } }
   })
 
   self.ChargesParent.AnimHide = API:CreateAnimationGroupFromConfig(self.ChargesParent, {
     setToFinalAlpha = true,
     onFinished = function(anim)
-      local f = anim:GetParent()
-      f:Hide()
+      Falcon:UpdateBuffAnchor(FalconAddOnDB.Settings[LEM:GetActiveLayoutName()])
+      anim:GetParent():Hide()
     end,
     animations = { { type = 'Alpha', fromAlpha = 1, toAlpha = 0, duration = 0.2, smoothing = 'OUT' } }
   })
@@ -699,13 +761,13 @@ end
 function Falcon:OnLoad()
   self:SetClampedToScreen(true)
   -- Set it high enough to draw over other elements
-  self:SetFrameLevel(50)
+  self:SetFrameLevel(1000)
   self:CreateUI()
   self.SharedChargeDurationObject = C_DurationUtil.CreateDuration()
-  self:SetScript('OnEvent', self.OnEvent)
+
+  self:SetScript('OnEvent', self.UpdateUI)
   self:RegisterEvent('ACTIONBAR_UPDATE_COOLDOWN')
   self:RegisterEvent('ACTIONBAR_UPDATE_STATE')
-  self:RegisterEvent('PLAYER_IN_COMBAT_CHANGED')
   self:RegisterEvent('UPDATE_BONUS_ACTIONBAR')
   self:RegisterEvent('PLAYER_CAN_GLIDE_CHANGED')
   self:RegisterEvent('PLAYER_IS_GLIDING_CHANGED')

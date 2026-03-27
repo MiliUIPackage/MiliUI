@@ -1,7 +1,7 @@
-## Interface: 120000, 120001
+## Interface: 120000, 120001, 120005
 ## Title: |cffEEE4AESkyriding Falcon|r
 ## Author: Yuyuli
-## Version: 0.8.3
+## Version: 0.8.5
 ## SavedVariables: FalconAddOnDB
 ## LoadSavedVariablesFirst: 1
 
@@ -24,6 +24,7 @@
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibEditMode\namespaced.lua
 Libs\LibEditMode\embed.xml
 Libs\LibSharedMedia-3.0\lib.xml
 

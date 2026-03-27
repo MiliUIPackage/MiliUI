@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.5
+- Added missing Top/Bottom anchor for surge icon
+
+## 0.8.4
+- Font customization (Size, Font)
+- Statusbars have more color customization now, so now you can customize Vigor, Second Wind on the Vigor bar and Low Speed, Ground Skimming and Thrill on the speed bar how you want it instead of a single color.
+- Under Bar Settings you can now override the charges to use the speedbar colors instead.
+- Whirling Surge icon can be moved to various anchors now.
+
 ## 0.8.3
 - Add 'Always Show' option for Whirling Surge
 - Update code to use the new statusbar apis from midnight.

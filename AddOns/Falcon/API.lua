@@ -41,16 +41,18 @@ end
 ---@return number cooldownDuration
 ---@return number chargeModRate
 ---@return boolean IsThrill
+---@return boolean IsGroundSkimming
 function API:GetSharedInfo()
   local data = C_Spell.GetSpellCharges(372608)
-  if not data then return false, 0, 0, 0, 0, 0, false end
+  if not data then return false, 0, 0, 0, 0, 0, false, false end
   return  data.currentCharges < data.maxCharges,
           data.currentCharges,
           data.maxCharges,
           data.cooldownStartTime,
           data.cooldownDuration,
           data.chargeModRate,
-          data.cooldownDuration <= 6.003 -- 10.35 base -42%
+          data.cooldownDuration <= 6.003, -- 10.35 base -42%
+          data.cooldownDuration == 8.28
 end
 
 ---@return boolean IsCharging

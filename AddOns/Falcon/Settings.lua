@@ -1,11 +1,7 @@
 local addonName = ... ---@type string 'Falcon'
 local ns = select(2,...) ---@class (partial) namespace
 local F = ns.Flags
----@class (partial) Falcon
----@field Center table
----@field Label table
----@field Selection table
----@field shadow Texture
+---@type Falcon
 local Falcon = ns.Falcon
 ---@class FalconSettings : Frame
 local FalconSettings = CreateFrame('frame')
@@ -14,48 +10,98 @@ local API = ns.API
 local LEM = ns.LEM
 local MutableData = ns.MutableData
 
----@class defaultPosition
----@field point FramePoint
----@field x number
----@field y number
----@field scale number
-local defaultPosition = {
-  point = 'BOTTOM',
-  x = 0.5,
-  y = 200,
-  scale = 1,
-}
+---@class FalconColor
+---@field r number
+---@field g number
+---@field b number
+---@field a number
+
+---@class FalconTexture
+---@field Name string
+---@field Texture string
+
+---@class FontSettings
+---@field Hide boolean
+---@field Name string
+---@field Size number
+---@field Flags string
+---@field Position { Justify: 'LEFT'|'CENTER'|'RIGHT' }
+
+---@class StyleSettings
+---@field ChargeHeight number
+---@field Padding number
+---@field SpeedHeight number
+---@field SwapPositions boolean
+---@field Width number
+
+---@class BuffSettings
+---@field Visibility integer
+---@field Anchor 'Top Left' | 'Top' | 'Top Right' | 'Left' | 'Right' | 'Bottom Left' | 'Bottom' | 'Bottom Right'
+---@field Size integer
+
+---@class GeneralSettings
+---@field ApplySpeedBarColorsToChargeBar boolean
 
 ---@class defaultTableData
----@field point FramePoint
----@field x number
----@field y number
----@field scale number
----@field TextPosition string
+---@field Position { x: number, y: number, point: FramePoint, scale: number }
+---@field Version number
+---@field FrameColors table<string, FalconColor>
+---@field StatusBarColors table<string, FalconColor>
+---@field FontSettings FontSettings
+---@field BuffSettings BuffSettings
+---@field CurrentStyle string
+---@field CurrentTexture FalconTexture
+---@field DefaultTexture FalconTexture
 ---@field hideWhenGroundedAndFull boolean
----@field noDisplayText boolean
+---@field mutedSoundsBitfield integer
+---@field secondWindMode number
+---@field BarBehaviourFlags integer
+---@field Styles table<string, StyleSettings>
+---@field General GeneralSettings
 local defaultTableData = {
-  point = 'BOTTOM',
-  x = 0.5,
-  y = 200,
-  scale = 1,
-  Version = 1,
-  TextPosition = 'RIGHT',
-  InsideGlowColor = { r = 1, g = 1, b = 1, a = 0},
-  BackgroundColor = { r = 0.2, g = 0.2, b = 0.2, a = 1},
-  BorderColor = { r = 0, g = 0, b = 0, a = 1},
-  ChargeColor = { r = 0.0, g = 0.67, b = 0.98, a = 1 },
-  ShadowColor = { r = 0.0, g = 0.0, b = 0.0, a = 0.4 },
+  Position = {
+    x = 0.5,
+    y = 200,
+    point = 'BOTTOM',
+    scale = 1
+  },
+  Version = 2,
+  FrameColors = {
+    InsideGlowColor = { r = 1, g = 1, b = 1, a = 0},
+    BackgroundColor = { r = 0.2, g = 0.2, b = 0.2, a = 1},
+    BorderColor = { r = 0, g = 0, b = 0, a = 1},
+    ShadowColor = { r = 0.0, g = 0.0, b = 0.0, a = 0.4 },
+  },
+  StatusBarColors = {
+    Charge = { r = 0.0, g = 0.67, b = 0.98, a = 1 },
+    GroundSkimming = { r = 0.88, g = 0.77, b = 0.25, a = 1.0 },
+    LowSpeed = { r = 0.86, g = 0.32, b = 0.39, a = 1.0 },
+    SecondWind = { r = 0.0, g = 0.45, b = 0.65, a = 1 },
+    Thrill = { r = 0.5490, g = 0.8118, b = 0.3882, a = 1 },
+  },
+  General = {
+    ApplySpeedBarColorsToChargeBar = false,
+  },
+  FontSettings = {
+    Flags = '',
+    Hide = false,
+    Name = 'ARIALN',
+    Position = {
+      Justify = 'RIGHT',
+    },
+    Size = 14,
+  },
+  BuffSettings = {
+    Anchor = 'Right',
+    Size = 28,
+    Visibility = 1,
+  },
   CurrentStyle = 'Clean',
   CurrentTexture = { Name = 'Falcon Smooth', Texture = 'Interface\\AddOns\\Falcon\\Media\\Statusbar\\FalconSmooth.tga' },
   DefaultTexture = { Name = 'Falcon Smooth', Texture = 'Interface\\AddOns\\Falcon\\Media\\Statusbar\\FalconSmooth.tga' },
   hideWhenGroundedAndFull = false,
   mutedSoundsBitfield = 0,
-  noDisplayText = false,
   secondWindMode = 1,
-  SpeedColor = { r = 0.5490, g = 0.8118, b = 0.3882, a = 1 },
-  whirlingSurgeMode = 0,
-  whirlingSurgeState = 1,
   BarBehaviourFlags = 0,
   Styles = {
     Clean = {
@@ -67,7 +113,11 @@ local defaultTableData = {
     }
   }
 }
+
 ns.defaultTableData = defaultTableData
+
+---@class defaultPosition
+local defaultPosition = CopyTable(defaultTableData.Position)
 
 local LibSharedMedia = LibStub('LibSharedMedia-3.0')
 
@@ -260,6 +310,41 @@ local function EnsureSettings(targetDB, key)
   return targetDB[key]
 end
 
+function FalconSettings:MigrateSettings(layout)
+  if layout.Version == 1 then
+    layout.Version = 2
+    layout.Position.point = layout.point or layout.Position.point ---@diagnostic disable-line: undefined-field
+    layout.Position.x = layout.x or layout.Position.x ---@diagnostic disable-line: undefined-field
+    layout.Position.y = layout.y or layout.Position.y ---@diagnostic disable-line: undefined-field
+    layout.point = nil
+    layout.x = nil
+    layout.y = nil
+    layout.StatusBarColors.Thrill = layout.SpeedColor or layout.StatusBarColors.Thrill ---@diagnostic disable-line: undefined-field
+    layout.SpeedColor = nil
+    layout.StatusBarColors.Charge = layout.ChargeColor or layout.StatusBarColors.Charge ---@diagnostic disable-line: undefined-field
+    layout.ChargeColor = nil
+    layout.StatusBarColors.SecondWind = layout.SecondWindColor or layout.StatusBarColors.SecondWind ---@diagnostic disable-line: undefined-field
+    layout.SecondWindColor = nil
+    layout.FontSettings.Hide = layout.noDisplayText or layout.FontSettings.Hide ---@diagnostic disable-line: undefined-field
+    layout.noDisplayText = nil
+    layout.textPosition = nil
+    layout.TextPosition = nil
+    layout.BuffSettings.Visibility = layout.whirlingSurgeState or layout.BuffSettings.Visibility
+    layout.whirlingSurgeState = nil
+    local config = layout.Styles[layout.CurrentStyle]
+    layout.CurrentTexture = layout.CurrentTexture or config.CurrentTexture or defaultTableData.DefaultTexture ---@diagnostic disable-line: undefined-field
+    config.CurrentTexture = nil
+    layout.FrameColors.InsideGlowColor = layout.InsideGlowColor or layout.FrameColors.InsideGlowColor
+    layout.FrameColors.ShadowColor = layout.ShadowColor or layout.FrameColors.ShadowColor
+    layout.FrameColors.BorderColor = layout.BorderColor or layout.FrameColors.BorderColor
+    layout.FrameColors.BackgroundColor = layout.BackgroundColor or layout.FrameColors.BackgroundColor
+    layout.InsideGlowColor = nil
+    layout.ShadowColor = nil
+    layout.BorderColor = nil
+    layout.BackgroundColor = nil
+  end
+end
+
 ---@param layoutName string
 function FalconSettings:SetupLayout(layoutName)
   FalconAddOnDB = FalconAddOnDB or {} ---@diagnostic disable-line
@@ -270,45 +355,29 @@ function FalconSettings:SetupLayout(layoutName)
   FalconAddOnDB.Settings['FalconGlobalSettings'] = EnsureSettings(FalconAddOnDB.Settings, 'FalconGlobalSettings')
   ---@type defaultTableData
   local layout = FalconAddOnDB.Settings[layoutName]
-  Falcon:ClearAllPoints()
-  Falcon:SetPoint(layout.point, layout.x, layout.y)
+  local styleConfig = layout.Styles[layout.CurrentStyle]
+  self:MigrateSettings(layout)
 
-  MutableData.hideWhenGroundedAndFull = layout.hideWhenGroundedAndFull
-  MutableData.shadowColor = layout.ShadowColor
-  MutableData.noDisplayText = layout.noDisplayText
-  MutableData.chargeColor = layout.ChargeColor
-  MutableData.speedColor = layout.SpeedColor
-  MutableData.backgroundColor = layout.BackgroundColor
-  MutableData.borderColor = layout.BorderColor
-  MutableData.secondWindMode = FalconAddOnDB.Settings['FalconGlobalSettings'].secondWindMode
-  MutableData.InsideGlowColor = layout.InsideGlowColor
-  MutableData.whirlingSurgeState = layout.whirlingSurgeState
-  local config = layout.Styles[layout.CurrentStyle]
-  layout.CurrentTexture = layout.CurrentTexture or config.CurrentTexture or defaultTableData.DefaultTexture
-  config.CurrentTexture = nil
-  local texture = LibSharedMedia:Fetch('statusbar', layout.CurrentTexture.Name, true)
-  if not texture then
-    layout.CurrentTexture = defaultTableData.DefaultTexture
-    texture = defaultTableData.DefaultTexture.Texture
-  end
-  layout.textPosition = nil -- Remove from existing tables.
-  if layout.TextPosition == 'RIGHT' then
-    Falcon.TextDisplay.Text:SetJustifyH('RIGHT')
-  elseif layout.TextPosition == 'LEFT' then
-    Falcon.TextDisplay.Text:SetJustifyH('LEFT')
-  end
-  Falcon.SpeedBar:SetStatusBarTexture(texture --[[@as Texture]])
-  Falcon.SpeedBar:SetStatusBarColor(layout.SpeedColor.r, layout.SpeedColor.g, layout.SpeedColor.b, layout.SpeedColor.a)
-  Falcon.SpeedBar.insideGlow:SetVertexColor(layout.InsideGlowColor.r, layout.InsideGlowColor.g, layout.InsideGlowColor.b, layout.InsideGlowColor.a)
-  Falcon.SpeedBar.tick:SetColorTexture(layout.BorderColor.r, layout.BorderColor.g, layout.BorderColor.b, layout.BorderColor.a)
-  Falcon.SpeedBarBG.outline:SetVertexColor(layout.BorderColor.r, layout.BorderColor.g, layout.BorderColor.b, layout.BorderColor.a)
+  Falcon:ClearAllPoints()
+  Falcon:SetPoint(layout.Position.point, layout.Position.x, layout.Position.y)
+  local texture = LibSharedMedia:Fetch('statusbar', layout.CurrentTexture.Name, true) or defaultTableData.DefaultTexture.Texture
+
+  Falcon.TextDisplay.Text:SetJustifyH(layout.FontSettings.Position.Justify)
+  local font = LibSharedMedia:Fetch('font', layout.FontSettings.Name, true) or LibSharedMedia:Fetch('font', defaultTableData.FontSettings.Name)
+  Falcon.TextDisplay.Text:SetFont(font, layout.FontSettings.Size, layout.FontSettings.Flags)
+  Falcon.SpeedBar:SetStatusBarTexture(texture)
+  Falcon.SpeedBar:SetStatusBarColor(layout.StatusBarColors.Thrill.r, layout.StatusBarColors.Thrill.g, layout.StatusBarColors.Thrill.b, layout.StatusBarColors.Thrill.a)
+  Falcon.SpeedBar.insideGlow:SetVertexColor(layout.FrameColors.InsideGlowColor.r, layout.FrameColors.InsideGlowColor.g, layout.FrameColors.InsideGlowColor.b, layout.FrameColors.InsideGlowColor.a)
+  Falcon.SpeedBar.tick:SetColorTexture(layout.FrameColors.BorderColor.r, layout.FrameColors.BorderColor.g, layout.FrameColors.BorderColor.b, layout.FrameColors.BorderColor.a)
+  Falcon.SpeedBarBG.outline:SetVertexColor(layout.FrameColors.BorderColor.r, layout.FrameColors.BorderColor.g, layout.FrameColors.BorderColor.b, layout.FrameColors.BorderColor.a)
   Falcon.SpeedBarBG.Background:SetTexture(texture)
-  Falcon.SpeedBarBG.Background:SetVertexColor(layout.BackgroundColor.r, layout.BackgroundColor.g, layout.BackgroundColor.b, layout.BackgroundColor.a)
-  Falcon.SpeedBarBG.shadow:SetVertexColor(layout.ShadowColor.r, layout.ShadowColor.g, layout.ShadowColor.b, layout.ShadowColor.a)
-  Falcon.shadow:SetVertexColor(layout.ShadowColor.r, layout.ShadowColor.g, layout.ShadowColor.b, layout.ShadowColor.a)
-  Falcon.ChargesParent.shadow:SetVertexColor(layout.ShadowColor.r, layout.ShadowColor.g, layout.ShadowColor.b, 0)
-  Falcon.WhirlingSurge.outline:SetVertexColor(layout.BorderColor.r, layout.BorderColor.g, layout.BorderColor.b, layout.BorderColor.a)
-  Falcon.WhirlingSurge.shadow:SetVertexColor(layout.ShadowColor.r, layout.ShadowColor.g, layout.ShadowColor.b, layout.ShadowColor.a)
+  Falcon.SpeedBarBG.Background:SetVertexColor(layout.FrameColors.BackgroundColor.r, layout.FrameColors.BackgroundColor.g, layout.FrameColors.BackgroundColor.b, layout.FrameColors.BackgroundColor.a)
+  Falcon.SpeedBarBG.shadow:SetVertexColor(layout.FrameColors.ShadowColor.r, layout.FrameColors.ShadowColor.g, layout.FrameColors.ShadowColor.b, layout.FrameColors.ShadowColor.a)
+  Falcon.shadow:SetVertexColor(layout.FrameColors.ShadowColor.r, layout.FrameColors.ShadowColor.g, layout.FrameColors.ShadowColor.b, layout.FrameColors.ShadowColor.a)
+  Falcon.ChargesParent.shadow:SetVertexColor(layout.FrameColors.ShadowColor.r, layout.FrameColors.ShadowColor.g, layout.FrameColors.ShadowColor.b, 0)
+  Falcon.WhirlingSurge.outline:SetVertexColor(layout.FrameColors.BorderColor.r, layout.FrameColors.BorderColor.g, layout.FrameColors.BorderColor.b, layout.FrameColors.BorderColor.a)
+  Falcon.WhirlingSurge.shadow:SetVertexColor(layout.FrameColors.ShadowColor.r, layout.FrameColors.ShadowColor.g, layout.FrameColors.ShadowColor.b, layout.FrameColors.ShadowColor.a)
+
   for i = 1, Falcon.num_charges do
     ---@class ChargeBar : StatusBar
     ---@field insideGlow Texture
@@ -319,29 +388,100 @@ function FalconSettings:SetupLayout(layoutName)
     ---@field shadow Texture
     local chargesBG = Falcon.ChargeBGs[i]
     local secondWindBar = Falcon.SecondWindBars[i]
-    chargesBG.outline:SetVertexColor(layout.BorderColor.r, layout.BorderColor.g, layout.BorderColor.b, layout.BorderColor.a)
+    chargesBG.outline:SetVertexColor(layout.FrameColors.BorderColor.r, layout.FrameColors.BorderColor.g, layout.FrameColors.BorderColor.b, layout.FrameColors.BorderColor.a)
     chargesBG.Background:SetTexture(texture)
-    chargesBG.Background:SetVertexColor(layout.BackgroundColor.r, layout.BackgroundColor.g, layout.BackgroundColor.b, layout.BackgroundColor.a)
-    chargesBG.shadow:SetVertexColor(layout.ShadowColor.r, layout.ShadowColor.g, layout.ShadowColor.b, layout.ShadowColor.a)
-    chargeBar:SetStatusBarColor(layout.ChargeColor.r, layout.ChargeColor.g, layout.ChargeColor.b, layout.ChargeColor.a)
+    chargesBG.Background:SetVertexColor(layout.FrameColors.BackgroundColor.r, layout.FrameColors.BackgroundColor.g, layout.FrameColors.BackgroundColor.b, layout.FrameColors.BackgroundColor.a)
+    chargesBG.shadow:SetVertexColor(layout.FrameColors.ShadowColor.r, layout.FrameColors.ShadowColor.g, layout.FrameColors.ShadowColor.b, layout.FrameColors.ShadowColor.a)
+    chargeBar:SetStatusBarColor(layout.StatusBarColors.Charge.r, layout.StatusBarColors.Charge.g, layout.StatusBarColors.Charge.b, layout.StatusBarColors.Charge.a)
     chargeBar:SetStatusBarTexture(texture)
-    chargeBar.insideGlow:SetVertexColor(layout.InsideGlowColor.r, layout.InsideGlowColor.g, layout.InsideGlowColor.b, layout.InsideGlowColor.a)
-    secondWindBar:SetStatusBarColor(layout.ChargeColor.r, layout.ChargeColor.g, layout.ChargeColor.b, layout.ChargeColor.a * 0.5)
+    chargeBar.insideGlow:SetVertexColor(layout.FrameColors.InsideGlowColor.r, layout.FrameColors.InsideGlowColor.g, layout.FrameColors.InsideGlowColor.b, layout.FrameColors.InsideGlowColor.a)
+    secondWindBar:SetStatusBarColor(layout.StatusBarColors.SecondWind.r, layout.StatusBarColors.SecondWind.g, layout.StatusBarColors.SecondWind.b, layout.StatusBarColors.SecondWind.a)
     secondWindBar:SetStatusBarTexture(texture)
   end
 
-  -- Initalize
-  Falcon:UpdateUISizes(config.Width, config.SpeedHeight, config.ChargeHeight, config.Padding, config.SwapPositions, layout.BarBehaviourFlags)
-  --API:FixPosition(Falcon)
-  FalconSettings:ApplyMutedSoundsState()
+  MutableData.hideWhenGroundedAndFull = layout.hideWhenGroundedAndFull
+  MutableData.HideDisplayText = layout.FontSettings.Hide
+  MutableData.secondWindMode = FalconAddOnDB.Settings['FalconGlobalSettings'].secondWindMode
+  MutableData.StatusBarColors = layout.StatusBarColors
+  MutableData.FrameColors = layout.FrameColors
+  MutableData.BuffSettings = layout.BuffSettings
+  MutableData.ChargeBarColor = layout.StatusBarColors.Charge
+  MutableData.ApplySpeedBarColorsToChargeBar = layout.General.ApplySpeedBarColorsToChargeBar
+
+  Falcon:UpdateUISizes(styleConfig.Width, styleConfig.SpeedHeight, styleConfig.ChargeHeight, styleConfig.Padding, styleConfig.SwapPositions, layout.BarBehaviourFlags)
+  Falcon:UpdateBuffAnchor(layout)
+  self:ApplyMutedSoundsState()
 end
 
 local function OnPositionChanged(frame, layoutName, point, x, y)
   layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
   point, x, y = API:FixPosition(frame)
-  FalconAddOnDB.Settings[layoutName].point = point
-  FalconAddOnDB.Settings[layoutName].x = x
-  FalconAddOnDB.Settings[layoutName].y = y
+  FalconAddOnDB.Settings[layoutName].Position.point = point
+  FalconAddOnDB.Settings[layoutName].Position.x = x
+  FalconAddOnDB.Settings[layoutName].Position.y = y
+end
+
+local FalconMenuUtil = {}
+
+function FalconMenuUtil:AddColorSwatch(rootDescription, layoutName, name, key, colorData, onUpdate)
+  local function OnClick()
+    local info = {
+      r = colorData.r,
+      g = colorData.g,
+      b = colorData.b,
+      opacity = colorData.a,
+      hasOpacity = true,
+      swatchFunc = function()
+        local r, g, b = ColorPickerFrame:GetColorRGB()
+        local a = ColorPickerFrame:GetColorAlpha()
+        local newColor = { r = r, g = g, b = b, a = a }
+        if onUpdate then
+          onUpdate(newColor)
+        end
+      end,
+      cancelFunc = function()
+        if onUpdate then
+          onUpdate(colorData)
+        end
+      end,
+    }
+    ColorPickerFrame:SetupColorPickerAndShow(info)
+  end
+
+  local elementDescription = rootDescription:CreateButton(name, OnClick)
+  elementDescription:SetResponse(MenuResponse.Open)
+  elementDescription:AddInitializer(function(button, description, menu)
+    local bg = button:AttachTexture(nil, 'BACKGROUND')
+    bg:SetTexture('Interface\\Buttons\\WHITE8X8')
+    bg:SetSize(14, 14)
+    bg:SetPoint('RIGHT', -6, 0)
+    bg:SetVertexColor(1, 1, 1, 1)
+
+    local inner = button:AttachTexture(nil, 'BORDER')
+    inner:SetTexture('Interface\\Buttons\\WHITE8X8')
+    inner:SetSize(12, 12)
+    inner:SetPoint('CENTER', bg)
+    inner:SetVertexColor(0, 0, 0, 1)
+
+    local colorTex = button:AttachTexture(nil, 'ARTWORK')
+    colorTex:SetTexture('Interface\\Buttons\\WHITE8X8')
+    colorTex:SetSize(10, 10)
+    colorTex:SetPoint('CENTER', bg)
+    colorTex:SetVertexColor(colorData.r, colorData.g, colorData.b, colorData.a)
+
+    local width = button.fontString:GetUnboundedStringWidth() + 40
+    return width, 22
+  end)
+
+  return elementDescription
+end
+
+function FalconMenuUtil:RemoveDefaultText(owner)
+  TextureLoadingGroupMixin.RemoveTexture({textures = owner}, 'defaultText') ---@diagnostic disable-line
+end
+
+function FalconSettings:GetActiveLayout()
+  return FalconSettings:GetCurrentLayoutName(LEM:GetActiveLayoutName())
 end
 
 Falcon.editModeName = 'Falcon'
@@ -358,11 +498,13 @@ LEM:AddFrameSettings(Falcon, {
       if fromReset then
         layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
         FalconSettings:SetupLayout(layoutName)
+        Falcon:UpdateUI()
         LEM:RefreshFrameSettings(Falcon)
       else
         FalconAddOnDB.FalconGlobalSettingsEnabled = value
         layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
         FalconSettings:SetupLayout(layoutName)
+        Falcon:UpdateUI()
         LEM:RefreshFrameSettings(Falcon)
       end
     end,
@@ -383,14 +525,13 @@ LEM:AddFrameSettings(Falcon, {
         secondWindBar:SetStatusBarTexture(texture)
         chargeBar:SetStatusBarTexture(texture)
       end
-      local layoutName = FalconSettings:GetCurrentLayoutName(LEM:GetActiveLayoutName())
-      FalconAddOnDB.Settings[layoutName].CurrentTexture = { Name = defaultTableData.DefaultTexture.Name }
+      FalconAddOnDB.Settings[FalconSettings:GetActiveLayout()].CurrentTexture = { Name = defaultTableData.DefaultTexture.Name, Texture = defaultTableData.DefaultTexture.Texture }
     end,
     generator = function(owner, rootDescription)
       FalconSettings.SoundsDropdown = owner
       owner.ShouldShowTooltip = nop
+      local layoutName = FalconSettings:GetActiveLayout()
       local getFunc = function(value)
-        local layoutName = FalconSettings:GetCurrentLayoutName(LEM:GetActiveLayoutName())
         return FalconAddOnDB.Settings[layoutName].CurrentTexture.Name == value
       end
       local setFunc = function(value)
@@ -406,8 +547,7 @@ LEM:AddFrameSettings(Falcon, {
             secondWindBar:SetStatusBarTexture(texture)
             chargeBar:SetStatusBarTexture(texture)
           end
-          local layoutName = FalconSettings:GetCurrentLayoutName(LEM:GetActiveLayoutName())
-          FalconAddOnDB.Settings[layoutName].CurrentTexture = { Name = value }
+          FalconAddOnDB.Settings[layoutName].CurrentTexture = { Name = value, Texture = texture }
         end
       end
       rootDescription:SetScrollMode(400)
@@ -429,18 +569,72 @@ LEM:AddFrameSettings(Falcon, {
     end,
   },
   {
+  name = 'Statusbar Colors',
+  kind = LEM.SettingType.Dropdown,
+  default = false,
+  set = function(layoutName, value, fromReset)
+    layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
+    for key, defaultColor in pairs(defaultTableData.StatusBarColors) do
+      FalconAddOnDB.Settings[layoutName].StatusBarColors[key] = {
+        r = defaultColor.r,
+        g = defaultColor.g,
+        b = defaultColor.b,
+        a = defaultColor.a
+      }
+      MutableData.StatusBarColors[key] = FalconAddOnDB.Settings[layoutName].StatusBarColors[key]
+    end
+  end,
+  generator = function(owner, rootDescription, data)
+    owner.ShouldShowTooltip = nop
+    local layoutName = FalconSettings:GetActiveLayout()
+    owner:SetDefaultText('Pick Colors')
+    rootDescription:CreateTitle('Colors')
+
+    local options = {
+      { name = 'Charges', key = 'Charge' },
+      { name = 'Second Wind', key = 'SecondWind' },
+      { name = 'Low Speed', key = 'LowSpeed' },
+      { name = 'Ground Skimming', key = 'GroundSkimming' },
+      { name = 'Thrill', key = 'Thrill' }
+    }
+
+    for _, option in ipairs(options) do
+      local colorData = FalconAddOnDB.Settings[layoutName].StatusBarColors[option.key]
+      FalconMenuUtil:AddColorSwatch(rootDescription, layoutName, option.name, option.key, colorData,
+        function(color)
+          colorData = color
+          MutableData.StatusBarColors[option.key] = color
+          if option.key == 'Charge' or option.key == 'SecondWind' then
+            for i = 1, Falcon.num_charges do
+              if option.key == 'Charge' then
+                local chargeBar = Falcon.ChargeBars[i]
+                chargeBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
+                MutableData.ChargeBarColor = color
+              elseif option.key == 'SecondWind' then
+                local secondWindBar = Falcon.SecondWindBars[i]
+                secondWindBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
+              end
+            end
+          else
+            Falcon.SpeedBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
+          end
+        end)
+    end
+  end,
+  },
+  {
     name = 'Inside Color',
     kind = LEM.SettingType.ColorPicker,
-    default = CreateColor(defaultTableData.InsideGlowColor.r, defaultTableData.InsideGlowColor.g, defaultTableData.InsideGlowColor.b, defaultTableData.InsideGlowColor.a),
+    default = CreateColor(defaultTableData.FrameColors.InsideGlowColor.r, defaultTableData.FrameColors.InsideGlowColor.g, defaultTableData.FrameColors.InsideGlowColor.b, defaultTableData.FrameColors.InsideGlowColor.a),
     hasOpacity = true,
     get = function(layoutName)
-      return CreateColor(MutableData.InsideGlowColor.r, MutableData.InsideGlowColor.g, MutableData.InsideGlowColor.b, MutableData.InsideGlowColor.a)
+      return CreateColor(MutableData.FrameColors.InsideGlowColor.r, MutableData.FrameColors.InsideGlowColor.g, MutableData.FrameColors.InsideGlowColor.b, MutableData.FrameColors.InsideGlowColor.a)
     end,
     set = function(layoutName, value)
       layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
       local r, g, b, a = value:GetRGBA()
-      MutableData.InsideGlowColor = { r = r, g = g, b = b, a = a}
-      FalconAddOnDB.Settings[layoutName].InsideGlowColor = MutableData.InsideGlowColor
+      MutableData.FrameColors.InsideGlowColor = { r = r, g = g, b = b, a = a}
+      FalconAddOnDB.Settings[layoutName].FrameColors.InsideGlowColor = MutableData.FrameColors.InsideGlowColor
       Falcon.SpeedBar.insideGlow:SetVertexColor(r, g, b ,a)
       for i = 1, 6 do
         local charges = Falcon.ChargeBars[i]
@@ -449,55 +643,18 @@ LEM:AddFrameSettings(Falcon, {
     end,
   },
   {
-    name = 'Speed Color',
-    kind = LEM.SettingType.ColorPicker,
-    default = CreateColor(defaultTableData.SpeedColor.r, defaultTableData.SpeedColor.g, defaultTableData.SpeedColor.b, 1),
-    hasOpacity = true,
-    get = function(layoutName)
-      return CreateColor(MutableData.speedColor.r, MutableData.speedColor.g, MutableData.speedColor.b, MutableData.speedColor.a)
-    end,
-    set = function(layoutName, value)
-      layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
-      local r, g, b, a = value:GetRGBA()
-      MutableData.speedColor = { r = r, g = g, b = b, a = a}
-      FalconAddOnDB.Settings[layoutName].SpeedColor = MutableData.speedColor
-      Falcon.SpeedBar:SetStatusBarColor(r, g, b, a)
-    end,
-  },
-  {
-    name = 'Charge Color',
-    kind = LEM.SettingType.ColorPicker,
-    default = CreateColor(defaultTableData.ChargeColor.r, defaultTableData.ChargeColor.g, defaultTableData.ChargeColor.b, defaultTableData.ChargeColor.a),
-    hasOpacity = true,
-    get = function(layoutName)
-      return CreateColor(MutableData.chargeColor.r, MutableData.chargeColor.g, MutableData.chargeColor.b, MutableData.chargeColor.a)
-    end,
-    set = function(layoutName, value)
-      layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
-      local r, g, b, a = value:GetRGBA()
-      MutableData.chargeColor = { r = r, g = g, b = b, a = a}
-      FalconAddOnDB.Settings[layoutName].ChargeColor = MutableData.chargeColor
-      for i = 1, Falcon.num_charges do
-        local chargeBar = Falcon.ChargeBars[i]
-        local secondWindBar = Falcon.SecondWindBars[i]
-        secondWindBar:SetStatusBarColor(r, g, b, a * 0.5)
-        chargeBar:SetStatusBarColor(r, g, b, a)
-      end
-    end,
-  },
-  {
     name = 'Border Color',
     kind = LEM.SettingType.ColorPicker,
-    default = CreateColor(defaultTableData.BorderColor.r, defaultTableData.BorderColor.g, defaultTableData.BorderColor.b, defaultTableData.BorderColor.a),
+    default = CreateColor(defaultTableData.FrameColors.BorderColor.r, defaultTableData.FrameColors.BorderColor.g, defaultTableData.FrameColors.BorderColor.b, defaultTableData.FrameColors.BorderColor.a),
     hasOpacity = true,
     get = function(layoutName)
-      return CreateColor(MutableData.borderColor.r, MutableData.borderColor.g, MutableData.borderColor.b, MutableData.borderColor.a)
+      return CreateColor(MutableData.FrameColors.BorderColor.r, MutableData.FrameColors.BorderColor.g, MutableData.FrameColors.BorderColor.b, MutableData.FrameColors.BorderColor.a)
     end,
     set = function(layoutName, value)
       layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
       local r, g, b, a = value:GetRGBA()
-      MutableData.borderColor = { r = r, g = g, b = b, a = a}
-      FalconAddOnDB.Settings[layoutName].BorderColor = MutableData.borderColor
+      MutableData.FrameColors.BorderColor = { r = r, g = g, b = b, a = a}
+      FalconAddOnDB.Settings[layoutName].FrameColors.BorderColor = MutableData.FrameColors.BorderColor
       Falcon.SpeedBarBG.outline:SetVertexColor(r, g, b, a)
       Falcon.SpeedBar.tick:SetColorTexture(r, g, b, a)
       Falcon.WhirlingSurge.outline:SetVertexColor(r, g, b, a)
@@ -510,16 +667,16 @@ LEM:AddFrameSettings(Falcon, {
   {
     name = 'Shadow Color',
     kind = LEM.SettingType.ColorPicker,
-    default = CreateColor(defaultTableData.ShadowColor.r, defaultTableData.ShadowColor.g, defaultTableData.ShadowColor.b, defaultTableData.ShadowColor.a),
+    default = CreateColor(defaultTableData.FrameColors.ShadowColor.r, defaultTableData.FrameColors.ShadowColor.g, defaultTableData.FrameColors.ShadowColor.b, defaultTableData.FrameColors.ShadowColor.a),
     hasOpacity = true,
     get = function(layoutName)
-      return CreateColor(MutableData.shadowColor.r, MutableData.shadowColor.g, MutableData.shadowColor.b, MutableData.shadowColor.a)
+      return CreateColor(MutableData.FrameColors.ShadowColor.r, MutableData.FrameColors.ShadowColor.g, MutableData.FrameColors.ShadowColor.b, MutableData.FrameColors.ShadowColor.a)
     end,
     set = function(layoutName, value)
       layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
       local r, g, b, a = value:GetRGBA()
-      MutableData.shadowColor = { r = r, g = g, b = b, a = a}
-      FalconAddOnDB.Settings[layoutName].ShadowColor = MutableData.shadowColor
+      MutableData.FrameColors.ShadowColor = { r = r, g = g, b = b, a = a}
+      FalconAddOnDB.Settings[layoutName].FrameColors.ShadowColor = MutableData.FrameColors.ShadowColor
       Falcon.SpeedBarBG.shadow:SetVertexColor(r, g, b, a)
       Falcon.shadow:SetVertexColor(r, g, b, a)
       Falcon.ChargesParent.shadow:SetVertexColor(r, g, b, a)
@@ -534,16 +691,16 @@ LEM:AddFrameSettings(Falcon, {
   {
     name = 'Background Color',
     kind = LEM.SettingType.ColorPicker,
-    default = CreateColor(defaultTableData.BackgroundColor.r, defaultTableData.BackgroundColor.g, defaultTableData.BackgroundColor.b, defaultTableData.BackgroundColor.a),
+    default = CreateColor(defaultTableData.FrameColors.BackgroundColor.r, defaultTableData.FrameColors.BackgroundColor.g, defaultTableData.FrameColors.BackgroundColor.b, defaultTableData.FrameColors.BackgroundColor.a),
     hasOpacity = true,
     get = function(layoutName)
-      return CreateColor(MutableData.backgroundColor.r, MutableData.backgroundColor.g, MutableData.backgroundColor.b, MutableData.backgroundColor.a)
+      return CreateColor(MutableData.FrameColors.BackgroundColor.r, MutableData.FrameColors.BackgroundColor.g, MutableData.FrameColors.BackgroundColor.b, MutableData.FrameColors.BackgroundColor.a)
     end,
     set = function(layoutName, value)
       layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
       local r, g, b, a = value:GetRGBA()
-      MutableData.backgroundColor = { r = r, g = g, b = b, a = a}
-      FalconAddOnDB.Settings[layoutName].BackgroundColor = MutableData.backgroundColor
+      MutableData.FrameColors.BackgroundColor = { r = r, g = g, b = b, a = a}
+      FalconAddOnDB.Settings[layoutName].FrameColors.BackgroundColor = MutableData.FrameColors.BackgroundColor
       Falcon.SpeedBarBG.Background:SetVertexColor(r, g, b, a)
       for i = 1, Falcon.num_charges do
         local chargesBG = Falcon.ChargeBGs[i]
@@ -564,6 +721,7 @@ LEM:AddFrameSettings(Falcon, {
       layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
       local CurrentStyle = FalconAddOnDB.Settings[layoutName].CurrentStyle
       FalconAddOnDB.Settings[layoutName].Styles[CurrentStyle].SwapPositions = value
+      Falcon:UpdateBuffAnchor(FalconAddOnDB.Settings[layoutName])
       Falcon:UpdateUISizes(nil, nil, nil, nil, value)
     end,
   },
@@ -644,7 +802,7 @@ LEM:AddFrameSettings(Falcon, {
     get = function(layoutName)
       layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
       local CurrentStyle = FalconAddOnDB.Settings[layoutName].CurrentStyle
-      return FalconAddOnDB.Settings[layoutName].Styles[CurrentStyle].Padding ---@diagnostic disable-line: undefined-field
+      return FalconAddOnDB.Settings[layoutName].Styles[CurrentStyle].Padding
     end,
     set = function(layoutName, value)
       layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
@@ -661,25 +819,216 @@ LEM:AddFrameSettings(Falcon, {
     end,
   },
   {
-  name = 'Bar Behaviour',
+    name = 'Font Size',
+    kind = LEM.SettingType.Slider,
+    default = defaultTableData.FontSettings.Size,
+    get = function(layoutName)
+      layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
+      return FalconAddOnDB.Settings[layoutName].FontSettings.Size
+    end,
+    set = function(layoutName, value)
+      layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
+      FalconAddOnDB.Settings[layoutName].FontSettings.Size = value
+      Falcon.TextDisplay.Text:SetFontHeight(value)
+    end,
+    minValue = 6,
+    maxValue = 24,
+    valueStep = 1,
+    formatter = function(value)
+      return value
+    end,
+  },
+  {
+  name = 'Font Settings',
+  kind = LEM.SettingType.Dropdown,
+  default = '',
+  set = function(layoutName, value, fromReset)
+    if fromReset then
+      layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
+      local defaults = defaultTableData.FontSettings
+      MutableData.HideDisplayText = defaults.Hide
+      Falcon.TextDisplay:Show()
+      FalconAddOnDB.Settings[layoutName].FontSettings = {
+        Hide = defaults.Hide,
+        Name = defaults.Name,
+        Size = defaults.Size,
+        Flags = defaults.Flags,
+        Position = {
+          Justify = defaults.Position.Justify
+        }
+      }
+
+      if defaults.Position.Justify == 'RIGHT' then
+        Falcon.TextDisplay.Text:SetJustifyH('RIGHT')
+      elseif defaults.Position.Justify == 'LEFT' then
+        Falcon.TextDisplay.Text:SetJustifyH('LEFT')
+      else
+        Falcon.TextDisplay.Text:SetJustifyH('CENTER')
+      end
+      FalconSettings:SetupLayout(layoutName)
+    end
+  end,
+  generator = function(owner, rootDescription)
+    owner.ShouldShowTooltip = nop
+    local layoutName = FalconSettings:GetActiveLayout()
+    local fontSettings = FalconAddOnDB.Settings[layoutName].FontSettings
+    local fallbackPath = LibSharedMedia:Fetch('font', defaultTableData.FontSettings.Name)
+
+    rootDescription:CreateTitle('General')
+
+    rootDescription:CreateCheckbox('Hide speed text',
+      function() return fontSettings.Hide end,
+      function()
+        local newValue = not fontSettings.Hide
+        fontSettings.Hide = newValue
+        MutableData.HideDisplayText = newValue
+        if newValue then
+          Falcon.TextDisplay:Hide()
+        else
+          Falcon.TextDisplay:Show()
+        end
+      end
+    )
+
+    rootDescription:CreateSpacer()
+    rootDescription:CreateTitle('Justify Position')
+
+    local justifyOptions = { 'LEFT', 'CENTER', 'RIGHT' }
+    for _, justification in ipairs(justifyOptions) do
+      rootDescription:CreateCheckbox(justification:sub(1, 1) .. justification:sub(2):lower(),
+        function()
+        return fontSettings.Position.Justify == justification end,
+        function()
+          fontSettings.Position.Justify = justification
+          Falcon.TextDisplay.Text:SetJustifyH(justification)
+        end
+      )
+    end
+
+    rootDescription:CreateSpacer()
+    rootDescription:CreateTitle('Appearance')
+
+    local function GetFlagsString(bitfield)
+      local flags = {}
+      if bit.band(bitfield, F.Font.MONOCHROME) ~= 0 then table.insert(flags, 'MONOCHROME') end
+      if bit.band(bitfield, F.Font.OUTLINE) ~= 0 then table.insert(flags, 'OUTLINE') end
+      if bit.band(bitfield, F.Font.THICKOUTLINE) ~= 0 then table.insert(flags, 'THICKOUTLINE') end
+      if bit.band(bitfield, F.Font.SLUG) ~= 0 then table.insert(flags, 'SLUG') end
+      return table.concat(flags, ', ')
+    end
+
+    local function GetBitfieldFromString(str)
+      local field = 0
+      if not str or str == '' then return field end
+      for flag in str:gmatch('([^,%s]+)') do
+        local upper = flag:upper()
+        if F.Font[upper] then
+          field = bit.bor(field, F.Font[upper])
+        end
+      end
+      return field
+    end
+
+    local currentBitfield = GetBitfieldFromString(fontSettings.Flags)
+
+    local flagOrder = {
+      { label = 'Monochrome', mask = F.Font.MONOCHROME },
+      { label = 'Outline', mask = F.Font.OUTLINE, exclude = F.Font.THICKOUTLINE },
+      { label = 'Thick Outline', mask = F.Font.THICKOUTLINE, exclude = F.Font.OUTLINE },
+      { label = 'Slug', mask = F.Font.SLUG },
+    }
+
+    for _, opt in ipairs(flagOrder) do
+      rootDescription:CreateCheckbox(opt.label,
+        function() return bit.band(currentBitfield, opt.mask) ~= 0 end,
+        function()
+          if bit.band(currentBitfield, opt.mask) ~= 0 then
+            currentBitfield = bit.band(currentBitfield, bit.bnot(opt.mask))
+          else
+            currentBitfield = bit.bor(currentBitfield, opt.mask)
+            if opt.exclude then
+              currentBitfield = bit.band(currentBitfield, bit.bnot(opt.exclude))
+            end
+          end
+          fontSettings.Flags = GetFlagsString(currentBitfield)
+          MutableData.Flags = fontSettings.Flags
+          local fontPath = LibSharedMedia:Fetch('font', fontSettings.Name, true) or fallbackPath
+          Falcon.TextDisplay.Text:SetFont(fontPath, fontSettings.Size, fontSettings.Flags)
+        end
+      )
+    end
+
+    rootDescription:CreateSpacer()
+    rootDescription:CreateTitle('Fonts')
+    rootDescription:SetScrollMode(400)
+
+    for _, fontName in ipairs(LibSharedMedia:List('font')) do
+      local fontDesc = rootDescription:CreateCheckbox(fontName,
+        function() return fontSettings.Name == fontName end,
+        function()
+          fontSettings.Name = fontName
+          MutableData.Name = fontName
+          local fontPath = LibSharedMedia:Fetch('font', fontName, true) or fallbackPath
+          Falcon.TextDisplay.Text:SetFont(fontPath, fontSettings.Size, fontSettings.Flags)
+        end
+      )
+
+      fontDesc:AddInitializer(function(button)
+        local fs = button.fontString or button.Text
+        local fontPath = LibSharedMedia:Fetch('font', fontName, true) or fallbackPath
+        if fontPath and fs then
+          local objName = 'FalconFont_' .. fontName:gsub('%s+', '')
+          local obj = _G[objName] or CreateFont(objName)
+          obj:SetFont(fontPath, 12, '')
+          fs:SetFontObject(obj)
+        end
+      end)
+    end
+  end,
+  },
+  {
+  name = 'Bar Settings',
   kind = LEM.SettingType.Dropdown,
   default = 0,
   set = function(layoutName, value)
-    local activeLayout = FalconSettings:GetCurrentLayoutName(LEM:GetActiveLayoutName())
+    local activeLayout = FalconSettings:GetActiveLayout()
     FalconAddOnDB.Settings[activeLayout].BarBehaviourFlags = value
+    FalconAddOnDB.Settings[activeLayout].General.ApplySpeedBarColorsToChargeBar = false
     FalconSettings.BarBehaviourFlagsDropdown:GenerateMenu()
-    Falcon:UpdateUISizes(nil, nil, nil, nil, nil, value)
+    Falcon:UpdateUI()
   end,
   generator = function(owner, rootDescription)
     FalconSettings.BarBehaviourFlagsDropdown = owner
     owner.ShouldShowTooltip = nop
+    local activeLayout = FalconSettings:GetActiveLayout()
+    FalconMenuUtil:RemoveDefaultText(owner)
 
-    local function GetActiveLayout()
-      return FalconSettings:GetCurrentLayoutName(LEM:GetActiveLayoutName())
-    end
+    rootDescription:CreateTitle('General')
+    rootDescription:CreateCheckbox('Apply Speed Bar Colors to Charges',
+      function()
+        return FalconAddOnDB.Settings[activeLayout].General.ApplySpeedBarColorsToChargeBar
+      end,
+      function()
+        local newValue = not FalconAddOnDB.Settings[activeLayout].General.ApplySpeedBarColorsToChargeBar
+        FalconAddOnDB.Settings[FalconSettings:GetActiveLayout()].General.ApplySpeedBarColorsToChargeBar = newValue
+        MutableData.ApplySpeedBarColorsToChargeBar = newValue
+        for i = 1, math.max(1, Falcon.num_charges) do
+          local color
+          if i >= Falcon.num_charges - 1 then
+            color = MutableData.StatusBarColors.SecondWind
+          elseif i <= Falcon.num_charges / 2 then
+            color = MutableData.ApplySpeedBarColorsToChargeBar and MutableData.StatusBarColors.Thrill or MutableData.StatusBarColors.Charge
+          else
+            color = MutableData.StatusBarColors.Charge
+          end
+          Falcon.ChargeBars[i]:SetStatusBarColor(color.r, color.g, color.b, color.a)
+        end
+        Falcon:UpdateUI()
+      end
+    )
 
     local getFunc = function(mask)
-      local currentFlags = FalconAddOnDB.Settings[GetActiveLayout()].BarBehaviourFlags
+      local currentFlags = FalconAddOnDB.Settings[activeLayout].BarBehaviourFlags
       return FlagsUtil.IsAnySet(currentFlags, mask)
     end
 
@@ -691,7 +1040,7 @@ LEM:AddFrameSettings(Falcon, {
     end
 
     local setFunc = function(mask)
-      local settings = FalconAddOnDB.Settings[GetActiveLayout()]
+      local settings = FalconAddOnDB.Settings[activeLayout]
       local current = settings.BarBehaviourFlags
 
       local visMask = bit.bor(F.BarBehaviour.HIDE_CHARGES, F.BarBehaviour.HIDE_SPEED)
@@ -705,6 +1054,7 @@ LEM:AddFrameSettings(Falcon, {
       Falcon:UpdateUISizes(nil, nil, nil, nil, nil, settings.BarBehaviourFlags)
     end
 
+    rootDescription:CreateSpacer()
     rootDescription:CreateTitle('Visibility')
     for i, option in ipairs(BARBEHAVIOUR_OPTION_LIST) do
       if i == 3 then
@@ -733,6 +1083,7 @@ LEM:AddFrameSettings(Falcon, {
     generator = function(owner, rootDescription)
       FalconSettings.SoundsDropdown = owner
       owner.ShouldShowTooltip = nop
+      FalconMenuUtil:RemoveDefaultText(owner)
       local getFunc = function(value)
         return FalconSettings:IsSoundChecked(value)
       end
@@ -789,7 +1140,7 @@ LEM:AddFrameSettings(Falcon, {
 
       for _, option in ipairs(SECOND_WIND_OPTIONS_LIST) do
         if option.state then
-          rootDescription:CreateRadio(option.state, getFunc, setFunc, option.id)
+          rootDescription:CreateCheckbox(option.state, getFunc, setFunc, option.id)
         end
       end
     end,
@@ -799,70 +1150,84 @@ LEM:AddFrameSettings(Falcon, {
     kind = LEM.SettingType.Dropdown,
     default = 1,
     set = function(layoutName, value)
-      local layoutName = FalconSettings:GetCurrentLayoutName(LEM:GetActiveLayoutName())
-      FalconAddOnDB.Settings[layoutName].whirlingSurgeState = value
-      MutableData.whirlingSurgeState = value
-      FalconSettings.WhirlingSurgeDropdown:GenerateMenu()
+      local layoutName = FalconSettings:GetActiveLayout()
+      FalconAddOnDB.Settings[layoutName].BuffSettings.Visibility = defaultTableData.BuffSettings.Visibility
+      MutableData.BuffVisibility = defaultTableData.BuffSettings.Visibility
+
+      FalconAddOnDB.Settings[layoutName].BuffSettings.Anchor = defaultTableData.BuffSettings.Anchor
+      Falcon:UpdateBuffAnchor(FalconAddOnDB.Settings[layoutName])
     end,
     generator = function(owner, rootDescription)
       FalconSettings.WhirlingSurgeDropdown = owner
       owner.ShouldShowTooltip = nop
 
       local getFuncState = function(value)
-        local layoutName = FalconSettings:GetCurrentLayoutName(LEM:GetActiveLayoutName())
-        return FalconAddOnDB.Settings[layoutName].whirlingSurgeState == value
+        local layoutName = FalconSettings:GetActiveLayout()
+        return FalconAddOnDB.Settings[layoutName].BuffSettings.Visibility == value
       end
 
       local setFuncState = function(value)
-        local layoutName = FalconSettings:GetCurrentLayoutName(LEM:GetActiveLayoutName())
-        FalconAddOnDB.Settings[layoutName].whirlingSurgeState = value
-        MutableData.whirlingSurgeState = value
+        local layoutName = FalconSettings:GetActiveLayout()
+        FalconAddOnDB.Settings[layoutName].BuffSettings.Visibility = value
+        MutableData.BuffVisibility = value
+        if value == 3 then
+          Falcon.WhirlingSurge:Hide()
+        else
+          Falcon.WhirlingSurge:Show()
+        end
       end
 
+      rootDescription:CreateTitle('Visibility')
       for _, option in ipairs(WHIRLING_SURGE_OPTIONS_SHOWNSTATE_LIST) do
         if option.state then
           rootDescription:CreateCheckbox(option.state, getFuncState, setFuncState, option.id)
         end
       end
+      rootDescription:CreateSpacer()
+      rootDescription:CreateTitle('Anchor')
+
+      local getFuncAnchor = function(pointName)
+        local layoutName = FalconSettings:GetActiveLayout()
+        return FalconAddOnDB.Settings[layoutName].BuffSettings.Anchor == pointName
+      end
+
+      local setFuncAnchor = function(pointName)
+        local layoutName = FalconSettings:GetActiveLayout()
+        FalconAddOnDB.Settings[layoutName].BuffSettings.Anchor = pointName
+        MutableData.BuffAnchor = pointName
+        Falcon:UpdateBuffAnchor(FalconAddOnDB.Settings[layoutName])
+      end
+
+      local anchorOrder = {
+        'Top Left', 'Top', 'Top Right',
+        'Left', 'Right',
+        'Bottom Left', 'Bottom', 'Bottom Right'
+      }
+
+      for _, pointName in ipairs(anchorOrder) do
+        rootDescription:CreateCheckbox(pointName, getFuncAnchor, setFuncAnchor, pointName)
+      end
     end,
   },
-  {
-    name = 'Text Position',
-    kind = LEM.SettingType.Dropdown,
-    default = 'RIGHT',
+    {
+    name = 'Whirling Surge Size',
+    kind = LEM.SettingType.Slider,
+    default = defaultTableData.BuffSettings.Size,
     get = function(layoutName)
       layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
-      return FalconAddOnDB.Settings[layoutName].TextPosition
+      return FalconAddOnDB.Settings[layoutName].BuffSettings.Size
     end,
     set = function(layoutName, value)
       layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
-      FalconAddOnDB.Settings[layoutName].TextPosition = value
-      if value == 'RIGHT' then
-        Falcon.TextDisplay.Text:SetJustifyH('RIGHT')
-      elseif value == 'LEFT' then
-        Falcon.TextDisplay.Text:SetJustifyH('LEFT')
-      end
+      FalconAddOnDB.Settings[layoutName].BuffSettings.Size = value
+      MutableData.BuffSettings.Size = value
+      Falcon:UpdateUISizes()
     end,
-    values = {
-      {text = 'Right', value = 'RIGHT'},
-      {text = 'Left', value = 'LEFT'},
-    },
-  },
-  {
-    name = 'Hide speed text',
-    kind = LEM.SettingType.Checkbox,
-    default = false,
-    get = function(layoutName)
-      layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
-      return FalconAddOnDB.Settings[layoutName].noDisplayText
-    end,
-    set = function(layoutName, value)
-      layoutName = FalconSettings:GetCurrentLayoutName(layoutName)
-      FalconAddOnDB.Settings[layoutName].noDisplayText = value
-      MutableData.noDisplayText = value
-      if value then
-        Falcon.TextDisplay:Hide()
-      end
+    minValue = 12,
+    maxValue = 128,
+    valueStep = 1,
+    formatter = function(value)
+      return value
     end,
   },
   {
@@ -927,6 +1292,7 @@ LEM.internal.dialog:HookScript('OnHide', function(self)
 end)
 
 LEM:RegisterCallback('enter', function()
+  local settings = FalconAddOnDB.Settings[FalconSettings:GetActiveLayout()]
   Falcon.AnimHide:Stop()
   Falcon.SpeedBar:SetScript('OnUpdate', nil)
   Falcon:SetScript('OnUpdate', nil)
@@ -935,18 +1301,56 @@ LEM:RegisterCallback('enter', function()
   Falcon.SpeedBar.tick:Show()
   Falcon.TextDisplay.AnimShow:Play()
   Falcon.TextDisplay.Text:SetText(' 456 ')
-  for i = 1, math.max(1, Falcon.num_charges) do
-    if (i == Falcon.num_charges) then
-      Falcon.SecondWindBars[i]:SetValue(0)
-      Falcon.ChargeBars[i]:SetValue(0)
-    elseif (i == Falcon.num_charges - 1) then
-      Falcon.ChargeBars[i]:SetValue(0)
-    elseif (i > Falcon.num_charges / 2) then
-      Falcon.SecondWindBars[i]:SetValue(1)
-    else
-      Falcon.ChargeBars[i]:SetValue(1)
-    end
+  if FalconAddOnDB.Settings[FalconSettings:GetActiveLayout()].BuffSettings.Visibility == 3 then
+    Falcon.WhirlingSurge:Hide()
+  else
+    Falcon.WhirlingSurge:Show()
   end
+
+  local colors = MutableData.StatusBarColors
+  local speedBarColor
+
+  if MutableData.IsThrill then
+    speedBarColor = colors.Thrill
+  elseif MutableData.IsGroundSkimming then
+    speedBarColor = colors.GroundSkimming
+  else
+    speedBarColor = colors.LowSpeed
+  end
+
+  local chargeBarColor = MutableData.ApplySpeedBarColorsToChargeBar and speedBarColor or colors.Charge
+  Falcon.SpeedBar:SetStatusBarColor(speedBarColor.r, speedBarColor.g, speedBarColor.b, speedBarColor.a)
+
+  local num = Falcon.num_charges
+  local maxIndex = math.max(1, num)
+
+  for i = 1, maxIndex do
+    local color = colors.Charge
+    local chargeVal = 0
+    local secondWindVal = 0
+    if i == num then
+      chargeVal = 0
+      secondWindVal = 0
+    elseif i == num - 1 or i == num - 2 then
+      color = colors.SecondWind
+      chargeVal = 0
+      secondWindVal = 1
+    elseif i <= num / 2 then
+      color = chargeBarColor
+      chargeVal = 1
+      secondWindVal = 0
+    else
+      chargeVal = 1
+      secondWindVal = 0
+    end
+
+    local bar = Falcon.ChargeBars[i]
+    bar:SetMinMaxValues(0, 1)
+    bar:SetStatusBarColor(color.r, color.g, color.b, color.a)
+    bar:SetValue(chargeVal)
+    Falcon.SecondWindBars[i]:SetValue(secondWindVal)
+  end
+
   Falcon.Selection:ClearAllPoints()
   Falcon.Selection:SetPoint('TOPLEFT', Falcon, 'TOPLEFT', -5, 5)
 	Falcon.Selection:SetPoint('BOTTOMRIGHT', Falcon, 'BOTTOMRIGHT', 5, -5)
@@ -963,7 +1367,7 @@ LEM:RegisterCallback('exit', function()
   Falcon.TextDisplay.Text:SetText('')
   Falcon.SpeedBar:SetValue(0)
   Falcon.SpeedBar.tick:Hide()
-  Falcon:UpdateUI()
+  Falcon:UpdateUI('ACTIONBAR_UPDATE_COOLDOWN')
   API:FixPosition(Falcon)
 end)
 
@@ -1011,4 +1415,33 @@ FalconSettings:OnLoad()
 SLASH_FALCON1 = '/FALCON'
 function SlashCmdList.FALCON(msg)
   print('To access Falcon setting press Escape and click on Edit Mode, then click on the Falcon UI')
+end
+
+---@class FalconPublicAPI
+FalconPublicAPI = {}
+
+---@param profileKey string
+function FalconPublicAPI:Export(profileKey)
+  if not FalconAddOnDB.Settings[profileKey] then return end
+  local data = {
+    FalconGlobalSettingsEnabled = FalconAddOnDB.FalconGlobalSettingsEnabled,
+    profile = FalconAddOnDB.Settings[profileKey]
+  }
+  local profileString = C_EncodingUtil.EncodeBase64(C_EncodingUtil.SerializeCBOR(data))
+  return profileString
+end
+
+---@param importString string
+---@param profileKey string
+function FalconPublicAPI:Import(importString, profileKey)
+  local data = C_EncodingUtil.DeserializeCBOR(C_EncodingUtil.DecodeBase64(importString))
+  if not data and data.profile then return end
+  if profileKey == 'FalconGlobalSettings' then
+    FalconAddOnDB.FalconGlobalSettingsEnabled = data.FalconGlobalSettingsEnabled
+  end
+  local layoutName = FalconSettings:GetActiveLayout()
+  UpdateTable(data.profile, defaultTableData)
+  FalconAddOnDB.Settings[layoutName] = data.profile
+  FalconSettings:SetupLayout(layoutName)
+  LEM:RefreshFrameSettings(Falcon)
 end
