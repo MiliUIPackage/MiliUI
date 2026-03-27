@@ -64,7 +64,7 @@ local function StartTicker()
             local target = UnitGUID(unit.."target")
 
             -- Midnight 12.0.0+: UnitGUID for nameplate targets may return secret strings
-            if Cell.isMidnight and issecretvalue and issecretvalue(target) then
+            if not F.IsValueNonSecret(target) then
                 nameplateTargets[unit] = nil
             elseif not target then -- no target
                 nameplateTargets[unit] = nil

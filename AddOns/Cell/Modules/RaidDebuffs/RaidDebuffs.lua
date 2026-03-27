@@ -41,10 +41,6 @@ local encounterJournalList = {
     --     },
     -- },
 }
---[==[@debug@
-Cell_DevExpansionData = encounterJournalList
-Cell_DevExpansionNames = {}
---@end-debug@]==]
 
 -- used to GetInstanceInfo/GetRealZoneText --> instanceId
 local instanceNameMapping = {
@@ -116,9 +112,6 @@ local function LoadList()
     for tier = 1, num do
         local name = EJ_GetTierInfo(tier)
         encounterJournalList[name] = {}
-        --[==[@debug@
-        tinsert(Cell_DevExpansionNames, 1, name)
-        --@end-debug@]==]
 
         if tier ~= CURRENT_SEASON_INDEX then -- don't load raid for "Current Season"
             LoadInstanceList(tier, "raid", encounterJournalList[name])
@@ -316,8 +309,33 @@ local function LoadDebuffs()
     -- texplore(loadedDebuffs[477]) -- 悬槌堡
 end
 
+-- Fill in instances from unsortedDebuffs that weren't found by the EJ API.
+-- This can happen when new raids/dungeons aren't yet classified in the EJ.
+local function FillMissingInstances()
+    if not unsortedDebuffs then return end
+
+    local latestTierName = tierNames[#tierNames]
+    if not latestTierName or not encounterJournalList[latestTierName] then return end
+
+    for instanceId in pairs(unsortedDebuffs) do
+        if not instanceIdToName[instanceId] then
+            -- This instance wasn't loaded by EJ_GetInstanceByIndex; try direct lookup
+            local name, _, _, image = EJ_GetInstanceInfo(instanceId)
+            if name then
+                local instanceTable = {["name"]=name, ["id"]=instanceId, ["image"]=image, ["bosses"]={}}
+                LoadBossList(instanceId, instanceTable["bosses"])
+                tinsert(encounterJournalList[latestTierName], instanceTable)
+                local iIndex = #encounterJournalList[latestTierName]
+                instanceNameMapping[name] = latestTierName..":"..iIndex..":"..instanceId
+                instanceIdToName[instanceId] = name
+            end
+        end
+    end
+end
+
 local function UpdateRaidDebuffs()
     LoadList()
+    FillMissingInstances()
     -- LoadDungeonsForCurrentSeason()
     LoadDebuffs()
 end
@@ -2239,7 +2257,7 @@ function F.GetDebuffList(instanceName)
                 local spellName = F.GetSpellInfo(t["id"])
                 if spellName then
                     -- list[spellName/spellId] = {order, glowType, glowOptions}
-                    list[t["trackByID"] and t["id"] or spellName] = {
+                    local entry = {
                         ["order"] = t["order"],
                         ["condition"] = t["condition"],
                         ["glowType"] = t["glowType"],
@@ -2247,6 +2265,12 @@ function F.GetDebuffList(instanceName)
                         ["glowCondition"] = t["glowCondition"],
                         ["useElapsedTime"] = t["useElapsedTime"],
                     }
+                    list[t["trackByID"] and t["id"] or spellName] = entry
+                    -- 12.0+: also index by name for trackByID entries so
+                    -- GetDebuffOrder can match by resolved name when spellId is secret
+                    if t["trackByID"] and spellName and not list[spellName] then
+                        list[spellName] = entry
+                    end
                 end
             end
         end
@@ -2256,7 +2280,7 @@ function F.GetDebuffList(instanceName)
                 for _, t in pairs(bTable["enabled"]) do
                     local spellName = F.GetSpellInfo(t["id"])
                     if spellName then -- check again
-                        list[t["trackByID"] and t["id"] or spellName] = {
+                        local entry = {
                             ["order"] = t["order"]+n,
                             ["condition"] = t["condition"],
                             ["glowType"] = t["glowType"],
@@ -2264,6 +2288,11 @@ function F.GetDebuffList(instanceName)
                             ["glowCondition"] = t["glowCondition"],
                             ["useElapsedTime"] = t["useElapsedTime"],
                         }
+                        list[t["trackByID"] and t["id"] or spellName] = entry
+                        -- 12.0+: also index by name for trackByID entries
+                        if t["trackByID"] and spellName and not list[spellName] then
+                            list[spellName] = entry
+                        end
                     end
                 end
             end

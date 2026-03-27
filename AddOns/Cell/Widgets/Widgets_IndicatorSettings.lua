@@ -1043,14 +1043,12 @@ local function CreateSetting_HealthFormat(parent)
 
         local function UpdateWidgets()
             local health1Enabled = widget.format.health1.format ~= "none"
-            widget.health1HideIfEmptyOrFullCB:SetEnabled(health1Enabled)
             widget.health1ColorDropdown:SetEnabled(health1Enabled)
             widget.health1ColorPicker:SetEnabled(health1Enabled)
 
             local health2Enabled = widget.format.health2.format ~= "none"
             widget.health2DelimiterEB:SetEnabled(health2Enabled)
             widget.health2DelimiterEB.confirmBtn:Hide()
-            widget.health2HideIfEmptyOrFullCB:SetEnabled(health2Enabled)
             widget.health2ColorDropdown:SetEnabled(health2Enabled)
             widget.health2ColorPicker:SetEnabled(health2Enabled)
             if health2Enabled then
@@ -1124,14 +1122,8 @@ local function CreateSetting_HealthFormat(parent)
         health1Text:SetPoint("BOTTOMLEFT", widget.health1FormatDropdown, "TOPLEFT", 0, 1)
         health1Text:SetText(L["Health"] .. " 1")
 
-        widget.health1HideIfEmptyOrFullCB = Cell.CreateCheckButton(widget, L["hideIfEmptyOrFull"], function(checked)
-            widget.format.health1.hideIfEmptyOrFull = checked
-            widget.func()
-        end)
-        widget.health1HideIfEmptyOrFullCB:SetPoint("TOPLEFT", widget.health1FormatDropdown, "BOTTOMLEFT", 0, -10)
-
         widget.health1ColorDropdown = Cell.CreateDropdown(widget, 127)
-        widget.health1ColorDropdown:SetPoint("TOPLEFT", widget.health1HideIfEmptyOrFullCB, "BOTTOMLEFT", 0, -10)
+        widget.health1ColorDropdown:SetPoint("TOPLEFT", widget.health1FormatDropdown, "BOTTOMLEFT", 0, -10)
         widget.health1ColorDropdown:SetItems({
             {
                 ["text"] = L["Class Color"],
@@ -1182,14 +1174,8 @@ local function CreateSetting_HealthFormat(parent)
         widget.health2DelimiterText:SetPoint("BOTTOMLEFT", widget.health2DelimiterEB, "TOPLEFT", 0, 1)
         widget.health2DelimiterText:SetText(L["Delimiter"])
 
-        widget.health2HideIfEmptyOrFullCB = Cell.CreateCheckButton(widget, L["hideIfEmptyOrFull"], function(checked)
-            widget.format.health2.hideIfEmptyOrFull = checked
-            widget.func()
-        end)
-        widget.health2HideIfEmptyOrFullCB:SetPoint("TOPLEFT", widget.health2FormatDropdown, "BOTTOMLEFT", 0, -10)
-
         widget.health2ColorDropdown = Cell.CreateDropdown(widget, 127)
-        widget.health2ColorDropdown:SetPoint("TOPLEFT", widget.health2HideIfEmptyOrFullCB, "BOTTOMLEFT", 0, -10)
+        widget.health2ColorDropdown:SetPoint("TOPLEFT", widget.health2FormatDropdown, "BOTTOMLEFT", 0, -10)
         widget.health2ColorDropdown:SetItems({
             {
             ["text"] = L["Class Color"],
@@ -1355,14 +1341,12 @@ local function CreateSetting_HealthFormat(parent)
 
             -- health1
             widget.health1FormatDropdown:SetSelectedValue(format.health1.format)
-            widget.health1HideIfEmptyOrFullCB:SetChecked(format.health1.hideIfEmptyOrFull)
             widget.health1ColorDropdown:SetSelectedValue(format.health1.color[1])
             widget.health1ColorPicker:SetColor(unpack(format.health1.color[2]))
 
             -- health2
             widget.health2FormatDropdown:SetSelectedValue(format.health2.format)
             widget.health2DelimiterEB:SetText(format.health2.delimiter)
-            widget.health2HideIfEmptyOrFullCB:SetChecked(format.health2.hideIfEmptyOrFull)
             widget.health2ColorDropdown:SetSelectedValue(format.health2.color[1])
             widget.health2ColorPicker:SetColor(unpack(format.health2.color[2]))
 
@@ -1530,6 +1514,59 @@ local function CreateSetting_DurationVisibility(parent)
         end
     else
         widget = settingWidgets["durationVisibility"]
+    end
+
+    widget:Show()
+    return widget
+end
+
+-- Midnight: simplified duration visibility with only Always/Never options
+-- (Blizzard's countdown text doesn't support percentage/time thresholds)
+local function CreateSetting_DurationVisibilitySimple(parent)
+    local widget
+
+    if not settingWidgets["durationVisibilitySimple"] then
+        widget = Cell.CreateFrame("CellIndicatorSettings_DurationVisibilitySimple", parent, 240, 50)
+        settingWidgets["durationVisibilitySimple"] = widget
+
+        widget.durationVisibility = Cell.CreateDropdown(widget, 245)
+        widget.durationVisibility:SetPoint("TOPLEFT", 5, -20)
+        widget.durationVisibility:SetItems({
+            {
+                ["text"] = L["Never"],
+                ["value"] = false,
+                ["onClick"] = function()
+                    widget.func(false)
+                end,
+            },
+            {
+                ["text"] = L["Always"],
+                ["value"] = true,
+                ["onClick"] = function()
+                    widget.func(true)
+                end,
+            },
+        })
+
+        widget.durationVisibilityText = widget:CreateFontString(nil, "OVERLAY", font_name)
+        widget.durationVisibilityText:SetText(L["showDuration"])
+        widget.durationVisibilityText:SetPoint("BOTTOMLEFT", widget.durationVisibility, "TOPLEFT", 0, 1)
+
+        function widget:SetFunc(func)
+            widget.func = func
+        end
+
+        function widget:SetDBValue(durationVisibility)
+            -- Coerce pre-Midnight threshold values (0.75, 10, etc.) to "Always"
+            -- since Blizzard's countdown text only supports on/off, not thresholds.
+            -- The saved value isn't modified — only the dropdown display is coerced.
+            if durationVisibility and durationVisibility ~= false then
+                durationVisibility = true
+            end
+            widget.durationVisibility:SetSelectedValue(durationVisibility)
+        end
+    else
+        widget = settingWidgets["durationVisibilitySimple"]
     end
 
     widget:Show()
@@ -6487,6 +6524,58 @@ local function CreateSetting_IconStyle(parent)
     return widget
 end
 
+local function CreateSetting_TargetedSpellsDisplayMode(parent)
+    local widget
+
+    if not settingWidgets["targetedSpellsDisplayMode"] then
+        widget = Cell.CreateFrame("CellIndicatorSettings_TargetedSpellsDisplayMode", parent, 240, 50)
+        settingWidgets["targetedSpellsDisplayMode"] = widget
+
+        widget.dropdown = Cell.CreateDropdown(widget, 245)
+        widget.dropdown:SetPoint("TOPLEFT", 5, -20)
+        widget.dropdown:SetItems({
+            {
+                ["text"] = L["Icons"],
+                ["value"] = "Icons",
+                ["onClick"] = function()
+                    widget.func("Icons")
+                end,
+            },
+            {
+                ["text"] = L["Border"],
+                ["value"] = "Border",
+                ["onClick"] = function()
+                    widget.func("Border")
+                end,
+            },
+            {
+                ["text"] = L["Both"],
+                ["value"] = "Both",
+                ["onClick"] = function()
+                    widget.func("Both")
+                end,
+            },
+        })
+
+        widget.label = widget:CreateFontString(nil, "OVERLAY", font_name)
+        widget.label:SetText(L["Display Mode"])
+        widget.label:SetPoint("BOTTOMLEFT", widget.dropdown, "TOPLEFT", 0, 1)
+
+        function widget:SetFunc(func)
+            widget.func = func
+        end
+
+        function widget:SetDBValue(value)
+            widget.dropdown:SetSelectedValue(value or "Both")
+        end
+    else
+        widget = settingWidgets["targetedSpellsDisplayMode"]
+    end
+
+    widget:Show()
+    return widget
+end
+
 local CLASS_ROLES = {
     ["DEATHKNIGHT"] = {"TANK", "DAMAGER"},
     ["DEMONHUNTER"] = {"TANK", "DAMAGER"},
@@ -6761,6 +6850,7 @@ local builders = {
     ["healthFormat"] = CreateSetting_HealthFormat,
     ["powerFormat"] = CreateSetting_PowerFormat,
     ["durationVisibility"] = CreateSetting_DurationVisibility,
+    ["durationVisibilitySimple"] = CreateSetting_DurationVisibilitySimple,
     ["orientation"] = CreateSetting_Orientation,
     ["barOrientation"] = CreateSetting_BarOrientation,
     ["font-noOffset"] = CreateSetting_FontNoOffset,
@@ -6796,6 +6886,7 @@ local builders = {
     -- ["showOn"] = CreateSetting_ShowOn,
     ["maxValue"] = CreateSetting_MaxValue,
     ["iconStyle"] = CreateSetting_IconStyle,
+    ["targetedSpellsDisplayMode"] = CreateSetting_TargetedSpellsDisplayMode,
     ["powerTextFilters"] = CreateSetting_RoleFilters,
 }
 
@@ -6824,6 +6915,9 @@ function Cell.CreateIndicatorSettings(parent, settingsTable)
             tinsert(widgetsTable, CreateSetting_Num(parent))
         elseif string.find(setting, "^numPerLine:") then
             tinsert(widgetsTable, CreateSetting_NumPerLine(parent))
+        elseif string.find(setting, "^font%-noOffset:") then
+            -- Midnight: simplified font widget for paired font configs (no anchor/offset)
+            tinsert(widgetsTable, CreateSetting_FontNoOffset(parent))
         elseif string.find(setting, "^font") then
             tinsert(widgetsTable, CreateSetting_Font(parent, string.match(setting, "^(font%d?):?.*$")))
         elseif string.find(setting, "^checkbutton4") then

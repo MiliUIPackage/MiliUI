@@ -178,9 +178,14 @@ else
 
     local function OnUnitHealth(unit)
         if not unit then return end
+        -- UnitGUID can return a secret value in 12.0+; secret values can't be
+        -- used as table keys, so skip units whose GUID is secret.
+        local guid = UnitGUID(unit)
+        if not F.IsValueNonSecret(guid) then return end
+        if not guid then return end
+
         if UnitIsDeadOrGhost(unit) and not UnitIsFeignDeath(unit) then
-            local guid = UnitGUID(unit)
-            if guid and not reportedDead[guid] then
+            if not reportedDead[guid] then
                 reportedDead[guid] = true
                 if not CheckSendLimit() then return end
                 local name = UnitName(unit) or unit
@@ -188,10 +193,7 @@ else
             end
         else
             -- unit is alive again; allow future death reports
-            local guid = UnitGUID(unit)
-            if guid then
-                reportedDead[guid] = nil
-            end
+            reportedDead[guid] = nil
         end
     end
 
@@ -271,6 +273,7 @@ end
 -- priority
 ----------------------------------------------------
 local function UpdatePriority(hasHighestPriority)
+    if not CombatLogGetCurrentEventInfo then return end
     if Cell.isMidnight then
         -- Midnight: CLEU unavailable; UNIT_HEALTH registration is handled in UpdateTools
         return

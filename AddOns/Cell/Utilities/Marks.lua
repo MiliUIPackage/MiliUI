@@ -87,7 +87,9 @@ marks:Hide()
 local ticker
 local markButtons = {}
 for i = 1, 9 do
-    markButtons[i] = Cell.CreateButton(marks, "", "accent-hover", {20, 20})
+    -- Midnight 12.0+: SetRaidTarget is protected. Use SecureActionButtonTemplate
+    -- with type="raidtarget" so marking works in and out of combat.
+    markButtons[i] = Cell.CreateButton(marks, "", "accent-hover", {20, 20}, false, false, nil, nil, "SecureActionButtonTemplate")
     markButtons[i].texture = markButtons[i]:CreateTexture(nil, "ARTWORK")
     P.Point(markButtons[i].texture, "TOPLEFT", markButtons[i], "TOPLEFT", 2, -2)
     P.Point(markButtons[i].texture, "BOTTOMRIGHT", markButtons[i], "BOTTOMRIGHT", -2, 2)
@@ -95,59 +97,58 @@ for i = 1, 9 do
     if i == 9 then
         -- clear all marks
         markButtons[i].texture:SetTexture("Interface\\Buttons\\UI-GroupLoot-Pass-Up")
-        markButtons[i]:SetScript("OnClick", function()
-            RemoveRaidTargets()
-            -- markButtons[i]:SetEnabled(false)
-            -- markButtons[i].texture:SetDesaturated(true)
-            -- for j = 1, 8 do
-            --     SetRaidTarget("player", j)
-            -- end
-            -- C_Timer.After(0.5, function()
-            --     SetRaidTarget("player", 0)
-            --     markButtons[i]:SetEnabled(true)
-            --     markButtons[i].texture:SetDesaturated(false)
-            -- end)
-        end)
+        markButtons[i]:RegisterForClicks("AnyDown", "AnyUp")
+        markButtons[i]:SetAttribute("type", "raidtarget")
+        markButtons[i]:SetAttribute("action", "clear-all")
     else
         markButtons[i].texture:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons")
         SetRaidTargetIconTexture(markButtons[i].texture, i)
-        markButtons[i]:RegisterForClicks("LeftButtonDown", "RightButtonDown")
-        markButtons[i]:SetScript("OnClick", function(self, button)
-            if button == "LeftButton" then
-                -- set raid target icon
-                if GetRaidTargetIndex("target") == i then
-                    SetRaidTarget("target", 0)
-                else
-                    SetRaidTarget("target", i)
-                end
-            elseif button == "RightButton" then
-                -- lock raid target icon
+        markButtons[i]:RegisterForClicks("AnyDown", "AnyUp")
+
+        -- Left click: toggle raid target icon (secure action)
+        markButtons[i]:SetAttribute("type1", "raidtarget")
+        markButtons[i]:SetAttribute("marker", i)
+        markButtons[i]:SetAttribute("action1", "toggle")
+
+        -- Right click: lock/unlock raid target icon (post-click script)
+        -- Lock uses SetRaidTarget in a timer which can't be secured;
+        -- this is a best-effort feature that may not work during combat.
+        local idx = i
+        markButtons[i]:SetScript("PostClick", function(self, button)
+            if button == "RightButton" then
                 local unit, name, class = F.GetTargetUnitInfo()
                 if unit and name then
-                    if markButtons[i].locked then
-                        F.NotifyMarkUnlock(i, name, class)
-                        SetRaidTarget(markButtons[i].locked, 0)
-                        markButtons[i]:SetBackdropBorderColor(0, 0, 0, 1)
-                        markButtons[i].locked = nil
-                        if markButtons[i].ticker then
-                            markButtons[i].ticker:Cancel()
-                            markButtons[i].ticker = nil
+                    if markButtons[idx].locked then
+                        F.NotifyMarkUnlock(idx, name, class)
+                        -- Clear the mark from the locked unit (skip in combat — protected)
+                        if not InCombatLockdown() then
+                            SetRaidTarget(markButtons[idx].locked, 0)
+                        end
+                        markButtons[idx]:SetBackdropBorderColor(0, 0, 0, 1)
+                        markButtons[idx].locked = nil
+                        if markButtons[idx].ticker then
+                            markButtons[idx].ticker:Cancel()
+                            markButtons[idx].ticker = nil
                         end
                     else
-                        F.NotifyMarkLock(i, name, class)
-                        SetRaidTarget(unit, i)
-                        markButtons[i]:SetBackdropBorderColor(markColors[i][1], markColors[i][2], markColors[i][3], 1)
-                        markButtons[i].locked = unit
-                        markButtons[i].ticker = C_Timer.NewTicker(1.5, function()
+                        F.NotifyMarkLock(idx, name, class)
+                        -- Apply mark immediately (skip in combat — protected)
+                        if not InCombatLockdown() then
+                            SetRaidTarget(unit, idx)
+                        end
+                        markButtons[idx]:SetBackdropBorderColor(markColors[idx][1], markColors[idx][2], markColors[idx][3], 1)
+                        markButtons[idx].locked = unit
+                        markButtons[idx].ticker = C_Timer.NewTicker(1.5, function()
+                            -- SetRaidTarget is protected on Midnight; skip in combat
+                            if InCombatLockdown() then return end
                             if UnitName(unit) == name then
-                                if GetRaidTargetIndex(unit) ~= i then
-                                    SetRaidTarget(unit, i)
-                                end
+                                -- Re-apply mark (SetRaidTarget is a no-op if already correct)
+                                SetRaidTarget(unit, idx)
                             else
-                                markButtons[i].locked = nil
-                                markButtons[i].ticker:Cancel()
-                                markButtons[i].ticker = nil
-                                markButtons[i]:SetBackdropBorderColor(0, 0, 0, 1)
+                                markButtons[idx].locked = nil
+                                markButtons[idx].ticker:Cancel()
+                                markButtons[idx].ticker = nil
+                                markButtons[idx]:SetBackdropBorderColor(0, 0, 0, 1)
                             end
                         end)
                     end

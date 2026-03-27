@@ -74,7 +74,7 @@ local function CheckNicknames()
             nic_check = C_Timer.NewTimer(random(3), function()
                 UpdateSendChannel()
                 -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
-                if Cell.isMidnight and F.IsCommRestricted and F.IsCommRestricted() then
+                if Cell.isMidnight and F.IsCommRestricted() then
                     F.Debug("Cell: Comm suppressed - restricted context (CELL_CNIC)")
                     return
                 end
@@ -166,7 +166,7 @@ local function UpdateNicknames(which, value1, value2)
             -- disabled, notify others
             UpdateSendChannel()
             -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
-            if Cell.isMidnight and F.IsCommRestricted and F.IsCommRestricted() then
+            if Cell.isMidnight and F.IsCommRestricted() then
                 F.Debug("Cell: Comm suppressed - restricted context (CELL_NIC sync-off)")
             else
                 Comm:SendCommMessage("CELL_NIC", "CELL_NONE", sendChannel)
@@ -189,7 +189,7 @@ local function UpdateNicknames(which, value1, value2)
         if IsInGroup() and CellDB["nicknames"]["sync"] then
             UpdateSendChannel()
             -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
-            if Cell.isMidnight and F.IsCommRestricted and F.IsCommRestricted() then
+            if Cell.isMidnight and F.IsCommRestricted() then
                 F.Debug("Cell: Comm suppressed - restricted context (CELL_NIC mine)")
             else
                 Comm:SendCommMessage("CELL_NIC", Cell.vars.playerNickname or "CELL_NONE", sendChannel)
@@ -234,7 +234,7 @@ Comm:RegisterComm("CELL_CNIC", function(prefix, message, channel, sender)
     nic_send = C_Timer.NewTimer(3, function()
         UpdateSendChannel()
         -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
-        if Cell.isMidnight and F.IsCommRestricted and F.IsCommRestricted() then
+        if Cell.isMidnight and F.IsCommRestricted() then
             F.Debug("Cell: Comm suppressed - restricted context (CELL_NIC nic_send)")
             return
         end

@@ -99,7 +99,7 @@ select(2, ...).L = setmetatable({
 
         <h1>r275-release — WoW 12.0.0 (Midnight) Compatibility</h1>
         <h2>Secret Values (12.0.0+)</h2>
-        <p>+ Added Cell.isMidnight detection flag and F.IsSecretValue(), F.IsAuraRestricted(), F.IsCooldownRestricted() utility functions.</p>
+        <p>+ Added Cell.isMidnight detection flag and F.IsValueNonSecret(), F.IsAuraRestricted(), F.IsCooldownRestricted(), F.HasAnySecretValues() utility functions.</p>
         <p>+ Added per-aura F.IsAuraNonSecret(), F.IsSpellAuraNonSecret(), F.IsValueNonSecret() helpers — non-secret (whitelisted) auras now get real countdown timers, source detection, and duration display; secret auras gracefully degrade.</p>
         <p>* UnitButton: major dual-path refactor — Midnight uses UnitHealPredictionCalculator, C_CurveUtil.CreateCurve(), and StatusBar overlays for health/prediction/shields; pre-Midnight retains arithmetic-based paths.</p>
         <p>* Appearance: IncomingHeal widget uses SetStatusBarTexture on Midnight (StatusBar) vs SetTexture pre-Midnight (Texture).</p>
@@ -114,7 +114,7 @@ select(2, ...).L = setmetatable({
         <p>- General: removed useCleuHealthUpdater checkbox (CLEU health updater obsolete).</p>
         <p>* Revise: r275 migration removes useCleuHealthUpdater from saved variables.</p>
         <h2>Comm Restrictions</h2>
-        <p>+ Comm: IsCommRestricted() detects encounters/M+/PvP; all SendCommMessage calls guarded; pending queue with flush on ENCOUNTER_END.</p>
+        <p>+ Comm: IsCommRestricted() detects encounters/M+/PvP; all SendCommMessage calls guarded.</p>
         <p>+ Nicknames: all nickname sync sends guarded with F.IsCommRestricted().</p>
         <h2>Heal Prediction &amp; Health Bar Fixes</h2>
         <p>* Created a dedicated healPredictionCalculator separate from the shared healthCalculator — fixes corrupted health/absorb reads.</p>

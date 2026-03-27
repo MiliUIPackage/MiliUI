@@ -22,6 +22,14 @@ Cell.isCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC
 Cell.isMists = WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC
 Cell.isTWW = LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_WAR_WITHIN
 
+-------------------------------------------------
+-- 12.0+ API compatibility shims
+-------------------------------------------------
+-- IsEncounterInProgress moved to C_InstanceEncounter namespace in 12.0
+if not IsEncounterInProgress and C_InstanceEncounter and C_InstanceEncounter.IsEncounterInProgress then
+    IsEncounterInProgress = C_InstanceEncounter.IsEncounterInProgress
+end
+
 if Cell.isRetail then
     Cell.flavor = "retail"
 elseif Cell.isMists then
@@ -1046,9 +1054,13 @@ function F.HandleUnitButton(type, unit, func, ...)
     end
 
     for _, b in pairs(Cell.unitButtons.spotlight) do
-        if b.states.unit and UnitIsUnit(b.states.unit, unit) then
-            func(b, ...)
-            handled = true
+        if b.states.unit then
+            local isMatch = UnitIsUnit(b.states.unit, unit)
+            -- UnitIsUnit may return a secret boolean on Midnight; treat secret as true
+            if not F.IsValueNonSecret(isMatch) or isMatch then
+                func(b, ...)
+                handled = true
+            end
         end
     end
 
@@ -1057,6 +1069,13 @@ end
 
 function F.UpdateTextWidth(fs, text, width, relativeTo)
     if not text or not width then return end
+
+    -- Midnight: text may be a secret string (e.g. NPC names); cannot do Lua string
+    -- operations on secrets. SetText is C-level and handles secrets directly.
+    if not F.IsValueNonSecret(text) then
+        fs:SetText(text)
+        return
+    end
 
     if width == "unlimited" then
         fs:SetText(text)
@@ -2004,6 +2023,8 @@ local function predicate(...)
 end
 
 function F.FindAuraById(unit, type, spellId)
+    -- 12.0+: skip when aura data is restricted (secret values)
+    if Cell.isMidnight and F.IsAuraRestricted() then return nil end
     if type == "BUFF" then
         return AuraUtil.FindAura(predicate, unit, "HELPFUL", spellId)
     else
@@ -2017,6 +2038,8 @@ if Cell.isRetail then
         if Cell.isMidnight and F.IsAuraRestricted() then return {} end
         local debuffs = {}
         AuraUtil.ForEachAura(unit, "HARMFUL", nil, function(name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId)
+            -- Guard: spellId may be secret even when IsAuraRestricted is false
+            if not F.IsValueNonSecret(spellId) then return end
             if spellIds[spellId] then
                 debuffs[spellId] = I.CheckDebuffType(debuffType, spellId)
             end
@@ -2029,6 +2052,8 @@ if Cell.isRetail then
         if Cell.isMidnight and F.IsAuraRestricted() then return {} end
         local debuffs = {}
         AuraUtil.ForEachAura(unit, "HARMFUL", nil, function(name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId)
+            -- Guard: spellId/debuffType may be secret even when IsAuraRestricted is false
+            if not F.IsValueNonSecret(spellId) or not F.IsValueNonSecret(debuffType) then return end
             if types == "all" or types[debuffType] then
                 debuffs[spellId] = I.CheckDebuffType(debuffType, spellId)
             end
@@ -2291,11 +2316,15 @@ local harmItems = {
 local UnitInSpellRange
 if C_Spell and C_Spell.IsSpellInRange then
     UnitInSpellRange = function(spellName, unit)
-        return IsSpellInRange(spellName, unit)
+        local r = IsSpellInRange(spellName, unit)
+        if not F.IsValueNonSecret(r) then return nil end
+        return r and true or false
     end
 else
     UnitInSpellRange = function(spellName, unit)
-        return IsSpellInRange(spellName, unit) == 1
+        local result = IsSpellInRange(spellName, unit)
+        if not F.IsValueNonSecret(result) then return nil end
+        return result == 1
     end
 end
 
@@ -2349,7 +2378,8 @@ end
 rc:SetScript("OnEvent", DELAYED_SPELLS_CHANGED)
 
 function F.IsInRange(unit, check)
-    if not UnitIsVisible(unit) then
+    local visible = UnitIsVisible(unit)
+    if not F.IsValueNonSecret(visible) or not visible then
         return false
     end
 
@@ -2361,7 +2391,7 @@ function F.IsInRange(unit, check)
         --! but not available for PLAYER PET when SOLO
         local inRange, checked = UnitInRange(unit)
         -- Midnight 12.0.0+: UnitInRange returns secret booleans during restricted contexts
-        if Cell.isMidnight and issecretvalue and issecretvalue(checked) then
+        if not F.IsValueNonSecret(checked) then
             return F.IsInRange(unit, true)
         end
         if not checked then
@@ -2385,7 +2415,7 @@ function F.IsInRange(unit, check)
 
             local inRange, checked = UnitInRange(unit)
             -- Midnight 12.0.0+: UnitInRange returns secret booleans during restricted contexts
-            if Cell.isMidnight and issecretvalue and issecretvalue(checked) then
+            if not F.IsValueNonSecret(checked) then
                 -- Skip, fall through to pet/interact checks below
             elseif checked then
                 return inRange
@@ -2509,12 +2539,16 @@ end
 -------------------------------------------------
 -- Secret value utilities (Patch 12.0.0+)
 -------------------------------------------------
--- issecretvalue() is a native WoW API available in 12.0.0+
-function F.IsSecretValue(val)
-    if issecretvalue then
-        return issecretvalue(val)
-    end
-    return false
+-- issecretvalue() and hasanysecretvalues() are native WoW APIs available in 12.0.0+.
+-- Convention: these globals are ONLY referenced inside Utils.lua wrapper implementations.
+-- All other files use F.IsValueNonSecret(), F.HasAnySecretValues(), etc.
+
+-- Varargs check: returns true if ANY argument is a secret value.
+-- Wraps the global hasanysecretvalues() with a Cell.isMidnight guard.
+function F.HasAnySecretValues(...)
+    if not Cell.isMidnight then return false end
+    if not hasanysecretvalues then return false end
+    return hasanysecretvalues(...)
 end
 
 -- GetRestrictedActionStatus() returns non-secret boolean

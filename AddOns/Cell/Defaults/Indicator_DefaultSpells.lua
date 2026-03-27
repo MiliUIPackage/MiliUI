@@ -184,7 +184,7 @@ function I.UpdateAoEHealings(t)
 end
 
 function I.IsAoEHealing(name, id)
-    if issecretvalue and (issecretvalue(name) or issecretvalue(id)) then return end
+    if not F.IsValueNonSecret(name) or not F.IsValueNonSecret(id) then return end
     return builtInAoEHealings[name] or builtInAoEHealings[id] or customAoEHealings[id]
 end
 
@@ -231,6 +231,8 @@ local externals = { -- true: track by name, false: track by id
     ["EVOKER"] = {
         [374227] = true, -- 微风 - Zephyr
         [357170] = true, -- 时间膨胀 - Time Dilation
+        [363534] = true, -- 回溯 - Rewind
+        [360995] = true, -- 翠绿拥抱 - Verdant Embrace
         [378441] = true, -- 时间停止 - Time Stop (pvp)
         [374348] = true, -- 新生光焰 - Renewing blaze
     },
@@ -256,6 +258,7 @@ local externals = { -- true: track by name, false: track by id
         [1022] = true, -- 保护祝福 - Blessing of Protection
         [6940] = true, -- 牺牲祝福 - Blessing of Sacrifice
         [204018] = true, -- 破咒祝福 - Blessing of Spellwarding
+        [1044] = true, -- 自由祝福 - Blessing of Freedom
         [31821] = true, -- 光环掌握 - Aura Mastery
         [210256] = true, -- 庇护祝福 - Blessing of Sanctuary
         [228050] = false, -- 圣盾术 (被遗忘的女王护卫) - Divine Shield
@@ -266,6 +269,7 @@ local externals = { -- true: track by name, false: track by id
     ["PRIEST"] = {
         [33206] = true, -- 痛苦压制 - Pain Suppression
         [47788] = true, -- 守护之魂 - Guardian Spirit
+        [10060] = true, -- 能量灌注 - Power Infusion
         [62618] = true, -- 真言术：障 - Power Word: Barrier
         [213610] = true, -- 神圣守卫 - Holy Ward
         [197268] = true, -- 希望之光 - Ray of Hope
@@ -302,9 +306,10 @@ local function UpdateExternals(id, trackByName)
         if name then
             builtInExternals[name] = true
         end
-    else
-        builtInExternals[id] = true
     end
+    -- Also store by ID (in addition to name when trackByName is true)
+    -- so IsExternalCooldown/IsDefensiveCooldown can match by ID directly
+    builtInExternals[id] = true
 end
 
 function I.UpdateExternals(t)
@@ -339,7 +344,7 @@ end
 local UnitIsUnit = UnitIsUnit
 local bos = F.GetSpellInfo(6940) -- 牺牲祝福
 function I.IsExternalCooldown(name, id, source, target)
-    if issecretvalue and (issecretvalue(name) or issecretvalue(id)) then return end
+    if not F.IsValueNonSecret(name) or not F.IsValueNonSecret(id) then return end
     if name == bos then
         if source and target then
             -- NOTE: hide bos on caster
@@ -406,6 +411,7 @@ local defensives = { -- true: track by name, false: track by id
         [122278] = true, -- 躯不坏 - Dampen Harm
         [122783] = true, -- 散魔功 - Diffuse Magic
         [125174] = true, -- 业报之触 - Touch of Karma
+        [443113] = true, -- 黑牛之力 - Strength of the Black Ox
     },
 
     ["PALADIN"] = {
@@ -471,9 +477,10 @@ function I.UpdateDefensives(t)
                     if name then
                         builtInDefensives[name] = true
                     end
-                else
-                    builtInDefensives[id] = true
                 end
+                -- Also store by ID (in addition to name when trackByName is true)
+    -- so IsExternalCooldown/IsDefensiveCooldown can match by ID directly
+                builtInDefensives[id] = true
             end
         end
     end
@@ -490,7 +497,7 @@ function I.UpdateDefensives(t)
 end
 
 function I.IsDefensiveCooldown(name, id)
-    if issecretvalue and (issecretvalue(name) or issecretvalue(id)) then return end
+    if not F.IsValueNonSecret(name) or not F.IsValueNonSecret(id) then return end
     return builtInDefensives[name] or builtInDefensives[id] or customDefensives[id]
 end
 
@@ -549,7 +556,7 @@ do
 end
 
 function I.IsTankActiveMitigation(spellId)
-    if issecretvalue and issecretvalue(spellId) then return end
+    if not F.IsValueNonSecret(spellId) then return end
     return tankActiveMitigations[spellId]
 end
 
@@ -737,7 +744,7 @@ do
 end
 
 function I.IsDrinking(name)
-    if issecretvalue and issecretvalue(name) then return end
+    if not F.IsValueNonSecret(name) then return end
     return drinks[name]
 end
 
@@ -811,7 +818,7 @@ local spells =  {
     1244893, -- 救世主道标 - Beacon of the Savior
 
     -- priest
-    139, -- 恢复 - Renew
+    -- 139, -- 恢复 - Renew (removed in 12.0)
     200829, -- 恳求 - Plea (added in 12.0, Disc)
     41635, -- 愈合祷言 - Prayer of Mending
     17, -- 真言术：盾 - Power Word: Shield
@@ -1317,6 +1324,6 @@ function I.UpdateCrowdControls(t)
 end
 
 function I.IsCrowdControls(name, id)
-    if issecretvalue and (issecretvalue(name) or issecretvalue(id)) then return end
+    if not F.IsValueNonSecret(name) or not F.IsValueNonSecret(id) then return end
     return builtInCrowdControls[name] or builtInCrowdControls[id] or customCrowdControls[name]
 end

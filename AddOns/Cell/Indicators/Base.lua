@@ -13,15 +13,13 @@ local P = Cell.pixelPerfectFuncs
 
 local LCG = LibStub("LibCustomGlow-1.0")
 
--- Midnight 12.0.0+: aura count (applications) may be secret; sanitize for safe comparisons/table-key use
-local function _SanitizeCount(count)
-    if issecretvalue and issecretvalue(count) then return 0 end
-    return count or 0
-end
-
 -- Midnight 12.0.0+: helper for stack text display (most common pattern)
+-- Secret stack counts are passed through directly; SetText is C-level and
+-- renders secret values safely. We cannot test == 0/1, so secret stacks
+-- always display (may show "1" for single-stack auras, which is acceptable).
 local function _StackText(count)
-    count = _SanitizeCount(count)
+    if not F.IsValueNonSecret(count) then return count end
+    count = count or 0
     return (count == 0 or count == 1) and "" or count
 end
 
@@ -89,9 +87,44 @@ end
 -------------------------------------------------
 -- Shared
 -------------------------------------------------
+-- Apply font settings to Blizzard's CooldownFrame countdown text (Midnight)
+-- Only applies to CooldownFrame cooldowns (BorderIcon), not StatusBar (BarIcon)
+local function ApplyCountdownFont(frame, font2)
+    if not frame.cooldown then return end
+    if not frame.cooldown.GetCountdownFontString then return end
+    local cdText = frame.cooldown:GetCountdownFontString()
+    if not cdText then return end
+    -- Re-parent to iconFrame so text renders above icon, and center on the icon
+    if frame.iconFrame and cdText:GetParent() ~= frame.iconFrame then
+        cdText:SetParent(frame.iconFrame)
+        cdText:ClearAllPoints()
+        cdText:SetPoint("CENTER", frame.iconFrame, "CENTER", 0, 0)
+    end
+    if font2 then
+        local fontFace = F.GetFont(font2[1]) or cdText:GetFont()
+        local fontSize = font2[2] or 11
+        local outline = font2[3]
+        local flags = outline == "Outline" and "OUTLINE"
+            or outline == "Monochrome" and "OUTLINE,MONOCHROME"
+            or ""
+        cdText:SetFont(fontFace, fontSize, flags)
+    else
+        local fontFace = cdText:GetFont()
+        cdText:SetFont(fontFace, 11, "OUTLINE")
+    end
+end
+
 local function Shared_SetFont(frame, font1, font2)
     I.SetFont(frame.stack, frame, unpack(font1))
     I.SetFont(frame.duration, frame, unpack(font2))
+    -- Store duration font config for Midnight countdown text on CooldownFrame
+    frame._durationFont = font2
+    -- Live-update countdown FontString if it exists; reset cache flag
+    if Cell.isMidnight then
+        frame._countdownFontApplied = false
+        ApplyCountdownFont(frame, font2)
+        frame._countdownFontApplied = true
+    end
 end
 
 local function Shared_ShowStack(frame, show)
@@ -117,7 +150,11 @@ end
 local function VerticalCooldown_OnUpdate(self, elapsed)
     self.elapsed = (self.elapsed or 0) + elapsed
     if self.elapsed >= 0.1 then
-        self:SetValue(self:GetValue() + self.elapsed)
+        -- Track value in Lua variable instead of GetValue() — avoids permanent
+        -- taint from secret SetValue() calls (12.0+). GetValue() returns tainted
+        -- forever once any secret value is passed to SetValue/SetMinMaxValues.
+        self._currentValue = (self._currentValue or 0) + self.elapsed
+        self:SetValue(self._currentValue)
         self.elapsed = 0
     end
 end
@@ -140,7 +177,8 @@ local function VerticalCooldown_ShowCooldown(self, start, duration, _, icon, deb
 
     self.elapsed = 0.1 -- update immediately
     self:SetMinMaxValues(0, duration)
-    self:SetValue(GetTime() - start)
+    self._currentValue = GetTime() - start
+    self:SetValue(self._currentValue)
     self:Show()
 end
 
@@ -433,6 +471,105 @@ local function Icon_OnUpdate_ElapsedTime(frame, elapsed)
 end
 
 -------------------------------------------------
+-- Midnight 12.0.0+: C-level cooldown display via DurationObject
+-- These methods use GetAuraDuration → DurationObject → SetCooldownFromDurationObject
+-- (BorderIcon) or EvaluateElapsedPercent (BarIcon). No Lua arithmetic on secret values.
+-- APIs return nil for expired/invalid auras (no pcall needed).
+-------------------------------------------------
+local _GetAuraDuration = C_UnitAuras and C_UnitAuras.GetAuraDuration
+local _GetAuraAppDisplayCount = C_UnitAuras and C_UnitAuras.GetAuraApplicationDisplayCount
+
+-- BorderIcon: SetCooldownFromAura — drives CooldownFrame with DurationObject
+local function BorderIcon_SetCooldownFromAura(frame, unit, auraInstanceID, texture, refreshing)
+    -- Icon and stack
+    frame.icon:SetTexture(texture)
+    if _GetAuraAppDisplayCount then
+        local displayCount = _GetAuraAppDisplayCount(unit, auraInstanceID)
+        frame.stack:SetText(displayCount and _StackText(displayCount) or "")
+    else
+        frame.stack:SetText("")
+    end
+
+    -- Cooldown swipe via DurationObject
+    -- Swipe color defaults to black; UnitButton.lua overrides border/swipe color
+    -- for dispel types via bracket curves after this call.
+    local durObj = _GetAuraDuration and _GetAuraDuration(unit, auraInstanceID)
+    if durObj and frame.cooldown and frame.cooldown._SetCooldown
+        and frame.cooldown.SetCooldownFromDurationObject then
+        -- Countdown numbers visibility is managed by BorderIcon_ShowDuration
+        frame.cooldown:SetReverse(true)
+        frame.cooldown:SetCooldownFromDurationObject(durObj, true)
+        -- Apply font settings once (cached via _countdownFontApplied flag)
+        if not frame._countdownFontApplied then
+            ApplyCountdownFont(frame, frame._durationFont)
+            frame._countdownFontApplied = true
+        end
+        -- Keep border visible as base color (caller sets color); black swipe fills over it
+        frame.cooldown:Show()
+    else
+        -- No cooldown animation — show static border
+        frame.border:Show()
+        frame.border:SetColorTexture(0, 0, 0)
+        frame.cooldown:Hide()
+    end
+
+    -- Duration text hidden on Midnight (SetFormattedText produces invisible output with secrets)
+    frame.duration:Hide()
+    frame:SetScript("OnUpdate", nil)
+    frame:Show()
+
+    if refreshing then
+        frame.ag:Play()
+    end
+end
+
+-- BarIcon: SetCooldownFromAura — CooldownFrame overlay for clock-swipe animation.
+-- DurationObject:EvaluateElapsedPercent/EvaluateRemainingPercent both error in tainted
+-- combat contexts, so StatusBar can't be driven by DurationObject directly.
+-- NOTE: Built-in indicators (debuffs, defensives, externals) use BorderIcon on Midnight.
+-- This BarIcon path remains for user-created custom indicators that use BarIcon.
+local function BarIcon_SetCooldownFromAura(frame, unit, auraInstanceID, texture, refreshing)
+    frame.icon:SetTexture(texture)
+    if _GetAuraAppDisplayCount then
+        local displayCount = _GetAuraAppDisplayCount(unit, auraInstanceID)
+        frame.stack:SetText(displayCount and _StackText(displayCount) or "")
+    else
+        frame.stack:SetText("")
+    end
+
+    local durObj = _GetAuraDuration and _GetAuraDuration(unit, auraInstanceID)
+    if durObj then
+        if not frame._midnightCooldown then
+            local cd = CreateFrame("Cooldown", nil, frame)
+            cd:SetAllPoints(frame.icon)
+            cd:SetFrameLevel(frame:GetFrameLevel() + 5)
+            cd:SetSwipeTexture(Cell.vars.whiteTexture)
+            cd:SetSwipeColor(0, 0, 0)
+            cd:SetDrawEdge(false)
+            cd:SetReverse(true)
+            cd:SetHideCountdownNumbers(true)
+            cd.noCooldownCount = true
+            frame._midnightCooldown = cd
+        end
+        if frame._midnightCooldown.SetCooldownFromDurationObject then
+            frame._midnightCooldown:SetCooldownFromDurationObject(durObj, false)
+            frame._midnightCooldown:Show()
+        end
+    else
+        if frame._midnightCooldown then frame._midnightCooldown:Hide() end
+    end
+
+    frame.cooldown:Hide()
+    frame.duration:Hide()
+    frame:SetBackdropColor(0, 0, 0)
+    frame:Show()
+
+    if refreshing then
+        frame.ag:Play()
+    end
+end
+
+-------------------------------------------------
 -- CreateAura_BorderIcon
 -------------------------------------------------
 local function BorderIcon_SetCooldown(frame, start, duration, debuffType, texture, count, refreshing, useElapsedTime)
@@ -499,10 +636,18 @@ end
 
 local function BorderIcon_ShowDuration(frame, show)
     frame.showDuration = show
-    if show then
-        frame.duration:Show()
-    else
+    if Cell.isMidnight and frame.cooldown and frame.cooldown.SetHideCountdownNumbers then
+        -- Midnight: Cell's duration text is always hidden (produces invisible output
+        -- with secrets). Only toggle Blizzard's built-in countdown.
         frame.duration:Hide()
+        frame.cooldown:SetHideCountdownNumbers(not show)
+    else
+        -- Pre-Midnight: use Cell's own duration text
+        if show then
+            frame.duration:Show()
+        else
+            frame.duration:Hide()
+        end
     end
 end
 
@@ -532,6 +677,10 @@ function I.CreateAura_BorderIcon(name, parent, borderSize)
     cooldown:SetSwipeTexture(Cell.vars.whiteTexture)
     cooldown:SetSwipeColor(1, 1, 1)
     cooldown:SetHideCountdownNumbers(true)
+    -- Midnight: set abbreviation threshold once at creation (shows "1m" above 60s)
+    if Cell.isMidnight and cooldown.SetCountdownAbbrevThreshold then
+        cooldown:SetCountdownAbbrevThreshold(60)
+    end
     -- disable omnicc
     cooldown.noCooldownCount = true
     -- prevent some addons from adding cooldown text
@@ -568,7 +717,13 @@ function I.CreateAura_BorderIcon(name, parent, borderSize)
     frame.SetFont = Shared_SetFont
     frame.SetBorder = BorderIcon_SetBorder
     frame.SetCooldown = BorderIcon_SetCooldown
+    frame.SetCooldownFromAura = BorderIcon_SetCooldownFromAura
     frame.ShowDuration = BorderIcon_ShowDuration
+    -- BarIcon-compatible methods (no-ops for BorderIcon, needed when used as
+    -- cooldown indicator child frames which call these on all children)
+    frame.ShowAnimation = function() end
+    frame.ShowStack = function() end
+    frame.SetupGlow = function() end
     frame.UpdatePixelPerfect = BorderIcon_UpdatePixelPerfect
 
     return frame
@@ -688,6 +843,7 @@ function I.CreateAura_BarIcon(name, parent)
 
     frame.SetFont = Shared_SetFont
     frame.SetCooldown = BarIcon_SetCooldown
+    frame.SetCooldownFromAura = BarIcon_SetCooldownFromAura
     frame.ShowDuration = Shared_ShowDuration
     frame.ShowStack = Shared_ShowStack
     frame.ShowAnimation = BarIcon_ShowAnimation
@@ -1050,12 +1206,20 @@ end
 
 local circled = {"①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯","⑰","⑱","⑲","⑳","㉑","㉒","㉓","㉔","㉕","㉖","㉗","㉘","㉙","㉚","㉛","㉜","㉝","㉞","㉟","㊱","㊲","㊳","㊴","㊵","㊶","㊷","㊸","㊹","㊺","㊻","㊼","㊽","㊾","㊿"}
 local function Text_SetCooldown(frame, start, duration, debuffType, texture, count)
+    -- Secret stack count: can't compare or index circled[], pass directly to
+    -- SetText (C-level, renders secret values safely)
+    local isSecretCount = not F.IsValueNonSecret(count)
+
     if duration == 0 then
         -- always show stack
-        count = _SanitizeCount(count)
-        count = count == 0 and 1 or count
-        count = frame.circledStackNums and circled[count] or count
-        frame.text:SetText(count)
+        if isSecretCount then
+            frame.text:SetText(count)
+        else
+            count = count or 0
+            count = count == 0 and 1 or count
+            count = frame.circledStackNums and circled[count] or count
+            frame.text:SetText(count)
+        end
         frame.text:SetTextColor(frame.colors[1][1], frame.colors[1][2], frame.colors[1][3], frame.colors[1][4])
         frame:SetScript("OnUpdate", nil)
         frame._count = nil
@@ -1068,27 +1232,36 @@ local function Text_SetCooldown(frame, start, duration, debuffType, texture, cou
         frame._duration = duration
 
         if frame.durationTbl[1] then
-            count = _SanitizeCount(count)
-            if frame.showStack and count ~= 0 then
-                if frame.circledStackNums then
-                    frame._count = circled[count].." "
-                else
-                    frame._count = count.." "
-                end
-            else
+            if isSecretCount then
+                -- Can't concatenate secret with " "; skip stack prefix for duration text
                 frame._count = ""
+            else
+                count = count or 0
+                if frame.showStack and count ~= 0 then
+                    if frame.circledStackNums then
+                        frame._count = circled[count].." "
+                    else
+                        frame._count = count.." "
+                    end
+                else
+                    frame._count = ""
+                end
             end
 
             frame._elapsed = 0.1 -- update immediately
             frame:SetScript("OnUpdate", Text_OnUpdateDuration)
         else
             -- always show stack
-            count = _SanitizeCount(count)
-            count = count == 0 and 1 or count
-            if frame.circledStackNums then
-                frame.text:SetText(circled[count])
-            else
+            if isSecretCount then
                 frame.text:SetText(count)
+            else
+                count = count or 0
+                count = count == 0 and 1 or count
+                if frame.circledStackNums then
+                    frame.text:SetText(circled[count])
+                else
+                    frame.text:SetText(count)
+                end
             end
 
             frame._elapsed = 0.1 -- update immediately

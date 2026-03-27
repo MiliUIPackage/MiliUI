@@ -48,30 +48,6 @@ function F.IsCommRestricted()
     return IsCommRestricted()
 end
 
--- Simple queue for deferred sends (used when comms are restricted)
-local pendingComms = {}
-
-local function QueueComm(prefix, message, channel, target, priority)
-    tinsert(pendingComms, {prefix=prefix, message=message, channel=channel, target=target, priority=priority})
-end
-
-local function FlushPendingComms()
-    if IsCommRestricted() then return end
-    if #pendingComms == 0 then return end
-    local toSend = pendingComms
-    pendingComms = {}
-    for _, msg in ipairs(toSend) do
-        Comm:SendCommMessage(msg.prefix, msg.message, msg.channel, msg.target, msg.priority or "NORMAL")
-    end
-end
-
-local commFrame = CreateFrame("Frame")
-commFrame:RegisterEvent("ENCOUNTER_END")
-commFrame:RegisterEvent("PLAYER_LEAVING_WORLD")
-commFrame:SetScript("OnEvent", function()
-    C_Timer.After(1, FlushPendingComms)
-end)
-
 -----------------------------------------
 -- for WA
 -----------------------------------------

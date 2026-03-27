@@ -23,6 +23,15 @@ local IS_RETAIL = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 local IS_WRATH = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
 local IS_MISTS = WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC
 
+-- Cell addon integration: check for secret values on Midnight 12.0.0+
+-- issecretvalue is cached at file scope for library independence;
+-- Cell files should use F.IsValueNonSecret() instead.
+local _issecretvalue = rawget(_G, "issecretvalue")
+local function IsValueSecret(val)
+    if _issecretvalue and _issecretvalue(val) then return true end
+    return false
+end
+
 local debugMode = false
 local function Print(...)
     if debugMode then
@@ -599,7 +608,7 @@ end
 function frame:UNIT_LEVEL(unit)
     local guid = UnitGUID(unit)
     -- Midnight 12.0.0+: nameplate GUIDs may be secret; cannot use as table key
-    if not guid or (issecretvalue and issecretvalue(guid)) then return end
+    if not guid or IsValueSecret(guid) then return end
     if cache[guid] then
         cache[guid].level = UnitLevel(unit)
     end

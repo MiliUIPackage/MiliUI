@@ -45,9 +45,6 @@ Cell.MIN_QUICKASSIST_VERSION = 275
 -- /run SetCVar("secretPvPMatchRestrictionsForced", 1)
 -- Reset: /run SetCVar("secretCombatRestrictionsForced", 0)
 
---[==[@debug@
-local debugMode = true
---@end-debug@]==]
 function F.Debug(arg, ...)
     if debugMode then
         if type(arg) == "string" or type(arg) == "number" then
