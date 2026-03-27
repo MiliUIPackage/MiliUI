@@ -1,4 +1,29 @@
-﻿12.0.02 - 28th January 2026
+﻿12.0.10 - 25th March 2026
+- For 'Hide bodyguard gossip' ('Frames'), fixed a potential issue with secrets.
+
+12.0.09 - 18th March 2026
+- For 'Mute game sounds' ('System'), you can now mute Dundun (Loa of Abundance).
+- For 'Media', fixed a Lua error when attempting to play Voidscar Arena dungeon music.
+- PTR (12.0.5): Updated for game patch 12.0.5.
+
+12.0.07 - 4th March 2026
+- For 'Mute game sounds' ('System'), updated the 'Login' setting for Midnight.
+- For 'Easy item destroy' ('System'), fixed an issue with buttons showing outside the delete confirmation window.
+- For 'Media', added 'Midnight' movies 'Midnight', 'Supremacy', 'Immolation' and 'The Story So Far'.  Added 'Quel'Thalas' zone music for 'Eversong Woods (Midnight)', 'Harandar', 'Voidstorm', 'Slayer's Rise' and 'Isle of Quel'Danas (Midnight)'.  Added 'Midnight' dungeon music for 'Blinding Vale', 'Den of Nalorakk', 'Heart of Rage', 'Magisters' Terrace (Midnight)', 'Maisara Caverns', 'Murder Row', 'Nexus Point Xenas' and 'Voidscar Arena'.  Added 'Midnight' main title music.  Added 'Credits' music for 'Shadowlands', 'Dragonflight', 'The War Within' and 'Midnight'.  Added 'Island Expeditions' music for 'Crestfall' and 'Snowblossom Village'.
+- Updated LibChatAnims and LibDBIcon libraries.
+
+12.0.05 - 18th February 2026
+- For 'Enhance tooltip' ('Interface'), fixed an issue which caused the game settings tooltips to be scaled incorrectly.
+
+12.0.04 - 11th February 2026
+- Updated for game patch 12.0.1.
+- For 'Enhance minimap' ('Interface'), the 'Minimap button bag' can be toggled by right-clicking the minimap once again.  It's simpler and people preferred it to the header button.  The 'Show who pinged' setting has been removed.
+
+12.0.03 - 8th February 2026
+- For 'Enhance minimap' ('Interface'), the new 'Minimap button bag' button is now compatible with the Square Minimap addon and the Basic Minimap addon.  For Basic Minimap, you need to have the 'Hide addon buttons' setting unchecked in the Basic Minimap configuration panel.  If all you want is a square minimap or a clean minimap, you can do that in Leatrix Plus without needing other addons.
+- For the rare announcer command ('/ltp ra'), fixed an issue which caused a Lua error.  The command will no longer show the unit's remaining health.
+
+12.0.02 - 28th January 2026
 - Midnight Beta: Updated for game patch 12.0.1.
 - Midnight Beta: For 'Enhance minimap', the 'Show who pinged' setting is not currently available.
 - For 'Automate quests' ('Automation'), fixed a situational issue which caused a Lua error when opening quest windows containing secrets.

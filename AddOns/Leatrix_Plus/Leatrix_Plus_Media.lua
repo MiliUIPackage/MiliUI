@@ -181,267 +181,52 @@
 	-- Zones: Shadowlands
 	Zn(L["Zones"], L["Shadowlands"], "|cffffd800", {""})
 	Zn(L["Zones"], L["Shadowlands"], "|cffffd800" .. L["Shadowlands"], {""})
-	Zn(L["Zones"], L["Shadowlands"], L["Ardenweald"]							, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Ardenweald"], prefol,
-		"ZONE_90_AW_Tree_Withered#173914",
-		"ZONE_90_AW_Tree_WinterQueenRoom#173966",
-		"ZONE_90_AW_Tree_InDanger#173913",
-		"ZONE_90_AW_Tree_Healthy#173969",
-		"ZONE_90_AW_Tree_Drust#173912",
-		"ZONE_90_AW_Serene#173964",
-		"ZONE_90_AW_Mischief_GossamerCliffs#173977",
-		"ZONE_90_AW_Mischief#173976",
-		"ZONE_90_AW_MelancholyDream_GeneralWalk#173962",
-		"ZONE_90_AW_Hunger#173909",
-		"ZONE_90_AW_Hollow_Drust#173911",
-		"ZONE_90_AW_Hollow#173908",
-		"ZONE_90_AW_HeartofTheForest#174034",
-		"ZONE_90_AW_GroveofAwakening#173967",
-		"ZONE_90_AW_Dreamer#173968",
-		"ZONE_90_AW_Devious#173975",
-		"ZONE_90_AW_Amphitheater#173970",
-	})
-	Zn(L["Zones"], L["Shadowlands"], L["Bastion"]								, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Bastion"], prefol,
-		"ZONE_90_BA_Broker_Walk#173825",
-		"ZONE_90_BA_ElysianHold_Kyrian_Walk#173691",
-		"ZONE_90_BA_Forsworn_HEAVY_Walk#173688",
-		"ZONE_90_BA_Forsworn_LIGHT_Walk#173687",
-		"ZONE_90_BA_Forsworn_MEDIUM_Walk#173686",
-		"ZONE_90_BA_Garden_Walk#173684",
-		"ZONE_90_BA_General_Walk#173683",
-		"ZONE_90_BA_Kyrian_Meditative_Walk#173685",
-		"ZONE_90_BA_Kyrian_Temple_Walk#173758",
-		"ZONE_90_BA_Kyrian_Training_GardenWalk#173826",
-		"ZONE_90_BA_Kyrian_Training_Walk#173689",
-		"ZONE_90_BA_Maldraxxus_Walk#173847",
-		"ZONE_90_BA_MirisChapel#173850",
-	})
-	Zn(L["Zones"], L["Shadowlands"], L["Exile's Reach"]							, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Exile's Reach"], prefol,
-		"MUS_NPE_GeneralWalk#136278",
-		"MUS_NPE_BattleIntro#136271",
-		"MUS_NPE_BoatIntro#136272",
-		"MUS_NPE_BoatWalk#136273",
-		"MUS_NPE_Camp#136274",
-		"MUS_NPE_DarkmaulCitadel#136277",
-		"MUS_NPE_Harpy#136279",
-		"MUS_NPE_OnFire#136276",
-		"MUS_NPE_Outro#136270",
-		"MUS_NPE_Quillboar#136280",
-		"MUS_NPE_RTC_Attack(NYI)#136297",
-	})
-	Zn(L["Zones"], L["Shadowlands"], L["Korthia"]								, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Korthia"], prefol,
-		"MUS_91_Korthia_1#184640",
-		"MUS_91_Korthia_2#184641",
-		"MUS_91_Korthia_3#184632",
-	})
-	Zn(L["Zones"], L["Shadowlands"], L["Maldraxxus"]							, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Maldraxxus"], prefol,
-		"ZONE_90_MX_Maldraxxus_GeneralWalk#174450",
-		"ZONE_90_MX_HouseofConstructs_Walk#174451",
-		"ZONE_90_MX_HouseoftheChosen_Walk#174452",
-		"ZONE_90_MX_HouseofEyes_Walk#174455",
-		"ZONE_90_MX_HouseofPlagues_Walk#174453",
-		"ZONE_90_MX_HouseofRituals_Walk#174454",
-		"ZONE_90_MX_HouseofRituals_Domination#174531",
-		"ZONE_90_MX_Necropolis_Walk#174457",
-		"ZONE_90_MX_TheaterofPain_Walk#174456",
-		--"ZONE_90_MX_Cov_SeatofthePrimus_Walk#174529",
-		--"ZONE_90_MX_Cov_SeatofthePrimus_BleakRedoubt#177748",
-		--"ZONE_90_MX_Cov_SeatofthePrimus_Halls#177753",
-	})
-	Zn(L["Zones"], L["Shadowlands"], L["Maw"]									, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Maw"], prefol,
-		"ZONE_90_MAW_Wilds_GeneralWalk#174983",
-		"ZONE_90_MAW_Crystal_Walk#175583",
-		"ZONE_90_MAW_Fortress_Walk#175584",
-		"ZONE_90_MAW_Torghast_InteriorWalk#175661",
-		"ZONE_90_MAW_Prologue_General_Walk#176906",
-		"ZONE_90_MAW_Prologue_Hero_Action#176908",
-		"ZONE_90_MAW_Prologue_Hero_Ambient#176909",
-		"ZONE_90_MAW_AW_CovCh2_TyrandeInMaw_Walk#177217",
-		"ZONE_90_MAW_AW_CovCh2_TyrandeInTorghast_Walk#177218",
-	})
-	Zn(L["Zones"], L["Shadowlands"], L["Oribos"]								, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Oribos"], prefol,
-		"ZONE_90_OR_RingofFates#173954",
-		"ZONE_90_OR_RingofTransference#173953",
-	})
-	Zn(L["Zones"], L["Shadowlands"], L["Revendreth"]							, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Revendreth"], prefol,
-		"Zone_90_RD_EmberCourt_GeneralWalk#172764",
-		"ZONE_90_RD_Forest_GeneralWalk#174072",
-		"ZONE_90_RD_Ruins#174073", "ZONE_90_RD_Courtyard#174074",
-		"ZONE_90_RD_Decadence#174075", "ZONE_90_RD_Sinister#174077",
-		"ZONE_90_RD_Swamp#174078", "ZONE_90_RD_Sinfall#174079",
-		--"ZONE_90_RD_Interior#174080",
-		"ZONE_90_RD_Scortched#174076",
-	})
-	Zn(L["Zones"], L["Shadowlands"], L["Sinfall"]								, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Sinfall"], prefol,
-		"tempmono_3min#174034",
-	})
-	Zn(L["Zones"], L["Shadowlands"], L["Zereth Mortis"]							, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Zereth Mortis"], prefol, "MUS_92_ZerethMortis#193503", "MUS_92_ZerethMortis_Broker_Enlightened#192905", "MUS_92_ZerethMortis_Endless_Sands#192900", "MUS_92_ZerethMortis_First_Ones#192899", "MUS_92_ZerethMortis_Forge_Of_Afterlives_Ambient#192988", "MUS_92_ZerethMortis_Genesis_Fields#192909", "MUS_92_ZerethMortis_Grand_Design#193506", "MUS_92_ZerethMortis_Grand_Design_Domination#192901", "MUS_92_ZerethMortis_Sepulcher#192906", "MUS_92_ZerethMortis_Terrace_Of_Creation#193822",})
+	Zn(L["Zones"], L["Shadowlands"], L["Ardenweald"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Ardenweald"], prefol, "ZONE_90_AW_Tree_Withered#173914", "ZONE_90_AW_Tree_WinterQueenRoom#173966", "ZONE_90_AW_Tree_InDanger#173913", "ZONE_90_AW_Tree_Healthy#173969", "ZONE_90_AW_Tree_Drust#173912", "ZONE_90_AW_Serene#173964", "ZONE_90_AW_Mischief_GossamerCliffs#173977", "ZONE_90_AW_Mischief#173976", "ZONE_90_AW_MelancholyDream_GeneralWalk#173962", "ZONE_90_AW_Hunger#173909", "ZONE_90_AW_Hollow_Drust#173911", "ZONE_90_AW_Hollow#173908", "ZONE_90_AW_HeartofTheForest#174034", "ZONE_90_AW_GroveofAwakening#173967", "ZONE_90_AW_Dreamer#173968", "ZONE_90_AW_Devious#173975", "ZONE_90_AW_Amphitheater#173970",})
+	Zn(L["Zones"], L["Shadowlands"], L["Bastion"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Bastion"], prefol, "ZONE_90_BA_Broker_Walk#173825", "ZONE_90_BA_ElysianHold_Kyrian_Walk#173691", "ZONE_90_BA_Forsworn_HEAVY_Walk#173688", "ZONE_90_BA_Forsworn_LIGHT_Walk#173687", "ZONE_90_BA_Forsworn_MEDIUM_Walk#173686", "ZONE_90_BA_Garden_Walk#173684", "ZONE_90_BA_General_Walk#173683", "ZONE_90_BA_Kyrian_Meditative_Walk#173685", "ZONE_90_BA_Kyrian_Temple_Walk#173758", "ZONE_90_BA_Kyrian_Training_GardenWalk#173826", "ZONE_90_BA_Kyrian_Training_Walk#173689", "ZONE_90_BA_Maldraxxus_Walk#173847", "ZONE_90_BA_MirisChapel#173850",})
+	Zn(L["Zones"], L["Shadowlands"], L["Exile's Reach"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Exile's Reach"], prefol, "MUS_NPE_GeneralWalk#136278", "MUS_NPE_BattleIntro#136271", "MUS_NPE_BoatIntro#136272", "MUS_NPE_BoatWalk#136273", "MUS_NPE_Camp#136274", "MUS_NPE_DarkmaulCitadel#136277", "MUS_NPE_Harpy#136279",	"MUS_NPE_OnFire#136276", "MUS_NPE_Outro#136270",	"MUS_NPE_Quillboar#136280",	"MUS_NPE_RTC_Attack(NYI)#136297",})
+	Zn(L["Zones"], L["Shadowlands"], L["Korthia"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Korthia"], prefol, "MUS_91_Korthia_1#184640", "MUS_91_Korthia_2#184641", "MUS_91_Korthia_3#184632",})
+	Zn(L["Zones"], L["Shadowlands"], L["Maldraxxus"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Maldraxxus"], prefol, "ZONE_90_MX_Maldraxxus_GeneralWalk#174450",	"ZONE_90_MX_HouseofConstructs_Walk#174451", "ZONE_90_MX_HouseoftheChosen_Walk#174452", "ZONE_90_MX_HouseofEyes_Walk#174455", "ZONE_90_MX_HouseofPlagues_Walk#174453", "ZONE_90_MX_HouseofRituals_Walk#174454", "ZONE_90_MX_HouseofRituals_Domination#174531", "ZONE_90_MX_Necropolis_Walk#174457", "ZONE_90_MX_TheaterofPain_Walk#174456",	"ZONE_90_MX_Cov_SeatofthePrimus_Walk#174529", "ZONE_90_MX_Cov_SeatofthePrimus_BleakRedoubt#177748", "ZONE_90_MX_Cov_SeatofthePrimus_Halls#177753",})
+	Zn(L["Zones"], L["Shadowlands"], L["Maw"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Maw"], prefol, "ZONE_90_MAW_Wilds_GeneralWalk#174983",	"ZONE_90_MAW_Crystal_Walk#175583", "ZONE_90_MAW_Fortress_Walk#175584", "ZONE_90_MAW_Torghast_InteriorWalk#175661",	"ZONE_90_MAW_Prologue_General_Walk#176906", "ZONE_90_MAW_Prologue_Hero_Action#176908", "ZONE_90_MAW_Prologue_Hero_Ambient#176909",	"ZONE_90_MAW_AW_CovCh2_TyrandeInMaw_Walk#177217", "ZONE_90_MAW_AW_CovCh2_TyrandeInTorghast_Walk#177218",})
+	Zn(L["Zones"], L["Shadowlands"], L["Oribos"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Oribos"], prefol, "ZONE_90_OR_RingofFates#173954", "ZONE_90_OR_RingofTransference#173953",})
+	Zn(L["Zones"], L["Shadowlands"], L["Revendreth"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Revendreth"], prefol, "Zone_90_RD_EmberCourt_GeneralWalk#172764",	"ZONE_90_RD_Forest_GeneralWalk#174072",	"ZONE_90_RD_Ruins#174073", "ZONE_90_RD_Courtyard#174074", "ZONE_90_RD_Decadence#174075", "ZONE_90_RD_Sinister#174077", "ZONE_90_RD_Swamp#174078", "ZONE_90_RD_Sinfall#174079",	"ZONE_90_RD_Scortched#174076",}) -- "ZONE_90_RD_Interior#174080",
+	Zn(L["Zones"], L["Shadowlands"], L["Sinfall"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Sinfall"], prefol, "tempmono_3min#174034",})
+	Zn(L["Zones"], L["Shadowlands"], L["Zereth Mortis"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Zereth Mortis"], prefol, "MUS_92_ZerethMortis#193503", "MUS_92_ZerethMortis_Broker_Enlightened#192905", "MUS_92_ZerethMortis_Endless_Sands#192900", "MUS_92_ZerethMortis_First_Ones#192899", "MUS_92_ZerethMortis_Forge_Of_Afterlives_Ambient#192988", "MUS_92_ZerethMortis_Genesis_Fields#192909", "MUS_92_ZerethMortis_Grand_Design#193506", "MUS_92_ZerethMortis_Grand_Design_Domination#192901", "MUS_92_ZerethMortis_Sepulcher#192906", "MUS_92_ZerethMortis_Terrace_Of_Creation#193822",})
 
 	-- Zones: Dragonflight
 	Zn(L["Zones"], L["Dragon Isles"], "|cffffd800", {""})
 	Zn(L["Zones"], L["Dragon Isles"], "|cffffd800" .. L["Dragon Isles"], {""})
-	Zn(L["Zones"], L["Dragon Isles"], L["Amirdrassil"]						, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Amirdrassil"], prefol,
-		"mus_50_bamboo#33848",
-		"mus_102_emeralddream_barrowdens#239419",
-		"mus_102_emeralddream_backdrop#239687",
-		"mus_102_emeralddream_owlgod#239430",
-	})
-	Zn(L["Zones"], L["Dragon Isles"], L["Azure Span"]							, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Azure Span"], prefol,
-		"zone_100_azurespan_outdoor_walk_explorer#217096",
-		"zone_100_azurespan_outdoor_walk_frost#217088",
-		"zone_100_azurespan_outdoor_walk_gnoll#217089",
-		"zone_100_azurespan_outdoor_walk_ruins#217087",
-		"zone_100_azurespan_outdoor_walk_tundra#217086",
-		"zone_100_azurespan_outdoor_walk_tuskarr#217090",
-	})
-	Zn(L["Zones"], L["Dragon Isles"], L["Emerald Dream"]						, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Emerald Dream"], prefol,
-		"mus_102_emerald_dream_amirdrassil_239418#239418",
-		"mus_102_emerald_dream_ancient_bough_239687#239687",
-		"mus_102_emerald_dream_aw_nocturne_239483#239483",
-		"mus_102_emerald_dream_barrows_of_reverie_239419#239419",
-		"mus_102_emerald_dream_cinder_summit_239438#239438",
-		"mus_102_emerald_dream_eye_of_ysera_239410#239410",
-		"mus_102_emerald_dream_firebreach_239477#239477",
-		"mus_102_emerald_dream_fury_incarnate_239504#239504",
-	})
-	Zn(L["Zones"], L["Dragon Isles"], L["Forbidden Reach"]						, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Forbidden Reach"], prefol,
-		"zone_100_forbiddenreach_creche_awake#217685",
-		"zone_100_forbiddenreach_outdoor_walk#216465",
-		"zone_100_forbiddenreach_primalist_postvaultbattle#217686",
-		"intro_100_forbiddenreach_vaultdefense#217702",
-	})
-	Zn(L["Zones"], L["Dragon Isles"], L["Great Sea (Dragon Isles)"]				, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Great Sea (Dragon Isles)"], prefol,
-		"mus_100_great_sea#217687",
-	})
-	Zn(L["Zones"], L["Dragon Isles"], L["Ohn'aran Plains"]						, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Ohn'aran Plains"], prefol,
-		"zone_100_ohnahranplains_outdoor_walk_centaur_1#217205",
-		"zone_100_ohnahranplains_outdoor_walk_centaur_2#217085",
-		"zone_100_ohnahranplains_outdoor_walk_centaur_3#217084",
-		"zone_100_ohnahranplains_outdoor_walk_groves_1#217201",
-		"zone_100_ohnahranplains_outdoor_walk_groves_2#217202",
-		"zone_100_ohnahranplains_outdoor_walk_plains_1#217082",
-		"zone_100_ohnahranplains_outdoor_walk_plains_2#217200",
-	})
-	Zn(L["Zones"], L["Dragon Isles"], L["Thaldraszus"]							, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Thaldraszus"], prefol,
-		"zone_100_thaldraszus_outdoor_walk#217092",
-		"zone_100_thaldraszus_outdoor_walk_titan_1#217093",
-		"zone_100_thaldraszus_outdoor_walk_titan_2#217094",
-		"zone_100_thaldraszus_outdoor_walk_valdrakken#217435",
-	})
-	Zn(L["Zones"], L["Dragon Isles"], L["Traitor's Rest"]					, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Traitor's Rest"], prefol,
-		"mus_100_azurespan#217096",
-	})
-	Zn(L["Zones"], L["Dragon Isles"], L["Tyrhold Reservoir"]					, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Tyrhold Reservoir"], prefol,
-		"mus_100_titan_ageofthetitans#218065",
-	})
-	Zn(L["Zones"], L["Dragon Isles"], L["Waking Shores"]						, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Waking Shores"], prefol,
-		"zone_100_wakingshore_outdoor_walk_djaradin#217095",
-		"zone_100_wakingshore_outdoor_walk_lifepools#217079",
-		"zone_100_wakingshore_outdoor_walk_primalists#217099",
-		"zone_100_wakingshore_outdoor_walk_ruins#217097",
-		"zone_100_wakingshore_outdoor_walk_tuskarr#217098",
-		"zone_100_wakingshore_outdoor_walk_volcanic#217081",
-		"zone_100_wakingshore_outdoor_walk_wilds#217080",
-	})
-	Zn(L["Zones"], L["Dragon Isles"], L["Zaralek Cavern"]					, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Zaralek Cavern"], prefol,
-		"mus_101_loammtown_a#228264",
-		"mus_101_zaralek_volcanicground#228729",
-		"mus_101_aberrus_djaradin_a#228730",
-		"mus_101_aberrus_djaradin_c#228731",
-		"mus_101_aberrus_deathwinglab#228732",
-		"mus_101_zaralek_caverns#228733",
-		"mus_101_zaralek_grotto#228734",
-		"mus_101_zaralek_crystal#228735",
-		"mus_101_zaralek_sulfur#228736",
-	})
+	Zn(L["Zones"], L["Dragon Isles"], L["Amirdrassil"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Amirdrassil"], prefol, "mus_50_bamboo#33848", "mus_102_emeralddream_barrowdens#239419", "mus_102_emeralddream_backdrop#239687",	"mus_102_emeralddream_owlgod#239430",})
+	Zn(L["Zones"], L["Dragon Isles"], L["Azure Span"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Azure Span"], prefol, "zone_100_azurespan_outdoor_walk_explorer#217096", "zone_100_azurespan_outdoor_walk_frost#217088",	"zone_100_azurespan_outdoor_walk_gnoll#217089",	"zone_100_azurespan_outdoor_walk_ruins#217087",	"zone_100_azurespan_outdoor_walk_tundra#217086", "zone_100_azurespan_outdoor_walk_tuskarr#217090",})
+	Zn(L["Zones"], L["Dragon Isles"], L["Emerald Dream"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Emerald Dream"], prefol, "mus_102_emerald_dream_amirdrassil_239418#239418", "mus_102_emerald_dream_ancient_bough_239687#239687", "mus_102_emerald_dream_aw_nocturne_239483#239483", "mus_102_emerald_dream_barrows_of_reverie_239419#239419", "mus_102_emerald_dream_cinder_summit_239438#239438", "mus_102_emerald_dream_eye_of_ysera_239410#239410",	"mus_102_emerald_dream_firebreach_239477#239477", "mus_102_emerald_dream_fury_incarnate_239504#239504",})
+	Zn(L["Zones"], L["Dragon Isles"], L["Forbidden Reach"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Forbidden Reach"], prefol, "zone_100_forbiddenreach_creche_awake#217685", "zone_100_forbiddenreach_outdoor_walk#216465", "zone_100_forbiddenreach_primalist_postvaultbattle#217686",	"intro_100_forbiddenreach_vaultdefense#217702",})
+	Zn(L["Zones"], L["Dragon Isles"], L["Great Sea (Dragon Isles)"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Great Sea (Dragon Isles)"], prefol, "mus_100_great_sea#217687",})
+	Zn(L["Zones"], L["Dragon Isles"], L["Ohn'aran Plains"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Ohn'aran Plains"], prefol, "zone_100_ohnahranplains_outdoor_walk_centaur_1#217205", "zone_100_ohnahranplains_outdoor_walk_centaur_2#217085", "zone_100_ohnahranplains_outdoor_walk_centaur_3#217084", "zone_100_ohnahranplains_outdoor_walk_groves_1#217201",	"zone_100_ohnahranplains_outdoor_walk_groves_2#217202",	"zone_100_ohnahranplains_outdoor_walk_plains_1#217082", "zone_100_ohnahranplains_outdoor_walk_plains_2#217200",})
+	Zn(L["Zones"], L["Dragon Isles"], L["Thaldraszus"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Thaldraszus"], prefol, "zone_100_thaldraszus_outdoor_walk#217092",	"zone_100_thaldraszus_outdoor_walk_titan_1#217093",	"zone_100_thaldraszus_outdoor_walk_titan_2#217094",	"zone_100_thaldraszus_outdoor_walk_valdrakken#217435",})
+	Zn(L["Zones"], L["Dragon Isles"], L["Traitor's Rest"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Traitor's Rest"], prefol, "mus_100_azurespan#217096",})
+	Zn(L["Zones"], L["Dragon Isles"], L["Tyrhold Reservoir"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Tyrhold Reservoir"], prefol, "mus_100_titan_ageofthetitans#218065",})
+	Zn(L["Zones"], L["Dragon Isles"], L["Waking Shores"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Waking Shores"], prefol, "zone_100_wakingshore_outdoor_walk_djaradin#217095", "zone_100_wakingshore_outdoor_walk_lifepools#217079", "zone_100_wakingshore_outdoor_walk_primalists#217099", "zone_100_wakingshore_outdoor_walk_ruins#217097", "zone_100_wakingshore_outdoor_walk_tuskarr#217098",	"zone_100_wakingshore_outdoor_walk_volcanic#217081", "zone_100_wakingshore_outdoor_walk_wilds#217080",})
+	Zn(L["Zones"], L["Dragon Isles"], L["Zaralek Cavern"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Zaralek Cavern"], prefol, "mus_101_loammtown_a#228264", "mus_101_zaralek_volcanicground#228729", "mus_101_aberrus_djaradin_a#228730", "mus_101_aberrus_djaradin_c#228731", "mus_101_aberrus_deathwinglab#228732", "mus_101_zaralek_caverns#228733", "mus_101_zaralek_grotto#228734", "mus_101_zaralek_crystal#228735", "mus_101_zaralek_sulfur#228736",})
 
 	-- Zones: Khaz Algar
 	Zn(L["Zones"], L["Khaz Algar"], "|cffffd800", {""})
 	Zn(L["Zones"], L["Khaz Algar"], "|cffffd800" .. L["Khaz Algar"], {""})
-	Zn(L["Zones"], L["Khaz Algar"], L["Azj-Kahet"]								, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Azj-Kahet"], prefol,
-		"mus_101_loamm_town_a#228264",
-		"mus_1100_ancient_falls#265014",
-		"mus_1100_city_of_threads#265749",
-		"mus_1100_crawling_chasm#265736",
-		"mus_1100_delve_11#266837",
-		"mus_1100_maddening_deep#265738",
-		"mus_1100_nerubian_combat#265753",
-		"mus_1100_nerubian_raid#265735",
-		"mus_1100_silken_path_1#265343",
-		"mus_1100_silken_path_2#265752",
-		"mus_1100_sunless_strand#265745",
-		"mus_1100_weaver's_lair#265739",
-		"mus_1100_zone_11_1#265737",
-		"mus_1100_zone_11_2#265742",
-		"mus_1100_zone_11_3#265743",
-	})
-	Zn(L["Zones"], L["Khaz Algar"], L["Great Sea (Khaz Algar)"]					, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Great Sea (Khaz Algar)"], prefol,
-		"mus_vashjirnaga_#119317",
-	})
-	Zn(L["Zones"], L["Khaz Algar"], L["Hallowfall"]								, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Hallowfall"], prefol,
-		"mus_1100_arathi_airships#265015",
-		"mus_1100_arathor_general#265016",
-		"mus_1100_arathi_memorial#265712",
-		"mus_1100_dark_crystal#265728",
-		"mus_1100_delve_11_1#265713",
-		"mus_1100_delve_11_2#266837",
-		"mus_1100_lorels_crossing#265716",
-		"mus_1100_mereldar#265327",
-		"mus_1100_nerubian_raid#265024",
-		"mus_1100_sunless_strand_1#265672",
-		"mus_1100_sunless_strand_2#265701",
-		"mus_1100_the_aegis_wall#265013",
-	})
-	Zn(L["Zones"], L["Khaz Algar"], L["Isle of Dorn"]							, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Isle of Dorn"], prefol,
-		"mus_1100_boulder_springs_1#265442",
-		"mus_1100_boulder_springs_2#265443",
-		"mus_1100_cinderwold_1#265456",
-		"mus_1100_cinderwold_2#266426",
-		"mus_1100_delve_11#265450",
-		"mus_1100_dornogal_1#265460",
-		"mus_1100_dornogal_2#265464",
-		"mus_1100_dorn_country#265458",
-		"mus_1100_earthen_countryside#265018",
-		"mus_1100_earthen_memorial#265459",
-		"mus_1100_glimmering_shore#265452",
-		"mus_1100_isle_of_dorn#265449",
-		"mus_1100_proscenium#265009",
-		"mus_1100_tranquil_strand#263761",
-		"mus_1100_zone_11_2#265454",
-	})
-	Zn(L["Zones"], L["Khaz Algar"], L["Maddening Deep"]							, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Maddening Deep"], prefol,
-		"mus_110_maddening_deep_#265738",
-	})
-	Zn(L["Zones"], L["Khaz Algar"], L["Ringing Deeps"]							, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Ringing Deeps"], prefol,
-		"mus_1100_ancient_falls_1#265014",
-		"mus_1100_ancient_falls_2#265023",
-		"mus_1100_lost_mines#265028",
-		"mus_1100_ringing_deeps_base_1#265489",
-		"mus_1100_ringing deeps_base_2#265493",
-		"mus_1100_the_warrens#265020",
-		"mus_1100_zone_11#265488",
-		"ringing_deeps_11#265490",
-		"mus_1100_taelloch#265494",
-		"mus_80_goblingreed_a#265497",
-	})
-	Zn(L["Zones"], L["Khaz Algar"], L["Siren Isle"]								, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Siren Isle"], prefol,
-		"sirenisle_general_hub_walk#275840",
-		"sirenisle_general_island_walk_1#275841",
-		"sirenisle_general_island_walk_2#275693",
-		"sirenisle_general_island_walk_3#275692",
-		"sirenisle_general_island_walk_4#275831",
-	})
-	Zn(L["Zones"], L["Khaz Algar"], L["Undermine"]								, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Undermine"], prefol,
-		"mus_111_undermine_1#280267",
-		"mus_111_undermine_2#282147",
-		"mus_111_undermine_3#282148",
-		"mus_111_undermine_4#282192",
-		"mus_111_undermine_5#282195",
-		"mus_111_undermine_6#282196",
-		"mus_111_undermine_7#282198",
-		"mus_111_undermine_8#282430",
-		"mus_111_undermine_9#282433",
-		"mus_111_undermine_10#282543",
-	})
+	Zn(L["Zones"], L["Khaz Algar"], L["Azj-Kahet"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Azj-Kahet"], prefol, "mus_101_loamm_town_a#228264", "mus_1100_ancient_falls#265014", "mus_1100_city_of_threads#265749", "mus_1100_crawling_chasm#265736", "mus_1100_delve_11#266837", "mus_1100_maddening_deep#265738", "mus_1100_nerubian_combat#265753", "mus_1100_nerubian_raid#265735", "mus_1100_silken_path_1#265343", "mus_1100_silken_path_2#265752", "mus_1100_sunless_strand#265745", "mus_1100_weaver's_lair#265739", "mus_1100_zone_11_1#265737", "mus_1100_zone_11_2#265742", "mus_1100_zone_11_3#265743",})
+	Zn(L["Zones"], L["Khaz Algar"], L["Great Sea (Khaz Algar)"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Great Sea (Khaz Algar)"], prefol, "mus_vashjirnaga_#119317",})
+	Zn(L["Zones"], L["Khaz Algar"], L["Hallowfall"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Hallowfall"], prefol, "mus_1100_arathi_airships#265015", "mus_1100_arathor_general#265016", "mus_1100_arathi_memorial#265712", "mus_1100_dark_crystal#265728",	"mus_1100_delve_11_1#265713", "mus_1100_delve_11_2#266837", "mus_1100_lorels_crossing#265716", "mus_1100_mereldar#265327", "mus_1100_nerubian_raid#265024", "mus_1100_sunless_strand_1#265672",	"mus_1100_sunless_strand_2#265701",	"mus_1100_the_aegis_wall#265013",})
+	Zn(L["Zones"], L["Khaz Algar"], L["Isle of Dorn"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Isle of Dorn"], prefol, "mus_1100_boulder_springs_1#265442", "mus_1100_boulder_springs_2#265443", "mus_1100_cinderwold_1#265456",	"mus_1100_cinderwold_2#266426",	"mus_1100_delve_11#265450",	"mus_1100_dornogal_1#265460", "mus_1100_dornogal_2#265464", "mus_1100_dorn_country#265458", "mus_1100_earthen_countryside#265018", "mus_1100_earthen_memorial#265459",	"mus_1100_glimmering_shore#265452",	"mus_1100_isle_of_dorn#265449",	"mus_1100_proscenium#265009", "mus_1100_tranquil_strand#263761", "mus_1100_zone_11_2#265454",})
+	Zn(L["Zones"], L["Khaz Algar"], L["Maddening Deep"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Maddening Deep"], prefol, "mus_110_maddening_deep_#265738",})
+	Zn(L["Zones"], L["Khaz Algar"], L["Ringing Deeps"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Ringing Deeps"], prefol, "mus_1100_ancient_falls_1#265014", "mus_1100_ancient_falls_2#265023", "mus_1100_lost_mines#265028", "mus_1100_ringing_deeps_base_1#265489",	"mus_1100_ringing deeps_base_2#265493",	"mus_1100_the_warrens#265020", "mus_1100_zone_11#265488", "ringing_deeps_11#265490", "mus_1100_taelloch#265494",	"mus_80_goblingreed_a#265497",})
+	Zn(L["Zones"], L["Khaz Algar"], L["Siren Isle"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Siren Isle"], prefol, "sirenisle_general_hub_walk#275840", "sirenisle_general_island_walk_1#275841", "sirenisle_general_island_walk_2#275693", "sirenisle_general_island_walk_3#275692", "sirenisle_general_island_walk_4#275831",})
+	Zn(L["Zones"], L["Khaz Algar"], L["Undermine"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Undermine"], prefol, "mus_111_undermine_1#280267", "mus_111_undermine_2#282147", "mus_111_undermine_3#282148", "mus_111_undermine_4#282192", "mus_111_undermine_5#282195", "mus_111_undermine_6#282196", "mus_111_undermine_7#282198", "mus_111_undermine_8#282430", "mus_111_undermine_9#282433", "mus_111_undermine_10#282543",})
+
+	-- Zones: Quel'Thalas
+	Zn(L["Zones"], L["Quel'Thalas"], "|cffffd800", {""})
+	Zn(L["Zones"], L["Quel'Thalas"], "|cffffd800" .. L["Quel'Thalas"], {""})
+	Zn(L["Zones"], L["Quel'Thalas"], L["Eversong Woods (Midnight)"], {	"|cffffd800" .. L["Zones"] .. ": " .. L["Eversong Woods (Midnight)"], prefol, "gl_forest1walkday01#9803",	"mus_1200_eversong_village_1#335149", "mus_1200_eversong_village_2#335146", "mus_1200_eversong_village_3#334917", "mus_1200_lake_elrendar_1#334580", "mus_1200_lake_elrendar_2#335169", "mus_1200_lightbloom_1#335170",	"mus_1200_lightbloom_2#336130", "mus_1200_silent_251#336693", "mus_1200_silent_310#338100", "mus_1200_silvermoon_inn#335688", "mus_1200_twilights_blade_1#334259", "mus_1200_twilights_blade_2#334260", "mus_1200_windrunner_village#335696", "mus_1200_zul'aman_1#334790", "mus_1200_zul'aman_2#336146", "mus_43_zinazshari_uu04#336451",})
+	Zn(L["Zones"], L["Quel'Thalas"], L["Harandar"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Harandar"], prefol, "mus_1200_amirdrassil_roots#335191", "mus_1200_den_of_echoes#335427", "mus_1200_gloom_mire#335428", "mus_1200_harandar_1#334584", "mus_1200_harandar_2#334585", "mus_1200_harandar_3#334587", "mus_1200_lightbloom#335170", "mus_1200_lightbloom_harandar#335695", "mus_1200_nordrassil_roots#334581",	"mus_1200_rift_of_aln#334244", "mus_1200_teldrassil_roots#335196",	"mus_1200_vale_of_mists#334250", "mus_1200_world_soul_cradle#334582",})
+	Zn(L["Zones"], L["Quel'Thalas"], L["Voidstorm"], {"|cffffd800" .. L["Zones"] .. ": " .. L["Voidstorm"], prefol, "mus_1200_devouring_host_1#335211",	"mus_1200_devouring_host_2#335213",	"mus_1200_devouring_host_3#334247",	"mus_1200_devouring_host_4#335469", "mus_1200_gnawing_reach_1#335432", "mus_1200_gnawing_reach_2#335171", "mus_1200_howling_ridge#334249", "mus_1200_locus_point#334833", "mus_1200_shadowguard_void#334248", "mus_1200_silent_046#336743", "mus_1200_slayers_rise#335210", "mus_1200_storm_fields#335171", "mus_1200_voidstorm_1#335218", "mus_1200_voidstorm_2#334833", "mus_1200_voidstorm_3#320049", "tempmono_3min#173691",})
+	Zn(L["Zones"], L["Quel'Thalas"], L["Slayer's Rise"], {	"|cffffd800" .. L["Zones"] .. ": " .. L["Slayer's Rise"], prefol, "mus_1200_devouring_host_1#334247", "mus_1200_devouring_host_2#335469", "mus_1200_gnawing_reach#335432", "mus_1200_shadowguard_void#334248",	"mus_1200_slayers_rise#335210",	"mus_1200_voidstorm#335218",})
+	Zn(L["Zones"], L["Quel'Thalas"], L["Isle of Quel'Danas (Midnight)"], {	"|cffffd800" .. L["Zones"] .. ": " .. L["Isle of Quel'Danas (Midnight)"], prefol, "mus_1200_silent_336#334253",})
 
 	----------------------------------------------------------------------
 	-- Dungeons
@@ -622,146 +407,40 @@
 	-- Dungeons: Dragonflight
 	Zn(L["Dungeons"], L["Dragonflight"], "|cffffd800", {""})
 	Zn(L["Dungeons"], L["Dragonflight"], "|cffffd800" .. L["Dragonflight"], {""})
-	Zn(L["Dungeons"], L["Dragonflight"], L["Algeth'ar Academy"]					, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Algeth'ar Academy"], prefol,
-		-- Algeth'ar Academy
-		"dragonflight/mus_100_valdrakken_1_h#218100",
-		"dragonflight/mus_100_valdrakken_1_a#218103",
-		"dragonflight/mus_100_thaldraszus_1_h#218035",
-	})
-	Zn(L["Dungeons"], L["Dragonflight"], L["Amirdrassil: The Dream's Hope"]	, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Amirdrassil: The Dream's Hope"], prefol,
-		-- Amirdrassil (The Dream's Hope)
-		"dragonflight/mus_102_amirdrassil_dreams_hope_e#239487",
-		"dragonflight/mus_102_amirdrassil_fury_incarnate_a#239750",
-		"dragonflight/mus_102_amirdrassil_fury_incarnate_f#239438",
-		"dragonflight/mus_102_amirdrassil_cinder_summit_c#239508",
-	})
-	Zn(L["Dungeons"], L["Dragonflight"], L["Azure Vault"]						, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Azure Vault"], prefol,
-		-- Azure Vault
-		"dragonflight/mus_100_azurespan_bluedragon_1#218019",
-		"dragonflight/mus_100_azurespan_bluedragon_2#218018",
-	})
-	Zn(L["Dungeons"], L["Dragonflight"], L["Brackenhide Hollow"]				, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Brackenhide Hollow"], prefol,
-		-- Brackenhide Hollow
-		"dragonflight/dgn_100_brackenhide_base_walk#218046",
-	})
-	Zn(L["Dungeons"], L["Dragonflight"], L["Dawn Of The Infinite"]				, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Dawn Of The Infinite"], prefol,
-		-- Dawn Of The Infinite
-		"cataclysm/dawn_of_the_infinite_mus_43_corrupteddragonblight_uu01#76856",
-		"dragonflight/dawn_of_the_infinite_mus_1015_time_rift_invasion_b#233409",
-		"dragonflight/dawn_of_the_infinite_mus_1015_dawn_of_the_infinite_a#233414",
-	})
-	Zn(L["Dungeons"], L["Dragonflight"], L["Neltharus"]							, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Neltharus"], prefol,
-		-- Neltharus
-		"dragonflight/dgn_100_neltharus_djaradin_battle_a_01#218132",
-		"dragonflight/dgn_100_neltharus_djaradin_battle_b_01#218133",
-	})
-	Zn(L["Dungeons"], L["Dragonflight"], L["Nokhud Offensive"]					, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Nokhud Offensive"], prefol,
-		-- Nokhud Offensive
-		"dragonflight/dgn_100_nokhudoffensive_dungeon_cleared_01#218060",
-		"dragonflight/dgn_100_nokhudoffensive_battle_a_01#218059",
-		"dragonflight/dgn_100_nokhudoffensive_base_walk_02#218058",
-		"dragonflight/dgn_100_nokhudoffensive_base_walk_01#218058",
-		"dragonflight/dgn_100_nokhudoffensive_battle_b_01#218057",
-	})
-	Zn(L["Dungeons"], L["Dragonflight"], L["Ruby Life Pools"]					, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Ruby Life Pools"], prefol,
-		-- Ruby Life Pools
-		"dragonflight/dgn_100_lifepools_boss_battle_b_01#218050",
-		"dragonflight/dgn_100_lifepools_base_walk#218075",
-	})
-	Zn(L["Dungeons"], L["Dragonflight"], L["Uldaman (Dragonflight)"]			, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Uldaman (Dragonflight)"], prefol,
-		-- Uldaman (Dragonflight)
-		"dragonflight/unknown/event_100_dgn_uldaman_lostdwarves_final_4879661#218071",
-		"dragonflight/Intro_100_DGN_Uldaman_FinalRoom#214302",
-	})
-	Zn(L["Dungeons"], L["Dragonflight"], L["Vault of the Incarnates"]			, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Vault of the Incarnates"], prefol,
-		-- Vault of the Incarnates
-		"dragonflight/mus_100_scene_vaultoftheincarnates_raszageth_01#217857",
-		"dragonflight/mus_100_scene_vaultoftheincarnates_raszageth_02#217863",
-		"dragonflight/mus_100_scene_vaultoftheincarnates_raszageth_03#217867",
-		"dragonflight/mus_100_scene_eranog_fire_transformation#217848",
-	})
+	Zn(L["Dungeons"], L["Dragonflight"], L["Algeth'ar Academy"]					, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Algeth'ar Academy"], prefol, "dragonflight/mus_100_valdrakken_1_h#218100", "dragonflight/mus_100_valdrakken_1_a#218103", "dragonflight/mus_100_thaldraszus_1_h#218035",})
+	Zn(L["Dungeons"], L["Dragonflight"], L["Amirdrassil: The Dream's Hope"]		, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Amirdrassil: The Dream's Hope"], prefol, "dragonflight/mus_102_amirdrassil_dreams_hope_e#239487", "dragonflight/mus_102_amirdrassil_fury_incarnate_a#239750", "dragonflight/mus_102_amirdrassil_fury_incarnate_f#239438",	"dragonflight/mus_102_amirdrassil_cinder_summit_c#239508",})
+	Zn(L["Dungeons"], L["Dragonflight"], L["Azure Vault"]						, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Azure Vault"], prefol, "dragonflight/mus_100_azurespan_bluedragon_1#218019", "dragonflight/mus_100_azurespan_bluedragon_2#218018",})
+	Zn(L["Dungeons"], L["Dragonflight"], L["Brackenhide Hollow"]				, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Brackenhide Hollow"], prefol, "dragonflight/dgn_100_brackenhide_base_walk#218046",})
+	Zn(L["Dungeons"], L["Dragonflight"], L["Dawn Of The Infinite"]				, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Dawn Of The Infinite"], prefol, "cataclysm/dawn_of_the_infinite_mus_43_corrupteddragonblight_uu01#76856", "dragonflight/dawn_of_the_infinite_mus_1015_time_rift_invasion_b#233409", "dragonflight/dawn_of_the_infinite_mus_1015_dawn_of_the_infinite_a#233414",})
+	Zn(L["Dungeons"], L["Dragonflight"], L["Neltharus"]							, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Neltharus"], prefol, "dragonflight/dgn_100_neltharus_djaradin_battle_a_01#218132", "dragonflight/dgn_100_neltharus_djaradin_battle_b_01#218133",})
+	Zn(L["Dungeons"], L["Dragonflight"], L["Nokhud Offensive"]					, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Nokhud Offensive"], prefol, "dragonflight/dgn_100_nokhudoffensive_dungeon_cleared_01#218060", "dragonflight/dgn_100_nokhudoffensive_battle_a_01#218059", "dragonflight/dgn_100_nokhudoffensive_base_walk_02#218058",	"dragonflight/dgn_100_nokhudoffensive_base_walk_01#218058",	"dragonflight/dgn_100_nokhudoffensive_battle_b_01#218057",})
+	Zn(L["Dungeons"], L["Dragonflight"], L["Ruby Life Pools"]					, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Ruby Life Pools"], prefol, "dragonflight/dgn_100_lifepools_boss_battle_b_01#218050", "dragonflight/dgn_100_lifepools_base_walk#218075",})
+	Zn(L["Dungeons"], L["Dragonflight"], L["Uldaman (Dragonflight)"]			, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Uldaman (Dragonflight)"], prefol, "dragonflight/unknown/event_100_dgn_uldaman_lostdwarves_final_4879661#218071", "dragonflight/Intro_100_DGN_Uldaman_FinalRoom#214302",})
+	Zn(L["Dungeons"], L["Dragonflight"], L["Vault of the Incarnates"]			, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Vault of the Incarnates"], prefol, "dragonflight/mus_100_scene_vaultoftheincarnates_raszageth_01#217857", "dragonflight/mus_100_scene_vaultoftheincarnates_raszageth_02#217863", "dragonflight/mus_100_scene_vaultoftheincarnates_raszageth_03#217867", "dragonflight/mus_100_scene_eranog_fire_transformation#217848",})
 
 	-- Dungeons: The War Within
 	Zn(L["Dungeons"], L["The War Within"], "|cffffd800", {""})
 	Zn(L["Dungeons"], L["The War Within"], "|cffffd800" .. L["The War Within"], {""})
-	Zn(L["Dungeons"], L["The War Within"], L["Ara-Kara, City of Echoes"]		, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Ara-Kara, City of Echoes"], prefol,
-		-- Ara-Kara, City of Echoes
-		"mus_1100_crawling chasm#265343",
-		"mus_1100_dungeon_11#265403",
-	})
-	Zn(L["Dungeons"], L["The War Within"], L["City of Threads"]					, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["City of Threads"], prefol,
-		-- City of Threads
-		"mus_1100_city_of_threads#265373",
-		"mus_1100_maddening_deep#265188",
-	})
-	Zn(L["Dungeons"], L["The War Within"], L["Dawnbreaker"]						, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Dawnbreaker"], prefol,
-		-- Dawnbreaker
-		"mus_1100_arathi_airships#265015",
-		"mus_1100_arathi_combat_dark#265109",
-	})
-	Zn(L["Dungeons"], L["The War Within"], L["Liberation of Undermine"]			, {	"|cffffd800" .. L["Zones"] .. ": " .. L["Liberation of Undermine"], prefol,
-		"mus_1110_liberation_undermine_1#280287",
-		"mus_1110_liberation_undermine_2#280273",
-		"mus_1110_liberation_undermine_3#282153",
-		"mus_1110_liberation_undermine_4#282632",
-		"mus_1110_liberation_undermine_5#282634",
-		"mus_1110_liberation_undermine_6#282659",
-	})
-	Zn(L["Dungeons"], L["The War Within"], L["Nerub-ar Palace"]					, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Nerub-ar Palace"], prefol,
-		-- Nerub-ar Palace
-		"mus_1100_city_of_threads_1#265097",
-		"mus_1100_city_of_threads_2#265183",
-		"mus_1100_crawling_chasm#265343",
-		"mus_1100_maddening_deep#265188",
-		"mus_1100_silken_path#265190",
-	})
-	Zn(L["Dungeons"], L["The War Within"], L["Operation: Floodgate"]			, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Operation: Floodgate"], prefol,
-		"mus_1110_floodgate#282271"
-	})
-	Zn(L["Dungeons"], L["The War Within"], L["Priory of the Sacred Flame"]		, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Priory of the Sacred Flame"], prefol,
-		-- Priory of the Sacred Flame
-		"mus_1100_dungeon_11#265408",
-	})
-	Zn(L["Dungeons"], L["The War Within"], L["Rookery"]							, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Rookery"], prefol,
-		-- Rookery
-		"mus_1100_taelloch#265436",
-	})
+	Zn(L["Dungeons"], L["The War Within"], L["Ara-Kara, City of Echoes"]		, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Ara-Kara, City of Echoes"], prefol, "mus_1100_crawling chasm#265343", "mus_1100_dungeon_11#265403",})
+	Zn(L["Dungeons"], L["The War Within"], L["City of Threads"]					, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["City of Threads"], prefol, "mus_1100_city_of_threads#265373", "mus_1100_maddening_deep#265188",})
+	Zn(L["Dungeons"], L["The War Within"], L["Dawnbreaker"]						, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Dawnbreaker"], prefol, "mus_1100_arathi_airships#265015", "mus_1100_arathi_combat_dark#265109",})
+	Zn(L["Dungeons"], L["The War Within"], L["Liberation of Undermine"]			, {"|cffffd800" .. L["Zones"] .. ": " .. L["Liberation of Undermine"], prefol, "mus_1110_liberation_undermine_1#280287", "mus_1110_liberation_undermine_2#280273", "mus_1110_liberation_undermine_3#282153", "mus_1110_liberation_undermine_4#282632", "mus_1110_liberation_undermine_5#282634", "mus_1110_liberation_undermine_6#282659",})
+	Zn(L["Dungeons"], L["The War Within"], L["Nerub-ar Palace"]					, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Nerub-ar Palace"], prefol, "mus_1100_city_of_threads_1#265097", "mus_1100_city_of_threads_2#265183", "mus_1100_crawling_chasm#265343", "mus_1100_maddening_deep#265188", "mus_1100_silken_path#265190",})
+	Zn(L["Dungeons"], L["The War Within"], L["Operation: Floodgate"]			, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Operation: Floodgate"], prefol, "mus_1110_floodgate#282271",})
+	Zn(L["Dungeons"], L["The War Within"], L["Priory of the Sacred Flame"]		, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Priory of the Sacred Flame"], prefol, "mus_1100_dungeon_11#265408",})
+	Zn(L["Dungeons"], L["The War Within"], L["Rookery"]							, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Rookery"], prefol, "mus_1100_taelloch#265436",})
 
-	-- Dungeons: War Within Scenarios
-	-- Zn(L["Dungeons"], L["War Within: Scenarios"], "|cffffd800", {""})
-	-- Zn(L["Dungeons"], L["War Within: Scenarios"], "|cffffd800" .. L["War Within: Scenarios"], {""})
-	-- Zn(L["Dungeons"], L["War Within"], L["Burrows (Scenario)"]										, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Burrows (Scenario)"], prefol,
-		-- Scenario: Burrows
-		-- "mus_1100_nerubian_combat#266516",
-	--})
-	--Zn(L["Dungeons"], L["War Within: Scenarios"], L["Hallowfall (Scenario)"]						, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Hallowfall (Scenario)"], prefol,
-		-- Scenario: Hallowfall
-	--	"mus_1100_arathi_combat_dark#266441",
-	--})
-	--Zn(L["Dungeons"], L["War Within: Scenarios"], L["Kriegval's Rest (Scenario)"]					, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Kriegval's Rest (Scenario)"], prefol,
-		-- Scenario: Kriegval's Rest
-	--	"mus_1100_lost_mines#265028",
-	--})
-
-	-- LeaPlusLC.NewPatch: Dungeons: Midnight (uncomment for 12.0.1)
+	-- Dungeons: Midnight
 	Zn(L["Dungeons"], L["Midnight"], "|cffffd800", {""})
 	Zn(L["Dungeons"], L["Midnight"], "|cffffd800" .. L["Midnight"], {""})
-	Zn(L["Dungeons"], L["Midnight"], L["Blinding Vale"], {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Blinding Vale"], prefol,
-		-- Blinding Vale
-		--"theblindingvale_1#334584", "theblindingvale_2#336175", "theblindingvale_3#334586", "theblindingvale_4#337763", "theblindingvale_5#336751",
-	})
-	Zn(L["Dungeons"], L["Midnight"], L["Maisara Caverns"], {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Maisara Caverns"], prefol,
-		-- Maisara Caverns
-		--"mus_1100_maddening_deep_01#265382",
-	})
-	Zn(L["Dungeons"], L["Midnight"], L["Nexus-Point Xenas"], {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Nexus-Point Xenas"], prefol,
-		-- Nexus-Point Xenas
-		--"nexuspointxenas#335439",
-	})
-	Zn(L["Dungeons"], L["Midnight"], L["Voidscar Arena"], {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Voidscar Arena"], prefol,
-		-- Voidscar Arena
-		--"voidscararena_335461",
-	})
+	Zn(L["Dungeons"], L["Midnight"], L["Blinding Vale"]							, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Blinding Vale"], prefol, "theblindingvale_1#334584", "theblindingvale_2#336175", "theblindingvale_3#334586", "theblindingvale_4#337763", "theblindingvale_5#336751",})
+	Zn(L["Dungeons"], L["Midnight"], L["Den of Nalorakk"]						, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Den of Nalorakk"], prefol, "mus_1200_atal'aman#334818", "mus_1200_nalorakk_loa_1#335566", "mus_1200_nalorakk_loa_2#334576", "mus_1200_nalorakk_loa_3#335566", "mus_1200_nalorakk_loa_4#334793", "mus_1200_zul'aman#335543",})
+	Zn(L["Dungeons"], L["Midnight"], L["Heart of Rage"]							, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Heart of Rage"], prefol, "mus_1200_nalorakk_loa#335566",})
+	Zn(L["Dungeons"], L["Midnight"], L["Magisters' Terrace (Midnight)"]			, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Magisters' Terrace (Midnight)"], prefol, "mus_1200_lake_elrendar#336189",})
+	Zn(L["Dungeons"], L["Midnight"], L["Maisara Caverns"]						, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Maisara Caverns"], prefol, "mus_1100_maddening_deep_01#265382",})
+	Zn(L["Dungeons"], L["Midnight"], L["Murder Row"]							, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Murder Row"], prefol, "bt_arrivalwalkuni03#11696", "mus_1200_murder_row#335686", "mus_70_menaceofthedarktitans_h1#75371",})
+	Zn(L["Dungeons"], L["Midnight"], L["Nexus-Point Xenas"]						, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Nexus-Point Xenas"], prefol, "nexuspointxenas#335439",})
+	Zn(L["Dungeons"], L["Midnight"], L["Voidscar Arena"]						, {"|cffffd800" .. L["Dungeons"] .. ": " .. L["Voidscar Arena"], prefol, "voidscararena#335461",})
 
 	----------------------------------------------------------------------
 	-- Various
@@ -975,17 +654,33 @@
 		"|Cffffffff" .. L["Undermined"] .. " |r#6641605#77", -- interface/cinematics/tww_111_bro.mp3 (1029)
 		"|Cffffffff" .. L["A Shadowy Invitation"] .. " |r#7242305#91", -- interface/cinematics/tww_112_kid.mp3 (1033)
 		"|Cffffffff" .. L["Dimensius Defeat"] .. " |r#6938026#111", -- interface/cinematics/tww_112_lws.mp3 (1034)
-		"|Cffffffff" .. L["Voidstorm"] .. " |r#7435350#138", -- 
+		"|Cffffffff" .. L["Voidstorm"] .. " |r#7435350#138", --
 		"|Cffffffff" .. L["The Radiant Visions"] .. " |r#7464910#89", -- interface/cinematics/tww_1127_scd.mp3 (1052)
 
 		-- Cinematic Music: Midnight (movie.dbc)
 		"|cffffd800", "|cffffd800" .. L["Midnight"],
-		"|Cffffffff" .. L["DO NOT PUSH THIS BUTTON!"] .. " |r#555344#14", -- interface/cinematics/tww_1127_scd.mp3 (1052)
+		"|Cffffffff" .. L["Midnight"] .. " |r#7569816#266", -- (1051)
+		"|Cffffffff" .. L["Supremacy"] .. " |r#7671194#252", -- (1061)
+		"|Cffffffff" .. L["Immolation"] .. " |r#7728589#122", -- (1062)
+		"|Cffffffff" .. L["The Story So Far"] .. " |r#7728181#219", -- (1066)
 
 	})
 
 	Zn(L["Various"], L["Various"], L["Class Trials"]							, {	"|cffffd800" .. L["Various"] .. ": " .. L["Class Trials"], prefol, "MUS_70_ClassTrial_Horde_BattleWalk#71954", "MUS_70_ClassTrial_Alliance_BattleWalk#71959",})
-	Zn(L["Various"], L["Various"], L["Credits"]									, {	"|cffffd800" .. L["Various"] .. ": " .. L["Credits"], prefol, "Menu-Credits01#10763", "Menu-Credits02#10804", "Menu-Credits03#13822", "Menu-Credits04#23812", "Menu-Credits05#32015", "Menu-Credits06#34020", "Menu-Credits07#56354", "Menu-Credits08#113560"})
+	Zn(L["Various"], L["Various"], L["Credits"]									, {	"|cffffd800" .. L["Various"] .. ": " .. L["Credits"], prefol,
+		"Menu-Credits01#10763", -- Worlf of Warcraft
+		"Menu-Credits02#275591", -- Burning Crusade (bccredits_lament_of_the_highborne.mp3)
+		"Menu-Credits03#12765", -- Wrath of the Lich King (GS_LichKing)
+		"Menu-Credits04#23812", -- Cataclysm
+		"Menu-Credits05#32015", -- Mists of Pandaria
+		"Menu-Credits06#34020", -- Warlords of Draenor
+		"Menu-Credits07#56354", -- Legion
+		"Menu-Credits08#113560", -- Battle for Azeroth
+		"Menu-Credits09#176357", -- Shadowlands (mus_90_mx_necrolord_h)
+		"Menu-Credits10#218033", -- Dragonflight (mus_100_theislesawaken_maintitle)
+		"Menu-Credits11#320048", -- The War Within (mus_110_the_war_soul_saga_h)
+		"Menu-Credits12#325423", -- Midnight (mus_120_midnight_maintitle)
+	})
 	Zn(L["Various"], L["Various"], L["Events"]									, {	"|cffffd800" .. L["Various"] .. ": " .. L["Events"], prefol,
 		"|cffffd800", "|cffffd800" .. L["Darkmoon Faire"], "MUS_43_DarkmoonFaire_IslandWalk#26536", "MUS_43_DarkmoonFaire_PavillionWalk#26539", "MUS_51_DarkmoonFaire_MerryGoRound_01#34440",
 		"|cffffd800", "|cffffd800" .. L["Trial of Style"], "MUS_725_Event_Transmog_TrialOfStyle_1_Preparation#85957", "MUS_725_Event_Transmog_TrialOfStyle_2_Competition#85958", "MUS_725_Event_Transmog_TrialOfStyle_4_EndOfCompetition#85960",
@@ -994,25 +689,13 @@
 		"|cffffd800", "|cffffd800" .. L["Adventure"], "MUS_80_Islands_Adventure_Walk#115050", "MUS_80_Islands_Adventure_Invasion_Walk#115414", "MUS_80_Islands_Adventure_Victory#115053",
 		"|cffffd800", "|cffffd800" .. L["Mystical"], "MUS_80_Islands_Mystical_Walk#115689", "MUS_80_Islands_Mystical_Invasion_Walk#117352",
 		"|cffffd800", "|cffffd800" .. L["Winter"], "MUS_80_Islands_Winter_Walk#117377", "MUS_80_Islands_Winter_Invasion_Walk#117378",
+		"|cffffd800", "|cffffd800" .. L["Crestfall"], "MUS_82_Islands_Crestfall#138066",
 		"|cffffd800", "|cffffd800" .. L["Havenswood"], "MUS_81_Islands_Havenswood_Walk#125908",
 		"|cffffd800", "|cffffd800" .. L["Jorundall"], "MUS_81_Islands_Jorundall_Walk#126149",
+		"|cffffd800", "|cffffd800" .. L["Snowblossom Village"], "MUS_82_Islands_Snowblossom_1#138070", "MUS_82_Islands_Snowblossom_2#138071",
 	})
 
-	Zn(L["Various"], L["Various"], L["Main Titles"]								, {	"|cffffd800" .. L["Various"] .. ": " .. L["Main Titles"], prefol,
-		"GS_Retail#10924",
-		"GS_BurningCrusade#10925",
-		"GS_LichKing#12765",
-		"GS_Cataclysm#23640",
-		"MUS_50_HeartofPandaria_MainTitle#28509",
-		"MUS_60_MainTitle#40169",
-		"MUS_70_MainTitle#56353",
-		"MUS_80_MainTitle#113559",
-		"MUS_90_MainTitle#170711",
-		"MUS_100_TheIslesAwaken_MainTitle#218033",
-		"MUS_110_TheWarWithin_MainTitle#262929",
-		"MUS_120_Midnight_Maintitle_Beta.mp3#325421", -- Beta
-	}) -- "MUS_1.0_MainTitle_Original#47598"
-
+	Zn(L["Various"], L["Various"], L["Main Titles"]								, {	"|cffffd800" .. L["Various"] .. ": " .. L["Main Titles"], prefol, "GS_Retail#10924", "GS_BurningCrusade#10925", "GS_LichKing#12765", "GS_Cataclysm#23640", "MUS_50_HeartofPandaria_MainTitle#28509", "MUS_60_MainTitle#40169", "MUS_70_MainTitle#56353", "MUS_80_MainTitle#113559", "MUS_90_MainTitle#170711", "MUS_100_TheIslesAwaken_MainTitle#218033", "MUS_110_TheWarWithin_MainTitle#262929", "MUS_120_Midnight_Maintitle#325423",})
 	Zn(L["Various"], L["Various"], L["Music Rolls"]								, {	"|cffffd800" .. L["Various"] .. ": " .. L["Music Rolls"], prefol, "MUS_61_GarrisonMusicBox_01#49511", "MUS_61_GarrisonMusicBox_02#49512", "MUS_61_GarrisonMusicBox_03#49513", "MUS_61_GarrisonMusicBox_04#49514", "MUS_61_GarrisonMusicBox_05#49515", "MUS_61_GarrisonMusicBox_06#49516", "MUS_61_GarrisonMusicBox_07#49529", "MUS_61_GarrisonMusicBox_08#49530", "MUS_61_GarrisonMusicBox_09#49531", "MUS_61_GarrisonMusicBox_10#49533", "MUS_61_GarrisonMusicBox_11#49535", "MUS_61_GarrisonMusicBox_12#49536", "MUS_61_GarrisonMusicBox_13#49538", "MUS_61_GarrisonMusicBox_14#49539", "MUS_61_GarrisonMusicBox_15#49540", "MUS_61_GarrisonMusicBox_16#49541", "MUS_61_GarrisonMusicBox_17#49543", "MUS_61_GarrisonMusicBox_18#49544", "MUS_61_GarrisonMusicBox_19#49545", "MUS_61_GarrisonMusicBox_20#49546", "MUS_61_GarrisonMusicBox_21#49526", "MUS_61_GarrisonMusicBox_22#49528", "MUS_61_GarrisonMusicBox_23_Alliance#49517", "MUS_61_GarrisonMusicBox_24_Alliance#49518", "MUS_61_GarrisonMusicBox_25_Alliance#49519", "MUS_61_GarrisonMusicBox_26_Alliance#49520", "MUS_61_GarrisonMusicBox_27_Alliance#49521", "MUS_61_GarrisonMusicBox_28_Alliance#49522", "MUS_61_GarrisonMusicBox_29_Alliance#49523", "MUS_61_GarrisonMusicBox_30_Alliance#49524", "MUS_61_GarrisonMusicBox_31_Alliance#49525", "MUS_61_GarrisonMusicBox_23_Horde#49555", "MUS_61_GarrisonMusicBox_24_Horde#49554", "MUS_61_GarrisonMusicBox_25_Horde#49553", "MUS_61_GarrisonMusicBox_26_Horde#49552", "MUS_61_GarrisonMusicBox_27_Horde#49551", "MUS_61_GarrisonMusicBox_28_Horde#49550", "MUS_61_GarrisonMusicBox_29_Horde#49549", "MUS_61_GarrisonMusicBox_30_Horde#49548", "MUS_61_GarrisonMusicBox_31_Horde#49547",})
 	Zn(L["Various"], L["Various"], L["Narration"]								, {	"|cffffd800" .. L["Various"] .. ": " .. L["Narration"], prefol, "BloodElfFlybyNarration#9156", "DeathKnightFlybyNarration#12938", "DraeneiFlybyNarration#9155", "DwarfFlyByNarration#3740", "GnomeFlyByNarration#3841", "GoblinFlybyNarration#23106", "HumanFlyByNarration#3840", "NightElfFlyByNarration#3800", "OrcFlyByNarration#3760", "PandarenFlybyNarration#31699", "TaurenFlyByNarration#4122", "TrollFlyByNarration#4080", "WorgenFlybyNarration#23105", "UndeadFlybyNarration#3358",})
 	Zn(L["Various"], L["Various"], L["Pet Battles"]								, {	"|cffffd800" .. L["Various"] .. ": " .. L["Pet Battles"], prefol, "MUS_50_PetBattles_01#28753", "MUS_50_PetBattles_02#28754",})
@@ -1034,138 +717,24 @@
 
 	-- Movies
 	Zn(L["Movies"], L["Movies"], "|cffffd800" .. L["Movies"], {""})
-
-	-- Movies: World of Warcraft
 	Zn(L["Movies"], L["Movies"], L["World of Warcraft"]							, {	"|cffffd800" .. L["Movies"] .. ": " .. L["World of Warcraft"], prefol, L["Ten Years of Warcraft"] .. " |r(1)", L["World of Warcraft"] .. " |r(2)"})
-
-	-- Movies: The Burning Crusade
 	Zn(L["Movies"], L["Movies"], L["The Burning Crusade"]						, {	"|cffffd800" .. L["Movies"] .. ": " .. L["The Burning Crusade"], prefol, L["The Burning Crusade"] .. " |r(27)"})
-
-	-- Movies: Wrath of the Lich King
 	Zn(L["Movies"], L["Movies"], L["Wrath of the Lich King"]					, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Wrath of the Lich King"], prefol, L["Wrath of the Lich King"] .. " |r(18)", L["Battle of Angrathar the Wrathgate"] .. " |r(14)", L["Fall of the Lich King"] .. " |r(16)"})
-
-	-- Movies: Cataclysm
 	Zn(L["Movies"], L["Movies"], L["Cataclysm"]									, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Cataclysm"], prefol, L["Cataclysm"] .. " |r(23)", L["Last Stand"] .. " |r(21)", L["Leaving Kezan"] .. " |r(22)", L["The Dragon Soul"] .. " |r(73)", L["Spine of Deathwing"] .. " |r(74)", L["Madness of Deathwing"] .. " |r(75)", L["Fall of Deathwing"] .. " |r(76)"})
-
-	-- Movies: Mists of Pandaria
 	Zn(L["Movies"], L["Movies"], L["Mists of Pandaria"]							, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Mists of Pandaria"], prefol, L["Mists of Pandaria"] .. " |r(115)", L["Risking It All"] .. " |r(117)", L["Leaving the Wandering Isle"] .. " |r(116)", L["Jade Forest Crash"] .. " |r(121)", L["The King's Command"] .. " |r(119)", L["The Art of War"] .. " |r(120)", L["Battle of Serpent's Heart"] .. " |r(118)", L["The Fleet in Krasarang (Horde)"] .. " |r(128)", L["The Fleet in Krasarang (Alliance)"] .. " |r(127)", L["Hellscream's Downfall (Horde)"] .. " |r(151)", L["Hellscream's Downfall (Alliance)"] .. " |r(152)"})
-
-	-- Movies: Warlords of Draenor
-	Zn(L["Movies"], L["Movies"], L["Warlords of Draenor"]						, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Warlords of Draenor"], prefol, L["Warlords of Draenor"] .. " |r(195)",	L["Darkness Falls"] .. " |r(167)", L["The Battle of Thunder Pass"] .. " |r(168)", L["And Justice for Thrall"] .. " |r(177)", L["Into the Portal"] .. " |r(185)", L["A Taste of Iron"] .. " |r(187)", L["The Battle for Shattrath"] .. " |r(188)", L["Gul'dan Ascendant"] .. " |r(270)", L["Gul'dan's Plan"] .. " |r(294)", L["Victory in Draenor!"] .. " |r(295)", L["Establish Your Garrison (Horde)"] .. " |r(189)", L["Establish Your Garrison (Alliance)"] .. " |r(192)", L["Bigger is Better (Horde)"] .. " |r(190)", L["Bigger is Better (Alliance)"] .. " |r(193)", L["My Very Own Castle (Horde)"] .. " |r(191)", L["My Very Own Castle (Alliance)"] .. " |r(194)", L["Shipyard Construction (Horde)"] .. " |r(292)", L["Shipyard Construction (Alliance)"] .. " |r(293)"})
-
-	-- Movies: Legion
+	Zn(L["Movies"], L["Movies"], L["Warlords of Draenor"]						, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Warlords of Draenor"], prefol, L["Warlords of Draenor"] .. " |r(195)", L["Darkness Falls"] .. " |r(167)", L["The Battle of Thunder Pass"] .. " |r(168)", L["And Justice for Thrall"] .. " |r(177)", L["Into the Portal"] .. " |r(185)", L["A Taste of Iron"] .. " |r(187)", L["The Battle for Shattrath"] .. " |r(188)", L["Gul'dan Ascendant"] .. " |r(270)", L["Gul'dan's Plan"] .. " |r(294)", L["Victory in Draenor!"] .. " |r(295)", L["Establish Your Garrison (Horde)"] .. " |r(189)", L["Establish Your Garrison (Alliance)"] .. " |r(192)", L["Bigger is Better (Horde)"] .. " |r(190)", L["Bigger is Better (Alliance)"] .. " |r(193)", L["My Very Own Castle (Horde)"] .. " |r(191)", L["My Very Own Castle (Alliance)"] .. " |r(194)", L["Shipyard Construction (Horde)"] .. " |r(292)", L["Shipyard Construction (Alliance)"] .. " |r(293)"})
 	Zn(L["Movies"], L["Movies"], L["Legion"]									, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Legion"], prefol, L["Legion"] .. " |r(470)", L["The Invasion Begins"] .. " |r(469)", L["Return to the Black Temple"] .. " |r(471)", L["The Demon's Trail"] .. " |r(473)", L["The Fate of Val'sharah"] .. " |r(472)", L["Fate of the Horde"] .. " |r(474)", L["A New Life for Undeath"] .. " |r(475)", L["Harbingers Gul'dan"] .. " |r(476)", L["Harbingers Khadgar"] .. " |r(477)", L["Harbingers Illidan"] .. " |r(478)", L["The Nightborne Pact"] .. " |r(485)", L["Stormheim (Alliance)"] .. " |r(483)", L["Stormheim (Horde)"] .. " |r(484)", L["Tomb of Sargeras"] .. " |r(486)", L["The Battle for Broken Shore"] .. " |r(487)", L["A Falling Star"] .. " |r(489)", L["Destiny Unfulfilled"] .. " |r(490)", L["The Nighthold"] .. " |r(549)", L["Victory at The Nighthold"] .. " |r(635)", L["A Found Memento"] .. " |r(636)", L["Assault on the Broken Shore"] .. " |r(637)", L["Kil'jaeden's Downfall"] .. " |r(656)", L["Arrival on Argus"] .. " |r(677)", L["Rejection of the Gift"] .. " |r(679)", L["Reincarnation of Alleria Windrunner"] .. " |r(682)", L["Rise of Argus"] .. " |r(687)", L["Antorus Ending"] .. " |r(689)", L["Epilogue (Horde)"] .. " |r(717)", L["Epilogue (Alliance)"] .. " |r(716)"})
-
-	-- Movies: Battle for Azeroth
-	Zn(L["Movies"], L["Movies"], L["Battle for Azeroth"]						, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Battle for Azeroth"], prefol,
-		L["Battle for Azeroth"] .. " |r(852)",
-		L["Warbringers Sylvanas"] .. " |r(853)",
-		L["The Fall of Lordaeron"] .. " |r(855)",
-		L["Jaina Joins the Battle"] .. " |r(856)",
-		L["Embers of War"] .. " |r(854)",
-		L["Arrival to Zandalar"] .. " |r(857)",
-		L["Vision of Sailor's Memory"] .. " |r(858)",
-		L["Jaina Returns to Kul Tiras"] .. " |r(859)",
-		L["Jaina's Nightmare"] .. " |r(860)",
-		L["Warbringers Jaina"] .. " |r(861)",
-		L["A Deal with Death"] .. " |r(862)",
-		L["The Threat Within"] .. " |r(863)",
-		L["The Return of Hope"] .. " |r(864)",
-		L["Realm Of Torment"] .. " |r(865)",
-		L["Terror of Darkshore"] .. " |r(874)",
-		L["An Unexpected Reunion"] .. " |r(879)",
-		L["Siege of Dazar'alor"] .. " |r(876)",
-		L["Battle of Dazar'alor"] .. " |r(875)",
-		L["Warbringers Azshara"] .. " |r(884)",
-		L["Rise of Azshara (Horde)"] .. " |r(894)",
-		L["Rise of Azshara (Alliance)"] .. " |r(883)",
-		L["The Negotiation"] .. " |r(903)",
-		L["Reckoning"] .. " |r(904)",
-		L["Azshara's Eternal Palace"] .. " |r(920)",
-		L["Wrathion's Scene"] .. " |r(927)",
-		L["Visions of N'Zoth"] .. " |r(928)",
-	})
-
-	-- Movies: Shadowlands
-	Zn(L["Movies"], L["Movies"], L["Shadowlands"]						, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Shadowlands"], prefol,
-		L["Shadowlands"] .. " |r(936)",
-		L["Afterlives Ardenweald"] .. " |r(935)",
-		L["Afterlives Bastion"] .. " |r(932)",
-		L["Afterlives Maldraxxus"] .. " |r(934)",
-		L["Afterlives Revendreth"] .. " |r(933)",
-		L["Exile's Reach (Horde)"] .. " |r(931)",
-		L["Exile's Reach (Alliance)"] .. " |r(895)",
-		L["Dark Abduction"] .. " |r(937)",
-		L["For Teldrassil"] .. " |r(942)",
-		L["Beyond The Veil"] .. " |r(943)",
-		L["Remember This Lesson"] .. " |r(944)",
-		L["Breaking The Arbiter"] .. " |r(945)",
-		L["A Glimpse Into Darkness"] .. " |r(946)",
-		L["No More Lies"] .. " |r(947)",
-		L["Sylvanas' Choice"] .. " |r(948)",
-		L["Kingsmourne"] .. " |r(949)",
-		L["Ysera Reborn"] .. " |r(941)",
-		L["Battle For Ardenweald"] .. " |r(951)",
-		L["Fate of Sylvanas"] .. " |r(950)",
-		L["By Our Hand"] .. " |r(953)",
-		L["Arbiter Pelagos"] .. " |r(954)",
-		L["Shattered Legacies"] .. " |r(955)",
-		L["Arthas Menethil's Fate"] .. " |r(956)",
-		L["Eternity's End"] .. " |r(957)",
-		L["The Jailer's Fall"] .. " |r(958)",
-	})
-
-	-- Movies: Dragonflight
-	Zn(L["Movies"], L["Movies"], L["Dragonflight"]						, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Dragonflight"], prefol,
-		L["Dragonflight"] .. " |r(960)",
-		L["Take To The Skies"] .. " |r(973)",
-		L["Raszageth the Storm-Eater (1)"] .. " |r(961)",
-		L["Raszageth the Storm-Eater (2)"] .. " |r(962)",
-		L["Raszageth Confronts Alexstrasza"] .. " |r(965)",
-		L["Dragonflight Legacies (1)"] .. " |r(966)",
-		L["Dragonflight Legacies (2)"] .. " |r(967)",
-		L["Dragonflight Legacies (3)"] .. " |r(968)",
-		L["The Ebon Scales"] .. " |r(969)",
-		L["The Seed of Hope"] .. " |r(963)",
-		L["Tempest Unleashed"] .. " |r(962)",
-		L["Incarnates Released"] .. " |r(964)",
-		L["Secrets of the Reach"] .. " |r(974)",
-		L["Opening The Way"] .. " |r(979)",
-		L["Fyrakk Incinerates Loamm"] .. " |r(981)",
-		L["A Symbol of Hope"] .. " |r(980)",
-		L["Dawn of the Infinite (Interlude)"] .. " |r(991)",
-		L["Dawn of the Infinite (Finale)"] .. " |r(992)",
-		L["A Matter of Time"] .. " |r(993)",
-		L["Fury Incarnate"] .. " |r(1001)",
-		L["Crown of Flame"] .. " |r(1002)",
-		L["Blessing of Amirdrassil"] .. " |r(1003)",
-		L["Iridikron and Vyranoth"] .. " |r(1009)",
-	})
-
-	-- Movies: The War Within
-	Zn(L["Movies"], L["Movies"], L["The War Within"]					, {	"|cffffd800" .. L["Movies"] .. ": " .. L["The War Within"], prefol,
-		L["The War Within"] .. " |r(1023)",
-		L["Thrall and Anduin"] .. " |r(1014)",
-		L["Threads of Destiny"] .. " |r(1021)",
-		L["The Story So Far"] .. " |r(1024)",
-		L["Dalaran Arrives at Khaz Algar"] .. " |r(1010)",
-		L["The Guardian and the Harbinger"] .. " |r(1012)",
-		L["Magni's Sacrifice"] .. " |r(1013)",
-		L["Ascension Day"] .. " |r(1020)",
-		L["Confronting Xal'atath"] .. " |r(1019)",
-		L["Orweyna's Vision"] .. " |r(1030)",
-		L["Gallywix and Xal'atath"] .. " |r(1028)",
-		L["Undermined"] .. " |r(1029)",
-		L["A Shadowy Invitation"] .. " |r(1033)",
-		L["Dimensius Defeat"] .. " |r(1034)",
-		L["Voidstorm"] .. " |r(1040)",
-		L["The Radiant Visions"] .. " |r(1052)",
-
-	})
+	Zn(L["Movies"], L["Movies"], L["Battle for Azeroth"]						, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Battle for Azeroth"], prefol, L["Battle for Azeroth"] .. " |r(852)",	L["Warbringers Sylvanas"] .. " |r(853)", L["The Fall of Lordaeron"] .. " |r(855)", L["Jaina Joins the Battle"] .. " |r(856)", L["Embers of War"] .. " |r(854)", L["Arrival to Zandalar"] .. " |r(857)",	L["Vision of Sailor's Memory"] .. " |r(858)", L["Jaina Returns to Kul Tiras"] .. " |r(859)", L["Jaina's Nightmare"] .. " |r(860)", L["Warbringers Jaina"] .. " |r(861)", L["A Deal with Death"] .. " |r(862)", L["The Threat Within"] .. " |r(863)", L["The Return of Hope"] .. " |r(864)",	L["Realm Of Torment"] .. " |r(865)", L["Terror of Darkshore"] .. " |r(874)", L["An Unexpected Reunion"] .. " |r(879)", L["Siege of Dazar'alor"] .. " |r(876)",	L["Battle of Dazar'alor"] .. " |r(875)", L["Warbringers Azshara"] .. " |r(884)",	L["Rise of Azshara (Horde)"] .. " |r(894)",	L["Rise of Azshara (Alliance)"] .. " |r(883)",	L["The Negotiation"] .. " |r(903)",	L["Reckoning"] .. " |r(904)", L["Azshara's Eternal Palace"] .. " |r(920)", L["Wrathion's Scene"] .. " |r(927)", L["Visions of N'Zoth"] .. " |r(928)",})
+	Zn(L["Movies"], L["Movies"], L["Shadowlands"]								, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Shadowlands"], prefol, L["Shadowlands"] .. " |r(936)", L["Afterlives Ardenweald"] .. " |r(935)", L["Afterlives Bastion"] .. " |r(932)", L["Afterlives Maldraxxus"] .. " |r(934)", L["Afterlives Revendreth"] .. " |r(933)", L["Exile's Reach (Horde)"] .. " |r(931)", L["Exile's Reach (Alliance)"] .. " |r(895)", L["Dark Abduction"] .. " |r(937)",	L["For Teldrassil"] .. " |r(942)", L["Beyond The Veil"] .. " |r(943)", L["Remember This Lesson"] .. " |r(944)", L["Breaking The Arbiter"] .. " |r(945)", L["A Glimpse Into Darkness"] .. " |r(946)", L["No More Lies"] .. " |r(947)", L["Sylvanas' Choice"] .. " |r(948)", L["Kingsmourne"] .. " |r(949)",	L["Ysera Reborn"] .. " |r(941)", L["Battle For Ardenweald"] .. " |r(951)", L["Fate of Sylvanas"] .. " |r(950)", L["By Our Hand"] .. " |r(953)",	L["Arbiter Pelagos"] .. " |r(954)",	L["Shattered Legacies"] .. " |r(955)",	L["Arthas Menethil's Fate"] .. " |r(956)",	L["Eternity's End"] .. " |r(957)",	L["The Jailer's Fall"] .. " |r(958)",})
+	Zn(L["Movies"], L["Movies"], L["Dragonflight"]								, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Dragonflight"], prefol, L["Dragonflight"] .. " |r(960)", L["Take To The Skies"] .. " |r(973)", L["Raszageth the Storm-Eater (1)"] .. " |r(961)", L["Raszageth the Storm-Eater (2)"] .. " |r(962)", L["Raszageth Confronts Alexstrasza"] .. " |r(965)", L["Dragonflight Legacies (1)"] .. " |r(966)", L["Dragonflight Legacies (2)"] .. " |r(967)", L["Dragonflight Legacies (3)"] .. " |r(968)", L["The Ebon Scales"] .. " |r(969)", L["The Seed of Hope"] .. " |r(963)", L["Tempest Unleashed"] .. " |r(962)", L["Incarnates Released"] .. " |r(964)",	L["Secrets of the Reach"] .. " |r(974)", L["Opening The Way"] .. " |r(979)", L["Fyrakk Incinerates Loamm"] .. " |r(981)", L["A Symbol of Hope"] .. " |r(980)", L["Dawn of the Infinite (Interlude)"] .. " |r(991)", L["Dawn of the Infinite (Finale)"] .. " |r(992)", L["A Matter of Time"] .. " |r(993)", L["Fury Incarnate"] .. " |r(1001)",	L["Crown of Flame"] .. " |r(1002)",	L["Blessing of Amirdrassil"] .. " |r(1003)", L["Iridikron and Vyranoth"] .. " |r(1009)",})
+	Zn(L["Movies"], L["Movies"], L["The War Within"]							, {	"|cffffd800" .. L["Movies"] .. ": " .. L["The War Within"], prefol, L["The War Within"] .. " |r(1023)",	L["Thrall and Anduin"] .. " |r(1014)", L["Threads of Destiny"] .. " |r(1021)",	L["The Story So Far"] .. " |r(1024)", L["Dalaran Arrives at Khaz Algar"] .. " |r(1010)", L["The Guardian and the Harbinger"] .. " |r(1012)", L["Magni's Sacrifice"] .. " |r(1013)", L["Ascension Day"] .. " |r(1020)",	L["Confronting Xal'atath"] .. " |r(1019)",	L["Orweyna's Vision"] .. " |r(1030)", L["Gallywix and Xal'atath"] .. " |r(1028)", L["Undermined"] .. " |r(1029)", L["A Shadowy Invitation"] .. " |r(1033)", L["Dimensius Defeat"] .. " |r(1034)", L["Voidstorm"] .. " |r(1040)", L["The Radiant Visions"] .. " |r(1052)",})
 
 	-- Movies: Midnight
 	Zn(L["Movies"], L["Movies"], L["Midnight"]					, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Midnight"], prefol,
-		L["DO NOT PUSH THIS BUTTON!"] .. " |r(1057)",
+		L["Midnight"] .. " |r(1051)",
+		L["Supremacy"] .. " |r(1061)",
+		L["Immolation"] .. " |r(1062)",
+		L["The Story So Far"] .. " |r(1066)",
 	})
 
 	----------------------------------------------------------------------

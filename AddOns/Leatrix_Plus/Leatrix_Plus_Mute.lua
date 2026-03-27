@@ -639,6 +639,51 @@
 			"mtigerstand2a.ogg#562388",
 		},
 
+		-- Dundun (Loa of Abundance)
+		["MuteDundun"] = {
+			-- sound/creature/dundun/
+			"vo_1200_dundun_7251842.ogg#7251842",
+			"vo_1200_dundun_7609114.ogg#7609114",
+			"vo_1200_dundun_7609115.ogg#7609115",
+			"vo_1200_dundun_7609116.ogg#7609116",
+			-- sound/creature/dundun_rat/
+			"vo_120_dundun_rat_01_m.ogg#7249707",
+			"vo_120_dundun_rat_02_m.ogg#7251759",
+			"vo_120_dundun_rat_03_m.ogg#7251762",
+			"vo_120_dundun_rat_04_m.ogg#7251765",
+			"vo_120_dundun_rat_05_m.ogg#7251768",
+			"vo_120_dundun_rat_06_m.ogg#7251771",
+			"vo_120_dundun_rat_07_m.ogg#7251774",
+			"vo_120_dundun_rat_08_m.ogg#7251777",
+			"vo_120_dundun_rat_09_m.ogg#7251784",
+			"vo_120_dundun_rat_10_m.ogg#7251787",
+			"vo_120_dundun_rat_11_m.ogg#7251790",
+			"vo_120_dundun_rat_12_m.ogg#7251793",
+			"vo_120_dundun_rat_13_m.ogg#7251796",
+			"vo_120_dundun_rat_14_m.ogg#7251799",
+			"vo_120_dundun_rat_16_m.ogg#7251805",
+			"vo_120_dundun_rat_17_m.ogg#7251808",
+			"vo_120_dundun_rat_18_m.ogg#7251811",
+			"vo_120_dundun_rat_19_m.ogg#7251814",
+			"vo_120_dundun_rat_20_m.ogg#7251817",
+			"vo_120_dundun_rat_21_m.ogg#7251820",
+			"vo_120_dundun_rat_22_m.ogg#7251823",
+			"vo_120_dundun_rat_23_m.ogg#7251826",
+			"vo_120_dundun_rat_24_m.ogg#7251829",
+			"vo_120_dundun_rat_25_m.ogg#7251836",
+			"vo_120_dundun_rat_26_m.ogg#7251839",
+			"vo_120_dundun_rat_28_m.ogg#7251845",
+			"vo_120_dundun_rat_29_m.ogg#7261433",
+			"vo_120_dundun_rat_30_m.ogg#7273124",
+			"vo_120_dundun_rat_31_m.ogg#7273905",
+			"vo_120_dundun_rat_32_m.ogg#7273906",
+			"vo_120_dundun_rat_33_m.ogg#7273907",
+			"vo_120_dundun_rat_34_m.ogg#7273908",
+			"vo_120_dundun_rat_35_m.ogg#7273909",
+			"vo_120_dundun_rat_36_m.ogg#7273910",
+			"vo_120_dundun_rat_37_m.ogg#7273911",
+		},
+
 	}
 
 	----------------------------------------------------------------------
@@ -1267,36 +1312,11 @@
 
 	}
 
-	-- Create soundtable for PLAYER_LOGOUT (these sounds are only muted or unmuted when logging out
+	-- Create soundtable for PLAYER_LOGOUT for MuteLogin (these sounds are only muted or unmuted when logging out)
 	local muteLogoutTable = {
 
-			-- Entrance swoosh (sound/doodad/go_ui_mainmenu_dragonisles_oneshot_) (skit:217449)
-			"4674593", "4674595", "4674597", "4674599",
-
-			-- Landing (sound/creature/protodragonfire_boss/protodragonfire_boss_fidget_) (skit:218434)
-			"4543973", "4543975", "4543977", "4543979",
-
-			-- Growl (sound/doodad/go_ui_mainmenu_dragonisles_oneshot_) (skit:217454) (listed in Highland Drake passive loop for Mute Dragonriding but not used)
-			"4633292", "4633294", "4633296", "4633298", "4633300", "4633302",
-
-			-- Roar (sound/creature/) (skit:194097)
-			"4484447", "4484449", "4484451", "4484453", "4484455", "4484457",
-
-			-- Exit swoosh A (sound/ambience/zoneambience/amb_ardenweald_day_) (skit:169547)
-			"3780446", "3780448", "3780450", "3780452", "3780454", "3780456",
-
-			-- Exit swoosh B (sound/doodad/go_soundid_oneshot_) (skit:218821)
-			"4556822", "4556824", "4556826", "4556828", "4556830", "4556832", "4556834", "4556836", "4556838", "4556840",
-
-			-- Ambiance (skit:213962)
-			"4616268",
-
-			-- Game music (sound/music/dragonflight/)
-			"4880327", "4887931",
-
-			-- Exit swoosh C and D (Unknown)
-			-- "4573770", "4573772", "4573774", "4573776", "4573778", "4573780",
-			-- "4559426", "4559428", "4559430",
+		-- Game music (sound/music/midnight/) -- Update this with new expansion launches
+		"7713732",
 
 	}
 
