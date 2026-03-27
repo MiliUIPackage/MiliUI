@@ -82,7 +82,7 @@ function SyndicatorGuildCacheMixin:GetGuildKey()
 
   local guildKey = guildName .. "-" .. realm
 
-  local isCreating = SYNDICATOR_DATA.Guilds[key] == nil
+  local isCreating = SYNDICATOR_DATA.Guilds[guildKey] == nil
   -- No guild found cached, create it
   InitGuild(guildKey, guildName, realm)
 
