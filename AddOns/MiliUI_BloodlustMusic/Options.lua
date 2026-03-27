@@ -42,26 +42,9 @@ local function CreateSD(parent)
 end
 
 ----------------------------------------------------------------------
--- Preview helpers
+-- Preview helpers (Delegated back to BloodlustMusic.lua)
 ----------------------------------------------------------------------
-local previewHandle = nil
 
-local function StopPreview()
-    if previewHandle then
-        StopSound(previewHandle)
-        previewHandle = nil
-    end
-end
-
-local function PreviewTrack(index)
-    StopPreview()
-    local track = MUSIC_FILES[index]
-    if track then
-        local channel = (db and db.channel) or "SFX"
-        local _, handle = PlaySoundFile(track.path, channel)
-        previewHandle = handle
-    end
-end
 
 ----------------------------------------------------------------------
 -- Custom Dropdown UI Factory
@@ -433,14 +416,14 @@ local function RefreshTrackList()
         pvBtn:SetText(L["PREVIEW"])
 
         pvBtn:SetScript("OnClick", function(self)
-            if previewHandle then
-                StopPreview()
+            if ns.IsPreviewPlaying() then
+                ns.StopPreview()
                 self:SetText(L["PREVIEW"])
             else
-                PreviewTrack(i)
+                ns.PreviewTrack(i)
                 self:SetText(L["STOP_PREVIEW"])
-                C_Timer.After(10, function()
-                    if not previewHandle then self:SetText(L["PREVIEW"]) end
+                C_Timer.After(41, function()
+                    if not ns.IsPreviewPlaying() then self:SetText(L["PREVIEW"]) end
                 end)
             end
         end)

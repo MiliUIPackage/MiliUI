@@ -668,6 +668,7 @@ ns.HideTestBar = HideTestBar
 ns.ShowBar = ShowBar
 ns.StopPreview = StopPreview
 ns.PreviewTrack = PreviewTrack
+ns.IsPreviewPlaying = function() return previewHandle ~= nil end
 ns.GetBarFrame = function() return barFrame end
 ns.DebugPrint = DebugPrint
 
