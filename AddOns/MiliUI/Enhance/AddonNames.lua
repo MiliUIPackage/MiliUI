@@ -21,7 +21,7 @@ local addonNames = {
     ["Masque"]                                              = "快捷列樣式",
     ["tullaRange"]                                          = "技能範圍提示",
     ["EasyExperienceBar"]                                   = "經驗條",
-    ["Bugsack"]                                             = "錯誤訊息收集袋",
+    ["BugSack"]                                             = "錯誤訊息收集袋",
     ["Stuf"]                                                = "Stuf 頭像設定",
 
     -- ==================== 拍賣 / 物品 / 背包 ====================
