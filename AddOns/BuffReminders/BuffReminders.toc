@@ -1,0 +1,42 @@
+## Interface: 120001
+## Title: BuffReminders
+## Notes: Track missing buffs at a glance
+## Author: zerbi
+## Version: v4.6.3
+## SavedVariables: BuffRemindersDB
+## X-Curse-Project-ID: 1441094
+## X-Wago-ID: qGYZZjNg
+## OptionalDeps: Masque, LibCustomGlow-1.0
+## IconTexture: Interface\AddOns\BuffReminders\icon.tga
+## Category: Buffs & Debuffs
+## Category-zhCN: 增益和减益
+## Category-zhTW: 增益與減益
+
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 增益提醒器
+## Notes-zhTW: BuffReminders |n|n提醒缺少增益效果，並且可以點擊施放。|n|n|cffffd200使用方法: |rEsc>選項>插件>增益提醒器或輸入指令 /br 設定。
+## Category-zhTW: 戰鬥
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+Libs\LibSharedMedia-3.0\lib.xml
+Libs\LibCustomGlow-1.0\LibCustomGlow-1.0.lua
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\lib.xml
+Libs\AceDB-3.0\AceDB-3.0.lua
+Libs\LibDualSpec-1.0\LibDualSpec-1.0.lua
+
+Core\Core.lua
+Core\Profiles.lua
+Data\Buffs.lua
+Data\CombatSafeSpells.lua
+Data\ConsumableItems.lua
+Data\Pets.lua
+Core\ConsumableMemory.lua
+Core\State.lua
+UI\Components.lua
+UI\Glow.lua
+Display\BuffReminders.lua
+Core\ImportExport.lua
+Display\Movers.lua
+Display\SecureButtons.lua
+Options\Options.lua
