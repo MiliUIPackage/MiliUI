@@ -2,6 +2,7 @@
 ## Title: |cFFFF6B6BMoney Frame Fix|r
 ## Notes: Money Frame Fix
 ## Title-zhTW: |cffffffff[其他]|r 金錢框架錯誤修正
+## Category-zhTW: 其他
 ## Version: 1.2.1
 ## Author: Galehad
 ## IconTexture: 136243
