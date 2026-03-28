@@ -336,8 +336,53 @@ local channelDesc = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlig
 channelDesc:SetPoint("LEFT", channelBtn, "RIGHT", 10, 0)
 channelDesc:SetText("- " .. L["CHANNEL_DESC"])
 
+-- Channel Volume Slider
+local CHANNEL_CVAR_MAP = {
+    Master = "Sound_MasterVolume",
+    SFX    = "Sound_SFXVolume",
+    Dialog = "Sound_DialogVolume",
+}
+
+local channelVolSlider = CreateFrame("Slider", "MiliUI_BLM_ChannelVolSlider", musicPanel, "OptionsSliderTemplate")
+channelVolSlider:SetPoint("TOPLEFT", channelBtn, "BOTTOMLEFT", 0, -20)
+channelVolSlider:SetWidth(200)
+channelVolSlider:SetMinMaxValues(0, 100)
+channelVolSlider:SetValueStep(1)
+channelVolSlider:SetObeyStepOnDrag(true)
+channelVolSlider.Low:SetText("0%")
+channelVolSlider.High:SetText("100%")
+channelVolSlider.Text:SetText("")
+channelVolSlider:SetValue(100)
+
+local channelVolUpdating = false  -- prevent feedback loop
+
+local function GetChannelCVar()
+    local d = GetDB()
+    local ch = (d and d.channel) or DEFAULT_CHANNEL
+    return CHANNEL_CVAR_MAP[ch] or "Sound_MasterVolume", ch
+end
+
+local function UpdateChannelVolSlider()
+    local cvar, ch = GetChannelCVar()
+    local vol = tonumber(GetCVar(cvar)) or 1
+    local pct = math.floor(vol * 100 + 0.5)
+    channelVolUpdating = true
+    channelVolSlider:SetValue(pct)
+    channelVolSlider.Text:SetText(ch .. " " .. (L["CHANNEL"] or "Volume") .. ": " .. pct .. "%")
+    channelVolUpdating = false
+end
+
+channelVolSlider:SetScript("OnValueChanged", function(self, value)
+    if channelVolUpdating then return end
+    local pct = math.floor(value)
+    local cvar, ch = GetChannelCVar()
+    SetCVar(cvar, pct / 100)
+    self.Text:SetText(ch .. " " .. (L["CHANNEL"] or "Volume") .. ": " .. pct .. "%")
+end)
+channelVolSlider:SetScript("OnShow", function() UpdateChannelVolSlider() end)
+
 local channelExplain = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-channelExplain:SetPoint("TOPLEFT", channelBtn, "BOTTOMLEFT", 2, -4)
+channelExplain:SetPoint("TOPLEFT", channelVolSlider, "BOTTOMLEFT", 2, -8)
 channelExplain:SetWidth(400)
 channelExplain:SetJustifyH("LEFT")
 channelExplain:SetText("|cff888888" .. L["CHANNEL_MASTER_DESC"] .. "|r")
@@ -353,6 +398,7 @@ local function UpdateChannelButton()
     else
         channelExplain:SetText("|cff888888" .. L["CHANNEL_SFX_DESC"] .. "|r")
     end
+    UpdateChannelVolSlider()
 end
 
 channelBtn:SetScript("OnShow", function() UpdateChannelButton() end)
@@ -368,9 +414,46 @@ channelBtn:SetScript("OnClick", function()
     UpdateChannelButton()
 end)
 
+-- Set DBM Voice to Dialog Button
+local dbmVoiceBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
+dbmVoiceBtn:SetSize(220, 28)
+dbmVoiceBtn:SetPoint("TOPLEFT", channelExplain, "BOTTOMLEFT", -2, -10)
+dbmVoiceBtn:SetText(L["SET_DBM_VOICE_DIALOG"])
+
+local dbmVoiceBtnDesc = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+dbmVoiceBtnDesc:SetPoint("LEFT", dbmVoiceBtn, "RIGHT", 10, 0)
+dbmVoiceBtnDesc:SetText("")
+
+local function UpdateDBMVoiceButton()
+    if DBM and DBM.Options then
+        local ch = DBM.Options.UseSoundChannel or "Master"
+        if ch == "Dialog" then
+            dbmVoiceBtn:SetEnabled(false)
+            dbmVoiceBtnDesc:SetText("|cff00ff00" .. (L["SET_DBM_VOICE_DIALOG_DESC"] or "") .. "|r")
+        else
+            dbmVoiceBtn:SetEnabled(true)
+            dbmVoiceBtnDesc:SetText("- " .. (L["SET_DBM_VOICE_DIALOG_DESC"] or ""))
+        end
+    else
+        dbmVoiceBtn:SetEnabled(false)
+        dbmVoiceBtnDesc:SetText("|cff888888DBM " .. (L["MSG_DBM_NOT_LOADED"] or "not loaded") .. "|r")
+    end
+end
+
+dbmVoiceBtn:SetScript("OnShow", function() UpdateDBMVoiceButton() end)
+dbmVoiceBtn:SetScript("OnClick", function()
+    if not DBM or not DBM.Options then
+        print(L["MSG_DBM_NOT_LOADED"])
+        return
+    end
+    DBM.Options.UseSoundChannel = "Dialog"
+    UpdateDBMVoiceButton()
+    print(L["MSG_DBM_VOICE_DIALOG_SET"])
+end)
+
 -- Track List Header
 local trackHeader = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-trackHeader:SetPoint("TOPLEFT", channelExplain, "BOTTOMLEFT", -2, -12)
+trackHeader:SetPoint("TOPLEFT", dbmVoiceBtn, "BOTTOMLEFT", 0, -12)
 trackHeader:SetText("|cffffd100" .. L["TRACK_ENABLED"] .. "|r")
 
 -- Track List (checkboxes + preview buttons)
@@ -450,6 +533,7 @@ musicPanel:SetScript("OnShow", function()
     RefreshTrackList()
     UpdatePlayModeButton()
     UpdateChannelButton()
+    UpdateDBMVoiceButton()
     if db then enableMusicCheck:SetChecked(db.musicEnabled) end
     ForceShowTrackList()
 
@@ -459,6 +543,7 @@ musicPanel:SetScript("OnShow", function()
             RefreshTrackList()
             UpdatePlayModeButton()
             UpdateChannelButton()
+            UpdateDBMVoiceButton()
             if db then enableMusicCheck:SetChecked(db.musicEnabled) end
             ForceShowTrackList()
         end
