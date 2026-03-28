@@ -1,68 +1,69 @@
 --------------------------------------------------------------------------------
 -- TooltipTaintFix
--- 修正插件污染（taint）導致 Tooltip 函式中 GetWidth() 回傳
--- 「secret number」而無法進行算術或比較的問題。
+-- 防護 tooltip widgetContainer 中因第三方插件 taint 導致的 secret number 錯誤。
 --
--- 原理：
---   在 WoW 12.0+ 中，替換全域函式（如 GameTooltip_InsertFrame）
---   會讓替換者（MiliUI）成為新的 taint 來源，而 securecallfunction()
---   無法清除已被污染的執行環境中的 secret value。
+-- 重要設計決定：**絕不替換任何全域函式**
 --
---   正確做法是：不替換任何全域函式，改用 pcall 包裹最上層的入口函式，
---   捕捉整條呼叫鏈中所有 secret number 錯誤，避免錯誤洗頻。
---   Tooltip 內容可能偶爾缺少進度條或尺寸略有偏差，但不會影響遊戲功能。
+--   先前版本替換了 GameTooltip_AddQuest、EmbeddedItemTooltip_UpdateSize、
+--   GameTooltip_ClearWidgetSet 來壓制第三方插件的 secret number 錯誤。
+--   然而替換全域函式會將 MiliUI 標記為 taint 來源，使 GameTooltip 框架
+--   產生永久性污染，導致數百個 MiliUI-attributed 錯誤蔓延到完全無關的
+--   UI 路徑（QuestOfferDataProvider、AsyncCallbackSystem 等）。
+--   每修一個路徑就會冒出新的路徑——打地鼠永遠打不完。
+--
+--   現在只使用 hooksecurefunc（不產生 taint），並且只在偵測到
+--   widget container 已被第三方插件污染時才介入保護。
+--   若 container 是乾淨的，完全不做任何事。
+--
+--   第三方插件的 secret number 錯誤（BtWQuests、HandyNotes 等）
+--   會以各自的名字出現在錯誤紀錄中，應由各插件作者自行修正。
 --------------------------------------------------------------------------------
 
--- 等 Blizzard_GameTooltip（LoD）載入後再 hook
+local function WrapMethodWithSecretGuard(frame, methodName)
+    local original = frame[methodName]
+    if not original then return end
+
+    frame[methodName] = function(self, ...)
+        local ok, err = pcall(original, self, ...)
+        if not ok then
+            if type(err) == "string" and err:find("secret") then
+                -- 靜默處理
+            else
+                error(err, 2)
+            end
+        end
+    end
+end
+
+--------------------------------------------------------------------------------
+-- 安全網：tooltip widgetContainer 實例保護
+--
+-- 使用 hooksecurefunc 在 tooltip 的 widgetContainer 建立後檢查：
+--   - 若 container 的方法是 secure（未被污染）→ 不做任何事
+--   - 若 container 的方法已被第三方插件污染 → 注入 pcall 保護
+--
+-- 只影響 tooltip 的 container 實例，不影響世界地圖等其他 container。
+-- hooksecurefunc 不替換全域函式，不產生額外 taint。
+--------------------------------------------------------------------------------
 EventUtil.ContinueOnAddOnLoaded("Blizzard_GameTooltip", function()
 
-    -- Hook GameTooltip_AddQuest（BtWQuests 等插件的污染路徑）
-    if GameTooltip_AddQuest then
-        local OriginalAddQuest = GameTooltip_AddQuest
-        GameTooltip_AddQuest = function(...)
-            local ok, err = pcall(OriginalAddQuest, ...)
-            if not ok then
-                if type(err) == "string" and err:find("secret") then
-                    -- 靜默處理 secret value taint 錯誤
-                else
-                    error(err, 2)
-                end
-            end
-        end
-    end
+    hooksecurefunc("GameTooltip_AddWidgetSet", function(self)
+        local wc = self.widgetContainer
+        if not wc or wc._miliuiProtected then return end
 
-    -- Hook EmbeddedItemTooltip_UpdateSize（HandyNotes_Midnight 的污染路徑）
-    -- HandyNotes_Midnight 調用 EmbeddedItemTooltip_SetItemByID 時污染了框架寬度，
-    -- 導致 EmbeddedItemTooltip_UpdateSize 中的算術運算失敗。
-    if EmbeddedItemTooltip_UpdateSize then
-        local OriginalUpdateSize = EmbeddedItemTooltip_UpdateSize
-        EmbeddedItemTooltip_UpdateSize = function(...)
-            local ok, err = pcall(OriginalUpdateSize, ...)
-            if not ok then
-                if type(err) == "string" and err:find("secret") then
-                    -- 靜默處理 secret number 算術錯誤
-                else
-                    error(err, 2)
-                end
-            end
-        end
-    end
+        -- 只在 container 已被第三方插件污染時才介入
+        -- issecurevariable 不會傳播 taint，可安全檢查
+        if issecurevariable(wc, "ProcessAllWidgets") then return end
 
-    -- Hook GameTooltip_ClearWidgetSet（地圖 Tooltip 的污染路徑）
-    -- 地圖 POI Tooltip 清除 WidgetSet 時，UpdateWidgetLayout → DefaultWidgetLayout
-    -- → LayoutFrame:Layout() 中比較框架寬高會觸發 secret number 錯誤。
-    if GameTooltip_ClearWidgetSet then
-        local OriginalClearWidgetSet = GameTooltip_ClearWidgetSet
-        GameTooltip_ClearWidgetSet = function(...)
-            local ok, err = pcall(OriginalClearWidgetSet, ...)
-            if not ok then
-                if type(err) == "string" and err:find("secret") then
-                    -- 靜默處理 secret number 比較錯誤
-                else
-                    error(err, 2)
-                end
-            end
-        end
-    end
+        wc._miliuiProtected = true
+
+        -- 包裹三條事件驅動的入口：
+        --   ProcessAllWidgets:  UPDATE_ALL_UI_WIDGETS → Setup + Layout 錯誤
+        --   ProcessWidget:      UPDATE_UI_WIDGET → 單一 widget Setup 錯誤
+        --   UpdateWidgetLayout: OnUpdate dirty layout → Layout 錯誤
+        WrapMethodWithSecretGuard(wc, "ProcessAllWidgets")
+        WrapMethodWithSecretGuard(wc, "ProcessWidget")
+        WrapMethodWithSecretGuard(wc, "UpdateWidgetLayout")
+    end)
 
 end)
