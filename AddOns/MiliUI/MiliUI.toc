@@ -25,6 +25,7 @@ Enhance\AyijeCDM_StufAnchor.lua
 Enhance\AyijeCDM_StyleFix.lua
 Enhance\AddonNames.lua
 Enhance\AutoSlotKeystone.lua
+Enhance\Baganator_Keystone.lua
 Enhance\AutoStoryStroll.lua
 Enhance\TeleportMenu_Spacing.lua
 Enhance\AuctionHouseFilter.lua
