@@ -160,23 +160,34 @@ function addonTable.Core.UpgradeDesign(design)
       local ac = autoColors[index]
       if ac.kind == "eliteType" and ac.colors.trivial == nil then
         ac.colors.trivial = GetColor("b28e55")
-      elseif ac.kind == "threat" and ac.useSafeColor == nil then
+      end
+      if ac.kind == "threat" and ac.useSafeColor == nil then
         ac.useSafeColor = true
-      elseif ac.kind == "quest" and ac.colors.hostile == nil then
+      end
+      if ac.kind == "quest" and ac.colors.hostile == nil then
         ac.colors.hostile = ac.colors.quest
         ac.colors.neutral = ac.colors.quest
         ac.colors.friendly = ac.colors.quest
         ac.colors.quest = nil
-      elseif ac.kind == "classColors" and ac.colors == nil then
+      end
+      if ac.kind == "classColors" and ac.colors == nil then
         ac.colors = {}
-      elseif ac.kind == "cast" and ac.colors.uninterruptable then
+      end
+      if ac.kind == "cast" and ac.colors.uninterruptable then
         local new = CopyTable(addonTable.CustomiseDialog.ColorsConfig["uninterruptableCast"].default)
         new.colors.uninterruptable = ac.colors.uninterruptable
         table.insert(autoColors, index, new)
         ac.colors.uninterruptable = nil
         index = index - 1
-      elseif ac.kind == "interruptReady" and ac.notReady then
+      end
+      if ac.kind == "cast" and ac.colors.empowered == nil then
+        ac.colors.empowered = GetColor("05c666")
+      end
+      if ac.kind == "interruptReady" and ac.notReady then
         ac.notReady = nil
+      end
+      if ac.kind == "mouseover" and ac.includeTarget == nil then
+        ac.includeTarget = true
       end
 
       index = index + 1
@@ -379,6 +390,10 @@ function addonTable.Core.UpgradeDesign(design)
     end
     if text.kind == "health" and text.significantFigures == nil then
       text.significantFigures = 0
+    end
+    if text.kind == "health" and text.showPercentSymbol == nil then
+      text.showPercentSymbol = true
+      text.formatMultiple = "%s (%s)"
     end
     if text.kind == "guild" and text.npcRole == nil then
       text.playerGuild = true
@@ -638,33 +653,6 @@ end
 
 function addonTable.Core.Initialize()
   addonTable.Config.InitializeData()
-
-  -- MiliUI Profile (版本檢查：無版本記錄或有新版本時強制更新)
-  if MiliUI_PlatynatorProfile then
-    local needsImport = false
-    local profileExists = PLATYNATOR_CONFIG and PLATYNATOR_CONFIG.Profiles and PLATYNATOR_CONFIG.Profiles["MiliUI"]
-
-    if not profileExists then
-      needsImport = true
-    elseif MiliUI_PlatynatorVersion then
-      local storedVersion = PLATYNATOR_CONFIG.MiliUI_Version or 0
-      if MiliUI_PlatynatorVersion > storedVersion then
-        needsImport = true
-      end
-    end
-
-    if needsImport then
-      addonTable.CustomiseDialog.ImportData(MiliUI_PlatynatorProfile, "MiliUI", true)
-      addonTable.Config.ChangeProfile("MiliUI")
-      if MiliUI_PlatynatorVersion then
-        PLATYNATOR_CONFIG.MiliUI_Version = MiliUI_PlatynatorVersion
-      end
-    elseif PLATYNATOR_CURRENT_PROFILE == "DEFAULT" and profileExists then
-      -- 新角色首次登入：自動切換到 MiliUI profile
-      addonTable.Config.ChangeProfile("MiliUI")
-    end
-  end
-
   addonTable.SlashCmd.Initialize()
 
   addonTable.Assets.ApplyScale()

@@ -25,9 +25,16 @@ function addonTable.Display.CastInterrupterTextMixin:SetUnit(unit)
   self.unit = unit
   if self.unit then
     self:RegisterUnitEvent("UNIT_SPELLCAST_START", self.unit)
+    self:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", self.unit)
+
     self:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", self.unit)
     self:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", self.unit)
-    self:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", self.unit)
+
+    if addonTable.Constants.IsRetail then
+      self:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_START", self.unit)
+      self:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_STOP", self.unit)
+    end
+
     if not C_Secrets then
       EnableInterrupter()
       addonTable.CallbackRegistry:RegisterCallback("LegacyInterrupter", function(_, playerGUID, destGUID)
@@ -99,8 +106,13 @@ function addonTable.Display.CastInterrupterTextMixin:UpdateText()
 end
 
 function addonTable.Display.CastInterrupterTextMixin:OnEvent(eventName, ...)
-  local _, _, _, guid = ...
-  if (eventName == "UNIT_SPELLCAST_INTERRUPTED" or eventName == "UNIT_SPELLCAST_CHANNEL_STOP") and guid then
+  local _, guid
+  if eventName == "UNIT_SPELLCAST_EMPOWER_STOP" then
+    _, _, _, _, guid = ...
+  else
+    _, _, _, guid = ...
+  end
+  if (eventName == "UNIT_SPELLCAST_INTERRUPTED" or eventName == "UNIT_SPELLCAST_CHANNEL_STOP" or eventName == "UNIT_SPELLCAST_EMPOWER_STOP") and guid then
     self:UpdateFromGUID(guid)
   else
     if self.timer then

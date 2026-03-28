@@ -30,6 +30,11 @@ function addonTable.Display.CastIconMarkerMixin:SetUnit(unit)
     self:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", self.unit)
     self:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", self.unit)
 
+    if addonTable.Constants.IsRetail then
+      self:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_START", self.unit)
+      self:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_STOP", self.unit)
+    end
+
     self:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", self.unit)
     self:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", self.unit)
 
@@ -61,7 +66,7 @@ function addonTable.Display.CastIconMarkerMixin:Strip()
 end
 
 function addonTable.Display.CastIconMarkerMixin:OnEvent(eventName, ...)
-  if eventName == "UNIT_SPELLCAST_INTERRUPTED" or eventName == "UNIT_SPELLCAST_CHANNEL_STOP" and select(4, ...) ~= nil then
+  if eventName == "UNIT_SPELLCAST_INTERRUPTED" or eventName == "UNIT_SPELLCAST_CHANNEL_STOP" and select(4, ...) ~= nil or eventName == "UNIT_SPELLCAST_EMPOWER_STOP" and select(5, ...) ~= nil then
     self.interrupted = true
     self.marker:Show()
     if self.background then
@@ -77,8 +82,19 @@ function addonTable.Display.CastIconMarkerMixin:OnEvent(eventName, ...)
       end
       self.timer = nil
     end)
+  elseif eventName == "UNIT_SPELLCAST_CHANNEL_STOP" or eventName == "UNIT_SPELLCAST_EMPOWER_STOP" or eventName == "UNIT_SPELLCAST_STOP" then
+    self:ClearCast()
   else
     self:ApplyCasting()
+  end
+end
+
+function addonTable.Display.CastIconMarkerMixin:ClearCast()
+  if not self.interrupted then
+    self.marker:Hide()
+    if self.background then
+      self.background:Hide()
+    end
   end
 end
 
@@ -100,10 +116,7 @@ function addonTable.Display.CastIconMarkerMixin:ApplyCasting()
     if self.background then
       self.background:Show()
     end
-  elseif not self.interrupted then
-    self.marker:Hide()
-    if self.background then
-      self.background:Hide()
-    end
+  else
+    self:ClearCast()
   end
 end

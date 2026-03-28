@@ -27,6 +27,12 @@ function addonTable.Display.CastBarMixin:SetUnit(unit)
     self:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", self.unit)
     self:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", self.unit)
 
+    if addonTable.Constants.IsRetail then
+      self:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_START", self.unit)
+      self:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_STOP", self.unit)
+      self:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_UPDATE", self.unit)
+    end
+
     self:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", self.unit)
     self:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", self.unit)
 
@@ -65,7 +71,7 @@ function addonTable.Display.CastBarMixin:Strip()
 end
 
 function addonTable.Display.CastBarMixin:OnEvent(eventName, ...)
-  if eventName == "UNIT_SPELLCAST_INTERRUPTED" or eventName == "UNIT_SPELLCAST_CHANNEL_STOP" and select(4, ...) ~= nil then
+  if eventName == "UNIT_SPELLCAST_INTERRUPTED" or eventName == "UNIT_SPELLCAST_CHANNEL_STOP" and select(4, ...) ~= nil or eventName == "UNIT_SPELLCAST_EMPOWER_STOP" and select(5, ...) ~= nil then
     self.interrupted = true
     self:Show()
     self.statusBar:SetMinMaxValues(0, 1)
@@ -82,10 +88,12 @@ function addonTable.Display.CastBarMixin:OnEvent(eventName, ...)
     end)
     self:SetScript("OnUpdate", nil)
     self.interruptMarker:Hide()
-  elseif eventName == "UNIT_SPELLCAST_DELAYED" or eventName == "UNIT_SPELLCAST_CHANNEL_UPDATE" then
+  elseif eventName == "UNIT_SPELLCAST_DELAYED" or eventName == "UNIT_SPELLCAST_CHANNEL_UPDATE" or eventName == "UNIT_SPELLCAST_EMPOWER_UPDATE" then
     if self:IsShown() then
       self:ApplyCasting()
     end
+  elseif eventName == "UNIT_SPELLCAST_CHANNEL_STOP" or eventName == "UNIT_SPELLCAST_EMPOWER_STOP" or eventName == "UNIT_SPELLCAST_STOP" then
+    self:ClearCast()
   elseif eventName == "SPELL_UPDATE_USABLE" and self.showInterruptMarker then
     self:RefreshInterruptMarker()
   elseif eventName:match("^UNIT_SPELL") then
@@ -127,7 +135,15 @@ end
 if UnitCastingDuration then
   function addonTable.Display.CastBarMixin:ApplyCasting()
     self.isChanneled = false
+    local isEmpowered = false
     local castDuration = UnitCastingDuration(self.unit)
+    if not castDuration then
+      castDuration = UnitEmpoweredChannelDuration(self.unit, true)
+      self.isChanneled = true
+      if castDuration then
+        isEmpowered = true
+      end
+    end
     if not castDuration then
       castDuration = UnitChannelDuration(self.unit)
       self.isChanneled = true
@@ -149,7 +165,7 @@ if UnitCastingDuration then
 
       self:Show()
 
-      self.statusBar:SetTimerDuration(castDuration, nil, self.isChanneled and Enum.StatusBarTimerDirection.RemainingTime or Enum.StatusBarTimerDirection.ElapsedTime)
+      self.statusBar:SetTimerDuration(castDuration, nil, self.isChanneled and not isEmpowered and Enum.StatusBarTimerDirection.RemainingTime or Enum.StatusBarTimerDirection.ElapsedTime)
       local spellID
       if self.showInterruptMarker then
         spellID = GetInterruptSpell()
@@ -157,7 +173,7 @@ if UnitCastingDuration then
       self.interruptMarker:SetShown(spellID ~= nil)
       self.interruptPositioner:SetShown(spellID ~= nil)
       if spellID then
-        self:ReverseInterruptMarker(self.isChanneled)
+        self:ReverseInterruptMarker(self.isChanneled and not isEmpowered)
         local interruptDuration = C_Spell.GetSpellCooldownDuration(spellID)
         self.interruptPositioner:SetMinMaxValues(0, castDuration:GetTotalDuration())
         self.interruptMarker:SetMinMaxValues(0, castDuration:GetTotalDuration())

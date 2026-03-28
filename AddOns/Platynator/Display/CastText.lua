@@ -13,6 +13,11 @@ function addonTable.Display.CastTextMixin:SetUnit(unit)
     self:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", self.unit)
     self:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", self.unit)
 
+    if addonTable.Constants.IsRetail then
+      self:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_START", self.unit)
+      self:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_STOP", self.unit)
+    end
+
     self:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", self.unit)
     self:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", self.unit)
 
@@ -32,7 +37,7 @@ function addonTable.Display.CastTextMixin:Strip()
 end
 
 function addonTable.Display.CastTextMixin:OnEvent(eventName, ...)
-  if eventName == "UNIT_SPELLCAST_INTERRUPTED" or eventName == "UNIT_SPELLCAST_CHANNEL_STOP" and select(4, ...) ~= nil then
+  if eventName == "UNIT_SPELLCAST_INTERRUPTED" or eventName == "UNIT_SPELLCAST_CHANNEL_STOP" and select(4, ...) ~= nil or eventName == "UNIT_SPELLCAST_EMPOWER_STOP" and select(5, ...) ~= nil then
     self.interrupted = true
     self:Show()
     self.text:SetText(addonTable.Locales.INTERRUPTED)
@@ -46,8 +51,16 @@ function addonTable.Display.CastTextMixin:OnEvent(eventName, ...)
         self:Hide()
       end
     end)
+  elseif eventName == "UNIT_SPELLCAST_CHANNEL_STOP" or eventName == "UNIT_SPELLCAST_EMPOWER_STOP" or eventName == "UNIT_SPELLCAST_STOP" then
+    self:ClearCast()
   else
     self:ApplyCasting()
+  end
+end
+
+function addonTable.Display.CastTextMixin:ClearCast()
+  if not self.interrupted then
+    self:Hide()
   end
 end
 
@@ -62,8 +75,6 @@ function addonTable.Display.CastTextMixin:ApplyCasting()
     self:Show()
     self.text:SetText(text)
   else
-    if not self.interrupted then
-      self:Hide()
-    end
+    self:ClearCast()
   end
 end
