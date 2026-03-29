@@ -143,6 +143,15 @@ local buttonList = {}
 local UpdateLayout
 local AddButton
 local UpdateFontSize
+local UpdateButtonSize
+
+local function GetButtonWidth()
+    return (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.ButtonWidth) or width
+end
+
+local function GetButtonHeight()
+    return (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.ButtonHeight) or height
+end
 
 UpdateFontSize = function()
     local size = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.FontSize) or 9
@@ -151,6 +160,15 @@ UpdateFontSize = function()
             btn.fs:SetFont(STANDARD_TEXT_FONT, size, "OUTLINE")
         end
     end
+end
+
+UpdateButtonSize = function()
+    local bw = GetButtonWidth()
+    local bh = GetButtonHeight()
+    for _, btn in ipairs(buttonList) do
+        btn:SetSize(bw, bh)
+    end
+    UpdateLayout()
 end
 
 
@@ -206,7 +224,7 @@ AddButton = function(configKey, ...)
 
     if not bu then
         bu = CreateFrame("Button", nil, Chatbar, "SecureActionButtonTemplate, BackdropTemplate")
-        bu:SetSize(width, height)
+        bu:SetSize(GetButtonWidth(), GetButtonHeight())
         bu:SetFrameLevel(Chatbar:GetFrameLevel() + 10) -- Above mover
         PixelIcon(bu, texture, true)
         CreateSD(bu)
@@ -436,6 +454,8 @@ bgFrame:SetFrameLevel(Chatbar:GetFrameLevel() - 1)
 UpdateLayout = function()
     if InCombatLockdown() then return end
     local orientation = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.Orientation) or "HORIZONTAL"
+    local bw = GetButtonWidth()
+    local bh = GetButtonHeight()
     -- Layout Logic
     -- Layout Logic
     local endPadding = 10 -- Main axis padding
@@ -459,9 +479,9 @@ UpdateLayout = function()
         local vBottomPadding = 10
         
         -- Height calculation uses distinct top/bottom padding
-        local barHeight = (#visibleButtons * height) + ((#visibleButtons - 1) * spacing) + vTopPadding + vBottomPadding
+        local barHeight = (#visibleButtons * bh) + ((#visibleButtons - 1) * spacing) + vTopPadding + vBottomPadding
         -- Dynamic sizing: fit content exactly
-        Chatbar:SetSize(width, barHeight)
+        Chatbar:SetSize(bw, barHeight)
         
         for i, bu in ipairs(visibleButtons) do
             bu:ClearAllPoints()
@@ -477,19 +497,19 @@ UpdateLayout = function()
         bgFrame:ClearAllPoints()
         bgFrame:SetPoint("TOP", Chatbar, "TOP")
         bgFrame:SetPoint("BOTTOM", Chatbar, "BOTTOM")
-        bgFrame:SetWidth(width + (sidePadding * 2)) -- Width + 10 (Default behavior)
+        bgFrame:SetWidth(bw + (sidePadding * 2)) -- Width + 10 (Default behavior)
         bgFrame:SetPoint("CENTER", Chatbar, "CENTER")
         
     else
         -- HORIZONTAL
         
         -- Width calculation uses endPadding (Left/Right)
-        local totalButtonWidth = (#visibleButtons * width) + ((#visibleButtons - 1) * padding)
+        local totalButtonWidth = (#visibleButtons * bw) + ((#visibleButtons - 1) * padding)
         local fitWidth = totalButtonWidth + (endPadding * 2)
         
         local barWidth = fitWidth
         -- Height calculation uses sidePadding (Top/Bottom)
-        local barHeight = height + (sidePadding * 2) -- e.g., 8 + 10 = 18
+        local barHeight = bh + (sidePadding * 2) -- e.g., 8 + 10 = 18
         
         Chatbar:SetSize(barWidth, barHeight)
         
@@ -669,6 +689,8 @@ loader:SetScript("OnEvent", function(self, event)
     if not MiliUI_ChatBar_DB.Chatbar.Orientation then MiliUI_ChatBar_DB.Chatbar.Orientation = "HORIZONTAL" end
     if not MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds then MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds = 10 end
     if MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm == nil then MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm = false end
+    if not MiliUI_ChatBar_DB.Chatbar.ButtonWidth then MiliUI_ChatBar_DB.Chatbar.ButtonWidth = width end
+    if not MiliUI_ChatBar_DB.Chatbar.ButtonHeight then MiliUI_ChatBar_DB.Chatbar.ButtonHeight = height end
     
     -- Apply lock state (respects Edit Mode)
     UpdateMoverState()
@@ -706,6 +728,9 @@ loader:SetScript("OnEvent", function(self, event)
     
     -- Force font size update on login/reload to ensure all buttons (including early created ones) get the correct size
     UpdateFontSize()
+    
+    -- Force button size update on login/reload
+    UpdateButtonSize()
     
     -- Update DBM button with saved pull seconds
     UpdateDBMButton()
@@ -875,20 +900,100 @@ local fontDesc = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontHighligh
 fontDesc:SetPoint("LEFT", fontSlider, "RIGHT", 15, 0)
 fontDesc:SetText(L["FONT_SIZE_DESC"])
 
+-- Button Width Slider
+local widthSlider = CreateFrame("Slider", "MiliUI_ChatBar_WidthSlider", generalPanel, "OptionsSliderTemplate")
+widthSlider:SetPoint("TOPLEFT", fontSlider, "BOTTOMLEFT", 0, -30)
+widthSlider:SetWidth(200)
+widthSlider:SetMinMaxValues(10, 60)
+widthSlider:SetValueStep(1)
+widthSlider:SetObeyStepOnDrag(true)
+
+widthSlider.Low:SetText("10")
+widthSlider.High:SetText("60")
+widthSlider.Text:SetText(L["BUTTON_WIDTH"])
+
+widthSlider:SetScript("OnShow", function(self)
+    local val = GetButtonWidth()
+    self:SetValue(val)
+    self.Text:SetText(L["BUTTON_WIDTH"] .. ": " .. val)
+end)
+
+widthSlider:SetScript("OnValueChanged", function(self, value)
+    local val = math.floor(value)
+    self.Text:SetText(L["BUTTON_WIDTH"] .. ": " .. val)
+    
+    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
+    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
+    
+    if MiliUI_ChatBar_DB.Chatbar.ButtonWidth ~= val then
+        MiliUI_ChatBar_DB.Chatbar.ButtonWidth = val
+        UpdateButtonSize()
+    end
+end)
+
+local widthDesc = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+widthDesc:SetPoint("LEFT", widthSlider, "RIGHT", 15, 0)
+widthDesc:SetText(L["BUTTON_WIDTH_DESC"])
+
+-- Button Height Slider
+local heightSlider = CreateFrame("Slider", "MiliUI_ChatBar_HeightSlider", generalPanel, "OptionsSliderTemplate")
+heightSlider:SetPoint("TOPLEFT", widthSlider, "BOTTOMLEFT", 0, -30)
+heightSlider:SetWidth(200)
+heightSlider:SetMinMaxValues(4, 30)
+heightSlider:SetValueStep(1)
+heightSlider:SetObeyStepOnDrag(true)
+
+heightSlider.Low:SetText("4")
+heightSlider.High:SetText("30")
+heightSlider.Text:SetText(L["BUTTON_HEIGHT"])
+
+heightSlider:SetScript("OnShow", function(self)
+    local val = GetButtonHeight()
+    self:SetValue(val)
+    self.Text:SetText(L["BUTTON_HEIGHT"] .. ": " .. val)
+end)
+
+heightSlider:SetScript("OnValueChanged", function(self, value)
+    local val = math.floor(value)
+    self.Text:SetText(L["BUTTON_HEIGHT"] .. ": " .. val)
+    
+    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
+    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
+    
+    if MiliUI_ChatBar_DB.Chatbar.ButtonHeight ~= val then
+        MiliUI_ChatBar_DB.Chatbar.ButtonHeight = val
+        UpdateButtonSize()
+    end
+end)
+
+local heightDesc = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+heightDesc:SetPoint("LEFT", heightSlider, "RIGHT", 15, 0)
+heightDesc:SetText(L["BUTTON_HEIGHT_DESC"])
+
 local resetAllBtn = CreateOptionButton(generalPanel, L["RESET_ALL"], function()
     StaticPopup_Show("MILIUI_CHATBAR_RESET_ALL")
-end, fontSlider, 0, -30)
+end, heightSlider, 0, -30)
 
 local resetAllDesc = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 resetAllDesc:SetPoint("LEFT", resetAllBtn, "RIGHT", 10, 0)
 resetAllDesc:SetText(L["RESET_ALL_DESC"])
 
--- Update slider on refresh (Settings API)
+-- Update sliders on refresh (Settings API)
 generalPanel.OnRefresh = function()
     if fontSlider then
         local val = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.FontSize) or 9
         fontSlider:SetValue(val)
         fontSlider.Text:SetText(L["FONT_SIZE"] .. ": " .. val)
+    end
+    if widthSlider then
+        local val = GetButtonWidth()
+        widthSlider:SetValue(val)
+        widthSlider.Text:SetText(L["BUTTON_WIDTH"] .. ": " .. val)
+    end
+    if heightSlider then
+        local val = GetButtonHeight()
+        heightSlider:SetValue(val)
+        heightSlider.Text:SetText(L["BUTTON_HEIGHT"] .. ": " .. val)
     end
 end
 
@@ -1202,6 +1307,8 @@ C_Timer.After(0.5, function()
     if not MiliUI_ChatBar_DB.Chatbar.FontSize then MiliUI_ChatBar_DB.Chatbar.FontSize = 9 end
     if not MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds then MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds = 10 end
     if MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm == nil then MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm = false end
+    if not MiliUI_ChatBar_DB.Chatbar.ButtonWidth then MiliUI_ChatBar_DB.Chatbar.ButtonWidth = width end
+    if not MiliUI_ChatBar_DB.Chatbar.ButtonHeight then MiliUI_ChatBar_DB.Chatbar.ButtonHeight = height end
     
     -- Pre-create checkboxes
     RefreshChannelList()
