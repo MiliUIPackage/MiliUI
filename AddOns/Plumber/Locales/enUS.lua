@@ -46,6 +46,7 @@ L["Always On Module"] = "This module is always enabled.";
 L["Return To Module List"] = "Return to List";
 L["Generic Addon Conflict"] = "This module might be incompatible with addons of similar functionalities:";
 L["Work In Progress Tag"] = "[WIP]";
+L["Colon With Space"] = ": ";
 
 
 --Settings Category
@@ -265,7 +266,6 @@ L["You Have Received Weekly Item Format"] = "You have received %s this week.";
 L["ModuleName TooltipItemQuest"] = "Quest Starting Items";
 L["ModuleDescription TooltipItemQuest"] = "If an item in your bag starts a quest, show the quest details.\n\nYou can Ctrl Left Click the item to view it in the quest log if you are already on the quest.";
 L["Instruction Show In Quest Log"] = "<Ctrl Click to View in Quest Log>";
-L["QuestID"] = "QuestID";
 
 
 L["ModuleName TooltipTransmogEnsemble"] = "Transmog Ensembles";
@@ -348,6 +348,7 @@ L["ModuleName Delves_Automation"] = "Delves: Auto Choose Power";
 L["ModuleDescription Delves_Automation"] = "Automatically choose the power dropped by treasures and rares.";
 L["Delve Crest Stash No Info"] = "This info is unavailable in your current location.";
 L["Delve Crest Stash Requirement"] = "Appears in Tier 11 Bountiful Delves.";
+L["Delve Crest Stash Old Data"] = "This info may be inaccurate in your current location. Please refer to the Delves Difficulty Picker.";
 L["Overcharged Delve"] = "Overcharged Delve";
 L["Delves History Requires AddOn"] = "Delves history is stored locally by the Plumber AddOn.";
 L["Auto Select"] = "Auto Select";
@@ -668,7 +669,8 @@ L["Great Vault"] = DELVES_GREAT_VAULT_LABEL or "Great Vault";
 L["Item Upgrade"] = ITEM_UPGRADE or "Item Upgrade";
 L["Resources"] = WORLD_QUEST_REWARD_FILTERS_RESOURCES or "Resources";
 L["Plumber Experimental Feature Tooltip"] = "An experimental feature in Plumber addon.";
-L["Bountiful Delves Rep Tooltip"] = "Opening a Bountiful Coffer has a chance to increase your reputation with this faction.";
+L["Bountiful Delves Rep Label"] = "Bonus Renowns";
+L["Bountiful Delves Rep Tooltip"] = "Opening a Bountiful Coffer at the end of a Bountiful Delve increases your reputation with a random Renown, limited to once per Renown.";
 L["Warband Weekly Reward Tooltip"] = "You Warband can only receive this reward once per week.";
 L["Completed"] = CRITERIA_COMPLETED or "Completed";
 L["Filter Hide Completed Format"] = "Hide Completed (%d)";
@@ -718,6 +720,9 @@ L["Click To Queue"] = "Click to queue for |cffffffff%s|r";
 L["Click to Open Format"] = "Click to open %s";
 L["List Is Empty"] = "The list is empty.";
 L["Prey No Data"] = "Prey Progress Unavailable";
+L["Abundance No Data"] = "No Active Abundance Event";
+L["Defeated Prey"] = "Defeated Prey Targets";
+L["Item Expire Alert Weekly"] = "This item will disappear after the weekly reset.";
 
 
 --ExpansionSummaryMinimapButton
@@ -872,6 +877,17 @@ L["BreakTime Annouce Timer Deferred Combat"] = "Remember to take a break after f
 L["BreakTime Shared Countdown Tooltip Format"] = "Scheduled break in |cffffffff%d|r min.";
 
 
+--CatalystUI
+L["ModuleName CatalystUI"] = "Catalyst: View Item In Dressing Room";
+L["ModuleDescription CatalystUI"] = "Allows you to Ctrl-Click the output item to view it in the Dressing Room, or Shift-Click to link it to chat.";
+
+
+--HuntTable
+L["ModuleName HuntTable"] = "Prey: Hunt Table";
+L["ModuleDescription HuntTable"] = "- Replaces the generic blue quest icons to show difficulties.\n\n- Shows an indicator if the Prey target is a requirement for an unearned achievement.";
+L["Prey Target Has Achievement"] = "This Prey target is a requirement for an unearned achievement.";
+
+
 --Generic
 L["Total Colon"] = FROM_TOTAL or "Total:";
 L["Reposition Button Horizontal"] = "Move Horizontally";   --Move the window horizontally
@@ -941,7 +957,11 @@ L["Coffer Key Shard"] = "Coffer Key Shard";
 L["Epoch Mementos"] = "Epoch Mementos";     --See currency:3293
 L["Timeless Scrolls"] = "Timeless Scrolls"; --item: 217605
 L["QuestName Runestone"] = "Fortify the Runestones";    --4 Mutually exclusive quests: 90575
+L["QuestName HarandarRelic"] = "Legends of the Harandar";
 L["Prey System"] = "Prey";
+L["Prey Difficulty Normal"] = "Normal";
+L["Prey Difficulty Hard"] = "Hard";
+L["Prey Difficulty Nightmare"] = "Nightmare";
 
 L["CONFIRM_PURCHASE_NONREFUNDABLE_ITEM"] = "Are you sure you wish to exchange %s for the following item?\n\n|cffff2020Your purchase is not refundable.|r\n %s";  --Base: CONFIRM_PURCHASE_NONREFUNDABLE_ITEM Change the warning's color and added a new line.
 

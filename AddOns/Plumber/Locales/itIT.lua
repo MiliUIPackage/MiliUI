@@ -27,7 +27,11 @@ L["Coffer Key Shard"] = "Scheggia di Chiave dello Scrigno";
 L["Epoch Mementos"] = "Ricordo dell'Era";
 L["Timeless Scrolls"] = "Pergamena Senza Tempo";
 L["QuestName Runestone"] = "Fortificare le Pietre Runiche";    --4 Mutually exclusive quests: 90575
+L["QuestName HarandarRelic"] = "Leggende degli Haranir";
 L["Prey System"] = "Preda";
+L["Prey Difficulty Normal"] = "Normale";
+L["Prey Difficulty Hard"] = "Difficile";
+L["Prey Difficulty Nightmare"] = "Incubo";
 
 L["CONFIRM_PURCHASE_NONREFUNDABLE_ITEM"] = "Vuoi davvero scambiare %s per il seguente oggetto?\n\n|cffff2020Questo acquisto non è rimborsabile.|r\n %s";
 

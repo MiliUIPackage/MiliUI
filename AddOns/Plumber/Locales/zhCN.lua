@@ -46,6 +46,7 @@ L["Always On Module"] = "此模块将被一直启用。";
 L["Return To Module List"] = "返回模块列表";
 L["LootUI Addon Conflict"] = "此模块可能与以下功能类似的插件不兼容：";
 L["Work In Progress Tag"] = "[施工中]";
+L["Colon With Space"] = "：";
 
 
 --Settings Category
@@ -265,7 +266,6 @@ L["You Have Received Weekly Item Format"] = "你本周已获得%s。";
 L["ModuleName TooltipItemQuest"] = "任务起始物品";
 L["ModuleDescription TooltipItemQuest"] = "在任务起始物品的鼠标提示上显示任务详情。\n\n如果你已经接受了相关任务，你可以按住Ctrl并左键点击此物品来在浏览任务日志。";
 L["Instruction Show In Quest Log"] = "<按住Ctrl点击浏览任务日志>";
-L["QuestID"] = "任务ID";
 
 
 L["ModuleName TooltipTransmogEnsemble"] = "团本外观套装";
@@ -348,6 +348,7 @@ L["ModuleName Delves_Automation"] = "地下堡: 自动选择特效";
 L["ModuleDescription Delves_Automation"] = "当你在地下堡内时，自动选择宝藏或稀有精英掉落的特效。";
 L["Delve Crest Stash No Info"] = "你所在区域无法获取该信息。";
 L["Delve Crest Stash Requirement"] = "仅在11层丰裕地下堡出现。";
+L["Delve Crest Stash Old Data"] = "此信息在你当前位置可能不准确，请以地下堡难度选择器上的鼠标提示为准。";
 L["Overcharged Delve"] = "超载地下堡";
 L["Delves History Requires AddOn"] = "地下堡记录由Plumber插件在本地保存。";
 L["Auto Select"] = "自动选择";
@@ -668,7 +669,8 @@ L["Great Vault"] = "宏伟宝库";
 L["Item Upgrade"] = "物品升级";
 L["Resources"] = "资源";
 L["Plumber Experimental Feature Tooltip"] = "Plumber插件中的实验性功能。";
-L["Bountiful Delves Rep Tooltip"] = "打开丰裕宝匣有几率奖励此阵营的声望。";
+L["Bountiful Delves Rep Label"] = "额外名望奖励";
+L["Bountiful Delves Rep Tooltip"] = "打开丰裕宝匣会奖励随机名望的声望，每个名望每周只能获得一次奖励。";
 L["Warband Weekly Reward Tooltip"] = "你的战团每周只能获取一次此奖励。";
 L["Completed"] = "已完成";
 L["Filter Hide Completed Format"] = "隐藏已完成的条目 (%d)";
@@ -686,6 +688,10 @@ L["Click To Switch"] = "点击以切换为|cffffffff%s|r";
 L["Click To Queue"] = "点击以加入|cffffffff%s|r";
 L["Click to Open Format"] = "点击以打开%s";
 L["List Is Empty"] = "暂无可显示内容";
+L["Prey No Data"] = "暂时无法获取狩猎信息";
+L["Abundance No Data"] = "暂无丰饶活动";
+L["Defeated Prey"] = "已击败的狩猎目标";
+L["Item Expire Alert Weekly"] = "这件物品将在每周服务器维护后消失。";
 
 
 --ExpansionSummaryMinimapButton
@@ -839,6 +845,17 @@ L["BreakTime Annouce Timer Deferred Combat"] = "战斗过后请记得休息！";
 L["BreakTime Shared Countdown Tooltip Format"] = "计划休息将于|cffffffff%d|r分钟后开始。";
 
 
+--CatalystUI
+L["ModuleName CatalystUI"] = "化生充能：试衣间预览";
+L["ModuleDescription CatalystUI"] = "允许你按住Ctrl点击转化后的装备来在试衣间中预览它，或是按住Shift点击来插入到聊天窗口。";
+
+
+--HuntTable
+L["ModuleName HuntTable"] = "狩猎地图";
+L["ModuleDescription HuntTable"] = "- 将狩猎地图上的蓝色任务图标替换为难度图标。\n\n- 若狩猎目标与某个未完成的成就相关，在其右上方显示特别标记。";
+L["Prey Target Has Achievement"] = "某个未完成的成就要求你击败此目标。";
+
+
 --Generic
 L["Total Colon"] = "总计：";
 L["Reposition Button Horizontal"] = "水平方向移动";   --Move the window horizontally
@@ -890,7 +907,11 @@ L["Coffer Key Shard"] = "宝匣钥匙碎片";
 L["Epoch Mementos"] = "纪元纪念品";
 L["Timeless Scrolls"] = "越时卷轴";
 L["QuestName Runestone"] = "加固符文石";    --4 Mutually exclusive quests: 90575
+L["QuestName HarandarRelic"] = "哈籁尼尔的传说";
 L["Prey System"] = "狩猎";
+L["Prey Difficulty Normal"] = "普通";
+L["Prey Difficulty Hard"] = "困难";
+L["Prey Difficulty Nightmare"] = "梦魇";
 
 L["CONFIRM_PURCHASE_NONREFUNDABLE_ITEM"] = "你确定要将%s兑换为下列物品吗？\n\n|cffff2020本次购买将无法退还。|r\n %s";
 

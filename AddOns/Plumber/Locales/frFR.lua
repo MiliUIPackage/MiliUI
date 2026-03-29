@@ -9,30 +9,32 @@ local L = addon.L;
 --Globals
 BINDING_HEADER_PLUMBER = "Addon Plumber";
 BINDING_NAME_TOGGLE_PLUMBER_LANDINGPAGE = "Activer / désactiver le résumé de l'extension";   --Show/hide Expansion Summary UI
-BINDING_NAME_PLUMBER_QUESTWATCH_NEXT = "Passer à la quête suivante";
-BINDING_NAME_PLUMBER_QUESTWATCH_PREVIOUS = "Passer à la quête précédente";
+BINDING_NAME_PLUMBER_QUESTWATCH_NEXT = "Se concentrer sur la prochaine quête";
+BINDING_NAME_PLUMBER_QUESTWATCH_PREVIOUS = "Se concentrer sur la quête précédente";
 
 
 --Module Control Panel
+L["Addon Name Colon"] =  "Plumber : ";
 L["Module Control"] = "Contrôle du module";
 L["Quick Slot Generic Description"] = "\n\n*L'emplacement rapide est un ensemble de boutons cliquables qui apparaissent sous certaines conditions.";
-L["Quick Slot Edit Mode"] = "Mode d'édition";
+L["Quick Slot Edit Mode"] = "Mode Édition";
 L["Quick Slot High Contrast Mode"] = "Activer / désactiver le mode contraste élevé";
 L["Quick Slot Reposition"] = "Changer de position";
 L["Quick Slot Layout"] = "Mise en page";
 L["Quick Slot Layout Linear"] = "Linéaire";
 L["Quick Slot Layout Radial"] = "Radiale";
 L["Restriction Combat"] = "Ne fonctionne pas en combat";   --Indicate a feature can only work when out of combat
+L["Restriction Instance"] = "Cette fonctionnalité ne fonctionne pas dans les instances.";
 L["Map Pin Change Size Method"] = "\n\n*Vous pouvez changer la taille du marqueur dans la carte du monde > Filtre de carte > Plumber";
 L["Toggle Plumber UI"] = "Afficher / masquer l'interface de Plumber";
-L["Toggle Plumber UI Tooltip"] = "Afficher l'interface utilisateur de Plumber en mode édition :\n%s\n\nCette case à cocher contrôle uniquement leur visibilité en mode Édition. Elle n'active ni ne désactive ces modules.";
+L["Toggle Plumber UI Tooltip"] = "Afficher l'interface utilisateur de Plumber en |cffffffffMode Édition|r :\n%s\n\nCette case à cocher contrôle uniquement leur visibilité en |cffffffffMode Édition|r. Elle n'active ni ne désactive ces modules.";
 L["Remove New Feature Marker"] = "Supprimer le marqueur de nouvelle fonctionnalité";
-L["Remove New Feature Marker Tooltip"] = "Les marqueurs de nouvelles fonctionnalités disparaissent au bout d'une semaine. Mais vous pouvez cliquer sur ce bouton pour les supprimer dès maintenant.";
+L["Remove New Feature Marker Tooltip"] = "Les marqueurs de nouvelles fonctionnalités disparaissent au bout d'une semaine. Vous pouvez cliquer sur ce bouton pour les supprimer dès maintenant.";
 L["Modules"] = "Modules";
 L["Release Notes"] = "Notes de mise à jour";
 L["Option AutoShowChangelog"] = "Afficher automatiquement les notes de mise à jour";
-L["Option AutoShowChangelog Tooltip"] = "Affiche automatiquement les notes de mise à jour après une mise à jour.";
-L["Category Colon"] = (CATEGORY or "Catégorie")..": ";
+L["Option AutoShowChangelog Tooltip"] = "Afficher automatiquement les notes de version après une mise à jour.";
+L["Category Colon"] = (CATEGORY or "Catégorie").." : ";
 L["Module Wrong Game Version"] = "Ce module est incompatible avec votre version actuelle du jeu.";
 L["Changelog Wrong Game Version"] = "Les changements suivants ne s'appliquent pas à votre version actuelle du jeu.";
 L["Settings Panel"] = "Panneau de configuration";
@@ -42,10 +44,12 @@ L["New Feature Abbr"] = "Nouv.";
 L["Format Month Day"] = EVENT_SCHEDULER_DAY_FORMAT or "%s %d";
 L["Always On Module"] = "Ce module est toujours activé.";
 L["Return To Module List"] = "Retour à la liste";
+L["Generic Addon Conflict"] = "Ce module peut être incompatible avec des addons ayant des fonctionnalités similaires :";
+L["Work In Progress Tag"] = "[WIP]";
 
 
 --Settings Category
-L["SC Signature"] = "Fonctionnalités emblématiques";
+L["SC Signature"] = "Fonctionnalités phares";
 L["SC Current"] = "Contenu actuel";
 L["SC ActionBar"] = "Barres d'action";
 L["SC Chat"] = "Chat";
@@ -62,14 +66,14 @@ L["SC Housing"] = AUCTION_CATEGORY_HOUSING or "Logis";
 L["SC Uncategorized"] = "Non classé";
 
 --Settings Search Keywords, Search Tags
-L["KW Tooltip"] = "infobulle";
+L["KW Tooltip"] = "Infobulle";
 L["KW Transmog"] = "Transmogrification";
 L["KW Vendor"] = "Vendeur";
 L["KW LegionRemix"] = "Remix de Legion";
 L["KW Housing"] = "Maison du joueur";
 L["KW Combat"] = "Combat";
 L["KW ActionBar"] = "Barres d'action";
-L["KW Console"] = "Contrôleur de jeu"; -- à revoir
+L["KW Console"] = "Contrôleur de jeu";
 
 --Filter Sort Method
 L["SortMethod 1"] = "Nom";  --Alphabetical Order
@@ -100,17 +104,17 @@ L["Module Category Plumber"] = "Plumber";   --This addon's name
 
 --Deprecated
 L["Module Category Dreamseeds"] = "Graines oniriques";     --Added in patch 10.2.0
-L["Module Category AzerothianArchives"] = "Archives d’Azeroth";     --Added in patch 10.2.5
+L["Module Category AzerothianArchives"] = "Archives d'Azeroth";     --Added in patch 10.2.5
 
 
 --AutoJoinEvents
 L["ModuleName AutoJoinEvents"] = "Rejoindre automatiquement les événements";
-L["ModuleDescription AutoJoinEvents"] = "Rejoint automatiquement l'événement lorsque vous interagissez avec le PNJ :\n\n- Faille temporelle\n\n- Groupe de théâtre";
+L["ModuleDescription AutoJoinEvents"] = "Rejoindre automatiquement ces événements lorsque vous interagissez avec le PNJ :\n\n- Faille temporelle\n\n- Troupe de théâtre";
 
 
 --BackpackItemTracker
-L["ModuleName BackpackItemTracker"] = "Suivi des objets dans le sac";
-L["ModuleDescription BackpackItemTracker"] = "Suivez les objets empilables dans l'interface utilisateur du sac comme s'il s'agissait de devises. \n\nLes jetons des événements saisonniers sont automatiquement suivis et épinglés à gauche.";
+L["ModuleName BackpackItemTracker"] = "Suivre les objets dans le sac";
+L["ModuleDescription BackpackItemTracker"] = "Suivre objets empilables dans l'interface utilisateur du sac comme s'il s'agissait de monnaies.\n\nLes jetons de vacances sont automatiquement suivis et épinglés à gauche.";
 L["Instruction Track Item"] = "Suivre l'objet";
 L["Hide Not Owned Items"] = "Masquer les objets non possédés";
 L["Hide Not Owned Items Tooltip"] = "Si vous ne possédez plus un objet que vous suiviez, il sera déplacé vers un menu caché.";
@@ -124,27 +128,27 @@ L["Own"] = "Possédé";   --Something that the player has/owns
 L["Numbers To Earn"] = "À recevoir";     --The number of items/currencies player can earn. The wording should be as abbreviated as possible.
 L["Numbers Of Earned"] = "Reçus";    --The number of stuff the player has earned
 L["Track Upgrade Currency"] = "Suivre les Écus";       --Crest: e.g. Drake's Dreaming Crest
-L["Track Upgrade Currency Tooltip"] = "Épinglez sur la barre le type d'Écu de niveau supérieur que vous avez gagné.";
+L["Track Upgrade Currency Tooltip"] = "Épingle sur la barre le type d'Écu de niveau supérieur que vous avez gagné.";
 L["Track Holiday Item"] = "Suivre la monnaie des événements saisonniers";       --e.g. Tricky Treats (Hallow's End)
 L["Currently Pinned Colon"] = "Actuellement épinglé :";  --Tells the currently pinned item
 L["Bar Inside The Bag"] = "Barre à l'intérieur du sac";     --Put the bar inside the bag UI (below money/currency)
-L["Bar Inside The Bag Tooltip"] = "Place la barre à l'intérieur de l'interface du sac.\n\nCela ne fonctionne que dans le mode Sacs séparés de Blizzard.";
+L["Bar Inside The Bag Tooltip"] = "Placer la barre à l'intérieur de l'interface du sac.\n\nCela ne fonctionne que dans le mode Sacs séparés de Blizzard.";
 L["Catalyst Charges"] = "Charges du Catalyseur";
 
 
 --GossipFrameMedal
 L["ModuleName GossipFrameMedal"] = "Médaille de course de Vol à dos de dragon";
-L["ModuleDescription GossipFrameMedal Format"] = "Remplace l'icône par défaut %s par la médaille %s que vous gagnez.\n\nCela peut prendre un moment pour obtenir vos enregistrements lorsque vous interagissez avec le PNJ.";
+L["ModuleDescription GossipFrameMedal Format"] = "Remplacer l'icône par défaut %s par la médaille %s que vous avez gagnée.\n\nLa récupération des données peut prendre quelques instants lors de l'interaction avec le PNJ.";
 
 
 --DruidModelFix (Disabled after 10.2.0)
 L["ModuleName DruidModelFix"] = "Correction du modèle de druide";
-L["ModuleDescription DruidModelFix"] = "Corrige le problème d'affichage du modèle de l'interface utilisateur du personnage causé par l'utilisation du Glyphe des étoiles\n\nCe bug sera corrigé par Blizzard en 10.2.0 et ce module sera supprimé.";
+L["ModuleDescription DruidModelFix"] = "Corriger le problème d'affichage du modèle de l'interface utilisateur du personnage causé par l'utilisation du Glyphe des étoiles\n\nCe bug sera corrigé par Blizzard à la 10.2.0 et ce module sera supprimé.";
 L["Model Layout"] = "Disposition du modèle";
 
 
 --PlayerChoiceFrameToken (PlayerChoiceFrame)
-L["ModuleName PlayerChoiceFrameToken"] = "Choix de l'interface : Coût des objets";
+L["ModuleName PlayerChoiceFrameToken"] = "Choix de l'interface : coût des objets";
 L["ModuleDescription PlayerChoiceFrameToken"] = "Afficher combien d'objets il faut pour compléter une certaine action dans l'interface de choix du joueur.\n\nActuellement, ne prend en charge que les événements dans The War Within.";
 
 
@@ -161,7 +165,7 @@ L["Pin Size"] = "Taille du repère";
 
 --PlayerChoiceUI: Dreamseed Nurturing (PlayerChoiceFrame Revamp)
 L["ModuleName AlternativePlayerChoiceUI"] = "Choix de l'interface : Manne d'émeraude";
-L["ModuleDescription AlternativePlayerChoiceUI"] = "Remplace l'interface de la Graine onirique par défaut par une interface moins bloquante, affiche le nombre d'objets que vous possédez et vous permet de contribuer automatiquement en cliquant et en maintenant le bouton.";
+L["ModuleDescription AlternativePlayerChoiceUI"] = "Remplacer l'interface de la Graine onirique par défaut par une interface moins bloquante, affiche le nombre d'objets que vous possédez et vous permet de contribuer automatiquement en cliquant et en maintenant le bouton.";
 
 
 --HandyLockpick (Right-click a lockbox in your bag to unlock when you are not in combat. Available to rogues and mechagnomes)
@@ -177,24 +181,23 @@ L["ModuleDescription BlizzFixEventToast"] = "Modifie le comportement des notific
 
 --Talking Head
 L["ModuleName TalkingHead"] = HUD_EDIT_MODE_TALKING_HEAD_FRAME_LABEL or "Tête parlante";
-L["ModuleDescription TalkingHead"] = "Remplace l'interface par défaut de la Tête parlante par une interface propre, sans tête.";
-L["EditMode TalkingHead"] = "Plumber : "..L["ModuleName TalkingHead"];
+L["ModuleDescription TalkingHead"] = "Remplacer l'interface par défaut de la Tête parlante par une interface épurée.";
 L["TalkingHead Option InstantText"] = "Texte instantané";   --Should texts immediately, no gradual fading
 L["TalkingHead Option TextOutline"] = "Contour du texte";   --Added a stroke/outline to the letter
 L["TalkingHead Option Condition Header"] = "Masquer les textes provenant de la source :";
 L["TalkingHead Option Hide Everything"] = "Tout masquer";
 L["TalkingHead Option Hide Everything Tooltip"] = "|cffff4800Les sous-titres n'apparaîtront plus.|r\n\nLa voix off continuera d'être jouée, et la transcription sera affichée dans la fenêtre de discussion.";
 L["TalkingHead Option Condition WorldQuest"] = TRACKER_HEADER_WORLD_QUESTS or "Quêtes mondiales";
-L["TalkingHead Option Condition WorldQuest Tooltip"] = "Masquer la transcription si elle provient d'une quête mondiale.\nParfois, la Tête parlante est déclenchée avant d'accepter la quête mondiale, et nous ne pourrons pas la masquer.";
+L["TalkingHead Option Condition WorldQuest Tooltip"] = "Masquer le sous-titre s'il provient d'une quête mondiale.\nParfois, la Tête parlante s'affiche avant que la quête mondiale ne soit acceptée, et nous ne pourrons pas la masquer.";
 L["TalkingHead Option Condition Instance"] = INSTANCE or "Instance";
-L["TalkingHead Option Condition Instance Tooltip"] = "Masquer la transcription lorsque vous êtes dans une instance.";
+L["TalkingHead Option Condition Instance Tooltip"] = "Masquer les sous-titres lorsque vous êtes dans une instance.";
 L["TalkingHead Option Below WorldMap"] = "Placer en arrière-plan à l'ouverture de la carte";
-L["TalkingHead Option Below WorldMap Tooltip"] = "Placer la Tête parlante en arrière-plan lors de l'ouverture de la carte du monde pour ne pas la bloquer";
+L["TalkingHead Option Below WorldMap Tooltip"] = "Placer la Tête parlante en arrière-plan lors de l'ouverture de la carte du monde pour ne pas la bloquer.";
 
 
 --AzerothianArchives
 L["ModuleName Technoscryers"] = "Emplacement rapide : Divinobidules";
-L["ModuleDescription Technoscryers"] = "Affiche un bouton pour enfiler les Divinobidules lorsque vous effectuez une quête mondiale sur la Bidulodivination."..L["Quick Slot Generic Description"];
+L["ModuleDescription Technoscryers"] = "Afficher un bouton permettant d'équiper les Divinobidules lorsque vous effectuez la quête mondiale sur la Bidulodivination."..L["Quick Slot Generic Description"];
 
 
 --Navigator(Waypoint/SuperTrack) Shared Strings
@@ -208,19 +211,19 @@ L["Click To Track In TomTom"] = "|TInterface/AddOns/Plumber/Art/SuperTracking/To
 
 --Navigator_Dreamseed (Use Super Tracking to navigate players)
 L["ModuleName Navigator_Dreamseed"] = "Navigation : Graines oniriques";
-L["ModuleDescription Navigator_Dreamseed"] = "Utilise le système de point de passage pour vous guider vers les Graines oniriques.\n\n*Clic droit sur l'indicateur de position (le cas échéant) pour plus d'options.\n\n|cffd4641cLes points de passage par défaut du jeu seront remplacés lorsque vous êtes dans le Rêve d'émeraude.\n\nL'indicateur de position de la graine peut être remplacé par des quêtes.|r";
+L["ModuleDescription Navigator_Dreamseed"] = "Utiliser le système de point de passage pour vous guider vers les Graines oniriques.\n\n*Clic droit sur l'indicateur de position (le cas échéant) pour plus d'options.\n\n|cffd4641cLes points de passage par défaut du jeu seront remplacés lorsque vous êtes dans le Rêve d'émeraude.\n\nL'indicateur de position de la graine peut être remplacé par des quêtes.|r";
 L["Priority New Seeds"] = "Trouver de nouvelles graines";
 L["Priority Rewards"] = "Collecter les récompenses";
 L["Stop Tracking Dreamseed Tooltip"] = "Arrête le suivi des graines jusqu'à ce que vous cliquiez gauche sur un marqueur de carte.";
 
 
 --BlizzFixWardrobeTrackingTip (Permanently disable the tip for wardrobe shortcuts)
-L["ModuleName BlizzFixWardrobeTrackingTip"] = "Correction de Blizzard : Astuce pour la garde-robe";
+L["ModuleName BlizzFixWardrobeTrackingTip"] = "Correction de Blizzard : astuce pour la garde-robe";
 L["ModuleDescription BlizzFixWardrobeTrackingTip"] = "Masquer le tutoriel pour les raccourcis de la garde-robe.";
 
 
 --Rare/Location Announcement
-L["Announce Location Tooltip"] = "Partager cet emplacement dans la fenêtre de discussion.";
+L["Announce Location Tooltip"] = "Partage cet emplacement dans la fenêtre de discussion.";
 L["Announce Forbidden Reason In Cooldown"] = "Vous avez partagé un emplacement récemment.";
 L["Announce Forbidden Reason Duplicate Message"] = "Cet emplacement a été partagé récemment par un autre joueur.";
 L["Announce Forbidden Reason Soon Despawn"] = "Vous ne pouvez pas partager cet emplacement car il va bientôt disparaître.";
@@ -271,22 +274,29 @@ L["Collected Items"] = "Objets collectés";
 
 
 --Tooltip Housing
-L["ModuleName TooltipHousing"] = "Housing";
-L["ModuleDescription TooltipHousing"] = "Housing";
+L["ModuleName TooltipHousing"] = "Logis";
+L["ModuleDescription TooltipHousing"] = "Logis";
 L["Instruction View In Dressing Room"] = "<Ctrl + clic pour afficher dans la cabine d'essayage>";  --VIEW_IN_DRESSUP_FRAME
 L["Data Loading In Progress"] = "Plumber charge les données";
+
+
+--Tooltip RichSoil
+L["ModuleName TooltipRichSoil"] = "Emplacement rapide : Graines rustiques";
+L["ModuleDescription TooltipRichSoil"] = "Pour les Herboristes : affiche une liste de Graines rustiques lors d'un double-clic sur un sol riche."..L["Quick Slot Generic Description"];
+L["Instruction Show Resilient Seeds"] = "<Double-clic pour afficher les Graines rustiques>";
+L["No Resilient Seed"] = "Aucune Graine rustique";
 
 
 --Plunderstore
 L["ModuleName Plunderstore"] = "Plunderstore";
 L["ModuleDescription Plunderstore"] = "Modification de la boutique accessible via la Recherche de groupe :\n\n– Ajout d'une case à cocher pour masquer les objets déjà collectés.\n\n– Affichage du nombre d'objets non collectés sur les boutons de catégorie.\n\n– Ajout de l'emplacement d'équipement (arme ou armure) dans les infobulles.\n\n– Possibilité de visualiser les objets équipables dans la salle d'essayage.";
-L["Store Full Purchase Price Format"] = "Gagnez |cffffffff%s|r de butin pour acheter tout ce que contient la boutique.";
+L["Store Full Purchase Price Format"] = "Gagner |cffffffff%s|r butin pour acheter tout ce que contient la boutique.";
 L["Store Item Fully Collected"] = "Vous avez tout récupéré dans la boutique !";
 
 
 --Merchant UI Price
 L["ModuleName MerchantPrice"] = "Prix du marchand";
-L["ModuleDescription MerchantPrice"] = "Modification du comportement de l'interface du marchand :\n\n– Griser uniquement les monnaies insuffisantes.\n\n– Afficher tous les objets requis dans la zone des Monnaies.";
+L["ModuleDescription MerchantPrice"] = "Modifier le comportement de l'interface utilisateur du marchand :\n\n- Griser uniquement les monnaies insuffisantes.\n\n- Afficher tous les éléments requis dans zone des monnaies.";
 L["Num Items In Bank Format"] = "Banque : |cffffffff%d|r";
 L["Num Items In Bag Format"] = "Sacs : |cffffffff%d|r";
 L["Number Thousands"] = "K";    --15K  15,000
@@ -296,24 +306,24 @@ L["Questionable Item Count Tooltip"] = "Le nombre d'objets peut être incorrect 
 
 --QueueStatus
 L["ModuleName QueueStatus"] = "Statut de la file d'attente";
-L["ModuleDescription QueueStatus"] = "Ajoute une barre de progression à l'icône de Recherche de groupe indiquant le pourcentage de coéquipiers trouvés. Les tanks et les soigneurs comptent davantage.\n\n(Facultatif) Affiche la différence entre le temps d'attente moyen et votre temps passé en file d'attente.";
+L["ModuleDescription QueueStatus"] = "Ajouter une barre de progression à l'icône de Recherche de groupe indiquant le pourcentage de coéquipiers trouvés. Les tanks et les soigneurs comptent davantage.\n\n(Facultatif) Affiche la différence entre le temps d'attente moyen et votre temps passé en file d'attente.";
 L["QueueStatus Show Time"] = "Afficher le temps";
-L["QueueStatus Show Time Tooltip"] = "Affiche la différence entre le temps d'attente moyen et votre temps passé en file d'attente.";
+L["QueueStatus Show Time Tooltip"] = "Afficher la différence entre le temps d'attente moyen et votre temps passé en file d'attente.";
 
 
 --Landing Page (Expansion Summary Minimap)
 L["ModuleName ExpansionLandingPage"] = "Résumé de Khaz Algar";
 L["ModuleDescription ExpansionLandingPage"] = "Afficher des informations supplémentaires sur la page de destination :\n\n- Niveau du Pacte des Fils tranchés\n\n- Classement des Cartels de Terremine";
-L["Instruction Track Reputation"] = "<Maj + clic pour suivre cette réputation>";
-L["Instruction Untrack Reputation"] = "<Maj + clic pour arrêter le suivi>";
+L["Instruction Track Reputation"] = "<Maj + Clic pour suivre cette réputation>";
+L["Instruction Untrack Reputation"] = "<Maj + CqQlic pour arrêter le suivi>";
 L["Error Show UI In Combat"] = "Vous ne pouvez pas afficher / masquer ceci en combat.";
 L["Error Show UI In Combat 1"] = "Il est impossible de modifier cette interface utilisateur pendant un combat.";
 L["Error Show UI In Combat 2"] = "ARRÊTEZ S'IL VOUS PLAÎT";
 
 
 --Landing Page Switch
-L["ModuleName LandingPageSwitch"] = "Rapport de mission sur la minicarte";
-L["ModuleDescription LandingPageSwitch"] = "Accéder aux Rapports du fief et Rapport de domaine en faisant Clic droit sur le Résumé de Renom, sur la minicarte.";
+L["ModuleName LandingPageSwitch"] = "Rapport de mission sur la mini-carte";
+L["ModuleDescription LandingPageSwitch"] = "Accéder aux Rapports du fief et Rapport de domaine en faisant Clic droit sur le Résumé de Renom, sur la mini-carte.";
 L["Mission Complete Count Format"] = "%d Prêt à terminer";
 L["Open Mission Report Tooltip"] = "Clic droit pour ouvrir les rapports de mission.";
 
@@ -325,14 +335,15 @@ L["ModuleDescription WorldMapPin_TWW"] = "Afficher des marqueurs supplémentaire
 
 --Delves
 L["Great Vault Tier Format"] = GREAT_VAULT_WORLD_TIER or "Tier %s";
+L["Great Vault World Activity Tooltip"] = "Tier 1 et activités mondiales";
 L["Item Level Format"] = "Niveau d'objet %d";
 L["Item Level Abbr"] = ITEM_LEVEL_ABBR or "iLvl";
 L["Delves Reputation Name"] = "Périple du gouffre";
-L["ModuleName Delves_SeasonProgress"] = "Gouffres : Périple du gouffre";
+L["ModuleName Delves_SeasonProgress"] = "Gouffres : périple du gouffre";
 L["ModuleDescription Delves_SeasonProgress"] = "Afficher une barre de progression en haut de l'écran lorsque vous progressez dans le périple du Gouffre.";
-L["ModuleName Delves_Dashboard"] = "Gouffres : Récompense hebdomadaire";
+L["ModuleName Delves_Dashboard"] = "Gouffres : récompense hebdomadaire";
 L["ModuleDescription Delves_Dashboard"] = "Afficher la progression de votre Grande chambre forte et de votre réserve d'Écus doré sur le tableau de bord des Gouffres.";
-L["ModuleName Delves_Automation"] = "Gouffres : Sélection automatique du pouvoir";
+L["ModuleName Delves_Automation"] = "Gouffres : sélection automatique du pouvoir";
 L["ModuleDescription Delves_Automation"] = "Sélectionner automatiquement le Pouvoir obtenu par les trésors et les rares.";
 L["Delve Crest Stash No Info"] = "Ces informations ne sont pas disponibles dans votre emplacement actuel.";
 L["Delve Crest Stash Requirement"] = "Apparaît dans les Gouffres abondants de niveau 11.";
@@ -361,7 +372,7 @@ L["ModuleDescription QuestItemDestroyAlert"] = "Afficher les informations de qu�
 
 --SpellcastingInfo
 L["ModuleName SpellcastingInfo"] = "Informations sur les sorts de la cible";
-L["ModuleDescription SpellcastingInfo"] = "– Affiche l'infobulle du sort lorsque vous survolez la barre d'incantation sur le cadre de la cible.\n\n– Enregistre les capacités des monstres, consultables ultérieurement par un clic droit sur le cadre de la cible.";
+L["ModuleDescription SpellcastingInfo"] = "– Afficher l'infobulle du sort lorsque vous survolez la barre d'incantation sur le cadre de la cible.\n\n– Enregistrer les capacités des monstres, consultables ultérieurement par un clic droit sur le cadre de la cible.";
 L["Abilities"] = "Capacités";
 L["Spell Colon"] = "Sort : ";   --Display SpellID
 L["Icon Colon"] = "Icône : ";     --Display IconFileID
@@ -376,12 +387,31 @@ L["Chat Leave All Characters Tooltip"] = "Vous quitterez automatiquement ce cana
 L["Chat Auto Leave Alert Format"] = "Souhaitez-vous quitter automatiquement |cffffc0c0[%s]|r sur tous vos personnages ?";
 L["Chat Auto Leave Cancel Format"] = "Quitter Auto. a été désactivé pour %s. Veuillez utiliser la commande « /join » pour rejoindre le canal.";
 L["Auto Leave Channel Format"] = "Quitter Auto. \"%s\"";
-L["Click To Disable"] = "Cliquez pour désactiver";
+L["Click To Disable"] = "Cliquer pour désactiver";
 
 
 --NameplateWidget
-L["ModuleName NameplateWidget"] = "Barre de nom : Flammeclé";
-L["ModuleDescription NameplateWidget"] = "Indiquer le nombre de Vestige radieux possédés sur la barre de nom.";
+L["ModuleName NameplateWidget"] = "Plaque de nom : Flammeclé";
+L["ModuleDescription NameplateWidget"] = "Indiquer le nombre de Vestige radieux possédés sur la plaque de nom.";
+
+
+--NameplateQuestIndicator
+L["ModuleName NameplateQuest"] = "Plaque de nom : indicateur de quête";
+L["ModuleDescription NameplateQuest"] = "Afficher un indicateur de quête sur les plaques de nom.\n\n- (Optionnel) Afficher la progression de l'objectif de quête pour votre cible.\n\n- (Optionnel) Afficher un indicateur de quête si les membres de votre groupe n'ont pas terminé l'objectif.";
+L["NameplateQuest ShowPartyQuest"] = "Afficher la quête du groupe";
+L["NameplateQuest ShowPartyQuest Tooltip"] = "Afficher un marqueur %s si un membre de votre groupe n'a pas terminé l'objectif de quête.";
+L["NameplateQuest ShowTargetProgress"] = "Afficher la progression sur la cible";
+L["NameplateQuest ShowTargetProgress Tooltip"] = "Afficher la progression de l'objectif de quête sur la plaque de nom de votre cible.";
+L["NameplateQuest ShowProgressOnHover"] = "Afficher la progression au survol";
+L["NameplateQuest ShowProgressOnHover Tooltip"] = "Afficher la progression de l'objectif de quête lorsque vous passez le curseur sur une plaque de nom ou une unité.";
+L["NameplateQuest ShowProgressOnKeyPress"] = "Afficher la progression en appuyant sur";
+L["NameplateQuest ShowProgressOnKeyPress Tooltip Title"] = "Afficher la progression en appuyant sur une touche";
+L["NameplateQuest ShowProgressOnKeyPress Tooltip Format"] = "Afficher la progression de l'objectif de quête lorsque vous appuyez sur la touche |cffffffff%s|r.";
+L["NameplateQuest Instruction Find Nameplate"] = "Pour ajuster la position de l'icône, rendez-vous dans un endroit où les plaques de nom des PNJ sont visibles.";
+L["NameplateQuest Progress Format"] = "Format de progression";
+L["Progress Show Icon"] = "Afficher l'icône";
+L["Progress Format Completed"] = "Terminé / requis";
+L["Progress Format Remaining"] = "Restant";
 
 
 --PartyInviterInfo
@@ -399,31 +429,31 @@ L["Player Not Found"] = "Joueur introuvable.";
 L["ModuleName PlayerTitleUI"] = "Gestionnaire de Titres";
 L["ModuleDescription PlayerTitleUI"] = "Ajouter une zone de recherche et un filtre au volet du personnage par défaut.";
 L["Right Click To Reset Filter"] = "Clic droit pour réinitialiser.";
-L["Earned"] = "Gagné";
-L["Unearned"] = "Non gagné";
-L["Unearned Filter Tooltip"] = "Vous pouvez voir des Titres en double qui ne sont pas disponibles pour votre faction.";
+L["Earned"] = "Obtenus";
+L["Unearned"] = "Manquants";
+L["Unearned Filter Tooltip"] = "Vous pourriez voir des titres en double qui ne sont pas disponibles pour votre faction.";
 
 
 --BlizzardSuperTrack
-L["ModuleName BlizzardSuperTrack"] = "Point de passage : Minuteur d'événement";
+L["ModuleName BlizzardSuperTrack"] = "Point de passage : minuteur d'événement";
 L["ModuleDescription BlizzardSuperTrack"] = "Ajouter un minuteur sur votre point de passage actif si son infobulle de carte en possède un.";
 
 
 --ProfessionsBook
 L["ModuleName ProfessionsBook"] = "Connaissances non dépensées";
-L["ModuleDescription ProfessionsBook"] = "Afficher le nombre de points de connaissance de spécialisation de profession non utilisés dans l'interface des métiers.";
-L["Unspent Knowledge Tooltip Format"] = "Vous avez |cffffffff%s|r Connaissances de spécialisation de profession non dépensées."  --see PROFESSIONS_UNSPENT_SPEC_POINTS_REMINDER
+L["ModuleDescription ProfessionsBook"] = "Afficher le nombre de points de connaissance des métiers non utilisés dans l'interface des métiers.";
+L["Unspent Knowledge Tooltip Format"] = "Vous avez |cffffffff%s|r connaissances de spécialisation de profession non dépensées."  --see PROFESSIONS_UNSPENT_SPEC_POINTS_REMINDER
 
 
 --TooltipProfessionKnowledge
-L["ModuleName TooltipProfessionKnowledge"] = L["ModuleName ProfessionsBook"];
-L["ModuleDescription TooltipProfessionKnowledge"] = "Afficher le nombre de vos Connaissances de spécialisation non dépensées.";
+L["ModuleName TooltipProfessionKnowledge"] = "Infobulle : Connaissances non dépensées";
+L["ModuleDescription TooltipProfessionKnowledge"] = "Afficher le nombre de vos connaissances de spécialisation non dépensées.";
 L["Available Knowledge Format"] = "Connaissances disponibles : |cffffffff%s|r";
 
 
 --MinimapMouseover (click to /tar creature on the minimap)
-L["ModuleName MinimapMouseover"] = "Cible de la minicarte";
-L["ModuleDescription MinimapMouseover"] = "Alt + Clic sur une créature sur la minicarte pour la définir comme cible.".."\n\n|cffd4641c- " ..L["Restriction Combat"].."|r";
+L["ModuleName MinimapMouseover"] = "Cible de la mini-carte";
+L["ModuleDescription MinimapMouseover"] = "Alt + Clic sur une créature sur la mini-carte pour la définir comme cible.".."\n\n|cffd4641c- " ..L["Restriction Combat"].."|r";
 
 
 --BossBanner
@@ -432,7 +462,7 @@ L["ModuleDescription BossBanner"] = "Modifie la bannière qui apparaît en haut 
 L["BossBanner Hide When Solo"] = "Masquer quand seul";
 L["BossBanner Hide When Solo Tooltip"] = "Masquer la bannière s'il n'y a qu'une seule personne (vous) dans votre groupe.";
 L["BossBanner Valuable Item Only"] = "Objets de valeur uniquement";
-L["BossBanner Valuable Item Only Tooltip"] = "Afficher uniquement les montures, les jetons de classe et les objets marqués comme très rares ou extrêmement rares sur la bannière.";
+L["BossBanner Valuable Item Only Tooltip"] = "Afficher sur la bannière uniquement les montures, les jetons de classe et les objets classés « Très rare » ou « Extrêmement rare ».";
 
 
 --AppearanceTab
@@ -441,30 +471,29 @@ L["ModuleDescription AppearanceTab"] = "Modification de l'onglet Apparences dans
 
 
 --SoftTargetName
-L["ModuleName SoftTargetName"] = "Barre de nom : Cible souple";
-L["ModuleDescription SoftTargetName"] = "Affiche le nom de l'objet ciblé de « manière souple ».";
-L["SoftTargetName Req Title"] = "|cffd4641cVous devez modifier manuellement ces paramètres pour que la fonction soit opérationnelle :|r";
+L["ModuleName SoftTargetName"] = "Plaque de nom : cible douce";
+L["ModuleDescription SoftTargetName"] = "Afficher le nom de l'objet ciblé automatiquement.";
+L["SoftTargetName Req Title"] = "|cffd4641cVous devez modifier manuellement ces paramètres pour que cela fonctionne :|r";
 L["SoftTargetName Req 1"] = "|cffffd100Activer la commande d'interaction|r dans Options du jeu > Jeu > Commandes.";
-L["SoftTargetName Req 2"] = "Définissez la variable CVar |cffffd100SoftTargetIconGameObject|r sur |cffffffff1|r.";
+L["SoftTargetName Req 2"] = "Afficher l'icône pour les objets de jeu interactifs (objets interactifs que vous ne pouvez normalement pas cibler)\n\nDans le chat, entrez : |cffffd100/console SoftTargetIconGameObject 1|r";
 L["SoftTargetName CastBar"] = "Afficher la barre d'incantation";
-L["SoftTargetName CastBar Tooltip"] = "Affiche une barre d'incantation circulaire sur la barre de nom.\n\n|cffff4800L'addon ne pourra pas déterminer quel objet est la cible de votre sort.|r";
+L["SoftTargetName CastBar Tooltip"] = "Afficher une barre d'incantation circulaire sur la plaque de nom.\n\n|cffff4800L'addon ne pourra pas déterminer quelle cible est affectée par votre sort.|r";
 L["SoftTargetName QuestObjective"] = "Afficher les objectifs de quête";
-L["SoftTargetName QuestObjective Tooltip"] = "Affiche les objectifs de quête (le cas échéant) sous le nom.";
+L["SoftTargetName QuestObjective Tooltip"] = "Afficher les objectifs de quête (s'il y en a) sous le nom.";
 L["SoftTargetName QuestObjective Alert"] = "Cette fonctionnalité nécessite d'activer |cffffffffAfficher la bulle d'aide de la cible|r dans Options du jeu > Accessibilité > Général.";
 L["SoftTargetName ShowNPC"] = "Inclure les PNJ";
-L["SoftTargetName ShowNPC Tooltip"] = "Si cette option est désactivée, le nom n'apparaîtra que sur les objets de jeu interactifs.";
+L["SoftTargetName ShowNPC Tooltip"] = "Si désactivé, le nom apparaîtra uniquement sur les objets interactifs.";
 L["SoftTargetName HideIcon"] = "Masquer l'icône d'interaction";
-L["SoftTargetName HideIcon Tooltip"] = "Masquer l'icône d'interaction et la barre de lancement radiale lorsque vous êtes dans une maison.";
+L["SoftTargetName HideIcon Tooltip"] = "Masquer l'icône d'interaction et la barre d'incantation circulaire lorsque vous êtes dans une maison.";
 L["SoftTargetName HideName"] = "Masquer le nom de l'objet";
-L["SoftTargetName HideName Tooltip"] = "Masquer le nom de l'objet cible lorsque vous êtes dans une maison."
-
+L["SoftTargetName HideName Tooltip"] = "Masquer le nom de l'objet ciblé automatiquement lorsque vous êtes dans une maison.";
 
 
 --LegionRemix
 L["ModuleName LegionRemix"] = "Legion Remix";
-L["ModuleDescription LegionRemix"] = "- Apprend automatiquement les traits.\n\n- Ajoute un widget à la feuille de personnage affichant diverses informations. Vous pouvez cliquer sur ce widget pour ouvrir une nouvelle interface d'artefact.";
+L["ModuleDescription LegionRemix"] = "- Apprendre automatiquement les traits.\n\n- Ajouter un widget à la feuille de personnage affichant diverses informations. Vous pouvez cliquer sur ce widget pour ouvrir une nouvelle interface d'artefact.";
 L["ModuleName LegionRemix_HideWorldTier"] = "Masquer l'icône de palier mondial";
-L["ModuleDescription LegionRemix_HideWorldTier"] = "Masque l'icône du palier mondial héroïque située sous la minicarte.";
+L["ModuleDescription LegionRemix_HideWorldTier"] = "Masquer l'icône du palier mondial héroïque située sous la mini-carte.";
 L["ModuleName LegionRemix_LFGSpam"] = "Spam de la Recherche de raid";
 L["ModuleDescription LegionRemix_LFGSpam"] = "Supprimer le message indésirable suivant :\n\n"..ERR_LFG_PROPOSAL_FAILED;
 L["Artifact Weapon"] = "Arme prodigieuse";
@@ -502,8 +531,8 @@ L["Infinite Knowledge Bonus Next Format"] = "Prochain rang : %s";
 
 
 --ItemUpgradeUI
-L["ModuleName ItemUpgradeUI"] = "Améliorations d'objets : Afficher la fiche du personnage";
-L["ModuleDescription ItemUpgradeUI"] = "Ouvre automatiquement la fiche de votre personnage lorsque vous interagissez avec un PNJ d'améliorations d'objets.";
+L["ModuleName ItemUpgradeUI"] = "Améliorations d'objets : afficher la fiche du personnage";
+L["ModuleDescription ItemUpgradeUI"] = "Ouvrir automatiquement la fiche de votre personnage lorsque vous interagissez avec un PNJ proposant des améliorations d'objets.";
 
 
 --HolidayDungeon
@@ -512,58 +541,65 @@ L["ModuleDescription HolidayDungeon"] = "Sélectionne automatiquement les donjon
 
 
 --PlayerPing
-L["ModuleName PlayerPing"] = "Pin sur la carte : Ping du joueur";
-L["ModuleDescription PlayerPing"] = "Mettre en surbrillance l'emplacement du joueur avec un effet de ping lorsque vous :\n\n- Ouvrez la carte du monde.\n\n- Appuyez sur la touche ALT.\n\n- Cliquez sur le bouton Agrandir.\n\n|cffd4641cPar défaut, WoW n'affiche le ping du joueur que lorsque vous changez de carte.|r";
+L["ModuleName PlayerPing"] = "Pin sur la carte : ping du joueur";
+L["ModuleDescription PlayerPing"] = "Mettre en évidence la position du joueur à l'aide d'un effet de repère lorsque vous :\n\n- Ouvrez la carte du monde.\n\n- Appuyez sur la touche ALT.\n\n- Cliquez sur le bouton d'agrandissement.\n\n|cffd4641cPar défaut, WoW n'affiche le repère du joueur que lorsque vous changez de carte.|r";
 
 
 --StaticPopup_Confirm
-L["ModuleName StaticPopup_Confirm"] = "Alerte achat non remboursable";
-L["ModuleDescription StaticPopup_Confirm"] = "Ajuste la boîte de dialogue de confirmation qui apparaît lors de l'achat d'un objet non remboursable, en ajoutant un bref verrouillage au bouton « Oui » et en mettant en évidence les mots clés en rouge.\n\nCe module réduit également de moitié le délai de conversion des ensembles de classes.";
+L["ModuleName StaticPopup_Confirm"] = "Alerte « Achat non remboursable »";
+L["ModuleDescription StaticPopup_Confirm"] = "Modifier la boîte de dialogue de confirmation qui s'affiche lors de l'achat d'un objet non remboursable, en verrouillant brièvement le bouton « Oui » et en surlignant les mots-clés en rouge.\n\nCe module réduit également de moitié le délai de conversion des ensembles de classes.";
 
 
 --Loot UI
 L["ModuleName LootUI"] = "Fenêtre de butin";
-L["ModuleDescription LootUI"] = "Remplace la fenêtre de butin par défaut et offre des fonctionnalités optionnelles :\n\n- Récupérer les objets rapidement.\n\n- Corriger le bug d'échec du butin automatique.\n\n- Afficher un bouton Tout prendre lors du pillage manuel.";
+L["ModuleDescription LootUI"] = "Remplacer la fenêtre de butin par défaut et ajouter des fonctionnalités optionnelles :\n\n- Ramasser le butin rapidement.\n\n- Corriger le bug d'échec lors de la fouille automatique.\n\n- Afficher un bouton « Tout prendre » lors du pillage manuel.";
 L["Take All"] = "Tout prendre";     --Take all items from a loot window
 L["You Received"] = "Vous avez reçu";
-L["Reach Currency Cap"] = "Plafond de devise atteint";
+L["Reach Currency Cap"] = "Plafond de monnaie atteint";
 L["Sample Item 4"] = "Objet épique génial";
 L["Sample Item 3"] = "Objet rare génial";
 L["Sample Item 2"] = "Objet peu commun génial";
 L["Sample Item 1"] = "Objet commun";
-L["EditMode LootUI"] = "Plumber : Fenêtre de butin";
-L["Manual Loot Instruction Format"] = "Pour annuler temporairement le butin automatique sur un objet spécifique, maintenez la touche |cffffffff%s|r jusqu'à ce que la fenêtre de butin apparaisse.";
-L["LootUI Option Hide Window"] = "Masquer la fenêtre de butin Plumber";
-L["LootUI Option Hide Window Tooltip"] = "Masquer la fenêtre de notification de butin Plumber, mais conserve les fonctionnalités activées telles que le « Forcer le butin automatique » en arrière-plan.";
+L["Manual Loot Instruction Format"] = "Pour désactiver temporairement la fouille automatique d'un objet spécifique, maintenez la touche |cffffffff%s|r enfoncée jusqu'à ce que la fenêtre de butin s'affiche.";
+L["LootUI Option Hide Window"] = "Masquer la fenêtre de butin de Plumber";
+L["LootUI Option Hide Window Tooltip"] = "Masquer la fenêtre de |cffffffffNotification de butin|r de Plumber, tout en conservant l'activation des fonctionnalités telles que la fouille automatique forcé en arrière-plan.";
 L["LootUI Option Hide Window Tooltip 2"] = "Cette option n'a aucune incidence sur la fenêtre de butin de Blizzard.";
-L["LootUI Option Force Auto Loot"] = "Forcer le butin automatique";
-L["LootUI Option Force Auto Loot Tooltip"] = "Toujours activer le butin automatique pour contrer les échecs occasionnels.";
+L["LootUI Option Force Auto Loot"] = "Forcer la fouille automatique";
+L["LootUI Option Force Auto Loot Tooltip"] = "Toujours activer la fouille automatique pour contrer les échecs occasionnels.";
 L["LootUI Option Owned Count"] = "Afficher le nombre d'objets possédés";
 L["LootUI Option New Transmog"] = "Marquer l'apparence non collectée";
-L["LootUI Option New Transmog Tooltip"] = "Ajouter un marqueur %s si vous n'avez pas collecté l'apparence de l'objet.";
-L["LootUI Option Use Hotkey"] = "Appuyer sur une touche pour tout prendre";
-L["LootUI Option Use Hotkey Tooltip"] = "En mode butin manuel, appuyez sur la touche suivante pour tout prendre.";
+L["LootUI Option New Transmog Tooltip"] = "Ajoute un marqueur %s si vous n'avez pas collecté l'apparence de l'objet.";
+L["LootUI Option Use Hotkey"] = "Appuyer sur une touche pour ramasser tous les objets";
+L["LootUI Option Use Hotkey Tooltip"] = "En mode |cffffffffButin manuel|r, appuyez sur la touche suivante pour tout ramasser.";
 L["LootUI Option Fade Delay"] = "Délai d'estompage par objet";
 L["LootUI Option Items Per Page"] = "Objets par page";
-L["LootUI Option Items Per Page Tooltip"] = "Ajuster la quantité d'objets pouvant être affichés sur une page lors de la récupération de butins.\n\nCette option n'affecte pas le mode de butin manuel ou le mode d'édition.";
+L["LootUI Option Items Per Page Tooltip"] = "Ajuster le nombre d'objets pouvant s'afficher sur une page lors de la réception de butin.\n\nCette option n'affecte pas le mode de |cffffffffButin manuel|r ni le |cffffffffMode Édition|r.";
 L["LootUI Option Replace Default"] = "Remplacer l'alerte de butin par défaut";
-L["LootUI Option Replace Default Tooltip"] = "Remplace les alertes de butin par défaut qui apparaissent généralement au-dessus des barres d'action.";
+L["LootUI Option Replace Default Tooltip"] = "Remplacer les alertes de butin par défaut qui s'affichent généralement au-dessus des barres d'action.";
 L["LootUI Option Loot Under Mouse"] = "Ouvrir la fenêtre de butin à la souris";
 L["LootUI Option Loot Under Mouse Tooltip"] = "En mode |cffffffffButin manuel|r, la fenêtre apparaîtra sous la position actuelle de la souris";
 L["LootUI Option Use Default UI"] = "Utiliser la fenêtre de butin par défaut";
-L["LootUI Option Use Default UI Tooltip"] = "Utiliser la fenêtre de butin par défaut de WoW.\n\n|cffff4800Activer cette option annule tous les réglages|r";
+L["LootUI Option Use Default UI Tooltip"] = "Utiliser la fenêtre de butin par défaut de WoW.\n\n|cffff4800Activer cette option annule tous les paramètres précédents.|r";
 L["LootUI Option Background Opacity"] = "Opacité";
-L["LootUI Option Background Opacity Tooltip"] = "Définir l'opacité de l'arrière-plan en mode de notification de butin.\n\nCette option n'affecte pas le mode de butin manuel.";
+L["LootUI Option Background Opacity Tooltip"] = "Définir l'opacité de l'arrière-plan en mode |cffffffffNotification de butin|r.\n\nCette option n'affecte pas le mode de |cffffffffButin manuel|r ni le |cffffffffMode Édition|r.";
 L["LootUI Option Custom Quality Color"] = "Utiliser une couleur de qualité personnalisée";
-L["LootUI Option Custom Quality Color Tooltip"] = "Utiliser les couleurs que vous définissez dans Options du jeu > Accessibilité > Couleurs.";
+L["LootUI Option Custom Quality Color Tooltip"] = "Utiliser les couleurs que vous avez définies dans Options du jeu > Accessibilité > Couleurs.";
 L["LootUI Option Grow Direction"] = "Grandir vers le haut";
 L["LootUI Option Grow Direction Tooltip 1"] = "Lorsque cette option est activée : le coin inférieur gauche de la fenêtre reste immobile et les nouvelles notifications apparaîtront au-dessus des anciennes.";
 L["LootUI Option Grow Direction Tooltip 2"] = "Lorsque cette option est désactivée : le coin supérieur gauche de la fenêtre reste immobile et les nouvelles notifications apparaîtront en dessous des anciennes.";
 L["Junk Items"] = "Objets indésirables";
-L["LootUI Option Combine Items"] = "Combiner des objets similaires";
-L["LootUI Option Combine Items Tooltip"] = "Afficher les objets similaires sur une seule ligne. Catégories prises en charge :\n\n- Objets indésirables\n- Souvenirs d'époque (Legion Remix)";
-L["LootUI Option Low Frame Strata"] = "Mettre à l'arrière-plan";
-L["LootUI Option Low Frame Strata Tooltip"] = "En mode de notification de butin, placez la fenêtre de butin derrière une autre interface utilisateur.\n\nCette option n'affecte pas le mode de butin manuel.";
+L["LootUI Option Combine Items"] = "Combiner les objets similaires";
+L["LootUI Option Combine Items Tooltip"] = "Afficher les objets similaires sur une seule ligne.\n\nCatégories prises en charge :\n\n- Objets indésirables\n- Souvenirs d'époque (Legion Remix)";
+L["LootUI Option Low Frame Strata"] = "Placer à l'arrière-plan";
+L["LootUI Option Low Frame Strata Tooltip"] = "En mode |cffffffffNotification de butin|r, placez la fenêtre de butin derrière les autres fenêtres d'interface.\n\nCette option n'affecte pas le mode de |cffffffffButin manuel|r ni le |cffffffffMode Édition|r.";
+L["LootUI Option Show Reputation"] = "Afficher les changements de réputation";
+L["LootUI Option Show Reputation Tooltip"] = "Afficher les gains de réputation dans la fenêtre de butin.\n\nLa réputation obtenue pendant un combat ou dans une instance JcJ sera affichée après coup.";
+L["LootUI Option Show All Money"] = "Afficher tous les changements d'argent";
+L["LootUI Option Show All Money Tooltip"] = "Afficher l'argent gagné depuis toutes les sources, pas seulement le butin.";
+L["LootUI Option Show All Currency"] = "Afficher tous les changements de monnaie";
+L["LootUI Option Show All Currency Tooltip"] = "Afficher les monnaies obtenues depuis toutes les sources, pas seulement le butin.\n\n|cffff4800Certaines monnaies peuvent parfois apparaître même si elles ne sont pas affichées dans la fenêtre de discussion.|r";
+L["LootUI Option Hide Title"] = "Masquer le texte « Vous recevez le butin »";
+L["LootUI Option Hide Title Tooltip"] = "Masquer le texte « Vous recevez le butin » en haut de la fenêtre de butin.";
 
 
 --Quick Slot For Third-party Dev
@@ -578,12 +614,13 @@ L["PlumberMacro Drive"] = "Macro V.R.O.U.M. de Plumber";
 L["PlumberMacro Drawer"] = "Macro Plumber";
 L["PlumberMacro Housing"] = "Macro Logis de Plumber";
 L["PlumberMacro Torch"] = "Macro Torche de Plumber";
+L["PlumberMacro Outfit"] = "Macro Tenue de Plumber";
 L["PlumberMacro DrawerFlag Combat"] = "La macro sera mise à jour après avoir quitté le combat.";
 L["PlumberMacro DrawerFlag Stuck"] = "Une erreur s'est produite lors de la mise à jour de la macro.";
 L["PlumberMacro Error Combat"] = "Indisponible en combat";
 L["PlumberMacro Error NoAction"] = "Aucune action utilisable";
 L["PlumberMacro Error EditMacroInCombat"] = "Impossible de modifier les macros en combat";
-L["Random Favorite Mount"] = "Monture préférée aléatoire"; --A shorter version of MOUNT_JOURNAL_SUMMON_RANDOM_FAVORITE_MOUNT
+L["Random Favorite Mount"] = "Monture préféréee aléatoire"; --A shorter version of MOUNT_JOURNAL_SUMMON_RANDOM_FAVORITE_MOUNT
 L["Dismiss Battle Pet"] = "Renvoyer la mascotte";
 L["Drag And Drop Item Here"] = "Glisser / déposer un objet ici.";
 L["Drag To Reorder"] = "Clic gauche et faites glisser pour réorganiser";
@@ -593,7 +630,7 @@ L["Drawer Add Action Format"] = "Ajouter |cffffffff%s|r";
 L["Drawer Add Profession1"] = "Métier principal";
 L["Drawer Add Profession2"] = "Métier secondaire";
 L["Drawer Option Global Tooltip"] = "Ce paramètre est partagé par toutes les macros.";
-L["Drawer Option CloseAfterClick"] = "Fermer après avoir cliqué";
+L["Drawer Option CloseAfterClick"] = "Fermer après quelques clics";
 L["Drawer Option CloseAfterClick Tooltip"] = "Fermer la macro après avoir cliqué sur n'importe quel bouton, que cela soit réussi ou non.";
 L["Drawer Option SingleRow"] = "Ligne unique";
 L["Drawer Option SingleRow Tooltip"] = "Si cette option est cochée, aligner tous les boutons sur la même ligne au lieu de 4 par ligne.";
@@ -601,20 +638,22 @@ L["Drawer Option Hide Unusable"] = "Masquer les actions inutilisables";
 L["Drawer Option Hide Unusable Tooltip"] = "Masquer les objets non possédés et les sorts non appris.";
 L["Drawer Option Hide Unusable Tooltip 2"] = "Les objets consommables comme les potions seront toujours affichés."
 L["Drawer Option Update Frequently"] = "Mis à jour fréquemment";
-L["Drawer Option Update Frequently Tooltip"] = "Essaie de mettre à jour l'état des boutons dès qu'un changement survient dans vos sacs ou grimoires. Activer cette option peut légèrement augmenter la consommation de ressources.";
+L["Drawer Option Update Frequently Tooltip"] = "Essayer de mettre à jour l'état des boutons dès qu'un changement survient dans vos sacs ou du grimoire. Activer cette option peut entraîner une légère augmentation de la consommation de ressources.";
 L["ModuleName DrawerMacro"] = "Macro Plumber";
-L["ModuleDescription DrawerMacro"] = "Créer un menu déroulant personnalisé pour gérer vos objets, sorts, mascottes, montures et jouets.\n\nPour créer une Macro Plumber, créez d'abord une nouvelle macro, puis entrez |cffd7c0a3#plumber:drawer|r dans la zone d'édition de la macro.";
+L["ModuleDescription DrawerMacro"] = "Créer un menu déroulant personnalisé pour gérer vos objets, sorts, mascottes, montures et jouets.\n\nPour créer une macro Plumber, commencez par créer une nouvelle macro, puis saisissez |cffd7c0a3#plumber:drawer|r dans la zone de saisie de la macro.";
+L["No Slot For New Character Macro Alert"] = "Vous devez disposer d'un emplacement libre pour une macro spécifique au personnage afin d'effectuer cette action.";
 
 
 --New Expansion Landing Page
 L["ModuleName NewExpansionLandingPage"] = "Résumé de l'extension";
-L["ModuleDescription NewExpansionLandingPage"] = "Interface affichant les factions, les activités hebdomadaires et les verrouillages de raids. Vous pouvez l'ouvrir de la manière suivante :\n\nCliquez sur le bouton Résumé de Khaz Algar sur la minicarte.\n\n- Attribuer un raccourci dans Options > Raccourcis clavier."
+L["ModuleDescription NewExpansionLandingPage"] = "Interface affichant les factions, les activités hebdomadaires et les verrouillages de raids. Vous pouvez l'ouvrir de la manière suivante :\n\nCliquez sur le bouton Résumé de Khaz Algar sur la mini-carte.\n\n- Attribuer un raccourci dans Options du jeu > Raccourcis clavier."
 L["Abbr NewExpansionLandingPage"] = "Résumé de l'extension";
 L["Reward Available"] = "Récompense disponible";  --As brief as possible
 L["Paragon Reward Available"] = "Récompense de Paragon disponible";
 L["Until Next Level Format"] = "%d jusqu'au prochain niveau";   --Earn x reputation to reach the next level
 L["Until Paragon Reward Format"] = "%d jusqu'à la récompense Paragon";
-L["Instruction Click To View Renown"] = "<Cliquez pour voir le Renom>";
+L["Instruction Click To View Renown"] = "<Cliquer pour afficher le Renom>";
+L["Instruction Click To View Companion"] = "<Cliquer pour afficher le compagnon de Gouffre>";
 L["Not On Quest"] = "Vous n'êtes pas sur cette quête";
 L["Factions"] = "Factions";
 L["Activities"] = "Activités";
@@ -635,9 +674,9 @@ L["Filter Hide Completed Format"] = "Masquer complété (%d)";
 L["Weekly Reset Format"] = "Réinitialisation hebdomadaire : %s";
 L["Daily Reset Format"] = "Réinitialisation quotidienne : %s";
 L["Ready To Turn In Tooltip"] = "Prêt à être remis.";
-L["Trackers"] = "Traqueurs";
-L["New Tracker Title"] = "Nouveau traqueur";     --Create a new Tracker
-L["Edit Tracker Title"] = "Modifier traqueur";
+L["Trackers"] = "Suivis";
+L["New Tracker Title"] = "Nouveau suivi";     --Create a new Tracker
+L["Edit Tracker Title"] = "Modifier le suivi";
 L["Type"] = "Type";
 L["Select Instruction"] = "Sélectionner";
 L["Name"] = "Nom";
@@ -657,7 +696,7 @@ L["Boss Name"] = "Nom du boss";
 L["Instance Or Boss Name"] = "Instance ou nom du boss";
 L["Name EditBox Disabled Reason Format"] = "Cette case sera remplie automatiquement lorsque vous saisirez un %s valide.";
 L["Search No Matches"] = "Aucune correspondance";
-L["Create New Tracker"] = "Nouveau traqueur";
+L["Create New Tracker"] = "Nouveau suivi";
 L["FailureReason Already Exist"] = "Cette entrée existe déjà.";
 L["Quest ID"] = "ID de quête";
 L["Creature ID"] = "ID de créature";
@@ -677,6 +716,32 @@ L["Click To Switch"] = "Cliquer pour passer à |cffffffff%s|r";
 L["Click To Queue"] = "Cliquer pour rejoindre la file de |cffffffff%s|r";
 L["Click to Open Format"] = "Cliquer pour ouvrir %s";
 L["List Is Empty"] = "La liste est vide.";
+L["Prey No Data"] = "Progression de la proie indisponible";
+L["Abundance No Data"] = "Aucun événement d'abondance actif";
+L["Defeated Prey"] = "Cibles de Proie vaincues";
+
+
+--ExpansionSummaryMinimapButton
+L["LandingButton Settings Title"] = "Résumé d'extension : bouton de la mini-carte";
+L["LandingButton Tooltip Format"] = "Clic gauche pour afficher / masquer %s.\nClic droit pour plus d'options.";
+L["LandingButton Customize"] = "Personnaliser";
+L["LandingButton Reposition Tooltip"] = "Maintenez |cffffffffMaj|r pour déverrouiller";
+L["LandingButtonOption ShowButton"] = "Activer le bouton de la mini-carte";
+L["LandingButtonOption Unaffected"] = "Non affecté par les addons de la mini-carte";
+L["LandingButtonOption Unaffected Tooltip"] = "Empêcher ce bouton d'être modifié par d'autres addons de la mini-carte, empêchant ainsi toute modification de son apparence ou de son positionnement.\n\nUne fois activé, ce bouton ne suivra plus les mouvements de la mini-carte et n'utilisera plus son échelle ; il utilisera désormais l'échelle globale de l'interface utilisateur.\n\n|cffff4800Vous devrez peut-être recharger l'interface utilisateur après avoir modifié cette option.|r";
+L["LandingButtonOption UseLibDBIcon"] = "Utiliser LibDBIcon";
+L["LandingButtonOption UseLibDBIcon Tooltip"] = "Laisse LibDBIcon gérer l'apparence et la position de ce bouton.";
+L["LandingButtonOption UseLibDBIcon NoBorder"] = "Supprimer la bordure du bouton";
+L["LandingButtonOption UseLibDBIcon NoBorder Tooltip"] = "Supprime la bordure dorée du bouton.\n\nCette option peut ne pas fonctionner avec certains addons de gestion des boutons de la mini-carte.";
+L["LandingButtonOption PrimaryUI"] = "Clic gauche : ouvrir";
+L["LandingButtonOption PrimaryUI Tooltip"] = "Choisir quelle interface ouvrir avec un clic gauche sur le bouton de la mini-carte.";
+L["LandingButtonOption SmartExpansion"] = "Choix automatique de l'extension";
+L["LandingButtonOption SmartExpansion Tooltip 1"] = "Si activé : clic gauche sur le bouton de la mini-carte ouvre l'interface adaptée à votre zone actuelle, par exemple le rapport du Sanctum de congrégation lorsque vous êtes en Ombreterre.";
+L["LandingButtonOption SmartExpansion Tooltip 2"] = "Si désactivé : clic gauche sur le bouton de la mini-carte ouvre toujours %s.";
+L["LandingButtonOption ReduceSize"] = "Réduire la taille du bouton";
+L["LandingButtonOption DarkColor"] = "Utiliser le thème sombre";
+L["LandingButtonOption HideWhenIdle"] = "Masquer en cas d'inactivité";
+L["LandingButtonOption HideWhenIdle Tooltip"] = "Le bouton de la mini-carte restera invisible jusqu'à ce que vous déplaciez le curseur à proximité ou receviez une notification.\n\nCette option prendra effet après la fermeture des paramètres.";
 
 
 --RaidCheck
@@ -688,15 +753,26 @@ L["Difficulty Not Accurate"] = "La difficulté est inexacte car vous n'êtes pas
 L["Instruction Click To Open Adventure Guide"] = "Clic gauche : |cffffffffGuide de l'aventurier|r";
 L["Instruction Alt Click To Reset Instance"] = "Alt + Clic droit : |cffffffffRéinitialiser toutes les instances|r";
 L["Instruction Link Progress In Chat"] = "<Maj + Clic pour poster la progression dans le chat>";
+L["Instance Name"] = "Nom de l'instance";   --Dungeon/Raid Name
+L["EditMode Instruction InstanceDifficulty"] = "La largeur du cadre dépend du nombre d'options disponibles.";
 
 
 --TransmogChatCommand
 L["ModuleName TransmogChatCommand"] = "Commande de transmogrification";
 L["ModuleDescription TransmogChatCommand"] = "- Lorsque vous utilisez une commande de transmogrification, déshabillez d'abord votre personnage afin que les anciens objets ne soient pas conservés dans la nouvelle tenue.\n\n- Auprès du Transmogrificateur, utiliser une commande de discussion charge automatiquement tous les objets disponibles dans l'interface de transmogrification.";
 L["Copy To Clipboard"] = "Copier dans le presse-papiers";
-L["Copy Current Outfit Tooltip"] = "Copier la tenue actuelle pour la partager en ligne.";
+L["Copy Current Outfit Tooltip"] = "Copie la tenue actuelle pour la partager en ligne.";
 L["Missing Appearances Format"] = "%d |4apparence manquante:apparences manquantes";
 L["Press Key To Copy Format"] = "Appuyez sur |cffffd100%s|r pour copier";
+
+
+--TransmogOutfitSelect
+L["ModuleName TransmogOutfitSelect"] = "Collection de Tenues : accès rapide";
+L["ModuleDescription1 TransmogOutfitSelect"] = "Permet d'ouvrir la collection de tenues et d'appliquer une apparence enregistrée n'importe où.";
+L["ModuleDescription2 TransmogOutfitSelect"] = "Pour cela : ouvrez l'interface de transmogrification, puis faites glisser le bouton |cffd7c0a3Accès rapide|r situé au-dessus de la liste des tenues vers vos barres d'action.";
+L["Outfit Collection"] = "Collection de Tenues";
+L["Quick Access Outfit Button"] = "Accès rapide";
+L["Quick Access Outfit Button Tooltip"] = "Cliquez et faites glisser ce bouton vers vos barres d'action afin de pouvoir changer de tenue n'importe où.";
 
 
 --QuestWatchCycle
@@ -706,12 +782,13 @@ L["ModuleDescription QuestWatchCycle"] = "Permet d'utiliser des raccourcis clavi
 
 --CraftSearchExtended
 L["ModuleName CraftSearchExtended"] = "Élargir les résultats de recherche";
-L["ModuleDescription CraftSearchExtended"] = "Afficher plus de résultats lors de la recherche de certains mots.\n\n- Alchimie et Calligraphie : Trouver des recettes de Pigments pour la construction en recherchant des couleurs de teinture.";
+L["ModuleDescription CraftSearchExtended"] = "Afficher plus de résultats lors de la recherche de certains mots.\n\n- Alchimie et Calligraphie : trouver des recettes de Pigments pour la construction en recherchant des couleurs de teinture.";
 
 
 --DecorModelScaleRef
-L["ModuleName DecorModelScaleRef"] = "Éléments de décoration : Échelle de la Banane"; --See HOUSING_DASHBOARD_CATALOG_TOOLTIP
-L["ModuleDescription DecorModelScaleRef"] = "- Ajoute une référence de taille (une banane) à la fenêtre d'aperçu du décor, vous permettant d'évaluer la taille des objets.\n\n- Vous permet également de modifier l'inclinaison de la caméra en maintenant le bouton gauche enfoncé et en vous déplaçant verticalement.";
+L["ModuleName DecorModelScaleRef"] = "Éléments de décoration : échelle de la Banane"; --See HOUSING_DASHBOARD_CATALOG_TOOLTIP
+L["ModuleDescription DecorModelScaleRef"] = "- Ajoute une référence de taille (une Banane) à la fenêtre d'aperçu du décor, vous permettant d'évaluer la taille des objets.\n\n- Vous permet également de modifier l'inclinaison de la caméra en maintenant le bouton gauche enfoncé et en vous déplaçant verticalement.";
+L["Toggle Banana"] = "Afficher / masquer la Banane";
 
 
 --Player Housing
@@ -719,25 +796,26 @@ L["ModuleName Housing_Macro"] = "Macros de Logis";
 L["ModuleDescription Housing_Macro"] = "Vous pouvez créer une macro de téléportation à votre Logi : créez d'abord une nouvelle macro, puis saisissez |cffd7c0a3#plumber:home|r dans la zone de commande.";
 L["Teleport Home"] = "Téléportation au domicile";
 L["Instruction Drag To Action Bar"] = "<Cliquez et faites glisser ceci vers vos barres d'action>";
+L["Leave Home"] = HOUSING_DASHBOARD_RETURN or "Retour à l'emplacement précédent";
 L["Toggle Torch"] = "Activer / désactiver la torche";
-L["ModuleName Housing_DecorHover"] = "Éditeur : Nom d'objet et Duplication";
+L["ModuleName Housing_DecorHover"] = "Éditeur : nom d'objet et duplication";
 L["ModuleDescription Housing_DecorHover"] = "En mode Décoration :\n\n- Survolez un décor pour afficher son nom et le nombre d'exemplaires en stock.\n\n- Permet de « dupliquer » un décor en appuyant sur Alt.\n\nLe nouvel objet n'héritera pas des angles et échelles actuels.";
 L["Duplicate"] = "Dupliquer";
 L["Duplicate Decor Key"] = "Touche « Dupliquer »";
 L["Enable Duplicate"] = "Activer « Dupliquer »";
 L["Enable Duplicate tooltip"] = "En mode Décoration, vous pouvez survoler un décor puis appuyer sur une touche pour placer un autre exemplaire de cet objet.";
-L["ModuleName Housing_CustomizeMode"] = "Éditeur : 3 Mode de personnalisation";
+L["ModuleName Housing_CustomizeMode"] = "Éditeur : 3 mode de Personnalisation";
 L["ModuleDescription Housing_CustomizeMode"] = "En mode Personnalisation :\n\n- Permet de copier les teintures d'un décor à un autre.\n\n- Modifie le nom de l'emplacement de teinture : remplace l'index par le nom de la couleur.";
 L["Copy Dyes"] = "Copier";
 L["Dyes Copied"] = "Teintures copiées";
 L["Apply Dyes"] = "Appliquer";
 L["Preview Dyes"] = "Aperçu";
 L["ModuleName TooltipDyeDeez"] = "Infobulle : Pigment de teinture";
-L["ModuleDescription TooltipDyeDeez"] = "Affiche le nom des couleurs de teinture dans l'infobulle des pigments de logis.";
+L["ModuleDescription TooltipDyeDeez"] = "Afficher le nom des couleurs de teinture dans l'infobulle des pigments de logis.";
 L["Instruction Show More Info"] = "<Appuyez sur Alt pour afficher plus d'informations>";
 L["Instruction Show Less Info"] = "<Appuyez sur Alt pour afficher moins d'informations>";
-L["ModuleName Housing_ItemAcquiredAlert"] = "Alerte Décoration collectée";
-L["ModuleDescription Housing_ItemAcquiredAlert"] = "Permet de cliquer avec le bouton gauche sur l'alerte « Décoration collectée » pour prévisualiser son modèle.";
+L["ModuleName Housing_ItemAcquiredAlert"] = "Alerte « Décoration collectée »";
+L["ModuleDescription Housing_ItemAcquiredAlert"] = "Clic gauche sur l'alerte « Décoration collectée » pour prévisualiser son modèle.";
 
 
 --Housing Clock
@@ -754,14 +832,45 @@ L["Clock Type Digital"] = "Numérique";
 
 
 --CatalogExtendedSearch
-L["ModuleName Housing_CatalogSearch"] = "Catalogue de décoration : Élargir les résultats de recherche";
-L["ModuleDescription Housing_CatalogSearch"] = "Améliorer la zone de recherche des onglets Catalogue de décoration et Stockage, vous permettant de trouver des objets par haut fait, vendeur, zone ou monnaie.";
+L["ModuleName Housing_CatalogSearch"] = "Catalogue d'éléments de décoration";
+L["ModuleDescription Housing_CatalogSearch"] = "- Améliore le champ de recherche du Catalogue d'éléments de décoration et de l'onglet Stockage, vous permettant de trouver des objets par haut fait, vendeur, zone ou monnaie.\n\n- Affiche le nombre de résultats à côté de la catégorie.\n\n- Permet de partager des éléments de décoration dans le chat.";
 L["Match Sources"] = "Correspondance des sources";
 
 
 --SourceAchievementLink
 L["ModuleName SourceAchievementLink"] = "Informations sur la source interactive";
-L["ModuleDescription SourceAchievementLink"] = "Rend la plupart des noms de haut fait de l'interface cliquables, vous permettant ainsi de consulter leurs détails ou de suivre leur progression.\n\n- Catalogue de décorations\n\n- Journal des montures";
+L["ModuleDescription SourceAchievementLink"] = "Rend la plupart des noms de haut fait de l'interface cliquables, vous permettant ainsi de consulter leurs détails ou de suivre leur progression.\n\n- Catalogue d'éléments de décoration\n\n- Journal des montures";
+
+
+--BreakTime
+L["ModuleName BreakTime"] = "Faire une pause";
+L["ModuleDescription BreakTime"] = "N'oubliez pas de faire une pause après un certain temps de jeu.";
+L["BreakTime Title AllCaps"] = "PAUSE";
+L["BreakTime Delay Button"] = "Délai";
+L["BreakTime Delay Button Tooltip Format"] = "Me le rappeler dans %d min.";
+L["BreakTime Cancel Button"] = "Annuler";
+L["BreakTime Cancel Button Tooltip Format 1"] = "Clic gauche : annuler le minuteur pour ce cycle. Le prochain minuteur se déclenchera dans %d min.";
+L["BreakTime Cancel Button Tooltip 2"] = "Cliquer et maintenir : annuler pour cette session de jeu.";
+L["BreakTime Announce Time Before Alert Format"] = "Le prochain minuteur se déclenchera dans |cffffffff%d|r min.";
+L["BreakTime Announce Timer Cancelled"] = "Vous avez annulé le minuteur pour cette session de jeu.";
+L["BreakTime Current Schedule Format"] = "Programme actuel : pause de |cffffffff%1$d|r min toutes les |cffffffff%2$d|r min.";
+L["BreakTime Option Cycle"] = "Durée du cycle";
+L["BreakTime Option Cycle Tooltip"] = "Durée d'un cycle de jeu / pause.";
+L["BreakTime Option Rest"] = "Durée de la pause";
+L["BreakTime Option Rest Tooltip"] = "Durée de la pause pour chaque cycle.";
+L["BreakTime Option Delay"] = "Durée du délai";
+L["BreakTime Option Delay Tooltip"] = "Reporte le minuteur de ce nombre de minutes lorsque vous cliquez sur le bouton Reporter.";
+L["BreakTime Option FlashTaskbar"] = "Faire clignoter l'icône de la barre des tâches";
+L["BreakTime Option FlashTaskbar Tooltip"] = "Fait clignoter l'icône de WoW dans la barre des tâches lorsque le minuteur se déclenche.";
+L["BreakTime Option DND"] = "Ne pas déranger";
+L["BreakTime Option DNDCombat"] = "Combat ou JcJ";
+L["BreakTime Option DNDCombat Tooltip"] = "Ne pas afficher l'interface de l'horloge pendant les combats, les champs de bataille ou les arènes.\n\nCette option est toujours activée.";
+L["BreakTime Option DNDInstances"] = "Instances";
+L["BreakTime Option DNDInstances Tooltip"] = "Ne pas afficher l'interface de l'horloge dans un donjon, un raid ou un gouffre.";
+L["BreakTime AFK Pause"] = "Le compte à rebours est en pause car vous êtes ABS.";
+L["BreakTime Reset Cancellation"] = "Réinitialiser l'annulation de pause";
+L["BreakTime Annouce Timer Deferred Combat"] = "Pensez à prendre une pause après le combat !";
+L["BreakTime Shared Countdown Tooltip Format"] = "Pause prévue dans |cffffffff%d|r min.";
 
 
 --Generic
@@ -773,6 +882,7 @@ L["Font Size"] = "Taille de la police";
 L["Icon Size"] = "Taille de l'icône";
 L["Reset To Default Position"] = "Réinitialiser à la position par défaut";
 L["Renown Level Label"] = "Renom ";  --There is a space
+L["Progress Label"] = "Progrès ";  --There is a space
 L["Paragon Reputation"] = "Paragon";
 L["Level Maxed"] = "(Maximum)";   --Reached max level
 L["Current Colon"] = "Actuel :";
@@ -783,7 +893,7 @@ L["InstructionFormat Right Click"] = "Clic droit pour %s";
 L["InstructionFormat Ctrl Left Click"] = "Ctrl + Clic gauche pour %s";
 L["InstructionFormat Ctrl Right Click"] = "Ctrl + Clic droit pour %s";
 L["InstructionFormat Alt Left Click"] = "Alt + Clic gauche pour %s";
-L["InstructionFormat Alt Right Click"] = "Alt + Clic droite pour %s";
+L["InstructionFormat Alt Right Click"] = "Alt + Clic droit pour %s";
 L["Close Frame Format"]= "|cff808080(Fermer %s)|r";
 
 
@@ -791,8 +901,8 @@ L["Close Frame Format"]= "|cff808080(Fermer %s)|r";
 L["ModuleName EnableNewByDefault"] = "Toujours activer les nouvelles fonctionnalités";
 L["ModuleDescription EnableNewByDefault"] = "Activez toujours les fonctionnalités nouvellement ajoutées.\n\n*Vous verrez une notification dans la fenêtre de discussion lorsqu'un nouveau module est activé de cette manière.";
 L["New Feature Auto Enabled Format"] = "Nouveau module %s activé.";
-L["Click To See Details"] = "Cliquez pour voir les détails";
-L["Click To Show Settings"] = "Cliquez pour afficher / masquer les paramètres.";
+L["Click To See Details"] = "Cliquer pour afficher les détails";
+L["Click To Show Settings"] = "Cliquer pour afficher / masquer les paramètres.";
 
 
 --WIP Merchant UI
@@ -832,7 +942,11 @@ L["Coffer Key Shard"] = "Fragment de clé de coffre";
 L["Epoch Mementos"] = "Souvenir d'époque";     --See currency:3293
 L["Timeless Scrolls"] = "Parchemin intemporel"; --item: 217605
 L["QuestName Runestone"] = "Renforcement des pierres runiques";    --4 Mutually exclusive quests: 90575
+L["QuestName HarandarRelic"] = "Légendes des Haranir";
 L["Prey System"] = "Traque";
+L["Prey Difficulty Normal"] = "Normal";
+L["Prey Difficulty Hard"] = "Difficile";
+L["Prey Difficulty Nightmare"] = "Cauchemar";
 
 L["CONFIRM_PURCHASE_NONREFUNDABLE_ITEM"] = "Souhaitez-vous vraiment échanger %s contre l'objet suivant ?\n\n|cffff2020Votre achat ne pourra pas être remboursé.|r\n %s";
 

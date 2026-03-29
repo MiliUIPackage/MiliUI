@@ -1,7 +1,7 @@
 ## X-Flavor: retail
 ## X-Expansion: TWW
-## Interface: 120000, 120001
-## Version: 1.8.8 b
+## Interface: 120001, 120005
+## Version: 1.9.0
 
 ## Title: Plumber
 ## Title-zhTW: |cffffffff[其他]|r 實用工具包
@@ -88,6 +88,8 @@ Modules\CraftSearchExtended.lua
 Modules\SourceAchievementLink.lua
 Modules\OutfitSelect.lua
 Modules\BreakTime.xml
+Modules\CatalystUI.lua
+Modules\HuntTable.lua
 
 #Modules\MerchantUI\MerchantUI.xml
 
@@ -96,7 +98,6 @@ Modules\BreakTime.xml
 #Modules\QuestSpecialItemCooldown.lua
 #Modules\SecretOfAzeroth.lua
 #Modules\AddonList.lua
-#Modules\BlizzFix_WardrobeTrackingHelpTip.lua
 #Modules\WoWAnniversary.lua
 #Modules\Navigator_Dreamseed.lua
 #Modules\AccountStore.lua

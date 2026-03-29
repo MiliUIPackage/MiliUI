@@ -4,7 +4,7 @@ local L = addon.L;
 
 local SecondsToClock = API.SecondsToClock;
 
-local Round = Round;
+local Round = API.Round;
 local C_Navigation = C_Navigation;
 local C_SuperTrack = C_SuperTrack;
 local SetSuperTrackedUserWaypoint = C_SuperTrack.SetSuperTrackedUserWaypoint;
@@ -12,7 +12,7 @@ local SetUserWaypoint = C_Map.SetUserWaypoint;
 local GetCursorPosition = GetCursorPosition;
 local ClampedPercentageBetween = ClampedPercentageBetween;
 local FrameDeltaLerp = FrameDeltaLerp;
-local DeltaLerp = DeltaLerp;
+local DeltaLerp = API.DeltaLerp;
 local CreateVector2D = CreateVector2D;
 local Vector2D_Normalize = Vector2D_Normalize;
 local Vector2D_CalculateAngleBetween = Vector2D_CalculateAngleBetween;
@@ -20,7 +20,7 @@ local UIParent = UIParent;
 local WorldFrame = WorldFrame;
 local AbbreviateNumbers = AbbreviateNumbers;
 local C_QuestLog = C_QuestLog;
-local GetMouseFocus = GetMouseFocus;
+local GetMouseFocus = API.GetMouseFocus;
 local InCombatLockdown = InCombatLockdown;
 local floor = math.floor;
 local deg = math.deg;
@@ -565,7 +565,7 @@ local ICON_NAME_LOOKUP = {
 	[1] = "Waypoint",	--Content	Waypoint-MapPin-Tracked
 	--UserWaypoint
 	[2] = "Corpse",		--Corpse	Navigation-Tombstone-Icon
-	[3] = "Waypoint",	--Scenario	
+	[3] = "Waypoint",	--Scenario
 	[4] = "Waypoint",	--Content	Waypoint-MapPin-Tracked
 };
 
@@ -717,10 +717,10 @@ local PreviousPoint;
 function PlumberSuperTrackingMixin:SetTarget(name, uiMapID, x, y, iconName)
 	if not (self.enabled and self.frameReady) then return end;
 
-    local point = {
-        uiMapID = uiMapID,
-        position = CreateVector2D(x, y);
-    };
+	local point = {
+		uiMapID = uiMapID,
+		position = CreateVector2D(x, y);
+	};
 
 	self.setByPlumber = true
 	--[[
@@ -731,8 +731,8 @@ function PlumberSuperTrackingMixin:SetTarget(name, uiMapID, x, y, iconName)
 	end
 	--]]
 
-    SetUserWaypoint(point);
-    SetSuperTrackedUserWaypoint(true);
+	SetUserWaypoint(point);
+	SetSuperTrackedUserWaypoint(true);
 
 	if name ~= self.waypointName then
 		self.waypointName = name;
