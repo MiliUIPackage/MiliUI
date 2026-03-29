@@ -1,0 +1,40 @@
+## Interface: 120001
+## Author: shiba_ouo
+## Title: DamageMeterTools
+## Title-zhTW: DamageMeterTools 暴雪傷害統計增強
+## Title-zhCN: DamageMeterTools 暴雪伤害统计增强
+## Notes: Blizzard Damage Meter enhancement tools
+## Notes-zhTW: 暴雪內建傷害統計增強工具
+## Notes-zhCN: 暴雪内建伤害统计增强工具
+
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 暴雪傷害統計增強
+## Notes-zhTW: DamageMeterTools|n|n暴雪內建傷害統計增強工具|n|n|cffffd200使用方法: |r點小地圖按鈕，或從Esc>選項>插件>傷害統計增強，或輸入指令 /dmt 進行設定。
+## Category-zhTW: 戰鬥
+
+## Version: 2.4.6
+## IconTexture: Interface\AddOns\DamageMeterTools\dmt.tga
+## SavedVariables: DamageMeterToolsDB
+
+# ===== 語系 =====
+Locale/Locale.lua
+Locale/enUS.lua
+Locale/zhTW.lua
+Locale/zhCN.lua
+
+# ===== 基礎功能 =====
+DamageMeterTools_Options.lua
+DamageMeterTools_Config.lua
+DamageMeterTools_Theme.lua
+DamageMeterTools_Launcher.lua
+DamageMeterTools_Console.lua
+DamageMeterTools_Texture.lua
+DamageMeterTools_FrameBind.lua
+DamageMeterTools_CombatHide.lua
+DamageMeterTools_AutoReset.lua
+
+# ===== 功能模組 =====
+DamageMeterTools_TexturePicker.lua
+DamageMeterTools_FontPicker.lua
+DamageMeterTools_FormatExport.lua
+DamageMeterTools_ContextMenu.lua
+DamageMeterTools_HeaderVisual.lua

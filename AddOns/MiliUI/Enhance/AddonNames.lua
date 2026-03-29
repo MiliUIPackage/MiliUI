@@ -24,6 +24,7 @@ local addonNames = {
     ["BugSack"]                                             = "錯誤訊息收集袋",
     ["Stuf"]                                                = "Stuf 頭像設定",
     ["BuffReminders"]                                       = "增益提醒器",
+    ["DamageMeterTools"]                                    = "傷害統計增強",
 
     -- ==================== 拍賣 / 物品 / 背包 ====================
     ["Auctionator"]                                         = "拍賣小幫手",
