@@ -244,7 +244,7 @@ MiliUI_AyijeCDM_Profile = {
     ["fadingBuffBars"] = true,
     ["resourcesBarHeight"] = 16,
     ["resourcesBar1TagColor"] = { ["a"] = 1, ["r"] = 1, ["g"] = 1, ["b"] = 1 },
-    ["buffBarShowName"] = false,
+    ["buffBarShowName"] = true,
 }
 
 -- 首次安裝注入：Ayije_CDMDB 不存在時建立預設設定檔
