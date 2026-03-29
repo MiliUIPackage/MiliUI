@@ -41,7 +41,7 @@ local MUSIC_FILES = {
 }
 
 local MUSIC_DURATION = 40  -- seconds to play music
-local DEFAULT_CHANNEL = "Master"  -- fallback channel (Master / SFX / Dialog)
+local DEFAULT_CHANNEL = "SFX"  -- fallback channel (Master / SFX / Dialog)
 local CHANNELS = { "Master", "SFX", "Dialog" }
 
 -- Sound engine boost values applied during Bloodlust playback

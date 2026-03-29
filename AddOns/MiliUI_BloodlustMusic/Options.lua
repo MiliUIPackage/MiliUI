@@ -414,46 +414,46 @@ channelBtn:SetScript("OnClick", function()
     UpdateChannelButton()
 end)
 
--- Set DBM Voice to Dialog Button
-local dbmVoiceBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
-dbmVoiceBtn:SetSize(220, 28)
-dbmVoiceBtn:SetPoint("TOPLEFT", channelExplain, "BOTTOMLEFT", -2, -10)
-dbmVoiceBtn:SetText(L["SET_DBM_VOICE_DIALOG"])
-
-local dbmVoiceBtnDesc = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-dbmVoiceBtnDesc:SetPoint("LEFT", dbmVoiceBtn, "RIGHT", 10, 0)
-dbmVoiceBtnDesc:SetText("")
-
-local function UpdateDBMVoiceButton()
-    if DBM and DBM.Options then
-        local ch = DBM.Options.UseSoundChannel or "Master"
-        if ch == "Dialog" then
-            dbmVoiceBtn:SetEnabled(false)
-            dbmVoiceBtnDesc:SetText("|cff00ff00" .. (L["SET_DBM_VOICE_DIALOG_DESC"] or "") .. "|r")
-        else
-            dbmVoiceBtn:SetEnabled(true)
-            dbmVoiceBtnDesc:SetText("- " .. (L["SET_DBM_VOICE_DIALOG_DESC"] or ""))
-        end
-    else
-        dbmVoiceBtn:SetEnabled(false)
-        dbmVoiceBtnDesc:SetText("|cff888888DBM " .. (L["MSG_DBM_NOT_LOADED"] or "not loaded") .. "|r")
-    end
-end
-
-dbmVoiceBtn:SetScript("OnShow", function() UpdateDBMVoiceButton() end)
-dbmVoiceBtn:SetScript("OnClick", function()
-    if not DBM or not DBM.Options then
-        print(L["MSG_DBM_NOT_LOADED"])
-        return
-    end
-    DBM.Options.UseSoundChannel = "Dialog"
-    UpdateDBMVoiceButton()
-    print(L["MSG_DBM_VOICE_DIALOG_SET"])
-end)
+-- Set DBM Voice to Dialog Button (soft-removed)
+-- local dbmVoiceBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
+-- dbmVoiceBtn:SetSize(220, 28)
+-- dbmVoiceBtn:SetPoint("TOPLEFT", channelExplain, "BOTTOMLEFT", -2, -10)
+-- dbmVoiceBtn:SetText(L["SET_DBM_VOICE_DIALOG"])
+--
+-- local dbmVoiceBtnDesc = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+-- dbmVoiceBtnDesc:SetPoint("LEFT", dbmVoiceBtn, "RIGHT", 10, 0)
+-- dbmVoiceBtnDesc:SetText("")
+--
+-- local function UpdateDBMVoiceButton()
+--     if DBM and DBM.Options then
+--         local ch = DBM.Options.UseSoundChannel or "Master"
+--         if ch == "Dialog" then
+--             dbmVoiceBtn:SetEnabled(false)
+--             dbmVoiceBtnDesc:SetText("|cff00ff00" .. (L["SET_DBM_VOICE_DIALOG_DESC"] or "") .. "|r")
+--         else
+--             dbmVoiceBtn:SetEnabled(true)
+--             dbmVoiceBtnDesc:SetText("- " .. (L["SET_DBM_VOICE_DIALOG_DESC"] or ""))
+--         end
+--     else
+--         dbmVoiceBtn:SetEnabled(false)
+--         dbmVoiceBtnDesc:SetText("|cff888888DBM " .. (L["MSG_DBM_NOT_LOADED"] or "not loaded") .. "|r")
+--     end
+-- end
+--
+-- dbmVoiceBtn:SetScript("OnShow", function() UpdateDBMVoiceButton() end)
+-- dbmVoiceBtn:SetScript("OnClick", function()
+--     if not DBM or not DBM.Options then
+--         print(L["MSG_DBM_NOT_LOADED"])
+--         return
+--     end
+--     DBM.Options.UseSoundChannel = "Dialog"
+--     UpdateDBMVoiceButton()
+--     print(L["MSG_DBM_VOICE_DIALOG_SET"])
+-- end)
 
 -- Track List Header
 local trackHeader = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-trackHeader:SetPoint("TOPLEFT", dbmVoiceBtn, "BOTTOMLEFT", 0, -12)
+trackHeader:SetPoint("TOPLEFT", channelExplain, "BOTTOMLEFT", -2, -12)
 trackHeader:SetText("|cffffd100" .. L["TRACK_ENABLED"] .. "|r")
 
 -- Track List (checkboxes + preview buttons)
@@ -533,7 +533,7 @@ musicPanel:SetScript("OnShow", function()
     RefreshTrackList()
     UpdatePlayModeButton()
     UpdateChannelButton()
-    UpdateDBMVoiceButton()
+    -- UpdateDBMVoiceButton()  -- soft-removed
     if db then enableMusicCheck:SetChecked(db.musicEnabled) end
     ForceShowTrackList()
 
@@ -543,7 +543,7 @@ musicPanel:SetScript("OnShow", function()
             RefreshTrackList()
             UpdatePlayModeButton()
             UpdateChannelButton()
-            UpdateDBMVoiceButton()
+            -- UpdateDBMVoiceButton()  -- soft-removed
             if db then enableMusicCheck:SetChecked(db.musicEnabled) end
             ForceShowTrackList()
         end
