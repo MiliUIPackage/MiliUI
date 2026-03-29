@@ -27,6 +27,7 @@ Enhance\AddonNames.lua
 Enhance\AutoSlotKeystone.lua
 Enhance\Baganator_Keystone.lua
 Enhance\ChallengesUI_Buttons.lua
+Enhance\ChallengesUI_LootTable.lua
 Enhance\AutoStoryStroll.lua
 Enhance\TeleportMenu_Spacing.lua
 Enhance\AuctionHouseFilter.lua
