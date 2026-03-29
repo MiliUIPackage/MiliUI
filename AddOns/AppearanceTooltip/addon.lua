@@ -445,7 +445,8 @@ end)
 ----
 
 local _, class = UnitClass("player")
-local class_colored = RAID_CLASS_COLORS[class]:WrapTextInColorCode(class)
+local class_localized = LOCALIZED_CLASS_NAMES_MALE[class] or class
+local class_colored = RAID_CLASS_COLORS[class]:WrapTextInColorCode(class_localized)
 local ATLAS_CHECK, ATLAS_CROSS = "common-icon-checkmark", "common-icon-redx"
 
 local function AddItemToTooltip(itemInfo, for_tooltip, label)
@@ -487,7 +488,7 @@ function ns:ShowItem(link, for_tooltip)
                 if relevant then
                     found = itemLinkOrID -- make *sure* the item shown is a relevant one, if one exists
 
-                    AddItemToTooltip(itemLinkOrID, for_tooltip, tclass == class and class_colored or tclass)
+                    AddItemToTooltip(itemLinkOrID, for_tooltip, tclass == class and class_colored or (RAID_CLASS_COLORS[tclass] and RAID_CLASS_COLORS[tclass]:WrapTextInColorCode(LOCALIZED_CLASS_NAMES_MALE[tclass] or tclass) or (LOCALIZED_CLASS_NAMES_MALE[tclass] or tclass)))
                 else
                     counts[tclass] = (counts[tclass] or 0) + 1
                     counts_known[tclass] = (counts_known[tclass] or 0) + (ns.PlayerHasAppearance(itemLinkOrID) and 1 or 0)
@@ -496,7 +497,7 @@ function ns:ShowItem(link, for_tooltip)
         end
         for tclass, count in pairs(counts) do
             -- ITEM_PET_KNOWN = "Collected (%d/%d)"
-            local label = RAID_CLASS_COLORS[tclass] and RAID_CLASS_COLORS[tclass]:WrapTextInColorCode(tclass) or tclass
+            local label = RAID_CLASS_COLORS[tclass] and RAID_CLASS_COLORS[tclass]:WrapTextInColorCode(LOCALIZED_CLASS_NAMES_MALE[tclass] or tclass) or (LOCALIZED_CLASS_NAMES_MALE[tclass] or tclass)
             local complete = counts_known[tclass] == counts[tclass]
             for_tooltip:AddDoubleLine(label, ITEM_PET_KNOWN:format(counts_known[tclass], counts[tclass]),
                 1, 1, 1,
