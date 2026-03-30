@@ -25,6 +25,7 @@ local addonNames = {
     ["Stuf"]                                                = "Stuf 頭像設定",
     ["BuffReminders"]                                       = "增益提醒器",
     ["DamageMeterTools"]                                    = "傷害統計增強",
+    ["KeystonePolaris"]                                     = "M+進度助手",
 
     -- ==================== 拍賣 / 物品 / 背包 ====================
     ["Auctionator"]                                         = "拍賣小幫手",

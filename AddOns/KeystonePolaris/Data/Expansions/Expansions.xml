@@ -1,0 +1,11 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+  <Script file="3_WrathOfTheLichKing.lua"/>
+  <Script file="4_Cataclysm.lua"/>
+  <Script file="6_WarlordsOfDraenor.lua"/>
+  <Script file="7_Legion.lua"/>
+  <Script file="8_BattleForAzeroth.lua"/>
+  <Script file="9_Shadowlands.lua"/>
+  <Script file="10_Dragonflight.lua"/>
+  <Script file="11_TheWarWithin.lua"/>
+  <Script file="12_Midnight.lua"/>
+</Ui>
