@@ -28,7 +28,10 @@
 ## Category-ptBR: Mythic+ Dungeons
 ## Category-ruRU: Подземелья М+
 ## Category-zhCN: Mythic+ Dungeons
-## Category-zhTW: Mythic+ Dungeons
+## Category-zhTW: 副本
+
+## Title-zhTW: |cffFF7F00[M+]|r 進度助手
+## Notes-zhTW: Keystone Polaris |n|n協助追蹤 M+ 地城中每個區段所需的敵方勢力百分比。|n|n|cffffd200使用方法: |r/kpl 或 /polaris 開啟選項。
 
 Embeds.xml
 Locales/Locales.xml
