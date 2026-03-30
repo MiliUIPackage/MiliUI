@@ -43,6 +43,15 @@ local function HookDuration(btn)
         if not db.enabled then return end
 
         overriding = true
+
+        -- 確保 overlay 存在並掛載
+        if not btn.MiliUI_DurOverlay then
+            btn.MiliUI_DurOverlay = CreateFrame("Frame", nil, btn)
+            btn.MiliUI_DurOverlay:SetAllPoints(btn)
+            btn.MiliUI_DurOverlay:SetFrameLevel(btn:GetFrameLevel() + 5)
+        end
+        self:SetParent(btn.MiliUI_DurOverlay)
+
         self:ClearAllPoints()
         self:SetPoint("TOP", btn.Icon, "BOTTOM", 0, db.yOffset)
         overriding = false
