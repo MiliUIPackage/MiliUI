@@ -45,7 +45,6 @@ local function HookDuration(btn)
         overriding = true
         self:ClearAllPoints()
         self:SetPoint("TOP", btn.Icon, "BOTTOM", 0, db.yOffset)
-        self:SetDrawLayer("OVERLAY", 7)
         overriding = false
     end)
 
@@ -82,6 +81,14 @@ local function ApplyStyle(btn)
 
     overriding = true
 
+    -- 建立 overlay frame 讓 Duration 顯示在 icon 上方
+    if not btn.MiliUI_DurOverlay then
+        btn.MiliUI_DurOverlay = CreateFrame("Frame", nil, btn)
+        btn.MiliUI_DurOverlay:SetAllPoints(btn)
+        btn.MiliUI_DurOverlay:SetFrameLevel(btn:GetFrameLevel() + 5)
+    end
+    dur:SetParent(btn.MiliUI_DurOverlay)
+
     local fontPath = dur:GetFont()
     if not fontPath then fontPath = STANDARD_TEXT_FONT end
     dur:SetFont(fontPath, db.fontSize, db.outline and "OUTLINE" or "")
@@ -93,7 +100,6 @@ local function ApplyStyle(btn)
         dur:SetShadowOffset(0, 0)
     end
 
-    dur:SetDrawLayer("OVERLAY", 7)
     dur:ClearAllPoints()
     dur:SetPoint("TOP", btn.Icon, "BOTTOM", 0, db.yOffset)
 
@@ -106,6 +112,9 @@ local function RestoreStyle(btn)
 
     overriding = true
 
+    -- 還原 parent 回按鈕本身
+    dur:SetParent(btn)
+
     -- 清除 OUTLINE
     local fontPath, fontSize = dur:GetFont()
     if fontPath and fontSize then
@@ -117,7 +126,6 @@ local function RestoreStyle(btn)
 
     dur:SetShadowOffset(0, 0)
     dur:SetShadowColor(0, 0, 0, 1)
-    dur:SetDrawLayer("OVERLAY", 1)
 
     overriding = false
 end
