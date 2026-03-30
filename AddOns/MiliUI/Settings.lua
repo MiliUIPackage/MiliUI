@@ -218,7 +218,8 @@ local function InitSettings()
     guide:SetJustifyH("LEFT")
     guide:SetText(
         "|cff8888cc▸|r  點擊左側 |cffffd200預設值匯入|r 將推薦設定匯入到各插件\n" ..
-        "|cff8888cc▸|r  點擊左側 |cffffd200插件強化|r 調整施法條美化等額外功能"
+        "|cff8888cc▸|r  點擊左側 |cffffd200插件強化|r 調整施法條美化等額外功能\n" ..
+        "|cff8888cc▸|r  點擊左側 |cffffd200光環強化|r 自訂 Buff/Debuff 時間文字樣式"
     )
     guide:SetSpacing(4)
 
@@ -478,6 +479,152 @@ local function InitSettings()
 
     local enhanceCategory = Settings.RegisterCanvasLayoutSubcategory(category, enhanceFrame, "插件強化")
     enhanceCategory.ID = "MiliUI_Enhance"
+
+    -- ============================================================
+    -- 子分類: 光環強化
+    -- ============================================================
+    local auraFrame = CreateFrame("Frame")
+    auraFrame:SetSize(600, 400)
+
+    local auraTitle = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    auraTitle:SetPoint("TOPLEFT", 16, -16)
+    auraTitle:SetText("|cffffe00a光環強化|r")
+
+    local auraDesc = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    auraDesc:SetPoint("TOPLEFT", auraTitle, "BOTTOMLEFT", 0, -8)
+    auraDesc:SetText("調整 Buff / Debuff 圖示下方時間文字的位置、大小與描邊。")
+    auraDesc:SetTextColor(0.7, 0.7, 0.7)
+
+    -- 時間文字區塊標題
+    local durLabel = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    durLabel:SetPoint("TOPLEFT", auraDesc, "BOTTOMLEFT", 0, -20)
+    durLabel:SetText("時間文字")
+
+    local durSubDesc = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    durSubDesc:SetPoint("LEFT", durLabel, "RIGHT", 8, 0)
+    durSubDesc:SetText("— Buff / Debuff Duration")
+    durSubDesc:SetTextColor(0.6, 0.6, 0.6)
+
+    -- 啟用 checkbox
+    local auraCB = CreateFrame("CheckButton", "MiliUI_BuffDurEnabledCB", auraFrame, "UICheckButtonTemplate")
+    auraCB:SetPoint("TOPLEFT", durLabel, "BOTTOMLEFT", 0, -8)
+    auraCB.text:SetText("啟用時間文字強化")
+    auraCB.text:SetFontObject("GameFontHighlight")
+
+    local auraCBDesc = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    auraCBDesc:SetPoint("TOPLEFT", auraCB, "BOTTOMLEFT", 26, -2)
+    auraCBDesc:SetWidth(520)
+    auraCBDesc:SetJustifyH("LEFT")
+    auraCBDesc:SetText("自訂 Buff / Debuff 圖示下方的時間文字樣式與位置。\n不修改文字內容，純粹調整外觀。")
+    auraCBDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    -- 描邊 checkbox
+    local outlineCB = CreateFrame("CheckButton", "MiliUI_BuffDurOutlineCB", auraFrame, "UICheckButtonTemplate")
+    outlineCB:SetPoint("TOPLEFT", auraCBDesc, "BOTTOMLEFT", -26, -12)
+    outlineCB.text:SetText("文字描邊")
+    outlineCB.text:SetFontObject("GameFontHighlight")
+
+    local outlineDesc = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    outlineDesc:SetPoint("TOPLEFT", outlineCB, "BOTTOMLEFT", 26, -2)
+    outlineDesc:SetText("為時間文字加上 1px 黑色描邊以提升可讀性")
+    outlineDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    -- 文字大小 slider
+    local fontSizeSlider = CreateFrame("Slider", "MiliUI_BuffDurFontSizeSlider", auraFrame, "OptionsSliderTemplate")
+    fontSizeSlider:SetPoint("TOPLEFT", outlineDesc, "BOTTOMLEFT", -26, -18)
+    fontSizeSlider:SetSize(200, 16)
+    fontSizeSlider:SetMinMaxValues(7, 16)
+    fontSizeSlider:SetValueStep(1)
+    fontSizeSlider:SetObeyStepOnDrag(true)
+    fontSizeSlider.Low:SetText("7")
+    fontSizeSlider.High:SetText("16")
+    fontSizeSlider.Text:SetText("文字大小")
+
+    local fontSizeValue = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    fontSizeValue:SetPoint("LEFT", fontSizeSlider, "RIGHT", 12, 0)
+
+    -- Y 軸偏移 slider
+    local yOffsetSlider = CreateFrame("Slider", "MiliUI_BuffDurYOffsetSlider", auraFrame, "OptionsSliderTemplate")
+    yOffsetSlider:SetPoint("TOPLEFT", fontSizeSlider, "BOTTOMLEFT", 0, -26)
+    yOffsetSlider:SetSize(200, 16)
+    yOffsetSlider:SetMinMaxValues(-10, 20)
+    yOffsetSlider:SetValueStep(1)
+    yOffsetSlider:SetObeyStepOnDrag(true)
+    yOffsetSlider.Low:SetText("-10")
+    yOffsetSlider.High:SetText("20")
+    yOffsetSlider.Text:SetText("Y 軸偏移")
+
+    local yOffsetValue = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    yOffsetValue:SetPoint("LEFT", yOffsetSlider, "RIGHT", 12, 0)
+
+    -- 控制子選項的啟用/反灰狀態
+    local function UpdateSubControlsState(enabled)
+        if enabled then
+            outlineCB:Enable()
+            outlineCB.text:SetFontObject("GameFontHighlight")
+            fontSizeSlider:Enable()
+            yOffsetSlider:Enable()
+        else
+            outlineCB:Disable()
+            outlineCB.text:SetFontObject("GameFontDisable")
+            fontSizeSlider:Disable()
+            yOffsetSlider:Disable()
+        end
+    end
+
+    -- 同步光環設定
+    local function SyncAuraSettings()
+        if not MiliUI_BuffDurationStyle then return end
+        local db = MiliUI_BuffDurationStyle.GetDB()
+        auraCB:SetChecked(db.enabled)
+        outlineCB:SetChecked(db.outline)
+        fontSizeSlider:SetValue(db.fontSize)
+        fontSizeValue:SetText(db.fontSize)
+        yOffsetSlider:SetValue(db.yOffset)
+        yOffsetValue:SetText(db.yOffset)
+        UpdateSubControlsState(db.enabled)
+    end
+    SyncAuraSettings()
+    auraFrame:SetScript("OnShow", SyncAuraSettings)
+
+    auraCB:HookScript("OnClick", function(self)
+        if not MiliUI_BuffDurationStyle then return end
+        local enabled = self:GetChecked() and true or false
+        MiliUI_BuffDurationStyle.SetEnabled(enabled)
+        UpdateSubControlsState(enabled)
+        print("|cff00ff00[MiliUI]|r 時間文字強化:", enabled and "開" or "關")
+    end)
+
+    outlineCB:HookScript("OnClick", function(self)
+        if not MiliUI_BuffDurationStyle then return end
+        local enabled = self:GetChecked() and true or false
+        MiliUI_BuffDurationStyle.SetOutline(enabled)
+        print("|cff00ff00[MiliUI]|r 文字描邊:", enabled and "開" or "關")
+    end)
+
+    fontSizeSlider:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value + 0.5)
+        fontSizeValue:SetText(value)
+        if MiliUI_BuffDurationStyle then
+            MiliUI_BuffDurationStyle.SetFontSize(value)
+        end
+    end)
+
+    yOffsetSlider:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value + 0.5)
+        yOffsetValue:SetText(value)
+        if MiliUI_BuffDurationStyle then
+            MiliUI_BuffDurationStyle.SetYOffset(value)
+        end
+    end)
+
+    -- 版本資訊
+    local auraVer = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    auraVer:SetPoint("TOPLEFT", yOffsetSlider, "BOTTOMLEFT", 0, -30)
+    auraVer:SetText("米利UI套組 — addons.miliui.com")
+
+    local auraCategory = Settings.RegisterCanvasLayoutSubcategory(category, auraFrame, "光環強化")
+    auraCategory.ID = "MiliUI_Aura"
 
     return category
 end
