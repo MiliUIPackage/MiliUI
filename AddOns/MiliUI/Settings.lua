@@ -217,9 +217,9 @@ local function InitSettings()
     guide:SetWidth(520)
     guide:SetJustifyH("LEFT")
     guide:SetText(
-        "|cff8888cc▸|r  點擊左側 |cffffd200預設值匯入|r 將推薦設定匯入到各插件\n" ..
-        "|cff8888cc▸|r  點擊左側 |cffffd200插件強化|r 調整施法條美化等額外功能\n" ..
-        "|cff8888cc▸|r  點擊左側 |cffffd200光環強化|r 自訂 Buff/Debuff 時間文字樣式"
+        "|cff8888cc•|r  點擊左側 |cffffd200預設值匯入|r 將推薦設定匯入到各插件\n" ..
+        "|cff8888cc•|r  點擊左側 |cffffd200插件強化|r 調整施法條美化等額外功能\n" ..
+        "|cff8888cc•|r  點擊左側 |cffffd200光環強化|r 自訂 Buff/Debuff 時間文字樣式"
     )
     guide:SetSpacing(4)
 
@@ -484,7 +484,7 @@ local function InitSettings()
     -- 子分類: 光環強化
     -- ============================================================
     local auraFrame = CreateFrame("Frame")
-    auraFrame:SetSize(600, 400)
+    auraFrame:SetSize(600, 700)
 
     local auraTitle = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     auraTitle:SetPoint("TOPLEFT", 16, -16)
@@ -492,18 +492,14 @@ local function InitSettings()
 
     local auraDesc = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     auraDesc:SetPoint("TOPLEFT", auraTitle, "BOTTOMLEFT", 0, -8)
-    auraDesc:SetText("調整 Buff / Debuff 圖示下方時間文字的位置、大小與描邊。")
+    auraDesc:SetText("調整增益 / 減益圖示下方時間文字的位置、大小與描邊。")
     auraDesc:SetTextColor(0.7, 0.7, 0.7)
+
 
     -- 時間文字區塊標題
     local durLabel = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     durLabel:SetPoint("TOPLEFT", auraDesc, "BOTTOMLEFT", 0, -20)
     durLabel:SetText("時間文字")
-
-    local durSubDesc = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    durSubDesc:SetPoint("LEFT", durLabel, "RIGHT", 8, 0)
-    durSubDesc:SetText("— Buff / Debuff Duration")
-    durSubDesc:SetTextColor(0.6, 0.6, 0.6)
 
     -- 啟用 checkbox
     local auraCB = CreateFrame("CheckButton", "MiliUI_BuffDurEnabledCB", auraFrame, "UICheckButtonTemplate")
@@ -515,7 +511,7 @@ local function InitSettings()
     auraCBDesc:SetPoint("TOPLEFT", auraCB, "BOTTOMLEFT", 26, -2)
     auraCBDesc:SetWidth(520)
     auraCBDesc:SetJustifyH("LEFT")
-    auraCBDesc:SetText("自訂 Buff / Debuff 圖示下方的時間文字樣式與位置。\n不修改文字內容，純粹調整外觀。")
+    auraCBDesc:SetText("自訂增益 / 減益圖示下方的時間文字樣式與位置。\n不修改文字內容，純粹調整外觀。")
     auraCBDesc:SetTextColor(0.5, 0.5, 0.5)
 
     -- 描邊 checkbox
@@ -557,18 +553,121 @@ local function InitSettings()
     local yOffsetValue = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     yOffsetValue:SetPoint("LEFT", yOffsetSlider, "RIGHT", 12, 0)
 
+    -- ============================================================
+    -- 堆疊層數區塊
+    -- ============================================================
+    local countLabel = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    countLabel:SetPoint("TOPLEFT", yOffsetSlider, "BOTTOMLEFT", 0, -30)
+    countLabel:SetText("堆疊層數")
+
+    -- 啟用堆疊層數調整
+    local countCB = CreateFrame("CheckButton", "MiliUI_CountEnabledCB", auraFrame, "UICheckButtonTemplate")
+    countCB:SetPoint("TOPLEFT", countLabel, "BOTTOMLEFT", 0, -8)
+    countCB.text:SetText("啟用層數位置調整")
+    countCB.text:SetFontObject("GameFontHighlight")
+
+    local countCBDesc = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    countCBDesc:SetPoint("TOPLEFT", countCB, "BOTTOMLEFT", 26, -2)
+    countCBDesc:SetWidth(520)
+    countCBDesc:SetJustifyH("LEFT")
+    countCBDesc:SetText("自訂堆疊層數文字的錨點與位置。")
+    countCBDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    -- 錨點下拉選單
+    local anchorOptions = {
+        { text = "左上", value = "TOPLEFT" },
+        { text = "上", value = "TOP" },
+        { text = "右上", value = "TOPRIGHT" },
+        { text = "左", value = "LEFT" },
+        { text = "右", value = "RIGHT" },
+        { text = "左下", value = "BOTTOMLEFT" },
+        { text = "下", value = "BOTTOM" },
+        { text = "右下", value = "BOTTOMRIGHT" },
+    }
+
+    local anchorLabel = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    anchorLabel:SetPoint("TOPLEFT", countCBDesc, "BOTTOMLEFT", -26, -14)
+    anchorLabel:SetText("錨點位置：")
+
+    local anchorDropdown = CreateFrame("Frame", "MiliUI_CountAnchorDropdown", auraFrame, "UIDropDownMenuTemplate")
+    anchorDropdown:SetPoint("LEFT", anchorLabel, "RIGHT", -8, -2)
+    UIDropDownMenu_SetWidth(anchorDropdown, 100)
+
+    local function AnchorDropdown_Initialize(self, level)
+        for _, opt in ipairs(anchorOptions) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = opt.text .. "  (" .. opt.value .. ")"
+            info.value = opt.value
+            info.func = function(item)
+                UIDropDownMenu_SetSelectedValue(anchorDropdown, item.value)
+                UIDropDownMenu_SetText(anchorDropdown, opt.text)
+                if MiliUI_BuffDurationStyle then
+                    MiliUI_BuffDurationStyle.SetCountAnchor(item.value)
+                end
+            end
+            info.checked = nil
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end
+    UIDropDownMenu_Initialize(anchorDropdown, AnchorDropdown_Initialize)
+
+    -- X 軸偏移
+    local countXSlider = CreateFrame("Slider", "MiliUI_CountXOffsetSlider", auraFrame, "OptionsSliderTemplate")
+    countXSlider:SetPoint("TOPLEFT", anchorLabel, "BOTTOMLEFT", 0, -22)
+    countXSlider:SetSize(200, 16)
+    countXSlider:SetMinMaxValues(-20, 20)
+    countXSlider:SetValueStep(1)
+    countXSlider:SetObeyStepOnDrag(true)
+    countXSlider.Low:SetText("-20")
+    countXSlider.High:SetText("20")
+    countXSlider.Text:SetText("X 軸偏移")
+
+    local countXValue = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    countXValue:SetPoint("LEFT", countXSlider, "RIGHT", 12, 0)
+
+    -- Y 軸偏移
+    local countYSlider = CreateFrame("Slider", "MiliUI_CountYOffsetSlider", auraFrame, "OptionsSliderTemplate")
+    countYSlider:SetPoint("TOPLEFT", countXSlider, "BOTTOMLEFT", 0, -26)
+    countYSlider:SetSize(200, 16)
+    countYSlider:SetMinMaxValues(-20, 20)
+    countYSlider:SetValueStep(1)
+    countYSlider:SetObeyStepOnDrag(true)
+    countYSlider.Low:SetText("-20")
+    countYSlider.High:SetText("20")
+    countYSlider.Text:SetText("Y 軸偏移")
+
+    local countYValue = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    countYValue:SetPoint("LEFT", countYSlider, "RIGHT", 12, 0)
+
     -- 控制子選項的啟用/反灰狀態
+    local function UpdateCountSubControls(enabled)
+        if enabled then
+            anchorDropdown:SetAlpha(1)
+            countXSlider:Enable()
+            countYSlider:Enable()
+        else
+            anchorDropdown:SetAlpha(0.5)
+            countXSlider:Disable()
+            countYSlider:Disable()
+        end
+    end
+
     local function UpdateSubControlsState(enabled)
         if enabled then
             outlineCB:Enable()
             outlineCB.text:SetFontObject("GameFontHighlight")
             fontSizeSlider:Enable()
             yOffsetSlider:Enable()
+            countCB:Enable()
+            countCB.text:SetFontObject("GameFontHighlight")
         else
             outlineCB:Disable()
             outlineCB.text:SetFontObject("GameFontDisable")
             fontSizeSlider:Disable()
             yOffsetSlider:Disable()
+            countCB:Disable()
+            countCB.text:SetFontObject("GameFontDisable")
+            UpdateCountSubControls(false)
         end
     end
 
@@ -582,7 +681,23 @@ local function InitSettings()
         fontSizeValue:SetText(db.fontSize)
         yOffsetSlider:SetValue(db.yOffset)
         yOffsetValue:SetText(db.yOffset)
+        -- 堆疊層數
+        countCB:SetChecked(db.countEnabled)
+        UIDropDownMenu_SetSelectedValue(anchorDropdown, db.countAnchor)
+        for _, opt in ipairs(anchorOptions) do
+            if opt.value == db.countAnchor then
+                UIDropDownMenu_SetText(anchorDropdown, opt.text)
+                break
+            end
+        end
+        countXSlider:SetValue(db.countXOffset)
+        countXValue:SetText(db.countXOffset)
+        countYSlider:SetValue(db.countYOffset)
+        countYValue:SetText(db.countYOffset)
         UpdateSubControlsState(db.enabled)
+        if db.enabled then
+            UpdateCountSubControls(db.countEnabled)
+        end
     end
     SyncAuraSettings()
     auraFrame:SetScript("OnShow", SyncAuraSettings)
@@ -592,6 +707,9 @@ local function InitSettings()
         local enabled = self:GetChecked() and true or false
         MiliUI_BuffDurationStyle.SetEnabled(enabled)
         UpdateSubControlsState(enabled)
+        if enabled then
+            UpdateCountSubControls(countCB:GetChecked())
+        end
         print("|cff00ff00[MiliUI]|r 時間文字強化:", enabled and "開" or "關")
     end)
 
@@ -618,10 +736,32 @@ local function InitSettings()
         end
     end)
 
-    -- 版本資訊
-    local auraVer = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    auraVer:SetPoint("TOPLEFT", yOffsetSlider, "BOTTOMLEFT", 0, -30)
-    auraVer:SetText("米利UI套組 — addons.miliui.com")
+    countCB:HookScript("OnClick", function(self)
+        if not MiliUI_BuffDurationStyle then return end
+        local enabled = self:GetChecked() and true or false
+        MiliUI_BuffDurationStyle.SetCountEnabled(enabled)
+        UpdateCountSubControls(enabled)
+        print("|cff00ff00[MiliUI]|r 層數位置調整:", enabled and "開" or "關")
+    end)
+
+    countXSlider:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value + 0.5)
+        countXValue:SetText(value)
+        if MiliUI_BuffDurationStyle then
+            MiliUI_BuffDurationStyle.SetCountXOffset(value)
+        end
+    end)
+
+    countYSlider:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value + 0.5)
+        countYValue:SetText(value)
+        if MiliUI_BuffDurationStyle then
+            MiliUI_BuffDurationStyle.SetCountYOffset(value)
+        end
+    end)
+
+
+
 
     local auraCategory = Settings.RegisterCanvasLayoutSubcategory(category, auraFrame, "光環強化")
     auraCategory.ID = "MiliUI_Aura"
