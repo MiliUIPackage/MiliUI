@@ -1,4 +1,5 @@
 local addonName, addon = ...
+local L = LibStub("AceLocale-3.0"):GetLocale("MplusAdventureGuide")
 
 -- from Blizzard_DelvesDashboardUI.lua
 local function hasActiveSeason()
@@ -18,7 +19,7 @@ local function addTopDelveRunsToTooltip(runsNeeded)
     if totalMaxCompleted >= runsNeeded then return end
     
     GameTooltip_AddBlankLineToTooltip(GameTooltip);
-    GameTooltip_AddHighlightLine(GameTooltip, "Delves needed at Tier 8: "..(runsNeeded - totalMaxCompleted))
+    GameTooltip_AddHighlightLine(GameTooltip, format(L["DELVES_NEEDED_TIER8"], runsNeeded - totalMaxCompleted))
     
     GameTooltip:Show()
 end
