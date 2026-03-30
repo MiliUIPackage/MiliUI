@@ -255,7 +255,7 @@ local db = {
         primarySpell = 1254563,
         alternateSpells = {},
     },
-    [583] = { -- Seat of the Triumverate
+    [239] = { -- Seat of the Triumverate
         primarySpell = 1254551,
         alternateSpells = {},
     },
