@@ -106,7 +106,22 @@ local function HookCount(btn)
     local cnt = btn.Count
     if not cnt or hookedCounts[cnt] then return end
 
+    -- Hook SetPoint：攔截 Blizzard 重設位置
     hooksecurefunc(cnt, "SetPoint", function(self)
+        if overriding then return end
+        local db = GetDB()
+        if not db.countEnabled then return end
+
+        overriding = true
+        self:SetParent(EnsureOverlay(btn))
+        self:SetWidth(0)
+        self:ClearAllPoints()
+        self:SetPoint(db.countAnchor, btn.Icon, db.countAnchor, db.countXOffset, db.countYOffset)
+        overriding = false
+    end)
+
+    -- Hook SetText：Blizzard 每次更新層數都會呼叫，確保位置不跑掉
+    hooksecurefunc(cnt, "SetText", function(self)
         if overriding then return end
         local db = GetDB()
         if not db.countEnabled then return end
