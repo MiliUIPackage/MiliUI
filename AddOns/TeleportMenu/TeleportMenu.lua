@@ -651,14 +651,14 @@ function tpm:UpdateAvailableSeasonalTeleports()
 	local seasonalTeleports = {
 		-- Midnight S1
 		[1] = {
-			[161] = 1254557, -- Skyreach
+			[161] = 159898, -- Skyreach XXX 1254557 seems incorrect
 			[402] = 393273, -- Algeth'ar Academy
 			[556] = 1254555, -- Pit of Saron
 			[557] = 1254400, -- Windrunner Spire
 			[558] = 1254572, -- Magisters' Terrace
 			[559] = 1254563, -- Nexus-Point Xenas
 			[560] = 1254559, -- Maisara Caverns
-			[583] = 1254551, -- Seat of the Triumvirate
+			[239] = 1254551, -- Seat of the Triumvirate
 		},
 		-- TWW S2
 		[2] = {
