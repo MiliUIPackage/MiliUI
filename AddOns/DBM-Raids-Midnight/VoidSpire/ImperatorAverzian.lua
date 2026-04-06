@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2733, "DBM-Raids-Midnight", 3, 1307)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260325083605")
+mod:SetRevision("20260402070458")
 mod:SetCreatureID(240435)
 mod:SetEncounterID(3176)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -41,8 +41,8 @@ mod.vb.voidFallCount = 0
 mod.vb.voidMarkCount = 0
 local badStateDetected = false
 local next72IsShadow = false
-local buggedUmbral = 0
 
+---@param self DBMMod
 local function setFallback(self)
 	--Blizz API fallbacks
 	specWarnShadowsAdvance:SetAlert({194, 195}, "mobsoon", 2, 2)
@@ -69,7 +69,6 @@ function mod:OnLimitedCombatStart()
 	self.vb.voidFallCount = 1
 	self.vb.voidMarkCount = 1
 	next72IsShadow = false
-	buggedUmbral = 0
 	if DBM.Options.HardcodedTimer and self:IsDifficulty("lfr", "normal", "heroic") and not badStateDetected then
 		self:IgnoreBlizzardAPI()
 		self:RegisterShortTermEvents(
@@ -106,9 +105,19 @@ do
 			--Blizzard starts two shadows advance on pull, it's only time 84 exists
 			--We need to deal with special count handling to work around this quirk
 			--Timers passed as string with "d" in front of them to flag allowdouble as true
-			if timer == 84 then
+			if timer == 84 then--First 72 is actually an 84 but has same bug as 72s
 				--Increment count by 1 since it'll start in parallel to the initial 12 second bar
 				timerShadowsAdvanceCD:TLStart(84, eventID, self:TLCountStart(eventID, "shadow", "shadowCount") + 1)
+				if not timerUmbralCollapseCD:IsBuggedEventID(eventID) then
+					--Currently, blizzard has a bug where the 2nd umbral timer that starts for the fight (first 72 second timer)
+					--immediately cancels itself with a state of 2, despite fact the timer is actually accurate.
+					timerUmbralCollapseCD:SetBuggedEventID(eventID)
+					--Hard schedule alert here since blizzard is going to finish their own timer due to a bug on their end
+					specWarnUmbralCollapse:Schedule(84, 2)
+					specWarnUmbralCollapse:ScheduleVoice(84, "gathershare")
+					timerUmbralCollapseCD:Stop()
+					timerUmbralCollapseCD:Start(84, self.vb.CollapseCount+1)
+				end
 			else
 				timerShadowsAdvanceCD:TLStart(12, eventID, self:TLCountStart(eventID, "shadow", "shadowCount"))
 			end
@@ -120,24 +129,21 @@ do
 				next72IsShadow = false
 			else
 				timerUmbralCollapseCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "collapse", "CollapseCount"))
-				if buggedUmbral == 0 then--We haven't seen the bugged 72 yet
+				if not timerUmbralCollapseCD:IsBuggedEventID(eventID) then--We haven't seen the bugged 72 yet
 					--Currently, blizzard has a bug where the 2nd umbral timer that starts for the fight (first 72 second timer)
 					--immediately cancels itself with a state of 2, despite fact the timer is actually accurate.
-					buggedUmbral = eventID
+					timerUmbralCollapseCD:SetBuggedEventID(eventID)
 					--Hard schedule alert here since blizzard is going to finish their own timer due to a bug on their end
 					specWarnUmbralCollapse:Schedule(72, 2)
 					specWarnUmbralCollapse:ScheduleVoice(72, "gathershare")
 					timerUmbralCollapseCD:Stop()
-					timerUmbralCollapseCD:Start(72, 2)
+					timerUmbralCollapseCD:Start(72, self.vb.CollapseCount+1)
 				end
 			end
 		else--Reached end of chain without finding a valid timer, this means hardcode mod has failed, so we need to disable hardcoded features and fall back to blizz API
 			if not DBM.Options.DebugMode then
 				badStateDetected = true
-				if DBM.Options.IgnoreBlizzAPI then
-					DBM.Options.IgnoreBlizzAPI = false
-					DBM:FireEvent("DBM_ResumeBlizzAPI")
-				end
+				self:ResumeBlizzardAPI()
 				self:UnregisterShortTermEvents()
 				setFallback(self)
 				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
@@ -180,8 +186,8 @@ do
 					specWarnShadowsAdvance:Show(eventCount)
 					specWarnShadowsAdvance:Play("mobsoon")
 				elseif eventType == "collapse" then
-					if buggedUmbral == eventID then--This is the bugged umbral timer, we need to ignore it
-						buggedUmbral = 0
+					if timerUmbralCollapseCD:IsBuggedEventID(eventID) then--This is the bugged umbral timer, we need to ignore it
+						timerUmbralCollapseCD:UnsetBuggedEventID(eventID)
 						return
 					end
 					specWarnUmbralCollapse:Show(eventCount)

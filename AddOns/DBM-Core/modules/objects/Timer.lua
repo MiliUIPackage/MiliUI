@@ -259,7 +259,7 @@ end
 ---Used to set fallback options to blizzard encounter API for hardcoded timers to fall back on
 ---@param encounterEventId number|table EncounterEventID from EncounterEvent.db2 that matches event we're targetting
 function timerPrototype:SetTimeline(encounterEventId)
-	if self.option and self.mod.Options[self.option] then
+	if self.option then
 		self.mod:EnableTimelineOptions(self.spellId, encounterEventId, self.option)
 	end
 end
@@ -278,6 +278,32 @@ function timerPrototype:SetEventID(eventID, ...)
 	hardcodedIds[#hardcodedIds + 1] = id
 	private.hardCodedTimerEvents = private.hardCodedTimerEvents or {}
 	private.hardCodedTimerEvents[id] = eventID
+end
+
+---@param eventID number eventID of an event we need to be ignored by handlers because blizzard is using it incorrectly
+function timerPrototype:SetBuggedEventID(eventID)
+	if not private.buggedBlizzardTimers then
+		private.buggedBlizzardTimers = {}
+	end
+	private.buggedBlizzardTimers[eventID] = true
+end
+
+---@param eventID number
+---@return boolean
+function timerPrototype:IsBuggedEventID(eventID)
+	if private.buggedBlizzardTimers then
+		if private.buggedBlizzardTimers[eventID] then
+			return true
+		end
+	end
+	return false
+end
+
+---@param eventID number
+function timerPrototype:UnsetBuggedEventID(eventID)
+	if private.buggedBlizzardTimers then
+		private.buggedBlizzardTimers[eventID] = nil
+	end
 end
 
 ---Simple function to call Start and SetEventID with a single call for hardcoded timeline timers

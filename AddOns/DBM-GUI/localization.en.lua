@@ -29,6 +29,9 @@ L.Tools_KeystoneCheck				= "Keystone Check"
 L.Tools_BreakTimer					= "Start Break Timer"
 L.Tools_PizzaTimer					= "Start Generic Timer"
 
+L.Tools_BrezArea					= "Battle Res Timer"
+L.Tools_ShowBrezFrame				= "Show Battle Res charges frame during boss encounters and Mythic+ dungeons"
+
 L.Tools_Duration					= "Duration"
 L.Tools_Message						= "Timer Message"
 
@@ -162,7 +165,7 @@ L.ShowQueuePop						= "Show time remaining to accept a queue pop (LFG,BG,etc)"
 L.ShowBerserkWarnings				= "Show announcements at 10/5/3/1 minutes and at 30/10 seconds remaining on $spell:26662 timer"
 --
 L.Area_3rdParty						= "3rd Party Addon Options"
-L.oRA3AnnounceConsumables			= "Announce oRA3 consumables check on combat start"
+L.AnnounceConsumables				= "Announce consumables check on combat start"
 L.Area_Invite						= "Invite Options"
 L.AutoAcceptFriendInvite			= "Automatically accept group invites from friends"
 L.AutoAcceptGuildInvite				= "Automatically accept group invites from guild members"
@@ -522,6 +525,7 @@ L.SpamBlockNoShowTrashTimers		= "Do not show timers for dungeon/raid trash (Note
 L.SpamBlockNoShowEventTimers		= "Do not show timers for events or prompts (Queue pop, boss respawn, etc)"
 L.SpamBlockNoShowUTimers			= "Do not show user sent timers (Custom/Pull/Break)"
 L.SpamBlockNoCountdowns				= "Do not play countdown sounds"
+L.SpamBlockNoTLColors				= "Do not set Blizzard Timeline colors (Note: also disables DBM bar colors too)"
 
 L.Area_SpamFilter_Nameplates		= "Nameplate Features"
 L.SpamBlockNoNameplate				= "Do not show nameplate only icons for special boss mechanics (ie buffs or debuffs on enemies)"

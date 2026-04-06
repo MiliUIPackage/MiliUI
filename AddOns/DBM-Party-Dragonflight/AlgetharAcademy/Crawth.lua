@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2495, "DBM-Party-Dragonflight", 5, 1201)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315020426")
+mod:SetRevision("20260401091148")
 mod:SetCreatureID(191736)
 mod:SetEncounterID(2564)
 mod:SetHotfixNoticeRev(20221127000000)
@@ -26,8 +26,6 @@ if DBM:IsPostMidnight() then
 --	mod:AddPrivateAuraSoundOption(433740, true, 433740, 1)
 
 	function mod:OnLimitedCombatStart()
-		self:DisableSpecialWarningSounds()
-
 		if self:IsTank() then
 			self:EnableAlertOptions(376997, 278, "defensive", 2)
 		end

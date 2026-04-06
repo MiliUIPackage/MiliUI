@@ -282,6 +282,7 @@ L.SLASHCMD_HELP							= {
 	"/dbm key: Performs M+ keystone and rating checks on party/guild and shortcuts to dungeon teleports. (alias: key, keys, keystone)",
 	"/dbm lag: Performs a raid-wide latency check.",
 	"/dbm durability: Performs a raid-wide durability check.",
+	"/dbm brez: Shows the battle resurrection timer frame for positioning.",
 	"/dbm help2: Shows additional slash commands"
 }
 --Less used slash commands
@@ -333,6 +334,7 @@ L.AUTO_ANNOUNCE_TEXTS = {
 	target								= "%s on >%%s<",
 	targetsource						= ">%%s< cast %s on >%%s<",
 	targetcount							= "%s (%%s) on >%%s<",
+	blizztarget							= "%s (%%s) on %%s",--Blizz target has class color preformated, so >< not needed
 	spell								= "%s", -- OPTIONAL
 	spellsource							= ">%%s< cast %s",
 	incoming							= "%s incoming debuff",
@@ -361,6 +363,7 @@ L.AUTO_ANNOUNCE_OPTIONS = {
 	targetNF							= "Announce $spell:%s targets (ignores global target filter)",
 	targetsource						= "Announce $spell:%s targets (with source)",
 	targetcount							= "Announce $spell:%s targets (with count)",
+	blizztarget							= "Announce $spell:%s targets (with count)",
 	spell								= "Announce when $spell:%s has been cast",
 	spellsource							= "Announce when $spell:%s has been cast (with source)",
 	incoming							= "Announce when $spell:%s has incoming debuffs",
@@ -701,12 +704,12 @@ L.ARROW_ERROR_USAGE						= {
 
 L.SPEED_KILL_TIMER_TEXT					= "Record Victory"
 L.SPEED_CLEAR_TIMER_TEXT				= "Best Clear"
-L.COMBAT_RES_TIMER_TEXT					= "Next CR Charge"
 L.TIMER_RESPAWN							= "%s Respawn"
 
 L.LAG_HEADER							= L.DBM.. " - Latency Results"
 L.DUR_HEADER							= L.DBM.. " - Durability Results"
 L.KEYSTONES_HEADER						= L.DBM.. " - Keystones"
+L.BREZ_HEADER							= "Battle Res"
 
 L.OVERRIDE_ACTIVATED					= "Configuration overrides have been activated for this encounter by RL"
 
@@ -772,7 +775,7 @@ L.KEYSTONE_NAMES = {
 	[227] = 'LKARA', -- Return to Karazhan: Lower
 	[233] = 'COEN', -- Cathedral of Eternal Night
 	[234] = 'UKARA', -- Return to Karazhan: Upper
-	[239] = 'SOTT', -- Seat of the Triumvirate
+	[239] = 'SEAT', -- Seat of the Triumvirate
 
 	[378] = 'HOA', -- Halls of Atonement
 	[391] = 'STREET', -- Tazavesh: Streets of Wonder

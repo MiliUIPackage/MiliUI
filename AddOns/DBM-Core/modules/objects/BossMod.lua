@@ -577,7 +577,7 @@ do
 				end
 			end
 			if uId then--Now we have a valid uId
-				if UnitIsUnit(uId, "player") then return true end--If "player" is target, avoid doing any complicated stuff
+				if UnitIsUnit("player", uId) then return true end--If "player" is target, avoid doing any complicated stuff
 				if not UnitIsPlayer(uId) then
 					local inRange2, checkedRange = UnitInRange(uId)--43
 					if checkedRange then--checkedRange only returns true if api worked, so if we get false, true then we are not near npc
@@ -1267,16 +1267,19 @@ do
 	---@param encounterEventId number|table EncounterEventID from EncounterEvent.db2 that matches event we're targetting
 	---@param customOption string? Used when event supports hardcoded timers and needs different option table lookup
 	function bossModPrototype:EnableTimelineOptions(optionId, encounterEventId, customOption)
+		if DBM.Options.HideDBMBars then return end
 		--Set Color (done outside option check since right now option check isnt supported until 12.0.5
 		--And we want to set colors on any bar even if it's "disabled" for now
-		local colorType = customOption and self.Options[customOption .. "TColor"] or self.Options["CustomTimerOption" .. optionId .. "TColor"] or 0
-		local timerRed, timerGreen, timerBlue = DBT:GetColorForType(colorType, true)
-		if type(encounterEventId) == "table" then
-			for _, id in ipairs(encounterEventId) do
-				C_EncounterEvents.SetEventColor(id, {r = timerRed, g = timerGreen, b = timerBlue})
+		if not DBM.Options.DontSetTimelineColors then
+			local colorType = customOption and self.Options[customOption .. "TColor"] or self.Options["CustomTimerOption" .. optionId .. "TColor"] or 0
+			local timerRed, timerGreen, timerBlue = DBT:GetColorForType(colorType, true)
+			if type(encounterEventId) == "table" then
+				for _, id in ipairs(encounterEventId) do
+					C_EncounterEvents.SetEventColor(id, {r = timerRed, g = timerGreen, b = timerBlue})
+				end
+			else
+				C_EncounterEvents.SetEventColor(encounterEventId, {r = timerRed, g = timerGreen, b = timerBlue})
 			end
-		else
-			C_EncounterEvents.SetEventColor(encounterEventId, {r = timerRed, g = timerGreen, b = timerBlue})
 		end
 		if optionId and (customOption and self.Options[customOption] or self.Options["CustomTimerOption" .. optionId]) then
 			--Set Countdown
@@ -1352,7 +1355,7 @@ do
 	---@param customOption string? Used when event supports hardcoded warnings and needs different option table lookup
 	function bossModPrototype:EnableAlertOptions(optionId, encounterEventId, voice, voiceVersion, color, overrideType, customOption)
 		--Use same global disable as special warning sounds (since UI is indistinguishable between custom alert sounds and special warning sounds, might as well just have one global disable for both)
-		if DBM.Options.DontPlaySpecialWarningSound then return end
+		if DBM.Options.HideDBMWarnings or DBM.Options.DontPlaySpecialWarningSound then return end
 		--Filter tank specific voice alerts for non tanks if tank filter enabled
 		if (voice == "changemt" or voice == "tauntboss") and not self:IsTank() then return end
 		if optionId then

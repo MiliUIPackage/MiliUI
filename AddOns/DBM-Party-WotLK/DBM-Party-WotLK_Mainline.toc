@@ -1,4 +1,4 @@
-## Interface: 120001
+## Interface: 120001, 120005
 ## X-Min-Interface: 80000
 ## Category: DBM
 
@@ -21,9 +21,9 @@
 ## X-DBM-Mod-Name-zhCN: 队伍首领 (巫妖王之怒)
 ## X-DBM-Mod-Sort: 915
 ## X-DBM-Mod-MapID: 619,601,595,600,604,602,599,576,578,574,575,608,658,632,668,650,2849
-## X-DBM-Mod-MinCoreRevision: 20200524142133
+## X-DBM-Mod-MinCoreRevision: 20260322092548
 ## X-DBM-Mod-MinExpansion: 2
-## Version: r238-11
+## Version: r242
 ## Category-zhTW: 地城與團隊
 ## Category-zhTW: 副本
 
@@ -34,3 +34,4 @@ localization.tw.lua
 PitofSaron\Ick.lua
 PitofSaron\ForgemasterGarfrost.lua
 PitofSaron\ScourgelordTyrannus.lua
+PitofSaron\PitOfSaronTrash.lua

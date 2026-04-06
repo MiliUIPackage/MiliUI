@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2738, "DBM-Raids-Midnight", 3, 1307)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260325075226")
+mod:SetRevision("20260403053303")
 mod:SetCreatureID(244761)
 mod:SetEncounterID(3181)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -53,6 +53,7 @@ local timerCosmicPortalCD				= mod:NewCDCountTimer(20.5, 1261339, nil, nil, nil,
 local timerRiftSlashCD					= mod:NewCDCountTimer(20.5, 1246461, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--P2 Rift Simulacrum slash attack
 local timerStage2CD						= mod:NewCDTimer(20.5, 1272966, nil, nil, nil, 6)
 local timerStage3CD						= mod:NewCDTimer(20.5, 1273378, nil, nil, nil, 6)
+local timerBerserkCD					= mod:NewBerserkTimer(600)
 
 mod:AddPrivateAuraSoundOption({1233865,1233887}, true, 1233865, 1, 1, "absorbyou", 19)--Null Corona
 mod:AddPrivateAuraSoundOption(1283236, true, 1283236, 1, 1, "orbrun", 2)--Void Expulsion
@@ -89,6 +90,42 @@ local badStateDetected = false
 local stage2p5Seen, stage3Recovered = false, false
 local stage2TwentyCount = 0
 local lastTLEvent = 0
+
+--Heroic Stage 3 disambiguation micro-table built from CrownWipe5.
+--Key format: "<lastResolvedType>:<lastResolvedRoundedTimer>" -> current eventType.
+local heroicStage3MicroTable = {
+	[11] = {
+		["aspectoftheEnd:8"] = "grasp",
+		default = "nullCorona"
+	},
+	[12] = {
+		["aspectoftheEnd:9"] = "grasp",
+		default = "voidstalkerSting"
+	},
+	[18] = {
+		["aspectoftheEnd:8"] = "grasp",
+		["aspectoftheEnd:39"] = "voidstalkerSting",
+		["voidstalkerSting:15"] = "voidstalkerSting",
+		["grasp:7"] = "voidstalkerSting"
+	}
+}
+
+---@param timer number
+---@param lastResolvedType string?
+---@param lastResolvedTimer number?
+---@return string?
+local function resolveHeroicStage3Ambiguous(timer, lastResolvedType, lastResolvedTimer)
+	local timerTable = heroicStage3MicroTable[timer]
+	if not timerTable then return nil end
+	if lastResolvedType and lastResolvedTimer then
+		local key = lastResolvedType .. ":" .. lastResolvedTimer
+		local resolved = timerTable[key]
+		if resolved then
+			return resolved
+		end
+	end
+	return timerTable.default
+end
 
 local function setFallback(self)
 	--Blizz API fallbacks
@@ -157,7 +194,7 @@ function mod:OnLimitedCombatStart()
 	self.vb.riftSlashCount = 1
 	self:SetStage(1)
 
-	if DBM.Options.HardcodedTimer and self:IsEasy() and not badStateDetected then
+	if DBM.Options.HardcodedTimer and (self:IsEasy() or self:IsHeroic()) and not badStateDetected then
 		self:IgnoreBlizzardAPI()
 		self:RegisterShortTermEvents(
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",
@@ -179,6 +216,10 @@ function mod:OnLimitedCombatStart()
 			specWarnInterruptingTremor:ScheduleVoice(4, "kickcast")
 		end
 		timerInterruptingTremorCD:Start(4, 1)
+		if self:IsHeroic() then
+			--Stage 1 has a 2 minute 10 second berserk
+			timerBerserkCD:Start(130)
+		end
 	else
 		setFallback(self)
 	end
@@ -234,10 +275,7 @@ do
 				timerSilverstrikeBarrageCD:TLStart(timer, eventID, self:TLCountStart(eventID, "silverstrikeBarrage", "silverstrikeBarrageCount"))
 			else--Reached end of chain without finding a valid timer, hardcode has failed, fall back to Blizz API
 				badStateDetected = true
-				if DBM.Options.IgnoreBlizzAPI then
-					DBM.Options.IgnoreBlizzAPI = false
-					DBM:FireEvent("DBM_ResumeBlizzAPI")
-				end
+				self:ResumeBlizzardAPI()
 				self:UnregisterShortTermEvents()
 				setFallback(self)
 				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
@@ -302,7 +340,9 @@ do
 					timerVoidExpulsionCD:TLStart(timer, eventID, self:TLCountStart(eventID, "voidExpulsion", "voidExpulsionCount"))
 					self:TLResolvePush("voidExpulsion", timer)
 				else
-					timerVoidstalkerStingCD:TLStart(timer, eventID, self:TLCountStart(eventID, "voidstalkerSting", "voidstalkerStingCount"))
+					--Blizzards timer is actually wrong, it starts a 20 second timer but it's cast 14 seconds later
+					--This can be verified in week3 normal log where you can see every 20 second sting timer refreshed before expire with 6 sec remaining
+					timerVoidstalkerStingCD:TLStart(14, eventID, self:TLCountStart(eventID, "voidstalkerSting", "voidstalkerStingCount"))
 					self:TLResolvePush("voidstalkerSting", timer)
 				end
 			elseif timer == 24 or timer == 22 then--Cosmic Barrier
@@ -349,6 +389,11 @@ do
 				timerDevouringCosmosCD:TLStart(timer, eventID, self:TLCountStart(eventID, "devouringCosmos", "devouringCosmosCount"))
 				self:TLResolvePush("devouringCosmos", timer)
 			elseif timer == 8 or timer == 9 or timer == 21 or timer == 39 then--Aspect of the End
+				if timer == 21 then
+					--Blizzards timer is actually wrong, it starts a 21 second timer but it's cast 13 seconds later
+					--This can be verified in week3 normal log where you can see the 21 second aspect timer refreshed before expire with 8 sec remaining
+					timer = 13
+				end
 				timerAspectoftheEndCD:TLStart(timer, eventID, self:TLCountStart(eventID, "aspectoftheEnd", "aspectoftheEndCount"))
 				self:TLResolvePush("aspectoftheEnd", timer)
 			elseif timer == 12 or timer == 14 or timer == 15 then--Voidstalker Sting
@@ -370,7 +415,219 @@ do
 		end
 	end
 
-	--Note, bar stage changing and canceling is handled by core
+	---@param self DBMMod
+	---@param timer number
+	---@param timerExact number
+	---@param eventID number
+	local function timersHeroic(self, timer, timerExact, eventID)
+		local stage = self:GetStage()
+		if stage == 1 then
+			--Stage 1 Heroic (Week 3 validated from CrownWipe2-5)
+			if timer == 4 then
+				--Unresolveable initial 4s casts (Tremor, Abyss, Dark Hand)
+				--Those are prescheduled on pull
+				return
+			elseif timer == 2 then
+				--Intermission 1 starts with Silverstrike Barrage 1.5s (rounded 2).
+				--Prefer exact-duration signal; keep legacy gap-check as backup.
+				if (timerExact and timerExact < 1.75) or (GetTime() - lastTLEvent > 10) then
+					self:SetStage(1.5)
+					timerSilverstrikeBarrageCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "silverstrikeBarrage", "silverstrikeBarrageCount"))
+					timerBerserkCD:Cancel()
+				else
+					timerNullCoronaCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "nullCorona", "coronaCount"))
+					self:TLResolvePush("nullCorona", timer)
+				end
+			elseif timer == 25 then
+				--Recovery: if Stage Two marker appears while still in stage 1, transition chain was missed.
+				self:SetStage(1.5)
+				timerStage2CD:TLStart(timerExact, eventID)
+				self:TLCountStart(eventID, "stage2Start")
+			elseif timer == 5 then--Grasp opener/late Grasp(4.5 rounded) OR late Null Corona(5)
+				local lastResolvedType, lastResolvedTimer = self:TLResolvePeek()
+				if lastResolvedType == "nullCorona" and lastResolvedTimer == 2 then
+					timerNullCoronaCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "nullCorona", "coronaCount"))
+					self:TLResolvePush("nullCorona", timer)
+				else
+					timerGraspofEmptynessCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "grasp", "graspofEmptynessCount"))
+					self:TLResolvePush("grasp", timer)
+				end
+			elseif timer == 11 or timer == 12 or timer == 13 then--Void Expulsion early buckets
+				timerVoidExpulsionCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "voidExpulsion", "voidExpulsionCount"))
+				self:TLResolvePush("voidExpulsion", timer)
+			elseif timer == 21 or timer == 23 or timer == 24 then--Silverstrike Arrow
+				timerSilverstrikeArrowCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "silverstrikeArrow", "silverstrikeArrowCount"))
+				self:TLResolvePush("silverstrikeArrow", timer)
+			elseif timer == 26 then--Dark Hand
+				timerDarkHandCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "darkHand", "darkHandCount"))
+				self:TLResolvePush("darkHand", timer)
+			elseif timer == 20 then--Ravenous Abyss (19.5) OR Interrupting Tremor (20.0)
+				if timerExact and timerExact < 19.75 then
+					timerRavenousAbyssCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "ravenousAbyss", "ravenousAbyssCount"))
+					self:TLResolvePush("ravenousAbyss", timer)
+				elseif timerExact and timerExact >= 19.75 then
+					timerInterruptingTremorCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "interruptingTremor", "interruptingTremorCount"))
+					self:TLResolvePush("interruptingTremor", timer)
+				end
+			elseif timer == 27 or timer == 44 or timer == 45 then--Null Corona
+				timerNullCoronaCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "nullCorona", "coronaCount"))
+				self:TLResolvePush("nullCorona", timer)
+			elseif timer == 28 or timer == 29 or timer == 31 or timer == 32 then--Grasp of Emptiness
+				timerGraspofEmptynessCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "grasp", "graspofEmptynessCount"))
+				self:TLResolvePush("grasp", timer)
+			elseif timer == 39 or timer == 48 then--Void Expulsion
+				timerVoidExpulsionCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "voidExpulsion", "voidExpulsionCount"))
+				self:TLResolvePush("voidExpulsion", timer)
+			else
+				badStateDetected = true
+				self:ResumeBlizzardAPI()
+				self:UnregisterShortTermEvents()
+				setFallback(self)
+				DBM:Debug("|cffff0000Failed to match Heroic stage 1 timeline events, falling back to Blizzard API|r", nil, nil, nil, true)
+			end
+		elseif stage == 1.5 then
+			--Intermission 1
+			if timer == 2 or timer == 3 or timer == 6 or timer == 8 or timer == 10 then--Silverstrike Barrage sequence
+				timerSilverstrikeBarrageCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "silverstrikeBarrage", "silverstrikeBarrageCount"))
+			elseif timer == 25 then--Stage 2 marker; phase actually starts on STATE_CHANGED.
+				timerStage2CD:TLStart(timerExact, eventID)
+				self:TLCountStart(eventID, "stage2Start")
+			end
+		elseif stage == 2 then
+			--Stage 2 Heroic (validated from CrownWipe3/4 and CrownWipe5 opener)
+			if timer == 11 or timer == 13 then--Null Corona
+				timerNullCoronaCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "nullCorona", "coronaCount"))
+				self:TLResolvePush("nullCorona", timer)
+			elseif timer == 14 or timer == 15 or timer == 16 then--Void Expulsion
+				timerVoidExpulsionCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "voidExpulsion", "voidExpulsionCount"))
+				self:TLResolvePush("voidExpulsion", timer)
+			elseif timer == 8 then--Voidstalker Sting opener
+				timerVoidstalkerStingCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "voidstalkerSting", "voidstalkerStingCount"))
+				self:TLResolvePush("voidstalkerSting", timer)
+			elseif timer == 10 then--Call of the Void recurring
+				timerCalloftheVoidCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "calloftheVoid", "calloftheVoidCount"))
+				self:TLResolvePush("calloftheVoid", timer)
+			elseif timer == 12 then--Ambiguous opener/loop: Call of the Void OR Rift Slash
+				local lastResolvedType, lastResolvedTimer = self:TLResolvePeek()
+				if lastResolvedType == "voidstalkerSting" and lastResolvedTimer == 8 then
+					timerCalloftheVoidCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "calloftheVoid", "calloftheVoidCount"))
+					self:TLResolvePush("calloftheVoid", timer)
+				else
+					timerRiftSlashCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "riftSlash", "riftSlashCount"))
+					self:TLResolvePush("riftSlash", timer)
+				end
+			elseif timer == 6 then--Ambiguous: Rift Slash OR Voidstalker Sting
+				local lastResolvedType, lastResolvedTimer = self:TLResolvePeek()
+				if lastResolvedType == "cosmicBarrier" and (lastResolvedTimer == 24 or lastResolvedTimer == 22 or lastResolvedTimer == 2) then
+					timerRiftSlashCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "riftSlash", "riftSlashCount"))
+					self:TLResolvePush("riftSlash", timer)
+				else
+					timerVoidstalkerStingCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "voidstalkerSting", "voidstalkerStingCount"))
+					self:TLResolvePush("voidstalkerSting", timer)
+				end
+			elseif timer == 5 then--Voidstalker Sting recurring
+				timerVoidstalkerStingCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "voidstalkerSting", "voidstalkerStingCount"))
+				self:TLResolvePush("voidstalkerSting", timer)
+			elseif timer == 19 or timer == 21 then--Ranger Captain's Mark
+				timerRangerCaptainsMarkCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "rangerMark", "rangerMarkCount"))
+				self:TLResolvePush("rangerMark", timer)
+			elseif timer == 20 then--Ambiguous: Voidstalker Sting OR Void Expulsion
+				stage2TwentyCount = stage2TwentyCount + 1
+				if stage2TwentyCount % 2 == 1 then
+					timerVoidExpulsionCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "voidExpulsion", "voidExpulsionCount"))
+					self:TLResolvePush("voidExpulsion", timer)
+				else
+					timerVoidstalkerStingCD:TLStart(14, eventID, self:TLCountStart(eventID, "voidstalkerSting", "voidstalkerStingCount"))
+					self:TLResolvePush("voidstalkerSting", timer)
+				end
+			elseif timer == 22 or timer == 24 then--Cosmic Barrier
+				timerCosmicBarrierCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "cosmicBarrier", "cosmicBarrierCount"))
+				self:TLResolvePush("cosmicBarrier", timer)
+			elseif timer == 25 then--Duplicate Stage 2 marker can appear in logs, ignore
+				return
+			elseif timer == 2 and (GetTime() - lastTLEvent > 10) then--Intermission 2 opener
+				self:SetStage(2.5)
+				stage2p5Seen = true
+				timerSilverstrikeBarrageCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "silverstrikeBarrage", "silverstrikeBarrageCount"))
+				self:TLResolvePush("silverstrikeBarrage", timer)
+			end
+		elseif stage == 2.5 then
+			--Intermission 2
+			if stage2p5Seen and not stage3Recovered and (timer == 59 or timer == 60 or timer == 29 or timer == 30 or timer == 9 or timer == 39) then
+				stage3Recovered = true
+				self:SetStage(3)
+				DBM:Debug("Crown heroic hardcoded: auto-corrected to Stage 3 in 2.5 using duration " .. timer .. " (eventID " .. eventID .. ")", 2, nil, nil, true)
+				return timersHeroic(self, timer, timerExact, eventID)
+			end
+			if timer == 2 or timer == 3 or timer == 6 or timer == 9 or timer == 10 then--Silverstrike Barrage sequence
+				timerSilverstrikeBarrageCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "silverstrikeBarrage", "silverstrikeBarrageCount"))
+				self:TLResolvePush("silverstrikeBarrage", timer)
+			elseif timer == 20 then--Stage 3 marker; phase actually starts on STATE_CHANGED.
+				timerStage3CD:TLStart(timerExact, eventID)
+				self:TLCountStart(eventID, "stage3Start")
+			end
+		elseif stage == 3 then
+			--Stage 3 Heroic (partial, from CrownWipe5 + existing S3 map)
+			if timer == 29 or timer == 30 then--Null Corona
+				timerNullCoronaCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "nullCorona", "coronaCount"))
+				self:TLResolvePush("nullCorona", timer)
+			elseif timer == 59 or timer == 60 then--Devouring Cosmos
+				timerDevouringCosmosCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "devouringCosmos", "devouringCosmosCount"))
+				self:TLResolvePush("devouringCosmos", timer)
+			elseif timer == 8 or timer == 9 or timer == 21 or timer == 39 then--Aspect of the End
+				if timer == 21 then
+					timerAspectoftheEndCD:TLStart(13, eventID, self:TLCountStart(eventID, "aspectoftheEnd", "aspectoftheEndCount"))
+				else
+					timerAspectoftheEndCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "aspectoftheEnd", "aspectoftheEndCount"))
+				end
+				self:TLResolvePush("aspectoftheEnd", timer)
+			elseif timer == 12 then--Ambiguous: Voidstalker Sting OR Grasp of Emptiness
+				local lastResolvedType, lastResolvedTimer = self:TLResolvePeek()
+				local eventType = resolveHeroicStage3Ambiguous(timer, lastResolvedType, lastResolvedTimer)
+				if eventType == "grasp" then
+					timerGraspofEmptynessCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "grasp", "graspofEmptynessCount"))
+					self:TLResolvePush("grasp", timer)
+				elseif eventType == "voidstalkerSting" then
+					timerVoidstalkerStingCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "voidstalkerSting", "voidstalkerStingCount"))
+					self:TLResolvePush("voidstalkerSting", timer)
+				end
+			elseif timer == 14 or timer == 15 then--Voidstalker Sting
+				timerVoidstalkerStingCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "voidstalkerSting", "voidstalkerStingCount"))
+				self:TLResolvePush("voidstalkerSting", timer)
+			elseif timer == 18 then--Ambiguous: Voidstalker Sting OR Grasp of Emptiness
+				local lastResolvedType, lastResolvedTimer = self:TLResolvePeek()
+				local eventType = resolveHeroicStage3Ambiguous(timer, lastResolvedType, lastResolvedTimer)
+				if eventType == "grasp" then
+					timerGraspofEmptynessCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "grasp", "graspofEmptynessCount"))
+					self:TLResolvePush("grasp", timer)
+				elseif eventType == "voidstalkerSting" then
+					timerVoidstalkerStingCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "voidstalkerSting", "voidstalkerStingCount"))
+					self:TLResolvePush("voidstalkerSting", timer)
+				end
+			elseif timer == 7 or timer == 17 or timer == 19 or timer == 20 or timer == 32 then--Grasp of Emptiness
+				timerGraspofEmptynessCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "grasp", "graspofEmptynessCount"))
+				self:TLResolvePush("grasp", timer)
+			elseif timer == 10 then--Call of the Void (seen in late heroic logs)
+				timerCalloftheVoidCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "calloftheVoid", "calloftheVoidCount"))
+				self:TLResolvePush("calloftheVoid", timer)
+			elseif timer == 11 then--Ambiguous: Null Corona OR Grasp of Emptiness
+				local lastResolvedType, lastResolvedTimer = self:TLResolvePeek()
+				local eventType = resolveHeroicStage3Ambiguous(timer, lastResolvedType, lastResolvedTimer)
+				if eventType == "grasp" then
+					timerGraspofEmptynessCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "grasp", "graspofEmptynessCount"))
+					self:TLResolvePush("grasp", timer)
+				elseif eventType == "nullCorona" then
+					timerNullCoronaCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "nullCorona", "coronaCount"))
+					self:TLResolvePush("nullCorona", timer)
+				end
+			elseif timer == 22 or timer == 24 then--Cosmic Barrier
+				timerCosmicBarrierCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "cosmicBarrier", "cosmicBarrierCount"))
+				self:TLResolvePush("cosmicBarrier", timer)
+			end
+		end
+	end
+
+	--Note, bar state changing and canceling is handled by core
 	function mod:ENCOUNTER_TIMELINE_EVENT_ADDED(eventInfo)
 		if eventInfo.source ~= 0 then return end
 		local eventID = eventInfo.id
@@ -379,6 +636,8 @@ do
 		if not badStateDetected then
 			if self:IsEasy() then
 				timersEasy(self, timer, timerExact, eventID)
+			elseif self:IsHeroic() then
+				timersHeroic(self, timer, timerExact, eventID)
 			end
 		end
 		lastTLEvent = GetTime()

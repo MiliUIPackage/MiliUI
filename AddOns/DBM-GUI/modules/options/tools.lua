@@ -32,6 +32,70 @@ if DBM:IsRetail() then
 	keystone:SetScript("OnClick", function()
 		DBM.Keystones:Show()
 	end)
+
+	local area1b = DBM_GUI.CAT_TOOLS:CreateArea(L.Tools_BrezArea)
+
+	local showBrezFrame = area1b:CreateCheckButton(L.Tools_ShowBrezFrame, true, nil, "ShowBrezFrame")
+
+	if showBrezFrame then
+		showBrezFrame:HookScript("OnClick", function()
+			if DBM.BattleRezTimer then
+				DBM.BattleRezTimer:CheckSupported()
+			end
+		end)
+	end
+
+	local BrezFonts = DBM_GUI:MixinSharedMedia3("font", {
+		{
+			text	= DEFAULT,
+			value	= "standardFont"
+		},
+		{
+			text	= "Arial",
+			value	= "Fonts\\ARIALN.TTF"
+		},
+		{
+			text	= "Skurri",
+			value	= "Fonts\\SKURRI_CYR.ttf"
+		},
+		{
+			text	= "Morpheus",
+			value	= "Fonts\\MORPHEUS_CYR.ttf"
+		}
+	})
+
+	local BrezFontDropDown = area1b:CreateDropdown(L.FontType, BrezFonts, "DBM", "BrezFont", function(value)
+		DBM.Options.BrezFont = value
+		if DBM.BattleRezTimer then
+			DBM.BattleRezTimer:UpdateStyle()
+		end
+	end)
+	local isNewDropdown = BrezFontDropDown.mytype == "dropdown2"
+	BrezFontDropDown:SetPoint("TOPLEFT", showBrezFrame, "TOPLEFT", isNewDropdown and 20 or 0, -40)
+	BrezFontDropDown.myheight = isNewDropdown and 25 or 20
+
+	local fontSizeSlider = area1b:CreateSlider(L.FontSize, 8, 40, 1, 180)
+	fontSizeSlider:SetPoint("TOPLEFT", BrezFontDropDown, "TOPRIGHT", 50, 0)
+	fontSizeSlider:SetValue(DBM.Options.BrezFontSize or 18)
+	fontSizeSlider.myheight = 0
+	fontSizeSlider:HookScript("OnValueChanged", function(self)
+		DBM.Options.BrezFontSize = self:GetValue()
+		if DBM.BattleRezTimer then
+			DBM.BattleRezTimer:UpdateStyle()
+		end
+	end)
+
+	local movemebutton = area1b:CreateButton(L.MoveMe, 100, 16)
+	movemebutton:SetPoint("TOPRIGHT", area1b.frame, "TOPRIGHT", -2, -4)
+	movemebutton:SetNormalFontObject(GameFontNormalSmall)
+	movemebutton:SetHighlightFontObject(GameFontNormalSmall)
+	movemebutton:SetScript("OnClick", function()
+		if DBM.BattleRezTimer:IsShown() then
+			DBM.BattleRezTimer:Hide()
+		else
+			DBM.BattleRezTimer:Show()
+		end
+	end)
 end
 
 local area2 = DBM_GUI.CAT_TOOLS:CreateArea(L.Tools_BreakTimer)

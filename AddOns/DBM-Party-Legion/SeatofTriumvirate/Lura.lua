@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1982, "DBM-Party-Legion", 13, 945)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260322094133")
+mod:SetRevision("20260401091148")
 mod:SetCreatureID(124870)--124745 Greater Rift Warden
 mod:SetEncounterID(2068)
 
@@ -26,7 +26,6 @@ if DBM:IsPostMidnight() then
 	mod:AddPrivateAuraSoundOption(1265426, true, 1265426, 2, 1, "debuffyou", 17)
 
 	function mod:OnLimitedCombatStart()
-		self:DisableSpecialWarningSounds()
 		self:EnableAlertOptions(1265419, 248, "specialsoon", 2)
 		self:EnableAlertOptions(1265421, 249, "aesoon", 2)
 		self:EnableAlertOptions(1265426, 250, "watchstep", 2)

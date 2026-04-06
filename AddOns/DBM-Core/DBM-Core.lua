@@ -77,16 +77,16 @@ local function showRealDate(curseDate)
 	end
 end
 
-DBM.Revision = parseCurseDate("20260325092947")
+DBM.Revision = parseCurseDate("20260405212449")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 private.fakeBWVersion, private.fakeBWHash = 407, "a0f5bf5"--407.0
 
 -- The string that is shown as version
-DBM.DisplayVersion = "12.0.33"--Core version
+DBM.DisplayVersion = "12.0.36"--Core version
 DBM.classicSubVersion = 0
 DBM.dungeonSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2026, 3, 24) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2026, 4, 5) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
 -- support for github downloads, which doesn't support curse keyword expansion
@@ -370,6 +370,7 @@ DBM.DefaultOptions = {
 	CastNPIconGlowBehavior = 1,
 	CastNPIconGlowType2 = 4,--Button Default
 	DontPlayCountdowns = false,
+	DontSetTimelineColors = false,
 	DontSendYells = false,
 	BlockNoteShare = false,
 	DontAutoGossip = false,
@@ -379,10 +380,14 @@ DBM.DefaultOptions = {
 	DontShowPTNoID = false,
 	PTCountThreshold2 = 5,
 	LatencyThreshold = 250,
-	oRA3AnnounceConsumables = false,
+	--AnnounceConsumables = false,
 	SettingsMessageShown = false,
 	NewsMessageShown2 = 2,--Apparently variable without 2 can still exist in some configs (config cleanup of no longer existing variables not working?)
 	AlwaysShowSpeedKillTimer2 = false,
+	ShowBrezFrame = false,
+	BrezFont = "standardFont",
+	BrezFontSize = 18,
+	BattleRezPosition = {"TOPLEFT", 214, -29},
 	ShowRespawn = true,
 	ShowQueuePop = true,
 	ShowBerserkWarnings = true,
@@ -796,6 +801,32 @@ function DBM:IgnoreBlizzardAPI()
 end
 bossModPrototype.IgnoreBlizzardAPI = DBM.IgnoreBlizzardAPI
 
+---Resumes Blizzard API processing after a hardcoded mod failure: restores IgnoreBlizzAPI flag,
+---cancels any orphaned hardcoded bars, then re-creates Blizzard bars from the active event list.
+---Call this from module fallback paths instead of manually setting IgnoreBlizzAPI.
+---@param self DBMModOrDBM
+function DBM:ResumeBlizzardAPI()
+	if DBM.Options.IgnoreBlizzAPI then
+		DBM.Options.IgnoreBlizzAPI = false
+		fireEvent("DBM_ResumeBlizzAPI")
+	end
+	--Cancel any hardcoded bars that are still running to avoid duplicates once Blizzard bars are recovered
+	if private.hardCodedTimers then
+		for _, timerIds in pairs(private.hardCodedTimers) do
+			if type(timerIds) == "table" then
+				for _, timerId in ipairs(timerIds) do
+					DBT:CancelBar(timerId)
+				end
+			else
+				DBT:CancelBar(timerIds)
+			end
+		end
+		wipe(private.hardCodedTimers)
+	end
+	DBM:RecoverBlizzardTimers()
+end
+bossModPrototype.ResumeBlizzardAPI = DBM.ResumeBlizzardAPI
+
 ---@param self DBMModOrDBM
 function DBM:FixBlizzardAPI()
 	DBM.Options.fixBlizzApi = true
@@ -828,7 +859,16 @@ do
 
 	---@param self DBMModOrDBM
 	function DBM:issecretunit(unit)
-		return issecretunit(unit)
+		if issecretunit(unit) then
+			return true
+		end
+		-- Workaround for Blizzard API where ShouldUnitIdentityBeSecret returns false
+		--but compound unit tokens throw error on UnitGUID
+		local guidSuccess, guid = pcall(UnitGUID, unit)
+		if not guidSuccess or guid == nil then
+			return true
+		end
+		return false
 	end
 	bossModPrototype.issecretunit = DBM.issecretunit
 
@@ -1789,11 +1829,13 @@ do
 			if self:IsPostMidnight() then
 				C_CVar.SetCVar("encounterTimelineShowSequenceCount", "1")--Enable count on timers
 				C_EncounterWarnings.SetPlayCustomSoundsWhenHidden(true)--Allows DBM sounds to play even when blizzard frames aren't shown
-				--Apply user bar color to all bars by default, since blizzard applies white (or red) to all of them by default now
-				local timerRed, timerGreen, timerBlue = DBT:GetColorForType(0)
-				--https://wago.tools/db2/EncounterEvent?page=25
-				for i = 1, 658 do
-					C_EncounterEvents.SetEventColor(i, {r = timerRed, g = timerGreen, b = timerBlue})
+				if not self.Options.DontSetTimelineColors then
+					--Apply user bar color to all bars by default, since blizzard applies white (or red) to all of them by default now
+					local timerRed, timerGreen, timerBlue = DBT:GetColorForType(0)
+					--https://wago.tools/db2/EncounterEvent?page=25
+					for i = 1, 733 do
+						C_EncounterEvents.SetEventColor(i, {r = timerRed, g = timerGreen, b = timerBlue})
+					end
 				end
 				if self.Options.HideBossEmoteFrame2 then
 					C_EncounterWarnings.SetWarningsShown(false)
@@ -1914,6 +1956,8 @@ do
 								tinsert(self.Voices, {text = C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-Name"), value = voiceValue})
 							end
 							self.VoiceVersions[voiceValue] = voiceVersion
+							--Run immediately so startup zone syncs (e.g. reload inside instance) don't evaluate PA voice gates with stale defaults.
+							self:CheckVoicePackVersion(voiceValue)
 							self:Schedule(10, self.CheckVoicePackVersion, self, voiceValue)--Still at 1 since the count sounds won't break any mods or affect filter. V2 if support countsound path
 							if C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-HasCount") then--Supports adding countdown options, insert new countdown into table
 								if C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-MidnightCompat") then--Add to TOC only if your count pack supports "fivecount.ogg"
@@ -2876,12 +2920,11 @@ do
 		else
 			local usedTable = bossOnly and bossTargetuIds or fullEnemyUids
 			for _, unitId in ipairs(usedTable) do
-				if self:issecretunit(unitId) then
-					return
-				end
-				local guid2 = UnitGUID(unitId)
-				if enemyGUID == guid2 then
-					return unitId
+				if not self:issecretunit(unitId) then
+					local guid2 = UnitGUID(unitId)
+					if enemyGUID == guid2 then
+						return unitId
+					end
 				end
 			end
 		end
@@ -3867,11 +3910,7 @@ end
 function DBM:READY_CHECK()
 	if self.Options.RLReadyCheckSound then--readycheck sound, if ora3 not installed (bad to have 2 mods do it)
 		self:FlashClientIcon()
-		--LuaLS doesn't like Plater
-		---@diagnostic disable-next-line: undefined-global
-		if not BINDING_HEADER_oRA3 then
-			DBM:PlaySoundFile(567478, true)--Because regular sound uses SFX channel which is too low of volume most of time
-		end
+		DBM:PlaySoundFile(567478, true)--Because regular sound uses SFX channel which is too low of volume most of time
 	end
 	self:TransitionToDungeonBGM(false, true)
 	self:Schedule(4, self.TransitionToDungeonBGM, self)
@@ -4217,6 +4256,9 @@ do
 		-- LoadMod
 		self:LoadModsOnDemand("mapId", mapID, delay or 0)
 		self:CheckAvailableMods()
+		if self.BattleRezTimer then
+			self.BattleRezTimer:CheckSupported()
+		end
 		if private.isRetail then
 			--Handle private aura sounds and anchors
 			syncZonePASounds(self, mapID)
@@ -4308,6 +4350,9 @@ do
 		self:CheckAvailableMods()
 		if not self.Options.RecordOnlyBosses then
 			self:StartLogging(0, nil, true)
+		end
+		if self.BattleRezTimer then
+			self.BattleRezTimer:CheckSupported()
 		end
 	end
 
@@ -4572,23 +4617,23 @@ do
 		end)
 	end
 
-	-- TODO: fix the duplicate code that was added for quick & dirty support of zone IDs
-
-	-- detects a boss pull based on combat state, this is required for pre-ICC bosses that do not fire INSTANCE_ENCOUNTER_ENGAGE_UNIT events on engage
 	function DBM:PLAYER_REGEN_DISABLED()
 		lastCombatStarted = GetTime()
 		if not combatInitialized then return end
+		-- detects a boss pull based on combat state, this is required for legacy or outdoor bosses that do not fire ENCOUNTER_START event on engage
 		if dbmIsEnabled and combatInfo[LastInstanceMapID] then
-			for _, v in ipairs(combatInfo[LastInstanceMapID]) do
-				if v.type:find("combat") and not v.noRegenDetection and not (#inCombat > 0 and v.noMultiBoss) then
-					if v.multiMobPullDetection then
-						for _, mob in ipairs(v.multiMobPullDetection) do
-							if checkForPull(mob, v) then
-								break
+			if not private.isRetail or not IsInInstance() then
+				for _, v in ipairs(combatInfo[LastInstanceMapID]) do
+					if v.type:find("combat") and not v.noRegenDetection and not (#inCombat > 0 and v.noMultiBoss) then
+						if v.multiMobPullDetection then
+							for _, mob in ipairs(v.multiMobPullDetection) do
+								if checkForPull(mob, v) then
+									break
+								end
 							end
+						else
+							checkForPull(v.mob, v)
 						end
-					else
-						checkForPull(v.mob, v)
 					end
 				end
 			end
@@ -4677,6 +4722,7 @@ do
 		until not bossGUID
 	end
 
+	local existShown = {}
 	function DBM:INSTANCE_ENCOUNTER_ENGAGE_UNIT()
 		self:Debug("|cffffff00INSTANCE_ENCOUNTER_ENGAGE_UNIT: |r event fired for zoneId" .. LastInstanceMapID, 3, nil, nil, true)
 		if not timerRequestInProgress then--do not start ieeu combat if timer request is progressing. (not to break Timer Recovery stuff)
@@ -4690,29 +4736,49 @@ do
 				end
 			end
 		end
-		if UnitExists("boss1") then
-			self:Debug("|cffffff00boss1: |r " .. UnitName("boss1"), 3, nil, nil, true)
-		end
-		if UnitExists("boss2") then
-			self:Debug("|cffffff00boss2: |r " .. UnitName("boss2"), 3, nil, nil, true)
-		end
-		if UnitExists("boss3") then
-			self:Debug("|cffffff00boss3: |r " .. UnitName("boss3"), 3, nil, nil, true)
-		end
-		if UnitExists("boss4") then
-			self:Debug("|cffffff00boss4: |r " .. UnitName("boss4"), 3, nil, nil, true)
-		end
-		if UnitExists("boss5") then
-			self:Debug("|cffffff00boss5: |r " .. UnitName("boss5"), 3, nil, nil, true)
+		if self.Options.DebugLevel > 3 then
+			if UnitExists("boss1") and not existShown[1] then
+				self:Debug("|cffffff00boss1 exists", 3, nil, nil, true)
+				existShown[1] = true
+			elseif not UnitExists("boss1") then
+				existShown[1] = nil
+			end
+			if UnitExists("boss2") and not existShown[2] then
+				self:Debug("|cffffff00boss2 exists", 3, nil, nil, true)
+				existShown[2] = true
+			elseif not UnitExists("boss2") then
+				existShown[2] = nil
+			end
+			if UnitExists("boss3") and not existShown[3] then
+				self:Debug("|cffffff00boss3 exists", 3, nil, nil, true)
+				existShown[3] = true
+			elseif not UnitExists("boss3") then
+				existShown[3] = nil
+			end
+			if UnitExists("boss4") and not existShown[4] then
+				self:Debug("|cffffff00boss4 exists", 3, nil, nil, true)
+				existShown[4] = true
+			elseif not UnitExists("boss4") then
+				existShown[4] = nil
+			end
+			if UnitExists("boss5") and not existShown[5] then
+				self:Debug("|cffffff00boss5 exists", 3, nil, nil, true)
+				existShown[5] = true
+			elseif not UnitExists("boss5") then
+				existShown[5] = nil
+			end
 		end
 	end
 
 	function DBM:ENCOUNTER_START(encounterID, name, difficulty, size)
-		self:Debug("|cffffff00ENCOUNTER_START: |r event fired: " .. encounterID .. " " .. name .. " " .. difficulty .. " " .. size, 1, nil, nil, true)
+		self:Debug("|cffff8800ENCOUNTER_START: |r event fired: " .. encounterID .. " " .. name .. " " .. difficulty .. " " .. size, 1, nil, nil, true)
 		if dbmIsEnabled then
 			--Only nag in raids on engage
 			if IsInRaid() then
 				self:CheckAvailableMods()
+			end
+			if self.BattleRezTimer then
+				self.BattleRezTimer:CheckSupported()
 			end
 			if combatInfo[LastInstanceMapID] then
 				for _, v in ipairs(combatInfo[LastInstanceMapID]) do
@@ -4735,10 +4801,13 @@ do
 	end
 
 	function DBM:ENCOUNTER_END(encounterID, name, difficulty, size, success)
-		self:Debug("|cffffff00ENCOUNTER_END: |r event fired: " .. encounterID .. " " .. name .. " " .. difficulty .. " " .. size .. " " .. success, 1, nil, nil, true)
+		self:Debug("|cffff8800ENCOUNTER_END: |r event fired: " .. encounterID .. " " .. name .. " " .. difficulty .. " " .. size .. " " .. success, 1, nil, nil, true)
 		if success == 0 then
 			--Only nag on wipes (in any content)
 			self:CheckAvailableMods()
+		end
+		if self.BattleRezTimer then
+			self.BattleRezTimer:CheckSupported()
 		end
 		for i = #inCombat, 1, -1 do
 			local v = inCombat[i]
@@ -5316,16 +5385,10 @@ do
 						end
 					end
 				end
-				if self.Options.oRA3AnnounceConsumables and _G["oRA3Frame"] then
-					local oRA3 = LibStub and LibStub("AceAddon-3.0"):GetAddon("oRA3", true)
-					if oRA3 then
-						local consumables = oRA3:GetModule("Consumables", true)
-						if consumables then
-							---@diagnostic disable-next-line: undefined-field
-							consumables:OutputResults()
-						end
-					end
-				end
+				--Ora3 is deprecated, this should be replaced with DBMs checks when they're added
+				--if self.Options.AnnounceConsumables then
+
+				--end
 				--show engage message
 				if self.Options.ShowEngageMessage and not mod.noStatistics then
 					if mod.ignoreBestkill and (difficulties.savedDifficulty == "worldboss") then--Should only be true on in progress field bosses, not in progress raid bosses we did timer recovery on.
@@ -5418,7 +5481,7 @@ do
 				end
 			end
 			if private.isRetail then return end
-			if UnitIsUnit(uId, "player") and health < 100 and not private.IsEncounterInProgress() then
+			if UnitIsUnit("player", uId) and health < 100 and not private.IsEncounterInProgress() then
 				--PRIO afk alert first (still disabled on retail because UnitIsAFK is restricted in combat)
 				if self.Options.AFKHealthWarning2 and (health < (private.isHardcoreServer and 95 or 85)) and UnitIsAFK("player") and self:AntiSpam(5, "AFK") then
 					local voice = DBM.Options.ChosenVoicePack2
@@ -6192,7 +6255,7 @@ do
 	---@param spellInput5 number|string|nil|unknown? --optional 5th spell, accepts spellname or spellid
 	function DBM:UnitAura(uId, spellInput, spellInput2, spellInput3, spellInput4, spellInput5)
 		if not uId or self:issecretvalue(uId) then return end
-		if private.isRetail and type(spellInput) == "number" and not spellInput2 and UnitIsUnit(uId, "player") then--A simple single spellId check should use more efficent direct blizzard method
+		if private.isRetail and type(spellInput) == "number" and not spellInput2 and UnitIsUnit("player", uId) then--A simple single spellId check should use more efficent direct blizzard method
 			local spellTable = GetPlayerAuraBySpellID(spellInput)
 			if not spellTable or self:issecretvalue(spellTable.name) then return end
 			return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
@@ -6226,7 +6289,7 @@ do
 	---@param spellInput5 number|string|nil|unknown? --optional 5th spell, accepts spellname or spellid
 	function DBM:UnitDebuff(uId, spellInput, spellInput2, spellInput3, spellInput4, spellInput5)
 		if not uId or self:issecretvalue(uId) then return end
-		if private.isRetail and type(spellInput) == "number" and not spellInput2 and UnitIsUnit(uId, "player") then--A simple single spellId check should use more efficent direct blizzard method
+		if private.isRetail and type(spellInput) == "number" and not spellInput2 and UnitIsUnit("player", uId) then--A simple single spellId check should use more efficent direct blizzard method
 			local spellTable = GetPlayerAuraBySpellID(spellInput)
 			if not spellTable or self:issecretvalue(spellTable.name) then return end
 			return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
@@ -6258,7 +6321,7 @@ do
 	---@param spellInput5 number|string|nil|unknown? --optional 5th spell, accepts spellname or spellid
 	function DBM:UnitBuff(uId, spellInput, spellInput2, spellInput3, spellInput4, spellInput5)
 		if not uId or self:issecretvalue(uId) then return end
-		if private.isRetail and type(spellInput) == "number" and not spellInput2 and UnitIsUnit(uId, "player") then--A simple single spellId check should use more efficent direct blizzard method
+		if private.isRetail and type(spellInput) == "number" and not spellInput2 and UnitIsUnit("player", uId) then--A simple single spellId check should use more efficent direct blizzard method
 			local spellTable = GetPlayerAuraBySpellID(spellInput)
 			if not spellTable or self:issecretvalue(spellTable.name) then return end
 			return spellTable.name, spellTable.icon, spellTable.applications, spellTable.dispelName, spellTable.duration, spellTable.expirationTime, spellTable.sourceUnit, spellTable.isStealable, spellTable.nameplateShowPersonal, spellTable.spellId, spellTable.canApplyAura, spellTable.isBossAura, spellTable.isFromPlayerOrPlayerPet, spellTable.nameplateShowAll, spellTable.timeMod, spellTable.points[1] or nil, spellTable.points[2] or nil, spellTable.points[3] or nil
@@ -6996,7 +7059,9 @@ do
 		[490] = true, -- Unknown, currently encrypted
 	}
 	local requiresRecentKill = {
-		[2238] = 2519--Fyrakk in Amirdrassil
+		[2238] = 2519,--Fyrakk in Amirdrassil
+		[2529] = 3181,--Crown of the Cosmos
+		[1049] = 3181--Crown of the Cosmos
 	}
 	---@param self DBM
 	local function checkOptions(self, id, mapID)
@@ -7036,7 +7101,8 @@ do
 		self:TransitionToDungeonBGM(false, true)
 		if id and not neverFilter[id] then
 			self:Debug("PLAY_MOVIE fired for ID: " .. id, 2, nil, nil, true)
-			if checkOptions(self, id) then
+			local currentMapID = C_Map.GetBestMapForUnit("player")
+			if checkOptions(self, id, currentMapID) then
 				MovieFrame:Hide()--can only just hide movie frame safely now, which means can't stop audio anymore :\
 				self:AddMsg(L.MOVIE_SKIPPED)
 			end
@@ -7982,7 +8048,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260325092235" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260405212449" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then

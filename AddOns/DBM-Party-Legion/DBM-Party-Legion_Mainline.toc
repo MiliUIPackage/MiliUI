@@ -1,4 +1,4 @@
-## Interface: 120001
+## Interface: 120001, 120005
 ## X-Min-Interface: 80000
 ## Category: DBM
 
@@ -20,11 +20,10 @@
 ## X-DBM-Mod-Name-zhCN: 队伍首领 (军团再临)
 ## X-DBM-Mod-Sort: 502
 ## X-DBM-Mod-MapID: 1501, 1466, 1456, 1477, 1458, 1516, 1571, 1492, 1544, 1493, 1651, 1677, 1753
-## X-DBM-Mod-MinCoreRevision: 20200524142133
+## X-DBM-Mod-MinCoreRevision: 20260322092548
 ## X-DBM-Mod-MinExpansion: 6
 ## X-Curse-Project-ID: 314994
-## X-WoWI-ID: 24904
-## Version: r238-11
+## Version: r242
 ## Category-zhTW: 地城與團隊
 
 ## Category-zhTW: 副本

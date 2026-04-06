@@ -278,6 +278,7 @@ L.SLASHCMD_HELP							= {--AI translated (check me)
 	"/dbm key: 在隊伍/公會上執行 M+ 鑰匙和評分檢查，並快捷方式到地下城傳送。 （別名：key，keys，keystone）",
 	"/dbm lag: 執行全團延遲檢查。",
 	"/dbm durability: 執行全團耐久度檢查。",
+	"/dbm brez: 顯示戰鬥復活計時器框架以供定位。",--AI translated (check me)
 	"/dbm help2: 顯示其他斜線命令"
 }
 --較少使用的斜線命令
@@ -327,6 +328,7 @@ L.AUTO_ANNOUNCE_TEXTS.you					= "你中了%s"
 L.AUTO_ANNOUNCE_TEXTS.target				= "%s:>%%s<"
 L.AUTO_ANNOUNCE_TEXTS.targetsource			= ">%%s< 施放 %s 在 >%%s<"
 L.AUTO_ANNOUNCE_TEXTS.targetcount			= "%s (%%s):>%%s<"
+L.AUTO_ANNOUNCE_TEXTS.blizztarget			= "%s (%%s) 在 %%s"--Blizz target has class color preformated, so >< not needed
 L.AUTO_ANNOUNCE_TEXTS.spell					= "%s"
 L.AUTO_ANNOUNCE_TEXTS.incoming				= "%s 即將到來的減益"
 L.AUTO_ANNOUNCE_TEXTS.incomingcount			= "%s 即將到來的減益 (%%s)"
@@ -352,6 +354,7 @@ L.AUTO_ANNOUNCE_OPTIONS.target				= "提示：$spell:%s的目標"
 L.AUTO_ANNOUNCE_OPTIONS.targetNF			= "提示：$spell:%s的目標(忽略全局目標過濾)"
 L.AUTO_ANNOUNCE_OPTIONS.targetsource		= "提示：$spell:%s的目標(包含來源)"
 L.AUTO_ANNOUNCE_OPTIONS.targetcount			= "提示：$spell:%s的目標(包含計數)"
+L.AUTO_ANNOUNCE_OPTIONS.blizztarget			= "提示：$spell:%s的目標(包含計數)"
 L.AUTO_ANNOUNCE_OPTIONS.spell				= "提示：當$spell:%s施放時"
 L.AUTO_ANNOUNCE_OPTIONS.incoming			= "提示：$spell:%s 的減益即將到來"
 L.AUTO_ANNOUNCE_OPTIONS.incomingcount		= "提示：$spell:%s 的減益即將到來(包含計數)"
@@ -664,12 +667,12 @@ L.ARROW_ERROR_USAGE	= {
 
 L.SPEED_KILL_TIMER_TEXT			= "勝利紀錄"
 L.SPEED_CLEAR_TIMER_TEXT		= "最佳紀錄"
-L.COMBAT_RES_TIMER_TEXT			= "下一個戰復充能"
 L.TIMER_RESPAWN					= "%s 重生"
 
 L.LAG_HEADER					= ""..L.DBM.." - 網路延遲結果"
 L.DUR_HEADER					= ""..L.DBM.." - 裝備耐久度結果"
 L.KEYSTONES_HEADER				= L.DBM.. " - 鑰石"
+L.BREZ_HEADER					= "戰鬥復活"
 
 L.OVERRIDE_ACTIVATED			= "領隊已啟用此首領的配置覆蓋"
 
