@@ -299,12 +299,13 @@ local function GetTargetByString(mouseover, num, tip)
     local roleIcon, colorCode, name
     local first = true
     local isPlayer = SafeBool(UnitIsPlayer, mouseover)
+    local targetByLabel = addon.L and addon.L["TargetBy"]
     for i = 1, num do
         if SafeBool(UnitIsUnit, mouseover, prefix..i.."target") and not SafeBool(UnitIsUnit, prefix..i, "player") then
             count = count + 1
             if (isPlayer or prefix == "party") then
                 if (first) then
-                    tip:AddLine(format("%s:", addon.L and addon.L.TargetBy or "Targeted By"))
+                    tip:AddLine(format("%s:", targetByLabel))
                     first = false
                 end
                 roleIcon  = addon:GetRoleIcon(prefix..i) or ""
@@ -330,7 +331,7 @@ LibEvent:attachTrigger("tooltip:unit", function(self, tip, unit)
           or (npc.showTargetBy and not isPlayer) then
             local text = GetTargetByString("mouseover", num, tip)
             if (text) then
-                tip:AddLine(format("%s: %s", addon.L and addon.L.TargetBy or "Targeted By", text), nil, nil, nil, true)
+                tip:AddLine(format("%s: %s", addon.L["TargetBy"], text), nil, nil, nil, true)
             end
         end
     end

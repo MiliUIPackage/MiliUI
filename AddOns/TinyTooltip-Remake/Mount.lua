@@ -2,6 +2,8 @@
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local LibSchedule = LibStub:GetLibrary("LibSchedule.7000")
 
+local addon = TinyTooltip
+local L = addon.L or {}
 local mounts = {}
 
 if (not C_MountJournal) then return end
@@ -41,7 +43,7 @@ LibEvent:attachTrigger("tooltip:aura", function(self, tip, args)
         if (mounts[spellID]) then
             tip:AddLine(" ")
             if (mounts[spellID].isCollected) then
-                tip:AddDoubleLine(mounts[spellID].source, COLLECTED, 1, 1, 1, 0.1, 1, 0.1)
+                tip:AddDoubleLine(mounts[spellID].source, L["collected"], 1, 1, 1, 0.1, 1, 0.1)
             else
                 tip:AddLine(mounts[spellID].source, 1, 1, 1)
             end

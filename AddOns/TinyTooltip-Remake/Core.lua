@@ -157,8 +157,8 @@ end
 addon.SafeHideNineSlice = SafeHideNineSlice
 
 -- language & global vars
-addon.L, addon.G = {}, {}
-setmetatable(addon.L, {__index = function(_, k) return k end})
+addon.L = addon.L or {}
+addon.G = addon.G or {}
 setmetatable(addon.G, {__index = function(_, k) return _G[k] or k end})
 
 -- tooltips
@@ -1082,9 +1082,10 @@ function addon:GetUnitInfo(unit)
     t.name         = name
     t.gender       = self:GetGender(gender)
     t.realm        = realm or GetRealmName()
-    t.levelValue   = (type(level) == "number" and level >= 0) and level or "??"
-    t.itemLevel = isPlayer and ((type(itemLevel) == "number" and itemLevel > 0) and floor(itemLevel + 0.5) or "??") or nil
-    t.achievementPoints = isPlayer and ((type(achievementPoints) == "number" and achievementPoints >= 0) and floor(achievementPoints + 0.5) or "??") or nil
+    local unknownText = self.L["unknown"]
+    t.levelValue   = (type(level) == "number" and level >= 0) and level or unknownText
+    t.itemLevel = isPlayer and ((type(itemLevel) == "number" and itemLevel > 0) and floor(itemLevel + 0.5) or unknownText) or nil
+    t.achievementPoints = isPlayer and ((type(achievementPoints) == "number" and achievementPoints >= 0) and floor(achievementPoints + 0.5) or unknownText) or nil
     t.className    = className
     t.raceName     = raceName
     t.guildName    = guildName
@@ -1105,7 +1106,7 @@ function addon:GetUnitInfo(unit)
     t.isPlayer     = isPlayer and PLAYER
     t.moveSpeed    = self:GetUnitSpeed(unit)
     t.zone         = self:GetZone(unit, t.name, t.realm)
-    local label = self.L and self.L["Mythic+ Score"] or "M+ Score"
+    local label = self.L["Mythic+ Score"]
     if (mplusScore and mplusScore > 0) then
         local bestText = (mplusBest and mplusBest > 0) and (" (" .. mplusBest .. ")") or ""
         t.mplusScore = format("%s: %d%s", label, floor(mplusScore + 0.5), bestText)
@@ -1188,7 +1189,7 @@ function addon:GetUnitData(unit, elements, raw)
             config = elements[e]
             if (e == "mount") then
                 if (self:CheckFilter(config, raw) and raw.mountName) then
-                    local labelText = (self.L and self.L.Mount) or MOUNT or "Mount"
+                    local labelText = self.L["Mount"]
                     local label = "|cffffd200" .. labelText .. ":|r"
                     local nameText
                     if (config and config.color and config.wildcard) then
@@ -1201,10 +1202,10 @@ function addon:GetUnitData(unit, elements, raw)
                     end
                     local statusText
                     if (raw.mountCollected == true) then
-                        local collectedText = (self.L and self.L.collected) or "collected"
+                        local collectedText = self.L["collected"]
                         statusText = "|cff00ff00(" .. collectedText .. ")|r"
                     elseif (raw.mountCollected == false) then
-                        local uncollectedText = (self.L and self.L.uncollected) or "uncollected"
+                        local uncollectedText = self.L["uncollected"]
                         statusText = "|cff999999(" .. uncollectedText .. ")|r"
                     end
                     if (statusText) then
@@ -1262,7 +1263,7 @@ function addon:GetUnitData(unit, elements, raw)
                 end
             elseif (e == "itemLevel") then
                 if (self:CheckFilter(config, raw) and raw.itemLevel) then
-                    local labelText = (self.L and self.L.ItemLevel) or "ItemLevel"
+                    local labelText = self.L["ItemLevel"]
                     local labelPart
                     if (config and config.icon) then
                         labelPart = itemLevelIconTag .. "|cffffd200:|r"
@@ -1271,11 +1272,11 @@ function addon:GetUnitData(unit, elements, raw)
                     end
                     local itemLevelValue = raw.itemLevel
                     local valuePart
-                    if (tostring(itemLevelValue) == "??") then
-                        local unknownText = "??"
+                    if (tostring(itemLevelValue) == self.L["unknown"]) then
+                        local unknownText = self.L["unknown"]
                         if (config and config.wildcard) then
                             local ok, formatted = pcall(function()
-                                return (config.wildcard):format("??")
+                                return (config.wildcard):format(self.L["unknown"])
                             end)
                             if (ok and type(formatted) == "string" and formatted ~= "") then
                                 unknownText = formatted
@@ -1291,7 +1292,7 @@ function addon:GetUnitData(unit, elements, raw)
                 end
             elseif (e == "achievementPoints") then
                 if (self:CheckFilter(config, raw) and raw.achievementPoints ~= nil) then
-                    local labelText = (self.L and self.L.Achievement) or "Achievement"
+                    local labelText = self.L["Achievement"]
                     local labelPart
                     if (config and config.icon) then
                         labelPart = achievementPointsIconTag .. "|cffffd200:|r"
@@ -1300,11 +1301,11 @@ function addon:GetUnitData(unit, elements, raw)
                     end
                     local pointValue = raw.achievementPoints
                     local valuePart
-                    if (tostring(pointValue) == "??") then
-                        local unknownText = "??"
+                    if (tostring(pointValue) == self.L["unknown"]) then
+                        local unknownText = self.L["unknown"]
                         if (config and config.wildcard) then
                             local ok, formatted = pcall(function()
-                                return (config.wildcard):format("??")
+                                return (config.wildcard):format(self.L["unknown"])
                             end)
                             if (ok and type(formatted) == "string" and formatted ~= "") then
                                 unknownText = formatted

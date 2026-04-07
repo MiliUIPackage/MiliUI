@@ -177,14 +177,28 @@ LibEvent:attachEvent("VARIABLES_LOADED", function()
 end)
 
 LibEvent:attachEvent("PLAYER_LOGIN", function()
-    local title = addon.L["about.notice.title"] or ""
-    local content = addon.L["about.notice.content"] or ""
-    if (DEFAULT_CHAT_FRAME and title ~= "") then
-        DEFAULT_CHAT_FRAME:AddMessage(("|cff33eeff[TinyTooltip-Remake]|r %s"):format(title))
+    local general = addon.db and addon.db.general
+    if (not general) then return end
+
+    local title = addon.L["about.announcement.title"] or ""
+    local chatKey = addon.L["about.announcement.chatKey"] or ""
+    local chatContent = addon.L["about.announcement.chat"] or ""
+    local mode = general.announcementMode or "noticeAlways"
+
+    if (mode == "noticeNever" or chatKey == "") then
+        return
     end
-    if (DEFAULT_CHAT_FRAME and content ~= "") then
-        DEFAULT_CHAT_FRAME:AddMessage(content)
+    if (mode == "noticeSnooze" and general.announcementLastSeen == chatKey) then
+        return
     end
+
+    if (title ~= "") then
+        print(("|cff33eeff[TinyTooltip-Remake]|r %s"):format(title))
+    end
+    if (chatContent ~= "") then
+        print(chatContent)
+    end
+    general.announcementLastSeen = chatKey
 end)
 
 LibEvent:attachTrigger("tooltip:cleared, tooltip:hide", function(self, tip)

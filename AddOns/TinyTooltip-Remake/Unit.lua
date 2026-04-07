@@ -278,13 +278,13 @@ local function PlayerCharacter(tip, unit, config, raw)
     end
     if (config and config.elements and addon.RequestInspectItemLevel) then
         local showItemLevel = (config.elements.itemLevel and config.elements.itemLevel.enable)
-        if (showItemLevel and raw and raw.itemLevel == "??") then
+        if (showItemLevel and raw and raw.itemLevel == addon.L["unknown"]) then
             addon:RequestInspectItemLevel(unit)
         end
     end
     if (config and config.elements and addon.RequestInspectAchievementPoints) then
         local showAchievementPoints = (config.elements.achievementPoints and config.elements.achievementPoints.enable)
-        if (showAchievementPoints and raw and raw.achievementPoints == "??") then
+        if (showAchievementPoints and raw and raw.achievementPoints == addon.L["unknown"]) then
             addon:RequestInspectAchievementPoints(unit)
         end
     end

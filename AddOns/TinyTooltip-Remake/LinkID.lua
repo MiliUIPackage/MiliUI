@@ -13,11 +13,11 @@ end
 local function ShowId(tooltip, name, value, noBlankLine, forceShow)
     if (not name or not value) then return end
     if (tooltip.IsForbidden and tooltip:IsForbidden()) then return end
-    if (forceShow or IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown() or addon.db.general.alwaysShowIdInfo) then
+    if (forceShow or IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown()) then
         local line = addon:FindLine(tooltip, name)
         if (not line) then
             if (not noBlankLine) then tooltip:AddLine(" ") end
-            tooltip:AddLine(format("%s: |cffffffff%s|r", name, value), 1, 0.82, 0)
+            tooltip:AddLine(format("%s: |cffffffff%s|r", name, value), 0, 1, 0.8)
             tooltip:Show()
         end
         LibEvent:trigger("tooltip.linkid", tooltip, name, value, noBlankLine)
@@ -59,11 +59,11 @@ local function ShowSpellInfo(tooltip, spellId)
         showSpellIconId = true
     end
     if (showSpellId) then
-        ShowId(tooltip, L["id.spell"] or "Spell ID", spellId, nil, true)
+        ShowId(tooltip, L["id.spell"], spellId, nil, true)
     end
     local iconId = GetSpellIconId(spellId)
     if (iconId and showSpellIconId) then
-        ShowId(tooltip, L["id.icon"] or "Icon ID", iconId, true, true)
+        ShowId(tooltip, L["id.icon"], iconId, true, true)
     end
 end
 
@@ -88,9 +88,9 @@ local function ShowItemInfo(tooltip, linkOrId)
     end
     local _, itemId = ParseHyperLink(linkOrId)
     local isEquippable = IsEquippableItem and IsEquippableItem(linkOrId)
-    local itemEnhancementId = "n/a"
-    local itemBonusId = "n/a"
-    local itemGemId = "n/a"
+    local itemEnhancementId = L["id.na"]
+    local itemBonusId = L["id.na"]
+    local itemGemId = L["id.na"]
     if (type(linkOrId) == "string") then
         local itemString = linkOrId:match("|?Hitem:([^|]+)") or linkOrId:match("^item:([^|]+)")
         if (itemString and itemString ~= "") then
@@ -122,7 +122,7 @@ local function ShowItemInfo(tooltip, linkOrId)
                     end
                 end
                 if (#bonusIds > 0) then
-                    local bonusLabel = L["id.bonus"] or "Bonus ID"
+                    local bonusLabel = L["id.bonus"]
                     local bonusIndent = string.rep(" ", string.len(bonusLabel) + 2)
                     local formattedBonus = {}
                     for i, bonusId in ipairs(bonusIds) do
@@ -141,25 +141,25 @@ local function ShowItemInfo(tooltip, linkOrId)
         end
     end
     if (showItemId) then
-        local hasExpansionLine = addon:FindLine(tooltip, L["id.expansion"] or "Expansion")
-        ShowId(tooltip, L["id.item"] or "Item ID", itemId, hasExpansionLine and true or false, true)
+        local hasExpansionLine = addon:FindLine(tooltip, L["id.expansion"])
+        ShowId(tooltip, L["id.item"], itemId, hasExpansionLine and true or false, true)
     end
     if (showItemBonusId and isEquippable) then
-        ShowId(tooltip, L["id.bonus"] or "Bonus ID", itemBonusId, true, true)
+        ShowId(tooltip, L["id.bonus"], itemBonusId, true, true)
     end
     if (showItemEnhancementId and isEquippable) then
-        ShowId(tooltip, L["id.enhancement"] or "Enhancement ID", itemEnhancementId, true, true)
+        ShowId(tooltip, L["id.enhancement"], itemEnhancementId, true, true)
     end
     if (showItemGemId and isEquippable) then
-        ShowId(tooltip, L["id.gem"] or "Gem ID", itemGemId, true, true)
+        ShowId(tooltip, L["id.gem"], itemGemId, true, true)
     end
     local iconId = GetItemIconId(linkOrId)
     if (iconId and showItemIconId) then
-        ShowId(tooltip, L["id.icon"] or "Icon ID", iconId, true, true)
+        ShowId(tooltip, L["id.icon"], iconId, true, true)
     end
     local maxStack = GetItemMaxStack(linkOrId)
     if (maxStack and showItemMaxStack) then
-        ShowId(tooltip, L["id.maxStack"] or "Max Stack Count", maxStack, true, true)
+        ShowId(tooltip, L["id.maxStack"], maxStack, true, true)
     end
 end
 
@@ -249,16 +249,16 @@ end)
 if (QuestMapLogTitleButton_OnEnter) then
     hooksecurefunc("QuestMapLogTitleButton_OnEnter", function(self)
         if (self.questID and addon.db.quest.showQuestId ~= false) then
-            ShowId(GameTooltip, L["id.quest"] or "Quest ID", self.questID, nil, true)
+            ShowId(GameTooltip, L["id.quest"], self.questID, nil, true)
         end
     end)
 end
 
 -- Achievement UI
 local function ShowAchievementId(self)
-    if ((IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown() or addon.db.general.alwaysShowIdInfo) and self.id) then
+    if ((IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown()) and self.id) then
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT", 0, -32)
-        GameTooltip:SetText("|cffffdd22Achievement:|r " .. self.id, 1, 0.82, 0)
+        GameTooltip:SetText(format("|cffffdd22%s:|r %s", L["Achievement"], self.id), 0, 1, 0.8)
         GameTooltip:Show()
     end
 end

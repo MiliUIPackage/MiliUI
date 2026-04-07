@@ -23,7 +23,6 @@ addon.db = {
         statusbarTexture  = "Interface\\AddOns\\TinyTooltip-Reforged\\texture\\StatusBar",
 	    statusbarTextFormat = "healthmaxpercent",
         anchor            = { position = "cursorRight", hiddenInCombat = false, modifierShowInCombatKey = "none", returnInCombat = false, returnOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", }, --鼠標位置 default|cursor|static|cursorRight
-        alwaysShowIdInfo  = false,
         skinMoreFrames    = true,
         headerFont        = "default",
         headerFontSize    = "default",
@@ -34,6 +33,8 @@ addon.db = {
         SavedVariablesPerCharacter = false,
         hideUnitFrameHint = true,                  --隐藏头像框右键设置提示
         quickFocusModKey = "none",                 --快速焦点修饰键 none|alt|ctrl|shift
+        announcementMode = "noticeNever",         --公告显示模式 noticeNever|noticeSnooze|noticeAlways
+        announcementLastSeen = "",                 --最近一次已显示的公告内容签名
     },
     unit = {
         player = {

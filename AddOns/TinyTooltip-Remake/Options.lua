@@ -68,12 +68,12 @@ function TinyTooltipRemake_About_OnLoad(self)
     end
 
     if self.VersionText then
-        self.VersionText:SetText(GetText("about.version.label") or "Version")
+        self.VersionText:SetText(GetText("about.version.label"))
     end
     if self.Version then self.Version:SetText(ver) end
 
     if self.AuthorText then
-        self.AuthorText:SetText(GetText("about.author.label") or "Author")
+        self.AuthorText:SetText(GetText("about.author.label"))
     end
     if self.Author then
         local author = GetText("about.author.name") or ""
@@ -81,7 +81,7 @@ function TinyTooltipRemake_About_OnLoad(self)
     end
 
     if self.HelpText then
-        self.HelpText:SetText(GetText("about.help.title")or "Help")
+        self.HelpText:SetText(GetText("about.help.title"))
     end
 
     if self.HelpURL then
@@ -90,31 +90,93 @@ function TinyTooltipRemake_About_OnLoad(self)
     end
 
     if self.NoticeText then
-        self.NoticeText:SetText(GetText("about.notice.title") or "Notice")
+        self.NoticeText:SetText(GetText("about.announcement.title"))
     end
     if self.Notice then
         if self.Notice.SetJustifyH then self.Notice:SetJustifyH("LEFT") end
-        self.Notice:SetText(GetText("about.notice.content") or "")
+        self.Notice:SetText(GetText("about.announcement.content") or "")
     end
 
     if self.CreditsText then
-        self.CreditsText:SetText(GetText("about.credits.title") or "Credits")
+        self.CreditsText:SetText(GetText("about.credits.title"))
     end
     
     if self.Credits then
         if self.Credits.SetJustifyH then self.Credits:SetJustifyH("LEFT") end
         self.Credits:SetText(GetText("about.credits.content") or "")
     end
+
+    local function GetRegionHeight(region)
+        if (not region) then return 0 end
+        local height = region.GetStringHeight and region:GetStringHeight() or (region.GetHeight and region:GetHeight()) or 0
+        if (type(height) ~= "number" or height < 0) then
+            return 0
+        end
+        return height
+    end
+
+    local function UpdateAboutPageLayout()
+        if (self._aboutLayoutBusy) then return end
+
+        local width = (self.GetWidth and self:GetWidth() or 0) - 34
+        if (width <= 0) then return end
+
+        self._aboutLayoutBusy = true
+        if (self.Tagline) then self.Tagline:SetWidth(width) end
+        if (self.HelpURL) then self.HelpURL:SetWidth(width) end
+        if (self.Notice) then self.Notice:SetWidth(width) end
+        if (self.Credits) then self.Credits:SetWidth(width) end
+
+        local height = 16
+        height = height + GetRegionHeight(self.Title)
+        height = height + 12 + GetRegionHeight(self.Tagline)
+        height = height + 12 + max(GetRegionHeight(self.VersionText), GetRegionHeight(self.Version))
+        height = height + 8 + max(GetRegionHeight(self.AuthorText), GetRegionHeight(self.Author))
+        height = height + 24 + GetRegionHeight(self.HelpText)
+        height = height + 8 + GetRegionHeight(self.HelpURL)
+        height = height + 24 + GetRegionHeight(self.NoticeText)
+        height = height + 8 + GetRegionHeight(self.Notice)
+        height = height + 24 + GetRegionHeight(self.CreditsText)
+        height = height + 8 + GetRegionHeight(self.Credits)
+        height = height + 20
+
+        if (abs((self.GetHeight and self:GetHeight() or 0) - height) > 0.5) then
+            self:SetHeight(height)
+        end
+        self._aboutLayoutBusy = nil
+    end
+
+    if (not self._aboutLayoutInitialized) then
+        self._aboutLayoutInitialized = true
+        self._updateAboutPageLayout = UpdateAboutPageLayout
+        self:HookScript("OnShow", UpdateAboutPageLayout)
+        self:HookScript("OnSizeChanged", UpdateAboutPageLayout)
+    end
+    UpdateAboutPageLayout()
 end
 
 
 
 addon.L = addon.L or {}
-setmetatable(addon.L, { __index = function(self, k)
-    local s = {strsplit(".", k)}
-    return rawget(self,s[#s]) or (s[#s]:gsub("([a-z])([A-Z])", "%1 %2"):gsub("^(%a)", strupper))
-end})
 local L = addon.L
+
+local function GetDropdownDisplayText(value, localePrefix, allowRawValue)
+    local textKey = tostring(value)
+    local text
+    if (localePrefix) then
+        text = rawget(L, localePrefix .. textKey)
+    end
+    if (not text) then
+        text = rawget(L, "dropdown." .. textKey)
+    end
+    if (text ~= nil) then
+        return text
+    end
+    if (allowRawValue or type(value) == "number") then
+        return textKey
+    end
+    return ""
+end
 
 local function CallTrigger(keystring, value)
     for _, tip in pairs(addon.tooltips) do
@@ -227,7 +289,7 @@ end
 local function RefreshDropdown(dropdown, value)
     UIDropDownMenu_SetSelectedValue(dropdown, value)
     if (value ~= nil) then
-        local text = L["dropdown."..tostring(value)] or tostring(value)
+        local text = GetDropdownDisplayText(value, dropdown and dropdown.localePrefix, dropdown and dropdown.allowRawValue)
         UIDropDownMenu_SetText(dropdown, text)
         if (dropdown.selectedFunc) then
             dropdown.selectedFunc(dropdown, value, text)
@@ -249,11 +311,6 @@ local function RefreshWidget(widget, config)
     local t = config.type
     if (t == "checkbox") then
         widget:SetChecked(GetVariable(config.keystring))
-    elseif (t == "idinfo") then
-        widget.checkbox:SetChecked(GetVariable(config.keystring))
-        if (widget._updateIdInfoLayout) then
-            widget:_updateIdInfoLayout()
-        end
     elseif (t == "slider") then
         local v = GetVariable(config.keystring) or 0
         widget:SetValue(v)
@@ -349,165 +406,10 @@ function widgets:checkbox(parent, config, labelText)
     frame.keystring = config.keystring
     local text = labelText or L[config.keystring]
     frame.tooltipText = text
-    if (config.keystring == "general.alwaysShowIdInfo") then
-        text = labelText or L["general.alwaysShowIdInfo.short"] or L[config.keystring]
-        frame.tooltipText = L["general.alwaysShowIdInfo.hint"] or "If disabled, hold SHIFT/ALT to display."
-        frame:HookScript("OnEnter", function(self)
-            if (self.tooltipText and self.tooltipText ~= "") then
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText(self.tooltipText, 1, 1, 1, 1)
-                GameTooltip:Show()
-            end
-        end)
-        frame:HookScript("OnLeave", function()
-            GameTooltip:Hide()
-        end)
-    end
     frame.Text:SetWidth(0)
     frame.Text:SetText(text)
     frame:SetChecked(GetVariable(config.keystring))
     frame:SetScript("OnClick", function(self) SetVariable(self.keystring, self:GetChecked()) end)
-    return frame
-end
-
-function widgets:idinfo(parent, config)
-    local frame = CreateFrame("Frame", nil, parent)
-    local parentWidth = parent and parent.anchor and parent.anchor:GetWidth()
-    frame:SetSize(parentWidth or 400, LAYOUT.ROW_HEIGHT)
-    frame.checkbox = self:checkbox(frame, {keystring = config.keystring}, L[config.keystring])
-    -- Keep the right-side dropdown aligned with other dropdown rows,
-    -- while restoring the checkbox/text column alignment with normal checkbox rows.
-    frame.checkbox:SetPoint("LEFT", 15, 0)
-
-    frame.optionButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    frame.optionButton:SetSize(220, 22)
-    frame.optionButton:SetPoint("RIGHT", frame, "RIGHT", -10, -1)
-    if (frame.optionButton.Text) then
-        frame.optionButton.Text:SetFont(STANDARD_TEXT_FONT, 12, "OUTLINE")
-        frame.optionButton.Text:ClearAllPoints()
-        frame.optionButton.Text:SetPoint("LEFT", 10, 0)
-        frame.optionButton.Text:SetPoint("RIGHT", -22, 0)
-        frame.optionButton.Text:SetJustifyH("LEFT")
-    end
-    frame.optionButton.arrow = frame.optionButton:CreateTexture(nil, "ARTWORK")
-    frame.optionButton.arrow:SetSize(16, 16)
-    frame.optionButton.arrow:SetPoint("RIGHT", -6, 0)
-    frame.optionButton.arrow:SetTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
-    frame.optionButton.arrow:SetTexCoord(0, 1, 0, 1)
-
-    frame.optionPanel = CreateFrame("Frame", nil, frame, BackdropTemplateMixin and "BackdropTemplate" or nil)
-    frame.optionPanel:SetBackdrop({
-        bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        edgeSize = 12,
-        insets   = {left = 4, right = 4, top = 4, bottom = 4},
-    })
-    frame.optionPanel:SetBackdropColor(0, 0, 0, 0.85)
-    frame.optionPanel:SetBackdropBorderColor(0.6, 0.6, 0.6, 0.8)
-    frame.optionPanel:SetPoint("TOPLEFT", frame.optionButton, "BOTTOMLEFT", 0, -2)
-    frame.optionPanel:SetPoint("TOPRIGHT", frame.optionButton, "BOTTOMRIGHT", 0, -2)
-    frame.optionPanel:SetFrameStrata("DIALOG")
-    frame.optionPanel:SetFrameLevel(frame:GetFrameLevel() + 10)
-    frame.optionPanel:Hide()
-
-    frame.checkboxSpellItem = CreateFrame("CheckButton", nil, frame.optionPanel, "InterfaceOptionsCheckButtonTemplate")
-    frame.checkboxSpellItem.Text:SetWidth(0)
-    frame.checkboxSpellItem.Text:SetText(L["general.idInfoMode.spellItem"] or "Show Spell/Item ID")
-    frame.checkboxSpellItem:SetPoint("TOPLEFT", 8, -6)
-    frame.checkboxIcon = CreateFrame("CheckButton", nil, frame.optionPanel, "InterfaceOptionsCheckButtonTemplate")
-    frame.checkboxIcon.Text:SetWidth(0)
-    frame.checkboxIcon.Text:SetText(L["general.idInfoMode.icon"] or "Show Icon ID")
-    frame.checkboxIcon:SetPoint("TOPLEFT", frame.checkboxSpellItem, "BOTTOMLEFT", 0, -6)
-
-    local modeKey = config.modeKeystring
-    local function GetModeTable()
-        local mode = GetVariable(modeKey)
-        if (type(mode) ~= "table") then
-            mode = {}
-        end
-        if (mode.spellItem == nil) then mode.spellItem = true end
-        if (mode.icon == nil) then mode.icon = true end
-        return mode
-    end
-    local function SetModeValue(key, enabled)
-        local mode = GetModeTable()
-        mode[key] = enabled and true or false
-        SetVariable(modeKey, mode)
-    end
-
-    local function UpdateOptionSummary()
-        local mode = GetModeTable()
-        local selections = {}
-        if (mode.spellItem) then
-            tinsert(selections, L["general.idInfoMode.spellItem"] or "Show Spell/Item ID")
-        end
-        if (mode.icon) then
-            tinsert(selections, L["general.idInfoMode.icon"] or "Show Icon ID")
-        end
-        local summary
-        if (#selections == 0) then
-            summary = L["id.display.none"] or L["dropdown.none"] or NONE
-        elseif (#selections == 2) then
-            summary = L["id.display.both"] or table.concat(selections, ", ")
-        else
-            summary = selections[1]
-        end
-        local text = summary
-        local fontString = frame.optionButton.Text
-        if (fontString and frame.optionButton.GetWidth) then
-            local maxWidth = frame.optionButton:GetWidth() - 36
-            if (maxWidth < 40) then maxWidth = 40 end
-            local function TruncateToFit(value)
-                fontString:SetText(value)
-                if (fontString:GetStringWidth() <= maxWidth) then
-                    return value
-                end
-                local ellipsis = "..."
-                local low, high = 0, #value
-                while (low < high) do
-                    local mid = math.floor((low + high) / 2)
-                    local candidate = value:sub(1, mid) .. ellipsis
-                    fontString:SetText(candidate)
-                    if (fontString:GetStringWidth() <= maxWidth) then
-                        low = mid + 1
-                    else
-                        high = mid
-                    end
-                end
-                local finalLen = math.max(0, low - 1)
-                return value:sub(1, finalLen) .. ellipsis
-            end
-            text = TruncateToFit(text)
-        end
-        frame.optionButton:SetText(text)
-    end
-
-    local function UpdatePanelLayout()
-        local mode = GetModeTable()
-        frame.checkboxSpellItem:SetChecked(mode.spellItem)
-        frame.checkboxIcon:SetChecked(mode.icon)
-        UpdateOptionSummary()
-        frame.optionPanel:SetHeight((LAYOUT.ROW_HEIGHT * 2) + 10)
-        frame.optionPanel:SetWidth(frame.optionButton:GetWidth())
-        frame:SetHeight(LAYOUT.ROW_HEIGHT)
-    end
-
-    frame.checkboxSpellItem:SetScript("OnClick", function(self)
-        SetModeValue("spellItem", self:GetChecked())
-        UpdatePanelLayout()
-    end)
-    frame.checkboxIcon:SetScript("OnClick", function(self)
-        SetModeValue("icon", self:GetChecked())
-        UpdatePanelLayout()
-    end)
-    frame.optionButton:SetScript("OnClick", function()
-        frame.optionPanel:SetShown(not frame.optionPanel:IsShown())
-        UpdatePanelLayout()
-    end)
-
-    frame:HookScript("OnShow", UpdatePanelLayout)
-    frame._updateIdInfoLayout = UpdatePanelLayout
-    UpdatePanelLayout()
     return frame
 end
 
@@ -520,7 +422,7 @@ function widgets:quickfocus(parent, config)
     frame.label:SetPoint("LEFT", 39, 0)
     frame.label:SetFontObject("GameFontNormal")
     frame.label:SetTextColor(1, 0.82, 0)
-    frame.label:SetText(L[config.keystring] or config.keystring)
+    frame.label:SetText(L[config.keystring])
 
     frame.optionButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     frame.optionButton:SetSize(220, 22)
@@ -553,8 +455,9 @@ function widgets:quickfocus(parent, config)
     frame.optionPanel:SetFrameLevel(frame:GetFrameLevel() + 10)
     frame.optionPanel:Hide()
 
-    local helpText = L["quickfocus.help"] or "Hold the modifier key and click a target to set focus. Hold the modifier key and click empty space to clear focus."
+    local helpText = rawget(L, "quickfocus.help")
     local function ShowHelpTooltip(owner)
+        if (not helpText or helpText == "") then return end
         GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
         GameTooltip:SetText(helpText, 0.9, 0.9, 0.9, 1, true)
         GameTooltip:Show()
@@ -577,7 +480,7 @@ function widgets:quickfocus(parent, config)
         row.text = row:CreateFontString(nil, "BORDER")
         row.text:SetFont(GameFontHighlightSmall:GetFont(), 14, "THINOUTLINE")
         row.text:SetPoint("LEFT", 24, 0)
-        row.text:SetText(L["dropdown."..value] or tostring(value))
+        row.text:SetText(GetDropdownDisplayText(value))
         row.check = row:CreateTexture(nil, "ARTWORK")
         row.check:SetSize(16, 16)
         row.check:SetPoint("LEFT", 6, 0)
@@ -602,7 +505,7 @@ function widgets:quickfocus(parent, config)
 
     local function UpdateOptionSummary()
         local selected = GetVariable(config.keystring) or "none"
-        local text = L["dropdown."..tostring(selected)] or tostring(selected)
+        local text = GetDropdownDisplayText(selected)
         local fontString = frame.optionButton.Text
         if (fontString and frame.optionButton.GetWidth) then
             local maxWidth = frame.optionButton:GetWidth() - 36
@@ -742,6 +645,7 @@ function widgets:slider(parent, config)
     frame:SetWidth(118)
     frame.Text = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     frame.Text:SetPoint("LEFT", frame, "RIGHT", 8, 0)
+    frame.Text:SetTextColor(1, 0.82, 0)
     frame.keystring = config.keystring
     frame.Low:SetText("")
     frame.High:SetTextColor(1, 0.82, 0)
@@ -910,6 +814,8 @@ function widgets:dropdown(parent, config, labelText)
     local frame = CreateFrame("Frame", tostring(config), parent, UIDropDownMenuTemplate)
     frame.keystring = config.keystring
     frame.dropdata = config.dropdata
+    frame.localePrefix = config.localePrefix
+    frame.allowRawValue = config.allowRawValue
     if (frame.Text) then frame.Text:SetWidth(90) end
     frame.Label = frame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 	frame.Label:SetPoint("LEFT", _G[frame:GetName().."Button"], "RIGHT", 6, 0)
@@ -919,7 +825,7 @@ function widgets:dropdown(parent, config, labelText)
         local info
         for _, v in ipairs(self.dropdata) do
             info = UIDropDownMenu_CreateInfo()
-            info.text  = L["dropdown."..v]
+            info.text  = GetDropdownDisplayText(v, self.localePrefix, self.allowRawValue)
             info.value = v
             info.arg1  = self
             info.checked = selectedValue == v
@@ -948,7 +854,7 @@ function widgets:dropdown(parent, config, labelText)
         end
     end
     UIDropDownMenu_SetSelectedValue(frame, GetVariable(config.keystring))
-    frame.Label:SetText(labelText or L[config.keystring])
+    frame.Label:SetText(labelText or rawget(L, config.labelKeystring or config.keystring) or L[config.keystring] or "")
     return frame
 end
 
@@ -1092,7 +998,7 @@ local function CreateAnchorInput(frame, k, labelText)
     box:HookScript("OnEnter", function(self)
         if (self:IsEnabled()) then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText(L["anchor.offset.locked"] or "Offset is disabled when anchor point is Bottom.")
+        GameTooltip:SetText(L["anchor.offset.locked"])
         GameTooltip:Show()
     end)
     box:HookScript("OnLeave", function()
@@ -1220,9 +1126,9 @@ UpdateCursorAnchorControls = function()
     SetSpinnerEnabled(caframe.inputx, enabled)
     SetSpinnerEnabled(caframe.inputy, enabled)
 end
-caframe.inputx = CreateAnchorInput(caframe, "cx", "X")
+caframe.inputx = CreateAnchorInput(caframe, "cx", L["axis.x"])
 caframe.inputx:SetPoint("CENTER", 0, 40)
-caframe.inputy = CreateAnchorInput(caframe, "cy", "Y")
+caframe.inputy = CreateAnchorInput(caframe, "cy", L["axis.y"])
 caframe.inputy:SetPoint("CENTER", 0, 10)
 caframe:HookScript("OnShow", function()
     UpdateCursorAnchorLimits()
@@ -1236,7 +1142,7 @@ LibEvent:attachTrigger("tooltip:variable:changed", function(self, keystring, val
     end
 end)
 caframe.ok = CreateFrame("Button", nil, caframe, "UIPanelButtonTemplate")
-caframe.ok:SetText(SAVE)
+caframe.ok:SetText(L["button.save"])
 caframe.ok:SetSize(68, 20)
 caframe.ok:SetPoint("CENTER", 0, -20)
 caframe.ok:SetScript("OnClick", function(self)
@@ -1260,7 +1166,7 @@ function widgets:anchorbutton(parent, config)
     frame.keystring = config.keystring
     frame:SetSize(70, 22)
     frame.Text:SetFontObject("GameFontHighlightSmall")
-    frame:SetText(L.Anchor)
+    frame:SetText(L["Anchor"])
     frame:SetScript("OnClick", function(self)
         local parent = self:GetParent()
         if saframe:IsShown() then return saframe:Hide() end
@@ -1301,13 +1207,13 @@ function widgets:element(parent, config)
     frame.checkbox = self:checkbox(frame, {keystring=config.keystring..".enable"}, L[config.keystring])
     frame.checkbox:SetPoint("LEFT", 5, 0)
     if (config.iconToggle) then
-        frame.iconCheckbox = self:checkbox(frame, {keystring=config.keystring..".icon"}, L["unit.player.elements.icon"] or "Icon")
+        frame.iconCheckbox = self:checkbox(frame, {keystring=config.keystring..".icon"}, L["unit.player.elements.icon"])
         if (frame.checkbox and frame.checkbox.Text) then
             frame.iconCheckbox:SetPoint("LEFT", frame.checkbox.Text, "RIGHT", 8, 0)
         else
             frame.iconCheckbox:SetPoint("LEFT", 300, 0)
         end
-        frame.iconCheckbox.tooltipText = L[config.keystring..".icon"] or (L["unit.player.elements.icon"] or "Show icon")
+        frame.iconCheckbox.tooltipText = L[config.keystring..".icon"] or L["unit.player.elements.icon"]
         frame.iconCheckbox:HookScript("OnEnter", function(self)
             if (self.tooltipText and self.tooltipText ~= "") then
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -1333,11 +1239,11 @@ function widgets:element(parent, config)
         frame.editbox:SetPoint("LEFT", 330, 0)
         frame.editbox:HookScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetText(L["wildcard.help"] or "Format: use %s to insert the value.")
+            GameTooltip:SetText(L["wildcard.help"])
             if (config.keystring and config.keystring:find("moveSpeed")) then
-                GameTooltip:AddLine(L["wildcard.help.moveSpeed"] or "Example: %d%%", 0.8, 0.8, 0.8, true)
+                GameTooltip:AddLine(L["wildcard.help.moveSpeed"], 0.8, 0.8, 0.8, true)
             else
-                GameTooltip:AddLine(L["wildcard.help.example"] or "Example: (%s) or [%s]", 0.8, 0.8, 0.8, true)
+                GameTooltip:AddLine(L["wildcard.help.example"], 0.8, 0.8, 0.8, true)
             end
             GameTooltip:Show()
         end)
@@ -1397,10 +1303,10 @@ function widgets:anchor(parent, config)
     frame.checkbox2 = self:checkbox(frame.optionPanel, {keystring=config.keystring..".returnInCombat"})
     frame.checkbox3 = self:checkbox(frame.optionPanel, {keystring=config.keystring..".returnOnUnitFrame"})
     if (frame.checkbox2) then
-        frame.checkbox2.tooltipText = L["hint.anchor.returnInCombat"] or frame.checkbox2.tooltipText
+        frame.checkbox2.tooltipText = L["hint.anchor.returnInCombat"]
     end
     if (frame.checkbox3) then
-        frame.checkbox3.tooltipText = L["hint.anchor.returnOnUnitFrame"] or frame.checkbox3.tooltipText
+        frame.checkbox3.tooltipText = L["hint.anchor.returnOnUnitFrame"]
     end
     local function HookCheckboxTooltip(box)
         if (not box) then return end
@@ -1435,9 +1341,9 @@ function widgets:anchor(parent, config)
         local summary
         if (#selections == 0) then
             if (config.keystring == "unit.player.anchor" or config.keystring == "unit.npc.anchor") then
-                summary = L["dropdown.global"] or "Global Setting"
+                summary = L["dropdown.global"]
             else
-                summary = L["anchor.none"] or "None"
+                summary = L["anchor.none"]
             end
         else
             summary = table.concat(selections, ", ")
@@ -1520,7 +1426,7 @@ end
 function widgets:dropdownslider(parent, config)
     local frame = CreateFrame("Frame", nil, parent)
     frame:SetSize(500, 30)
-    frame.dropdown = self:dropdown(frame, {keystring=config.keystring..".colorfunc",dropdata=config.dropdata}, L[config.keystring])
+    frame.dropdown = self:dropdown(frame, {keystring=config.keystring..".colorfunc",dropdata=config.dropdata, allowRawValue=true}, L[config.keystring])
     frame.dropdown:SetPoint("LEFT", 0, 0)
     frame.slider = self:slider(frame, {keystring=config.keystring..".alpha",min=config.min,max=config.max,step=config.step})
     frame.slider:SetPoint("LEFT", frame.dropdown.Label, "RIGHT", 36, 0)
@@ -1563,7 +1469,6 @@ LAYOUT = {
         checkbox = 0, colorpick = 5, slider = 15,
         dropdown = -15, dropdownslider = -15, anchor = -15,
         combatmod = -15,
-        idinfo = -15,
         quickfocus = -15,
         element = 0,
     },
@@ -1595,10 +1500,11 @@ local options = {
         { keystring = "general.borderColor",        type = "colorpick", hasopacity = true },
         { keystring = "general.scale",              type = "slider", min = 0.5, max = 4, step = 0.1, input = true },
         { keystring = "general.borderSize",         type = "slider", min = 1, max = 6, step = 1, input = true },
-        { keystring = "general.borderCorner",       type = "dropdown", dropdata = widgets.borderDropdata },
-        { keystring = "general.bgfile",             type = "dropdown", dropdata = widgets.bgfileDropdata },
+        { keystring = "general.borderCorner",       type = "dropdown", localePrefix = "general.border.", dropdata = widgets.borderDropdata, allowRawValue = true },
+        { keystring = "general.bgfile",             type = "dropdown", dropdata = widgets.bgfileDropdata, allowRawValue = true },
         { keystring = "general.anchor",             type = "anchor", dropdata = {"default","cursorRight","cursor","static"} },
         { keystring = "general.anchor.modifierShowInCombatKey", type = "combatmod", labelKeystring = "general.anchor.modifierShowInCombat", enableKeystring = "general.anchor.hiddenInCombat", dropdata = {"none", "alt", "ctrl", "shift"} },
+        { keystring = "general.announcementMode",   type = "dropdown", labelKeystring = "general.annoucements", localePrefix = "general.annoucements.dropdown.", dropdata = {"noticeNever", "noticeSnooze", "noticeAlways"} },
         { keystring = "quest.coloredQuestBorder",   type = "checkbox" },
         { keystring = "quest.showQuestId",          type = "checkbox" },
         { keystring = "general.SavedVariablesPerCharacter",   type = "checkbox" },
@@ -1688,8 +1594,8 @@ local options = {
         { keystring = "general.statusbarOffsetX",   type = "slider", min = -50, max = 50, step = 1 },
         { keystring = "general.statusbarOffsetY",   type = "slider", min = -50, max = 50, step = 1 },
         { keystring = "general.statusbarFontSize",  type = "slider", min = 6, max = 30, step = 1 },
-        { keystring = "general.statusbarFont",      type = "dropdown", dropdata = widgets.fontDropdata },
-        { keystring = "general.statusbarFontFlag",  type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE"} },
+        { keystring = "general.statusbarFont",      type = "dropdown", dropdata = widgets.fontDropdata, allowRawValue = true },
+        { keystring = "general.statusbarFontFlag",  type = "dropdown", localePrefix = "fontFlag.", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE"} },
         { keystring = "general.statusbarTexture",   type = "dropdown", dropdata = widgets.barDropdata },
         { keystring = "general.statusbarPosition",  type = "dropdown", dropdata = {"default","bottom","top"} },
         { keystring = "general.statusbarColor",     type = "dropdown", dropdata = {"default","auto","smooth"} },
@@ -1703,12 +1609,12 @@ local options = {
         { keystring = "spell.borderColor",          type = "colorpick", hasopacity = true },
     },
     font = {
-        { keystring = "general.headerFont",         type = "dropdown", dropdata = widgets.fontDropdata },
+        { keystring = "general.headerFont",         type = "dropdown", dropdata = widgets.fontDropdata, allowRawValue = true },
         { keystring = "general.headerFontSize",     type = "dropdown", dropdata = {"default", 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 } },
-        { keystring = "general.headerFontFlag",     type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE"} },
-        { keystring = "general.bodyFont",           type = "dropdown", dropdata = widgets.fontDropdata },
+        { keystring = "general.headerFontFlag",     type = "dropdown", localePrefix = "fontFlag.", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE"} },
+        { keystring = "general.bodyFont",           type = "dropdown", dropdata = widgets.fontDropdata, allowRawValue = true },
         { keystring = "general.bodyFontSize",       type = "dropdown", dropdata = {"default", 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 } },
-        { keystring = "general.bodyFontFlag",       type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE"} },
+        { keystring = "general.bodyFontFlag",       type = "dropdown", localePrefix = "fontFlag.", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE"} },
     },
 }
 
@@ -1727,16 +1633,36 @@ frameRoot.title:SetText(addonName)
 -- About / Help page 
 
 do
-    -- 1) 创建 XML 模板实例，挂到 frameRoot 上
-    local about = CreateFrame("Frame", nil, frameRoot, "TinyTooltipRemakeAboutTemplate")
+    local aboutScroll = CreateFrame("ScrollFrame", nil, frameRoot, "UIPanelScrollFrameTemplate")
+    aboutScroll:SetPoint("TOPLEFT", frameRoot, "TOPLEFT", 0, 0)
+    aboutScroll:SetPoint("BOTTOMRIGHT", frameRoot, "BOTTOMRIGHT", -28, 0)
+    aboutScroll.ScrollBar:Hide()
+    aboutScroll.ScrollBar:ClearAllPoints()
+    aboutScroll.ScrollBar:SetPoint("TOPLEFT", aboutScroll, "TOPRIGHT", -20, -22)
+    aboutScroll.ScrollBar:SetPoint("BOTTOMLEFT", aboutScroll, "BOTTOMRIGHT", -20, 26)
+    aboutScroll:HookScript("OnScrollRangeChanged", function(self, xrange, yrange)
+        self.ScrollBar:SetShown(floor(yrange) ~= 0)
+    end)
 
-    -- 2) 覆盖整个页面区域
-    about:SetPoint("TOPLEFT", frameRoot, "TOPLEFT", 0, 0)
-    about:SetPoint("BOTTOMRIGHT", frameRoot, "BOTTOMRIGHT", 0, 0)
-    -- 3) 把需要的数据塞给它，OnLoad 会用到
+    local about = CreateFrame("Frame", nil, aboutScroll, "TinyTooltipRemakeAboutTemplate")
+    about:SetPoint("TOPLEFT", aboutScroll, "TOPLEFT", 0, 0)
+    about:SetSize(max((aboutScroll.GetWidth and aboutScroll:GetWidth() or 1) - 28, 1), 1)
+    aboutScroll:SetScrollChild(about)
+
     about.addonName = addonName
     about.L = L
     TinyTooltipRemake_About_OnLoad(about)
+
+    local function UpdateAboutWidth()
+        local width = max((aboutScroll.GetWidth and aboutScroll:GetWidth() or 1) - 28, 1)
+        about:SetWidth(width)
+        if (about._updateAboutPageLayout) then
+            about:_updateAboutPageLayout()
+        end
+    end
+    aboutScroll:HookScript("OnSizeChanged", UpdateAboutWidth)
+    about:HookScript("OnShow", UpdateAboutWidth)
+    UpdateAboutWidth()
 
     if frameRoot.title then
         frameRoot.title:Hide()
@@ -1746,8 +1672,8 @@ end
 
 frameRoot.name = addonName
 
-local resetSectionText = L["button.resetSection"] or RESET or "Reset"
-local resetAllText = L["button.resetAll"] or resetSectionText
+local resetSectionText = L["button.resetSection"]
+local resetAllText = L["button.resetAll"]
 
 local frame = CreateFrame("Frame", nil, UIParent)
 frame.anchor = CreateFrame("Frame", nil, frame)
@@ -1778,7 +1704,7 @@ framePC.diy:GetNormalTexture():SetVertexColor(1, 1, 1, 0.8)
 framePC.diy:SetScript("OnClick", function() LibEvent:trigger("tinytooltip:diy:player", "player", true, true) end)
 framePC.diy.text = framePC.diy:CreateFontString(nil, "OVERLAY", "GameFont_Gigantic")
 framePC.diy.text:SetPoint("CENTER", 0, 2)
-framePC.diy.text:SetText(L.DIY.." "..(SETTINGS or ""))
+framePC.diy.text:SetText(L["button.diySettings"])
 
 framePC:SetSize(SettingsPanel.Container:GetWidth() - LAYOUT.PANEL_PADDING, #options.pc * LAYOUT.ROW_HEIGHT)
 local framePCScrollFrame = CreateFrame("ScrollFrame", nil, UIParent, "UIPanelScrollFrameTemplate")
@@ -1871,6 +1797,12 @@ frameVariables.name = L["menu.variables"]
 local function InitVariablesFrame()
     frameVariables.panel = CreateFrame("Frame", nil, frameVariables, "TinyTooltipVariablesTemplate")
     frameVariables.panel:SetPoint("CENTER", 0, -20)
+    if (frameVariables.panel.export) then
+        frameVariables.panel.export:SetText(L["button.export"])
+    end
+    if (frameVariables.panel.import) then
+        frameVariables.panel.import:SetText(L["button.import"])
+    end
     frameVariables.panel.export:SetScript("OnClick", function()
         local json = LibJSON:encode_wow(addon.db)
         frameVariables.panel.textarea.text:SetText(json)
@@ -2145,7 +2077,7 @@ end
 local function OnEnter(self)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
     local localizedKey = "unit.player.elements." .. tostring(self.key or "")
-    local text = rawget(L, localizedKey) or rawget(L, self.key) or tostring(self.key or "")
+    local text = rawget(L, localizedKey) or rawget(L, self.key) or ""
     GameTooltip:SetText(text)
     GameTooltip:Show()
 end
@@ -2230,18 +2162,18 @@ end)
 
 
 local placeholder = {
-    statusAFK = "AFK",
-    statusDND = "DND",
-    statusDC  = "DC",
+    statusAFK = L["unit.player.elements.statusAFK"],
+    statusDND = L["unit.player.elements.statusDND"],
+    statusDC  = L["unit.player.elements.statusDC"],
     friendIcon = addon.icons.friend,
     pvpIcon    = addon.icons.pvp,
     roleIcon   = addon.icons.DAMAGER,
     raidIcon   = ICON_LIST[8] .. "0|t",
-    mount      = L["mount"] or "mount",
+    mount      = L["mount"],
     achievementPoints = 12345,
-    zone       = L["unit.player.elements.zone"] or "Zone",
+    zone       = L["unit.player.elements.zone"],
 }
-setmetatable(placeholder, {__index = function(_, k) return k end})
+setmetatable(placeholder, {__index = function() return "" end})
 
 LibEvent:attachTrigger("tinytooltip:diy:player", function(self, unit, skipDisable, toggleVisible)
     if (toggleVisible and frameDIY:IsShown()) then
@@ -2268,8 +2200,8 @@ LibEvent:attachTrigger("tinytooltip:diy:player", function(self, unit, skipDisabl
                 value = raw[e] or placeholder[e]
                 local handled = false
                 if (e == "itemLevel") then
-                    local label = (L and L.ItemLevel) or "ItemLevel"
-                    local ilvl = raw.itemLevel or value or "??"
+                    local label = L["ItemLevel"]
+                    local ilvl = raw.itemLevel or value or L["unknown"]
                     local valuePart
                     if (config.color and config.wildcard) then
                         valuePart = addon:FormatData(ilvl, config, raw, ilvl)
@@ -2283,8 +2215,8 @@ LibEvent:attachTrigger("tinytooltip:diy:player", function(self, unit, skipDisabl
                     end
                     handled = true
                 elseif (e == "achievementPoints") then
-                    local label = (L and L.Achievement) or "Achievement"
-                    local points = raw.achievementPoints or value or "??"
+                    local label = L["Achievement"]
+                    local points = raw.achievementPoints or value or L["unknown"]
                     local valuePart
                     if (config.color and config.wildcard) then
                         valuePart = addon:FormatData(points, config, raw, points)

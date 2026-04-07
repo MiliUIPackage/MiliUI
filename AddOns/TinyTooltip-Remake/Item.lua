@@ -92,9 +92,9 @@ LibEvent:attachTrigger("tooltip:item", function(self, tip, link)
                     expansionName = tostring(expacId)
                 end
             end
-            local expansionLabel = L["id.expansion"] or "Expansion"
+            local expansionLabel = L["id.expansion"]
             if (expansionName and not addon:FindLine(tip, expansionLabel)) then
-                local itemLabel = L["id.item"] or "Item ID"
+                local itemLabel = L["id.item"]
                 if (not addon:FindLine(tip, itemLabel)) then
                     tip:AddLine(" ")
                 end
