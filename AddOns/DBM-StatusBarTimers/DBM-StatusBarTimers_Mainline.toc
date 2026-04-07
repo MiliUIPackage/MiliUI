@@ -16,4 +16,5 @@
 ## X-Website: https://deadlybossmods.com
 ## Category-zhTW: 地城與團隊
 
+## Category-zhTW: 副本
 DBT.lua
