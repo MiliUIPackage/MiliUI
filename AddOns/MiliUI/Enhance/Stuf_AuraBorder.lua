@@ -96,7 +96,7 @@ local scanPending = false
 local function ThrottledScanNew()
     if scanPending then return end
     scanPending = true
-    C_Timer.After(1, function()
+    C_Timer.After(0.05, function()
         scanPending = false
         ScanAndHookNew()
     end)
@@ -110,16 +110,25 @@ loader:RegisterEvent("PLAYER_LOGIN")
 loader:SetScript("OnEvent", function(self)
     self:UnregisterEvent("PLAYER_LOGIN")
 
-    C_Timer.After(2, function()
-        if not _G["Stuf"] then return end
+    local attempts = 0
+    local maxAttempts = 50  -- 50 * 0.1s = 最多等 5 秒
+    local function TryInit()
+        attempts = attempts + 1
+        local Stuf = _G["Stuf"]
+        if Stuf and Stuf.units and next(Stuf.units) then
+            ScanAndHookNew()
 
-        ScanAndHookNew()
-
-        local eventFrame = CreateFrame("Frame")
-        eventFrame:RegisterEvent("UNIT_AURA")
-        eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-        eventFrame:SetScript("OnEvent", function()
-            ThrottledScanNew()
-        end)
-    end)
+            local eventFrame = CreateFrame("Frame")
+            eventFrame:RegisterEvent("UNIT_AURA")
+            eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+            eventFrame:SetScript("OnEvent", function()
+                ThrottledScanNew()
+            end)
+            return
+        end
+        if attempts < maxAttempts then
+            C_Timer.After(0.1, TryInit)
+        end
+    end
+    C_Timer.After(0.1, TryInit)
 end)
