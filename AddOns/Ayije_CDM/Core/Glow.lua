@@ -362,7 +362,7 @@ local function IsBuffGlowSourceStillValid(frame, sourceID)
         return true
     end
 
-    local candidates = CDM.GetSpellIDCandidates and CDM:GetSpellIDCandidates(frame, true) or nil
+    local candidates = CDM.GetSpellIDCandidates and CDM:GetSpellIDCandidates(frame) or nil
     if candidates then
         for _, id in ipairs(candidates) do
             if DoesGlowSourceMatchID(sourceID, sourceBase, id) then
@@ -384,15 +384,7 @@ local function EnsureBuffGlowTargetHooks(frame)
 
     buffHookedFrames[frame] = true
 
-    frame:HookScript("OnHide", function(self)
-        local frameData = CDM.GetFrameData(self)
-        if frameData.cdmBuffGlowWanted then
-            local host = frameData.cdmBuffGlowHost
-            if host then
-                host:Hide()
-            end
-        end
-    end)
+    frame:HookScript("OnHide", function() end)
 
     frame:HookScript("OnShow", function(self)
         local frameData = CDM.GetFrameData(self)
@@ -597,8 +589,5 @@ end
 
 CDM:RegisterRefreshCallback("glow", function()
     Glow:RefreshCache()
-end, 50, { "glow", "viewers" })
+end, 50)
 
-CDM:RegisterEvent("PLAYER_LOGIN", function()
-    Glow:Initialize()
-end)

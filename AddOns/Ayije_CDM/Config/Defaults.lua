@@ -145,6 +145,7 @@ CDM.defaults = {
     resourcesRageColor = { r = 0.78, g = 0.26, b = 0.26, a = 1 },
     resourcesEnergyColor = { r = 1, g = 1, b = 0.34, a = 1 },
     resourcesFocusColor = { r = 1, g = 0.5, b = 0.25, a = 1 },
+    resourcesTipOfTheSpearColor = { r = 0.9, g = 0.3, b = 0.15, a = 1 },
     resourcesComboPointsColor = { r = 1, g = 0.96, b = 0.41, a = 1 },
     resourcesComboPointsChargedColor = { r = 0.24, g = 0.60, b = 1.00, a = 1 },
     resourcesComboPointsChargedEmptyColor = { r = 0.12, g = 0.30, b = 0.50, a = 1 },
@@ -158,6 +159,8 @@ CDM.defaults = {
     -- Druid / Balance
     resourcesLunarPowerColor = { r = 0.3, g = 0.52, b = 0.9, a = 1 },
     resourcesIronfurColor = { r = 0.153, g = 0.616, b = 1.0, a = 1 },
+    resourcesFeralOverflowingColor = { r = 0.24, g = 0.60, b = 1.00, a = 1 },
+    resourcesFeralOverflowingEmptyColor = { r = 0.12, g = 0.30, b = 0.50, a = 1 },
 
     -- Warrior / Protection
     resourcesIgnorePainColor = { r = 0.9, g = 0.8, b = 0.2, a = 1 },
@@ -264,6 +267,7 @@ CDM.defaults = {
     spellRegistry = {},
     editModePositions = {},
     customBuffRegistry = {},
+    ungroupedCustomBuffOrder = {},
     buffGroups = {},
     ungroupedBuffOverrides = {},
     cooldownGroups = {},

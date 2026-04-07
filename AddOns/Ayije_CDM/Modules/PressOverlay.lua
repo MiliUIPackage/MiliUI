@@ -8,7 +8,7 @@ local GetFrameData = CDM.GetFrameData
 
 
 local isEnabled = false
-local isQueueHooked = false
+local isReanchorHooked = false
 
 local overlayFrames = setmetatable({}, { __mode = "k" })
 
@@ -337,10 +337,11 @@ pollFrame:SetScript("OnUpdate", function(_, dt)
 end)
 
 local function InstallHooks()
-    if isQueueHooked then return end
-    isQueueHooked = true
-    hooksecurefunc(CDM, "QueueViewer", function(_, name)
+    if isReanchorHooked then return end
+    isReanchorHooked = true
+    hooksecurefunc(CDM, "ForceReanchor", function(_, viewer)
         if not isEnabled then return end
+        local name = viewer and viewer.GetName and viewer:GetName()
         if name == VIEWERS.ESSENTIAL or name == VIEWERS.UTILITY then
             bindingMapCacheVer = -1
         end
@@ -405,5 +406,5 @@ function CDM.PressOverlay:Initialize()
         elseif not wantEnabled and isEnabled then
             Disable()
         end
-    end, 57, { "assist", "viewers" })
+    end, 57)
 end

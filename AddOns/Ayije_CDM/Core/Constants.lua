@@ -62,6 +62,8 @@ CDM.CONST = {
     DEVOURER_RESOURCE_AURA_SPELL_ID = 1225789,
     DEVOURER_COLLAPSING_STAR_SPELL_ID = 1227702,
     DEVOURER_SOUL_GLUTTON_TALENT_SPELL_ID = 1247534,
+    FERAL_OVERFLOWING_POWER_SPELL_ID = 405189,
+    TIP_OF_THE_SPEAR_SPELL_ID = 260286,
     GCD_SPELL_ID = 61304,
 }
 
@@ -310,7 +312,3 @@ CDM.CONST.DesaturationCurve:SetType(Enum.LuaCurveType.Step)
 CDM.CONST.DesaturationCurve:AddPoint(0, 0)
 CDM.CONST.DesaturationCurve:AddPoint(0.001, 1)
 
-CDM.CONST.IsReadyCurve = C_CurveUtil.CreateCurve()
-CDM.CONST.IsReadyCurve:SetType(Enum.LuaCurveType.Step)
-CDM.CONST.IsReadyCurve:AddPoint(0, 1)
-CDM.CONST.IsReadyCurve:AddPoint(0.0001, 0)

@@ -1,6 +1,5 @@
 local Runtime = _G["Ayije_CDM"]
 if not Runtime then return end
-local API = Runtime.API
 local ns = Runtime._OptionsNS
 local CDM = Runtime
 
@@ -14,12 +13,12 @@ ns.ConfigKeys = {
         "racials",
         "defensives",
         "trinkets",
+        "externals",
         "castbar",
         "glow",
         "fading",
         "assist",
         "positions",
-        "custombuffs",
         "buffgroups",
     },
     categories = {
@@ -56,6 +55,8 @@ ns.ConfigKeys = {
                 "hideDebuffBorder",
                 "hidePandemicIndicator",
                 "hideCooldownBling",
+                "swipeColor",
+                "hideGCDSwipe",
             },
         },
         text = {
@@ -142,6 +143,7 @@ ns.ConfigKeys = {
                 "resourcesRageColor",
                 "resourcesEnergyColor",
                 "resourcesFocusColor",
+                "resourcesTipOfTheSpearColor",
                 "resourcesRunicPowerColor",
                 "resourcesLunarPowerColor",
                 "resourcesMaelstromColor",
@@ -155,6 +157,8 @@ ns.ConfigKeys = {
                 "resourcesComboPointsColor",
                 "resourcesComboPointsChargedColor",
                 "resourcesComboPointsChargedEmptyColor",
+                "resourcesFeralOverflowingColor",
+                "resourcesFeralOverflowingEmptyColor",
                 "resourcesArcaneChargesColor",
                 "resourcesRunesReadyColor",
                 "resourcesRunesRechargingColor",
@@ -234,6 +238,16 @@ ns.ConfigKeys = {
                 "trinketsMode",
                 "trinketsEssentialRow",
                 "trinketsEssentialPosition",
+            },
+        },
+        externals = {
+            label = "Externals Tracker Settings",
+            keys = {
+                "externalsEnabled",
+                "externalsIconWidth",
+                "externalsIconHeight",
+                "externalsCooldownFontSize",
+                "externalsDisableBlink",
             },
         },
         castbar = {
@@ -346,19 +360,42 @@ ns.ConfigKeys = {
                 "utilityYOffset",
             },
         },
-        custombuffs = {
-            label = "Custom Timers",
-            keys = {
-                "customBuffRegistry",
-            },
-        },
         buffgroups = {
             label = "Buff Groups",
             keys = {
                 "buffGroups",
                 "ungroupedBuffOverrides",
                 "spellRegistry",
+                "customBuffRegistry",
+                "ungroupedCustomBuffOrder",
             },
         },
     },
 }
+
+do
+    local defaults = CDM.defaults
+    if not defaults then return end
+
+    local keysInCategories = {}
+    for catName, catDef in pairs(ns.ConfigKeys.categories) do
+        for _, key in ipairs(catDef.keys) do
+            if keysInCategories[key] then
+                print("|cffff6600[CDM] ConfigKeys: '" .. key .. "' in both '" .. keysInCategories[key] .. "' and '" .. catName .. "'|r")
+            end
+            keysInCategories[key] = catName
+        end
+    end
+
+    for key in pairs(defaults) do
+        if not keysInCategories[key] then
+            print("|cffff6600[CDM] ConfigKeys: default key '" .. key .. "' not in any export category|r")
+        end
+    end
+
+    for key, catName in pairs(keysInCategories) do
+        if defaults[key] == nil then
+            print("|cffff6600[CDM] ConfigKeys: export key '" .. key .. "' (in '" .. catName .. "') has no default|r")
+        end
+    end
+end

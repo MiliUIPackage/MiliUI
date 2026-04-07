@@ -6,6 +6,7 @@ local CDM = Runtime
 local UI = ns.ConfigUI
 local L = Runtime.L
 
+
 local function CreateBorderTab(page, tabId)
     local borderHeader = UI.CreateHeader(page, L["Border Settings"])
     borderHeader:SetPoint("TOPLEFT", 35, -40)
@@ -26,7 +27,7 @@ local function CreateBorderTab(page, tabId)
         function() return CDM.db.borderFile end,
         function(name)
             CDM.db.borderFile = name
-            API:RefreshConfig()
+            API:Refresh()
         end,
         function(name)
             ddBorder:SetDefaultText(name)
@@ -37,13 +38,13 @@ local function CreateBorderTab(page, tabId)
     colorPicker:SetPoint("TOPLEFT", ddBorder, "BOTTOMLEFT", 0, -15)
     page.colorPicker = colorPicker
 
-    page.controls.b0 = UI.CreateModernSlider(page, L["Border Size"], 1, 50, CDM.db.borderSize, function(v) CDM.db.borderSize = v; API:RefreshConfig() end)
+    page.controls.b0 = UI.CreateModernSlider(page, L["Border Size"], 1, 50, CDM.db.borderSize, function(v) CDM.db.borderSize = v; API:Refresh() end)
     page.controls.b0:SetPoint("TOPLEFT", colorPicker, "BOTTOMLEFT", 0, -10)
 
-    page.controls.b1 = UI.CreateModernSlider(page, L["Border Offset X"], -50, 50, CDM.db.borderOffsetX, function(v) CDM.db.borderOffsetX = v; API:RefreshConfig() end)
+    page.controls.b1 = UI.CreateModernSlider(page, L["Border Offset X"], -50, 50, CDM.db.borderOffsetX, function(v) CDM.db.borderOffsetX = v; API:Refresh() end)
     page.controls.b1:SetPoint("TOPLEFT", page.controls.b0, "BOTTOMLEFT", 0, -10)
 
-    page.controls.b2 = UI.CreateModernSlider(page, L["Border Offset Y"], -50, 50, CDM.db.borderOffsetY, function(v) CDM.db.borderOffsetY = v; API:RefreshConfig() end)
+    page.controls.b2 = UI.CreateModernSlider(page, L["Border Offset Y"], -50, 50, CDM.db.borderOffsetY, function(v) CDM.db.borderOffsetY = v; API:Refresh() end)
     page.controls.b2:SetPoint("TOPLEFT", page.controls.b1, "BOTTOMLEFT", 0, -10)
 
     local function UpdateZoomLayout(showSlider)
@@ -63,14 +64,14 @@ local function CreateBorderTab(page, tabId)
         function(checked)
             CDM.db.zoomIcons = checked
             UpdateZoomLayout(checked)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.zoomCheckbox:SetPoint("TOPLEFT", page.controls.b2, "BOTTOMLEFT", 0, -10)
 
     page.zoomSlider = UI.CreateModernSliderPrecise(page, L["Zoom Amount"], 0, 0.3, CDM.db.zoomAmount or 0.08, 0.01, 2, function(v)
         CDM.db.zoomAmount = v
-        API:RefreshConfig()
+        API:Refresh()
     end)
     page.zoomSlider:SetPoint("TOPLEFT", page.zoomCheckbox, "BOTTOMLEFT", 20, -5)
 
@@ -80,7 +81,7 @@ local function CreateBorderTab(page, tabId)
         CDM.db.hideIconOverlay ~= false,
         function(checked)
             CDM.db.hideIconOverlay = checked
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
 
@@ -92,7 +93,7 @@ local function CreateBorderTab(page, tabId)
         CDM.db.hideIconOverlayTexture ~= false,
         function(checked)
             CDM.db.hideIconOverlayTexture = checked
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.hideOverlayTextureCheckbox:SetPoint("TOPLEFT", page.hideOverlayCheckbox, "BOTTOMLEFT", 0, -5)

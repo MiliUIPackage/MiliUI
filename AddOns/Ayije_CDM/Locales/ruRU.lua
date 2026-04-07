@@ -28,7 +28,7 @@ L["Edit Mode locked - use /cdm"] = "Режим редактирования за
 L["Cooldown Viewer settings are managed by /cdm. Edit Mode changes are disabled to avoid taint."] = "Настройки трекера восстановления способностей управляются через /cdm. Изменения в режиме редактирования отключены во избежание ошибок."
 
 -----------------------------------------------------------------------
--- Core/Layout/Containers.lua
+-- Core/Layout/Layout.lua
 -----------------------------------------------------------------------
 
 L["Click and drag to move - /cdm > Positions to lock"] = "Нажмите и перетащите для перемещения — /cdm > «Позиции», чтобы заблокировать"
@@ -444,20 +444,14 @@ L["%s Offset Y"] = "Смещение %s по Y"
 L["%s Text Color"] = "Цвет текста %s"
 
 -----------------------------------------------------------------------
--- Ayije_CDM_Options/CustomBuffs.lua
+-- Ayije_CDM_Options/BuffGroups.lua (custom buff strings)
 -----------------------------------------------------------------------
 
-L["ID: %s  |  Duration: %ss"] = "ID: %s  |  Длительность: %ss"
-L["Remove"] = "Удалить"
-L["Custom Timers"] = "Свои таймеры"
-L["Track spell casts and display custom buff icons alongside native buffs. Icons appear in the main buff container."] = "Отслеживает применение заклинаний и отображает пользовательские иконки баффов рядом со встроенными. Иконки появляются в основном контейнере баффов."
-L["Add Tracked Spell"] = "Добавить отслеживаемое заклинание"
 L["Spell ID:"] = "ID заклинания:"
 L["Duration (sec):"] = "Длительность (сек):"
 L["Add Spell"] = "Добавить заклинание"
 L["Invalid spell ID"] = "Некорректный ID заклинания"
 L["Enter a valid duration"] = "Введите корректную длительность"
-L["Limit reached (9 max)"] = "Достигнут лимит (макс. 9)"
 L["Added!"] = "Добавлено!"
 L["Failed - invalid spell ID"] = "Ошибка — некорректный ID заклинания"
 

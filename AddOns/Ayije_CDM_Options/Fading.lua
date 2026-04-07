@@ -6,15 +6,6 @@ local CDM = Runtime
 local UI = ns.ConfigUI
 local L = Runtime.L
 
-local FADING_REFRESH_SCOPES = { "fading", "viewers" }
-
-local function RefreshFadingConfig()
-    if API.RefreshScopes then
-        API:RefreshScopes(FADING_REFRESH_SCOPES)
-        return
-    end
-    API:RefreshConfig()
-end
 
 local function CreateFadingTab(page, tabId)
     local scrollChild = page
@@ -30,7 +21,7 @@ local function CreateFadingTab(page, tabId)
         function(checked)
             CDM.db.fadingEnabled = checked
             if setControlsEnabled then setControlsEnabled(checked) end
-            RefreshFadingConfig()
+            API:Refresh()
         end
     )
     page.controls.fadingEnabled:SetPoint("TOPLEFT", mainHeader, "BOTTOMLEFT", 0, -15)
@@ -50,7 +41,7 @@ local function CreateFadingTab(page, tabId)
                 CDM.db.fadingTriggerOOC = false
                 oocCb:SetChecked(false)
             end
-            RefreshFadingConfig()
+            API:Refresh()
         end
     )
     noTargetCb:SetPoint("TOPLEFT", triggerHeader, "BOTTOMLEFT", 0, -10)
@@ -66,7 +57,7 @@ local function CreateFadingTab(page, tabId)
                 CDM.db.fadingTriggerNoTarget = false
                 noTargetCb:SetChecked(false)
             end
-            RefreshFadingConfig()
+            API:Refresh()
         end
     )
     oocCb:SetPoint("TOPLEFT", noTargetCb, "BOTTOMLEFT", 0, -5)
@@ -78,7 +69,7 @@ local function CreateFadingTab(page, tabId)
         CDM.db.fadingTriggerMounted or false,
         function(checked)
             CDM.db.fadingTriggerMounted = checked
-            RefreshFadingConfig()
+            API:Refresh()
         end
     )
     page.controls.mountedCheckbox:SetPoint("TOPLEFT", page.controls.oocCheckbox, "BOTTOMLEFT", 0, -5)
@@ -87,7 +78,7 @@ local function CreateFadingTab(page, tabId)
         scrollChild, L["Faded Opacity"], 0, 100, CDM.db.fadingOpacity or 0,
         function(v)
             CDM.db.fadingOpacity = v
-            RefreshFadingConfig()
+            API:Refresh()
         end
     )
     page.controls.fadingOpacity:SetPoint("TOPLEFT", page.controls.mountedCheckbox, "BOTTOMLEFT", 0, -15)
@@ -114,7 +105,7 @@ local function CreateFadingTab(page, tabId)
             CDM.db[def.key] ~= false,
             function(checked)
                 CDM.db[def.key] = checked
-                RefreshFadingConfig()
+                API:Refresh()
             end
         )
         cb:SetPoint("TOPLEFT", prevControl, "BOTTOMLEFT", 0, prevControl == targetsHeader and -10 or -5)

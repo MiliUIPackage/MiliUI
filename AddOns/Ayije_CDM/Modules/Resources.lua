@@ -14,6 +14,34 @@ local UnitPowerMax = UnitPowerMax
 local POWER_TYPES = Enum.PowerType
 local LSM = LibStub("LibSharedMedia-3.0")
 
+local resEventFrame = CreateFrame("Frame")
+local resEventHandlers = {}
+
+resEventFrame:SetScript("OnEvent", function(self, event, ...)
+    local handler = resEventHandlers[event]
+    if handler then handler(event, ...) end
+end)
+
+local function RegisterResEvent(event, handler)
+    resEventHandlers[event] = handler
+    resEventFrame:RegisterEvent(event)
+end
+
+local function UnregisterResEvent(event)
+    resEventHandlers[event] = nil
+    resEventFrame:UnregisterEvent(event)
+end
+
+local function RegisterResUnitEvent(event, unit, handler)
+    resEventHandlers[event] = handler
+    resEventFrame:RegisterUnitEvent(event, unit)
+end
+
+local function UnregisterResUnitEvent(event)
+    resEventHandlers[event] = nil
+    resEventFrame:UnregisterEvent(event)
+end
+
 local POWER_TOKEN_MAP = {}
 local function ToEventToken(name)
     return (name:gsub("(%l)(%u)", "%1_%2")):upper()
@@ -30,60 +58,22 @@ local CUSTOM_POWER_TYPES = {
     DevourerSoulFragments = "DevourerSoulFragments",
     Ironfur = "Ironfur",
     IgnorePain = "IgnorePain",
+    TipOfTheSpear = "TipOfTheSpear",
 }
 CDM.CUSTOM_POWER_TYPES = CUSTOM_POWER_TYPES
 
-local MAX_SOUL_FRAGMENTS = 6
-local MAX_MAELSTROM_WEAPON = 10
-local DEVOURER_BASE_SOULS_MAX = 50
-local DEVOURER_SOUL_GLUTTON_REDUCED_MAX = 35
-local DEVOURER_VOID_META_SOULS_MAX = 40
-local DEVOURER_STACKS_PER_PIP = 5
 
 local isInitialized = false
 local isEnabled = false
 
 local currentSpecID
-local brewmasterCombatCallbackRegistered = false
 local resourcesSpecInitRetries = 0
 local _, resourcesPlayerClass = UnitClass("player")
-local lastMaelstromAuraUpdateTime = 0
-local lastDevourerAuraUpdateTime = 0
-local lastDevourerInVoidMeta = false
 
-local ironfurExpiries = {}
-local ironfurDurations = {}
-local guardianOfEluneExpiry = 0
-
-local ignorePainFrame = nil
-local IGNORE_PAIN_SPELL_ID = 190456
-local ironfurBaseDuration = 7
-local hasGuardianOfElune = false
-local hasFluidicForce = false
-local ironfurUpdateTicker = nil
-local StartIronfurTicker, StopIronfurTicker
-
-local IRONFUR_SPELL_ID = 192081
-local MANGLE_SPELL_ID = 33917
-local FRENZIED_REGEN_SPELL_ID = 22842
-local BEAR_FORM_POWER_TYPE = Enum.PowerType.Rage
-local CAT_FORM_POWER_TYPE = Enum.PowerType.Energy
-local GUARDIAN_OF_ELUNE_DURATION = 15
 
 local cachedPrimaryPowerType
-local cachedFontPath
-local cachedFontSize
-local cachedFontOutline
-local cachedFontColor
-local cachedRuneReadyColor
-local cachedRuneRechargingColor
-local cachedEssenceReadyColor
-local cachedEssenceRechargingColor
 local cachedSoulShardReadyColor
 local cachedSoulShardRechargingColor
-local cachedBar2TagEnabled = false
-local cachedBar2OffsetX = 0
-local cachedBar2OffsetY = 0
 local GetResourceConfigSlot
 
 local Pixel = CDM.Pixel
@@ -246,11 +236,11 @@ local POWER_COLOR_KEYS = {
     [CUSTOM_POWER_TYPES.DevourerSoulFragments] = "resourcesDevourerSoulFragmentsColor",
     [CUSTOM_POWER_TYPES.Ironfur] = "resourcesIronfurColor",
     [CUSTOM_POWER_TYPES.IgnorePain] = "resourcesIgnorePainColor",
+    [CUSTOM_POWER_TYPES.TipOfTheSpear] = "resourcesTipOfTheSpearColor",
 }
 
 local DEFAULT_WHITE_COLOR = { r = 1, g = 1, b = 1, a = 1 }
 local chargedComboPointLookup = {}
-local GetDevourerSoulMax
 
 local function GetPowerColor(powerType)
     if powerType == CUSTOM_POWER_TYPES.Stagger then
@@ -269,6 +259,19 @@ end
 
 local function IsRogueComboPoints(powerType)
     return resourcesPlayerClass == "ROGUE" and powerType == POWER_TYPES.ComboPoints
+end
+
+local function IsFeralOverflowingComboPoints(powerType)
+    return resourcesPlayerClass == "DRUID" and currentSpecID == 103 and powerType == POWER_TYPES.ComboPoints
+end
+
+local function GetFeralOverflowingColors()
+    local db = CDM.db
+    local defaults = CDM.defaults or {}
+    local baseColor = (db and db.resourcesComboPointsColor) or defaults.resourcesComboPointsColor or DEFAULT_WHITE_COLOR
+    local filledColor = (db and db.resourcesFeralOverflowingColor) or defaults.resourcesFeralOverflowingColor or baseColor
+    local emptyColor = (db and db.resourcesFeralOverflowingEmptyColor) or defaults.resourcesFeralOverflowingEmptyColor or baseColor
+    return filledColor, emptyColor
 end
 
 local function GetComboPointChargeColors()
@@ -316,76 +319,15 @@ local function GetChargedComboPointLookup()
     return next(chargedComboPointLookup) and chargedComboPointLookup or nil
 end
 
-local function IsDevourerSoulGluttonKnown()
-    if not (C_SpellBook and C_SpellBook.IsSpellKnown and CDM_C.DEVOURER_SOUL_GLUTTON_TALENT_SPELL_ID) then
-        return false
-    end
-    return C_SpellBook.IsSpellKnown(CDM_C.DEVOURER_SOUL_GLUTTON_TALENT_SPELL_ID)
-end
-
-GetDevourerSoulMax = function()
-    if IsDevourerSoulGluttonKnown() then
-        return DEVOURER_SOUL_GLUTTON_REDUCED_MAX
-    end
-    return DEVOURER_BASE_SOULS_MAX
-end
-
-local function GetDevourerSoulValueMax()
-    local max = GetDevourerSoulMax()
-    if not CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID then
-        return 0, max, false
-    end
-
-    local inVoidMetamorphosis = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID) ~= nil
-    if inVoidMetamorphosis then
-        max = DEVOURER_VOID_META_SOULS_MAX
-    end
-    local trackedAuraSpellID = inVoidMetamorphosis and CDM_C.DEVOURER_COLLAPSING_STAR_SPELL_ID or CDM_C.DEVOURER_RESOURCE_AURA_SPELL_ID
-
-    local auraData = trackedAuraSpellID and C_UnitAuras.GetPlayerAuraBySpellID(trackedAuraSpellID) or nil
-    local current = auraData and auraData.applications or 0
-    if current < 0 then
-        current = 0
-    elseif current > max then
-        current = max
-    end
-
-    return current, max, inVoidMetamorphosis
-end
-
-CDM.GetDevourerSoulValueMax = GetDevourerSoulValueMax
-
 local function RefreshCachedFontStyles()
     local db = CDM.db
     local defaults = CDM.defaults or {}
-    CDM_C.RefreshBaseFontCache()
-    cachedFontPath = CDM_C.GetBaseFontPath()
-    cachedFontOutline = CDM_C.GetBaseFontOutline()
-    cachedFontSize = db and db.resourcesBar2TagFontSize or 14
-    cachedFontColor = db and db.resourcesBar2TagColor or DEFAULT_WHITE_COLOR
-    cachedRuneReadyColor = db and db.resourcesRunesReadyColor or defaults.resourcesRunesReadyColor
-    cachedRuneRechargingColor = db and db.resourcesRunesRechargingColor or defaults.resourcesRunesRechargingColor
-    cachedEssenceReadyColor = GetPowerColor(POWER_TYPES.Essence)
-    cachedEssenceRechargingColor = (db and db.resourcesEssenceRechargingColor)
-        or defaults.resourcesEssenceRechargingColor or cachedEssenceReadyColor
     cachedSoulShardReadyColor = GetPowerColor(POWER_TYPES.SoulShards)
     cachedSoulShardRechargingColor = (db and db.resourcesSoulShardsRechargingColor)
         or defaults.resourcesSoulShardsRechargingColor or cachedSoulShardReadyColor
-    cachedBar2TagEnabled = CDM:GetTagEnabled(true) or false
-    cachedBar2OffsetX = db and db.resourcesBar2TagOffsetX or 0
-    cachedBar2OffsetY = db and db.resourcesBar2TagOffsetY or 0
-end
-
-local function RefreshCachedRuneTimerSlot()
-    if resourcesPlayerClass ~= "DEATHKNIGHT" then return end
-    local runesIsBar2 = (GetResourceConfigSlot(POWER_TYPES.Runes) == 2)
-    local db = CDM.db
-    local barKey = runesIsBar2 and "Bar2" or "Bar1"
-    cachedBar2TagEnabled = CDM:GetTagEnabled(runesIsBar2) or false
-    cachedFontSize = db and db["resources" .. barKey .. "TagFontSize"] or 14
-    cachedFontColor = db and db["resources" .. barKey .. "TagColor"] or DEFAULT_WHITE_COLOR
-    cachedBar2OffsetX = db and db["resources" .. barKey .. "TagOffsetX"] or 0
-    cachedBar2OffsetY = db and db["resources" .. barKey .. "TagOffsetY"] or 0
+    if CDM._Res and CDM._Res.RefreshTrackerFontCache then
+        CDM._Res.RefreshTrackerFontCache()
+    end
 end
 
 local function GetBarTextures()
@@ -487,7 +429,7 @@ local SPEC_POWER_MAP = {
     [70] = POWER_TYPES.HolyPower,                               -- Retribution Paladin
     [253] = POWER_TYPES.Focus,                                  -- Beast Mastery Hunter
     [254] = POWER_TYPES.Focus,                                  -- Marksmanship Hunter
-    [255] = POWER_TYPES.Focus,                                  -- Survival Hunter
+    [255] = {POWER_TYPES.Focus, CUSTOM_POWER_TYPES.TipOfTheSpear}, -- Survival Hunter
     [259] = {POWER_TYPES.Energy, POWER_TYPES.ComboPoints},      -- Assassination Rogue
     [260] = {POWER_TYPES.Energy, POWER_TYPES.ComboPoints},      -- Outlaw Rogue
     [261] = {POWER_TYPES.Energy, POWER_TYPES.ComboPoints},      -- Subtlety Rogue
@@ -555,66 +497,6 @@ CDM.currentPowerTypes = {}
 CDM.currentPowerSlots = {}
 CDM.currentPowerTypeSlots = {}
 
-local runeDataCache = {}
-for i = 1, 6 do
-    runeDataCache[i] = {
-        runeIndex = i,
-        startTime = 0,
-        duration = 0,
-        isReady = false,
-        remaining = 0
-    }
-end
-
-local runeSortOrder = {1, 2, 3, 4, 5, 6}
-
-local MAX_VISIBLE_RECHARGING = 3
-
-local essenceUpdateTicker
-local essenceRechargeStart
-local essenceRechargeRate
-
-local function CompareRuneOrder(a, b)
-    local runeA = runeDataCache[a]
-    local runeB = runeDataCache[b]
-    if runeA.isReady and not runeB.isReady then
-        return true
-    elseif not runeA.isReady and runeB.isReady then
-        return false
-    end
-    return runeA.remaining < runeB.remaining
-end
-
-local function CollectRuneData()
-    local now = GetTime()
-    local hasRecharging = false
-
-    for i = 1, 6 do
-        local startTime, duration, runeIsReady = GetRuneCooldown(i)
-        local remaining = 0
-
-        if not runeIsReady and startTime and duration and duration > 0 then
-            remaining = (startTime + duration) - now
-            if remaining < 0 then remaining = 0 end
-            hasRecharging = true
-        end
-
-        local entry = runeDataCache[i]
-        entry.runeIndex = i
-        entry.startTime = startTime
-        entry.duration = duration
-        entry.isReady = runeIsReady
-        entry.remaining = remaining
-    end
-
-    for i = 1, 6 do
-        runeSortOrder[i] = i
-    end
-
-    table.sort(runeSortOrder, CompareRuneOrder)
-
-    return hasRecharging
-end
 
 local scratchPowerTypes = {}
 local scratchVisiblePowerTypes = {}
@@ -780,7 +662,8 @@ local function UsesPips(powerType)
         powerType == POWER_TYPES.Essence or
         powerType == CUSTOM_POWER_TYPES.SoulFragments or
         powerType == CUSTOM_POWER_TYPES.MaelstromWeapon or
-        powerType == CUSTOM_POWER_TYPES.DevourerSoulFragments
+        powerType == CUSTOM_POWER_TYPES.DevourerSoulFragments or
+        powerType == CUSTOM_POWER_TYPES.TipOfTheSpear
     )
 end
 
@@ -844,6 +727,8 @@ local function CreatePips(bar, maxPips, barWidth, barHeight)
     local isEssenceBar = (bar.powerType == POWER_TYPES.Essence)
     local isSoulShardBar = (bar.powerType == POWER_TYPES.SoulShards)
     local isRogueComboPoints = IsRogueComboPoints(bar.powerType)
+    local isFeralOverflowing = IsFeralOverflowingComboPoints(bar.powerType)
+    local needsChargeOverlays = isRogueComboPoints or isFeralOverflowing
 
     if not bar.bgTexture then
         bar.bgTexture = bar:CreateTexture(nil, "BACKGROUND")
@@ -895,7 +780,7 @@ local function CreatePips(bar, maxPips, barWidth, barHeight)
 
             if pip.timerText then
                 pip.timerText:ClearAllPoints()
-                pip.timerText:SetPoint("CENTER", pip.timerFrame, "CENTER", cachedBar2OffsetX, cachedBar2OffsetY)
+                pip.timerText:SetPoint("CENTER", pip.timerFrame, "CENTER", 0, 0)
             end
 
             local xStart = bar.pipPositions[i]
@@ -936,11 +821,9 @@ local function CreatePips(bar, maxPips, barWidth, barHeight)
         if isEssenceBar then
             bar.hasEssenceRecharging = false
             bar._essencePrevCurrent = nil
-            essenceRechargeStart = nil
-            essenceRechargeRate = nil
         end
     else
-        if isRogueComboPoints then
+        if needsChargeOverlays then
             bar.comboChargeEmptyOverlays = bar.comboChargeEmptyOverlays or {}
         end
 
@@ -969,7 +852,7 @@ local function CreatePips(bar, maxPips, barWidth, barHeight)
             pip:SetPoint("BOTTOMRIGHT", bar, "BOTTOMLEFT", xEnd, 0)
             pip:Show()
 
-            if isRogueComboPoints then
+            if needsChargeOverlays then
                 local overlay = bar.comboChargeEmptyOverlays[i]
                 if not overlay then
                     overlay = pip:CreateTexture(nil, "ARTWORK", nil, 1)
@@ -995,7 +878,7 @@ local function CreatePips(bar, maxPips, barWidth, barHeight)
         for i = maxPips + 1, #bar.comboChargeEmptyOverlays do
             bar.comboChargeEmptyOverlays[i]:Hide()
         end
-        if not isRogueComboPoints then
+        if not needsChargeOverlays then
             for _, overlay in ipairs(bar.comboChargeEmptyOverlays) do
                 overlay:Hide()
             end
@@ -1360,226 +1243,12 @@ local function UpdateContainerPosition()
     Pixel.SetPoint(CDM.resourceContainer, "BOTTOMLEFT", UIParent, "CENTER", offsetX - halfW, offsetY)
 end
 
-local runeUpdateTicker = nil
+local MAX_SOUL_FRAGMENTS = 6
+local MAX_MAELSTROM_WEAPON = 10
+local MAX_TIP_OF_THE_SPEAR = 3
+local DEVOURER_STACKS_PER_PIP = 5
 
-local runePowerUpdatePending = false
-local runePowerDispatchFrame = CreateFrame("Frame")
-runePowerDispatchFrame:Hide()
-
-local staggerUpdateTicker = nil
-
-local function ApplyRuneStates(bar, readyColor, rechargingColor, textEnabled)
-    local hasRecharging = CollectRuneData()
-
-    local rechargingShown = 0
-    for i, pip in ipairs(bar.pips) do
-        local runeIndex = runeSortOrder[i]
-        local rune = runeDataCache[runeIndex]
-        if not rune then
-            pip:SetValue(0, Enum.StatusBarInterpolation.Immediate)
-            if pip.timerText then
-                pip.timerText:Hide()
-            end
-        elseif rune.isReady then
-            pip:SetValue(1, Enum.StatusBarInterpolation.Immediate)
-            SetStatusBarColorIfChanged(pip, readyColor)
-            if pip.timerText then
-                pip.timerText:Hide()
-            end
-        elseif rune.startTime and rune.duration and rune.duration > 0 then
-            rechargingShown = rechargingShown + 1
-            if rechargingShown <= MAX_VISIBLE_RECHARGING then
-                local now = GetTime()
-                local elapsed = now - rune.startTime
-                local progress = elapsed / rune.duration
-                if progress < 0 then progress = 0 end
-                if progress > 1 then progress = 1 end
-
-                pip:SetValue(progress, Enum.StatusBarInterpolation.Immediate)
-                SetStatusBarColorIfChanged(pip, rechargingColor)
-
-                if pip.timerText and textEnabled then
-                    if rune.remaining > 0 then
-                        local displayValue = math_floor(rune.remaining)
-                        if pip._lastDisplayValue ~= displayValue then
-                            pip._lastDisplayValue = displayValue
-                            pip.timerText:SetFormattedText("%d", displayValue)
-                        end
-                        pip.timerText:Show()
-                    else
-                        if pip._lastDisplayValue ~= 0 then
-                            pip._lastDisplayValue = 0
-                        end
-                        pip.timerText:Hide()
-                    end
-                end
-            else
-                pip:SetValue(0, Enum.StatusBarInterpolation.Immediate)
-                SetStatusBarColorIfChanged(pip, rechargingColor)
-                if pip.timerText then
-                    pip.timerText:Hide()
-                end
-            end
-        else
-            pip:SetValue(0, Enum.StatusBarInterpolation.Immediate)
-            if pip.timerText then
-                pip.timerText:Hide()
-            end
-        end
-    end
-
-    return hasRecharging
-end
-
-local function UpdateRuneProgress(bar)
-    if not bar or not bar:IsShown() or not bar.hasRunesRecharging then
-        if runeUpdateTicker then
-            runeUpdateTicker:Cancel()
-            runeUpdateTicker = nil
-            if bar then bar.hasRunesRecharging = false end
-        end
-        return
-    end
-
-    if not cachedRuneReadyColor then
-        RefreshCachedFontStyles()
-    end
-
-    ApplyRuneStates(bar, cachedRuneReadyColor, cachedRuneRechargingColor, cachedBar2TagEnabled)
-end
-
-local function UpdateRuneCooldowns(bar)
-    if not bar or not bar.pips or bar.powerType ~= POWER_TYPES.Runes or not bar:IsShown() then
-        return
-    end
-
-    if not cachedFontPath or not cachedRuneReadyColor then
-        RefreshCachedFontStyles()
-    end
-
-    local textEnabled = cachedBar2TagEnabled
-
-    if textEnabled then
-        local pixelSize = Pixel.FontSize(cachedFontSize)
-        local cachedColor = bar._lastRuneFontColor
-        local colorChanged = (not cachedColor) or
-            cachedColor.r ~= cachedFontColor.r or
-            cachedColor.g ~= cachedFontColor.g or
-            cachedColor.b ~= cachedFontColor.b or
-            cachedColor.a ~= cachedFontColor.a
-
-        local styleChanged = colorChanged or
-            bar._lastRuneFontPath ~= cachedFontPath or
-            bar._lastRuneFontSize ~= pixelSize or
-            bar._lastRuneFontOutline ~= cachedFontOutline or
-            bar._lastRuneOffsetX ~= cachedBar2OffsetX or
-            bar._lastRuneOffsetY ~= cachedBar2OffsetY
-
-        if styleChanged then
-            for _, pip in ipairs(bar.pips) do
-                if pip.timerText then
-                    pip.timerText:SetIgnoreParentScale(true)
-                    pip.timerText:SetFont(cachedFontPath, pixelSize, cachedFontOutline)
-                    pip.timerText:SetTextColor(cachedFontColor.r, cachedFontColor.g, cachedFontColor.b, cachedFontColor.a)
-                    pip.timerText:ClearAllPoints()
-                    pip.timerText:SetPoint("CENTER", pip.timerFrame, "CENTER", cachedBar2OffsetX, cachedBar2OffsetY)
-                end
-            end
-
-            bar._lastRuneFontPath = cachedFontPath
-            bar._lastRuneFontSize = pixelSize
-            bar._lastRuneFontOutline = cachedFontOutline
-            bar._lastRuneOffsetX = cachedBar2OffsetX
-            bar._lastRuneOffsetY = cachedBar2OffsetY
-            cachedColor = cachedColor or {}
-            cachedColor.r = cachedFontColor.r
-            cachedColor.g = cachedFontColor.g
-            cachedColor.b = cachedFontColor.b
-            cachedColor.a = cachedFontColor.a
-            bar._lastRuneFontColor = cachedColor
-        end
-    end
-
-    local hasRecharging = ApplyRuneStates(bar, cachedRuneReadyColor, cachedRuneRechargingColor, textEnabled)
-
-    if hasRecharging and not runeUpdateTicker then
-        runeUpdateTicker = C_Timer.NewTicker(0.05, function()
-            UpdateRuneProgress(bar)
-        end)
-        bar.hasRunesRecharging = true
-    elseif not hasRecharging and runeUpdateTicker then
-        runeUpdateTicker:Cancel()
-        runeUpdateTicker = nil
-        bar.hasRunesRecharging = false
-    end
-end
-
-local function ApplyEssenceStates(bar, current, max, readyColor, rechargingColor)
-    for i, pip in ipairs(bar.pips) do
-        if not pip:IsShown() then break end
-        if i <= current then
-            pip:SetValue(1, Enum.StatusBarInterpolation.Immediate)
-            SetStatusBarColorIfChanged(pip, readyColor)
-        elseif i == current + 1 and essenceRechargeStart and essenceRechargeRate and essenceRechargeRate > 0 then
-            local elapsed = GetTime() - essenceRechargeStart
-            local rechargeTime = 1 / essenceRechargeRate
-            local progress = elapsed / rechargeTime
-            if progress < 0 then progress = 0 end
-            if progress > 1 then progress = 1 end
-            pip:SetValue(progress, Enum.StatusBarInterpolation.Immediate)
-            SetStatusBarColorIfChanged(pip, rechargingColor)
-        else
-            pip:SetValue(0, Enum.StatusBarInterpolation.Immediate)
-            SetStatusBarColorIfChanged(pip, rechargingColor)
-        end
-    end
-end
-
-local function UpdateEssenceCooldowns(bar)
-    if not bar or not bar.pips or bar.powerType ~= POWER_TYPES.Essence or not bar:IsShown() then
-        if essenceUpdateTicker then
-            essenceUpdateTicker:Cancel()
-            essenceUpdateTicker = nil
-        end
-        if bar then bar.hasEssenceRecharging = false end
-        return
-    end
-
-    local readyColor = cachedEssenceReadyColor or GetPowerColor(POWER_TYPES.Essence)
-    local rechargingColor = cachedEssenceRechargingColor or readyColor
-
-    local current = UnitPower("player", POWER_TYPES.Essence)
-    local max = UnitPowerMax("player", POWER_TYPES.Essence)
-
-    local rate = GetPowerRegenForPowerType(POWER_TYPES.Essence)
-    essenceRechargeRate = rate
-
-    if bar._essencePrevCurrent ~= current then
-        bar._essencePrevCurrent = current
-        if current < max then
-            essenceRechargeStart = GetTime()
-        else
-            essenceRechargeStart = nil
-        end
-        if CDM.TAGS and CDM.TAGS.textFrames[POWER_TYPES.Essence] then
-            CDM.TAGS:UpdateTagText(CDM.TAGS.textFrames[POWER_TYPES.Essence])
-        end
-    end
-
-    local hasRecharging = (current < max)
-    ApplyEssenceStates(bar, current, max, readyColor, rechargingColor)
-
-    if hasRecharging and not essenceUpdateTicker then
-        essenceUpdateTicker = C_Timer.NewTicker(0.05, function()
-            UpdateEssenceCooldowns(bar)
-        end)
-        bar.hasEssenceRecharging = true
-    elseif not hasRecharging and essenceUpdateTicker then
-        essenceUpdateTicker:Cancel()
-        essenceUpdateTicker = nil
-        bar.hasEssenceRecharging = false
-    end
-end
+local UpdateBarValue
 
 local function ApplySoulShardStates(bar)
     local rawPower = UnitPower("player", POWER_TYPES.SoulShards, true) or 0
@@ -1618,301 +1287,8 @@ local function ApplySoulShardStates(bar)
     bar.soulShardRawPower = rawPower
 end
 
-local StartStaggerTicker, StopStaggerTicker
 
-local function UpdateStaggerBar()
-    local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.Stagger]
-    if not bar or not bar:IsShown() then
-        return
-    end
-
-    local stagger = UnitStagger("player")
-    local maxHealth = UnitHealthMax("player")
-
-    if not stagger or not maxHealth or maxHealth == 0 then
-        return
-    end
-
-    bar:SetMinMaxValues(0, maxHealth)
-    if CDM.db.resourcesSmoothBars ~= false then
-        bar:SetValue(stagger, Enum.StatusBarInterpolation.ExponentialEaseOut)
-    else
-        bar:SetValue(stagger, Enum.StatusBarInterpolation.Immediate)
-    end
-
-    local pct = 0
-    local isStaggerSecret = (type(stagger) == "number" and issecretvalue(stagger)) or
-                            (type(maxHealth) == "number" and issecretvalue(maxHealth))
-    if not isStaggerSecret and type(stagger) == "number" and type(maxHealth) == "number" then
-        pct = stagger / maxHealth
-    end
-
-    local colorTier = 0
-    if pct >= 0.6 then
-        colorTier = 2
-    elseif pct >= 0.3 then
-        colorTier = 1
-    end
-
-    if bar._lastColorTier ~= colorTier then
-        bar._lastColorTier = colorTier
-        local color
-        if colorTier == 2 then
-            color = CDM.db.resourcesStaggerHeavyColor or CDM.defaults.resourcesStaggerHeavyColor
-        elseif colorTier == 1 then
-            color = CDM.db.resourcesStaggerModerateColor or CDM.defaults.resourcesStaggerModerateColor
-        else
-            color = CDM.db.resourcesStaggerLightColor or CDM.defaults.resourcesStaggerLightColor
-        end
-        bar:SetStatusBarColor(color.r, color.g, color.b, color.a)
-    end
-
-    bar.staggerPercent = pct * 100
-
-    if CDM.TAGS and CDM.TAGS.textFrames[CUSTOM_POWER_TYPES.Stagger] then
-        CDM.TAGS:UpdateTagText(CDM.TAGS.textFrames[CUSTOM_POWER_TYPES.Stagger])
-    end
-
-    if not isStaggerSecret and type(stagger) == "number" and stagger == 0 and not InCombatLockdown() and staggerUpdateTicker then
-        StopStaggerTicker()
-    end
-end
-
-StartStaggerTicker = function()
-    if staggerUpdateTicker then
-        return
-    end
-
-    staggerUpdateTicker = C_Timer.NewTicker(0.05, function()
-        UpdateStaggerBar()
-    end)
-end
-
-StopStaggerTicker = function()
-    if staggerUpdateTicker then
-        staggerUpdateTicker:Cancel()
-        staggerUpdateTicker = nil
-    end
-end
-
-local function UpdateTagTextForPowerType(powerType)
-    if CDM.TAGS and CDM.TAGS.textFrames[powerType] then
-        CDM.TAGS:UpdateTagText(CDM.TAGS.textFrames[powerType])
-    end
-end
-
--- Ironfur stack tracking
-
-local function RefreshIronfurTalents()
-    ironfurBaseDuration = C_SpellBook.IsSpellKnown(393611) and 9 or 7
-    hasGuardianOfElune = C_SpellBook.IsSpellKnown(155578)
-    hasFluidicForce = C_SpellBook.IsSpellKnown(441678)
-end
-
-local function PruneExpiredIronfurStacks()
-    local now = GetTime()
-    while #ironfurExpiries > 0 and ironfurExpiries[1] <= now do
-        table.remove(ironfurExpiries, 1)
-        table.remove(ironfurDurations, 1)
-    end
-end
-
-local function UpdateIronfurBar()
-    PruneExpiredIronfurStacks()
-
-    local stackCount = #ironfurExpiries
-
-    local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.Ironfur]
-    if not bar or not bar:IsShown() then
-        if stackCount == 0 and not InCombatLockdown() and ironfurUpdateTicker then
-            StopIronfurTicker()
-        end
-        return
-    end
-
-    local now = GetTime()
-
-    -- Find the longest-lasting stack (latest expiry) to drive the fill
-    local longestIdx = 0
-    local fillPct = 0
-    if stackCount > 0 then
-        local maxExpiry = 0
-        for i = 1, stackCount do
-            if ironfurExpiries[i] > maxExpiry then
-                maxExpiry = ironfurExpiries[i]
-                longestIdx = i
-            end
-        end
-        fillPct = math_max(0, (ironfurExpiries[longestIdx] - now) / ironfurDurations[longestIdx])
-        bar:SetValue(fillPct, Enum.StatusBarInterpolation.Immediate)
-    else
-        bar:SetValue(0, Enum.StatusBarInterpolation.Immediate)
-        if not InCombatLockdown() and ironfurUpdateTicker then
-            StopIronfurTicker()
-        end
-    end
-
-    if not bar.ironfurTicks then bar.ironfurTicks = {} end
-    local barWidth = bar:GetWidth()
-    local onePixel = Pixel.GetSize()
-
-    for i = 1, stackCount do
-        local tick = bar.ironfurTicks[i]
-        if not tick then
-            tick = Pixel.CreateSolidTexture(bar, "OVERLAY", 7)
-            tick:SetVertexColor(1, 1, 1, 1)
-            bar.ironfurTicks[i] = tick
-        end
-
-        local stackPct
-        if i == longestIdx then
-            stackPct = fillPct
-        else
-            stackPct = math_max(0, math_min(1, (ironfurExpiries[i] - now) / ironfurDurations[i]))
-        end
-        local xOffset = stackPct * barWidth
-        local snappedXOffset = Snap(xOffset)
-        local tickWidth = 2 * onePixel
-        local tickHeight = bar:GetHeight()
-        if tick._cdmLastIronfurTickX ~= snappedXOffset then
-            tick:ClearAllPoints()
-            tick:SetPoint("RIGHT", bar, "LEFT", snappedXOffset, 0)
-            tick._cdmLastIronfurTickX = snappedXOffset
-        end
-        if tick._cdmLastIronfurTickWidth ~= tickWidth or tick._cdmLastIronfurTickHeight ~= tickHeight then
-            tick:SetSize(tickWidth, tickHeight)
-            tick._cdmLastIronfurTickWidth = tickWidth
-            tick._cdmLastIronfurTickHeight = tickHeight
-        end
-        tick:Show()
-    end
-    for i = stackCount + 1, #bar.ironfurTicks do
-        bar.ironfurTicks[i]:Hide()
-    end
-
-    UpdateTagTextForPowerType(CUSTOM_POWER_TYPES.Ironfur)
-end
-
-local IRONFUR_UPDATE_INTERVAL = 0.021
-
-StartIronfurTicker = function()
-    if ironfurUpdateTicker then return end
-    ironfurUpdateTicker = C_Timer.NewTicker(IRONFUR_UPDATE_INTERVAL, function()
-        UpdateIronfurBar()
-    end)
-end
-
-StopIronfurTicker = function()
-    if not ironfurUpdateTicker then return end
-    ironfurUpdateTicker:Cancel()
-    ironfurUpdateTicker = nil
-end
-
-local function ClearIronfurState()
-    table.wipe(ironfurExpiries)
-    table.wipe(ironfurDurations)
-    StopIronfurTicker()
-    local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.Ironfur]
-    if bar and bar:IsShown() then
-        bar:SetValue(0, Enum.StatusBarInterpolation.Immediate)
-        if bar.ironfurTicks then
-            for _, tick in ipairs(bar.ironfurTicks) do tick:Hide() end
-        end
-        UpdateTagTextForPowerType(CUSTOM_POWER_TYPES.Ironfur)
-    end
-end
-
-function CDM:GetIronfurStackCount()
-    PruneExpiredIronfurStacks()
-    return #ironfurExpiries
-end
-
--- Ignore Pain stack tracking (via buff frame relay)
-
-local function ClearIgnorePainState()
-    ignorePainFrame = nil
-    local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.IgnorePain]
-    if bar and bar:IsShown() then
-        bar:SetValue(0)
-        bar.ignorePainSecretValue = nil
-        UpdateTagTextForPowerType(CUSTOM_POWER_TYPES.IgnorePain)
-    end
-end
-
-local function OnIgnorePainSetText(frame, value)
-    if ignorePainFrame ~= frame then return end
-    local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.IgnorePain]
-    if not bar or not bar:IsShown() then return end
-    if type(value) ~= "number" then
-        bar:SetValue(0)
-        bar.ignorePainSecretValue = nil
-        UpdateTagTextForPowerType(CUSTOM_POWER_TYPES.IgnorePain)
-        return
-    end
-    bar:SetValue(value)
-    bar.ignorePainSecretValue = value
-    UpdateTagTextForPowerType(CUSTOM_POWER_TYPES.IgnorePain)
-end
-
-function CDM:NotifyBuffFrameSpellID(frame, spellID)
-    if not isEnabled or currentSpecID ~= 73 then return end
-
-    if spellID == IGNORE_PAIN_SPELL_ID then
-        ignorePainFrame = frame
-        local frameData = CDM.GetFrameData(frame)
-        if not frameData.cdmIgnorePainHooked then
-            frameData.cdmIgnorePainHooked = true
-            local appFS = frame.Applications and frame.Applications.Applications
-            if appFS then
-                hooksecurefunc(appFS, "SetText", function(self, val)
-                    OnIgnorePainSetText(frame, val)
-                end)
-            end
-        end
-    elseif ignorePainFrame == frame then
-        ClearIgnorePainState()
-    end
-end
-
-function CDM:GetIgnorePainValue()
-    local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.IgnorePain]
-    return bar and bar.ignorePainSecretValue or 0
-end
-
-local ignorePainScanRetries = 0
-
-local function ScanForIgnorePainFrame()
-    if not isEnabled or currentSpecID ~= 73 then return end
-    if ignorePainFrame then return end
-
-    local viewer = _G.BuffIconCooldownViewer
-    if not viewer or not viewer.itemFramePool then return end
-
-    local GetBaseSpellID = CDM.GetBaseSpellID
-    for frame in viewer.itemFramePool:EnumerateActive() do
-        local baseID = GetBaseSpellID(frame)
-        if baseID then
-            CDM:NotifyBuffFrameSpellID(frame, baseID)
-            if ignorePainFrame then return end
-        end
-    end
-
-    if not ignorePainFrame and ignorePainScanRetries < 3 then
-        ignorePainScanRetries = ignorePainScanRetries + 1
-        C_Timer.After(0.5, ScanForIgnorePainFrame)
-    end
-end
-
-local maelstromWatchTicker
-
-local function StopMaelstromWatch()
-    if maelstromWatchTicker then
-        maelstromWatchTicker:Cancel()
-        maelstromWatchTicker = nil
-    end
-end
-
-local function UpdateBarValue(powerType)
+UpdateBarValue = function(powerType)
     local bar = CDM.resourceBars[powerType]
     if not bar or not bar:IsShown() then
         return
@@ -1924,31 +1300,20 @@ local function UpdateBarValue(powerType)
         current = C_Spell.GetSpellCastCount(CDM_C.SOUL_CLEAVE_SPELL_ID) or 0
         max = MAX_SOUL_FRAGMENTS
     elseif powerType == CUSTOM_POWER_TYPES.MaelstromWeapon then
-        local auraData = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.MAELSTROM_WEAPON_SPELL_ID)
-        current = auraData and auraData.applications or 0
-        max = MAX_MAELSTROM_WEAPON
-        if current > 0 and not maelstromWatchTicker then
-            maelstromWatchTicker = C_Timer.NewTicker(0.25, function()
-                local ad = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.MAELSTROM_WEAPON_SPELL_ID)
-                if not ad or (ad.applications or 0) == 0 then
-                    StopMaelstromWatch()
-                    UpdateBarValue(CUSTOM_POWER_TYPES.MaelstromWeapon)
-                end
-            end)
-        elseif current <= 0 then
-            StopMaelstromWatch()
-        end
+        current, max = CDM._Res.UpdateMaelstromBar(bar)
+    elseif powerType == CUSTOM_POWER_TYPES.TipOfTheSpear then
+        current, max = CDM._Res.UpdateTipOfTheSpearBar(bar)
     elseif powerType == CUSTOM_POWER_TYPES.DevourerSoulFragments then
-        current, max = GetDevourerSoulValueMax()
+        current, max = CDM._Res.GetDevourerSoulValueMax()
         current = current / DEVOURER_STACKS_PER_PIP
         max = max / DEVOURER_STACKS_PER_PIP
     elseif powerType == CUSTOM_POWER_TYPES.Ironfur then
-        UpdateIronfurBar()
+        CDM._Res.UpdateIronfurBar()
         return
     elseif powerType == CUSTOM_POWER_TYPES.IgnorePain then
         return
     elseif powerType == CUSTOM_POWER_TYPES.Stagger then
-        UpdateStaggerBar()
+        CDM._Res.UpdateStaggerBar()
         return
     else
         current = UnitPower("player", powerType)
@@ -1957,31 +1322,43 @@ local function UpdateBarValue(powerType)
 
     if bar.isPipBar then
         if powerType == POWER_TYPES.Runes then
-            UpdateRuneCooldowns(bar)
+            CDM._Res.UpdateRuneCooldowns(bar)
             return
         elseif powerType == POWER_TYPES.Essence then
-            UpdateEssenceCooldowns(bar)
-            UpdateTagTextForPowerType(powerType)
+            CDM._Res.UpdateEssenceCooldowns(bar)
+            CDM._Res.UpdateTagTextForPowerType(powerType)
             return
         elseif powerType == POWER_TYPES.SoulShards then
             ApplySoulShardStates(bar)
-            UpdateTagTextForPowerType(powerType)
+            CDM._Res.UpdateTagTextForPowerType(powerType)
             return
         end
         local isRogueComboPoints = IsRogueComboPoints(powerType)
-        local chargedLookup
-        local chargedFilledColor
-        local chargedEmptyColor
+        local isFeralOverflowing = IsFeralOverflowingComboPoints(powerType)
+        local hasChargedPoints = false
+        local chargedFilledColor, chargedEmptyColor
+        local chargedLookup, feralStacks
+
         if isRogueComboPoints then
             chargedLookup = GetChargedComboPointLookup()
-            chargedFilledColor, chargedEmptyColor = GetComboPointChargeColors()
+            if chargedLookup then
+                hasChargedPoints = true
+                chargedFilledColor, chargedEmptyColor = GetComboPointChargeColors()
+            end
+        elseif isFeralOverflowing then
+            feralStacks = CDM._Res.GetFeralOverflowingStacks()
+            if feralStacks > 0 then
+                hasChargedPoints = true
+                chargedFilledColor, chargedEmptyColor = GetFeralOverflowingColors()
+            end
         end
 
         for i, pip in ipairs(bar.pips) do
             pip:SetValue(current, Enum.StatusBarInterpolation.Immediate)
 
-            if isRogueComboPoints then
-                local isCharged = chargedLookup and chargedLookup[i]
+            if hasChargedPoints then
+                local isCharged = chargedLookup and chargedLookup[i] or (feralStacks and i <= feralStacks)
+
                 if isCharged and i <= current then
                     SetStatusBarColorIfChanged(pip, chargedFilledColor)
                 else
@@ -1997,10 +1374,14 @@ local function UpdateBarValue(powerType)
                         overlay:Hide()
                     end
                 end
+            elseif bar.comboChargeEmptyOverlays then
+                SetStatusBarColorIfChanged(pip, bar.color)
+                local overlay = bar.comboChargeEmptyOverlays[i]
+                if overlay then overlay:Hide() end
             end
         end
 
-        if isRogueComboPoints and bar.comboChargeEmptyOverlays then
+        if bar.comboChargeEmptyOverlays then
             for i = (#bar.pips + 1), #bar.comboChargeEmptyOverlays do
                 bar.comboChargeEmptyOverlays[i]:Hide()
             end
@@ -2015,7 +1396,7 @@ local function UpdateBarValue(powerType)
 
     end
 
-    UpdateTagTextForPowerType(powerType)
+    CDM._Res.UpdateTagTextForPowerType(powerType)
 end
 
 local function GetPipBarMax(powerType)
@@ -2026,8 +1407,11 @@ local function GetPipBarMax(powerType)
         return MAX_MAELSTROM_WEAPON
     end
     if powerType == CUSTOM_POWER_TYPES.DevourerSoulFragments then
-        local _, max = GetDevourerSoulValueMax()
+        local _, max = CDM._Res.GetDevourerSoulValueMax()
         return max / DEVOURER_STACKS_PER_PIP
+    end
+    if powerType == CUSTOM_POWER_TYPES.TipOfTheSpear then
+        return MAX_TIP_OF_THE_SPEAR
     end
     return UnitPowerMax("player", powerType)
 end
@@ -2060,14 +1444,14 @@ local function UpdatePipBarVisuals(bar, powerType, barTexturePath, bgTexturePath
     if powerType == POWER_TYPES.Runes then
         ApplyPipTexturesIfChanged(bar, barTexturePath)
         ApplyBarBackground(bar, bgTexturePath, bgColor)
-        UpdateRuneCooldowns(bar)
+        CDM._Res.UpdateRuneCooldowns(bar)
         return
     end
 
     if powerType == POWER_TYPES.Essence then
         ApplyPipTexturesIfChanged(bar, barTexturePath)
         ApplyBarBackground(bar, bgTexturePath, bgColor)
-        UpdateEssenceCooldowns(bar)
+        CDM._Res.UpdateEssenceCooldowns(bar)
         return
     end
 
@@ -2269,18 +1653,17 @@ function CDM:UpdateResources()
     end
 
     if currentSpecID == 104 then
-        RefreshIronfurTalents()
+        CDM._Res.RefreshIronfurTalents()
     end
 
-    if currentSpecID == 73 then
-        local hideIcon = self.db and self.db.resourcesIgnorePainHideIcon == true
-        CDM.resourcesHiddenBuffSet[IGNORE_PAIN_SPELL_ID] = hideIcon or nil
+    if currentSpecID == 73 and CDM._Res.RefreshIgnorePainVisibility then
+        CDM._Res.RefreshIgnorePainVisibility()
     end
 
     cachedPrimaryPowerType = UnitPowerType("player")
     RefreshCachedFontStyles()
     UpdateBarPositions()
-    RefreshCachedRuneTimerSlot()
+    CDM._Res.RefreshCachedRuneTimerSlot()
     self:UpdateResourceValues()
 
     if CDM.TAGS and CDM.TAGS.styleDirty and CDM.TAGS.UpdateAllTags then
@@ -2295,202 +1678,6 @@ function CDM:UpdateResourceValues()
     end
 end
 
-local function OnSpellUpdateUses(event, spellID, baseSpellID)
-    if spellID ~= CDM_C.SOUL_CLEAVE_SPELL_ID and baseSpellID ~= CDM_C.SOUL_CLEAVE_SPELL_ID then return end
-    UpdateBarValue(CUSTOM_POWER_TYPES.SoulFragments)
-end
-
-local function OnPlayerRegenDisabled()
-    StartStaggerTicker()
-end
-
-local function OnPlayerRegenEnabled()
-    local currentStagger = UnitStagger("player") or 0
-    if IsSafeNumber(currentStagger) and currentStagger > 0 then
-        StartStaggerTicker()
-        return
-    end
-    StopStaggerTicker()
-end
-
-local function OnBrewmasterCombatStateChanged(isInCombat)
-    if currentSpecID ~= 268 then
-        return
-    end
-    if isInCombat then
-        OnPlayerRegenDisabled()
-        return
-    end
-    OnPlayerRegenEnabled()
-end
-
-local function RegisterBrewmasterCombatStateListener()
-    if brewmasterCombatCallbackRegistered then
-        return
-    end
-    if CDM:RegisterInternalCallback("OnCombatStateChanged", OnBrewmasterCombatStateChanged) then
-        brewmasterCombatCallbackRegistered = true
-    end
-end
-
-local function UnregisterBrewmasterCombatStateListener()
-    if brewmasterCombatCallbackRegistered then
-        CDM:UnregisterInternalCallback("OnCombatStateChanged", OnBrewmasterCombatStateChanged)
-        brewmasterCombatCallbackRegistered = false
-    end
-end
-
-local function OnUnitMaxHealth()
-    UpdateStaggerBar()
-end
-
-local function OnMaelstromUnitAura()
-    local now = GetTime()
-    if now - lastMaelstromAuraUpdateTime < 0.05 then
-        return
-    end
-    lastMaelstromAuraUpdateTime = now
-
-    UpdateBarValue(CUSTOM_POWER_TYPES.MaelstromWeapon)
-end
-
-local function OnDevourerUnitAura()
-    local now = GetTime()
-    if now - lastDevourerAuraUpdateTime < 0.05 then
-        return
-    end
-    lastDevourerAuraUpdateTime = now
-
-    local inVoidMeta = CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID
-        and C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID) ~= nil
-    if inVoidMeta ~= lastDevourerInVoidMeta then
-        lastDevourerInVoidMeta = inVoidMeta
-        UpdateBarPositions()
-        return
-    end
-
-    UpdateBarValue(CUSTOM_POWER_TYPES.DevourerSoulFragments)
-end
-
-local function OnDevourerSpellsChanged()
-    if currentSpecID ~= 1480 then
-        return
-    end
-    CDM:UpdateResources()
-end
-
-local function OnGuardianSpellCastSucceeded(event, unit, castGUID, spellID)
-    if currentSpecID ~= 104 then return end
-
-    if spellID == IRONFUR_SPELL_ID then
-        local now = GetTime()
-        local bonus = (hasGuardianOfElune and now < guardianOfEluneExpiry) and 3 or 0
-        if bonus > 0 then guardianOfEluneExpiry = 0 end
-        local duration = ironfurBaseDuration + bonus
-        local n = #ironfurExpiries + 1
-        ironfurExpiries[n] = now + duration
-        ironfurDurations[n] = duration
-        UpdateIronfurBar()
-        StartIronfurTicker()
-    elseif spellID == MANGLE_SPELL_ID then
-        if hasGuardianOfElune then
-            guardianOfEluneExpiry = GetTime() + GUARDIAN_OF_ELUNE_DURATION
-        end
-    elseif spellID == FRENZIED_REGEN_SPELL_ID then
-        if hasGuardianOfElune and GetTime() < guardianOfEluneExpiry then
-            guardianOfEluneExpiry = 0
-        end
-    end
-end
-
-local function OnIronfurPlayerDead()
-    ClearIronfurState()
-    guardianOfEluneExpiry = 0
-end
-
-local function EnableVengeanceSoulTracking()
-    CDM:RegisterEvent("SPELL_UPDATE_USES", OnSpellUpdateUses)
-    C_Timer.After(0.1, function()
-        UpdateBarValue(CUSTOM_POWER_TYPES.SoulFragments)
-    end)
-end
-
-local function DisableVengeanceSoulTracking()
-    CDM:UnregisterEventHandler("SPELL_UPDATE_USES", OnSpellUpdateUses)
-end
-
-local function EnableBrewmasterTracking()
-    RegisterBrewmasterCombatStateListener()
-    CDM:RegisterUnitEvent("UNIT_MAXHEALTH", "player", OnUnitMaxHealth)
-
-    local currentStagger = UnitStagger("player") or 0
-    if InCombatLockdown() or (IsSafeNumber(currentStagger) and currentStagger > 0) then
-        StartStaggerTicker()
-    end
-end
-
-local function DisableBrewmasterTracking()
-    UnregisterBrewmasterCombatStateListener()
-    CDM:UnregisterUnitEventHandler("UNIT_MAXHEALTH", OnUnitMaxHealth)
-    StopStaggerTicker()
-end
-
-local function EnableMaelstromTracking()
-    CDM:RegisterUnitEvent("UNIT_AURA", "player", OnMaelstromUnitAura)
-    C_Timer.After(0.1, function()
-        UpdateBarValue(CUSTOM_POWER_TYPES.MaelstromWeapon)
-    end)
-end
-
-local function DisableMaelstromTracking()
-    CDM:UnregisterUnitEventHandler("UNIT_AURA", OnMaelstromUnitAura)
-    StopMaelstromWatch()
-end
-
-local function EnableDevourerTracking()
-    CDM:RegisterUnitEvent("UNIT_AURA", "player", OnDevourerUnitAura)
-    CDM:RegisterEvent("SPELLS_CHANGED", OnDevourerSpellsChanged)
-    C_Timer.After(0.1, function()
-        UpdateBarValue(CUSTOM_POWER_TYPES.DevourerSoulFragments)
-    end)
-end
-
-local function DisableDevourerTracking()
-    CDM:UnregisterUnitEventHandler("UNIT_AURA", OnDevourerUnitAura)
-    CDM:UnregisterEventHandler("SPELLS_CHANGED", OnDevourerSpellsChanged)
-end
-
-local function EnableGuardianTracking()
-    RefreshIronfurTalents()
-    CDM:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player", OnGuardianSpellCastSucceeded)
-    CDM:RegisterEvent("PLAYER_DEAD", OnIronfurPlayerDead)
-end
-
-local function RefreshGuardianTracking()
-    RefreshIronfurTalents()
-end
-
-local function DisableGuardianTracking()
-    CDM:UnregisterUnitEventHandler("UNIT_SPELLCAST_SUCCEEDED", OnGuardianSpellCastSucceeded)
-    CDM:UnregisterEventHandler("PLAYER_DEAD", OnIronfurPlayerDead)
-    ClearIronfurState()
-end
-
-local function ApplyIgnorePainVisibility()
-    local hideIcon = CDM.db and CDM.db.resourcesIgnorePainHideIcon == true
-    CDM.resourcesHiddenBuffSet[IGNORE_PAIN_SPELL_ID] = hideIcon or nil
-end
-
-local function StartIgnorePainTracking()
-    ApplyIgnorePainVisibility()
-    ignorePainScanRetries = 0
-    C_Timer.After(0.2, ScanForIgnorePainFrame)
-end
-
-local function StopIgnorePainTracking()
-    CDM.resourcesHiddenBuffSet[IGNORE_PAIN_SPELL_ID] = nil
-    ClearIgnorePainState()
-end
 
 local function UpdateAncillaryLayouts()
     if CDM.UpdateBuffContainerPosition then
@@ -2526,50 +1713,66 @@ local function OnSpecChanged()
 
     if newSpecID == 581 then
         if currentSpecID ~= 581 then
-            EnableVengeanceSoulTracking()
+            CDM._Res.EnableVengeanceSoulTracking()
         end
     elseif currentSpecID == 581 then
-        DisableVengeanceSoulTracking()
+        CDM._Res.DisableVengeanceSoulTracking()
     end
 
     if newSpecID == 268 then
         if currentSpecID ~= 268 then
-            EnableBrewmasterTracking()
+            CDM._Res.EnableBrewmasterTracking()
         end
     elseif currentSpecID == 268 then
-        DisableBrewmasterTracking()
+        CDM._Res.DisableBrewmasterTracking()
     end
 
     if newSpecID == 263 then
         if currentSpecID ~= 263 then
-            EnableMaelstromTracking()
+            CDM._Res.EnableMaelstromTracking()
         end
     elseif currentSpecID == 263 then
-        DisableMaelstromTracking()
+        CDM._Res.DisableMaelstromTracking()
+    end
+
+    if newSpecID == 103 then
+        if currentSpecID ~= 103 then
+            CDM._Res.EnableFeralOverflowingTracking()
+        end
+    elseif currentSpecID == 103 then
+        CDM._Res.DisableFeralOverflowingTracking()
+    end
+
+    if newSpecID == 255 then
+        if currentSpecID ~= 255 then
+            CDM._Res.EnableTipOfTheSpearTracking()
+        end
+    elseif currentSpecID == 255 then
+        CDM._Res.DisableTipOfTheSpearTracking()
     end
 
     if newSpecID == 1480 then
         if currentSpecID ~= 1480 then
-            EnableDevourerTracking()
+            CDM._Res.EnableDevourerTracking()
         end
     elseif currentSpecID == 1480 then
-        DisableDevourerTracking()
+        CDM._Res.DisableDevourerTracking()
     end
 
     if newSpecID == 104 then
         if currentSpecID ~= 104 then
-            EnableGuardianTracking()
+            CDM._Res.EnableGuardianTracking()
         else
-            RefreshGuardianTracking()
+            CDM._Res.RefreshGuardianTracking()
         end
     elseif currentSpecID == 104 then
-        DisableGuardianTracking()
+        CDM._Res.DisableGuardianTracking()
     end
 
     if newSpecID == 73 then
         -- StartIgnorePainTracking runs after UpdateResources below
     elseif currentSpecID == 73 then
-        StopIgnorePainTracking()
+        CDM._Res.StopIgnorePainTracking()
     end
 
     currentSpecID = newSpecID
@@ -2578,7 +1781,7 @@ local function OnSpecChanged()
     CDM:UpdateResources()
 
     if newSpecID == 73 then
-        StartIgnorePainTracking()
+        CDM._Res.StartIgnorePainTracking()
     end
 
     UpdateAncillaryLayouts()
@@ -2612,37 +1815,14 @@ end
 local function OnUpdateShapeshiftForm()
     cachedPrimaryPowerType = UnitPowerType("player")
 
-    if currentSpecID == 104 then
-        local currentPowerType = cachedPrimaryPowerType
-        local inBearForm = (currentPowerType == BEAR_FORM_POWER_TYPE)
-        local inCatForm = (currentPowerType == CAT_FORM_POWER_TYPE)
-        if not inBearForm and not (inCatForm and hasFluidicForce) then
-            ClearIronfurState()
-        end
+    if currentSpecID == 104 and CDM._Res.OnShapeshiftGuardianCheck then
+        CDM._Res.OnShapeshiftGuardianCheck(cachedPrimaryPowerType)
     end
 
     CDM:UpdateResources()
     UpdateAncillaryLayouts()
 end
 
-local function RunePowerBatchCallback()
-    runePowerUpdatePending = false
-    local bar = CDM.resourceBars[POWER_TYPES.Runes]
-    if bar and bar:IsShown() then
-        UpdateRuneCooldowns(bar)
-    end
-end
-
-runePowerDispatchFrame:SetScript("OnUpdate", function(self)
-    self:Hide()
-    RunePowerBatchCallback()
-end)
-
-local function OnRunePowerUpdate(event, runeIndex, isEnergize)
-    if runePowerUpdatePending then return end
-    runePowerUpdatePending = true
-    runePowerDispatchFrame:Show()
-end
 
 local function OnUnitMaxPower()
     UpdateBarPositions()
@@ -2668,34 +1848,30 @@ end
 local function RegisterCoreEvents()
     for _, entry in ipairs(CORE_EVENTS) do
         if entry[3] then
-            CDM:RegisterUnitEvent(entry[1], entry[3], entry[2])
+            RegisterResUnitEvent(entry[1], entry[3], entry[2])
         else
-            CDM:RegisterEvent(entry[1], entry[2])
+            RegisterResEvent(entry[1], entry[2])
         end
     end
-    CDM:RegisterInternalCallback("OnSpecStateChanged", OnResourcesSpecStateChanged)
+    CDM:RegisterSpecStateHandler(OnResourcesSpecStateChanged)
     if resourcesPlayerClass == "DEATHKNIGHT" then
-        CDM:RegisterEvent("RUNE_POWER_UPDATE", OnRunePowerUpdate)
+        RegisterResEvent("RUNE_POWER_UPDATE", CDM._Res.OnRunePowerUpdate)
     end
     if resourcesPlayerClass == "ROGUE" then
-        CDM:RegisterUnitEvent("UNIT_POWER_POINT_CHARGE", "player", OnUnitPowerPointCharge)
+        RegisterResUnitEvent("UNIT_POWER_POINT_CHARGE", "player", OnUnitPowerPointCharge)
     end
 end
 
 local function UnregisterCoreEvents()
     for _, entry in ipairs(CORE_EVENTS) do
-        if entry[3] then
-            CDM:UnregisterUnitEventHandler(entry[1], entry[2])
-        else
-            CDM:UnregisterEventHandler(entry[1], entry[2])
-        end
+        UnregisterResEvent(entry[1])
     end
-    CDM:UnregisterInternalCallback("OnSpecStateChanged", OnResourcesSpecStateChanged)
+    CDM:UnregisterSpecStateHandler(OnResourcesSpecStateChanged)
     if resourcesPlayerClass == "DEATHKNIGHT" then
-        CDM:UnregisterEventHandler("RUNE_POWER_UPDATE", OnRunePowerUpdate)
+        UnregisterResEvent("RUNE_POWER_UPDATE")
     end
     if resourcesPlayerClass == "ROGUE" then
-        CDM:UnregisterUnitEventHandler("UNIT_POWER_POINT_CHARGE", OnUnitPowerPointCharge)
+        UnregisterResUnitEvent("UNIT_POWER_POINT_CHARGE")
     end
 end
 
@@ -2742,29 +1918,18 @@ end
 local function DisableResources()
     if not isEnabled then return end
     UnregisterCoreEvents()
-    DisableVengeanceSoulTracking()
-    DisableBrewmasterTracking()
-    DisableMaelstromTracking()
-    DisableDevourerTracking()
-    DisableGuardianTracking()
-    StopIgnorePainTracking()
-    if runeUpdateTicker then
-        runeUpdateTicker:Cancel()
-        runeUpdateTicker = nil
-    end
-    if essenceUpdateTicker then
-        essenceUpdateTicker:Cancel()
-        essenceUpdateTicker = nil
-    end
-    essenceRechargeStart = nil
-    essenceRechargeRate = nil
-    guardianOfEluneExpiry = 0
+    CDM._Res.DisableVengeanceSoulTracking()
+    CDM._Res.DisableBrewmasterTracking()
+    CDM._Res.DisableMaelstromTracking()
+    CDM._Res.DisableFeralOverflowingTracking()
+    CDM._Res.DisableTipOfTheSpearTracking()
+    CDM._Res.DisableDevourerTracking()
+    CDM._Res.DisableGuardianTracking()
+    CDM._Res.StopIgnorePainTracking()
+    CDM._Res.DisableAllTrackerTickers()
     if CDM.resourceContainer then
         CDM.resourceContainer:Hide()
     end
-    lastMaelstromAuraUpdateTime = 0
-    lastDevourerAuraUpdateTime = 0
-    lastDevourerInVoidMeta = false
     currentSpecID = nil
     cachedPrimaryPowerType = nil
     isEnabled = false
@@ -2776,19 +1941,11 @@ local function RefreshResourcesLifecycle()
 end
 
 local function OnResourcesProfileApplied()
-    cachedFontPath = nil
-    cachedFontSize = nil
-    cachedFontOutline = nil
-    cachedFontColor = nil
-    cachedRuneReadyColor = nil
-    cachedRuneRechargingColor = nil
-    cachedEssenceReadyColor = nil
-    cachedEssenceRechargingColor = nil
     cachedSoulShardReadyColor = nil
     cachedSoulShardRechargingColor = nil
-    cachedBar2TagEnabled = false
-    cachedBar2OffsetX = 0
-    cachedBar2OffsetY = 0
+    if CDM._Res.OnTrackerProfileApplied then
+        CDM._Res.OnTrackerProfileApplied()
+    end
 
     if CDM.resourceBars then
         for _, bar in pairs(CDM.resourceBars) do
@@ -2801,26 +1958,34 @@ local function OnResourcesProfileApplied()
     end
 end
 
-if CDM.ModuleManager and CDM.ModuleManager.RegisterModule then
-    CDM.ModuleManager:RegisterModule({
-        id = "resources",
-        Initialize = function()
-            CDM:InitializeResources()
-        end,
-        Enable = EnableResources,
-        Disable = DisableResources,
-        Refresh = RefreshResourcesLifecycle,
-        OnProfileApplied = OnResourcesProfileApplied,
-        ShouldBeEnabled = function(db)
-            return db and db.resourcesEnabled ~= false
-        end,
-    })
+local function ReconcileResources()
+    if CDM.db and CDM.db.resourcesEnabled ~= false then
+        if not isInitialized then CDM:InitializeResources() end
+        if not isEnabled then EnableResources() end
+        RefreshResourcesLifecycle()
+    elseif isEnabled then
+        DisableResources()
+    end
 end
 
-CDM:RegisterRefreshCallback("resources", function()
-    local moduleManager = CDM.ModuleManager
-    if moduleManager and moduleManager.ReconcileModule then
-        moduleManager:ReconcileModule("resources")
-    end
-end, 50, { "resources_visuals", "trackers_layout", "viewers" })
+CDM._Res = {
+    SetStatusBarColorIfChanged = SetStatusBarColorIfChanged,
+    SetVertexColorIfChanged    = SetVertexColorIfChanged,
+    UpdateBarValue             = UpdateBarValue,
+    UpdateBarPositions         = UpdateBarPositions,
+    GetPowerColor              = GetPowerColor,
+    CUSTOM_POWER_TYPES         = CUSTOM_POWER_TYPES,
+    POWER_TYPES                = POWER_TYPES,
+    DEVOURER_STACKS_PER_PIP    = DEVOURER_STACKS_PER_PIP,
+    GetCurrentSpecID           = function() return currentSpecID end,
+    GetIsEnabled               = function() return isEnabled end,
+    GetResourceConfigSlot      = GetResourceConfigSlot,
+    RegisterResEvent           = RegisterResEvent,
+    UnregisterResEvent         = UnregisterResEvent,
+    RegisterResUnitEvent       = RegisterResUnitEvent,
+    UnregisterResUnitEvent     = UnregisterResUnitEvent,
+}
+
+CDM.ReconcileResources = ReconcileResources
+CDM.OnResourcesProfileApplied = OnResourcesProfileApplied
 

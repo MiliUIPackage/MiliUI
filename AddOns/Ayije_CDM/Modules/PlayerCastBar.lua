@@ -1057,4 +1057,4 @@ end
 
 CDM:RegisterRefreshCallback("playerCastBar", function()
     CDM:UpdatePlayerCastBar()
-end, 55, { "castbar_visuals", "resources_visuals", "trackers_layout", "viewers" })
+end, 55)

@@ -37,7 +37,7 @@ local function CreateLayoutTab(page, tabId)
         CDM.db.hideGCDSwipe,
         function(checked)
             CDM.db.hideGCDSwipe = checked
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     generalPage.hideGCDSwipeCheckbox:SetPoint("TOPLEFT", swipeHeader, "BOTTOMLEFT", 0, -15)
@@ -49,7 +49,7 @@ local function CreateLayoutTab(page, tabId)
     local swipeInit = CDM.db.swipeColor or { r = 0, g = 0, b = 0, a = 0.6 }
     local swipeColorPicker = UI.CreateSimpleColorPicker(content, swipeInit, function(r, g, b)
         CDM.db.swipeColor = { r = r, g = g, b = b, a = CDM.db.swipeColor and CDM.db.swipeColor.a or 0.6 }
-        API:RefreshConfig()
+        API:Refresh()
     end)
     swipeColorPicker:SetPoint("LEFT", swipeColorLabel, "RIGHT", 6, 0)
 
@@ -58,21 +58,21 @@ local function CreateLayoutTab(page, tabId)
         function(v)
             local sc = CDM.db.swipeColor or { r = 0, g = 0, b = 0, a = 0.6 }
             CDM.db.swipeColor = { r = sc.r, g = sc.g, b = sc.b, a = v / 100 }
-            API:RefreshConfig()
+            API:Refresh()
         end)
     swipeAlphaSlider:SetPoint("TOPLEFT", swipeColorLabel, "BOTTOMLEFT", 0, -10)
 
     local layoutHeader = UI.CreateHeader(content, L["Layout Settings"])
     layoutHeader:SetPoint("TOPLEFT", swipeAlphaSlider, "BOTTOMLEFT", 0, -20)
 
-    generalPage.controls.l1 = UI.CreateModernSlider(content, L["Icon Spacing"], -1, 30, CDM.db.spacing, function(v) CDM.db.spacing = v; API:RefreshConfig() end)
+    generalPage.controls.l1 = UI.CreateModernSlider(content, L["Icon Spacing"], -1, 30, CDM.db.spacing, function(v) CDM.db.spacing = v; API:Refresh() end)
     generalPage.controls.l1:SetPoint("TOPLEFT", layoutHeader, "BOTTOMLEFT", 0, -15)
 
     local essHeader = UI.CreateHeader(content, L["Essential"] or "Essential")
     essHeader:SetPoint("TOPLEFT", generalPage.controls.l1, "BOTTOMLEFT", 0, -20)
 
     local maxRowEssSlider = UI.CreateModernSlider(content, L["Max Icons Per Row"], 1, 20, CDM.db.maxRowEss, function(v)
-        CDM.db.maxRowEss = v; API:RefreshConfig()
+        CDM.db.maxRowEss = v; API:Refresh()
     end)
     maxRowEssSlider:SetPoint("TOPLEFT", essHeader, "BOTTOMLEFT", 0, -15)
 
@@ -115,13 +115,13 @@ local function CreateLayoutTab(page, tabId)
         function(checked)
             CDM.db.utilityWrap = checked
             UpdateUnlockControls()
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     wrapCheckbox:SetPoint("TOPLEFT", utilHeader, "BOTTOMLEFT", 0, -15)
 
     utilWrapSlider = UI.CreateModernSlider(content, L["Utility Max Icons Per Row"], 1, 20, CDM.db.maxRowUtil, function(v)
-        CDM.db.maxRowUtil = v; API:RefreshConfig()
+        CDM.db.maxRowUtil = v; API:Refresh()
     end)
     utilWrapSlider:SetPoint("TOPLEFT", wrapCheckbox, "BOTTOMLEFT", 0, -10)
 
@@ -132,13 +132,13 @@ local function CreateLayoutTab(page, tabId)
         function(checked)
             CDM.db.utilityUnlock = checked
             UpdateUnlockControls()
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     unlockCheckbox:SetPoint("TOPLEFT", utilWrapSlider, "BOTTOMLEFT", 0, -10)
 
     xOffsetSlider = UI.CreateModernSlider(content, L["Utility X Offset"], -600, 600, CDM.db.utilityXOffset, function(v)
-        CDM.db.utilityXOffset = v; API:RefreshConfig()
+        CDM.db.utilityXOffset = v; API:Refresh()
     end)
     xOffsetSlider:SetPoint("TOPLEFT", unlockCheckbox, "BOTTOMLEFT", 0, -10)
 
@@ -149,7 +149,7 @@ local function CreateLayoutTab(page, tabId)
         function(checked)
             CDM.db.utilityVertical = checked
             UpdateUnlockControls()
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     verticalCheckbox:SetPoint("TOPLEFT", xOffsetSlider, "BOTTOMLEFT", 0, -10)

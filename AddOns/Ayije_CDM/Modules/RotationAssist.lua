@@ -8,7 +8,7 @@ local IsSafeNumber = CDM.IsSafeNumber
 
 local isEnabled = false
 local isACMHooked = false
-local isQueueHooked = false
+local isReanchorHooked = false
 local currentHighlightSpellID = nil
 local inCombat = false
 local highlightFrames = setmetatable({}, { __mode = "k" })
@@ -130,14 +130,14 @@ local function RegisterCombatStateListener()
     if combatStateCallbackRegistered then
         return
     end
-    if CDM:RegisterInternalCallback("OnCombatStateChanged", SetCombatState) then
+    if CDM:RegisterCombatStateHandler(SetCombatState) then
         combatStateCallbackRegistered = true
     end
 end
 
 local function UnregisterCombatStateListener()
     if combatStateCallbackRegistered then
-        CDM:UnregisterInternalCallback("OnCombatStateChanged", SetCombatState)
+        CDM:UnregisterCombatStateHandler(SetCombatState)
         combatStateCallbackRegistered = false
     end
 end
@@ -158,10 +158,11 @@ local function InstallHooks()
         end
     end
 
-    if not isQueueHooked then
-        isQueueHooked = true
-        hooksecurefunc(CDM, "QueueViewer", function(_, name)
+    if not isReanchorHooked then
+        isReanchorHooked = true
+        hooksecurefunc(CDM, "ForceReanchor", function(_, viewer)
             if not isEnabled or not currentHighlightSpellID then return end
+            local name = viewer and viewer.GetName and viewer:GetName()
             if name == VIEWERS.ESSENTIAL or name == VIEWERS.UTILITY then
                 dirtyFrame:Show()
             end
@@ -233,5 +234,5 @@ function CDM.RotationAssist:Initialize()
             end
             RefreshHighlights()
         end
-    end, 56, { "assist", "viewers" })
+    end, 56)
 end

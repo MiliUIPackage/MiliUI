@@ -300,33 +300,23 @@ local function RefreshExternals()
     ApplySizesAndRelayout()
 end
 
-local function OnProfileApplied()
-    needsStyleUpdate = true
+local function ReconcileExternals()
+    if CDM.db and CDM.db.externalsEnabled ~= false then
+        if not isInitialized then InitializeExternals() end
+        if not isEnabled then EnableExternals() end
+        RefreshExternals()
+    elseif isEnabled then
+        DisableExternals()
+    end
 end
 
-if CDM.ModuleManager and CDM.ModuleManager.RegisterModule then
-    CDM.ModuleManager:RegisterModule({
-        id = "externals",
-        Initialize = function()
-            InitializeExternals()
-        end,
-        Enable = EnableExternals,
-        Disable = DisableExternals,
-        Refresh = RefreshExternals,
-        OnProfileApplied = OnProfileApplied,
-        ShouldBeEnabled = function(db)
-            return db and db.externalsEnabled ~= false
-        end,
-    })
+CDM.ReconcileExternals = ReconcileExternals
+
+local function OnExternalsProfileApplied()
+    needsStyleUpdate = true
 end
+CDM.OnExternalsProfileApplied = OnExternalsProfileApplied
 
 CDM:RegisterRefreshCallback("externalsStyles", function()
     needsStyleUpdate = true
-end, 18, { "text_visuals", "trackers_layout", "viewers" })
-
-CDM:RegisterRefreshCallback("externals", function()
-    local moduleManager = CDM.ModuleManager
-    if moduleManager and moduleManager.ReconcileModule then
-        moduleManager:ReconcileModule("externals")
-    end
-end, 53, { "trackers_layout", "viewers" })
+end, 18)

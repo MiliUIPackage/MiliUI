@@ -26,9 +26,6 @@ local playerFrameSettled = false
 
 local cachedPlayerFrame = nil
 local cachedPlayerFrameVersion = -1
-local cachedRacialsPartyFrame = nil
-local cachedRacialsPartyFrameVersion = -1
-local racialsPartyAnchorCacheVersion = 0
 local trackerPositionCallbacks = {}
 local positionNotifyPending = false
 local positionNotifyTimer = nil
@@ -47,33 +44,7 @@ end
 
 CDM.InvalidateTrackerAnchorCache = InvalidateTrackerAnchorCache
 
-local effectiveIDCache = {}
-
-local function GetEffectiveSpellID(spellID)
-    if not spellID then return spellID end
-    local cached = effectiveIDCache[spellID]
-    if cached then return cached end
-    if not C_Spell.GetOverrideSpell then
-        effectiveIDCache[spellID] = spellID
-        return spellID
-    end
-    local overrideID = C_Spell.GetOverrideSpell(spellID)
-    if CDM.IsSafeNumber(overrideID) and overrideID ~= spellID and overrideID > 0 then
-        effectiveIDCache[spellID] = overrideID
-        return overrideID
-    end
-    effectiveIDCache[spellID] = spellID
-    return spellID
-end
-
-CDM.GetEffectiveSpellID = GetEffectiveSpellID
-
-function CDM.WipeEffectiveIDCache()
-    table.wipe(effectiveIDCache)
-end
-
 local GCD_SPELL_ID = CDM_C.GCD_SPELL_ID
-local DesaturationCurve = CDM_C.DesaturationCurve
 local gcdFilterCurve = C_CurveUtil.CreateCurve()
 gcdFilterCurve:SetType(Enum.LuaCurveType.Step)
 local cachedGCDInfo = nil
@@ -110,10 +81,6 @@ function CDM.EvaluateGCDFilteredDesaturation(durObj)
     return durObj:EvaluateRemainingDuration(gcdFilterCurve, 0) or 0
 end
 
-local function InvalidateRacialsPartyAnchorCache()
-    racialsPartyAnchorCacheVersion = racialsPartyAnchorCacheVersion + 1
-end
-
 local function NotifyTrackerPositionCallbacks()
     for _, cb in pairs(trackerPositionCallbacks) do
         cb()
@@ -140,16 +107,6 @@ function CDM.ScheduleTrackerPositionRefresh()
     SchedulePositionNotify()
 end
 
-function CDM.RunTrackerPositionRefreshNow()
-    InvalidateTrackerAnchorCache()
-    if positionNotifyTimer then
-        positionNotifyTimer:Cancel()
-        positionNotifyTimer = nil
-    end
-    positionNotifySeq = positionNotifySeq + 1
-    positionNotifyPending = false
-    NotifyTrackerPositionCallbacks()
-end
 
 local playerFrameRecheckTimer
 
@@ -162,7 +119,6 @@ local function EnsureAnchorInvalidation()
     end
     f:SetScript("OnEvent", function(_, event)
         InvalidateTrackerAnchorCache()
-        InvalidateRacialsPartyAnchorCache()
         SchedulePositionNotify()
         if event == "PLAYER_ENTERING_WORLD" or event == "LOADING_SCREEN_DISABLED" then
             if playerFrameRecheckTimer then
@@ -171,7 +127,6 @@ local function EnsureAnchorInvalidation()
             playerFrameRecheckTimer = C_Timer.NewTimer(1, function()
                 playerFrameRecheckTimer = nil
                 InvalidateTrackerAnchorCache()
-                InvalidateRacialsPartyAnchorCache()
                 SchedulePositionNotify()
             end)
         end
@@ -222,26 +177,6 @@ end
 
 function CDM.UnregisterTrackerPositionCallback(name)
     trackerPositionCallbacks[name] = nil
-end
-
-local function GetDandersFrameForUnit(unit)
-    if not (C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("DandersFrames")) then
-        return nil
-    end
-    if type(DandersFrames_IsReady) ~= "function" or not DandersFrames_IsReady() then
-        return nil
-    end
-
-    local getFrameForUnit = DandersFrames_GetFrameForUnit
-    if type(getFrameForUnit) ~= "function" then
-        return nil
-    end
-
-    local ok, frame = pcall(getFrameForUnit, unit)
-    if not ok then
-        return nil
-    end
-    return frame
 end
 
 local PLAYER_FRAME_CANDIDATES = {
@@ -295,106 +230,6 @@ local function ResolvePlayerAnchorFrame()
     cachedPlayerFrame = nil
     cachedPlayerFrameVersion = trackerAnchorCacheVersion
     return nil
-end
-
-local PARTY_BUTTON_COUNT = 5
-
-local function IsVisibleFrame(frame)
-    return frame and frame.IsVisible and frame:IsVisible()
-end
-
-local function FindPlayerPartyButton(prefix, count)
-    for i = 1, count do
-        local frame = _G[prefix .. i]
-        if frame and frame.GetAttribute and frame:GetAttribute("unit") == "player"
-           and IsVisibleFrame(frame) then
-            return frame
-        end
-    end
-end
-
-local function FindGrid2PlayerButton()
-    for h = 1, 8 do
-        local prefix = "Grid2LayoutHeader" .. h
-        if not _G[prefix] then break end
-        for k = 1, PARTY_BUTTON_COUNT do
-            local btn = _G[prefix .. "UnitButton" .. k]
-            if not btn then break end
-            if btn.GetAttribute and btn:GetAttribute("unit") == "player"
-               and IsVisibleFrame(btn) then
-                return btn
-            end
-        end
-    end
-end
-
-local PARTY_FRAME_SOURCES = {
-    { addon = "ElvUI", prefix = "ElvUF_PartyGroup1UnitButton" },
-    { addon = "Cell",  prefix = "CellPartyFrameMember" },
-    { addon = "Grid2", fn = true },
-    { addon = nil,     prefix = "CompactPartyFrameMember" },
-    { addon = nil,     prefix = "CompactRaidFrame" },
-}
-
-local RAID_CONTAINER_SOURCES = {
-    { addon = "ElvUI", name = "ElvUF_Raid1" },
-    { addon = "Cell",  name = "CellRaidFrame" },
-    { addon = "Grid2", name = "Grid2LayoutFrame" },
-    { addon = nil,     name = "CompactRaidFrameContainer" },
-}
-
-local function ResolveRacialsPartyAnchorFrame()
-    if cachedRacialsPartyFrameVersion == racialsPartyAnchorCacheVersion then
-        local f = cachedRacialsPartyFrame
-        if not f or IsVisibleFrame(f) then
-            return f
-        end
-    end
-
-    local frame
-    local dandersFrame = GetDandersFrameForUnit("player")
-    if IsVisibleFrame(dandersFrame) then
-        frame = dandersFrame
-    end
-
-    if not frame then
-        if IsInRaid() then
-            for _, c in ipairs(RAID_CONTAINER_SOURCES) do
-                if not c.addon or C_AddOns.IsAddOnLoaded(c.addon) then
-                    local f = _G[c.name]
-                    if IsVisibleFrame(f) then
-                        frame = f
-                        break
-                    end
-                end
-            end
-        else
-            for _, src in ipairs(PARTY_FRAME_SOURCES) do
-                if not src.addon or C_AddOns.IsAddOnLoaded(src.addon) then
-                    if src.fn then
-                        frame = FindGrid2PlayerButton()
-                    else
-                        frame = FindPlayerPartyButton(src.prefix, PARTY_BUTTON_COUNT)
-                    end
-                    if frame then break end
-                end
-            end
-        end
-    end
-
-    cachedRacialsPartyFrame = frame
-    if frame then
-        cachedRacialsPartyFrameVersion = racialsPartyAnchorCacheVersion
-    end
-    return frame
-end
-
-function CDM.GetRacialsPartyAnchorFrame(forceRefresh)
-    EnsureAnchorInvalidation()
-    if forceRefresh then
-        InvalidateRacialsPartyAnchorCache()
-    end
-    return ResolveRacialsPartyAnchorFrame()
 end
 
 function CDM.CreateTrackerIcon(parent, namePrefix, id, opts)

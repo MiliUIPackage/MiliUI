@@ -197,28 +197,17 @@ NormalizeNumericKeys = function(t)
     end
 end
 
-local NUMERIC_KEYED_TABLES = {
-    "racialsCustomEntries",
-    "racialsOrderPerSpec",
-    "racialsDisabled",
-    "defensivesCustomSpells",
-    "defensivesOrder",
-    "defensivesDisabledSpells",
-    "spellRegistry",
-    "resourcesManaSettings",
-    "resourcesPrimaryResourceSettings",
-    "resourcesSecondaryResourceSettings",
-    "resourcesTagSettings",
-    "buffGroups",
-    "ungroupedBuffOverrides",
-    "cooldownGroups",
-    "ungroupedCooldownOverrides",
-    "customBuffRegistry",
-}
+-- Used for import normalization (string→int key fixup) and compaction (nil when empty).
+local SPARSE_TABLE_KEYS = {}
+for key, default in pairs(CDM.defaults) do
+    if type(default) == "table" and next(default) == nil then
+        SPARSE_TABLE_KEYS[#SPARSE_TABLE_KEYS + 1] = key
+    end
+end
 
 local function NormalizeImportedProfile(profile)
     if type(profile) ~= "table" then return end
-    for _, key in ipairs(NUMERIC_KEYED_TABLES) do
+    for _, key in ipairs(SPARSE_TABLE_KEYS) do
         local t = profile[key]
         if type(t) == "table" then
             NormalizeNumericKeys(t)
@@ -232,44 +221,54 @@ local function NormalizeImportedProfile(profile)
     CompactBuffOverrideTables(profile)
 end
 
+local function IsRegistrySpecEmpty(node)
+    if type(node) ~= "table" then return true end
+    if not IsEmptyTable(node.colors) then return false end
+    if node.glowEnabled ~= nil and not IsEmptyTable(node.glowEnabled) then return false end
+    if node.glowColors ~= nil and not IsEmptyTable(node.glowColors) then return false end
+    return true
+end
+
+local function CompactRegistrySpec(specID, profile)
+    local db = profile or CDM.db
+    if type(db) ~= "table" or type(db.spellRegistry) ~= "table" then return end
+    local node = db.spellRegistry[specID]
+    if not node then return end
+
+    if IsEmptyTable(node.glowEnabled) then node.glowEnabled = nil end
+    if IsEmptyTable(node.glowColors) then node.glowColors = nil end
+
+    if IsRegistrySpecEmpty(node) then
+        db.spellRegistry[specID] = nil
+    end
+
+    if IsEmptyTable(db.spellRegistry) then
+        db.spellRegistry = nil
+    end
+end
+
 local function CompactSparseRuntimeData(profile)
     if type(profile) ~= "table" then return end
 
     CompactBuffGroupSpellLists(profile)
     CompactBuffOverrideTables(profile)
 
-    if IsEmptyTable(profile.resourcesTagSettings) then
-        profile.resourcesTagSettings = nil
-    end
-    if IsEmptyTable(profile.resourcesManaSettings) then
-        profile.resourcesManaSettings = nil
-    end
-    if IsEmptyTable(profile.resourcesPrimaryResourceSettings) then
-        profile.resourcesPrimaryResourceSettings = nil
-    end
-    if IsEmptyTable(profile.resourcesSecondaryResourceSettings) then
-        profile.resourcesSecondaryResourceSettings = nil
-    end
-
-    if profile.spellRegistry ~= nil and type(profile.spellRegistry) ~= "table" then
-        profile.spellRegistry = nil
-    elseif CDM.SpellRegistry and CDM.SpellRegistry.CompactAll then
-        CDM.SpellRegistry:CompactAll(profile)
-    elseif IsEmptyTable(profile.spellRegistry) then
+    if type(profile.spellRegistry) == "table" then
+        local specIDs = {}
+        for specID in pairs(profile.spellRegistry) do
+            specIDs[#specIDs + 1] = specID
+        end
+        for _, specID in ipairs(specIDs) do
+            CompactRegistrySpec(specID, profile)
+        end
+    elseif profile.spellRegistry ~= nil then
         profile.spellRegistry = nil
     end
 
-    if IsEmptyTable(profile.buffGroups) then
-        profile.buffGroups = nil
-    end
-    if IsEmptyTable(profile.ungroupedBuffOverrides) then
-        profile.ungroupedBuffOverrides = nil
-    end
-    if profile.cooldownGroups and IsEmptyTable(profile.cooldownGroups) then
-        profile.cooldownGroups = nil
-    end
-    if profile.ungroupedCooldownOverrides and IsEmptyTable(profile.ungroupedCooldownOverrides) then
-        profile.ungroupedCooldownOverrides = nil
+    for _, key in ipairs(SPARSE_TABLE_KEYS) do
+        if key ~= "spellRegistry" and IsEmptyTable(profile[key]) then
+            profile[key] = nil
+        end
     end
 end
 
@@ -652,9 +651,7 @@ local function InvalidateProfileCaches()
 
     local specIndex = GetSpecialization()
     local specID = specIndex and GetSpecializationInfo(specIndex)
-    if specID and CDM.InvalidateSpellRegistryCache then
-        CDM:InvalidateSpellRegistryCache(specID)
-    elseif CDM.MarkSpecDataDirty then
+    if specID and CDM.MarkSpecDataDirty then
         CDM:MarkSpecDataDirty()
     end
 
@@ -695,10 +692,10 @@ local function QueueCanonicalProfileRefresh(options)
         RebuildOptionsIfLoaded(options.targetTab)
     end
 
-    CDM:RefreshConfig()
+    CDM:Refresh()
 end
 
-function CDM:ApplyProfileAtomic(name, preparedProfileData, options)
+function CDM:ApplyProfile(name, preparedProfileData, options)
     if type(name) ~= "string" or name == "" then
         return false, "invalid_profile_name"
     end
@@ -742,11 +739,8 @@ function CDM:ApplyProfileAtomic(name, preparedProfileData, options)
     end
 
     InvalidateProfileCaches()
-    CDM:RefreshScopesNow({ "spec_data" })
+    CDM.RunProfileAppliedHooks()
 
-    if CDM.ModuleManager and CDM.ModuleManager.NotifyProfileApplied then
-        CDM.ModuleManager:NotifyProfileApplied()
-    end
     if CDM.DisableBlizzardPlayerCastBar then
         CDM:DisableBlizzardPlayerCastBar()
     end
@@ -756,7 +750,7 @@ function CDM:ApplyProfileAtomic(name, preparedProfileData, options)
 end
 
 function CDM:SetProfile(name)
-    local ok, err = self:ApplyProfileAtomic(name, nil, {
+    local ok, err = self:ApplyProfile(name, nil, {
         rebuildOptions = true,
         targetTab = "profiles",
         updateCurrentSpecProfile = true,
@@ -770,7 +764,7 @@ end
 function CDM:NewProfile(name)
     if not name or name == "" then return false, "invalid_profile_name" end
     if Ayije_CDMDB.profiles[name] then return false, "profile_exists" end
-    return self:ApplyProfileAtomic(name, {}, {
+    return self:ApplyProfile(name, {}, {
         rebuildOptions = true,
         targetTab = "profiles",
         updateCurrentSpecProfile = true,
@@ -785,7 +779,7 @@ function CDM:CopyProfile(sourceName)
     for key, value in pairs(source) do
         targetProfileData[key] = CopyConfigValue(value)
     end
-    return self:ApplyProfileAtomic(self.activeProfileName, targetProfileData, {
+    return self:ApplyProfile(self.activeProfileName, targetProfileData, {
         rebuildOptions = true,
         targetTab = "profiles",
     })
@@ -800,7 +794,7 @@ function CDM:DeleteProfile(name)
     Ayije_CDMDB.profiles[name] = nil
     for charKey, profileName in pairs(Ayije_CDMDB.profileKeys) do
         if profileName == name then
-            Ayije_CDMDB.profileKeys[charKey] = nil
+            Ayije_CDMDB.profileKeys[charKey] = fallback
         end
     end
     if Ayije_CDMDB.specProfiles then
@@ -819,7 +813,7 @@ function CDM:DeleteProfile(name)
 end
 
 function CDM:ResetProfile()
-    return self:ApplyProfileAtomic(self.activeProfileName, {}, {
+    return self:ApplyProfile(self.activeProfileName, {}, {
         rebuildOptions = true,
         targetTab = "profiles",
     })
@@ -917,7 +911,7 @@ function CDM:CheckSpecProfileSwitch(specIndex)
     if not targetProfile then return end
     if targetProfile == self.activeProfileName then return end
     if not Ayije_CDMDB.profiles[targetProfile] then return end
-    local ok, err = self:ApplyProfileAtomic(targetProfile, nil, {
+    local ok, err = self:ApplyProfile(targetProfile, nil, {
         rebuildOptions = false,
     })
     if not ok then
@@ -941,7 +935,7 @@ function CDM:ImportProfileData(profileName, profileData)
         return false, "db_not_initialized"
     end
 
-    local ok, err = self:ApplyProfileAtomic(profileName, profileData, {
+    local ok, err = self:ApplyProfile(profileName, profileData, {
         rebuildOptions = true,
         targetTab = "importexport",
         updateCurrentSpecProfile = true,
@@ -1095,34 +1089,73 @@ function CDM:SetSecondaryResourceEnabled(enabled)
     SetPerSpecSetting("resourcesSecondaryResourceSettings", self:GetCurrentSpecID(), enabled, true)
 end
 
-function CDM:InvalidateSpellRegistryCache(specID)
-    if self.SpellRegistry and self.SpellRegistry.Refresh then
-        self.SpellRegistry:Refresh(specID)
-    end
-    if self.MarkSpecDataDirty then
-        self:MarkSpecDataDirty()
-    end
-end
 
 local function RefreshBuffViewer()
     if CDM.RefreshSpecData then CDM:RefreshSpecData() end
     CDM.styleCacheVersion = (CDM.styleCacheVersion or 0) + 1
     local BUFF = CDM.CONST.VIEWERS and CDM.CONST.VIEWERS.BUFF
-    if BUFF and CDM.QueueViewer then
-        CDM:QueueViewer(BUFF)
+    local v = BUFF and _G[BUFF]
+    if v then CDM:ForceReanchor(v) end
+end
+
+local function ResolveWithVariants(spellID)
+    local base = CDM.NormalizeToBase and CDM.NormalizeToBase(spellID)
+    if base == spellID then base = nil end
+    local stable = CDM.ResolveStableBase and CDM:ResolveStableBase(spellID)
+    if stable == spellID or stable == base then stable = nil end
+    return base, stable
+end
+
+local function EnsureRegistryStructure(specID)
+    if not CDM.db then return nil end
+    if not CDM.db.spellRegistry then
+        CDM.db.spellRegistry = {}
     end
+    if not CDM.db.spellRegistry[specID] then
+        CDM.db.spellRegistry[specID] = { colors = {} }
+    end
+    return CDM.db.spellRegistry[specID]
 end
 
 function CDM:SaveSpell(specID, spellID, color)
-    self.SpellRegistry:Save(specID, spellID, color)
-    self:InvalidateSpellRegistryCache(specID)
+    local registry = EnsureRegistryStructure(specID)
+    if not registry then return end
+    if color then
+        registry.colors[spellID] = { r = color.r, g = color.g, b = color.b, a = color.a or 1 }
+    end
+    local base, stable = ResolveWithVariants(spellID)
+    if base then registry.colors[base] = nil end
+    if stable then registry.colors[stable] = nil end
+    if self.MarkSpecDataDirty then self:MarkSpecDataDirty() end
     RefreshBuffViewer()
 end
 
 function CDM:ClearSpellBorderColor(specID, spellID)
-    self.SpellRegistry:ClearColor(specID, spellID)
-    self:InvalidateSpellRegistryCache(specID)
+    if not CDM.db or not CDM.db.spellRegistry then return end
+    local registry = CDM.db.spellRegistry[specID]
+    if not registry or not registry.colors then return end
+    registry.colors[spellID] = nil
+    local base, stable = ResolveWithVariants(spellID)
+    if base then registry.colors[base] = nil end
+    if stable then registry.colors[stable] = nil end
+    CompactRegistrySpec(specID)
+    if self.MarkSpecDataDirty then self:MarkSpecDataDirty() end
     RefreshBuffViewer()
+end
+
+function CDM:GetSpellBorderColor(specID, spellID)
+    if not CDM.db or not CDM.db.spellRegistry then return nil end
+    local reg = CDM.db.spellRegistry[specID]
+    if not reg or not reg.colors then return nil end
+    if reg.colors[spellID] then return reg.colors[spellID] end
+    local base, stable = ResolveWithVariants(spellID)
+    if base and reg.colors[base] then return reg.colors[base] end
+    if stable and reg.colors[stable] then return reg.colors[stable] end
+    return nil
+end
+
+function CDM:CompactRegistrySpec(specID)
+    CompactRegistrySpec(specID)
 end
 
 local stableBaseCache = {}
@@ -1211,7 +1244,7 @@ function CDM:ClearStableBaseCache()
 end
 
 local function EnsureGlowRegistryNode(specID)
-    return CDM.SpellRegistry.EnsureStructure(specID)
+    return EnsureRegistryStructure(specID)
 end
 
 function CDM:GetSpellGlowEnabled(specID, spellID)
@@ -1219,10 +1252,9 @@ function CDM:GetSpellGlowEnabled(specID, spellID)
     local reg = CDM.db.spellRegistry[specID]
     if not reg or not reg.glowEnabled then return false end
     if reg.glowEnabled[spellID] == true then return true end
-    local base = CDM.NormalizeToBase and CDM.NormalizeToBase(spellID)
-    if base and base ~= spellID and reg.glowEnabled[base] == true then return true end
-    local stable = self.ResolveStableBase and self:ResolveStableBase(spellID)
-    if stable and stable ~= spellID and stable ~= base and reg.glowEnabled[stable] == true then return true end
+    local base, stable = ResolveWithVariants(spellID)
+    if base and reg.glowEnabled[base] == true then return true end
+    if stable and reg.glowEnabled[stable] == true then return true end
     return false
 end
 
@@ -1251,16 +1283,13 @@ function CDM:SetSpellGlowEnabled(specID, spellID, enabled)
     end
 
     reg.glowEnabled[spellID] = enabled and true or nil
-    local base = CDM.NormalizeToBase and CDM.NormalizeToBase(spellID)
-    if base and base ~= spellID then reg.glowEnabled[base] = nil end
-    local stable = CDM.ResolveStableBase and CDM:ResolveStableBase(spellID)
-    if stable and stable ~= spellID and stable ~= base then reg.glowEnabled[stable] = nil end
+    local base, stable = ResolveWithVariants(spellID)
+    if base then reg.glowEnabled[base] = nil end
+    if stable then reg.glowEnabled[stable] = nil end
 
-    if CDM.SpellRegistry and CDM.SpellRegistry.CompactSpec then
-        CDM.SpellRegistry:CompactSpec(specID)
-    end
-    self:InvalidateSpellRegistryCache(specID)
-    self:RefreshConfig()
+    CompactRegistrySpec(specID)
+    if self.MarkSpecDataDirty then self:MarkSpecDataDirty() end
+    self:Refresh()
 end
 
 function CDM:GetSpellGlowColor(specID, spellID)
@@ -1268,10 +1297,9 @@ function CDM:GetSpellGlowColor(specID, spellID)
     local reg = CDM.db.spellRegistry[specID]
     if not reg or not reg.glowColors then return nil end
     if reg.glowColors[spellID] then return reg.glowColors[spellID] end
-    local base = CDM.NormalizeToBase and CDM.NormalizeToBase(spellID)
-    if base and base ~= spellID and reg.glowColors[base] then return reg.glowColors[base] end
-    local stable = self.ResolveStableBase and self:ResolveStableBase(spellID)
-    if stable and stable ~= spellID and stable ~= base and reg.glowColors[stable] then return reg.glowColors[stable] end
+    local base, stable = ResolveWithVariants(spellID)
+    if base and reg.glowColors[base] then return reg.glowColors[base] end
+    if stable and reg.glowColors[stable] then return reg.glowColors[stable] end
     return nil
 end
 
@@ -1284,16 +1312,13 @@ function CDM:SetSpellGlowColor(specID, spellID, color)
     end
 
     reg.glowColors[spellID] = color and { r = color.r, g = color.g, b = color.b } or nil
-    local base = CDM.NormalizeToBase and CDM.NormalizeToBase(spellID)
-    if base and base ~= spellID then reg.glowColors[base] = nil end
-    local stable = CDM.ResolveStableBase and CDM:ResolveStableBase(spellID)
-    if stable and stable ~= spellID and stable ~= base then reg.glowColors[stable] = nil end
+    local base, stable = ResolveWithVariants(spellID)
+    if base then reg.glowColors[base] = nil end
+    if stable then reg.glowColors[stable] = nil end
 
-    if CDM.SpellRegistry and CDM.SpellRegistry.CompactSpec then
-        CDM.SpellRegistry:CompactSpec(specID)
-    end
-    self:InvalidateSpellRegistryCache(specID)
-    self:RefreshConfig()
+    CompactRegistrySpec(specID)
+    if self.MarkSpecDataDirty then self:MarkSpecDataDirty() end
+    self:Refresh()
 end
 
 CDM.BuffGroupSets = {
@@ -1325,6 +1350,8 @@ local function RefreshGroupData(self, sets, dbKey, categories, shouldInvalidateC
     sets.groups = specGroups
 
     local spellToGroup = {}
+    local resolvedBases = sets.resolvedBases or {}
+    sets.resolvedBases = resolvedBases
 
     for groupIndex, group in ipairs(specGroups) do
         if group.spells then
@@ -1332,6 +1359,10 @@ local function RefreshGroupData(self, sets, dbKey, categories, shouldInvalidateC
                 sets.grouped[spellID] = groupIndex
                 local entry = { groupIdx = groupIndex, storedID = spellID }
                 spellToGroup[spellID] = entry
+                local knownBase = resolvedBases[spellID]
+                if knownBase and knownBase ~= spellID and not spellToGroup[knownBase] then
+                    spellToGroup[knownBase] = entry
+                end
             end
         end
     end
@@ -1346,7 +1377,10 @@ local function RefreshGroupData(self, sets, dbKey, categories, shouldInvalidateC
                     local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
                     if info then
                         local match
-                        if IsUsableSpellID(info.overrideSpellID) and info.overrideSpellID ~= info.spellID then
+                        if info.overrideTooltipSpellID then
+                            match = spellToGroup[info.overrideTooltipSpellID]
+                        end
+                        if not match and IsUsableSpellID(info.overrideSpellID) and info.overrideSpellID ~= info.spellID then
                             match = spellToGroup[info.overrideSpellID]
                         end
                         if not match then
@@ -1362,6 +1396,9 @@ local function RefreshGroupData(self, sets, dbKey, categories, shouldInvalidateC
                         end
                         if match then
                             sets.cooldownIDGrouped[cdID] = match
+                            if info.spellID ~= match.storedID then
+                                resolvedBases[match.storedID] = info.spellID
+                            end
                         end
                     end
                 end

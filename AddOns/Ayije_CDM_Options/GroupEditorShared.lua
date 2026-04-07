@@ -641,24 +641,10 @@ function Shared.CreateSlider(parent, label, minVal, maxVal, currentVal, onChange
     return UI.CreateModernSlider(parent, label, minVal, maxVal, currentVal, onChange, Shared.SLIDER_LABEL_W, Shared.SLIDER_W)
 end
 
-local GROUP_VISUAL_REFRESH_SCOPES = { "viewers", "trackers_layout" }
-local GROUP_STRUCTURAL_REFRESH_SCOPES = { "spec_data", "viewers", "trackers_layout" }
-
-local function TriggerGroupRefresh(scopeNames)
-    if API.RefreshScopes then
-        API:RefreshScopes(scopeNames)
-        return
-    end
-    API:RefreshConfig()
-end
-
 function Shared.SaveVisualRefresh()
-    TriggerGroupRefresh(GROUP_VISUAL_REFRESH_SCOPES)
+    API:Refresh()
 end
 
-function Shared.SaveStructuralRefresh()
-    TriggerGroupRefresh(GROUP_STRUCTURAL_REFRESH_SCOPES)
-end
 
 function Shared.CreateQueueLeftPanelRefresh(containerFrame, getRefreshAllFn)
     local queued = false
@@ -806,4 +792,512 @@ function Shared.CreateSpecDropdown(parent, anchorPoint, anchorX, anchorY, config
     end)
 
     return dropdown, RefreshText
+end
+
+function Shared.CreateGroupEditorPools(parent, config)
+    local CDM = Runtime
+    local leftWidth = Shared.LEFT_WIDTH
+    local iconSize = config and config.iconSize or 30
+    local rowHeight = config and config.rowHeight or 36
+    local arrowSize = config and config.arrowSize or 29
+    local highlightAlpha = config and config.highlightAlpha or 0.2
+    local resetBorder = config and config.resetBorder
+
+    local headerPool = Shared.CreateWidgetPool(function(p)
+        local header = Shared.CreateExpandableHeader(p, 0, false, "", false)
+        header.root = header.row
+        return header
+    end, function(header)
+        header.nameText:Show()
+        header.selectBtn:SetScript("OnClick", nil)
+        header.deleteBtn:SetScript("OnClick", nil)
+        header.expandBtn:SetScript("OnClick", nil)
+    end)
+
+    local groupContainerPool = Shared.CreateWidgetPool(function(p)
+        local gc = CreateFrame("Frame", nil, p)
+        gc:SetSize(leftWidth, 10)
+        local hl = gc:CreateTexture(nil, "BACKGROUND")
+        hl:SetAllPoints()
+        hl:SetColorTexture(0.2, 0.4, 0.8, highlightAlpha)
+        hl:Hide()
+        gc.highlight = hl
+        return { root = gc, highlight = hl }
+    end, function(widget)
+        widget.highlight:Hide()
+    end)
+
+    local emptyRowPool = Shared.CreateWidgetPool(function(p)
+        local f = CreateFrame("Frame", nil, p)
+        f:SetSize(leftWidth, rowHeight)
+        local t = f:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+        t:SetPoint("LEFT", 10, 0)
+        return { root = f, text = t }
+    end, function(widget)
+        widget.text:SetText("")
+    end)
+
+    local spellRowPool = Shared.CreateWidgetPool(function(p)
+        local row = CreateFrame("Frame", nil, p)
+        row:SetSize(leftWidth - 20, rowHeight)
+
+        local btnUp = CreateFrame("Button", nil, row)
+        btnUp:SetSize(arrowSize, arrowSize)
+        btnUp:SetPoint("RIGHT", row, "LEFT", -2 - arrowSize + 2, 0)
+        btnUp:SetNormalAtlas("common-button-collapseExpand-up")
+        btnUp:SetPushedAtlas("common-button-collapseExpand-up-pressed")
+        btnUp:SetDisabledAtlas("common-button-collapseExpand-up-disabled")
+        btnUp:SetHighlightAtlas("common-button-collapseExpand-hover")
+
+        local btnDown = CreateFrame("Button", nil, row)
+        btnDown:SetSize(arrowSize, arrowSize)
+        btnDown:SetPoint("RIGHT", row, "LEFT", -2, 0)
+        btnDown:SetNormalAtlas("common-button-collapseExpand-down")
+        btnDown:SetPushedAtlas("common-button-collapseExpand-down-pressed")
+        btnDown:SetDisabledAtlas("common-button-collapseExpand-down-disabled")
+        btnDown:SetHighlightAtlas("common-button-collapseExpand-hover")
+
+        local iconContainer = CreateFrame("Frame", nil, row)
+        iconContainer:SetSize(iconSize, iconSize)
+        iconContainer:SetPoint("LEFT", 0, 0)
+        local iconTex = iconContainer:CreateTexture(nil, "ARTWORK")
+        iconTex:SetAllPoints()
+        CDM_C.ApplyIconTexCoord(iconTex, CDM_C.GetEffectiveZoomAmount())
+
+        if CDM.BORDER and CDM.BORDER.CreateBorder then
+            CDM.BORDER:CreateBorder(iconContainer)
+            if CDM.BORDER.activeBorders then
+                CDM.BORDER.activeBorders[iconContainer] = nil
+            end
+        end
+
+        local removeBtn = CreateFrame("Button", nil, row)
+        removeBtn:SetSize(16, 16)
+        removeBtn:SetPoint("RIGHT", -6, 0)
+        removeBtn:SetFrameLevel(row:GetFrameLevel() + 2)
+        local removeBtnText = removeBtn:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+        removeBtnText:SetPoint("CENTER")
+        removeBtnText:SetText("|cffff4444X|r")
+        removeBtn:SetFontString(removeBtnText)
+
+        local nameText = row:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font12")
+        nameText:SetJustifyH("LEFT")
+
+        local clickBtn = CreateFrame("Button", nil, row)
+        clickBtn:SetAllPoints()
+        clickBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        clickBtn:RegisterForDrag("LeftButton")
+
+        return {
+            root = row,
+            btnUp = btnUp,
+            btnDown = btnDown,
+            iconContainer = iconContainer,
+            iconTex = iconTex,
+            removeBtn = removeBtn,
+            removeBtnText = removeBtnText,
+            nameText = nameText,
+            clickBtn = clickBtn,
+        }
+    end, function(widget)
+        widget.btnUp:Hide()
+        widget.btnUp:SetScript("OnClick", nil)
+        widget.btnDown:Hide()
+        widget.btnDown:SetScript("OnClick", nil)
+        widget.removeBtn:Hide()
+        widget.removeBtn:SetScript("OnClick", nil)
+        widget.clickBtn:SetScript("OnClick", nil)
+        widget.clickBtn:SetScript("OnDragStart", nil)
+        widget.clickBtn:SetScript("OnDragStop", nil)
+        widget.nameText:SetText("")
+        widget.iconTex:SetTexture(nil)
+        widget.iconTex:SetDesaturated(false)
+        widget.iconTex:SetAlpha(1)
+        if widget.iconContainer.border then
+            widget.iconContainer.border:SetAlpha(1)
+            if resetBorder then
+                resetBorder(widget.iconContainer.border)
+            end
+        end
+    end)
+
+    return headerPool, groupContainerPool, emptyRowPool, spellRowPool
+end
+
+function Shared.AcquireEmptyRow(pool, parent, text)
+    local widget = pool:Acquire(parent)
+    widget.root:SetPoint("TOPLEFT", 0, 0)
+    widget.text:SetText(text)
+    UI.SetTextFaint(widget.text)
+    return widget
+end
+
+function Shared.CreateGroupEditorHelpers(config)
+    local CDM = Runtime
+    local dbKey = config.dbKey
+    local ungroupedDbKey = config.ungroupedDbKey
+    local getCurrentSpecID = config.getCurrentSpecID
+    local setCurrentSpecID = config.setCurrentSpecID
+    local getPlayerSpecID = config.getPlayerSpecID
+    local setPlayerSpecID = config.setPlayerSpecID
+    local normalizeToBase = config.normalizeToBase
+    local extraCloneFields = config.extraCloneFields
+
+    local function RefreshCurrentSpecID()
+        local si = GetSpecialization()
+        local newPlayerSpec = si and GetSpecializationInfo(si) or nil
+        local wasViewingPlayer = (getCurrentSpecID() == getPlayerSpecID()) or (getCurrentSpecID() == nil)
+        setPlayerSpecID(newPlayerSpec)
+        if wasViewingPlayer then setCurrentSpecID(newPlayerSpec) end
+    end
+
+    local function EnsureGroups()
+        local specID = getCurrentSpecID()
+        if not specID then return nil end
+        if not CDM.db[dbKey] then CDM.db[dbKey] = {} end
+        if not CDM.db[dbKey][specID] then CDM.db[dbKey][specID] = {} end
+        return CDM.db[dbKey][specID]
+    end
+
+    local function GetSpecGroups()
+        local specID = getCurrentSpecID()
+        if not specID then return nil end
+        local tbl = CDM.db[dbKey]
+        return tbl and tbl[specID]
+    end
+
+    local function EnsureUngroupedOverrides()
+        local specID = getCurrentSpecID()
+        if not specID then return nil end
+        if not CDM.db[ungroupedDbKey] then CDM.db[ungroupedDbKey] = {} end
+        if not CDM.db[ungroupedDbKey][specID] then CDM.db[ungroupedDbKey][specID] = {} end
+        return CDM.db[ungroupedDbKey][specID]
+    end
+
+    local function GetUngroupedOverride(spellID)
+        local specID = getCurrentSpecID()
+        if not specID then return nil end
+        local specOv = CDM.db[ungroupedDbKey] and CDM.db[ungroupedDbKey][specID]
+        return Shared.GetMergedOverrideEntry(specOv, spellID)
+    end
+
+    local function HelpersEnsureResolvedOverrideEntry(overrideMap, spellID)
+        return Shared.EnsureResolvedOverrideEntry(overrideMap, spellID, normalizeToBase)
+    end
+
+    local function HelpersExtractMergedOverrideEntry(overrideMap, spellID)
+        return Shared.ExtractMergedOverrideEntry(overrideMap, spellID)
+    end
+
+    local function HelpersStoreMergedOverrideEntry(overrideMap, spellID, incoming)
+        Shared.StoreMergedOverrideEntry(overrideMap, spellID, incoming, normalizeToBase)
+    end
+
+    local function HelpersEnsureSpellOverride(groupIndex, spellID)
+        local groups = GetSpecGroups()
+        if not groups or not groups[groupIndex] then return nil end
+        local gd = groups[groupIndex]
+        if not gd.spellOverrides then gd.spellOverrides = {} end
+        return HelpersEnsureResolvedOverrideEntry(gd.spellOverrides, spellID)
+    end
+
+    local function HelpersEnsureUngroupedOverrideEntry(spellID)
+        local specOv = EnsureUngroupedOverrides()
+        if not specOv then return nil end
+        return HelpersEnsureResolvedOverrideEntry(specOv, spellID)
+    end
+
+    local function HelpersCreateLayoutOnlyGroupClone(groups, groupData)
+        local clone = {
+            name = Shared.GetUniqueGroupName(groups, groupData.name or "Group"),
+            spells = {},
+            grow = groupData.grow,
+            spacing = groupData.spacing,
+            iconWidth = groupData.iconWidth,
+            iconHeight = groupData.iconHeight,
+            cooldownFontSize = groupData.cooldownFontSize,
+            anchorTarget = groupData.anchorTarget,
+            anchorPoint = groupData.anchorPoint,
+            anchorRelativeTo = groupData.anchorRelativeTo,
+            offsetX = groupData.offsetX,
+            offsetY = groupData.offsetY,
+        }
+        if groupData.cooldownColor then
+            clone.cooldownColor = { r = groupData.cooldownColor.r, g = groupData.cooldownColor.g, b = groupData.cooldownColor.b, a = groupData.cooldownColor.a }
+        end
+        if extraCloneFields then
+            for _, key in ipairs(extraCloneFields) do
+                local val = groupData[key]
+                if type(val) == "table" and val.r ~= nil then
+                    clone[key] = { r = val.r, g = val.g, b = val.b, a = val.a }
+                else
+                    clone[key] = val
+                end
+            end
+        end
+        return clone
+    end
+
+    local function HelpersCopyGroupSettingsToSpec(groupData, targetSpecID)
+        if not CDM.db[dbKey] then CDM.db[dbKey] = {} end
+        if not CDM.db[dbKey][targetSpecID] then CDM.db[dbKey][targetSpecID] = {} end
+        local targetGroups = CDM.db[dbKey][targetSpecID]
+        targetGroups[#targetGroups + 1] = HelpersCreateLayoutOnlyGroupClone(targetGroups, groupData)
+    end
+
+    local function HelpersDuplicateGroup(groupData, specGroups)
+        specGroups[#specGroups + 1] = HelpersCreateLayoutOnlyGroupClone(specGroups, groupData)
+        return #specGroups
+    end
+
+    return {
+        RefreshCurrentSpecID = RefreshCurrentSpecID,
+        EnsureGroups = EnsureGroups,
+        GetSpecGroups = GetSpecGroups,
+        EnsureUngroupedOverrides = EnsureUngroupedOverrides,
+        GetUngroupedOverride = GetUngroupedOverride,
+        EnsureResolvedOverrideEntry = HelpersEnsureResolvedOverrideEntry,
+        ExtractMergedOverrideEntry = HelpersExtractMergedOverrideEntry,
+        StoreMergedOverrideEntry = HelpersStoreMergedOverrideEntry,
+        EnsureSpellOverride = HelpersEnsureSpellOverride,
+        EnsureUngroupedOverrideEntry = HelpersEnsureUngroupedOverrideEntry,
+        CreateLayoutOnlyGroupClone = HelpersCreateLayoutOnlyGroupClone,
+        CopyGroupSettingsToSpec = HelpersCopyGroupSettingsToSpec,
+        DuplicateGroup = HelpersDuplicateGroup,
+    }
+end
+
+function Shared.RenderGroupSettingsPanel(config)
+    local rc = config.rc
+    local gd = config.gd
+    local groupIndex = config.groupIndex
+    local registerDropdown = config.registerDropdown
+    local save = config.saveAndRefresh
+    local slider = config.createSlider
+    local L = config.L
+    local tf = config.textFields
+    local yOff = 0
+
+    local nameHeader = rc:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font18")
+    nameHeader:SetPoint("TOPLEFT", 0, yOff)
+    nameHeader:SetText(gd.name or ("Group " .. groupIndex))
+    nameHeader:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
+    yOff = yOff - 34
+
+    local growLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+    growLabel:SetText(L["Grow Direction"])
+    growLabel:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 22
+
+    local growDropdown = registerDropdown(CreateFrame("DropdownButton", nil, rc, "WowStyle1DropdownTemplate"))
+    growDropdown:SetWidth(180)
+    growDropdown:SetPoint("TOPLEFT", 0, yOff)
+    growDropdown:SetDefaultText(Shared.GetGrowLabel(gd.grow or "RIGHT"))
+    UI.SetupValueDropdown(growDropdown, Shared.GROW_OPTIONS,
+        function() return gd.grow or "RIGHT" end,
+        function(val) gd.grow = val; save() end
+    )
+    yOff = yOff - 40
+
+    if config.preSpacingSection then
+        yOff = config.preSpacingSection(rc, yOff)
+    end
+
+    local spacingSlider = slider(rc, L["Spacing"], -1, 50, gd.spacing or 4, function(v)
+        gd.spacing = v; save()
+    end)
+    spacingSlider:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 50
+
+    local widthSlider = slider(rc, L["Icon Width"], 16, 100, gd.iconWidth or 30, function(v)
+        gd.iconWidth = v; save()
+    end)
+    widthSlider:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 50
+
+    local heightSlider = slider(rc, L["Icon Height"], 16, 100, gd.iconHeight or 30, function(v)
+        gd.iconHeight = v; save()
+    end)
+    heightSlider:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 50
+
+    if config.postSizeSection then
+        yOff = config.postSizeSection(rc, yOff)
+    end
+
+    yOff = yOff - 10
+    local textHeader = rc:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font18")
+    textHeader:SetPoint("TOPLEFT", 0, yOff)
+    textHeader:SetText(L["Text"])
+    textHeader:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
+    yOff = yOff - 34
+
+    local cdFSSlider = slider(rc, L["Cooldown Size"] or "Cooldown Size", 6, 32, gd.cooldownFontSize or 12, function(v)
+        gd.cooldownFontSize = v; save()
+    end)
+    cdFSSlider:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 50
+
+    local cdColorLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+    cdColorLabel:SetText(L["Color"])
+    cdColorLabel:SetPoint("TOPLEFT", 0, yOff)
+    local cdColorInit = gd.cooldownColor or { r = 1, g = 1, b = 1 }
+    local cdColorPicker = UI.CreateSimpleColorPicker(rc, cdColorInit, function(r, g, b)
+        if not gd.cooldownColor then gd.cooldownColor = { r = 1, g = 1, b = 1, a = 1 } end
+        gd.cooldownColor.r, gd.cooldownColor.g, gd.cooldownColor.b = r, g, b
+        save()
+    end)
+    cdColorPicker:SetPoint("LEFT", cdColorLabel, "RIGHT", 6, 0)
+    yOff = yOff - 30
+
+    local secFSSlider = slider(rc, L["Charge Size"] or "Charge Size", 6, 32, gd[tf.sizeKey] or tf.sizeDefault, function(v)
+        gd[tf.sizeKey] = v; save()
+    end)
+    secFSSlider:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 50
+
+    local secColorLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+    secColorLabel:SetText(L["Color"])
+    secColorLabel:SetPoint("TOPLEFT", 0, yOff)
+    local secColorInit = gd[tf.colorKey] or { r = 1, g = 1, b = 1 }
+    local secColorPicker = UI.CreateSimpleColorPicker(rc, secColorInit, function(r, g, b)
+        if not gd[tf.colorKey] then gd[tf.colorKey] = { r = 1, g = 1, b = 1, a = 1 } end
+        gd[tf.colorKey].r, gd[tf.colorKey].g, gd[tf.colorKey].b = r, g, b
+        save()
+    end)
+    secColorPicker:SetPoint("LEFT", secColorLabel, "RIGHT", 6, 0)
+    yOff = yOff - 30
+
+    local secPosLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+    secPosLabel:SetText(L["Position"])
+    secPosLabel:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 22
+
+    local secPosDropdown = registerDropdown(CreateFrame("DropdownButton", nil, rc, "WowStyle1DropdownTemplate"))
+    secPosDropdown:SetWidth(180)
+    secPosDropdown:SetPoint("TOPLEFT", 0, yOff)
+    secPosDropdown:SetDefaultText(gd[tf.posKey] or tf.posDefault)
+    UI.SetupPositionDropdown(secPosDropdown,
+        function() return gd[tf.posKey] or tf.posDefault end,
+        function(val) gd[tf.posKey] = val; save() end
+    )
+    yOff = yOff - 40
+
+    local secXSlider = slider(rc, L["X Offset"], -20, 20, gd[tf.xKey] or 0, function(v)
+        gd[tf.xKey] = v; save()
+    end)
+    secXSlider:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 50
+
+    local secYSlider = slider(rc, L["Y Offset"], -20, 20, gd[tf.yKey] or 0, function(v)
+        gd[tf.yKey] = v; save()
+    end)
+    secYSlider:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 50
+
+    yOff = yOff - 10
+    local anchorHeader = rc:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font18")
+    anchorHeader:SetPoint("TOPLEFT", 0, yOff)
+    anchorHeader:SetText(L["Anchor"])
+    anchorHeader:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
+    yOff = yOff - 34
+
+    local anchorTargetLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+    anchorTargetLabel:SetText(L["Anchor To"] or "Anchor To")
+    anchorTargetLabel:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 22
+
+    local UpdateAnchorVisibility
+    local xSlider, ySlider
+    local anchorTargetDropdown = registerDropdown(CreateFrame("DropdownButton", nil, rc, "WowStyle1DropdownTemplate"))
+    anchorTargetDropdown:SetWidth(180)
+    anchorTargetDropdown:SetPoint("TOPLEFT", 0, yOff)
+    local currentTarget = gd.anchorTarget or "screen"
+    local anchorTargets = config.anchorTargets
+    local targetLabelMap = {}
+    for _, entry in ipairs(anchorTargets) do
+        targetLabelMap[entry.value] = entry.label
+    end
+    anchorTargetDropdown:SetDefaultText(targetLabelMap[currentTarget] or targetLabelMap.screen or "Screen")
+    UI.SetupValueDropdown(anchorTargetDropdown, anchorTargets,
+        function() return gd.anchorTarget or "screen" end,
+        function(val)
+            local prev = gd.anchorTarget or "screen"
+            gd.anchorTarget = val
+            gd.anchorPoint = gd.anchorPoint or "CENTER"
+            gd.anchorRelativeTo = gd.anchorRelativeTo or "CENTER"
+            if val ~= prev then
+                gd.offsetX = 0
+                gd.offsetY = 0
+                xSlider:UpdateUIValue(0)
+                ySlider:UpdateUIValue(0)
+            end
+            save()
+            UpdateAnchorVisibility()
+        end
+    )
+    yOff = yOff - 40
+    local yAfterTarget = yOff
+
+    local anchorLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+    anchorLabel:SetText(L["Anchor Point"])
+    anchorLabel:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 22
+
+    local anchorDropdown = registerDropdown(CreateFrame("DropdownButton", nil, rc, "WowStyle1DropdownTemplate"))
+    anchorDropdown:SetWidth(180)
+    anchorDropdown:SetPoint("TOPLEFT", 0, yOff)
+    anchorDropdown:SetDefaultText(gd.anchorPoint or "CENTER")
+    UI.SetupPositionDropdown(anchorDropdown,
+        function() return gd.anchorPoint or "CENTER" end,
+        function(val) gd.anchorPoint = val; save() end
+    )
+    yOff = yOff - 40
+
+    local relLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+    relLabel:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 22
+
+    local relDropdown = registerDropdown(CreateFrame("DropdownButton", nil, rc, "WowStyle1DropdownTemplate"))
+    relDropdown:SetWidth(180)
+    relDropdown:SetPoint("TOPLEFT", 0, yOff)
+    relDropdown:SetDefaultText(gd.anchorRelativeTo or "CENTER")
+    UI.SetupPositionDropdown(relDropdown,
+        function() return gd.anchorRelativeTo or "CENTER" end,
+        function(val) gd.anchorRelativeTo = val; save() end
+    )
+    yOff = yOff - 40
+    local yAfterConditional = yOff
+
+    xSlider = slider(rc, L["X Offset"], -840, 840, gd.offsetX or 0, function(v)
+        gd.offsetX = v; save()
+    end)
+    xSlider:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 50
+
+    ySlider = slider(rc, L["Y Offset"], -470, 470, gd.offsetY or 0, function(v)
+        gd.offsetY = v; save()
+    end)
+    ySlider:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 50
+
+    local anchorRelLabels = config.anchorRelLabels or {}
+    UpdateAnchorVisibility = function()
+        local isScreen = (gd.anchorTarget or "screen") == "screen"
+        anchorLabel:SetShown(not isScreen)
+        anchorDropdown:SetShown(not isScreen)
+        relLabel:SetShown(not isScreen)
+        relDropdown:SetShown(not isScreen)
+        if not isScreen then
+            local target = gd.anchorTarget
+            relLabel:SetText(anchorRelLabels[target] or (L["Essential Viewer Point"] or "Essential Viewer Point"))
+            anchorDropdown:SetDefaultText(gd.anchorPoint or "CENTER")
+            relDropdown:SetDefaultText(gd.anchorRelativeTo or "CENTER")
+        end
+        local sliderY = isScreen and yAfterTarget or yAfterConditional
+        xSlider:ClearAllPoints(); xSlider:SetPoint("TOPLEFT", 0, sliderY)
+        ySlider:ClearAllPoints(); ySlider:SetPoint("TOPLEFT", 0, sliderY - 50)
+        rc:SetHeight(math.abs(sliderY - 100) + 20)
+    end
+    UpdateAnchorVisibility()
 end

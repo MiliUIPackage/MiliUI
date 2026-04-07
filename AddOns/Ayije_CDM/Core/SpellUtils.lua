@@ -10,10 +10,7 @@ local lastRefreshSpecID = nil
 local IsSafeNumber = CDM.IsSafeNumber
 
 local function IsUsableID(id)
-    if not IsSafeNumber(id) then
-        return false
-    end
-    return id > 0 and id == math.floor(id)
+    return IsSafeNumber(id) and id > 0
 end
 
 local function AddCandidate(list, seen, id)
@@ -36,44 +33,32 @@ local function GetFrameCooldownInfo(frame)
     return frame.GetCooldownInfo and frame:GetCooldownInfo() or frame.cooldownInfo
 end
 
-function CDM:GetSpellIDCandidates(frame, includeBase)
-    if not frame then return {} end
+local spellCandidateList = {}
+local spellCandidateSeen = {}
 
-    local frameData = GetFrameData(frame)
-    local out = frameData.cdmSpellCandidates
-    if not out then
-        out = {}
-        frameData.cdmSpellCandidates = out
-    else
-        table.wipe(out)
-    end
+function CDM:GetSpellIDCandidates(frame)
+    table.wipe(spellCandidateList)
+    table.wipe(spellCandidateSeen)
+    if not frame then return spellCandidateList end
 
-    local seen = frameData.cdmSpellCandidatesSeen
-    if not seen then
-        seen = {}
-        frameData.cdmSpellCandidatesSeen = seen
-    else
-        table.wipe(seen)
-    end
-
-    AddCandidate(out, seen, CallFrameMethod(frame, "GetSpellID"))
+    AddCandidate(spellCandidateList, spellCandidateSeen, CallFrameMethod(frame, "GetSpellID"))
 
     local info = GetFrameCooldownInfo(frame)
     if info then
-        AddCandidate(out, seen, info.overrideSpellID)
-        AddCandidate(out, seen, info.spellID)
+        AddCandidate(spellCandidateList, spellCandidateSeen, info.overrideSpellID)
+        AddCandidate(spellCandidateList, spellCandidateSeen, info.spellID)
         if info.linkedSpellIDs then
             for _, linkedID in ipairs(info.linkedSpellIDs) do
-                AddCandidate(out, seen, linkedID)
+                AddCandidate(spellCandidateList, spellCandidateSeen, linkedID)
             end
         end
     end
 
-    if includeBase then
-        AddCandidate(out, seen, CDM.GetBaseSpellID(frame))
+    if frame.isCustomBuff and IsSafeNumber(frame.spellID) then
+        AddCandidate(spellCandidateList, spellCandidateSeen, frame.spellID)
     end
 
-    return out
+    return spellCandidateList
 end
 
 local buffGlowCandidateList = {}
@@ -86,19 +71,6 @@ local function AddBuffGlowCandidate(id)
     buffGlowCandidateList[#buffGlowCandidateList + 1] = id
 end
 
-local function MoveBuffGlowCandidateToFront(id)
-    if not IsUsableID(id) then return end
-    if not buffGlowCandidateSeen[id] then return end
-    if buffGlowCandidateList[1] == id then return end
-    for i = 2, #buffGlowCandidateList do
-        if buffGlowCandidateList[i] == id then
-            table.remove(buffGlowCandidateList, i)
-            table.insert(buffGlowCandidateList, 1, id)
-            return
-        end
-    end
-end
-
 function CDM:ResolveBuffGlowState(frame, specID, preferCategory)
     if not frame or not specID then
         return false, nil, nil
@@ -108,7 +80,6 @@ function CDM:ResolveBuffGlowState(frame, specID, preferCategory)
     end
 
     local frameData = GetFrameData(frame)
-    local cachedID = frameData.cdmBuffGlowSourceID
 
     table.wipe(buffGlowCandidateList)
     table.wipe(buffGlowCandidateSeen)
@@ -129,10 +100,6 @@ function CDM:ResolveBuffGlowState(frame, specID, preferCategory)
         AddBuffGlowCandidate(groupedID)
     end
 
-    if cachedID then
-        MoveBuffGlowCandidateToFront(cachedID)
-    end
-
     for _, id in ipairs(buffGlowCandidateList) do
         if self:GetSpellGlowEnabled(specID, id) then
             local glowColor = self:GetSpellGlowColor(specID, id)
@@ -149,6 +116,36 @@ CDM.SpellSets = {
     colors = COLOR_REGISTRY,
     hasBuffGlows = false,
 }
+
+local overrideCache = {}
+
+local function GetOverrideIfDifferent(spellID)
+    if not IsUsableID(spellID) or not C_Spell.GetOverrideSpell then return nil end
+    local cached = overrideCache[spellID]
+    if cached ~= nil then
+        return cached ~= false and cached or nil
+    end
+    local id = C_Spell.GetOverrideSpell(spellID)
+    if IsUsableID(id) and id ~= spellID then
+        overrideCache[spellID] = id
+        return id
+    end
+    overrideCache[spellID] = false
+    return nil
+end
+
+local function ClearOverrideCache()
+    table.wipe(overrideCache)
+end
+
+local function GetEffectiveSpellID(spellID)
+    if not spellID then return spellID end
+    return GetOverrideIfDifferent(spellID) or spellID
+end
+
+CDM.GetOverrideIfDifferent = GetOverrideIfDifferent
+CDM.GetEffectiveSpellID = GetEffectiveSpellID
+CDM.WipeEffectiveIDCache = ClearOverrideCache
 
 local normalizeBaseCache = {}
 local normalizeBaseCacheSize = 0
@@ -168,10 +165,8 @@ end
 function CDM:ClearNormalizationCache()
     table.wipe(normalizeBaseCache)
     normalizeBaseCacheSize = 0
+    ClearOverrideCache()
     self.spellCacheGeneration = (self.spellCacheGeneration or 0) + 1
-    if self.SpellVariant and self.SpellVariant.ClearCaches then
-        self.SpellVariant.ClearCaches()
-    end
 end
 
 local function NormalizeToBase(id)
@@ -199,14 +194,6 @@ local function GetBaseSpellIfDifferent(spellID)
     return (base and base ~= spellID) and base or nil
 end
 
-local function GetOverrideSpellIfDifferent(spellID)
-    if not spellID or not C_Spell.GetOverrideSpell then return end
-    local overrideID = C_Spell.GetOverrideSpell(spellID)
-    if IsUsableID(overrideID) and overrideID ~= spellID then
-        return overrideID
-    end
-end
-
 local scratchMatchCandidates = {}
 local scratchMatchSeen = {}
 local scratchMatchCandidatesAlt = {}
@@ -225,31 +212,23 @@ local function BuildBuffGroupMatchCandidatesInto(spellID, out, outSeen)
         AddCandidate(out, outSeen, baseID)
     end
 
-    local overrideID = GetOverrideSpellIfDifferent(spellID)
+    local overrideID = GetOverrideIfDifferent(spellID)
     if overrideID then
         AddCandidate(out, outSeen, overrideID)
         AddCandidate(out, outSeen, GetBaseSpellIfDifferent(overrideID))
     end
 
     if baseID then
-        AddCandidate(out, outSeen, GetOverrideSpellIfDifferent(baseID))
+        AddCandidate(out, outSeen, GetOverrideIfDifferent(baseID))
     end
 
     return out
 end
 
-local function BuildBuffGroupMatchCandidates(spellID)
-    return BuildBuffGroupMatchCandidatesInto(spellID, {}, {})
-end
-
-function CDM:GetBuffGroupMatchCandidates(spellID)
-    return BuildBuffGroupMatchCandidates(spellID)
-end
-
 
 function CDM:GetPreferredBuffGroupSpellID(frame)
     if not frame then return nil end
-    local candidates = self:GetSpellIDCandidates(frame, true)
+    local candidates = self:GetSpellIDCandidates(frame)
     return candidates and candidates[1] or nil
 end
 
@@ -388,7 +367,6 @@ function CDM:StoreMergedBuffOverrideEntry(overrideMap, spellID, incoming)
     overrideMap[storageKey] = CopyOverrideEntry(incoming)
 end
 
-local CDID_TO_BASE = {}
 local EMPTY_SET = {}
 
 local function CheckIDAgainstGroupSet(id, groupSet)
@@ -422,15 +400,9 @@ CDM.GetColorForSpellID = GetColorForSpellID
 local function GetBaseSpellID(frame)
     if not frame then return nil end
 
-    local cdid = frame.cooldownID
-    if cdid then
-        local fast = CDID_TO_BASE[cdid]
-        if fast then return fast end
-    end
-
     local info = GetFrameCooldownInfo(frame)
     if info and IsUsableID(info.spellID) then
-        return NormalizeToBase(info.spellID)
+        return info.spellID
     end
 
     local id = CallFrameMethod(frame, "GetSpellID")
@@ -450,6 +422,9 @@ function CDM:ResetFrameSpellCache(frame)
     frameData.cdGroupSpellID = nil
     frameData.cdmReadyGlowActive = nil
     frameData.cdmResolvedBorderColor = nil
+    if frameData.borderFrame then
+        GetFrameData(frameData.borderFrame).cdmResolvedBorderColor = nil
+    end
     frameData.cdmLastBorderStyleVersion = nil
     frameData.cdmBuffGlowSourceID = nil
 end
@@ -472,6 +447,9 @@ local function CheckCooldownGroupMatch(frame, cdidGroupSet, spellGroupSet, cache
         frameData.cdGroupSpellID = nil
         frameData.cdmCategoryCacheGen = frameCategoryCacheGeneration
         frameData.cdmResolvedBorderColor = nil
+        if frameData.borderFrame then
+            GetFrameData(frameData.borderFrame).cdmResolvedBorderColor = nil
+        end
     end
 
     local cached = frameData[cacheKey]
@@ -535,18 +513,17 @@ function CDM:RefreshSpecData()
     if specID == lastRefreshSpecID then return end
 
     table.wipe(COLOR_REGISTRY)
-    table.wipe(CDID_TO_BASE)
     self.SpellSets.hasBuffGlows = false
 
     self:ClearNormalizationCache()
     if self.ClearStableBaseCache then self:ClearStableBaseCache() end
     self:InvalidateFrameCategoryCache()
 
-    local registry = self.SpellRegistry:GetRaw(specID)
-    if not registry then return end
-
-    if registry.colors then
-        for id, color in pairs(registry.colors) do
+    local rawColors = self.db and self.db.spellRegistry
+        and self.db.spellRegistry[specID]
+        and self.db.spellRegistry[specID].colors
+    if rawColors then
+        for id, color in pairs(rawColors) do
             COLOR_REGISTRY[id] = color
         end
     end
@@ -565,30 +542,6 @@ function CDM:RefreshSpecData()
 
     if self.RefreshCooldownGroupData then
         self:RefreshCooldownGroupData()
-    end
-
-    if C_CooldownViewer and C_CooldownViewer.GetCooldownViewerCategorySet
-        and C_CooldownViewer.GetCooldownViewerCooldownInfo
-        and Enum and Enum.CooldownViewerCategory then
-        local evc = Enum.CooldownViewerCategory
-        local categories = {}
-        if evc.Essential then categories[#categories + 1] = evc.Essential end
-        if evc.Utility then categories[#categories + 1] = evc.Utility end
-        if evc.TrackedBuff then categories[#categories + 1] = evc.TrackedBuff end
-        if evc.TrackedBar then categories[#categories + 1] = evc.TrackedBar end
-        for _, cat in ipairs(categories) do
-            local cooldownIDs = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
-            if cooldownIDs then
-                for _, cdID in ipairs(cooldownIDs) do
-                    if not CDID_TO_BASE[cdID] then
-                        local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
-                        if info and IsUsableID(info.spellID) then
-                            CDID_TO_BASE[cdID] = NormalizeToBase(info.spellID)
-                        end
-                    end
-                end
-            end
-        end
     end
 
     lastRefreshSpecID = specID

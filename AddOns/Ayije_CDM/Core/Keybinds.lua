@@ -401,7 +401,7 @@ end
 function Keybinds:Initialize()
     CDM:RegisterRefreshCallback("assist", function()
         RefreshConsumerState()
-    end, 36, { "assist", "viewers" })
+    end, 36)
 
     RefreshConsumerState()
 end

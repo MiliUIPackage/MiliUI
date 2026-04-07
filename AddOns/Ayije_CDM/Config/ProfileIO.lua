@@ -88,61 +88,6 @@ function ProfileIO:DecodeProfileString(profileString)
     return data
 end
 
-function ProfileIO:BuildKeySetFromCategories(selectedCategories, categoryDefs)
-    local keySet = {}
-    if type(categoryDefs) ~= "table" then
-        return keySet
-    end
-
-    for categoryId, categoryDef in pairs(categoryDefs) do
-        if (not selectedCategories) or selectedCategories[categoryId] then
-            local keys = categoryDef and categoryDef.keys
-            if type(keys) == "table" then
-                for _, key in ipairs(keys) do
-                    keySet[key] = true
-                end
-            end
-        end
-    end
-    return keySet
-end
-
-function ProfileIO:BuildValidKeySet(categoryDefs, metadataKeys)
-    local validKeys = {}
-    if type(metadataKeys) == "table" then
-        for key in pairs(metadataKeys) do
-            validKeys[key] = true
-        end
-    end
-    if type(categoryDefs) ~= "table" then
-        return validKeys
-    end
-    for _, categoryDef in pairs(categoryDefs) do
-        local keys = categoryDef and categoryDef.keys
-        if type(keys) == "table" then
-            for _, key in ipairs(keys) do
-                validKeys[key] = true
-            end
-        end
-    end
-    return validKeys
-end
-
-function ProfileIO:BuildSegments(selectedCategories, categoryDefs)
-    local segments = {}
-    if type(categoryDefs) ~= "table" then
-        return segments
-    end
-
-    for categoryId in pairs(categoryDefs) do
-        if (not selectedCategories) or selectedCategories[categoryId] then
-            segments[#segments + 1] = categoryId
-        end
-    end
-    table.sort(segments)
-    return segments
-end
-
 function ProfileIO:ExportLegacyProfile(profileData, profileName)
     if type(profileData) ~= "table" then return nil end
     local now = time()
@@ -161,10 +106,23 @@ end
 function ProfileIO:ExportSegmentedProfile(profileData, selectedCategories, categoryDefs, profileName)
     if type(profileData) ~= "table" then return nil end
 
-    local keySet = self:BuildKeySetFromCategories(selectedCategories, categoryDefs)
+    local keySet = {}
+    if type(categoryDefs) == "table" then
+        for categoryId, categoryDef in pairs(categoryDefs) do
+            if (not selectedCategories) or selectedCategories[categoryId] then
+                local keys = categoryDef and categoryDef.keys
+                if type(keys) == "table" then
+                    for _, key in ipairs(keys) do
+                        keySet[key] = true
+                    end
+                end
+            end
+        end
+    end
     if not next(keySet) then
         return nil, "no_categories_selected"
     end
+
     local filtered = {}
     for key in pairs(keySet) do
         local value = profileData[key]
@@ -173,23 +131,26 @@ function ProfileIO:ExportSegmentedProfile(profileData, selectedCategories, categ
         end
     end
 
+    local segments = {}
+    if type(categoryDefs) == "table" then
+        for categoryId in pairs(categoryDefs) do
+            if (not selectedCategories) or selectedCategories[categoryId] then
+                segments[#segments + 1] = categoryId
+            end
+        end
+        table.sort(segments)
+    end
+
     local now = time()
     local payload = {
         profile_export_version = 1,
-        name = profileName,
+        profileName = profileName,
         toc_version = select(4, GetBuildInfo()),
         addon_version = C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata(AddonName, "Version") or nil,
-        segments = self:BuildSegments(selectedCategories, categoryDefs),
+        segments = segments,
         data = filtered,
-        _sharing = {
-            addon = AddonName,
-            timestamp = now,
-        },
-        -- Keep legacy metadata in the envelope for broad compatibility.
-        version = 1,
         addon = AddonName,
         timestamp = now,
-        profileName = profileName,
     }
     return self:EncodePayload(payload)
 end
@@ -217,9 +178,7 @@ local function ResolveImportedProfileName(baseName, existingProfiles)
     return profileName
 end
 
-function ProfileIO:BuildImportProfile(payload, options)
-    options = options or {}
-
+function ProfileIO:BuildImportProfile(payload, addonName, defaults, categoryDefs, metadataKeys, legacyMigrationKeys, existingProfiles)
     local profileData, envelope
     if type(payload) == "table" and type(payload.data) == "table" and payload.profile_export_version then
         profileData = payload.data
@@ -231,9 +190,8 @@ function ProfileIO:BuildImportProfile(payload, options)
         return nil, { code = "invalid_profile_data" }
     end
 
-    local addonName = options.addonName or AddonName
+    addonName = addonName or AddonName
     local sourceAddon = payload.addon
-        or (payload._sharing and payload._sharing.addon)
         or (envelope and envelope.addon)
 
     if not envelope then
@@ -255,33 +213,42 @@ function ProfileIO:BuildImportProfile(payload, options)
         return nil, { code = "wrong_addon", addon = tostring(sourceAddon) }
     end
 
-    local defaults = options.defaults or {}
-    local validKeys = self:BuildValidKeySet(options.categoryDefs, options.metadataKeys)
+    defaults = defaults or {}
+    metadataKeys = metadataKeys or {}
+    legacyMigrationKeys = legacyMigrationKeys or {}
 
-    local newProfile = {}
-    for key, value in pairs(defaults) do
-        newProfile[key] = CopyValue(value)
+    local validKeys = {}
+    if type(metadataKeys) == "table" then
+        for key in pairs(metadataKeys) do
+            validKeys[key] = true
+        end
     end
-
-    local importedCount = 0
-    local metadataKeys = options.metadataKeys or {}
-    for key, value in pairs(profileData) do
-        if validKeys[key] and not metadataKeys[key] then
-            local isValidType, expectedType = IsValidImportedType(defaults, key, value)
-            if not isValidType then
-                return nil, {
-                    code = "type_mismatch",
-                    key = key,
-                    expected = expectedType,
-                    actual = type(value),
-                }
+    if type(categoryDefs) == "table" then
+        for _, categoryDef in pairs(categoryDefs) do
+            local keys = categoryDef and categoryDef.keys
+            if type(keys) == "table" then
+                for _, key in ipairs(keys) do
+                    validKeys[key] = true
+                end
             end
-            newProfile[key] = CopyValue(value)
-            importedCount = importedCount + 1
         end
     end
 
-    local legacyMigrationKeys = options.legacyMigrationKeys or {}
+    local newProfile = {}
+    local importedCount = 0
+    local skippedCount = 0
+    for key, value in pairs(profileData) do
+        if validKeys[key] and not metadataKeys[key] then
+            local isValidType = IsValidImportedType(defaults, key, value)
+            if isValidType then
+                newProfile[key] = CopyValue(value)
+                importedCount = importedCount + 1
+            else
+                skippedCount = skippedCount + 1
+            end
+        end
+    end
+
     for _, key in ipairs(legacyMigrationKeys) do
         if profileData[key] ~= nil and newProfile[key] == nil then
             newProfile[key] = CopyValue(profileData[key])
@@ -289,11 +256,12 @@ function ProfileIO:BuildImportProfile(payload, options)
     end
 
     local requestedName = payload.profileName or payload.name or "Imported"
-    local profileName = ResolveImportedProfileName(requestedName, options.existingProfiles)
+    local profileName = ResolveImportedProfileName(requestedName, existingProfiles)
 
     return {
         profileName = profileName,
         profileData = newProfile,
         importedCount = importedCount,
+        skippedCount = skippedCount,
     }
 end

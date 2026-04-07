@@ -6,15 +6,6 @@ local CDM = Runtime
 local UI = ns.ConfigUI
 local L = Runtime.L
 
-local ASSIST_REFRESH_SCOPES = { "assist", "viewers", "trackers_layout" }
-
-local function RefreshAssistConfig()
-    if API.RefreshScopes then
-        API:RefreshScopes(ASSIST_REFRESH_SCOPES)
-        return
-    end
-    API:RefreshConfig()
-end
 
 local function CreateAssistTab(page, tabId)
     local scrollChild = UI.CreateScrollableTab(page, "AyijeCDM_AssistScrollFrame", 700, 370)
@@ -30,7 +21,7 @@ local function CreateAssistTab(page, tabId)
         function(checked)
             CDM.db.pressOverlayEnabled = checked
             if setPOControlsEnabled then setPOControlsEnabled(checked) end
-            RefreshAssistConfig()
+            API:Refresh()
         end
     )
     page.controls.pressOverlayEnabled:SetPoint("TOPLEFT", poHeader, "BOTTOMLEFT", 0, -15)
@@ -53,7 +44,7 @@ local function CreateAssistTab(page, tabId)
             page.controls.pressOverlayBorder:SetChecked(activeKey == "pressOverlayBorder")
         end
         settingExclusive = false
-        RefreshAssistConfig()
+        API:Refresh()
     end
 
     page.controls.pressOverlayTint = UI.CreateModernCheckbox(
@@ -66,7 +57,7 @@ local function CreateAssistTab(page, tabId)
     )
     page.controls.pressOverlayTint:SetPoint("TOPLEFT", page.controls.pressOverlayEnabled, "BOTTOMLEFT", 0, -10)
 
-    page.pressOverlayTintColorPicker = UI.CreateColorSwatch(scrollChild, L["Tint Color"], "pressOverlayTintColor", ASSIST_REFRESH_SCOPES)
+    page.pressOverlayTintColorPicker = UI.CreateColorSwatch(scrollChild, L["Tint Color"], "pressOverlayTintColor")
     page.pressOverlayTintColorPicker:SetPoint("TOPLEFT", page.controls.pressOverlayTint, "BOTTOMLEFT", 0, -10)
 
     page.controls.pressOverlayHighlight = UI.CreateModernCheckbox(
@@ -101,7 +92,7 @@ local function CreateAssistTab(page, tabId)
         end)
     end
 
-    page.pressOverlayBorderColorPicker = UI.CreateColorSwatch(scrollChild, L["Border Color"], "pressOverlayBorderColor", ASSIST_REFRESH_SCOPES)
+    page.pressOverlayBorderColorPicker = UI.CreateColorSwatch(scrollChild, L["Border Color"], "pressOverlayBorderColor")
     page.pressOverlayBorderColorPicker:SetPoint("TOPLEFT", page.controls.pressOverlayBorder, "BOTTOMLEFT", 0, -10)
 
     local poControls = {
@@ -142,7 +133,7 @@ local function CreateAssistTab(page, tabId)
         function(checked)
             CDM.db.rotationAssistEnabled = checked
             if setRAControlsEnabled then setRAControlsEnabled(checked) end
-            RefreshAssistConfig()
+            API:Refresh()
         end
     )
     page.controls.rotationAssistEnabled:SetPoint("TOPLEFT", raHeader, "BOTTOMLEFT", 0, -15)
@@ -151,7 +142,7 @@ local function CreateAssistTab(page, tabId)
         scrollChild, L["Highlight Size"], 0.2, 0.4, CDM.db.rotationAssistGlowRatio or 0.33, 0.01, 2,
         function(v)
             CDM.db.rotationAssistGlowRatio = v
-            RefreshAssistConfig()
+            API:Refresh()
         end
     )
     page.controls.rotationAssistGlowRatio:SetPoint("TOPLEFT", page.controls.rotationAssistEnabled, "BOTTOMLEFT", 0, -15)
@@ -180,7 +171,7 @@ local function CreateAssistTab(page, tabId)
         function(checked)
             CDM.db.assistEnabled = checked
             if setKBControlsEnabled then setKBControlsEnabled(checked) end
-            RefreshAssistConfig()
+            API:Refresh()
         end
     )
     page.controls.assistEnabled:SetPoint("TOPLEFT", mainHeader, "BOTTOMLEFT", 0, -15)
@@ -189,12 +180,12 @@ local function CreateAssistTab(page, tabId)
         scrollChild, L["Font Size"], 1, 30, CDM.db.assistFontSize or 15,
         function(v)
             CDM.db.assistFontSize = v
-            RefreshAssistConfig()
+            API:Refresh()
         end
     )
     page.controls.assistFontSize:SetPoint("TOPLEFT", page.controls.assistEnabled, "BOTTOMLEFT", 0, -15)
 
-    page.assistColorPicker = UI.CreateColorSwatch(scrollChild, L["Color"], "assistColor", ASSIST_REFRESH_SCOPES)
+    page.assistColorPicker = UI.CreateColorSwatch(scrollChild, L["Color"], "assistColor")
     page.assistColorPicker:SetPoint("TOPLEFT", page.controls.assistFontSize, "BOTTOMLEFT", 0, -15)
 
     local lblPos = scrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
@@ -213,7 +204,7 @@ local function CreateAssistTab(page, tabId)
         function(pos)
             CDM.db.assistPosition = pos
             ddPos:SetDefaultText(pos)
-            RefreshAssistConfig()
+            API:Refresh()
         end
     )
 
@@ -221,7 +212,7 @@ local function CreateAssistTab(page, tabId)
         scrollChild, L["X Offset"], -20, 20, CDM.db.assistOffsetX or 0,
         function(v)
             CDM.db.assistOffsetX = v
-            RefreshAssistConfig()
+            API:Refresh()
         end
     )
     page.controls.assistOffsetX:SetPoint("TOPLEFT", ddPos, "BOTTOMLEFT", 0, -15)
@@ -230,7 +221,7 @@ local function CreateAssistTab(page, tabId)
         scrollChild, L["Y Offset"], -20, 20, CDM.db.assistOffsetY or 0,
         function(v)
             CDM.db.assistOffsetY = v
-            RefreshAssistConfig()
+            API:Refresh()
         end
     )
     page.controls.assistOffsetY:SetPoint("TOPLEFT", page.controls.assistOffsetX, "BOTTOMLEFT", 0, -15)

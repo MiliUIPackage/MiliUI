@@ -45,7 +45,7 @@ function API:ImportProfile(profileString, profileKey)
 
     local specID = CDM:GetCurrentSpecID()
     if specID then
-        CDM:InvalidateSpellRegistryCache(specID)
+        if CDM.MarkSpecDataDirty then CDM:MarkSpecDataDirty() end
     end
 end
 

@@ -149,7 +149,7 @@ ns.ConfigCreatePage = CreateCategoryPage
 local categoryHeaders = {
     { label = L["Display"], tabs = {"sizes", "layout", "positions"} },
     { label = L["Styling"], tabs = {"border", "text", "glow", "fading", "assist"} },
-    { label = L["Buffs"], tabs = {"buffgroups", "bars", "custombuffs"} },
+    { label = L["Buffs"], tabs = {"buffgroups", "bars"} },
     { label = L["Features"], tabs = {"racials", "resources", "defensives", "trinkets", "castbar"} },
     { label = L["Utility"], tabs = {"profiles", "importexport"} },
 }
@@ -418,7 +418,7 @@ local function CreateConfigFrame()
     if not footerRefreshRegistered then
         API:RegisterRefreshCallback("configFooterTextStyle", function()
             ApplyAllFooterTextStyles()
-        end, 95, { "text_visuals", "viewers" })
+        end, 95)
         footerRefreshRegistered = true
     end
 end

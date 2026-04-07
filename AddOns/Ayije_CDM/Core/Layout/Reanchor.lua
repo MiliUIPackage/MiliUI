@@ -1,17 +1,109 @@
 local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
+local CDM_C = CDM.CONST
 local ctx = CDM._LayoutCtx
 
-local VIEWERS = ctx.VIEWERS
-
-local GetFrameData = ctx.GetFrameData
-local CheckBuffRegistryMatch = ctx.CheckBuffRegistryMatch
-local ResolveBaseSpellID = ctx.ResolveBaseSpellID
+local VIEWERS = CDM_C.VIEWERS
+local GetFrameData = CDM.GetFrameData
+local CheckBuffRegistryMatch = CDM.CheckBuffRegistryMatch
+local ResolveBaseSpellID = CDM.GetBaseSpellID
 local GetLayoutConfig = ctx.GetLayoutConfig
+local CheckCdGroupMatch = CDM.CheckCdGroupMatch
+local ToSortNumber = ctx.ToSortNumber
+local GetStableFrameSortID = ctx.GetStableFrameSortID
+local RowWidth = ctx.RowWidth
 
-local SortAndPositionBuffFrames = ctx.SortAndPositionBuffFrames
+local Pixel = CDM.Pixel
+local Snap = Pixel.Snap
 
-local CheckCdGroupMatch = ctx.CheckCdGroupMatch
+local math_max = math.max
+local table_sort = table.sort
+
+local function GetSnappedBuffMetrics(sizeBuff, spacing)
+    local itemW = math_max(Pixel.GetSize(), Snap((sizeBuff and sizeBuff.w) or 40))
+    local itemH = math_max(Pixel.GetSize(), Snap((sizeBuff and sizeBuff.h) or 36))
+    local gap = Snap(spacing or 1)
+    local step = itemW + gap
+    return itemW, itemH, gap, step
+end
+
+local function GetCenteredRowPlacement(containerWidth, count, itemW, gap)
+    local rowWidth = RowWidth(count, itemW, gap)
+    local cWidth = containerWidth and Snap(containerWidth) or rowWidth
+    if cWidth < rowWidth then
+        cWidth = rowWidth
+    end
+    local startLeft = Pixel.HalfFloor(cWidth) - Pixel.HalfFloor(rowWidth)
+    if startLeft < 0 then startLeft = 0 end
+    return startLeft, rowWidth, cWidth
+end
+
+local function PlaceBuffFrame(frame, point, relativeTo, relativePoint, x, y)
+    if not frame then
+        return
+    end
+    local fd = GetFrameData(frame)
+    fd.cdmAnchor = { point, relativeTo, relativePoint, Snap(x or 0), Snap(y or 0) }
+    frame:ClearAllPoints()
+    Pixel.SetPoint(frame, point, relativeTo, relativePoint, x or 0, y or 0)
+end
+
+local customBuffSortKeys = {}
+
+local function SetCustomBuffSortKeys(keys)
+    table.wipe(customBuffSortKeys)
+    if keys then
+        for k, v in pairs(keys) do customBuffSortKeys[k] = v end
+    end
+end
+
+local function GetUnifiedBuffSortKey(frame)
+    if frame.isCustomBuff then
+        return customBuffSortKeys[frame.spellID] or 9999999
+    end
+    return ToSortNumber(frame.layoutIndex, 0) * 10000
+end
+
+local function CompareBuffFramesDeterministic(a, b)
+    local aKey = GetUnifiedBuffSortKey(a)
+    local bKey = GetUnifiedBuffSortKey(b)
+    if aKey ~= bKey then return aKey < bKey end
+    return GetStableFrameSortID(a) < GetStableFrameSortID(b)
+end
+
+local function SortAndPositionBuffFrames(frames, container)
+    local count = #frames
+    if count == 0 or not container then return end
+
+    if count > 1 then
+        table_sort(frames, CompareBuffFramesDeterministic)
+    end
+
+    local sizes = CDM.Sizes or {}
+    local sizeBuff = sizes.SIZE_BUFF or { w = 40, h = 36 }
+    local spacing = sizes.SPACING or 1
+    local itemW, _, gap, step = GetSnappedBuffMetrics(sizeBuff, spacing)
+
+    local shownCount = 0
+    for _, f in ipairs(frames) do
+        if f:IsShown() then shownCount = shownCount + 1 end
+    end
+    if shownCount == 0 then shownCount = count end
+
+    local startLeft = GetCenteredRowPlacement(container.GetWidth and container:GetWidth() or nil, shownCount, itemW, gap)
+
+    local shownIdx = 0
+    for _, frame in ipairs(frames) do
+        local xOff
+        if frame:IsShown() then
+            xOff = startLeft + (shownIdx * step)
+            shownIdx = shownIdx + 1
+        else
+            xOff = startLeft + ((shownCount + (frame.layoutIndex or 0)) * step)
+        end
+        PlaceBuffFrame(frame, "BOTTOMLEFT", container, "BOTTOMLEFT", xOff, 0)
+    end
+end
 
 local tempBuff = {}
 local tempBuffGroups = {}
@@ -96,19 +188,41 @@ local function CollectFramesForReanchor(activeViewer, activeVName, inEditMode)
             end
         end
     end
+
+    if activeVName == VIEWERS.BUFF then
+        local CB = CDM.CustomBuffs
+        if CB and CB.activeBuffs then
+            local bgSets = CDM.BuffGroupSets
+            local grouped = bgSets and bgSets.grouped
+            for spellID, buffData in pairs(CB.activeBuffs) do
+                local frame = buffData.frame
+                if frame and frame:IsShown() then
+                    local fd = GetFrameData(frame)
+                    fd.buffCategorySpellID = spellID
+                    local groupIdx = grouped and grouped[spellID]
+                    if groupIdx then
+                        if not tempBuffGroups[groupIdx] then
+                            tempBuffGroups[groupIdx] = {}
+                        end
+                        tempBuffGroups[groupIdx][#tempBuffGroups[groupIdx] + 1] = frame
+                    else
+                        tempBuff[#tempBuff + 1] = frame
+                    end
+                end
+            end
+        end
+    end
 end
 
 local function PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVName)
     local buffContainer = activeSelf:GetOrCreateAnchorContainer(activeViewer)
-
-    local customBuffFrames = activeSelf:GetSortedCustomBuffFrames()
 
     local groupFrameCount = 0
     for _, groupFrames in pairs(tempBuffGroups) do
         groupFrameCount = groupFrameCount + #groupFrames
     end
 
-    local totalBuffCount = #tempBuff + groupFrameCount + (customBuffFrames and #customBuffFrames or 0)
+    local totalBuffCount = #tempBuff + groupFrameCount
 
     local activeSpellSet
     if cachedHasStaticGroups then
@@ -136,10 +250,22 @@ local function PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVNa
         end
 
         if buffContainer then
-            table.wipe(tempAllMainBuffs)
-            for _, f in ipairs(customBuffFrames or {}) do
-                tempAllMainBuffs[#tempAllMainBuffs + 1] = f
+            local specID = CDM.GetCurrentSpecID and CDM:GetCurrentSpecID() or nil
+            if specID then
+                local order = CDM:GetUngroupedCustomBuffOrder(specID)
+                local keys = {}
+                local subCounts = {}
+                for _, entry in ipairs(order) do
+                    local aN = entry.afterNative or 0
+                    subCounts[aN] = (subCounts[aN] or 0) + 1
+                    keys[entry.spellID] = aN * 10000 + 5000 + subCounts[aN]
+                end
+                SetCustomBuffSortKeys(keys)
+            else
+                SetCustomBuffSortKeys(nil)
             end
+
+            table.wipe(tempAllMainBuffs)
             for _, f in ipairs(tempBuff) do
                 tempAllMainBuffs[#tempAllMainBuffs + 1] = f
             end
@@ -207,6 +333,122 @@ local function DispatchCooldownGroupFrames(activeSelf)
     end
 end
 
+local function ReanchorErrorHandler(err)
+    if debugstack then
+        return tostring(err) .. "\n" .. debugstack()
+    end
+    return err
+end
+
+local tempRepositionBuff = {}
+local tempRepositionGroups = {}
+
+local function RepositionBuffFrames(viewer)
+    if not viewer or not viewer.itemFramePool then return end
+
+    local buffContainer = CDM:GetOrCreateAnchorContainer(viewer)
+    if not buffContainer then return end
+
+    local hiddenBuffSet = CDM.resourcesHiddenBuffSet
+
+    table.wipe(tempRepositionBuff)
+    for _, t in pairs(tempRepositionGroups) do table.wipe(t) end
+
+    for frame in viewer.itemFramePool:EnumerateActive() do
+        if IsBuffFrameIncluded(frame) then
+            local spellID = ResolveBaseSpellID(frame)
+            if spellID and hiddenBuffSet and hiddenBuffSet[spellID] then
+                -- resource-hidden: skip
+            else
+                local matchType, _, matchGroupIdx = CheckBuffRegistryMatch(frame)
+                if matchType == "buffgroup" and matchGroupIdx then
+                    if not tempRepositionGroups[matchGroupIdx] then
+                        tempRepositionGroups[matchGroupIdx] = {}
+                    end
+                    tempRepositionGroups[matchGroupIdx][#tempRepositionGroups[matchGroupIdx] + 1] = frame
+                else
+                    tempRepositionBuff[#tempRepositionBuff + 1] = frame
+                end
+            end
+        end
+    end
+
+    local CB = CDM.CustomBuffs
+    if CB and CB.activeBuffs then
+        local bgSets = CDM.BuffGroupSets
+        local grouped = bgSets and bgSets.grouped
+        for spellID, buffData in pairs(CB.activeBuffs) do
+            local frame = buffData.frame
+            if frame and frame:IsShown() then
+                local groupIdx = grouped and grouped[spellID]
+                if groupIdx then
+                    if not tempRepositionGroups[groupIdx] then
+                        tempRepositionGroups[groupIdx] = {}
+                    end
+                    tempRepositionGroups[groupIdx][#tempRepositionGroups[groupIdx] + 1] = frame
+                else
+                    tempRepositionBuff[#tempRepositionBuff + 1] = frame
+                end
+            end
+        end
+    end
+
+    local activeSpellSet
+    local buildFn = CDM.API and CDM.API.BuildActiveSpellSet
+    if buildFn then
+        activeSpellSet = buildFn()
+    end
+
+    for groupIdx, groupFrames in pairs(tempRepositionGroups) do
+        if #groupFrames > 0 and CDM.PositionBuffGroupFrames then
+            CDM:PositionBuffGroupFrames(groupIdx, groupFrames, activeSpellSet, true)
+        end
+    end
+
+    SortAndPositionBuffFrames(tempRepositionBuff, buffContainer)
+end
+
+local repositionInProgress = {}
+local repositionPending = {}
+
+function CDM:RepositionBuffViewer(viewer)
+    if not viewer then return false end
+    local vName = viewer.GetName and viewer:GetName()
+    if not vName then return false end
+
+    if self.pendingSpecChange then
+        return false
+    end
+
+    if reanchorInProgress[vName] then
+        return false
+    end
+
+    if repositionInProgress[vName] then
+        repositionPending[vName] = true
+        return false
+    end
+
+    repositionInProgress[vName] = true
+
+    local ok, err = xpcall(RepositionBuffFrames, ReanchorErrorHandler, viewer)
+    repositionInProgress[vName] = nil
+    if not ok then
+        local handler = geterrorhandler and geterrorhandler()
+        if handler then
+            handler(err)
+        else
+            print(err)
+        end
+    end
+
+    if repositionPending[vName] then
+        repositionPending[vName] = nil
+        self:RepositionBuffViewer(viewer)
+    end
+    return ok
+end
+
 local function RunReanchor()
     local activeSelf = reanchorSelf
     local activeViewer = reanchorViewer
@@ -268,20 +510,12 @@ local function RunReanchor()
     end
 end
 
-local function ReanchorErrorHandler(err)
-    if debugstack then
-        return tostring(err) .. "\n" .. debugstack()
-    end
-    return err
-end
-
 function CDM:ForceReanchor(viewer)
     if not viewer then return false end
     local vName = viewer.GetName and viewer:GetName()
     if not vName then return false end
 
     if self.pendingSpecChange then
-        self.queue[vName] = true
         return false
     end
 
@@ -309,9 +543,14 @@ function CDM:ForceReanchor(viewer)
             print(err)
         end
     end
+
+    if self.Fading then
+        self.Fading:ReapplyCurrent()
+    end
+
     if reanchorPending[vName] then
         reanchorPending[vName] = nil
-        self:QueueViewer(vName)
+        self:ForceReanchor(viewer)
     end
     return ok
 end

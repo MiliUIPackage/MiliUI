@@ -18,6 +18,7 @@ local inCombat = InCombatLockdown() and true or false
 local isMounted = IsMounted() and true or false
 
 local animFrame = CreateFrame("Frame")
+local eventFrame = CreateFrame("Frame")
 
 local viewerTargets = {
     { dbKey = "fadingEssential", viewer = VIEWERS.ESSENTIAL },
@@ -202,12 +203,20 @@ local function OnMountChanged()
     Fading:Evaluate()
 end
 
+eventFrame:SetScript("OnEvent", function(self, event)
+    if event == "PLAYER_TARGET_CHANGED" then
+        OnTargetChanged()
+    elseif event == "PLAYER_MOUNT_DISPLAY_CHANGED" then
+        OnMountChanged()
+    end
+end)
+
 local function Enable()
     if isEnabled then return end
     isEnabled = true
-    CDM:RegisterEvent("PLAYER_TARGET_CHANGED", OnTargetChanged)
-    CDM:RegisterInternalCallback("OnCombatStateChanged", OnCombatStateChanged)
-    CDM:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED", OnMountChanged)
+    eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+    CDM:RegisterCombatStateHandler(OnCombatStateChanged)
+    eventFrame:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
     isMounted = IsMounted() and true or false
     Fading:Evaluate()
 end
@@ -215,9 +224,9 @@ end
 local function Disable()
     if not isEnabled then return end
     isEnabled = false
-    CDM:UnregisterEventHandler("PLAYER_TARGET_CHANGED", OnTargetChanged)
-    CDM:UnregisterInternalCallback("OnCombatStateChanged", OnCombatStateChanged)
-    CDM:UnregisterEventHandler("PLAYER_MOUNT_DISPLAY_CHANGED", OnMountChanged)
+    eventFrame:UnregisterEvent("PLAYER_TARGET_CHANGED")
+    CDM:UnregisterCombatStateHandler(OnCombatStateChanged)
+    eventFrame:UnregisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
     if currentAlpha < 1.0 or animating then
         Fading:ShowImmediate()
     end
@@ -232,7 +241,7 @@ function Fading:Initialize()
         else
             Disable()
         end
-    end, 80, { "fading", "viewers" })
+    end, 80)
 
     if CDM.db and CDM.db.fadingEnabled then
         Enable()

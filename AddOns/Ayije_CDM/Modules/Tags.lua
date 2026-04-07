@@ -306,4 +306,4 @@ end
 CDM:RegisterRefreshCallback("tags", function()
     CDM.TAGS:MarkDirty()
     RefreshAllTagsIfAny()
-end, 52, { "resources_visuals", "text_visuals", "viewers" })
+end, 52)

@@ -74,11 +74,7 @@ local function AreBuffNotificationsReady()
     if CDM.loadingScreenActive then
         return false
     end
-    local token = CDM.enterWorldToken or 0
-    if token <= 0 then
-        return false
-    end
-    return CDM.visualSetupToken == token
+    return CDM.viewersReady == true
 end
 
 local function IsBuffNotificationThrottled(spellID, onHide, channel)
@@ -154,8 +150,19 @@ local function BuildActiveSpellSet()
             if catID and catID ~= false then MarkSafe(scratchActiveSet, catID) end
             local info = frame.GetCooldownInfo and frame:GetCooldownInfo()
             if info then
-                MarkSafe(scratchActiveSet, info.spellID)
-                MarkSafe(scratchActiveSet, info.overrideSpellID)
+                if info.overrideSpellID and info.overrideSpellID ~= info.spellID then
+                    MarkSafe(scratchActiveSet, info.overrideSpellID)
+                else
+                    MarkSafe(scratchActiveSet, info.spellID)
+                end
+            end
+        end
+    end
+    local CB = CDM.CustomBuffs
+    if CB and CB.activeBuffs then
+        for sid, buffData in pairs(CB.activeBuffs) do
+            if buffData and buffData.frame and buffData.frame:IsShown() then
+                MarkSafe(scratchActiveSet, sid)
             end
         end
     end
@@ -163,6 +170,9 @@ local function BuildActiveSpellSet()
 end
 
 local function IsSpellActiveInViewer(spellID, cachedSet)
+    if CDM.db and CDM.db.customBuffRegistry and CDM.db.customBuffRegistry[spellID] then
+        return true
+    end
     if IsPlayerSpell(spellID) then return true end
     local baseID = NormalizeToBase(spellID)
     if baseID and baseID ~= spellID and IsPlayerSpell(baseID) then return true end
@@ -424,7 +434,7 @@ function CDM:UpdateAllBuffGroupContainers()
 end
 
 
-function CDM:PositionBuffGroupFrames(groupIndex, frames, activeSpellSetParam)
+function CDM:PositionBuffGroupFrames(groupIndex, frames, activeSpellSetParam, repositionOnly)
     local sets = self.BuffGroupSets
     if not sets or not sets.groups then return end
 
@@ -514,18 +524,23 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames, activeSpellSetParam)
     end
 
 
-    local countPos = groupData.countPosition or "BOTTOMRIGHT"
-    local countOX = groupData.countOffsetX or 0
-    local countOY = groupData.countOffsetY or 0
-    local countFS = groupData.countFontSize or 15
-    local countColor = groupData.countColor or { r = 1, g = 1, b = 1, a = 1 }
-    local cdFS = groupData.cooldownFontSize or 12
-    local cdColor = groupData.cooldownColor or { r = 1, g = 1, b = 1 }
-    local specID = CDM.GetCurrentSpecID and CDM:GetCurrentSpecID() or nil
+    local countPos, countOX, countOY, countFS, countColor, cdFS, cdColor, specID
+    if not repositionOnly then
+        countPos = groupData.countPosition or "BOTTOMRIGHT"
+        countOX = groupData.countOffsetX or 0
+        countOY = groupData.countOffsetY or 0
+        countFS = groupData.countFontSize or 15
+        countColor = groupData.countColor or { r = 1, g = 1, b = 1, a = 1 }
+        cdFS = groupData.cooldownFontSize or 12
+        cdColor = groupData.cooldownColor or { r = 1, g = 1, b = 1 }
+        specID = CDM.GetCurrentSpecID and CDM:GetCurrentSpecID() or nil
+    end
 
     local shownIdx = 0
     for i, frame in ipairs(frames) do
-        EnsureAuraNotificationHook(frame)
+        if not repositionOnly then
+            EnsureAuraNotificationHook(frame)
+        end
         local idx
         local rawSpellID
         if spellSlot then
@@ -564,93 +579,95 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames, activeSpellSetParam)
             end
         end
         if idx then
-        self:ApplyStyle(frame, CDM_C.VIEWERS.BUFF)
         frame:ClearAllPoints()
-        frame:SetSize(iconWSnapped, iconHSnapped)
-        if frame.Icon then
-            CDM_C.ApplyIconTexCoord(frame.Icon, CDM_C.GetEffectiveZoomAmount(), iconWSnapped, iconHSnapped)
-        end
-
         PositionFrameAtSlot(frame, container, idx, iconWSnapped, iconHSnapped, spacingSnapped, grow, layoutCount, anchorPoint, selfPoint)
 
-        local frameData = GetFrameData(frame)
-        local fSpellID = frameData.buffCategorySpellID
-        local spellOv = GetSpellOverride(groupData, fSpellID)
-        local useTextOv = spellOv and spellOv.textOverride
+        if not repositionOnly then
+            self:ApplyStyle(frame, CDM_C.VIEWERS.BUFF)
+            frame:SetSize(iconWSnapped, iconHSnapped)
+            if frame.Icon then
+                CDM_C.ApplyIconTexCoord(frame.Icon, CDM_C.GetEffectiveZoomAmount(), iconWSnapped, iconHSnapped)
+            end
 
-        local fCountPos = (useTextOv and spellOv.countPosition) or countPos
-        local fCountOX  = (useTextOv and spellOv.countOffsetX)  or countOX
-        local fCountOY  = (useTextOv and spellOv.countOffsetY)  or countOY
-        local fCountFS  = (useTextOv and spellOv.countFontSize)  or countFS
-        local fCountColor = (useTextOv and spellOv.countColor)  or countColor
-        local fCdFS     = (useTextOv and spellOv.cooldownFontSize) or cdFS
-        local fCdColor  = (useTextOv and spellOv.cooldownColor) or cdColor
-        local fCdPixelSize = fCdFS and Pixel.FontSize(fCdFS)
+            local frameData = GetFrameData(frame)
+            local fSpellID = frameData.buffCategorySpellID
+            local spellOv = GetSpellOverride(groupData, fSpellID)
+            local useTextOv = spellOv and spellOv.textOverride
 
-        local countText = frame.Applications and frame.Applications.Applications
-        if countText then
-            local fCountPixelSize = fCountFS and Pixel.FontSize(fCountFS)
-            if frameData.cdmLastCountFS ~= fCountPixelSize
-                or frameData.cdmLastCountPos ~= fCountPos
-                or frameData.cdmLastCountOX ~= fCountOX
-                or frameData.cdmLastCountOY ~= fCountOY
-                or frameData.cdmLastCountColorR ~= fCountColor.r
-                or frameData.cdmLastCountColorG ~= fCountColor.g
-                or frameData.cdmLastCountColorB ~= fCountColor.b then
-                if fCountPixelSize then
-                    local fontPath, _, fontFlags = countText:GetFont()
-                    if fontPath then
-                        countText:SetFont(fontPath, fCountPixelSize, fontFlags)
+            local fCountPos = (useTextOv and spellOv.countPosition) or countPos
+            local fCountOX  = (useTextOv and spellOv.countOffsetX)  or countOX
+            local fCountOY  = (useTextOv and spellOv.countOffsetY)  or countOY
+            local fCountFS  = (useTextOv and spellOv.countFontSize)  or countFS
+            local fCountColor = (useTextOv and spellOv.countColor)  or countColor
+            local fCdFS     = (useTextOv and spellOv.cooldownFontSize) or cdFS
+            local fCdColor  = (useTextOv and spellOv.cooldownColor) or cdColor
+            local fCdPixelSize = fCdFS and Pixel.FontSize(fCdFS)
+
+            local countText = frame.Applications and frame.Applications.Applications
+            if countText then
+                local fCountPixelSize = fCountFS and Pixel.FontSize(fCountFS)
+                if frameData.cdmLastCountFS ~= fCountPixelSize
+                    or frameData.cdmLastCountPos ~= fCountPos
+                    or frameData.cdmLastCountOX ~= fCountOX
+                    or frameData.cdmLastCountOY ~= fCountOY
+                    or frameData.cdmLastCountColorR ~= fCountColor.r
+                    or frameData.cdmLastCountColorG ~= fCountColor.g
+                    or frameData.cdmLastCountColorB ~= fCountColor.b then
+                    if fCountPixelSize then
+                        local fontPath, _, fontFlags = countText:GetFont()
+                        if fontPath then
+                            countText:SetFont(fontPath, fCountPixelSize, fontFlags)
+                        end
                     end
+                    if fCountColor then
+                        countText:SetTextColor(fCountColor.r, fCountColor.g, fCountColor.b, fCountColor.a or 1)
+                    end
+                    countText:ClearAllPoints()
+                    Pixel.SetPoint(countText, fCountPos, frame, fCountPos, fCountOX, fCountOY)
+                    frameData.cdmLastCountFS = fCountPixelSize
+                    frameData.cdmLastCountPos = fCountPos
+                    frameData.cdmLastCountOX = fCountOX
+                    frameData.cdmLastCountOY = fCountOY
+                    frameData.cdmLastCountColorR = fCountColor.r
+                    frameData.cdmLastCountColorG = fCountColor.g
+                    frameData.cdmLastCountColorB = fCountColor.b
                 end
-                if fCountColor then
-                    countText:SetTextColor(fCountColor.r, fCountColor.g, fCountColor.b, fCountColor.a or 1)
+            end
+
+            local fHideCooldown = spellOv and spellOv.hideCooldown
+
+            if fHideCooldown then
+                SetCooldownTextHidden(frame, true)
+                frameData.cdmCooldownTextHidden = true
+            else
+                if frameData.cdmCooldownTextHidden then
+                    SetCooldownTextHidden(frame, false)
+                    frameData.cdmCooldownTextHidden = nil
                 end
-                countText:ClearAllPoints()
-                Pixel.SetPoint(countText, fCountPos, frame, fCountPos, fCountOX, fCountOY)
-                frameData.cdmLastCountFS = fCountPixelSize
-                frameData.cdmLastCountPos = fCountPos
-                frameData.cdmLastCountOX = fCountOX
-                frameData.cdmLastCountOY = fCountOY
-                frameData.cdmLastCountColorR = fCountColor.r
-                frameData.cdmLastCountColorG = fCountColor.g
-                frameData.cdmLastCountColorB = fCountColor.b
-            end
-        end
-
-        local fHideCooldown = spellOv and spellOv.hideCooldown
-
-        if fHideCooldown then
-            SetCooldownTextHidden(frame, true)
-            frameData.cdmCooldownTextHidden = true
-        else
-            if frameData.cdmCooldownTextHidden then
-                SetCooldownTextHidden(frame, false)
-                frameData.cdmCooldownTextHidden = nil
-            end
-            if fCdFS or fCdColor then
-                local cd = frame.Cooldown
-                if cd then
-                    OverrideCooldownText(cd.Text or cd.text, fCdPixelSize, fCdColor)
-                    OverrideCooldownRegions(cd, fCdPixelSize, fCdColor)
+                if fCdFS or fCdColor then
+                    local cd = frame.Cooldown
+                    if cd then
+                        OverrideCooldownText(cd.Text or cd.text, fCdPixelSize, fCdColor)
+                        OverrideCooldownRegions(cd, fCdPixelSize, fCdColor)
+                    end
+                    OverrideCooldownText(frame.Time, fCdPixelSize, fCdColor)
+                    OverrideCooldownText(frame.Duration, fCdPixelSize, fCdColor)
                 end
-                OverrideCooldownText(frame.Time, fCdPixelSize, fCdColor)
-                OverrideCooldownText(frame.Duration, fCdPixelSize, fCdColor)
             end
-        end
 
-        local fHideVisuals = spellOv and spellOv.hideVisuals
+            local fHideVisuals = spellOv and spellOv.hideVisuals
 
-        if fHideVisuals then
-            HideFrameVisuals(frame, frameData)
-        elseif frameData.cdmVisualsHidden then
-            RestoreFrameVisuals(frame, frameData)
-        end
+            if fHideVisuals then
+                HideFrameVisuals(frame, frameData)
+            elseif frameData.cdmVisualsHidden then
+                RestoreFrameVisuals(frame, frameData)
+            end
 
-        if fHideVisuals then
-            if CDM.Glow then CDM.Glow:RequestBuffGlow(frame, false, nil, nil) end
-        else
-            ApplyGlowForGroupedFrame(frame, specID)
+            if fHideVisuals then
+                if CDM.Glow then CDM.Glow:RequestBuffGlow(frame, false, nil, nil) end
+            else
+                ApplyGlowForGroupedFrame(frame, specID)
+            end
         end
 
         if isStatic then
@@ -694,11 +711,11 @@ CDM:RegisterRefreshCallback("buffGroups", function()
     CDM:MarkSpecDataDirty()
     CDM:RefreshSpecData()
     CDM:UpdateAllBuffGroupContainers()
-end, 29, { "spec_data", "viewers", "trackers_layout" })
+end, 29)
 
 CDM:RegisterRefreshCallback("buffGroups_postViewer", function()
     CDM:UpdateAllBuffGroupContainers()
-end, 45, { "viewers" })
+end, 45)
 
 UpdatePlayerDeathState()
 CDM:RegisterEvent("PLAYER_ENTERING_WORLD", UpdatePlayerDeathState)
@@ -718,9 +735,28 @@ function CDM:GetUngroupedBuffOverride(spellID)
     return ResolveSpellOverrideEntry(specOv, spellID)
 end
 
+function CDM:PlayCustomBuffNotification(spellID, onHide)
+    if not spellID then return end
+    if not AreBuffNotificationsReady() then return end
+
+    local matchType, matchID, groupIdx = CDM.CheckIDAgainstRegistry(spellID)
+    if matchType == "buffgroup" and groupIdx then
+        local sets = self.BuffGroupSets
+        local groupData = sets and sets.groups and sets.groups[groupIdx]
+        local ov = GetSpellOverride(groupData, matchID)
+        PlayBuffOverrideNotification(ov, matchID, onHide)
+        return
+    end
+
+    local ov = self:GetUngroupedBuffOverride(spellID)
+    if ov then
+        PlayBuffOverrideNotification(ov, spellID, onHide)
+    end
+end
+
 local function OnBuffAuraNotification(frame, onHide)
     if not AreBuffNotificationsReady() then return end
-    local candidates = CDM.GetSpellIDCandidates and CDM:GetSpellIDCandidates(frame, true)
+    local candidates = CDM.GetSpellIDCandidates and CDM:GetSpellIDCandidates(frame)
     if not candidates then return end
 
     for _, id in ipairs(candidates) do
@@ -766,8 +802,13 @@ function CDM:ApplyUngroupedBuffOverrides(frame)
     local frameData = GetFrameData(frame)
     local ov
     local matchedSpellID
-    if self.GetSpellIDCandidates then
-        local candidates = self:GetSpellIDCandidates(frame, true)
+    local baseSpellID = frame.GetBaseSpellID and frame:GetBaseSpellID()
+    if IsSafeNumber(baseSpellID) then
+        ov = self:GetUngroupedBuffOverride(baseSpellID)
+        if ov then matchedSpellID = baseSpellID end
+    end
+    if not ov and self.GetSpellIDCandidates then
+        local candidates = self:GetSpellIDCandidates(frame)
         for _, candidateID in ipairs(candidates) do
             ov = self:GetUngroupedBuffOverride(candidateID)
             if ov then

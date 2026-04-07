@@ -17,7 +17,6 @@ setmetatable(API, {
 CDM.resourcesHiddenBuffSet = {}
 
 local nativeRegisterEvent = CDM.RegisterEvent
-local nativeUnregisterEvent = CDM.UnregisterEvent
 
 function CDM:RegisterEvent(event, handler)
     if not self.eventHandlers[event] then
@@ -34,208 +33,47 @@ function CDM:RegisterEvent(event, handler)
     end
 end
 
-function CDM:UnregisterEvent(event)
-    if self.eventHandlers[event] then
-        self.eventHandlers[event] = nil
-        nativeUnregisterEvent(CDM, event)
-    end
-end
-
-function CDM:UnregisterEventHandler(event, handler)
-    if not self.eventHandlers[event] or not handler then return end
-    local handlers = self.eventHandlers[event]
-    for i = #handlers, 1, -1 do
-        if handlers[i] == handler then
-            table.remove(handlers, i)
-            if #handlers == 0 then
-                self.eventHandlers[event] = nil
-                nativeUnregisterEvent(CDM, event)
-            end
-            return
-        end
-    end
-end
-
 CDM:SetScript("OnEvent", function(self, event, ...)
     local handlers = self.eventHandlers[event]
     if handlers then
-        for i = #handlers, 1, -1 do
-            local handler = handlers[i]
-            if handler then
-                handler(event, ...)
-            end
-        end
-    end
-end)
-
-local unitEventFrame = CreateFrame("Frame")
-local unitEventHandlers = {}
-
-
-local function EnsureUnitEventBucket(event, unit)
-    local bucket = unitEventHandlers[event]
-    if bucket then
-        return bucket
-    end
-
-    bucket = {
-        list = {},
-        lookup = {},
-    }
-    unitEventHandlers[event] = bucket
-    unitEventFrame:RegisterUnitEvent(event, unit)
-    return bucket
-end
-
-function CDM:RegisterUnitEvent(event, unit, handler)
-    if type(event) ~= "string" or event == "" then return end
-
-    local bucket = EnsureUnitEventBucket(event, unit)
-    if type(handler) ~= "function" then return end
-    if bucket.lookup[handler] then return end
-
-    bucket.lookup[handler] = true
-    bucket.list[#bucket.list + 1] = handler
-end
-
-function CDM:UnregisterUnitEventHandler(event, handler)
-    if type(event) ~= "string" or event == "" then return end
-    if type(handler) ~= "function" then return end
-
-    local bucket = unitEventHandlers[event]
-    if not bucket then return end
-    if not bucket.lookup[handler] then return end
-
-    bucket.lookup[handler] = nil
-    local handlers = bucket.list
-    for i = #handlers, 1, -1 do
-        if handlers[i] == handler then
-            table.remove(handlers, i)
-            break
-        end
-    end
-
-    if #handlers == 0 then
-        unitEventHandlers[event] = nil
-        unitEventFrame:UnregisterEvent(event)
-    end
-end
-
-unitEventFrame:SetScript("OnEvent", function(_, event, ...)
-    local bucket = unitEventHandlers[event]
-    if not bucket then return end
-
-    local handlers = bucket.list
-    local count = #handlers
-    if count == 0 then return end
-    if count == 1 then
-        local handler = handlers[1]
-        if handler then
-            handler(event, ...)
-        end
-        return
-    end
-
-    local buf = {}
-    for i = 1, count do
-        buf[i] = handlers[i]
-    end
-
-    for i = count, 1, -1 do
-        local handler = buf[i]
-        if handler then
-            handler(event, ...)
+        for i = 1, #handlers do
+            handlers[i](event, ...)
         end
     end
 end)
 
 CDM.RefreshCallbacks = {}
-CDM.RefreshScopeRegistry = {}
 CDM._positionSliderUpdaters = {}
 CDM._castBarSliderUpdater = nil
 
 local refreshCallbackList = {}
 local refreshCallbackSeq = 0
 
-local function FindInsertPosition(list, priority, seq)
-    local lo, hi = 1, #list
-    while lo <= hi do
-        local mid = math.floor((lo + hi) / 2)
-        local entry = list[mid]
-        if entry.priority < priority or (entry.priority == priority and entry.seq < seq) then
-            lo = mid + 1
-        else
-            hi = mid - 1
+local function InsertSorted(list, entry)
+    for i = 1, #list do
+        local e = list[i]
+        if entry.priority < e.priority or (entry.priority == e.priority and entry.seq < e.seq) then
+            table.insert(list, i, entry)
+            return
         end
     end
-    return lo
+    table.insert(list, entry)
 end
 
-local function SafeInvokeCallback(callbackID, callback, ...)
-    local success, err = pcall(callback, ...)
-    if not success then
-        local L = CDM.L
-        local msg = L and string.format(L["Callback error in '%s':"], callbackID) or ("Callback error in '" .. callbackID .. "':")
-        print("|cffff0000[CDM] " .. msg .. "|r " .. tostring(err))
-    end
-end
-
-local function NormalizeRefreshScopeSet(scopeNames)
-    if type(scopeNames) == "string" then
-        if scopeNames == "" then
-            return nil
-        end
-        return { [scopeNames] = true }
-    end
-    if type(scopeNames) ~= "table" then
-        return nil
-    end
-
-    local normalized = {}
-    for key, value in pairs(scopeNames) do
-        local scopeName
-        if type(key) == "number" then
-            scopeName = value
-        elseif value then
-            scopeName = key
-        end
-        if type(scopeName) == "string" and scopeName ~= "" then
-            normalized[scopeName] = true
-        end
-    end
-
-    if not next(normalized) then
-        return nil
-    end
-
-    return normalized
-end
-
-local function RegisterRefreshScopeNames(scopeSet)
-    if not scopeSet then return end
-    for scopeName in pairs(scopeSet) do
-        CDM.RefreshScopeRegistry[scopeName] = true
-    end
-end
-
-function CDM:RegisterRefreshCallback(id, callback, priority, scopes)
+function CDM:RegisterRefreshCallback(id, callback, priority)
     if self.RefreshCallbacks[id] then
         self:UnregisterRefreshCallback(id)
     end
 
     refreshCallbackSeq = refreshCallbackSeq + 1
-    local normalizedScopes = NormalizeRefreshScopeSet(scopes)
-    RegisterRefreshScopeNames(normalizedScopes)
     local entry = {
         id = id,
         callback = callback,
         priority = priority or 50,
         seq = refreshCallbackSeq,
-        scopes = normalizedScopes,
     }
     self.RefreshCallbacks[id] = entry
-    local pos = FindInsertPosition(refreshCallbackList, entry.priority, entry.seq)
-    table.insert(refreshCallbackList, pos, entry)
+    InsertSorted(refreshCallbackList, entry)
 end
 
 function CDM:UnregisterRefreshCallback(id)
@@ -262,7 +100,7 @@ end
 function CDM:NotifyCastBarSliderUpdate(offsetX, offsetY)
     local callback = self._castBarSliderUpdater
     if callback then
-        SafeInvokeCallback("castbar-slider-updater", callback, offsetX, offsetY)
+        callback(offsetX, offsetY)
     end
 end
 
@@ -284,51 +122,22 @@ function CDM:NotifyPositionSliderUpdate(name, x, y, useRawSlider)
     if type(name) ~= "string" or name == "" then return end
     local callback = self._positionSliderUpdaters[name]
     if callback then
-        SafeInvokeCallback("position-slider-updater:" .. name, callback, x, y, useRawSlider)
+        callback(x, y, useRawSlider)
     end
 end
 
 local refreshPending = false
-local refreshPendingAll = false
-local refreshPendingScopes = {}
 local refreshThrottleFrame = CreateFrame("Frame")
 
-local function ShouldRunEntryForScopeSet(entry, scopeSet)
-    if not entry or not entry.scopes then
-        return false
-    end
-    for scopeName in pairs(scopeSet) do
-        if entry.scopes[scopeName] then
-            return true
-        end
-    end
-    return false
-end
-
-local function DispatchRefreshCallbacks(executeAll, scopeSet)
-    if executeAll then
-        for _, entry in ipairs(refreshCallbackList) do
-            SafeInvokeCallback(entry.id, entry.callback)
-        end
-        return
-    end
-
+local function DispatchRefreshCallbacks()
     for _, entry in ipairs(refreshCallbackList) do
-        if ShouldRunEntryForScopeSet(entry, scopeSet) then
-            SafeInvokeCallback(entry.id, entry.callback)
-        end
+        entry.callback()
     end
 end
 
 local function ExecuteRefreshCallbacks()
     refreshPending = false
-
-    local executeAll = refreshPendingAll or not next(refreshPendingScopes)
-    local scopeSet = refreshPendingScopes
-    refreshPendingAll = false
-    refreshPendingScopes = {}
-
-    DispatchRefreshCallbacks(executeAll, scopeSet)
+    DispatchRefreshCallbacks()
 end
 
 refreshThrottleFrame:SetScript("OnUpdate", function(self)
@@ -341,127 +150,25 @@ refreshThrottleFrame:SetScript("OnUpdate", function(self)
 end)
 refreshThrottleFrame:Hide()
 
-local function ClearQueuedRefreshState()
+local function QueueRefresh()
+    if not refreshPending then
+        refreshPending = true
+        refreshThrottleFrame:Show()
+    end
+end
+
+function CDM:Refresh()
+    QueueRefresh()
+end
+
+function CDM:RefreshNow()
     refreshPending = false
-    refreshPendingAll = false
-    table.wipe(refreshPendingScopes)
     refreshThrottleFrame:Hide()
+    DispatchRefreshCallbacks()
 end
 
-local function QueueRefreshAll()
-    refreshPendingAll = true
-    table.wipe(refreshPendingScopes)
-    if not refreshPending then
-        refreshPending = true
-        refreshThrottleFrame:Show()
-    end
-end
-
-local function QueueRefreshScopes(scopeNames)
-    local normalizedScopes = NormalizeRefreshScopeSet(scopeNames)
-    if not normalizedScopes then
-        QueueRefreshAll()
-        return
-    end
-
-    if refreshPendingAll then
-        return
-    end
-
-    for scopeName in pairs(normalizedScopes) do
-        if not CDM.RefreshScopeRegistry[scopeName] then
-            QueueRefreshAll()
-            return
-        end
-    end
-
-    for scopeName in pairs(normalizedScopes) do
-        refreshPendingScopes[scopeName] = true
-    end
-
-    if not refreshPending then
-        refreshPending = true
-        refreshThrottleFrame:Show()
-    end
-end
-
-function CDM:RefreshConfig()
-    QueueRefreshAll()
-end
-
-function CDM:RefreshScope(scopeName)
-    if type(scopeName) ~= "string" or scopeName == "" then
-        QueueRefreshAll()
-        return
-    end
-    QueueRefreshScopes({ scopeName })
-end
-
-function CDM:RefreshScopes(scopeNames)
-    QueueRefreshScopes(scopeNames)
-end
-
-function CDM:RefreshConfigNow()
-    ClearQueuedRefreshState()
-    DispatchRefreshCallbacks(true, nil)
-end
-
-function CDM:RefreshScopesNow(scopeNames)
-    local normalizedScopes = NormalizeRefreshScopeSet(scopeNames)
-    if not normalizedScopes then
-        self:RefreshConfigNow()
-        return
-    end
-
-    for scopeName in pairs(normalizedScopes) do
-        if not self.RefreshScopeRegistry[scopeName] then
-            self:RefreshConfigNow()
-            return
-        end
-    end
-
-    ClearQueuedRefreshState()
-    DispatchRefreshCallbacks(false, normalizedScopes)
-end
-
---[[ 
-Expose API, so GetChildren() still works for addons wantng to use it, despite enumerating the frames being a better way of doing it.
-This is an option in case I need to reparent frames from default viewers, 
-however hooksecurefunc on SetPoint seems to have fixed the issues.
-The issue being CDM viewers being in default edit mode positions cause Blizzard trying to overwrite our positions,
-making the icons either overlap or break the layout, or even snap to the bottom of the screen (default viewers positions), 
-when users haven't moved them in their edit mode profiles.
-Reparenting the frames simply removes them from Blizzard's layout system, so it remains the best option but here we are to not annoy anyone.
-
--- Item frames are reparented from Blizzard's viewer to ACDM containers at
--- placement time. This prevents GridLayoutFrameMixin:Layout() from overwriting
--- ACDM's positioning (it uses GetChildren to find frames).
---
--- Returns the ACDM container frame that holds item frames for a given viewer.
--- container:GetChildren() returns the active Blizzard pool frames ACDM manages.
---
--- Valid viewer names:
---   "EssentialCooldownViewer", "UtilityCooldownViewer",
---   "BuffIconCooldownViewer", "BuffBarCooldownViewer"
---
--- Usage:
---   local container = Ayije_CDM.API.GetViewerContainer("EssentialCooldownViewer")
---   if container then
---       for _, frame in pairs({container:GetChildren()}) do
---           local cdid = frame.cooldownID
---           if cdid then
---               local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdid)
---               -- info.spellID, frame:GetSpellID(), etc.
---           end
---       end
---   end
-
-
-function CDM.GetViewerContainer(viewerName)
-    local containers = CDM.anchorContainers
-    return containers and containers[viewerName] or nil
-end
---]]
+CDM.RefreshConfig = CDM.Refresh
+CDM.RefreshScopes = CDM.Refresh
 
 function CDM.IsSafeNumber(value)
     return value ~= nil

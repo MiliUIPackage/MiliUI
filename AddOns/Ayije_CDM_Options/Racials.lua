@@ -200,7 +200,7 @@ local function CreateSpellsOverlay()
                         else
                             CDM.db.racialsDisabled[id] = true
                         end
-                        API:RefreshConfig()
+                        API:Refresh()
                     end
                 )
                 cb:SetSize(26, rowHeight)
@@ -298,7 +298,7 @@ local function CreateRacialsTab(page, tabId)
             CDM.db.racialsEnabled = checked
             UpdateShowItemsAtZeroStacksState()
             if setControlsEnabled then setControlsEnabled(checked) end
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.racialsEnabled:SetPoint("TOPLEFT", -34, NextY(0))
@@ -310,7 +310,7 @@ local function CreateRacialsTab(page, tabId)
         showItemsAtZeroStacks,
         function(checked)
             CDM.db.racialsShowItemsAtZeroStacks = checked
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.racialsShowItemsAtZeroStacks:SetPoint("LEFT", page.controls.racialsEnabled, "RIGHT", 0, 0)
@@ -340,7 +340,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsIconWidth or 40,
         function(v)
             CDM.db.racialsIconWidth = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.racialsIconWidthSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -351,7 +351,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsIconHeight or 36,
         function(v)
             CDM.db.racialsIconHeight = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.racialsIconHeightSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -370,7 +370,7 @@ local function CreateRacialsTab(page, tabId)
         function(checked)
             CDM.db.racialsUsePartyFrame = checked
             UpdateControls()
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.racialsUsePartyFrameCheckbox:SetPoint("TOPLEFT", 0, NextY(0))
@@ -398,7 +398,7 @@ local function CreateRacialsTab(page, tabId)
                 end
                 CDM.db.racialsPartyFrameSide = side
                 ddPartyFrameSide:SetDefaultText(side)
-                API:RefreshConfig()
+                API:Refresh()
             end)
         end
     end)
@@ -408,7 +408,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsPartyFrameOffsetX or -6,
         function(v)
             CDM.db.racialsPartyFrameOffsetX = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.racialsPartyFrameOffsetXSlider:SetPoint("TOPLEFT", ddPartyFrameSide, "BOTTOMLEFT", 0, -15)
@@ -418,7 +418,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsPartyFrameOffsetY or 19,
         function(v)
             CDM.db.racialsPartyFrameOffsetY = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.racialsPartyFrameOffsetYSlider:SetPoint("TOPLEFT", page.racialsPartyFrameOffsetXSlider, "BOTTOMLEFT", 0, -10)
@@ -441,7 +441,7 @@ local function CreateRacialsTab(page, tabId)
         function(pos)
             CDM.db.racialsAnchorPoint = pos
             ddAnchor:SetDefaultText(pos)
-            API:RefreshConfig()
+            API:Refresh()
         end,
         {"TOPLEFT", "BOTTOMLEFT", "TOPRIGHT", "BOTTOMRIGHT"}
     )
@@ -451,7 +451,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsOffsetX or 0,
         function(v)
             CDM.db.racialsOffsetX = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.racialsOffsetXSlider:SetPoint("TOPLEFT", ddAnchor, "BOTTOMLEFT", 0, -15)
@@ -461,7 +461,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsOffsetY or 0,
         function(v)
             CDM.db.racialsOffsetY = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.racialsOffsetYSlider:SetPoint("TOPLEFT", page.racialsOffsetXSlider, "BOTTOMLEFT", 0, -10)
@@ -473,7 +473,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsCooldownFontSize or 12,
         function(v)
             CDM.db.racialsCooldownFontSize = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.racialsCooldownFontSizeSlider:SetPoint("TOPLEFT", cooldownHeader, "BOTTOMLEFT", 0, -15)
@@ -482,10 +482,10 @@ local function CreateRacialsTab(page, tabId)
 
     page.racialsChargeFontSizeSlider = UI.CreateModernSlider(
         scrollChild, L["Font Size"], 8, 32,
-        CDM.db.racialsChargeFontSize or 10,
+        CDM.db.racialsChargeFontSize or 15,
         function(v)
             CDM.db.racialsChargeFontSize = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.racialsChargeFontSizeSlider:SetPoint("TOPLEFT", stacksHeader, "BOTTOMLEFT", 0, -15)
@@ -509,7 +509,7 @@ local function CreateRacialsTab(page, tabId)
         function(pos)
             CDM.db.racialsChargePosition = pos
             ddChargePos:SetDefaultText(pos)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
 
@@ -518,7 +518,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsChargeOffsetX or 0,
         function(v)
             CDM.db.racialsChargeOffsetX = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.racialsChargeOffsetXSlider:SetPoint("TOPLEFT", ddChargePos, "BOTTOMLEFT", 0, -15)
@@ -528,7 +528,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsChargeOffsetY or 0,
         function(v)
             CDM.db.racialsChargeOffsetY = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.racialsChargeOffsetYSlider:SetPoint("TOPLEFT", page.racialsChargeOffsetXSlider, "BOTTOMLEFT", 0, -10)

@@ -64,6 +64,9 @@ end
 
 local EMPTY = {}
 
+local itemResolveFrame
+local itemResolvePending = {}
+
 local _, playerClass = UnitClass("player")
 
 local isInitialized = false
@@ -115,6 +118,144 @@ local function AnchorRacialsToPartyFrame(partyFrame, side, offsetX, offsetY)
         racialsContainer:Show()
     end
     return true
+end
+
+-- Party anchor resolution (moved from TrackerUtils — only consumer is Racials)
+
+local cachedPartyFrame = nil
+local partyAnchorCacheVersion = 0
+local cachedPartyFrameVersion = -1
+
+local PARTY_BUTTON_COUNT = 5
+
+local function IsVisibleFrame(frame)
+    return frame and frame.IsVisible and frame:IsVisible()
+end
+
+local function FindPlayerPartyButton(prefix, count)
+    for i = 1, count do
+        local frame = _G[prefix .. i]
+        if frame and frame.GetAttribute and frame:GetAttribute("unit") == "player"
+           and IsVisibleFrame(frame) then
+            return frame
+        end
+    end
+end
+
+local function FindGrid2PlayerButton()
+    for h = 1, 8 do
+        local prefix = "Grid2LayoutHeader" .. h
+        if not _G[prefix] then break end
+        for k = 1, PARTY_BUTTON_COUNT do
+            local btn = _G[prefix .. "UnitButton" .. k]
+            if not btn then break end
+            if btn.GetAttribute and btn:GetAttribute("unit") == "player"
+               and IsVisibleFrame(btn) then
+                return btn
+            end
+        end
+    end
+end
+
+local function GetDandersFrameForUnit(unit)
+    if not (C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("DandersFrames")) then
+        return nil
+    end
+    if type(DandersFrames_IsReady) ~= "function" or not DandersFrames_IsReady() then
+        return nil
+    end
+    local getFrameForUnit = DandersFrames_GetFrameForUnit
+    if type(getFrameForUnit) ~= "function" then
+        return nil
+    end
+    local ok, frame = pcall(getFrameForUnit, unit)
+    if not ok then return nil end
+    return frame
+end
+
+local PARTY_FRAME_SOURCES = {
+    { addon = "ElvUI", prefix = "ElvUF_PartyGroup1UnitButton" },
+    { addon = "Cell",  prefix = "CellPartyFrameMember" },
+    { addon = "Grid2", fn = true },
+    { addon = nil,     prefix = "CompactPartyFrameMember" },
+    { addon = nil,     prefix = "CompactRaidFrame" },
+}
+
+local RAID_CONTAINER_SOURCES = {
+    { addon = "ElvUI", name = "ElvUF_Raid1" },
+    { addon = "Cell",  name = "CellRaidFrame" },
+    { addon = "Grid2", name = "Grid2LayoutFrame" },
+    { addon = nil,     name = "CompactRaidFrameContainer" },
+}
+
+local function ResolvePartyAnchorFrame()
+    if cachedPartyFrameVersion == partyAnchorCacheVersion then
+        local f = cachedPartyFrame
+        if not f or IsVisibleFrame(f) then
+            return f
+        end
+    end
+
+    local frame
+    local dandersFrame = GetDandersFrameForUnit("player")
+    if IsVisibleFrame(dandersFrame) then
+        frame = dandersFrame
+    end
+
+    if not frame then
+        if IsInRaid() then
+            for _, c in ipairs(RAID_CONTAINER_SOURCES) do
+                if not c.addon or C_AddOns.IsAddOnLoaded(c.addon) then
+                    local f = _G[c.name]
+                    if IsVisibleFrame(f) then
+                        frame = f
+                        break
+                    end
+                end
+            end
+        else
+            for _, src in ipairs(PARTY_FRAME_SOURCES) do
+                if not src.addon or C_AddOns.IsAddOnLoaded(src.addon) then
+                    if src.fn then
+                        frame = FindGrid2PlayerButton()
+                    else
+                        frame = FindPlayerPartyButton(src.prefix, PARTY_BUTTON_COUNT)
+                    end
+                    if frame then break end
+                end
+            end
+        end
+    end
+
+    cachedPartyFrame = frame
+    if frame then
+        cachedPartyFrameVersion = partyAnchorCacheVersion
+    end
+    return frame
+end
+
+local function InvalidatePartyAnchorCache()
+    partyAnchorCacheVersion = partyAnchorCacheVersion + 1
+end
+
+local function GetPartyAnchorFrame(forceRefresh)
+    if forceRefresh then
+        InvalidatePartyAnchorCache()
+    end
+    return ResolvePartyAnchorFrame()
+end
+
+local partyAnchorInvalidationFrame
+local function EnsurePartyAnchorInvalidation()
+    if partyAnchorInvalidationFrame then return end
+    partyAnchorInvalidationFrame = CreateFrame("Frame")
+    partyAnchorInvalidationFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+    partyAnchorInvalidationFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    partyAnchorInvalidationFrame:RegisterEvent("LOADING_SCREEN_DISABLED")
+    partyAnchorInvalidationFrame:RegisterEvent("PLAYER_ROLES_ASSIGNED")
+    partyAnchorInvalidationFrame:SetScript("OnEvent", function()
+        InvalidatePartyAnchorCache()
+    end)
 end
 
 local racialsTrackerAcquireOpts = {
@@ -530,9 +671,6 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
 
         if hasCharges then
             local styles = cachedRacialsStyles
-            if not styles.fontPath then
-                RefreshCachedRacialsStyles()
-            end
             if frame._cdmRacialsChargeStyleVersion ~= racialsChargeStyleVersion or not chargeText:IsShown() then
                 CDM.StyleChargeText(chargeText, frame, styles)
                 frame._cdmRacialsChargeStyleVersion = racialsChargeStyleVersion
@@ -651,7 +789,7 @@ local function UpdateContainerPosition()
     local usePartyFrame = CDM.db and CDM.db.racialsUsePartyFrame or false
 
     if usePartyFrame then
-        local partyFrame = CDM.GetRacialsPartyAnchorFrame and CDM.GetRacialsPartyAnchorFrame()
+        local partyFrame = GetPartyAnchorFrame()
 
         if partyFrame then
             local side = CDM.db and CDM.db.racialsPartyFrameSide or "LEFT"
@@ -772,8 +910,8 @@ local function UpdateRacialItemsOnly()
             if shouldShow then
                 frame = BindEntryFrame(entry)
                 frame:Show()
-                if not wasShown and CDM.ApplyTrackerStyle then
-                    CDM:ApplyTrackerStyle(frame, "CDM_Racials", true)
+                if not wasShown and CDM.ApplyStyle then
+                    CDM:ApplyStyle(frame, "CDM_Racials", true)
                 end
                 UpdateIcon(frame)
             else
@@ -969,14 +1107,14 @@ local function RegisterRacialsCombatStateListener()
     if racialsCombatCallbackRegistered then
         return
     end
-    if CDM:RegisterInternalCallback("OnCombatStateChanged", OnRacialsCombatStateChanged) then
+    if CDM:RegisterCombatStateHandler(OnRacialsCombatStateChanged) then
         racialsCombatCallbackRegistered = true
     end
 end
 
 local function UnregisterRacialsCombatStateListener()
     if racialsCombatCallbackRegistered then
-        CDM:UnregisterInternalCallback("OnCombatStateChanged", OnRacialsCombatStateChanged)
+        CDM:UnregisterCombatStateHandler(OnRacialsCombatStateChanged)
         racialsCombatCallbackRegistered = false
     end
 end
@@ -988,6 +1126,7 @@ function CDM:InitializeRacials()
 
     racialsContainer = CDM.CreateTrackerContainer("CDM_RacialsContainer")
 
+    EnsurePartyAnchorInvalidation()
     UpdateContainerPosition()
 
     local _, race = UnitRace("player")
@@ -1183,8 +1322,9 @@ function CDM:UpdateRacials()
                 if frame.Cooldown then
                     frame.Cooldown:SetAllPoints(frame)
                 end
-                if frame.cdmBorderFrame then
-                    frame.cdmBorderFrame:SetAllPoints(frame)
+                local fd = CDM.GetFrameData(frame)
+                if fd.borderFrame then
+                    fd.borderFrame:SetAllPoints(frame)
                 end
                 if frame.ChargeCount then
                     frame.ChargeCount:SetAllPoints(frame)
@@ -1193,8 +1333,8 @@ function CDM:UpdateRacials()
 
             local wasHidden = not frame:IsShown()
             frame:Show()
-            if (applyStyle or wasHidden or boundNow) and CDM.ApplyTrackerStyle then
-                CDM:ApplyTrackerStyle(frame, "CDM_Racials", true)
+            if (applyStyle or wasHidden or boundNow) and CDM.ApplyStyle then
+                CDM:ApplyStyle(frame, "CDM_Racials", true)
             end
             UpdateIcon(frame)
 
@@ -1283,16 +1423,23 @@ function CDM:AddRacialEntry(id, isItem)
             newEntry.spellID = spellID
         else
             C_Item.RequestLoadItemDataByID(id)
-            local resolveFrame = CreateFrame("Frame")
-            resolveFrame:RegisterEvent("ITEM_DATA_LOAD_RESULT")
-            resolveFrame:SetScript("OnEvent", function(self, _, loadedID, success)
-                if loadedID ~= id then return end
-                self:UnregisterAllEvents()
-                self:SetScript("OnEvent", nil)
+            itemResolvePending[id] = newEntry
+            if not itemResolveFrame then
+                itemResolveFrame = CreateFrame("Frame")
+            end
+            itemResolveFrame:RegisterEvent("ITEM_DATA_LOAD_RESULT")
+            itemResolveFrame:SetScript("OnEvent", function(self, _, loadedID, success)
+                local entry = itemResolvePending[loadedID]
+                if not entry then return end
+                itemResolvePending[loadedID] = nil
+                if not next(itemResolvePending) then
+                    self:UnregisterAllEvents()
+                    self:SetScript("OnEvent", nil)
+                end
                 if not success then return end
-                local _, resolved = C_Item.GetItemSpell(id)
+                local _, resolved = C_Item.GetItemSpell(loadedID)
                 if resolved then
-                    newEntry.spellID = resolved
+                    entry.spellID = resolved
                     CDM:ReinitRacialIcons()
                 end
             end)
@@ -1306,7 +1453,7 @@ function CDM:AddRacialEntry(id, isItem)
     end
 
     self:ReinitRacialIcons()
-    CDM:RefreshConfig()
+    CDM:Refresh()
     return true
 end
 
@@ -1335,7 +1482,7 @@ function CDM:RemoveRacialEntry(id)
     end
 
     self:ReinitRacialIcons()
-    CDM:RefreshConfig()
+    CDM:Refresh()
 end
 
 local function OnRacialsProfileApplied()
@@ -1354,30 +1501,20 @@ local function RefreshRacialsLifecycle()
     CDM:UpdateRacials()
 end
 
-if CDM.ModuleManager and CDM.ModuleManager.RegisterModule then
-    CDM.ModuleManager:RegisterModule({
-        id = "racials",
-        Initialize = function()
-            CDM:InitializeRacials()
-        end,
-        Enable = EnableRacials,
-        Disable = DisableRacials,
-        Refresh = RefreshRacialsLifecycle,
-        OnProfileApplied = OnRacialsProfileApplied,
-        ShouldBeEnabled = function(db)
-            return db and db.racialsEnabled ~= false
-        end,
-    })
+local function ReconcileRacials()
+    if CDM.db and CDM.db.racialsEnabled ~= false then
+        if not isInitialized then CDM:InitializeRacials() end
+        if not isEnabled then EnableRacials() end
+        RefreshRacialsLifecycle()
+    elseif isEnabled then
+        DisableRacials()
+    end
 end
+
+CDM.ReconcileRacials = ReconcileRacials
+CDM.OnRacialsProfileApplied = OnRacialsProfileApplied
 
 CDM:RegisterRefreshCallback("racialsStyles", function()
     RefreshCachedRacialsStyles()
     needsStyleUpdate = true
-end, 15, { "text_visuals", "trackers_layout", "viewers" })
-
-CDM:RegisterRefreshCallback("racials", function()
-    local moduleManager = CDM.ModuleManager
-    if moduleManager and moduleManager.ReconcileModule then
-        moduleManager:ReconcileModule("racials")
-    end
-end, 50, { "trackers_layout", "viewers" })
+end, 15)

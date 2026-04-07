@@ -6,6 +6,7 @@ local CDM = Runtime
 local UI = ns.ConfigUI
 local C = CDM.CONST
 local L = Runtime.L
+
 local Pixel = CDM.Pixel
 
 
@@ -131,7 +132,7 @@ local function CreatePositionsTab(page, tabId)
     })
 
     local utilYOffsetSlider = UI.CreateModernSlider(scrollChild, L["Utility Y Offset"], -600, 600, CDM.db.utilityYOffset, function(v)
-        CDM.db.utilityYOffset = v; API:RefreshConfig()
+        CDM.db.utilityYOffset = v; API:Refresh()
     end)
     utilYOffsetSlider:SetPoint("TOPLEFT", essYSlider, "BOTTOMLEFT", 0, -10)
 

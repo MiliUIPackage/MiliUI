@@ -185,7 +185,7 @@ function BORDER:UpdateBorder(frame)
         frame.border:SetBackdrop(borderDef)
         frame.border:Show()
         local frameData = GetFrameData(frame)
-        local color = frameData.cdmBorderColorOverride or CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
+        local color = frameData.cdmBorderColorOverride or frameData.cdmResolvedBorderColor or CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
         SetBorderColor(frame.border, color)
         ApplyBorderPoints(frame, frame.border, meta, offsetX, offsetY)
     end
@@ -206,7 +206,7 @@ function BORDER:UpdateAllBorders()
                 frame.border:SetBackdrop(borderDef)
                 frame.border:Show()
                 local frameData = GetFrameData(frame)
-                local c = frameData.cdmBorderColorOverride or color
+                local c = frameData.cdmBorderColorOverride or frameData.cdmResolvedBorderColor or color
                 SetBorderColor(frame.border, c)
                 ApplyBorderPoints(frame, frame.border, meta, offsetX, offsetY)
             end
@@ -243,15 +243,9 @@ function BORDER:RestoreToCurrentBorderColor(frame)
     if not frame then return end
     local frameData = GetFrameData(frame)
     frameData.cdmBorderColorOverride = nil
-    UpdateAllBorderColorSurfaces(frame, frameData, CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR))
+    UpdateAllBorderColorSurfaces(frame, frameData, frameData.cdmResolvedBorderColor or CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR))
 end
 
 CDM:RegisterRefreshCallback("borders", function()
     CDM.BORDER:UpdateAllBorders()
-end, 25, {
-    "castbar_visuals",
-    "resources_visuals",
-    "text_visuals",
-    "trackers_layout",
-    "viewers",
-})
+end, 25)

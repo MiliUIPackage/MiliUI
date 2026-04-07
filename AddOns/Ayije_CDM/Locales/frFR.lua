@@ -28,7 +28,7 @@ L["Edit Mode locked - use /cdm"] = "Mode édition verrouillé – utilisez /cdm"
 L["Cooldown Viewer settings are managed by /cdm. Edit Mode changes are disabled to avoid taint."] = "Les paramètres de la vue de temps de recharge sont gérés par /cdm. Les modifications du mode édition sont désactivées pour éviter la corruption."
 
 -----------------------------------------------------------------------
--- Core/Layout/Containers.lua
+-- Core/Layout/Layout.lua
 -----------------------------------------------------------------------
 
 L["Click and drag to move - /cdm > Positions to lock"] = "Cliquer-glisser pour déplacer – /cdm > Positions à verrouiller"
@@ -444,20 +444,14 @@ L["%s Offset Y"] = "Décalage Y %s"
 L["%s Text Color"] = "Couleur du texte %s"
 
 -----------------------------------------------------------------------
--- Ayije_CDM_Options/CustomBuffs.lua
+-- Ayije_CDM_Options/BuffGroups.lua (custom buff strings)
 -----------------------------------------------------------------------
 
-L["ID: %s  |  Duration: %ss"] = "ID : %s  |  Durée : %ss"
-L["Remove"] = "Retirer"
-L["Custom Timers"] = "Minuteries personnalisées"
-L["Track spell casts and display custom buff icons alongside native buffs. Icons appear in the main buff container."] = "Suivre les incantations et afficher des icônes d'amélioration personnalisées à côté des améliorations natives. Les icônes apparaissent dans le conteneur d'améliorations principal."
-L["Add Tracked Spell"] = "Ajouter un sort suivi"
 L["Spell ID:"] = "ID de sort :"
 L["Duration (sec):"] = "Durée (sec.) :"
 L["Add Spell"] = "Ajouter un sort"
 L["Invalid spell ID"] = "ID de sort invalide"
 L["Enter a valid duration"] = "Entrez une durée valide"
-L["Limit reached (9 max)"] = "Limite atteinte (9 max.)"
 L["Added!"] = "Ajouté !"
 L["Failed - invalid spell ID"] = "Échec – ID de sort invalide"
 

@@ -21,7 +21,6 @@
     <Script file="Defensives.lua"/>
     <Script file="Trinkets.lua"/>
     <Script file="Resources.lua"/>
-    <Script file="CustomBuffs.lua"/>
     <Script file="Bars.lua"/>
     <Script file="CastBar.lua"/>
     <Script file="Externals.lua"/>

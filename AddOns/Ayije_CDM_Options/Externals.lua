@@ -6,6 +6,7 @@ local CDM = Runtime
 local UI = ns.ConfigUI
 local L = Runtime.L
 
+
 function ns._CreateExternalsPanel(page, parentPage)
     local divider = page:CreateTexture(nil, "ARTWORK")
     divider:SetAtlas("Options_HorizontalDivider", true)
@@ -28,7 +29,7 @@ function ns._CreateExternalsPanel(page, parentPage)
         function(checked)
             CDM.db.externalsEnabled = checked
             if setControlsEnabled then setControlsEnabled(checked) end
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.externalsEnabled:SetPoint("TOPLEFT", -34, NextY(0))
@@ -45,7 +46,7 @@ function ns._CreateExternalsPanel(page, parentPage)
         CDM.db.externalsIconWidth or 30,
         function(v)
             CDM.db.externalsIconWidth = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.externalsIconWidthSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -58,7 +59,7 @@ function ns._CreateExternalsPanel(page, parentPage)
         CDM.db.externalsIconHeight or 30,
         function(v)
             CDM.db.externalsIconHeight = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.externalsIconHeightSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -75,7 +76,7 @@ function ns._CreateExternalsPanel(page, parentPage)
         CDM.db.externalsCooldownFontSize or 15,
         function(v)
             CDM.db.externalsCooldownFontSize = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.externalsCooldownFontSizeSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -89,7 +90,7 @@ function ns._CreateExternalsPanel(page, parentPage)
         blinkDefault,
         function(checked)
             CDM.db.externalsDisableBlink = checked
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.externalsDisableBlinkCheckbox:SetPoint("TOPLEFT", 0, NextY(0))

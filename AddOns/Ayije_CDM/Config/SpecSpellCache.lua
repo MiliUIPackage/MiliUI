@@ -13,14 +13,20 @@ local CAT_UTILITY   = Enum.CooldownViewerCategory and Enum.CooldownViewerCategor
 local CAT_BUFF      = Enum.CooldownViewerCategory and Enum.CooldownViewerCategory.TrackedBuff
 
 local specCacheScheduled = false
+local specEssentialCache = {}
+local specUtilityCache = {}
+local specBuffSpellCache = {}
 
 local function EnsureStorage()
-    if not Ayije_CDMDB then return nil end
-    if not Ayije_CDMDB.global then Ayije_CDMDB.global = {} end
-    if not Ayije_CDMDB.global.sharedSpecCaches then
-        Ayije_CDMDB.global.sharedSpecCaches = {}
-    end
-    return Ayije_CDMDB.global.sharedSpecCaches
+    local db = Ayije_CDMDB
+    if not db then return nil end
+    if not db.global then db.global = {} end
+    if not db.global.sharedSpecCaches then db.global.sharedSpecCaches = {} end
+    local s = db.global.sharedSpecCaches
+    if not s.specEssentialCache then s.specEssentialCache = {} end
+    if not s.specUtilityCache then s.specUtilityCache = {} end
+    if not s.specBuffSpellCache then s.specBuffSpellCache = {} end
+    return s
 end
 
 local function CollectCategory(cat)
@@ -35,7 +41,7 @@ local function CollectCategory(cat)
     for _, cooldownID in ipairs(ids) do
         local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cooldownID)
         if info then
-            local spellID = info.overrideSpellID or info.spellID
+            local spellID = info.overrideTooltipSpellID or info.overrideSpellID or info.spellID
             result[#result + 1] = {
                 cooldownID = cooldownID,
                 spellID = spellID,
@@ -51,38 +57,18 @@ end
 
 local function RefreshSpecSpellCache()
     specCacheScheduled = false
-
-    local storage = EnsureStorage()
-    if not storage then return end
-
     local specID = PlayerUtil and PlayerUtil.GetCurrentSpecID and PlayerUtil.GetCurrentSpecID()
     if not specID then return end
+    specEssentialCache[specID] = CollectCategory(CAT_ESSENTIAL)
+    specUtilityCache[specID]   = CollectCategory(CAT_UTILITY)
+    specBuffSpellCache[specID] = CollectCategory(CAT_BUFF)
 
-    if not storage.specSpellCache then storage.specSpellCache = {} end
-    if not storage.specEssentialCache then storage.specEssentialCache = {} end
-    if not storage.specUtilityCache then storage.specUtilityCache = {} end
-    if not storage.specBuffSpellCache then storage.specBuffSpellCache = {} end
-
-    local essential = CollectCategory(CAT_ESSENTIAL)
-    local utility = CollectCategory(CAT_UTILITY)
-    local buff = CollectCategory(CAT_BUFF)
-
-    local combined = {}
-    if essential then
-        for _, entry in ipairs(essential) do
-            combined[#combined + 1] = entry
-        end
+    local storage = EnsureStorage()
+    if storage then
+        storage.specEssentialCache[specID] = specEssentialCache[specID]
+        storage.specUtilityCache[specID]   = specUtilityCache[specID]
+        storage.specBuffSpellCache[specID] = specBuffSpellCache[specID]
     end
-    if utility then
-        for _, entry in ipairs(utility) do
-            combined[#combined + 1] = entry
-        end
-    end
-
-    storage.specSpellCache[specID] = #combined > 0 and combined or nil
-    storage.specEssentialCache[specID] = essential
-    storage.specUtilityCache[specID] = utility
-    storage.specBuffSpellCache[specID] = buff
 end
 
 local function ScheduleRefresh()
@@ -91,26 +77,27 @@ local function ScheduleRefresh()
     C_Timer.After(0, RefreshSpecSpellCache)
 end
 
-function API:GetSpecSpellCache(specID)
-    local storage = Ayije_CDMDB and Ayije_CDMDB.global and Ayije_CDMDB.global.sharedSpecCaches
-    return storage and storage.specSpellCache and storage.specSpellCache[specID]
-end
-
 function API:GetSpecEssentialCache(specID)
-    local storage = Ayije_CDMDB and Ayije_CDMDB.global and Ayije_CDMDB.global.sharedSpecCaches
-    return storage and storage.specEssentialCache and storage.specEssentialCache[specID]
+    local cached = specEssentialCache[specID]
+    if cached then return cached end
+    local storage = EnsureStorage()
+    return storage and storage.specEssentialCache[specID]
 end
 
 function API:GetSpecUtilityCache(specID)
-    local storage = Ayije_CDMDB and Ayije_CDMDB.global and Ayije_CDMDB.global.sharedSpecCaches
-    return storage and storage.specUtilityCache and storage.specUtilityCache[specID]
+    local cached = specUtilityCache[specID]
+    if cached then return cached end
+    local storage = EnsureStorage()
+    return storage and storage.specUtilityCache[specID]
 end
 
 function API:GetSpecBuffSpellCache(specID)
-    local storage = Ayije_CDMDB and Ayije_CDMDB.global and Ayije_CDMDB.global.sharedSpecCaches
-    return storage and storage.specBuffSpellCache and storage.specBuffSpellCache[specID]
+    local cached = specBuffSpellCache[specID]
+    if cached then return cached end
+    local storage = EnsureStorage()
+    return storage and storage.specBuffSpellCache[specID]
 end
 
 CDM:RegisterEvent("PLAYER_ENTERING_WORLD", ScheduleRefresh)
-CDM:RegisterInternalCallback("OnSpecStateChanged", ScheduleRefresh)
-CDM:RegisterInternalCallback("OnTalentDataChanged", ScheduleRefresh)
+CDM:RegisterSpecStateHandler(ScheduleRefresh)
+CDM:RegisterTalentDataHandler(ScheduleRefresh)

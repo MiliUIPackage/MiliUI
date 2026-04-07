@@ -6,6 +6,7 @@ local CDM = Runtime
 local UI = ns.ConfigUI
 local L = Runtime.L
 
+
 local function CreateBarsTab(page, tabId)
     local barsScrollChild = UI.CreateScrollableTab(page, "AyijeCDM_BarsScrollFrame", 900, 370)
 
@@ -28,7 +29,7 @@ local function CreateBarsTab(page, tabId)
                 page.controls.buffBarWidthSlider.Slider:SetValue(60)
             end
             CDM.db.buffBarWidth = value
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.buffBarWidthSlider:SetPoint("TOPLEFT", 0, NextY(30))
@@ -41,7 +42,7 @@ local function CreateBarsTab(page, tabId)
         CDM.db.buffBarHeight or 20,
         function(v)
             CDM.db.buffBarHeight = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.buffBarHeightSlider:SetPoint("TOPLEFT", 0, NextY(60))
@@ -54,7 +55,7 @@ local function CreateBarsTab(page, tabId)
         CDM.db.buffBarSpacing or 2,
         function(v)
             CDM.db.buffBarSpacing = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.buffBarSpacingSlider:SetPoint("TOPLEFT", 0, NextY(60))
@@ -78,7 +79,7 @@ local function CreateBarsTab(page, tabId)
         function() return CDM.db.buffBarTexture or "Blizzard" end,
         function(name)
             CDM.db.buffBarTexture = name
-            API:RefreshConfig()
+            API:Refresh()
         end,
         function(name)
             ddBarTexture:SetDefaultText(name or "Blizzard")
@@ -116,7 +117,7 @@ local function CreateBarsTab(page, tabId)
         function(value)
             CDM.db.buffBarGrowDirection = value
             ddGrowDirection:SetDefaultText(value)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
 
@@ -143,7 +144,7 @@ local function CreateBarsTab(page, tabId)
         function(value)
             CDM.db.buffBarIconPosition = value
             ddIconPosition:SetDefaultText(value)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
 
@@ -155,7 +156,7 @@ local function CreateBarsTab(page, tabId)
         CDM.db.buffBarIconGap or 2,
         function(v)
             CDM.db.buffBarIconGap = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.buffBarIconGapSlider:SetPoint("TOPLEFT", 0, NextY(50))
@@ -166,7 +167,7 @@ local function CreateBarsTab(page, tabId)
         CDM.db.buffBarDualMode or false,
         function(checked)
             CDM.db.buffBarDualMode = checked
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.buffBarDualModeCheck:SetPoint("TOPLEFT", 0, NextY(60))
@@ -181,7 +182,7 @@ local function CreateBarsTab(page, tabId)
         function(checked)
             CDM.db.buffBarShowName = checked
             page.UpdateNameMaxCharsLayout()
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.buffBarShowNameCheck:SetPoint("TOPLEFT", 0, NextY(30))
@@ -194,7 +195,7 @@ local function CreateBarsTab(page, tabId)
         CDM.db.buffBarNameMaxChars or 0,
         function(v)
             CDM.db.buffBarNameMaxChars = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.buffBarNameMaxCharsSlider:SetPoint("TOPLEFT", page.controls.buffBarShowNameCheck, "BOTTOMLEFT", 0, -10)
@@ -205,7 +206,7 @@ local function CreateBarsTab(page, tabId)
         CDM.db.buffBarShowDuration ~= false,
         function(checked)
             CDM.db.buffBarShowDuration = checked
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
 
@@ -227,7 +228,7 @@ local function CreateBarsTab(page, tabId)
         CDM.db.buffBarShowApplications ~= false,
         function(checked)
             CDM.db.buffBarShowApplications = checked
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.buffBarShowApplicationsCheck:SetPoint("TOPLEFT", page.controls.buffBarShowDurationCheck, "BOTTOMLEFT", 0, -10)

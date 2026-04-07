@@ -112,9 +112,6 @@ local function MapImportErrorCode(errCode)
     if errCode == "empty" then
         return L["No import string provided"]
     end
-    if errCode == "type_mismatch" then
-        return L["Invalid profile data"]
-    end
     if errCode == "apply_failed" then
         return L["Failed to import profile"]
     end
@@ -176,14 +173,15 @@ function API:ImportProfile(encodedString)
         return false, MapImportErrorCode(decodeErr)
     end
 
-    local prepared, buildErr = ProfileIO:BuildImportProfile(payload, {
-        addonName = AddonName,
-        metadataKeys = METADATA_KEYS,
-        categoryDefs = exportCategories,
-        defaults = CDM.defaults,
-        legacyMigrationKeys = LEGACY_MIGRATION_KEYS,
-        existingProfiles = Ayije_CDMDB and Ayije_CDMDB.profiles,
-    })
+    local prepared, buildErr = ProfileIO:BuildImportProfile(
+        payload,
+        AddonName,
+        CDM.defaults,
+        exportCategories,
+        METADATA_KEYS,
+        LEGACY_MIGRATION_KEYS,
+        Ayije_CDMDB and Ayije_CDMDB.profiles
+    )
     if not prepared then
         local code = buildErr and buildErr.code
         if code == "missing_profile_metadata" then
@@ -191,9 +189,6 @@ function API:ImportProfile(encodedString)
         end
         if code == "wrong_addon" then
             return false, string.format(L["Profile is for a different addon: %s"], tostring(buildErr.addon))
-        end
-        if code == "type_mismatch" then
-            return false, string.format(L["Type mismatch on key '%s': expected %s, got %s"], tostring(buildErr.key), tostring(buildErr.expected), tostring(buildErr.actual))
         end
         return false, MapImportErrorCode(code)
     end
@@ -204,17 +199,15 @@ function API:ImportProfile(encodedString)
         return false, mapped or importErr or L["Failed to import profile"]
     end
 
-    if API.InvalidateSpellRegistryCache then
-        local specIndex = GetSpecialization()
-        if specIndex then
-            local specID = GetSpecializationInfo(specIndex)
-            if specID then
-                API:InvalidateSpellRegistryCache(specID)
-            end
-        end
+    if API.MarkSpecDataDirty then
+        API:MarkSpecDataDirty()
     end
 
-    return true, string.format(L["Imported %d settings as '%s'"], prepared.importedCount, prepared.profileName)
+    local msg = string.format(L["Imported %d settings as '%s'"], prepared.importedCount, prepared.profileName)
+    if prepared.skippedCount and prepared.skippedCount > 0 then
+        msg = msg .. string.format(" (%d skipped)", prepared.skippedCount)
+    end
+    return true, msg
 end
 
 local function CreateImportExportTab(page, tabId)

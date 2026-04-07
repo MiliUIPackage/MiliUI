@@ -28,7 +28,7 @@ L["Edit Mode locked - use /cdm"] = "Modo de Edição travado - use /cdm"
 L["Cooldown Viewer settings are managed by /cdm. Edit Mode changes are disabled to avoid taint."] = "As configs do Visualizador de Cooldowns são geridas pelo /cdm. As mudanças no Modo de Edição foram desativadas para evitar erros de interface."
 
 -----------------------------------------------------------------------
--- Core/Layout/Containers.lua
+-- Core/Layout/Layout.lua
 -----------------------------------------------------------------------
 
 L["Click and drag to move - /cdm > Positions to lock"] = "Clique e arraste para mover - /cdm > Posições para travar"
@@ -444,20 +444,14 @@ L["%s Offset Y"] = "Ajuste Y %s"
 L["%s Text Color"] = "Cor do Texto %s"
 
 -----------------------------------------------------------------------
--- Ayije_CDM_Options/CustomBuffs.lua
+-- Ayije_CDM_Options/BuffGroups.lua (custom buff strings)
 -----------------------------------------------------------------------
 
-L["ID: %s  |  Duration: %ss"] = "ID: %s  |  Duração: %ss"
-L["Remove"] = "Remover"
-L["Custom Timers"] = "Timers Personalizados"
-L["Track spell casts and display custom buff icons alongside native buffs. Icons appear in the main buff container."] = "Rastreia Lançamentos e mostra ícones de buffs personalizados junto aos nativos no painel principal."
-L["Add Tracked Spell"] = "Adicionar Habilidade rastreada"
 L["Spell ID:"] = "ID da Habilidade:"
 L["Duration (sec):"] = "Duração (seg):"
 L["Add Spell"] = "Adicionar Habilidade"
 L["Invalid spell ID"] = "ID de Habilidade inválido"
 L["Enter a valid duration"] = "Dê uma duração válida"
-L["Limit reached (9 max)"] = "Limite máximo (9)"
 L["Added!"] = "Adicionado!"
 L["Failed - invalid spell ID"] = "Falhou - ID da Habilidade inválido"
 

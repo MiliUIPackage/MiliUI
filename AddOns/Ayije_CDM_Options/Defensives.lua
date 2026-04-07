@@ -6,6 +6,7 @@ local CDM = Runtime
 local UI = ns.ConfigUI
 local L = Runtime.L
 
+
 local CDM_C = CDM.CONST
 local BUILTIN_SET = CDM_C.DEFENSIVE_SPELLS_SET
 local DEFENSIVE_SPELLS = CDM_C.DEFENSIVE_SPELLS
@@ -250,7 +251,7 @@ local function CreateSpellsOverlay()
                         else
                             CDM.db.defensivesDisabledSpells[specID][spellID] = true
                         end
-                        API:RefreshConfig()
+                        API:Refresh()
                     end
                 )
                 cb:SetSize(26, rowHeight)
@@ -365,7 +366,7 @@ local function CreateDefensivesTab(page, tabId)
         function(checked)
             CDM.db.defensivesEnabled = checked
             if setControlsEnabled then setControlsEnabled(checked) end
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.defensivesEnabled:SetPoint("TOPLEFT", -34, NextY(0))
@@ -396,7 +397,7 @@ local function CreateDefensivesTab(page, tabId)
         CDM.db.defensivesIconWidth or 40,
         function(v)
             CDM.db.defensivesIconWidth = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.defensivesIconWidthSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -409,7 +410,7 @@ local function CreateDefensivesTab(page, tabId)
         CDM.db.defensivesIconHeight or 36,
         function(v)
             CDM.db.defensivesIconHeight = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.defensivesIconHeightSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -436,7 +437,7 @@ local function CreateDefensivesTab(page, tabId)
         function(pos)
             CDM.db.defensivesAnchorPoint = pos
             ddAnchor:SetDefaultText(pos)
-            API:RefreshConfig()
+            API:Refresh()
         end,
         {"TOPLEFT", "BOTTOMLEFT", "TOPRIGHT", "BOTTOMRIGHT"}
     )
@@ -448,7 +449,7 @@ local function CreateDefensivesTab(page, tabId)
         CDM.db.defensivesOffsetX or 0,
         function(v)
             CDM.db.defensivesOffsetX = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.defensivesOffsetXSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -461,7 +462,7 @@ local function CreateDefensivesTab(page, tabId)
         CDM.db.defensivesOffsetY or 0,
         function(v)
             CDM.db.defensivesOffsetY = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.defensivesOffsetYSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -478,7 +479,7 @@ local function CreateDefensivesTab(page, tabId)
         CDM.db.defensivesCooldownFontSize or 12,
         function(v)
             CDM.db.defensivesCooldownFontSize = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.defensivesCooldownFontSizeSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -492,10 +493,10 @@ local function CreateDefensivesTab(page, tabId)
         scrollChild,
         L["Font Size"],
         8, 32,
-        CDM.db.defensivesChargeFontSize or 10,
+        CDM.db.defensivesChargeFontSize or 15,
         function(v)
             CDM.db.defensivesChargeFontSize = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.defensivesChargeFontSizeSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -518,7 +519,7 @@ local function CreateDefensivesTab(page, tabId)
         function(pos)
             CDM.db.defensivesChargePosition = pos
             ddChargePos:SetDefaultText(pos)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
 
@@ -529,7 +530,7 @@ local function CreateDefensivesTab(page, tabId)
         CDM.db.defensivesChargeOffsetX or 0,
         function(v)
             CDM.db.defensivesChargeOffsetX = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.defensivesChargeOffsetXSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -542,7 +543,7 @@ local function CreateDefensivesTab(page, tabId)
         CDM.db.defensivesChargeOffsetY or 0,
         function(v)
             CDM.db.defensivesChargeOffsetY = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.defensivesChargeOffsetYSlider:SetPoint("TOPLEFT", 0, NextY(0))

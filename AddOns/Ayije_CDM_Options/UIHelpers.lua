@@ -22,15 +22,11 @@ local function BroadcastSwatchColor(key, r, g, b, a)
     end
 end
 
-local function TriggerConfigRefresh(scopes)
-    if scopes and API.RefreshScopes then
-        API:RefreshScopes(scopes)
-        return
-    end
-    API:RefreshConfig()
+local function TriggerConfigRefresh()
+    API:Refresh()
 end
 
-function UI.CreateColorSwatch(parent, label, key, refreshScopes)
+function UI.CreateColorSwatch(parent, label, key)
     local frame = CreateFrame("Frame", nil, parent)
     frame:SetSize(250, 30)
 
@@ -69,7 +65,7 @@ function UI.CreateColorSwatch(parent, label, key, refreshScopes)
             local a = ColorPickerFrame:GetColorAlpha()
             CDM.db[key] = { r = r, g = g, b = b, a = a }
             BroadcastSwatchColor(key, r, g, b, a)
-            TriggerConfigRefresh(refreshScopes)
+            TriggerConfigRefresh()
         end
 
         local info = {
@@ -78,7 +74,7 @@ function UI.CreateColorSwatch(parent, label, key, refreshScopes)
             cancelFunc = function(prev)
                 CDM.db[key] = prev
                 BroadcastSwatchColor(key, prev.r, prev.g, prev.b, prev.a)
-                TriggerConfigRefresh(refreshScopes)
+                TriggerConfigRefresh()
             end,
             r = color.r, g = color.g, b = color.b, opacity = color.a,
             hasOpacity = true,
@@ -430,20 +426,12 @@ function UI.SetTextMuted(fontString)
     UI.SetTextColor(fontString, UI.TextColors.muted)
 end
 
-function UI.SetTextDim(fontString)
-    UI.SetTextColor(fontString, UI.TextColors.dim)
-end
-
 function UI.SetTextSubtle(fontString)
     UI.SetTextColor(fontString, UI.TextColors.subtle)
 end
 
 function UI.SetTextFaint(fontString)
     UI.SetTextColor(fontString, UI.TextColors.faint)
-end
-
-function UI.SetTextPlaceholder(fontString)
-    UI.SetTextColor(fontString, UI.TextColors.placeholder)
 end
 
 function UI.SetTextInactive(fontString)

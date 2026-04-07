@@ -68,7 +68,7 @@ local function CreateTrinketsTab(page, tabId)
         function(checked)
             CDM.db.trinketsEnabled = checked
             if setControlsEnabled then setControlsEnabled(checked) end
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.trinketsEnabled:SetPoint("TOPLEFT", -34, NextY(0))
@@ -105,7 +105,7 @@ local function CreateTrinketsTab(page, tabId)
         function(value, label)
             CDM.db.trinketsEssentialRow = value
             ddRow:SetDefaultText(label)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
 
@@ -126,7 +126,7 @@ local function CreateTrinketsTab(page, tabId)
         function(value, label)
             CDM.db.trinketsEssentialPosition = value
             ddPos:SetDefaultText(label)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
 
@@ -141,7 +141,7 @@ local function CreateTrinketsTab(page, tabId)
         showPassiveDefault,
         function(checked)
             CDM.db.trinketsShowPassive = checked
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.trinketsShowPassive:SetPoint("TOPLEFT", ddMode, "BOTTOMLEFT", 0, -15)
@@ -159,7 +159,7 @@ local function CreateTrinketsTab(page, tabId)
         CDM.db.trinketsIconWidth or 40,
         function(v)
             CDM.db.trinketsIconWidth = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.trinketsIconWidthSlider:SetPoint("TOPLEFT", iconSizeHeader, "BOTTOMLEFT", 0, -15)
@@ -172,7 +172,7 @@ local function CreateTrinketsTab(page, tabId)
         CDM.db.trinketsIconHeight or 36,
         function(v)
             CDM.db.trinketsIconHeight = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.trinketsIconHeightSlider:SetPoint("TOPLEFT", page.controls.trinketsIconWidthSlider, "BOTTOMLEFT", 0, -20)
@@ -200,7 +200,7 @@ local function CreateTrinketsTab(page, tabId)
         function(pos)
             CDM.db.trinketsAnchorPoint = pos
             ddAnchor:SetDefaultText(pos)
-            API:RefreshConfig()
+            API:Refresh()
         end,
         {"TOPLEFT", "BOTTOMLEFT", "TOPRIGHT", "BOTTOMRIGHT"}
     )
@@ -212,7 +212,7 @@ local function CreateTrinketsTab(page, tabId)
         CDM.db.trinketsOffsetX or 0,
         function(v)
             CDM.db.trinketsOffsetX = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.trinketsOffsetXSlider:SetPoint("TOPLEFT", ddAnchor, "BOTTOMLEFT", 0, -15)
@@ -225,7 +225,7 @@ local function CreateTrinketsTab(page, tabId)
         CDM.db.trinketsOffsetY or 0,
         function(v)
             CDM.db.trinketsOffsetY = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.trinketsOffsetYSlider:SetPoint("TOPLEFT", page.controls.trinketsOffsetXSlider, "BOTTOMLEFT", 0, -20)
@@ -241,7 +241,7 @@ local function CreateTrinketsTab(page, tabId)
         CDM.db.trinketsCooldownFontSize or 12,
         function(v)
             CDM.db.trinketsCooldownFontSize = UI.RoundToInt(v)
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
     page.controls.trinketsCooldownFontSizeSlider:SetPoint("TOPLEFT", cooldownHeader, "BOTTOMLEFT", 0, -15)
@@ -282,7 +282,7 @@ local function CreateTrinketsTab(page, tabId)
             CDM.db.trinketsMode = value
             ddMode:SetDefaultText(label)
             UpdateSectionVisibility()
-            API:RefreshConfig()
+            API:Refresh()
         end
     )
 

@@ -1,268 +1,157 @@
 local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
-local L = CDM.L
 
-local internalCallbacks = {}
-local internalCallbacksSorted = {}
-local internalCallbacksDirty = {}
-local internalCallbackSeq = 0
+local combatHandlers = {}
+local specHandlers = {}
+local talentHandlers = {}
 
-local INTERNAL_DISPATCH_ORDER = {
-    "OnCombatStateChanged",
-    "OnSpecStateChanged",
-    "OnTalentDataChanged",
-}
-local INTERNAL_DISPATCH_ORDER_SET = {}
-for _, callbackName in ipairs(INTERNAL_DISPATCH_ORDER) do
-    INTERNAL_DISPATCH_ORDER_SET[callbackName] = true
-end
+local combatPending, combatIsInCombat, combatEvent = false, nil, nil
+local specPending, specUnit, specEvent = false, nil, nil
+local talentPending, talentEvent, talentPriority = false, nil, 0
+local spellsChangedPending = false
 
-local pendingInternalDispatch = {}
-local internalDispatchQueued = false
-local internalDispatchFrame = CreateFrame("Frame")
-local pendingInternalDispatchNameScratch = {}
-
-local function CallbackSort(a, b)
-    if a.priority ~= b.priority then
-        return a.priority < b.priority
-    end
-    return a.seq < b.seq
-end
-
-local function EnsurePendingDispatchPayload(name)
-    local payload = pendingInternalDispatch[name]
-    if payload then
-        return payload
-    end
-
-    payload = {
-        pending = false,
-        n = 0,
-    }
-    pendingInternalDispatch[name] = payload
-    return payload
-end
-
-local function SetPendingDispatchArgs(payload, ...)
-    local count = select("#", ...)
-    local previousCount = payload.n or 0
-    payload.n = count
-    for i = 1, count do
-        payload[i] = select(i, ...)
-    end
-    for i = count + 1, previousCount do
-        payload[i] = nil
-    end
-end
-
-local TALENT_DISPATCH_PRIORITY = {
+local TALENT_PRIORITIES = {
     ACTIVE_TALENT_GROUP_CHANGED = 3,
     TRAIT_CONFIG_CREATED = 2,
     TRAIT_CONFIG_UPDATED = 2,
     PLAYER_TALENT_UPDATE = 2,
     PLAYER_PVP_TALENT_UPDATE = 2,
     WAR_MODE_STATUS_UPDATE = 2,
-    SPELLS_CHANGED = 1,
 }
 
-local function GetTalentDispatchPriority(event)
-    return TALENT_DISPATCH_PRIORITY[event] or 0
-end
+local dispatchFrame = CreateFrame("Frame")
+local dispatchQueued = false
 
-local function ShouldReplaceTalentDispatch(payload, event)
-    if not payload.pending then
-        return true
+local function RegisterHandler(list, fn)
+    if type(fn) ~= "function" then return false end
+    for _, existing in ipairs(list) do
+        if existing == fn then return true end
     end
-
-    local pendingEvent = payload[1]
-    if pendingEvent == event then
-        return false
-    end
-
-    local pendingPriority = GetTalentDispatchPriority(pendingEvent)
-    local eventPriority = GetTalentDispatchPriority(event)
-    if eventPriority > pendingPriority then
-        return true
-    end
-    if eventPriority < pendingPriority then
-        return false
-    end
-
+    list[#list + 1] = fn
     return true
 end
 
-local function FlushPendingDispatchPayload(callbackName, payload)
-    if not (payload and payload.pending) then
-        return
-    end
-
-    payload.pending = false
-    local count = payload.n or 0
-    CDM:TriggerInternalCallback(callbackName, unpack(payload, 1, count))
-end
-
-local function FlushInternalDispatchQueue()
-    internalDispatchQueued = false
-
-    for _, callbackName in ipairs(INTERNAL_DISPATCH_ORDER) do
-        FlushPendingDispatchPayload(callbackName, pendingInternalDispatch[callbackName])
-    end
-
-    table.wipe(pendingInternalDispatchNameScratch)
-    for callbackName, payload in pairs(pendingInternalDispatch) do
-        if payload and payload.pending and not INTERNAL_DISPATCH_ORDER_SET[callbackName] then
-            pendingInternalDispatchNameScratch[#pendingInternalDispatchNameScratch + 1] = callbackName
-        end
-    end
-    if #pendingInternalDispatchNameScratch > 1 then
-        table.sort(pendingInternalDispatchNameScratch)
-    end
-    for i = 1, #pendingInternalDispatchNameScratch do
-        local callbackName = pendingInternalDispatchNameScratch[i]
-        FlushPendingDispatchPayload(callbackName, pendingInternalDispatch[callbackName])
-    end
-end
-
-local function QueueInternalCallback(name, ...)
-    if type(name) ~= "string" or name == "" then
-        return
-    end
-
-    local payload = EnsurePendingDispatchPayload(name)
-    if name == "OnTalentDataChanged" then
-        if ShouldReplaceTalentDispatch(payload, select(1, ...)) then
-            SetPendingDispatchArgs(payload, ...)
-        end
-    else
-        SetPendingDispatchArgs(payload, ...)
-    end
-    payload.pending = true
-
-    if not internalDispatchQueued then
-        internalDispatchQueued = true
-        internalDispatchFrame:Show()
-    end
-end
-
-local function SafeInvokeInternalCallback(callbackName, callback, ...)
-    local success, err = pcall(callback, ...)
-    if not success then
-        print("|cffff0000[CDM] " .. string.format(L["Callback error in '%s':"], "internal:" .. callbackName) .. "|r " .. tostring(err))
-    end
-end
-
-local function GetSortedInternalCallbacks(name)
-    if internalCallbacksDirty[name] then
-        local sorted = internalCallbacksSorted[name]
-        if not sorted then
-            sorted = {}
-            internalCallbacksSorted[name] = sorted
-        else
-            table.wipe(sorted)
-        end
-
-        local registry = internalCallbacks[name]
-        if registry then
-            for _, entry in ipairs(registry) do
-                sorted[#sorted + 1] = entry
-            end
-            table.sort(sorted, CallbackSort)
-        end
-
-        internalCallbacksDirty[name] = false
-    end
-    return internalCallbacksSorted[name]
-end
-
-function CDM:RegisterInternalCallback(name, callback, priority)
-    if type(name) ~= "string" or name == "" then return false end
-    if type(callback) ~= "function" then return false end
-
-    local registry = internalCallbacks[name]
-    if not registry then
-        registry = {}
-        internalCallbacks[name] = registry
-    else
-        for _, entry in ipairs(registry) do
-            if entry.callback == callback then
-                return true
-            end
-        end
-    end
-
-    internalCallbackSeq = internalCallbackSeq + 1
-    registry[#registry + 1] = {
-        callback = callback,
-        priority = priority or 50,
-        seq = internalCallbackSeq,
-    }
-    internalCallbacksDirty[name] = true
-    return true
-end
-
-function CDM:UnregisterInternalCallback(name, callback)
-    if type(name) ~= "string" or name == "" then return false end
-    if type(callback) ~= "function" then return false end
-
-    local registry = internalCallbacks[name]
-    if not registry then return false end
-
-    for i = #registry, 1, -1 do
-        if registry[i].callback == callback then
-            table.remove(registry, i)
-            internalCallbacksDirty[name] = true
-            if #registry == 0 then
-                internalCallbacks[name] = nil
-                internalCallbacksSorted[name] = nil
-                internalCallbacksDirty[name] = nil
-            end
+local function UnregisterHandler(list, fn)
+    if type(fn) ~= "function" then return false end
+    for i = #list, 1, -1 do
+        if list[i] == fn then
+            table.remove(list, i)
             return true
         end
     end
     return false
 end
 
-function CDM:TriggerInternalCallback(name, ...)
-    if type(name) ~= "string" or name == "" then return end
-    local sorted = GetSortedInternalCallbacks(name)
-    if not sorted or #sorted == 0 then return end
-    for _, entry in ipairs(sorted) do
-        SafeInvokeInternalCallback(name, entry.callback, ...)
+local function FlushHandlers(list, ...)
+    for _, fn in ipairs(list) do
+        fn(...)
     end
 end
 
-local function DispatchTalentDataChanged(event, ...)
-    QueueInternalCallback("OnTalentDataChanged", event, ...)
+local function FlushInternalDispatch()
+    dispatchQueued = false
+
+    if combatPending then
+        combatPending = false
+        FlushHandlers(combatHandlers, combatIsInCombat, combatEvent)
+    end
+
+    if specPending then
+        specPending = false
+        FlushHandlers(specHandlers, specUnit, specEvent)
+    end
+
+    if talentPending then
+        talentPending = false
+        local event = talentEvent
+        talentEvent = nil
+        talentPriority = 0
+        FlushHandlers(talentHandlers, event)
+    end
+
+    if spellsChangedPending then
+        spellsChangedPending = false
+        FlushHandlers(talentHandlers, "SPELLS_CHANGED")
+    end
 end
 
-local function DispatchSpecStateChanged(event, unit, ...)
-    if unit and unit ~= "player" then
+local function QueueDispatch()
+    if not dispatchQueued then
+        dispatchQueued = true
+        dispatchFrame:Show()
+    end
+end
+
+function CDM:RegisterCombatStateHandler(fn) return RegisterHandler(combatHandlers, fn) end
+function CDM:UnregisterCombatStateHandler(fn) return UnregisterHandler(combatHandlers, fn) end
+function CDM:RegisterSpecStateHandler(fn) return RegisterHandler(specHandlers, fn) end
+function CDM:UnregisterSpecStateHandler(fn) return UnregisterHandler(specHandlers, fn) end
+function CDM:RegisterTalentDataHandler(fn) return RegisterHandler(talentHandlers, fn) end
+function CDM:UnregisterTalentDataHandler(fn) return UnregisterHandler(talentHandlers, fn) end
+
+local function DispatchTalentDataChanged(event)
+    if event == "SPELLS_CHANGED" then
+        spellsChangedPending = true
+        QueueDispatch()
         return
     end
-    QueueInternalCallback("OnSpecStateChanged", unit or "player", event, ...)
+    local priority = TALENT_PRIORITIES[event] or 0
+    if not talentPending or priority >= talentPriority then
+        talentEvent = event
+        talentPriority = priority
+    end
+    talentPending = true
+    QueueDispatch()
+end
+
+local function DispatchSpecStateChanged(event, unit)
+    if unit and unit ~= "player" then return end
+    specPending = true
+    specUnit = unit or "player"
+    specEvent = event
+    QueueDispatch()
 end
 
 local function DispatchCombatStateChanged(event)
-    QueueInternalCallback("OnCombatStateChanged", event == "PLAYER_REGEN_DISABLED", event)
+    combatPending = true
+    combatIsInCombat = event == "PLAYER_REGEN_DISABLED"
+    combatEvent = event
+    QueueDispatch()
 end
 
-internalDispatchFrame:SetScript("OnUpdate", function(self)
-    FlushInternalDispatchQueue()
-    if not internalDispatchQueued then
+dispatchFrame:SetScript("OnUpdate", function(self)
+    FlushInternalDispatch()
+    if not dispatchQueued then
         self:Hide()
     end
 end)
-internalDispatchFrame:Hide()
 
-CDM:RegisterEvent("SPELLS_CHANGED", DispatchTalentDataChanged)
-CDM:RegisterEvent("TRAIT_CONFIG_CREATED", DispatchTalentDataChanged)
-CDM:RegisterEvent("TRAIT_CONFIG_UPDATED", DispatchTalentDataChanged)
-CDM:RegisterEvent("PLAYER_TALENT_UPDATE", DispatchTalentDataChanged)
-CDM:RegisterEvent("PLAYER_PVP_TALENT_UPDATE", DispatchTalentDataChanged)
-CDM:RegisterEvent("WAR_MODE_STATUS_UPDATE", DispatchTalentDataChanged)
-CDM:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED", DispatchTalentDataChanged)
+local INTERNAL_EVENT_DISPATCH = {
+    SPELLS_CHANGED              = DispatchTalentDataChanged,
+    TRAIT_CONFIG_CREATED        = DispatchTalentDataChanged,
+    TRAIT_CONFIG_UPDATED        = DispatchTalentDataChanged,
+    PLAYER_TALENT_UPDATE        = DispatchTalentDataChanged,
+    PLAYER_PVP_TALENT_UPDATE    = DispatchTalentDataChanged,
+    WAR_MODE_STATUS_UPDATE      = DispatchTalentDataChanged,
+    ACTIVE_TALENT_GROUP_CHANGED = DispatchTalentDataChanged,
+    PLAYER_SPECIALIZATION_CHANGED = DispatchSpecStateChanged,
+    PLAYER_REGEN_ENABLED        = DispatchCombatStateChanged,
+    PLAYER_REGEN_DISABLED       = DispatchCombatStateChanged,
+}
 
-CDM:RegisterUnitEvent("PLAYER_SPECIALIZATION_CHANGED", "player", DispatchSpecStateChanged)
+dispatchFrame:SetScript("OnEvent", function(_, event, ...)
+    local fn = INTERNAL_EVENT_DISPATCH[event]
+    if fn then fn(event, ...) end
+end)
 
-CDM:RegisterEvent("PLAYER_REGEN_ENABLED", DispatchCombatStateChanged)
-CDM:RegisterEvent("PLAYER_REGEN_DISABLED", DispatchCombatStateChanged)
+dispatchFrame:RegisterEvent("SPELLS_CHANGED")
+dispatchFrame:RegisterEvent("TRAIT_CONFIG_CREATED")
+dispatchFrame:RegisterEvent("TRAIT_CONFIG_UPDATED")
+dispatchFrame:RegisterEvent("PLAYER_TALENT_UPDATE")
+dispatchFrame:RegisterEvent("PLAYER_PVP_TALENT_UPDATE")
+dispatchFrame:RegisterEvent("WAR_MODE_STATUS_UPDATE")
+dispatchFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
+dispatchFrame:RegisterUnitEvent("PLAYER_SPECIALIZATION_CHANGED", "player")
+dispatchFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+dispatchFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+dispatchFrame:Hide()

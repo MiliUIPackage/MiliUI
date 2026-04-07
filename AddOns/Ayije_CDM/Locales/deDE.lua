@@ -28,7 +28,7 @@ L["Edit Mode locked - use /cdm"] = "Bearbeitungsmodus gesperrt – benutze /cdm"
 L["Cooldown Viewer settings are managed by /cdm. Edit Mode changes are disabled to avoid taint."] = "Abklingzeitenanzeige-Einstellungen werden durch /cdm verwaltet. Bearbeitungsmodusänderungen sind deaktiviert, um Taint zu vermeiden."
 
 -----------------------------------------------------------------------
--- Core/Layout/Containers.lua
+-- Core/Layout/Layout.lua
 -----------------------------------------------------------------------
 
 L["Click and drag to move - /cdm > Positions to lock"] = "Klicken und ziehen zum Bewegen – /cdm > Positionen zum Sperren"
@@ -444,20 +444,14 @@ L["%s Offset Y"] = "%s Versatz Y"
 L["%s Text Color"] = "%s Textfarbe"
 
 -----------------------------------------------------------------------
--- Ayije_CDM_Options/CustomBuffs.lua
+-- Ayije_CDM_Options/BuffGroups.lua (custom buff strings)
 -----------------------------------------------------------------------
 
-L["ID: %s  |  Duration: %ss"] = "ID: %s  |  Dauer: %ss"
-L["Remove"] = "Entfernen"
-L["Custom Timers"] = "Benutzerdefinierte Timer"
-L["Track spell casts and display custom buff icons alongside native buffs. Icons appear in the main buff container."] = "Zauberwirken verfolgen und benutzerdefinierte Buff-Symbole neben nativen Buffs anzeigen. Symbole erscheinen im Haupt-Buff-Container."
-L["Add Tracked Spell"] = "Verfolgten Zauber hinzufügen"
 L["Spell ID:"] = "Zauber-ID:"
 L["Duration (sec):"] = "Dauer (Sek.):"
 L["Add Spell"] = "Zauber hinzufügen"
 L["Invalid spell ID"] = "Ungültige Zauber-ID"
 L["Enter a valid duration"] = "Gültige Dauer eingeben"
-L["Limit reached (9 max)"] = "Limit erreicht (max. 9)"
 L["Added!"] = "Hinzugefügt!"
 L["Failed - invalid spell ID"] = "Fehlgeschlagen – ungültige Zauber-ID"
 

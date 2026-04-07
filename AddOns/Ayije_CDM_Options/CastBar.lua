@@ -6,15 +6,6 @@ local CDM = Runtime
 local UI = ns.ConfigUI
 local L = Runtime.L
 
-local CASTBAR_REFRESH_SCOPES = { "castbar_visuals", "resources_visuals", "trackers_layout", "viewers" }
-
-local function RefreshCastBarConfig()
-    if API.RefreshScopes then
-        API:RefreshScopes(CASTBAR_REFRESH_SCOPES)
-        return
-    end
-    API:RefreshConfig()
-end
 
 local function CreateCastBarTab(page, tabId)
     local scrollChild = UI.CreateScrollableTab(page, "AyijeCDM_CastBarScrollFrame", 700, 370)
@@ -30,7 +21,7 @@ local function CreateCastBarTab(page, tabId)
         enabled,
         function(checked)
             CDM.db.castBarEnabled = checked
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarEnabled:SetPoint("TOPLEFT", -34, NextY(0))
@@ -67,7 +58,7 @@ local function CreateCastBarTab(page, tabId)
             end
             CDM.db.castBarWidth = value
             page.UpdateAutoWidthLayout()
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarWidthSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -79,7 +70,7 @@ local function CreateCastBarTab(page, tabId)
         autoSourceChecked,
         function(checked)
             CDM.db.castBarAutoWidthSource = checked and "utility" or "essential"
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarAutoWidthSource:SetPoint("TOPLEFT", page.controls.castBarWidthSlider, "BOTTOMLEFT", 0, -5)
@@ -92,7 +83,7 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarHeight or 20,
         function(v)
             CDM.db.castBarHeight = UI.RoundToInt(v)
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarHeightSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -121,7 +112,7 @@ local function CreateCastBarTab(page, tabId)
         showIcon,
         function(checked)
             CDM.db.castBarShowIcon = checked
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarShowIcon:SetPoint("TOPLEFT", 0, NextY(0))
@@ -149,7 +140,7 @@ local function CreateCastBarTab(page, tabId)
         function(value)
             CDM.db.castBarIconPosition = value
             ddIconPos:SetDefaultText(value)
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     NextY(50)
@@ -161,7 +152,7 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarIconGap or 1,
         function(v)
             CDM.db.castBarIconGap = UI.RoundToInt(v)
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarIconGapSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -191,7 +182,7 @@ local function CreateCastBarTab(page, tabId)
                     page.castBarPositionHeader:SetPoint("TOPLEFT", page.controls.castBarUseAtlas, "BOTTOMLEFT", 0, -15)
                 end
             end
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarUseAtlas:SetPoint("TOPLEFT", 0, NextY(0))
@@ -224,7 +215,7 @@ local function CreateCastBarTab(page, tabId)
         function() return CDM.db.castBarTexture or "Blizzard" end,
         function(name)
             CDM.db.castBarTexture = name
-            RefreshCastBarConfig()
+            API:Refresh()
         end,
         function(name)
             ddTexture:SetDefaultText(name or "Blizzard")
@@ -247,17 +238,17 @@ local function CreateCastBarTab(page, tabId)
         function() return CDM.db.castBarBackgroundTexture or "Blizzard" end,
         function(name)
             CDM.db.castBarBackgroundTexture = name
-            RefreshCastBarConfig()
+            API:Refresh()
         end,
         function(name)
             ddBgTexture:SetDefaultText(name or "Blizzard")
         end
     )
 
-    page.controls.castBarBackgroundColor = UI.CreateColorSwatch(lsmGroup, L["Background Color"], "castBarBackgroundColor", CASTBAR_REFRESH_SCOPES)
+    page.controls.castBarBackgroundColor = UI.CreateColorSwatch(lsmGroup, L["Background Color"], "castBarBackgroundColor")
     page.controls.castBarBackgroundColor:SetPoint("TOPLEFT", 0, LsmNextY(50))
 
-    page.controls.castBarCastColor = UI.CreateColorSwatch(lsmGroup, L["Cast Color"], "castBarCastColor", CASTBAR_REFRESH_SCOPES)
+    page.controls.castBarCastColor = UI.CreateColorSwatch(lsmGroup, L["Cast Color"], "castBarCastColor")
     page.controls.castBarCastColor:SetPoint("TOPLEFT", 0, LsmNextY(40))
 
     local useClassColor = CDM.db.castBarUseClassColor == true
@@ -267,15 +258,15 @@ local function CreateCastBarTab(page, tabId)
         useClassColor,
         function(checked)
             CDM.db.castBarUseClassColor = checked
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarUseClassColor:SetPoint("LEFT", page.controls.castBarCastColor, "RIGHT", 20, 0)
 
-    page.controls.castBarChannelColor = UI.CreateColorSwatch(lsmGroup, L["Channel Color"], "castBarChannelColor", CASTBAR_REFRESH_SCOPES)
+    page.controls.castBarChannelColor = UI.CreateColorSwatch(lsmGroup, L["Channel Color"], "castBarChannelColor")
     page.controls.castBarChannelColor:SetPoint("TOPLEFT", 0, LsmNextY(40))
 
-    page.controls.castBarUninterruptibleColor = UI.CreateColorSwatch(lsmGroup, L["Uninterruptible Color"], "castBarUninterruptibleColor", CASTBAR_REFRESH_SCOPES)
+    page.controls.castBarUninterruptibleColor = UI.CreateColorSwatch(lsmGroup, L["Uninterruptible Color"], "castBarUninterruptibleColor")
     page.controls.castBarUninterruptibleColor:SetPoint("TOPLEFT", 0, LsmNextY(40))
 
     local posHeader = UI.CreateHeader(scrollChild, L["Position"])
@@ -300,7 +291,7 @@ local function CreateCastBarTab(page, tabId)
                 end
             end
             page.UpdatePositionControls()
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarAnchorToResources:SetPoint("TOPLEFT", posHeader, "BOTTOMLEFT", 0, -15)
@@ -325,7 +316,7 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarResourcesSpacing or 2,
         function(v)
             CDM.db.castBarResourcesSpacing = UI.RoundToInt(v)
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarResourcesSpacingSlider:SetPoint("TOPLEFT", page.controls.castBarAnchorToResources, "BOTTOMLEFT", 0, -10)
@@ -338,7 +329,7 @@ local function CreateCastBarTab(page, tabId)
         locked,
         function(checked)
             CDM.db.castBarContainerLocked = checked
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarLocked:SetPoint("TOPLEFT", page.controls.castBarAnchorToResources, "BOTTOMLEFT", 0, -10)
@@ -350,7 +341,7 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarOffsetX or 0,
         function(v)
             CDM.db.castBarOffsetX = UI.RoundToInt(v)
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarOffsetXSlider:SetPoint("TOPLEFT", page.controls.castBarLocked, "BOTTOMLEFT", 0, -10)
@@ -362,7 +353,7 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarOffsetY or -200,
         function(v)
             CDM.db.castBarOffsetY = UI.RoundToInt(v)
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarOffsetYSlider:SetPoint("TOPLEFT", page.controls.castBarOffsetXSlider, "BOTTOMLEFT", 0, -10)
@@ -409,7 +400,7 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarFontSize or 15,
         function(v)
             CDM.db.castBarFontSize = UI.RoundToInt(v)
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarFontSizeSlider:SetPoint("TOPLEFT", textHeader, "BOTTOMLEFT", 0, -15)
@@ -422,7 +413,7 @@ local function CreateCastBarTab(page, tabId)
         showName,
         function(checked)
             CDM.db.castBarShowSpellName = checked
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarShowSpellName:SetPoint("TOPLEFT", page.controls.castBarFontSizeSlider, "BOTTOMLEFT", 0, -10)
@@ -434,7 +425,7 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarNameMaxChars or 0,
         function(v)
             CDM.db.castBarNameMaxChars = UI.RoundToInt(v)
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarNameMaxCharsSlider:SetPoint("TOPLEFT", page.controls.castBarShowSpellName, "BOTTOMLEFT", 0, -10)
@@ -446,7 +437,7 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarNameOffsetX or 4,
         function(v)
             CDM.db.castBarNameOffsetX = UI.RoundToInt(v)
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarNameOffsetX:SetPoint("TOPLEFT", page.controls.castBarNameMaxCharsSlider, "BOTTOMLEFT", 0, -10)
@@ -458,7 +449,7 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarNameOffsetY or 0,
         function(v)
             CDM.db.castBarNameOffsetY = UI.RoundToInt(v)
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarNameOffsetY:SetPoint("TOPLEFT", page.controls.castBarNameOffsetX, "BOTTOMLEFT", 0, -10)
@@ -471,7 +462,7 @@ local function CreateCastBarTab(page, tabId)
         showTimer,
         function(checked)
             CDM.db.castBarShowTimer = checked
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarShowTimer:SetPoint("TOPLEFT", page.controls.castBarNameOffsetY, "BOTTOMLEFT", 0, -10)
@@ -483,7 +474,7 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarTimerOffsetX or -4,
         function(v)
             CDM.db.castBarTimerOffsetX = UI.RoundToInt(v)
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarTimerOffsetX:SetPoint("TOPLEFT", page.controls.castBarShowTimer, "BOTTOMLEFT", 0, -10)
@@ -495,7 +486,7 @@ local function CreateCastBarTab(page, tabId)
         CDM.db.castBarTimerOffsetY or 0,
         function(v)
             CDM.db.castBarTimerOffsetY = UI.RoundToInt(v)
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarTimerOffsetY:SetPoint("TOPLEFT", page.controls.castBarTimerOffsetX, "BOTTOMLEFT", 0, -10)
@@ -508,7 +499,7 @@ local function CreateCastBarTab(page, tabId)
         showSpark,
         function(checked)
             CDM.db.castBarShowSpark = checked
-            RefreshCastBarConfig()
+            API:Refresh()
         end
     )
     page.controls.castBarShowSpark:SetPoint("TOPLEFT", page.controls.castBarTimerOffsetY, "BOTTOMLEFT", 0, -10)
@@ -520,13 +511,13 @@ local function CreateCastBarTab(page, tabId)
         local empHeader = UI.CreateHeader(scrollChild, L["Empowered Stages"])
         empHeader:SetPoint("TOPLEFT", page.controls.castBarShowSpark, "BOTTOMLEFT", 0, -15)
 
-        page.controls.castBarEmpowerWindUpColor = UI.CreateColorSwatch(scrollChild, L["Wind Up Color"], "castBarEmpowerWindUpColor", CASTBAR_REFRESH_SCOPES)
+        page.controls.castBarEmpowerWindUpColor = UI.CreateColorSwatch(scrollChild, L["Wind Up Color"], "castBarEmpowerWindUpColor")
         page.controls.castBarEmpowerWindUpColor:SetPoint("TOPLEFT", empHeader, "BOTTOMLEFT", 0, -15)
 
-        page.controls.castBarEmpowerStage1Color = UI.CreateColorSwatch(scrollChild, L["Stage 1 Color"], "castBarEmpowerStage1Color", CASTBAR_REFRESH_SCOPES)
+        page.controls.castBarEmpowerStage1Color = UI.CreateColorSwatch(scrollChild, L["Stage 1 Color"], "castBarEmpowerStage1Color")
         page.controls.castBarEmpowerStage1Color:SetPoint("TOPLEFT", page.controls.castBarEmpowerWindUpColor, "BOTTOMLEFT", 0, -10)
 
-        page.controls.castBarEmpowerStage2Color = UI.CreateColorSwatch(scrollChild, L["Stage 2 Color"], "castBarEmpowerStage2Color", CASTBAR_REFRESH_SCOPES)
+        page.controls.castBarEmpowerStage2Color = UI.CreateColorSwatch(scrollChild, L["Stage 2 Color"], "castBarEmpowerStage2Color")
         page.controls.castBarEmpowerStage2Color:SetPoint("TOPLEFT", page.controls.castBarEmpowerStage1Color, "BOTTOMLEFT", 0, -10)
 
         -- Font of Magic talent: Preservation 375783, Devastation 411212, Augmentation 408083
@@ -534,12 +525,12 @@ local function CreateCastBarTab(page, tabId)
         local lastAnchor = page.controls.castBarEmpowerStage2Color
 
         if hasFontOfMagic then
-            page.controls.castBarEmpowerStage3Color = UI.CreateColorSwatch(scrollChild, L["Stage 3 Color"], "castBarEmpowerStage3Color", CASTBAR_REFRESH_SCOPES)
+            page.controls.castBarEmpowerStage3Color = UI.CreateColorSwatch(scrollChild, L["Stage 3 Color"], "castBarEmpowerStage3Color")
             page.controls.castBarEmpowerStage3Color:SetPoint("TOPLEFT", lastAnchor, "BOTTOMLEFT", 0, -10)
             lastAnchor = page.controls.castBarEmpowerStage3Color
         end
 
-        page.controls.castBarEmpowerStage4Color = UI.CreateColorSwatch(scrollChild, L["Hold At Max Color"], "castBarEmpowerStage4Color", CASTBAR_REFRESH_SCOPES)
+        page.controls.castBarEmpowerStage4Color = UI.CreateColorSwatch(scrollChild, L["Hold At Max Color"], "castBarEmpowerStage4Color")
         page.controls.castBarEmpowerStage4Color:SetPoint("TOPLEFT", lastAnchor, "BOTTOMLEFT", 0, -10)
     end
 end

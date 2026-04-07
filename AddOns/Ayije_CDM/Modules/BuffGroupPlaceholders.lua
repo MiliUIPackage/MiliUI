@@ -45,8 +45,9 @@ local function DoPlaceholderRefresh()
     end
 
     CDM:UpdateAllBuffGroupContainers()
-    if CDM.QueueViewer then
-        CDM:QueueViewer(CDM_C.VIEWERS.BUFF, true)
+    local buffViewer = _G[CDM_C.VIEWERS.BUFF]
+    if buffViewer and CDM.ForceReanchor then
+        CDM:ForceReanchor(buffViewer)
     end
 
     local talentReady = not C_ClassTalents or not C_ClassTalents.GetActiveConfigID or C_ClassTalents.GetActiveConfigID()
@@ -302,8 +303,8 @@ local function OnPlaceholderSpecStateChanged(unit)
 end
 
 CDM:RegisterEvent("PLAYER_ENTERING_WORLD", QueuePlaceholderReadinessRefresh)
-CDM:RegisterInternalCallback("OnTalentDataChanged", QueuePlaceholderReadinessRefresh)
-CDM:RegisterInternalCallback("OnSpecStateChanged", OnPlaceholderSpecStateChanged)
+CDM:RegisterTalentDataHandler(QueuePlaceholderReadinessRefresh)
+CDM:RegisterSpecStateHandler(OnPlaceholderSpecStateChanged)
 
 CDM.BuffGroupPlaceholders.SyncGroupedFrameState = SyncGroupedFrameState
 CDM.BuffGroupPlaceholders.ReconcileGroup = ReconcileGroupPlaceholders

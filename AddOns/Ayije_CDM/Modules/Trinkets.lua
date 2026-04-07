@@ -7,23 +7,9 @@ local Pixel = CDM.Pixel
 local TRINKET_SLOT_1 = 13
 local TRINKET_SLOT_2 = 14
 
-local isInitialized = false
-local isEnabled = false
-local needsStyleUpdate = true
-
-local trinketsContainer
-local iconFrames = {}
-local iconFramePool = {}
 local injectionScratch = {}
 
 local currentMode = "independent"
-local lastTrinketsVisibilityHash = -1
-local lastTrinketsSpacing = nil
-local lastTrinketsPositionAnchor = nil
-local lastTrinketsWidth, lastTrinketsHeight = nil, nil
-local trinketsCooldownUpdatePending = false
-local trinketsDispatchFrame = CreateFrame("Frame")
-trinketsDispatchFrame:Hide()
 local TRINKETS_COOLDOWN_WATCH_OWNER = "CDM_Trinkets"
 local TRINKETS_SPELL_WATCH_OWNER = "CDM_Trinkets_Spells"
 
@@ -36,6 +22,7 @@ local DEFENSIVES_EDGE_ANCHORS = {
     BOTTOMRIGHT = { point = "TOPRIGHT", relativePoint = "TOPLEFT", xSign = -1 },
 }
 
+local GetSpacing = CDM.GetTrackerSpacing
 
 local function GetTrinketMode()
     local db = CDM.db
@@ -47,40 +34,11 @@ function CDM.GetTrinketMode()
     return currentMode
 end
 
+local trinketsTracker
+
 function CDM.GetTrinketIconFrames()
-    if not isEnabled then return nil end
-    return iconFrames
-end
-
-local trinketsTrackerAcquireOpts = {
-    size = nil,
-    named = false,
-}
-
-local function RefreshCachedTrinketsStyles()
-    CDM_C.RefreshBaseFontCache()
-end
-
-local GetSpacing = CDM.GetTrackerSpacing
-
-local function InvalidateTrinketsLayoutCache()
-    lastTrinketsVisibilityHash = -1
-    lastTrinketsSpacing = nil
-    lastTrinketsPositionAnchor = nil
-    lastTrinketsWidth = nil
-    lastTrinketsHeight = nil
-end
-
-local function CreateIconFrame(slotID)
-    trinketsTrackerAcquireOpts.size = CDM.GetTrackerIconSize("trinketsIconWidth", "trinketsIconHeight")
-    local frame = CDM.AcquireFromTrackerPool(iconFramePool, trinketsContainer, "CDM_Trinket_", slotID, trinketsTrackerAcquireOpts)
-
-    frame.slotID = slotID
-    frame.itemID = nil
-    frame.spellID = nil
-    frame.isOnUse = false
-
-    return frame
+    if not trinketsTracker.IsEnabled() then return nil end
+    return trinketsTracker.GetIconFrames()
 end
 
 local function ResetTrinketTrackerFrame(frame)
@@ -96,7 +54,21 @@ local function ResetTrinketTrackerFrame(frame)
     fd.cdmCooldownStyled = nil
 end
 
+local function CreateIconFrame(slotID)
+    local iconFramePool = trinketsTracker._iconFramePool
+    local container = trinketsTracker.GetContainer()
+    local size = CDM.GetTrackerIconSize("trinketsIconWidth", "trinketsIconHeight")
+    local opts = { size = size, named = false }
+    local frame = CDM.AcquireFromTrackerPool(iconFramePool, container, "CDM_Trinket_", slotID, opts)
+    frame.slotID = slotID
+    frame.itemID = nil
+    frame.spellID = nil
+    frame.isOnUse = false
+    return frame
+end
+
 local function AcquireTrinketFrames()
+    local iconFrames = trinketsTracker.GetIconFrames()
     if not iconFrames[1] then
         iconFrames[1] = CreateIconFrame(TRINKET_SLOT_1)
     end
@@ -105,11 +77,14 @@ local function AcquireTrinketFrames()
     end
 end
 
-local function ReleaseTrinketFramesForLowMemory()
+local function ReleaseTrinketFrames()
+    local iconFrames = trinketsTracker.GetIconFrames()
+    local container = trinketsTracker.GetContainer()
+    local iconFramePool = trinketsTracker._iconFramePool
     for i = 1, #iconFrames do
         local frame = iconFrames[i]
         if frame then
-            frame:SetParent(trinketsContainer)
+            frame:SetParent(container)
             CDM.ReleaseToTrackerPool(iconFramePool, frame, ResetTrinketTrackerFrame)
         end
         iconFrames[i] = nil
@@ -118,7 +93,6 @@ local function ReleaseTrinketFramesForLowMemory()
     if CDM.ClearTrackerPool then
         CDM.ClearTrackerPool(iconFramePool)
     end
-    InvalidateTrinketsLayoutCache()
 end
 
 local function RefreshTrinketData(frame)
@@ -165,47 +139,18 @@ local function RefreshTrinketData(frame)
     return dataChanged
 end
 
-local UpdateTrinketCooldowns
-local trinketsStartupCooldownGate = CDM.CreateStartupSettleGate(function()
-    UpdateTrinketCooldowns()
-end)
-
-local function DoQueuedTrinketCooldowns()
-    trinketsCooldownUpdatePending = false
-    UpdateTrinketCooldowns()
-end
-
-trinketsDispatchFrame:SetScript("OnUpdate", function(self)
-    self:Hide()
-    DoQueuedTrinketCooldowns()
-end)
-
-local function QueueTrinketCooldownsUpdate()
-    if not isEnabled or not trinketsStartupCooldownGate:IsSettled() then
-        return
-    end
-    if trinketsCooldownUpdatePending then
-        return
-    end
-    trinketsCooldownUpdatePending = true
-    trinketsDispatchFrame:Show()
-end
-
 local function OnTrinketCooldownWatchChanged()
-    QueueTrinketCooldownsUpdate()
+    trinketsTracker.Queue(false)
 end
 
 local function OnTrinketSpellWatchChanged(cooldownsChanged, chargesChanged)
     if cooldownsChanged or chargesChanged then
-        QueueTrinketCooldownsUpdate()
+        trinketsTracker.Queue(false)
     end
 end
 
 local function RegisterTrinketCooldownWatches()
-    if not (CDM.WatchInventorySlotCooldown and CDM.UnwatchAllCooldowns) then
-        return
-    end
-
+    if not (CDM.WatchInventorySlotCooldown and CDM.UnwatchAllCooldowns) then return end
     CDM.UnwatchAllCooldowns(TRINKETS_COOLDOWN_WATCH_OWNER)
     CDM.WatchInventorySlotCooldown(TRINKETS_COOLDOWN_WATCH_OWNER, TRINKET_SLOT_1, OnTrinketCooldownWatchChanged)
     CDM.WatchInventorySlotCooldown(TRINKETS_COOLDOWN_WATCH_OWNER, TRINKET_SLOT_2, OnTrinketCooldownWatchChanged)
@@ -218,11 +163,9 @@ local function UnregisterTrinketCooldownWatches()
 end
 
 local function RegisterTrinketSpellWatches()
-    if not (CDM.WatchSpellState and CDM.UnwatchAllSpellStates) then
-        return
-    end
-
+    if not (CDM.WatchSpellState and CDM.UnwatchAllSpellStates) then return end
     CDM.UnwatchAllSpellStates(TRINKETS_SPELL_WATCH_OWNER)
+    local iconFrames = trinketsTracker.GetIconFrames()
     for _, frame in ipairs(iconFrames) do
         if frame.spellID then
             CDM.WatchSpellState(TRINKETS_SPELL_WATCH_OWNER, frame.spellID, OnTrinketSpellWatchChanged)
@@ -269,60 +212,35 @@ local function UpdateIcon(frame)
                 if CDM.ApplyStyle then
                     CDM:ApplyStyle(frame, CDM_C.VIEWERS.ESSENTIAL)
                 end
-            elseif CDM.ApplyTrackerStyle then
-                CDM:ApplyTrackerStyle(frame, "CDM_Trinkets")
+            elseif CDM.ApplyStyle then
+                CDM:ApplyStyle(frame, "CDM_Trinkets")
             end
             fd.cdmCooldownStyled = true
         end
     end
 end
 
-local function PositionIcons()
-    CDM.PositionTrackerIconsFromDB(trinketsContainer, iconFrames, "trinketsIconWidth", "trinketsIconHeight", "spacing", "trinketsAnchorPoint")
-end
-
-function CDM.GetTrinketInjectionFrames()
-    if not isEnabled then return nil end
-    if currentMode ~= "essential" then return nil end
-
-    local showPassive = true
-    local db = CDM.db
-    if db and db.trinketsShowPassive ~= nil then
-        showPassive = db.trinketsShowPassive
-    end
-
-    local count = 0
-    for _, frame in ipairs(iconFrames) do
-        if frame.itemID and (showPassive or frame.isOnUse) then
-            count = count + 1
-            injectionScratch[count] = frame
-        end
-    end
-    for i = count + 1, #injectionScratch do
-        injectionScratch[i] = nil
-    end
-    return count > 0 and injectionScratch or nil
-end
-
 local function UpdateContainerPosition()
-    if not trinketsContainer then return end
-
+    local container = trinketsTracker.GetContainer()
+    if not container then return end
     local anchorPoint = CDM.db and CDM.db.trinketsAnchorPoint or "TOPLEFT"
     local offsetX = CDM.db and CDM.db.trinketsOffsetX or 0
     local offsetY = CDM.db and CDM.db.trinketsOffsetY or 0
-    CDM.AnchorToPlayerFrame(trinketsContainer, anchorPoint, offsetX, offsetY, "Trinkets")
+    CDM.AnchorToPlayerFrame(container, anchorPoint, offsetX, offsetY, "Trinkets")
 end
 
 local function UpdateContainerPositionAsDefensives()
-    if not trinketsContainer then return end
+    local container = trinketsTracker.GetContainer()
+    if not container then return end
     local anchorPoint = CDM.db and CDM.db.defensivesAnchorPoint or "TOPLEFT"
     local offsetX = CDM.db and CDM.db.defensivesOffsetX or 0
     local offsetY = CDM.db and CDM.db.defensivesOffsetY or 0
-    CDM.AnchorToPlayerFrame(trinketsContainer, anchorPoint, offsetX, offsetY, "Trinkets")
+    CDM.AnchorToPlayerFrame(container, anchorPoint, offsetX, offsetY, "Trinkets")
 end
 
 local function UpdateContainerPositionDefensives()
-    if not trinketsContainer then return end
+    local container = trinketsTracker.GetContainer()
+    if not container then return end
 
     local defContainer = _G["CDM_DefensivesContainer"]
     if not defContainer or not defContainer:IsShown() or defContainer:GetWidth() < 1 then
@@ -330,7 +248,7 @@ local function UpdateContainerPositionDefensives()
         return
     end
 
-    CDM.InvalidateTrackerAnchorCache(trinketsContainer)
+    CDM.InvalidateTrackerAnchorCache(container)
 
     local anchorPoint = CDM.db and CDM.db.defensivesAnchorPoint or "TOPLEFT"
     local spacing = GetSpacing()
@@ -340,9 +258,9 @@ local function UpdateContainerPositionDefensives()
         return
     end
 
-    trinketsContainer:ClearAllPoints()
+    container:ClearAllPoints()
     Pixel.SetPoint(
-        trinketsContainer,
+        container,
         anchor.point,
         defContainer,
         anchor.relativePoint,
@@ -359,22 +277,74 @@ local function OnTrackerPositionUpdate()
     end
 end
 
+local lastTrinketsVisibilityHash = -1
+local lastTrinketsSpacing = nil
+local lastTrinketsPositionAnchor = nil
+local lastTrinketsWidth, lastTrinketsHeight = nil, nil
+
+local function InvalidateTrinketsLayoutCache()
+    lastTrinketsVisibilityHash = -1
+    lastTrinketsSpacing = nil
+    lastTrinketsPositionAnchor = nil
+    lastTrinketsWidth = nil
+    lastTrinketsHeight = nil
+end
+
+trinketsTracker = CDM.CreateTracker({
+    containerName       = "CDM_TrinketsContainer",
+    viewerName          = "CDM_Trinkets",
+    positionCallbackKey = "CDM_Trinkets",
+    iconWidthKey        = "trinketsIconWidth",
+    iconHeightKey       = "trinketsIconHeight",
+    anchorPointKey      = "trinketsAnchorPoint",
+    offsetXKey          = "trinketsOffsetX",
+    offsetYKey          = "trinketsOffsetY",
+    moduleKey           = "trinkets",
+    watchOwnerKey       = nil,
+    showCharges         = false,
+    styleRefreshPriority = 17,
+    useEntryPool        = false,
+    useDispatch         = true,
+    UpdateIcon          = UpdateIcon,
+    resetFrame          = ResetTrinketTrackerFrame,
+    UpdateContainerPosition = OnTrackerPositionUpdate,
+    onStyleRefresh      = function()
+        CDM_C.RefreshBaseFontCache()
+        InvalidateTrinketsLayoutCache()
+    end,
+})
+
+-- Expose internal pool for frame management
+trinketsTracker._iconFramePool = {}
+
+function CDM.GetTrinketInjectionFrames()
+    if not trinketsTracker.IsEnabled() then return nil end
+    if currentMode ~= "essential" then return nil end
+
+    local showPassive = true
+    local db = CDM.db
+    if db and db.trinketsShowPassive ~= nil then
+        showPassive = db.trinketsShowPassive
+    end
+
+    local iconFrames = trinketsTracker.GetIconFrames()
+    local count = 0
+    for _, frame in ipairs(iconFrames) do
+        if frame.itemID and (showPassive or frame.isOnUse) then
+            count = count + 1
+            injectionScratch[count] = frame
+        end
+    end
+    for i = count + 1, #injectionScratch do
+        injectionScratch[i] = nil
+    end
+    return count > 0 and injectionScratch or nil
+end
+
 function CDM:InitializeTrinkets()
-    if isInitialized then return end
-
-    RefreshCachedTrinketsStyles()
-
-    trinketsContainer = CDM.CreateTrackerContainer("CDM_TrinketsContainer")
-
-    UpdateContainerPosition()
+    trinketsTracker.Initialize()
 
     AcquireTrinketFrames()
-
-    trinketsStartupCooldownGate:Begin()
-    isEnabled = true
-    self:UpdateTrinkets()
-
-    CDM.RegisterTrackerPositionCallback("CDM_Trinkets", OnTrackerPositionUpdate)
 
     local updater = CDM.CreateTrackerUpdater({
         "BAG_UPDATE_DELAYED",
@@ -383,7 +353,7 @@ function CDM:InitializeTrinkets()
     }, function(_, event, arg1)
         if event == "PLAYER_EQUIPMENT_CHANGED" then
             if arg1 == TRINKET_SLOT_1 or arg1 == TRINKET_SLOT_2 then
-                needsStyleUpdate = true
+                trinketsTracker.InvalidateStyle()
                 CDM:UpdateTrinkets()
             end
         elseif event == "PLAYER_ENTERING_WORLD" or event == "BAG_UPDATE_DELAYED" then
@@ -394,14 +364,13 @@ function CDM:InitializeTrinkets()
     CDM.trinketsUpdater = updater
     RegisterTrinketCooldownWatches()
     RegisterTrinketSpellWatches()
-    isInitialized = true
-    trinketsStartupCooldownGate:ScheduleSettle()
 end
 
 local function EnableTrinkets()
-    if not isInitialized or isEnabled then return end
-    trinketsStartupCooldownGate:Begin()
+    trinketsTracker.Enable()
+
     AcquireTrinketFrames()
+
     local updater = CDM.trinketsUpdater
     if updater then
         updater:RegisterEvent("BAG_UPDATE_DELAYED")
@@ -410,50 +379,34 @@ local function EnableTrinkets()
     end
     RegisterTrinketCooldownWatches()
     RegisterTrinketSpellWatches()
-    CDM.RegisterTrackerPositionCallback("CDM_Trinkets", OnTrackerPositionUpdate)
-    if trinketsContainer then
-        trinketsContainer:Show()
-    end
-    needsStyleUpdate = true
-    isEnabled = true
     CDM:UpdateTrinkets()
-    trinketsStartupCooldownGate:ScheduleSettle()
 end
 
 local function DisableTrinkets()
-    if not isEnabled then return end
-    trinketsStartupCooldownGate:Cancel()
-    trinketsCooldownUpdatePending = false
+    if not trinketsTracker.IsEnabled() then return end
+
     local updater = CDM.trinketsUpdater
     if updater then
         updater:UnregisterAllEvents()
     end
     UnregisterTrinketCooldownWatches()
     UnregisterTrinketSpellWatches()
-    CDM.UnregisterTrackerPositionCallback("CDM_Trinkets")
-    ReleaseTrinketFramesForLowMemory()
-    if trinketsContainer then
-        trinketsContainer:Hide()
-    end
-    isEnabled = false
+
+    ReleaseTrinketFrames()
+
+    trinketsTracker.Disable()
+
     if currentMode == "essential" then
-        CDM:QueueViewer(CDM_C.VIEWERS.ESSENTIAL, true)
-    end
-end
-
-UpdateTrinketCooldowns = function()
-    if not trinketsContainer or not isEnabled then return end
-
-    for _, frame in ipairs(iconFrames) do
-        if frame:IsShown() then
-            UpdateIcon(frame)
-        end
+        local essViewer = _G[CDM_C.VIEWERS.ESSENTIAL]
+        if essViewer then CDM:ForceReanchor(essViewer) end
     end
 end
 
 function CDM:UpdateTrinkets()
-    if not trinketsContainer then return end
+    local container = trinketsTracker.GetContainer()
+    if not container then return end
 
+    local iconFrames = trinketsTracker.GetIconFrames()
     local anyTrinketDataChanged = false
     for _, frame in ipairs(iconFrames) do
         if RefreshTrinketData(frame) then
@@ -476,10 +429,11 @@ function CDM:UpdateTrinkets()
     if modeChanged then
         if currentMode == "essential" then
             for _, frame in ipairs(iconFrames) do
-                frame:SetParent(trinketsContainer)
+                frame:SetParent(container)
             end
-            trinketsContainer:Show()
-            CDM:QueueViewer(CDM_C.VIEWERS.ESSENTIAL, true)
+            container:Show()
+            local essViewer = _G[CDM_C.VIEWERS.ESSENTIAL]
+            if essViewer then CDM:ForceReanchor(essViewer) end
         end
         currentMode = mode
         if mode ~= "essential" then
@@ -494,7 +448,7 @@ function CDM:UpdateTrinkets()
         lastTrinketsWidth = nil
         lastTrinketsHeight = nil
         InvalidateTrinketsLayoutCache()
-        CDM.InvalidateTrackerAnchorCache(trinketsContainer)
+        CDM.InvalidateTrackerAnchorCache(container)
 
         if mode == "independent" then
             UpdateContainerPosition()
@@ -512,7 +466,8 @@ function CDM:UpdateTrinkets()
     end
 
     if mode == "essential" then
-        local queueEssentialViewer = modeChanged or anyTrinketDataChanged or needsStyleUpdate or sizeChanged
+        local styleDirty = trinketsTracker.ConsumeStyleDirty()
+        local queueEssentialViewer = modeChanged or anyTrinketDataChanged or sizeChanged or styleDirty
         for _, frame in ipairs(iconFrames) do
             local hasItem = frame.itemID ~= nil
             local shouldShow = hasItem and (showPassive or frame.isOnUse)
@@ -527,15 +482,16 @@ function CDM:UpdateTrinkets()
                 queueEssentialViewer = true
             end
         end
-        trinketsContainer:Hide()
+        container:Hide()
         if queueEssentialViewer then
-            CDM:QueueViewer(CDM_C.VIEWERS.ESSENTIAL, true)
+            local essViewer = _G[CDM_C.VIEWERS.ESSENTIAL]
+            if essViewer then CDM:ForceReanchor(essViewer) end
         end
-        needsStyleUpdate = false
         return
     end
 
-    local applyStyle = needsStyleUpdate or sizeChanged
+    local styleDirty = trinketsTracker.ConsumeStyleDirty()
+    local applyStyle = sizeChanged or styleDirty
 
     local visibilityHash = 0
     local vBit = 1
@@ -565,16 +521,14 @@ function CDM:UpdateTrinkets()
             frame:Show()
             UpdateIcon(frame)
 
-            if (applyStyle or not wasShown) and CDM.ApplyTrackerStyle then
-                CDM:ApplyTrackerStyle(frame, "CDM_Trinkets")
+            if (applyStyle or not wasShown) and CDM.ApplyStyle then
+                CDM:ApplyStyle(frame, "CDM_Trinkets")
             end
         else
             frame:Hide()
         end
         vBit = vBit + vBit
     end
-
-    needsStyleUpdate = false
 
     local currentSpacing = GetSpacing()
     local currentAnchor
@@ -595,15 +549,24 @@ function CDM:UpdateTrinkets()
         lastTrinketsPositionAnchor = currentAnchor
 
         if mode == "independent" then
-            PositionIcons()
+            CDM.PositionTrackerIconsFromDB(container, iconFrames, "trinketsIconWidth", "trinketsIconHeight", "spacing", "trinketsAnchorPoint")
         elseif mode == "defensives" then
-            CDM.PositionTrackerIcons(trinketsContainer, iconFrames, size, currentSpacing, currentAnchor)
+            CDM.PositionTrackerIcons(container, iconFrames, size, currentSpacing, currentAnchor)
         end
     end
 end
 
+local function OnTrinketsProfileApplied()
+    trinketsTracker.OnProfileApplied()
+    InvalidateTrinketsLayoutCache()
+    local container = trinketsTracker.GetContainer()
+    if container then
+        CDM.InvalidateTrackerAnchorCache(container)
+    end
+end
+
 local function RefreshTrinketsLifecycle()
-    if not isEnabled then return end
+    if not trinketsTracker.IsEnabled() then return end
     local pendingMode = GetTrinketMode()
     if pendingMode == currentMode then
         if currentMode == "independent" then
@@ -615,39 +578,15 @@ local function RefreshTrinketsLifecycle()
     CDM:UpdateTrinkets()
 end
 
-local function OnTrinketsProfileApplied()
-    needsStyleUpdate = true
-    InvalidateTrinketsLayoutCache()
-    if trinketsContainer then
-        CDM.InvalidateTrackerAnchorCache(trinketsContainer)
+local function ReconcileTrinkets()
+    if CDM.db and CDM.db.trinketsEnabled ~= false then
+        if not trinketsTracker.IsInitialized() then CDM:InitializeTrinkets() end
+        if not trinketsTracker.IsEnabled() then EnableTrinkets() end
+        RefreshTrinketsLifecycle()
+    elseif trinketsTracker.IsEnabled() then
+        DisableTrinkets()
     end
 end
 
-if CDM.ModuleManager and CDM.ModuleManager.RegisterModule then
-    CDM.ModuleManager:RegisterModule({
-        id = "trinkets",
-        Initialize = function()
-            CDM:InitializeTrinkets()
-        end,
-        Enable = EnableTrinkets,
-        Disable = DisableTrinkets,
-        Refresh = RefreshTrinketsLifecycle,
-        OnProfileApplied = OnTrinketsProfileApplied,
-        ShouldBeEnabled = function(db)
-            return db and db.trinketsEnabled ~= false
-        end,
-    })
-end
-
-CDM:RegisterRefreshCallback("trinketsStyles", function()
-    RefreshCachedTrinketsStyles()
-    needsStyleUpdate = true
-    InvalidateTrinketsLayoutCache()
-end, 17, { "text_visuals", "trackers_layout", "viewers" })
-
-CDM:RegisterRefreshCallback("trinkets", function()
-    local moduleManager = CDM.ModuleManager
-    if moduleManager and moduleManager.ReconcileModule then
-        moduleManager:ReconcileModule("trinkets")
-    end
-end, 52, { "trackers_layout", "viewers" })
+CDM.ReconcileTrinkets = ReconcileTrinkets
+CDM.OnTrinketsProfileApplied = OnTrinketsProfileApplied
