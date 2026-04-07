@@ -1,0 +1,21 @@
+v1.5.5.13
+• Fix: healer spec detection now uses group role as fallback when API returns specID=0 (Midnight 12.0 reliability improvement)
+• Fix: Druid, Paladin, Priest, Evoker now queued for immediate inspect on join to prevent false positive tracking as interrupt-capable
+• CC Tracker config panel now opens sticky to the exterior right of the Settings window
+
+v1.4.3
+• Fix: NewMissToken nil error when casting an interrupt
+
+v1.4.2
+• Fix: startup error (activeChannels nil) causing addon to break on load
+
+v1.4.1
+• Missed kick badge: red "xN" indicator on each bar when kicks were missed this run
+• Run stats now archive automatically when a Mythic+ key is completed or reset
+• Right-click the tracker window to open Settings
+• New setting: sort bars alphabetically instead of by cooldown
+• /loxx miss: print missed kick summary for the current run
+• /loxx export: print a full run summary to chat
+• JOIN throttle increased to 30s to reduce addon message spam
+• Self interrupt correlation window extended for high-latency environments
+• baseCd guard: fallback to 15s minimum if inspected CD is below 5s
