@@ -205,7 +205,7 @@ C.SETTINGS_DEFAULT = {
     leaderCrown = false,
     missingRoles = false,
     oneClickSignUp = true,
-    persistSignUpNote = true,
+    persistSignUpNote = false,
     signupOnEnter = false,
     skipSignUpDialog = false,
     cancelOldestApp = false,
@@ -359,7 +359,9 @@ function PGF.OnAddonLoaded(name)
 end
 
 function PGF.OnPlayerLogin()
-    PGF.PersistSignUpNote()
+    if PGF.IsRetail() then
+        PGF.InitCompactListEntries()
+    end
 end
 
 function PGF.OnEvent(self, event, ...)
