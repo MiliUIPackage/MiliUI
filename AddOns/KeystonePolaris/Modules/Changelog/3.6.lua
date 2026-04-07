@@ -2,8 +2,8 @@ local AddOnName, KeystonePolaris = ...;
 
 local L = LibStub("AceLocale-3.0"):GetLocale(AddOnName, true);
 
-KeystonePolaris.Changelog[3500] = {
-    version_string = "3.5",
+KeystonePolaris.Changelog[3600] = {
+    version_string = "3.6",
     release_date = "2026/03/28",
     header = {
         ["zhCN"] = {},
@@ -28,10 +28,10 @@ KeystonePolaris.Changelog[3500] = {
         ["zhCN"] = {},
         ["zhTW"] = {},
         ["enUS"] = {
-            "Updated teleportIDs for various dungeons.",
+            "Added debouncing to additional in-dungeon update events to reduce event spikes and prevent lag during large pulls or mass enemy deaths (thank you [zaphon]).",
         },
         ["frFR"] = {
-            "Mise à jour des teleportIDs pour divers donjons.",
+            "Ajout du système de regroupement des mises à jour sur d'autres événements en donjon afin de réduire les pics d'événements et éviter les ralentissements sur les gros pulls ou les morts de packs (merci [zaphon]).",
         },
         ["koKR"] = {},
         ["ruRU"] = {},
@@ -45,12 +45,10 @@ KeystonePolaris.Changelog[3500] = {
         ["zhCN"] = {},
         ["zhTW"] = {},
         ["enUS"] = {
-            "Keystone Polaris is now translated in Portuguese, thank you [roneicostajr].",
-            "Added an option to show the group [Playstyle] in the [Group Reminder] module.",
+            "Added [MythicDungeonTools] route import support in [Custom Routes]: Keystone Polaris can now detect the target dungeon, import boss percentages, rebuild the boss order, and open the matching dungeon options automatically.",
         },
         ["frFR"] = {
-            "Keystone Polaris est maintenant traduit en portugais, merci à [roneicostajr].",
-            "Ajout d'une option pour afficher le [Style de jeu] du groupe dans le module [Rappel du groupe].",
+            "Ajout de la prise en charge de l'import des routes [MythicDungeonTools] dans les [Routes personnalisées] : Keystone Polaris peut maintenant détecter automatiquement le donjon ciblé, importer les pourcentages de boss, reconstruire l'ordre des boss et ouvrir directement les bonnes options.",
         },
         ["koKR"] = {},
         ["ruRU"] = {},
@@ -63,14 +61,8 @@ KeystonePolaris.Changelog[3500] = {
     bugfix = {
         ["zhCN"] = {},
         ["zhTW"] = {},
-        ["enUS"] = {
-            "Fixing LUA errors with dungeons data export.",
-            "Fixing multiple LUA errors happening in various situations.",
-        },
-        ["frFR"] = {
-            "Correction des erreurs LUA causées par l'exportation des données de donjons.",
-            "Correction de plusieurs erreurs LUA survenant dans diverses situations.",
-        },
+        ["enUS"] = {},
+        ["frFR"] = {},
         ["koKR"] = {},
         ["ruRU"] = {},
         ["deDE"] = {},
@@ -83,18 +75,10 @@ KeystonePolaris.Changelog[3500] = {
         ["zhCN"] = {},
         ["zhTW"] = {},
         ["enUS"] = {
-            "Added a [!KeystonePolaris:] prefix to the dungeons export strings.",
-            "The [Inform Group] button should no longer appear on bosses where the option is disabled.",
             "Russian translation updated, thank you [Hollicsh].",
-            "Replaced some localized strings with Blizzard's GlobalStrings.",
-            "Renamed the [Inform Group] options to [Inform Group Button].",
         },
         ["frFR"] = {
-            "Ajout d'un préfixe [!KeystonePolaris:] aux chaînes d'exportation des donjons.",
-            "Le bouton [Informer le groupe] ne s'affiche plus sur les boss où l'option est désactivée.",
             "Traduction russe mise à jour, merci à [Hollicsh].",
-            "Remplacement de certaines chaînes localisées par les GlobalStrings de Blizzard.",
-            "Renommage des options [Informer le groupe] en [Bouton Informer le groupe].",
         },
         ["koKR"] = {},
         ["ruRU"] = {},

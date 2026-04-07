@@ -200,7 +200,15 @@ L["IMPORT_DIALOG_TEXT"] = "Cole o texto exportado abaixo:"
 L["IMPORT_SUCCESS"] = "Rota personalizada importada para %s."
 L["IMPORT_ALL_SUCCESS"] = "Rota personalizada importada para todas as masmorras."
 L["IMPORT_ERROR"] = "String de importação inválida"
-L["IMPORT_DIFFERENT_DUNGEON"] = "Configurações importadas para %s. Abrindo opções para essa masmorra."
+L["IMPORT_DIALOG_INFO"] = "Supports Keystone Polaris import strings and MythicDungeonTools routes when MDT is loaded." -- TODO: To Translate
+L["IMPORT_SUCCESS_OPENED"] = "Imported custom route for %s. Opening options for that dungeon." -- TODO: To Translate
+L["IMPORT_MDT_MISSING_ADDON"] = "MDT import requires MythicDungeonTools to be loaded." -- TODO: To Translate
+L["IMPORT_MDT_NO_PULLS"] = "MDT import failed: no pulls found in this route string." -- TODO: To Translate
+L["IMPORT_MDT_DUNGEON_UNKNOWN"] = "MDT import failed: unable to map this route to a Keystone Polaris dungeon." -- TODO: To Translate
+L["IMPORT_MDT_BOSS_NPCIDS_MISSING"] = "MDT import failed for %s: this dungeon is not fully supported yet." -- TODO: To Translate
+L["IMPORT_MDT_SUCCESS"] = "Imported MDT route for %s. Updated %d boss percentages and boss order." -- TODO: To Translate
+L["IMPORT_MDT_SUCCESS_OPENED"] = "Imported MDT route for %s. Updated %d boss percentages and boss order. Opening options for that dungeon." -- TODO: To Translate
+L["IMPORT_MDT_INCOMPLETE"] = "MDT route import aborted: not all bosses were detected in the route. No changes were applied." -- TODO: To Translate
 
 -- MDT Integration
 L["MDT_INTEGRATION_FEATURES"] = "Integração Mythic Dungeon Tools"

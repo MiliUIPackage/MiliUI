@@ -41,10 +41,10 @@ KeystonePolaris.Changelog[3230] = {
         ["zhCN"] = {},
         ["zhTW"] = {},
         ["enUS"] = {
-            "Fixed LUA errors that were triggering in Mythic+ runs."
+            "Fixed Lua errors that were triggering in Mythic+ runs."
         },
         ["frFR"] = {
-            "Correction des erreurs LUA qui se déclenchaient pendant les sessions Mythiques."
+            "Correction des erreurs Lua qui se déclenchaient pendant les sessions Mythiques."
         },
         ["koKR"] = {},
         ["ruRU"] = {},

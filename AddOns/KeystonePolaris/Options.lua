@@ -1500,26 +1500,8 @@ function KeystonePolaris:CreateDungeonOptions(dungeonKey, order)
                     local dungeonFilter = {}
                     dungeonFilter[dungeonKey] = true
 
-                    StaticPopupDialogs["KPL_IMPORT_DIALOG"] = {
-                        text = L["IMPORT_DIALOG_TEXT"],
-                        button1 = OKAY,
-                        button2 = CANCEL,
-                        hasEditBox = true,
-                        editBoxWidth = 350,
-                        maxLetters = 999999,
-                        OnAccept = function(dialog)
-                            local importString = dialog.EditBox:GetText()
-                            addon:ImportDungeonSettings(importString, nil,
-                                                        dungeonFilter)
-                        end,
-                        EditBoxOnEscapePressed = function(editBox)
-                            editBox:GetParent():Hide()
-                        end,
-                        timeout = 0,
-                        whileDead = true,
-                        hideOnEscape = true
-                    }
-                    StaticPopup_Show("KPL_IMPORT_DIALOG")
+                    local dungeonLabel = addon:GetDungeonDisplayName(dungeonKey) or dungeonKey
+                    addon:ShowImportDialog(dungeonLabel, dungeonFilter)
                 end
             },
             header = {order = 4, type = "header", name = L["TANK_GROUP_HEADER"]}

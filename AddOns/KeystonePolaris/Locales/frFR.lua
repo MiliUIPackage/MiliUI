@@ -204,7 +204,15 @@ L["IMPORT_DIALOG_TEXT"] = "Coller la chaîne ci-dessous pour importer les param�
 L["IMPORT_SUCCESS"] = "Paramètres personnalisés importés pour %s."
 L["IMPORT_ALL_SUCCESS"] = "Paramètres personnalisés pour tous les donjons importés."
 L["IMPORT_ERROR"] = "Chaîne d'import non valide."
-L["IMPORT_DIFFERENT_DUNGEON"] = "Paramètres personnalisés importés pour %s. Ouverture des options pour ce donjon."
+L["IMPORT_DIALOG_INFO"] = "Prend en charge les chaînes d'import Keystone Polaris et les routes MythicDungeonTools si MDT est chargé."
+L["IMPORT_SUCCESS_OPENED"] = "Paramètres personnalisés importés pour %s. Ouverture des options pour ce donjon."
+L["IMPORT_MDT_MISSING_ADDON"] = "L'import MDT nécessite que MythicDungeonTools soit chargé."
+L["IMPORT_MDT_NO_PULLS"] = "L'import MDT a échoué : aucun pull trouvé dans cette chaîne."
+L["IMPORT_MDT_DUNGEON_UNKNOWN"] = "L'import MDT a échoué : impossible d'associer cette route à un donjon Keystone Polaris."
+L["IMPORT_MDT_BOSS_NPCIDS_MISSING"] = "L'import MDT a échoué pour %s : ce donjon n'est pas encore totalement pris en charge."
+L["IMPORT_MDT_SUCCESS"] = "Route MDT importée pour %s. %d pourcentages de boss et l'ordre des boss ont été mis à jour."
+L["IMPORT_MDT_SUCCESS_OPENED"] = "Route MDT importée pour %s. %d pourcentages de boss et l'ordre des boss ont été mis à jour. Ouverture des options pour ce donjon."
+L["IMPORT_MDT_INCOMPLETE"] = "L'import MDT a été annulé : tous les boss n'ont pas été détectés dans la route. Aucun changement n'a été appliqué."
 
 -- MDT Integration
 L["MDT_INTEGRATION_FEATURES"] = "Intégration MDT"

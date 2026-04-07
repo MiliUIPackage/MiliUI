@@ -719,12 +719,14 @@ end
 
 -- Event handler for POI updates (boss positions)
 function KeystonePolaris:SCENARIO_POI_UPDATE()
-    if self.UpdatePercentageText then self:UpdatePercentageText() end
+    if self._QueuePullUpdate then self:_QueuePullUpdate() end
 end
 
 -- Event handler for criteria updates (enemy forces percentage changes)
+-- This event fires once per mob killed, so debouncing is critical to avoid
+-- hanging the game when a large pack dies all at once.
 function KeystonePolaris:SCENARIO_CRITERIA_UPDATE()
-    if self.UpdatePercentageText then self:UpdatePercentageText() end
+    if self._QueuePullUpdate then self:_QueuePullUpdate() end
 end
 
 -- Event handler for starting a Mythic+ dungeon

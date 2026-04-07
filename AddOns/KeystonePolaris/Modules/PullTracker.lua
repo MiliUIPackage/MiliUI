@@ -13,16 +13,16 @@ KeystonePolaris.realPull = {
 
 function KeystonePolaris:InitializePullTracker()
     -- Register events related to pull tracking
-    self:RegisterEvent("NAME_PLATE_UNIT_ADDED")
-    self:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
     self:RegisterEvent("PLAYER_REGEN_ENABLED")
     self:RegisterEvent("ENCOUNTER_END")
-    
+
     if(not self.isMidnight) then
+        self:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+        self:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
         self:RegisterEvent("PLAYER_REGEN_DISABLED")
         self:RegisterEvent("UNIT_THREAT_LIST_UPDATE")
     end
-    
+
     -- Initialize state
     self.realPull.mobs = {}
     self.realPull.sum = 0
@@ -90,7 +90,7 @@ function KeystonePolaris:NAME_PLATE_UNIT_ADDED(_, unit)
         end
     end
     -- Engagement tracking remains via COMBAT_LOG to avoid double counting
-    if self.UpdatePercentageText then self:UpdatePercentageText() end
+    if self._QueuePullUpdate then self:_QueuePullUpdate() end
 end
 
 function KeystonePolaris:NAME_PLATE_UNIT_REMOVED(_, unit)
@@ -103,7 +103,7 @@ function KeystonePolaris:NAME_PLATE_UNIT_REMOVED(_, unit)
         end
         -- Intentionally not calling RemoveEngagedMobByGUID(guid) to avoid Pull% oscillation.
     end
-    if self.UpdatePercentageText then self:UpdatePercentageText() end
+    if self._QueuePullUpdate then self:_QueuePullUpdate() end
 end
 
 -- Update when threat list changes (engagement state)

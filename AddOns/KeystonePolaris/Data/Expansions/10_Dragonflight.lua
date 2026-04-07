@@ -8,10 +8,10 @@ KeystonePolaris.DF_DUNGEON_DATA = {
         mapID = 2526,
         teleportID = 393273,
         bosses = {
-            {1, 51.09, false, 2, 2495}, -- Crawth
-            {2, 21.52, false, 1, 2512}, -- Overgrown Ancient
-            {3, 77.17, false, 3, 2509}, -- Vexamus
-            {4, 100,   true,  4, 2514} -- Doragosa
+            {1, 51.09, false, 2, 2495, "Crawth", 191736}, -- Crawth
+            {2, 21.52, false, 1, 2512, "Overgrown Ancient", 196482}, -- Overgrown Ancient
+            {3, 77.17, false, 3, 2509, "Vexamus", 194181}, -- Vexamus
+            {4, 100,   true,  4, 2514, "Echo of Doragosa", 190609} -- Echo of Doragosa
         }
     }
 }

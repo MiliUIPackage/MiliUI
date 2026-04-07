@@ -81,12 +81,25 @@ function KeystonePolaris:GenerateChangelog()
             end
         end
 
+        local function appendHeader(headerData)
+            if not headerData then return end
+
+            local items = resolve(headerData)
+            if items and items.title and items.text then
+                table.insert(chunks, stripColors(items.title))
+                table.insert(chunks, "")
+                table.insert(chunks, stripColors(items.text))
+                table.insert(chunks, "")
+            end
+        end
+
         if data and type(data) == "table" then
             if data.version_string and data.release_date then
                 table.insert(chunks, (L and L["Version"] or "Version") .. ": " .. data.version_string ..
                     " (" .. data.release_date .. ")")
                 table.insert(chunks, "")
             end
+            appendHeader(data.header)
             appendSection("Important", data.important)
             appendSection("New", data.new)
             appendSection("Bugfixes", data.bugfix)
