@@ -859,6 +859,12 @@ L["ModuleName ItemUpgradeUI"] = "物品升級：自動打開裝備欄";
 L["ModuleDescription ItemUpgradeUI"] = "當你與物品升級NPC互動時自動打開角色面板。";
 
 
+--HuntTable
+L["ModuleName HuntTable"] = "狩獵地圖";
+L["ModuleDescription HuntTable"] = "- 將狩獵地圖上的藍色任務圖示替換為難度圖示。\n\n- 若狩獵目標與某個未完成的成就相關，在其右上方顯示特別標記。";
+L["Prey Target Has Achievement"] = "某個未完成的成就要求你擊敗此目標。";
+
+
 --HolidayDungeon
 L["ModuleName HolidayDungeon"] = "自動選擇節日地城";
 L["ModuleDescription HolidayDungeon"] = "當你第一次打開隊伍搜尋器時自動選擇節日或時空漫遊地城。";
