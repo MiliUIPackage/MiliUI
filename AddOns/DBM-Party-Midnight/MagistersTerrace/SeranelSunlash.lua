@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2661, "DBM-Party-Midnight", 3, 1300)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260402070600")
+mod:SetRevision("20260407040051")
 mod:SetCreatureID(231863)
 mod:SetEncounterID(3072)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -18,9 +18,9 @@ local specWarnHasteningWard				= mod:NewSpecialWarningCount(1248689, "MagicDispe
 local specWarnWaveOfSilence				= mod:NewSpecialWarningCount(1225193, nil, nil, nil, 2, 15)
 
 local timerSuppressionZoneCD			= mod:NewCDCountTimer(20.5, 1224903, nil, nil, nil, 3)
-local timerHasteningWardCD				= mod:NewCDCountTimer(20.5, 1248689, nil, nil, nil, 5)
+local timerHasteningWardCD				= mod:NewCDCountTimer(20.5, 1248689, nil, nil, nil, 5, nil, DBM_COMMON_L.MAGIC_ICON..DBM_COMMON_L.TANK_ICON)
 local timerRunicMarkCD					= mod:NewCDCountTimer(20.5, 1225787, nil, nil, nil, 3)
-local timerWaveOfSilenceCD				= mod:NewCDCountTimer(20.5, 1225193, nil, nil, nil, 2)
+local timerWaveOfSilenceCD				= mod:NewCDCountTimer(20.5, 1225193, nil, nil, nil, 2, nil, DBM_COMMON_L.IMPORTANT_ICON)
 
 --Midnight private aura replacements
 mod:AddPrivateAuraSoundOption({1225787,1225792}, true, 1225787, 1, 1, "scatter", 2)--Runic Mark

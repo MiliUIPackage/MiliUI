@@ -5,7 +5,7 @@ if not mod:IsClassic() then
 	mod.statTypes = "normal,heroic,mythic,challenge,timewalker"
 end
 
-mod:SetRevision("20260402070600")
+mod:SetRevision("20260407040051")
 mod:SetCreatureID(36476)
 mod:SetEncounterID(2001)
 mod:SetZone(658)
@@ -23,7 +23,7 @@ if DBM:IsPostMidnight() then
 	local specWarnPlagueExpulsion		= mod:NewSpecialWarningDodgeCount(1264336, nil, nil, nil, 2, 2)
 	local specWarnBlightSmash			= mod:NewSpecialWarningCount(1264287, nil, nil, nil, 1, 18)
 
-	local timerGetEmIckCD				= mod:NewCDCountTimer(20.5, 1264363, nil, nil, nil, 3)--Get 'Em, Ick! (parent of Lumbering Fixation)
+	local timerGetEmIckCD				= mod:NewCDCountTimer(20.5, 1264363, nil, nil, nil, 3, nil, DBM_COMMON_L.IMPORTANT_ICON)--Get 'Em, Ick! (parent of Lumbering Fixation)
 	local timerShadeShiftCD				= mod:NewCDCountTimer(20.5, 1264027, nil, nil, nil, 1, nil, DBM_COMMON_L.DAMAGE_ICON)
 	local timerPlagueExpulsionCD		= mod:NewCDCountTimer(20.5, 1264336, nil, nil, nil, 3)
 	local timerBlightSmashCD			= mod:NewCDCountTimer(20.5, 1264287, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)

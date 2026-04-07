@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2810, "DBM-Party-Midnight", 7, 1315)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260404090948")
+mod:SetRevision("20260407040051")
 mod:SetCreatureID(247570)--Muro, Nekraxx is 247572
 mod:SetEncounterID(3212)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -24,7 +24,7 @@ local timerFetidQuillstormCD	= mod:NewCDCountTimer(20.5, 1243900, nil, nil, nil,
 local timerFreezingTrapCD		= mod:NewCDCountTimer(20.5, 1243741, nil, nil, nil, 1)
 local timerBarrageCD			= mod:NewCDCountTimer(20.5, 1260643, nil, nil, nil, 3)
 local timerInfectedPinionsCD	= mod:NewCDCountTimer(20.5, 1246666, nil, nil, nil, 5, nil, DBM_COMMON_L.DISEASE_ICON)
-local timerCarrionSwoopCD		= mod:NewCDCountTimer(20.5, 1249478, nil, nil, nil, 3)
+local timerCarrionSwoopCD		= mod:NewCDCountTimer(20.5, 1249478, nil, nil, nil, 3, nil, DBM_COMMON_L.IMPORTANT_ICON)
 
 --Midnight private aura replacements
 mod:AddPrivateAuraSoundOption(1243741, true, 1243741, 1, 1, "stunyou", 19)--Freezing Trap Stun

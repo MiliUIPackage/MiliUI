@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,heroic,mythic,challenge,timewalker"
 
-mod:SetRevision("20260404053605")
+mod:SetRevision("20260407043946")
 mod:SetCreatureID(76143)
 mod:SetEncounterID(1700)
 
@@ -11,13 +11,13 @@ mod:RegisterCombat("combat")
 
 --TODO, some actual custom sounds and timer disables when apis added
 if DBM:IsPostMidnight() then
-	local specWarnSunbreak			= mod:NewSpecialWarningCount(1253510, nil, nil, nil, 1, 2)
+	local specWarnSunbreak			= mod:NewSpecialWarningCount(1253510, nil, nil, DBM_COMMON_L.ADD, 1, 2)
 	local specWarnBurningClaws		= mod:NewSpecialWarningCount(1253519, "Tank", nil, nil, 2, 2)
 	local specWarnSearingQuills		= mod:NewSpecialWarningCount(1253527, nil, nil, nil, 2, 12)
 
-	local timerSunbreakCD			= mod:NewCDCountTimer(20.5, 1253510, nil, nil, nil, 1)
+	local timerSunbreakCD			= mod:NewCDCountTimer(20.5, 1253510, DBM_COMMON_L.ADD.." (%s)", nil, nil, 1)
 	local timerBurningClawsCD		= mod:NewCDCountTimer(20.5, 1253519, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
-	local timerSearingQuillsCD		= mod:NewCDCountTimer(20.5, 1253527, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
+	local timerSearingQuillsCD		= mod:NewCDCountTimer(20.5, 1253527, nil, nil, nil, 2, nil, DBM_COMMON_L.IMPORTANT_ICON)
 
 	--Midnight private aura replacements
 	mod:AddPrivateAuraSoundOption(1253511, true, 1253511, 1, 1, "targetyou", 2)--Burning Pursuit

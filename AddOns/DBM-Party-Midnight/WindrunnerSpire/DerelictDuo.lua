@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2656, "DBM-Party-Midnight", 1, 1299)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260404112723")
+mod:SetRevision("20260407040051")
 mod:SetCreatureID(231626)--Kalis flagged as main boss, Latch (231629) is secondary
 mod:SetEncounterID(3057)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -19,9 +19,9 @@ local specWarnDebilitatingShriek	= mod:NewSpecialWarningCount(472736, nil, nil, 
 local specWarnCurseofDarkness		= mod:NewSpecialWarningCount(474105, nil, nil, nil, 2, 2)
 
 local timerBoneHackCD				= mod:NewCDCountTimer(17.3, 472888, nil, "Tank", nil, 2, nil, DBM_COMMON_L.TANK_ICON)
-local timerCurseofDarknessCD		= mod:NewCDCountTimer(22.7, 474105, nil, nil, nil, 1)
-local timerDebilitatingShriekCD		= mod:NewCDCountTimer(48, 472736, nil, nil, nil, 2)
-local timerSplatteringSpewCD		= mod:NewCDCountTimer(27.3, 472777, nil, nil, nil, 3)
+local timerCurseofDarknessCD		= mod:NewCDCountTimer(22.7, 474105, nil, nil, 2, 3, nil, DBM_COMMON_L.CURSE_ICON)
+local timerDebilitatingShriekCD		= mod:NewCDCountTimer(48, 472736, nil, nil, nil, 2, nil, DBM_COMMON_L.IMPORTANT_ICON)
+local timerSplatteringSpewCD		= mod:NewCDCountTimer(27.3, 472777, nil, nil, nil, 3, nil, DBM_COMMON_L.HEALER_ICON)
 --Midnight private aura replacements
 mod:AddPrivateAuraSoundOption({1253834,1215803}, true, 474105, 4, 1, "justrun", 2)--Curse of Darkness
 mod:AddPrivateAuraSoundOption(472793, true, 472795, 1, 1, "behindboss", 2)--Heaving Yank

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2737, "DBM-Raids-Midnight", 3, 1307)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260402070458")
+mod:SetRevision("20260407042048")
 mod:SetCreatureID(250589)--War Chaplain Senn main boss, 250588 Commander Venel Lightblood, 250587 general Amias Bellamy
 mod:SetEncounterID(3180)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -28,19 +28,19 @@ local specWarnDivineStorm					= mod:NewSpecialWarningCount(1246765, "MeleeDps", 
 local specWarnSacredToll					= mod:NewSpecialWarningCount(1246749, nil, nil, DBM_COMMON_L.AOEDAMAGE, 2, 2)
 local specWarnExecutionSentence				= mod:NewSpecialWarningSoakCount(1276368, nil, nil, DBM_COMMON_L.GROUPSOAKS, 2, 2)
 
-local timerAuraofPeaceCD					= mod:NewCDCountTimer(20.5, 1248451, nil, nil, nil, 3)
+local timerAuraofPeaceCD					= mod:NewCDCountTimer(20.5, 1248451, nil, nil, nil, 3, nil, DBM_COMMON_L.IMPORTANT_ICON)
 local timerSacredShieldCD					= mod:NewCDCountTimer(20.5, 1248674, nil, nil, nil, 5)
 --local timerElekkChargeCD					= mod:NewCDCountTimer(20.5, 1249130, nil, nil, nil, 3)--redundant
-local timerTyrsWrathCD						= mod:NewCDCountTimer(20.5, 1248721, DBM_COMMON_L.HEALABSORBS.." (%s)", "Healer", nil, 5)
-local timerAuraofDevotionCD					= mod:NewCDCountTimer(20.5, 1246162, nil, nil, nil, 3)
+local timerTyrsWrathCD						= mod:NewCDCountTimer(20.5, 1248721, DBM_COMMON_L.HEALABSORBS.." (%s)", "Healer", nil, 5, nil, DBM_COMMON_L.HEALER_ICON)
+local timerAuraofDevotionCD					= mod:NewCDCountTimer(20.5, 1246162, nil, nil, nil, 3, nil, DBM_COMMON_L.IMPORTANT_ICON)
 local timerSearingRadianceCD				= mod:NewCDCountTimer(20.5, 1255738, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
 local timerJudgementShieldCD				= mod:NewCDCountTimer(20.5, 1251857, L.JudgementShield.." (%s)", "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
-local timerAvengerShieldCD					= mod:NewCDCountTimer(20.5, 1246487, nil, nil, nil, 3)
+local timerAvengerShieldCD					= mod:NewCDCountTimer(20.5, 1246487, nil, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)
 local timerDivineTollCD						= mod:NewCDCountTimer(20.5, 1248652, DBM_COMMON_L.DODGES.." (%s)", nil, nil, 3)
-local timerAuraofWrathCD					= mod:NewCDCountTimer(20.5, 1248449, nil, nil, nil, 5)
+local timerAuraofWrathCD					= mod:NewCDCountTimer(20.5, 1248449, nil, nil, nil, 5, nil, DBM_COMMON_L.IMPORTANT_ICON)
 local timerjudgementFinalCD					= mod:NewCDCountTimer(20.5, 1246736, L.JudgementFV.." (%s)", "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerDivineStormCD					= mod:NewCDCountTimer(20.5, 1246765, nil, nil, nil, 3)
-local timerSacredTollCD						= mod:NewCDCountTimer(20.5, 1246749, DBM_COMMON_L.AOEDAMAGE.." (%s)", nil, nil, 2)
+local timerSacredTollCD						= mod:NewCDCountTimer(20.5, 1246749, DBM_COMMON_L.AOEDAMAGE.." (%s)", nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
 local timerExecutionSentenceCD				= mod:NewCDCountTimer(20.5, 1276368, DBM_COMMON_L.GROUPSOAKS.." (%s)", nil, nil, 3)
 local timerZealousSpiritCD					= mod:NewCDCountTimer(20.5, 1276243, nil, nil, nil, 6, nil, DBM_COMMON_L.MYTHIC_ICON)
 

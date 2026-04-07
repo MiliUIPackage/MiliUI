@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2813, "DBM-Party-Midnight", 8, 1316)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260404101952")
+mod:SetRevision("20260407040051")
 mod:SetCreatureID(241539)--Iffy, not reported as a boss
 mod:SetEncounterID(3328)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -17,7 +17,7 @@ local specWarnFluxCollapse			= mod:NewSpecialWarningCount(1264048, nil, nil, nil
 local warnRefluxCharge				= mod:NewCountAnnounce(1251785, 2)
 
 local timerCoresparkDetonationCD	= mod:NewCDCountTimer(38, 1257509, nil, nil, nil, 3)
-local timerRefluxChargeCD			= mod:NewCDCountTimer(12, 1251785, nil, nil, nil, 3)
+local timerRefluxChargeCD			= mod:NewCDCountTimer(12, 1251785, nil, nil, nil, 3, nil, DBM_COMMON_L.IMPORTANT_ICON)
 local timerLeylineArrayCD			= mod:NewCDCountTimer(11, 1251183, nil, nil, nil, 3)
 local timerFluxCollapseCD			= mod:NewCDCountTimer(13, 1264048, nil, nil, nil, 3)
 

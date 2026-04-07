@@ -95,37 +95,37 @@ DBT.DefaultOptions = {
 	VarianceTexture = "Interface\\AddOns\\DBM-StatusBarTimers\\textures\\default.blp",
 	-- Small bar
 	BarXOffset = 0,
-	BarYOffset = 25,
+	BarYOffset = 0,
 	TextXOffset = 0,
-	TextYOffset = 7,
-	Width = 185,
-	Height = 10,
-	Alpha = 1,
+	TextYOffset = 0,
+	Width = 183,
+	Height = 20,
+	Alpha = 0.8,
 	Scale = 0.9,
-	TimerX = 300,
-	TimerY = -180,
+	TimerX = -223,
+	TimerY = -260,
 	ExpandUpwards = false,
-	FillUpBars = false,
-	TimerPoint = "TOP",
+	FillUpBars = true,
+	TimerPoint = "TOPRIGHT",
 	Sort = "Sort",
 	DesaturateValue = 1,
 	-- Huge bar
 	EnlargeBarTime = 9.9,
 	HugeBarXOffset = 0,
-	HugeBarYOffset = 25,
+	HugeBarYOffset = 0,
 	HugeTextXOffset = 0,
-	HugeTextYOffset = 7,
-	HugeWidth = 185,
-	HugeHeight = 10,
+	HugeTextYOffset = 0,
+	HugeWidth = 200,
+	HugeHeight = 20,
 	HugeAlpha = 1,
-	HugeScale = 1.1,
+	HugeScale = 1.03,
 	HugeTimerX = 0,
-	HugeTimerY = 250,
+	HugeTimerY = -120,
 	ExpandUpwardsLarge = false,
-	FillUpLargeBars = false,
+	FillUpLargeBars = true,
 	HugeBarsEnabled = true,
-	HugeTimerPoint = "BOTTOM",
-	HugeSort = "Invert",
+	HugeTimerPoint = "CENTER",
+	HugeSort = "Sort",
 	-- Huge bar background settings
 	HugeBackgroundColorR = 0,
 	HugeBackgroundColorG = 0,
@@ -146,7 +146,7 @@ DBT.DefaultOptions = {
 	TextColorG = 1,
 	TextColorB = 1,
 	TDecimal = 11,
-	FontSize = 12,
+	FontSize = 10,
 	FlashBar = false,
 	Spark = true,
 	ColorByType = true,
@@ -154,15 +154,15 @@ DBT.DefaultOptions = {
 	JournalIcons = 2,-- 0: off, 1: 1 large, 2: 2 large, 3: 3 large, 4: stacked small icons
 	IconLeft = true,
 	IconRight = false,
-	IconLocked = false,
+	IconLocked = true,
 	DynamicColor = true,
 	ClickThrough = false,
 	DisableRightClick = false,
 	KeepBars = true,
 	FadeBars = true,
-	Texture = "Interface\\Addons\\SharedMedia\\statusbar\\normTex",
+	Texture = "Interface\\AddOns\\DBM-StatusBarTimers\\textures\\default.blp",
 	Font = "standardFont",
-	FontFlag = "OUTLINE",
+	FontFlag = "None",
 	FontShadow = false,
 	BarStyle = "NoAnim",
 	Skin = "",
@@ -339,18 +339,18 @@ do
 		spark:SetTexture("Interface\\AddOns\\DBM-StatusBarTimers\\textures\\Spark.blp")
 		spark:SetBlendMode("ADD")
 		local timer = bar:CreateFontString("$parentTimer", "OVERLAY", "GameFontHighlightSmall")
-		timer:SetPoint("BOTTOMRIGHT", bar, "TOPRIGHT", -1, -4)
+		timer:SetPoint("RIGHT", bar, "RIGHT", -1, 0.5)
 		local name = bar:CreateFontString("$parentName", "OVERLAY", "GameFontHighlightSmall")
-		name:SetPoint("BOTTOMLEFT", bar, "TOPLEFT", -1, -4)
+		name:SetPoint("LEFT", bar, "LEFT", 7, 0.5)
 		name:SetPoint("RIGHT", timer, "LEFT", -7, 0)
 		name:SetWordWrap(false)
 		name:SetJustifyH("LEFT")
 		local icon1 = bar:CreateTexture("$parentIcon1", "OVERLAY")
-		icon1:SetPoint("BOTTOMRIGHT", bar, "BOTTOMLEFT", -4, 0)
-		icon1:SetSize(19, 19)
+		icon1:SetPoint("RIGHT", bar, "LEFT")
+		icon1:SetSize(20, 20)
 		local icon2 = bar:CreateTexture("$parentIcon2", "OVERLAY")
-		icon2:SetPoint("BOTTOMLEFT", bar, "BOTTOMRIGHT", -4, 0)
-		icon2:SetSize(19, 19)
+		icon2:SetPoint("LEFT", bar, "RIGHT")
+		icon2:SetSize(20, 20)
 		--Secure Journal Icons used by blizzard secret api
 		frame.SecureJIcons = {}
 		createJournalIcons(bar, frame.SecureJIcons, "SJIcons", icon1)

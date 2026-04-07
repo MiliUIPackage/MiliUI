@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2815, "DBM-Party-Midnight", 8, 1316)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260404101952")
+mod:SetRevision("20260407040051")
 mod:SetCreatureID(241546)
 mod:SetEncounterID(3333)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -19,7 +19,7 @@ local specWarnFlicker				= mod:NewSpecialWarningDodgeCount(1255531, nil, nil, ni
 
 local timerSearingRendCD			= mod:NewCDCountTimer(26, 1255335, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerBrilliantDispersionCD	= mod:NewCDCountTimer(25, 1255503, nil, nil, nil, 3)
-local timerDivineGuileCD			= mod:NewCDCountTimer(52, 1257567, nil, nil, nil, 6)
+local timerDivineGuileCD			= mod:NewCDCountTimer(52, 1257567, nil, nil, nil, 6, nil, DBM_COMMON_L.IMPORTANT_ICON)
 local timerFlickerCD				= mod:NewCDCountTimer(10, 1255531, nil, nil, nil, 3)
 
 --Private Auras

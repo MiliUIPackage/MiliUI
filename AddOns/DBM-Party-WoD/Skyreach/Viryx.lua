@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,heroic,mythic,challenge,timewalker"
 
-mod:SetRevision("20260404053605")
+mod:SetRevision("20260407043946")
 mod:SetCreatureID(76266)
 mod:SetEncounterID(1701)
 mod:SetUsedIcons(1)
@@ -15,11 +15,11 @@ if DBM:IsPostMidnight() then
 	local warnScorchingRay			= mod:NewCountAnnounce(1253538, 2)
 	local warnLensFlare				= mod:NewCountAnnounce(1253531, 2)
 
-	local specWarnCastDown			= mod:NewSpecialWarningCount(1253998, nil, nil, nil, 1, 2)
+	local specWarnCastDown			= mod:NewSpecialWarningCount(1253998, nil, nil, DBM_COMMON_L.ADD, 1, 2)
 	local specWarnSolarBlast		= mod:NewSpecialWarningInterruptCount(154396, "HasInterrupt", nil, nil, 1, 2)
 
 	local timerScorchingRayCD		= mod:NewCDCountTimer(20.5, 1253538, nil, nil, nil, 3)
-	local timerCastDownCD			= mod:NewCDCountTimer(20.5, 1253998, nil, nil, nil, 1)
+	local timerCastDownCD			= mod:NewCDCountTimer(20.5, 1253998, DBM_COMMON_L.ADD.." (%s)", nil, nil, 1, nil, DBM_COMMON_L.IMPORTANT_ICON..DBM_COMMON_L.DAMAGE_ICON)
 	local timerSolarBlastCD			= mod:NewCDCountTimer(20.5, 154396, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 	local timerLensFlareCD			= mod:NewCDCountTimer(20.5, 1253531, nil, nil, nil, 3)
 
