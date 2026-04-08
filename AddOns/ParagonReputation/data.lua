@@ -1,5 +1,5 @@
 		-------------------------------------------------
-		-- Paragon Reputation 1.69 by Fail US-Ragnaros --
+		-- Paragon Reputation 1.75 by Fail US-Ragnaros --
 		-------------------------------------------------
 
 		  --[[	  Special thanks to Ammako for
@@ -638,4 +638,37 @@ PR.PARAGON_DATA = {
 				factionID = 2601,
 				cache = 226103,
 			},
+			
+	--Midnight
+		[93566] = { -- Amani Tribe
+			factionID = 2696,
+			cache = 251970,
+		}, 
+		[89035] = { -- Hara'ti
+			factionID = 2704,
+			cache = 256055,
+		}, 
+		[93811] = { -- Silvermoon Court
+			factionID = 2710,
+			cache = 263433,
+		}, 
+		[94492] = { -- Slayer's Duellum
+			factionID = 2770,
+			cache = 267299,
+			rewards = {
+				{ 
+					type = MOUNT,
+					itemID = 257176,
+					mountID = 2764,
+				},
+				{ 
+					type = PET,
+					itemID = 264892,
+				},
+			},
+		}, 
+		[89032] = { -- The Singularity
+			factionID = 2699,
+			cache = 259334,
+		}, 
 }

@@ -1,5 +1,5 @@
 		-------------------------------------------------
-		-- Paragon Reputation 1.69 by Fail US-Ragnaros --
+		-- Paragon Reputation 1.75 by Fail US-Ragnaros --
 		-------------------------------------------------
 
 		  --[[	  Special thanks to Ammako for
@@ -53,19 +53,42 @@ local function AddParagonRewardsToTooltip(self,tooltip,rewards)
 	end
 end
 
+-- [GameTooltip] Create our own tooltip to not taint the EmbeddedItemTooltip one.
+local function GetParagonTooltip()
+	local tooltip = ParagonEmbeddedItemTooltip
+	if not tooltip then
+		tooltip = CreateFrame("GameTooltip","ParagonEmbeddedItemTooltip",UIParent,"GameTooltipTemplate")
+		tooltip.ItemTooltip = CreateFrame("FRAME",nil,tooltip,"InternalEmbeddedItemTooltipTemplate")
+		tooltip.ItemTooltip.Tooltip.shoppingTooltips = {CreateFrame("GameTooltip","ParagonReputationShoppingTooltip1",UIParent,"ShoppingTooltipTemplate"),CreateFrame("GameTooltip","ParagonReputationShoppingTooltip2",UIParent,"ShoppingTooltipTemplate")}
+		if C_AddOns.IsAddOnLoaded("ElvUI") then -- Skin the Icon in the new tooltip with ElvUI, if enabled.
+			local E = ElvUI and ElvUI[1]
+			if E and E.private and E.private.skins and E.private.skins.blizzard and E.private.skins.blizzard.enable and E.private.skins.blizzard.tooltip then
+				local S = E and E.GetModule and E:GetModule("Skins")
+				if S then
+					S:HandleIcon(tooltip.ItemTooltip.Icon,true)
+					S:HandleIconBorder(tooltip.ItemTooltip.IconBorder,tooltip.ItemTooltip.Icon.backdrop)
+				end
+			end
+		end
+	end
+	return tooltip
+end
+
 -- [GameTooltip] Show the GameTooltip with the Item Reward on mouseover. (Thanks Brudarek)
-function ParagonReputation:Tooltip(self)
+local function ShowParagonRewardsTooltip(self)
 	if not self.questID or not PR.PARAGON_DATA[self.questID] or self.tooLowLevelForParagon then return end
-	EmbeddedItemTooltip:ClearLines()
-	EmbeddedItemTooltip:SetOwner(self,"ANCHOR_RIGHT")
-	ReputationParagonFrame_SetupParagonTooltip(self)
-	GameTooltip_SetBottomText(EmbeddedItemTooltip,REPUTATION_BUTTON_TOOLTIP_CLICK_INSTRUCTION,GREEN_FONT_COLOR)
-	AddParagonRewardsToTooltip(self,EmbeddedItemTooltip,PR.PARAGON_DATA[self.questID].rewards)
-	EmbeddedItemTooltip:AddLine(" ")
-	EmbeddedItemTooltip:AddLine(string.format(ARCHAEOLOGY_COMPLETION,self.count))
-	EmbeddedItemTooltip:AddLine(" ")
-	EmbeddedItemTooltip:SetClampedToScreen(true)
-	EmbeddedItemTooltip:Show()
+	local tooltip = GetParagonTooltip()
+	tooltip:ClearLines()
+	tooltip:SetOwner(self,"ANCHOR_RIGHT")
+	tooltip.factionID = self.factionID
+	ReputationUtil.AddParagonRewardsToTooltip(tooltip,self.factionID)
+	AddParagonRewardsToTooltip(self,tooltip,PR.PARAGON_DATA[self.questID].rewards)
+	GameTooltip_SetBottomText(tooltip,REPUTATION_BUTTON_TOOLTIP_CLICK_INSTRUCTION,GREEN_FONT_COLOR)
+	tooltip:AddLine(" ")
+	tooltip:AddLine(string.format(ARCHAEOLOGY_COMPLETION,self.count))
+	tooltip:AddLine(" ")
+	tooltip:SetClampedToScreen(true)
+	tooltip:Show()
 end
 
 local ACTIVE_TOAST = false
@@ -121,8 +144,8 @@ events:SetScript("OnEvent",function(self,event,arg1,arg2)
 			PR:ShowToast(data.name,arg1)
 		end
 	elseif event == "GET_ITEM_INFO_RECEIVED" and arg2 and ParagonItemInfoReceivedQueue[arg1] then
-		if ParagonItemInfoReceivedQueue[arg1]:IsMouseOver() and EmbeddedItemTooltip:GetOwner() == ParagonItemInfoReceivedQueue[arg1] then
-			PR:Tooltip(ParagonItemInfoReceivedQueue[arg1])
+		if ParagonItemInfoReceivedQueue[arg1]:IsMouseOver() and GetParagonTooltip():GetOwner() == ParagonItemInfoReceivedQueue[arg1] then
+			ShowParagonRewardsTooltip(ParagonItemInfoReceivedQueue[arg1])
 		end
 		ParagonItemInfoReceivedQueue[arg1] = nil
 	end
@@ -152,11 +175,16 @@ end
 -- [Reputation Frame] Change the Reputation Bars accordingly.
 local function UpdateBar(self)
 	if not self.Content or not self.Content.ReputationBar then return end
-	if self.factionID and C_Reputation.IsFactionParagon(self.factionID) then
+	if self.factionID and C_Reputation.IsFactionParagonForCurrentPlayer(self.factionID) then
 		if not self.paragon_hook and self.ShowParagonRewardsTooltip then
-			hooksecurefunc(self,"ShowParagonRewardsTooltip",function(_self)
-				PR:Tooltip(_self)
+			self.ShowParagonRewardsTooltip = ShowParagonRewardsTooltip -- Directly replace the function to prevent unexpected taint of the EmbeddedItemTooltip.
+			hooksecurefunc(self,"HideTooltip",function(_self)
+				local tooltip = GetParagonTooltip()
+				if tooltip:GetOwner() == _self then
+					tooltip:Hide()
+				end
 			end)
+			
 			self.paragon_hook = true
 		end
 		local currentValue,threshold,rewardQuestID,hasRewardPending,tooLowLevelForParagon = C_Reputation.GetFactionParagonInfo(self.factionID)

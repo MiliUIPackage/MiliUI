@@ -1,5 +1,5 @@
 		-------------------------------------------------
-		-- Paragon Reputation 1.69 by Fail US-Ragnaros --
+		-- Paragon Reputation 1.75 by Fail US-Ragnaros --
 		-------------------------------------------------
 
 		  --[[	  Special thanks to Ammako for
@@ -115,14 +115,15 @@ function ParagonReputation:CreateOptions()
 	PR.options.name = PR.L["Paragon Reputation"]
 	
 	local category = Settings.RegisterCanvasLayoutCategory(PR.options,PR.options.name)
-	category.ID = PR.options.name
+	--category.ID = PR.options.name
+	PR.options.ID = category:GetID()
 	Settings.RegisterAddOnCategory(category)
 	--InterfaceOptions_AddCategory(PR.options)
 
 	-- [Interface Options] Title
 	PR.options.title = PR.options:CreateFontString(nil,"ARTWORK","GameFontNormalLarge")
 	PR.options.title:SetPoint("TOPLEFT",16,-16)
-	PR.options.title:SetText(PR.L["|cff0088eeParagon|r Reputation |cff0088eev"]..GetAddOnMetadata(ADDON_NAME,"Version").."|r")
+	PR.options.title:SetText("|cff0088eeParagon|r Reputation |cff0088eev"..GetAddOnMetadata(ADDON_NAME,"Version").."|r")
 
 	-- [Interface Options] Title Description
 	PR.options.description1 = PR.options:CreateFontString(nil,"ARTWORK","GameFontHighlightSmall")
@@ -306,7 +307,7 @@ end
 function ParagonReputation:LockButton()
 	local point,_,relative,x,y = PR.toast:GetPoint()
 	PR.DB.point = {point,relative,x,y}
-	Settings.OpenToCategory(PR.options.name)
+	Settings.OpenToCategory(PR.options.ID)
 	PR.toast:Hide()
 	PR.toast.reset:Hide()
 	PR.toast.lock:Hide()
