@@ -278,11 +278,21 @@ function KeystonePolaris:OnInitialize()
     -- Initialize the database first with AceDB
     self.db = LibStub("AceDB-3.0"):New("KeystonePolarisDB", self.defaults, "Default")
 
+    -- Migrate prefixColor from general.mainDisplay to color.prefix
+    local oldPrefix = self.db.profile.general.mainDisplay.prefixColor
+    if oldPrefix then
+        if not self.db.profile.color.prefix then
+            self.db.profile.color.prefix = oldPrefix
+        end
+        self.db.profile.general.mainDisplay.prefixColor = nil
+    end
+
     -- Load dungeon data from expansion modules
     self:LoadExpansionDungeons()
 
     -- Generate changelog for display in options
     self:GenerateChangelog()
+    self:GenerateAbout()
 
     -- Check if a new season has started
     self:CheckForNewSeason()
@@ -309,6 +319,7 @@ function KeystonePolaris:OnInitialize()
                 name = L["GENERAL_SETTINGS"],
                 type = "group",
                 order = 1,
+                childGroups = "tree",
                 args = {
                     disclaimerHeader = {
                         order = 0,
@@ -322,89 +333,11 @@ function KeystonePolaris:OnInitialize()
                         width = "full",
                         fontSize = "medium",
                     },
-                    separator = {
-                        type = "header",
-                        name = "",
-                        order = 0.25,
-                    },
-                    showCompartmentIcon = {
-                        order = 0.5,
-                        type = "toggle",
-                        name = L["SHOW_COMPARTMENT_ICON"],
-                        width = "2",
-                        get = function()
-                            return self.db.profile.general.showCompartmentIcon
-                        end,
-                        set = function(_, value)
-                            self.db.profile.general.showCompartmentIcon = not not value
-                            self:UpdateCompartmentIconVisibility()
-                        end,
-                    },
-                    showMinimapIcon = {
-                        order = 1,
-                        type = "toggle",
-                        name = L["SHOW_MINIMAP_ICON"],
-                        --[[ width = "full", ]]
-                        get = function()
-                            return self.db.profile.general.showMinimapIcon
-                        end,
-                        set = function(_, value)
-                            self.db.profile.general.showMinimapIcon = not not value
-                            self:UpdateMinimapIconVisibility()
-                        end,
-                    },
-                    testModeHeader = {
-                        order = 2,
-                        type = "header",
-                        name = "",
-                    },
-                    testMode = {
-                        order = 3,
-                        type = "toggle",
-                        name = L["TEST_MODE"] or "Test Mode",
-                        desc = L["TEST_MODE_DESC"],
-                        width = "full",
-                        get = function()
-                            return self._testMode or false
-                        end,
-                        set = function(_, value)
-                            self._testMode = not not value
-                            if self._testMode then
-                                -- Close settings so the user can see the preview behind
-                                if _G.HideUIPanel and _G.SettingsPanel then _G.HideUIPanel(_G.SettingsPanel) end
-                                if self.ShowTestOverlay then self:ShowTestOverlay() end
-                                if self.StartTestModeTicker then self:StartTestModeTicker() end
-                            else
-                                if self.HideTestOverlay then self:HideTestOverlay() end
-                                if self.StopTestModeTicker then self:StopTestModeTicker() end
-                            end
-                            if self.UpdatePercentageText then self:UpdatePercentageText() end
-                            if self.Refresh then self:Refresh() end
-                        end,
-                    },
-                    commandsHeader = {
-                        order = 3.5,
-                        type = "header",
-                        name = L["COMMANDS_HEADER"] or "Commands",
-                    },
-                    commandsDescription = {
-                        order = 3.6,
-                        type = "description",
-                        name = function()
-                            return self:ColorizeCommands(L["COMMANDS_HELP_DESC"] or "")
-                        end,
-                        fontSize = "medium",
-                    },
-                    generalHeader = {
-                        order = 4,
-                        type = "header",
-                        name = L["GENERAL_SETTINGS"],
-                    },
+                    display = self:GetDisplayOptions(),
+                    appearance = self:GetAppearanceOptions(),
                     positioning = self:GetPositioningOptions(),
-                    font = self:GetFontOptions(),
-                    colors = self:GetColorOptions(),
-                    mainDisplay = self:GetMainDisplayOptions(),
-                    otherOptions = self:GetOtherOptions(),
+                    informGroup = self:GetInformGroupOptions(),
+                    interface = self:GetInterfaceOptions(),
                 }
             },
             modules = {
@@ -462,9 +395,11 @@ function KeystonePolaris:OnInitialize()
         }
     })
     AceConfig:RegisterOptionsTable(AddOnName .. "_Changelog", self.changelogOptions)
+    AceConfig:RegisterOptionsTable(AddOnName .. "_About", self.aboutOptions)
 
     self.optionsCategoryId = select(2, AceConfigDialog:AddToBlizOptions(AddOnName, optionsAddonName))
     self.changelogCategoryId = select(2, AceConfigDialog:AddToBlizOptions(AddOnName .. "_Changelog", L["Changelog"], optionsAddonName))
+    self.aboutCategoryId = select(2, AceConfigDialog:AddToBlizOptions(AddOnName .. "_About", L["ABOUT"], optionsAddonName))
 
 
     -- Register chat command and events

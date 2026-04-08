@@ -316,7 +316,7 @@ function KeystonePolaris:GetDungeonDisplayName(dungeonKey)
 
     local name
     if mapId then
-        name, _, _, _ = C_ChallengeMode.GetMapUIInfo(mapId)
+        name = C_ChallengeMode.GetMapUIInfo(mapId)
         if name then return name end
     end
 

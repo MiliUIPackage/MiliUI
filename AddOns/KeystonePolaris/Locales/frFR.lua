@@ -5,7 +5,11 @@ local AceLocale = LibStub:GetLibrary("AceLocale-3.0");
 local L = AceLocale:NewLocale(AddonName, "frFR", false, false);
 if not L then return end
 
--- Traduction: ZelionGG
+-- Reference:
+-- Some strings below are sourced from BlizzardInterfaceResources.
+-- Source: https://github.com/Ketho/BlizzardInterfaceResources/blob/live/Resources/GlobalStrings/frFR.lua
+-- @Translation Team: If you find a false positive (a string that should stay identical),
+-- add `-- @no-translate` at the end of the line so the locale sync script ignores it.
 
 -- Temporary locales for Midnight Compatibility Warning
 L["COMPATIBILITY_WARNING"] = "Avertissement de compatibilité avec Midnight"
@@ -20,7 +24,7 @@ L["COMPATIBILITY_WARNING_MESSAGE"] = "|cffff0000Certains fonctionnalités sont d
 L["DUNGEONS"] = "Donjons"
 L["CURRENT_SEASON"] = "Saison actuelle"
 L["NEXT_SEASON"] = "Prochaine saison"
-L["REMIX"] = "Remix"
+L["REMIX"] = "Remix" -- @no-translate
 L["SEASON_ENDS_IN_ONE_MONTH"] = "La saison se termine dans moins d’un mois."
 L["SEASON_ENDS_IN_WEEKS"] = "La saison se termine dans moins de %d semaines."
 L["SEASON_ENDS_IN_DAYS"] = "La saison se termine dans %d jours."
@@ -42,21 +46,33 @@ L["EXPANSION_CATA"] = "Cataclysm"
 L["EXPANSION_WOTLK"] = "Wrath of the Lich King"
 
 -- UI Strings
-L["MODULES"] = "Modules"
+L["MODULES"] = "Modules" -- @no-translate
 L["MODULES_SUMMARY_HEADER"] = "Aperçu des modules"
 L["MODULES_SUMMARY_DESC"] = "Tour rapide des modules disponibles :\n\n• Intégration MythicDungeonTools\n  > Pourcentages des monstres\n\n• Rappel de groupe"
 L["FINISHED"] = "Pourcentage du donjon atteint"
 L["SECTION_DONE"] = "Section de donjon terminée"
 L["DONE"] = "Pourcentage de la section atteint"
 L["DUNGEON_DONE"] = "Donjon terminé"
-L["OPTIONS"] = "Options"
+L["OPTIONS"] = "Options" -- @no-translate
 L["GENERAL_SETTINGS"] = "Paramètres généraux"
+L["DISPLAY"] = "Affichage"
+L["APPEARANCE"] = "Apparence"
+L["INTERFACE"] = "Interface" -- @no-translate
+L["PREVIEW"] = "Aperçu"
+L["PREVIEW_SCENARIO"] = "Aperçu du scénario"
+L["PREVIEW_IDLE"] = "Au milieu du donjon (inactif)"
+L["PREVIEW_PULLING"] = "Au milieu du donjon (en combat)"
+L["PREVIEW_PROJECTED"] = "Projection de la section complète"
+L["PREVIEW_SECTION_DONE"] = "Section terminée"
+L["PREVIEW_MISSING"] = "Manquant (boss tué)"
+L["PREVIEW_ALMOST_DONE"] = "Presque terminé (en combat)"
+L["PREVIEW_DUNGEON_DONE"] = "Donjon terminé"
 L["Changelog"] = "Mises à jour"
-L["Version"] = "Version"
-L["Important"] = "Important"
+L["Version"] = "Version" -- @no-translate
+L["Important"] = "Important" -- @no-translate
 L["New"] = "Nouveau"
 L["Bugfixes"] = "Corrections de bugs"
-L["Improvment"] = "Améliorations"
+L["Improvement"] = "Améliorations"
 L["%month%-%day%-%year%"] = "%day%/%month%/%year%"
 L["DEFAULT_PERCENTAGES"] = "Pourcentages par défaut"
 L["DEFAULT_PERCENTAGES_DESC"] = "Cette vue affiche les valeurs par défaut intégrées dans l’addon et ne reflète pas la configuration de vos routes personnalisées."
@@ -65,10 +81,6 @@ L["ADVANCED_SETTINGS"] = "Routes personnalisées"
 L["TANK_GROUP_HEADER"] = "Pourcentages des boss"
 L["ROLES_ENABLED"] = "Role(s) nécessaire(s)"
 L["ROLES_ENABLED_DESC"] = "Sélectionnez les rôles qui pourront voir le pourcentage et informer le groupe."
-L["LEADER"] = "Chef de groupe"
-L["TANK"] = "Tank"
-L["HEALER"] = "Soigneur"
-L["DPS"] = "Dégâts"
 L["ENABLE"] = "Activer"
 L["ENABLE_ADVANCED_OPTIONS"] = "Activer les routes personnalisées"
 L["ADVANCED_OPTIONS_DESC"] = "Cela permet de configurer des pourcentages personnalisés à atteindre avant chaque boss et de choisir si le groupe doit être informé"
@@ -82,25 +94,31 @@ L["PARTY"] = "Groupe"
 L["SAY"] = "Dire"
 L["YELL"] = "Crier"
 L["PERCENTAGE"] = "Pourcentage"
-L["PERCENTAGE_DESC"] = "Ajuster la taille du texte"
 L["FONT"] = "Police"
 L["FONT_SIZE"] = "Taille de la police"
 L["FONT_SIZE_DESC"] = "Ajuster la taille du texte"
 L["POSITIONING"] = "Positionnement"
 L["COLORS"] = "Couleurs"
 L["IN_PROGRESS"] = "En cours"
+L["IN_PROGRESS_COLOR_DESC"] = "Couleur pour les valeurs de section qui ne sont pas encore terminées."
 L["MISSING"] = "Manquant"
+L["MISSING_COLOR_DESC"] = "Couleur pour les valeurs quand un boss a été tué avant d'atteindre le pourcentage requis."
 L["FINISHED_COLOR"] = "Terminé"
+L["FINISHED_COLOR_DESC"] = "Couleur pour les valeurs quand le pourcentage requis d'une section a été atteint."
 L["VALIDATE"] = "Valider"
 L["CANCEL"] = "Annuler"
-L["POSITION"] = "Position"
+L["DIM_BACKGROUND"] = "Fond assombri"
+L["SHOW_GRID"] = "Afficher la grille"
+L["GRID_SPACING"] = "Espacement de la grille"
+L["POSITION"] = "Position" -- @no-translate
 L["TOP"] = "Haut"
 L["CENTER"] = "Centre"
 L["BOTTOM"] = "Bas"
 L["X_OFFSET"] = "Décalage X"
+L["X_OFFSET_DESC"] = "Ajuster la position horizontale du texte"
 L["Y_OFFSET"] = "Décalage Y"
+L["Y_OFFSET_DESC"] = "Ajuster la position verticale du texte"
 L["SHOW_ANCHOR"] = "Afficher l'ancrage"
-L["ANCHOR_TEXT"] = "< Déplacer KPL >"
 L["RESET_DUNGEON"] = "Réinitialiser aux valeurs par défaut"
 L["RESET_DUNGEON_DESC"] = "Réinitialiser tous les pourcentages des boss de ce donjon à leurs valeurs par défaut"
 L["RESET_DUNGEON_CONFIRM"] = "Êtes-vous sûr de vouloir réinitialiser tous les pourcentages des boss de ce donjon à leurs valeurs par défaut ?"
@@ -115,7 +133,7 @@ L["NEW_ROUTES_RESET_PROMPT"] = "Les routes par défaut des donjons ont changé d
 L["RESET_ALL"] = "Réinitialiser tous les donjons"
 L["RESET_CHANGED_ONLY"] = "Réinitialiser uniquement ces donjons"
 L["CHANGED_ROUTES_DUNGEONS_LIST"] = "Les donjons suivants ont des routes mises à jour :"
-L["BOSS"] = "Boss"
+L["BOSS"] = "Boss" -- @no-translate
 L["BOSS_ORDER"] = "Ordre des boss"
 L["SHOW_COMPARTMENT_ICON"] = "Icône de compartiment"
 L["SHOW_MINIMAP_ICON"] = "Icône de la mini-carte"
@@ -135,7 +153,24 @@ L["SELECT_ALL"] = "Sélectionner tout"
 L["TRANSLATE"] = "Traduire"
 L["TRANSLATE_DESC"] = "Copier les notes de version qui vont apparaître dans une fenêtre popup pour les coller dans votre traducteur."
 
--- Mode Test
+-- About
+L["ABOUT"] = "À propos"
+L["ABOUT_DESC"] = "Cette page présente les informations sur Keystone Polaris, son développement et son équipe de contributeurs."
+L["DEVELOPMENT"] = "Développement"
+L["MAINTAINER_AND_DEVELOPER"] = "Créateur et développeur"
+L["DEVELOPER"] = "Contributeur au développement"
+L["LOCALIZATION"] = "Traduction"
+L["LOCALIZATION_STRING"] = "Traduction en %s"
+L["DONATE"] = "Donation" -- @no-translate
+L["DONATE_DESC"] = "Vous souhaitez aider le développement de Keystone Polaris ? Utilisez l'un des boutons ci-dessous pour copier un lien de donation."
+L["SUPPORT"] = "Soutenir"
+L["SUPPORT_DESC"] = "Vous souhaitez aider le développement de Keystone Polaris ? Utilisez l'un des boutons ci-dessous pour copier un lien de soutien."
+L["GITHUB_SPONSORS"] = "GitHub Sponsors" -- @no-translate
+L["GITHUB_SPONSORS_DESC"] = "Copier le lien GitHub Sponsors."
+L["PAYPAL"] = "PayPal" -- @no-translate
+L["PAYPAL_DESC"] = "Copier le lien de don PayPal."
+
+-- Test Mode
 L["TEST_MODE"] = "Mode Test"
 L["TEST_MODE_OVERLAY"] = "Keystone Polaris : Mode Test"
 L["TEST_MODE_OVERLAY_HINT"] = "Aperçu simulé. Clic droit sur cet encart pour quitter le mode test et rouvrir les options."
@@ -159,24 +194,27 @@ L["SHOW_CURRENT_PULL_PERCENT_DESC"] = "Affiche le pourcentage en cours (MDT)."
 L["PULL_LABEL_DESC"] = "Préfixe affiché avant le pourcentage en cours (MDT).\n\nVider le champ pour remettre la valeur par défaut."
 L["USE_MULTI_LINE_LAYOUT"] = "Afficher sur plusieurs lignes"
 L["USE_MULTI_LINE_LAYOUT_DESC"] = "Affiche chaque valeur sélectionnée sur une nouvelle ligne."
+L["SHOW_PROJECTED"] = "Afficher les valeurs projetées"
+L["SHOW_PROJECTED_DESC"] = "Ajoute les valeurs projetées: Actuel affiche le résultat du calcul (Actuel + En cours). Requis affiche le résultat du calcul (Requis - En cours)."
 L["SINGLE_LINE_SEPARATOR"] = "Séparateur de ligne"
 L["SINGLE_LINE_SEPARATOR_DESC"] = "Séparateur utilisé entre les éléments lorsqu'un affichage sur une ligne est utilisé."
 L["FONT_ALIGN"] = "Alignement du texte"
 L["FONT_ALIGN_DESC"] = "Alignement horizontal du texte affiché."
 L["PREFIX_COLOR"] = "Couleur des préfixes"
 L["PREFIX_COLOR_DESC"] = "Couleur appliquée aux libellés/préfixes (Requis, Actuel, En cours)."
+L["TEXT_OPACITY"] = "Opacité du texte"
+L["TEXT_OPACITY_DESC"] = "Contrôle la transparence du texte affiché."
 L["MAX_WIDTH"] = "Largeur maximale (une ligne)"
 L["MAX_WIDTH_DESC"] = "Largeur maximale en pixels pour l'affichage sur une ligne. 0 = automatique (sans retour à la ligne)."
 L["REQUIRED_DEFAULT"] = "Requis :"
+L["SECTION_REQUIRED_DEFAULT"] = "Total requis pour la section :"
 L["CURRENT_DEFAULT"] = "Actuel :"
-L["SECTION_REQUIRED_DEFAULT"] = "Total requis pour la section:"
 L["PULL_DEFAULT"] = "En cours :"
 
 -- Section required prefix
 L["SHOW_SECTION_REQUIRED_PREFIX"] = "Afficher le pourcentage total requis pour la section"
 L["SHOW_SECTION_REQUIRED_PREFIX_DESC"] = "Affiche le pourcentage total requis pour la section actuelle sans prendre en compte la progression déjà effectuée."
 L["SECTION_REQUIRED_LABEL_DESC"] = "Préfixe affiché avant la valeur requise pour la section.\n\nVider le champ pour remettre la valeur par défaut."
-L["SECTION_REQUIRED_DEFAULT"] = "Total requis pour la section :"
 
 L["FORMAT_MODE"] = "Format de texte"
 L["FORMAT_MODE_DESC"] = "Sélectionnez comment afficher la progression du donjon."
@@ -225,18 +263,17 @@ L["ENABLE_MOB_PERCENTAGES"] = "Activer les pourcentages des monstres"
 L["ENABLE_MOB_PERCENTAGES_DESC"] = "Affiche le pourcentage de contribution de chaque monstre dans les donjons Mythique+"
 L["MOB_PERCENTAGE_FONT_SIZE"] = "Taille de la police"
 L["MOB_PERCENTAGE_FONT_SIZE_DESC"] = "Taille de la police des pourcentages des monstres"
-L["MOB_PERCENTAGE_POSITION"] = "Position"
+L["MOB_PERCENTAGE_POSITION"] = "Position" -- @no-translate
 L["MOB_PERCENTAGE_POSITION_DESC"] = "Position des pourcentages des monstres par rapport aux barres d'informations"
 L["RIGHT"] = "Droite"
 L["LEFT"] = "Gauche"
-L["TOP"] = "Haut"
-L["BOTTOM"] = "Bas"
 L["MDT_WARNING"] = "Cette fonctionnalité nécessite l'installation de l'addon Mythic Dungeon Tools (MDT)."
 L["MDT_FOUND"] = "Mythic Dungeon Tools trouvé. Les pourcentages des monstres utiliseront les données de MDT."
 L["MDT_LOADED"] = "Mythic Dungeon Tools chargé avec succès."
 L["MDT_NOT_FOUND"] = "Mythic Dungeon Tools non trouvé. Les pourcentages des monstres ne seront pas affichés. Veuillez installer MDT pour que cette fonctionnalité fonctionne."
 L["MDT_INTEGRATION"] = "Intégration MDT"
 L["MDT_SECTION_WARNING"] = "Cette section nécessite l'installation de l'addon Mythic Dungeon Tools (MDT)."
+L["MDT_FEATURE_UNAVAILABLE"] = "Désactivé en raison des restrictions de l'API Blizzard à Midnight. Sera réactivé lorsque Blizzard aura publié la nouvelle API Mythique+."
 L["DISPLAY_OPTIONS"] = "Options d'affichage"
 L["APPEARANCE_OPTIONS"] = "Options d'apparence"
 L["SHOW_PERCENTAGE"] = "Afficher le pourcentage"
@@ -264,7 +301,7 @@ L["KPL_GR_CHAT_COMMAND_INFO"] = "Astuce: La commande |cffffd100/kpl reminder|r p
 
 -- Group Reminder (Options)
 L["KPL_GR_DESC_LONG"] = "Affiche une fenêtre de rappel et/ou un message dans le chat quand vous êtes accepté dans un groupe Mythic+, avec un bouton pour se téléporter au donjon."
-L["KPL_GR_NOTIFICATIONS"] = "Notifications"
+L["KPL_GR_NOTIFICATIONS"] = "Notifications" -- @no-translate
 L["KPL_GR_SUPPRESS_TOAST"] = "Masquer la notif. Blizzard (Quick Join)"
 L["KPL_GR_SUPPRESS_TOAST_DESC"] = "Masquer la fenêtre Blizzard qui apparaît en bas de l'écran lorsque vous êtes invité."
 L["KPL_GR_SHOW_POPUP"] = "Afficher la fenêtre popup"

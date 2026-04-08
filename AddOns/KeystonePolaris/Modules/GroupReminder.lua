@@ -227,14 +227,23 @@ local function EnsureGroupReminderStyledFrame(self)
 
     local f = CreateFrame("Frame", "KPL_GroupReminderStyled", UIParent, "BackdropTemplate")
     f:SetSize(400, 200) -- Slightly smaller/standard size
-    f:SetPoint("CENTER")
+    local xOff = self.db.profile.groupReminder.popupXOffset or 0
+    local yOff = self.db.profile.groupReminder.popupYOffset or 0
+    f:SetPoint("CENTER", UIParent, "CENTER", xOff, yOff)
     f:SetFrameStrata("DIALOG")
     f:SetClampedToScreen(true)
     f:EnableMouse(true)
     f:SetMovable(true)
     f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart", f.StartMoving)
-    f:SetScript("OnDragStop", f.StopMovingOrSizing)
+    f:SetScript("OnDragStop", function(frame)
+        frame:StopMovingOrSizing()
+        local cx, cy = frame:GetCenter()
+        local sw, sh = GetScreenWidth(), GetScreenHeight()
+        local db = self.db.profile.groupReminder
+        db.popupXOffset = cx - sw / 2
+        db.popupYOffset = cy - sh / 2
+    end)
 
     f:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -715,7 +724,7 @@ function KeystonePolaris:TestGroupReminder()
     local fakeID = 999999
     -- Fake a role application
     self.groupReminderRoleByResult = self.groupReminderRoleByResult or {}
-    local roles = {L["TANK"], L["HEALER"], L["DPS"]}
+    local roles = {TANK, HEALER, DAMAGER}
     self.groupReminderRoleByResult[fakeID] = roles[math.random(#roles)]
 
     -- Fake data (randomized)
@@ -900,6 +909,22 @@ function KeystonePolaris:GetGroupReminderOptions()
                 width = "full",
                 order = 6,
                 func = function() self:TestGroupReminder() end,
+                disabled = function() return not self.db.profile.groupReminder.enabled end,
+            },
+            resetPopupPosition = {
+                name = "Reset popup position",
+                desc = "Reset the group reminder popup to the center of the screen.",
+                type = "execute",
+                width = "full",
+                order = 7,
+                func = function()
+                    self.db.profile.groupReminder.popupXOffset = 0
+                    self.db.profile.groupReminder.popupYOffset = 0
+                    if self.groupReminderStyledFrame then
+                        self.groupReminderStyledFrame:ClearAllPoints()
+                        self.groupReminderStyledFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+                    end
+                end,
                 disabled = function() return not self.db.profile.groupReminder.enabled end,
             },
             contentHeader = {

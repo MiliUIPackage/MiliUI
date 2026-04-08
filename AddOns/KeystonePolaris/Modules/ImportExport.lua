@@ -691,7 +691,7 @@ local function DecodeSerializedPayload(payload)
     return nil
 end
 
-function KeystonePolaris:TryImportMDTRoute(importPayload, dungeonFilter)
+function KeystonePolaris:TryImportMDTRoute(importPayload)
     local prefix = (self.GetChatPrefix and self:GetChatPrefix()) or "Keystone Polaris"
     local routeRoot = DecodeSerializedPayload(importPayload)
     if not routeRoot then

@@ -4,6 +4,9 @@ local pairs, strsplit, format = pairs, strsplit, string.format
 
 -- Get localization table
 local L = KeystonePolaris.L
+local function MDTFeaturesEnabled()
+    return KeystonePolaris.mdtFeaturesEnabled
+end
 
 -- Quiet MDT presence check for UI gating (no prints, no side-effects)
 local function IsMDTAvailable()
@@ -272,6 +275,13 @@ end
 
 -- Get options for mob percentages display
 function KeystonePolaris:GetMobPercentagesOptions()
+    local function IsMobPercentagesOptionsDisabled()
+        return (not self.db.profile.mobPercentages.enabled)
+            or self.isMidnight
+            or (not MDTFeaturesEnabled())
+            or (not IsMDTAvailable())
+    end
+
     return {
         name = L["MOB_PERCENTAGES"],
         type = "group",
@@ -290,18 +300,32 @@ function KeystonePolaris:GetMobPercentagesOptions()
                 type = "header",
                 order = 1,
             },
+            enableLocked = {
+                name = "|cff9d9d9d" .. L["ENABLE"] .. "|r",
+                desc = L["MDT_FEATURE_UNAVAILABLE"],
+                type = "description",
+                dialogControl = "InteractiveLabel",
+                order = 1,
+                width = 1.4,
+                hidden = function() return MDTFeaturesEnabled() and IsMDTAvailable() end,
+                image = "Interface\\PetBattles\\PetBattle-LockIcon",
+                imageWidth = 20,
+                imageHeight = 20,
+                fontSize = "medium",
+            },
             enable = {
                 name = L["ENABLE"],
                 desc = L["ENABLE_MOB_PERCENTAGES_DESC"],
                 type = "toggle",
                 width = "full",
                 order = 2,
-                get = function() return self.db.profile.mobPercentages.enabled end,
+                hidden = function() return (not MDTFeaturesEnabled()) or (not IsMDTAvailable()) end,
+                get = function() return not self.isMidnight or self.db.profile.mobPercentages.enabled end,
                 set = function(_, value)
                     if self.isMidnight then
                         return
                     end
-                    
+
                     self.db.profile.mobPercentages.enabled = value
                     if value then
                         self:InitializeMobPercentages()
@@ -327,7 +351,7 @@ function KeystonePolaris:GetMobPercentagesOptions()
                 inline = true,
                 order = 3,
                 disabled = function()
-                    return not IsMDTAvailable()
+                    return IsMobPercentagesOptionsDisabled()
                 end,
                 args = {
                     showPercent = {
@@ -345,7 +369,7 @@ function KeystonePolaris:GetMobPercentagesOptions()
                             end
                         end,
                         disabled = function()
-                            return (not self.db.profile.mobPercentages.enabled) or (not IsMDTAvailable())
+                            return IsMobPercentagesOptionsDisabled()
                         end
                     },
                     showCount = {
@@ -363,7 +387,7 @@ function KeystonePolaris:GetMobPercentagesOptions()
                             end
                         end,
                         disabled = function()
-                            return (not self.db.profile.mobPercentages.enabled) or (not IsMDTAvailable())
+                            return IsMobPercentagesOptionsDisabled()
                         end
                     },
                     showTotal = {
@@ -381,7 +405,7 @@ function KeystonePolaris:GetMobPercentagesOptions()
                             end
                         end,
                         disabled = function()
-                            return (not self.db.profile.mobPercentages.enabled) or (not self.db.profile.mobPercentages.showCount) or (not IsMDTAvailable())
+                            return IsMobPercentagesOptionsDisabled() or (not self.db.profile.mobPercentages.showCount)
                         end
                     },
                     customFormat = {
@@ -405,7 +429,7 @@ function KeystonePolaris:GetMobPercentagesOptions()
                             end
                         end,
                         disabled = function()
-                            return (not self.db.profile.mobPercentages.enabled) or (not IsMDTAvailable())
+                            return IsMobPercentagesOptionsDisabled()
                         end
                     },
                     resetCustomFormat = {
@@ -422,7 +446,7 @@ function KeystonePolaris:GetMobPercentagesOptions()
                             end
                         end,
                         disabled = function()
-                            return (not self.db.profile.mobPercentages.enabled) or (not IsMDTAvailable())
+                            return IsMobPercentagesOptionsDisabled()
                         end
                     },
                 }
@@ -433,7 +457,7 @@ function KeystonePolaris:GetMobPercentagesOptions()
                 inline = true,
                 order = 4,
                 disabled = function()
-                    return not IsMDTAvailable()
+                    return IsMobPercentagesOptionsDisabled()
                 end,
                 args = {
                     fontSize = {
@@ -453,7 +477,7 @@ function KeystonePolaris:GetMobPercentagesOptions()
                             end
                         end,
                         disabled = function()
-                            return (not self.db.profile.mobPercentages.enabled) or (not IsMDTAvailable())
+                            return IsMobPercentagesOptionsDisabled()
                         end
                     },
                     textColor = {
@@ -471,7 +495,7 @@ function KeystonePolaris:GetMobPercentagesOptions()
                             end
                         end,
                         disabled = function()
-                            return (not self.db.profile.mobPercentages.enabled) or (not IsMDTAvailable())
+                            return IsMobPercentagesOptionsDisabled()
                         end
                     },
                     position = {
@@ -494,7 +518,7 @@ function KeystonePolaris:GetMobPercentagesOptions()
                             end
                         end,
                         disabled = function()
-                            return (not self.db.profile.mobPercentages.enabled) or (not IsMDTAvailable())
+                            return IsMobPercentagesOptionsDisabled()
                         end
                     },
                     xOffset = {
@@ -514,7 +538,7 @@ function KeystonePolaris:GetMobPercentagesOptions()
                             end
                         end,
                         disabled = function()
-                            return (not self.db.profile.mobPercentages.enabled) or (not IsMDTAvailable())
+                            return IsMobPercentagesOptionsDisabled()
                         end
                     },
                     yOffset = {
@@ -534,7 +558,7 @@ function KeystonePolaris:GetMobPercentagesOptions()
                             end
                         end,
                         disabled = function()
-                            return (not self.db.profile.mobPercentages.enabled) or (not IsMDTAvailable())
+                            return IsMobPercentagesOptionsDisabled()
                         end
                     },
                 }

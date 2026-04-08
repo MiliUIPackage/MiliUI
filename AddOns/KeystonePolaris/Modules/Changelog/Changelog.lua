@@ -103,7 +103,7 @@ function KeystonePolaris:GenerateChangelog()
             appendSection("Important", data.important)
             appendSection("New", data.new)
             appendSection("Bugfixes", data.bugfix)
-            appendSection("Improvment", data.improvment)
+            appendSection("Improvement", data.improvment)
         end
 
         return table.concat(chunks, "\n")
@@ -287,7 +287,7 @@ function KeystonePolaris:GenerateChangelog()
                 page.improvmentHeader = {
                     order = 9,
                     type = "header",
-                    name = orange(L["Improvment"])
+                    name = orange(L["Improvement"])
                 }
                 page.improvment = {
                     order = 10,

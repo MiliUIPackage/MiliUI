@@ -11,6 +11,96 @@ local CALENDAR_WEEKDAY_NAMES = _G.CALENDAR_WEEKDAY_NAMES
 
 -- Get localization table
 local L = LibStub("AceLocale-3.0"):GetLocale(AddOnName, true)
+local ACR = LibStub("AceConfigRegistry-3.0")
+
+-- MDT integration unavailable due to Blizzard API changes in Midnight
+local MDT_FEATURES_ENABLED = false
+KeystonePolaris.mdtFeaturesEnabled = MDT_FEATURES_ENABLED
+
+-- Shared preview scenario index (persists across Display and Appearance pages)
+KeystonePolaris._previewScenario = 1
+
+local function PreviewScenarioValues()
+    local scenarios = KeystonePolaris.PreviewScenarios
+    if not scenarios then return {} end
+    local vals = {}
+    for i, s in ipairs(scenarios) do
+        if not s.requiresMDT or KeystonePolaris.mdtFeaturesEnabled then
+            vals[i] = s.name
+        end
+    end
+    return vals
+end
+
+local function PreviewGroup(order)
+    return {
+        type = "group",
+        inline = true,
+        name = "",
+        order = order,
+        args = {
+            previewScenario = {
+                name = L["PREVIEW_SCENARIO"],
+                type = "select",
+                order = 1,
+                width = "full",
+                values = PreviewScenarioValues,
+                get = function() return KeystonePolaris._previewScenario or 1 end,
+                set = function(_, value)
+                    KeystonePolaris._previewScenario = value
+                    ACR:NotifyChange(AddOnName)
+                end,
+            },
+            preview = {
+                name = "",
+                type = "select",
+                dialogControl = "KeystonePolaris_Preview",
+                order = 2,
+                width = "full",
+                values = PreviewScenarioValues,
+                get = function() return KeystonePolaris._previewScenario or 1 end,
+                set = function() end,
+            },
+        },
+    }
+end
+
+local function ColumnRow(order, left, right, spacerWidth)
+    left.order = 1
+    left.width = left.width or 1.25
+    right.order = 2
+    right.width = right.width or 1.25
+    return {
+        type = "group", inline = true, name = "", order = order,
+        args = {
+            col1 = left,
+            spacer = { name = " ", type = "description", order = 1.5, width = spacerWidth or 0.12 },
+            col2 = right,
+        }
+    }
+end
+
+local function MakeStatusColorOption(name, desc, colorKey, self, order)
+    return {
+        name = name,
+        desc = desc,
+        type = "color",
+        order = order,
+        width = 1.25,
+        get = function()
+            local color = self.db.profile.color[colorKey]
+            return color.r, color.g, color.b, color.a
+        end,
+        set = function(_, r, g, b, a)
+            self.db.profile.color[colorKey] = { r = r, g = g, b = b, a = a }
+            if self.UpdateColorCache then self:UpdateColorCache() end
+            if self.UpdatePercentageText then self:UpdatePercentageText() end
+            self:Refresh()
+            local pw = self._previewWidget
+            if pw and pw.RefreshPreview then pw:RefreshPreview() end
+        end
+    }
+end
 
 -- ---------------------------------------------------------------------------
 -- Helper utilities
@@ -73,9 +163,13 @@ KeystonePolaris.defaults = {
     profile = {
         general = {
             fontSize = 12,
+            textOpacity = 1,
             position = "CENTER",
             xOffset = 0,
             yOffset = 280,
+            positioningDimBackground = false,
+            positioningShowGrid = false,
+            positioningGridSpacing = 60,
             informGroup = true,
             informChannel = "PARTY",
             showCompartmentIcon = true,
@@ -102,7 +196,6 @@ KeystonePolaris.defaults = {
                 currentLabel = L["CURRENT_DEFAULT"],   -- Label for current percent
                 pullLabel = L["PULL_DEFAULT"],         -- Label for current pull percent
                 formatMode = "percent",               -- Display format: "percent" or "count"
-                prefixColor = { r = 1, g = 0.7960784, b = 0.2, a = 1 }, -- Color for prefixes (labels) (default: #ffcb33)
                 singleLineSeparator = " | ",           -- Separator for single-line layout
                 textAlign = "CENTER",                  -- Horizontal font alignment: LEFT, CENTER, RIGHT
                 showProjected = false                   -- Append projected values next to Current/Required
@@ -112,7 +205,8 @@ KeystonePolaris.defaults = {
         color = {
             inProgress = {r = 1, g = 1, b = 1, a = 1},
             finished = {r = 0, g = 1, b = 0, a = 1},
-            missing = {r = 1, g = 0, b = 0, a = 1}
+            missing = {r = 1, g = 0, b = 0, a = 1},
+            prefix = {r = 1, g = 0.7960784, b = 0.2, a = 1}
         },
         advanced = {}
     }
@@ -129,6 +223,8 @@ KeystonePolaris.defaults.profile.groupReminder = {
     showGroupDescription = true,
     showAppliedRole = true,
     lastReminder = nil,
+    popupXOffset = 0,
+    popupYOffset = 0,
 }
 
 local expansions = KeystonePolaris.Expansions
@@ -137,26 +233,12 @@ function KeystonePolaris:GetPositioningOptions()
     return {
         name = L["POSITIONING"],
         type = "group",
-        inline = true,
+        order = 3,
         args = {
-            showAnchor = {
-                name = L["SHOW_ANCHOR"],
-                type = "execute",
-                order = 1,
-                width = 2,
-                func = function()
-                    if self.anchorFrame then
-                        self.anchorFrame:Show()
-                        self.overlayFrame:Show()
-                        -- Hide the WoW settings frame
-                        HideUIPanel(SettingsPanel)
-                    end
-                end
-            },
-            position = {
+            positionRow = ColumnRow(2, {
                 name = L["POSITION"],
                 type = "select",
-                order = 2,
+                sorting = { "TOP", "CENTER", "BOTTOM" },
                 values = {
                     TOP = L["TOP"],
                     CENTER = L["CENTER"],
@@ -167,15 +249,23 @@ function KeystonePolaris:GetPositioningOptions()
                 end,
                 set = function(_, value)
                     self.db.profile.general.position = value
+                    self.db.profile.general.xOffset = 0
+                    self.db.profile.general.yOffset = 0
                     self:Refresh()
                 end
-            },
-            xOffset = {
+            }, {
+                name = L["SHOW_ANCHOR"],
+                type = "execute",
+                func = function()
+                    HideUIPanel(SettingsPanel)
+                    self:EnterPositioningMode()
+                end
+            }),
+            offsetRow = ColumnRow(3, {
                 name = L["X_OFFSET"],
                 type = "range",
-                order = 3,
-                min = -500,
-                max = 500,
+                min = -math.ceil(GetScreenWidth()),
+                max = math.ceil(GetScreenWidth()),
                 step = 1,
                 get = function()
                     return self.db.profile.general.xOffset
@@ -184,13 +274,11 @@ function KeystonePolaris:GetPositioningOptions()
                     self.db.profile.general.xOffset = value
                     self:Refresh()
                 end
-            },
-            yOffset = {
+            }, {
                 name = L["Y_OFFSET"],
                 type = "range",
-                order = 4,
-                min = -500,
-                max = 500,
+                min = -math.ceil(GetScreenHeight()),
+                max = math.ceil(GetScreenHeight()),
                 step = 1,
                 get = function()
                     return self.db.profile.general.yOffset
@@ -199,23 +287,66 @@ function KeystonePolaris:GetPositioningOptions()
                     self.db.profile.general.yOffset = value
                     self:Refresh()
                 end
+            }),
+            positioningHeader = {
+                type = "header",
+                name = "",
+                order = 4,
+            },
+            dimBackground = {
+                name = L["DIM_BACKGROUND"],
+                type = "toggle",
+                order = 5,
+                get = function()
+                    return self.db.profile.general.positioningDimBackground
+                end,
+                set = function(_, value)
+                    self.db.profile.general.positioningDimBackground = not not value
+                end,
+            },
+            showGrid = {
+                name = L["SHOW_GRID"],
+                type = "toggle",
+                order = 6,
+                get = function()
+                    return self.db.profile.general.positioningShowGrid
+                end,
+                set = function(_, value)
+                    self.db.profile.general.positioningShowGrid = not not value
+                end,
+            },
+            gridSpacing = {
+                name = L["GRID_SPACING"],
+                type = "range",
+                order = 7,
+                min = 10,
+                max = 200,
+                step = 5,
+                get = function()
+                    return self.db.profile.general.positioningGridSpacing
+                end,
+                set = function(_, value)
+                    self.db.profile.general.positioningGridSpacing = value
+                end,
+                disabled = function()
+                    return not self.db.profile.general.positioningShowGrid
+                end,
             }
         }
     }
 end
 
-function KeystonePolaris:GetFontOptions()
+function KeystonePolaris:GetAppearanceOptions()
     return {
-        name = L["FONT"],
+        name = L["APPEARANCE"],
         type = "group",
-        inline = true,
-        order = 5.5,
+        order = 2,
         args = {
-            font = {
+            previewGroup = PreviewGroup(0.01),
+            fontRow = ColumnRow(1, {
                 name = L["FONT"],
                 type = "select",
                 dialogControl = 'LSM30_Font',
-                order = 1,
                 values = AceGUIWidgetLSMlists.font,
                 style = "dropdown",
                 get = function() return self.db.profile.text.font end,
@@ -223,317 +354,10 @@ function KeystonePolaris:GetFontOptions()
                     self.db.profile.text.font = value
                     self:Refresh()
                 end
-            },
-            fontSize = {
-                name = L["FONT_SIZE"],
-                desc = L["FONT_SIZE_DESC"],
-                type = "range",
-                order = 2,
-                min = 8,
-                max = 64,
-                step = 1,
-                get = function()
-                    return self.db.profile.general.fontSize
-                end,
-                set = function(_, value)
-                    self.db.profile.general.fontSize = value
-                    self:Refresh()
-                end
-            }
-        }
-    }
-end
-
-function KeystonePolaris:GetColorOptions()
-    return {
-        name = L["COLORS"],
-        type = "group",
-        inline = true,
-        order = 6,
-        args = {
-            inProgress = {
-                name = L["IN_PROGRESS"],
-                type = "color",
-                order = 1,
-                hasAlpha = true,
-                get = function()
-                    local color = self.db.profile.color.inProgress
-                    return color.r, color.g, color.b, color.a
-                end,
-                set = function(_, r, g, b, a)
-                    local color = self.db.profile.color.inProgress
-                    color.r, color.g, color.b, color.a = r, g, b, a
-                    self:Refresh()
-                end
-            },
-            finished = {
-                name = L["FINISHED_COLOR"],
-                type = "color",
-                order = 2,
-                hasAlpha = true,
-                get = function()
-                    local color = self.db.profile.color.finished
-                    return color.r, color.g, color.b, color.a
-                end,
-                set = function(_, r, g, b, a)
-                    local color = self.db.profile.color.finished
-                    color.r, color.g, color.b, color.a = r, g, b, a
-                    self:Refresh()
-                end
-            },
-            missing = {
-                name = L["MISSING"],
-                type = "color",
-                order = 3,
-                hasAlpha = true,
-                get = function()
-                    local color = self.db.profile.color.missing
-                    return color.r, color.g, color.b, color.a
-                end,
-                set = function(_, r, g, b, a)
-                    local color = self.db.profile.color.missing
-                    color.r, color.g, color.b, color.a = r, g, b, a
-                    self:Refresh()
-                end
-            }
-        }
-    }
-end
-
--- Main display options: control which values to show and layout
-function KeystonePolaris:GetMainDisplayOptions()
-    -- Local helper for MDT availability
-    local function IsMDTAvailable()
-        if C_AddOns and C_AddOns.IsAddOnLoaded then
-            return C_AddOns.IsAddOnLoaded("MythicDungeonTools") or (_G.MDT ~= nil) or (_G.MethodDungeonTools ~= nil)
-        end
-        return (_G and (_G.MDT or _G.MethodDungeonTools))
-    end
-    return {
-        name = L["MAIN_DISPLAY"],
-        type = "group",
-        inline = true,
-        order = 5.75,
-        args = {
-            formatMode = {
-                name = L["FORMAT_MODE"],
-                desc = L["FORMAT_MODE_DESC"],
-                type = "select",
-                order = 0,
-                values = function()
-                    local percentLabel = L["PERCENTAGE"]
-                    local countLabel = L["COUNT"]
-                    return { percent = percentLabel, count = countLabel }
-                end,
-                get = function()
-                    return self.db.profile.general.mainDisplay.formatMode or "percent"
-                end,
-                set = function(_, value)
-                    self.db.profile.general.mainDisplay.formatMode = value == "count" and "count" or "percent"
-                    if self.UpdatePercentageText then self:UpdatePercentageText() end
-                    if self.ApplyTextLayout then self:ApplyTextLayout() end
-                    if self.AdjustDisplayFrameSize then self:AdjustDisplayFrameSize() end
-                end
-            },
-            separator0 = {
-                type = "header",
-                name = "",
-                order = 0.05
-            },
-            prefixColor = {
-                name = L["PREFIX_COLOR"],
-                desc = L["PREFIX_COLOR_DESC"],
-                type = "color",
-                order = 0.1,
-                width = "full",
-                hasAlpha = false,
-                get = function()
-                    local c = self.db.profile.general.mainDisplay.prefixColor or (self.defaults and self.defaults.profile.general.mainDisplay.prefixColor) or {r=1,g=0.7960784,b=0.2,a=1}
-                    return c.r, c.g, c.b, c.a
-                end,
-                set = function(_, r, g, b, a)
-                    local cfg = self.db.profile.general.mainDisplay
-                    if not cfg.prefixColor then
-                        cfg.prefixColor = { r = r, g = g, b = b, a = a }
-                    else
-                        local c = cfg.prefixColor
-                        c.r, c.g, c.b, c.a = r, g, b, a
-                    end
-                    if self.UpdateColorCache then self:UpdateColorCache() end
-                    if self.UpdatePercentageText then self:UpdatePercentageText() end
-                    if self.Refresh then self:Refresh() end
-                end
-            },
-            showRequiredText = {
-                name = L["SHOW_REQUIRED_PREFIX"],
-                desc = L["SHOW_REQUIRED_PREFIX_DESC"],
-                type = "toggle",
-                order = 0.25,
-                width = 1.4,
-                get = function() return self.db.profile.general.mainDisplay.showRequiredText end,
-                set = function(_, value)
-                    self.db.profile.general.mainDisplay.showRequiredText = value
-                    self:UpdatePercentageText()
-                end
-            },
-            requiredLabel = {
-                name = L["LABEL"],
-                desc = L["REQUIRED_LABEL_DESC"],
-                type = "input",
-                order = 0.5,
-                width = 1,
-                get = function() return self.db.profile.general.mainDisplay.requiredLabel end,
-                set = function(_, value)
-                    local text = type(value) == "string" and value or ""
-                    text = (text ~= "" and text) or L["REQUIRED_DEFAULT"]
-                    self.db.profile.general.mainDisplay.requiredLabel = text
-                    self:UpdatePercentageText()
-                end,
-                disabled = function()
-                    return not self.db.profile.general.mainDisplay.showRequiredText
-                end
-            },
-            showSectionRequiredText = {
-                name = L["SHOW_SECTION_REQUIRED_PREFIX"],
-                desc = L["SHOW_SECTION_REQUIRED_PREFIX_DESC"],
-                type = "toggle",
-                order = 0.55,
-                width = 1.4,
-                get = function() return self.db.profile.general.mainDisplay.showSectionRequiredText end,
-                set = function(_, value)
-                    self.db.profile.general.mainDisplay.showSectionRequiredText = value
-                    self:UpdatePercentageText()
-                end
-            },
-            sectionRequiredLabel = {
-                name = L["LABEL"],
-                desc = L["SECTION_REQUIRED_LABEL_DESC"],
-                type = "input",
-                order = 0.60,
-                width = 1,
-                get = function() return self.db.profile.general.mainDisplay.sectionRequiredLabel end,
-                set = function(_, value)
-                    local text = type(value) == "string" and value or ""
-                    text = (text ~= "" and text) or L["SECTION_REQUIRED_DEFAULT"]
-                    self.db.profile.general.mainDisplay.sectionRequiredLabel = text
-                    self:UpdatePercentageText()
-                end,
-                disabled = function()
-                    return not self.db.profile.general.mainDisplay.showSectionRequiredText
-                end
-            },
-            showCurrentPercent = {
-                name = L["SHOW_CURRENT_PERCENT"],
-                desc = L["SHOW_CURRENT_PERCENT_DESC"],
-                type = "toggle",
-                order = 1,
-                width = 1.4,
-                get = function() return self.db.profile.general.mainDisplay.showCurrentPercent end,
-                set = function(_, value)
-                    self.db.profile.general.mainDisplay.showCurrentPercent = value
-                    self:UpdatePercentageText()
-                end
-            },
-            currentLabel = {
-                name = L["LABEL"],
-                desc = L["CURRENT_LABEL_DESC"],
-                type = "input",
-                order = 1.1,
-                width = 1,
-                get = function() return self.db.profile.general.mainDisplay.currentLabel end,
-                set = function(_, value)
-                    local text = type(value) == "string" and value or ""
-                    text = (text ~= "" and text) or L["CURRENT_DEFAULT"]
-                    self.db.profile.general.mainDisplay.currentLabel = text
-                    self:UpdatePercentageText()
-                end,
-                disabled = function()
-                    return not self.db.profile.general.mainDisplay.showCurrentPercent
-                end
-            },
-            showCurrentPullPercent = {
-                name = L["SHOW_CURRENT_PULL_PERCENT"],
-                desc = L["SHOW_CURRENT_PULL_PERCENT_DESC"],
-                type = "toggle",
-                order = 2,
-                width = 1.4,
-                get = function() return self.db.profile.general.mainDisplay.showCurrentPullPercent end,
-                set = function(_, value)
-                    self.db.profile.general.mainDisplay.showCurrentPullPercent = value
-                    self:UpdatePercentageText()
-                end,
-                disabled = function()
-                    return not IsMDTAvailable() or self.isMidnight
-                end
-            },
-            pullLabel = {
-                name = L["LABEL"],
-                desc = L["PULL_LABEL_DESC"],
-                type = "input",
-                order = 2.1,
-                width = 1,
-                get = function() return self.db.profile.general.mainDisplay.pullLabel end,
-                set = function(_, value)
-                    local text = type(value) == "string" and value or ""
-                    text = (text ~= "" and text) or L["PULL_DEFAULT"]
-                    self.db.profile.general.mainDisplay.pullLabel = text
-                    self:UpdatePercentageText()
-                end,
-                disabled = function()
-                    return not self.db.profile.general.mainDisplay.showCurrentPullPercent or not IsMDTAvailable()
-                end
-            },
-            multiLine = {
-                name = L["USE_MULTI_LINE_LAYOUT"],
-                desc = L["USE_MULTI_LINE_LAYOUT_DESC"],
-                type = "toggle",
-                order = 3,
-                width = 1.4,
-                get = function() return self.db.profile.general.mainDisplay.multiLine end,
-                set = function(_, value)
-                    self.db.profile.general.mainDisplay.multiLine = value
-                    -- Immediate refresh
-                    if self.UpdatePercentageText then self:UpdatePercentageText() end
-                    if self.ApplyTextLayout then self:ApplyTextLayout() end
-                    if self.AdjustDisplayFrameSize then self:AdjustDisplayFrameSize() end
-                    -- Notify AceConfig to repaint controls bound to this value
-                    local ACR = LibStub and LibStub("AceConfigRegistry-3.0", true)
-                    if ACR and AddOnName then ACR:NotifyChange(AddOnName) end
-                    -- Multi-frame re-apply to avoid sticky states
-                    local function reapply()
-                        if self.displayFrame and self.displayFrame.text then
-                            if self.UpdatePercentageText then self:UpdatePercentageText() end
-                            if self.ApplyTextLayout then self:ApplyTextLayout() end
-                            if self.AdjustDisplayFrameSize then self:AdjustDisplayFrameSize() end
-                            local t = self.displayFrame.text
-                            t:SetText(t:GetText())
-                        end
-                    end
-                    C_Timer.After(0.03, reapply)
-                    C_Timer.After(0.08, reapply)
-                    C_Timer.After(0.15, reapply)
-                end
-            },
-            singleLineSeparator = {
-                name = L["SINGLE_LINE_SEPARATOR"],
-                desc = L["SINGLE_LINE_SEPARATOR_DESC"],
-                type = "input",
-                order = 3.1,
-                width = 1,
-                get = function() return self.db.profile.general.mainDisplay.singleLineSeparator end,
-                set = function(_, value)
-                    self.db.profile.general.mainDisplay.singleLineSeparator = tostring(value or " | ")
-                    self:UpdatePercentageText()
-                end,
-                disabled = function()
-                    return self.db.profile.general.mainDisplay.multiLine
-                end
-            },
-            textAlign = {
+            }, {
                 name = L["FONT_ALIGN"],
                 desc = L["FONT_ALIGN_DESC"],
                 type = "select",
-                order = 3.2,
                 values = {
                     LEFT = L["LEFT"],
                     CENTER = L["CENTER"],
@@ -542,18 +366,15 @@ function KeystonePolaris:GetMainDisplayOptions()
                 get = function() return self.db.profile.general.mainDisplay.textAlign end,
                 set = function(_, value)
                     self.db.profile.general.mainDisplay.textAlign = value
-                    -- Immediate layout apply and text reflow
                     if self.ApplyTextLayout then self:ApplyTextLayout() end
                     if self.displayFrame and self.displayFrame.text then
                         local t = self.displayFrame.text
                         t:SetText(t:GetText())
                     end
-                    -- Re-render text then re-apply layout and size
                     if self.UpdatePercentageText then self:UpdatePercentageText() end
                     if self.ApplyTextLayout then self:ApplyTextLayout() end
                     if self.AdjustDisplayFrameSize then self:AdjustDisplayFrameSize() end
 
-                    -- Multi-frame re-apply for select UI timing
                     local function reapply()
                         if self.displayFrame and self.displayFrame.text then
                             if self.ApplyTextLayout then self:ApplyTextLayout() end
@@ -566,17 +387,13 @@ function KeystonePolaris:GetMainDisplayOptions()
                     C_Timer.After(0.08, reapply)
                     C_Timer.After(0.15, reapply)
 
-                    -- Hidden toggle workaround: flip multiLine off/on to force UI reflow without changing final setting
                     local origMulti = self.db.profile.general.mainDisplay.multiLine
-                    local ACR = LibStub and LibStub("AceConfigRegistry-3.0", true)
                     local function setMulti(val)
                         self.db.profile.general.mainDisplay.multiLine = val
-                        if ACR and AddOnName then ACR:NotifyChange(AddOnName) end
+                        ACR:NotifyChange(AddOnName)
                     end
-                    -- Flip off/on around the layout reapply
                     setMulti(not origMulti)
                     reapply()
-                    -- Restore with repeated assertions
                     C_Timer.After(0.05, function()
                         setMulti(origMulti)
                         reapply()
@@ -593,13 +410,226 @@ function KeystonePolaris:GetMainDisplayOptions()
                 disabled = function()
                     return not self.db.profile.general.mainDisplay.multiLine
                 end
+            }),
+            fontSizeRow = ColumnRow(2, {
+                name = L["FONT_SIZE"],
+                desc = L["FONT_SIZE_DESC"],
+                type = "range",
+                min = 8,
+                max = 64,
+                step = 1,
+                get = function()
+                    return self.db.profile.general.fontSize
+                end,
+                set = function(_, value)
+                    self.db.profile.general.fontSize = value
+                    self:Refresh()
+                end
+            }, {
+                name = L["TEXT_OPACITY"],
+                desc = L["TEXT_OPACITY_DESC"],
+                type = "range",
+                min = 0, max = 1, step = 0.05,
+                isPercent = true,
+                get = function()
+                    return self.db.profile.general.textOpacity or 1
+                end,
+                set = function(_, value)
+                    self.db.profile.general.textOpacity = value
+                    if self.UpdatePercentageText then self:UpdatePercentageText() end
+                    self:Refresh()
+                end,
+            }),
+            colorsSpacer = {
+                type = "description",
+                name = " ",
+                order = 2.9,
+                width = "full",
+            },
+            colorsHeader = {
+                type = "header",
+                name = L["COLORS"],
+                order = 3,
+            },
+            prefixColor = MakeStatusColorOption(L["PREFIX_COLOR"], L["PREFIX_COLOR_DESC"], "prefix", self, 4),
+            inProgressColor = MakeStatusColorOption(L["IN_PROGRESS"], L["IN_PROGRESS_COLOR_DESC"], "inProgress", self, 5),
+            missingColor = MakeStatusColorOption(L["MISSING"], L["MISSING_COLOR_DESC"], "missing", self, 6),
+            finishedColor = MakeStatusColorOption(L["FINISHED_COLOR"], L["FINISHED_COLOR_DESC"], "finished", self, 7),
+        }
+    }
+end
+
+-- Display options: control which values to show and layout
+function KeystonePolaris:GetDisplayOptions()
+    local function IsMDTAvailable()
+        if not MDT_FEATURES_ENABLED then return false end
+        if C_AddOns and C_AddOns.IsAddOnLoaded then
+            return C_AddOns.IsAddOnLoaded("MythicDungeonTools") or (_G.MDT ~= nil) or (_G.MethodDungeonTools ~= nil)
+        end
+        return (_G and (_G.MDT or _G.MethodDungeonTools))
+    end
+    return {
+        name = L["DISPLAY"],
+        type = "group",
+        order = 1,
+        args = {
+            previewGroup = PreviewGroup(0.01),
+            formatMode = {
+                name = L["FORMAT_MODE"],
+                desc = L["FORMAT_MODE_DESC"],
+                type = "select",
+                order = 2,
+                width = "full",
+                values = function()
+                    local percentLabel = L["PERCENTAGE"]
+                    local countLabel = L["COUNT"]
+                    return { percent = percentLabel, count = countLabel }
+                end,
+                get = function()
+                    return self.db.profile.general.mainDisplay.formatMode or "percent"
+                end,
+                set = function(_, value)
+                    self.db.profile.general.mainDisplay.formatMode = value == "count" and "count" or "percent"
+                    if self.UpdatePercentageText then self:UpdatePercentageText() end
+                    if self.ApplyTextLayout then self:ApplyTextLayout() end
+                    if self.AdjustDisplayFrameSize then self:AdjustDisplayFrameSize() end
+                end
+            },
+            requiredRow = ColumnRow(3, {
+                name = L["SHOW_REQUIRED_PREFIX"],
+                desc = L["SHOW_REQUIRED_PREFIX_DESC"],
+                type = "toggle",
+                get = function() return self.db.profile.general.mainDisplay.showRequiredText end,
+                set = function(_, value)
+                    self.db.profile.general.mainDisplay.showRequiredText = value
+                    self:UpdatePercentageText()
+                end
+            }, {
+                name = L["LABEL"],
+                desc = L["REQUIRED_LABEL_DESC"],
+                type = "input",
+                get = function() return self.db.profile.general.mainDisplay.requiredLabel end,
+                set = function(_, value)
+                    local text = type(value) == "string" and value or ""
+                    text = (text ~= "" and text) or L["REQUIRED_DEFAULT"]
+                    self.db.profile.general.mainDisplay.requiredLabel = text
+                    self:UpdatePercentageText()
+                end,
+                disabled = function()
+                    return not self.db.profile.general.mainDisplay.showRequiredText
+                end
+            }),
+            sectionRequiredRow = ColumnRow(5, {
+                name = L["SHOW_SECTION_REQUIRED_PREFIX"],
+                desc = L["SHOW_SECTION_REQUIRED_PREFIX_DESC"],
+                type = "toggle",
+                get = function() return self.db.profile.general.mainDisplay.showSectionRequiredText end,
+                set = function(_, value)
+                    self.db.profile.general.mainDisplay.showSectionRequiredText = value
+                    self:UpdatePercentageText()
+                end
+            }, {
+                name = L["LABEL"],
+                desc = L["SECTION_REQUIRED_LABEL_DESC"],
+                type = "input",
+                get = function() return self.db.profile.general.mainDisplay.sectionRequiredLabel end,
+                set = function(_, value)
+                    local text = type(value) == "string" and value or ""
+                    text = (text ~= "" and text) or L["SECTION_REQUIRED_DEFAULT"]
+                    self.db.profile.general.mainDisplay.sectionRequiredLabel = text
+                    self:UpdatePercentageText()
+                end,
+                disabled = function()
+                    return not self.db.profile.general.mainDisplay.showSectionRequiredText
+                end
+            }),
+            currentRow = ColumnRow(7, {
+                name = L["SHOW_CURRENT_PERCENT"],
+                desc = L["SHOW_CURRENT_PERCENT_DESC"],
+                type = "toggle",
+                get = function() return self.db.profile.general.mainDisplay.showCurrentPercent end,
+                set = function(_, value)
+                    self.db.profile.general.mainDisplay.showCurrentPercent = value
+                    self:UpdatePercentageText()
+                end
+            }, {
+                name = L["LABEL"],
+                desc = L["CURRENT_LABEL_DESC"],
+                type = "input",
+                get = function() return self.db.profile.general.mainDisplay.currentLabel end,
+                set = function(_, value)
+                    local text = type(value) == "string" and value or ""
+                    text = (text ~= "" and text) or L["CURRENT_DEFAULT"]
+                    self.db.profile.general.mainDisplay.currentLabel = text
+                    self:UpdatePercentageText()
+                end,
+                disabled = function()
+                    return not self.db.profile.general.mainDisplay.showCurrentPercent
+                end
+            }),
+            showCurrentPullPercentLocked = {
+                name = "|cff9d9d9d" .. L["SHOW_CURRENT_PULL_PERCENT"] .. "|r",
+                desc = L["MDT_FEATURE_UNAVAILABLE"],
+                type = "description",
+                dialogControl = "InteractiveLabel",
+                order = 12,
+                width = 1.4,
+                hidden = function() return MDT_FEATURES_ENABLED and IsMDTAvailable() end,
+                image = "Interface\\PetBattles\\PetBattle-LockIcon",
+                imageWidth = 20,
+                imageHeight = 20,
+                fontSize = "medium",
+            },
+            showCurrentPullPercent = {
+                name = L["SHOW_CURRENT_PULL_PERCENT"],
+                desc = L["SHOW_CURRENT_PULL_PERCENT_DESC"],
+                type = "toggle",
+                order = 12,
+                width = 1.4,
+                hidden = function() return (not MDT_FEATURES_ENABLED) or (not IsMDTAvailable()) end,
+                get = function() return self.db.profile.general.mainDisplay.showCurrentPullPercent end,
+                set = function(_, value)
+                    self.db.profile.general.mainDisplay.showCurrentPullPercent = value
+                    self:UpdatePercentageText()
+                end,
+            },
+            pullLabel = {
+                name = L["LABEL"],
+                desc = L["PULL_LABEL_DESC"],
+                type = "input",
+                order = 13,
+                width = 1,
+                get = function() return self.db.profile.general.mainDisplay.pullLabel end,
+                set = function(_, value)
+                    local text = type(value) == "string" and value or ""
+                    text = (text ~= "" and text) or L["PULL_DEFAULT"]
+                    self.db.profile.general.mainDisplay.pullLabel = text
+                    self:UpdatePercentageText()
+                end,
+                hidden = function()
+                    return not self.db.profile.general.mainDisplay.showCurrentPullPercent or not IsMDTAvailable()
+                end
+            },
+            showProjectedLocked = {
+                name = "|cff9d9d9d" .. L["SHOW_PROJECTED"] .. "|r",
+                desc = L["MDT_FEATURE_UNAVAILABLE"],
+                type = "description",
+                dialogControl = "InteractiveLabel",
+                order = 14,
+                width = 1.6,
+                hidden = function() return MDT_FEATURES_ENABLED and IsMDTAvailable() end,
+                image = "Interface\\PetBattles\\PetBattle-LockIcon",
+                imageWidth = 20,
+                imageHeight = 20,
+                fontSize = "medium",
             },
             showProjected = {
                 name = L["SHOW_PROJECTED"],
                 desc = L["SHOW_PROJECTED_DESC"],
                 type = "toggle",
-                order = 3.25,
+                order = 14,
                 width = 1.6,
+                hidden = function() return (not MDT_FEATURES_ENABLED) or (not IsMDTAvailable()) end,
                 get = function() return self.db.profile.general.mainDisplay.showProjected end,
                 set = function(_, value)
                     self.db.profile.general.mainDisplay.showProjected = value
@@ -607,31 +637,94 @@ function KeystonePolaris:GetMainDisplayOptions()
                     if self.ApplyTextLayout then self:ApplyTextLayout() end
                     if self.AdjustDisplayFrameSize then self:AdjustDisplayFrameSize() end
                 end,
-                disabled = function()
-                    return not IsMDTAvailable() or self.isMidnight
-                end
             },
+            multiLineRow = ColumnRow(9, {
+                name = L["USE_MULTI_LINE_LAYOUT"],
+                desc = L["USE_MULTI_LINE_LAYOUT_DESC"],
+                type = "toggle",
+                get = function() return self.db.profile.general.mainDisplay.multiLine end,
+                set = function(_, value)
+                    self.db.profile.general.mainDisplay.multiLine = value
+                    if self.UpdatePercentageText then self:UpdatePercentageText() end
+                    if self.ApplyTextLayout then self:ApplyTextLayout() end
+                    if self.AdjustDisplayFrameSize then self:AdjustDisplayFrameSize() end
+                    ACR:NotifyChange(AddOnName)
+                    local function reapply()
+                        if self.displayFrame and self.displayFrame.text then
+                            if self.UpdatePercentageText then self:UpdatePercentageText() end
+                            if self.ApplyTextLayout then self:ApplyTextLayout() end
+                            if self.AdjustDisplayFrameSize then self:AdjustDisplayFrameSize() end
+                            local t = self.displayFrame.text
+                            t:SetText(t:GetText())
+                        end
+                    end
+                    C_Timer.After(0.03, reapply)
+                    C_Timer.After(0.08, reapply)
+                    C_Timer.After(0.15, reapply)
+                end
+            }, {
+                name = L["SINGLE_LINE_SEPARATOR"],
+                desc = L["SINGLE_LINE_SEPARATOR_DESC"],
+                type = "input",
+                get = function() return self.db.profile.general.mainDisplay.singleLineSeparator end,
+                set = function(_, value)
+                    self.db.profile.general.mainDisplay.singleLineSeparator = tostring(value or " | ")
+                    self:UpdatePercentageText()
+                end,
+                disabled = function()
+                    return self.db.profile.general.mainDisplay.multiLine
+                end
+            }),
         }
     }
 end
 
-function KeystonePolaris:GetOtherOptions()
+function KeystonePolaris:GetInformGroupOptions()
     return {
-        name = L["OPTIONS"],
+        name = L["INFORM_GROUP"],
         type = "group",
-        inline = true,
-        order = 10,
+        order = 4,
         args = {
+            informRow = ColumnRow(1, {
+                name = L["SHOW_INFORM_GROUP_BUTTON"],
+                desc = L["SHOW_INFORM_GROUP_BUTTON_DESC"],
+                type = "toggle",
+                get = function()
+                    return self.db.profile.general.informGroup
+                end,
+                set = function(_, value)
+                    self.db.profile.general.informGroup = value
+                end
+            }, {
+                name = L["MESSAGE_CHANNEL"],
+                desc = L["MESSAGE_CHANNEL_DESC"],
+                type = "select",
+                values = {PARTY = L["PARTY"], SAY = L["SAY"], YELL = L["YELL"]},
+                disabled = function()
+                    return not self.db.profile.general.informGroup
+                end,
+                get = function()
+                    return self.db.profile.general.informChannel
+                end,
+                set = function(_, value)
+                    self.db.profile.general.informChannel = value
+                end
+            }),
+            rolesHeader = {
+                type = "header",
+                name = "",
+                order = 3,
+            },
             rolesEnabled = {
                 name = L["ROLES_ENABLED"],
                 desc = L["ROLES_ENABLED_DESC"],
                 type = "multiselect",
-                order = 2,
+                order = 4,
                 values = {
-                    LEADER = L["LEADER"],
-                    TANK = L["TANK"],
-                    HEALER = L["HEALER"],
-                    DAMAGER = L["DPS"]
+                    LEADER = LEADER,
+                    TANK = TANK,
+                    HEALER = HEALER,
+                    DAMAGER = DAMAGER
                 },
                 get = function(_, key)
                     return self.db.profile.general.rolesEnabled[key] or false
@@ -645,40 +738,17 @@ function KeystonePolaris:GetOtherOptions()
                     self:Refresh()
                 end
             },
-            informGroup = {
-                name = L["SHOW_INFORM_GROUP_BUTTON"],
-                desc = L["SHOW_INFORM_GROUP_BUTTON_DESC"],
-                type = "toggle",
-                order = 10,
-                get = function()
-                    return self.db.profile.general.informGroup
-                end,
-                set = function(_, value)
-                    self.db.profile.general.informGroup = value
-                end
-            },
-            informChannel = {
-                name = L["MESSAGE_CHANNEL"],
-                desc = L["MESSAGE_CHANNEL_DESC"],
-                type = "select",
-                order = 11,
-                values = {PARTY = L["PARTY"], SAY = L["SAY"], YELL = L["YELL"]},
-                disabled = function()
-                    return not self.db.profile.general.informGroup
-                end,
-                get = function()
-                    return self.db.profile.general.informChannel
-                end,
-                set = function(_, value)
-                    self.db.profile.general.informChannel = value
-                end
+            advancedHeader = {
+                type = "header",
+                name = "",
+                order = 5,
             },
             enabled = {
                 name = L["ENABLE_ADVANCED_OPTIONS"],
                 desc = L["ADVANCED_OPTIONS_DESC"],
                 type = "toggle",
                 width = "full",
-                order = 12,
+                order = 6,
                 get = function()
                     return self.db.profile.general.advancedOptionsEnabled
                 end,
@@ -687,6 +757,50 @@ function KeystonePolaris:GetOtherOptions()
                     self:UpdateDungeonData()
                 end
             }
+        }
+    }
+end
+
+function KeystonePolaris:GetInterfaceOptions()
+    return {
+        name = L["INTERFACE"],
+        type = "group",
+        order = 5,
+        args = {
+            iconsRow = ColumnRow(1, {
+                type = "toggle",
+                name = L["SHOW_COMPARTMENT_ICON"],
+                get = function()
+                    return self.db.profile.general.showCompartmentIcon
+                end,
+                set = function(_, value)
+                    self.db.profile.general.showCompartmentIcon = not not value
+                    self:UpdateCompartmentIconVisibility()
+                end,
+            }, {
+                type = "toggle",
+                name = L["SHOW_MINIMAP_ICON"],
+                get = function()
+                    return self.db.profile.general.showMinimapIcon
+                end,
+                set = function(_, value)
+                    self.db.profile.general.showMinimapIcon = not not value
+                    self:UpdateMinimapIconVisibility()
+                end,
+            }),
+            commandsHeader = {
+                order = 3,
+                type = "header",
+                name = L["COMMANDS_HEADER"] or "Commands",
+            },
+            commandsDescription = {
+                order = 4,
+                type = "description",
+                name = function()
+                    return self:ColorizeCommands(L["COMMANDS_HELP_DESC"] or "")
+                end,
+                fontSize = "medium",
+            },
         }
     }
 end
@@ -1024,7 +1138,7 @@ function KeystonePolaris:GetAdvancedOptions()
             end
             return nil
         end
-        
+
         local daysUntilEnd = currentSeasonEnd and GetDaysUntil(currentSeasonEnd)
         local countdownText = GetSeasonCountdownText(daysUntilEnd, "SEASON_ENDS_IN", true, currentSeasonEnd)
         local hasEndSoon = countdownText ~= nil
@@ -1223,7 +1337,7 @@ function KeystonePolaris:GetAdvancedOptions()
         local year, month, day = strsplit("-", dateStr)
         year, month, day = tonumber(year), tonumber(month), tonumber(day)
         if not year or not month or not day then return dateStr end
-        
+
         -- Convert to timestamp, add seconds, convert back
         -- Note: os.time takes a table. Basic implementation for simple date math.
         local time = time({year=year, month=month, day=day, hour=12}) -- noon to avoid DST issues
@@ -1243,7 +1357,7 @@ function KeystonePolaris:GetAdvancedOptions()
                     end
             end
         end
-        
+
         -- Sort dungeons alphabetically by their localized names
         table.sort(remixDungeons, function(a, b)
             local mapIdA = a.id or self:GetDungeonIdByKey(a.key)
@@ -1267,7 +1381,7 @@ function KeystonePolaris:GetAdvancedOptions()
 
         -- Handle dates with region offset
         local eDate = data.end_date
-        
+
         -- Add +1 day for non-US regions if dates are present
         local portal = C_CVar.GetCVar("portal")
         local eDateFromTable = false
@@ -1462,8 +1576,7 @@ function KeystonePolaris:CreateDungeonOptions(dungeonKey, order)
                         if self.currentDungeonID and self.BuildSectionOrder then
                             self:BuildSectionOrder(self.currentDungeonID)
                         end
-                        LibStub("AceConfigRegistry-3.0"):NotifyChange(
-                            "KeystonePolaris")
+                        ACR:NotifyChange(AddOnName)
                         if self.UpdatePercentageText then self:UpdatePercentageText() end
                     end
                 end,
