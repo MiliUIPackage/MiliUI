@@ -139,3 +139,16 @@ L["Grim Batol"] = '格瑞姆巴托'
 L["Siege of Boralus"] = '波拉勒斯圍城戰'
 L["Mists of Tirna Scithe"] = '特那希迷霧'
 L["The Necrotic Wake"] = '死靈戰地'
+
+--TWW S2
+L["Operation: Floodgate"] = '水閘行動'
+L["Eco-Dome Al'dani"] = '埃達尼秘境'
+
+-- Midnight S1
+L["Magisters' Terrace"] = '博學者殿堂'
+L["Maisara Caverns"] = '梅薩拉洞穴'
+L["Nexus-Point Xenas"] = '奧核點瑟納斯'
+L["Windrunner Spire"] = '風行者塔'
+L["Pit of Saron"] = '薩倫之淵'
+L["Seat of the Triumvirate"] = '三傑議會之座'
+L["Skyreach"] = '擎天峰'
