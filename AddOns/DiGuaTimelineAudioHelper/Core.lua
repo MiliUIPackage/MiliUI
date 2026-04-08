@@ -156,7 +156,7 @@ local AudioTimeline = {
         }
     },
     [2066] = { -- 萨普瑞什
-        interval = 37, 
+        interval = 38, 
         startOffset = 0, 
         alerts = {
             -- [6] = { file = "DaDuanDuTiao.ogg", role = {"TANK", "DAMAGER"} },
@@ -506,7 +506,7 @@ local AudioTimeline = {
         }
     },
     [3328] = {
-        interval = 49, 
+        interval = 50, 
         startOffset = 0, 
         alerts = {
             -- [2]  = "ZhuYiSheXian.ogg",
@@ -545,24 +545,6 @@ local AudioTimeline = {
             -- [55] = "YiShangJieShu.ogg",
         }
     },
-    -- [3333] = {
-    --     interval = 9999, 
-    --     startOffset = 0, 
-    --     alerts = {
-    --         [2]  = { file = "ZhuYiJianShang.ogg", role = "TANK" },
-    --         [3]  = { file = "ZhuYiShuaTan.ogg", role = "HEALER" },
-    --         [12] = "BaMaFenSan.ogg",
-    --         [16] = "ZhuYiDuoQuan.ogg",
-    --         [24] = "躲开射线.ogg",
-    --         [29]  = { file = "ZhuYiJianShang.ogg", role = "TANK" },
-    --         [30]  = { file = "ZhuYiShuaTan.ogg", role = "HEALER" },
-    --         [34] = "躲开射线.ogg",
-    --         [37] = "BaMaFenSan.ogg",
-    --         [45] = "躲开射线.ogg",
-    --         [53] = "准备击飞.ogg",
-    --         [60] = ".ogg",
-    --     }
-    -- },
 }
 
 local PrivateAuraList = {
@@ -790,13 +772,13 @@ local LocationCastData = {
     ["眺望台"] = {
         { file = "KongDuanDaGuai.ogg" }
     },
-    ["主峰"] = {
-        { 
-            file = { "ZhuYiDianMing.ogg", "JinZhanDaQuan.ogg", "ZhuYiDianMing.ogg" }, 
-            unitLevel = NEXT_PLAYER_LEVEL, 
-            mapID = 601
-        },
-    },
+    -- ["主峰"] = {
+    --     { 
+    --         file = { "ZhuYiDianMing.ogg", "JinZhanDaQuan.ogg", "ZhuYiDianMing.ogg" }, 
+    --         unitLevel = NEXT_PLAYER_LEVEL, 
+    --         mapID = 601
+    --     },
+    -- },
     ["艾杰斯亚学院"] = {
         { 
             file = { "MeiYouYinPin.ogg", "MeiYouYinPin.ogg", "DuoKaiDaQuan.ogg", "MeiYouYinPin.ogg", "MeiYouYinPin.ogg" }, 
@@ -804,13 +786,13 @@ local LocationCastData = {
             mapID = 2098
         },
     },
-    [""] = {
-        { 
-            file = { "DuoKaiDaQuan.ogg", "ZhuYiTouQian.ogg" }, 
-            unitLevel = NEXT_PLAYER_LEVEL, 
-            mapID = 2097
-        },
-    },
+    -- [""] = {
+    --     { 
+    --         file = { "DuoKaiDaQuan.ogg", "ZhuYiTouQian.ogg" }, 
+    --         unitLevel = NEXT_PLAYER_LEVEL, 
+    --         mapID = 2097
+    --     },
+    -- },
     ["体育场"] = {
         { 
             file = { "DuoKaiTouQian.ogg", "ZhunBeiJiNuSanMiaoJiNu.ogg" }, 
@@ -990,7 +972,7 @@ local EventSoundData = {
     -- 晋升者祖拉尔
     [223] = {"DuoKaiZhengMian.ogg", 1}, -- 虚空之掌 (1268916)
     [224] = {"ZhunBeiTiaoRen.ogg", 1}, -- 残杀 (1263282)
-    [225] = {"KuaiKaiJianShang.ogg", 1}, -- 渗漏猛击 (1263399)
+    [225] = {"ZhunBeiAOE.ogg", 1}, -- 渗漏猛击 (1263399)
     [226] = {"SiMiaoTanKeJianShang.ogg", 2, {TANK = true, HEALER = true}}, -- 虚空挥砍 (1263440)
     [238] = {"XiaoXinJiTui.ogg", 1}, -- 崩解虚空 (1263304)
     -- 萨普瑞什
@@ -1444,36 +1426,7 @@ local function GetTopWidgetText()
     end
     return nil
 end
-local function FindDiGuaInChat()
-    local chatFrame = ChatFrame1
-    local numMessages = chatFrame:GetNumMessages()
-    local keyword = "神秘地瓜"
-    local foundCount = 0
 
-    print("|cffffff00[系统] 开始搜索包含“" .. keyword .. "”的聊天记录...|r")
-
-    for i = 1, numMessages do
-        -- 获取第 i 条消息的内容
-        local text = chatFrame:GetMessageInfo(i)
-        
-        -- 判断文本是否存在，并且是否包含关键字
-        if text and string.find(text, keyword) then
-            foundCount = foundCount + 1
-            
-            -- 清理掉图片转义符，保持打印整洁
-            local cleanText = text:gsub("|T.-|t", "")
-            
-            -- 打印出匹配到的行号和内容
-            print(string.format("|cff00ff00[命中 #%d]|r 行号[%d]: %s", foundCount, i, cleanText))
-        end
-    end
-
-    if foundCount == 0 then
-        print("|cffff0000[结果] 未在当前缓存中找到“" .. keyword .. "”。|r")
-    else
-        print("|cff00ff00[结果] 搜索完毕，共找到 " .. foundCount .. " 条相关记录。|r")
-    end
-end
 
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("PLAYER_TALENT_UPDATE")
@@ -1536,9 +1489,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         local alerts = LocationCastData[subZone]
         -- local castInfo = { UnitCastingInfo(unitTarget) } -- 注意这里的花括号
         -- local notInterruptible = castInfo[8]
-        
-        -- 执行搜索
-        -- FindDiGuaInChat()
+
         -- local currentMapID = C_Map.GetBestMapForUnit("player") or 0  
         -- local name = UnitName(unitTarget) or "未知"
         -- local actualLevel = UnitLevel(unitTarget)
@@ -1546,21 +1497,137 @@ frame:SetScript("OnEvent", function(self, event, ...)
         -- local unitPowerType = UnitPowerType(unitTarget)   
         -- local sex = UnitSex(unitTarget)
         -- local isInside = IsIndoors()
-        -- print(name .. " | dengji: " .. actualLevel .. " | quyu: " .. subZone .. " | dituID: ".. currentMapID .. " | fenlei: " .. classification .. " | nengliangleixing: " .. unitPowerType .. " | xingbie: " .. sex .. " | shinei: " .. tostring(isInside))
+        -- local classInfo = { UnitClass(unitTarget) }
+        -- local className = classInfo[2]
+        -- local auraData = C_UnitAuras.GetAuraDataByIndex(unitTarget, 2, "HELPFUL") 
+        -- local inCombat = UnitAffectingCombat(unitTarget)
+        -- local spellHastePercent = UnitSpellHaste(unitTarget)
+
+        -- print(name .. " | 等级: " .. actualLevel .. " | 区域: " .. subZone .. " | 地图ID: ".. currentMapID .. " | 分类: " .. classification .. " | 能量类型: " .. unitPowerType .. " | 性别: " .. sex .. " | 室内: " .. tostring(isInside) .. " | 职业: " .. className .. " | 存在两个增益: " .. (auraData and "是" or "否") .. " | 法术加速: " .. spellHastePercent)
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) then
+            if subZone == "主峰" then
+                local currentMapID = C_Map.GetBestMapForUnit("player") or 0        
+                local actualLevel = UnitLevel(unitTarget)
+                local isInside = IsIndoors()
+                local sex = UnitSex(unitTarget)
+                local unitPowerType = UnitPowerType(unitTarget)
+                if isInside == false and actualLevel == NEXT_PLAYER_LEVEL and currentMapID == 601 and unitPowerType == 0 and sex == 1 then
+                    C_Timer.After(1.9, function()
+                        PlaySoundFile(MEDIA_PATH .. "ZhuanHuoBaoZhu.ogg", "Master")
+                    end)
+                    return
+                end
+            end               
+        end
+
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) then
+            if subZone == "主峰" then
+                local currentMapID = C_Map.GetBestMapForUnit("player") or 0        
+                local actualLevel = UnitLevel(unitTarget)
+                local unitPowerType = UnitPowerType(unitTarget)    
+                local sex = UnitSex(unitTarget)
+                local isInside = IsIndoors()
+
+                if actualLevel == NEXT_PLAYER_LEVEL and currentMapID == 601 and unitPowerType == 0 and sex == 1 and isInside == true then
+                    -- 计数器递增
+                    UNIT_CAST_TRACKER[unitTarget] = (UNIT_CAST_TRACKER[unitTarget] or 0) + 1        
+                    
+                    -- 计算余数：这里我们用 count % 3
+                    -- 第一次施法：1 % 3 = 1
+                    -- 第二次施法：2 % 3 = 2
+                    -- 第三次施法：3 % 3 = 0
+                    local step = UNIT_CAST_TRACKER[unitTarget] % 3
+                    local PlayerRole = GetPlayerRole()
+                    if step == 1 then                        
+                        if PlayerRole == "DAMAGER" or PlayerRole == "HEALER" then
+                            PlaySoundFile(MEDIA_PATH .. "ZhuYiDianMing.ogg", "Master")
+                        end                        
+                    elseif step == 2 then
+                        -- 技能 2
+                        PlaySoundFile(MEDIA_PATH .. "JinZhanDaQuan.ogg", "Master")
+                    else
+                        if PlayerRole == "DAMAGER" or PlayerRole == "HEALER" then
+                            PlaySoundFile(MEDIA_PATH .. "ZhuYiDianMing.ogg", "Master")
+                        end      
+                    end
+                    
+                    return
+                end
+            end                
+        end
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) then
+            if subZone == "主峰" then
+                local currentMapID = C_Map.GetBestMapForUnit("player") or 0        
+                local actualLevel = UnitLevel(unitTarget)
+                local isInside = IsIndoors()
+                local sex = UnitSex(unitTarget)
+                local unitPowerType = UnitPowerType(unitTarget)
+                if isInside == true and actualLevel == NEXT_PLAYER_LEVEL and currentMapID == 602 and unitPowerType == 0 and sex == 1 then
+                    C_Timer.After(1.9, function()
+                        PlaySoundFile(MEDIA_PATH .. "ZhuanHuoBaoZhu.ogg", "Master")
+                    end)
+                    return
+                end
+            end               
+        end
         -- if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) then
         --     local currentMapID = C_Map.GetBestMapForUnit("player") or 0     
         --     if currentMapID == 184 then                   
         --         local actualLevel = UnitLevel(unitTarget)
         --         local classification = UnitClassification(unitTarget)
         --         local unitPowerType = UnitPowerType(unitTarget)   
-        --         local auraData = C_UnitAuras.GetAuraDataByIndex(unitTarget, 2, "HELPFUL") 
+        --         local auraData2 = C_UnitAuras.GetAuraDataByIndex(unitTarget, 2, "HELPFUL") 
+        --         local auraData3 = C_UnitAuras.GetAuraDataByIndex(unitTarget, 3, "HELPFUL") 
         --         local sex = UnitSex(unitTarget)
-        --         if actualLevel == PLAYER_LEVEL and unitPowerType == 0 and classification == "elite" and auraData and sex == 2 then
-        --             PlaySoundFile(MEDIA_PATH .. "XuKongBaoFa.ogg", "Master")
-        --             return
+        --         -- 注意：UnitSpellHaste 在正式服通常返回百分比数值（如 50 代表 50%）
+        --         local spellHastePercent = UnitSpellHaste(unitTarget) 
+
+        --         -- 第一层：基础过滤（等级、能量、精英、有第2个Buff、性别）
+        --         if actualLevel == PLAYER_LEVEL and unitPowerType == 0 and classification == "elite" and auraData2 and sex == 2 then
+                    
+        --             -- 第二层：排除特定组合（施法速度 50 且 只有 2 个 Buff）
+        --             -- 这里的逻辑是：如果是 50 且 没有第 3 个 Buff，就 return (不做任何事)
+        --             if spellHastePercent == 50 and auraData3 == nil then
+        --                 return 
+        --             else
+        --                 -- 只要不是上面那个特定组合，就播放语音
+        --                 PlaySoundFile(MEDIA_PATH .. "XuKongBaoFa.ogg", "Master")
+        --                 return -- 播放完退出，防止逻辑穿透
+        --             end
         --         end
         --     end                
         -- end
+
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) then
+            if subZone == "" then
+                local currentMapID = C_Map.GetBestMapForUnit("player") or 0        
+                local actualLevel = UnitLevel(unitTarget)
+                local unitPowerType = UnitPowerType(unitTarget)    
+                local sex = UnitSex(unitTarget)
+                local isInside = IsIndoors()
+                if actualLevel == NEXT_PLAYER_LEVEL and (currentMapID == 2097 or currentMapID == 2098) and unitPowerType == 1 and sex == 1 and isInside == false then
+                    UNIT_CAST_TRACKER[unitTarget] = (UNIT_CAST_TRACKER[unitTarget] or 0) + 1        
+                    if UNIT_CAST_TRACKER[unitTarget] % 2 == 1 then
+                        PlaySoundFile(MEDIA_PATH .. "DuoKaiDaQuan.ogg", "Master")
+                    else
+                        PlaySoundFile(MEDIA_PATH .. "ZhuYiTouQian.ogg", "Master")
+                    end
+                    return
+                end
+            end                
+        end
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) then
+            if subZone == "" or subZone == "首席教师之地" then
+                local currentMapID = C_Map.GetBestMapForUnit("player") or 0        
+                local actualLevel = UnitLevel(unitTarget)
+                local unitPowerType = UnitPowerType(unitTarget)    
+                local sex = UnitSex(unitTarget)
+                if actualLevel == NEXT_PLAYER_LEVEL and currentMapID == 2097 and unitPowerType == 1 and sex == 3 then
+                    PlaySoundFile(MEDIA_PATH .. "ZhunBeiAOE.ogg", "Master")
+                    return
+                end
+            end                
+        end
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) then
             if subZone == "" then
                 local currentMapID = C_Map.GetBestMapForUnit("player") or 0        
@@ -1807,9 +1874,16 @@ frame:SetScript("OnEvent", function(self, event, ...)
             MEDIA_PATH = "Interface\\AddOns\\DiGuaTimelineAudioHelper\\Media\\"
             -- print("|cffaaaaaa[系统]|r 未检测到 WYJJDB，使用默认素材路径")
         end
-        C_Timer.After(2, function()
-            SetCVar("encounterWarningsEnabled", 1)
-        end)          
+        -- 1. 专门针对 BigWigs 的判断
+        local hasBigWigs = C_AddOns.IsAddOnLoaded("BigWigs")
+
+        -- 2. 只有在【没有 BigWigs】的情况下，才在 2 秒后强制开启系统警报
+        if not hasBigWigs then
+            C_Timer.After(2, function()
+                -- 如果有 DBM 但没有 BW，这里依然会执行，满足你“DBM无所谓”的需求
+                SetCVar("encounterWarningsEnabled", 1)
+            end)
+        end       
         SetCVar("Sound_NumChannels", 128)
         RegisterPrivateAuras()
         C_Timer.After(2, function()
