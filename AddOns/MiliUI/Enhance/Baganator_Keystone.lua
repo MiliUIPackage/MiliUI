@@ -58,7 +58,24 @@ local function GetOrCreateKeystoneOverlay(button)
 end
 
 --------------------------------------------------------------------------------
+-- Core: 套用鑰石邊框顏色
+--------------------------------------------------------------------------------
+local function ApplyKeystoneBorder(button)
+    if button.IconBorder then
+        button.IconBorder:SetVertexColor(KEYSTONE_BORDER_R, KEYSTONE_BORDER_G, KEYSTONE_BORDER_B)
+        button.IconBorder:Show()
+    end
+end
+
+--------------------------------------------------------------------------------
 -- Core: 鑰石裝飾更新（作為 SetItemDetails 的 post-hook）
+--
+-- 問題：Baganator 的 SetItemDetails 內部透過 GetInfo() 註冊了
+-- 非同步的 finalCallback，會在物品資料載入完成後再次呼叫
+-- SetItemButtonQuality()，覆蓋我們設定的邊框顏色。
+--
+-- 解決：在按鈕上標記 _miliIsKeystone 旗標，並額外 hook
+-- SetItemButtonQuality，在每次品質更新後重新套用鑰石邊框。
 --------------------------------------------------------------------------------
 local function OnSetItemDetails(button, cacheData)
     local itemLink = cacheData and cacheData.itemLink
@@ -66,16 +83,14 @@ local function OnSetItemDetails(button, cacheData)
 
     if IsKeystoneItem(itemLink) then
         Log("Keystone detected:", itemLink)
+        button._miliIsKeystone = true
         -- 顯示文字
         label:Show()
-
-        -- 強制設定邊框顏色
-        if button.IconBorder then
-            button.IconBorder:SetVertexColor(KEYSTONE_BORDER_R, KEYSTONE_BORDER_G, KEYSTONE_BORDER_B)
-            button.IconBorder:Show()
-        end
+        -- 套用邊框顏色
+        ApplyKeystoneBorder(button)
     else
-        -- 非鑰石：隱藏文字（邊框由 Baganator 自行管理）
+        -- 非鑰石：清除旗標，隱藏文字（邊框由 Baganator 自行管理）
+        button._miliIsKeystone = false
         label:Hide()
     end
 end
@@ -105,6 +120,15 @@ local function HookButtonInstance(button)
     hookCount = hookCount + 1
 
     hooksecurefunc(button, "SetItemDetails", OnSetItemDetails)
+
+    -- Hook SetItemButtonQuality：Baganator 的非同步 finalCallback 會
+    -- 再次呼叫此函式來重設邊框顏色，我們需要在之後重新套用鑰石邊框。
+    hooksecurefunc(button, "SetItemButtonQuality", function(self)
+        if self._miliIsKeystone then
+            ApplyKeystoneBorder(self)
+        end
+    end)
+
     Log("Hooked instance #" .. hookCount, button:GetName() or "")
 end
 
