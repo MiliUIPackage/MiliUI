@@ -306,4 +306,4 @@ end
 CDM:RegisterRefreshCallback("tags", function()
     CDM.TAGS:MarkDirty()
     RefreshAllTagsIfAny()
-end, 52)
+end, 52, { "RESOURCES", "STYLE" })

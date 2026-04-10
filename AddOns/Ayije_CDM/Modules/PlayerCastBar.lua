@@ -22,6 +22,8 @@ local GetTime = _G.GetTime
 local UnitClass = _G.UnitClass
 local UnitCastingDuration = _G.UnitCastingDuration
 local UnitChannelDuration = _G.UnitChannelDuration
+local UnitCastingInfo = _G.UnitCastingInfo
+local UnitChannelInfo = _G.UnitChannelInfo
 local UnitEmpoweredChannelDuration = _G.UnitEmpoweredChannelDuration
 local UnitEmpoweredStagePercentages = _G.UnitEmpoweredStagePercentages
 
@@ -365,6 +367,7 @@ HidePreview = function(frame)
     frame.isPreview = false
     frame.casting = false
     frame.channeling = false
+    frame.castID = nil
     frame:Hide()
 end
 
@@ -446,24 +449,34 @@ end
 local function FinishCast(frame)
     frame.casting = false
     frame.channeling = false
+    frame.castID = nil
     FadeOut(frame)
 end
 
-local function RefreshBarData(frame, isChannel)
+local function RefreshBarData(frame)
+    local name, text, texture, startTime, endTime, notInterruptible, castID
+    local isChannel, isEmpowered, numStages
+
+    name, text, texture, startTime, endTime, _, _, notInterruptible, _, castID = UnitCastingInfo("player")
+    if name then
+        isChannel = false
+    else
+        name, text, texture, startTime, endTime, _, notInterruptible, _, isEmpowered, numStages, castID = UnitChannelInfo("player")
+        if name then
+            isChannel = true
+        end
+    end
+
+    if not name then
+        FinishCast(frame)
+        return
+    end
+
     if not frame:GetScript("OnUpdate") then
         frame:SetScript("OnUpdate", OnUpdate)
     end
 
-    local name, text, texture, startTime, endTime, _, notInterruptible
-    local isEmpowered, numStages
-
-    if isChannel then
-        name, text, texture, startTime, endTime, _, notInterruptible, _, isEmpowered, numStages = UnitChannelInfo("player")
-    else
-        name, text, texture, startTime, endTime, _, _, notInterruptible = UnitCastingInfo("player")
-    end
-
-    if not name then return end
+    frame.castID = castID
 
     if frame.iconFrame and CfgVal("castBarShowIcon", false) then
         frame.iconFrame.texture:SetTexture(texture)
@@ -776,6 +789,7 @@ local function DisableCastBar(frame)
     frame.casting = false
     frame.channeling = false
     frame.isEmpowered = false
+    frame.castID = nil
     HideEmpowerSegments(frame)
     frame.cdmEnabled = false
 
@@ -964,30 +978,45 @@ function CDM:InitializePlayerCastBar()
         CDM.BORDER:CreateBorder(f.borderFrame)
     end
 
-    f:SetScript("OnEvent", function(frame, event, unit)
-        if event == "UNIT_SPELLCAST_START" then
-            RefreshBarData(frame, false)
+    f:SetScript("OnEvent", function(frame, event, unit, a, b, c, d, e)
+        if event == "UNIT_SPELLCAST_START"
+            or event == "UNIT_SPELLCAST_CHANNEL_START"
+            or event == "UNIT_SPELLCAST_EMPOWER_START" then
+            RefreshBarData(frame)
 
-        elseif event == "UNIT_SPELLCAST_CHANNEL_START" or event == "UNIT_SPELLCAST_EMPOWER_START" then
-            RefreshBarData(frame, true)
+        elseif event == "UNIT_SPELLCAST_STOP" then
+            -- (unit, castGUID, spellID, castID) -> c = castID
+            if frame.castID and c and frame.castID ~= c then return end
+            FinishCast(frame)
 
-        elseif event == "UNIT_SPELLCAST_STOP"
-            or event == "UNIT_SPELLCAST_CHANNEL_STOP"
-            or event == "UNIT_SPELLCAST_EMPOWER_STOP" then
+        elseif event == "UNIT_SPELLCAST_CHANNEL_STOP" then
+            -- (unit, castGUID, spellID, interruptedBy, castID) -> d = castID
+            if frame.castID and d and frame.castID ~= d then return end
+            FinishCast(frame)
+
+        elseif event == "UNIT_SPELLCAST_EMPOWER_STOP" then
+            -- (unit, castGUID, spellID, empowerComplete, interruptedBy, castID) -> e = castID
+            if frame.castID and e and frame.castID ~= e then return end
             FinishCast(frame)
 
         elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
+            -- (unit, castGUID, spellID, interruptedBy, castID) -> d = castID
+            if frame.castID and d and frame.castID ~= d then return end
             FinishCast(frame)
 
         elseif event == "UNIT_SPELLCAST_DELAYED" then
-            RefreshBarData(frame, false)
+            -- (unit, castGUID, spellID, castID) -> c = castID
+            if frame.castID and c and frame.castID ~= c then return end
+            RefreshBarData(frame)
 
         elseif event == "UNIT_SPELLCAST_CHANNEL_UPDATE"
             or event == "UNIT_SPELLCAST_EMPOWER_UPDATE" then
+            -- (unit, castGUID, spellID, castID) -> c = castID
+            if frame.castID and c and frame.castID ~= c then return end
             if frame.isEmpowered then
                 UpdateEmpowerFill(frame)
             else
-                RefreshBarData(frame, true)
+                RefreshBarData(frame)
             end
 
         elseif event == "UNIT_SPELLCAST_INTERRUPTIBLE"
@@ -1057,4 +1086,4 @@ end
 
 CDM:RegisterRefreshCallback("playerCastBar", function()
     CDM:UpdatePlayerCastBar()
-end, 55)
+end, 55, { "STYLE", "LAYOUT" })

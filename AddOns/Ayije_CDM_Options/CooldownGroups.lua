@@ -10,9 +10,50 @@ local UI = ns.ConfigUI
 local Shared = ns.GroupEditorShared or {}
 
 local NormalizeToBase = API.NormalizeToBase
-local GetDisplaySpellID = Shared.GetDisplaySpellID
-local SaveAndRefresh = Shared.SaveVisualRefresh
-local SaveStructuralRefresh = Shared.SaveVisualRefresh
+local SharedGetDisplaySpellID = Shared.GetDisplaySpellID
+
+local cooldownInfoCache
+local function EnsureCooldownInfoCache()
+    if cooldownInfoCache then return end
+    if not C_CooldownViewer then return end
+    cooldownInfoCache = {}
+    for _, cat in ipairs({ Enum.CooldownViewerCategory.Essential, Enum.CooldownViewerCategory.Utility }) do
+        local ids = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
+        if ids then
+            for _, cdID in ipairs(ids) do
+                local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
+                if info and info.spellID then
+                    cooldownInfoCache[info.spellID] = info
+                    if info.overrideSpellID then
+                        cooldownInfoCache[info.overrideSpellID] = info
+                    end
+                    if info.overrideTooltipSpellID then
+                        cooldownInfoCache[info.overrideTooltipSpellID] = info
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function ResolveCooldownOverrideID(spellID)
+    if not IsSafeNumber(spellID) then return spellID end
+    EnsureCooldownInfoCache()
+    if not cooldownInfoCache then return spellID end
+    local info = cooldownInfoCache[spellID]
+    if info then return info.overrideSpellID or info.spellID end
+    return spellID
+end
+
+local function GetDisplaySpellID(spellID)
+    return SharedGetDisplaySpellID(ResolveCooldownOverrideID(spellID))
+end
+local suppressPanelRefreshUntil = 0
+local function SaveAndRefresh()
+    cooldownInfoCache = nil
+    suppressPanelRefreshUntil = GetTime() + 0.15
+    Shared.SaveVisualRefresh("CD_DATA")
+end
 local DestroyFrame = Shared.DestroyFrame
 local CreateSlider = Shared.CreateSlider
 local DOT_OVERRIDE_SPELLS = CDM_C.DOT_OVERRIDE_SPELLS
@@ -64,7 +105,6 @@ local function CreateCooldownGroupsPanel(subPage, page)
     local renameLastClickGroup = nil
     local renameActiveGroupIndex = nil
     local renameActiveEditBox = nil
-    local suppressPanelRefreshUntil = 0
 
     local _helpers = Shared.CreateGroupEditorHelpers({
         dbKey = dbKey,
@@ -97,6 +137,8 @@ local function CreateCooldownGroupsPanel(subPage, page)
     local function IsSpellKnown(spellID)
         if not IsSafeNumber(spellID) then return false end
         if IsPlayerSpell(spellID) then return true end
+        local overrideID = ResolveCooldownOverrideID(spellID)
+        if overrideID ~= spellID and IsPlayerSpell(overrideID) then return true end
         if NormalizeToBase then
             local baseID = NormalizeToBase(spellID)
             if baseID and baseID ~= spellID and IsPlayerSpell(baseID) then return true end
@@ -118,39 +160,16 @@ local function CreateCooldownGroupsPanel(subPage, page)
         return active
     end
 
-    local function ExpandGroupedSetWithLinkedSpells(groupedSet)
-        if not (C_CooldownViewer and C_CooldownViewer.GetCooldownViewerCategorySet
-            and C_CooldownViewer.GetCooldownViewerCooldownInfo
-            and Enum.CooldownViewerCategory) then
-            return
-        end
-        for _, cat in ipairs({ Enum.CooldownViewerCategory.Essential, Enum.CooldownViewerCategory.Utility }) do
-            local cooldownIDs = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
-            if cooldownIDs then
-                for _, cdID in ipairs(cooldownIDs) do
-                    local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
-                    if info and info.linkedSpellIDs then
-                        local isGrouped = groupedSet[info.spellID]
-                            or (info.overrideSpellID and groupedSet[info.overrideSpellID])
-                        if not isGrouped then
-                            for _, lid in ipairs(info.linkedSpellIDs) do
-                                if groupedSet[lid] then isGrouped = true; break end
-                            end
-                        end
-                        if isGrouped then
-                            groupedSet[info.spellID] = true
-                            if info.overrideSpellID then groupedSet[info.overrideSpellID] = true end
-                            for _, lid in ipairs(info.linkedSpellIDs) do
-                                groupedSet[lid] = true
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
     local QueueLeftPanelRefresh = Shared.CreateQueueLeftPanelRefresh(subPage, function() return RefreshAll end)
+
+    local function ResolveCooldownStableBase(spellID)
+        if not IsSafeNumber(spellID) then return spellID end
+        EnsureCooldownInfoCache()
+        if not cooldownInfoCache then return spellID end
+        local info = cooldownInfoCache[spellID]
+        if info then return info.spellID end
+        return spellID
+    end
 
     local RegisterDropTarget, ClearDropTargets, StartDrag, EndDrag, CancelDrag
     do
@@ -162,6 +181,10 @@ local function CreateCooldownGroupsPanel(subPage, page)
 
                 local groups = EnsureGroups()
                 if not groups then return end
+
+                if not sourceGroup and targetGroupIndex then
+                    spellID = ResolveCooldownStableBase(spellID)
+                end
 
                 local srcOvData = nil
                 if sourceGroup then
@@ -193,10 +216,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
                     if specOv then StoreMergedOverrideEntry(specOv, spellID, srcOvData) end
                 end
 
-                suppressPanelRefreshUntil = GetTime() + 0.15
-                API:MarkSpecDataDirty()
-                API:RefreshSpecData()
-                SaveStructuralRefresh()
+                SaveAndRefresh()
                 if spellID == selectedSpellID then
                     selectedSpellGroupIndex = targetGroupIndex
                     ShowSpellSettings(spellID, targetGroupIndex)
@@ -312,7 +332,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
             registerDropdown = RegisterRightPanelDropdown,
             saveAndRefresh = SaveAndRefresh, createSlider = CreateSlider, L = L,
             postSizeSection = function(parent, yOff)
-                local s = CreateSlider(parent, L["Max Per Row"] or "Max Per Row", 0, 20,
+                local s = CreateSlider(parent, L["Max Per Row"], 0, 20,
                     groups[groupIndex].maxPerRow or 0,
                     function(v) groups[groupIndex].maxPerRow = v > 0 and v or nil; SaveAndRefresh() end)
                 s:SetPoint("TOPLEFT", 0, yOff)
@@ -324,16 +344,16 @@ local function CreateCooldownGroupsPanel(subPage, page)
                 sizeDefault = 15, posDefault = "BOTTOMRIGHT",
             },
             anchorTargets = {
-                { label = L["Screen"] or "Screen", value = "screen" },
-                { label = L["Player Frame"] or "Player Frame", value = "playerFrame" },
-                { label = L["Essential Viewer"] or "Essential Viewer", value = "essential" },
-                { label = L["Utility Viewer"] or "Utility Viewer", value = "utility" },
-                { label = L["Buff Viewer"] or "Buff Viewer", value = "buff" },
+                { label = L["Screen"], value = "screen" },
+                { label = L["Player Frame"], value = "playerFrame" },
+                { label = L["Essential Viewer"], value = "essential" },
+                { label = L["Utility Viewer"], value = "utility" },
+                { label = L["Buff Viewer"], value = "buff" },
             },
             anchorRelLabels = {
-                playerFrame = L["Player Frame Point"] or "Player Frame Point",
-                buff = L["Buff Viewer Point"] or "Buff Viewer Point",
-                utility = L["Utility Viewer Point"] or "Utility Viewer Point",
+                playerFrame = L["Player Frame Point"],
+                buff = L["Buff Viewer Point"],
+                utility = L["Utility Viewer Point"],
             },
         })
     end
@@ -384,10 +404,9 @@ local function CreateCooldownGroupsPanel(subPage, page)
 
             local auraCheckbox = UI.CreateModernCheckbox(
                 rc,
-                L["Show Aura Overlay"] or "Show Aura Overlay",
+                L["Show Aura Overlay"],
                 showAura,
                 function(checked)
-                    suppressPanelRefreshUntil = GetTime() + 0.15
                     local ov
                     if groupIndex then
                         ov = EnsureSpellOverride(groupIndex, spellID)
@@ -412,10 +431,9 @@ local function CreateCooldownGroupsPanel(subPage, page)
                     local desatValue = auraOv and auraOv.auraDesaturateInactive or false
                     local desatCheckbox = UI.CreateModernCheckbox(
                         rc,
-                        L["Desaturate when inactive"] or "Desaturate when inactive",
+                        L["Desaturate when inactive"],
                         desatValue,
                         function(checked)
-                            suppressPanelRefreshUntil = GetTime() + 0.15
                             local ov
                             if groupIndex then
                                 ov = EnsureSpellOverride(groupIndex, spellID)
@@ -434,10 +452,9 @@ local function CreateCooldownGroupsPanel(subPage, page)
                 local auraGlowEnabled = auraOv and auraOv.auraGlowEnabled or false
                 local auraGlowCheckbox = UI.CreateModernCheckbox(
                     rc,
-                    L["Aura Glow"] or "Aura Glow",
+                    L["Aura Glow"],
                     auraGlowEnabled,
                     function(checked)
-                        suppressPanelRefreshUntil = GetTime() + 0.15
                         local ov
                         if groupIndex then
                             ov = EnsureSpellOverride(groupIndex, spellID)
@@ -453,11 +470,10 @@ local function CreateCooldownGroupsPanel(subPage, page)
                 yOff = yOff - 30
 
                 local agcLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-                agcLabel:SetText(L["Glow Color:"] or "Glow Color:")
+                agcLabel:SetText(L["Glow Color:"])
                 agcLabel:SetPoint("TOPLEFT", 20, yOff)
                 local agcInit = (auraOv and auraOv.auraGlowColor) or { r = 1, g = 1, b = 1 }
                 local agcPicker = UI.CreateSimpleColorPicker(rc, agcInit, function(r, g, b)
-                    suppressPanelRefreshUntil = GetTime() + 0.15
                     local ov
                     if groupIndex then
                         ov = EnsureSpellOverride(groupIndex, spellID)
@@ -474,10 +490,9 @@ local function CreateCooldownGroupsPanel(subPage, page)
                 local auraBorderEnabled = auraOv and auraOv.auraBorderEnabled or false
                 local auraBorderCheckbox = UI.CreateModernCheckbox(
                     rc,
-                    L["Aura Border Color"] or "Aura Border Color",
+                    L["Aura Border Color"],
                     auraBorderEnabled,
                     function(checked)
-                        suppressPanelRefreshUntil = GetTime() + 0.15
                         local ov
                         if groupIndex then
                             ov = EnsureSpellOverride(groupIndex, spellID)
@@ -493,11 +508,10 @@ local function CreateCooldownGroupsPanel(subPage, page)
                 yOff = yOff - 30
 
                 local abcLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-                abcLabel:SetText(L["Border Color:"] or "Border Color:")
+                abcLabel:SetText(L["Border Color:"])
                 abcLabel:SetPoint("TOPLEFT", 20, yOff)
                 local abcInit = (auraOv and auraOv.auraBorderColor) or { r = 1, g = 1, b = 1 }
                 local abcPicker = UI.CreateSimpleColorPicker(rc, abcInit, function(r, g, b)
-                    suppressPanelRefreshUntil = GetTime() + 0.15
                     local ov
                     if groupIndex then
                         ov = EnsureSpellOverride(groupIndex, spellID)
@@ -515,10 +529,9 @@ local function CreateCooldownGroupsPanel(subPage, page)
             local readyGlowEnabled = auraOv and auraOv.readyGlowEnabled or false
             local readyGlowCheckbox = UI.CreateModernCheckbox(
                 rc,
-                L["Glow When Ready"] or "Glow When Ready",
+                L["Glow When Ready"],
                 readyGlowEnabled,
                 function(checked)
-                    suppressPanelRefreshUntil = GetTime() + 0.15
                     local ov
                     if groupIndex then
                         ov = EnsureSpellOverride(groupIndex, spellID)
@@ -536,11 +549,10 @@ local function CreateCooldownGroupsPanel(subPage, page)
 
             if readyGlowEnabled then
                 local rgcLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-                rgcLabel:SetText(L["Glow Color:"] or "Glow Color:")
+                rgcLabel:SetText(L["Glow Color:"])
                 rgcLabel:SetPoint("TOPLEFT", 20, yOff)
                 local rgcInit = (auraOv and auraOv.readyGlowColor) or { r = 1, g = 1, b = 1 }
                 local rgcPicker = UI.CreateSimpleColorPicker(rc, rgcInit, function(r, g, b)
-                    suppressPanelRefreshUntil = GetTime() + 0.15
                     local ov
                     if groupIndex then
                         ov = EnsureSpellOverride(groupIndex, spellID)
@@ -556,222 +568,40 @@ local function CreateCooldownGroupsPanel(subPage, page)
             end
         end
 
+        local CD_TEXT_OV_FIELDS = {
+            cdSize = "cooldownFontSize", cdColor = "cooldownColor",
+            chargeSize = "chargeFontSize", chargeColor = "chargeColor",
+            chargePos = "chargePosition", chargeX = "chargeOffsetX", chargeY = "chargeOffsetY",
+        }
+
         if groupIndex then
             local groups = GetSpecGroups()
             local gd = groups and groups[groupIndex]
             if gd then
-                local existingOv = Shared.GetMergedOverrideEntry(gd.spellOverrides, spellID)
-                local useTextOv = existingOv and existingOv.textOverride
-
-                yOff = yOff - 10
-                local ovHeader = rc:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font18")
-                ovHeader:SetPoint("TOPLEFT", 0, yOff)
-                ovHeader:SetText(L["Text Overrides"] or "Text Overrides")
-                ovHeader:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
-                yOff = yOff - 34
-
-                local textOverrideCheckbox = UI.CreateModernCheckbox(
-                    rc,
-                    L["Override Text Settings"] or "Override Text Settings",
-                    useTextOv or false,
-                    function(checked)
-                        suppressPanelRefreshUntil = GetTime() + 0.15
-                        local ov = EnsureSpellOverride(groupIndex, spellID)
-                        if not ov then return end
-                        ov.textOverride = checked or nil
-                        SaveAndRefresh()
-                        ShowSpellSettings(spellID, groupIndex)
-                    end
-                )
-                textOverrideCheckbox:SetPoint("TOPLEFT", 0, yOff)
-                yOff = yOff - 36
-
-                if useTextOv then
-                    local ov = existingOv
-
-                    local ovCdFS = CreateSlider(rc, L["Cooldown Size"] or "Cooldown Size", 6, 32,
-                        ov.cooldownFontSize or gd.cooldownFontSize or 12,
-                        function(v)
-                            local o = EnsureSpellOverride(groupIndex, spellID)
-                            if o then o.cooldownFontSize = v end; SaveAndRefresh()
-                        end)
-                    ovCdFS:SetPoint("TOPLEFT", 0, yOff)
-                    yOff = yOff - 50
-
-                    local ovCdColorLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-                    ovCdColorLabel:SetText(L["Cooldown Color"] or "Cooldown Color")
-                    ovCdColorLabel:SetPoint("TOPLEFT", 0, yOff)
-                    local ovCdColorInit = ov.cooldownColor or gd.cooldownColor or { r = 1, g = 1, b = 1 }
-                    local ovCdColorPicker = UI.CreateSimpleColorPicker(rc, ovCdColorInit, function(r, g, b)
-                        local o = EnsureSpellOverride(groupIndex, spellID)
-                        if o then o.cooldownColor = { r = r, g = g, b = b, a = 1 } end; SaveAndRefresh()
-                    end)
-                    ovCdColorPicker:SetPoint("LEFT", ovCdColorLabel, "RIGHT", 6, 0)
-                    yOff = yOff - 30
-
-                    local ovChargeFS = CreateSlider(rc, L["Charge Size"] or "Charge Size", 6, 32,
-                        ov.chargeFontSize or gd.chargeFontSize or 15,
-                        function(v)
-                            local o = EnsureSpellOverride(groupIndex, spellID)
-                            if o then o.chargeFontSize = v end; SaveAndRefresh()
-                        end)
-                    ovChargeFS:SetPoint("TOPLEFT", 0, yOff)
-                    yOff = yOff - 50
-
-                    local ovChargeColorLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-                    ovChargeColorLabel:SetText(L["Charge Color"] or "Charge Color")
-                    ovChargeColorLabel:SetPoint("TOPLEFT", 0, yOff)
-                    local ovChargeColorInit = ov.chargeColor or gd.chargeColor or { r = 1, g = 1, b = 1 }
-                    local ovChargeColorPicker = UI.CreateSimpleColorPicker(rc, ovChargeColorInit, function(r, g, b)
-                        local o = EnsureSpellOverride(groupIndex, spellID)
-                        if o then o.chargeColor = { r = r, g = g, b = b, a = 1 } end; SaveAndRefresh()
-                    end)
-                    ovChargeColorPicker:SetPoint("LEFT", ovChargeColorLabel, "RIGHT", 6, 0)
-                    yOff = yOff - 30
-
-                    local ovChargePosLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-                    ovChargePosLabel:SetText(L["Position"])
-                    ovChargePosLabel:SetPoint("TOPLEFT", 0, yOff)
-                    yOff = yOff - 22
-                    local ovChargePosDropdown = RegisterRightPanelDropdown(CreateFrame("DropdownButton", nil, rc, "WowStyle1DropdownTemplate"))
-                    ovChargePosDropdown:SetWidth(180)
-                    ovChargePosDropdown:SetPoint("TOPLEFT", 0, yOff)
-                    ovChargePosDropdown:SetDefaultText(ov.chargePosition or gd.chargePosition or "BOTTOMRIGHT")
-                    UI.SetupPositionDropdown(ovChargePosDropdown,
-                        function() return ov.chargePosition or gd.chargePosition or "BOTTOMRIGHT" end,
-                        function(val)
-                            local o = EnsureSpellOverride(groupIndex, spellID)
-                            if o then o.chargePosition = val end; SaveAndRefresh()
-                        end
-                    )
-                    yOff = yOff - 40
-
-                    local ovChargeXSlider = CreateSlider(rc, L["X Offset"], -20, 20,
-                        ov.chargeOffsetX or gd.chargeOffsetX or 0,
-                        function(v)
-                            local o = EnsureSpellOverride(groupIndex, spellID)
-                            if o then o.chargeOffsetX = v end; SaveAndRefresh()
-                        end)
-                    ovChargeXSlider:SetPoint("TOPLEFT", 0, yOff)
-                    yOff = yOff - 50
-
-                    local ovChargeYSlider = CreateSlider(rc, L["Y Offset"], -20, 20,
-                        ov.chargeOffsetY or gd.chargeOffsetY or 0,
-                        function(v)
-                            local o = EnsureSpellOverride(groupIndex, spellID)
-                            if o then o.chargeOffsetY = v end; SaveAndRefresh()
-                        end)
-                    ovChargeYSlider:SetPoint("TOPLEFT", 0, yOff)
-                    yOff = yOff - 50
-                end
+                yOff = Shared.BuildTextOverrideWidgets(rc, yOff, {
+                    showHeader = true,
+                    existingOv = Shared.GetMergedOverrideEntry(gd.spellOverrides, spellID),
+                    ensureOv = function() return EnsureSpellOverride(groupIndex, spellID) end,
+                    defaults = gd,
+                    fields = CD_TEXT_OV_FIELDS,
+                    colorAlpha = true,
+                    save = SaveAndRefresh,
+                    onToggle = function() ShowSpellSettings(spellID, groupIndex) end,
+                    createDropdown = function(p) return RegisterRightPanelDropdown(CreateFrame("DropdownButton", nil, p, "WowStyle1DropdownTemplate")) end,
+                })
             end
         else
-            local existingOv = GetUngroupedOverride(spellID)
-            local useTextOv = existingOv and existingOv.textOverride
-
-            yOff = yOff - 10
-            local ovHeader = rc:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font18")
-            ovHeader:SetPoint("TOPLEFT", 0, yOff)
-            ovHeader:SetText(L["Text Overrides"] or "Text Overrides")
-            ovHeader:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
-            yOff = yOff - 34
-
-            local textOverrideCheckbox = UI.CreateModernCheckbox(
-                rc,
-                L["Override Text Settings"] or "Override Text Settings",
-                useTextOv or false,
-                function(checked)
-                    suppressPanelRefreshUntil = GetTime() + 0.15
-                    local ov = EnsureUngroupedOverrideEntry(spellID)
-                    if not ov then return end
-                    ov.textOverride = checked or nil
-                    SaveAndRefresh()
-                    ShowSpellSettings(spellID, nil)
-                end
-            )
-            textOverrideCheckbox:SetPoint("TOPLEFT", 0, yOff)
-            yOff = yOff - 36
-
-            if useTextOv then
-                local ov = existingOv
-                local db = CDM.db
-
-                local ovCdFS = CreateSlider(rc, L["Cooldown Size"] or "Cooldown Size", 6, 32,
-                    ov.cooldownFontSize or (db and db.cooldownFontSize or 15),
-                    function(v)
-                        local o = EnsureUngroupedOverrideEntry(spellID)
-                        if o then o.cooldownFontSize = v end; SaveAndRefresh()
-                    end)
-                ovCdFS:SetPoint("TOPLEFT", 0, yOff)
-                yOff = yOff - 50
-
-                local ovCdColorLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-                ovCdColorLabel:SetText(L["Cooldown Color"] or "Cooldown Color")
-                ovCdColorLabel:SetPoint("TOPLEFT", 0, yOff)
-                local ovCdColorInit = ov.cooldownColor or (db and db.cooldownColor) or { r = 1, g = 1, b = 1 }
-                local ovCdColorPicker = UI.CreateSimpleColorPicker(rc, ovCdColorInit, function(r, g, b)
-                    local o = EnsureUngroupedOverrideEntry(spellID)
-                    if o then o.cooldownColor = { r = r, g = g, b = b, a = 1 } end; SaveAndRefresh()
-                end)
-                ovCdColorPicker:SetPoint("LEFT", ovCdColorLabel, "RIGHT", 6, 0)
-                yOff = yOff - 30
-
-                local ovChargeFS = CreateSlider(rc, L["Charge Size"] or "Charge Size", 6, 32,
-                    ov.chargeFontSize or (db and db.chargeFontSize or 15),
-                    function(v)
-                        local o = EnsureUngroupedOverrideEntry(spellID)
-                        if o then o.chargeFontSize = v end; SaveAndRefresh()
-                    end)
-                ovChargeFS:SetPoint("TOPLEFT", 0, yOff)
-                yOff = yOff - 50
-
-                local ovChargeColorLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-                ovChargeColorLabel:SetText(L["Charge Color"] or "Charge Color")
-                ovChargeColorLabel:SetPoint("TOPLEFT", 0, yOff)
-                local ovChargeColorInit = ov.chargeColor or (db and db.chargeColor) or { r = 1, g = 1, b = 1 }
-                local ovChargeColorPicker = UI.CreateSimpleColorPicker(rc, ovChargeColorInit, function(r, g, b)
-                    local o = EnsureUngroupedOverrideEntry(spellID)
-                    if o then o.chargeColor = { r = r, g = g, b = b, a = 1 } end; SaveAndRefresh()
-                end)
-                ovChargeColorPicker:SetPoint("LEFT", ovChargeColorLabel, "RIGHT", 6, 0)
-                yOff = yOff - 30
-
-                local ovChargePosLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-                ovChargePosLabel:SetText(L["Position"])
-                ovChargePosLabel:SetPoint("TOPLEFT", 0, yOff)
-                yOff = yOff - 22
-                local ovChargePosDropdown = RegisterRightPanelDropdown(CreateFrame("DropdownButton", nil, rc, "WowStyle1DropdownTemplate"))
-                ovChargePosDropdown:SetWidth(180)
-                ovChargePosDropdown:SetPoint("TOPLEFT", 0, yOff)
-                local curChargePos = ov.chargePosition or (db and db.chargePosition or "BOTTOMRIGHT")
-                ovChargePosDropdown:SetDefaultText(curChargePos)
-                UI.SetupPositionDropdown(ovChargePosDropdown,
-                    function() return ov.chargePosition or (CDM.db and CDM.db.chargePosition or "BOTTOMRIGHT") end,
-                    function(val)
-                        local o = EnsureUngroupedOverrideEntry(spellID)
-                        if o then o.chargePosition = val end; SaveAndRefresh()
-                    end
-                )
-                yOff = yOff - 40
-
-                local ovChargeXSlider = CreateSlider(rc, L["X Offset"], -20, 20,
-                    ov.chargeOffsetX or (db and db.chargeOffsetX or 0),
-                    function(v)
-                        local o = EnsureUngroupedOverrideEntry(spellID)
-                        if o then o.chargeOffsetX = v end; SaveAndRefresh()
-                    end)
-                ovChargeXSlider:SetPoint("TOPLEFT", 0, yOff)
-                yOff = yOff - 50
-
-                local ovChargeYSlider = CreateSlider(rc, L["Y Offset"], -20, 20,
-                    ov.chargeOffsetY or (db and db.chargeOffsetY or 0),
-                    function(v)
-                        local o = EnsureUngroupedOverrideEntry(spellID)
-                        if o then o.chargeOffsetY = v end; SaveAndRefresh()
-                    end)
-                ovChargeYSlider:SetPoint("TOPLEFT", 0, yOff)
-                yOff = yOff - 50
-            end
+            yOff = Shared.BuildTextOverrideWidgets(rc, yOff, {
+                showHeader = true,
+                existingOv = GetUngroupedOverride(spellID),
+                ensureOv = function() return EnsureUngroupedOverrideEntry(spellID) end,
+                defaults = CDM.db or {},
+                fields = CD_TEXT_OV_FIELDS,
+                colorAlpha = true,
+                save = SaveAndRefresh,
+                onToggle = function() ShowSpellSettings(spellID, nil) end,
+                createDropdown = function(p) return RegisterRightPanelDropdown(CreateFrame("DropdownButton", nil, p, "WowStyle1DropdownTemplate")) end,
+            })
         end
 
         rc:SetHeight(math.abs(yOff) + 20)
@@ -795,13 +625,15 @@ local function CreateCooldownGroupsPanel(subPage, page)
             for _, cat in ipairs({ Enum.CooldownViewerCategory.Essential, Enum.CooldownViewerCategory.Utility }) do
                 local ids = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
                 if ids then
-                    for _, id in ipairs(ids) do
-                        local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(id)
-                        if info then
-                            local sid = info.overrideTooltipSpellID or info.overrideSpellID or info.spellID
-                            if sid and not seen[sid] then
-                                seen[sid] = true
-                                list[#list + 1] = sid
+                    for _, cdID in ipairs(ids) do
+                        if not seen[cdID] then
+                            seen[cdID] = true
+                            local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
+                            if info then
+                                local sid = info.overrideTooltipSpellID or info.overrideSpellID or info.spellID
+                                if sid then
+                                    list[#list + 1] = { cdID = cdID, spellID = sid }
+                                end
                             end
                         end
                     end
@@ -814,10 +646,11 @@ local function CreateCooldownGroupsPanel(subPage, page)
             local cache = API[accessor] and API[accessor](API, specID)
             if cache then
                 for _, entry in ipairs(cache) do
+                    local cdID = entry.cooldownID
                     local sid = entry.spellID
-                    if sid and not seen[sid] then
-                        seen[sid] = true
-                        list[#list + 1] = sid
+                    if sid and cdID and not seen[cdID] then
+                        seen[cdID] = true
+                        list[#list + 1] = { cdID = cdID, spellID = sid }
                     end
                 end
             end
@@ -831,13 +664,15 @@ local function CreateCooldownGroupsPanel(subPage, page)
         for _, cat in ipairs({ Enum.CooldownViewerCategory.Essential, Enum.CooldownViewerCategory.Utility }) do
             local ids = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
             if ids then
-                for _, id in ipairs(ids) do
-                    local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(id)
-                    if info then
-                        local sid = info.overrideTooltipSpellID or info.overrideSpellID or info.spellID
-                        if sid and not seen[sid] and not activeSet[sid] then
-                            seen[sid] = true
-                            list[#list + 1] = sid
+                for _, cdID in ipairs(ids) do
+                    if not seen[cdID] then
+                        seen[cdID] = true
+                        local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
+                        if info then
+                            local sid = info.overrideTooltipSpellID or info.overrideSpellID or info.spellID
+                            if sid and not activeSet[sid] then
+                                list[#list + 1] = { cdID = cdID, spellID = sid }
+                            end
                         end
                     end
                 end
@@ -854,7 +689,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
     end
 
     local function GetAvailableSpellsForPicker(specID)
-        local allSpells = (specID == playerSpecID)
+        local allSlots = (specID == playerSpecID)
             and GetUntrackedViewerSpellListForCurrentSpec()
             or GetViewerSpellListForSpec(specID)
         local assigned = {}
@@ -863,22 +698,26 @@ local function CreateCooldownGroupsPanel(subPage, page)
             for _, group in ipairs(groups) do
                 for _, sid in ipairs(group.spells or {}) do
                     Shared.MarkEquivalentSpellIDs(assigned, sid)
+                    local overrideID = ResolveCooldownOverrideID(sid)
+                    if overrideID ~= sid then
+                        Shared.MarkEquivalentSpellIDs(assigned, overrideID)
+                    end
                 end
             end
         end
-        ExpandGroupedSetWithLinkedSpells(assigned)
         local seen = {}
         local result = {}
-        for _, spellID in ipairs(allSpells) do
+        for _, slot in ipairs(allSlots) do
+            local spellID = slot.spellID
             if not Shared.HasEquivalentSpellID(assigned, spellID)
-                and not seen[spellID]
+                and not seen[slot.cdID]
             then
-                seen[spellID] = true
+                seen[slot.cdID] = true
                 local pickerDisplayID = GetDisplaySpellID(spellID)
                 local spellName = C_Spell.GetSpellName(pickerDisplayID) or ("Spell " .. spellID)
                 local icon = C_Spell.GetSpellTexture(pickerDisplayID)
                 local isKnown = IsPlayerSpell(spellID)
-                result[#result + 1] = { spellID = spellID, name = spellName, icon = icon, isKnown = isKnown }
+                result[#result + 1] = { spellID = spellID, cdID = slot.cdID, name = spellName, icon = icon, isKnown = isKnown }
             end
         end
         table.sort(result, function(a, b) return a.name < b.name end)
@@ -893,12 +732,14 @@ local function CreateCooldownGroupsPanel(subPage, page)
                 if type(groupData) == "table" and type(groupData.spells) == "table" then
                     for _, groupedSpellID in ipairs(groupData.spells) do
                         Shared.MarkEquivalentSpellIDs(groupedSet, groupedSpellID)
+                        local overrideID = ResolveCooldownOverrideID(groupedSpellID)
+                        if overrideID ~= groupedSpellID then
+                            Shared.MarkEquivalentSpellIDs(groupedSet, overrideID)
+                        end
                     end
                 end
             end
         end
-        ExpandGroupedSetWithLinkedSpells(groupedSet)
-
         local seen = {}
         local icons = {}
         local viewerOffset = 0
@@ -911,11 +752,12 @@ local function CreateCooldownGroupsPanel(subPage, page)
                         if not IsSafeNumber(displayID) and API.GetBaseSpellID then
                             displayID = API:GetBaseSpellID(frame)
                         end
+                        local slotKey = frame.cooldownID or displayID
                         if IsSafeNumber(displayID)
                             and not Shared.HasEquivalentSpellID(groupedSet, displayID)
-                            and not seen[displayID]
+                            and not seen[slotKey]
                         then
-                            seen[displayID] = true
+                            seen[slotKey] = true
                             local li = frame.layoutIndex
                             local safeLayoutIndex = IsSafeNumber(li) and li or 0
                             icons[#icons + 1] = { spellID = displayID, layoutIndex = safeLayoutIndex, viewerOrder = viewerOffset }
@@ -942,20 +784,26 @@ local function CreateCooldownGroupsPanel(subPage, page)
         local spells = GetAvailableSpellsForPicker(currentSpecID)
         Shared.RenderSpellPicker({
             createRightScrollContent = CreateRightScrollContent,
-            headerText = (L["Add Spell to:"] or "Add Spell to:") .. " " .. (gd.name or "Group"),
+            headerText = (L["Add Spell to:"]) .. " " .. (gd.name or "Group"),
             headerColor = CDM_C.GOLD,
             spells = spells,
             currentSpecID = currentSpecID,
             playerSpecID = playerSpecID,
             isCacheMissing = currentSpecID ~= playerSpecID and not HasOtherSpecCooldownPickerCache(currentSpecID),
-            cacheMissingText = string.format(L["Log %s to build spell list"] or "Log %s to build spell list", select(2, GetSpecializationInfoByID(currentSpecID)) or "this spec"),
+            cacheMissingText = string.format(L["Log %s to build spell list"], select(2, GetSpecializationInfoByID(currentSpecID)) or "this spec"),
             emptyText = currentSpecID == playerSpecID
-                and (L["No untracked cooldown icons available for this spec"] or "No untracked cooldown icons available for this spec")
-                or (L["All available icons are assigned to groups"] or "All available icons are assigned to groups"),
-            onSelect = function(sid)
+                and (L["No untracked cooldown icons available for this spec"])
+                or (L["All available icons are assigned to groups"]),
+            onSelect = function(sid, cdID)
                 local currentGroups = EnsureGroups()
                 if not currentGroups or not currentGroups[groupIndex] then return end
                 if not currentGroups[groupIndex].spells then currentGroups[groupIndex].spells = {} end
+                if cdID then
+                    local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
+                    if info and info.spellID then sid = info.spellID end
+                else
+                    sid = ResolveCooldownStableBase(sid)
+                end
                 Shared.AddSpellToGroupList(currentGroups[groupIndex].spells, sid)
                 local specOv = EnsureUngroupedOverrides()
                 if specOv then
@@ -967,9 +815,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
                         StoreMergedOverrideEntry(currentGroups[groupIndex].spellOverrides, sid, ovData)
                     end
                 end
-                API:MarkSpecDataDirty()
-                API:RefreshSpecData()
-                SaveStructuralRefresh(); RefreshLeftPanelIfNeeded()
+                SaveAndRefresh(); RefreshLeftPanelIfNeeded()
                 ShowSpellPickerPanel(groupIndex)
             end,
             onDone = function()
@@ -1032,7 +878,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
                     selectedSpellGroupIndex = nil
                     ClearRightPanel()
                 end
-                SaveStructuralRefresh(); RefreshLeftPanelIfNeeded()
+                SaveAndRefresh(); RefreshLeftPanelIfNeeded()
             end)
         end
 
@@ -1057,7 +903,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
                 local spells = groups[sourceGroup].spells
                 if spells and spellIndex > 1 then
                     spells[spellIndex], spells[spellIndex - 1] = spells[spellIndex - 1], spells[spellIndex]
-                    SaveStructuralRefresh(); RefreshLeftPanelIfNeeded()
+                    SaveAndRefresh(); RefreshLeftPanelIfNeeded()
                 end
             end)
             widget.btnDown:Show()
@@ -1068,7 +914,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
                 local spells = groups[sourceGroup].spells
                 if spells and spellIndex < #spells then
                     spells[spellIndex], spells[spellIndex + 1] = spells[spellIndex + 1], spells[spellIndex]
-                    SaveStructuralRefresh(); RefreshLeftPanelIfNeeded()
+                    SaveAndRefresh(); RefreshLeftPanelIfNeeded()
                 end
             end)
         end
@@ -1100,7 +946,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
 
         if #spells == 0 then
             iconGridFrame:SetHeight(minGridHeight)
-            gridEmptyText:SetText(L["All spells are in groups"] or "All spells are in groups")
+            gridEmptyText:SetText(L["All spells are in groups"])
             gridEmptyText:Show()
             UI.SetTextFaint(gridEmptyText)
             return
@@ -1244,14 +1090,14 @@ local function CreateCooldownGroupsPanel(subPage, page)
                             end
                         end
                         expandedGroups = newExpanded
-                        SaveStructuralRefresh(); RefreshLeftPanelIfNeeded()
+                        SaveAndRefresh(); RefreshLeftPanelIfNeeded()
                     end
 
                     local spellCount = groupData.spells and #groupData.spells or 0
                     if spellCount > 0 then
                         local dialog = StaticPopupDialogs["AYIJE_CDM_CONFIRM_DELETE_CD_GROUP"]
                         dialog.text = string.format(
-                            L["Delete group with %d spell(s)?"] or "Delete group with %d spell(s)?",
+                            L["Delete group with %d spell(s)?"],
                             spellCount
                         )
                         dialog._pendingDelete = DoDelete
@@ -1265,7 +1111,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
                     if button == "RightButton" then
                         MenuUtil.CreateContextMenu(h.selectBtn, function(_, rootDescription)
                             Shared.BuildGroupContextMenu(rootDescription,
-                                { rename = L["Rename"] or "Rename", duplicate = L["Duplicate"] or "Duplicate", copyTo = L["Copy to"] or "Copy to" },
+                                { rename = L["Rename"], duplicate = L["Duplicate"], copyTo = L["Copy to"] },
                                 function()
                                     renameActiveGroupIndex = groupIndex
                                     RefreshLeftPanelIfNeeded()
@@ -1277,14 +1123,14 @@ local function CreateCooldownGroupsPanel(subPage, page)
                                     expandedGroups[newIdx] = true
                                     selectedGroupIndex = newIdx
                                     selectedSpellID = nil
-                                    if currentSpecID == playerSpecID then SaveStructuralRefresh() end
+                                    if currentSpecID == playerSpecID then SaveAndRefresh() end
                                     ShowGroupSettings(newIdx)
                                     RefreshLeftPanelIfNeeded()
                                 end,
                                 function(specID)
                                     CopyGroupSettingsToSpec(groupData, specID)
                                     if specID == currentSpecID then RefreshLeftPanelIfNeeded() end
-                                    if specID == playerSpecID then SaveStructuralRefresh() end
+                                    if specID == playerSpecID then SaveAndRefresh() end
                                 end
                             )
                         end)
@@ -1328,7 +1174,9 @@ local function CreateCooldownGroupsPanel(subPage, page)
                     local groupY = 0
                     if spells and #spells > 0 then
                         for spellIndex, spellID in ipairs(spells) do
-                            local active = not isViewingPlayer or Shared.HasEquivalentSpellID(activeSpellSet, spellID)
+                            local active = not isViewingPlayer
+                                or Shared.HasEquivalentSpellID(activeSpellSet, spellID)
+                                or Shared.HasEquivalentSpellID(activeSpellSet, ResolveCooldownOverrideID(spellID))
                             ConfigureSpellRow(
                                 spellRowPool:Acquire(groupContainer),
                                 groupContainer,
@@ -1342,7 +1190,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
                             groupY = groupY - ROW_HEIGHT
                         end
                     else
-                        AcquireEmptyRow(groupContainer, L["Drag spells here"] or "Drag spells here")
+                        AcquireEmptyRow(groupContainer, L["Drag spells here"])
                         groupY = -ROW_HEIGHT
                     end
                     groupContainer:SetHeight(math.abs(groupY) + 4)
@@ -1388,7 +1236,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
             expandedGroups[newIndex] = true
             selectedGroupIndex = newIndex
             selectedSpellID = nil
-            SaveStructuralRefresh(); RefreshLeftPanelIfNeeded()
+            SaveAndRefresh(); RefreshLeftPanelIfNeeded()
             ShowGroupSettings(newIndex)
         end)
 
@@ -1403,6 +1251,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
     end
 
     RefreshAll = function()
+        cooldownInfoCache = nil
         BuildIconGrid()
         BuildGroupsPanel()
         if addIconBtnRef then addIconBtnRef:SetEnabled(selectedGroupIndex ~= nil) end
@@ -1454,7 +1303,8 @@ local function CreateCooldownGroupsPanel(subPage, page)
         RefreshCurrentSpecID()
         RefreshSpecDropdownText()
         QueueLeftPanelRefresh()
-    end, 30)
+
+    end, 30, { "CD_DATA" })
 end
 
 ns._CreateCooldownGroupsPanel = CreateCooldownGroupsPanel

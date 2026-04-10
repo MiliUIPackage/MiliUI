@@ -6,21 +6,19 @@ local Snap = Pixel.Snap
 
 local GetFrameData = CDM.GetFrameData
 local IsSafeNumber = CDM.IsSafeNumber
-local ResolveVariantValue = CDM.SpellVariant.ResolveValue
-
 CDM.GroupContainerUtils = {}
 
 function CDM.GroupContainerUtils.AssignGroupSortKeys(frames, spellOrder, frameDataKey)
     for _, frame in ipairs(frames) do
         local fd = GetFrameData(frame)
         local fID = fd[frameDataKey]
-        local ord = fID and ResolveVariantValue(spellOrder, fID) or nil
+        local ord = fID and spellOrder[fID] or nil
         if not ord then
             local fInfo = frame.GetCooldownInfo and frame:GetCooldownInfo() or frame.cooldownInfo
             if fInfo and fInfo.linkedSpellIDs then
                 for _, lid in ipairs(fInfo.linkedSpellIDs) do
                     if IsSafeNumber(lid) then
-                        ord = ResolveVariantValue(spellOrder, lid)
+                        ord = spellOrder[lid]
                         if ord then break end
                     end
                 end

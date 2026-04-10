@@ -233,8 +233,8 @@ local function CreateImportExportTab(page, tabId)
             local checkbox = UI.CreateModernCheckbox(
                 page,
                 categoryDef.label,
-                true,  -- default checked
-                nil    -- no immediate callback needed
+                true,
+                nil
             )
 
             local col = (categoryCount - 1) % 3

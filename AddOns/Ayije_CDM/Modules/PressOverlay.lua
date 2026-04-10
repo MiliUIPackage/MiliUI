@@ -406,5 +406,5 @@ function CDM.PressOverlay:Initialize()
         elseif not wantEnabled and isEnabled then
             Disable()
         end
-    end, 57)
+    end, 57, { "STYLE", "TRACKERS" })
 end

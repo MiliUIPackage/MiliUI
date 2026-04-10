@@ -308,10 +308,7 @@ trinketsTracker = CDM.CreateTracker({
     UpdateIcon          = UpdateIcon,
     resetFrame          = ResetTrinketTrackerFrame,
     UpdateContainerPosition = OnTrackerPositionUpdate,
-    onStyleRefresh      = function()
-        CDM_C.RefreshBaseFontCache()
-        InvalidateTrinketsLayoutCache()
-    end,
+    onStyleRefresh      = InvalidateTrinketsLayoutCache,
 })
 
 -- Expose internal pool for frame management

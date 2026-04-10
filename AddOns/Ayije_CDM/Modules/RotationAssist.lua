@@ -234,5 +234,5 @@ function CDM.RotationAssist:Initialize()
             end
             RefreshHighlights()
         end
-    end, 56)
+    end, 56, { "STYLE" })
 end

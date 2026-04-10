@@ -535,4 +535,4 @@ end
 
 CDM:RegisterRefreshCallback("customBuffs", function()
     CDM:UpdateCustomBuffs()
-end, 50)
+end, 50, { "BUFF_DATA", "LAYOUT", "STYLE" })

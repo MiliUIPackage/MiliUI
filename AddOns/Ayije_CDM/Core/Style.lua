@@ -243,18 +243,20 @@ CDM.RefreshStyleCache = RefreshStyleCache
 local DesaturationCurve = CDM_C.DesaturationCurve
 
 
-local function StyleCooldownTextElement(text, fontPath, fontSize, fontOutline, color)
+local function StyleCooldownTextElement(text, fontPath, fontSize, fontOutline, color, init)
     if not text or not text.SetFont then return end
     color = color or DEFAULT_WHITE_COLOR
-    text:SetIgnoreParentScale(true)
-    text:ClearAllPoints()
-    text:SetPoint("CENTER", 0, 0)
+    if init then
+        text:SetIgnoreParentScale(true)
+        text:ClearAllPoints()
+        text:SetPoint("CENTER", 0, 0)
+        text:SetJustifyH("CENTER")
+        text:SetJustifyV("MIDDLE")
+        text:SetShadowOffset(0, 0)
+        text:SetDrawLayer("OVERLAY", 7)
+    end
     text:SetFont(fontPath, Pixel.FontSize(fontSize), fontOutline)
-    text:SetJustifyH("CENTER")
-    text:SetJustifyV("MIDDLE")
     text:SetTextColor(color.r, color.g, color.b)
-    text:SetShadowOffset(0, 0)
-    text:SetDrawLayer("OVERLAY", 7)
 end
 
 local function SafeEquals(v, expected)
@@ -286,11 +288,11 @@ local function ApplyOverlayVisibility(hideAtlas, hideTexture, ...)
     end
 end
 
-local function StyleCooldownFontStringsInRegions(fontPath, fontSize, fontOutline, color, ...)
+local function StyleCooldownFontStringsInRegions(fontPath, fontSize, fontOutline, color, init, ...)
     for i = 1, select("#", ...) do
         local region = select(i, ...)
         if region and region.IsObjectType and region:IsObjectType("FontString") then
-            StyleCooldownTextElement(region, fontPath, fontSize, fontOutline, color)
+            StyleCooldownTextElement(region, fontPath, fontSize, fontOutline, color, init)
         end
     end
 end
@@ -307,7 +309,6 @@ local function GetSpellIDForCooldown(frame)
 end
 
 local function ApplyAuraStateBody(frame, spellID, frameData)
-    local isOnGCD = frame.isOnGCD == true
     local tex = frame.Icon
 
     local durObj = spellID and C_Spell.GetSpellCooldownDuration(spellID)
@@ -322,6 +323,7 @@ local function ApplyAuraStateBody(frame, spellID, frameData)
     local gcdDesatResult
 
     local cdInfo = spellID and C_Spell.GetSpellCooldown(spellID)
+    local isOnGCD = cdInfo and cdInfo.isOnGCD or false
 
     if tex and tex.SetDesaturation then
         if durObj and not hasChargeSource and cdInfo and cdInfo.isActive and durObj.EvaluateRemainingDuration then
@@ -890,6 +892,8 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
         iconHeight = Snap(30)
     end
 
+    local fontSpellID = isCooldown and GetSpellIDForCooldown(frame) or nil
+
     local actualW = frame:GetWidth() or 0
     local actualH = frame:GetHeight() or 0
 
@@ -898,6 +902,7 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
         or frameData.cdmLastStyledW ~= iconWidth
         or frameData.cdmLastStyledH ~= iconHeight
         or pixelBorderModeChanged
+        or frameData.cdmLastFontSpellID ~= fontSpellID
         or (actualW > 1 and math_abs(actualW - iconWidth) > 0.01)
         or (actualH > 1 and math_abs(actualH - iconHeight) > 0.01)
 
@@ -1011,114 +1016,107 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
 
         end
 
+        do
+            local fontPath = styleCache.fontPath
+            local textFontOutline = styleCache.textFontOutline
+            local effectiveCdFontSize, effectiveCdColor
+            local effectiveChargeFS, effectiveChargeColor
+            local effectiveChargePos, effectiveChargeOX, effectiveChargeOY
+
+            if isCooldown then
+                local spellID = fontSpellID
+
+                if groupData then
+                    effectiveCdFontSize = groupData.cooldownFontSize or 12
+                    effectiveCdColor = groupData.cooldownColor
+                    effectiveChargeFS = groupData.chargeFontSize or 15
+                    effectiveChargeColor = groupData.chargeColor
+                    effectiveChargePos = groupData.chargePosition or "BOTTOMRIGHT"
+                    effectiveChargeOX = groupData.chargeOffsetX or 0
+                    effectiveChargeOY = groupData.chargeOffsetY or 0
+
+                    local spellOv = CDM.GetCooldownGroupSpellOverride(groupData, spellID)
+                    if spellOv and spellOv.textOverride then
+                        effectiveCdFontSize = spellOv.cooldownFontSize or effectiveCdFontSize
+                        effectiveCdColor = spellOv.cooldownColor or effectiveCdColor
+                        effectiveChargeFS = spellOv.chargeFontSize or effectiveChargeFS
+                        effectiveChargeColor = spellOv.chargeColor or effectiveChargeColor
+                        effectiveChargePos = spellOv.chargePosition or effectiveChargePos
+                        effectiveChargeOX = spellOv.chargeOffsetX or effectiveChargeOX
+                        effectiveChargeOY = spellOv.chargeOffsetY or effectiveChargeOY
+                    end
+
+                    effectiveCdColor = effectiveCdColor or styleCache.cooldownColor
+                    effectiveChargeColor = effectiveChargeColor or styleCache.chargeColor
+                else
+                    local ov = spellID and CDM:GetUngroupedCooldownOverride(spellID)
+                    if ov and ov.textOverride then
+                        local db = CDM.db
+                        effectiveCdFontSize = ov.cooldownFontSize or (db and db.cooldownFontSize or 15)
+                        effectiveCdColor = ov.cooldownColor or (db and db.cooldownColor) or styleCache.cooldownColor
+                        effectiveChargeFS = ov.chargeFontSize or (db and db.chargeFontSize or 15)
+                        effectiveChargeColor = ov.chargeColor or (db and db.chargeColor) or styleCache.chargeColor
+                        effectiveChargePos = ov.chargePosition or (db and db.chargePosition or "BOTTOMRIGHT")
+                        effectiveChargeOX = ov.chargeOffsetX or (db and db.chargeOffsetX or 0)
+                        effectiveChargeOY = ov.chargeOffsetY or (db and db.chargeOffsetY or 0)
+                    else
+                        local cdFontKey = (desc.cdFontKey2 and frameData.cdmRow == 2) and desc.cdFontKey2 or desc.cdFontKey
+                        effectiveCdFontSize = styleCache[cdFontKey]
+                        effectiveCdColor = styleCache[desc.cdColorKey]
+                        effectiveChargeFS = desc.chargeKey and styleCache[desc.chargeKey] or styleCache.chargeFontSize
+                        effectiveChargeColor = styleCache.chargeColor
+                        effectiveChargePos = styleCache.chargePosition
+                        effectiveChargeOX = styleCache.chargeOffsetX
+                        effectiveChargeOY = styleCache.chargeOffsetY
+                    end
+                end
+            else
+                local cdFontKey = desc and ((desc.cdFontKey2 and frameData.cdmRow == 2) and desc.cdFontKey2 or desc.cdFontKey) or "cooldownFontSize"
+                effectiveCdFontSize = styleCache[cdFontKey]
+                effectiveCdColor = styleCache[desc and desc.cdColorKey or "cooldownColor"]
+            end
+
+            local cooldownText = frame.Cooldown and (frame.Cooldown.Text or frame.Cooldown.text)
+            StyleCooldownTextElement(cooldownText, fontPath, effectiveCdFontSize, textFontOutline, effectiveCdColor, fullUpdate)
+
+            if frame.Cooldown then
+                StyleCooldownFontStringsInRegions(
+                    fontPath, effectiveCdFontSize, textFontOutline, effectiveCdColor,
+                    fullUpdate, frame.Cooldown:GetRegions()
+                )
+            end
+
+            if frame.Time then
+                StyleCooldownTextElement(frame.Time, fontPath, effectiveCdFontSize, textFontOutline, effectiveCdColor, fullUpdate)
+            end
+            if frame.Duration then
+                StyleCooldownTextElement(frame.Duration, fontPath, effectiveCdFontSize, textFontOutline, effectiveCdColor, fullUpdate)
+            end
+
+            if isCooldown then
+                local chargeText = frame.ChargeCount and frame.ChargeCount.Current
+                if chargeText then
+                    chargeText:ClearAllPoints()
+                    Pixel.SetPoint(chargeText, effectiveChargePos, frame, effectiveChargePos, effectiveChargeOX, effectiveChargeOY)
+                    chargeText:SetFont(fontPath, Pixel.FontSize(effectiveChargeFS), textFontOutline)
+                    chargeText:SetTextColor(effectiveChargeColor.r, effectiveChargeColor.g, effectiveChargeColor.b, effectiveChargeColor.a or 1)
+                    if fullUpdate then
+                        chargeText:SetDrawLayer("OVERLAY", 7)
+                        chargeText:SetShadowOffset(0, 0)
+                    end
+                end
+            end
+        end
+
         frameData.cdmLastStyleVersion = styleVersion
         frameData.cdmLastStyledW = iconWidth
         frameData.cdmLastStyledH = iconHeight
         frameData.cdmLastStyledVName = vName
+        frameData.cdmLastFontSpellID = fontSpellID
     end
 
     if isBuff and frame.Cooldown then
         frame.Cooldown:SetReverse(true)
-    end
-
-    local fontSpellID = isCooldown and GetSpellIDForCooldown(frame) or nil
-    local fontDirty = fullUpdate
-        or frameData.cdmLastFontStyleVersion ~= styleVersion
-        or (fontSpellID and frameData.cdmLastFontSpellID ~= fontSpellID)
-        or frameData.cdmLastFontRow ~= frameData.cdmRow
-
-    if fontDirty then
-        local fontPath = styleCache.fontPath
-        local textFontOutline = styleCache.textFontOutline
-        local effectiveCdFontSize, effectiveCdColor
-        local effectiveChargeFS, effectiveChargeColor
-        local effectiveChargePos, effectiveChargeOX, effectiveChargeOY
-
-        if isCooldown then
-            local spellID = fontSpellID
-
-            if groupData then
-                effectiveCdFontSize = groupData.cooldownFontSize or 12
-                effectiveCdColor = groupData.cooldownColor
-                effectiveChargeFS = groupData.chargeFontSize or 15
-                effectiveChargeColor = groupData.chargeColor
-                effectiveChargePos = groupData.chargePosition or "BOTTOMRIGHT"
-                effectiveChargeOX = groupData.chargeOffsetX or 0
-                effectiveChargeOY = groupData.chargeOffsetY or 0
-
-                local spellOv = CDM.GetCooldownGroupSpellOverride(groupData, spellID)
-                if spellOv and spellOv.textOverride then
-                    effectiveCdFontSize = spellOv.cooldownFontSize or effectiveCdFontSize
-                    effectiveCdColor = spellOv.cooldownColor or effectiveCdColor
-                    effectiveChargeFS = spellOv.chargeFontSize or effectiveChargeFS
-                    effectiveChargeColor = spellOv.chargeColor or effectiveChargeColor
-                    effectiveChargePos = spellOv.chargePosition or effectiveChargePos
-                    effectiveChargeOX = spellOv.chargeOffsetX or effectiveChargeOX
-                    effectiveChargeOY = spellOv.chargeOffsetY or effectiveChargeOY
-                end
-
-                effectiveCdColor = effectiveCdColor or styleCache.cooldownColor
-                effectiveChargeColor = effectiveChargeColor or styleCache.chargeColor
-            else
-                local ov = spellID and CDM:GetUngroupedCooldownOverride(spellID)
-                if ov and ov.textOverride then
-                    local db = CDM.db
-                    effectiveCdFontSize = ov.cooldownFontSize or (db and db.cooldownFontSize or 15)
-                    effectiveCdColor = ov.cooldownColor or (db and db.cooldownColor) or styleCache.cooldownColor
-                    effectiveChargeFS = ov.chargeFontSize or (db and db.chargeFontSize or 15)
-                    effectiveChargeColor = ov.chargeColor or (db and db.chargeColor) or styleCache.chargeColor
-                    effectiveChargePos = ov.chargePosition or (db and db.chargePosition or "BOTTOMRIGHT")
-                    effectiveChargeOX = ov.chargeOffsetX or (db and db.chargeOffsetX or 0)
-                    effectiveChargeOY = ov.chargeOffsetY or (db and db.chargeOffsetY or 0)
-                else
-                    local cdFontKey = (desc.cdFontKey2 and frameData.cdmRow == 2) and desc.cdFontKey2 or desc.cdFontKey
-                    effectiveCdFontSize = styleCache[cdFontKey]
-                    effectiveCdColor = styleCache[desc.cdColorKey]
-                    effectiveChargeFS = desc.chargeKey and styleCache[desc.chargeKey] or styleCache.chargeFontSize
-                    effectiveChargeColor = styleCache.chargeColor
-                    effectiveChargePos = styleCache.chargePosition
-                    effectiveChargeOX = styleCache.chargeOffsetX
-                    effectiveChargeOY = styleCache.chargeOffsetY
-                end
-            end
-        else
-            local cdFontKey = desc and ((desc.cdFontKey2 and frameData.cdmRow == 2) and desc.cdFontKey2 or desc.cdFontKey) or "cooldownFontSize"
-            effectiveCdFontSize = styleCache[cdFontKey]
-            effectiveCdColor = styleCache[desc and desc.cdColorKey or "cooldownColor"]
-        end
-
-        local cooldownText = frame.Cooldown and (frame.Cooldown.Text or frame.Cooldown.text)
-        StyleCooldownTextElement(cooldownText, fontPath, effectiveCdFontSize, textFontOutline, effectiveCdColor)
-
-        if frame.Cooldown then
-            StyleCooldownFontStringsInRegions(
-                fontPath, effectiveCdFontSize, textFontOutline, effectiveCdColor,
-                frame.Cooldown:GetRegions()
-            )
-        end
-
-        if frame.Time then
-            StyleCooldownTextElement(frame.Time, fontPath, effectiveCdFontSize, textFontOutline, effectiveCdColor)
-        end
-        if frame.Duration then
-            StyleCooldownTextElement(frame.Duration, fontPath, effectiveCdFontSize, textFontOutline, effectiveCdColor)
-        end
-
-        if isCooldown then
-            local chargeText = frame.ChargeCount and frame.ChargeCount.Current
-            if chargeText then
-                chargeText:ClearAllPoints()
-                Pixel.SetPoint(chargeText, effectiveChargePos, frame, effectiveChargePos, effectiveChargeOX, effectiveChargeOY)
-                chargeText:SetFont(fontPath, Pixel.FontSize(effectiveChargeFS), textFontOutline)
-                chargeText:SetTextColor(effectiveChargeColor.r, effectiveChargeColor.g, effectiveChargeColor.b, effectiveChargeColor.a or 1)
-                chargeText:SetDrawLayer("OVERLAY", 7)
-                chargeText:SetShadowOffset(0, 0)
-            end
-        end
-
-        frameData.cdmLastFontStyleVersion = styleVersion
-        frameData.cdmLastFontSpellID = fontSpellID
-        frameData.cdmLastFontRow = frameData.cdmRow
     end
 
     if desc and desc.hasKeybind then
@@ -1127,9 +1125,6 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
             RefreshKeybindForFrame(frame, frameData, KB, KB:GetCacheVersion(), styleVersion)
         elseif frameData.cdmKeybindContainer then
             frameData.cdmKeybindContainer:Hide()
-            frameData.cdmLastKeybindCacheVer = nil
-            frameData.cdmLastKeybindStyleVer = nil
-            frameData.cdmLastKeybindSpellID = nil
         end
     end
 
@@ -1142,62 +1137,48 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
 
         local borderColor = frameData.borderFrame and frameData.borderFrame.border
         local pixelBorderLines = frameData.cdmUsePixelIconBorder and frameData.pixelIconBorderLines
-        local borderVersion = CDM.borderStyleVersion or 0
-        local borderColorDirty = needsVisualUpdate
-            or frameData.cdmLastBorderStyleVersion ~= borderVersion
 
-        if borderColorDirty and ((borderColor and borderColor.SetBackdropBorderColor) or pixelBorderLines) then
-            local spellID = GetSpellIDForCooldown(frame)
-            local spellChanged = (frameData.cdmLastBorderSpellID ~= spellID)
-            local borderStyleChanged = (frameData.cdmLastBorderStyleVersion ~= borderVersion)
+        if (borderColor and borderColor.SetBackdropBorderColor) or pixelBorderLines then
+            local configColor = styleCache.borderColor
+            local r, g, b = configColor.r, configColor.g, configColor.b
 
-            if spellChanged or borderStyleChanged then
-                local configColor = styleCache.borderColor
-                local r, g, b = configColor.r, configColor.g, configColor.b
-
-                local customColor
-                local candidates = GetSpellIDCandidates(self, frame)
-                for _, id in ipairs(candidates) do
-                    customColor = GetColorForSpellID(id)
-                    if customColor then break end
-                end
-
-                if customColor then
-                    r, g, b = customColor.r or r, customColor.g or g, customColor.b or b
-                end
-
-                local resolvedBorderColor = frameData.cdmResolvedBorderColor
-                if not resolvedBorderColor then
-                    resolvedBorderColor = {}
-                    frameData.cdmResolvedBorderColor = resolvedBorderColor
-                end
-                resolvedBorderColor.r = r
-                resolvedBorderColor.g = g
-                resolvedBorderColor.b = b
-                resolvedBorderColor.a = 1
-                if frameData.borderFrame then
-                    GetFrameData(frameData.borderFrame).cdmResolvedBorderColor = resolvedBorderColor
-                end
-                frameData.cdmLastBorderSpellID = spellID
+            local customColor
+            local candidates = GetSpellIDCandidates(self, frame)
+            for _, id in ipairs(candidates) do
+                customColor = GetColorForSpellID(id)
+                if customColor then break end
             end
 
-            local resolved = frameData.cdmResolvedBorderColor
-            if resolved then
-                if pixelBorderLines then
-                    for _, line in ipairs(pixelBorderLines) do
-                        if line and line.SetVertexColor then
-                            line:SetVertexColor(resolved.r, resolved.g, resolved.b, 1)
-                        end
+            if customColor then
+                r, g, b = customColor.r or r, customColor.g or g, customColor.b or b
+            end
+
+            local resolvedBorderColor = frameData.cdmResolvedBorderColor
+            if not resolvedBorderColor then
+                resolvedBorderColor = {}
+                frameData.cdmResolvedBorderColor = resolvedBorderColor
+            end
+            resolvedBorderColor.r = r
+            resolvedBorderColor.g = g
+            resolvedBorderColor.b = b
+            resolvedBorderColor.a = 1
+            if frameData.borderFrame then
+                GetFrameData(frameData.borderFrame).cdmResolvedBorderColor = resolvedBorderColor
+            end
+
+            if pixelBorderLines then
+                for _, line in ipairs(pixelBorderLines) do
+                    if line and line.SetVertexColor then
+                        line:SetVertexColor(r, g, b, 1)
                     end
                 end
-
-                if borderColor and borderColor.SetBackdropBorderColor then
-                    borderColor:SetBackdropBorderColor(resolved.r, resolved.g, resolved.b, 1)
-                    borderColor.backdropBorderColor = resolved
-                    borderColor.backdropBorderColorAlpha = 1
-                end
             end
-            frameData.cdmLastBorderStyleVersion = borderVersion
+
+            if borderColor and borderColor.SetBackdropBorderColor then
+                borderColor:SetBackdropBorderColor(r, g, b, 1)
+                borderColor.backdropBorderColor = resolvedBorderColor
+                borderColor.backdropBorderColorAlpha = 1
+            end
         end
     else
         if fullUpdate and desc then
@@ -1230,19 +1211,10 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                             fd.cdmLastAuraActive = auraActive
                             CDM:ApplyAuraOverride(frame)
                         elseif fd.cdmAuraOverrideActive then
-                            local sc = styleCache.swipeColor or CDM_C.SWIPE_COLOR
-                            frame.Cooldown:SetSwipeColor(sc.r, sc.g, sc.b, sc.a)
                             if fd.cdmLastAuraActive then
-                                if frame.Icon then
-                                    frame.Icon:SetDesaturation(0)
-                                end
+                                ApplyAuraOverlayActive(frame, fd, entry)
                             else
-                                if frame.Icon then
-                                    frame.Icon:SetDesaturation(1)
-                                end
-                                if frame.Cooldown.SetDrawSwipe then
-                                    frame.Cooldown:SetDrawSwipe(false)
-                                end
+                                ApplyAuraOverlayInactive(frame, fd)
                             end
                         elseif sid then
                             fd.isProcessingOverride = true
@@ -1290,37 +1262,26 @@ RefreshKeybindForFrame = function(frame, frameData, KB, kbCacheVer, styleVersion
     frameData.cdmKeybindContainer:Show()
 
     local baseSpellID = GetBaseSpellID(frame)
-    if frameData.cdmLastKeybindCacheVer ~= kbCacheVer
-        or frameData.cdmLastKeybindStyleVer ~= styleVersion
-        or frameData.cdmLastKeybindSpellID ~= baseSpellID then
+    local kbFS = frameData.cdmKeybindFS
+    kbFS:SetIgnoreParentScale(true)
+    kbFS:ClearAllPoints()
+    kbFS:SetPoint(styleCache.assistPosition, frame, styleCache.assistPosition,
+                  styleCache.assistOffsetX, styleCache.assistOffsetY)
+    local kbFontPath = styleCache.fontPath or CDM_C.GetBaseFontPath()
+    local kbOutline = styleCache.textFontOutline or ""
+    kbFS:SetFont(kbFontPath, Pixel.FontSize(styleCache.assistFontSize), kbOutline)
+    kbFS:SetTextColor(styleCache.assistColor.r, styleCache.assistColor.g, styleCache.assistColor.b)
 
-        local kbFS = frameData.cdmKeybindFS
-        if frameData.cdmLastKeybindStyleVer ~= styleVersion then
-            kbFS:SetIgnoreParentScale(true)
-            kbFS:ClearAllPoints()
-            kbFS:SetPoint(styleCache.assistPosition, frame, styleCache.assistPosition,
-                          styleCache.assistOffsetX, styleCache.assistOffsetY)
-            local kbFontPath = styleCache.fontPath or CDM_C.GetBaseFontPath()
-            local kbOutline = styleCache.textFontOutline or ""
-            kbFS:SetFont(kbFontPath, Pixel.FontSize(styleCache.assistFontSize), kbOutline)
-            kbFS:SetTextColor(styleCache.assistColor.r, styleCache.assistColor.g, styleCache.assistColor.b)
-        end
-
-        local kbText = baseSpellID and KB:GetKeybindText(baseSpellID) or nil
-        if not kbText and frame.itemID then
-            kbText = KB:GetKeybindTextForItem(frame.itemID)
-        end
-        if kbText then
-            kbFS:SetText(kbText)
-            kbFS:Show()
-        else
-            kbFS:SetText("")
-            kbFS:Hide()
-        end
-
-        frameData.cdmLastKeybindCacheVer = kbCacheVer
-        frameData.cdmLastKeybindStyleVer = styleVersion
-        frameData.cdmLastKeybindSpellID = baseSpellID
+    local kbText = baseSpellID and KB:GetKeybindText(baseSpellID) or nil
+    if not kbText and frame.itemID then
+        kbText = KB:GetKeybindTextForItem(frame.itemID)
+    end
+    if kbText then
+        kbFS:SetText(kbText)
+        kbFS:Show()
+    else
+        kbFS:SetText("")
+        kbFS:Hide()
     end
 end
 

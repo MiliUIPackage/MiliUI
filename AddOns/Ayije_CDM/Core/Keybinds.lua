@@ -401,7 +401,7 @@ end
 function Keybinds:Initialize()
     CDM:RegisterRefreshCallback("assist", function()
         RefreshConsumerState()
-    end, 36)
+    end, 36, { "STYLE" })
 
     RefreshConsumerState()
 end

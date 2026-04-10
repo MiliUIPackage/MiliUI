@@ -136,7 +136,7 @@ local function OnLSMMediaRegistered(_, mediaType, key)
         return
     end
 
-    CDM:Refresh()
+    CDM:Refresh("STYLE")
 end
 
 local function RegisterLSMFontRefreshCallback()
@@ -502,6 +502,44 @@ local function FlushCombatDirtyViewers()
     wipe(dirty)
 end
 
+local function ForceRestyleAll()
+    if RefreshStyleCache then RefreshStyleCache() end
+    for _, vName in ipairs(ALL_VIEWER_NAMES) do
+        if vName ~= VIEWERS.BUFF_BAR then
+            local viewer = _G[vName]
+            if viewer and viewer.itemFramePool then
+                for frame in viewer.itemFramePool:EnumerateActive() do
+                    CDM:ApplyStyle(frame, vName, true)
+                    if vName == VIEWERS.BUFF then
+                        CDM:RestoreCooldownTextIfHidden(frame)
+                        CDM:RestoreVisualsIfHidden(frame)
+                        CDM:ApplyUngroupedBuffOverrides(frame)
+                    end
+                end
+            end
+        end
+    end
+    local CB = CDM.CustomBuffs
+    if CB and CB.activeBuffs then
+        for _, buffData in pairs(CB.activeBuffs) do
+            local frame = buffData.frame
+            if frame then
+                CDM:ApplyStyle(frame, VIEWERS.BUFF, true)
+                CDM:ApplyUngroupedBuffOverrides(frame)
+            end
+        end
+    end
+    if CDM.ApplyGroupStyleOverrides then
+        CDM:ApplyGroupStyleOverrides()
+    end
+    local bbViewer = _G[VIEWERS.BUFF_BAR]
+    if bbViewer then CDM:ForceReanchor(bbViewer) end
+    if CDM.RefreshAllSwipeColors then
+        CDM.RefreshAllSwipeColors()
+    end
+    if CDM.Fading then CDM.Fading:ReapplyCurrent() end
+end
+
 local function RegisterRefreshCallbacks()
     CDM:RegisterRefreshCallback("styleCache", function()
         CDM.styleCacheVersion = (CDM.styleCacheVersion or 0) + 1
@@ -525,38 +563,40 @@ local function RegisterRefreshCallbacks()
 
     CDM:RegisterRefreshCallback("specData", function()
         CDM:RefreshSpecData()
-    end, 30)
+    end, 30, { "BUFF_DATA", "CD_DATA" })
 
-    CDM:RegisterRefreshCallback("viewers", function()
+    CDM:RegisterRefreshCallback("viewers_layout", function()
         CDM:ForceReanchorAll()
-    end, 40)
+    end, 40, { "LAYOUT", "BUFF_DATA", "CD_DATA" })
+
+    CDM:RegisterRefreshCallback("viewers_style", ForceRestyleAll, 45, { "STYLE", "BUFF_DATA", "CD_DATA" })
 
     CDM:RegisterRefreshCallback("trackerModules", function()
         CDM.ReconcileDefensives()
         CDM.ReconcileRacials()
         CDM.ReconcileTrinkets()
         CDM.ReconcileExternals()
-    end, 50)
+    end, 50, { "TRACKERS" })
 
     CDM:RegisterRefreshCallback("resources", function()
         CDM.ReconcileResources()
-    end, 50)
+    end, 50, { "RESOURCES" })
 
     CDM:RegisterRefreshCallback("essentialPosition", function()
         CDM:UpdateEssentialContainerPosition()
-    end, 35)
+    end, 35, { "LAYOUT" })
 
     CDM:RegisterRefreshCallback("buffPosition", function()
         CDM:UpdateBuffContainerPosition()
-    end, 60)
+    end, 60, { "LAYOUT" })
 
     CDM:RegisterRefreshCallback("buffBars", function()
         CDM:UpdateBuffBarContainerPosition()
-    end, 65)
+    end, 65, { "LAYOUT", "TRACKERS" })
 
     CDM:RegisterRefreshCallback("containerLocks", function()
         CDM:UpdateContainerDragOverlays()
-    end, 70)
+    end, 70, { "LAYOUT" })
 end
 
 function CDM:OnEnable()

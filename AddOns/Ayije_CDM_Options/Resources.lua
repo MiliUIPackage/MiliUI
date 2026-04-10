@@ -167,8 +167,7 @@ local function CreateResourcesTab(page, tabId)
     local layout = UI.CreateVerticalLayout(0)
     local function NextY(spacing) return layout:Next(spacing) end
 
-    local enabled = CDM.db.resourcesEnabled
-    if enabled == nil then enabled = true end
+    local enabled = CDM.db.resourcesEnabled ~= false
     local setControlsEnabled
     page.controls.resourcesEnabled = UI.CreateModernCheckbox(
         resourcesScrollChild,
@@ -180,7 +179,7 @@ local function CreateResourcesTab(page, tabId)
                 CDM.db.castBarAnchorToResources = false
             end
             if setControlsEnabled then setControlsEnabled(checked) end
-            API:Refresh()
+            API:Refresh("RESOURCES", "LAYOUT")
         end
     )
     page.controls.resourcesEnabled:SetPoint("TOPLEFT", -34, NextY(0))
@@ -192,7 +191,7 @@ local function CreateResourcesTab(page, tabId)
         API:GetPrimaryResourceEnabled(),
         function(checked)
             API:SetPrimaryResourceEnabled(checked)
-            API:Refresh()
+            API:Refresh("RESOURCES", "LAYOUT")
         end
     )
     page.controls.primaryResourceCheckbox:SetPoint("TOPLEFT", 0, NextY(0))
@@ -203,7 +202,7 @@ local function CreateResourcesTab(page, tabId)
         API:GetSecondaryResourceEnabled(),
         function(checked)
             API:SetSecondaryResourceEnabled(checked)
-            API:Refresh()
+            API:Refresh("RESOURCES", "LAYOUT")
         end
     )
     page.controls.secondaryResourceCheckbox:SetPoint("LEFT", page.controls.primaryResourceCheckbox, "LEFT", 200, 0)
@@ -217,7 +216,7 @@ local function CreateResourcesTab(page, tabId)
         smoothBarsVal,
         function(checked)
             CDM.db.resourcesSmoothBars = checked
-            API:Refresh()
+            API:Refresh("RESOURCES")
         end
     )
     page.controls.smoothBarsCheckbox:SetPoint("TOPLEFT", 0, NextY(0))
@@ -235,7 +234,7 @@ local function CreateResourcesTab(page, tabId)
         CDM.db.resourcesBarHeight or 16,
         function(v)
             CDM.db.resourcesBarHeight = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("RESOURCES", "LAYOUT")
         end
     )
     page.resourcesBarHeightSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -249,7 +248,7 @@ local function CreateResourcesTab(page, tabId)
         CDM.db.resourcesBar2Height or 16,
         function(v)
             CDM.db.resourcesBar2Height = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("RESOURCES", "LAYOUT")
         end
     )
     page.resourcesBar2HeightSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -268,7 +267,7 @@ local function CreateResourcesTab(page, tabId)
                 page.resourcesBarWidthSlider.Slider:SetValue(60)
             end
             CDM.db.resourcesBarWidth = value
-            API:Refresh()
+            API:Refresh("RESOURCES")
         end
     )
     page.resourcesBarWidthSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -282,7 +281,7 @@ local function CreateResourcesTab(page, tabId)
         CDM.db.resourcesBarSpacing or 2,
         function(v)
             CDM.db.resourcesBarSpacing = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("RESOURCES", "LAYOUT")
         end
     )
     page.resourcesBarSpacingSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -294,7 +293,7 @@ local function CreateResourcesTab(page, tabId)
         CDM.db.resourcesUnifiedBorder,
         function(checked)
             CDM.db.resourcesUnifiedBorder = checked
-            API:Refresh()
+            API:Refresh("RESOURCES")
         end
     )
     page.unifiedBorderCheckbox:SetPoint("TOPLEFT", 0, NextY(0))
@@ -306,7 +305,7 @@ local function CreateResourcesTab(page, tabId)
         CDM.db.resourcesMoveBuffsDown,
         function(checked)
             CDM.db.resourcesMoveBuffsDown = checked
-            API:Refresh()
+            API:Refresh("RESOURCES", "LAYOUT")
         end
     )
     page.moveBuffsDownCheckbox:SetPoint("TOPLEFT", 0, NextY(0))
@@ -329,7 +328,7 @@ local function CreateResourcesTab(page, tabId)
             API:GetManaEnabled(),
             function(checked)
                 API:SetManaEnabled(checked)
-                API:Refresh()
+                API:Refresh("RESOURCES")
             end
         )
         page.manaEnabledCheckbox:SetPoint("TOPLEFT", 0, NextY(0))
@@ -370,7 +369,7 @@ local function CreateResourcesTab(page, tabId)
         function() return CDM.db.resourcesBarTexture end,
         function(name)
             CDM.db.resourcesBarTexture = name
-            API:Refresh()
+            API:Refresh("RESOURCES")
         end,
         function(name)
             ddBarTexture:SetDefaultText(name)
@@ -395,7 +394,7 @@ local function CreateResourcesTab(page, tabId)
         function() return CDM.db.resourcesBarBackgroundTexture end,
         function(name)
             CDM.db.resourcesBarBackgroundTexture = name
-            API:Refresh()
+            API:Refresh("RESOURCES")
         end,
         function(name)
             ddBgTexture:SetDefaultText(name)
@@ -415,7 +414,7 @@ local function CreateResourcesTab(page, tabId)
         CDM.db.resourcesOffsetX or 0,
         function(v)
             CDM.db.resourcesOffsetX = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("RESOURCES")
         end
     )
     page.resourcesOffsetXSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -429,7 +428,7 @@ local function CreateResourcesTab(page, tabId)
         CDM.db.resourcesOffsetY or -200,
         function(v)
             CDM.db.resourcesOffsetY = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("RESOURCES")
         end
     )
     page.resourcesOffsetYSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -449,7 +448,7 @@ local function CreateResourcesTab(page, tabId)
     local colorItems = {}
 
     local function AddColorItem(def)
-        local swatch = UI.CreateColorSwatch(resourcesScrollChild, def.label, def.key)
+        local swatch = UI.CreateColorSwatch(resourcesScrollChild, def.label, def.key, "RESOURCES")
         table.insert(colorItems, {
             frame = swatch,
             key = def.key,
@@ -485,7 +484,7 @@ local function CreateResourcesTab(page, tabId)
                 CDM.db.resourcesIgnorePainHideIcon == true,
                 function(checked)
                     CDM.db.resourcesIgnorePainHideIcon = checked
-                    API:Refresh()
+                    API:Refresh("RESOURCES")
                 end
             )
             hideIconCB:SetPoint("LEFT", swatch, "LEFT", 200, 0)
@@ -636,14 +635,14 @@ local function CreateResourcesTab(page, tabId)
         local windowHeight = paddingY + titleOffset + backgroundHeight + maxColumnHeight + paddingY
         window:SetSize(windowWidth, windowHeight)
 
-        local backgroundSwatch = UI.CreateColorSwatch(window, L["Background"], "resourcesBackgroundColor")
+        local backgroundSwatch = UI.CreateColorSwatch(window, L["Background"], "resourcesBackgroundColor", "RESOURCES")
         backgroundSwatch:SetPoint("TOPLEFT", paddingX, -(paddingY + titleOffset))
 
-        local manaSwatch = UI.CreateColorSwatch(window, L["Mana"], "resourcesManaColor")
+        local manaSwatch = UI.CreateColorSwatch(window, L["Mana"], "resourcesManaColor", "RESOURCES")
         manaSwatch:SetPoint("TOPLEFT", paddingX + swatchWidth + columnGap, -(paddingY + titleOffset))
 
         local startY = -(paddingY + titleOffset) - backgroundHeight
-        local gold = (CDM.CONST and CDM.CONST.GOLD) or { r = 1, g = 0.82, b = 0, a = 1 }
+        local gold = CDM.CONST.GOLD
 
         for _, column in ipairs(columns) do
             local y = startY
@@ -658,7 +657,7 @@ local function CreateResourcesTab(page, tabId)
                 for _, key in ipairs(keys) do
                     if key ~= "resourcesManaColor" then  -- Mana shown globally next to Background
                         local label = labelByKey[key] or key
-                        local swatch = UI.CreateColorSwatch(window, label, key)
+                        local swatch = UI.CreateColorSwatch(window, label, key, "RESOURCES")
                         swatch:SetPoint("TOPLEFT", column.x, y)
                         y = y - swatchRowSpacing
                     end
@@ -702,7 +701,7 @@ local function CreateResourcesTab(page, tabId)
             API:GetTagEnabled(isBar2),
             function(checked)
                 API:SetTagEnabled(isBar2, checked)
-                API:Refresh()
+                API:Refresh("RESOURCES")
             end
         )
         page[prefix .. "TagEnabledCheck"]:SetPoint("TOPLEFT", 0, NextY(0))
@@ -770,7 +769,7 @@ local function CreateResourcesTab(page, tabId)
         page[prefix .. "TagOffsetYSlider"]:SetPoint("TOPLEFT", 0, NextY(0))
         NextY(60)
 
-        page[prefix .. "TagColorPicker"] = UI.CreateColorSwatch(resourcesScrollChild, string.format(L["%s Text Color"], label), colorKey)
+        page[prefix .. "TagColorPicker"] = UI.CreateColorSwatch(resourcesScrollChild, string.format(L["%s Text Color"], label), colorKey, "RESOURCES")
         page[prefix .. "TagColorPicker"].OnChange = RefreshTagStyle
         page[prefix .. "TagColorPicker"]:SetPoint("TOPLEFT", 0, NextY(0))
         NextY(50)

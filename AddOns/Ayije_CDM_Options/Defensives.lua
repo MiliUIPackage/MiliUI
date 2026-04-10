@@ -8,37 +8,22 @@ local L = Runtime.L
 
 
 local CDM_C = CDM.CONST
+local Shared = ns.GroupEditorShared
 local BUILTIN_SET = CDM_C.DEFENSIVE_SPELLS_SET
 local DEFENSIVE_SPELLS = CDM_C.DEFENSIVE_SPELLS
 local _, playerClassTag = UnitClass("player")
 
 local CLASS_LIST = {}
 local CLASS_SPECS = {}
-
-for i = 1, GetNumClasses() do
-    local className, classTag, classID = GetClassInfo(i)
-    if classTag and DEFENSIVE_SPELLS[classTag] then
-        local color = RAID_CLASS_COLORS[classTag]
-        CLASS_LIST[#CLASS_LIST + 1] = {
-            classTag = classTag,
-            className = className,
-            classID = classID,
-            r = color and color.r or 1,
-            g = color and color.g or 1,
-            b = color and color.b or 1,
-        }
-        local specs = {}
-        for j = 1, GetNumSpecializationsForClassID(classID) do
-            local specID, specName = GetSpecializationInfoForClassID(classID, j)
-            if specID then
-                specs[#specs + 1] = { specID = specID, specName = specName }
-            end
+do
+    local allClasses, allSpecs = Shared.GetClassCatalog()
+    for _, classInfo in ipairs(allClasses) do
+        if DEFENSIVE_SPELLS[classInfo.classTag] then
+            CLASS_LIST[#CLASS_LIST + 1] = classInfo
+            CLASS_SPECS[classInfo.classTag] = allSpecs[classInfo.classTag]
         end
-        CLASS_SPECS[classTag] = specs
     end
 end
-
-table.sort(CLASS_LIST, function(a, b) return a.className < b.className end)
 
 local function SaveOrder(specID, order)
     if not specID then return end
@@ -64,8 +49,6 @@ local function CreateSpellsOverlay()
     local rowHeight = 29
     local contentWidth = windowWidth - paddingX * 2
     local startY = -(paddingY + titleOffset + 14)
-    local gold = (CDM.CONST and CDM.CONST.GOLD) or { r = 1, g = 0.82, b = 0, a = 1 }
-
     local selectedClassTag = playerClassTag
     local selectedSpecID = API:GetCurrentSpecID()
 
@@ -84,7 +67,7 @@ local function CreateSpellsOverlay()
 
     local addLabel = window:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     addLabel:SetText(L["Add Custom Spell"])
-    addLabel:SetTextColor(gold.r, gold.g, gold.b, gold.a or 1)
+    addLabel:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
     addLabel:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", paddingX, paddingY + 36)
 
     local addRow = CreateFrame("Frame", nil, window)
@@ -98,13 +81,7 @@ local function CreateSpellsOverlay()
     editBox:SetNumeric(true)
     editBox:SetMaxLetters(7)
 
-    local placeholderText = editBox:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
-    placeholderText:SetPoint("LEFT", editBox, "LEFT", 2, 0)
-    placeholderText:SetText(L["Spell ID"])
-    placeholderText:SetTextColor(0.5, 0.5, 0.5, 0.7)
-    editBox:SetScript("OnTextChanged", function(self)
-        if self:GetText() == "" then placeholderText:Show() else placeholderText:Hide() end
-    end)
+    UI.AttachPlaceholder(editBox, L["Spell ID"])
 
     local addBtn = CreateFrame("Button", nil, addRow, "UIPanelButtonTemplate")
     addBtn:SetSize(60, 22)
@@ -118,14 +95,7 @@ local function CreateSpellsOverlay()
     statusText:SetWordWrap(false)
     statusText:SetText("")
 
-    local statusTimer
-    local function SetStatus(text)
-        statusText:SetText(text)
-        if statusTimer then statusTimer:Cancel() end
-        if text ~= "" then
-            statusTimer = C_Timer.NewTimer(2, function() statusText:SetText("") end)
-        end
-    end
+    local SetStatus = UI.CreateTimedStatus(statusText)
 
     local RebuildList
 
@@ -201,13 +171,8 @@ local function CreateSpellsOverlay()
             arrowContainer:SetSize(58, 29)
             arrowContainer:SetPoint("TOPLEFT", 4, 0)
 
-            local btnUp = CreateFrame("Button", nil, arrowContainer)
-            btnUp:SetSize(29, 29)
+            local btnUp = Shared.CreateArrowButton(arrowContainer, "up", 29)
             btnUp:SetPoint("LEFT", arrowContainer, "LEFT", 0, 0)
-            btnUp:SetNormalAtlas("common-button-collapseExpand-up")
-            btnUp:SetPushedAtlas("common-button-collapseExpand-up-pressed")
-            btnUp:SetDisabledAtlas("common-button-collapseExpand-up-disabled")
-            btnUp:SetHighlightAtlas("common-button-collapseExpand-hover")
             if idx == 1 then btnUp:SetEnabled(false) end
 
             btnUp:SetScript("OnClick", function()
@@ -217,13 +182,8 @@ local function CreateSpellsOverlay()
                 RebuildList()
             end)
 
-            local btnDown = CreateFrame("Button", nil, arrowContainer)
-            btnDown:SetSize(29, 29)
+            local btnDown = Shared.CreateArrowButton(arrowContainer, "down", 29)
             btnDown:SetPoint("LEFT", btnUp, "RIGHT", 0, 0)
-            btnDown:SetNormalAtlas("common-button-collapseExpand-down")
-            btnDown:SetPushedAtlas("common-button-collapseExpand-down-pressed")
-            btnDown:SetDisabledAtlas("common-button-collapseExpand-down-disabled")
-            btnDown:SetHighlightAtlas("common-button-collapseExpand-hover")
             if idx == #order then btnDown:SetEnabled(false) end
 
             btnDown:SetScript("OnClick", function()
@@ -251,7 +211,7 @@ local function CreateSpellsOverlay()
                         else
                             CDM.db.defensivesDisabledSpells[specID][spellID] = true
                         end
-                        API:Refresh()
+                        API:Refresh("TRACKERS")
                     end
                 )
                 cb:SetSize(26, rowHeight)
@@ -272,7 +232,7 @@ local function CreateSpellsOverlay()
             local texture = C_Spell.GetSpellTexture(displayID)
             if texture then
                 iconTex:SetTexture(texture)
-                iconTex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+                CDM_C.ApplyIconTexCoord(iconTex, CDM_C.GetEffectiveZoomAmount())
             end
 
             local nameText = row:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
@@ -283,13 +243,7 @@ local function CreateSpellsOverlay()
                 local removeBtn = CreateFrame("Button", nil, row)
                 removeBtn:SetSize(16, 16)
                 removeBtn:SetPoint("LEFT", nameText, "RIGHT", 6, 0)
-                removeBtn:SetNormalFontObject("AyijeCDM_Font14")
-                removeBtn:SetHighlightFontObject("AyijeCDM_Font14")
-
-                local removeBtnText = removeBtn:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-                removeBtnText:SetPoint("CENTER")
-                removeBtnText:SetText("|cffff4444X|r")
-                removeBtn:SetFontString(removeBtnText)
+                Shared.ApplyRemoveButtonText(removeBtn)
 
                 removeBtn:SetScript("OnClick", function()
                     API:RemoveDefensiveSpell(spellID, specID)
@@ -356,8 +310,7 @@ local function CreateDefensivesTab(page, tabId)
     local layout = UI.CreateVerticalLayout(0)
     local function NextY(spacing) return layout:Next(spacing) end
 
-    local enabled = CDM.db.defensivesEnabled
-    if enabled == nil then enabled = true end
+    local enabled = CDM.db.defensivesEnabled ~= false
     local setControlsEnabled
     page.controls.defensivesEnabled = UI.CreateModernCheckbox(
         scrollChild,
@@ -366,7 +319,7 @@ local function CreateDefensivesTab(page, tabId)
         function(checked)
             CDM.db.defensivesEnabled = checked
             if setControlsEnabled then setControlsEnabled(checked) end
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.controls.defensivesEnabled:SetPoint("TOPLEFT", -34, NextY(0))
@@ -397,7 +350,7 @@ local function CreateDefensivesTab(page, tabId)
         CDM.db.defensivesIconWidth or 40,
         function(v)
             CDM.db.defensivesIconWidth = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.defensivesIconWidthSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -410,7 +363,7 @@ local function CreateDefensivesTab(page, tabId)
         CDM.db.defensivesIconHeight or 36,
         function(v)
             CDM.db.defensivesIconHeight = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.defensivesIconHeightSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -437,7 +390,7 @@ local function CreateDefensivesTab(page, tabId)
         function(pos)
             CDM.db.defensivesAnchorPoint = pos
             ddAnchor:SetDefaultText(pos)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end,
         {"TOPLEFT", "BOTTOMLEFT", "TOPRIGHT", "BOTTOMRIGHT"}
     )
@@ -449,7 +402,7 @@ local function CreateDefensivesTab(page, tabId)
         CDM.db.defensivesOffsetX or 0,
         function(v)
             CDM.db.defensivesOffsetX = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.defensivesOffsetXSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -462,7 +415,7 @@ local function CreateDefensivesTab(page, tabId)
         CDM.db.defensivesOffsetY or 0,
         function(v)
             CDM.db.defensivesOffsetY = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.defensivesOffsetYSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -479,7 +432,7 @@ local function CreateDefensivesTab(page, tabId)
         CDM.db.defensivesCooldownFontSize or 12,
         function(v)
             CDM.db.defensivesCooldownFontSize = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.defensivesCooldownFontSizeSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -496,7 +449,7 @@ local function CreateDefensivesTab(page, tabId)
         CDM.db.defensivesChargeFontSize or 15,
         function(v)
             CDM.db.defensivesChargeFontSize = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.defensivesChargeFontSizeSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -519,7 +472,7 @@ local function CreateDefensivesTab(page, tabId)
         function(pos)
             CDM.db.defensivesChargePosition = pos
             ddChargePos:SetDefaultText(pos)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
 
@@ -530,7 +483,7 @@ local function CreateDefensivesTab(page, tabId)
         CDM.db.defensivesChargeOffsetX or 0,
         function(v)
             CDM.db.defensivesChargeOffsetX = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.defensivesChargeOffsetXSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -543,7 +496,7 @@ local function CreateDefensivesTab(page, tabId)
         CDM.db.defensivesChargeOffsetY or 0,
         function(v)
             CDM.db.defensivesChargeOffsetY = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.defensivesChargeOffsetYSlider:SetPoint("TOPLEFT", 0, NextY(0))

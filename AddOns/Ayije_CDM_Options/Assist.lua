@@ -21,7 +21,7 @@ local function CreateAssistTab(page, tabId)
         function(checked)
             CDM.db.pressOverlayEnabled = checked
             if setPOControlsEnabled then setPOControlsEnabled(checked) end
-            API:Refresh()
+            API:Refresh("STYLE")
         end
     )
     page.controls.pressOverlayEnabled:SetPoint("TOPLEFT", poHeader, "BOTTOMLEFT", 0, -15)
@@ -44,7 +44,7 @@ local function CreateAssistTab(page, tabId)
             page.controls.pressOverlayBorder:SetChecked(activeKey == "pressOverlayBorder")
         end
         settingExclusive = false
-        API:Refresh()
+        API:Refresh("STYLE")
     end
 
     page.controls.pressOverlayTint = UI.CreateModernCheckbox(
@@ -57,7 +57,7 @@ local function CreateAssistTab(page, tabId)
     )
     page.controls.pressOverlayTint:SetPoint("TOPLEFT", page.controls.pressOverlayEnabled, "BOTTOMLEFT", 0, -10)
 
-    page.pressOverlayTintColorPicker = UI.CreateColorSwatch(scrollChild, L["Tint Color"], "pressOverlayTintColor")
+    page.pressOverlayTintColorPicker = UI.CreateColorSwatch(scrollChild, L["Tint Color"], "pressOverlayTintColor", "STYLE")
     page.pressOverlayTintColorPicker:SetPoint("TOPLEFT", page.controls.pressOverlayTint, "BOTTOMLEFT", 0, -10)
 
     page.controls.pressOverlayHighlight = UI.CreateModernCheckbox(
@@ -92,7 +92,7 @@ local function CreateAssistTab(page, tabId)
         end)
     end
 
-    page.pressOverlayBorderColorPicker = UI.CreateColorSwatch(scrollChild, L["Border Color"], "pressOverlayBorderColor")
+    page.pressOverlayBorderColorPicker = UI.CreateColorSwatch(scrollChild, L["Border Color"], "pressOverlayBorderColor", "STYLE")
     page.pressOverlayBorderColorPicker:SetPoint("TOPLEFT", page.controls.pressOverlayBorder, "BOTTOMLEFT", 0, -10)
 
     local poControls = {
@@ -133,7 +133,7 @@ local function CreateAssistTab(page, tabId)
         function(checked)
             CDM.db.rotationAssistEnabled = checked
             if setRAControlsEnabled then setRAControlsEnabled(checked) end
-            API:Refresh()
+            API:Refresh("STYLE")
         end
     )
     page.controls.rotationAssistEnabled:SetPoint("TOPLEFT", raHeader, "BOTTOMLEFT", 0, -15)
@@ -142,7 +142,7 @@ local function CreateAssistTab(page, tabId)
         scrollChild, L["Highlight Size"], 0.2, 0.4, CDM.db.rotationAssistGlowRatio or 0.33, 0.01, 2,
         function(v)
             CDM.db.rotationAssistGlowRatio = v
-            API:Refresh()
+            API:Refresh("STYLE")
         end
     )
     page.controls.rotationAssistGlowRatio:SetPoint("TOPLEFT", page.controls.rotationAssistEnabled, "BOTTOMLEFT", 0, -15)
@@ -171,7 +171,7 @@ local function CreateAssistTab(page, tabId)
         function(checked)
             CDM.db.assistEnabled = checked
             if setKBControlsEnabled then setKBControlsEnabled(checked) end
-            API:Refresh()
+            API:Refresh("STYLE")
         end
     )
     page.controls.assistEnabled:SetPoint("TOPLEFT", mainHeader, "BOTTOMLEFT", 0, -15)
@@ -180,12 +180,12 @@ local function CreateAssistTab(page, tabId)
         scrollChild, L["Font Size"], 1, 30, CDM.db.assistFontSize or 15,
         function(v)
             CDM.db.assistFontSize = v
-            API:Refresh()
+            API:Refresh("STYLE")
         end
     )
     page.controls.assistFontSize:SetPoint("TOPLEFT", page.controls.assistEnabled, "BOTTOMLEFT", 0, -15)
 
-    page.assistColorPicker = UI.CreateColorSwatch(scrollChild, L["Color"], "assistColor")
+    page.assistColorPicker = UI.CreateColorSwatch(scrollChild, L["Color"], "assistColor", "STYLE")
     page.assistColorPicker:SetPoint("TOPLEFT", page.controls.assistFontSize, "BOTTOMLEFT", 0, -15)
 
     local lblPos = scrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
@@ -204,7 +204,7 @@ local function CreateAssistTab(page, tabId)
         function(pos)
             CDM.db.assistPosition = pos
             ddPos:SetDefaultText(pos)
-            API:Refresh()
+            API:Refresh("STYLE")
         end
     )
 
@@ -212,7 +212,7 @@ local function CreateAssistTab(page, tabId)
         scrollChild, L["X Offset"], -20, 20, CDM.db.assistOffsetX or 0,
         function(v)
             CDM.db.assistOffsetX = v
-            API:Refresh()
+            API:Refresh("STYLE")
         end
     )
     page.controls.assistOffsetX:SetPoint("TOPLEFT", ddPos, "BOTTOMLEFT", 0, -15)
@@ -221,7 +221,7 @@ local function CreateAssistTab(page, tabId)
         scrollChild, L["Y Offset"], -20, 20, CDM.db.assistOffsetY or 0,
         function(v)
             CDM.db.assistOffsetY = v
-            API:Refresh()
+            API:Refresh("STYLE")
         end
     )
     page.controls.assistOffsetY:SetPoint("TOPLEFT", page.controls.assistOffsetX, "BOTTOMLEFT", 0, -15)

@@ -22,11 +22,11 @@ local function BroadcastSwatchColor(key, r, g, b, a)
     end
 end
 
-local function TriggerConfigRefresh()
-    API:Refresh()
+local function TriggerConfigRefresh(scope)
+    API:Refresh(scope)
 end
 
-function UI.CreateColorSwatch(parent, label, key)
+function UI.CreateColorSwatch(parent, label, key, scope)
     local frame = CreateFrame("Frame", nil, parent)
     frame:SetSize(250, 30)
 
@@ -65,7 +65,7 @@ function UI.CreateColorSwatch(parent, label, key)
             local a = ColorPickerFrame:GetColorAlpha()
             CDM.db[key] = { r = r, g = g, b = b, a = a }
             BroadcastSwatchColor(key, r, g, b, a)
-            TriggerConfigRefresh()
+            TriggerConfigRefresh(scope)
         end
 
         local info = {
@@ -74,7 +74,7 @@ function UI.CreateColorSwatch(parent, label, key)
             cancelFunc = function(prev)
                 CDM.db[key] = prev
                 BroadcastSwatchColor(key, prev.r, prev.g, prev.b, prev.a)
-                TriggerConfigRefresh()
+                TriggerConfigRefresh(scope)
             end,
             r = color.r, g = color.g, b = color.b, opacity = color.a,
             hasOpacity = true,
@@ -523,31 +523,52 @@ function UI.SetupPositionDropdown(dropdown, getValue, setValue, positions)
     end)
 end
 
+local lsmListCache = {}
+
+local function GetCachedMediaList(mediaType)
+    if lsmListCache[mediaType] then return lsmListCache[mediaType] end
+    local raw = LSM:List(mediaType) or {}
+    local sorted = {}
+    for i, name in ipairs(raw) do sorted[i] = name end
+    table.sort(sorted)
+    local deduped = {}
+    local seenPaths = {}
+    for _, name in ipairs(sorted) do
+        local path = LSM:Fetch(mediaType, name)
+        if not path or not seenPaths[path] then
+            if path then seenPaths[path] = true end
+            deduped[#deduped + 1] = name
+        end
+    end
+    lsmListCache[mediaType] = deduped
+    return deduped
+end
+
 function UI.SetupMediaDropdown(dropdown, mediaType, getValue, setValue, setText)
     dropdown:SetupMenu(function(_, rootDescription)
         rootDescription:SetScrollMode(500)
-        local mediaList = LSM:List(mediaType) or {}
-        table.sort(mediaList)
-        local seenPaths = {}
-        for _, name in ipairs(mediaList) do
-            local path = LSM:Fetch(mediaType, name)
-            if not path or not seenPaths[path] then
-                if path then seenPaths[path] = true end
-                rootDescription:CreateRadio(name, function() return getValue() == name end, function()
-                    setValue(name)
-                    if setText then
-                        setText(name)
-                    end
-                end)
-            end
+        local list = GetCachedMediaList(mediaType)
+        for _, name in ipairs(list) do
+            rootDescription:CreateRadio(name, function() return getValue() == name end, function()
+                setValue(name)
+                if setText then
+                    setText(name)
+                end
+            end)
         end
     end)
 end
 
-function UI.ClearChildren(frame)
-    for _, child in ipairs({frame:GetChildren()}) do
-        child:Hide()
-        child:SetParent(nil)
+do
+    local function HideAndOrphan(...)
+        for i = 1, select("#", ...) do
+            local child = select(i, ...)
+            child:Hide()
+            child:SetParent(nil)
+        end
+    end
+    function UI.ClearChildren(frame)
+        HideAndOrphan(frame:GetChildren())
     end
 end
 
@@ -555,8 +576,8 @@ function UI.CreateScrollableEditBox(parent, width, height, editWidth)
     local boxFrame = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     boxFrame:SetSize(width, height)
     boxFrame:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        bgFile = CDM_C.TEX_WHITE8X8,
+        edgeFile = CDM_C.TEX_WHITE8X8,
         edgeSize = 1,
     })
     boxFrame:SetBackdropColor(0.1, 0.1, 0.1, 0.8)
@@ -643,6 +664,36 @@ function UI.CreateModalOverlay()
 
     overlay.window = window
     return overlay
+end
+
+function UI.CreateTimedStatus(fontString, duration)
+    local timer
+    duration = duration or 2
+    return function(text)
+        fontString:SetText(text)
+        if timer then timer:Cancel() end
+        if text ~= "" then
+            timer = C_Timer.NewTimer(duration, function() fontString:SetText("") end)
+        end
+    end
+end
+
+function UI.AttachPlaceholder(editBox, text)
+    local ph = editBox:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
+    ph:SetPoint("LEFT", editBox, "LEFT", 2, 0)
+    ph:SetText(text)
+    ph:SetTextColor(0.5, 0.5, 0.5, 0.7)
+    editBox:HookScript("OnTextChanged", function(self)
+        ph:SetShown(self:GetText() == "")
+    end)
+    return ph
+end
+
+function UI.GetOptionLabel(options, value, default)
+    for _, opt in ipairs(options) do
+        if opt.value == value then return opt.label end
+    end
+    return default or value
 end
 
 function UI.CreateSubTabBar(parent, tabs, initialTab)

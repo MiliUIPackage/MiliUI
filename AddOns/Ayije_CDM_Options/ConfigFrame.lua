@@ -17,6 +17,7 @@ local versionText = nil
 local discordText = nil
 local twitchText = nil
 local footerRefreshRegistered = false
+local lastFooterFont = nil
 local combatCloseRegistered = false
 local SCROLL_FRAME_NAMES = {
     text = "AyijeCDM_TextScrollFrame",
@@ -58,6 +59,9 @@ local function ApplyFooterTextStyle(fontString)
 end
 
 local function ApplyAllFooterTextStyles()
+    local currentFont = CDM.db and CDM.db.textFont
+    if currentFont == lastFooterFont then return end
+    lastFooterFont = currentFont
     ApplyFooterTextStyle(versionText)
     ApplyFooterTextStyle(discordText)
     ApplyFooterTextStyle(twitchText)
@@ -251,66 +255,50 @@ local function CreateConfigFrame()
     local panelBgHolder = CreateFrame("Frame", nil, ConfigFrame)
     panelBgHolder:SetAllPoints()
     local panelBg = panelBgHolder:CreateTexture(nil, "BACKGROUND")
-    panelBg:SetAtlas("Options_InnerFrame", true)  -- true = use atlas native size
-    panelBg:SetPoint("TOPLEFT", ConfigFrame, "TOPLEFT", 17, -64)  -- Matches Blizzard's positioning
+    panelBg:SetAtlas("Options_InnerFrame", true)
+    panelBg:SetPoint("TOPLEFT", ConfigFrame, "TOPLEFT", 17, -64)
 
-    local gold = CDM_C.GOLD or { r = 1, g = 0.82, b = 0, a = 1 }
+    local gold = CDM_C.GOLD
 
-    local discordBtn = CreateFrame("Button", nil, ConfigFrame)
-    discordBtn:SetSize(80, 20)
-    discordBtn:SetPoint("BOTTOMLEFT", ConfigFrame, "BOTTOMLEFT", 22, 10)
+    local function CreateSocialButton(parent, iconTexPath, labelText, base64Data, anchor, anchorPoint)
+        local btn = CreateFrame("Button", nil, parent)
+        btn:SetSize(80, 20)
+        if type(anchor) == "table" then
+            btn:SetPoint("LEFT", anchor, "RIGHT", 6, 0)
+        else
+            btn:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", 22, 10)
+        end
 
-    local discordIcon = discordBtn:CreateTexture(nil, "ARTWORK")
-    discordIcon:SetSize(16, 16)
-    discordIcon:SetPoint("LEFT", 0, 0)
-    discordIcon:SetTexture("Interface\\AddOns\\Ayije_CDM\\Media\\Textures\\Discord.tga")
+        local icon = btn:CreateTexture(nil, "ARTWORK")
+        icon:SetSize(16, 16)
+        icon:SetPoint("LEFT", 0, 0)
+        icon:SetTexture(iconTexPath)
 
-    discordText = discordBtn:CreateFontString(nil, "OVERLAY")
-    discordText:SetPoint("LEFT", discordIcon, "RIGHT", 4, 0)
-    ApplyFooterTextStyle(discordText)
-    discordText:SetText("Discord")
-    UI.SetTextFaint(discordText)
+        local text = btn:CreateFontString(nil, "OVERLAY")
+        text:SetPoint("LEFT", icon, "RIGHT", 4, 0)
+        ApplyFooterTextStyle(text)
+        text:SetText(labelText)
+        UI.SetTextFaint(text)
 
-    discordBtn:SetScript("OnClick", function()
-        local link = C_EncodingUtil.DeserializeCBOR(
-            C_EncodingUtil.DecodeBase64("oURsaW5rWB1odHRwczovL2Rpc2NvcmQuZ2cvUmV4ZjNEaG5CRA==")
-        ).link
-        StaticPopup_Show("AYIJE_CDM_COPY_URL", nil, nil, {url = link})
-    end)
-    discordBtn:SetScript("OnEnter", function()
-        UI.SetTextColor(discordText, gold)
-    end)
-    discordBtn:SetScript("OnLeave", function()
-        UI.SetTextFaint(discordText)
-    end)
+        btn:SetScript("OnClick", function()
+            local link = C_EncodingUtil.DeserializeCBOR(C_EncodingUtil.DecodeBase64(base64Data)).link
+            StaticPopup_Show("AYIJE_CDM_COPY_URL", nil, nil, {url = link})
+        end)
+        btn:SetScript("OnEnter", function() UI.SetTextColor(text, gold) end)
+        btn:SetScript("OnLeave", function() UI.SetTextFaint(text) end)
 
-    local twitchBtn = CreateFrame("Button", nil, ConfigFrame)
-    twitchBtn:SetSize(80, 20)
-    twitchBtn:SetPoint("LEFT", discordBtn, "RIGHT", 6, 0)
+        return btn, text
+    end
 
-    local twitchIcon = twitchBtn:CreateTexture(nil, "ARTWORK")
-    twitchIcon:SetSize(16, 16)
-    twitchIcon:SetPoint("LEFT", 0, 0)
-    twitchIcon:SetTexture("Interface\\AddOns\\Ayije_CDM\\Media\\Textures\\Twitch.tga")
+    local discordBtn
+    discordBtn, discordText = CreateSocialButton(ConfigFrame,
+        "Interface\\AddOns\\Ayije_CDM\\Media\\Textures\\Discord.tga", "Discord",
+        "oURsaW5rWB1odHRwczovL2Rpc2NvcmQuZ2cvUmV4ZjNEaG5CRA==")
 
-    twitchText = twitchBtn:CreateFontString(nil, "OVERLAY")
-    twitchText:SetPoint("LEFT", twitchIcon, "RIGHT", 4, 0)
-    ApplyFooterTextStyle(twitchText)
-    twitchText:SetText("Twitch")
-    UI.SetTextFaint(twitchText)
-
-    twitchBtn:SetScript("OnClick", function()
-        local link = C_EncodingUtil.DeserializeCBOR(
-            C_EncodingUtil.DecodeBase64("oURsaW5rV2h0dHBzOi8vdHdpdGNoLnR2L2F5aWpl")
-        ).link
-        StaticPopup_Show("AYIJE_CDM_COPY_URL", nil, nil, {url = link})
-    end)
-    twitchBtn:SetScript("OnEnter", function()
-        UI.SetTextColor(twitchText, gold)
-    end)
-    twitchBtn:SetScript("OnLeave", function()
-        UI.SetTextFaint(twitchText)
-    end)
+    local twitchBtn
+    twitchBtn, twitchText = CreateSocialButton(ConfigFrame,
+        "Interface\\AddOns\\Ayije_CDM\\Media\\Textures\\Twitch.tga", "Twitch",
+        "oURsaW5rV2h0dHBzOi8vdHdpdGNoLnR2L2F5aWpl", discordBtn)
 
     versionText = ConfigFrame:CreateFontString(nil, "OVERLAY")
     versionText:SetPoint("BOTTOMRIGHT", ConfigFrame, "BOTTOMRIGHT", -22, 10)
@@ -353,7 +341,6 @@ local function CreateConfigFrame()
         local header = CreateFrame("Frame", nil, Sidebar, "SettingsCategoryListHeaderTemplate")
         header:SetPoint("TOPLEFT", 0, y)
 
-        -- Cycle through the three available header atlases.
         local atlasIndex = ((headerIndex - 1) % 3) + 1
         local initializer = { data = { label = label, headerIndex = atlasIndex } }
         header:Init(initializer)
@@ -418,7 +405,7 @@ local function CreateConfigFrame()
     if not footerRefreshRegistered then
         API:RegisterRefreshCallback("configFooterTextStyle", function()
             ApplyAllFooterTextStyles()
-        end, 95)
+        end, 95, { "STYLE" })
         footerRefreshRegistered = true
     end
 end

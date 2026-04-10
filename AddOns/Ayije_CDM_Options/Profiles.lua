@@ -209,7 +209,7 @@ local function CreateProfilesTab(page, tabId)
             UI.SetTextError(createStatus)
             return
         end
-        name = name:match("^%s*(.-)%s*$")  -- trim whitespace
+        name = name:match("^%s*(.-)%s*$")
         local ok, errCode = API:NewProfile(name)
         if ok then
             newEditBox:SetText("")

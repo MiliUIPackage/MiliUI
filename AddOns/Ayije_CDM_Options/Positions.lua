@@ -116,11 +116,11 @@ local function CreatePositionsTab(page, tabId)
     essHeader:SetPoint("TOPLEFT", 0, 0)
 
     local essYSlider, essDisplay, essUpdateDisplay = CreatePositionControls(scrollChild, essHeader, page, {
-        viewerName = "EssentialCooldownViewer",
+        viewerName = C.VIEWERS.ESSENTIAL,
         defaults = { point = "CENTER", x = 0, y = -201 },
         displayField = "posDisplay",
         anchorPoint = "TOP",
-        reanchor = function() CDM:ReanchorContainer("EssentialCooldownViewer") end,
+        reanchor = function() CDM:ReanchorContainer(C.VIEWERS.ESSENTIAL) end,
         xKey = "xPos",
         yKey = "yPos",
         postMove = function()
@@ -132,7 +132,7 @@ local function CreatePositionsTab(page, tabId)
     })
 
     local utilYOffsetSlider = UI.CreateModernSlider(scrollChild, L["Utility Y Offset"], -600, 600, CDM.db.utilityYOffset, function(v)
-        CDM.db.utilityYOffset = v; API:Refresh()
+        CDM.db.utilityYOffset = v; API:Refresh("LAYOUT")
     end)
     utilYOffsetSlider:SetPoint("TOPLEFT", essYSlider, "BOTTOMLEFT", 0, -10)
 
@@ -140,7 +140,7 @@ local function CreatePositionsTab(page, tabId)
     buffHeader:SetPoint("TOPLEFT", utilYOffsetSlider, "BOTTOMLEFT", 0, -15)
 
     local buffYSlider, buffDisplay, buffUpdateDisplay = CreatePositionControls(scrollChild, buffHeader, page, {
-        viewerName = "BuffIconCooldownViewer",
+        viewerName = C.VIEWERS.BUFF,
         defaults = { point = "CENTER", x = 0, y = -149 },
         displayField = "buffPosDisplay",
         anchorPoint = "BOTTOM",
@@ -152,10 +152,10 @@ local function CreatePositionsTab(page, tabId)
     buffBarHeader:SetPoint("TOPLEFT", buffYSlider, "BOTTOMLEFT", 0, -15)
 
     local buffBarHelpText = CreateLockSection(scrollChild, buffBarHeader, page,
-        "buffBarLockCheckbox", "buffBarContainerLocked", "BuffBarCooldownViewer")
+        "buffBarLockCheckbox", "buffBarContainerLocked", C.VIEWERS.BUFF_BAR)
 
     local _, buffBarDisplay, buffBarUpdateDisplay = CreatePositionControls(scrollChild, buffBarHelpText, page, {
-        viewerName = "BuffBarCooldownViewer",
+        viewerName = C.VIEWERS.BUFF_BAR,
         defaults = { point = "CENTER", x = 0, y = -324 },
         displayField = "buffBarPosDisplay",
         xKey = "buffBarXPos",

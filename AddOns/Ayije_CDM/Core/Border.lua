@@ -248,4 +248,4 @@ end
 
 CDM:RegisterRefreshCallback("borders", function()
     CDM.BORDER:UpdateAllBorders()
-end, 25)
+end, 25, { "STYLE" })

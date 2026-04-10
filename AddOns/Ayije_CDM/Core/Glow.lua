@@ -589,5 +589,5 @@ end
 
 CDM:RegisterRefreshCallback("glow", function()
     Glow:RefreshCache()
-end, 50)
+end, 50, { "STYLE" })
 

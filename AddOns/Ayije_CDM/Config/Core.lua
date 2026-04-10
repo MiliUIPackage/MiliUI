@@ -1350,19 +1350,12 @@ local function RefreshGroupData(self, sets, dbKey, categories, shouldInvalidateC
     sets.groups = specGroups
 
     local spellToGroup = {}
-    local resolvedBases = sets.resolvedBases or {}
-    sets.resolvedBases = resolvedBases
 
     for groupIndex, group in ipairs(specGroups) do
         if group.spells then
             for _, spellID in ipairs(group.spells) do
                 sets.grouped[spellID] = groupIndex
-                local entry = { groupIdx = groupIndex, storedID = spellID }
-                spellToGroup[spellID] = entry
-                local knownBase = resolvedBases[spellID]
-                if knownBase and knownBase ~= spellID and not spellToGroup[knownBase] then
-                    spellToGroup[knownBase] = entry
-                end
+                spellToGroup[spellID] = { groupIdx = groupIndex, storedID = spellID }
             end
         end
     end
@@ -1396,9 +1389,6 @@ local function RefreshGroupData(self, sets, dbKey, categories, shouldInvalidateC
                         end
                         if match then
                             sets.cooldownIDGrouped[cdID] = match
-                            if info.spellID ~= match.storedID then
-                                resolvedBases[match.storedID] = info.spellID
-                            end
                         end
                     end
                 end

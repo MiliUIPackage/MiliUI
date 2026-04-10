@@ -319,4 +319,4 @@ CDM.OnExternalsProfileApplied = OnExternalsProfileApplied
 
 CDM:RegisterRefreshCallback("externalsStyles", function()
     needsStyleUpdate = true
-end, 18)
+end, 18, { "TRACKERS", "STYLE" })

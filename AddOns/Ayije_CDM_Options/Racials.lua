@@ -3,7 +3,9 @@ if not Runtime then return end
 local API = Runtime.API
 local ns = Runtime._OptionsNS
 local CDM = Runtime
+local CDM_C = CDM and CDM.CONST or {}
 local UI = ns.ConfigUI
+local Shared = ns.GroupEditorShared
 local L = Runtime.L
 
 local function SaveOrder(specID, order)
@@ -35,11 +37,9 @@ local function CreateSpellsOverlay()
     listContainer:SetSize(contentWidth, 400)
     listContainer:SetPoint("TOPLEFT", paddingX, startY)
 
-    local gold = { r = 1, g = 0.82, b = 0 }
-
     local addLabel = window:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     addLabel:SetText(L["Add Custom Spell or Item"])
-    addLabel:SetTextColor(gold.r, gold.g, gold.b, 1)
+    addLabel:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
     addLabel:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", paddingX, paddingY + 36)
 
     local addRow = CreateFrame("Frame", nil, window)
@@ -53,13 +53,7 @@ local function CreateSpellsOverlay()
     editBox:SetNumeric(true)
     editBox:SetMaxLetters(7)
 
-    local placeholderText = editBox:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
-    placeholderText:SetPoint("LEFT", editBox, "LEFT", 2, 0)
-    placeholderText:SetText("ID")
-    placeholderText:SetTextColor(0.5, 0.5, 0.5, 0.7)
-    editBox:SetScript("OnTextChanged", function(self)
-        if self:GetText() == "" then placeholderText:Show() else placeholderText:Hide() end
-    end)
+    UI.AttachPlaceholder(editBox, "ID")
 
     local addSpellBtn = CreateFrame("Button", nil, addRow, "UIPanelButtonTemplate")
     addSpellBtn:SetSize(60, 22)
@@ -78,14 +72,7 @@ local function CreateSpellsOverlay()
     statusText:SetWordWrap(false)
     statusText:SetText("")
 
-    local statusTimer
-    local function SetStatus(text)
-        statusText:SetText(text)
-        if statusTimer then statusTimer:Cancel() end
-        if text ~= "" then
-            statusTimer = C_Timer.NewTimer(2, function() statusText:SetText("") end)
-        end
-    end
+    local SetStatus = UI.CreateTimedStatus(statusText)
 
     local RebuildList
     local pendingItemRetry = false
@@ -154,13 +141,8 @@ local function CreateSpellsOverlay()
             arrowContainer:SetSize(58, 29)
             arrowContainer:SetPoint("TOPLEFT", 4, 0)
 
-            local btnUp = CreateFrame("Button", nil, arrowContainer)
-            btnUp:SetSize(29, 29)
+            local btnUp = Shared.CreateArrowButton(arrowContainer, "up", 29)
             btnUp:SetPoint("LEFT", arrowContainer, "LEFT", 0, 0)
-            btnUp:SetNormalAtlas("common-button-collapseExpand-up")
-            btnUp:SetPushedAtlas("common-button-collapseExpand-up-pressed")
-            btnUp:SetDisabledAtlas("common-button-collapseExpand-up-disabled")
-            btnUp:SetHighlightAtlas("common-button-collapseExpand-hover")
             if idx == 1 then btnUp:SetEnabled(false) end
 
             btnUp:SetScript("OnClick", function()
@@ -170,13 +152,8 @@ local function CreateSpellsOverlay()
                 RebuildList()
             end)
 
-            local btnDown = CreateFrame("Button", nil, arrowContainer)
-            btnDown:SetSize(29, 29)
+            local btnDown = Shared.CreateArrowButton(arrowContainer, "down", 29)
             btnDown:SetPoint("LEFT", btnUp, "RIGHT", 0, 0)
-            btnDown:SetNormalAtlas("common-button-collapseExpand-down")
-            btnDown:SetPushedAtlas("common-button-collapseExpand-down-pressed")
-            btnDown:SetDisabledAtlas("common-button-collapseExpand-down-disabled")
-            btnDown:SetHighlightAtlas("common-button-collapseExpand-hover")
             if idx == #entries then btnDown:SetEnabled(false) end
 
             btnDown:SetScript("OnClick", function()
@@ -200,7 +177,7 @@ local function CreateSpellsOverlay()
                         else
                             CDM.db.racialsDisabled[id] = true
                         end
-                        API:Refresh()
+                        API:Refresh("TRACKERS")
                     end
                 )
                 cb:SetSize(26, rowHeight)
@@ -219,7 +196,7 @@ local function CreateSpellsOverlay()
             local texture = isItem and C_Item.GetItemIconByID(id) or C_Spell.GetSpellTexture(id)
             if texture then
                 iconTex:SetTexture(texture)
-                iconTex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+                CDM_C.ApplyIconTexCoord(iconTex, CDM_C.GetEffectiveZoomAmount())
             end
 
             local nameText = row:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
@@ -245,10 +222,7 @@ local function CreateSpellsOverlay()
                 removeBtn:SetSize(16, 16)
                 removeBtn:SetPoint("LEFT", nameText, "RIGHT", 6, 0)
 
-                local removeBtnText = removeBtn:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-                removeBtnText:SetPoint("CENTER")
-                removeBtnText:SetText("|cffff4444X|r")
-                removeBtn:SetFontString(removeBtnText)
+                Shared.ApplyRemoveButtonText(removeBtn)
 
                 removeBtn:SetScript("OnClick", function()
                     API:RemoveRacialEntry(id)
@@ -274,8 +248,7 @@ local function CreateRacialsTab(page, tabId)
     local layout = UI.CreateVerticalLayout(0)
     local function NextY(spacing) return layout:Next(spacing) end
 
-    local enabled = CDM.db.racialsEnabled
-    if enabled == nil then enabled = true end
+    local enabled = CDM.db.racialsEnabled ~= false
     local setControlsEnabled
     local function UpdateShowItemsAtZeroStacksState()
         local checkbox = page.controls.racialsShowItemsAtZeroStacks and page.controls.racialsShowItemsAtZeroStacks.checkbox
@@ -298,7 +271,7 @@ local function CreateRacialsTab(page, tabId)
             CDM.db.racialsEnabled = checked
             UpdateShowItemsAtZeroStacksState()
             if setControlsEnabled then setControlsEnabled(checked) end
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.controls.racialsEnabled:SetPoint("TOPLEFT", -34, NextY(0))
@@ -310,7 +283,7 @@ local function CreateRacialsTab(page, tabId)
         showItemsAtZeroStacks,
         function(checked)
             CDM.db.racialsShowItemsAtZeroStacks = checked
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.controls.racialsShowItemsAtZeroStacks:SetPoint("LEFT", page.controls.racialsEnabled, "RIGHT", 0, 0)
@@ -340,7 +313,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsIconWidth or 40,
         function(v)
             CDM.db.racialsIconWidth = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.racialsIconWidthSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -351,7 +324,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsIconHeight or 36,
         function(v)
             CDM.db.racialsIconHeight = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.racialsIconHeightSlider:SetPoint("TOPLEFT", 0, NextY(0))
@@ -370,7 +343,7 @@ local function CreateRacialsTab(page, tabId)
         function(checked)
             CDM.db.racialsUsePartyFrame = checked
             UpdateControls()
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.racialsUsePartyFrameCheckbox:SetPoint("TOPLEFT", 0, NextY(0))
@@ -398,7 +371,7 @@ local function CreateRacialsTab(page, tabId)
                 end
                 CDM.db.racialsPartyFrameSide = side
                 ddPartyFrameSide:SetDefaultText(side)
-                API:Refresh()
+                API:Refresh("TRACKERS")
             end)
         end
     end)
@@ -408,7 +381,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsPartyFrameOffsetX or -6,
         function(v)
             CDM.db.racialsPartyFrameOffsetX = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.racialsPartyFrameOffsetXSlider:SetPoint("TOPLEFT", ddPartyFrameSide, "BOTTOMLEFT", 0, -15)
@@ -418,7 +391,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsPartyFrameOffsetY or 19,
         function(v)
             CDM.db.racialsPartyFrameOffsetY = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.racialsPartyFrameOffsetYSlider:SetPoint("TOPLEFT", page.racialsPartyFrameOffsetXSlider, "BOTTOMLEFT", 0, -10)
@@ -441,7 +414,7 @@ local function CreateRacialsTab(page, tabId)
         function(pos)
             CDM.db.racialsAnchorPoint = pos
             ddAnchor:SetDefaultText(pos)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end,
         {"TOPLEFT", "BOTTOMLEFT", "TOPRIGHT", "BOTTOMRIGHT"}
     )
@@ -451,7 +424,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsOffsetX or 0,
         function(v)
             CDM.db.racialsOffsetX = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.racialsOffsetXSlider:SetPoint("TOPLEFT", ddAnchor, "BOTTOMLEFT", 0, -15)
@@ -461,7 +434,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsOffsetY or 0,
         function(v)
             CDM.db.racialsOffsetY = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.racialsOffsetYSlider:SetPoint("TOPLEFT", page.racialsOffsetXSlider, "BOTTOMLEFT", 0, -10)
@@ -473,7 +446,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsCooldownFontSize or 12,
         function(v)
             CDM.db.racialsCooldownFontSize = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.racialsCooldownFontSizeSlider:SetPoint("TOPLEFT", cooldownHeader, "BOTTOMLEFT", 0, -15)
@@ -485,12 +458,12 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsChargeFontSize or 15,
         function(v)
             CDM.db.racialsChargeFontSize = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.racialsChargeFontSizeSlider:SetPoint("TOPLEFT", stacksHeader, "BOTTOMLEFT", 0, -15)
 
-    page.racialsChargeColorPicker = UI.CreateColorSwatch(scrollChild, L["Color"], "racialsChargeColor")
+    page.racialsChargeColorPicker = UI.CreateColorSwatch(scrollChild, L["Color"], "racialsChargeColor", "TRACKERS")
     page.racialsChargeColorPicker:SetPoint("TOPLEFT", page.racialsChargeFontSizeSlider, "BOTTOMLEFT", 0, -10)
 
     local lblChargePos = scrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
@@ -509,7 +482,7 @@ local function CreateRacialsTab(page, tabId)
         function(pos)
             CDM.db.racialsChargePosition = pos
             ddChargePos:SetDefaultText(pos)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
 
@@ -518,7 +491,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsChargeOffsetX or 0,
         function(v)
             CDM.db.racialsChargeOffsetX = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.racialsChargeOffsetXSlider:SetPoint("TOPLEFT", ddChargePos, "BOTTOMLEFT", 0, -15)
@@ -528,7 +501,7 @@ local function CreateRacialsTab(page, tabId)
         CDM.db.racialsChargeOffsetY or 0,
         function(v)
             CDM.db.racialsChargeOffsetY = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.racialsChargeOffsetYSlider:SetPoint("TOPLEFT", page.racialsChargeOffsetXSlider, "BOTTOMLEFT", 0, -10)

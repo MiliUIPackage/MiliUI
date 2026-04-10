@@ -4,6 +4,7 @@ local API = Runtime.API
 local ns = Runtime._OptionsNS
 local CDM_C = Runtime and Runtime.CONST or {}
 local UI = ns.ConfigUI
+local L = Runtime.L
 
 ns.GroupEditorShared = ns.GroupEditorShared or {}
 local Shared = ns.GroupEditorShared
@@ -65,10 +66,26 @@ Shared.GROW_OPTIONS = {
 }
 
 function Shared.GetGrowLabel(growValue)
-    for _, option in ipairs(Shared.GROW_OPTIONS) do
-        if option.value == growValue then return option.label end
-    end
-    return growValue or "RIGHT"
+    return UI.GetOptionLabel(Shared.GROW_OPTIONS, growValue, growValue or "RIGHT")
+end
+
+function Shared.CreateArrowButton(parent, direction, size)
+    local btn = CreateFrame("Button", nil, parent)
+    btn:SetSize(size, size)
+    local prefix = "common-button-collapseExpand-" .. direction
+    btn:SetNormalAtlas(prefix)
+    btn:SetPushedAtlas(prefix .. "-pressed")
+    btn:SetDisabledAtlas(prefix .. "-disabled")
+    btn:SetHighlightAtlas("common-button-collapseExpand-hover")
+    return btn
+end
+
+function Shared.ApplyRemoveButtonText(btn)
+    local text = btn:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+    text:SetPoint("CENTER")
+    text:SetText("|cffff4444X|r")
+    btn:SetFontString(text)
+    return text
 end
 
 function Shared.IsUsableSpellID(spellID)
@@ -312,11 +329,11 @@ function Shared.CreateDragDropController(config)
             local df = GetOrCreateDragFrame(spellID)
             dragState.dragFrame = df
             df:Show()
+            local cachedScale = UIParent:GetEffectiveScale()
             df:SetScript("OnUpdate", function()
-                local scale = UIParent:GetEffectiveScale()
                 local x, y = GetCursorPosition()
                 df:ClearAllPoints()
-                df:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x / scale, y / scale)
+                df:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x / cachedScale, y / cachedScale)
                 for _, target in ipairs(dropTargets) do
                     if target.frame.highlight then
                         target.frame.highlight:SetShown(target.frame:IsMouseOver())
@@ -605,8 +622,9 @@ function Shared.RenderSpellPicker(config)
             label:SetText(entry.name)
 
             local sid = entry.spellID
+            local cdID = entry.cdID
             row:SetScript("OnClick", function()
-                config.onSelect(sid)
+                config.onSelect(sid, cdID)
             end)
 
             yOff = yOff - 30
@@ -641,10 +659,110 @@ function Shared.CreateSlider(parent, label, minVal, maxVal, currentVal, onChange
     return UI.CreateModernSlider(parent, label, minVal, maxVal, currentVal, onChange, Shared.SLIDER_LABEL_W, Shared.SLIDER_W)
 end
 
-function Shared.SaveVisualRefresh()
-    API:Refresh()
+function Shared.SaveVisualRefresh(scope)
+    API:Refresh(scope)
 end
 
+function Shared.BuildTextOverrideWidgets(rc, yOff, cfg)
+    local CreateSlider = Shared.CreateSlider
+    local existingOv = cfg.existingOv
+    local ensureOv = cfg.ensureOv
+    local save = cfg.save
+    local f = cfg.fields
+    local d = cfg.defaults
+
+    if cfg.showHeader then
+        yOff = yOff - 10
+        local ovHeader = rc:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font18")
+        ovHeader:SetPoint("TOPLEFT", 0, yOff)
+        ovHeader:SetText(L["Text Overrides"])
+        ovHeader:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
+        yOff = yOff - 34
+    end
+
+    local useTextOv = existingOv and existingOv.textOverride
+    local textOvCheckbox = UI.CreateModernCheckbox(rc,
+        L["Override Text Settings"],
+        useTextOv or false,
+        function(checked)
+            local ov = ensureOv()
+            if not ov then return end
+            ov.textOverride = checked or nil
+            save()
+            if cfg.onToggle then cfg.onToggle(checked) end
+        end
+    )
+    textOvCheckbox:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 36
+
+    if useTextOv then
+        local ov = existingOv or {}
+        local function write(key, value)
+            local o = ensureOv()
+            if o then o[key] = value end
+            save()
+        end
+        local function writeColor(key, r, g, b)
+            local o = ensureOv()
+            if o then o[key] = cfg.colorAlpha and { r = r, g = g, b = b, a = 1 } or { r = r, g = g, b = b } end
+            save()
+        end
+
+        local cdFS = CreateSlider(rc, L["Cooldown Size"], 6, 32,
+            ov[f.cdSize] or d[f.cdSize], function(v) write(f.cdSize, v) end)
+        cdFS:SetPoint("TOPLEFT", 0, yOff)
+        yOff = yOff - 50
+
+        local cdColorLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+        cdColorLabel:SetText(L["Cooldown Color"])
+        cdColorLabel:SetPoint("TOPLEFT", 0, yOff)
+        local cdColorPicker = UI.CreateSimpleColorPicker(rc,
+            ov[f.cdColor] or d[f.cdColor] or { r = 1, g = 1, b = 1 },
+            function(r, g, b) writeColor(f.cdColor, r, g, b) end)
+        cdColorPicker:SetPoint("LEFT", cdColorLabel, "RIGHT", 6, 0)
+        yOff = yOff - 30
+
+        local chargeFS = CreateSlider(rc, L["Charge Size"], 6, 32,
+            ov[f.chargeSize] or d[f.chargeSize], function(v) write(f.chargeSize, v) end)
+        chargeFS:SetPoint("TOPLEFT", 0, yOff)
+        yOff = yOff - 50
+
+        local chargeColorLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+        chargeColorLabel:SetText(L["Charge Color"])
+        chargeColorLabel:SetPoint("TOPLEFT", 0, yOff)
+        local chargeColorPicker = UI.CreateSimpleColorPicker(rc,
+            ov[f.chargeColor] or d[f.chargeColor] or { r = 1, g = 1, b = 1 },
+            function(r, g, b) writeColor(f.chargeColor, r, g, b) end)
+        chargeColorPicker:SetPoint("LEFT", chargeColorLabel, "RIGHT", 6, 0)
+        yOff = yOff - 30
+
+        local posLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+        posLabel:SetText(L["Position"])
+        posLabel:SetPoint("TOPLEFT", 0, yOff)
+        yOff = yOff - 22
+        local posDropdown = cfg.createDropdown(rc)
+        posDropdown:SetWidth(180)
+        posDropdown:SetPoint("TOPLEFT", 0, yOff)
+        posDropdown:SetDefaultText(ov[f.chargePos] or d[f.chargePos] or "BOTTOMRIGHT")
+        UI.SetupPositionDropdown(posDropdown,
+            function() return ov[f.chargePos] or d[f.chargePos] or "BOTTOMRIGHT" end,
+            function(val) write(f.chargePos, val) end
+        )
+        yOff = yOff - 40
+
+        local xSlider = CreateSlider(rc, L["X Offset"], -20, 20,
+            ov[f.chargeX] or d[f.chargeX] or 0, function(v) write(f.chargeX, v) end)
+        xSlider:SetPoint("TOPLEFT", 0, yOff)
+        yOff = yOff - 50
+
+        local ySlider = CreateSlider(rc, L["Y Offset"], -20, 20,
+            ov[f.chargeY] or d[f.chargeY] or 0, function(v) write(f.chargeY, v) end)
+        ySlider:SetPoint("TOPLEFT", 0, yOff)
+        yOff = yOff - 50
+    end
+
+    return yOff
+end
 
 function Shared.CreateQueueLeftPanelRefresh(containerFrame, getRefreshAllFn)
     local queued = false
@@ -749,9 +867,9 @@ function Shared.CreateSpecDropdown(parent, anchorPoint, anchorX, anchorY, config
 
     local function GetText()
         local cur = config.getCurrentSpecID()
-        if cur == config.getPlayerSpecID() then return L["Current Spec"] or "Current Spec" end
-        if cur then return GetSpecLabel(cur) or L["Current Spec"] or "Current Spec" end
-        return L["Current Spec"] or "Current Spec"
+        if cur == config.getPlayerSpecID() then return L["Current Spec"] end
+        if cur then return GetSpecLabel(cur) or L["Current Spec"] end
+        return L["Current Spec"]
     end
 
     local function SetSelection(specID)
@@ -768,7 +886,7 @@ function Shared.CreateSpecDropdown(parent, anchorPoint, anchorX, anchorY, config
 
     dropdown:SetDefaultText(GetText())
     dropdown:SetupMenu(function(_, rootDescription)
-        rootDescription:CreateRadio(L["Current Spec"] or "Current Spec", function()
+        rootDescription:CreateRadio(L["Current Spec"], function()
             return config.getCurrentSpecID() == config.getPlayerSpecID()
         end, function()
             SetSelection(config.getPlayerSpecID())
@@ -841,21 +959,11 @@ function Shared.CreateGroupEditorPools(parent, config)
         local row = CreateFrame("Frame", nil, p)
         row:SetSize(leftWidth - 20, rowHeight)
 
-        local btnUp = CreateFrame("Button", nil, row)
-        btnUp:SetSize(arrowSize, arrowSize)
+        local btnUp = Shared.CreateArrowButton(row, "up", arrowSize)
         btnUp:SetPoint("RIGHT", row, "LEFT", -2 - arrowSize + 2, 0)
-        btnUp:SetNormalAtlas("common-button-collapseExpand-up")
-        btnUp:SetPushedAtlas("common-button-collapseExpand-up-pressed")
-        btnUp:SetDisabledAtlas("common-button-collapseExpand-up-disabled")
-        btnUp:SetHighlightAtlas("common-button-collapseExpand-hover")
 
-        local btnDown = CreateFrame("Button", nil, row)
-        btnDown:SetSize(arrowSize, arrowSize)
+        local btnDown = Shared.CreateArrowButton(row, "down", arrowSize)
         btnDown:SetPoint("RIGHT", row, "LEFT", -2, 0)
-        btnDown:SetNormalAtlas("common-button-collapseExpand-down")
-        btnDown:SetPushedAtlas("common-button-collapseExpand-down-pressed")
-        btnDown:SetDisabledAtlas("common-button-collapseExpand-down-disabled")
-        btnDown:SetHighlightAtlas("common-button-collapseExpand-hover")
 
         local iconContainer = CreateFrame("Frame", nil, row)
         iconContainer:SetSize(iconSize, iconSize)
@@ -875,10 +983,7 @@ function Shared.CreateGroupEditorPools(parent, config)
         removeBtn:SetSize(16, 16)
         removeBtn:SetPoint("RIGHT", -6, 0)
         removeBtn:SetFrameLevel(row:GetFrameLevel() + 2)
-        local removeBtnText = removeBtn:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-        removeBtnText:SetPoint("CENTER")
-        removeBtnText:SetText("|cffff4444X|r")
-        removeBtn:SetFontString(removeBtnText)
+        local removeBtnText = Shared.ApplyRemoveButtonText(removeBtn)
 
         local nameText = row:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font12")
         nameText:SetJustifyH("LEFT")
@@ -1132,7 +1237,7 @@ function Shared.RenderGroupSettingsPanel(config)
     textHeader:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
     yOff = yOff - 34
 
-    local cdFSSlider = slider(rc, L["Cooldown Size"] or "Cooldown Size", 6, 32, gd.cooldownFontSize or 12, function(v)
+    local cdFSSlider = slider(rc, L["Cooldown Size"], 6, 32, gd.cooldownFontSize or 12, function(v)
         gd.cooldownFontSize = v; save()
     end)
     cdFSSlider:SetPoint("TOPLEFT", 0, yOff)
@@ -1150,7 +1255,7 @@ function Shared.RenderGroupSettingsPanel(config)
     cdColorPicker:SetPoint("LEFT", cdColorLabel, "RIGHT", 6, 0)
     yOff = yOff - 30
 
-    local secFSSlider = slider(rc, L["Charge Size"] or "Charge Size", 6, 32, gd[tf.sizeKey] or tf.sizeDefault, function(v)
+    local secFSSlider = slider(rc, L["Charge Size"], 6, 32, gd[tf.sizeKey] or tf.sizeDefault, function(v)
         gd[tf.sizeKey] = v; save()
     end)
     secFSSlider:SetPoint("TOPLEFT", 0, yOff)
@@ -1203,7 +1308,7 @@ function Shared.RenderGroupSettingsPanel(config)
     yOff = yOff - 34
 
     local anchorTargetLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-    anchorTargetLabel:SetText(L["Anchor To"] or "Anchor To")
+    anchorTargetLabel:SetText(L["Anchor To"])
     anchorTargetLabel:SetPoint("TOPLEFT", 0, yOff)
     yOff = yOff - 22
 
@@ -1290,7 +1395,7 @@ function Shared.RenderGroupSettingsPanel(config)
         relDropdown:SetShown(not isScreen)
         if not isScreen then
             local target = gd.anchorTarget
-            relLabel:SetText(anchorRelLabels[target] or (L["Essential Viewer Point"] or "Essential Viewer Point"))
+            relLabel:SetText(anchorRelLabels[target] or (L["Essential Viewer Point"]))
             anchorDropdown:SetDefaultText(gd.anchorPoint or "CENTER")
             relDropdown:SetDefaultText(gd.anchorRelativeTo or "CENTER")
         end

@@ -17,6 +17,8 @@ local isEnabled = false
 local inCombat = InCombatLockdown() and true or false
 local isMounted = IsMounted() and true or false
 
+local DRUID_TRAVEL_FORM_IDS = {[3] = true, [4] = true, [27] = true, [29] = true}
+
 local animFrame = CreateFrame("Frame")
 local eventFrame = CreateFrame("Frame")
 
@@ -199,14 +201,15 @@ local function OnCombatStateChanged(isInCombat)
 end
 
 local function OnMountChanged()
-    isMounted = IsMounted() and true or false
+    isMounted = IsMounted() or DRUID_TRAVEL_FORM_IDS[GetShapeshiftFormID()] or false
     Fading:Evaluate()
 end
 
 eventFrame:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_TARGET_CHANGED" then
         OnTargetChanged()
-    elseif event == "PLAYER_MOUNT_DISPLAY_CHANGED" then
+    elseif event == "PLAYER_MOUNT_DISPLAY_CHANGED"
+        or event == "UPDATE_SHAPESHIFT_FORM" then
         OnMountChanged()
     end
 end)
@@ -217,7 +220,8 @@ local function Enable()
     eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
     CDM:RegisterCombatStateHandler(OnCombatStateChanged)
     eventFrame:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
-    isMounted = IsMounted() and true or false
+    eventFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORM")
+    isMounted = IsMounted() or DRUID_TRAVEL_FORM_IDS[GetShapeshiftFormID()] or false
     Fading:Evaluate()
 end
 
@@ -227,6 +231,7 @@ local function Disable()
     eventFrame:UnregisterEvent("PLAYER_TARGET_CHANGED")
     CDM:UnregisterCombatStateHandler(OnCombatStateChanged)
     eventFrame:UnregisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
+    eventFrame:UnregisterEvent("UPDATE_SHAPESHIFT_FORM")
     if currentAlpha < 1.0 or animating then
         Fading:ShowImmediate()
     end
@@ -241,7 +246,7 @@ function Fading:Initialize()
         else
             Disable()
         end
-    end, 80)
+    end, 80, { "STYLE" })
 
     if CDM.db and CDM.db.fadingEnabled then
         Enable()

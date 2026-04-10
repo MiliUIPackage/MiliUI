@@ -406,12 +406,13 @@ function CDM.CreateTracker(config)
 
         CDM.RegisterTrackerPositionCallback(positionCallbackKey, UpdateContainerPosition)
 
-        if cfgOnStyleRefresh then
-            CDM:RegisterRefreshCallback(moduleKey .. "Styles", function()
+        CDM:RegisterRefreshCallback(moduleKey .. "Styles", function()
+            RefreshCachedStyles()
+            if cfgOnStyleRefresh then
                 cfgOnStyleRefresh()
-                needsStyleUpdate = true
-            end, styleRefreshPriority)
-        end
+            end
+            needsStyleUpdate = true
+        end, styleRefreshPriority, { "TRACKERS", "STYLE" })
 
         isInitialized = true
         isEnabled = true

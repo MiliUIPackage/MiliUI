@@ -739,9 +739,6 @@ PlayerHasAbility = function(entry)
     end
 
     if entry.isItem then
-        if entry.requiresWarlockAccess and not PlayerHasWarlockAccess() then
-            return false
-        end
         if entry.id == 5512 and PlayerHasPactOfGluttony() then
             return false
         end
@@ -752,6 +749,9 @@ PlayerHasAbility = function(entry)
         local itemCount = GetCachedRacialItemDisplayCount(entry)
         if itemCount and itemCount > 0 then
             return true
+        end
+        if entry.requiresWarlockAccess and not PlayerHasWarlockAccess() then
+            return false
         end
         if entry.combatLockout and entry.inCombatLockout then
             return true
@@ -1453,7 +1453,7 @@ function CDM:AddRacialEntry(id, isItem)
     end
 
     self:ReinitRacialIcons()
-    CDM:Refresh()
+    CDM:Refresh("TRACKERS")
     return true
 end
 
@@ -1482,7 +1482,7 @@ function CDM:RemoveRacialEntry(id)
     end
 
     self:ReinitRacialIcons()
-    CDM:Refresh()
+    CDM:Refresh("TRACKERS")
 end
 
 local function OnRacialsProfileApplied()
@@ -1517,4 +1517,4 @@ CDM.OnRacialsProfileApplied = OnRacialsProfileApplied
 CDM:RegisterRefreshCallback("racialsStyles", function()
     RefreshCachedRacialsStyles()
     needsStyleUpdate = true
-end, 15)
+end, 15, { "TRACKERS", "STYLE" })

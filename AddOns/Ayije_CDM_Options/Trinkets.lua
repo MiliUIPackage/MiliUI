@@ -27,24 +27,15 @@ local function GetCurrentMode()
 end
 
 local function GetModeLabel(mode)
-    for _, opt in ipairs(MODE_OPTIONS) do
-        if opt.value == mode then return opt.label end
-    end
-    return L["Independent"]
+    return UI.GetOptionLabel(MODE_OPTIONS, mode, L["Independent"])
 end
 
 local function GetRowLabel(row)
-    for _, opt in ipairs(ROW_OPTIONS) do
-        if opt.value == row then return opt.label end
-    end
-    return L["Row 1"]
+    return UI.GetOptionLabel(ROW_OPTIONS, row, L["Row 1"])
 end
 
 local function GetPositionLabel(pos)
-    for _, opt in ipairs(POSITION_OPTIONS) do
-        if opt.value == pos then return opt.label end
-    end
-    return L["End"]
+    return UI.GetOptionLabel(POSITION_OPTIONS, pos, L["End"])
 end
 
 local function CreateTrinketsTab(page, tabId)
@@ -58,8 +49,7 @@ local function CreateTrinketsTab(page, tabId)
     local cooldownControls = {}
     local essentialOnlyControls = {}
 
-    local enabled = CDM.db.trinketsEnabled
-    if enabled == nil then enabled = true end
+    local enabled = CDM.db.trinketsEnabled ~= false
     local setControlsEnabled
     page.controls.trinketsEnabled = UI.CreateModernCheckbox(
         scrollChild,
@@ -68,7 +58,7 @@ local function CreateTrinketsTab(page, tabId)
         function(checked)
             CDM.db.trinketsEnabled = checked
             if setControlsEnabled then setControlsEnabled(checked) end
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.controls.trinketsEnabled:SetPoint("TOPLEFT", -34, NextY(0))
@@ -105,7 +95,7 @@ local function CreateTrinketsTab(page, tabId)
         function(value, label)
             CDM.db.trinketsEssentialRow = value
             ddRow:SetDefaultText(label)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
 
@@ -126,14 +116,11 @@ local function CreateTrinketsTab(page, tabId)
         function(value, label)
             CDM.db.trinketsEssentialPosition = value
             ddPos:SetDefaultText(label)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
 
-    local showPassiveDefault = true
-    if CDM.db.trinketsShowPassive ~= nil then
-        showPassiveDefault = CDM.db.trinketsShowPassive
-    end
+    local showPassiveDefault = CDM.db.trinketsShowPassive ~= false
 
     page.controls.trinketsShowPassive = UI.CreateModernCheckbox(
         scrollChild,
@@ -141,7 +128,7 @@ local function CreateTrinketsTab(page, tabId)
         showPassiveDefault,
         function(checked)
             CDM.db.trinketsShowPassive = checked
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.controls.trinketsShowPassive:SetPoint("TOPLEFT", ddMode, "BOTTOMLEFT", 0, -15)
@@ -159,7 +146,7 @@ local function CreateTrinketsTab(page, tabId)
         CDM.db.trinketsIconWidth or 40,
         function(v)
             CDM.db.trinketsIconWidth = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.controls.trinketsIconWidthSlider:SetPoint("TOPLEFT", iconSizeHeader, "BOTTOMLEFT", 0, -15)
@@ -172,7 +159,7 @@ local function CreateTrinketsTab(page, tabId)
         CDM.db.trinketsIconHeight or 36,
         function(v)
             CDM.db.trinketsIconHeight = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.controls.trinketsIconHeightSlider:SetPoint("TOPLEFT", page.controls.trinketsIconWidthSlider, "BOTTOMLEFT", 0, -20)
@@ -200,7 +187,7 @@ local function CreateTrinketsTab(page, tabId)
         function(pos)
             CDM.db.trinketsAnchorPoint = pos
             ddAnchor:SetDefaultText(pos)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end,
         {"TOPLEFT", "BOTTOMLEFT", "TOPRIGHT", "BOTTOMRIGHT"}
     )
@@ -212,7 +199,7 @@ local function CreateTrinketsTab(page, tabId)
         CDM.db.trinketsOffsetX or 0,
         function(v)
             CDM.db.trinketsOffsetX = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.controls.trinketsOffsetXSlider:SetPoint("TOPLEFT", ddAnchor, "BOTTOMLEFT", 0, -15)
@@ -225,7 +212,7 @@ local function CreateTrinketsTab(page, tabId)
         CDM.db.trinketsOffsetY or 0,
         function(v)
             CDM.db.trinketsOffsetY = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.controls.trinketsOffsetYSlider:SetPoint("TOPLEFT", page.controls.trinketsOffsetXSlider, "BOTTOMLEFT", 0, -20)
@@ -241,7 +228,7 @@ local function CreateTrinketsTab(page, tabId)
         CDM.db.trinketsCooldownFontSize or 12,
         function(v)
             CDM.db.trinketsCooldownFontSize = UI.RoundToInt(v)
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
     page.controls.trinketsCooldownFontSizeSlider:SetPoint("TOPLEFT", cooldownHeader, "BOTTOMLEFT", 0, -15)
@@ -282,7 +269,7 @@ local function CreateTrinketsTab(page, tabId)
             CDM.db.trinketsMode = value
             ddMode:SetDefaultText(label)
             UpdateSectionVisibility()
-            API:Refresh()
+            API:Refresh("TRACKERS")
         end
     )
 

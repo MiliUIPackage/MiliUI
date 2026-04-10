@@ -358,9 +358,6 @@ defensivesTracker = CDM.CreateTracker({
             end
         end
     end,
-    onStyleRefresh      = function()
-        CDM.RefreshChargeStyleCache(defensivesTracker.GetCachedStyles(), "defensives")
-    end,
 })
 
 function CDM:InitializeDefensives()
@@ -406,7 +403,7 @@ function CDM:AddDefensiveSpell(spellID, targetSpecID)
 
     if specID == GetCurrentSpecID() then
         self:ReinitDefensiveIcons()
-        CDM:Refresh()
+        CDM:Refresh("TRACKERS")
     end
     return true
 end
@@ -438,7 +435,7 @@ function CDM:RemoveDefensiveSpell(spellID, targetSpecID)
 
     if specID == GetCurrentSpecID() then
         self:ReinitDefensiveIcons()
-        CDM:Refresh()
+        CDM:Refresh("TRACKERS")
     end
 end
 

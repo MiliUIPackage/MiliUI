@@ -421,11 +421,6 @@ function CDM:ResetFrameSpellCache(frame)
     frameData.buffCategorySpellID = nil
     frameData.cdGroupSpellID = nil
     frameData.cdmReadyGlowActive = nil
-    frameData.cdmResolvedBorderColor = nil
-    if frameData.borderFrame then
-        GetFrameData(frameData.borderFrame).cdmResolvedBorderColor = nil
-    end
-    frameData.cdmLastBorderStyleVersion = nil
     frameData.cdmBuffGlowSourceID = nil
 end
 
@@ -446,10 +441,6 @@ local function CheckCooldownGroupMatch(frame, cdidGroupSet, spellGroupSet, cache
         frameData.buffCategorySpellID = nil
         frameData.cdGroupSpellID = nil
         frameData.cdmCategoryCacheGen = frameCategoryCacheGeneration
-        frameData.cdmResolvedBorderColor = nil
-        if frameData.borderFrame then
-            GetFrameData(frameData.borderFrame).cdmResolvedBorderColor = nil
-        end
     end
 
     local cached = frameData[cacheKey]

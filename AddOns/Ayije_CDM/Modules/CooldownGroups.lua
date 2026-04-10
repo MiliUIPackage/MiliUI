@@ -8,8 +8,6 @@ local HalfFloor = Pixel.HalfFloor
 
 local GetFrameData = CDM.GetFrameData
 local IsSafeNumber = CDM.IsSafeNumber
-local StoreVariantValue = CDM.SpellVariant.StoreValue
-local ResolveVariantValue = CDM.SpellVariant.ResolveValue
 local VIEWERS = CDM_C.VIEWERS
 
 local cdContainers = {}
@@ -134,7 +132,7 @@ function CDM:PositionCooldownGroupFrames(groupIndex, frames)
     if groupData.spells then
         table.wipe(scratchSpellOrder)
         for i, sid in ipairs(groupData.spells) do
-            StoreVariantValue(scratchSpellOrder, sid, i, true)
+            if not scratchSpellOrder[sid] then scratchSpellOrder[sid] = i end
         end
         if count > 1 then
             local stableSortIDFn = layout.GetStableFrameSortID
@@ -325,10 +323,15 @@ function CDM:RebuildAuraOverlayEnabledMap()
                     local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
                     if info then
                         local match
-                        local hasDistinctOverride = IsSafeNumber(info.overrideSpellID)
-                            and info.overrideSpellID ~= info.spellID
-                        if hasDistinctOverride then
-                            match = spellToEntry[info.overrideSpellID]
+                        if info.overrideTooltipSpellID then
+                            match = spellToEntry[info.overrideTooltipSpellID]
+                        end
+                        if not match then
+                            local hasDistinctOverride = IsSafeNumber(info.overrideSpellID)
+                                and info.overrideSpellID ~= info.spellID
+                            if hasDistinctOverride then
+                                match = spellToEntry[info.overrideSpellID]
+                            end
                         end
                         if not match then
                             match = spellToEntry[info.spellID]
@@ -389,8 +392,8 @@ CDM:RegisterRefreshCallback("cooldownGroups", function()
     CDM:RefreshSpecData()
     CDM:RebuildAuraOverlayEnabledMap()
     CDM:UpdateAllCooldownGroupContainers()
-end, 29)
+end, 29, { "CD_DATA" })
 
 CDM:RegisterRefreshCallback("cooldownGroups_postViewer", function()
     CDM:UpdateAllCooldownGroupContainers()
-end, 45)
+end, 45, { "LAYOUT", "CD_DATA" })

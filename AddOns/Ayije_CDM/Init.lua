@@ -60,17 +60,23 @@ local function InsertSorted(list, entry)
     table.insert(list, entry)
 end
 
-function CDM:RegisterRefreshCallback(id, callback, priority)
+function CDM:RegisterRefreshCallback(id, callback, priority, scopes)
     if self.RefreshCallbacks[id] then
         self:UnregisterRefreshCallback(id)
     end
 
     refreshCallbackSeq = refreshCallbackSeq + 1
+    local scopeSet
+    if scopes then
+        scopeSet = {}
+        for _, s in ipairs(scopes) do scopeSet[s] = true end
+    end
     local entry = {
         id = id,
         callback = callback,
         priority = priority or 50,
         seq = refreshCallbackSeq,
+        scopes = scopeSet,
     }
     self.RefreshCallbacks[id] = entry
     InsertSorted(refreshCallbackList, entry)
@@ -127,17 +133,41 @@ function CDM:NotifyPositionSliderUpdate(name, x, y, useRawSlider)
 end
 
 local refreshPending = false
+local refreshAll = false
+local pendingScopes = {}
 local refreshThrottleFrame = CreateFrame("Frame")
 
-local function DispatchRefreshCallbacks()
-    for _, entry in ipairs(refreshCallbackList) do
-        entry.callback()
+local function ShouldRunEntry(entry, scopeSet)
+    if not entry.scopes then return true end
+    for scope in pairs(scopeSet) do
+        if entry.scopes[scope] then return true end
+    end
+    return false
+end
+
+local function DispatchRefreshCallbacks(scopeSet)
+    if scopeSet then
+        for _, entry in ipairs(refreshCallbackList) do
+            if ShouldRunEntry(entry, scopeSet) then
+                entry.callback()
+            end
+        end
+    else
+        for _, entry in ipairs(refreshCallbackList) do
+            entry.callback()
+        end
     end
 end
 
 local function ExecuteRefreshCallbacks()
     refreshPending = false
-    DispatchRefreshCallbacks()
+    local scopeSet
+    if not refreshAll then
+        scopeSet = pendingScopes
+    end
+    refreshAll = false
+    pendingScopes = {}
+    DispatchRefreshCallbacks(scopeSet)
 end
 
 refreshThrottleFrame:SetScript("OnUpdate", function(self)
@@ -150,25 +180,21 @@ refreshThrottleFrame:SetScript("OnUpdate", function(self)
 end)
 refreshThrottleFrame:Hide()
 
-local function QueueRefresh()
+function CDM:Refresh(...)
+    local n = select("#", ...)
+    if n == 0 then
+        refreshAll = true
+    else
+        for i = 1, n do
+            pendingScopes[select(i, ...)] = true
+        end
+    end
     if not refreshPending then
         refreshPending = true
         refreshThrottleFrame:Show()
     end
 end
 
-function CDM:Refresh()
-    QueueRefresh()
-end
-
-function CDM:RefreshNow()
-    refreshPending = false
-    refreshThrottleFrame:Hide()
-    DispatchRefreshCallbacks()
-end
-
-CDM.RefreshConfig = CDM.Refresh
-CDM.RefreshScopes = CDM.Refresh
 
 function CDM.IsSafeNumber(value)
     return value ~= nil
