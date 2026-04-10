@@ -2,15 +2,22 @@
 -- Baganator_Keystone
 -- 在 Baganator 背包中強化鑰石顯示：
 --   1. 右下角加入白色「鑰石」文字（類似「帳綁」「裝綁」）
---   2. 變更鑰石邊框顏色（亮青色，與其他物品區分）
+--   2. 變更鑰石邊框顏色（亮粉紅色，與其他物品區分）
 --
 -- 使用 hooksecurefunc 安全掛接，不修改 Baganator 原始碼。
 --
 -- 技術說明：
---   Baganator 的 Live 按鈕在 XML OnLoad 中使用 Mixin() 動態複製函式，
---   因此無法透過 hook mixin 表來影響已建立的按鈕。
---   正確做法是 hook mixin 的 MyOnLoad，在每個按鈕實例建立時
---   對該實例的 SetItemDetails 進行 post-hook。
+--   1. Baganator 的 Live 按鈕在 XML OnLoad 中使用 Mixin() 動態複製函式，
+--      因此無法透過 hook mixin 表來影響已建立的按鈕。
+--      正確做法是 hook mixin 的 MyOnLoad，在每個按鈕實例建立時
+--      對該實例的 SetItemDetails 進行 post-hook。
+--
+--   2. Baganator 的皮膚（Dark / ElvUI / NDui）會在 layout 階段對
+--      SetItemButtonQuality 安裝自己的 hook，比我們的 hook 更晚註冊，
+--      所以會在 hooksecurefunc 鏈中覆蓋我們設定的邊框顏色。
+--      因此我們不能只 hook SetItemButtonQuality，必須直接 hook
+--      IconBorder texture 本身的 SetVertexColor / Hide / SetTexture，
+--      作為邊框變更的最終攔截點。
 --------------------------------------------------------------------------------
 
 local DEBUG = false
@@ -18,10 +25,18 @@ local function Log(...)
     if DEBUG then print("|cff00ccff[MiliUI Keystone]|r", ...) end
 end
 
--- 鑰石邊框顏色 (亮青色)
-local KEYSTONE_BORDER_R = 0.0
-local KEYSTONE_BORDER_G = 0.8
-local KEYSTONE_BORDER_B = 1.0
+-- 鑰石邊框顏色 (亮粉紅色 hot pink — WoW 物品品質沒有粉紅色，最容易辨識)
+local KEYSTONE_BORDER_R = 1.0
+local KEYSTONE_BORDER_G = 0.1
+local KEYSTONE_BORDER_B = 0.8
+local KEYSTONE_BORDER_A = 1.0
+
+-- 光暈設定
+local KEYSTONE_GLOW_TEXTURE = "Interface\\Buttons\\UI-ActionButton-Border"
+local KEYSTONE_GLOW_SIZE_PADDING = 14   -- 光暈比按鈕大多少像素
+local KEYSTONE_GLOW_R = 1.0
+local KEYSTONE_GLOW_G = 0.1
+local KEYSTONE_GLOW_B = 0.8
 
 -- 文字設定
 local KEYSTONE_LABEL = "鑰石"
@@ -37,12 +52,36 @@ local function IsKeystoneItem(itemLink)
 end
 
 --------------------------------------------------------------------------------
--- Helper: 建立或取得鑰石覆層元素
+-- Helper: 建立或取得鑰石覆層元素（文字標籤 + 脈動光暈）
 --------------------------------------------------------------------------------
 local function GetOrCreateKeystoneOverlay(button)
     if button._miliKeystoneLabel then
-        return button._miliKeystoneLabel
+        return button._miliKeystoneLabel, button._miliKeystoneGlow
     end
+
+    -- 光暈 texture（覆蓋於按鈕外圍，使用 ADD 混色以產生發光感）
+    local glow = button:CreateTexture(nil, "OVERLAY", nil, 7)
+    glow:SetTexture(KEYSTONE_GLOW_TEXTURE)
+    glow:SetBlendMode("ADD")
+    glow:SetVertexColor(KEYSTONE_GLOW_R, KEYSTONE_GLOW_G, KEYSTONE_GLOW_B, 1)
+    glow:SetPoint("TOPLEFT", button, "TOPLEFT", -KEYSTONE_GLOW_SIZE_PADDING, KEYSTONE_GLOW_SIZE_PADDING)
+    glow:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", KEYSTONE_GLOW_SIZE_PADDING, -KEYSTONE_GLOW_SIZE_PADDING)
+    glow:Hide()
+
+    -- 脈動動畫（透明度 0.3 → 1.0 → 0.3 循環）
+    local ag = glow:CreateAnimationGroup()
+    ag:SetLooping("REPEAT")
+    local fadeOut = ag:CreateAnimation("Alpha")
+    fadeOut:SetFromAlpha(1.0)
+    fadeOut:SetToAlpha(0.3)
+    fadeOut:SetDuration(0.7)
+    fadeOut:SetOrder(1)
+    local fadeIn = ag:CreateAnimation("Alpha")
+    fadeIn:SetFromAlpha(0.3)
+    fadeIn:SetToAlpha(1.0)
+    fadeIn:SetDuration(0.7)
+    fadeIn:SetOrder(2)
+    glow._anim = ag
 
     -- 文字標籤（右下角，與「帳綁」位置一致）
     local label = button:CreateFontString(nil, "OVERLAY", nil)
@@ -53,18 +92,61 @@ local function GetOrCreateKeystoneOverlay(button)
     label:Hide()
 
     button._miliKeystoneLabel = label
+    button._miliKeystoneGlow = glow
     Log("Created overlay for button:", button:GetName() or tostring(button))
-    return label
+    return label, glow
 end
 
 --------------------------------------------------------------------------------
 -- Core: 套用鑰石邊框顏色
+-- 使用 _miliApplyingBorder 旗標避免遞迴 hook 自己造成的修改
 --------------------------------------------------------------------------------
 local function ApplyKeystoneBorder(button)
-    if button.IconBorder then
-        button.IconBorder:SetVertexColor(KEYSTONE_BORDER_R, KEYSTONE_BORDER_G, KEYSTONE_BORDER_B)
-        button.IconBorder:Show()
-    end
+    local border = button.IconBorder
+    if not border then return end
+    button._miliApplyingBorder = true
+    border:Show()
+    border:SetVertexColor(KEYSTONE_BORDER_R, KEYSTONE_BORDER_G, KEYSTONE_BORDER_B, KEYSTONE_BORDER_A)
+    button._miliApplyingBorder = false
+end
+
+--------------------------------------------------------------------------------
+-- 在 IconBorder texture 上安裝守護 hook
+--
+-- 為什麼必須直接 hook texture：
+--   Baganator Dark 皮膚（以及 ElvUI / NDui 等其他皮膚）會在按鈕被 skin 化
+--   時對 SetItemButtonQuality 安裝它自己的 hook，覆蓋我們設定的邊框顏色。
+--   按鈕的 skin 化發生在 layout 階段，比我們在 MyOnLoad 時安裝 hook 更晚，
+--   所以它們的 hook 在 hooksecurefunc 鏈中排在我們之後執行。
+--
+--   解決方法：直接 hook IconBorder 這個 texture 物件本身的 SetVertexColor
+--   與 Hide 方法 — 這是邊框顏色變更的最終出口，不論誰呼叫都會被攔截。
+--   配合 _miliApplyingBorder 守衛避免我們自己的呼叫造成無限遞迴。
+--------------------------------------------------------------------------------
+local function HookIconBorder(button)
+    local border = button.IconBorder
+    if not border or button._miliBorderHooked then return end
+    button._miliBorderHooked = true
+
+    hooksecurefunc(border, "SetVertexColor", function(self, r, g, b, a)
+        if not button._miliIsKeystone then return end
+        if button._miliApplyingBorder then return end
+        -- 顏色已經是鑰石色就不必再設一次（雙重保險）
+        if r == KEYSTONE_BORDER_R and g == KEYSTONE_BORDER_G and b == KEYSTONE_BORDER_B then return end
+        ApplyKeystoneBorder(button)
+    end)
+
+    hooksecurefunc(border, "Hide", function(self)
+        if not button._miliIsKeystone then return end
+        if button._miliApplyingBorder then return end
+        ApplyKeystoneBorder(button)
+    end)
+
+    hooksecurefunc(border, "SetTexture", function(self)
+        if not button._miliIsKeystone then return end
+        if button._miliApplyingBorder then return end
+        ApplyKeystoneBorder(button)
+    end)
 end
 
 --------------------------------------------------------------------------------
@@ -79,19 +161,30 @@ end
 --------------------------------------------------------------------------------
 local function OnSetItemDetails(button, cacheData)
     local itemLink = cacheData and cacheData.itemLink
-    local label = GetOrCreateKeystoneOverlay(button)
+    local label, glow = GetOrCreateKeystoneOverlay(button)
 
     if IsKeystoneItem(itemLink) then
         Log("Keystone detected:", itemLink)
         button._miliIsKeystone = true
         -- 顯示文字
         label:Show()
+        -- 顯示並啟動脈動光暈
+        glow:Show()
+        if glow._anim and not glow._anim:IsPlaying() then
+            glow._anim:Play()
+        end
         -- 套用邊框顏色
         ApplyKeystoneBorder(button)
     else
-        -- 非鑰石：清除旗標，隱藏文字（邊框由 Baganator 自行管理）
+        -- 非鑰石：清除旗標，隱藏文字與光暈（邊框由 Baganator 自行管理）
         button._miliIsKeystone = false
         label:Hide()
+        if glow then
+            if glow._anim and glow._anim:IsPlaying() then
+                glow._anim:Stop()
+            end
+            glow:Hide()
+        end
     end
 end
 
@@ -121,13 +214,8 @@ local function HookButtonInstance(button)
 
     hooksecurefunc(button, "SetItemDetails", OnSetItemDetails)
 
-    -- Hook SetItemButtonQuality：Baganator 的非同步 finalCallback 會
-    -- 再次呼叫此函式來重設邊框顏色，我們需要在之後重新套用鑰石邊框。
-    hooksecurefunc(button, "SetItemButtonQuality", function(self)
-        if self._miliIsKeystone then
-            ApplyKeystoneBorder(self)
-        end
-    end)
+    -- 在 IconBorder texture 上安裝守護 hook（最終攔截，最可靠）
+    HookIconBorder(button)
 
     Log("Hooked instance #" .. hookCount, button:GetName() or "")
 end
