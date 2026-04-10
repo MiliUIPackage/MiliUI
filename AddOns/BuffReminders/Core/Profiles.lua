@@ -112,7 +112,7 @@ function BR.Profiles.SwitchProfile(name)
     end
     if InCombatLockdown() then
         pendingSwitch = name
-        print("|cffffcc00增益提醒器:|r 設定檔切換佇列中直到戰鬥結束。")
+        print("|cffffcc00BuffReminders:|r " .. BR.L["Profile.SwitchQueued"])
         return true
     end
     BR.aceDB:SetProfile(name) -- fires OnProfileChanged -> RefreshAfterProfileChange
@@ -211,8 +211,6 @@ function BR.Profiles.RefreshAfterProfileChange()
     -- Deep copy defaults into the new profile (materializes keys for pairs() iteration)
     if BR.Display and BR.Display.DeepCopyDefault and BR.Display.defaults then
         BR.Display.DeepCopyDefault(BR.Display.defaults, BR.profile)
-        -- minimap lives in AceDB global, not per-profile; DeepCopyDefault re-adds it
-        BR.profile.minimap = nil
     end
 
     -- Rebuild custom buffs if present
@@ -269,6 +267,6 @@ eventFrame:SetScript("OnEvent", function(_, event)
         local name = pendingSwitch
         pendingSwitch = nil
         BR.aceDB:SetProfile(name) -- fires OnProfileChanged -> RefreshAfterProfileChange
-        print("|cffffcc00增益提醒器:|r 已切換到設定檔 '" .. name .. "'.")
+        print("|cffffcc00BuffReminders:|r " .. string.format(BR.L["Profile.Switched"], name))
     end
 end)

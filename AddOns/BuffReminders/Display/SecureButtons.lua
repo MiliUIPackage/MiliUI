@@ -1,4 +1,5 @@
 local _, BR = ...
+local L = BR.L
 
 -- ============================================================================
 -- SECURE BUTTONS & CLICK-TO-CAST OVERLAYS
@@ -40,11 +41,12 @@ end
 local FEL_DOMINATION_ID = 333889
 
 local function GetFelDomPetMacro(petSpellID)
+    local felDomName = C_Spell.GetSpellName(FEL_DOMINATION_ID)
     local spellName = BR.GetSpellName(petSpellID)
-    if not spellName then
+    if not felDomName or not spellName then
         return nil
     end
-    return "/cast Fel Domination\n/cast " .. spellName
+    return "/cast " .. felDomName .. "\n/cast " .. spellName
 end
 
 -- Pre-filter a buff's spell by talent/spec requirements, then find a castable spell ID.
@@ -325,16 +327,10 @@ local ACTION_ICON_SCALE = 0.45
 local ACTION_ICON_MIN = 18
 local ACTION_ICON_OFFSET = -6
 
--- Badge text → color for buff frame bottom-left overlay (hearty + quality + fleeting badges)
--- R1 = best (gold), R2 = middle (silver), R3 = lowest (bronze), F1/F2/F3 = fleeting, H = hearty
+-- Badge text → color for buff frame middle-left overlay (quality uses atlas icons separately)
 local BADGE_COLORS = {
-    H = { r = 0.4, g = 0.7, b = 1 }, -- Hearty (cyan)
-    F1 = { r = 0.4, g = 0.7, b = 1 }, -- Fleeting R1 (cyan)
-    F2 = { r = 0.4, g = 0.7, b = 1 }, -- Fleeting R2 (cyan)
-    F3 = { r = 0.4, g = 0.7, b = 1 }, -- Fleeting R3 (cyan)
-    R1 = { r = 1.00, g = 0.82, b = 0.00 }, -- Gold (highest)
-    R2 = { r = 0.75, g = 0.75, b = 0.75 }, -- Silver
-    R3 = { r = 0.73, g = 0.46, b = 0.26 }, -- Bronze (lowest)
+    [L["Badge.Hearty"]] = { r = 0.4, g = 0.7, b = 1 }, -- Hearty (cyan)
+    [L["Badge.Fleeting"]] = { r = 0.4, g = 0.7, b = 1 }, -- Fleeting (cyan)
 }
 
 ---Compute consumable text font size from scale percentage.
@@ -459,6 +455,14 @@ local function RefreshConsumableCache()
                             if type(allowedEntry) == "table" then
                                 bucket.statLabel = allowedEntry.label
                                 bucket.badge = allowedEntry.badge
+                            end
+                            -- Parse crafted quality atlas from item link (e.g. Quality-Tier3, Quality-12-Tier2)
+                            local hyperlink = info and info.hyperlink
+                            if hyperlink then
+                                local suffix = hyperlink:match("Quality%-[%w%-]*Tier%d")
+                                if suffix then
+                                    bucket.qualityAtlas = "Professions-Icon-" .. suffix
+                                end
                             end
                             -- Store the spell this item casts (for auto-remember reverse lookup)
                             local okSpell, _, useSpellID = pcall(GetItemSpell, itemID)
@@ -592,6 +596,7 @@ local function UpdateConsumableButtons(frame, actionItems, clickable, startIndex
         btn:EnableMouse(clickable == true)
         btn._br_visible = true
         btn._br_count = item.count
+        btn._br_qualityAtlas = item.qualityAtlas
         btn._br_needs_sync = true
     end
 
@@ -621,8 +626,9 @@ local function HideSecureFramesForCatKey(catKey)
         return
     end
     for _, frame in pairs(BR.Display.frames) do
+        -- Match by effective category OR by individual buff key (for detached icons)
         local effectiveCat = GetEffectiveCategory(frame)
-        if effectiveCat == catKey then
+        if effectiveCat == catKey or frame.key == catKey then
             if frame.actionButtons then
                 for _, btn in ipairs(frame.actionButtons) do
                     if btn._br_driver_active then
@@ -818,6 +824,24 @@ local function SyncSecureButtons()
                                         btn._br_count and btn._br_count > 1 and tostring(btn._br_count) or ""
                                     )
                                     btn.count:SetFont(fontPath, cFontSize, "OUTLINE")
+                                    -- Quality atlas icon (holder frame at +10 to draw above borders/glows)
+                                    if btn._br_qualityAtlas then
+                                        if not btn._br_qualityIcon then
+                                            local qHolder = CreateFrame("Frame", nil, btn)
+                                            qHolder:SetAllPoints()
+                                            qHolder:SetFrameLevel(btn:GetFrameLevel() + 10)
+                                            btn._br_qualityIcon = qHolder:CreateTexture(nil, "OVERLAY", nil, 7)
+                                        end
+                                        local qOffset = -floor(size * 0.125)
+                                        local qSize = max(10, floor(size * 0.45))
+                                        btn._br_qualityIcon:ClearAllPoints()
+                                        btn._br_qualityIcon:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", qOffset, qOffset)
+                                        btn._br_qualityIcon:SetSize(qSize, qSize)
+                                        btn._br_qualityIcon:SetAtlas(btn._br_qualityAtlas)
+                                        btn._br_qualityIcon:Show()
+                                    elseif btn._br_qualityIcon then
+                                        btn._br_qualityIcon:Hide()
+                                    end
                                     btn._br_needs_sync = false
                                 end
                                 -- Activate combat state driver on first show (buttons start with "hide" driver)

@@ -67,6 +67,11 @@ local function ExportSettings(sourceProfile)
         export.customBuffs = DeepCopy(prof.customBuffs)
     end
 
+    -- Also include detached icon positions
+    if prof.detachedIcons then
+        export.detachedIcons = DeepCopy(prof.detachedIcons)
+    end
+
     local result = SerializeTable(export)
     if not result then
         return nil, "Failed to serialize settings"
@@ -91,6 +96,7 @@ local function ImportSettings(str)
         end
     end
     BR.profile.customBuffs = nil
+    BR.profile.detachedIcons = nil
 
     -- Apply imported data
     for k, v in pairs(data) do

@@ -87,6 +87,7 @@ CallbackRegistry:GenerateCallbackEvents({
     "VisualsRefresh", -- Fired when visual properties (size, zoom, border) change
     "LayoutRefresh", -- Fired when layout needs recalculation (spacing, direction)
     "FramesReparent", -- Fired when frames need reparenting (split category change)
+    "VisibilityRefresh", -- Fired when visibility toggles change (hide-when, show-only-in-group)
     "BuffStateChanged", -- Fired when buff state entries are recomputed
 })
 BR.CallbackRegistry = CallbackRegistry
@@ -114,16 +115,20 @@ BR.Config.DebugMode = false
 -- Root-level settings (path = key directly)
 local RootSettings = {
     splitCategories = "FramesReparent",
-    frameLocked = nil, -- No refresh needed
-    hideInCombat = nil,
-    hideExpiringInCombat = nil,
-    showOnlyInGroup = nil,
-    position = nil, -- Table with x, y
-    buffTrackingMode = nil, -- No auto-refresh, manually calls UpdateDisplay
-    hideAllInVehicle = nil,
-    hideWhileMounted = nil,
-    hideInLegacyInstances = nil,
+    frameLocked = false, -- No refresh needed
+    position = false, -- Table with x, y
+    buffTrackingMode = false, -- No auto-refresh, manually calls UpdateDisplay
     showMissingCountOnly = "DisplayRefresh",
+    -- Visibility toggles (routed through Config.Set → VisibilityRefresh)
+    hideInCombat = "VisibilityRefresh",
+    hideExpiringInCombat = "VisibilityRefresh",
+    showOnlyInGroup = "VisibilityRefresh",
+    hideAllInVehicle = "VisibilityRefresh",
+    hideWhileMounted = "VisibilityRefresh",
+    hideWhileResting = "VisibilityRefresh",
+    hideInLegacyInstances = "VisibilityRefresh",
+    hideWhileLeveling = "VisibilityRefresh",
+    petPassiveOnlyInCombat = "VisibilityRefresh",
 }
 
 -- Per-category settings (path = categorySettings.{category}.{key})
@@ -157,7 +162,7 @@ local CategorySettingKeys = {
     -- Toggles
     useCustomAppearance = "VisualsRefresh",
     useCustomGlow = "VisualsRefresh",
-    -- Per-category glow style overrides
+    -- Per-category glow style overrides (expiring)
     glowType = "VisualsRefresh",
     glowColor = "VisualsRefresh",
     glowSize = "VisualsRefresh",
@@ -173,6 +178,23 @@ local CategorySettingKeys = {
     glowProcUseCustomColor = "VisualsRefresh",
     glowXOffset = "VisualsRefresh",
     glowYOffset = "VisualsRefresh",
+    -- Per-category missing glow
+    showMissingGlow = "DisplayRefresh",
+    missingGlowType = "VisualsRefresh",
+    missingGlowColor = "VisualsRefresh",
+    missingGlowSize = "VisualsRefresh",
+    missingGlowPixelLines = "VisualsRefresh",
+    missingGlowPixelFrequency = "VisualsRefresh",
+    missingGlowPixelLength = "VisualsRefresh",
+    missingGlowAutocastParticles = "VisualsRefresh",
+    missingGlowAutocastFrequency = "VisualsRefresh",
+    missingGlowAutocastScale = "VisualsRefresh",
+    missingGlowBorderFrequency = "VisualsRefresh",
+    missingGlowProcDuration = "VisualsRefresh",
+    missingGlowProcStartAnim = "VisualsRefresh",
+    missingGlowProcUseCustomColor = "VisualsRefresh",
+    missingGlowXOffset = "VisualsRefresh",
+    missingGlowYOffset = "VisualsRefresh",
     split = "FramesReparent",
     position = false, -- No auto-refresh, saved directly by movers
     clickable = false, -- No auto-refresh, handled manually via UpdateClickOverlays
@@ -201,7 +223,7 @@ local DefaultSettingKeys = {
     glowType = "VisualsRefresh",
     glowColor = "VisualsRefresh",
     glowSize = "VisualsRefresh",
-    -- Advanced glow params (global-only)
+    -- Advanced glow params (global-only, expiring)
     glowPixelLines = "VisualsRefresh",
     glowPixelFrequency = "VisualsRefresh",
     glowPixelLength = "VisualsRefresh",
@@ -214,15 +236,38 @@ local DefaultSettingKeys = {
     glowProcUseCustomColor = "VisualsRefresh",
     glowXOffset = "VisualsRefresh",
     glowYOffset = "VisualsRefresh",
+    -- Missing glow (global-only)
+    showMissingGlow = "DisplayRefresh",
+    missingGlowType = "VisualsRefresh",
+    missingGlowColor = "VisualsRefresh",
+    missingGlowSize = "VisualsRefresh",
+    missingGlowPixelLines = "VisualsRefresh",
+    missingGlowPixelFrequency = "VisualsRefresh",
+    missingGlowPixelLength = "VisualsRefresh",
+    missingGlowAutocastParticles = "VisualsRefresh",
+    missingGlowAutocastFrequency = "VisualsRefresh",
+    missingGlowAutocastScale = "VisualsRefresh",
+    missingGlowBorderFrequency = "VisualsRefresh",
+    missingGlowProcDuration = "VisualsRefresh",
+    missingGlowProcStartAnim = "VisualsRefresh",
+    missingGlowProcUseCustomColor = "VisualsRefresh",
+    missingGlowXOffset = "VisualsRefresh",
+    missingGlowYOffset = "VisualsRefresh",
     showConsumablesWithoutItems = "DisplayRefresh",
+    showWithoutItemsOnlyOnReadyCheck = "DisplayRefresh",
     delveFoodOnly = "DisplayRefresh",
+    delveFoodTimer = "DisplayRefresh",
     freeConsumableMode = "DisplayRefresh",
     freeConsumableVisibility = "DisplayRefresh",
     healthstoneVisibility = "DisplayRefresh",
+    healthstoneLowStock = "DisplayRefresh",
+    healthstoneThreshold = "DisplayRefresh",
+    soulstoneVisibility = "DisplayRefresh",
+    soulstoneHideCooldown = "DisplayRefresh",
     -- Consumable display mode
     consumableDisplayMode = "DisplayRefresh",
     consumableTextScale = "VisualsRefresh",
-    showConsumableTooltips = nil, -- No refresh needed, read at tooltip time
+    showConsumableTooltips = false, -- No refresh needed, read at tooltip time
     -- Pet display mode
     petDisplayMode = "DisplayRefresh",
     petLabels = "DisplayRefresh",
@@ -231,6 +276,7 @@ local DefaultSettingKeys = {
     useFelDomination = "DisplayRefresh",
     -- Font (global-only, lives under defaults)
     fontFace = "VisualsRefresh",
+    position = false, -- No auto-refresh, saved directly by movers
 }
 
 -- Valid category names
@@ -252,6 +298,7 @@ local DynamicRoots = {
     categoryVisibility = "DisplayRefresh",
     splitCategories = "FramesReparent",
     readyCheckOnlyOverrides = "DisplayRefresh",
+    detachedIcons = "FramesReparent",
 }
 
 ---Check if a config path is valid
@@ -265,17 +312,8 @@ local function ValidatePath(segments)
 
     local root = segments[1]
 
-    -- Check root-level settings (explicit key check since some have nil refresh type)
-    local isRootSetting = root == "frameLocked"
-        or root == "hideInCombat"
-        or root == "hideExpiringInCombat"
-        or root == "showOnlyInGroup"
-        or root == "position"
-        or root == "buffTrackingMode"
-        or root == "hideAllInVehicle"
-        or root == "hideWhileMounted"
-        or root == "hideInLegacyInstances"
-        or root == "showMissingCountOnly"
+    -- Check root-level settings (false = valid but no refresh event)
+    local isRootSetting = RootSettings[root] ~= nil
     if isRootSetting then
         if #segments == 1 then
             return true, RootSettings[root]
@@ -297,10 +335,6 @@ local function ValidatePath(segments)
             if DefaultSettingKeys[setting] ~= nil then
                 return true, DefaultSettingKeys[setting]
             end
-            -- position is also valid under defaults
-            if setting == "position" then
-                return true, nil
-            end
             return false, nil
         end
         return false, nil
@@ -320,7 +354,7 @@ local function ValidatePath(segments)
         end
         if #segments == 3 then
             local setting = segments[3]
-            -- Check if it's a known category setting key (including those with nil refresh)
+            -- Check if it's a known category setting key (false = valid but no refresh)
             if CategorySettingKeys[setting] ~= nil then
                 return true, CategorySettingKeys[setting]
             end
@@ -349,22 +383,6 @@ function BR.Config.IsValidPath(path)
     end
     return ValidatePath(segments)
 end
-
--- Legacy RefreshType lookup (for backward compatibility with segment-based lookup)
-local RefreshType = {
-    -- Visual properties
-    ["iconSize"] = "VisualsRefresh",
-    ["iconZoom"] = "VisualsRefresh",
-    ["borderSize"] = "VisualsRefresh",
-    -- Layout properties
-    ["spacing"] = "LayoutRefresh",
-    ["growDirection"] = "LayoutRefresh",
-    -- Structural changes
-    ["splitCategories"] = "FramesReparent",
-    -- Display changes (enabledBuffs, visibility)
-    ["enabledBuffs"] = "DisplayRefresh",
-    ["categoryVisibility"] = "DisplayRefresh",
-}
 
 ---Set a config value and trigger appropriate callbacks
 ---@param path string Dot-separated path like "categorySettings.main.iconSize" or "enabledBuffs.intellect"
@@ -415,18 +433,9 @@ function BR.Config.Set(path, value)
     -- Fire SettingChanged callback
     CallbackRegistry:TriggerEvent("SettingChanged", path, value, oldValue)
 
-    -- Use validated refresh type if available, otherwise fall back to segment lookup
+    -- Fire refresh event if the setting has one registered
     if validatedRefreshType then
         CallbackRegistry:TriggerEvent(validatedRefreshType, path)
-    else
-        -- Legacy: check each segment for a refresh type
-        for _, segment in ipairs(segments) do
-            local refreshType = RefreshType[segment]
-            if refreshType then
-                CallbackRegistry:TriggerEvent(refreshType, path)
-                break
-            end
-        end
     end
 end
 
@@ -494,17 +503,9 @@ function BR.Config.SetMulti(changes)
                 parent[finalKey] = value
                 CallbackRegistry:TriggerEvent("SettingChanged", path, value, oldValue)
 
-                -- Collect refresh types (prefer validated, fall back to segment lookup)
+                -- Collect refresh types
                 if validatedRefreshType then
                     refreshTypes[validatedRefreshType] = true
-                else
-                    for _, segment in ipairs(segments) do
-                        local refreshType = RefreshType[segment]
-                        if refreshType then
-                            refreshTypes[refreshType] = true
-                            break
-                        end
-                    end
                 end
             end
         end
@@ -537,6 +538,7 @@ local AppearanceKeys = {
     borderSize = true,
     growDirection = true,
     showExpirationGlow = true,
+    showMissingGlow = true,
     expirationThreshold = true,
 }
 
@@ -557,6 +559,21 @@ local GlowKeys = {
     glowProcUseCustomColor = true,
     glowXOffset = true,
     glowYOffset = true,
+    missingGlowType = true,
+    missingGlowColor = true,
+    missingGlowSize = true,
+    missingGlowPixelLines = true,
+    missingGlowPixelFrequency = true,
+    missingGlowPixelLength = true,
+    missingGlowAutocastParticles = true,
+    missingGlowAutocastFrequency = true,
+    missingGlowAutocastScale = true,
+    missingGlowBorderFrequency = true,
+    missingGlowProcDuration = true,
+    missingGlowProcStartAnim = true,
+    missingGlowProcUseCustomColor = true,
+    missingGlowXOffset = true,
+    missingGlowYOffset = true,
 }
 
 ---Get a category setting with inheritance from defaults
@@ -585,9 +602,9 @@ function BR.Config.GetCategorySetting(category, key)
         return catSettings[key]
     end
 
-    -- Glow style keys: inherit from defaults unless useCustomGlow is true
+    -- Glow style keys: inherit from defaults unless BOTH useCustomAppearance and useCustomGlow are true
     if GlowKeys[key] then
-        if not catSettings.useCustomGlow then
+        if not catSettings.useCustomAppearance or not catSettings.useCustomGlow then
             return db.defaults and db.defaults[key]
         end
         return catSettings[key]
@@ -612,7 +629,7 @@ function BR.Config.HasCustomAppearance(category)
     return db.categorySettings[category].useCustomAppearance == true
 end
 
----Check if a category has custom glow style enabled
+---Check if a category has custom glow style enabled (requires custom appearance)
 ---@param category string
 ---@return boolean
 function BR.Config.HasCustomGlow(category)
@@ -620,7 +637,8 @@ function BR.Config.HasCustomGlow(category)
     if not db or not db.categorySettings or not db.categorySettings[category] then
         return false
     end
-    return db.categorySettings[category].useCustomGlow == true
+    local cat = db.categorySettings[category]
+    return cat.useCustomAppearance == true and cat.useCustomGlow == true
 end
 
 -- ============================================================================
@@ -635,8 +653,9 @@ end
 ---@return table
 function BR.CreatePanel(name, width, height, options)
     options = options or {}
-    local bgColor = options.bgColor or { 0.1, 0.1, 0.1, 0.95 }
-    local borderColor = options.borderColor or { 0.3, 0.3, 0.3, 1 }
+    local isModal = options.modal
+    local bgColor = options.bgColor or (isModal and { 0.15, 0.15, 0.15, 0.98 } or { 0.1, 0.1, 0.1, 0.95 })
+    local borderColor = options.borderColor or (isModal and { 0.5, 0.5, 0.5, 1 } or { 0.3, 0.3, 0.3, 1 })
 
     local panel = CreateFrame("Frame", name, UIParent, "BackdropTemplate")
     panel:SetSize(width, height)
@@ -657,11 +676,14 @@ function BR.CreatePanel(name, width, height, options)
     if options.level then
         panel:SetFrameLevel(options.level)
     end
-    if options.modal then
+    if isModal then
         -- Modal panels handle ESC via keyboard input so they close themselves
         -- without also closing parent panels (unlike UISpecialFrames which closes all)
         panel:EnableKeyboard(true)
         panel:SetScript("OnKeyDown", function(self, key)
+            if InCombatLockdown() then
+                return
+            end
             if key == "ESCAPE" then
                 self:SetPropagateKeyboardInput(false)
                 self:Hide()
@@ -723,7 +745,7 @@ for token, classID in pairs(CLASS_IDS) do
     table.sort(specs, function(a, b)
         return a.label < b.label
     end)
-    local opts = { { value = nil, label = "Any" } }
+    local opts = { { value = nil, label = BR.L["Core.Any"] } }
     for _, spec in ipairs(specs) do
         table.insert(opts, spec)
     end

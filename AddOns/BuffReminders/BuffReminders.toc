@@ -2,7 +2,7 @@
 ## Title: BuffReminders
 ## Notes: Track missing buffs at a glance
 ## Author: zerbi
-## Version: v4.6.3
+## Version: v5.2.1
 ## SavedVariables: BuffRemindersDB
 ## X-Curse-Project-ID: 1441094
 ## X-Wago-ID: qGYZZjNg
@@ -24,10 +24,16 @@ Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
 Libs\LibDBIcon-1.0\lib.xml
 Libs\AceDB-3.0\AceDB-3.0.lua
 Libs\LibDualSpec-1.0\LibDualSpec-1.0.lua
+Libs\LibSpecialization\LibSpecialization.lua
+
+Locales\enUS.lua
+Locales\zhCN.lua
+Locales\zhTW.lua
 
 Core\Core.lua
 Core\Profiles.lua
 Data\Buffs.lua
+Data\Beneficiaries.lua
 Data\CombatSafeSpells.lua
 Data\ConsumableItems.lua
 Data\Pets.lua

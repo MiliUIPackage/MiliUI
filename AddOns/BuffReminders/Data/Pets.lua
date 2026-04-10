@@ -1,4 +1,5 @@
 local _, BR = ...
+local L = BR.L
 
 -- ============================================================================
 -- PET HELPERS MODULE
@@ -42,12 +43,15 @@ local SUMMON_DEMON_FLYOUT = 10
 
 -- Warlock summon spell ID → short pet name (fallback: full spell name)
 local WARLOCK_PET_NAMES = {
-    [688] = "小鬼",
-    [697] = "虛無行者",
-    [691] = "惡魔獵手",
-    [366222] = "薩亞德",
-    [30146] = "惡魔守衛",
+    [688] = "Imp",
+    [697] = "Voidwalker",
+    [691] = "Felhunter",
+    [366222] = "Sayaad",
+    [30146] = "Felguard",
 }
+
+-- Resolve Spirit Beast family name from Blizzard's creature family data (localized)
+local SPIRIT_BEAST_FAMILY = (C_CreatureInfo.GetCreatureFamilyInfo(46) or {}).name or "Spirit Beast"
 
 ---Build hunter pet actions from stable info
 ---@return PetAction[]?
@@ -75,7 +79,7 @@ local function BuildHunterActions()
                     sortOrder = order,
                     petFamily = info.specialization,
                     petSpecIcon = PET_SPEC_ICONS[info.specialization],
-                    petSpiritBeast = info.familyName == "Spirit Beast" or nil,
+                    petSpiritBeast = info.familyName == SPIRIT_BEAST_FAMILY or nil,
                 }
             end
         end
@@ -91,7 +95,7 @@ local function BuildHunterActions()
                 spellID = REVIVE_PET,
                 spellName = BR.GetSpellName(REVIVE_PET),
                 icon = icon,
-                label = "Revive Pet",
+                label = L["Label.RevivePet"],
                 sortOrder = order,
             }
         end
@@ -143,8 +147,8 @@ end
 
 -- Single-action pet spell ID → short pet name (fallback: full spell name)
 local SINGLE_PET_NAMES = {
-    [46584] = "食屍鬼", -- Raise Dead (DK)
-    [31687] = "水元素", -- Summon Water Elemental (Mage)
+    [46584] = "Ghoul", -- Raise Dead (DK)
+    [31687] = "Water Elemental", -- Summon Water Elemental (Mage)
 }
 
 ---Build a single-action list for a given spell
@@ -187,7 +191,7 @@ local function BuildFelguardAction()
             spellID = spellID,
             spellName = info.name,
             icon = info.iconID,
-            label = "惡魔守衛",
+            label = L["Label.Felguard"],
             sortOrder = 1,
         },
     }

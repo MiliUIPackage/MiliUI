@@ -137,11 +137,13 @@ end
 -- GLOW TYPES (Pixel, AutoCast, Border)
 -- ============================================================================
 
+local L = BR.L
+
 BR.Glow.Types = {
-    { name = "像素" },
-    { name = "自動施放" },
-    { name = "外框" },
-    { name = "觸發" },
+    { name = L["Glow.Pixel"] },
+    { name = L["Glow.AutoCast"] },
+    { name = L["Glow.Border"] },
+    { name = L["Glow.Proc"] },
 }
 
 local GLOW_START = {
@@ -168,6 +170,15 @@ local GLOW_START = {
             yOffset = yOff,
         })
     end,
+}
+
+-- LCG's FramePoolResetter nils parent[frame.name] on release, but the cleanup can fail when
+-- GetParent() no longer returns the original buff frame (e.g. after rapid hide/show cycles).
+-- Safety net: nil the reference ourselves so addFrameAndTex always re-acquires from the pool.
+local LCG_FRAME_KEYS = {
+    [1] = "_PixelGlow",
+    [2] = "_AutoCastGlow",
+    [4] = "_ProcGlow",
 }
 
 local GLOW_STOP = {
@@ -204,6 +215,10 @@ function BR.Glow.Stop(frame, typeIndex, key)
     local fn = GLOW_STOP[typeIndex]
     if fn then
         fn(frame, key)
+        local lcgKey = LCG_FRAME_KEYS[typeIndex]
+        if lcgKey then
+            frame[lcgKey .. (key or "")] = nil
+        end
     end
 end
 
@@ -211,10 +226,9 @@ end
 ---@param frame table
 ---@param key string Must match the key used in Start
 function BR.Glow.StopAll(frame, key)
-    LCG.PixelGlow_Stop(frame, key)
-    LCG.AutoCastGlow_Stop(frame, key)
-    BR.Glow.PulsingBorderStop(frame, key)
-    LCG.ProcGlow_Stop(frame, key)
+    for typeIndex = 1, 4 do
+        BR.Glow.Stop(frame, typeIndex, key)
+    end
 end
 
 -- ============================================================================
@@ -266,34 +280,37 @@ end
 
 ---Build advanced glow params table from a settings table.
 ---Accepts both short names (pixelLines) and glow-prefixed names (glowPixelLines).
+---When keyPrefix is provided, reads keys as e.g. missingGlowPixelLines instead of glowPixelLines.
 ---@param t table Settings table (cached glow settings or db.defaults)
 ---@param typeIndex number Current glow type index
+---@param keyPrefix? string Key prefix for DB keys (default "glow", use "missingGlow" for missing glow)
 ---@return table? params Advanced params or nil if all defaults
-function BR.Glow.BuildAdvancedParams(t, typeIndex)
+function BR.Glow.BuildAdvancedParams(t, typeIndex, keyPrefix)
+    keyPrefix = keyPrefix or "glow"
     if typeIndex == GlowType.Pixel then
-        local lines = t.pixelLines or t.glowPixelLines
-        local freq = t.pixelFrequency or t.glowPixelFrequency
-        local len = t.pixelLength or t.glowPixelLength
+        local lines = t.pixelLines or t[keyPrefix .. "PixelLines"]
+        local freq = t.pixelFrequency or t[keyPrefix .. "PixelFrequency"]
+        local len = t.pixelLength or t[keyPrefix .. "PixelLength"]
         if lines or freq or len then
             return { lines = lines, frequency = freq, length = len }
         end
     elseif typeIndex == GlowType.AutoCast then
-        local particles = t.autocastParticles or t.glowAutocastParticles
-        local freq = t.autocastFrequency or t.glowAutocastFrequency
-        local scale = t.autocastScale or t.glowAutocastScale
+        local particles = t.autocastParticles or t[keyPrefix .. "AutocastParticles"]
+        local freq = t.autocastFrequency or t[keyPrefix .. "AutocastFrequency"]
+        local scale = t.autocastScale or t[keyPrefix .. "AutocastScale"]
         if particles or freq or scale then
             return { particles = particles, frequency = freq, scale = scale }
         end
     elseif typeIndex == GlowType.Border then
-        local freq = t.borderFrequency or t.glowBorderFrequency
+        local freq = t.borderFrequency or t[keyPrefix .. "BorderFrequency"]
         if freq then
             return { frequency = freq }
         end
     elseif typeIndex == GlowType.Proc then
-        local dur = t.procDuration or t.glowProcDuration
+        local dur = t.procDuration or t[keyPrefix .. "ProcDuration"]
         local startAnim = t.procStartAnim
         if startAnim == nil then
-            startAnim = t.glowProcStartAnim
+            startAnim = t[keyPrefix .. "ProcStartAnim"]
         end
         if dur or startAnim then
             return { duration = dur, startAnim = startAnim }
@@ -323,7 +340,7 @@ function BR.Glow.SetExpiration(frame, show, category, cachedSettings)
         else
             local db = BR.profile
             local d = db and db.defaults or {}
-            typeIndex = d.glowType or GlowType.Pixel
+            typeIndex = d.glowType or GlowType.AutoCast
             color = d.glowColor
             if typeIndex == GlowType.Proc and not d.glowProcUseCustomColor then
                 color = nil
