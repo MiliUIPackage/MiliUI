@@ -1,6 +1,6 @@
-## Interface: 120001
+## Interface: 120001, 120005
 ## Title: Premade Groups Filter
-## Version: 7.3.3
+## Version: 7.3.5
 ## IconTexture: 397907
 ## X-Flavor: Retail
 ## Notes: Allows filtering of premade groups using an UI or advanced filter expressions.
@@ -37,8 +37,8 @@ Modules\Macro.lua
 Modules\GroupTooltip.lua
 Modules\RoleIndicators.lua
 Modules\RatingInfo.lua
-Modules\OneClickSignUp.lua
 Modules\PersistSignUpNote.lua
+Modules\OneClickSignUp.lua
 Modules\SignUpOnEnter.lua
 Modules\CompactListEntries.lua
 Main.lua
