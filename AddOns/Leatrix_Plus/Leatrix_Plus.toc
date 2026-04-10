@@ -1,20 +1,14 @@
 ## Interface: 120001, 120005
 
 ## Title: Leatrix Plus
-## Title-zhCN: Leatrix Plus [|cffeda55f功能百宝箱|r]
-## Title-zhTW: Leatrix Plus [|cffeda55f功能百寶箱|r]
-
 ## Notes: curseforge.com/wow/addons/leatrix-plus
-## Notes-zhTW: curseforge.com/wow/addons/leatrix-plus
-## Notes-zhCN: curseforge.com/wow/addons/leatrix-plus
 ## Category-zhTW: 進階
 
 
 ## Title-zhTW: |cffffffff[進階]|r 功能百寶箱
 ## Notes-zhTW: Leatrix Plus |n|n讓生活更美好的插件，提供多種各式各樣的遊戲功能設定。|n|n|cffffd200使用方法: |r左鍵點小地圖按鈕的藍色閃電，或輸入 /ltp 開啟設定。
 ## Category-zhTW: 其他
-
-## Version: 12.0.10
+## Version: 12.0.12
 ## Author: Leatrix
 ## SavedVariables: LeaPlusDB
 ## LoadSavedVariablesFirst: true
