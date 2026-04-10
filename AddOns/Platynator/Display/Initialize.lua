@@ -78,7 +78,12 @@ function addonTable.Display.ManagerMixin:OnLoad()
 
   self:RegisterUnitEvent("UNIT_POWER_UPDATE", "player")
   self:RegisterEvent("RUNE_POWER_UPDATE")
+  if addonTable.Constants.IsRetail then
+    self:RegisterEvent("UNIT_POWER_POINT_CHARGE")
+  end
   self:RegisterEvent("UNIT_FACTION")
+  self:RegisterEvent("PLAYER_REGEN_DISABLED")
+  self:RegisterEvent("PLAYER_REGEN_ENABLED")
 
   C_Timer.NewTicker(0.1, function() -- Used for transitioning mobs to attackable
     local UnitCanAttack = UnitCanAttack
@@ -117,58 +122,6 @@ function addonTable.Display.ManagerMixin:OnLoad()
 
   self.ModifiedUFs = {}
   self.HookedUFs = {}
-  self.unitToNameplate = {}
-  -- Apply Platynator settings to aura layout
-  local function RelayoutAuras(list, filter)
-    if list:IsForbidden() then
-      return
-    end
-    local parent = list:GetParent()
-    local details = parent.details
-    if not details then
-      return
-    end
-    local dir = -1
-    if details.direction == "RIGHT" then
-      dir = 1
-    end
-    local padding = 2
-    local children = list:GetLayoutChildren()
-    if #children == 0 then
-      return
-    end
-    list:ClearAllPoints()
-    local anchor = details.direction == "LEFT" and "RIGHT" or "LEFT"
-    local showCountdown = details.showCountdown
-    list:SetPoint(anchor)
-    local texBase = (1 - details.height) / 2
-    for index, child in ipairs(children) do
-      child:ClearAllPoints()
-      if not filter or filter(child.unitToken, child.auraInstanceID) then
-        child:SetScale(0.8)
-        child:SetSize(25, 25 * details.height)
-        child.Icon:SetTexCoord(0, 1, texBase, 1 - texBase)
-        child:SetPoint(anchor, parent, anchor, (index - 1) * (child:GetWidth() + padding) * dir, 0)
-        child.Cooldown:SetCountdownFont("PlatynatorNameplateCooldownFont")
-        child.Cooldown:SetHideCountdownNumbers(not showCountdown)
-        if showCountdown then
-          if not child.Cooldown.Text then
-            child.Cooldown.Text = child.Cooldown:GetRegions()
-          end
-          child.Cooldown.Text:SetFontObject(addonTable.CurrentFont)
-          child.Cooldown.Text:SetTextScale(14/12 * details.textScale)
-        end
-        child.CountFrame.Count:SetFontObject(addonTable.CurrentFont)
-        child.CountFrame.Count:SetTextScale(11/12 * details.textScale)
-      else
-        child:Hide()
-      end
-    end
-  end
-  self.RelayoutAuras = RelayoutAuras
-  self.DebuffFilter = function(unitToken, auraInstanceID)
-    return not C_UnitAuras.IsAuraFilteredOutByInstanceID(unitToken, auraInstanceID, "HARMFUL|PLAYER")
-  end
 
   local reparentedKeys = {
     "HealthBarsContainer",
@@ -189,25 +142,29 @@ function addonTable.Display.ManagerMixin:OnLoad()
     local nameplate = C_NamePlate.GetNamePlateForUnit(unit, issecure())
     if nameplate and unit and (addonTable.Constants.IsRetail or not UnitIsUnit("player", unit)) then
       if addonTable.Constants.IsRetail then
-        nameplate.UnitFrame:SetAlpha(0)
-        nameplate.UnitFrame.AurasFrame.DebuffListFrame:SetParent(addonTable.hiddenFrame)
-        nameplate.UnitFrame.AurasFrame.BuffListFrame:SetParent(addonTable.hiddenFrame)
-        nameplate.UnitFrame.AurasFrame.CrowdControlListFrame:SetParent(addonTable.hiddenFrame)
-        nameplate.UnitFrame.AurasFrame.LossOfControlFrame:SetParent(addonTable.hiddenFrame)
-        for _, key in ipairs(reparentedKeys) do
-          nameplate.UnitFrame[key]:SetParent(addonTable.hiddenFrame)
+        if not addonTable.Constants.IsMidnightNext then
+          nameplate.UnitFrame:SetAlpha(0)
+          nameplate.UnitFrame.AurasFrame.DebuffListFrame:SetParent(addonTable.hiddenFrame)
+          nameplate.UnitFrame.AurasFrame.BuffListFrame:SetParent(addonTable.hiddenFrame)
+          nameplate.UnitFrame.AurasFrame.CrowdControlListFrame:SetParent(addonTable.hiddenFrame)
+          nameplate.UnitFrame.AurasFrame.LossOfControlFrame:SetParent(addonTable.hiddenFrame)
+          for _, key in ipairs(reparentedKeys) do
+            nameplate.UnitFrame[key]:SetParent(addonTable.hiddenFrame)
+          end
         end
         if not self.HookedUFs[nameplate.UnitFrame] then
           self.HookedUFs[nameplate.UnitFrame] = true
-          local locked = false
-          hooksecurefunc(nameplate.UnitFrame, "SetAlpha", function(UF)
-            if locked or UF:IsForbidden() then
-              return
-            end
-            locked = true
-            UF:SetAlpha(0)
-            locked = false
-          end)
+          if not addonTable.Constants.IsMidnightNext then
+            local locked = false
+            hooksecurefunc(nameplate.UnitFrame, "SetAlpha", function(UF)
+              if locked or UF:IsForbidden() then
+                return
+              end
+              locked = true
+              UF:SetAlpha(0)
+              locked = false
+            end)
+          end
           hooksecurefunc(nameplate.UnitFrame.AurasFrame, "RefreshAuras", function(af, data)
             if not af:IsForbidden() then
               local display = self.nameplateDisplays[af:GetParent().unit]
@@ -216,6 +173,9 @@ function addonTable.Display.ManagerMixin:OnLoad()
               end
             end
           end)
+        end
+        if addonTable.Constants.IsMidnightNext then
+          nameplate.UnitFrame:SetParent(addonTable.hiddenFrame)
         end
       else
         nameplate.UnitFrame:SetParent(addonTable.hiddenFrame)
@@ -235,7 +195,7 @@ function addonTable.Display.ManagerMixin:OnLoad()
     if self.ModifiedUFs[unit] then
       local UF = self.ModifiedUFs[unit]
       -- Restore original anchors and parents to various things we changed
-      if addonTable.Constants.IsRetail then
+      if addonTable.Constants.IsRetail and not addonTable.Constants.IsMidnightNext then
         for _, key in ipairs(reparentedKeys) do
           UF[key]:SetParent(UF)
         end
@@ -258,12 +218,6 @@ function addonTable.Display.ManagerMixin:OnLoad()
       self:SetScript("OnUpdate", function()
         local design = addonTable.Core.GetDesign("enemy")
         addonTable.CurrentFont = addonTable.Core.GetFontByDesign(design)
-        PlatynatorNameplateCooldownFont:SetFont(design.font.asset, 13, design.font.outline and "OUTLINE" or "")
-        if design.font.shadow then
-          PlatynatorNameplateCooldownFont:SetShadowOffset(1, -1)
-        else
-          PlatynatorNameplateCooldownFont:SetShadowOffset(0, 0)
-        end
         self.styleIndex = self.styleIndex + 1
         self:SetScript("OnUpdate", nil)
         for unit, display in pairs(self.nameplateDisplays) do
@@ -355,9 +309,16 @@ function addonTable.Display.ManagerMixin:OnLoad()
   end)
 end
 
-function addonTable.Display.ManagerMixin:UpdateStacking()
+function addonTable.Display.ManagerMixin:CombatChangesCheck()
   if InCombatLockdown() then
-    self:RegisterEvent("PLAYER_REGEN_ENABLED")
+    self.combatChangesPending = true
+    return true
+  end
+  return false
+end
+
+function addonTable.Display.ManagerMixin:UpdateStacking()
+  if self:CombatChangesCheck() then
     return
   end
   if addonTable.Constants.IsRetail then
@@ -381,8 +342,7 @@ function addonTable.Display.ManagerMixin:UpdateStacking()
 end
 
 function addonTable.Display.ManagerMixin:UpdateTargetScale()
-  if InCombatLockdown() then
-    self:RegisterEvent("PLAYER_REGEN_ENABLED")
+  if self:CombatChangesCheck() then
     return
   end
 
@@ -412,8 +372,7 @@ local function GetCVarsForNameplates()
 end
 
 function addonTable.Display.ManagerMixin:UpdateShowState()
-  if InCombatLockdown() then
-    self:RegisterEvent("PLAYER_REGEN_ENABLED")
+  if self:CombatChangesCheck() then
     return
   end
 
@@ -441,8 +400,7 @@ end
 function addonTable.Display.ManagerMixin:UpdateInstanceShowState()
   local state = addonTable.Config.Get(addonTable.Config.Options.SHOW_FRIENDLY_IN_INSTANCES)
 
-  if InCombatLockdown() then
-    self:RegisterEvent("PLAYER_REGEN_ENABLED")
+  if self:CombatChangesCheck() then
     return
   end
 
@@ -560,7 +518,6 @@ function addonTable.Display.ManagerMixin:Install(unit)
       C_NamePlateManager.SetNamePlateSimplified(unit, shouldSimplify)
     end
     self.nameplateDisplays[unit] = newDisplay
-    self.unitToNameplate[unit] = nameplate
     local UF = self.ModifiedUFs[unit]
     if nameplate.SetStackingBoundsFrame then
       newDisplay:SetParent(nameplate)
@@ -605,7 +562,6 @@ function addonTable.Display.ManagerMixin:Uninstall(unit)
     end
     self.pools[display.kind]:Release(display)
     self.nameplateDisplays[unit] = nil
-    self.unitToNameplate[unit] = nil
   end
 end
 
@@ -646,8 +602,7 @@ function addonTable.Display.ManagerMixin:UpdateForFocus()
 end
 
 function addonTable.Display.ManagerMixin:UpdateNamePlateSize()
-  if InCombatLockdown() then
-    self:RegisterEvent("PLAYER_REGEN_ENABLED")
+  if self:CombatChangesCheck() then
     return
   end
 
@@ -687,8 +642,7 @@ function addonTable.Display.ManagerMixin:UpdateNamePlateSize()
 end
 
 function addonTable.Display.ManagerMixin:UpdateClickable()
-  if InCombatLockdown() then
-    self:RegisterEvent("PLAYER_REGEN_ENABLED")
+  if self:CombatChangesCheck() then
     return
   end
 
@@ -714,8 +668,7 @@ function addonTable.Display.ManagerMixin:UpdateClickable()
 end
 
 function addonTable.Display.ManagerMixin:UpdateSimplifiedScale()
-  if InCombatLockdown() then
-    self:RegisterEvent("PLAYER_REGEN_ENABLED")
+  if self:CombatChangesCheck() then
     return
   end
 
@@ -732,11 +685,9 @@ end
 
 function addonTable.Display.ManagerMixin:UpdateObscuredAlpha()
   if InCombatLockdown() then
-    self:RegisterEvent("PLAYER_REGEN_ENABLED")
     return
   end
-
-  C_CVar.SetCVar("nameplateOccludedAlphaMult", addonTable.Config.Get(addonTable.Config.Options.OBSCURED_ALPHA))
+  C_CVar.SetCVar("nameplateOccludedAlphaMult", UnitAffectingCombat("player") and addonTable.Config.Get(addonTable.Config.Options.OBSCURED_COMBAT_ALPHA) or addonTable.Config.Get(addonTable.Config.Options.OBSCURED_ALPHA))
 end
 
 local systemFontSizes = {}
@@ -802,8 +753,7 @@ function addonTable.Display.ManagerMixin:UpdateFriendlyFont()
     return
   end
 
-  if InCombatLockdown() then
-    self:RegisterEvent("PLAYER_REGEN_ENABLED")
+  if self:CombatChangesCheck() then
     return
   end
 
@@ -878,7 +828,7 @@ function addonTable.Display.ManagerMixin:OnEvent(eventName, ...)
     else
       self.lastInteract = nil
     end
-  elseif eventName == "UNIT_POWER_UPDATE" or eventName == "RUNE_POWER_UPDATE" then
+  elseif eventName == "UNIT_POWER_UPDATE" or eventName == "RUNE_POWER_UPDATE" or eventName == "UNIT_POWER_POINT_CHARGE" then
     for _, display in pairs(self.nameplateDisplays) do
       display:UpdateForTarget()
     end
@@ -892,15 +842,19 @@ function addonTable.Display.ManagerMixin:OnEvent(eventName, ...)
   elseif eventName == "GLOBAL_MOUSE_UP" then
     self:UpdateForMouseover()
     self:UnregisterEvent("GLOBAL_MOUSE_UP")
-  elseif eventName == "PLAYER_REGEN_ENABLED" then
-    self:UnregisterEvent("PLAYER_REGEN_ENABLED")
-    self:UpdateStacking()
-    self:UpdateShowState()
-    self:UpdateNamePlateSize()
-    self:UpdateTargetScale()
-    self:UpdateSimplifiedScale()
+  elseif eventName == "PLAYER_REGEN_DISABLED" then
     self:UpdateObscuredAlpha()
-    self:UpdateClickable()
+  elseif eventName == "PLAYER_REGEN_ENABLED" then
+    if self.combatChangesPending then
+      self.combatChangesPending = false
+      self:UpdateStacking()
+      self:UpdateShowState()
+      self:UpdateNamePlateSize()
+      self:UpdateTargetScale()
+      self:UpdateSimplifiedScale()
+      self:UpdateClickable()
+    end
+    self:UpdateObscuredAlpha()
   elseif eventName == "UI_SCALE_CHANGED" then
     for unit, display in pairs(self.nameplateDisplays) do
       display.offsetScale = addonTable.Core.GetDesignScale(display.kind) * UIParent:GetEffectiveScale() * addonTable.Config.Get(addonTable.Config.Options.GLOBAL_SCALE)
@@ -919,9 +873,6 @@ function addonTable.Display.ManagerMixin:OnEvent(eventName, ...)
     local design = addonTable.Core.GetDesign("enemy")
 
     addonTable.CurrentFont = addonTable.Core.GetFontByDesign(design)
-    CreateFont("PlatynatorNameplateCooldownFont")
-    local file, size, flags = _G[addonTable.CurrentFont]:GetFont()
-    PlatynatorNameplateCooldownFont:SetFont(file, 14, flags)
     self:UpdateFriendlyFont()
   elseif eventName == "VARIABLES_LOADED" then
     if addonTable.Constants.IsRetail then

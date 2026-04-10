@@ -1,6 +1,6 @@
 ## Interface: 120001, 120000, 50503, 38000, 20505, 11508
 ## Title: Platynator
-## Version: 354
+## Version: 365
 ## Author: plusmouse
 ## SavedVariables: PLATYNATOR_CONFIG
 ## SavedVariablesPerCharacter: PLATYNATOR_CURRENT_PROFILE, PLATYNATOR_LAST_INSTANCE
@@ -77,6 +77,7 @@ Display/RareMarker.lua
 Display/RaidMarker.lua
 Display/PvPMarker.lua
 Display/ClassMarker.lua
+Display/FactionMarker.lua
 Display/Widgets.lua
 
 API/Main.lua

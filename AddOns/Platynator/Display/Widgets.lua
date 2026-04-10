@@ -329,21 +329,7 @@ end
 function addonTable.Display.GetPower(frame, parent)
   frame = frame or CreateFrame("Frame", nil, parent or UIParent)
 
-  frame.background = CreateFrame("StatusBar", nil, frame)
-  frame.background:SetAllPoints()
-  if addonTable.Constants.IsRetail then
-    frame.background:SetFillStyle(Enum.StatusBarFillStyle.Center)
-  else
-    frame.background:SetFillStyle("CENTER")
-  end
-  frame.background:SetMinMaxValues(0, 7)
-
-  frame.main = CreateFrame("StatusBar", nil, frame)
-  frame.main:SetMinMaxValues(0, 7)
-
-  frame:SetScript("OnSizeChanged", function()
-    PixelUtil.SetSize(frame.main, frame:GetSize())
-  end)
+  frame.powerTextures = {}
 
   function frame:Init(details)
     if frame.Strip then
@@ -352,17 +338,14 @@ function addonTable.Display.GetPower(frame, parent)
 
     frame.details = details
 
-    local blankDetails = addonTable.Assets.PowerBars[details.blank]
-    self.background:SetStatusBarTexture(blankDetails.file)
-    self.main:SetStatusBarTexture(addonTable.Assets.PowerBars[details.filled].file)
-    self.main:SetPoint("LEFT", frame.background:GetStatusBarTexture())
-
     Mixin(frame, addonTable.Display.PowerBarMixin)
 
     frame:SetScript("OnEvent", frame.OnEvent)
 
-    if frame.PostInit then
-      frame:PostInit()
+    self.asset = addonTable.Assets.PowerBars[self.details.asset]
+
+    for _, t in ipairs(self.powerTextures) do
+      t:SetTexture(self.asset.file)
     end
   end
 
@@ -371,10 +354,67 @@ function addonTable.Display.GetPower(frame, parent)
   end
 
   function frame:ApplySize()
-    local details = frame.details
-    local blankDetails = addonTable.Assets.PowerBars[frame.details.blank]
-    PixelUtil.SetSize(frame, blankDetails.width * details.scale, blankDetails.height * details.scale)
-    PixelUtil.SetSize(self.main, self.background:GetSize())
+    self.lastMaxPower = nil
+    PixelUtil.SetSize(self, (self.asset.width - self.asset.inset) * (self.points and #self.points or 0), self.asset.height)
+    if self.points then
+      self:SetValue(self.points)
+    end
+  end
+
+  function frame:SetValue(points)
+    local maxPower = #points
+    self.points = points
+    if self.lastMaxPower ~= maxPower then
+      local width = PixelUtil.ConvertPixelsToUIForRegion(self.asset.width * self.details.scale, self)
+      local height = PixelUtil.ConvertPixelsToUIForRegion(self.asset.height * self.details.scale, self)
+      while #self.powerTextures < maxPower do
+        local t = self:CreateTexture(nil, "ARTWORK")
+        t:SetTexture(self.asset.file)
+
+        table.insert(self.powerTextures, t)
+      end
+
+      if #self.powerTextures > maxPower then
+        for i = maxPower + 1, #self.powerTextures do
+          self.powerTextures[i]:Hide()
+        end
+      end
+
+      local offset = PixelUtil.ConvertPixelsToUIForRegion((-(self.asset.width - self.asset.inset) * maxPower/2 - self.asset.inset / 2) * self.details.scale, self)
+      local step = PixelUtil.ConvertPixelsToUIForRegion((self.asset.width - self.asset.inset) * self.details.scale, self)
+      for i = 1, maxPower do
+        local t = self.powerTextures[i]
+        t:ClearAllPoints()
+        t:SetPoint("LEFT", self, "CENTER", offset, 0)
+        t:SetSize(width, height)
+        t:Show()
+        offset = offset + step
+      end
+
+      self.lastMaxPower = maxPower
+
+      PixelUtil.SetSize(self, (self.asset.width - self.asset.inset) * self.details.scale * maxPower, (self.asset.height - self.asset.inset) * self.details.scale)
+    end
+
+    if maxPower > 0 then
+      if self.powerTextures[1].SetSpriteSheetCell then
+        for i, point in ipairs(points) do
+          local t = self.powerTextures[i]
+          t:SetSpriteSheetCell(point.set and 1 or 2, 1, 2)
+          t:SetVertexColor(point.color.r, point.color.g, point.color.b)
+        end
+      else
+        for i, point in ipairs(points) do
+          local t = self.powerTextures[i]
+          if point.set then
+            t:SetTexCoord(0, 0.5, 0, 1)
+          else
+            t:SetTexCoord(0.5, 1, 0, 1)
+          end
+          t:SetVertexColor(point.color.r, point.color.g, point.color.b)
+        end
+      end
+    end
   end
 end
 
@@ -573,6 +613,8 @@ function addonTable.Display.GetMarker(frame, parent)
       Mixin(frame, addonTable.Display.PvPMarkerMixin)
     elseif details.kind == "class" then
       Mixin(frame, addonTable.Display.ClassMarkerMixin)
+    elseif details.kind == "faction" then
+      Mixin(frame, addonTable.Display.FactionMarkerMixin)
     else
       assert(false)
     end
@@ -711,7 +753,7 @@ local editorPools = {
 }
 
 local poolType = {}
-local layerStep = 500
+local layerStep = addonTable.Constants.LayerFrameLevelStep
 
 function addonTable.Display.GetWidgets(design, parent, isEditor)
   local widgets = {}

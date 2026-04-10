@@ -6,60 +6,6 @@ local IsNeutral = addonTable.Display.Utilities.IsNeutralUnit
 local IsUnfriendly = addonTable.Display.Utilities.IsUnfriendlyUnit
 local IsInCombatWith = addonTable.Display.Utilities.IsInCombatWith
 
-local roleType = {
-  Damage = 1,
-  Healer = 2,
-  Tank = 3,
-}
-
-local roleMap = {
-  ["DAMAGER"] = roleType.Damage,
-  ["TANK"] = roleType.Tank,
-  ["HEALER"] = roleType.Healer,
-}
-
-local isTank = false
-local _, playerClass = UnitClass("player")
-
-local function GetPlayerRole()
-  if addonTable.Constants.IsEra or addonTable.Constants.IsBC or addonTable.Constants.IsWrath then
-    -- we're in classic
-    local form = GetShapeshiftForm()
-    if (playerClass == "WARRIOR" and form == 2) or (playerClass == "DRUID" and form == 1) then
-      return roleType.Tank
-    elseif playerClass == "PALADIN" and C_UnitAuras.GetUnitAuraBySpellID("player", 25780) ~= nil then
-      return roleType.Tank
-    end
-  else
-    local specIndex = C_SpecializationInfo.GetSpecialization()
-    local _, _, _, _, role = C_SpecializationInfo.GetSpecializationInfo(specIndex)
-
-    return roleMap[role]
-  end
-  return roleType.Damage
-end
-
-do
-  local specializationMonitor = CreateFrame("Frame")
-  specializationMonitor:RegisterEvent("PLAYER_LOGIN")
-
-  if addonTable.Constants.IsEra or addonTable.Constants.IsBC or addonTable.Constants.IsWrath then
-    if playerClass == "WARRIOR" or playerClass == "DRUID" then
-      specializationMonitor:RegisterEvent("UPDATE_SHAPESHIFT_FORM")
-    elseif playerClass == "PALADIN" then
-      specializationMonitor:RegisterUnitEvent("UNIT_AURA", "player")
-    end
-  elseif C_EventUtils.IsEventValid("PLAYER_SPECIALIZATION_CHANGED") then
-    specializationMonitor:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
-  end
-
-  specializationMonitor:SetScript("OnEvent", function()
-    isTank = GetPlayerRole() == roleType.Tank
-  end)
-end
-
-local executeCurve = addonTable.Display.Utilities.GetExecuteCurve()
-
 local GetInterruptSpells = addonTable.Display.Utilities.GetInterruptSpells
 
 local transparency = {r = 1, g = 1, b = 1, a = 0}
@@ -67,6 +13,8 @@ local transparency = {r = 1, g = 1, b = 1, a = 0}
 local function DoesOtherTankHaveAggro(unit)
   return IsInRaid() and UnitGroupRolesAssigned(unit .. "target") == "TANK"
 end
+
+local IsTankRole = addonTable.Display.Utilities.IsTankRole
 
 local inRelevantThreatInstance, inRelevantEliteInstance, inRelevantDelveInstance = false, false, false
 
@@ -148,6 +96,7 @@ local kindToEvent = {
   reaction = {"UNIT_FACTION"},
   tapped = {"UNIT_HEALTH"},
   target = {"PLAYER_TARGET_CHANGED"},
+  notTarget = {"PLAYER_TARGET_CHANGED"},
   softTarget = {"PLAYER_TARGET_CHANGED", "PLAYER_SOFT_ENEMY_CHANGED", "PLAYER_SOFT_FRIEND_CHANGED"},
   focus = {"PLAYER_FOCUS_CHANGED"},
   threat = {"UNIT_THREAT_LIST_UPDATE"},
@@ -233,7 +182,7 @@ local kindToEvent = {
 local kindToCallback = {
   quest = {"QuestInfoUpdate"},
   mouseover = {"MouseoverUpdate"},
-  threat = {"CombatStatusChange"},
+  threat = {"CombatStatusChange", "RoleChange"},
 }
 
 function addonTable.Display.UnregisterForColorEvents(frame)
@@ -329,6 +278,11 @@ function addonTable.Display.GetColor(settings, state, unit)
         table.insert(colorQueue, {color = s.colors.target})
         break
       end
+    elseif s.kind == "notTarget" then
+      if not UnitIsUnit("target", unit) then
+        table.insert(colorQueue, {color = s.colors.notTarget})
+        break
+      end
     elseif s.kind == "softTarget" then
       if not UnitIsUnit("target", unit) and (UnitIsUnit("softenemy", unit) or UnitIsUnit("softfriend", unit)) then
         table.insert(colorQueue, {color = s.colors.softTarget})
@@ -347,8 +301,9 @@ function addonTable.Display.GetColor(settings, state, unit)
     elseif s.kind == "threat" then
       local threat = state.threat
       local hostile = state.hostile
-      if not state.isPlayer and (inRelevantThreatInstance or not s.instancesOnly) and (threat or (hostile and not s.combatOnly) or IsInCombatWith(unit)) then
-        if (isTank and (threat == 0 or threat == nil) and not DoesOtherTankHaveAggro(unit)) or (not isTank and threat == 3) then
+      local isTank = IsTankRole()
+      if not state.isPlayer and (inRelevantThreatInstance or not s.instancesOnly) and (threat or (hostile and not s.combatOnly) or IsInCombatWith(unit)) and (not s.tanksOnly or isTank) then
+        if (isTank and (threat == 0 or threat == nil) and (not s.useOffTankColor or not DoesOtherTankHaveAggro(unit))) or (not isTank and threat == 3) then
           table.insert(colorQueue, {color = s.colors.warning})
           break
         elseif threat == 1 or threat == 2 then
@@ -357,7 +312,7 @@ function addonTable.Display.GetColor(settings, state, unit)
         elseif s.useSafeColor and ((isTank and threat == 3) or (not isTank and (threat == 0 or threat == nil))) then
           table.insert(colorQueue, {color = s.colors.safe})
           break
-        elseif isTank and (threat == 0 or threat == nil) and DoesOtherTankHaveAggro(unit) then
+        elseif s.useOffTankColor and isTank and (threat == 0 or threat == nil) and DoesOtherTankHaveAggro(unit) then
           table.insert(colorQueue, {color = s.colors.offtank})
           break
         end
@@ -593,7 +548,7 @@ function addonTable.Display.GetColor(settings, state, unit)
       if text == nil then
         text = channelInfo[1]
         isChannel = true
-        isEmpowered = channelInfo[10]
+        isEmpowered = channelInfo[9]
       end
       if text ~= nil then
         table.insert(colorQueue, {color = isEmpowered and s.colors.empowered or isChannel and s.colors.channel or s.colors.cast})

@@ -104,6 +104,7 @@ addonTable.Assets.Highlights = {
   ["Platy: Blizzard Health Bold"] = {file = "Interface/AddOns/Platynator/Assets/%s/BarBorders/blizzard-health-square.png", width = 48, height = 48, has4k = true, masked = true, tag = "blizzard-health", margin = 0.4, extra = 0, minSize = 100, modifier = 0.3, DPIScale = 1/2, mode = renderMode.Sliced},
   ["Platy: Soft Glow"] = {file = "Interface/AddOns/Platynator/Assets/%s/Highlights/soft-glow-square.png", width = 59, height = 59, has4k = true, masked = true, tag = "soft", margin = 0.4, extra = 11, modifier = 0.3, DPIScale = 1/2, mode = renderMode.Sliced},
   ["Platy: Feathered"] = {file = "Interface/AddOns/Platynator/Assets/%s/Highlights/feathered-square.png", width = 60, height = 60, has4k = true, masked = true, tag = "soft", margin = 0.48, extra = 0, modifier = 0.25, DPIScale = 1/2, mode = renderMode.Sliced},
+  ["Platy: Feathered Holed"] = {file = "Interface/AddOns/Platynator/Assets/%s/Highlights/feathered-holed-square.png", width = 60, height = 60, has4k = true, masked = true, tag = "soft", margin = 0.48, extra = 0, modifier = 0.25, DPIScale = 1/2, mode = renderMode.Sliced},
 
   ["Platy: Glow"] = {file = "Interface/AddOns/Platynator/Assets/%s/Highlights/glow-100.png", width = 1563, height = 680, has4k = true, mode = renderMode.Stretch, tag = "glow"},
 
@@ -138,15 +139,12 @@ addonTable.Assets.BarPositionHighlights = {
 }
 
 addonTable.Assets.PowerBars = {
-  ["transparent"] = {file = "Interface/AddOns/Platynator/Assets/Special/transparent.png", width = 993, height = 147, has4k = true},
-  ["normal/gradient-faded"] = {file = "Interface/AddOns/Platynator/Assets/%s/Power/gradient-inactive.png", width = 993, height = 147, has4k = true},
-  ["normal/gradient-full"] = {file = "Interface/AddOns/Platynator/Assets/%s/Power/gradient-active.png", width = 993, height = 147, has4k = true},
-  ["normal/gradient-square-faded"] = {file = "Interface/AddOns/Platynator/Assets/%s/Power/gradient-square-empty.png", width = 993, height = 147, has4k = true},
-  ["normal/gradient-square-full"] = {file = "Interface/AddOns/Platynator/Assets/%s/Power/gradient-square-filled.png", width = 993, height = 147, has4k = true},
-  ["normal/soft-faded"] = {file = "Interface/AddOns/Platynator/Assets/%s/Power/soft-inactive.png", width = 993, height = 147, has4k = true},
-  ["normal/soft-full"] = {file = "Interface/AddOns/Platynator/Assets/%s/Power/soft-active.png", width = 993, height = 147, has4k = true},
-  ["normal/soft-square-faded"] = {file = "Interface/AddOns/Platynator/Assets/%s/Power/soft-square-empty.png", width = 993, height = 147, has4k = true},
-  ["normal/soft-square-full"] = {file = "Interface/AddOns/Platynator/Assets/%s/Power/soft-square-filled.png", width = 993, height = 147, has4k = true},
+  ["Platy: Gradient Circle"] = {file = "Interface/AddOns/Platynator/Assets/%s/Power/gradient-circle-sprites.png", width = 18, height = 18, inset = 0, has4k = true},
+  ["Platy: Gradient Square"] = {file = "Interface/AddOns/Platynator/Assets/%s/Power/gradient-square-sprites.png", width = 18, height = 18, inset = 0, has4k = true},
+  ["Platy: Soft Circle"] = {file = "Interface/AddOns/Platynator/Assets/%s/Power/soft-circle-sprites.png", width = 18, height = 18, inset = 0, has4k = true},
+  ["Platy: Soft Square"] = {file = "Interface/AddOns/Platynator/Assets/%s/Power/soft-square-sprites.png", width = 18, height = 18, inset = 0, has4k = true},
+  ["Platy: Glow Circle"] = {file = "Interface/AddOns/Platynator/Assets/%s/Power/glow-circle-sprites.png", width = 55, height = 55, inset = 37, has4k = true},
+  ["Platy: Chained Square"] = {file = "Interface/AddOns/Platynator/Assets/%s/Power/chained-square-sprites.png", width = 22, height = 22, inset = 4, has4k = true},
 }
 
 addonTable.Assets.Markers = {
@@ -186,6 +184,12 @@ addonTable.Assets.Markers = {
 
   ["normal/class"] = {preview = "Interface/AddOns/Platynator/Assets/Special/Markers/ClassIcons/Default/Monk.png", file = "Interface/AddOns/Platynator/Assets/Special/Markers/ClassIcons/Default/%s.png", width = 200, height = 200, tag = "class", text = "Default"},
   ["normal/class-minimalist"] = {preview = "Interface/AddOns/Platynator/Assets/Special/Markers/ClassIcons/Minimalist/Monk.png", file = "Interface/AddOns/Platynator/Assets/Special/Markers/ClassIcons/Minimalist/%s.png", width = 200, height = 200, tag = "class", text = "Minimalist"},
+
+  ["faction-legacy"] = {preview = "Interface/AddOns/Platynator/Assets/Special/Markers/faction-legacy-horde.png", alliance = "Interface/AddOns/Platynator/Assets/Special/Markers/faction-legacy-alliance.png", horde = "Interface/AddOns/Platynator/Assets/Special/Markers/faction-legacy-horde.png", width = 200, height = 200, tag = "faction", text = "Legacy"},
+  ["faction-assault"] = {preview = "Interface/AddOns/Platynator/Assets/Special/Markers/faction-assault-horde.png", alliance = "Interface/AddOns/Platynator/Assets/Special/Markers/faction-assault-alliance.png", horde = "Interface/AddOns/Platynator/Assets/Special/Markers/faction-assault-horde.png", width = 200, height = 200, tag = "faction", text = "Assault"},
+  ["faction-icon"] = {preview = "Interface/AddOns/Platynator/Assets/%s/Markers/faction-icon-horde.png", alliance = "Interface/AddOns/Platynator/Assets/%s/Markers/faction-icon-alliance.png", horde = "Interface/AddOns/Platynator/Assets/%s/Markers/faction-icon-horde.png", width = 200, height = 200, tag = "faction", text = "Icon", has4k = true},
+  ["faction-shield"] = {preview = "Interface/AddOns/Platynator/Assets/%s/Markers/faction-shield-horde.png", alliance = "Interface/AddOns/Platynator/Assets/%s/Markers/faction-shield-alliance.png", horde = "Interface/AddOns/Platynator/Assets/%s/Markers/faction-shield-horde.png", width = 200, height = 200, tag = "faction", text = "Shield", has4k = true},
+  ["faction-grey"] = {preview = "Interface/AddOns/Platynator/Assets/%s/Markers/faction-grey-horde.png", alliance = "Interface/AddOns/Platynator/Assets/%s/Markers/faction-grey-alliance.png", horde = "Interface/AddOns/Platynator/Assets/%s/Markers/faction-grey-horde.png", width = 200, height = 200, tag = "faction", text = "Grey", has4k = true},
 }
 
 addonTable.Assets.SpecialBars = {
@@ -237,16 +241,37 @@ function addonTable.Assets.ApplyScale()
     end
   end
 
+  local keys = {
+    "file",
+    "mask",
+    "alliance",
+    "horde",
+    "preview",
+  }
+
   local function ResizeAssets(list)
     for _, entry in pairs(list) do
       if entry.has4k then
-        entry.file = entry.file:format(DPIScale)
-        if type(entry.mask) == "string" then
-          entry.mask = entry.mask:format(DPIScale)
+        for _, k in ipairs(keys) do
+          if type(entry[k]) == "string" then
+            entry[k] = entry[k]:format(DPIScale)
+          end
         end
       end
       entry.width = entry.width / 8
       entry.height = entry.height / 8
+    end
+  end
+
+  local function Apply4k(list)
+    for _, entry in pairs(list) do
+      if entry.has4k then
+        for _, k in ipairs(keys) do
+          if type(entry[k]) == "string" then
+            entry[k] = entry[k]:format(DPIScale)
+          end
+        end
+      end
     end
   end
 
@@ -306,6 +331,6 @@ function addonTable.Assets.ApplyScale()
   IterateLSMSlicedBorder(addonTable.Assets.BarBordersSliced, addonTable.Assets.BarMasks)
   IterateLSMHighlights(addonTable.Assets.Highlights)
   ResizeAssets(addonTable.Assets.BarPositionHighlights)
-  ResizeAssets(addonTable.Assets.PowerBars)
+  Apply4k(addonTable.Assets.PowerBars)
   ResizeAssets(addonTable.Assets.Markers)
 end

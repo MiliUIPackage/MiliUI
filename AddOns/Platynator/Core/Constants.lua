@@ -10,7 +10,7 @@ addonTable.Constants = {
   IsEra = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC,
   IsClassic = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE,
 
-  IsMidnight = select(4, GetBuildInfo()) >= 120001,
+  IsMidnightNext = select(4, GetBuildInfo()) >= 120005,
 
   DeathKnightMaxRunes = 6,
 
@@ -20,6 +20,10 @@ addonTable.Constants = {
 
   DefaultFont = "Roboto Condensed Bold",
   FontFamilies = {"roman", "korean", "simplifiedchinese", "traditionalchinese", "russian"},
+
+  LayerFrameLevelStep = 500,
+
+  CastInterruptedDelay = 0.3,
 }
 addonTable.Constants.Events = {
   "SettingChanged",
@@ -33,6 +37,8 @@ addonTable.Constants.Events = {
   "QuestInfoUpdate",
   "CombatStatusChange",
   "MouseoverUpdate",
+
+  "RoleChange",
 }
 
 addonTable.Constants.RefreshReason = {

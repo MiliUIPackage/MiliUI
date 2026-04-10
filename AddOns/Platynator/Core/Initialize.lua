@@ -133,10 +133,14 @@ function addonTable.Core.UpgradeDesign(design)
     if aura.kind == "buffs" and aura.filters.defensive == nil then
       aura.filters.defensive = false
     end
-    if aura.kind == "buffs" and aura.showDispel == nil then
-      aura.showDispel = {enrage = true}
-    elseif aura.kind ~= "buffs" then
-      aura.showDispel = {}
+    if aura.showType == nil then
+      aura.showType = aura.kind == "buffs" and (not aura.showDispel or aura.showDispel.enrage)
+    end
+    if aura.showDispel then
+      aura.showDispel = nil
+    end
+    if aura.showSwipe == nil then
+      aura.showSwipe = true
     end
     if aura.kind == "crowdControl" and not aura.filters then
       aura.filters = {
@@ -151,6 +155,32 @@ function addonTable.Core.UpgradeDesign(design)
     end
     if aura.kind == "debuffs" and aura.showPandemic == nil then
       aura.showPandemic = true
+    end
+    if not aura.texts then
+      aura.texts = {
+        countdown = {
+          anchor = {},
+          scale = Round(14/12 * aura.textScale * 100) / 100,
+          color = GetColor("FFFFFF"),
+          visible = aura.showCountdown,
+        },
+        stacks = {
+          anchor = {"TOPRIGHT", 12, -1},
+          scale = Round(11/12 * aura.textScale * 100) / 100,
+          color = GetColor("FFFFFF"),
+          visible = true,
+        }
+      }
+      aura.textScale = nil
+    end
+    if not aura.limit then
+      aura.limit = 30
+    end
+    if not aura.layer then
+      aura.layer = 1
+    end
+    if aura.kind == "buffs" and aura.showStealable == nil then
+      aura.showStealable = false
     end
   end
 
@@ -188,6 +218,12 @@ function addonTable.Core.UpgradeDesign(design)
       end
       if ac.kind == "mouseover" and ac.includeTarget == nil then
         ac.includeTarget = true
+      end
+      if ac.kind == "threat" and ac.tanksOnly == nil then
+        ac.tanksOnly = false
+      end
+      if ac.kind == "threat" and ac.useOffTankColor == nil then
+        ac.useOffTankColor = true
       end
 
       index = index + 1
@@ -252,6 +288,7 @@ function addonTable.Core.UpgradeDesign(design)
       reaction.colors.tapped = nil
 
       threat.combatOnly = not bar.aggroColoursOnHostiles
+      threat.useSafeColor = true
       bar.aggroColoursOnHostiles = nil
 
       bar.autoColors = {
@@ -455,6 +492,11 @@ function addonTable.Core.UpgradeDesign(design)
   for _, bar in ipairs(design.specialBars) do
     if bar.layer == nil then
       bar.layer = 3
+    end
+    if bar.kind == "power" and bar.filled then
+      bar.asset = addonTable.Assets.PowerBarsLegacyMap[bar.filled]
+      bar.filled = nil
+      bar.blank = nil
     end
   end
 

@@ -79,7 +79,7 @@ local specializationToColor = {
   [1473] = CreateColorFromRGBHexString("37e5fc"),
 }
 
-local powerKind, powerColor, powerDivisor
+local powerKind, powerColor, powerDivisor, chargedColor
 
 local specializationMonitor = CreateFrame("Frame")
 specializationMonitor:RegisterEvent("PLAYER_LOGIN")
@@ -103,11 +103,13 @@ specializationMonitor:SetScript("OnEvent", function()
   powerKind = specializationToPower[specID]
   powerColor = specializationToColor[specID]
   powerDivisor = specializationToDivisor[specID]
+  chargedColor = CreateColorFromRGBHexString("00aaff")
 end)
 
 addonTable.Display.PowerBarMixin = {}
 
 function addonTable.Display.PowerBarMixin:Strip()
+  self.asset = nil
 end
 
 function addonTable.Display.PowerBarMixin:SetUnit(unit)
@@ -144,9 +146,19 @@ function addonTable.Display.PowerBarMixin:ApplyTarget()
 
     self:Show()
 
-    self.background:SetValue(maxPower)
-    self.main:SetValue(currentPower)
-    self.main:GetStatusBarTexture():SetVertexColor(powerColor.r, powerColor.g, powerColor.b)
+    local points = {}
+    for i = 1, maxPower do
+      table.insert(points, {set = i <= currentPower, color = powerColor})
+    end
+
+    local charged = GetUnitChargedPowerPoints("player")
+    if charged then
+      for _, i in ipairs(charged) do
+        points[i].color = chargedColor
+      end
+    end
+
+    self:SetValue(points)
   else
     self:Hide()
   end

@@ -5,7 +5,8 @@ local LSM = LibStub("LibSharedMedia-3.0")
 
 local textureHeight = 20
 
-local function GetLabelsValues(allAssets, filter, showHeight)
+local function GetLabelsValues(allAssets, filter, showName, widthMod)
+  widthMod = widthMod or 0
   local labels, values = {}, {}
 
   local allKeys = GetKeysArray(allAssets)
@@ -26,7 +27,7 @@ local function GetLabelsValues(allAssets, filter, showHeight)
     if not filter or filter(allAssets[key]) then
       local details = allAssets[key]
       local height = textureHeight
-      local width = details.width * height/details.height
+      local width = details.width * height/details.height * widthMod
       if width > 180 then
         height = 180/width * height
         width = 180
@@ -34,6 +35,9 @@ local function GetLabelsValues(allAssets, filter, showHeight)
       local text = "|T".. (details.preview or details.file or details.horizontal) .. ":" .. (height - 1) .. ":" .. (width - 1) .. "|t"
       if details.text then
         text = text .. " " .. details.text
+      end
+      if showName then
+        text = text .. " " ..  (key:gsub("Platy: ", ""))
       end
       if details.isTransparent then
         text = addonTable.Locales.NONE
@@ -932,15 +936,15 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             end,
           },
           {
-            label = addonTable.Locales.TEXT_SCALE,
+            label = addonTable.Locales.LAYER,
             kind = "slider",
-            min = 1, max = 300,
-            valuePattern = "%d%%",
+            min = 0, max = 6,
+            valuePattern = "%d",
             setter = function(details, value)
-              details.textScale = value / 100
+              details.layer = value
             end,
             getter = function(details)
-              return details.textScale * 100
+              return details.layer
             end,
           },
           { kind = "spacer" },
@@ -978,16 +982,42 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             end
           },
           {
-            label = addonTable.Locales.SHOW_COUNTDOWN,
-            kind = "checkbox",
+            label = addonTable.Locales.LIMIT_TO,
+            kind = "slider",
+            min = 1, max = 30,
+            valuePattern = addonTable.Locales.X_AURAS,
             setter = function(details, value)
-              details.showCountdown = value
+              details.limit = value
             end,
             getter = function(details)
-              return details.showCountdown
+              return details.limit
+            end,
+          },
+          {
+            label = addonTable.Locales.SHOW_TYPE_BORDER,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.showType = value
+            end,
+            getter = function(details)
+              return details.showType
+            end,
+          },
+          {
+            label = addonTable.Locales.SHOW_ROTATING_SWIPE,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.showSwipe = value
+            end,
+            getter = function(details)
+              return details.showSwipe
             end,
           },
         },
+      },
+      {
+        label = addonTable.Locales.TEXTS,
+        entries = {}
       },
       {
         label = addonTable.Locales.SORTING,
@@ -1041,6 +1071,20 @@ addonTable.CustomiseDialog.WidgetsConfig = {
         },
       },
       {
+        label = addonTable.Locales.TEXTS,
+        entries = {
+          {
+            label = "",
+            kind = "auraTextsPositioner",
+            icon = 135959,
+            setter = function() end,
+            getter = function(details)
+              return details
+            end,
+          },
+        }
+      },
+      {
         label = addonTable.Locales.FILTERS,
         entries = {
           {
@@ -1072,16 +1116,30 @@ addonTable.CustomiseDialog.WidgetsConfig = {
         label = addonTable.Locales.GENERAL,
         entries = {
           {
-            label = addonTable.Locales.SHOW_ENRAGE_DISPEL,
+            label = addonTable.Locales.SHOW_PURGEABLE,
             kind = "checkbox",
             setter = function(details, value)
-              details.showDispel.enrage = value
+              details.showStealable = value
             end,
             getter = function(details)
-              return details.showDispel.enrage
+              return details.showStealable
             end,
           },
         },
+      },
+      {
+        label = addonTable.Locales.TEXTS,
+        entries = {
+          {
+            label = "",
+            kind = "auraTextsPositioner",
+            icon = 132117,
+            setter = function() end,
+            getter = function(details)
+              return details
+            end,
+          },
+        }
       },
       {
         label = addonTable.Locales.FILTERS,
@@ -1121,6 +1179,20 @@ addonTable.CustomiseDialog.WidgetsConfig = {
       }
     },
     ["crowdControl"] = {
+      {
+        label = addonTable.Locales.TEXTS,
+        entries = {
+          {
+            label = "",
+            kind = "auraTextsPositioner",
+            icon = 135860,
+            setter = function() end,
+            getter = function(details)
+              return details
+            end,
+          },
+        }
+      },
       {
         label = addonTable.Locales.FILTERS,
         entries = {
@@ -1327,33 +1399,55 @@ addonTable.CustomiseDialog.WidgetsConfig = {
           },
           { kind = "spacer" },
           {
-            label = addonTable.Locales.FILLED,
+            label = addonTable.Locales.VISUAL,
             kind = "dropdown",
             getInitData = function()
-              return GetLabelsValues(addonTable.Assets.PowerBars)
+              return GetLabelsValues(addonTable.Assets.PowerBars, nil, true, 2)
             end,
             setter = function(details, value)
-              details.filled = value
+              details.asset = value
             end,
             getter = function(details)
-              return details.filled
-            end
-          },
-          {
-            label = addonTable.Locales.EMPTY,
-            kind = "dropdown",
-            getInitData = function()
-              return GetLabelsValues(addonTable.Assets.PowerBars)
-            end,
-            setter = function(details, value)
-              details.blank = value
-            end,
-            getter = function(details)
-              return details.blank
+              return details.asset
             end
           },
         }
       }
     }
   }
+}
+
+addonTable.CustomiseDialog.AurasConfig = {
+  {
+    label = addonTable.Locales.VISIBLE,
+    kind = "checkbox",
+    setter = function(details, value)
+      details.visible = value
+    end,
+    getter = function(details)
+      return details.visible
+    end,
+  },
+  {
+    label = addonTable.Locales.SCALE,
+    kind = "slider",
+    min = 1, max = 300,
+    valuePattern = "%d%%",
+    setter = function(details, value)
+      details.scale = value / 100
+    end,
+    getter = function(details)
+      return details.scale * 100
+    end,
+  },
+  {
+    label = addonTable.Locales.COLOR,
+    kind = "colorPicker",
+    setter = function(details, value)
+      details.color = value
+    end,
+    getter = function(details)
+      return details.color
+    end,
+  },
 }

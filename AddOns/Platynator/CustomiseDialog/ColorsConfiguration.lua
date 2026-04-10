@@ -57,6 +57,27 @@ addonTable.CustomiseDialog.ColorsConfig = {
       },
     },
   },
+  ["notTarget"] = {
+    label = addonTable.Locales.NOT_TARGET,
+    default = {
+      kind = "notTarget",
+      colors = {
+        notTarget = GetColor("34edd1"),
+      },
+    },
+    entries = {
+      {
+        label = addonTable.Locales.NOT_TARGET,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.notTarget = value
+        end,
+        getter = function(details)
+          return details.colors.notTarget
+        end,
+      },
+    },
+  },
   ["softTarget"] = {
     label = addonTable.Locales.SOFT_TARGET,
     default = {
@@ -111,26 +132,31 @@ addonTable.CustomiseDialog.ColorsConfig = {
       },
       instancesOnly = false,
       combatOnly = true,
+      tanksOnly = false,
+      useSafeColor = false,
+      useOffTankColor = false,
     },
     entries = {
       {
         label = addonTable.Locales.SAFE,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.safe = value
+          details.colors.safe = value.color
+          details.useSafeColor = value.enabled
         end,
         getter = function(details)
-          return details.colors.safe
+          return {color = details.colors.safe, enabled = details.useSafeColor}
         end,
       },
       {
         label = addonTable.Locales.OFFTANK,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.offtank = value
+          details.colors.offtank = value.color
+          details.useOffTankColor = value.enabled
         end,
         getter = function(details)
-          return details.colors.offtank
+          return {color = details.colors.offtank, enabled = details.useOffTankColor}
         end,
       },
       {
@@ -175,13 +201,13 @@ addonTable.CustomiseDialog.ColorsConfig = {
         end,
       },
       {
-        label = addonTable.Locales.USE_SAFE_COLOR,
+        label = addonTable.Locales.ONLY_APPLY_WHEN_TANK,
         kind = "checkbox",
         setter = function(details, value)
-          details.useSafeColor = value
+          details.tanksOnly = value
         end,
         getter = function(details)
-          return details.useSafeColor
+          return details.tanksOnly
         end,
       },
     },
@@ -708,6 +734,7 @@ addonTable.CustomiseDialog.ColorsConfig = {
         cast = GetColor("FC8C00"),
         channel = GetColor("3EC637"),
         interrupted = GetColor("FC36E0"),
+        empowered = GetColor("05c666"),
       },
     },
     entries = {
@@ -775,7 +802,7 @@ addonTable.CustomiseDialog.ColorsConfig = {
     }
   },
   ["execute"] = {
-    label = addonTable.Locales.EXECUTE,
+    label = addonTable.Locales.EXECUTE_CLASSIC,
     default = {
       kind = "execute",
       colors = {
@@ -832,6 +859,7 @@ addonTable.CustomiseDialog.ColorsConfig = {
 addonTable.CustomiseDialog.ColorsConfigOrder = {
   "tapped",
   "target",
+  "notTarget",
   "softTarget",
   "focus",
   "mouseover",

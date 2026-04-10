@@ -244,7 +244,7 @@ local function SetupBehaviour(parent)
   table.insert(allFrames, showNameplatesWhenNeededCheckbox)
 
   local applyNameplatesDropdown = addonTable.CustomiseDialog.Components.GetBasicDropdown(container, addonTable.Locales.USE_NAMEPLATES_FOR)
-  applyNameplatesDropdown:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
+  applyNameplatesDropdown:SetPoint("TOP", allFrames[#allFrames], "BOTTOM")
   do
     local labels
     local values = {
@@ -427,6 +427,12 @@ local function SetupBehaviour(parent)
   obscuredTransparencySlider:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
   table.insert(allFrames, obscuredTransparencySlider)
 
+  local obscuredCombatTransparencySlider = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.COMBAT_OBSCURED_TRANSPARENCY, 0, 100, function(value) return ("%d%%"):format(value) end, function(value)
+    addonTable.Config.Set(addonTable.Config.Options.OBSCURED_COMBAT_ALPHA, 1 - value / 100)
+  end)
+  obscuredCombatTransparencySlider:SetPoint("TOP", allFrames[#allFrames], "BOTTOM")
+  table.insert(allFrames, obscuredCombatTransparencySlider)
+
   local applyCvarsCheckbox = addonTable.CustomiseDialog.Components.GetCheckbox(container, addonTable.Locales.APPLY_OTHER_CVARS, 28, function(value)
     if InCombatLockdown() then
       return
@@ -444,6 +450,7 @@ local function SetupBehaviour(parent)
     notTargetTransparencySlider:SetValue(100 - addonTable.Config.Get(addonTable.Config.Options.NOT_TARGET_ALPHA) * 100)
     mouseoverTransparencySlider:SetValue(100 - addonTable.Config.Get(addonTable.Config.Options.MOUSEOVER_ALPHA) * 100)
     obscuredTransparencySlider:SetValue(100 - addonTable.Config.Get(addonTable.Config.Options.OBSCURED_ALPHA) * 100)
+    obscuredCombatTransparencySlider:SetValue(100 - addonTable.Config.Get(addonTable.Config.Options.OBSCURED_COMBAT_ALPHA) * 100)
 
     if simplifiedScaleSlider then
       simplifiedScaleSlider:SetValue(addonTable.Config.Get(addonTable.Config.Options.SIMPLIFIED_SCALE) * 100)
@@ -835,15 +842,18 @@ function addonTable.CustomiseDialog.GetStyleDropdown(parent)
           menu:Close()
           addonTable.Dialogs.ShowConfirm(addonTable.Locales.CONFIRM_DELETE_STYLE_X:format(entry.label), YES, NO, function()
             addonTable.Config.Get(addonTable.Config.Options.DESIGNS)[entry.value] = nil
+            ---@type table
             local assigned = addonTable.Config.Get(addonTable.Config.Options.DESIGNS_ASSIGNED)
-            if assigned["friend"] == entry.value then
-              assigned["friend"] = addonTable.Constants.CustomName
-            end
-            if assigned["enemy"] == entry.value then
-              assigned["enemy"] = addonTable.Constants.CustomName
-            end
-            if assigned["enemySimplified"] == entry.value then
-              assigned["enemySimplified"] = "_hare_simplified"
+            local keys = GetKeysArray(assigned)
+            for _, k in ipairs(keys) do
+              local value = assigned[k]
+              if value == entry.value then
+                if k:match("^enemySimplified") then
+                  assigned[k] = "_hare_simplified"
+                else
+                  assigned[k] = addonTable.Constants.CustomName
+                end
+              end
             end
             if addonTable.Config.Get(addonTable.Config.Options.STYLE) == entry.value then
               addonTable.Config.Set(addonTable.Config.Options.STYLE, addonTable.Constants.CustomName) 

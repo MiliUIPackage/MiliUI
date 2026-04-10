@@ -90,8 +90,7 @@ addonTable.CustomiseDialog.DesignWidgets = {
     kind = "specialBars",
     default = {
       kind = "power",
-      blank = "normal/soft-faded",
-      filled = "normal/soft-full",
+      asset = "Platy: Soft Circle",
       scale = 1 * 0.60,
       layer = 3,
       anchor = {"TOPLEFT", -140, 50},
@@ -225,10 +224,10 @@ addonTable.CustomiseDialog.DesignWidgets = {
       kind = "debuffs",
       anchor = {"TOPLEFT", -140, 50},
       scale = 1,
+      layer = 1,
       height = 1,
-      showCountdown = true,
+      limit = 30,
       direction = "RIGHT",
-      textScale = 1,
       sorting = {
         kind = "duration",
         reversed = false,
@@ -237,6 +236,22 @@ addonTable.CustomiseDialog.DesignWidgets = {
         important = true,
         fromYou = true,
       },
+      showType = false,
+      showSwipe = true,
+      texts = {
+        countdown = {
+          anchor = {},
+          scale = Round(14/12 * 100) / 100,
+          color = GetColor("FFFFFF"),
+          visible = true,
+        },
+        stacks = {
+          anchor = {"TOPRIGHT", 12, -1},
+          scale = Round(11/12 * 100) / 100,
+          color = GetColor("FFFFFF"),
+          visible = true,
+        }
+      }
     },
   },
   {
@@ -247,10 +262,10 @@ addonTable.CustomiseDialog.DesignWidgets = {
       kind = "buffs",
       anchor = {"TOPLEFT", -140, 50},
       scale = 1,
+      layer = 1,
       height = 1,
-      showCountdown = true,
+      limit = 30,
       direction = "LEFT",
-      textScale = 1,
       sorting = {
         kind = "duration",
         reversed = false,
@@ -259,7 +274,22 @@ addonTable.CustomiseDialog.DesignWidgets = {
         dispelable = false,
         important = true,
       },
-      showDispel = {enrage = true},
+      showType = true,
+      showSwipe = true,
+      texts = {
+        countdown = {
+          anchor = {},
+          scale = Round(14/12 * 100) / 100,
+          color = GetColor("FFFFFF"),
+          visible = true,
+        },
+        stacks = {
+          anchor = {"TOPRIGHT", 12, -1},
+          scale = Round(11/12 * 100) / 100,
+          color = GetColor("FFFFFF"),
+          visible = true,
+        }
+      }
     },
   },
   {
@@ -270,10 +300,12 @@ addonTable.CustomiseDialog.DesignWidgets = {
       kind = "crowdControl",
       anchor = {"TOPLEFT", -140, 50},
       scale = 1,
+      layer = 1,
       height = 1,
-      showCountdown = true,
+      limit = 30,
       direction = "RIGHT",
-      textScale = 1,
+      showType = false,
+      showSwipe = true,
       sorting = {
         kind = "duration",
         reversed = false,
@@ -281,6 +313,20 @@ addonTable.CustomiseDialog.DesignWidgets = {
       filters = {
         fromYou = false,
       },
+      texts = {
+        countdown = {
+          anchor = {},
+          scale = Round(14/12 * 100) / 100,
+          color = GetColor("FFFFFF"),
+          visible = true,
+        },
+        stacks = {
+          anchor = {"TOPRIGHT", 12, -1},
+          scale = Round(11/12 * 100) / 100,
+          color = GetColor("FFFFFF"),
+          visible = true,
+        }
+      }
     },
   },
   {
@@ -536,13 +582,25 @@ addonTable.CustomiseDialog.DesignWidgets = {
     },
   },
   {
-    name = addonTable.Locales.PVP,
+    name = addonTable.Locales.PVP_FLAG_CARRIER,
     kind = "markers",
     default = {
       kind = "pvp",
       scale = 1,
       layer = 3,
       asset = "normal/blizzard-pvp",
+      color = GetColor("ffffff"),
+      anchor = {"TOPLEFT", -140, 50},
+    },
+  },
+  {
+    name = addonTable.Locales.PLAYER_FACTION,
+    kind = "markers",
+    default = {
+      kind = "faction",
+      scale = 1,
+      layer = 3,
+      asset = "faction-icon",
       color = GetColor("ffffff"),
       anchor = {"TOPLEFT", -140, 50},
     },
