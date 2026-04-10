@@ -2,7 +2,9 @@
 -- Baganator_Keystone
 -- 在 Baganator 背包中強化鑰石顯示：
 --   1. 右下角加入白色「鑰石」文字（類似「帳綁」「裝綁」）
---   2. 變更鑰石邊框顏色（亮粉紅色，與其他物品區分）
+--   2. 變更鑰石邊框顏色 + 脈動光暈（顏色可由 MiliUI 設定面板自訂）
+--
+-- 設定值由 MiliUI_DB.baganatorKeystone 提供，預設為 hot pink。
 --
 -- 使用 hooksecurefunc 安全掛接，不修改 Baganator 原始碼。
 --
@@ -25,23 +27,50 @@ local function Log(...)
     if DEBUG then print("|cff00ccff[MiliUI Keystone]|r", ...) end
 end
 
--- 鑰石邊框顏色 (亮粉紅色 hot pink — WoW 物品品質沒有粉紅色，最容易辨識)
-local KEYSTONE_BORDER_R = 1.0
-local KEYSTONE_BORDER_G = 0.1
-local KEYSTONE_BORDER_B = 0.8
-local KEYSTONE_BORDER_A = 1.0
+-- 預設值
+local DEFAULT_COLOR_R, DEFAULT_COLOR_G, DEFAULT_COLOR_B = 1.0, 0.85, 0.1 -- 亮金黃
 
 -- 光暈設定
 local KEYSTONE_GLOW_TEXTURE = "Interface\\Buttons\\UI-ActionButton-Border"
 local KEYSTONE_GLOW_SIZE_PADDING = 14   -- 光暈比按鈕大多少像素
-local KEYSTONE_GLOW_R = 1.0
-local KEYSTONE_GLOW_G = 0.1
-local KEYSTONE_GLOW_B = 0.8
 
 -- 文字設定
 local KEYSTONE_LABEL = "鑰石"
 local KEYSTONE_FONT_SIZE = 12
 local KEYSTONE_FONT_FLAGS = "OUTLINE"
+
+--------------------------------------------------------------------------------
+-- 設定值存取
+--   讀寫於 MiliUI_DB.baganatorKeystone：
+--     enabled  (boolean) — 是否啟用鑰石發光效果（預設 true）
+--     r, g, b  (number)  — 邊框與光暈顏色（預設 hot pink）
+--------------------------------------------------------------------------------
+local function GetDB()
+    if not MiliUI_DB then MiliUI_DB = {} end
+    if not MiliUI_DB.baganatorKeystone then
+        MiliUI_DB.baganatorKeystone = {
+            enabled = true,
+            r = DEFAULT_COLOR_R,
+            g = DEFAULT_COLOR_G,
+            b = DEFAULT_COLOR_B,
+        }
+    end
+    local db = MiliUI_DB.baganatorKeystone
+    if db.enabled == nil then db.enabled = true end
+    if db.r == nil then db.r = DEFAULT_COLOR_R end
+    if db.g == nil then db.g = DEFAULT_COLOR_G end
+    if db.b == nil then db.b = DEFAULT_COLOR_B end
+    return db
+end
+
+local function GetColor()
+    local db = GetDB()
+    return db.r, db.g, db.b
+end
+
+local function IsEnabled()
+    return GetDB().enabled
+end
 
 --------------------------------------------------------------------------------
 -- Helper: 判斷是否為鑰石物品
@@ -63,7 +92,8 @@ local function GetOrCreateKeystoneOverlay(button)
     local glow = button:CreateTexture(nil, "OVERLAY", nil, 7)
     glow:SetTexture(KEYSTONE_GLOW_TEXTURE)
     glow:SetBlendMode("ADD")
-    glow:SetVertexColor(KEYSTONE_GLOW_R, KEYSTONE_GLOW_G, KEYSTONE_GLOW_B, 1)
+    local r, g, b = GetColor()
+    glow:SetVertexColor(r, g, b, 1)
     glow:SetPoint("TOPLEFT", button, "TOPLEFT", -KEYSTONE_GLOW_SIZE_PADDING, KEYSTONE_GLOW_SIZE_PADDING)
     glow:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", KEYSTONE_GLOW_SIZE_PADDING, -KEYSTONE_GLOW_SIZE_PADDING)
     glow:Hide()
@@ -104,9 +134,10 @@ end
 local function ApplyKeystoneBorder(button)
     local border = button.IconBorder
     if not border then return end
+    local r, g, b = GetColor()
     button._miliApplyingBorder = true
     border:Show()
-    border:SetVertexColor(KEYSTONE_BORDER_R, KEYSTONE_BORDER_G, KEYSTONE_BORDER_B, KEYSTONE_BORDER_A)
+    border:SetVertexColor(r, g, b, 1)
     button._miliApplyingBorder = false
 end
 
@@ -132,7 +163,8 @@ local function HookIconBorder(button)
         if not button._miliIsKeystone then return end
         if button._miliApplyingBorder then return end
         -- 顏色已經是鑰石色就不必再設一次（雙重保險）
-        if r == KEYSTONE_BORDER_R and g == KEYSTONE_BORDER_G and b == KEYSTONE_BORDER_B then return end
+        local kr, kg, kb = GetColor()
+        if r == kr and g == kg and b == kb then return end
         ApplyKeystoneBorder(button)
     end)
 
@@ -161,6 +193,20 @@ end
 --------------------------------------------------------------------------------
 local function OnSetItemDetails(button, cacheData)
     local itemLink = cacheData and cacheData.itemLink
+
+    -- 功能停用時：不建立任何 overlay，並關閉既存的 overlay
+    if not IsEnabled() then
+        button._miliIsKeystone = false
+        if button._miliKeystoneLabel then button._miliKeystoneLabel:Hide() end
+        if button._miliKeystoneGlow then
+            if button._miliKeystoneGlow._anim and button._miliKeystoneGlow._anim:IsPlaying() then
+                button._miliKeystoneGlow._anim:Stop()
+            end
+            button._miliKeystoneGlow:Hide()
+        end
+        return
+    end
+
     local label, glow = GetOrCreateKeystoneOverlay(button)
 
     if IsKeystoneItem(itemLink) then
@@ -265,3 +311,103 @@ if C_AddOns.IsAddOnLoaded("Baganator") then
     SetupHooks()
     Log("Immediate: hooks installed (Baganator already loaded)")
 end
+
+--------------------------------------------------------------------------------
+-- 對外 API：供 MiliUI 設定面板呼叫
+--   Refresh()      — 設定變更後立即重新套用到所有已 hook 的按鈕
+--   SetEnabled(b)  — 切換功能開關並 Refresh
+--   SetColor(r,g,b)— 設定顏色並 Refresh
+--   GetColor()     — 取得目前顏色
+--   IsEnabled()    — 取得目前狀態
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- 將某個按鈕的邊框還原為 Baganator / 皮膚應有的品質色。
+-- 透過呼叫按鈕本身的 SetItemButtonQuality（Baganator 已經 mixin 過此方法），
+-- 讓 Dark 皮膚的 ItemButtonQualityHook 等鏈上的 hook 重新跑一次，
+-- 把正確的品質色畫回去。
+--------------------------------------------------------------------------------
+local function RestoreNormalBorder(button)
+    if not button.BGR then return end
+    if not button.SetItemButtonQuality then return end
+    button:SetItemButtonQuality(button.BGR.quality, button.BGR.itemLink, false, button.BGR.isBound)
+end
+
+--------------------------------------------------------------------------------
+-- 為某個按鈕啟用鑰石裝飾（建立 overlay、設旗標、套色、播放動畫）
+-- 用於 Refresh() 在重新啟用時 / 改色時觸發
+--------------------------------------------------------------------------------
+local function EnableKeystoneOnButton(button)
+    local label, glow = GetOrCreateKeystoneOverlay(button)
+    button._miliIsKeystone = true
+    label:Show()
+    glow:Show()
+    if glow._anim and not glow._anim:IsPlaying() then
+        glow._anim:Play()
+    end
+    ApplyKeystoneBorder(button)
+end
+
+local function Refresh()
+    local r, g, b = GetColor()
+    local enabled = IsEnabled()
+    for button in pairs(hookedButtons) do
+        -- 同步光暈顏色（即使隱藏中也先更新好，下次顯示時就是新色）
+        if button._miliKeystoneGlow then
+            button._miliKeystoneGlow:SetVertexColor(r, g, b, 1)
+        end
+
+        if enabled then
+            -- 重新偵測：從 Baganator 的 BGR 快取讀取物品連結，
+            -- 判斷此格目前是否為鑰石。這樣即使先前停用過、旗標已清，
+            -- 也能在重新啟用時正確還原所有鑰石格的裝飾。
+            local itemLink = button.BGR and button.BGR.itemLink
+            if IsKeystoneItem(itemLink) then
+                EnableKeystoneOnButton(button)
+            elseif button._miliIsKeystone then
+                -- 之前是鑰石、現在不是：清掉裝飾（理論上 SetItemDetails
+                -- 已經處理，但保險起見再做一次）
+                button._miliIsKeystone = false
+                if button._miliKeystoneLabel then button._miliKeystoneLabel:Hide() end
+                if button._miliKeystoneGlow then
+                    if button._miliKeystoneGlow._anim and button._miliKeystoneGlow._anim:IsPlaying() then
+                        button._miliKeystoneGlow._anim:Stop()
+                    end
+                    button._miliKeystoneGlow:Hide()
+                end
+                RestoreNormalBorder(button)
+            end
+        else
+            -- 停用：只處理目前還掛著鑰石裝飾的按鈕，其他格子完全不要碰，
+            -- 否則會把整個背包的品質色洗掉。
+            if button._miliIsKeystone then
+                button._miliIsKeystone = false
+                if button._miliKeystoneLabel then button._miliKeystoneLabel:Hide() end
+                if button._miliKeystoneGlow then
+                    if button._miliKeystoneGlow._anim and button._miliKeystoneGlow._anim:IsPlaying() then
+                        button._miliKeystoneGlow._anim:Stop()
+                    end
+                    button._miliKeystoneGlow:Hide()
+                end
+                RestoreNormalBorder(button)
+            end
+        end
+    end
+end
+
+MiliUI_BaganatorKeystone = {
+    Refresh = Refresh,
+    IsEnabled = IsEnabled,
+    GetColor = GetColor,
+    SetEnabled = function(enabled)
+        GetDB().enabled = enabled and true or false
+        Refresh()
+    end,
+    SetColor = function(r, g, b)
+        local db = GetDB()
+        db.r, db.g, db.b = r, g, b
+        Refresh()
+    end,
+    GetDefaultColor = function()
+        return DEFAULT_COLOR_R, DEFAULT_COLOR_G, DEFAULT_COLOR_B
+    end,
+}

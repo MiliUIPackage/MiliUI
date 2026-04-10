@@ -477,6 +477,130 @@ local function InitSettings()
         end
     end)
 
+    -- ===== Baganator 區塊 =====
+    local bagDivider = enhanceFrame:CreateTexture(nil, "ARTWORK")
+    bagDivider:SetColorTexture(0.3, 0.3, 0.3, 0.5)
+    bagDivider:SetSize(520, 1)
+    bagDivider:SetPoint("TOPLEFT", ahCBDesc, "BOTTOMLEFT", -26, -20)
+
+    local bagLabel = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    bagLabel:SetPoint("TOPLEFT", bagDivider, "BOTTOMLEFT", 0, -12)
+    bagLabel:SetText("Baganator")
+
+    local bagSubdesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    bagSubdesc:SetPoint("LEFT", bagLabel, "RIGHT", 8, 0)
+    bagSubdesc:SetText("— 背包插件")
+    bagSubdesc:SetTextColor(0.6, 0.6, 0.6)
+
+    -- 鑰石發光 checkbox
+    local keystoneCB = CreateFrame("CheckButton", "MiliUI_BaganatorKeystoneCB", enhanceFrame, "UICheckButtonTemplate")
+    keystoneCB:SetPoint("TOPLEFT", bagLabel, "BOTTOMLEFT", 0, -8)
+    keystoneCB.text:SetText("鑰石發光提示")
+    keystoneCB.text:SetFontObject("GameFontHighlight")
+
+    local keystoneDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    keystoneDesc:SetPoint("TOPLEFT", keystoneCB, "BOTTOMLEFT", 26, -2)
+    keystoneDesc:SetWidth(520)
+    keystoneDesc:SetJustifyH("LEFT")
+    keystoneDesc:SetText("在 Baganator 背包中為鑰石加上彩色邊框、\n脈動光暈與「鑰石」文字標籤，方便快速辨識。")
+    keystoneDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    -- 顏色選擇按鈕（顯示色塊 + 點擊開啟顏色選擇器）
+    local keystoneColorLabel = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    keystoneColorLabel:SetPoint("TOPLEFT", keystoneDesc, "BOTTOMLEFT", 0, -12)
+    keystoneColorLabel:SetText("顏色：")
+
+    local keystoneColorSwatch = CreateFrame("Button", "MiliUI_BaganatorKeystoneColorSwatch", enhanceFrame, "BackdropTemplate")
+    keystoneColorSwatch:SetSize(24, 24)
+    keystoneColorSwatch:SetPoint("LEFT", keystoneColorLabel, "RIGHT", 4, 0)
+    keystoneColorSwatch:SetBackdrop({
+        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 10,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 },
+    })
+    keystoneColorSwatch:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
+
+    local keystoneResetBtn = CreateFrame("Button", nil, enhanceFrame, "UIPanelButtonTemplate")
+    keystoneResetBtn:SetSize(80, 22)
+    keystoneResetBtn:SetPoint("LEFT", keystoneColorSwatch, "RIGHT", 10, 0)
+    keystoneResetBtn:SetText("重設")
+
+    local keystoneColorHint = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    keystoneColorHint:SetPoint("LEFT", keystoneResetBtn, "RIGHT", 8, 0)
+    keystoneColorHint:SetText("點擊色塊自訂邊框 / 光暈顏色")
+
+    local function UpdateSwatch()
+        if not MiliUI_BaganatorKeystone then return end
+        local r, g, b = MiliUI_BaganatorKeystone.GetColor()
+        keystoneColorSwatch:SetBackdropColor(r, g, b, 1)
+    end
+
+    local function SyncBaganatorKeystone()
+        if not MiliUI_BaganatorKeystone then
+            -- 模組未載入：停用控制項
+            keystoneCB:Disable()
+            keystoneCB.text:SetTextColor(0.5, 0.5, 0.5)
+            keystoneColorSwatch:Disable()
+            keystoneResetBtn:Disable()
+            return
+        end
+        keystoneCB:SetChecked(MiliUI_BaganatorKeystone.IsEnabled())
+        UpdateSwatch()
+    end
+    SyncBaganatorKeystone()
+    enhanceFrame:HookScript("OnShow", SyncBaganatorKeystone)
+
+    keystoneCB:HookScript("OnClick", function(self)
+        if not MiliUI_BaganatorKeystone then return end
+        local enabled = self:GetChecked() and true or false
+        MiliUI_BaganatorKeystone.SetEnabled(enabled)
+        print("|cff00ff00[MiliUI]|r 鑰石發光提示:", enabled and "開" or "關")
+    end)
+
+    keystoneColorSwatch:SetScript("OnClick", function()
+        if not MiliUI_BaganatorKeystone then return end
+        local r, g, b = MiliUI_BaganatorKeystone.GetColor()
+        local function OnColorChanged()
+            local nr, ng, nb = ColorPickerFrame:GetColorRGB()
+            MiliUI_BaganatorKeystone.SetColor(nr, ng, nb)
+            UpdateSwatch()
+        end
+        local function OnCancel(prev)
+            if prev then
+                MiliUI_BaganatorKeystone.SetColor(prev.r, prev.g, prev.b)
+                UpdateSwatch()
+            end
+        end
+        local info = {
+            swatchFunc = OnColorChanged,
+            cancelFunc = OnCancel,
+            r = r, g = g, b = b,
+            hasOpacity = false,
+            previousValues = { r = r, g = g, b = b },
+        }
+        if ColorPickerFrame.SetupColorPickerAndShow then
+            ColorPickerFrame:SetupColorPickerAndShow(info)
+        else
+            -- 舊版 fallback
+            ColorPickerFrame.func = info.swatchFunc
+            ColorPickerFrame.cancelFunc = info.cancelFunc
+            ColorPickerFrame.previousValues = info.previousValues
+            ColorPickerFrame.hasOpacity = false
+            ColorPickerFrame:SetColorRGB(r, g, b)
+            ColorPickerFrame:Hide()
+            ColorPickerFrame:Show()
+        end
+    end)
+
+    keystoneResetBtn:SetScript("OnClick", function()
+        if not MiliUI_BaganatorKeystone then return end
+        local r, g, b = MiliUI_BaganatorKeystone.GetDefaultColor()
+        MiliUI_BaganatorKeystone.SetColor(r, g, b)
+        UpdateSwatch()
+        print("|cff00ff00[MiliUI]|r 鑰石發光顏色已重設為預設值")
+    end)
+
     local enhanceCategory = Settings.RegisterCanvasLayoutSubcategory(category, enhanceFrame, "插件強化")
     enhanceCategory.ID = "MiliUI_Enhance"
 
