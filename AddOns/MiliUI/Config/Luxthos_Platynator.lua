@@ -1816,7 +1816,7 @@ MiliUI_PlatynatorProfile = {
 },
 },
 },
-["global_scale"] = 1,
+["global_scale"] = 0.99,
 ["target_behaviour"] = "enlarge",
 ["obscured_alpha"] = 0.4,
 ["click_region_scale_y"] = 2.3,
