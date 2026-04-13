@@ -328,6 +328,9 @@ local function EnsureCastStatusBar(f)
                 self._miliCasting = nil
                 self._miliDurObj = nil
                 self._miliIsChannel = nil
+                self._miliUnit = nil
+                self._miliStartTime = nil
+                self._miliSafetyTimer = nil
                 if self._miliBar then self._miliBar:Hide() end
                 self.bar:SetAlpha(1)
                 if self.spell then pcall(self.spell.SetParent, self.spell, self) end
@@ -341,6 +344,30 @@ local function EnsureCastStatusBar(f)
                 pcall(self._miliIsChannel and MiliUpdateChannelValue or MiliUpdateCastValue, self)
                 if self.time then pcall(MiliUpdateTimeText, self) end
                 pcall(MiliCheckCastEnd, self)
+            end
+            -- 安全檢查（每 0.5 秒一次，防止施法條卡住）
+            -- 情境：GetRemainingDuration() 因 secret value 失敗，
+            --       pcall 吞掉錯誤，cstate 永遠不會變成 3
+            self._miliSafetyTimer = (self._miliSafetyTimer or 0) + elapsed
+            if self._miliSafetyTimer > 0.5 then
+                self._miliSafetyTimer = 0
+                local forceEnd = false
+                -- 檢查 1: 超時（任何施法不可能超過 30 秒）
+                if self._miliStartTime and (GetTime() - self._miliStartTime) > 30 then
+                    forceEnd = true
+                end
+                -- 檢查 2: 該單位已不在施法
+                if not forceEnd and self._miliUnit then
+                    local ok1, info1 = pcall(UnitCastingInfo, self._miliUnit)
+                    local ok2, info2 = pcall(UnitChannelInfo, self._miliUnit)
+                    if (not ok1 or type(info1) == "nil") and (not ok2 or type(info2) == "nil") then
+                        forceEnd = true
+                    end
+                end
+                if forceEnd then
+                    self.cstate = 3
+                    self.fadestart = GetTime()
+                end
             end
             return
         end
@@ -358,6 +385,9 @@ local function CleanupMiliCast(f)
     f._miliCasting = nil
     f._miliDurObj = nil
     f._miliIsChannel = nil
+    f._miliUnit = nil
+    f._miliStartTime = nil
+    f._miliSafetyTimer = nil
     if f._miliBar then f._miliBar:Hide() end
     -- 拆為獨立 pcall：前者失敗不影響後者
     if f.bar   then pcall(f.bar.SetAlpha,    f.bar,   1) end
@@ -441,6 +471,9 @@ local function FixCastbar(unit, uf, evSpellID, isCast)
             f._miliCasting = true
             f._miliDurObj = castDurObj
             f._miliIsChannel = isChannel
+            f._miliUnit = unit
+            f._miliStartTime = GetTime()
+            f._miliSafetyTimer = 0
             f:SetAlpha(f.db.alpha or 1)
 
             local ov = f._miliOverlay
