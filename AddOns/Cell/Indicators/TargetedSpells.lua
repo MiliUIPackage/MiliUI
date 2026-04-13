@@ -152,7 +152,7 @@ local function ShowCastsSecret(b, activeCasts, numCasts)
             ts[i].icon:SetTexture(cast.icon)
             ts[i]:Show()
             -- SetAlphaFromBoolean: alpha 1 if targeted, alpha 0 if not (C-level, accepts secrets)
-            ts[i]:SetAlphaFromBoolean(UnitIsUnit(cast.sourceUnit .. "target", unit))
+            ts[i]:SetAlphaFromBoolean(UnitIsUnit(cast.sourceUnit .. "target", unit) or false)
         end
         -- Hide unused slots
         for i = numCasts + 1, #ts do
@@ -164,7 +164,7 @@ local function ShowCastsSecret(b, activeCasts, numCasts)
     -- Glow: start the glow effect, use SetAlphaFromBoolean on tsGlowFrame
     if displayMode ~= "Icons" and numCasts > 0 then
         ts:ShowGlow(unpack(Cell.vars.targetedSpellsGlow))
-        ts.tsGlowFrame:SetAlphaFromBoolean(UnitIsUnit(activeCasts[1].sourceUnit .. "target", unit))
+        ts.tsGlowFrame:SetAlphaFromBoolean(UnitIsUnit(activeCasts[1].sourceUnit .. "target", unit) or false)
     else
         ts:HideGlow()
     end

@@ -471,6 +471,34 @@ local function FixPortrait(unit, uf)
 end
 
 ------------------------------------------------------------
+-- 修正施法條時間文字 nil duration 報錯
+-- Stuf StopCast 呼叫 f.time:SetValue(0, f.duration)，
+-- 但 f.duration 可能為 nil（secret value 導致 SPELLCAST_START
+-- 的 pcall 失敗，duration 未被賦值），進而
+-- setftext("%0.1f", nil) 報錯。
+-- 策略：Hook Stuf 的 OnEvent，在 STOP 事件派發前，
+-- 確保對應 castbar.duration 不為 nil。
+------------------------------------------------------------
+local function HookStufOnEventForCastDuration(Stuf)
+    if Stuf._miliCastDurHooked then return end
+    local origOnEvent = Stuf:GetScript("OnEvent")
+    if not origOnEvent then return end
+    Stuf:SetScript("OnEvent", function(self, event, unit, ...)
+        if (event == "UNIT_SPELLCAST_STOP"
+            or event == "UNIT_SPELLCAST_CHANNEL_STOP") and unit then
+            local su = Stuf.units
+            local uf = su and su[unit]
+            if uf and uf.castbar and uf.castbar.duration == nil then
+                uf.castbar.duration = 0
+            end
+        end
+        return origOnEvent(self, event, unit, ...)
+    end)
+    Stuf._miliCastDurHooked = true
+    Log("已 Hook Stuf OnEvent 防護 castbar nil duration")
+end
+
+------------------------------------------------------------
 -- 確保 RaidTargetIcon 存在（若 SavedVariables 為 hide 而未建立）
 ------------------------------------------------------------
 local raidIconDefaults = {
@@ -701,6 +729,9 @@ loader:SetScript("OnEvent", function(self)
         -- 確保 Focus RaidTargetIcon 存在
         EnsureRaidIcon(su, "focus")
         EnsureRaidIcon(su, "focustarget")
+
+        -- Hook Stuf OnEvent 防護 castbar nil duration
+        HookStufOnEventForCastDuration(Stuf)
 
         -- 清除所有 castbar 殘留狀態
         local function CleanupAllCastbars()
