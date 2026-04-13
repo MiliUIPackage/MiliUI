@@ -15,14 +15,38 @@
 local AddonName, _ = ...
 if AddonName ~= "MiliUI" then return end
 
-local TAG = "|cff00ccff[StufFix]|r "
-local log = {}
-local function Log(msg)
-    log[#log + 1] = msg
-end
+------------------------------------------------------------
+-- 快取全域 API（減少 _G 查找）
+------------------------------------------------------------
+local pcall = pcall
+local type = type
+local pairs = pairs
+local ipairs = ipairs
+local wipe = wipe
+local GetTime = GetTime
+local UnitExists = UnitExists
+local UnitHealth = UnitHealth
+local UnitHealthMax = UnitHealthMax
+local UnitPower = UnitPower
+local UnitPowerMax = UnitPowerMax
+local UnitCastingInfo = UnitCastingInfo
+local UnitChannelInfo = UnitChannelInfo
+local SetRaidTargetIconTexture = SetRaidTargetIconTexture
+local GetRaidTargetIndex = GetRaidTargetIndex
+local GetUnitName = GetUnitName
+local CreateFrame = CreateFrame
+local SetPortraitTexture = SetPortraitTexture
+local UnitIsVisible = UnitIsVisible
+local C_Timer_After = C_Timer.After
+local C_Spell_GetSpellInfo = C_Spell and C_Spell.GetSpellInfo
+local UnitCastingDuration = UnitCastingDuration
+local UnitChannelDuration = UnitChannelDuration
+local UnitEmpoweredChannelDuration = UnitEmpoweredChannelDuration
+local UnitHealthPercent = UnitHealthPercent
+local string_find = string.find
 
 ------------------------------------------------------------
--- Boss 單位查表
+-- 常數查表（避免每次事件建立臨時表）
 ------------------------------------------------------------
 local bossMain = {}
 local bossAll  = {}
@@ -34,22 +58,149 @@ for i = 1, MAX_BOSS_FRAMES or 5 do
     bossAll[bt]  = true
 end
 
+-- 施法修正適用的單位（單次查表取代多次字串比較）
+local castFixUnits = {}
+for u in pairs(bossAll) do castFixUnits[u] = true end
+castFixUnits["target"] = true
+castFixUnits["focus"] = true
+
+-- 預建常數表（避免每次事件建立 GC 垃圾）
+local PLAYER_PET   = {"player", "pet"}
+local TARGET_FOCUS = {"target", "focus"}
+local ENTERING_WORLD_DELAYS = {0.5, 1.5, 3.0}
+
+-- OnEvent hook: 需要攔截的 Stuf 事件（table lookup 取代字串比較）
+local CAST_STOP_EVENTS = {
+    UNIT_SPELLCAST_STOP = true,
+    UNIT_SPELLCAST_CHANNEL_STOP = true,
+}
+
+-- UNIT_HEALTH 節流
+local healthThrottle = {}
+local HEALTH_THROTTLE_INTERVAL = 0.1
+
 ------------------------------------------------------------
--- C API (可直接處理 secret value)
+-- pcall 輔助函式（預定義，避免每次呼叫建立匿名閉包）
 ------------------------------------------------------------
-local SetRaidTargetIconTexture = SetRaidTargetIconTexture
+
+-- FixStatusBar 用
+local function SafeHealthPercent(unit)
+    return UnitHealthPercent(unit) * 0.01
+end
+
+local function SafeGetBarColor(stuf, method, uf, db, frac)
+    return stuf:GetColorFromMethod(method, uf, db, frac, "barcolor", "baralpha")
+end
+
+local function SafeGetBgColor(stuf, method, uf, db, frac)
+    return stuf:GetColorFromMethod(method, uf, db, frac, "bgcolor", "bgalpha")
+end
+
+-- FixCastbar 用
+local function SafeGetSpellInfo(id)
+    local info = C_Spell_GetSpellInfo(id)
+    if info then return info.name, info.iconID end
+end
+
+local function SafeUnitCastingNameIcon(unit)
+    local s, _, ci = UnitCastingInfo(unit)
+    return s, ci
+end
+
+local function SafeUnitChannelNameIcon(unit)
+    local s, _, ci = UnitChannelInfo(unit)
+    return s, ci
+end
+
+local function SafeCastingTiming(unit)
+    local _, _, _, st, et = UnitCastingInfo(unit)
+    if type(et) ~= "nil" then
+        return et * 0.001, (et - st) * 0.001
+    end
+end
+
+local function SafeChannelTiming(unit)
+    local _, _, _, st, et = UnitChannelInfo(unit)
+    if type(et) ~= "nil" then
+        return et * 0.001, (et - st) * 0.001
+    end
+end
+
+local function SafeCastTimeFallback(spellID)
+    local info = C_Spell_GetSpellInfo(spellID)
+    if info and info.castTime and info.castTime > 0 then
+        local durS = info.castTime * 0.001
+        return GetTime() + durS, durS
+    end
+end
+
+local function SafeInitDuration(nb, durObj, isChannel)
+    nb:SetMinMaxValues(0, durObj:GetTotalDuration())
+    if isChannel then
+        nb:SetValue(durObj:GetRemainingDuration())
+    else
+        nb:SetValue(durObj:GetElapsedDuration())
+    end
+end
+
+-- 施法條 OnUpdate 用（每幀呼叫，絕不能建立閉包）
+local function MiliUpdateCastValue(f)
+    f._miliBar:SetValue(f._miliDurObj:GetElapsedDuration())
+end
+
+local function MiliUpdateChannelValue(f)
+    f._miliBar:SetValue(f._miliDurObj:GetRemainingDuration())
+end
+
+local function MiliUpdateTimeText(f)
+    f.time:SetFormattedText("%.1f", f._miliDurObj:GetRemainingDuration())
+end
+
+local function MiliCheckCastEnd(f)
+    if f._miliDurObj:GetRemainingDuration() <= 0 then
+        f.cstate = 3
+        f.fadestart = GetTime()
+    end
+end
+
+-- FixPortrait 用
+local function SafeSetPortrait3D(d3, d2, unit, camera)
+    if UnitIsVisible(unit) then
+        d3:SetUnit(unit)
+        d3:SetPortraitZoom(camera or 1)
+        d3:SetAlpha(1)
+        d3:Show()
+        if d2 then d2:Hide() end
+    else
+        if d2 then
+            SetPortraitTexture(d2, unit)
+            d2:Show()
+            d2:SetAlpha(1)
+        end
+        d3:ClearModel()
+        d3:Hide()
+    end
+end
+
+local function SafeFallbackPortrait(d3, d2, unit)
+    if d2 then
+        SetPortraitTexture(d2, unit)
+        d2:Show()
+        d2:SetAlpha(1)
+    end
+    d3:ClearModel()
+    d3:Hide()
+end
 
 ------------------------------------------------------------
 -- 修正名字
--- 繞過 Stuf 的 text pattern 處理（可能因 secret value 中斷）
 ------------------------------------------------------------
 local function FixName(unit, uf)
     if not uf or not uf:IsShown() then return end
     if not uf.skiprefreshelement then return end
 
-    local unitName
-    pcall(function() unitName = GetUnitName(unit) end)
-    if type(unitName) == "nil" then return end
+    local ok, unitName = pcall(GetUnitName, unit)
+    if not ok or type(unitName) == "nil" then return end
 
     for t = 1, 8 do
         local tname = "text" .. t
@@ -57,11 +208,10 @@ local function FixName(unit, uf)
         if tf and tf.fontstring and tf:IsShown() and tf.db then
             local pat = tf.db.pattern
             if pat then
-                local hasName = false
-                pcall(function() hasName = (pat:find("name") ~= nil) end)
-                if hasName then
+                local ok2, pos = pcall(string_find, pat, "name")
+                if ok2 and pos then
                     uf.skiprefreshelement[tname] = true
-                    pcall(function() tf.fontstring:SetText(unitName) end)
+                    pcall(tf.fontstring.SetText, tf.fontstring, unitName)
                 end
             end
         end
@@ -93,8 +243,6 @@ end
 
 ------------------------------------------------------------
 -- 修正血條 / 魔力條
--- Stuf 的 refreshfuncs 迴圈中若任一元素報錯會中斷後續，
--- 此函式在事件後獨立補上 nativeBar (StatusBar C API)。
 ------------------------------------------------------------
 local function FixStatusBar(unit, uf, barName, isHP)
     if not uf or not uf:IsShown() then return end
@@ -125,46 +273,26 @@ local function FixStatusBar(unit, uf, barName, isHP)
     -- 顏色：用 UnitHealthPercent 取非 secret 的百分比
     local frac = 1
     if isHP and UnitHealthPercent then
-        pcall(function() frac = UnitHealthPercent(unit) * 0.01 end)
+        local ok, f = pcall(SafeHealthPercent, unit)
+        if ok and f then frac = f end
     end
 
     local Stuf = _G.Stuf
     if Stuf and Stuf.GetColorFromMethod then
         local db = bar.db
-        local r, g, b, a
-        pcall(function()
-            r, g, b, a = Stuf:GetColorFromMethod(
-                db.barcolormethod, uf, db, frac, "barcolor", "baralpha")
-        end)
-        if r then nb:SetStatusBarColor(r, g, b, a) end
+        local ok, r, g, b, a = pcall(SafeGetBarColor, Stuf, db.barcolormethod, uf, db, frac)
+        if ok and r then nb:SetStatusBarColor(r, g, b, a) end
 
-        pcall(function()
-            r, g, b, a = Stuf:GetColorFromMethod(
-                db.bgcolormethod, uf, db, frac, "bgcolor", "bgalpha")
-        end)
-        if r and bar.bg then bar.bg:SetVertexColor(r, g, b, a) end
+        ok, r, g, b, a = pcall(SafeGetBgColor, Stuf, db.bgcolormethod, uf, db, frac)
+        if ok and r and bar.bg then bar.bg:SetVertexColor(r, g, b, a) end
     end
 
     nb:Show()
 end
 
 ------------------------------------------------------------
--- 修正施法條
--- 策略（參考 Platynator CastBar.lua）：
---   1. Duration API: UnitCastingDuration / UnitChannelDuration
---      回傳 Duration object，傳給 StatusBar:SetTimerDuration
---      讓 C 端處理動畫，完全不做 Lua 算術
---   2. 事件 payload 的 spellID → C_Spell.GetSpellInfo
---      取得名稱、圖示（確定非 secret）
---   3. UnitCastingInfo 補充名稱/圖示（pcall 保護）
---   4. 最後 fallback: UnitCastingInfo 算術 / C_Spell.castTime
+-- 施法條 StatusBar 覆蓋（Duration API 模式）
 ------------------------------------------------------------
-
--- Debug 旗標：/milifix debug 開啟，記錄 OnUpdate 細節
-local cbDebug = false
-local cbDebugCount = 0
-
--- 建立 StatusBar 覆蓋 castbar（Duration API 模式）
 local function EnsureCastStatusBar(f)
     if f._miliBar then return f._miliBar end
 
@@ -187,7 +315,7 @@ local function EnsureCastStatusBar(f)
     overlay:SetFrameLevel(baseLevel + 2)
     f._miliOverlay = overlay
 
-    -- Hook OnUpdate
+    -- Hook OnUpdate（閉包僅在此建立一次，非每幀）
     local origOnUpdate = f:GetScript("OnUpdate")
     f:SetScript("OnUpdate", function(self, elapsed)
         if self._miliCasting then
@@ -202,48 +330,17 @@ local function EnsureCastStatusBar(f)
                 self._miliIsChannel = nil
                 if self._miliBar then self._miliBar:Hide() end
                 self.bar:SetAlpha(1)
-                pcall(function()
-                    self.spell:SetParent(self)
-                    self.time:SetParent(self)
-                    self.icon:SetParent(self)
-                end)
+                if self.spell then pcall(self.spell.SetParent, self.spell, self) end
+                if self.time  then pcall(self.time.SetParent,  self.time,  self) end
+                if self.icon  then pcall(self.icon.SetParent,  self.icon,  self) end
                 if origOnUpdate then origOnUpdate(self, elapsed) end
                 return
             end
-            -- 每幀更新 StatusBar + 時間文字
+            -- 每幀更新（使用預定義函式，零閉包建立）
             if self._miliDurObj then
-                local updateOk = pcall(function()
-                    if self._miliIsChannel then
-                        self._miliBar:SetValue(self._miliDurObj:GetRemainingDuration())
-                    else
-                        self._miliBar:SetValue(self._miliDurObj:GetElapsedDuration())
-                    end
-                end)
-                -- Debug log（只記前幾次）
-                if cbDebug and cbDebugCount < 5 then
-                    cbDebugCount = cbDebugCount + 1
-                    local v = self._miliBar:GetValue()
-                    local mn, mx = self._miliBar:GetMinMaxValues()
-                    Log("DBG OnUpdate: ok=" .. tostring(updateOk)
-                        .. " val=" .. tostring(v)
-                        .. " min=" .. tostring(mn) .. " max=" .. tostring(mx)
-                        .. " shown=" .. tostring(self._miliBar:IsShown())
-                        .. " unit=" .. tostring(self.p and self.p.unit or "?"))
-                end
-                -- 時間文字
-                if self.time then
-                    pcall(function()
-                        self.time:SetFormattedText("%.1f",
-                            self._miliDurObj:GetRemainingDuration())
-                    end)
-                end
-                -- 結束偵測
-                pcall(function()
-                    if self._miliDurObj:GetRemainingDuration() <= 0 then
-                        self.cstate = 3
-                        self.fadestart = GetTime()
-                    end
-                end)
+                pcall(self._miliIsChannel and MiliUpdateChannelValue or MiliUpdateCastValue, self)
+                if self.time then pcall(MiliUpdateTimeText, self) end
+                pcall(MiliCheckCastEnd, self)
             end
             return
         end
@@ -253,21 +350,25 @@ local function EnsureCastStatusBar(f)
     return nb
 end
 
+------------------------------------------------------------
 -- 清除施法條殘留狀態
+------------------------------------------------------------
 local function CleanupMiliCast(f)
     if not f then return end
     f._miliCasting = nil
     f._miliDurObj = nil
     f._miliIsChannel = nil
     if f._miliBar then f._miliBar:Hide() end
-    pcall(function() f.bar:SetAlpha(1) end)
-    pcall(function()
-        f.spell:SetParent(f)
-        f.time:SetParent(f)
-        f.icon:SetParent(f)
-    end)
+    -- 拆為獨立 pcall：前者失敗不影響後者
+    if f.bar   then pcall(f.bar.SetAlpha,    f.bar,   1) end
+    if f.spell then pcall(f.spell.SetParent, f.spell, f) end
+    if f.time  then pcall(f.time.SetParent,  f.time,  f) end
+    if f.icon  then pcall(f.icon.SetParent,  f.icon,  f) end
 end
 
+------------------------------------------------------------
+-- 修正施法條
+------------------------------------------------------------
 local function FixCastbar(unit, uf, evSpellID, isCast)
     if not uf then return end
     local f = uf.castbar
@@ -279,25 +380,23 @@ local function FixCastbar(unit, uf, evSpellID, isCast)
     -- === 名稱 / 圖示: 優先用事件 spellID（確定非 secret）===
     local spellName, spellIcon
     if evSpellID then
-        pcall(function()
-            local info = C_Spell.GetSpellInfo(evSpellID)
-            if info then spellName = info.name; spellIcon = info.iconID end
-        end)
+        local ok, name, icon = pcall(SafeGetSpellInfo, evSpellID)
+        if ok and type(name) ~= "nil" then
+            spellName, spellIcon = name, icon
+        end
     end
     if type(spellName) == "nil" then
-        pcall(function()
-            local s, _, ci = UnitCastingInfo(unit)
-            if type(s) ~= "nil" then spellName = s; spellIcon = ci end
-        end)
+        local ok, s, ci = pcall(SafeUnitCastingNameIcon, unit)
+        if ok and type(s) ~= "nil" then
+            spellName, spellIcon = s, ci
+        end
     end
     if type(spellName) == "nil" then
-        pcall(function()
-            local s, _, ci = UnitChannelInfo(unit)
-            if type(s) ~= "nil" then
-                spellName = s; spellIcon = ci
-                if isCast == nil then isCast = false end
-            end
-        end)
+        local ok, s, ci = pcall(SafeUnitChannelNameIcon, unit)
+        if ok and type(s) ~= "nil" then
+            spellName, spellIcon = s, ci
+            if isCast == nil then isCast = false end
+        end
     end
     if type(spellName) == "nil" then return end
 
@@ -307,15 +406,22 @@ local function FixCastbar(unit, uf, evSpellID, isCast)
 
     if UnitCastingDuration then
         if not isChannel then
-            pcall(function() castDurObj = UnitCastingDuration(unit) end)
+            local ok, obj = pcall(UnitCastingDuration, unit)
+            if ok then castDurObj = obj end
         end
         if type(castDurObj) == "nil" and UnitChannelDuration then
-            pcall(function() castDurObj = UnitChannelDuration(unit) end)
-            if type(castDurObj) ~= "nil" then isChannel = true end
+            local ok, obj = pcall(UnitChannelDuration, unit)
+            if ok and type(obj) ~= "nil" then
+                castDurObj = obj
+                isChannel = true
+            end
         end
         if type(castDurObj) == "nil" and UnitEmpoweredChannelDuration then
-            pcall(function() castDurObj = UnitEmpoweredChannelDuration(unit, true) end)
-            if type(castDurObj) ~= "nil" then isChannel = true end
+            local ok, obj = pcall(UnitEmpoweredChannelDuration, unit, true)
+            if ok and type(obj) ~= "nil" then
+                castDurObj = obj
+                isChannel = true
+            end
         end
     end
 
@@ -329,15 +435,7 @@ local function FixCastbar(unit, uf, evSpellID, isCast)
             nb:SetStatusBarColor(1, 0.7, 0, f.db.baralpha or 1)
         end
 
-        -- SetMinMaxValues + SetValue（C API 處理 secret number）
-        local ok = pcall(function()
-            nb:SetMinMaxValues(0, castDurObj:GetTotalDuration())
-            if isChannel then
-                nb:SetValue(castDurObj:GetRemainingDuration())
-            else
-                nb:SetValue(castDurObj:GetElapsedDuration())
-            end
-        end)
+        local ok = pcall(SafeInitDuration, nb, castDurObj, isChannel)
         if ok then
             f.cstate = isChannel and 2 or 1
             f._miliCasting = true
@@ -347,58 +445,49 @@ local function FixCastbar(unit, uf, evSpellID, isCast)
 
             local ov = f._miliOverlay
             if ov then
-                pcall(function() f.spell:SetParent(ov) end)
-                pcall(function() f.time:SetParent(ov) end)
-                pcall(function() f.icon:SetParent(ov) end)
+                if f.spell then pcall(f.spell.SetParent, f.spell, ov) end
+                if f.time  then pcall(f.time.SetParent,  f.time,  ov) end
+                if f.icon  then pcall(f.icon.SetParent,  f.icon,  ov) end
             end
 
-            pcall(function() f.spell:SetText(spellName) end)
-            pcall(function()
-                if type(spellIcon) ~= "nil" then f.icon:SetTexture(spellIcon) end
-            end)
+            if f.spell then pcall(f.spell.SetText, f.spell, spellName) end
+            if type(spellIcon) ~= "nil" and f.icon then
+                pcall(f.icon.SetTexture, f.icon, spellIcon)
+            end
             f.bar:SetAlpha(0)
             nb:Show()
             f.spark:Hide()
             f:Show()
-            Log(unit .. " CB: StatusBar mode, ch=" .. tostring(isChannel))
             return
         end
-        Log(unit .. " CB: StatusBar init failed")
     end
 
     -- === 方法 2: UnitCastingInfo 算術（非 boss 可用）===
     local endS, durS
-    pcall(function()
-        local _, _, _, st, et = UnitCastingInfo(unit)
-        if type(et) ~= "nil" then
-            endS = et * 0.001; durS = (et - st) * 0.001
+    do
+        local ok, e, d = pcall(SafeCastingTiming, unit)
+        if ok and type(e) ~= "nil" then
+            endS, durS = e, d
             if isCast == nil then isCast = true end
         end
-    end)
+    end
     if type(endS) == "nil" then
-        pcall(function()
-            local _, _, _, st, et = UnitChannelInfo(unit)
-            if type(et) ~= "nil" then
-                endS = et * 0.001; durS = (et - st) * 0.001
-                isChannel = true
-            end
-        end)
+        local ok, e, d = pcall(SafeChannelTiming, unit)
+        if ok and type(e) ~= "nil" then
+            endS, durS = e, d
+            isChannel = true
+        end
     end
 
     -- === 方法 3: C_Spell.castTime ===
     if type(endS) == "nil" and evSpellID then
-        pcall(function()
-            local info = C_Spell.GetSpellInfo(evSpellID)
-            if info and info.castTime and info.castTime > 0 then
-                durS = info.castTime * 0.001; endS = GetTime() + durS
-            end
-        end)
+        local ok, e, d = pcall(SafeCastTimeFallback, evSpellID)
+        if ok and type(e) ~= "nil" then
+            endS, durS = e, d
+        end
     end
 
-    if type(endS) == "nil" then
-        Log(unit .. " CB: all timing failed")
-        return
-    end
+    if type(endS) == "nil" then return end
 
     -- === Stuf 原生系統（有普通數值時）===
     if f._miliCasting then CleanupMiliCast(f) end
@@ -410,17 +499,16 @@ local function FixCastbar(unit, uf, evSpellID, isCast)
     f.delay = nil
     f.cstate = isChannel and 2 or 1
     f:SetAlpha(f.db.alpha or 1)
-    pcall(function() f.spell:SetText(spellName) end)
-    pcall(function()
-        if type(spellIcon) ~= "nil" then f.icon:SetTexture(spellIcon) end
-    end)
+    if f.spell then pcall(f.spell.SetText, f.spell, spellName) end
+    if type(spellIcon) ~= "nil" and f.icon then
+        pcall(f.icon.SetTexture, f.icon, spellIcon)
+    end
     f.bar:SetVertexColor(
         isChannel and 0 or 1,
         isChannel and 1 or 0.7,
         0, f.db.baralpha or 1)
     f.spark:Show()
     f:Show()
-    Log(unit .. " CB: native dur=" .. tostring(durS))
 end
 
 ------------------------------------------------------------
@@ -435,33 +523,9 @@ local function FixPortrait(unit, uf)
     local d3, d2 = portrait.d3, portrait.d2
 
     if d3 and portrait.db.show3d then
-        local ok = pcall(function()
-            if UnitIsVisible(unit) then
-                d3:SetUnit(unit)
-                d3:SetPortraitZoom(portrait.db.camera or 1)
-                d3:SetAlpha(1)
-                d3:Show()
-                if d2 then d2:Hide() end
-            else
-                if d2 then
-                    SetPortraitTexture(d2, unit)
-                    d2:Show()
-                    d2:SetAlpha(1)
-                end
-                d3:ClearModel()
-                d3:Hide()
-            end
-        end)
+        local ok = pcall(SafeSetPortrait3D, d3, d2, unit, portrait.db.camera)
         if not ok then
-            pcall(function()
-                if d2 then
-                    SetPortraitTexture(d2, unit)
-                    d2:Show()
-                    d2:SetAlpha(1)
-                end
-                d3:ClearModel()
-                d3:Hide()
-            end)
+            pcall(SafeFallbackPortrait, d3, d2, unit)
         end
     elseif d2 then
         pcall(SetPortraitTexture, d2, unit)
@@ -471,23 +535,19 @@ local function FixPortrait(unit, uf)
 end
 
 ------------------------------------------------------------
--- 修正施法條時間文字 nil duration 報錯
+-- Hook Stuf OnEvent 防護 castbar nil duration
 -- Stuf StopCast 呼叫 f.time:SetValue(0, f.duration)，
 -- 但 f.duration 可能為 nil（secret value 導致 SPELLCAST_START
--- 的 pcall 失敗，duration 未被賦值），進而
--- setftext("%0.1f", nil) 報錯。
--- 策略：Hook Stuf 的 OnEvent，在 STOP 事件派發前，
--- 確保對應 castbar.duration 不為 nil。
+-- 的 pcall 失敗，duration 未被賦值）。
+-- 在 STOP 事件派發前補上 duration = 0。
 ------------------------------------------------------------
-local function HookStufOnEventForCastDuration(Stuf)
+local function HookStufOnEventForCastDuration(Stuf, su)
     if Stuf._miliCastDurHooked then return end
     local origOnEvent = Stuf:GetScript("OnEvent")
     if not origOnEvent then return end
     Stuf:SetScript("OnEvent", function(self, event, unit, ...)
-        if (event == "UNIT_SPELLCAST_STOP"
-            or event == "UNIT_SPELLCAST_CHANNEL_STOP") and unit then
-            local su = Stuf.units
-            local uf = su and su[unit]
+        if CAST_STOP_EVENTS[event] and unit then
+            local uf = su[unit]
             if uf and uf.castbar and uf.castbar.duration == nil then
                 uf.castbar.duration = 0
             end
@@ -495,7 +555,6 @@ local function HookStufOnEventForCastDuration(Stuf)
         return origOnEvent(self, event, unit, ...)
     end)
     Stuf._miliCastDurHooked = true
-    Log("已 Hook Stuf OnEvent 防護 castbar nil duration")
 end
 
 ------------------------------------------------------------
@@ -526,7 +585,6 @@ local function EnsureRaidIcon(su, unitKey)
     uf.raidtargeticon = f
     if not uf.skiprefreshelement then uf.skiprefreshelement = {} end
     uf.skiprefreshelement["raidtargeticon"] = true
-    Log(unitKey .. " raidtargeticon 手動建立完成")
 end
 
 ------------------------------------------------------------
@@ -582,114 +640,6 @@ local function FixFocusFrame(su)
 end
 
 ------------------------------------------------------------
--- 診斷指令：/milifix
-------------------------------------------------------------
-SLASH_MILIFIX1 = "/milifix"
-SlashCmdList["MILIFIX"] = function(msg)
-    if msg == "log" then
-        print(TAG .. "=== Log (" .. #log .. " 筆) ===")
-        local start = math.max(1, #log - 39)
-        for i = start, #log do
-            print(TAG .. log[i])
-        end
-        return
-    end
-    if msg == "debug" then
-        cbDebug = true
-        cbDebugCount = 0
-        print(TAG .. "|cff00ff00Debug 開啟|r — 下次施法會記錄 OnUpdate 細節，用 /milifix log 查看")
-        return
-    end
-    if msg == "clear" then
-        wipe(log)
-        print(TAG .. "Log 已清除")
-        return
-    end
-
-    local Stuf = _G["Stuf"]
-    if not Stuf or not Stuf.units then
-        print(TAG .. "|cffff0000Stuf 未載入|r")
-        return
-    end
-    local su = Stuf.units
-
-    -- 安全列印名稱（可能是 secret string）
-    local function SafeName(uf)
-        if not uf then return "?" end
-        local tf = uf.text1
-        if not tf or not tf.fontstring then return "?" end
-        local ok, txt = pcall(tf.fontstring.GetText, tf.fontstring)
-        if ok then
-            local ok2, result = pcall(tostring, txt)
-            return ok2 and result or "(secret)"
-        end
-        return "(secret)"
-    end
-
-    for unit in pairs(bossAll) do
-        local uf = su[unit]
-        local exists = UnitExists(unit)
-        if exists or (uf and uf:IsShown()) then
-            print(TAG .. "--- " .. unit .. " --- name=" .. SafeName(uf))
-            if uf then
-                local hp = uf.hpbar
-                if hp then
-                    local nb = hp.nativeBar
-                    print(TAG .. "  HP: nativeBar=" .. tostring(nb ~= nil)
-                        .. "  shown=" .. tostring(nb and nb:IsShown()))
-                end
-                local icon = uf.raidtargeticon
-                if icon then
-                    print(TAG .. "  RT: shown=" .. tostring(icon:IsShown()))
-                end
-                local f = uf.castbar
-                if f then
-                    local cbInfo = "  CB: shown=" .. tostring(f:IsShown())
-                        .. " cstate=" .. tostring(f.cstate)
-                        .. " mili=" .. tostring(f._miliCasting or false)
-                    if f._miliBar then
-                        local w, h = f._miliBar:GetSize()
-                        cbInfo = cbInfo .. " bar=" .. tostring(f._miliBar:IsShown())
-                            .. " " .. tostring(math.floor((w or 0) + 0.5)) .. "x" .. tostring(math.floor((h or 0) + 0.5))
-                    end
-                    print(TAG .. cbInfo)
-                end
-            end
-        end
-    end
-    for _, unit in ipairs({"target", "targettarget", "focus", "focustarget"}) do
-        local uf = su[unit]
-        if uf and UnitExists(unit) then
-            print(TAG .. "--- " .. unit .. " --- name=" .. SafeName(uf))
-            local portrait = uf.portrait
-            if portrait then
-                print(TAG .. "  Portrait: hide=" .. tostring(portrait.db and portrait.db.hide)
-                    .. "  3d=" .. tostring(portrait.db and portrait.db.show3d))
-            end
-            local icon = uf.raidtargeticon
-            if icon then
-                print(TAG .. "  RT: shown=" .. tostring(icon:IsShown()))
-            else
-                print(TAG .. "  RT: (element 不存在)")
-            end
-            local f = uf.castbar
-            if f then
-                local cbInfo = "  CB: shown=" .. tostring(f:IsShown())
-                    .. " cstate=" .. tostring(f.cstate)
-                    .. " mili=" .. tostring(f._miliCasting or false)
-                if f._miliBar then
-                    local w, h = f._miliBar:GetSize()
-                    cbInfo = cbInfo .. " bar=" .. tostring(f._miliBar:IsShown())
-                        .. " " .. tostring(math.floor((w or 0) + 0.5)) .. "x" .. tostring(math.floor((h or 0) + 0.5))
-                end
-                print(TAG .. cbInfo)
-            end
-        end
-    end
-    print(TAG .. "Log 共 " .. #log .. " 筆，/milifix log 查看，/milifix clear 清除")
-end
-
-------------------------------------------------------------
 -- INITIALIZATION
 ------------------------------------------------------------
 local loader = CreateFrame("Frame")
@@ -700,18 +650,15 @@ loader:SetScript("OnEvent", function(self)
     local attempts = 0
     local function TryPatch()
         attempts = attempts + 1
-        local Stuf = _G["Stuf"]
+        local Stuf = _G.Stuf
         if not Stuf or not Stuf.units then
-            if attempts < 50 then C_Timer.After(0.2, TryPatch) end
+            if attempts < 50 then C_Timer_After(0.2, TryPatch) end
             return
         end
         local su = Stuf.units
-        Log("Patch 載入成功")
 
         -- 清除前版本殘留狀態（防止 reload 後 stale _miliCasting 干擾）
-        local initUnits = {"target", "focus"}
-        for unit in pairs(bossAll) do initUnits[#initUnits + 1] = unit end
-        for _, unit in ipairs(initUnits) do
+        for unit in pairs(bossAll) do
             local uf = su[unit]
             if uf and uf.castbar then
                 local cb = uf.castbar
@@ -724,14 +671,26 @@ loader:SetScript("OnEvent", function(self)
                 cb._miliHooked = nil
             end
         end
-        Log("初始化：已清除所有 castbar 殘留狀態")
+        for _, unit in ipairs(TARGET_FOCUS) do
+            local uf = su[unit]
+            if uf and uf.castbar then
+                local cb = uf.castbar
+                cb._miliCasting = nil
+                cb._miliDurObj = nil
+                cb._miliIsChannel = nil
+                cb._miliBar = nil
+                cb._miliHelper = nil
+                cb._miliOverlay = nil
+                cb._miliHooked = nil
+            end
+        end
 
         -- 確保 Focus RaidTargetIcon 存在
         EnsureRaidIcon(su, "focus")
         EnsureRaidIcon(su, "focustarget")
 
         -- Hook Stuf OnEvent 防護 castbar nil duration
-        HookStufOnEventForCastDuration(Stuf)
+        HookStufOnEventForCastDuration(Stuf, su)
 
         -- 清除所有 castbar 殘留狀態
         local function CleanupAllCastbars()
@@ -743,7 +702,7 @@ loader:SetScript("OnEvent", function(self)
                     uf.castbar.cstate = nil
                 end
             end
-            for _, u in ipairs({"target", "focus"}) do
+            for _, u in ipairs(TARGET_FOCUS) do
                 local uf = su[u]
                 if uf and uf.castbar then
                     CleanupMiliCast(uf.castbar)
@@ -773,14 +732,13 @@ loader:SetScript("OnEvent", function(self)
         eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
 
             ------------------------------------------------
-            -- Boss: 遭遇開始
+            -- 登入 / 換區
             ------------------------------------------------
             if event == "PLAYER_ENTERING_WORLD" then
                 CleanupAllCastbars()
-                -- 登入/換區後更新 player/pet raid target icon（多次嘗試確保框架已載入）
-                for _, delay in ipairs({0.5, 1.5, 3.0}) do
-                    C_Timer.After(delay, function()
-                        for _, u in ipairs({"player", "pet"}) do
+                for _, delay in ipairs(ENTERING_WORLD_DELAYS) do
+                    C_Timer_After(delay, function()
+                        for _, u in ipairs(PLAYER_PET) do
                             local uf = su[u]
                             if uf and UnitExists(u) then
                                 FixRaidTarget(u, uf)
@@ -789,26 +747,29 @@ loader:SetScript("OnEvent", function(self)
                     end)
                 end
 
+            ------------------------------------------------
+            -- Boss: 遭遇開始
+            ------------------------------------------------
             elseif event == "INSTANCE_ENCOUNTER_ENGAGE_UNIT" then
+                wipe(healthThrottle)
                 CleanupAllCastbars()
-                C_Timer.After(0.1, function() ScanAllBoss(su) end)
-                C_Timer.After(0.5, function() ScanAllBoss(su) end)
-                C_Timer.After(1.0, function() ScanAllBoss(su) end)
+                C_Timer_After(0.1, function() ScanAllBoss(su) end)
+                C_Timer_After(0.5, function() ScanAllBoss(su) end)
+                C_Timer_After(1.0, function() ScanAllBoss(su) end)
 
             ------------------------------------------------
             -- Boss: 目標切換
             ------------------------------------------------
             elseif event == "UNIT_TARGET" then
                 if bossMain[arg1] then
-                    C_Timer.After(0.05, function()
+                    C_Timer_After(0.05, function()
                         FixBossFrame(arg1, su)
                         local bt = bossMain[arg1]
                         if UnitExists(bt) then FixBossFrame(bt, su) end
                     end)
                 end
-                -- target/focus 的 target 變了 → 更新 targettarget/focustarget
                 if arg1 == "target" then
-                    C_Timer.After(0.05, function()
+                    C_Timer_After(0.05, function()
                         local uf = su.targettarget
                         if uf and UnitExists("targettarget") then
                             FixName("targettarget", uf)
@@ -817,7 +778,7 @@ loader:SetScript("OnEvent", function(self)
                         end
                     end)
                 elseif arg1 == "focus" then
-                    C_Timer.After(0.05, function()
+                    C_Timer_After(0.05, function()
                         EnsureRaidIcon(su, "focustarget")
                         local uf = su.focustarget
                         if uf and UnitExists("focustarget") then
@@ -829,28 +790,26 @@ loader:SetScript("OnEvent", function(self)
 
             ------------------------------------------------
             -- 施法（Boss + Target + Focus）
-            -- arg1=unit, arg2=castGUID, arg3=spellID
             ------------------------------------------------
             elseif event == "UNIT_SPELLCAST_START"
                 or event == "UNIT_SPELLCAST_CHANNEL_START" then
-                local evSpellID = arg3
-                local isCast = (event == "UNIT_SPELLCAST_START")
                 local castUnit = arg1
-                if bossAll[castUnit]
-                    or castUnit == "target"
-                    or castUnit == "focus" then
-                    Log("EVT " .. event .. " u=" .. tostring(castUnit)
-                        .. " spID=" .. tostring(evSpellID))
-                    C_Timer.After(0, function()
+                if castFixUnits[castUnit] then
+                    local evSpellID = arg3
+                    local isCast = (event == "UNIT_SPELLCAST_START")
+                    C_Timer_After(0, function()
                         FixCastbar(castUnit, su[castUnit], evSpellID, isCast)
                     end)
                 end
 
             ------------------------------------------------
-            -- Boss: 血量變化 → 補上血條
+            -- Boss: 血量變化（節流：每單位 0.1 秒）
             ------------------------------------------------
             elseif event == "UNIT_HEALTH" then
                 if bossAll[arg1] then
+                    local now = GetTime()
+                    if now < (healthThrottle[arg1] or 0) then return end
+                    healthThrottle[arg1] = now + HEALTH_THROTTLE_INTERVAL
                     local uf = su[arg1]
                     if uf and uf:IsShown() then
                         FixStatusBar(arg1, uf, "hpbar", true)
@@ -861,14 +820,11 @@ loader:SetScript("OnEvent", function(self)
             -- 全域: Raid Target 變更
             ------------------------------------------------
             elseif event == "RAID_TARGET_UPDATE" then
-                C_Timer.After(0.05, function()
+                C_Timer_After(0.05, function()
                     ScanAllBoss(su)
                     FixTargetFrame(su)
                     FixFocusFrame(su)
-                    -- Stuf 的 UpdateRaidTargetIcons 遍歷所有單位時，
-                    -- boss 的 secret index 可能令迴圈中斷，
-                    -- 導致 player/pet 等框架也無法更新。
-                    for _, u in ipairs({"player", "pet"}) do
+                    for _, u in ipairs(PLAYER_PET) do
                         local uf = su[u]
                         if uf and UnitExists(u) then
                             FixRaidTarget(u, uf)
@@ -880,7 +836,7 @@ loader:SetScript("OnEvent", function(self)
             -- Target 變更
             ------------------------------------------------
             elseif event == "PLAYER_TARGET_CHANGED" then
-                C_Timer.After(0.05, function()
+                C_Timer_After(0.05, function()
                     FixTargetFrame(su)
                 end)
 
@@ -888,7 +844,7 @@ loader:SetScript("OnEvent", function(self)
             -- Focus 變更
             ------------------------------------------------
             elseif event == "PLAYER_FOCUS_CHANGED" then
-                C_Timer.After(0.05, function()
+                C_Timer_After(0.05, function()
                     EnsureRaidIcon(su, "focus")
                     EnsureRaidIcon(su, "focustarget")
                     FixFocusFrame(su)
@@ -897,5 +853,5 @@ loader:SetScript("OnEvent", function(self)
         end)
     end
 
-    C_Timer.After(0.2, TryPatch)
+    C_Timer_After(0.2, TryPatch)
 end)
