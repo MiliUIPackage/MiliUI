@@ -34,3 +34,4 @@ Enhance\AuctionHouseFilter.lua
 Enhance\TooltipTaintFix.lua
 Enhance\BuffDurationStyle.lua
 Enhance\Stuf_AuraBorder.lua
+Enhance\Stuf_Fix.lua
