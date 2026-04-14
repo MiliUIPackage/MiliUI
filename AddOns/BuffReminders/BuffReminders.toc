@@ -2,7 +2,7 @@
 ## Title: BuffReminders
 ## Notes: Track missing buffs at a glance
 ## Author: zerbi
-## Version: v5.2.1
+## Version: v5.3.0
 ## SavedVariables: BuffRemindersDB
 ## X-Curse-Project-ID: 1441094
 ## X-Wago-ID: qGYZZjNg
@@ -34,7 +34,7 @@ Core\Core.lua
 Core\Profiles.lua
 Data\Buffs.lua
 Data\Beneficiaries.lua
-Data\CombatSafeSpells.lua
+Data\AuraWhitelist.lua
 Data\ConsumableItems.lua
 Data\Pets.lua
 Core\ConsumableMemory.lua

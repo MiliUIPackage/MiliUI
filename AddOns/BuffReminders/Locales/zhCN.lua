@@ -235,6 +235,7 @@ L["Display.SlashCommands"] = "斜杠命令: /br, /br lock, /br unlock, /br test,
 L["Display.MinimapLeftClick"] = "|cFFCFCFCF左键点击|r: 选项"
 L["Display.MinimapRightClick"] = "|cFFCFCFCF右键点击|r: 测试模式"
 L["Display.DismissConsumables"] = "在下一次读条前隐藏消耗品提示"
+L["Display.DismissConsumablesChat"] = "直到下次蓝条加载前，消耗品提醒被暂时隐藏了。"
 L["Display.LoginFirstInstall"] =
     "感谢安装！输入 |cFFFFD100/br unlock|r 来移动增益显示，或者使用 |cFFFFD100/br|r 选项面板底部的按钮。"
 
@@ -370,6 +371,20 @@ L["Options.ClickToCast.DescFull"] =
     "你可以点击增益图标来施放对应的法术（仅限非战斗状态）。只对你的角色可施放的法术有效。"
 L["Options.HoverHighlight"] = "悬停高亮"
 L["Options.HoverHighlight.Desc"] = "将鼠标悬停在可点击的增益图标上时，显示微弱的高亮效果。"
+L["Options.ChatRequests"] = "聊天频道请求"
+L["Options.RequestBuffInChat"] = "在聊天频道中请求缺失的增益"
+L["Options.RequestBuffInChat.Desc"] =
+    "点击你的职业无法提供的缺失增益，可在聊天频道中发送请求。插件会自动检测当前合适的频道（副本/团队/小队/说）。每个增益有30秒的喊话冷却时间。"
+-- Chat request messages
+L["ChatRequest.atrophicNumbingPoison"] = "补下毒药"
+L["ChatRequest.attackPower"] = "来个攻强"
+L["ChatRequest.bronze"] = "来个龙BUFF"
+L["ChatRequest.devotionAura"] = "来个虔诚光环"
+L["ChatRequest.intellect"] = "来个智力"
+L["ChatRequest.skyfury"] = "来个天怒"
+L["ChatRequest.soulstone"] = "绑下灵魂石"
+L["ChatRequest.stamina"] = "来个耐力"
+L["ChatRequest.versatility"] = "来个爪子"
 
 -- ============================================================================
 -- OPTIONS: PET
@@ -427,6 +442,10 @@ L["Options.ShowWithoutItems"] = "背包中没有也显示"
 L["Options.ShowWithoutItems.Title"] = "没有物品也显示"
 L["Options.ShowWithoutItems.Desc"] =
     "启用后，即使背包中没有该物品，也会显示消耗品提示。禁用后，仅显示实际拥有的消耗品。"
+L["Options.ShowWithoutItemsReadyCheckOnly"] = "仅在就位确认时"
+L["Options.ShowWithoutItemsReadyCheckOnly.Title"] = "仅在就位确认时显示缺失物品"
+L["Options.ShowWithoutItemsReadyCheckOnly.Desc"] =
+    "启用后，背包中未拥有的消耗品仅在就位确认期间显示。这非常适合作为开打前去补充物品的快速提醒。"
 L["Options.DelveFoodOnly"] = "在地下堡中仅显示地下堡食物"
 L["Options.DelveFoodOnly.Desc"] = "在地下堡中隐藏除地下堡食物外的所有消耗品提示。"
 
@@ -448,6 +467,11 @@ L["Options.HealthstoneSettings"] = "治疗石设置"
 L["Options.HealthstoneSettings.Note"] = "设置显示条件和不足警告阈值。"
 L["Options.SoulstoneSettings"] = "灵魂石设置"
 L["Options.SoulstoneSettings.Note"] = "设置何时显示灵魂石提示。"
+L["Options.BronzeSettings"] = "青铜龙的祝福设置"
+L["Options.BronzeSettings.Note"] = "配置青铜龙的祝福提示。"
+L["Options.BronzeHideInCombat"] = "战斗中隐藏"
+L["Options.BronzeHideInCombat.Desc"] =
+    "在战斗中隐藏青铜龙的祝福提示。这个增益没那么关键，你通常不会想在战斗中途去补它。"
 L["Options.PetPassiveSettings"] = "被动宠物设置"
 L["Options.PetPassiveSettings.Note"] = "设置被动模式宠物的提示行为。"
 L["Options.PetSummonSettings"] = "宠物召唤设置"

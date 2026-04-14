@@ -199,10 +199,6 @@ local TEXCOORD_INSET = BR.TEXCOORD_INSET
 
 -- WoW API locals
 local PlaySoundFile = PlaySoundFile
-local UnitLevel = UnitLevel
-local GetMaxLevelForPlayerExpansion = GetMaxLevelForPlayerExpansion
-local playerLevel -- Cached on PLAYER_ENTERING_WORLD, updated on PLAYER_LEVEL_UP
-local maxPlayerLevel -- Cached on PLAYER_ENTERING_WORLD, updated on UPDATE_EXPANSION_LEVEL
 
 -- LibSharedMedia for font resolution
 local LSM = LibStub("LibSharedMedia-3.0")
@@ -348,8 +344,11 @@ local defaults = {
     hideWhileLeveling = false,
     showMissingCountOnly = false,
     petPassiveOnlyInCombat = false,
+    bronzeHideInCombat = false,
     optionsPanelScale = 1.2, -- base scale (displayed as 100%)
     showLoginMessages = true,
+    requestBuffInChat = true,
+    chatRequestMessages = {},
 
     -- DK runeforge preferences: [specId] = { mainhand, dw_mainhand, dw_offhand }
     -- No runes selected = no reminder for that spec (implicit disable)
@@ -847,7 +846,9 @@ local FormatEatingTime = BR.StateHelpers.FormatEatingTime
 
 local GetPlayerRole = BR.BuffState.GetPlayerRole
 
--- Spell texture cache (textures are immutable per session, mirrors spellNameCache in Core.lua)
+-- Spell texture cache (mirrors spellNameCache in Core.lua).
+-- Wiped after deferred init to pick up cosmetic overrides (e.g. warlock green fire)
+-- that aren't available yet at login time.
 local spellTextureCache = {}
 
 -- Reusable single-element buffer to avoid { spellID } allocations in hot loops.
@@ -861,11 +862,18 @@ local function AsSpellList(val)
     return singleSpellBuf
 end
 
----Get spell texture (handles table of spellIDs and role-based icons)
+---Get spell texture (handles table of spellIDs, displayIcon overrides, and role-based icons)
 ---@param spellIDs SpellID
 ---@param iconByRole? table<RoleType, number>
+---@param displayIcon? number|number[] -- Explicit icon override (unwraps table automatically)
 ---@return number? textureID
-local function GetBuffTexture(spellIDs, iconByRole)
+local function GetBuffTexture(spellIDs, iconByRole, displayIcon)
+    -- Explicit displayIcon takes priority (unwrap table to first element)
+    if type(displayIcon) == "table" then
+        return displayIcon[1]
+    elseif displayIcon then
+        return displayIcon
+    end
     local id
     -- Check for role-based icon override
     if iconByRole then
@@ -893,6 +901,32 @@ local function GetBuffTexture(spellIDs, iconByRole)
     end)
     spellTextureCache[id] = texture or false
     return texture
+end
+
+---Resolve the display texture for a buff frame from its buffDef.
+---@param frame BuffFrame
+---@return number? textureID
+local function ResolveFrameTexture(frame)
+    local def = frame.buffDef
+    if not def then
+        return nil
+    end
+    return GetBuffTexture(def.spellID, def.iconByRole, def.displayIcon)
+end
+
+---Wipe the spell texture cache and re-apply icons on all existing frames.
+---Called via deferred timer after init to pick up cosmetic overrides (e.g. warlock
+---green fire) that aren't available yet at login time.
+local function InvalidateTextureCache()
+    wipe(spellTextureCache)
+    for _, frame in pairs(buffFrames) do
+        if frame.icon and frame.buffDef and not frame.buffDef.displayIcon then
+            local texture = ResolveFrameTexture(frame)
+            if texture then
+                frame.icon:SetTexture(texture)
+            end
+        end
+    end
 end
 
 -- Action bar button names to scan for glows
@@ -1278,12 +1312,7 @@ local function CreateBuffFrame(buff, category)
     frame:SetSize(iconWidth, iconSize)
 
     -- Icon + border textures
-    local displayIcon = buff.displayIcon
-    if type(displayIcon) == "table" then
-        displayIcon = displayIcon[1] -- Use first icon for buff frame
-    end
-    local texture = displayIcon or GetBuffTexture(buff.spellID, buff.iconByRole)
-    CreateIconTextures(frame, texture)
+    CreateIconTextures(frame, ResolveFrameTexture(frame))
 
     -- Register with Masque — provide Normal texture so skins like Caith can style it
     if masqueGroup then
@@ -2548,11 +2577,7 @@ local function ApplyPetDisplayMode(frame, entry, frameList)
     else
         local gi = entry.petActions.genericIndex or 1
         local preferredAction = entry.petActions[gi]
-        local displayIcon = frame.buffDef and frame.buffDef.displayIcon
-        if type(displayIcon) == "table" then
-            displayIcon = displayIcon[1]
-        end
-        local texture = displayIcon or GetBuffTexture(frame.spellIDs)
+        local texture = ResolveFrameTexture(frame)
         if texture then
             frame.icon:SetTexture(texture)
         end
@@ -2626,6 +2651,7 @@ local function GetOrCreateDismissButton()
     btn:SetScript("OnClick", function()
         BR.BuffState.SetConsumablesDismissed(true)
         UpdateDisplay()
+        print("|cff00ccffBuffReminders:|r " .. L["Display.DismissConsumablesChat"])
     end)
     btn:SetScript("OnEnter", function(self)
         icon:SetAlpha(1)
@@ -2757,7 +2783,8 @@ UpdateDisplay = function(refreshMode)
             return
         end
 
-        if db.hideWhileLeveling and playerLevel and maxPlayerLevel and playerLevel < maxPlayerLevel then
+        local playerLevel, maxExpansionLevel = BR.BuffState.GetLevelInfo()
+        if db.hideWhileLeveling and playerLevel < maxExpansionLevel then
             HideAllDisplayFrames()
             return
         end
@@ -3535,6 +3562,7 @@ ClearInstanceEntryState = function()
     end
     BR.BuffState.SetInstanceEntryState(false)
     eventFrame:UnregisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+    eventFrame:UnregisterEvent("UNIT_SPELLCAST_START")
 end
 
 ClearDelveEntryState = function()
@@ -3548,7 +3576,6 @@ end
 eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
     if event == "ADDON_LOADED" and arg1 == addonName then
         _, playerClass = UnitClass("player")
-        BR.BuffState.SetPlayerClass(playerClass)
         local isFirstInstall = not BuffRemindersDB
         if not BuffRemindersDB then
             BuffRemindersDB = {}
@@ -4504,8 +4531,8 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         -- Sync flags with current state (in case of reload)
         inCombat = InCombatLockdown()
         isResting = IsResting()
-        playerLevel = UnitLevel("player")
-        maxPlayerLevel = GetMaxLevelForPlayerExpansion()
+        BR.BuffState.SetPlayerLevel(UnitLevel("player"))
+        BR.BuffState.SetMaxExpansionLevel(GetMaxLevelForPlayerExpansion())
         BR.BuffState.SetInCombat(inCombat)
         -- Detect PvP prep phase: in a PvP instance but match not yet started.
         -- Default is false (restricted), so reloads during active matches stay safe.
@@ -4526,6 +4553,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
                     BR.SecureButtons.UpdateActionButtons(cat)
                 end
             end
+            -- Deferred texture refresh: cosmetic overrides (e.g. warlock green fire)
+            -- aren't available yet at login, so re-fetch after spell data settles.
+            C_Timer.After(2, InvalidateTextureCache)
         end
         BR.SecureButtons.InvalidateConsumableCache()
         SeedGlowingSpells() -- Catch glows that were active before event registration
@@ -4542,6 +4572,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
                 end
                 BR.BuffState.SetInstanceEntryState(true)
                 eventFrame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+                eventFrame:RegisterUnitEvent("UNIT_SPELLCAST_START", "player")
                 UpdateDisplay()
                 instanceEntryTimer = C_Timer.NewTimer(30, function()
                     ClearInstanceEntryState()
@@ -4680,10 +4711,10 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         isResting = IsResting()
         SetDirty()
     elseif event == "PLAYER_LEVEL_UP" then
-        playerLevel = arg1 -- PLAYER_LEVEL_UP passes new level as arg1
+        BR.BuffState.SetPlayerLevel(arg1)
         SetDirty()
     elseif event == "UPDATE_EXPANSION_LEVEL" then
-        maxPlayerLevel = GetMaxLevelForPlayerExpansion()
+        BR.BuffState.SetMaxExpansionLevel(GetMaxLevelForPlayerExpansion())
         SetDirty()
     elseif event == "READY_CHECK" then
         -- Cancel any existing timer
@@ -4750,7 +4781,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
             BR.BuffState.SetInVehicle(event == "UNIT_ENTERED_VEHICLE")
             UpdateDisplay()
         end
-    elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+    elseif event == "UNIT_SPELLCAST_SUCCEEDED" or event == "UNIT_SPELLCAST_START" then
         if SOULWELL_SPELL_IDS[arg3] then
             ClearInstanceEntryState()
             UpdateDisplay()

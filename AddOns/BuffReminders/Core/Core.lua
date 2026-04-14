@@ -129,6 +129,8 @@ local RootSettings = {
     hideInLegacyInstances = "VisibilityRefresh",
     hideWhileLeveling = "VisibilityRefresh",
     petPassiveOnlyInCombat = "VisibilityRefresh",
+    bronzeHideInCombat = "VisibilityRefresh",
+    requestBuffInChat = false, -- No auto-refresh, handled manually
 }
 
 -- Per-category settings (path = categorySettings.{category}.{key})

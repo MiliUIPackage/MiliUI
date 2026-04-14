@@ -250,6 +250,7 @@ english["Display.SlashCommands"] = "Slash commands: /br, /br lock, /br unlock, /
 english["Display.MinimapLeftClick"] = "|cFFCFCFCFLeft click|r: Options"
 english["Display.MinimapRightClick"] = "|cFFCFCFCFRight click|r: Test mode"
 english["Display.DismissConsumables"] = "Hide consumable reminders until next loading screen"
+english["Display.DismissConsumablesChat"] = "Consumable reminders hidden until next loading screen."
 english["Display.LoginFirstInstall"] =
     "Thanks for installing! Type |cFFFFD100/br unlock|r to move the buff display, or use the button at the bottom of the |cFFFFD100/br|r options panel."
 
@@ -398,6 +399,26 @@ english["Options.ClickToCast.DescFull"] =
     "Make buff icons clickable to cast the corresponding spell (out of combat only). Only works for spells your character can cast."
 english["Options.HoverHighlight"] = "Hover highlight"
 english["Options.HoverHighlight.Desc"] = "Show a subtle highlight when hovering over clickable buff icons."
+english["Options.ChatRequests"] = "Chat Requests"
+english["Options.RequestBuffInChat"] = "Request missing buffs in chat"
+english["Options.RequestBuffInChat.Desc"] =
+    "Click a missing buff your class cannot provide to request it in chat. Auto-detects channel (instance/raid/party/say). 30-second cooldown per buff."
+english["Options.CustomizeChatMessages"] = "Customize Messages"
+english["Options.ChatRequestModal.Title"] = "Chat Request Messages"
+english["Options.ChatRequestModal.Desc"] = "Customize the message sent for each buff. Leave blank to use the default."
+english["Options.ChatRequestModal.ResetAll"] = "Reset All"
+-- Chat request messages (keyed by buff.key, sent as-is via SendChatMessage)
+-- EU/US translators: leave untranslated so chat messages stay in English.
+-- Asian translators: translate these so chat messages match your locale.
+english["ChatRequest.intellect"] = "Arcane Intellect buff pls"
+english["ChatRequest.attackPower"] = "Battle Shout buff pls"
+english["ChatRequest.bronze"] = "Blessing of the Bronze buff pls"
+english["ChatRequest.versatility"] = "Mark of the Wild buff pls"
+english["ChatRequest.stamina"] = "Power Word: Fortitude buff pls"
+english["ChatRequest.skyfury"] = "Skyfury buff pls"
+english["ChatRequest.atrophicNumbingPoison"] = "Atrophic/Numbing Poison pls"
+english["ChatRequest.devotionAura"] = "Devotion Aura pls"
+english["ChatRequest.soulstone"] = "Soulstone pls"
 
 -- ============================================================================
 -- OPTIONS: PET
@@ -482,6 +503,11 @@ english["Options.HealthstoneSettings"] = "Healthstone Settings"
 english["Options.HealthstoneSettings.Note"] = "Configure visibility and low stock threshold."
 english["Options.SoulstoneSettings"] = "Soulstone Settings"
 english["Options.SoulstoneSettings.Note"] = "Configure when the soulstone reminder appears."
+english["Options.BronzeSettings"] = "Blessing of the Bronze Settings"
+english["Options.BronzeSettings.Note"] = "Configure the Blessing of the Bronze reminder."
+english["Options.BronzeHideInCombat"] = "Hide in combat"
+english["Options.BronzeHideInCombat.Desc"] =
+    "Hide the Blessing of the Bronze reminder during combat. This buff is less critical and you may not want to rebuff mid-fight."
 english["Options.PetPassiveSettings"] = "Pet Passive Settings"
 english["Options.PetPassiveSettings.Note"] = "Configure the passive pet reminder."
 english["Options.PetSummonSettings"] = "Pet Summon Settings"

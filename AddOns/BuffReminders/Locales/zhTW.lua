@@ -240,7 +240,8 @@ L["Display.OpenOptions"] = "打開選項"
 L["Display.SlashCommands"] = "使用指令: /br, /br lock, /br unlock, /br test, /br minimap"
 L["Display.MinimapLeftClick"] = "|cFFCFCFCF左鍵點擊|r: 選項"
 L["Display.MinimapRightClick"] = "|cFFCFCFCF右鍵點擊|r: 測試模式"
-L["Display.DismissConsumables"] = "在下一次讀條前隱藏消耗品提示"
+L["Display.DismissConsumables"] = "在下一次載入畫面前隱藏消耗品提示"
+L["Display.DismissConsumablesChat"] = "在下一次載入畫面前消耗品提示將隱藏。"
 L["Display.LoginFirstInstall"] =
     "感謝安裝！輸入 |cFFFFD100/br unlock|r 來移動增益顯示，或者使用 |cFFFFD100/br|r 選項面板底部的按鈕。"
 
@@ -389,6 +390,22 @@ L["Options.ClickToCast.DescFull"] =
     "你可以點擊增益圖示來施放對應的法術（僅限非戰鬥狀態）。只對你的角色可施放的法術有效。"
 L["Options.HoverHighlight"] = "懸停高亮"
 L["Options.HoverHighlight.Desc"] = "將鼠標懸停在可點擊的增益圖示上時，顯示微弱的高亮效果。"
+L["Options.ChatRequests"] = "聊天請求"
+L["Options.RequestBuffInChat"] = "在聊天中請求缺失的增益"
+L["Options.RequestBuffInChat.Desc"] =
+    "點擊您的職業無法提供的缺失增益，並在聊天中請求它。自動偵測頻道（副本/團隊/隊伍/說）。每個增益有30秒冷卻時間。"
+-- Chat request messages (keyed by buff.key, sent as-is via SendChatMessage)
+-- EU/US translators: leave untranslated so chat messages stay in L.
+-- Asian translators: translate these so chat messages match your locale.
+L["ChatRequest.intellect"] = "請補上祕法智力的增益"
+L["ChatRequest.attackPower"] = "請補上戰鬥怒吼的增益"
+L["ChatRequest.bronze"] = "請補上青銅龍的祝福的增益"
+L["ChatRequest.versatility"] = "請補上野性印記的增益"
+L["ChatRequest.stamina"] = "請補上真言術：韌的增益"
+L["ChatRequest.skyfury"] = "請補上天怒增益"
+L["ChatRequest.atrophicNumbingPoison"] = "請補上萎縮/麻痺毒藥"
+L["ChatRequest.devotionAura"] = "請補上虔誠光環"
+L["ChatRequest.soulstone"] = "請補上靈魂石"
 
 -- ============================================================================
 -- OPTIONS: PET
@@ -471,6 +488,11 @@ L["Options.HealthstoneSettings"] = "治療石設置"
 L["Options.HealthstoneSettings.Note"] = "設置顯示條件和不足警告閾值。"
 L["Options.SoulstoneSettings"] = "靈魂石設置"
 L["Options.SoulstoneSettings.Note"] = "設置何時顯示靈魂石提示。"
+L["Options.BronzeSettings"] = "青銅龍的祝福設定"
+L["Options.BronzeSettings.Note"] = "設置青銅龍的祝福的提醒。"
+L["Options.BronzeHideInCombat"] = "戰鬥中隱藏"
+L["Options.BronzeHideInCombat.Desc"] =
+    "當戰鬥中隱藏青銅龍的祝福的提醒。這個增益不太重要，你可能不想在戰鬥中補上。"
 L["Options.PetPassiveSettings"] = "被動寵物設置"
 L["Options.PetPassiveSettings.Note"] = "設置被動模式寵物的提示行為。"
 L["Options.PetSummonSettings"] = "寵物召喚設置"

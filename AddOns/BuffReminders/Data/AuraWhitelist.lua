@@ -10,8 +10,8 @@ local _, BR = ...
 -- before combat will cause a brief false "buff missing" flash if not handled correctly.
 -- State.lua uses inCombat (set by Display, covers encounters too) + M+ difficulty to gate queries.
 --
--- Source: Blizzard's UnitAuraBySpell combat whitelist (confirmed via in-game testing).
-BR.COMBAT_SAFE_SPELLS = {
+-- Source: Blizzard's restricted-context aura whitelist (confirmed via in-game testing).
+BR.AURA_WHITELIST = {
     -- ========================================================================
     -- LONG-TERM RAID BUFFS
     -- ========================================================================
@@ -98,7 +98,7 @@ BR.COMBAT_SAFE_SPELLS = {
     -- ========================================================================
     -- Note: Rite spell IDs (433568, 433583) are whitelisted by Blizzard, but the addon checks
     -- buffIdOverride (433550, 433584) which are NOT whitelisted — so Rites are correctly
-    -- blocked in combat via IsCombatTrackable regardless.
+    -- blocked in restricted contexts via IsAuraTrackable regardless.
     [433568] = true, -- Rite of Sanctification
     [433583] = true, -- Rite of Adjuration
 

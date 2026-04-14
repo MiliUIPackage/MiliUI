@@ -137,9 +137,19 @@ local function BuildWarlockActions()
         return nil
     end
 
-    -- Demonology: default to last action (Felguard) in generic mode
-    if BR.StateHelpers.GetPlayerSpecId() == 266 then
+    -- Demonology: default to Felguard if known
+    if BR.StateHelpers.GetPlayerSpecId() == 266 and IsPlayerSpell(30146) then
         actions.genericIndex = #actions
+    end
+
+    -- All specs: prefer Felhunter (interrupt) over first entry
+    if not actions.genericIndex then
+        for idx, action in ipairs(actions) do
+            if action.spellID == 691 then -- Felhunter
+                actions.genericIndex = idx
+                break
+            end
+        end
     end
 
     return actions
