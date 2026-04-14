@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2738, "DBM-Raids-Midnight", 3, 1307)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260407043921")
+mod:SetRevision("20260410223735")
 mod:SetCreatureID(244761)
 mod:SetEncounterID(3181)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -29,7 +29,7 @@ local specWarnCosmicBarrier				= mod:NewSpecialWarningSwitchCount(1246918, "Dps"
 local specWarnDevouringCosmos			= mod:NewSpecialWarningCount(1238843, nil, nil, nil, 3, 2)--P3
 local specWarnDarkHand					= mod:NewSpecialWarningDefensive(1233787, nil, nil, nil, 1, 2)--P1 Tank Add
 local specWarnRavenousAbyss				= mod:NewSpecialWarningDodgeCount(1243753, nil, nil, nil, 4, 2)--P1 Add
-local specWarnInterruptingTremor		= mod:NewSpecialWarningCount(1243743, "SpellCaster|HasInterrupt", nil, nil, 1, 2)--P1 Add
+local specWarnInterruptingTremor		= mod:NewSpecialWarningCount(1243743, nil, nil, 2, 2, 2)--P1 Add
 local specWarnCosmicPortal				= mod:NewSpecialWarningCount(1261339, nil, nil, nil, 2, 2)--Mythic only mechanic of unknown nature
 local specWarnRiftSlash					= mod:NewSpecialWarningDefensive(1246461, nil, nil, nil, 1, 2)--P2 Rift Simulacrum slash attack
 
@@ -47,7 +47,7 @@ local timerGraspofEmptynessCD			= mod:NewCDCountTimer(20.5, 1232470, 367465, nil
 local timerDevouringCosmosCD			= mod:NewCDCountTimer(20.5, 1238843, nil, nil, nil, 5, nil, DBM_COMMON_L.DEADLY_ICON)--P3
 local timerDarkHandCD					= mod:NewCDCountTimer(20.5, 1233787, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--P1 Tank Add
 local timerRavenousAbyssCD				= mod:NewCDCountTimer(20.5, 1243753, DBM_COMMON_L.AVOID.." (%s)", nil, nil, 3)--P1 Add
-local timerInterruptingTremorCD			= mod:NewCDCountTimer(20.5, 1243743, nil, nil, 3, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--P1 Add
+local timerInterruptingTremorCD			= mod:NewCDCountTimer(20.5, 1243743, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)--P1 Add
 --local timerRiftSimulacrumCD			= mod:NewCDCountTimer(20.5, 1261016, nil, nil, nil, 6)--P2 Starting (stage 2 bar does this, this timer never fires)
 local timerCosmicPortalCD				= mod:NewCDCountTimer(20.5, 1261339, nil, nil, nil, 1, nil, DBM_COMMON_L.MYTHIC_ICON)--Mythic only mechanic of unknown nature
 local timerRiftSlashCD					= mod:NewCDCountTimer(20.5, 1246461, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--P2 Rift Simulacrum slash attack
@@ -89,6 +89,7 @@ mod.vb.riftSlashCount = 0
 local badStateDetected = false
 local stage2p5Seen, stage3Recovered = false, false
 local stage2TwentyCount = 0
+local heroicStage2InitialRiftSeen = false
 local stage1FortyEightCount = 0
 local lastTLEvent = 0
 
@@ -128,6 +129,7 @@ local function resolveHeroicStage3Ambiguous(timer, lastResolvedType, lastResolve
 	return timerTable.default
 end
 
+---@param self DBMMod
 local function setFallback(self)
 	--Blizz API fallbacks
 	timerNullCoronaCD:SetTimeline(4)
@@ -154,9 +156,9 @@ local function setFallback(self)
 	specWarnRavenousAbyss:SetAlert(65, "watchstep", 2, 2)
 	timerRavenousAbyssCD:SetTimeline(65)
 	if self:IsSpellCaster() then
-		specWarnInterruptingTremor:SetAlert(66, "kickorstopcast", 2, 2, 0)
+		specWarnInterruptingTremor:SetAlert(66, "stopcast", 2, 2, 0)
 	else
-		specWarnInterruptingTremor:SetAlert(66, "kickcast", 2, 2, 0)
+		specWarnInterruptingTremor:SetAlert(66, "aesoon", 2, 2, 0)
 	end
 	timerInterruptingTremorCD:SetTimeline(66)
 	warnRiftSimulacrum:SetAlert(135, "ptwo", 2, 2, 0)--Verify
@@ -170,11 +172,20 @@ local function setFallback(self)
 	timerStage2CD:SetTimeline(351)
 end
 
+---@param self DBMMod
+local function moriumIsTanked(self)
+	if self:IsTanking("player", "boss1", nil, true) then
+		specWarnDarkHand:Show()
+		specWarnDarkHand:Play("defensive")
+	end
+end
+
 function mod:OnLimitedCombatStart()
 	self:TLCountReset()
 	self:TLResolveReset()
 	stage2p5Seen, stage3Recovered = false, false
 	stage2TwentyCount = 0
+	heroicStage2InitialRiftSeen = false
 	stage1FortyEightCount = 0
 	lastTLEvent = 0
 	self.vb.coronaCount = 1
@@ -202,20 +213,17 @@ function mod:OnLimitedCombatStart()
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",
 			"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 		)
-		if self:IsTank() then
-			specWarnDarkHand:Schedule(4, 1)
-			specWarnDarkHand:ScheduleVoice(4, "defensive")
-		end
 		--pre Schedule first 3 abilities that have ambigous timers
+		self:Schedule(4, moriumIsTanked, self)
 		timerDarkHandCD:Start(4, 1)
 		specWarnRavenousAbyss:Schedule(4, 1)
 		specWarnRavenousAbyss:ScheduleVoice(4, "watchstep")
 		timerRavenousAbyssCD:Start(4, 1)
 		specWarnInterruptingTremor:Schedule(4, 1)
 		if self:IsSpellCaster() then
-			specWarnInterruptingTremor:ScheduleVoice(4, "kickorstopcast")
+			specWarnInterruptingTremor:ScheduleVoice(4, "stopcast")
 		else
-			specWarnInterruptingTremor:ScheduleVoice(4, "kickcast")
+			specWarnInterruptingTremor:ScheduleVoice(4, "aesoon")
 		end
 		timerInterruptingTremorCD:Start(4, 1)
 		if self:IsHeroic() then
@@ -233,6 +241,7 @@ function mod:OnCombatEnd()
 	self:TLResolveReset()
 	stage2p5Seen, stage3Recovered = false, false
 	stage2TwentyCount = 0
+	heroicStage2InitialRiftSeen = false
 	stage1FortyEightCount = 0
 	self:UnregisterShortTermEvents()
 end
@@ -543,9 +552,9 @@ do
 					timerRiftSlashCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "riftSlash", "riftSlashCount"))
 					self:TLResolvePush("riftSlash", timer)
 				end
-			elseif timer == 6 then--Ambiguous: Rift Slash OR Voidstalker Sting
-				local lastResolvedType, lastResolvedTimer = self:TLResolvePeek()
-				if lastResolvedType == "cosmicBarrier" and (lastResolvedTimer == 24 or lastResolvedTimer == 22 or lastResolvedTimer == 2) then
+			elseif timer == 6 then--Heroic opener Rift Slash only; later 6s are Voidstalker Sting
+				if not heroicStage2InitialRiftSeen then
+					heroicStage2InitialRiftSeen = true
 					timerRiftSlashCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "riftSlash", "riftSlashCount"))
 					self:TLResolvePush("riftSlash", timer)
 				else
@@ -572,7 +581,7 @@ do
 				self:TLResolvePush("cosmicBarrier", timer)
 			elseif timer == 25 then--Duplicate Stage 2 marker can appear in logs, ignore
 				return
-			elseif timer == 2 and (GetTime() - lastTLEvent > 10) then--Intermission 2 opener
+			elseif timer == 2 then--Intermission 2 opener
 				self:SetStage(2.5)
 				stage2p5Seen = true
 				timerSilverstrikeBarrageCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "silverstrikeBarrage", "silverstrikeBarrageCount"))
@@ -679,6 +688,7 @@ do
 			if not eventType then return end
 			if eventType == "stage2Start" then
 				stage2TwentyCount = 0
+				heroicStage2InitialRiftSeen = false
 				self:SetStage(2)
 				return
 			elseif eventType == "stage3Start" then
@@ -696,19 +706,16 @@ do
 			elseif eventType == "silverstrikeArrow" then
 				warnSilverStrikeArrow:Show(eventCount)
 			elseif eventType == "darkHand" then
-				if self:IsTank() then
-					specWarnDarkHand:Show()
-					specWarnDarkHand:Play("defensive")
-				end
+				moriumIsTanked(self)
 			elseif eventType == "ravenousAbyss" then
 				specWarnRavenousAbyss:Show(eventCount)
 				specWarnRavenousAbyss:Play("watchstep")
 			elseif eventType == "interruptingTremor" then
 				specWarnInterruptingTremor:Show(eventCount)
 				if self:IsSpellCaster() then
-					specWarnInterruptingTremor:Play("kickorstopcast")
+					specWarnInterruptingTremor:Play("stopcast")
 				else
-					specWarnInterruptingTremor:Play("kickcast")
+					specWarnInterruptingTremor:Play("aesoon")
 				end
 			elseif eventType == "voidstalkerSting" then
 				warnVoidStalkerSting:Show(eventCount)
@@ -716,7 +723,7 @@ do
 				specWarnCalloftheVoid:Show(eventCount)
 				specWarnCalloftheVoid:Play("mobsoon")
 			elseif eventType == "riftSlash" then
-				if self:IsTank() then
+				if self:IsTanking("player", "boss2", nil, true) then
 					specWarnRiftSlash:Show()
 					specWarnRiftSlash:Play("defensive")
 				end
@@ -732,6 +739,7 @@ do
 			if not eventType then return end
 			if eventType == "stage2Start" then
 				stage2TwentyCount = 0
+				heroicStage2InitialRiftSeen = false
 				self:SetStage(2)
 				return
 			elseif eventType == "stage3Start" then

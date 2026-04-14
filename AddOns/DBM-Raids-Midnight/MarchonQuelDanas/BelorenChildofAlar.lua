@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2739, "DBM-Raids-Midnight", 1, 1308)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260407042048")
+mod:SetRevision("20260410090604")
 --mod:SetCreatureID()--No Data Yet, has 4 CIDs
 mod:SetEncounterID(3182)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -14,12 +14,12 @@ mod:RegisterCombat("combat")
 --https://www.wowhead.com/spell=1242091/void-quill is 385
 --Twilight Seal is a mechanic not in journal but has both private auras and encounter events 417 and 418
 --Stage 1
---local warnVoidlightConveergence		= mod:NewCountAnnounce(1242515, 3)
+local warnVoidlightConvergenceSoon		= mod:NewSoonAnnounce(1242515, 3)
 
 local specWarnEmbersofBeloren			= mod:NewSpecialWarningCount(1241282, nil, nil, DBM_COMMON_L.ADDS, 1, 2)
 local specWarnRadiantEchoes				= mod:NewSpecialWarningCount(1242981, nil, nil, DBM_COMMON_L.ORBS, 2, 2)
 local specWarnGuardiansEdict			= mod:NewSpecialWarningCount(1260763, nil, nil, DBM_COMMON_L.TANKCOMBO, 1, 2)
---local specWarnVoidlightConveergence	= mod:NewSpecialWarningCount(1242515, nil, nil, nil, 2, 2)--No PA to detect color, can only just warn to check color
+local specWarnVoidlightConvergence		= mod:NewSpecialWarningCount(1242515, nil, nil, nil, 2, 2)--No PA to detect color, can only just warn to check color
 local specWarnLightFeather				= mod:NewSpecialWarningYou(1241162, nil, nil, nil, 1, 2)--Untested
 local specWarnVoidFeather				= mod:NewSpecialWarningYou(1241163, nil, nil, nil, 1, 2)--Untested
 --mod:GroupSpells(1242515, 1241162, 1241163)--Uncomment group when hardcode enables parent warning
@@ -63,6 +63,7 @@ mod.vb.deathDropCount = 0
 mod.vb.incubationCount = 0
 local badStateDetected = false
 local lastEmbersEventID = 0
+local heroicSequenceSlot = 0
 
 ---@param self DBMMod
 local function setFallback(self)
@@ -77,7 +78,7 @@ local function setFallback(self)
 	timerGuardiansEdictCD:SetTimeline(134)
 	timerEternalBurnsCD:SetTimeline(138)
 	timerInfusedQuillsCD:SetTimeline(161)
-	--warnVoidlightConveergence:SetAlert(218, "colorchange", 19, 3)
+	specWarnVoidlightConvergence:SetAlert(218, "colorchange", 19, 3)
 	timerVoidlightConvergenceCD:SetTimeline(218)
 	specWarnDeathDrop:SetAlert(272, "justrun", 2, 3)
 	timerDeathDropCD:SetTimeline(272)
@@ -95,6 +96,7 @@ end
 function mod:OnLimitedCombatStart(delay)
 	self:TLCountReset()
 	lastEmbersEventID = 0
+	heroicSequenceSlot = 0
 	self.vb.embersCount = 1
 	self.vb.echoesCount = 1
 	self.vb.edictCount = 1
@@ -104,7 +106,7 @@ function mod:OnLimitedCombatStart(delay)
 	self.vb.deathDropCount = 1
 	self.vb.incubationCount = 1
 	--Hardcode features first
-	if DBM.Options.HardcodedTimer and self:IsEasy() and not badStateDetected then
+	if DBM.Options.HardcodedTimer and (self:IsEasy() or self:IsHeroic()) and not badStateDetected then
 		self:SetStage(1)
 		self:IgnoreBlizzardAPI()
 		self:RegisterShortTermEvents(
@@ -119,6 +121,7 @@ end
 function mod:OnCombatEnd()
 	self:TLCountReset()
 	lastEmbersEventID = 0
+	heroicSequenceSlot = 0
 	self:UnregisterShortTermEvents()
 end
 
@@ -161,9 +164,124 @@ do
 			timerEternalBurnsCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "burns", "burnsCount"))
 		elseif timer == 50 then--Voidlight Convergence
 			timerVoidlightConvergenceCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "convergence", "convergenceCount"))
+			warnVoidlightConvergenceSoon:Schedule(timerExact - 5)
+			warnVoidlightConvergenceSoon:ScheduleVoice(timerExact - 5, "colorchangesoon")
 		elseif timer == 30 then--Rebirth stage transition (health based)
 			self:SetStage(2)
 			lastEmbersEventID = 0
+			timerRebirthCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "rebirth"))
+		else
+			badStateDetected = true
+			self:ResumeBlizzardAPI()
+			self:UnregisterShortTermEvents()
+			setFallback(self)
+			DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
+		end
+	end
+
+	---@param self DBMMod
+	---@param timer number
+	---@param timerExact number
+	---@param eventID number
+	local function timersHeroic(self, timer, timerExact, eventID)
+		if self:GetStage(2) then
+			if timer == 30 then
+				timerRebirthCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "rebirth"))
+				return
+			elseif timer == 10 or timer == 21 or timer == 6 or timer == 18 or timer == 20 or timer == 34 or timer == 50 then
+				self:SetStage(1)
+				heroicSequenceSlot = 0
+				return timersHeroic(self, timer, timerExact, eventID)
+			end
+			badStateDetected = true
+			self:ResumeBlizzardAPI()
+			self:UnregisterShortTermEvents()
+			setFallback(self)
+			DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
+			return
+		end
+
+		-- Logic confirmed against Heroic Week4 logs.
+		if timer == 10 then--Cycle opener Embers, or follow-up Infused Quills
+			if heroicSequenceSlot == 0 or heroicSequenceSlot == 9 then
+				heroicSequenceSlot = 1
+				timerEmbersofBelorenCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "embers", "embersCount"))
+			elseif heroicSequenceSlot == 7 or heroicSequenceSlot == 8 then
+				heroicSequenceSlot = heroicSequenceSlot + 1
+				timerInfusedQuillsCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "quills", "quillsCount"))
+			else
+				badStateDetected = true
+				self:ResumeBlizzardAPI()
+				self:UnregisterShortTermEvents()
+				setFallback(self)
+				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
+			end
+		elseif timer == 21 then--Cycle opener Infused Quills
+			if heroicSequenceSlot == 1 then
+				heroicSequenceSlot = 2
+				timerInfusedQuillsCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "quills", "quillsCount"))
+			else
+				badStateDetected = true
+				self:ResumeBlizzardAPI()
+				self:UnregisterShortTermEvents()
+				setFallback(self)
+				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
+			end
+		elseif timer == 6 then--Radiant Echoes opener, otherwise Death Drop transition
+			if heroicSequenceSlot == 2 then
+				heroicSequenceSlot = 3
+				timerRadiantEchoesCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "echoes", "echoesCount"))
+			else
+				heroicSequenceSlot = 0
+				timerDeathDropCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "deathDrop", "deathDropCount"))
+			end
+		elseif timer == 34 then--Eternal Burns
+			if heroicSequenceSlot == 3 then
+				heroicSequenceSlot = 4
+				timerEternalBurnsCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "burns", "burnsCount"))
+			else
+				badStateDetected = true
+				self:ResumeBlizzardAPI()
+				self:UnregisterShortTermEvents()
+				setFallback(self)
+				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
+			end
+		elseif timer == 20 then--Cycle opener Guardian's Edict
+			if heroicSequenceSlot == 4 then
+				heroicSequenceSlot = 5
+				timerGuardiansEdictCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "edict", "edictCount"))
+			else
+				badStateDetected = true
+				self:ResumeBlizzardAPI()
+				self:UnregisterShortTermEvents()
+				setFallback(self)
+				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
+			end
+		elseif timer == 50 then--Voidlight Convergence
+			if heroicSequenceSlot == 5 then
+				heroicSequenceSlot = 6
+				timerVoidlightConvergenceCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "convergence", "convergenceCount"))
+			else
+				badStateDetected = true
+				self:ResumeBlizzardAPI()
+				self:UnregisterShortTermEvents()
+				setFallback(self)
+				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
+			end
+		elseif timer == 18 then--Follow-up Guardian's Edict
+			if heroicSequenceSlot == 6 then
+				heroicSequenceSlot = 7
+				timerGuardiansEdictCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "edict", "edictCount"))
+			else
+				badStateDetected = true
+				self:ResumeBlizzardAPI()
+				self:UnregisterShortTermEvents()
+				setFallback(self)
+				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
+			end
+		elseif timer == 30 then--Rebirth stage transition (health based)
+			self:SetStage(2)
+			heroicSequenceSlot = 0
 			timerRebirthCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "rebirth"))
 		else
 			badStateDetected = true
@@ -179,8 +297,12 @@ do
 		local eventID = eventInfo.id
 		local timerExact = eventInfo.duration
 		local timer = math.floor(timerExact + 0.5)
-		if not badStateDetected and self:IsEasy() then
-			timersEasy(self, timer, timerExact, eventID)
+		if not badStateDetected then
+			if self:IsEasy() then
+				timersEasy(self, timer, timerExact, eventID)
+			elseif self:IsHeroic() then
+				timersHeroic(self, timer, timerExact, eventID)
+			end
 		end
 	end
 
@@ -193,6 +315,7 @@ do
 			if eventType == "rebirth" then
 				self:SetStage(1)
 				lastEmbersEventID = 0
+				heroicSequenceSlot = 0
 			end
 			if not eventCount then return end
 			if eventType == "embers" then
@@ -212,12 +335,19 @@ do
 			elseif eventType == "rebirth" then
 				specWarnRebirth:Show(eventCount)
 				specWarnRebirth:Play("dpshard")
+			elseif eventType == "convergence" then
+				specWarnVoidlightConvergence:Show(eventCount)
+				specWarnVoidlightConvergence:Play("colorchange")
 			end
 		elseif eventState == 3 then
 			local eventType = self:TLCountCancel(eventID)
 			if eventType == "rebirth" then
 				self:SetStage(1)
 				lastEmbersEventID = 0
+				heroicSequenceSlot = 0
+			elseif eventType == "convergence" then
+				warnVoidlightConvergenceSoon:Cancel()
+				warnVoidlightConvergenceSoon:CancelVoice()
 			end
 		end
 	end

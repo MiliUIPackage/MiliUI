@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2662, "DBM-Party-Midnight", 3, 1300)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260407040051")
+mod:SetRevision("20260408011826")
 mod:SetCreatureID(231865)
 mod:SetEncounterID(3074)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -79,7 +79,7 @@ do
 			timerDevouringEntropyCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "entropy", "entropyCount"))
 		elseif timer == 15 then--Unstable Void Essence opener
 			timerUnstableVoidEssenceCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "essence", "essenceCount"))
-		elseif timer == 22 then--Recurring Fragment -> Entropy -> Essence rotation
+		elseif timer == 24 then--Recurring Fragment -> Entropy -> Essence rotation
 			recurringTwentyTwoCount = recurringTwentyTwoCount + 1
 			if recurringTwentyTwoCount % 3 == 1 then
 				timerHulkingFragmentCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "fragment", "fragmentCount"))
