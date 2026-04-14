@@ -1,6 +1,5 @@
-## Bugfixes
-- Update teleport SpellID for Skyreach
-- Change Keystone tooltip to old format with rank
+## New Features
+- manage characters (hide/delete) from settings dropdown
 
-## Other Changes
-- Merge branch 'main' of https://github.com/Wolkenschutz/KeystoneLoot
+## Improvements
+- trigger loot reminder on entering dungeon
