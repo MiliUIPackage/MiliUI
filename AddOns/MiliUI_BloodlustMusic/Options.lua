@@ -456,15 +456,194 @@ local trackHeader = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal"
 trackHeader:SetPoint("TOPLEFT", channelExplain, "BOTTOMLEFT", -2, -12)
 trackHeader:SetText("|cffffd100" .. L["TRACK_ENABLED"] .. "|r")
 
--- Track List (checkboxes + preview buttons)
+-- Track List (checkboxes + preview/edit/delete buttons)
 local trackChecks = {}
 local trackPreviews = {}
+local trackEditBtns = {}
+local trackDelBtns = {}
+local addTrackBtn
+local mediaHint
+local RefreshTrackList  -- forward
 
-local function RefreshTrackList()
+----------------------------------------------------------------------
+-- Track Editor Dialog (add / edit a custom track)
+----------------------------------------------------------------------
+local trackEditor
+
+local function EnsureTrackEditor()
+    if trackEditor then return trackEditor end
+    local f = CreateFrame("Frame", "MiliUI_BLM_TrackEditor", UIParent, "BackdropTemplate")
+    f:SetSize(560, 280)
+    f:SetPoint("CENTER")
+    f:SetFrameStrata("DIALOG")
+    f:SetToplevel(true)
+    f:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        edgeSize = 16,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 }
+    })
+    f:EnableMouse(true)
+    f:SetMovable(true)
+    f:RegisterForDrag("LeftButton")
+    f:SetScript("OnDragStart", f.StartMoving)
+    f:SetScript("OnDragStop", f.StopMovingOrSizing)
+    f:SetScript("OnHide", function(self)
+        if self.nameBox then self.nameBox:ClearFocus() end
+        if self.fileBox then self.fileBox:ClearFocus() end
+    end)
+    f:Hide()
+
+    f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    f.title:SetPoint("TOP", 0, -14)
+
+    local nameLabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    nameLabel:SetPoint("TOPLEFT", 20, -50)
+    nameLabel:SetText(L["TRACK_NAME"] or "Name")
+    nameLabel:SetWidth(80)
+    nameLabel:SetJustifyH("LEFT")
+
+    f.nameBox = CreateFrame("EditBox", "$parentNameBox", f, "InputBoxTemplate")
+    f.nameBox:SetSize(420, 22)
+    f.nameBox:SetPoint("LEFT", nameLabel, "RIGHT", 14, 0)
+    f.nameBox:SetAutoFocus(false)
+    f.nameBox:SetMaxLetters(80)
+
+    local fileLabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    fileLabel:SetPoint("TOPLEFT", nameLabel, "BOTTOMLEFT", 0, -24)
+    fileLabel:SetText(L["TRACK_FILENAME"] or "Filename")
+    fileLabel:SetWidth(80)
+    fileLabel:SetJustifyH("LEFT")
+
+    f.fileBox = CreateFrame("EditBox", "$parentFileBox", f, "InputBoxTemplate")
+    f.fileBox:SetSize(420, 22)
+    f.fileBox:SetPoint("LEFT", fileLabel, "RIGHT", 14, 0)
+    f.fileBox:SetAutoFocus(false)
+    f.fileBox:SetMaxLetters(200)
+
+    local hint = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    hint:SetPoint("TOPLEFT", fileLabel, "BOTTOMLEFT", 0, -18)
+    hint:SetPoint("RIGHT", f, "RIGHT", -20, 0)
+    hint:SetJustifyH("LEFT")
+    hint:SetSpacing(2)
+    hint:SetWordWrap(true)
+    hint:SetNonSpaceWrap(true)
+    hint:SetText(L["TRACK_FILENAME_HINT"] or ("Place files in " .. ns.MUSIC_MEDIA_PREFIX))
+    hint:SetTextColor(1, 0.82, 0)
+
+    f.okBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    f.okBtn:SetSize(90, 24)
+    f.okBtn:SetPoint("BOTTOMRIGHT", -110, 14)
+    f.okBtn:SetText(OKAY)
+
+    f.cancelBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    f.cancelBtn:SetSize(90, 24)
+    f.cancelBtn:SetPoint("BOTTOMRIGHT", -14, 14)
+    f.cancelBtn:SetText(CANCEL)
+    f.cancelBtn:SetScript("OnClick", function() f:Hide() end)
+
+    -- Tab between fields
+    f.nameBox:SetScript("OnTabPressed", function() f.fileBox:SetFocus() end)
+    f.fileBox:SetScript("OnTabPressed", function() f.nameBox:SetFocus() end)
+    f.nameBox:SetScript("OnEnterPressed", function() f.fileBox:SetFocus() end)
+    f.fileBox:SetScript("OnEnterPressed", function() f.okBtn:Click() end)
+    f.nameBox:SetScript("OnEscapePressed", function() f:Hide() end)
+    f.fileBox:SetScript("OnEscapePressed", function() f:Hide() end)
+
+    trackEditor = f
+    return f
+end
+
+local function OpenTrackEditor(editIndex)
+    local f = EnsureTrackEditor()
     local d = GetDB()
+    d.customTracks = d.customTracks or {}
+
+    if editIndex then
+        local t = d.customTracks[editIndex]
+        f.title:SetText(L["TRACK_EDIT"] or "Edit Track")
+        f.nameBox:SetText((t and t.name) or "")
+        f.fileBox:SetText((t and t.filename) or "")
+    else
+        f.title:SetText(L["TRACK_ADD"] or "Add Track")
+        f.nameBox:SetText("")
+        f.fileBox:SetText("")
+    end
+
+    f.okBtn:SetScript("OnClick", function()
+        local nameStr = strtrim(f.nameBox:GetText() or "")
+        local fileStr = strtrim(f.fileBox:GetText() or "")
+        if fileStr == "" then
+            print(L["MSG_TRACK_NEED_FILENAME"] or "|cffff0000BloodlustMusic:|r Please enter a filename.")
+            return
+        end
+        if nameStr == "" then nameStr = fileStr end
+        local dd = GetDB()
+        dd.customTracks = dd.customTracks or {}
+        if editIndex then
+            local t = dd.customTracks[editIndex]
+            if t then
+                t.name = nameStr
+                t.filename = fileStr
+                if t.enabled == nil then t.enabled = true end
+            end
+        else
+            table.insert(dd.customTracks, { name = nameStr, filename = fileStr, enabled = true })
+        end
+        f:Hide()
+        if RefreshTrackList then RefreshTrackList() end
+    end)
+
+    f:Show()
+    f:Raise()
+    f.nameBox:SetFocus()
+end
+
+----------------------------------------------------------------------
+-- Delete Confirmation
+----------------------------------------------------------------------
+StaticPopupDialogs["MILIUI_BLM_DEL_TRACK"] = {
+    text = L["TRACK_DELETE_CONFIRM"] or "Delete track \"%s\"?",
+    button1 = YES,
+    button2 = NO,
+    OnAccept = function(self, data)
+        if not data or not data.index then return end
+        local dd = GetDB()
+        if dd and dd.customTracks and dd.customTracks[data.index] then
+            table.remove(dd.customTracks, data.index)
+            if RefreshTrackList then RefreshTrackList() end
+        end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+----------------------------------------------------------------------
+-- Build unified row list (built-in + custom)
+----------------------------------------------------------------------
+local function GetTrackRows()
+    local rows = {}
+    for i, t in ipairs(MUSIC_FILES) do
+        rows[#rows + 1] = { source = "builtin", index = i, name = t.name }
+    end
+    local d = GetDB()
+    if d and d.customTracks then
+        for i, t in ipairs(d.customTracks) do
+            local displayName = (t.name ~= nil and t.name ~= "") and t.name or (t.filename or "?")
+            rows[#rows + 1] = { source = "custom", index = i, name = displayName }
+        end
+    end
+    return rows
+end
+
+RefreshTrackList = function()
+    local d = GetDB()
+    local rows = GetTrackRows()
     local lastAnchor = trackHeader
 
-    for i, track in ipairs(MUSIC_FILES) do
+    for i, row in ipairs(rows) do
         local ck = trackChecks[i]
         if not ck then
             ck = CreateFrame("CheckButton", nil, musicPanel, "UICheckButtonTemplate")
@@ -475,15 +654,26 @@ local function RefreshTrackList()
 
         ck:ClearAllPoints()
         ck:SetPoint("TOPLEFT", lastAnchor, "BOTTOMLEFT", 0, -5)
-        ck.Text:SetText(track.name)
+        ck.Text:SetText(row.name or "")
 
-        if d then
-            ck:SetChecked(d.trackEnabled[i] ~= false)
+        local isEnabled
+        if row.source == "builtin" then
+            isEnabled = d and d.trackEnabled[row.index] ~= false
+        else
+            local t = d and d.customTracks and d.customTracks[row.index]
+            isEnabled = t and t.enabled ~= false
         end
+        ck:SetChecked(isEnabled and true or false)
 
+        local rowSource, rowIndex = row.source, row.index
         ck:SetScript("OnClick", function(self)
-            local dd = GetDB()
-            if dd then dd.trackEnabled[i] = self:GetChecked() and true or false end
+            local dd = GetDB(); if not dd then return end
+            local on = self:GetChecked() and true or false
+            if rowSource == "builtin" then
+                dd.trackEnabled[rowIndex] = on
+            elseif dd.customTracks and dd.customTracks[rowIndex] then
+                dd.customTracks[rowIndex].enabled = on
+            end
         end)
         ck:Show()
 
@@ -494,38 +684,95 @@ local function RefreshTrackList()
             pvBtn:SetSize(60, 20)
             trackPreviews[i] = pvBtn
         end
-
         pvBtn:ClearAllPoints()
         pvBtn:SetPoint("LEFT", ck.Text, "RIGHT", 10, 0)
         pvBtn:SetText(L["PREVIEW"])
-
         pvBtn:SetScript("OnClick", function(self)
             if ns.IsPreviewPlaying() then
                 ns.StopPreview()
                 self:SetText(L["PREVIEW"])
-            else
-                ns.PreviewTrack(i)
+                return
+            end
+            local ok = ns.PreviewTrack(rowSource, rowIndex)
+            if ok then
                 self:SetText(L["STOP_PREVIEW"])
                 C_Timer.After(41, function()
                     if not ns.IsPreviewPlaying() then self:SetText(L["PREVIEW"]) end
                 end)
+            else
+                print(L["MSG_PREVIEW_FAIL"] or "|cffff0000BloodlustMusic:|r Failed to play file — check filename in Media folder.")
             end
         end)
         pvBtn:Show()
 
+        -- Edit & Delete buttons (custom only)
+        local editBtn = trackEditBtns[i]
+        local delBtn = trackDelBtns[i]
+        if row.source == "custom" then
+            if not editBtn then
+                editBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
+                editBtn:SetSize(50, 20)
+                trackEditBtns[i] = editBtn
+            end
+            editBtn:ClearAllPoints()
+            editBtn:SetPoint("LEFT", pvBtn, "RIGHT", 4, 0)
+            editBtn:SetText(L["TRACK_EDIT_SHORT"] or "Edit")
+            editBtn:SetScript("OnClick", function() OpenTrackEditor(rowIndex) end)
+            editBtn:Show()
+
+            if not delBtn then
+                delBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
+                delBtn:SetSize(24, 20)
+                trackDelBtns[i] = delBtn
+            end
+            delBtn:ClearAllPoints()
+            delBtn:SetPoint("LEFT", editBtn, "RIGHT", 4, 0)
+            delBtn:SetText("-")
+            delBtn:SetScript("OnClick", function()
+                StaticPopup_Show("MILIUI_BLM_DEL_TRACK", row.name or "", nil, { index = rowIndex })
+            end)
+            delBtn:Show()
+        else
+            if editBtn then editBtn:Hide() end
+            if delBtn then delBtn:Hide() end
+        end
+
         lastAnchor = ck
     end
 
-    -- Hide extra
-    for i = #MUSIC_FILES + 1, #trackChecks do
-        trackChecks[i]:Hide()
+    -- Hide extras
+    for i = #rows + 1, #trackChecks do
+        if trackChecks[i] then trackChecks[i]:Hide() end
         if trackPreviews[i] then trackPreviews[i]:Hide() end
+        if trackEditBtns[i] then trackEditBtns[i]:Hide() end
+        if trackDelBtns[i] then trackDelBtns[i]:Hide() end
     end
+
+    -- Add ("+") button and Media-folder hint
+    if not addTrackBtn then
+        addTrackBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
+        addTrackBtn:SetSize(28, 22)
+        addTrackBtn:SetText("+")
+        addTrackBtn:SetScript("OnClick", function() OpenTrackEditor(nil) end)
+    end
+    addTrackBtn:ClearAllPoints()
+    addTrackBtn:SetPoint("TOPLEFT", lastAnchor, "BOTTOMLEFT", 4, -10)
+    addTrackBtn:Show()
+
+    if not mediaHint then
+        mediaHint = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    end
+    mediaHint:ClearAllPoints()
+    mediaHint:SetPoint("LEFT", addTrackBtn, "RIGHT", 8, 0)
+    mediaHint:SetText("|cffffd100" .. (L["ADD_TRACK_HINT"] or "Add custom track") .. "|r")
+    mediaHint:Show()
 end
 
 local function ForceShowTrackList()
     for _, ck in ipairs(trackChecks) do if ck then ck:Show() end end
     for _, pvBtn in ipairs(trackPreviews) do if pvBtn then pvBtn:Show() end end
+    if addTrackBtn then addTrackBtn:Show() end
+    if mediaHint then mediaHint:Show() end
 end
 
 musicPanel:SetScript("OnShow", function()

@@ -37,6 +37,16 @@ L["MSG_DBM_NOT_LOADED"] = "|cffff0000영웅심 음악:|r DBM이 로드되지 않
 L["PREVIEW"] = "미리 듣기"
 L["STOP_PREVIEW"] = "중지"
 L["TRACK_ENABLED"] = "활성화"
+L["TRACK_ADD"] = "트랙 추가"
+L["TRACK_EDIT"] = "트랙 편집"
+L["TRACK_EDIT_SHORT"] = "편집"
+L["TRACK_NAME"] = "표시 이름"
+L["TRACK_FILENAME"] = "파일 이름"
+L["TRACK_FILENAME_HINT"] = "오디오 파일 (.mp3 / .ogg)을 다음 폴더에 넣으세요:\nInterface\\AddOns\\MiliUI_BloodlustMusic\\Media\\\n그런 다음 파일 이름만 입력하세요 (예: my_song.mp3). 미리 듣기로 확인하세요."
+L["ADD_TRACK_HINT"] = "사용자 트랙 추가"
+L["TRACK_DELETE_CONFIRM"] = "트랙 \"%s\"을(를) 삭제하시겠습니까?"
+L["MSG_PREVIEW_FAIL"] = "|cffff0000영웅심 음악:|r 재생 실패 — Media 폴더에 파일이 있는지 확인하세요 (새 파일 추가 후 /reload가 필요할 수 있습니다)."
+L["MSG_TRACK_NEED_FILENAME"] = "|cffff0000영웅심 음악:|r 파일 이름을 입력하세요."
 
 -- Bar Settings
 L["BAR_SETTINGS_TITLE"] = "카운트다운 바 설정"

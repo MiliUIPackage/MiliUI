@@ -44,6 +44,10 @@ local MUSIC_DURATION = 40  -- seconds to play music
 local DEFAULT_CHANNEL = "SFX"  -- fallback channel (Master / SFX / Dialog)
 local CHANNELS = { "Master", "SFX", "Dialog" }
 
+-- Base folder for custom (user-added) music files.
+-- Player drops an mp3/ogg here, then types its filename in the settings UI.
+local MUSIC_MEDIA_PREFIX = "Interface\\AddOns\\MiliUI_BloodlustMusic\\Media\\"
+
 -- Sound engine boost values applied during Bloodlust playback
 local BOOST_NUM_CHANNELS = 128         -- Sound_NumChannels
 local BOOST_CACHE_SIZE   = 134217728   -- Sound_MaxCacheSizeInBytes (128 MB)
@@ -56,7 +60,8 @@ local DB_DEFAULTS = {
     barEnabled       = true,
     playMode         = "random",   -- "random" or "sequential"
     channel          = DEFAULT_CHANNEL,
-    trackEnabled     = {},         -- [index] = true/false per track
+    trackEnabled     = {},         -- [index] = true/false per built-in track
+    customTracks     = {},         -- array of { name, filename, enabled }
     lastTrackIndex   = 0,
     barWidth         = 185,
     barHeight        = 10,
@@ -122,6 +127,7 @@ ns.DB_DEFAULTS = DB_DEFAULTS
 ns.LUST_BUFFS = LUST_BUFFS
 ns.LUST_DEBUFFS = LUST_DEBUFFS
 ns.MUSIC_FILES = MUSIC_FILES
+ns.MUSIC_MEDIA_PREFIX = MUSIC_MEDIA_PREFIX
 ns.CHANNELS = CHANNELS
 ns.DEFAULT_CHANNEL = DEFAULT_CHANNEL
 ns.DEFAULT_LUST_NAME = DEFAULT_LUST_NAME
@@ -160,13 +166,40 @@ end
 ns.InitDB = InitDB
 
 ----------------------------------------------------------------------
--- Utility: Get enabled track list
+-- Utility: Get all tracks (built-in + custom), used by UI & playback
 ----------------------------------------------------------------------
+local function BuildAllTracks()
+    local all = {}
+    for i, t in ipairs(MUSIC_FILES) do
+        all[#all + 1] = {
+            source  = "builtin",
+            index   = i,
+            name    = t.name,
+            path    = t.path,
+            enabled = db.trackEnabled[i] ~= false,
+        }
+    end
+    if db.customTracks then
+        for i, t in ipairs(db.customTracks) do
+            local fn = t.filename or ""
+            all[#all + 1] = {
+                source   = "custom",
+                index    = i,
+                name     = (t.name ~= nil and t.name ~= "") and t.name or fn,
+                filename = fn,
+                path     = MUSIC_MEDIA_PREFIX .. fn,
+                enabled  = t.enabled ~= false,
+            }
+        end
+    end
+    return all
+end
+
 local function GetEnabledTracks()
     local tracks = {}
-    for i, t in ipairs(MUSIC_FILES) do
-        if db.trackEnabled[i] then
-            table.insert(tracks, { index = i, name = t.name, path = t.path })
+    for _, t in ipairs(BuildAllTracks()) do
+        if t.enabled and t.path and t.path ~= MUSIC_MEDIA_PREFIX then
+            tracks[#tracks + 1] = t
         end
     end
     return tracks
@@ -228,21 +261,11 @@ local function PlayLustMusic()
     if db.playMode == "random" then
         track = tracks[math.random(#tracks)]
     else
-        -- Sequential
-        local nextIndex = db.lastTrackIndex + 1
-        -- Find next enabled track starting from lastTrackIndex
-        local found = false
-        for _, t in ipairs(tracks) do
-            if t.index > db.lastTrackIndex then
-                track = t
-                found = true
-                break
-            end
-        end
-        if not found then
-            track = tracks[1]  -- wrap around
-        end
-        db.lastTrackIndex = track.index
+        -- Sequential: lastTrackIndex is a position within the enabled list
+        local nextPos = (db.lastTrackIndex or 0) + 1
+        if nextPos > #tracks or nextPos < 1 then nextPos = 1 end
+        track = tracks[nextPos]
+        db.lastTrackIndex = nextPos
     end
 
     -- Save and mute background audio
@@ -317,32 +340,46 @@ local function StopPreview()
     end
 end
 
-local function PreviewTrack(index)
+local function PreviewTrack(source, index)
     StopPreview()
-    local track = MUSIC_FILES[index]
-    if not track then return end
-    
+
+    local path, name
+    if source == "builtin" then
+        local t = MUSIC_FILES[index]
+        if t then path, name = t.path, t.name end
+    elseif source == "custom" then
+        local t = db and db.customTracks and db.customTracks[index]
+        if t and t.filename and t.filename ~= "" then
+            path = MUSIC_MEDIA_PREFIX .. t.filename
+            name = (t.name ~= nil and t.name ~= "") and t.name or t.filename
+        end
+    end
+    if not path or path == "" then return false end
+
     local currentMusicVol = tonumber(GetCVar("Sound_MusicVolume")) or 0
     local currentAmbienceVol = tonumber(GetCVar("Sound_AmbienceVolume")) or 0
-    
+
     if currentMusicVol > 0 then previewSavedMusicVol = currentMusicVol end
     if currentAmbienceVol > 0 then previewSavedAmbienceVol = currentAmbienceVol end
-    
+
     SetCVar("Sound_MusicVolume", 0)
     SetCVar("Sound_AmbienceVolume", 0)
 
-    -- Boost sound engine to prevent audio interruption
     previewSavedNumChannels = tonumber(GetCVar("Sound_NumChannels")) or 64
     previewSavedCacheSize   = tonumber(GetCVar("Sound_MaxCacheSizeInBytes")) or 0
     SetCVar("Sound_NumChannels", BOOST_NUM_CHANNELS)
     SetCVar("Sound_MaxCacheSizeInBytes", BOOST_CACHE_SIZE)
 
     local channel = (db and db.channel) or DEFAULT_CHANNEL
-    local success, handle = PlaySoundFile(track.path, channel)
+    local success, handle = PlaySoundFile(path, channel)
     if success then
         previewHandle = handle
         previewRestoreTimer = C_Timer.NewTimer(MUSIC_DURATION or 40, function() StopPreview() end)
+        return true, name
     end
+    -- Playback failed — restore volumes/engine so we don't leave audio muted
+    StopPreview()
+    return false, name
 end
 
 ----------------------------------------------------------------------
@@ -719,18 +756,32 @@ ns.DebugPrint = DebugPrint
 -- Try to read buff for display info (icon, name, duration).
 ----------------------------------------------------------------------
 
--- Check for lust debuff (primary trigger)
+-- Lust exhaustion debuff is 600s (10 min). If remaining is short, the debuff
+-- was applied long before we started watching (e.g. a reload/login after a wipe),
+-- and we should NOT replay the intro music. Only trigger when the debuff is
+-- "fresh" — i.e. applied within the last ~60s (remaining > FRESH_THRESHOLD).
+local LUST_DEBUFF_FRESH_THRESHOLD = 540  -- seconds; must remain > 9 minutes
+
+-- Check for lust debuff (primary trigger).
+-- Returns spellID, name, expirationTime (or nil if no lust debuff present).
 local function CheckForLustDebuff()
     for _, spellID in ipairs(LUST_DEBUFFS) do
         local ok, aura = pcall(C_UnitAuras.GetPlayerAuraBySpellID, spellID)
         if ok and aura then
-            DebugPrint("Found lust DEBUFF: spellID=", spellID, "name=", aura.name)
-            return spellID, aura.name
+            DebugPrint("Found lust DEBUFF: spellID=", spellID, "name=", aura.name, "expiration=", aura.expirationTime)
+            return spellID, aura.name, aura.expirationTime
         elseif not ok then
             DebugPrint("pcall error for debuff spellID", spellID, ":", aura)
         end
     end
     return nil
+end
+
+-- True if the debuff looks freshly applied (so the cast just happened).
+-- Zero/nil expiration means "permanent / unknown" — treat as fresh to be safe.
+local function IsDebuffFresh(expirationTime)
+    if not expirationTime or expirationTime <= 0 then return true end
+    return (expirationTime - GetTime()) > LUST_DEBUFF_FRESH_THRESHOLD
 end
 
 -- Try to read lust buff for display info (icon, name, countdown)
@@ -753,11 +804,20 @@ local function OnUnitAura(_, unit)
     if unit ~= "player" then return end
     DebugPrint("UNIT_AURA fired for player, lustDetected=", tostring(lustDetected), "inCombat=", tostring(InCombatLockdown()))
 
-    local debuffID = CheckForLustDebuff()
+    local debuffID, _, debuffExpiration = CheckForLustDebuff()
 
     if debuffID and not lustDetected then
-        -- Lust debuff just appeared → lust was cast!
+        -- Lust debuff just appeared. Could be a fresh cast, OR a stale debuff
+        -- left over from before we started watching (reload / login after wipe).
+        -- Mark detected in both cases so we don't keep re-entering this branch,
+        -- but only play music/show bar when the debuff is fresh.
         lustDetected = true
+
+        if not IsDebuffFresh(debuffExpiration) then
+            DebugPrint("Lust debuff present but stale (remaining<=9min), suppressing playback")
+            return
+        end
+
         DebugPrint("Lust TRIGGERED via debuff", debuffID)
 
         -- Try to get buff info for display (name, icon, duration)
@@ -851,12 +911,24 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
 
 
 
-        -- Check if lust BUFF is still active on login (use buff, NOT debuff — debuff lasts 10min)
+        -- At login, decide up-front whether we're already "in" a lust window:
+        --   - Buff active → show bar, suppress re-trigger.
+        --   - No buff but debuff present (10 min exhaustion):
+        --       * fresh (remaining > 9 min) → still within the 40s buff window,
+        --         treat as active; bar duration is whatever's left of the buff
+        --         (handled by OnUnitAura on next update).
+        --       * stale → mark detected so UNIT_AURA doesn't replay the intro.
         C_Timer.After(1, function()
             local buffID, name, icon, duration, expirationTime = GetLustBuffInfo()
             if buffID then
                 lustDetected = true
                 ShowBar(buffID, name or DEFAULT_LUST_NAME, icon or DEFAULT_LUST_ICON, duration or 40, expirationTime or (GetTime() + 40))
+            else
+                local dbID, _, dbExpiration = CheckForLustDebuff()
+                if dbID and not IsDebuffFresh(dbExpiration) then
+                    lustDetected = true
+                    DebugPrint("Login: stale lust debuff present, suppressing replay")
+                end
             end
         end)
 
