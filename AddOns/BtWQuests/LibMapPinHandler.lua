@@ -17,7 +17,7 @@ LibMapPinHandlerMixin.RefreshAllDataProviders = MapCanvasMixin.RefreshAllDataPro
 LibMapPinHandlerMixin.CallMethodOnPinsAndDataProviders = MapCanvasMixin.CallMethodOnPinsAndDataProviders
 LibMapPinHandlerMixin.ReapplyPinFrameLevels = MapCanvasMixin.ReapplyPinFrameLevels
 LibMapPinHandlerMixin.SetGlobalPinScale = MapCanvasMixin.SetGlobalPinScale
-LibMapPinHandlerMixin.OnMapChanged = MapCanvasMixin.OnMapChanged
+-- LibMapPinHandlerMixin.OnMapChanged = MapCanvasMixin.OnMapChanged
 LibMapPinHandlerMixin.AddDataProvider = MapCanvasMixin.AddDataProvider
 LibMapPinHandlerMixin.SetPinTemplateType = MapCanvasMixin.SetPinTemplateType
 LibMapPinHandlerMixin.EnumeratePinsByTemplate = MapCanvasMixin.EnumeratePinsByTemplate
@@ -53,6 +53,15 @@ function LibMapPinHandlerMixin:OnLoad(ownerMap)
     hooksecurefunc(ownerMap, "ReapplyPinFrameLevels", CanvasCallback(self, "ReapplyPinFrameLevels"))
     hooksecurefunc(ownerMap, "SetGlobalPinScale", CanvasCallback(self, "SetGlobalPinScale"))
     hooksecurefunc(ownerMap, "OnMapChanged", CanvasCallback(self, "OnMapChanged"))
+end
+do
+	local function MapCanvasOnMapChangedCallback(dataProvider, _included)
+		dataProvider:OnMapChanged();
+	end
+
+	function LibMapPinHandlerMixin:OnMapChanged()
+		secureexecuterange(self.dataProviders, MapCanvasOnMapChangedCallback);
+	end
 end
 function LibMapPinHandlerMixin:GetOwner()
     return self.ownerMap

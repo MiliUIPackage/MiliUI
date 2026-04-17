@@ -1,3 +1,8 @@
+# v2.61.1
+
+- Added /btwq slash command
+- Fixed a number of errors caused by world map pins
+
 # v2.61.0
 
 - Added support for account bound quests

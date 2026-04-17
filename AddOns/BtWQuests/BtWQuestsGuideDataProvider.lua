@@ -146,6 +146,8 @@ function BtWQuestsGuidePinMixin:OnClick(button)
         Guide:SetFocus(self.item)
     end
 end
+function BtWQuestsGuidePinMixin:CheckMouseButtonPassthrough()
+end
 
 if C_Map and C_Map.SetUserWaypoint then
     hooksecurefunc(C_Map, "SetUserWaypoint", function (waypoint)

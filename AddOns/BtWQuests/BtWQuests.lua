@@ -1211,6 +1211,7 @@ end
 
 -- [[ Slash Command ]]
 SLASH_BTWQUESTS1 = "/btwquests"
+SLASH_BTWQUESTS2 = "/btwq"
 SlashCmdList["BTWQUESTS"] = function(msg)
     if msg == "minimap" then
         BtWQuestsMinimapButton_Toggle()

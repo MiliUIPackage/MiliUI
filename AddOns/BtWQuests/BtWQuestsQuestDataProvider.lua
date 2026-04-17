@@ -86,3 +86,5 @@ function BtWQuestsQuestPinMixin:OnClick()
 	local x, y = self:GetPosition()
 	BtWQuests_AddWaypoint(self.mapID, x, y, self.itemName)
 end
+function BtWQuestsQuestPinMixin:CheckMouseButtonPassthrough()
+end
