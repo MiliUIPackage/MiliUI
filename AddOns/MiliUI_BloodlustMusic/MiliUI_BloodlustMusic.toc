@@ -12,7 +12,7 @@
 ## Category-zhCN: 战斗
 ## Category-koKR: 전투
 ## Author: Mili
-## Version: 1.0.0
+## Version: 1.1.0
 ## SavedVariables: MiliUI_BloodlustMusic_DB
 
 embeds.xml
