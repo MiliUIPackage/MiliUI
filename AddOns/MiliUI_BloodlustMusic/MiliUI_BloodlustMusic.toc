@@ -7,16 +7,17 @@
 ## Notes-zhCN: 嗜血/英勇音乐播放与倒计时条。|n|n|cffffd200使用方法: |rEsc>选项>插件>嗜血音乐或输入指令 /blm 设置。
 ## Notes-koKR: 영웅심/피의 욕망 음악 재생 및 카운트다운 바。|n|n|cffffd200사용방법: |rEsc>옵션>플러그인>영웅심 음악 또는 입력 명령어 /blm 설정。
 ## IconTexture: Interface\Icons\Spell_Nature_Bloodlust
-## Category: Battle
+## Category: Combat
 ## Category-zhTW: 戰鬥
 ## Category-zhCN: 战斗
 ## Category-koKR: 전투
 ## Author: Mili
-## Version: 1.1.0
+## Version: 1.2.0
 ## SavedVariables: MiliUI_BloodlustMusic_DB
 
 embeds.xml
 Locales\Locales.xml
-BloodlustMusic.lua
-LustReminder.lua
+Config.lua
+Music.lua
+Reminder.lua
 Options.lua

@@ -43,7 +43,7 @@ local function CreateSD(parent)
 end
 
 ----------------------------------------------------------------------
--- Preview helpers (Delegated back to BloodlustMusic.lua)
+-- Preview helpers (Delegated back to Music.lua)
 ----------------------------------------------------------------------
 
 
