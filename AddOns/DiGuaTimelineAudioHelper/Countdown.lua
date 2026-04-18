@@ -5,36 +5,52 @@ addonTable.Countdown = Countdown
 
 local ticker = nil
 
+-- 获取媒体路径的辅助函数（抽离出来复用）
+local function GetMediaPath()
+    if C_AddOns.IsAddOnLoaded("DiGua-WYJJ") then
+        return "Interface\\AddOns\\DiGua-WYJJ\\Media\\"
+    else
+        return "Interface\\AddOns\\DiGuaTimelineAudioHelper\\Media\\"
+    end
+end
+
 -- 内部停止函数
 function Countdown:Stop()
     if ticker then
         ticker:Cancel()
         ticker = nil
-        -- print("|cFFFF0000[地瓜语音助手]|r 倒数已取消")
     end
 end
 
--- 内部开始函数
-function Countdown:Start(timeRemaining)
-    -- === 新增：检测 DBM 或 BigWigs ===
-    -- C_AddOns.IsAddOnLoaded 是正式服最标准的检测方式
+-- === 新增：就位确认处理函数 ===
+function Countdown:PlayReadyCheckVoice()
+    -- 如果装了 DBM/BW，通常它们会喊话，我们可以选择不播
     if C_AddOns.IsAddOnLoaded("DBM-Core") or C_AddOns.IsAddOnLoaded("BigWigs") then
-        -- 如果存在这俩插件，直接跳过本插件的倒数功能
         return 
     end
-    -- ===============================
 
+    local path = GetMediaPath() .. "JiuWeiQueRen.ogg" -- 确保你的 Media 文件夹下有这个文件
+    PlaySoundFile(path, "Master")
+end
+
+-- 内部开始函数 (倒计时)
+function Countdown:Start(timeRemaining)
+    if C_AddOns.IsAddOnLoaded("DBM-Core") or C_AddOns.IsAddOnLoaded("BigWigs") then
+        return 
+    end
+
+    local currentMediaPath = GetMediaPath()
     self:Stop() 
 
     local count = math.floor(timeRemaining)
-    if count <= 0 then return end -- 安全检查
+    if count <= 0 then return end
 
     local function PlayVoice(num)
-        local path = "Interface\\AddOns\\DiGuaTimelineAudioHelper\\Media\\DaoShu" .. num .. ".ogg"
+        local path = currentMediaPath .. "DaoShu" .. num .. ".ogg"
         PlaySoundFile(path, "Master")
     end
 
-    PlayVoice(count) -- 立即播报起始数字
+    PlayVoice(count)
     count = count - 1
 
     if count >= 0 then
@@ -50,10 +66,14 @@ function Countdown:Start(timeRemaining)
         end, count + 1)
     end
 end
+
 -- 模块初始化（注册事件）
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("START_PLAYER_COUNTDOWN")
 frame:RegisterEvent("CANCEL_PLAYER_COUNTDOWN")
+-- 注册就位确认相关事件
+frame:RegisterEvent("READY_CHECK") 
+frame:RegisterEvent("READY_CHECK_FINISHED")
 
 frame:SetScript("OnEvent", function(_, event, ...)
     if event == "START_PLAYER_COUNTDOWN" then
@@ -61,5 +81,11 @@ frame:SetScript("OnEvent", function(_, event, ...)
         Countdown:Start(timeRemaining)
     elseif event == "CANCEL_PLAYER_COUNTDOWN" then
         Countdown:Stop()
+    elseif event == "READY_CHECK" then
+        -- 当团长发起就位确认时触发
+        Countdown:PlayReadyCheckVoice()
+    elseif event == "READY_CHECK_FINISHED" then
+        -- 这里的逻辑可以根据需要添加，比如全员就位后的提示音
+        -- PlaySoundFile(GetMediaPath() .. "ReadyCheckDone.ogg", "Master")
     end
 end)

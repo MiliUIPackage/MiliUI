@@ -6,7 +6,7 @@
 ## Author: 神秘地瓜
 ## Category: Raid
 ## Category-zhTW: 副本
-## Version: 1.2.0
+## Version: 1.2.5
 
 Core.lua
 Countdown.lua
