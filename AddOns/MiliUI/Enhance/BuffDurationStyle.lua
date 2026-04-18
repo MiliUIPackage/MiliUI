@@ -21,7 +21,10 @@ local DEFAULTS = {
     countYOffset = 0,
 }
 
+-- Cache：初始化後這個指向 MiliUI_DB.buffDuration，hot hook 直接取
+local db
 local function GetDB()
+    if db then return db end
     if not MiliUI_DB then MiliUI_DB = {} end
     if not MiliUI_DB.buffDuration then
         MiliUI_DB.buffDuration = CopyTable(DEFAULTS)
@@ -33,32 +36,28 @@ local function GetDB()
             end
         end
     end
-    return MiliUI_DB.buffDuration
+    db = MiliUI_DB.buffDuration
+    return db
 end
 
 ------------------------------------------------------------
 -- 每個 Duration FontString 的 reactive hook
 ------------------------------------------------------------
-local hookedDurations = {}
-local hookedCounts = {}
--- 遞歸防護
+-- Weak keys：Blizzard 回收按鈕時 FontString 被 GC，這裡的 entry 自動消失
+local hookedDurations = setmetatable({}, { __mode = "k" })
+local hookedCounts    = setmetatable({}, { __mode = "k" })
+
+-- 遞歸防護（WoW 單執行緒，單一 flag 即可）
 local overriding = false
 
--- 錨點對應表
-local ANCHOR_OPPOSITE = {
-    TOPLEFT = "TOPLEFT", TOPRIGHT = "TOPRIGHT",
-    BOTTOMLEFT = "BOTTOMLEFT", BOTTOMRIGHT = "BOTTOMRIGHT",
-    TOP = "TOP", BOTTOM = "BOTTOM", LEFT = "LEFT", RIGHT = "RIGHT",
-    CENTER = "CENTER",
-}
-
 local function EnsureOverlay(btn)
-    if not btn.MiliUI_DurOverlay then
-        btn.MiliUI_DurOverlay = CreateFrame("Frame", nil, btn)
-        btn.MiliUI_DurOverlay:SetAllPoints(btn)
-        btn.MiliUI_DurOverlay:SetFrameLevel(btn:GetFrameLevel() + 5)
-    end
-    return btn.MiliUI_DurOverlay
+    local ov = btn.MiliUI_DurOverlay
+    if ov then return ov end
+    ov = CreateFrame("Frame", nil, btn)
+    ov:SetAllPoints(btn)
+    ov:SetFrameLevel(btn:GetFrameLevel() + 5)
+    btn.MiliUI_DurOverlay = ov
+    return ov
 end
 
 local function HookDuration(btn)
@@ -69,7 +68,6 @@ local function HookDuration(btn)
     -- Hook SetPoint：Blizzard 每次重設位置時，我們立刻覆寫
     hooksecurefunc(dur, "SetPoint", function(self)
         if overriding then return end
-        local db = GetDB()
         if not db.enabled then return end
 
         overriding = true
@@ -82,7 +80,6 @@ local function HookDuration(btn)
     -- Hook SetFontObject：Blizzard 切換字型物件時，我們覆寫回自訂字型
     hooksecurefunc(dur, "SetFontObject", function(self)
         if overriding then return end
-        local db = GetDB()
         if not db.enabled then return end
 
         overriding = true
@@ -106,10 +103,9 @@ local function HookCount(btn)
     local cnt = btn.Count
     if not cnt or hookedCounts[cnt] then return end
 
-    -- Hook SetPoint：攔截 Blizzard 重設位置
-    hooksecurefunc(cnt, "SetPoint", function(self)
+    -- SetPoint 與 SetText 做同一件事（確保位置不跑掉）——共用 closure
+    local function reapply(self)
         if overriding then return end
-        local db = GetDB()
         if not db.countEnabled then return end
 
         overriding = true
@@ -118,21 +114,10 @@ local function HookCount(btn)
         self:ClearAllPoints()
         self:SetPoint(db.countAnchor, btn.Icon, db.countAnchor, db.countXOffset, db.countYOffset)
         overriding = false
-    end)
+    end
 
-    -- Hook SetText：Blizzard 每次更新層數都會呼叫，確保位置不跑掉
-    hooksecurefunc(cnt, "SetText", function(self)
-        if overriding then return end
-        local db = GetDB()
-        if not db.countEnabled then return end
-
-        overriding = true
-        self:SetParent(EnsureOverlay(btn))
-        self:SetWidth(0)
-        self:ClearAllPoints()
-        self:SetPoint(db.countAnchor, btn.Icon, db.countAnchor, db.countXOffset, db.countYOffset)
-        overriding = false
-    end)
+    hooksecurefunc(cnt, "SetPoint", reapply)
+    hooksecurefunc(cnt, "SetText",  reapply)
 
     hookedCounts[cnt] = true
 end
@@ -143,8 +128,6 @@ end
 local function ApplyDurationStyle(btn)
     local dur = btn.Duration
     if not dur or not dur:IsShown() then return end
-
-    local db = GetDB()
 
     overriding = true
 
@@ -195,8 +178,6 @@ local function ApplyCountStyle(btn)
     local cnt = btn.Count
     if not cnt or not cnt:IsShown() then return end
 
-    local db = GetDB()
-
     overriding = true
     cnt:SetParent(EnsureOverlay(btn))
     cnt:SetWidth(0)
@@ -211,7 +192,6 @@ local function RestoreCountStyle(btn)
 
     overriding = true
     -- 不 re-parent：避免 WoW FontString 渲染異常
-    -- overlay 與 btn 同區域（SetAllPoints），直接還原位置
     cnt:SetWidth(0)
     cnt:ClearAllPoints()
     cnt:SetPoint("BOTTOMRIGHT", btn.Icon, "BOTTOMRIGHT", -2, 2)
@@ -234,13 +214,7 @@ end
 -- 安裝所有 hooks
 ------------------------------------------------------------
 local function InstallHooks()
-    -- Hook 每個按鈕的 Duration 和 Count
-    ForEachAuraButton(function(btn)
-        if btn.Duration then HookDuration(btn) end
-        if btn.Count then HookCount(btn) end
-    end)
-
-    -- Hook UpdateGridLayout 以攔截新建的按鈕
+    -- 先掛 UpdateGridLayout 攔截未來新建的按鈕
     for _, container in ipairs({ BuffFrame, DebuffFrame }) do
         if container and container.AuraContainer then
             hooksecurefunc(container.AuraContainer, "UpdateGridLayout", function(self, auras)
@@ -248,21 +222,24 @@ local function InstallHooks()
                 for _, aura in ipairs(auras) do
                     if aura and aura.Icon and not aura.isAuraAnchor then
                         if aura.Duration then HookDuration(aura) end
-                        if aura.Count then HookCount(aura) end
+                        if aura.Count    then HookCount(aura) end
                     end
                 end
             end)
         end
     end
 
-    -- 初始套用
-    local db = GetDB()
-    if db.enabled then
-        ForEachAuraButton(ApplyDurationStyle)
-    end
-    if db.countEnabled then
-        ForEachAuraButton(ApplyCountStyle)
-    end
+    -- 現有按鈕：掛 hook + 立刻套用（單次迭代）
+    ForEachAuraButton(function(btn)
+        if btn.Duration then
+            HookDuration(btn)
+            if db.enabled then ApplyDurationStyle(btn) end
+        end
+        if btn.Count then
+            HookCount(btn)
+            if db.countEnabled then ApplyCountStyle(btn) end
+        end
+    end)
 end
 
 ------------------------------------------------------------
@@ -324,11 +301,18 @@ end
 
 ------------------------------------------------------------
 -- INITIALIZATION
+-- PLAYER_LOGIN：初始化 DB
+-- PLAYER_ENTERING_WORLD：Blizzard 的 BuffFrame 已完成首輪布局後才掛 hook
 ------------------------------------------------------------
 local loader = CreateFrame("Frame")
 loader:RegisterEvent("PLAYER_LOGIN")
-loader:SetScript("OnEvent", function(self)
-    self:UnregisterEvent("PLAYER_LOGIN")
-    GetDB()
-    C_Timer.After(1, InstallHooks)
+loader:RegisterEvent("PLAYER_ENTERING_WORLD")
+loader:SetScript("OnEvent", function(self, event)
+    if event == "PLAYER_LOGIN" then
+        GetDB()
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        self:UnregisterEvent("PLAYER_LOGIN")
+        self:UnregisterEvent("PLAYER_ENTERING_WORLD")
+        InstallHooks()
+    end
 end)
