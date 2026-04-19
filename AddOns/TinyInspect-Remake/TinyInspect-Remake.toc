@@ -1,0 +1,32 @@
+## Interface: 120000, 120001, 110002, 120005
+## Title: TinyInspect-Remake
+## Version: v1.3.1
+## LastUpdated: 2025-04-12
+## Notes: Show ItemLevel For Inspect & Party & Raid & Mouse & Bag & Bank ...
+## Notes-zhCN: 装等观察,装等显示
+## Notes-zhTW: 裝等觀察,裝等顯示
+## Author: 星野绫-罗宁 CN
+## Title-zhTW: |cff0099FF[介面]|r 裝備觀察
+## Notes-zhTW: TinyInspect |n|n觀察其他玩家和自己時會在角色資訊視窗右方列出裝備清單和物品等級，方便查看裝備。|n|n還包含備欄物品等級、背包中物品等級，和滑鼠提示中顯示玩家專精和裝等的功能。|n|n|cffffd200使用方法: |r從Esc>選項>插件>裝備-觀察，進行設定。
+## SavedVariables: TinyInspectRemakeDB
+## SavedVariablesPerCharacter: TinyInspectRemakeCharacterDB
+
+libs\lib.xml
+
+locales\locales.xml
+Options.lua
+
+ItemBorder.lua
+ItemLevel.lua
+
+InspectCore.lua
+
+InspectUnit.lua
+InspectUnitStats.lua
+InspectUnitGemAndEnchant.lua
+InspectUnitSpecialization.lua
+InspectMouse.lua
+##InspectGroupMember.lua
+InspectParty.lua
+InspectRaid.lua
+PluginGreenState.lua
