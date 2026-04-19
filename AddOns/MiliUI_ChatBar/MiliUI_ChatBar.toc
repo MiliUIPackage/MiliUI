@@ -1,4 +1,4 @@
-## Interface: 120000, 120001
+## Interface: 120001, 120005
 ## Title: MiliUI ChatBar
 ## Notes: Quick access chat channel buttons
 ## Title-zhTW: |cffFF9999[聊天]|r 快捷聊天列
@@ -12,7 +12,7 @@
 ## Category-zhCN: 聊天
 ## Category-koKR: 대화
 ## Author: Mili
-## Version: 1.0.4
+## Version: 1.1.0
 ## SavedVariables: MiliUI_ChatBar_DB
 
 embeds.xml

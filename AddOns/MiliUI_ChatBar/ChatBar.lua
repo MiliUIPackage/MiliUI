@@ -8,6 +8,26 @@ local width, height, padding = 25, 8, 5
 local texture = "Interface\\Buttons\\WHITE8X8"
 
 --------
+-- SavedVariables
+--------
+-- Single source of truth for DB defaults. InitDB is idempotent — every
+-- callsite that touches MiliUI_ChatBar_DB should call it first.
+local function InitDB()
+    MiliUI_ChatBar_DB = MiliUI_ChatBar_DB or {}
+    MiliUI_ChatBar_DB.Chatbar = MiliUI_ChatBar_DB.Chatbar or {}
+    local cb = MiliUI_ChatBar_DB.Chatbar
+    if cb.Hidden            == nil then cb.Hidden            = {}           end
+    if cb.CustomColors      == nil then cb.CustomColors      = {}           end
+    if cb.Locked            == nil then cb.Locked            = true         end
+    if cb.Orientation       == nil then cb.Orientation       = "HORIZONTAL" end
+    if cb.DBMPullSeconds    == nil then cb.DBMPullSeconds    = 10           end
+    if cb.SkipReloadConfirm == nil then cb.SkipReloadConfirm = false        end
+    if cb.ButtonWidth       == nil then cb.ButtonWidth       = width        end
+    if cb.ButtonHeight      == nil then cb.ButtonHeight      = height       end
+    if cb.FontSize          == nil then cb.FontSize          = 9            end
+end
+
+--------
 -- Utilities
 --------
 local function CreateSD(parent)
@@ -141,9 +161,11 @@ end
 local buttonList = {}
 
 local UpdateLayout
-local AddButton
+local AddColorKeyButton
+local AddRGBButton
 local UpdateFontSize
 local UpdateButtonSize
+local RefreshChannelList
 
 local function GetButtonWidth()
     return (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.ButtonWidth) or width
@@ -175,79 +197,50 @@ end
 
 
 
-AddButton = function(configKey, ...)
-    local r, g, b, text, labelText, func, order
-    local colorKey
-    local arg1 = select(1, ...)
-    
-    if type(arg1) == "string" and not tonumber(arg1) then
-        colorKey = arg1
-        text = select(2, ...)
-        labelText = select(3, ...)
-        func = select(4, ...)
-        order = select(5, ...)
-        
-        local c = ChatTypeInfo[colorKey] or {r=1, g=1, b=1}
-        r, g, b = c.r, c.g, c.b
-    else
-        r, g, b = select(1, ...), select(2, ...), select(3, ...)
-        text = select(4, ...)
-        labelText = select(5, ...)
-        func = select(6, ...)
-        order = select(7, ...)
-    end
-
-    -- Check for Chattynator color
-    local function GetChattynatorColor(key, cKey)
-        if CHATTYNATOR_CONFIG and CHATTYNATOR_CURRENT_PROFILE and CHATTYNATOR_CONFIG.Profiles then
-             local profile = CHATTYNATOR_CONFIG.Profiles[CHATTYNATOR_CURRENT_PROFILE]
-             if profile and profile.chat_colors then
-                 -- Try Config Key (e.g., CHANNEL1) or Color Key (e.g., CHANNEL1)
-                 local c = profile.chat_colors[key] or (cKey and profile.chat_colors[cKey])
-                 if c then return c.r, c.g, c.b end
-             end
+-- Chattynator integration: if Chattynator is loaded, prefer its chat colors
+-- over Blizzard's ChatTypeInfo. Lookup tries configKey first, then colorKey.
+local function GetChattynatorColor(configKey, colorKey)
+    if CHATTYNATOR_CONFIG and CHATTYNATOR_CURRENT_PROFILE and CHATTYNATOR_CONFIG.Profiles then
+        local profile = CHATTYNATOR_CONFIG.Profiles[CHATTYNATOR_CURRENT_PROFILE]
+        if profile and profile.chat_colors then
+            local c = profile.chat_colors[configKey] or (colorKey and profile.chat_colors[colorKey])
+            if c then return c.r, c.g, c.b end
         end
-        return nil
     end
+    return nil
+end
 
-    local cR, cG, cB = GetChattynatorColor(configKey, colorKey)
-    if cR then r, g, b = cR, cG, cB end
-
-    -- Recycle existing button if found
-    local bu
+-- Find-or-create a button by configKey. Pooled: existing buttons are reused.
+local function CreateOrRecycleButton(configKey)
     for _, btn in ipairs(buttonList) do
-        if btn.configKey == configKey then
-            bu = btn
-            break
-        end
+        if btn.configKey == configKey then return btn end
     end
+    local bu = CreateFrame("Button", nil, Chatbar, "SecureActionButtonTemplate, BackdropTemplate")
+    bu:SetSize(GetButtonWidth(), GetButtonHeight())
+    bu:SetFrameLevel(Chatbar:GetFrameLevel() + 10) -- Above mover
+    PixelIcon(bu, texture, true)
+    CreateSD(bu)
+    bu:RegisterForClicks("AnyUp")
 
-    if not bu then
-        bu = CreateFrame("Button", nil, Chatbar, "SecureActionButtonTemplate, BackdropTemplate")
-        bu:SetSize(GetButtonWidth(), GetButtonHeight())
-        bu:SetFrameLevel(Chatbar:GetFrameLevel() + 10) -- Above mover
-        PixelIcon(bu, texture, true)
-        CreateSD(bu)
-        bu:RegisterForClicks("AnyUp")
-        
-        -- Add overlay fontstring if not exists (only doing this for new buttons or ensure existing has it)
-        local fs = bu:CreateFontString(nil, "OVERLAY")
-        local fSize = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.FontSize) or 9
-        fs:SetFont(STANDARD_TEXT_FONT, fSize, "OUTLINE")
-        fs:SetPoint("BOTTOM", bu, "TOP", 0, 1)
-        bu.fs = fs
-        
-        table.insert(buttonList, bu)
-    end
-    
-    -- Update Properties
+    local fs = bu:CreateFontString(nil, "OVERLAY")
+    local fSize = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.FontSize) or 9
+    fs:SetFont(STANDARD_TEXT_FONT, fSize, "OUTLINE")
+    fs:SetPoint("BOTTOM", bu, "TOP", 0, 1)
+    bu.fs = fs
+
+    table.insert(buttonList, bu)
+    return bu
+end
+
+-- Shared button configuration (color, text, tooltip, click handler)
+local function ConfigureButton(bu, configKey, colorKey, r, g, b, text, labelText, func, order)
     bu.Icon:SetVertexColor(r, g, b)
-    bu.configKey = configKey
-    bu.colorKey = colorKey 
-    bu.order = order or 99 -- Default order
+    bu.configKey   = configKey
+    bu.colorKey    = colorKey
+    bu.order       = order or 99
     bu.tooltipText = text
     if text then AddTooltip(bu, "ANCHOR_TOP") end
-    
+
     if labelText then
         bu.fs:SetText(labelText)
         bu.fs:SetTextColor(r, g, b)
@@ -255,11 +248,31 @@ AddButton = function(configKey, ...)
     else
         bu.fs:Hide()
     end
-    
-    if func then
-        bu:SetScript("OnClick", func)
-    end
-    
+
+    if func then bu:SetScript("OnClick", func) end
+end
+
+-- Add/update a button whose color is derived from a ChatTypeInfo key
+-- (e.g. "SAY", "PARTY", "CHANNEL3"). Chattynator override is honored.
+AddColorKeyButton = function(configKey, colorKey, text, labelText, func, order)
+    local c = ChatTypeInfo[colorKey] or { r = 1, g = 1, b = 1 }
+    local r, g, b = c.r, c.g, c.b
+    local cR, cG, cB = GetChattynatorColor(configKey, colorKey)
+    if cR then r, g, b = cR, cG, cB end
+
+    local bu = CreateOrRecycleButton(configKey)
+    ConfigureButton(bu, configKey, colorKey, r, g, b, text, labelText, func, order)
+    return bu
+end
+
+-- Add/update a button with an explicit RGB triple (no ChatTypeInfo lookup).
+-- Chattynator override still applies by configKey.
+AddRGBButton = function(configKey, r, g, b, text, labelText, func, order)
+    local cR, cG, cB = GetChattynatorColor(configKey, nil)
+    if cR then r, g, b = cR, cG, cB end
+
+    local bu = CreateOrRecycleButton(configKey)
+    ConfigureButton(bu, configKey, nil, r, g, b, text, labelText, func, order)
     return bu
 end
 
@@ -279,7 +292,7 @@ end
 --------
 
 -- SAY / YELL
-AddButton("SAY", "SAY", SAY.."/"..YELL, L["SHORT_SAY"], function(_, btn)
+AddColorKeyButton("SAY", "SAY", SAY.."/"..YELL, L["SHORT_SAY"], function(_, btn)
     if btn == "RightButton" then
         OpenChat("/y ")
     else
@@ -288,7 +301,7 @@ AddButton("SAY", "SAY", SAY.."/"..YELL, L["SHORT_SAY"], function(_, btn)
 end, 10)
 
 -- WHISPER
-AddButton("WHISPER", "WHISPER", WHISPER, L["SHORT_WHISPER"], function(_, btn)
+AddColorKeyButton("WHISPER", "WHISPER", WHISPER, L["SHORT_WHISPER"], function(_, btn)
     local chatFrame = SELECTED_DOCK_FRAME or DEFAULT_CHAT_FRAME
     if btn == "RightButton" then
         ChatFrame_ReplyTell(chatFrame)
@@ -303,10 +316,10 @@ AddButton("WHISPER", "WHISPER", WHISPER, L["SHORT_WHISPER"], function(_, btn)
 end, 11)
 
 -- PARTY
-AddButton("PARTY", "PARTY", PARTY, L["SHORT_PARTY"], function() OpenChat("/p ") end, 12)
+AddColorKeyButton("PARTY", "PARTY", PARTY, L["SHORT_PARTY"], function() OpenChat("/p ") end, 12)
 
 -- INSTANCE / RAID
-AddButton("INSTANCE", "INSTANCE_CHAT", INSTANCE.."/"..RAID, L["SHORT_RAID"], function()
+AddColorKeyButton("INSTANCE", "INSTANCE_CHAT", INSTANCE.."/"..RAID, L["SHORT_RAID"], function()
     if IsPartyLFG() or IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
         OpenChat("/i ")
     else
@@ -315,7 +328,7 @@ AddButton("INSTANCE", "INSTANCE_CHAT", INSTANCE.."/"..RAID, L["SHORT_RAID"], fun
 end, 13)
 
 -- GUILD / OFFICER
-AddButton("GUILD", "GUILD", GUILD.."/"..OFFICER, L["SHORT_GUILD"], function(_, btn)
+AddColorKeyButton("GUILD", "GUILD", GUILD.."/"..OFFICER, L["SHORT_GUILD"], function(_, btn)
     if btn == "RightButton" and C_GuildInfo.CanEditOfficerNote() then -- Approximate check for officer
         OpenChat("/o ")
     else
@@ -341,66 +354,55 @@ end
 
 -- DYNAMIC CHANNELS UPDATE
 local function UpdateChannelButtons()
-    -- Mark all channel buttons as hidden initially (soft hide logic)
-    -- We need a way to identify channel buttons. We use configKey starting with "CHANNEL"
+    -- Track channels present in this refresh; anything not in this set
+    -- gets hidden (we don't remove the frame, just keep it pooled).
     local activeChannels = {}
-    
-    -- Debug Print
-    local debugList = {}
-    
+
     -- Use Display Info (UI List) instead of raw Channel List
     local num = GetNumDisplayChannels()
     for i = 1, num do
         local name, header, collapsed, channelNumber, count, active, category, channelType = GetChannelDisplayInfo(i)
-        
+
         if not header and name and channelNumber then
-             table.insert(debugList, name.."("..channelNumber..")")
-             
-             local label = GetFirstChar(name)
-             local key = "CHANNEL"..channelNumber
-             activeChannels[key] = true
-             
-             -- Add or Update Button (Order 20+) 
-             -- UI index 'i' determines sort order
-             local order = 20 + i 
-             local btn = AddButton(key, key, name, label, function(_, btn)
-                  OpenChat("/"..channelNumber.." ")
-             end, order)
-             
-             -- Ensure visibility if not hidden by DB
-             if MiliUI_ChatBar_DB.Chatbar.Hidden[key] then
-                 if not InCombatLockdown() then btn:Hide() end
-             else
-                 if not InCombatLockdown() then btn:Show() end
-             end
+            local label = GetFirstChar(name)
+            local key = "CHANNEL"..channelNumber
+            activeChannels[key] = true
+
+            -- UI index 'i' determines sort order (20+)
+            local order = 20 + i
+            local btn = AddColorKeyButton(key, key, name, label, function(_, btn)
+                OpenChat("/"..channelNumber.." ")
+            end, order)
+
+            -- Ensure visibility if not hidden by DB
+            if MiliUI_ChatBar_DB.Chatbar.Hidden[key] then
+                if not InCombatLockdown() then btn:Hide() end
+            else
+                if not InCombatLockdown() then btn:Show() end
+            end
         end
     end
-    -- print("|cff00ffffMiliUI Chatbar Debug: Found Channels:|r", table.concat(debugList, ", "))
-    
-    -- Cleanup stale channels
+
+    -- Hide stale channel buttons (user left/channel removed)
     for _, bu in ipairs(buttonList) do
         if string.find(bu.configKey, "^CHANNEL") then
-             if not activeChannels[bu.configKey] then
-                 if not InCombatLockdown() then bu:Hide() end
-                 -- Note: We don't remove from buttonList to preserve frame, just hide
-             end
+            if not activeChannels[bu.configKey] then
+                if not InCombatLockdown() then bu:Hide() end
+            end
         end
     end
-    
+
     UpdateLayout()
 end
 
--- Initial Channel Load
--- UpdateChannelButtons() -- Delayed to Events (PLAYER_LOGIN)
-
 -- ROLL
-local roll = AddButton("ROLL", 0.8, 1, 0.6, ROLL, L["SHORT_ROLL"], nil, 50)
+local roll = AddRGBButton("ROLL", 0.8, 1, 0.6, ROLL, L["SHORT_ROLL"], nil, 50)
 roll:SetAttribute("type", "macro")
 roll:SetAttribute("macrotext", "/roll")
 roll:RegisterForClicks("AnyUp", "AnyDown")
 
 -- DBM (Left: Pull, Right: Ready Check)
-local dbm = AddButton("DBM", 0.8, 0.568, 0.937, L["TIP_DBM"], L["SHORT_DBM"], nil, 51)
+local dbm = AddRGBButton("DBM", 0.8, 0.568, 0.937, L["TIP_DBM"], L["SHORT_DBM"], nil, 51)
 dbm:SetAttribute("type", "macro")
 dbm:SetAttribute("macrotext", "/readycheck")
 dbm:SetAttribute("type2", "macro")
@@ -419,12 +421,12 @@ local function UpdateDBMButton()
     dbm.tooltipText = string.format(L["TIP_DBM_FORMAT"], seconds)
 end
 
--- Expose globally for settings panel
-_G.MiliUI_UpdateDBMButton = UpdateDBMButton
+-- Exposed on addon namespace for cross-section use (settings panel)
+ns.UpdateDBMButton = UpdateDBMButton
 
 
 -- Reset Instance
-local reset = AddButton("RESET", "PARTY", L["TIP_RESET"], L["SHORT_RESET"], function(_, btn)
+local reset = AddColorKeyButton("RESET", "PARTY", L["TIP_RESET"], L["SHORT_RESET"], function(_, btn)
     if btn == "RightButton" then
         if MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm then
             ReloadUI()
@@ -456,8 +458,6 @@ UpdateLayout = function()
     local orientation = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.Orientation) or "HORIZONTAL"
     local bw = GetButtonWidth()
     local bh = GetButtonHeight()
-    -- Layout Logic
-    -- Layout Logic
     local endPadding = 10 -- Main axis padding
     local sidePadding = 5 -- Cross axis padding
 
@@ -557,7 +557,6 @@ local function CreateContextMenu()
     contextMenu:SetFrameStrata("DIALOG")
     CreateSD(contextMenu)
     contextMenu:SetBackdropColor(0, 0, 0, 0.9)
-    contextMenu:SetBackdropColor(0, 0, 0, 0.9)
     contextMenu:Hide()
     
     local close = CreateFrame("Button", nil, contextMenu, "UIPanelCloseButton")
@@ -606,9 +605,7 @@ local function CreateContextMenu()
     orientBtn:SetPoint("TOP", resetBtn, "BOTTOM", 0, -5)
 
     local menuBtn = CreateMenuButton(L["CONTEXT_OPEN_SETTINGS"], function()
-        if _G.MiliUI_OpenChatbarSettings then
-            _G.MiliUI_OpenChatbarSettings()
-        end
+        if ns.OpenSettings then ns.OpenSettings() end
     end)
     menuBtn:SetPoint("TOP", orientBtn, "BOTTOM", 0, -5)
 end
@@ -681,17 +678,8 @@ loader:SetScript("OnEvent", function(self, event)
         return
     end
 
-    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
-    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
-    if not MiliUI_ChatBar_DB.Chatbar.Hidden then MiliUI_ChatBar_DB.Chatbar.Hidden = {} end
-    if not MiliUI_ChatBar_DB.Chatbar.CustomColors then MiliUI_ChatBar_DB.Chatbar.CustomColors = {} end
-    if MiliUI_ChatBar_DB.Chatbar.Locked == nil then MiliUI_ChatBar_DB.Chatbar.Locked = true end
-    if not MiliUI_ChatBar_DB.Chatbar.Orientation then MiliUI_ChatBar_DB.Chatbar.Orientation = "HORIZONTAL" end
-    if not MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds then MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds = 10 end
-    if MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm == nil then MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm = false end
-    if not MiliUI_ChatBar_DB.Chatbar.ButtonWidth then MiliUI_ChatBar_DB.Chatbar.ButtonWidth = width end
-    if not MiliUI_ChatBar_DB.Chatbar.ButtonHeight then MiliUI_ChatBar_DB.Chatbar.ButtonHeight = height end
-    
+    InitDB()
+
     -- Apply lock state (respects Edit Mode)
     UpdateMoverState()
     
@@ -735,7 +723,10 @@ loader:SetScript("OnEvent", function(self, event)
     -- Update DBM button with saved pull seconds
     UpdateDBMButton()
 
-
+    -- Delayed final refresh to catch any channel buttons added late
+    C_Timer.After(2, function()
+        if RefreshChannelList then RefreshChannelList() end
+    end)
 end)
 
 -- Interface Options Panel Integration (Subcategories like Auctionator)
@@ -821,8 +812,7 @@ local function CreateOptionButton(parent, text, func, anchor, xOff, yOff)
 end
 
 local lockBtn = CreateOptionButton(generalPanel, L["LOCK_UNLOCK"], function()
-    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
-    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
+    InitDB()
     MiliUI_ChatBar_DB.Chatbar.Locked = not MiliUI_ChatBar_DB.Chatbar.Locked
     UpdateMoverState()
     if MiliUI_ChatBar_DB.Chatbar.Locked then
@@ -848,8 +838,7 @@ resetDesc:SetPoint("LEFT", resetBtn, "RIGHT", 10, 0)
 resetDesc:SetText(L["RESET_POSITION_DESC"])
 
 local orientBtn = CreateOptionButton(generalPanel, L["TOGGLE_ORIENTATION"], function()
-    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
-    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
+    InitDB()
     if MiliUI_ChatBar_DB.Chatbar.Orientation == "VERTICAL" then
         MiliUI_ChatBar_DB.Chatbar.Orientation = "HORIZONTAL"
         print(L["MSG_HORIZONTAL"])
@@ -885,8 +874,7 @@ fontSlider:SetScript("OnValueChanged", function(self, value)
     local val = math.floor(value)
     self.Text:SetText(L["FONT_SIZE"] .. ": " .. val)
     
-    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
-    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
+    InitDB()
     
     if MiliUI_ChatBar_DB.Chatbar.FontSize ~= val then
         MiliUI_ChatBar_DB.Chatbar.FontSize = val
@@ -922,8 +910,7 @@ widthSlider:SetScript("OnValueChanged", function(self, value)
     local val = math.floor(value)
     self.Text:SetText(L["BUTTON_WIDTH"] .. ": " .. val)
     
-    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
-    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
+    InitDB()
     
     if MiliUI_ChatBar_DB.Chatbar.ButtonWidth ~= val then
         MiliUI_ChatBar_DB.Chatbar.ButtonWidth = val
@@ -957,8 +944,7 @@ heightSlider:SetScript("OnValueChanged", function(self, value)
     local val = math.floor(value)
     self.Text:SetText(L["BUTTON_HEIGHT"] .. ": " .. val)
     
-    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
-    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
+    InitDB()
     
     if MiliUI_ChatBar_DB.Chatbar.ButtonHeight ~= val then
         MiliUI_ChatBar_DB.Chatbar.ButtonHeight = val
@@ -1056,14 +1042,11 @@ dbmSlider:SetScript("OnValueChanged", function(self, value)
     local val = math.floor(value)
     self.Text:SetText(L["DBM_PULL_SECONDS"] .. ": " .. val)
     
-    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
-    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
+    InitDB()
     
     if MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds ~= val then
         MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds = val
-        if _G.MiliUI_UpdateDBMButton then
-            _G.MiliUI_UpdateDBMButton()
-        end
+        if ns.UpdateDBMButton then ns.UpdateDBMButton() end
     end
 end)
 
@@ -1084,8 +1067,7 @@ skipReloadCheck:SetScript("OnShow", function(self)
 end)
 
 skipReloadCheck:SetScript("OnClick", function(self)
-    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
-    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
+    InitDB()
     MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm = self:GetChecked() and true or false
 end)
 
@@ -1126,13 +1108,9 @@ local function ShowColorPicker(r, g, b, callback)
 end
 
 -- Refresh channel checkboxes
-local function RefreshChannelList()
-    -- Initialize DB if needed (don't return early)
-    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
-    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
-    if not MiliUI_ChatBar_DB.Chatbar.Hidden then MiliUI_ChatBar_DB.Chatbar.Hidden = {} end
-    if not MiliUI_ChatBar_DB.Chatbar.CustomColors then MiliUI_ChatBar_DB.Chatbar.CustomColors = {} end
-    
+RefreshChannelList = function()
+    InitDB()
+
     local lastItem
     for i, bu in ipairs(buttonList) do
         local ck = channelContainer.checks[i]
@@ -1211,8 +1189,7 @@ local function RefreshChannelList()
                     -- Update Button
                     bu.Icon:SetVertexColor(r, g, b)
                     if bu.fs then bu.fs:SetTextColor(r, g, b) end
-                    -- Save to DB
-                    if not MiliUI_ChatBar_DB.Chatbar.CustomColors then MiliUI_ChatBar_DB.Chatbar.CustomColors = {} end
+                    -- Save to DB (InitDB guarantees CustomColors exists)
                     MiliUI_ChatBar_DB.Chatbar.CustomColors[bu.configKey] = {r = r, g = g, b = b}
                 end)
             end)
@@ -1254,12 +1231,8 @@ end
 
 -- Refresh when panel is shown
 channelPanel:SetScript("OnShow", function(self)
-    -- Ensure DB is initialized
-    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
-    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
-    if not MiliUI_ChatBar_DB.Chatbar.Hidden then MiliUI_ChatBar_DB.Chatbar.Hidden = {} end
-    if not MiliUI_ChatBar_DB.Chatbar.CustomColors then MiliUI_ChatBar_DB.Chatbar.CustomColors = {} end
-    
+    InitDB()
+
     -- Force show container
     channelContainer:Show()
     
@@ -1298,30 +1271,9 @@ end
 -- Pre-create checkboxes at load time (not waiting for panel to show)
 -- This ensures checkboxes exist before panel is ever opened
 C_Timer.After(0.5, function()
-    -- Initialize DB
-    if not MiliUI_ChatBar_DB then MiliUI_ChatBar_DB = {} end
-    if not MiliUI_ChatBar_DB.Chatbar then MiliUI_ChatBar_DB.Chatbar = {} end
-    if not MiliUI_ChatBar_DB.Chatbar.Hidden then MiliUI_ChatBar_DB.Chatbar.Hidden = {} end
-    if not MiliUI_ChatBar_DB.Chatbar.Hidden then MiliUI_ChatBar_DB.Chatbar.Hidden = {} end
-    if not MiliUI_ChatBar_DB.Chatbar.CustomColors then MiliUI_ChatBar_DB.Chatbar.CustomColors = {} end
-    if not MiliUI_ChatBar_DB.Chatbar.FontSize then MiliUI_ChatBar_DB.Chatbar.FontSize = 9 end
-    if not MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds then MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds = 10 end
-    if MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm == nil then MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm = false end
-    if not MiliUI_ChatBar_DB.Chatbar.ButtonWidth then MiliUI_ChatBar_DB.Chatbar.ButtonWidth = width end
-    if not MiliUI_ChatBar_DB.Chatbar.ButtonHeight then MiliUI_ChatBar_DB.Chatbar.ButtonHeight = height end
-    
-    -- Pre-create checkboxes
+    InitDB()
     RefreshChannelList()
 end)
 
--- Also refresh after PLAYER_LOGIN to catch any channel buttons added later
-local channelSettingsLoader = CreateFrame("Frame")
-channelSettingsLoader:RegisterEvent("PLAYER_LOGIN")
-channelSettingsLoader:SetScript("OnEvent", function()
-    C_Timer.After(2, function()
-        RefreshChannelList()
-    end)
-end)
-
--- Export open function for context menu
-_G.MiliUI_OpenChatbarSettings = OpenChatbarSettings
+-- Exposed on addon namespace for cross-section use (context menu)
+ns.OpenSettings = OpenChatbarSettings
