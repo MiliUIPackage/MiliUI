@@ -50,6 +50,7 @@ L["Overlay.NoES"] = "沒有\n大地盾"
 L["Overlay.NoSource"] = "沒有\n魔源"
 L["Overlay.NoScales"] = "沒有\n鱗片"
 L["Overlay.NoLink"] = "沒有\n共生"
+L["Overlay.NoTimeless"] = "沒有\n永恆"
 L["Overlay.NoAttune"] = "沒有\n同調"
 L["Overlay.NoFamiliar"] = "沒有\n魔寵"
 L["Overlay.DropWell"] = "置放\n靈魂井"
@@ -134,6 +135,7 @@ L["Buff.BlisteringScales"] = "極熾鱗片"
 L["Buff.EarthShield"] = "大地之盾"
 L["Buff.SourceOfMagic"] = "魔力之源"
 L["Buff.SymbioticRelationship"] = "共生關係"
+L["Buff.Timelessness"] = "永恆不朽"
 -- Self
 L["Buff.ArcaneFamiliar"] = "秘法魔寵"
 L["Buff.Attunement"] = "黑曜同調"
@@ -274,6 +276,13 @@ L["Options.GlobalDefaults"] = "全局預設值"
 L["Options.GlobalDefaults.Note"] = "（套用於所有類別，除非被自定義外觀覆蓋）"
 L["Options.Default"] = "預設"
 L["Options.Font"] = "字體"
+L["Options.TextOutline"] = "外框樣式"
+L["Options.TextOutline.None"] = "無"
+L["Options.TextOutline.Outline"] = "外框"
+L["Options.TextOutline.Thick"] = "粗外框"
+L["Options.TextOutline.Monochrome"] = "單色"
+L["Options.TextOutline.OutlineMono"] = "外框 + 單色"
+L["Options.TextOutline.ThickMono"] = "粗外框 + 單色"
 
 -- ============================================================================
 -- OPTIONS: GLOW SETTINGS
@@ -296,6 +305,9 @@ L["Options.UseCustomColor"] = "使用自定義顏色"
 L["Options.UseCustomColor.Desc"] =
     "啟用後會降低觸發發光的飽和度並更改顏色。\n可能看起來不如預設觸發發光清晰。"
 L["Options.ExpirationReminder"] = "過期提示"
+L["Options.PreKeyThreshold"] = "鑰石前閾值"
+L["Options.PreKeyThreshold.Desc"] =
+    "當進入傳奇地下城(M0)於插入鑰石之前，使用較長的過期閾值。\n有助於確保在鑰石插入之前您的增益效果是新鮮的。"
 
 -- Glow params
 L["Options.Glow.Type"] = "類型:"
@@ -394,12 +406,16 @@ L["Options.ChatRequests"] = "聊天請求"
 L["Options.RequestBuffInChat"] = "在聊天中請求缺失的增益"
 L["Options.RequestBuffInChat.Desc"] =
     "點擊您的職業無法提供的缺失增益，並在聊天中請求它。自動偵測頻道（副本/團隊/隊伍/說）。每個增益有30秒冷卻時間。"
+L["Options.CustomizeChatMessages"] = "自訂訊息"
+L["Options.ChatRequestModal.Title"] = "聊天請求訊息"
+L["Options.ChatRequestModal.Desc"] = "自訂每個增益的訊息傳送。保持空白以使用預設值。"
+L["Options.ChatRequestModal.ResetAll"] = "重置全部"
 -- Chat request messages (keyed by buff.key, sent as-is via SendChatMessage)
 -- EU/US translators: leave untranslated so chat messages stay in L.
 -- Asian translators: translate these so chat messages match your locale.
 L["ChatRequest.intellect"] = "請補上祕法智力的增益"
 L["ChatRequest.attackPower"] = "請補上戰鬥怒吼的增益"
-L["ChatRequest.bronze"] = "請補上青銅龍的祝福的增益"
+L["ChatRequest.bronze"] = "請補上青銅龍的祝福增益"
 L["ChatRequest.versatility"] = "請補上野性印記的增益"
 L["ChatRequest.stamina"] = "請補上真言術：韌的增益"
 L["ChatRequest.skyfury"] = "請補上天怒增益"
@@ -480,6 +496,18 @@ L["Options.RuneMainHand"] = "主手"
 L["Options.RuneOffHand"] = "副手"
 L["Options.RuneTwoHanded"] = "雙手"
 L["Options.RuneDualWield"] = "雙持"
+
+-- ============================================================================
+-- OPTIONS: ROGUE POISON PREFERENCES
+-- ============================================================================
+L["Options.RoguePoisonPreferences"] = "盜賊毒藥偏好"
+L["Options.RoguePoisonNote"] =
+    "選擇要應用的毒藥及其優先順序（頂部=最高）。停用的毒藥永遠不會被施放，也不會觸發提醒。"
+L["Options.PoisonLethal"] = "致命"
+L["Options.PoisonNonLethal"] = "非致命"
+L["Options.PoisonMoveUp"] = "優先級上升"
+L["Options.PoisonMoveDown"] = "優先級下降"
+L["Options.PoisonReset"] = "重置回預設"
 
 -- ============================================================================
 -- OPTIONS: BUFF SETTINGS GEAR ICONS
@@ -643,8 +671,9 @@ L["CustomBuff.Name"] = "名稱:"
 L["CustomBuff.Text"] = "文字:"
 L["CustomBuff.LineBreakHint"] = "（使用 \\n 換行）"
 L["CustomBuff.Appearance"] = "外觀"
-L["CustomBuff.Conditions"] = "條件"
-L["CustomBuff.ShowIn"] = "顯示位置"
+L["CustomBuff.BuffTracking"] = "增益追蹤"
+L["CustomBuff.Requirements"] = "請求"
+L["CustomBuff.ShowIn"] = "顯示在"
 L["CustomBuff.ClickAction"] = "點擊動作"
 L["CustomBuff.SettingsMovedNote"] = "顯示條件和準備確認設置已移至每個增益的編輯選單中。"
 
@@ -677,6 +706,10 @@ L["CustomBuff.RequireItem.EquippedBags"] = "已裝備/背包中"
 L["CustomBuff.RequireItem.Equipped"] = "已裝備"
 L["CustomBuff.RequireItem.InBags"] = "背包中"
 L["CustomBuff.RequireItem.Hint"] = "物品ID — 缺失時隱藏"
+L["CustomBuff.ItemCooldown"] = "冷卻:"
+L["CustomBuff.ItemCooldown.Any"] = "任何"
+L["CustomBuff.ItemCooldown.OffCooldown"] = "關閉冷卻"
+L["CustomBuff.ItemCooldown.OnCooldown"] = "開啟冷卻"
 
 -- Bar glow options
 L["CustomBuff.BarGlow.WhenGlowing"] = "發光時檢測"

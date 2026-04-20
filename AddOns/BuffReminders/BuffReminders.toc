@@ -1,8 +1,8 @@
-## Interface: 120001
+## Interface: 120001, 120005
 ## Title: BuffReminders
 ## Notes: Track missing buffs at a glance
 ## Author: zerbi
-## Version: v5.3.0
+## Version: v5.4.0
 ## SavedVariables: BuffRemindersDB
 ## X-Curse-Project-ID: 1441094
 ## X-Wago-ID: qGYZZjNg
@@ -45,4 +45,23 @@ Display\BuffReminders.lua
 Core\ImportExport.lua
 Display\Movers.lua
 Display\SecureButtons.lua
+Options\Context.lua
+Options\Modals\Glow.lua
+Options\Modals\SoundAlert.lua
+Options\Modals\CustomBuff.lua
+Options\Modals\RoguePoison.lua
+Options\Modals\Runeforge.lua
+Options\Modals\Healthstone.lua
+Options\Modals\Soulstone.lua
+Options\Modals\PetPassive.lua
+Options\Modals\PetSummon.lua
+Options\Modals\DelveFood.lua
+Options\Modals\Bronze.lua
+Options\Modals\ChatRequest.lua
+Options\Tabs\DisplayBehavior_Category.lua
+Options\Tabs\DisplayBehavior.lua
+Options\Tabs\Buffs.lua
+Options\Tabs\Sounds.lua
+Options\Tabs\Settings.lua
+Options\Tabs\Profiles.lua
 Options\Options.lua

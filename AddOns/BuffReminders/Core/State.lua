@@ -603,22 +603,33 @@ local function GetUnitSpellIDs(buffKey, spellIDs, class)
     return spellIDs
 end
 
----Scan player-cast buffs on a unit looking for a specific spellID.
+---Scan player-cast buffs on a unit looking for a spellID (or any of a list).
 ---Used as a fallback when GetUnitAuraBySpellID returns another player's instance
 ---(e.g., two Aug Evokers both casting Blistering Scales on the same tank).
 ---The "HELPFUL|PLAYER" filter narrows iteration to only the player's own buffs.
 ---@param unit string
----@param spellID number
+---@param spellIDs SpellID
 ---@return boolean found
 ---@return number? remainingTime
-local function UnitHasBuffFromPlayer(unit, spellID)
+local function UnitHasBuffFromPlayer(unit, spellIDs)
+    local singleId = type(spellIDs) == "number" and spellIDs or nil ---@type number?
     local i = 1
     local auraData = C_UnitAuras.GetAuraDataByIndex(unit, i, "HELPFUL|PLAYER")
     while auraData do
         -- spellId is a tainted secret value for non-whitelisted auras in restricted contexts
         -- (combat, encounters, M+). pcall avoids the error; tainted auras simply don't match.
         local ok, match = pcall(function()
-            return auraData.spellId == spellID
+            local sid = auraData.spellId
+            if singleId then
+                return sid == singleId
+            end
+            local idList = spellIDs --[[@as number[] ]]
+            for _, id in ipairs(idList) do
+                if sid == id then
+                    return true
+                end
+            end
+            return false
         end)
         if ok and match then
             local remaining
@@ -905,10 +916,11 @@ end
 ---@param spellIDs SpellID
 ---@param buffKey? string Used for class benefit filtering
 ---@param playerOnly? boolean Only check the player, not the group
+---@param playersOnly? boolean Exclude NPCs from the count (e.g. buffs NPCs provide themselves)
 ---@return number missing
 ---@return number total
 ---@return number? minRemaining
-local function CountMissingBuff(spellIDs, buffKey, playerOnly)
+local function CountMissingBuff(spellIDs, buffKey, playerOnly, playersOnly)
     local missing = 0
     local total = 0
     local minRemaining = nil
@@ -930,13 +942,14 @@ local function CountMissingBuff(spellIDs, buffKey, playerOnly)
         return missing, total, minRemaining
     end
 
+    local countNPCs = includeNPCsInCounting and not inCombat and not playersOnly
     for _, data in ipairs(currentValidUnits) do
         -- Skip NPCs unless in whitelisted content. During combat, also skip NPCs here:
         -- NPC-cast raid buff spell IDs (e.g., 432661) aren't combat-whitelisted, so
         -- UnitHasBuff returns nil causing false missing counts. Targeted buffs (HasPresenceBuff,
         -- IsPlayerBuffActive) use player-cast spell IDs that ARE whitelisted, so they
         -- still include NPCs via the unchanged includeNPCsInCounting check.
-        if data.isPlayer or (includeNPCsInCounting and not inCombat) then
+        if data.isPlayer or countNPCs then
             if UnitBenefitsFromBuff(specBeneficiaries, beneficiaries, allySpecCache[data.name], data.class) then
                 total = total + 1
                 local hasBuff, remaining = UnitHasBuff(data.unit, GetUnitSpellIDs(buffKey, spellIDs, data.class))
@@ -958,11 +971,16 @@ end
 ---Uses currentValidUnits cache built at start of refresh cycle
 ---@param spellIDs SpellID
 ---@param playerOnly? boolean Only check the player, not the group
+---@param playerCastOnly? boolean Count only auras cast by the player (e.g. castOnOthers for the caster class)
 ---@return boolean hasBuff
 ---@return number? minRemaining
----@return table? targetEntry First non-player unit entry that has the buff (for castOnOthers tracking)
-local function HasPresenceBuff(spellIDs, playerOnly)
+---@return table? targetEntry First non-player unit entry that has the buff
+local function HasPresenceBuff(spellIDs, playerOnly, playerCastOnly)
     if playerOnly or #currentValidUnits <= 1 then
+        if playerCastOnly then
+            local hasBuff, remaining = UnitHasBuffFromPlayer("player", spellIDs)
+            return hasBuff, remaining, nil
+        end
         local hasBuff, remaining = UnitHasBuff("player", spellIDs)
         return hasBuff, remaining, nil
     end
@@ -974,7 +992,12 @@ local function HasPresenceBuff(spellIDs, playerOnly)
     for _, data in ipairs(currentValidUnits) do
         -- Skip NPCs in content where they can't receive player buffs
         if data.isPlayer or includeNPCsInCounting then
-            local hasBuff, remaining = UnitHasBuff(data.unit, spellIDs)
+            local hasBuff, remaining, sourceUnit = UnitHasBuff(data.unit, spellIDs)
+            -- When restricted to player-cast auras, another player's cast may mask ours via
+            -- GetUnitAuraBySpellID. Fall back to a HELPFUL|PLAYER scan to find our own.
+            if playerCastOnly and hasBuff and not (sourceUnit and UnitIsUnit(sourceUnit, "player")) then
+                hasBuff, remaining = UnitHasBuffFromPlayer(data.unit, spellIDs)
+            end
             if hasBuff then
                 found = true
                 if not targetEntry and not UnitIsUnit(data.unit, "player") then
@@ -1546,6 +1569,15 @@ local function GetCategoryGlowSettings(cat)
     local expiringGlow = BR.Config.GetCategorySetting(cat, "showExpirationGlow") ~= false
     local missingGlow = BR.Config.GetCategorySetting(cat, "showMissingGlow") ~= false
     local threshold = (BR.Config.GetCategorySetting(cat, "expirationThreshold") or 15) * 60
+    -- In M0 dungeons (before inserting a keystone), use pre-key threshold if higher
+    local defs = BR.profile and BR.profile.defaults
+    local preKey = defs and defs.preKeyThreshold or 0
+    if preKey > 0 and GetCurrentContentType() == "dungeon" and GetCurrentDifficultyKey() == "mythic" then
+        local preKeySec = preKey * 60
+        if preKeySec > threshold then
+            threshold = preKeySec
+        end
+    end
     return expiringGlow, missingGlow, threshold
 end
 
@@ -1666,7 +1698,8 @@ function BuffState.Refresh(refreshMode)
             and raidVisible
             and scope.show
         then
-            local missing, total, minRemaining = CountMissingBuff(buff.spellID, buff.key, scope.playerOnly)
+            local missing, total, minRemaining =
+                CountMissingBuff(buff.spellID, buff.key, scope.playerOnly, buff.playersOnly)
 
             if missing > 0 then
                 entry.visible = true
@@ -1818,7 +1851,11 @@ function BuffState.Refresh(refreshMode)
                             SetEntryText(entry, buff.overlayText, presMissGlow)
                         end
                     else
-                        local hasBuff, minRemaining, targetEntry = HasPresenceBuff(buff.spellID, scope.playerOnly)
+                        -- castOnOthers: only count our own cast for the caster class so we get
+                        -- the right target (and don't hide the icon because another caster covered it).
+                        local isOwnCaster = buff.castOnOthers and buff.class == playerClass
+                        local hasBuff, minRemaining, targetEntry =
+                            HasPresenceBuff(buff.spellID, scope.playerOnly, isOwnCaster)
                         -- customCheck gates display (e.g., soulstone CD tracking for warlocks)
                         local customOk = true
                         if not hasBuff and buff.customCheck then
@@ -1833,7 +1870,7 @@ function BuffState.Refresh(refreshMode)
                             TrySetEntryExpiring(entry, minRemaining, presThreshold, presExGlow)
                         end
                         -- Track who has castOnOthers buffs for sticky click-to-cast targeting
-                        if buff.castOnOthers and hasBuff and not inCombat then
+                        if isOwnCaster and hasBuff and not inCombat then
                             if targetEntry and targetEntry.name then
                                 local existing = lastTargets[buff.key]
                                 if existing then
@@ -2041,7 +2078,7 @@ function BuffState.Refresh(refreshMode)
 
     -- Process custom buffs (user-defined, flows through ShouldShowSelfBuff like self/pet)
     if not groupOnly then
-        local customExGlow, customMissGlow, customThreshold = GetCategoryGlowSettings("custom")
+        local _, customMissGlow = GetCategoryGlowSettings("custom")
         local skipSpellKnown = SKIP_SPELL_KNOWN_CATEGORIES["custom"]
         for i, buff in ipairs(CustomBuffs) do
             local entry = GetOrCreateEntry(buff.key, "custom", i)
@@ -2074,6 +2111,18 @@ function BuffState.Refresh(refreshMode)
                 if gateItemID and not HasItemByMode(gateItemID, buff.requireItemMode) then
                     shouldProcess = false
                 end
+                if shouldProcess and gateItemID and buff.itemCooldownCondition then
+                    local ok, _, duration = pcall(C_Item.GetItemCooldown, gateItemID)
+                    if ok and duration then
+                        local isReady = duration == 0
+                        if
+                            (buff.itemCooldownCondition == "offCooldown" and not isReady)
+                            or (buff.itemCooldownCondition == "onCooldown" and isReady)
+                        then
+                            shouldProcess = false
+                        end
+                    end
+                end
             end
 
             if shouldProcess and useGlowFallback then
@@ -2102,15 +2151,16 @@ function BuffState.Refresh(refreshMode)
                 if show then
                     SetEntryText(entry, buff.overlayText, customMissGlow)
                 elseif
-                    not show
-                    and shouldShow ~= nil
+                    shouldShow == false
+                    and buff.expirationThreshold
+                    and buff.expirationThreshold > 0
                     and not buff.enchantID
                     and not hideExpiring
                     and (buff.buffIdOverride or buff.spellID)
                 then
-                    -- Buff is present (not missing), check if expiring
+                    -- Buff is present (not missing), check if expiring (per-buff threshold)
                     local _, remaining = UnitHasBuff("player", buff.buffIdOverride or buff.spellID)
-                    TrySetEntryExpiring(entry, remaining, customThreshold, customExGlow)
+                    TrySetEntryExpiring(entry, remaining, buff.expirationThreshold * 60, true)
                 end
             end
         end

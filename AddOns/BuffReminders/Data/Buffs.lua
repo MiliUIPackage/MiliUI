@@ -49,6 +49,7 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field name string
 ---@field class ClassName
 ---@field levelRequired? number
+---@field playersOnly? boolean Exclude NPCs from the count (e.g. buffs NPCs provide themselves)
 
 ---@class PresenceBuff
 ---@field spellID SpellID
@@ -157,6 +158,8 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field castMacro? string         -- Raw macro text for click action
 ---@field requireItemID? number    -- Only show if this item is owned/equipped/in bags (see requireItemMode)
 ---@field requireItemMode? "owned"|"equipped"|"bags" -- How to check requireItemID: "owned" (default) = bags or equipped, "equipped" = equipped only, "bags" = bags only
+---@field itemCooldownCondition? "offCooldown"|"onCooldown" -- Gate visibility on item cooldown state (nil = ignore cooldown)
+---@field expirationThreshold? number  -- Per-buff expiration threshold in minutes (0 = off)
 ---@field loadConditions? LoadConditions  -- Per-buff content visibility (nil = show everywhere)
 
 ---Check if the player is NOT an Earthen dwarf (they have permanent Well Fed from Ingest Minerals)
@@ -209,9 +212,22 @@ end
 
 -- Rogue poison state: unified cache for customCheck, icon, clickMacro, and expiration.
 -- Scans all poisons once per frame and stores active/missing/expiration/required counts.
--- Priority: lethal (Amplifying > Deadly > Instant > Wound), then non-lethal (Atrophic > Numbing > Crippling).
-local poisonLethal = { 381664, 2823, 315584, 8679 } -- Amplifying, Deadly, Instant, Wound
-local poisonNonLethal = { 381637, 5761, 3408 } -- Atrophic, Numbing, Crippling
+-- Priority comes from BR.profile.roguePoisonPreferences (ordered, per-entry enabled flag).
+-- The table below is the single source of truth for default poison ordering and is also
+-- referenced by Display/BuffReminders.lua (defaults table) and Options/Options.lua (reset).
+BR.DEFAULT_POISON_PREFERENCES = {
+    lethal = {
+        { spellID = 381664, enabled = true }, -- Amplifying
+        { spellID = 2823, enabled = true }, -- Deadly
+        { spellID = 315584, enabled = true }, -- Instant
+        { spellID = 8679, enabled = true }, -- Wound
+    },
+    nonLethal = {
+        { spellID = 381637, enabled = true }, -- Atrophic
+        { spellID = 5761, enabled = true }, -- Numbing
+        { spellID = 3408, enabled = true }, -- Crippling
+    },
+}
 
 -- Cached poison state (refreshed once per frame via GetTime)
 local poisonCache = {
@@ -229,8 +245,36 @@ local poisonCache = {
     nextCastID = nil, ---@type number|nil Spell ID of the next poison to apply
 }
 
+-- Reusable scratch arrays: avoid per-frame allocation in the cache refresh path.
+local poisonScratch = { lethal = {}, nonLethal = {} }
+
+---Resolve the ordered list of enabled spell IDs for a category from the user's preferences.
+---Falls back to the default order if prefs are missing or empty (early load, fresh install).
+---Writes into a shared scratch buffer — do not cache the result across calls.
+---@param category "lethal"|"nonLethal"
+---@return number[] orderedSpellIDs
+local function GetEnabledPoisons(category)
+    local out = poisonScratch[category]
+    local prefs = BR.profile and BR.profile.roguePoisonPreferences
+    local list = prefs and prefs[category]
+    if not list or #list == 0 then
+        list = BR.DEFAULT_POISON_PREFERENCES[category]
+    end
+    local count = 0
+    for _, entry in ipairs(list) do
+        if entry and entry.enabled and entry.spellID then
+            count = count + 1
+            out[count] = entry.spellID
+        end
+    end
+    for i = #out, count + 1, -1 do
+        out[i] = nil
+    end
+    return out
+end
+
 ---Single pass over a poison category: counts known/active, finds first missing, tracks min remaining.
----@param poisons number[] Spell ID list in priority order
+---@param poisons number[] Spell ID list in priority order (already filtered to enabled)
 ---@param now number Current GetTime() value
 ---@return number active, number known, number|nil missing, number|nil minRemaining, number|nil expiringID
 local function ScanPoisonCategory(poisons, now)
@@ -269,8 +313,11 @@ local function RefreshPoisonCache()
     end
     poisonCache.time = now
 
-    local activeL, knownL, missingL, minRemL, expIDL = ScanPoisonCategory(poisonLethal, now)
-    local activeNL, knownNL, missingNL, minRemNL, expIDNL = ScanPoisonCategory(poisonNonLethal, now)
+    local lethalList = GetEnabledPoisons("lethal")
+    local nonLethalList = GetEnabledPoisons("nonLethal")
+
+    local activeL, knownL, missingL, minRemL, expIDL = ScanPoisonCategory(lethalList, now)
+    local activeNL, knownNL, missingNL, minRemNL, expIDNL = ScanPoisonCategory(nonLethalList, now)
 
     poisonCache.activeL = activeL
     poisonCache.activeNL = activeNL
@@ -332,6 +379,11 @@ local function GetPoisonExpirationInfo()
     return poisonCache.minRemaining, poisonCache.expiringID
 end
 
+---Force the poison cache to recompute on next access. Call after preference changes.
+function BR.InvalidatePoisonCache()
+    poisonCache.time = -1
+end
+
 ---@type table<string, RaidBuff[]|PresenceBuff[]|TargetedBuff[]|SelfBuff[]|ConsumableBuff[]|CustomBuff[]>
 BR.BUFF_TABLES = {
     ---@type RaidBuff[]
@@ -365,6 +417,7 @@ BR.BUFF_TABLES = {
             name = L["Buff.BlessingOfTheBronze"],
             class = "EVOKER",
             levelRequired = 30,
+            playersOnly = true, -- NPCs have their own bronze variant (e.g. 432658)
         },
         {
             spellID = { 1126, 432661 },
@@ -379,6 +432,9 @@ BR.BUFF_TABLES = {
     ---@type PresenceBuff[]
     presence = {
         {
+            -- Intentionally ignores per-rogue BR.profile.roguePoisonPreferences: this is the
+            -- raid-wide slow-coverage signal, not a personal-apply reminder. Even rogues who
+            -- disabled atrophic/numbing locally should see this when the group lacks coverage.
             spellID = { 381637, 5761 },
             key = "atrophicNumbingPoison",
             name = L["Buff.AtrophicNumbingPoison"],
@@ -488,7 +544,6 @@ BR.BUFF_TABLES = {
             key = "blisteringScales",
             name = L["Buff.BlisteringScales"],
             class = "EVOKER",
-            beneficiaryRole = "TANK",
             overlayText = L["Overlay.NoScales"],
             requireSpecId = 1473, -- Augmentation
             requiresSpellID = 360827,
@@ -523,6 +578,16 @@ BR.BUFF_TABLES = {
             class = "DRUID",
             overlayText = L["Overlay.NoLink"],
             clickMacro = TargetedClickMacro("symbioticRelationship"),
+        },
+        {
+            spellID = 412710,
+            key = "timelessness",
+            name = L["Buff.Timelessness"],
+            class = "EVOKER",
+            overlayText = L["Overlay.NoTimeless"],
+            requireSpecId = 1473, -- Augmentation
+            requiresSpellID = 412710,
+            clickMacro = TargetedClickMacro("timelessness"),
         },
     },
     ---@type SelfBuff[]

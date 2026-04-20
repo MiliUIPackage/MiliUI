@@ -159,6 +159,7 @@ local lastTargetTooltip
 local function ShowLastTargetTooltip(anchor, name, class)
     if not lastTargetTooltip then
         local fontPath = BR.Display.GetFontPath()
+        local outlineFlag = BR.Display.GetOutline()
         local tip = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
         tip:SetFrameStrata("TOOLTIP")
         tip:SetBackdrop({
@@ -169,7 +170,7 @@ local function ShowLastTargetTooltip(anchor, name, class)
         tip:SetBackdropColor(0.08, 0.08, 0.08, 0.95)
         tip:SetBackdropBorderColor(0.25, 0.25, 0.25, 1)
         tip.name = tip:CreateFontString(nil, "OVERLAY")
-        tip.name:SetFont(fontPath, 13, "OUTLINE")
+        tip.name:SetFont(fontPath, 13, outlineFlag)
         tip.name:SetPoint("CENTER", 0, 0)
         lastTargetTooltip = tip
     end
@@ -212,7 +213,7 @@ end
 ---@param frame table The parent buff frame
 local function CreateClickOverlay(frame)
     local overlay = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
-    overlay:RegisterForClicks("AnyDown")
+    overlay:RegisterForClicks("AnyDown", "AnyUp")
     overlay:EnableMouse(false)
     overlay:Hide()
     -- Auto-hide in combat (secure state driver), auto-show after
@@ -283,6 +284,10 @@ local function CreateClickOverlay(frame)
     -- Tooltip: show last target name for targeted buffs, or item tooltip for consumables
     overlay:HookScript("OnEnter", function()
         if frame.buffDef and (frame.buffCategory == "targeted" or frame.buffDef.castOnOthers) then
+            -- Only the caster class has a meaningful last-target (e.g. Soulstone: warlocks only)
+            if frame.buffDef.class and frame.buffDef.class ~= playerClass then
+                return
+            end
             local name, class = BR.StateHelpers.GetLastTarget(frame.buffDef.key)
             if name then
                 ShowLastTargetTooltip(overlay, name, class)
@@ -390,7 +395,7 @@ end
 ---@return table btn The created button
 local function CreateActionButton()
     local btn = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
-    btn:RegisterForClicks("AnyDown")
+    btn:RegisterForClicks("AnyDown", "AnyUp")
     btn:Hide()
     -- Start hidden — state driver activated by SyncSecureButtons() after positioning
     RegisterStateDriver(btn, "visibility", "hide")
@@ -746,6 +751,7 @@ local function SyncSecureButtons()
         return
     end
     local fontPath = BR.Display.GetFontPath()
+    local outlineFlag = BR.Display.GetOutline()
     for _, frame in pairs(BR.Display.frames) do
         -- Sync click overlay
         local overlay = frame.clickOverlay
@@ -865,7 +871,7 @@ local function SyncSecureButtons()
                                     btn.count:SetText(
                                         btn._br_count and btn._br_count > 1 and tostring(btn._br_count) or ""
                                     )
-                                    btn.count:SetFont(fontPath, cFontSize, "OUTLINE")
+                                    btn.count:SetFont(fontPath, cFontSize, outlineFlag)
                                     -- Quality atlas icon (holder frame at +10 to draw above borders/glows)
                                     if btn._br_qualityAtlas then
                                         if not btn._br_qualityIcon then

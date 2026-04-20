@@ -312,6 +312,7 @@ end
 -- Coordinate popup: shared singleton for typing exact X/Y positions and anchor settings
 local function CreateCoordinatePopup()
     local fontPath = BR.Display.GetFontPath()
+    local outlineFlag = BR.Display.GetOutline()
     local popup = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
     popup:SetSize(240, 210)
     popup:SetFrameStrata("DIALOG")
@@ -342,7 +343,7 @@ local function CreateCoordinatePopup()
 
     -- Title
     local title = popup:CreateFontString(nil, "OVERLAY")
-    title:SetFont(fontPath, 11, "OUTLINE")
+    title:SetFont(fontPath, 11, outlineFlag)
     title:SetPoint("TOP", 0, -8)
     title:SetText(L["Mover.SetPosition"])
     title:SetTextColor(1, 0.82, 0, 1)
@@ -353,7 +354,7 @@ local function CreateCoordinatePopup()
 
     -- X row
     local xLabel = popup:CreateFontString(nil, "OVERLAY")
-    xLabel:SetFont(fontPath, 11, "OUTLINE")
+    xLabel:SetFont(fontPath, 11, outlineFlag)
     xLabel:SetPoint("TOPLEFT", LABEL_X, -30)
     xLabel:SetText("X")
     xLabel:SetTextColor(1, 1, 1, 1)
@@ -368,7 +369,7 @@ local function CreateCoordinatePopup()
 
     -- Y row
     local yLabel = popup:CreateFontString(nil, "OVERLAY")
-    yLabel:SetFont(fontPath, 11, "OUTLINE")
+    yLabel:SetFont(fontPath, 11, outlineFlag)
     yLabel:SetPoint("TOPLEFT", LABEL_X, -56)
     yLabel:SetText("Y")
     yLabel:SetTextColor(1, 1, 1, 1)
@@ -389,7 +390,7 @@ local function CreateCoordinatePopup()
 
     -- Anchor Frame label + dropdown button
     local anchorLabel = popup:CreateFontString(nil, "OVERLAY")
-    anchorLabel:SetFont(fontPath, 10, "OUTLINE")
+    anchorLabel:SetFont(fontPath, 10, outlineFlag)
     anchorLabel:SetPoint("TOPLEFT", LABEL_X, -90)
     anchorLabel:SetText(L["Mover.AnchorFrame"])
     anchorLabel:SetTextColor(0.7, 0.7, 0.7, 1)
@@ -594,7 +595,7 @@ local function CreateCoordinatePopup()
 
     -- Anchor Point label + dropdown button
     local pointLabel = popup:CreateFontString(nil, "OVERLAY")
-    pointLabel:SetFont(fontPath, 10, "OUTLINE")
+    pointLabel:SetFont(fontPath, 10, outlineFlag)
     pointLabel:SetPoint("TOPLEFT", LABEL_X, -130)
     pointLabel:SetText(L["Mover.AnchorPoint"])
     pointLabel:SetTextColor(0.7, 0.7, 0.7, 1)
@@ -810,6 +811,7 @@ end
 -- The mover matches the category's iconSize for accurate positioning. Shown when unlocked.
 local function CreateMoverFrame(catKey, displayName)
     local fontPath = BR.Display.GetFontPath()
+    local outlineFlag = BR.Display.GetOutline()
     local catSettings = GetCategorySettings(catKey)
     local iconSize = catSettings.iconSize or 64
     local iconWidth = catSettings.iconWidth or iconSize
@@ -830,14 +832,14 @@ local function CreateMoverFrame(catKey, displayName)
     -- Label above the mover
     mover.label = mover:CreateFontString(nil, "OVERLAY")
     mover.label:SetPoint("BOTTOM", mover, "TOP", 0, 4)
-    mover.label:SetFont(fontPath, 11, "OUTLINE")
+    mover.label:SetFont(fontPath, 11, outlineFlag)
     mover.label:SetTextColor(0.4, 1, 0.4, 1)
     mover.label:SetText(displayName or catKey)
 
     -- "Anchor" text below the green box (updated with growth direction in UpdateAnchor)
     mover.anchorText = mover:CreateFontString(nil, "OVERLAY")
     mover.anchorText:SetPoint("TOP", mover, "BOTTOM", 0, -4)
-    mover.anchorText:SetFont(fontPath, 11, "OUTLINE")
+    mover.anchorText:SetFont(fontPath, 11, outlineFlag)
     mover.anchorText:SetTextColor(0.4, 1, 0.4, 1)
 
     mover.catKey = catKey
@@ -1054,6 +1056,7 @@ local function CreateDetachedMover(key, displayName)
     end
 
     local fontPath = BR.Display.GetFontPath()
+    local outlineFlag = BR.Display.GetOutline()
     local buffFrame = BR.Display.frames[key]
     local effectiveCat = "main"
     if buffFrame and buffFrame.buffCategory then
@@ -1082,14 +1085,14 @@ local function CreateDetachedMover(key, displayName)
     -- Label above the mover
     mover.label = mover:CreateFontString(nil, "OVERLAY")
     mover.label:SetPoint("BOTTOM", mover, "TOP", 0, 4)
-    mover.label:SetFont(fontPath, 11, "OUTLINE")
+    mover.label:SetFont(fontPath, 11, outlineFlag)
     mover.label:SetTextColor(1, 0.85, 0.3, 1)
     mover.label:SetText(displayName or key)
 
     -- Anchor text below
     mover.anchorText = mover:CreateFontString(nil, "OVERLAY")
     mover.anchorText:SetPoint("TOP", mover, "BOTTOM", 0, -4)
-    mover.anchorText:SetFont(fontPath, 11, "OUTLINE")
+    mover.anchorText:SetFont(fontPath, 11, outlineFlag)
     mover.anchorText:SetTextColor(1, 0.85, 0.3, 1)
     mover.anchorText:SetText(L["Mover.Detached"])
 

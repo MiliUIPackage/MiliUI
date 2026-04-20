@@ -14,6 +14,7 @@ local english = {}
 local L = setmetatable({}, {
     __index = english,
 })
+---@type table<string, string>
 BR.L = L
 
 -- ============================================================================
@@ -59,6 +60,7 @@ english["Overlay.NoES"] = "NO\nES"
 english["Overlay.NoSource"] = "NO\nSOURCE"
 english["Overlay.NoScales"] = "NO\nSCALES"
 english["Overlay.NoLink"] = "NO\nLINK"
+english["Overlay.NoTimeless"] = "NO\nTIMELESS"
 english["Overlay.NoAttune"] = "NO\nATTUNE"
 english["Overlay.NoFamiliar"] = "NO\nFAMILIAR"
 english["Overlay.DropWell"] = "DROP\nWELL"
@@ -143,6 +145,7 @@ english["Buff.BlisteringScales"] = "Blistering Scales"
 english["Buff.EarthShield"] = "Earth Shield"
 english["Buff.SourceOfMagic"] = "Source of Magic"
 english["Buff.SymbioticRelationship"] = "Symbiotic Relationship"
+english["Buff.Timelessness"] = "Timelessness"
 -- Self
 english["Buff.ArcaneFamiliar"] = "Arcane Familiar"
 english["Buff.Attunement"] = "Attunement"
@@ -283,6 +286,13 @@ english["Options.GlobalDefaults"] = "Global Defaults"
 english["Options.GlobalDefaults.Note"] = "(All categories inherit these unless overridden with a custom appearance)"
 english["Options.Default"] = "Default"
 english["Options.Font"] = "Font"
+english["Options.TextOutline"] = "Outline Style"
+english["Options.TextOutline.None"] = "None"
+english["Options.TextOutline.Outline"] = "Outline"
+english["Options.TextOutline.Thick"] = "Thick Outline"
+english["Options.TextOutline.Monochrome"] = "Monochrome"
+english["Options.TextOutline.OutlineMono"] = "Outline + Monochrome"
+english["Options.TextOutline.ThickMono"] = "Thick + Monochrome"
 
 -- ============================================================================
 -- OPTIONS: GLOW SETTINGS
@@ -305,6 +315,9 @@ english["Options.UseCustomColor"] = "Use Custom Color"
 english["Options.UseCustomColor.Desc"] =
     "When enabled, the proc glow is desaturated and recolored.\nThis looks less vibrant than the default proc glow."
 english["Options.ExpirationReminder"] = "Expiration Reminder"
+english["Options.PreKeyThreshold"] = "Pre-Key Threshold"
+english["Options.PreKeyThreshold.Desc"] =
+    "Use a longer expiration threshold when inside a Mythic dungeon (M0) before a keystone is inserted.\nHelps ensure your buffs are fresh before the key goes in."
 
 -- Glow params
 english["Options.Glow.Type"] = "Type:"
@@ -497,6 +510,18 @@ english["Options.RuneTwoHanded"] = "Two-Handed"
 english["Options.RuneDualWield"] = "Dual Wield"
 
 -- ============================================================================
+-- OPTIONS: ROGUE POISON PREFERENCES
+-- ============================================================================
+english["Options.RoguePoisonPreferences"] = "Rogue Poison Preferences"
+english["Options.RoguePoisonNote"] =
+    "Choose which poisons to apply and their priority order (top = highest). Disabled poisons are never cast and do not trigger reminders."
+english["Options.PoisonLethal"] = "Lethal"
+english["Options.PoisonNonLethal"] = "Non-Lethal"
+english["Options.PoisonMoveUp"] = "Move up in priority"
+english["Options.PoisonMoveDown"] = "Move down in priority"
+english["Options.PoisonReset"] = "Reset to Default"
+
+-- ============================================================================
 -- OPTIONS: BUFF SETTINGS GEAR ICONS
 -- ============================================================================
 english["Options.HealthstoneSettings"] = "Healthstone Settings"
@@ -662,7 +687,8 @@ english["CustomBuff.Name"] = "Name:"
 english["CustomBuff.Text"] = "Text:"
 english["CustomBuff.LineBreakHint"] = "(use \\n for line break)"
 english["CustomBuff.Appearance"] = "APPEARANCE"
-english["CustomBuff.Conditions"] = "CONDITIONS"
+english["CustomBuff.BuffTracking"] = "BUFF TRACKING"
+english["CustomBuff.Requirements"] = "REQUIREMENTS"
 english["CustomBuff.ShowIn"] = "SHOW IN"
 english["CustomBuff.ClickAction"] = "CLICK ACTION"
 english["CustomBuff.SettingsMovedNote"] = "Visibility and ready check settings moved to each buff's edit menu."
@@ -696,6 +722,10 @@ english["CustomBuff.RequireItem.EquippedBags"] = "Equipped/Bags"
 english["CustomBuff.RequireItem.Equipped"] = "Equipped"
 english["CustomBuff.RequireItem.InBags"] = "In bags"
 english["CustomBuff.RequireItem.Hint"] = "item ID — hide if not found"
+english["CustomBuff.ItemCooldown"] = "Cooldown:"
+english["CustomBuff.ItemCooldown.Any"] = "Any"
+english["CustomBuff.ItemCooldown.OffCooldown"] = "Off cooldown"
+english["CustomBuff.ItemCooldown.OnCooldown"] = "On cooldown"
 
 -- Bar glow options
 english["CustomBuff.BarGlow.WhenGlowing"] = "Detect when glowing"

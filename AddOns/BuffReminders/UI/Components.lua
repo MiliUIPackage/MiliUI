@@ -3350,6 +3350,22 @@ function Components.ClearRegistry()
     end
 end
 
+---Unregister a single holder from the refresh registry.
+---Use when tearing down dynamic components whose parent frame is being destroyed,
+---so Components.RefreshAll() doesn't keep invoking their :Refresh() on stale state.
+---@param holder table Component holder previously added via a factory
+function Components.Unregister(holder)
+    if not holder then
+        return
+    end
+    for i = #RefreshableComponents, 1, -1 do
+        if RefreshableComponents[i] == holder then
+            table.remove(RefreshableComponents, i)
+            return
+        end
+    end
+end
+
 ---Create a scrollable content container with auto-calculated width
 ---@param parent Frame Parent frame
 ---@param config ScrollableContainerConfig Configuration table

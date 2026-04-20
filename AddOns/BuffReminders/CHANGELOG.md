@@ -1,21 +1,21 @@
 # BuffReminders
 
-## [v5.3.0](https://github.com/zerbiniandrea/BuffReminders/tree/v5.3.0) (2026-04-12)
-[Full Changelog](https://github.com/zerbiniandrea/BuffReminders/compare/v5.2.1...v5.3.0) [Previous Releases](https://github.com/zerbiniandrea/BuffReminders/releases)
+## [v5.4.0](https://github.com/zerbiniandrea/BuffReminders/tree/v5.4.0) (2026-04-19)
+[Full Changelog](https://github.com/zerbiniandrea/BuffReminders/compare/v5.3.1...v5.4.0) [Previous Releases](https://github.com/zerbiniandrea/BuffReminders/releases)
 
-- fix: 🐛 gate wrong pet warning on Felguard known and default summon to Felhunter  
-- fix: 🐛 dismiss soulwell reminder on cast start to prevent GCD flicker  
-- feat: ✨ add customizable chat request messages  
-- refactor: 🚚 rename CombatSafeSpells to AuraWhitelist for clarity  
-- fix: 🐛 disable click-to-cast on Burning Rush and use AnyDown for secure buttons  
-- fix: 🐛 defer spell texture cache to fix warlock green fire on login  
+- refactor: ♻️ add Components.Unregister helper for holder teardown  
 - i18n: 🌐 update zhTW localization  
-- perf: ⚡️ cache session-constant values and optimize unit cache pruning  
-- fix: 🐛 rebuild chat request macro in PreClick to track group type changes  
-- fix: 🐛 use macro instead of SendChatMessage for chat requests to avoid taint  
-- feat: ✨ show chat message when dismissing consumable reminders  
-- feat: ✨ add click-to-request missing buffs in chat  
-- feat: ✨ add option to hide Blessing of the Bronze in combat  
-- i18n: 🌐 update zhTW localization  
-- fix: 🐛 suppress targeted buff reminder when all beneficiaries are dead  
-- style: 💄 reorder hide-when checkboxes by logical grouping  
+- refactor: ♻️ split options panel into per-tab builders  
+- refactor: ♻️ extract options modals to dedicated files  
+- feat: ✨ add rogue poison preferences modal  
+- fix: 🐛 scope castOnOthers target cache and tooltip to caster class  
+- fix: 🐛 unpack C\_Item.GetItemCooldown multi-return in cooldown gate  
+- feat: ✨ add customizable text outline style  
+- fix: 🐛 remove tank-only restriction from Blistering Scales  
+- fix: 🐛 exclude NPCs from Blessing of the Bronze count  
+- feat: ✨ add Timelessness targeted buff for Augmentation Evoker  
+- i18n: 🔥 remove unused CustomBuff.Conditions locale key  
+- feat: ✨ add pre-key expiration threshold for M0 dungeons  
+- refactor: 💄 improve custom buff modals layout  
+- feat: ✨ add item cooldown condition for custom buffs  
+- feat: ✨ per-buff expiration threshold for custom buffs  
