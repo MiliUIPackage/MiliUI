@@ -24,6 +24,7 @@ local KEY_CHECK_DELAY  = 3             -- 事件後延遲秒數 (等 API 更新)
 local BASELINE_DELAY   = 10            -- 登入後設定基準值延遲
 
 local hasLibKeystone = false  -- PLAYER_LOGIN 時 re-evaluate，避免 load order 誤判
+local issecretvalue = _G.issecretvalue or function() return false end
 
 local collected = {}
 local claims = {}
@@ -80,6 +81,7 @@ local function CollectSelfKeystone()
 end
 
 local function OnKSMessage(text, channel, sender)
+    if (type(text) ~= "string" or issecretvalue(text)) then return end
     if (text == "R") then
         RespondToKSRequest(channel)
         return
@@ -97,7 +99,9 @@ local function OnKSMessage(text, channel, sender)
 end
 
 local function MatchKeyword(msg)
-    if (not msg or msg == "") then return false end
+    if (type(msg) ~= "string") then return false end
+    if (issecretvalue(msg)) then return false end
+    if (msg == "") then return false end
     -- 去除超連結，避免 |Hkeystone:...|h[鑰石:...]|h 這種別人貼的鑰石連結觸發
     local stripped = msg:gsub("|H.-|h.-|h", " ")
     local lower = stripped:lower()
@@ -183,6 +187,7 @@ local function OnTrigger()
 end
 
 local function OnPeerDedup(text)
+    if (type(text) ~= "string" or issecretvalue(text)) then return end
     if (text == "SENT") then
         if (scheduledSend) then
             scheduledSend:Cancel()

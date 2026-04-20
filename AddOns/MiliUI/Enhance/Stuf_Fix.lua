@@ -75,6 +75,16 @@ local CAST_STOP_EVENTS = {
     UNIT_SPELLCAST_CHANNEL_STOP = true,
 }
 
+-- 以下事件 Stuf 原生 handler (bars.lua) 直接對 secret value 做
+-- if not startTime / a4 ~= f.castid 比對，會污染執行環境。
+-- 我們 intercept 主 frame OnEvent，對這三個事件不 forward 給
+-- Stuf，自己用 type()/pcall 安全處理。
+local CAST_TAINT_EVENTS = {
+    UNIT_SPELLCAST_DELAYED        = true,
+    UNIT_SPELLCAST_CHANNEL_UPDATE = true,
+    UNIT_SPELLCAST_FAILED         = true,
+}
+
 -- UNIT_HEALTH 節流
 local healthThrottle = {}
 local HEALTH_THROTTLE_INTERVAL = 0.1
@@ -568,24 +578,83 @@ local function FixPortrait(unit, uf)
 end
 
 ------------------------------------------------------------
--- Hook Stuf OnEvent 防護 castbar nil duration
--- Stuf StopCast 呼叫 f.time:SetValue(0, f.duration)，
--- 但 f.duration 可能為 nil（secret value 導致 SPELLCAST_START
--- 的 pcall 失敗，duration 未被賦值）。
--- 在 STOP 事件派發前補上 duration = 0。
+-- Safe 版本的 cast 事件 handler
+-- 用 type() 檢查 secret value (不同於 if not x 會污染)、pcall 包
+-- 所有算術，避免 taint 執行環境污染 Blizzard ActionBar 等。
+------------------------------------------------------------
+local function SafeCastDelayedUpdate(f, unit, isChannel)
+    local infoFn = isChannel and UnitChannelInfo or UnitCastingInfo
+    local ok, _, _, _, startTime, endTime = pcall(infoFn, unit)
+    if (not ok) then return end
+    if (type(startTime) == "nil") then
+        pcall(f.Hide, f)
+        return
+    end
+    local endS, durS
+    pcall(function()
+        endS = endTime * 0.001
+        durS = (endTime - startTime) * 0.001
+    end)
+    if (type(endS) ~= "nil") then
+        local prevEnd = f.endtime or endS
+        f.endtime = endS
+        f.duration = durS
+        f.delay = (f.delay or 0) + (endS - prevEnd)
+    end
+end
+
+local function SafeCastFailed(f, a4)
+    if (f.cstate ~= 1) then return end
+    -- castid 可能是 secret；用 pcall 包比對
+    local match = false
+    pcall(function() match = (a4 == f.castid) end)
+    if (match) then
+        pcall(f.Hide, f)
+        f.cstate = nil
+    end
+end
+
+local function HandleCastTaintEvent(event, unit, a1, a2, a3, a4, su)
+    if (not unit) then return end
+    local uf = su[unit]
+    if (not uf) then return end
+    local f = uf.castbar
+    if (not f) then return end
+    -- 已由 Stuf_Fix FixCastbar 接管的 castbar，不做額外處理
+    if (f._miliCasting) then return end
+
+    if (event == "UNIT_SPELLCAST_DELAYED") then
+        SafeCastDelayedUpdate(f, unit, false)
+    elseif (event == "UNIT_SPELLCAST_CHANNEL_UPDATE") then
+        SafeCastDelayedUpdate(f, unit, true)
+    elseif (event == "UNIT_SPELLCAST_FAILED") then
+        SafeCastFailed(f, a4)
+    end
+end
+
+------------------------------------------------------------
+-- Hook Stuf OnEvent
+--   1. castbar nil duration 防護 (STOP 系列事件)
+--   2. 攔截 CAST_TAINT_EVENTS (DELAYED/CHANNEL_UPDATE/FAILED)，
+--      不 forward 給 Stuf 原 handler，改由 HandleCastTaintEvent
+--      安全處理，避免污染 Blizzard ActionBar
 ------------------------------------------------------------
 local function HookStufOnEventForCastDuration(Stuf, su)
     if Stuf._miliCastDurHooked then return end
     local origOnEvent = Stuf:GetScript("OnEvent")
     if not origOnEvent then return end
-    Stuf:SetScript("OnEvent", function(self, event, unit, ...)
+    Stuf:SetScript("OnEvent", function(self, event, unit, a2, a3, a4, a5, a6, a7)
+        if (CAST_TAINT_EVENTS[event]) then
+            HandleCastTaintEvent(event, unit, a2, a3, a4, a5, su)
+            return
+        end
         if CAST_STOP_EVENTS[event] and unit then
             local uf = su[unit]
             if uf and uf.castbar and uf.castbar.duration == nil then
                 uf.castbar.duration = 0
             end
         end
-        return origOnEvent(self, event, unit, ...)
+        return origOnEvent(self, event, unit, a2, a3, a4, a5, a6, a7)
     end)
     Stuf._miliCastDurHooked = true
 end
