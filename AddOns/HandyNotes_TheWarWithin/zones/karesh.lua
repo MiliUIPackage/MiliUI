@@ -10,18 +10,23 @@ local Collectible = ns.node.Collectible
 local Rare = ns.node.Rare
 local Treasure = ns.node.Treasure
 local SkyridingGlyph = ns.node.SkyridingGlyph
+local Node = ns.node.Node
 
 local Achievement = ns.reward.Achievement
--- local Item = ns.reward.Item
+local Item = ns.reward.Item
 local Mount = ns.reward.Mount
 local Pet = ns.reward.Pet
 local Toy = ns.reward.Toy
 local Transmog = ns.reward.Transmog
 local Reputation = ns.reward.Reputation
+local Section = ns.reward.Section
+local Spacer = ns.reward.Spacer
 
 local Entrance = ns.poi.Entrance
 local Path = ns.poi.Path
 local POI = ns.poi.POI
+
+local QuestStatus = ns.tooltip.QuestStatus
 
 -------------------------------------------------------------------------------
 ------------------------------------ MAPS -------------------------------------
@@ -29,6 +34,10 @@ local POI = ns.poi.POI
 
 local taz = Map({id = 2472, settings = true})
 local map = Map({id = 2371, settings = true})
+
+local tfc = Map({id = 2460, settings = false}) -- Manaforge Omega: The Forge Core
+local wok = Map({id = 2465, settings = false}) -- Manaforge Omega: Wastes of Karesh
+local tmt = Map({id = 2463, settings = false}) -- Manaforge Omega: Technomancers' Terrance
 
 -------------------------------------------------------------------------------
 --------------------------------- Reshii Wraps --------------------------------
@@ -45,6 +54,7 @@ end
 
 function ReshiiWraps:IsMet()
     local configID = C_Traits.GetConfigIDByTreeID(1115)
+    if not configID then return false end
     local nInfo = C_Traits.GetNodeInfo(configID, self.nodeID)
     return nInfo and nInfo.ranksPurchased and nInfo.ranksPurchased > 0
 end
@@ -287,6 +297,99 @@ map.nodes[65144998] = Rare({
         Transmog({item = 239451, slot = L['cloth']}) -- Reshii Magi's Crown
     }
 }) -- Xarran the Binder
+
+-------------------------------------------------------------------------------
+------------------------- MOUNT: TRANSLOCATED GORGER --------------------------
+-------------------------------------------------------------------------------
+
+map.nodes[71402760] = Rare({
+    id = 231229,
+    note = L['translocated_gorger_note'],
+    quest = 84993,
+    rewards = {
+        Item({item = 246240, weekly = 91309}), -- Devoured Energy-Pod
+        Mount({item = 246159, id = 2602}), -- Translocated Gorger
+        Spacer(), Section(L['shared_drops']),
+        Transmog({item = 240111, slot = L['1h_axe']}), -- Reshii Skirmisher's Axe
+        Transmog({item = 240112, slot = L['dagger']}), -- Reshii Scout's Blade
+        Transmog({item = 240113, slot = L['dagger']}), -- Reshii Magi's Dagger
+        Transmog({item = 240114, slot = L['1h_mace']}), -- Reshii Skirmisher's Morningstar
+        Transmog({item = 240115, slot = L['1h_mace']}), -- Reshii Brute's Warmace
+        Transmog({item = 240116, slot = L['1h_sword']}), -- Reshii Brute's Longsword
+        Transmog({item = 240117, slot = L['wand']}), -- Reshii Magi's Wand
+        Transmog({item = 240118, slot = L['polearm']}), -- Reshii Brute's Spear
+        Transmog({item = 240119, slot = L['staff']}), -- Reshii Skirmisher's Staff
+        Transmog({item = 240120, slot = L['offhand']}), -- Reshii Magi's Lantern
+        Transmog({item = 240121, slot = L['shield']}) -- Reshii Brute's Barrier
+    }
+}) -- Korgoth the Hungerer
+
+map.nodes[50605410] = Rare({
+    id = 234970,
+    note = L['translocated_gorger_note'],
+    quest = 86447,
+    rewards = {
+        Item({item = 246240, weekly = 91310}), -- Devoured Energy-Pod
+        Mount({item = 246159, id = 2602}), -- Translocated Gorger
+        Spacer(), Section(L['shared_drops']),
+        Transmog({item = 240111, slot = L['1h_axe']}), -- Reshii Skirmisher's Axe
+        Transmog({item = 240112, slot = L['dagger']}), -- Reshii Scout's Blade
+        Transmog({item = 240113, slot = L['dagger']}), -- Reshii Magi's Dagger
+        Transmog({item = 240114, slot = L['1h_mace']}), -- Reshii Skirmisher's Morningstar
+        Transmog({item = 240115, slot = L['1h_mace']}), -- Reshii Brute's Warmace
+        Transmog({item = 240116, slot = L['1h_sword']}), -- Reshii Brute's Longsword
+        Transmog({item = 240117, slot = L['wand']}), -- Reshii Magi's Wand
+        Transmog({item = 240118, slot = L['polearm']}), -- Reshii Brute's Spear
+        Transmog({item = 240119, slot = L['staff']}), -- Reshii Skirmisher's Staff
+        Transmog({item = 240120, slot = L['offhand']}), -- Reshii Magi's Lantern
+        Transmog({item = 240121, slot = L['shield']}) -- Reshii Brute's Barrier
+    }
+}) -- Miasmawrath
+
+map.nodes[49506420] = Rare({
+    id = 235087,
+    note = L['translocated_gorger_note'],
+    quest = 86464,
+    rewards = {
+        Item({item = 246240, weekly = 91311}), -- Devoured Energy-Pod
+        Mount({item = 246159, id = 2602}), -- Translocated Gorger
+        Spacer(), Section(L['shared_drops']),
+        Transmog({item = 240111, slot = L['1h_axe']}), -- Reshii Skirmisher's Axe
+        Transmog({item = 240112, slot = L['dagger']}), -- Reshii Scout's Blade
+        Transmog({item = 240113, slot = L['dagger']}), -- Reshii Magi's Dagger
+        Transmog({item = 240114, slot = L['1h_mace']}), -- Reshii Skirmisher's Morningstar
+        Transmog({item = 240115, slot = L['1h_mace']}), -- Reshii Brute's Warmace
+        Transmog({item = 240116, slot = L['1h_sword']}), -- Reshii Brute's Longsword
+        Transmog({item = 240117, slot = L['wand']}), -- Reshii Magi's Wand
+        Transmog({item = 240118, slot = L['polearm']}), -- Reshii Brute's Spear
+        Transmog({item = 240119, slot = L['staff']}), -- Reshii Skirmisher's Staff
+        Transmog({item = 240120, slot = L['offhand']}), -- Reshii Magi's Lantern
+        Transmog({item = 240121, slot = L['shield']}) -- Reshii Brute's Barrier
+    }
+}) -- The Harvester
+
+taz.nodes[27507230] = Rare({
+    id = 235104,
+    note = L['translocated_gorger_note'],
+    parent = map.id,
+    quest = 86465,
+    rewards = {
+        Item({item = 246240, weekly = 91312}), -- Devoured Energy-Pod
+        Mount({item = 246159, id = 2602}), -- Translocated Gorger
+        Spacer(), Section(L['shared_drops']),
+        Transmog({item = 240111, slot = L['1h_axe']}), -- Reshii Skirmisher's Axe
+        Transmog({item = 240112, slot = L['dagger']}), -- Reshii Scout's Blade
+        Transmog({item = 240113, slot = L['dagger']}), -- Reshii Magi's Dagger
+        Transmog({item = 240114, slot = L['1h_mace']}), -- Reshii Skirmisher's Morningstar
+        Transmog({item = 240115, slot = L['1h_mace']}), -- Reshii Brute's Warmace
+        Transmog({item = 240116, slot = L['1h_sword']}), -- Reshii Brute's Longsword
+        Transmog({item = 240117, slot = L['wand']}), -- Reshii Magi's Wand
+        Transmog({item = 240118, slot = L['polearm']}), -- Reshii Brute's Spear
+        Transmog({item = 240119, slot = L['staff']}), -- Reshii Skirmisher's Staff
+        Transmog({item = 240120, slot = L['offhand']}), -- Reshii Magi's Lantern
+        Transmog({item = 240121, slot = L['shield']}) -- Reshii Brute's Barrier
+    }
+}) -- The Wallbreaker
 
 -------------------------------------------------------------------------------
 -------------------------------- WARRANT RARES --------------------------------
@@ -954,6 +1057,7 @@ map.nodes[73985749] = PhaseOrb() -- review
 map.nodes[75713442] = PhaseOrb()
 map.nodes[75963255] = PhaseOrb()
 map.nodes[76035820] = PhaseOrb() -- review
+map.nodes[77243801] = PhaseOrb()
 map.nodes[78374889] = PhaseOrb()
 map.nodes[78762917] = PhaseOrb()
 map.nodes[80405123] = PhaseOrb()
@@ -970,3 +1074,67 @@ taz.nodes[56468678] = PhaseOrb({parent = map.id})
 taz.nodes[60415720] = PhaseOrb({parent = map.id})
 taz.nodes[61128910] = PhaseOrb({parent = map.id})
 taz.nodes[62132931] = PhaseOrb({parent = map.id})
+
+-------------------------------------------------------------------------------
+---------- MOUNT: XY TRUSTEE'S GEARGLIDER & TOY: CARTEL TRANSMORPHER ----------
+-------------------------------------------------------------------------------
+
+local Zoturu = Class('zotutu', Collectible, {
+    id = 245344,
+    icon = 3802394,
+    requires = ns.requirement.Reputation(2736, 8, true), -- Manaforge Vandals
+    rewards = {
+        Mount({item = 186639, id = 1482}), -- Xy Trustee's Gearglider
+        Toy({item = 249713}) -- Cartel Transmorpher
+    }
+}) -- Zo'turu
+
+-- LuaFormatter off
+function Zoturu.getters:note()
+    local note = L['zo_turu_note_start'] .. '\n'
+    note = note .. QuestStatus(92080, 'x', format(' {object:%s}', L['cartel_ba_dead_drop_label']))
+    note = note .. QuestStatus(92081, 'x', format(' {object:%s}', L['cartel_om_dead_drop_label']))
+    note = note .. QuestStatus(92079, 'x', format(' {object:%s}', L['cartel_zo_dead_drop_label']))
+    return note .. L['zo_turu_note_end']
+end
+-- LuaFormatter on
+
+map.nodes[41962212] = Zoturu()
+
+tfc.nodes[63104510] = Node({
+    label = L['cartel_ba_dead_drop_label'],
+    location = L['cartel_ba_dead_drop_location'],
+    note = L['cartel_dead_drop_warning'],
+    icon = 237169,
+    quest = 92080,
+    requires = {
+        ns.requirement.Reputation(2736, 8, true), --
+        ns.requirement.Spell(1249465) -- Deal: Cartel Ba
+    },
+    rewards = {Item({item = 249711})} -- Cartel Ba Cypher
+}) -- Cartel Ba Dead Drop
+
+wok.nodes[58801080] = Node({
+    label = L['cartel_om_dead_drop_label'],
+    location = L['cartel_om_dead_drop_location'],
+    icon = 466717,
+    quest = 92081,
+    requires = {
+        ns.requirement.Reputation(2736, 8, true), --
+        ns.requirement.Spell(1249467) -- Deal: Cartel Om
+    },
+    rewards = {Item({item = 249712})} -- Cartel Om Cypher
+}) -- Cartel Om Dead Drop
+
+tmt.nodes[35601920] = Node({
+    label = L['cartel_zo_dead_drop_label'],
+    location = L['cartel_zo_dead_drop_location'],
+    note = L['cartel_dead_drop_warning'],
+    icon = 134491,
+    quest = 92079,
+    requires = {
+        ns.requirement.Reputation(2736, 8, true), --
+        ns.requirement.Spell(1249462) -- Deal: Cartel Zo
+    },
+    rewards = {Item({item = 249710})} -- Cartel Zo Cypher
+}) -- Cartel Zo Dead Drop

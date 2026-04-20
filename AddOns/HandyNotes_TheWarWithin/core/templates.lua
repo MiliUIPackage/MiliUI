@@ -261,7 +261,11 @@ function WorldMapOptionsButtonMixin:InitializeDropDown(level)
             disabled = not map.settings,
             func = function(button, option)
                 HideUIPanel(WorldMapFrame)
-                Settings.OpenToCategory('HandyNotes')
+                for _, category in ipairs(SettingsPanel:GetAllCategories()) do
+                    if category:GetName() == 'HandyNotes' then
+                        Settings.OpenToCategory(category:GetID())
+                    end
+                end
                 LibStub('AceConfigDialog-3.0'):SelectGroup('HandyNotes',
                     'plugins', ADDON_NAME, 'ZonesTab', 'Zone_' .. map.id)
             end
@@ -299,6 +303,18 @@ function WorldMapOptionsButtonMixin:InitializeDropDown(level)
                     checked = ns:GetOpt('show_manuscript_rewards'),
                     func = function(button, option)
                         ns:SetOpt('show_manuscript_rewards', button.checked)
+                    end
+                }, 2)
+            end
+
+            if ns.expansion >= 11 then -- TWW and beyond
+                LibDD:UIDropDownMenu_AddButton({
+                    text = L['options_decor_rewards'],
+                    isNotRadio = true,
+                    keepShownOnClick = true,
+                    checked = ns:GetOpt('show_decor_rewards'),
+                    func = function(button, option)
+                        ns:SetOpt('show_decor_rewards', button.checked)
                     end
                 }, 2)
             end

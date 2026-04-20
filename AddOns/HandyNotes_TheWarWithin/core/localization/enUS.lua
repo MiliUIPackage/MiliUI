@@ -74,6 +74,7 @@ L['elite'] = 'Elite'
 L['quest'] = 'Quest'
 L['quest_repeatable'] = 'Repeatable Quest'
 L['achievement'] = 'Achievement'
+L['decor_owned'] = 'Owned: %s'
 
 ---------------------------------- LOCATION -----------------------------------
 L['in_cave'] = 'In a cave.'
@@ -93,6 +94,7 @@ L['time_format_12hrs'] = '%B %d - %I:%M %p local time'
 L['time_format_24hrs'] = '%B %d - %H:%M local time'
 
 ----------------------------------- REWARDS -----------------------------------
+L['decor'] = 'Housing Decor'
 L['heirloom'] = 'Heirloom'
 L['item'] = 'Item'
 L['mount'] = 'Mount'
@@ -204,6 +206,8 @@ L['ignore_faction_restrictions_desc'] = 'Show groups, nodes and rewards that req
 L['options_rewards_settings'] = 'Rewards'
 L['options_reward_behaviors_settings'] = 'Reward Behaviors'
 L['options_reward_types'] = 'Show reward types'
+L['options_decor_rewards'] = 'Show decor rewards'
+L['options_decor_rewards_desc'] = 'Display housing decor rewards in tooltips.'
 L['options_manuscript_rewards'] = 'Show drakewatcher manuscript rewards'
 L['options_manuscript_rewards_desc'] = 'Display drakewatcher manuscript rewards in tooltips and track their collected status.'
 L['options_mount_rewards'] = 'Show mount rewards'

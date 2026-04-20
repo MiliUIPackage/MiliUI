@@ -301,11 +301,11 @@ function Node:Render(tooltip, focusable)
     end
 
     -- optional text directly under sublabel/label for development notes
-    if self.devnote and ns:GetOpt('development') then
+    if self.devnote and _G['HandyNotes_ZarPluginsDevelopment'] then
         tooltip:AddLine(ns.RenderLinks(self.devnote), 1, 0, 1)
     end
     -- optional text directly under sublabel/label for development notes
-    if self.areaPOI and ns:GetOpt('development') then
+    if self.areaPOI and _G['HandyNotes_ZarPluginsDevelopment'] then
         tooltip:AddLine(ns.RenderLinks('Poi ID: ' .. self.areaPOI), 0.58, 0.43,
             0.84)
     end
@@ -467,14 +467,15 @@ function Item:Initialize(attrs)
 end
 
 function Item:IsCompleted()
-    if ns.PlayerHasItem(self.id) then return true end
+    if not self.ignore_bags and ns.PlayerHasItem(self.id) then return true end
     return Node.IsCompleted(self)
 end
 
 function Item:Render(tooltip, focusable)
     Node.Render(self, tooltip, focusable)
     GameTooltip_AddBlankLineToTooltip(tooltip)
-    EmbeddedItemTooltip_SetItemByID(tooltip.ItemTooltip, self.id)
+    -- EmbeddedItemTooltip_SetItemByID(tooltip.ItemTooltip, self.id)
+    tooltip:SetItemByID(self.id)
 end
 
 function Item.getters:label() return ('{item:%d}'):format(self.id) end
@@ -501,6 +502,69 @@ local PetBattle = Class('PetBattle', NPC, {
     scale = 1.2,
     group = ns.groups.PETBATTLE
 })
+
+-------------------------------------------------------------------------------
+----------------------------- PROFESSION TREASURES ----------------------------
+-------------------------------------------------------------------------------
+
+local ProfessionMaster = Class('ProfessionMaster', NPC, {
+    scale = 0.9,
+    group = ns.groups.PROFESSION_TREASURES
+})
+
+function ProfessionMaster:IsEnabled()
+    if not ns.PlayerHasProfession(self.skillID) then return false end
+    return NPC.IsEnabled(self)
+end
+
+local ProfessionTreasure = Class('ProfessionTreasure', Item, {
+    scale = 0.9,
+    group = ns.groups.PROFESSION_TREASURES
+})
+
+function ProfessionTreasure:IsEnabled()
+    if not ns.PlayerHasProfession(self.skillID) then return false end
+    return Item.IsEnabled(self)
+end
+
+local PM = {}
+local PT = {}
+
+for _, profession in pairs(ns.professions) do
+    if profession.variantID ~= nil then
+        local name = profession.name
+        local icon = profession.icon
+        local skillID = profession.skillID
+
+        PM[name] = Class(name .. 'Master', ProfessionMaster, {
+            icon = icon,
+            skillID = skillID,
+            level = 1,
+            getters = {
+                requires = function(self)
+                    local profession = ns.getProfessionBySkillID(self.skillID)
+                    local variantID = profession.variantID[ns.expansion]
+                    local level = self.level
+                    return ns.requirement.Profession(skillID, variantID, level)
+                end
+            }
+        })
+
+        PT[name] = Class(name .. 'Treasure', ProfessionTreasure, {
+            icon = icon,
+            skillID = skillID,
+            level = 1,
+            getters = {
+                requires = function(self)
+                    local profession = ns.getProfessionBySkillID(self.skillID)
+                    local variantID = profession.variantID[ns.expansion]
+                    local level = self.level
+                    return ns.requirement.Profession(skillID, variantID, level)
+                end
+            }
+        })
+    end
+end
 
 -------------------------------------------------------------------------------
 ------------------------------------ QUEST ------------------------------------
@@ -731,6 +795,8 @@ ns.node = {
     Node = Node,
     NPC = NPC,
     PetBattle = PetBattle,
+    ProfessionMasters = PM,
+    ProfessionTreasures = PT,
     Quest = Quest,
     Rare = Rare,
     Treasure = Treasure,

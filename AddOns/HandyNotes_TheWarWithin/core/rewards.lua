@@ -201,7 +201,7 @@ function Achievement:GetLines()
         local c = self.criteria[index]
         local cname, _, ccomp, qty, req = GetCriteriaInfo(self.id, c.id)
         if (cname == '' or c.qty) then
-            cname = c.suffix or cname
+            cname = ns.RenderLinks(c.suffix or cname, true)
             cname = (completed and req .. '/' .. req or qty .. '/' .. req) ..
                         ' ' .. cname
         end
@@ -774,6 +774,40 @@ function Reputation:IsObtained()
 end
 
 -------------------------------------------------------------------------------
+------------------------------------ DECOR ------------------------------------
+-------------------------------------------------------------------------------
+
+local Decor = Class('Decor', Reward,
+    {display_option = 'show_decor_rewards', type = L['decor']})
+
+function Decor:Initialize(attrs)
+    Reward.Initialize(self, attrs)
+    if self.item then
+        if not self.CacheItem then self.CacheItem = Item.CacheItem end
+        Item.Initialize(self, attrs)
+    else
+        if not self.id then
+            error('Decor() reward requires an decor id or item to be set')
+        end
+        self.itemLink = C_HousingDecor.GetDecorName(self.id)
+        self.itemIcon = 7252953 -- C_HousingDecor.GetDecorIcon(self.id)
+    end
+end
+
+function Decor:GetText()
+    if self.item then return Item.GetText(self) end
+    return Icon(self.itemIcon) .. self.itemLink .. ' (' .. self.type .. ')'
+end
+
+-- function Decor:GetStatus()
+--     if not self.item then return end
+
+--     local item = C_HousingCatalog.GetCatalogEntryInfoByItem(self.item, true) -- In the beta this API does NOT return any OwnedInfo
+--     local owned = item.numStored + item.numPlaced
+--     return L['decor_owned']:format(owned or 0)
+-- end
+
+-------------------------------------------------------------------------------
 
 ns.reward = {
     Reward = Reward,
@@ -782,6 +816,7 @@ ns.reward = {
     Achievement = Achievement,
     Buff = Buff,
     Currency = Currency,
+    Decor = Decor,
     Follower = Follower,
     Item = Item,
     Heirloom = Heirloom,

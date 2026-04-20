@@ -25,6 +25,9 @@ L['options_icons_flight_master_desc'] = '显示 {achievement:40430} 成就中 {n
 L['options_icons_worldsoul_memories'] = '世界之魂的回忆'
 L['options_icons_worldsoul_memories_desc'] = '显示 {object:世界之魂的回忆} 的奖励。'
 
+L['last_architect_note'] = '完成每日谜题以获得装饰。'
+L['neighborhood_riddle'] = '宝藏位置'
+
 -------------------------------------------------------------------------------
 -------------------------------- ISLE OF DORN ---------------------------------
 -------------------------------------------------------------------------------
@@ -677,3 +680,15 @@ L['ancient_coffer_note'] = '收集 {item:233794}（{dot:Red}）和 {item:233799}
 
 L['sthaarbs_note'] = '使用 {object:相位导管} 附近的传送器前往 {npc:234845} 处。'
 L['heka_tamos_note'] = '从附近的 {object:望露莲}、{object:幽灵提灯}、{object:土生肉质植物} 和 {object:捕风花} 处各收集一层增益效果，然后与 {object:元素团结火盆} 互动召唤稀有。'
+
+L['translocated_gorger_note'] = '每周每个战团可从 {object:吞噬者入侵} 首领收集1个 {item:246240}，组合这些物品即可制作坐骑。'
+
+L['zo_turu_note_start'] = '加入三个财团中的一个，并在 {location:法力熔炉：欧米伽} 内寻找密信容器。\n\n{item:249702}\n{item:249704}\n{item:249700}\n\n{note:每个投放点需要不同的财团。}'
+L['zo_turu_note_end'] = '\n\n收集完所有密信容器，前往 {npc:245344} 以完成任务 {quest:92082}。'
+L['cartel_ba_dead_drop_label'] = '巴财团密信容器'
+L['cartel_ba_dead_drop_location'] = '击败 {npc:233814} 后的右侧路径上，再使用 {spell:1232528} 跨越裂隙。'
+L['cartel_om_dead_drop_label'] = '欧财团密信容器'
+L['cartel_om_dead_drop_location'] = '在经过 {npc:237861} 后，建筑物后方一块岩石的上面。'
+L['cartel_zo_dead_drop_label'] = '佐财团密信容器'
+L['cartel_zo_dead_drop_location'] = '在见到 {npc:247989} 前，沿着管道走到第一个魔力通风口。'
+L['cartel_dead_drop_warning'] = '{note:如果在本副本中已击败 {npc:247989}，此密信容器将无法获取。}'
