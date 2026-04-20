@@ -9,6 +9,7 @@ local PLAYER_LEVEL = UnitLevel("player")
 local NEXT_PLAYER_LEVEL = PLAYER_LEVEL + 1
 local UNIT_CAST_TRACKER = {}
 local unitCastTracker = {}
+local auraTriggeredCache = {}
 local UNIT_SUCCEEDED_AND_INTERRUPTED_TRACKER = {}
 local hasPlayedSiJiaoTingYuan = false
 local encounterUnitTriggerCount = 0
@@ -149,12 +150,12 @@ local AudioTimeline = {
             -- [7] =  "TieBianFangShui.ogg",
             -- [16] = "DuoKaiZhengMian.ogg",
             -- [22] = { file = "MeiYouYinPin.ogg", duration = 3 },
-            [25] = { file = "ZhuanHuoXiaoGuai.ogg", role = {"TANK", "DAMAGER"} },
+            [27] = { file = "ZhuanHuoXiaoGuai.ogg", role = {"TANK", "DAMAGER"} },
             -- [33] = "TieBianFangShui.ogg",
             -- [35] = { file = "ZhuYiJianShang.ogg", role = "TANK" }, 
             -- [36] = { file = "ZhuYiShuaTan.ogg", role = "HEALER" }, 
             -- [45] = { file = "MeiYouYinPin.ogg", duration = 5 },
-            -- [48] = "XiaoXinJiTui.ogg",
+            [52] = "XiaoXinJiTui.ogg",
         }
     },
     [2066] = { -- 萨普瑞什
@@ -202,17 +203,17 @@ local AudioTimeline = {
             -- [0]  = { file = "BieKaiBaoFa.ogg", role = "DAMAGER" }, 
             -- [2]  = "ZhunBeiAOE.ogg",
             -- [12] = "ZhuYiSheXian.ogg",
-            [13] = { file = "TanKeJianCi.ogg", role = "TANK", duration = 3 }, 
+            [13] = { file = "TanKeJianCi.ogg", role = "TANK" }, 
             [15] = "ZhuYiZiBao.ogg",
             [17] = "San.ogg",
             [18] = "Er.ogg",
             [19] = "Yi.ogg",
             [20] = "AnQuanAnQuan.ogg",
             -- [22] = "ZhunBeiDianMing.ogg",
-            [29] = { file = "TanKeJianCi.ogg", role = "TANK", duration = 3 }, 
+            [29] = { file = "TanKeJianCi.ogg", role = "TANK" }, 
             -- [35] = "DuoKaiDaQuan.ogg",
             -- [45] = "ZhuYiSheXian.ogg",
-            [45] = { file = "TanKeJianCi.ogg", role = "TANK", duration = 3 }, 
+            [45] = { file = "TanKeJianCi.ogg", role = "TANK" }, 
             [50] = "San.ogg",
             [51] = "Er.ogg",
             [52] = "Yi.ogg",
@@ -400,7 +401,7 @@ local AudioTimeline = {
         }
     },
     [3072] = { -- 瑟拉奈尔·日鞭
-        interval = 56, 
+        interval = 57, 
         startOffset = 0, 
         alerts = {
             [7]  = "ZhunBeiDianMing.ogg",
@@ -452,11 +453,24 @@ local AudioTimeline = {
     --     }
     -- },
     [3177] = { -- 弗拉希乌斯
-        interval = 9999, 
+        interval = 999, 
         startOffset = 0, 
         alerts = {
             [88]  = "KuaiKaiJianShang.ogg",
             [208] = "KuaiKaiJianShang.ogg",
+            [329] = "KuaiKaiJianShang.ogg",
+        }
+    },
+    [3179] = { -- 陨落之王萨哈达尔
+        interval = 999, 
+        startOffset = 0, 
+        alerts = {
+            [36]  = "ZhuanHuoErQiu.ogg",
+            [82]  = "ZhuanHuoErQiu.ogg",
+            [155] = "ZhuanHuoErQiu.ogg",
+            [208] = "ZhuanHuoErQiu.ogg",
+            [278] = "ZhuanHuoErQiu.ogg",
+            [329] = "ZhuanHuoErQiu.ogg",
         }
     },
     [3212] = { -- 姆罗金和内克拉克斯
@@ -980,7 +994,7 @@ local EventSoundData = {
     [224] = {"ZhunBeiTiaoRen.ogg", 1}, -- 残杀 (1263282)
     [225] = {"ZhunBeiAOE.ogg", 1}, -- 渗漏猛击 (1263399)
     [226] = {"SiMiaoTanKeJianShang.ogg", 2, {TANK = true, HEALER = true}}, -- 虚空挥砍 (1263440)
-    [238] = {"XiaoXinJiTui.ogg", 1}, -- 崩解虚空 (1263304)
+    -- [238] = {"XiaoXinJiTui.ogg", 1}, -- 崩解虚空 (1263304)
     -- 萨普瑞什
     [234] = {"ZhuYiDuoQuan.ogg", 1}, -- 虚空炸弹 (247175)
     -- [235] = {".ogg", 1}, -- 相位冲锋 (1263509)
@@ -1084,9 +1098,9 @@ local EventSoundData = {
     [61]  = {"ZhunBeiJiGuang.ogg", 0}, -- [虚空吐息] (1243853)
 
     -- 陨落之王萨哈达尔
-    [140] = {"ZhunBeiDianMing.ogg", 1}, -- 专制命令 (1260823)
+    -- [140] = {"ZhunBeiDianMing.ogg", 1}, -- 专制命令 (1260823)
     [143] = {"HuanJingShangHai.ogg", 1, {HEALER = true}}, -- 扭曲遮蔽 (1250686)
-    [148] = {"YiShangJieDuanKuaiKaiJianShang.ogg", 1}, -- 熵能瓦解 (1246175)
+    [148] = {"YiShangJieDuan.ogg", 1}, -- 熵能瓦解 (1246175)
     [141] = {"DaDuanDuTiao.ogg", 1, {DAMAGER = true, TANK = true}}, -- 破碎投影 (1254081)
     [142] = {"ZhunBeiDianMing.ogg", 2, {DAMAGER = true, HEALER = true}}, -- 粉碎暮光 (1253911)
     [139] = {"ZhaoHuanXiaoGuai.ogg", 1, {DAMAGER = true, TANK = true}}, -- 虚空融合 (1243453)
@@ -1456,6 +1470,8 @@ frame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
 frame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 frame:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
+frame:RegisterEvent("UNIT_AURA")
+
 
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "ENCOUNTER_START" then
@@ -1479,6 +1495,25 @@ frame:SetScript("OnEvent", function(self, event, ...)
     elseif event == "PLAYER_REGEN_ENABLED" then
         wipe(unitCastTracker) 
         return
+    elseif event == "UNIT_AURA" then
+        local unitTarget = ...
+        local subZone = GetSubZoneText()
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) then
+            if subZone == "風行者寶庫" then
+                local currentMapID = C_Map.GetBestMapForUnit("player") or 0        
+                local actualLevel = UnitLevel(unitTarget)
+                local unitPowerType = UnitPowerType(unitTarget)
+                local auraData = C_UnitAuras.GetAuraDataByIndex(unitTarget, 2, "HELPFUL") 
+                if actualLevel == NEXT_PLAYER_LEVEL and currentMapID == 2498 and unitPowerType == 0 and auraData then
+                    if not auraTriggeredCache[unitTarget] then
+                        PlaySoundFile(MEDIA_PATH .. "JiNu.ogg", "Master")
+                        auraTriggeredCache[unitTarget] = true
+                    end
+                    return
+                end
+            end                
+        end
+        return
     elseif event == "ZONE_CHANGED" or event == "ZONE_CHANGED_INDOORS" or event == "ZONE_CHANGED_NEW_AREA" then
         local mapID = C_Map.GetBestMapForUnit("player")
         if not mapID then return end        
@@ -1488,7 +1523,6 @@ frame:SetScript("OnEvent", function(self, event, ...)
             hasPlayedSiJiaoTingYuan = true
         end
         return
-    -- 修改后的事件处理部分
     elseif event == "UNIT_SPELLCAST_START" then
         -- print("当前机制文字: " .. (GetTopWidgetText() or "没找到"))
         -- UnitAffectingCombat(unit)
@@ -2106,7 +2140,12 @@ frame:SetScript("OnEvent", function(self, event, ...)
             StartCircleTimerBySeconds(6)
             return
         end
-
+        if currentEncounterID == 3179 and encounterWarningInfo.severity and encounterWarningInfo.severity == 0 then
+            -- print("成功：检测到专制命令")
+            -- PlaySoundFile(MEDIA_PATH .. "TieBianFangShui.ogg", "Master")
+            StartCircleTimerBySeconds(12)
+            return
+        end
         if startTime ~= 0 or currentEncounterID ~= 0 then 
             return 
         end
@@ -2154,8 +2193,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
         SetCVar("Sound_NumChannels", 128)
         RegisterPrivateAuras()
         C_Timer.After(2, function()
-            --print("感謝使用|cFF00FF00[神秘地瓜副本語音插件]|r如果覺得好用，請在|cFFFFA6D5“愛發電”|r平台搜索|cFFFFFF00“神秘地瓜”|r支持我的插件，您的支持就是我最大的動力。")
-            -- print("感謝大家的喜歡，但請不要再宣傳本插件了，偷偷的用。近期暴雪查的很嚴，傳到暴雪那裡容易被斃。TAT")
+            --print("感谢使用|cFF00FF00[神秘地瓜副本语音插件]|r如果觉得好用，请在|cFFFFA6D5“爱发电”|r平台搜索|cFFFFFF00“神秘地瓜”|r支持我的插件，您的支持就是我最大的动力。")
+            -- print("感谢大家的喜欢，但请不要再宣传本插件了，偷偷的用。近期暴雪查的很严，传到暴雪那里容易被毙。TAT")
         end)        
         -- ApplyTimelineSounds()
         return
@@ -2174,9 +2213,12 @@ frame:SetScript("OnEvent", function(self, event, ...)
             end
         end
     elseif event == "NAME_PLATE_UNIT_REMOVED" then
-        local unit = ... -- 事件自带的 unitID
+        local unit = ...  
         if unit and UNIT_CAST_TRACKER[unit] then
             UNIT_CAST_TRACKER[unit] = nil
+        end
+        if unit and auraTriggeredCache[unit] then
+            auraTriggeredCache[unit] = nil
         end
     end
 

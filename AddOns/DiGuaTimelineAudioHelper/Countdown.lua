@@ -5,7 +5,7 @@ addonTable.Countdown = Countdown
 
 local ticker = nil
 
--- 获取媒体路径的辅助函数（抽离出来复用）
+-- 获取媒体路径的辅助函数
 local function GetMediaPath()
     if C_AddOns.IsAddOnLoaded("DiGua-WYJJ") then
         return "Interface\\AddOns\\DiGua-WYJJ\\Media\\"
@@ -22,15 +22,26 @@ function Countdown:Stop()
     end
 end
 
--- === 新增：就位确认处理函数 ===
+-- === 核心修改：带环境检测的就位确认处理函数 ===
 function Countdown:PlayReadyCheckVoice()
-    -- 如果装了 DBM/BW，通常它们会喊话，我们可以选择不播
+    -- 1. 冲突检测：如果装了 DBM/BW，通常它们会处理语音，不重复播放
     if C_AddOns.IsAddOnLoaded("DBM-Core") or C_AddOns.IsAddOnLoaded("BigWigs") then
         return 
     end
 
-    local path = GetMediaPath() .. "JiuWeiQueRen.ogg" -- 确保你的 Media 文件夹下有这个文件
-    PlaySoundFile(path, "Master")
+    -- 2. 获取 CVar 状态（对应你截图中的红框设置）
+    -- Sound_EnableSFX: "1" 表示勾选了“声音效果”，"0" 表示没勾
+    -- Sound_SFXVolume: 效果音量滑块数值 (0.0 到 1.0)
+    local isSFXEnabled = C_CVar.GetCVar("Sound_EnableSFX")
+    local sfxVolume = tonumber(C_CVar.GetCVar("Sound_SFXVolume")) or 0
+
+    -- 3. 判断条件：如果对勾没勾，或者滑块音量为 0
+    if isSFXEnabled == "0" or sfxVolume <= 0 then
+        local path = GetMediaPath() .. "DengDengDeng.ogg"
+        
+        -- 使用 "Master" 通道播放，可以绕过“效果”开关，只要主音量开着就能听到
+        PlaySoundFile(path, "Master")
+    end
 end
 
 -- 内部开始函数 (倒计时)
@@ -71,7 +82,6 @@ end
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("START_PLAYER_COUNTDOWN")
 frame:RegisterEvent("CANCEL_PLAYER_COUNTDOWN")
--- 注册就位确认相关事件
 frame:RegisterEvent("READY_CHECK") 
 frame:RegisterEvent("READY_CHECK_FINISHED")
 
@@ -85,7 +95,6 @@ frame:SetScript("OnEvent", function(_, event, ...)
         -- 当团长发起就位确认时触发
         Countdown:PlayReadyCheckVoice()
     elseif event == "READY_CHECK_FINISHED" then
-        -- 这里的逻辑可以根据需要添加，比如全员就位后的提示音
-        -- PlaySoundFile(GetMediaPath() .. "ReadyCheckDone.ogg", "Master")
+        -- 预留：全员就位逻辑
     end
 end)
