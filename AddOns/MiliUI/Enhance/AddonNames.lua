@@ -25,6 +25,8 @@ local addonNames = {
     ["Stuf"]                                                = "Stuf 頭像設定",
     ["BuffReminders"]                                       = "增益提醒器",
     ["DamageMeterTools"]                                    = "傷害統計增強",
+    ["TinyInspect-Remake"]                                  = "裝備觀察",
+    ["Loxx Interrupt Tracker"]                                  = "Loxx 斷法助手",
 
     -- ==================== 拍賣 / 物品 / 背包 ====================
     ["Auctionator"]                                         = "拍賣小幫手",
