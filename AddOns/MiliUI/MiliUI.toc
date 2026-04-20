@@ -35,6 +35,8 @@ Enhance\TooltipTaintFix.lua
 Enhance\BuffDurationStyle.lua
 Enhance\Stuf_AuraBorder.lua
 Enhance\Stuf_Fix.lua
+Enhance\Stuf_InspectTooltipLocale.lua
+Enhance\KeystoneAutoReport.lua
 Enhance\InspectTaintFix.lua
 Enhance\TinyInspectRemake_GearSlots.lua
 Enhance\TinyInspectRemake_TrackColors.lua
