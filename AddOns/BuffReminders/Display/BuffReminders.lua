@@ -527,7 +527,7 @@ local defaults = {
     ---@type AllCategorySettings
     categorySettings = { -- Per-category settings
         main = {
-            position = { point = "CENTER", x = 0, y = 200 },
+            position = { point = "CENTER", x = 0, y = 450 },
             -- main frame always uses defaults for appearance/behavior
         },
         raid = {
