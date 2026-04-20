@@ -36,3 +36,5 @@ Enhance\BuffDurationStyle.lua
 Enhance\Stuf_AuraBorder.lua
 Enhance\Stuf_Fix.lua
 Enhance\InspectTaintFix.lua
+Enhance\TinyInspectRemake_GearSlots.lua
+Enhance\TinyInspectRemake_TrackColors.lua
