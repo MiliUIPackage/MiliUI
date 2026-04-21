@@ -22,6 +22,7 @@ local KEYSTONE_ITEM_ID = 180653        -- Mythic Keystone item ID
 local KEY_LINK_COLOR   = "ffa335ee"    -- epic purple
 local KEY_CHECK_DELAY  = 3             -- 事件後延遲秒數 (等 API 更新)
 local BASELINE_DELAY   = 10            -- 登入後設定基準值延遲
+local KEYSTONE_NPC_ID  = 197711        -- 主城鑰石 NPC
 
 local hasLibKeystone = false  -- PLAYER_LOGIN 時 re-evaluate，避免 load order 誤判
 local issecretvalue = _G.issecretvalue or function() return false end
@@ -81,7 +82,8 @@ local function CollectSelfKeystone()
 end
 
 local function OnKSMessage(text, channel, sender)
-    if (type(text) ~= "string" or issecretvalue(text)) then return end
+    if (issecretvalue(text)) then return end
+    if (type(text) ~= "string") then return end
     if (text == "R") then
         RespondToKSRequest(channel)
         return
@@ -99,8 +101,8 @@ local function OnKSMessage(text, channel, sender)
 end
 
 local function MatchKeyword(msg)
-    if (type(msg) ~= "string") then return false end
     if (issecretvalue(msg)) then return false end
+    if (type(msg) ~= "string") then return false end
     if (msg == "") then return false end
     -- 去除超連結，避免 |Hkeystone:...|h[鑰石:...]|h 這種別人貼的鑰石連結觸發
     local stripped = msg:gsub("|H.-|h.-|h", " ")
@@ -187,7 +189,8 @@ local function OnTrigger()
 end
 
 local function OnPeerDedup(text)
-    if (type(text) ~= "string" or issecretvalue(text)) then return end
+    if (issecretvalue(text)) then return end
+    if (type(text) ~= "string") then return end
     if (text == "SENT") then
         if (scheduledSend) then
             scheduledSend:Cancel()
@@ -273,7 +276,7 @@ local function CheckOwnKeystoneChanged()
         if (not channel) then return end
         local link = BuildKeystoneLink(mapID, level)
         if (link) then
-            SendChatMessage(link, channel)
+            SendChatMessage("鑰石更新：" .. link, channel)
         end
     end)
 end
@@ -283,6 +286,14 @@ local function SetBaselineIfNeeded()
     local mapID, level = ReadOwnKeystoneState()
     lastOwnMapID, lastOwnLevel = mapID, level
     baselineSet = true
+end
+
+local function IsKeystoneNpcGossip()
+    local guid = UnitGUID("npc") or UnitGUID("target")
+    if (type(guid) ~= "string") then return false end
+    local ok, part = pcall(select, 6, strsplit("-", guid))
+    if (not ok) then return false end
+    return tonumber(part) == KEYSTONE_NPC_ID
 end
 
 local f = CreateFrame("Frame")
@@ -300,8 +311,12 @@ f:SetScript("OnEvent", function(self, event, ...)
         self:RegisterEvent("CHALLENGE_MODE_COMPLETED")
         self:RegisterEvent("GOSSIP_CLOSED")
         C_Timer.After(BASELINE_DELAY, SetBaselineIfNeeded)
-    elseif (event == "CHALLENGE_MODE_COMPLETED" or event == "GOSSIP_CLOSED") then
+    elseif (event == "CHALLENGE_MODE_COMPLETED") then
         CheckOwnKeystoneChanged()
+    elseif (event == "GOSSIP_CLOSED") then
+        if (IsKeystoneNpcGossip()) then
+            CheckOwnKeystoneChanged()
+        end
     elseif (event == "CHAT_MSG_ADDON") then
         local prefix, text, channel, sender = ...
         if (prefix == KS_PREFIX) then
