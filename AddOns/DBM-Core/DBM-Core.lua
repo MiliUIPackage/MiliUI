@@ -77,16 +77,16 @@ local function showRealDate(curseDate)
 	end
 end
 
-DBM.Revision = parseCurseDate("20260413102312")
+DBM.Revision = parseCurseDate("20260422001824")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 private.fakeBWVersion, private.fakeBWHash = 412, "5f04367"--412.7
 
 -- The string that is shown as version
-DBM.DisplayVersion = "12.0.38"--Core version
+DBM.DisplayVersion = "12.0.40"--Core version
 DBM.classicSubVersion = 0
 DBM.dungeonSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2026, 4, 13) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2026, 4, 21) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
 -- support for github downloads, which doesn't support curse keyword expansion
@@ -435,8 +435,8 @@ DBM.DefaultOptions = {
 	PrivateAurasPlayerHeight = 60,
 	PrivateAurasPlayerAnchor = "CENTER",--NYI
 	PrivateAurasPlayerRelativeTo = "CENTER",--NYI
-	PrivateAurasPlayerXOffset = 0,--Partial (drag and drop only, no UI slider/editbox)
-	PrivateAurasPlayerYOffset = 150,--Partial (drag and drop only, no UI slider/editbox)
+	PrivateAurasPlayerXOffset = 185,--Partial (drag and drop only, no UI slider/editbox)
+	PrivateAurasPlayerYOffset = 154,--Partial (drag and drop only, no UI slider/editbox)
 	--Co-Tank
 	PrivateAurasCoTankEnabled = true,
 	PrivateAurasCoTankHideBorder = false,
@@ -450,8 +450,8 @@ DBM.DefaultOptions = {
 	PrivateAurasCoTankHeight = 60,
 	PrivateAurasCoTankAnchor = "CENTER",--NYI
 	PrivateAurasCoTankRelativeTo = "CENTER",--NYI
-	PrivateAurasCoTankXOffset = -150,--Partial (drag and drop only, no UI slider/editbox)
-	PrivateAurasCoTankYOffset = 150,--Partial (drag and drop only, no UI slider/editbox)
+	PrivateAurasCoTankXOffset = -196,--Partial (drag and drop only, no UI slider/editbox)
+	PrivateAurasCoTankYOffset = 154,--Partial (drag and drop only, no UI slider/editbox)
 	PrivateAurasCoTankShowSecond = false,
 	--Player Text Anchor
 	PrivateAurasTextAnchorScale = 1.8,
@@ -5136,9 +5136,9 @@ do
 		if not private.statusGuildDisabled and private.updateNotificationDisplayed == 0 then
 			if thisTime then--Wipe event
 				if wipeHP then
-					private.sendGuildSync(8, "GCE", modId .. "\t1\t" .. thisTime .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader .. "\t" .. wipeHP)
+					private.sendGuildSync(9, "GCE", modId .. "\t1\t" .. thisTime .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader .. "\t" .. wipeHP)
 				else
-					private.sendGuildSync(8, "GCE", modId .. "\t0\t" .. thisTime .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader)
+					private.sendGuildSync(9, "GCE", modId .. "\t1\t" .. thisTime .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader)
 				end
 			else
 				private.sendGuildSync(4, "GCB", modId .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader)
@@ -8062,7 +8062,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260413102312" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260422001824" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then
