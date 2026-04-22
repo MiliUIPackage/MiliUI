@@ -104,6 +104,9 @@ local function MatchKeyword(msg)
     if (issecretvalue(msg)) then return false end
     if (type(msg) ~= "string") then return false end
     if (msg == "") then return false end
+    -- 自己的 auto-post 會回灌到 CHAT_MSG_PARTY，prefix "鑰石更新" 內含關鍵字
+    -- "鑰石"，會自我觸發。直接跳過。
+    if (msg:find("^鑰石更新", 1, false)) then return false end
     -- 去除超連結，避免 |Hkeystone:...|h[鑰石:...]|h 這種別人貼的鑰石連結觸發
     local stripped = msg:gsub("|H.-|h.-|h", " ")
     local lower = stripped:lower()
@@ -252,7 +255,9 @@ local function ReadOwnKeystoneState()
     return mapID, level
 end
 
-local function CheckOwnKeystoneChanged()
+local KEY_CHECK_MAX_RETRY = 3   -- 最多重試次數 (API 延遲時才需要)
+
+local function ScheduleKeystoneCheck(retry)
     if (keyCheckTimer) then return end
     keyCheckTimer = C_Timer.NewTimer(KEY_CHECK_DELAY, function()
         keyCheckTimer = nil
@@ -267,7 +272,13 @@ local function CheckOwnKeystoneChanged()
             return
         end
 
-        if (mapID == lastOwnMapID and level == lastOwnLevel) then return end
+        if (mapID == lastOwnMapID and level == lastOwnLevel) then
+            -- 沒變動：可能是 API 還沒更新，再試一次
+            if ((retry or 0) < KEY_CHECK_MAX_RETRY) then
+                ScheduleKeystoneCheck((retry or 0) + 1)
+            end
+            return
+        end
         lastOwnMapID, lastOwnLevel = mapID, level
 
         if (mapID <= 0 or level <= 0) then return end
@@ -279,6 +290,10 @@ local function CheckOwnKeystoneChanged()
             SendChatMessage("鑰石更新：" .. link, channel)
         end
     end)
+end
+
+local function CheckOwnKeystoneChanged()
+    ScheduleKeystoneCheck(0)
 end
 
 local function SetBaselineIfNeeded()
@@ -331,3 +346,4 @@ f:SetScript("OnEvent", function(self, event, ...)
         end
     end
 end)
+
