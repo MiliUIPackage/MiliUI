@@ -11,7 +11,7 @@ local I = Cell.iFuncs
 -- - DO NOT compare secret values with == or use arithmetic on them
 -- - DO NOT use secret values as table keys
 -- - FontString:SetText() and SetTexture() ACCEPT secrets safely
--- - Use F.IsValueNonSecret(val) to check if a value is non-secret
+-- - Use issecretvalue(val) to check if a value is secret
 -- - Use GetRestrictedActionStatus(0) to check if aura access is restricted
 
 -------------------------------------------------
@@ -255,15 +255,11 @@ end
 function I.UpdateCustomIndicators(unitButton, auraInfo)
     local unit = unitButton.states.displayedUnit
 
-    -- Midnight 12.0.0+: bail only if aura type (isHelpful) is secret — we need it to classify buff/debuff.
-    -- spellId may still be secret for some auras even with hotfix; don't bail on spellId.
-    if not F.IsValueNonSecret(auraInfo.isHelpful) then return end
-
     local auraType = auraInfo.isHelpful and "buff" or "debuff"
     local icon = auraInfo.icon
     -- Midnight 12.0.0+: dispelName may be secret; sanitize to avoid table-key/comparison crashes downstream
     local rawDispelName = auraInfo.dispelName
-    local debuffType = auraInfo.isHarmful and ((rawDispelName and F.IsValueNonSecret(rawDispelName)) and rawDispelName or "") or nil
+    local debuffType = auraInfo.isHarmful and ((rawDispelName and (not issecretvalue or not issecretvalue(rawDispelName))) and rawDispelName or "") or nil
     local count = auraInfo.applications
     local duration = auraInfo.duration
     -- Use per-aura check for duration: non-secret auras get real timers, secret ones get zeroed.
@@ -274,9 +270,13 @@ function I.UpdateCustomIndicators(unitButton, auraInfo)
         start = 0
         duration = 0
     end
-    local castByMe = auraInfo.sourceUnit == "player" or auraInfo.sourceUnit == "pet"
+    -- sourceUnit is secret on restricted auras; castByMe defaults to false when unreadable.
+    local castByMe = false
+    if F.IsValueNonSecret(auraInfo.sourceUnit) then
+        castByMe = auraInfo.sourceUnit == "player" or auraInfo.sourceUnit == "pet"
+    end
 
-    -- check Bleed (isHarmful is safe: guarded by isHelpful non-secret check above)
+    -- check Bleed
     if auraInfo.isHarmful then
         debuffType = I.CheckDebuffType(debuffType, auraInfo.spellId)
     end
@@ -291,7 +291,7 @@ function I.UpdateCustomIndicators(unitButton, auraInfo)
             end
 
             -- Midnight 12.0.0+: spell (name or spellId) may be secret; cannot use as table key
-            if spell and F.IsValueNonSecret(spell) and indicatorTable["auras"][spell] or (indicatorTable["auras"][0] and duration ~= 0) then -- is in indicator spell list
+            if spell and (not issecretvalue or not issecretvalue(spell)) and indicatorTable["auras"][spell] or (indicatorTable["auras"][0] and duration ~= 0) then -- is in indicator spell list
                 -- check caster
                 if (indicatorTable["castBy"] == "me" and castByMe) or (indicatorTable["castBy"] == "others" and not castByMe) or (indicatorTable["castBy"] == "anyone") then
                     if auraType == "buff" then

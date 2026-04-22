@@ -13,224 +13,82 @@ local UnitIsUnit = UnitIsUnit
 local UnitIsEnemy = UnitIsEnemy
 local UnitCastingInfo = UnitCastingInfo
 local UnitChannelInfo = UnitChannelInfo
--- issecretvalue polyfill removed; use F.IsValueNonSecret() instead
-local C_Spell = C_Spell
 
 local casts = {}
 local castsOnUnit, sortedCastsOnUnit = {}, {}
 local recheck = {}
 local maxIcons, showAllSpells
-local displayMode = "Both" -- "Icons", "Border", "Both"
-local useSecretPath = false -- set true when UnitIsUnit returns secrets
 local eventFrame = CreateFrame("Frame")
-
--- Secret-safe UnitIsUnit — returns false when result is secret
--- UnitIsUnit is C-level and accepts secrets; no pcall needed.
-local function SafeUnitIsUnit(a, b)
-    local result = UnitIsUnit(a, b)
-    if not F.IsValueNonSecret(result) then return false end
-    return result
-end
-
--- Try to resolve target unit ID (non-secret path)
-local function GetTargetUnitID_Safe(target, sourceUnit)
-    local resolved
-
-    if SafeUnitIsUnit(target, "player") then return "player", false end
-    if SafeUnitIsUnit(target, "pet") then return "pet", false end
-
-    for unit in F.IterateGroupMembers() do
-        if SafeUnitIsUnit(target, unit) then return unit, false end
-    end
-
-    for unit in F.IterateGroupPets() do
-        if SafeUnitIsUnit(target, unit) then return unit, false end
-    end
-
-    -- Check if UnitIsUnit is returning secrets (not just nil/no target)
-    if Cell.isMidnight and UnitExists(target) then
-        local result = UnitIsUnit(target, "player")
-        if not F.IsValueNonSecret(result) then
-            return nil, true -- target exists but results are secret
-        end
-    end
-
-    return nil, false
-end
-
-local allActiveCasts -- forward declaration for Reset()
 
 local function Reset()
     wipe(recheck)
     wipe(casts)
     wipe(castsOnUnit)
     wipe(sortedCastsOnUnit)
-    if allActiveCasts then wipe(allActiveCasts) end
 end
 
 -------------------------------------------------
 -- show / hide
 -------------------------------------------------
 local function HideCasts(b)
-    local ts = b.indicators.targetedSpells
-    if displayMode ~= "Border" then
-        ts:UpdateSize(0)
-    end
-    ts:HideGlow()
-    -- Reset glow frame alpha in case SetShown was used
-    if ts.tsGlowFrame then
-        ts.tsGlowFrame:SetAlpha(1)
-        ts.tsGlowFrame:Show()
-    end
+    b.indicators.targetedSpells:UpdateSize(0)
+    b.indicators.targetedSpells:HideGlow()
 end
 
 local function ShowCasts(b, showGlow, sortedCasts, num)
-    local ts = b.indicators.targetedSpells
-
-    -- Show icons in Icons and Both modes
-    if displayMode ~= "Border" then
-        num = min(maxIcons, num)
-        for i = 1, num do
-            local cast = sortedCasts[i]
-            ts[i].cooldown:SetReverse(not cast.isChanneling)
-            ts[i]:SetCooldown(cast.startTime, cast.endTime-cast.startTime, cast.icon, cast.count)
-        end
-        ts:UpdateSize(num)
+    num = min(maxIcons, num)
+    for i = 1, num do
+        local cast = sortedCasts[i]
+        b.indicators.targetedSpells[i].cooldown:SetReverse(not cast.isChanneling)
+        b.indicators.targetedSpells[i]:SetCooldown(cast.startTime, cast.endTime-cast.startTime, cast.icon, cast.count)
     end
+    b.indicators.targetedSpells:UpdateSize(num)
 
-    -- Show glow in Border and Both modes only
-    if displayMode ~= "Icons" then
-        ts:ShowGlow(unpack(Cell.vars.targetedSpellsGlow))
+    if showGlow then
+        b.indicators.targetedSpells:ShowGlow(unpack(Cell.vars.targetedSpellsGlow))
     else
-        ts:HideGlow()
+        b.indicators.targetedSpells:HideGlow()
     end
 end
 
 -------------------------------------------------
--- Midnight secret-value display path
--- Uses SetShown() with secret booleans from UnitIsUnit
--- so the C-level API handles visibility without Lua boolean tests
+-- update casts for guid
 -------------------------------------------------
-allActiveCasts = {}
-
-local function GetAllActiveCasts()
-    wipe(allActiveCasts)
-    local now = GetTime()
-    for sourceKey, castInfo in pairs(casts) do
-        if castInfo["endTime"] > now then
-            tinsert(allActiveCasts, castInfo)
-        else
-            casts[sourceKey] = nil
-        end
-    end
-    return allActiveCasts
-end
-
-local function ShowCastsSecret(b, activeCasts, numCasts)
-    local ts = b.indicators.targetedSpells
-    local unit = b.states.displayedUnit or b.states.unit
-    if not unit then return end
-
-    -- Icons: set up each icon slot, use SetAlphaFromBoolean for secret-safe visibility
-    -- SetAlphaFromBoolean is AllowedWhenTainted (works from addon code)
-    if displayMode ~= "Border" then
-        local num = min(maxIcons, numCasts)
-        for i = 1, num do
-            local cast = activeCasts[i]
-            ts[i].cooldown:SetReverse(not cast.isChanneling)
-            ts[i].duration:Hide()
-            if cast.count and cast.count ~= 1 then
-                ts[i].stack:Show()
-                ts[i].stack:SetText(cast.count)
-            else
-                ts[i].stack:Hide()
-            end
-            ts[i].border:Show()
-            ts[i].cooldown:Show()
-            ts[i].cooldown:SetSwipeColor(unpack(Cell.vars.targetedSpellsGlow[2]))
-            ts[i].cooldown:SetCooldown(cast.startTime, cast.endTime - cast.startTime)
-            ts[i].icon:SetTexture(cast.icon)
-            ts[i]:Show()
-            -- SetAlphaFromBoolean: alpha 1 if targeted, alpha 0 if not (C-level, accepts secrets)
-            if not pcall(function() ts[i]:SetAlphaFromBoolean(UnitIsUnit(cast.sourceUnit .. "target", unit)) end) then
-                ts[i]:SetAlpha(0)
-            end
-        end
-        -- Hide unused slots
-        for i = numCasts + 1, #ts do
-            ts[i]:Hide()
-        end
-        ts:UpdateSize(num)
-    end
-
-    -- Glow: start the glow effect, use SetAlphaFromBoolean on tsGlowFrame
-    if displayMode ~= "Icons" and numCasts > 0 then
-        ts:ShowGlow(unpack(Cell.vars.targetedSpellsGlow))
-        if not pcall(function() ts.tsGlowFrame:SetAlphaFromBoolean(UnitIsUnit(activeCasts[1].sourceUnit .. "target", unit)) end) then
-            ts.tsGlowFrame:SetAlpha(0)
-        end
+local function GetCastsOnUnit(guid)
+    if castsOnUnit[guid] then
+        wipe(castsOnUnit[guid])
+        wipe(sortedCastsOnUnit[guid])
     else
-        ts:HideGlow()
-    end
-end
-
-local function UpdateAllButtonsCasts()
-    local activeCasts = GetAllActiveCasts()
-    local numCasts = #activeCasts
-
-    if numCasts == 0 then
-        F.IterateAllUnitButtons(HideCasts, true)
-        return
-    end
-
-    F.IterateAllUnitButtons(function(b)
-        ShowCastsSecret(b, activeCasts, numCasts)
-    end, true)
-end
-
--------------------------------------------------
--- update casts for unit (non-secret path)
--------------------------------------------------
-local function GetCastsOnUnit(targetUnit)
-    if castsOnUnit[targetUnit] then
-        wipe(castsOnUnit[targetUnit])
-        wipe(sortedCastsOnUnit[targetUnit])
-    else
-        castsOnUnit[targetUnit] = {}
-        sortedCastsOnUnit[targetUnit] = {}
+        castsOnUnit[guid] = {}
+        sortedCastsOnUnit[guid] = {}
     end
 
     local inListFound
-    local castIndex = 0
-    for sourceKey, castInfo in pairs(casts) do
-        if targetUnit == castInfo["targetUnit"] then
+    for sourceGUID, castInfo in pairs(casts) do
+        if guid == castInfo["targetGUID"] then
             if castInfo["endTime"] > GetTime() then -- not expired
-                -- On Midnight, spellId may be secret — can't use as table key.
-                -- Use a numeric index instead to group casts.
-                castIndex = castIndex + 1
-                local key = castInfo["nonSecretSpellId"] or castIndex
-                if not castsOnUnit[targetUnit][key] then
-                    castsOnUnit[targetUnit][key] = {["count"] = 0}
+                local spellId = castInfo["spellId"]
+                if not castsOnUnit[guid][spellId] then
+                    castsOnUnit[guid][spellId] = {["count"] = 0}
                 end
-                if not castsOnUnit[targetUnit][key]["endTime"] or castsOnUnit[targetUnit][key]["endTime"] > castInfo["endTime"] then --! shorter duration
-                    castsOnUnit[targetUnit][key]["startTime"] = castInfo["startTime"]
-                    castsOnUnit[targetUnit][key]["endTime"] = castInfo["endTime"]
-                    castsOnUnit[targetUnit][key]["icon"] = castInfo["icon"]
-                    castsOnUnit[targetUnit][key]["isChanneling"] = castInfo["isChanneling"]
+                if not castsOnUnit[guid][spellId]["endTime"] or castsOnUnit[guid][spellId]["endTime"] > castInfo["endTime"] then --! shorter duration
+                    castsOnUnit[guid][spellId]["startTime"] = castInfo["startTime"]
+                    castsOnUnit[guid][spellId]["endTime"] = castInfo["endTime"]
+                    castsOnUnit[guid][spellId]["icon"] = castInfo["icon"]
                 end
-                castsOnUnit[targetUnit][key]["count"] = castsOnUnit[targetUnit][key]["count"] + 1
+                castsOnUnit[guid][spellId]["count"] = castsOnUnit[guid][spellId]["count"] + 1
 
-                if castInfo["inList"] then
-                    castsOnUnit[targetUnit][key]["inList"] = true
+                if Cell.vars.targetedSpellsList[spellId] then
+                    castsOnUnit[guid][spellId]["inList"] = true
                     inListFound = true
                 end
             else
-                casts[sourceKey] = nil
+                casts[sourceGUID] = nil
             end
         end
     end
 
-    return castsOnUnit[targetUnit], inListFound
+    return castsOnUnit[guid], inListFound
 end
 
 local function Comparator(a, b)
@@ -240,22 +98,40 @@ local function Comparator(a, b)
     return a.startTime < b.startTime
 end
 
-local function UpdateCastsOnUnit(targetUnit)
-    if not targetUnit then return end
+local function UpdateCastsOnUnit(guid)
+    if not guid then return end
 
-    local t, showGlow = GetCastsOnUnit(targetUnit)
+    -- local startTime, endTime, spellId, icon, isChanneling
+    local t, showGlow = GetCastsOnUnit(guid)
 
-    for key, castInfo in pairs(t) do
-        tinsert(sortedCastsOnUnit[targetUnit], castInfo)
+    for spellId, castInfo in pairs(t) do
+        tinsert(sortedCastsOnUnit[guid], castInfo)
+
+        -- if not endTime then --! init
+        --     startTime, endTime, spellId, icon, isChanneling = castInfo["startTime"], castInfo["endTime"], castInfo["spellId"], castInfo["icon"], castInfo["isChanneling"]
+        -- else
+        --     spellId = castInfo["spellId"]
+        --     if Cell.vars.targetedSpellsList[spellId] then --! [IN LIST]
+        --         if not inListFound or endTime > castInfo["endTime"] then --! NOT FOUND BEFORE or SHORTER DURATION
+        --             startTime, endTime, icon, isChanneling = castInfo["startTime"], castInfo["endTime"], castInfo["icon"], castInfo["isChanneling"]
+        --         end
+        --     elseif not inListFound and endTime > castInfo["endTime"] then --! [NOT IN LIST] NOT FOUND BEFORE and SHORTER DURATION
+        --         startTime, endTime, icon, isChanneling = castInfo["startTime"], castInfo["endTime"], castInfo["icon"], castInfo["isChanneling"]
+        --     end
+        -- end
+
+        -- if Cell.vars.targetedSpellsList[spellId] then
+        --     inListFound = true
+        -- end
     end
 
-    local n = #sortedCastsOnUnit[targetUnit]
+    local n = #sortedCastsOnUnit[guid]
 
     if n == 0 then
-        F.HandleUnitButton("unit", targetUnit, HideCasts)
+        F.HandleUnitButton("guid", guid, HideCasts)
     else
-        table.sort(sortedCastsOnUnit[targetUnit], Comparator)
-        F.HandleUnitButton("unit", targetUnit, ShowCasts, showGlow, sortedCastsOnUnit[targetUnit], n)
+        table.sort(sortedCastsOnUnit[guid], Comparator)
+        F.HandleUnitButton("guid", guid, ShowCasts, showGlow, sortedCastsOnUnit[guid], n)
     end
 end
 
@@ -265,21 +141,27 @@ end
 local function CheckUnitCast(sourceUnit, isRecheck)
     if not UnitIsEnemy("player", sourceUnit) then return end
 
-    -- Use sourceUnit as tracking key (e.g., "nameplate1", "target").
-    -- UnitGUID can be secret on Midnight — sourceUnit strings are always safe.
-    local sourceKey = sourceUnit
+    -- On Midnight 12.0.0+, enemy spellcast info is secret in instances
+    -- Player's own casts (and pets) are always non-secret
+    if Cell.isMidnight then
+        local isPlayerCast = (sourceUnit == "player" or sourceUnit == "pet" or sourceUnit == "vehicle")
+        if not isPlayerCast and F.IsAuraRestricted and F.IsAuraRestricted() then
+            return -- skip enemy spell tracking during restricted periods
+        end
+    end
+
+    local sourceGUID = UnitGUID(sourceUnit)
+    -- Midnight 12.0.0+: UnitGUID for nameplates may return secret strings
+    if Cell.isMidnight and issecretvalue and issecretvalue(sourceGUID) then return end
+    local targetGUID
     local previousTarget, isChanneling
 
-    if casts[sourceKey] then
-        previousTarget = casts[sourceKey]["targetUnit"]
-        if casts[sourceKey]["endTime"] <= GetTime() then
+    if casts[sourceGUID] then
+        previousTarget = casts[sourceGUID]["targetGUID"]
+        if casts[sourceGUID]["endTime"] <= GetTime() then
             --! expired
-            casts[sourceKey] = nil
-            if useSecretPath then
-                UpdateAllButtonsCasts()
-            else
-                UpdateCastsOnUnit(previousTarget)
-            end
+            casts[sourceGUID] = nil
+            UpdateCastsOnUnit(previousTarget)
             previousTarget = nil
         end
     end
@@ -292,119 +174,56 @@ local function CheckUnitCast(sourceUnit, isRecheck)
         isChanneling = true
     end
 
-    if not spellId then return end
+    -- print(sourceUnit, name, spellId)
 
-    -- Determine if spellId is secret
-    local spellIdIsSecret = not F.IsValueNonSecret(spellId)
-    local nonSecretSpellId -- used for grouping and list lookup when available
-
-    if not spellIdIsSecret then
-        nonSecretSpellId = spellId
-    end
-
-    -- Get icon: C_Spell.GetSpellTexture is C-level and accepts secret spellId
-    if Cell.isMidnight and C_Spell and C_Spell.GetSpellTexture then
-        local tex = C_Spell.GetSpellTexture(spellId)
-        if tex then texture = tex end
-    end
-
-    -- Determine if this spell should be tracked
-    local inList = false
-    local shouldTrack = false
-
-    if nonSecretSpellId then
-        -- Non-secret: use normal list lookup
-        if Cell.vars.targetedSpellsList[nonSecretSpellId] then
-            inList = true
-            shouldTrack = true
-        elseif showAllSpells then
-            shouldTrack = true
+    -- Enemy UnitCastingInfo fields can be secret independently of IsAuraRestricted.
+    -- Bail before we use any as a table key or in arithmetic.
+    if Cell.isMidnight and issecretvalue then
+        if issecretvalue(spellId) or issecretvalue(startTimeMS) or issecretvalue(endTimeMS) or issecretvalue(texture) then
+            return
         end
-    else
-        -- Secret spellId: can't look up in list.
-        -- Use C_Spell.IsSpellImportant as a proxy for "dangerous/boss spell"
-        if C_Spell and C_Spell.IsSpellImportant then
-            local important = C_Spell.IsSpellImportant(spellId)
-            if not F.IsValueNonSecret(important) then
-                -- Secret boolean — treat as important (safe assumption for enemy casts)
-                inList = true
-                shouldTrack = true
-            elseif important then
-                inList = true
-                shouldTrack = true
+    end
+
+    if spellId and (Cell.vars.targetedSpellsList[spellId] or showAllSpells) then
+        if casts[sourceGUID] then
+            casts[sourceGUID]["startTime"] = startTimeMS/1000
+            casts[sourceGUID]["endTime"] = endTimeMS/1000
+            casts[sourceGUID]["spellId"] = spellId
+            casts[sourceGUID]["icon"] = texture
+        else
+            casts[sourceGUID] = {
+                ["startTime"] = startTimeMS/1000,
+                ["endTime"] = endTimeMS/1000,
+                ["spellId"] = spellId,
+                ["icon"] = texture,
+                ["isChanneling"] = isChanneling,
+                -- ["targetGUID"] = targetGUID,
+                -- ["sourceUnit"] = sourceUnit,
+                -- ["targetUnit"] = targetUnit,
+                ["recheck"] = 0,
+            }
+        end
+
+        local targetUnit = sourceUnit.."target"
+        targetUnit = F.GetTargetUnitID(targetUnit) -- units in group (players/pets), no npcs
+        if targetUnit then targetGUID = UnitGUID(targetUnit) end
+
+        -- update spell target
+        casts[sourceGUID]["targetUnit"] = targetUnit
+        casts[sourceGUID]["targetGUID"] = targetGUID
+        casts[sourceGUID]["nonNameplate"] = not strfind(sourceUnit, "^nameplate")
+
+        UpdateCastsOnUnit(targetGUID)
+
+        if not isRecheck then
+            if not recheck[sourceGUID] or not (strfind(sourceUnit, "target$") or strfind(sourceUnit, "^nameplate")) then
+                recheck[sourceGUID] = sourceUnit
             end
-        end
-        -- In showAllSpells mode, show all enemy casts even if secret
-        if showAllSpells then
-            shouldTrack = true
+            eventFrame:Show()
         end
     end
 
-    -- In Border or Both mode, track all enemy casts targeting group members
-    -- (glow always shows regardless of spell list)
-    if not shouldTrack and displayMode ~= "Icons" then
-        shouldTrack = true
-    end
-
-    if not shouldTrack then return end
-
-    -- Time values may be secret on Midnight — guard with F.IsValueNonSecret
-    local startTime, endTime
-    if F.IsValueNonSecret(startTimeMS) and F.IsValueNonSecret(endTimeMS) then
-        startTime = startTimeMS / 1000
-        endTime = endTimeMS / 1000
-    else
-        -- Fallback: use current time + reasonable estimate
-        startTime = GetTime()
-        endTime = GetTime() + 3
-    end
-
-    if casts[sourceKey] then
-        casts[sourceKey]["startTime"] = startTime
-        casts[sourceKey]["endTime"] = endTime
-        casts[sourceKey]["spellId"] = spellId
-        casts[sourceKey]["nonSecretSpellId"] = nonSecretSpellId
-        casts[sourceKey]["icon"] = texture
-        casts[sourceKey]["inList"] = inList
-        casts[sourceKey]["sourceUnit"] = sourceUnit
-    else
-        casts[sourceKey] = {
-            ["startTime"] = startTime,
-            ["endTime"] = endTime,
-            ["spellId"] = spellId,
-            ["nonSecretSpellId"] = nonSecretSpellId,
-            ["icon"] = texture,
-            ["isChanneling"] = isChanneling,
-            ["inList"] = inList,
-            ["sourceUnit"] = sourceUnit,
-            ["recheck"] = 0,
-        }
-    end
-
-    -- Resolve target
-    local targetUnit, isSecret = GetTargetUnitID_Safe(sourceUnit.."target", sourceUnit)
-
-    if isSecret then
-        -- UnitIsUnit returns secrets — use broadcast path with SetShown
-        useSecretPath = true
-        casts[sourceKey]["targetUnit"] = nil
-        casts[sourceKey]["nonNameplate"] = not strfind(sourceUnit, "^nameplate")
-        UpdateAllButtonsCasts()
-    else
-        -- Normal path — resolved target
-        casts[sourceKey]["targetUnit"] = targetUnit
-        casts[sourceKey]["nonNameplate"] = not strfind(sourceUnit, "^nameplate")
-        UpdateCastsOnUnit(targetUnit)
-    end
-
-    if not isRecheck then
-        if not recheck[sourceKey] or not (strfind(sourceUnit, "target$") or strfind(sourceUnit, "^nameplate")) then
-            recheck[sourceKey] = sourceUnit
-        end
-        eventFrame:Show()
-    end
-
-    if not useSecretPath and previousTarget and previousTarget ~= targetUnit then
+    if previousTarget and previousTarget ~= targetGUID then
         UpdateCastsOnUnit(previousTarget)
     end
 end
@@ -420,30 +239,21 @@ eventFrame:SetScript("OnUpdate", function(self, elapsed)
 
         local empty = true
 
-        for sourceKey, unit in pairs(recheck) do
-            if casts[sourceKey] then
-                casts[sourceKey]["recheck"] = casts[sourceKey]["recheck"] + 1
-                if casts[sourceKey]["recheck"] >= 6 then
-                    recheck[sourceKey] = nil
+        for guid, unit in pairs(recheck) do
+            if casts[guid] then
+                casts[guid]["recheck"] = casts[guid]["recheck"] + 1
+                if casts[guid]["recheck"] >= 6 then
+                    recheck[guid] = nil
                 else
                     empty = false
-                    if useSecretPath then
-                        -- On secret path, just recheck cast and broadcast
+                    local recheckRequired = (not casts[guid]["targetUnit"] and UnitExists(unit.."target")) or (casts[guid]["targetUnit"] and not UnitIsUnit(unit.."target", casts[guid]["targetUnit"]))
+                    if recheckRequired then
+                        -- print(unit, casts[guid]["recheck"], recheckRequired)
                         CheckUnitCast(unit, true)
-                    else
-                        local recheckRequired
-                        if not casts[sourceKey]["targetUnit"] then
-                            recheckRequired = UnitExists(unit.."target")
-                        else
-                            recheckRequired = not SafeUnitIsUnit(unit.."target", casts[sourceKey]["targetUnit"])
-                        end
-                        if recheckRequired then
-                            CheckUnitCast(unit, true)
-                        end
                     end
                 end
             else
-                recheck[sourceKey] = nil
+                recheck[guid] = nil
             end
         end
 
@@ -457,7 +267,7 @@ end)
 -- events
 -------------------------------------------------
 eventFrame:SetScript("OnEvent", function(_, event, sourceUnit)
-    if event == "ENCOUNTER_END" or event == "PLAYER_REGEN_ENABLED" then
+    if event == "ENCOUNTER_END" then
         Reset()
         F.IterateAllUnitButtons(HideCasts, true)
         return
@@ -472,28 +282,23 @@ eventFrame:SetScript("OnEvent", function(_, event, sourceUnit)
         CheckUnitCast(sourceUnit)
 
     elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_INTERRUPTED" or event == "UNIT_SPELLCAST_FAILED" or event == "UNIT_SPELLCAST_CHANNEL_STOP" then
-        -- Use sourceUnit as key (secret-safe, unlike UnitGUID)
-        local sourceKey = sourceUnit
-        if casts[sourceKey] then
-            local previousTarget = casts[sourceKey]["targetUnit"]
-            casts[sourceKey] = nil
-            if useSecretPath then
-                UpdateAllButtonsCasts()
-            else
-                UpdateCastsOnUnit(previousTarget)
-            end
+        local sourceGUID = UnitGUID(sourceUnit)
+        -- Midnight 12.0.0+: UnitGUID may return secret strings — can't use as table key
+        if issecretvalue and issecretvalue(sourceGUID) then return end
+        if casts[sourceGUID] then
+            previousTarget = casts[sourceGUID]["targetGUID"]
+            casts[sourceGUID] = nil
+            UpdateCastsOnUnit(previousTarget)
         end
 
     elseif event == "NAME_PLATE_UNIT_REMOVED" then
-        local sourceKey = sourceUnit
-        if casts[sourceKey] and not casts[sourceKey]["nonNameplate"] then
-            local previousTarget = casts[sourceKey]["targetUnit"]
-            casts[sourceKey] = nil
-            if useSecretPath then
-                UpdateAllButtonsCasts()
-            else
-                UpdateCastsOnUnit(previousTarget)
-            end
+        local sourceGUID = UnitGUID(sourceUnit)
+        -- Midnight 12.0.0+: UnitGUID may return secret strings — can't use as table key
+        if issecretvalue and issecretvalue(sourceGUID) then return end
+        if casts[sourceGUID] and not casts[sourceGUID]["nonNameplate"] then
+            previousTarget = casts[sourceGUID]["targetGUID"]
+            casts[sourceGUID] = nil
+            UpdateCastsOnUnit(previousTarget)
         end
     end
 end)
@@ -526,28 +331,7 @@ local function SetFont(frame, ...)
 end
 
 local function ShowGlowPreview(frame)
-    -- Show/hide icon previews based on display mode
-    if displayMode == "Border" then
-        -- Border only: hide icons, show glow
-        for i = 1, #frame do
-            frame[i]:Hide()
-        end
-        frame:UpdateSize(0)
-    else
-        -- Icons or Both: show preview icons (OnShow hooks handle icon/cooldown)
-        local num = min(maxIcons or 1, #frame)
-        for i = 1, num do
-            frame[i]:Show()
-        end
-        frame:UpdateSize(num)
-    end
-
-    -- Show glow in Border and Both modes; hide in Icons mode
-    if displayMode == "Icons" then
-        frame:HideGlow()
-    else
-        frame:ShowGlow(unpack(Cell.vars.targetedSpellsGlow))
-    end
+    frame:ShowGlow(unpack(Cell.vars.targetedSpellsGlow))
 end
 
 local function ShowGlow(frame, glowType, color, arg1, arg2, arg3, arg4)
@@ -624,7 +408,6 @@ end
 -- NOTE: in case there's a casting spell, hide!
 local function EnterLeaveInstance()
     Reset()
-    useSecretPath = false
     F.IterateAllUnitButtons(HideCasts, true)
 end
 
@@ -633,6 +416,10 @@ function I.EnableTargetedSpells(enabled)
         F.IterateAllUnitButtons(function(b)
             b.indicators.targetedSpells:Show()
         end, true)
+
+        -- UNIT_SPELLCAST_DELAYED UNIT_SPELLCAST_FAILED UNIT_SPELLCAST_INTERRUPTED UNIT_SPELLCAST_START UNIT_SPELLCAST_STOP
+        -- UNIT_SPELLCAST_CHANNEL_START UNIT_SPELLCAST_CHANNEL_STOP
+        -- PLAYER_TARGET_CHANGED ENCOUNTER_END
 
         eventFrame:RegisterEvent("UNIT_SPELLCAST_START")
         eventFrame:RegisterEvent("UNIT_SPELLCAST_STOP")
@@ -648,13 +435,11 @@ function I.EnableTargetedSpells(enabled)
         eventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 
         eventFrame:RegisterEvent("ENCOUNTER_END")
-        eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 
         Cell.RegisterCallback("EnterInstance", "TargetedSpells_EnterInstance", EnterLeaveInstance)
         Cell.RegisterCallback("LeaveInstance", "TargetedSpells_LeaveInstance", EnterLeaveInstance)
     else
         Reset()
-        useSecretPath = false
         eventFrame:Hide()
         eventFrame:UnregisterAllEvents()
 
@@ -674,8 +459,4 @@ end
 
 function I.UpdateTargetedSpellsNum(num)
     maxIcons = num
-end
-
-function I.UpdateTargetedSpellsDisplayMode(mode)
-    displayMode = mode or "Both"
 end
