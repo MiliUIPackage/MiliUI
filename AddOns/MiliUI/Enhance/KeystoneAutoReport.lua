@@ -18,11 +18,12 @@ local CLAIM_WINDOW     = 1.8          -- 收集 CLAIM + keystone 資料的窗口
 local REPLY_COOLDOWN   = 30           -- 送出回報後的冷卻秒數
 local LINE_SPACING     = 0.15         -- 每行之間小延遲避免 server throttle
 
-local KEYSTONE_ITEM_ID = 180653        -- Mythic Keystone item ID
-local KEY_LINK_COLOR   = "ffa335ee"    -- epic purple
-local KEY_CHECK_DELAY  = 3             -- 事件後延遲秒數 (等 API 更新)
+local KEY_CHECK_DELAY  = 1             -- 事件後每次 check 間隔秒數
 local BASELINE_DELAY   = 10            -- 登入後設定基準值延遲
-local KEYSTONE_NPC_ID  = 197711        -- 主城鑰石 NPC
+local KEYSTONE_NPC_IDS = {             -- 鑰石 NPC (洗 / 換 / 降)
+    [197711] = true,   -- 主城
+    [197915] = true,   -- 副本內
+}
 
 local hasLibKeystone = false  -- PLAYER_LOGIN 時 re-evaluate，避免 load order 誤判
 local issecretvalue = _G.issecretvalue or function() return false end
@@ -106,7 +107,10 @@ local function MatchKeyword(msg)
     if (msg == "") then return false end
     -- 自己的 auto-post 會回灌到 CHAT_MSG_PARTY，prefix "鑰石更新" 內含關鍵字
     -- "鑰石"，會自我觸發。直接跳過。
-    if (msg:find("^鑰石更新", 1, false)) then return false end
+    if (msg:find("鑰石更新", 1, true)) then return false end
+    -- 別的鑰石插件可能用純文字貼 "鑰石: 地城 (N)" 這種播報，後面必接冒號
+    -- （全半形皆排除），避免誤觸發 feature B 查全隊。
+    if (msg:find("鑰石:", 1, true) or msg:find("鑰石：", 1, true)) then return false end
     -- 去除超連結，避免 |Hkeystone:...|h[鑰石:...]|h 這種別人貼的鑰石連結觸發
     local stripped = msg:gsub("|H.-|h.-|h", " ")
     local lower = stripped:lower()
@@ -212,34 +216,27 @@ end
 
 -- === 自己鑰石變動自動貼出 ===
 
-local function GetCurrentAffixIDs()
-    local a1, a2, a3 = 0, 0, 0
-    if (C_MythicPlus and C_MythicPlus.GetCurrentAffixes) then
-        local affixes = C_MythicPlus.GetCurrentAffixes()
-        if (affixes) then
-            a1 = (affixes[1] and affixes[1].id) or 0
-            a2 = (affixes[2] and affixes[2].id) or 0
-            a3 = (affixes[3] and affixes[3].id) or 0
+-- 掃背包找出當前身上的鑰石 hyperlink。
+-- server 會把 addon 自己拼的 keystone 連結（affix 對不齊等）當作偽造剝掉外層
+-- |H..|h，只留下純文字。直接用背包裡的真實連結就不會被過濾。
+local function GetOwnedKeystoneHyperlink()
+    if (not C_Container or not C_Container.GetContainerNumSlots
+        or not C_Container.GetContainerItemInfo) then return nil end
+    for bag = 0, (NUM_BAG_SLOTS or 4) do
+        local slots = C_Container.GetContainerNumSlots(bag) or 0
+        for slot = 1, slots do
+            local info = C_Container.GetContainerItemInfo(bag, slot)
+            if (info and type(info.hyperlink) == "string"
+                and info.hyperlink:find("|Hkeystone:", 1, true)) then
+                return info.hyperlink
+            end
         end
     end
-    return a1, a2, a3
 end
 
 local function BuildKeystoneLink(mapID, level)
     if (not mapID or mapID <= 0 or not level or level <= 0) then return end
-    local mapName = (C_ChallengeMode and C_ChallengeMode.GetMapUIInfo
-        and C_ChallengeMode.GetMapUIInfo(mapID)) or "?"
-    local a1, a2, a3 = 0, 0, 0
-    if (level >= 10) then
-        a1, a2, a3 = GetCurrentAffixIDs()
-    elseif (level >= 7) then
-        a1, a2 = GetCurrentAffixIDs()
-    elseif (level >= 4) then
-        a1 = (GetCurrentAffixIDs())
-    end
-    return string.format("|c%s|Hkeystone:%d:%d:%d:%d:%d:%d:0:0|h[%s: %s (%d)]|h|r",
-        KEY_LINK_COLOR, KEYSTONE_ITEM_ID, mapID, level, a1, a2, a3,
-        "鑰石", mapName, level)
+    return GetOwnedKeystoneHyperlink()
 end
 
 local function ReadOwnKeystoneState()
@@ -255,7 +252,7 @@ local function ReadOwnKeystoneState()
     return mapID, level
 end
 
-local KEY_CHECK_MAX_RETRY = 3   -- 最多重試次數 (API 延遲時才需要)
+local KEY_CHECK_MAX_RETRY = 6   -- 最多重試次數 (API 延遲時才需要)
 
 local function ScheduleKeystoneCheck(retry)
     if (keyCheckTimer) then return end
@@ -308,7 +305,8 @@ local function IsKeystoneNpcGossip()
     if (type(guid) ~= "string") then return false end
     local ok, part = pcall(select, 6, strsplit("-", guid))
     if (not ok) then return false end
-    return tonumber(part) == KEYSTONE_NPC_ID
+    local id = tonumber(part)
+    return id ~= nil and KEYSTONE_NPC_IDS[id] == true
 end
 
 local f = CreateFrame("Frame")
