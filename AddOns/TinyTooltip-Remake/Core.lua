@@ -1782,9 +1782,9 @@ UpdateStyleMaskVisibility = function(tip)
         end
     end
     if (show) then
-        mask:Show()
+        pcall(mask.Show, mask)
     else
-        mask:Hide()
+        pcall(mask.Hide, mask)
     end
 end
 
