@@ -1099,7 +1099,7 @@ local function CreatePlayerList(parent, box)
         players[i].label:SetPoint("LEFT", P.Scale(13), 0)
 
         players[i].index = players[i]:CreateFontString(nil, "OVERLAY")
-        players[i].index:SetFont("Interface\\AddOns\\Cell\\Media\\Fonts\\Accidental_Presidency.ttf", 12)
+        players[i].index:SetFont("Interface\\AddOns\\Cell\\Media\\Fonts\\Accidental_Presidency.ttf", 12, "")
         players[i].index:SetShadowColor(0, 0, 0)
         players[i].index:SetShadowOffset(1, -1)
         players[i].index:SetPoint("LEFT", P.Scale(1), 0)

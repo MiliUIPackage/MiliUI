@@ -661,7 +661,7 @@ function Falcon:CreateUI()
   textDisplay:SetPoint('BOTTOMRIGHT', speedBar, 'BOTTOMRIGHT')
 
   local textFontString = textDisplay:CreateFontString(nil, 'OVERLAY')
-  textFontString:SetFont('Fonts\\ARIALN.TTF', 14)
+  textFontString:SetFont('Fonts\\ARIALN.TTF', 14, "")
   textFontString:SetShadowOffset(1,-1)
   textFontString:SetJustifyV('MIDDLE')
   textFontString:SetJustifyH('RIGHT')

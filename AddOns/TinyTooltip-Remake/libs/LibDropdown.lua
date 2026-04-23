@@ -111,7 +111,7 @@ function DropDownFrame:AddButton(info)
     button.uncheck:SetShown(not info.checked)
     button.texture:SetTexture(info.texture)
     button.text:SetText(info.text or info.value)
-    button.text:SetFont(info.font or button.text.font, button.text.size, button.text.flag)
+    button.text:SetFont(info.font or button.text.font, button.text.size, button.text.flag or "")
     button.info.text = info.text
     button.info.value = info.value
     button.info.checked = info.checked

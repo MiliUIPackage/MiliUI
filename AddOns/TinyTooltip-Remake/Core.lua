@@ -966,18 +966,22 @@ end
 
 -- 移動速度
 function addon:GetUnitSpeed(unit)
-    local _, speed, flightSpeed, swimSpeed = GetUnitSpeed(unit)
-    if (not speed or speed == 0) then return end
-    speed = speed/BASE_MOVEMENT_SPEED*100
-    swimSpeed = swimSpeed/BASE_MOVEMENT_SPEED*100
-	flightSpeed = flightSpeed/BASE_MOVEMENT_SPEED*100
-	if (UnitIsOtherPlayersPet(unit)) then
-    elseif (IsSwimming(unit)) then
-		speed = swimSpeed
-	elseif (IsFlying(unit)) then
-		speed = flightSpeed
-	end
-    return speed+0.5
+    local ok, _, speed, flightSpeed, swimSpeed = pcall(GetUnitSpeed, unit)
+    if (not ok or not speed) then return end
+    local okResult, result = pcall(function()
+        if (speed == 0) then return end
+        speed = speed/BASE_MOVEMENT_SPEED*100
+        swimSpeed = swimSpeed/BASE_MOVEMENT_SPEED*100
+        flightSpeed = flightSpeed/BASE_MOVEMENT_SPEED*100
+        if (UnitIsOtherPlayersPet(unit)) then
+        elseif (IsSwimming(unit)) then
+            speed = swimSpeed
+        elseif (IsFlying(unit)) then
+            speed = flightSpeed
+        end
+        return speed+0.5
+    end)
+    if (okResult) then return result end
 end
 
 -- 頭銜 @param2:true為前綴
@@ -2036,7 +2040,7 @@ LibEvent:attachTrigger("tooltip.style.font.header", function(self, frame, fontOb
         size = fontSize
     end
     flag = NormalizeFontFlag(fontFlag, defaultHeaderFlag) or flag
-    GameTooltipHeaderText:SetFont(font, size, flag)
+    GameTooltipHeaderText:SetFont(font, size, flag or "")
 end)
 
 local defaultBodyFont, defaultBodySize, defaultBodyFlag = GameTooltipText:GetFont()
@@ -2049,7 +2053,7 @@ LibEvent:attachTrigger("tooltip.style.font.body", function(self, frame, fontObje
         size = fontSize
     end
     flag = NormalizeFontFlag(fontFlag, defaultBodyFlag) or flag
-    GameTooltipText:SetFont(font, size, flag)
+    GameTooltipText:SetFont(font, size, flag or "")
 end)
 
 LibEvent:attachTrigger("tooltip.statusbar.height", function(self, height)
@@ -2105,7 +2109,7 @@ LibEvent:attachTrigger("tooltip.statusbar.font", function(self, font, size, flag
     font = addon:GetFont(font, NumberFontNormal:GetFont())
     flag = NormalizeFontFlag(flag, "THINOUTLINE") or origFlag
     if (font ~= origFont or size ~= origSize or flag ~= origFlag) then
-        GameTooltipStatusBar.TextString:SetFont(font or origFont, size or origSize, flag or origFlag)
+        GameTooltipStatusBar.TextString:SetFont(font or origFont, size or origSize, flag or origFlag or "")
     end
 end)
 

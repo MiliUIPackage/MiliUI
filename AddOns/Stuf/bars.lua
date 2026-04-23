@@ -815,8 +815,8 @@ do  -- Cast Bar ----------------------------------------------------------------
 		local spell, ctime = f.spell, f.time
 		local vertical = db.vertical
 		local sc = dbg.shadowcolor
-		spell:SetFont(Stuf.font, 1)
-		ctime:SetFont(Stuf.font, 1)
+		spell:SetFont(Stuf.font, 1, "")
+		ctime:SetFont(Stuf.font, 1, "")
 		if db.spellfontcolor and db.spellfontcolor.a < 0.01 then
 			spell:Hide()
 		else
