@@ -1081,11 +1081,19 @@ function F.UpdateTextWidth(fs, text, width, relativeTo)
         fs:SetText(text)
     elseif width[1] == "percentage" then
         local percent = width[2] or 0.75
-        local width = relativeTo:GetWidth() - 2
-        for i = string.utf8len(text), 0, -1 do
-            fs:SetText(string.utf8sub(text, 1, i))
-            if fs:GetWidth() / width <= percent then
-                break
+        local relW = relativeTo:GetWidth()
+        -- Midnight: relativeTo/fs dimensions may be secret; skip truncation loop
+        if not F.IsValueNonSecret(relW) then
+            fs:SetText(text)
+        else
+            local width = relW - 2
+            for i = string.utf8len(text), 0, -1 do
+                fs:SetText(string.utf8sub(text, 1, i))
+                local fsW = fs:GetWidth()
+                if not F.IsValueNonSecret(fsW) then break end
+                if fsW / width <= percent then
+                    break
+                end
             end
         end
     elseif width[1] == "length" then

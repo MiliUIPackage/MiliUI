@@ -1200,7 +1200,11 @@ function I.CreateNameText(parent)
             end
         end
 
-        nameText:SetSize(nameText.name:GetWidth(), nameText.name:GetHeight())
+        local nW, nH = nameText.name:GetWidth(), nameText.name:GetHeight()
+        -- Midnight: FontString dimensions may be secret values; skip SetSize if so
+        if F.IsValueNonSecret(nW) and F.IsValueNonSecret(nH) then
+            nameText:SetSize(nW, nH)
+        end
     end
 
     function nameText:UpdateVehicleName()

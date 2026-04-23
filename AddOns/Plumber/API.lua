@@ -726,7 +726,10 @@ do  -- Tooltip Parser
 			local n = 0;
 			for _, creatureID in ipairs(creatures) do
 				name = GetCreatureName(creatureID);
-				if name and name ~= "" then
+				-- Midnight: name may be a secret string; guard comparison
+				if name and not issecretvalue(name) and name ~= "" then
+					callback(creatureID, name);
+				elseif name and issecretvalue(name) then
 					callback(creatureID, name);
 				else
 					if not failedCreatures then
@@ -739,7 +742,9 @@ do  -- Tooltip Parser
 		else
 			--when creatures is creatureID (number)
 			local name = GetCreatureName(creatures);
-			if name and name ~= "" then
+			if name and not issecretvalue(name) and name ~= "" then
+				callback(creatures, name);
+			elseif name and issecretvalue(name) then
 				callback(creatures, name);
 			else
 				failedCreatures = creatures;
