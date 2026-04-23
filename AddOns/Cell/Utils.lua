@@ -1512,28 +1512,28 @@ function F.IsFriend(unitFlags)
 end
 
 function F.IsPlayer(guid)
-    if guid then
+    if guid and F.IsValueNonSecret(guid) then
         return string.find(guid, "^Player")
     end
 end
 
 function F.IsPet(guid, unit)
-    if unit then
+    if unit and F.IsValueNonSecret(unit) then
         return strfind(unit, "pet%d*$")
     end
-    if guid then
+    if guid and F.IsValueNonSecret(guid) then
         return string.find(guid, "^Pet")
     end
 end
 
 function F.IsNPC(guid)
-    if guid then
+    if guid and F.IsValueNonSecret(guid) then
         return string.find(guid, "^Creature")
     end
 end
 
 function F.IsVehicle(guid)
-    if guid then
+    if guid and F.IsValueNonSecret(guid) then
         return string.find(guid, "^Vehicle")
     end
 end
