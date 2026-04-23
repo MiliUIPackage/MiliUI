@@ -303,7 +303,8 @@ end
 local function IsKeystoneNpcGossip()
     local guid = UnitGUID("npc") or UnitGUID("target")
     if (type(guid) ~= "string") then return false end
-    local ok, part = pcall(select, 6, strsplit("-", guid))
+    if (issecretvalue(guid)) then return false end
+    local ok, part = pcall(function() return select(6, strsplit("-", guid)) end)
     if (not ok) then return false end
     local id = tonumber(part)
     return id ~= nil and KEYSTONE_NPC_IDS[id] == true
