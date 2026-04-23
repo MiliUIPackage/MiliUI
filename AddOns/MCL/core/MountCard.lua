@@ -843,7 +843,7 @@ function MountCard:CreateMountCardContent(parentFrame, mountData)
         
         -- Make description italic
         local fontFile, fontSize, fontFlags = descriptionText:GetFont()
-        descriptionText:SetFont(fontFile, fontSize, "ITALIC")
+        descriptionText:SetFont(fontFile, fontSize, "")
         
         local textHeight = descriptionText:GetStringHeight()
         yOffset = yOffset - (textHeight + 10)  -- Further reduced spacing from 15 to 10

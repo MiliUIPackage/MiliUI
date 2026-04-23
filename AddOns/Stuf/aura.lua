@@ -209,9 +209,9 @@ do  -- Timer Bars handlers -----------------------------------------------------
 			spark:SetVertexColor(sparkc.r, sparkc.g, sparkc.b, sparkc.a)
 			bar:SetTexture(Stuf.statusbar)
 			backbar:SetTexture(Stuf.statusbar)
-			ctext:SetFont(font, fontsize - 1)
+			ctext:SetFont(font, fontsize - 1, "")
 			ctext:SetTextColor(fontc.r, fontc.g, fontc.b, fontc.a)
-			ttext:SetFont(font, fontsize)
+			ttext:SetFont(font, fontsize, "")
 			ttext:SetTextColor(fontc.r, fontc.g, fontc.b, fontc.a)
 			
 			if db.reverse then

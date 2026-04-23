@@ -108,7 +108,7 @@ function GUI:CreateText(parent, text, fontSize, justifyH)
         fs:SetShadowColor(0, 0, 0, 1)
         fs:SetShadowOffset(1, -1)
     else
-        fs:SetFont(GUI.Fonts.normal, fontSize or GUI.Fonts.size_normal)
+        fs:SetFont(GUI.Fonts.normal, fontSize or GUI.Fonts.size_normal, "")
         fs:SetShadowColor(0, 0, 0, 1)
         fs:SetShadowOffset(1, -1)
     end
@@ -248,7 +248,7 @@ function GUI:CreateButton(parent, text, width, height)
     GUI:CreateBorder(btn, 0, 0, 0, 1) -- Black border
     
     local fs = GUI:CreateText(btn, text, GUI.Fonts.size_normal)
-    fs:SetFont(GUI.Fonts.normal, GUI.Fonts.size_normal)
+    fs:SetFont(GUI.Fonts.normal, GUI.Fonts.size_normal, "")
     fs:SetShadowColor(0, 0, 0, 0)
     fs:SetPoint("CENTER")
     fs:SetTextColor(1, 0.82, 0)
@@ -662,7 +662,7 @@ function GUI:SkinDropdownButton(btn)
     
     local fs = btn:GetFontString()
     if fs then
-        fs:SetFont(GUI.Fonts.normal, GUI.Fonts.size_normal)
+        fs:SetFont(GUI.Fonts.normal, GUI.Fonts.size_normal, "")
         fs:SetJustifyH("LEFT")
         fs:SetPoint("LEFT", 8, 0)
         fs:SetTextColor(1, 1, 1, 1)
@@ -806,7 +806,7 @@ function GUI:OpenDropdown(anchor, options)
             btn.text:SetWordWrap(false)
             btn.text:SetDrawLayer("ARTWORK") -- Restore default layer
             -- 恢復預設字體
-            btn.text:SetFont(GUI.Fonts.normal, GUI.Fonts.size_normal)
+            btn.text:SetFont(GUI.Fonts.normal, GUI.Fonts.size_normal, "")
         end
         
         btn:Show()
