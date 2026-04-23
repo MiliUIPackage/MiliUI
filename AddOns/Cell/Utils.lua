@@ -2598,3 +2598,11 @@ function F.IsValueNonSecret(val)
     if not issecretvalue then return true end
     return not issecretvalue(val)
 end
+
+-- Inverse of F.IsValueNonSecret: returns true if the value IS a secret value.
+-- Call sites in UnitButton/Indicators/Utilities reference this name (see CHANGELOG r276-beta).
+function F.IsSecretValue(val)
+    if not Cell.isMidnight then return false end
+    if not issecretvalue then return false end
+    return issecretvalue(val) == true
+end
