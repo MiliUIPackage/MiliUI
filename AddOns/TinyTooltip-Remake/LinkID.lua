@@ -17,7 +17,7 @@ local function ShowId(tooltip, name, value, noBlankLine, forceShow)
         local line = addon:FindLine(tooltip, name)
         if (not line) then
             if (not noBlankLine) then tooltip:AddLine(" ") end
-            tooltip:AddLine(format("%s: |cffffffff%s|r", name, value), 0, 1, 0.8)
+            tooltip:AddLine(format("%s: |cffffffff%s|r", name, value), 1, 0.82, 0)
             tooltip:Show()
         end
         LibEvent:trigger("tooltip.linkid", tooltip, name, value, noBlankLine)
