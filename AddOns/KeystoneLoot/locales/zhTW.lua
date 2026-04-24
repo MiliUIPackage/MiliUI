@@ -15,7 +15,7 @@ L["Champion"] = "勇士";
 L["Hero"] = "英雄";
 
 -- upgrade_tracks.lua
-L["Myth"] = "傳奇";
+L["Myth"] = "神話";
 
 -- catalyst_frame.lua
 L["The Catalyst"] = "催化器";
@@ -49,6 +49,12 @@ L["No favorites found"] = "未找到最愛";
 L["Invalid import string."] = "無效的匯入字串。";
 L["No character selected."] = "未選擇角色。";
 L["No valid items found."] = "未找到有效物品。";
+
+-- icon_button.lua / favorites.lua
+L["Set Favorite"] = "設定最愛";
+L["Nice to have"] = "有更好";
+L["Must have"] = "必須取得";
+L["Best in Slot"] = "最佳裝備";
 
 -- loot_reminder_frame.lua
 L["Correct loot specialization set?"] = "戰利品專精的設定是否正確？";
