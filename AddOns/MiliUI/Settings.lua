@@ -149,6 +149,19 @@ StaticPopupDialogs["MILIUI_IMPORT_CONFIRM"] = {
     preferredIndex = 3,
 }
 
+StaticPopupDialogs["MILIUI_CVAR_RELOAD"] = {
+    text = "設定已變更。\n\n此設定需要重新載入介面才會完全生效，是否立即重新載入？",
+    button1 = "重新載入",
+    button2 = "稍後",
+    OnAccept = function()
+        ReloadUI()
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
 ------------------------------------------------------------
 -- SETTINGS PANEL (WoW Retail Settings API)
 ------------------------------------------------------------
@@ -664,6 +677,84 @@ local function InitSettings()
         UpdateSwatch()
         print("|cff00ff00[MiliUI]|r 鑰石發光顏色已重設為預設值")
     end)
+
+    -- ===== 遊戲行為區塊 =====
+    -- 錨點：keystoneDesc 縮進 26px，用 -26 X 偏移回到左邊界對齊上方的 Baganator / 拍賣行 divider。
+    -- Y 偏移 -50 避開 swatch / button 那一整排的高度。
+    local gameDivider = enhanceFrame:CreateTexture(nil, "ARTWORK")
+    gameDivider:SetColorTexture(0.3, 0.3, 0.3, 0.5)
+    gameDivider:SetSize(520, 1)
+    gameDivider:SetPoint("TOPLEFT", keystoneDesc, "BOTTOMLEFT", -26, -50)
+
+    local gameLabel = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    gameLabel:SetPoint("TOPLEFT", gameDivider, "BOTTOMLEFT", 0, -12)
+    gameLabel:SetText("遊戲行為")
+
+    local gameSubdesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    gameSubdesc:SetPoint("LEFT", gameLabel, "RIGHT", 8, 0)
+    gameSubdesc:SetText("— 強制覆蓋遊戲內建 CVar（每次載入時套用）")
+    gameSubdesc:SetTextColor(0.6, 0.6, 0.6)
+
+    -- deselectOnClick 選項
+    local deselectDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    deselectDesc:SetPoint("TOPLEFT", gameLabel, "BOTTOMLEFT", 0, -12)
+    deselectDesc:SetText("點擊地板清除目標 (deselectOnClick)")
+
+    local deselectOptions = {
+        { text = "不強制（沿用遊戲設定）",         value = "ignore" },
+        { text = "強制啟用（點地板會取消目標）",   value = "on" },
+        { text = "強制關閉（點地板不會取消目標）", value = "off" },
+    }
+
+    local deselectDropdown = CreateFrame("Frame", "MiliUI_DeselectOnClickDropdown", enhanceFrame, "UIDropDownMenuTemplate")
+    deselectDropdown:SetPoint("TOPLEFT", deselectDesc, "BOTTOMLEFT", -16, -4)
+    UIDropDownMenu_SetWidth(deselectDropdown, 240)
+
+    local function DeselectDropdown_Init(self, level)
+        for _, opt in ipairs(deselectOptions) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = opt.text
+            info.value = opt.value
+            info.func = function(item)
+                local oldMode = MiliUI_CVarEnforce and MiliUI_CVarEnforce.GetMode("deselectOnClick")
+                UIDropDownMenu_SetSelectedValue(deselectDropdown, item.value)
+                UIDropDownMenu_SetText(deselectDropdown, opt.text)
+                if MiliUI_CVarEnforce then
+                    MiliUI_CVarEnforce.SetMode("deselectOnClick", item.value)
+                end
+                print("|cff00ff00[MiliUI]|r 點擊地板清除目標:", opt.text)
+                if oldMode ~= item.value then
+                    StaticPopup_Show("MILIUI_CVAR_RELOAD")
+                end
+            end
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end
+    UIDropDownMenu_Initialize(deselectDropdown, DeselectDropdown_Init)
+
+    local deselectHint = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    deselectHint:SetPoint("TOPLEFT", deselectDropdown, "BOTTOMLEFT", 16, -4)
+    deselectHint:SetWidth(520)
+    deselectHint:SetJustifyH("LEFT")
+    deselectHint:SetText("選擇「強制」後，每次登入 / 重載介面時會自動套用，\n覆蓋遊戲選項與其他插件寫入的值。")
+    deselectHint:SetTextColor(0.5, 0.5, 0.5)
+
+    local function SyncDeselectDropdown()
+        if not MiliUI_CVarEnforce then
+            UIDropDownMenu_DisableDropDown(deselectDropdown)
+            return
+        end
+        local mode = MiliUI_CVarEnforce.GetMode("deselectOnClick")
+        UIDropDownMenu_SetSelectedValue(deselectDropdown, mode)
+        for _, opt in ipairs(deselectOptions) do
+            if opt.value == mode then
+                UIDropDownMenu_SetText(deselectDropdown, opt.text)
+                break
+            end
+        end
+    end
+    SyncDeselectDropdown()
+    enhanceCanvas:HookScript("OnShow", SyncDeselectDropdown)
 
     local enhanceCategory = Settings.RegisterCanvasLayoutSubcategory(category, enhanceCanvas, "插件強化")
     enhanceCategory.ID = "MiliUI_Enhance"

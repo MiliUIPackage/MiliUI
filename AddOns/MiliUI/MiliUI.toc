@@ -41,3 +41,4 @@ Enhance\KeystoneAutoReport.lua
 Enhance\InspectTaintFix.lua
 Enhance\TinyInspectRemake_GearSlots.lua
 Enhance\TinyInspectRemake_TrackColors.lua
+Enhance\GameplayCVars.lua
