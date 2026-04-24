@@ -3,6 +3,10 @@ local CDM = _G[AddonName]
 local CDM_C = CDM.CONST
 local VIEWERS = CDM_C.VIEWERS
 
+local GetTime = GetTime
+local ipairs = ipairs
+local pairs = pairs
+
 CDM.Fading = CDM.Fading or {}
 local Fading = CDM.Fading
 
@@ -78,10 +82,24 @@ Fading:RegisterTarget("fadingTrinkets", function(a)
 end)
 
 Fading:RegisterTarget("fadingResources", function(a)
-    local rc = CDM.resourceContainer
-    if rc then
-        rc:SetAlpha(a)
-        if rc.separator then rc.separator:SetAlpha(a) end
+    if CDM.resourceBars then
+        for _, bar in pairs(CDM.resourceBars) do
+            if bar:IsShown() then
+                bar:SetAlpha(a)
+            end
+        end
+    end
+    if CDM.resourceUnifiedHosts then
+        for _, entry in ipairs(CDM.resourceUnifiedHosts) do
+            if entry.host and entry.host:IsShown() then
+                entry.host:SetAlpha(a)
+            end
+            if entry.hSeparators then
+                for _, sep in ipairs(entry.hSeparators) do
+                    sep:SetAlpha(a)
+                end
+            end
+        end
     end
 end)
 

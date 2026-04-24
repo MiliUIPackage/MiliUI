@@ -3,6 +3,7 @@ local CDM = _G[AddonName]
 local CDM_C = CDM.CONST
 local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
+
 local INVERTED_ANCHORS = {
     TOPLEFT = "BOTTOMLEFT",
     TOPRIGHT = "BOTTOMRIGHT",
@@ -43,43 +44,6 @@ local function InvalidateTrackerAnchorCache(container)
 end
 
 CDM.InvalidateTrackerAnchorCache = InvalidateTrackerAnchorCache
-
-local GCD_SPELL_ID = CDM_C.GCD_SPELL_ID
-local gcdFilterCurve = C_CurveUtil.CreateCurve()
-gcdFilterCurve:SetType(Enum.LuaCurveType.Step)
-local cachedGCDInfo = nil
-local cachedGCDTime = -1
-local cachedGCDCurveTime = -1
-
-local function GetGCDInfo()
-    local now = GetTime()
-    if now ~= cachedGCDTime then
-        cachedGCDInfo = C_Spell.GetSpellCooldown(GCD_SPELL_ID)
-        cachedGCDTime = now
-    end
-    return cachedGCDInfo
-end
-
-function CDM.EvaluateGCDFilteredDesaturation(durObj)
-    local gcdInfo = GetGCDInfo()
-    if not gcdInfo or not gcdInfo.startTime or not gcdInfo.duration or gcdInfo.duration <= 0 then
-        return nil
-    end
-    local gcdRemaining = math.floor(((gcdInfo.startTime + gcdInfo.duration) - GetTime()) * 1000 + 0.5) / 1000
-    if gcdRemaining <= 0.0011 then
-        return nil
-    end
-    if cachedGCDTime ~= cachedGCDCurveTime then
-        cachedGCDCurveTime = cachedGCDTime
-        gcdFilterCurve:ClearPoints()
-        gcdFilterCurve:AddPoint(0,                     0)
-        gcdFilterCurve:AddPoint(0.0001,                1)
-        gcdFilterCurve:AddPoint(gcdRemaining - 0.001,  0)
-        gcdFilterCurve:AddPoint(gcdRemaining + 0.001,  0)
-        gcdFilterCurve:AddPoint(gcdRemaining + 0.0011, 1)
-    end
-    return durObj:EvaluateRemainingDuration(gcdFilterCurve, 0) or 0
-end
 
 local function NotifyTrackerPositionCallbacks()
     for _, cb in pairs(trackerPositionCallbacks) do

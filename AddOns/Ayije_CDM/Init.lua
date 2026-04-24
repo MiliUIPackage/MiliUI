@@ -94,22 +94,6 @@ function CDM:UnregisterRefreshCallback(id)
     end
 end
 
-function CDM:RegisterCastBarSliderUpdater(callback)
-    if type(callback) ~= "function" then return end
-    self._castBarSliderUpdater = callback
-end
-
-function CDM:UnregisterCastBarSliderUpdater()
-    self._castBarSliderUpdater = nil
-end
-
-function CDM:NotifyCastBarSliderUpdate(offsetX, offsetY)
-    local callback = self._castBarSliderUpdater
-    if callback then
-        callback(offsetX, offsetY)
-    end
-end
-
 function CDM:RegisterPositionSliderUpdater(name, callback)
     if type(name) ~= "string" or name == "" then return end
     if type(callback) ~= "function" then return end
@@ -135,6 +119,7 @@ end
 local refreshPending = false
 local refreshAll = false
 local pendingScopes = {}
+local scratchScopes = {}
 local refreshThrottleFrame = CreateFrame("Frame")
 
 local function ShouldRunEntry(entry, scopeSet)
@@ -164,10 +149,14 @@ local function ExecuteRefreshCallbacks()
     local scopeSet
     if not refreshAll then
         scopeSet = pendingScopes
+        pendingScopes = scratchScopes
+        scratchScopes = scopeSet
     end
     refreshAll = false
-    pendingScopes = {}
     DispatchRefreshCallbacks(scopeSet)
+    if scopeSet then
+        wipe(scopeSet)
+    end
 end
 
 refreshThrottleFrame:SetScript("OnUpdate", function(self)

@@ -7,6 +7,8 @@ local GetFrameData = CDM.GetFrameData
 local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
 
+local GetAuraDuration = C_UnitAuras.GetAuraDuration
+
 local isInitialized = false
 local isEnabled = false
 local needsStyleUpdate = true
@@ -17,8 +19,6 @@ local container
 local TEX_WHITE8X8 = CDM_C.TEX_WHITE8X8
 local DEFAULT_SWIPE = "Interface\\HUD\\UI-HUD-CoolDownManager-Icon-Swipe"
 local DEFAULT_COOLDOWN_COLOR = { r = 1, g = 1, b = 1, a = 1 }
-local BORDER_OPTS_FORCE = { forceUpdate = true }
-local BORDER_OPTS_NORMAL = { forceUpdate = false }
 
 local function GetSize()
     local s = CDM.Sizes.SIZE_EXTERNALS
@@ -85,13 +85,13 @@ local function StyleButton(button)
     local borderActive = CDM.db and CDM.db.borderFile ~= "None"
     if borderActive and BORDER and BORDER.CreateBorder then
         if not fd.cdmExternalBorderFrame then
-            fd.cdmExternalBorderFrame = CreateFrame("Frame", nil, button, "BackdropTemplate")
+            fd.cdmExternalBorderFrame = CreateFrame("Frame", nil, button)
             fd.cdmExternalBorderFrame:SetAllPoints(button)
         end
         local currentBorderVersion = CDM.borderStyleVersion or 0
         local borderForce = fd.cdmExternalBorderVersion ~= currentBorderVersion
         if not fd.cdmExternalBorderInit or borderForce then
-            BORDER:CreateBorder(fd.cdmExternalBorderFrame, borderForce and BORDER_OPTS_FORCE or BORDER_OPTS_NORMAL)
+            BORDER:CreateBorder(fd.cdmExternalBorderFrame, borderForce and { forceUpdate = true } or nil)
             fd.cdmExternalBorderInit = true
             fd.cdmExternalBorderVersion = currentBorderVersion
         end
@@ -149,7 +149,7 @@ local function SetCooldownFromButtonInfo(fd, buttonInfo)
     if not cd then return end
 
     if buttonInfo and buttonInfo.auraInstanceID then
-        local dur = C_UnitAuras.GetAuraDuration("player", buttonInfo.auraInstanceID)
+        local dur = GetAuraDuration("player", buttonInfo.auraInstanceID)
         if dur then
             cd:SetCooldownFromDurationObject(dur)
             return

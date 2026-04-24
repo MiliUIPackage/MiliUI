@@ -50,7 +50,7 @@ local function CreateTextTab(page, tabId)
     local ddOutline = CreateFrame("DropdownButton", nil, textScrollChild, "WowStyle1DropdownTemplate")
     ddOutline:SetPoint("TOPLEFT", lblOutline, "BOTTOMLEFT", 0, -10)
     ddOutline:SetWidth(220)
-    local outlineLabels = {NONE = L["None"], OUTLINE = L["Outline"], THICKOUTLINE = L["Thick Outline"]}
+    local outlineLabels = {NONE = L["None"], OUTLINE = L["Outline"], THICKOUTLINE = L["Thick Outline"], SLUG = L["Slug"]}
     ddOutline:SetDefaultText(outlineLabels[CDM.db.textFontOutline] or L["Outline"])
     page.outlineDropdown = ddOutline
     NextY(45)
@@ -61,6 +61,7 @@ local function CreateTextTab(page, tabId)
             {value = "NONE", label = L["None"]},
             {value = "OUTLINE", label = L["Outline"]},
             {value = "THICKOUTLINE", label = L["Thick Outline"]},
+            {value = "SLUG", label = L["Slug"]},
         },
         function() return CDM.db.textFontOutline end,
         function(value, label)

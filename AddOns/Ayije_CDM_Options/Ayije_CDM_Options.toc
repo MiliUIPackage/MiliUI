@@ -1,8 +1,8 @@
-## Interface: 120001, 120000
+## Interface: 120005
 ## Title: |cFF3bb273Ayije_CDM|r Options
 ## Notes: Cooldown Manager Options UI
 ## Author: Ayije
-## Version: 3.80
+## Version: 3.83
 ## LoadOnDemand: 1
 ## Dependencies: Ayije_CDM
 ## X-Curse-Project-ID: 1469668

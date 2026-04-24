@@ -8,6 +8,8 @@ local COLOR_REGISTRY = {}
 local lastRefreshSpecID = nil
 
 local IsSafeNumber = CDM.IsSafeNumber
+local table_wipe = table.wipe
+local ipairs = ipairs
 
 local function IsUsableID(id)
     return IsSafeNumber(id) and id > 0
@@ -37,8 +39,8 @@ local spellCandidateList = {}
 local spellCandidateSeen = {}
 
 function CDM:GetSpellIDCandidates(frame)
-    table.wipe(spellCandidateList)
-    table.wipe(spellCandidateSeen)
+    table_wipe(spellCandidateList)
+    table_wipe(spellCandidateSeen)
     if not frame then return spellCandidateList end
 
     AddCandidate(spellCandidateList, spellCandidateSeen, CallFrameMethod(frame, "GetSpellID"))
@@ -81,8 +83,8 @@ function CDM:ResolveBuffGlowState(frame, specID, preferCategory)
 
     local frameData = GetFrameData(frame)
 
-    table.wipe(buffGlowCandidateList)
-    table.wipe(buffGlowCandidateSeen)
+    table_wipe(buffGlowCandidateList)
+    table_wipe(buffGlowCandidateSeen)
 
     local groupedID = frameData.buffCategorySpellID
     if preferCategory then
@@ -94,6 +96,11 @@ function CDM:ResolveBuffGlowState(frame, specID, preferCategory)
     if info then
         AddBuffGlowCandidate(info.spellID)
         AddBuffGlowCandidate(info.overrideSpellID)
+        if info.linkedSpellIDs then
+            for _, lid in ipairs(info.linkedSpellIDs) do
+                AddBuffGlowCandidate(lid)
+            end
+        end
     end
 
     if not preferCategory then
@@ -135,7 +142,7 @@ local function GetOverrideIfDifferent(spellID)
 end
 
 local function ClearOverrideCache()
-    table.wipe(overrideCache)
+    table_wipe(overrideCache)
 end
 
 local function GetEffectiveSpellID(spellID)
@@ -155,7 +162,7 @@ local function CacheNormalizedBase(id, resolved)
     if normalizeBaseCache[id] == nil then
         normalizeBaseCacheSize = normalizeBaseCacheSize + 1
         if normalizeBaseCacheSize > MAX_NORMALIZE_CACHE_ENTRIES then
-            table.wipe(normalizeBaseCache)
+            table_wipe(normalizeBaseCache)
             normalizeBaseCacheSize = 1
         end
     end
@@ -163,7 +170,7 @@ local function CacheNormalizedBase(id, resolved)
 end
 
 function CDM:ClearNormalizationCache()
-    table.wipe(normalizeBaseCache)
+    table_wipe(normalizeBaseCache)
     normalizeBaseCacheSize = 0
     ClearOverrideCache()
     self.spellCacheGeneration = (self.spellCacheGeneration or 0) + 1
@@ -201,8 +208,8 @@ local scratchMatchSeenAlt = {}
 local scratchMatchShared = {}
 
 local function BuildBuffGroupMatchCandidatesInto(spellID, out, outSeen)
-    table.wipe(out)
-    table.wipe(outSeen)
+    table_wipe(out)
+    table_wipe(outSeen)
     if not IsUsableID(spellID) then return out end
 
     AddCandidate(out, outSeen, spellID)
@@ -387,6 +394,7 @@ CDM.CheckIDAgainstRegistry = CheckIDAgainstRegistry
 
 local function GetColorForSpellID(id)
     if not IsUsableID(id) then return nil end
+    if not next(COLOR_REGISTRY) then return nil end
     if COLOR_REGISTRY[id] then return COLOR_REGISTRY[id] end
     local base = NormalizeToBase(id)
     if base and base ~= id and COLOR_REGISTRY[base] then return COLOR_REGISTRY[base] end
@@ -503,7 +511,7 @@ function CDM:RefreshSpecData()
 
     if specID == lastRefreshSpecID then return end
 
-    table.wipe(COLOR_REGISTRY)
+    table_wipe(COLOR_REGISTRY)
     self.SpellSets.hasBuffGlows = false
 
     self:ClearNormalizationCache()

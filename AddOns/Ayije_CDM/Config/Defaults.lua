@@ -1,6 +1,116 @@
 local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
 
+local RESOURCE_BAR_COMMON = {
+    loadMode = "always",
+    height = 16,
+    width = 0,
+    barTexture = "Solid",
+    bgTexture = "Solid",
+    bgColor = { r = 0.2, g = 0.2, b = 0.2, a = 0.5 },
+    anchorPoint = "BOTTOM",
+    anchorTargetPoint = "TOP",
+    offsetX = 0,
+    offsetY = -200,
+    barSpacing = 1,
+    tagEnabled = true,
+    tagFontSize = 15,
+    tagAnchor = "CENTER",
+    tagOffsetX = 0,
+    tagOffsetY = 0,
+    tagColor = { r = 1, g = 1, b = 1, a = 1 },
+}
+
+local RESOURCE_BAR_PER_KEY = {
+    Mana            = {
+        color = { r = 0.0, g = 0.56, b = 1.0, a = 1 },
+        displayAsPercent = false,
+        smoothBars = true,
+        loadMode = "conditional",
+        load = {
+            hideInFeralForm = true,
+            spec = {
+                [65] = true, [256] = true, [257] = true, [264] = true,
+                [62] = true, [63] = true, [64] = true, [105] = true, [270] = true, [1468] = true,
+            },
+        },
+    },
+    Rage            = { color = { r = 0.78, g = 0.26, b = 0.26, a = 1 }, smoothBars = true },
+    Energy          = { color = { r = 1, g = 1, b = 0.34, a = 1 }, smoothBars = true },
+    Focus           = { color = { r = 1, g = 0.5, b = 0.25, a = 1 }, smoothBars = true },
+    ComboPoints     = {
+        color = { r = 1, g = 0.96, b = 0.41, a = 1 },
+        chargedColor = { r = 0.24, g = 0.60, b = 1.00, a = 1 },
+        chargedEmptyColor = { r = 0.12, g = 0.30, b = 0.50, a = 1 },
+        overflowingColor = { r = 0.24, g = 0.60, b = 1.00, a = 1 },
+        overflowingEmptyColor = { r = 0.12, g = 0.30, b = 0.50, a = 1 },
+        anchorTo = "Energy",
+    },
+    Runes           = {
+        color = { r = 0.5, g = 0.8, b = 1, a = 1 },
+        rechargingColor = { r = 0.3, g = 0.3, b = 0.3, a = 1 },
+        anchorTo = "RunicPower",
+    },
+    RunicPower      = { color = { r = 0, g = 0.82, b = 1, a = 1 }, smoothBars = true },
+    SoulShards      = {
+        color = { r = 0.58, g = 0.51, b = 0.79, a = 1 },
+        rechargingColor = { r = 0.35, g = 0.30, b = 0.50, a = 1 },
+        anchorTo = "Mana",
+        offsetY = 1,
+    },
+    LunarPower      = { color = { r = 0.3, g = 0.52, b = 0.9, a = 1 }, smoothBars = true, anchorTo = "Mana", offsetY = 1 },
+    HolyPower       = { color = { r = 0.95, g = 0.9, b = 0.6, a = 1 }, anchorTo = "Mana", offsetY = 1 },
+    Maelstrom       = { color = { r = 0, g = 0.5, b = 1, a = 1 }, smoothBars = true, anchorTo = "Mana", offsetY = 1 },
+    Chi             = { color = { r = 0.71, g = 1, b = 0.92, a = 1 }, anchorTo = "Energy" },
+    Insanity        = { color = { r = 0.4, g = 0, b = 0.8, a = 1 }, smoothBars = true, anchorTo = "Mana", offsetY = 1 },
+    ArcaneCharges   = { color = { r = 0.1, g = 0.1, b = 0.98, a = 1 }, anchorTo = "Mana", offsetY = 1 },
+    Fury            = { color = { r = 0.79, g = 0.26, b = 0.99, a = 1 }, smoothBars = true },
+    Essence         = {
+        color = { r = 0.16, g = 0.57, b = 0.49, a = 1 },
+        rechargingColor = { r = 0.08, g = 0.28, b = 0.25, a = 1 },
+        anchorTo = "Mana",
+        offsetY = 1,
+    },
+    SoulFragments   = { color = { r = 0.0, g = 0.8, b = 0.0, a = 1 }, anchorTo = "Fury" },
+    Stagger         = {
+        lightColor = { r = 0.52, g = 0.90, b = 0.52, a = 1 },
+        moderateColor = { r = 1.0, g = 0.85, b = 0.36, a = 1 },
+        heavyColor = { r = 1.0, g = 0.42, b = 0.42, a = 1 },
+        anchorTo = "Energy",
+    },
+    MaelstromWeapon = { color = { r = 0, g = 0.5, b = 1, a = 1 }, anchorTo = "Mana", offsetY = 1 },
+    DevourerSoulFragments = { color = { r = 0.11, g = 0.34, b = 0.71, a = 1 }, anchorTo = "Fury" },
+    Ironfur         = { color = { r = 0.153, g = 0.616, b = 1.0, a = 1 }, anchorTo = "Rage" },
+    IgnorePain      = { color = { r = 0.9, g = 0.8, b = 0.2, a = 1 }, hideIcon = false, anchorTo = "Rage" },
+    TipOfTheSpear   = { color = { r = 0.9, g = 0.3, b = 0.15, a = 1 }, anchorTo = "Focus", tagShowAuraTime = false },
+}
+
+local function BuildResourceBarDefaults()
+    local result = {}
+    for barKey, overrides in pairs(RESOURCE_BAR_PER_KEY) do
+        local entry = {}
+        for k, v in pairs(RESOURCE_BAR_COMMON) do
+            entry[k] = v
+        end
+        for k, v in pairs(overrides) do
+            entry[k] = v
+        end
+        result[barKey] = entry
+    end
+    return result
+end
+
+local RESOURCE_BAR_PER_CLASS = {
+    DRUID = {
+        Rage   = { anchorTo = "Mana", offsetY = 1 },
+        Energy = { anchorTo = "Mana", offsetY = 1 },
+    },
+}
+
+CDM.RESOURCE_BAR_COMMON_DEFAULTS = RESOURCE_BAR_COMMON
+CDM.RESOURCE_BAR_DEFAULTS = BuildResourceBarDefaults()
+CDM.RESOURCE_BAR_PER_CLASS_DEFAULTS = RESOURCE_BAR_PER_CLASS
+
 CDM.defaults = {
     sizeEssRow1 = { w = 46, h = 40 },
     sizeEssRow2 = { w = 46, h = 40 },
@@ -72,6 +182,12 @@ CDM.defaults = {
     resourcesEnabled = true,
     externalsEnabled = true,
 
+    -- Resources global settings (moved from per-class in schema v21)
+    unifiedBorder = false,
+    moveBuffsDown = false,
+    moveBuffsDownOffset = 0,
+    moveBuffsDownFallback = "lastResource",
+
     -- Externals (ExternalDefensivesFrame) settings
     externalsIconWidth = 30,
     externalsIconHeight = 30,
@@ -89,7 +205,7 @@ CDM.defaults = {
     racialsCooldownFontSize = 15,
     racialsChargePosition = "BOTTOM",
     racialsChargeOffsetX = 0,
-    racialsChargeOffsetY = 0,
+    racialsChargeOffsetY = -2,
     racialsShowItemsAtZeroStacks = false,
     racialsCustomEntries = {},
     racialsOrderPerSpec = {},
@@ -105,7 +221,7 @@ CDM.defaults = {
     defensivesCooldownFontSize = 15,
     defensivesChargePosition = "TOP",
     defensivesChargeOffsetX = 0,
-    defensivesChargeOffsetY = 0,
+    defensivesChargeOffsetY = 2,
     defensivesDisabledSpells = {},
     defensivesCustomSpells = {},
     defensivesOrder = {},
@@ -128,99 +244,11 @@ CDM.defaults = {
     racialsPartyFrameOffsetX = -1,
     racialsPartyFrameOffsetY = 20,
 
-    -- Resources module settings
-    resourcesBarHeight = 16,
-    resourcesBar2Height = 16,
-    resourcesBarWidth = 0,
-    resourcesBarSpacing = 1,
-    resourcesOffsetX = 0,
-    resourcesOffsetY = -200,
-    resourcesUnifiedBorder = false,
-    resourcesMoveBuffsDown = false,
-    resourcesSmoothBars = true,
-    resourcesBarTexture = "Solid",
-    resourcesBarBackgroundTexture = "Solid",
+    -- Per-bar resource settings (schema v9)
+    resourceBarSettings = {},
 
-    -- Power type colors
-    resourcesRageColor = { r = 0.78, g = 0.26, b = 0.26, a = 1 },
-    resourcesEnergyColor = { r = 1, g = 1, b = 0.34, a = 1 },
-    resourcesFocusColor = { r = 1, g = 0.5, b = 0.25, a = 1 },
-    resourcesTipOfTheSpearColor = { r = 0.9, g = 0.3, b = 0.15, a = 1 },
-    resourcesComboPointsColor = { r = 1, g = 0.96, b = 0.41, a = 1 },
-    resourcesComboPointsChargedColor = { r = 0.24, g = 0.60, b = 1.00, a = 1 },
-    resourcesComboPointsChargedEmptyColor = { r = 0.12, g = 0.30, b = 0.50, a = 1 },
-    resourcesBackgroundColor = { r = 0.2, g = 0.2, b = 0.2, a = 0.5 },
-
-    -- Death Knight specific colors
-    resourcesRunicPowerColor = { r = 0, g = 0.82, b = 1, a = 1 },
-    resourcesRunesReadyColor = { r = 0.5, g = 0.8, b = 1, a = 1 },
-    resourcesRunesRechargingColor = { r = 0.3, g = 0.3, b = 0.3, a = 1 },
-
-    -- Druid / Balance
-    resourcesLunarPowerColor = { r = 0.3, g = 0.52, b = 0.9, a = 1 },
-    resourcesIronfurColor = { r = 0.153, g = 0.616, b = 1.0, a = 1 },
-    resourcesFeralOverflowingColor = { r = 0.24, g = 0.60, b = 1.00, a = 1 },
-    resourcesFeralOverflowingEmptyColor = { r = 0.12, g = 0.30, b = 0.50, a = 1 },
-
-    -- Warrior / Protection
-    resourcesIgnorePainColor = { r = 0.9, g = 0.8, b = 0.2, a = 1 },
-    resourcesIgnorePainHideIcon = false,
-
-    -- Shaman
-    resourcesMaelstromColor = { r = 0, g = 0.5, b = 1, a = 1 },
-
-    -- Priest / Shadow
-    resourcesInsanityColor = { r = 0.4, g = 0, b = 0.8, a = 1 },
-
-    -- Demon Hunter
-    resourcesFuryColor = { r = 0.79, g = 0.26, b = 0.99, a = 1 },
-    resourcesSoulFragmentsColor = { r = 0.0, g = 0.8, b = 0.0, a = 1 },  -- Vengeance DH Soul Fragments
-    resourcesDevourerSoulFragmentsColor = { r = 0.11, g = 0.34, b = 0.71, a = 1 },  -- Devourer DH Souls
-
-    -- Mana (all mana-using classes)
-    resourcesManaColor = { r = 0.0, g = 0.56, b = 1.0, a = 1 },
-    resourcesManaSettings = {},  -- per-spec mana enabled: [specID] = true/false, nil = use default
-    resourcesManaPercentage = false,  -- show mana as percentage (no % sign) instead of raw value
-    resourcesPrimaryResourceSettings = {},   -- per-spec: [specID] = false to hide, nil = show
-    resourcesSecondaryResourceSettings = {}, -- per-spec: [specID] = false to hide, nil = show
-
-    -- Evoker
-    resourcesEssenceColor = { r = 0.16, g = 0.57, b = 0.49, a = 1 },
-    resourcesEssenceRechargingColor = { r = 0.08, g = 0.28, b = 0.25, a = 1 },
-
-    -- Warlock
-    resourcesSoulShardsColor = { r = 0.58, g = 0.51, b = 0.79, a = 1 },
-    resourcesSoulShardsRechargingColor = { r = 0.35, g = 0.30, b = 0.50, a = 1 },
-
-    -- Paladin
-    resourcesHolyPowerColor = { r = 0.95, g = 0.9, b = 0.6, a = 1 },
-
-    -- Mage / Arcane
-    resourcesArcaneChargesColor = { r = 0.1, g = 0.1, b = 0.98, a = 1 },
-
-    -- Monk
-    resourcesChiColor = { r = 0.71, g = 1, b = 0.92, a = 1 },
-    -- Brewmaster Stagger (threshold-based colors like MonkStaggerBar)
-    resourcesStaggerLightColor = { r = 0.52, g = 0.90, b = 0.52, a = 1 },    -- Light: <30% max health (green)
-    resourcesStaggerModerateColor = { r = 1.0, g = 0.85, b = 0.36, a = 1 },  -- Moderate: 30-60% max health (yellow)
-    resourcesStaggerHeavyColor = { r = 1.0, g = 0.42, b = 0.42, a = 1 },     -- Heavy: >60% max health (red)
-
-    -- Resource Tags - Bar 1 (enabled is per-spec in resourcesTagSettings[specID])
-    resourcesBar1TagFontSize = 15,
-    resourcesBar1TagAnchor = "CENTER",
-    resourcesBar1TagOffsetX = 0,
-    resourcesBar1TagOffsetY = 0,
-    resourcesBar1TagColor = { r = 1, g = 1, b = 1, a = 1 },
-
-    -- Resource Tags - Bar 2 (enabled is per-spec in resourcesTagSettings[specID])
-    resourcesBar2TagFontSize = 15,
-    resourcesBar2TagAnchor = "CENTER",
-    resourcesBar2TagOffsetX = 0,
-    resourcesBar2TagOffsetY = 0,
-    resourcesBar2TagColor = { r = 1, g = 1, b = 1, a = 1 },
-
-    -- Per-spec tag enabled settings: resourcesTagSettings[specID] = { bar1Enabled, bar2Enabled }
-    resourcesTagSettings = {},
+    -- Per-class group-level resource settings (e.g. unified border)
+    resourceGroupSettings = {},
 
     -- Player Cast Bar settings
     castBarEnabled = true,
@@ -238,10 +266,11 @@ CDM.defaults = {
     castBarTimerOffsetX = -2,
     castBarTimerOffsetY = 4,
     castBarOffsetX = 0,
-    castBarOffsetY = -166,
-    castBarContainerLocked = true,
-    castBarAnchorToResources = true,
-    castBarResourcesSpacing = 2,
+    castBarOffsetY = 1,
+    castBarAnchor = "resources",
+    castBarAnchorPoint = "BOTTOM",
+    castBarTargetPoint = "TOP",
+    castBarPreviewEnabled = false,
     castBarShowIcon = false,
     castBarIconPosition = "LEFT",   -- "LEFT" or "RIGHT"
     castBarIconGap = 1,
@@ -301,7 +330,7 @@ CDM.defaults = {
     -- Main buff stack position
     countPositionMain = "TOP",
     countOffsetXMain = 0,
-    countOffsetYMain = 0,
+    countOffsetYMain = 4,
 
     zoomIcons = true,
     zoomAmount = 0.08,
@@ -322,6 +351,7 @@ CDM.defaults = {
     glowPixelThickness = 2,
     glowPixelXOffset = 0,
     glowPixelYOffset = 0,
+    glowPixelBorder = false,
 
     -- Autocast Glow
     glowAutocastParticles = 4,

@@ -47,7 +47,7 @@ local function ApplyFooterTextStyle(fontString)
     local db = CDM.db or {}
     local defaults = CDM.defaults or {}
     local fontName = db.textFont or defaults.textFont or "Friz Quadrata TT"
-    local fontOutline = ""
+    local fontOutline = nil
     local fontPath = (LSM and LSM:Fetch("font", fontName)) or CDM_C.FONT_PATH
     local fontSize = (CDM.Pixel and CDM.Pixel.FontSize(24)) or 24
 
@@ -444,7 +444,6 @@ function API:RebuildConfigFrame(targetTab)
             ns.eventRegistryTokens = {}
         end
 
-        API:UnregisterCastBarSliderUpdater()
         API:UnregisterPositionSliderUpdater("essential")
         API:UnregisterPositionSliderUpdater("buff")
         API:UnregisterPositionSliderUpdater("buffBar")

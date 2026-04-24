@@ -2,7 +2,6 @@ local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
 
 local CDM_C = CDM and CDM.CONST or {}
-local IsSafeNumber = CDM.IsSafeNumber
 local math_floor = math.floor
 local math_max = math.max
 local math_min = math.min
@@ -10,6 +9,9 @@ local GetTime = GetTime
 local issecretvalue = issecretvalue
 local UnitPower = UnitPower
 local UnitPowerMax = UnitPowerMax
+local UnitPowerType = UnitPowerType
+local table_wipe = table.wipe
+local GetSpellCastCount = C_Spell.GetSpellCastCount
 
 local POWER_TYPES = Enum.PowerType
 local LSM = LibStub("LibSharedMedia-3.0")
@@ -37,10 +39,7 @@ local function RegisterResUnitEvent(event, unit, handler)
     resEventFrame:RegisterUnitEvent(event, unit)
 end
 
-local function UnregisterResUnitEvent(event)
-    resEventHandlers[event] = nil
-    resEventFrame:UnregisterEvent(event)
-end
+local UnregisterResUnitEvent = UnregisterResEvent
 
 local POWER_TOKEN_MAP = {}
 local function ToEventToken(name)
@@ -62,6 +61,62 @@ local CUSTOM_POWER_TYPES = {
 }
 CDM.CUSTOM_POWER_TYPES = CUSTOM_POWER_TYPES
 
+local POWER_TYPE_TO_BAR_KEY = {
+    [POWER_TYPES.Mana] = "Mana",
+    [POWER_TYPES.Rage] = "Rage",
+    [POWER_TYPES.Energy] = "Energy",
+    [POWER_TYPES.Focus] = "Focus",
+    [POWER_TYPES.ComboPoints] = "ComboPoints",
+    [POWER_TYPES.Runes] = "Runes",
+    [POWER_TYPES.RunicPower] = "RunicPower",
+    [POWER_TYPES.SoulShards] = "SoulShards",
+    [POWER_TYPES.LunarPower] = "LunarPower",
+    [POWER_TYPES.HolyPower] = "HolyPower",
+    [POWER_TYPES.Maelstrom] = "Maelstrom",
+    [POWER_TYPES.Chi] = "Chi",
+    [POWER_TYPES.Insanity] = "Insanity",
+    [POWER_TYPES.ArcaneCharges] = "ArcaneCharges",
+    [POWER_TYPES.Fury] = "Fury",
+    [POWER_TYPES.Essence] = "Essence",
+}
+
+local BAR_KEY_TO_POWER_TYPE = {}
+for pt, key in pairs(POWER_TYPE_TO_BAR_KEY) do
+    BAR_KEY_TO_POWER_TYPE[key] = pt
+end
+for _, customKey in pairs(CUSTOM_POWER_TYPES) do
+    BAR_KEY_TO_POWER_TYPE[customKey] = customKey
+end
+
+local function GetBarKey(powerType)
+    return POWER_TYPE_TO_BAR_KEY[powerType] or powerType
+end
+
+local CLASS_BARS = {
+    General     = { "Mana" },
+    WARRIOR     = { "Rage", "IgnorePain" },
+    PALADIN     = { "HolyPower" },
+    HUNTER      = { "Focus", "TipOfTheSpear" },
+    ROGUE       = { "Energy", "ComboPoints" },
+    PRIEST      = { "Insanity" },
+    DEATHKNIGHT = { "RunicPower", "Runes" },
+    SHAMAN      = { "Maelstrom", "MaelstromWeapon" },
+    MAGE        = { "ArcaneCharges" },
+    WARLOCK     = { "SoulShards" },
+    MONK        = { "Energy", "Chi", "Stagger" },
+    DRUID       = { "Rage", "Energy", "ComboPoints", "LunarPower", "Ironfur" },
+    DEMONHUNTER = { "Fury", "SoulFragments", "DevourerSoulFragments" },
+    EVOKER      = { "Essence" },
+}
+
+CDM.POWER_TYPE_TO_BAR_KEY = POWER_TYPE_TO_BAR_KEY
+CDM.BAR_KEY_TO_POWER_TYPE = BAR_KEY_TO_POWER_TYPE
+CDM.CLASS_BARS = CLASS_BARS
+
+local SMOOTH_ELIGIBLE_BARS = {
+    Mana=true, Rage=true, Energy=true, Focus=true, RunicPower=true,
+    LunarPower=true, Maelstrom=true, Insanity=true, Fury=true,
+}
 
 local isInitialized = false
 local isEnabled = false
@@ -74,11 +129,14 @@ local _, resourcesPlayerClass = UnitClass("player")
 local cachedPrimaryPowerType
 local cachedSoulShardReadyColor
 local cachedSoulShardRechargingColor
-local GetResourceConfigSlot
+local cachedComboBaseColor
+local cachedComboOverflowingFilled
+local cachedComboOverflowingEmpty
+local cachedComboCharged
+local cachedComboChargedEmpty
 
 local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
-local IsOneBorderMode = Pixel.IsOneBorderMode
 
 local function SnapWidthToPixelGrid(frame, width)
     if not width or width <= 0 then
@@ -90,39 +148,6 @@ local function SnapWidthToPixelGrid(frame, width)
     return pixelWidth * onePixel, pixelWidth, onePixel
 end
 
-local function UpdateUnifiedBorderFrameGeometry(powerTypes)
-    local container = CDM.resourceContainer
-    local borderFrame = container and container.unifiedBorderFrame
-    if not (container and borderFrame) then
-        return
-    end
-
-    borderFrame:ClearAllPoints()
-
-    local bottomBar
-    local topBar
-    if powerTypes then
-        for _, powerType in ipairs(powerTypes) do
-            local bar = CDM.resourceBars and CDM.resourceBars[powerType]
-            if bar and bar:IsShown() then
-                if not bottomBar then
-                    bottomBar = bar
-                end
-                topBar = bar
-            end
-        end
-    end
-
-    if bottomBar and topBar then
-        -- Follow the actual snapped bar bounds. The resource container itself can be
-        -- edge-anchored (BOTTOMLEFT + HalfFloor offset), bars are snapped individually.
-        borderFrame:SetPoint("BOTTOMLEFT", bottomBar, "BOTTOMLEFT", 0, 0)
-        borderFrame:SetPoint("TOPRIGHT", topBar, "TOPRIGHT", 0, 0)
-        return
-    end
-
-    borderFrame:SetAllPoints(container)
-end
 
 local function ConfigurePixelTexture(tex)
     if not tex then return end
@@ -131,29 +156,6 @@ local function ConfigurePixelTexture(tex)
     Pixel.DisableTextureSnap(tex)
 end
 
-
-local function ApplyResourcePixelBorder(host, color)
-    if not host.pixelBorderLines then
-        host.pixelBorderLines = {}
-        for i = 1, 4 do
-            host.pixelBorderLines[i] = Pixel.CreateSolidTexture(host, "OVERLAY", 6)
-        end
-    end
-
-    local onePx = Pixel.GetSize()
-    local px = math_max(1, math_floor((CDM_C.GetConfigValue("borderSize", 1) or 1) / onePx)) * onePx
-    Pixel.ApplyBorderLines(host.pixelBorderLines, host, px,
-        (color and color.r) or 1, (color and color.g) or 1,
-        (color and color.b) or 1, (color and color.a) or 1)
-end
-
-local function HideResourcePixelBorder(host)
-    if host and host.pixelBorderLines then
-        for _, line in ipairs(host.pixelBorderLines) do
-            line:Hide()
-        end
-    end
-end
 
 local function HideBarSeparatorFill(bar)
     if bar and bar.separatorFill then
@@ -214,47 +216,30 @@ local function SetPipSeparatorVerticalLine(sep, bar, xOffset)
     sep:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", xOffset, 0)
 end
 
-local POWER_COLOR_KEYS = {
-    [POWER_TYPES.Mana] = "resourcesManaColor",
-    [POWER_TYPES.Rage] = "resourcesRageColor",
-    [POWER_TYPES.Energy] = "resourcesEnergyColor",
-    [POWER_TYPES.RunicPower] = "resourcesRunicPowerColor",
-    [POWER_TYPES.Fury] = "resourcesFuryColor",
-    [POWER_TYPES.Focus] = "resourcesFocusColor",
-    [POWER_TYPES.LunarPower] = "resourcesLunarPowerColor",
-    [POWER_TYPES.Maelstrom] = "resourcesMaelstromColor",
-    [POWER_TYPES.Insanity] = "resourcesInsanityColor",
-    [POWER_TYPES.ComboPoints] = "resourcesComboPointsColor",
-    [POWER_TYPES.Runes] = "resourcesRunesReadyColor",
-    [POWER_TYPES.SoulShards] = "resourcesSoulShardsColor",
-    [POWER_TYPES.HolyPower] = "resourcesHolyPowerColor",
-    [POWER_TYPES.Chi] = "resourcesChiColor",
-    [POWER_TYPES.ArcaneCharges] = "resourcesArcaneChargesColor",
-    [POWER_TYPES.Essence] = "resourcesEssenceColor",
-    [CUSTOM_POWER_TYPES.SoulFragments] = "resourcesSoulFragmentsColor",
-    [CUSTOM_POWER_TYPES.MaelstromWeapon] = "resourcesMaelstromColor",
-    [CUSTOM_POWER_TYPES.DevourerSoulFragments] = "resourcesDevourerSoulFragmentsColor",
-    [CUSTOM_POWER_TYPES.Ironfur] = "resourcesIronfurColor",
-    [CUSTOM_POWER_TYPES.IgnorePain] = "resourcesIgnorePainColor",
-    [CUSTOM_POWER_TYPES.TipOfTheSpear] = "resourcesTipOfTheSpearColor",
-}
+local function PositionSeparatorAt(bar, i, borderColor)
+    local sep = bar.separators and bar.separators[i]
+    if not sep then return end
+    local onePixel = Pixel.GetSize()
+    local barHeight = bar.GetHeight and bar:GetHeight() or 0
+    if onePixel > 0 and barHeight > 0 then
+        sep:SetSize(onePixel, barHeight)
+    end
+    sep:SetVertexColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
+    local barLeft = bar.GetLeft and bar:GetLeft() or nil
+    local xOffset = ResolvePipSeparatorXOffset(bar, i, barLeft, onePixel)
+    SetPipSeparatorVerticalLine(sep, bar, xOffset)
+    sep:Show()
+end
 
-local DEFAULT_WHITE_COLOR = { r = 1, g = 1, b = 1, a = 1 }
+local DEFAULT_BG_COLOR = { r = 0.2, g = 0.2, b = 0.2, a = 0.5 }
 local chargedComboPointLookup = {}
 
 local function GetPowerColor(powerType)
     if powerType == CUSTOM_POWER_TYPES.Stagger then
         return nil
     end
-
-    local key = POWER_COLOR_KEYS[powerType]
-    if key then
-        local db = CDM.db
-        local defaults = CDM.defaults or {}
-        return (db and db[key]) or defaults[key] or DEFAULT_WHITE_COLOR
-    end
-
-    return DEFAULT_WHITE_COLOR
+    local barKey = GetBarKey(powerType)
+    return CDM:GetBarSetting(barKey, "color") or CDM_C.WHITE
 end
 
 local function IsRogueComboPoints(powerType)
@@ -266,21 +251,13 @@ local function IsFeralOverflowingComboPoints(powerType)
 end
 
 local function GetFeralOverflowingColors()
-    local db = CDM.db
-    local defaults = CDM.defaults or {}
-    local baseColor = (db and db.resourcesComboPointsColor) or defaults.resourcesComboPointsColor or DEFAULT_WHITE_COLOR
-    local filledColor = (db and db.resourcesFeralOverflowingColor) or defaults.resourcesFeralOverflowingColor or baseColor
-    local emptyColor = (db and db.resourcesFeralOverflowingEmptyColor) or defaults.resourcesFeralOverflowingEmptyColor or baseColor
-    return filledColor, emptyColor
+    return cachedComboOverflowingFilled or CDM_C.WHITE,
+           cachedComboOverflowingEmpty or CDM_C.WHITE
 end
 
 local function GetComboPointChargeColors()
-    local db = CDM.db
-    local defaults = CDM.defaults or {}
-    local baseColor = (db and db.resourcesComboPointsColor) or defaults.resourcesComboPointsColor or DEFAULT_WHITE_COLOR
-    local chargedColor = (db and db.resourcesComboPointsChargedColor) or defaults.resourcesComboPointsChargedColor or baseColor
-    local chargedEmptyColor = (db and db.resourcesComboPointsChargedEmptyColor) or defaults.resourcesComboPointsChargedEmptyColor or baseColor
-    return chargedColor, chargedEmptyColor
+    return cachedComboCharged or CDM_C.WHITE,
+           cachedComboChargedEmpty or CDM_C.WHITE
 end
 
 local chargedComboPointsDirty = true
@@ -294,11 +271,11 @@ local function RefreshChargedComboPointLookup()
 
     local chargedPoints = GetUnitChargedPowerPoints("player")
     if type(chargedPoints) ~= "table" or #chargedPoints == 0 then
-        table.wipe(chargedComboPointLookup)
+        table_wipe(chargedComboPointLookup)
         return nil
     end
 
-    table.wipe(chargedComboPointLookup)
+    table_wipe(chargedComboPointLookup)
 
     local hasEntries = false
     for i = 1, #chargedPoints do
@@ -320,19 +297,22 @@ local function GetChargedComboPointLookup()
 end
 
 local function RefreshCachedFontStyles()
-    local db = CDM.db
-    local defaults = CDM.defaults or {}
     cachedSoulShardReadyColor = GetPowerColor(POWER_TYPES.SoulShards)
-    cachedSoulShardRechargingColor = (db and db.resourcesSoulShardsRechargingColor)
-        or defaults.resourcesSoulShardsRechargingColor or cachedSoulShardReadyColor
+    cachedSoulShardRechargingColor = CDM:GetBarSetting("SoulShards", "rechargingColor")
+        or cachedSoulShardReadyColor
+    cachedComboBaseColor = CDM:GetBarSetting("ComboPoints", "color") or CDM_C.WHITE
+    cachedComboOverflowingFilled = CDM:GetBarSetting("ComboPoints", "overflowingColor") or cachedComboBaseColor
+    cachedComboOverflowingEmpty = CDM:GetBarSetting("ComboPoints", "overflowingEmptyColor") or cachedComboBaseColor
+    cachedComboCharged = CDM:GetBarSetting("ComboPoints", "chargedColor") or cachedComboBaseColor
+    cachedComboChargedEmpty = CDM:GetBarSetting("ComboPoints", "chargedEmptyColor") or cachedComboBaseColor
     if CDM._Res and CDM._Res.RefreshTrackerFontCache then
         CDM._Res.RefreshTrackerFontCache()
     end
 end
 
-local function GetBarTextures()
-    local barName = CDM.db.resourcesBarTexture or CDM.defaults.resourcesBarTexture
-    local bgName = CDM.db.resourcesBarBackgroundTexture or CDM.defaults.resourcesBarBackgroundTexture
+local function GetBarTextures(barKey)
+    local barName = CDM:GetBarSetting(barKey, "barTexture") or "Solid"
+    local bgName = CDM:GetBarSetting(barKey, "bgTexture") or "Solid"
     return LSM:Fetch("statusbar", barName) or CDM_C.TEX_WHITE8X8,
            LSM:Fetch("statusbar", bgName) or CDM_C.TEX_WHITE8X8
 end
@@ -410,14 +390,11 @@ local function SetStatusBarColorIfChanged(statusBar, color)
     statusBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
 end
 
-local function HideFrameList(frameList)
-    if not frameList then
-        return
-    end
-
-    for _, frame in ipairs(frameList) do
-        frame:Hide()
-    end
+local function RememberPipBaseColor(bar, pipIndex, color)
+    if not color then return end
+    local t = bar._pipBaseColors
+    if not t then t = {}; bar._pipBaseColors = t end
+    t[pipIndex] = color
 end
 
 local SPEC_POWER_MAP = {
@@ -447,7 +424,7 @@ local SPEC_POWER_MAP = {
     [269] = {POWER_TYPES.Energy, POWER_TYPES.Chi},               -- Windwalker Monk
     [102] = POWER_TYPES.LunarPower,                             -- Balance Druid
     [103] = {POWER_TYPES.Energy, POWER_TYPES.ComboPoints},      -- Feral Druid
-    [104] = POWER_TYPES.Rage,                                   -- Guardian Druid
+    [104] = {POWER_TYPES.Rage, CUSTOM_POWER_TYPES.Ironfur},     -- Guardian Druid
     [577] = POWER_TYPES.Fury,                                   -- Havoc Demon Hunter
     [581] = {POWER_TYPES.Fury, CUSTOM_POWER_TYPES.SoulFragments}, -- Vengeance Demon Hunter
     [1480] = {POWER_TYPES.Fury, CUSTOM_POWER_TYPES.DevourerSoulFragments}, -- Devourer Demon Hunter
@@ -455,6 +432,7 @@ local SPEC_POWER_MAP = {
     [1468] = POWER_TYPES.Essence,                               -- Preservation Evoker
     [1473] = POWER_TYPES.Essence,                               -- Augmentation Evoker
 }
+CDM.SPEC_POWER_MAP = SPEC_POWER_MAP
 
 -- Per-spec mana defaults: true = enabled by default, false = disabled by default
 CDM.MANA_SPECS = {
@@ -465,7 +443,7 @@ CDM.MANA_SPECS = {
     -- Priest
     [256] = true,   -- Discipline Priest
     [257] = true,   -- Holy Priest
-    [258] = true,   -- Shadow Priest
+    [258] = false,  -- Shadow Priest
     -- Shaman
     [262] = false,   -- Elemental Shaman
     [263] = false,  -- Enhancement Shaman
@@ -491,164 +469,263 @@ CDM.MANA_SPECS = {
     [1473] = false,  -- Augmentation Evoker
 }
 
+local SPEC_TO_CLASS = {
+    [71]="WARRIOR", [72]="WARRIOR", [73]="WARRIOR",
+    [65]="PALADIN", [66]="PALADIN", [70]="PALADIN",
+    [253]="HUNTER", [254]="HUNTER", [255]="HUNTER",
+    [259]="ROGUE", [260]="ROGUE", [261]="ROGUE",
+    [256]="PRIEST", [257]="PRIEST", [258]="PRIEST",
+    [250]="DEATHKNIGHT", [251]="DEATHKNIGHT", [252]="DEATHKNIGHT",
+    [262]="SHAMAN", [263]="SHAMAN", [264]="SHAMAN",
+    [62]="MAGE", [63]="MAGE", [64]="MAGE",
+    [265]="WARLOCK", [266]="WARLOCK", [267]="WARLOCK",
+    [268]="MONK", [269]="MONK", [270]="MONK",
+    [102]="DRUID", [103]="DRUID", [104]="DRUID", [105]="DRUID",
+    [577]="DEMONHUNTER", [581]="DEMONHUNTER", [1480]="DEMONHUNTER",
+    [1467]="EVOKER", [1468]="EVOKER", [1473]="EVOKER",
+}
+
+local BAR_SPEC_PEERS_BY_CLASS = {}
+local BAR_CAN_USE_MANA_BY_CLASS = {}
+
+local function EnsureSubMap(parent, key)
+    local m = parent[key]
+    if not m then
+        m = {}
+        parent[key] = m
+    end
+    return m
+end
+
+for specID, powers in pairs(SPEC_POWER_MAP) do
+    local classKey = SPEC_TO_CLASS[specID]
+    if classKey then
+        local list = type(powers) == "table" and powers or { powers }
+        local keys = {}
+        for i = 1, #list do
+            keys[i] = GetBarKey(list[i])
+        end
+
+        local classPeers = EnsureSubMap(BAR_SPEC_PEERS_BY_CLASS, classKey)
+        for i = 1, #keys do
+            local peers = EnsureSubMap(classPeers, keys[i])
+            for j = 1, #keys do
+                if i ~= j then peers[keys[j]] = true end
+            end
+        end
+
+        if CDM.MANA_SPECS[specID] ~= nil then
+            local manaMap = EnsureSubMap(BAR_CAN_USE_MANA_BY_CLASS, classKey)
+            for i = 1, #keys do
+                manaMap[keys[i]] = true
+            end
+        end
+    end
+end
+
+CDM.BAR_SPEC_PEERS_BY_CLASS = BAR_SPEC_PEERS_BY_CLASS
+
+function CDM.AreBarKeysSpecCompatible(classKey, a, b)
+    if a == b then return false end
+    if a == "Mana" then
+        local map = BAR_CAN_USE_MANA_BY_CLASS[classKey]
+        return map ~= nil and map[b] == true
+    end
+    if b == "Mana" then
+        local map = BAR_CAN_USE_MANA_BY_CLASS[classKey]
+        return map ~= nil and map[a] == true
+    end
+    local classPeers = BAR_SPEC_PEERS_BY_CLASS[classKey]
+    if not classPeers then return false end
+    local peers = classPeers[a]
+    return peers ~= nil and peers[b] == true
+end
+
 CDM.resourceBars = {}
-CDM.resourceContainer = nil
 CDM.currentPowerTypes = {}
-CDM.currentPowerSlots = {}
-CDM.currentPowerTypeSlots = {}
+CDM.activeBarKeys = {}
+CDM.resourceUnifiedHosts = {}
 
-
-local scratchPowerTypes = {}
-local scratchVisiblePowerTypes = {}
-local scratchVisiblePowerSlots = {}
-
-GetResourceConfigSlot = function(powerType)
-    local powerTypeSlots = CDM.currentPowerTypeSlots
-    if powerType and powerTypeSlots and powerTypeSlots[powerType] then
-        return powerTypeSlots[powerType]
+local DRUID_TRAVEL_FORM_IDS = {[3] = true, [4] = true, [27] = true, [29] = true}
+local DRUID_CAT_FORM_ID = 1
+local DRUID_BEAR_FORM_ID = 5
+local DRUID_FERAL_FORM_IDS = {[DRUID_CAT_FORM_ID] = true, [DRUID_BEAR_FORM_ID] = true}
+local function IsEffectivelyMounted()
+    return IsMounted()
+        or UnitInVehicle("player")
+        or DRUID_TRAVEL_FORM_IDS[GetShapeshiftFormID()]
+        or false
+end
+local function IsInFeralForm()
+    return DRUID_FERAL_FORM_IDS[GetShapeshiftFormID()] or false
+end
+local function GetDruidPrimaryPowerType(specID)
+    local formID = GetShapeshiftFormID()
+    if formID == DRUID_BEAR_FORM_ID then
+        return POWER_TYPES.Rage
+    elseif formID == DRUID_CAT_FORM_ID then
+        return POWER_TYPES.Energy
+    elseif specID == 102 then
+        return POWER_TYPES.LunarPower
     end
+    return POWER_TYPES.Mana
+end
+CDM.GetDruidPrimaryPowerType = GetDruidPrimaryPowerType
+local loadInCombat = InCombatLockdown() and true or false
+local loadIsMounted = IsEffectivelyMounted()
+local loadIsFeralForm = IsInFeralForm()
 
-    local powerTypes = CDM.currentPowerTypes
-    local slotIndices = CDM.currentPowerSlots
-    if powerTypes then
-        for i, currentPowerType in ipairs(powerTypes) do
-            if currentPowerType == powerType then
-                return (slotIndices and slotIndices[i]) or i
-            end
-        end
-    end
+local function EvalLoadConditions(barKey, specID)
+    local loadMode = CDM:GetBarSetting(barKey, "loadMode") or "always"
+    if loadMode == "always" then return true end
+    if loadMode == "never" then return false end
 
-    local bar = CDM.resourceBars and CDM.resourceBars[powerType]
-    if bar and bar.slotIndex then
-        return bar.slotIndex
-    end
+    local ld = CDM:GetBarSetting(barKey, "load")
+    if not ld then return true end
 
-    return nil
+    if ld.combat ~= nil and ld.combat ~= loadInCombat then return false end
+
+    if ld.hideMounted and loadIsMounted then return false end
+
+    if ld.hideInFeralForm and loadIsFeralForm then return false end
+
+    if ld.spec and not ld.spec[specID] then return false end
+
+    return true
 end
 
-function CDM:GetResourceBarSlotIndex(powerType)
-    return GetResourceConfigSlot(powerType)
-end
+local scratchActiveKeys = {}
 
-local function ApplyResourceVisibilityFilter(powerTypes)
-    if not powerTypes or #powerTypes == 0 then return powerTypes end
-
-    local primaryEnabled = CDM.GetPrimaryResourceEnabled and CDM:GetPrimaryResourceEnabled()
-    local secondaryEnabled = CDM.GetSecondaryResourceEnabled and CDM:GetSecondaryResourceEnabled()
-    if primaryEnabled == nil then primaryEnabled = true end
-    if secondaryEnabled == nil then secondaryEnabled = true end
-
-    local firstNonMana, secondNonMana
-    table.wipe(scratchVisiblePowerTypes)
-    table.wipe(scratchVisiblePowerSlots)
-
-    for i = 1, #powerTypes do
-        local powerType = powerTypes[i]
-        if powerType ~= POWER_TYPES.Mana then
-            if not firstNonMana then
-                firstNonMana = i
-            elseif not secondNonMana then
-                secondNonMana = i
-            end
-        end
-
-        local isHiddenPrimary = (not primaryEnabled and i == firstNonMana)
-        local isHiddenSecondary = (not secondaryEnabled and i == secondNonMana)
-        if not isHiddenPrimary and not isHiddenSecondary then
-            local visibleIndex = #scratchVisiblePowerTypes + 1
-            scratchVisiblePowerTypes[visibleIndex] = powerType
-            scratchVisiblePowerSlots[visibleIndex] = i
-        end
-    end
-
-    return scratchVisiblePowerTypes, scratchVisiblePowerSlots
-end
-
-local function GetPlayerPowerTypes()
+local function GetActiveBarKeys()
     local specIndex = GetSpecialization()
-    if not specIndex then
-        return nil
-    end
-
+    if not specIndex then return nil end
     local specID = GetSpecializationInfo(specIndex)
-    if not specID or specID == 0 then
-        return nil
-    end
+    if not specID or specID == 0 then return nil end
 
-    local manaEnabled = CDM.GetManaEnabled and CDM:GetManaEnabled() or false
+    table_wipe(scratchActiveKeys)
 
-    local _, class = UnitClass("player")
-    if class == "DRUID" then
-        local currentPowerType = UnitPowerType("player")
-
-        table.wipe(scratchPowerTypes)
-        if currentPowerType == POWER_TYPES.Rage then
-            scratchPowerTypes[1] = POWER_TYPES.Rage
-            if specID == 104 then
-                scratchPowerTypes[2] = CUSTOM_POWER_TYPES.Ironfur
-            end
-            return scratchPowerTypes
-        elseif currentPowerType == POWER_TYPES.Energy then
-            scratchPowerTypes[1] = POWER_TYPES.Energy
-            scratchPowerTypes[2] = POWER_TYPES.ComboPoints
-            return scratchPowerTypes
-        elseif currentPowerType == POWER_TYPES.LunarPower and specID == 102 then
-            if manaEnabled then
-                scratchPowerTypes[1] = POWER_TYPES.Mana
-                scratchPowerTypes[2] = POWER_TYPES.LunarPower
-            else
-                scratchPowerTypes[1] = POWER_TYPES.LunarPower
-            end
-            return scratchPowerTypes
-        else
-            if specID == 102 then
-                if manaEnabled then
-                    scratchPowerTypes[1] = POWER_TYPES.Mana
-                    scratchPowerTypes[2] = POWER_TYPES.LunarPower
-                else
-                    scratchPowerTypes[1] = POWER_TYPES.LunarPower
-                end
-                return scratchPowerTypes
-            end
-            if manaEnabled then
-                scratchPowerTypes[1] = POWER_TYPES.Mana
-                return scratchPowerTypes
-            end
-            return nil
+    local manaSpecs = CDM.MANA_SPECS
+    if manaSpecs and manaSpecs[specID] ~= nil then
+        if EvalLoadConditions("Mana", specID) then
+            scratchActiveKeys[#scratchActiveKeys + 1] = "Mana"
         end
     end
 
     local specPowers = SPEC_POWER_MAP[specID]
 
-    if manaEnabled then
-        table.wipe(scratchPowerTypes)
-        scratchPowerTypes[1] = POWER_TYPES.Mana
-        if specPowers then
-            if type(specPowers) == "table" then
-                for _, pt in ipairs(specPowers) do
-                    scratchPowerTypes[#scratchPowerTypes + 1] = pt
-                end
-            else
-                scratchPowerTypes[#scratchPowerTypes + 1] = specPowers
+    if resourcesPlayerClass == "DRUID" then
+        local currentPowerType = GetDruidPrimaryPowerType(specID)
+        if currentPowerType == POWER_TYPES.Rage then
+            specPowers = specID == 104 and {POWER_TYPES.Rage, CUSTOM_POWER_TYPES.Ironfur} or {POWER_TYPES.Rage}
+        elseif currentPowerType == POWER_TYPES.Energy then
+            specPowers = {POWER_TYPES.Energy, POWER_TYPES.ComboPoints}
+        elseif specID == 102 then
+            specPowers = {POWER_TYPES.LunarPower}
+        else
+            specPowers = nil
+        end
+    end
+
+    if specPowers then
+        local powers = type(specPowers) == "table" and specPowers or {specPowers}
+        for _, pt in ipairs(powers) do
+            local barKey = GetBarKey(pt)
+            if EvalLoadConditions(barKey, specID) then
+                scratchActiveKeys[#scratchActiveKeys + 1] = barKey
             end
         end
-        return scratchPowerTypes
     end
 
-    if not specPowers then
-        return nil
+    return #scratchActiveKeys > 0 and scratchActiveKeys or nil
+end
+
+local ANCHOR_TARGET_SCREEN = "screen"
+local ANCHOR_TARGET_PLAYER_FRAME = "playerFrame"
+local ANCHOR_TARGET_ESSENTIAL = "essential"
+
+local function IsExternalAnchorTarget(anchorTo)
+    return anchorTo == ANCHOR_TARGET_PLAYER_FRAME or anchorTo == ANCHOR_TARGET_ESSENTIAL
+end
+
+local function ResolveExternalAnchorFrame(anchorTo)
+    if anchorTo == ANCHOR_TARGET_ESSENTIAL then
+        local containers = CDM.anchorContainers
+        local vName = CDM_C.VIEWERS and CDM_C.VIEWERS.ESSENTIAL
+        local target = containers and vName and containers[vName]
+        if target and target:IsShown() then return target end
+    end
+    return nil
+end
+
+local function BarToBarOffsets(barKey, anchorPoint, targetPoint)
+    local spacing = CDM:GetBarSetting(barKey, "barSpacing") or 1
+    if anchorPoint == "BOTTOM" and targetPoint == "TOP" then
+        return 0, spacing
+    elseif anchorPoint == "TOP" and targetPoint == "BOTTOM" then
+        return 0, -spacing
+    elseif anchorPoint == "LEFT" and targetPoint == "RIGHT" then
+        return spacing, 0
+    elseif anchorPoint == "RIGHT" and targetPoint == "LEFT" then
+        return -spacing, 0
+    end
+    return 0, spacing
+end
+
+local function ResolveAnchorTarget(barKey)
+    local anchorTo = CDM:GetBarSetting(barKey, "anchorTo")
+    local anchorPoint = CDM:GetBarSetting(barKey, "anchorPoint") or "BOTTOM"
+    local targetPoint = CDM:GetBarSetting(barKey, "anchorTargetPoint") or "TOP"
+    local offX = CDM:GetBarSetting(barKey, "offsetX") or 0
+    local offY = CDM:GetBarSetting(barKey, "offsetY") or -200
+
+    if not anchorTo or anchorTo == ANCHOR_TARGET_SCREEN then
+        return UIParent, anchorPoint, targetPoint, offX, offY
     end
 
-    if type(specPowers) ~= "table" then
-        table.wipe(scratchPowerTypes)
-        scratchPowerTypes[1] = specPowers
-        return scratchPowerTypes
+    if anchorTo == ANCHOR_TARGET_PLAYER_FRAME then
+        return ANCHOR_TARGET_PLAYER_FRAME, anchorPoint, targetPoint, offX, offY
     end
-    table.wipe(scratchPowerTypes)
-    for i, pt in ipairs(specPowers) do
-        scratchPowerTypes[i] = pt
+
+    if anchorTo == ANCHOR_TARGET_ESSENTIAL then
+        local target = ResolveExternalAnchorFrame(anchorTo)
+        if target then
+            return target, anchorPoint, targetPoint, offX, offY
+        end
+        return UIParent, anchorPoint, targetPoint, offX, offY
     end
-    return scratchPowerTypes
+
+    local targetPT = BAR_KEY_TO_POWER_TYPE[anchorTo]
+    local targetBar = targetPT and CDM.resourceBars[targetPT]
+    if targetBar and targetBar:IsShown() then
+        local bx, by = BarToBarOffsets(barKey, anchorPoint, targetPoint)
+        return targetBar, anchorPoint, targetPoint, bx, by
+    end
+
+    return UIParent, anchorPoint, targetPoint, offX, offY
+end
+
+local function IsActiveBarKey(targetKey)
+    local keys = CDM.activeBarKeys
+    if not keys then return false end
+    for i = 1, #keys do
+        if keys[i] == targetKey then return true end
+    end
+    return false
+end
+
+local function ResolveEffectiveAnchorKey(barKey)
+    while true do
+        local anchorTo = CDM:GetBarSetting(barKey, "anchorTo")
+        if not anchorTo or anchorTo == ANCHOR_TARGET_SCREEN
+           or anchorTo == ANCHOR_TARGET_PLAYER_FRAME
+           or anchorTo == ANCHOR_TARGET_ESSENTIAL then
+            return barKey
+        end
+        if IsActiveBarKey(anchorTo) then
+            return barKey
+        end
+        barKey = anchorTo
+    end
 end
 
 local function UsesPips(powerType)
@@ -672,13 +749,14 @@ local function CreatePipBar(powerType)
         return CDM.resourceBars[powerType]
     end
 
-    local bar = CreateFrame("StatusBar", nil, CDM.resourceContainer)
+    local bar = CreateFrame("StatusBar", nil, UIParent)
     bar:SetFrameStrata(CDM_C.STRATA_MAIN)
     bar.powerType = powerType
     bar.isPipBar = true
     bar.pips = {}
+    bar.barKey = GetBarKey(powerType)
 
-    bar.color = GetPowerColor(powerType) or DEFAULT_WHITE_COLOR
+    bar.color = GetPowerColor(powerType) or CDM_C.WHITE
 
     bar:Hide()
 
@@ -691,6 +769,18 @@ local function CreatePipBar(powerType)
     return bar
 end
 
+local function SetupPip(pip, bar, texturePath, color, i, pipPositions, pipWidths)
+    pip:SetStatusBarTexture(texturePath)
+    pip:GetStatusBarTexture():SetHorizTile(false)
+    pip:GetStatusBarTexture():SetVertTile(false)
+    pip:SetStatusBarColor(color.r, color.g, color.b, color.a)
+    local xStart = pipPositions[i]
+    pip:ClearAllPoints()
+    pip:SetPoint("TOPLEFT", bar, "TOPLEFT", xStart, 0)
+    pip:SetPoint("BOTTOMRIGHT", bar, "BOTTOMLEFT", xStart + pipWidths[i], 0)
+    pip:Show()
+end
+
 local function CreatePips(bar, maxPips, barWidth, barHeight)
     bar.pips = bar.pips or {}
     bar.separators = bar.separators or {}
@@ -699,14 +789,13 @@ local function CreatePips(bar, maxPips, barWidth, barHeight)
 
     local color = bar.color
 
-    local borderColor = (CDM.db and CDM.db.borderColor) or (CDM.defaults and CDM.defaults.borderColor) or DEFAULT_WHITE_COLOR
+    local borderColor = (CDM.db and CDM.db.borderColor) or (CDM.defaults and CDM.defaults.borderColor) or CDM_C.WHITE
 
-    local bgColor = CDM.db.resourcesBackgroundColor or CDM.defaults.resourcesBackgroundColor
+    local bgColor = (bar.barKey and CDM:GetBarSetting(bar.barKey, "bgColor")) or DEFAULT_BG_COLOR
 
     if maxPips <= 0 then return end
     local _, barPixels, onePixel = SnapWidthToPixelGrid(bar, barWidth)
 
-    local separatorWidth = onePixel
     local availablePixels = barPixels - (maxPips - 1)
 
     bar.pipWidths = bar.pipWidths or {}
@@ -721,7 +810,7 @@ local function CreatePips(bar, maxPips, barWidth, barHeight)
         prevBoundary = boundary
     end
 
-    local barTexturePath, bgTexturePath = GetBarTextures()
+    local barTexturePath, bgTexturePath = GetBarTextures(bar.barKey)
 
     local isRuneBar = (bar.powerType == POWER_TYPES.Runes)
     local isEssenceBar = (bar.powerType == POWER_TYPES.Essence)
@@ -772,23 +861,12 @@ local function CreatePips(bar, maxPips, barWidth, barHeight)
             end
 
             pip:SetParent(bar)
-
-            pip:SetStatusBarTexture(barTexturePath)
-            pip:GetStatusBarTexture():SetHorizTile(false)
-            pip:GetStatusBarTexture():SetVertTile(false)
-            pip:SetStatusBarColor(color.r, color.g, color.b, color.a)
+            SetupPip(pip, bar, barTexturePath, color, i, bar.pipPositions, pipWidths)
 
             if pip.timerText then
                 pip.timerText:ClearAllPoints()
                 pip.timerText:SetPoint("CENTER", pip.timerFrame, "CENTER", 0, 0)
             end
-
-            local xStart = bar.pipPositions[i]
-            local xEnd = xStart + pipWidths[i]
-            pip:ClearAllPoints()
-            pip:SetPoint("TOPLEFT", bar, "TOPLEFT", xStart, 0)
-            pip:SetPoint("BOTTOMRIGHT", bar, "BOTTOMLEFT", xEnd, 0)
-            pip:Show()
         end
 
         bar.hasRunesRecharging = false
@@ -804,18 +882,7 @@ local function CreatePips(bar, maxPips, barWidth, barHeight)
             end
 
             pip:SetParent(bar)
-
-            pip:SetStatusBarTexture(barTexturePath)
-            pip:GetStatusBarTexture():SetHorizTile(false)
-            pip:GetStatusBarTexture():SetVertTile(false)
-            pip:SetStatusBarColor(color.r, color.g, color.b, color.a)
-
-            local xStart = bar.pipPositions[i]
-            local xEnd = xStart + pipWidths[i]
-            pip:ClearAllPoints()
-            pip:SetPoint("TOPLEFT", bar, "TOPLEFT", xStart, 0)
-            pip:SetPoint("BOTTOMRIGHT", bar, "BOTTOMLEFT", xEnd, 0)
-            pip:Show()
+            SetupPip(pip, bar, barTexturePath, color, i, bar.pipPositions, pipWidths)
         end
 
         if isEssenceBar then
@@ -840,17 +907,7 @@ local function CreatePips(bar, maxPips, barWidth, barHeight)
             pip:SetMinMaxValues(i - 1, i)
             pip:SetValue(0)
 
-            pip:SetStatusBarTexture(barTexturePath)
-            pip:GetStatusBarTexture():SetHorizTile(false)
-            pip:GetStatusBarTexture():SetVertTile(false)
-            pip:SetStatusBarColor(color.r, color.g, color.b, color.a)
-
-            local xStart = bar.pipPositions[i]
-            local xEnd = xStart + pipWidths[i]
-            pip:ClearAllPoints()
-            pip:SetPoint("TOPLEFT", bar, "TOPLEFT", xStart, 0)
-            pip:SetPoint("BOTTOMRIGHT", bar, "BOTTOMLEFT", xEnd, 0)
-            pip:Show()
+            SetupPip(pip, bar, barTexturePath, color, i, bar.pipPositions, pipWidths)
 
             if needsChargeOverlays then
                 local overlay = bar.comboChargeEmptyOverlays[i]
@@ -867,9 +924,7 @@ local function CreatePips(bar, maxPips, barWidth, barHeight)
         end
     end
 
-    bar.pipWidth = pipWidths[1]
     bar.activePipCount = maxPips
-    bar._barWidth = barWidth
 
     for i = maxPips + 1, #bar.pips do
         bar.pips[i]:Hide()
@@ -892,26 +947,13 @@ local function CreatePips(bar, maxPips, barWidth, barHeight)
     bar.separatorOverlay:SetFrameLevel(bar:GetFrameLevel() + 5)
 
     for i = 1, maxPips - 1 do
-        local separator = bar.separators[i]
-
-        if not separator then
-            separator = Pixel.CreateSolidTexture(bar.separatorOverlay, "OVERLAY", 7)
-            bar.separators[i] = separator
+        if not bar.separators[i] then
+            bar.separators[i] = Pixel.CreateSolidTexture(bar.separatorOverlay, "OVERLAY", 7)
         end
-
-        separator:SetSize(separatorWidth, barHeight)
-        separator:SetVertexColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
-
-        local sepPixel = pipBoundaryPixels[i]
-        local sepXOffset = (sepPixel and (sepPixel * onePixel)) or (bar.pipPositions[i] + pipWidths[i])
-        separator:ClearAllPoints()
-        separator:SetPoint("LEFT", bar, "LEFT", sepXOffset, 0)
-        separator:Show()
+        PositionSeparatorAt(bar, i, borderColor)
     end
 
-    for i = maxPips, #bar.separators do
-        bar.separators[i]:Hide()
-    end
+    HideBarPipSeparators(bar, maxPips)
 end
 
 local function CreateBar(powerType)
@@ -923,10 +965,10 @@ local function CreateBar(powerType)
         return CDM.resourceBars[powerType]
     end
 
-    local bar = CreateFrame("StatusBar", nil, CDM.resourceContainer)
+    local bar = CreateFrame("StatusBar", nil, UIParent)
     bar:SetFrameStrata(CDM_C.STRATA_MAIN)
 
-    local barTexturePath, bgTexturePath = GetBarTextures()
+    local barTexturePath, bgTexturePath = GetBarTextures(GetBarKey(powerType))
     bar:SetStatusBarTexture(barTexturePath)
 
     local statusBarTexture = bar:GetStatusBarTexture()
@@ -946,7 +988,7 @@ local function CreateBar(powerType)
 
     local color = GetPowerColor(powerType)
     if not color and powerType == CUSTOM_POWER_TYPES.Stagger then
-        color = CDM.db.resourcesStaggerLightColor or CDM.defaults.resourcesStaggerLightColor
+        color = CDM:GetBarSetting("Stagger", "lightColor") or { r = 0.52, g = 0.90, b = 0.52, a = 1 }
     end
     if color then
         bar:SetStatusBarColor(color.r, color.g, color.b, color.a)
@@ -958,40 +1000,19 @@ local function CreateBar(powerType)
     bg:SetVertTile(false)
     bg:SetAllPoints()
     Pixel.DisableTextureSnap(bg)
-    local bgColor = CDM.db.resourcesBackgroundColor or CDM.defaults.resourcesBackgroundColor
+    local barKey = GetBarKey(powerType)
+    local bgColor = CDM:GetBarSetting(barKey, "bgColor") or DEFAULT_BG_COLOR
     bg:SetVertexColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a)
     bar.bg = bg
+    bar.barKey = barKey
 
-    local isPrimaryResource = (
-        powerType == POWER_TYPES.Rage or
-        powerType == POWER_TYPES.Energy or
-        powerType == POWER_TYPES.Focus or
-        powerType == POWER_TYPES.RunicPower or
-        powerType == POWER_TYPES.LunarPower or
-        powerType == POWER_TYPES.Maelstrom or
-        powerType == POWER_TYPES.Insanity or
-        powerType == POWER_TYPES.Fury or
-        powerType == POWER_TYPES.Mana or
-        powerType == CUSTOM_POWER_TYPES.Stagger
-    )
-
-    if isPrimaryResource then
-        bar.isPrimaryResource = true
+    if not bar.borderFrame then
+        bar.borderFrame = CreateFrame("Frame", nil, bar)
+        bar.borderFrame:SetAllPoints()
     end
 
-    if not CDM.db.resourcesUnifiedBorder then
-        if not bar.borderFrame then
-            bar.borderFrame = CreateFrame("Frame", nil, bar, "BackdropTemplate")
-            bar.borderFrame:SetAllPoints()
-        end
-
-        if CDM.BORDER and CDM.BORDER.CreateBorder then
-            CDM.BORDER:CreateBorder(bar.borderFrame)
-        end
-    else
-        if bar.borderFrame then
-            bar.borderFrame:Hide()
-        end
+    if CDM.BORDER and CDM.BORDER.CreateBorder then
+        CDM.BORDER:CreateBorder(bar.borderFrame)
     end
 
     bar:Hide()
@@ -1005,242 +1026,277 @@ local function CreateBar(powerType)
     return bar
 end
 
-local function CreateVerticalSeparators(bar2)
-    CDM.resourceContainer.verticalSeparators = CDM.resourceContainer.verticalSeparators or {}
+local function EnsurePerBarBorder(bar, borderColor)
+    if not bar.borderFrame then
+        bar.borderFrame = CreateFrame("Frame", nil, bar)
+        bar.borderFrame:SetAllPoints()
+    end
+    bar.borderFrame:Show()
 
-    if not bar2 or not bar2.isPipBar or not bar2.pipPositions then
-        HideFrameList(CDM.resourceContainer.verticalSeparators)
+    if CDM.BORDER and CDM.BORDER.CreateBorder then
+        CDM.BORDER:CreateBorder(bar.borderFrame)
+        if bar.borderFrame.border then
+            bar.borderFrame.border:SetBackdropBorderColor(
+                borderColor.r, borderColor.g, borderColor.b, borderColor.a or 1)
+        end
+    end
+end
+
+local function RefreshPipSeparators(bar, borderColor)
+    if not IsPipSeparatorBar(bar) then return end
+    HideBarSeparatorFill(bar)
+    local activeSeps = math_max(0, (bar.activePipCount or 0) - 1)
+    for i = 1, activeSeps do
+        PositionSeparatorAt(bar, i, borderColor)
+    end
+    HideBarPipSeparators(bar, activeSeps + 1)
+end
+
+local UNIFIED_HSEPARATOR_TEXTURE = "Interface\\AddOns\\Ayije_CDM\\Media\\Textures\\Separator"
+local UNIFIED_VSEPARATOR_TEXTURE = "Interface\\AddOns\\Ayije_CDM\\Media\\Textures\\vSeparator"
+local UNIFIED_HSEPARATOR_HEIGHT = 16
+local UNIFIED_VSEPARATOR_WIDTH = 16
+local UNIFIED_VSEPARATOR_HEIGHT = 10
+
+local function EnsureChainHost(hostIndex)
+    local entry = CDM.resourceUnifiedHosts[hostIndex]
+    if entry then return entry end
+    local host = CreateFrame("Frame", nil, UIParent)
+    host:SetFrameStrata(CDM_C.STRATA_MAIN)
+    entry = { host = host, hSeparators = {} }
+    CDM.resourceUnifiedHosts[hostIndex] = entry
+    return entry
+end
+
+local function HideChainHost(entry)
+    if not entry then return end
+    entry.host:Hide()
+    if entry.hSeparators then
+        for _, sep in ipairs(entry.hSeparators) do
+            sep:Hide()
+        end
+    end
+end
+
+local function HideAllChainHosts()
+    for i = 1, #CDM.resourceUnifiedHosts do
+        HideChainHost(CDM.resourceUnifiedHosts[i])
+    end
+end
+
+local function HideBarUnifiedVerticalSeparators(bar)
+    if bar and bar.unifiedVerticalSeparators then
+        for _, sep in ipairs(bar.unifiedVerticalSeparators) do
+            sep:Hide()
+        end
+    end
+end
+
+local function ApplyUnifiedVerticalSeparators(bar, borderColor)
+    if not (bar and bar.isPipBar and bar.pipPositions) then
+        HideBarUnifiedVerticalSeparators(bar)
         return
     end
 
-    HideFrameList(bar2.separators)
+    bar.unifiedVerticalSeparators = bar.unifiedVerticalSeparators or {}
 
-    local borderColor = CDM.db.borderColor or CDM.defaults.borderColor or DEFAULT_WHITE_COLOR
-    local maxPips = #bar2.pips
-    local pipWidths = bar2.pipWidths
-    local fallbackPipWidth = bar2.pipWidth or (bar2.pips[1] and bar2.pips[1]:GetWidth() or 0)
+    local visiblePips = bar.activePipCount or 0
+    if visiblePips < 2 then
+        HideBarUnifiedVerticalSeparators(bar)
+        return
+    end
 
+    local pipWidths = bar.pipWidths
+    local fallbackPipWidth = bar.pipWidth or (bar.pips[1] and bar.pips[1]:GetWidth() or 0)
     local twoPixels = Pixel.GetSize() * 2
 
-    local separatorWidth = 16
-    local separatorHeight = 10
-
-    local visiblePips = 0
-    for i = 1, maxPips do
-        if bar2.pips[i] and bar2.pips[i]:IsShown() then
-            visiblePips = visiblePips + 1
-        end
-    end
-
     for i = 1, visiblePips - 1 do
-        local separator = CDM.resourceContainer.verticalSeparators[i]
-
-        if not separator then
-            separator = CreateFrame("Frame", nil, bar2)
-            separator:SetFrameStrata(CDM_C.STRATA_MAIN)
-
-            local tex = separator:CreateTexture(nil, "OVERLAY", nil, 7)
-            tex:SetTexture("Interface\\AddOns\\Ayije_CDM\\Media\\Textures\\vSeparator")
+        local sep = bar.unifiedVerticalSeparators[i]
+        if not sep then
+            sep = CreateFrame("Frame", nil, bar)
+            sep:SetFrameStrata(CDM_C.STRATA_MAIN)
+            local tex = sep:CreateTexture(nil, "OVERLAY", nil, 7)
+            tex:SetTexture(UNIFIED_VSEPARATOR_TEXTURE)
             tex:SetAllPoints()
             ConfigurePixelTexture(tex)
-            separator.texture = tex
-
-            CDM.resourceContainer.verticalSeparators[i] = separator
+            sep.texture = tex
+            bar.unifiedVerticalSeparators[i] = sep
         end
-
-        separator:SetParent(bar2)
-        separator:SetFrameLevel(bar2:GetFrameLevel() + 1)
-        separator:SetSize(separatorWidth, separatorHeight)
-        separator.texture:SetVertexColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
+        sep:SetParent(bar)
+        sep:SetFrameLevel(bar:GetFrameLevel() + 1)
+        sep:SetSize(UNIFIED_VSEPARATOR_WIDTH, UNIFIED_VSEPARATOR_HEIGHT)
+        sep.texture:SetVertexColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a or 1)
 
         local pw = (pipWidths and pipWidths[i]) or fallbackPipWidth
-        local boundary = bar2.pipPositions[i] + pw
+        local boundary = bar.pipPositions[i] + pw
         local xOffset = Snap(math_floor((boundary - 2) / twoPixels + 0.5) * twoPixels)
 
-        separator:ClearAllPoints()
-        separator:SetPoint("BOTTOMLEFT", bar2, "BOTTOMLEFT", xOffset, -1)
-        separator:SetPoint("TOPLEFT", bar2, "TOPLEFT", xOffset, 0)
-        separator:Show()
+        sep:ClearAllPoints()
+        sep:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", xOffset, -1)
+        sep:SetPoint("TOPLEFT", bar, "TOPLEFT", xOffset, 0)
+        sep:Show()
     end
 
-    if visiblePips < 1 then
-        HideFrameList(CDM.resourceContainer.verticalSeparators)
-        return
-    end
-
-    for i = visiblePips, #CDM.resourceContainer.verticalSeparators do
-        CDM.resourceContainer.verticalSeparators[i]:Hide()
+    for i = visiblePips, #bar.unifiedVerticalSeparators do
+        bar.unifiedVerticalSeparators[i]:Hide()
     end
 end
 
-local function UpdateBorders(powerTypes)
-    if not powerTypes or #powerTypes == 0 then
-        return
+local function ApplyChainHorizontalSeparator(entry, index, lowerBar, borderColor)
+    local sep = entry.hSeparators[index]
+    if not sep then
+        sep = CreateFrame("Frame", nil, entry.host)
+        sep:SetIgnoreParentAlpha(true)
+        local tex = sep:CreateTexture(nil, "ARTWORK")
+        tex:SetTexture(UNIFIED_HSEPARATOR_TEXTURE)
+        Pixel.DisableTextureSnap(tex)
+        tex:SetAllPoints()
+        sep.texture = tex
+        entry.hSeparators[index] = sep
+    end
+    sep:SetHeight(UNIFIED_HSEPARATOR_HEIGHT)
+    sep:ClearAllPoints()
+    sep:SetPoint("TOPRIGHT", lowerBar, "TOPRIGHT", 0, 4)
+    sep:SetPoint("LEFT", lowerBar, "LEFT", 0, 0)
+    sep.texture:SetVertexColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a or 1)
+    sep:Show()
+end
+
+local function ApplyUnifiedChain(hostIndex, chain, borderColor)
+    local entry = EnsureChainHost(hostIndex)
+    local host = entry.host
+
+    host:ClearAllPoints()
+    host:SetPoint("BOTTOMLEFT", chain[1], "BOTTOMLEFT", 0, 0)
+    host:SetPoint("TOPRIGHT", chain[#chain], "TOPRIGHT", 0, 0)
+    host:SetFrameLevel((chain[1]:GetFrameLevel() or 0) + 1)
+    host:Show()
+
+    if CDM.BORDER and CDM.BORDER.CreateBorder then
+        CDM.BORDER:CreateBorder(host)
+        if host.border then
+            host.border:SetBackdropBorderColor(
+                borderColor.r, borderColor.g, borderColor.b, borderColor.a or 1)
+        end
     end
 
-    local useUnified = CDM.db.resourcesUnifiedBorder
-    local borderColor = CDM.db.borderColor or CDM.defaults.borderColor or DEFAULT_WHITE_COLOR
-
-    for _, powerType in ipairs(powerTypes) do
-        local bar = CDM.resourceBars[powerType]
-        if bar then
-            if useUnified then
-                if bar.borderFrame then
-                    bar.borderFrame:Hide()
-                end
-            else
-                if not bar.borderFrame then
-                    bar.borderFrame = CreateFrame("Frame", nil, bar, "BackdropTemplate")
-                    bar.borderFrame:SetAllPoints()
-                end
-                bar.borderFrame:Show()
-
-                if IsOneBorderMode() then
-                    if bar.borderFrame.border then bar.borderFrame.border:Hide() end
-                    ApplyResourcePixelBorder(bar.borderFrame, borderColor)
-                else
-                    HideResourcePixelBorder(bar.borderFrame)
-                    if CDM.BORDER and CDM.BORDER.CreateBorder then
-                        CDM.BORDER:CreateBorder(bar.borderFrame)
-                    end
-                end
-            end
-        end
+    for i = 1, #chain - 1 do
+        ApplyChainHorizontalSeparator(entry, i, chain[i], borderColor)
+    end
+    for i = #chain, #entry.hSeparators do
+        entry.hSeparators[i]:Hide()
     end
 
-    if useUnified then
-        if not CDM.resourceContainer.unifiedBorderFrame then
-            CDM.resourceContainer.unifiedBorderFrame = CreateFrame("Frame", nil, CDM.resourceContainer, "BackdropTemplate")
-            CDM.resourceContainer.unifiedBorderFrame:SetAllPoints()
-        end
-        CDM.resourceContainer.unifiedBorderFrame:Show()
-
-        UpdateUnifiedBorderFrameGeometry(powerTypes)
-
-        if IsOneBorderMode() then
-            local ubf = CDM.resourceContainer.unifiedBorderFrame
-            if ubf.border then ubf.border:Hide() end
-            ApplyResourcePixelBorder(ubf, borderColor)
-        else
-            HideResourcePixelBorder(CDM.resourceContainer.unifiedBorderFrame)
-            if CDM.BORDER and CDM.BORDER.CreateBorder then
-                CDM.BORDER:CreateBorder(CDM.resourceContainer.unifiedBorderFrame)
-            end
-        end
-
-        if #powerTypes > 1 then
-            if not CDM.resourceContainer.separator then
-                local separator = CreateFrame("Frame", nil, CDM.resourceContainer)
-                separator:SetIgnoreParentAlpha(true)
-
-                local tex = separator:CreateTexture(nil, "ARTWORK")
-                tex:SetTexture("Interface\\AddOns\\Ayije_CDM\\Media\\Textures\\Separator")
-                Pixel.DisableTextureSnap(tex)
-                tex:SetVertexColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
-                separator.texture = tex
-
-                CDM.resourceContainer.separator = separator
-            end
-
-            local bar1 = CDM.resourceBars[powerTypes[1]]
-            local bar2 = CDM.resourceBars[powerTypes[2]]
-            if bar1 and bar2 then
-                local separator = CDM.resourceContainer.separator
-
-                separator:ClearAllPoints()
-                separator:SetHeight(16)
-                local tex = separator.texture
-                tex:ClearAllPoints()
-                tex:SetTexCoord(0, 1, 0, 1)
-                tex:SetAllPoints()
-
-                separator:SetPoint("TOPRIGHT", bar1, "TOPRIGHT", 0, 4)
-                separator:SetPoint("LEFT", bar1, "LEFT", 0, 0)
-                separator:Show()
-
-                if bar2.isPipBar then
-                    CreateVerticalSeparators(bar2)
-                end
-            end
-        else
-            if CDM.resourceContainer.separator then
-                CDM.resourceContainer.separator:Hide()
-            end
-
-            local singleBar = CDM.resourceBars[powerTypes[1]]
-            if singleBar and singleBar.isPipBar then
-                CreateVerticalSeparators(singleBar)
-            else
-                HideFrameList(CDM.resourceContainer.verticalSeparators)
-            end
-        end
-
-        if CDM.resourceContainer.separator and CDM.resourceContainer.separator.texture then
-            CDM.resourceContainer.separator.texture:SetVertexColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
-        end
-
-        if CDM.resourceContainer.verticalSeparators then
-            for _, sep in ipairs(CDM.resourceContainer.verticalSeparators) do
-                if sep:IsShown() and sep.texture then
-                    sep.texture:SetVertexColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
-                end
-            end
-        end
-
-        for _, powerType in ipairs(powerTypes) do
-            local bar = CDM.resourceBars[powerType]
-            HidePipBarDecorations(bar)
-        end
-    else
-        if CDM.resourceContainer.unifiedBorderFrame then
-            CDM.resourceContainer.unifiedBorderFrame:Hide()
-        end
-        if CDM.resourceContainer.separator then
-            CDM.resourceContainer.separator:Hide()
-        end
-        HideFrameList(CDM.resourceContainer.verticalSeparators)
-
-        for _, powerType in ipairs(powerTypes) do
-            local bar = CDM.resourceBars[powerType]
-            if IsPipSeparatorBar(bar) then
-                HideBarSeparatorFill(bar)
-
-                local activeSeps = math_max(0, (bar.activePipCount or 0) - 1)
-                local barLeft = bar.GetLeft and bar:GetLeft() or nil
-                local onePixel = Pixel.GetSize()
-                local barHeight = bar.GetHeight and bar:GetHeight() or nil
-                for i = 1, activeSeps do
-                    local sep = bar.separators[i]
-                    if sep then
-                        sep:SetVertexColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
-
-                        if onePixel and onePixel > 0 and barHeight and barHeight > 0 then
-                            sep:SetSize(onePixel, barHeight)
-                        end
-
-                        local xOffset = ResolvePipSeparatorXOffset(bar, i, barLeft, onePixel)
-                        SetPipSeparatorVerticalLine(sep, bar, xOffset)
-
-                        sep:Show()
-                    end
-                end
-                HideBarPipSeparators(bar, activeSeps + 1)
-            end
-        end
+    for _, bar in ipairs(chain) do
+        if bar.borderFrame then bar.borderFrame:Hide() end
+        HidePipBarDecorations(bar)
+        ApplyUnifiedVerticalSeparators(bar, borderColor)
     end
 end
 
-local function UpdateContainerPosition()
-    if not CDM.resourceContainer or not CDM.db then
-        return
+local function IsVerticalAnchor(anchorPoint, targetPoint)
+    return (anchorPoint == "BOTTOM" and targetPoint == "TOP")
+end
+
+local scratchParentOf = {}
+local scratchChildrenOf = {}
+local scratchActiveSet = {}
+local scratchChains = {}
+
+local function BuildChains(activeKeys)
+    for k in pairs(scratchParentOf) do scratchParentOf[k] = nil end
+    for k, v in pairs(scratchChildrenOf) do
+        table_wipe(v)
+        scratchChildrenOf[k] = nil
+    end
+    for k in pairs(scratchActiveSet) do scratchActiveSet[k] = nil end
+    for i = 1, #scratchChains do
+        table_wipe(scratchChains[i])
+        scratchChains[i] = nil
     end
 
-    local offsetX = CDM.db.resourcesOffsetX or 0
-    local offsetY = CDM.db.resourcesOffsetY or -200
-    local halfW = Pixel.HalfFloor(CDM.resourceContainer:GetWidth() or 0)
+    for _, barKey in ipairs(activeKeys) do
+        local pt = BAR_KEY_TO_POWER_TYPE[barKey]
+        local bar = pt and CDM.resourceBars[pt]
+        if bar and bar:IsShown() then
+            scratchActiveSet[barKey] = bar
+        end
+    end
 
-    CDM.resourceContainer:ClearAllPoints()
-    Pixel.SetPoint(CDM.resourceContainer, "BOTTOMLEFT", UIParent, "CENTER", offsetX - halfW, offsetY)
+    for barKey in pairs(scratchActiveSet) do
+        local anchorTo = CDM:GetBarSetting(barKey, "anchorTo")
+        if anchorTo and scratchActiveSet[anchorTo] then
+            local aP = CDM:GetBarSetting(barKey, "anchorPoint") or "BOTTOM"
+            local tP = CDM:GetBarSetting(barKey, "anchorTargetPoint") or "TOP"
+            if IsVerticalAnchor(aP, tP) then
+                scratchParentOf[barKey] = anchorTo
+                local children = scratchChildrenOf[anchorTo]
+                if not children then
+                    children = {}
+                    scratchChildrenOf[anchorTo] = children
+                end
+                children[#children + 1] = barKey
+            end
+        end
+    end
+
+    local chainCount = 0
+    local visited = {}
+    for barKey, bar in pairs(scratchActiveSet) do
+        if not scratchParentOf[barKey] then
+            chainCount = chainCount + 1
+            local chain = {}
+            chain[1] = bar
+            visited[barKey] = true
+            local current = barKey
+            while true do
+                local kids = scratchChildrenOf[current]
+                if not kids or #kids == 0 then break end
+                local nextKey = kids[1]
+                if visited[nextKey] then break end
+                chain[#chain + 1] = scratchActiveSet[nextKey]
+                visited[nextKey] = true
+                current = nextKey
+            end
+            scratchChains[chainCount] = chain
+        end
+    end
+
+    for barKey, bar in pairs(scratchActiveSet) do
+        if not visited[barKey] then
+            chainCount = chainCount + 1
+            scratchChains[chainCount] = { bar }
+            visited[barKey] = true
+        end
+    end
+
+    return scratchChains, chainCount
+end
+
+local function UpdateBorders(activeKeys)
+    local borderColor = (CDM.db and CDM.db.borderColor) or (CDM.defaults and CDM.defaults.borderColor) or CDM_C.WHITE
+    local unified = CDM.db and CDM.db.unifiedBorder == true
+
+    local chains, chainCount = BuildChains(activeKeys)
+
+    local hostIdx = 0
+    for c = 1, chainCount do
+        local chain = chains[c]
+        if unified then
+            hostIdx = hostIdx + 1
+            ApplyUnifiedChain(hostIdx, chain, borderColor)
+        else
+            for _, bar in ipairs(chain) do
+                EnsurePerBarBorder(bar, borderColor)
+                RefreshPipSeparators(bar, borderColor)
+                HideBarUnifiedVerticalSeparators(bar)
+            end
+        end
+    end
+
+    for i = hostIdx + 1, #CDM.resourceUnifiedHosts do
+        HideChainHost(CDM.resourceUnifiedHosts[i])
+    end
 end
 
 local MAX_SOUL_FRAGMENTS = 6
@@ -1274,17 +1330,18 @@ local function ApplySoulShardStates(bar)
         if not pip:IsShown() then break end
         if i <= wholePart then
             pip:SetValue(1, Enum.StatusBarInterpolation.Immediate)
-            pip:SetStatusBarColor(readyColor.r, readyColor.g, readyColor.b, readyColor.a)
+            SetStatusBarColorIfChanged(pip, readyColor)
+            RememberPipBaseColor(bar, i, readyColor)
         elseif i == wholePart + 1 and fractionalPart > 0 then
             pip:SetValue(fractionalPart, Enum.StatusBarInterpolation.Immediate)
-            pip:SetStatusBarColor(rechargingColor.r, rechargingColor.g, rechargingColor.b, rechargingColor.a)
+            SetStatusBarColorIfChanged(pip, rechargingColor)
+            RememberPipBaseColor(bar, i, rechargingColor)
         else
             pip:SetValue(0, Enum.StatusBarInterpolation.Immediate)
-            pip:SetStatusBarColor(rechargingColor.r, rechargingColor.g, rechargingColor.b, rechargingColor.a)
+            SetStatusBarColorIfChanged(pip, rechargingColor)
+            RememberPipBaseColor(bar, i, rechargingColor)
         end
     end
-
-    bar.soulShardRawPower = rawPower
 end
 
 
@@ -1297,7 +1354,7 @@ UpdateBarValue = function(powerType)
     local current, max
 
     if powerType == CUSTOM_POWER_TYPES.SoulFragments then
-        current = C_Spell.GetSpellCastCount(CDM_C.SOUL_CLEAVE_SPELL_ID) or 0
+        current = GetSpellCastCount(CDM_C.SOUL_CLEAVE_SPELL_ID) or 0
         max = MAX_SOUL_FRAGMENTS
     elseif powerType == CUSTOM_POWER_TYPES.MaelstromWeapon then
         current, max = CDM._Res.UpdateMaelstromBar(bar)
@@ -1326,10 +1383,12 @@ UpdateBarValue = function(powerType)
             return
         elseif powerType == POWER_TYPES.Essence then
             CDM._Res.UpdateEssenceCooldowns(bar)
+            if CDM._Res.ApplyPipConditions then CDM._Res.ApplyPipConditions(bar, powerType, current, max) end
             CDM._Res.UpdateTagTextForPowerType(powerType)
             return
         elseif powerType == POWER_TYPES.SoulShards then
             ApplySoulShardStates(bar)
+            if CDM._Res.ApplyPipConditions then CDM._Res.ApplyPipConditions(bar, powerType, current, max) end
             CDM._Res.UpdateTagTextForPowerType(powerType)
             return
         end
@@ -1361,8 +1420,10 @@ UpdateBarValue = function(powerType)
 
                 if isCharged and i <= current then
                     SetStatusBarColorIfChanged(pip, chargedFilledColor)
+                    RememberPipBaseColor(bar, i, chargedFilledColor)
                 else
                     SetStatusBarColorIfChanged(pip, bar.color)
+                    RememberPipBaseColor(bar, i, bar.color)
                 end
 
                 local overlay = bar.comboChargeEmptyOverlays and bar.comboChargeEmptyOverlays[i]
@@ -1376,6 +1437,7 @@ UpdateBarValue = function(powerType)
                 end
             elseif bar.comboChargeEmptyOverlays then
                 SetStatusBarColorIfChanged(pip, bar.color)
+                RememberPipBaseColor(bar, i, bar.color)
                 local overlay = bar.comboChargeEmptyOverlays[i]
                 if overlay then overlay:Hide() end
             end
@@ -1386,14 +1448,12 @@ UpdateBarValue = function(powerType)
                 bar.comboChargeEmptyOverlays[i]:Hide()
             end
         end
+        if CDM._Res.ApplyPipConditions then CDM._Res.ApplyPipConditions(bar, powerType, current, max) end
     else
         bar:SetMinMaxValues(0, max)
-        if bar.isPrimaryResource and CDM.db.resourcesSmoothBars ~= false then
-            bar:SetValue(current, Enum.StatusBarInterpolation.ExponentialEaseOut)
-        else
-            bar:SetValue(current, Enum.StatusBarInterpolation.Immediate)
-        end
-
+        bar:SetValue(current, bar._smoothBars and Enum.StatusBarInterpolation.ExponentialEaseOut
+                                               or Enum.StatusBarInterpolation.Immediate)
+        if CDM._Res.ApplyBarConditions then CDM._Res.ApplyBarConditions(bar, powerType, current, max) end
     end
 
     CDM._Res.UpdateTagTextForPowerType(powerType)
@@ -1441,40 +1501,29 @@ local function ApplyPipTexturesIfChanged(bar, barTexturePath)
 end
 
 local function UpdatePipBarVisuals(bar, powerType, barTexturePath, bgTexturePath, bgColor)
-    if powerType == POWER_TYPES.Runes then
-        ApplyPipTexturesIfChanged(bar, barTexturePath)
-        ApplyBarBackground(bar, bgTexturePath, bgColor)
-        CDM._Res.UpdateRuneCooldowns(bar)
-        return
-    end
-
-    if powerType == POWER_TYPES.Essence then
-        ApplyPipTexturesIfChanged(bar, barTexturePath)
-        ApplyBarBackground(bar, bgTexturePath, bgColor)
-        CDM._Res.UpdateEssenceCooldowns(bar)
-        return
-    end
-
-    if powerType == POWER_TYPES.SoulShards then
-        ApplyPipTexturesIfChanged(bar, barTexturePath)
-        ApplyBarBackground(bar, bgTexturePath, bgColor)
-        ApplySoulShardStates(bar)
-        return
-    end
-
     ApplyPipTexturesIfChanged(bar, barTexturePath)
-    local color = bar.color
-    if color then
-        for _, pip in ipairs(bar.pips) do
-            SetStatusBarColorIfChanged(pip, color)
+    ApplyBarBackground(bar, bgTexturePath, bgColor)
+
+    if powerType == POWER_TYPES.Runes then
+        CDM._Res.UpdateRuneCooldowns(bar)
+    elseif powerType == POWER_TYPES.Essence then
+        CDM._Res.UpdateEssenceCooldowns(bar)
+    elseif powerType == POWER_TYPES.SoulShards then
+        ApplySoulShardStates(bar)
+    else
+        local color = bar.color
+        if color then
+            for i, pip in ipairs(bar.pips) do
+                SetStatusBarColorIfChanged(pip, color)
+                RememberPipBaseColor(bar, i, color)
+            end
         end
     end
-    ApplyBarBackground(bar, bgTexturePath, bgColor)
 end
 
 local visiblePowerTypes = {}
 local function HideInactiveResourceBars(powerTypes)
-    table.wipe(visiblePowerTypes)
+    table_wipe(visiblePowerTypes)
     for i = 1, #powerTypes do
         visiblePowerTypes[powerTypes[i]] = true
     end
@@ -1485,10 +1534,11 @@ local function HideInactiveResourceBars(powerTypes)
             if bar.borderFrame then
                 bar.borderFrame:Hide()
             end
+            HideBarUnifiedVerticalSeparators(bar)
         end
     end
 
-    table.wipe(visiblePowerTypes)
+    table_wipe(visiblePowerTypes)
 end
 
 local function HideAllResourceBars()
@@ -1497,92 +1547,99 @@ local function HideAllResourceBars()
         if bar.borderFrame then
             bar.borderFrame:Hide()
         end
+        HideBarUnifiedVerticalSeparators(bar)
     end
+    HideAllChainHosts()
 end
 
-local function GetBarHeightForSlot(slotIndex)
-    if slotIndex == 2 then
-        return Snap(CDM.db.resourcesBar2Height or 16)
-    end
-    return Snap(CDM.db.resourcesBarHeight or 16)
-end
-
-local function UpdateBarPositions()
-    if not CDM.resourceContainer then
-        return
+local function EnsurePrimaryBarPositioned(activeKeys)
+    local primaryPT = cachedPrimaryPowerType or UnitPowerType("player")
+    if not primaryPT then return end
+    local primaryBarKey = POWER_TYPE_TO_BAR_KEY[primaryPT]
+    if not primaryBarKey then return end
+    for i = 1, #activeKeys do
+        if activeKeys[i] == primaryBarKey then return end
     end
 
-    local basePowerTypes = GetPlayerPowerTypes()
-    local powerTypes, powerSlots = ApplyResourceVisibilityFilter(basePowerTypes)
+    local bar = CreateBar(primaryPT)
+    if not bar then return end
 
-    if not powerTypes or #powerTypes == 0 then
-        table.wipe(CDM.currentPowerTypes)
-        table.wipe(CDM.currentPowerSlots)
-        table.wipe(CDM.currentPowerTypeSlots)
-        HideAllResourceBars()
-
-        if CDM.resourceContainer.unifiedBorderFrame then
-            CDM.resourceContainer.unifiedBorderFrame:Hide()
-        end
-        if CDM.resourceContainer.separator then
-            CDM.resourceContainer.separator:Hide()
-        end
-
-        UpdateContainerPosition()
-        return
-    end
-
-    table.wipe(CDM.currentPowerTypes)
-    table.wipe(CDM.currentPowerSlots)
-    table.wipe(CDM.currentPowerTypeSlots)
-    for i = 1, #powerTypes do
-        CDM.currentPowerTypes[i] = powerTypes[i]
-        CDM.currentPowerSlots[i] = (powerSlots and powerSlots[i]) or i
-        CDM.currentPowerTypeSlots[powerTypes[i]] = CDM.currentPowerSlots[i]
-    end
-
-    local configuredBarWidth = CDM.db.resourcesBarWidth or 0
-    local useAutoWidth = (configuredBarWidth == 0)
-    local barWidth = configuredBarWidth
-
+    local barHeight = Snap(CDM:GetBarSetting(primaryBarKey, "height") or 16)
+    local barWidth = CDM:GetBarSetting(primaryBarKey, "width") or 0
     if barWidth == 0 and CDM.CalculateEssentialRow1Width then
         barWidth = CDM.CalculateEssentialRow1Width()
     end
+    if barWidth == 0 then barWidth = 200 end
+    barWidth = SnapWidthToPixelGrid(bar, barWidth)
+    bar:SetSize(barWidth, barHeight)
 
-    if barWidth == 0 then
-        barWidth = 200
+    local effectiveKey = ResolveEffectiveAnchorKey(primaryBarKey)
+    local anchorTo = CDM:GetBarSetting(effectiveKey, "anchorTo")
+    bar:ClearAllPoints()
+    if not anchorTo or anchorTo == ANCHOR_TARGET_SCREEN then
+        local offX = CDM:GetBarSetting(effectiveKey, "offsetX") or 0
+        local offY = CDM:GetBarSetting(effectiveKey, "offsetY") or -200
+        local halfW = Pixel.HalfFloor(bar:GetWidth() or 0)
+        Pixel.SetPoint(bar, "BOTTOMLEFT", UIParent, "CENTER", offX - halfW, offY)
+    else
+        local target, aP, tP, oX, oY = ResolveAnchorTarget(effectiveKey)
+        if target == ANCHOR_TARGET_PLAYER_FRAME then
+            CDM.AnchorToPlayerFrame(bar, tP, oX, oY, "Resources_" .. primaryBarKey, true, aP)
+        elseif target and not (target == UIParent and IsExternalAnchorTarget(anchorTo)) then
+            bar:SetPoint(aP, target, tP, oX, oY)
+        else
+            local offX = CDM:GetBarSetting(effectiveKey, "offsetX") or 0
+            local offY = CDM:GetBarSetting(effectiveKey, "offsetY") or -200
+            local halfW = Pixel.HalfFloor(bar:GetWidth() or 0)
+            Pixel.SetPoint(bar, "BOTTOMLEFT", UIParent, "CENTER", offX - halfW, offY)
+        end
+    end
+end
+
+local function UpdateBarPositions()
+    local activeKeys = GetActiveBarKeys()
+
+    if not activeKeys or #activeKeys == 0 then
+        table_wipe(CDM.currentPowerTypes)
+        table_wipe(CDM.activeBarKeys)
+        HideAllResourceBars()
+        EnsurePrimaryBarPositioned(CDM.activeBarKeys)
+        return
     end
 
-    barWidth = SnapWidthToPixelGrid(CDM.resourceContainer, barWidth)
+    table_wipe(CDM.currentPowerTypes)
+    table_wipe(CDM.activeBarKeys)
+    for i, barKey in ipairs(activeKeys) do
+        CDM.activeBarKeys[i] = barKey
+        CDM.currentPowerTypes[i] = BAR_KEY_TO_POWER_TYPE[barKey]
+    end
 
-    local barSpacing = Snap(CDM.db.resourcesBarSpacing or 2)
-    local barTexturePath, bgTexturePath = GetBarTextures()
-    local bgColor = CDM.db.resourcesBackgroundColor or CDM.defaults.resourcesBackgroundColor
-    local borderColor = CDM.db.borderColor or CDM.defaults.borderColor or DEFAULT_WHITE_COLOR
-    local totalHeight = 0
+    local borderColor = (CDM.db and CDM.db.borderColor) or (CDM.defaults and CDM.defaults.borderColor) or CDM_C.WHITE
 
-    for visualIndex, powerType in ipairs(powerTypes) do
+    for _, barKey in ipairs(activeKeys) do
+        local powerType = BAR_KEY_TO_POWER_TYPE[barKey]
         local bar = CreateBar(powerType)
-        local slotIndex = (powerSlots and powerSlots[visualIndex]) or visualIndex
+        bar.barKey = barKey
+        bar._smoothBars = SMOOTH_ELIGIBLE_BARS[barKey]
+            and CDM:GetBarSetting(barKey, "smoothBars") ~= false
 
-        bar.slotIndex = slotIndex
-
-        local barHeight = GetBarHeightForSlot(slotIndex)
-        totalHeight = totalHeight + barHeight
-        if visualIndex > 1 then
-            totalHeight = totalHeight + barSpacing
+        local barHeight = Snap(CDM:GetBarSetting(barKey, "height") or 16)
+        local barWidth = CDM:GetBarSetting(barKey, "width") or 0
+        if barWidth == 0 and CDM.CalculateEssentialRow1Width then
+            barWidth = CDM.CalculateEssentialRow1Width()
         end
+        if barWidth == 0 then barWidth = 200 end
+        barWidth = SnapWidthToPixelGrid(bar, barWidth)
+
+        local barTexturePath, bgTexturePath = GetBarTextures(barKey)
+        local bgColor = CDM:GetBarSetting(barKey, "bgColor") or DEFAULT_BG_COLOR
 
         if bar.isPipBar then
             local max = GetPipBarMax(powerType)
-
             if max and max > 0 then
                 bar:SetSize(barWidth, barHeight)
-
                 local needsRecreate = ((bar.activePipCount or 0) ~= max) or
-                                     (bar.lastBarWidth ~= barWidth) or
-                                     (bar.lastBarHeight ~= barHeight)
-
+                    (bar.lastBarWidth ~= barWidth) or (bar.lastBarHeight ~= barHeight)
                 if needsRecreate then
                     CreatePips(bar, max, barWidth, barHeight)
                     bar.lastBarWidth = barWidth
@@ -1593,62 +1650,58 @@ local function UpdateBarPositions()
             end
         else
             bar:SetSize(barWidth, barHeight)
-
             SetStatusBarTextureIfChanged(bar, barTexturePath)
-
             local color = GetPowerColor(powerType)
-            if color then
-                SetStatusBarColorIfChanged(bar, color)
-            end
-
+            if color then SetStatusBarColorIfChanged(bar, color) end
             if bar.bg then
                 SetTextureIfChanged(bar.bg, bgTexturePath)
                 SetVertexColorIfChanged(bar.bg, bgColor)
             end
         end
 
-        bar:ClearAllPoints()
+        local effectiveKey = ResolveEffectiveAnchorKey(barKey)
+        local anchorTo = CDM:GetBarSetting(effectiveKey, "anchorTo")
 
-        if visualIndex == 1 then
-            bar:SetPoint("BOTTOMLEFT", CDM.resourceContainer, "BOTTOMLEFT", 0, 0)
+        bar:ClearAllPoints()
+        if not anchorTo or anchorTo == ANCHOR_TARGET_SCREEN then
+            local offX = CDM:GetBarSetting(effectiveKey, "offsetX") or 0
+            local offY = CDM:GetBarSetting(effectiveKey, "offsetY") or -200
+            local halfW = Pixel.HalfFloor(bar:GetWidth() or 0)
+            Pixel.SetPoint(bar, "BOTTOMLEFT", UIParent, "CENTER", offX - halfW, offY)
+            bar:Show()
         else
-            local prevBar = CDM.resourceBars[powerTypes[visualIndex - 1]]
-            if prevBar then
-                bar:SetPoint("BOTTOMLEFT", prevBar, "TOPLEFT", 0, barSpacing)
+            local target, aP, tP, oX, oY = ResolveAnchorTarget(effectiveKey)
+            if target == UIParent and IsExternalAnchorTarget(anchorTo) then
+                bar:Hide()
+            else
+                if target == ANCHOR_TARGET_PLAYER_FRAME then
+                    CDM.AnchorToPlayerFrame(bar, tP, oX, oY, "Resources_" .. barKey, true, aP)
+                else
+                    bar:SetPoint(aP, target, tP, oX, oY)
+                end
+                bar:Show()
             end
         end
 
-        bar:Show()
-
         if bar.isPipBar then
             bar.color = GetPowerColor(powerType) or bar.color
-
             if bar.separators then
                 local activeSeps = bar.activePipCount and (bar.activePipCount - 1) or 0
                 for i = 1, activeSeps do
                     SetVertexColorIfChanged(bar.separators[i], borderColor)
                 end
             end
-
             UpdatePipBarVisuals(bar, powerType, barTexturePath, bgTexturePath, bgColor)
         end
     end
 
-    CDM.resourceContainer:SetSize(barWidth, totalHeight)
-    UpdateContainerPosition()
-
-    UpdateBorders(powerTypes)
-
-    HideInactiveResourceBars(powerTypes)
-end
-
-function CDM:HasSecondaryResourceBar()
-    if CDM.db.resourcesEnabled == false then return false end
-    return CDM.currentPowerTypes and #CDM.currentPowerTypes >= 2
+    UpdateBorders(activeKeys)
+    HideInactiveResourceBars(CDM.currentPowerTypes)
+    EnsurePrimaryBarPositioned(activeKeys)
 end
 
 function CDM:UpdateResources()
-    if not self.resourceContainer then
+    if not isEnabled then
         return
     end
 
@@ -1660,7 +1713,11 @@ function CDM:UpdateResources()
         CDM._Res.RefreshIgnorePainVisibility()
     end
 
-    cachedPrimaryPowerType = UnitPowerType("player")
+    if resourcesPlayerClass == "DRUID" then
+        cachedPrimaryPowerType = GetDruidPrimaryPowerType(currentSpecID)
+    else
+        cachedPrimaryPowerType = UnitPowerType("player")
+    end
     RefreshCachedFontStyles()
     UpdateBarPositions()
     CDM._Res.RefreshCachedRuneTimerSlot()
@@ -1672,7 +1729,7 @@ function CDM:UpdateResources()
 end
 
 function CDM:UpdateResourceValues()
-    if not self.resourceContainer then return end
+    if not isEnabled then return end
     for _, powerType in ipairs(self.currentPowerTypes) do
         UpdateBarValue(powerType)
     end
@@ -1687,6 +1744,15 @@ local function UpdateAncillaryLayouts()
         CDM:UpdatePlayerCastBar()
     end
 end
+
+local SPEC_TRACKER_TOGGLES = {
+    [581]  = { "EnableVengeanceSoulTracking",    "DisableVengeanceSoulTracking" },
+    [268]  = { "EnableBrewmasterTracking",       "DisableBrewmasterTracking" },
+    [263]  = { "EnableMaelstromTracking",        "DisableMaelstromTracking" },
+    [103]  = { "EnableFeralOverflowingTracking", "DisableFeralOverflowingTracking" },
+    [255]  = { "EnableTipOfTheSpearTracking",    "DisableTipOfTheSpearTracking" },
+    [1480] = { "EnableDevourerTracking",         "DisableDevourerTracking" },
+}
 
 local function OnSpecChanged()
     if CDM.InvalidateSpecIDCache then
@@ -1711,52 +1777,12 @@ local function OnSpecChanged()
         resourcesSpecInitRetries = 0
     end
 
-    if newSpecID == 581 then
-        if currentSpecID ~= 581 then
-            CDM._Res.EnableVengeanceSoulTracking()
+    for specID, fns in pairs(SPEC_TRACKER_TOGGLES) do
+        if newSpecID == specID then
+            if currentSpecID ~= specID then CDM._Res[fns[1]]() end
+        elseif currentSpecID == specID then
+            CDM._Res[fns[2]]()
         end
-    elseif currentSpecID == 581 then
-        CDM._Res.DisableVengeanceSoulTracking()
-    end
-
-    if newSpecID == 268 then
-        if currentSpecID ~= 268 then
-            CDM._Res.EnableBrewmasterTracking()
-        end
-    elseif currentSpecID == 268 then
-        CDM._Res.DisableBrewmasterTracking()
-    end
-
-    if newSpecID == 263 then
-        if currentSpecID ~= 263 then
-            CDM._Res.EnableMaelstromTracking()
-        end
-    elseif currentSpecID == 263 then
-        CDM._Res.DisableMaelstromTracking()
-    end
-
-    if newSpecID == 103 then
-        if currentSpecID ~= 103 then
-            CDM._Res.EnableFeralOverflowingTracking()
-        end
-    elseif currentSpecID == 103 then
-        CDM._Res.DisableFeralOverflowingTracking()
-    end
-
-    if newSpecID == 255 then
-        if currentSpecID ~= 255 then
-            CDM._Res.EnableTipOfTheSpearTracking()
-        end
-    elseif currentSpecID == 255 then
-        CDM._Res.DisableTipOfTheSpearTracking()
-    end
-
-    if newSpecID == 1480 then
-        if currentSpecID ~= 1480 then
-            CDM._Res.EnableDevourerTracking()
-        end
-    elseif currentSpecID == 1480 then
-        CDM._Res.DisableDevourerTracking()
     end
 
     if newSpecID == 104 then
@@ -1812,8 +1838,31 @@ local function OnUnitPowerPointCharge(event, unitTarget)
     UpdateBarValue(POWER_TYPES.ComboPoints)
 end
 
+local function ActiveKeysEqual(a, b)
+    if #a ~= #b then return false end
+    for i = 1, #a do
+        if a[i] ~= b[i] then return false end
+    end
+    return true
+end
+
+local function ReevaluateLoadOnEvent()
+    local newKeys = GetActiveBarKeys()
+    local cur = CDM.activeBarKeys
+    if newKeys == nil and (not cur or #cur == 0) then return end
+    if newKeys and cur and ActiveKeysEqual(newKeys, cur) then return end
+    UpdateBarPositions()
+    UpdateAncillaryLayouts()
+end
+
 local function OnUpdateShapeshiftForm()
-    cachedPrimaryPowerType = UnitPowerType("player")
+    if resourcesPlayerClass == "DRUID" then
+        cachedPrimaryPowerType = GetDruidPrimaryPowerType(currentSpecID)
+    else
+        cachedPrimaryPowerType = UnitPowerType("player")
+    end
+    loadIsMounted = IsEffectivelyMounted()
+    loadIsFeralForm = IsInFeralForm()
 
     if currentSpecID == 104 and CDM._Res.OnShapeshiftGuardianCheck then
         CDM._Res.OnShapeshiftGuardianCheck(cachedPrimaryPowerType)
@@ -1823,9 +1872,27 @@ local function OnUpdateShapeshiftForm()
     UpdateAncillaryLayouts()
 end
 
+local function OnMountDisplayChanged()
+    local wasMounted = loadIsMounted
+    loadIsMounted = IsEffectivelyMounted()
+    if loadIsMounted ~= wasMounted then
+        ReevaluateLoadOnEvent()
+    end
+end
+
+local function OnLoadCombatStateChanged(isInCombat)
+    loadInCombat = isInCombat and true or false
+    ReevaluateLoadOnEvent()
+end
+
+local function OnVehicleStateChanged()
+    loadIsMounted = IsEffectivelyMounted()
+    ReevaluateLoadOnEvent()
+end
 
 local function OnUnitMaxPower()
     UpdateBarPositions()
+    UpdateAncillaryLayouts()
     CDM:UpdateResourceValues()
 end
 
@@ -1845,6 +1912,67 @@ local function OnResourcesSpecStateChanged(unit, event)
     OnSpecChanged()
 end
 
+local loadCombatRegistered = false
+local loadMountRegistered = false
+
+local function ScanLoadConditions()
+    local needsCombat, needsMount = false, false
+    local rbs = CDM.db and CDM.db.resourceBarSettings
+    if not rbs then return needsCombat, needsMount end
+
+    local function ScanGroup(group)
+        if type(group) ~= "table" then return end
+        for _, entry in pairs(group) do
+            if type(entry) == "table" and entry.loadMode == "conditional" and entry.load then
+                if entry.load.combat ~= nil then needsCombat = true end
+                if entry.load.hideMounted then needsMount = true end
+            end
+        end
+    end
+
+    ScanGroup(rbs[resourcesPlayerClass])
+    ScanGroup(rbs["General"])
+    return needsCombat, needsMount
+end
+
+local function RegisterLoadEvents()
+    local needsCombat, needsMount = ScanLoadConditions()
+
+    if needsCombat and not loadCombatRegistered then
+        loadInCombat = InCombatLockdown() and true or false
+        CDM:RegisterCombatStateHandler(OnLoadCombatStateChanged)
+        loadCombatRegistered = true
+    elseif not needsCombat and loadCombatRegistered then
+        CDM:UnregisterCombatStateHandler(OnLoadCombatStateChanged)
+        loadCombatRegistered = false
+    end
+
+    if needsMount and not loadMountRegistered then
+        RegisterResEvent("PLAYER_MOUNT_DISPLAY_CHANGED", OnMountDisplayChanged)
+        RegisterResUnitEvent("UNIT_ENTERED_VEHICLE", "player", OnVehicleStateChanged)
+        RegisterResUnitEvent("UNIT_EXITED_VEHICLE", "player", OnVehicleStateChanged)
+        loadMountRegistered = true
+    elseif not needsMount and loadMountRegistered then
+        UnregisterResEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
+        UnregisterResEvent("UNIT_ENTERED_VEHICLE")
+        UnregisterResEvent("UNIT_EXITED_VEHICLE")
+        loadMountRegistered = false
+    end
+end
+
+local function UnregisterLoadEvents()
+    if loadCombatRegistered then
+        CDM:UnregisterCombatStateHandler(OnLoadCombatStateChanged)
+        loadCombatRegistered = false
+    end
+    if loadMountRegistered then
+        UnregisterResEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
+        UnregisterResEvent("UNIT_ENTERED_VEHICLE")
+        UnregisterResEvent("UNIT_EXITED_VEHICLE")
+        loadMountRegistered = false
+    end
+end
+
 local function RegisterCoreEvents()
     for _, entry in ipairs(CORE_EVENTS) do
         if entry[3] then
@@ -1860,6 +1988,7 @@ local function RegisterCoreEvents()
     if resourcesPlayerClass == "ROGUE" then
         RegisterResUnitEvent("UNIT_POWER_POINT_CHARGE", "player", OnUnitPowerPointCharge)
     end
+    RegisterLoadEvents()
 end
 
 local function UnregisterCoreEvents()
@@ -1873,16 +2002,11 @@ local function UnregisterCoreEvents()
     if resourcesPlayerClass == "ROGUE" then
         UnregisterResUnitEvent("UNIT_POWER_POINT_CHARGE")
     end
+    UnregisterLoadEvents()
 end
 
 function CDM:InitializeResources()
     if isInitialized then return end
-
-    if not self.resourceContainer then
-        self.resourceContainer = CreateFrame("Frame", "Ayije_CDM_ResourcesContainer", UIParent)
-        self.resourceContainer:SetFrameStrata(CDM_C.STRATA_MAIN)
-        self.resourceContainer:SetSize(200, 100)
-    end
 
     RegisterCoreEvents()
     local specIndex = GetSpecialization()
@@ -1909,9 +2033,6 @@ local function EnableResources()
     if not isInitialized or isEnabled then return end
     RegisterCoreEvents()
     OnSpecChanged()
-    if CDM.resourceContainer then
-        CDM.resourceContainer:Show()
-    end
     isEnabled = true
 end
 
@@ -1927,9 +2048,7 @@ local function DisableResources()
     CDM._Res.DisableGuardianTracking()
     CDM._Res.StopIgnorePainTracking()
     CDM._Res.DisableAllTrackerTickers()
-    if CDM.resourceContainer then
-        CDM.resourceContainer:Hide()
-    end
+    HideAllResourceBars()
     currentSpecID = nil
     cachedPrimaryPowerType = nil
     isEnabled = false
@@ -1937,12 +2056,19 @@ end
 
 local function RefreshResourcesLifecycle()
     if not isEnabled then return end
+    RegisterLoadEvents()
     CDM:UpdateResources()
 end
 
 local function OnResourcesProfileApplied()
     cachedSoulShardReadyColor = nil
     cachedSoulShardRechargingColor = nil
+    cachedComboBaseColor = nil
+    cachedComboOverflowingFilled = nil
+    cachedComboOverflowingEmpty = nil
+    cachedComboCharged = nil
+    cachedComboChargedEmpty = nil
+    CDM._conditionsVersion = (CDM._conditionsVersion or 0) + 1
     if CDM._Res.OnTrackerProfileApplied then
         CDM._Res.OnTrackerProfileApplied()
     end
@@ -1968,6 +2094,59 @@ local function ReconcileResources()
     end
 end
 
+local COPY_BAR_WHITELIST_ALWAYS = {
+    "height", "width",
+    "barTexture", "bgTexture",
+    "tagEnabled", "tagFontSize", "tagAnchor", "tagOffsetX", "tagOffsetY",
+}
+
+local COPY_BAR_WHITELIST_POSITIONING = {
+    "anchorPoint", "anchorTargetPoint", "offsetX", "offsetY",
+}
+
+local COPY_BAR_FREE_ANCHORS = {
+    screen       = true,
+    playerFrame  = true,
+    essential    = true,
+}
+
+local function CopyBarSettingsSharesFreeAnchor(srcAnchorTo, dstAnchorTo)
+    local src = srcAnchorTo or "screen"
+    local dst = dstAnchorTo or "screen"
+    if src ~= dst then return false end
+    return COPY_BAR_FREE_ANCHORS[src] == true
+end
+
+local function CopyBarSettings(sourceClassKey, sourceBarKey, destClassKey, destBarKey)
+    if not sourceClassKey or not sourceBarKey or not destClassKey or not destBarKey then
+        return
+    end
+    if sourceClassKey == destClassKey and sourceBarKey == destBarKey then
+        return
+    end
+
+    for _, key in ipairs(COPY_BAR_WHITELIST_ALWAYS) do
+        local value = CDM:GetBarSettingForClass(sourceClassKey, sourceBarKey, key)
+        CDM:SetBarSettingForClass(destClassKey, destBarKey, key, value)
+    end
+
+    local srcAnchorTo = CDM:GetBarSettingForClass(sourceClassKey, sourceBarKey, "anchorTo")
+    local dstAnchorTo = CDM:GetBarSettingForClass(destClassKey, destBarKey, "anchorTo")
+    if CopyBarSettingsSharesFreeAnchor(srcAnchorTo, dstAnchorTo) then
+        for _, key in ipairs(COPY_BAR_WHITELIST_POSITIONING) do
+            local value = CDM:GetBarSettingForClass(sourceClassKey, sourceBarKey, key)
+            CDM:SetBarSettingForClass(destClassKey, destBarKey, key, value)
+        end
+    end
+
+    if CDM.OnResourcesProfileApplied then
+        CDM.OnResourcesProfileApplied()
+    end
+    if CDM.API and CDM.API.Refresh then
+        CDM.API:Refresh("RESOURCES", "LAYOUT")
+    end
+end
+
 CDM._Res = {
     SetStatusBarColorIfChanged = SetStatusBarColorIfChanged,
     SetVertexColorIfChanged    = SetVertexColorIfChanged,
@@ -1976,10 +2155,11 @@ CDM._Res = {
     GetPowerColor              = GetPowerColor,
     CUSTOM_POWER_TYPES         = CUSTOM_POWER_TYPES,
     POWER_TYPES                = POWER_TYPES,
-    DEVOURER_STACKS_PER_PIP    = DEVOURER_STACKS_PER_PIP,
+    DEFAULT_BG_COLOR           = DEFAULT_BG_COLOR,
+    MAX_MAELSTROM_WEAPON       = MAX_MAELSTROM_WEAPON,
+    MAX_TIP_OF_THE_SPEAR       = MAX_TIP_OF_THE_SPEAR,
     GetCurrentSpecID           = function() return currentSpecID end,
     GetIsEnabled               = function() return isEnabled end,
-    GetResourceConfigSlot      = GetResourceConfigSlot,
     RegisterResEvent           = RegisterResEvent,
     UnregisterResEvent         = UnregisterResEvent,
     RegisterResUnitEvent       = RegisterResUnitEvent,
@@ -1988,4 +2168,5 @@ CDM._Res = {
 
 CDM.ReconcileResources = ReconcileResources
 CDM.OnResourcesProfileApplied = OnResourcesProfileApplied
+CDM.CopyBarSettings = CopyBarSettings
 

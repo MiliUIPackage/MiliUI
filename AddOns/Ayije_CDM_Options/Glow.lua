@@ -122,6 +122,17 @@ local function CreateGlowTab(page, tabId)
     )
     page.controls.pixelYOffset:SetPoint("TOPLEFT", page.controls.pixelXOffset, "BOTTOMLEFT", 0, -10)
 
+    page.controls.pixelBorder = UI.CreateModernCheckbox(
+        pixelSection,
+        L["Border"],
+        CDM.db.glowPixelBorder or false,
+        function(checked)
+            CDM.db.glowPixelBorder = checked
+            API:Refresh("STYLE")
+        end
+    )
+    page.controls.pixelBorder:SetPoint("TOPLEFT", page.controls.pixelYOffset, "BOTTOMLEFT", 0, -15)
+
     local autocastSection = CreateFrame("Frame", nil, scrollChild)
     autocastSection:SetPoint("TOPLEFT", sectionAnchor, "BOTTOMLEFT", 0, -15)
     autocastSection:SetSize(460, 250)

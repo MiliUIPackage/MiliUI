@@ -35,7 +35,6 @@ local PROFILE_MT = {
             if next(default) == nil then return nil end
             local copy = {}
             for k, v in pairs(default) do copy[k] = v end
-            rawset(self, key, copy)
             return copy
         end
         return default
@@ -45,9 +44,6 @@ local PROFILE_MT = {
 local function ApplyProfileMetatable(profile)
     setmetatable(profile, PROFILE_MT)
 end
-
-local TAG_DEFAULT_BAR1 = true
-local TAG_DEFAULT_BAR2 = false
 
 local function IsUsableSpellID(spellID)
     return CDM.IsSafeNumber(spellID) and spellID > 0 and spellID == math.floor(spellID)
@@ -413,7 +409,248 @@ local function StripDefaultMatchingValues(profile)
     end
 end
 
-local DB_SCHEMA_VERSION = 8
+local DB_SCHEMA_VERSION = 21
+
+local LEGACY_RESOURCE_KEYS = {
+    "resourcesBarHeight", "resourcesBar2Height", "resourcesBarWidth",
+    "resourcesBarTexture", "resourcesBarBackgroundTexture",
+    "resourcesBackgroundColor", "resourcesBarSpacing",
+    "resourcesOffsetX", "resourcesOffsetY",
+    "resourcesBar1TagFontSize", "resourcesBar1TagAnchor",
+    "resourcesBar1TagOffsetX", "resourcesBar1TagOffsetY", "resourcesBar1TagColor",
+    "resourcesBar2TagFontSize", "resourcesBar2TagAnchor",
+    "resourcesBar2TagOffsetX", "resourcesBar2TagOffsetY", "resourcesBar2TagColor",
+    "resourcesManaColor", "resourcesRageColor", "resourcesEnergyColor",
+    "resourcesFocusColor", "resourcesComboPointsColor",
+    "resourcesComboPointsChargedColor", "resourcesComboPointsChargedEmptyColor",
+    "resourcesFeralOverflowingColor", "resourcesFeralOverflowingEmptyColor",
+    "resourcesRunesReadyColor", "resourcesRunesRechargingColor",
+    "resourcesRunicPowerColor", "resourcesLunarPowerColor",
+    "resourcesIronfurColor", "resourcesIgnorePainColor", "resourcesIgnorePainHideIcon",
+    "resourcesMaelstromColor", "resourcesInsanityColor", "resourcesFuryColor",
+    "resourcesEssenceColor", "resourcesEssenceRechargingColor",
+    "resourcesSoulShardsColor", "resourcesSoulShardsRechargingColor",
+    "resourcesHolyPowerColor", "resourcesArcaneChargesColor", "resourcesChiColor",
+    "resourcesStaggerLightColor", "resourcesStaggerModerateColor",
+    "resourcesStaggerHeavyColor", "resourcesSoulFragmentsColor",
+    "resourcesDevourerSoulFragmentsColor", "resourcesTipOfTheSpearColor",
+    "resourcesManaPercentage", "resourcesManaSettings",
+    "resourcesPrimaryResourceSettings", "resourcesSecondaryResourceSettings",
+    "resourcesTagSettings", "resourcesSmoothBars", "resourcesMoveBuffsDown",
+}
+
+-- A bar-name key (as opposed to a class-name key) at the top level of
+-- resourceBarSettings indicates a corrupt flat structure from an older
+-- alpha shape or a metatable auto-populate. Used by v13 to force a rebuild.
+local RESOURCE_BAR_NAME_LOOKUP = {
+    Mana=true, Rage=true, Energy=true, Focus=true, ComboPoints=true, Runes=true,
+    RunicPower=true, SoulShards=true, LunarPower=true, HolyPower=true,
+    Maelstrom=true, Chi=true, Insanity=true, ArcaneCharges=true, Fury=true,
+    Essence=true, SoulFragments=true, DevourerSoulFragments=true, Ironfur=true,
+    IgnorePain=true, TipOfTheSpear=true, Stagger=true, MaelstromWeapon=true,
+}
+
+local SECOND_BAR_PARENT = {
+    ComboPoints           = "Energy",
+    Ironfur               = "Rage",
+    Chi                   = "Energy",
+    Stagger               = "Energy",
+    IgnorePain            = "Rage",
+    SoulFragments         = "Fury",
+    DevourerSoulFragments = "Fury",
+    TipOfTheSpear         = "Focus",
+    Runes                 = "RunicPower",
+}
+
+local OLD_COLOR_KEY_MAP = {
+    Mana = "resourcesManaColor",
+    Rage = "resourcesRageColor",
+    Energy = "resourcesEnergyColor",
+    Focus = "resourcesFocusColor",
+    ComboPoints = "resourcesComboPointsColor",
+    Runes = "resourcesRunesReadyColor",
+    RunicPower = "resourcesRunicPowerColor",
+    SoulShards = "resourcesSoulShardsColor",
+    LunarPower = "resourcesLunarPowerColor",
+    HolyPower = "resourcesHolyPowerColor",
+    Maelstrom = "resourcesMaelstromColor",
+    Chi = "resourcesChiColor",
+    Insanity = "resourcesInsanityColor",
+    ArcaneCharges = "resourcesArcaneChargesColor",
+    Fury = "resourcesFuryColor",
+    Essence = "resourcesEssenceColor",
+    SoulFragments = "resourcesSoulFragmentsColor",
+    MaelstromWeapon = "resourcesMaelstromColor",
+    DevourerSoulFragments = "resourcesDevourerSoulFragmentsColor",
+    Ironfur = "resourcesIronfurColor",
+    IgnorePain = "resourcesIgnorePainColor",
+    TipOfTheSpear = "resourcesTipOfTheSpearColor",
+}
+
+local SECONDARY_COLOR_MIGRATIONS = {
+    Runes = { rechargingColor = "resourcesRunesRechargingColor" },
+    Essence = { rechargingColor = "resourcesEssenceRechargingColor" },
+    SoulShards = { rechargingColor = "resourcesSoulShardsRechargingColor" },
+    ComboPoints = {
+        chargedColor = "resourcesComboPointsChargedColor",
+        chargedEmptyColor = "resourcesComboPointsChargedEmptyColor",
+        overflowingColor = "resourcesFeralOverflowingColor",
+        overflowingEmptyColor = "resourcesFeralOverflowingEmptyColor",
+    },
+    Stagger = {
+        lightColor = "resourcesStaggerLightColor",
+        moderateColor = "resourcesStaggerModerateColor",
+        heavyColor = "resourcesStaggerHeavyColor",
+    },
+}
+
+local LEGACY_SPEC_BAR_SLOTS = {
+    [71]   = {"Rage"}, [72] = {"Rage"}, [73] = {"Rage","IgnorePain"},
+    [65]   = {"HolyPower"}, [66] = {"HolyPower"}, [70] = {"HolyPower"},
+    [253]  = {"Focus"}, [254] = {"Focus"}, [255] = {"Focus","TipOfTheSpear"},
+    [259]  = {"Energy","ComboPoints"}, [260] = {"Energy","ComboPoints"}, [261] = {"Energy","ComboPoints"},
+    [258]  = {"Insanity"},
+    [250]  = {"RunicPower","Runes"}, [251] = {"RunicPower","Runes"}, [252] = {"RunicPower","Runes"},
+    [262]  = {"Maelstrom"}, [263] = {"MaelstromWeapon"},
+    [62]   = {"ArcaneCharges"},
+    [265]  = {"SoulShards"}, [266] = {"SoulShards"}, [267] = {"SoulShards"},
+    [268]  = {"Energy","Stagger"}, [269] = {"Energy","Chi"},
+    [102]  = {"LunarPower"}, [103] = {"Energy","ComboPoints"}, [104] = {"Rage","Ironfur"},
+    [577]  = {"Fury"}, [581] = {"Fury","SoulFragments"}, [1480] = {"Fury","DevourerSoulFragments"},
+    [1467] = {"Essence"}, [1468] = {"Essence"}, [1473] = {"Essence"},
+}
+
+local LEGACY_SMOOTH_ELIGIBLE = {
+    Mana=true, Rage=true, Energy=true, Focus=true, RunicPower=true,
+    LunarPower=true, Maelstrom=true, Insanity=true, Fury=true,
+}
+
+local function MigrateToPerBarResources(profile)
+    if profile.resourceBarSettings then return end
+
+    local commonDefaults = CDM.RESOURCE_BAR_COMMON_DEFAULTS
+    if not commonDefaults then return end
+
+    local height = rawget(profile, "resourcesBarHeight") or commonDefaults.height
+    local width = rawget(profile, "resourcesBarWidth") or commonDefaults.width
+    local barTexture = rawget(profile, "resourcesBarTexture") or commonDefaults.barTexture
+    local bgTexture = rawget(profile, "resourcesBarBackgroundTexture") or commonDefaults.bgTexture
+    local bgColor = rawget(profile, "resourcesBackgroundColor") or commonDefaults.bgColor
+    local offsetX = rawget(profile, "resourcesOffsetX") or commonDefaults.offsetX
+    local offsetY = rawget(profile, "resourcesOffsetY") or commonDefaults.offsetY
+    local barSpacing = rawget(profile, "resourcesBarSpacing") or commonDefaults.barSpacing
+    local tagFontSize = rawget(profile, "resourcesBar1TagFontSize") or commonDefaults.tagFontSize
+    local tagAnchor = rawget(profile, "resourcesBar1TagAnchor") or commonDefaults.tagAnchor
+    local tagOffsetX = rawget(profile, "resourcesBar1TagOffsetX") or commonDefaults.tagOffsetX
+    local tagOffsetY = rawget(profile, "resourcesBar1TagOffsetY") or commonDefaults.tagOffsetY
+    local tagColor = rawget(profile, "resourcesBar1TagColor") or commonDefaults.tagColor
+
+    local smoothDisabled = rawget(profile, "resourcesSmoothBars") == false
+
+    local height2 = rawget(profile, "resourcesBar2Height") or height
+    local tagFontSize2 = rawget(profile, "resourcesBar2TagFontSize") or tagFontSize
+    local tagAnchor2 = rawget(profile, "resourcesBar2TagAnchor") or tagAnchor
+    local tagOffsetX2 = rawget(profile, "resourcesBar2TagOffsetX") or tagOffsetX
+    local tagOffsetY2 = rawget(profile, "resourcesBar2TagOffsetY") or tagOffsetY
+    local tagColor2 = rawget(profile, "resourcesBar2TagColor") or tagColor
+
+    local function BuildBarEntry(barKey)
+        local parentBar = SECOND_BAR_PARENT[barKey]
+        local isSecond = parentBar ~= nil
+        local entry = {
+            enabled = true,
+            height = isSecond and height2 or height,
+            width = width,
+            barTexture = barTexture,
+            bgTexture = bgTexture,
+            bgColor = bgColor,
+            tagEnabled = true,
+            tagFontSize = isSecond and tagFontSize2 or tagFontSize,
+            tagAnchor = isSecond and tagAnchor2 or tagAnchor,
+            tagOffsetX = isSecond and tagOffsetX2 or tagOffsetX,
+            tagOffsetY = isSecond and tagOffsetY2 or tagOffsetY,
+            tagColor = isSecond and tagColor2 or tagColor,
+        }
+
+        if isSecond then
+            entry.anchorTo = parentBar
+            entry.barSpacing = barSpacing
+        else
+            entry.offsetX = offsetX
+            entry.offsetY = offsetY
+        end
+
+        if smoothDisabled and LEGACY_SMOOTH_ELIGIBLE[barKey] then
+            entry.smoothBars = false
+        end
+
+        local oldColorKey = OLD_COLOR_KEY_MAP[barKey]
+        if oldColorKey then
+            local color = rawget(profile, oldColorKey)
+            if color then entry.color = color end
+        end
+
+        local secondaries = SECONDARY_COLOR_MIGRATIONS[barKey]
+        if secondaries then
+            for settingKey, oldKey in pairs(secondaries) do
+                local val = rawget(profile, oldKey)
+                if val then entry[settingKey] = val end
+            end
+        end
+
+        if barKey == "Mana" then
+            local pct = rawget(profile, "resourcesManaPercentage")
+            if pct ~= nil then entry.displayAsPercent = pct end
+        elseif barKey == "IgnorePain" then
+            local hide = rawget(profile, "resourcesIgnorePainHideIcon")
+            if hide ~= nil then entry.hideIcon = hide end
+        end
+
+        return entry
+    end
+
+    local result = {}
+
+    local classesToMigrate = { "General" }
+    for classKey in pairs(CDM.CLASS_BARS) do
+        if classKey ~= "General" then
+            classesToMigrate[#classesToMigrate + 1] = classKey
+        end
+    end
+
+    for _, classKey in ipairs(classesToMigrate) do
+        local bars = CDM.CLASS_BARS[classKey]
+        if bars then
+            result[classKey] = {}
+            for _, barKey in ipairs(bars) do
+                result[classKey][barKey] = BuildBarEntry(barKey)
+            end
+        end
+    end
+
+    local oldTagSettings = rawget(profile, "resourcesTagSettings")
+    if oldTagSettings then
+        local tagDisabledBars = {}
+        for specID, specTags in pairs(oldTagSettings) do
+            if type(specTags) == "table" then
+                local slots = LEGACY_SPEC_BAR_SLOTS[specID]
+                if slots then
+                    if specTags["bar1Enabled"] == false and slots[1] then tagDisabledBars[slots[1]] = true end
+                    if specTags["bar2Enabled"] == false and slots[2] then tagDisabledBars[slots[2]] = true end
+                end
+            end
+        end
+        for barKey in pairs(tagDisabledBars) do
+            for _, classKey in ipairs(classesToMigrate) do
+                if result[classKey] and result[classKey][barKey] then
+                    result[classKey][barKey].tagEnabled = false
+                end
+            end
+        end
+    end
+
+    profile.resourceBarSettings = result
+end
 
 local function MigrateGroupOverrides(profile, groupsKey, ungroupedKey)
     local groups = profile[groupsKey]
@@ -450,6 +687,97 @@ local function MigrateGroupOverrides(profile, groupsKey, ungroupedKey)
             end
         end
     end
+end
+
+local function RunResourceKeyMigrationCleanup(profile)
+    local rbs = profile.resourceBarSettings
+    if not rbs then return end
+    local MANA_SPECS = CDM.MANA_SPECS
+
+    for classKey, bars in pairs(rbs) do
+        for barKey, entry in pairs(bars) do
+            if type(entry) == "table" then
+                if entry.enabled == false then
+                    entry.loadMode = "never"
+                end
+                entry.enabled = nil
+
+                if barKey == "Mana" and MANA_SPECS then
+                    entry.loadMode = entry.loadMode or "conditional"
+                    local spec = {}
+                    for specID, defaultOn in pairs(MANA_SPECS) do
+                        if defaultOn then spec[specID] = true end
+                    end
+                    local oldManaSettings = rawget(profile, "resourcesManaSettings")
+                    if oldManaSettings then
+                        for specID, val in pairs(oldManaSettings) do
+                            if val == true then
+                                spec[specID] = true
+                            elseif val == false then
+                                spec[specID] = nil
+                            end
+                        end
+                    end
+                    entry.load = entry.load or {}
+                    entry.load.spec = spec
+                end
+            end
+        end
+    end
+
+    local function ApplyVisibilityMigration(oldKey, slotIndex)
+        local oldSettings = rawget(profile, oldKey)
+        if not oldSettings then return end
+        local _, playerClass = UnitClass("player")
+        if not playerClass then return end
+        local hiddenByBar = {}
+        for specID, val in pairs(oldSettings) do
+            if val == false then
+                local slots = LEGACY_SPEC_BAR_SLOTS[specID]
+                local barKey = slots and slots[slotIndex]
+                if barKey then
+                    if not hiddenByBar[barKey] then hiddenByBar[barKey] = {} end
+                    hiddenByBar[barKey][specID] = true
+                end
+            end
+        end
+        for barKey, hiddenSpecs in pairs(hiddenByBar) do
+            local classKey = (barKey == "Mana") and "General" or playerClass
+            local entry = rbs[classKey] and rbs[classKey][barKey]
+            if entry then
+                entry.loadMode = "conditional"
+                entry.load = entry.load or {}
+                local spec = entry.load.spec or {}
+                for sID, slots in pairs(LEGACY_SPEC_BAR_SLOTS) do
+                    if slots[slotIndex] == barKey then
+                        spec[sID] = true
+                    end
+                end
+                for specID in pairs(hiddenSpecs) do
+                    spec[specID] = nil
+                end
+                entry.load.spec = spec
+            end
+        end
+    end
+
+    ApplyVisibilityMigration("resourcesPrimaryResourceSettings", 1)
+    ApplyVisibilityMigration("resourcesSecondaryResourceSettings", 2)
+
+    for _, key in ipairs(LEGACY_RESOURCE_KEYS) do
+        profile[key] = nil
+    end
+end
+
+local function HasFlatResourceBarSettings(profile)
+    local rbs = rawget(profile, "resourceBarSettings")
+    if type(rbs) ~= "table" then return false end
+    for key in pairs(rbs) do
+        if RESOURCE_BAR_NAME_LOOKUP[key] then
+            return true
+        end
+    end
+    return false
 end
 
 local PROFILE_MIGRATIONS = {
@@ -528,6 +856,208 @@ local PROFILE_MIGRATIONS = {
                         node.glowEnabled = nil
                     end
                 end
+            end
+        end,
+    },
+    {
+        version = 9,
+        run = MigrateToPerBarResources,
+    },
+    {
+        version = 10,
+        run = RunResourceKeyMigrationCleanup,
+    },
+    {
+        version = 11,
+        run = function(profile)
+            local legacy = rawget(profile, "resourcesUnifiedBorder")
+            if legacy == nil then return end
+            local _, playerClass = UnitClass("player")
+            if playerClass then
+                profile.resourceGroupSettings = profile.resourceGroupSettings or {}
+                profile.resourceGroupSettings[playerClass] = profile.resourceGroupSettings[playerClass] or {}
+                if profile.resourceGroupSettings[playerClass].unifiedBorder == nil then
+                    profile.resourceGroupSettings[playerClass].unifiedBorder = legacy
+                end
+            end
+            profile.resourcesUnifiedBorder = nil
+        end,
+    },
+    {
+        version = 12,
+        run = function(profile)
+            local rbs = profile.resourceBarSettings
+            if type(rbs) ~= "table" then return end
+            for _, classEntries in pairs(rbs) do
+                if type(classEntries) == "table" then
+                    for barKey, entry in pairs(classEntries) do
+                        local parent = SECOND_BAR_PARENT[barKey]
+                        if parent and type(entry) == "table" and entry.anchorTo == nil then
+                            entry.anchorTo = parent
+                        end
+                    end
+                end
+            end
+        end,
+    },
+    {
+        version = 13,
+        run = function(profile)
+            local needsRebuild = HasFlatResourceBarSettings(profile)
+            if not needsRebuild then
+                for _, key in ipairs(LEGACY_RESOURCE_KEYS) do
+                    if rawget(profile, key) ~= nil then
+                        needsRebuild = true
+                        break
+                    end
+                end
+            end
+            if not needsRebuild then return end
+
+            profile.resourceBarSettings = nil
+            MigrateToPerBarResources(profile)
+            RunResourceKeyMigrationCleanup(profile)
+        end,
+    },
+    {
+        version = 14,
+        run = function(profile)
+            local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+            if not LSM then return end
+            local name = rawget(profile, "textFont")
+            if name ~= nil and not LSM:IsValid("font", name) then
+                profile.textFont = nil
+            end
+        end,
+    },
+    {
+        version = 15,
+        run = function(profile)
+            if profile.castBarAnchorToResources == nil
+               and profile.castBarResourcesSpacing == nil
+               and profile.castBarContainerLocked == nil then
+                return
+            end
+            if profile.castBarAnchorToResources ~= false then
+                profile.castBarAnchor       = "resources"
+                profile.castBarAnchorPoint  = "BOTTOM"
+                profile.castBarTargetPoint  = "TOP"
+                profile.castBarOffsetX      = 0
+                profile.castBarOffsetY      = profile.castBarResourcesSpacing or 1
+            else
+                profile.castBarAnchor       = "screen"
+                profile.castBarAnchorPoint  = "BOTTOM"
+                profile.castBarTargetPoint  = "CENTER"
+                profile.castBarOffsetX      = profile.castBarOffsetX or 0
+                profile.castBarOffsetY      = profile.castBarOffsetY or -166
+            end
+            profile.castBarPreviewEnabled = false
+            profile.castBarAnchorToResources = nil
+            profile.castBarResourcesSpacing  = nil
+            profile.castBarContainerLocked   = nil
+        end,
+    },
+    {
+        version = 16,
+        run = function(profile)
+            local rbs = profile.resourceBarSettings
+            local mana = rbs and rbs.General and rbs.General.Mana
+            if type(mana) ~= "table" then return end
+            mana.load = mana.load or {}
+            mana.load.hideInFeralForm = true
+        end,
+    },
+    {
+        version = 19,
+        run = function(profile)
+            local rbs = profile.resourceBarSettings
+            if type(rbs) ~= "table" then return end
+            local mana = rbs.General and rbs.General.Mana
+
+            local manaAvailable = false
+            if type(mana) == "table" and mana.enabled ~= false then
+                if mana.loadMode == "always" then
+                    manaAvailable = true
+                elseif mana.loadMode ~= "never" then
+                    local loadSpec = mana.load and mana.load.spec
+                    if type(loadSpec) == "table" then
+                        for _, v in pairs(loadSpec) do
+                            if v == true then manaAvailable = true break end
+                        end
+                    end
+                end
+            end
+
+            local manaX = (mana and mana.offsetX) or 0
+            local manaY = (mana and mana.offsetY) or -200
+
+            local BARS_TO_FLIP = {
+                Essence = true, LunarPower = true,
+                SoulShards = true, ArcaneCharges = true, Maelstrom = true,
+                MaelstromWeapon = true, Insanity = true, HolyPower = true,
+            }
+            local DRUID_ONLY_FLIP = { Rage = true, Energy = true }
+
+            for classKey, classEntries in pairs(rbs) do
+                if type(classEntries) == "table" then
+                    for barKey, entry in pairs(classEntries) do
+                        local shouldFlip = BARS_TO_FLIP[barKey]
+                                       or (classKey == "DRUID" and DRUID_ONLY_FLIP[barKey])
+                        if shouldFlip and type(entry) == "table"
+                           and entry.anchorTo == nil then
+                            if manaAvailable
+                               and (entry.offsetX or 0) == manaX
+                               and (entry.offsetY or -200) == manaY then
+                                entry.anchorTo = "Mana"
+                                entry.offsetY = 1
+                            else
+                                entry.anchorTo = "screen"
+                            end
+                        end
+                    end
+                end
+            end
+        end,
+    },
+    {
+        version = 20,
+        run = function(profile)
+            local rbs = profile.resourceBarSettings
+            if type(rbs) ~= "table" then return end
+            for classKey, classEntries in pairs(rbs) do
+                if type(classEntries) == "table" and classKey ~= "DRUID" then
+                    for _, barKey in ipairs({ "Rage", "Energy" }) do
+                        local entry = classEntries[barKey]
+                        if type(entry) == "table" and entry.anchorTo == "Mana" then
+                            entry.anchorTo = nil
+                            if entry.offsetY == 1 then
+                                entry.offsetY = nil
+                            end
+                        end
+                    end
+                end
+            end
+        end,
+    },
+    {
+        version = 21,
+        run = function(profile)
+            local rgs = profile.resourceGroupSettings
+            if type(rgs) ~= "table" then return end
+            local anyUnified = false
+            for classKey, entry in pairs(rgs) do
+                if type(entry) == "table" then
+                    if entry.unifiedBorder == true then
+                        anyUnified = true
+                    end
+                    entry.unifiedBorder = nil
+                    if next(entry) == nil then
+                        rgs[classKey] = nil
+                    end
+                end
+            end
+            if anyUnified then
+                profile.unifiedBorder = true
             end
         end,
     },
@@ -993,102 +1523,55 @@ local function SetPerSpecSetting(dbFieldName, specID, value, default)
     end
 end
 
-function CDM:GetTagEnabled(isBar2)
-    local specID = self:GetCurrentSpecID()
-    if not specID then return false end
+local _, RESOURCE_PLAYER_CLASS = UnitClass("player")
 
-    local default
-    if isBar2 then
-        default = TAG_DEFAULT_BAR2
-    else
-        default = TAG_DEFAULT_BAR1
-    end
-
-    local tagSettings = CDM.db.resourcesTagSettings
-    if type(tagSettings) ~= "table" then
-        return default
-    end
-
-    local entry = tagSettings[specID]
-    if type(entry) ~= "table" then
-        return default
-    end
-
-    local key = isBar2 and "bar2Enabled" or "bar1Enabled"
-    local val = entry[key]
-    if val == nil then
-        return default
-    end
-    return val
+local function ResolveBarClass(barKey)
+    if barKey == "Mana" then return "General" end
+    return RESOURCE_PLAYER_CLASS
 end
 
-function CDM:SetTagEnabled(isBar2, enabled)
-    local specID = self:GetCurrentSpecID()
-    if not specID then return end
-
-    local defaultVal
-    if isBar2 then
-        defaultVal = TAG_DEFAULT_BAR2
-    else
-        defaultVal = TAG_DEFAULT_BAR1
+function CDM:GetBarSettingForClass(classKey, barKey, settingKey)
+    local bs = self.db and self.db.resourceBarSettings
+    if bs and bs[classKey] and bs[classKey][barKey] then
+        local val = bs[classKey][barKey][settingKey]
+        if val ~= nil then return val end
     end
-    local key = isBar2 and "bar2Enabled" or "bar1Enabled"
+    local pc = CDM.RESOURCE_BAR_PER_CLASS_DEFAULTS
+    if pc and pc[classKey] and pc[classKey][barKey] then
+        local val = pc[classKey][barKey][settingKey]
+        if val ~= nil then return val end
+    end
+    local ds = CDM.RESOURCE_BAR_DEFAULTS
+    if ds and ds[barKey] then
+        return ds[barKey][settingKey]
+    end
+    return nil
+end
 
-    if enabled == defaultVal then
-        local tagSettings = CDM.db.resourcesTagSettings
-        if type(tagSettings) ~= "table" then return end
-        local entry = tagSettings[specID]
-        if type(entry) ~= "table" then return end
-        entry[key] = nil
-        if IsEmptyTable(entry) then
-            tagSettings[specID] = nil
-        end
-        if IsEmptyTable(tagSettings) then
-            CDM.db.resourcesTagSettings = nil
-        end
-    else
-        if not CDM.db.resourcesTagSettings then
-            CDM.db.resourcesTagSettings = {}
-        end
-        if not CDM.db.resourcesTagSettings[specID] then
-            CDM.db.resourcesTagSettings[specID] = {}
-        end
-        CDM.db.resourcesTagSettings[specID][key] = enabled
+function CDM:SetBarSettingForClass(classKey, barKey, settingKey, value)
+    if not self.db then return end
+    if not self.db.resourceBarSettings then
+        self.db.resourceBarSettings = {}
+    end
+    if not self.db.resourceBarSettings[classKey] then
+        self.db.resourceBarSettings[classKey] = {}
+    end
+    if not self.db.resourceBarSettings[classKey][barKey] then
+        self.db.resourceBarSettings[classKey][barKey] = {}
+    end
+    self.db.resourceBarSettings[classKey][barKey][settingKey] = value
+    if settingKey == "color" or settingKey == "bgColor" or settingKey == "tagColor" or settingKey == "conditions" then
+        CDM._conditionsVersion = (CDM._conditionsVersion or 0) + 1
     end
 end
 
-function CDM:GetManaEnabled()
-    local specID = self:GetCurrentSpecID()
-    if not specID then return false end
-    local manaSpecs = self.MANA_SPECS
-    if not manaSpecs or manaSpecs[specID] == nil then return false end
-    return GetPerSpecSetting("resourcesManaSettings", specID, manaSpecs[specID])
+function CDM:GetBarSetting(barKey, settingKey)
+    return self:GetBarSettingForClass(ResolveBarClass(barKey), barKey, settingKey)
 end
 
-function CDM:SetManaEnabled(enabled)
-    local specID = self:GetCurrentSpecID()
-    if not specID then return end
-    local manaSpecs = self.MANA_SPECS
-    local default = manaSpecs and manaSpecs[specID] or false
-    SetPerSpecSetting("resourcesManaSettings", specID, enabled, default)
+function CDM:SetBarSetting(barKey, settingKey, value)
+    self:SetBarSettingForClass(ResolveBarClass(barKey), barKey, settingKey, value)
 end
-
-function CDM:GetPrimaryResourceEnabled()
-    return GetPerSpecSetting("resourcesPrimaryResourceSettings", self:GetCurrentSpecID(), true)
-end
-
-function CDM:SetPrimaryResourceEnabled(enabled)
-    SetPerSpecSetting("resourcesPrimaryResourceSettings", self:GetCurrentSpecID(), enabled, true)
-end
-
-function CDM:GetSecondaryResourceEnabled()
-    return GetPerSpecSetting("resourcesSecondaryResourceSettings", self:GetCurrentSpecID(), true)
-end
-
-function CDM:SetSecondaryResourceEnabled(enabled)
-    SetPerSpecSetting("resourcesSecondaryResourceSettings", self:GetCurrentSpecID(), enabled, true)
-end
-
 
 local function RefreshBuffViewer()
     if CDM.RefreshSpecData then CDM:RefreshSpecData() end
@@ -1159,12 +1642,26 @@ function CDM:CompactRegistrySpec(specID)
 end
 
 local stableBaseCache = {}
+local stableBaseCacheSize = 0
+local MAX_STABLE_BASE_ENTRIES = 4096
 local cooldownViewerDataReady = false
+
+local function StoreStableBase(id, value)
+    if stableBaseCache[id] == nil then
+        stableBaseCacheSize = stableBaseCacheSize + 1
+        if stableBaseCacheSize > MAX_STABLE_BASE_ENTRIES then
+            table.wipe(stableBaseCache)
+            stableBaseCacheSize = 1
+        end
+    end
+    stableBaseCache[id] = value
+end
 
 if CDM.RegisterEvent then
     CDM:RegisterEvent("COOLDOWN_VIEWER_DATA_LOADED", function()
         cooldownViewerDataReady = true
         table.wipe(stableBaseCache)
+        stableBaseCacheSize = 0
     end)
 end
 
@@ -1188,7 +1685,7 @@ local function ResolveStableBase(spellID)
     if not C_CooldownViewer or not C_CooldownViewer.GetCooldownViewerCategorySet
         or not C_CooldownViewer.GetCooldownViewerCooldownInfo then
         if cooldownViewerDataReady then
-            stableBaseCache[spellID] = false
+            StoreStableBase(spellID, false)
         end
         return nil
     end
@@ -1213,13 +1710,13 @@ local function ResolveStableBase(spellID)
                     end
                     if matched then
                         local base = info.spellID
-                        stableBaseCache[base] = base
+                        StoreStableBase(base, base)
                         if info.overrideSpellID then
-                            stableBaseCache[info.overrideSpellID] = base
+                            StoreStableBase(info.overrideSpellID, base)
                         end
                         if info.linkedSpellIDs then
                             for _, lid in ipairs(info.linkedSpellIDs) do
-                                stableBaseCache[lid] = base
+                                StoreStableBase(lid, base)
                             end
                         end
                         return base
@@ -1230,7 +1727,7 @@ local function ResolveStableBase(spellID)
     end
 
     if cooldownViewerDataReady then
-        stableBaseCache[spellID] = false
+        StoreStableBase(spellID, false)
     end
     return nil
 end
@@ -1241,6 +1738,7 @@ end
 
 function CDM:ClearStableBaseCache()
     table.wipe(stableBaseCache)
+    stableBaseCacheSize = 0
 end
 
 local function EnsureGlowRegistryNode(specID)

@@ -98,7 +98,7 @@ local function CreateSectionHeader(parent, text, anchorFrame, yOffset, fontObjec
     return header
 end
 
-function UI.CreateSimpleColorPicker(parent, initialColor, onChange)
+function UI.CreateSimpleColorPicker(parent, initialColor, onChange, hasOpacity)
     local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
     button:SetSize(20, 20)
     button:SetBackdrop({
@@ -106,34 +106,48 @@ function UI.CreateSimpleColorPicker(parent, initialColor, onChange)
         bgFile = CDM_C.TEX_WHITE8X8,
     })
 
-    local color = initialColor and {r = initialColor.r, g = initialColor.g, b = initialColor.b} or {r = 1, g = 1, b = 1}
-    button:SetBackdropColor(color.r, color.g, color.b, 1)
+    local color = initialColor
+        and { r = initialColor.r, g = initialColor.g, b = initialColor.b, a = initialColor.a or 1 }
+        or { r = 1, g = 1, b = 1, a = 1 }
+
+    local function DrawSwatch()
+        local drawA = hasOpacity and color.a or 1
+        button:SetBackdropColor(color.r, color.g, color.b, drawA)
+    end
+
+    DrawSwatch()
     button:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)
 
-    function button:UpdateColor(r, g, b)
-        button:SetBackdropColor(r, g, b, 1)
+    function button:UpdateColor(r, g, b, a)
         color.r, color.g, color.b = r, g, b
+        if a ~= nil then color.a = a end
+        DrawSwatch()
     end
 
     button:SetScript("OnClick", function()
-        local prevR, prevG, prevB = color.r, color.g, color.b
+        local prevR, prevG, prevB, prevA = color.r, color.g, color.b, color.a
         local info = {
             swatchFunc = function()
                 local r, g, b = ColorPickerFrame:GetColorRGB()
-                button:UpdateColor(r, g, b)
-                if onChange then
-                    onChange(r, g, b)
-                end
+                local a = hasOpacity and ColorPickerFrame:GetColorAlpha() or 1
+                button:UpdateColor(r, g, b, a)
+                if onChange then onChange(r, g, b, a) end
+            end,
+            opacityFunc = function()
+                if not hasOpacity then return end
+                local r, g, b = ColorPickerFrame:GetColorRGB()
+                local a = ColorPickerFrame:GetColorAlpha()
+                button:UpdateColor(r, g, b, a)
+                if onChange then onChange(r, g, b, a) end
             end,
             cancelFunc = function()
-                button:UpdateColor(prevR, prevG, prevB)
-                if onChange then
-                    onChange(prevR, prevG, prevB)
-                end
+                button:UpdateColor(prevR, prevG, prevB, prevA)
+                if onChange then onChange(prevR, prevG, prevB, prevA) end
             end,
             r = color.r, g = color.g, b = color.b,
-            hasOpacity = false,
-            previousValues = { r = prevR, g = prevG, b = prevB },
+            hasOpacity = hasOpacity and true or false,
+            opacity = color.a,
+            previousValues = { r = prevR, g = prevG, b = prevB, opacity = prevA },
         }
         ColorPickerFrame:SetupColorPickerAndShow(info)
     end)
@@ -504,7 +518,8 @@ UI.PositionOptions = {
 
 function UI.SetupValueDropdown(dropdown, options, getValue, setValue)
     dropdown:SetupMenu(function(_, rootDescription)
-        for _, opt in ipairs(options) do
+        local opts = type(options) == "function" and options() or options
+        for _, opt in ipairs(opts) do
             rootDescription:CreateRadio(opt.label, function() return getValue() == opt.value end, function()
                 setValue(opt.value, opt.label)
             end)
@@ -594,6 +609,13 @@ function UI.CreateScrollableEditBox(parent, width, height, editWidth)
     editBox:SetAutoFocus(false)
     editBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     scrollFrame:SetScrollChild(editBox)
+
+    local function FocusEditBox()
+        editBox:SetFocus()
+    end
+    boxFrame:EnableMouse(true)
+    boxFrame:SetScript("OnMouseDown", FocusEditBox)
+    scrollFrame:SetScript("OnMouseDown", FocusEditBox)
 
     return boxFrame, editBox
 end
@@ -786,5 +808,6 @@ function UI.CreateSubTabBar(parent, tabs, initialTab)
         selectTab = SelectTab,
         subPages = subPages,
         barFrame = barFrame,
+        tabButtons = tabButtons,
     }
 end

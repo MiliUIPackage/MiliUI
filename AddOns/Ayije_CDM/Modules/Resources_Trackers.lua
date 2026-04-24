@@ -13,6 +13,16 @@ local math_min = math.min
 local issecretvalue = issecretvalue
 local UnitPower = UnitPower
 local UnitPowerMax = UnitPowerMax
+local UnitStagger = UnitStagger
+local UnitHealthMax = UnitHealthMax
+local InCombatLockdown = InCombatLockdown
+local GetRuneCooldown = GetRuneCooldown
+local UnitPartialPower = UnitPartialPower
+local table_sort = table.sort
+local table_wipe = table.wipe
+local table_remove = table.remove
+local GetPlayerAuraBySpellID = C_UnitAuras.GetPlayerAuraBySpellID
+local IsSpellKnown = C_SpellBook.IsSpellKnown
 
 local POWER_TYPES = res.POWER_TYPES
 local CUSTOM_POWER_TYPES = res.CUSTOM_POWER_TYPES
@@ -20,13 +30,9 @@ local SetStatusBarColorIfChanged = res.SetStatusBarColorIfChanged
 local UpdateBarPositions = res.UpdateBarPositions
 local GetPowerColor = res.GetPowerColor
 
-local MAX_SOUL_FRAGMENTS = 6
-local MAX_MAELSTROM_WEAPON = 10
-local MAX_TIP_OF_THE_SPEAR = 3
 local DEVOURER_BASE_SOULS_MAX = 50
 local DEVOURER_SOUL_GLUTTON_REDUCED_MAX = 35
 local DEVOURER_VOID_META_SOULS_MAX = 40
-local DEVOURER_STACKS_PER_PIP = 5
 
 local IRONFUR_SPELL_ID = 192081
 local MANGLE_SPELL_ID = 33917
@@ -38,11 +44,22 @@ local IGNORE_PAIN_SPELL_ID = 190456
 local IRONFUR_UPDATE_INTERVAL = 0.021
 
 local brewmasterCombatCallbackRegistered = false
-local lastMaelstromAuraUpdateTime = 0
-local lastFeralOverflowingAuraUpdateTime = 0
-local lastTipOfTheSpearAuraUpdateTime = 0
-local lastDevourerAuraUpdateTime = 0
-local lastDevourerInVoidMeta = false
+
+local maelstromInstanceID
+local maelstromStacks = 0
+
+local feralOverflowingInstanceID
+local feralOverflowingStacks = 0
+
+local tipOfTheSpearInstanceID
+local tipOfTheSpearStacks = 0
+local tipOfTheSpearExpirationTime
+
+local devourerResourceInstanceID
+local devourerResourceStacks = 0
+local devourerCollapsingStarInstanceID
+local devourerCollapsingStarStacks = 0
+local devourerVoidMetaInstanceID
 
 local ironfurExpiries = {}
 local ironfurDurations = {}
@@ -56,7 +73,6 @@ local StartIronfurTicker, StopIronfurTicker
 local ignorePainFrame = nil
 local ignorePainScanRetries = 0
 
-local maelstromWatchTicker
 local staggerUpdateTicker = nil
 local StartStaggerTicker, StopStaggerTicker
 
@@ -64,10 +80,6 @@ local runeUpdateTicker = nil
 local runePowerUpdatePending = false
 local runePowerDispatchFrame = CreateFrame("Frame")
 runePowerDispatchFrame:Hide()
-
-local essenceUpdateTicker
-local essenceRechargeStart
-local essenceRechargeRate
 
 local cachedFontPath
 local cachedFontSize
@@ -81,37 +93,25 @@ local cachedBar2TagEnabled = false
 local cachedBar2OffsetX = 0
 local cachedBar2OffsetY = 0
 
-local DEFAULT_WHITE_COLOR = { r = 1, g = 1, b = 1, a = 1 }
-
 local function RefreshTrackerFontCache()
-    local db = CDM.db
-    local defaults = CDM.defaults or {}
     CDM_C.RefreshBaseFontCache()
     cachedFontPath = CDM_C.GetBaseFontPath()
     cachedFontOutline = CDM_C.GetBaseFontOutline()
-    cachedFontSize = db and db.resourcesBar2TagFontSize or 14
-    cachedFontColor = db and db.resourcesBar2TagColor or DEFAULT_WHITE_COLOR
-    cachedRuneReadyColor = db and db.resourcesRunesReadyColor or defaults.resourcesRunesReadyColor
-    cachedRuneRechargingColor = db and db.resourcesRunesRechargingColor or defaults.resourcesRunesRechargingColor
+    cachedFontSize = CDM:GetBarSetting("Runes", "tagFontSize") or 14
+    cachedFontColor = CDM:GetBarSetting("Runes", "tagColor") or CDM_C.WHITE
+    cachedRuneReadyColor = CDM:GetBarSetting("Runes", "color") or CDM_C.WHITE
+    cachedRuneRechargingColor = CDM:GetBarSetting("Runes", "rechargingColor") or cachedRuneReadyColor
     cachedEssenceReadyColor = GetPowerColor(POWER_TYPES.Essence)
-    cachedEssenceRechargingColor = (db and db.resourcesEssenceRechargingColor)
-        or defaults.resourcesEssenceRechargingColor or cachedEssenceReadyColor
-    cachedBar2TagEnabled = CDM:GetTagEnabled(true) or false
-    cachedBar2OffsetX = db and db.resourcesBar2TagOffsetX or 0
-    cachedBar2OffsetY = db and db.resourcesBar2TagOffsetY or 0
+    cachedEssenceRechargingColor = CDM:GetBarSetting("Essence", "rechargingColor") or cachedEssenceReadyColor
+    cachedBar2TagEnabled = CDM:GetBarSetting("Runes", "tagEnabled") ~= false
+    cachedBar2OffsetX = CDM:GetBarSetting("Runes", "tagOffsetX") or 0
+    cachedBar2OffsetY = CDM:GetBarSetting("Runes", "tagOffsetY") or 0
 end
 
 local function RefreshCachedRuneTimerSlot()
     local _, playerClass = UnitClass("player")
     if playerClass ~= "DEATHKNIGHT" then return end
-    local runesIsBar2 = (res.GetResourceConfigSlot(POWER_TYPES.Runes) == 2)
-    local db = CDM.db
-    local barKey = runesIsBar2 and "Bar2" or "Bar1"
-    cachedBar2TagEnabled = CDM:GetTagEnabled(runesIsBar2) or false
-    cachedFontSize = db and db["resources" .. barKey .. "TagFontSize"] or 14
-    cachedFontColor = db and db["resources" .. barKey .. "TagColor"] or DEFAULT_WHITE_COLOR
-    cachedBar2OffsetX = db and db["resources" .. barKey .. "TagOffsetX"] or 0
-    cachedBar2OffsetY = db and db["resources" .. barKey .. "TagOffsetY"] or 0
+    RefreshTrackerFontCache()
 end
 
 local function UpdateTagTextForPowerType(powerType)
@@ -120,15 +120,13 @@ local function UpdateTagTextForPowerType(powerType)
     end
 end
 
--- Devourer helpers
-
 local GetDevourerSoulMax
 
 local function IsDevourerSoulGluttonKnown()
-    if not (C_SpellBook and C_SpellBook.IsSpellKnown and CDM_C.DEVOURER_SOUL_GLUTTON_TALENT_SPELL_ID) then
+    if not CDM_C.DEVOURER_SOUL_GLUTTON_TALENT_SPELL_ID then
         return false
     end
-    return C_SpellBook.IsSpellKnown(CDM_C.DEVOURER_SOUL_GLUTTON_TALENT_SPELL_ID)
+    return IsSpellKnown(CDM_C.DEVOURER_SOUL_GLUTTON_TALENT_SPELL_ID)
 end
 
 GetDevourerSoulMax = function()
@@ -144,14 +142,11 @@ local function GetDevourerSoulValueMax()
         return 0, max, false
     end
 
-    local inVoidMetamorphosis = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID) ~= nil
+    local inVoidMetamorphosis = devourerVoidMetaInstanceID ~= nil
     if inVoidMetamorphosis then
         max = DEVOURER_VOID_META_SOULS_MAX
     end
-    local trackedAuraSpellID = inVoidMetamorphosis and CDM_C.DEVOURER_COLLAPSING_STAR_SPELL_ID or CDM_C.DEVOURER_RESOURCE_AURA_SPELL_ID
-
-    local auraData = trackedAuraSpellID and C_UnitAuras.GetPlayerAuraBySpellID(trackedAuraSpellID) or nil
-    local current = auraData and auraData.applications or 0
+    local current = inVoidMetamorphosis and devourerCollapsingStarStacks or devourerResourceStacks
     if current < 0 then
         current = 0
     elseif current > max then
@@ -162,8 +157,6 @@ local function GetDevourerSoulValueMax()
 end
 
 CDM.GetDevourerSoulValueMax = GetDevourerSoulValueMax
-
--- Rune data
 
 local runeDataCache = {}
 for i = 1, 6 do
@@ -216,12 +209,10 @@ local function CollectRuneData()
         runeSortOrder[i] = i
     end
 
-    table.sort(runeSortOrder, CompareRuneOrder)
+    table_sort(runeSortOrder, CompareRuneOrder)
 
     return hasRecharging
 end
-
--- Stagger tracker
 
 local function UpdateStaggerBar()
     local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.Stagger]
@@ -237,11 +228,7 @@ local function UpdateStaggerBar()
     end
 
     bar:SetMinMaxValues(0, maxHealth)
-    if CDM.db.resourcesSmoothBars ~= false then
-        bar:SetValue(stagger, Enum.StatusBarInterpolation.ExponentialEaseOut)
-    else
-        bar:SetValue(stagger, Enum.StatusBarInterpolation.Immediate)
-    end
+    bar:SetValue(stagger, Enum.StatusBarInterpolation.ExponentialEaseOut)
 
     local pct = 0
     local isStaggerSecret = (type(stagger) == "number" and issecretvalue(stagger)) or
@@ -261,20 +248,18 @@ local function UpdateStaggerBar()
         bar._lastColorTier = colorTier
         local color
         if colorTier == 2 then
-            color = CDM.db.resourcesStaggerHeavyColor or CDM.defaults.resourcesStaggerHeavyColor
+            color = CDM:GetBarSetting("Stagger", "heavyColor")
         elseif colorTier == 1 then
-            color = CDM.db.resourcesStaggerModerateColor or CDM.defaults.resourcesStaggerModerateColor
+            color = CDM:GetBarSetting("Stagger", "moderateColor")
         else
-            color = CDM.db.resourcesStaggerLightColor or CDM.defaults.resourcesStaggerLightColor
+            color = CDM:GetBarSetting("Stagger", "lightColor")
         end
         bar:SetStatusBarColor(color.r, color.g, color.b, color.a)
     end
 
     bar.staggerPercent = pct * 100
 
-    if CDM.TAGS and CDM.TAGS.textFrames[CUSTOM_POWER_TYPES.Stagger] then
-        CDM.TAGS:UpdateTagText(CDM.TAGS.textFrames[CUSTOM_POWER_TYPES.Stagger])
-    end
+    UpdateTagTextForPowerType(CUSTOM_POWER_TYPES.Stagger)
 
     if not isStaggerSecret and type(stagger) == "number" and stagger == 0 and not InCombatLockdown() and staggerUpdateTicker then
         StopStaggerTicker()
@@ -285,9 +270,7 @@ StartStaggerTicker = function()
     if staggerUpdateTicker then
         return
     end
-    staggerUpdateTicker = C_Timer.NewTicker(0.05, function()
-        UpdateStaggerBar()
-    end)
+    staggerUpdateTicker = C_Timer.NewTicker(0.05, UpdateStaggerBar)
 end
 
 StopStaggerTicker = function()
@@ -297,19 +280,17 @@ StopStaggerTicker = function()
     end
 end
 
--- Ironfur tracker
-
 local function RefreshIronfurTalents()
-    ironfurBaseDuration = C_SpellBook.IsSpellKnown(393611) and 9 or 7
-    hasGuardianOfElune = C_SpellBook.IsSpellKnown(155578)
-    hasFluidicForce = C_SpellBook.IsSpellKnown(441678)
+    ironfurBaseDuration = IsSpellKnown(393611) and 9 or 7
+    hasGuardianOfElune = IsSpellKnown(155578)
+    hasFluidicForce = IsSpellKnown(441678)
 end
 
 local function PruneExpiredIronfurStacks()
     local now = GetTime()
     while #ironfurExpiries > 0 and ironfurExpiries[1] <= now do
-        table.remove(ironfurExpiries, 1)
-        table.remove(ironfurDurations, 1)
+        table_remove(ironfurExpiries, 1)
+        table_remove(ironfurDurations, 1)
     end
 end
 
@@ -390,9 +371,7 @@ end
 
 StartIronfurTicker = function()
     if ironfurUpdateTicker then return end
-    ironfurUpdateTicker = C_Timer.NewTicker(IRONFUR_UPDATE_INTERVAL, function()
-        UpdateIronfurBar()
-    end)
+    ironfurUpdateTicker = C_Timer.NewTicker(IRONFUR_UPDATE_INTERVAL, UpdateIronfurBar)
 end
 
 StopIronfurTicker = function()
@@ -402,8 +381,8 @@ StopIronfurTicker = function()
 end
 
 local function ClearIronfurState()
-    table.wipe(ironfurExpiries)
-    table.wipe(ironfurDurations)
+    table_wipe(ironfurExpiries)
+    table_wipe(ironfurDurations)
     StopIronfurTicker()
     local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.Ironfur]
     if bar and bar:IsShown() then
@@ -419,8 +398,6 @@ function CDM:GetIronfurStackCount()
     PruneExpiredIronfurStacks()
     return #ironfurExpiries
 end
-
--- Ignore Pain tracker
 
 local function ClearIgnorePainState()
     ignorePainFrame = nil
@@ -494,100 +471,52 @@ local function ScanForIgnorePainFrame()
     end
 end
 
--- Maelstrom tracker
-
-local function StopMaelstromWatch()
-    if maelstromWatchTicker then
-        maelstromWatchTicker:Cancel()
-        maelstromWatchTicker = nil
-    end
+local function SeedMaelstrom()
+    local a = GetPlayerAuraBySpellID(CDM_C.MAELSTROM_WEAPON_SPELL_ID)
+    maelstromInstanceID = a and a.auraInstanceID or nil
+    maelstromStacks = a and a.applications or 0
 end
 
-local function UpdateMaelstromBar(bar)
-    local auraData = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.MAELSTROM_WEAPON_SPELL_ID)
-    local current = auraData and auraData.applications or 0
-    local max = MAX_MAELSTROM_WEAPON
-    if current > 0 and not maelstromWatchTicker then
-        maelstromWatchTicker = C_Timer.NewTicker(0.25, function()
-            local ad = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.MAELSTROM_WEAPON_SPELL_ID)
-            if not ad or (ad.applications or 0) == 0 then
-                StopMaelstromWatch()
-                res.UpdateBarValue(CUSTOM_POWER_TYPES.MaelstromWeapon)
-            end
-        end)
-    elseif current <= 0 then
-        StopMaelstromWatch()
-    end
-    return current, max
+local function UpdateMaelstromBar()
+    return maelstromStacks, res.MAX_MAELSTROM_WEAPON
 end
 
--- Feral Overflowing Power tracker
-
-local feralOverflowingStacks = 0
-local feralOverflowingWatchTicker = nil
-
-local function StopFeralOverflowingWatch()
-    if feralOverflowingWatchTicker then
-        feralOverflowingWatchTicker:Cancel()
-        feralOverflowingWatchTicker = nil
-    end
-end
-
-local function RefreshFeralOverflowingStacks()
-    local auraData = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.FERAL_OVERFLOWING_POWER_SPELL_ID)
-    local stacks = auraData and auraData.applications or 0
-    feralOverflowingStacks = stacks
-    if stacks > 0 and not feralOverflowingWatchTicker then
-        feralOverflowingWatchTicker = C_Timer.NewTicker(0.25, function()
-            local ad = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.FERAL_OVERFLOWING_POWER_SPELL_ID)
-            if not ad or (ad.applications or 0) == 0 then
-                StopFeralOverflowingWatch()
-                feralOverflowingStacks = 0
-                res.UpdateBarValue(POWER_TYPES.ComboPoints)
-            end
-        end)
-    elseif stacks <= 0 then
-        StopFeralOverflowingWatch()
-    end
+local function SeedFeralOverflowing()
+    local a = GetPlayerAuraBySpellID(CDM_C.FERAL_OVERFLOWING_POWER_SPELL_ID)
+    feralOverflowingInstanceID = a and a.auraInstanceID or nil
+    feralOverflowingStacks = a and a.applications or 0
 end
 
 local function GetFeralOverflowingStacks()
     return feralOverflowingStacks
 end
 
--- Tip of the Spear tracker
-
-local tipOfTheSpearWatchTicker = nil
-
-local function StopTipOfTheSpearWatch()
-    if tipOfTheSpearWatchTicker then
-        tipOfTheSpearWatchTicker:Cancel()
-        tipOfTheSpearWatchTicker = nil
-    end
+local function SeedTipOfTheSpear()
+    local a = GetPlayerAuraBySpellID(CDM_C.TIP_OF_THE_SPEAR_SPELL_ID)
+    tipOfTheSpearInstanceID = a and a.auraInstanceID or nil
+    tipOfTheSpearStacks = a and a.applications or 0
+    tipOfTheSpearExpirationTime = a and a.expirationTime or nil
 end
 
-local function UpdateTipOfTheSpearBar(bar)
-    local auraData = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.TIP_OF_THE_SPEAR_SPELL_ID)
-    local current = auraData and auraData.applications or 0
-    local max = MAX_TIP_OF_THE_SPEAR
-    if current > 0 and not tipOfTheSpearWatchTicker then
-        tipOfTheSpearWatchTicker = C_Timer.NewTicker(0.25, function()
-            local ad = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.TIP_OF_THE_SPEAR_SPELL_ID)
-            if not ad or (ad.applications or 0) == 0 then
-                StopTipOfTheSpearWatch()
-                res.UpdateBarValue(CUSTOM_POWER_TYPES.TipOfTheSpear)
-            end
-        end)
-    elseif current <= 0 then
-        StopTipOfTheSpearWatch()
-    end
-    return current, max
+local function UpdateTipOfTheSpearBar()
+    return tipOfTheSpearStacks, res.MAX_TIP_OF_THE_SPEAR
 end
 
--- Rune tracker
+function CDM:GetTipOfTheSpearStacks()
+    return tipOfTheSpearStacks
+end
+
+function CDM:GetTipOfTheSpearExpirationTime()
+    return tipOfTheSpearExpirationTime
+end
 
 local function ApplyRuneStates(bar, readyColor, rechargingColor, textEnabled)
     local hasRecharging = CollectRuneData()
+
+    local readyCount = 0
+    for i = 1, 6 do
+        if runeDataCache[i].isReady then readyCount = readyCount + 1 end
+    end
 
     local rechargingShown = 0
     for i, pip in ipairs(bar.pips) do
@@ -646,6 +575,10 @@ local function ApplyRuneStates(bar, readyColor, rechargingColor, textEnabled)
         end
     end
 
+    if res.ApplyPipConditions then
+        res.ApplyPipConditions(bar, POWER_TYPES.Runes, readyCount, 6)
+    end
+
     return hasRecharging
 end
 
@@ -664,6 +597,10 @@ local function UpdateRuneProgress(bar)
     end
 
     ApplyRuneStates(bar, cachedRuneReadyColor, cachedRuneRechargingColor, cachedBar2TagEnabled)
+end
+
+local function RuneProgressTick()
+    UpdateRuneProgress(CDM.resourceBars[POWER_TYPES.Runes])
 end
 
 local function UpdateRuneCooldowns(bar)
@@ -721,9 +658,7 @@ local function UpdateRuneCooldowns(bar)
     local hasRecharging = ApplyRuneStates(bar, cachedRuneReadyColor, cachedRuneRechargingColor, textEnabled)
 
     if hasRecharging and not runeUpdateTicker then
-        runeUpdateTicker = C_Timer.NewTicker(0.05, function()
-            UpdateRuneProgress(bar)
-        end)
+        runeUpdateTicker = C_Timer.NewTicker(0.05, RuneProgressTick)
         bar.hasRunesRecharging = true
     elseif not hasRecharging and runeUpdateTicker then
         runeUpdateTicker:Cancel()
@@ -732,23 +667,23 @@ local function UpdateRuneCooldowns(bar)
     end
 end
 
--- Essence tracker
+local function EssenceFillingPipOnUpdate(pip)
+    pip:SetValue(UnitPartialPower("player", POWER_TYPES.Essence) / 1000, Enum.StatusBarInterpolation.Immediate)
+end
 
 local function ApplyEssenceStates(bar, current, max, readyColor, rechargingColor)
     for i, pip in ipairs(bar.pips) do
         if not pip:IsShown() then break end
         if i <= current then
+            pip:SetScript("OnUpdate", nil)
             pip:SetValue(1, Enum.StatusBarInterpolation.Immediate)
             SetStatusBarColorIfChanged(pip, readyColor)
-        elseif i == current + 1 and essenceRechargeStart and essenceRechargeRate and essenceRechargeRate > 0 then
-            local elapsed = GetTime() - essenceRechargeStart
-            local rechargeTime = 1 / essenceRechargeRate
-            local progress = elapsed / rechargeTime
-            if progress < 0 then progress = 0 end
-            if progress > 1 then progress = 1 end
-            pip:SetValue(progress, Enum.StatusBarInterpolation.Immediate)
+        elseif i == current + 1 and current < max then
+            pip:SetValue(UnitPartialPower("player", POWER_TYPES.Essence) / 1000, Enum.StatusBarInterpolation.Immediate)
             SetStatusBarColorIfChanged(pip, rechargingColor)
+            pip:SetScript("OnUpdate", EssenceFillingPipOnUpdate)
         else
+            pip:SetScript("OnUpdate", nil)
             pip:SetValue(0, Enum.StatusBarInterpolation.Immediate)
             SetStatusBarColorIfChanged(pip, rechargingColor)
         end
@@ -757,9 +692,10 @@ end
 
 local function UpdateEssenceCooldowns(bar)
     if not bar or not bar.pips or bar.powerType ~= POWER_TYPES.Essence or not bar:IsShown() then
-        if essenceUpdateTicker then
-            essenceUpdateTicker:Cancel()
-            essenceUpdateTicker = nil
+        if bar and bar.pips then
+            for _, pip in ipairs(bar.pips) do
+                pip:SetScript("OnUpdate", nil)
+            end
         end
         if bar then bar.hasEssenceRecharging = false end
         return
@@ -771,37 +707,14 @@ local function UpdateEssenceCooldowns(bar)
     local current = UnitPower("player", POWER_TYPES.Essence)
     local max = UnitPowerMax("player", POWER_TYPES.Essence)
 
-    local rate = GetPowerRegenForPowerType(POWER_TYPES.Essence)
-    essenceRechargeRate = rate
-
     if bar._essencePrevCurrent ~= current then
         bar._essencePrevCurrent = current
-        if current < max then
-            essenceRechargeStart = GetTime()
-        else
-            essenceRechargeStart = nil
-        end
-        if CDM.TAGS and CDM.TAGS.textFrames[POWER_TYPES.Essence] then
-            CDM.TAGS:UpdateTagText(CDM.TAGS.textFrames[POWER_TYPES.Essence])
-        end
+        UpdateTagTextForPowerType(POWER_TYPES.Essence)
     end
 
-    local hasRecharging = (current < max)
     ApplyEssenceStates(bar, current, max, readyColor, rechargingColor)
-
-    if hasRecharging and not essenceUpdateTicker then
-        essenceUpdateTicker = C_Timer.NewTicker(0.05, function()
-            UpdateEssenceCooldowns(bar)
-        end)
-        bar.hasEssenceRecharging = true
-    elseif not hasRecharging and essenceUpdateTicker then
-        essenceUpdateTicker:Cancel()
-        essenceUpdateTicker = nil
-        bar.hasEssenceRecharging = false
-    end
+    bar.hasEssenceRecharging = (current < max)
 end
-
--- Event handlers
 
 local function OnSpellUpdateUses(event, spellID, baseSpellID)
     if spellID ~= CDM_C.SOUL_CLEAVE_SPELL_ID and baseSpellID ~= CDM_C.SOUL_CLEAVE_SPELL_ID then return end
@@ -852,45 +765,173 @@ local function OnUnitMaxHealth()
     UpdateStaggerBar()
 end
 
-local function OnMaelstromUnitAura()
-    local now = GetTime()
-    if now - lastMaelstromAuraUpdateTime < 0.05 then
-        return
+local function OnMaelstromUnitAura(event, unit, info)
+    if unit ~= "player" then return end
+    if not info or info.isFullUpdate then
+        SeedMaelstrom()
+    else
+        if info.addedAuras then
+            for _, a in ipairs(info.addedAuras) do
+                if IsSafeNumber(a.spellId) and a.spellId == CDM_C.MAELSTROM_WEAPON_SPELL_ID then
+                    maelstromInstanceID = a.auraInstanceID
+                    maelstromStacks = a.applications or 0
+                end
+            end
+        end
+        if maelstromInstanceID and info.updatedAuraInstanceIDs then
+            for _, id in ipairs(info.updatedAuraInstanceIDs) do
+                if id == maelstromInstanceID then
+                    local a = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, id)
+                    maelstromStacks = a and a.applications or 0
+                end
+            end
+        end
+        if maelstromInstanceID and info.removedAuraInstanceIDs then
+            for _, id in ipairs(info.removedAuraInstanceIDs) do
+                if id == maelstromInstanceID then
+                    maelstromInstanceID = nil
+                    maelstromStacks = 0
+                end
+            end
+        end
     end
-    lastMaelstromAuraUpdateTime = now
     res.UpdateBarValue(CUSTOM_POWER_TYPES.MaelstromWeapon)
 end
 
-local function OnFeralOverflowingUnitAura()
-    local now = GetTime()
-    if now - lastFeralOverflowingAuraUpdateTime < 0.05 then
-        return
+local function OnFeralOverflowingUnitAura(event, unit, info)
+    if unit ~= "player" then return end
+    if not info or info.isFullUpdate then
+        SeedFeralOverflowing()
+    else
+        if info.addedAuras then
+            for _, a in ipairs(info.addedAuras) do
+                if IsSafeNumber(a.spellId) and a.spellId == CDM_C.FERAL_OVERFLOWING_POWER_SPELL_ID then
+                    feralOverflowingInstanceID = a.auraInstanceID
+                    feralOverflowingStacks = a.applications or 0
+                end
+            end
+        end
+        if feralOverflowingInstanceID and info.updatedAuraInstanceIDs then
+            for _, id in ipairs(info.updatedAuraInstanceIDs) do
+                if id == feralOverflowingInstanceID then
+                    local a = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, id)
+                    feralOverflowingStacks = a and a.applications or 0
+                end
+            end
+        end
+        if feralOverflowingInstanceID and info.removedAuraInstanceIDs then
+            for _, id in ipairs(info.removedAuraInstanceIDs) do
+                if id == feralOverflowingInstanceID then
+                    feralOverflowingInstanceID = nil
+                    feralOverflowingStacks = 0
+                end
+            end
+        end
     end
-    lastFeralOverflowingAuraUpdateTime = now
-    RefreshFeralOverflowingStacks()
     res.UpdateBarValue(POWER_TYPES.ComboPoints)
 end
 
-local function OnTipOfTheSpearUnitAura()
-    local now = GetTime()
-    if now - lastTipOfTheSpearAuraUpdateTime < 0.05 then
-        return
+local function OnTipOfTheSpearUnitAura(event, unit, info)
+    if unit ~= "player" then return end
+    if not info or info.isFullUpdate then
+        SeedTipOfTheSpear()
+    else
+        if info.addedAuras then
+            for _, a in ipairs(info.addedAuras) do
+                if IsSafeNumber(a.spellId) and a.spellId == CDM_C.TIP_OF_THE_SPEAR_SPELL_ID then
+                    tipOfTheSpearInstanceID = a.auraInstanceID
+                    tipOfTheSpearStacks = a.applications or 0
+                    tipOfTheSpearExpirationTime = a.expirationTime
+                end
+            end
+        end
+        if tipOfTheSpearInstanceID and info.updatedAuraInstanceIDs then
+            for _, id in ipairs(info.updatedAuraInstanceIDs) do
+                if id == tipOfTheSpearInstanceID then
+                    local a = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, id)
+                    tipOfTheSpearStacks = a and a.applications or 0
+                    tipOfTheSpearExpirationTime = a and a.expirationTime or nil
+                end
+            end
+        end
+        if tipOfTheSpearInstanceID and info.removedAuraInstanceIDs then
+            for _, id in ipairs(info.removedAuraInstanceIDs) do
+                if id == tipOfTheSpearInstanceID then
+                    tipOfTheSpearInstanceID = nil
+                    tipOfTheSpearStacks = 0
+                    tipOfTheSpearExpirationTime = nil
+                end
+            end
+        end
     end
-    lastTipOfTheSpearAuraUpdateTime = now
     res.UpdateBarValue(CUSTOM_POWER_TYPES.TipOfTheSpear)
 end
 
-local function OnDevourerUnitAura()
-    local now = GetTime()
-    if now - lastDevourerAuraUpdateTime < 0.05 then
-        return
-    end
-    lastDevourerAuraUpdateTime = now
+local function SeedDevourer()
+    local resourceAura = GetPlayerAuraBySpellID(CDM_C.DEVOURER_RESOURCE_AURA_SPELL_ID)
+    devourerResourceInstanceID = resourceAura and resourceAura.auraInstanceID or nil
+    devourerResourceStacks = resourceAura and resourceAura.applications or 0
 
-    local inVoidMeta = CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID
-        and C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID) ~= nil
-    if inVoidMeta ~= lastDevourerInVoidMeta then
-        lastDevourerInVoidMeta = inVoidMeta
+    local collapsingStarAura = CDM_C.DEVOURER_COLLAPSING_STAR_SPELL_ID
+        and GetPlayerAuraBySpellID(CDM_C.DEVOURER_COLLAPSING_STAR_SPELL_ID) or nil
+    devourerCollapsingStarInstanceID = collapsingStarAura and collapsingStarAura.auraInstanceID or nil
+    devourerCollapsingStarStacks = collapsingStarAura and collapsingStarAura.applications or 0
+
+    local voidMetaAura = CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID
+        and GetPlayerAuraBySpellID(CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID) or nil
+    devourerVoidMetaInstanceID = voidMetaAura and voidMetaAura.auraInstanceID or nil
+end
+
+local function OnDevourerUnitAura(event, unit, info)
+    if unit ~= "player" then return end
+    local wasInVoidMeta = devourerVoidMetaInstanceID ~= nil
+
+    if not info or info.isFullUpdate then
+        SeedDevourer()
+    else
+        if info.addedAuras then
+            for _, a in ipairs(info.addedAuras) do
+                if IsSafeNumber(a.spellId) then
+                    if a.spellId == CDM_C.DEVOURER_RESOURCE_AURA_SPELL_ID then
+                        devourerResourceInstanceID = a.auraInstanceID
+                        devourerResourceStacks = a.applications or 0
+                    elseif a.spellId == CDM_C.DEVOURER_COLLAPSING_STAR_SPELL_ID then
+                        devourerCollapsingStarInstanceID = a.auraInstanceID
+                        devourerCollapsingStarStacks = a.applications or 0
+                    elseif a.spellId == CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID then
+                        devourerVoidMetaInstanceID = a.auraInstanceID
+                    end
+                end
+            end
+        end
+        if info.updatedAuraInstanceIDs then
+            for _, id in ipairs(info.updatedAuraInstanceIDs) do
+                if id == devourerResourceInstanceID then
+                    local a = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, id)
+                    devourerResourceStacks = a and a.applications or 0
+                elseif id == devourerCollapsingStarInstanceID then
+                    local a = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, id)
+                    devourerCollapsingStarStacks = a and a.applications or 0
+                end
+            end
+        end
+        if info.removedAuraInstanceIDs then
+            for _, id in ipairs(info.removedAuraInstanceIDs) do
+                if id == devourerResourceInstanceID then
+                    devourerResourceInstanceID = nil
+                    devourerResourceStacks = 0
+                elseif id == devourerCollapsingStarInstanceID then
+                    devourerCollapsingStarInstanceID = nil
+                    devourerCollapsingStarStacks = 0
+                elseif id == devourerVoidMetaInstanceID then
+                    devourerVoidMetaInstanceID = nil
+                end
+            end
+        end
+    end
+
+    local nowInVoidMeta = devourerVoidMetaInstanceID ~= nil
+    if nowInVoidMeta ~= wasInVoidMeta then
         UpdateBarPositions()
         return
     end
@@ -934,8 +975,6 @@ local function OnIronfurPlayerDead()
     guardianOfEluneExpiry = 0
 end
 
--- Enable/Disable pairs
-
 local function EnableVengeanceSoulTracking()
     res.RegisterResEvent("SPELL_UPDATE_USES", OnSpellUpdateUses)
     C_Timer.After(0.1, function()
@@ -964,6 +1003,7 @@ local function DisableBrewmasterTracking()
 end
 
 local function EnableMaelstromTracking()
+    SeedMaelstrom()
     res.RegisterResUnitEvent("UNIT_AURA", "player", OnMaelstromUnitAura)
     C_Timer.After(0.1, function()
         res.UpdateBarValue(CUSTOM_POWER_TYPES.MaelstromWeapon)
@@ -972,25 +1012,27 @@ end
 
 local function DisableMaelstromTracking()
     res.UnregisterResUnitEvent("UNIT_AURA")
-    StopMaelstromWatch()
+    maelstromInstanceID = nil
+    maelstromStacks = 0
 end
 
 local function EnableFeralOverflowingTracking()
+    SeedFeralOverflowing()
     res.RegisterResUnitEvent("UNIT_AURA", "player", OnFeralOverflowingUnitAura)
     C_Timer.After(0.1, function()
-        RefreshFeralOverflowingStacks()
         res.UpdateBarValue(POWER_TYPES.ComboPoints)
     end)
 end
 
 local function DisableFeralOverflowingTracking()
     res.UnregisterResUnitEvent("UNIT_AURA")
-    StopFeralOverflowingWatch()
+    feralOverflowingInstanceID = nil
     feralOverflowingStacks = 0
     res.UpdateBarValue(POWER_TYPES.ComboPoints)
 end
 
 local function EnableTipOfTheSpearTracking()
+    SeedTipOfTheSpear()
     res.RegisterResUnitEvent("UNIT_AURA", "player", OnTipOfTheSpearUnitAura)
     C_Timer.After(0.1, function()
         res.UpdateBarValue(CUSTOM_POWER_TYPES.TipOfTheSpear)
@@ -999,10 +1041,13 @@ end
 
 local function DisableTipOfTheSpearTracking()
     res.UnregisterResUnitEvent("UNIT_AURA")
-    StopTipOfTheSpearWatch()
+    tipOfTheSpearInstanceID = nil
+    tipOfTheSpearStacks = 0
+    tipOfTheSpearExpirationTime = nil
 end
 
 local function EnableDevourerTracking()
+    SeedDevourer()
     res.RegisterResUnitEvent("UNIT_AURA", "player", OnDevourerUnitAura)
     res.RegisterResEvent("SPELLS_CHANGED", OnDevourerSpellsChanged)
     C_Timer.After(0.1, function()
@@ -1013,6 +1058,11 @@ end
 local function DisableDevourerTracking()
     res.UnregisterResUnitEvent("UNIT_AURA")
     res.UnregisterResEvent("SPELLS_CHANGED")
+    devourerResourceInstanceID = nil
+    devourerResourceStacks = 0
+    devourerCollapsingStarInstanceID = nil
+    devourerCollapsingStarStacks = 0
+    devourerVoidMetaInstanceID = nil
 end
 
 local function EnableGuardianTracking()
@@ -1031,13 +1081,13 @@ local function DisableGuardianTracking()
     ClearIronfurState()
 end
 
-local function ApplyIgnorePainVisibility()
-    local hideIcon = CDM.db and CDM.db.resourcesIgnorePainHideIcon == true
+local function RefreshIgnorePainVisibility()
+    local hideIcon = CDM:GetBarSetting("IgnorePain", "hideIcon") == true
     CDM.resourcesHiddenBuffSet[IGNORE_PAIN_SPELL_ID] = hideIcon or nil
 end
 
 local function StartIgnorePainTracking()
-    ApplyIgnorePainVisibility()
+    RefreshIgnorePainVisibility()
     ignorePainScanRetries = 0
     C_Timer.After(0.2, ScanForIgnorePainFrame)
 end
@@ -1046,8 +1096,6 @@ local function StopIgnorePainTracking()
     CDM.resourcesHiddenBuffSet[IGNORE_PAIN_SPELL_ID] = nil
     ClearIgnorePainState()
 end
-
--- Rune batch dispatch
 
 local function RunePowerBatchCallback()
     runePowerUpdatePending = false
@@ -1068,8 +1116,6 @@ local function OnRunePowerUpdate(event, runeIndex, isEnergize)
     runePowerDispatchFrame:Show()
 end
 
--- Utility functions for Resources.lua
-
 local function OnTrackerProfileApplied()
     cachedFontPath = nil
     cachedFontSize = nil
@@ -1089,20 +1135,26 @@ local function DisableAllTrackerTickers()
         runeUpdateTicker:Cancel()
         runeUpdateTicker = nil
     end
-    if essenceUpdateTicker then
-        essenceUpdateTicker:Cancel()
-        essenceUpdateTicker = nil
+    local essenceBar = CDM.resourceBars and CDM.resourceBars[POWER_TYPES.Essence]
+    if essenceBar and essenceBar.pips then
+        for _, pip in ipairs(essenceBar.pips) do
+            pip:SetScript("OnUpdate", nil)
+        end
+        essenceBar.hasEssenceRecharging = false
     end
-    essenceRechargeStart = nil
-    essenceRechargeRate = nil
     guardianOfEluneExpiry = 0
-    StopFeralOverflowingWatch()
-    StopTipOfTheSpearWatch()
-    lastMaelstromAuraUpdateTime = 0
-    lastFeralOverflowingAuraUpdateTime = 0
-    lastTipOfTheSpearAuraUpdateTime = 0
-    lastDevourerAuraUpdateTime = 0
-    lastDevourerInVoidMeta = false
+    maelstromInstanceID = nil
+    maelstromStacks = 0
+    feralOverflowingInstanceID = nil
+    feralOverflowingStacks = 0
+    tipOfTheSpearInstanceID = nil
+    tipOfTheSpearStacks = 0
+    tipOfTheSpearExpirationTime = nil
+    devourerResourceInstanceID = nil
+    devourerResourceStacks = 0
+    devourerCollapsingStarInstanceID = nil
+    devourerCollapsingStarStacks = 0
+    devourerVoidMetaInstanceID = nil
 end
 
 local function OnShapeshiftGuardianCheck(currentPowerType)
@@ -1113,12 +1165,16 @@ local function OnShapeshiftGuardianCheck(currentPowerType)
     end
 end
 
-local function RefreshIgnorePainVisibility()
-    local hideIcon = CDM.db and CDM.db.resourcesIgnorePainHideIcon == true
-    CDM.resourcesHiddenBuffSet[IGNORE_PAIN_SPELL_ID] = hideIcon or nil
+res.IsRuneRecharging = function(pipIndex)
+    local runeIndex = runeSortOrder[pipIndex]
+    local rune = runeIndex and runeDataCache[runeIndex]
+    return rune and not rune.isReady or false
 end
-
--- Register on CDM._Res
+res.IsEssenceRecharging = function(pipIndex)
+    local current = UnitPower("player", POWER_TYPES.Essence)
+    local max = UnitPowerMax("player", POWER_TYPES.Essence)
+    return pipIndex == current + 1 and current < max
+end
 
 res.UpdateIronfurBar = UpdateIronfurBar
 res.UpdateStaggerBar = UpdateStaggerBar
@@ -1127,8 +1183,6 @@ res.UpdateRuneCooldowns = UpdateRuneCooldowns
 res.UpdateEssenceCooldowns = UpdateEssenceCooldowns
 res.UpdateTagTextForPowerType = UpdateTagTextForPowerType
 res.GetDevourerSoulValueMax = GetDevourerSoulValueMax
-res.IsDevourerSoulGluttonKnown = IsDevourerSoulGluttonKnown
-res.GetDevourerSoulMax = GetDevourerSoulMax
 res.OnRunePowerUpdate = OnRunePowerUpdate
 res.RefreshTrackerFontCache = RefreshTrackerFontCache
 res.RefreshCachedRuneTimerSlot = RefreshCachedRuneTimerSlot

@@ -14,6 +14,8 @@ local TRINKETS_COOLDOWN_WATCH_OWNER = "CDM_Trinkets"
 local TRINKETS_SPELL_WATCH_OWNER = "CDM_Trinkets_Spells"
 
 local getItemSpell = C_Item and C_Item.GetItemSpell
+local GetInventoryItemID = GetInventoryItemID
+local GetInventoryItemCooldown = GetInventoryItemCooldown
 
 local DEFENSIVES_EDGE_ANCHORS = {
     TOPLEFT = { point = "BOTTOMLEFT", relativePoint = "BOTTOMRIGHT", xSign = 1 },

@@ -4,6 +4,10 @@ local CDM = _G[AddonName]
 local getItemCooldown = C_Container and C_Container.GetItemCooldown
 local getInventoryItemCooldown = GetInventoryItemCooldown
 
+local pairs = pairs
+local next = next
+local type = type
+
 local watcherFrame = CreateFrame("Frame")
 local evaluatePending = false
 local dispatchFrame = CreateFrame("Frame")

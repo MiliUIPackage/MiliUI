@@ -6,6 +6,11 @@ local VIEWERS = CDM_C.VIEWERS
 
 local LCG = LibStub("LibCustomGlow-1.0", true)
 
+local GetFrameData = CDM.GetFrameData
+local pairs = pairs
+local ipairs = ipairs
+local type = type
+
 CDM.Glow = CDM.Glow or {}
 local Glow = CDM.Glow
 
@@ -81,7 +86,7 @@ end
 local function GetViewerName(frame)
     if not frame then return nil end
 
-    local frameData = CDM.GetFrameData(frame)
+    local frameData = GetFrameData(frame)
     if frameData.cdmViewerName then
         return frameData.cdmViewerName
     end
@@ -232,7 +237,7 @@ local glowStopFunctions = {
 local function ShowCustomGlow(frame, overrideColor)
     if not LCG then return end
 
-    local frameData = CDM.GetFrameData(frame)
+    local frameData = GetFrameData(frame)
 
     if frameData.cdmGlowActive and frameData.cdmGlowType == glowCache.type
        and ColorsMatch(frameData.cdmGlowOverrideColor, overrideColor) then
@@ -270,7 +275,7 @@ HideCustomGlow = function(frame)
 
     pendingHideFrames[frame] = nil
 
-    local frameData = CDM.GetFrameData(frame)
+    local frameData = GetFrameData(frame)
     if not frameData.cdmGlowActive then return end
 
     local fn = glowStopFunctions[frameData.cdmGlowType]
@@ -286,7 +291,7 @@ end
 
 local function EnsureBuffGlowHostFrame(frame)
     if not frame then return nil end
-    local frameData = CDM.GetFrameData(frame)
+    local frameData = GetFrameData(frame)
     local host = frameData.cdmBuffGlowHost
     if host then
         return host
@@ -304,7 +309,7 @@ end
 local function SyncBuffGlowHostFrame(frame, host)
     if not frame or not host then return end
 
-    local frameData = CDM.GetFrameData(frame)
+    local frameData = GetFrameData(frame)
 
     if frameData.cdmBuffGlowHostAnchorTarget ~= frame then
         host:SetParent(frame)
@@ -357,7 +362,7 @@ local function IsBuffGlowSourceStillValid(frame, sourceID)
     end
 
     local sourceBase = CDM.NormalizeToBase and CDM.NormalizeToBase(sourceID) or sourceID
-    local frameData = CDM.GetFrameData(frame)
+    local frameData = GetFrameData(frame)
     if DoesGlowSourceMatchID(sourceID, sourceBase, frameData.buffCategorySpellID) then
         return true
     end
@@ -384,10 +389,8 @@ local function EnsureBuffGlowTargetHooks(frame)
 
     buffHookedFrames[frame] = true
 
-    frame:HookScript("OnHide", function() end)
-
     frame:HookScript("OnShow", function(self)
-        local frameData = CDM.GetFrameData(self)
+        local frameData = GetFrameData(self)
         if not frameData.cdmBuffGlowWanted then
             return
         end
@@ -412,7 +415,7 @@ local function EnsureBuffGlowTargetHooks(frame)
     end)
 
     frame:HookScript("OnSizeChanged", function(self)
-        local frameData = CDM.GetFrameData(self)
+        local frameData = GetFrameData(self)
         local host = frameData.cdmBuffGlowHost
         if host and frameData.cdmBuffGlowWanted then
             SyncBuffGlowHostFrame(self, host)
@@ -426,7 +429,7 @@ end
 
 function Glow:StopGlow(frame)
     if frame then
-        local frameData = CDM.GetFrameData(frame)
+        local frameData = GetFrameData(frame)
         frameData.cdmBuffGlowWanted = nil
         frameData.cdmBuffGlowSourceID = nil
         frameData.cdmBuffGlowOverrideColor = nil
@@ -444,7 +447,7 @@ end
 function Glow:RequestBuffGlow(frame, enabled, overrideColor, sourceID)
     if not frame or not LCG then return end
 
-    local frameData = CDM.GetFrameData(frame)
+    local frameData = GetFrameData(frame)
     frameData.cdmBuffGlowWanted = enabled and true or false
     frameData.cdmBuffGlowOverrideColor = overrideColor
     frameData.cdmBuffGlowSourceID = sourceID
@@ -491,7 +494,7 @@ function Glow:RefreshActiveGlows()
     for i = 1, count do
         local frame = activeGlowSnapshot[i]
         activeGlowSnapshot[i] = nil
-        local frameData = CDM.GetFrameData(frame)
+        local frameData = GetFrameData(frame)
         if frameData.cdmGlowActive then
             local stopFn = glowStopFunctions[frameData.cdmGlowType]
             if stopFn then stopFn(frame) end
@@ -516,7 +519,7 @@ function Glow:HookAlertManager()
         pendingHideFrames[frame] = nil
 
         HideBlizzardGlow(frame)
-        local frameData = CDM.GetFrameData(frame)
+        local frameData = GetFrameData(frame)
         if frameData.cdmGlowActive and frameData.cdmGlowType == glowCache.type then
             return
         end
@@ -532,7 +535,7 @@ function Glow:HookAlertManager()
 
         HideBlizzardGlow(frame)
 
-        local frameData = CDM.GetFrameData(frame)
+        local frameData = GetFrameData(frame)
         if not frameData.cdmGlowActive then return end
 
         pendingHideFrames[frame] = true
@@ -561,7 +564,7 @@ function Glow:RefreshCache()
     glowCache.pixelThickness = GlowCfg(db, defaults, "glowPixelThickness")
     glowCache.pixelXOffset = GlowCfg(db, defaults, "glowPixelXOffset")
     glowCache.pixelYOffset = GlowCfg(db, defaults, "glowPixelYOffset")
-    glowCache.pixelBorder = false
+    glowCache.pixelBorder = GlowCfg(db, defaults, "glowPixelBorder") and true or false
 
     glowCache.autocastParticles = GlowCfg(db, defaults, "glowAutocastParticles")
     glowCache.autocastFrequency = GlowCfg(db, defaults, "glowAutocastFrequency")

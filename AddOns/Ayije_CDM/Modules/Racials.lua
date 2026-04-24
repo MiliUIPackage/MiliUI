@@ -39,13 +39,6 @@ local ITEMS = {
     { itemID = 224464, spellID = 452930, class = "WARLOCK", requiresWarlockAccess = true }, -- Demonic Healthstone
 }
 
-local combatLockoutSpells = {}
-for _, itemData in ipairs(ITEMS) do
-    if itemData.combatLockout and itemData.spellID then
-        combatLockoutSpells[itemData.spellID] = itemData.itemID
-    end
-end
-
 local BUILTIN_SPELL_SET = {}
 for _, spells in pairs(RACE_RACIALS) do
     for _, entry in ipairs(spells) do
@@ -67,6 +60,15 @@ local EMPTY = {}
 local itemResolveFrame
 local itemResolvePending = {}
 
+local GetSpellChargeDuration = C_Spell.GetSpellChargeDuration
+local GetSpellCooldownDuration = C_Spell.GetSpellCooldownDuration
+local GetSpellCooldown = C_Spell.GetSpellCooldown
+local GetSpellCharges = C_Spell.GetSpellCharges
+local GetContainerItemCooldown = C_Container.GetItemCooldown
+local GetItemCount = C_Item.GetItemCount
+local TruncateWhenZero = C_StringUtil.TruncateWhenZero
+local IsSpellInSpellBook = C_SpellBook.IsSpellInSpellBook
+
 local _, playerClass = UnitClass("player")
 
 local isInitialized = false
@@ -79,7 +81,6 @@ local racialsContainer
 local iconEntries = {}
 local iconFrames = {}
 local iconFramePool = {}
-local iconEntryPool = {}
 local playerRace
 local lastRacialsWidth, lastRacialsHeight = nil, nil
 local lastRacialsSpacing = nil
@@ -121,10 +122,6 @@ local function AnchorRacialsToPartyFrame(partyFrame, side, offsetX, offsetY)
 end
 
 -- Party anchor resolution (moved from TrackerUtils — only consumer is Racials)
-
-local cachedPartyFrame = nil
-local partyAnchorCacheVersion = 0
-local cachedPartyFrameVersion = -1
 
 local PARTY_BUTTON_COUNT = 5
 
@@ -189,73 +186,33 @@ local RAID_CONTAINER_SOURCES = {
 }
 
 local function ResolvePartyAnchorFrame()
-    if cachedPartyFrameVersion == partyAnchorCacheVersion then
-        local f = cachedPartyFrame
-        if not f or IsVisibleFrame(f) then
-            return f
-        end
-    end
-
-    local frame
     local dandersFrame = GetDandersFrameForUnit("player")
     if IsVisibleFrame(dandersFrame) then
-        frame = dandersFrame
+        return dandersFrame
     end
 
-    if not frame then
-        if IsInRaid() then
-            for _, c in ipairs(RAID_CONTAINER_SOURCES) do
-                if not c.addon or C_AddOns.IsAddOnLoaded(c.addon) then
-                    local f = _G[c.name]
-                    if IsVisibleFrame(f) then
-                        frame = f
-                        break
-                    end
-                end
-            end
-        else
-            for _, src in ipairs(PARTY_FRAME_SOURCES) do
-                if not src.addon or C_AddOns.IsAddOnLoaded(src.addon) then
-                    if src.fn then
-                        frame = FindGrid2PlayerButton()
-                    else
-                        frame = FindPlayerPartyButton(src.prefix, PARTY_BUTTON_COUNT)
-                    end
-                    if frame then break end
+    if IsInRaid() then
+        for _, c in ipairs(RAID_CONTAINER_SOURCES) do
+            if not c.addon or C_AddOns.IsAddOnLoaded(c.addon) then
+                local f = _G[c.name]
+                if IsVisibleFrame(f) then
+                    return f
                 end
             end
         end
+    else
+        for _, src in ipairs(PARTY_FRAME_SOURCES) do
+            if not src.addon or C_AddOns.IsAddOnLoaded(src.addon) then
+                local frame
+                if src.fn then
+                    frame = FindGrid2PlayerButton()
+                else
+                    frame = FindPlayerPartyButton(src.prefix, PARTY_BUTTON_COUNT)
+                end
+                if frame then return frame end
+            end
+        end
     end
-
-    cachedPartyFrame = frame
-    if frame then
-        cachedPartyFrameVersion = partyAnchorCacheVersion
-    end
-    return frame
-end
-
-local function InvalidatePartyAnchorCache()
-    partyAnchorCacheVersion = partyAnchorCacheVersion + 1
-end
-
-local function GetPartyAnchorFrame(forceRefresh)
-    if forceRefresh then
-        InvalidatePartyAnchorCache()
-    end
-    return ResolvePartyAnchorFrame()
-end
-
-local partyAnchorInvalidationFrame
-local function EnsurePartyAnchorInvalidation()
-    if partyAnchorInvalidationFrame then return end
-    partyAnchorInvalidationFrame = CreateFrame("Frame")
-    partyAnchorInvalidationFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
-    partyAnchorInvalidationFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    partyAnchorInvalidationFrame:RegisterEvent("LOADING_SCREEN_DISABLED")
-    partyAnchorInvalidationFrame:RegisterEvent("PLAYER_ROLES_ASSIGNED")
-    partyAnchorInvalidationFrame:SetScript("OnEvent", function()
-        InvalidatePartyAnchorCache()
-    end)
 end
 
 local racialsTrackerAcquireOpts = {
@@ -264,34 +221,16 @@ local racialsTrackerAcquireOpts = {
     named = false,
 }
 
-local function AcquireIconEntryRecord(id, isItem, itemSpellID, isCustom, combatLockout, alternateItemID)
-    local entry = table.remove(iconEntryPool)
-    if entry then
-        table.wipe(entry)
-    else
-        entry = {}
-    end
-
-    entry.id = id
-    entry.isItem = isItem
-    entry.itemSpellID = itemSpellID
-    entry.isCustom = isCustom
-    entry.combatLockout = combatLockout and true or false
-    entry.alternateItemID = alternateItemID
-    entry.requiresWarlockAccess = nil
-    entry.inCombatLockout = nil
-    entry._spellbookCached = nil
-    entry._itemDisplayCount = nil
-    entry._itemCountCacheToken = nil
-    entry._activeItemID = nil
-    entry.frame = nil
-    return entry
-end
-
-local function ReleaseIconEntryRecord(entry)
-    if not entry then return end
-    table.wipe(entry)
-    iconEntryPool[#iconEntryPool + 1] = entry
+local function BuildIconEntryRecord(entry)
+    return {
+        id = entry.id,
+        isItem = entry.isItem,
+        itemSpellID = entry.itemSpellID,
+        isCustom = entry.isCustom,
+        combatLockout = entry.combatLockout and true or false,
+        alternateItemID = entry.alternateItemID,
+        requiresWarlockAccess = entry.requiresWarlockAccess and true or false,
+    }
 end
 
 local cachedRacialsStyles = {
@@ -316,9 +255,9 @@ end
 local function GetCachedRacialItemDisplayCount(entry)
     if not entry then return nil end
     if entry._itemCountCacheToken ~= racialsItemCountCacheToken then
-        local count = C_Item.GetItemCount(entry.id, false, true)
+        local count = GetItemCount(entry.id, false, true)
         if count <= 0 and entry.alternateItemID then
-            local altCount = C_Item.GetItemCount(entry.alternateItemID, false, true)
+            local altCount = GetItemCount(entry.alternateItemID, false, true)
             if altCount > 0 then
                 entry._itemDisplayCount = altCount
                 entry._activeItemID = entry.alternateItemID
@@ -421,32 +360,6 @@ function CDM.GetOrderedRacialEntries(specID)
     return result
 end
 
-local function CreateIconFrame(id, isItem, itemSpellID, isCustom)
-    racialsTrackerAcquireOpts.size = CDM.GetTrackerIconSize("racialsIconWidth", "racialsIconHeight")
-    local frame = CDM.AcquireFromTrackerPool(iconFramePool, racialsContainer, "CDM_Racial_", id, racialsTrackerAcquireOpts)
-
-    frame.spellID = isItem and nil or id
-    frame.itemID = isItem and id or nil
-    frame.itemSpellID = itemSpellID
-    frame.isItem = isItem
-    frame.isCustomSpell = (isCustom and not isItem) or false
-    frame._spellbookCached = nil
-
-    local texture
-    if isItem then
-        texture = C_Item.GetItemIconByID(id)
-    else
-        texture = C_Spell.GetSpellTexture(CDM.GetEffectiveSpellID(id))
-    end
-
-    if texture and frame.Icon then
-        frame.Icon:SetTexture(texture)
-        frame.Icon:SetDesaturation(0)
-    end
-
-    return frame
-end
-
 local function SyncEntryToFrame(entry, frame)
     frame.spellID = entry.isItem and nil or entry.id
     frame.itemID = entry.isItem and entry.id or nil
@@ -464,7 +377,15 @@ local function BindEntryFrame(entry)
     local frame = entry.frame
     local boundNow = false
     if not frame then
-        frame = CreateIconFrame(entry.id, entry.isItem, entry.itemSpellID, entry.isCustom)
+        racialsTrackerAcquireOpts.size = CDM.GetTrackerIconSize("racialsIconWidth", "racialsIconHeight")
+        frame = CDM.AcquireFromTrackerPool(iconFramePool, racialsContainer, "CDM_Racial_", entry.id, racialsTrackerAcquireOpts)
+        local texture = entry.isItem
+            and C_Item.GetItemIconByID(entry.id)
+            or C_Spell.GetSpellTexture(CDM.GetEffectiveSpellID(entry.id))
+        if texture and frame.Icon then
+            frame.Icon:SetTexture(texture)
+            frame.Icon:SetDesaturation(0)
+        end
         entry.frame = frame
         boundNow = true
     end
@@ -517,6 +438,7 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
     local hasCharges = false
     local desatDurationObject = nil
     local desatSpellID = nil
+    local desatIsChargeSpell = false
     local itemCooldownActive = false
     local itemCount = nil
     local showEmptyItem = false
@@ -531,7 +453,7 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
         if updateCooldowns or updateCharges then
             itemCount = GetCachedRacialItemDisplayCount(entry)
             if itemCount == nil then
-                itemCount = C_Item.GetItemCount(itemID, false, true)
+                itemCount = GetItemCount(itemID, false, true)
             end
             showEmptyItem = itemCount ~= nil
                 and itemCount <= 0
@@ -540,17 +462,11 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
         end
 
         if updateCooldowns and itemSpellID then
-            local SCD = C_Spell.GetSpellCooldownDuration(itemSpellID)
-            local itemCdStart, itemCdDuration = C_Container.GetItemCooldown(entry and entry._activeItemID or itemID)
+            local realDur = GetSpellCooldownDuration(itemSpellID)
+            local itemCdStart, itemCdDuration = GetContainerItemCooldown(entry and entry._activeItemID or itemID)
             local hasItemCooldown = HasVisibleItemCooldown(itemCdStart, itemCdDuration)
 
-            local isOnGCD = false
-            if SCD then
-                local cdInfo = C_Spell.GetSpellCooldown(itemSpellID)
-                isOnGCD = cdInfo and cdInfo.isOnGCD or false
-            end
-
-            desatDurationObject = SCD
+            desatDurationObject = realDur
             desatSpellID = itemSpellID
 
             if hasItemCooldown then
@@ -561,13 +477,13 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
                 fd.cdmDurationObj:SetTimeFromStart(itemCdStart, itemCdDuration)
                 frame.Cooldown:SetCooldownFromDurationObject(fd.cdmDurationObj)
                 itemCooldownActive = true
-            elseif not isOnGCD and SCD then
-                frame.Cooldown:SetCooldownFromDurationObject(SCD)
+            elseif realDur then
+                frame.Cooldown:SetCooldownFromDurationObject(realDur)
             else
                 frame.Cooldown:Clear()
             end
         elseif updateCooldowns then
-            local startTime, durationSeconds, enableCooldownTimer = C_Container.GetItemCooldown(entry and entry._activeItemID or itemID)
+            local startTime, durationSeconds, enableCooldownTimer = GetContainerItemCooldown(entry and entry._activeItemID or itemID)
 
             if HasVisibleItemCooldown(startTime, durationSeconds) then
                 local fd = CDM.GetFrameData(frame)
@@ -601,40 +517,30 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
         local effectiveID = CDM.GetEffectiveSpellID(spellID)
 
         if updateCooldowns then
-            local CCD = C_Spell.GetSpellChargeDuration(effectiveID)
-            local SCD = C_Spell.GetSpellCooldownDuration(effectiveID)
+            local chargeDur = GetSpellChargeDuration(effectiveID)
+            local scd = GetSpellCooldownDuration(effectiveID)
 
-            local isOnGCD = false
-            if SCD then
-                local cdInfo = C_Spell.GetSpellCooldown(effectiveID)
-                isOnGCD = cdInfo and cdInfo.isOnGCD or false
-            end
-
-            local racialsChargeInfo = C_Spell.GetSpellCharges(effectiveID)
+            local racialsChargeInfo = GetSpellCharges(effectiveID)
             local isChargeSpell = racialsChargeInfo and racialsChargeInfo.maxCharges and racialsChargeInfo.maxCharges > 1
 
-            desatDurationObject = SCD
+            desatDurationObject = scd
             desatSpellID = effectiveID
+            desatIsChargeSpell = isChargeSpell == true
 
-            if not isOnGCD then
-                local durObj = (isChargeSpell and CCD) or SCD
-                if durObj then
-                    frame.Cooldown:SetCooldownFromDurationObject(durObj)
-                else
-                    frame.Cooldown:Clear()
-                end
+            local durObj = (isChargeSpell and chargeDur) or scd
+            if durObj then
+                frame.Cooldown:SetCooldownFromDurationObject(durObj)
             else
                 frame.Cooldown:Clear()
             end
-
         end
 
         if updateCharges then
-            local chargeInfo = C_Spell.GetSpellCharges(effectiveID)
+            local chargeInfo = GetSpellCharges(effectiveID)
             if chargeInfo and chargeInfo.maxCharges and chargeInfo.maxCharges > 1 and chargeInfo.currentCharges then
                 local chargeText = CDM.EnsureTrackerChargeWidgets(frame)
                 if chargeText then
-                    chargeText:SetText(C_StringUtil.TruncateWhenZero(chargeInfo.currentCharges))
+                    chargeText:SetText(TruncateWhenZero(chargeInfo.currentCharges))
                 end
                 hasCharges = true
             end
@@ -650,14 +556,11 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
         elseif showEmptyItem then
             frame.Icon:SetDesaturation(1)
         elseif desatDurationObject and desatDurationObject.EvaluateRemainingDuration then
-            local cdInfo = desatSpellID and C_Spell.GetSpellCooldown(desatSpellID)
-            if cdInfo and cdInfo.isActive then
-                local gcdResult = CDM.EvaluateGCDFilteredDesaturation(desatDurationObject)
-                if gcdResult then
-                    frame.Icon:SetDesaturation(gcdResult)
-                else
-                    frame.Icon:SetDesaturation(desatDurationObject:EvaluateRemainingDuration(DesaturationCurve, 0) or 0)
-                end
+            local cdInfo = desatSpellID and GetSpellCooldown(desatSpellID)
+            local onRealCD = cdInfo and cdInfo.isActive and (desatIsChargeSpell and cdInfo.isOnGCD == false
+                or not desatIsChargeSpell and cdInfo.isOnGCD ~= true)
+            if onRealCD then
+                frame.Icon:SetDesaturation(desatDurationObject:EvaluateRemainingDuration(DesaturationCurve, 0) or 0)
             else
                 frame.Icon:SetDesaturation(0)
             end
@@ -768,10 +671,10 @@ PlayerHasAbility = function(entry)
 
     local known
     if entry.isCustom and not entry.isItem then
-        known = C_SpellBook.IsSpellInSpellBook(entry.id)
-            or C_SpellBook.IsSpellInSpellBook(entry.id, Enum.SpellBookSpellBank.Pet)
+        known = IsSpellInSpellBook(entry.id)
+            or IsSpellInSpellBook(entry.id, Enum.SpellBookSpellBank.Pet)
     else
-        known = C_SpellBook.IsSpellInSpellBook(entry.id)
+        known = IsSpellInSpellBook(entry.id)
     end
 
     entry._spellbookCached = known
@@ -789,7 +692,7 @@ local function UpdateContainerPosition()
     local usePartyFrame = CDM.db and CDM.db.racialsUsePartyFrame or false
 
     if usePartyFrame then
-        local partyFrame = GetPartyAnchorFrame()
+        local partyFrame = ResolvePartyAnchorFrame()
 
         if partyFrame then
             local side = CDM.db and CDM.db.racialsPartyFrameSide or "LEFT"
@@ -1126,7 +1029,6 @@ function CDM:InitializeRacials()
 
     racialsContainer = CDM.CreateTrackerContainer("CDM_RacialsContainer")
 
-    EnsurePartyAnchorInvalidation()
     UpdateContainerPosition()
 
     local _, race = UnitRace("player")
@@ -1135,16 +1037,7 @@ function CDM:InitializeRacials()
     lastRacialsSpecID = CDM:GetCurrentSpecID()
     local ordered = CDM.GetOrderedRacialEntries(lastRacialsSpecID)
     for _, entry in ipairs(ordered) do
-        local iconEntry = AcquireIconEntryRecord(
-            entry.id,
-            entry.isItem,
-            entry.itemSpellID,
-            entry.isCustom,
-            entry.combatLockout,
-            entry.alternateItemID
-        )
-        iconEntry.requiresWarlockAccess = entry.requiresWarlockAccess and true or false
-        iconEntries[#iconEntries + 1] = iconEntry
+        iconEntries[#iconEntries + 1] = BuildIconEntryRecord(entry)
     end
 
     EventUtil.RegisterOnceFrameEventAndCallback("PLAYER_ENTERING_WORLD", function()
@@ -1165,12 +1058,9 @@ function CDM:InitializeRacials()
             QueueRacialsUpdate(RACIALS_UPDATE_LAYOUT)
         elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
             local castSpellID = arg3
-            local matchedItemBackedSpell = false
-
             if castSpellID then
                 for _, entry in ipairs(iconEntries) do
-                    if entry.isItem and entry.itemSpellID and entry.itemSpellID == castSpellID then
-                        matchedItemBackedSpell = true
+                    if entry.isItem and entry.itemSpellID == castSpellID then
                         if entry.combatLockout and InCombatLockdown() then
                             entry.inCombatLockout = true
                             if entry.frame then
@@ -1180,20 +1070,6 @@ function CDM:InitializeRacials()
                         QueueRacialsUpdate(RACIALS_UPDATE_ITEMS)
                         break
                     end
-                end
-
-                if (not matchedItemBackedSpell) and combatLockoutSpells[castSpellID] and InCombatLockdown() then
-                    local targetItemID = combatLockoutSpells[castSpellID]
-                    for _, entry in ipairs(iconEntries) do
-                        if entry.isItem and entry.id == targetItemID then
-                            entry.inCombatLockout = true
-                            if entry.frame then
-                                entry.frame.inCombatLockout = true
-                            end
-                            break
-                        end
-                    end
-                    QueueRacialsUpdate(RACIALS_UPDATE_ITEMS)
                 end
             end
         elseif event == "SPELLS_CHANGED" then
@@ -1363,7 +1239,6 @@ function CDM:ReinitRacialIcons()
     CDM.WipeEffectiveIDCache()
     for _, entry in ipairs(iconEntries) do
         ReleaseEntryFrame(entry)
-        ReleaseIconEntryRecord(entry)
     end
     table.wipe(iconEntries)
     table.wipe(iconFrames)
@@ -1371,16 +1246,7 @@ function CDM:ReinitRacialIcons()
 
     local ordered = CDM.GetOrderedRacialEntries(CDM:GetCurrentSpecID())
     for _, entry in ipairs(ordered) do
-        local iconEntry = AcquireIconEntryRecord(
-            entry.id,
-            entry.isItem,
-            entry.itemSpellID,
-            entry.isCustom,
-            entry.combatLockout,
-            entry.alternateItemID
-        )
-        iconEntry.requiresWarlockAccess = entry.requiresWarlockAccess and true or false
-        iconEntries[#iconEntries + 1] = iconEntry
+        iconEntries[#iconEntries + 1] = BuildIconEntryRecord(entry)
     end
     needsStyleUpdate = true
     if isEnabled then
@@ -1493,6 +1359,9 @@ local function OnRacialsProfileApplied()
     lastRacialsSpacing = nil
     lastVisibilityHash = -1
     InvalidateSpellbookCache()
+    if racialsContainer then
+        CDM.InvalidateTrackerAnchorCache(racialsContainer)
+    end
 end
 
 local function RefreshRacialsLifecycle()

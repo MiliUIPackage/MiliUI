@@ -1,6 +1,8 @@
 local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
 
+local ipairs = ipairs
+
 local combatHandlers = {}
 local specHandlers = {}
 local talentHandlers = {}

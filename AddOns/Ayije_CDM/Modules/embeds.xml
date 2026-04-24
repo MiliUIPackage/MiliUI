@@ -2,6 +2,7 @@
 ..\FrameXML\UI.xsd">
     <Script file="Resources.lua"/>
     <Script file="Resources_Trackers.lua"/>
+    <Script file="Resources_Conditions.lua"/>
     <Script file="Tags.lua"/>
     <Script file="Racials.lua"/>
     <Script file="Defensives.lua"/>

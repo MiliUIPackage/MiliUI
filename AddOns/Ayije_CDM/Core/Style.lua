@@ -15,11 +15,20 @@ local math_max = math.max
 local math_abs = math.abs
 local GetTime = GetTime
 local issecretvalue = issecretvalue
+local select = select
+local ipairs = ipairs
+local GetSpellCooldown = C_Spell.GetSpellCooldown
+local GetSpellCooldownDuration = C_Spell.GetSpellCooldownDuration
+local GetSpellChargeDuration = C_Spell.GetSpellChargeDuration
 
 local VIEWERS = CDM_C.VIEWERS
 local VIEWERS_WITH_OVERRIDE = CDM_C.VIEWERS_WITH_OVERRIDE
 local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
+
+local styleBorderCtx = { active = false, color = nil, version = 0, force = false }
+local iconBorderCtx = { active = false, color = nil, version = 0 }
+local barBorderCtx = { active = false, color = nil, version = 0 }
 
 local VIEWER_DESC = {
     [VIEWERS.ESSENTIAL] = {
@@ -115,8 +124,6 @@ end
 local styleCache = {}
 local lastStyleCacheVersion = -1
 local DEFAULT_WHITE_COLOR = { r = 1, g = 1, b = 1, a = 1 }
-local BORDER_OPTS_FORCE  = { forceUpdate = true }
-local BORDER_OPTS_NORMAL = { forceUpdate = false }
 
 function CDM_C.GetEffectiveZoomAmount()
     if lastStyleCacheVersion < 0 then
@@ -158,7 +165,7 @@ local function RefreshStyleCache()
     styleCache.hideGCDSwipe = CfgValue(db, defaults, "hideGCDSwipe", false)
     styleCache.textFont = CfgValue(db, defaults, "textFont", "Friz Quadrata TT")
     local rawOutline = CfgValue(db, defaults, "textFontOutline", "OUTLINE")
-    styleCache.textFontOutline = (rawOutline == "NONE") and "" or rawOutline
+    styleCache.textFontOutline = CDM_C.ResolveOutlineFlags(rawOutline)
 
     styleCache.cooldownFontSize = CfgValue(db, defaults, "cooldownFontSize", 12)
     styleCache.cooldownColor = CfgValue(db, defaults, "cooldownColor", DEFAULT_WHITE_COLOR)
@@ -311,34 +318,33 @@ end
 local function ApplyAuraStateBody(frame, spellID, frameData)
     local tex = frame.Icon
 
-    local durObj = spellID and C_Spell.GetSpellCooldownDuration(spellID)
-
     local hasChargeSource = false
     if type(frame.HasVisualDataSource_Charges) == "function" then
         hasChargeSource = not not frame:HasVisualDataSource_Charges()
     end
+    local chargeDurObj = hasChargeSource and spellID and GetSpellChargeDuration(spellID)
+    local useChargePath = hasChargeSource and chargeDurObj
 
-    local chargeDurObj = hasChargeSource and spellID and C_Spell.GetSpellChargeDuration(spellID)
+    local realDur, desatValue
+    if not useChargePath then
+        realDur = spellID and GetSpellCooldownDuration(spellID, true)
+        desatValue = (realDur and realDur:EvaluateRemainingDuration(DesaturationCurve, 0)) or 0
+    end
 
-    local gcdDesatResult
-
-    local cdInfo = spellID and C_Spell.GetSpellCooldown(spellID)
-    local isOnGCD = cdInfo and cdInfo.isOnGCD or false
+    local swipeDur
+    if useChargePath then
+        swipeDur = chargeDurObj
+    elseif styleCache.hideGCDSwipe then
+        swipeDur = realDur
+    else
+        swipeDur = spellID and GetSpellCooldownDuration(spellID, false)
+    end
 
     if tex and tex.SetDesaturation then
-        if durObj and not hasChargeSource and cdInfo and cdInfo.isActive and durObj.EvaluateRemainingDuration then
-            if isOnGCD then
-                gcdDesatResult = CDM.EvaluateGCDFilteredDesaturation(durObj)
-                if gcdDesatResult then
-                    tex:SetDesaturation(gcdDesatResult)
-                else
-                    tex:SetDesaturation(durObj:EvaluateRemainingDuration(DesaturationCurve, 0) or 0)
-                end
-            else
-                tex:SetDesaturation(durObj:EvaluateRemainingDuration(DesaturationCurve, 0) or 0)
-            end
-        else
+        if hasChargeSource then
             tex:SetDesaturation(0)
+        else
+            tex:SetDesaturation(desatValue)
         end
     end
 
@@ -346,33 +352,16 @@ local function ApplyAuraStateBody(frame, spellID, frameData)
         frame.Cooldown:SetUseAuraDisplayTime(false)
     end
 
-    if hasChargeSource and chargeDurObj then
-        frame.Cooldown:SetCooldownFromDurationObject(chargeDurObj)
-        if frame.Cooldown.SetDrawSwipe then
-            frame.Cooldown:SetDrawSwipe(true)
-        end
-    elseif durObj then
-        frame.Cooldown:SetCooldownFromDurationObject(durObj)
-        if frame.Cooldown.SetDrawSwipe then
-            frame.Cooldown:SetDrawSwipe(true)
-        end
-    elseif isOnGCD then
-        if frame.Cooldown.Clear then
-            frame.Cooldown:Clear()
-        end
+    if swipeDur then
+        frame.Cooldown:SetCooldownFromDurationObject(swipeDur)
+        frame.Cooldown:SetDrawSwipe(true)
+    else
+        frame.Cooldown:Clear()
     end
 
-    if frame.Cooldown.SetSwipeColor then
-        local sc = styleCache.swipeColor or CDM_C.SWIPE_COLOR
-        if styleCache.hideGCDSwipe and gcdDesatResult then
-            frame.Cooldown:SetSwipeColor(sc.r, sc.g, sc.b, gcdDesatResult)
-        else
-            frame.Cooldown:SetSwipeColor(sc.r, sc.g, sc.b, sc.a)
-        end
-    end
-    if frame.Cooldown.SetDrawEdge then
-        frame.Cooldown:SetDrawEdge(false)
-    end
+    local sc = styleCache.swipeColor or CDM_C.SWIPE_COLOR
+    frame.Cooldown:SetSwipeColor(sc.r, sc.g, sc.b, sc.a)
+    frame.Cooldown:SetDrawEdge(false)
 end
 
 local function FindAuraOverlayEntry(frame)
@@ -496,11 +485,8 @@ local function GetReadyGlowDecision(frame, frameData, entry, spellID)
         return false, false
     end
 
-    local cdInfo = C_Spell.GetSpellCooldown(spellID)
-    if not cdInfo then
-        return false, false
-    end
-
+    local cdInfo = GetSpellCooldown(spellID)
+    if not cdInfo then return false, false end
     return true, not cdInfo.isActive or cdInfo.isOnGCD
 end
 
@@ -563,10 +549,6 @@ function CDM:ApplyBuffVisualState(frame)
     if styleCache.hideDebuffBorder and frame.DebuffBorder then
         frame.DebuffBorder:Hide()
     end
-
-    if styleCache.hidePandemicIndicator and frame.PandemicIcon then
-        frame.PandemicIcon:Hide()
-    end
 end
 
 function CDM:ProcessBuffViewerOverrides(frame)
@@ -579,8 +561,40 @@ function CDM:ProcessBuffViewerOverrides(frame)
     frameData.isProcessingBuffOverride = false
 end
 
+local function EnsureCooldownStateInit(frame, frameData)
+    if not frame or not frame.Cooldown then return end
+
+    if not frameData.cdmCooldownInitDone then
+        if frame.Cooldown.SetDrawEdge then
+            frame.Cooldown:SetDrawEdge(false)
+        end
+        frameData.cdmCooldownInitDone = true
+    end
+
+    local styleVersion = CDM.styleCacheVersion or 0
+    if frameData.cdmLastCooldownStyleVer == styleVersion then return end
+    frameData.cdmLastCooldownStyleVer = styleVersion
+
+    if frame.Cooldown.SetSwipeColor then
+        local sc = styleCache.swipeColor or CDM_C.SWIPE_COLOR
+        frame.Cooldown:SetSwipeColor(sc.r, sc.g, sc.b, sc.a)
+    end
+
+    if frame.Cooldown.SetSwipeTexture then
+        if styleCache.zoomIcons then
+            frame.Cooldown:SetSwipeTexture(CDM_C.TEX_WHITE8X8)
+        else
+            frame.Cooldown:SetSwipeTexture(DEFAULT_COOLDOWN_ICON_SWIPE_TEXTURE)
+        end
+    end
+end
+
 local function EnsureFrameHooks(frame, frameData, hookType)
     if not frame then return end
+
+    if hookType ~= "bar" then
+        EnsureCooldownStateInit(frame, frameData)
+    end
 
     if (hookType == "buff" or hookType == "bar") and frame.DebuffBorder and not frameData.debuffBorderHooked then
         frameData.debuffBorderHooked = true
@@ -637,54 +651,12 @@ local function ApplyIconTextureLayout(texture, frame, iconWidth, iconHeight, zoo
     Pixel.DisableTextureSnap(texture)
 end
 
-local function GetResolvedBorderTexturePath()
-    local borderKey = CDM_C.GetConfigValue("borderFile", "Ayije_Thin")
-    if borderKey == "None" then
-        return nil
-    end
-
-    if LSM then
-        local path = LSM:Fetch("border", borderKey)
-        if path and path ~= "" then
-            return path
-        end
-    end
-
-    return "Interface\\AddOns\\Ayije_CDM\\Media\\Borders\\Ayije_Thin.tga"
-end
-
-local function EnsurePixelIconBorder(frameData, frame)
-    if not frameData.pixelIconBorderFrame then
-        local overlay = CreateFrame("Frame", nil, frame)
-        overlay:SetAllPoints(frame)
-        if frame.GetFrameStrata then
-            overlay:SetFrameStrata(frame:GetFrameStrata())
-        end
-        overlay:SetFrameLevel(frame:GetFrameLevel() + 3)
-        frameData.pixelIconBorderFrame = overlay
-
-        frameData.pixelIconBorderLines = {}
-        for i = 1, 4 do
-            frameData.pixelIconBorderLines[i] = Pixel.CreateSolidTexture(overlay, "OVERLAY", 6)
-        end
-    end
-
-    local overlay = frameData.pixelIconBorderFrame
-    overlay:SetAllPoints(frame)
-    if frame.GetFrameStrata then
-        overlay:SetFrameStrata(frame:GetFrameStrata())
-    end
-    overlay:SetFrameLevel(frame:GetFrameLevel() + 3)
-    overlay:Show()
-    return overlay, frameData.pixelIconBorderLines
-end
-
-local function RemoveBarIconMask(iconFrame, iconTexture, frameData)
+local function RemoveBlizzardIconMask(iconFrame, iconTexture, frameData, flagName)
     if not (iconFrame and iconTexture and iconTexture.RemoveMaskTexture and frameData) then
         return
     end
 
-    if frameData.cdmBarIconMaskRemoved then
+    if frameData[flagName] then
         return
     end
 
@@ -694,153 +666,58 @@ local function RemoveBarIconMask(iconFrame, iconTexture, frameData)
         if region and region.IsObjectType and region:IsObjectType("MaskTexture") then
             if SafeEquals(region:GetAtlas(), BLIZZARD_ICON_MASK_ATLAS) then
                 pcall(iconTexture.RemoveMaskTexture, iconTexture, region)
-                frameData.cdmBarIconMaskRemoved = true
+                frameData[flagName] = true
+                frameData[flagName .. "Source"] = region
                 break
             end
         end
     end
 end
 
-local function HidePixelIconBorder(frameData)
-    if frameData and frameData.pixelIconBorderFrame then
-        frameData.pixelIconBorderFrame:Hide()
-    end
-end
-
-local function ApplyPixelIconBorder(frameData, frame, color)
-    local overlay, lines = EnsurePixelIconBorder(frameData, frame)
-    local onePx = Pixel.GetSize()
-    local px = math_max(1, math_floor((styleCache.borderSize or 1) / onePx)) * onePx
-    Pixel.ApplyBorderLines(lines, overlay, px,
-        (color and color.r) or 1, (color and color.g) or 1,
-        (color and color.b) or 1, (color and color.a) or 1)
-end
-
-local function EnsurePixelContentMask(frameData, frame)
-    if not (frame and frame.CreateMaskTexture) then
-        return nil
-    end
-
-    if not frameData.pixelContentMask then
-        local mask = frame:CreateMaskTexture(nil, "ARTWORK")
-        mask:SetTexture(CDM_C.TEX_WHITE8X8)
-        Pixel.DisableTextureSnap(mask)
-        frameData.pixelContentMask = mask
-    end
-
-    frameData.pixelContentMask:SetAllPoints(frame)
-    return frameData.pixelContentMask
-end
-
-local function TryAddMaskTexture(region, mask, flagName, frameData)
-    if region and region.AddMaskTexture and not frameData[flagName] then
-        region:AddMaskTexture(mask)
-        frameData[flagName] = true
-    end
-end
-
-local function TryRemoveMaskTexture(region, mask, flagName, frameData)
-    if mask and region and region.RemoveMaskTexture and frameData[flagName] then
-        pcall(region.RemoveMaskTexture, region, mask)
-        frameData[flagName] = false
-    end
-end
-
-local function ApplyPixelContentClip(frameData, frame)
-    local mask = EnsurePixelContentMask(frameData, frame)
-    if not mask then
-        if frame and frame.SetClipsChildren then
-            frame:SetClipsChildren(true)
-        end
-        frameData.pixelContentClipUsesFrameClip = true
+local function RestoreBlizzardIconMask(iconTexture, frameData, flagName)
+    if not (iconTexture and iconTexture.AddMaskTexture and frameData) then
         return
     end
-
-    local icon = frame and frame.Icon
-    TryAddMaskTexture(icon, mask, "pixelIconMaskApplied", frameData)
-
-    local cooldown = frame and frame.Cooldown
-    TryAddMaskTexture(cooldown, mask, "pixelCooldownMaskApplied", frameData)
-
-    if frame and frame.SetClipsChildren then
-        frame:SetClipsChildren(false)
+    if not frameData[flagName] then
+        return
     end
-    frameData.pixelContentClipUsesFrameClip = false
-end
-
-local function RemovePixelContentClip(frameData, frame)
-    if not frameData then return end
-
-    local mask = frameData.pixelContentMask
-    local icon = frame and frame.Icon
-    TryRemoveMaskTexture(icon, mask, "pixelIconMaskApplied", frameData)
-
-    local cooldown = frame and frame.Cooldown
-    TryRemoveMaskTexture(cooldown, mask, "pixelCooldownMaskApplied", frameData)
-
-    if frame and frame.SetClipsChildren and frameData.pixelContentClipUsesFrameClip then
-        frame:SetClipsChildren(false)
+    local source = frameData[flagName .. "Source"]
+    if source then
+        pcall(iconTexture.AddMaskTexture, iconTexture, source)
     end
-    frameData.pixelContentClipUsesFrameClip = false
+    frameData[flagName] = false
+    frameData[flagName .. "Source"] = nil
 end
 
-local function DisablePixelIconBorderMode(frameData, frame)
-    HidePixelIconBorder(frameData)
-    RemovePixelContentClip(frameData, frame)
-end
-
-local function EnsureIconBorder(store, host, borderKey, ctx, pixelStore, borderIsPixelTarget)
-    pixelStore = pixelStore or store
-    local barMode = (pixelStore ~= store)
+local function EnsureIconBorder(store, host, borderKey, ctx)
     local bf = store[borderKey]
 
-    if ctx.active then
-        if not bf then
-            bf = CreateFrame("Frame", nil, host, "BackdropTemplate")
-            bf:SetAllPoints()
-            store[borderKey] = bf
-        end
-
-        local borderForce = ctx.force or (store[borderKey .. "VersionApplied"] ~= ctx.version)
-        local pixelTarget = borderIsPixelTarget and bf or host
-
-        if ctx.usePixel then
-            if bf.border then
-                bf.border:Hide()
-            end
-            local refreshNeeded = ctx.refreshNeeded or borderForce or ctx.modeChanged
-            if refreshNeeded then
-                ApplyPixelIconBorder(pixelStore, pixelTarget, ctx.color)
-                if not barMode then
-                    ApplyPixelContentClip(pixelStore, pixelTarget)
-                end
-            end
-            store[borderKey .. "VersionApplied"] = ctx.version
-            store[borderKey .. "Initialized"] = true
-        else
-            DisablePixelIconBorderMode(pixelStore, pixelTarget)
-            local needCreate = ctx.refreshNeeded or ctx.modeChanged
-                or not store[borderKey .. "Initialized"] or borderForce
-            if BORDER and BORDER.CreateBorder and needCreate then
-                BORDER:CreateBorder(bf, (borderForce or ctx.modeChanged) and BORDER_OPTS_FORCE or BORDER_OPTS_NORMAL)
-                store[borderKey .. "Initialized"] = true
-                store[borderKey .. "VersionApplied"] = ctx.version
-                if barMode then
-                    local inner = bf.border
-                    if inner and inner.SetBackdropBorderColor then
-                        ctx.color = ctx.color or styleCache.borderColor
-                        inner:SetBackdropBorderColor(ctx.color.r, ctx.color.g, ctx.color.b, 1)
-                    end
-                end
-            end
-        end
-    else
-        if pixelStore then
-            DisablePixelIconBorderMode(pixelStore, borderIsPixelTarget and bf or host)
-        end
+    if not ctx.active then
         if bf and bf.border then
             bf.border:Hide()
         end
+        return
+    end
+
+    if not bf then
+        bf = CreateFrame("Frame", nil, host)
+        bf:SetAllPoints()
+        store[borderKey] = bf
+    end
+
+    local versionKey = borderKey .. "Version"
+    local needRefresh = ctx.force or store[versionKey] ~= ctx.version or not bf.border
+
+    if needRefresh then
+        BORDER:CreateBorder(bf, { forceUpdate = true })
+        store[versionKey] = ctx.version
+        local inner = bf.border
+        if inner and inner.SetBackdropBorderColor then
+            local color = ctx.color or styleCache.borderColor
+            inner:SetBackdropBorderColor(color.r, color.g, color.b, 1)
+        end
+    elseif bf.border and not bf.border:IsShown() then
+        bf.border:Show()
     end
 end
 
@@ -875,8 +752,6 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
     end
 
     local borderActive = styleCache.isBorderActive
-    local usePixelIconBorder = borderActive and (isCooldown or isBuff) and styleCache.isOneBorderMode
-    local pixelBorderModeChanged = (frameData.cdmUsePixelIconBorder ~= usePixelIconBorder)
 
     local iconWidth, iconHeight
     if groupData then
@@ -897,12 +772,18 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
     local actualW = frame:GetWidth() or 0
     local actualH = frame:GetHeight() or 0
 
+    local currentCatID = frameData.buffCategorySpellID
+    local currentBorderOverride = frameData.cdmBorderColorOverride
+    local currentBorderStyleVer = CDM.borderStyleVersion or 0
+
     local needsVisualUpdate = fullUpdate
         or frameData.cdmLastStyleVersion ~= styleVersion
         or frameData.cdmLastStyledW ~= iconWidth
         or frameData.cdmLastStyledH ~= iconHeight
-        or pixelBorderModeChanged
         or frameData.cdmLastFontSpellID ~= fontSpellID
+        or (isBuff and frameData.cdmLastBuffCatID ~= currentCatID)
+        or (isBuff and frameData.cdmLastBorderOverride ~= currentBorderOverride)
+        or (isBuff and frameData.cdmLastBorderStyleVer ~= currentBorderStyleVer)
         or (actualW > 1 and math_abs(actualW - iconWidth) > 0.01)
         or (actualH > 1 and math_abs(actualH - iconHeight) > 0.01)
 
@@ -933,17 +814,6 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
             frame.Cooldown:ClearAllPoints()
             frame.Cooldown:SetAllPoints(frame)
 
-            if frame.Cooldown.SetSwipeTexture then
-                if zoomIcons then
-                    frame.Cooldown:SetSwipeTexture(CDM_C.TEX_WHITE8X8)
-                else
-                    frame.Cooldown:SetSwipeTexture(DEFAULT_COOLDOWN_ICON_SWIPE_TEXTURE)
-                end
-            end
-            if frame.Cooldown.SetDrawEdge then
-                frame.Cooldown:SetDrawEdge(false)
-            end
-
             if frame.Cooldown.SetCountdownFont then
                 frame.Cooldown:SetCountdownFont(isBuff and "AyijeCDM_CDFont_Buff" or "AyijeCDM_CDFont")
             end
@@ -959,17 +829,20 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
             frameData.cdmOverlayTextureHidden = hideTexture
         end
 
-        local borderCtx = {
-            active = borderActive,
-            usePixel = usePixelIconBorder,
-            color = frameData.cdmBorderColorOverride or styleCache.borderColor,
-            version = CDM.borderStyleVersion or 0,
-            force = forceUpdate,
-            refreshNeeded = fullUpdate or needsVisualUpdate or pixelBorderModeChanged,
-            modeChanged = pixelBorderModeChanged,
-        }
-        EnsureIconBorder(frameData, frame, "borderFrame", borderCtx)
-        frameData.cdmUsePixelIconBorder = borderActive and usePixelIconBorder or false
+        if hideTexture then
+            local iconTex = frame.Icon
+            if iconTex then
+                RemoveBlizzardIconMask(frame, iconTex, frameData, "cdmIconMaskRemoved")
+            end
+        elseif frameData.cdmIconMaskRemoved then
+            RestoreBlizzardIconMask(frame.Icon, frameData, "cdmIconMaskRemoved")
+        end
+
+        styleBorderCtx.active = borderActive
+        styleBorderCtx.color = frameData.cdmBorderColorOverride or styleCache.borderColor
+        styleBorderCtx.version = CDM.borderStyleVersion or 0
+        styleBorderCtx.force = forceUpdate
+        EnsureIconBorder(frameData, frame, "borderFrame", styleBorderCtx)
 
         if isCooldown then
             if frame.ChargeCount then
@@ -1011,7 +884,7 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                         styleCache.countOffsetXMain, styleCache.countOffsetYMain)
                 end
 
-                frameData.cdmLastCountFS = nil
+                frameData.countStyle = nil
             end
 
         end
@@ -1108,11 +981,48 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
             end
         end
 
+        if isBuff then
+            local borderInner = frameData.borderFrame and frameData.borderFrame.border
+            if borderInner and borderInner.SetBackdropBorderColor then
+                local configColor = styleCache.borderColor
+                local r, g, b = configColor.r, configColor.g, configColor.b
+
+                local customColor
+                local candidates = GetSpellIDCandidates(self, frame)
+                for _, id in ipairs(candidates) do
+                    customColor = GetColorForSpellID(id)
+                    if customColor then break end
+                end
+
+                if customColor then
+                    r, g, b = customColor.r or r, customColor.g or g, customColor.b or b
+                end
+
+                local resolvedBorderColor = frameData.cdmResolvedBorderColor
+                if not resolvedBorderColor then
+                    resolvedBorderColor = {}
+                    frameData.cdmResolvedBorderColor = resolvedBorderColor
+                end
+                resolvedBorderColor.r = r
+                resolvedBorderColor.g = g
+                resolvedBorderColor.b = b
+                resolvedBorderColor.a = 1
+                GetFrameData(frameData.borderFrame).cdmResolvedBorderColor = resolvedBorderColor
+
+                borderInner:SetBackdropBorderColor(r, g, b, 1)
+                borderInner.backdropBorderColor = resolvedBorderColor
+                borderInner.backdropBorderColorAlpha = 1
+            end
+        end
+
         frameData.cdmLastStyleVersion = styleVersion
         frameData.cdmLastStyledW = iconWidth
         frameData.cdmLastStyledH = iconHeight
         frameData.cdmLastStyledVName = vName
         frameData.cdmLastFontSpellID = fontSpellID
+        frameData.cdmLastBuffCatID = currentCatID
+        frameData.cdmLastBorderOverride = currentBorderOverride
+        frameData.cdmLastBorderStyleVer = currentBorderStyleVer
     end
 
     if isBuff and frame.Cooldown then
@@ -1134,62 +1044,12 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
         end
 
         self:ProcessBuffViewerOverrides(frame)
-
-        local borderColor = frameData.borderFrame and frameData.borderFrame.border
-        local pixelBorderLines = frameData.cdmUsePixelIconBorder and frameData.pixelIconBorderLines
-
-        if (borderColor and borderColor.SetBackdropBorderColor) or pixelBorderLines then
-            local configColor = styleCache.borderColor
-            local r, g, b = configColor.r, configColor.g, configColor.b
-
-            local customColor
-            local candidates = GetSpellIDCandidates(self, frame)
-            for _, id in ipairs(candidates) do
-                customColor = GetColorForSpellID(id)
-                if customColor then break end
-            end
-
-            if customColor then
-                r, g, b = customColor.r or r, customColor.g or g, customColor.b or b
-            end
-
-            local resolvedBorderColor = frameData.cdmResolvedBorderColor
-            if not resolvedBorderColor then
-                resolvedBorderColor = {}
-                frameData.cdmResolvedBorderColor = resolvedBorderColor
-            end
-            resolvedBorderColor.r = r
-            resolvedBorderColor.g = g
-            resolvedBorderColor.b = b
-            resolvedBorderColor.a = 1
-            if frameData.borderFrame then
-                GetFrameData(frameData.borderFrame).cdmResolvedBorderColor = resolvedBorderColor
-            end
-
-            if pixelBorderLines then
-                for _, line in ipairs(pixelBorderLines) do
-                    if line and line.SetVertexColor then
-                        line:SetVertexColor(r, g, b, 1)
-                    end
-                end
-            end
-
-            if borderColor and borderColor.SetBackdropBorderColor then
-                borderColor:SetBackdropBorderColor(r, g, b, 1)
-                borderColor.backdropBorderColor = resolvedBorderColor
-                borderColor.backdropBorderColorAlpha = 1
-            end
-        end
     else
         if fullUpdate and desc then
             EnsureFrameHooks(frame, frameData, desc.hookType)
         end
         if desc and desc.hasUtilVisibility then
             SetupUtilityVisibilityHooks(frame, frameData)
-        end
-
-        if styleCache.hidePandemicIndicator and frame.PandemicIcon then
-            frame.PandemicIcon:Hide()
         end
     end
 
@@ -1268,7 +1128,7 @@ RefreshKeybindForFrame = function(frame, frameData, KB, kbCacheVer, styleVersion
     kbFS:SetPoint(styleCache.assistPosition, frame, styleCache.assistPosition,
                   styleCache.assistOffsetX, styleCache.assistOffsetY)
     local kbFontPath = styleCache.fontPath or CDM_C.GetBaseFontPath()
-    local kbOutline = styleCache.textFontOutline or ""
+    local kbOutline = styleCache.textFontOutline
     kbFS:SetFont(kbFontPath, Pixel.FontSize(styleCache.assistFontSize), kbOutline)
     kbFS:SetTextColor(styleCache.assistColor.r, styleCache.assistColor.g, styleCache.assistColor.b)
 
@@ -1360,7 +1220,6 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
         or frameData.cdmLastBarIconPosition ~= iconPosition
 
     local borderVersion = CDM.borderStyleVersion or 0
-    local borderForce = not frameData.barBorderFrameInitialized or (frameData.barBorderFrameVersionApplied ~= borderVersion)
 
     local bar = frame.Bar
 
@@ -1412,7 +1271,7 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
         end)
     end
 
-    if not barStyleNeedsUpdate and not borderForce then
+    if not barStyleNeedsUpdate then
         return
     end
 
@@ -1452,9 +1311,6 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
 
     if iconFrame then
         if iconPosition == "HIDDEN" then
-            if frameData.barIconPixelBorderStore then
-                DisablePixelIconBorderMode(frameData.barIconPixelBorderStore, iconFrame)
-            end
             if frameData.iconBorderFrame and frameData.iconBorderFrame.border then
                 frameData.iconBorderFrame.border:Hide()
             end
@@ -1485,25 +1341,17 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
                         iconTex:SetAllPoints(iconFrame)
                     end
                 end
-                RemoveBarIconMask(iconFrame, iconTex, frameData)
+                RemoveBlizzardIconMask(iconFrame, iconTex, frameData, "cdmBarIconMaskRemoved")
                 CDM_C.ApplyIconTexCoord(iconTex, zoomAmount, iconSize, iconSize)
                 Pixel.DisableTextureSnap(iconTex)
             end
 
             ApplyOverlayVisibility(styleCache.hideIconOverlay, styleCache.hideIconOverlayTexture, iconFrame:GetRegions())
 
-            local iconBorderActive = styleCache.isBorderActive
-            frameData.barIconPixelBorderStore = frameData.barIconPixelBorderStore or {}
-            local iconBorderCtx = {
-                active = iconBorderActive,
-                usePixel = iconBorderActive and styleCache.isOneBorderMode,
-                color = styleCache.borderColor,
-                version = borderVersion,
-                force = borderForce,
-                refreshNeeded = true,
-                modeChanged = false,
-            }
-            EnsureIconBorder(frameData, iconFrame, "iconBorderFrame", iconBorderCtx, frameData.barIconPixelBorderStore)
+            iconBorderCtx.active = styleCache.isBorderActive
+            iconBorderCtx.color = styleCache.borderColor
+            iconBorderCtx.version = borderVersion
+            EnsureIconBorder(frameData, iconFrame, "iconBorderFrame", iconBorderCtx)
             if frameData.iconBorderFrame and not frameData.iconBorderFrameLevelSet then
                 frameData.iconBorderFrame:SetFrameLevel(iconFrame:GetFrameLevel() + 2)
                 frameData.iconBorderFrameLevelSet = true
@@ -1546,7 +1394,7 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
             if not frameData.barTextContainer then
                 frameData.barTextContainer = CreateFrame("Frame", nil, bar)
                 frameData.barTextContainer:SetAllPoints(bar)
-                frameData.barTextContainer:SetFrameLevel(bar:GetFrameLevel() + 4)
+                frameData.barTextContainer:SetFrameLevel(bar:GetFrameLevel() + 6)
             end
             frameData.barTextContainer:Show()
 
@@ -1608,7 +1456,7 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
                 if not frameData.barAppTextContainer then
                     frameData.barAppTextContainer = CreateFrame("Frame", nil, bar)
                     frameData.barAppTextContainer:SetAllPoints(bar)
-                    frameData.barAppTextContainer:SetFrameLevel(bar:GetFrameLevel() + 4)
+                    frameData.barAppTextContainer:SetFrameLevel(bar:GetFrameLevel() + 6)
                 end
 
                 frameData.barAppTextContainer:Show()
@@ -1632,18 +1480,10 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
             end
         end
 
-        local barBorderActive = styleCache.isBorderActive
-        frameData.barPixelBorderStore = frameData.barPixelBorderStore or {}
-        local barBorderCtx = {
-            active = barBorderActive,
-            usePixel = barBorderActive and styleCache.isOneBorderMode,
-            color = styleCache.borderColor,
-            version = borderVersion,
-            force = borderForce,
-            refreshNeeded = true,
-            modeChanged = false,
-        }
-        EnsureIconBorder(frameData, frame, "barBorderFrame", barBorderCtx, frameData.barPixelBorderStore, true)
+        barBorderCtx.active = styleCache.isBorderActive
+        barBorderCtx.color = styleCache.borderColor
+        barBorderCtx.version = borderVersion
+        EnsureIconBorder(frameData, frame, "barBorderFrame", barBorderCtx)
         if frameData.barBorderFrame then
             frameData.barBorderFrame:ClearAllPoints()
             frameData.barBorderFrame:SetAllPoints(bar)
@@ -1654,11 +1494,9 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
         end
     end
 
-    if barStyleNeedsUpdate then
-        frameData.cdmLastBarStyleVersion = styleVersion
-        frameData.cdmLastBarW = targetFrameWidth
-        frameData.cdmLastBarH = targetFrameHeight
-    end
+    frameData.cdmLastBarStyleVersion = styleVersion
+    frameData.cdmLastBarW = targetFrameWidth
+    frameData.cdmLastBarH = targetFrameHeight
 
     frameData.cdmBarStyled = true
 end

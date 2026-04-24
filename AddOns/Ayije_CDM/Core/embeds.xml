@@ -5,7 +5,6 @@
     <Script file="FrameData.lua"/>
     <Script file="Border.lua"/>
     <Script file="SpellUtils.lua"/>
-    <Script file="SpellVariantCache.lua"/>
     <Script file="Style.lua"/>
     <Script file="EditMode.lua"/>
     <Script file="Layout/Layout.lua"/>

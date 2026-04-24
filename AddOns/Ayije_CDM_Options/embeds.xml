@@ -20,6 +20,8 @@
     <Script file="Racials.lua"/>
     <Script file="Defensives.lua"/>
     <Script file="Trinkets.lua"/>
+    <Script file="Resources_Conditions.lua"/>
+    <Script file="Resources_Load.lua"/>
     <Script file="Resources.lua"/>
     <Script file="Bars.lua"/>
     <Script file="CastBar.lua"/>

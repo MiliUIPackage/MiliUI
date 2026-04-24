@@ -16,6 +16,9 @@ BORDER.activeBorders = setmetatable({}, { __mode = "k" })
 local DEFAULT_BORDER_COLOR = { r = 1, g = 1, b = 1, a = 1 }
 local GetFrameData = CDM.GetFrameData
 
+local math_floor = math.floor
+local math_max = math.max
+
 local function SetBorderColor(border, color)
     border:SetBackdropBorderColor(color.r, color.g, color.b, color.a)
     border.backdropBorderColor = color
@@ -26,6 +29,7 @@ local cachedBorderDef = nil
 local cachedBorderFile = nil
 local cachedBorderSize = nil
 local cachedBorderOnePixel = nil
+local lastAppliedBorderDef = nil
 
 local function GetBorderDef()
     local borderKey = CDM_C.GetConfigValue("borderFile", "Ayije_Thin")
@@ -51,9 +55,9 @@ local function GetBorderDef()
         or cachedBorderSize ~= rawBorderSize
         or cachedBorderOnePixel ~= onePixel
     then
-        local borderPixels = math.max(1, math.floor(rawBorderSize / onePixel))
+        local borderPixels = math_max(1, math_floor(rawBorderSize / onePixel))
         local borderSize = borderPixels * onePixel
-        local insetPixels = math.floor(borderPixels / 2)
+        local insetPixels = math_floor(borderPixels / 2)
         local insetSize = insetPixels * onePixel
         cachedBorderDef = {
             bgFile = nil,
@@ -196,14 +200,20 @@ function BORDER:UpdateAllBorders()
 
     local borderDef, offsetX, offsetY = GetBorderDef()
     local color = CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
+    local defChanged = borderDef ~= lastAppliedBorderDef
+    lastAppliedBorderDef = borderDef
 
     for frame, meta in pairs(BORDER.activeBorders) do
         if frame.border then
             if not borderDef then
-                frame.border:SetBackdrop(nil)
+                if defChanged then
+                    frame.border:SetBackdrop(nil)
+                end
                 frame.border:Hide()
             else
-                frame.border:SetBackdrop(borderDef)
+                if defChanged then
+                    frame.border:SetBackdrop(borderDef)
+                end
                 frame.border:Show()
                 local frameData = GetFrameData(frame)
                 local c = frameData.cdmBorderColorOverride or frameData.cdmResolvedBorderColor or color
@@ -221,14 +231,6 @@ local function UpdateAllBorderColorSurfaces(frame, frameData, color)
     local wrapperBorder = frameData.borderFrame and frameData.borderFrame.border
     if wrapperBorder then
         SetBorderColor(wrapperBorder, color)
-    end
-    local lines = frameData.pixelIconBorderLines
-    if lines then
-        for _, line in ipairs(lines) do
-            if line and line.SetVertexColor then
-                line:SetVertexColor(color.r, color.g, color.b, color.a or 1)
-            end
-        end
     end
 end
 

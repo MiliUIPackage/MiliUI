@@ -12,12 +12,16 @@ local CheckCdGroupMatch = CDM.CheckCdGroupMatch
 local ToSortNumber = ctx.ToSortNumber
 local GetStableFrameSortID = ctx.GetStableFrameSortID
 local RowWidth = ctx.RowWidth
+local SetCdmAnchor = ctx.SetCdmAnchor
 
 local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
 
 local math_max = math.max
 local table_sort = table.sort
+local table_wipe = table.wipe
+local ipairs = ipairs
+local pairs = pairs
 
 local function GetSnappedBuffMetrics(sizeBuff, spacing)
     local itemW = math_max(Pixel.GetSize(), Snap((sizeBuff and sizeBuff.w) or 40))
@@ -43,31 +47,23 @@ local function PlaceBuffFrame(frame, point, relativeTo, relativePoint, x, y)
         return
     end
     local fd = GetFrameData(frame)
-    fd.cdmAnchor = { point, relativeTo, relativePoint, Snap(x or 0), Snap(y or 0) }
+    SetCdmAnchor(fd, point, relativeTo, relativePoint, x, y)
     frame:ClearAllPoints()
     Pixel.SetPoint(frame, point, relativeTo, relativePoint, x or 0, y or 0)
 end
 
-local customBuffSortKeys = {}
-
-local function SetCustomBuffSortKeys(keys)
-    table.wipe(customBuffSortKeys)
-    if keys then
-        for k, v in pairs(keys) do customBuffSortKeys[k] = v end
-    end
-end
-
-local function GetUnifiedBuffSortKey(frame)
+local function GetBuffSortPair(frame)
     if frame.isCustomBuff then
-        return customBuffSortKeys[frame.spellID] or 9999999
+        return frame._cdmSortPrimary or 999999, frame._cdmSortSecondary or 0
     end
-    return ToSortNumber(frame.layoutIndex, 0) * 10000
+    return ToSortNumber(frame.layoutIndex, 0), -1
 end
 
 local function CompareBuffFramesDeterministic(a, b)
-    local aKey = GetUnifiedBuffSortKey(a)
-    local bKey = GetUnifiedBuffSortKey(b)
-    if aKey ~= bKey then return aKey < bKey end
+    local aP, aS = GetBuffSortPair(a)
+    local bP, bS = GetBuffSortPair(b)
+    if aP ~= bP then return aP < bP end
+    if aS ~= bS then return aS < bS end
     return GetStableFrameSortID(a) < GetStableFrameSortID(b)
 end
 
@@ -110,6 +106,7 @@ local tempBuffGroups = {}
 local tempCdGroups = {}
 local tempEssential, tempUtility = {}, {}
 local tempAllMainBuffs = {}
+local tempBuffSubCounts = {}
 local EMPTY_FRAMES = {}
 
 local reanchorInProgress = {}
@@ -141,11 +138,11 @@ local function IsBuffFrameIncluded(frame)
 end
 
 local function ResetReanchorTempTables()
-    table.wipe(tempBuff)
-    for _, t in pairs(tempBuffGroups) do table.wipe(t) end
-    for _, t in pairs(tempCdGroups) do table.wipe(t) end
-    table.wipe(tempEssential)
-    table.wipe(tempUtility)
+    table_wipe(tempBuff)
+    for _, t in pairs(tempBuffGroups) do table_wipe(t) end
+    for _, t in pairs(tempCdGroups) do table_wipe(t) end
+    table_wipe(tempEssential)
+    table_wipe(tempUtility)
 end
 
 local function CollectFramesForReanchor(activeViewer, activeVName, inEditMode)
@@ -251,28 +248,30 @@ local function PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVNa
 
         if buffContainer then
             local specID = CDM.GetCurrentSpecID and CDM:GetCurrentSpecID() or nil
-            if specID then
+            local CB = CDM.CustomBuffs
+            local iconFrames = CB and CB.iconFrames
+            if specID and iconFrames then
                 local order = CDM:GetUngroupedCustomBuffOrder(specID)
-                local keys = {}
-                local subCounts = {}
+                table_wipe(tempBuffSubCounts)
                 for _, entry in ipairs(order) do
                     local aN = entry.afterNative or 0
-                    subCounts[aN] = (subCounts[aN] or 0) + 1
-                    keys[entry.spellID] = aN * 10000 + 5000 + subCounts[aN]
+                    local sub = (tempBuffSubCounts[aN] or 0) + 1
+                    tempBuffSubCounts[aN] = sub
+                    local frame = iconFrames[entry.spellID]
+                    if frame then
+                        frame._cdmSortPrimary = aN
+                        frame._cdmSortSecondary = sub
+                    end
                 end
-                SetCustomBuffSortKeys(keys)
-            else
-                SetCustomBuffSortKeys(nil)
             end
 
-            table.wipe(tempAllMainBuffs)
+            table_wipe(tempAllMainBuffs)
             for _, f in ipairs(tempBuff) do
                 tempAllMainBuffs[#tempAllMainBuffs + 1] = f
             end
             SortAndPositionBuffFrames(tempAllMainBuffs, buffContainer)
 
             if CDM.Glow then
-                local specID = CDM.GetCurrentSpecID and CDM:GetCurrentSpecID() or nil
                 local hasBuffGlows = specID and CDM.HasAnySpellGlowConfigured
                     and CDM:HasAnySpellGlowConfigured(specID) or false
                 for _, frame in ipairs(tempAllMainBuffs) do
@@ -351,8 +350,8 @@ local function RepositionBuffFrames(viewer)
 
     local hiddenBuffSet = CDM.resourcesHiddenBuffSet
 
-    table.wipe(tempRepositionBuff)
-    for _, t in pairs(tempRepositionGroups) do table.wipe(t) end
+    table_wipe(tempRepositionBuff)
+    for _, t in pairs(tempRepositionGroups) do table_wipe(t) end
 
     for frame in viewer.itemFramePool:EnumerateActive() do
         if IsBuffFrameIncluded(frame) then
@@ -394,9 +393,11 @@ local function RepositionBuffFrames(viewer)
     end
 
     local activeSpellSet
-    local buildFn = CDM.API and CDM.API.BuildActiveSpellSet
-    if buildFn then
-        activeSpellSet = buildFn()
+    if cachedHasStaticGroups then
+        local buildFn = CDM.API and CDM.API.BuildActiveSpellSet
+        if buildFn then
+            activeSpellSet = buildFn()
+        end
     end
 
     for groupIdx, groupFrames in pairs(tempRepositionGroups) do

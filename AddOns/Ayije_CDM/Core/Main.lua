@@ -4,6 +4,8 @@ local CDM_C = CDM.CONST
 local RefreshStyleCache = CDM.RefreshStyleCache
 local GetBaseSpellID = CDM.GetBaseSpellID
 
+local InCombatLockdown = InCombatLockdown
+
 local VIEWERS = CDM_C.VIEWERS
 local ALL_VIEWER_NAMES = {
     VIEWERS.ESSENTIAL,
@@ -220,13 +222,6 @@ local function InstallScaleLockHook(frame)
     end)
 end
 
-local function InstallScaleLockHooksOnViewer(viewer)
-    if not viewer or not viewer.itemFramePool then return end
-    for frame in viewer.itemFramePool:EnumerateActive() do
-        if frame then InstallScaleLockHook(frame) end
-    end
-end
-
 function CDM:SetupViewer(vName)
     local v = _G[vName]
     if not v then return end
@@ -238,6 +233,8 @@ function CDM:SetupViewer(vName)
             fd.cdmAnchor = nil
             fd.buffCategorySpellID = nil
             fd.cdGroupSpellID = nil
+            fd.cdmCooldownInitDone = nil
+            fd.cdmLastCooldownStyleVer = nil
             CDM:HideCooldownTextIfFlagged(itemFrame)
 
             if vName ~= VIEWERS.BUFF_BAR and not fd.cdmSetPointHooked then
@@ -257,10 +254,6 @@ function CDM:SetupViewer(vName)
                 local hookVName = vName
                 hooksecurefunc(itemFrame, "OnActiveStateChanged", function(frame)
                     if hookVName == VIEWERS.BUFF then
-                        local baseID = CDM.GetBaseSpellID(frame)
-                        if baseID then
-                            CDM:NotifyBuffFrameSpellID(frame, baseID)
-                        end
                         CDM:RepositionBuffViewer(_G[hookVName])
                     else
                         CDM:ForceReanchor(_G[hookVName])
@@ -271,15 +264,8 @@ function CDM:SetupViewer(vName)
         end)
     end
 
-    InstallScaleLockHooksOnViewer(v)
     if self.UpdateEditModeSelectionOverlay then
         self:UpdateEditModeSelectionOverlay(vName)
-    end
-
-    if v.itemFramePool and not v.OnAcquireItemFrame then
-        hooksecurefunc(v.itemFramePool, "Acquire", function()
-            InstallScaleLockHooksOnViewer(v)
-        end)
     end
 
     v:HookScript("OnShow", function()

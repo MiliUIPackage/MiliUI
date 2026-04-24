@@ -6,6 +6,15 @@ local GetBaseSpellID = CDM.GetBaseSpellID
 local Keybinds = CDM.Keybinds
 local GetFrameData = CDM.GetFrameData
 
+local ipairs = ipairs
+local pairs = pairs
+local next = next
+local IsShiftKeyDown = IsShiftKeyDown
+local IsControlKeyDown = IsControlKeyDown
+local IsAltKeyDown = IsAltKeyDown
+local IsKeyDown = IsKeyDown
+local GetCurrentKeyBoardFocus = GetCurrentKeyBoardFocus
+
 
 local isEnabled = false
 local isReanchorHooked = false
@@ -15,6 +24,7 @@ local overlayFrames = setmetatable({}, { __mode = "k" })
 local bindingMap = {}
 local itemBindingMap = {}
 local bindingMapCacheVer = -1
+local bindingMapHasNoModifierCombo = false
 
 local showTint = false
 local showHighlight = false
@@ -65,6 +75,7 @@ local function RebuildBindingMapIfStale()
     bindingMapCacheVer = ver
     wipe(bindingMap)
     wipe(itemBindingMap)
+    bindingMapHasNoModifierCombo = false
 
     for _, vName in ipairs(VIEWER_NAMES) do
         local viewer = _G[vName]
@@ -81,6 +92,9 @@ local function RebuildBindingMapIfStale()
                                 if combo then
                                     if not combos then combos = {} end
                                     combos[#combos + 1] = combo
+                                    if not (combo.shift or combo.ctrl or combo.alt) then
+                                        bindingMapHasNoModifierCombo = true
+                                    end
                                 end
                             end
                             if combos then
@@ -103,6 +117,9 @@ local function RebuildBindingMapIfStale()
                     local combo = ParseRawKey(rawKey)
                     if combo then
                         itemBindingMap[itemID] = { combo }
+                        if not (combo.shift or combo.ctrl or combo.alt) then
+                            bindingMapHasNoModifierCombo = true
+                        end
                     end
                 end
             end
@@ -150,18 +167,6 @@ local function OverrideBorderColor(frame)
     local frameData = GetFrameData(frame)
     if not frameData then return end
 
-    if frameData.cdmUsePixelIconBorder then
-        local lines = frameData.pixelIconBorderLines
-        if lines then
-            for _, line in ipairs(lines) do
-                if line and line.SetVertexColor then
-                    line:SetVertexColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
-                end
-            end
-        end
-        return
-    end
-
     local border = frameData.borderFrame and frameData.borderFrame.border
     if border and border.SetBackdropBorderColor then
         if useTextureSwap then
@@ -184,23 +189,6 @@ end
 local function RestoreBorderColor(frame)
     local frameData = GetFrameData(frame)
     if not frameData then return end
-
-    if frameData.cdmUsePixelIconBorder then
-        local lines = frameData.pixelIconBorderLines
-        if lines then
-            local bc = frameData.cdmResolvedBorderColor
-            if not bc then
-                bc = CDM.db and CDM.db.borderColor
-            end
-            local r, g, b = bc and bc.r or 1, bc and bc.g or 1, bc and bc.b or 1
-            for _, line in ipairs(lines) do
-                if line and line.SetVertexColor then
-                    line:SetVertexColor(r, g, b, 1)
-                end
-            end
-        end
-        return
-    end
 
     local border = frameData.borderFrame and frameData.borderFrame.border
     if border and border.SetBackdropBorderColor then
@@ -284,6 +272,14 @@ pollFrame:SetScript("OnUpdate", function(_, dt)
 
     local hasBindings = next(bindingMap) or next(itemBindingMap)
     if not hasBindings then
+        HideAllOverlays()
+        return
+    end
+
+    if not bindingMapHasNoModifierCombo
+        and not IsShiftKeyDown()
+        and not IsControlKeyDown()
+        and not IsAltKeyDown() then
         HideAllOverlays()
         return
     end

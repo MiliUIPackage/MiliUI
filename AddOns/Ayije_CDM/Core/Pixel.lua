@@ -108,35 +108,6 @@ function Pixel.IsOneBorderMode()
     return math.max(0, math_floor(borderSize / cachedPixelSize + 0.5)) <= 1
 end
 
-function Pixel.ApplyBorderLines(lines, anchor, px, r, g, b, a)
-    local top, bottom, left, right = lines[1], lines[2], lines[3], lines[4]
-
-    for _, line in ipairs(lines) do
-        line:SetVertexColor(r, g, b, a)
-        line:Show()
-    end
-
-    top:ClearAllPoints()
-    top:SetPoint("TOPLEFT", anchor, "TOPLEFT", px, 0)
-    top:SetPoint("TOPRIGHT", anchor, "TOPRIGHT", -px, 0)
-    top:SetHeight(px)
-
-    bottom:ClearAllPoints()
-    bottom:SetPoint("BOTTOMLEFT", anchor, "BOTTOMLEFT", px, 0)
-    bottom:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMRIGHT", -px, 0)
-    bottom:SetHeight(px)
-
-    left:ClearAllPoints()
-    left:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, 0)
-    left:SetPoint("BOTTOMLEFT", anchor, "BOTTOMLEFT", 0, 0)
-    left:SetWidth(px)
-
-    right:ClearAllPoints()
-    right:SetPoint("TOPRIGHT", anchor, "TOPRIGHT", 0, 0)
-    right:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMRIGHT", 0, 0)
-    right:SetWidth(px)
-end
-
 if UIParent then
     Pixel.Update()
 end

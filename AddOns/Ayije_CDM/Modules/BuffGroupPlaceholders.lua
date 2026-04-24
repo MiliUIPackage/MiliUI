@@ -8,6 +8,12 @@ CDM.BuffGroupPlaceholders = CDM.BuffGroupPlaceholders or {}
 
 local GetFrameData = CDM.GetFrameData
 
+local math_max = math.max
+local math_floor = math.floor
+local ipairs = ipairs
+local pairs = pairs
+local next = next
+
 local placeholderPool = {}
 local activePlaceholders = {}
 local placeholderRefreshTimer = nil
@@ -67,28 +73,6 @@ local function QueuePlaceholderRefresh()
     placeholderRefreshTimer = C_Timer.NewTimer(0, DoPlaceholderRefresh)
 end
 
-local function ApplyPlaceholderPixelBorder(frame, iconW, iconH)
-    if not frame.pixelBorderLines then
-        frame.pixelBorderLines = {}
-        for i = 1, 4 do
-            frame.pixelBorderLines[i] = Pixel.CreateSolidTexture(frame, "OVERLAY", 6)
-        end
-    end
-
-    local onePx = Pixel.GetSize()
-    local px = math.max(1, math.floor((CDM_C.GetConfigValue("borderSize", 1) or 1) / onePx)) * onePx
-    local r, g, b, a = GetConfiguredBorderColor()
-    Pixel.ApplyBorderLines(frame.pixelBorderLines, frame, px, r, g, b, a)
-end
-
-local function HidePlaceholderPixelBorder(frame)
-    if frame.pixelBorderLines then
-        for _, line in ipairs(frame.pixelBorderLines) do
-            line:Hide()
-        end
-    end
-end
-
 local function ApplyPlaceholderVisuals(frame, spellID, iconW, iconH)
     local bsv = CDM.borderStyleVersion or 0
     local zoom = CDM_C.GetEffectiveZoomAmount()
@@ -120,21 +104,14 @@ local function ApplyPlaceholderVisuals(frame, spellID, iconW, iconH)
     frame.Icon:SetDesaturation(1)
     frame.Icon:SetAlpha(1)
 
-    local isPixelBorder = Pixel.IsOneBorderMode()
-    if isPixelBorder then
-        if frame.border then frame.border:Hide() end
-        ApplyPlaceholderPixelBorder(frame, iconW, iconH)
-    else
-        HidePlaceholderPixelBorder(frame)
-        if CDM.BORDER and CDM.BORDER.CreateBorder then
-            CDM.BORDER:CreateBorder(frame)
-            if CDM.BORDER.activeBorders then
-                CDM.BORDER.activeBorders[frame] = nil
-            end
-            if frame.border then
-                local r, g, b, a = GetConfiguredBorderColor()
-                frame.border:SetBackdropBorderColor(r, g, b, a)
-            end
+    if CDM.BORDER and CDM.BORDER.CreateBorder then
+        CDM.BORDER:CreateBorder(frame)
+        if CDM.BORDER.activeBorders then
+            CDM.BORDER.activeBorders[frame] = nil
+        end
+        if frame.border then
+            local r, g, b, a = GetConfiguredBorderColor()
+            frame.border:SetBackdropBorderColor(r, g, b, a)
         end
     end
 
@@ -152,7 +129,9 @@ local function AcquirePlaceholder(container, spellID, iconW, iconH)
         frame.isPlaceholder = true
     end
 
-    frame:SetParent(container)
+    if frame:GetParent() ~= container then
+        frame:SetParent(container)
+    end
     frame:SetFrameLevel(1)
     ApplyPlaceholderVisuals(frame, spellID, iconW, iconH)
     if not frame:IsShown() then frame:Show() end
@@ -162,7 +141,9 @@ end
 local function ReleasePlaceholder(frame)
     frame:Hide()
     frame:ClearAllPoints()
-    frame:SetParent(UIParent)
+    if frame:GetParent() ~= UIParent then
+        frame:SetParent(UIParent)
+    end
     placeholderPool[#placeholderPool + 1] = frame
 end
 

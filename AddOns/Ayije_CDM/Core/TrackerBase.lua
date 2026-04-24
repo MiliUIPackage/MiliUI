@@ -8,6 +8,12 @@ local ReleaseToTrackerPool = CDM.ReleaseToTrackerPool
 local GetEffectiveSpellID = CDM.GetEffectiveSpellID
 local GetFrameData = CDM.GetFrameData
 
+local ipairs = ipairs
+local pairs = pairs
+local table_wipe = table.wipe
+local table_remove = table.remove
+local GetSpellTexture = C_Spell.GetSpellTexture
+
 function CDM.CreateTracker(config)
     local containerName = config.containerName
     local viewerName = config.viewerName
@@ -94,9 +100,9 @@ function CDM.CreateTracker(config)
     -- Entry pool
 
     local function AcquireEntry(proto)
-        local entry = table.remove(iconEntryPool)
+        local entry = table_remove(iconEntryPool)
         if entry then
-            table.wipe(entry)
+            table_wipe(entry)
         else
             entry = {}
         end
@@ -104,13 +110,14 @@ function CDM.CreateTracker(config)
             entry[k] = v
         end
         entry._spellbookCached = nil
+        entry._lastTextureEffectiveID = nil
         entry.frame = nil
         return entry
     end
 
     local function ReleaseEntry(entry)
         if not entry then return end
-        table.wipe(entry)
+        table_wipe(entry)
         iconEntryPool[#iconEntryPool + 1] = entry
     end
 
@@ -124,7 +131,7 @@ function CDM.CreateTracker(config)
         frame._spellbookCached = nil
 
         local effectiveID = GetEffectiveSpellID(id)
-        local texture = C_Spell.GetSpellTexture(effectiveID)
+        local texture = GetSpellTexture(effectiveID)
         if texture and frame.Icon then
             frame.Icon:SetTexture(texture)
             frame.Icon:SetDesaturation(0)
@@ -160,7 +167,7 @@ function CDM.CreateTracker(config)
         for _, entry in ipairs(iconEntries) do
             ReleaseEntryFrame(entry)
         end
-        table.wipe(iconFrames)
+        table_wipe(iconFrames)
         if CDM.ClearTrackerPool then
             CDM.ClearTrackerPool(iconFramePool)
         end
@@ -173,6 +180,7 @@ function CDM.CreateTracker(config)
     local function InvalidateSpellbookCache()
         for _, entry in ipairs(iconEntries) do
             entry._spellbookCached = nil
+            entry._lastTextureEffectiveID = nil
             if entry.frame then
                 entry.frame._spellbookCached = nil
             end
@@ -236,9 +244,13 @@ function CDM.CreateTracker(config)
 
                     if not boundNow and frame.Icon then
                         local id = entry.spellID or entry.id
-                        local texture = C_Spell.GetSpellTexture(GetEffectiveSpellID(id))
-                        if texture then
-                            frame.Icon:SetTexture(texture)
+                        local effectiveID = GetEffectiveSpellID(id)
+                        if effectiveID ~= entry._lastTextureEffectiveID then
+                            local texture = GetSpellTexture(effectiveID)
+                            if texture then
+                                frame.Icon:SetTexture(texture)
+                                entry._lastTextureEffectiveID = effectiveID
+                            end
                         end
                     end
 
@@ -345,8 +357,8 @@ function CDM.CreateTracker(config)
                 ReleaseEntryFrame(entry)
                 ReleaseEntry(entry)
             end
-            table.wipe(iconEntries)
-            table.wipe(iconFrames)
+            table_wipe(iconEntries)
+            table_wipe(iconFrames)
         end
         lastVisibilityHash = -1
 

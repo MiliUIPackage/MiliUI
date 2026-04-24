@@ -10,6 +10,11 @@ local GetFrameData = CDM.GetFrameData
 local IsSafeNumber = CDM.IsSafeNumber
 local VIEWERS = CDM_C.VIEWERS
 
+local math_ceil = math.ceil
+local math_floor = math.floor
+local table_wipe = table.wipe
+local table_sort = table.sort
+
 local cdContainers = {}
 
 CDM.cooldownGroupContainers = cdContainers
@@ -52,7 +57,7 @@ function CDM:UpdateAllCooldownGroupContainers()
         cdDescriptor:SyncCallbacks(GetContainerForAnchorTarget)
     else
         local activeIndices = scratchCdActiveIndices
-        table.wipe(activeIndices)
+        table_wipe(activeIndices)
         for groupIndex, groupData in ipairs(sets.groups) do
             local container = cdDescriptor:GetOrCreateContainer(groupIndex)
             cdDescriptor:UpdateContainerPosition(groupIndex, groupData, GetContainerForAnchorTarget)
@@ -130,14 +135,14 @@ function CDM:PositionCooldownGroupFrames(groupIndex, frames)
     local cacheKey = "cdGroupSpellID"
 
     if groupData.spells then
-        table.wipe(scratchSpellOrder)
+        table_wipe(scratchSpellOrder)
         for i, sid in ipairs(groupData.spells) do
             if not scratchSpellOrder[sid] then scratchSpellOrder[sid] = i end
         end
         if count > 1 then
             local stableSortIDFn = layout.GetStableFrameSortID
             GCU.AssignGroupSortKeys(frames, scratchSpellOrder, cacheKey)
-            table.sort(frames, function(a, b)
+            table_sort(frames, function(a, b)
                 local aKey = GetFrameData(a).cdmSortKey
                 local bKey = GetFrameData(b).cdmSortKey
                 if aKey ~= bKey then return aKey < bKey end
@@ -151,13 +156,13 @@ function CDM:PositionCooldownGroupFrames(groupIndex, frames)
 
     local stepW = iconWSnapped + spacingSnapped
     local stepH = iconHSnapped + spacingSnapped
-    local totalWraps = (maxPerRow > 0 and maxPerRow < count) and math.ceil(count / maxPerRow) or 0
+    local totalWraps = (maxPerRow > 0 and maxPerRow < count) and math_ceil(count / maxPerRow) or 0
 
     for i, frame in ipairs(frames) do
         local idx = i - 1
         local row, col
         if maxPerRow > 0 and maxPerRow < count then
-            row = math.floor(idx / maxPerRow)
+            row = math_floor(idx / maxPerRow)
             col = idx - row * maxPerRow
         end
 
@@ -176,12 +181,12 @@ function CDM:PositionCooldownGroupFrames(groupIndex, frames)
                 xPx = -col * stepW
                 yPx = -row * stepH
             elseif grow == "DOWN" then
-                local dcol = math.floor(idx / maxPerRow)
+                local dcol = math_floor(idx / maxPerRow)
                 local drow = idx - dcol * maxPerRow
                 xPx = dcol * stepW
                 yPx = -drow * stepH
             elseif grow == "UP" then
-                local ucol = math.floor(idx / maxPerRow)
+                local ucol = math_floor(idx / maxPerRow)
                 local urow = idx - ucol * maxPerRow
                 xPx = ucol * stepW
                 yPx = urow * stepH
@@ -190,7 +195,7 @@ function CDM:PositionCooldownGroupFrames(groupIndex, frames)
                 xPx = -HalfFloor((countInRow - 1) * stepW) + col * stepW
                 yPx = HalfFloor((totalWraps - 1) * stepH) - row * stepH
             elseif grow == "CENTER_V" then
-                local vcol = math.floor(idx / maxPerRow)
+                local vcol = math_floor(idx / maxPerRow)
                 local vrow = idx - vcol * maxPerRow
                 local countInCol = (vcol < totalWraps - 1) and maxPerRow or (count - vcol * maxPerRow)
                 xPx = -HalfFloor((totalWraps - 1) * stepW) + vcol * stepW
@@ -238,7 +243,7 @@ local scratchSpellToEntry = {}
 
 function CDM:RebuildAuraOverlayEnabledMap()
     local map = CDM._auraOverlayEnabled
-    table.wipe(map)
+    table_wipe(map)
 
     local specID = CDM.GetCurrentSpecID and CDM:GetCurrentSpecID()
     if not specID then
@@ -248,10 +253,10 @@ function CDM:RebuildAuraOverlayEnabledMap()
     end
 
     local seen = scratchSeen
-    table.wipe(seen)
+    table_wipe(seen)
 
     local spellToEntry = scratchSpellToEntry
-    table.wipe(spellToEntry)
+    table_wipe(spellToEntry)
 
     local sets = CDM.CooldownGroupSets
     local groups = sets and sets.groups
@@ -312,7 +317,7 @@ function CDM:RebuildAuraOverlayEnabledMap()
         and C_CooldownViewer.GetCooldownViewerCooldownInfo
         and Enum.CooldownViewerCategory then
         local categories = scratchCategories
-        table.wipe(categories)
+        table_wipe(categories)
         categories[1] = Enum.CooldownViewerCategory.Essential
         categories[2] = Enum.CooldownViewerCategory.Utility
 

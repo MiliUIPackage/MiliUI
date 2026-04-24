@@ -7,6 +7,13 @@ local DEFENSIVES = CDM_C.DEFENSIVE_SPELLS
 local DEFENSIVES_SET = CDM_C.DEFENSIVE_SPELLS_SET
 local EMPTY = {}
 
+local GetSpellChargeDuration = C_Spell.GetSpellChargeDuration
+local GetSpellCooldownDuration = C_Spell.GetSpellCooldownDuration
+local GetSpellCharges = C_Spell.GetSpellCharges
+local GetSpellCooldown = C_Spell.GetSpellCooldown
+local TruncateWhenZero = C_StringUtil.TruncateWhenZero
+local IsSpellInSpellBook = C_SpellBook.IsSpellInSpellBook
+
 local _, playerClass = UnitClass("player")
 
 local talentTreeCache = {}
@@ -221,16 +228,16 @@ local function PlayerHasAbility(entry, specID)
 
     local known
     if IsCustomSpell(spellID) then
-        known = C_SpellBook.IsSpellInSpellBook(spellID)
-            or C_SpellBook.IsSpellInSpellBook(spellID, Enum.SpellBookSpellBank.Pet)
+        known = IsSpellInSpellBook(spellID)
+            or IsSpellInSpellBook(spellID, Enum.SpellBookSpellBank.Pet)
     else
-        known = C_SpellBook.IsSpellInSpellBook(spellID)
+        known = IsSpellInSpellBook(spellID)
     end
 
     if not known then
         local effectiveID = GetEffectiveSpellID(spellID)
         if effectiveID ~= spellID then
-            known = C_SpellBook.IsSpellInSpellBook(effectiveID)
+            known = IsSpellInSpellBook(effectiveID)
         end
     end
 
@@ -247,51 +254,46 @@ local function UpdateIcon(frame)
     if not frame or not frame:IsShown() then return end
 
     local hasCharges = false
-    local desatDurationObject = nil
 
     local spellID = frame.spellID
     if not spellID then return end
 
     local effectiveID = GetEffectiveSpellID(spellID)
 
-    local CCD = C_Spell.GetSpellChargeDuration(effectiveID)
-    local SCD = C_Spell.GetSpellCooldownDuration(effectiveID)
-
-    local chargeInfo = C_Spell.GetSpellCharges(effectiveID)
+    local chargeDur = GetSpellChargeDuration(effectiveID)
+    local scd = GetSpellCooldownDuration(effectiveID)
+    local chargeInfo = GetSpellCharges(effectiveID)
     local isChargeSpell = chargeInfo and chargeInfo.maxCharges and chargeInfo.maxCharges > 1
 
-    if isChargeSpell and CCD then
-        frame.Cooldown:SetCooldownFromDurationObject(CCD)
-        frame.Cooldown:SetDrawSwipe(true)
-    elseif SCD then
-        frame.Cooldown:SetCooldownFromDurationObject(SCD)
+    local desatValue = 0
+    if scd then
+        local cdInfo = GetSpellCooldown(effectiveID)
+        local onRealCD = cdInfo and cdInfo.isActive and (isChargeSpell and cdInfo.isOnGCD == false
+            or not isChargeSpell and cdInfo.isOnGCD ~= true)
+        if onRealCD then
+            desatValue = scd:EvaluateRemainingDuration(DesaturationCurve, 0) or 0
+        end
+    end
+
+    local swipeDur = (isChargeSpell and chargeDur) or scd
+
+    if swipeDur then
+        frame.Cooldown:SetCooldownFromDurationObject(swipeDur)
         frame.Cooldown:SetDrawSwipe(true)
     else
         frame.Cooldown:Clear()
     end
 
-    desatDurationObject = SCD
-
     if isChargeSpell and chargeInfo.currentCharges then
         local chargeText = CDM.EnsureTrackerChargeWidgets(frame)
         if chargeText then
-            chargeText:SetText(C_StringUtil.TruncateWhenZero(chargeInfo.currentCharges))
+            chargeText:SetText(TruncateWhenZero(chargeInfo.currentCharges))
         end
         hasCharges = true
     end
 
     if frame.Icon then
-        local cdInfo = desatDurationObject and C_Spell.GetSpellCooldown(effectiveID)
-        if desatDurationObject and cdInfo and cdInfo.isActive and desatDurationObject.EvaluateRemainingDuration then
-            local gcdResult = CDM.EvaluateGCDFilteredDesaturation(desatDurationObject)
-            if gcdResult then
-                frame.Icon:SetDesaturation(gcdResult)
-            else
-                frame.Icon:SetDesaturation(desatDurationObject:EvaluateRemainingDuration(DesaturationCurve, 0) or 0)
-            end
-        else
-            frame.Icon:SetDesaturation(0)
-        end
+        frame.Icon:SetDesaturation(desatValue)
     end
 
     if frame.ChargeCount and frame.ChargeCount.Current then

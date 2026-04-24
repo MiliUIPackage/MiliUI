@@ -267,68 +267,116 @@ local function CreateCastBarTab(page, tabId)
 
     local posHeader = UI.CreateHeader(scrollChild, L["Position"])
     page.castBarPositionHeader = posHeader
-    if not lsmUseAtlas then
+    if not useAtlas then
         posHeader:SetPoint("TOPLEFT", lsmGroup, "BOTTOMLEFT", 0, -10)
     else
         posHeader:SetPoint("TOPLEFT", page.controls.castBarUseAtlas, "BOTTOMLEFT", 0, -15)
     end
 
-    local anchorToRes = CDM.db.castBarAnchorToResources or false
-    page.controls.castBarAnchorToResources = UI.CreateModernCheckbox(
-        scrollChild,
-        L["Anchor to Resource Bars"],
-        anchorToRes,
-        function(checked)
-            CDM.db.castBarAnchorToResources = checked
-            if checked then
-                CDM.db.castBarContainerLocked = true
-                if page.controls.castBarLocked and page.controls.castBarLocked.SetChecked then
-                    page.controls.castBarLocked:SetChecked(true)
-                end
-            end
-            page.UpdatePositionControls()
-            API:Refresh("STYLE")
-        end
-    )
-    page.controls.castBarAnchorToResources:SetPoint("TOPLEFT", posHeader, "BOTTOMLEFT", 0, -15)
+    local POINT_OPTIONS = {
+        { value = "TOPLEFT",     label = L["Top Left"] or "Top Left" },
+        { value = "TOP",         label = L["Top"] or "Top" },
+        { value = "TOPRIGHT",    label = L["Top Right"] or "Top Right" },
+        { value = "LEFT",        label = L["Left"] or "Left" },
+        { value = "CENTER",      label = L["Center"] or "Center" },
+        { value = "RIGHT",       label = L["Right"] or "Right" },
+        { value = "BOTTOMLEFT",  label = L["Bottom Left"] or "Bottom Left" },
+        { value = "BOTTOM",      label = L["Bottom"] or "Bottom" },
+        { value = "BOTTOMRIGHT", label = L["Bottom Right"] or "Bottom Right" },
+    }
 
-    local function UpdateAnchorToResourcesCheckboxState()
+    local function BuildAnchorOptions()
         local resourcesEnabled = CDM.db.resourcesEnabled ~= false
-        if page.controls.castBarAnchorToResources and page.controls.castBarAnchorToResources.SetChecked then
-            page.controls.castBarAnchorToResources:SetChecked(CDM.db.castBarAnchorToResources == true)
+        local opts = {
+            { value = "screen",      label = L["Screen"] or "Screen" },
+            { value = "playerFrame", label = L["Player Frame"] or "Player Frame" },
+            { value = "essential",   label = L["Essential Viewer"] or "Essential Viewer" },
+            { value = "utility",     label = L["Utility Viewer"] or "Utility Viewer" },
+        }
+        if resourcesEnabled then
+            opts[#opts + 1] = { value = "resources", label = L["Resources"] or "Resources" }
         end
-        if page.controls.castBarAnchorToResources and page.controls.castBarAnchorToResources.checkbox then
-            page.controls.castBarAnchorToResources.checkbox:SetEnabled(resourcesEnabled)
-        end
-        if page.controls.castBarAnchorToResources then
-            page.controls.castBarAnchorToResources:SetAlpha(resourcesEnabled and 1 or 0.5)
-        end
+        return opts
     end
 
-    page.controls.castBarResourcesSpacingSlider = UI.CreateModernSlider(
-        scrollChild,
-        L["Y Spacing"],
-        -1, 20,
-        CDM.db.castBarResourcesSpacing or 2,
-        function(v)
-            CDM.db.castBarResourcesSpacing = UI.RoundToInt(v)
-            API:Refresh("STYLE")
-        end
-    )
-    page.controls.castBarResourcesSpacingSlider:SetPoint("TOPLEFT", page.controls.castBarAnchorToResources, "BOTTOMLEFT", 0, -10)
+    local anchorLabel = scrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
+    anchorLabel:SetText(L["Anchor To:"] or "Anchor To:")
+    anchorLabel:SetPoint("TOPLEFT", posHeader, "BOTTOMLEFT", 0, -15)
 
-    local locked = CDM.db.castBarContainerLocked
-    if locked == nil then locked = true end
-    page.controls.castBarLocked = UI.CreateModernCheckbox(
-        scrollChild,
-        L["Lock Position"],
-        locked,
-        function(checked)
-            CDM.db.castBarContainerLocked = checked
+    local ddAnchor = CreateFrame("DropdownButton", nil, scrollChild, "WowStyle1DropdownTemplate")
+    ddAnchor:SetPoint("TOPLEFT", anchorLabel, "BOTTOMLEFT", 0, -5)
+    ddAnchor:SetWidth(200)
+    page.controls.castBarAnchor = ddAnchor
+
+    local function GetAnchorLabel(value)
+        for _, opt in ipairs(BuildAnchorOptions()) do
+            if opt.value == value then return opt.label end
+        end
+        return value or ""
+    end
+
+    local currentAnchor = CDM.db.castBarAnchor or "resources"
+    ddAnchor:SetDefaultText(GetAnchorLabel(currentAnchor))
+
+    UI.SetupValueDropdown(
+        ddAnchor,
+        BuildAnchorOptions,
+        function() return CDM.db.castBarAnchor or "resources" end,
+        function(value)
+            CDM.db.castBarAnchor = value
+            ddAnchor:SetDefaultText(GetAnchorLabel(value))
             API:Refresh("STYLE")
         end
     )
-    page.controls.castBarLocked:SetPoint("TOPLEFT", page.controls.castBarAnchorToResources, "BOTTOMLEFT", 0, -10)
+
+    local anchorPointLabel = scrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
+    anchorPointLabel:SetText(L["Anchor Point:"] or "Anchor Point:")
+    anchorPointLabel:SetPoint("TOPLEFT", ddAnchor, "BOTTOMLEFT", 0, -10)
+
+    local ddAnchorPoint = CreateFrame("DropdownButton", nil, scrollChild, "WowStyle1DropdownTemplate")
+    ddAnchorPoint:SetPoint("TOPLEFT", anchorPointLabel, "BOTTOMLEFT", 0, -5)
+    ddAnchorPoint:SetWidth(200)
+    page.controls.castBarAnchorPoint = ddAnchorPoint
+
+    local function GetPointLabel(value)
+        for _, opt in ipairs(POINT_OPTIONS) do
+            if opt.value == value then return opt.label end
+        end
+        return value or ""
+    end
+
+    ddAnchorPoint:SetDefaultText(GetPointLabel(CDM.db.castBarAnchorPoint or "BOTTOM"))
+    UI.SetupValueDropdown(
+        ddAnchorPoint,
+        POINT_OPTIONS,
+        function() return CDM.db.castBarAnchorPoint or "BOTTOM" end,
+        function(value)
+            CDM.db.castBarAnchorPoint = value
+            ddAnchorPoint:SetDefaultText(GetPointLabel(value))
+            API:Refresh("STYLE")
+        end
+    )
+
+    local targetPointLabel = scrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
+    targetPointLabel:SetText(L["Target Point:"] or "Target Point:")
+    targetPointLabel:SetPoint("TOPLEFT", ddAnchorPoint, "BOTTOMLEFT", 0, -10)
+
+    local ddTargetPoint = CreateFrame("DropdownButton", nil, scrollChild, "WowStyle1DropdownTemplate")
+    ddTargetPoint:SetPoint("TOPLEFT", targetPointLabel, "BOTTOMLEFT", 0, -5)
+    ddTargetPoint:SetWidth(200)
+    page.controls.castBarTargetPoint = ddTargetPoint
+
+    ddTargetPoint:SetDefaultText(GetPointLabel(CDM.db.castBarTargetPoint or "TOP"))
+    UI.SetupValueDropdown(
+        ddTargetPoint,
+        POINT_OPTIONS,
+        function() return CDM.db.castBarTargetPoint or "TOP" end,
+        function(value)
+            CDM.db.castBarTargetPoint = value
+            ddTargetPoint:SetDefaultText(GetPointLabel(value))
+            API:Refresh("STYLE")
+        end
+    )
 
     page.controls.castBarOffsetXSlider = UI.CreateModernSlider(
         scrollChild,
@@ -340,13 +388,13 @@ local function CreateCastBarTab(page, tabId)
             API:Refresh("STYLE")
         end
     )
-    page.controls.castBarOffsetXSlider:SetPoint("TOPLEFT", page.controls.castBarLocked, "BOTTOMLEFT", 0, -10)
+    page.controls.castBarOffsetXSlider:SetPoint("TOPLEFT", ddTargetPoint, "BOTTOMLEFT", 0, -15)
 
     page.controls.castBarOffsetYSlider = UI.CreateModernSlider(
         scrollChild,
         L["Y Offset"],
         -600, 600,
-        CDM.db.castBarOffsetY or -200,
+        CDM.db.castBarOffsetY or -166,
         function(v)
             CDM.db.castBarOffsetY = UI.RoundToInt(v)
             API:Refresh("STYLE")
@@ -354,40 +402,21 @@ local function CreateCastBarTab(page, tabId)
     )
     page.controls.castBarOffsetYSlider:SetPoint("TOPLEFT", page.controls.castBarOffsetXSlider, "BOTTOMLEFT", 0, -10)
 
-    API:RegisterCastBarSliderUpdater(function(offsetX, offsetY)
-        if page.controls.castBarOffsetXSlider and page.controls.castBarOffsetXSlider.UpdateUIValue then
-            page.controls.castBarOffsetXSlider:UpdateUIValue(offsetX)
+    local previewEnabled = CDM.db.castBarPreviewEnabled == true
+    page.controls.castBarPreviewEnabled = UI.CreateModernCheckbox(
+        scrollChild,
+        L["Show Preview"] or "Show Preview",
+        previewEnabled,
+        function(checked)
+            CDM.db.castBarPreviewEnabled = checked
+            API:Refresh("STYLE")
         end
-        if page.controls.castBarOffsetYSlider and page.controls.castBarOffsetYSlider.UpdateUIValue then
-            page.controls.castBarOffsetYSlider:UpdateUIValue(offsetY)
-        end
-    end)
+    )
+    page.controls.castBarPreviewEnabled:SetPoint("TOPLEFT", page.controls.castBarOffsetYSlider, "BOTTOMLEFT", 0, -15)
 
     local textHeader = UI.CreateHeader(scrollChild, L["Text"])
     page.castBarTextHeader = textHeader
-
-    function page.UpdatePositionControls()
-        local anchored = CDM.db.castBarAnchorToResources == true and CDM.db.resourcesEnabled ~= false
-        page.controls.castBarResourcesSpacingSlider:SetShown(anchored)
-        page.controls.castBarLocked:SetShown(not anchored)
-        page.controls.castBarOffsetXSlider:SetShown(not anchored)
-        page.controls.castBarOffsetYSlider:SetShown(not anchored)
-
-        page.castBarTextHeader:ClearAllPoints()
-        if anchored then
-            page.castBarTextHeader:SetPoint("TOPLEFT", page.controls.castBarResourcesSpacingSlider, "BOTTOMLEFT", 0, -15)
-        else
-            page.castBarTextHeader:SetPoint("TOPLEFT", page.controls.castBarOffsetYSlider, "BOTTOMLEFT", 0, -15)
-        end
-    end
-
-    page:SetScript("OnShow", function()
-        UpdateAnchorToResourcesCheckboxState()
-        page.UpdatePositionControls()
-    end)
-
-    UpdateAnchorToResourcesCheckboxState()
-    page.UpdatePositionControls()
+    textHeader:SetPoint("TOPLEFT", page.controls.castBarPreviewEnabled, "BOTTOMLEFT", 0, -15)
 
     page.controls.castBarFontSizeSlider = UI.CreateModernSlider(
         scrollChild,

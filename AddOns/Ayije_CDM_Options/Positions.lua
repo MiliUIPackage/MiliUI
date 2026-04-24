@@ -11,7 +11,7 @@ local Pixel = CDM.Pixel
 
 
 local function RefreshAutoWidthLinkedElements()
-    if CDM.UpdateResources and (CDM.db.resourcesBarWidth or 0) == 0 then
+    if CDM.UpdateResources then
         API:UpdateResources()
     end
     if CDM.UpdatePlayerCastBar and (CDM.db.castBarWidth or 0) == 0 then

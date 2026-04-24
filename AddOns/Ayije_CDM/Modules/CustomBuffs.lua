@@ -2,6 +2,7 @@ local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
 
 local CDM_C = CDM and CDM.CONST or {}
+local Snap = CDM.Pixel.Snap
 
 CDM.CustomBuffs = {
     activeBuffs = {},       -- [spellID] = { expires, frame, startTime, duration }
@@ -12,6 +13,10 @@ CDM.CustomBuffs = {
 
 local CB = CDM.CustomBuffs
 local VIEWERS = CDM_C.VIEWERS
+
+local GetTime = GetTime
+local GetPlayerAuraBySpellID = C_UnitAuras.GetPlayerAuraBySpellID
+local GetSpellTexture = C_Spell.GetSpellTexture
 
 local TIME_SPIRAL_TRIGGERS = {
     [48265]  = true,  -- Death's Advance
@@ -123,17 +128,26 @@ local function ReanchorBuffViewer()
     if v then CDM:ForceReanchor(v) end
 end
 
+function CDM:GetCustomBuffEffectiveSize(spellID)
+    local sets = self.BuffGroupSets
+    local grouped = sets and sets.grouped
+    local groupIdx = spellID and grouped and grouped[spellID]
+    local groupData = groupIdx and sets.groups and sets.groups[groupIdx]
+    if groupData then
+        return Snap(groupData.iconWidth or 30), Snap(groupData.iconHeight or 30)
+    end
+    local defaults = self.defaults or {}
+    local defaultSize = defaults.sizeBuff or { w = 32, h = 32 }
+    local dbSize = self.db and self.db.sizeBuff
+    return (dbSize and dbSize.w) or defaultSize.w, (dbSize and dbSize.h) or defaultSize.h
+end
+
 local function CreateCustomBuffIcon(spellID, config)
     if CB.iconFrames[spellID] then
         return CB.iconFrames[spellID]
     end
 
-    local defaults = CDM.defaults or {}
-    local defaultSize = defaults.sizeBuff or { w = 32, h = 32 }
-    local size = {
-        w = (CDM.db and CDM.db.sizeBuff and CDM.db.sizeBuff.w) or defaultSize.w,
-        h = (CDM.db and CDM.db.sizeBuff and CDM.db.sizeBuff.h) or defaultSize.h,
-    }
+    local w, h = CDM:GetCustomBuffEffectiveSize(spellID)
 
     local frame = table.remove(CB.framePool)
     if not frame then
@@ -153,7 +167,7 @@ local function CreateCustomBuffIcon(spellID, config)
         cooldown:SetReverse(true)  -- Fill up as time passes (like a buff)
         frame.Cooldown = cooldown
 
-        local borderFrame = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+        local borderFrame = CreateFrame("Frame", nil, frame)
         borderFrame:SetAllPoints()
         if CDM.BORDER and CDM.BORDER.CreateBorder then
             CDM.BORDER:CreateBorder(borderFrame)
@@ -161,15 +175,14 @@ local function CreateCustomBuffIcon(spellID, config)
         CDM.GetFrameData(frame).borderFrame = borderFrame
     end
 
-    frame:SetParent(UIParent)
-    frame:SetSize(size.w, size.h)
+    frame:SetSize(w, h)
     frame.spellID = spellID
     frame.isCustomBuff = true
     frame.customBuffStartTime = nil
 
     if frame.Icon then
         frame.Icon:SetAllPoints()
-        CDM_C.ApplyIconTexCoord(frame.Icon, CDM_C.GetEffectiveZoomAmount(), size.w, size.h)
+        CDM_C.ApplyIconTexCoord(frame.Icon, CDM_C.GetEffectiveZoomAmount(), w, h)
         frame.Icon:SetTexture(config.icon)
         frame.Icon:SetDesaturation(0)
     end
@@ -299,7 +312,7 @@ local function OnBloodlustAura(event, unit, updateInfo)
     local config = CDM.db.customBuffRegistry and CDM.db.customBuffRegistry[2825]
     if not config then return end
     for debuffID, lustBuffID in pairs(BLOODLUST_DEBUFFS) do
-        local aura = C_UnitAuras.GetPlayerAuraBySpellID(debuffID)
+        local aura = GetPlayerAuraBySpellID(debuffID)
         if aura and aura.expirationTime then
             local dur = aura.duration
             if not dur or dur <= 0 then dur = 600 end
@@ -309,7 +322,7 @@ local function OnBloodlustAura(event, unit, updateInfo)
                 bloodlustHandledUntil = aura.expirationTime
                 local frame = CB.iconFrames[2825]
                 if frame and frame.Icon then
-                    frame.Icon:SetTexture(C_Spell.GetSpellTexture(lustBuffID))
+                    frame.Icon:SetTexture(GetSpellTexture(lustBuffID))
                 end
                 return
             end
@@ -356,7 +369,9 @@ function CDM:RemoveCustomBuffSpell(spellID)
         end
         frame:Hide()
         frame:ClearAllPoints()
-        frame:SetParent(UIParent)
+        if frame:GetParent() ~= UIParent then
+            frame:SetParent(UIParent)
+        end
         frame.spellID = nil
         frame.customBuffStartTime = nil
         CB.framePool[#CB.framePool + 1] = frame
@@ -422,18 +437,12 @@ end
 function CDM:UpdateCustomBuffs()
     RefreshCachedCustomBuffStyles()
 
-    local defaults = CDM.defaults or {}
-    local defaultSize = defaults.sizeBuff or { w = 32, h = 32 }
-    local size = {
-        w = (CDM.db and CDM.db.sizeBuff and CDM.db.sizeBuff.w) or defaultSize.w,
-        h = (CDM.db and CDM.db.sizeBuff and CDM.db.sizeBuff.h) or defaultSize.h,
-    }
-
     for spellID, frame in pairs(CB.iconFrames) do
-        frame:SetSize(size.w, size.h)
+        local w, h = self:GetCustomBuffEffectiveSize(spellID)
+        frame:SetSize(w, h)
 
         if frame.Icon then
-            CDM_C.ApplyIconTexCoord(frame.Icon, CDM_C.GetEffectiveZoomAmount(), size.w, size.h)
+            CDM_C.ApplyIconTexCoord(frame.Icon, CDM_C.GetEffectiveZoomAmount(), w, h)
         end
 
         ApplyCustomBuffCooldownTextStyle(frame)

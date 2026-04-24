@@ -2,6 +2,11 @@ local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
 local CDM_C = CDM and CDM.CONST or {}
 
+local pairs = pairs
+local next = next
+local type = type
+local GetSpellCooldownDuration = C_Spell.GetSpellCooldownDuration
+
 local watcherFrame = CreateFrame("Frame")
 local dispatchPending = false
 local dispatchFrame = CreateFrame("Frame")
@@ -45,8 +50,8 @@ local function DoDispatchSpellWatchers()
     end
 
     local gcdActive = false
-    if cooldownsChanged and C_Spell and C_Spell.GetSpellCooldownDuration and GCD_SPELL_ID then
-        gcdActive = (C_Spell.GetSpellCooldownDuration(GCD_SPELL_ID) ~= nil)
+    if cooldownsChanged and GCD_SPELL_ID then
+        gcdActive = (GetSpellCooldownDuration(GCD_SPELL_ID) ~= nil)
     end
 
     for _, owner in pairs(ownerWatches) do

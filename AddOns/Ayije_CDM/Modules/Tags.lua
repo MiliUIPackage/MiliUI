@@ -8,9 +8,31 @@ CDM.TAGS = TAGS
 local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
 
+local UnitPower = UnitPower
+local UnitStagger = UnitStagger
+local UnitHealthMax = UnitHealthMax
+local UnitPowerPercent = UnitPowerPercent
+local AbbreviateNumbers = AbbreviateNumbers
+local UIParent = UIParent
+local issecretvalue = issecretvalue
+local type = type
+local pairs = pairs
+local math_floor = math.floor
+local math_abs = math.abs
+local GetSpellCastCount = C_Spell.GetSpellCastCount
+local GetPlayerAuraBySpellID = C_UnitAuras.GetPlayerAuraBySpellID
+local GetTime = GetTime
+local TruncateWhenZero = C_StringUtil.TruncateWhenZero
+local PowerTypeMana = Enum.PowerType.Mana
+local PowerTypeSoulShards = Enum.PowerType.SoulShards
+local ScaleTo100 = CurveConstants.ScaleTo100
+local IsSafeNumber = CDM.IsSafeNumber
+
 TAGS.textFrames = {}
 TAGS.styleDirty = true
 TAGS.lastScale = nil
+
+local VALID_TAG_ANCHORS = { LEFT = true, CENTER = true, RIGHT = true }
 
 local manaAbbrevData
 if CreateAbbreviateConfig then
@@ -26,24 +48,16 @@ function TAGS:MarkDirty()
     self.styleDirty = true
 end
 
-local function IsBar2(textFrame)
-    if not textFrame or not textFrame.powerType then
-        return false
-    end
-
+local function GetTagBarKey(textFrame)
+    if not textFrame then return nil end
+    if textFrame.barKey then return textFrame.barKey end
     local parentBar = textFrame.parentBar
-    if parentBar and parentBar.slotIndex ~= nil then
-        return parentBar.slotIndex == 2
+    if parentBar and parentBar.barKey then return parentBar.barKey end
+    local pt = textFrame.powerType
+    if pt and CDM.POWER_TYPE_TO_BAR_KEY then
+        return CDM.POWER_TYPE_TO_BAR_KEY[pt] or pt
     end
-
-    if CDM.GetResourceBarSlotIndex then
-        local slotIndex = CDM:GetResourceBarSlotIndex(textFrame.powerType)
-        if slotIndex ~= nil then
-            return slotIndex == 2
-        end
-    end
-
-    return false
+    return pt
 end
 
 local function AlignCenteredTagToBar(textFrame, force)
@@ -81,32 +95,34 @@ local function GetCurrentPower(powerType)
 
     if type(powerType) == "string" then
         if powerType == "SoulFragments" then
-            return C_Spell.GetSpellCastCount(CDM_C.SOUL_CLEAVE_SPELL_ID) or 0
+            return GetSpellCastCount(CDM_C.SOUL_CLEAVE_SPELL_ID) or 0
         elseif powerType == "DevourerSoulFragments" then
             return CDM.GetDevourerSoulValueMax() or 0
         elseif powerType == "MaelstromWeapon" then
-            local auraData = C_UnitAuras.GetPlayerAuraBySpellID(CDM_C.MAELSTROM_WEAPON_SPELL_ID)
+            local auraData = GetPlayerAuraBySpellID(CDM_C.MAELSTROM_WEAPON_SPELL_ID)
             return auraData and auraData.applications or 0
         elseif powerType == "Stagger" then
             local bar = CDM.resourceBars and CDM.resourceBars[powerType]
             if bar and bar.staggerPercent then
-                return math.floor(bar.staggerPercent + 0.5)
+                return math_floor(bar.staggerPercent + 0.5)
             end
             local stagger = UnitStagger("player")
             local maxHealth = UnitHealthMax("player")
-            if not CDM.IsSafeNumber(stagger) or not CDM.IsSafeNumber(maxHealth) or maxHealth == 0 then
+            if not IsSafeNumber(stagger) or not IsSafeNumber(maxHealth) or maxHealth == 0 then
                 return 0
             end
-            return math.floor((stagger / maxHealth) * 100 + 0.5)
+            return math_floor((stagger / maxHealth) * 100 + 0.5)
         elseif powerType == "Ironfur" then
             return CDM.GetIronfurStackCount and CDM:GetIronfurStackCount() or 0
         elseif powerType == "IgnorePain" then
             return CDM.GetIgnorePainValue and CDM:GetIgnorePainValue() or 0
+        elseif powerType == "TipOfTheSpear" then
+            return CDM.GetTipOfTheSpearStacks and CDM:GetTipOfTheSpearStacks() or 0
         end
         return 0
     end
 
-    if powerType == Enum.PowerType.SoulShards then
+    if powerType == PowerTypeSoulShards then
         if CDM:GetCurrentSpecID() == 267 then
             return UnitPower("player", powerType, true) or 0
         end
@@ -115,6 +131,41 @@ local function GetCurrentPower(powerType)
 
     local current = UnitPower("player", powerType)
     return current or 0
+end
+
+local function RenderToSTimeText(textFrame)
+    local exp = CDM.GetTipOfTheSpearExpirationTime and CDM:GetTipOfTheSpearExpirationTime()
+    if not exp then
+        textFrame.text:SetText("")
+        return
+    end
+    local remaining = exp - GetTime()
+    if remaining <= 0 then
+        textFrame.text:SetText("")
+        return
+    end
+    textFrame.text:SetFormattedText("%d", math_floor(remaining + 0.5))
+end
+
+local function ToSTagOnUpdate(textFrame, elapsed)
+    textFrame._tosTimeAccum = (textFrame._tosTimeAccum or 0) + elapsed
+    if textFrame._tosTimeAccum < 0.1 then return end
+    textFrame._tosTimeAccum = 0
+    RenderToSTimeText(textFrame)
+end
+
+local function AttachToSTimeTicker(textFrame)
+    if textFrame._tosTimeActive then return end
+    textFrame._tosTimeActive = true
+    textFrame._tosTimeAccum = 0
+    textFrame:SetScript("OnUpdate", ToSTagOnUpdate)
+end
+
+local function DetachToSTimeTicker(textFrame)
+    if not textFrame._tosTimeActive then return end
+    textFrame._tosTimeActive = nil
+    textFrame._tosTimeAccum = nil
+    textFrame:SetScript("OnUpdate", nil)
 end
 
 local function CreateTagText(bar, powerType)
@@ -137,6 +188,7 @@ local function CreateTagText(bar, powerType)
     textFrame.text = text
     textFrame.powerType = powerType
     textFrame.parentBar = bar
+    textFrame.barKey = bar.barKey or (CDM.POWER_TYPE_TO_BAR_KEY and CDM.POWER_TYPE_TO_BAR_KEY[powerType]) or powerType
 
     TAGS:UpdateTagStyle(textFrame)
     TAGS:UpdateTagPosition(textFrame)
@@ -151,12 +203,23 @@ function TAGS:UpdateTagText(textFrame)
         return
     end
 
-    local isBar2 = IsBar2(textFrame)
+    local barKey = GetTagBarKey(textFrame)
 
-    local enabled = CDM:GetTagEnabled(isBar2)
+    local enabled = barKey and CDM:GetBarSetting(barKey, "tagEnabled")
     if not enabled then
         textFrame:Hide()
         return
+    end
+
+    if textFrame.powerType == "TipOfTheSpear" and CDM:GetBarSetting("TipOfTheSpear", "tagShowAuraTime") == true then
+        AttachToSTimeTicker(textFrame)
+        RenderToSTimeText(textFrame)
+        textFrame._lastDisplayValue = nil
+        textFrame:Show()
+        AlignCenteredTagToBar(textFrame)
+        return
+    elseif textFrame.powerType == "TipOfTheSpear" then
+        DetachToSTimeTicker(textFrame)
     end
 
     local current = GetCurrentPower(textFrame.powerType)
@@ -166,18 +229,18 @@ function TAGS:UpdateTagText(textFrame)
 
     if isSecret or lastSecret or (textFrame._lastDisplayValue ~= current) then
         textFrame._lastDisplayValue = isSecret and nil or current
-        if textFrame.powerType == "Stagger" or textFrame.powerType == "SoulFragments" or textFrame.powerType == "DevourerSoulFragments" or textFrame.powerType == "Ironfur" or textFrame.powerType == "IgnorePain" then
-            textFrame.text:SetText(C_StringUtil.TruncateWhenZero(current))
-        elseif textFrame.powerType == Enum.PowerType.Mana then
-            if CDM.db and CDM.db.resourcesManaPercentage then
-                local pct = UnitPowerPercent("player", Enum.PowerType.Mana, false, CurveConstants.ScaleTo100) or 0
+        if textFrame.powerType == "Stagger" or textFrame.powerType == "SoulFragments" or textFrame.powerType == "DevourerSoulFragments" or textFrame.powerType == "Ironfur" or textFrame.powerType == "IgnorePain" or textFrame.powerType == "MaelstromWeapon" or textFrame.powerType == "TipOfTheSpear" then
+            textFrame.text:SetText(TruncateWhenZero(current))
+        elseif textFrame.powerType == PowerTypeMana then
+            if CDM:GetBarSetting("Mana", "displayAsPercent") then
+                local pct = UnitPowerPercent("player", PowerTypeMana, false, ScaleTo100) or 0
                 textFrame.text:SetFormattedText("%d", pct)
             elseif manaAbbrevData then
                 textFrame.text:SetText(AbbreviateNumbers(current, manaAbbrevData))
             else
                 textFrame.text:SetFormattedText("%d", current)
             end
-        elseif textFrame.powerType == Enum.PowerType.SoulShards then
+        elseif textFrame.powerType == PowerTypeSoulShards then
             if CDM:GetCurrentSpecID() == 267 then
                 if not isSecret and current % 10 == 0 then
                     textFrame.text:SetFormattedText("%d", current / 10)
@@ -200,17 +263,11 @@ function TAGS:UpdateTagPosition(textFrame)
         return
     end
 
-    local isBar2 = IsBar2(textFrame)
-    local anchorKey = isBar2 and "resourcesBar2TagAnchor" or "resourcesBar1TagAnchor"
-    local offsetXKey = isBar2 and "resourcesBar2TagOffsetX" or "resourcesBar1TagOffsetX"
-    local offsetYKey = isBar2 and "resourcesBar2TagOffsetY" or "resourcesBar1TagOffsetY"
-
-    local db = CDM.db
-    local anchor = db and db[anchorKey] or "CENTER"
-    local validAnchors = { LEFT = true, CENTER = true, RIGHT = true }
-    if not validAnchors[anchor] then anchor = "CENTER" end
-    local offsetX = db and db[offsetXKey] or 0
-    local offsetY = db and db[offsetYKey] or 0
+    local barKey = GetTagBarKey(textFrame)
+    local anchor = barKey and CDM:GetBarSetting(barKey, "tagAnchor") or "CENTER"
+    if not VALID_TAG_ANCHORS[anchor] then anchor = "CENTER" end
+    local offsetX = barKey and CDM:GetBarSetting(barKey, "tagOffsetX") or 0
+    local offsetY = barKey and CDM:GetBarSetting(barKey, "tagOffsetY") or 0
     textFrame._anchor = anchor
     textFrame._offsetX = offsetX
     textFrame._offsetY = offsetY
@@ -227,17 +284,14 @@ function TAGS:UpdateTagStyle(textFrame)
         return
     end
 
-    local isBar2 = IsBar2(textFrame)
-    local fontSizeKey = isBar2 and "resourcesBar2TagFontSize" or "resourcesBar1TagFontSize"
-    local colorKey = isBar2 and "resourcesBar2TagColor" or "resourcesBar1TagColor"
-
+    local barKey = GetTagBarKey(textFrame)
+    local fontSize = barKey and CDM:GetBarSetting(barKey, "tagFontSize") or 14
+    local color = barKey and CDM:GetBarSetting(barKey, "tagColor") or { r = 1, g = 1, b = 1, a = 1 }
     local db = CDM.db
-    local fontSize = db and db[fontSizeKey] or 14
-    local color = db and db[colorKey] or { r = 1, g = 1, b = 1, a = 1 }
 
     local textFontName = db and db.textFont or "Friz Quadrata TT"
     local rawOutline = db and db.textFontOutline or "OUTLINE"
-    local textFontOutline = (rawOutline == "NONE") and "" or rawOutline
+    local textFontOutline = CDM_C.ResolveOutlineFlags(rawOutline)
     local fontPath = LSM:Fetch("font", textFontName) or CDM_C.FONT_PATH
 
     textFrame.text:SetIgnoreParentScale(true)
@@ -251,7 +305,7 @@ function TAGS:UpdateAllTags()
     local currentScale = (UIParent and UIParent.GetEffectiveScale) and UIParent:GetEffectiveScale() or 1
     if not self.lastScale then
         self.lastScale = currentScale
-    elseif math.abs(currentScale - self.lastScale) > 0.001 then
+    elseif math_abs(currentScale - self.lastScale) > 0.001 then
         needsStyleUpdate = true
         self.lastScale = currentScale
     end
@@ -260,8 +314,8 @@ function TAGS:UpdateAllTags()
 
     for powerType, textFrame in pairs(self.textFrames) do
         hasTextFrames = true
-        local isBar2 = IsBar2(textFrame)
-        local enabled = CDM:GetTagEnabled(isBar2)
+        local barKey = GetTagBarKey(textFrame)
+        local enabled = barKey and CDM:GetBarSetting(barKey, "tagEnabled") ~= false
 
         if enabled then
             if needsStyleUpdate then

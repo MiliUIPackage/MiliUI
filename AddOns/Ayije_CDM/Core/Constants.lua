@@ -142,6 +142,12 @@ local function GetLSM()
     return cachedLSM
 end
 
+function CDM.CONST.ResolveOutlineFlags(raw)
+    if raw == nil or raw == "" or raw == "NONE" then return nil end
+    if raw == "SLUG" then return "OUTLINE SLUG" end
+    return raw
+end
+
 function CDM.CONST.RefreshBaseFontCache()
     local db = CDM.db
     local defaults = CDM.defaults or {}
@@ -149,7 +155,7 @@ function CDM.CONST.RefreshBaseFontCache()
     local LSM = GetLSM()
     baseFontCache.fontPath = (LSM and LSM:Fetch("font", textFontName)) or CDM.CONST.FONT_PATH
     local rawOutline = (db and db.textFontOutline) or defaults.textFontOutline or "OUTLINE"
-    baseFontCache.fontOutline = (rawOutline == "NONE") and "" or rawOutline
+    baseFontCache.fontOutline = CDM.CONST.ResolveOutlineFlags(rawOutline)
 end
 
 function CDM.CONST.GetBaseFontPath()
@@ -160,7 +166,7 @@ function CDM.CONST.GetBaseFontPath()
 end
 
 function CDM.CONST.GetBaseFontOutline()
-    if baseFontCache.fontOutline == nil then
+    if not baseFontCache.fontPath then
         CDM.CONST.RefreshBaseFontCache()
     end
     return baseFontCache.fontOutline

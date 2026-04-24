@@ -50,75 +50,165 @@ local function GetPlayerClassColor()
     return color.r, color.g, color.b, color.a or 1
 end
 
-local IsPixelBorderMode = Pixel.IsOneBorderMode
-
-local function EnsureManualPixelBorder(target)
-    if not target then return nil, nil end
-    if target.cdmManualPixelBorderOverlay and target.cdmManualPixelBorderLines then
-        return target.cdmManualPixelBorderOverlay, target.cdmManualPixelBorderLines
-    end
-
-    local overlay = CreateFrame("Frame", nil, target)
-    overlay:SetAllPoints(target)
-    overlay:SetFrameStrata(target:GetFrameStrata())
-    overlay:SetFrameLevel((target:GetFrameLevel() or 0) + 4)
-
-    local lines = {}
-    for i = 1, 4 do
-        lines[i] = Pixel.CreateSolidTexture(overlay, "OVERLAY", 6)
-    end
-
-    target.cdmManualPixelBorderOverlay = overlay
-    target.cdmManualPixelBorderLines = lines
-    return overlay, lines
-end
-
-local function HideManualPixelBorder(target)
-    if target and target.cdmManualPixelBorderOverlay then
-        target.cdmManualPixelBorderOverlay:Hide()
-    end
-end
-
-local function ApplyManualPixelBorder(target)
-    if not target or not target:IsShown() then
-        HideManualPixelBorder(target)
-        return
-    end
-
-    if not IsPixelBorderMode() then
-        HideManualPixelBorder(target)
-        return
-    end
-
-    local overlay, lines = EnsureManualPixelBorder(target)
-    if not overlay or not lines then
-        return
-    end
-
-    overlay:SetAllPoints(target)
-    overlay:SetFrameStrata(target:GetFrameStrata())
-    overlay:SetFrameLevel((target:GetFrameLevel() or 0) + 4)
-    overlay:Show()
-
-    local color = CfgVal("borderColor", DEFAULT_BORDER_COLOR)
-    local onePx = Pixel.GetSize()
-    local px = math.max(1, math.floor((CfgVal("borderSize", 1) or 1) / onePx)) * onePx
-    Pixel.ApplyBorderLines(lines, overlay, px, color.r, color.g, color.b, color.a or 1)
-end
-
 local function SyncCastBarBorderVisual(target, borderHost)
     if borderHost and borderHost.border then
-        borderHost.border:SetShown(not IsPixelBorderMode())
+        borderHost.border:Show()
     end
-    ApplyManualPixelBorder(target)
 end
 
-local function IsCastBarResourceAnchorEnabled()
-    return CfgVal("castBarAnchorToResources", false) and CDM.db and CDM.db.resourcesEnabled ~= false
+local CAST_ANCHOR_SCREEN       = "screen"
+local CAST_ANCHOR_PLAYER_FRAME = "playerFrame"
+local CAST_ANCHOR_ESSENTIAL    = "essential"
+local CAST_ANCHOR_UTILITY      = "utility"
+local CAST_ANCHOR_RESOURCES    = "resources"
+
+local scratchComponent = {}
+local scratchComponentOrder = {}
+
+local function BuildPrimaryComponent(primaryBarKey)
+    for k in pairs(scratchComponent) do scratchComponent[k] = nil end
+    for i = #scratchComponentOrder, 1, -1 do scratchComponentOrder[i] = nil end
+
+    if not primaryBarKey then return scratchComponent end
+
+    local BAR_KEY_TO_POWER_TYPE = CDM.BAR_KEY_TO_POWER_TYPE
+    local resourceBars = CDM.resourceBars
+    if not BAR_KEY_TO_POWER_TYPE or not resourceBars then return scratchComponent end
+
+    scratchComponent[primaryBarKey] = true
+    scratchComponentOrder[#scratchComponentOrder + 1] = primaryBarKey
+
+    local cur = primaryBarKey
+    for _ = 1, 16 do
+        local parent = CDM:GetBarSetting(cur, "anchorTo")
+        if type(parent) ~= "string" then break end
+        if parent == CAST_ANCHOR_SCREEN or parent == CAST_ANCHOR_PLAYER_FRAME
+            or parent == CAST_ANCHOR_ESSENTIAL or parent == CAST_ANCHOR_UTILITY then break end
+        if scratchComponent[parent] then break end
+        local pt = BAR_KEY_TO_POWER_TYPE[parent]
+        if not pt or not resourceBars[pt] then break end
+        scratchComponent[parent] = true
+        scratchComponentOrder[#scratchComponentOrder + 1] = parent
+        cur = parent
+    end
+
+    local changed = true
+    while changed do
+        changed = false
+        for powerType, bar in pairs(resourceBars) do
+            local barKey = bar.barKey
+            if barKey and not scratchComponent[barKey] then
+                local anchorTo = CDM:GetBarSetting(barKey, "anchorTo")
+                if type(anchorTo) == "string" and scratchComponent[anchorTo] then
+                    scratchComponent[barKey] = true
+                    scratchComponentOrder[#scratchComponentOrder + 1] = barKey
+                    changed = true
+                end
+            end
+        end
+    end
+
+    return scratchComponent
 end
 
-local function IsCastBarContainerLocked()
-    return IsCastBarResourceAnchorEnabled() or CfgVal("castBarContainerLocked", true)
+local function ResolveResourcesAnchor(allowHiddenFallback)
+    if not CDM.resourceBars then return nil end
+    local primaryPT
+    if UnitClassBase("player") == "DRUID" and CDM.GetDruidPrimaryPowerType then
+        primaryPT = CDM.GetDruidPrimaryPowerType(CDM:GetCurrentSpecID())
+    else
+        primaryPT = UnitPowerType("player")
+    end
+    local POWER_TYPE_TO_BAR_KEY = CDM.POWER_TYPE_TO_BAR_KEY
+    local BAR_KEY_TO_POWER_TYPE = CDM.BAR_KEY_TO_POWER_TYPE
+    if not POWER_TYPE_TO_BAR_KEY or not BAR_KEY_TO_POWER_TYPE then return nil end
+
+    local primaryBarKey = POWER_TYPE_TO_BAR_KEY[primaryPT]
+    if not primaryBarKey then return nil end
+    local primaryBar = CDM.resourceBars[primaryPT]
+    if not primaryBar then return nil end
+
+    local component = BuildPrimaryComponent(primaryBarKey)
+
+    local topBar, topY
+    for barKey in pairs(component) do
+        local pt = BAR_KEY_TO_POWER_TYPE[barKey]
+        local bar = pt and CDM.resourceBars[pt]
+        if bar and bar:IsShown() then
+            local top = bar:GetTop()
+            if top and (not topY or top > topY) then
+                topBar = bar
+                topY = top
+            end
+        end
+    end
+    if topBar then return topBar end
+
+    if allowHiddenFallback then
+        for barKey in pairs(component) do
+            local pt = BAR_KEY_TO_POWER_TYPE[barKey]
+            local bar = pt and CDM.resourceBars[pt]
+            if bar then
+                local top = bar:GetTop()
+                if top and (not topY or top > topY) then
+                    topBar = bar
+                    topY = top
+                end
+            end
+        end
+    end
+
+    return topBar
+end
+
+local function ResolveViewerContainer(vName)
+    local containers = CDM.anchorContainers
+    local target = containers and vName and containers[vName]
+    if target and target:IsShown() then return target end
+    return nil
+end
+
+local function ResolveCastBarAnchor()
+    local mode = CfgVal("castBarAnchor", "resources")
+    local aP = CfgVal("castBarAnchorPoint", "BOTTOM")
+    local tP = CfgVal("castBarTargetPoint", "TOP")
+    local oX = CfgVal("castBarOffsetX", 0)
+    local oY = CfgVal("castBarOffsetY", -166)
+
+    if mode == CAST_ANCHOR_SCREEN then
+        return UIParent, aP, tP, oX, oY, false
+    end
+
+    if mode == CAST_ANCHOR_PLAYER_FRAME then
+        return CAST_ANCHOR_PLAYER_FRAME, aP, tP, oX, oY, false
+    end
+
+    if mode == CAST_ANCHOR_ESSENTIAL then
+        local target = ResolveViewerContainer(CDM_C.VIEWERS and CDM_C.VIEWERS.ESSENTIAL)
+        if target then return target, aP, tP, oX, oY, false end
+        return UIParent, aP, tP, oX, oY, true
+    end
+
+    if mode == CAST_ANCHOR_UTILITY then
+        local target = ResolveViewerContainer(CDM_C.VIEWERS and CDM_C.VIEWERS.UTILITY)
+        if target then return target, aP, tP, oX, oY, false end
+        return UIParent, aP, tP, oX, oY, true
+    end
+
+    if mode == CAST_ANCHOR_RESOURCES then
+        local resourcesDisabled = CDM.db and CDM.db.resourcesEnabled == false
+        local target = not resourcesDisabled and ResolveResourcesAnchor() or nil
+        if target then return target, aP, tP, oX, oY, false end
+        local essential = ResolveViewerContainer(CDM_C.VIEWERS and CDM_C.VIEWERS.ESSENTIAL)
+        if essential then return essential, aP, tP, oX, oY, false end
+        return UIParent, aP, tP, oX, oY, true
+    end
+
+    return UIParent, aP, tP, oX, oY, false
+end
+
+local function IsCastBarPreviewEnabled()
+    return CfgVal("castBarPreviewEnabled", false) == true
 end
 
 local EMPOWER_WINDUP_DEFAULT = { r = 0.45, g = 0.45, b = 0.55, a = 1 }
@@ -314,7 +404,7 @@ local function FadeOut(self)
     self.txtObj:SetShown(self.cdmShowTimer ~= false)
     self.spellName:SetShown(self.cdmShowSpellName ~= false)
 
-    if not IsCastBarContainerLocked() then
+    if IsCastBarPreviewEnabled() then
         ShowPreview(self)
     else
         self:SetScript("OnUpdate", nil)
@@ -386,7 +476,14 @@ OnUpdate = function(self)
     if self.cdmShowTimer ~= false then
         local durationObject = self.barObj:GetTimerDuration()
         if durationObject then
-            self.txtObj:SetFormattedText("%.1f", durationObject:GetRemainingDuration())
+            local remaining = durationObject:GetRemainingDuration()
+            if CDM.IsSafeNumber(remaining) then
+                local tenths = math.floor(remaining * 10 + 0.5)
+                if tenths ~= self._cdmLastTimerTenths then
+                    self._cdmLastTimerTenths = tenths
+                    self.txtObj:SetFormattedText("%.1f", tenths * 0.1)
+                end
+            end
         end
     end
 end
@@ -453,6 +550,30 @@ local function FinishCast(frame)
     FadeOut(frame)
 end
 
+local function RefreshEmpowerTiming(frame)
+    local name, _, _, startTime, endTime, _, _, _, isEmpowered, numStages = UnitChannelInfo("player")
+    if not name then
+        FinishCast(frame)
+        return
+    end
+
+    if isEmpowered and numStages and numStages > 0 then
+        endTime = endTime + (GetUnitEmpowerHoldAtMaxTime("player") or 0)
+    end
+
+    frame.curStartTime = startTime / 1000
+    frame.curEndTime = endTime / 1000
+
+    local duration = UnitEmpoweredChannelDuration("player")
+    if duration then
+        frame.barObj:SetTimerDuration(
+            duration,
+            Enum.StatusBarInterpolation.Immediate,
+            Enum.StatusBarTimerDirection.ElapsedTime
+        )
+    end
+end
+
 local function RefreshBarData(frame)
     local name, text, texture, startTime, endTime, notInterruptible, castID
     local isChannel, isEmpowered, numStages
@@ -487,6 +608,7 @@ local function RefreshBarData(frame)
     frame.isPreview = false
     frame.casting = not isChannel
     frame.channeling = isChannel or false
+    frame._cdmLastTimerTenths = nil
     frame.isEmpowered = isEmpowered or false
     frame.isReverse = isChannel and not frame.isEmpowered
 
@@ -700,54 +822,38 @@ local function UpdateContainerPosition()
     local container = CDM.castBarContainer
     if not container then return end
 
-    local HalfFloor = Pixel.HalfFloor
-    local halfW = HalfFloor(container:GetWidth() or 0)
+    local target, aP, tP, oX, oY, isFallback = ResolveCastBarAnchor()
 
-    local anchorToResources = IsCastBarResourceAnchorEnabled()
-    if anchorToResources and CDM.resourceContainer then
-        local spacing = CfgVal("castBarResourcesSpacing", 2)
-        container:ClearAllPoints()
-
-        if CDM.currentPowerTypes and #CDM.currentPowerTypes > 0 then
-            local resHalfW = HalfFloor(CDM.resourceContainer:GetWidth() or 0)
-            Pixel.SetPoint(container, "BOTTOMLEFT", CDM.resourceContainer, "TOPLEFT", resHalfW - halfW, spacing)
-            return
-        end
-
-        Pixel.SetPoint(container, "BOTTOMLEFT", CDM.resourceContainer, "BOTTOMLEFT", HalfFloor(CDM.resourceContainer:GetWidth() or 0) - halfW, 0)
+    container:ClearAllPoints()
+    if target == CAST_ANCHOR_PLAYER_FRAME then
+        CDM.AnchorToPlayerFrame(container, tP, oX, oY, "PlayerCastBar", true, aP)
         return
     end
 
-    local offsetX = CfgVal("castBarOffsetX", 0)
-    local offsetY = CfgVal("castBarOffsetY", -166)
+    if isFallback then
+        aP = "BOTTOM"
+        tP = "CENTER"
+    end
 
-    container:ClearAllPoints()
-    Pixel.SetPoint(container, "BOTTOMLEFT", UIParent, "CENTER", offsetX - halfW, offsetY)
+    if target == UIParent then
+        local halfW = Pixel.HalfFloor(container:GetWidth() or 0)
+        local leftAP = (aP == "CENTER" and "LEFT")
+            or (aP == "TOP" and "TOPLEFT")
+            or (aP == "BOTTOM" and "BOTTOMLEFT")
+            or aP
+        Pixel.SetPoint(container, leftAP, UIParent, tP, oX - halfW, oY)
+    else
+        Pixel.SetPoint(container, aP, target, tP, oX, oY)
+    end
 end
 
-local function UpdateContainerLockState()
-    local container = CDM.castBarContainer
-    if not container then return end
-
-    local locked = IsCastBarContainerLocked()
-
-    container:SetMovable(not locked)
-    container:EnableMouse(not locked)
-
-    if container.helperText then
-        container.helperText:SetShown(not locked)
-    end
-    if container.dragOverlay then
-        container.dragOverlay:SetShown(not locked)
-    end
-
+local function UpdatePreviewState()
     local frame = CDM.castBarFrame
-    if frame and frame.cdmEnabled then
-        if not locked then
-            ShowPreview(frame)
-        else
-            HidePreview(frame)
-        end
+    if not frame or not frame.cdmEnabled then return end
+    if IsCastBarPreviewEnabled() then
+        ShowPreview(frame)
+    elseif frame.isPreview then
+        HidePreview(frame)
     end
 end
 
@@ -835,70 +941,6 @@ function CDM:InitializePlayerCastBar()
 
     local container = CreateFrame("Frame", "Ayije_CDM_CastBarContainer", UIParent)
     container:SetClampedToScreen(true)
-    container:RegisterForDrag("LeftButton")
-
-    container:SetScript("OnDragStart", function(c)
-        local locked = IsCastBarContainerLocked()
-        if not InCombatLockdown() and not locked then
-            c:StartMoving()
-        end
-    end)
-
-    container:SetScript("OnDragStop", function(c)
-        c:StopMovingOrSizing()
-
-        local cx, cy = c:GetCenter()
-        local ux, uy = UIParent:GetCenter()
-        local halfH = c:GetHeight() / 2
-        if cx and ux then
-            local db = CDM.db
-            if db then
-                db.castBarOffsetX = math.floor(cx - ux + 0.5)
-                db.castBarOffsetY = math.floor(cy - halfH - uy + 0.5)
-                CDM:NotifyCastBarSliderUpdate(db.castBarOffsetX, db.castBarOffsetY)
-            end
-        end
-
-        UpdateContainerPosition()
-    end)
-
-    local helperText = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    helperText:SetPoint("BOTTOM", container, "TOP", 0, 8)
-    helperText:SetText(L["Click and drag to move - /cdm > Cast Bar to lock"])
-    helperText:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
-    CDM_C.ApplyShadow(helperText)
-    helperText:Hide()
-    container.helperText = helperText
-
-    local overlay = CreateFrame("Frame", nil, container, "NineSliceCodeTemplate")
-    overlay:SetAllPoints(container)
-    overlay:SetFrameStrata("MEDIUM")
-    overlay:SetFrameLevel(100)
-    overlay:EnableMouse(false)
-
-    if NineSliceUtil and NineSliceUtil.ApplyLayout then
-        local overlayLayout = {
-            ["TopRightCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x = 8, y = 8 },
-            ["TopLeftCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x = -8, y = 8 },
-            ["BottomLeftCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x = -8, y = -8 },
-            ["BottomRightCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x = 8, y = -8 },
-            ["TopEdge"] = { atlas = "_%s-NineSlice-EdgeTop" },
-            ["BottomEdge"] = { atlas = "_%s-NineSlice-EdgeBottom" },
-            ["LeftEdge"] = { atlas = "!%s-NineSlice-EdgeLeft" },
-            ["RightEdge"] = { atlas = "!%s-NineSlice-EdgeRight" },
-            ["Center"] = { atlas = "%s-NineSlice-Center", x = -8, y = 8, x1 = 8, y1 = -8 },
-        }
-        NineSliceUtil.ApplyLayout(overlay, overlayLayout, "editmode-actionbar-highlight")
-        local regions = { overlay:GetRegions() }
-        for i = 1, #regions do
-            local region = regions[i]
-            if region.SetBlendMode then region:SetBlendMode("ADD") end
-        end
-        overlay:SetAlpha(0.4)
-    end
-
-    overlay:Hide()
-    container.dragOverlay = overlay
 
     self.castBarContainer = container
 
@@ -913,7 +955,7 @@ function CDM:InitializePlayerCastBar()
     iconFrame.texture = iconFrame:CreateTexture(nil, "ARTWORK")
     iconFrame.texture:SetAllPoints()
     Pixel.DisableTextureSnap(iconFrame.texture)
-    iconFrame.borderFrame = CreateFrame("Frame", nil, iconFrame, "BackdropTemplate")
+    iconFrame.borderFrame = CreateFrame("Frame", nil, iconFrame)
     iconFrame.borderFrame:SetAllPoints()
     iconFrame.borderFrame:SetFrameLevel(12)
     if CDM.BORDER and CDM.BORDER.CreateBorder then
@@ -971,7 +1013,7 @@ function CDM:InitializePlayerCastBar()
         f.sparkObj:SetPoint("CENTER", f.topOverlay, "LEFT", 0, 0)
     end
 
-    f.borderFrame = CreateFrame("Frame", nil, f, "BackdropTemplate")
+    f.borderFrame = CreateFrame("Frame", nil, f)
     f.borderFrame:SetAllPoints()
     f.borderFrame:SetFrameLevel(12)
     if CDM.BORDER and CDM.BORDER.CreateBorder then
@@ -984,36 +1026,23 @@ function CDM:InitializePlayerCastBar()
             or event == "UNIT_SPELLCAST_EMPOWER_START" then
             RefreshBarData(frame)
 
-        elseif event == "UNIT_SPELLCAST_STOP" then
-            -- (unit, castGUID, spellID, castID) -> c = castID
-            if frame.castID and c and frame.castID ~= c then return end
-            FinishCast(frame)
-
-        elseif event == "UNIT_SPELLCAST_CHANNEL_STOP" then
-            -- (unit, castGUID, spellID, interruptedBy, castID) -> d = castID
-            if frame.castID and d and frame.castID ~= d then return end
-            FinishCast(frame)
-
-        elseif event == "UNIT_SPELLCAST_EMPOWER_STOP" then
-            -- (unit, castGUID, spellID, empowerComplete, interruptedBy, castID) -> e = castID
-            if frame.castID and e and frame.castID ~= e then return end
+        elseif event == "UNIT_SPELLCAST_STOP"
+            or event == "UNIT_SPELLCAST_CHANNEL_STOP"
+            or event == "UNIT_SPELLCAST_EMPOWER_STOP" then
             FinishCast(frame)
 
         elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
-            -- (unit, castGUID, spellID, interruptedBy, castID) -> d = castID
+            -- (unit, castGUID, spellID, interruptedBy, castBarID) -> d = castBarID
             if frame.castID and d and frame.castID ~= d then return end
             FinishCast(frame)
 
         elseif event == "UNIT_SPELLCAST_DELAYED" then
-            -- (unit, castGUID, spellID, castID) -> c = castID
-            if frame.castID and c and frame.castID ~= c then return end
             RefreshBarData(frame)
 
         elseif event == "UNIT_SPELLCAST_CHANNEL_UPDATE"
             or event == "UNIT_SPELLCAST_EMPOWER_UPDATE" then
-            -- (unit, castGUID, spellID, castID) -> c = castID
-            if frame.castID and c and frame.castID ~= c then return end
             if frame.isEmpowered then
+                RefreshEmpowerTiming(frame)
                 UpdateEmpowerFill(frame)
             else
                 RefreshBarData(frame)
@@ -1053,7 +1082,7 @@ function CDM:InitializePlayerCastBar()
         EnableCastBar(f)
     end
 
-    UpdateContainerLockState()
+    UpdatePreviewState()
 end
 
 function CDM:UpdatePlayerCastBar()
@@ -1081,9 +1110,11 @@ function CDM:UpdatePlayerCastBar()
 
     UpdateCastBarFromConfig(self.castBarFrame)
     UpdateContainerPosition()
-    UpdateContainerLockState()
+    UpdatePreviewState()
 end
 
 CDM:RegisterRefreshCallback("playerCastBar", function()
     CDM:UpdatePlayerCastBar()
 end, 55, { "STYLE", "LAYOUT" })
+
+CDM.ResolveResourcesAnchor = ResolveResourcesAnchor

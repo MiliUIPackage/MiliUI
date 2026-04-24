@@ -18,6 +18,7 @@ local math_min = math.min
 local math_ceil = math.ceil
 local table_sort = table.sort
 local table_wipe = table.wipe
+local select = select
 local InCombatLockdown = InCombatLockdown
 
 local VIEWERS = CDM_C.VIEWERS
@@ -106,7 +107,7 @@ local function GetRowForIndex(index, total, isEssential, maxRowEss, maxRowUtil, 
     return 1
 end
 
-local function ComputeEssentialOrUtilityPosition(index, total, isEssential, sizeEssRow1, sizeEssRow2, sizeUtility, spacing, maxRowEss, maxRowUtil, utilityVertical, _preUtil)
+local function ComputeEssentialOrUtilityPosition(index, total, isEssential, sizeEssRow1, sizeEssRow2, sizeUtility, spacing, maxRowEss, maxRowUtil, utilityVertical, preUtilW, preUtilH, preUtilGap)
     if isEssential then
         local row1W, row1H, gap = GetSnappedMetrics(sizeEssRow1, spacing)
         local row2W, row2H = GetSnappedMetrics(sizeEssRow2, spacing)
@@ -131,8 +132,8 @@ local function ComputeEssentialOrUtilityPosition(index, total, isEssential, size
     end
 
     local utilW, utilH, gap
-    if _preUtil then
-        utilW, utilH, gap = _preUtil[1], _preUtil[2], _preUtil[3]
+    if preUtilW then
+        utilW, utilH, gap = preUtilW, preUtilH, preUtilGap
     else
         utilW, utilH, gap = GetSnappedMetrics(sizeUtility, spacing)
     end
@@ -236,59 +237,66 @@ end
 
 CDM.CountPopulatedFrames = CountPopulatedFrames
 
-local function GetXSide(point)
-    if point == "LEFT" or point == "TOPLEFT" or point == "BOTTOMLEFT" then
-        return "LEFT"
-    elseif point == "RIGHT" or point == "TOPRIGHT" or point == "BOTTOMRIGHT" then
-        return "RIGHT"
+local SELF_POINT_CACHE = {}
+do
+    local function xSide(p)
+        if p == "LEFT" or p == "TOPLEFT" or p == "BOTTOMLEFT" then return "LEFT" end
+        if p == "RIGHT" or p == "TOPRIGHT" or p == "BOTTOMRIGHT" then return "RIGHT" end
+        return "CENTER"
     end
-    return "CENTER"
-end
-
-local function GetYSide(point)
-    if point == "TOP" or point == "TOPLEFT" or point == "TOPRIGHT" then
-        return "TOP"
-    elseif point == "BOTTOM" or point == "BOTTOMLEFT" or point == "BOTTOMRIGHT" then
-        return "BOTTOM"
+    local function ySide(p)
+        if p == "TOP" or p == "TOPLEFT" or p == "TOPRIGHT" then return "TOP" end
+        if p == "BOTTOM" or p == "BOTTOMLEFT" or p == "BOTTOMRIGHT" then return "BOTTOM" end
+        return "CENTER"
     end
-    return "CENTER"
-end
-
-local function ComposePoint(xSide, ySide)
-    if ySide == "TOP" then
-        if xSide == "LEFT" then return "TOPLEFT" end
-        if xSide == "RIGHT" then return "TOPRIGHT" end
-        return "TOP"
-    elseif ySide == "BOTTOM" then
-        if xSide == "LEFT" then return "BOTTOMLEFT" end
-        if xSide == "RIGHT" then return "BOTTOMRIGHT" end
-        return "BOTTOM"
+    local function compose(x, y)
+        if y == "TOP" then
+            if x == "LEFT" then return "TOPLEFT" end
+            if x == "RIGHT" then return "TOPRIGHT" end
+            return "TOP"
+        elseif y == "BOTTOM" then
+            if x == "LEFT" then return "BOTTOMLEFT" end
+            if x == "RIGHT" then return "BOTTOMRIGHT" end
+            return "BOTTOM"
+        end
+        if x == "LEFT" then return "LEFT" end
+        if x == "RIGHT" then return "RIGHT" end
+        return "CENTER"
     end
-    if xSide == "LEFT" then return "LEFT" end
-    if xSide == "RIGHT" then return "RIGHT" end
-    return "CENTER"
+    for _, a in ipairs({"CENTER","TOP","BOTTOM","LEFT","RIGHT","TOPLEFT","TOPRIGHT","BOTTOMLEFT","BOTTOMRIGHT"}) do
+        SELF_POINT_CACHE[a] = {}
+        for _, g in ipairs({"RIGHT","LEFT","UP","DOWN","CENTER_H","CENTER_V"}) do
+            local r = a
+            if g ~= "CENTER_H" and g ~= "CENTER_V" then
+                local xs, ys = xSide(a), ySide(a)
+                if g == "RIGHT" then xs = "LEFT"
+                elseif g == "LEFT" then xs = "RIGHT"
+                elseif g == "DOWN" then ys = "TOP"
+                elseif g == "UP" then ys = "BOTTOM"
+                end
+                r = compose(xs, ys)
+            end
+            SELF_POINT_CACHE[a][g] = r
+        end
+    end
 end
 
 local function DeriveSelfPoint(anchorPoint, grow)
-    local point = anchorPoint or "CENTER"
-    if grow == "CENTER_H" or grow == "CENTER_V" then
-        return point
+    local byAnchor = SELF_POINT_CACHE[anchorPoint]
+    return (byAnchor and byAnchor[grow]) or anchorPoint or "CENTER"
+end
+
+local function SetCdmAnchor(fd, point, relativeTo, relativePoint, x, y)
+    local a = fd.cdmAnchor
+    if not a then
+        a = {}
+        fd.cdmAnchor = a
     end
-
-    local xSide = GetXSide(point)
-    local ySide = GetYSide(point)
-
-    if grow == "RIGHT" then
-        xSide = "LEFT"
-    elseif grow == "LEFT" then
-        xSide = "RIGHT"
-    elseif grow == "DOWN" then
-        ySide = "TOP"
-    elseif grow == "UP" then
-        ySide = "BOTTOM"
-    end
-
-    return ComposePoint(xSide, ySide)
+    a[1] = point
+    a[2] = relativeTo
+    a[3] = relativePoint
+    a[4] = Snap(x or 0)
+    a[5] = Snap(y or 0)
 end
 
 local function PositionFrameAtSlot(frame, container, idx, iconW, iconH, spacingW, grow, layoutCount, anchorPoint, selfPoint)
@@ -313,13 +321,13 @@ local function PositionFrameAtSlot(frame, container, idx, iconW, iconH, spacingW
     local sp = selfPoint or "CENTER"
     local ap = anchorPoint or "CENTER"
     local fd = GetFrameData(frame)
-    fd.cdmAnchor = { sp, container, ap, Snap(x or 0), Snap(y or 0) }
+    SetCdmAnchor(fd, sp, container, ap, x, y)
     Pixel.SetPoint(frame, sp, container, ap, x or 0, y or 0)
 end
 
 local function PlaceFrame(frame, container, selfPoint, anchorPoint, x, y)
     local fd = GetFrameData(frame)
-    fd.cdmAnchor = { selfPoint, container, anchorPoint, Snap(x or 0), Snap(y or 0) }
+    SetCdmAnchor(fd, selfPoint, container, anchorPoint, x, y)
     Pixel.SetPoint(frame, selfPoint, container, anchorPoint, x, y)
 end
 
@@ -538,32 +546,35 @@ local function GetBuffBarPositionSettings()
     return viewerTable.Default
 end
 
-function CDM:GetBuffContainerYOffset()
-    local moveBuffsDown = CDM_C.GetConfigValue("resourcesMoveBuffsDown", false)
-    if moveBuffsDown and self.resourcesSpecReady then
-        local hasBar2 = self.HasSecondaryResourceBar and self:HasSecondaryResourceBar()
-        if not hasBar2 then
-            local bar2Height = CDM_C.GetConfigValue("resourcesBar2Height", 16)
-            local barSpacing = CDM_C.GetConfigValue("resourcesBarSpacing", 2)
-            bar2Height = Snap(bar2Height or 0)
-            barSpacing = Snap(barSpacing or 0)
-
-            return -(bar2Height + barSpacing)
-        end
-    end
-    return 0
-end
-
 function CDM:UpdateBuffContainerPosition()
     local buffContainer = self.anchorContainers[VIEWERS.BUFF]
     if not buffContainer then return end
 
+    local db = CDM.db
+    if db and db.moveBuffsDown and db.resourcesEnabled ~= false then
+        local fallback = db.moveBuffsDownFallback or "lastResource"
+        local allowHidden = fallback == "lastResource"
+        local topBar = CDM.ResolveResourcesAnchor and CDM.ResolveResourcesAnchor(allowHidden)
+        local offsetY = tonumber(db.moveBuffsDownOffset) or 0
+        if topBar then
+            buffContainer:ClearAllPoints()
+            Pixel.SetPoint(buffContainer, "BOTTOM", topBar, "TOP", 0, offsetY)
+            return
+        end
+        if fallback == "essential" then
+            local essContainer = self.anchorContainers[VIEWERS.ESSENTIAL]
+            if essContainer and essContainer:IsShown() then
+                buffContainer:ClearAllPoints()
+                Pixel.SetPoint(buffContainer, "BOTTOM", essContainer, "TOP", 0, offsetY)
+                return
+            end
+        end
+    end
+
     local savedPos = GetPositionSettings(VIEWERS.BUFF, "Default")
-    local yOffset = self:GetBuffContainerYOffset()
 
     buffContainer:ClearAllPoints()
-    AnchorMainLayoutContainer(buffContainer, true, savedPos.point, savedPos.x, savedPos.y, yOffset)
-
+    AnchorMainLayoutContainer(buffContainer, true, savedPos.point, savedPos.x, savedPos.y, 0)
 end
 
 function CDM:ReanchorContainer(vName)
@@ -713,7 +724,6 @@ end
 
 local function CreateBaseContainer(name)
     local container = _G[name] or CreateFrame("Frame", name, UIParent)
-    container:SetParent(UIParent)
     container:SetFrameStrata(CDM_C.STRATA_MAIN)
     container:SetFrameLevel(10)
     if container.SetPreventSecretValues then
@@ -826,7 +836,6 @@ local scratchRowOrderSeenCount = 0
 local scratchRowMetrics = {}
 local scratchRowMetricPool = {}
 local scratchRowMetricPoolCount = 0
-local scratchPreSnapUtil = {}
 
 local function ResetScratchPlacements()
     for i = 1, scratchPlacementsCount do
@@ -862,7 +871,7 @@ local function PlaceIconTopLeft(frame, container, x, y, viewer)
         frame:SetParent(UIParent)
     end
     local fd = GetFrameData(frame)
-    fd.cdmAnchor = { "TOPLEFT", container, "TOPLEFT", Snap(x or 0), Snap(y or 0) }
+    SetCdmAnchor(fd, "TOPLEFT", container, "TOPLEFT", x, y)
     frame:ClearAllPoints()
     Pixel.SetPoint(frame, "TOPLEFT", container, "TOPLEFT", x or 0, y or 0)
     frame:Show()
@@ -1003,10 +1012,9 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
     local rowOrderSeen = scratchRowOrderSeen
     local useMeasuredHorizontalLayout = isEssential or (not utilityVertical)
 
-    local preSnapUtil
+    local preUtilW, preUtilH, preUtilGap
     if not useMeasuredHorizontalLayout then
-        scratchPreSnapUtil[1], scratchPreSnapUtil[2], scratchPreSnapUtil[3] = GetSnappedMetrics(sizeUtility, spacing)
-        preSnapUtil = scratchPreSnapUtil
+        preUtilW, preUtilH, preUtilGap = GetSnappedMetrics(sizeUtility, spacing)
     end
 
     for index, record in ipairs(tempIconPositionRecords) do
@@ -1037,7 +1045,7 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
             bucket[#bucket + 1] = placement
         else
             local row, _, _, _, x, y = ComputeEssentialOrUtilityPosition(
-                index, totalIcons, isEssential, sizeEssRow1, sizeEssRow2, sizeUtility, spacing, maxRowEss, maxRowUtil, utilityVertical, preSnapUtil
+                index, totalIcons, isEssential, sizeEssRow1, sizeEssRow2, sizeUtility, spacing, maxRowEss, maxRowUtil, utilityVertical, preUtilW, preUtilH, preUtilGap
             )
             GetFrameData(frame).cdmRow = row
             self:ApplyStyle(frame, vName)
@@ -1226,12 +1234,12 @@ local function CalculateEssentialRow1Width()
         end
 
         if activeCount > 0 then
-            local row1Count = math.min(activeCount, maxRowEss)
+            local row1Count = math_min(activeCount, maxRowEss)
             return CacheEssentialRow1Width((row1Count * sizeEssRow1.w) + ((row1Count - 1) * spacing))
         end
     end
 
-    local fallbackCount = math.max(maxRowEss, 1)
+    local fallbackCount = math_max(maxRowEss, 1)
     return (fallbackCount * sizeEssRow1.w) + ((fallbackCount - 1) * spacing)
 end
 
@@ -1288,7 +1296,7 @@ function CDM:PositionBuffBarFrames(viewer, vName)
     end
     effectiveWidth = Snap(effectiveWidth)
 
-    table.wipe(tempBars)
+    table_wipe(tempBars)
     local bars = tempBars
     for frame in viewer.itemFramePool:EnumerateActive() do
         if frame:IsShown() then
@@ -1299,7 +1307,7 @@ function CDM:PositionBuffBarFrames(viewer, vName)
     end
 
     if #bars > 1 then
-        table.sort(bars, CompareByLayoutIndex)
+        table_sort(bars, CompareByLayoutIndex)
     end
 
     if #bars == 0 then
@@ -1314,9 +1322,9 @@ function CDM:PositionBuffBarFrames(viewer, vName)
     local containerLevel = container:GetFrameLevel()
 
     if dualMode and #bars >= 2 then
-        local leftWidth = math.max(Pixel.GetSize(), HalfFloor(effectiveWidth - spacing))
+        local leftWidth = math_max(Pixel.GetSize(), HalfFloor(effectiveWidth - spacing))
         local rightX = leftWidth + spacing
-        local rightWidth = math.max(1, effectiveWidth - rightX)
+        local rightWidth = math_max(1, effectiveWidth - rightX)
         containerWidth = effectiveWidth
         local totalBars = #bars
         local hasOddBar = (totalBars % 2) == 1
@@ -1326,7 +1334,7 @@ function CDM:PositionBuffBarFrames(viewer, vName)
             local isLeft, rowOffset, frameWidth
 
             if isLastOdd then
-                rowOffset = math.floor((i - 1) / 2) * (barHeight + spacing)
+                rowOffset = math_floor((i - 1) / 2) * (barHeight + spacing)
                 frameWidth = effectiveWidth
 
                 local overridePos = (iconPosition == "HIDDEN") and "HIDDEN" or nil
@@ -1343,7 +1351,7 @@ function CDM:PositionBuffBarFrames(viewer, vName)
                 self:ApplyBarStyle(frame, vName, overridePos, frameWidth, barHeight)
             else
                 isLeft = ((i - 1) % 2) == 0
-                rowOffset = math.floor((i - 1) / 2) * (barHeight + spacing)
+                rowOffset = math_floor((i - 1) / 2) * (barHeight + spacing)
                 frameWidth = isLeft and leftWidth or rightWidth
 
                 local dualIconPosition
@@ -1367,7 +1375,7 @@ function CDM:PositionBuffBarFrames(viewer, vName)
             end
         end
 
-        local rowCount = math.ceil(totalBars / 2)
+        local rowCount = math_ceil(totalBars / 2)
         containerHeight = (rowCount * barHeight) + ((rowCount - 1) * spacing)
     else
         for i, frame in ipairs(bars) do
@@ -1389,7 +1397,7 @@ function CDM:PositionBuffBarFrames(viewer, vName)
         containerHeight = (#bars * barHeight) + ((#bars - 1) * spacing)
     end
 
-    container:SetSize(containerWidth, math.max(barHeight, containerHeight))
+    container:SetSize(containerWidth, math_max(barHeight, containerHeight))
     self:UpdateBuffBarContainerPosition()
 end
 
@@ -1404,4 +1412,5 @@ CDM._LayoutCtx = {
     GetLayoutConfig        = GetLayoutConfig,
     ToSortNumber           = ToSortNumber,
     RowWidth               = RowWidth,
+    SetCdmAnchor           = SetCdmAnchor,
 }

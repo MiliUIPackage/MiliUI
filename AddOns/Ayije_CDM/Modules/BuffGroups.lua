@@ -7,6 +7,11 @@ local Snap = Pixel.Snap
 local LSM = LibStub("LibSharedMedia-3.0")
 local IsSafeNumber = CDM.IsSafeNumber
 
+local GetTime = GetTime
+local IsPlayerSpell = IsPlayerSpell
+local table_wipe = table.wipe
+local table_sort = table.sort
+
 CDM.buffGroupContainers = {}
 
 local containers = CDM.buffGroupContainers
@@ -137,7 +142,7 @@ local function MarkSafe(set, id)
 end
 
 local function BuildActiveSpellSet()
-    table.wipe(scratchActiveSet)
+    table_wipe(scratchActiveSet)
     local buffViewer = _G[CDM_C.VIEWERS.BUFF]
     if buffViewer and buffViewer.itemFramePool then
         for frame in buffViewer.itemFramePool:EnumerateActive() do
@@ -192,7 +197,7 @@ local function ResolveSpellOverrideEntry(overrideMap, spellID)
 end
 
 local function BuildGroupSpellLookup(spells)
-    table.wipe(scratchGroupSpellLookup)
+    table_wipe(scratchGroupSpellLookup)
     if type(spells) ~= "table" then
         return scratchGroupSpellLookup
     end
@@ -237,9 +242,9 @@ local function IsSpellMarkedActive(spellID, activeSpellIDs)
 end
 
 local function BuildStaticSlotLayout(groupData, activeSpellIDs, activeSpellSet, groupSpellLookup)
-    table.wipe(scratchSpellSlot)
-    table.wipe(scratchPlaceholderBySpell)
-    table.wipe(scratchSlotToRawSpell)
+    table_wipe(scratchSpellSlot)
+    table_wipe(scratchPlaceholderBySpell)
+    table_wipe(scratchSlotToRawSpell)
     local nextSlot = 0
 
     for _, sid in ipairs(groupData.spells or {}) do
@@ -315,9 +320,6 @@ local function HideFrameVisuals(frame, frameData)
     if frameData.borderFrame and frameData.borderFrame.border then
         frameData.borderFrame.border:Hide()
     end
-    if frameData.pixelIconBorderFrame then
-        frameData.pixelIconBorderFrame:Hide()
-    end
     frameData.cdmVisualsHidden = true
 end
 
@@ -328,9 +330,6 @@ local function RestoreFrameVisuals(frame, frameData)
     end
     if frameData.borderFrame and frameData.borderFrame.border then
         frameData.borderFrame.border:Show()
-    end
-    if frameData.pixelIconBorderFrame then
-        frameData.pixelIconBorderFrame:Show()
     end
     frameData.cdmVisualsHidden = nil
 end
@@ -406,7 +405,7 @@ function CDM:UpdateAllBuffGroupContainers()
     end
 
     local activeIndices = scratchBgActiveIndices
-    table.wipe(activeIndices)
+    table_wipe(activeIndices)
     for groupIndex, groupData in ipairs(sets.groups) do
         local container = bgDescriptor:GetOrCreateContainer(groupIndex)
         bgDescriptor:UpdateContainerPosition(groupIndex, groupData, GetContainerForAnchorTarget)
@@ -481,13 +480,13 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames, activeSpellSetParam, re
     local activeSpellSet
     local placeholderBySpell
     if groupData.spells then
-        table.wipe(scratchSpellOrder)
+        table_wipe(scratchSpellOrder)
         for i, sid in ipairs(groupData.spells) do
             if not scratchSpellOrder[sid] then scratchSpellOrder[sid] = i end
         end
         if count > 1 then
             GCU.AssignGroupSortKeys(frames, scratchSpellOrder, "buffCategorySpellID")
-            table.sort(frames, function(a, b)
+            table_sort(frames, function(a, b)
                 local aKey = GetFrameData(a).cdmSortKey
                 local bKey = GetFrameData(b).cdmSortKey
                 if aKey ~= bKey then return aKey < bKey end
@@ -498,7 +497,7 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames, activeSpellSetParam, re
 
     if isStatic then
         activeSpellSet = activeSpellSetParam or BuildActiveSpellSet()
-        table.wipe(scratchActiveSpellIDs)
+        table_wipe(scratchActiveSpellIDs)
         for _, frame in ipairs(frames) do
             if frame:IsShown() then
                 local sid = GetFrameData(frame).buffCategorySpellID
@@ -585,13 +584,15 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames, activeSpellSetParam, re
             local countText = frame.Applications and frame.Applications.Applications
             if countText then
                 local fCountPixelSize = fCountFS and Pixel.FontSize(fCountFS)
-                if frameData.cdmLastCountFS ~= fCountPixelSize
-                    or frameData.cdmLastCountPos ~= fCountPos
-                    or frameData.cdmLastCountOX ~= fCountOX
-                    or frameData.cdmLastCountOY ~= fCountOY
-                    or frameData.cdmLastCountColorR ~= fCountColor.r
-                    or frameData.cdmLastCountColorG ~= fCountColor.g
-                    or frameData.cdmLastCountColorB ~= fCountColor.b then
+                local cs = frameData.countStyle
+                if not cs
+                    or cs.fs ~= fCountPixelSize
+                    or cs.pos ~= fCountPos
+                    or cs.ox ~= fCountOX
+                    or cs.oy ~= fCountOY
+                    or cs.r ~= fCountColor.r
+                    or cs.g ~= fCountColor.g
+                    or cs.b ~= fCountColor.b then
                     if fCountPixelSize then
                         local fontPath, _, fontFlags = countText:GetFont()
                         if fontPath then
@@ -603,13 +604,11 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames, activeSpellSetParam, re
                     end
                     countText:ClearAllPoints()
                     Pixel.SetPoint(countText, fCountPos, frame, fCountPos, fCountOX, fCountOY)
-                    frameData.cdmLastCountFS = fCountPixelSize
-                    frameData.cdmLastCountPos = fCountPos
-                    frameData.cdmLastCountOX = fCountOX
-                    frameData.cdmLastCountOY = fCountOY
-                    frameData.cdmLastCountColorR = fCountColor.r
-                    frameData.cdmLastCountColorG = fCountColor.g
-                    frameData.cdmLastCountColorB = fCountColor.b
+                    frameData.countStyle = {
+                        fs = fCountPixelSize, pos = fCountPos,
+                        ox = fCountOX, oy = fCountOY,
+                        r = fCountColor.r, g = fCountColor.g, b = fCountColor.b,
+                    }
                 end
             end
 
@@ -772,28 +771,10 @@ function CDM:ApplyGroupStyleOverrides()
             end
         end
     end
-
-    local CB = self.CustomBuffs
-    if CB and CB.activeBuffs then
-        for spellID, buffData in pairs(CB.activeBuffs) do
-            local frame = buffData.frame
-            if frame then
-                local groupIdx = sets.grouped[spellID]
-                if groupIdx then
-                    local groupData = sets.groups[groupIdx]
-                    if groupData then
-                        local iconW = groupData.iconWidth or 30
-                        local iconH = groupData.iconHeight or 30
-                        frame:SetSize(Snap(iconW), Snap(iconH))
-                    end
-                end
-            end
-        end
-    end
 end
 
 CDM:RegisterRefreshCallback("buffGroups", function()
-    table.wipe(notificationThrottles)
+    table_wipe(notificationThrottles)
     BGP.ReleaseAll()
     CDM:MarkSpecDataDirty()
     CDM:RefreshSpecData()
@@ -806,7 +787,7 @@ end, 45, { "LAYOUT", "BUFF_DATA" })
 
 UpdatePlayerDeathState()
 CDM:RegisterEvent("PLAYER_ENTERING_WORLD", UpdatePlayerDeathState)
-CDM:RegisterEvent("PLAYER_ENTERING_WORLD", function() table.wipe(notificationThrottles) end)
+CDM:RegisterEvent("PLAYER_ENTERING_WORLD", function() table_wipe(notificationThrottles) end)
 CDM:RegisterEvent("PLAYER_DEAD", UpdatePlayerDeathState)
 CDM:RegisterEvent("PLAYER_ALIVE", UpdatePlayerDeathState)
 CDM:RegisterEvent("PLAYER_UNGHOST", UpdatePlayerDeathState)
