@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2795, "DBM-Raids-Midnight", 2, 1314)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260423035249")
+mod:SetRevision("20260424043937")
 mod:SetCreatureID(256116)
 mod:SetEncounterID(3306)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -379,7 +379,9 @@ do
 				self:TLCountStart(eventID, "riftMadness", "riftMadnessCount")
 			end
 		elseif timer == 24 or timer == 26 or timer == 48 or timer == 18 or timer == 9 then--Caustic Phlegm
-			timerCausticPhlegmCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "phlegm", "phlegmCount"))
+			if timer ~= 9 then--Invalid timer blizzard sends that we need to outright ignore
+				timerCausticPhlegmCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "phlegm", "phlegmCount"))
+			end
 		elseif timer == 72 then--Consume reload
 			timerConsumeCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "consume", "consumeCount"))
 		elseif timer == 10 then--Alndust Upheaval phase 2
