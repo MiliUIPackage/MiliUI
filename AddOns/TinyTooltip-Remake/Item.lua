@@ -98,8 +98,7 @@ LibEvent:attachTrigger("tooltip:item", function(self, tip, link)
                 if (not addon:FindLine(tip, itemLabel)) then
                     tip:AddLine(" ")
                 end
-                local versionNum = (type(expacId) == "number") and format(" (%d.0)", expacId + 1) or ""
-                tip:AddLine(format("%s: |cffffffff%s%s|r", expansionLabel, expansionName, versionNum), 1, 0.82, 0)
+                tip:AddLine(format("%s: |cffffffff%s|r", expansionLabel, expansionName), 0, 1, 0.8)
                 tip:Show()
             end
         end

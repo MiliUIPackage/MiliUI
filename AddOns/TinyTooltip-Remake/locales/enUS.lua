@@ -6,16 +6,12 @@ local addon = TinyTooltip or select(2, ...)
 addon.L = addon.L or {}
 local L = addon.L
 local T = {
-    ["about.announcement.chat"] = "Blizzard has fixed the issue that caused item and spell tooltips to trigger Lua errors. A new option has also been added on the General settings page to control whether the latest announcement is shown. You can read the full details on the settings page.",
-    ["about.announcement.chatKey"] = "announcement_2026_03_31_tooltip_bug",
-    ["about.announcement.content"] = "Based on testing, Blizzard has fixed the issue where item and spell tooltips could become secret values, which caused many errors when 'Show Item Icon' or 'Show Spell Icon' was enabled. You can now turn these two options back on."
-    .. "In addition, version 1.6.2 adds a new option on the General page to control whether announcements are shown at login.\n"
-    .. "The issue currently confirmed is that, after entering combat in instances, some player tooltips may show incorrect size. This is a new issue that appeared after the season started, and the size problem only appears randomly on some players you inspect."
-    .. "Because of that, I have reason to believe this is caused by Blizzard rather than by this addon. At the same time, the original TinyTooltip architecture has multiple entry points for both size calculation and content insertion, and the tooltip may be rebuilt in several different places."
-    .. "That design makes tooltip size issues extremely difficult to fix, especially when it is still unclear whether the incorrect sizing is caused by the addon or by Blizzard itself."
-    .. "For that reason, no update will be pushed for the sizing issue for now. I plan to fully refactor the tooltip creation flow after another 1-2 feature updates, so the whole pipeline uses a single entry point for size calculation and a single content insertion interface,"
-    .. "which should completely address both the complexity of size calculation and the need to redraw tooltips multiple times during creation.\n"
-    .. "\nFinally, if you encounter incorrect player tooltip sizing after combat in instances, please reload your UI to resolve it. Thank you again for your understanding and support.",
+    ["about.announcement.chat"] = "In 12.0.5, unit speed is a secret value during combat inside instances, so it will not be shown in that situation. You can read more update details on the announcement page.",
+    ["about.announcement.chatKey"] = "announcement_2026_04_24_tooltip_bug",
+    ["about.announcement.content"] = "In 12.0.5, reading unit speed while you are in combat inside an instance returns a secret value, so this feature is unavailable in that situation.\n"
+    .. "Outdoor gameplay and non-combat situations are not affected. Blizzard also fixed the issue where enemy targets could still be read from unit frames, so targets for hostile NPCs inside instances can no longer be retrieved."
+    .. "At the same time, calling GameTooltip:GetUnit() can now incorrectly return a secret value. This behavior has been confirmed as a Blizzard-side bug, and this update includes a temporary fix for it."
+    .. "It is not yet clear whether this bug may cause other issues. If you encounter any, please report them on CurseForge or Github and include as much detail as possible.",
     ["about.announcement.title"] = "Announcement",
     ["about.author.label"] = "Author",
     ["about.author.name"] = "HoshinoAya - Rhonin CN",

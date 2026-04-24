@@ -94,7 +94,8 @@ function DropDownFrame:AddButton(info)
         button.texture:SetPoint("TOPLEFT", 22, 0)
         button.texture:SetPoint("BOTTOMRIGHT", -18, 0)
         button.text = button:CreateFontString(nil, "BORDER")
-        button.text:SetFont(GameFontHighlightSmall:GetFont(), 14, "THINOUTLINE")
+        local buttonFontFile = GameFontHighlightSmall:GetFont()
+        button.text:SetFont(buttonFontFile, 14, "THINOUTLINE")
         button.text.font, button.text.size, button.text.flag = button.text:GetFont()
         button.text:SetPoint("LEFT", 24, 0)
         button.info = {}
@@ -111,7 +112,7 @@ function DropDownFrame:AddButton(info)
     button.uncheck:SetShown(not info.checked)
     button.texture:SetTexture(info.texture)
     button.text:SetText(info.text or info.value)
-    button.text:SetFont(info.font or button.text.font, button.text.size, button.text.flag or "")
+    button.text:SetFont(info.font or button.text.font, button.text.size, button.text.flag)
     button.info.text = info.text
     button.info.value = info.value
     button.info.checked = info.checked
