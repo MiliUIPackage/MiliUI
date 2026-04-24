@@ -318,8 +318,41 @@ local function InitSettings()
     -- ============================================================
     -- 子分類: 插件強化
     -- ============================================================
-    local enhanceFrame = CreateFrame("Frame")
-    enhanceFrame:SetSize(600, 400)
+    local enhanceCanvas = CreateFrame("Frame")
+    enhanceCanvas:SetSize(600, 400)
+
+    -- 捲動容器：內容太長時可上下捲動
+    local enhanceScroll = CreateFrame("ScrollFrame", nil, enhanceCanvas, "UIPanelScrollFrameTemplate")
+    enhanceScroll:SetPoint("TOPLEFT", 0, 0)
+    enhanceScroll:SetPoint("BOTTOMRIGHT", -28, 0)
+
+    local enhanceFrame = CreateFrame("Frame", nil, enhanceScroll)
+    enhanceFrame:SetSize(572, 900)
+    enhanceScroll:SetScrollChild(enhanceFrame)
+
+    -- 內容建立完後自動調整捲動區高度（以最後一個子框底部為準）
+    local function ResizeEnhanceScrollChild()
+        local maxBottom = 0
+        for _, child in ipairs({ enhanceFrame:GetChildren() }) do
+            if child and child.GetBottom then
+                local top = enhanceFrame:GetTop() or 0
+                local bottom = child:GetBottom() or top
+                local dist = top - bottom
+                if dist > maxBottom then maxBottom = dist end
+            end
+        end
+        for _, region in ipairs({ enhanceFrame:GetRegions() }) do
+            if region and region.GetBottom then
+                local top = enhanceFrame:GetTop() or 0
+                local bottom = region:GetBottom() or top
+                local dist = top - bottom
+                if dist > maxBottom then maxBottom = dist end
+            end
+        end
+        if maxBottom > 0 then
+            enhanceFrame:SetHeight(maxBottom + 40)
+        end
+    end
 
     local eTitle = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     eTitle:SetPoint("TOPLEFT", 16, -16)
@@ -388,19 +421,35 @@ local function InitSettings()
     borderDesc:SetText("自動隱藏導致圖示邊框變粗的異常黑底材質。需重載介面生效。")
     borderDesc:SetTextColor(0.5, 0.5, 0.5)
 
+    -- 防禦 / 種族技能顯示按鍵綁定 checkbox
+    local defRacKBCB = CreateFrame("CheckButton", "MiliUI_CDMDefRacKeybindCB", enhanceFrame, "UICheckButtonTemplate")
+    defRacKBCB:SetPoint("TOPLEFT", borderDesc, "BOTTOMLEFT", -26, -12)
+    defRacKBCB.text:SetText("防禦 / 種族技能顯示按鍵綁定")
+    defRacKBCB.text:SetFontObject("GameFontHighlight")
+
+    local defRacKBDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    defRacKBDesc:SetPoint("TOPLEFT", defRacKBCB, "BOTTOMLEFT", 26, -2)
+    defRacKBDesc:SetWidth(520)
+    defRacKBDesc:SetJustifyH("LEFT")
+    defRacKBDesc:SetText("將按鍵綁定文字延伸顯示到防禦技能與種族技能圖示上，\n樣式 / 位置沿用 Ayije_CDM 的按鍵綁定設定。\n需 Ayije_CDM 本身已啟用「按鍵綁定」功能才會顯示。")
+    defRacKBDesc:SetTextColor(0.5, 0.5, 0.5)
+
     -- 初始化 checkbox 狀態（建立時就設定，不只等 OnShow）
     local function SyncCheckboxes()
         local edb = MiliUI_CastBarEnhance and MiliUI_CastBarEnhance.GetDB() or {}
         tickCB:SetChecked(edb.channelTicks ~= false)
         latCB:SetChecked(edb.latencyBar ~= false)
         fontCB:SetChecked(edb.proportionalFont == true)
-        
+
         if not MiliUI_DB then MiliUI_DB = {} end
         if MiliUI_DB.cdmStyleFix == nil then MiliUI_DB.cdmStyleFix = true end
         borderCB:SetChecked(MiliUI_DB.cdmStyleFix)
+
+        if MiliUI_DB.cdmDefRacKeybind == nil then MiliUI_DB.cdmDefRacKeybind = true end
+        defRacKBCB:SetChecked(MiliUI_DB.cdmDefRacKeybind)
     end
     SyncCheckboxes()
-    enhanceFrame:SetScript("OnShow", SyncCheckboxes)
+    enhanceCanvas:SetScript("OnShow", SyncCheckboxes)
 
     tickCB:HookScript("OnClick", function(self)
         local enabled = self:GetChecked() and true or false
@@ -433,11 +482,22 @@ local function InitSettings()
         print("|cff00ff00[MiliUI]|r 細邊框修復:", enabled and "開" or "關", "(需 /reload 生效)")
     end)
 
+    defRacKBCB:HookScript("OnClick", function(self)
+        local enabled = self:GetChecked() and true or false
+        if MiliUI_DefRacKeybind and MiliUI_DefRacKeybind.SetEnabled then
+            MiliUI_DefRacKeybind.SetEnabled(enabled)
+        else
+            if not MiliUI_DB then MiliUI_DB = {} end
+            MiliUI_DB.cdmDefRacKeybind = enabled
+        end
+        print("|cff00ff00[MiliUI]|r 防禦 / 種族技能按鍵綁定:", enabled and "開" or "關")
+    end)
+
     -- ===== 拍賣行區塊 =====
     local ahDivider = enhanceFrame:CreateTexture(nil, "ARTWORK")
     ahDivider:SetColorTexture(0.3, 0.3, 0.3, 0.5)
     ahDivider:SetSize(520, 1)
-    ahDivider:SetPoint("TOPLEFT", borderDesc, "BOTTOMLEFT", -26, -20)
+    ahDivider:SetPoint("TOPLEFT", defRacKBDesc, "BOTTOMLEFT", -26, -20)
 
     local ahLabel = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     ahLabel:SetPoint("TOPLEFT", ahDivider, "BOTTOMLEFT", 0, -12)
@@ -464,7 +524,7 @@ local function InitSettings()
         ahCB:SetChecked(MiliUI_DB.ahFeatureEnabled)
     end
     SyncAHCheckbox()
-    enhanceFrame:HookScript("OnShow", SyncAHCheckbox)
+    enhanceCanvas:HookScript("OnShow", SyncAHCheckbox)
 
     ahCB:HookScript("OnClick", function(self)
         if not MiliUI_DB then MiliUI_DB = {} end
@@ -549,7 +609,11 @@ local function InitSettings()
         UpdateSwatch()
     end
     SyncBaganatorKeystone()
-    enhanceFrame:HookScript("OnShow", SyncBaganatorKeystone)
+    enhanceCanvas:HookScript("OnShow", SyncBaganatorKeystone)
+    enhanceCanvas:HookScript("OnShow", function()
+        -- 等一個 frame 讓子元件的座標算出來
+        C_Timer.After(0, ResizeEnhanceScrollChild)
+    end)
 
     keystoneCB:HookScript("OnClick", function(self)
         if not MiliUI_BaganatorKeystone then return end
@@ -601,7 +665,7 @@ local function InitSettings()
         print("|cff00ff00[MiliUI]|r 鑰石發光顏色已重設為預設值")
     end)
 
-    local enhanceCategory = Settings.RegisterCanvasLayoutSubcategory(category, enhanceFrame, "插件強化")
+    local enhanceCategory = Settings.RegisterCanvasLayoutSubcategory(category, enhanceCanvas, "插件強化")
     enhanceCategory.ID = "MiliUI_Enhance"
 
     -- ============================================================
