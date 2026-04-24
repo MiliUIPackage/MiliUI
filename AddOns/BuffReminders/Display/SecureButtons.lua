@@ -460,6 +460,17 @@ local function InvalidateConsumableCache()
     consumableCacheDirty = true
 end
 
+-- Toggling hideLegacyConsumables only affects what we expose via
+-- consumableCache, not what we scan from bags. Invalidate the sorted arrays
+-- so the next render rebuilds them with the new filter. The bag scan
+-- (and ConsumableMemory snapshot) is unfiltered, so consumption tracking
+-- stays consistent across toggles.
+BR.CallbackRegistry:RegisterCallback("SettingChanged", function(_, path)
+    if path == "defaults.hideLegacyConsumables" then
+        consumableCacheDirty = true
+    end
+end)
+
 ---Scan bags for all consumable categories and populate the cache.
 local function RefreshConsumableCache()
     if not consumableCacheDirty then
@@ -474,6 +485,7 @@ local function RefreshConsumableCache()
 
     local specId = BR.StateHelpers and BR.StateHelpers.GetPlayerSpecId()
     local itemSets = BR.CONSUMABLE_ITEMS or {}
+    local hideLegacy = (BR.profile and BR.profile.defaults or {}).hideLegacyConsumables ~= false
     -- Scan all bags once, bucket items by consumable category
     local buckets = {} -- category → { [itemID] = { count, icon } }
     local maxBags = NUM_BAG_SLOTS or 4
@@ -527,42 +539,48 @@ local function RefreshConsumableCache()
     -- Auto-remember food/weapon consumed outside addon (count-delta tracking)
     BR.ConsumableMemory.DetectConsumedItems(buckets, specId)
 
-    -- Convert buckets to sorted arrays
+    -- Convert buckets to sorted arrays, applying the legacy filter here
+    -- rather than during the bag scan so ConsumableMemory sees unfiltered data.
     wipe(consumableCache)
     for category, entries in pairs(buckets) do
         local items = {}
-        for _, item in pairs(entries) do
-            items[#items + 1] = item
-        end
         local allowedSet = itemSets[category]
-        local rememberedSpell = BR.ConsumableMemory.GetRemembered(specId, category)
-        tsort(items, function(a, b)
-            -- If items have priority values, sort by priority first (lower = better)
-            -- Priority entries (e.g., fleeting flasks) come before non-priority (regular)
-            local aPri = allowedSet and allowedSet[a.itemID]
-            local bPri = allowedSet and allowedSet[b.itemID]
-            local aNum = type(aPri) == "number" and aPri or (type(aPri) == "table" and aPri.priority) or nil
-            local bNum = type(bPri) == "number" and bPri or (type(bPri) == "table" and bPri.priority) or nil
-            if (aNum ~= nil) ~= (bNum ~= nil) then
-                return aNum ~= nil
+        for itemID, item in pairs(entries) do
+            local entry = allowedSet and allowedSet[itemID]
+            if not (hideLegacy and type(entry) == "table" and entry.legacy) then
+                items[#items + 1] = item
             end
-            if aNum and bNum and aNum ~= bNum then
-                return aNum < bNum
-            end
-            -- Remembered consumable spell for this spec sorts above non-remembered
-            if rememberedSpell then
-                local aRem = a.useSpellID == rememberedSpell
-                local bRem = b.useSpellID == rememberedSpell
-                if aRem ~= bRem then
-                    return aRem
+        end
+        if #items > 0 then
+            local rememberedSpell = BR.ConsumableMemory.GetRemembered(specId, category)
+            tsort(items, function(a, b)
+                -- If items have priority values, sort by priority first (lower = better)
+                -- Priority entries (e.g., fleeting flasks) come before non-priority (regular)
+                local aPri = allowedSet and allowedSet[a.itemID]
+                local bPri = allowedSet and allowedSet[b.itemID]
+                local aNum = type(aPri) == "number" and aPri or (type(aPri) == "table" and aPri.priority) or nil
+                local bNum = type(bPri) == "number" and bPri or (type(bPri) == "table" and bPri.priority) or nil
+                if (aNum ~= nil) ~= (bNum ~= nil) then
+                    return aNum ~= nil
                 end
-            end
-            if a.count == b.count then
-                return a.itemID < b.itemID
-            end
-            return a.count > b.count
-        end)
-        consumableCache[category] = items
+                if aNum and bNum and aNum ~= bNum then
+                    return aNum < bNum
+                end
+                -- Remembered consumable spell for this spec sorts above non-remembered
+                if rememberedSpell then
+                    local aRem = a.useSpellID == rememberedSpell
+                    local bRem = b.useSpellID == rememberedSpell
+                    if aRem ~= bRem then
+                        return aRem
+                    end
+                end
+                if a.count == b.count then
+                    return a.itemID < b.itemID
+                end
+                return a.count > b.count
+            end)
+            consumableCache[category] = items
+        end
     end
 
     -- Snapshot current counts for next delta comparison

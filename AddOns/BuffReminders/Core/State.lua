@@ -214,6 +214,12 @@ local cachedOffHandType = nil -- nil = not yet checked, "weapon" | "shield" | "n
 ---@type table<number, boolean>
 local cachedItemOwnership = {}
 
+-- Wrong-demon-pet cache. UnitCreatureFamily can return secret-value familyIDs
+-- under 12.0.5 taint rules, so the compare is pcall-guarded — a secret value
+-- becomes "unknown" (not cached, retried) instead of crashing Refresh.
+---@type boolean|nil
+local cachedWrongPetStatus = nil
+
 -- Weapon enchant info for current refresh cycle (set once per BuffState.Refresh())
 local currentWeaponEnchants = {
     hasMainHand = false,
@@ -2405,6 +2411,40 @@ end
 ---Invalidate item ownership cache (call on BAG_UPDATE_DELAYED, PLAYER_EQUIPMENT_CHANGED)
 function BuffState.InvalidateItemCache()
     cachedItemOwnership = {}
+end
+
+---Check whether the player's current pet is not a Felguard (cached).
+---Returns false when there is no pet or the pet is a Felguard. If the compare
+---hits a secret value, the result is left uncached so later refreshes retry
+---(worst case: same cost as an uncached compare, but without the crash).
+---@return boolean
+function BuffState.IsWrongDemonPet()
+    if cachedWrongPetStatus ~= nil then
+        return cachedWrongPetStatus
+    end
+    if not UnitExists("pet") then
+        cachedWrongPetStatus = false
+        return false
+    end
+    local name, familyID = UnitCreatureFamily("pet")
+    if type(familyID) ~= "number" then
+        -- Pet data not resolved yet; don't cache so next Refresh retries.
+        return false
+    end
+    local ok, isWrong = pcall(function()
+        return familyID ~= 29 and name ~= "Felguard"
+    end)
+    if not ok then
+        return false
+    end
+    cachedWrongPetStatus = isWrong == true
+    return cachedWrongPetStatus
+end
+
+---Invalidate wrong-pet cache (call on UNIT_PET, PLAYER_ENTERING_WORLD,
+---PLAYER_SPECIALIZATION_CHANGED, TRAIT_CONFIG_UPDATED, SPELLS_CHANGED)
+function BuffState.InvalidatePetCache()
+    cachedWrongPetStatus = nil
 end
 
 -- ============================================================================

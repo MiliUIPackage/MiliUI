@@ -256,6 +256,8 @@ english["Display.DismissConsumables"] = "Hide consumable reminders until next lo
 english["Display.DismissConsumablesChat"] = "Consumable reminders hidden until next loading screen."
 english["Display.LoginFirstInstall"] =
     "Thanks for installing! Type |cFFFFD100/br unlock|r to move the buff display, or use the button at the bottom of the |cFFFFD100/br|r options panel."
+english["Display.LoginLegacyConsumables"] =
+    "Consumables from previous expansions are now hidden by default. Toggle |cFFFFD100Hide legacy consumables|r in the consumable category options if you still use older flasks or runes."
 
 -- ============================================================================
 -- OPTIONS: TAB LABELS
@@ -497,6 +499,10 @@ english["Options.ShowWithoutItemsReadyCheckOnly.Desc"] =
     "When enabled, consumables not in your bags are only shown during a ready check. Useful for a quick reminder to restock before a pull."
 english["Options.DelveFoodOnly"] = "Only delve food in delves"
 english["Options.DelveFoodOnly.Desc"] = "When inside a delve, hide all consumable reminders except delve food."
+english["Options.HideLegacyConsumables"] = "Hide legacy consumables"
+english["Options.HideLegacyConsumables.Title"] = "Hide legacy consumables"
+english["Options.HideLegacyConsumables.Desc"] =
+    "When enabled, food, flasks, and runes from previous expansions are filtered out of the action buttons. Disable if you still use older consumables for Timewalking, old-raid farming, or undergeared alts."
 
 -- ============================================================================
 -- OPTIONS: DK RUNEFORGE PREFERENCES

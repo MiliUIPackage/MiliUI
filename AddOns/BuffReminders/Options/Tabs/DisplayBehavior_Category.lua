@@ -936,6 +936,21 @@ local function RenderCategorySection(
             end,
         })
         catLayout:Add(delveFoodOnlyHolder, nil, COMPONENT_GAP)
+
+        local hideLegacyHolder = Components.Checkbox(catContent, {
+            label = L["Options.HideLegacyConsumables"],
+            get = function()
+                return BR.Config.Get("defaults.hideLegacyConsumables", true) ~= false
+            end,
+            tooltip = {
+                title = L["Options.HideLegacyConsumables.Title"],
+                desc = L["Options.HideLegacyConsumables.Desc"],
+            },
+            onChange = function(checked)
+                BR.Config.Set("defaults.hideLegacyConsumables", checked)
+            end,
+        })
+        catLayout:Add(hideLegacyHolder, nil, COMPONENT_GAP)
     end
 
     -- Layout sub-header

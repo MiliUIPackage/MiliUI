@@ -983,11 +983,7 @@ BR.BUFF_TABLES = {
             requiresSpellID = 30146, -- Summon Felguard must be known
             groupId = "pets",
             customCheck = function()
-                if not UnitExists("pet") then
-                    return false
-                end
-                local name, familyID = UnitCreatureFamily("pet")
-                return familyID ~= 29 and name ~= "Felguard"
+                return BR.BuffState.IsWrongDemonPet()
             end,
             getPetActions = function()
                 return BR.PetHelpers.GetFelguardAction()

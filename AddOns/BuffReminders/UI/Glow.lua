@@ -214,7 +214,10 @@ end
 function BR.Glow.Stop(frame, typeIndex, key)
     local fn = GLOW_STOP[typeIndex]
     if fn then
-        fn(frame, key)
+        -- pcall: LCG's pool:Release can throw if the glow frame was already reclaimed
+        -- (observed under rapid hide/show cycles). Swallow the error so the safety-net
+        -- nil below always runs and state stays consistent.
+        pcall(fn, frame, key)
         local lcgKey = LCG_FRAME_KEYS[typeIndex]
         if lcgKey then
             frame[lcgKey .. (key or "")] = nil

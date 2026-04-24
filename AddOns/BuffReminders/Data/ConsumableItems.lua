@@ -3,87 +3,88 @@ local L = BR.L
 
 -- Lookup tables of known consumable item IDs, keyed by consumable type.
 -- Values: `true` for simple membership, or a table with `label` (stat abbreviation) and optional fields.
--- Food tables: `{ label, badge }`. Flask tables: `{ label, badge, priority }`.
+-- Food tables: `{ label, badge, legacy }`. Flask tables: `{ label, badge, priority, legacy }`.
 -- `badge`: bottom-left overlay text ("H" for hearty food, "R1"/"R2"/"R3" for flask quality).
+-- `legacy`: true for items from prior expansions; hidden by the hideLegacyConsumables setting.
 BR.CONSUMABLE_ITEMS = {
     food = {
-        -- TWW 11.0.0
-        [222702] = { label = L["Label.LowSecondary"] }, -- Skewered Fillet
-        [222703] = { label = L["Label.LowSecondary"] }, -- Simple Stew
-        [222704] = { label = L["Label.LowSecondary"] }, -- Unseasoned Field Steak
-        [222705] = { label = L["Label.LowSecondary"] }, -- Roasted Mycobloom
-        [222706] = { label = L["Label.LowSecondary"] }, -- Pan-Seared Mycobloom
-        [222707] = { label = L["Label.LowSecondary"] }, -- Hallowfall Chili
-        [222708] = { label = L["Label.LowSecondary"] }, -- Coreway Kabob
-        [222709] = { label = L["Label.LowSecondary"] }, -- Flashfire Fillet
-        [222710] = { label = L["Label.StaminaStr"] }, -- Meat and Potatoes
-        [222711] = { label = L["Label.StaminaAgi"] }, -- Rib Stickers
-        [222712] = { label = L["Label.StaminaInt"] }, -- Sweet and Sour Meatballs
-        [222713] = { label = L["Label.Stamina"] }, -- Tender Twilight Jerky
-        [222714] = { label = L["Label.HasteShort"] }, -- Zesty Nibblers
-        [222715] = { label = L["Label.Crit"] }, -- Fiery Fish Sticks
-        [222716] = { label = L["Label.VersatilityShort"] }, -- Ginger-Glazed Fillet
-        [222717] = { label = L["Label.MasteryShort"] }, -- Salty Dog
-        [222718] = { label = L["Label.HasteCrit"] }, -- Deepfin Patty
-        [222719] = { label = L["Label.HasteVers"] }, -- Sweet and Spicy Soup
-        [222720] = { label = L["Label.HighSecondary"] }, -- The Sushi Special
-        [222721] = { label = L["Label.CritVers"] }, -- Fish and Chips
-        [222722] = { label = L["Label.MasteryCrit"] }, -- Salt Baked Seafood
-        [222723] = { label = L["Label.MasteryVers"] }, -- Marinated Tenderloins
-        [222724] = { label = L["Label.StaminaStr"] }, -- Sizzling Honey Roast
-        [222725] = { label = L["Label.StaminaAgi"] }, -- Mycobloom Risotto
-        [222726] = { label = L["Label.StaminaInt"] }, -- Stuffed Cave Peppers
-        [222727] = { label = L["Label.Stamina"] }, -- Angler's Delight
-        [222728] = { label = L["Label.HighSecondary"] }, -- Beledar's Bounty
-        [222729] = { label = L["Label.HighSecondary"] }, -- Empress' Farewell
-        [222730] = { label = L["Label.HighSecondary"] }, -- Jester's Board
-        [222731] = { label = L["Label.HighSecondary"] }, -- Outsider's Provisions
-        [222732] = { label = L["Label.Feast"] }, -- Feast of the Divine Day
-        [222733] = { label = L["Label.Feast"] }, -- Feast of the Midnight Masquerade
-        [222735] = { label = L["Label.LowSecondary"] }, -- Everything Stew
-        [222736] = { label = L["Label.MasteryHaste"] }, -- Chippy Tea
-        [222750] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Skewered Fillet
-        [222751] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Simple Stew
-        [222752] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Unseasoned Field Steak
-        [222753] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Roasted Mycobloom
-        [222754] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Pan-Seared Mycobloom
-        [222755] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Hallowfall Chili
-        [222756] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Coreway Kabob
-        [222757] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Flashfire Fillet
-        [222758] = { label = L["Label.StaminaStr"], badge = L["Badge.Hearty"] }, -- Hearty Meat and Potatoes
-        [222759] = { label = L["Label.StaminaAgi"], badge = L["Badge.Hearty"] }, -- Hearty Rib Stickers
-        [222760] = { label = L["Label.StaminaInt"], badge = L["Badge.Hearty"] }, -- Hearty Sweet and Sour Meatballs
-        [222761] = { label = L["Label.Stamina"], badge = L["Badge.Hearty"] }, -- Hearty Tender Twilight Jerky
-        [222762] = { label = L["Label.HasteShort"], badge = L["Badge.Hearty"] }, -- Hearty Zesty Nibblers
-        [222763] = { label = L["Label.Crit"], badge = L["Badge.Hearty"] }, -- Hearty Fiery Fish Sticks
-        [222764] = { label = L["Label.VersatilityShort"], badge = L["Badge.Hearty"] }, -- Hearty Ginger-Glazed Fillet
-        [222765] = { label = L["Label.MasteryShort"], badge = L["Badge.Hearty"] }, -- Hearty Salty Dog
-        [222766] = { label = L["Label.HasteCrit"], badge = L["Badge.Hearty"] }, -- Hearty Deepfin Patty
-        [222767] = { label = L["Label.HasteVers"], badge = L["Badge.Hearty"] }, -- Hearty Sweet and Spicy Soup
-        [222768] = { label = L["Label.HighSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Sushi Special
-        [222769] = { label = L["Label.CritVers"], badge = L["Badge.Hearty"] }, -- Hearty Fish and Chips
-        [222770] = { label = L["Label.MasteryCrit"], badge = L["Badge.Hearty"] }, -- Hearty Salt Baked Seafood
-        [222771] = { label = L["Label.MasteryVers"], badge = L["Badge.Hearty"] }, -- Hearty Marinated Tenderloins
-        [222772] = { label = L["Label.StaminaStr"], badge = L["Badge.Hearty"] }, -- Hearty Sizzling Honey Roast
-        [222773] = { label = L["Label.StaminaAgi"], badge = L["Badge.Hearty"] }, -- Hearty Mycobloom Risotto
-        [222774] = { label = L["Label.StaminaInt"], badge = L["Badge.Hearty"] }, -- Hearty Stuffed Cave Peppers
-        [222775] = { label = L["Label.Stamina"], badge = L["Badge.Hearty"] }, -- Hearty Angler's Delight
-        [222776] = { label = L["Label.HighSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Beledar's Bounty
-        [222777] = { label = L["Label.HighSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Empress' Farewell
-        [222778] = { label = L["Label.HighSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Jester's Board
-        [222779] = { label = L["Label.HighSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Outsider's Provisions
-        [222780] = { label = L["Label.Feast"], badge = L["Badge.Hearty"] }, -- Hearty Feast of the Divine Day
-        [222781] = { label = L["Label.Feast"], badge = L["Badge.Hearty"] }, -- Hearty Feast of the Midnight Masquerade
-        [222783] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Everything Stew
-        [222784] = { label = L["Label.MasteryHaste"], badge = L["Badge.Hearty"] }, -- Hearty Chippy Tea
-        [223966] = { label = L["Label.Random"] }, -- Everything-on-a-Stick (random Khaz Algar meal)
-        [223967] = { label = L["Label.LowSecondary"] }, -- Protein Slurp
-        [223968] = { label = L["Label.LowSecondary"] }, -- Spongey Scramble
-        [225592] = { label = L["Label.Speed"] }, -- Exquisitely Eviscerated Muscle
+        -- TWW 11.0.0 (legacy)
+        [222702] = { label = L["Label.LowSecondary"], legacy = true }, -- Skewered Fillet
+        [222703] = { label = L["Label.LowSecondary"], legacy = true }, -- Simple Stew
+        [222704] = { label = L["Label.LowSecondary"], legacy = true }, -- Unseasoned Field Steak
+        [222705] = { label = L["Label.LowSecondary"], legacy = true }, -- Roasted Mycobloom
+        [222706] = { label = L["Label.LowSecondary"], legacy = true }, -- Pan-Seared Mycobloom
+        [222707] = { label = L["Label.LowSecondary"], legacy = true }, -- Hallowfall Chili
+        [222708] = { label = L["Label.LowSecondary"], legacy = true }, -- Coreway Kabob
+        [222709] = { label = L["Label.LowSecondary"], legacy = true }, -- Flashfire Fillet
+        [222710] = { label = L["Label.StaminaStr"], legacy = true }, -- Meat and Potatoes
+        [222711] = { label = L["Label.StaminaAgi"], legacy = true }, -- Rib Stickers
+        [222712] = { label = L["Label.StaminaInt"], legacy = true }, -- Sweet and Sour Meatballs
+        [222713] = { label = L["Label.Stamina"], legacy = true }, -- Tender Twilight Jerky
+        [222714] = { label = L["Label.HasteShort"], legacy = true }, -- Zesty Nibblers
+        [222715] = { label = L["Label.Crit"], legacy = true }, -- Fiery Fish Sticks
+        [222716] = { label = L["Label.VersatilityShort"], legacy = true }, -- Ginger-Glazed Fillet
+        [222717] = { label = L["Label.MasteryShort"], legacy = true }, -- Salty Dog
+        [222718] = { label = L["Label.HasteCrit"], legacy = true }, -- Deepfin Patty
+        [222719] = { label = L["Label.HasteVers"], legacy = true }, -- Sweet and Spicy Soup
+        [222720] = { label = L["Label.HighSecondary"], legacy = true }, -- The Sushi Special
+        [222721] = { label = L["Label.CritVers"], legacy = true }, -- Fish and Chips
+        [222722] = { label = L["Label.MasteryCrit"], legacy = true }, -- Salt Baked Seafood
+        [222723] = { label = L["Label.MasteryVers"], legacy = true }, -- Marinated Tenderloins
+        [222724] = { label = L["Label.StaminaStr"], legacy = true }, -- Sizzling Honey Roast
+        [222725] = { label = L["Label.StaminaAgi"], legacy = true }, -- Mycobloom Risotto
+        [222726] = { label = L["Label.StaminaInt"], legacy = true }, -- Stuffed Cave Peppers
+        [222727] = { label = L["Label.Stamina"], legacy = true }, -- Angler's Delight
+        [222728] = { label = L["Label.HighSecondary"], legacy = true }, -- Beledar's Bounty
+        [222729] = { label = L["Label.HighSecondary"], legacy = true }, -- Empress' Farewell
+        [222730] = { label = L["Label.HighSecondary"], legacy = true }, -- Jester's Board
+        [222731] = { label = L["Label.HighSecondary"], legacy = true }, -- Outsider's Provisions
+        [222732] = { label = L["Label.Feast"], legacy = true }, -- Feast of the Divine Day
+        [222733] = { label = L["Label.Feast"], legacy = true }, -- Feast of the Midnight Masquerade
+        [222735] = { label = L["Label.LowSecondary"], legacy = true }, -- Everything Stew
+        [222736] = { label = L["Label.MasteryHaste"], legacy = true }, -- Chippy Tea
+        [222750] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Skewered Fillet
+        [222751] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Simple Stew
+        [222752] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Unseasoned Field Steak
+        [222753] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Roasted Mycobloom
+        [222754] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Pan-Seared Mycobloom
+        [222755] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Hallowfall Chili
+        [222756] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Coreway Kabob
+        [222757] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Flashfire Fillet
+        [222758] = { label = L["Label.StaminaStr"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Meat and Potatoes
+        [222759] = { label = L["Label.StaminaAgi"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Rib Stickers
+        [222760] = { label = L["Label.StaminaInt"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Sweet and Sour Meatballs
+        [222761] = { label = L["Label.Stamina"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Tender Twilight Jerky
+        [222762] = { label = L["Label.HasteShort"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Zesty Nibblers
+        [222763] = { label = L["Label.Crit"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Fiery Fish Sticks
+        [222764] = { label = L["Label.VersatilityShort"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Ginger-Glazed Fillet
+        [222765] = { label = L["Label.MasteryShort"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Salty Dog
+        [222766] = { label = L["Label.HasteCrit"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Deepfin Patty
+        [222767] = { label = L["Label.HasteVers"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Sweet and Spicy Soup
+        [222768] = { label = L["Label.HighSecondary"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Sushi Special
+        [222769] = { label = L["Label.CritVers"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Fish and Chips
+        [222770] = { label = L["Label.MasteryCrit"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Salt Baked Seafood
+        [222771] = { label = L["Label.MasteryVers"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Marinated Tenderloins
+        [222772] = { label = L["Label.StaminaStr"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Sizzling Honey Roast
+        [222773] = { label = L["Label.StaminaAgi"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Mycobloom Risotto
+        [222774] = { label = L["Label.StaminaInt"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Stuffed Cave Peppers
+        [222775] = { label = L["Label.Stamina"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Angler's Delight
+        [222776] = { label = L["Label.HighSecondary"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Beledar's Bounty
+        [222777] = { label = L["Label.HighSecondary"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Empress' Farewell
+        [222778] = { label = L["Label.HighSecondary"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Jester's Board
+        [222779] = { label = L["Label.HighSecondary"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Outsider's Provisions
+        [222780] = { label = L["Label.Feast"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Feast of the Divine Day
+        [222781] = { label = L["Label.Feast"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Feast of the Midnight Masquerade
+        [222783] = { label = L["Label.LowSecondary"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Everything Stew
+        [222784] = { label = L["Label.MasteryHaste"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Chippy Tea
+        [223966] = { label = L["Label.Random"], legacy = true }, -- Everything-on-a-Stick (random Khaz Algar meal)
+        [223967] = { label = L["Label.LowSecondary"], legacy = true }, -- Protein Slurp
+        [223968] = { label = L["Label.LowSecondary"], legacy = true }, -- Spongey Scramble
+        [225592] = { label = L["Label.Speed"], legacy = true }, -- Exquisitely Eviscerated Muscle
 
-        -- TWW 11.1.0
-        [235805] = { label = L["Label.HighSecondary"] }, -- Authentic Undermine Clam Chowder
-        [235853] = { label = L["Label.HighSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Authentic Undermine Clam Chowder
+        -- TWW 11.1.0 (legacy)
+        [235805] = { label = L["Label.HighSecondary"], legacy = true }, -- Authentic Undermine Clam Chowder
+        [235853] = { label = L["Label.HighSecondary"], badge = L["Badge.Hearty"], legacy = true }, -- Hearty Authentic Undermine Clam Chowder
 
         -- Midnight 12.0.0
         [242272] = { label = L["Label.HighSecondary"] }, -- Quel'dorei Medley
@@ -175,44 +176,44 @@ BR.CONSUMABLE_ITEMS = {
     -- Quality is detected dynamically from item link atlas (shows tier icons instead of R1/R2/R3 text)
     -- priority = sort order (fleeting sort first)
     flask = {
-        -- TWW 11.0.0 (3 quality tiers)
-        [212269] = { label = L["Label.Crit"] }, -- Flask of Tempered Aggression
-        [212270] = { label = L["Label.Crit"] }, -- Flask of Tempered Aggression (quality 2)
-        [212271] = { label = L["Label.Crit"] }, -- Flask of Tempered Aggression (quality 3)
-        [212272] = { label = L["Label.Haste"] }, -- Flask of Tempered Swiftness
-        [212273] = { label = L["Label.Haste"] }, -- Flask of Tempered Swiftness (quality 2)
-        [212274] = { label = L["Label.Haste"] }, -- Flask of Tempered Swiftness (quality 3)
-        [212275] = { label = L["Label.Versatility"] }, -- Flask of Tempered Versatility
-        [212276] = { label = L["Label.Versatility"] }, -- Flask of Tempered Versatility (quality 2)
-        [212277] = { label = L["Label.Versatility"] }, -- Flask of Tempered Versatility (quality 3)
-        [212278] = { label = L["Label.Mastery"] }, -- Flask of Tempered Mastery
-        [212279] = { label = L["Label.Mastery"] }, -- Flask of Tempered Mastery (quality 2)
-        [212280] = { label = L["Label.Mastery"] }, -- Flask of Tempered Mastery (quality 3)
-        [212281] = { label = L["Label.Random"] }, -- Flask of Alchemical Chaos
-        [212282] = { label = L["Label.Random"] }, -- Flask of Alchemical Chaos (quality 2)
-        [212283] = { label = L["Label.Random"] }, -- Flask of Alchemical Chaos (quality 3)
-        [212299] = { label = L["Label.Healing"] }, -- Flask of Saving Graces
-        [212300] = { label = L["Label.Healing"] }, -- Flask of Saving Graces (quality 2)
-        [212301] = { label = L["Label.Healing"] }, -- Flask of Saving Graces (quality 3)
-        -- TWW 11.0.0 (fleeting/cauldron, 3 quality tiers)
-        [212725] = { label = L["Label.Crit"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Tempered Aggression
-        [212727] = { label = L["Label.Crit"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Tempered Aggression (quality 2)
-        [212728] = { label = L["Label.Crit"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Tempered Aggression (quality 3)
-        [212729] = { label = L["Label.Haste"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Tempered Swiftness
-        [212730] = { label = L["Label.Haste"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Tempered Swiftness (quality 2)
-        [212731] = { label = L["Label.Haste"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Tempered Swiftness (quality 3)
-        [212732] = { label = L["Label.Versatility"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Tempered Versatility
-        [212733] = { label = L["Label.Versatility"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Tempered Versatility (quality 2)
-        [212734] = { label = L["Label.Versatility"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Tempered Versatility (quality 3)
-        [212735] = { label = L["Label.Mastery"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Tempered Mastery
-        [212736] = { label = L["Label.Mastery"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Tempered Mastery (quality 2)
-        [212738] = { label = L["Label.Mastery"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Tempered Mastery (quality 3)
-        [212739] = { label = L["Label.Random"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Alchemical Chaos
-        [212740] = { label = L["Label.Random"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Alchemical Chaos (quality 2)
-        [212741] = { label = L["Label.Random"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Alchemical Chaos (quality 3)
-        [212745] = { label = L["Label.Healing"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Saving Graces
-        [212746] = { label = L["Label.Healing"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Saving Graces (quality 2)
-        [212747] = { label = L["Label.Healing"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of Saving Graces (quality 3)
+        -- TWW 11.0.0 (3 quality tiers, legacy)
+        [212269] = { label = L["Label.Crit"], legacy = true }, -- Flask of Tempered Aggression
+        [212270] = { label = L["Label.Crit"], legacy = true }, -- Flask of Tempered Aggression (quality 2)
+        [212271] = { label = L["Label.Crit"], legacy = true }, -- Flask of Tempered Aggression (quality 3)
+        [212272] = { label = L["Label.Haste"], legacy = true }, -- Flask of Tempered Swiftness
+        [212273] = { label = L["Label.Haste"], legacy = true }, -- Flask of Tempered Swiftness (quality 2)
+        [212274] = { label = L["Label.Haste"], legacy = true }, -- Flask of Tempered Swiftness (quality 3)
+        [212275] = { label = L["Label.Versatility"], legacy = true }, -- Flask of Tempered Versatility
+        [212276] = { label = L["Label.Versatility"], legacy = true }, -- Flask of Tempered Versatility (quality 2)
+        [212277] = { label = L["Label.Versatility"], legacy = true }, -- Flask of Tempered Versatility (quality 3)
+        [212278] = { label = L["Label.Mastery"], legacy = true }, -- Flask of Tempered Mastery
+        [212279] = { label = L["Label.Mastery"], legacy = true }, -- Flask of Tempered Mastery (quality 2)
+        [212280] = { label = L["Label.Mastery"], legacy = true }, -- Flask of Tempered Mastery (quality 3)
+        [212281] = { label = L["Label.Random"], legacy = true }, -- Flask of Alchemical Chaos
+        [212282] = { label = L["Label.Random"], legacy = true }, -- Flask of Alchemical Chaos (quality 2)
+        [212283] = { label = L["Label.Random"], legacy = true }, -- Flask of Alchemical Chaos (quality 3)
+        [212299] = { label = L["Label.Healing"], legacy = true }, -- Flask of Saving Graces
+        [212300] = { label = L["Label.Healing"], legacy = true }, -- Flask of Saving Graces (quality 2)
+        [212301] = { label = L["Label.Healing"], legacy = true }, -- Flask of Saving Graces (quality 3)
+        -- TWW 11.0.0 (fleeting/cauldron, 3 quality tiers, legacy)
+        [212725] = { label = L["Label.Crit"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Tempered Aggression
+        [212727] = { label = L["Label.Crit"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Tempered Aggression (quality 2)
+        [212728] = { label = L["Label.Crit"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Tempered Aggression (quality 3)
+        [212729] = { label = L["Label.Haste"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Tempered Swiftness
+        [212730] = { label = L["Label.Haste"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Tempered Swiftness (quality 2)
+        [212731] = { label = L["Label.Haste"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Tempered Swiftness (quality 3)
+        [212732] = { label = L["Label.Versatility"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Tempered Versatility
+        [212733] = { label = L["Label.Versatility"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Tempered Versatility (quality 2)
+        [212734] = { label = L["Label.Versatility"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Tempered Versatility (quality 3)
+        [212735] = { label = L["Label.Mastery"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Tempered Mastery
+        [212736] = { label = L["Label.Mastery"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Tempered Mastery (quality 2)
+        [212738] = { label = L["Label.Mastery"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Tempered Mastery (quality 3)
+        [212739] = { label = L["Label.Random"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Alchemical Chaos
+        [212740] = { label = L["Label.Random"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Alchemical Chaos (quality 2)
+        [212741] = { label = L["Label.Random"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Alchemical Chaos (quality 3)
+        [212745] = { label = L["Label.Healing"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Saving Graces
+        [212746] = { label = L["Label.Healing"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Saving Graces (quality 2)
+        [212747] = { label = L["Label.Healing"], badge = L["Badge.Fleeting"], priority = 1, legacy = true }, -- Fleeting Flask of Saving Graces (quality 3)
         -- Midnight 12.0.0 (2 quality tiers)
         [241320] = { label = L["Label.Versatility"] }, -- Flask of Thalassian Resistance
         [241321] = { label = L["Label.Versatility"] }, -- Flask of Thalassian Resistance (quality 2)
@@ -234,16 +235,17 @@ BR.CONSUMABLE_ITEMS = {
         [245932] = { label = L["Label.Mastery"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of the Magisters (quality 2)
         [245933] = { label = L["Label.Mastery"], badge = L["Badge.Fleeting"], priority = 1 }, -- Fleeting Flask of the Magisters
     },
-    -- Rune priority: lower number = use first (Ethereal > Soulgorged > Crystallized > legacy)
+    -- Rune priority: lower number = use first (Midnight > TWW > Dragonflight > Shadowlands)
     rune = {
-        [259085] = 1, -- Void-Touched Augment Rune (Midnight)
-        [243191] = 2, -- Ethereal Augment Rune (TWW permanent)
-        [246492] = 3, -- Soulgorged Augment Rune (TWW, persists through death)
-        [224572] = 4, -- Crystallized Augment Rune (TWW single use)
-        -- Legacy runes
-        [211495] = 5, -- Dreambound Augment Rune (Dragonflight)
-        [201325] = 6, -- Draconic Augment Rune (Dragonflight)
-        [181468] = 7, -- Veiled Augment Rune (Shadowlands)
+        [259085] = { priority = 1 }, -- Void-Touched Augment Rune (Midnight)
+        -- TWW (legacy)
+        [243191] = { priority = 2, legacy = true }, -- Ethereal Augment Rune (TWW permanent)
+        [246492] = { priority = 3, legacy = true }, -- Soulgorged Augment Rune (TWW, persists through death)
+        [224572] = { priority = 4, legacy = true }, -- Crystallized Augment Rune (TWW single use)
+        -- Dragonflight / Shadowlands (legacy)
+        [211495] = { priority = 5, legacy = true }, -- Dreambound Augment Rune (Dragonflight)
+        [201325] = { priority = 6, legacy = true }, -- Draconic Augment Rune (Dragonflight)
+        [181468] = { priority = 7, legacy = true }, -- Veiled Augment Rune (Shadowlands)
     },
     weapon = {
         -- Midnight 12.0.0

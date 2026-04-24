@@ -65,6 +65,7 @@ local addonName, BR = ...
 ---@field consumableRebuffColor? number[]
 ---@field consumableDisplayMode? "icon_only"|"sub_icons"|"expanded"
 ---@field consumableTextScale? number
+---@field hideLegacyConsumables? boolean
 ---@field petDisplayMode? "generic"|"expanded"
 ---@field petLabels? boolean
 ---@field petLabelScale? number
@@ -217,12 +218,35 @@ end
 -- All SetFont calls read this local directly instead of calling LSM:Fetch() every time.
 local fontPath = STANDARD_TEXT_FONT
 
+-- LSM can register fonts whose file assets can't be loaded (e.g. another addon points to
+-- a missing TTF). We probe each path with a hidden FontString + pcall so we never hand a
+-- broken path to SetFont, which would hard-error and break the display / options panel.
+local fontProbe = UIParent:CreateFontString(nil, "BACKGROUND")
+fontProbe:Hide()
+local fontPathValidCache = {}
+
+---Check whether a font file path is loadable by the WoW client
+---@param path string? LSM-resolved font file path
+---@return boolean valid true if path is non-nil and SetFont succeeds
+local function IsFontPathValid(path)
+    if not path then
+        return false
+    end
+    local cached = fontPathValidCache[path]
+    if cached ~= nil then
+        return cached
+    end
+    local ok = pcall(fontProbe.SetFont, fontProbe, path, 12, "")
+    fontPathValidCache[path] = ok
+    return ok
+end
+
 ---Resolve the font path from saved settings and update the cache
 local function ResolveFontPath()
     local fontName = BR.profile and BR.profile.defaults and BR.profile.defaults.fontFace
     if fontName then
         local path = LSM:Fetch("font", fontName)
-        if path then
+        if IsFontPathValid(path) then
             fontPath = path
             return
         end
@@ -429,6 +453,7 @@ local defaults = {
         consumableDisplayMode = "sub_icons",
         consumableTextScale = 25,
         showConsumableTooltips = false,
+        hideLegacyConsumables = true,
         petDisplayMode = "generic", -- "generic" or "expanded"
         petLabels = true,
         petSpecIconOnHover = true,
@@ -527,7 +552,7 @@ local defaults = {
     ---@type AllCategorySettings
     categorySettings = { -- Per-category settings
         main = {
-            position = { point = "CENTER", x = 0, y = 450 },
+            position = { point = "CENTER", x = 0, y = 200 },
             -- main frame always uses defaults for appearance/behavior
         },
         raid = {
@@ -3450,6 +3475,7 @@ BR.Helpers = {
     ValidateSpellID = ValidateSpellID,
     ValidateItemID = ValidateItemID,
     GenerateCustomBuffKey = GenerateCustomBuffKey,
+    IsFontPathValid = IsFontPathValid,
     SetBuffSound = function(key, soundName)
         local db = BR.profile
         if soundName then
@@ -4572,6 +4598,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         C_Timer.After(5, function()
             if isFirstInstall then
                 print("|cff00ccffBuffReminders:|r " .. L["Display.LoginFirstInstall"])
+            elseif BR.profile.showLoginMessages ~= false and not BR.aceDB.global.legacyConsumablesNoticeShown then
+                print("|cff00ccffBuffReminders:|r " .. L["Display.LoginLegacyConsumables"])
+                BR.aceDB.global.legacyConsumablesNoticeShown = true
             end
         end)
     elseif event == "PLAYER_ENTERING_WORLD" then
@@ -4582,6 +4611,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         BR.BuffState.InvalidateSpellCache()
         BR.BuffState.InvalidateSpecCache()
         BR.BuffState.InvalidateOffHandCache()
+        BR.BuffState.InvalidatePetCache()
         -- Sync flags with current state (in case of reload)
         inCombat = InCombatLockdown()
         isResting = IsResting()
@@ -4735,6 +4765,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         end
     elseif event == "UNIT_PET" then
         if arg1 == "player" then
+            BR.BuffState.InvalidatePetCache()
             SetDirty("full")
         end
     elseif event == "PET_BAR_UPDATE" then
@@ -4799,6 +4830,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         -- Invalidate caches when player changes spec
         BR.BuffState.InvalidateSpellCache()
         BR.BuffState.InvalidateOffHandCache()
+        BR.BuffState.InvalidatePetCache()
 
         BR.PetHelpers.InvalidatePetActions()
         BR.SecureButtons.InvalidateConsumableCache()
@@ -4814,12 +4846,14 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
     elseif event == "TRAIT_CONFIG_UPDATED" then
         -- Invalidate spell cache when talents change (within same spec)
         BR.BuffState.InvalidateSpellCache()
+        BR.BuffState.InvalidatePetCache()
         BR.PetHelpers.InvalidatePetActions()
         BR.SecureButtons.RefreshOverlaySpells()
         SetDirty()
     elseif event == "SPELLS_CHANGED" then
         -- Catch delayed spell availability after spec/talent changes (noisy event, keep cheap)
         BR.BuffState.InvalidateSpellCache()
+        BR.BuffState.InvalidatePetCache()
         BR.PetHelpers.InvalidatePetActions()
     elseif event == "PLAYER_EQUIPMENT_CHANGED" then
         BR.BuffState.InvalidateItemCache()

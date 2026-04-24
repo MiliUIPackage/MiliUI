@@ -11,6 +11,7 @@ local Components = BR.Components
 local CreateButton = BR.CreateButton
 
 local LSM = BR.LSM
+local IsFontPathValid = BR.Helpers.IsFontPathValid
 
 local LayoutSectionHeader = BR.Options.Helpers.LayoutSectionHeader
 
@@ -76,7 +77,9 @@ local function Build(ctx)
         local fontList = LSM:List("font")
         local opts = { { label = L["Options.Default"], value = nil } }
         for _, name in ipairs(fontList) do
-            tinsert(opts, { label = name, value = name })
+            if IsFontPathValid(LSM:Fetch("font", name)) then
+                tinsert(opts, { label = name, value = name })
+            end
         end
         return opts
     end

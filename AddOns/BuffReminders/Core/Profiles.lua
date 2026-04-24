@@ -230,7 +230,7 @@ function BR.Profiles.RefreshAfterProfileChange()
     registry:TriggerEvent("LayoutRefresh")
     registry:TriggerEvent("DisplayRefresh")
 
-    -- Re-sort consumable cache (remembered items may differ between profiles)
+    -- Re-sort consumable cache (remembered items and legacy filter may differ between profiles)
     if BR.SecureButtons and BR.SecureButtons.InvalidateConsumableCache then
         BR.SecureButtons.InvalidateConsumableCache()
     end
