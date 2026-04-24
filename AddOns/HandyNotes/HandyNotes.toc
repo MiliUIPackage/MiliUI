@@ -1,4 +1,4 @@
-## Interface: 110207,120000,120001,11508,20505,50503
+## Interface: 110207,120000,120005,11508,20505,50503
 ## Title: HandyNotes
 ## Notes: Handy notes for your maps
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-主程式

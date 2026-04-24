@@ -1,4 +1,4 @@
-## Interface: 120001
+## Interface: 120005
 ## Title: |cFFFF00FFY|r|cFFFF6666U|r|cFFFF9900I|r 拍賣場購買助手
 ## Notes: 从YUI插件中独立出来的小功能
 ## Author: 阿言

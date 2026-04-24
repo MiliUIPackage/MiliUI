@@ -1,4 +1,4 @@
-## Interface: 11508, 20505, 30405, 38000, 40402, 50503, 120001
+## Interface: 11508, 20505, 30405, 38000, 40402, 50503, 120005
 ## Title: BugGrabber
 ## Version: v12.0.10
 ## Notes: Grabs bugs for the bug sack.

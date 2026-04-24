@@ -1,4 +1,4 @@
-## Interface: 120001
+## Interface: 120005
 ## Title: HandyNotes: Midnight - Capital
 ## Title-zhCN: HandyNotes：至暗之夜 - 主城
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記 - 至暗之夜主城

@@ -1,4 +1,4 @@
-## Interface: 120001
+## Interface: 120005
 ## Title: BtWQuests: Midnight
 ## Version: 1.0
 ## Notes: Midnight quest data for BtWQuests

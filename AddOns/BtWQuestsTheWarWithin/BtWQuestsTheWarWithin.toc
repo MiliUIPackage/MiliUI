@@ -1,4 +1,4 @@
-## Interface: 110205, 110207, 120000, 120001
+## Interface: 110205, 110207, 120000, 120005
 ## Title: BtWQuests: The War Within
 ## Version: 11.1
 ## Notes: The War Within quest data for BtWQuests

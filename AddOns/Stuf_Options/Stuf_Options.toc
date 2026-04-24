@@ -1,4 +1,4 @@
-## Interface: 120001
+## Interface: 120005
 ## Title: Stuf_Options
 ## Author: Systomatica
 ## Notes: Configuration Menu for Stuf. 12.0.5

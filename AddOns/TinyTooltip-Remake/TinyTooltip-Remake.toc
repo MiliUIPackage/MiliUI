@@ -1,4 +1,4 @@
-## Interface: 120000 , 120001, 110002
+## Interface: 120000 , 120005, 110002
 ## Title: TinyTooltip-Remake
 ## Notes: A powerful tooltip enhancement addon based on TinyTooltip.
 ## Author: 星野绫-罗宁 CN

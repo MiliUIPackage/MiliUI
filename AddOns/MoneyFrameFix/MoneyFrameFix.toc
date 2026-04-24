@@ -1,4 +1,4 @@
-## Interface: 120000, 120001
+## Interface: 120000, 120005
 ## Title: |cFFFF6B6BMoney Frame Fix|r
 ## Notes: Money Frame Fix
 ## Title-zhTW: |cffffffff[其他]|r 金錢框架錯誤修正
