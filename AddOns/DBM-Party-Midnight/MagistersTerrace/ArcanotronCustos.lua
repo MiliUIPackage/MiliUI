@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2659, "DBM-Party-Midnight", 3, 1300)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260418051832")
+mod:SetRevision("20260423040903")
 mod:SetCreatureID(231861)--Iffy, doesn't report as instance boss
 mod:SetEncounterID(3071)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -32,13 +32,16 @@ mod.vb.expulsionCount = 0
 local badStateDetected = false
 
 ---@param self DBMMod
-local function setFallback(self)
+---@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+local function setFallback(self, dontSetAlerts)
 	--Blizz API fallbacks
-	specWarnRefuelingProtocol:SetAlert(281, "catchballs", 12, 3)
-	if self:IsTank() then
-		specWarnRepulsingSlam:SetAlert(286, "carefly", 2, 2)
+	if not dontSetAlerts then
+		specWarnRefuelingProtocol:SetAlert(281, "catchballs", 12, 3)
+		if self:IsTank() then
+			specWarnRepulsingSlam:SetAlert(286, "carefly", 2, 2)
+		end
+		specWarnArcaneExpulsion:SetAlert(288, "carefly", 2, 3)
 	end
-	specWarnArcaneExpulsion:SetAlert(288, "carefly", 2, 3)
 	timerRefuelingProtocolCD:SetTimeline(281)
 	timerRepulsingSlamCD:SetTimeline(286)
 	timerEtherealShacklesCD:SetTimeline(287)
@@ -57,6 +60,10 @@ function mod:OnLimitedCombatStart()
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",
 			"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 		)
+		--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
+		if DBM.Options.HideDBMBars then
+			setFallback(self, true)
+		end
 	else
 		setFallback(self)
 	end

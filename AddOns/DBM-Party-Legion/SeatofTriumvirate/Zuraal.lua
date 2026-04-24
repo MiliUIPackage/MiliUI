@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1979, "DBM-Party-Legion", 13, 945)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260419043027")
+mod:SetRevision("20260423040903")
 mod:SetCreatureID(124871)
 mod:SetEncounterID(2065)
 mod:SetUsedIcons(1)
@@ -32,11 +32,14 @@ if DBM:IsPostMidnight() then
 	local badStateDetected = false
 
 	---@param self DBMMod
-	local function setFallback(self)
-		specWarnNullPalm:SetAlert(223, "frontal", 15, 2)
-		specWarnOozingSlam:SetAlert(225, "mobsoon", 2, 2)
-		specWarnVoidSlash:SetAlert(226, "defensive", 2, 2)
-		specWarnCrashingVoid:SetAlert(238, "pullin", 12, 2)
+	---@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+	local function setFallback(self, dontSetAlerts)
+		if not dontSetAlerts then
+			specWarnNullPalm:SetAlert(223, "frontal", 15, 2)
+			specWarnOozingSlam:SetAlert(225, "mobsoon", 2, 2)
+			specWarnVoidSlash:SetAlert(226, "defensive", 2, 2)
+			specWarnCrashingVoid:SetAlert(238, "pullin", 12, 2)
+		end
 		timerNullPalmCD:SetTimeline(223)
 		timerDecimateCD:SetTimeline(224)
 		timerOozingSlamCD:SetTimeline(225)
@@ -57,6 +60,10 @@ if DBM:IsPostMidnight() then
 				"ENCOUNTER_TIMELINE_EVENT_ADDED",
 				"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 			)
+			--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
+			if DBM.Options.HideDBMBars then
+				setFallback(self, true)
+			end
 		else
 			setFallback(self)
 		end

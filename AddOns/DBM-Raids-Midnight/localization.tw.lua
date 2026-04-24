@@ -7,8 +7,8 @@ local L
 L= DBM:GetModLocalization(2737)
 
 L:SetMiscLocalization({
-	JudgementShield	= "審判-盾)",
-	JudgementFV		= "Judgment-FV)"
+	JudgementShield	= "審判-盾",
+	JudgementFV		= "Judgment-FV"
 })
 
 ---------------------------

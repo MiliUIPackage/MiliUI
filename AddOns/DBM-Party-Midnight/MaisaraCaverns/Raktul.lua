@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2812, "DBM-Party-Midnight", 7, 1315)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260407040051")
+mod:SetRevision("20260423040903")
 mod:SetCreatureID(248605)
 mod:SetEncounterID(3214)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -32,11 +32,14 @@ local cycle26Count = 0--NOTE: dur=26 is shared by Spiritbreaker and Crush Souls;
 local badStateDetected = false
 
 ---@param self DBMMod
-local function setFallback(self)
-	if self:IsTank() then
-		specWarnSpiritbreaker:SetAlert(156, "defensive", 2)
+---@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+local function setFallback(self, dontSetAlerts)
+	if not dontSetAlerts then
+		if self:IsTank() then
+			specWarnSpiritbreaker:SetAlert(156, "defensive", 2)
+		end
+		specWarnSoulrendingRoar:SetAlert(158, "phasechange", 2)
 	end
-	specWarnSoulrendingRoar:SetAlert(158, "phasechange", 2)
 	timerSpiritbreakerCD:SetTimeline(156)
 	timerCrushSoulsCD:SetTimeline(157)
 	timerSoulrendingRoarCD:SetTimeline(158)
@@ -54,6 +57,10 @@ function mod:OnLimitedCombatStart()
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",
 			"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 		)
+		--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
+		if DBM.Options.HideDBMBars then
+			setFallback(self, true)
+		end
 	else
 		setFallback(self)
 	end

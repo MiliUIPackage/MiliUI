@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,heroic,mythic,challenge,timewalker"
 
-mod:SetRevision("20260407043946")
+mod:SetRevision("20260423040903")
 mod:SetCreatureID(75964)
 mod:SetEncounterID(1698)
 
@@ -31,10 +31,13 @@ if DBM:IsPostMidnight() then
 	local badStateDetected = false
 
 	---@param self DBMMod
-	local function setFallback(self)
-		specWarnFanofBlades:SetAlert(299, "aesoon", 2, 2)
-		specWarnWindChakram:SetAlert(300, "frontal", 15, 2)
-		specWarnChakramVortex:SetAlert(301, "watchstep", 2, 2)
+	---@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+	local function setFallback(self, dontSetAlerts)
+		if not dontSetAlerts then
+			specWarnFanofBlades:SetAlert(299, "aesoon", 2, 2)
+			specWarnWindChakram:SetAlert(300, "frontal", 15, 2)
+			specWarnChakramVortex:SetAlert(301, "watchstep", 2, 2)
+		end
 		timerGaleSurgeCD:SetTimeline(298)
 		timerFanofBladesCD:SetTimeline(299)
 		timerWindChakramCD:SetTimeline(300)
@@ -53,6 +56,10 @@ if DBM:IsPostMidnight() then
 				"ENCOUNTER_TIMELINE_EVENT_ADDED",
 				"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 			)
+			--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
+			if DBM.Options.HideDBMBars then
+				setFallback(self, true)
+			end
 		else
 			setFallback(self)
 		end
