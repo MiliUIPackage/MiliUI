@@ -1,12 +1,8 @@
 ## Bugfixes
-- Add socket bonus IDs for 250247 and 249920
-- Update item validation logic in tooltip to check classId before specId
-- Sort favorite items in favorites
-- Enhance item addition logic to validate classId from character key
-
-## Improvements
-- Add tiered priority system to favorites
+- Fix tier changes affecting all specs instead of selected spec
+- Update tooltip to use tier texture instead of icon for better visual representation
 
 ## Other Changes
-- Bump TOC version to 120005
-- Update localization for Set Priority to Set Favorite in multiple languages
+- Update ruRU.lua
+- Update ruRU.lua
+- Merge pull request [#49](https://github.com/Wolkenschutz/KeystoneLoot/pull/49) by [Hollicsh](https://github.com/Hollicsh) from Hollicsh/main
