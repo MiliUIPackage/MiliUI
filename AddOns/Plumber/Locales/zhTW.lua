@@ -859,12 +859,6 @@ L["ModuleName ItemUpgradeUI"] = "物品升級：自動打開裝備欄";
 L["ModuleDescription ItemUpgradeUI"] = "當你與物品升級NPC互動時自動打開角色面板。";
 
 
---HuntTable
-L["ModuleName HuntTable"] = "狩獵地圖";
-L["ModuleDescription HuntTable"] = "- 將狩獵地圖上的藍色任務圖示替換為難度圖示。\n\n- 若狩獵目標與某個未完成的成就相關，在其右上方顯示特別標記。";
-L["Prey Target Has Achievement"] = "某個未完成的成就要求你擊敗此目標。";
-
-
 --HolidayDungeon
 L["ModuleName HolidayDungeon"] = "自動選擇節日地城";
 L["ModuleDescription HolidayDungeon"] = "當你第一次打開隊伍搜尋器時自動選擇節日或時空漫遊地城。";
@@ -974,14 +968,14 @@ L["Match Pattern Rep 1"] = "戰隊的(.+)聲望提高([%d%,]+)";   --FACTION_STA
 L["Match Pattern Rep 2"] = "你於(.+)的聲望提高了([%d%,]+)";   --FACTION_STANDING_INCREASED
 
 L["Match Pattern Item Level"] = "^物品等級(%d+)";
-L["Match Pattern Item Upgrade Tooltip"] = "^升級等級： (.+) (%d+)/(%d+)";  --See ITEM_UPGRADE_TOOLTIP_FORMAT_STRING
+L["Match Pattern Item Upgrade Tooltip"] = "^提升等級：(.+) (%d+)/(%d+)";  --See ITEM_UPGRADE_TOOLTIP_FORMAT_STRING
 
 L["Upgrade Track 1"] = "冒險者";
 L["Upgrade Track 2"] = "探險者";
 L["Upgrade Track 3"] = "精兵";
 L["Upgrade Track 4"] = "勇士";
 L["Upgrade Track 5"] = "英雄";
-L["Upgrade Track 6"] = "傳奇";
+L["Upgrade Track 6"] = "神話";
 
 L["Match Pattern Transmog Set Partially Known"] = "^包含(%d)";   --TRANSMOG_SET_PARTIALLY_KNOWN_CLASS
 
