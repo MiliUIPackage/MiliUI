@@ -409,7 +409,7 @@ local function StripDefaultMatchingValues(profile)
     end
 end
 
-local DB_SCHEMA_VERSION = 21
+local DB_SCHEMA_VERSION = 22
 
 local LEGACY_RESOURCE_KEYS = {
     "resourcesBarHeight", "resourcesBar2Height", "resourcesBarWidth",
@@ -1061,6 +1061,29 @@ local PROFILE_MIGRATIONS = {
             end
         end,
     },
+    {
+        version = 22,
+        run = function(profile)
+            local function copyIfMissing(srcKey, dstKey)
+                local src = rawget(profile, srcKey)
+                if src == nil then return end
+                if rawget(profile, dstKey) ~= nil then return end
+                if type(src) == "table" then
+                    profile[dstKey] = { r = src.r, g = src.g, b = src.b, a = src.a }
+                else
+                    profile[dstKey] = src
+                end
+            end
+            for _, key in ipairs({ "chargeColor", "chargePosition", "chargeOffsetX", "chargeOffsetY" }) do
+                copyIfMissing(key, "utility" .. key:sub(1, 1):upper() .. key:sub(2))
+            end
+            copyIfMissing("chargeFontSize",  "essRow2ChargeFontSize")
+            copyIfMissing("chargeColor",     "essRow2ChargeColor")
+            copyIfMissing("chargePosition",  "essRow2ChargePosition")
+            copyIfMissing("chargeOffsetX",   "essRow2ChargeOffsetX")
+            copyIfMissing("chargeOffsetY",   "essRow2ChargeOffsetY")
+        end,
+    },
 }
 
 local function GetCurrentSchemaVersion(globalData)
@@ -1133,8 +1156,10 @@ local function InitializeDB()
     if not Ayije_CDMDB.global.cooldownViewerAutoEnabled[charKey] then
         Ayije_CDMDB.global.cooldownViewerAutoEnabled[charKey] = true
         if not InCombatLockdown() then
-            SetCVar("cooldownViewerEnabled", 1)
-            print("|cff00ccff[CDM]|r " .. L["Enabled Blizzard Cooldown Manager."])
+            if GetCVar("cooldownViewerEnabled") ~= "1" then
+                SetCVar("cooldownViewerEnabled", 1)
+                print("|cff00ccff[CDM]|r " .. L["Enabled Blizzard Cooldown Manager."])
+            end
         end
     end
 end
@@ -1741,10 +1766,6 @@ function CDM:ClearStableBaseCache()
     stableBaseCacheSize = 0
 end
 
-local function EnsureGlowRegistryNode(specID)
-    return EnsureRegistryStructure(specID)
-end
-
 function CDM:GetSpellGlowEnabled(specID, spellID)
     if not CDM.db or not CDM.db.spellRegistry then return false end
     local reg = CDM.db.spellRegistry[specID]
@@ -1773,7 +1794,7 @@ function CDM:HasAnySpellGlowConfigured(specID)
 end
 
 function CDM:SetSpellGlowEnabled(specID, spellID, enabled)
-    local reg = EnsureGlowRegistryNode(specID)
+    local reg = EnsureRegistryStructure(specID)
     if not reg then return end
 
     if not reg.glowEnabled then
@@ -1802,7 +1823,7 @@ function CDM:GetSpellGlowColor(specID, spellID)
 end
 
 function CDM:SetSpellGlowColor(specID, spellID, color)
-    local reg = EnsureGlowRegistryNode(specID)
+    local reg = EnsureRegistryStructure(specID)
     if not reg then return end
 
     if not reg.glowColors then

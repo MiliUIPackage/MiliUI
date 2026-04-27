@@ -90,12 +90,19 @@ local function SafeNormalize(spellID)
     if not spellID or not IsSafeNumber(spellID) or spellID == 0 then
         return nil
     end
+    local stable = CDM.ResolveStableBase and CDM:ResolveStableBase(spellID)
+    if stable then return stable end
     return NormalizeToBase(spellID)
 end
 
+local function IsHighlightCVarEnabled()
+    return GetCVarBool("assistedCombatHighlight")
+end
+
 local function GetCurrentHighlightSpell()
-    if not AssistedCombatManager then return nil end
-    return SafeNormalize(AssistedCombatManager.lastNextCastSpellID)
+    if not IsHighlightCVarEnabled() then return nil end
+    if not C_AssistedCombat or not C_AssistedCombat.GetNextCastSpell then return nil end
+    return SafeNormalize(C_AssistedCombat.GetNextCastSpell(false))
 end
 
 local function PlayAllAnimations()
@@ -189,7 +196,10 @@ local function Enable()
 
     if EventRegistry and EventRegistry.RegisterCallback then
         eventRegistryHandle = EventRegistry:RegisterCallback("AssistedCombatManager.OnSetUseAssistedHighlight", function()
-            if not GetCVarBool("assistedCombatHighlight") and currentHighlightSpellID then
+            if IsHighlightCVarEnabled() then
+                currentHighlightSpellID = GetCurrentHighlightSpell()
+                RefreshHighlights()
+            elseif currentHighlightSpellID then
                 currentHighlightSpellID = nil
                 ClearAllHighlights()
             end

@@ -14,12 +14,13 @@ local math_floor = math.floor
 local math_max = math.max
 local math_abs = math.abs
 local GetTime = GetTime
-local issecretvalue = issecretvalue
+local canaccessvalue = canaccessvalue
 local select = select
 local ipairs = ipairs
 local GetSpellCooldown = C_Spell.GetSpellCooldown
 local GetSpellCooldownDuration = C_Spell.GetSpellCooldownDuration
 local GetSpellChargeDuration = C_Spell.GetSpellChargeDuration
+local GetConfigValue = CDM_C.GetConfigValue
 
 local VIEWERS = CDM_C.VIEWERS
 local VIEWERS_WITH_OVERRIDE = CDM_C.VIEWERS_WITH_OVERRIDE
@@ -32,22 +33,35 @@ local barBorderCtx = { active = false, color = nil, version = 0 }
 
 local VIEWER_DESC = {
     [VIEWERS.ESSENTIAL] = {
-        sizeKey      = "SIZE_ESS_ROW1",
-        sizeKey2     = "SIZE_ESS_ROW2",
+        sizeKey      = "sizeEssRow1",
+        sizeKey2     = "sizeEssRow2",
         cdFontKey    = "cooldownFontSize",
         cdFontKey2   = "essRow2CooldownFontSize",
         cdColorKey   = "cooldownColor",
         chargeKey    = "chargeFontSize",
+        chargeKey2   = "essRow2ChargeFontSize",
+        chargeColorKey = "chargeColor",
+        chargePosKey  = "chargePosition",
+        chargeOXKey   = "chargeOffsetX",
+        chargeOYKey   = "chargeOffsetY",
+        chargeColorKey2 = "essRow2ChargeColor",
+        chargePosKey2 = "essRow2ChargePosition",
+        chargeOXKey2  = "essRow2ChargeOffsetX",
+        chargeOYKey2  = "essRow2ChargeOffsetY",
         isCooldown   = true,
         hasOverride  = true,
         hasKeybind   = true,
         hookType     = "cooldown",
     },
     [VIEWERS.UTILITY] = {
-        sizeKey      = "SIZE_UTILITY",
+        sizeKey      = "sizeUtility",
         cdFontKey    = "utilityCooldownFontSize",
         cdColorKey   = "cooldownColor",
         chargeKey    = "utilityChargeFontSize",
+        chargeColorKey = "utilityChargeColor",
+        chargePosKey  = "utilityChargePosition",
+        chargeOXKey   = "utilityChargeOffsetX",
+        chargeOYKey   = "utilityChargeOffsetY",
         isCooldown   = true,
         hasOverride  = true,
         hasKeybind   = true,
@@ -55,7 +69,7 @@ local VIEWER_DESC = {
         hasUtilVisibility = true,
     },
     [VIEWERS.BUFF] = {
-        sizeKey      = "SIZE_BUFF",
+        sizeKey      = "sizeBuff",
         cdFontKey    = "buffCooldownFontSize",
         cdColorKey   = "buffCooldownColor",
         isBuff       = true,
@@ -65,31 +79,23 @@ local VIEWER_DESC = {
     [VIEWERS.BUFF_BAR] = {
         hookType     = "bar",
     },
-    ["CDM_Racials"] = {
-        sizeKey      = "SIZE_RACIALS",
-        cdFontKey    = "racialsCooldownFontSize",
-        cdColorKey   = "cooldownColor",
-        chargeKey    = "racialsChargeFontSize",
-        isCooldown   = true,
-        hookType     = "cooldown",
-    },
-    ["CDM_Defensives"] = {
-        sizeKey      = "SIZE_DEFENSIVES",
-        cdFontKey    = "defensivesCooldownFontSize",
-        cdColorKey   = "cooldownColor",
-        chargeKey    = "defensivesChargeFontSize",
-        isCooldown   = true,
-        hookType     = "cooldown",
-    },
-    ["CDM_Trinkets"] = {
-        sizeKey      = "SIZE_TRINKETS",
-        cdFontKey    = "trinketsCooldownFontSize",
-        cdColorKey   = "cooldownColor",
-        chargeKey    = "chargeFontSize",
-        isCooldown   = true,
-        hookType     = "cooldown",
-    },
 }
+
+function CDM.RegisterViewerDesc(name, desc)
+    VIEWER_DESC[name] = desc
+end
+
+local function ResolveIconSize(desc, row)
+    local d = CDM.defaults
+    if desc.widthKey then
+        return {
+            w = GetConfigValue(desc.widthKey, d[desc.widthKey]),
+            h = GetConfigValue(desc.heightKey, d[desc.heightKey]),
+        }
+    end
+    local key = (desc.sizeKey2 and row == 2) and desc.sizeKey2 or desc.sizeKey
+    return GetConfigValue(key, d[key])
+end
 
 local function GetAspectPreservingTexCoord(frameW, frameH, zoomPadding)
     if not frameH or frameH <= 0 then return 0, 1, 0, 1 end
@@ -178,12 +184,21 @@ local function RefreshStyleCache()
 
     styleCache.chargeFontSize = CfgValue(db, defaults, "chargeFontSize", 12)
     styleCache.utilityChargeFontSize = CfgValue(db, defaults, "utilityChargeFontSize", 12)
+    styleCache.essRow2ChargeFontSize = CfgValue(db, defaults, "essRow2ChargeFontSize", 15)
     styleCache.racialsChargeFontSize = CfgValue(db, defaults, "racialsChargeFontSize", 15)
     styleCache.defensivesChargeFontSize = CfgValue(db, defaults, "defensivesChargeFontSize", 15)
     styleCache.chargeColor = CfgValue(db, defaults, "chargeColor", DEFAULT_WHITE_COLOR)
     styleCache.chargePosition = CfgValue(db, defaults, "chargePosition", "BOTTOMRIGHT")
     styleCache.chargeOffsetX = CfgValue(db, defaults, "chargeOffsetX", 0)
     styleCache.chargeOffsetY = CfgValue(db, defaults, "chargeOffsetY", 0)
+    styleCache.utilityChargeColor = CfgValue(db, defaults, "utilityChargeColor", DEFAULT_WHITE_COLOR)
+    styleCache.utilityChargePosition = CfgValue(db, defaults, "utilityChargePosition", "BOTTOMRIGHT")
+    styleCache.utilityChargeOffsetX = CfgValue(db, defaults, "utilityChargeOffsetX", 0)
+    styleCache.utilityChargeOffsetY = CfgValue(db, defaults, "utilityChargeOffsetY", 0)
+    styleCache.essRow2ChargeColor = CfgValue(db, defaults, "essRow2ChargeColor", DEFAULT_WHITE_COLOR)
+    styleCache.essRow2ChargePosition = CfgValue(db, defaults, "essRow2ChargePosition", "BOTTOMRIGHT")
+    styleCache.essRow2ChargeOffsetX = CfgValue(db, defaults, "essRow2ChargeOffsetX", 0)
+    styleCache.essRow2ChargeOffsetY = CfgValue(db, defaults, "essRow2ChargeOffsetY", 0)
 
     styleCache.countFontSize = CfgValue(db, defaults, "countFontSize", 12)
     styleCache.countColor = CfgValue(db, defaults, "countColor", DEFAULT_WHITE_COLOR)
@@ -243,6 +258,13 @@ local function RefreshStyleCache()
 
     cdFont:SetFont(styleCache.fontPath, Pixel.FontSize(styleCache.cooldownFontSize), styleCache.textFontOutline)
     cdFontBuff:SetFont(styleCache.fontPath, Pixel.FontSize(styleCache.buffCooldownFontSize), styleCache.textFontOutline)
+
+    styleCache.cooldownDecimalThreshold = CfgValue(db, defaults, "cooldownDecimalThreshold")
+    styleCache.cooldownColorThresholdEnabled = CfgValue(db, defaults, "cooldownColorThresholdEnabled")
+    styleCache.cooldownColorThreshold = CfgValue(db, defaults, "cooldownColorThreshold")
+    styleCache.cooldownColorThresholdColor = CfgValue(db, defaults, "cooldownColorThresholdColor")
+
+    CDM.CooldownFormatter.Rebuild(styleCache)
 end
 
 CDM.RefreshStyleCache = RefreshStyleCache
@@ -267,7 +289,7 @@ local function StyleCooldownTextElement(text, fontPath, fontSize, fontOutline, c
 end
 
 local function SafeEquals(v, expected)
-    return (type(v) ~= "number" or not issecretvalue(v)) and v == expected
+    return (type(v) ~= "number" or canaccessvalue(v)) and v == expected
 end
 
 local function ApplyOverlayVisibility(hideAtlas, hideTexture, ...)
@@ -311,7 +333,7 @@ local function GetSpellIDForCooldown(frame)
     end
     local info = frame.cooldownInfo
     if not info then return nil end
-    local id = info.overrideSpellID or info.spellID
+    local id = info.overrideTooltipSpellID or info.overrideSpellID or info.spellID
     return IsSafeNumber(id) and id or nil
 end
 
@@ -376,7 +398,7 @@ local function DetectAuraActive(frame)
     local swipeColor = frame.cooldownSwipeColor
     if swipeColor and type(swipeColor) ~= "number" and swipeColor.GetRGBA then
         local r = swipeColor:GetRGBA()
-        if r and type(r) == "number" and not issecretvalue(r) then
+        if r and type(r) == "number" and canaccessvalue(r) then
             return r ~= 0
         end
     end
@@ -651,8 +673,8 @@ local function ApplyIconTextureLayout(texture, frame, iconWidth, iconHeight, zoo
     Pixel.DisableTextureSnap(texture)
 end
 
-local function RemoveBlizzardIconMask(iconFrame, iconTexture, frameData, flagName)
-    if not (iconFrame and iconTexture and iconTexture.RemoveMaskTexture and frameData) then
+local function RemoveBlizzardIconMask(iconTexture, frameData, flagName)
+    if not (iconTexture and iconTexture.RemoveMaskTexture and iconTexture.GetNumMaskTextures and frameData) then
         return
     end
 
@@ -660,16 +682,13 @@ local function RemoveBlizzardIconMask(iconFrame, iconTexture, frameData, flagNam
         return
     end
 
-    local regions = { iconFrame:GetRegions() }
-    for i = 1, #regions do
-        local region = regions[i]
-        if region and region.IsObjectType and region:IsObjectType("MaskTexture") then
-            if SafeEquals(region:GetAtlas(), BLIZZARD_ICON_MASK_ATLAS) then
-                pcall(iconTexture.RemoveMaskTexture, iconTexture, region)
-                frameData[flagName] = true
-                frameData[flagName .. "Source"] = region
-                break
-            end
+    for i = 1, iconTexture:GetNumMaskTextures() do
+        local mask = iconTexture:GetMaskTexture(i)
+        if mask and SafeEquals(mask:GetAtlas(), BLIZZARD_ICON_MASK_ATLAS) then
+            iconTexture:RemoveMaskTexture(mask)
+            frameData[flagName] = true
+            frameData[flagName .. "Source"] = mask
+            break
         end
     end
 end
@@ -683,7 +702,7 @@ local function RestoreBlizzardIconMask(iconTexture, frameData, flagName)
     end
     local source = frameData[flagName .. "Source"]
     if source then
-        pcall(iconTexture.AddMaskTexture, iconTexture, source)
+        iconTexture:AddMaskTexture(source)
     end
     frameData[flagName] = false
     frameData[flagName .. "Source"] = nil
@@ -735,9 +754,6 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
         RefreshStyleCache()
     end
 
-    local sizes = CDM.Sizes
-    if not sizes then return end
-
     local desc = VIEWER_DESC[vName]
     local isBuff = desc and desc.isBuff
     local isCooldown = desc and desc.isCooldown
@@ -757,9 +773,8 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
     if groupData then
         iconWidth = Snap(groupData.iconWidth or 30)
         iconHeight = Snap(groupData.iconHeight or 30)
-    elseif desc and desc.sizeKey then
-        local sizeKey = (desc.sizeKey2 and frameData.cdmRow == 2) and desc.sizeKey2 or desc.sizeKey
-        local s = sizes[sizeKey]
+    elseif desc and (desc.sizeKey or desc.widthKey) then
+        local s = ResolveIconSize(desc, frameData.cdmRow)
         iconWidth = Snap(s.w)
         iconHeight = Snap(s.h)
     else
@@ -804,7 +819,7 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
         local zoomIcons = styleCache.zoomIcons
         local zoomAmount = zoomIcons and styleCache.zoomAmount or 0
         local tex = frame.Icon
-        local hasTexture = tex ~= nil and (type(tex) ~= "number" or not issecretvalue(tex))
+        local hasTexture = tex ~= nil and (type(tex) ~= "number" or canaccessvalue(tex))
 
         if hasTexture then
             ApplyIconTextureLayout(tex, frame, iconWidth, iconHeight, zoomAmount)
@@ -816,6 +831,10 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
 
             if frame.Cooldown.SetCountdownFont then
                 frame.Cooldown:SetCountdownFont(isBuff and "AyijeCDM_CDFont_Buff" or "AyijeCDM_CDFont")
+            end
+
+            if frame.Cooldown.SetCountdownFormatter then
+                frame.Cooldown:SetCountdownFormatter(CDM.CooldownFormatter.Get())
             end
         end
 
@@ -832,7 +851,7 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
         if hideTexture then
             local iconTex = frame.Icon
             if iconTex then
-                RemoveBlizzardIconMask(frame, iconTex, frameData, "cdmIconMaskRemoved")
+                RemoveBlizzardIconMask(iconTex, frameData, "cdmIconMaskRemoved")
             end
         elseif frameData.cdmIconMaskRemoved then
             RestoreBlizzardIconMask(frame.Icon, frameData, "cdmIconMaskRemoved")
@@ -846,6 +865,7 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
 
         if isCooldown then
             if frame.ChargeCount then
+                frame.ChargeCount:SetFrameStrata("MEDIUM")
                 frame.ChargeCount:SetFrameLevel(frame:GetFrameLevel() + 7)
             end
 
@@ -865,6 +885,7 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
 
         if isBuff then
             if frame.Applications then
+                frame.Applications:SetFrameStrata("MEDIUM")
                 frame.Applications:SetFrameLevel(frame:GetFrameLevel() + 7)
             end
 
@@ -899,6 +920,16 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
             if isCooldown then
                 local spellID = fontSpellID
 
+                local isRow2 = frameData.cdmRow == 2
+                local colorKey = (isRow2 and desc.chargeColorKey2) or desc.chargeColorKey
+                local posKey = (isRow2 and desc.chargePosKey2) or desc.chargePosKey
+                local oxKey = (isRow2 and desc.chargeOXKey2) or desc.chargeOXKey
+                local oyKey = (isRow2 and desc.chargeOYKey2) or desc.chargeOYKey
+                local viewerChargeColor = colorKey and styleCache[colorKey] or styleCache.chargeColor
+                local viewerChargePos = posKey and styleCache[posKey] or styleCache.chargePosition
+                local viewerChargeOX = oxKey and styleCache[oxKey] or styleCache.chargeOffsetX
+                local viewerChargeOY = oyKey and styleCache[oyKey] or styleCache.chargeOffsetY
+
                 if groupData then
                     effectiveCdFontSize = groupData.cooldownFontSize or 12
                     effectiveCdColor = groupData.cooldownColor
@@ -920,7 +951,7 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                     end
 
                     effectiveCdColor = effectiveCdColor or styleCache.cooldownColor
-                    effectiveChargeColor = effectiveChargeColor or styleCache.chargeColor
+                    effectiveChargeColor = effectiveChargeColor or viewerChargeColor
                 else
                     local ov = spellID and CDM:GetUngroupedCooldownOverride(spellID)
                     if ov and ov.textOverride then
@@ -928,19 +959,20 @@ function CDM:ApplyStyle(frame, vName, forceUpdate)
                         effectiveCdFontSize = ov.cooldownFontSize or (db and db.cooldownFontSize or 15)
                         effectiveCdColor = ov.cooldownColor or (db and db.cooldownColor) or styleCache.cooldownColor
                         effectiveChargeFS = ov.chargeFontSize or (db and db.chargeFontSize or 15)
-                        effectiveChargeColor = ov.chargeColor or (db and db.chargeColor) or styleCache.chargeColor
-                        effectiveChargePos = ov.chargePosition or (db and db.chargePosition or "BOTTOMRIGHT")
-                        effectiveChargeOX = ov.chargeOffsetX or (db and db.chargeOffsetX or 0)
-                        effectiveChargeOY = ov.chargeOffsetY or (db and db.chargeOffsetY or 0)
+                        effectiveChargeColor = ov.chargeColor or viewerChargeColor
+                        effectiveChargePos = ov.chargePosition or viewerChargePos
+                        effectiveChargeOX = ov.chargeOffsetX or viewerChargeOX
+                        effectiveChargeOY = ov.chargeOffsetY or viewerChargeOY
                     else
-                        local cdFontKey = (desc.cdFontKey2 and frameData.cdmRow == 2) and desc.cdFontKey2 or desc.cdFontKey
+                        local cdFontKey = (desc.cdFontKey2 and isRow2) and desc.cdFontKey2 or desc.cdFontKey
                         effectiveCdFontSize = styleCache[cdFontKey]
                         effectiveCdColor = styleCache[desc.cdColorKey]
-                        effectiveChargeFS = desc.chargeKey and styleCache[desc.chargeKey] or styleCache.chargeFontSize
-                        effectiveChargeColor = styleCache.chargeColor
-                        effectiveChargePos = styleCache.chargePosition
-                        effectiveChargeOX = styleCache.chargeOffsetX
-                        effectiveChargeOY = styleCache.chargeOffsetY
+                        local chargeFontKey = (desc.chargeKey2 and isRow2) and desc.chargeKey2 or desc.chargeKey
+                        effectiveChargeFS = chargeFontKey and styleCache[chargeFontKey] or styleCache.chargeFontSize
+                        effectiveChargeColor = viewerChargeColor
+                        effectiveChargePos = viewerChargePos
+                        effectiveChargeOX = viewerChargeOX
+                        effectiveChargeOY = viewerChargeOY
                     end
                 end
             else
@@ -1341,7 +1373,7 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
                         iconTex:SetAllPoints(iconFrame)
                     end
                 end
-                RemoveBlizzardIconMask(iconFrame, iconTex, frameData, "cdmBarIconMaskRemoved")
+                RemoveBlizzardIconMask(iconTex, frameData, "cdmBarIconMaskRemoved")
                 CDM_C.ApplyIconTexCoord(iconTex, zoomAmount, iconSize, iconSize)
                 Pixel.DisableTextureSnap(iconTex)
             end

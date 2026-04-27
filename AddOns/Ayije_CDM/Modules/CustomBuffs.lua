@@ -18,6 +18,9 @@ local GetTime = GetTime
 local GetPlayerAuraBySpellID = C_UnitAuras.GetPlayerAuraBySpellID
 local GetSpellTexture = C_Spell.GetSpellTexture
 
+local EMPTY_ORDER = {}
+local ungroupedSeenScratch = {}
+
 local TIME_SPIRAL_TRIGGERS = {
     [48265]  = true,  -- Death's Advance
     [195072] = true,  -- Fel Rush
@@ -472,12 +475,12 @@ function CDM:IsCustomBuffInAnyGroup(specID, spellID)
 end
 
 function CDM:GetUngroupedCustomBuffOrder(specID)
-    if not specID then return {} end
+    if not specID then return EMPTY_ORDER end
     local db = self.db
-    if not db then return {} end
+    if not db then return EMPTY_ORDER end
 
     local registry = db.customBuffRegistry
-    if not registry then return {} end
+    if not registry then return EMPTY_ORDER end
 
     if not db.ungroupedCustomBuffOrder then
         db.ungroupedCustomBuffOrder = {}
@@ -496,7 +499,8 @@ function CDM:GetUngroupedCustomBuffOrder(specID)
         end
     end
 
-    local seen = {}
+    local seen = ungroupedSeenScratch
+    table.wipe(seen)
     for _, entry in ipairs(order) do
         seen[entry.spellID] = true
     end

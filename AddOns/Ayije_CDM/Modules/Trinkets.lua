@@ -188,7 +188,7 @@ local function UpdateIcon(frame)
 
     if frame.slotID then
         local start, duration, enable = GetInventoryItemCooldown("player", frame.slotID)
-        if start and duration and duration > 1.5 and enable == 1 then
+        if start and duration and duration > CDM_C.ITEM_COOLDOWN_GCD_MIN and enable == 1 then
             local fd = CDM.GetFrameData(frame)
             if not fd.cdmDurationObj then
                 fd.cdmDurationObj = C_DurationUtil.CreateDuration()
@@ -291,6 +291,16 @@ local function InvalidateTrinketsLayoutCache()
     lastTrinketsWidth = nil
     lastTrinketsHeight = nil
 end
+
+CDM.RegisterViewerDesc("CDM_Trinkets", {
+    widthKey     = "trinketsIconWidth",
+    heightKey    = "trinketsIconHeight",
+    cdFontKey    = "trinketsCooldownFontSize",
+    cdColorKey   = "cooldownColor",
+    chargeKey    = "chargeFontSize",
+    isCooldown   = true,
+    hookType     = "cooldown",
+})
 
 trinketsTracker = CDM.CreateTracker({
     containerName       = "CDM_TrinketsContainer",

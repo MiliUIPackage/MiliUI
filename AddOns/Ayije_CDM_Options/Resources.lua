@@ -695,7 +695,7 @@ local function CreateResourcesTab(page, tabId)
                 CDM:GetBarSettingForClass(classKey, barKey, "hideIcon") == true,
                 function(checked)
                     CDM:SetBarSettingForClass(classKey, barKey, "hideIcon", checked)
-                    API:Refresh("RESOURCES")
+                    API:Refresh("RESOURCES", "LAYOUT")
                 end)
             hideIconCB:SetPoint("TOPLEFT", 0, yOff)
             yOff = yOff - 35

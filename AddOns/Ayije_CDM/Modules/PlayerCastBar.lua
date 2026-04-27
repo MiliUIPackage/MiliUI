@@ -124,11 +124,32 @@ local function ResolveResourcesAnchor(allowHiddenFallback)
     if not POWER_TYPE_TO_BAR_KEY or not BAR_KEY_TO_POWER_TYPE then return nil end
 
     local primaryBarKey = POWER_TYPE_TO_BAR_KEY[primaryPT]
-    if not primaryBarKey then return nil end
-    local primaryBar = CDM.resourceBars[primaryPT]
-    if not primaryBar then return nil end
+    local primaryBarActive = false
+    if primaryBarKey and CDM.activeBarKeys then
+        for i = 1, #CDM.activeBarKeys do
+            if CDM.activeBarKeys[i] == primaryBarKey then
+                primaryBarActive = true
+                break
+            end
+        end
+    end
+    local primaryBar = primaryBarActive and CDM.resourceBars[primaryPT]
 
-    local component = BuildPrimaryComponent(primaryBarKey)
+    local component
+    if primaryBar then
+        component = BuildPrimaryComponent(primaryBarKey)
+    else
+        for k in pairs(scratchComponent) do scratchComponent[k] = nil end
+        for i = #scratchComponentOrder, 1, -1 do scratchComponentOrder[i] = nil end
+        for _, bar in pairs(CDM.resourceBars) do
+            local barKey = bar.barKey
+            if barKey then
+                scratchComponent[barKey] = true
+                scratchComponentOrder[#scratchComponentOrder + 1] = barKey
+            end
+        end
+        component = scratchComponent
+    end
 
     local topBar, topY
     for barKey in pairs(component) do
@@ -734,11 +755,9 @@ local function ApplyCastBarIconLayout(frame)
 
     frame.cachedWidth = barWidth
 
-    local min = CDM_C.ICON_TEXCOORD_MIN or 0.08
-    local max = CDM_C.ICON_TEXCOORD_MAX or 0.92
     iconFrame.texture:ClearAllPoints()
     iconFrame.texture:SetAllPoints()
-    iconFrame.texture:SetTexCoord(min, max, min, max)
+    iconFrame.texture:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
     if iconFrame.borderFrame and CDM.BORDER and CDM.BORDER.UpdateBorder then
         CDM.BORDER:UpdateBorder(iconFrame.borderFrame)

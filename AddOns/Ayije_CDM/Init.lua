@@ -44,7 +44,6 @@ end)
 
 CDM.RefreshCallbacks = {}
 CDM._positionSliderUpdaters = {}
-CDM._castBarSliderUpdater = nil
 
 local refreshCallbackList = {}
 local refreshCallbackSeq = 0
@@ -188,7 +187,7 @@ end
 function CDM.IsSafeNumber(value)
     return value ~= nil
        and type(value) == "number"
-       and not issecretvalue(value)
+       and canaccessvalue(value)
 end
 
 EventUtil.ContinueOnAddOnLoaded(AddonName, function()

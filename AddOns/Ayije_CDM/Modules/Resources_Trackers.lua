@@ -10,7 +10,7 @@ local GetTime = GetTime
 local math_floor = math.floor
 local math_max = math.max
 local math_min = math.min
-local issecretvalue = issecretvalue
+local canaccessvalue = canaccessvalue
 local UnitPower = UnitPower
 local UnitPowerMax = UnitPowerMax
 local UnitStagger = UnitStagger
@@ -231,8 +231,8 @@ local function UpdateStaggerBar()
     bar:SetValue(stagger, Enum.StatusBarInterpolation.ExponentialEaseOut)
 
     local pct = 0
-    local isStaggerSecret = (type(stagger) == "number" and issecretvalue(stagger)) or
-                            (type(maxHealth) == "number" and issecretvalue(maxHealth))
+    local isStaggerSecret = (type(stagger) == "number" and not canaccessvalue(stagger)) or
+                            (type(maxHealth) == "number" and not canaccessvalue(maxHealth))
     if not isStaggerSecret and type(stagger) == "number" and type(maxHealth) == "number" then
         pct = stagger / maxHealth
     end

@@ -2,6 +2,7 @@ local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
 local CDM_C = CDM.CONST
 local VIEWERS = CDM_C.VIEWERS
+local GetConfigValue = CDM_C.GetConfigValue
 local L = CDM.L
 
 local LOCK_FRAME_NAMES = {
@@ -59,19 +60,19 @@ end
 
 function CDM:GetCooldownViewerLockMessage(systemFrame)
     local vName = systemFrame:GetName()
-    local sizes = self.Sizes or {}
+    local df = CDM.defaults or {}
     local twoLine = false
 
     if vName == VIEWERS.ESSENTIAL then
         local count = CountActiveItemFrames(systemFrame)
-        local maxRowEss = sizes.MAX_ROW_ESS or 8
+        local maxRowEss = GetConfigValue("maxRowEss", df.maxRowEss) or 8
 
         if count == 0 or count > maxRowEss then
             twoLine = true
         else
-            local sizeEssRow1 = sizes.SIZE_ESS_ROW1 or { h = 40 }
-            local sizeEssRow2 = sizes.SIZE_ESS_ROW2 or sizeEssRow1
-            local spacing = sizes.SPACING or 6
+            local sizeEssRow1 = GetConfigValue("sizeEssRow1", df.sizeEssRow1) or { h = 40 }
+            local sizeEssRow2 = GetConfigValue("sizeEssRow2", df.sizeEssRow2) or sizeEssRow1
+            local spacing = GetConfigValue("spacing", df.spacing) or 6
             local twoRowHeight = sizeEssRow1.h + spacing + sizeEssRow2.h
 
             local height = 0
@@ -88,7 +89,8 @@ function CDM:GetCooldownViewerLockMessage(systemFrame)
         end
 
     elseif vName == VIEWERS.UTILITY then
-        local maxRowUtil = sizes.MAX_ROW_UTIL or 0
+        local utilityWrap = GetConfigValue("utilityWrap", df.utilityWrap)
+        local maxRowUtil = utilityWrap and GetConfigValue("maxRowUtil", df.maxRowUtil) or 0
         if maxRowUtil > 0 and CountActiveItemFrames(systemFrame) > maxRowUtil then
             twoLine = true
         end
@@ -121,10 +123,7 @@ function CDM:SetCooldownViewerLockText(systemFrame, shown)
     if state.textOverlay then state.textOverlay:Show() end
 
     local fontPath = CDM_C.GetBaseFontPath()
-    local fontOutline = CDM_C.GetBaseFontOutline()
-    if fontOutline == "NONE" or fontOutline == "" then
-        fontOutline = "OUTLINE"
-    end
+    local fontOutline = CDM_C.GetBaseFontOutline() or "OUTLINE"
 
     text:SetFont(fontPath, CDM.Pixel.FontSize(20), fontOutline)
     text:SetTextColor(0.992, 0.071, 0, 1)
@@ -167,13 +166,6 @@ function CDM:SetupCooldownViewerLockTextHandlers(systemFrame)
     end)
 end
 
-local EDITMODE_VIEWERS = {
-    VIEWERS.ESSENTIAL,
-    VIEWERS.UTILITY,
-    VIEWERS.BUFF,
-    VIEWERS.BUFF_BAR,
-}
-
 local function ShowLockNotice()
     if not CDM.editModeCooldownViewerNoticeShown then
         print("|cffffd200Ayije_CDM:|r " .. L["Cooldown Viewer settings are managed by /cdm. Edit Mode changes are disabled to avoid taint."])
@@ -201,7 +193,7 @@ function CDM:UpdateEditModeSelectionOverlay(vName)
 end
 
 function CDM:UpdateEditModeSelectionOverlays()
-    for _, vName in ipairs(EDITMODE_VIEWERS) do
+    for _, vName in ipairs(LOCK_FRAME_NAMES) do
         self:UpdateEditModeSelectionOverlay(vName)
     end
 end

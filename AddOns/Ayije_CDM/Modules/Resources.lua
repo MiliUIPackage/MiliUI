@@ -6,7 +6,7 @@ local math_floor = math.floor
 local math_max = math.max
 local math_min = math.min
 local GetTime = GetTime
-local issecretvalue = issecretvalue
+local canaccessvalue = canaccessvalue
 local UnitPower = UnitPower
 local UnitPowerMax = UnitPowerMax
 local UnitPowerType = UnitPowerType
@@ -1308,7 +1308,7 @@ local UpdateBarValue
 
 local function ApplySoulShardStates(bar)
     local rawPower = UnitPower("player", POWER_TYPES.SoulShards, true) or 0
-    local isRawSecret = type(rawPower) == "number" and issecretvalue(rawPower)
+    local isRawSecret = type(rawPower) == "number" and not canaccessvalue(rawPower)
     local specID = currentSpecID
     local wholePart, fractionalPart
 
@@ -1412,6 +1412,7 @@ UpdateBarValue = function(powerType)
             end
         end
 
+        local chargedFilledPips = bar._pipChargedFilled
         for i, pip in ipairs(bar.pips) do
             pip:SetValue(current, Enum.StatusBarInterpolation.Immediate)
 
@@ -1421,9 +1422,15 @@ UpdateBarValue = function(powerType)
                 if isCharged and i <= current then
                     SetStatusBarColorIfChanged(pip, chargedFilledColor)
                     RememberPipBaseColor(bar, i, chargedFilledColor)
+                    if not chargedFilledPips then
+                        chargedFilledPips = {}
+                        bar._pipChargedFilled = chargedFilledPips
+                    end
+                    chargedFilledPips[i] = true
                 else
                     SetStatusBarColorIfChanged(pip, bar.color)
                     RememberPipBaseColor(bar, i, bar.color)
+                    if chargedFilledPips then chargedFilledPips[i] = nil end
                 end
 
                 local overlay = bar.comboChargeEmptyOverlays and bar.comboChargeEmptyOverlays[i]
@@ -1438,6 +1445,7 @@ UpdateBarValue = function(powerType)
             elseif bar.comboChargeEmptyOverlays then
                 SetStatusBarColorIfChanged(pip, bar.color)
                 RememberPipBaseColor(bar, i, bar.color)
+                if chargedFilledPips then chargedFilledPips[i] = nil end
                 local overlay = bar.comboChargeEmptyOverlays[i]
                 if overlay then overlay:Hide() end
             end

@@ -324,6 +324,16 @@ local function OnDefensivesSpellWatchChanged(cooldownsChanged, chargesChanged)
     defensivesTracker.Queue(false)
 end
 
+CDM.RegisterViewerDesc("CDM_Defensives", {
+    widthKey     = "defensivesIconWidth",
+    heightKey    = "defensivesIconHeight",
+    cdFontKey    = "defensivesCooldownFontSize",
+    cdColorKey   = "cooldownColor",
+    chargeKey    = "defensivesChargeFontSize",
+    isCooldown   = true,
+    hookType     = "cooldown",
+})
+
 defensivesTracker = CDM.CreateTracker({
     containerName       = "CDM_DefensivesContainer",
     viewerName          = "CDM_Defensives",

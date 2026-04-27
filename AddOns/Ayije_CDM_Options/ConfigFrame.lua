@@ -20,7 +20,6 @@ local footerRefreshRegistered = false
 local lastFooterFont = nil
 local combatCloseRegistered = false
 local SCROLL_FRAME_NAMES = {
-    text = "AyijeCDM_TextScrollFrame",
     positions = "AyijeCDM_PosScrollFrame",
     racials = "AyijeCDM_RacialsScrollFrame",
     defensives = "AyijeCDM_DefensivesScrollFrame",

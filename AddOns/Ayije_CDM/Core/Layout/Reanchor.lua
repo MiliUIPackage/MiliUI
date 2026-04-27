@@ -16,6 +16,7 @@ local SetCdmAnchor = ctx.SetCdmAnchor
 
 local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
+local GetConfigValue = CDM_C.GetConfigValue
 
 local math_max = math.max
 local table_sort = table.sort
@@ -75,9 +76,9 @@ local function SortAndPositionBuffFrames(frames, container)
         table_sort(frames, CompareBuffFramesDeterministic)
     end
 
-    local sizes = CDM.Sizes or {}
-    local sizeBuff = sizes.SIZE_BUFF or { w = 40, h = 36 }
-    local spacing = sizes.SPACING or 1
+    local df = CDM.defaults or {}
+    local sizeBuff = GetConfigValue("sizeBuff", df.sizeBuff) or { w = 40, h = 36 }
+    local spacing = GetConfigValue("spacing", df.spacing) or 1
     local itemW, _, gap, step = GetSnappedBuffMetrics(sizeBuff, spacing)
 
     local shownCount = 0

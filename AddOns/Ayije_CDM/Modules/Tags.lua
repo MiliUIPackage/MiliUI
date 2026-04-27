@@ -14,7 +14,7 @@ local UnitHealthMax = UnitHealthMax
 local UnitPowerPercent = UnitPowerPercent
 local AbbreviateNumbers = AbbreviateNumbers
 local UIParent = UIParent
-local issecretvalue = issecretvalue
+local canaccessvalue = canaccessvalue
 local type = type
 local pairs = pairs
 local math_floor = math.floor
@@ -224,8 +224,8 @@ function TAGS:UpdateTagText(textFrame)
 
     local current = GetCurrentPower(textFrame.powerType)
 
-    local isSecret = (type(current) == "number" and issecretvalue(current))
-    local lastSecret = (type(textFrame._lastDisplayValue) == "number" and issecretvalue(textFrame._lastDisplayValue))
+    local isSecret = (type(current) == "number" and not canaccessvalue(current))
+    local lastSecret = (type(textFrame._lastDisplayValue) == "number" and not canaccessvalue(textFrame._lastDisplayValue))
 
     if isSecret or lastSecret or (textFrame._lastDisplayValue ~= current) then
         textFrame._lastDisplayValue = isSecret and nil or current

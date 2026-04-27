@@ -46,9 +46,6 @@ CDM.CONST = {
     STRATA_MAIN = "MEDIUM",
     STRATA_OVERLAY = "HIGH",
 
-    ICON_TEXCOORD_MIN = 0.08,
-    ICON_TEXCOORD_MAX = 0.92,
-
     VIEWERS = {
         ESSENTIAL = "EssentialCooldownViewer",
         UTILITY = "UtilityCooldownViewer",
@@ -65,6 +62,7 @@ CDM.CONST = {
     FERAL_OVERFLOWING_POWER_SPELL_ID = 405189,
     TIP_OF_THE_SPEAR_SPELL_ID = 260286,
     GCD_SPELL_ID = 61304,
+    ITEM_COOLDOWN_GCD_MIN = 1.5,
 }
 
 local VIEWERS = CDM.CONST.VIEWERS
@@ -143,7 +141,7 @@ local function GetLSM()
 end
 
 function CDM.CONST.ResolveOutlineFlags(raw)
-    if raw == nil or raw == "" or raw == "NONE" then return nil end
+    if raw == nil or raw == "" then return "" end
     if raw == "SLUG" then return "OUTLINE SLUG" end
     return raw
 end

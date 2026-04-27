@@ -9,6 +9,8 @@ local GetBaseSpellID = CDM.GetBaseSpellID
 local CheckBuffRegistryMatch = CDM.CheckBuffRegistryMatch
 local ResolveBaseSpellID = GetBaseSpellID
 
+local GetConfigValue = CDM_C.GetConfigValue
+
 local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
 local HalfFloor = Pixel.HalfFloor
@@ -56,27 +58,23 @@ local function HasPositiveLimit(value)
     return value and value > 0
 end
 
-local function Val(primary, fallback, default)
-    if primary ~= nil then return primary end
-    if fallback ~= nil then return fallback end
-    return default
-end
-
 local function GetLayoutConfig()
-    local sizes = CDM.Sizes or {}
     local df = CDM.defaults or {}
-    local utilVertical = sizes.UTILITY_VERTICAL
-    if utilVertical == nil then utilVertical = df.utilityVertical or false end
-    return sizes.SIZE_ESS_ROW1 or df.sizeEssRow1 or DEFAULT_SIZE_ESS,
-        sizes.SIZE_ESS_ROW2 or df.sizeEssRow2 or DEFAULT_SIZE_ESS,
-        sizes.SIZE_UTILITY or df.sizeUtility or DEFAULT_SIZE_ESS,
-        sizes.SIZE_BUFF or df.sizeBuff or DEFAULT_SIZE_BUFF,
-        Val(sizes.SPACING, df.spacing, 1),
-        Val(sizes.MAX_ROW_ESS, df.maxRowEss, 9),
-        Val(sizes.UTILITY_Y_OFFSET, df.utilityYOffset, 0),
-        Val(sizes.MAX_ROW_UTIL, df.maxRowUtil, 8),
+    local utilityWrap = GetConfigValue("utilityWrap", df.utilityWrap)
+    local utilityUnlock = utilityWrap and GetConfigValue("utilityUnlock", df.utilityUnlock)
+    local maxRowUtil = utilityWrap and GetConfigValue("maxRowUtil", df.maxRowUtil) or 0
+    local utilVertical = utilityUnlock and GetConfigValue("utilityVertical", df.utilityVertical) or false
+    local utilityXOffset = utilityUnlock and GetConfigValue("utilityXOffset", df.utilityXOffset) or 0
+    return GetConfigValue("sizeEssRow1", df.sizeEssRow1) or DEFAULT_SIZE_ESS,
+        GetConfigValue("sizeEssRow2", df.sizeEssRow2) or DEFAULT_SIZE_ESS,
+        GetConfigValue("sizeUtility", df.sizeUtility) or DEFAULT_SIZE_ESS,
+        GetConfigValue("sizeBuff", df.sizeBuff) or DEFAULT_SIZE_BUFF,
+        GetConfigValue("spacing", df.spacing) or 1,
+        GetConfigValue("maxRowEss", df.maxRowEss) or 9,
+        GetConfigValue("utilityYOffset", df.utilityYOffset) or 0,
+        maxRowUtil,
         utilVertical,
-        Val(sizes.UTILITY_X_OFFSET, df.utilityXOffset, 0)
+        utilityXOffset
 end
 
 local function ComputeGridPosition(index, total, maxPerRow, size, spacing)

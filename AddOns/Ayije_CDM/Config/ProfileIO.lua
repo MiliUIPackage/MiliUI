@@ -192,7 +192,6 @@ function ProfileIO:BuildImportProfile(payload, addonName, defaults, categoryDefs
 
     addonName = addonName or AddonName
     local sourceAddon = payload.addon
-        or (envelope and envelope.addon)
 
     if not envelope then
         if payload.version == nil or payload.addon == nil then

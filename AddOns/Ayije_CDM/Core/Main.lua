@@ -27,88 +27,13 @@ local RawClearAllPoints = anchorProxy.ClearAllPoints
 local RawSetPoint = anchorProxy.SetPoint
 CDM.combatDirtyViewers = {}
 
-local d = CDM.defaults
-local SIZE_ESS_ROW1 = { w = d.sizeEssRow1.w, h = d.sizeEssRow1.h }
-local SIZE_ESS_ROW2 = { w = d.sizeEssRow2.w, h = d.sizeEssRow2.h }
-local SIZE_UTILITY = { w = d.sizeUtility.w, h = d.sizeUtility.h }
-local SIZE_BUFF = { w = d.sizeBuff.w, h = d.sizeBuff.h }
-local SIZE_RACIALS = { w = d.racialsIconWidth, h = d.racialsIconHeight }
-local SIZE_DEFENSIVES = { w = d.defensivesIconWidth, h = d.defensivesIconHeight }
-local SIZE_TRINKETS = { w = d.trinketsIconWidth, h = d.trinketsIconHeight }
-local SIZE_EXTERNALS = { w = d.externalsIconWidth, h = d.externalsIconHeight }
-local SPACING = d.spacing
-local MAX_ROW_ESS = d.maxRowEss
-local MAX_ROW_UTIL = d.maxRowUtil
-local UTILITY_Y_OFFSET = d.utilityYOffset or 0
-local UTILITY_VERTICAL = d.utilityVertical or false
-local UTILITY_X_OFFSET = d.utilityXOffset or 0
-
-CDM.Sizes = CDM.Sizes or {}
-CDM.Sizes.SIZE_ESS_ROW1 = SIZE_ESS_ROW1
-CDM.Sizes.SIZE_ESS_ROW2 = SIZE_ESS_ROW2
-CDM.Sizes.SIZE_UTILITY = SIZE_UTILITY
-CDM.Sizes.SIZE_BUFF = SIZE_BUFF
-CDM.Sizes.SIZE_RACIALS = SIZE_RACIALS
-CDM.Sizes.SIZE_DEFENSIVES = SIZE_DEFENSIVES
-CDM.Sizes.SIZE_TRINKETS = SIZE_TRINKETS
-CDM.Sizes.SIZE_EXTERNALS = SIZE_EXTERNALS
-
-local function InitConstants()
-    local sizeEssRow1 = CDM_C.GetConfigValue("sizeEssRow1", d.sizeEssRow1)
-    local sizeEssRow2 = CDM_C.GetConfigValue("sizeEssRow2", d.sizeEssRow2)
-    local sizeUtility = CDM_C.GetConfigValue("sizeUtility", d.sizeUtility)
-    local sizeBuff = CDM_C.GetConfigValue("sizeBuff", d.sizeBuff)
-
-    SIZE_ESS_ROW1.w = sizeEssRow1.w or d.sizeEssRow1.w
-    SIZE_ESS_ROW1.h = sizeEssRow1.h or d.sizeEssRow1.h
-    SIZE_ESS_ROW2.w = sizeEssRow2.w or d.sizeEssRow2.w
-    SIZE_ESS_ROW2.h = sizeEssRow2.h or d.sizeEssRow2.h
-    SIZE_UTILITY.w = sizeUtility.w or d.sizeUtility.w
-    SIZE_UTILITY.h = sizeUtility.h or d.sizeUtility.h
-    SIZE_BUFF.w = sizeBuff.w or d.sizeBuff.w
-    SIZE_BUFF.h = sizeBuff.h or d.sizeBuff.h
-    SIZE_RACIALS.w = CDM_C.GetConfigValue("racialsIconWidth", d.racialsIconWidth) or d.racialsIconWidth
-    SIZE_RACIALS.h = CDM_C.GetConfigValue("racialsIconHeight", d.racialsIconHeight) or d.racialsIconHeight
-    SIZE_DEFENSIVES.w = CDM_C.GetConfigValue("defensivesIconWidth", d.defensivesIconWidth) or d.defensivesIconWidth
-    SIZE_DEFENSIVES.h = CDM_C.GetConfigValue("defensivesIconHeight", d.defensivesIconHeight) or d.defensivesIconHeight
-    SIZE_TRINKETS.w = CDM_C.GetConfigValue("trinketsIconWidth", d.trinketsIconWidth) or d.trinketsIconWidth
-    SIZE_TRINKETS.h = CDM_C.GetConfigValue("trinketsIconHeight", d.trinketsIconHeight) or d.trinketsIconHeight
-    SIZE_EXTERNALS.w = CDM_C.GetConfigValue("externalsIconWidth", d.externalsIconWidth) or d.externalsIconWidth
-    SIZE_EXTERNALS.h = CDM_C.GetConfigValue("externalsIconHeight", d.externalsIconHeight) or d.externalsIconHeight
-    SPACING = CDM_C.GetConfigValue("spacing", d.spacing) or d.spacing
-    MAX_ROW_ESS = CDM_C.GetConfigValue("maxRowEss", d.maxRowEss) or d.maxRowEss
-    local utilityWrap = CDM_C.GetConfigValue("utilityWrap", d.utilityWrap)
-    if utilityWrap then
-        MAX_ROW_UTIL = CDM_C.GetConfigValue("maxRowUtil", d.maxRowUtil) or d.maxRowUtil
-    else
-        MAX_ROW_UTIL = 0
-    end
-    UTILITY_Y_OFFSET = CDM_C.GetConfigValue("utilityYOffset", d.utilityYOffset) or d.utilityYOffset
-
-    local utilityUnlock = utilityWrap and CDM_C.GetConfigValue("utilityUnlock", d.utilityUnlock)
-    if utilityUnlock then
-        UTILITY_VERTICAL = CDM_C.GetConfigValue("utilityVertical", d.utilityVertical)
-        UTILITY_X_OFFSET = CDM_C.GetConfigValue("utilityXOffset", d.utilityXOffset) or d.utilityXOffset
-    else
-        UTILITY_VERTICAL = false
-        UTILITY_X_OFFSET = 0
-    end
-
-    CDM.Sizes.SPACING = SPACING
-    CDM.Sizes.MAX_ROW_ESS = MAX_ROW_ESS
-    CDM.Sizes.MAX_ROW_UTIL = MAX_ROW_UTIL
-    CDM.Sizes.UTILITY_Y_OFFSET = UTILITY_Y_OFFSET
-    CDM.Sizes.UTILITY_VERTICAL = UTILITY_VERTICAL
-    CDM.Sizes.UTILITY_X_OFFSET = UTILITY_X_OFFSET
-end
-
 local function UpdateConstants()
     CDM.Pixel.Update()
-    InitConstants()
 
     local buffContainer = CDM.anchorContainers and CDM.anchorContainers[VIEWERS.BUFF]
     if buffContainer then
-        buffContainer:SetSize(CDM.Pixel.SnapEven(400), CDM.Pixel.Snap(SIZE_BUFF.h))
+        local sizeBuff = CDM_C.GetConfigValue("sizeBuff", CDM.defaults.sizeBuff)
+        buffContainer:SetSize(CDM.Pixel.SnapEven(400), CDM.Pixel.Snap(sizeBuff.h))
     end
 
     for _, methodName in ipairs(UPDATE_CONSTANTS_METHODS) do
@@ -196,6 +121,7 @@ local function RegisterCooldownViewerOverrideRefresh()
         local myVersion = version
         C_Timer.After(0, function()
             if version ~= myVersion then return end
+            if CDM.WipeEffectiveIDCache then CDM.WipeEffectiveIDCache() end
             CDM:RefreshBuffGroupData()
             CDM:RefreshCooldownGroupData()
             CDM:RebuildAuraOverlayEnabledMap()
@@ -258,6 +184,22 @@ function CDM:SetupViewer(vName)
                     else
                         CDM:ForceReanchor(_G[hookVName])
                     end
+                end)
+            end
+
+            if vName == VIEWERS.BUFF and not fd.cdmShowHooked then
+                fd.cdmShowHooked = true
+                local function reHideIfResourceHidden(self)
+                    local hiddenSet = CDM.resourcesHiddenBuffSet
+                    if not hiddenSet or not next(hiddenSet) then return end
+                    local id = CDM.GetBaseSpellID(self)
+                    if id and hiddenSet[id] then
+                        self:Hide()
+                    end
+                end
+                hooksecurefunc(itemFrame, "Show", reHideIfResourceHidden)
+                hooksecurefunc(itemFrame, "SetShown", function(self, shown)
+                    if shown then reHideIfResourceHidden(self) end
                 end)
             end
 
@@ -591,8 +533,6 @@ function CDM:OnEnable()
     SlashCmdList["AYIJECDM"] = function()
         CDM:RequestConfigOpen("slash", nil)
     end
-
-    InitConstants()
 
     CreateBuffContainers()
     SetupMixinHooks()

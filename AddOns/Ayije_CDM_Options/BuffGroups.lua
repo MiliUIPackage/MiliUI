@@ -59,7 +59,6 @@ local function CreateBuffGroupsTab(page)
     local renameLastClickGroup = nil
     local renameActiveGroupIndex = nil
     local renameActiveEditBox = nil
-    local ungroupedSelected = false
     local pickerActiveGroupIndex = nil
 
     local _helpers = Shared.CreateGroupEditorHelpers({
@@ -399,83 +398,6 @@ local function CreateBuffGroupsTab(page)
         local sorted = {}
         for i, entry in ipairs(result) do sorted[i] = entry.spellID end
         return sorted
-    end
-
-    local function ShowUngroupedSettings()
-        pickerActiveGroupIndex = nil
-        local _, rc = CreateRightScrollContent(400)
-
-        local yOff = 0
-
-        local textHeader = rc:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font18")
-        textHeader:SetPoint("TOPLEFT", 0, yOff)
-        textHeader:SetText(L["Text"])
-        textHeader:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
-        yOff = yOff - 34
-
-        local cdFSSlider = CreateSlider(rc, L["Cooldown Size"], 6, 32, CDM.db.buffCooldownFontSize or 15, function(v)
-            CDM.db.buffCooldownFontSize = v; SaveAndRefresh()
-        end)
-        cdFSSlider:SetPoint("TOPLEFT", 0, yOff)
-        yOff = yOff - 50
-
-        local cdColorLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-        cdColorLabel:SetText(L["Color"])
-        cdColorLabel:SetPoint("TOPLEFT", 0, yOff)
-
-        local cdColorInit = CDM.db.buffCooldownColor or { r = 1, g = 1, b = 1 }
-        local cdColorPicker = UI.CreateSimpleColorPicker(rc, cdColorInit, function(r, g, b)
-            local cur = CDM.db.buffCooldownColor or { r = 1, g = 1, b = 1, a = 1 }
-            CDM.db.buffCooldownColor = { r = r, g = g, b = b, a = cur.a }
-            SaveAndRefresh()
-        end)
-        cdColorPicker:SetPoint("LEFT", cdColorLabel, "RIGHT", 6, 0)
-        yOff = yOff - 30
-
-        local countFSSlider = CreateSlider(rc, L["Charge Size"], 6, 32, CDM.db.countFontSize or 15, function(v)
-            CDM.db.countFontSize = v; SaveAndRefresh()
-        end)
-        countFSSlider:SetPoint("TOPLEFT", 0, yOff)
-        yOff = yOff - 50
-
-        local countColorLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-        countColorLabel:SetText(L["Color"])
-        countColorLabel:SetPoint("TOPLEFT", 0, yOff)
-
-        local countColorInit = CDM.db.countColor or { r = 1, g = 1, b = 1 }
-        local countColorPicker = UI.CreateSimpleColorPicker(rc, countColorInit, function(r, g, b)
-            local cur = CDM.db.countColor or { r = 1, g = 1, b = 1, a = 1 }
-            CDM.db.countColor = { r = r, g = g, b = b, a = cur.a }
-            SaveAndRefresh()
-        end)
-        countColorPicker:SetPoint("LEFT", countColorLabel, "RIGHT", 6, 0)
-        yOff = yOff - 30
-
-        local countPosLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-        countPosLabel:SetText(L["Position"])
-        countPosLabel:SetPoint("TOPLEFT", 0, yOff)
-        yOff = yOff - 22
-
-        local countPosDropdown = RegisterRightPanelDropdown(CreateFrame("DropdownButton", nil, rc, "WowStyle1DropdownTemplate"))
-        countPosDropdown:SetWidth(180)
-        countPosDropdown:SetPoint("TOPLEFT", 0, yOff)
-        countPosDropdown:SetDefaultText(CDM.db.countPositionMain or "TOP")
-        UI.SetupPositionDropdown(countPosDropdown,
-            function() return CDM.db.countPositionMain or "TOP" end,
-            function(val) CDM.db.countPositionMain = val; SaveAndRefresh() end
-        )
-        yOff = yOff - 40
-
-        local countXSlider = CreateSlider(rc, L["X Offset"], -20, 20, CDM.db.countOffsetXMain or 0, function(v)
-            CDM.db.countOffsetXMain = v; SaveAndRefresh()
-        end)
-        countXSlider:SetPoint("TOPLEFT", 0, yOff)
-        yOff = yOff - 50
-
-        local countYSlider = CreateSlider(rc, L["Y Offset"], -20, 20, CDM.db.countOffsetYMain or 0, function(v)
-            CDM.db.countOffsetYMain = v; SaveAndRefresh()
-        end)
-        countYSlider:SetPoint("TOPLEFT", 0, yOff)
     end
 
     local function ShowGroupSettings(groupIndex)
@@ -1105,18 +1027,6 @@ local function CreateBuffGroupsTab(page)
         })
 
     local ungroupedHeader = UI.CreateHeader(leftChild, L["Ungrouped Buffs"])
-    local ungroupedSettingsBtn = CreateFrame("Button", nil, leftChild)
-    ungroupedSettingsBtn:SetSize(27, 27)
-    ungroupedSettingsBtn:SetNormalAtlas("common-dropdown-a-button-settings-shadowless")
-    ungroupedSettingsBtn:SetHighlightAtlas("common-dropdown-a-button-settings-hover-shadowless")
-    ungroupedSettingsBtn:SetPushedAtlas("common-dropdown-a-button-settings-pressed-shadowless")
-    ungroupedSettingsBtn:SetScript("OnClick", function()
-        ungroupedSelected = true
-        selectedGroupIndex = nil
-        selectedSpellID = nil
-        ShowUngroupedSettings()
-        RefreshLeftPanelIfNeeded()
-    end)
 
     local ungroupedContainer = CreateFrame("Frame", nil, leftChild)
     ungroupedContainer:SetSize(LEFT_WIDTH, 10)
@@ -1525,7 +1435,6 @@ local function CreateBuffGroupsTab(page)
             selectedSpellID = spellID
             selectedGroupIndex = nil
             selectedSpellGroupIndex = sourceGroup
-            ungroupedSelected = false
             ShowSpellSettings(spellID, sourceGroup)
             RefreshLeftPanelIfNeeded()
         end)
@@ -1620,7 +1529,6 @@ local function CreateBuffGroupsTab(page)
                 expandedGroups[newIndex] = true
                 selectedGroupIndex = newIndex
                 selectedSpellID = nil
-                ungroupedSelected = false
                 SaveAndRefresh()
                 RefreshLeftPanelIfNeeded()
                 ShowGroupSettings(newIndex)
@@ -1656,14 +1564,7 @@ local function CreateBuffGroupsTab(page)
         ungroupedHeader:ClearAllPoints()
         ungroupedHeader:SetPoint("TOPLEFT", SCROLL_LEFT_PAD, yOff)
         if isViewingPlayer then
-            if ungroupedSelected then
-                ungroupedHeader:SetTextColor(1, 1, 1, 1)
-            else
-                ungroupedHeader:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
-            end
-            ungroupedSettingsBtn:Show()
-            ungroupedSettingsBtn:ClearAllPoints()
-            ungroupedSettingsBtn:SetPoint("LEFT", ungroupedHeader, "RIGHT", 6, -4)
+            ungroupedHeader:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
 
             yOff = yOff - 24
             ungroupedContainer:ClearAllPoints()
@@ -1786,7 +1687,6 @@ local function CreateBuffGroupsTab(page)
             yOff = yOff + ungroupedY
         else
             UI.SetTextMuted(ungroupedHeader)
-            ungroupedSettingsBtn:Hide()
             yOff = yOff - 24
             ungroupedContainer:ClearAllPoints()
             ungroupedContainer:SetPoint("TOPLEFT", SCROLL_LEFT_PAD, yOff)
@@ -1859,7 +1759,6 @@ local function CreateBuffGroupsTab(page)
                                     expandedGroups[newIdx] = true
                                     selectedGroupIndex = newIdx
                                     selectedSpellID = nil
-                                    ungroupedSelected = false
                                     if currentSpecID == playerSpecID then
                                         SaveAndRefresh()
                                     end
@@ -1891,7 +1790,6 @@ local function CreateBuffGroupsTab(page)
                     renameLastClickGroup = groupIndex
                     selectedGroupIndex = groupIndex
                     selectedSpellID = nil
-                    ungroupedSelected = false
                     ShowGroupSettings(groupIndex)
                     RefreshLeftPanelIfNeeded()
                 end)
@@ -1900,7 +1798,6 @@ local function CreateBuffGroupsTab(page)
                     expandedGroups[groupIndex] = not isExpanded
                     selectedGroupIndex = groupIndex
                     selectedSpellID = nil
-                    ungroupedSelected = false
                     ShowGroupSettings(groupIndex)
                     RefreshLeftPanelIfNeeded()
                 end)
@@ -2020,7 +1917,6 @@ local function CreateBuffGroupsTab(page)
             selectedGroupIndex = nil
             selectedSpellID = nil
             selectedSpellGroupIndex = nil
-            ungroupedSelected = false
             ClearRightPanel()
             BuildLeftPanel()
         end,
@@ -2049,13 +1945,10 @@ local function CreateBuffGroupsTab(page)
             selectedGroupIndex = nil
             selectedSpellGroupIndex = nil
             selectedSpellID = nil
-            ungroupedSelected = false
             ClearRightPanel()
         end
         BuildLeftPanel()
-        if ungroupedSelected then
-            ShowUngroupedSettings()
-        elseif selectedGroupIndex then
+        if selectedGroupIndex then
             ShowGroupSettings(selectedGroupIndex)
         elseif selectedSpellID then
             ShowSpellSettings(selectedSpellID, selectedSpellGroupIndex)

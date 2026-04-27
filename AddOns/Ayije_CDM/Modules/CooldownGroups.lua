@@ -308,7 +308,9 @@ function CDM:RebuildAuraOverlayEnabledMap()
         for spellID in pairs(DOT_OVERRIDE_SPELLS) do
             if not seen[spellID] then
                 seen[spellID] = true
-                AddToSpellMap(spellToEntry, spellID, BuildMapEntry(nil, true, true))
+                local mapEntry = BuildMapEntry(nil, true, true)
+                mapEntry.dotDefaultOnly = true
+                AddToSpellMap(spellToEntry, spellID, mapEntry)
             end
         end
     end
@@ -337,9 +339,19 @@ function CDM:RebuildAuraOverlayEnabledMap()
                             if hasDistinctOverride then
                                 match = spellToEntry[info.overrideSpellID]
                             end
-                        end
-                        if not match then
-                            match = spellToEntry[info.spellID]
+                            if not match then
+                                local baseEntry = spellToEntry[info.spellID]
+                                if baseEntry then
+                                    local overrideIsDot = hasDistinctOverride
+                                        and DOT_OVERRIDE_SPELLS
+                                        and DOT_OVERRIDE_SPELLS[info.overrideSpellID]
+                                    if hasDistinctOverride and baseEntry.dotDefaultOnly and not overrideIsDot then
+                                        -- suppress: pure DOT auto-add must not leak to a non-DOT override
+                                    else
+                                        match = baseEntry
+                                    end
+                                end
+                            end
                         end
                         if not match and info.linkedSpellIDs then
                             for _, lid in ipairs(info.linkedSpellIDs) do

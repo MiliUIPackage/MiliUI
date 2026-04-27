@@ -15,7 +15,7 @@ local RACE_RACIALS = {
     Human             = { 59752 },
     DarkIronDwarf     = { 265221 },
     Gnome             = { 20589 },
-    HighmountainTauren = { 69041 },
+    HighmountainTauren = { 255654 },
     Worgen            = { 68992 },
     Goblin            = { 69070 },
     Pandaren          = { 107079 },
@@ -87,7 +87,6 @@ local lastRacialsSpacing = nil
 local lastVisibilityHash = 0
 local DesaturationCurve = CDM_C.DesaturationCurve
 
-local ITEM_COOLDOWN_MIN_SECONDS = 1.6
 local PACT_OF_GLUTTONY_TALENT_ID = 386689
 local RACIALS_UPDATE_SPELL_COOLDOWNS = "spellCooldowns"
 local RACIALS_UPDATE_SPELL_CHARGES = "spellCharges"
@@ -100,8 +99,18 @@ local RACIALS_SPELL_WATCH_OWNER = "CDM_Racials_Spells"
 local QueueRacialsUpdate
 local PlayerHasAbility
 
+CDM.RegisterViewerDesc("CDM_Racials", {
+    widthKey     = "racialsIconWidth",
+    heightKey    = "racialsIconHeight",
+    cdFontKey    = "racialsCooldownFontSize",
+    cdColorKey   = "cooldownColor",
+    chargeKey    = "racialsChargeFontSize",
+    isCooldown   = true,
+    hookType     = "cooldown",
+})
+
 local function HasVisibleItemCooldown(startTime, duration)
-    return startTime and duration and duration >= ITEM_COOLDOWN_MIN_SECONDS
+    return startTime and duration and duration > CDM_C.ITEM_COOLDOWN_GCD_MIN
 end
 
 local function AnchorRacialsToPartyFrame(partyFrame, side, offsetX, offsetY)
@@ -934,7 +943,7 @@ local function OnRacialItemCooldownWatchChanged()
     QueueRacialsUpdate(RACIALS_UPDATE_ITEM_COOLDOWNS)
 end
 
-local function OnRacialSpellWatchChanged(cooldownsChanged, chargesChanged, watcherGcdActive)
+local function OnRacialSpellWatchChanged(cooldownsChanged, chargesChanged)
     if not isEnabled then return end
     if not racialsStartupCooldownGate:IsSettled() then return end
     if cooldownsChanged then

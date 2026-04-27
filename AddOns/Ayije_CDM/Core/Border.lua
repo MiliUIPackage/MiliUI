@@ -25,6 +25,12 @@ local function SetBorderColor(border, color)
     border.backdropBorderColorAlpha = color.a
 end
 
+local function DisableBorderSharpening(border)
+    if NineSliceUtil and NineSliceUtil.DisableSharpening then
+        NineSliceUtil.DisableSharpening(border)
+    end
+end
+
 local cachedBorderDef = nil
 local cachedBorderFile = nil
 local cachedBorderSize = nil
@@ -153,6 +159,7 @@ function BORDER:CreateBorder(frame, opts)
     end
 
     border:SetBackdrop(borderDef)
+    DisableBorderSharpening(border)
     border:Show()
     ApplyBorderPoints(frame, border, meta, offsetX, offsetY)
 
@@ -187,6 +194,7 @@ function BORDER:UpdateBorder(frame)
         frame.border:Hide()
     else
         frame.border:SetBackdrop(borderDef)
+        DisableBorderSharpening(frame.border)
         frame.border:Show()
         local frameData = GetFrameData(frame)
         local color = frameData.cdmBorderColorOverride or frameData.cdmResolvedBorderColor or CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
@@ -213,6 +221,7 @@ function BORDER:UpdateAllBorders()
             else
                 if defChanged then
                     frame.border:SetBackdrop(borderDef)
+                    DisableBorderSharpening(frame.border)
                 end
                 frame.border:Show()
                 local frameData = GetFrameData(frame)

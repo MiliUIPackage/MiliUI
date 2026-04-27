@@ -520,30 +520,37 @@ local function ApplyPipConditions(bar, powerType, current, max)
     if pips then
         local pipColorApplied = condState.pipColorApplied
         local baseColors = bar._pipBaseColors
+        local chargedFilledPips = bar._pipChargedFilled
         for i = 1, #pips do
-            local pip = pips[i]
-            state.pipRecharging = GetPipRecharging(bar, powerType, i)
-            local matched
-            for j = 1, #conditions do
-                local rule = conditions[j]
-                if not rule.target or rule.target == i then
-                    if rule.overrides and rule.check and EvalCheck(rule.check, state) then
-                        matched = rule.overrides
-                        break
+            if chargedFilledPips and chargedFilledPips[i] then
+                if pipColorApplied and pipColorApplied[i] then
+                    pipColorApplied[i] = nil
+                end
+            else
+                local pip = pips[i]
+                state.pipRecharging = GetPipRecharging(bar, powerType, i)
+                local matched
+                for j = 1, #conditions do
+                    local rule = conditions[j]
+                    if not rule.target or rule.target == i then
+                        if rule.overrides and rule.check and EvalCheck(rule.check, state) then
+                            matched = rule.overrides
+                            break
+                        end
                     end
                 end
-            end
-            if matched and matched.color then
-                SetStatusBarColorIfChanged(pip, matched.color)
-                if not pipColorApplied then
-                    pipColorApplied = {}
-                    condState.pipColorApplied = pipColorApplied
+                if matched and matched.color then
+                    SetStatusBarColorIfChanged(pip, matched.color)
+                    if not pipColorApplied then
+                        pipColorApplied = {}
+                        condState.pipColorApplied = pipColorApplied
+                    end
+                    pipColorApplied[i] = true
+                elseif pipColorApplied and pipColorApplied[i] then
+                    local baseColor = (baseColors and baseColors[i]) or bar.color
+                    SetStatusBarColorIfChanged(pip, baseColor)
+                    pipColorApplied[i] = nil
                 end
-                pipColorApplied[i] = true
-            elseif pipColorApplied and pipColorApplied[i] then
-                local baseColor = (baseColors and baseColors[i]) or bar.color
-                SetStatusBarColorIfChanged(pip, baseColor)
-                pipColorApplied[i] = nil
             end
         end
         if pipColorApplied and not next(pipColorApplied) then

@@ -227,7 +227,8 @@ eventFrame:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_TARGET_CHANGED" then
         OnTargetChanged()
     elseif event == "PLAYER_MOUNT_DISPLAY_CHANGED"
-        or event == "UPDATE_SHAPESHIFT_FORM" then
+        or event == "UPDATE_SHAPESHIFT_FORM"
+        or event == "PLAYER_ENTERING_WORLD" then
         OnMountChanged()
     end
 end)
@@ -239,6 +240,7 @@ local function Enable()
     CDM:RegisterCombatStateHandler(OnCombatStateChanged)
     eventFrame:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
     eventFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORM")
+    eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     isMounted = IsMounted() or DRUID_TRAVEL_FORM_IDS[GetShapeshiftFormID()] or false
     Fading:Evaluate()
 end
@@ -250,6 +252,7 @@ local function Disable()
     CDM:UnregisterCombatStateHandler(OnCombatStateChanged)
     eventFrame:UnregisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
     eventFrame:UnregisterEvent("UPDATE_SHAPESHIFT_FORM")
+    eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
     if currentAlpha < 1.0 or animating then
         Fading:ShowImmediate()
     end

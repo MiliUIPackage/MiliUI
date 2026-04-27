@@ -6,6 +6,7 @@ local BORDER = CDM.BORDER
 local GetFrameData = CDM.GetFrameData
 local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
+local GetConfigValue = CDM_C.GetConfigValue
 
 local GetAuraDuration = C_UnitAuras.GetAuraDuration
 
@@ -21,8 +22,10 @@ local DEFAULT_SWIPE = "Interface\\HUD\\UI-HUD-CoolDownManager-Icon-Swipe"
 local DEFAULT_COOLDOWN_COLOR = { r = 1, g = 1, b = 1, a = 1 }
 
 local function GetSize()
-    local s = CDM.Sizes.SIZE_EXTERNALS
-    return Snap(s.w), Snap(s.h)
+    local d = CDM.defaults
+    local w = GetConfigValue("externalsIconWidth", d.externalsIconWidth)
+    local h = GetConfigValue("externalsIconHeight", d.externalsIconHeight)
+    return Snap(w), Snap(h)
 end
 
 local function StyleCDText(text, fontPath, fontSize, fontOutline, color)
@@ -118,7 +121,7 @@ local function ApplySizesAndRelayout()
     if not layoutInfo then return end
 
     local w, h = GetSize()
-    local spacing = CDM.Sizes.SPACING or 1
+    local spacing = GetConfigValue("spacing", CDM.defaults.spacing) or 1
     local enabledCount = 0
 
     for _, button in ipairs(auraButtons) do
