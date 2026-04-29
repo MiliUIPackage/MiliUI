@@ -672,14 +672,21 @@ function addonTable.Display.GetText(frame, parent)
 
     frame:SetAllPoints(frame.text)
 
-    frame.text:SetWidth(details.maxWidth * addonTable.Assets.BarBordersSize.width)
-
     frame.text:SetJustifyV("BOTTOM")
     if details.align ~= frame.text:GetJustifyH() then
       frame.text:SetText(" ")
     end
     frame.text:SetJustifyH(details.align)
-    frame.text:SetTextScale(details.scale * 0.85)
+    local scale = details.scale * 0.85
+    local width = details.maxWidth * addonTable.Assets.BarBordersSize.width
+    if frame.text.SetSmoothScaling then
+      frame.text:SetSmoothScaling(addonTable.CurrentFontUsesSmoothing)
+      frame.text:SetScale(scale)
+      frame.text:SetWidth(width / scale)
+    else
+      frame.text:SetTextScale(scale)
+      frame.text:SetWidth(width)
+    end
 
     if details.kind == "health" then
       Mixin(frame, addonTable.Display.HealthTextMixin)
@@ -703,6 +710,8 @@ function addonTable.Display.GetText(frame, parent)
       Mixin(frame, addonTable.Display.CastTimeLeftTextMixin)
     elseif details.kind == "quest" then
       Mixin(frame, addonTable.Display.QuestTextMixin)
+    elseif details.kind == "mythicPlusForces" then
+      Mixin(frame, addonTable.Display.MythicPlusForcesTextMixin)
     else
       assert(false)
     end

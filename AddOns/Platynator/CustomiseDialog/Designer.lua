@@ -1006,7 +1006,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
     for _, w in ipairs(widgets) do
       w:SetClampedToScreen(true)
       if w.kind == "bars" then
-        local defaultColor = {1, 1, 1}
+        local defaultColor
         if w.details.kind == "health" then
           for _, s in ipairs(w.details.autoColors) do
             if s.kind == "threat" then
@@ -1096,6 +1096,20 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
           display = "60"
         elseif w.details.kind == "quest" then
           display = "3/7"
+        elseif w.details.kind == "mythicPlusForces" then
+          local types = w.details.displayTypes
+          local percentTail = w.details.showPercentSymbol and "%" or ""
+          local values = {
+            absolute = 16,
+            percentage = "2.74" .. percentTail
+          }
+          if #types == 2 then
+            display = string.format(w.details.formatMultiple, values[types[1]], values[types[2]])
+          elseif #types == 1 then
+            display = string.format("%s", values[types[1]])
+          else
+            display = addonTable.Locales.NO_VALUE_UPPER
+          end
         end
         if display then
           w.text:SetText(display)

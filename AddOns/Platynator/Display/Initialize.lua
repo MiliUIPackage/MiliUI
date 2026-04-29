@@ -2,6 +2,10 @@
 local addonTable = select(2, ...)
 
 function addonTable.Display.Initialize()
+  local cache = CreateFrame("Frame")
+  Mixin(cache, addonTable.Display.CacheMixin)
+  cache:OnLoad()
+  addonTable.Display.Cache = cache
 
   local manager = CreateFrame("Frame")
   Mixin(manager, addonTable.Display.ManagerMixin)
@@ -142,29 +146,8 @@ function addonTable.Display.ManagerMixin:OnLoad()
     local nameplate = C_NamePlate.GetNamePlateForUnit(unit, issecure())
     if nameplate and unit and (addonTable.Constants.IsRetail or not UnitIsUnit("player", unit)) then
       if addonTable.Constants.IsRetail then
-        if not addonTable.Constants.IsMidnightNext then
-          nameplate.UnitFrame:SetAlpha(0)
-          nameplate.UnitFrame.AurasFrame.DebuffListFrame:SetParent(addonTable.hiddenFrame)
-          nameplate.UnitFrame.AurasFrame.BuffListFrame:SetParent(addonTable.hiddenFrame)
-          nameplate.UnitFrame.AurasFrame.CrowdControlListFrame:SetParent(addonTable.hiddenFrame)
-          nameplate.UnitFrame.AurasFrame.LossOfControlFrame:SetParent(addonTable.hiddenFrame)
-          for _, key in ipairs(reparentedKeys) do
-            nameplate.UnitFrame[key]:SetParent(addonTable.hiddenFrame)
-          end
-        end
         if not self.HookedUFs[nameplate.UnitFrame] then
           self.HookedUFs[nameplate.UnitFrame] = true
-          if not addonTable.Constants.IsMidnightNext then
-            local locked = false
-            hooksecurefunc(nameplate.UnitFrame, "SetAlpha", function(UF)
-              if locked or UF:IsForbidden() then
-                return
-              end
-              locked = true
-              UF:SetAlpha(0)
-              locked = false
-            end)
-          end
           hooksecurefunc(nameplate.UnitFrame.AurasFrame, "RefreshAuras", function(af, data)
             if not af:IsForbidden() then
               local display = self.nameplateDisplays[af:GetParent().unit]
@@ -174,12 +157,8 @@ function addonTable.Display.ManagerMixin:OnLoad()
             end
           end)
         end
-        if addonTable.Constants.IsMidnightNext then
-          nameplate.UnitFrame:SetParent(addonTable.hiddenFrame)
-        end
-      else
-        nameplate.UnitFrame:SetParent(addonTable.hiddenFrame)
       end
+      nameplate.UnitFrame:SetParent(addonTable.hiddenFrame)
       nameplate.UnitFrame:UnregisterAllEvents()
       if nameplate.UnitFrame.castBar then
         nameplate.UnitFrame.castBar:UnregisterAllEvents()
@@ -194,15 +173,7 @@ function addonTable.Display.ManagerMixin:OnLoad()
   hooksecurefunc(NamePlateDriverFrame, "OnNamePlateRemoved", function(_, unit)
     if self.ModifiedUFs[unit] then
       local UF = self.ModifiedUFs[unit]
-      -- Restore original anchors and parents to various things we changed
-      if addonTable.Constants.IsRetail and not addonTable.Constants.IsMidnightNext then
-        for _, key in ipairs(reparentedKeys) do
-          UF[key]:SetParent(UF)
-        end
-        UF.AurasFrame.DebuffListFrame:SetParent(UF.AurasFrame)
-        UF.AurasFrame.BuffListFrame:SetParent(UF.AurasFrame)
-        UF.AurasFrame.CrowdControlListFrame:SetParent(UF.AurasFrame)
-        UF.AurasFrame.LossOfControlFrame:SetParent(UF.AurasFrame)
+      if addonTable.Constants.IsRetail then
         UF:UnregisterEvent("UNIT_AURA")
       end
       if UF.WidgetContainer then
@@ -217,7 +188,7 @@ function addonTable.Display.ManagerMixin:OnLoad()
     if state[addonTable.Constants.RefreshReason.Design] then
       self:SetScript("OnUpdate", function()
         local design = addonTable.Core.GetDesign("enemy")
-        addonTable.CurrentFont = addonTable.Core.GetFontByDesign(design)
+        addonTable.CurrentFont, addonTable.CurrentFontUsesSmoothing = addonTable.Core.GetFontByDesign(design)
         self.styleIndex = self.styleIndex + 1
         self:SetScript("OnUpdate", nil)
         for unit, display in pairs(self.nameplateDisplays) do
@@ -872,7 +843,7 @@ function addonTable.Display.ManagerMixin:OnEvent(eventName, ...)
   elseif eventName == "PLAYER_LOGIN" then
     local design = addonTable.Core.GetDesign("enemy")
 
-    addonTable.CurrentFont = addonTable.Core.GetFontByDesign(design)
+    addonTable.CurrentFont, addonTable.CurrentFontUsesSmoothing = addonTable.Core.GetFontByDesign(design)
     self:UpdateFriendlyFont()
   elseif eventName == "VARIABLES_LOADED" then
     if addonTable.Constants.IsRetail then

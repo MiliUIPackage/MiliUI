@@ -191,6 +191,9 @@ function addonTable.Core.UpgradeDesign(design)
       if ac.kind == "eliteType" and ac.colors.trivial == nil then
         ac.colors.trivial = GetColor("b28e55")
       end
+      if ac.kind == "eliteType" and ac.applyCasterAlways == nil then
+        ac.applyCasterAlways = false
+      end
       if ac.kind == "threat" and ac.useSafeColor == nil then
         ac.useSafeColor = true
       end
@@ -385,6 +388,9 @@ function addonTable.Core.UpgradeDesign(design)
     if text.kind == "layer" then
       text.kind = "level"
     end
+    if text.kind == "mythicPlusPercent" then
+      text.kind = "mythicPlusForces"
+    end
     if text.kind == "target" and text.applyClassColors == nil then
       text.applyClassColors = false
     end
@@ -435,6 +441,11 @@ function addonTable.Core.UpgradeDesign(design)
     if text.kind == "guild" and text.npcRole == nil then
       text.playerGuild = true
       text.npcRole = true
+    end
+    if text.kind == "mythicPlusForces" and not text.displayTypes then
+      text.displayTypes = {"percentage"}
+      text.showPercentSymbol = true
+      text.formatMultiple = "%s (%s)"
     end
     if text.autoColors then
       UpdateAutoColors(text.autoColors)

@@ -1,10 +1,12 @@
 # Platynator
 
-## [365](https://github.com/TheMouseNest/Platynator/tree/365) (2026-04-09)
-[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/364...365) 
+## [373](https://github.com/TheMouseNest/Platynator/tree/373) (2026-04-24)
+[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/372...373) 
 
-- Add use "Off tank" color checkbox, and move safe colour checkbox next to color  
-- Add displaying supercharged combo points to power widget  
-- Refactor power widget  
-- Move 0.8s timer magic number into named constant  
-- Add "Not Target" automatic color  
+- [Fixes #310] Fix blurry fonts if SLUG option is disabled internally  
+- More cleanup for pre-12.0.5 code  
+- Remove "12.0.5 onwards" text on "Mythic+ Forces Value" widget, as 12.0.5 is here  
+- Cleanup  
+- Retail: Interrupts: Remove tracking Warlock Grimoire  
+- Fixes for previous commit  
+- Retail: Use font smoothing (looks better)  

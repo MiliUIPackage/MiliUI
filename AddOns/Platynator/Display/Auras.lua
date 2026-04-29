@@ -18,7 +18,7 @@ end
 
 function addonTable.Display.AurasManagerMixin:PostInit(buffs, debuffs, crowdControl)
   self.processingAuras = (buffs or debuffs or crowdControl) and (
-    not addonTable.Constants.IsRetail or not (debuffs and debuffs.filters.important or buffs and buffs.filters.important)
+    not addonTable.Constants.IsRetail or debuffs and not debuffs.filters.important or buffs and not buffs.filters.important
   )
 
   self:Reset()
@@ -336,7 +336,7 @@ function addonTable.Display.AurasManagerMixin:FullRefresh()
   self:SortAurasAndReport(changes)
 end
 
-function addonTable.Display.AurasManagerMixin:OnEvent(event, _, refreshData)
+function addonTable.Display.AurasManagerMixin:OnEvent(_, _, refreshData)
   local canAttack = UnitCanAttack("player", self.unit)
   if not canAttack and not addonTable.Constants.IsRetail then
     if next(self.buffs) or next(self.debuffs) or next(self.crowdControl) then
@@ -441,7 +441,7 @@ else
     local changes = {}
     for _, aura in ipairs(addedAuras) do
       local keep = false
-      if not self.isPlayer and self.buffsDetails and aura.isHelpful and
+      if (not self.isPlayer or not self.isFriendly and aura.isStealable) and self.buffsDetails and aura.isHelpful and
         not legacy.blacklistedBuffs[aura.spellId] and ((not self.buffsDetails.dispelable and not self.buffsDetails.important) or aura.dispelName ~= nil) then
         keep = true
         table.insert(self.buffs, aura.auraInstanceID)
