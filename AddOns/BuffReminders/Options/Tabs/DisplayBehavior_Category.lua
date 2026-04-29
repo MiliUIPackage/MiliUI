@@ -230,8 +230,10 @@ local function RenderCategorySection(
             color = "orange",
             icon = "services-icon-warning",
         })
-        catLayout:Add(banner, nil, SECTION_GAP)
+        -- Set RIGHT before Add so the banner has a determinate width; Add
+        -- then sets TOPLEFT and synchronously calls banner:FitHeight().
         banner:SetPoint("RIGHT", catContent, "RIGHT", 0, 0)
+        catLayout:Add(banner, nil, SECTION_GAP)
     end
 
     -- Icons sub-header (all categories except custom)
@@ -674,6 +676,21 @@ local function RenderCategorySection(
 
     -- Item display mode (consumable only)
     if category == "consumable" then
+        local hideConsumableLabelsHolder = Components.Checkbox(catContent, {
+            label = L["Options.HideConsumableLabels"],
+            get = function()
+                return BR.Config.Get("defaults.hideConsumableLabels", false)
+            end,
+            tooltip = {
+                title = L["Options.HideConsumableLabels.Title"],
+                desc = L["Options.HideConsumableLabels.Desc"],
+            },
+            onChange = function(checked)
+                BR.Config.Set("defaults.hideConsumableLabels", checked)
+            end,
+        })
+        catLayout:Add(hideConsumableLabelsHolder, nil, COMPONENT_GAP)
+
         local consumableTextScaleHolder = Components.Slider(catContent, {
             label = L["Options.ConsumableTextScale"],
             min = 5,

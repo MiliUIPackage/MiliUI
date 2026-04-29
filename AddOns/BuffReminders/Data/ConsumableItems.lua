@@ -238,8 +238,9 @@ BR.CONSUMABLE_ITEMS = {
     -- Rune priority: lower number = use first (Midnight > TWW > Dragonflight > Shadowlands)
     rune = {
         [259085] = { priority = 1 }, -- Void-Touched Augment Rune (Midnight)
+        -- Ethereal is TWW but permanent/infinite (see permanentRuneItemIDs in Buffs.lua), so not flagged legacy
+        [243191] = { priority = 2 }, -- Ethereal Augment Rune (TWW permanent)
         -- TWW (legacy)
-        [243191] = { priority = 2, legacy = true }, -- Ethereal Augment Rune (TWW permanent)
         [246492] = { priority = 3, legacy = true }, -- Soulgorged Augment Rune (TWW, persists through death)
         [224572] = { priority = 4, legacy = true }, -- Crystallized Augment Rune (TWW single use)
         -- Dragonflight / Shadowlands (legacy)

@@ -28,6 +28,7 @@ BR.Options.Constants = {
 -- ============================================================================
 
 local tinsert = table.insert
+local ceil = math.ceil
 local Helpers = BR.Options.Helpers
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 local GetBuffTexture = BR.Helpers.GetBuffTexture
@@ -35,8 +36,15 @@ local GetBuffTexture = BR.Helpers.GetBuffTexture
 -- Layout-aware section header (uses VerticalLayout instead of manual Y tracking)
 function Helpers.LayoutSectionHeader(layout, parent, text)
     local header = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    header:SetWordWrap(false)
     header:SetText("|cffffcc00" .. text .. "|r")
-    layout:AddText(header, 14, COMPONENT_GAP)
+    -- Use measured height instead of a fixed 14 so bigger fonts don't make
+    -- the next component overlap the header.
+    local h = ceil(header:GetStringHeight())
+    if h < 14 then
+        h = 14
+    end
+    layout:AddText(header, h, COMPONENT_GAP)
     return header
 end
 

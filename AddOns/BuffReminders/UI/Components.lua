@@ -32,9 +32,11 @@ local _, BR = ...
 ---@field enabled? fun(): boolean
 ---@field onChange fun(checked: boolean)
 ---@field tooltip? TooltipText
+---@field holderWidth? number Override for the holder width (default 200)
+---@field labelWidth? number Cap label width and truncate beyond it
 
 -- Lua stdlib locals (avoid repeated global lookups in hot paths)
-local floor, max, min = math.floor, math.max, math.min
+local floor, ceil, max, min = math.floor, math.ceil, math.max, math.min
 local format = string.format
 local rad = math.rad
 local tinsert = table.insert
@@ -42,6 +44,76 @@ local tinsert = table.insert
 local L = BR.L
 local Components = BR.Components
 local RefreshableComponents = BR.RefreshableComponents
+
+-- ============================================================================
+-- TEXT MEASUREMENT
+-- ============================================================================
+-- Single hidden FontString reused for measuring text dimensions so widgets
+-- can size themselves to their content. This is what makes the panel survive
+-- font replacers / locale builds with longer strings.
+--
+-- Calls must be synchronous: each Measure* call configures and reads the
+-- shared FontString within one function call. Do NOT save the FontString or
+-- defer reads across event boundaries — the next caller will overwrite it.
+
+local _measurer
+local _measureFS
+local function PrepareMeasurer(text, fontObject, width)
+    if not _measurer then
+        _measurer = CreateFrame("Frame", nil, UIParent)
+        _measurer:Hide()
+        _measureFS = _measurer:CreateFontString(nil, "BACKGROUND")
+    end
+    _measureFS:SetFontObject(fontObject or "GameFontHighlightSmall")
+    -- SetWidth gates whether GetStringHeight reports wrapped or single-line
+    -- height; pass 0 (or omit) for natural single-line measurement.
+    _measureFS:SetWidth(width or 0)
+    _measureFS:SetText(text)
+end
+
+local function MeasureTextWidth(text, fontObject)
+    if not text or text == "" then
+        return 0
+    end
+    PrepareMeasurer(text, fontObject)
+    return ceil(_measureFS:GetStringWidth())
+end
+
+local function MeasureTextHeight(text, fontObject)
+    if not text or text == "" then
+        return 0
+    end
+    PrepareMeasurer(text, fontObject)
+    return ceil(_measureFS:GetStringHeight())
+end
+
+-- Wrapped height for a known bounded width. Used by widgets (e.g. Banner)
+-- that allow text to flow to multiple lines and need to grow vertically.
+local function MeasureWrappedHeight(text, fontObject, width)
+    if not text or text == "" or not width or width <= 0 then
+        return 0
+    end
+    PrepareMeasurer(text, fontObject, width)
+    return ceil(_measureFS:GetStringHeight())
+end
+
+---Compute a shared label width for a group of widgets that need to align
+---vertically. Pass each widget's label text and the result as labelWidth so
+---the column boundary is identical across the group.
+---@param labels string[] List of label strings
+---@param fontObject? string|table Font object (default "GameFontHighlightSmall")
+---@param minWidth? number Floor for the returned width (default 70)
+---@return number
+function Components.MeasureSharedLabelWidth(labels, fontObject, minWidth)
+    local w = minWidth or 70
+    for _, t in ipairs(labels) do
+        local m = MeasureTextWidth(t, fontObject) + 4
+        if m > w then
+            w = m
+        end
+    end
+    return w
+end
 
 -- ============================================================================
 -- TOOLTIP UTILITIES
@@ -317,7 +389,6 @@ BR.StyleEditBox = StyleEditBox
 ---@return table holder Frame containing slider with .slider, .valueText, .SetValue(v), .GetValue()
 function Components.Slider(parent, config)
     local colors = SliderColors
-    local labelWidth = config.labelWidth or (config.label and 70 or 0)
     local sliderWidth = config.sliderWidth or 100
     local step = config.step or 1
     local suffix = config.suffix or ""
@@ -332,14 +403,35 @@ function Components.Slider(parent, config)
     local THUMB_WIDTH = 8
     local THUMB_HEIGHT = 14
 
+    -- Label width: explicit labelWidth is treated as a HARD target so columns
+    -- of sliders stay aligned (label clips/extends past the boundary if too
+    -- long; the caller is responsible for picking a value that fits — see
+    -- AppearanceGrid for the measurement-based pattern). Omitting labelWidth
+    -- falls back to auto-grow for ad-hoc usage.
+    local labelWidth
+    if config.labelWidth ~= nil then
+        labelWidth = config.labelWidth
+    elseif config.label then
+        labelWidth = max(70, MeasureTextWidth(config.label, "GameFontHighlightSmall") + 4)
+    else
+        labelWidth = 0
+    end
+
+    -- Auto-grow value box: measure widest displayText(min..max). Without this,
+    -- 4-digit numbers or "%" strings overflow the 40-wide button at bigger fonts.
+    local minValW = MeasureTextWidth(displayText(config.min or 0), "GameFontHighlightSmall")
+    local maxValW = MeasureTextWidth(displayText(config.max or 0), "GameFontHighlightSmall")
+    local valueWidth = max(40, max(minValW, maxValW) + 8)
+
     -- Container frame
     local holder = CreateFrame("Frame", nil, parent)
-    holder:SetSize(labelWidth + sliderWidth + 60, 20)
+    holder:SetSize(labelWidth + sliderWidth + valueWidth + 12, 20)
 
     -- Label
     local label = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     label:SetPoint("LEFT", 0, 0)
     label:SetWidth(labelWidth)
+    label:SetWordWrap(false)
     label:SetJustifyH("LEFT")
     if config.label then
         label:SetText(config.label)
@@ -386,10 +478,11 @@ function Components.Slider(parent, config)
     -- Clickable value display button (declared early for event handlers)
     local valueBtn = CreateFrame("Button", nil, holder)
     valueBtn:SetPoint("LEFT", sliderFrame, "RIGHT", 6, 0)
-    valueBtn:SetSize(40, 16)
+    valueBtn:SetSize(valueWidth, 16)
 
     local valueText = valueBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     valueText:SetAllPoints()
+    valueText:SetWordWrap(false)
     valueText:SetJustifyH("LEFT")
     valueText:SetText(displayText(currentValue))
     holder.valueText = valueText
@@ -501,7 +594,7 @@ function Components.Slider(parent, config)
     editBox:SetFontObject("GameFontHighlightSmall")
     editBox:SetAutoFocus(false)
     local editContainer = StyleEditBox(editBox)
-    editContainer:SetSize(35, 16)
+    editContainer:SetSize(max(35, valueWidth), 16)
     editContainer:SetPoint("LEFT", sliderFrame, "RIGHT", 6, 0)
     editContainer:Hide()
 
@@ -780,6 +873,8 @@ end
 ---@field warningTooltip? TooltipText Optional warning icon tooltip
 ---@field onRightClick? fun() Optional right-click callback (wired on all interactive children)
 ---@field labelFont? string Font object name for the label (default "GameFontHighlightSmall")
+---@field holderWidth? number Override for the holder width (default 200)
+---@field labelWidth? number Cap label width and truncate beyond it
 
 ---Create a modern flat-style checkbox with label and optional icons/tooltip
 ---@param parent table Parent frame
@@ -789,9 +884,20 @@ function Components.Checkbox(parent, config)
     local colors = CheckboxColors
     local initialChecked = config.get and config.get() or config.checked or false
 
-    -- Container frame
+    local CHECKBOX_W = 16
+    local ICON_SIZE = 16 -- Match checkbox size
+    local ICON_SPACING = 4 -- Consistent spacing
+    local LABEL_LEAD = ICON_SPACING + 1 -- gap between last icon (or checkbox) and label
+    local INFO_ICON_W = 14 -- info/warning icon shown after the label
+    local INFO_ICON_GAP = 4
+    local labelFont = config.labelFont or "GameFontHighlightSmall"
+
+    -- Container frame. Holder is intentionally a fixed size: callers like the
+    -- Buffs tab anchor gear/detach icons to holder.right and rely on a
+    -- consistent column boundary across rows. Pass holderWidth to override.
+    local holderWidth = config.holderWidth or 200
     local holder = CreateFrame("Frame", nil, parent)
-    holder:SetSize(200, 20)
+    holder:SetSize(holderWidth, 20)
 
     -- Create checkbox using shared core
     local cb = CreateCheckboxCore(holder, initialChecked, config.onChange)
@@ -800,20 +906,33 @@ function Components.Checkbox(parent, config)
 
     -- Build icon chain (optional)
     local lastAnchor = cb
-    local ICON_SIZE = 16 -- Match checkbox size
-    local ICON_SPACING = 4 -- Consistent spacing
+    local iconCount = 0
     if config.icons then
         local CreateBuffIcon = BR.CreateBuffIcon
         for _, textureID in ipairs(config.icons) do
             local icon = CreateBuffIcon(holder, ICON_SIZE, textureID)
             icon:SetPoint("LEFT", lastAnchor, "RIGHT", ICON_SPACING, 0)
             lastAnchor = icon
+            iconCount = iconCount + 1
         end
     end
 
-    -- Label
-    local label = holder:CreateFontString(nil, "OVERLAY", config.labelFont or "GameFontHighlightSmall")
-    label:SetPoint("LEFT", lastAnchor, "RIGHT", ICON_SPACING + 1, 0) -- Slightly more space before text
+    -- Label. Free-flowing by default; pass labelWidth to cap (truncate) it
+    -- when the caller needs predictable label/holder alignment in a list.
+    local label = holder:CreateFontString(nil, "OVERLAY", labelFont)
+    label:SetPoint("LEFT", lastAnchor, "RIGHT", LABEL_LEAD, 0) -- Slightly more space before text
+    label:SetWordWrap(false)
+    if config.labelWidth ~= nil then
+        -- Clamp so the label can't extend past holder.right and overlap
+        -- whatever the caller is anchoring there (gear/detach icons, etc.).
+        local hasInfoIcon = config.infoTooltip or config.warningTooltip
+        local trailing = hasInfoIcon and (INFO_ICON_GAP + INFO_ICON_W) or 0
+        local labelLeftX = CHECKBOX_W + iconCount * (ICON_SPACING + ICON_SIZE) + LABEL_LEAD
+        local maxLabelW = holderWidth - labelLeftX - trailing
+        local labelWidth = max(0, min(config.labelWidth, maxLabelW))
+        label:SetWidth(labelWidth)
+        label:SetJustifyH("LEFT")
+    end
     label:SetText(config.label)
     holder.label = label
     cb.label = label
@@ -1051,12 +1170,18 @@ function Components.Toggle(parent, config)
     local colors = ToggleColors
     local checked = config.checked or false
 
+    local TRACK_W = 32
+    local LABEL_GAP = 6
+
+    -- Holder defaults to a fixed 200 so callers can anchor neighbours to
+    -- holder.right; pass holderWidth to override.
+    local holderWidth = config.holderWidth or 200
     local holder = CreateFrame("Frame", nil, parent)
-    holder:SetSize(200, 20)
+    holder:SetSize(holderWidth, 20)
 
     -- Track (the pill background)
     local track = CreateFrame("Button", nil, holder, "BackdropTemplate")
-    track:SetSize(32, 16)
+    track:SetSize(TRACK_W, 16)
     track:SetPoint("LEFT", 0, 0)
     track:SetBackdrop({
         bgFile = "Interface\\BUTTONS\\WHITE8x8",
@@ -1071,7 +1196,15 @@ function Components.Toggle(parent, config)
 
     -- Label
     local label = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    label:SetPoint("LEFT", track, "RIGHT", 6, 0)
+    label:SetPoint("LEFT", track, "RIGHT", LABEL_GAP, 0)
+    label:SetWordWrap(false)
+    if config.labelWidth ~= nil then
+        -- Clamp so label can't extend past holder.right and overlap
+        -- anything the caller anchors there.
+        local maxLabelW = holderWidth - TRACK_W - LABEL_GAP
+        label:SetWidth(max(0, min(config.labelWidth, maxLabelW)))
+        label:SetJustifyH("LEFT")
+    end
     label:SetText(config.label)
     holder.label = label
 
@@ -1221,6 +1354,10 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
     local BUTTON_HEIGHT = 22
     local ITEM_HEIGHT = 22
     local MENU_PADDING_V = 4
+    local CHECK_SIZE = 14
+    local CHECK_LEFT = 6
+    local LABEL_LEFT = CHECK_LEFT + CHECK_SIZE + 4 -- room for checkmark
+    local LABEL_RIGHT_PAD = 8
 
     -- Find initial label
     local currentValue = initialValue
@@ -1231,6 +1368,17 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
             break
         end
     end
+
+    -- Auto-grow menu width to fit the longest option label. Without this, item
+    -- text clips when labels are longer than the button (or font is bigger).
+    local longestItemW = 0
+    for _, opt in ipairs(options) do
+        local w = MeasureTextWidth(opt.label or "", "GameFontHighlightSmall")
+        if w > longestItemW then
+            longestItemW = w
+        end
+    end
+    local menuWidth = max(width, longestItemW + LABEL_LEFT + LABEL_RIGHT_PAD + 2)
 
     -- State
     local isEnabled = true
@@ -1249,6 +1397,7 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
     local buttonText = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     buttonText:SetPoint("LEFT", 8, 0)
     buttonText:SetPoint("RIGHT", -20, 0)
+    buttonText:SetWordWrap(false)
     buttonText:SetJustifyH("LEFT")
     buttonText:SetText(currentLabel)
 
@@ -1264,7 +1413,7 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
     local visibleCount = useScroll and maxItems or #options
     local menuHeight = visibleCount * ITEM_HEIGHT + MENU_PADDING_V * 2
     local menu = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-    menu:SetSize(width, menuHeight)
+    menu:SetSize(menuWidth, menuHeight)
     menu:SetBackdrop({
         bgFile = "Interface\\Buttons\\WHITE8x8",
         edgeFile = "Interface\\Buttons\\WHITE8x8",
@@ -1284,7 +1433,7 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
         scrollFrame:SetPoint("BOTTOMRIGHT", -1, MENU_PADDING_V)
 
         scrollChild = CreateFrame("Frame", nil, scrollFrame)
-        scrollChild:SetSize(width - 2, #options * ITEM_HEIGHT)
+        scrollChild:SetSize(menuWidth - 2, #options * ITEM_HEIGHT)
         scrollFrame:SetScrollChild(scrollChild)
 
         scrollFrame:EnableMouseWheel(true)
@@ -1363,7 +1512,7 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
     local items = {}
     for i, opt in ipairs(options) do
         local item = CreateFrame("Button", nil, itemParent)
-        item:SetSize(width - 2, ITEM_HEIGHT)
+        item:SetSize(menuWidth - 2, ITEM_HEIGHT)
         item:SetPoint("TOPLEFT", 0, -(useScroll and 0 or MENU_PADDING_V) - (i - 1) * ITEM_HEIGHT)
 
         local itemBg = item:CreateTexture(nil, "BACKGROUND")
@@ -1371,15 +1520,16 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
         itemBg:SetColorTexture(0, 0, 0, 0)
 
         local check = item:CreateTexture(nil, "ARTWORK")
-        check:SetSize(14, 14)
-        check:SetPoint("LEFT", 6, 0)
+        check:SetSize(CHECK_SIZE, CHECK_SIZE)
+        check:SetPoint("LEFT", CHECK_LEFT, 0)
         check:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
         check:SetVertexColor(unpack(colors.checkmark))
         check:SetShown(opt.value == currentValue)
 
         local label = item:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        label:SetPoint("LEFT", 24, 0)
-        label:SetPoint("RIGHT", -8, 0)
+        label:SetPoint("LEFT", LABEL_LEFT, 0)
+        label:SetPoint("RIGHT", -LABEL_RIGHT_PAD, 0)
+        label:SetWordWrap(false)
         label:SetJustifyH("LEFT")
         label:SetText(opt.label)
         label:SetTextColor(unpack(colors.itemText))
@@ -1600,7 +1750,14 @@ function Components.DirectionButtons(parent, config)
         DOWN = L["Direction.Down"],
     }
     local width = config.width or 90
-    local labelWidth = config.labelWidth or 70
+    local labelText = config.label or L["Direction.Label"]
+    -- Explicit labelWidth → hard. Omitted → auto-grow.
+    local labelWidth
+    if config.labelWidth ~= nil then
+        labelWidth = config.labelWidth
+    else
+        labelWidth = max(70, MeasureTextWidth(labelText, "GameFontHighlightSmall") + 4)
+    end
 
     -- Build options array
     local options = {}
@@ -1616,8 +1773,9 @@ function Components.DirectionButtons(parent, config)
     local label = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     label:SetPoint("LEFT", 0, 0)
     label:SetWidth(labelWidth)
+    label:SetWordWrap(false)
     label:SetJustifyH("LEFT")
-    label:SetText(config.label or L["Direction.Label"])
+    label:SetText(labelText)
     holder.label = label
 
     -- Initial value
@@ -2199,7 +2357,14 @@ end
 ---@return table holder Frame containing dropdown with .SetValue(v), .GetValue(), .SetEnabled(bool)
 function Components.Dropdown(parent, config, _)
     local width = config.width or 100
-    local labelWidth = config.labelWidth or 70
+    -- Explicit labelWidth → hard target (preserves column alignment).
+    -- Omitted → auto-grow from measured text.
+    local labelWidth
+    if config.labelWidth ~= nil then
+        labelWidth = config.labelWidth
+    else
+        labelWidth = max(70, MeasureTextWidth(config.label or "", "GameFontHighlightSmall") + 4)
+    end
 
     -- Container frame
     local holder = CreateFrame("Frame", nil, parent)
@@ -2209,6 +2374,7 @@ function Components.Dropdown(parent, config, _)
     local label = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     label:SetPoint("LEFT", 0, 0)
     label:SetWidth(labelWidth)
+    label:SetWordWrap(false)
     label:SetJustifyH("LEFT")
     label:SetText(config.label)
     holder.label = label
@@ -2279,8 +2445,18 @@ end
 ---@param config TabConfig Configuration table
 ---@return table tab Tab button with .SetActive(bool), .isActive
 function Components.Tab(parent, config)
-    local width = config.width or 90
+    -- NOTE: config.width is treated as a MINIMUM, not a target. The tab grows
+    -- past it to fit a wider label. This is safe for callers that chain tabs
+    -- via `LEFT, prev, RIGHT, gap, 0` (Options.lua does this); callers that
+    -- place tabs at fixed X coordinates must compute final widths themselves.
+    local minWidth = config.width or 90
     local height = config.height or 22
+
+    -- Auto-grow tab width to fit text + side padding so labels never clip.
+    -- Both active (GameFontHighlightSmall) and inactive (GameFontNormalSmall)
+    -- variants render at the same width so we can measure either.
+    local textW = MeasureTextWidth(config.label or "", "GameFontNormalSmall")
+    local width = max(minWidth, textW + 16)
 
     local tab = CreateFrame("Button", nil, parent)
     tab:SetSize(width, height)
@@ -2304,6 +2480,7 @@ function Components.Tab(parent, config)
     -- Text
     local text = tab:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     text:SetPoint("CENTER", 0, 0)
+    text:SetWordWrap(false)
     text:SetText(config.label)
     tab.text = text
 
@@ -2352,7 +2529,15 @@ end
 ---@return table holder Frame with .editBox, .SetValue(v), .GetValue()
 function Components.TextInput(parent, config)
     local width = config.width or 150
-    local labelWidth = config.labelWidth or 80
+    -- Explicit labelWidth → hard. Omitted → auto-grow.
+    local labelWidth
+    if config.labelWidth ~= nil then
+        labelWidth = config.labelWidth
+    elseif config.label then
+        labelWidth = max(80, MeasureTextWidth(config.label, "GameFontHighlightSmall") + 4)
+    else
+        labelWidth = 80
+    end
 
     local holder = CreateFrame("Frame", nil, parent)
     holder:SetSize(labelWidth + width + 5, 20)
@@ -2361,6 +2546,7 @@ function Components.TextInput(parent, config)
     local label = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     label:SetPoint("LEFT", 0, 0)
     label:SetWidth(labelWidth)
+    label:SetWordWrap(false)
     label:SetJustifyH("LEFT")
     label:SetText(config.label)
     holder.label = label
@@ -2445,10 +2631,26 @@ end
 ---@param config table Configuration: label, min, max, step?, labelWidth?, get?, enabled?, onChange?
 ---@return table holder Frame with .SetValue(n), .GetValue(), .SetEnabled(bool), .Refresh()
 function Components.NumericStepper(parent, config)
-    local labelWidth = config.labelWidth or 70
     local step = config.step or 1
     local BTN_SIZE = 16
-    local VALUE_WIDTH = 26
+    -- Explicit labelWidth → hard. Omitted → auto-grow.
+    local labelWidth
+    if config.labelWidth ~= nil then
+        labelWidth = config.labelWidth
+    elseif config.label then
+        labelWidth = max(70, MeasureTextWidth(config.label, "GameFontHighlightSmall") + 4)
+    else
+        labelWidth = 70
+    end
+
+    -- Auto-grow value box: at default font 4-digit numbers fit in 26px, at
+    -- bigger fonts they don't. Measure the actual extents of min and max.
+    local minTxt = tostring(config.min or 0)
+    local maxTxt = tostring(config.max or 100)
+    local VALUE_WIDTH = max(
+        26,
+        max(MeasureTextWidth(minTxt, "GameFontHighlightSmall"), MeasureTextWidth(maxTxt, "GameFontHighlightSmall")) + 8
+    )
 
     -- Container frame
     local holder = CreateFrame("Frame", nil, parent)
@@ -2458,6 +2660,7 @@ function Components.NumericStepper(parent, config)
     local label = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     label:SetPoint("LEFT", 0, 0)
     label:SetWidth(labelWidth)
+    label:SetWordWrap(false)
     label:SetJustifyH("LEFT")
     label:SetText(config.label)
     holder.label = label
@@ -2475,6 +2678,7 @@ function Components.NumericStepper(parent, config)
 
     local valueText = valueBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     valueText:SetAllPoints()
+    valueText:SetWordWrap(false)
     valueText:SetJustifyH("CENTER")
 
     -- Forward declarations (buttons needed by UpdateButtonStates, defined below)
@@ -2715,17 +2919,31 @@ end
 ---@param config ColorSwatchConfig Configuration table
 ---@return table holder Frame containing color swatch with .SetColor(r,g,b,a?), .GetColor(), .SetEnabled(bool)
 function Components.ColorSwatch(parent, config)
-    local labelWidth = config.labelWidth or (config.label and 70 or 0)
+    -- Explicit labelWidth → hard. Omitted → auto-grow (or 0 if no label).
+    local labelWidth
+    if config.labelWidth ~= nil then
+        labelWidth = config.labelWidth
+    elseif config.label then
+        labelWidth = max(70, MeasureTextWidth(config.label, "GameFontHighlightSmall") + 4)
+    else
+        labelWidth = 0
+    end
     local SWATCH_SIZE = 16
+
+    -- Reserve room after the swatch for "100%" alpha text (when present); a
+    -- bigger font makes "100%" wider than the original 50px allowance.
+    local alphaW = config.hasOpacity and (4 + MeasureTextWidth("100%", "GameFontHighlightSmall") + 4) or 0
+    local trailingW = max(50, alphaW)
 
     -- Container frame
     local holder = CreateFrame("Frame", nil, parent)
-    holder:SetSize(labelWidth + SWATCH_SIZE + 50, 20)
+    holder:SetSize(labelWidth + 5 + SWATCH_SIZE + trailingW, 20)
 
     -- Label
     local label = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     label:SetPoint("LEFT", 0, 0)
     label:SetWidth(labelWidth)
+    label:SetWordWrap(false)
     label:SetJustifyH("LEFT")
     if config.label then
         label:SetText(config.label)
@@ -2757,6 +2975,7 @@ function Components.ColorSwatch(parent, config)
     if config.hasOpacity then
         alphaText = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         alphaText:SetPoint("LEFT", swatchBtn, "RIGHT", 4, 0)
+        alphaText:SetWordWrap(false)
         alphaText:SetText(floor(currentA * 100) .. "%")
     end
 
@@ -3102,15 +3321,42 @@ end
 ---@param config AppearanceGridConfig
 ---@return {frame: Frame, height: number, holders: table}
 function Components.AppearanceGrid(parent, config)
-    local LW = 50 -- labelWidth for all sliders
-    local LINK_X = 216 -- labelWidth(50) + sliderWidth(100) + value(60) + gap(6)
-    local COL2 = 240 -- LINK_X + linkIcon(16) + gap(8)
-    local ROW_H = 24
-    local GRID_HEIGHT = 96
+    -- Compute label width from the longest of all 9 row labels so columns align
+    -- regardless of locale or font replacement.
+    local labels = {
+        L["Appearance.Width"],
+        L["Appearance.Height"],
+        L["Appearance.Zoom"],
+        L["Appearance.Border"],
+        L["Appearance.Spacing"],
+        L["Appearance.Alpha"],
+        L["Appearance.Text"],
+        L["Appearance.TextX"],
+        L["Appearance.TextY"],
+    }
+    local LW = 50
+    for _, t in ipairs(labels) do
+        local w = MeasureTextWidth(t, "GameFontHighlightSmall") + 4
+        if w > LW then
+            LW = w
+        end
+    end
+
+    -- Conservative value-box width estimate: sliders auto-size their own value
+    -- text but COL2 needs to clear the widest possible col-1 right edge so
+    -- col-2 widgets never overlap. "100%" is the widest display string used.
+    local SLIDER_W = 100
+    local VALUE_W = max(40, MeasureTextWidth("100%", "GameFontHighlightSmall") + 8)
+    local LINK_BTN_W = 16
+    local LINK_X = LW + 5 + SLIDER_W + 6 + VALUE_W + 6
+    local COL2 = LINK_X + LINK_BTN_W + 8
+    local ROW_H = max(24, MeasureTextHeight("Wg", "GameFontHighlightSmall") + 8)
+    local FRAME_W = COL2 + LW + 5 + SLIDER_W + 6 + VALUE_W + 12
+    local GRID_HEIGHT = ROW_H * 4
 
     local frame = CreateFrame("Frame", nil, parent)
     frame:SetPoint("TOPLEFT")
-    frame:SetSize(480, GRID_HEIGHT)
+    frame:SetSize(FRAME_W, GRID_HEIGHT)
 
     local enabled = config.enabled
     local masqueCheck = config.masqueCheck
@@ -3307,7 +3553,7 @@ function Components.AppearanceGrid(parent, config)
     textOffsetYHolder:SetPoint("TOPLEFT", COL2, -ROW_H * 4)
 
     local GRID_HEIGHT_FINAL = GRID_HEIGHT + ROW_H
-    frame:SetSize(480, GRID_HEIGHT_FINAL)
+    frame:SetSize(FRAME_W, GRID_HEIGHT_FINAL)
 
     return {
         frame = frame,
@@ -3435,6 +3681,11 @@ function Components.VerticalLayout(parent, config)
     ---@param spacing? number Extra spacing after component (default 0)
     function layout:Add(component, height, spacing)
         component:SetPoint("TOPLEFT", parent, "TOPLEFT", x, currentY)
+        -- Components with dynamic height (e.g. Banner) need to recompute now
+        -- that they're anchored, before we read their height.
+        if not height and component.FitHeight then
+            component:FitHeight()
+        end
         local advanceHeight = height or (component.GetHeight and component:GetHeight()) or 20
         currentY = currentY - advanceHeight - (spacing or 0)
     end
@@ -3496,7 +3747,8 @@ end
 ---@param config CollapsibleSectionConfig Configuration table
 ---@return table holder Frame with :SetCollapsed(bool), :IsCollapsed(), :GetContentFrame(), :GetContentHeight(), :SetContentHeight(h)
 function Components.CollapsibleSection(parent, config)
-    local HEADER_HEIGHT = 24
+    -- Header height grows with font so big-font users don't see clipped titles.
+    local HEADER_HEIGHT = max(24, MeasureTextHeight("Wg", "GameFontNormal") + 10)
     local CONTENT_PADDING = 10
     local BORDER_COLOR = { 0.25, 0.25, 0.25, 1 }
     local CONTENT_BG_COLOR = { 0.08, 0.08, 0.08, 0.95 }
@@ -3540,6 +3792,9 @@ function Components.CollapsibleSection(parent, config)
     -- Title
     local title = header:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     title:SetPoint("LEFT", indicator, "RIGHT", 8, 0)
+    title:SetPoint("RIGHT", header, "RIGHT", -8, 0)
+    title:SetWordWrap(false)
+    title:SetJustifyH("LEFT")
     title:SetText(config.title)
 
     -- Content container (has background)
@@ -3655,7 +3910,19 @@ end
 ---@param config {text: string, icon?: string, color?: string, visible?: function, height?: number, bgAlpha?: number}
 ---@return table holder Banner frame with :Refresh(), :SetText()
 function Components.Banner(parent, config)
-    local BANNER_HEIGHT = config.height or 26
+    local ICON_SIZE = 14
+    local ICON_LEFT = 10
+    local ICON_GAP = 6
+    local TEXT_RIGHT_PAD = 8
+    local TEXT_VERT_PAD = 12 -- breathing room above + below the text
+    local TEXT_NONFLOW_W = ICON_LEFT + ICON_SIZE + ICON_GAP + TEXT_RIGHT_PAD -- everything that's NOT text
+
+    local hasExplicitHeight = config.height ~= nil
+    local BANNER_MIN = 26
+    -- Initial height is single-line + padding. Refined once the holder gets
+    -- a width (via OnSizeChanged) and we can measure wrapped text height.
+    local BANNER_HEIGHT = config.height
+        or max(BANNER_MIN, MeasureTextHeight("Wg", "GameFontHighlightSmall") + TEXT_VERT_PAD)
 
     -- Color presets: "red" (warning) or "orange" (info)
     local colors = {
@@ -3685,8 +3952,8 @@ function Components.Banner(parent, config)
 
     -- Icon (supports atlas names or texture file paths)
     local icon = holder:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(14, 14)
-    icon:SetPoint("LEFT", 10, 0)
+    icon:SetSize(ICON_SIZE, ICON_SIZE)
+    icon:SetPoint("LEFT", ICON_LEFT, 0)
     local iconPath = config.icon or "services-icon-warning"
     if iconPath:find("\\") or iconPath:find("/") then
         icon:SetTexture(iconPath)
@@ -3694,16 +3961,58 @@ function Components.Banner(parent, config)
         icon:SetAtlas(iconPath)
     end
 
-    -- Text
+    -- Text. Wrap is left enabled so long localized strings flow to multiple
+    -- lines instead of clipping; the holder grows vertically to fit (see
+    -- OnSizeChanged below). The caller can pin a fixed height via config.height.
     local text = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    text:SetPoint("LEFT", icon, "RIGHT", 6, 0)
-    text:SetPoint("RIGHT", -8, 0)
+    text:SetPoint("LEFT", icon, "RIGHT", ICON_GAP, 0)
+    text:SetPoint("RIGHT", -TEXT_RIGHT_PAD, 0)
     text:SetJustifyH("LEFT")
     text:SetText(config.text or "")
     text:SetTextColor(unpack(c.text))
 
+    -- Recompute holder height to fit wrapped text given the current width.
+    -- Skipped when caller pinned an explicit height.
+    -- IMPORTANT: callers using auto-fit must set BOTH anchors (TOPLEFT/LEFT
+    -- and RIGHT) before calling :FitHeight(); the OnSizeChanged hook is a
+    -- defensive backup for parent resizes, but the initial layout should
+    -- call FitHeight synchronously so siblings positioned afterward see the
+    -- final height. VerticalLayout:Add does this automatically.
+    local lastWidth
+    function holder:FitHeight()
+        if hasExplicitHeight then
+            return
+        end
+        local w = holder:GetWidth()
+        if w <= 0 then
+            return
+        end
+        local textW = w - TEXT_NONFLOW_W
+        if textW <= 0 then
+            return
+        end
+        local h = MeasureWrappedHeight(text:GetText(), "GameFontHighlightSmall", textW)
+        if h <= 0 then
+            return
+        end
+        local newH = max(BANNER_MIN, h + TEXT_VERT_PAD)
+        if newH ~= holder:GetHeight() then
+            holder:SetHeight(newH)
+        end
+    end
+
+    holder:SetScript("OnSizeChanged", function(_, w)
+        -- Only respond to width changes; setting our own height re-fires this.
+        if w == lastWidth then
+            return
+        end
+        lastWidth = w
+        holder:FitHeight()
+    end)
+
     function holder:SetText(newText)
         text:SetText(newText)
+        holder:FitHeight()
     end
 
     function holder:Refresh()

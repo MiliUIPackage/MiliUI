@@ -297,7 +297,6 @@ local function CreateOptionsPanel()
 
     -- ========== BANNERS ==========
     local CONTENT_TOP = -30 - TAB_HEIGHT - 10
-    local BANNER_HEIGHT = 28
     local BANNER_TOP_GAP = 6
     local BANNER_BOTTOM_GAP = 0
 
@@ -318,7 +317,10 @@ local function CreateOptionsPanel()
             masqueBanner:ClearAllPoints()
             masqueBanner:SetPoint("TOPLEFT", panel, "TOPLEFT", COL_PADDING, bannerY)
             masqueBanner:SetPoint("RIGHT", panel, "RIGHT", -COL_PADDING, 0)
-            bannerOffset = bannerOffset + BANNER_HEIGHT + BANNER_BOTTOM_GAP
+            -- Sync height to the wrapped text now that the banner has a width;
+            -- otherwise content below would overlap when the message wraps.
+            masqueBanner:FitHeight()
+            bannerOffset = bannerOffset + masqueBanner:GetHeight() + BANNER_BOTTOM_GAP
         end
 
         local newTop = CONTENT_TOP - bannerOffset

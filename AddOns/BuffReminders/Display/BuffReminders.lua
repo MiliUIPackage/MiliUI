@@ -65,6 +65,7 @@ local addonName, BR = ...
 ---@field consumableRebuffColor? number[]
 ---@field consumableDisplayMode? "icon_only"|"sub_icons"|"expanded"
 ---@field consumableTextScale? number
+---@field hideConsumableLabels? boolean
 ---@field hideLegacyConsumables? boolean
 ---@field petDisplayMode? "generic"|"expanded"
 ---@field petLabels? boolean
@@ -380,6 +381,7 @@ local defaults = {
     hideInCombat = false,
     hideExpiringInCombat = true,
     buffTrackingMode = "all",
+    selfOnlyOutsideInstances = true,
     hideAllInVehicle = false,
     hideWhileMounted = false,
     hideInLegacyInstances = true,
@@ -452,6 +454,7 @@ local defaults = {
         soulstoneVisibility = "readyCheck",
         consumableDisplayMode = "sub_icons",
         consumableTextScale = 25,
+        hideConsumableLabels = false,
         showConsumableTooltips = false,
         hideLegacyConsumables = true,
         petDisplayMode = "generic", -- "generic" or "expanded"
@@ -2117,7 +2120,8 @@ local function ApplyConsumableOverlays(frame, item, fontSize)
     if not fontSize then
         fontSize = BR.SecureButtons.ComputeConsumableFontSize(frame:GetWidth())
     end
-    if item.statLabel then
+    local hideLabels = (BR.profile.defaults or {}).hideConsumableLabels
+    if item.statLabel and not hideLabels then
         if not frame.statLabel then
             frame.statLabel = frame:CreateFontString(nil, "OVERLAY")
             frame.statLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 2, -2)
@@ -3568,6 +3572,17 @@ local function SlashHandler(msg)
             end
         end
         BR.Components.RefreshAll()
+    elseif cmd == "debug" then
+        BR.profile.debugMode = not BR.profile.debugMode
+        if BR.profile.debugMode then
+            print(
+                "|cff00ccffBuffReminders:|r Debug mode ENABLED. "
+                    .. "Click any chat-request buff icon and copy the |cff00ccffBR-debug|r lines to share. "
+                    .. "Run |cFFFFD100/br debug|r again to turn off."
+            )
+        else
+            print("|cff00ccffBuffReminders:|r Debug mode disabled.")
+        end
     else
         BR.Options.Toggle()
     end
@@ -3579,6 +3594,7 @@ eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+eventFrame:RegisterEvent("GROUP_FORMED")
 eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 eventFrame:RegisterEvent("ENCOUNTER_START")
@@ -3597,6 +3613,8 @@ eventFrame:RegisterEvent("TRAIT_CONFIG_UPDATED")
 eventFrame:RegisterEvent("SPELLS_CHANGED")
 eventFrame:RegisterEvent("UNIT_PET")
 eventFrame:RegisterEvent("PET_BAR_UPDATE")
+eventFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORM")
+eventFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORMS")
 eventFrame:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
 eventFrame:RegisterEvent("PET_STABLE_UPDATE")
 eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
@@ -3712,7 +3730,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         -- ====================================================================
         -- Versioned migrations — each runs exactly once, tracked by dbVersion
         -- ====================================================================
-        local DB_VERSION = 39
+        local DB_VERSION = 40
 
         local migrations = {
             -- [1] Consolidate all pre-versioning migrations (v2.8 → v3.x)
@@ -4477,6 +4495,24 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
                     end
                 end
             end,
+
+            -- [40] Disable druidWrongForm by default (off-by-default new buff;
+            -- nested defaults don't reliably merge once a profile has its own
+            -- enabledBuffs table, so write the value directly). Also drops the
+            -- now-unused legacyConsumablesNoticeShown global flag (replaced by
+            -- selfOnlyOutsideNoticeShown).
+            [40] = function()
+                if not db.enabledBuffs then
+                    db.enabledBuffs = {}
+                end
+                if db.enabledBuffs.druidWrongForm == nil then
+                    db.enabledBuffs.druidWrongForm = false
+                    db.enabledBuffs.warriorWrongStance = false
+                end
+                if BR.aceDB and BR.aceDB.global then
+                    BR.aceDB.global.legacyConsumablesNoticeShown = nil
+                end
+            end,
         }
 
         -- Run pending migrations
@@ -4598,9 +4634,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         C_Timer.After(5, function()
             if isFirstInstall then
                 print("|cff00ccffBuffReminders:|r " .. L["Display.LoginFirstInstall"])
-            elseif BR.profile.showLoginMessages ~= false and not BR.aceDB.global.legacyConsumablesNoticeShown then
-                print("|cff00ccffBuffReminders:|r " .. L["Display.LoginLegacyConsumables"])
-                BR.aceDB.global.legacyConsumablesNoticeShown = true
+            elseif BR.profile.showLoginMessages ~= false and not BR.aceDB.global.selfOnlyOutsideNoticeShown then
+                print("|cff00ccffBuffReminders:|r " .. L["Display.LoginSelfOnlyOutside"])
+                BR.aceDB.global.selfOnlyOutsideNoticeShown = true
             end
         end)
     elseif event == "PLAYER_ENTERING_WORLD" then
@@ -4612,6 +4648,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         BR.BuffState.InvalidateSpecCache()
         BR.BuffState.InvalidateOffHandCache()
         BR.BuffState.InvalidatePetCache()
+        BR.BuffState.InvalidateStanceCache()
         -- Sync flags with current state (in case of reload)
         inCombat = InCombatLockdown()
         isResting = IsResting()
@@ -4619,7 +4656,8 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         BR.BuffState.SetMaxExpansionLevel(GetMaxLevelForPlayerExpansion())
         BR.BuffState.SetInCombat(inCombat)
         -- Detect PvP prep phase: in a PvP instance but match not yet started.
-        -- Default is false (restricted), so reloads during active matches stay safe.
+        -- Used by the `hideInPvPMatch` visibility setting to gate buff display once
+        -- the match starts. Aura API is restricted for the whole BG/arena regardless.
         local _, instType = IsInInstance()
         local inPvPZone = instType == "pvp" or instType == "arena"
         local matchState = C_PvP.GetActiveMatchState()
@@ -4643,6 +4681,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
             C_Timer.After(2, InvalidateTextureCache)
         end
         BR.SecureButtons.InvalidateConsumableCache()
+        -- Instance entry can flip IsInGroup(2) without firing GROUP_ROSTER_UPDATE
+        -- (e.g. solo dungeon entry); refresh chat-request prefix here too.
+        BR.SecureButtons.RefreshChatRequestMacros()
         SeedGlowingSpells() -- Catch glows that were active before event registration
         if not inCombat then
             StartUpdates()
@@ -4715,8 +4756,13 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
                 ClearDelveEntryState()
             end
         end)
-    elseif event == "GROUP_ROSTER_UPDATE" then
+    elseif event == "GROUP_ROSTER_UPDATE" or event == "GROUP_FORMED" then
         SetDirty("group")
+        -- Refresh chat-request macrotext so prefix tracks party↔raid↔instance
+        -- transitions. PreClick used to rebuild the macro on each click, but the
+        -- secure dispatcher could read a stale value before PreClick's write
+        -- propagated, sending to the wrong channel.
+        BR.SecureButtons.RefreshChatRequestMacros()
     elseif event == "PLAYER_REGEN_ENABLED" then
         inCombat = inEncounter
         BR.BuffState.SetInCombat(inCombat)
@@ -4769,6 +4815,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
             SetDirty("full")
         end
     elseif event == "PET_BAR_UPDATE" then
+        SetDirty()
+    elseif event == "UPDATE_SHAPESHIFT_FORM" or event == "UPDATE_SHAPESHIFT_FORMS" then
+        BR.BuffState.InvalidateStanceCache()
         SetDirty()
     elseif event == "PET_STABLE_UPDATE" then
         BR.PetHelpers.InvalidatePetActions()
@@ -4831,6 +4880,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         BR.BuffState.InvalidateSpellCache()
         BR.BuffState.InvalidateOffHandCache()
         BR.BuffState.InvalidatePetCache()
+        BR.BuffState.InvalidateStanceCache()
 
         BR.PetHelpers.InvalidatePetActions()
         BR.SecureButtons.InvalidateConsumableCache()
@@ -4847,6 +4897,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         -- Invalidate spell cache when talents change (within same spec)
         BR.BuffState.InvalidateSpellCache()
         BR.BuffState.InvalidatePetCache()
+        BR.BuffState.InvalidateStanceCache()
         BR.PetHelpers.InvalidatePetActions()
         BR.SecureButtons.RefreshOverlaySpells()
         SetDirty()
@@ -4854,6 +4905,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         -- Catch delayed spell availability after spec/talent changes (noisy event, keep cheap)
         BR.BuffState.InvalidateSpellCache()
         BR.BuffState.InvalidatePetCache()
+        BR.BuffState.InvalidateStanceCache()
         BR.PetHelpers.InvalidatePetActions()
     elseif event == "PLAYER_EQUIPMENT_CHANGED" then
         BR.BuffState.InvalidateItemCache()

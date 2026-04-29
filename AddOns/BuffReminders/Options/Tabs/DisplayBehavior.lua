@@ -169,8 +169,16 @@ local function Build(ctx)
     LayoutSectionHeader(displayBehaviorLayout, displayBehaviorContent, L["Options.ExpirationReminder"])
     displayBehaviorLayout:Space(COMPONENT_GAP)
 
+    -- Shared label width keeps the two slider tracks aligned regardless of
+    -- which translation has the longer label.
+    local thresholdLW = Components.MeasureSharedLabelWidth({
+        L["Options.Threshold"],
+        L["Options.PreKeyThreshold"],
+    })
+
     local defThresholdHolder = Components.Slider(displayBehaviorContent, {
         label = L["Options.Threshold"],
+        labelWidth = thresholdLW,
         min = 0,
         max = 45,
         step = 5,
@@ -188,6 +196,7 @@ local function Build(ctx)
 
     local preKeyThresholdHolder = Components.Slider(displayBehaviorContent, {
         label = L["Options.PreKeyThreshold"],
+        labelWidth = thresholdLW,
         tooltip = { title = L["Options.PreKeyThreshold"], desc = L["Options.PreKeyThreshold.Desc"] },
         min = 0,
         max = 60,

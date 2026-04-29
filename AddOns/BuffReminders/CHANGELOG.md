@@ -1,8 +1,6 @@
 # BuffReminders
 
-## [v5.4.2](https://github.com/zerbiniandrea/BuffReminders/tree/v5.4.2) (2026-04-22)
-[Full Changelog](https://github.com/zerbiniandrea/BuffReminders/compare/v5.4.1...v5.4.2) [Previous Releases](https://github.com/zerbiniandrea/BuffReminders/releases)
+## [v5.5.1](https://github.com/zerbiniandrea/BuffReminders/tree/v5.5.1) (2026-04-27)
+[Full Changelog](https://github.com/zerbiniandrea/BuffReminders/compare/v5.5.0...v5.5.1) [Previous Releases](https://github.com/zerbiniandrea/BuffReminders/releases)
 
-- fix(warlock): 🐛 guard wrong-pet check against secret-value taint  
-- fix(fonts): 🐛 skip LSM fonts with missing file assets  
-- feat(consumables): ✨ add toggle to hide legacy expansion consumables  
+- fix(tracking): 🐛 suppress targeted buffs in solo scenarios  

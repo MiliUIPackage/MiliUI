@@ -118,6 +118,7 @@ local RootSettings = {
     frameLocked = false, -- No refresh needed
     position = false, -- Table with x, y
     buffTrackingMode = false, -- No auto-refresh, manually calls UpdateDisplay
+    selfOnlyOutsideInstances = "DisplayRefresh",
     showMissingCountOnly = "DisplayRefresh",
     -- Visibility toggles (routed through Config.Set → VisibilityRefresh)
     hideInCombat = "VisibilityRefresh",
@@ -270,6 +271,7 @@ local DefaultSettingKeys = {
     -- Consumable display mode
     consumableDisplayMode = "DisplayRefresh",
     consumableTextScale = "VisualsRefresh",
+    hideConsumableLabels = "VisualsRefresh",
     showConsumableTooltips = false, -- No refresh needed, read at tooltip time
     hideLegacyConsumables = "DisplayRefresh",
     -- Pet display mode

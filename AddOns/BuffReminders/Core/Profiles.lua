@@ -235,6 +235,11 @@ function BR.Profiles.RefreshAfterProfileChange()
         BR.SecureButtons.InvalidateConsumableCache()
     end
 
+    -- Refresh chat-request macrotext: per-profile chatRequestMessages may differ.
+    if BR.SecureButtons and BR.SecureButtons.RefreshChatRequestMacros then
+        BR.SecureButtons.RefreshChatRequestMacros()
+    end
+
     -- Recompute buff state
     if BR.BuffState then
         BR.BuffState.Refresh()

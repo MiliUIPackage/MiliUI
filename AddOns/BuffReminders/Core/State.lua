@@ -156,8 +156,10 @@ local inCombat = false
 local cachedContentType = nil
 local cachedInstanceType = nil -- raw WoW instanceType, stashed alongside content type
 
--- Whether we are in the PvP prep phase (before gates open). Aura API is unrestricted during prep.
--- Defaults to false (restricted) so reloads during active matches stay safe.
+-- Whether we are in the PvP prep phase (before gates open). Used by the
+-- `hideInPvPMatch` visibility setting to gate buff display once the match starts.
+-- Note: aura API is restricted for the entire BG/arena (prep included), so this
+-- does NOT affect IsRestricted() — see that function for details.
 local inPvPPrepPhase = false
 
 -- Difficulty cache (invalidated alongside content type)
@@ -220,6 +222,55 @@ local cachedItemOwnership = {}
 ---@type boolean|nil
 local cachedWrongPetStatus = nil
 
+-- Warrior stance spell IDs (single source of truth for wrong-stance detection,
+-- expected-stance lookup, and dynamic icon resolution).
+local STANCE_BATTLE = 386164
+local STANCE_BERSERKER = 386196
+local STANCE_DEFENSIVE = 386208
+
+-- Spec → set of acceptable stances. Arms: Battle. Fury: Battle or Berserker
+-- (Berserker talent replaces Battle). Protection: Defensive.
+local WARRIOR_EXPECTED_STANCES = {
+    [71] = { [STANCE_BATTLE] = true },
+    [72] = { [STANCE_BATTLE] = true, [STANCE_BERSERKER] = true },
+    [73] = { [STANCE_DEFENSIVE] = true },
+}
+
+-- Priest shadow forms. Shadowform is the only stance shadow priests can take;
+-- Voidform is a temporary aura that visually replaces it. The stance bar API
+-- works in restricted contexts (combat/encounter/M+) where aura queries fail
+-- for non-whitelisted spells, so we read it directly.
+local SHADOWFORM = 232698
+local VOIDFORM = 194249
+
+-- Druid forms. Only Feral (Cat) and Balance (Moonkin) are spec-required forms;
+-- Guardian uses Bear Form but it's not enforced here, and Restoration has no
+-- mandatory form. Incarnation talents (King of the Jungle / Chosen of Elune)
+-- empower the existing form rather than swapping the stance bar slot, so the
+-- spec's base form ID still matches.
+local DRUID_CAT_FORM = 768
+local DRUID_MOONKIN_FORM = 24858
+local DRUID_EXPECTED_FORMS = {
+    [102] = DRUID_MOONKIN_FORM, -- Balance
+    [103] = DRUID_CAT_FORM, -- Feral
+}
+
+-- Wrong-warrior-stance cache + derived values (all invalidated together on
+-- UPDATE_SHAPESHIFT_FORM(S), PLAYER_SPECIALIZATION_CHANGED, TRAIT_CONFIG_UPDATED,
+-- SPELLS_CHANGED, PLAYER_ENTERING_WORLD).
+---@type boolean|nil
+local cachedWrongStanceStatus = nil
+---@type number|false|nil  -- false = computed and absent (non-warrior)
+local cachedExpectedStanceID = nil
+---@type number|string|false|nil  -- false = computed and absent (unstanced)
+local cachedCurrentStanceIcon = nil
+---@type boolean|nil
+local cachedShadowFormActive = nil
+---@type boolean|nil
+local cachedWrongDruidFormStatus = nil
+---@type number|false|nil  -- false = computed and absent (non-druid or non-feral/balance)
+local cachedExpectedDruidFormID = nil
+
 -- Weapon enchant info for current refresh cycle (set once per BuffState.Refresh())
 local currentWeaponEnchants = {
     hasMainHand = false,
@@ -236,6 +287,10 @@ local currentWeaponEnchants = {
 -- Each entry: { unit = "raid1", class = "WARRIOR", isPlayer = true, name = "PlayerName" }
 ---@type {unit: string, class: string, isPlayer: boolean, name: string?}[]
 local currentValidUnits = {}
+
+-- Raw GetNumGroupMembers() snapshot from the most recent BuildValidUnitCache().
+-- Open-world solo reports 0; scenario solo (e.g. rituals) reports 1; real groups are 2+.
+local cachedGroupSize = 0
 
 -- Spec cache: playerName -> specId (populated by LibSpecialization callbacks for allies,
 -- and by BuildValidUnitCache for the local player via GetPlayerSpecId())
@@ -499,6 +554,7 @@ local function BuildValidUnitCache()
 
     local inRaid = IsInRaid()
     local groupSize = GetNumGroupMembers()
+    cachedGroupSize = groupSize
 
     if groupSize == 0 then
         -- Solo player
@@ -856,6 +912,29 @@ local SCOPE_HIDDEN = { show = false, playerOnly = false }
 local SCOPE_PLAYER_ONLY = { show = true, playerOnly = true }
 local SCOPE_GROUP = { show = true, playerOnly = false }
 
+---Modes that hide buffs from classes other than the player's.
+---@param trackingMode string
+---@return boolean
+local function ModeHidesOtherClasses(trackingMode)
+    return trackingMode == "my_buffs" or trackingMode == "self_only"
+end
+
+---Resolve the active tracking mode, applying the "self-only outside instances"
+---override that forces self_only in open world. Instanced content (raid,
+---dungeon, scenario, PvP) keeps the user-selected mode.
+---@param db table
+---@return string
+local function GetEffectiveTrackingMode(db)
+    local mode = db.buffTrackingMode
+    if mode ~= "self_only" and db.selfOnlyOutsideInstances then
+        local ct = GetCurrentContentType()
+        if ct ~= "raid" and ct ~= "dungeon" and ct ~= "pvp" and ct ~= "scenario" then
+            return "self_only"
+        end
+    end
+    return mode
+end
+
 ---Determine visibility and scan scope for a buff based on tracking mode.
 ---Raid buffs go on everyone, so "scan group" means showing coverage numbers.
 ---Presence buffs live on the caster, so "scan group" means finding if anyone has the aura.
@@ -869,11 +948,17 @@ local function GetTrackingScope(trackingMode, buffClass, category, hasCaster, ca
     if not hasCaster then
         return SCOPE_HIDDEN
     end
-    if trackingMode == "my_buffs" and buffClass ~= playerClass then
+    if ModeHidesOtherClasses(trackingMode) and buffClass ~= playerClass then
         return SCOPE_HIDDEN
     end
 
-    if trackingMode == "personal" then
+    if trackingMode == "self_only" then
+        -- Only my class's buffs on me. castOnOthers (e.g., Soulstone) lives on the target, not me.
+        if category == "presence" and castOnOthers then
+            return SCOPE_HIDDEN
+        end
+        return SCOPE_PLAYER_ONLY
+    elseif trackingMode == "personal" then
         -- Presence buffs from other classes exist only on the caster, not on you.
         -- castOnOthers buffs (Soulstone) are someone else's responsibility in personal mode.
         if category == "presence" and (buffClass ~= playerClass or castOnOthers) then
@@ -1092,8 +1177,10 @@ local function ShouldShowTargetedBuff(spellIDs, requiredClass, beneficiaryRole, 
         return nil
     end
 
-    -- Targeted buffs require a group (you cast them on others)
-    if GetNumGroupMembers() == 0 then
+    -- Targeted buffs require a group (you cast them on others). Open-world solo
+    -- reports 0; scenario solo (e.g. rituals) reports 1 with only the player as the
+    -- lone group member — both cases mean "no ally to target".
+    if cachedGroupSize <= 1 then
         return nil
     end
 
@@ -1494,8 +1581,8 @@ local function PassesPreChecks(buff, presentClasses, db)
 
     -- Class filtering
     if buff.class then
-        local trackingMode = db.buffTrackingMode
-        if trackingMode == "my_buffs" and buff.class ~= playerClass then
+        local trackingMode = GetEffectiveTrackingMode(db)
+        if ModeHidesOtherClasses(trackingMode) and buff.class ~= playerClass then
             return false
         end
         if presentClasses and not presentClasses[buff.class] then
@@ -1682,10 +1769,10 @@ function BuffState.Refresh(refreshMode)
         currentWeaponEnchants.permanentOH = ohLink and tonumber(ohLink:match("item:%d+:(%d+)")) or nil
     end
 
-    local trackingMode = db.buffTrackingMode
+    local trackingMode = GetEffectiveTrackingMode(db)
     local missingCountOnly = db.showMissingCountOnly
     -- Aura API is restricted in combat/encounters (inCombat set by Display layer),
-    -- during M+ keystones, and in PvP instances (except during prep phase before gates open).
+    -- during M+ keystones, and in any PvP instance (battlegrounds and arenas, including prep).
     local isAuraRestricted = BuffState.IsRestricted()
     local hideExpiring = isAuraRestricted and db.hideExpiringInCombat ~= false
 
@@ -1897,7 +1984,8 @@ function BuffState.Refresh(refreshMode)
     end
 
     -- Process targeted buffs (player's own buff responsibility)
-    local targetedVisible = IsCategoryVisibleForContent("targeted")
+    -- self_only mode tracks only buffs on the player; targeted buffs live on other units.
+    local targetedVisible = IsCategoryVisibleForContent("targeted") and trackingMode ~= "self_only"
     local targExGlow, targMissGlow, targThreshold = GetCategoryGlowSettings("targeted")
     for i, buff in ipairs(TargetedBuffs) do
         local entry = GetOrCreateEntry(buff.key, "targeted", i)
@@ -2313,12 +2401,12 @@ function BuffState.SetPvPPrepPhase(state)
     inPvPPrepPhase = state
 end
 
----Whether the player is in a restricted context (combat, M+ keystone, or PvP match).
+---Whether the player is in a restricted context (combat, M+ keystone, or any PvP instance).
+---PvP instances are treated as restricted for their entire duration (prep included), since
+---Blizzard now gates the aura API the whole time the player is inside the BG/arena.
 ---@return boolean
 function BuffState.IsRestricted()
-    return inCombat
-        or GetCurrentDifficultyKey() == "mythicPlus"
-        or (GetCurrentContentType() == "pvp" and not inPvPPrepPhase)
+    return inCombat or GetCurrentDifficultyKey() == "mythicPlus" or GetCurrentContentType() == "pvp"
 end
 
 -- ============================================================================
@@ -2445,6 +2533,170 @@ end
 ---PLAYER_SPECIALIZATION_CHANGED, TRAIT_CONFIG_UPDATED, SPELLS_CHANGED)
 function BuffState.InvalidatePetCache()
     cachedWrongPetStatus = nil
+end
+
+---Resolve the active stance's spell ID, or nil if unstanced/unresolved.
+---@return number?
+local function GetActiveStanceSpellID()
+    local active = GetShapeshiftForm()
+    if not active or active == 0 then
+        return nil
+    end
+    local _, _, _, spellID = GetShapeshiftFormInfo(active)
+    return type(spellID) == "number" and spellID or nil
+end
+
+---Check whether a warrior's active stance does not match their spec's
+---expected stance(s) (cached). Returns true when the player is unstanced
+---or in a stance that doesn't fit the current spec.
+---@return boolean
+function BuffState.IsWrongWarriorStance()
+    if cachedWrongStanceStatus ~= nil then
+        return cachedWrongStanceStatus
+    end
+    if playerClass ~= "WARRIOR" then
+        cachedWrongStanceStatus = false
+        return false
+    end
+    local expected = WARRIOR_EXPECTED_STANCES[GetPlayerSpecId()]
+    if not expected then
+        cachedWrongStanceStatus = false
+        return false
+    end
+    local activeSpellID = GetActiveStanceSpellID()
+    if not activeSpellID then
+        -- Unstanced (form 0) is wrong; unresolved form data leaves cache nil to retry.
+        if GetShapeshiftForm() == 0 then
+            cachedWrongStanceStatus = true
+            return true
+        end
+        return false
+    end
+    cachedWrongStanceStatus = not expected[activeSpellID]
+    return cachedWrongStanceStatus
+end
+
+---Preferred stance spell ID for the current warrior spec (Defensive for Protection,
+---Berserker for Fury when talented, else Battle). Used for click-to-cast and the
+---fallback icon when unstanced. Returns nil for non-warriors. Cached.
+---@return number?
+function BuffState.GetExpectedWarriorStanceID()
+    if cachedExpectedStanceID ~= nil then
+        return cachedExpectedStanceID or nil
+    end
+    if playerClass ~= "WARRIOR" then
+        cachedExpectedStanceID = false
+        return nil
+    end
+    local specId = GetPlayerSpecId()
+    if specId == 73 then
+        cachedExpectedStanceID = STANCE_DEFENSIVE
+    elseif specId == 72 and IsPlayerSpell(STANCE_BERSERKER) then
+        cachedExpectedStanceID = STANCE_BERSERKER
+    else
+        cachedExpectedStanceID = STANCE_BATTLE
+    end
+    return cachedExpectedStanceID
+end
+
+---Texture for the warrior's currently active stance, or nil if unstanced. Cached.
+---@return number|string|nil
+function BuffState.GetCurrentWarriorStanceIcon()
+    if cachedCurrentStanceIcon ~= nil then
+        return cachedCurrentStanceIcon or nil
+    end
+    local activeSpellID = GetActiveStanceSpellID()
+    if not activeSpellID then
+        cachedCurrentStanceIcon = false
+        return nil
+    end
+    cachedCurrentStanceIcon = C_Spell.GetSpellTexture(activeSpellID) or false
+    return cachedCurrentStanceIcon or nil
+end
+
+---Whether the priest is currently in Shadowform (or Voidform, which lives in
+---the same stance bar slot). Cached. Reliable in restricted contexts because
+---the stance API is unaffected by combat/encounter/M+ aura restrictions.
+---@return boolean
+function BuffState.IsShadowFormActive()
+    if cachedShadowFormActive ~= nil then
+        return cachedShadowFormActive
+    end
+    if playerClass ~= "PRIEST" then
+        cachedShadowFormActive = false
+        return false
+    end
+    local activeSpellID = GetActiveStanceSpellID()
+    if not activeSpellID then
+        -- Form 0 = no shadowform (cache); non-zero with unresolved spell data
+        -- happens transiently on load — return safe default and retry next call.
+        if GetShapeshiftForm() == 0 then
+            cachedShadowFormActive = false
+            return false
+        end
+        return true
+    end
+    cachedShadowFormActive = activeSpellID == SHADOWFORM or activeSpellID == VOIDFORM
+    return cachedShadowFormActive
+end
+
+---Whether a Feral or Balance druid is in any form other than their spec's
+---expected form (Cat for Feral, Moonkin for Balance). Returns false for other
+---specs/classes. Cached.
+---@return boolean
+function BuffState.IsWrongDruidForm()
+    if cachedWrongDruidFormStatus ~= nil then
+        return cachedWrongDruidFormStatus
+    end
+    if playerClass ~= "DRUID" then
+        cachedWrongDruidFormStatus = false
+        return false
+    end
+    local expected = DRUID_EXPECTED_FORMS[GetPlayerSpecId()]
+    if not expected then
+        cachedWrongDruidFormStatus = false
+        return false
+    end
+    local activeSpellID = GetActiveStanceSpellID()
+    if not activeSpellID then
+        -- Unshifted (form 0) is wrong; non-zero with unresolved spell data is
+        -- a transient load state — return safe default and retry next call.
+        if GetShapeshiftForm() == 0 then
+            cachedWrongDruidFormStatus = true
+            return true
+        end
+        return false
+    end
+    cachedWrongDruidFormStatus = activeSpellID ~= expected
+    return cachedWrongDruidFormStatus
+end
+
+---Expected form spell ID for the current druid spec (Cat Form for Feral,
+---Moonkin Form for Balance). Returns nil for non-druids and other specs. Cached.
+---@return number?
+function BuffState.GetExpectedDruidFormID()
+    if cachedExpectedDruidFormID ~= nil then
+        return cachedExpectedDruidFormID or nil
+    end
+    if playerClass ~= "DRUID" then
+        cachedExpectedDruidFormID = false
+        return nil
+    end
+    cachedExpectedDruidFormID = DRUID_EXPECTED_FORMS[GetPlayerSpecId()] or false
+    return cachedExpectedDruidFormID or nil
+end
+
+---Invalidate all stance caches (warrior wrong-stance + priest shadowform +
+---druid wrong-form). Call on UPDATE_SHAPESHIFT_FORM, UPDATE_SHAPESHIFT_FORMS,
+---PLAYER_SPECIALIZATION_CHANGED, TRAIT_CONFIG_UPDATED, SPELLS_CHANGED,
+---PLAYER_ENTERING_WORLD.
+function BuffState.InvalidateStanceCache()
+    cachedWrongStanceStatus = nil
+    cachedExpectedStanceID = nil
+    cachedCurrentStanceIcon = nil
+    cachedShadowFormActive = nil
+    cachedWrongDruidFormStatus = nil
+    cachedExpectedDruidFormID = nil
 end
 
 -- ============================================================================

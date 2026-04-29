@@ -612,6 +612,17 @@ BR.BUFF_TABLES = {
             requireSpecId = 1473, -- Augmentation
             requiresSpellID = 403208, -- Attunements talent
         },
+        -- Warlock Burning Rush
+        {
+            spellID = 111400,
+            key = "burningRush",
+            name = L["Buff.BurningRush"],
+            class = "WARLOCK",
+            overlayText = L["Overlay.BurningRush"],
+            showWhenPresent = true,
+            noClickToCast = true,
+            glowDetectable = true, -- Action bar glow fallback when aura API is restricted
+        },
         -- Soulwell reminder (warlock only, instance entry only)
         {
             spellID = 29893, -- Create Soulwell (used for icon resolution)
@@ -637,6 +648,28 @@ BR.BUFF_TABLES = {
                 return not ok or result
             end,
         },
+        -- Detected via the stance bar so it works in M+/encounters/combat where
+        -- aura queries are restricted.
+        {
+            key = "druidWrongForm",
+            name = L["Buff.DruidForm"],
+            class = "DRUID",
+            overlayText = L["Overlay.WrongForm"],
+            displayIcon = 132115, -- fallback Cat Form; getDynamicIcon picks the spec-correct icon
+            castSpellID = 768, -- Cat Form: baseline-known by all druids, just gates click-to-cast (clickMacro casts the right form)
+            customCheck = function()
+                return BR.BuffState.IsWrongDruidForm()
+            end,
+            getDynamicIcon = function()
+                local expected = BR.BuffState.GetExpectedDruidFormID()
+                return expected and C_Spell.GetSpellTexture(expected)
+            end,
+            clickMacro = function()
+                local expected = BR.BuffState.GetExpectedDruidFormID()
+                local name = expected and BR.GetSpellName(expected) or ""
+                return "/cast " .. name
+            end,
+        },
         -- Warlock Grimoire of Sacrifice
         {
             spellID = 108503,
@@ -645,17 +678,6 @@ BR.BUFF_TABLES = {
             name = L["Buff.GrimoireOfSacrifice"],
             class = "WARLOCK",
             overlayText = L["Overlay.NoGrim"],
-        },
-        -- Warlock Burning Rush (show when active — it drains health)
-        {
-            spellID = 111400,
-            key = "burningRush",
-            name = L["Buff.BurningRush"],
-            class = "WARLOCK",
-            overlayText = L["Overlay.BurningRush"],
-            showWhenPresent = true,
-            noClickToCast = true,
-            glowDetectable = true, -- Action bar glow fallback when aura API is restricted
         },
         -- Paladin weapon rites (alphabetical: Adjuration, Sanctification)
         -- NOTE: Due to a Blizzard bug, when changing talents the buff drops but enchant remains.
@@ -807,15 +829,21 @@ BR.BUFF_TABLES = {
                 end
             end,
         },
-        -- Voidform (194249) replaces Shadowform temporarily
+        -- Shadowform: detected via the stance bar (works in M+/encounters/combat
+        -- where the aura API is restricted for non-whitelisted spells). Voidform
+        -- shares the same stance slot, so the stance check covers both forms.
         {
-            spellID = 232698,
             key = "shadowform",
             name = L["Buff.Shadowform"],
             class = "PRIEST",
             overlayText = L["Overlay.NoForm"],
-            buffIdOverride = { 232698, 194249 },
+            displayIcon = 136200, -- spell_shadow_shadowform
+            requiresSpellID = 232698,
+            castSpellID = 232698,
             noExpirationGlow = true, -- Voidform (short duration) replaces Shadowform; don't warn
+            customCheck = function()
+                return not BR.BuffState.IsShadowFormActive()
+            end,
         },
         -- Shaman weapon imbues (alphabetical: Earthliving, Flametongue, Tidecaller's Guard, Windfury)
         {
@@ -907,6 +935,34 @@ BR.BUFF_TABLES = {
             groupId = "shamanShields",
             displaySpells = 52127, -- Water Shield icon for group checkbox
             iconByRole = { HEALER = 52127, DAMAGER = 192106, TANK = 192106 },
+        },
+        -- Warrior wrong stance for spec (Defensive for Prot, Battle/Berserker for Arms/Fury).
+        -- clickMacro dispatches the spec-correct cast at click time.
+        {
+            key = "warriorWrongStance",
+            name = L["Buff.WarriorStance"],
+            class = "WARRIOR",
+            overlayText = L["Overlay.WrongStance"],
+            displayIcon = 132333, -- fallback; getDynamicIcon picks the spec-correct icon
+            castSpellID = 386208, -- Defensive Stance: baseline-known by all warriors, just gates click-to-cast (clickMacro casts the right stance)
+            customCheck = function()
+                return BR.BuffState.IsWrongWarriorStance()
+            end,
+            getDynamicIcon = function()
+                -- Show the stance the player is currently in (the wrong one); when
+                -- unstanced, fall back to the expected-for-spec icon as a hint.
+                local current = BR.BuffState.GetCurrentWarriorStanceIcon()
+                if current then
+                    return current
+                end
+                local expected = BR.BuffState.GetExpectedWarriorStanceID()
+                return expected and C_Spell.GetSpellTexture(expected)
+            end,
+            clickMacro = function()
+                local expected = BR.BuffState.GetExpectedWarriorStanceID()
+                local name = expected and BR.GetSpellName(expected) or ""
+                return "/cast " .. name
+            end,
         },
     },
     ---@type SelfBuff[]

@@ -69,6 +69,8 @@ L["Overlay.NoPet"] = "沒有\n寵物"
 L["Overlay.PassivePet"] = "寵物\n被動"
 L["Overlay.WrongPet"] = "寵物\n錯誤"
 L["Overlay.NoRune"] = "沒有\n符文"
+L["Overlay.WrongStance"] = "錯誤\n姿態"
+L["Overlay.WrongForm"] = "錯誤\n形態"
 L["Overlay.DKWrongRune"] = "符文\n錯誤"
 L["Overlay.DKWrongRuneOH"] = "副手\n符文\n錯誤"
 L["Overlay.NoFlask"] = "沒有\n精鍊"
@@ -140,6 +142,7 @@ L["Buff.Timelessness"] = "永恆不朽"
 L["Buff.ArcaneFamiliar"] = "秘法魔寵"
 L["Buff.Attunement"] = "黑曜同調"
 L["Buff.CreateSoulwell"] = "製造靈魂之井"
+L["Buff.DruidForm"] = "德魯伊形態"
 L["Buff.GrimoireOfSacrifice"] = "犧牲魔典"
 L["Buff.BurningRush"] = "燃燒狂奔"
 L["Buff.RiteOfAdjuration"] = "裁決儀式"
@@ -162,6 +165,7 @@ L["Buff.UnholyGhoul"] = "穢邪食屍鬼"
 L["Buff.WarlockDemon"] = "術士惡魔"
 L["Buff.WaterElemental"] = "水元素"
 L["Buff.WrongDemon"] = "錯誤惡魔"
+L["Buff.WarriorStance"] = "戰士姿態"
 -- Consumable
 L["Buff.AugmentRune"] = "增強符文"
 L["Buff.Flask"] = "精鍊"
@@ -246,8 +250,8 @@ L["Display.DismissConsumables"] = "在下一次載入畫面前隱藏消耗品提
 L["Display.DismissConsumablesChat"] = "在下一次載入畫面前消耗品提示將隱藏。"
 L["Display.LoginFirstInstall"] =
     "感謝安裝！輸入 |cFFFFD100/br unlock|r 來移動增益顯示，或者使用 |cFFFFD100/br|r 選項面板底部的按鈕。"
-L["Display.LoginLegacyConsumables"] =
-    "以前的資料片中的消耗品現在預設隱藏。如果您仍然使用較舊的精鍊或符文，請在消耗品類別選項中切換|cFFFFD100隱藏舊版消耗品|r。"
+L["Display.LoginSelfOnlyOutside"] =
+    "新的預設：在開放世界中，只會追蹤您自己的職業增益。在「設定」標籤中切換|cFFFFD100強制在地下城與團隊副本之外只有自己|r來變更設定。"
 
 -- ============================================================================
 -- OPTIONS: TAB LABELS
@@ -462,6 +466,10 @@ L["Options.PetLabels.SizePct"] = "尺寸占比 %"
 L["Options.ConsumableTextScale"] = "文字縮放"
 L["Options.ConsumableTextScale.Title"] = "消耗品文字大小"
 L["Options.ConsumableTextScale.Desc"] = "物品數量和品質標簽相對於圖示大小的字體縮放比例。"
+L["Options.HideConsumableLabels"] = "隱藏屬性標籤"
+L["Options.HideConsumableLabels.Title"] = "隱藏消耗品屬性標籤"
+L["Options.HideConsumableLabels.Desc"] =
+    '隱藏顯示在消耗品圖示左上的小屬性標籤 (例如 "高主屬"、"低次屬")。'
 L["Options.ItemDisplay"] = "物品顯示"
 L["Options.ItemDisplay.IconOnly"] = "僅圖示"
 L["Options.ItemDisplay.IconOnlyDesc"] = "顯示數量最多的物品"
@@ -599,15 +607,21 @@ L["Options.BuffTracking.All.Desc"] =
 L["Options.BuffTracking.MyBuffs"] = "僅我的增益，所有玩家"
 L["Options.BuffTracking.MyBuffs.Desc"] =
     "僅顯示你的職業能提供的增益，但會追蹤整個隊伍的套用情況。"
-L["Options.BuffTracking.OnlyMine"] = "僅我需要的增益"
+L["Options.BuffTracking.OnlyMine"] = "所有增益，僅我需要的"
 L["Options.BuffTracking.OnlyMine.Desc"] =
-    "顯示所有類型的增益，但僅檢查自身是否套用。不顯示隊伍數量。"
+    "顯示所有類型的增益，但僅檢查自身是否擁有。不顯示團體數量統計。"
+L["Options.BuffTracking.SelfOnly"] = "只有我的增益，僅我需要的"
+L["Options.BuffTracking.SelfOnly.Desc"] =
+    "只顯示你的職業可以提供的增益，並且僅檢查自身是否擁有。沒有團體數量統計，也沒有你對其他人施加的增益。"
 L["Options.BuffTracking.Smart"] = "智能"
 L["Options.BuffTracking.Smart.Desc"] =
     "對你的職業提供的增益追蹤整個隊伍，對其他職業的增益僅檢查自身。"
 L["Options.BuffTracking.Mode"] = "增益追蹤模式"
 L["Options.BuffTracking.Mode.Desc"] =
     "設置要顯示的團隊和職業增益，以及是追蹤整個隊伍還是僅追蹤自身。"
+L["Options.BuffTracking.SelfOnlyOutsideInstances"] = "強制在地下城與團隊副本之外只有自己"
+L["Options.BuffTracking.SelfOnlyOutsideInstances.Desc"] =
+    "當啟用以後，在開放世界中，只會追蹤您自己的職業增益。選定的追蹤模式仍然在地下城、團隊副本、場景和 PvP中使用。"
 
 -- ============================================================================
 -- OPTIONS: PROFILES TAB

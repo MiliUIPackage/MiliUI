@@ -36,8 +36,15 @@ local function Show()
 
     local layout = Components.VerticalLayout(modal, { x = MARGIN, y = -36 })
 
+    -- Shared label width so the dropdown and slider line up vertically.
+    local labelW = Components.MeasureSharedLabelWidth({
+        L["Options.Visibility"],
+        L["Options.Healthstone.Threshold"],
+    })
+
     local visHolder = Components.Dropdown(modal, {
         label = L["Options.Visibility"],
+        labelWidth = labelW,
         width = 200,
         get = function()
             return BR.Config.Get("defaults.healthstoneVisibility", "readyCheck")
@@ -84,6 +91,7 @@ local function Show()
 
     local thresholdHolder = Components.Slider(modal, {
         label = L["Options.Healthstone.Threshold"],
+        labelWidth = labelW,
         min = 1,
         max = 2,
         step = 1,

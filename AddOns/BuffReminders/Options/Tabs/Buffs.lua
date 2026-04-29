@@ -352,6 +352,19 @@ local function RenderBuffCheckboxes(parent, x, y, buffArray)
     return y
 end
 
+-- Header + small description note rendered tightly underneath. Spacing is
+-- redistributed vs. the older two-call pattern (less air between header and
+-- note, more air between note and the checkboxes that follow). Net y-advance
+-- to the start of the checkbox area is unchanged.
+local NOTE_HEADER_NUDGE = 3
+local function CreateSectionWithNote(parent, x, y, headerText, noteText)
+    local _, postHeaderY = CreateSectionHeader(parent, headerText, x, y)
+    local note = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    note:SetPoint("TOPLEFT", x, postHeaderY + NOTE_HEADER_NUDGE)
+    note:SetText(noteText)
+    return postHeaderY - 14
+end
+
 local function Build(ctx)
     local panel = ctx.panel
     local C = ctx.constants
@@ -380,62 +393,60 @@ local function Build(ctx)
     CreateDetachColumnHeader(buffsContent, buffsRightX + 211, -8)
 
     -- LEFT COLUMN: Group-wide buffs
-    _, buffsLeftY = CreateSectionHeader(buffsContent, L["Category.RaidBuffs"], buffsLeftX, buffsLeftY)
-    local raidNote = buffsContent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    raidNote:SetPoint("TOPLEFT", buffsLeftX, buffsLeftY)
-    raidNote:SetText(L["Category.RaidNote"])
-    buffsLeftY = buffsLeftY - 14
+    buffsLeftY =
+        CreateSectionWithNote(buffsContent, buffsLeftX, buffsLeftY, L["Category.RaidBuffs"], L["Category.RaidNote"])
     buffsLeftY = RenderBuffCheckboxes(buffsContent, buffsLeftX, buffsLeftY, RaidBuffs)
     buffsLeftY = buffsLeftY - SECTION_SPACING
 
-    _, buffsLeftY = CreateSectionHeader(buffsContent, L["Category.TargetedBuffs"], buffsLeftX, buffsLeftY)
-    local targetedNote = buffsContent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    targetedNote:SetPoint("TOPLEFT", buffsLeftX, buffsLeftY)
-    targetedNote:SetText(L["Category.TargetedNote"])
-    buffsLeftY = buffsLeftY - 14
+    buffsLeftY = CreateSectionWithNote(
+        buffsContent,
+        buffsLeftX,
+        buffsLeftY,
+        L["Category.TargetedBuffs"],
+        L["Category.TargetedNote"]
+    )
     buffsLeftY = RenderBuffCheckboxes(buffsContent, buffsLeftX, buffsLeftY, TargetedBuffs)
     buffsLeftY = buffsLeftY - SECTION_SPACING
 
-    _, buffsLeftY = CreateSectionHeader(buffsContent, L["Category.Consumables"], buffsLeftX, buffsLeftY)
-    local consumablesNote = buffsContent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    consumablesNote:SetPoint("TOPLEFT", buffsLeftX, buffsLeftY)
-    consumablesNote:SetText(L["Category.ConsumableNote"])
-    buffsLeftY = buffsLeftY - 14
+    buffsLeftY = CreateSectionWithNote(
+        buffsContent,
+        buffsLeftX,
+        buffsLeftY,
+        L["Category.Consumables"],
+        L["Category.ConsumableNote"]
+    )
     buffsLeftY = RenderBuffCheckboxes(buffsContent, buffsLeftX, buffsLeftY, Consumables)
 
     -- RIGHT COLUMN: Individual buffs
-    _, buffsRightY = CreateSectionHeader(buffsContent, L["Category.PresenceBuffs"], buffsRightX, buffsRightY)
-    local presenceNote = buffsContent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    presenceNote:SetPoint("TOPLEFT", buffsRightX, buffsRightY)
-    presenceNote:SetText(L["Category.PresenceNote"])
-    buffsRightY = buffsRightY - 14
+    buffsRightY = CreateSectionWithNote(
+        buffsContent,
+        buffsRightX,
+        buffsRightY,
+        L["Category.PresenceBuffs"],
+        L["Category.PresenceNote"]
+    )
     buffsRightY = RenderBuffCheckboxes(buffsContent, buffsRightX, buffsRightY, PresenceBuffs)
     buffsRightY = buffsRightY - SECTION_SPACING
 
-    _, buffsRightY = CreateSectionHeader(buffsContent, L["Category.SelfBuffs"], buffsRightX, buffsRightY)
-    local selfNote = buffsContent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    selfNote:SetPoint("TOPLEFT", buffsRightX, buffsRightY)
-    selfNote:SetText(L["Category.SelfNote"])
-    buffsRightY = buffsRightY - 14
+    buffsRightY =
+        CreateSectionWithNote(buffsContent, buffsRightX, buffsRightY, L["Category.SelfBuffs"], L["Category.SelfNote"])
     buffsRightY = RenderBuffCheckboxes(buffsContent, buffsRightX, buffsRightY, SelfBuffs)
     buffsRightY = buffsRightY - SECTION_SPACING
 
-    _, buffsRightY = CreateSectionHeader(buffsContent, L["Category.PetReminders"], buffsRightX, buffsRightY)
-    local petNote = buffsContent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    petNote:SetPoint("TOPLEFT", buffsRightX, buffsRightY)
-    petNote:SetText(L["Category.PetNote"])
-    buffsRightY = buffsRightY - 14
+    buffsRightY =
+        CreateSectionWithNote(buffsContent, buffsRightX, buffsRightY, L["Category.PetReminders"], L["Category.PetNote"])
     buffsRightY = RenderBuffCheckboxes(buffsContent, buffsRightX, buffsRightY, PetBuffs)
     buffsRightY = buffsRightY - SECTION_SPACING
 
     -- Custom Buffs section
-    _, buffsRightY = CreateSectionHeader(buffsContent, L["Category.CustomBuffs"], buffsRightX, buffsRightY)
+    buffsRightY = CreateSectionWithNote(
+        buffsContent,
+        buffsRightX,
+        buffsRightY,
+        L["Category.CustomBuffs"],
+        L["Category.CustomNote"]
+    )
     panel.customBuffRows = {}
-
-    local customNote = buffsContent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    customNote:SetPoint("TOPLEFT", buffsRightX, buffsRightY)
-    customNote:SetText(L["Category.CustomNote"])
-    buffsRightY = buffsRightY - 14
 
     local customSectionStartY = buffsRightY
     local customBuffsContainer = CreateFrame("Frame", nil, buffsContent)

@@ -78,6 +78,8 @@ english["Overlay.NoShield"] = "NO\nSHIELD"
 english["Overlay.NoPet"] = "NO\nPET"
 english["Overlay.PassivePet"] = "PASSIVE\nPET"
 english["Overlay.WrongPet"] = "WRONG\nPET"
+english["Overlay.WrongStance"] = "WRONG\nSTANCE"
+english["Overlay.WrongForm"] = "WRONG\nFORM"
 english["Overlay.NoRune"] = "NO\nRUNE"
 english["Overlay.DKWrongRune"] = "WRONG\nRUNE"
 english["Overlay.DKWrongRuneOH"] = "WRONG\nOH\nRUNE"
@@ -150,6 +152,7 @@ english["Buff.Timelessness"] = "Timelessness"
 english["Buff.ArcaneFamiliar"] = "Arcane Familiar"
 english["Buff.Attunement"] = "Attunement"
 english["Buff.CreateSoulwell"] = "Create Soulwell"
+english["Buff.DruidForm"] = "Druid Form"
 english["Buff.GrimoireOfSacrifice"] = "Grimoire of Sacrifice"
 english["Buff.BurningRush"] = "Burning Rush"
 english["Buff.RiteOfAdjuration"] = "Rite of Adjuration"
@@ -172,6 +175,7 @@ english["Buff.UnholyGhoul"] = "Unholy Ghoul"
 english["Buff.WarlockDemon"] = "Warlock Demon"
 english["Buff.WaterElemental"] = "Water Elemental"
 english["Buff.WrongDemon"] = "Wrong Demon"
+english["Buff.WarriorStance"] = "Warrior Stance"
 -- Consumable
 english["Buff.AugmentRune"] = "Augment Rune"
 english["Buff.Flask"] = "Flask"
@@ -256,8 +260,8 @@ english["Display.DismissConsumables"] = "Hide consumable reminders until next lo
 english["Display.DismissConsumablesChat"] = "Consumable reminders hidden until next loading screen."
 english["Display.LoginFirstInstall"] =
     "Thanks for installing! Type |cFFFFD100/br unlock|r to move the buff display, or use the button at the bottom of the |cFFFFD100/br|r options panel."
-english["Display.LoginLegacyConsumables"] =
-    "Consumables from previous expansions are now hidden by default. Toggle |cFFFFD100Hide legacy consumables|r in the consumable category options if you still use older flasks or runes."
+english["Display.LoginSelfOnlyOutside"] =
+    "New default: in the open world, only your own class buffs on yourself are tracked. Toggle |cFFFFD100Force self-only outside dungeons and raids|r in the Settings tab to change this."
 
 -- ============================================================================
 -- OPTIONS: TAB LABELS
@@ -474,6 +478,10 @@ english["Options.ConsumableTextScale"] = "Text scale"
 english["Options.ConsumableTextScale.Title"] = "Consumable text scale"
 english["Options.ConsumableTextScale.Desc"] =
     "Font size for item counts and quality (R1/R2/R3) labels as a percentage of icon size."
+english["Options.HideConsumableLabels"] = "Hide stat labels"
+english["Options.HideConsumableLabels.Title"] = "Hide consumable stat labels"
+english["Options.HideConsumableLabels.Desc"] =
+    'Hide the small stat labels (e.g. "Hi 1st", "Lo 2nd") shown on the top-left of consumable icons.'
 english["Options.ItemDisplay"] = "Item display"
 english["Options.ItemDisplay.IconOnly"] = "Icon only"
 english["Options.ItemDisplay.IconOnlyDesc"] = "Shows the item with the highest count"
@@ -613,15 +621,21 @@ english["Options.BuffTracking.All.Desc"] =
 english["Options.BuffTracking.MyBuffs"] = "Only my buffs, all players"
 english["Options.BuffTracking.MyBuffs.Desc"] =
     "Only show buffs your class can provide. Still tracks full group coverage."
-english["Options.BuffTracking.OnlyMine"] = "Only buffs I need"
+english["Options.BuffTracking.OnlyMine"] = "All buffs, just on me"
 english["Options.BuffTracking.OnlyMine.Desc"] =
     "Show all buff types, but only check whether you personally have them. No group counts."
+english["Options.BuffTracking.SelfOnly"] = "Only my buffs, just on me"
+english["Options.BuffTracking.SelfOnly.Desc"] =
+    "Only show buffs your class can provide, and only check whether you personally have them. No group counts, no buffs you cast on others."
 english["Options.BuffTracking.Smart"] = "Smart"
 english["Options.BuffTracking.Smart.Desc"] =
     "Buffs your class provides track full group coverage. Other class buffs only check you personally."
 english["Options.BuffTracking.Mode"] = "Buff tracking mode"
 english["Options.BuffTracking.Mode.Desc"] =
     "Controls which raid and presence buffs are shown, and whether they track the full group or only you."
+english["Options.BuffTracking.SelfOnlyOutsideInstances"] = "Force self-only outside dungeons and raids"
+english["Options.BuffTracking.SelfOnlyOutsideInstances.Desc"] =
+    "When enabled, only your own class buffs on yourself are tracked while in the open world. The selected tracking mode is still used inside dungeons, raids, scenarios, and PvP."
 
 -- ============================================================================
 -- OPTIONS: PROFILES TAB
