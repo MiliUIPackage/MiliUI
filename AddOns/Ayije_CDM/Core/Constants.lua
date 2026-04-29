@@ -141,7 +141,7 @@ local function GetLSM()
 end
 
 function CDM.CONST.ResolveOutlineFlags(raw)
-    if raw == nil or raw == "" then return "" end
+    if raw == nil or raw == "" or raw == "NONE" then return "" end
     if raw == "SLUG" then return "OUTLINE SLUG" end
     return raw
 end

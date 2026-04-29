@@ -409,7 +409,7 @@ local function StripDefaultMatchingValues(profile)
     end
 end
 
-local DB_SCHEMA_VERSION = 22
+local DB_SCHEMA_VERSION = 23
 
 local LEGACY_RESOURCE_KEYS = {
     "resourcesBarHeight", "resourcesBar2Height", "resourcesBarWidth",
@@ -1082,6 +1082,14 @@ local PROFILE_MIGRATIONS = {
             copyIfMissing("chargePosition",  "essRow2ChargePosition")
             copyIfMissing("chargeOffsetX",   "essRow2ChargeOffsetX")
             copyIfMissing("chargeOffsetY",   "essRow2ChargeOffsetY")
+        end,
+    },
+    {
+        version = 23,
+        run = function(profile)
+            if rawget(profile, "textFontOutline") == "NONE" then
+                profile.textFontOutline = ""
+            end
         end,
     },
 }
