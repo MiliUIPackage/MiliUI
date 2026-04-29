@@ -1,8 +1,7 @@
 ## Bugfixes
-- Fix tier changes affecting all specs instead of selected spec
-- Update tooltip to use tier texture instead of icon for better visual representation
+- Loot spec reminder no longer suggests switch when loot pools are equal
 
 ## Other Changes
 - Update ruRU.lua
-- Update ruRU.lua
-- Merge pull request [#49](https://github.com/Wolkenschutz/KeystoneLoot/pull/49) by [Hollicsh](https://github.com/Hollicsh) from Hollicsh/main
+- Merge branch 'main' of https://github.com/Wolkenschutz/KeystoneLoot
+- Merge pull request [#51](https://github.com/Wolkenschutz/KeystoneLoot/pull/51) by [Hollicsh](https://github.com/Hollicsh) from Hollicsh/main
