@@ -1,6 +1,6 @@
 # Syndicator
 
-## [265](https://github.com/TheMouseNest/Syndicator/tree/265) (2026-03-18)
-[Full Changelog](https://github.com/TheMouseNest/Syndicator/compare/264...265) [Previous Releases](https://github.com/TheMouseNest/Syndicator/releases)
+## [267](https://github.com/TheMouseNest/Syndicator/tree/267) (2026-04-21)
+[Full Changelog](https://github.com/TheMouseNest/Syndicator/compare/266...267) 
 
-- Fix "active season" keyword including last season gear  
+- Update toc and freeze CheckItem to prevent overrides  
