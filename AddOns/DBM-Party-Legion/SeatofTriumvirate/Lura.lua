@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1982, "DBM-Party-Legion", 13, 945)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260423040903")
+mod:SetRevision("20260428075838")
 mod:SetCreatureID(124870)--124745 Greater Rift Warden
 mod:SetEncounterID(2068)
 
@@ -10,6 +10,7 @@ mod:RegisterCombat("combat")
 if DBM:IsPostMidnight() then
 	local warnDiscordantbeam			= mod:NewCountAnnounce(1265426, 2)
 
+	local specWarnDiscordantbeam		= mod:NewSpecialWarningBlizzYou(1265426, nil, nil, nil, 1, 19)
 	local specWarnDirge					= mod:NewSpecialWarningCount(1265421, nil, nil, nil, 2, 2)
 	local specWarnDisintegrate			= mod:NewSpecialWarningDodgeCount(1264151, nil, nil, nil, 2, 2)
 	local specWarnGrimChorus			= mod:NewSpecialWarningCount(1265689, nil, nil, nil, 2, 2)
@@ -23,7 +24,7 @@ if DBM:IsPostMidnight() then
 	local timerSymphonyCD				= mod:NewCastTimer(20.5, 1266003, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
 	local timerBacklashCD				= mod:NewCastTimer(20.5, 1266001, nil, nil, nil, 2)
 
-	mod:AddPrivateAuraSoundOption(1265426, true, 1265426, 2, 1, "beamyou", 19)
+	--mod:AddPrivateAuraSoundOption(1265426, true, 1265426, 2, 1, "beamyou", 19)
 
 	mod.vb.dirgeCount = 0
 	mod.vb.discordantBeamCount = 0
@@ -40,6 +41,7 @@ if DBM:IsPostMidnight() then
 	---@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
 	local function setFallback(self, dontSetAlerts)
 		if not dontSetAlerts then
+			specWarnDiscordantbeam:SetAlert(250, "beamyou", 19, 2, 0)
 			specWarnDirge:SetAlert(249, "aesoon", 2, 2)
 			specWarnDisintegrate:SetAlert(251, "farfromline", 2, 2)
 			specWarnGrimChorus:SetAlert(252, "stilldanger", 2, 2)
@@ -105,15 +107,11 @@ if DBM:IsPostMidnight() then
 			elseif timer == 20 then--Backlash
 				timerBacklashCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "backlash", "backlashCount"))
 			else
-				if not DBM.Options.DebugMode then
-					badStateDetected = true
-					self:ResumeBlizzardAPI()
-					self:UnregisterShortTermEvents()
-					setFallback(self)
-					DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
-				else
-					DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers|r", nil, nil, nil, true)
-				end
+				badStateDetected = true
+				self:ResumeBlizzardAPI()
+				self:UnregisterShortTermEvents()
+				setFallback(self)
+				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
 			end
 		end
 
@@ -138,6 +136,8 @@ if DBM:IsPostMidnight() then
 						specWarnDirge:Play("aesoon")
 					elseif eventType == "discordantbeam" then
 						warnDiscordantbeam:Show(eventCount)
+						--Dispatch personal alert to fire on next ENCOUNTER_WARNING
+						specWarnDiscordantbeam:Show(eventCount, "beamyou")
 					elseif eventType == "disintegrate" then
 						specWarnDisintegrate:Show(eventCount)
 						specWarnDisintegrate:Play("farfromline")

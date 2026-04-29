@@ -23,7 +23,7 @@
 ## X-DBM-Mod-MinExpansion: 9
 ## X-Curse-Project-ID: 314994
 ## X-Wago-ID: xZKxZENk
-## Version: r246
+## Version: r247
 ## Category-zhTW: 地城與團隊
 ## Category-zhTW: 副本
 

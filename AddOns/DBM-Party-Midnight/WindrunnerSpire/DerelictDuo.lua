@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2656, "DBM-Party-Midnight", 1, 1299)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260423040903")
+mod:SetRevision("20260428075838")
 mod:SetCreatureID(231626)--Kalis flagged as main boss, Latch (231629) is secondary
 mod:SetEncounterID(3057)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -14,6 +14,7 @@ mod:RegisterCombat("combat")
 --NOTE: Heaving Yank happens at same time as Shriek and doesn't need it's own timer/warnings
 local warnSplatteringSpew			= mod:NewCountAnnounce(472745, 2)
 
+local specWarnHeavingYank			= mod:NewSpecialWarningBlizzYou(472793, nil, nil, nil, 3, 2)
 local specWarnBoneHack				= mod:NewSpecialWarningCount(472888, nil, nil, nil, 1, 2)
 local specWarnDebilitatingShriek	= mod:NewSpecialWarningCount(472736, nil, nil, nil, 2, 2)
 local specWarnCurseofDarkness		= mod:NewSpecialWarningCount(474105, nil, nil, nil, 2, 2)
@@ -24,7 +25,7 @@ local timerDebilitatingShriekCD		= mod:NewCDCountTimer(48, 472736, nil, nil, nil
 local timerSplatteringSpewCD		= mod:NewCDCountTimer(27.3, 472777, nil, nil, nil, 3, nil, DBM_COMMON_L.HEALER_ICON)
 --Midnight private aura replacements
 mod:AddPrivateAuraSoundOption({1253834,1215803}, true, 474105, 4, 1, "justrun", 2)--Curse of Darkness
-mod:AddPrivateAuraSoundOption(472793, true, 472795, 1, 1, "behindboss", 2)--Heaving Yank
+--mod:AddPrivateAuraSoundOption(472793, true, 472795, 1, 1, "behindboss", 2)--Heaving Yank
 mod:AddPrivateAuraSoundOption(474129, true, 472745, 1, 1, "poolyou", 18)--Splattering Spew
 mod:AddPrivateAuraSoundOption(472777, true, 472777, 4, 2, "watchfeet", 8)--Gunk Splatter GTFO
 
@@ -46,6 +47,7 @@ local function setFallback(self, dontSetAlerts)
 		end
 		specWarnCurseofDarkness:SetAlert(26, "mobsoon", 2)
 		specWarnDebilitatingShriek:SetAlert(27, "aesoon", 2)
+		specWarnHeavingYank:SetAlert(29, "behindboss", 2, 4, 0)
 	end
 	timerBoneHackCD:SetTimeline(25)
 	timerCurseofDarknessCD:SetTimeline(26)
@@ -109,15 +111,11 @@ do
 				duration = timerExact
 			}
 		else
-			if not DBM.Options.DebugMode then
-				badStateDetected = true
-				self:ResumeBlizzardAPI()
-				self:UnregisterShortTermEvents()
-				setFallback(self)
-				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
-			else
-				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers|r", nil, nil, nil, true)
-			end
+			badStateDetected = true
+			self:ResumeBlizzardAPI()
+			self:UnregisterShortTermEvents()
+			setFallback(self)
+			DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
 		end
 	end
 
@@ -164,6 +162,7 @@ do
 					if finishedEventType == "debilitatingShriek" and eventCount then
 						specWarnDebilitatingShriek:Show(eventCount)
 						specWarnDebilitatingShriek:Play("aesoon")
+						specWarnHeavingYank:Show(eventCount, "behindboss")
 					end
 				else
 					self:TLCountCancel(eventID)

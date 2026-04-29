@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2662, "DBM-Party-Midnight", 3, 1300)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260423040903")
+mod:SetRevision("20260428075838")
 mod:SetCreatureID(231865)
 mod:SetEncounterID(3074)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -96,15 +96,11 @@ do
 				timerUnstableVoidEssenceCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "essence", "essenceCount"))
 			end
 		else--Reached end of chain without finding a valid timer, this means hardcode mod has failed, so we need to disable hardcoded features and fall back to blizz API
-			if not DBM.Options.DebugMode then
-				badStateDetected = true
-				self:ResumeBlizzardAPI()
-				self:UnregisterShortTermEvents()
-				setFallback(self)
-				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
-			else
-				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers|r", nil, nil, nil, true)
-			end
+			badStateDetected = true
+			self:ResumeBlizzardAPI()
+			self:UnregisterShortTermEvents()
+			setFallback(self)
+			DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
 		end
 	end
 

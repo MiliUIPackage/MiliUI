@@ -1,8 +1,8 @@
 local mod	= DBM:NewMod(2828, "DBM-Midnight", nil, 1312)
 --local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260220062012")
-mod:SetCreatureID(248864)
+mod:SetRevision("20260407231606")
+mod:SetCreatureID(238015)
 mod:SetEncounterID(3431)
 --mod:SetReCombatTime(30)
 mod:EnableWBEngageSync()--Enable syncing engage in outdoors

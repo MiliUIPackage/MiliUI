@@ -77,16 +77,16 @@ local function showRealDate(curseDate)
 	end
 end
 
-DBM.Revision = parseCurseDate("20260424055251")
+DBM.Revision = parseCurseDate("20260429043851")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 private.fakeBWVersion, private.fakeBWHash = 412, "5f04367"--412.7
 
 -- The string that is shown as version
-DBM.DisplayVersion = "12.0.42"--Core version
+DBM.DisplayVersion = "12.0.44"--Core version
 DBM.classicSubVersion = 0
 DBM.dungeonSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2026, 4, 23) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2026, 4, 28) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
 -- support for github downloads, which doesn't support curse keyword expansion
@@ -1522,11 +1522,11 @@ do
 					end
 					if #mods == 0 or (match and event:sub(0, 5) == "UNIT_" and event ~= "UNIT_DIED" and event ~= "UNIT_DESTROYED") then
 						unregisterUEvent(self, event)
-						DBM:Debug("unregisterUEvent for unit event " .. event .. " unregistered", 3)
+						--DBM:Debug("unregisterUEvent for unit event " .. event .. " unregistered", 3)
 					end
 					if #mods == 0 then
 						registeredEvents[event] = nil
-						DBM:Debug("registeredEvents for event " .. event .. " nilled", 3)
+						--DBM:Debug("registeredEvents for event " .. event .. " nilled", 3)
 					end
 				end
 			end
@@ -1548,11 +1548,11 @@ do
 			else
 				if event:sub(0, 5) == "UNIT_" and event ~= "UNIT_DIED" and event ~= "UNIT_DESTROYED" then
 					unregisterUEvent(self, event)
-					DBM:Debug("unregisterUEvent for unit event " .. event .. " unregistered", 3)
+					--DBM:Debug("unregisterUEvent for unit event " .. event .. " unregistered", 3)
 				else
 					registeredEvents[event] = nil
 					mainFrame:UnregisterEvent(event)
-					DBM:Debug("UnregisteredEvents for event " .. event .. " nilled", 3)
+					--DBM:Debug("UnregisteredEvents for event " .. event .. " nilled", 3)
 				end
 			end
 		end
@@ -1785,7 +1785,7 @@ do
 				---@type string|number
 				local version = C_AddOns.GetAddOnMetadata("DBM-SpellTimers", "Version") or "r0"
 				version = tonumber(string.sub(version, 2, 4)) or 0
-				if version < 122 and not self.Options.DebugMode then
+				if version < 122 then
 					self:Disable(true)
 					self:Schedule(15, infiniteLoopNotice, self, L.OUTDATEDSPELLTIMERS)
 					return
@@ -2424,7 +2424,7 @@ do
 			---@type number|string
 			local version = C_AddOns.GetAddOnMetadata("DBM-SpellTimers", "Version") or "r0"
 			version = tonumber(string.sub(version, 2, 4)) or 0
-			if version < 122 and not self.Options.DebugMode then
+			if version < 122 then
 				self:AddMsg(L.OUTDATEDSPELLTIMERS)
 				return
 			end
@@ -4324,10 +4324,10 @@ do
 	---@param oldZone number if oldZone is -1, it means it's a loading screen
 	---@param newZone number
 	function DBM:PLAYER_MAP_CHANGED(oldZone, newZone)
-		self:Debug("PLAYER_MAP_CHANGED fired with oldZone " .. oldZone .. " and newZone " .. newZone, 2)
+		self:Debug("PLAYER_MAP_CHANGED fired with oldZone " .. oldZone .. " (" .. (GetRealZoneText(oldZone) or "Unknown") .. ") and newZone " .. newZone .. " (" .. (GetRealZoneText(newZone) or "Unknown") .. ")", 2, nil, nil, true)
 		if oldZone == -1 then return end--Let legacy LOADING_SCREEN_DISABLED handle it for now. In future, PLAYER_MAP_CHANGED may replace LSD if classic gets it
 		if LastInstanceMapID ~= newZone then
-			self:Debug("Zone changed, firing secondary load check", 2)
+			--self:Debug("Zone changed, firing secondary load check", 3)
 			--Different ID than cached, run secondary load checks
 			--Delay is still needed due to GetInstanceInfo not returning new information yet instantly on PLAYER_MAP_CHANGED
 			self:TransitionToDungeonBGM(false, true)
@@ -4723,9 +4723,7 @@ do
 		until not bossGUID
 	end
 
-	local existShown = {}
 	function DBM:INSTANCE_ENCOUNTER_ENGAGE_UNIT()
-		self:Debug("|cffffff00INSTANCE_ENCOUNTER_ENGAGE_UNIT: |r event fired for zoneId" .. LastInstanceMapID, 3, nil, nil, true)
 		if not timerRequestInProgress then--do not start ieeu combat if timer request is progressing. (not to break Timer Recovery stuff)
 			if dbmIsEnabled and combatInfo[LastInstanceMapID] then
 				for _, v in ipairs(combatInfo[LastInstanceMapID]) do
@@ -4735,38 +4733,6 @@ do
 						end
 					end
 				end
-			end
-		end
-		if self.Options.DebugLevel > 3 then
-			if UnitExists("boss1") and not existShown[1] then
-				self:Debug("|cffffff00boss1 exists", 3, nil, nil, true)
-				existShown[1] = true
-			elseif not UnitExists("boss1") then
-				existShown[1] = nil
-			end
-			if UnitExists("boss2") and not existShown[2] then
-				self:Debug("|cffffff00boss2 exists", 3, nil, nil, true)
-				existShown[2] = true
-			elseif not UnitExists("boss2") then
-				existShown[2] = nil
-			end
-			if UnitExists("boss3") and not existShown[3] then
-				self:Debug("|cffffff00boss3 exists", 3, nil, nil, true)
-				existShown[3] = true
-			elseif not UnitExists("boss3") then
-				existShown[3] = nil
-			end
-			if UnitExists("boss4") and not existShown[4] then
-				self:Debug("|cffffff00boss4 exists", 3, nil, nil, true)
-				existShown[4] = true
-			elseif not UnitExists("boss4") then
-				existShown[4] = nil
-			end
-			if UnitExists("boss5") and not existShown[5] then
-				self:Debug("|cffffff00boss5 exists", 3, nil, nil, true)
-				existShown[5] = true
-			elseif not UnitExists("boss5") then
-				existShown[5] = nil
 			end
 		end
 	end
@@ -4914,9 +4880,9 @@ do
 	function DBM:CHAT_MSG_MONSTER_YELL(msg, npc, _, _, target)
 		if self:issecretvalue(msg) then
 			if target then
-				self:Debug("|cffff0000CHAT_MSG_MONSTER_YELL: |r fired: '" .. msg .. "' with sender of " .. npc .. " while looking at " .. target, 2, nil, nil, true)
+				self:Debug("|cffff0000CHAT_MSG_MONSTER_YELL: |r fired: '" .. msg .. "' with sender of " .. npc .. " while looking at " .. target, 4, nil, nil, true)
 			else
-				self:Debug("|cffff0000CHAT_MSG_MONSTER_YELL: |r fired: '" .. msg .. "' with sender of " .. npc, 2, nil, nil, true)
+				self:Debug("|cffff0000CHAT_MSG_MONSTER_YELL: |r fired: '" .. msg .. "' with sender of " .. npc, 4, nil, nil, true)
 			end
 			return
 		end
@@ -4931,7 +4897,7 @@ do
 					end
 				end
 			end
-			self:Debug("|cffff0000CHAT_MSG_MONSTER_YELL: |r from " .. npc .. " while looking at " .. targetName, 2, nil, nil, true)
+			self:Debug("|cffff0000CHAT_MSG_MONSTER_YELL: |r from " .. npc .. " while looking at " .. targetName, 4, nil, nil, true)
 		end
 		if private.isClassic and not IsInInstance() then
 			if msg:find(L.WORLD_BUFFS.hordeOny) then
@@ -4960,7 +4926,7 @@ do
 
 	function DBM:CHAT_MSG_MONSTER_EMOTE(msg)
 		if self:issecretvalue(msg) then
-			self:Debug("|cffffa500CHAT_MSG_MONSTER_EMOTE: |r fired: " .. msg, 2, nil, nil, true)
+			self:Debug("|cffffa500CHAT_MSG_MONSTER_EMOTE: |r fired: " .. msg, 4, nil, nil, true)
 			return
 		end
 		return onMonsterMessage(self, "emote", msg)
@@ -4969,7 +4935,7 @@ do
 	function DBM:CHAT_MSG_RAID_BOSS_EMOTE(msg, sender, ...)
 		if self:issecretvalue(msg) then
 			--Still send the debug to debuglog
-			self:Debug("|cffffff00CHAT_MSG_RAID_BOSS_EMOTE: |r fired: " .. msg .. " with sender of " .. sender, 2, nil, nil, true)
+			self:Debug("|cffffff00CHAT_MSG_RAID_BOSS_EMOTE: |r fired: " .. msg .. " with sender of " .. sender, 4, nil, nil, true)
 			return
 		end
 		onMonsterMessage(self, "emote", msg)
@@ -4978,7 +4944,7 @@ do
 			local spellId = tonumber(id)
 			if spellId then
 				local spellName = DBM:GetSpellName(spellId) or CL.UNKNOWN
-				self:Debug("|cffffff00CHAT_MSG_RAID_BOSS_EMOTE: |r fired: " .. sender .. "'s " .. spellName .. "(" .. spellId .. ")", 2, nil, nil, true)
+				self:Debug("|cffffff00CHAT_MSG_RAID_BOSS_EMOTE: |r fired: " .. sender .. "'s " .. spellName .. "(" .. spellId .. ")", 4, nil, nil, true)
 			end
 		end
 		return self:FilterRaidBossEmote(msg, sender, ...)
@@ -4994,7 +4960,7 @@ do
 
 	function DBM:RAID_BOSS_WHISPER(msg)
 		if self:issecretvalue(msg) then
-			self:Debug("RAID_BOSS_WHISPER fired: " .. msg, 2, nil, nil, true)
+			self:Debug("RAID_BOSS_WHISPER fired: " .. msg, 4, nil, nil, true)
 			return
 		end
 		--Make it easier for devs to detect whispers they are unable to see
@@ -5020,7 +4986,7 @@ do
 
 	function DBM:CHAT_MSG_MONSTER_SAY(msg)
 		if self:issecretvalue(msg) then
-			self:Debug("CHAT_MSG_MONSTER_SAY fired: " .. msg, 2, nil, nil, true)
+			self:Debug("CHAT_MSG_MONSTER_SAY fired: " .. msg, 4, nil, nil, true)
 			return
 		end
 		if private.isClassic and not IsInInstance() then
@@ -5134,11 +5100,11 @@ do
 	local function delayedGCSync(modId, difficultyIndex, difficultyModifier, name, thisTime, wipeHP)
 		if not dbmIsEnabled then return end
 		if not private.statusGuildDisabled and private.updateNotificationDisplayed == 0 then
-			if thisTime then--Wipe event
+			if thisTime then--End combat event
 				if wipeHP then
-					private.sendGuildSync(9, "GCE", modId .. "\t1\t" .. thisTime .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader .. "\t" .. wipeHP)
+					private.sendGuildSync(10, "GCE", modId .. "\t1\t" .. thisTime .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader .. "\t" .. wipeHP)
 				else
-					private.sendGuildSync(9, "GCE", modId .. "\t1\t" .. thisTime .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader)
+					private.sendGuildSync(10, "GCE", modId .. "\t0\t" .. thisTime .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader)
 				end
 			else
 				private.sendGuildSync(4, "GCB", modId .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader)
@@ -6113,7 +6079,7 @@ do
 		end
 		local soundSetting = self.Options.UseSoundChannel
 		if type(path) == "number" then--Build in media using FileDataID
-			self:Debug("PlaySoundFile playing with FileDataID " .. path, 3)
+			--self:Debug("PlaySoundFile playing with FileDataID " .. path, 3)
 			if soundSetting == "Dialog" then
 				PlaySoundFile(path, "Dialog")
 			elseif ignoreSFX or soundSetting == "Master" then
@@ -6126,7 +6092,7 @@ do
 			if validate and not self:ValidateSound(path, true, true) then
 				return
 			end
-			self:Debug("PlaySoundFile playing with file path " .. path, 3)
+			--self:Debug("PlaySoundFile playing with file path " .. path, 3)
 			if soundSetting == "Dialog" then
 				PlaySoundFile(path, "Dialog")
 			elseif ignoreSFX or soundSetting == "Master" then
@@ -6139,52 +6105,8 @@ do
 		test:Trace(self, "PlaySound", path)
 	end
 
-	local LSMFontCacheBuilt, sharedMediaFontCache = false, {}
-	local fontValidationProbe
-
-	local function getFontValidationProbe()
-		if fontValidationProbe and fontValidationProbe.SetFont then
-			return fontValidationProbe
-		end
-		local existingProbe = _G["DBM_FontValidationProbe"]
-		if existingProbe and existingProbe.SetFont then
-			fontValidationProbe = existingProbe
-			return fontValidationProbe
-		end
-		if type(CreateFont) ~= "function" then
-			return nil
-		end
-		local ok, probe = pcall(CreateFont, "DBM_FontValidationProbe")
-		if ok and probe and probe.SetFont then
-			fontValidationProbe = probe
-			return fontValidationProbe
-		end
-		return nil
-	end
-
-	local function buildLSMFontCache()
-		local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
-		if LSM then
-			for k in pairs(sharedMediaFontCache) do
-				sharedMediaFontCache[k] = nil
-			end
-			local hashtable = LSM:HashTable("font")
-			local keytable = {}
-			for k in next, hashtable do
-				tinsert(keytable, k)
-			end
-			for i = 1, #keytable do
-				local key = keytable[i]
-				local value = hashtable[key]
-				sharedMediaFontCache[key] = true
-				if type(value) == "string" then
-					sharedMediaFontCache[value] = true
-				end
-			end
-			LSMFontCacheBuilt = true
-		end
-	end
-
+	local fontProbe = UIParent:CreateFontString()
+	fontProbe:Hide()
 	function DBM:IsFontValid(fontPath, standardFont)
 		-- "standardFont" is always valid (maps to locale-specific standard)
 		if fontPath == "standardFont" then
@@ -6194,36 +6116,7 @@ do
 		if standardFont and fontPath == standardFont then
 			return true
 		end
-		-- Built-in WoW fonts are valid even when not registered in LibSharedMedia
-		if type(fontPath) == "string" and fontPath:lower():find("^fonts[\\/]+") then
-			return true
-		end
-		-- Build font cache from LibSharedMedia if needed
-		if not LSMFontCacheBuilt then
-			buildLSMFontCache()
-		end
-		local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
-		if not LSM then
-			-- If LibSharedMedia not available, assume valid (graceful degradation)
-			return true
-		end
-		-- Check cache for font path
-		if sharedMediaFontCache[fontPath] then
-			return true
-		end
-		-- Cache may be stale if media registered after first build; rebuild once and re-check
-		buildLSMFontCache()
-		if sharedMediaFontCache[fontPath] then
-			return true
-		end
-		-- Final fallback: validate directly against WoW API.
-		-- This handles media paths that are valid files but not yet registered in LSM.
-		local probe = getFontValidationProbe()
-		if type(fontPath) == "string" and probe and pcall(probe.SetFont, probe, fontPath, 12, "") then
-			sharedMediaFontCache[fontPath] = true
-			return true
-		end
-		return false
+		return pcall(fontProbe.SetFont, fontProbe, fontPath, 12, "")
 	end
 end
 
@@ -6533,7 +6426,7 @@ do
 			end
 		end
 		if not selectedClient then return end
-		self:Debug("Requesting timer recovery to " .. selectedClient.name)
+		self:Debug("Requesting timer recovery to " .. selectedClient.name, 2)
 		requestedFrom[selectedClient.name] = true
 		requestTime = GetTime()
 		private.sendWhisperSync(DBMSyncProtocol, "RT", "", selectedClient.name, "ALERT")
@@ -8154,7 +8047,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260424043937" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260429043851" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then

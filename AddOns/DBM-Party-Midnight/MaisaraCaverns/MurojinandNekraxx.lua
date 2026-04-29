@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2810, "DBM-Party-Midnight", 7, 1315)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260423040903")
+mod:SetRevision("20260427045159")
 mod:SetCreatureID(247570)--Muro, Nekraxx is 247572
 mod:SetEncounterID(3212)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -11,7 +11,7 @@ mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
 
-local warnCarrionSwoop			= mod:NewCountAnnounce(1249478, 2)
+local warnCarrionSwoop			= mod:NewBlizzTargetAnnounce(1249478, 2)
 
 local specWarnFlankingSpear		= mod:NewSpecialWarningCount(1266480, nil, nil, nil, 1, 2)
 local specWarnFetidQuillstorm	= mod:NewSpecialWarningDodgeCount(1243900, nil, nil, nil, 2, 2)

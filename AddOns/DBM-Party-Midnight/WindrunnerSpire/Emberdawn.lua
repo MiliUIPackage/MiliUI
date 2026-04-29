@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2655, "DBM-Party-Midnight", 1, 1299)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260423040903")
+mod:SetRevision("20260428075838")
 mod:SetCreatureID(231606)
 mod:SetEncounterID(3056)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -95,15 +95,11 @@ do
 			timerBurningGaleCD:Stop()--Prevent refreshed before finished debug spam due to blizzard bugs
 			timerBurningGaleCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "gale", "burningGaleCount"))
 		else
-			if not DBM.Options.DebugMode then
-				badStateDetected = true
-				self:ResumeBlizzardAPI()
-				self:UnregisterShortTermEvents()
-				setFallback(self)
-				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
-			else
-				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers|r", nil, nil, nil, true)
-			end
+			badStateDetected = true
+			self:ResumeBlizzardAPI()
+			self:UnregisterShortTermEvents()
+			setFallback(self)
+			DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
 		end
 	end
 

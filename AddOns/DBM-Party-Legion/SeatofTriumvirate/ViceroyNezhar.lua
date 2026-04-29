@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1981, "DBM-Party-Legion", 13, 945)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260423040903")
+mod:SetRevision("20260428075838")
 mod:SetCreatureID(124874)
 mod:SetEncounterID(2067)
 
@@ -108,15 +108,11 @@ if DBM:IsPostMidnight() then
 					timerMindBlastCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "mindblast", "mindBlastCount"))
 				end
 			else
-				if not DBM.Options.DebugMode then
-					badStateDetected = true
-					self:ResumeBlizzardAPI()
-					self:UnregisterShortTermEvents()
-					setFallback(self)
-					DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
-				else
-					DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers|r", nil, nil, nil, true)
-				end
+				badStateDetected = true
+				self:ResumeBlizzardAPI()
+				self:UnregisterShortTermEvents()
+				setFallback(self)
+				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
 			end
 		end
 
