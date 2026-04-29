@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,heroic,mythic,challenge,timewalker"
 
-mod:SetRevision("20260423040903")
+mod:SetRevision("20260428075838")
 mod:SetCreatureID(76141)
 mod:SetEncounterID(1699)
 
@@ -82,15 +82,11 @@ if DBM:IsPostMidnight() then
 			elseif timer == 50 then--Supernova
 				timerSupernovaCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "supernova", "supernovaCount"))
 			else
-				if not DBM.Options.DebugMode then
-					badStateDetected = true
-					self:ResumeBlizzardAPI()
-					self:UnregisterShortTermEvents()
-					setFallback(self)
-					DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
-				else
-					DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers|r", nil, nil, nil, true)
-				end
+				badStateDetected = true
+				self:ResumeBlizzardAPI()
+				self:UnregisterShortTermEvents()
+				setFallback(self)
+				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
 			end
 		end
 

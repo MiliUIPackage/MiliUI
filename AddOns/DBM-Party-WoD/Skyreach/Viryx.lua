@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,heroic,mythic,challenge,timewalker"
 
-mod:SetRevision("20260423040903")
+mod:SetRevision("20260428075838")
 mod:SetCreatureID(76266)
 mod:SetEncounterID(1701)
 mod:SetUsedIcons(1)
@@ -14,6 +14,7 @@ mod:RegisterCombat("combat")
 if DBM:IsPostMidnight() then
 	local warnScorchingRay			= mod:NewCountAnnounce(1253538, 2)
 	local warnLensFlare				= mod:NewCountAnnounce(1253531, 2)
+	local warnCastDown				= mod:NewBlizzTargetAnnounce(1253998, 4)
 
 	local specWarnCastDown			= mod:NewSpecialWarningCount(1253998, nil, nil, DBM_COMMON_L.ADD, 1, 2)
 	local specWarnSolarBlast		= mod:NewSpecialWarningInterruptCount(154396, "HasInterrupt", nil, nil, 1, 2)
@@ -95,15 +96,11 @@ if DBM:IsPostMidnight() then
 				end
 				nextTwelveIsCastDown = not nextTwelveIsCastDown
 			else
-				if not DBM.Options.DebugMode then
-					badStateDetected = true
-					self:ResumeBlizzardAPI()
-					self:UnregisterShortTermEvents()
-					setFallback(self)
-					DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
-				else
-					DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers|r", nil, nil, nil, true)
-				end
+				badStateDetected = true
+				self:ResumeBlizzardAPI()
+				self:UnregisterShortTermEvents()
+				setFallback(self)
+				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
 			end
 		end
 
@@ -126,6 +123,7 @@ if DBM:IsPostMidnight() then
 					if eventType == "scorchingRay" then
 						warnScorchingRay:Show(eventCount)
 					elseif eventType == "castDown" then
+						warnCastDown:Show(eventCount)
 						specWarnCastDown:Show(eventCount)
 						specWarnCastDown:Play("targetchange")
 					elseif eventType == "solarBlast" then

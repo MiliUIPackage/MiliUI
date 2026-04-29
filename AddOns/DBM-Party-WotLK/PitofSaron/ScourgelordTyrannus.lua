@@ -5,7 +5,7 @@ if not mod:IsClassic() then
 	mod.statTypes = "normal,heroic,mythic,challenge,timewalker"
 end
 
-mod:SetRevision("20260423040903")
+mod:SetRevision("20260428075838")
 mod:SetCreatureID(36658, 36661)
 mod:SetEncounterID(2000)
 mod:SetZone(658)
@@ -76,7 +76,7 @@ if DBM:IsPostMidnight() then
 		self.vb.graspCount = 1
 		self.vb.barrageCount = 1
 		nextTwentyEightType = nil
-		if self:IsMythicPlus() and DBM.Options.HardcodedTimer and not badStateDetected then
+		if DBM.Options.HardcodedTimer and not badStateDetected then
 			self:IgnoreBlizzardAPI()
 			self:RegisterShortTermEvents(
 				"ENCOUNTER_TIMELINE_EVENT_ADDED",
@@ -128,26 +128,18 @@ if DBM:IsPostMidnight() then
 					nextTwentyEightType = nil
 					timerBoneInfusionCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "bone", "boneCount"))
 				else--Reached end of chain without finding a valid timer, this means hardcode mod has failed, so we need to disable hardcoded features and fall back to blizz API
-					if not DBM.Options.DebugMode then
-						badStateDetected = true
-						self:ResumeBlizzardAPI()
-						self:UnregisterShortTermEvents()
-						setFallback(self)
-						DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
-					else
-						DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers|r", nil, nil, nil, true)
-					end
-				end
-			else--Reached end of chain without finding a valid timer, this means hardcode mod has failed, so we need to disable hardcoded features and fall back to blizz API
-				if not DBM.Options.DebugMode then
 					badStateDetected = true
 					self:ResumeBlizzardAPI()
 					self:UnregisterShortTermEvents()
 					setFallback(self)
 					DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
-				else
-					DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers|r", nil, nil, nil, true)
 				end
+			else--Reached end of chain without finding a valid timer, this means hardcode mod has failed, so we need to disable hardcoded features and fall back to blizz API
+				badStateDetected = true
+				self:ResumeBlizzardAPI()
+				self:UnregisterShortTermEvents()
+				setFallback(self)
+				DBM:Debug("|cffff0000Failed to match encounter timeline events to expected timers, falling back to Blizzard API|r", nil, nil, nil, true)
 			end
 		end
 
