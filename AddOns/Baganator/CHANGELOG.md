@@ -1,7 +1,6 @@
 # Baganator
 
-## [795](https://github.com/TheMouseNest/Baganator/tree/795) (2026-03-25)
-[Full Changelog](https://github.com/TheMouseNest/Baganator/compare/794...795) [Previous Releases](https://github.com/TheMouseNest/Baganator/releases)
+## [800](https://github.com/TheMouseNest/Baganator/tree/800) (2026-04-25)
+[Full Changelog](https://github.com/TheMouseNest/Baganator/compare/799...800) 
 
-- Fix starting disenchant spell before opening bags turning everything red  
-- Fix error caused by opening saved searches menu in combat  
+- Retail: Fix item upgrade track grouping for Champion, Hero and Myth gear  
