@@ -26,8 +26,12 @@ local function OverrideIconBorder(icon)
 
     local bd = icon.GetBackdrop and icon:GetBackdrop()
     if bd and bd.bgFile ~= SOLID_BG then
+        local r, g, b, a = icon:GetBackdropColor()
         bd.bgFile = SOLID_BG
         icon:SetBackdrop(bd)
+        if r then
+            icon:SetBackdropColor(r, g, b, a)
+        end
     end
 
     overriding = false
