@@ -342,7 +342,7 @@ local function InitIndicator(indicatorName)
         end)
 
     elseif indicatorName == "shieldBar" then
-        indicator:SetPercent(0.5)
+        indicator:SetValue(0.5)
 
     elseif indicatorName == "powerWordShield" then
         indicator:SetScript("OnShow", function()
