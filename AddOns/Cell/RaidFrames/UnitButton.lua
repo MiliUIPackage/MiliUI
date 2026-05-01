@@ -1196,7 +1196,20 @@ local function HandleDebuff(self, auraInfo)
     -- On Midnight in restricted context, spellId may be secret; I.CheckDebuffType guards internally
     debuffType = I.CheckDebuffType(debuffType, spellId)
 
-    if duration then
+    -- Secret-aware fallback for debuffs: when spellId/name are secret, the curated
+    -- raidDebuff list and dispels can't match by ID. Use Blizzard's secret-safe
+    -- HARMFUL filters to classify.
+    --   HARMFUL|RAID                      : curated list of important raid debuffs
+    --   HARMFUL|RAID_PLAYER_DISPELLABLE   : debuffs the player can dispel
+    local isSecret = Cell.isMidnight and not F.IsAuraNonSecret(auraInfo)
+    local secretIsRaidDebuff = false
+    local secretIsDispellable = false
+    if isSecret and IsAuraFilteredOutByInstanceID and auraInstanceID then
+        secretIsRaidDebuff = not IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HARMFUL|RAID")
+        secretIsDispellable = not IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HARMFUL|RAID_PLAYER_DISPELLABLE")
+    end
+
+    if duration or isSecret then
         UpdateAuraRefreshState(auraInfo)
         self._debuffs_cache[auraInstanceID] = auraInfo
 
@@ -1225,6 +1238,11 @@ local function HandleDebuff(self, auraInfo)
 
         -- prepare raidDebuffs
         local order = I.GetDebuffOrder(name, spellId, count)
+        -- Secret fallback: if HARMFUL|RAID filter classifies it as a raid debuff,
+        -- give it a default high order so curated entries still take priority.
+        if not order and secretIsRaidDebuff then
+            order = 10000
+        end
         if enabledIndicators["raidDebuffs"] and order then
             auraInfo.raidDebuffOrder = order
             tinsert(self._debuffs_raid, auraInstanceID)
@@ -1331,23 +1349,30 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
             if auraInstanceID then
                 local auraInfo = self._debuffs_cache[auraInstanceID]
                 if auraInfo then
-                    local rdStart, rdDur
-                    if F.IsValueNonSecret(auraInfo.expirationTime) and F.IsValueNonSecret(auraInfo.duration) then
-                        rdStart = (auraInfo.expirationTime or 0) - auraInfo.duration
-                        rdDur = auraInfo.duration
+                    local rdSecret = Cell.isMidnight and not F.IsAuraNonSecret(auraInfo)
+                    if rdSecret and self.indicators.raidDebuffs[i].SetCooldownFromAura then
+                        self.indicators.raidDebuffs[i]:SetCooldownFromAura(
+                            unit, auraInstanceID, auraInfo.icon, auraInfo.refreshing
+                        )
                     else
-                        rdStart = 0
-                        rdDur = 0
+                        local rdStart, rdDur
+                        if F.IsValueNonSecret(auraInfo.expirationTime) and F.IsValueNonSecret(auraInfo.duration) then
+                            rdStart = (auraInfo.expirationTime or 0) - auraInfo.duration
+                            rdDur = auraInfo.duration
+                        else
+                            rdStart = 0
+                            rdDur = 0
+                        end
+                        self.indicators.raidDebuffs[i]:SetCooldown(
+                            rdStart,
+                            rdDur,
+                            (auraInfo.dispelName and (not issecretvalue or not issecretvalue(auraInfo.dispelName))) and auraInfo.dispelName or "",
+                            auraInfo.icon,
+                            auraInfo.applications,
+                            auraInfo.refreshing,
+                            I.IsDebuffUseElapsedTime(auraInfo.name, auraInfo.spellId)
+                        )
                     end
-                    self.indicators.raidDebuffs[i]:SetCooldown(
-                        rdStart,
-                        rdDur,
-                        (auraInfo.dispelName and (not issecretvalue or not issecretvalue(auraInfo.dispelName))) and auraInfo.dispelName or "",
-                        auraInfo.icon,
-                        auraInfo.applications,
-                        auraInfo.refreshing,
-                        I.IsDebuffUseElapsedTime(auraInfo.name, auraInfo.spellId)
-                    )
                     self.indicators.raidDebuffs[i].auraInstanceID = auraInstanceID -- NOTE: for tooltip
                     startIndex = startIndex + 1
                     -- remove from debuffs
@@ -1408,18 +1433,23 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
         for auraInstanceID in next, self._debuffs_big do
             local auraInfo = self._debuffs_cache[auraInstanceID]
             if auraInfo and startIndex <= indicatorNums["debuffs"] then
-                -- start, duration, debuffType, texture, count
-                local bStart, bDur
-                if F.IsValueNonSecret(auraInfo.expirationTime) and F.IsValueNonSecret(auraInfo.duration) then
-                    bStart = (auraInfo.expirationTime or 0) - auraInfo.duration
-                    bDur = auraInfo.duration
+                local indFrame = self.indicators.debuffs[startIndex]
+                local secretAura = Cell.isMidnight and not F.IsAuraNonSecret(auraInfo)
+                if secretAura and indFrame.SetCooldownFromAura then
+                    indFrame:SetCooldownFromAura(unit, auraInstanceID, auraInfo.icon, auraInfo.refreshing, true)
                 else
-                    bStart = 0
-                    bDur = 0
+                    local bStart, bDur
+                    if F.IsValueNonSecret(auraInfo.expirationTime) and F.IsValueNonSecret(auraInfo.duration) then
+                        bStart = (auraInfo.expirationTime or 0) - auraInfo.duration
+                        bDur = auraInfo.duration
+                    else
+                        bStart = 0
+                        bDur = 0
+                    end
+                    indFrame:SetCooldown(bStart, bDur, (auraInfo.dispelName and (not issecretvalue or not issecretvalue(auraInfo.dispelName))) and auraInfo.dispelName or "", auraInfo.icon, auraInfo.applications, auraInfo.refreshing, true)
                 end
-                self.indicators.debuffs[startIndex]:SetCooldown(bStart, bDur, (auraInfo.dispelName and (not issecretvalue or not issecretvalue(auraInfo.dispelName))) and auraInfo.dispelName or "", auraInfo.icon, auraInfo.applications, auraInfo.refreshing, true)
-                self.indicators.debuffs[startIndex].auraInstanceID = auraInstanceID -- NOTE: for tooltip
-                self.indicators.debuffs[startIndex].spellId = auraInfo.spellId -- NOTE: for blacklist
+                indFrame.auraInstanceID = auraInstanceID -- NOTE: for tooltip
+                indFrame.spellId = auraInfo.spellId -- NOTE: for blacklist
                 startIndex = startIndex + 1
             elseif startIndex > indicatorNums["debuffs"] then
                 break
@@ -1429,18 +1459,23 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
         for auraInstanceID in next, self._debuffs_normal do
             local auraInfo = self._debuffs_cache[auraInstanceID]
             if auraInfo and startIndex <= indicatorNums["debuffs"] then
-                -- start, duration, debuffType, texture, count
-                local nStart, nDur
-                if F.IsValueNonSecret(auraInfo.expirationTime) and F.IsValueNonSecret(auraInfo.duration) then
-                    nStart = (auraInfo.expirationTime or 0) - auraInfo.duration
-                    nDur = auraInfo.duration
+                local indFrame = self.indicators.debuffs[startIndex]
+                local secretAura = Cell.isMidnight and not F.IsAuraNonSecret(auraInfo)
+                if secretAura and indFrame.SetCooldownFromAura then
+                    indFrame:SetCooldownFromAura(unit, auraInstanceID, auraInfo.icon, auraInfo.refreshing, false)
                 else
-                    nStart = 0
-                    nDur = 0
+                    local nStart, nDur
+                    if F.IsValueNonSecret(auraInfo.expirationTime) and F.IsValueNonSecret(auraInfo.duration) then
+                        nStart = (auraInfo.expirationTime or 0) - auraInfo.duration
+                        nDur = auraInfo.duration
+                    else
+                        nStart = 0
+                        nDur = 0
+                    end
+                    indFrame:SetCooldown(nStart, nDur, (auraInfo.dispelName and (not issecretvalue or not issecretvalue(auraInfo.dispelName))) and auraInfo.dispelName or "", auraInfo.icon, auraInfo.applications, auraInfo.refreshing)
                 end
-                self.indicators.debuffs[startIndex]:SetCooldown(nStart, nDur, (auraInfo.dispelName and (not issecretvalue or not issecretvalue(auraInfo.dispelName))) and auraInfo.dispelName or "", auraInfo.icon, auraInfo.applications, auraInfo.refreshing)
-                self.indicators.debuffs[startIndex].auraInstanceID = auraInstanceID -- NOTE: for tooltip
-                self.indicators.debuffs[startIndex].spellId = auraInfo.spellId -- NOTE: for blacklist
+                indFrame.auraInstanceID = auraInstanceID -- NOTE: for tooltip
+                indFrame.spellId = auraInfo.spellId -- NOTE: for blacklist
                 startIndex = startIndex + 1
             elseif startIndex > indicatorNums["debuffs"] then
                 break
@@ -1532,9 +1567,10 @@ local function HandleBuff(self, auraInfo)
         -- Treat any of these as "external CD" — covers true externals plus raid utility CDs
         secretIsExtDef = passesExt or ((passesRaid or passesRaidIC) and not secretIsBigDef)
     end
+    -- For secret auras, always use SetCooldownFromAura so animation style stays
+    -- consistent in and out of combat (Blizzard DurationObject swipe).
     local function ShowAuraOnIndicator(ind)
         if isSecret and ind.SetCooldownFromAura then
-            -- secret-safe: drives cooldown swipe via DurationObject inside the indicator
             ind:SetCooldownFromAura(unit, auraInstanceID, icon, auraInfo.refreshing)
         else
             ind:SetCooldown(start, duration, nil, icon, count, auraInfo.refreshing)

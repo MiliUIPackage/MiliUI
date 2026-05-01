@@ -525,6 +525,16 @@ function I.CreateDebuffs(parent)
                 P.Size(frame, debuffs.normalSize[1], debuffs.normalSize[2])
             end
         end
+
+        frame._SetCooldownFromAura = frame.SetCooldownFromAura
+        function frame:SetCooldownFromAura(unit, auraInstanceID, texture, refreshing, isBigDebuff)
+            frame:_SetCooldownFromAura(unit, auraInstanceID, texture, refreshing)
+            if isBigDebuff then
+                P.Size(frame, debuffs.bigSize[1], debuffs.bigSize[2])
+            else
+                P.Size(frame, debuffs.normalSize[1], debuffs.normalSize[2])
+            end
+        end
     end
 end
 
