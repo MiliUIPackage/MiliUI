@@ -216,7 +216,9 @@ function I.CreateDefensiveCooldowns(parent)
 
     for i = 1, 5 do
         local name = parent:GetName().."DefensiveCooldown"..i
-        local frame = I.CreateAura_BarIcon(name, defensiveCooldowns)
+        local frame = Cell.isMidnight
+            and I.CreateAura_BorderIcon(name, defensiveCooldowns, 1.5)
+            or I.CreateAura_BarIcon(name, defensiveCooldowns)
         tinsert(defensiveCooldowns, frame)
     end
 end
@@ -241,7 +243,9 @@ function I.CreateExternalCooldowns(parent)
 
     for i = 1, 5 do
         local name = parent:GetName().."ExternalCooldown"..i
-        local frame = I.CreateAura_BarIcon(name, externalCooldowns)
+        local frame = Cell.isMidnight
+            and I.CreateAura_BorderIcon(name, externalCooldowns, 1.5)
+            or I.CreateAura_BarIcon(name, externalCooldowns)
         tinsert(externalCooldowns, frame)
     end
 end
@@ -265,8 +269,10 @@ function I.CreateAllCooldowns(parent)
     allCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     for i = 1, 5 do
-        local name = parent:GetName().."ExternalCooldown"..i
-        local frame = I.CreateAura_BarIcon(name, allCooldowns)
+        local name = parent:GetName().."AllCooldown"..i
+        local frame = Cell.isMidnight
+            and I.CreateAura_BorderIcon(name, allCooldowns, 1.5)
+            or I.CreateAura_BarIcon(name, allCooldowns)
         tinsert(allCooldowns, frame)
     end
 end
@@ -513,7 +519,9 @@ function I.CreateDebuffs(parent)
 
     for i = 1, 10 do
         local name = parent:GetName().."Debuff"..i
-        local frame = I.CreateAura_BarIcon(name, debuffs)
+        local frame = Cell.isMidnight
+            and I.CreateAura_BorderIcon(name, debuffs, 1.5)
+            or I.CreateAura_BarIcon(name, debuffs)
         tinsert(debuffs, frame)
 
         frame._SetCooldown = frame.SetCooldown
