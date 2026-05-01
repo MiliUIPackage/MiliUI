@@ -1204,9 +1204,10 @@ local function HandleDebuff(self, auraInfo)
     local isSecret = Cell.isMidnight and not F.IsAuraNonSecret(auraInfo)
     local secretIsRaidDebuff = false
     local secretIsDispellable = false
-    if isSecret and IsAuraFilteredOutByInstanceID and auraInstanceID then
-        secretIsRaidDebuff = not IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HARMFUL|RAID")
-        secretIsDispellable = not IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HARMFUL|RAID_PLAYER_DISPELLABLE")
+    local debuffUnit = self.states.displayedUnit
+    if isSecret and IsAuraFilteredOutByInstanceID and auraInstanceID and debuffUnit then
+        secretIsRaidDebuff = not IsAuraFilteredOutByInstanceID(debuffUnit, auraInstanceID, "HARMFUL|RAID")
+        secretIsDispellable = not IsAuraFilteredOutByInstanceID(debuffUnit, auraInstanceID, "HARMFUL|RAID_PLAYER_DISPELLABLE")
     end
 
     if duration or isSecret then
