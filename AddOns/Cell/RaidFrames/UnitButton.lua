@@ -63,6 +63,7 @@ local UnitDetailedThreatSituation = UnitDetailedThreatSituation
 local GetAuraDataByAuraInstanceID = C_UnitAuras.GetAuraDataByAuraInstanceID
 local GetAuraSlots = C_UnitAuras.GetAuraSlots
 local GetAuraDataBySlot = C_UnitAuras.GetAuraDataBySlot
+local IsAuraFilteredOutByInstanceID = C_UnitAuras.IsAuraFilteredOutByInstanceID
 local IsDelveInProgress = C_PartyInfo.IsDelveInProgress
 local UnitGetDetailedHealPrediction = UnitGetDetailedHealPrediction  -- nil pre-12.0
 local CreateUnitHealPredictionCalculator = CreateUnitHealPredictionCalculator  -- nil pre-12.0
@@ -1511,29 +1512,46 @@ local function HandleBuff(self, auraInfo)
 
     auraInfo.refreshing = false
 
-    if duration then
+    -- Secret-aware fallback: when spellId/name are secret, the curated tables
+    -- (builtInDefensives / builtInExternals) cannot match. Fall back to Blizzard's
+    -- secret-safe filter classifier to detect defensive / external cooldowns.
+    local isSecret = Cell.isMidnight and not F.IsAuraNonSecret(auraInfo)
+    local secretIsBigDef, secretIsExtDef = false, false
+    if isSecret and IsAuraFilteredOutByInstanceID and auraInstanceID then
+        secretIsBigDef = not IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HELPFUL|BIG_DEFENSIVE")
+        secretIsExtDef = not IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HELPFUL|EXTERNAL_DEFENSIVE")
+    end
+    local function ShowAuraOnIndicator(ind)
+        if isSecret and ind.SetCooldownFromAura then
+            -- secret-safe: drives cooldown swipe via DurationObject inside the indicator
+            ind:SetCooldownFromAura(unit, auraInstanceID, icon, auraInfo.refreshing)
+        else
+            ind:SetCooldown(start, duration, nil, icon, count, auraInfo.refreshing)
+        end
+    end
+
+    if duration or isSecret then
         UpdateAuraRefreshState(auraInfo)
         self._buffs_cache[auraInstanceID] = auraInfo
 
         -- defensiveCooldowns
-        if enabledIndicators["defensiveCooldowns"] and I.IsDefensiveCooldown(name, spellId) and self._buffs.defensiveFound < indicatorNums["defensiveCooldowns"] then
+        local isDef = I.IsDefensiveCooldown(name, spellId) or secretIsBigDef
+        if enabledIndicators["defensiveCooldowns"] and isDef and self._buffs.defensiveFound < indicatorNums["defensiveCooldowns"] then
             self._buffs.defensiveFound = self._buffs.defensiveFound + 1
-            -- start, duration, debuffType, texture, count, refreshing
-            self.indicators.defensiveCooldowns[self._buffs.defensiveFound]:SetCooldown(start, duration, nil, icon, count, auraInfo.refreshing)
+            ShowAuraOnIndicator(self.indicators.defensiveCooldowns[self._buffs.defensiveFound])
         end
 
         -- externalCooldowns
-        if enabledIndicators["externalCooldowns"] and I.IsExternalCooldown(name, spellId, source, unit) and self._buffs.externalFound < indicatorNums["externalCooldowns"] then
+        local isExt = I.IsExternalCooldown(name, spellId, source, unit) or secretIsExtDef
+        if enabledIndicators["externalCooldowns"] and isExt and self._buffs.externalFound < indicatorNums["externalCooldowns"] then
             self._buffs.externalFound = self._buffs.externalFound + 1
-            -- start, duration, debuffType, texture, count, refreshing
-            self.indicators.externalCooldowns[self._buffs.externalFound]:SetCooldown(start, duration, nil, icon, count, auraInfo.refreshing)
+            ShowAuraOnIndicator(self.indicators.externalCooldowns[self._buffs.externalFound])
         end
 
         -- allCooldowns
-        if enabledIndicators["allCooldowns"] and (I.IsExternalCooldown(name, spellId, source, unit) or I.IsDefensiveCooldown(name, spellId)) and self._buffs.allFound < indicatorNums["allCooldowns"] then
+        if enabledIndicators["allCooldowns"] and (isExt or isDef) and self._buffs.allFound < indicatorNums["allCooldowns"] then
             self._buffs.allFound = self._buffs.allFound + 1
-            -- start, duration, debuffType, texture, count, refreshing
-            self.indicators.allCooldowns[self._buffs.allFound]:SetCooldown(start, duration, nil, icon, count, auraInfo.refreshing)
+            ShowAuraOnIndicator(self.indicators.allCooldowns[self._buffs.allFound])
         end
 
         -- tankActiveMitigation
