@@ -736,6 +736,12 @@ MyAddon:RegisterEvent("PLAYER_LOGIN")
 MyAddon:SetScript("OnEvent", MyAddon_OnEvent)
 local function StrPartition(inputStr, delimiter)
 local outcome = {}
+-- Midnight 12.0+: chat event payloads (sender/target names) may be secret values.
+-- Guard against nil and secret strings to avoid taint propagation crashes.
+if not inputStr or (issecretvalue and issecretvalue(inputStr)) then
+    table.insert(outcome, "")
+    return outcome
+end
 local start = 1
 local delimStart, delimEnd = string.find(inputStr, delimiter, start)
 while delimStart do
