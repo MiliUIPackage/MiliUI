@@ -26,8 +26,23 @@ function KeystoneLootDungeonsFrameMixin:Init()
     DB:AddObserver("ui.selectedCharacterKey", OnChanged);
     DB:AddObserver("ui.selectedTab", OnChanged);
     DB:AddObserver("settings.highlighting.*", OnChanged);
+    DB:AddObserver("settings.wideMode", OnChanged);
+    DB:AddObserver("voidcore", function()
+        for Frame in self.entryPool:EnumerateActive() do
+            for _, Button in Frame.IconScrollBox:EnumerateFrames() do
+                Button:UpdateVoidcoreIcon();
+            end
+        end
+    end);
 
     self:Refresh();
+end
+
+function KeystoneLootDungeonsFrameMixin:RefreshSize()
+    local Parent = self:GetParent();
+    if (Parent.dungeonsTabId) then
+        Parent:RefreshSize(Parent.dungeonsTabId);
+    end
 end
 
 function KeystoneLootDungeonsFrameMixin:OnShow()
@@ -39,6 +54,8 @@ end
 
 function KeystoneLootDungeonsFrameMixin:Refresh()
     self.entryPool:ReleaseAll();
+
+    self:SetWidth(DB:Get("settings.wideMode") and 728 or 500);
 
     local height = 0;
     height = height + 60; -- margin top
@@ -64,4 +81,5 @@ function KeystoneLootDungeonsFrameMixin:Refresh()
 
     self:SetHeight(height);
     self.Container:Layout();
+    self:RefreshSize();
 end

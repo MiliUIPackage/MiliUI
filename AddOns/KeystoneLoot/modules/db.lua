@@ -6,8 +6,8 @@ local DB = KeystoneLoot.DB;
 
 local CURRENT_SEASON = KeystoneLoot.Config.season;
 
-local DB_VERSION = 3;
-local CHAR_DB_VERSION = 1;
+local DB_VERSION = 4;
+local CHAR_DB_VERSION = 2;
 
 local observers = {};
 
@@ -90,6 +90,10 @@ function DB:MigrateGlobalDB(fromVersion)
     if (fromVersion == 2) then
         KeystoneLootDB.settings.hiddenCharacters = {};
     end
+
+    if (fromVersion == 3) then
+        KeystoneLootDB.settings.wideMode = false;
+    end
 end
 
 function DB:MigrateCharDB(fromVersion)
@@ -116,6 +120,10 @@ function DB:MigrateCharDB(fromVersion)
             selectedTab = "dungeons",
             selectedRaidTab = KeystoneLoot.RaidDatabase[1].journalInstanceId
         }
+    end
+
+    if (fromVersion == 1) then
+        KeystoneLootCharDB.voidcore = {};
     end
 end
 

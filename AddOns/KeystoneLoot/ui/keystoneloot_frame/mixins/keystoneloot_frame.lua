@@ -3,6 +3,7 @@ local AddonName, KeystoneLoot = ...;
 local DB = KeystoneLoot.DB;
 local Favorites = KeystoneLoot.Favorites;
 local Character = KeystoneLoot.Character;
+local Voidcore = KeystoneLoot.Voidcore;
 local L = KeystoneLoot.L;
 
 KeystoneLootFrameMixin = {};
@@ -10,6 +11,7 @@ KeystoneLootFrameMixin = {};
 function KeystoneLootFrameMixin:OnLoad()
     self:RegisterEvent("PLAYER_ENTERING_WORLD");
     self:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED");
+    self:RegisterEvent("BONUS_ROLL_RESULT");
     self:RegisterForDrag("LeftButton");
 
     CallbackRegistryMixin.OnLoad(self);
@@ -35,9 +37,24 @@ function KeystoneLootFrameMixin:InitializeTabSystem()
     self:SetTab(self.dungeonsTabId);
 end
 
-function KeystoneLootFrameMixin:OnEvent(event)
+function KeystoneLootFrameMixin:OnEvent(event, ...)
     if (event == "ACTIVE_TALENT_GROUP_CHANGED") then
         self:SyncSpecFilter();
+        return;
+    elseif (event == "BONUS_ROLL_RESULT") then
+        local rewardType, rewardLink = ...;
+        if (rewardType ~= "item" or not rewardLink) then
+            return;
+        end
+
+        local itemId = tonumber(string.match(rewardLink, "item:(%d+)"));
+        if (not itemId) then
+            return;
+        end
+
+        if (Voidcore:IsEligible(itemId)) then
+            Voidcore:SetUsed(itemId, true);
+        end
         return;
     end
 

@@ -6,6 +6,7 @@ local Favorites = KeystoneLoot.Favorites;
 local Character = KeystoneLoot.Character;
 local Query = KeystoneLoot.Query;
 local L = KeystoneLoot.L;
+local Voidcore = KeystoneLoot.Voidcore;
 
 local STAT_HIGHLIGHT_KEYS = {
     [0] = "crit",
@@ -13,19 +14,6 @@ local STAT_HIGHLIGHT_KEYS = {
     [2] = "mastery",
     [3] = "versatility"
 };
-
-KeystoneLootLootIconButtonMixin = {};
-
-function KeystoneLootLootIconButtonMixin:Init(item)
-    self:SetEnabled(item.itemId ~= 0);
-
-    self.itemId = item.itemId;
-    self.isHovered = false;
-
-    self.Content.Icon:SetTexture(item.icon);
-    self:UpdateFavoriteIcon();
-    self:UpdateHighlight();
-end
 
 local function GetFavoritesSpecId()
     local info = Character:ParseKey(Character:GetSelectedKey());
@@ -101,6 +89,20 @@ local function AddSpecLinesToTooltip(itemId)
     GameTooltip:AddLine("|A:quest-important-available:16:16:0:0|a " .. line, nil, nil, nil, true);
 end
 
+KeystoneLootLootIconButtonMixin = {};
+
+function KeystoneLootLootIconButtonMixin:Init(item)
+    self:SetEnabled(item.itemId ~= 0);
+
+    self.itemId = item.itemId;
+    self.isHovered = false;
+
+    self.Content.Icon:SetTexture(item.icon);
+    self:UpdateFavoriteIcon();
+    self:UpdateVoidcoreIcon();
+    self:UpdateHighlight();
+end
+
 function KeystoneLootLootIconButtonMixin:UpdateHighlight()
     if (not self:IsEnabled()) then
         return;
@@ -158,6 +160,19 @@ function KeystoneLootLootIconButtonMixin:UpdateFavoriteIcon()
         self.Content.FavoriteIcon:Show();
     else
         self.Content.FavoriteIcon:Hide();
+    end
+end
+
+function KeystoneLootLootIconButtonMixin:UpdateVoidcoreIcon()
+    if (not self:IsEnabled() or not Voidcore:IsEligible(self.itemId)) then
+        self.Content.VoidcoreIcon:Hide();
+        return;
+    end
+
+    if (Voidcore:IsUsed(self.itemId)) then
+        self.Content.VoidcoreIcon:Show();
+    else
+        self.Content.VoidcoreIcon:Hide();
     end
 end
 
@@ -284,6 +299,19 @@ function KeystoneLootLootIconButtonMixin:OnClick()
                 Favorites:Remove(itemId, specId);
                 self:UpdateFavoriteIcon();
             end);
+        end
+
+        if (Voidcore:IsEligible(itemId)) then
+            rootDescription:CreateDivider();
+            rootDescription:CreateTitle(BONUS_LOOT_LABEL);
+            rootDescription:CreateCheckbox(
+                L["Voidcore used"],
+                function() return Voidcore:IsUsed(itemId); end,
+                function()
+                    Voidcore:SetUsed(itemId, not Voidcore:IsUsed(itemId));
+                    self:UpdateVoidcoreIcon();
+                end
+            );
         end
     end);
 end
