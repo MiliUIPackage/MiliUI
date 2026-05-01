@@ -1515,11 +1515,22 @@ local function HandleBuff(self, auraInfo)
     -- Secret-aware fallback: when spellId/name are secret, the curated tables
     -- (builtInDefensives / builtInExternals) cannot match. Fall back to Blizzard's
     -- secret-safe filter classifier to detect defensive / external cooldowns.
+    --
+    -- Filter taxonomy (Midnight 12.0+):
+    --   BIG_DEFENSIVE      : self-applied major defensives (e.g. Obsidian Scales)
+    --   EXTERNAL_DEFENSIVE : defensives applied by others (e.g. Pain Suppression)
+    --   RAID / RAID_IN_COMBAT : raid utility cooldowns (e.g. Zephyr, Power Word: Barrier)
+    --     These are not strictly "defensive" but are battle-critical raid CDs that
+    --     players need to track on the externalCooldowns indicator.
     local isSecret = Cell.isMidnight and not F.IsAuraNonSecret(auraInfo)
     local secretIsBigDef, secretIsExtDef = false, false
     if isSecret and IsAuraFilteredOutByInstanceID and auraInstanceID then
         secretIsBigDef = not IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HELPFUL|BIG_DEFENSIVE")
-        secretIsExtDef = not IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HELPFUL|EXTERNAL_DEFENSIVE")
+        local passesExt = not IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HELPFUL|EXTERNAL_DEFENSIVE")
+        local passesRaid = not IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HELPFUL|RAID")
+        local passesRaidIC = not IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HELPFUL|RAID_IN_COMBAT")
+        -- Treat any of these as "external CD" — covers true externals plus raid utility CDs
+        secretIsExtDef = passesExt or ((passesRaid or passesRaidIC) and not secretIsBigDef)
     end
     local function ShowAuraOnIndicator(ind)
         if isSecret and ind.SetCooldownFromAura then
