@@ -1,12 +1,13 @@
 # Platynator
 
-## [373](https://github.com/TheMouseNest/Platynator/tree/373) (2026-04-24)
-[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/372...373) 
+## [374](https://github.com/TheMouseNest/Platynator/tree/374) (2026-04-29)
+[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/373...374) 
 
-- [Fixes #310] Fix blurry fonts if SLUG option is disabled internally  
-- More cleanup for pre-12.0.5 code  
-- Remove "12.0.5 onwards" text on "Mythic+ Forces Value" widget, as 12.0.5 is here  
-- Cleanup  
-- Retail: Interrupts: Remove tracking Warlock Grimoire  
-- Fixes for previous commit  
-- Retail: Use font smoothing (looks better)  
+- Fix typo  
+- Fix offscreen nameplates breaking interrupt ready detection  
+- Casting: Prevent properly completed spells showing as interrupted  
+- Casting: Ensure "Interrupted" text shows even if a stun interrupted  
+- Fixes for interrupt (not) ready colour not always applying  
+- Fix clash when interrupt ready and interrupt not ready colours used together  
+- Toggles for all Elite/Delve Type colours, and add "In Combat With" auto colour  
+- Add options to disable melee and trivial elite colours  
