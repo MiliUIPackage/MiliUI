@@ -159,12 +159,15 @@ do  -- custom text handlers ----------------------------------------------------
 			-- SetFormattedText will pass them to C which handles secrets natively.
 			local rawArgs = {}
 			local argCount = 0
-			local _percentMask = {}  -- MiliUI
+			local _percentMask  -- MiliUI: lazy，僅在真有 percent tag 時才配置
 			local function collectTag(placeholder, valueFn, isPercent)
 				if strmatch(text, placeholder) then
 					argCount = argCount + 1
 					rawArgs[argCount] = valueFn(unit)
-					if isPercent then _percentMask[argCount] = true end  -- MiliUI
+					if isPercent then  -- MiliUI
+						_percentMask = _percentMask or {}
+						_percentMask[argCount] = true
+					end
 					text = gsub(text, placeholder, "\001" .. argCount)
 				end
 			end
@@ -250,7 +253,7 @@ do  -- custom text handlers ----------------------------------------------------
 					-- single digit index after \001
 					local idx = tonumber(text:sub(ms + 1, ms + 1))
 					if idx and rawArgs[idx] then
-						local _fn = _percentMask[idx] and _abbrev_orig or _abbrev  -- MiliUI
+						local _fn = (_percentMask and _percentMask[idx]) and _abbrev_orig or _abbrev  -- MiliUI
 						local abbrevd = _fn and _fn(rawArgs[idx]) or rawArgs[idx]
 						-- strip space before K/M/B/T suffixes e.g. "45.0 K" -> "45.0K"
 						-- only safe on plain strings; secret strings can't be gsub'd
