@@ -236,7 +236,12 @@ function TAGS:UpdateTagText(textFrame)
                 local pct = UnitPowerPercent("player", PowerTypeMana, false, ScaleTo100) or 0
                 textFrame.text:SetFormattedText("%d", pct)
             elseif manaAbbrevData then
-                textFrame.text:SetText(AbbreviateNumbers(current, manaAbbrevData))
+                -- MiliUI: 開啟在地化縮寫時忽略 K-suffix config，改用語系預設（zhTW 為「萬 / 億」）
+                if _G.MiliUI_DB and _G.MiliUI_DB.localeNumberAbbrev ~= false then
+                    textFrame.text:SetText(AbbreviateNumbers(current))
+                else
+                    textFrame.text:SetText(AbbreviateNumbers(current, manaAbbrevData))
+                end
             else
                 textFrame.text:SetFormattedText("%d", current)
             end

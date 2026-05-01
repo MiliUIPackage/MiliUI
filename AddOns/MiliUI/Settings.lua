@@ -255,8 +255,11 @@ local function InitSettings()
     tip:SetText("若有任何問題歡迎在米利UI套組頁面下方留言討論")
 
     local category = Settings.RegisterCanvasLayoutCategory(mainFrame, "0米利UI設定")
-    category.ID = "MiliUI_Settings"
+    -- 不覆寫 category.ID：Blizzard 12.0+ OpenSettingsPanel 內部需要 numeric ID
     Settings.RegisterAddOnCategory(category)
+    -- 暴露給其他模組（GameMenu 入口按鈕等）使用 category.ID 開啟
+    MiliUI = MiliUI or {}
+    MiliUI.SettingsCategory = category
 
     -- 建立子分類: 預設值匯入
     local importFrame = CreateFrame("Frame")
@@ -447,6 +450,19 @@ local function InitSettings()
     defRacKBDesc:SetText("將按鍵綁定文字延伸顯示到防禦技能與種族技能圖示上，\n樣式 / 位置沿用 Ayije_CDM 的按鍵綁定設定。\n需 Ayije_CDM 本身已啟用「按鍵綁定」功能才會顯示。")
     defRacKBDesc:SetTextColor(0.5, 0.5, 0.5)
 
+    -- 法力數字在地化縮寫 checkbox
+    local cdmManaAbbrevCB = CreateFrame("CheckButton", "MiliUI_LocaleNumAbbrevCB", enhanceFrame, "UICheckButtonTemplate")
+    cdmManaAbbrevCB:SetPoint("TOPLEFT", defRacKBDesc, "BOTTOMLEFT", -26, -12)
+    cdmManaAbbrevCB.text:SetText("法力數字使用在地化縮寫（萬 / 億）")
+    cdmManaAbbrevCB.text:SetFontObject("GameFontHighlight")
+
+    local cdmManaAbbrevDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    cdmManaAbbrevDesc:SetPoint("TOPLEFT", cdmManaAbbrevCB, "BOTTOMLEFT", 26, -2)
+    cdmManaAbbrevDesc:SetWidth(520)
+    cdmManaAbbrevDesc:SetJustifyH("LEFT")
+    cdmManaAbbrevDesc:SetText("CDM 法力預設使用 K 後綴（例如「420K」），\n啟用後會改用語系預設格式（中文為「42萬」）。")
+    cdmManaAbbrevDesc:SetTextColor(0.5, 0.5, 0.5)
+
     -- 初始化 checkbox 狀態（建立時就設定，不只等 OnShow）
     local function SyncCheckboxes()
         local edb = MiliUI_CastBarEnhance and MiliUI_CastBarEnhance.GetDB() or {}
@@ -460,6 +476,9 @@ local function InitSettings()
 
         if MiliUI_DB.cdmDefRacKeybind == nil then MiliUI_DB.cdmDefRacKeybind = true end
         defRacKBCB:SetChecked(MiliUI_DB.cdmDefRacKeybind)
+
+        if MiliUI_DB.localeNumberAbbrev == nil then MiliUI_DB.localeNumberAbbrev = true end
+        cdmManaAbbrevCB:SetChecked(MiliUI_DB.localeNumberAbbrev)
     end
     SyncCheckboxes()
     enhanceCanvas:SetScript("OnShow", SyncCheckboxes)
@@ -506,11 +525,22 @@ local function InitSettings()
         print("|cff00ff00[MiliUI]|r 防禦 / 種族技能按鍵綁定:", enabled and "開" or "關")
     end)
 
+    cdmManaAbbrevCB:HookScript("OnClick", function(self)
+        local enabled = self:GetChecked() and true or false
+        if MiliUI_LocaleNumberAbbrev and MiliUI_LocaleNumberAbbrev.SetEnabled then
+            MiliUI_LocaleNumberAbbrev.SetEnabled(enabled)
+        else
+            if not MiliUI_DB then MiliUI_DB = {} end
+            MiliUI_DB.localeNumberAbbrev = enabled
+        end
+        print("|cff00ff00[MiliUI]|r 法力數字在地化縮寫:", enabled and "開" or "關")
+    end)
+
     -- ===== 拍賣行區塊 =====
     local ahDivider = enhanceFrame:CreateTexture(nil, "ARTWORK")
     ahDivider:SetColorTexture(0.3, 0.3, 0.3, 0.5)
     ahDivider:SetSize(520, 1)
-    ahDivider:SetPoint("TOPLEFT", defRacKBDesc, "BOTTOMLEFT", -26, -20)
+    ahDivider:SetPoint("TOPLEFT", cdmManaAbbrevDesc, "BOTTOMLEFT", -26, -20)
 
     local ahLabel = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     ahLabel:SetPoint("TOPLEFT", ahDivider, "BOTTOMLEFT", 0, -12)

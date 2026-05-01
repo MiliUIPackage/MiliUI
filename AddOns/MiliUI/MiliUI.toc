@@ -13,6 +13,7 @@ Config\Luxthos_Platynator.lua
 Config\Ayije_CDM.lua
 Config\BugSack.lua
 Config\Stuf.lua
+Style.lua
 Settings.lua
 Core.lua
 
@@ -37,6 +38,8 @@ Enhance\BuffDurationStyle.lua
 Enhance\Stuf_AuraBorder.lua
 Enhance\Stuf_Fix.lua
 Enhance\Stuf_InspectTooltipLocale.lua
+Enhance\LocaleNumberAbbrev.lua
+Enhance\GameMenu_MiliUIButton.lua
 Enhance\KeystoneAutoReport.lua
 Enhance\InspectTaintFix.lua
 Enhance\TinyInspectRemake_GearSlots.lua

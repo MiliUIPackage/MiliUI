@@ -159,21 +159,23 @@ do  -- custom text handlers ----------------------------------------------------
 			-- SetFormattedText will pass them to C which handles secrets natively.
 			local rawArgs = {}
 			local argCount = 0
-			local function collectTag(placeholder, valueFn)
+			local _percentMask = {}  -- MiliUI
+			local function collectTag(placeholder, valueFn, isPercent)
 				if strmatch(text, placeholder) then
 					argCount = argCount + 1
 					rawArgs[argCount] = valueFn(unit)
+					if isPercent then _percentMask[argCount] = true end  -- MiliUI
 					text = gsub(text, placeholder, "\001" .. argCount)
 				end
 			end
 				-- CurveConstants.ScaleTo100 scales the result to 0-100.
 			-- Fallback: passing 'true' achieves the same effect (MSUF pattern).
 			local _scale = (CurveConstants and CurveConstants.ScaleTo100) or true
-			collectTag("%[perchp%]", function(u) return UnitHealthPercent(u, false, _scale) end)
+			collectTag("%[perchp%]", function(u) return UnitHealthPercent(u, false, _scale) end, true)  -- MiliUI
 			collectTag("%[percmp%]", function(u)
 				local pt = UnitPowerType(u)
 				return UnitPowerPercent(u, pt, false, _scale)
-			end)
+			end, true)  -- MiliUI
 			for tag, valueFn in pairs(DIRECT_TAGS) do
 				collectTag("%[" .. tag .. "%]", valueFn)
 			end
@@ -230,7 +232,10 @@ do  -- custom text handlers ----------------------------------------------------
 			-- AbbreviateLargeNumbers(secret) returns a secret string; .. concatenation is
 			-- allowed on secret strings; SetText(secretString) renders correctly.
 			if argCount > 0 then
-				local _abbrev = _G.AbbreviateLargeNumbers or _G.ShortenNumber
+				local _abbrev_orig = _G.AbbreviateLargeNumbers or _G.ShortenNumber
+				-- MiliUI 改動: 開啟在地化縮寫時用 AbbreviateNumbers (萬/億)，百分比走原函式避免 secret 處理異常
+				local _abbrev_locale = _G.MiliUI_DB and _G.MiliUI_DB.localeNumberAbbrev ~= false and _G.AbbreviateNumbers
+				local _abbrev = _abbrev_locale or _abbrev_orig
 				local result = ""
 				local pos = 1
 				local len = #text
@@ -245,7 +250,8 @@ do  -- custom text handlers ----------------------------------------------------
 					-- single digit index after \001
 					local idx = tonumber(text:sub(ms + 1, ms + 1))
 					if idx and rawArgs[idx] then
-						local abbrevd = _abbrev and _abbrev(rawArgs[idx]) or rawArgs[idx]
+						local _fn = _percentMask[idx] and _abbrev_orig or _abbrev  -- MiliUI
+						local abbrevd = _fn and _fn(rawArgs[idx]) or rawArgs[idx]
 						-- strip space before K/M/B/T suffixes e.g. "45.0 K" -> "45.0K"
 						-- only safe on plain strings; secret strings can't be gsub'd
 						if not IsSecret(abbrevd) then
