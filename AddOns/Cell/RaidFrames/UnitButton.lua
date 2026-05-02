@@ -1225,7 +1225,9 @@ local function HandleDebuff(self, auraInfo)
 
         if enabledIndicators["debuffs"] and not isBlacklisted then
             -- all debuffs / only dispellableByMe
-            if not indicatorBooleans["debuffs"] or I.CanDispel(debuffType) then
+            -- Secret-aware fallback: when debuffType is secret, I.CanDispel returns nil;
+            -- use Blizzard's HARMFUL|RAID_PLAYER_DISPELLABLE classification instead.
+            if not indicatorBooleans["debuffs"] or I.CanDispel(debuffType) or secretIsDispellable then
                 if isBig then
                     self._debuffs_big[auraInstanceID] = true
                 else
