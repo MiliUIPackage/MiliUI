@@ -255,57 +255,70 @@ addonTable.CustomiseDialog.ColorsConfig = {
         melee = GetColor("fcfcfc"),
         trivial = GetColor("b28e55"),
       },
+      enabled = {
+        boss = true,
+        miniboss = true,
+        caster = true,
+        melee = true,
+        trivial = true,
+      },
       instancesOnly = true,
+      applyCasterAlways = false,
     },
     entries = {
       {
         label = addonTable.Locales.BOSS,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.boss = value
+          details.colors.boss = value.color
+          details.enabled.boss = value.enabled
         end,
         getter = function(details)
-          return details.colors.boss
+          return {color = details.colors.boss, enabled = details.enabled.boss}
         end,
       },
       {
         label = addonTable.Locales.MINIBOSS,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.miniboss = value
+          details.colors.miniboss = value.color
+          details.enabled.miniboss = value.enabled
         end,
         getter = function(details)
-          return details.colors.miniboss
+          return {color = details.colors.miniboss, enabled = details.enabled.miniboss}
         end,
       },
       {
         label = addonTable.Locales.CASTER,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.caster = value
+          details.colors.caster = value.color
+          details.enabled.caster = value.enabled
         end,
         getter = function(details)
-          return details.colors.caster
+          return {color = details.colors.caster, enabled = details.enabled.caster}
         end,
       },
       {
         label = addonTable.Locales.MELEE,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.melee = value
+          details.colors.melee = value.color
+          details.enabled.melee = value.enabled
         end,
         getter = function(details)
-          return details.colors.melee
+          return {color = details.colors.melee, enabled = details.enabled.melee}
         end,
       },
       {
         label = addonTable.Locales.TRIVIAL,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.trivial = value
+          details.colors.trivial = value.color
+          details.enabled.trivial = value.enabled
         end,
         getter = function(details)
-          return details.colors.trivial
+          return {color = details.colors.trivial, enabled = details.enabled.trivial}
         end,
       },
       { kind = "spacer" },
@@ -343,68 +356,82 @@ addonTable.CustomiseDialog.ColorsConfig = {
         melee = GetColor("fcfcfc"),
         trivial = GetColor("b28e55"),
       },
+      enabled = {
+        boss = true,
+        elite = true,
+        rare = true,
+        caster = true,
+        melee = true,
+        trivial = true,
+      },
       delves = true,
       outsideInstances = false,
     },
     entries = {
       {
         label = addonTable.Locales.BOSS,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.boss = value
+          details.colors.boss = value.color
+          details.enabled.boss = value.enabled
         end,
         getter = function(details)
-          return details.colors.boss
+          return {color = details.colors.boss, enabled = details.enabled.boss}
         end,
       },
       {
         label = addonTable.Locales.ELITE,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.elite = value
+          details.colors.elite = value.color
+          details.enabled.elite = value.enabled
         end,
         getter = function(details)
-          return details.colors.elite
+          return {color = details.colors.elite, enabled = details.enabled.elite}
         end,
       },
       {
         label = addonTable.Locales.RARE,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.rare = value
+          details.colors.rare = value.color
+          details.enabled.rare = value.enabled
         end,
         getter = function(details)
-          return details.colors.rare
+          return {color = details.colors.rare, enabled = details.enabled.rare}
         end,
       },
       {
         label = addonTable.Locales.CASTER,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.caster = value
+          details.colors.caster = value.color
+          details.enabled.caster = value.enabled
         end,
         getter = function(details)
-          return details.colors.caster
+          return {color = details.colors.caster, enabled = details.enabled.caster}
         end,
       },
       {
         label = addonTable.Locales.MELEE,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.melee = value
+          details.colors.melee = value.color
+          details.enabled.melee = value.enabled
         end,
         getter = function(details)
-          return details.colors.melee
+          return {color = details.colors.melee, enabled = details.enabled.melee}
         end,
       },
       {
         label = addonTable.Locales.TRIVIAL,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.trivial = value
+          details.colors.trivial = value.color
+          details.enabled.trivial = value.enabled
         end,
         getter = function(details)
-          return details.colors.trivial
+          return {color = details.colors.trivial, enabled = details.enabled.trivial}
         end,
       },
       {
@@ -864,6 +891,70 @@ addonTable.CustomiseDialog.ColorsConfig = {
       },
     }
   },
+  ["inCombat"] = {
+    label = addonTable.Locales.IN_COMBAT_WITH,
+    default = {
+      kind = "inCombat",
+      colors = {
+        inCombat = GetColor("7c1eff"),
+      },
+    },
+    entries = {
+      {
+        label = addonTable.Locales.IN_COMBAT_WITH,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.inCombat = value
+        end,
+        getter = function(details)
+          return details.colors.inCombat
+        end,
+      },
+    }
+  },
+  ["energy"] = {
+    label = addonTable.Locales.ENERGY,
+    default = {
+      kind = "energy",
+      colors = {
+        energy = GetColor("fff700"),
+        mana = GetColor("00aaff"),
+        rage = GetColor("ff5500"),
+      }
+    },
+    entries = {
+      {
+        label = addonTable.Locales.ENERGY,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.energy = value
+        end,
+        getter = function(details)
+          return details.colors.energy
+        end,
+      },
+      {
+        label = addonTable.Locales.RAGE,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.rage = value
+        end,
+        getter = function(details)
+          return details.colors.rage
+        end,
+      },
+      {
+        label = addonTable.Locales.MANA,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.mana = value
+        end,
+        getter = function(details)
+          return details.colors.mana
+        end,
+      },
+    },
+  },
 }
 
 addonTable.CustomiseDialog.ColorsConfigOrder = {
@@ -874,6 +965,7 @@ addonTable.CustomiseDialog.ColorsConfigOrder = {
   "focus",
   "mouseover",
   "threat",
+  "inCombat",
   "delveType",
   "eliteType",
   "rarity",

@@ -10,10 +10,6 @@ local GetInterruptSpells = addonTable.Display.Utilities.GetInterruptSpells
 
 local transparency = {r = 1, g = 1, b = 1, a = 0}
 
-local function DoesOtherTankHaveAggro(unit)
-  return IsInRaid() and UnitGroupRolesAssigned(unit .. "target") == "TANK"
-end
-
 local IsTankRole = addonTable.Display.Utilities.IsTankRole
 local GetEliteType = addonTable.Display.Utilities.GetEliteType
 local GetDelveType = addonTable.Display.Utilities.GetDelveType
@@ -55,6 +51,7 @@ local kindToCallback = {
   quest = {"QuestInfoUpdate"},
   mouseover = {"MouseoverUpdate"},
   threat = {"CombatStatusChange", "RoleChange"},
+  inCombat = {"CombatStatusChange"},
 }
 local kindToCache = {
   interruptReady = {"cast"},
@@ -141,6 +138,9 @@ function addonTable.Display.RegisterForColorEvents(frame, settings, defaultColor
       end
     end
   end
+
+  -- Set the color at least once
+  frame:ColorEventHandler("FORCED")
 end
 
 local function SplitEvaluate(state, r1, g1, b1, a1, r2, g2, b2, a2)
@@ -184,11 +184,13 @@ function addonTable.Display.GetColor(settings, state, unit)
         break
       end
     elseif s.kind == "threat" then
-      local threat = addonTable.Display.Cache:Get(unit, "threat")
+      local threatDetails = addonTable.Display.Cache:Get(unit, "threat")
+      local threat = threatDetails.situation
+      local doesOtherTankHaveAggro = threatDetails.otherTankAggro
       local hostile = state.hostile
       local isTank = IsTankRole()
       if not state.isPlayer and (inRelevantThreatInstance or not s.instancesOnly) and (threat or (hostile and not s.combatOnly) or IsInCombatWith(unit)) and (not s.tanksOnly or isTank) then
-        if (isTank and (threat == 0 or threat == nil) and (not s.useOffTankColor or not DoesOtherTankHaveAggro(unit))) or (not isTank and threat == 3) then
+        if (isTank and (threat == 0 or threat == nil) and (not s.useOffTankColor or not doesOtherTankHaveAggro)) or (not isTank and threat == 3) then
           table.insert(colorQueue, {color = s.colors.warning})
           break
         elseif threat == 1 or threat == 2 then
@@ -197,7 +199,7 @@ function addonTable.Display.GetColor(settings, state, unit)
         elseif s.useSafeColor and ((isTank and threat == 3) or (not isTank and (threat == 0 or threat == nil))) then
           table.insert(colorQueue, {color = s.colors.safe})
           break
-        elseif s.useOffTankColor and isTank and (threat == 0 or threat == nil) and DoesOtherTankHaveAggro(unit) then
+        elseif s.useOffTankColor and isTank and (threat == 0 or threat == nil) and doesOtherTankHaveAggro then
           table.insert(colorQueue, {color = s.colors.offtank})
           break
         end
@@ -213,7 +215,7 @@ function addonTable.Display.GetColor(settings, state, unit)
     elseif s.kind == "eliteType" then
       if (inRelevantEliteInstance or not s.instancesOnly) and not addonTable.Display.Utilities.IsNeutralUnit(unit) then
         local t = GetEliteType(unit, s.applyCasterAlways)
-        if t then
+        if t and s.enabled[t] then
           table.insert(colorQueue, {color = s.colors[t]})
           break
         end
@@ -221,7 +223,7 @@ function addonTable.Display.GetColor(settings, state, unit)
     elseif s.kind == "delveType" then
       if (inRelevantDelveInstance and s.delves or not inRelevantThreatInstance and s.outsideInstances) and not addonTable.Display.Utilities.IsNeutralUnit(unit) then
         local t = GetDelveType(unit)
-        if t then
+        if t and s.enabled[t] then
           table.insert(colorQueue, {color = s.colors[t]})
           break
         end
@@ -277,7 +279,10 @@ function addonTable.Display.GetColor(settings, state, unit)
         notInterruptible = channelInfo[7]
       end
       state.frequentUpdater.interruptReady = nil
-      if notInterruptible ~= nil then
+      if castInfo[1] or channelInfo[1] then
+        if notInterruptible == nil then
+          notInterruptible = false
+        end
         local interruptSpells = GetInterruptSpells()
         state.frequentUpdater.interruptReady = true
         if C_Spell.GetSpellCooldownDuration then
@@ -285,7 +290,7 @@ function addonTable.Display.GetColor(settings, state, unit)
             local duration = C_Spell.GetSpellCooldownDuration(spellID)
             table.insert(colorQueue, {state = {{value = duration:IsZero()}, {value = notInterruptible, invert = true}}, color = s.colors.ready})
           end
-        elseif notInterruptible == false then
+        elseif notInterruptible ~= true then
           local any = false
           for _, spellID in ipairs(interruptSpells) do
             local cooldownInfo = C_Spell.GetSpellCooldown(spellID)
@@ -308,11 +313,14 @@ function addonTable.Display.GetColor(settings, state, unit)
       if notInterruptible == nil then
         notInterruptible = channelInfo[7]
       end
-      state.frequentUpdater.interruptReady = nil
-      if notInterruptible ~= nil then
+      state.frequentUpdater.interruptNotReady = nil
+      if castInfo[1] or channelInfo[1] then
+        if notInterruptible == nil then
+          notInterruptible = false
+        end
         local spells = GetInterruptSpells()
         if #spells > 0 then
-          state.frequentUpdater.interruptReady = true
+          state.frequentUpdater.interruptNotReady = true
           if C_Spell.GetSpellCooldownDuration then
             local conditions = {{value = notInterruptible, invert = true}}
             for _, spellID in ipairs(spells) do
@@ -320,7 +328,7 @@ function addonTable.Display.GetColor(settings, state, unit)
               table.insert(conditions, {value = duration:IsZero(), invert = true})
             end
             table.insert(colorQueue, {state = conditions, color = s.colors.notReady})
-          elseif notInterruptible == false then
+          elseif notInterruptible ~= true then
             local any = false
             for _, spellID in ipairs(spells) do
               local cooldownInfo = C_Spell.GetSpellCooldown(spellID)
@@ -414,19 +422,20 @@ function addonTable.Display.GetColor(settings, state, unit)
           local percent = UnitHealth(unit) / UnitHealthMax(unit)
           if percent <= addonTable.Display.Utilities.GetExecuteRange() then
             table.insert(colorQueue, {color = s.colors.execute})
+            break
           end
         end
       end
+    elseif s.kind == "inCombat" then
+      if IsInCombatWith(unit) then
+        table.insert(colorQueue, {color = s.colors.inCombat})
+        break
+      end
     elseif s.kind == "energy" then
-      local _, kind = UnitPowerType(unit)
-      if kind == "MANA" then
-        table.insert(colorQueue, {color = s.colors.mana})
-        break
-      elseif kind == "RAGE" then
-        table.insert(colorQueue, {color = s.colors.rage})
-        break
-      elseif kind == "ENERGY" then
-        table.insert(colorQueue, {color = s.colors.energy})
+      local kind = UnitPowerType(unit)
+      local mapped = addonTable.Constants.PowerMap[kind]
+      if s.colors[mapped] then
+        table.insert(colorQueue, {color = s.colors[mapped]})
         break
       end
     end

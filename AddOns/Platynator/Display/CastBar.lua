@@ -19,7 +19,7 @@ function addonTable.Display.CastBarMixin:SetUnit(unit)
     self.interrupted = nil
 
     addonTable.Display.Cache:RegisterCallback(self.unit, "cast", function(state)
-      if state.interrupterGUID then
+      if state.interrupted then
         self:ApplyInterrupt()
       elseif state.cast[1] == nil and state.channel[1] == nil then
         self:ClearCast()
@@ -35,7 +35,6 @@ function addonTable.Display.CastBarMixin:SetUnit(unit)
     self:ApplyCasting(addonTable.Display.Cache:Get(self.unit, "cast"))
 
     addonTable.Display.RegisterForColorEvents(self, self.details.autoColors)
-    self:SetColor(addonTable.Display.GetColor(self.details.autoColors, self.colorState, self.unit))
   else
     self:StripInternal()
   end
@@ -120,7 +119,7 @@ if UnitCastingDuration then
     self.isChanneled = state.channel[1] ~= nil
     local isEmpowered = state.channel[9] == true
     local castDuration
-    if self.isEmpowered then
+    if isEmpowered then
       castDuration = UnitEmpoweredChannelDuration(self.unit, true)
     elseif self.isChanneled then
       castDuration = UnitChannelDuration(self.unit)
