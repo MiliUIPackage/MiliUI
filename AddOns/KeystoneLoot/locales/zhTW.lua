@@ -58,10 +58,13 @@ L["Must have"] = "必須取得";
 L["Best in Slot"] = "最佳裝備";
 
 -- loot_reminder_frame.lua
-L["Correct loot specialization set?"] = "戰利品專精的設定是否正確？";
-L["+1 item dropping for all specs."] = "+1 件物品對所有專精掉落。";
-L["+%d items dropping for all specs."] = "+%d 件物品對所有專精掉落。";
-L["%s has a smaller loot pool than %s"] = "%s的戰利品池比%s更小。";
+L["Correct loot specialization set?"] = "戰利品專精設定正確嗎？";
+L["+1 item dropping for all specs."] = "+1 件所有專精共通的掉落物品。";
+L["+%d items dropping for all specs."] = "+%d 件所有專精共通的掉落物品。";
+L["%s has a smaller loot pool than %s"] = "%s 的戰利品池比 %s 小。";
 
 -- minimap_button.lua
 L["Left click: Open overview"] = "左鍵點擊：開啟概覽";
+
+-- icon_button.lua
+L["Voidcore used"] = "使用虛無之核";

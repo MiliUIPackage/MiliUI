@@ -18,7 +18,8 @@ function Voidcore:IsEligible(itemId)
 end
 
 function Voidcore:IsUsed(itemId)
-    return DB:Get("voidcore")[itemId];
+    local voidcores = DB:Get("voidcore");
+    return voidcores ~= nil and voidcores[itemId] == true;
 end
 
 function Voidcore:SetUsed(itemId, value)
