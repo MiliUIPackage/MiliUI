@@ -69,9 +69,6 @@ local ModifyType = {
 	Overwrite = 2,
 };
 
-local SlashCmd = {};
---SlashCmd.DrawerMacro = API.GetSlashSubcommand("DrawerMacro");
-
 
 local function AddExtraLineToMacroBody(extraLine, body)
 	extraLine = "\n\n"..extraLine;
@@ -164,6 +161,7 @@ EL.macroIndexMin2 = EL.macroIndexMax1 + 1;
 EL.maxCharacterMacros = MAX_CHARACTER_MACROS or 30;
 EL.macroIndexMax2 = EL.macroIndexMin2 + EL.maxCharacterMacros;
 EL.macroEvents = {};
+EL.macroIndexCommandInfo = {};
 
 
 function EL:CheckSupportedMacros()
@@ -173,16 +171,18 @@ function EL:CheckSupportedMacros()
 		self:RegisterEvent("PLAYER_ENTERING_WORLD");
 	end
 
-	for command, commandData in pairs(PlumberMacros) do
-		commandData.currentState = nil;
+	for command, commandInfo in pairs(PlumberMacros) do
+		commandInfo.currentState = nil;
 	end
 
 	self.macroEvents = {};
 	self.activeCommands = {};
+	self.macroIndexCommandInfo = {}; -- [macroIndex] = commandInfo
+
 	MacroInterpreter.macroCommand = {};
 
 	local body;
-	local command;
+	local command, commandInfo;
 	local n = 0;
 	local numAccountMacros, numCharacterMacros = GetNumMacros();
 
@@ -201,16 +201,28 @@ function EL:CheckSupportedMacros()
 				body = GetMacroBody(index);
 				if body then
 					command = match(body, "#plumber:(%w+)");
-					if command and PlumberMacros[command] then
+					commandInfo = command and PlumberMacros[command];
+					if commandInfo then
 						n = n + 1;
+
+						local overrideCommand;
+
+						if commandInfo.shouldUseDrawer and commandInfo.shouldUseDrawer() then
+							overrideCommand = "drawer";
+							self.macroIndexCommandInfo[index] = commandInfo;
+						end
+
+						if overrideCommand then
+							command = overrideCommand;
+						end
 
 						if not self.activeCommands[command] then
 							self.activeCommands[command] = {};
 						end
 						tinsert(self.activeCommands[command], index);
 
-						if PlumberMacros[command].events then
-							for _, event in ipairs(PlumberMacros[command].events) do
+						if commandInfo.events then
+							for _, event in ipairs(commandInfo.events) do
 								if not self.macroEvents[event] then
 									self.macroEvents[event] = {};
 								end
@@ -303,23 +315,23 @@ function EL:UpdateMacros(commands)
 		local inCombat = InCombatLockdown();
 		local anyChange, newState, returns;
 		local name, icon, body, anyEdit;
-		local commandData;
+		local commandInfo;
 		local prefix;
 
 		local updateList = false;
 
 		for command, list in pairs(commands) do
-			commandData = PlumberMacros[command];
-			newState = commandData.conditionFunc();
-			if commandData.alwaysUpdate or newState ~= commandData.currentState then
+			commandInfo = PlumberMacros[command];
+			newState = commandInfo.conditionFunc();
+			if commandInfo.alwaysUpdate or newState ~= commandInfo.currentState then
 				anyChange = true;
 				if not inCombat then
-					commandData.currentState = newState;
+					commandInfo.currentState = newState;
 					returns = nil;
 					if newState then
-						returns = commandData.trueReturn;
+						returns = commandInfo.trueReturn;
 					else
-						returns = commandData.falseReturn;
+						returns = commandInfo.falseReturn;
 					end
 
 					for _, index in ipairs(list) do
@@ -341,7 +353,7 @@ function EL:UpdateMacros(commands)
 								end
 							end
 
-							if commandData.type == ModifyType.Add and commandData.addFunc then
+							if commandInfo.type == ModifyType.Add and commandInfo.addFunc then
 								prefix = "#plumber:"..command;
 								body = gsub(body, ".+##", "");
 								body = gsub(body, prefix, "");
@@ -349,7 +361,7 @@ function EL:UpdateMacros(commands)
 									body = gsub(body, "^\n", "");
 								end
 								if newState then
-									local extraLine = commandData.addFunc();
+									local extraLine = commandInfo.addFunc();
 									body = prefix.."\n"..extraLine.."\n##\n"..body;
 								else
 									body = prefix.."\n"..body;
@@ -357,8 +369,8 @@ function EL:UpdateMacros(commands)
 								anyEdit = true;
 							end
 
-							if commandData.writeFunc then
-								local _body, _icon = commandData.writeFunc(body);
+							if (commandInfo.writeFunc) and ((not commandInfo.shouldUseDrawer) or commandInfo.shouldUseDrawer()) then
+								local _body, _icon = commandInfo.writeFunc(body);
 								--print(math.random(100), _body)    --debug
 								if _body then
 									body = _body;
@@ -427,11 +439,23 @@ function EL:UpdateDrawers()
 		local checkUsability = true;
 		local hideUnusable = HIDE_UNUSABLE;
 		local alwaysShowConsumables = not UPDATE_FREQUENTLY;
+		local commandInfo;
 
 		for _, macroIndex in ipairs(drawers) do
-			name, icon, body = GetMacroInfo(macroIndex);
-			drawerInfo = MacroInterpreter:GetDrawerInfo(body, checkUsability, hideUnusable, alwaysShowConsumables);
+			commandInfo = self.macroIndexCommandInfo[macroIndex];
+
+			if commandInfo and commandInfo.shouldUseDrawer() and commandInfo.getOverrideDrawerInfo then
+				drawerInfo = commandInfo.getOverrideDrawerInfo();
+				name = commandInfo.name;
+				body, icon = commandInfo.writeFunc();
+				body = "#plumber:"..commandInfo.command;
+			else
+				name, icon, body = GetMacroInfo(macroIndex);
+				drawerInfo = MacroInterpreter:GetDrawerInfo(body, checkUsability, hideUnusable, alwaysShowConsumables);
+			end
+
 			if drawerInfo then
+				--print(name, #drawerInfo)
 				handlerName = SecureSpellFlyout:AddActionsAndGetHandler(drawerInfo);
 				if handlerName then
 					body, anyChange = SecureSpellFlyout:RemoveClickHandlerFromMacro(body);
@@ -502,13 +526,13 @@ function EL:RequestCheckMacros(delay)
 end
 
 function EL:LoadSpellAndItem()
-	for _, commandData in pairs(PlumberMacros) do
-		if commandData.spellID then
-			RequestLoadSpellData(commandData.spellID);
-			IsMacroSpell[commandData.spellID] = true;
+	for _, commandInfo in pairs(PlumberMacros) do
+		if commandInfo.spellID then
+			RequestLoadSpellData(commandInfo.spellID);
+			IsMacroSpell[commandInfo.spellID] = true;
 		end
-		if commandData.itemID then
-			RequestLoadItemDataByID(commandData.itemID);
+		if commandInfo.itemID then
+			RequestLoadItemDataByID(commandInfo.itemID);
 		end
 	end
 end
@@ -949,7 +973,7 @@ do  --MacroInterpreter
 		end
 	end
 
-	function MacroInterpreter:GetDrawerInfo(body, checkUsability, hideUnusable, alwaysShowConsumables)
+	function MacroInterpreter:GetDrawerInfo(body, checkUsability, hideUnusable, alwaysShowConsumables, forEditor)
 		if not body then return end;
 		if not find(body, "#plumber:drawer") then return end;
 
@@ -1058,12 +1082,28 @@ do  --MacroInterpreter
 
 			if not processed then
 				if find(line, "/home") then
-					if addon.Housing then
-						processed = true;
-						icon, macroText, name = addon.Housing.GetDynamicTeleportAction();
-						id = -1;
-						actionType = "teleportHome";
-						usable = true;
+					local h = addon.Housing;
+					if h then
+						if h.DoesPlayerHaveMultipleHomes() and not forEditor then
+							-- Avoid showing two teleportHome buttons if it's the editor that requires the drawerInfo
+							processed = true;
+							actionType = nil; -- so the action won't be duplicated by the end
+
+							if not tbl then
+								tbl = {};
+							end
+
+							for _, info in ipairs(h.GetOverrideDrawerInfo_TeleportHome()) do
+								n = n + 1;
+								tbl[n] = info;
+							end
+						else
+							processed = true;
+							icon, macroText, name = h.GetDynamicTeleportAction();
+							id = -1;
+							actionType = "teleportHome";
+							usable = true;
+						end
 					end
 				end
 			end
@@ -1122,15 +1162,15 @@ do  --MacroInterpreter
 						local _spellID = 150544;
 						name = L["Random Favorite Mount"];
 						icon = GetSpellTexture(_spellID);
+						usable = true;
 						macroText = "/run C_MountJournal.SummonByID(0)";
 						id = _spellID;
 					else
-						local  _name, _spellID, _icon, _isActive, _isUsable, _sourceType, _isFavorite, _isFactionSpecific, _faction, _shouldHideOnChar, _isCollected = GetMountInfoByID(id);
+						local _name, _spellID, _icon, _isActive, _isUsable, _sourceType, _isFavorite, _isFactionSpecific, _faction, _shouldHideOnChar, _isCollected = GetMountInfoByID(id);
+						name = GetSpellName(_spellID) or _name;
 						icon = _icon;
-						usable = _isCollected;
-						name = _name;
-						macroText = _name and gsub(line, "mount:%d+", _name) or line;
-						actionType = "spell";
+						usable = _isCollected and not _shouldHideOnChar;
+						macroText = format("/run C_MountJournal.SummonByID(%d)", id);
 						id = _spellID;
 					end
 				elseif actionType == "profession" then
@@ -1619,7 +1659,8 @@ do  --Editor Setup
 		EditorSetup.ReceptorFrame:Hide();
 		EditorSetup.IconButtonFrame:Show();
 
-		local drawerInfo = MacroInterpreter:GetDrawerInfo(body);
+		local forEditor = true;
+		local drawerInfo = MacroInterpreter:GetDrawerInfo(body, nil, nil, nil, forEditor);
 		if drawerInfo and #drawerInfo > 0 then
 			local refresh = false;
 
@@ -1840,6 +1881,8 @@ do  --DrawerUpdator
 		SecureSpellFlyout:Close();
 		--print("DRAWER UPDATED")
 	end
+
+	CallbackRegistry:Register("Macro.UpdateDrawers", DrawerUpdator.RequestUpdate, DrawerUpdator);
 end
 
 
@@ -1874,6 +1917,8 @@ do  --Settings Registry
 			UpdateAfterSettingsChanged();
 		end
 	end);
+
+	CallbackRegistry:Register("Macro.UpdateMacros", UpdateAfterSettingsChanged);
 end
 
 

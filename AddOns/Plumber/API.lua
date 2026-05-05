@@ -726,11 +726,7 @@ do  -- Tooltip Parser
 			local n = 0;
 			for _, creatureID in ipairs(creatures) do
 				name = GetCreatureName(creatureID);
-				-- Midnight: name may be a secret string; callbacks can't compare/index
-				-- secret strings, so drop them silently (retrying would yield secret again)
-				if name and issecretvalue(name) then
-					-- skip
-				elseif name and name ~= "" then
+				if name and name ~= "" then
 					callback(creatureID, name);
 				else
 					if not failedCreatures then
@@ -743,9 +739,7 @@ do  -- Tooltip Parser
 		else
 			--when creatures is creatureID (number)
 			local name = GetCreatureName(creatures);
-			if name and issecretvalue(name) then
-				-- skip secret name
-			elseif name and name ~= "" then
+			if name and name ~= "" then
 				callback(creatures, name);
 			else
 				failedCreatures = creatures;
@@ -1515,7 +1509,7 @@ do  -- Instance -- Map
 
 
 	function API.IsInPvP()
-		if C_PvP.IsActiveBattlefield() then
+		if C_PvP.IsActiveBattlefield and C_PvP.IsActiveBattlefield() then
 			return true
 		end
 		local _, instanceType = GetInstanceInfo();
@@ -1524,13 +1518,10 @@ do  -- Instance -- Map
 
 
 	function API.IsPlayerInInstance()
-		local state = IsInInstance();
-		if state then
-			return true
-		end
-
 		local _, instanceType = GetInstanceInfo();
-		if instanceType == "scenario" then
+		if (not instanceType) or instanceType == "none" then
+			return false
+		else
 			return true
 		end
 	end
@@ -1621,6 +1612,8 @@ do  -- Currency
 	CurrencyDataProvider.icons = {};
 	CurrencyDataProvider.qualities = {};
 	CurrencyDataProvider.shouldDisplayForUI = {};
+	CurrencyDataProvider.PlayerHasMaxWeeklyQuantity = C_CurrencyInfo.PlayerHasMaxWeeklyQuantity;
+	CurrencyDataProvider.PlayerHasMaxQuantity = C_CurrencyInfo.PlayerHasMaxQuantity;
 
 	function CurrencyDataProvider:CacheCurrencyInfo(currencyID, info)
 		self.names[currencyID] = info.name;
@@ -1677,17 +1670,75 @@ do  -- Currency
 		local info = GetCurrencyInfo(currencyID);
 		if info then
 			if info.useTotalEarnedForMaxQty then
-				return info.totalEarned, info.maxQuantity
+				return info.totalEarned, info.maxQuantity;
 			elseif info.maxWeeklyQuantity and info.maxWeeklyQuantity > 0 and info.quantityEarnedThisWeek then
-				return info.quantityEarnedThisWeek, info.maxWeeklyQuantity
+				return info.quantityEarnedThisWeek, info.maxWeeklyQuantity;
 			end
 		end
 	end
 
-	function API.IsCurrencyFullyEarned(currencyID)
-		local earned, max = API.GetCurrencyEarnedAndCap(currencyID);
-		if earned and max then
-			return earned >= max
+	-- This API is false
+	-- function API.IsCurrencyUnused(currencyID)
+	-- 	local info = GetCurrencyInfo(currencyID);
+	-- 	if info and not info.isTypeUnused then
+	-- 		return false;
+	-- 	else
+	-- 		return true;
+	-- 	end
+	-- end
+
+	function API.ClearUnusedCurrencyCache()
+		CurrencyDataProvider.unusedCurrency = nil;
+	end
+
+	function API.IsCurrencyUnused(currencyID)
+		if not CurrencyDataProvider.unusedCurrency then
+			CurrencyDataProvider.unusedCurrency = {};
+			local GetCurrencyListInfo = C_CurrencyInfo.GetCurrencyListInfo;
+
+			if GetCurrencyListInfo and C_CurrencyInfo.GetCurrencyListSize then
+				local size = C_CurrencyInfo.GetCurrencyListSize();
+				if size < 1 then return end;
+
+				local index = size;
+				local info = GetCurrencyListInfo(index);
+				local dirtyHeaderIndex;
+
+				if info.isHeader and info.name == UNUSED and not info.isHeaderExpanded then
+					dirtyHeaderIndex = index;
+					C_CurrencyInfo.ExpandCurrencyList(index, true);
+				end
+
+				size = C_CurrencyInfo.GetCurrencyListSize();
+
+				for i = size, 1, -1 do
+					info = GetCurrencyListInfo(i);
+					if info and info.isTypeUnused then
+						CurrencyDataProvider.unusedCurrency[info.currencyID] = true;
+					else
+						break
+					end
+				end
+
+				if dirtyHeaderIndex then
+					C_CurrencyInfo.ExpandCurrencyList(dirtyHeaderIndex, false);
+				end
+			end
+		end
+
+		return CurrencyDataProvider.unusedCurrency[currencyID]
+	end
+
+	if CurrencyDataProvider.PlayerHasMaxWeeklyQuantity then
+		function API.IsCurrencyFullyEarned(currencyID)
+			return CurrencyDataProvider.PlayerHasMaxWeeklyQuantity(currencyID) or CurrencyDataProvider.PlayerHasMaxQuantity(currencyID);
+		end
+	else
+		function API.IsCurrencyFullyEarned(currencyID)
+			local earned, max = API.GetCurrencyEarnedAndCap(currencyID);
+			if earned and max then
+				return earned >= max;
+			end
 		end
 	end
 
@@ -2101,7 +2152,12 @@ do  -- Reputation
 			local currentValue = totalEarned - paragonLevel * threshold;
 			return currentValue, threshold, paragonLevel
 		end
-		return 0, 1, 0
+
+		if C_Reputation.IsFactionParagon and C_Reputation.IsFactionParagon(factionID) then
+			return 0, 1, 0;
+		else
+			return 1, 1, 0;
+		end
 	end
 	API.GetParagonValuesAndLevel = GetParagonValuesAndLevel;
 
@@ -3507,6 +3563,19 @@ do  -- Tooltip
 		tooltip:AddTexture(icon, TextureInfoTable);
 
 		return true
+	end
+
+	function API.AddCurrencyToTooltip(tooltip, currencyID)
+		local info = C_CurrencyInfo.GetCurrencyInfo(currencyID);
+		if info then
+			local a;
+			if info.quantity > 0 then
+				a = 1;
+			else
+				a = 0.5;
+			end
+			tooltip:AddDoubleLine(info.name, string.format("%s|T%s:0:0|t", BreakUpLargeNumbers(info.quantity), info.iconFileID), a, a, a, a, a, a);
+		end
 	end
 
 

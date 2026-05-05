@@ -11,7 +11,6 @@ local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo;
 local GetItemIconByID = C_Item.GetItemIconByID;
 local GetItemCount = C_Item.GetItemCount;
 local GetItemNameByID = C_Item.GetItemNameByID;
-local BreakUpLargeNumbers = BreakUpLargeNumbers;
 
 
 local BUTTON_WIDTH, BUTTON_HEIGHT = 240, 24;
@@ -108,17 +107,11 @@ do
 			if quantity > 0 or isOverflow then
 				self.anyOwned = true;
 				self.Name:SetTextColor(0.922, 0.871, 0.761);
-				self.Count:SetText(BreakUpLargeNumbers(quantity));
-				if isOverflow then
-					self.Count:SetTextColor(0.098, 1.000, 0.098);
-				else
-					self.Count:SetTextColor(0.88, 0.88, 0.88);
-				end
+				self:SetCount(quantity, isOverflow);
 			else
 				self.anyOwned = false;
 				self.Name:SetTextColor(0.5, 0.5, 0.5);
-				self.Count:SetTextColor(0.5, 0.5, 0.5);
-				self.Count:SetText(0);
+				self:SetCount(quantity);
 			end
 
 			return true
@@ -225,21 +218,21 @@ do
 end
 
 local function CreateButton(parent)
-	local f = CreateFrame("Button", nil, parent);
+	local f = CreateFrame("Button", nil, parent, "PlumberStrikethroughNumberTemplate");
 	f:SetSize(BUTTON_WIDTH, BUTTON_HEIGHT);
 	API.Mixin(f, CurrencyButtonMixin);
 
-	f.Icon = f:CreateTexture(nil, "OVERLAY");
+	f.Icon = f:CreateTexture(nil, "ARTWORK");
 	f.Icon:SetSize(20, 20);
 	f.Icon:SetPoint("RIGHT", f, "RIGHT", -8, 0);
 
-	f.Count = f:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+	f.breakupLargeNumbers = true;
 	f.Count:SetPoint("RIGHT", f, "RIGHT", -32, 0);
 	f.Count:SetJustifyH("RIGHT");
 	f.Count:SetTextColor(1, 1, 1);
 	f.Count:SetText("0");
 
-	f.Name = f:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+	f.Name = f:CreateFontString(nil, "ARTWORK", "GameFontNormal");
 	f.Name:SetPoint("LEFT", f, "LEFT", 8, 0);
 	f.Name:SetPoint("RIGHT", f.Count, "LEFT", -20, 0);
 	f.Name:SetJustifyH("LEFT");
@@ -274,6 +267,7 @@ do
 	end
 
 	function CurrencyListMixin:OnShow()
+		API.ClearUnusedCurrencyCache();
 		self:FullUpdate();
 	end
 
@@ -319,6 +313,7 @@ do
 		self.anyCurrency = nil;
 		self.anyItem = nil;
 		self.anyRep = nil;
+		self.inactiveCurrencyIDs = nil;
 
 		local n = 0;
 		local content = {};
@@ -350,6 +345,16 @@ do
 				end
 			elseif v.shownIfOwned then
 				valid = GetResourcesQuantity(v) > 0;
+			end
+
+			if valid and v.currencyID then
+				if API.IsCurrencyUnused(v.currencyID) then
+					valid = false;
+					if not self.inactiveCurrencyIDs then
+						self.inactiveCurrencyIDs = {};
+					end
+					table.insert(self.inactiveCurrencyIDs, v.currencyID);
+				end
 			end
 
 			if valid then
@@ -457,6 +462,13 @@ do
 end
 
 
+local function CategoryButtonOnEnterFunc(listCategoryButton)
+	if MainFrame then
+		LandingPageUtil.DisplayInactiveCurrencies(listCategoryButton, MainFrame.inactiveCurrencyIDs);
+	end
+end
+
+
 function LandingPageUtil.CreateCurrencyList(parent)
 	local f = CreateFrame("Frame", nil, parent);
 	MainFrame = f;
@@ -538,14 +550,29 @@ function LandingPageUtil.CreateCurrencyList(parent)
 	f:SetScript("OnHide", f.OnHide);
 	f:SetScript("OnEvent", f.OnEvent);
 
-	return f, height
+	return f, height, CategoryButtonOnEnterFunc
+end
+
+
+local function UpdateIfVisible()
+	if MainFrame and MainFrame:IsVisible() then
+		MainFrame:FullUpdate();
+	end
 end
 
 CallbackRegistry:Register("LandingPage.SetResourceList", function(list)
 	if list then
 		ResourceList = list;
-		if MainFrame and MainFrame:IsVisible() then
-			MainFrame:FullUpdate();
-		end
+		UpdateIfVisible();
 	end
 end);
+
+CallbackRegistry:Register("UnusedCurrencyChanged", UpdateIfVisible);
+
+
+if TokenFramePopup and TokenFramePopup.InactiveCheckbox then
+	TokenFramePopup.InactiveCheckbox:HookScript("OnClick", function()
+		API.ClearUnusedCurrencyCache();
+		CallbackRegistry:Trigger("UnusedCurrencyChanged");
+	end);
+end

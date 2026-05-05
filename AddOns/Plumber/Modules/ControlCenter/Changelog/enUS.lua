@@ -8,7 +8,270 @@ local L = addon.L;
 local changelogs = addon.ControlCenter.changelogs;
 
 
+changelogs[10901] = {
+	{
+		type = "date",
+		versionText = "1.9.1 e",
+		timestamp = 1777900000,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Teleport Home Macro: Now allows you to teleport to your house in the opposing faction when already inside a housing plot.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Instance Difficulty Selector: Fixed an issue where the UI failed to appear at the entrance of Vault of the Incarnates.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Group Inviter Info: Fixed an error that occurred when receiving a group invite while in combat.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "For Enhance QoL Bags users: Plumber\'s Backpack Item Tracker now looks nicer when both addons are enabled. Special thanks to R41Z0R.",
+	},
+
+	{
+		type = "br",
+	},
+	{
+		type = "br",
+	},
+
+	{
+		type = "date",
+		versionText = "1.9.1 b-d",
+		timestamp = 1777500000,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Instance Difficulty Selector: The lockout tooltip will inform you if the difficulty cannot be changed due to a boss being defeated. Note: Applies only to pre-Siege of Orgrimmar raids.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Queue Status: It now works on queues that have no estimated wait time.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Action Bar Art: Added a new module to fix the issue where the Action Bar Art (gryphons and wyverns) reappears unexpectedly after Hiding/Showing UI or exiting House Editor or vehicles.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Outfit Collection Quick Access: You can once again Lock Appearance using the minimized outfit list.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Plumber Home Macro: If you have two houses, clicking the Teleport Home macro will now open a pop-up to let you choose.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Nameplate Quest Indicator: Fixed an error that occurred whenever you hovered over an NPC in Delves or Ritual Sites.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Fixed a critical issue that prevented this addon from loading properly if you logged in during combat or in an instance.",
+	},
+
+	{
+		type = "br",
+	},
+	{
+		type = "br",
+	},
+
+	{
+		type = "date",
+		versionText = "1.9.1",
+		timestamp = 1776700000,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Expansion Summary: You can hide unwanted currencies by setting them as Unused in WoW's currency UI.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Drawer Macro: If you own two houses, \"Teleport Home\" will appear as two buttons on the pop-up, allowing you to teleport to the house of your choice.",
+	},
+
+	{
+		type = "tocVersionCheck",
+		minimumTocVersion = 120005,
+		breakpoint = true,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Transmog Ensembles: This module will display your collection progress on Void-Touched Cache\'s tooltips.",
+	},
+};
+
+
 changelogs[10900] = {
+	{
+		type = "date",
+		versionText = "1.9.0 e",
+		timestamp = 1775800000,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Nameplate Soft Target: You can once again enable a radial cast bar on your soft target's nameplate.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Nameplate Quest Indicator: When using Blizzard Nameplate, the Target Marker Icon should no longer overlap with the quest marker.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Expansion Summary, Factions: When a Silvermoon Court subfaction reaches its max reputation, its progress bar will be full instead of empty.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Expansion Summary, Activities: Show \"Research Console: Exploring the Void\" on the list if there are more \"Uncontaminated Void Samples\" to collect.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Plumber Drawer Macro: Fixed an issue where Paladins were unable to summon Charger from a Drawer flyout.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "For 12.0.5: The minimized outfit list will become a standalone UI instead of a modification of the base Transmog Frame.",
+	},
+
+	{
+		type = "br",
+	},
+	{
+		type = "br",
+	},
+
+	{
+		type = "date",
+		versionText = "1.9.0 c-d",
+		timestamp = 1775400000,
+	},
+
+	{
+		type = "h1",
+		text = L["ModuleName PreyQuestSuperTrack"],
+		dbKey = "PreyQuestSuperTrack",
+	},
+
+	{
+		type = "Checkbox",
+		dbKey = "PreyQuestSuperTrack",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = L["ModuleDescription PreyQuestSuperTrack"],
+	},
+
+	{
+		type = "img",
+		dbKey = "PreyQuestSuperTrack",
+	},
+
+	{
+		type = "br",
+	},
+
+	{
+		type = "h1",
+		text = L["ModuleName NewExpansionLandingPage"],
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Fixed an issue where the Dawncrests showed their total earned quantities this season instead of the currently owned numbers.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Added the 28 Weekly Bountiful Delves Caps to the Activities Tab. Note: This entry only becomes visible when you are about to reach the weekly cap.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Added world bosses to the Activities Tab.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "If a currency has reached its cap and the remaining quantity is zero, it will show 0 with a strikethrough effect instead of in green color.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Shard of Dundun and Remnant of Anguish will no longer be removed from the list when you have none.",
+	},
+
+	{
+		type = "br",
+	},
+
+	{
+		type = "h1",
+		text = MISCELLANEOUS,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Loot Window: When \"Show Any Currency Changes\" is enabled, any currency earned while in a battleground will be displayed when you leave.",
+	},
+
+	{
+		type = "br",
+	},
+	{
+		type = "br",
+	},
+
 	{
 		type = "date",
 		versionText = "1.9.0 b",

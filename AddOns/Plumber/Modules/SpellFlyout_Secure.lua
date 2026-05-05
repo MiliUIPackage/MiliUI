@@ -322,7 +322,7 @@ do  --VisualButtonMixin
 			--Regular mounts have been converted to spells
 			self:SetMount(self.id);
 		elseif self.actionType == "teleportHome" then
-			self:SetTeleportHome();
+			self:SetTeleportHome(self.id);
 		elseif self[action.actionType] then
 			self[action.actionType](self, action.id);
 		end
@@ -506,10 +506,17 @@ do  --VisualButtonMixin
 		self.Icon:SetTexture(GetSpellTexture(spellID));
 	end
 
-	function VisualButtonMixin:SetTeleportHome()
+	function VisualButtonMixin:SetTeleportHome(id)
 		self.tooltipMethod = nil;
 		self.tooltipText = nil;
-		self.tooltipFunc = addon.Housing and addon.Housing.SetupTeleportTooltip;
+		self.id = id;
+		local h = addon.Housing;
+		if h then
+			self.tooltipFunc = h.SetupTeleportTooltip;
+			h.SetupActionButtonCooldown(self, self.id);
+		else
+			self.tooltipFunc = nil;
+		end
 	end
 
 	function SpellFlyout:PopulateButtonMixin(externalMixin)
@@ -724,8 +731,6 @@ do  --SecureControllerPool
 					handler:SetAttribute("customMacroText"..i, action.macroText);
 				end
 			end
-		else
-
 		end
 
 		handler:SetScript("PreClick", function()

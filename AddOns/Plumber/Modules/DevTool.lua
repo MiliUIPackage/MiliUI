@@ -407,6 +407,7 @@ if true then    --Secret Debug
 
 	local CVars = {
 		"ChallengeMode",
+		"Chat",
 		"Combat",
 		"Encounter",
 		"Map",
@@ -414,7 +415,7 @@ if true then    --Secret Debug
 	};
 
 	for _, v in ipairs(CVars) do
-		C_CVar.SetCVar("secret"..v.."RestrictionsForced", value);
+		C_CVar.SetCVar("addon"..v.."RestrictionsForced", value);
 	end
 end
 
@@ -425,6 +426,16 @@ do
 				local oldText = f:GetText();
 				local speaker = string.match(oldText, "[^:]+", 1);
 				f:SetText(string.format("%s: %s", speaker, newText));
+			end
+		end
+	end
+end
+
+do --Enable ExpansionLandingButton on PTR
+	if IsTestBuild() then
+		function C_PlayerInfo.IsExpansionLandingPageUnlockedForPlayer(index)
+			if index == LE_EXPANSION_MIDNIGHT then
+				return true
 			end
 		end
 	end

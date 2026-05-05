@@ -764,6 +764,9 @@ L["Instruction Alt Click To Reset Instance"] = "Alt Right-Click: |cffffffffReset
 L["Instruction Link Progress In Chat"] = "<Shift click to post progress in chat>";
 L["Instance Name"] = "Instance Name";   --Dungeon/Raid Name
 L["EditMode Instruction InstanceDifficulty"] = "The frame width is affected by the number of available options.";
+L["Difficulty Locked To Format"] = "The instance is locked to |cffffffff%s|r due to boss kill.";
+L["Difficulty Locked To Current Alert"] = "The instance is locked to this difficulty due to boss kill.";
+L["Shared Difficulty Alert"] = "Defeating a boss will lock the instance to this difficulty.";
 
 
 --TransmogChatCommand
@@ -896,6 +899,11 @@ L["Prey Target Has Achievement"] = "This Prey target is a requirement for an une
 --PreyQuestSuperTrack
 L["ModuleName PreyQuestSuperTrack"] = "Prey: Target Waypoint";
 L["ModuleDescription PreyQuestSuperTrack"] = "Once your Prey target's location is revealed, clicking the Hunt Progress widget will also set a waypoint to that location.";
+
+
+--BlizzFixActionBarArt
+L["ModuleName BlizzFixActionBarArt"] = "Blitz Fix: Action Bar Art";
+L["ModuleDescription BlizzFixActionBarArt"] = "Fixed an issue where Action Bar Art (gryphons and wyverns) reappears unexpectedly after Hiding/Showing UI or exiting House Editor.";
 
 
 --Generic

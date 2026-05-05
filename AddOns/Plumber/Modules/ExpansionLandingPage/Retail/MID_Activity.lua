@@ -1,5 +1,6 @@
 local _, addon = ...
 local L = addon.L;
+local API = addon.API;
 local LandingPageUtil = addon.LandingPageUtil;
 local ActivityUtil = addon.ActivityUtil;
 
@@ -84,6 +85,89 @@ do
 	function GildedStashTracker.IsActivityCompleted()
 		local current, max = GildedStashTracker:GetCrestStashProgess();
 		return current and max and current >= max;
+	end
+end
+
+
+local DelvesWarbandCap = {};
+do
+	DelvesWarbandCap.shownThreshold = 4;
+	DelvesWarbandCap.weeklyCap = 28;
+
+	function DelvesWarbandCap:GetNumEarned(normalize)
+		local info = C_CurrencyInfo.GetCurrencyInfo(3142);
+		if info and info.maxQuantity and info.maxQuantity > 0 then
+			--info.quantity, info.maxQuantity = 24 + self.weeklyCap, 2*self.weeklyCap;	--debug
+
+			local delta = info.maxQuantity - info.quantity;
+			if delta <= self.shownThreshold then
+				local current = info.quantity;
+				local max = info.maxQuantity;
+				if normalize then
+					while max > self.weeklyCap and current > self.weeklyCap do
+						max = max - self.weeklyCap;
+						current = current - self.weeklyCap;
+					end
+					delta = max - current;
+				end
+				return current;
+			end
+		end
+	end
+
+	function DelvesWarbandCap.ShouldShowActivity()
+		return DelvesWarbandCap:GetNumEarned() ~= nil
+	end
+
+	function DelvesWarbandCap.SetupButton(listButton)
+		local info = C_CurrencyInfo.GetCurrencyInfo(3142);
+		if info then
+			local delta = info.maxQuantity - info.quantity;
+			listButton.Name:SetText(string.format("%s/%s %s", DelvesWarbandCap:GetNumEarned(true), DelvesWarbandCap.weeklyCap, L["Delves Completion Reward Cap"]));
+			listButton.Icon:SetTexCoord(0, 1, 0, 1);
+			if delta > 0 then
+				listButton.Icon:SetTexture("Interface/AddOns/Plumber/Art/ExpansionLandingPage/Icons/WarbandBonfire.png");
+				listButton.completed = nil;
+			else
+				listButton.Icon:SetAtlas("checkmark-minimal-disabled");
+				listButton.completed = true;
+			end
+		end
+	end
+
+	function DelvesWarbandCap.SetupTooltip(tooltip)
+		tooltip:AddLine(L["Delves Completion Reward Cap Tooltip"], 1, 1, 1, true);
+
+		local current = DelvesWarbandCap:GetNumEarned(true);
+		if current and current < DelvesWarbandCap.weeklyCap then
+			tooltip:AddLine(" ");
+			tooltip:AddLine(L["Near Completion Tooltip"], 0.5, 0.5, 0.5, true);
+		end
+
+		return true;
+	end
+end
+
+
+local ResearchConsole = {};
+do	--Uncontaminated Void Sample
+	--Used to upgrade trinket "Crucible of Erratic Energies" as well as other perks. Console is in Voidstorm next to the Quartermaster
+
+	ResearchConsole.currencyID = 3400;
+
+	function ResearchConsole.ShouldShowActivity()
+		local level = C_MajorFactions.GetCurrentRenownLevel(2699);
+		if level and level >= 3 then
+			local earned = API.GetCurrencyEarnedAndCap(ResearchConsole.currencyID);
+			return earned and earned < 7;
+		end
+	end
+
+	function ResearchConsole.SetupTooltip(tooltip)
+		local text = "";
+		text = API.ConvertTooltipInfoToOneString(text, "GetCurrencyByID", ResearchConsole.currencyID);
+		tooltip:AddLine(text, 1, 1, 1, true);
+		return true;
 	end
 end
 
@@ -173,7 +257,7 @@ do
 		if activeQuestID then
 			local uiMapID = GetQuestUiMapID(activeQuestID);
 			if uiMapID then
-				mapName = addon.API.GetMapName(uiMapID);
+				mapName = API.GetMapName(uiMapID);
 			end
 		end
 
@@ -246,7 +330,7 @@ do
 
 	function SetupFuncs.DefeatedPreyTooltip(tooltip)
 		local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted;
-		local GetQuestName = addon.API.GetQuestName;
+		local GetQuestName = API.GetQuestName;
 		local difficulties = GetUnlockedPreyDifficulties();
 		local loaded = true;
 
@@ -298,7 +382,7 @@ do
 
 		if activePoiID then
 			local info = C_AreaPoiInfo.GetAreaPOIInfo(AbundantHarvest.continentUiMapID, activePoiID);
-			local mapName = addon.API.GetMapName(activeUiMapID);
+			local mapName = API.GetMapName(activeUiMapID);
 			listButton.Name:SetText(mapName.." "..info.name);
 			listButton.tooltipWidgetSet = info.tooltipWidgetSet;
 		else
@@ -314,7 +398,7 @@ do
 		if activePoiID then
 			local info = C_AreaPoiInfo.GetAreaPOIInfo(AbundantHarvest.continentUiMapID, activePoiID);
 			if info.tooltipWidgetSet then
-				local anyChange, isRetrievingData = addon.API.AddWidgetSetToTooltip(tooltip, info.tooltipWidgetSet);
+				local anyChange, isRetrievingData = API.AddWidgetSetToTooltip(tooltip, info.tooltipWidgetSet);
 				if anyChange and isRetrievingData then
 					keepUpdating = true;
 				end
@@ -347,9 +431,9 @@ do
 
 	function SetupFuncs.GildedStashTooltip(tooltip)
 		local description, isAccurate = GildedStashTracker:GetCrestStashTooltip();
+		tooltip:AddLine(L["Delve Crest Stash Requirement"], 1, 1, 1, true);
+		tooltip:AddLine(" ");
 		if description then
-			tooltip:AddLine(L["Delve Crest Stash Requirement"], 1, 1, 1, true);
-			tooltip:AddLine(" ");
 			tooltip:AddLine(description, 1, 0.82, 0, true);
 			if not isAccurate then
 				tooltip:AddLine(" ");
@@ -372,6 +456,7 @@ local ActivityData = {
 			{name = "Coffer Key Shard", currencyID = 3310, icon = 133016, removeIconBorder = true},
 			{name = "Bonus Renowns", label = L["Bountiful Delves Rep Label"], icon = 3726261, tooltipSetter = SetupFuncs.WeeklyBonusRenown, children = DelvesBonusRepQuestFlags},
 			{name = "Gilded Stash", icon = 5872049, removeIconBorder = true, setupFunc = SetupFuncs.GildedStashEntry, tooltipSetter = SetupFuncs.GildedStashTooltip, conditions = GildedStashTracker},
+			{name = "Completion Rewards Cap", icon = 5872049, removeIconBorder = true, setupFunc = DelvesWarbandCap.SetupButton, tooltipSetter = DelvesWarbandCap.SetupTooltip, conditions = DelvesWarbandCap},
 
 			--{name = "Coffer Keys", label = L["Restored Coffer Key"], questClassification = 5, tooltipSetter = ActivityUtil.TooltipFuncs.WeeklyRestoredCofferKey, icon = 4622270, removeIconBorder = true,
 			--    children = ActivityUtil.CreateChildrenFromQuestList(addon.WeeklyRewardsConstant.CofferKeyFlags),
@@ -402,6 +487,7 @@ local ActivityData = {
 				},
 			},
 			{name = "Saltheril\'s Favor", itemID = 238987, icon = 237281, removeIconBorder = true, tooltipItem = 238987, uiMapID = 2395, shownIfOwned = true, tooltip = L["Item Expire Alert Weekly"]},
+			{name = "Lu'ashal", questID = 92560, uiMapID = 2395, shownIfActive = true, isBoss = true},
 		},
 		questLines = {5841},
 	},
@@ -410,6 +496,7 @@ local ActivityData = {
 		entries = {
 			{name = "Abundant Offerings", questID = 89507, isWeeklyQuest = true, sortToTop = true},
 			{name = "Abundance", icon = "Interface/AddOns/Plumber/Art/ExpansionLandingPage/Icons/Abundance.png", shouldShow = SetupFuncs.ShouldShowAbundance, setupFunc = SetupFuncs.AbundanceEvent, tooltipSetter = SetupFuncs.AbundanceTooltip},
+			{name = "Cragpine", questID = 92123, uiMapID = 2437, shownIfActive = true, isBoss = true},
 		},
 	},
 
@@ -427,6 +514,8 @@ local ActivityData = {
 			--	},
 			--},
 
+			{name = "Thorm'belan", questID = 92034, uiMapID = 2413, shownIfActive = true, isBoss = true},
+
 			{name = "WANTED: Dionaea's Thorntusks", questID = 92013, uiMapID = 2413, shownIfActive = true},
 			{name = "WANTED: Gelatonius", questID = 91970, uiMapID = 2413, shownIfActive = true},
 			{name = "WANTED: Gorebarb's Pincers", questID = 92012, uiMapID = 2413, shownIfActive = true},
@@ -441,6 +530,8 @@ local ActivityData = {
 		entries = {
 			{name = "Stormarion Assault", isWeeklyQuest = true, questID = 90962, uiMapID = 2405, sortToTop = true}, --This Weekly World Quest seems to only appear on the map when you are in the surrounding area
 			{name = "Stand Your Ground", questID = 94581, uiMapID = 2405, shownIfOnQuest = true},    --Replace the quest above after completion
+			{name = "Predaxas", questID = 92636, uiMapID = 2405, shownIfActive = true, isBoss = true},
+			{name = "Research Console: Exploring the Void", isWeeklyQuest = true, questID = 94790, uiMapID = 2405, conditions = ResearchConsole, tooltipSetter = ResearchConsole.SetupTooltip},
 
 			--The following quests reward no rep but Stormarion Core
 			{name = "Darkness Unmade", questID = 91700, uiMapID = 2405, shownIfOnQuest = true},  --Kill 2 Rare creatures

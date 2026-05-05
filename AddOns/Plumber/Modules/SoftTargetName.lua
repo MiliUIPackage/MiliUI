@@ -20,6 +20,8 @@ local GetUnitIDGeneral = API.GetUnitIDGeneral;
 local SetUnitCursorTexture = SetUnitCursorTexture;
 local UnitCastingInfo = UnitCastingInfo;
 local UnitChannelInfo = UnitChannelInfo;
+local UnitCastingDuration = UnitCastingDuration;
+local UnitChannelDuration = UnitChannelDuration;
 local Secret_CanAccess = API.Secret_CanAccess;
 
 
@@ -260,7 +262,14 @@ do  --Display
 			if self:ShouldHideIcon() then
 				state = false;
 			end
-			nameplate.UnitFrame.SoftTargetFrame.Icon:SetShown(state);
+
+			local icon = nameplate.UnitFrame.SoftTargetFrame.Icon;
+
+			if state then
+				state = SetUnitCursorTexture(icon, "softinteract");
+			end
+
+			icon:SetShown(state);
 		end
 	end
 
@@ -320,7 +329,25 @@ do  --Display
 
 	if Settings.IS_MIDNIGHT then
 		function Display:UpdateCastingIndicator()
-
+			local duo = UnitCastingDuration("player");
+			if not duo then
+				duo = UnitChannelDuration("player");
+			end
+			if duo then
+				self:ShowBlizzardInteractIcon(false);
+				local f = self.CastingIndicator;
+				f:SetCooldownFromDurationObject(duo);
+				f:SetEdgeScale(self:GetEffectiveScale());
+				f:SetDrawEdge(true);
+				f:Resume();
+				f.alpha = 0;
+				f:SetAlpha(0);
+				f:SetScript("OnUpdate", SharedFadeIn_OnUpdate);
+				f.SuccessGlow:Hide();
+			else
+				self:ShowBlizzardInteractIcon(true);
+				self.CastingIndicator:Hide();
+			end
 		end
 	end
 
@@ -445,7 +472,7 @@ do  --Display
 
 		Settings.titleHeight, Settings.subtextHeight = unpack(addon.GetValidOptionChoice(Settings.FontSizes, "SoftTarget_FontSize"));
 		Settings.iconSize = addon.GetValidOptionChoice(Settings.IconSizes, "SoftTarget_IconSize")
-		Settings.showCastBar = GetDBBool("SoftTarget_CastBar") and not Settings.IS_MIDNIGHT;
+		Settings.showCastBar = GetDBBool("SoftTarget_CastBar");
 		Settings.showObjectives = GetDBBool("SoftTarget_Objectives");
 		Settings.textOutline = GetDBBool("SoftTarget_TextOutline");
 		Settings.includeNPC = GetDBBool("SoftTarget_ShowNPC");
@@ -527,7 +554,7 @@ do  --EL
 				local uiScale = UIParent:GetEffectiveScale() or 1;
 				local fontHeight = Round(Settings.titleHeight*uiScale);
 
-				SetUnitCursorTexture(Display.InteractIcon, unit);
+				local hasCursorTexture = SetUnitCursorTexture(Display.InteractIcon, unit);
 				local textureFile = Display.InteractIcon:GetAtlas();
 
 				--Icon size is determined by SoftTargetFrame
@@ -570,7 +597,7 @@ do  --EL
 					Display:WatchTooltip(false);
 				end
 
-				if Display:ShouldHideIcon() then
+				if Display:ShouldHideIcon() or (not hasCursorTexture) then
 					f.Icon:Hide();
 				else
 					f.Icon:SetAlpha(1);
@@ -704,7 +731,7 @@ do  --Options, Settings
 			{type = "Slider", label = L["Font Size"], minValue = 1, maxValue = #Settings.FontSizes, valueStep = 1, onValueChangedFunc = Options_FontSizeSlider_OnValueChanged, formatValueFunc = Options_GenericSizeSlider_FormatValue, dbKey = "SoftTarget_FontSize"},
 
 			{type = "Divider"},
-			--{dbKey = "SoftTarget_CastBar"}
+			{type = "Checkbox", label = L["SoftTargetName CastBar"], tooltip = L["SoftTargetName CastBar Tooltip"], onClickFunc = Options_ShowCastBar_OnClick, dbKey = "SoftTarget_CastBar"},
 			{type = "Checkbox", label = L["SoftTargetName QuestObjective"], tooltip = Options_ShowObjectives_Tooltip, onClickFunc = Options_ShowObjectives_OnClick, dbKey = "SoftTarget_Objectives"},
 
 			{type = "Divider"},
@@ -718,12 +745,6 @@ do  --Options, Settings
 			{type = "Checkbox", label = L["SoftTargetName HideName"], tooltip = L["SoftTargetName HideName Tooltip"], onClickFunc = CheckboxShared_OnClick, dbKey = "SoftTarget_House_HideName"},
 		},
 	};
-
-	if not Settings.IS_MIDNIGHT then
-		table.insert(OPTIONS_SCHEMATIC.widgets, 5,
-			{type = "Checkbox", label = L["SoftTargetName CastBar"], tooltip = L["SoftTargetName CastBar Tooltip"], onClickFunc = Options_ShowCastBar_OnClick, dbKey = "SoftTarget_CastBar"}
-		);
-	end
 
 	function OptionToggle_OnClick(self, button)
 		local OptionFrame = addon.ToggleSettingsDialog(self, OPTIONS_SCHEMATIC);
@@ -859,4 +880,5 @@ do  --SpecialGameObjects
 		return SubtextFunc_Item(242241)
 	end
 	SpecialGameObjects[531478] = SubtextFunc_MisplacedTome;
+	SpecialGameObjects[531479] = SubtextFunc_MisplacedTome;	--Ranger's Cache
 end

@@ -447,12 +447,12 @@ do  --Event Listener
 
 		if Def.AnchorToHealthBar then
 			if Def.Side == "LEFT" then
-				local relativeTo = UnitFrame.ClassificationFrame;
-				if relativeTo:IsShown() then    --Could this be protected?
-					widget:SetPoint("RIGHT", relativeTo, "LEFT", -1, 0);
+				if UnitFrame.ClassificationFrame:IsShown() then    --Could this be protected?
+					widget:SetPoint("RIGHT", UnitFrame.ClassificationFrame, "LEFT", -1, 0);
+				elseif GetRaidTargetIndex(unit) then
+					widget:SetPoint("RIGHT", UnitFrame.RaidTargetFrame, "LEFT", -1, 0);
 				else
-					relativeTo = UnitFrame.HealthBarsContainer.healthBar;
-					widget:SetPoint("RIGHT", relativeTo, "LEFT", -2, 0);
+					widget:SetPoint("RIGHT", UnitFrame.HealthBarsContainer.healthBar, "LEFT", -2, 0);
 				end
 			else
 				local relativeTo = UnitFrame.AurasFrame.CrowdControlListFrame;
@@ -582,21 +582,22 @@ do  --Event Listener
 			end
 		elseif event == "PLAYER_ENTERING_WORLD" then
 			self:UpdateZone();
+		elseif event == "RAID_TARGET_UPDATE" then
+			self:UpdateAllNameplates();
 		end
 	end
 
-	local DangerousInstanceType = {
-		party = true,
-		raid = true,
-		arena = true,
-		pvp = true,
-	};
-
 	function EL:UpdateZone()
-		local _, instanceType = GetInstanceInfo();
-		local inInstance = instanceType and DangerousInstanceType[instanceType] or false;
+		local inInstance = API.IsPlayerInInstance();	-- Maybe we'll use C_RestrictedActions.IsAddOnRestrictionActive
 		self.inInstance = inInstance;
+
 		self:UnregisterEvent("UNIT_QUEST_LOG_CHANGED");
+
+		if inInstance or not (Def.AnchorToHealthBar and Def.Side) then
+			self:UnregisterEvent("RAID_TARGET_UPDATE");
+		else
+			self:RegisterEvent("RAID_TARGET_UPDATE");
+		end
 
 		if (not inInstance) and Def.ShowTargetProgress then
 			self:RegisterEvent("PLAYER_TARGET_CHANGED");
@@ -1054,6 +1055,21 @@ do  --Options
 	end
 
 
+	local UnitTokenFromGUID = UnitTokenFromGUID;
+	local TOOLTIP_DATA_TYPE = Enum.TooltipDataType.Unit;
+
+	local function GetDisplayedUnit(tooltip)
+		local tooltipInfo = tooltip.infoList and tooltip.infoList[1];
+		if tooltipInfo and tooltipInfo.tooltipData then
+			local tooltipData = tooltipInfo.tooltipData;
+			if tooltipData.type == TOOLTIP_DATA_TYPE then
+				local guid = tooltipData.guid;
+				local unit = guid and Secret_CanAccess(guid) and UnitTokenFromGUID(guid);
+				return unit
+			end
+		end
+	end
+
 	local function OnTooltipSetUnit(tooltip)
 		if EL.inInstance or not Def.ShowProgressOnHover then return end;
 
@@ -1062,7 +1078,7 @@ do  --Options
 			LastMouseOverWidget:UpdateProgressVisibility(true)
 		end
 
-		local _, unit = tooltip:GetUnit();
+		local unit = GetDisplayedUnit(tooltip);
 
 		if Secret_CanAccess(unit) then
 			for widget, shown in pairs(WidgetPool) do
@@ -1095,7 +1111,7 @@ do  --Options
 		Def.ProgressShowRemaining = addon.GetDBValue("NameplateQuest_ProgressFormat") == 2;
 
 
-		local addonNames = {"Platynator", "Plater"};
+		local addonNames = {"Platynator", "Plater", "EllesmereUINameplates"};
 
 		for _, name in ipairs(addonNames) do
 			if C_AddOns.IsAddOnLoaded(name) then
@@ -1283,6 +1299,7 @@ function EL:EnableModule(state)
 		self:UnregisterEvent("UNIT_QUEST_LOG_CHANGED");
 		self:UnregisterEvent("GROUP_ROSTER_UPDATE");
 		self:UnregisterEvent("MODIFIER_STATE_CHANGED");
+		self:UnregisterEvent("RAID_TARGET_UPDATE");
 		self:SetScript("OnEvent", nil);
 		self:SetScript("OnUpdate", nil);
 	end
@@ -1303,6 +1320,7 @@ do
 		categoryKeys = {
 			"UnitFrame",
 		},
+		consultant = 2,
 	};
 
 	addon.ControlCenter:AddModule(moduleData);

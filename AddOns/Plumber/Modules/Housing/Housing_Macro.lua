@@ -22,7 +22,7 @@ do  --Teleport Home Macro    #plumber:home
 
 	local function GetDynamicTeleportAction()
 		local icon, macro, tooltip;
-		if C_HousingNeighborhood.CanReturnAfterVisitingHouse() then
+		if not Housing.ShouldShowTeleportToPlot() then
 			icon = 236350;
 			macro = Housing.GetLeaveHomeMacro();
 			tooltip = L["Leave Home"];
@@ -34,6 +34,36 @@ do  --Teleport Home Macro    #plumber:home
 		return icon, macro, tooltip
 	end
 	Housing.GetDynamicTeleportAction = GetDynamicTeleportAction;
+
+	local function GetDynamicTeleportAllianceAction()
+		local icon, macro, tooltip;
+		if not Housing.ShouldShowTeleportToPlot(1) then
+			icon = 236350;
+			macro = Housing.GetLeaveHomeMacro();
+			tooltip = L["Leave Home"];
+		else
+			icon = 236761;
+			macro = Housing.GetTeleportAllianceHomeMacro();
+			tooltip = Housing.GetAllianceMapName();
+		end
+		return icon, macro, tooltip
+	end
+	Housing.GetDynamicTeleportAllianceAction = GetDynamicTeleportAllianceAction;
+
+	local function GetDynamicTeleportHordeAction()
+		local icon, macro, tooltip;
+		if not Housing.ShouldShowTeleportToPlot(2) then
+			icon = 236350;
+			macro = Housing.GetLeaveHomeMacro();
+			tooltip = L["Leave Home"];
+		else
+			icon = 236756;
+			macro = Housing.GetTeleportHordeHomeMacro();
+			tooltip = Housing.GetHordeMapName();
+		end
+		return icon, macro, tooltip
+	end
+	Housing.GetDynamicTeleportHordeAction = GetDynamicTeleportHordeAction;
 
 	local function WriteFunc_home(body)
 		local header = "#plumber:"..COMMAND_HOME;
@@ -56,6 +86,34 @@ do  --Teleport Home Macro    #plumber:home
 		return addon.AcquireCharacterMacro(COMMAND_HOME, Generator_home)
 	end
 
+
+	local function GetOverrideDrawerInfo()
+		local actionType = "teleportHome";
+
+		local icon, macroText, name = GetDynamicTeleportAllianceAction();
+		local info1 = {
+			tooltipLineText = name,
+			icon = icon,
+			actionType = actionType,
+			id = 1,
+			usable = true,
+			macroText = macroText,
+		};
+
+		icon, macroText, name = GetDynamicTeleportHordeAction();
+		local info2 = {
+			tooltipLineText = name,
+			icon = icon,
+			actionType = actionType,
+			id = 2,
+			usable = true,
+			macroText = macroText,
+		};
+
+		return {info1, info2};
+	end
+	Housing.GetOverrideDrawerInfo_TeleportHome = GetOverrideDrawerInfo;
+
 	local TeleportHomeCommand = {
 		command = COMMAND_HOME,
 		name = L["PlumberMacro Housing"],
@@ -68,6 +126,9 @@ do  --Teleport Home Macro    #plumber:home
 		},
 
 		writeFunc = WriteFunc_home,
+
+		shouldUseDrawer = Housing.DoesPlayerHaveMultipleHomes,
+		getOverrideDrawerInfo = GetOverrideDrawerInfo,
 	};
 
 	table.insert(Commands, TeleportHomeCommand);
