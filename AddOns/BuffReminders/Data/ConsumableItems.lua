@@ -264,11 +264,13 @@ BR.CONSUMABLE_ITEMS = {
         [257750] = true, -- Laced Zoomshots (quality 2)
         [257751] = true, -- Weighted Boomshots
         [257752] = true, -- Weighted Boomshots (quality 2)
+        -- TBC (legacy)
+        [23529] = { legacy = true }, -- Adamantite Sharpening Stone
     },
 }
 
 -- Fleeting flask item IDs. These sort first by numeric priority but should NOT be
--- remembered — they would overwrite the user's regular flask preference.
+-- remembered - they would overwrite the user's regular flask preference.
 BR.FLEETING_FLASK_ITEMS = {
     [245926] = true, -- Fleeting Flask of Thalassian Resistance (quality 2)
     [245927] = true, -- Fleeting Flask of Thalassian Resistance

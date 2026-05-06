@@ -6,14 +6,14 @@ local _, BR = ...
 -- Tracks which consumable the player last used per spec, so the display layer
 -- can sort the preferred item first. Three detection paths feed into this module:
 --
--- 1. State.lua (ShouldShowConsumableBuff) — spell-based consumables (flasks, runes, tea)
+-- 1. State.lua (ShouldShowConsumableBuff) - spell-based consumables (flasks, runes, tea)
 --    Calls ConsumableMemory.Remember() with updateOnly=true (refreshes existing preference,
---    never creates new entries — prevents leaking preferences across spec switches).
+--    never creates new entries - prevents leaking preferences across spec switches).
 --
--- 2. PostClick handlers (SecureButtons.lua) — addon click-to-cast
+-- 2. PostClick handlers (SecureButtons.lua) - addon click-to-cast
 --    Calls ConsumableMemory.RememberChoice() when a consumable button is clicked.
 --
--- 3. Count-delta tracking — food and weapon enchants used outside the addon
+-- 3. Count-delta tracking - food and weapon enchants used outside the addon
 --    ConsumableMemory.DetectConsumedItems() compares item counts between bag refreshes.
 
 local GetItemSpell = GetItemSpell
@@ -22,7 +22,7 @@ local GetItemSpell = GetItemSpell
 -- FLEETING FLASK DETECTION
 -- ============================================================================
 -- Fleeting/cauldron flasks sort first by numeric priority and should NOT be
--- remembered — they would overwrite the user's regular flask preference.
+-- remembered - they would overwrite the user's regular flask preference.
 
 ---Check if an item is a fleeting flask.
 ---@param itemID number
@@ -101,7 +101,7 @@ end
 -- ============================================================================
 
 ---Remember a consumable that was clicked via the addon's action buttons.
----Resolves item → spell via GetItemSpell, skips fleeting flasks.
+---Resolves item -> spell via GetItemSpell, skips fleeting flasks.
 ---@param itemID number? The item that was clicked
 ---@param buffFrame table? The buff frame the click originated from
 local function RememberChoice(itemID, buffFrame)
@@ -135,7 +135,7 @@ local previousCounts = {}
 ---Detect consumed food/weapon items by comparing current buckets with previous counts.
 ---Automatically remembers the consumed item's spell for the current spec.
 ---Only runs for "food" and "weapon" categories (spell-based consumables are handled by State.lua).
----@param buckets table Current bag scan buckets: category → { [itemID] = { count, useSpellID, ... } }
+---@param buckets table Current bag scan buckets: category -> { [itemID] = { count, useSpellID, ... } }
 ---@param specId number? Player's current specialization ID
 local function DetectConsumedItems(buckets, specId)
     if not specId then
@@ -162,7 +162,7 @@ end
 
 ---Update the count snapshot from current bag scan buckets (for next delta comparison).
 ---Reuses existing tables to reduce GC pressure.
----@param buckets table Current bag scan buckets: category → { [itemID] = { count, useSpellID, ... } }
+---@param buckets table Current bag scan buckets: category -> { [itemID] = { count, useSpellID, ... } }
 local function SnapshotCounts(buckets)
     -- Remove categories no longer in buckets, wipe existing ones for reuse
     for category, catTable in pairs(previousCounts) do

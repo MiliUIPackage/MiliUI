@@ -43,7 +43,7 @@ local function ResolveChatRequestMsg(frame)
 end
 
 -- Debug print for chat-request click pipeline. Toggled via /br debug.
--- Fires only on user-driven events (clicks, setup, cooldown timer, chat echo) —
+-- Fires only on user-driven events (clicks, setup, cooldown timer, chat echo) -
 -- never on hot loops. Output is plain English (developer-facing diagnostic).
 local format = string.format
 local GetTime = GetTime
@@ -165,8 +165,6 @@ local function EnsureChatVerifyFrame()
             return
         end
         -- Match by GUID first (canonical), fall back to name comparison.
-        -- Names can fail to match due to realm suffix, connected-realm formatting,
-        -- or non-ASCII characters round-tripping through different encodings.
         local playerGUID = UnitGUID("player")
         local matched = guid and playerGUID and guid == playerGUID
         if not matched then
@@ -175,15 +173,28 @@ local function EnsureChatVerifyFrame()
             matched = sender == short or sender == full
         end
         if not matched then
+            -- Saw a chat event during our 3s window but it wasn't from us.
+            -- Log it so we can see whether events are firing at all when the
+            -- user reports ChatNotSent (distinguishes "no echo" from "matcher missed").
+            print(
+                format(
+                    "|cff999999BR-debug ChatSeen-other:|r event=%s sender=%s guid=%s text=%q",
+                    tostring(event),
+                    tostring(sender),
+                    tostring(guid),
+                    tostring(text or "")
+                )
+            )
             return
         end
         lastChatAttempt.confirmed = true
         print(
             format(
-                "|cff00ccffBR-debug ChatConfirmed:|r event=%s text=%q sender=%s delay=%.2fs key=%s",
+                "|cff00ccffBR-debug ChatConfirmed:|r event=%s text=%q sender=%s guid=%s delay=%.2fs key=%s",
                 tostring(event),
                 tostring(text or ""),
                 tostring(sender),
+                tostring(guid),
                 GetTime() - lastChatAttempt.time,
                 tostring(lastChatAttempt.key)
             )
@@ -208,14 +219,21 @@ local function NoteChatAttempt(key, msg, prefix)
         if lastChatAttempt ~= attempt then
             return
         end
+        local playerGUID = UnitGUID("player")
+        local short = GetUnitName("player", false) or "?"
         print(
             format(
                 "|cffff8888BR-debug ChatNotSent:|r no echo within 2s for key=%s prefix=%q msg=%q "
-                    .. "(macro fired but no CHAT_MSG_* came back — chat throttled, hardware-event "
-                    .. "violation, or empty macrotext at click time)",
+                    .. "playerGUID=%s playerName=%s "
+                    .. "(macro fired but no CHAT_MSG_* came back - chat throttled, hardware-event "
+                    .. 'violation, or empty macrotext at click time. Try \'/run SendChatMessage("test", "'
+                    .. (prefix == "/instance " and "INSTANCE_CHAT" or prefix == "/raid " and "RAID" or prefix == "/party " and "PARTY" or "SAY")
+                    .. "\")' to see if direct chat works.)",
                 tostring(key),
                 tostring(prefix),
-                tostring(msg)
+                tostring(msg),
+                tostring(playerGUID),
+                tostring(short)
             )
         )
     end)
@@ -275,11 +293,11 @@ local function GetActionSpellID(buff)
             end
         end
     end
-    -- When iconByRole is present, prefer the role-appropriate spell so the cast
-    -- matches the displayed icon (e.g., Water Shield for healers, not Lightning Shield).
-    if not buff.castSpellID and buff.iconByRole then
+    -- When icons.byRole is present, prefer the role-appropriate spell so the cast matches
+    -- the displayed icon (e.g., Water Shield for healers, not Lightning Shield).
+    if not buff.castSpellID and buff.icons and buff.icons.byRole then
         local role = BR.BuffState.GetPlayerRole()
-        local roleSpell = role and buff.iconByRole[role]
+        local roleSpell = role and buff.icons.byRole[role]
         if roleSpell and IsPlayerSpell(roleSpell) then
             return roleSpell
         end
@@ -407,7 +425,7 @@ local function CreateClickOverlay(frame)
     -- Auto-hide in combat (secure state driver), auto-show after
     RegisterStateDriver(overlay, "visibility", "[combat] hide; show")
     -- When state driver re-shows after combat, hide if buff frame isn't visible
-    -- Uses IsVisible() (not IsShown()) to check entire parent chain — the frame's own
+    -- Uses IsVisible() (not IsShown()) to check entire parent chain - the frame's own
     -- shown state can be true while its parent container is hidden.
     overlay:SetScript("OnShow", function(self)
         if not frame:IsVisible() then
@@ -438,20 +456,20 @@ local function CreateClickOverlay(frame)
                 -- SetAttribute is safe here: overlays are hidden during combat via
                 -- state driver, so PostClick only fires outside combat lockdown.
                 self:SetAttribute("macrotext", "")
-                DebugLog("PostClick→cooldownSet", self, "scheduled restore in " .. REQUEST_COOLDOWN .. "s")
+                DebugLog("PostClick->cooldownSet", self, "scheduled restore in " .. REQUEST_COOLDOWN .. "s")
                 C_Timer.After(REQUEST_COOLDOWN, function()
                     requestOnCooldown[key] = nil
                     -- Restore macro if overlay is still a chat-request button.
                     -- Read msg fresh from the overlay so a custom-message edit
                     -- during the cooldown window picks up the latest text.
-                    -- If in combat lockdown, skip — SetupChatRequestOverlay will
+                    -- If in combat lockdown, skip - SetupChatRequestOverlay will
                     -- re-set the macro when SyncSecureButtons runs after combat.
                     if self._br_chatRequestKey and self._br_chatRequestMsg and not InCombatLockdown() then
                         self:SetAttribute("macrotext", GetChatRequestPrefix() .. self._br_chatRequestMsg)
-                        DebugLog("CooldownTimer→restored", self)
+                        DebugLog("CooldownTimer->restored", self)
                     else
                         DebugLog(
-                            "CooldownTimer→skipRestore",
+                            "CooldownTimer->skipRestore",
                             self,
                             format("key=%s combat=%s", tostring(self._br_chatRequestKey), tostring(InCombatLockdown()))
                         )
@@ -459,7 +477,7 @@ local function CreateClickOverlay(frame)
                 end)
             else
                 DebugLog(
-                    "PostClick→noCooldown",
+                    "PostClick->noCooldown",
                     self,
                     format("alreadyCD=%s inGroup=%s", tostring(requestOnCooldown[key]), tostring(IsInGroup()))
                 )
@@ -582,7 +600,7 @@ local ACTION_ICON_SCALE = 0.45
 local ACTION_ICON_MIN = 18
 local ACTION_ICON_OFFSET = -6
 
--- Badge text → color for buff frame middle-left overlay (quality uses atlas icons separately)
+-- Badge text -> color for buff frame middle-left overlay (quality uses atlas icons separately)
 local BADGE_COLORS = {
     [L["Badge.Hearty"]] = { r = 0.4, g = 0.7, b = 1 }, -- Hearty (cyan)
     [L["Badge.Fleeting"]] = { r = 0.4, g = 0.7, b = 1 }, -- Fleeting (cyan)
@@ -605,7 +623,7 @@ local function CreateActionButton()
     local btn = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
     btn:RegisterForClicks("AnyDown", "AnyUp")
     btn:Hide()
-    -- Start hidden — state driver activated by SyncSecureButtons() after positioning
+    -- Start hidden - state driver activated by SyncSecureButtons() after positioning
     RegisterStateDriver(btn, "visibility", "hide")
     -- When state driver re-shows after combat, hide if buff frame isn't visible
     -- Uses IsVisible() to check entire parent chain (see CreateClickOverlay comment)
@@ -661,7 +679,7 @@ local function CreateActionButton()
 end
 
 -- Consumable item cache: only rescan bags when BAG_UPDATE_DELAYED fires
-local consumableCache = {} -- key → items array (or nil)
+local consumableCache = {} -- key -> items array (or nil)
 local consumableCacheDirty = true
 
 local function InvalidateConsumableCache()
@@ -695,7 +713,7 @@ local function RefreshConsumableCache()
     local itemSets = BR.CONSUMABLE_ITEMS or {}
     local hideLegacy = (BR.profile and BR.profile.defaults or {}).hideLegacyConsumables ~= false
     -- Scan all bags once, bucket items by consumable category
-    local buckets = {} -- category → { [itemID] = { count, icon } }
+    local buckets = {} -- category -> { [itemID] = { count, icon } }
     local maxBags = NUM_BAG_SLOTS or 4
     for bag = 0, maxBags do
         local slots = C_Container.GetContainerNumSlots(bag)
@@ -795,7 +813,7 @@ local function RefreshConsumableCache()
     BR.ConsumableMemory.SnapshotCounts(buckets)
 end
 
--- Map buff key → CONSUMABLE_ITEMS category key (derived from buff definitions in Data/Buffs.lua)
+-- Map buff key -> CONSUMABLE_ITEMS category key (derived from buff definitions in Data/Buffs.lua)
 local BUFF_KEY_TO_CATEGORY = BR.BUFF_KEY_TO_CATEGORY
 
 ---Get cached consumable items for a buff definition.
@@ -1475,7 +1493,7 @@ local function UpdateActionButtons(category)
                             overlay.highlight:SetShown(showHighlight)
                         end
                     elseif def and def.clickMacro and (not def.casterClass or def.casterClass == playerClass) then
-                        -- No consumable in bags but has clickMacro — cast the creation spell
+                        -- No consumable in bags but has clickMacro - cast the creation spell
                         if not frame.clickOverlay then
                             CreateClickOverlay(frame)
                         end
@@ -1492,7 +1510,7 @@ local function UpdateActionButtons(category)
                             overlay.highlight:SetShown(showHighlight)
                         end
                     elseif def and def.castSpellID and (not def.casterClass or def.casterClass == playerClass) then
-                        -- No consumable in bags but has castSpellID — cast the creation spell
+                        -- No consumable in bags but has castSpellID - cast the creation spell
                         if not frame.clickOverlay then
                             CreateClickOverlay(frame)
                         end
@@ -1508,7 +1526,7 @@ local function UpdateActionButtons(category)
                             overlay.highlight:SetShown(showHighlight)
                         end
                     elseif frame.clickOverlay then
-                        -- No action resolved; clear fields but don't Hide() — let
+                        -- No action resolved; clear fields but don't Hide() - let
                         -- SyncSecureButtons handle visibility via _br_has_action check.
                         frame.clickOverlay._br_has_action = false
                         frame.clickOverlay._br_clickMacroFn = nil
@@ -1621,7 +1639,7 @@ end
 -- Refresh chat-request overlays to pick up group-type changes (party↔raid,
 -- instance group transitions) and per-profile message changes. Called on
 -- GROUP_ROSTER_UPDATE / GROUP_FORMED / PLAYER_ENTERING_WORLD / profile switch
--- so the macrotext is always current at click time — replacing the old pattern
+-- so the macrotext is always current at click time - replacing the old pattern
 -- of rebuilding inside PreClick, which was subject to secure-dispatcher
 -- hardware-event timing.
 local function RefreshChatRequestMacros()
@@ -1638,7 +1656,7 @@ local function RefreshChatRequestMacros()
             -- have changed chatRequestMessages[key] since setup).
             local msg = ResolveChatRequestMsg(frame)
             overlay._br_chatRequestMsg = msg
-            -- Skip overlays whose macrotext is currently blanked for cooldown —
+            -- Skip overlays whose macrotext is currently blanked for cooldown -
             -- the cooldown timer will restore with the latest prefix/msg when it fires.
             -- Guard against nil msg (frame.displayName fallback may be missing).
             if msg and not requestOnCooldown[overlay._br_chatRequestKey] then

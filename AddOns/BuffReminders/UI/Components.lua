@@ -13,6 +13,7 @@ local _, BR = ...
 ---@class ScrollableContainerConfig
 ---@field contentHeight? number Initial content height (default 600)
 ---@field scrollbarWidth? number Width reserved for scrollbar (default 24)
+---@field width? number Explicit scroll-frame width. Required when nesting inside a parent larger than the scroll area (otherwise contentWidth is derived from parent:GetWidth() and overflows).
 
 ---@class VerticalLayoutConfig
 ---@field x? number Starting X position (default 0)
@@ -54,7 +55,7 @@ local RefreshableComponents = BR.RefreshableComponents
 --
 -- Calls must be synchronous: each Measure* call configures and reads the
 -- shared FontString within one function call. Do NOT save the FontString or
--- defer reads across event boundaries — the next caller will overwrite it.
+-- defer reads across event boundaries - the next caller will overwrite it.
 
 local _measurer
 local _measureFS
@@ -290,6 +291,24 @@ function BR.CreateButton(parent, text, onClick, tooltip, colorOverrides)
         UpdateVisual()
     end
 
+    -- Opt this button into the OnShow refresh pattern: enabledFn is re-evaluated
+    -- by Components.RefreshAll() and applied via :SetEnabled. Use this instead
+    -- of imperative :SetEnabled cascades hooked to other widgets' OnClick.
+    function btn:BindEnabled(enabledFn)
+        btn._enabledGetter = enabledFn
+        btn:SetEnabled(enabledFn() and true or false)
+        if not btn._registeredForRefresh then
+            btn._registeredForRefresh = true
+            tinsert(RefreshableComponents, btn)
+        end
+    end
+
+    function btn:Refresh()
+        if btn._enabledGetter then
+            btn:SetEnabled(btn._enabledGetter() and true or false)
+        end
+    end
+
     return btn
 end
 
@@ -405,7 +424,7 @@ function Components.Slider(parent, config)
 
     -- Label width: explicit labelWidth is treated as a HARD target so columns
     -- of sliders stay aligned (label clips/extends past the boundary if too
-    -- long; the caller is responsible for picking a value that fits — see
+    -- long; the caller is responsible for picking a value that fits - see
     -- AppearanceGrid for the measurement-based pattern). Omitting labelWidth
     -- falls back to auto-grow for ad-hoc usage.
     local labelWidth
@@ -1751,7 +1770,7 @@ function Components.DirectionButtons(parent, config)
     }
     local width = config.width or 90
     local labelText = config.label or L["Direction.Label"]
-    -- Explicit labelWidth → hard. Omitted → auto-grow.
+    -- Explicit labelWidth -> hard. Omitted -> auto-grow.
     local labelWidth
     if config.labelWidth ~= nil then
         labelWidth = config.labelWidth
@@ -2357,8 +2376,8 @@ end
 ---@return table holder Frame containing dropdown with .SetValue(v), .GetValue(), .SetEnabled(bool)
 function Components.Dropdown(parent, config, _)
     local width = config.width or 100
-    -- Explicit labelWidth → hard target (preserves column alignment).
-    -- Omitted → auto-grow from measured text.
+    -- Explicit labelWidth -> hard target (preserves column alignment).
+    -- Omitted -> auto-grow from measured text.
     local labelWidth
     if config.labelWidth ~= nil then
         labelWidth = config.labelWidth
@@ -2529,7 +2548,7 @@ end
 ---@return table holder Frame with .editBox, .SetValue(v), .GetValue()
 function Components.TextInput(parent, config)
     local width = config.width or 150
-    -- Explicit labelWidth → hard. Omitted → auto-grow.
+    -- Explicit labelWidth -> hard. Omitted -> auto-grow.
     local labelWidth
     if config.labelWidth ~= nil then
         labelWidth = config.labelWidth
@@ -2572,13 +2591,14 @@ function Components.TextInput(parent, config)
         tinsert(panelEditBoxes, editBox)
     end
 
-    -- Callbacks
+    -- Callbacks. Use HookScript on OnEditFocusLost so we don't clobber
+    -- StyleEditBox's focus-color reset (SetScript would replace its hook).
     if config.onChange then
         editBox:SetScript("OnEnterPressed", function(self)
             self:ClearFocus()
             config.onChange(self:GetText())
         end)
-        editBox:SetScript("OnEditFocusLost", function(self)
+        editBox:HookScript("OnEditFocusLost", function(self)
             config.onChange(self:GetText())
         end)
     else
@@ -2633,7 +2653,7 @@ end
 function Components.NumericStepper(parent, config)
     local step = config.step or 1
     local BTN_SIZE = 16
-    -- Explicit labelWidth → hard. Omitted → auto-grow.
+    -- Explicit labelWidth -> hard. Omitted -> auto-grow.
     local labelWidth
     if config.labelWidth ~= nil then
         labelWidth = config.labelWidth
@@ -2919,7 +2939,7 @@ end
 ---@param config ColorSwatchConfig Configuration table
 ---@return table holder Frame containing color swatch with .SetColor(r,g,b,a?), .GetColor(), .SetEnabled(bool)
 function Components.ColorSwatch(parent, config)
-    -- Explicit labelWidth → hard. Omitted → auto-grow (or 0 if no label).
+    -- Explicit labelWidth -> hard. Omitted -> auto-grow (or 0 if no label).
     local labelWidth
     if config.labelWidth ~= nil then
         labelWidth = config.labelWidth
@@ -3620,10 +3640,19 @@ end
 function Components.ScrollableContainer(parent, config)
     local contentHeight = config.contentHeight or 600
     local scrollbarWidth = config.scrollbarWidth or 24
+    -- Explicit width is required when this container is nested inside a
+    -- larger parent (e.g. a sub-list inside a page). Without it we'd derive
+    -- contentWidth from parent:GetWidth(), which overflows the visible
+    -- scroll area (the scroll frame itself is sized smaller than the parent
+    -- by the caller, but the inner content child wouldn't know that).
+    local explicitWidth = config.width
 
     -- Holder frame (the scroll frame itself)
     local scrollFrame = CreateFrame("ScrollFrame", nil, parent, "UIPanelScrollFrameTemplate")
     scrollFrame:SetClipsChildren(true)
+    if explicitWidth then
+        scrollFrame:SetWidth(explicitWidth)
+    end
 
     -- Position scrollbar
     local scrollBar = scrollFrame.ScrollBar
@@ -3636,10 +3665,12 @@ function Components.ScrollableContainer(parent, config)
         ApplyModernScrollbarStyle(scrollBar)
     end
 
-    -- Content frame
+    -- Content frame. Width tracks the scroll frame's visible area minus the
+    -- scrollbar so anchored-RIGHT children clear the scrollbar instead of
+    -- being painted under it.
     local content = CreateFrame("Frame", nil, scrollFrame)
-    local parentWidth = parent.GetWidth and parent:GetWidth() or 540
-    local contentWidth = parentWidth - scrollbarWidth
+    local effectiveWidth = explicitWidth or (parent.GetWidth and parent:GetWidth() or 540)
+    local contentWidth = effectiveWidth - scrollbarWidth
     content:SetSize(contentWidth, contentHeight)
     scrollFrame:SetScrollChild(content)
 

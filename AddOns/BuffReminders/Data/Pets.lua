@@ -31,7 +31,7 @@ local CALL_PET_SPELLS = { 883, 83242, 83243, 83244, 83245 }
 -- Revive Pet spell ID
 local REVIVE_PET = 982
 
--- Hunter pet spec → ability icon texture
+-- Hunter pet spec -> ability icon texture
 local PET_SPEC_ICONS = {
     Cunning = 348567,
     Ferocity = 136224,
@@ -41,7 +41,7 @@ local PET_SPEC_ICONS = {
 -- Warlock Summon Demon flyout ID
 local SUMMON_DEMON_FLYOUT = 10
 
--- Warlock summon spell ID → short pet name (fallback: full spell name)
+-- Warlock summon spell ID -> short pet name (fallback: full spell name)
 local WARLOCK_PET_NAMES = {
     [688] = "Imp",
     [697] = "Voidwalker",
@@ -155,7 +155,7 @@ local function BuildWarlockActions()
     return actions
 end
 
--- Single-action pet spell ID → short pet name (fallback: full spell name)
+-- Single-action pet spell ID -> short pet name (fallback: full spell name)
 local SINGLE_PET_NAMES = {
     [46584] = "Ghoul", -- Raise Dead (DK)
     [31687] = "Water Elemental", -- Summon Water Elemental (Mage)

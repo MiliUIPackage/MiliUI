@@ -42,6 +42,14 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 -- TYPE DEFINITIONS
 -- ============================================================================
 
+---Buff icons spec. Sibling-keyed: pick exactly one of `textures`/`spells` for the static
+---side, and at most one of `dynamic`/`byRole` for the runtime side.
+---@class IconSpec
+---@field textures? number[]                       Static texture IDs (raw artwork).
+---@field spells?   number[]                       Static spell IDs resolved to textures.
+---@field dynamic?  fun(): number?                 Runtime override: computed each render.
+---@field byRole?   table<RoleType, number>        Runtime override: role -> spell ID. Also drives click-to-cast spell selection.
+
 ---@class RaidBuff
 ---@field spellID SpellID
 ---@field castSpellID? number Spell ID used for click-to-cast when different from the buff aura IDs
@@ -60,7 +68,7 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field overlayText string
 ---@field groupId? string
 ---@field excludeSpellID? number
----@field displayIcon? number
+---@field icons? IconSpec See "Icon fields" comment at end of self[]
 ---@field infoTooltip? TooltipText
 ---@field noExpirationGlow? boolean
 ---@field readyCheckOnly? boolean Only show during ready checks
@@ -79,7 +87,7 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field groupId? string
 ---@field beneficiaryRole? RoleType
 ---@field excludeSpellID? number
----@field displayIcon? number
+---@field icons? IconSpec See "Icon fields" comment at end of self[]
 ---@field requireSpecId? number
 ---@field infoTooltip? TooltipText
 ---@field clickMacro? fun(spellID: number?): string
@@ -101,14 +109,10 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field requireSpecId? number        -- Only show if player's current spec matches (WoW spec ID)
 ---@field requiresSpellID? number
 ---@field excludeSpellID? number
----@field displayIcon? number
----@field displaySpells? SpellID Spell IDs to show icons for in Options checkbox (subset of spellID)
----@field iconByRole? table<RoleType, number>
+---@field icons? IconSpec See "Icon fields" comment at end of self[]
 ---@field infoTooltip? TooltipText
 ---@field customCheck? fun(isRestricted?: boolean): boolean?
----@field getNextCastID? fun(): number|nil -- Returns spell ID of next spell to cast (used for dynamic icon)
----@field getDynamicIcon? fun(): number|nil -- Returns texture ID for dynamic display icon
----@field getPetActions? fun(): PetAction[]?  -- Override pet actions (e.g., wrong pet → Felguard only)
+---@field getPetActions? fun(): PetAction[]?  -- Override pet actions (e.g., wrong pet -> Felguard only)
 ---@field glowDetectable? boolean Use action bar glow as fallback detection when aura API is restricted
 ---@field showOnInstanceEntry? boolean Only show when entering an instance (not M+), skip normal buff checks
 ---@field showWhenPresent? boolean Show when buff IS active (inverts normal "show when missing" logic)
@@ -125,9 +129,8 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field checkWeaponEnchant? boolean Check if any weapon enchant exists (oils, stones, imbues)
 ---@field checkWeaponEnchantOH? boolean Check if off-hand weapon enchant exists
 ---@field excludeIfSpellKnown? number[] Don't show if player knows any of these spells
----@field buffIconID? number Check for any buff with this icon ID (e.g., 136000 for food)
----@field displaySpells? SpellID Spell IDs to show icons for in UI (subset of spellID)
----@field displayIcon? number|number[] Icon texture ID(s) to use instead of spell icon
+---@field buffIconID? number Detection-only: any aura whose icon matches counts as the buff (e.g., 136000 for food). Does not affect displayed icon.
+---@field icons? IconSpec See "Icon fields" comment at end of self[]
 ---@field itemID? number|number[] Check if player has this item in inventory
 ---@field readyCheckOnly? boolean Only show during ready checks
 ---@field casterClass? ClassName Require this class in group, but show reminder to everyone
@@ -250,7 +253,7 @@ local poisonScratch = { lethal = {}, nonLethal = {} }
 
 ---Resolve the ordered list of enabled spell IDs for a category from the user's preferences.
 ---Falls back to the default order if prefs are missing or empty (early load, fresh install).
----Writes into a shared scratch buffer — do not cache the result across calls.
+---Writes into a shared scratch buffer - do not cache the result across calls.
 ---@param category "lethal"|"nonLethal"
 ---@return number[] orderedSpellIDs
 local function GetEnabledPoisons(category)
@@ -514,18 +517,7 @@ BR.BUFF_TABLES = {
     },
     ---@type TargetedBuff[]
     targeted = {
-        -- Beacons (alphabetical: Faith, Light)
-        {
-            spellID = 156910,
-            key = "beaconOfFaith",
-            name = L["Buff.BeaconOfFaith"],
-            class = "PALADIN",
-            overlayText = L["Overlay.NoFaith"],
-            groupId = "beacons",
-            requireSpecId = 65, -- Holy only
-            glowDetectable = true,
-            clickMacro = TargetedClickMacro("beaconOfFaith"),
-        },
+        -- Beacons
         {
             spellID = 53563,
             key = "beaconOfLight",
@@ -536,8 +528,19 @@ BR.BUFF_TABLES = {
             requireSpecId = 65, -- Holy only
             glowDetectable = true,
             excludeSpellID = 200025, -- Hide when Beacon of Virtue is known
-            displayIcon = 236247, -- Force original icon (talents replace the texture)
+            icons = { textures = { 236247 } }, -- Force original icon (talents replace the texture)
             clickMacro = TargetedClickMacro("beaconOfLight"),
+        },
+        {
+            spellID = 156910,
+            key = "beaconOfFaith",
+            name = L["Buff.BeaconOfFaith"],
+            class = "PALADIN",
+            overlayText = L["Overlay.NoFaith"],
+            groupId = "beacons",
+            requireSpecId = 65, -- Holy only
+            glowDetectable = true,
+            clickMacro = TargetedClickMacro("beaconOfFaith"),
         },
         {
             spellID = 360827,
@@ -655,14 +658,18 @@ BR.BUFF_TABLES = {
             name = L["Buff.DruidForm"],
             class = "DRUID",
             overlayText = L["Overlay.WrongForm"],
-            displayIcon = 132115, -- fallback Cat Form; getDynamicIcon picks the spec-correct icon
+            -- icons.spells drives the options panel row; icons.dynamic always wins on the
+            -- frame (customCheck gates display, so the dynamic resolver is always called).
+            icons = {
+                spells = { 768, 5487, 24858 }, -- Cat, Bear, Moonkin
+                dynamic = function()
+                    local expected = BR.BuffState.GetExpectedDruidFormID()
+                    return expected and C_Spell.GetSpellTexture(expected)
+                end,
+            },
             castSpellID = 768, -- Cat Form: baseline-known by all druids, just gates click-to-cast (clickMacro casts the right form)
             customCheck = function()
                 return BR.BuffState.IsWrongDruidForm()
-            end,
-            getDynamicIcon = function()
-                local expected = BR.BuffState.GetExpectedDruidFormID()
-                return expected and C_Spell.GetSpellTexture(expected)
             end,
             clickMacro = function()
                 local expected = BR.BuffState.GetExpectedDruidFormID()
@@ -714,7 +721,13 @@ BR.BUFF_TABLES = {
         -- With Dragon-Tempered Blades (381801): need 2 lethal + 2 non-lethal
         -- Without talent: need 1 lethal + 1 non-lethal
         {
-            displayIcon = 136242, -- Deadly Poison
+            icons = {
+                textures = { 136242 }, -- Deadly Poison (menu fallback)
+                dynamic = function()
+                    local castID = GetNextPoisonCastID()
+                    return castID and C_Spell.GetSpellTexture(castID)
+                end,
+            },
             castSpellID = 315584, -- Instant Poison (baseline, ensures click-to-cast overlay is created)
             key = "roguePoisons",
             name = L["Buff.RoguePoisons"],
@@ -728,12 +741,11 @@ BR.BUFF_TABLES = {
                 end
                 return poisonCache.activeL < poisonCache.requiredL or poisonCache.activeNL < poisonCache.requiredNL
             end,
-            getNextCastID = GetNextPoisonCastID,
             getExpirationInfo = GetPoisonExpirationInfo,
             clickMacro = function()
                 local castID = GetNextPoisonCastID()
                 if not castID then
-                    -- Nothing missing — fall back to soonest-expiring poison for re-application
+                    -- Nothing missing - fall back to soonest-expiring poison for re-application
                     local _, expiringID = GetPoisonExpirationInfo()
                     castID = expiringID
                 end
@@ -743,9 +755,29 @@ BR.BUFF_TABLES = {
                 return ""
             end,
         },
-        -- DK Runeforge (Main Hand) — reminder when MH enchant doesn't match configured preference
+        -- DK Runeforge (Main Hand) - reminder when MH enchant doesn't match configured preference
         {
-            displayIcon = 237523, -- Runeforging icon
+            icons = {
+                textures = { 237523 }, -- Runeforging icon (menu fallback)
+                dynamic = function()
+                    local specId = BR.StateHelpers.GetPlayerSpecId()
+                    local prefs = BR.profile.dkRunePreferences
+                    local specPrefs = prefs and prefs[specId]
+                    if not specPrefs then
+                        return nil
+                    end
+                    local isDW = BR.BuffState.HasOffHandWeapon()
+                    local accepted = specPrefs[isDW and "dw_mainhand" or "mainhand"]
+                    if accepted then
+                        -- Iterate in DK_RUNEFORGES order for deterministic icon
+                        for _, rune in ipairs(DK_RUNEFORGES) do
+                            if accepted[rune.enchantID] then
+                                return GetSpellTexture(rune.spellID)
+                            end
+                        end
+                    end
+                end,
+            },
             key = "dkRuneMH",
             name = L["Buff.RuneforgeMH"],
             class = "DEATHKNIGHT",
@@ -770,28 +802,25 @@ BR.BUFF_TABLES = {
                 local current = BR.BuffState.GetPermanentWeaponEnchantID(16)
                 return not accepted[current]
             end,
-            getDynamicIcon = function()
-                local specId = BR.StateHelpers.GetPlayerSpecId()
-                local prefs = BR.profile.dkRunePreferences
-                local specPrefs = prefs and prefs[specId]
-                if not specPrefs then
-                    return nil
-                end
-                local isDW = BR.BuffState.HasOffHandWeapon()
-                local accepted = specPrefs[isDW and "dw_mainhand" or "mainhand"]
-                if accepted then
-                    -- Iterate in DK_RUNEFORGES order for deterministic icon
-                    for _, rune in ipairs(DK_RUNEFORGES) do
-                        if accepted[rune.enchantID] then
-                            return GetSpellTexture(rune.spellID)
+        },
+        -- DK Runeforge (Off Hand) - only relevant for dual-wield
+        {
+            icons = {
+                textures = { 237523 }, -- Runeforging icon (same as MH, deduped in options)
+                dynamic = function()
+                    local specId = BR.StateHelpers.GetPlayerSpecId()
+                    local prefs = BR.profile.dkRunePreferences
+                    local specPrefs = prefs and prefs[specId]
+                    local accepted = specPrefs and specPrefs.dw_offhand
+                    if accepted then
+                        for _, rune in ipairs(DK_RUNEFORGES) do
+                            if accepted[rune.enchantID] then
+                                return GetSpellTexture(rune.spellID)
+                            end
                         end
                     end
-                end
-            end,
-        },
-        -- DK Runeforge (Off Hand) — only relevant for dual-wield
-        {
-            displayIcon = 237523, -- Runeforging icon (same as MH, deduped in options)
+                end,
+            },
             key = "dkRuneOH",
             name = L["Buff.RuneforgeOH"],
             class = "DEATHKNIGHT",
@@ -815,19 +844,6 @@ BR.BUFF_TABLES = {
                 local current = BR.BuffState.GetPermanentWeaponEnchantID(17)
                 return not accepted[current]
             end,
-            getDynamicIcon = function()
-                local specId = BR.StateHelpers.GetPlayerSpecId()
-                local prefs = BR.profile.dkRunePreferences
-                local specPrefs = prefs and prefs[specId]
-                local accepted = specPrefs and specPrefs.dw_offhand
-                if accepted then
-                    for _, rune in ipairs(DK_RUNEFORGES) do
-                        if accepted[rune.enchantID] then
-                            return GetSpellTexture(rune.spellID)
-                        end
-                    end
-                end
-            end,
         },
         -- Shadowform: detected via the stance bar (works in M+/encounters/combat
         -- where the aura API is restricted for non-whitelisted spells). Voidform
@@ -837,7 +853,7 @@ BR.BUFF_TABLES = {
             name = L["Buff.Shadowform"],
             class = "PRIEST",
             overlayText = L["Overlay.NoForm"],
-            displayIcon = 136200, -- spell_shadow_shadowform
+            icons = { textures = { 136200 } }, -- spell_shadow_shadowform
             requiresSpellID = 232698,
             castSpellID = 232698,
             noExpirationGlow = true, -- Voidform (short duration) replaces Shadowform; don't warn
@@ -893,16 +909,28 @@ BR.BUFF_TABLES = {
             enchantID = 5401,
             groupId = "shamanImbues",
         },
-        -- Icon fields:
-        --   displayIcon     = Texture ID(s). Primary icon for Display frame + Options checkbox.
-        --   displaySpells   = Spell ID(s). Icons for Options checkbox only (subset of spellID).
-        --   iconByRole      = Role→SpellID. Dynamic Display frame icon based on player role.
-        -- Priority: displayIcon > displaySpells > spellID[1]
+        -- Icon fields (sibling keys under `icons`; pick what fits):
+        --   Static side -- shown in menus + the frame's default texture (one of):
+        --     icons.textures = { tex, ... }   -- raw texture IDs
+        --     icons.spells   = { id, ... }    -- spell IDs resolved to textures
+        --   Runtime side -- replaces the frame icon at render time (at most one of):
+        --     icons.dynamic  = function() return tex end   -- computed each render (forms,
+        --                                                     runes, soonest-expiring poison)
+        --     icons.byRole   = { HEALER = id, DAMAGER = id, TANK = id }
+        --                                                  -- role-keyed spell IDs; also drives
+        --                                                     click-to-cast spell selection
+        --
+        -- If `icons` is omitted entirely, `spellID` is the free fallback (resolved via
+        -- C_Spell.GetSpellTexture).
+        --
+        -- buffIconID is NOT an icon field. It's detection-only (counts any aura whose icon
+        -- matches). Buffs that detect by icon still need icons.textures if they want that
+        -- icon shown.
         --
         -- Shaman shields (alphabetical: Earth, Lightning, Water)
         -- With Elemental Orbit: need Earth Shield (passive self-buff)
         {
-            spellID = 974, -- Earth Shield spell (for icon and spell check)
+            spellID = 974, -- Earth Shield (icon comes free from spellID fallback)
             buffIdOverride = 383648, -- The passive buff to check for
             key = "earthShieldSelfEO",
             name = L["Buff.EarthShieldSelf"],
@@ -910,7 +938,6 @@ BR.BUFF_TABLES = {
             overlayText = L["Overlay.NoSelfES"],
             requiresSpellID = 383010,
             groupId = "shamanShields",
-            displaySpells = 974, -- Earth Shield icon for group checkbox
         },
         -- With Elemental Orbit: need Lightning Shield or Water Shield
         {
@@ -921,8 +948,10 @@ BR.BUFF_TABLES = {
             overlayText = L["Overlay.NoShield"],
             requiresSpellID = 383010,
             groupId = "shamanShields",
-            displaySpells = 192106, -- Lightning Shield icon for group checkbox
-            iconByRole = { HEALER = 52127, DAMAGER = 192106, TANK = 192106 },
+            icons = {
+                spells = { 192106 }, -- Lightning Shield (menu fallback)
+                byRole = { HEALER = 52127, DAMAGER = 192106, TANK = 192106 },
+            },
         },
         -- Without Elemental Orbit: need either Earth Shield, Lightning Shield, or Water Shield on self
         {
@@ -933,8 +962,10 @@ BR.BUFF_TABLES = {
             overlayText = L["Overlay.NoShield"],
             excludeSpellID = 383010,
             groupId = "shamanShields",
-            displaySpells = 52127, -- Water Shield icon for group checkbox
-            iconByRole = { HEALER = 52127, DAMAGER = 192106, TANK = 192106 },
+            icons = {
+                spells = { 52127 }, -- Water Shield (menu fallback)
+                byRole = { HEALER = 52127, DAMAGER = 192106, TANK = 192106 },
+            },
         },
         -- Warrior wrong stance for spec (Defensive for Prot, Battle/Berserker for Arms/Fury).
         -- clickMacro dispatches the spec-correct cast at click time.
@@ -943,20 +974,24 @@ BR.BUFF_TABLES = {
             name = L["Buff.WarriorStance"],
             class = "WARRIOR",
             overlayText = L["Overlay.WrongStance"],
-            displayIcon = 132333, -- fallback; getDynamicIcon picks the spec-correct icon
+            -- icons.spells drives the options panel row; icons.dynamic always wins on the
+            -- frame (customCheck gates display, so the dynamic resolver is always called).
+            icons = {
+                spells = { 386164, 386208, 386196 }, -- Battle, Defensive, Berserker
+                dynamic = function()
+                    -- Show the stance the player is currently in (the wrong one); when
+                    -- unstanced, fall back to the expected-for-spec icon as a hint.
+                    local current = BR.BuffState.GetCurrentWarriorStanceIcon()
+                    if current then
+                        return current
+                    end
+                    local expected = BR.BuffState.GetExpectedWarriorStanceID()
+                    return expected and C_Spell.GetSpellTexture(expected)
+                end,
+            },
             castSpellID = 386208, -- Defensive Stance: baseline-known by all warriors, just gates click-to-cast (clickMacro casts the right stance)
             customCheck = function()
                 return BR.BuffState.IsWrongWarriorStance()
-            end,
-            getDynamicIcon = function()
-                -- Show the stance the player is currently in (the wrong one); when
-                -- unstanced, fall back to the expected-for-spec icon as a hint.
-                local current = BR.BuffState.GetCurrentWarriorStanceIcon()
-                if current then
-                    return current
-                end
-                local expected = BR.BuffState.GetExpectedWarriorStanceID()
-                return expected and C_Spell.GetSpellTexture(expected)
             end,
             clickMacro = function()
                 local expected = BR.BuffState.GetExpectedWarriorStanceID()
@@ -972,7 +1007,7 @@ BR.BUFF_TABLES = {
             name = L["Buff.PetPassive"],
             -- No class: applies to any class with a pet
             overlayText = L["Overlay.PassivePet"],
-            displayIcon = 132311,
+            icons = { textures = { 132311 } },
             customCheck = IsPetOnPassive,
         },
         -- Pet reminders (alphabetical: Hunter, Unholy DK, Warlock Demon, Water Elemental, Wrong Demon)
@@ -981,7 +1016,7 @@ BR.BUFF_TABLES = {
             name = L["Buff.HunterPet"],
             class = "HUNTER",
             overlayText = L["Overlay.NoPet"],
-            displayIcon = 132161,
+            icons = { textures = { 132161 } },
             groupId = "pets",
             customCheck = function()
                 -- MM Hunters don't use pets unless they have Unbreakable Bond
@@ -992,7 +1027,7 @@ BR.BUFF_TABLES = {
             end,
         },
         {
-            displayIcon = 1100170, -- Raise Dead
+            icons = { textures = { 1100170 } }, -- Raise Dead
             key = "unholyPet",
             name = L["Buff.UnholyGhoul"],
             class = "DEATHKNIGHT",
@@ -1008,7 +1043,7 @@ BR.BUFF_TABLES = {
             name = L["Buff.WarlockDemon"],
             class = "WARLOCK",
             overlayText = L["Overlay.NoPet"],
-            displayIcon = 136082, -- Summon Demon flyout icon
+            icons = { textures = { 136082 } }, -- Summon Demon flyout icon
             excludeSpellID = 108503, -- Grimoire of Sacrifice: pet intentionally sacrificed
             groupId = "pets",
             customCheck = function()
@@ -1016,7 +1051,7 @@ BR.BUFF_TABLES = {
             end,
         },
         {
-            displayIcon = 135862, -- Summon Water Elemental
+            icons = { textures = { 135862 } }, -- Summon Water Elemental
             key = "frostMagePet",
             name = L["Buff.WaterElemental"],
             class = "MAGE",
@@ -1033,7 +1068,7 @@ BR.BUFF_TABLES = {
             name = L["Buff.WrongDemon"],
             class = "WARLOCK",
             overlayText = L["Overlay.WrongPet"],
-            displayIcon = 136216, -- Felguard icon
+            icons = { textures = { 136216 } }, -- Felguard icon
             excludeSpellID = 108503, -- Grimoire of Sacrifice: pet intentionally sacrificed
             requireSpecId = 266, -- Demonology only
             requiresSpellID = 30146, -- Summon Felguard must be known
@@ -1062,7 +1097,7 @@ BR.BUFF_TABLES = {
                 1264426, -- Void-Touched Augment Rune (Midnight)
                 347901, -- Veiled Augment Rune (Shadowlands) - legacy
             },
-            displaySpells = { 1264426, 1234969 }, -- Void-Touched (Midnight), Ethereal (TWW permanent)
+            icons = { spells = { 1264426, 1234969 } }, -- Void-Touched (Midnight), Ethereal (TWW permanent)
             key = "rune",
             name = L["Buff.AugmentRune"],
             overlayText = L["Overlay.NoRune"],
@@ -1088,13 +1123,15 @@ BR.BUFF_TABLES = {
                 1235111, -- Flask of the Shattered Sun (Critical Strike)
                 1239355, -- Vicious Thalassian Flask of Honor
             },
-            displaySpells = {
-                -- Show Midnight flask icons in UI
-                1235111, -- Flask of the Shattered Sun (Critical Strike)
-                1235110, -- Flask of the Blood Knights (Haste)
-                1235108, -- Flask of the Magisters (Mastery)
-                1235057, -- Flask of Thalassian Resistance (Versatility)
-                1239355, -- Vicious Thalassian Flask of Honor
+            icons = {
+                spells = {
+                    -- Show Midnight flask icons in UI
+                    1235111, -- Flask of the Shattered Sun (Critical Strike)
+                    1235110, -- Flask of the Blood Knights (Haste)
+                    1235108, -- Flask of the Magisters (Mastery)
+                    1235057, -- Flask of Thalassian Resistance (Versatility)
+                    1239355, -- Vicious Thalassian Flask of Honor
+                },
             },
             key = "flask",
             name = L["Buff.Flask"],
@@ -1115,15 +1152,15 @@ BR.BUFF_TABLES = {
             visibilityCondition = BR.IsInDelve,
             disabledInCompetitivePvP = true,
         },
-        -- Food (all expansions - detected by icon ID)
+        -- Food (all expansions - any aura whose icon is 136000 counts as food)
         {
-            buffIconID = 136000, -- All food buffs use this icon
+            buffIconID = 136000, -- detection: any aura with this icon
+            icons = { textures = { 136000 } }, -- display: same texture, separate concern
             key = "food",
             name = L["Buff.Food"],
             overlayText = L["Overlay.NoFood"],
             groupId = "food",
             consumableCategory = "food",
-            displayIcon = 136000,
             visibilityCondition = IsNotEarthen,
             disabledInCompetitivePvP = true,
         },
@@ -1136,7 +1173,7 @@ BR.BUFF_TABLES = {
             casterClass = "WARLOCK",
             overlayText = L["Overlay.NoStone"],
             groupId = "healthstone",
-            displayIcon = 538745, -- Healthstone icon
+            icons = { textures = { 538745 } }, -- Healthstone icon
             freeConsumable = true,
             clickMacro = function()
                 local spellID = (GetNumGroupMembers() > 0 and IsInInstance()) and 29893 or 6201
@@ -1151,7 +1188,7 @@ BR.BUFF_TABLES = {
             name = L["Buff.Weapon"],
             overlayText = L["Overlay.NoWeaponBuff"],
             groupId = "weaponBuff",
-            displayIcon = { 7548987, 7548941, 7548938 }, -- Thalassian Phoenix Oil, Refulgent Whetstone, Refulgent Weightstone
+            icons = { textures = { 7548987, 7548941, 7548938 } }, -- Thalassian Phoenix Oil, Refulgent Whetstone, Refulgent Weightstone
             consumableCategory = "weapon",
             excludeIfSpellKnown = {
                 -- Shaman imbues
@@ -1174,7 +1211,7 @@ BR.BUFF_TABLES = {
             name = L["Buff.WeaponOH"],
             overlayText = L["Overlay.NoWeaponBuff"],
             groupId = "weaponBuff",
-            displayIcon = { 7548987, 7548941, 7548938 }, -- Thalassian Phoenix Oil, Refulgent Whetstone, Refulgent Weightstone
+            icons = { textures = { 7548987, 7548941, 7548938 } }, -- Thalassian Phoenix Oil, Refulgent Whetstone, Refulgent Weightstone
             consumableCategory = "weapon",
             excludeIfSpellKnown = {
                 -- Shaman imbues
@@ -1193,7 +1230,7 @@ BR.BUFF_TABLES = {
     },
 }
 
--- Derive buff key → consumable category mapping from data
+-- Derive buff key -> consumable category mapping from data
 local buffKeyToCategory = {}
 for _, buff in ipairs(BR.BUFF_TABLES.consumable) do
     if buff.consumableCategory then
