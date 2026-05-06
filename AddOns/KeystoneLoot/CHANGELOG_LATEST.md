@@ -1,6 +1,6 @@
 ## Bugfixes
-- Attempt to index a nil value in voidcore.lua:21
+- Loot spec reminder correctly handles loot spec ineligible for favorited items
+- Remove redundant call to UpdateVoidcoreIcon in OnClick function
 
 ## Other Changes
-- Update ruRU.lua
-- Merge pull request [#53](https://github.com/Wolkenschutz/KeystoneLoot/pull/53) by [Hollicsh](https://github.com/Hollicsh) from Hollicsh/main
+- Merge branch 'main' of https://github.com/Wolkenschutz/KeystoneLoot
