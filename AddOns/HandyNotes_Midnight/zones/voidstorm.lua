@@ -9,6 +9,7 @@ local Map = ns.Map
 local LoreObject = ns.node.LoreObject
 local PT = ns.node.ProfessionTreasures
 local Rare = ns.node.Rare
+local RareElite = ns.node.RareElite
 local Safari = ns.node.Safari
 local SkyridingGlyph = ns.node.SkyridingGlyph
 local Telescope = ns.node.Telescope
@@ -211,14 +212,6 @@ slr.nodes[46334094] = Rare({
     },
     parent = map.id
 }) -- Rakshur the Bonegrinder
-
-local RareElite = ns.Class('RareElite', Rare, {
-    rlabel = '(' .. ns.color.Gray(L['elite']) .. ')',
-    icon = 'star_skull_b',
-    scale = 1.6
-})
-
-ns.node.RareElite = RareElite
 
 map.nodes[53946272] = RareElite({
     id = 256821,
@@ -605,7 +598,7 @@ slr.nodes[53745167] = PT.Leatherworking({
     id = 238592,
     parent = map.id
 }) -- Patterns: Beyond the Void
-map.nodes[41843821] = PT.Mining({quest = 89150, id = 238602}) -- Star Metal Deposit
+slr.nodes[34237605] = PT.Mining({quest = 89150, id = 238602, parent = map.id}) -- Star Metal Deposit
 slr.nodes[28733856] = PT.Mining({quest = 89148, id = 238600, parent = map.id}) -- Glimmering Void Pearl
 slr.nodes[54245159] = PT.Mining({quest = 89146, id = 238598, parent = map.id}) -- Lost Voidstorm Satchel
 slr.nodes[30486907] = PT.Mining({quest = 89144, id = 238596, parent = map.id}) -- Miner's Guide to Voidstorm
