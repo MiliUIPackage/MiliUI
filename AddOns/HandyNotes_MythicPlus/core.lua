@@ -9,6 +9,7 @@ ns.HL = HL
 
 local next = next
 local GameTooltip = GameTooltip
+local HandyNotes = HandyNotes
 
 ------------------ 
 -- Tooltip handling
