@@ -19,6 +19,23 @@ local NOTE_PADDING       = 8
 local EDITOR_WIDTH       = 420
 local EDITOR_HEIGHT      = 500
 local EDITOR_HEADER_HEIGHT = 24
+local BLOCK_TOOLBAR_HEIGHT = 26
+local BLOCK_ROW_MIN_HEIGHT = 24
+local BLOCK_MAX_INDENT     = 5
+local BLOCK_INDENT_PX      = 20
+
+-- 區塊類型
+local BLOCK_TYPE_TEXT     = "text"
+local BLOCK_TYPE_CHECKBOX = "checkbox"
+local BLOCK_TYPE_BULLET   = "bullet"
+local BLOCK_TYPE_NUMBER   = "number"
+
+local VALID_BLOCK_TYPES = {
+    [BLOCK_TYPE_TEXT]     = true,
+    [BLOCK_TYPE_CHECKBOX] = true,
+    [BLOCK_TYPE_BULLET]   = true,
+    [BLOCK_TYPE_NUMBER]   = true,
+}
 
 ------------------------------------------------------------
 -- DB
@@ -38,6 +55,28 @@ end
 ------------------------------------------------------------
 -- DB 清理：移除損毀條目、補齊缺欄位
 ------------------------------------------------------------
+local function SanitizeBlocks(blocks)
+    if type(blocks) ~= "table" then return nil end
+    local clean = {}
+    for _, b in ipairs(blocks) do
+        if type(b) == "table" and type(b.type) == "string" and VALID_BLOCK_TYPES[b.type] then
+            local nb = {
+                type = b.type,
+                text = type(b.text) == "string" and b.text or "",
+            }
+            if b.type == BLOCK_TYPE_CHECKBOX then
+                nb.checked = b.checked == true
+            end
+            if type(b.indent) == "number" then
+                nb.indent = math.max(0, math.min(BLOCK_MAX_INDENT, math.floor(b.indent)))
+                if nb.indent == 0 then nb.indent = nil end
+            end
+            table.insert(clean, nb)
+        end
+    end
+    return clean
+end
+
 local function SanitizeNoteList(notes)
     if type(notes) ~= "table" then return end
     for i = #notes, 1, -1 do
@@ -48,7 +87,27 @@ local function SanitizeNoteList(notes)
             if type(n.title) ~= "string" then n.title = "無標題" end
             if type(n.content) ~= "string" then n.content = "" end
             if type(n.time) ~= "number" then n.time = 0 end
+            -- 區塊：若有則清理，沒有就保留 nil（讀取時再 migrate）
+            if n.blocks ~= nil then
+                n.blocks = SanitizeBlocks(n.blocks)
+            end
         end
+    end
+end
+
+------------------------------------------------------------
+-- 將舊的 content 字串遷移成 blocks（一行 = 一個 text block）
+------------------------------------------------------------
+local function MigrateNoteToBlocks(note)
+    if type(note.blocks) == "table" and #note.blocks > 0 then return end
+    note.blocks = {}
+    if type(note.content) == "string" and note.content ~= "" then
+        for line in (note.content .. "\n"):gmatch("(.-)\n") do
+            table.insert(note.blocks, { type = BLOCK_TYPE_TEXT, text = line })
+        end
+    end
+    if #note.blocks == 0 then
+        table.insert(note.blocks, { type = BLOCK_TYPE_TEXT, text = "" })
     end
 end
 
@@ -78,12 +137,23 @@ local currentFilter   = ""    -- 搜尋關鍵字（小寫；空字串表示無�
 local selectedNoteID  = nil
 local selectedButton          -- O(1) 選取狀態切換用
 local noteListButtons = {}
-local dragState       = nil   -- { sourceID = string, targetIndex = number }
-local dragLine                -- 拖曳時插入位置的指示線
+local dragState       = nil   -- 列表筆記拖曳：{ sourceID, targetIndex }
+local dragLine                -- 列表拖曳指示線
+local listScroll              -- 列表 ScrollFrame（在 BuildUI 中初始化）
+
+-- 區塊編輯器狀態
+local currentNoteForBlocks    -- 目前正在編輯區塊的 note 參考
+local blockRows       = {}    -- 區塊 row 物件池
+local blockDragState          -- 區塊拖曳：{ sourceIdx, targetIdx }
+local blockDragLine           -- 區塊拖曳指示線
+local blockContainer          -- ScrollChild 容器（在 BuildUI 中初始化）
+local bodyScroll              -- 區塊 ScrollFrame（在 BuildUI 中初始化）
 
 -- 前向宣告
 local RefreshNoteList, LoadNoteToEditor, SaveCurrentNote, ClearEditor
 local SetButtonSelected, DragMonitor, CancelDrag
+local RefreshBlocks, RelayoutBlocks, BlockDragMonitor, AddBlock, DeleteBlock
+local CancelBlockDrag
 
 ------------------------------------------------------------
 -- 產生唯一 ID
@@ -192,14 +262,13 @@ end
 -- UI 建構（延遲到角色面板載入後）
 ------------------------------------------------------------
 local tabFrame       -- 筆記標籤頁的主容器（CharacterFrame 內）
-local listScroll     -- 列表捲動區
 local listContent    -- 列表捲動內容
 local editorFrame    -- 獨立浮動編輯視窗（parent: UIParent）
 local titleEditBox   -- 標題輸入
-local bodyEditBox    -- 內文輸入
 local scopeButton    -- 帳號/角色 切換按鈕（OnClick 內要更新文字）
 local searchBox      -- 搜尋輸入框
 local charTab        -- 標籤按鈕
+-- listScroll / bodyScroll 已宣告於上方狀態區（CancelDrag/CancelBlockDrag 需要先看見它們）
 
 local function BuildUI()
     if tabFrame then return end
@@ -267,7 +336,8 @@ local function BuildUI()
         local newNote = {
             id      = GenerateID(),
             title   = NextNewNoteTitle(notes),
-            content = "",
+            content = "",  -- 留欄位給舊版相容
+            blocks  = { { type = BLOCK_TYPE_TEXT, text = "" } },
             time    = time(),
         }
         table.insert(notes, 1, newNote)
@@ -322,7 +392,7 @@ local function BuildUI()
     listBg:SetBackdropColor(unpack(S.Colors.bg))
     listBg:SetBackdropBorderColor(unpack(S.Colors.border))
 
-    listScroll = CreateFrame("ScrollFrame", "MiliUI_NotesListScroll", listBg, "UIPanelScrollFrameTemplate")
+    listScroll = CreateFrame("ScrollFrame", "MiliUI_NotesListScroll", listBg, "UIPanelScrollFrameTemplate")  -- 寫入模組級 listScroll
     listScroll:SetPoint("TOPLEFT", 2, -2)
     listScroll:SetPoint("BOTTOMRIGHT", -22, 2)
 
@@ -406,7 +476,11 @@ local function BuildUI()
     titleEditBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     titleEditBox:SetScript("OnEnterPressed", function(self)
         self:ClearFocus()
-        bodyEditBox:SetFocus()
+        -- 跳到第一個區塊
+        local firstRow = blockRows[1]
+        if firstRow and firstRow:IsShown() and firstRow.editBox then
+            firstRow.editBox:SetFocus()
+        end
     end)
     titleEditBox:SetScript("OnEditFocusLost", function() SaveCurrentNote() end)
 
@@ -417,43 +491,482 @@ local function BuildUI()
     editorDivider:SetPoint("TOPLEFT", titleEditBox, "BOTTOMLEFT", 0, -6)
     editorDivider:SetPoint("TOPRIGHT", titleEditBox, "BOTTOMRIGHT", 0, -6)
 
-    -- 內文捲動容器
-    local bodyScroll = CreateFrame("ScrollFrame", "MiliUI_NoteBodyScroll", editorFrame, "UIPanelScrollFrameTemplate")
-    bodyScroll:SetPoint("TOPLEFT", editorDivider, "BOTTOMLEFT", 0, -6)
+    ------------------------------------------------------------
+    -- 區塊式內文編輯器：工具列 + ScrollFrame + 區塊容器
+    ------------------------------------------------------------
+    local blockToolbar = CreateFrame("Frame", nil, editorFrame, "BackdropTemplate")
+    blockToolbar:SetHeight(BLOCK_TOOLBAR_HEIGHT)
+    blockToolbar:SetPoint("TOPLEFT", editorDivider, "BOTTOMLEFT", 6, -4)
+    blockToolbar:SetPoint("TOPRIGHT", editorDivider, "BOTTOMRIGHT", -6, -4)
+
+    local function MakeBlockTypeButton(label, blockType, anchorRef, anchorRel)
+        local b = CreateFrame("Button", nil, blockToolbar, "BackdropTemplate")
+        b:SetSize(64, BLOCK_TOOLBAR_HEIGHT - 4)
+        b:SetPoint("LEFT", anchorRef, anchorRel, 4, 0)
+        S.ApplyButton(b, label, nil, 11)
+        b:SetScript("OnClick", function() AddBlock(blockType) end)
+        return b
+    end
+
+    -- 標籤：加入區塊：
+    local addLabel = blockToolbar:CreateFontString(nil, "OVERLAY")
+    addLabel:SetFont(S.Font, 12, "OUTLINE")
+    addLabel:SetPoint("LEFT", blockToolbar, "LEFT", 0, 0)
+    addLabel:SetText("加入區塊：")
+    addLabel:SetTextColor(unpack(S.Colors.text))
+
+    local addText  = CreateFrame("Button", nil, blockToolbar, "BackdropTemplate")
+    addText:SetSize(64, BLOCK_TOOLBAR_HEIGHT - 4)
+    addText:SetPoint("LEFT", addLabel, "RIGHT", 6, 0)
+    S.ApplyButton(addText, "文字", nil, 11)
+    addText:SetScript("OnClick", function() AddBlock(BLOCK_TYPE_TEXT) end)
+
+    local addCheck  = MakeBlockTypeButton("勾選", BLOCK_TYPE_CHECKBOX, addText,  "RIGHT")
+    local addBullet = MakeBlockTypeButton("項目", BLOCK_TYPE_BULLET,   addCheck, "RIGHT")
+    local addNumber = MakeBlockTypeButton("編號", BLOCK_TYPE_NUMBER,   addBullet,"RIGHT")
+
+    -- 內文捲動容器（寫入模組級 bodyScroll）
+    bodyScroll = CreateFrame("ScrollFrame", "MiliUI_NoteBodyScroll", editorFrame, "UIPanelScrollFrameTemplate")
+    bodyScroll:SetPoint("TOPLEFT", blockToolbar, "BOTTOMLEFT", 0, -4)
     bodyScroll:SetPoint("BOTTOMRIGHT", -26, 8)
 
-    bodyEditBox = CreateFrame("EditBox", "MiliUI_NoteBodyEdit", bodyScroll)
-    bodyEditBox:SetWidth(bodyScroll:GetWidth() or EDITOR_WIDTH - 30)
-    bodyEditBox:SetFontObject("ChatFontNormal")
-    bodyEditBox:SetAutoFocus(false)
-    bodyEditBox:SetMultiLine(true)
-    bodyEditBox:SetMaxLetters(0)
-    bodyEditBox:SetTextInsets(6, 6, 4, 4)
-    bodyEditBox:SetCountInvisibleLetters(false)  -- 不把不可見字符算入長度
-    bodyEditBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
-    bodyEditBox:SetScript("OnEditFocusLost", function() SaveCurrentNote() end)
-    -- 編輯位置自動捲動：游標移到可視範圍外時自動捲動 ScrollFrame
-    bodyEditBox:SetScript("OnCursorChanged", function(self, x, y, w, h)
-        local scroll = bodyScroll:GetVerticalScroll()
-        local height = bodyScroll:GetHeight()
-        if -y < scroll then
-            bodyScroll:SetVerticalScroll(-y)
-        elseif -y + h > scroll + height then
-            bodyScroll:SetVerticalScroll(-y + h - height)
-        end
-    end)
-    bodyScroll:SetScrollChild(bodyEditBox)
+    -- 區塊容器（ScrollChild）
+    blockContainer = CreateFrame("Frame", nil, bodyScroll)
+    blockContainer:SetSize(1, 1)
+    bodyScroll:SetScrollChild(blockContainer)
 
-    -- 當 bodyScroll 大小改變時，同步 EditBox 寬度
     bodyScroll:SetScript("OnSizeChanged", function(self, w)
-        bodyEditBox:SetWidth(math.max(1, w))
+        blockContainer:SetWidth(math.max(1, w))
+        if RelayoutBlocks then RelayoutBlocks() end
     end)
 
-    -- 點擊 ScrollFrame 空白處也能 focus 內文（Notion-style：點哪都能寫）
-    bodyScroll:EnableMouse(true)
-    bodyScroll:SetScript("OnMouseDown", function() bodyEditBox:SetFocus() end)
+    -- 區塊拖曳指示線
+    blockDragLine = blockContainer:CreateTexture(nil, "OVERLAY")
+    blockDragLine:SetColorTexture(unpack(S.Colors.borderHover))
+    blockDragLine:SetHeight(2)
+    blockDragLine:Hide()
 
     ClearEditor()
+end
+
+------------------------------------------------------------
+-- 區塊編輯器：拖曳監控
+------------------------------------------------------------
+BlockDragMonitor = function()
+    if not blockDragState then return end
+
+    local hovered
+    for _, r in ipairs(blockRows) do
+        if r:IsShown() and r:IsMouseOver() then
+            hovered = r
+            break
+        end
+    end
+
+    if hovered then
+        local _, cy = GetCursorPosition()
+        cy = cy / hovered:GetEffectiveScale()
+        local mid = hovered:GetTop() - hovered:GetHeight() / 2
+        local idx = hovered._index or 1
+        blockDragState.targetIdx = (cy >= mid) and idx or (idx + 1)
+
+        blockDragLine:ClearAllPoints()
+        if cy >= mid then
+            blockDragLine:SetPoint("TOPLEFT", hovered, "TOPLEFT", 0, 1)
+            blockDragLine:SetPoint("TOPRIGHT", hovered, "TOPRIGHT", 0, 1)
+        else
+            blockDragLine:SetPoint("BOTTOMLEFT", hovered, "BOTTOMLEFT", 0, -1)
+            blockDragLine:SetPoint("BOTTOMRIGHT", hovered, "BOTTOMRIGHT", 0, -1)
+        end
+        blockDragLine:Show()
+    else
+        blockDragLine:Hide()
+        blockDragState.targetIdx = nil
+    end
+end
+
+CancelBlockDrag = function()
+    blockDragState = nil
+    if blockDragLine then blockDragLine:Hide() end
+    if bodyScroll then bodyScroll:SetScript("OnUpdate", nil) end
+    for _, r in ipairs(blockRows) do
+        if r:GetAlpha() < 1 then r:SetAlpha(1) end
+    end
+end
+
+------------------------------------------------------------
+-- 區塊 row 建立（每個區塊一個 row，object pool 重用）
+------------------------------------------------------------
+local function CreateBlockRow()
+    local row = CreateFrame("Frame", nil, blockContainer)
+    row:SetHeight(BLOCK_ROW_MIN_HEIGHT)
+
+    -- 拖曳把手：2×3 點陣（字體無關）
+    -- 用 Button 才能 RegisterForClicks 接收右鍵
+    row.dragHandle = CreateFrame("Button", nil, row)
+    row.dragHandle:SetSize(14, BLOCK_ROW_MIN_HEIGHT)
+    row.dragHandle:SetPoint("TOPLEFT", 2, 0)
+    row.dragHandle._dots = {}
+    for r = 1, 3 do
+        for c = 1, 2 do
+            local dot = row.dragHandle:CreateTexture(nil, "OVERLAY")
+            dot:SetColorTexture(0.45, 0.45, 0.45, 1)
+            dot:SetSize(2, 2)
+            dot:SetPoint("CENTER", row.dragHandle, "CENTER", (c - 1.5) * 4, (2 - r) * 5)
+            table.insert(row.dragHandle._dots, dot)
+        end
+    end
+
+    local function SetHandleColor(rr, gg, bb)
+        for _, d in ipairs(row.dragHandle._dots) do
+            d:SetColorTexture(rr, gg, bb, 1)
+        end
+    end
+
+    row.dragHandle:EnableMouse(true)
+    row.dragHandle:RegisterForDrag("LeftButton")
+    row.dragHandle:SetScript("OnEnter", function()
+        local r2, g2, b2 = unpack(S.Colors.text)
+        SetHandleColor(r2, g2, b2)
+    end)
+    row.dragHandle:SetScript("OnLeave", function()
+        if not blockDragState then SetHandleColor(0.45, 0.45, 0.45) end
+    end)
+    row.dragHandle:SetScript("OnDragStart", function()
+        if not row._block or not bodyScroll then return end
+        blockDragState = { sourceIdx = row._index, targetIdx = nil }
+        row:SetAlpha(0.4)
+        bodyScroll:SetScript("OnUpdate", BlockDragMonitor)
+    end)
+    row.dragHandle:SetScript("OnDragStop", function()
+        local state = blockDragState
+        CancelBlockDrag()
+        SetHandleColor(0.45, 0.45, 0.45)
+
+        if not state or not state.targetIdx then return end
+        local srcIdx = state.sourceIdx
+        if not srcIdx then return end
+        local blocks = currentNoteForBlocks and currentNoteForBlocks.blocks
+        if not blocks then return end
+
+        local block = table.remove(blocks, srcIdx)
+        local tgt = state.targetIdx
+        if tgt > srcIdx then tgt = tgt - 1 end
+        if tgt < 1 then tgt = 1 end
+        if tgt > #blocks + 1 then tgt = #blocks + 1 end
+        table.insert(blocks, tgt, block)
+        RefreshBlocks()
+    end)
+
+    -- 前綴容器
+    row.prefix = CreateFrame("Frame", nil, row)
+    row.prefix:SetSize(22, BLOCK_ROW_MIN_HEIGHT)
+    row.prefix:SetPoint("TOPLEFT", row.dragHandle, "TOPRIGHT", 2, 0)
+
+    -- (a) Checkbox：使用內建模板（locale 字體不影響）
+    row.prefixCheckbox = CreateFrame("CheckButton", nil, row.prefix, "UICheckButtonTemplate")
+    row.prefixCheckbox:SetSize(20, 20)
+    row.prefixCheckbox:SetPoint("CENTER", 0, 0)
+    row.prefixCheckbox:Hide()
+    row.prefixCheckbox:SetScript("OnClick", function(self)
+        local block = row._block
+        if block and block.type == BLOCK_TYPE_CHECKBOX then
+            block.checked = self:GetChecked() and true or false
+        end
+    end)
+
+    -- (b) Bullet：用小色塊取代 • 字符
+    row.prefixBullet = row.prefix:CreateTexture(nil, "OVERLAY")
+    row.prefixBullet:SetSize(5, 5)
+    row.prefixBullet:SetPoint("CENTER", 0, 0)
+    row.prefixBullet:SetColorTexture(unpack(S.Colors.text))
+    row.prefixBullet:Hide()
+
+    -- (c) Number：純 ASCII 文字 "1." "2." ...，使用通用字體
+    row.prefixText = row.prefix:CreateFontString(nil, "OVERLAY")
+    row.prefixText:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+    row.prefixText:SetPoint("CENTER", 0, 0)
+    row.prefixText:SetTextColor(unpack(S.Colors.text))
+    row.prefixText:Hide()
+
+    -- EditBox
+    row.editBox = CreateFrame("EditBox", nil, row)
+    row.editBox:SetMultiLine(true)
+    row.editBox:SetMaxLetters(0)
+    row.editBox:SetAutoFocus(false)
+    row.editBox:SetFontObject("ChatFontNormal")
+    row.editBox:SetPoint("TOPLEFT", row.prefix, "TOPRIGHT", 4, -2)
+    row.editBox:SetPoint("RIGHT", row, "RIGHT", -6, 0)
+    row.editBox:SetTextInsets(2, 2, 2, 2)
+    row.editBox:SetCountInvisibleLetters(false)
+    row.editBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    -- Tab / Shift+Tab：調整縮排
+    row.editBox:SetScript("OnTabPressed", function(self)
+        local block = row._block
+        if not block then return end
+        local cur = block.indent or 0
+        local new
+        if IsShiftKeyDown() then
+            new = math.max(0, cur - 1)
+        else
+            new = math.min(BLOCK_MAX_INDENT, cur + 1)
+        end
+        if new == cur then return end
+        block.indent = (new == 0) and nil or new
+        RefreshBlocks()
+        -- RefreshBlocks 不會動 focus，但保險起見再 set 一次
+        if row.editBox then row.editBox:SetFocus() end
+    end)
+    row.editBox:SetScript("OnTextChanged", function(self)
+        local block = row._block
+        if block then block.text = self:GetText() or "" end
+        -- 高度自動跟隨 EditBox（多行折行時 EditBox 高度會增加）
+        local desired = math.max(BLOCK_ROW_MIN_HEIGHT, math.ceil(self:GetHeight()) + 4)
+        if math.abs((row:GetHeight() or 0) - desired) > 0.5 then
+            row:SetHeight(desired)
+            RelayoutBlocks()
+        end
+    end)
+
+    -- 拖曳把手右鍵選單：轉換類型 / 刪除
+    row.dragHandle:RegisterForClicks("RightButtonUp")
+
+    local CONVERT_OPTIONS = {
+        { type = BLOCK_TYPE_TEXT,     label = "轉為文字" },
+        { type = BLOCK_TYPE_CHECKBOX, label = "轉為勾選框" },
+        { type = BLOCK_TYPE_BULLET,   label = "轉為項目符號" },
+        { type = BLOCK_TYPE_NUMBER,   label = "轉為編號" },
+    }
+
+    local function ConvertBlockTo(targetType)
+        local block = row._block
+        if not block or block.type == targetType then return end
+        block.type = targetType
+        if targetType == BLOCK_TYPE_CHECKBOX and block.checked == nil then
+            block.checked = false
+        end
+        RefreshBlocks()
+    end
+
+    local function IndentBlock(delta)
+        local block = row._block
+        if not block then return end
+        local cur = block.indent or 0
+        local new = math.max(0, math.min(BLOCK_MAX_INDENT, cur + delta))
+        if new == cur then return end
+        block.indent = (new == 0) and nil or new
+        RefreshBlocks()
+    end
+
+    row.dragHandle:SetScript("OnClick", function(self, mouseButton)
+        if mouseButton ~= "RightButton" then return end
+        local block = row._block
+        if not block then return end
+
+        local curIndent = block.indent or 0
+        local canIndent  = curIndent < BLOCK_MAX_INDENT
+        local canOutdent = curIndent > 0
+
+        if MenuUtil and MenuUtil.CreateContextMenu then
+            MenuUtil.CreateContextMenu(self, function(owner, root)
+                for _, opt in ipairs(CONVERT_OPTIONS) do
+                    if opt.type ~= block.type then
+                        root:CreateButton(opt.label, function() ConvertBlockTo(opt.type) end)
+                    end
+                end
+                if canIndent or canOutdent then
+                    root:CreateDivider()
+                    if canIndent then
+                        root:CreateButton("增加縮排 (Tab)", function() IndentBlock(1) end)
+                    end
+                    if canOutdent then
+                        root:CreateButton("減少縮排 (Shift+Tab)", function() IndentBlock(-1) end)
+                    end
+                end
+                root:CreateDivider()
+                root:CreateButton("|cffff5555刪除此區塊|r", function()
+                    DeleteBlock(row._index)
+                end)
+            end)
+        else
+            local menuFrame = _G.MiliUI_BlockContextMenu
+            if not menuFrame then
+                menuFrame = CreateFrame("Frame", "MiliUI_BlockContextMenu", UIParent, "UIDropDownMenuTemplate")
+            end
+            local menu = {}
+            for _, opt in ipairs(CONVERT_OPTIONS) do
+                if opt.type ~= block.type then
+                    local t = opt.type
+                    table.insert(menu, {
+                        text = opt.label, notCheckable = true,
+                        func = function() ConvertBlockTo(t) end,
+                    })
+                end
+            end
+            if canIndent then
+                table.insert(menu, {
+                    text = "增加縮排 (Tab)", notCheckable = true,
+                    func = function() IndentBlock(1) end,
+                })
+            end
+            if canOutdent then
+                table.insert(menu, {
+                    text = "減少縮排 (Shift+Tab)", notCheckable = true,
+                    func = function() IndentBlock(-1) end,
+                })
+            end
+            table.insert(menu, {
+                text = "|cffff5555刪除此區塊|r", notCheckable = true,
+                func = function() DeleteBlock(row._index) end,
+            })
+            EasyMenu(menu, menuFrame, "cursor", 0, 0, "MENU")
+        end
+    end)
+
+    return row
+end
+
+------------------------------------------------------------
+-- 區塊 row 配置（依照 block 內容更新顯示）
+------------------------------------------------------------
+local function ConfigureBlockRow(row, block, index, numberPrefix)
+    row._block = block
+    row._index = index
+
+    -- 套用縮排：把 prefix 整體往右推；editBox 因錨定 prefix 會自動跟著縮短
+    local indent = block.indent or 0
+    indent = math.max(0, math.min(BLOCK_MAX_INDENT, indent))
+    row.prefix:ClearAllPoints()
+    row.prefix:SetPoint("TOPLEFT", row.dragHandle, "TOPRIGHT", 2 + indent * BLOCK_INDENT_PX, 0)
+
+    -- 先全部隱藏，再依類型顯示對應 prefix
+    row.prefixCheckbox:Hide()
+    row.prefixBullet:Hide()
+    row.prefixText:Hide()
+
+    if block.type == BLOCK_TYPE_CHECKBOX then
+        row.prefix:Show()
+        row.prefixCheckbox:Show()
+        row.prefixCheckbox:SetChecked(block.checked == true)
+    elseif block.type == BLOCK_TYPE_BULLET then
+        row.prefix:Show()
+        row.prefixBullet:Show()
+    elseif block.type == BLOCK_TYPE_NUMBER then
+        row.prefix:Show()
+        row.prefixText:SetText((numberPrefix or 1) .. ".")
+        row.prefixText:Show()
+    else  -- text
+        row.prefix:Hide()
+    end
+
+    -- 同步 EditBox 文字（避免重新觸發 OnTextChanged）
+    if row.editBox:GetText() ~= (block.text or "") then
+        row.editBox:SetText(block.text or "")
+    end
+end
+
+------------------------------------------------------------
+-- 重新排列所有 row 的位置（高度可能因換行而變動）
+------------------------------------------------------------
+RelayoutBlocks = function()
+    if not blockContainer then return end
+    local y = 4
+    for i, row in ipairs(blockRows) do
+        if row:IsShown() then
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", blockContainer, "TOPLEFT", 0, -y)
+            row:SetPoint("RIGHT", blockContainer, "RIGHT", 0, 0)
+            y = y + row:GetHeight() + 2
+        end
+    end
+    blockContainer:SetHeight(math.max(1, y + 4))
+end
+
+------------------------------------------------------------
+-- 重繪所有區塊
+------------------------------------------------------------
+RefreshBlocks = function()
+    if not blockContainer then return end
+
+    -- 隱藏所有 row
+    for _, row in ipairs(blockRows) do row:Hide() end
+
+    if not currentNoteForBlocks then
+        blockContainer:SetHeight(1)
+        return
+    end
+
+    local blocks = currentNoteForBlocks.blocks
+    if not blocks or #blocks == 0 then
+        blockContainer:SetHeight(1)
+        return
+    end
+
+    -- 計算 number 區塊的連續編號（依縮排階層獨立計數）
+    -- 規則：
+    --   1) 同階層連續的 number 區塊共用一個計數，遇到非 number 同層或更高層 → 中斷重置
+    --   2) 進入更深階層時，淺階層的計數保留（不被重置）
+    --   3) 從深階層回到淺階層後，深階層計數會被清掉，下次再進入時從 1 開始
+    local numberPrefixes = {}
+    local counters = {}  -- counters[indent] = 當前階層計數
+    for i, b in ipairs(blocks) do
+        local indent = b.indent or 0
+        if b.type == BLOCK_TYPE_NUMBER then
+            counters[indent] = (counters[indent] or 0) + 1
+            numberPrefixes[i] = counters[indent]
+            -- 重置「更深」層級
+            for k in pairs(counters) do
+                if k > indent then counters[k] = nil end
+            end
+        else
+            -- 同層或更深的計數歸零（淺層保留）
+            for k in pairs(counters) do
+                if k >= indent then counters[k] = nil end
+            end
+        end
+    end
+
+    for i, block in ipairs(blocks) do
+        local row = blockRows[i] or CreateBlockRow()
+        blockRows[i] = row
+        ConfigureBlockRow(row, block, i, numberPrefixes[i])
+        row:Show()
+    end
+
+    RelayoutBlocks()
+end
+
+------------------------------------------------------------
+-- 新增 / 刪除區塊
+------------------------------------------------------------
+AddBlock = function(blockType)
+    if not currentNoteForBlocks then return end
+    local block = { type = blockType, text = "" }
+    if blockType == BLOCK_TYPE_CHECKBOX then block.checked = false end
+    table.insert(currentNoteForBlocks.blocks, block)
+    RefreshBlocks()
+    -- focus 新區塊
+    local idx = #currentNoteForBlocks.blocks
+    local row = blockRows[idx]
+    if row and row.editBox then row.editBox:SetFocus() end
+    -- 捲到底部
+    if blockContainer then
+        local scroll = blockContainer:GetParent()
+        if scroll and scroll.SetVerticalScroll then
+            local maxScroll = math.max(0, blockContainer:GetHeight() - scroll:GetHeight())
+            scroll:SetVerticalScroll(maxScroll)
+        end
+    end
+end
+
+DeleteBlock = function(index)
+    if not currentNoteForBlocks or not currentNoteForBlocks.blocks then return end
+    if not index then return end
+    table.remove(currentNoteForBlocks.blocks, index)
+    if #currentNoteForBlocks.blocks == 0 then
+        table.insert(currentNoteForBlocks.blocks, { type = BLOCK_TYPE_TEXT, text = "" })
+    end
+    RefreshBlocks()
 end
 
 ------------------------------------------------------------
@@ -571,11 +1084,19 @@ RefreshNoteList = function()
     if currentFilter ~= "" then
         notes = {}
         for _, n in ipairs(allNotes) do
-            local title = (n.title or ""):lower()
-            local body  = (n.content or ""):lower()
-            if title:find(currentFilter, 1, true) or body:find(currentFilter, 1, true) then
-                table.insert(notes, n)
+            local match = (n.title or ""):lower():find(currentFilter, 1, true)
+            if not match and type(n.blocks) == "table" then
+                for _, b in ipairs(n.blocks) do
+                    if (b.text or ""):lower():find(currentFilter, 1, true) then
+                        match = true
+                        break
+                    end
+                end
             end
+            if not match and type(n.content) == "string" then
+                match = n.content:lower():find(currentFilter, 1, true)
+            end
+            if match then table.insert(notes, n) end
         end
     else
         notes = allNotes
@@ -697,17 +1218,19 @@ end
 LoadNoteToEditor = function(note)
     if not titleEditBox then return end
     titleEditBox:SetText(note.title or "")
-    bodyEditBox:SetText(note.content or "")
     titleEditBox:SetCursorPosition(0)
-    bodyEditBox:SetCursorPosition(0)
+    -- 區塊：必要時自動 migrate
+    MigrateNoteToBlocks(note)
+    currentNoteForBlocks = note
+    if RefreshBlocks then RefreshBlocks() end
 end
 
 ClearEditor = function()
     if not titleEditBox then return end
     titleEditBox:SetText("")
-    bodyEditBox:SetText("")
     titleEditBox:ClearFocus()
-    bodyEditBox:ClearFocus()
+    currentNoteForBlocks = nil
+    if RefreshBlocks then RefreshBlocks() end
 end
 
 SaveCurrentNote = function()
@@ -719,10 +1242,10 @@ SaveCurrentNote = function()
             local newTitle  = titleEditBox:GetText()
             local finalTitle = (newTitle ~= "") and newTitle or "無標題"
             local titleChanged = (finalTitle ~= note.title)
-            note.title   = finalTitle
-            note.content = bodyEditBox:GetText()
-            note.time    = time()
-            -- 只有標題變動才需更新列表顯示，且只更新該按鈕，不重建整個列表
+            note.title = finalTitle
+            note.time  = time()
+            -- 區塊內容已透過各 EditBox 的 OnTextChanged 即時寫入 note.blocks，
+            -- 這裡不需另外處理。
             if titleChanged and selectedButton and selectedButton._noteID == selectedNoteID then
                 selectedButton._text:SetText(finalTitle)
             end
@@ -745,7 +1268,8 @@ end
 local function HideNotesTab()
     if not tabFrame then return end
     SaveCurrentNote()
-    CancelDrag()  -- 安全清理：避免拖曳中異常關閉導致殘留
+    CancelDrag()       -- 安全清理：列表拖曳殘留
+    CancelBlockDrag()  -- 區塊拖曳殘留
     tabFrame:Hide()
     if editorFrame then editorFrame:Hide() end
 end
