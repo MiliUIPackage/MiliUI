@@ -125,8 +125,7 @@ local IS_TWW = UnitLevel'player' >= 71 and not ExRT.isClassic
 local IS_MN = UnitLevel'player' >= 81 and not ExRT.isClassic
 
 module.db.topEnchGemsCheap = {
-[8160]=true,[8161]=true,[7596]=true,[7597]=true,[7598]=true,[7936]=true,[7529]=true,[7937]=true,[7530]=true,[7531]=true,[7934]=true,[7935]=true,[7532]=true,[7533]=true,[7534]=true,[7938]=true,[7939]=true,[7535]=true,[7536]=true,[7537]=true,[8162]=true,[8163]=true,[7593]=true,[7594]=true,[7595]=true,[8158]=true,[8159]=true,[7599]=true,[7600]=true,[7601]=true,[7652]=true,[7653]=true,[7654]=true,[7493]=true,[7494]=true,[7495]=true,[7540]=true,[7538]=true,[7539]=true,[8614]=true,[8615]=true,[8608]=true,[8609]=true,[7500]=true,[7501]=true,[7502]=true,[8053]=true,[8054]=true,[7496]=true,[7497]=true,[7498]=true,[7909]=true,[7910]=true,[7546]=true,[7547]=true,[7548]=true,[7906]=true,[7905]=true,[7543]=true,[7544]=true,[7545]=true,[8055]=true,[8056]=true,[8612]=true,[8613]=true,[8051]=true,[8052]=true,[8610]=true,[8611]=true,[7907]=true,[7908]=true,[7549]=true,[7550]=true,[7551]=true,
-[217115]=true,[217114]=true,[217113]=true,
+
 }
 
 module.db.topEnchGems = IS_MN and {
@@ -170,13 +169,13 @@ module.db.topEnchGems = IS_MN and {
 	[8039]=3,	[8040]=2,	[8041]=3,	[8042]=2,	[8043]=3,
 	[8044]=2,	[8045]=3,	[8046]=2,	[8047]=3,
 
-	[7905]=2,	[7906]=1,	[7907]=1,
-	[7908]=2,	[7909]=1,	[7910]=2,	[7934]=1,	[7935]=2,
-	[7936]=1,	[7937]=2,	[7938]=1,	[7939]=2,	[8051]=1,
-	[8052]=2,	[8053]=1,	[8054]=2,	[8055]=1,	[8056]=2,
-	[8158]=1,	[8159]=2,	[8160]=1,	[8161]=2,	[8162]=1,
-	[8163]=2,	[8608]=1,	[8609]=2,	[8610]=1,	[8611]=2,
-	[8612]=1,	[8613]=2,	[8614]=1,	[8615]=2,
+	[7905]=3,	[7906]=2,	[7907]=2,
+	[7908]=3,	[7909]=2,	[7910]=3,	[7934]=2,	[7935]=3,
+	[7936]=2,	[7937]=3,	[7938]=2,	[7939]=3,	[8051]=2,
+	[8052]=3,	[8053]=2,	[8054]=3,	[8055]=2,	[8056]=3,
+	[8158]=2,	[8159]=3,	[8160]=2,	[8161]=3,	[8162]=2,
+	[8163]=3,	[8608]=2,	[8609]=3,	[8610]=2,	[8611]=3,
+	[8612]=2,	[8613]=3,	[8614]=2,	[8615]=3,
 } or IS_TWW and {
 	[3368]="DKWeapon:knight",
 	[3370]="DKWeapon:frost",
@@ -919,7 +918,7 @@ function module.options:Load()
 	]=]
 	enchRankSubMenu = {
 		{text = L.RaidCheckMinRank, isTitle = true},
-		{text = "|A:Professions-ChatIcon-Quality-12-Tier1:20:20|a 2 ("..L.InspectViewerCheap..")", radio = true, arg1 = 2, checkState = (module.db.minEnchRank or 3) == 2 and module.db.checkCheap, func = function(self,checked)
+		{text = "|A:Professions-ChatIcon-Quality-12-Tier1:20:20|a 1 ("..L.InspectViewerCheap..")", radio = true, arg1 = 2, checkState = (module.db.minEnchRank or 3) == 2 and module.db.checkCheap, func = function(self,checked)
 			module.db.minEnchRank = 2
 			module.db.checkCheap = true
 			VMRT.InspectViewer.TopEnchGemsMinRank = module.db.minEnchRank
@@ -928,7 +927,7 @@ function module.options:Load()
 			for k,v in pairs(enchRankSubMenu) do if v.radio then v.checkState = v.arg1 == 2 end end
 			ELib.ScrollDropDown.UpdateChecks()
 		end},
-		{text = "|A:Professions-ChatIcon-Quality-12-Tier2:20:20|a 3 ("..L.InspectViewerCheap..")", radio = true, arg1 = 3, checkState = (module.db.minEnchRank or 3) == 3 and module.db.checkCheap, func = function(self,checked)
+		{text = "|A:Professions-ChatIcon-Quality-12-Tier2:20:20|a 2 ("..L.InspectViewerCheap..")", radio = true, arg1 = 3, checkState = (module.db.minEnchRank or 3) == 3 and module.db.checkCheap, func = function(self,checked)
 			module.db.minEnchRank = nil
 			module.db.checkCheap = true
 			VMRT.InspectViewer.TopEnchGemsMinRank = module.db.minEnchRank
@@ -937,7 +936,7 @@ function module.options:Load()
 			for k,v in pairs(enchRankSubMenu) do if v.radio then v.checkState = v.arg1 == 3 end end
 			ELib.ScrollDropDown.UpdateChecks()
 		end},
-		{text = "|A:Professions-ChatIcon-Quality-12-Tier1:20:20|a 2", radio = true, arg1 = 5, checkState = (module.db.minEnchRank or 3) == 2 and not module.db.checkCheap, func = function(self,checked)
+		{text = "|A:Professions-ChatIcon-Quality-12-Tier1:20:20|a 1", radio = true, arg1 = 5, checkState = (module.db.minEnchRank or 3) == 2 and not module.db.checkCheap, func = function(self,checked)
 			module.db.minEnchRank = 2
 			module.db.checkCheap = false
 			VMRT.InspectViewer.TopEnchGemsMinRank = module.db.minEnchRank
@@ -946,7 +945,7 @@ function module.options:Load()
 			for k,v in pairs(enchRankSubMenu) do if v.radio then v.checkState = v.arg1 == 5 end end
 			ELib.ScrollDropDown.UpdateChecks()
 		end},
-		{text = "|A:Professions-ChatIcon-Quality-12-Tier2:20:20|a 3", radio = true, arg1 = 6, checkState = (module.db.minEnchRank or 3) == 3 and not module.db.checkCheap, func = function(self,checked)
+		{text = "|A:Professions-ChatIcon-Quality-12-Tier2:20:20|a 2", radio = true, arg1 = 6, checkState = (module.db.minEnchRank or 3) == 3 and not module.db.checkCheap, func = function(self,checked)
 			module.db.minEnchRank = nil
 			module.db.checkCheap = false
 			VMRT.InspectViewer.TopEnchGemsMinRank = module.db.minEnchRank

@@ -19149,11 +19149,11 @@ function module:TriggerBWMessage(key, text)
 	end
 end
 
-local function TriggerBWTimer_DelayActive(trigger, triggerData, expirationTime, key, text)
+local function TriggerBWTimer_DelayActive(trigger, triggerData, expirationTime, key, text, counter)
 	module:AddTriggerCounter(trigger)
-	if not trigger.Dcounter or module:CheckNumber(trigger.Dcounter,trigger.count) then
+	if not trigger.Dcounter or module:CheckNumber(trigger.Dcounter,counter or trigger.count) then
 		local vars = {
-			counter = trigger.count,
+			counter = counter or trigger.count,
 			spellID = key,
 			spellName = text,
 			timeLeft = expirationTime,
@@ -19163,37 +19163,52 @@ local function TriggerBWTimer_DelayActive(trigger, triggerData, expirationTime, 
 	end
 end
 
-function module:TriggerBWTimer(key, text, duration)
-	local triggers = module.db.eventsToTriggers.BW_TIMER
-	for i=1,#triggers do
-		local trigger = triggers[i]
-		local triggerData = trigger._trigger
-		if 
-			key == -1 or
-			(
-			 triggerData.bwtimeleft and 
-			 (duration == 0 or duration >= triggerData.bwtimeleft) and
-			 (
-		 	  (triggerData.pattFind or triggerData.spellID) and
-			  (not triggerData.pattFind or module:FindInString(text,triggerData.pattFind)) and
-			  (not triggerData.spellID or key == triggerData.spellID)
-			 )
-			)
-		then
-			if duration == 0 then
-				for i=1,#trigger.delays2 do
-					trigger.delays2[i]:Cancel()
+do
+
+	local countString = "%((%d%d?)%)"
+	if ExRT.locale == "zhCN" or ExRT.locale == "zhTW" then
+		countString = "（(%d%d?)）"
+	end
+
+	function module:TriggerBWTimer(key, text, duration)
+		local triggers = module.db.eventsToTriggers.BW_TIMER
+		for i=1,#triggers do
+			local trigger = triggers[i]
+			local triggerData = trigger._trigger
+			if 
+				key == -1 or
+				(
+				 triggerData.bwtimeleft and 
+				 (duration == 0 or duration >= triggerData.bwtimeleft) and
+				 (
+			 	  (triggerData.pattFind or triggerData.spellID) and
+				  (not triggerData.pattFind or module:FindInString(text,triggerData.pattFind)) and
+				  (not triggerData.spellID or key == triggerData.spellID)
+				 )
+				)
+			then
+				if duration == 0 then
+					for i=#trigger.delays2,1,-1 do
+						local td = trigger.delays2[i]
+						if not text or (text == td.barUniqName) then
+							td:Cancel()
+							tremove(trigger.delays2, i)
+						end
+					end
+					--wipe(trigger.delays2)
+				else
+					local counter = tonumber( type(text)=="string" and text:match(countString) or "",nil )
+					local t = ScheduleTimer(TriggerBWTimer_DelayActive, max(duration - triggerData.bwtimeleft, 0.01), trigger, triggerData, GetTime() + duration, key, text, counter)
+					if text then
+						t.barUniqName = text
+					end
+					module.db.timers[#module.db.timers+1] = t
+					trigger.delays2[#trigger.delays2+1] = t
 				end
-				wipe(trigger.delays2)
-			else
-				local t = ScheduleTimer(TriggerBWTimer_DelayActive, max(duration - triggerData.bwtimeleft, 0.01), trigger, triggerData, GetTime() + duration, key, text)
-				module.db.timers[#module.db.timers+1] = t
-				trigger.delays2[#trigger.delays2+1] = t
 			end
 		end
 	end
 end
-
 
 do
 	local registeredBigWigsEvents = {}
@@ -19261,6 +19276,19 @@ do
 			if not module.db.encounterID then
 				timers_on_pull[#timers_on_pull+1] = {event, ...}
 			end
+		elseif (event == "BigWigs_Timer") then
+			local bwModule, key, duration, maxTime, text, counter, icon, _, isBarEnabled = ...
+
+			if not isBarEnabled then
+				BigWigsTextToKeys[text] = key
+				if module.db.eventsToTriggers.BW_TIMER then
+					module:TriggerBWTimer(key, text, duration)
+				end
+			end
+
+			if not module.db.encounterID then
+				timers_on_pull[#timers_on_pull+1] = {event, ...}
+			end
 		elseif (event == "BigWigs_ResumeBar") then
 			local bwModule, text = ...
 
@@ -19289,6 +19317,7 @@ do
 			end
 		elseif event == "BigWigs_OnBossEngage" then
 			module:RegisterBigWigsCallback("BigWigs_StartBar")
+			module:RegisterBigWigsCallback("BigWigs_Timer")
 
 			module.db.encounterBossmod = "BW"
 			wipe(timers_on_pull)
@@ -23993,12 +24022,13 @@ function module:Test_BW(phase)
 		LibDBIcon10_BigWigs:GetScript("OnClick")(LibDBIcon10_BigWigs,"RightButton")--sorry
 		BigWigsOptions:Close()
 	end
-	BigWigsLoader:LoadZone(2810)
+	BigWigsLoader:LoadZone(2913)
 
-	local bossID = boss == 2 and 2902 or 3132
-	local bossName = boss == 2 and "Ulgrax the Devourer" or "Forgeweaver Araz"
+	local bossID = 3183
+	local bossName = "Midnight Falls"
 
 	local mod = BigWigs:GetBossModule(bossName)
+	local CL = BigWigsAPI:GetLocale("BigWigs: Common")
 	mod.Mythic = function() return true end
 
 	if phase == -1 then
@@ -24025,6 +24055,21 @@ function module:Test_BW(phase)
 	elseif phase == 3 then
 		mod:SpikeStormRemoved({amount = 0, spellId = 451277, spellName = GetSpellName(451277), time = GetTime()})
 		return
+	else
+		C_Timer.After(3,function() 
+			mod:Bar(1279420, 5, CL.count:format(mod:GetName(1279420), 1))
+			C_Timer.After(4.9,function() 
+				mod:StopBar(CL.count:format(mod:GetName(1279420), 1)) 
+				mod:StopBar(CL.count:format(mod:GetName(1279420), 2)) 
+				mod:Bar(1279420, 5, CL.count:format(mod:GetName(1279420), 2))
+			end)
+		end)
+		C_Timer.After(6,function() 
+			mod:Bar(1279420, 5, CL.count:format(mod:GetName(1279420), 2))
+			C_Timer.After(4.9,function() 
+				mod:Bar(1279420, 5, CL.count:format(mod:GetName(1279420), 1))
+			end)
+		end)
 	end
 
 	mod:Enable()

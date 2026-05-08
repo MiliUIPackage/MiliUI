@@ -3209,24 +3209,16 @@ local function NoteWindow_UpdateFont(self)
 	local size = VMRT and VMRT.Note and VMRT.Note.FontSize or 12
 	local outline = VMRT and VMRT.Note and VMRT.Note.Outline and "OUTLINE" or ""
 	local align = VMRT and VMRT.Note and ((VMRT.Note.TextAlign == 2 and "RIGHT") or (VMRT.Note.TextAlign == 3 and "CENTER")) or "LEFT"
-	local isValidFont = self.text:SetFont(font,size,outline)
+	local isValidFont = pcall(self.text.SetFont,self.text,font,size,outline)
+	if not isValidFont then self.text:SetFont(MRT.F.defFont,size,outline) end
+
 	self.text:SetJustifyH(align)
 
 	local c = 2
 	while self["text"..c] do
-		self["text"..c]:SetFont(font,size,outline)
+		pcall(self["text"..c].SetFont,self["text"..c],font,size,outline)
 		self["text"..c]:SetJustifyH(align)
 		c = c + 1
-	end
-
-	if not isValidFont then 
-		self.text:SetFont(GameFontNormal:GetFont(),size,outline)
-
-		local c = 2
-		while self["text"..c] do
-			self["text"..c]:SetFont(GameFontNormal:GetFont(),size,outline)
-			c = c + 1
-		end
 	end
 
 	self:UpdateMaxSymbolsLimit()

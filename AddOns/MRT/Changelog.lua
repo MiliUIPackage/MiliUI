@@ -1,6 +1,16 @@
 local GlobalAddonName, ExRT = ...
 
 ExRT.Options.Changelog = [=[
+v.5291
+* Fixes
+
+v.5290
+* Fixes
+
+v.5285
+* Reminder: fixed issues with "bw/dbm timer" not firing sometimes
+* Minor fixes
+
 v.5280
 * Data updates
 * Minor fixes

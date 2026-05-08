@@ -626,15 +626,17 @@ do
 		end
 	end
 
-	function promoteRosterUpdate()
-		if not VMRT.InviteTool.AutoPromote then
-			return
-		end
-		for i = 1, GetNumGroupMembers() do
+	local ticker_main = nil
+	local function ticker_func(self)
+		if ExRT.isMN and InCombatLockdown() then return end
+		ticker_main = nil
+		if self then self:Cancel() end
+
+		for i=1, GetNumGroupMembers() do
 			local name, rank = GetRaidRosterInfo(i)
 			if name and rank == 0 then
 				local sName = ExRT.F.delUnitNameServer(name)
-				if module.db.promoteWordsArray[sName:lower()] then
+				if module.db.promoteWordsArray[sName:lower()] or (name:find("%-") and module.db.promoteWordsArray[name:lower()]) then
 					promotes[name] = true
 				elseif IsInGuild() and UnitInGuild(sName) then
 					if not guildmembers then
@@ -668,6 +670,19 @@ do
 					promotes[name] = nil
 				end
 			end, 2)
+		end
+
+		return true
+	end
+
+	function promoteRosterUpdate()
+		if not VMRT.InviteTool.AutoPromote then
+			return
+		end
+		if not ticker_func() then
+			if not ticker_main then
+				ticker_main = C_Timer.NewTicker(1,ticker_func)
+			end
 		end
 	end
 end

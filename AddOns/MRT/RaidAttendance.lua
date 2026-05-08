@@ -41,12 +41,7 @@ local classToLetter = {
 
 local SaveRaidRoster,SaveCurrentRaidRoster
 
-local C_Calendar_GetDate
-if ExRT.isClassic then
-	C_Calendar_GetDate = C_DateAndTime.GetTodaysDate
-else
-	C_Calendar_GetDate = C_DateAndTime.GetCurrentCalendarTime
-end
+local C_Calendar_GetDate = C_DateAndTime.GetCurrentCalendarTime or C_DateAndTime.GetTodaysDate
 
 function module.options:Load()
 	local UpdatePersonalData,UpdateData
@@ -906,7 +901,7 @@ end
 local lastStartEvent,lastEndEvent = 0,0
 
 local function EncounterStartLog(encounterID, encounterName, difficultyID, groupSize)
-	if (not ExRT.isClassic and not (difficultyID == 14 or difficultyID == 15 or difficultyID == 16)) or (ExRT.isClassic and not (difficultyID == 9 or difficultyID == 148 or difficultyID == 175 or difficultyID == 176 or difficultyID == 193 or difficultyID == 194)) then
+	if (not ExRT.isClassic and not (difficultyID == 14 or difficultyID == 15 or difficultyID == 16)) or (ExRT.isClassic and not (difficultyID == 9 or difficultyID == 148 or difficultyID == 175 or difficultyID == 176 or difficultyID == 193 or difficultyID == 194 or difficultyID == 3 or difficultyID == 4 or difficultyID == 5 or difficultyID == 6)) then
 		return
 	end
 	if (VMRT.Attendance.enabled == 1 and isFirstEncounterByRaid) or VMRT.Attendance.enabled == 3 or CheckSpecialConditions(encounterID,encounterName,difficultyID) then
@@ -915,7 +910,7 @@ local function EncounterStartLog(encounterID, encounterName, difficultyID, group
 	end
 end
 local function EncounterEndLog(encounterID, encounterName, difficultyID, groupSize, isKill)
-	if not (isKill == 1) or (not ExRT.isClassic and not (difficultyID == 14 or difficultyID == 15 or difficultyID == 16)) or (ExRT.isClassic and not (difficultyID == 9 or difficultyID == 148 or difficultyID == 175 or difficultyID == 176 or difficultyID == 193 or difficultyID == 194)) then
+	if not (isKill == 1) or (not ExRT.isClassic and not (difficultyID == 14 or difficultyID == 15 or difficultyID == 16)) or (ExRT.isClassic and not (difficultyID == 9 or difficultyID == 148 or difficultyID == 175 or difficultyID == 176 or difficultyID == 193 or difficultyID == 194 or difficultyID == 3 or difficultyID == 4 or difficultyID == 5 or difficultyID == 6)) then
 		return
 	end
 	if (VMRT.Attendance.enabled == 2 and isFirstEncounterByRaid) or VMRT.Attendance.enabled == 4 or CheckSpecialConditions(encounterID,encounterName,difficultyID,isKill==1) then

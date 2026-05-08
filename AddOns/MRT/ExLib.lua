@@ -2733,8 +2733,11 @@ do
 end
 
 do
-	local function Widget_SetFont(self,...)
-		self:SetFont(...)
+	local function Widget_SetFont(self,fontName,...)
+		local isFontValid = pcall(self.SetFont,self,fontName,...)
+		if not isFontValid then
+			self:SetFont(DEFAULT_FONT,...)
+		end
 		return self
 	end
 	local function Widget_Color(self,colR,colG,colB)

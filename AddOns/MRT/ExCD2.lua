@@ -2320,11 +2320,23 @@ local function UpdateBarStyle(self)
 
 	local isValidFont = nil
 
+	--[[
 	self.textLeft:SetFont(parent.fontLeftName,parent.fontLeftSize,parent.fontLeftOutline and "OUTLINE" or "")
 	self.textRight:SetFont(parent.fontRightName,parent.fontRightSize,parent.fontRightOutline and "OUTLINE" or "")
 	self.textCenter:SetFont(parent.fontCenterName,parent.fontCenterSize,parent.fontCenterOutline and "OUTLINE" or "")
 	self.textIcon:SetFont(parent.fontIconName,parent.fontIconSize,parent.fontIconOutline and "OUTLINE" or "")
 	self.textIconCD:SetFont(parent.fontIconCDName,parent.fontIconCDSize,parent.fontIconCDOutline and "OUTLINE" or "")
+	]]
+	local isFontValid = pcall(self.textLeft.SetFont,self.textLeft,parent.fontLeftName,parent.fontLeftSize,parent.fontLeftOutline and "OUTLINE" or "")
+	if not isFontValid then self.textLeft:SetFont(ExRT.F.defFont,parent.fontLeftSize,parent.fontLeftOutline and "OUTLINE" or "") end
+	local isFontValid = pcall(self.textRight.SetFont,self.textRight,parent.fontRightName,parent.fontLeftSize,parent.fontLeftOutline and "OUTLINE" or "")
+	if not isFontValid then self.textRight:SetFont(ExRT.F.defFont,parent.fontLeftSize,parent.fontLeftOutline and "OUTLINE" or "") end
+	local isFontValid = pcall(self.textCenter.SetFont,self.textCenter,parent.fontCenterName,parent.fontLeftSize,parent.fontLeftOutline and "OUTLINE" or "")
+	if not isFontValid then self.textCenter:SetFont(ExRT.F.defFont,parent.fontLeftSize,parent.fontLeftOutline and "OUTLINE" or "") end
+	local isFontValid = pcall(self.textIcon.SetFont,self.textIcon,parent.fontIconName,parent.fontLeftSize,parent.fontLeftOutline and "OUTLINE" or "")
+	if not isFontValid then self.textIcon:SetFont(ExRT.F.defFont,parent.fontLeftSize,parent.fontLeftOutline and "OUTLINE" or "") end
+	local isFontValid = pcall(self.textIconCD.SetFont,self.textIconCD,parent.fontIconCDName,parent.fontLeftSize,parent.fontLeftOutline and "OUTLINE" or "")
+	if not isFontValid then self.textIconCD:SetFont(ExRT.F.defFont,parent.fontLeftSize,parent.fontLeftOutline and "OUTLINE" or "") end
 
 	local fontOffset = 0
 	fontOffset = parent.fontLeftShadow and 1 or 0	self.textLeft:SetShadowOffset(1*fontOffset,-1*fontOffset)
@@ -4441,6 +4453,8 @@ function module.main:ADDON_LOADED()
 	VMRT = _G.VMRT
 	VMRT.ExCD2 = VMRT.ExCD2 or ExRT.F.table_copy2(NewVMRTTableData)
 
+	if ExRT.isMN then return end
+
 	VMRT.ExCD2.Profiles = VMRT.ExCD2.Profiles or {}
 	VMRT.ExCD2.Profiles.List = VMRT.ExCD2.Profiles.List or {}
 	VMRT.ExCD2.Profiles.Now = VMRT.ExCD2.Profiles.Now or "default"
@@ -4538,7 +4552,7 @@ function module.main:ADDON_LOADED()
 	if ExRT.isClassic then
 		module:RegisterEvents('LOADING_SCREEN_DISABLED')
 	end
-	if not VMRT.ExCD2.enabled then
+	if not VMRT.ExCD2.enabled or ExRT.isMN then
 		module:Disable()
 		C_Timer.After(2,module.CheckZoneProfiles)
 	else
