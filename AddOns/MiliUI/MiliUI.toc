@@ -7,6 +7,7 @@
 ## Category-zhTW: [整合]
 ## OptionalDeps: TeleportMenu
 ## SavedVariables: MiliUI_DB, MiliUI_CastBarEnhanceDB
+## SavedVariablesPerCharacter: MiliUI_CharDB
 
 Config\Luxthos_Platynator.lua
 # Config\Luxthos_Sensei.lua
@@ -48,3 +49,4 @@ Enhance\TinyInspectRemake_GearSlots.lua
 Enhance\TinyInspectRemake_TrackColors.lua
 Enhance\TinyInspectRemake_FlyoutItemLocation.lua
 Enhance\GameplayCVars.lua
+Enhance\CharacterNotes.lua
