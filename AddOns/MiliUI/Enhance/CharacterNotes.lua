@@ -47,12 +47,14 @@ end
 ------------------------------------------------------------
 local currentScope    = NOTE_SCOPE_ACCOUNT
 local selectedNoteID  = nil
+local selectedButton          -- O(1) 選取狀態切換用
 local noteListButtons = {}
-local dragState       = nil  -- { sourceID = string, targetIndex = number }
-local dragLine                 -- 拖曳時插入位置的指示線
+local dragState       = nil   -- { sourceID = string, targetIndex = number }
+local dragLine                -- 拖曳時插入位置的指示線
 
 -- 前向宣告
 local RefreshNoteList, LoadNoteToEditor, SaveCurrentNote, ClearEditor
+local SetButtonSelected, DragMonitor, CancelDrag
 
 ------------------------------------------------------------
 -- 產生唯一 ID
@@ -62,18 +64,96 @@ local function GenerateID()
 end
 
 ------------------------------------------------------------
+-- 選取狀態視覺切換（O(1)，避免每次點擊掃整列表）
+------------------------------------------------------------
+SetButtonSelected = function(btn, selected)
+    if not btn then return end
+    if selected then
+        btn:SetBackdropColor(unpack(S.Colors.bgHover))
+        btn:SetBackdropBorderColor(unpack(S.Colors.borderHover))
+    else
+        btn:SetBackdropColor(unpack(S.Colors.bg))
+        btn:SetBackdropBorderColor(unpack(S.Colors.border))
+    end
+end
+
+------------------------------------------------------------
+-- 拖曳：取消狀態（用於 OnDragStop / 異常關閉時清理殘留）
+------------------------------------------------------------
+CancelDrag = function()
+    dragState = nil
+    if dragLine then dragLine:Hide() end
+    if listScroll then listScroll:SetScript("OnUpdate", nil) end
+    for _, b in ipairs(noteListButtons) do
+        if b:GetAlpha() < 1 then b:SetAlpha(1) end
+    end
+end
+
+------------------------------------------------------------
+-- 拖曳監控：僅在拖曳期間綁定 OnUpdate
+------------------------------------------------------------
+DragMonitor = function()
+    if not dragState then return end
+
+    local hovered
+    for _, b in ipairs(noteListButtons) do
+        if b:IsShown() and b:IsMouseOver() then
+            hovered = b
+            break
+        end
+    end
+
+    if hovered then
+        local _, cy = GetCursorPosition()
+        cy = cy / hovered:GetEffectiveScale()
+        local mid = hovered:GetTop() - hovered:GetHeight() / 2
+        local idx = hovered._index or 1
+        local targetIdx = (cy >= mid) and idx or (idx + 1)
+        dragState.targetIndex = targetIdx
+
+        dragLine:ClearAllPoints()
+        if cy >= mid then
+            dragLine:SetPoint("TOPLEFT", hovered, "TOPLEFT", 0, 1)
+            dragLine:SetPoint("TOPRIGHT", hovered, "TOPRIGHT", 0, 1)
+        else
+            dragLine:SetPoint("BOTTOMLEFT", hovered, "BOTTOMLEFT", 0, -1)
+            dragLine:SetPoint("BOTTOMRIGHT", hovered, "BOTTOMRIGHT", 0, -1)
+        end
+        dragLine:Show()
+        return
+    end
+
+    -- 游標不在任何按鈕上：若在最後一筆下方，drop 到尾端
+    local last
+    for _, b in ipairs(noteListButtons) do
+        if b:IsShown() then last = b end
+    end
+    if last then
+        local _, cy = GetCursorPosition()
+        cy = cy / last:GetEffectiveScale()
+        if cy < last:GetBottom() then
+            dragState.targetIndex = #GetNotesForScope(currentScope) + 1
+            dragLine:ClearAllPoints()
+            dragLine:SetPoint("BOTTOMLEFT", last, "BOTTOMLEFT", 0, -1)
+            dragLine:SetPoint("BOTTOMRIGHT", last, "BOTTOMRIGHT", 0, -1)
+            dragLine:Show()
+        else
+            dragLine:Hide()
+            dragState.targetIndex = nil
+        end
+    end
+end
+
+------------------------------------------------------------
 -- UI 建構（延遲到角色面板載入後）
 ------------------------------------------------------------
 local tabFrame       -- 筆記標籤頁的主容器（CharacterFrame 內）
-local toolbar        -- 頂部工具列
-local listBg         -- 列表背景（佔滿 tabFrame 下半部）
 local listScroll     -- 列表捲動區
 local listContent    -- 列表捲動內容
 local editorFrame    -- 獨立浮動編輯視窗（parent: UIParent）
 local titleEditBox   -- 標題輸入
 local bodyEditBox    -- 內文輸入
-local scopeButton    -- 帳號/角色 切換按鈕
-local addButton      -- 新增按鈕
+local scopeButton    -- 帳號/角色 切換按鈕（OnClick 內要更新文字）
 local charTab        -- 標籤按鈕
 
 local function BuildUI()
@@ -96,7 +176,7 @@ local function BuildUI()
     ------------------------------------------------------------
     -- 頂部工具列
     ------------------------------------------------------------
-    toolbar = CreateFrame("Frame", nil, tabFrame, "BackdropTemplate")
+    local toolbar = CreateFrame("Frame", nil, tabFrame, "BackdropTemplate")
     toolbar:SetHeight(TOOLBAR_HEIGHT)
     toolbar:SetPoint("TOPLEFT", NOTE_PADDING, -NOTE_PADDING)
     toolbar:SetPoint("TOPRIGHT", -NOTE_PADDING, -NOTE_PADDING)
@@ -125,7 +205,7 @@ local function BuildUI()
     end)
 
     -- 新增按鈕
-    addButton = CreateFrame("Button", nil, toolbar, "BackdropTemplate")
+    local addButton = CreateFrame("Button", nil, toolbar, "BackdropTemplate")
     addButton:SetSize(60, TOOLBAR_HEIGHT - 4)
     addButton:SetPoint("LEFT", scopeButton, "RIGHT", 4, 0)
     S.ApplyButton(addButton, "新增", nil, 11)
@@ -150,7 +230,7 @@ local function BuildUI()
     ------------------------------------------------------------
     -- 筆記列表（佔滿 tabFrame 下半部）
     ------------------------------------------------------------
-    listBg = CreateFrame("Frame", nil, tabFrame, "BackdropTemplate")
+    local listBg = CreateFrame("Frame", nil, tabFrame, "BackdropTemplate")
     listBg:SetPoint("TOPLEFT", toolbar, "BOTTOMLEFT", 0, -4)
     listBg:SetPoint("BOTTOMRIGHT", -NOTE_PADDING, NOTE_PADDING)
     listBg:SetBackdrop(S.Backdrop)
@@ -176,73 +256,26 @@ local function BuildUI()
     dragLine:SetHeight(2)
     dragLine:Hide()
 
-    -- 拖曳監控：依據游標位置更新 dragLine 與 targetIndex
-    listScroll:SetScript("OnUpdate", function()
-        if not dragState then
-            if dragLine and dragLine:IsShown() then dragLine:Hide() end
-            return
-        end
-
-        local notes = GetNotesForScope(currentScope)
-        local hovered
-        for _, b in ipairs(noteListButtons) do
-            if b:IsShown() and b:IsMouseOver() then
-                hovered = b
-                break
-            end
-        end
-
-        if hovered then
-            local _, cy = GetCursorPosition()
-            cy = cy / hovered:GetEffectiveScale()
-            local mid = hovered:GetTop() - hovered:GetHeight() / 2
-            local idx = hovered._index or 1
-            local targetIdx = (cy >= mid) and idx or (idx + 1)
-            dragState.targetIndex = targetIdx
-
-            dragLine:ClearAllPoints()
-            if cy >= mid then
-                dragLine:SetPoint("TOPLEFT", hovered, "TOPLEFT", 0, 1)
-                dragLine:SetPoint("TOPRIGHT", hovered, "TOPRIGHT", 0, 1)
-            else
-                dragLine:SetPoint("BOTTOMLEFT", hovered, "BOTTOMLEFT", 0, -1)
-                dragLine:SetPoint("BOTTOMRIGHT", hovered, "BOTTOMRIGHT", 0, -1)
-            end
-            dragLine:Show()
-        else
-            -- 游標不在任何按鈕上：找最後一個可見按鈕，若游標在它下方就 drop 到尾端
-            local last
-            for _, b in ipairs(noteListButtons) do
-                if b:IsShown() then last = b end
-            end
-            if last then
-                local _, cy = GetCursorPosition()
-                cy = cy / last:GetEffectiveScale()
-                if cy < last:GetBottom() then
-                    dragState.targetIndex = #notes + 1
-                    dragLine:ClearAllPoints()
-                    dragLine:SetPoint("BOTTOMLEFT", last, "BOTTOMLEFT", 0, -1)
-                    dragLine:SetPoint("BOTTOMRIGHT", last, "BOTTOMRIGHT", 0, -1)
-                    dragLine:Show()
-                else
-                    dragLine:Hide()
-                    dragState.targetIndex = nil
-                end
-            end
-        end
-    end)
-
     ------------------------------------------------------------
     -- 獨立浮動編輯視窗（parent: UIParent）
     ------------------------------------------------------------
     editorFrame = CreateFrame("Frame", "MiliUI_NoteEditorFrame", UIParent, "BackdropTemplate")
     editorFrame:SetSize(EDITOR_WIDTH, EDITOR_HEIGHT)
-    editorFrame:SetPoint("TOPLEFT", CharacterFrame, "TOPRIGHT", 8, 0)
     editorFrame:SetFrameStrata("HIGH")
     editorFrame:SetFrameLevel(50)
     editorFrame:SetClampedToScreen(true)
     editorFrame:SetMovable(true)
     editorFrame:Hide()
+
+    -- 位置：優先使用使用者上次存的，沒有就預設貼在 CharacterFrame 右側
+    local savedPos = MiliUI_DB and MiliUI_DB.notesEditorPos
+    if savedPos and savedPos.point then
+        editorFrame:ClearAllPoints()
+        editorFrame:SetPoint(savedPos.point, UIParent, savedPos.relPoint or savedPos.point,
+            savedPos.x or 0, savedPos.y or 0)
+    else
+        editorFrame:SetPoint("TOPLEFT", CharacterFrame, "TOPRIGHT", 8, 0)
+    end
     editorFrame:SetBackdrop(S.Backdrop)
     editorFrame:SetBackdropColor(unpack(S.Colors.panelBg))
     editorFrame:SetBackdropBorderColor(unpack(S.Colors.border))
@@ -260,8 +293,10 @@ local function BuildUI()
     header:SetScript("OnDragStart", function() editorFrame:StartMoving() end)
     header:SetScript("OnDragStop", function()
         editorFrame:StopMovingOrSizing()
-        -- 紀錄使用者調整過位置，之後不再跟隨 CharacterFrame 的預設錨點
-        editorFrame._userMoved = true
+        -- 持久化位置
+        if not MiliUI_DB then MiliUI_DB = {} end
+        local point, _, relPoint, x, y = editorFrame:GetPoint(1)
+        MiliUI_DB.notesEditorPos = { point = point, relPoint = relPoint, x = x, y = y }
     end)
 
     local headerText = header:CreateFontString(nil, "OVERLAY")
@@ -432,7 +467,8 @@ RefreshNoteList = function()
     if not listContent then return end
     local notes = GetNotesForScope(currentScope)
 
-    -- 隱藏所有按鈕
+    -- 隱藏所有按鈕；selectedButton 會在下方的迴圈重新指定
+    selectedButton = nil
     for _, btn in ipairs(noteListButtons) do
         btn:Hide()
     end
@@ -446,20 +482,18 @@ RefreshNoteList = function()
             btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
             btn:RegisterForDrag("LeftButton")
 
-            -- 拖曳開始：記錄來源筆記 ID
+            -- 拖曳開始：記錄來源筆記 ID，啟動 OnUpdate 監控
             btn:SetScript("OnDragStart", function(self)
                 if not self._noteID then return end
                 dragState = { sourceID = self._noteID, targetIndex = nil }
                 self:SetAlpha(0.4)
+                listScroll:SetScript("OnUpdate", DragMonitor)
             end)
 
-            -- 拖曳結束：套用排序
+            -- 拖曳結束：套用排序，停掉 OnUpdate
             btn:SetScript("OnDragStop", function(self)
-                self:SetAlpha(1)
-                if dragLine then dragLine:Hide() end
-
                 local state = dragState
-                dragState = nil
+                CancelDrag()
                 if not state or not state.targetIndex then return end
 
                 local notes = GetNotesForScope(currentScope)
@@ -488,13 +522,13 @@ RefreshNoteList = function()
             btn._text = text
 
             btn:SetScript("OnEnter", function(self)
-                if self._noteID ~= selectedNoteID then
+                if self ~= selectedButton then
                     self:SetBackdropColor(unpack(S.Colors.bgHover))
                     self:SetBackdropBorderColor(unpack(S.Colors.borderHover))
                 end
             end)
             btn:SetScript("OnLeave", function(self)
-                if self._noteID ~= selectedNoteID then
+                if self ~= selectedButton then
                     self:SetBackdropColor(unpack(S.Colors.bg))
                     self:SetBackdropBorderColor(unpack(S.Colors.border))
                 end
@@ -505,18 +539,13 @@ RefreshNoteList = function()
                     return
                 end
                 SaveCurrentNote()
-                selectedNoteID = self._noteID
-                for _, b in ipairs(noteListButtons) do
-                    if b:IsShown() then
-                        if b._noteID == selectedNoteID then
-                            b:SetBackdropColor(unpack(S.Colors.bgHover))
-                            b:SetBackdropBorderColor(unpack(S.Colors.borderHover))
-                        else
-                            b:SetBackdropColor(unpack(S.Colors.bg))
-                            b:SetBackdropBorderColor(unpack(S.Colors.border))
-                        end
-                    end
+                -- O(1) 切換：只更新前一個與當前
+                if selectedButton and selectedButton ~= self then
+                    SetButtonSelected(selectedButton, false)
                 end
+                selectedNoteID = self._noteID
+                selectedButton = self
+                SetButtonSelected(self, true)
                 local n = self._noteData
                 if n then LoadNoteToEditor(n) end
             end)
@@ -535,11 +564,10 @@ RefreshNoteList = function()
         btn:SetPoint("RIGHT", listContent, "RIGHT", -2, 0)
 
         if note.id == selectedNoteID then
-            btn:SetBackdropColor(unpack(S.Colors.bgHover))
-            btn:SetBackdropBorderColor(unpack(S.Colors.borderHover))
+            selectedButton = btn
+            SetButtonSelected(btn, true)
         else
-            btn:SetBackdropColor(unpack(S.Colors.bg))
-            btn:SetBackdropBorderColor(unpack(S.Colors.border))
+            SetButtonSelected(btn, false)
         end
 
         btn:Show()
@@ -573,22 +601,25 @@ SaveCurrentNote = function()
     local notes = GetNotesForScope(currentScope)
     for _, note in ipairs(notes) do
         if note.id == selectedNoteID then
-            local newTitle = titleEditBox:GetText()
-            note.title   = (newTitle ~= "") and newTitle or "無標題"
+            local newTitle  = titleEditBox:GetText()
+            local finalTitle = (newTitle ~= "") and newTitle or "無標題"
+            local titleChanged = (finalTitle ~= note.title)
+            note.title   = finalTitle
             note.content = bodyEditBox:GetText()
             note.time    = time()
-            break
+            -- 只有標題變動才需更新列表顯示，且只更新該按鈕，不重建整個列表
+            if titleChanged and selectedButton and selectedButton._noteID == selectedNoteID then
+                selectedButton._text:SetText(finalTitle)
+            end
+            return
         end
     end
-    RefreshNoteList()
 end
 
 ------------------------------------------------------------
 -- 標籤頁管理
 ------------------------------------------------------------
 local TAB_NAME = "角色筆記"
-local origNumTabs
-local notesTabIndex
 
 local function ShowNotesTab()
     if not tabFrame then return end
@@ -599,6 +630,7 @@ end
 local function HideNotesTab()
     if not tabFrame then return end
     SaveCurrentNote()
+    CancelDrag()  -- 安全清理：避免拖曳中異常關閉導致殘留
     tabFrame:Hide()
     if editorFrame then editorFrame:Hide() end
 end
@@ -690,8 +722,8 @@ local function SetupTab()
     local existingTabs = {}
     for i, t in ipairs(liveTabs) do existingTabs[i] = t end
 
-    origNumTabs   = #existingTabs > 0 and #existingTabs or 3
-    notesTabIndex = origNumTabs + 1
+    local origNumTabs   = #existingTabs > 0 and #existingTabs or 3
+    local notesTabIndex = origNumTabs + 1
 
     local lastTab = existingTabs[origNumTabs]
 
@@ -751,21 +783,9 @@ local function SetupTab()
         RefreshNoteList()
     end)
 
-    -- 切換離開時還原 tab 視覺：依靠原生 tab 的 OnClick hook 即可（見下方）
-    -- 不再 hook 全域 PanelTemplates_SetTab —— retail 的 TabSystem 會在我們之後
+    -- 切換離開時還原 tab 視覺：依靠下方原生 tab 的 OnClick hook
+    -- 不 hook 全域 PanelTemplates_SetTab —— retail 的 TabSystem 會在我們之後
     -- 再次呼叫該函式並把 selectedTab 重設成預設 id，導致 tabFrame 立刻被隱藏。
-
-    -- DEBUG：追蹤是誰把 tabFrame 隱藏掉
-    hooksecurefunc(tabFrame, "Hide", function()
-        if MiliUI_NotesDebug then
-            print("|cffff0000[Notes Hide]|r", debugstack(2, 4, 0))
-        end
-    end)
-    hooksecurefunc(tabFrame, "Show", function()
-        if MiliUI_NotesDebug then
-            print("|cff00ff00[Notes Show]|r")
-        end
-    end)
 
     -- 也 hook 各個原始 tab 的 OnClick：使用者點別的 tab 時把筆記面板收起來
     -- 雙重保險：明確排除 charTab，避免 hook 到自己
@@ -785,59 +805,6 @@ local function SetupTab()
     CharacterFrame:HookScript("OnHide", function()
         HideNotesTab()
     end)
-end
-
-------------------------------------------------------------
--- DEBUG
-------------------------------------------------------------
-local function fmt(f)
-    if not f then return "<nil>" end
-    local sh = f.IsShown and f:IsShown() or false
-    local vis = f.IsVisible and f:IsVisible() or false
-    local w = f.GetWidth and f:GetWidth() or 0
-    local h = f.GetHeight and f:GetHeight() or 0
-    local strata = f.GetFrameStrata and f:GetFrameStrata() or "?"
-    local lvl = f.GetFrameLevel and f:GetFrameLevel() or "?"
-    local l, b = 0, 0
-    if f.GetLeft and f:GetLeft() then l = math.floor(f:GetLeft()) end
-    if f.GetBottom and f:GetBottom() then b = math.floor(f:GetBottom()) end
-    return string.format("shown=%s vis=%s size=%dx%d pos=(%d,%d) strata=%s lvl=%s",
-        tostring(sh), tostring(vis), w, h, l, b, strata, tostring(lvl))
-end
-
-local function PrintNoteDebug()
-    print("|cff00ff00[MiliUI Notes]|r === DEBUG ===")
-    print("CharacterFrame:", fmt(CharacterFrame))
-    print("CharacterFrame.Inset:", fmt(CharacterFrame and CharacterFrame.Inset))
-    print("tabFrame:", fmt(tabFrame))
-    print("toolbar:", fmt(toolbar))
-    print("listBg:", fmt(listBg))
-    print("editorFrame:", fmt(editorFrame))
-    print("scopeButton:", fmt(scopeButton))
-    print("titleEditBox:", fmt(titleEditBox))
-    print("bodyEditBox:", fmt(bodyEditBox))
-    print("charTab:", fmt(charTab))
-    if tabFrame then
-        local kids = { tabFrame:GetChildren() }
-        print("tabFrame children count:", #kids)
-        for i, c in ipairs(kids) do
-            print(string.format("  [%d] %s", i, fmt(c)))
-        end
-    end
-end
-
-SLASH_MILINOTE1 = "/minote"
-SlashCmdList["MILINOTE"] = function(msg)
-    if msg == "show" then
-        if tabFrame then tabFrame:Show() end
-    elseif msg == "hide" then
-        if tabFrame then tabFrame:Hide() end
-    elseif msg == "trace" then
-        MiliUI_NotesDebug = not MiliUI_NotesDebug
-        print("|cff00ff00[Notes]|r trace:", MiliUI_NotesDebug and "ON" or "OFF")
-    else
-        PrintNoteDebug()
-    end
 end
 
 ------------------------------------------------------------
