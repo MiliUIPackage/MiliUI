@@ -122,6 +122,22 @@ local function InitDB()
     end
 end
 
+-- 讀取此角色上次使用的 tab；回傳合法 scope 或 nil（呼叫端在 currentScope 在 scope 時再賦值）
+local function ReadSavedScope()
+    if not MiliUI_CharDB then return nil end
+    if MiliUI_CharDB.lastScope == NOTE_SCOPE_CHAR
+       or MiliUI_CharDB.lastScope == NOTE_SCOPE_ACCOUNT then
+        return MiliUI_CharDB.lastScope
+    end
+    return nil
+end
+
+-- 寫入目前 tab 至本角色 SavedVariables
+local function WriteSavedScope(scope)
+    if type(MiliUI_CharDB) ~= "table" then MiliUI_CharDB = {} end
+    MiliUI_CharDB.lastScope = scope
+end
+
 local function GetNotesForScope(scope)
     if scope == NOTE_SCOPE_CHAR then
         return GetCharDB()
@@ -303,6 +319,12 @@ local function BuildUI()
     scopeButton:SetSize(96, TOOLBAR_HEIGHT - 4)
     scopeButton:SetPoint("LEFT", 4, 0)
     S.ApplyButton(scopeButton, "戰隊共用", nil, 11)
+    -- 同步初始文字到還原後的 currentScope
+    if scopeButton._miliText then
+        scopeButton._miliText:SetText(
+            (currentScope == NOTE_SCOPE_CHAR) and "角色專屬" or "戰隊共用"
+        )
+    end
 
     scopeButton:SetScript("OnClick", function()
         SaveCurrentNote()
@@ -313,6 +335,7 @@ local function BuildUI()
             currentScope = NOTE_SCOPE_ACCOUNT
             scopeButton._miliText:SetText("戰隊共用")
         end
+        WriteSavedScope(currentScope)  -- 寫回此角色 SavedVariables
         selectedNoteID = nil
         ClearEditor()
         if searchBox then searchBox:SetText("") end
@@ -1454,6 +1477,9 @@ loader:RegisterEvent("PLAYER_LOGIN")
 loader:SetScript("OnEvent", function(self, event)
     self:UnregisterEvent("PLAYER_LOGIN")
     InitDB()
+    -- 還原本角色上次使用的 tab
+    local saved = ReadSavedScope()
+    if saved then currentScope = saved end
     -- CharacterFrame 可能由 Blizzard_CharacterFrame 延遲載入
     if CharacterFrame then
         SetupTab()
