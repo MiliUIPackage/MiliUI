@@ -1,7 +1,6 @@
 ## Interface: 120001, 120005
 ## Title: HandyNotes: Midnight - Capital
 ## Title-zhCN: HandyNotes：至暗之夜 - 主城
-## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記 - 至暗之夜主城
 ## Title-deDE: HandyNotes: Midnight - Hauptstadt
 ## Title-esES: HandyNotes: Midnight - Capital
 ## Title-esMX: HandyNotes: Midnight - Capital
@@ -25,7 +24,8 @@
 ## RequiredDeps: HandyNotes
 ## SavedVariables: HandyNotes_MidnightCapitalDB
 ## Category-zhTW: 地圖
-
+## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-至暗之夜主城
+## Notes-zhTW: HandyNotes: Midnight - Capital|n在重建後的銀月城（至暗之夜的主城）顯示重要地點與服務。
 Icons.lua
 Localization.lua
 locales\enUS.lua
