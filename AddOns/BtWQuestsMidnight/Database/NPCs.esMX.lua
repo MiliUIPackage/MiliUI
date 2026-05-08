@@ -147,6 +147,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [239720] = {
         name = "Lucía Rasganoche",
     },
+    [239810] = {
+        name = "Alto exarca Turalyon",
+    },
     [240403] = {
         name = "Magíster Meledor",
     },

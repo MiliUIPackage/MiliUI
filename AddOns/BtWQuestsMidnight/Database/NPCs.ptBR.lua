@@ -189,6 +189,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [239795] = {
         name = "Zur'Ashar Kassameh",
     },
+    [239810] = {
+        name = "Alto-exarca Turalyon",
+    },
     [240240] = {
         name = "Alonso Faol",
     },

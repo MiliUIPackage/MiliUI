@@ -657,8 +657,47 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [88653] = {
         name = "La \"yemada\" de la ciencia",
     },
+    [88696] = {
+        name = "La Ciudadela de la Devoración",
+    },
+    [88697] = {
+        name = "Propósito claro",
+    },
+    [88698] = {
+        name = "Dominio del caos",
+    },
+    [88699] = {
+        name = "Impotente",
+    },
+    [88700] = {
+        name = "Dos toneladas de metal y fuego sagrado",
+    },
+    [88701] = {
+        name = "El recuerdo perdura",
+    },
+    [88702] = {
+        name = "La égida del redentor",
+    },
+    [88703] = {
+        name = "La noche antes",
+    },
+    [88704] = {
+        name = "La cazadora paciente",
+    },
+    [88705] = {
+        name = "Golpe de gracia",
+    },
+    [88706] = {
+        name = "Nada dura para siempre",
+    },
     [88708] = {
         name = "Conclusiones violentas",
+    },
+    [88709] = {
+        name = "La Aguja del Vacío",
+    },
+    [88710] = {
+        name = "Marcha a Quel'Danas",
     },
     [88719] = {
         name = "Una voz desde la Luz",
@@ -668,6 +707,51 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [88768] = {
         name = "Agentes de oscuridad",
+    },
+    [88769] = {
+        name = "La batalla del puente",
+    },
+    [88919] = {
+        name = "Hacia el Pasaje Oscuro",
+    },
+    [88920] = {
+        name = "Los kaldorei",
+    },
+    [88922] = {
+        name = "Los quel'dorei",
+    },
+    [88923] = {
+        name = "Hijos de las estrellas",
+    },
+    [88925] = {
+        name = "Despertar al anciano de la guerra",
+    },
+    [88927] = {
+        name = "Despertar al anciano protector",
+    },
+    [88928] = {
+        name = "Los shal'dorei",
+    },
+    [88929] = {
+        name = "¡Una ilusión!",
+    },
+    [88930] = {
+        name = "Maná drenado",
+    },
+    [88937] = {
+        name = "Despertar al anciano del conocimiento",
+    },
+    [88938] = {
+        name = "Símbolos del pasado",
+    },
+    [88939] = {
+        name = "Descanso eterno, al fin",
+    },
+    [88941] = {
+        name = "Por Quel'Thalas",
+    },
+    [88942] = {
+        name = "Los elfos van a la guerra",
     },
     [88977] = {
         name = "Recreación del crimen",
@@ -927,11 +1011,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [90669] = {
         name = "El oro es oro",
     },
+    [90690] = {
+        name = "La carga de la Vanguardia",
+    },
+    [90724] = {
+        name = "El cielo roto",
+    },
     [90749] = {
         name = "Nuestro enemigo mutuo",
     },
     [90772] = {
         name = "Las llamas se alzan",
+    },
+    [90777] = {
+        name = "Avivar las llamas",
     },
     [90782] = {
         name = "Los enviados abisales",
@@ -1008,8 +1101,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [90860] = {
         name = "Liberándose del yugo",
     },
+    [90861] = {
+        name = "Los que quedaron atrás",
+    },
+    [90862] = {
+        name = "En momentos de necesidad",
+    },
     [90866] = {
         name = "Lenguaje universal",
+    },
+    [90867] = {
+        name = "De la oscuridad, la Luz",
+    },
+    [90871] = {
+        name = "El compendio Platasol",
     },
     [90872] = {
         name = "Riada de sangre",
@@ -1022,6 +1127,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [90875] = {
         name = "Entre mundos",
+    },
+    [90876] = {
+        name = "Una mano reacia",
     },
     [90907] = {
         name = "Nadie lo supo antes",
@@ -1274,6 +1382,12 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [91412] = {
         name = "El regreso de la Reina del Veneno",
+    },
+    [91417] = {
+        name = "En busca de Arator",
+    },
+    [91426] = {
+        name = "Adalid del pueblo",
     },
     [91450] = {
         name = "Ya estamos listos",
@@ -1620,6 +1734,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [92512] = {
         name = "Devorador",
     },
+    [92520] = {
+        name = "El despertar de La Fuente de la Oscuridad",
+    },
     [92531] = {
         name = "El santuario del loa de la medicina",
     },
@@ -1667,6 +1784,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [92662] = {
         name = "Colapso del núcleo",
+    },
+    [92689] = {
+        name = "Un camino hacia delante",
     },
     [92694] = {
         name = "Atardecer entre pigmentos",

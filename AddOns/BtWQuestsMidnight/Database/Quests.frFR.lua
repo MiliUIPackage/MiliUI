@@ -660,8 +660,47 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [88653] = {
         name = "On ne fait pas d’omelette…",
     },
+    [88696] = {
+        name = "La citadelle de la Dévoration",
+    },
+    [88697] = {
+        name = "La clarté de l’intention",
+    },
+    [88698] = {
+        name = "Émissaire du chaos",
+    },
+    [88699] = {
+        name = "À court de jus",
+    },
+    [88700] = {
+        name = "Deux tonnes de métal et le feu sacré",
+    },
+    [88701] = {
+        name = "Les souvenirs restent",
+    },
+    [88702] = {
+        name = "Égide du Rédempteur",
+    },
+    [88703] = {
+        name = "La nuit d’avant",
+    },
+    [88704] = {
+        name = "Une chasseresse patiente",
+    },
+    [88705] = {
+        name = "Coup fatal",
+    },
+    [88706] = {
+        name = "Rien ne dure éternellement",
+    },
     [88708] = {
         name = "Conclusions violentes",
+    },
+    [88709] = {
+        name = "La flèche du Vide",
+    },
+    [88710] = {
+        name = "Marche sur Quel’Danas",
     },
     [88719] = {
         name = "Une voix de la Lumière",
@@ -671,6 +710,51 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [88768] = {
         name = "Émissaires des ténèbres",
+    },
+    [88769] = {
+        name = "La bataille du pont",
+    },
+    [88919] = {
+        name = "Retour à la Sombrevoie",
+    },
+    [88920] = {
+        name = "Les Kaldorei",
+    },
+    [88922] = {
+        name = "Les Quel’dorei",
+    },
+    [88923] = {
+        name = "Enfants des étoiles",
+    },
+    [88925] = {
+        name = "Réveiller l’ancien de la guerre",
+    },
+    [88927] = {
+        name = "Réveiller l’ancien protecteur",
+    },
+    [88928] = {
+        name = "Les Shal’dorei",
+    },
+    [88929] = {
+        name = "Une illusion !",
+    },
+    [88930] = {
+        name = "Fuite de mana",
+    },
+    [88937] = {
+        name = "Réveiller l’ancien du savoir",
+    },
+    [88938] = {
+        name = "Les symboles du passé",
+    },
+    [88939] = {
+        name = "Du repos pour les sans repos",
+    },
+    [88941] = {
+        name = "Pour Quel’Thalas !",
+    },
+    [88942] = {
+        name = "Les Elfes partent en guerre",
     },
     [88977] = {
         name = "Reconstitution du crime",
@@ -930,11 +1014,23 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [90669] = {
         name = "L’or, c’est de l’or !",
     },
+    [90690] = {
+        name = "L’assaut de l’avant-garde",
+    },
+    [90724] = {
+        name = "Un ciel brisé",
+    },
+    [90748] = {
+        name = "Quel’Danas",
+    },
     [90749] = {
         name = "Notre ennemi commun",
     },
     [90772] = {
         name = "Les flammes brûlent toujours plus fort",
+    },
+    [90777] = {
+        name = "De l’huile sur le feu",
     },
     [90782] = {
         name = "Les Émissaires du Néant",
@@ -1011,8 +1107,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [90860] = {
         name = "S’affranchir du joug",
     },
+    [90861] = {
+        name = "Les vestiges du Vide",
+    },
+    [90862] = {
+        name = "Temps de crise",
+    },
     [90866] = {
         name = "Langage universel",
+    },
+    [90867] = {
+        name = "Des ténèbres, la Lumière",
+    },
+    [90871] = {
+        name = "Le traité des Solargent",
     },
     [90872] = {
         name = "Bain de sang",
@@ -1025,6 +1133,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [90875] = {
         name = "Entre les mondes",
+    },
+    [90876] = {
+        name = "Une main réticente",
     },
     [90907] = {
         name = "Le premier informé",
@@ -1277,6 +1388,12 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [91412] = {
         name = "Le retour de la reine venimeuse",
+    },
+    [91417] = {
+        name = "À la recherche d’Arator",
+    },
+    [91426] = {
+        name = "Le champion du peuple",
     },
     [91450] = {
         name = "Fin prêts maintenant",
@@ -1623,6 +1740,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [92512] = {
         name = "Dévoreur",
     },
+    [92520] = {
+        name = "Sauvetage au Puits de ténèbres",
+    },
     [92531] = {
         name = "Le sanctuaire du Loa de la médecine",
     },
@@ -1670,6 +1790,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [92662] = {
         name = "Un problème singulier",
+    },
+    [92689] = {
+        name = "La voie à suivre",
     },
     [92694] = {
         name = "Pigments du couchant",

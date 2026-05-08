@@ -1409,6 +1409,50 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [239810] = {
+        name = "High Exarch Turalyon",
+        locations = {
+            [2405] = {
+                {
+                    x = 0.454038,
+                    y = 0.630563,
+                },
+            },
+        },
+    },
+    [239826] = {
+        name = "Alleria Windrunner",
+        locations = {
+            [2405] = {
+                {
+                    x = 0.516569,
+                    y = 0.649469,
+                },
+            },
+        },
+    },
+    [239827] = {
+        name = "Arator",
+        locations = {
+            [2405] = {
+                {
+                    x = 0.459963,
+                    y = 0.649327,
+                },
+            },
+        },
+    },
+    [239828] = {
+        name = "Magister Umbric",
+        locations = {
+            [2405] = {
+                {
+                    x = 0.453894,
+                    y = 0.631414,
+                },
+            },
+        },
+    },
     [240033] = {
         name = "Zul'jarra",
         locations = {
@@ -1493,6 +1537,61 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.528866,
                     y = 0.55171,
+                },
+            },
+        },
+    },
+    [240255] = {
+        name = "First Arcanist Thalyssra",
+        locations = {
+            [2393] = {
+                {
+                    x = 0.457066,
+                    y = 0.700538,
+                },
+            },
+        },
+    },
+    [240267] = {
+        name = "Arator",
+        locations = {
+            [2393] = {
+                {
+                    x = 0.458489,
+                    y = 0.703421,
+                },
+            },
+        },
+    },
+    [240295] = {
+        name = "Vereesa Windrunner",
+        locations = {
+            [2395] = {
+                {
+                    x = 0.311774,
+                    y = 0.913749,
+                },
+            },
+        },
+    },
+    [240302] = {
+        name = "First Arcanist Thalyssra",
+        locations = {
+            [680] = {
+                {
+                    x = 0.705923,
+                    y = 0.74301,
+                },
+            },
+        },
+    },
+    [240334] = {
+        name = "Shandris Feathermoon",
+        locations = {
+            [2239] = {
+                {
+                    x = 0.483242,
+                    y = 0.706617,
                 },
             },
         },
@@ -2287,6 +2386,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [243886] = {
+        name = "Nadia Brighton",
+        locations = {
+            [2405] = {
+                {
+                    x = 0.562883,
+                    y = 0.651097,
+                },
+            },
+        },
+    },
     [243907] = {
         name = "Decimus",
         locations = {
@@ -2463,6 +2573,28 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [244557] = {
+        name = "Arator",
+        locations = {
+            [2424] = {
+                {
+                    x = 0.527083,
+                    y = 0.583437,
+                },
+            },
+        },
+    },
+    [244576] = {
+        name = "Lady Liadrin",
+        locations = {
+            [2424] = {
+                {
+                    x = 0.526107,
+                    y = 0.460382,
+                },
+            },
+        },
+    },
     [244588] = {
         name = "Zul'jarra",
         locations = {
@@ -2496,6 +2628,28 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [244699] = {
+        name = "Vereesa Windrunner",
+        locations = {
+            [2393] = {
+                {
+                    x = 0.401496,
+                    y = 0.895069,
+                },
+            },
+        },
+    },
+    [244701] = {
+        name = "Grand Magister Rommath",
+        locations = {
+            [2393] = {
+                {
+                    x = 0.534308,
+                    y = 0.601007,
+                },
+            },
+        },
+    },
     [244929] = {
         name = "Decimus",
         locations = {
@@ -2525,6 +2679,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.472002,
                     y = 0.682416,
+                },
+            },
+        },
+    },
+    [245061] = {
+        name = "Arator",
+        locations = {
+            [2424] = {
+                {
+                    x = 0.525935,
+                    y = 0.902109,
                 },
             },
         },
@@ -2910,6 +3075,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.485893,
                     y = 0.576446,
+                },
+            },
+        },
+    },
+    [247414] = {
+        name = "Lady Liadrin",
+        locations = {
+            [2424] = {
+                {
+                    x = 0.531146,
+                    y = 0.586719,
                 },
             },
         },
@@ -3431,6 +3607,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [250958] = {
+        name = "Seneschal Ulen",
+        locations = {
+            [680] = {
+                {
+                    x = 0.705381,
+                    y = 0.742239,
+                },
+            },
+        },
+    },
     [251258] = {
         name = "Ani",
         locations = {
@@ -3449,6 +3636,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.691627,
                     y = 0.623129,
+                },
+            },
+        },
+    },
+    [251335] = {
+        name = "Arator",
+        locations = {
+            [2239] = {
+                {
+                    x = 0.483228,
+                    y = 0.704662,
                 },
             },
         },
@@ -3794,6 +3992,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [253603] = {
+        name = "Arator",
+        locations = {
+            [2393] = {
+                {
+                    x = 0.456551,
+                    y = 0.49054,
+                },
+            },
+        },
+    },
     [253948] = {
         name = "Leona Darkstrider",
         locations = {
@@ -3937,6 +4146,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [254654] = {
+        name = "First Arcanist Thalyssra",
+        locations = {
+            [2393] = {
+                {
+                    x = 0.4042,
+                    y = 0.329138,
+                },
+            },
+        },
+    },
     [254665] = {
         name = "Elder Doru",
         locations = {
@@ -3992,6 +4212,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [254884] = {
+        name = "Arator",
+        locations = {
+            [2405] = {
+                {
+                    x = 0.463305,
+                    y = 0.632664,
+                },
+            },
+        },
+    },
     [254903] = {
         name = "Motta",
         locations = {
@@ -4032,6 +4263,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.44177,
                     y = 0.336077,
+                },
+            },
+        },
+    },
+    [256046] = {
+        name = "First Arcanist Thalyssra",
+        locations = {
+            [680] = {
+                {
+                    x = 0.705921,
+                    y = 0.74305,
                 },
             },
         },

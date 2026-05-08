@@ -18,29 +18,6 @@ local LEVEL_PREREQUISITES = {
     },
 }
 
-Chain.IntoTheAbyss = 120401
-Chain.TheNightsVeil = 120402
-Chain.DawnOfReckoning = 120403
-Chain.TheVoidPeersBack = 120411
-Chain.ShadowPuppets = 120412
-Chain.TheNethersent = 120413
-Chain.TheNightbreaker = 120414
-Chain.PathogenicProblem = 120415
-Chain.AVoiceInside = 120416
-Chain.ShadowguardsShadow = 120417
-Chain.AGiftGivenFreely = 120418
-Chain.BreakingTheTriad = 120419
-Chain.GoLowGoLoud = 120420
-Chain.SecretsInTheDark = 120421
-Chain.OathsToFamily = 120422
-Chain.ToBeChanged = 120423
-Chain.ADanceWithTheDevil = 120424
-Chain.ADomanaarsBestFriend = 120425
-Chain.AMorePotentFoe = 120426
-Chain.OtherAlliance = 120497
-Chain.OtherHorde = 120498
-Chain.OtherBoth = 120499
-
 Database:AddChain(Chain.IntoTheAbyss, {
     name = BtWQuests_GetAchievementCriteriaNameDelayed(ACHIEVEMENT_ID_1, 1),
     questline = 5728,

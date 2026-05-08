@@ -183,6 +183,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [239795] = {
         name = "Zur'Ashar Kassameh",
     },
+    [239810] = {
+        name = "Grand exarque Turalyon",
+    },
     [240039] = {
         name = "Dame Liadrin",
     },
@@ -400,7 +403,7 @@ BtWQuestsDatabase:UpdateNPCsTable({
         name = "Faillelame Astre",
     },
     [248631] = {
-        name = "Commandant Kortuth Poing-des-Cimes",
+        name = "Commandant Koruth Poing-des-Cimes",
     },
     [248657] = {
         name = "Pel'na Brocherompue",
@@ -445,7 +448,7 @@ BtWQuestsDatabase:UpdateNPCsTable({
         name = "Forestier Krenn'an",
     },
     [250298] = {
-        name = "Numia dorée",
+        name = "Numia Dorée",
     },
     [250388] = {
         name = "Hathvelion Miresoleil",

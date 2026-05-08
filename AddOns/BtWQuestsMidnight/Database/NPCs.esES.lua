@@ -111,6 +111,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [239720] = {
         name = "Lucia Rasganoche",
     },
+    [239810] = {
+        name = "Alto exarca Turalyon",
+    },
     [240408] = {
         name = "Forestal Vardis",
     },

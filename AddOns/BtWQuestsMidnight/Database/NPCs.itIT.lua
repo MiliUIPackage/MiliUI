@@ -168,6 +168,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [239720] = {
         name = "Lucia Spezzanotte",
     },
+    [239810] = {
+        name = "Gran Esarca Turalyon",
+    },
     [240039] = {
         name = "Dama Liadrin",
     },

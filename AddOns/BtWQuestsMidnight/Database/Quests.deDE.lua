@@ -651,8 +651,47 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [88653] = {
         name = "Angeschmiert",
     },
+    [88696] = {
+        name = "Die verschlingende Zitadelle",
+    },
+    [88697] = {
+        name = "Klares Ziel",
+    },
+    [88698] = {
+        name = "Meister des Metzelns",
+    },
+    [88699] = {
+        name = "Machtlos",
+    },
+    [88700] = {
+        name = "Zwei Tonnen Metall und heiliges Feuer",
+    },
+    [88701] = {
+        name = "Die Erinnerung bleibt",
+    },
+    [88702] = {
+        name = "Aegis des Erlösers",
+    },
+    [88703] = {
+        name = "Der Vorabend der Jagd",
+    },
+    [88704] = {
+        name = "Ein geduldiger Jäger",
+    },
+    [88705] = {
+        name = "Todesstoß",
+    },
+    [88706] = {
+        name = "Nichts hält ewig",
+    },
     [88708] = {
         name = "Heftige Schlussfolgerungen",
+    },
+    [88709] = {
+        name = "Die Leerenspitze",
+    },
+    [88710] = {
+        name = "Marsch auf Quel'Danas",
     },
     [88719] = {
         name = "Eine Stimme aus dem Licht",
@@ -662,6 +701,51 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [88768] = {
         name = "Schergen der Finsternis",
+    },
+    [88769] = {
+        name = "Schlacht um die Brücke",
+    },
+    [88919] = {
+        name = "In den Düsterweg",
+    },
+    [88920] = {
+        name = "Die Kaldorei",
+    },
+    [88922] = {
+        name = "Die Quel'dorei",
+    },
+    [88923] = {
+        name = "Kinder der Sterne",
+    },
+    [88925] = {
+        name = "Erweckt das Urtum des Krieges",
+    },
+    [88927] = {
+        name = "Erweckt den Urtumbeschützer",
+    },
+    [88928] = {
+        name = "Die Shal'dorei",
+    },
+    [88929] = {
+        name = "Eine Illusion!",
+    },
+    [88930] = {
+        name = "Entzogenes Mana",
+    },
+    [88937] = {
+        name = "Erweckt das Urtum der Lehren",
+    },
+    [88938] = {
+        name = "Symbole der Vergangenheit",
+    },
+    [88939] = {
+        name = "Rast für die Rastlosen",
+    },
+    [88941] = {
+        name = "Für Quel'Thalas",
+    },
+    [88942] = {
+        name = "Die Elfen ziehen in den Krieg",
     },
     [88977] = {
         name = "Nachstellung des Verbrechens",
@@ -918,11 +1002,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [90669] = {
         name = "Gold ist Gold",
     },
+    [90690] = {
+        name = "Angriff der Vorhut",
+    },
+    [90724] = {
+        name = "Der zerbrochene Himmel",
+    },
     [90749] = {
         name = "Unser gemeinsamer Feind",
     },
     [90772] = {
         name = "Die Flammen schlagen höher",
+    },
+    [90777] = {
+        name = "Die Flamme nähren",
     },
     [90782] = {
         name = "Die Nethergesandten",
@@ -999,8 +1092,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [90860] = {
         name = "Frei vom Joch",
     },
+    [90861] = {
+        name = "Die Zurückgelassenen",
+    },
+    [90862] = {
+        name = "In Zeiten der Not",
+    },
     [90866] = {
         name = "Universalsprache",
+    },
+    [90867] = {
+        name = "Licht aus der Düsternis",
+    },
+    [90871] = {
+        name = "Das Silbersonnenabkommen",
     },
     [90872] = {
         name = "Blutüberströmt",
@@ -1013,6 +1118,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [90875] = {
         name = "Über Welten hinweg",
+    },
+    [90876] = {
+        name = "Widerstrebende Hand",
     },
     [90907] = {
         name = "Der erste Eingeweihte",
@@ -1265,6 +1373,12 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [91412] = {
         name = "Die Rückkehr der Königin des Giftes",
+    },
+    [91417] = {
+        name = "Sucht Arator auf",
+    },
+    [91426] = {
+        name = "Champion des Volkes",
     },
     [91450] = {
         name = "Wir sind so weit",
@@ -1611,6 +1725,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [92512] = {
         name = "Verschlinger",
     },
+    [92520] = {
+        name = "Nach dem Düsterbrunnen",
+    },
     [92531] = {
         name = "Der Schrein des Loas der Medizin",
     },
@@ -1658,6 +1775,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [92662] = {
         name = "Kernkollaps",
+    },
+    [92689] = {
+        name = "Ein Weg nach vorn",
     },
     [92694] = {
         name = "Pigmente der Dämmerung",

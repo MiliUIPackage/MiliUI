@@ -660,8 +660,47 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [88653] = {
         name = "A regra é clara",
     },
+    [88696] = {
+        name = "A Cidadela Devoradora",
+    },
+    [88697] = {
+        name = "Clareza de propósito",
+    },
+    [88698] = {
+        name = "Mestre do Caos",
+    },
+    [88699] = {
+        name = "Energia cortada",
+    },
+    [88700] = {
+        name = "Duas toneladas de metal e fogo sagrado",
+    },
+    [88701] = {
+        name = "In memorian",
+    },
+    [88702] = {
+        name = "Égide do Redentor",
+    },
+    [88703] = {
+        name = "A noite anterior",
+    },
+    [88704] = {
+        name = "A caçadora paciente",
+    },
+    [88705] = {
+        name = "Golpe Fatal",
+    },
+    [88706] = {
+        name = "Nada é para sempre",
+    },
     [88708] = {
         name = "Conclusões violentas",
+    },
+    [88709] = {
+        name = "A Torre do Caos",
+    },
+    [88710] = {
+        name = "Marcha em Quel'Danas",
     },
     [88719] = {
         name = "A voz da Luz",
@@ -671,6 +710,51 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [88768] = {
         name = "Agentes da escuridão",
+    },
+    [88769] = {
+        name = "A batalha da ponte",
+    },
+    [88919] = {
+        name = "Umbravia adentro",
+    },
+    [88920] = {
+        name = "Os kaldorei",
+    },
+    [88922] = {
+        name = "Os quel'dorei",
+    },
+    [88923] = {
+        name = "Filhos das estrelas",
+    },
+    [88925] = {
+        name = "Despertar o Anciente da Guerra",
+    },
+    [88927] = {
+        name = "Desperte o Anciente Protetor",
+    },
+    [88928] = {
+        name = "Os shal'dorei",
+    },
+    [88929] = {
+        name = "Uma ilusão!",
+    },
+    [88930] = {
+        name = "Mana Drenado",
+    },
+    [88937] = {
+        name = "Despertar o Anciente da Tradição",
+    },
+    [88938] = {
+        name = "Símbolos do passado",
+    },
+    [88939] = {
+        name = "Descansem em paz",
+    },
+    [88941] = {
+        name = "Por Quel'thalas",
+    },
+    [88942] = {
+        name = "Os elfos vão à guerra",
     },
     [88977] = {
         name = "Reencenando o Crime",
@@ -927,11 +1011,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [90669] = {
         name = "Ouro é ouro",
     },
+    [90690] = {
+        name = "Investida da Vanguarda",
+    },
+    [90724] = {
+        name = "O céu partido",
+    },
     [90749] = {
         name = "Um inimigo em comum",
     },
     [90772] = {
         name = "As chamas se erguem mais alto",
+    },
+    [90777] = {
+        name = "Alimentando a chama",
     },
     [90782] = {
         name = "Enviado Etéreo",
@@ -1008,8 +1101,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [90860] = {
         name = "Romper o jugo",
     },
+    [90861] = {
+        name = "Os que ficaram para trás",
+    },
+    [90862] = {
+        name = "Em momentos de necessidade",
+    },
     [90866] = {
         name = "Idioma universal",
+    },
+    [90867] = {
+        name = "Das trevas, faz-se a Luz",
+    },
+    [90871] = {
+        name = "O Pacto de Solargento",
     },
     [90872] = {
         name = "Encharcamento",
@@ -1022,6 +1127,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [90875] = {
         name = "Através dos mundos",
+    },
+    [90876] = {
+        name = "Ajuda a contragosto",
     },
     [90907] = {
         name = "Os primeiros a saber",
@@ -1274,6 +1382,12 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [91412] = {
         name = "O retorno da Rainha Peçonhenta",
+    },
+    [91417] = {
+        name = "Procure Arator",
+    },
+    [91426] = {
+        name = "O campeão do povo",
     },
     [91450] = {
         name = "Bora, time!",
@@ -1620,6 +1734,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [92512] = {
         name = "Devorador",
     },
+    [92520] = {
+        name = "Despertar da Nascente da Sombra",
+    },
     [92531] = {
         name = "Santuário do Loa da Cura",
     },
@@ -1667,6 +1784,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [92662] = {
         name = "Núcleo em colapso",
+    },
+    [92689] = {
+        name = "Um caminho à frente",
     },
     [92694] = {
         name = "O crepúsculo entre pigmentos",

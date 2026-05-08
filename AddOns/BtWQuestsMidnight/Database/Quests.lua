@@ -5729,6 +5729,168 @@ BtWQuestsDatabase:AddQuestsTable({
             },
         },
     },
+    [88696] = {
+        name = "The Devouring Citadel",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 247414,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 34100,
+            },
+        },
+    },
+    [88697] = {
+        name = "Clarity of Purpose",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 239810,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 256200,
+            },
+        },
+    },
+    [88698] = {
+        name = "Master of Mayhem",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 239828,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
+    [88699] = {
+        name = "Powerless",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 239828,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 683200,
+            },
+        },
+    },
+    [88700] = {
+        name = "Two Tons of Metal and Holy Fire",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 239810,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
+    [88701] = {
+        name = "The Memory Remains",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 239827,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
+    [88702] = {
+        name = "Aegis of the Redeemer",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 239827,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
+    [88703] = {
+        name = "The Night Before",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 254884,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 34100,
+            },
+        },
+    },
+    [88704] = {
+        name = "The Patient Hunter",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 239826,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
+    [88705] = {
+        name = "Killing Blow",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 243886,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 683200,
+            },
+        },
+    },
+    [88706] = {
+        name = "Nothing Stands Forever",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 239826,
+            locations = {
+                [2405] = {
+                    {
+                        x = 0.559247,
+                        y = 0.64792,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 1024800,
+            },
+        },
+    },
     [88708] = {
         name = "Violent Conclusions",
         contentTuningID = 3084,
@@ -5752,6 +5914,42 @@ BtWQuestsDatabase:AddQuestsTable({
                 },
                 minLevel = 88,
                 maxLevel = 90,
+            },
+        },
+    },
+    [88709] = {
+        name = "The Voidspire",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 239810,
+            locations = {
+                [2405] = {
+                    {
+                        x = 0.451887,
+                        y = 0.628775,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 20496000,
+            },
+        },
+    },
+    [88710] = {
+        name = "March on Quel'Danas",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 245061,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 20496000,
             },
         },
     },
@@ -5826,6 +6024,216 @@ BtWQuestsDatabase:AddQuestsTable({
                 },
                 minLevel = 88,
                 maxLevel = 90,
+            },
+        },
+    },
+    [88769] = {
+        name = "The Battle of the Bridge",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 240267,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 1024800,
+            },
+        },
+    },
+    [88919] = {
+        name = "Into the Darkway",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 256046,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
+    [88920] = {
+        name = "The Kaldorei",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 240267,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 34100,
+            },
+        },
+    },
+    [88922] = {
+        name = "The Quel'dorei",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 251335,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 34100,
+            },
+        },
+    },
+    [88923] = {
+        name = "Children of the Stars",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 240334,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 170800,
+            },
+        },
+    },
+    [88925] = {
+        name = "Awaken the Ancient of War",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 240334,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
+    [88927] = {
+        name = "Awaken the Ancient Protector",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 240334,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
+    [88928] = {
+        name = "The Shal'dorei",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 240255,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 170800,
+            },
+        },
+    },
+    [88929] = {
+        name = "An Illusion!",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 240302,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
+    [88930] = {
+        name = "Drained Mana",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 250958,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
+    [88937] = {
+        name = "Awaken the Ancient of Lore",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 240334,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
+    [88938] = {
+        name = "Symbols of the Past",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 240295,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
+    [88939] = {
+        name = "Rest for the Restless",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 240295,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
+    [88941] = {
+        name = "For Quel'Thalas",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 240295,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
+    [88942] = {
+        name = "The Elves are Going to War",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 254654,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 1024800,
             },
         },
     },
@@ -7943,6 +8351,40 @@ BtWQuestsDatabase:AddQuestsTable({
             },
         },
     },
+    [90690] = {
+        name = "Charge of the Vanguard",
+        contentTuningID = 3320,
+        rewards = {
+            {
+                type = "money",
+                amount = 34100,
+            },
+        },
+    },
+    [90724] = {
+        name = "The Broken Sky",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 253603,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 170800,
+            },
+        },
+    },
+    [90748] = {
+        name = "Quel'Danas",
+        contentTuningID = 3320,
+        rewards = {
+            {
+                type = "money",
+                amount = 34100,
+            },
+        },
+    },
     [90749] = {
         name = "Our Mutual Enemy",
         contentTuningID = 3086,
@@ -7992,6 +8434,20 @@ BtWQuestsDatabase:AddQuestsTable({
                 },
                 minLevel = 83,
                 maxLevel = 88,
+            },
+        },
+    },
+    [90777] = {
+        name = "Feeding the Flame",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 235787,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 34100,
             },
         },
     },
@@ -8649,6 +9105,34 @@ BtWQuestsDatabase:AddQuestsTable({
             },
         },
     },
+    [90861] = {
+        name = "Those Left Behind",
+        contentTuningID = 3313,
+        source = {
+            type = "npc",
+            id = 235787,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 34100,
+            },
+        },
+    },
+    [90862] = {
+        name = "In Times of Need",
+        contentTuningID = 3313,
+        source = {
+            type = "npc",
+            id = 244557,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
     [90866] = {
         name = "Universal Language",
         contentTuningID = 3084,
@@ -8672,6 +9156,34 @@ BtWQuestsDatabase:AddQuestsTable({
                 },
                 minLevel = 88,
                 maxLevel = 90,
+            },
+        },
+    },
+    [90867] = {
+        name = "From Darkness, Light",
+        contentTuningID = 3313,
+        source = {
+            type = "npc",
+            id = 244576,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 1024800,
+            },
+        },
+    },
+    [90871] = {
+        name = "The Silversun Compact",
+        contentTuningID = 3313,
+        source = {
+            type = "npc",
+            id = 244699,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
             },
         },
     },
@@ -8808,6 +9320,20 @@ BtWQuestsDatabase:AddQuestsTable({
                 },
                 minLevel = 88,
                 maxLevel = 90,
+            },
+        },
+    },
+    [90876] = {
+        name = "Reluctant Hand",
+        contentTuningID = 3313,
+        source = {
+            type = "npc",
+            id = 244701,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
             },
         },
     },
@@ -11060,6 +11586,34 @@ BtWQuestsDatabase:AddQuestsTable({
                 },
                 minLevel = 80,
                 maxLevel = 90,
+            },
+        },
+    },
+    [91417] = {
+        name = "Seek out Arator",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 239810,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 34100,
+            },
+        },
+    },
+    [91426] = {
+        name = "The People's Champion",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 239827,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 34100,
             },
         },
     },
@@ -13981,6 +14535,20 @@ BtWQuestsDatabase:AddQuestsTable({
             },
         },
     },
+    [92520] = {
+        name = "Wake of the Darkwell",
+        contentTuningID = 3320,
+        source = {
+            type = "npc",
+            id = 235787,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 341600,
+            },
+        },
+    },
     [92531] = {
         name = "The Medicine Loa's Shrine",
         contentTuningID = 3321,
@@ -14334,6 +14902,20 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amount = 341600,
+            },
+        },
+    },
+    [92689] = {
+        name = "A Path Forward",
+        contentTuningID = 3313,
+        source = {
+            type = "npc",
+            id = 235787,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 34100,
             },
         },
     },

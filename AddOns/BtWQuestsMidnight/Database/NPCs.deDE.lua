@@ -114,6 +114,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [239795] = {
         name = "Zur'Ashar Kassameh",
     },
+    [239810] = {
+        name = "Hochexarch Turalyon",
+    },
     [240408] = {
         name = "Waldläufer Vardis",
     },

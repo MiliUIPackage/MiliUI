@@ -1,3 +1,9 @@
+# v2.62.0
+
+- Added The War of Light and Shadow campaign
+- Updated for 12.0.5
+- Moved Midnight Prologue and The War Within in to separate addons
+
 # v2.61.1
 
 - Added /btwq slash command

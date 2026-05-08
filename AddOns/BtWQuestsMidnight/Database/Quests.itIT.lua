@@ -660,8 +660,47 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [88653] = {
         name = "Intuorlarsi",
     },
+    [88696] = {
+        name = "La Cittadella Famelica",
+    },
+    [88697] = {
+        name = "Chiarezza d'intenti",
+    },
+    [88698] = {
+        name = "Caos supremo",
+    },
+    [88699] = {
+        name = "Senza potenza",
+    },
+    [88700] = {
+        name = "Due tonnellate di metallo e fuoco sacro",
+    },
+    [88701] = {
+        name = "Il ricordo persiste",
+    },
+    [88702] = {
+        name = "Egida del Redentore",
+    },
+    [88703] = {
+        name = "La notte precedente",
+    },
+    [88704] = {
+        name = "Caccia paziente",
+    },
+    [88705] = {
+        name = "Colpo di grazia",
+    },
+    [88706] = {
+        name = "Nulla è per sempre",
+    },
     [88708] = {
         name = "Conclusioni violente",
+    },
+    [88709] = {
+        name = "Il Pinnacolo del Vuoto",
+    },
+    [88710] = {
+        name = "Marcia su Quel'Danas",
     },
     [88719] = {
         name = "Una voce dalla Luce",
@@ -671,6 +710,51 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [88768] = {
         name = "Agenti dell'oscurità",
+    },
+    [88769] = {
+        name = "Battaglia del Ponte",
+    },
+    [88919] = {
+        name = "Nel Passaggio Tetro",
+    },
+    [88920] = {
+        name = "I Kaldorei",
+    },
+    [88922] = {
+        name = "I Quel'dorei",
+    },
+    [88923] = {
+        name = "Figli delle stelle",
+    },
+    [88925] = {
+        name = "Risveglio dell'Antico della Guerra",
+    },
+    [88927] = {
+        name = "Risveglio del Protettore Antico",
+    },
+    [88928] = {
+        name = "Gli Shal'dorei",
+    },
+    [88929] = {
+        name = "Un'illusione!",
+    },
+    [88930] = {
+        name = "Mana prosciugato",
+    },
+    [88937] = {
+        name = "Risveglio dell'Antico del Sapere",
+    },
+    [88938] = {
+        name = "Simboli del passato",
+    },
+    [88939] = {
+        name = "Riposo per gli irrequieti",
+    },
+    [88941] = {
+        name = "Per Quel'Thalas",
+    },
+    [88942] = {
+        name = "Elfi in marcia per la guerra",
     },
     [88977] = {
         name = "Rivivere il crimine",
@@ -930,11 +1014,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [90669] = {
         name = "L'oro è oro",
     },
+    [90690] = {
+        name = "Cambio dell'Avanguardia",
+    },
+    [90724] = {
+        name = "Cielo spezzato",
+    },
     [90749] = {
         name = "Un nemico comune",
     },
     [90772] = {
         name = "Le fiamme si alzano ancora",
+    },
+    [90777] = {
+        name = "Alimentare la fiamma",
     },
     [90782] = {
         name = "L'Inviato del Fatuo",
@@ -1011,8 +1104,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [90860] = {
         name = "Liberarsi dal giogo",
     },
+    [90861] = {
+        name = "Coloro che restano",
+    },
+    [90862] = {
+        name = "Nel momento del bisogno",
+    },
     [90866] = {
         name = "Linguaggio universale",
+    },
+    [90867] = {
+        name = "Luce dall'oscurità",
+    },
+    [90871] = {
+        name = "Il Patto dei Solargenteo",
     },
     [90872] = {
         name = "Inzupparsi",
@@ -1025,6 +1130,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [90875] = {
         name = "Attraverso i mondi",
+    },
+    [90876] = {
+        name = "Un aiuto riluttante",
     },
     [90907] = {
         name = "Il primo a saperlo",
@@ -1277,6 +1385,12 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [91412] = {
         name = "Il ritorno della regina velenosa",
+    },
+    [91417] = {
+        name = "Alla ricerca di Arator",
+    },
+    [91426] = {
+        name = "Speranza del popolo",
     },
     [91450] = {
         name = "Noi pronti ora",
@@ -1623,6 +1737,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [92512] = {
         name = "Divoratore",
     },
+    [92520] = {
+        name = "La scia del Pozzo Tetro",
+    },
     [92531] = {
         name = "Il santuario del Loa della Medicina",
     },
@@ -1670,6 +1787,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [92662] = {
         name = "Collasso del nucleo",
+    },
+    [92689] = {
+        name = "La strada che ci attende",
     },
     [92694] = {
         name = "Dai pigmenti al vespro",

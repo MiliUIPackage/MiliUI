@@ -241,7 +241,7 @@ BtWQuestsDatabase:UpdateQuestsTable({
         name = "El quiebre de la daga",
     },
     [86693] = {
-        name = "La leyenda de hash'ey",
+        name = "La leyenda de lo' hash'ey",
     },
     [86708] = {
         name = "Las puertas de Zul'Aman",
@@ -657,8 +657,47 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [88653] = {
         name = "Eclosiones bestiales",
     },
+    [88696] = {
+        name = "La ciudadela de la Devoración",
+    },
+    [88697] = {
+        name = "Claridad de propósito",
+    },
+    [88698] = {
+        name = "Maestro del caos",
+    },
+    [88699] = {
+        name = "Corte de energía",
+    },
+    [88700] = {
+        name = "Dos toneladas de metal y fuego sagrado",
+    },
+    [88701] = {
+        name = "El recuerdo persiste",
+    },
+    [88702] = {
+        name = "Égida del redentor",
+    },
+    [88703] = {
+        name = "La noche anterior",
+    },
+    [88704] = {
+        name = "La cazadora paciente",
+    },
+    [88705] = {
+        name = "Golpe de gracia",
+    },
+    [88706] = {
+        name = "Nada dura para siempre",
+    },
     [88708] = {
         name = "Conclusiones violentas",
+    },
+    [88709] = {
+        name = "La Aguja del Vacío",
+    },
+    [88710] = {
+        name = "Marcha sobre Quel'Danas",
     },
     [88719] = {
         name = "Una voz de la Luz",
@@ -668,6 +707,51 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [88768] = {
         name = "Agentes de la oscuridad",
+    },
+    [88769] = {
+        name = "La Batalla del Puente",
+    },
+    [88919] = {
+        name = "Camino al Paso Oscuro",
+    },
+    [88920] = {
+        name = "Los kaldorei",
+    },
+    [88922] = {
+        name = "Los quel'dorei",
+    },
+    [88923] = {
+        name = "Hijos de las estrellas",
+    },
+    [88925] = {
+        name = "Despierta al anciano de la guerra",
+    },
+    [88927] = {
+        name = "Despierta al protector anciano",
+    },
+    [88928] = {
+        name = "Los shal'dorei",
+    },
+    [88929] = {
+        name = "¡Una ilusión!",
+    },
+    [88930] = {
+        name = "Sequía de maná",
+    },
+    [88937] = {
+        name = "Despierta al anciano del conocimiento",
+    },
+    [88938] = {
+        name = "Símbolos del pasado",
+    },
+    [88939] = {
+        name = "Reposo para los que no duermen",
+    },
+    [88941] = {
+        name = "Por Quel'Thalas",
+    },
+    [88942] = {
+        name = "Los elfos marchan a la guerra",
     },
     [88977] = {
         name = "Recreación del crimen",
@@ -927,11 +1011,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [90669] = {
         name = "El oro no se discute",
     },
+    [90690] = {
+        name = "Arremetida de la Vanguardia",
+    },
+    [90724] = {
+        name = "El cielo rasgado",
+    },
     [90749] = {
         name = "Nuestro enemigo mutuo",
     },
     [90772] = {
         name = "Las llamas crecen",
+    },
+    [90777] = {
+        name = "Combustible para las llamas",
     },
     [90782] = {
         name = "El Enviado abisal",
@@ -1008,8 +1101,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [90860] = {
         name = "Liberación del yugo",
     },
+    [90861] = {
+        name = "Los abandonados",
+    },
+    [90862] = {
+        name = "En tiempos de necesidad",
+    },
     [90866] = {
         name = "Idioma universal",
+    },
+    [90867] = {
+        name = "Luz desde la oscuridad",
+    },
+    [90871] = {
+        name = "El Pacto Solargenta",
     },
     [90872] = {
         name = "Empapado de sangre",
@@ -1022,6 +1127,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [90875] = {
         name = "Entre mundos",
+    },
+    [90876] = {
+        name = "La mano renuente",
     },
     [90907] = {
         name = "El primero en saber",
@@ -1274,6 +1382,12 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [91412] = {
         name = "El regreso de la reina del veneno",
+    },
+    [91417] = {
+        name = "Busca a Arator",
+    },
+    [91426] = {
+        name = "El campeón del pueblo",
     },
     [91450] = {
         name = "Ahora estamos listos",
@@ -1620,6 +1734,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [92512] = {
         name = "Devorador",
     },
+    [92520] = {
+        name = "Luto en la Fuente Oscura",
+    },
     [92531] = {
         name = "El santuario del loa de la medicina",
     },
@@ -1667,6 +1784,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [92662] = {
         name = "Colapso central",
+    },
+    [92689] = {
+        name = "Un camino hacia el futuro",
     },
     [92694] = {
         name = "Amanecer entre los pigmentos",
