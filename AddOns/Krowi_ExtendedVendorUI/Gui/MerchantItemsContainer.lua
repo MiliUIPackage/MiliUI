@@ -18,7 +18,9 @@ merchantItemsContainer.ItemWidth, merchantItemsContainer.ItemHeight = MerchantIt
 local function ItemSlotOnEnter(button)
 	GameTooltip:SetOwner(button, 'ANCHOR_RIGHT')
 	if MerchantFrame.selectedTab == 1 then
-		GameTooltip:SetMerchantItem(addon.CachedItemIndices[button:GetID()])
+		local index = addon.CachedItemIndices[button:GetID()]
+		if not index then return end
+		GameTooltip:SetMerchantItem(index)
 		GameTooltip_ShowCompareItem(GameTooltip)
 		MerchantFrame.itemHover = button:GetID()
 	else
