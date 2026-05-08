@@ -154,13 +154,6 @@ end
 local SELF_REPORT_KEYWORDS = { "分身鑰石", "分身key" }
 local LINE_SPACING = 0.15
 
-local CHAT_EVENT_TO_CHANNEL = {
-    CHAT_MSG_PARTY                = "PARTY",
-    CHAT_MSG_PARTY_LEADER         = "PARTY",
-    CHAT_MSG_INSTANCE_CHAT        = "INSTANCE_CHAT",
-    CHAT_MSG_INSTANCE_CHAT_LEADER = "INSTANCE_CHAT",
-}
-
 local function MatchSelfKeyword(msg)
     if type(msg) ~= "string" or msg == "" then return false end
     for _, kw in ipairs(SELF_REPORT_KEYWORDS) do
@@ -508,10 +501,6 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_LOGIN" then
         self:RegisterEvent("CHALLENGE_MODE_COMPLETED")
         self:RegisterEvent("GOSSIP_CLOSED")
-        self:RegisterEvent("CHAT_MSG_PARTY")
-        self:RegisterEvent("CHAT_MSG_PARTY_LEADER")
-        self:RegisterEvent("CHAT_MSG_INSTANCE_CHAT")
-        self:RegisterEvent("CHAT_MSG_INSTANCE_CHAT_LEADER")
         -- 一次性遷移舊資料：keystoneHistory → characterKeystones
         if MiliUI_DB and MiliUI_DB.keystoneHistory and not MiliUI_DB.characterKeystones then
             MiliUI_DB.characterKeystones = MiliUI_DB.keystoneHistory
@@ -534,13 +523,22 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
         if IsKeystoneNpcGossip() then
             ScheduleKeystoneCheck(0)
         end
-    elseif CHAT_EVENT_TO_CHANNEL[event] then
-        -- 用 GUID 判斷是否自己發送，避免直接比較 sender（retail 11.x 起為 secret string，
-        -- 在 tainted execution 下會炸）。GUID 是第 12 個參數，且不被標記為 secret。
-        local text = ...
-        local guid = select(12, ...)
-        if guid and guid == UnitGUID("player") and MatchSelfKeyword(text) then
-            SendKeystoneReport(CHAT_EVENT_TO_CHANNEL[event])
-        end
     end
+end)
+
+------------------------------------------------------------
+-- 自我關鍵字偵測：hook SendChatMessage
+-- 直接攔截「玩家送出的訊息」，不需要從 CHAT_MSG_* 撈 sender / GUID 比對，
+-- 完全避開 retail 11.x 的 secret-string 保護（兩者皆 tainted execution 下會炸）。
+------------------------------------------------------------
+local SEND_CHAT_TYPES = {
+    PARTY         = "PARTY",
+    INSTANCE_CHAT = "INSTANCE_CHAT",
+}
+
+hooksecurefunc("SendChatMessage", function(msg, chatType)
+    local channel = SEND_CHAT_TYPES[chatType]
+    if not channel then return end
+    if not MatchSelfKeyword(msg) then return end
+    SendKeystoneReport(channel)
 end)

@@ -31,6 +31,20 @@ local function IsSecretError(err)
     return type(err) == "string" and string_find(err, "secret", 1, true) ~= nil
 end
 
+-- secret error 被吞掉後，Blizzard 內部資料常會留下 nil，
+-- 後續呼叫如 SetFormattedText / SetText 等遇到 nil 會丟 "bad argument"。
+-- 把這類後續錯誤也視為相同根因一起吞掉。
+local function IsTaintFollowupError(err)
+    if type(err) ~= "string" then return false end
+    if string_find(err, "bad argument", 1, true) then return true end
+    if string_find(err, "string expected, got nil", 1, true) then return true end
+    return false
+end
+
+local function ShouldSwallowError(err)
+    return IsSecretError(err) or IsTaintFollowupError(err)
+end
+
 ------------------------------------------------------------
 -- 1) TinyInspect: 包裝 GetInspecting / GetInspectInfo
 --    原函式對 guids[guid] 做索引時，若 guid 為 secret string 會炸。
@@ -61,29 +75,35 @@ local function WrapTinyInspectGlobals()
 end
 
 ------------------------------------------------------------
--- 2) Blizzard_InspectUI: 對 InspectFrame / InspectGuildFrame 的 OnEvent
---    僅攔截 secret 類錯誤，其他錯誤維持原行為。
+-- 2) Blizzard_InspectUI: 對 InspectFrame / InspectGuildFrame 的 script 包 pcall
+--    僅攔截 secret 類錯誤與其後續 nil-argument 錯誤，其他錯誤維持原行為。
 --    因為原本 script 是由 Blizzard code 安全註冊的，我們在 Blizzard_InspectUI
 --    載入後立即用 pcall 包一層，對 taint 不會有放大效應。
 ------------------------------------------------------------
-local function WrapFrameOnEvent(frame)
-    if not frame or frame._miliOnEventWrapped then return end
-    local orig = frame:GetScript("OnEvent")
+local function WrapFrameScript(frame, scriptName, flagKey)
+    if not frame then return end
+    if frame[flagKey] then return end
+    local orig = frame:GetScript(scriptName)
     if not orig then return end
-    frame._miliOnEventWrapped = true
-    frame:SetScript("OnEvent", function(self, ...)
+    frame[flagKey] = true
+    frame:SetScript(scriptName, function(self, ...)
         local ok, err = pcall(orig, self, ...)
-        if not ok and not IsSecretError(err) then
+        if not ok and not ShouldSwallowError(err) then
             error(err, 2)
         end
     end)
 end
 
 local function WrapBlizzardInspectFrames()
-    WrapFrameOnEvent(_G.InspectFrame)
-    WrapFrameOnEvent(_G.InspectGuildFrame)
-    WrapFrameOnEvent(_G.InspectPVPFrame)
-    WrapFrameOnEvent(_G.InspectTalentFrame)
+    -- OnEvent：避免 secret 字串比對直接炸
+    WrapFrameScript(_G.InspectFrame,        "OnEvent", "_miliOnEventWrapped")
+    WrapFrameScript(_G.InspectGuildFrame,   "OnEvent", "_miliOnEventWrapped")
+    WrapFrameScript(_G.InspectPVPFrame,     "OnEvent", "_miliOnEventWrapped")
+    WrapFrameScript(_G.InspectTalentFrame,  "OnEvent", "_miliOnEventWrapped")
+
+    -- OnShow：secret error 在 OnEvent 被吞掉後，frame 的 guildName/title 等資料會殘留 nil；
+    -- OnShow → InspectGuildFrame_Update → SetFormattedText(nil) 會炸，這裡一併吞掉。
+    WrapFrameScript(_G.InspectGuildFrame, "OnShow", "_miliOnShowWrapped")
 end
 
 ------------------------------------------------------------
