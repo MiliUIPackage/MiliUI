@@ -1,54 +1,56 @@
-# HandyNotes_MythicPlus
+# HandyNotes: MythicPlus
 
-Tips and Tricks for World of Warcraft Mythic+ Dungeons
+> [!WARNING]
+> **This addon is no longer actively maintained.**
+>
+> A new and improved successor is available: **[Mythic Dungeon Notes](https://www.curseforge.com/wow/addons/mythic-dungeon-notes)**. Please install it instead — it offers broader features and ongoing updates.
 
-Because everyone sometimes forgets important things, like which creature to kill first, or when to use an interrupt.
+Tips and tricks for World of Warcraft Mythic+ dungeons, displayed directly on the instance map via [HandyNotes](https://www.curseforge.com/wow/addons/handynotes).
 
-With Handynotes and this module, you can check on the instance map all the important things to remember.
+Because everyone sometimes forgets the small but critical things — which creature to kill first, when to use an interrupt, where the shortcut starts. Useful for new and experienced key pushers alike.
 
-Useful for new and experienced pushers alike.
+## Links
 
-You may want to check my other addon related to M+ pushing : [MythicKeystone](https://www.curseforge.com/wow/addons/mythickeystone)
+- **Successor (recommended)** — [Mythic Dungeon Notes](https://www.curseforge.com/wow/addons/mythic-dungeon-notes)
+- **This addon on CurseForge** — [HandyNotes_MythicPlus](https://www.curseforge.com/wow/addons/handynotes_mythicplus)
+- **Same author, for M+ pushing** — [MythicKeystone](https://www.curseforge.com/wow/addons/mythickeystone)
 
-Available in English, French, Spanish, Simplified Chinese and Russian, looking for translators: [Curseforge](https://legacy.curseforge.com/wow/addons/handynotes_mythicplus/localization)
+## Languages
 
-## Mythic Dungeons Season 2
+Available in **English, French, Spanish, Russian, Simplified Chinese, Traditional Chinese**.
 
-### Brackenhide Hollow (BH)
-- Cauldrons' usage
-- Location of cauldrons
-- Some possible skip in first area
-### Freehold (FH)
-- Percentage required before last bridge
-### Halls of Infusion (HOI)
-- Skip door + location of each boss
-- Mushroom location
-### Neltharion's Lair (NL)
-### Neltharus (NELT)
-- Percentage required before last bridge
-### Uldaman: Legacy of Tyr (ULD)
-- Percentage required before time event
-- Location of mining nodes
-### The Underrot (UNDR)
-- Skip location
-### The Vortex Pinnacle (VP)
-- Location of slipstreams
+Help translate on [CurseForge Localization](https://legacy.curseforge.com/wow/addons/handynotes_mythicplus/localization).
 
-## Mythic Dungeons Season 1
+## Covered dungeons
 
-### Ruby Life Pools (Dragonflight)
-- Location of the dragons
+### The War Within — Season 1
 
-### Algeth'ar Academy (Dragonflight)
-- Dragonflight recruiter's Buffs
+| Dungeon | Notes |
+|---|---|
+| Mists of Tirna Scithe (MoTS) | Shortcut to first pack, mushrooms, checkpoints |
+| The Stonevault (SV) | Profession buff |
+| City of Threads (CT) | Profession buff |
+| Ara-Kara, City of Echoes (ARAK) | Profession buff |
 
-### The Nokhud Offensive (Dragonflight)
-- Percentage and point for skip 
+### Dragonflight — Season 2
 
-### Halls of Valor (Legion)
-- Location of Kings
-- Percentage required before bridge
+| Dungeon | Notes |
+|---|---|
+| Brackenhide Hollow (BH) | Cauldron usage and locations, possible skip in first area |
+| Freehold (FH) | Percentage required before last bridge |
+| Halls of Infusion (HOI) | Skip door, boss locations, mushroom location |
+| Neltharion's Lair (NL) | Map coverage |
+| Neltharus (NELT) | Percentage required before last bridge |
+| Uldaman: Legacy of Tyr (ULD) | Percentage required before time event, mining node locations |
+| The Underrot (UNDR) | Skip location |
+| The Vortex Pinnacle (VP) | Slipstream locations |
 
-### Court of Stars (Legion)
-- Percentage required before masquerade
+### Dragonflight — Season 1
 
+| Dungeon | Notes |
+|---|---|
+| Ruby Life Pools | Dragon locations |
+| Algeth'ar Academy | Dragonflight recruiter buffs |
+| The Nokhud Offensive | Skip percentage and points |
+| Halls of Valor (Legion) | King locations, percentage required before bridge |
+| Court of Stars (Legion) | Percentage required before masquerade |

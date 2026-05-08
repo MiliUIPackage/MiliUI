@@ -1,6 +1,7 @@
 # HandyNotes: MythicPlus
 
-## [V100100-11](https://github.com/willoucom/Handynotes_MythicPlus/tree/V100100-11) (2023-07-08)
-[Full Changelog](https://github.com/willoucom/Handynotes_MythicPlus/compare/V100100-10...V100100-11) [Previous Releases](https://github.com/willoucom/Handynotes_MythicPlus/releases)
+## [v.20260501.1](https://github.com/willoucom/Handynotes_MythicPlus/tree/v.20260501.1) (2026-05-01)
+[Full Changelog](https://github.com/willoucom/Handynotes_MythicPlus/compare/V120001-3...v.20260501.1) [Previous Releases](https://github.com/willoucom/Handynotes_MythicPlus/releases)
 
-- Feat: Add zhTW.lua  
+- Docs: Modernize README and add deprecation notice  
+- Feat: Add migration popup for Mythic Dungeon Notes  

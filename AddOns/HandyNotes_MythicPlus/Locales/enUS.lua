@@ -10,6 +10,11 @@ L["Settings_iconscale_desc"] = "The scale of the icons"
 L["Settings_iconalpha"] = "Icon Alpha"
 L["Settings_iconalpha_desc"] ="The alpha transparency of the icons"
 
+-- Migration popup
+L["Migration_text"] = "This message is from |cff00aaffHandyNotes: MythicPlus|r, an addon you have installed.\n\nWith this addon, I wanted to offer something more polished and useful to the community. But I was new to addon development back then, and I learned by doing.\n\nToday, I can finally offer something I'm truly happy with: |cffffd200%s|r.\n\nI'd love for you to give it a try."
+L["Migration_btn_get"] = "Get the new addon"
+L["Migration_url_text"] = "Copy the link below:"
+
 -- Halls of valor
 L["HOV_percentage"] = "83.7 % Before bridge"
 L["HOV_haldor"] =  "King Haldor"
@@ -74,3 +79,69 @@ L["UNDR_skip"] = "You can use the shortcut after the death of the second boss"
 L["VP_slipstream"] = "Use the slipstream to teleport to the other marker"
 L["VP_slipstream_desc1"] = "After defeat of Ertan"
 L["VP_slipstream_desc2"] = "After defeat of Altairus"
+-- Mists of Tirna Scithe (MoTS)
+L["MoTSD_shortcut"] = "Shortcut"
+L["MoTSD_shortcut_desc"] = "Druids, Night Elves, Taurens, and Herbalists can open a path"
+L["MoTSD_buff"] = "Buff"
+L["MoTSD_buff_desc"] = "Druids, Night Elves, Taurens, and Herbalists can open a zone with mushrooms (10% stat buff)"
+L["MoTSD_seed"] = "Checkpoint"
+L["MoTSD_seed_desc"] = "Anyone can click on the seed to enable checkpoint"
+-- Stonevault (SV)
+L["SV_buff"] = "Buff"
+L["SV_buff_desc"] = "Warriors, Dwarves, and Blacksmiths can buff group (10% versatility)"
+-- City of threads (CT)
+L["CT_buff"] = "Buff"
+L["CT_buff_desc"] = "Rogues, Priests, and Engineers can buff group (15% increase to DPS and HPS and a 50% increase to movement speed)"
+-- Ara Kara (ARAK)
+L["ARAK_buff"] = "Buff"
+L["ARAK_buff_desc"] = "Tailoring get a on use 10 second stun that even works on the Shrilling Voice mini-bosses"
+
+-------------------------------------------------------------------------------
+-- Midnight — Legacy Dungeons (S1)
+-------------------------------------------------------------------------------
+
+-- The Seat of the Triumvirate (SOT) — uiMapId 903
+-- L["SOT_TODO"] = "TODO"
+
+-- Skyreach (SKY) — uiMapId 601/602
+-- L["SKY_TODO"] = "TODO"
+
+-- Pit of Saron (POS) — uiMapId 184
+-- L["POS_TODO"] = "TODO"
+
+-------------------------------------------------------------------------------
+-- Midnight — New Dungeons (S1)
+-------------------------------------------------------------------------------
+
+-- The Blinding Vale (BV) — uiMapId 2500
+-- Bosses: (TODO)
+L["BV_buff"] = "Buff"
+L["BV_buff_desc"] = "Herbalists (and possibly Paladins/Priests) can activate Flourishing Stride: 20% movement speed and 5% Haste for 2 minutes"
+
+-- Den of Nalorakk (DN) — uiMapId 2513
+-- Bosses: (TODO)
+L["DN_buff_alchemy"] = "Warding Incense"
+L["DN_buff_alchemy_desc"] = "Midnight Alchemists (skill 25) and Bear Form Druids can burn incense: +1% Versatility for 10 minutes for the whole party"
+L["DN_buff_rune"] = "Rune of Anchoring"
+L["DN_buff_rune_desc"] = "Night Elves, Trolls, and Bear Form Druids can activate: -50% movement forces for 15 minutes (useful during Harsh Winds mini-game)"
+
+-- Magisters' Terrace (MT) — uiMapId 2520
+-- Bosses: Seranel Sunlash, Gemellus, Degentrius
+L["MT_buff"] = "Arcane Empowerment"
+L["MT_buff_desc"] = "Anyone in the party can interact with the book in the library: +5% Haste for 30 minutes"
+
+-- Maisara Caverns (MC) — uiMapId 2501
+-- Bosses: Muro'jin & Nekraxx, Vordaza, Rak'tul (Vessel of Souls)
+-- Key mechanic: interrupt soul-linking abilities
+
+-- Nexus-Point Xenas (NPX) — uiMapId 2556
+-- Bosses: Chief Corewright Kasreth, Corewarden Nysarra, Lothraxion
+L["NPX_tripwire"] = "Arcane Tripwires"
+L["NPX_tripwire_desc"] = "Midnight Engineers (skill 25) or Rogues can disable the tripwires: removes stuns and damage from the hallway"
+L["NPX_conduit"] = "Corespark Surge"
+L["NPX_conduit_desc"] = "Stand on a conduit to gain a stacking +5% Haste per second — causes self-damage that increases over time"
+
+-- Windrunner Spire (WRS) — uiMapId 2492+
+-- Bosses: Emberdawn, Derelict Duo (Kalis & Latch), Commander Kroluk, The Restless Heart
+L["WRS_speed_potion"] = "Speed Boost Potion"
+L["WRS_speed_potion_desc"] = "Consume to gain 100% increased movement speed for 1 minute"

@@ -54,3 +54,19 @@ L["UNDR_skip"] = "第二个首领被击杀后可以使用捷径"
 L["VP_slipstream"] = "使用气流传送过去。"
 L["VP_slipstream_desc1"] = "大宰相埃尔坦被击杀后可用"
 L["VP_slipstream_desc2"] = "阿尔泰鲁斯被击杀后可用"
+-- Mists of Tirna Scithe (MoTS)
+L["MoTSD_shortcut"] = "通道"
+L["MoTSD_shortcut_desc"] = "德鲁伊、暗夜精灵、牛头人和草药学可以开辟一条近路"
+L["MoTSD_buff"] = "可口的属性之菇"
+L["MoTSD_buff_desc"] = "德鲁伊、暗夜精灵、牛头人和草药学可以打开一个蘑菇区域（10%增益）"
+L["MoTSD_seed"] = "枯竭的心能之种"
+L["MoTSD_seed_desc"] = "任何人都可以点击心能之种启用新的重生位置"
+-- Stonevault (SV)
+L["SV_buff"] = "灌魔铁之能"
+L["SV_buff_desc"] = "战士、矮人或至少25点卡兹阿加锻造提供群体增益（10%全能，持续10秒。）"
+-- City of threads (CT)
+L["CT_buff"] = "窃取之力"
+L["CT_buff_desc"] = "潜行者、牧师职业或至少25点卡兹阿加工程学提供群体增益（造成的伤害和治疗效果提高15%，移动速度提高50%。）"
+-- Ara Kara (ARAK)
+L["ARAK_buff"] = "缠丝束缚"
+L["ARAK_buff_desc"] = "需要至少25点卡兹阿加裁缝技能获得，使用后目标眩晕10秒，甚至对小BOSS也有效"
