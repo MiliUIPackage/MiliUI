@@ -111,6 +111,10 @@ local function MatchKeyword(msg)
     -- 別的鑰石插件可能用純文字貼 "鑰石: 地城 (N)" 這種播報，後面必接冒號
     -- （全半形皆排除），避免誤觸發 feature B 查全隊。
     if (msg:find("鑰石:", 1, true) or msg:find("鑰石：", 1, true)) then return false end
+    -- 排除 "分身鑰石" 和 "分身key"，交給 KeystoneHistory.lua 處理
+    -- （但 "鑰石" / "鑰匙" / "key" 本身仍會觸發查全隊）
+    if (msg:find("分身鑰石", 1, true)) then return false end
+    if (msg:lower():find("分身key", 1, true)) then return false end
     -- 去除超連結，避免 |Hkeystone:...|h[鑰石:...]|h 這種別人貼的鑰石連結觸發
     local stripped = msg:gsub("|H.-|h.-|h", " ")
     local lower = stripped:lower()
