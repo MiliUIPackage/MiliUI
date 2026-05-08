@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
--- KeystoneHistory
--- 記錄各角色鑰石變動（升級/降級/獲得），在 KeystoneLoot addon 視窗左側顯示
--- 大於等於七天的記錄以紅色標示
+-- CharacterKeystones
+-- 記錄各角色當前鑰石（升級/降級/獲得時更新），在 KeystoneLoot addon 視窗左側顯示
+-- 週重置後自動清除上週資料
 -- 面板 parent 到 KeystoneLootFrame，跟隨其顯示/隱藏與拖曳
 --------------------------------------------------------------------------------
 
@@ -31,7 +31,7 @@ local function GetLastWeeklyReset()
 end
 
 local function PruneOldRecords()
-    local history = MiliUI_DB and MiliUI_DB.keystoneHistory
+    local history = MiliUI_DB and MiliUI_DB.characterKeystones
     if not history then return end
     local cutoff = GetLastWeeklyReset()
     for key, data in pairs(history) do
@@ -76,16 +76,16 @@ end
 
 local function SaveKeystoneRecord(mapID, level)
     if not MiliUI_DB then MiliUI_DB = {} end
-    if not MiliUI_DB.keystoneHistory then MiliUI_DB.keystoneHistory = {} end
+    if not MiliUI_DB.characterKeystones then MiliUI_DB.characterKeystones = {} end
 
     local key = GetCharacterKey()
-    local existing = MiliUI_DB.keystoneHistory[key]
+    local existing = MiliUI_DB.characterKeystones[key]
     if existing and existing.mapID == mapID and existing.level == level then
         return
     end
 
     local _, class = UnitClass("player")
-    MiliUI_DB.keystoneHistory[key] = {
+    MiliUI_DB.characterKeystones[key] = {
         name  = UnitName("player"),
         realm = GetRealmName(),
         class = class,
@@ -184,7 +184,7 @@ local function SendKeystoneReport(channel)
     if not channel then return end
 
     PruneOldRecords()
-    local history = MiliUI_DB and MiliUI_DB.keystoneHistory
+    local history = MiliUI_DB and MiliUI_DB.characterKeystones
     if not history then return end
 
     local entries = {}
@@ -241,8 +241,8 @@ local function ShowRowContextMenu(row)
     MenuUtil.CreateContextMenu(row, function(_, root)
         root:CreateTitle(row.data.name or row.key)
         root:CreateButton("刪除記錄", function()
-            if MiliUI_DB and MiliUI_DB.keystoneHistory then
-                MiliUI_DB.keystoneHistory[row.key] = nil
+            if MiliUI_DB and MiliUI_DB.characterKeystones then
+                MiliUI_DB.characterKeystones[row.key] = nil
             end
             if refreshCallback then refreshCallback() end
         end)
@@ -308,7 +308,7 @@ end
 
 local setupDone = false
 
-local function SetupKeystoneHistory()
+local function SetupCharacterKeystones()
     if setupDone then return end
 
     -- 需要 KeystoneLoot addon 的主視窗做為錨點與父框
@@ -320,7 +320,7 @@ local function SetupKeystoneHistory()
     ---------------------------------------------------------------------------
     -- 主面板：parented to KeystoneLootFrame
     ---------------------------------------------------------------------------
-    local panel = CreateFrame("Frame", "MiliUI_KeystoneHistoryPanel", lootFrame, "BackdropTemplate")
+    local panel = CreateFrame("Frame", "MiliUI_CharacterKeystonesPanel", lootFrame, "BackdropTemplate")
     panel:SetSize(330, 200)
     panel:SetPoint("TOPRIGHT", lootFrame, "TOPLEFT", -8, 0)
     panel:SetBackdrop({
@@ -413,7 +413,7 @@ local function SetupKeystoneHistory()
 
     local function PopulateList()
         PruneOldRecords()
-        local history = MiliUI_DB and MiliUI_DB.keystoneHistory
+        local history = MiliUI_DB and MiliUI_DB.characterKeystones
         if not history or not next(history) then
             noDataText:Show()
             for i = 1, #rowPool do rowPool[i]:Hide() end
@@ -481,13 +481,13 @@ uiFrame:RegisterEvent("ADDON_LOADED")
 uiFrame:RegisterEvent("PLAYER_LOGIN")
 uiFrame:SetScript("OnEvent", function(self, event, addonName)
     if event == "ADDON_LOADED" and addonName == "KeystoneLoot" then
-        SetupKeystoneHistory()
+        SetupCharacterKeystones()
         if setupDone then self:UnregisterEvent("ADDON_LOADED") end
     elseif event == "PLAYER_LOGIN" then
         -- 後備：若 KeystoneLoot 已載入則直接設定；
         -- 若到此仍未載入（被停用），主動解除 ADDON_LOADED 避免持續監聽
         if not setupDone and C_AddOns.IsAddOnLoaded("KeystoneLoot") then
-            SetupKeystoneHistory()
+            SetupCharacterKeystones()
         end
         self:UnregisterEvent("ADDON_LOADED")
         self:UnregisterEvent("PLAYER_LOGIN")
@@ -495,7 +495,7 @@ uiFrame:SetScript("OnEvent", function(self, event, addonName)
 end)
 
 if C_AddOns.IsAddOnLoaded("KeystoneLoot") then
-    SetupKeystoneHistory()
+    SetupCharacterKeystones()
     if setupDone then uiFrame:UnregisterEvent("ADDON_LOADED") end
 end
 
@@ -512,6 +512,11 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
         self:RegisterEvent("CHAT_MSG_PARTY_LEADER")
         self:RegisterEvent("CHAT_MSG_INSTANCE_CHAT")
         self:RegisterEvent("CHAT_MSG_INSTANCE_CHAT_LEADER")
+        -- 一次性遷移舊資料：keystoneHistory → characterKeystones
+        if MiliUI_DB and MiliUI_DB.keystoneHistory and not MiliUI_DB.characterKeystones then
+            MiliUI_DB.characterKeystones = MiliUI_DB.keystoneHistory
+            MiliUI_DB.keystoneHistory = nil
+        end
         PruneOldRecords()
         C_Timer.After(BASELINE_DELAY, function()
             if not baselineSet then
