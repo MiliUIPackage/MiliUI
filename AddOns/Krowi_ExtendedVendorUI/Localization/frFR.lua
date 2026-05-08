@@ -6,7 +6,7 @@ KrowiEVU.PluginsApi:LoadPluginLocalization(L)
 
 -- [[ Everything after this line is automatically generated from CurseForge and is not meant for manual edit - SOURCETOKEN - AUTOGENTOKEN ]] --
 
--- [[ Exported at 2026-01-15 22-18-36 ]] --
+-- [[ Exported at 2026-02-08 10-26-36 ]] --
 L["Are you sure you want to hide the options button?"] = "Êtes-vous sûr de vouloir cacher le bouton des options ?"
 L["Columns"] = "Colonnes"
 L["Columns first"] = "Colonnes d'abord"

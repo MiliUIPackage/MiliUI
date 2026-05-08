@@ -5,7 +5,7 @@
 
 ---@diagnostic disable: undefined-global
 
-local lib = KROWI_LIBMAN:NewLibrary('Krowi_Util_2', 1, {
+local lib = KROWI_LIBMAN:NewLibrary('Krowi_Util_2', 2, {
     SetCurrent = true,
     -- InitLocalization = true, -- Handled in LocalizationHelper sub module
 })

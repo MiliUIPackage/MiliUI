@@ -19,6 +19,7 @@
             <OnShow method='OnShow'/>
             <OnEnter method='OnEnter'/>
             <OnLeave method='OnLeave'/>
+            <OnClick method='OnClick'/>
         </Scripts>
     </Button>
 

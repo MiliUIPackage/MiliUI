@@ -9,6 +9,7 @@ local menuBuilder
 local function UpdateView()
 	merchantItemsContainer:LoadMaxNumItemSlots()
 	MerchantFrame_Update()
+	addon.Gui.TokenBanner:Update()
 end
 
 function KrowiEVU_OptionsButtonMixin:OnLoad()

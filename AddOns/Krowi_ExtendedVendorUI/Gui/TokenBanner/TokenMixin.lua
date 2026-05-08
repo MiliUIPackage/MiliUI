@@ -35,15 +35,21 @@ function KrowiEVU_TokenMixin:OnLeave()
     GameTooltip:Hide()
 end
 
+local bothFormat = '%s / %s'
+local singleFormat = '%s'
+
 function KrowiEVU_TokenMixin:Draw()
-    if not self.Need then
+    if not self.Need or not self.Have then
         return
     end
 
-    local text = self.Need
-    if self.Have then
-        text = self.Have .. ' / ' .. text
+    local text
+    if addon.Options.db.profile.TokenBanner.Format == 'Both' then
+       text = string.format(bothFormat, self.Have, self.Need)
+    else
+       text = string.format(singleFormat, addon.Options.db.profile.TokenBanner.Format == 'Need' and self.Need or self.Have)
     end
+
     if self.IconTexture then
         text = text .. ' |T' .. self.IconTexture .. ':' .. TEXTURE_SIZE .. ':' .. TEXTURE_SIZE .. ':2:0|t'
     end
@@ -98,4 +104,15 @@ end
 
 function KrowiEVU_TokenMixin:OnShow()
     -- print('Token shown', self.Have, self.Need)
+end
+
+function KrowiEVU_TokenMixin:OnClick()
+    if IsModifiedClick("CHATLINK") then
+        local linkedToChat = HandleModifiedItemClick(self.Link);
+        if linkedToChat then return end
+    end
+
+    if self.IsCurrency then
+        CharacterFrame:ToggleTokenFrame();
+    end
 end

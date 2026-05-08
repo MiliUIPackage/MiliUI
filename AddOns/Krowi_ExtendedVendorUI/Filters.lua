@@ -389,9 +389,9 @@ if addon.Util.IsMainline then -- Recipes
 	function filters.IsRecipeCollected(itemId)
 		local tooltipInfo = C_TooltipInfo.GetItemByID(itemId)
 		for _, line in next, tooltipInfo.lines do
-			if line.type == Enum.TooltipDataLineType.RestrictedSpellKnown then
-				return true
-			end
+			if line.leftText == ITEM_SPELL_KNOWN then
+                return true
+            end
 		end
 		return false
 	end

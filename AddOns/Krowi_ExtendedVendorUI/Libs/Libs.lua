@@ -6,5 +6,6 @@ KROWI_LIBMAN:NewAddon(addonName, addon, {
     SetMenuBuilder = true,
     SetMetaData = true,
     InitLocalization = true,
+    SilentLocalization = true,
 })
 addon.CurrencyLib = KROWI_LIBMAN:GetLibrary('Krowi_Currency_2')

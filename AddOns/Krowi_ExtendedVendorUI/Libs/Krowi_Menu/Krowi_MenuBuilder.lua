@@ -8,7 +8,7 @@
 
 -- Krowi_MenuBuilder: Cross-version menu builder for WoW Classic and Modern
 
-local sub, parent = KROWI_LIBMAN:NewSubmodule('MenuBuilder', 0)
+local sub, parent = KROWI_LIBMAN:NewSubmodule('MenuBuilder', 1)
 if not sub or not parent then return end
 
 local menuBuilder = {}
@@ -96,38 +96,6 @@ end
 function menuBuilder:OnRadioSelect(filters, keys, value, ...)
     if self.callbacks.OnRadioSelect then
         self.callbacks.OnRadioSelect(filters, keys, value, ...)
-    end
-end
-
-function menuBuilder:IsMinorVersionChecked(filters, minor)
-    if self.callbacks.IsMinorVersionChecked then
-        return self.callbacks.IsMinorVersionChecked(filters, minor)
-    end
-    return false
-end
-
-function menuBuilder:OnMinorVersionSelect(filters, minor)
-    if self.callbacks.OnMinorVersionSelect then
-        self.callbacks.OnMinorVersionSelect(filters, minor)
-    end
-end
-
-function menuBuilder:IsMajorVersionChecked(filters, major)
-    if self.callbacks.IsMajorVersionChecked then
-        return self.callbacks.IsMajorVersionChecked(filters, major)
-    end
-    return false
-end
-
-function menuBuilder:OnMajorVersionSelect(filters, major)
-    if self.callbacks.OnMajorVersionSelect then
-        self.callbacks.OnMajorVersionSelect(filters, major)
-    end
-end
-
-function menuBuilder:OnAllVersionsSelect(filters, value)
-    if self.callbacks.OnAllVersionsSelect then
-        self.callbacks.OnAllVersionsSelect(filters, value)
     end
 end
 
@@ -242,60 +210,6 @@ function menuBuilder:CreateCustomRadio(menu, text, isSelectedFunc, onClickFunc)
     )
     button:SetResponse(MenuResponse.Refresh)
     return button
-end
-
-function menuBuilder:CreateMinorVersionGroup(majorGroup, filters, major, minor)
-    return majorGroup:CreateCheckbox(
-        major.Major .. '.' .. minor.Minor .. '.x',
-        function()
-            return self:IsMinorVersionChecked(filters, minor)
-        end,
-        function()
-            self:OnMinorVersionSelect(filters, minor)
-        end
-    )
-end
-
-function menuBuilder:CreateMajorVersionGroup(version, filters, major)
-    return version:CreateCheckbox(
-        major.Major .. '.x.x',
-        function()
-            return self:IsMajorVersionChecked(filters, major)
-        end,
-        function()
-            self:OnMajorVersionSelect(filters, major)
-        end
-    )
-end
-
-function menuBuilder:CreateSelectDeselectAllVersions(version, filters)
-    self:CreateDivider(version)
-
-    local selectAll = version:CreateButton(
-        self.translations['Select All'],
-        function()
-            self:OnAllVersionsSelect(filters, true)
-        end
-    )
-    selectAll:SetResponse(MenuResponse.Refresh)
-
-    local deselectAll = version:CreateButton(
-        self.translations['Deselect All'],
-        function()
-            self:OnAllVersionsSelect(filters, false)
-        end
-    )
-    deselectAll:SetResponse(MenuResponse.Refresh)
-end
-
-function menuBuilder:CreateBuildVersionFilter(filters, menu)
-    menu = menu or self:GetMenu()
-
-    local version = menu:CreateButton(self.translations['Version'])
-    if self.callbacks.CreateBuildVersionFilterGroups then
-        self.callbacks.CreateBuildVersionFilterGroups(version, filters, self)
-    end
-    self:CreateSelectDeselectAllVersions(version, filters)
 end
 
 function menuBuilder:CreateSelectDeselectAll(menu, text, filters, keys, value, callback)
@@ -470,70 +384,6 @@ function menuBuilder:CreateCustomRadio(menu, text, isSelectedFunc, onClickFunc)
         NotCheckable = false,
         KeepShownOnClick = true
     })
-end
-
-function menuBuilder:CreateMinorVersionGroup(majorGroup, filters, major, minor)
-    return majorGroup:AddFull({
-        Text = major.Major .. '.' .. minor.Minor .. '.x',
-        Checked = function()
-            return self:IsMinorVersionChecked(filters, minor)
-        end,
-        Func = function()
-            self:OnMinorVersionSelect(filters, minor)
-            UIDropDownMenu_RefreshAll(UIDROPDOWNMENU_OPEN_MENU)
-        end,
-        IsNotRadio = true,
-        NotCheckable = false,
-        KeepShownOnClick = true
-    })
-end
-
-function menuBuilder:CreateMajorVersionGroup(version, filters, major)
-    return version:AddFull({
-        Text = major.Major .. '.x.x',
-        Checked = function()
-            return self:IsMajorVersionChecked(filters, major)
-        end,
-        Func = function()
-            self:OnMajorVersionSelect(filters, major)
-            UIDropDownMenu_RefreshAll(UIDROPDOWNMENU_OPEN_MENU)
-        end,
-        IsNotRadio = true,
-        NotCheckable = false,
-        KeepShownOnClick = true
-    })
-end
-
-function menuBuilder:CreateSelectDeselectAllVersions(version, filters)
-    self:CreateDivider(version)
-
-    version:AddFull({
-        Text = self.translations['Select All'],
-        Func = function()
-            self:OnAllVersionsSelect(filters, true)
-            UIDropDownMenu_RefreshAll(UIDROPDOWNMENU_OPEN_MENU)
-        end,
-        KeepShownOnClick = true
-    })
-    version:AddFull({
-        Text = self.translations['Deselect All'],
-        Func = function()
-            self:OnAllVersionsSelect(filters, false)
-            UIDropDownMenu_RefreshAll(UIDROPDOWNMENU_OPEN_MENU)
-        end,
-        KeepShownOnClick = true
-    })
-end
-
-function menuBuilder:CreateBuildVersionFilter(filters, menu)
-    menu = menu or self:GetMenu()
-
-    local version = self:CreateSubmenuButton(menu, self.translations['Version'])
-    if self.callbacks.CreateBuildVersionFilterGroups then
-        self.callbacks.CreateBuildVersionFilterGroups(version, filters, self)
-    end
-    self:CreateSelectDeselectAllVersions(version, filters)
-    self:AddChildMenu(menu, version)
 end
 
 function menuBuilder:CreateSelectDeselectAll(menu, text, filters, keys, value, callback)

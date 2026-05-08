@@ -116,6 +116,6 @@ function lib:NewAddon(addonName, addon, options)
     end
 
     if options.InitLocalization then
-        addon.Util.LocalizationHelper.InitLocalization(addon)
+        addon.Util.LocalizationHelper.InitLocalization(addon, nil, options.SilentLocalization)
     end
 end

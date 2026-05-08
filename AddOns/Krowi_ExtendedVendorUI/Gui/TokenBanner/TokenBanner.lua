@@ -231,6 +231,13 @@ function tokenBanner:CreateOptionsMenu(menuObj, menuBuilder)
 
     local tokenBannerMenu = menuBuilder:CreateSubmenuButton(menuObj, addon.L['Token Banner'])
 
+    menuBuilder:CreateTitle(tokenBannerMenu, addon.L['Token Format'])
+	menuBuilder:CreateRadio(tokenBannerMenu, addon.L['Need'], profile, {'Format'}, 'Need')
+	menuBuilder:CreateRadio(tokenBannerMenu, addon.L['Have'], profile, {'Format'}, 'Have')
+	menuBuilder:CreateRadio(tokenBannerMenu, addon.L['Both'], profile, {'Format'}, 'Both')
+	
+    menuBuilder:CreateDivider(tokenBannerMenu)
+
 	addon.CurrencyLib:CreateMoneyOptionsMenu(tokenBannerMenu, menuBuilder, profile)
 
 	menuBuilder:CreateDivider(tokenBannerMenu)
