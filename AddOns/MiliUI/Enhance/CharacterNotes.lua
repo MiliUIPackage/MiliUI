@@ -24,15 +24,43 @@ local EDITOR_HEADER_HEIGHT = 24
 -- DB
 ------------------------------------------------------------
 local function GetAccountDB()
-    if not MiliUI_DB then MiliUI_DB = {} end
-    if not MiliUI_DB.notes then MiliUI_DB.notes = {} end
+    if type(MiliUI_DB) ~= "table" then MiliUI_DB = {} end
+    if type(MiliUI_DB.notes) ~= "table" then MiliUI_DB.notes = {} end
     return MiliUI_DB.notes
 end
 
 local function GetCharDB()
-    if not MiliUI_CharDB then MiliUI_CharDB = {} end
-    if not MiliUI_CharDB.notes then MiliUI_CharDB.notes = {} end
+    if type(MiliUI_CharDB) ~= "table" then MiliUI_CharDB = {} end
+    if type(MiliUI_CharDB.notes) ~= "table" then MiliUI_CharDB.notes = {} end
     return MiliUI_CharDB.notes
+end
+
+------------------------------------------------------------
+-- DB 清理：移除損毀條目、補齊缺欄位
+------------------------------------------------------------
+local function SanitizeNoteList(notes)
+    if type(notes) ~= "table" then return end
+    for i = #notes, 1, -1 do
+        local n = notes[i]
+        if type(n) ~= "table" or type(n.id) ~= "string" or n.id == "" then
+            table.remove(notes, i)
+        else
+            if type(n.title) ~= "string" then n.title = "無標題" end
+            if type(n.content) ~= "string" then n.content = "" end
+            if type(n.time) ~= "number" then n.time = 0 end
+        end
+    end
+end
+
+local function InitDB()
+    GetAccountDB()  -- 觸發 type-check 與初始化
+    GetCharDB()
+    SanitizeNoteList(MiliUI_DB.notes)
+    SanitizeNoteList(MiliUI_CharDB.notes)
+    -- 編輯器位置
+    if MiliUI_DB.notesEditorPos and type(MiliUI_DB.notesEditorPos) ~= "table" then
+        MiliUI_DB.notesEditorPos = nil
+    end
 end
 
 local function GetNotesForScope(scope)
@@ -46,6 +74,7 @@ end
 -- 狀態
 ------------------------------------------------------------
 local currentScope    = NOTE_SCOPE_ACCOUNT
+local currentFilter   = ""    -- 搜尋關鍵字（小寫；空字串表示無篩選）
 local selectedNoteID  = nil
 local selectedButton          -- O(1) 選取狀態切換用
 local noteListButtons = {}
@@ -61,6 +90,21 @@ local SetButtonSelected, DragMonitor, CancelDrag
 ------------------------------------------------------------
 local function GenerateID()
     return time() .. "-" .. math.random(10000, 99999)
+end
+
+------------------------------------------------------------
+-- 新筆記預設標題：在現有「新筆記 N」中找最大 N 並 +1
+------------------------------------------------------------
+local function NextNewNoteTitle(notes)
+    local maxN = 0
+    for _, n in ipairs(notes) do
+        local num = tostring(n.title or ""):match("^新筆記 (%d+)$")
+        if num then
+            local v = tonumber(num)
+            if v and v > maxN then maxN = v end
+        end
+    end
+    return string.format("新筆記 %d", maxN + 1)
 end
 
 ------------------------------------------------------------
@@ -154,6 +198,7 @@ local editorFrame    -- 獨立浮動編輯視窗（parent: UIParent）
 local titleEditBox   -- 標題輸入
 local bodyEditBox    -- 內文輸入
 local scopeButton    -- 帳號/角色 切換按鈕（OnClick 內要更新文字）
+local searchBox      -- 搜尋輸入框
 local charTab        -- 標籤按鈕
 
 local function BuildUI()
@@ -186,7 +231,7 @@ local function BuildUI()
 
     -- 帳號/角色 切換按鈕
     scopeButton = CreateFrame("Button", nil, toolbar, "BackdropTemplate")
-    scopeButton:SetSize(120, TOOLBAR_HEIGHT - 4)
+    scopeButton:SetSize(96, TOOLBAR_HEIGHT - 4)
     scopeButton:SetPoint("LEFT", 4, 0)
     S.ApplyButton(scopeButton, "戰隊共用", nil, 11)
 
@@ -201,21 +246,27 @@ local function BuildUI()
         end
         selectedNoteID = nil
         ClearEditor()
+        if searchBox then searchBox:SetText("") end
+        currentFilter = ""
         RefreshNoteList()
     end)
 
     -- 新增按鈕
     local addButton = CreateFrame("Button", nil, toolbar, "BackdropTemplate")
-    addButton:SetSize(60, TOOLBAR_HEIGHT - 4)
+    addButton:SetSize(50, TOOLBAR_HEIGHT - 4)
     addButton:SetPoint("LEFT", scopeButton, "RIGHT", 4, 0)
     S.ApplyButton(addButton, "新增", nil, 11)
 
     addButton:SetScript("OnClick", function()
         SaveCurrentNote()
+        -- 新增前清掉篩選，確保新筆記可見
+        if searchBox then searchBox:SetText("") end
+        currentFilter = ""
+
         local notes = GetNotesForScope(currentScope)
         local newNote = {
             id      = GenerateID(),
-            title   = "新筆記",
+            title   = NextNewNoteTitle(notes),
             content = "",
             time    = time(),
         }
@@ -225,6 +276,40 @@ local function BuildUI()
         LoadNoteToEditor(newNote)
         titleEditBox:SetFocus()
         titleEditBox:HighlightText()
+    end)
+
+    -- 搜尋框
+    searchBox = CreateFrame("EditBox", nil, toolbar, "BackdropTemplate")
+    searchBox:SetPoint("LEFT", addButton, "RIGHT", 4, 0)
+    searchBox:SetPoint("RIGHT", toolbar, "RIGHT", -4, 0)
+    searchBox:SetHeight(TOOLBAR_HEIGHT - 4)
+    searchBox:SetFont(S.Font, 11, "")
+    searchBox:SetAutoFocus(false)
+    searchBox:SetMaxLetters(50)
+    searchBox:SetTextInsets(8, 6, 0, 0)
+    searchBox:SetBackdrop(S.Backdrop)
+    searchBox:SetBackdropColor(0.1, 0.1, 0.15, 0.5)
+    searchBox:SetBackdropBorderColor(0.3, 0.3, 0.3, 0.5)
+
+    -- 佔位文字
+    local placeholder = searchBox:CreateFontString(nil, "OVERLAY")
+    placeholder:SetFont(S.Font, 11, "")
+    placeholder:SetPoint("LEFT", 8, 0)
+    placeholder:SetTextColor(0.5, 0.5, 0.5, 1)
+    placeholder:SetText("搜尋…")
+
+    local function UpdatePlaceholder()
+        if searchBox:GetText() == "" then placeholder:Show() else placeholder:Hide() end
+    end
+
+    searchBox:SetScript("OnEscapePressed", function(self)
+        self:SetText("")
+        self:ClearFocus()
+    end)
+    searchBox:SetScript("OnTextChanged", function(self)
+        currentFilter = (self:GetText() or ""):lower()
+        UpdatePlaceholder()
+        RefreshNoteList()
     end)
 
     ------------------------------------------------------------
@@ -344,8 +429,19 @@ local function BuildUI()
     bodyEditBox:SetMultiLine(true)
     bodyEditBox:SetMaxLetters(0)
     bodyEditBox:SetTextInsets(6, 6, 4, 4)
+    bodyEditBox:SetCountInvisibleLetters(false)  -- 不把不可見字符算入長度
     bodyEditBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     bodyEditBox:SetScript("OnEditFocusLost", function() SaveCurrentNote() end)
+    -- 編輯位置自動捲動：游標移到可視範圍外時自動捲動 ScrollFrame
+    bodyEditBox:SetScript("OnCursorChanged", function(self, x, y, w, h)
+        local scroll = bodyScroll:GetVerticalScroll()
+        local height = bodyScroll:GetHeight()
+        if -y < scroll then
+            bodyScroll:SetVerticalScroll(-y)
+        elseif -y + h > scroll + height then
+            bodyScroll:SetVerticalScroll(-y + h - height)
+        end
+    end)
     bodyScroll:SetScrollChild(bodyEditBox)
 
     -- 當 bodyScroll 大小改變時，同步 EditBox 寬度
@@ -353,8 +449,28 @@ local function BuildUI()
         bodyEditBox:SetWidth(math.max(1, w))
     end)
 
+    -- 點擊 ScrollFrame 空白處也能 focus 內文（Notion-style：點哪都能寫）
+    bodyScroll:EnableMouse(true)
+    bodyScroll:SetScript("OnMouseDown", function() bodyEditBox:SetFocus() end)
+
     ClearEditor()
 end
+
+------------------------------------------------------------
+-- 刪除確認對話框
+------------------------------------------------------------
+StaticPopupDialogs["MILIUI_NOTES_DELETE_CONFIRM"] = {
+    text = "確定要刪除筆記「%s」？\n\n|cffff8800此操作無法復原。|r",
+    button1 = "刪除",
+    button2 = "取消",
+    OnAccept = function(self, data)
+        if data and data.confirm then data.confirm() end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
 
 ------------------------------------------------------------
 -- 移動 / 刪除筆記
@@ -389,38 +505,43 @@ end
 ------------------------------------------------------------
 local function ShowNoteContextMenu(btn)
     local noteID    = btn._noteID
+    local noteTitle = (btn._noteData and btn._noteData.title) or "筆記"
     local thisScope = currentScope
     local otherScope = (thisScope == NOTE_SCOPE_ACCOUNT) and NOTE_SCOPE_CHAR or NOTE_SCOPE_ACCOUNT
     local moveLabel = (thisScope == NOTE_SCOPE_ACCOUNT) and "移到角色專屬" or "移到戰隊共用"
 
-    -- 優先使用 retail 11.x 的 MenuUtil API
-    if MenuUtil and MenuUtil.CreateContextMenu then
-        MenuUtil.CreateContextMenu(btn, function(owner, root)
-            root:CreateTitle(btn._noteData and btn._noteData.title or "筆記")
+    local function DoMove()
+        if selectedNoteID == noteID then SaveCurrentNote() end
+        if MoveNoteToScope(noteID, thisScope, otherScope) then
+            if selectedNoteID == noteID then
+                selectedNoteID = nil
+                ClearEditor()
+            end
+            RefreshNoteList()
+        end
+    end
 
-            root:CreateButton(moveLabel, function()
-                if selectedNoteID == noteID then
-                    SaveCurrentNote()
-                end
-                if MoveNoteToScope(noteID, thisScope, otherScope) then
-                    if selectedNoteID == noteID then
-                        selectedNoteID = nil
-                        ClearEditor()
-                    end
-                    RefreshNoteList()
-                end
-            end)
-
-            root:CreateDivider()
-
-            root:CreateButton("|cffff5555刪除|r", function()
+    local function ConfirmDelete()
+        local dialog = StaticPopup_Show("MILIUI_NOTES_DELETE_CONFIRM", noteTitle)
+        if dialog then
+            dialog.data = { confirm = function()
                 DeleteNoteByID(noteID, thisScope)
                 if selectedNoteID == noteID then
                     selectedNoteID = nil
                     ClearEditor()
                 end
                 RefreshNoteList()
-            end)
+            end }
+        end
+    end
+
+    -- 優先使用 retail 11.x 的 MenuUtil API
+    if MenuUtil and MenuUtil.CreateContextMenu then
+        MenuUtil.CreateContextMenu(btn, function(owner, root)
+            root:CreateTitle(noteTitle)
+            root:CreateButton(moveLabel, DoMove)
+            root:CreateDivider()
+            root:CreateButton("|cffff5555刪除|r", ConfirmDelete)
         end)
         return
     end
@@ -431,31 +552,9 @@ local function ShowNoteContextMenu(btn)
         menuFrame = CreateFrame("Frame", "MiliUI_NoteContextMenu", UIParent, "UIDropDownMenuTemplate")
     end
     local menu = {
-        { text = btn._noteData and btn._noteData.title or "筆記", isTitle = true, notCheckable = true },
-        {
-            text = moveLabel, notCheckable = true,
-            func = function()
-                if selectedNoteID == noteID then SaveCurrentNote() end
-                if MoveNoteToScope(noteID, thisScope, otherScope) then
-                    if selectedNoteID == noteID then
-                        selectedNoteID = nil
-                        ClearEditor()
-                    end
-                    RefreshNoteList()
-                end
-            end,
-        },
-        {
-            text = "|cffff5555刪除|r", notCheckable = true,
-            func = function()
-                DeleteNoteByID(noteID, thisScope)
-                if selectedNoteID == noteID then
-                    selectedNoteID = nil
-                    ClearEditor()
-                end
-                RefreshNoteList()
-            end,
-        },
+        { text = noteTitle, isTitle = true, notCheckable = true },
+        { text = moveLabel, notCheckable = true, func = DoMove },
+        { text = "|cffff5555刪除|r", notCheckable = true, func = ConfirmDelete },
     }
     EasyMenu(menu, menuFrame, "cursor", 0, 0, "MENU")
 end
@@ -465,7 +564,22 @@ end
 ------------------------------------------------------------
 RefreshNoteList = function()
     if not listContent then return end
-    local notes = GetNotesForScope(currentScope)
+    local allNotes = GetNotesForScope(currentScope)
+
+    -- 套用搜尋篩選
+    local notes
+    if currentFilter ~= "" then
+        notes = {}
+        for _, n in ipairs(allNotes) do
+            local title = (n.title or ""):lower()
+            local body  = (n.content or ""):lower()
+            if title:find(currentFilter, 1, true) or body:find(currentFilter, 1, true) then
+                table.insert(notes, n)
+            end
+        end
+    else
+        notes = allNotes
+    end
 
     -- 隱藏所有按鈕；selectedButton 會在下方的迴圈重新指定
     selectedButton = nil
@@ -484,6 +598,7 @@ RefreshNoteList = function()
 
             -- 拖曳開始：記錄來源筆記 ID，啟動 OnUpdate 監控
             btn:SetScript("OnDragStart", function(self)
+                if currentFilter ~= "" then return end  -- 篩選中不允許排序
                 if not self._noteID then return end
                 dragState = { sourceID = self._noteID, targetIndex = nil }
                 self:SetAlpha(0.4)
@@ -814,6 +929,7 @@ local loader = CreateFrame("Frame")
 loader:RegisterEvent("PLAYER_LOGIN")
 loader:SetScript("OnEvent", function(self, event)
     self:UnregisterEvent("PLAYER_LOGIN")
+    InitDB()
     -- CharacterFrame 可能由 Blizzard_CharacterFrame 延遲載入
     if CharacterFrame then
         SetupTab()
