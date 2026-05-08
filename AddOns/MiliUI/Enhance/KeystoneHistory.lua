@@ -275,7 +275,10 @@ local function GetOrCreateRow(parent, index)
     row:SetScript("OnEnter", function() row.highlight:Show() end)
     row:SetScript("OnLeave", function() row.highlight:Hide() end)
     row:SetScript("OnMouseUp", function(self, button)
-        if button == "RightButton" then ShowRowContextMenu(self) end
+        if button == "RightButton" then
+            -- 延後到下一個 frame 避免 MenuUtil 在 OnMouseUp 同呼叫鏈下造成 taint 傳播
+            C_Timer.After(0, function() ShowRowContextMenu(self) end)
+        end
     end)
 
     local xOff = 0
@@ -527,9 +530,12 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
             ScheduleKeystoneCheck(0)
         end
     elseif CHAT_EVENT_TO_CHANNEL[event] then
-        local text, _, _, _, _, _, _, _, _, _, _, guid = ...
-        if guid == UnitGUID("player") and MatchSelfKeyword(text) then
-            SendKeystoneReport(CHAT_EVENT_TO_CHANNEL[event])
+        local text, sender = ...
+        if sender and sender ~= "" then
+            local senderShort = sender:match("^([^-]+)") or sender
+            if senderShort == UnitName("player") and MatchSelfKeyword(text) then
+                SendKeystoneReport(CHAT_EVENT_TO_CHANNEL[event])
+            end
         end
     end
 end)
