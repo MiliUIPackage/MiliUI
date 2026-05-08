@@ -1,12 +1,26 @@
-## Interface: 120005
+## Interface: 120001, 120005
 ## Title: HandyNotes: Midnight - Capital
 ## Title-zhCN: HandyNotes：至暗之夜 - 主城
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記 - 至暗之夜主城
+## Title-deDE: HandyNotes: Midnight - Hauptstadt
+## Title-esES: HandyNotes: Midnight - Capital
+## Title-esMX: HandyNotes: Midnight - Capital
+## Title-frFR: HandyNotes: Midnight - Capitale
+## Title-koKR: HandyNotes: 한디노트: 미드나이트 - 수도
+## Title-ruRU: HandyNotes: Midnight - Столица
+## Title-zhCN: HandyNotes：午夜 - 主城
+## Title-zhTW: HandyNotes：午夜 - 主城
 ## Notes: Displays important locations and services in the rebuilt Silvermoon City (Midnight's capital).
+## Notes-deDE: Zeigt wichtige Orte und Dienste in der wiederaufgebauten Silbermondstadt (Midnights Hauptstadt) an.
+## Notes-esES: Muestra ubicaciones y servicios importantes en la Ciudad de Lunargenta reconstruida (la capital de Midnight).
+## Notes-esMX: Muestra ubicaciones y servicios importantes en la Ciudad de Lunargenta reconstruida (la capital de Midnight).
+## Notes-frFR: Affiche les lieux et services importants dans la ville de Lune-d'Argent reconstruite (la capitale de Midnight).
+## Notes-koKR: 재건된 실버문 시티(미드나이트의 수도)의 주요 위치와 서비스를 표시합니다.
+## Notes-ruRU: Показывает важные места и услуги в восстановленном Луносвете (столице Midnight).
 ## Notes-zhCN: 在重建后的银月城（午夜的主城）显示重要地点和服务。
 ## Notes-zhTW: 在重建後的銀月城（至暗之夜的主城）顯示重要地點與服務。
 ## Author: Anahkas
-## Version: 1.0.4
+## Version: 1.0.7
 ## IconTexture: Interface\AddOns\HandyNotes_MidnightCapital\HandyNotes_MidnightCapital
 ## RequiredDeps: HandyNotes
 ## SavedVariables: HandyNotes_MidnightCapitalDB
@@ -15,6 +29,11 @@
 Icons.lua
 Localization.lua
 locales\enUS.lua
+locales\deDE.lua
+locales\esES.lua
+locales\frFR.lua
+locales\koKR.lua
+locales\ruRU.lua
 locales\zhCN.lua
 locales\zhTW.lua
 Data.lua

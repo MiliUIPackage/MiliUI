@@ -3,6 +3,19 @@ local HandyNotes = LibStub("AceAddon-3.0"):GetAddon("HandyNotes")
 local HBD = LibStub("HereBeDragons-2.0", true)
 
 local PluginHandler = {}
+local playerFaction = UnitFactionGroup and UnitFactionGroup("player")
+
+local function IsNodeVisible(node)
+    if not node then
+        return false
+    end
+
+    if node.faction and node.faction ~= playerFaction then
+        return false
+    end
+
+    return ns.db["show_" .. node.category]
+end
 
 function PluginHandler:OnEnter(mapFile, coord)
     local tooltip = self:GetParent() == WorldMapButton and WorldMapTooltip or GameTooltip
@@ -106,7 +119,7 @@ local function CreateIter(minimap)
         local state = next(t, prestate)
         while state do
             local node = ns.nodes[state]
-            if node and ns.db["show_" .. node.category] then
+            if IsNodeVisible(node) then
                 local icon = ns.icons[node.icon or node.category] or ns.icons.services
                 local scale = (node.scale or 1) * ns.db[scaleSetting]
                 local alpha = (node.alpha or 1) * ns.db.icon_alpha

@@ -17,6 +17,10 @@ ns.nodes = {
     [51804840] = { title = L.NODE_BLACK_MARKET_TITLE, category = "services", icon = "auctioneer", desc = L.NODE_BLACK_MARKET_DESC, npc = L.NPC_MADAM_GOYA },
     [52405820] = { title = L.NODE_TRANSMOG_TITLE, category = "services", icon = "transmogrifier", desc = L.NODE_TRANSMOG_DESC, npc = L.NPC_WARPWEAVER },
     [42207850] = { title = L.NODE_BARBER_TITLE, category = "services", icon = "barber", desc = L.NODE_BARBER_DESC, npc = L.NPC_TRIM_AND_DYE_EXPERT },
+    [66916209] = { title = L.NODE_SILVERMOON_INN_TITLE, category = "services", icon = "innkeeper", desc = L.NODE_SILVERMOON_INN_DESC, faction = "Horde" },
+    [72046487] = { title = L.NODE_SILVERMOON_BANK_TITLE, category = "services", icon = "banker", desc = L.NODE_SILVERMOON_BANK_DESC, faction = "Horde" },
+    [67647074] = { title = L.NODE_SILVERMOON_AUCTION_HOUSE_TITLE, category = "services", icon = "auctioneer", desc = L.NODE_SILVERMOON_AUCTION_HOUSE_DESC, faction = "Horde" },
+    [70068327] = { title = L.NODE_SILVERMOON_CATALYST_TITLE, category = "services", icon = "catalyst", desc = L.NODE_SILVERMOON_CATALYST_DESC, faction = "Horde" },
 
     -- ==========================================
     -- TRAVEL & PORTALS
@@ -27,7 +31,7 @@ ns.nodes = {
     -- MIDNIGHT ACTIVITIES & COMBAT
     -- ==========================================
     [52107770] = { title = L.NODE_DELVERS_TITLE, category = "activities", icon = "delves", desc = L.NODE_DELVERS_DESC, npc = L.NPC_VALEERA_ASTRANDIS },
-    [34408100] = { title = L.NODE_PVP_TITLE, category = "activities", icon = "battlemaster", desc = L.NODE_PVP_DESC, npc = L.NPC_GLADIATOR_VENDORS },
+    [36308110] = { title = L.NODE_PVP_TITLE, category = "activities", icon = "battlemaster", desc = L.NODE_PVP_DESC, npc = L.NPC_GLADIATOR_VENDORS },
     [36208450] = { title = L.NODE_TRAINING_DUMMIES_TITLE, category = "activities", icon = "training_dummy", desc = L.NODE_TRAINING_DUMMIES_DESC, npc = L.NPC_TARGET_DUMMIES },
     
     -- ==========================================
