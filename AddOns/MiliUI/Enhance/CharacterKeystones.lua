@@ -535,12 +535,12 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
             ScheduleKeystoneCheck(0)
         end
     elseif CHAT_EVENT_TO_CHANNEL[event] then
-        local text, sender = ...
-        if sender and sender ~= "" then
-            local senderShort = sender:match("^([^-]+)") or sender
-            if senderShort == UnitName("player") and MatchSelfKeyword(text) then
-                SendKeystoneReport(CHAT_EVENT_TO_CHANNEL[event])
-            end
+        -- 用 GUID 判斷是否自己發送，避免直接比較 sender（retail 11.x 起為 secret string，
+        -- 在 tainted execution 下會炸）。GUID 是第 12 個參數，且不被標記為 secret。
+        local text = ...
+        local guid = select(12, ...)
+        if guid and guid == UnitGUID("player") and MatchSelfKeyword(text) then
+            SendKeystoneReport(CHAT_EVENT_TO_CHANNEL[event])
         end
     end
 end)
