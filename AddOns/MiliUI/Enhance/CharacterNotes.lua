@@ -653,7 +653,7 @@ local function CreateBlockRow()
         SetHandleColor(r2, g2, b2)
     end)
     row.dragHandle:SetScript("OnLeave", function()
-        if not blockDragState then SetHandleColor(0.45, 0.45, 0.45) end
+        SetHandleColor(0.45, 0.45, 0.45)
     end)
     row.dragHandle:SetScript("OnDragStart", function()
         if not row._block or not bodyScroll then return end
@@ -752,7 +752,9 @@ local function CreateBlockRow()
     end)
 
     -- 拖曳把手右鍵選單：轉換類型 / 刪除
-    row.dragHandle:RegisterForClicks("RightButtonUp")
+    -- 左鍵 / 右鍵都接收，左鍵的「拖曳」與「點擊」由 RegisterForDrag 自動分流
+    -- （有移動 → OnDragStart；單純點擊 → OnClick）
+    row.dragHandle:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
     local CONVERT_OPTIONS = {
         { type = BLOCK_TYPE_TEXT,     label = "轉為文字" },
@@ -782,7 +784,8 @@ local function CreateBlockRow()
     end
 
     row.dragHandle:SetScript("OnClick", function(self, mouseButton)
-        if mouseButton ~= "RightButton" then return end
+        -- 左鍵單擊（沒拖動）和右鍵都開選單，方便試 UX
+        if mouseButton ~= "LeftButton" and mouseButton ~= "RightButton" then return end
         local block = row._block
         if not block then return end
 
