@@ -67,4 +67,4 @@ L["%s has a smaller loot pool than %s"] = "%s 的戰利品池比 %s 小。";
 L["Left click: Open overview"] = "左鍵點擊：開啟概覽";
 
 -- icon_button.lua
-L["Voidcore used"] = "使用虛無之核";
+L["Voidcore used"] = "已用虛無之核骰出";
