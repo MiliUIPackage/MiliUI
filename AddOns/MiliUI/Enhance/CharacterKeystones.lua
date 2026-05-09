@@ -527,18 +527,80 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
 end)
 
 ------------------------------------------------------------
--- 自我關鍵字偵測：hook SendChatMessage
--- 直接攔截「玩家送出的訊息」，不需要從 CHAT_MSG_* 撈 sender / GUID 比對，
--- 完全避開 retail 11.x 的 secret-string 保護（兩者皆 tainted execution 下會炸）。
+-- 自我關鍵字偵測：hook 每個 ChatFrame 的 EditBox OnEnterPressed
+-- 比 hook SendChatMessage 可靠 —— 後者可能被別的插件「替換」(非 hook) 掉，
+-- 而 EditBox script 是 UI frame 上的 binding，無法被替換。
+-- 完全避開 retail 12.x 的 secret-string 保護（不需碰 sender/GUID）。
 ------------------------------------------------------------
 local SEND_CHAT_TYPES = {
     PARTY         = "PARTY",
     INSTANCE_CHAT = "INSTANCE_CHAT",
 }
 
+-- 1 秒 dedup：避免單一輸入透過多重路徑（typed + macro etc.）重複觸發
+local lastTriggerTime = 0
+local function MaybeSendReport(channel, src)
+    local now = GetTime()
+    if now - lastTriggerTime < 1 then
+        if MiliUI_KeystoneDebug then
+            print("|cff00ff00[Keystone]|r → 跳過 (dedup 1s 內已觸發過, src=" .. tostring(src) .. ")")
+        end
+        return
+    end
+    lastTriggerTime = now
+    if MiliUI_KeystoneDebug then
+        print("|cff00ff00[Keystone]|r → 觸發 SendKeystoneReport (src=" .. tostring(src) .. ")")
+    end
+    SendKeystoneReport(channel)
+end
+
+local function HookChatEditbox(editbox)
+    if not editbox or editbox._miliKsHooked then return end
+    editbox._miliKsHooked = true
+
+    -- 在 OnTextChanged 期間記錄目前文字；OnEnterPressed 之後 Blizzard 會清空文字，
+    -- 此時讀 GetText() 會是空字串，所以提前快取。
+    editbox:HookScript("OnTextChanged", function(self)
+        self._miliKsLastText = self:GetText()
+    end)
+
+    editbox:HookScript("OnEnterPressed", function(self)
+        local msg = self._miliKsLastText
+        self._miliKsLastText = nil
+        if not msg or msg == "" then return end
+        local chatType = self:GetAttribute("chatType")
+        if MiliUI_KeystoneDebug then
+            print(string.format("|cff00ff00[Keystone]|r edit hook: type=%s msg=%s",
+                tostring(chatType), tostring(msg)))
+        end
+        local channel = SEND_CHAT_TYPES[chatType or ""]
+        if not channel then return end
+        if not MatchSelfKeyword(msg) then return end
+        MaybeSendReport(channel, "edit")
+    end)
+end
+
+-- 同時 hook 全域 SendChatMessage：對 /p 巨集 / SendChatMessage("...","PARTY") 之類
+-- 不經 ChatEdit 的路徑也能命中（前提是該函式沒被別的插件 replace）。
 hooksecurefunc("SendChatMessage", function(msg, chatType)
-    local channel = SEND_CHAT_TYPES[chatType]
+    local channel = SEND_CHAT_TYPES[chatType or ""]
     if not channel then return end
     if not MatchSelfKeyword(msg) then return end
-    SendKeystoneReport(channel)
+    MaybeSendReport(channel, "send")
 end)
+
+local hookFrame = CreateFrame("Frame")
+hookFrame:RegisterEvent("PLAYER_LOGIN")
+hookFrame:SetScript("OnEvent", function(self)
+    self:UnregisterEvent("PLAYER_LOGIN")
+    for i = 1, (NUM_CHAT_WINDOWS or 10) do
+        HookChatEditbox(_G["ChatFrame" .. i .. "EditBox"])
+    end
+end)
+
+-- 開關 debug：/milikeydbg
+SLASH_MILIKEYDBG1 = "/milikeydbg"
+SlashCmdList.MILIKEYDBG = function()
+    MiliUI_KeystoneDebug = not MiliUI_KeystoneDebug
+    print("|cff00ff00[Keystone]|r debug:", MiliUI_KeystoneDebug and "ON" or "OFF")
+end

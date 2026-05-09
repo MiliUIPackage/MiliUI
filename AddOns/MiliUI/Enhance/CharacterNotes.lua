@@ -1071,7 +1071,7 @@ local function ShowNoteContextMenu(btn)
         end
     end
 
-    -- 優先使用 retail 11.x 的 MenuUtil API
+    -- 優先使用 retail 12.x 的 MenuUtil API
     if MenuUtil and MenuUtil.CreateContextMenu then
         MenuUtil.CreateContextMenu(btn, function(owner, root)
             root:CreateTitle(noteTitle)
