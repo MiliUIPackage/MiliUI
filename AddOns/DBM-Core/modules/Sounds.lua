@@ -14,21 +14,24 @@ do
 		{	text	= "Smooth",value 	= "Smooth", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Smooth\\", max = 10},
 		{	text	= "Smooth (Reverb)",value 	= "SmoothR", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SmoothReverb\\", max = 10},
 		{	text	= "Pewsey",value 	= "Pewsey", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Pewsey\\", max = 10},
-		{	text	= "安妮海豹",value 	= "AnnieSeal", path = "Interface\\AddOns\\DBM-Core\\Sounds\\AnnieSeal\\", max = 10},
-		{	text	= "家豪",value 	= "SahaJh", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SahaJh\\", max = 10},
-		{	text	= "然然",value 	= "Ranran", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ranran\\", max = 10},
-		{	text	= "忘忧景久",value 	= "忘忧景久", path = "Interface\\AddOns\\DBM-Core\\Sounds\\WYJJ\\", max = 10},
+		{	text	= "瑞辰 (zhCN男)",value = "瑞辰", path = "Interface\\AddOns\\DBM-Core\\Sounds\\瑞辰\\", max = 10},
+		{	text	= "然然 (zhCN女)",value = "然然", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ranran\\", max = 10},
+		{	text	= "忘忧景久 (zhCN女)",value = "忘憂景久", path = "Interface\\AddOns\\DBM-Core\\Sounds\\WYJJ\\", max = 10},
+		{	text	= "浩 (zhTW男)",value = "浩", path = "Interface\\AddOns\\DBM-Core\\Sounds\\浩\\", max = 10},
+		{	text	= "玲 (zhTW女)",value = "玲", path = "Interface\\AddOns\\DBM-Core\\Sounds\\玲\\", max = 10},
+		
 	}
-	--Countdown audio that's been specifically edited to be a single 5 second count file
+	--Countdown audio that's been specifically edited to be a single 5/3 second count file
 	local midnightCounts = {
-		{	text	= "Corsica",value 	= "Corsica", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Corsica\\", max = 5},
-		{	text	= "Koltrane",value 	= "Kolt", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Kolt\\", max = 5},
-		{	text	= "Smooth",value 	= "Smooth", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Smooth\\", max = 5},
-		{	text	= "Smooth (Reverb)",value 	= "SmoothR", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SmoothReverb\\", max = 5},
-		{	text	= "安妮海豹",value 	= "AnnieSeal", path = "Interface\\AddOns\\DBM-Core\\Sounds\\AnnieSeal\\", max = 5},
-		{	text	= "家豪",value 	= "SahaJh", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SahaJh\\", max = 5},
-		{	text	= "然然",value 	= "Ranran", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ranran\\", max = 5},
-		{	text	= "忘忧景久",value 	= "忘忧景久", path = "Interface\\AddOns\\DBM-Core\\Sounds\\WYJJ\\", max = 5},
+		{	text	= "Corsica",value 	= "Corsica", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Corsica\\", max = 10},
+		{	text	= "Koltrane",value 	= "Kolt", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Kolt\\", max = 10},
+		{	text	= "Smooth",value 	= "Smooth", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Smooth\\", max = 10},
+		{	text	= "Smooth (Reverb)",value 	= "SmoothR", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SmoothReverb\\", max = 10},
+		{	text	= "然然 (zhCN女)",value = "然然", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ranran\\", max = 10},
+		{	text	= "忘忧景久 (zhCN女)",value = "忘憂景久", path = "Interface\\AddOns\\DBM-Core\\Sounds\\WYJJ\\", max = 10},
+		{	text	= "瑞辰 (zhCN男)",value = "瑞辰", path = "Interface\\AddOns\\DBM-Core\\Sounds\\瑞辰\\", max = 10},
+		{	text	= "浩 (zhTW男)",value = "浩", path = "Interface\\AddOns\\DBM-Core\\Sounds\\浩\\", max = 10},
+		{	text	= "玲 (zhTW女)",value = "玲", path = "Interface\\AddOns\\DBM-Core\\Sounds\\玲\\", max = 10},
 	}
 	local hasCached = false
 	local cachedTable

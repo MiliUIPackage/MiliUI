@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2733, "DBM-Raids-Midnight", 3, 1307)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260428075631")
+mod:SetRevision("20260506182827")
 mod:SetCreatureID(240435)
 mod:SetEncounterID(3176)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -52,7 +52,7 @@ local function setFallback(self, dontSetAlerts)
 		specWarnShadowsAdvance:SetAlert({194, 195}, "mobsoon", 2, 2)
 		specWarnDarkUpheaval:SetAlert(196, "aesoon", 2, 2)
 		specWarnUmbralCollapse:SetAlert(197, "gathershare", 2, 2)
-		specWarnOblivionWrath:SetAlert(198, "watchstep", 2, 2)
+		specWarnOblivionWrath:SetAlert(198, "watchorb", 2, 2)
 		specWarnVoidFall:SetAlert({199, 209}, "carefly", 2, 2)
 		specWarnMarchofEndless:SetAlert(200, "stilldanger", 2, 4)
 		specWarnPitchBulwark:SetAlert(201, "kickcast", 2, 2, 0)
@@ -237,7 +237,7 @@ do
 					specWarnDarkUpheaval:Play("aesoon")
 				elseif eventType == "oblivion" then
 					specWarnOblivionWrath:Show(eventCount)
-					specWarnOblivionWrath:Play("watchstep")
+					specWarnOblivionWrath:Play("watchorb")
 				elseif eventType == "voidfall" then
 					specWarnVoidFall:Show(eventCount)
 					specWarnVoidFall:Play("carefly")

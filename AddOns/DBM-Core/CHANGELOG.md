@@ -1,38 +1,42 @@
 # DBM - Core
 
-## [12.0.44](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/12.0.44) (2026-04-29)
-[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/12.0.43...12.0.44) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
+## [12.0.45](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/12.0.45) (2026-05-08)
+[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/12.0.44...12.0.45) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
 
-- prep tag  
-- add missing kr strings (#2038)  
-    Co-authored-by: Adam <MysticalOS@users.noreply.github.com>  
-    Co-authored-by: Artemis <QartemisT@gmail.com>  
-- Align localizations (#2039)  
-- another fix  
-- improve debug  
-    fix a bug  
-- fix two world boss mods not loading (surprised I didn't notice sooner, guess that shows just how insignificant they are)  
-- fix over engineered noise and lua error caused by over engineered noise  
-- Make fallback states be used even in debug mode  
-- more combat oriented debug removed from printing.  
-- fix more in combat debug print spam when in debugmode 3  
-- Fix a regression that caused kills to also be flagged as wipes in DBM core guild syncs  
-- improve readability  
-- IgnoreBlizzAPI should no longer be ignored if in debugmode 3  
-- double number of lines  
-- another small minor tweak  
-- missed some spammy events  
-- disable several spammy debug evens at level 3 level  
-    tweak a few other debug events to be more verbose or enable logging.  
-- improve debug  
-- level up debug log and give it control over whether or not it's basic timeline debuglog or verbose with additional details  
-- combine upheaval warnings  
-    Add stage markers  
-- tweak default timings and add optionto alter them  
-- Simplification  
-- debug readability improvement  
-- Tweak objects and update gloom and convergence warnings to make smart use of ENCOUNTER\_WARNING  
-- Push new objects to simplify using ENCOUNTER\_WARNING ti dispatch both personal warnings and target warnings.  
-    Upgrade dread breath special warning to now include target name, and eliminate redundant non special target warning.  
-- extend debug logging  
+- prep new tag  
+- fix wipe messages saying kill on midnight for guild group comm messages, a regression from fixing same bug on tbc.  
+- Update translations (#2057)  
+- prioritize comms over inspect for gearcheck, allowing more precise ilvls for all units and bypassing inspect throttles. inspect will be used as backup for people who don't reply to comms (such as users not running DBM)  
+- allow pull/break count threshold to live update without requiring reload anymore  
+- Allow built in countdowns to go to 10 for hardcoded objects like pull timers and hardcoded modules. the 5 second cap only needs to apply for blizz api timeline objects  
+- update mythic check to auto pass as heroic if game version is Mists of pandaria classic. This allows modern siege of org mods to be cleanly backwards compatible  
+- actually handle it this way instead, since i think the announce needs to inherit the newID  
+- it's cleaner to ignore the 2 second breath timers on chimaerus since it's just blizzard resending the remaining time on previous 12  
+- Update koKR (#2055)  
+- tweak  
+- science something  
+- change luacheck  
+- Add rotmire mod  
+- fix lua error on UI reload in M+  
+- fix small timer bug  
+- Update localization.de.lua (#2047)  
+- Update localization.de.lua (#2048)  
+- Update localization.fr.lua (#2053)  
+- Update localization.es.lua (#2052)  
+- Update localization.br.lua (#2051)  
+- Update localization.ru.lua (#2050)  
+- Update localization.tw.lua (#2049)  
+- Update koKR (#2046)  
+- Update localization.fr.lua (#2045)  
+- Update localization.es.lua (#2044)  
+- Update localization.br.lua (#2043)  
+- Add new countdown voices for every language (#2026)  
+- Add flex mythic raid difficulty  
+    Update Beloren ahead of next weeks tuning hotfixes  
+- update language  
+- Don't hide spell keys from UI on retail anymore. they're actually useful to MRT and weakauras forks that still use DBM callbacks  
+- fix variable conflict in last  
+- if on patch 12.0.7  
+     - Once again report wipe HP on boss wipes using new blizzard api  
+     - Support mid state bar color changes when using blizz api (actual configuration for it not done yet)  
 - bump alpha  

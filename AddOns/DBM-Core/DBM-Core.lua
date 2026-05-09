@@ -16,6 +16,7 @@
 --    * ruRU: TOM_RUS					https://curseforge.com/profiles/TOM_RUS/
 --    * zhTW: Whyv						ultrashining@gmail.com
 --    * koKR: Elnarfim					---
+--	  * esES, esMX, frFR, ptBR: Anon	---
 --    * zhCN: Mini Dragon				projecteurs@gmail.com
 --
 --
@@ -23,6 +24,7 @@
 --    * Arta
 --    * Tennberg (a lot of fixes in the enGB/enUS localization)
 --    * nBlueWiz (a lot of previous fixes in the koKR localization as well as boss mod work) Contact: everfinale@gmail.com
+-- 	  * Anon (localization for esES, esMX, frFR, ptBR and vanilla boss mod work)
 --
 ---@class DBMCoreNamespace
 local private = select(2, ...)
@@ -77,16 +79,16 @@ local function showRealDate(curseDate)
 	end
 end
 
-DBM.Revision = parseCurseDate("20260429043851")
+DBM.Revision = parseCurseDate("20260508010056")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 private.fakeBWVersion, private.fakeBWHash = 412, "5f04367"--412.7
 
 -- The string that is shown as version
-DBM.DisplayVersion = "12.0.44"--Core version
+DBM.DisplayVersion = "12.0.45"--Core version
 DBM.classicSubVersion = 0
 DBM.dungeonSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2026, 4, 28) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2026, 5, 7) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
 -- support for github downloads, which doesn't support curse keyword expansion
@@ -115,6 +117,7 @@ if playerClass == "MAGE" or playerClass == "WARLOCK" or playerClass == "ROGUE" o
 	DBM_UseDualProfile = false
 end
 DBM_CharSavedRevision = 2
+local locale = GetLocale()
 
 DBM.DefaultOptions = {
 	WarningColors = {
@@ -1726,6 +1729,7 @@ do
 				EncounterTimeline.TrackView:SetAlpha(0)
 				EncounterTimeline.TimerView:SetAlpha(0)
 			else
+				--User has timeline enabled
 				C_CVar.SetCVar("encounterTimelineEnabled", "1")--Force enable timeline, otherwise custom sounds don't play
 			end
 			if not self.Options.HasShownMidnightPopup then
@@ -2082,6 +2086,9 @@ do
 					"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED",
 					"ENCOUNTER_WARNING"
 				)
+				if self:GetTOC() >= 120007 then
+					self:RegisterEvents("ENCOUNTER_TIMELINE_EVENT_COLOR_CHANGED")
+				end
 			end
 			if not private.isClassic then -- Retail, WoTLKC, and BCC
 				self:RegisterEvents(
@@ -4767,7 +4774,7 @@ do
 		end
 	end
 
-	function DBM:ENCOUNTER_END(encounterID, name, difficulty, size, success)
+	function DBM:ENCOUNTER_END(encounterID, name, difficulty, size, success, encounterUnitStatus)
 		self:Debug("|cffff8800ENCOUNTER_END: |r event fired: " .. encounterID .. " " .. name .. " " .. difficulty .. " " .. size .. " " .. success, 1, nil, nil, true)
 		if success == 0 then
 			--Only nag on wipes (in any content)
@@ -4791,7 +4798,7 @@ do
 			if v.multiEncounterPullDetection then
 				for _, eId in ipairs(v.multiEncounterPullDetection) do
 					if encounterID == eId then
-						self:EndCombat(v, success == 0, nil, "ENCOUNTER_END")
+						self:EndCombat(v, success == 0, nil, "ENCOUNTER_END", encounterUnitStatus and encounterUnitStatus.remainingHealthPercent)
 						if self:AntiSpam(3, "EE") then--Most bosses have both BOSS_KILL and ENCOUNTER_END, we don't want to send two EE syncs if we don't have to
 							private.sendSync(DBMSyncProtocol, "EE", encounterID .. "\t" .. success .. "\t" .. v.id .. "\t" .. (v.revision or 0), "NORMAL")
 						end
@@ -4799,7 +4806,7 @@ do
 					end
 				end
 			elseif encounterID == v.combatInfo.eId then
-				self:EndCombat(v, success == 0, nil, "ENCOUNTER_END")
+				self:EndCombat(v, success == 0, nil, "ENCOUNTER_END", encounterUnitStatus and encounterUnitStatus.remainingHealthPercent)
 				if self:AntiSpam(3, "EE") then--Most bosses have both BOSS_KILL and ENCOUNTER_END, we don't want to send two EE syncs if we don't have to
 					private.sendSync(DBMSyncProtocol, "EE", encounterID .. "\t" .. success .. "\t" .. v.id .. "\t" .. (v.revision or 0), "NORMAL")
 				end
@@ -5097,14 +5104,18 @@ do
 	end
 
 	---Delayed Guild Combat sync object so we allow time for RL to disable them
-	local function delayedGCSync(modId, difficultyIndex, difficultyModifier, name, thisTime, wipeHP)
+	local function delayedGCSync(modId, difficultyIndex, difficultyModifier, name, thisTime, isWipe, wipeHP)
 		if not dbmIsEnabled then return end
 		if not private.statusGuildDisabled and private.updateNotificationDisplayed == 0 then
 			if thisTime then--End combat event
-				if wipeHP then
-					private.sendGuildSync(10, "GCE", modId .. "\t1\t" .. thisTime .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader .. "\t" .. wipeHP)
+				if isWipe then
+					if wipeHP then
+						private.sendGuildSync(11, "GCE", modId .. "\t1\t" .. thisTime .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader .. "\t" .. wipeHP)
+					else
+						private.sendGuildSync(11, "GCE", modId .. "\t1\t" .. thisTime .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader)
+					end
 				else
-					private.sendGuildSync(10, "GCE", modId .. "\t0\t" .. thisTime .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader)
+					private.sendGuildSync(11, "GCE", modId .. "\t0\t" .. thisTime .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader)
 				end
 			else
 				private.sendGuildSync(4, "GCB", modId .. "\t" .. difficultyIndex .. "\t" .. difficultyModifier .. "\t" .. name .. "\t" .. lastGroupLeader)
@@ -5477,7 +5488,8 @@ do
 	---@param wipe boolean?
 	---@param srmIncluded boolean? unregister all events including SPELL_AURA_REMOVED events
 	---@param event string?
-	function DBM:EndCombat(mod, wipe, srmIncluded, event)
+	---@param wipeHealthPct any Not sure if it's sent as secret or not yet, so allowing any for now
+	function DBM:EndCombat(mod, wipe, srmIncluded, event, wipeHealthPct)
 		---@class DBMMod
 		mod = mod
 		if removeEntry(inCombat, mod) then
@@ -5541,9 +5553,9 @@ do
 				mod.lastWipeTime = GetTime()
 				--Fix for "attempt to perform arithmetic on field 'pull' (a nil value)" (which was actually caused by stats being nil, so we never did getTime on pull, fixing one SHOULD fix the other)
 				local thisTime = GetTime() - mod.combatInfo.pull
-				local hp = mod.highesthealth and mod:GetHighestBossHealth() or mod:GetLowestBossHealth()
 				local wipeHP
 				if not DBM:IsPostMidnight() then
+					local hp = mod.highesthealth and mod:GetHighestBossHealth() or mod:GetLowestBossHealth()
 					wipeHP = mod.CustomHealthUpdate and mod:CustomHealthUpdate() or hp and ("%d%%"):format(hp) or CL.UNKNOWN
 					if mod.vb.phase then
 						wipeHP = wipeHP .. " (" .. SCENARIO_STAGE:format(mod.vb.phase) .. ")"
@@ -5552,6 +5564,8 @@ do
 						local bossesKilled = mod.numBoss - mod.vb.bossLeft
 						wipeHP = wipeHP .. " (" .. BOSSES_KILLED:format(bossesKilled, mod.numBoss) .. ")"
 					end
+				else
+					wipeHP = wipeHealthPct
 				end
 				local totalPulls = mod.stats[difficulties.statVarTable[usedDifficulty] .. "Pulls"]
 				local totalKills = mod.stats[difficulties.statVarTable[usedDifficulty] .. "Kills"]
@@ -5562,7 +5576,8 @@ do
 						if scenario then
 							self:AddMsg(L.SCENARIO_ENDED_AT:format(usedDifficultyText .. name, stringUtils.strFromTime(thisTime)))
 						else
-							if self:IsPostMidnight() then
+							if self:IsPostMidnight() and self:GetTOC() < 120007 then
+								--In 12.0.7, we inherit wipeHP from new blizzard api
 								self:AddMsg(L.COMBAT_ENDED:format(usedDifficultyText .. name, stringUtils.strFromTime(thisTime)))
 							else
 								self:AddMsg(L.COMBAT_ENDED_AT:format(usedDifficultyText .. name, wipeHP, stringUtils.strFromTime(thisTime)))
@@ -5575,7 +5590,8 @@ do
 						if scenario then
 							self:AddMsg(L.SCENARIO_ENDED_AT_LONG:format(usedDifficultyText .. name, stringUtils.strFromTime(thisTime), totalPulls - totalKills))
 						else
-							if self:IsPostMidnight() then
+							if self:IsPostMidnight() and self:GetTOC() < 120007 then
+								--In 12.0.7, we inherit wipeHP from new blizzard api
 								self:AddMsg(L.COMBAT_ENDED_LONG:format(usedDifficultyText .. name, stringUtils.strFromTime(thisTime), totalPulls - totalKills))
 							else
 								self:AddMsg(L.COMBAT_ENDED_AT_LONG:format(usedDifficultyText .. name, wipeHP, stringUtils.strFromTime(thisTime), totalPulls - totalKills))
@@ -5585,7 +5601,7 @@ do
 								usedDifficultyIndex ~= 1 and DBM:GetNumGuildPlayersInZone() >= 10 -- Classic
 							if check and not self.Options.DisableGuildStatus then
 								self:Unschedule(delayedGCSync, modId)
-								self:Schedule(private.isRetail and 1.5 or 3, delayedGCSync, modId, usedDifficultyIndex, difficulties.difficultyModifier, name, stringUtils.strFromTime(thisTime), wipeHP)
+								self:Schedule(private.isRetail and 1.5 or 3, delayedGCSync, modId, usedDifficultyIndex, difficulties.difficultyModifier, name, stringUtils.strFromTime(thisTime), true, wipeHP)
 							end
 						end
 					end
@@ -8047,7 +8063,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260429043851" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260508010056" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then
