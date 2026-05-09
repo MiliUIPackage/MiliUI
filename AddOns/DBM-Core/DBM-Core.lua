@@ -133,11 +133,47 @@ DBM.DefaultOptions = {
 	SpecialWarningSound4 = not private.isClassic and 552035 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\HoodWolfTransformPlayer01.ogg",--"Sound\\Creature\\HoodWolf\\HoodWolfTransformPlayer01.ogg"
 	SpecialWarningSound5 = 554236,--"Sound\\Creature\\Loathstare\\Loa_Naxx_Aggro02.ogg"
 	ModelSoundValue = "Short",
-	CountdownVoice = "AnnieSeal",
-	CountdownVoice2 = "AnnieSeal",
-	CountdownVoice3 = "AnnieSeal",
+	CountdownVoice = ((locale == "enUS" or locale == "enGB") and "Corsica") or
+					(locale == "deDE" and "Karl") or
+					(locale == "esES" and "Mateo") or
+					(locale == "esMX" and "Juan") or
+					(locale == "frFR" and "Jérémy") or
+					(locale == "koKR" and "도현원") or
+					(locale == "ptBR" and "Anshlun") or
+					(locale == "ruRU" and "Александр") or
+					(locale == "zhCN" and "瑞辰") or
+					(locale == "zhTW" and "浩"),
+	CountdownVoice2 = ((locale == "enUS" or locale == "enGB") and "Kolt") or
+					(locale == "deDE" and "Franziska") or
+					(locale == "esES" and "Fernanda") or
+					(locale == "esMX" and "Isabel") or
+					(locale == "frFR" and "Élise") or
+					(locale == "koKR" and "하민지") or
+					(locale == "ptBR" and "Neryssa") or
+					(locale == "ruRU" and "Надежда") or
+					(locale == "zhCN" and "纯如") or
+					(locale == "zhTW" and "玲"),
+	CountdownVoice3 = ((locale == "enUS" or locale == "enGB") and "Smooth") or
+					(locale == "deDE" and "Franziska") or
+					(locale == "esES" and "Fernanda") or
+					(locale == "esMX" and "Isabel") or
+					(locale == "frFR" and "Élise") or
+					(locale == "koKR" and "하민지") or
+					(locale == "ptBR" and "Neryssa") or
+					(locale == "ruRU" and "Надежда") or
+					(locale == "zhCN" and "纯如") or
+					(locale == "zhTW" and "玲"),
 	CountSize = 5,
-	PullVoice = "AnnieSeal",
+	PullVoice = ((locale == "enUS" or locale == "enGB") and "Corsica") or
+					(locale == "deDE" and "Karl") or
+					(locale == "esES" and "Mateo") or
+					(locale == "esMX" and "Juan") or
+					(locale == "frFR" and "Jérémy") or
+					(locale == "koKR" and "도현원") or
+					(locale == "ptBR" and "Anshlun") or
+					(locale == "ruRU" and "Александр") or
+					(locale == "zhCN" and "瑞辰") or
+					(locale == "zhTW" and "浩"),
 	ChosenVoicePack2 = "AnnieSeal",
 	VPReplacesAnnounce = true,
 	VPReplacesSADefault = true,
