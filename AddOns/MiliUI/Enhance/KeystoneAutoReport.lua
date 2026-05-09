@@ -1,8 +1,7 @@
 
 ---------------------------------------------------------------
 -- MiliUI Enhance: Keystone Auto Report
--- 功能一：隊伍聊天偵測到 key / keys / 鑰匙 / 鑰石 關鍵字
---   (排除 !key / !keys 與超連結內) 時，以 LibKS addon channel
+-- 功能一：隊伍聊天完全匹配 key / keys / !key / !keys / 鑰石 時，以 LibKS addon channel
 --   協議 (DBM-Core 的 LibKeystone 同款) 主動向隊員請求鑰石資料，
 --   彙整後貼到隊伍。多人安裝本 plugin 時以 CLAIM 協議做確定性
 --   leader election，只有 GUID 最小者回報，沒有 race condition。
@@ -101,47 +100,12 @@ local function OnKSMessage(text, channel, sender)
     }
 end
 
+local TRIGGER_KEYWORDS = { ["key"]=true, ["keys"]=true, ["!key"]=true, ["!keys"]=true, ["鑰石"]=true }
+
 local function MatchKeyword(msg)
     if (issecretvalue(msg)) then return false end
     if (type(msg) ~= "string") then return false end
-    if (msg == "") then return false end
-    -- 自己的 auto-post 會回灌到 CHAT_MSG_PARTY，prefix "鑰石更新" 內含關鍵字
-    -- "鑰石"，會自我觸發。直接跳過。
-    if (msg:find("鑰石更新", 1, true)) then return false end
-    -- 別的鑰石插件可能用純文字貼 "鑰石: 地城 (N)" 這種播報，後面必接冒號
-    -- （全半形皆排除），避免誤觸發 feature B 查全隊。
-    if (msg:find("鑰石:", 1, true) or msg:find("鑰石：", 1, true)) then return false end
-    -- 排除 "分身鑰石" 和 "分身key"，交給 CharacterKeystones.lua 處理
-    -- （但 "鑰石" / "鑰匙" / "key" 本身仍會觸發查全隊）
-    if (msg:find("分身鑰石", 1, true)) then return false end
-    if (msg:lower():find("分身key", 1, true)) then return false end
-    -- 去除超連結，避免 |Hkeystone:...|h[鑰石:...]|h 這種別人貼的鑰石連結觸發
-    local stripped = msg:gsub("|H.-|h.-|h", " ")
-    local lower = stripped:lower()
-    if (lower:find("鑰匙", 1, true) or lower:find("鑰石", 1, true)) then
-        return true
-    end
-    local pos = 1
-    while (pos) do
-        local s, e = lower:find("key", pos, true)
-        if (not s) then break end
-        local prev = (s > 1) and lower:sub(s - 1, s - 1) or ""
-        local after = lower:sub(e + 1, e + 1)
-        local isWordStart = prev == "" or not prev:match("[%w]")
-        local notExcluded = prev ~= "!"
-        local isWordEnd
-        if (after == "s") then
-            local after2 = lower:sub(e + 2, e + 2)
-            isWordEnd = after2 == "" or not after2:match("[%w]")
-        else
-            isWordEnd = after == "" or not after:match("[%w]")
-        end
-        if (isWordStart and notExcluded and isWordEnd) then
-            return true
-        end
-        pos = e + 1
-    end
-    return false
+    return TRIGGER_KEYWORDS[msg:match("^%s*(.-)%s*$"):lower()] or false
 end
 
 local function FormatReply()
