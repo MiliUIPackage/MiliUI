@@ -61,7 +61,9 @@ local function UpdateActiveCalendarEvents()
     local day = current.monthDay
     for i = 1, C_Calendar.GetNumDayEvents(0, day) do
         local event = C_Calendar.GetDayEvent(0, day, i)
-        activeCalenderEvents[event.eventID] = true
+        if event and event.eventID then
+            activeCalenderEvents[event.eventID] = true
+        end
     end
 
     -- hours until midnight + minutes unit midnight + 5 extra seconds
