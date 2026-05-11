@@ -18,8 +18,6 @@ local IsCategorySplit = BR.Helpers.IsCategorySplit
 
 -- Chat request: categories that support "request buff in chat" on click
 local chatRequestableCategories = { raid = true, presence = true }
-local requestOnCooldown = {}
-local REQUEST_COOLDOWN = 5
 
 --- Returns the macro slash command prefix for the current group type.
 local function GetChatRequestPrefix()
@@ -42,202 +40,7 @@ local function ResolveChatRequestMsg(frame)
     return (customMsg and customMsg ~= "") and customMsg or L["ChatRequest." .. frame.key] or frame.displayName
 end
 
--- Debug print for chat-request click pipeline. Toggled via /br debug.
--- Fires only on user-driven events (clicks, setup, cooldown timer, chat echo) -
--- never on hot loops. Output is plain English (developer-facing diagnostic).
-local format = string.format
 local GetTime = GetTime
-
--- Snapshot of the most recent chat-request click attempt, used to verify whether
--- the secure macro actually delivered a chat message (the chat-event listener
--- below echoes the player's outgoing message back to us).
-local lastChatAttempt -- { key, msg, prefix, time, confirmed }
-
-local function ChatEnvDebug()
-    local instType = "?"
-    local difficultyName = "?"
-    local groupSize = "?"
-    local okI, _, iType, _, dName, _, _, _, _, gSize = pcall(GetInstanceInfo)
-    if okI then
-        instType = tostring(iType or "none")
-        difficultyName = tostring(dName or "")
-        groupSize = tostring(gSize or "")
-    end
-    local affecting = pcall(UnitAffectingCombat, "player") and tostring(UnitAffectingCombat("player")) or "?"
-    local inVehicle = pcall(UnitInVehicle, "player") and tostring(UnitInVehicle("player")) or "?"
-    local kmActive = "?"
-    if C_ChallengeMode and C_ChallengeMode.IsChallengeModeActive then
-        local ok, v = pcall(C_ChallengeMode.IsChallengeModeActive)
-        kmActive = ok and tostring(v) or "?"
-    end
-    return format(
-        "instType=%s diff=%q gSize=%s mPlus=%s affectingCombat=%s vehicle=%s",
-        instType,
-        difficultyName,
-        groupSize,
-        kmActive,
-        affecting,
-        inVehicle
-    )
-end
-
-local function DebugLog(stage, overlay, extra)
-    if not (BR.profile and BR.profile.debugMode) then
-        return
-    end
-    local key = overlay and overlay._br_chatRequestKey
-    local msg = overlay and overlay._br_chatRequestMsg
-    local cd = key and requestOnCooldown[key]
-    local mt, atype, mouseEnabled, shown, parentVisible, sinceSetup
-    if overlay then
-        local okMt, mtVal = pcall(overlay.GetAttribute, overlay, "macrotext")
-        local okType, typeVal = pcall(overlay.GetAttribute, overlay, "type")
-        mt = okMt and mtVal or "<err>"
-        atype = okType and typeVal or "<err>"
-        mouseEnabled = overlay:IsMouseEnabled()
-        shown = overlay:IsShown()
-        local pf = overlay._br_parent_frame
-        parentVisible = pf and pf:IsVisible() or false
-        if overlay._br_setup_at then
-            sinceSetup = format("%.2fs", GetTime() - overlay._br_setup_at)
-        else
-            sinceSetup = "never"
-        end
-    end
-    print(
-        format(
-            "|cff00ccffBR-debug %s:|r t=%.2f key=%s cd=%s type=%s mt=%q msg=%q "
-                .. "shown=%s mouse=%s parentVis=%s sinceSetup=%s "
-                .. "| grp=%s raid=%s inst=%s lockdown=%s prefix=%q | %s%s",
-            tostring(stage),
-            GetTime(),
-            tostring(key),
-            tostring(cd),
-            tostring(atype),
-            tostring(mt or ""),
-            tostring(msg or ""),
-            tostring(shown),
-            tostring(mouseEnabled),
-            tostring(parentVisible),
-            tostring(sinceSetup),
-            tostring(IsInGroup()),
-            tostring(IsInRaid()),
-            tostring(IsInGroup(2)),
-            tostring(InCombatLockdown()),
-            GetChatRequestPrefix(),
-            ChatEnvDebug(),
-            extra and (" | " .. extra) or ""
-        )
-    )
-end
-BR.SecureButtonsDebugLog = DebugLog
-
--- Chat-send verifier: WoW echoes the player's own outgoing chat back through
--- CHAT_MSG_* events. We register listeners only when we have a pending click
--- to verify; if the echo doesn't arrive within 2s, we log a warning so the
--- user can see whether the macro fired but the chat layer dropped the message.
-local CHAT_EVENTS = {
-    "CHAT_MSG_SAY",
-    "CHAT_MSG_PARTY",
-    "CHAT_MSG_PARTY_LEADER",
-    "CHAT_MSG_RAID",
-    "CHAT_MSG_RAID_LEADER",
-    "CHAT_MSG_INSTANCE_CHAT",
-    "CHAT_MSG_INSTANCE_CHAT_LEADER",
-}
-local chatVerifyFrame
-local function EnsureChatVerifyFrame()
-    if chatVerifyFrame then
-        return
-    end
-    chatVerifyFrame = CreateFrame("Frame")
-    for _, ev in ipairs(CHAT_EVENTS) do
-        chatVerifyFrame:RegisterEvent(ev)
-    end
-    chatVerifyFrame:SetScript("OnEvent", function(_, event, text, sender, _, _, _, _, _, _, _, _, _, guid)
-        if not (BR.profile and BR.profile.debugMode) then
-            return
-        end
-        if not lastChatAttempt or lastChatAttempt.confirmed then
-            return
-        end
-        if GetTime() - lastChatAttempt.time > 3 then
-            return
-        end
-        -- Match by GUID first (canonical), fall back to name comparison.
-        local playerGUID = UnitGUID("player")
-        local matched = guid and playerGUID and guid == playerGUID
-        if not matched then
-            local short = GetUnitName("player", false) or ""
-            local full = GetUnitName("player", true) or short
-            matched = sender == short or sender == full
-        end
-        if not matched then
-            -- Saw a chat event during our 3s window but it wasn't from us.
-            -- Log it so we can see whether events are firing at all when the
-            -- user reports ChatNotSent (distinguishes "no echo" from "matcher missed").
-            print(
-                format(
-                    "|cff999999BR-debug ChatSeen-other:|r event=%s sender=%s guid=%s text=%q",
-                    tostring(event),
-                    tostring(sender),
-                    tostring(guid),
-                    tostring(text or "")
-                )
-            )
-            return
-        end
-        lastChatAttempt.confirmed = true
-        print(
-            format(
-                "|cff00ccffBR-debug ChatConfirmed:|r event=%s text=%q sender=%s guid=%s delay=%.2fs key=%s",
-                tostring(event),
-                tostring(text or ""),
-                tostring(sender),
-                tostring(guid),
-                GetTime() - lastChatAttempt.time,
-                tostring(lastChatAttempt.key)
-            )
-        )
-    end)
-end
-
-local function NoteChatAttempt(key, msg, prefix)
-    if not (BR.profile and BR.profile.debugMode) then
-        return
-    end
-    EnsureChatVerifyFrame()
-    local attempt = { key = key, msg = msg, prefix = prefix, time = GetTime(), confirmed = false }
-    lastChatAttempt = attempt
-    C_Timer.After(2, function()
-        if not (BR.profile and BR.profile.debugMode) then
-            return
-        end
-        if attempt.confirmed then
-            return
-        end
-        if lastChatAttempt ~= attempt then
-            return
-        end
-        local playerGUID = UnitGUID("player")
-        local short = GetUnitName("player", false) or "?"
-        print(
-            format(
-                "|cffff8888BR-debug ChatNotSent:|r no echo within 2s for key=%s prefix=%q msg=%q "
-                    .. "playerGUID=%s playerName=%s "
-                    .. "(macro fired but no CHAT_MSG_* came back - chat throttled, hardware-event "
-                    .. 'violation, or empty macrotext at click time. Try \'/run SendChatMessage("test", "'
-                    .. (prefix == "/instance " and "INSTANCE_CHAT" or prefix == "/raid " and "RAID" or prefix == "/party " and "PARTY" or "SAY")
-                    .. "\")' to see if direct chat works.)",
-                tostring(key),
-                tostring(prefix),
-                tostring(msg),
-                tostring(playerGUID),
-                tostring(short)
-            )
-        )
-    end)
-end
 
 -- ============================================================================
 -- SPELL HELPERS
@@ -432,55 +235,54 @@ local function CreateClickOverlay(frame)
             self:Hide()
         end
     end)
-    -- Re-evaluate dynamic macros before each click, refresh display after.
-    -- IMPORTANT: do NOT SetAttribute("macrotext") here for chat-request overlays.
-    -- WoW's secure dispatcher can read the attribute snapshot before PreClick's
-    -- write propagates, leading to stale prefix being sent (e.g. "/say" instead
-    -- of "/party" right after joining a group). Macrotext is kept current via
-    -- SetupChatRequestOverlay + RefreshChatRequestMacros (GROUP_ROSTER_UPDATE).
-    overlay:SetScript("PreClick", function(self, button, down)
-        DebugLog("PreClick", self, format("button=%s down=%s", tostring(button), tostring(down)))
-        if self._br_chatRequestKey and not requestOnCooldown[self._br_chatRequestKey] then
-            NoteChatAttempt(self._br_chatRequestKey, self._br_chatRequestMsg, GetChatRequestPrefix())
-        elseif self._br_clickMacroFn then
+    -- IMPORTANT: do NOT SetAttribute("macrotext") for chat-request overlays
+    -- inside PreClick - the secure dispatcher can read the attribute snapshot
+    -- before PreClick's write propagates, leaking a stale prefix (e.g. "/say"
+    -- after joining a group). Chat macrotext is kept current by
+    -- SetupChatRequestOverlay and RefreshChatRequestMacros (GROUP_ROSTER_UPDATE).
+    overlay:SetScript("PreClick", function(self)
+        -- Re-evaluate dynamic click macros before each click (e.g. rogue poisons
+        -- that depend on weapon slot). Chat-request overlays have a static
+        -- macrotext set up by SetupChatRequestOverlay/RefreshChatRequestMacros
+        -- and are skipped here.
+        if self._br_clickMacroFn and not self._br_chatRequestKey then
             self:SetAttribute("macrotext", self._br_clickMacroFn(self._br_clickMacroSpellID))
         end
     end)
-    overlay:SetScript("PostClick", function(self, button, down)
-        DebugLog("PostClick", self, format("button=%s down=%s", tostring(button), tostring(down)))
+    overlay:SetScript("PostClick", function(self)
         if self._br_chatRequestKey then
-            local key = self._br_chatRequestKey
-            if not requestOnCooldown[key] and IsInGroup() then
-                requestOnCooldown[key] = true
-                -- Blank the macro to prevent spamming; restore after cooldown.
-                -- SetAttribute is safe here: overlays are hidden during combat via
-                -- state driver, so PostClick only fires outside combat lockdown.
-                self:SetAttribute("macrotext", "")
-                DebugLog("PostClick->cooldownSet", self, "scheduled restore in " .. REQUEST_COOLDOWN .. "s")
-                C_Timer.After(REQUEST_COOLDOWN, function()
-                    requestOnCooldown[key] = nil
-                    -- Restore macro if overlay is still a chat-request button.
-                    -- Read msg fresh from the overlay so a custom-message edit
-                    -- during the cooldown window picks up the latest text.
-                    -- If in combat lockdown, skip - SetupChatRequestOverlay will
-                    -- re-set the macro when SyncSecureButtons runs after combat.
-                    if self._br_chatRequestKey and self._br_chatRequestMsg and not InCombatLockdown() then
-                        self:SetAttribute("macrotext", GetChatRequestPrefix() .. self._br_chatRequestMsg)
-                        DebugLog("CooldownTimer->restored", self)
-                    else
-                        DebugLog(
-                            "CooldownTimer->skipRestore",
-                            self,
-                            format("key=%s combat=%s", tostring(self._br_chatRequestKey), tostring(InCombatLockdown()))
-                        )
+            -- Anti-spam: disable mouse + show cooldown swirl for 5s. Gated by
+            -- BR.profile.chatRequestCooldown (default true). A small fraction
+            -- of users in restricted contexts (M+ / encounters) report this
+            -- breaking chat dispatch in ways we couldn't reproduce remotely;
+            -- they can opt out via the Chat Requests options page.
+            if BR.profile.chatRequestCooldown ~= false then
+                self._br_chatRequestCooldownUntil = GetTime() + 5
+                self:EnableMouse(false)
+                if not self._br_chatRequestCooldown then
+                    local cd = CreateFrame("Cooldown", nil, self, "CooldownFrameTemplate")
+                    cd:SetAllPoints(self)
+                    cd:SetDrawBling(false)
+                    cd:SetHideCountdownNumbers(true)
+                    cd.noCooldownCount = true
+                    self._br_chatRequestCooldown = cd
+                end
+                self._br_chatRequestCooldown:SetCooldown(GetTime(), 5)
+                C_Timer.After(5, function()
+                    -- DisableOverlay/ClearChatRequestState clear the flag, so a
+                    -- stale fire after a role change is a safe no-op.
+                    -- Skip the direct EnableMouse if combat started during the
+                    -- 5s window: it's protected on secure frames during combat
+                    -- lockdown. Post-combat, RefreshOverlaySpells ->
+                    -- UpdateActionButtons -> SetupChatRequestOverlay re-enables
+                    -- mouse explicitly, so recovery is automatic.
+                    if self._br_chatRequestKey then
+                        self._br_chatRequestCooldownUntil = nil
+                        if not InCombatLockdown() then
+                            self:EnableMouse(true)
+                        end
                     end
                 end)
-            else
-                DebugLog(
-                    "PostClick->noCooldown",
-                    self,
-                    format("alreadyCD=%s inGroup=%s", tostring(requestOnCooldown[key]), tostring(IsInGroup()))
-                )
             end
             return
         end
@@ -1033,7 +835,17 @@ local function SyncSecureButtons()
                             overlay._br_width = width
                             overlay._br_height = height
                         end
-                        overlay:EnableMouse(true)
+                        -- Honor the chat-request cooldown gate while it's set
+                        -- and the feature is enabled. The cooldown timer
+                        -- clears the timestamp when it expires; SyncSecureButtons
+                        -- then re-enables mouse on its next run.
+                        local cdEnabled = BR.profile.chatRequestCooldown ~= false
+                        local cdUntil = cdEnabled and overlay._br_chatRequestCooldownUntil
+                        if cdUntil and cdUntil > GetTime() then
+                            overlay:EnableMouse(false)
+                        else
+                            overlay:EnableMouse(true)
+                        end
                         if not overlay:IsShown() then
                             overlay:Show()
                         end
@@ -1263,33 +1075,39 @@ local function SetupChatRequestOverlay(frame, showHighlight)
     overlay.itemID = nil
     overlay._br_chatRequestKey = frame.key
     overlay._br_chatRequestMsg = ResolveChatRequestMsg(frame)
-    overlay._br_parent_frame = frame
-    overlay._br_setup_at = GetTime()
-    requestOnCooldown[frame.key] = nil -- Clear stale cooldown from prior setup
     overlay:SetAttribute("type", "macro")
     overlay:SetAttribute("macrotext", GetChatRequestPrefix() .. overlay._br_chatRequestMsg)
     overlay:EnableMouse(true)
     if overlay.highlight then
         overlay.highlight:SetShown(showHighlight)
     end
-    DebugLog("SetupChatRequestOverlay", overlay, "frame.key=" .. tostring(frame.key))
 end
 
 ---Disable a click overlay: mark inactive, disable mouse, hide, clear position cache.
 ---@param overlay table SecureActionButton overlay
 local function DisableOverlay(overlay)
-    if overlay._br_chatRequestKey then
-        DebugLog("DisableOverlay", overlay)
-    end
     overlay._br_has_action = false
     overlay._br_clickMacroFn = nil
     overlay._br_clickMacroSpellID = nil
     overlay._br_chatRequestKey = nil
     overlay._br_chatRequestMsg = nil
+    overlay._br_chatRequestCooldownUntil = nil
     overlay.itemID = nil
     overlay:EnableMouse(false)
     overlay:Hide()
     overlay._br_left = nil
+end
+
+---Clear chat-request state from an overlay being repurposed for a non-chat
+---action (consumable / pet / spell / custom / clickMacro). PreClick skips the
+---dynamic click-macro write when _br_chatRequestKey is set, and PostClick
+---enters the anti-spam cooldown branch on it; a stale flag would suppress
+---legitimate click-macro updates and disable the overlay's mouse for 5s on
+---every click. RefreshChatRequestMacros also iterates by this flag.
+local function ClearChatRequestState(overlay)
+    overlay._br_chatRequestKey = nil
+    overlay._br_chatRequestMsg = nil
+    overlay._br_chatRequestCooldownUntil = nil
 end
 
 ---Set pet summon spell or Fel Domination macro attributes on an overlay.
@@ -1361,6 +1179,7 @@ local function UpdateConsumableSubElements(frame, actionItems, showHighlight, fr
                 eOverlay._br_has_action = true
                 eOverlay._br_clickMacroFn = nil
                 eOverlay._br_clickMacroSpellID = nil
+                ClearChatRequestState(eOverlay)
                 SetItemAttributes(eOverlay, actionItems[itemIdx].itemID, weaponSlot)
                 eOverlay:EnableMouse(true)
                 if eOverlay.highlight then
@@ -1399,6 +1218,7 @@ local function UpdateExtraFrameOverlays(frame, frameHighlight, db)
             eOverlay._br_clickMacroFn = nil
             eOverlay._br_clickMacroSpellID = nil
             eOverlay.itemID = nil
+            ClearChatRequestState(eOverlay)
             SetPetSpellAttributes(eOverlay, extra._br_pet_spell, db)
             eOverlay:EnableMouse(true)
             if eOverlay.highlight then
@@ -1487,6 +1307,7 @@ local function UpdateActionButtons(category)
                         overlay._br_has_action = true
                         overlay._br_clickMacroFn = nil
                         overlay._br_clickMacroSpellID = nil
+                        ClearChatRequestState(overlay)
                         SetItemAttributes(overlay, actionItems[1].itemID, GetWeaponSlot(frame))
                         overlay:EnableMouse(true)
                         if overlay.highlight then
@@ -1503,6 +1324,7 @@ local function UpdateActionButtons(category)
                         overlay.itemID = nil
                         overlay._br_clickMacroFn = def.clickMacro
                         overlay._br_clickMacroSpellID = castableID
+                        ClearChatRequestState(overlay)
                         overlay:SetAttribute("type", "macro")
                         overlay:SetAttribute("macrotext", def.clickMacro(castableID))
                         overlay:EnableMouse(true)
@@ -1519,6 +1341,7 @@ local function UpdateActionButtons(category)
                         overlay.itemID = nil
                         overlay._br_clickMacroFn = nil
                         overlay._br_clickMacroSpellID = nil
+                        ClearChatRequestState(overlay)
                         overlay:SetAttribute("type", "spell")
                         overlay:SetAttribute("spell", def.castSpellID)
                         overlay:EnableMouse(true)
@@ -1545,6 +1368,7 @@ local function UpdateActionButtons(category)
                     overlay.itemID = nil
                     overlay._br_clickMacroFn = nil
                     overlay._br_clickMacroSpellID = nil
+                    ClearChatRequestState(overlay)
                     overlay:SetAttribute("type", "macro")
                     overlay:SetAttribute("macrotext", "/petassist")
                     overlay:EnableMouse(true)
@@ -1577,6 +1401,7 @@ local function UpdateActionButtons(category)
                         overlay.itemID = nil
                         overlay._br_clickMacroFn = nil
                         overlay._br_clickMacroSpellID = nil
+                        ClearChatRequestState(overlay)
                         if customActionType == "macro" then
                             overlay:SetAttribute("type", "macro")
                             overlay:SetAttribute("macrotext", customActionValue:gsub("\\n", "\n"))
@@ -1596,6 +1421,7 @@ local function UpdateActionButtons(category)
                         local overlay = frame.clickOverlay
                         overlay._br_has_action = true
                         overlay.itemID = nil
+                        ClearChatRequestState(overlay)
                         if frame.buffDef and frame.buffDef.clickMacro then
                             overlay._br_clickMacroFn = frame.buffDef.clickMacro
                             overlay._br_clickMacroSpellID = castableID
@@ -1654,12 +1480,10 @@ local function RefreshChatRequestMacros()
         if overlay and overlay._br_chatRequestKey then
             -- Re-resolve message from the current profile (profile switch may
             -- have changed chatRequestMessages[key] since setup).
+            -- Guard against nil msg (frame.displayName fallback may be missing).
             local msg = ResolveChatRequestMsg(frame)
             overlay._br_chatRequestMsg = msg
-            -- Skip overlays whose macrotext is currently blanked for cooldown -
-            -- the cooldown timer will restore with the latest prefix/msg when it fires.
-            -- Guard against nil msg (frame.displayName fallback may be missing).
-            if msg and not requestOnCooldown[overlay._br_chatRequestKey] then
+            if msg then
                 overlay:SetAttribute("macrotext", prefix .. msg)
             end
         end

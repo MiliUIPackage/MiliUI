@@ -203,6 +203,7 @@ local TEXCOORD_INSET = BR.TEXCOORD_INSET
 
 -- WoW API locals
 local PlaySoundFile = PlaySoundFile
+local GetInstanceInfo = GetInstanceInfo
 
 -- LibSharedMedia for font resolution
 local LSM = LibStub("LibSharedMedia-3.0")
@@ -379,6 +380,7 @@ local defaults = {
     optionsPanelScale = 1.2, -- base scale (displayed as 100%)
     showLoginMessages = true,
     requestBuffInChat = true,
+    chatRequestCooldown = true,
     chatRequestMessages = {},
 
     -- DK runeforge preferences: [specId] = { mainhand, dw_mainhand, dw_offhand }
@@ -619,6 +621,10 @@ local readyCheckTimer = nil
 local instanceEntryTimer = nil
 local delveEntryTimer = nil
 local SOULWELL_SPELL_IDS = { [29893] = true, [6201] = true } -- Create Soulwell, Create Healthstone
+
+-- "Decor Duel" prop-hunt brawl: hide-and-seek as furniture, buff reminders are
+-- meaningless and visually defeat the purpose. Identified by its unique difficulty ID.
+local DECOR_DUEL_DIFFICULTY_ID = 253
 local ClearInstanceEntryState -- forward declaration
 local ClearDelveEntryState -- forward declaration
 local HideDismissFrames -- forward declaration
@@ -2891,6 +2897,11 @@ UpdateDisplay = function(refreshMode)
 
         local db = BR.profile
 
+        if select(3, GetInstanceInfo()) == DECOR_DUEL_DIFFICULTY_ID then
+            HideAllDisplayFrames()
+            return
+        end
+
         if db.showOnlyInGroup and BR.BuffState.IsAlone() then
             HideAllDisplayFrames()
             return
@@ -3751,13 +3762,9 @@ local function SlashHandler(msg)
     elseif cmd == "debug" then
         BR.profile.debugMode = not BR.profile.debugMode
         if BR.profile.debugMode then
-            print(
-                "|cff00ccffBuffReminders:|r Debug mode ENABLED. "
-                    .. "Click any chat-request buff icon and copy the |cff00ccffBR-debug|r lines to share. "
-                    .. "Run |cFFFFD100/br debug|r again to turn off."
-            )
+            print("|cff00ccffBuffReminders:|r " .. L["Display.DebugEnabled"])
         else
-            print("|cff00ccffBuffReminders:|r Debug mode disabled.")
+            print("|cff00ccffBuffReminders:|r " .. L["Display.DebugDisabled"])
         end
     else
         BR.Options.Toggle()
