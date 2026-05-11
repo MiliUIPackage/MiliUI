@@ -27,13 +27,13 @@ local function SpellIcon(tip, spellId)
             end
         end
         local texture = GetSpellTexture(id or 0)
-        local okText, text = pcall(function()
-            return addon:GetLine(tip,1):GetText()
-        end)
-        if (texture and okText and type(text) == "string") then
-            local okFind, found = pcall(strfind, text, "^|T")
-            if (okFind and not found) then
-                addon:GetLine(tip,1):SetFormattedText("|T%s:16:16:0:0:32:32:2:30:2:30|t %s", texture, text)
+        -- fix from MiliUI: issecretvalue pre-check to avoid taint from secret tooltip text
+        local _issv = issecretvalue
+        local line1 = addon:GetLine(tip,1)
+        local text = line1 and line1:GetText()
+        if (texture and text and not (_issv and _issv(text)) and type(text) == "string") then
+            if (not strfind(text, "^|T")) then
+                line1:SetFormattedText("|T%s:16:16:0:0:32:32:2:30:2:30|t %s", texture, text)
                 tip:Show()
                 if (addon.AutoSetTooltipWidth) then
                     addon:AutoSetTooltipWidth(tip)

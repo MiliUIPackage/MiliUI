@@ -1340,15 +1340,15 @@ local function IsPlayerEating()
 end
 
 ---Full aura scan to seed eating state (call once on init / reload)
+-- fix from MiliUI: issecretvalue pre-check replaces pcall to avoid taint from secret aura fields
 local function ScanEatingState()
     eatingAuraInstanceID = nil
     local i = 1
     local auraData = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
+    local _issv = issecretvalue
     while auraData do
-        local ok, match = pcall(function()
-            return auraData.icon == EATING_AURA_ICON
-        end)
-        if ok and match then
+        local icon = auraData.icon
+        if not (_issv and _issv(icon)) and icon == EATING_AURA_ICON then
             eatingAuraInstanceID = auraData.auraInstanceID
             return
         end
@@ -1363,12 +1363,12 @@ local function UpdateEatingState(updateInfo)
     if not updateInfo then
         return
     end
+    -- fix from MiliUI: issecretvalue pre-check replaces pcall to avoid taint
     if updateInfo.addedAuras then
+        local _issv = issecretvalue
         for _, aura in ipairs(updateInfo.addedAuras) do
-            local ok, match = pcall(function()
-                return aura.icon == EATING_AURA_ICON
-            end)
-            if ok and match then
+            local icon = aura.icon
+            if not (_issv and _issv(icon)) and icon == EATING_AURA_ICON then
                 eatingAuraInstanceID = aura.auraInstanceID
                 break
             end

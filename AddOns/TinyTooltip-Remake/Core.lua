@@ -765,20 +765,17 @@ function addon:AutoSetTooltipWidth(tooltip)
 end
 
 -- 找行
+-- fix from MiliUI: issecretvalue pre-check replaces nested pcall to avoid taint
 function addon:FindLine(tooltip, keyword)
-    local line, text
+    local _issv = issecretvalue
+    local line
     for i = 2, tooltip:NumLines() do
         line = _G[tooltip:GetName() .. "TextLeft" .. i]
-        local ok, value = pcall(function() return line and line:GetText() end)
-        if (ok) then
-            local okType, isStr = pcall(function() return type(value) == "string" end)
-            if (okType and isStr) then
-                local okNe, notEmpty = pcall(function() return value ~= "" end)
-                if (okNe and notEmpty) then
-                    local okFind, found = pcall(function() return strfind(value, keyword) end)
-                    if (okFind and found) then
-                        return line, i, _G[tooltip:GetName() .. "TextRight" .. i]
-                    end
+        if line then
+            local value = line:GetText()
+            if not (_issv and _issv(value)) and type(value) == "string" and value ~= "" then
+                if strfind(value, keyword) then
+                    return line, i, _G[tooltip:GetName() .. "TextRight" .. i]
                 end
             end
         end
@@ -786,21 +783,18 @@ function addon:FindLine(tooltip, keyword)
 end
 
 -- 刪行
+-- fix from MiliUI: issecretvalue pre-check replaces nested pcall to avoid taint
 function addon:HideLine(tooltip, keyword)
-    local line, text
+    local _issv = issecretvalue
+    local line
     for i = 2, tooltip:NumLines() do
         line = _G[tooltip:GetName() .. "TextLeft" .. i]
-        local ok, value = pcall(function() return line and line:GetText() end)
-        if (ok) then
-            local okType, isStr = pcall(function() return type(value) == "string" end)
-            if (okType and isStr) then
-                local okNe, notEmpty = pcall(function() return value ~= "" end)
-                if (okNe and notEmpty) then
-                    local okFind, found = pcall(function() return strfind(value, keyword) end)
-                    if (okFind and found) then
-                        line:SetText(nil)
-                        break
-                    end
+        if line then
+            local value = line:GetText()
+            if not (_issv and _issv(value)) and type(value) == "string" and value ~= "" then
+                if strfind(value, keyword) then
+                    line:SetText(nil)
+                    break
                 end
             end
         end
@@ -2154,10 +2148,9 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     InstallNativeBackdropLocks(tip)
 
     tip.TinyHookScript = addon.TinyHookScript
+    -- fix from MiliUI: defer OnShow processing during combat to break taint chain
     tip:HookScript("OnShow", function(self)
         if InCombatLockdown() then
-            -- Defer to next frame to break the taint chain from secure
-            -- tooltip paths (e.g. RaiderIO ShowProfile → GameTooltip:Show).
             C_Timer.After(0, function()
                 if self:IsShown() then
                     ApplyNativeBackdrop(self)
@@ -2321,17 +2314,27 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
 end)
 
 if (SharedTooltip_SetBackdropStyle) then
+    -- fix from MiliUI: defer during combat to break taint chain
     hooksecurefunc("SharedTooltip_SetBackdropStyle", function(self, style, embedded)
         if (self and self._tinyNativeStyle) then
-            ApplyNativeBackdrop(self)
+            if InCombatLockdown() then
+                C_Timer.After(0, function() if self:IsShown() then ApplyNativeBackdrop(self) end end)
+            else
+                ApplyNativeBackdrop(self)
+            end
         end
     end)
 end
 
 if (GameTooltip_SetBackdropStyle) then
+    -- fix from MiliUI: defer during combat to break taint chain
     hooksecurefunc("GameTooltip_SetBackdropStyle", function(self, style)
         if (self and self._tinyNativeStyle) then
-            ApplyNativeBackdrop(self)
+            if InCombatLockdown() then
+                C_Timer.After(0, function() if self:IsShown() then ApplyNativeBackdrop(self) end end)
+            else
+                ApplyNativeBackdrop(self)
+            end
         end
     end)
 end
@@ -2362,23 +2365,39 @@ hooksecurefunc("GameTooltip_SetDefaultAnchor", function(self, parent)
 end)
 
 if (GameTooltip and type(GameTooltip.SetAction) == "function") then
+    -- fix from MiliUI: defer during combat to break taint chain from SetAction secure path
     hooksecurefunc(GameTooltip, "SetAction", function(tooltip, slot)
-        local spellId, itemLink = ResolveActionPayload(tooltip, slot)
-        if (itemLink) then
-            LibEvent:trigger("tooltip:item", tooltip, itemLink)
-        elseif (spellId) then
-            LibEvent:trigger("tooltip:spell", tooltip, spellId)
+        local function doAction()
+            local spellId, itemLink = ResolveActionPayload(tooltip, slot)
+            if (itemLink) then
+                LibEvent:trigger("tooltip:item", tooltip, itemLink)
+            elseif (spellId) then
+                LibEvent:trigger("tooltip:spell", tooltip, spellId)
+            end
+        end
+        if InCombatLockdown() then
+            C_Timer.After(0, function() if tooltip:IsShown() then doAction() end end)
+        else
+            doAction()
         end
     end)
 end
 
 if (GameTooltip and type(GameTooltip.SetMacro) == "function") then
+    -- fix from MiliUI: defer during combat to break taint chain from SetMacro secure path
     hooksecurefunc(GameTooltip, "SetMacro", function(tooltip, macroId)
-        local spellId, itemLink = ResolveMacroPayload(tooltip, macroId)
-        if (itemLink) then
-            LibEvent:trigger("tooltip:item", tooltip, itemLink)
-        elseif (spellId) then
-            LibEvent:trigger("tooltip:spell", tooltip, spellId)
+        local function doAction()
+            local spellId, itemLink = ResolveMacroPayload(tooltip, macroId)
+            if (itemLink) then
+                LibEvent:trigger("tooltip:item", tooltip, itemLink)
+            elseif (spellId) then
+                LibEvent:trigger("tooltip:spell", tooltip, spellId)
+            end
+        end
+        if InCombatLockdown() then
+            C_Timer.After(0, function() if tooltip:IsShown() then doAction() end end)
+        else
+            doAction()
         end
     end)
 end

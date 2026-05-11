@@ -221,7 +221,7 @@ LibEvent:attachTrigger("tooltip:show", function(self, tip)
     local tw = (text.GetStringWidth and text:GetStringWidth()) or (text.GetWidth and text:GetWidth())
     local tipW = tip and tip.GetWidth and tip:GetWidth()
 
-    -- issecretvalue pre-check: skip entirely when values are secret to avoid taint
+    -- fix from MiliUI: issecretvalue pre-check to avoid taint from secret width values
     local _issv = issecretvalue
     if (_issv and (_issv(tw) or _issv(tipW))) then return end
     if (type(tw) ~= "number") then return end
