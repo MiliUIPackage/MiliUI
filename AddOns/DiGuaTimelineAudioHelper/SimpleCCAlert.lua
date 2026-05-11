@@ -69,6 +69,9 @@
 -- print("|cff00ff00绿色圆环提示已加载！位置：姓名板下方100像素|r")
 
 
+-- -- ==========================================
+-- NorthernSkyRaidTools\EncounterAlerts\MidnightS1\FallenKingSalhadaar.lua
+-- -- ==========================================
 
 -- 创建一个核心的隐藏框架来处理所有事件
 local CCAlertFrame = CreateFrame("Frame")
@@ -89,43 +92,43 @@ local function DisplayNameplateText(u)
         local interruptible = select(8, UnitCastingInfo(u))
         for i = 1, #platetexts + 1 do
             if platetexts[i] and not platetexts[i]:IsShown() then
-                platetexts[i]:SetText("CC")
+                platetexts[i]:SetText("")
                 platetexts[i].bgTexture:SetColorTexture(0, 1, 0, 0.8)
                 platetexts[i]:ClearAllPoints()
-                platetexts[i]:SetPoint("BOTTOM", plate, "TOP", 0, 0)
+                platetexts[i]:SetPoint("BOTTOM", plate, "CENTER", 0, -60)
                 platetexts[i]:Show()
                 platetexts[i].bgFrame:Show()
                 platetexts[i].unit = u
                 plateref[u] = i
                 if issecretvalue(interruptible) then
-                    platetexts[i]:SetAlphaFromBoolean(not interruptible, 0, 1)
-                    platetexts[i].bgFrame:SetAlphaFromBoolean(not interruptible, 0, 1)
+                    platetexts[i]:SetAlphaFromBoolean(interruptible, 0, 1)
+                    platetexts[i].bgFrame:SetAlphaFromBoolean(interruptible, 0, 1)
                 end
                 return
             elseif not platetexts[i] then
                 platetexts[i] = CCAlertFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
                 -- 独立运行时使用系统默认标准字体
-                platetexts[i]:SetFont(STANDARD_TEXT_FONT, 18, "OUTLINE") 
-                platetexts[i]:SetPoint("BOTTOM", plate, "TOP", 0, 0)
+                platetexts[i]:SetFont(STANDARD_TEXT_FONT, 28, "OUTLINE") 
+                platetexts[i]:SetPoint("TOP", plate, "BOTTOM", 0, -30)
                 platetexts[i]:SetShadowColor(0, 0, 0, 1)
                 platetexts[i]:SetTextColor(1, 1, 1, 1)
                 
                 platetexts[i].bgFrame = CreateFrame("Frame", nil, CCAlertFrame)
                 platetexts[i].bgFrame:SetFrameStrata("BACKGROUND")
                 platetexts[i].bgTexture = platetexts[i].bgFrame:CreateTexture(nil, "BACKGROUND")
-                platetexts[i].bgTexture:SetColorTexture(0, 1, 0, 0.8)
+                platetexts[i].bgTexture:SetColorTexture(0, 1, 0, 0.6)
                 platetexts[i].bgTexture:SetAllPoints(platetexts[i].bgFrame)
-                platetexts[i].bgFrame:SetSize(25, 25)
+                platetexts[i].bgFrame:SetSize(40, 40)
                 platetexts[i].bgFrame:SetPoint("CENTER", platetexts[i], "CENTER", 0, 0)
                 
-                platetexts[i]:SetText("CC")
+                platetexts[i]:SetText("")
                 platetexts[i]:Show()
                 platetexts[i].bgFrame:Show()
                 platetexts[i].unit = u
                 plateref[u] = i
                 if issecretvalue(interruptible) then
-                    platetexts[i]:SetAlphaFromBoolean(not interruptible, 0, 1)
-                    platetexts[i].bgFrame:SetAlphaFromBoolean(not interruptible, 0, 1)
+                    platetexts[i]:SetAlphaFromBoolean(interruptible, 0, 1)
+                    platetexts[i].bgFrame:SetAlphaFromBoolean(interruptible, 0, 1)
                 end
                 return
             end
