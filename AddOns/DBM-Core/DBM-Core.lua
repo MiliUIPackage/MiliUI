@@ -79,16 +79,16 @@ local function showRealDate(curseDate)
 	end
 end
 
-DBM.Revision = parseCurseDate("20260508010056")
+DBM.Revision = parseCurseDate("20260511035904")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
-private.fakeBWVersion, private.fakeBWHash = 412, "5f04367"--412.7
+private.fakeBWVersion, private.fakeBWHash = 415, "414c990"--415.0
 
 -- The string that is shown as version
-DBM.DisplayVersion = "12.0.45"--Core version
+DBM.DisplayVersion = "12.0.46"--Core version
 DBM.classicSubVersion = 0
 DBM.dungeonSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2026, 5, 7) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2026, 5, 10) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
 -- support for github downloads, which doesn't support curse keyword expansion
@@ -919,6 +919,16 @@ do
 	bossModPrototype.issecrethealth = DBM.issecrethealth
 end
 
+---@param self DBMModOrDBM
+function DBM:CheckDBM(name)
+	if raid[name] and raid[name].version then
+		return raid[name].version
+	else
+		return false
+	end
+end
+bossModPrototype.CheckDBM = DBM.CheckDBM
+
 function bossModPrototype:CheckBigWigs(name)
 	if raid[name] and raid[name].bwversion then
 		return raid[name].bwversion
@@ -1511,7 +1521,7 @@ do
 	---@param self DBMModOrDBM
 	---@param ... DBMEvent|string
 	function DBM:RegisterShortTermEvents(...)
-		DBM:Debug("RegisterShortTermEvents fired", 2)
+		DBM:Debug("RegisterShortTermEvents fired", 3)
 		test:Trace(self, "RegisterEvents", "ShortTerm", ...)
 		local _shortTermRegisterEvents = {...}
 		for k, v in pairs(_shortTermRegisterEvents) do
@@ -1534,7 +1544,7 @@ do
 
 	---@param self DBMModOrDBM
 	function DBM:UnregisterShortTermEvents()
-		DBM:Debug("UnregisterShortTermEvents fired", 3)
+		DBM:Debug("UnregisterShortTermEvents fired", 3, nil, nil, nil, true)
 		if self.shortTermRegisterEvents then
 			DBM:Debug("UnregisterShortTermEvents found registered shortTermRegisterEvents", 2)
 			for event, mods in pairs(registeredEvents) do
@@ -2619,28 +2629,31 @@ do
 					end
 				end
 			end
-			if #iconSeter > 0 then
-				tsort(iconSeter, function(a, b) return a > b end)
-				local elected = iconSeter[1]
-				if playerName == elected:sub(elected:find(" ") + 1) then--Highest revision in raid, auto allow, period, even if out of date, you're revision in raid that has assist
-					private.enableIcons = true
-					DBM:Debug("You have been elected as primary icon setter for raid for having newest revision in raid that has assist/lead", 2)
-				end
-				--Initiate backups that at least have latest version, in case the main elect doesn't have icons enabled
-				for i = 2, 3 do--Allow top 3 revisions in raid to set icons, instead of just top one
-					local electedBackup = iconSeter[i]
-					if private.updateNotificationDisplayed == 0 and electedBackup and playerName == electedBackup:sub(elected:find(" ") + 1) then
+			if not self:IsPostMidnight() then
+				--There is no icon setting in midnight so no reason to even elect an icon setter
+				if #iconSeter > 0 then
+					tsort(iconSeter, function(a, b) return a > b end)
+					local elected = iconSeter[1]
+					if playerName == elected:sub(elected:find(" ") + 1) then--Highest revision in raid, auto allow, period, even if out of date, you're revision in raid that has assist
 						private.enableIcons = true
-						DBM:Debug("You have been elected as one of 2 backup icon setters in raid that have assist/lead", 2)
+						DBM:Debug("You have been elected as primary icon setter for raid for having newest revision in raid that has assist/lead", 2)
+					end
+					--Initiate backups that at least have latest version, in case the main elect doesn't have icons enabled
+					for i = 2, 3 do--Allow top 3 revisions in raid to set icons, instead of just top one
+						local electedBackup = iconSeter[i]
+						if private.updateNotificationDisplayed == 0 and electedBackup and playerName == electedBackup:sub(elected:find(" ") + 1) then
+							private.enableIcons = true
+							DBM:Debug("You have been elected as one of 2 backup icon setters in raid that have assist/lead", 2)
+						end
 					end
 				end
-			end
-			--Recheck elected icon if group changed mid combat, so we don't end up in situation no icons are set because setter bounced
-			if #inCombat > 0 then--At least one boss is engaged
-				for i = #inCombat, 1, -1 do
-					local mod = inCombat[i]
-					if mod then
-						self:ElectIconSetter(mod)
+				--Recheck elected icon if group changed mid combat, so we don't end up in situation no icons are set because setter bounced
+				if #inCombat > 0 then--At least one boss is engaged
+					for i = #inCombat, 1, -1 do
+						local mod = inCombat[i]
+						if mod then
+							self:ElectIconSetter(mod)
+						end
 					end
 				end
 			end
@@ -4852,7 +4865,7 @@ do
 	end
 
 	function DBM:BOSS_KILL(encounterID, name)
-		self:Debug("|cffffff00BOSS_KILL: |r event fired: " .. encounterID .. " " .. name, 1, nil, nil, true)
+		self:Debug("|cffffff00BOSS_KILL: |r event fired: " .. encounterID .. " " .. name, 1, nil, nil, true, true)
 		for i = #inCombat, 1, -1 do
 			local v = inCombat[i]
 			if not v.combatInfo then return end
@@ -4923,9 +4936,9 @@ do
 	function DBM:CHAT_MSG_MONSTER_YELL(msg, npc, _, _, target)
 		if self:issecretvalue(msg) then
 			if target then
-				self:Debug("|cffff0000CHAT_MSG_MONSTER_YELL: |r fired: '" .. msg .. "' with sender of " .. npc .. " while looking at " .. target, 4, nil, nil, true)
+				self:Debug("|cffff0000CHAT_MSG_MONSTER_YELL: |r fired: '" .. msg .. "' with sender of " .. npc .. " while looking at " .. target, 3, nil, nil, true, true)
 			else
-				self:Debug("|cffff0000CHAT_MSG_MONSTER_YELL: |r fired: '" .. msg .. "' with sender of " .. npc, 4, nil, nil, true)
+				self:Debug("|cffff0000CHAT_MSG_MONSTER_YELL: |r fired: '" .. msg .. "' with sender of " .. npc, 3, nil, nil, true, true)
 			end
 			return
 		end
@@ -4940,7 +4953,7 @@ do
 					end
 				end
 			end
-			self:Debug("|cffff0000CHAT_MSG_MONSTER_YELL: |r from " .. npc .. " while looking at " .. targetName, 4, nil, nil, true)
+			self:Debug("|cffff0000CHAT_MSG_MONSTER_YELL: |r from " .. npc .. " while looking at " .. targetName, 3, nil, nil, true, true)
 		end
 		if private.isClassic and not IsInInstance() then
 			if msg:find(L.WORLD_BUFFS.hordeOny) then
@@ -4969,7 +4982,7 @@ do
 
 	function DBM:CHAT_MSG_MONSTER_EMOTE(msg)
 		if self:issecretvalue(msg) then
-			self:Debug("|cffffa500CHAT_MSG_MONSTER_EMOTE: |r fired: " .. msg, 4, nil, nil, true)
+			self:Debug("|cffffa500CHAT_MSG_MONSTER_EMOTE: |r fired: " .. msg, 3, nil, nil, true, true)
 			return
 		end
 		return onMonsterMessage(self, "emote", msg)
@@ -4978,7 +4991,7 @@ do
 	function DBM:CHAT_MSG_RAID_BOSS_EMOTE(msg, sender, ...)
 		if self:issecretvalue(msg) then
 			--Still send the debug to debuglog
-			self:Debug("|cffffff00CHAT_MSG_RAID_BOSS_EMOTE: |r fired: " .. msg .. " with sender of " .. sender, 4, nil, nil, true)
+			self:Debug("|cffffff00CHAT_MSG_RAID_BOSS_EMOTE: |r fired: " .. msg .. " with sender of " .. sender, 3, nil, nil, true, true)
 			return
 		end
 		onMonsterMessage(self, "emote", msg)
@@ -4987,7 +5000,7 @@ do
 			local spellId = tonumber(id)
 			if spellId then
 				local spellName = DBM:GetSpellName(spellId) or CL.UNKNOWN
-				self:Debug("|cffffff00CHAT_MSG_RAID_BOSS_EMOTE: |r fired: " .. sender .. "'s " .. spellName .. "(" .. spellId .. ")", 4, nil, nil, true)
+				self:Debug("|cffffff00CHAT_MSG_RAID_BOSS_EMOTE: |r fired: " .. sender .. "'s " .. spellName .. "(" .. spellId .. ")", 3, nil, nil, true, true)
 			end
 		end
 		return self:FilterRaidBossEmote(msg, sender, ...)
@@ -5003,7 +5016,7 @@ do
 
 	function DBM:RAID_BOSS_WHISPER(msg)
 		if self:issecretvalue(msg) then
-			self:Debug("RAID_BOSS_WHISPER fired: " .. msg, 4, nil, nil, true)
+			self:Debug("RAID_BOSS_WHISPER fired: " .. msg, 2, nil, nil, true, true)
 			return
 		end
 		--Make it easier for devs to detect whispers they are unable to see
@@ -5029,7 +5042,7 @@ do
 
 	function DBM:CHAT_MSG_MONSTER_SAY(msg)
 		if self:issecretvalue(msg) then
-			self:Debug("CHAT_MSG_MONSTER_SAY fired: " .. msg, 4, nil, nil, true)
+			self:Debug("CHAT_MSG_MONSTER_SAY fired: " .. msg, 3, nil, nil, true, true)
 			return
 		end
 		if private.isClassic and not IsInInstance() then
@@ -5189,7 +5202,7 @@ do
 			if mod.lastKillTime and GetTime() - mod.lastKillTime < (mod.reCombatTime or 120) and event ~= "LOADING_SCREEN_DISABLED" then return end
 			if mod.lastWipeTime and GetTime() - mod.lastWipeTime < (event == "ENCOUNTER_START" and 3 or mod.reCombatTime2 or 20) and event ~= "LOADING_SCREEN_DISABLED" then return end
 			if event then
-				self:Debug("StartCombat called by : " .. event .. ". LastInstanceMapID is " .. LastInstanceMapID, 1, nil, nil, true)
+				self:Debug("StartCombat called by : " .. event .. ". LastInstanceMapID is " .. LastInstanceMapID, 1, nil, nil, true, true)
 				if event ~= "ENCOUNTER_START" then
 					self:Debug("This event is started by " .. event .. ". Review ENCOUNTER_START event to ensure if this is still needed", 2)
 				end
@@ -5451,7 +5464,7 @@ do
 					if path ~= "MISSING" then
 						PlayMusic(path)
 						self.Options.musicPlaying = true
-						self:Debug("Starting combat music with file: " .. path)
+						--self:Debug("Starting combat music with file: " .. path)
 					end
 				end
 			else
@@ -5561,7 +5574,7 @@ do
 			self.Options.DisableSWSound = false
 			self.Options.fixBlizzApi = false
 			if event then
-				self:Debug("EndCombat called by : " .. event .. ". LastInstanceMapID is " .. LastInstanceMapID, 1, nil, nil, true)
+				self:Debug("EndCombat called by : " .. event .. ". LastInstanceMapID is " .. LastInstanceMapID, 2, nil, nil, true)
 			end
 			if private.enableIcons and not self.Options.DontSetIcons and not self.Options.DontRestoreIcons then
 				-- restore saved previous icon
@@ -6530,7 +6543,7 @@ end
 do
 	local spamProtection = {}
 	function DBM:SendTimers(target)
-		if not dbmIsEnabled or IsTrialAccount() then return end
+		if not dbmIsEnabled or IsTrialAccount() or self:MidRestrictionsActive() then return end
 		self:Debug("SendTimers requested by " .. target, 2)
 		local spamForTarget = spamProtection[target] or 0
 		-- just try to clean up the table, that should keep the hash table at max. 4 entries or something :)
@@ -6562,7 +6575,7 @@ do
 		self:SendTimerInfo(mod, target)
 	end
 	function DBM:SendPVPTimers(target)
-		if not dbmIsEnabled then return end
+		if not dbmIsEnabled or IsTrialAccount() or self:MidRestrictionsActive() then return end
 		self:Debug("SendPVPTimers requested by " .. target, 2)
 		local spamForTarget = spamProtection[target] or 0
 		local time = GetTime()
@@ -6585,13 +6598,13 @@ end
 
 ---@param mod DBMMod
 function DBM:SendCombatInfo(mod, target)
-	if not dbmIsEnabled or IsTrialAccount() then return end
+	if not dbmIsEnabled or IsTrialAccount() or self:MidRestrictionsActive() then return end
 	return private.sendWhisperSync(DBMSyncProtocol, "CI", ("%s\t%s"):format(mod.id, GetTime() - mod.combatInfo.pull), target, "NORMAL")
 end
 
 ---@param mod DBMMod
 function DBM:SendTimerInfo(mod, target)
-	if not dbmIsEnabled or IsTrialAccount() then return end
+	if not dbmIsEnabled or IsTrialAccount() or self:MidRestrictionsActive() then return end
 	for _, v in ipairs(mod.timers) do
 		--Pass on any timer that has no type, or has one that isn't an ai timer
 		if not v.type or v.type and v.type ~= "ai" then
@@ -6613,7 +6626,7 @@ end
 
 ---@param mod DBMMod
 function DBM:SendVariableInfo(mod, target)
-	if not dbmIsEnabled or IsTrialAccount() then return end
+	if not dbmIsEnabled or IsTrialAccount() or self:MidRestrictionsActive() then return end
 	for vname, v in pairs(mod.vb) do
 		local v2 = tostring(v)
 		if v2 then
@@ -7134,7 +7147,7 @@ do
 		--Stop custom BG music during cut scenes regardless of block features
 		self:TransitionToDungeonBGM(false, true)
 		if id and not neverFilter[id] then
-			self:Debug("PLAY_MOVIE fired for ID: " .. id, 2, nil, nil, true)
+			self:Debug("PLAY_MOVIE fired for ID: " .. id, 2, nil, nil, true, true)
 			local currentMapID = C_Map.GetBestMapForUnit("player")
 			if checkOptions(self, id, currentMapID) then
 				MovieFrame:Hide()--can only just hide movie frame safely now, which means can't stop audio anymore :\
@@ -7144,7 +7157,7 @@ do
 	end
 
 	function DBM:CINEMATIC_START()
-		self:Debug("CINEMATIC_START fired", 2, nil, nil, true)
+		self:Debug("CINEMATIC_START fired", 2, nil, nil, true, true)
 		--Stop custom BG music during cut scenes regardless of block features
 		self:TransitionToDungeonBGM(false, true)
 		self.HudMap:SupressCanvas()
@@ -7158,7 +7171,7 @@ do
 		end
 	end
 	function DBM:CINEMATIC_STOP()
-		self:Debug("CINEMATIC_STOP fired", 2)
+		self:Debug("CINEMATIC_STOP fired", 2, nil, nil, nil, true)
 		self.HudMap:UnSupressCanvas()
 	end
 end
@@ -7449,7 +7462,7 @@ function DBM:IsTanking(playerUnitID, enemyUnitID, isName, onlyRequested, enemyGU
 		playerUnitID = DBM:GetRaidUnitId(isName)
 	end
 	if not playerUnitID then
-		DBM:Debug("IsTanking passed with invalid unit", 2)
+		DBM:Debug("IsTanking passed with invalid unit", 2, nil, nil, true)
 		return false
 	end
 	--If we don't know enemy unit token, but know it's GUID
@@ -8099,7 +8112,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260508010056" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260510213843" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then

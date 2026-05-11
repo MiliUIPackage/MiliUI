@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2737, "DBM-Raids-Midnight", 3, 1307)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260428075631")
+mod:SetRevision("20260509052555")
 mod:SetCreatureID(250589)--War Chaplain Senn main boss, 250588 Commander Venel Lightblood, 250587 general Amias Bellamy
 mod:SetEncounterID(3180)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -54,7 +54,6 @@ mod:AddPrivateAuraSoundOption(1246158, true, 1246158, 1, 2, "watchfeet", 8)--Con
 mod:AddPrivateAuraSoundOption(1248721, true, 1248721, 1, 1, "absorbyou", 19)--Tyrs Wrath
 mod:AddPrivateAuraSoundOption(1251857, true, 1251857, 1, 3, "debuffyou", 17)--Judgement for Shield of the Righteous
 mod:AddPrivateAuraSoundOption(1246487, true, 1246485, 1, 1, "scatter", 2)--Avenger's Shield
-mod:AddPrivateAuraSoundOption(1246502, false, 1246485, 1, 3, "debuffyou", 17)--Avenger's Shield DOT
 mod:AddPrivateAuraSoundOption(1248652, true, 1248652, 1, 1, "debuffyou", 17)--Divine Toll
 mod:AddPrivateAuraSoundOption(1246736, true, 1246736, 1, 3, "debuffyou", 17)--Judgement for Final Verdict
 mod:AddPrivateAuraSoundOption({1248985,1248994}, true, 1276368, 1, 1, "gathershare", 2)--Execution Sentence targets

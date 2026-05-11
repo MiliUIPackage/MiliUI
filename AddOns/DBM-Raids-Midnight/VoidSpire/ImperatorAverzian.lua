@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2733, "DBM-Raids-Midnight", 3, 1307)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260506182827")
+mod:SetRevision("20260509052555")
 mod:SetCreatureID(240435)
 mod:SetEncounterID(3176)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -31,7 +31,6 @@ local timerVoidMarkCD					= mod:NewCDCountTimer(20.5, 1280023, nil, nil, nil, 3,
 mod:AddPrivateAuraSoundOption({1249265,1260203}, true, 1249265, 1, 2, "helpsoak", 2)--Umbral Collapse
 mod:AddPrivateAuraSoundOption(1280023, true, 1280023, 1, 1, "darknessyou", 19)--Void Marked
 mod:AddPrivateAuraSoundOption(1283069, true, 1283069, 1, 3, "fixateyou", 19)--Weakened
-mod:AddPrivateAuraSoundOption(1275059, true, 1275059, 1, 1, "curseyou", 19)--Black Miasma
 
 mod.vb.shadowCount = 0
 mod.vb.upheavalCount = 0

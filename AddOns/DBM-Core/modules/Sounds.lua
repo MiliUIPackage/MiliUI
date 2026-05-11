@@ -18,8 +18,7 @@ do
 		{	text	= "然然 (zhCN女)",value = "然然", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ranran\\", max = 10},
 		{	text	= "忘忧景久 (zhCN女)",value = "忘憂景久", path = "Interface\\AddOns\\DBM-Core\\Sounds\\WYJJ\\", max = 10},
 		{	text	= "浩 (zhTW男)",value = "浩", path = "Interface\\AddOns\\DBM-Core\\Sounds\\浩\\", max = 10},
-		{	text	= "玲 (zhTW女)",value = "玲", path = "Interface\\AddOns\\DBM-Core\\Sounds\\玲\\", max = 10},
-		
+		{	text	= "玲 (zhTW女)",value = "玲", path = "Interface\\AddOns\\DBM-Core\\Sounds\\玲\\", max = 10},		
 	}
 	--Countdown audio that's been specifically edited to be a single 5/3 second count file
 	local midnightCounts = {

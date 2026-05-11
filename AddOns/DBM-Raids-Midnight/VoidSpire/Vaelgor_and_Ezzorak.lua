@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2735, "DBM-Raids-Midnight", 3, 1307)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260428075631")
+mod:SetRevision("20260509052555")
 mod:SetCreatureID(250892)--Vaelgor main boss, 254109 for Ezzorak
 mod:SetEncounterID(3178)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -42,7 +42,7 @@ local timerCosmosisDreadBreathCD	= mod:NewCDCountTimer(20.5, 1277472, nil, nil, 
 local timerCosmosisVoidHowlCD		= mod:NewCDCountTimer(20.5, 1277473, nil, nil, nil, 2, nil, DBM_COMMON_L.MYTHIC_ICON)
 local timerRadiantBarrierCD			= mod:NewCDCountTimer(20.5, 1248847, nil, nil, nil, 5, nil, DBM_COMMON_L.IMPORTANT_ICON)
 
-mod:AddPrivateAuraSoundOption({1262999,1262676,1262656}, false, 1262623, 1, 3, "beamyou", 19)--Null Beam (soaked it)
+mod:AddPrivateAuraSoundOption({1262676,1262656}, false, 1262623, 1, 3, "beamyou", 19)--Null Beam (soaked it)
 mod:AddPrivateAuraSoundOption(1244672, true, 1262623, 1, 2, "lineapart", 2)--Null Zone Grippy hand
 mod:AddPrivateAuraSoundOption(1252157, false, 1262623, 1, 1, "debuffyou", 17)--Null Implosion
 mod:AddPrivateAuraSoundOption(1245554, true, 1245391, 1, 3, "gloomyou", 19)--Gloomtouched (soaked Gloom)
