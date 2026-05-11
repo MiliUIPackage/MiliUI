@@ -221,16 +221,16 @@ LibEvent:attachTrigger("tooltip:show", function(self, tip)
     local tw = (text.GetStringWidth and text:GetStringWidth()) or (text.GetWidth and text:GetWidth())
     local tipW = tip and tip.GetWidth and tip:GetWidth()
 
-    -- Compute widths defensively: secret values can masquerade as numbers but still error on arithmetic/compare.
-    local okW, w = pcall(function() return tw + 10 end)
-    if (not okW or type(w) ~= "number") then return end
+    -- issecretvalue pre-check: skip entirely when values are secret to avoid taint
+    local _issv = issecretvalue
+    if (_issv and (_issv(tw) or _issv(tipW))) then return end
+    if (type(tw) ~= "number") then return end
 
-    local okMin, minW = pcall(function() return w + 2 end)
-    if (not okMin or type(minW) ~= "number") then return end
+    local w = tw + 10
+    local minW = w + 2
 
     if (GameTooltipStatusBar:IsShown()) then
-        local okCmp, bigger = pcall(function() return (type(tipW) == "number") and (w > tipW) end)
-        if (okCmp and bigger) then
+        if (type(tipW) == "number" and w > tipW) then
             tip:SetMinimumWidth(minW)
             tip:Show()
         end

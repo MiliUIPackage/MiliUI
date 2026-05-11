@@ -40,6 +40,7 @@ local DefaultDB = {
         ShowOwnFrameWhenInspecting = false,   --觀察同時顯示自己裝備列表
         ShowItemStats = false,                --顯示裝備屬性統計
         ShowUpgradeInfo = true,               --顯示升級路徑信息
+        ShowInspectItemSetSummary = true,     --顯示套裝摘要
     EnablePartyItemLevel = true,          --小隊裝等
         SendPartyItemLevelToSelf = true,  --發送小隊裝等到自己面板
         SendPartyItemLevelToParty = false, --發送小隊裝等到隊伍頻道
@@ -95,6 +96,7 @@ local options = {
             { key = "ShowOwnFrameWhenInspecting" },
             { key = "ShowItemStats" },
             { key = "ShowUpgradeInfo" },
+            { key = "ShowInspectItemSetSummary" },
         }
     },
     { key = "EnablePartyItemLevel",

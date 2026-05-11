@@ -2155,8 +2155,19 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
 
     tip.TinyHookScript = addon.TinyHookScript
     tip:HookScript("OnShow", function(self)
-        ApplyNativeBackdrop(self)
-        LibEvent:trigger("tooltip:show", self)
+        if InCombatLockdown() then
+            -- Defer to next frame to break the taint chain from secure
+            -- tooltip paths (e.g. RaiderIO ShowProfile → GameTooltip:Show).
+            C_Timer.After(0, function()
+                if self:IsShown() then
+                    ApplyNativeBackdrop(self)
+                    LibEvent:trigger("tooltip:show", self)
+                end
+            end)
+        else
+            ApplyNativeBackdrop(self)
+            LibEvent:trigger("tooltip:show", self)
+        end
     end)
     tip:HookScript("OnHide", function(self) LibEvent:trigger("tooltip:hide", self) end)
 

@@ -16,6 +16,7 @@ ns.L = {
     ShowInspectItemSheet        = "顯示觀察面板裝備列表",
     ShowOwnFrameWhenInspecting  = "觀察同時顯示自己裝備列表",
     ShowItemStats               = "顯示裝備屬性統計",
+    ShowInspectItemSetSummary   = "顯示套裝摘要",
     DisplayPercentageStats      = "裝備屬性換算成百分比數值",
     EnablePartyItemLevel        = "小隊隊友裝等",
     SendPartyItemLevelToSelf    = "發送隊友裝等到自己面板",

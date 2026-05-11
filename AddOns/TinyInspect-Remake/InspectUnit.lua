@@ -5,7 +5,10 @@
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local LibItemInfo = LibStub:GetLibrary("LibItemInfo.7000")
-local GetItemUpgradeInfoAPI = C_Item and C_Item.GetItemUpgradeInfo
+local GetItemUpgradeInfoAPI = C_Item.GetItemUpgradeInfo
+local GetItemInfoAPI = C_Item.GetItemInfo
+local GetItemSetInfoAPI = C_Item.GetItemSetInfo
+local GetLootJournalItemSetItemsAPI = C_LootJournal.GetItemSetItems
 
 --bliz func
 --裝備清單
@@ -78,8 +81,6 @@ elseif WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
     slots = slots_classic
 end
 
-local is_retail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
-
 local UPGRADE_TEXT_COLOR = "ffffd200"
 
 local function ColorizeUpgradeText(text)
@@ -91,7 +92,7 @@ local function ColorizeUpgradeText(text)
 end
 
 local function FormatInspectItemText(link, name)
-    if (not link or not is_retail or not GetItemUpgradeInfoAPI or not TinyInspectRemakeDB or not TinyInspectRemakeDB.ShowUpgradeInfo) then
+    if (not link or not TinyInspectRemakeDB or not TinyInspectRemakeDB.ShowUpgradeInfo) then
         return link or name or ""
     end
 
@@ -105,6 +106,87 @@ local function FormatInspectItemText(link, name)
     end
 
     return format("%s %s", ColorizeUpgradeText(format("[%s]", info.trackString)), link)
+end
+
+local function FormatAverageItemLevel(ilevel)
+    if (not ilevel) then
+        return ""
+    end
+    if (ilevel == floor(ilevel)) then
+        return format("%d", ilevel)
+    end
+    return format("%.1f", ilevel)
+end
+
+local function SafeGetItemSetID(link)
+    if (not link) then return end
+    local info = { pcall(GetItemInfoAPI, link) }
+    local setID = info[17]
+    if (info[1] and type(setID) == "number" and setID > 0) then
+        return setID
+    end
+end
+
+local function SafeGetItemSetName(setID)
+    if (not setID) then return end
+    local ok, name = pcall(GetItemSetInfoAPI, setID)
+    if (ok and type(name) == "string" and name ~= "") then
+        return name
+    end
+end
+
+local function GetItemSetMaxPieces(setID, equippedCount)
+    local maxPieces = equippedCount or 0
+    if (not setID) then
+        return maxPieces
+    end
+
+    local ok, items = pcall(GetLootJournalItemSetItemsAPI, setID)
+    if (not ok or type(items) ~= "table") then
+        return maxPieces
+    end
+
+    local invTypes, invTypeCount = {}, 0
+    for _, item in ipairs(items) do
+        local invType = item and item.invType
+        if (invType and not invTypes[invType]) then
+            invTypes[invType] = true
+            invTypeCount = invTypeCount + 1
+        end
+    end
+
+    return max(maxPieces, invTypeCount)
+end
+
+local function GetUnitItemSetSummary(unit)
+    local sets = {}
+    for _, slot in ipairs(slots) do
+        local _, level, _, link = LibItemInfo:GetUnitItemInfo(unit, slot.index)
+        if (link and level and level > 0) then
+            local setID = SafeGetItemSetID(link)
+            if (setID) then
+                local setInfo = sets[setID]
+                if (not setInfo) then
+                    setInfo = { id = setID, count = 0 }
+                    sets[setID] = setInfo
+                end
+                setInfo.count = setInfo.count + 1
+            end
+        end
+    end
+
+    local best
+    for _, setInfo in pairs(sets) do
+        if (not best or setInfo.count > best.count) then
+            best = setInfo
+        end
+    end
+    if (not best) then return end
+
+    local name = SafeGetItemSetName(best.id)
+    if (not name) then return end
+
+    return name, best.count, GetItemSetMaxPieces(best.id, best.count)
 end
 
 
@@ -136,9 +218,10 @@ local function GetInspectItemListFrame(parent)
         frame.portrait:SetScale(0.8)
         frame.title = frame:CreateFontString(nil, "ARTWORK", "GameFontNormalLargeOutline")
         frame.title:SetPoint("TOPLEFT", frame, "TOPLEFT", 66, -18)
-        frame.level = frame:CreateFontString(nil, "ARTWORK", itemfont)
-        frame.level:SetPoint("TOPLEFT", frame, "TOPLEFT", 66, -42)
-        frame.level:SetFont(frame.level:GetFont(), 14, "THINOUTLINE")
+        frame.setSummary = frame:CreateFontString(nil, "ARTWORK", itemfont)
+        frame.setSummary:SetPoint("TOPLEFT", frame, "TOPLEFT", 66, -42)
+        frame.setSummary:SetFont(frame.setSummary:GetFont(), 14, "THINOUTLINE")
+        frame.setSummary:SetTextColor(1, 0.82, 0)
 
         local itemframe
         local fontsize = GetLocale():sub(1,2) == "zh" and 12 or 9
@@ -220,9 +303,6 @@ local function GetInspectItemListFrame(parent)
     return parent.inspectFrame
 end
 
---等級字符
-local ItemLevelPattern = gsub(ITEM_LEVEL, "%%d", "%%.1f")  -- %%.2f
-
 --顯示面板
 function ShowInspectItemListFrame(unit, parent, ilevel, maxLevel)
     if (not parent:IsShown()) then return end
@@ -234,13 +314,13 @@ function ShowInspectItemListFrame(unit, parent, ilevel, maxLevel)
     frame.portrait.PortraitRingQuality:SetVertexColor(color.r, color.g, color.b)
     frame.portrait.LevelBorder:SetVertexColor(color.r, color.g, color.b)
     SetPortraitTexture(frame.portrait.Portrait, unit)
-    frame.title:SetText(UnitName(unit))
+    frame.title:SetText(format("%s （%s）", UnitName(unit), FormatAverageItemLevel(ilevel)))
     frame.title:SetTextColor(color.r, color.g, color.b)
-    frame.level:SetText(format(ItemLevelPattern, ilevel))
-    frame.level:SetTextColor(1, 0.82, 0)
+    frame.setSummary:SetText("")
+    frame.setSummary:Hide()
     local _, name, level, link, quality
     local itemframe, mframe, oframe, itemwidth
-    local width = 160
+    local width = max(160, floor(frame.title:GetStringWidth()) + 70)
     local formats = "%3s"
     if (maxLevel) then
         formats = "%" .. string.len(floor(maxLevel)) .. "s"
@@ -279,6 +359,14 @@ function ShowInspectItemListFrame(unit, parent, ilevel, maxLevel)
             oframe:SetAlpha(1)
         end
         LibEvent:trigger("INSPECT_ITEMFRAME_UPDATED", itemframe)
+    end
+    if (TinyInspectRemakeDB and TinyInspectRemakeDB.ShowInspectItemSetSummary) then
+        local setName, equippedCount, maxPieces = GetUnitItemSetSummary(unit)
+        if (setName and equippedCount and maxPieces and maxPieces > 0) then
+            frame.setSummary:SetText(format("%s (%d/%d)", setName, equippedCount, maxPieces))
+            frame.setSummary:Show()
+            width = max(width, floor(frame.setSummary:GetStringWidth()) + 70)
+        end
     end
     if (mframe and oframe and (mframe.quality == 6 or oframe.quality == 6)) then
         level = max(mframe.level, oframe.level)
