@@ -437,22 +437,9 @@ local function InitSettings()
     borderDesc:SetText("自動隱藏導致圖示邊框變粗的異常黑底材質。需重載介面生效。")
     borderDesc:SetTextColor(0.5, 0.5, 0.5)
 
-    -- 防禦 / 種族技能顯示按鍵綁定 checkbox
-    local defRacKBCB = CreateFrame("CheckButton", "MiliUI_CDMDefRacKeybindCB", enhanceFrame, "UICheckButtonTemplate")
-    defRacKBCB:SetPoint("TOPLEFT", borderDesc, "BOTTOMLEFT", -26, -12)
-    defRacKBCB.text:SetText("防禦 / 種族技能顯示按鍵綁定")
-    defRacKBCB.text:SetFontObject("GameFontHighlight")
-
-    local defRacKBDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    defRacKBDesc:SetPoint("TOPLEFT", defRacKBCB, "BOTTOMLEFT", 26, -2)
-    defRacKBDesc:SetWidth(520)
-    defRacKBDesc:SetJustifyH("LEFT")
-    defRacKBDesc:SetText("將按鍵綁定文字延伸顯示到防禦技能與種族技能圖示上，\n樣式 / 位置沿用 Ayije_CDM 的按鍵綁定設定。\n需 Ayije_CDM 本身已啟用「按鍵綁定」功能才會顯示。")
-    defRacKBDesc:SetTextColor(0.5, 0.5, 0.5)
-
     -- 法力數字在地化縮寫 checkbox
     local cdmManaAbbrevCB = CreateFrame("CheckButton", "MiliUI_LocaleNumAbbrevCB", enhanceFrame, "UICheckButtonTemplate")
-    cdmManaAbbrevCB:SetPoint("TOPLEFT", defRacKBDesc, "BOTTOMLEFT", -26, -12)
+    cdmManaAbbrevCB:SetPoint("TOPLEFT", borderDesc, "BOTTOMLEFT", -26, -12)
     cdmManaAbbrevCB.text:SetText("法力數字使用在地化縮寫（萬 / 億）")
     cdmManaAbbrevCB.text:SetFontObject("GameFontHighlight")
 
@@ -473,9 +460,6 @@ local function InitSettings()
         if not MiliUI_DB then MiliUI_DB = {} end
         if MiliUI_DB.cdmStyleFix == nil then MiliUI_DB.cdmStyleFix = true end
         borderCB:SetChecked(MiliUI_DB.cdmStyleFix)
-
-        if MiliUI_DB.cdmDefRacKeybind == nil then MiliUI_DB.cdmDefRacKeybind = true end
-        defRacKBCB:SetChecked(MiliUI_DB.cdmDefRacKeybind)
 
         if MiliUI_DB.localeNumberAbbrev == nil then MiliUI_DB.localeNumberAbbrev = true end
         cdmManaAbbrevCB:SetChecked(MiliUI_DB.localeNumberAbbrev)
@@ -512,17 +496,6 @@ local function InitSettings()
         local enabled = self:GetChecked() and true or false
         MiliUI_DB.cdmStyleFix = enabled
         print("|cff00ff00[MiliUI]|r 細邊框修復:", enabled and "開" or "關", "(需 /reload 生效)")
-    end)
-
-    defRacKBCB:HookScript("OnClick", function(self)
-        local enabled = self:GetChecked() and true or false
-        if MiliUI_DefRacKeybind and MiliUI_DefRacKeybind.SetEnabled then
-            MiliUI_DefRacKeybind.SetEnabled(enabled)
-        else
-            if not MiliUI_DB then MiliUI_DB = {} end
-            MiliUI_DB.cdmDefRacKeybind = enabled
-        end
-        print("|cff00ff00[MiliUI]|r 防禦 / 種族技能按鍵綁定:", enabled and "開" or "關")
     end)
 
     cdmManaAbbrevCB:HookScript("OnClick", function(self)
