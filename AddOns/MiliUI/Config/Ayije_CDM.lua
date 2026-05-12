@@ -69,7 +69,7 @@ MiliUI_AyijeCDM_Profile = {
     ["cooldownFontSize"] = 16,
     ["castBarIconGap"] = 1,
     ["buffBarIconPosition"] = "LEFT",
-    ["resourcesHolyPowerColor"] = { ["a"] = 1, ["r"] = 0.95, ["g"] = 0.9, ["b"] = 0.6 },
+    ["resourcesHolyPowerColor"] = { ["a"] = 1, ["r"] = 0.914, ["g"] = 0.678, ["b"] = 0.275 },
     ["utilityYOffset"] = 0,
     ["assistColor"] = { ["a"] = 1, ["r"] = 1, ["g"] = 1, ["b"] = 1 },
     ["assistFontSize"] = 10,
