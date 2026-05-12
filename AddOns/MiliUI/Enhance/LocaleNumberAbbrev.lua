@@ -27,9 +27,9 @@ f:SetScript("OnEvent", function(self)
     if not CDM or not CDM.TAGS then return end
 
     local PowerTypeMana = Enum.PowerType.Mana
-    local ScaleTo100 = CurveConstants.ScaleTo100
     local UnitPower = UnitPower
     local AbbreviateNumbers = AbbreviateNumbers
+    local canaccessvalue = canaccessvalue
 
     hooksecurefunc(CDM.TAGS, "UpdateTagText", function(_, textFrame)
         if not MiliUI_DB.localeNumberAbbrev then return end
@@ -37,8 +37,9 @@ f:SetScript("OnEvent", function(self)
         if CDM:GetBarSetting("Mana", "displayAsPercent") then return end
 
         local current = UnitPower("player", PowerTypeMana)
-        if textFrame._miliLastMana == current then return end
-        textFrame._miliLastMana = current
+        local secret = not canaccessvalue(current)
+        if not secret and textFrame._miliLastMana == current then return end
+        textFrame._miliLastMana = not secret and current or nil
         textFrame.text:SetText(AbbreviateNumbers(current))
     end)
 end)
