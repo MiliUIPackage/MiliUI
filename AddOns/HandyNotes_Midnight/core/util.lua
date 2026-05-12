@@ -61,9 +61,8 @@ local function UpdateActiveCalendarEvents()
     local day = current.monthDay
     for i = 1, C_Calendar.GetNumDayEvents(0, day) do
         local event = C_Calendar.GetDayEvent(0, day, i)
-        -- 12.0+: C_Calendar event fields can be secret values; using them as
-        -- a table key raises "cannot be indexed with secret keys". Skip
-        -- those entries rather than aborting the whole scan.
+        -- MiliUI: 12.0+: C_Calendar event fields can be secret values;
+        -- extract to local and guard with issecretvalue before indexing.
         local eventID = event and event.eventID
         if eventID and not (issecretvalue and issecretvalue(eventID)) then
             activeCalenderEvents[eventID] = true
