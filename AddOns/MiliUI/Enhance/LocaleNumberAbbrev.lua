@@ -3,15 +3,9 @@
 -- 將 Ayije_CDM 的法力顯示從 K 改為在地語系格式（zhTW 為萬/億）。
 --
 -- 實作方式：
---   1. 直接修改 Ayije_CDM/Modules/Tags.lua 第 239 行附近，
---      讓 CDM 自己讀 _G.MiliUI_DB.localeNumberAbbrev 旗標。
---   2. 此處只負責管理 SavedVariable 與設定面板的橋接，
---      不替換任何全域、不 hook 任何 closure，避免 taint。
---
--- 已知限制：
---   - 不影響 Stuf。Stuf 的 _abbrev 會經由全域 AbbreviateLargeNumbers
---     路徑取得，從外部替換會造成 Blizzard secure UI taint，無法
---     從 MiliUI 安全 hook。如要改 Stuf，需直接修改 Stuf 源碼。
+--   hooksecurefunc post-hook CDM.TAGS:UpdateTagText，
+--   在原函式設完 K 格式後，用 AbbreviateNumbers(current)
+--   覆蓋為語系預設格式。不修改 Ayije_CDM 原檔。
 ------------------------------------------------------------
 
 local AddonName, _ = ...
@@ -28,17 +22,35 @@ f:SetScript("OnEvent", function(self)
     if MiliUI_DB.localeNumberAbbrev == nil then
         MiliUI_DB.localeNumberAbbrev = true
     end
+
+    local CDM = _G.Ayije_CDM
+    if not CDM or not CDM.TAGS then return end
+
+    local PowerTypeMana = Enum.PowerType.Mana
+    local ScaleTo100 = CurveConstants.ScaleTo100
+    local UnitPower = UnitPower
+    local AbbreviateNumbers = AbbreviateNumbers
+
+    hooksecurefunc(CDM.TAGS, "UpdateTagText", function(_, textFrame)
+        if not MiliUI_DB.localeNumberAbbrev then return end
+        if not textFrame or not textFrame.text or textFrame.powerType ~= PowerTypeMana then return end
+        if CDM:GetBarSetting("Mana", "displayAsPercent") then return end
+
+        local current = UnitPower("player", PowerTypeMana)
+        if textFrame._miliLastMana == current then return end
+        textFrame._miliLastMana = current
+        textFrame.text:SetText(AbbreviateNumbers(current))
+    end)
 end)
 
 function M.SetEnabled(v)
     v = v and true or false
     if not MiliUI_DB then MiliUI_DB = {} end
     MiliUI_DB.localeNumberAbbrev = v
-    -- Ayije_CDM 會在下一次 tag 更新時讀到新值，無需立即重繪
 end
 
 function M.IsEnabled()
-    if not MiliUI_DB then return true end  -- 預設開啟
+    if not MiliUI_DB then return true end
     return MiliUI_DB.localeNumberAbbrev ~= false
 end
 
