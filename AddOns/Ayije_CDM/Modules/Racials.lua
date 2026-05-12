@@ -62,7 +62,6 @@ local itemResolvePending = {}
 
 local GetSpellChargeDuration = C_Spell.GetSpellChargeDuration
 local GetSpellCooldownDuration = C_Spell.GetSpellCooldownDuration
-local GetSpellCooldown = C_Spell.GetSpellCooldown
 local GetSpellCharges = C_Spell.GetSpellCharges
 local GetContainerItemCooldown = C_Container.GetItemCooldown
 local GetItemCount = C_Item.GetItemCount
@@ -99,6 +98,11 @@ local RACIALS_SPELL_WATCH_OWNER = "CDM_Racials_Spells"
 local QueueRacialsUpdate
 local PlayerHasAbility
 
+function CDM.GetRacialsIconFrames()
+    if not isEnabled then return nil end
+    return iconFrames
+end
+
 CDM.RegisterViewerDesc("CDM_Racials", {
     widthKey     = "racialsIconWidth",
     heightKey    = "racialsIconHeight",
@@ -106,6 +110,7 @@ CDM.RegisterViewerDesc("CDM_Racials", {
     cdColorKey   = "cooldownColor",
     chargeKey    = "racialsChargeFontSize",
     isCooldown   = true,
+    hasKeybind   = true,
     hookType     = "cooldown",
 })
 
@@ -565,11 +570,8 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
         elseif showEmptyItem then
             frame.Icon:SetDesaturation(1)
         elseif desatDurationObject and desatDurationObject.EvaluateRemainingDuration then
-            local cdInfo = desatSpellID and GetSpellCooldown(desatSpellID)
-            local onRealCD = cdInfo and cdInfo.isActive and (desatIsChargeSpell and cdInfo.isOnGCD == false
-                or not desatIsChargeSpell and cdInfo.isOnGCD ~= true)
-            if onRealCD then
-                frame.Icon:SetDesaturation(desatDurationObject:EvaluateRemainingDuration(DesaturationCurve, 0) or 0)
+            if CDM.IsOnRealCooldown(desatSpellID, desatIsChargeSpell) then
+                frame.Icon:SetDesaturation(desatDurationObject:EvaluateRemainingDuration(DesaturationCurve, Enum.DurationTimeModifier.RealTime) or 0)
             else
                 frame.Icon:SetDesaturation(0)
             end
@@ -1395,4 +1397,5 @@ CDM.OnRacialsProfileApplied = OnRacialsProfileApplied
 CDM:RegisterRefreshCallback("racialsStyles", function()
     RefreshCachedRacialsStyles()
     needsStyleUpdate = true
+    QueueRacialsUpdate(RACIALS_UPDATE_FULL)
 end, 15, { "TRACKERS", "STYLE" })

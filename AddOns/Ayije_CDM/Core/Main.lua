@@ -7,12 +7,7 @@ local GetBaseSpellID = CDM.GetBaseSpellID
 local InCombatLockdown = InCombatLockdown
 
 local VIEWERS = CDM_C.VIEWERS
-local ALL_VIEWER_NAMES = {
-    VIEWERS.ESSENTIAL,
-    VIEWERS.UTILITY,
-    VIEWERS.BUFF,
-    VIEWERS.BUFF_BAR,
-}
+local ALL_VIEWER_NAMES = CDM_C.ALL_VIEWER_NAMES
 local UPDATE_CONSTANTS_METHODS = {
     "UpdateRacials",
     "UpdateDefensives",
@@ -86,32 +81,15 @@ local function RegisterPostLoginFontRefresh()
 end
 
 local function RegisterCooldownViewerSettingsVisualRefresh()
-    local registry = EventRegistry
-    if not (registry and registry.RegisterCallback) then
-        return
-    end
+    local panel = _G.CooldownViewerSettings
+    if not panel then return end
 
-    local onShowOwner = {}
-    local onShowVersion = 0
-    registry:RegisterCallback("CooldownViewerSettings.OnShow", function()
-        onShowVersion = onShowVersion + 1
-        local myVersion = onShowVersion
-        C_Timer.After(0, function()
-            if onShowVersion ~= myVersion then return end
-            CDM:ForceReanchorAll()
-        end)
-    end, onShowOwner)
-
-    local onHideOwner = {}
-    local onHideVersion = 0
-    registry:RegisterCallback("CooldownViewerSettings.OnHide", function()
-        onHideVersion = onHideVersion + 1
-        local myVersion = onHideVersion
-        C_Timer.After(0.1, function()
-            if onHideVersion ~= myVersion then return end
-            CDM:ForceReanchorAll()
-        end)
-    end, onHideOwner)
+    panel:HookScript("OnShow", function()
+        CDM:ForceReanchorAll()
+    end)
+    panel:HookScript("OnHide", function()
+        CDM:ForceReanchorAll()
+    end)
 end
 
 local function RegisterCooldownViewerOverrideRefresh()
@@ -161,6 +139,15 @@ function CDM:SetupViewer(vName)
             fd.cdGroupSpellID = nil
             fd.cdmCooldownInitDone = nil
             fd.cdmLastCooldownStyleVer = nil
+            fd.cdmPandemicActive = nil
+            fd.cdmPandemicAppliedColor = nil
+            fd.cdmLastBuffBorderSpellID = nil
+            fd.cdmLastBuffBorderCatID = nil
+            fd.cdmLastBuffBorderColorVer = nil
+            fd.cdmLastBuffBorderStyleVer = nil
+            fd.cdmInternalWrite = nil
+            fd.isProcessingOverride = nil
+            fd.isProcessingBuffOverride = nil
             CDM:HideCooldownTextIfFlagged(itemFrame)
 
             if vName ~= VIEWERS.BUFF_BAR and not fd.cdmSetPointHooked then
@@ -373,7 +360,6 @@ local function SetupZoneTransitionEvents()
             CDM.anchorContainers = {}
             if _G[VIEWERS.BUFF] then
                 CDM:GetOrCreateAnchorContainer(_G[VIEWERS.BUFF])
-                CDM:UpdateBuffContainerPosition()
             end
             if _G[VIEWERS.BUFF_BAR] then
                 CDM:GetOrCreateAnchorContainer(_G[VIEWERS.BUFF_BAR])
@@ -410,8 +396,8 @@ local function InitializeModules()
         CDM:InitializeCustomBuffs()
     end
 
-    if CDM.InitializePlayerCastBar and CDM.db.castBarEnabled ~= false then
-        CDM:InitializePlayerCastBar()
+    if CDM.CreatePlayerCastBar and CDM.db.castBarEnabled ~= false then
+        CDM:CreatePlayerCastBar()
     end
 
     CDM.Keybinds:Initialize()
@@ -528,8 +514,8 @@ local function RegisterRefreshCallbacks()
 end
 
 function CDM:OnEnable()
-    SLASH_AYIJECDM1 = "/cdm"
-    SLASH_AYIJECDM2 = "/acdm"
+    SLASH_AYIJECDM1 = "/acdm"
+    SLASH_AYIJECDM2 = "/cdm"
     SlashCmdList["AYIJECDM"] = function()
         CDM:RequestConfigOpen("slash", nil)
     end

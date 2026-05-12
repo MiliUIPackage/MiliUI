@@ -213,6 +213,10 @@ local glowStartFunctions = {
         procGlowOpts.yOffset = glowCache.procYOffset
         procGlowOpts.frameLevel = frameLevel
         LCG.ProcGlow_Start(frame, procGlowOpts)
+        local f = frame["_ProcGlow" .. GLOW_KEY]
+        if f then
+            f:SetScript("OnHide", nil)
+        end
     end,
 }
 
@@ -230,6 +234,15 @@ local glowStopFunctions = {
     end,
 
     proc = function(frame)
+        local f = frame["_ProcGlow" .. GLOW_KEY]
+        if f then
+            if f.ProcStartAnim and f.ProcStartAnim:IsPlaying() then
+                f.ProcStartAnim:Stop()
+            end
+            if f.ProcLoopAnim and f.ProcLoopAnim:IsPlaying() then
+                f.ProcLoopAnim:Stop()
+            end
+        end
         LCG.ProcGlow_Stop(frame, GLOW_KEY)
     end,
 }
@@ -448,6 +461,7 @@ function Glow:RequestBuffGlow(frame, enabled, overrideColor, sourceID)
     if not frame or not LCG then return end
 
     local frameData = GetFrameData(frame)
+
     frameData.cdmBuffGlowWanted = enabled and true or false
     frameData.cdmBuffGlowOverrideColor = overrideColor
     frameData.cdmBuffGlowSourceID = sourceID

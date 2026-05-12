@@ -85,7 +85,7 @@ local function OutlineDropdown(rc, yOff, page)
     page.outlineDropdown = dd
 end
 
-local function PositionDropdown(rc, label, key, yOff)
+local function PositionDropdown(rc, label, key, yOff, positions)
     local lbl = rc:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
     lbl:SetText(label)
     lbl:SetPoint("TOPLEFT", 0, yOff)
@@ -100,36 +100,15 @@ local function PositionDropdown(rc, label, key, yOff)
             CDM.db[key] = pos
             dd:SetDefaultText(pos)
             API:Refresh("STYLE")
-        end)
+        end,
+        positions)
     return dd
 end
 
-local SCROLL_BOTTOM_PAD = 20
-
-local function MakeSubPageScroll(subPage, frameName)
-    local sf = CreateFrame("ScrollFrame", frameName, subPage, "ScrollFrameTemplate")
-    sf:SetPoint("TOPLEFT", 0, 0)
-    sf:SetPoint("BOTTOMRIGHT", -10, 0)
-    UI.AttachCloseMenusOnScroll(sf)
-
-    local sc = CreateFrame("Frame", nil, sf)
-    sc:SetWidth(540)
-    sf:SetScrollChild(sc)
-
-    local rc = CreateFrame("Frame", nil, sc)
-    rc:SetPoint("TOPLEFT", 30, 0)
-    rc:SetPoint("TOPRIGHT", -20, 0)
-    return rc, sc
-end
-
-local function FinalizeScroll(sc, rc, yOff)
-    local h = math.abs(yOff) + SCROLL_BOTTOM_PAD
-    sc:SetHeight(h)
-    rc:SetHeight(h)
-end
+local BAR_TEXT_POSITIONS = { "LEFT", "CENTER", "RIGHT" }
 
 local function BuildGlobal(subPage, page)
-    local rc, sc = MakeSubPageScroll(subPage, "AyijeCDM_Text_GlobalScrollFrame")
+    local rc, sc = UI.MakeSubPageScroll(subPage, "AyijeCDM_Text_GlobalScrollFrame")
     local yOff = 0
 
     FontDropdown(rc, yOff, page); yOff = yOff - 55
@@ -169,11 +148,11 @@ local function BuildGlobal(subPage, page)
     thrSlider:SetPoint("TOPLEFT", 0, yOff); yOff = yOff - 60
 
     ColorSwatch(rc, L["Color"], "cooldownColorThresholdColor", yOff); yOff = yOff - 45
-    FinalizeScroll(sc, rc, yOff)
+    UI.FinalizeScroll(sc, rc, yOff)
 end
 
 local function BuildEssential(subPage, page)
-    local rc, sc = MakeSubPageScroll(subPage, "AyijeCDM_Text_EssentialScrollFrame")
+    local rc, sc = UI.MakeSubPageScroll(subPage, "AyijeCDM_Text_EssentialScrollFrame")
     local yOff = 0
 
     SectionHeader(rc, L["Cooldown Timer"], yOff); yOff = yOff - 30
@@ -193,11 +172,11 @@ local function BuildEssential(subPage, page)
     PositionDropdown(rc, L["Position"], "essRow2ChargePosition", yOff); yOff = yOff - 60
     Slider(page, rc, L["X Offset"], -50, 50, "essRow2ChargeOffsetX", yOff, 0); yOff = yOff - 50
     Slider(page, rc, L["Y Offset"], -50, 50, "essRow2ChargeOffsetY", yOff, 0); yOff = yOff - 50
-    FinalizeScroll(sc, rc, yOff)
+    UI.FinalizeScroll(sc, rc, yOff)
 end
 
 local function BuildUtility(subPage, page)
-    local rc, sc = MakeSubPageScroll(subPage, "AyijeCDM_Text_UtilityScrollFrame")
+    local rc, sc = UI.MakeSubPageScroll(subPage, "AyijeCDM_Text_UtilityScrollFrame")
     local yOff = 0
 
     SectionHeader(rc, L["Cooldown Timer"], yOff); yOff = yOff - 30
@@ -209,11 +188,11 @@ local function BuildUtility(subPage, page)
     PositionDropdown(rc, L["Position"], "utilityChargePosition", yOff); yOff = yOff - 60
     Slider(page, rc, L["X Offset"], -50, 50, "utilityChargeOffsetX", yOff, 0); yOff = yOff - 50
     Slider(page, rc, L["Y Offset"], -50, 50, "utilityChargeOffsetY", yOff, 0); yOff = yOff - 50
-    FinalizeScroll(sc, rc, yOff)
+    UI.FinalizeScroll(sc, rc, yOff)
 end
 
 local function BuildBuffIcons(subPage, page)
-    local rc, sc = MakeSubPageScroll(subPage, "AyijeCDM_Text_BuffIconsScrollFrame")
+    local rc, sc = UI.MakeSubPageScroll(subPage, "AyijeCDM_Text_BuffIconsScrollFrame")
     local yOff = 0
 
     SectionHeader(rc, L["Cooldown Timer"], yOff); yOff = yOff - 30
@@ -226,11 +205,11 @@ local function BuildBuffIcons(subPage, page)
     PositionDropdown(rc, L["Position"], "countPositionMain", yOff); yOff = yOff - 60
     Slider(page, rc, L["X Offset"], -20, 20, "countOffsetXMain", yOff, 0); yOff = yOff - 50
     Slider(page, rc, L["Y Offset"], -20, 20, "countOffsetYMain", yOff, 4); yOff = yOff - 50
-    FinalizeScroll(sc, rc, yOff)
+    UI.FinalizeScroll(sc, rc, yOff)
 end
 
 local function BuildBuffBars(subPage, page)
-    local rc, sc = MakeSubPageScroll(subPage, "AyijeCDM_Text_BuffBarsScrollFrame")
+    local rc, sc = UI.MakeSubPageScroll(subPage, "AyijeCDM_Text_BuffBarsScrollFrame")
     local yOff = 0
 
     SectionHeader(rc, L["Name Text"], yOff); yOff = yOff - 30
@@ -242,16 +221,17 @@ local function BuildBuffBars(subPage, page)
     SectionHeader(rc, L["Duration Text"], yOff); yOff = yOff - 30
     Slider(page, rc, L["Font Size"], 8, 24, "buffBarDurationFontSize", yOff, 15); yOff = yOff - 60
     ColorSwatch(rc, L["Color"], "buffBarDurationColor", yOff); yOff = yOff - 45
+    PositionDropdown(rc, L["Anchor"], "buffBarDurationPosition", yOff, BAR_TEXT_POSITIONS); yOff = yOff - 60
     Slider(page, rc, L["X Offset"], -50, 50, "buffBarDurationOffsetX", yOff, -2); yOff = yOff - 50
     Slider(page, rc, L["Y Offset"], -20, 20, "buffBarDurationOffsetY", yOff, 0); yOff = yOff - 50
 
     SectionHeader(rc, L["Stack Count Text"], yOff); yOff = yOff - 30
     Slider(page, rc, L["Font Size"], 8, 24, "buffBarApplicationsFontSize", yOff, 15); yOff = yOff - 60
     ColorSwatch(rc, L["Color"], "buffBarApplicationsColor", yOff); yOff = yOff - 45
-    PositionDropdown(rc, L["Anchor"], "buffBarApplicationsPosition", yOff); yOff = yOff - 60
+    PositionDropdown(rc, L["Anchor"], "buffBarApplicationsPosition", yOff, BAR_TEXT_POSITIONS); yOff = yOff - 60
     Slider(page, rc, L["X Offset"], -50, 50, "buffBarApplicationsOffsetX", yOff, 0); yOff = yOff - 50
     Slider(page, rc, L["Y Offset"], -50, 50, "buffBarApplicationsOffsetY", yOff, 0); yOff = yOff - 50
-    FinalizeScroll(sc, rc, yOff)
+    UI.FinalizeScroll(sc, rc, yOff)
 end
 
 local SUB_TAB_IDS = { "global", "essential", "utility", "bufficons", "buffbars" }

@@ -58,7 +58,10 @@ function UI.CreateColorSwatch(parent, label, key, scope)
         end
     end
 
+    local enabledFlag = true
+
     button:SetScript("OnClick", function()
+        if not enabledFlag then return end
         local color = CDM.db[key] or CDM.defaults[key] or CDM.defaults.borderColor
         local function ApplyPickedColor()
             local r, g, b = ColorPickerFrame:GetColorRGB()
@@ -82,6 +85,14 @@ function UI.CreateColorSwatch(parent, label, key, scope)
         }
         ColorPickerFrame:SetupColorPickerAndShow(info)
     end)
+
+    function frame:SetEnabled(enabled)
+        enabledFlag = enabled and true or false
+        button:EnableMouse(enabledFlag)
+        local v = enabledFlag and 1 or 0.5
+        text:SetTextColor(v, v, v, 1)
+        frame:SetAlpha(enabledFlag and 1 or 0.5)
+    end
 
     return frame
 end
@@ -408,6 +419,18 @@ function UI.CreateModernCheckbox(parent, label, initialValue, onChange)
         return checkbox:GetChecked()
     end
 
+    function frame:SetEnabled(enabled)
+        if enabled then
+            checkbox:Enable()
+            text:SetTextColor(1, 1, 1, 1)
+            frame:SetAlpha(1)
+        else
+            checkbox:Disable()
+            text:SetTextColor(0.5, 0.5, 0.5, 1)
+            frame:SetAlpha(0.5)
+        end
+    end
+
     return frame
 end
 
@@ -500,6 +523,30 @@ function UI.CreateScrollableTab(page, frameName, contentHeight, contentWidth)
     contentContainer:SetHeight(contentHeight or 800)
 
     return contentContainer, scrollFrame
+end
+
+local SCROLL_BOTTOM_PAD = 20
+
+function UI.MakeSubPageScroll(subPage, frameName)
+    local sf = CreateFrame("ScrollFrame", frameName, subPage, "ScrollFrameTemplate")
+    sf:SetPoint("TOPLEFT", 0, 0)
+    sf:SetPoint("BOTTOMRIGHT", -10, 0)
+    UI.AttachCloseMenusOnScroll(sf)
+
+    local sc = CreateFrame("Frame", nil, sf)
+    sc:SetWidth(540)
+    sf:SetScrollChild(sc)
+
+    local rc = CreateFrame("Frame", nil, sc)
+    rc:SetPoint("TOPLEFT", 30, 0)
+    rc:SetPoint("TOPRIGHT", -20, 0)
+    return rc, sc
+end
+
+function UI.FinalizeScroll(sc, rc, yOff)
+    local h = math.abs(yOff) + SCROLL_BOTTOM_PAD
+    sc:SetHeight(h)
+    rc:SetHeight(h)
 end
 
 function UI.CreateVerticalLayout(startY)

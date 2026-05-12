@@ -1166,7 +1166,7 @@ local function InitializeDB()
         if not InCombatLockdown() then
             if GetCVar("cooldownViewerEnabled") ~= "1" then
                 SetCVar("cooldownViewerEnabled", 1)
-                print("|cff00ccff[CDM]|r " .. L["Enabled Blizzard Cooldown Manager."])
+                print("|cff00ccff[ACDM]|r " .. L["Enabled Blizzard Cooldown Manager."])
             end
         end
     end
@@ -1861,6 +1861,14 @@ CDM.CooldownGroupSets = {
 }
 
 local function RefreshGroupData(self, sets, dbKey, categories, shouldInvalidateCache)
+    local previousMatches
+    if dbKey == "cooldownGroups" then
+        previousMatches = {}
+        for cdID, entry in pairs(sets.cooldownIDGrouped) do
+            previousMatches[cdID] = entry
+        end
+    end
+
     table.wipe(sets.grouped)
     table.wipe(sets.cooldownIDGrouped)
     sets.groups = nil
@@ -1923,6 +1931,15 @@ local function RefreshGroupData(self, sets, dbKey, categories, shouldInvalidateC
         end
     end
 
+    if previousMatches then
+        for cdID, entry in pairs(previousMatches) do
+            local current = spellToGroup[entry.storedID]
+            if not sets.cooldownIDGrouped[cdID] and current then
+                sets.cooldownIDGrouped[cdID] = current
+            end
+        end
+    end
+
     if shouldInvalidateCache and self.InvalidateFrameCategoryCache then
         self:InvalidateFrameCategoryCache()
     end
@@ -1960,7 +1977,7 @@ local function PrintConfigOpenQueuedNotice(status)
         message = L["Config open queued until login setup finishes."]
     end
 
-    print("|cff00ccff[CDM]|r " .. tostring(message))
+    print("|cff00ccff[ACDM]|r " .. tostring(message))
     CDM._configOpenQueueNoticeShown = true
 end
 
@@ -1968,7 +1985,7 @@ local function OpenConfigNow(targetTab)
     if not C_AddOns.IsAddOnLoaded("Ayije_CDM_Options") then
         local loaded, reason = C_AddOns.LoadAddOn("Ayije_CDM_Options")
         if not loaded then
-            print("|cffff0000[CDM]|r " .. string.format(L["Could not load options: %s"], reason or "unknown"))
+            print("|cffff0000[ACDM]|r " .. string.format(L["Could not load options: %s"], reason or "unknown"))
             return "load_failed"
         end
     end

@@ -455,6 +455,7 @@ local function SetRegionBlendMode(blendMode, ...)
         end
     end
 end
+CDM.SetRegionBlendMode = SetRegionBlendMode
 
 function CDM:UpdateUtilityContainerPosition()
     if InCombatLockdown() then
@@ -661,7 +662,7 @@ local function SetupDraggableContainer(container, lockKey, overlayOpts)
     if not container.helperText then
         local helperText = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         helperText:SetPoint("BOTTOM", container, "TOP", 0, 8)
-        helperText:SetText(L["Click and drag to move - /cdm > Positions to lock"])
+        helperText:SetText(L["Click and drag to move - /acdm > Positions to lock"])
         helperText:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
         CDM_C.ApplyShadow(helperText)
         container.helperText = helperText

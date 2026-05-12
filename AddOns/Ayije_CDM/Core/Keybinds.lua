@@ -347,12 +347,15 @@ local function HideAllKeybindContainers()
             end
         end
     end
-    local trinketFrames = CDM.GetTrinketIconFrames and CDM.GetTrinketIconFrames()
-    if trinketFrames then
-        for _, frame in ipairs(trinketFrames) do
-            local frameData = GetFrameData(frame)
-            if frameData and frameData.cdmKeybindContainer then
-                frameData.cdmKeybindContainer:Hide()
+    for _, name in ipairs(CDM.CONST.TRACKER_FRAME_ACCESSORS) do
+        local accessor = CDM[name]
+        local frames = accessor and accessor()
+        if frames then
+            for _, frame in ipairs(frames) do
+                local frameData = GetFrameData(frame)
+                if frameData and frameData.cdmKeybindContainer then
+                    frameData.cdmKeybindContainer:Hide()
+                end
             end
         end
     end
@@ -401,7 +404,7 @@ end
 function Keybinds:Initialize()
     CDM:RegisterRefreshCallback("assist", function()
         RefreshConsumerState()
-    end, 36, { "STYLE" })
+    end, 14, { "STYLE" })
 
     RefreshConsumerState()
 end

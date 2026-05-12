@@ -420,10 +420,10 @@ function CDM.CreateTracker(config)
 
         CDM:RegisterRefreshCallback(moduleKey .. "Styles", function()
             RefreshCachedStyles()
+            needsStyleUpdate = true
             if cfgOnStyleRefresh then
                 cfgOnStyleRefresh()
             end
-            needsStyleUpdate = true
         end, styleRefreshPriority, { "TRACKERS", "STYLE" })
 
         isInitialized = true

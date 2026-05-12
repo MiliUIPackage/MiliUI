@@ -190,6 +190,16 @@ function CDM.IsSafeNumber(value)
        and canaccessvalue(value)
 end
 
+function CDM.IsOnRealCooldown(spellID, isChargeSpell)
+    if not spellID then return false end
+    local cdInfo = C_Spell.GetSpellCooldown(spellID)
+    if not cdInfo or not cdInfo.isActive then return false end
+    if isChargeSpell then
+        return cdInfo.isOnGCD == false
+    end
+    return cdInfo.isOnGCD ~= true
+end
+
 EventUtil.ContinueOnAddOnLoaded(AddonName, function()
     if CDM.InitializeDB then
         CDM:InitializeDB()

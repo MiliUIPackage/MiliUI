@@ -20,6 +20,7 @@ local cdContainers = {}
 CDM.cooldownGroupContainers = cdContainers
 
 CDM._auraOverlayEnabled = CDM._auraOverlayEnabled or {}
+CDM._readyGlowCooldownIDs = CDM._readyGlowCooldownIDs or {}
 
 local GCU = CDM.GroupContainerUtils
 
@@ -243,7 +244,9 @@ local scratchSpellToEntry = {}
 
 function CDM:RebuildAuraOverlayEnabledMap()
     local map = CDM._auraOverlayEnabled
+    local readyGlowSet = CDM._readyGlowCooldownIDs
     table_wipe(map)
+    table_wipe(readyGlowSet)
 
     local specID = CDM.GetCurrentSpecID and CDM:GetCurrentSpecID()
     if not specID then
@@ -361,8 +364,27 @@ function CDM:RebuildAuraOverlayEnabledMap()
                                 end
                             end
                         end
+                        if not match then
+                            local hasDistinctOverride = IsSafeNumber(info.overrideSpellID)
+                                and info.overrideSpellID ~= info.spellID
+                            local overrideIsDot = hasDistinctOverride
+                                and DOT_OVERRIDE_SPELLS
+                                and DOT_OVERRIDE_SPELLS[info.overrideSpellID]
+                            CDM:ForEachSpellMatchCandidate(info.spellID, function(candidate)
+                                local entry = spellToEntry[candidate]
+                                if not entry then return end
+                                if hasDistinctOverride and entry.dotDefaultOnly and not overrideIsDot then
+                                    return
+                                end
+                                match = entry
+                                return true
+                            end)
+                        end
                         if match then
                             map[cdID] = match
+                            if match.readyGlowEnabled then
+                                readyGlowSet[cdID] = true
+                            end
                         end
                     end
                 end

@@ -702,9 +702,9 @@ function Shared.BuildTextOverrideWidgets(rc, yOff, cfg)
             if o then o[key] = value end
             save()
         end
-        local function writeColor(key, r, g, b)
+        local function writeColor(key, r, g, b, a)
             local o = ensureOv()
-            if o then o[key] = cfg.colorAlpha and { r = r, g = g, b = b, a = 1 } or { r = r, g = g, b = b } end
+            if o then o[key] = cfg.colorAlpha and { r = r, g = g, b = b, a = a or 1 } or { r = r, g = g, b = b } end
             save()
         end
 
@@ -718,7 +718,8 @@ function Shared.BuildTextOverrideWidgets(rc, yOff, cfg)
         cdColorLabel:SetPoint("TOPLEFT", 0, yOff)
         local cdColorPicker = UI.CreateSimpleColorPicker(rc,
             ov[f.cdColor] or d[f.cdColor] or { r = 1, g = 1, b = 1 },
-            function(r, g, b) writeColor(f.cdColor, r, g, b) end)
+            function(r, g, b, a) writeColor(f.cdColor, r, g, b, a) end,
+            cfg.colorAlpha and true or false)
         cdColorPicker:SetPoint("LEFT", cdColorLabel, "RIGHT", 6, 0)
         yOff = yOff - 30
 
@@ -732,7 +733,8 @@ function Shared.BuildTextOverrideWidgets(rc, yOff, cfg)
         chargeColorLabel:SetPoint("TOPLEFT", 0, yOff)
         local chargeColorPicker = UI.CreateSimpleColorPicker(rc,
             ov[f.chargeColor] or d[f.chargeColor] or { r = 1, g = 1, b = 1 },
-            function(r, g, b) writeColor(f.chargeColor, r, g, b) end)
+            function(r, g, b, a) writeColor(f.chargeColor, r, g, b, a) end,
+            cfg.colorAlpha and true or false)
         chargeColorPicker:SetPoint("LEFT", chargeColorLabel, "RIGHT", 6, 0)
         yOff = yOff - 30
 
@@ -1247,11 +1249,12 @@ function Shared.RenderGroupSettingsPanel(config)
     cdColorLabel:SetText(L["Color"])
     cdColorLabel:SetPoint("TOPLEFT", 0, yOff)
     local cdColorInit = gd.cooldownColor or { r = 1, g = 1, b = 1 }
-    local cdColorPicker = UI.CreateSimpleColorPicker(rc, cdColorInit, function(r, g, b)
+    local cdColorPicker = UI.CreateSimpleColorPicker(rc, cdColorInit, function(r, g, b, a)
         if not gd.cooldownColor then gd.cooldownColor = { r = 1, g = 1, b = 1, a = 1 } end
         gd.cooldownColor.r, gd.cooldownColor.g, gd.cooldownColor.b = r, g, b
+        gd.cooldownColor.a = a or 1
         save()
-    end)
+    end, true)
     cdColorPicker:SetPoint("LEFT", cdColorLabel, "RIGHT", 6, 0)
     yOff = yOff - 30
 
@@ -1265,11 +1268,12 @@ function Shared.RenderGroupSettingsPanel(config)
     secColorLabel:SetText(L["Color"])
     secColorLabel:SetPoint("TOPLEFT", 0, yOff)
     local secColorInit = gd[tf.colorKey] or { r = 1, g = 1, b = 1 }
-    local secColorPicker = UI.CreateSimpleColorPicker(rc, secColorInit, function(r, g, b)
+    local secColorPicker = UI.CreateSimpleColorPicker(rc, secColorInit, function(r, g, b, a)
         if not gd[tf.colorKey] then gd[tf.colorKey] = { r = 1, g = 1, b = 1, a = 1 } end
         gd[tf.colorKey].r, gd[tf.colorKey].g, gd[tf.colorKey].b = r, g, b
+        gd[tf.colorKey].a = a or 1
         save()
-    end)
+    end, true)
     secColorPicker:SetPoint("LEFT", secColorLabel, "RIGHT", 6, 0)
     yOff = yOff - 30
 

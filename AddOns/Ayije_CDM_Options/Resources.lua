@@ -47,11 +47,6 @@ local SECONDARY_COLOR_FIELDS = {
             { key = "overflowingEmptyColor", label = L["Overflowing Empty"] },
         },
     },
-    Stagger = {
-        { key = "lightColor", label = L["Light (<30%)"] },
-        { key = "moderateColor", label = L["Moderate (30-60%)"] },
-        { key = "heavyColor", label = L["Heavy (>60%)"] },
-    },
 }
 
 local LEFT_INSET = Shared.LEFT_INSET or 35
@@ -82,6 +77,153 @@ local function CreateBarColorPicker(parent, label, classKey, barKey, settingKey)
     row.picker = picker
     row.nameText = nameText
     return row
+end
+
+local function ReadTicksConfig(classKey, barKey)
+    local stored = CDM:GetBarSettingForClass(classKey, barKey, "ticks")
+    local color = stored and stored.color
+    local cfg = {
+        enabled   = stored and stored.enabled or false,
+        color     = {
+            r = color and color.r or 1,
+            g = color and color.g or 1,
+            b = color and color.b or 1,
+            a = color and color.a or 1,
+        },
+        thickness = stored and stored.thickness or 2,
+        values    = {},
+    }
+    if stored and stored.values then
+        for i, v in ipairs(stored.values) do
+            if i > CDM.CONST.MAX_TICKS_PER_BAR then break end
+            cfg.values[i] = v
+        end
+    end
+    return cfg
+end
+
+local function WriteTicksConfig(classKey, barKey, cfg)
+    CDM:SetBarSettingForClass(classKey, barKey, "ticks", cfg)
+    API:Refresh("RESOURCES")
+end
+
+local function BuildTicksSection(rc, classKey, barKey, startYOff)
+    if not CDM.CONST.BAR_KEYS_SUPPORTING_TICKS[barKey] then return startYOff end
+
+    local container = CreateFrame("Frame", nil, rc)
+    container:SetPoint("TOPLEFT", 0, startYOff)
+    container:SetPoint("RIGHT", rc, "RIGHT", 0, 0)
+    container:SetHeight(1)
+
+    local sectionHeight = 0
+
+    local function Rebuild()
+        UI.ClearChildren(container)
+        local cfg = ReadTicksConfig(classKey, barKey)
+        local y = 0
+
+        local header = UI.CreateHeader(container, L["Ticks"])
+        header:SetPoint("TOPLEFT", 0, y)
+        y = y - 25
+
+        local enableCB = UI.CreateModernCheckbox(container, L["Show Tick"],
+            cfg.enabled,
+            function(checked)
+                cfg.enabled = checked and true or false
+                WriteTicksConfig(classKey, barKey, cfg)
+            end)
+        enableCB:SetPoint("TOPLEFT", 0, y)
+
+        local colorRow = CreateFrame("Frame", nil, container)
+        colorRow:SetSize(180, 22)
+        colorRow:SetPoint("TOPLEFT", 160, y)
+
+        local colorLabel = colorRow:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
+        colorLabel:SetPoint("LEFT", 0, 0)
+        colorLabel:SetText(L["Tick Color"])
+
+        local colorPicker = UI.CreateSimpleColorPicker(colorRow, cfg.color, function(r, g, b, a)
+            cfg.color = { r = r, g = g, b = b, a = a or 1 }
+            WriteTicksConfig(classKey, barKey, cfg)
+        end, true)
+        colorPicker:SetPoint("LEFT", colorLabel, "RIGHT", 8, 0)
+
+        y = y - 32
+
+        local thickSlider = UI.CreateModernSlider(container, L["Thickness"], 1, 5,
+            cfg.thickness or 2,
+            function(v)
+                cfg.thickness = UI.RoundToInt(v)
+                WriteTicksConfig(classKey, barKey, cfg)
+            end, SLIDER_LABEL_W, SLIDER_W)
+        thickSlider:SetPoint("TOPLEFT", 0, y)
+        y = y - 60
+
+        local placeLabel = container:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
+        placeLabel:SetText(L["Tick Placement"])
+        placeLabel:SetPoint("TOPLEFT", 0, y)
+        y = y - 22
+
+        for i = 1, #cfg.values do
+            local row = CreateFrame("Frame", nil, container)
+            row:SetSize(160, 24)
+            row:SetPoint("TOPLEFT", 0, y)
+
+            local valBox = CreateFrame("EditBox", nil, row, "InputBoxTemplate")
+            valBox:SetSize(80, 22)
+            valBox:SetPoint("LEFT", 6, 0)
+            valBox:SetAutoFocus(false)
+            valBox:SetNumeric(false)
+            valBox:SetText(tostring(cfg.values[i]))
+            valBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+            valBox:SetScript("OnEscapePressed", function(self)
+                self:SetText(tostring(cfg.values[i] or 0))
+                self:ClearFocus()
+            end)
+            valBox:SetScript("OnEditFocusLost", function(self)
+                local num = tonumber(self:GetText())
+                if num and num >= 0 and num ~= cfg.values[i] then
+                    cfg.values[i] = num
+                    WriteTicksConfig(classKey, barKey, cfg)
+                end
+            end)
+
+            local delBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+            delBtn:SetSize(20, 20)
+            delBtn:SetText("X")
+            delBtn:SetPoint("LEFT", valBox, "RIGHT", 6, 0)
+            delBtn:SetScript("OnClick", function()
+                table.remove(cfg.values, i)
+                WriteTicksConfig(classKey, barKey, cfg)
+                Rebuild()
+            end)
+
+            y = y - 26
+        end
+
+        if #cfg.values < CDM.CONST.MAX_TICKS_PER_BAR then
+            local addBtn = CreateFrame("Button", nil, container, "UIPanelButtonTemplate")
+            addBtn:SetSize(60, 22)
+            addBtn:SetText(L["Add"])
+            addBtn:SetPoint("TOPLEFT", 0, y)
+            addBtn:SetScript("OnClick", function()
+                cfg.values[#cfg.values + 1] = 0
+                WriteTicksConfig(classKey, barKey, cfg)
+                Rebuild()
+            end)
+            y = y - 26
+        end
+
+        local prevHeight = sectionHeight
+        sectionHeight = math.abs(y)
+        container:SetHeight(sectionHeight)
+        if prevHeight > 0 and sectionHeight ~= prevHeight then
+            rc:SetHeight((rc:GetHeight() or 0) + (sectionHeight - prevHeight))
+        end
+    end
+
+    Rebuild()
+    return startYOff - sectionHeight
 end
 
 
@@ -316,15 +458,58 @@ local function CreateResourcesTab(page, tabId)
         bgColorPicker:SetPoint("TOPLEFT", 0, yOff)
         yOff = yOff - 28
 
-        local secondaries = SECONDARY_COLOR_FIELDS[barKey]
-        if secondaries and not secondaries[1] then
-            secondaries = secondaries[classKey]
-        end
-        if secondaries then
-            for _, field in ipairs(secondaries) do
-                local sp = CreateBarColorPicker(rc, field.label, classKey, barKey, field.key)
-                sp:SetPoint("TOPLEFT", 0, yOff)
+        if barKey == "Stagger" then
+            local baseColorPicker = CreateBarColorPicker(rc, L["Base Color"], classKey, barKey, "lightColor")
+            baseColorPicker:SetPoint("TOPLEFT", 0, yOff)
+            yOff = yOff - 28
+
+            local ceilingSlider = UI.CreateModernSlider(rc, L["Bar Ceiling (% HP)"], 50, 500,
+                CDM:GetBarSettingForClass(classKey, barKey, "ceilingPercent") or 100,
+                function(v)
+                    CDM:SetBarSettingForClass(classKey, barKey, "ceilingPercent", UI.RoundToInt(v))
+                    API:Refresh("RESOURCES")
+                end, SLIDER_LABEL_W, SLIDER_W)
+            ceilingSlider:SetPoint("TOPLEFT", 0, yOff)
+            yOff = yOff - 60
+
+            for idx, tier in ipairs(CDM.CONST.STAGGER_TIERS) do
+                local tierLabel = rc:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
+                tierLabel:SetPoint("TOPLEFT", 0, yOff)
+                tierLabel:SetText(string.format(L["Tier %d"], idx))
+                yOff = yOff - 22
+
+                local enabledCB = UI.CreateModernCheckbox(rc, L["Enabled"],
+                    CDM:GetBarSettingForClass(classKey, barKey, tier.enabled) and true or false,
+                    function(checked)
+                        CDM:SetBarSettingForClass(classKey, barKey, tier.enabled, checked)
+                        API:Refresh("RESOURCES")
+                    end)
+                enabledCB:SetPoint("TOPLEFT", 0, yOff)
+
+                local tierColorPicker = CreateBarColorPicker(rc, L["Color"], classKey, barKey, tier.color)
+                tierColorPicker:SetPoint("TOPLEFT", 130, yOff)
                 yOff = yOff - 28
+
+                local thresholdSlider = UI.CreateModernSlider(rc, L["Threshold (% HP)"], 0, 500,
+                    CDM:GetBarSettingForClass(classKey, barKey, tier.threshold) or 0,
+                    function(v)
+                        CDM:SetBarSettingForClass(classKey, barKey, tier.threshold, UI.RoundToInt(v))
+                        API:Refresh("RESOURCES")
+                    end, SLIDER_LABEL_W, SLIDER_W)
+                thresholdSlider:SetPoint("TOPLEFT", 0, yOff)
+                yOff = yOff - 60
+            end
+        else
+            local secondaries = SECONDARY_COLOR_FIELDS[barKey]
+            if secondaries and not secondaries[1] then
+                secondaries = secondaries[classKey]
+            end
+            if secondaries then
+                for _, field in ipairs(secondaries) do
+                    local sp = CreateBarColorPicker(rc, field.label, classKey, barKey, field.key)
+                    sp:SetPoint("TOPLEFT", 0, yOff)
+                    yOff = yOff - 28
+                end
             end
         end
         yOff = yOff - 10
@@ -700,6 +885,8 @@ local function CreateResourcesTab(page, tabId)
             hideIconCB:SetPoint("TOPLEFT", 0, yOff)
             yOff = yOff - 35
         end
+
+        yOff = BuildTicksSection(rc, classKey, barKey, yOff)
 
         rc:SetHeight(math.abs(yOff) + 20)
     end

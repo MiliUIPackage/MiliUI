@@ -1142,6 +1142,72 @@ local function ApplyUnifiedVerticalSeparators(bar, borderColor)
     end
 end
 
+local function HideAllBarTicks(bar)
+    if bar and bar.tickTextures then
+        for _, t in ipairs(bar.tickTextures) do
+            t:Hide()
+        end
+    end
+end
+
+local function RefreshBarTicks(bar, barKey, max)
+    if not bar or bar.isPipBar or not CDM_C.BAR_KEYS_SUPPORTING_TICKS[barKey] then
+        HideAllBarTicks(bar)
+        return
+    end
+
+    local cfg = CDM:GetBarSetting(barKey, "ticks")
+    if not (cfg and cfg.enabled and cfg.values and #cfg.values > 0) then
+        HideAllBarTicks(bar)
+        return
+    end
+
+    if not CDM.IsSafeNumber(max) or max <= 0 then
+        HideAllBarTicks(bar)
+        return
+    end
+
+    local barWidth = bar:GetWidth() or 0
+    if barWidth <= 0 then
+        HideAllBarTicks(bar)
+        return
+    end
+
+    local color = cfg.color or { r = 1, g = 1, b = 1, a = 1 }
+    local thicknessPx = Pixel.Snap(cfg.thickness or 2)
+    if thicknessPx <= 0 then thicknessPx = Pixel.GetSize() end
+
+    bar.tickTextures = bar.tickTextures or {}
+
+    local count = math_min(#cfg.values, CDM_C.MAX_TICKS_PER_BAR)
+    for i = 1, count do
+        local v = tonumber(cfg.values[i])
+        local tex = bar.tickTextures[i]
+        if not tex then
+            tex = Pixel.CreateSolidTexture(bar, "OVERLAY", 7)
+            bar.tickTextures[i] = tex
+        end
+
+        local percent = v and (v / max)
+        if not percent or percent < 0 or percent > 1 then
+            tex:Hide()
+        else
+            local centerX = percent * barWidth
+            local leftX = Pixel.Snap(centerX - thicknessPx / 2)
+            tex:ClearAllPoints()
+            tex:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", leftX, 0)
+            tex:SetPoint("TOPLEFT", bar, "TOPLEFT", leftX, 0)
+            tex:SetWidth(thicknessPx)
+            tex:SetVertexColor(color.r, color.g, color.b, color.a or 1)
+            tex:Show()
+        end
+    end
+
+    for i = count + 1, #bar.tickTextures do
+        bar.tickTextures[i]:Hide()
+    end
+end
+
 local function ApplyChainHorizontalSeparator(entry, index, lowerBar, borderColor)
     local sep = entry.hSeparators[index]
     if not sep then
@@ -1462,6 +1528,10 @@ UpdateBarValue = function(powerType)
         bar:SetValue(current, bar._smoothBars and Enum.StatusBarInterpolation.ExponentialEaseOut
                                                or Enum.StatusBarInterpolation.Immediate)
         if CDM._Res.ApplyBarConditions then CDM._Res.ApplyBarConditions(bar, powerType, current, max) end
+        if bar._tickLastMax ~= max then
+            bar._tickLastMax = max
+            RefreshBarTicks(bar, bar.barKey, max)
+        end
     end
 
     CDM._Res.UpdateTagTextForPowerType(powerType)
@@ -1658,12 +1728,19 @@ local function UpdateBarPositions()
             end
         else
             bar:SetSize(barWidth, barHeight)
+            bar._tickLastMax = nil
             SetStatusBarTextureIfChanged(bar, barTexturePath)
             local color = GetPowerColor(powerType)
             if color then SetStatusBarColorIfChanged(bar, color) end
             if bar.bg then
                 SetTextureIfChanged(bar.bg, bgTexturePath)
                 SetVertexColorIfChanged(bar.bg, bgColor)
+            end
+            local tickMax = CDM_C.BAR_KEYS_SUPPORTING_TICKS[barKey]
+                and UnitPowerMax("player", powerType) or nil
+            if bar._tickLastMax ~= tickMax then
+                bar._tickLastMax = tickMax
+                RefreshBarTicks(bar, barKey, tickMax)
             end
         end
 
@@ -1833,6 +1910,8 @@ local function OnUnitPowerFrequent(event, unitTarget, powerToken)
             UpdateBarValue(powerTypeFromToken)
         end
     end
+
+    EventRegistry:TriggerEvent("CDM.PlayerPowerChanged")
 end
 
 local function OnUnitPowerPointCharge(event, unitTarget)
@@ -2065,6 +2144,11 @@ end
 local function RefreshResourcesLifecycle()
     if not isEnabled then return end
     RegisterLoadEvents()
+    if CDM.resourceBars then
+        for _, bar in pairs(CDM.resourceBars) do
+            if bar then bar._tickLastMax = nil end
+        end
+    end
     CDM:UpdateResources()
 end
 
@@ -2087,6 +2171,7 @@ local function OnResourcesProfileApplied()
                 bar.lastBarWidth = nil
                 bar.lastBarHeight = nil
                 bar._lastPipTexturePath = nil
+                bar._tickLastMax = nil
             end
         end
     end

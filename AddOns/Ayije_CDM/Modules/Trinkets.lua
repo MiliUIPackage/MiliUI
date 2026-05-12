@@ -32,6 +32,17 @@ local function GetTrinketMode()
     return db.trinketsMode or "independent"
 end
 
+local function BuildBlacklistSet()
+    local set = {}
+    local list = CDM.db and CDM.db.trinketsBlacklist
+    if list then
+        for i = 1, #list do
+            set[list[i]] = true
+        end
+    end
+    return set
+end
+
 function CDM.GetTrinketMode()
     return currentMode
 end
@@ -292,6 +303,11 @@ local function InvalidateTrinketsLayoutCache()
     lastTrinketsHeight = nil
 end
 
+local function OnTrinketsStyleRefresh()
+    InvalidateTrinketsLayoutCache()
+    CDM:UpdateTrinkets()
+end
+
 CDM.RegisterViewerDesc("CDM_Trinkets", {
     widthKey     = "trinketsIconWidth",
     heightKey    = "trinketsIconHeight",
@@ -299,6 +315,7 @@ CDM.RegisterViewerDesc("CDM_Trinkets", {
     cdColorKey   = "cooldownColor",
     chargeKey    = "chargeFontSize",
     isCooldown   = true,
+    hasKeybind   = true,
     hookType     = "cooldown",
 })
 
@@ -320,7 +337,7 @@ trinketsTracker = CDM.CreateTracker({
     UpdateIcon          = UpdateIcon,
     resetFrame          = ResetTrinketTrackerFrame,
     UpdateContainerPosition = OnTrackerPositionUpdate,
-    onStyleRefresh      = InvalidateTrinketsLayoutCache,
+    onStyleRefresh      = OnTrinketsStyleRefresh,
 })
 
 -- Expose internal pool for frame management
@@ -336,10 +353,11 @@ function CDM.GetTrinketInjectionFrames()
         showPassive = db.trinketsShowPassive
     end
 
+    local blacklistSet = BuildBlacklistSet()
     local iconFrames = trinketsTracker.GetIconFrames()
     local count = 0
     for _, frame in ipairs(iconFrames) do
-        if frame.itemID and (showPassive or frame.isOnUse) then
+        if frame.itemID and (showPassive or frame.isOnUse) and not blacklistSet[frame.itemID] then
             count = count + 1
             injectionScratch[count] = frame
         end
@@ -432,6 +450,8 @@ function CDM:UpdateTrinkets()
         showPassive = db.trinketsShowPassive
     end
 
+    local blacklistSet = BuildBlacklistSet()
+
     local mode = GetTrinketMode()
     local modeChanged = (mode ~= currentMode)
 
@@ -445,15 +465,6 @@ function CDM:UpdateTrinkets()
             if essViewer then CDM:ForceReanchor(essViewer) end
         end
         currentMode = mode
-        if mode ~= "essential" then
-            local GetFrameData = CDM.GetFrameData
-            for _, frame in ipairs(iconFrames) do
-                local frameData = GetFrameData(frame)
-                if frameData and frameData.cdmKeybindContainer then
-                    frameData.cdmKeybindContainer:Hide()
-                end
-            end
-        end
         lastTrinketsWidth = nil
         lastTrinketsHeight = nil
         InvalidateTrinketsLayoutCache()
@@ -479,7 +490,7 @@ function CDM:UpdateTrinkets()
         local queueEssentialViewer = modeChanged or anyTrinketDataChanged or sizeChanged or styleDirty
         for _, frame in ipairs(iconFrames) do
             local hasItem = frame.itemID ~= nil
-            local shouldShow = hasItem and (showPassive or frame.isOnUse)
+            local shouldShow = hasItem and (showPassive or frame.isOnUse) and not blacklistSet[frame.itemID]
             local wasShown = frame:IsShown()
             if shouldShow then
                 frame:Show()
@@ -522,7 +533,7 @@ function CDM:UpdateTrinkets()
         end
 
         local hasItem = frame.itemID ~= nil
-        local shouldShow = hasItem and (showPassive or frame.isOnUse)
+        local shouldShow = hasItem and (showPassive or frame.isOnUse) and not blacklistSet[frame.itemID]
         local wasShown = frame:IsShown()
 
         if shouldShow then

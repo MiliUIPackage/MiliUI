@@ -10,7 +10,7 @@ local EMPTY = {}
 local GetSpellChargeDuration = C_Spell.GetSpellChargeDuration
 local GetSpellCooldownDuration = C_Spell.GetSpellCooldownDuration
 local GetSpellCharges = C_Spell.GetSpellCharges
-local GetSpellCooldown = C_Spell.GetSpellCooldown
+local GetSpellTexture = C_Spell.GetSpellTexture
 local TruncateWhenZero = C_StringUtil.TruncateWhenZero
 local IsSpellInSpellBook = C_SpellBook.IsSpellInSpellBook
 
@@ -250,6 +250,11 @@ end
 
 local defensivesTracker
 
+function CDM.GetDefensiveIconFrames()
+    if not defensivesTracker or not defensivesTracker.IsEnabled() then return nil end
+    return defensivesTracker.GetIconFrames()
+end
+
 local function UpdateIcon(frame)
     if not frame or not frame:IsShown() then return end
 
@@ -257,6 +262,13 @@ local function UpdateIcon(frame)
 
     local spellID = frame.spellID
     if not spellID then return end
+
+    if frame.Icon then
+        local tex = GetSpellTexture(spellID)
+        if tex and frame.Icon:GetTexture() ~= tex then
+            frame.Icon:SetTexture(tex)
+        end
+    end
 
     local effectiveID = GetEffectiveSpellID(spellID)
 
@@ -266,13 +278,8 @@ local function UpdateIcon(frame)
     local isChargeSpell = chargeInfo and chargeInfo.maxCharges and chargeInfo.maxCharges > 1
 
     local desatValue = 0
-    if scd then
-        local cdInfo = GetSpellCooldown(effectiveID)
-        local onRealCD = cdInfo and cdInfo.isActive and (isChargeSpell and cdInfo.isOnGCD == false
-            or not isChargeSpell and cdInfo.isOnGCD ~= true)
-        if onRealCD then
-            desatValue = scd:EvaluateRemainingDuration(DesaturationCurve, 0) or 0
-        end
+    if scd and CDM.IsOnRealCooldown(effectiveID, isChargeSpell) then
+        desatValue = scd:EvaluateRemainingDuration(DesaturationCurve, Enum.DurationTimeModifier.RealTime) or 0
     end
 
     local swipeDur = (isChargeSpell and chargeDur) or scd
@@ -331,6 +338,7 @@ CDM.RegisterViewerDesc("CDM_Defensives", {
     cdColorKey   = "cooldownColor",
     chargeKey    = "defensivesChargeFontSize",
     isCooldown   = true,
+    hasKeybind   = true,
     hookType     = "cooldown",
 })
 
@@ -370,7 +378,16 @@ defensivesTracker = CDM.CreateTracker({
             end
         end
     end,
+    onStyleRefresh      = function()
+        if defensivesTracker then defensivesTracker.Queue(true) end
+    end,
 })
+
+local spellIconUpdater = CDM.CreateTrackerUpdater({ "SPELL_UPDATE_ICON" }, function()
+    if defensivesTracker.IsEnabled() then
+        defensivesTracker.Queue(false)
+    end
+end)
 
 function CDM:InitializeDefensives()
     defensivesTracker.Initialize()
@@ -460,8 +477,11 @@ end
 local function ReconcileDefensives()
     defensivesTracker.Reconcile("defensivesEnabled")
     if defensivesTracker.IsEnabled() then
+        spellIconUpdater:RegisterEvent("SPELL_UPDATE_ICON")
         RebuildCustomSpellSet(GetCurrentSpecID())
         defensivesTracker.Update()
+    else
+        spellIconUpdater:UnregisterEvent("SPELL_UPDATE_ICON")
     end
 end
 

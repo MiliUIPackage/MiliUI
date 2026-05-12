@@ -47,7 +47,7 @@ local function CreateCastBarTab(page, tabId)
     page.controls.castBarWidthSlider = UI.CreateModernSlider(
         scrollChild,
         L["Width (0 = Auto)"],
-        0, 600,
+        0, 1000,
         CDM.db.castBarWidth or 300,
         function(v)
             local value = UI.RoundToInt(v)
@@ -78,7 +78,7 @@ local function CreateCastBarTab(page, tabId)
     page.controls.castBarHeightSlider = UI.CreateModernSlider(
         scrollChild,
         L["Height"],
-        8, 40,
+        8, 50,
         CDM.db.castBarHeight or 20,
         function(v)
             CDM.db.castBarHeight = UI.RoundToInt(v)
@@ -492,6 +492,17 @@ local function CreateCastBarTab(page, tabId)
     )
     page.controls.castBarShowTimer:SetPoint("TOPLEFT", page.controls.castBarNameOffsetY, "BOTTOMLEFT", 0, -10)
 
+    page.controls.castBarShowTotalDuration = UI.CreateModernCheckbox(
+        scrollChild,
+        L["Show Total Duration (e.g. 0.5/1.5)"],
+        CDM.db.castBarShowTotalDuration == true,
+        function(checked)
+            CDM.db.castBarShowTotalDuration = checked
+            API:Refresh("STYLE")
+        end
+    )
+    page.controls.castBarShowTotalDuration:SetPoint("TOPLEFT", page.controls.castBarShowTimer, "BOTTOMLEFT", 0, -10)
+
     page.controls.castBarTimerOffsetX = UI.CreateModernSlider(
         scrollChild,
         L["Timer X Offset"],
@@ -502,7 +513,7 @@ local function CreateCastBarTab(page, tabId)
             API:Refresh("STYLE")
         end
     )
-    page.controls.castBarTimerOffsetX:SetPoint("TOPLEFT", page.controls.castBarShowTimer, "BOTTOMLEFT", 0, -10)
+    page.controls.castBarTimerOffsetX:SetPoint("TOPLEFT", page.controls.castBarShowTotalDuration, "BOTTOMLEFT", 0, -10)
 
     page.controls.castBarTimerOffsetY = UI.CreateModernSlider(
         scrollChild,

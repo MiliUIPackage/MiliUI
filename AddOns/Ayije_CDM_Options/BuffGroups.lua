@@ -1267,6 +1267,16 @@ local function CreateBuffGroupsTab(page)
         end)
         yOff = yOff - 30
 
+        yOff = yOff - 10
+        local disclaimer = rc:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
+        disclaimer:SetPoint("TOPLEFT", 0, yOff)
+        disclaimer:SetPoint("TOPRIGHT", rc, "TOPRIGHT", -8, yOff)
+        disclaimer:SetJustifyH("LEFT")
+        disclaimer:SetWordWrap(true)
+        disclaimer:SetText(L["Custom buffs are triggered from your own spellcasts. You CAN'T track random auras"])
+        UI.SetTextMuted(disclaimer)
+        yOff = yOff - (disclaimer:GetStringHeight() + 6)
+
         local backBtn = CreateFrame("Button", nil, rc, "UIPanelButtonTemplate")
         backBtn:SetSize(80, 22)
         backBtn:SetPoint("TOPRIGHT", rc, "TOPRIGHT", 0, 0)
@@ -1455,6 +1465,9 @@ local function CreateBuffGroupsTab(page)
             local gd = groups and groups[renameActiveGroupIndex]
             if gd and newName and newName ~= "" then
                 gd.name = newName
+                if CDM.RefreshBuffGroupOverlayLabels then
+                    CDM:RefreshBuffGroupOverlayLabels()
+                end
             end
             renameActiveGroupIndex = nil
             renameActiveEditBox = nil
@@ -1732,6 +1745,9 @@ local function CreateBuffGroupsTab(page)
                             groupData.name = newName
                             renameActiveGroupIndex = nil
                             renameActiveEditBox = nil
+                            if CDM.RefreshBuffGroupOverlayLabels then
+                                CDM:RefreshBuffGroupOverlayLabels()
+                            end
                             if selectedGroupIndex == groupIndex then ShowGroupSettings(groupIndex) end
                             RefreshLeftPanelIfNeeded()
                         end,

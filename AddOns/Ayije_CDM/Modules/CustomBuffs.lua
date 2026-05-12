@@ -93,37 +93,52 @@ end
 
 CDM.RefreshCachedCustomBuffStyles = RefreshCachedCustomBuffStyles
 
+local function ForEachCooldownFontString(cd, fn)
+    fn(cd.Text or cd.text)
+    for _, region in ipairs({ cd:GetRegions() }) do
+        if region and region.IsObjectType and region:IsObjectType("FontString") then
+            fn(region)
+        end
+    end
+end
+
+local function SetupCustomBuffCooldownTextLayout(frame)
+    if not frame or not frame.Cooldown then return end
+
+    ForEachCooldownFontString(frame.Cooldown, function(text)
+        if not text or not text.SetFont then return end
+        text:SetIgnoreParentScale(true)
+        text:ClearAllPoints()
+        text:SetPoint("CENTER", 0, 0)
+        text:SetJustifyH("CENTER")
+        text:SetJustifyV("MIDDLE")
+        text:SetShadowOffset(0, 0)
+        text:SetDrawLayer("OVERLAY", 7)
+    end)
+end
+
+local function IsGroupedCustomBuff(spellID)
+    local sets = CDM.BuffGroupSets
+    local grouped = sets and sets.grouped
+    return grouped and grouped[spellID] and true or false
+end
+
 local function ApplyCustomBuffCooldownTextStyle(frame)
     if not frame or not frame.Cooldown then return end
     if not cachedCustomBuffStyles.fontPath then
         RefreshCachedCustomBuffStyles()
     end
 
-    local function styleText(text)
+    ForEachCooldownFontString(frame.Cooldown, function(text)
         if not text or not text.SetFont then return end
         local fontColor = cachedCustomBuffStyles.fontColor or CDM_C.WHITE
-        text:SetIgnoreParentScale(true)
-        text:ClearAllPoints()
-        text:SetPoint("CENTER", 0, 0)
         text:SetFont(
             cachedCustomBuffStyles.fontPath,
             CDM.Pixel.FontSize(cachedCustomBuffStyles.fontSize),
             cachedCustomBuffStyles.fontOutline
         )
-        text:SetJustifyH("CENTER")
-        text:SetJustifyV("MIDDLE")
-        text:SetTextColor(fontColor.r, fontColor.g, fontColor.b)
-        text:SetShadowOffset(0, 0)
-        text:SetDrawLayer("OVERLAY", 7)
-    end
-
-    styleText(frame.Cooldown.Text or frame.Cooldown.text)
-    local regions = { frame.Cooldown:GetRegions() }
-    for _, region in ipairs(regions) do
-        if region and region.IsObjectType and region:IsObjectType("FontString") then
-            styleText(region)
-        end
-    end
+        text:SetTextColor(fontColor.r, fontColor.g, fontColor.b, fontColor.a or 1)
+    end)
 end
 
 local function ReanchorBuffViewer()
@@ -169,6 +184,7 @@ local function CreateCustomBuffIcon(spellID, config)
         cooldown:SetSwipeColor(CDM_C.SWIPE_COLOR.r, CDM_C.SWIPE_COLOR.g, CDM_C.SWIPE_COLOR.b, CDM_C.SWIPE_COLOR.a)
         cooldown:SetReverse(true)  -- Fill up as time passes (like a buff)
         frame.Cooldown = cooldown
+        SetupCustomBuffCooldownTextLayout(frame)
 
         local borderFrame = CreateFrame("Frame", nil, frame)
         borderFrame:SetAllPoints()
@@ -224,7 +240,9 @@ local function ActivateCustomBuff(spellID, config, overrideStartTime)
     frame.Cooldown:SetScript("OnCooldownDone", function()
         DeactivateCustomBuff(spellID)
     end)
-    ApplyCustomBuffCooldownTextStyle(frame)
+    if not IsGroupedCustomBuff(spellID) then
+        ApplyCustomBuffCooldownTextStyle(frame)
+    end
 
     CB.activeBuffs[spellID] = {
         expires = startTime + duration,
@@ -294,40 +312,61 @@ local function OnGlowHide(event, spellID)
     DeactivateCustomBuff(374968)
 end
 
-local bloodlustHandledUntil = 0
+local bloodlustDebuffInstanceID
 
-local function OnBloodlustAura(event, unit, updateInfo)
-    if CB.activeBuffs[2825] then return end
-    if GetTime() < bloodlustHandledUntil then return end
-    if updateInfo and not updateInfo.isFullUpdate then
-        local dominated = updateInfo.addedAuras
-        if not dominated then return end
-        local found = false
-        for _, aura in ipairs(dominated) do
-            local sid = aura.spellId
-            if CDM.IsSafeNumber(sid) and BLOODLUST_DEBUFFS[sid] then
-                found = true
-                break
-            end
-        end
-        if not found then return end
-    end
+local function ActivateBloodlustFromDebuff(aura, lustBuffID, requireWithinWindow)
     local config = CDM.db.customBuffRegistry and CDM.db.customBuffRegistry[2825]
     if not config then return end
+    if CB.activeBuffs[2825] then return end
+
+    local dur = aura.duration
+    if not dur or dur <= 0 then dur = 600 end
+    local appliedTime = aura.expirationTime - dur
+
+    if requireWithinWindow and (GetTime() - appliedTime) >= 40 then return end
+
+    ActivateCustomBuff(2825, config, appliedTime)
+    local frame = CB.iconFrames[2825]
+    if frame and frame.Icon then
+        frame.Icon:SetTexture(GetSpellTexture(lustBuffID))
+    end
+end
+
+local function SeedBloodlust()
+    bloodlustDebuffInstanceID = nil
     for debuffID, lustBuffID in pairs(BLOODLUST_DEBUFFS) do
         local aura = GetPlayerAuraBySpellID(debuffID)
-        if aura and aura.expirationTime then
-            local dur = aura.duration
-            if not dur or dur <= 0 then dur = 600 end
-            local appliedTime = aura.expirationTime - dur
-            if (GetTime() - appliedTime) < 40 then
-                ActivateCustomBuff(2825, config, appliedTime)
-                bloodlustHandledUntil = aura.expirationTime
-                local frame = CB.iconFrames[2825]
-                if frame and frame.Icon then
-                    frame.Icon:SetTexture(GetSpellTexture(lustBuffID))
+        if aura and aura.auraInstanceID and aura.expirationTime then
+            bloodlustDebuffInstanceID = aura.auraInstanceID
+            ActivateBloodlustFromDebuff(aura, lustBuffID, true)
+            return
+        end
+    end
+end
+
+local function OnBloodlustAura(event, unit, info)
+    if not info or info.isFullUpdate then
+        SeedBloodlust()
+        return
+    end
+    if info.addedAuras then
+        for _, aura in ipairs(info.addedAuras) do
+            local sid = aura.spellId
+            if CDM.IsSafeNumber(sid) then
+                local lustBuffID = BLOODLUST_DEBUFFS[sid]
+                if lustBuffID and aura.auraInstanceID and aura.expirationTime then
+                    bloodlustDebuffInstanceID = aura.auraInstanceID
+                    ActivateBloodlustFromDebuff(aura, lustBuffID, false)
+                    break
                 end
-                return
+            end
+        end
+    end
+    if bloodlustDebuffInstanceID and info.removedAuraInstanceIDs then
+        for _, id in ipairs(info.removedAuraInstanceIDs) do
+            if id == bloodlustDebuffInstanceID then
+                bloodlustDebuffInstanceID = nil
+                break
             end
         end
     end
@@ -448,7 +487,9 @@ function CDM:UpdateCustomBuffs()
             CDM_C.ApplyIconTexCoord(frame.Icon, CDM_C.GetEffectiveZoomAmount(), w, h)
         end
 
-        ApplyCustomBuffCooldownTextStyle(frame)
+        if not IsGroupedCustomBuff(spellID) then
+            ApplyCustomBuffCooldownTextStyle(frame)
+        end
     end
 end
 
@@ -522,12 +563,24 @@ function CDM:SetUngroupedCustomBuffOrder(specID, list)
     self.db.ungroupedCustomBuffOrder[specID] = list
 end
 
+local function OnPlayerDead()
+    if not next(CB.activeBuffs) then return end
+    local toClear = {}
+    for spellID in pairs(CB.activeBuffs) do
+        toClear[#toClear + 1] = spellID
+    end
+    for i = 1, #toClear do
+        DeactivateCustomBuff(toClear[i])
+    end
+end
+
 local CUSTOM_BUFF_EVENTS = {
     UNIT_SPELLCAST_SUCCEEDED        = OnSpellCastSucceeded,
     UNIT_SPELLCAST_SENT             = OnSpellCastSent,
     UNIT_AURA                       = OnBloodlustAura,
     SPELL_ACTIVATION_OVERLAY_GLOW_SHOW = OnGlowShow,
     SPELL_ACTIVATION_OVERLAY_GLOW_HIDE = OnGlowHide,
+    PLAYER_DEAD                     = OnPlayerDead,
 }
 
 function CDM:InitializeCustomBuffs()
@@ -541,6 +594,7 @@ function CDM:InitializeCustomBuffs()
     eventFrame:RegisterUnitEvent("UNIT_AURA", "player")
     eventFrame:RegisterEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW")
     eventFrame:RegisterEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE")
+    eventFrame:RegisterEvent("PLAYER_DEAD")
 
     RebuildGlowFilters()
     self:RegisterTalentDataHandler(RebuildGlowFilters)

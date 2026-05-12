@@ -12,45 +12,31 @@ local Shared = ns.GroupEditorShared or {}
 local NormalizeToBase = API.NormalizeToBase
 local SharedGetDisplaySpellID = Shared.GetDisplaySpellID
 
-local cooldownInfoCache
-local function EnsureCooldownInfoCache()
-    if cooldownInfoCache then return end
-    if not C_CooldownViewer then return end
-    cooldownInfoCache = {}
-    for _, cat in ipairs({ Enum.CooldownViewerCategory.Essential, Enum.CooldownViewerCategory.Utility }) do
-        local ids = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
-        if ids then
-            for _, cdID in ipairs(ids) do
-                local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
-                if info and info.spellID then
-                    cooldownInfoCache[info.spellID] = info
-                    if info.overrideSpellID then
-                        cooldownInfoCache[info.overrideSpellID] = info
-                    end
-                    if info.overrideTooltipSpellID then
-                        cooldownInfoCache[info.overrideTooltipSpellID] = info
-                    end
-                end
+local lookupCacheBySpec = {}
+
+local function GetSpecLookup(specID)
+    if not specID then return nil end
+    local cache = lookupCacheBySpec[specID]
+    if cache then return cache end
+    cache = {}
+    local function ingest(arr)
+        if not arr then return end
+        for _, entry in ipairs(arr) do
+            if entry.spellID then cache[entry.spellID] = entry end
+            if entry.baseSpellID and entry.baseSpellID ~= entry.spellID then
+                cache[entry.baseSpellID] = entry
             end
         end
     end
+    ingest(API:GetSpecEssentialCache(specID))
+    ingest(API:GetSpecUtilityCache(specID))
+    lookupCacheBySpec[specID] = cache
+    return cache
 end
 
-local function ResolveCooldownOverrideID(spellID)
-    if not IsSafeNumber(spellID) then return spellID end
-    EnsureCooldownInfoCache()
-    if not cooldownInfoCache then return spellID end
-    local info = cooldownInfoCache[spellID]
-    if info then return info.overrideSpellID or info.spellID end
-    return spellID
-end
-
-local function GetDisplaySpellID(spellID)
-    return SharedGetDisplaySpellID(ResolveCooldownOverrideID(spellID))
-end
 local suppressPanelRefreshUntil = 0
 local function SaveAndRefresh()
-    cooldownInfoCache = nil
+    lookupCacheBySpec = {}
     suppressPanelRefreshUntil = GetTime() + 0.15
     Shared.SaveVisualRefresh("CD_DATA")
 end
@@ -106,6 +92,18 @@ local function CreateCooldownGroupsPanel(subPage, page)
     local renameActiveGroupIndex = nil
     local renameActiveEditBox = nil
 
+    local function ResolveCooldownOverrideID(spellID)
+        if not IsSafeNumber(spellID) or not currentSpecID then return spellID end
+        local cache = GetSpecLookup(currentSpecID)
+        local entry = cache and cache[spellID]
+        if entry then return entry.spellID end
+        return spellID
+    end
+
+    local function GetDisplaySpellID(spellID)
+        return SharedGetDisplaySpellID(ResolveCooldownOverrideID(spellID))
+    end
+
     local _helpers = Shared.CreateGroupEditorHelpers({
         dbKey = dbKey,
         ungroupedDbKey = "ungroupedCooldownOverrides",
@@ -148,7 +146,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
 
     local function BuildCooldownActiveSet()
         local active = {}
-        for _, vName in ipairs({ "EssentialCooldownViewer", "UtilityCooldownViewer" }) do
+        for _, vName in ipairs({ CDM_C.VIEWERS.ESSENTIAL, CDM_C.VIEWERS.UTILITY }) do
             local viewer = _G[vName]
             if viewer and viewer.itemFramePool then
                 for frame in viewer.itemFramePool:EnumerateActive() do
@@ -163,11 +161,10 @@ local function CreateCooldownGroupsPanel(subPage, page)
     local QueueLeftPanelRefresh = Shared.CreateQueueLeftPanelRefresh(subPage, function() return RefreshAll end)
 
     local function ResolveCooldownStableBase(spellID)
-        if not IsSafeNumber(spellID) then return spellID end
-        EnsureCooldownInfoCache()
-        if not cooldownInfoCache then return spellID end
-        local info = cooldownInfoCache[spellID]
-        if info then return info.spellID end
+        if not IsSafeNumber(spellID) or not currentSpecID then return spellID end
+        local cache = GetSpecLookup(currentSpecID)
+        local entry = cache and cache[spellID]
+        if entry then return entry.baseSpellID or entry.spellID end
         return spellID
     end
 
@@ -1251,7 +1248,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
     end
 
     RefreshAll = function()
-        cooldownInfoCache = nil
+        lookupCacheBySpec = {}
         BuildIconGrid()
         BuildGroupsPanel()
         if addIconBtnRef then addIconBtnRef:SetEnabled(selectedGroupIndex ~= nil) end

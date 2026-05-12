@@ -99,5 +99,6 @@ function API:GetSpecBuffSpellCache(specID)
 end
 
 CDM:RegisterEvent("PLAYER_ENTERING_WORLD", ScheduleRefresh)
+CDM:RegisterEvent("COOLDOWN_VIEWER_TABLE_HOTFIXED", ScheduleRefresh)
 CDM:RegisterSpecStateHandler(ScheduleRefresh)
 CDM:RegisterTalentDataHandler(ScheduleRefresh)

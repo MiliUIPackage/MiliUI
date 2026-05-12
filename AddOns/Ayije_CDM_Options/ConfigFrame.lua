@@ -117,6 +117,8 @@ local function SetCategoryButtonState(button, isActive)
     UI.SetTextInactive(button.Text)
 end
 
+local BLIZZARD_PANEL_TAB = "buffgroups"
+
 local function SelectCategory(id)
     if UI and UI.CloseAllDropdownMenus then
         UI.CloseAllDropdownMenus()
@@ -133,6 +135,10 @@ local function SelectCategory(id)
         if scrollFrame then
             scrollFrame:SetVerticalScroll(0)
         end
+    end
+
+    if CDM.SetBuffGroupsTabActive then
+        CDM:SetBuffGroupsTabActive(currentTab == BLIZZARD_PANEL_TAB)
     end
 end
 
@@ -171,6 +177,9 @@ local function CreateConfigFrame()
             UI.CloseAllDropdownMenus()
         end
         HideConfigPopups()
+        if CDM.SetBuffGroupsTabActive then
+            CDM:SetBuffGroupsTabActive(false)
+        end
     end)
 
     if ConfigFrame.TitleText then
@@ -200,48 +209,26 @@ local function CreateConfigFrame()
     cdmBtn:SetPoint("TOPLEFT", ConfigFrame, "TOPLEFT", 22, -32)
     cdmBtn:SetText(L["Settings"])
     cdmBtn:SetScript("OnClick", function()
-        local frame = CooldownViewerSettings
-        if frame:IsShown() then
-            frame:Hide()
+        if not CooldownViewerSettings then return end
+        if CooldownViewerSettings:IsVisible() then
+            securecall("HideUIPanel", CooldownViewerSettings)
         else
-            frame:Show()
+            securecall("ShowUIPanel", CooldownViewerSettings)
         end
     end)
 
-    local function UpdateComplianceButtonVisibility(btn)
-        if not CDM.GetCooldownViewerEditModeCompliance then
-            btn:Hide()
-            return
+    local editModeBtn = CreateFrame("Button", nil, titleContainer, "UIPanelButtonTemplate")
+    editModeBtn:SetSize(140, 24)
+    editModeBtn:SetPoint("LEFT", cdmBtn, "RIGHT", 6, 0)
+    editModeBtn:SetText(L["Edit Mode Settings"])
+
+    local editModeOverlay
+    editModeBtn:SetScript("OnClick", function()
+        if not ns.CreateEditModeOverlay then return end
+        if not editModeOverlay then
+            editModeOverlay = ns.CreateEditModeOverlay()
         end
-        local result = CDM:GetCooldownViewerEditModeCompliance()
-        btn:SetShown(result.isReady and not result.isCompliant)
-    end
-
-    local complianceBtn = CreateFrame("Button", nil, titleContainer, "UIPanelButtonTemplate")
-    complianceBtn:SetSize(120, 24)
-    complianceBtn:SetPoint("LEFT", cdmBtn, "RIGHT", 6, 0)
-    complianceBtn:SetText(L["Fix Edit Mode"])
-    complianceBtn:Hide()
-
-    complianceBtn:SetScript("OnClick", function()
-        local status = CDM:ApplyCooldownViewerEditModeRecommendedSettings()
-        if status == "applied" then
-            ReloadUI()
-        else
-            complianceBtn:Hide()
-        end
-    end)
-
-    ConfigFrame:HookScript("OnShow", function()
-        UpdateComplianceButtonVisibility(complianceBtn)
-    end)
-
-    local complianceEventFrame = CreateFrame("Frame", nil, ConfigFrame)
-    complianceEventFrame:RegisterEvent("EDIT_MODE_LAYOUTS_UPDATED")
-    complianceEventFrame:SetScript("OnEvent", function()
-        if ConfigFrame:IsShown() then
-            UpdateComplianceButtonVisibility(complianceBtn)
-        end
+        editModeOverlay:Show()
     end)
 
     ConfigFrame:SetMovable(true)

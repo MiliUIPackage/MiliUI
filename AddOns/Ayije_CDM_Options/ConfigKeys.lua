@@ -2,6 +2,7 @@ local Runtime = _G["Ayije_CDM"]
 if not Runtime then return end
 local ns = Runtime._OptionsNS
 local CDM = Runtime
+local L = CDM.L
 
 ns.ConfigKeys = {
     order = {
@@ -23,7 +24,7 @@ ns.ConfigKeys = {
     },
     categories = {
         cooldowngroups = {
-            label = "Cooldown Groups",
+            label = L["Cooldown Groups"],
             keys = {
                 "cooldownGroups",
                 "ungroupedCooldownOverrides",
@@ -41,7 +42,7 @@ ns.ConfigKeys = {
             },
         },
         styling = {
-            label = "Border & Visual Styling",
+            label = L["Border & Visual Styling"],
             keys = {
                 "borderFile",
                 "borderSize",
@@ -55,12 +56,17 @@ ns.ConfigKeys = {
                 "hideDebuffBorder",
                 "hidePandemicIndicator",
                 "hideCooldownBling",
+                "pandemicCustomizationEnabled",
+                "pandemicBorderEnabled",
+                "pandemicBorderColor",
+                "chargeShowEdge",
+                "chargeHideSwipe",
                 "swipeColor",
                 "hideGCDSwipe",
             },
         },
         text = {
-            label = "Text & Font Settings",
+            label = L["Text & Font Settings"],
             keys = {
                 "textFont",
                 "textFontOutline",
@@ -100,12 +106,13 @@ ns.ConfigKeys = {
                 "buffBarNameOffsetY",
                 "buffBarDurationFontSize",
                 "buffBarDurationColor",
+                "buffBarDurationPosition",
                 "buffBarDurationOffsetX",
                 "buffBarDurationOffsetY",
             },
         },
         bars = {
-            label = "Buff Bar Settings",
+            label = L["Buff Bar Settings"],
             keys = {
                 "buffBarWidth",
                 "buffBarHeight",
@@ -129,7 +136,7 @@ ns.ConfigKeys = {
             },
         },
         resources = {
-            label = "Resource Bar Settings",
+            label = L["Resource Bar Settings"],
             keys = {
                 "resourcesEnabled",
                 "resourceBarSettings",
@@ -141,7 +148,7 @@ ns.ConfigKeys = {
             },
         },
         racials = {
-            label = "Racials Tracker Settings",
+            label = L["Racials Tracker Settings"],
             keys = {
                 "racialsEnabled",
                 "racialsIconWidth",
@@ -166,7 +173,7 @@ ns.ConfigKeys = {
             },
         },
         defensives = {
-            label = "Defensives Tracker Settings",
+            label = L["Defensives Tracker Settings"],
             keys = {
                 "defensivesEnabled",
                 "defensivesIconWidth",
@@ -185,7 +192,7 @@ ns.ConfigKeys = {
             },
         },
         trinkets = {
-            label = "Trinkets Tracker Settings",
+            label = L["Trinkets Tracker Settings"],
             keys = {
                 "trinketsEnabled",
                 "trinketsIconWidth",
@@ -195,13 +202,14 @@ ns.ConfigKeys = {
                 "trinketsOffsetY",
                 "trinketsCooldownFontSize",
                 "trinketsShowPassive",
+                "trinketsBlacklist",
                 "trinketsMode",
                 "trinketsEssentialRow",
                 "trinketsEssentialPosition",
             },
         },
         externals = {
-            label = "Externals Tracker Settings",
+            label = L["Externals Tracker Settings"],
             keys = {
                 "externalsEnabled",
                 "externalsIconWidth",
@@ -211,7 +219,7 @@ ns.ConfigKeys = {
             },
         },
         castbar = {
-            label = "Cast Bar Settings",
+            label = L["Cast Bar Settings"],
             keys = {
                 "castBarEnabled",
                 "hideBlizzardCastBar",
@@ -221,6 +229,7 @@ ns.ConfigKeys = {
                 "castBarShowSpellName",
                 "castBarNameMaxChars",
                 "castBarShowTimer",
+                "castBarShowTotalDuration",
                 "castBarShowSpark",
                 "castBarNameOffsetX",
                 "castBarNameOffsetY",
@@ -252,7 +261,7 @@ ns.ConfigKeys = {
             },
         },
         glow = {
-            label = "Glow Settings",
+            label = L["Glow Settings"],
             keys = {
                 "glowType",
                 "glowUseCustomColor",
@@ -276,7 +285,7 @@ ns.ConfigKeys = {
             },
         },
         assist = {
-            label = "Assist Settings",
+            label = L["Assist Settings"],
             keys = {
                 "rotationAssistEnabled",
                 "rotationAssistGlowRatio",
@@ -295,7 +304,7 @@ ns.ConfigKeys = {
             },
         },
         fading = {
-            label = "Fading Settings",
+            label = L["Fading Settings"],
             keys = {
                 "fadingEnabled",
                 "fadingTriggerNoTarget",
@@ -313,7 +322,7 @@ ns.ConfigKeys = {
             },
         },
         positions = {
-            label = "Positions & Locking",
+            label = L["Positions & Locking"],
             keys = {
                 "containerLocked",
                 "buffContainerLocked",
@@ -323,7 +332,7 @@ ns.ConfigKeys = {
             },
         },
         buffgroups = {
-            label = "Buff Groups",
+            label = L["Buff Groups"],
             keys = {
                 "buffGroups",
                 "ungroupedBuffOverrides",
@@ -343,7 +352,7 @@ do
     for catName, catDef in pairs(ns.ConfigKeys.categories) do
         for _, key in ipairs(catDef.keys) do
             if keysInCategories[key] then
-                print("|cffff6600[CDM] ConfigKeys: '" .. key .. "' in both '" .. keysInCategories[key] .. "' and '" .. catName .. "'|r")
+                print("|cffff6600[ACDM] ConfigKeys: '" .. key .. "' in both '" .. keysInCategories[key] .. "' and '" .. catName .. "'|r")
             end
             keysInCategories[key] = catName
         end
@@ -351,13 +360,13 @@ do
 
     for key in pairs(defaults) do
         if not keysInCategories[key] then
-            print("|cffff6600[CDM] ConfigKeys: default key '" .. key .. "' not in any export category|r")
+            print("|cffff6600[ACDM] ConfigKeys: default key '" .. key .. "' not in any export category|r")
         end
     end
 
     for key, catName in pairs(keysInCategories) do
         if defaults[key] == nil then
-            print("|cffff6600[CDM] ConfigKeys: export key '" .. key .. "' (in '" .. catName .. "') has no default|r")
+            print("|cffff6600[ACDM] ConfigKeys: export key '" .. key .. "' (in '" .. catName .. "') has no default|r")
         end
     end
 end

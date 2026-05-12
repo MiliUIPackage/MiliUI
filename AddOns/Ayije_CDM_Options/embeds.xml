@@ -19,6 +19,7 @@
     <Script file="Profiles.lua"/>
     <Script file="Racials.lua"/>
     <Script file="Defensives.lua"/>
+    <Script file="EditModeOverlay.lua"/>
     <Script file="Trinkets.lua"/>
     <Script file="Resources_Conditions.lua"/>
     <Script file="Resources_Load.lua"/>

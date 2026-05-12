@@ -4,7 +4,174 @@ local API = Runtime.API
 local ns = Runtime._OptionsNS
 local CDM = Runtime
 local UI = ns.ConfigUI
+local Shared = ns.GroupEditorShared
 local L = Runtime.L
+
+local function CreateBlacklistOverlay()
+    local overlay = UI.CreateModalOverlay()
+    local window = overlay.window
+
+    local paddingX = 18
+    local paddingY = 14
+    local titleOffset = 28
+    local windowWidth = 419
+    local windowHeight = 524
+
+    window:SetSize(windowWidth, windowHeight)
+
+    local rowHeight = 29
+    local contentWidth = windowWidth - paddingX * 2
+    local startY = -(paddingY + titleOffset + 14)
+
+    local titleText = window:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
+    titleText:SetText(L["Trinket Blacklist"])
+    titleText:SetPoint("TOPLEFT", window, "TOPLEFT", paddingX, -(paddingY + 16))
+
+    local listContainer = CreateFrame("Frame", nil, window)
+    listContainer:SetSize(contentWidth, 400)
+    listContainer:SetPoint("TOPLEFT", paddingX, startY)
+
+    local addLabel = window:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
+    addLabel:SetText(L["Add Item"])
+    addLabel:SetTextColor(CDM.CONST.GOLD.r, CDM.CONST.GOLD.g, CDM.CONST.GOLD.b, 1)
+    addLabel:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", paddingX, paddingY + 56)
+
+    local addRow = CreateFrame("Frame", nil, window)
+    addRow:SetSize(400, 26)
+    addRow:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", paddingX, paddingY + 8)
+
+    local editBox = CreateFrame("EditBox", nil, addRow, "InputBoxTemplate")
+    editBox:SetSize(120, 22)
+    editBox:SetPoint("LEFT", addRow, "LEFT", 6, 0)
+    editBox:SetAutoFocus(false)
+    editBox:SetNumeric(true)
+    editBox:SetMaxLetters(7)
+
+    UI.AttachPlaceholder(editBox, L["Item ID"])
+
+    local addBtn = CreateFrame("Button", nil, addRow, "UIPanelButtonTemplate")
+    addBtn:SetSize(60, 22)
+    addBtn:SetPoint("LEFT", editBox, "RIGHT", 6, 0)
+    addBtn:SetText(L["Add"])
+
+    local statusText = window:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+    statusText:SetPoint("BOTTOMLEFT", addRow, "TOPLEFT", 0, 4)
+    statusText:SetPoint("BOTTOMRIGHT", addRow, "TOPRIGHT", 0, 4)
+    statusText:SetJustifyH("LEFT")
+    statusText:SetWordWrap(false)
+    statusText:SetText("")
+
+    local SetStatus = UI.CreateTimedStatus(statusText)
+
+    local RebuildList
+    local pendingLoads = {}
+
+    local function EnsureItemInfo(itemID)
+        if pendingLoads[itemID] then return end
+        if C_Item.GetItemInfo(itemID) then return end
+        pendingLoads[itemID] = true
+        C_Item.RequestLoadItemDataByID(itemID)
+        local item = Item:CreateFromItemID(itemID)
+        item:ContinueOnItemLoad(function()
+            pendingLoads[itemID] = nil
+            if overlay:IsShown() then RebuildList() end
+        end)
+    end
+
+    RebuildList = function()
+        UI.ClearChildren(listContainer)
+
+        local list = CDM.db.trinketsBlacklist
+        if not list then return end
+
+        local y = 0
+        for idx, itemID in ipairs(list) do
+            local row = CreateFrame("Frame", nil, listContainer)
+            row:SetSize(contentWidth, rowHeight)
+            row:SetPoint("TOPLEFT", 0, -y)
+
+            local iconTex = row:CreateTexture(nil, "ARTWORK")
+            iconTex:SetSize(20, 20)
+            iconTex:SetPoint("LEFT", row, "LEFT", 8, 0)
+            local texture = C_Item.GetItemIconByID(itemID)
+            if texture and texture ~= 0 then
+                iconTex:SetTexture(texture)
+                CDM.CONST.ApplyIconTexCoord(iconTex, CDM.CONST.GetEffectiveZoomAmount())
+            end
+
+            local nameText = row:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+            nameText:SetPoint("LEFT", iconTex, "RIGHT", 6, 0)
+            local name = C_Item.GetItemInfo(itemID)
+            if name then
+                nameText:SetText(name)
+            else
+                nameText:SetText(tostring(itemID) .. " " .. L["(loading...)"])
+                EnsureItemInfo(itemID)
+            end
+
+            local removeBtn = CreateFrame("Button", nil, row)
+            removeBtn:SetSize(16, 16)
+            removeBtn:SetPoint("RIGHT", row, "RIGHT", -8, 0)
+            Shared.ApplyRemoveButtonText(removeBtn)
+
+            removeBtn:SetScript("OnClick", function()
+                table.remove(list, idx)
+                RebuildList()
+                API:Refresh("TRACKERS")
+            end)
+
+            y = y + rowHeight
+        end
+    end
+
+    local function DoAddItem()
+        local text = editBox:GetText()
+        local itemID = tonumber(text)
+        if not itemID or itemID <= 0 then
+            SetStatus("|cffff4444" .. L["Enter a valid item ID"] .. "|r")
+            return
+        end
+        if not C_Item.DoesItemExistByID(itemID) then
+            SetStatus("|cffff4444" .. L["Unknown item ID"] .. "|r")
+            return
+        end
+
+        local list = CDM.db.trinketsBlacklist
+        if not list then
+            list = {}
+            CDM.db.trinketsBlacklist = list
+        end
+        for i = 1, #list do
+            if list[i] == itemID then
+                SetStatus("|cffff4444" .. L["Already blacklisted"] .. "|r")
+                return
+            end
+        end
+
+        list[#list + 1] = itemID
+        editBox:SetText("")
+        local name = C_Item.GetItemInfo(itemID) or tostring(itemID)
+        SetStatus("|cff44ff44" .. string.format(L["Added: %s"], name) .. "|r")
+        RebuildList()
+        API:Refresh("TRACKERS")
+    end
+
+    addBtn:SetScript("OnClick", DoAddItem)
+    editBox:SetScript("OnEnterPressed", function(self)
+        DoAddItem()
+        self:ClearFocus()
+    end)
+    editBox:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus()
+    end)
+
+    overlay:HookScript("OnShow", function()
+        RebuildList()
+        SetStatus("")
+    end)
+
+    return overlay
+end
 
 local MODE_OPTIONS = {
     { value = "independent", label = L["Independent"] },
@@ -62,6 +229,17 @@ local function CreateTrinketsTab(page, tabId)
         end
     )
     page.controls.trinketsEnabled:SetPoint("TOPLEFT", -34, NextY(0))
+
+    local manageBlacklistBtn = CreateFrame("Button", nil, scrollChild, "UIPanelButtonTemplate")
+    manageBlacklistBtn:SetSize(160, 22)
+    manageBlacklistBtn:SetText(L["Manage Blacklist"])
+    manageBlacklistBtn:SetPoint("TOPRIGHT", scrollChild, "TOPRIGHT", -10, -2)
+
+    local blacklistOverlay = CreateBlacklistOverlay()
+    manageBlacklistBtn:SetScript("OnClick", function()
+        blacklistOverlay:Show()
+    end)
+
     NextY(35)
 
     local layoutHeader = UI.CreateHeader(scrollChild, L["Layout Mode"])

@@ -43,8 +43,6 @@ local GUARDIAN_OF_ELUNE_DURATION = 15
 local IGNORE_PAIN_SPELL_ID = 190456
 local IRONFUR_UPDATE_INTERVAL = 0.021
 
-local brewmasterCombatCallbackRegistered = false
-
 local maelstromInstanceID
 local maelstromStacks = 0
 
@@ -75,6 +73,7 @@ local ignorePainScanRetries = 0
 
 local staggerUpdateTicker = nil
 local StartStaggerTicker, StopStaggerTicker
+local brewmasterCombatCallbackRegistered = false
 
 local runeUpdateTicker = nil
 local runePowerUpdatePending = false
@@ -214,6 +213,50 @@ local function CollectRuneData()
     return hasRecharging
 end
 
+local staggerSettingsVer = -1
+local cachedStaggerCeilingPercent = 100
+local cachedStaggerTiers = {}
+local cachedStaggerLightColor
+
+local function RefreshStaggerSettingsCache()
+    cachedStaggerCeilingPercent = CDM:GetBarSetting("Stagger", "ceilingPercent") or 100
+    if cachedStaggerCeilingPercent < 1 then cachedStaggerCeilingPercent = 1 end
+    wipe(cachedStaggerTiers)
+    local tiers = CDM_C.STAGGER_TIERS
+    for i = #tiers, 1, -1 do
+        local tier = tiers[i]
+        if CDM:GetBarSetting("Stagger", tier.enabled) then
+            local threshold = CDM:GetBarSetting("Stagger", tier.threshold)
+            if type(threshold) == "number" then
+                cachedStaggerTiers[#cachedStaggerTiers + 1] = {
+                    threshold = threshold,
+                    color = CDM:GetBarSetting("Stagger", tier.color),
+                }
+            end
+        end
+    end
+    cachedStaggerLightColor = CDM:GetBarSetting("Stagger", "lightColor")
+    staggerSettingsVer = CDM.styleCacheVersion or 0
+    local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.Stagger]
+    if bar then bar._lastColorTier = nil end
+end
+
+local function EnsureStaggerSettingsCache()
+    if staggerSettingsVer ~= (CDM.styleCacheVersion or 0) then
+        RefreshStaggerSettingsCache()
+    end
+end
+
+local function ResolveStaggerColorTier(percent)
+    EnsureStaggerSettingsCache()
+    for i = 1, #cachedStaggerTiers do
+        if percent >= cachedStaggerTiers[i].threshold then
+            return i, cachedStaggerTiers[i].color
+        end
+    end
+    return 0, cachedStaggerLightColor
+end
+
 local function UpdateStaggerBar()
     local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.Stagger]
     if not bar or not bar:IsShown() then
@@ -227,37 +270,26 @@ local function UpdateStaggerBar()
         return
     end
 
-    bar:SetMinMaxValues(0, maxHealth)
+    EnsureStaggerSettingsCache()
+    local barMax = maxHealth * (cachedStaggerCeilingPercent / 100)
+
+    bar:SetMinMaxValues(0, barMax)
     bar:SetValue(stagger, Enum.StatusBarInterpolation.ExponentialEaseOut)
 
     local pct = 0
     local isStaggerSecret = (type(stagger) == "number" and not canaccessvalue(stagger)) or
                             (type(maxHealth) == "number" and not canaccessvalue(maxHealth))
     if not isStaggerSecret and type(stagger) == "number" and type(maxHealth) == "number" then
-        pct = stagger / maxHealth
+        pct = (stagger / maxHealth) * 100
     end
 
-    local colorTier = 0
-    if pct >= 0.6 then
-        colorTier = 2
-    elseif pct >= 0.3 then
-        colorTier = 1
-    end
-
-    if bar._lastColorTier ~= colorTier then
+    local colorTier, color = ResolveStaggerColorTier(pct)
+    if bar._lastColorTier ~= colorTier and color then
         bar._lastColorTier = colorTier
-        local color
-        if colorTier == 2 then
-            color = CDM:GetBarSetting("Stagger", "heavyColor")
-        elseif colorTier == 1 then
-            color = CDM:GetBarSetting("Stagger", "moderateColor")
-        else
-            color = CDM:GetBarSetting("Stagger", "lightColor")
-        end
         bar:SetStatusBarColor(color.r, color.g, color.b, color.a)
     end
 
-    bar.staggerPercent = pct * 100
+    bar.staggerPercent = pct
 
     UpdateTagTextForPowerType(CUSTOM_POWER_TYPES.Stagger)
 
@@ -721,17 +753,8 @@ local function OnSpellUpdateUses(event, spellID, baseSpellID)
     res.UpdateBarValue(CUSTOM_POWER_TYPES.SoulFragments)
 end
 
-local function OnPlayerRegenDisabled()
-    StartStaggerTicker()
-end
-
-local function OnPlayerRegenEnabled()
-    local currentStagger = UnitStagger("player") or 0
-    if IsSafeNumber(currentStagger) and currentStagger > 0 then
-        StartStaggerTicker()
-        return
-    end
-    StopStaggerTicker()
+local function OnStaggerUnitEvent()
+    UpdateStaggerBar()
 end
 
 local function OnBrewmasterCombatStateChanged(isInCombat)
@@ -739,10 +762,15 @@ local function OnBrewmasterCombatStateChanged(isInCombat)
         return
     end
     if isInCombat then
-        OnPlayerRegenDisabled()
+        StartStaggerTicker()
         return
     end
-    OnPlayerRegenEnabled()
+    local currentStagger = UnitStagger("player") or 0
+    if IsSafeNumber(currentStagger) and currentStagger > 0 then
+        StartStaggerTicker()
+        return
+    end
+    StopStaggerTicker()
 end
 
 local function RegisterBrewmasterCombatStateListener()
@@ -759,10 +787,6 @@ local function UnregisterBrewmasterCombatStateListener()
         CDM:UnregisterCombatStateHandler(OnBrewmasterCombatStateChanged)
         brewmasterCombatCallbackRegistered = false
     end
-end
-
-local function OnUnitMaxHealth()
-    UpdateStaggerBar()
 end
 
 local function OnMaelstromUnitAura(event, unit, info)
@@ -988,7 +1012,9 @@ end
 
 local function EnableBrewmasterTracking()
     RegisterBrewmasterCombatStateListener()
-    res.RegisterResUnitEvent("UNIT_MAXHEALTH", "player", OnUnitMaxHealth)
+    res.RegisterResUnitEvent("UNIT_MAXHEALTH", "player", OnStaggerUnitEvent)
+    res.RegisterResUnitEvent("UNIT_HEALTH", "player", OnStaggerUnitEvent)
+    UpdateStaggerBar()
 
     local currentStagger = UnitStagger("player") or 0
     if InCombatLockdown() or (IsSafeNumber(currentStagger) and currentStagger > 0) then
@@ -999,6 +1025,7 @@ end
 local function DisableBrewmasterTracking()
     UnregisterBrewmasterCombatStateListener()
     res.UnregisterResUnitEvent("UNIT_MAXHEALTH")
+    res.UnregisterResUnitEvent("UNIT_HEALTH")
     StopStaggerTicker()
 end
 

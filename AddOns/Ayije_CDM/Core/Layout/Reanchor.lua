@@ -506,6 +506,9 @@ local function RunReanchor()
 
     elseif activeVName == VIEWERS.BUFF then
         PositionBuffFramesForReanchor(activeSelf, activeViewer, activeVName)
+        if activeSelf.UpdateBuffGroupOverlays then
+            activeSelf:UpdateBuffGroupOverlays(tempBuffGroups, tempBuff)
+        end
 
     elseif activeVName == VIEWERS.BUFF_BAR then
         activeSelf:PositionBuffBarFrames(activeViewer, activeVName)

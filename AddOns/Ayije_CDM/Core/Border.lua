@@ -164,7 +164,7 @@ function BORDER:CreateBorder(frame, opts)
     ApplyBorderPoints(frame, border, meta, offsetX, offsetY)
 
     local frameData = GetFrameData(frame)
-    local color = frameData.cdmBorderColorOverride or CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
+    local color = BORDER:ResolveCurrentBorderColor(frameData)
     SetBorderColor(border, color)
 
     if event then
@@ -175,11 +175,19 @@ function BORDER:CreateBorder(frame, opts)
             end)
             frame:HookScript("OnLeave", function()
                 local fd = GetFrameData(frame)
-                local c = fd.cdmBorderColorOverride or CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
-                SetBorderColor(border, c)
+                SetBorderColor(border, BORDER:ResolveCurrentBorderColor(fd))
             end)
         end
     end
+end
+
+function BORDER:ResolveCurrentBorderColor(frameData)
+    if frameData.cdmPandemicActive and frameData.cdmPandemicAppliedColor then
+        return frameData.cdmPandemicAppliedColor
+    end
+    return frameData.cdmBorderColorOverride
+        or frameData.cdmResolvedBorderColor
+        or CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
 end
 
 function BORDER:UpdateBorder(frame)
@@ -197,8 +205,7 @@ function BORDER:UpdateBorder(frame)
         DisableBorderSharpening(frame.border)
         frame.border:Show()
         local frameData = GetFrameData(frame)
-        local color = frameData.cdmBorderColorOverride or frameData.cdmResolvedBorderColor or CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
-        SetBorderColor(frame.border, color)
+        SetBorderColor(frame.border, BORDER:ResolveCurrentBorderColor(frameData))
         ApplyBorderPoints(frame, frame.border, meta, offsetX, offsetY)
     end
 end
@@ -207,7 +214,6 @@ function BORDER:UpdateAllBorders()
     CDM.borderStyleVersion = (CDM.borderStyleVersion or 0) + 1
 
     local borderDef, offsetX, offsetY = GetBorderDef()
-    local color = CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
     local defChanged = borderDef ~= lastAppliedBorderDef
     lastAppliedBorderDef = borderDef
 
@@ -225,8 +231,7 @@ function BORDER:UpdateAllBorders()
                 end
                 frame.border:Show()
                 local frameData = GetFrameData(frame)
-                local c = frameData.cdmBorderColorOverride or frameData.cdmResolvedBorderColor or color
-                SetBorderColor(frame.border, c)
+                SetBorderColor(frame.border, BORDER:ResolveCurrentBorderColor(frameData))
                 ApplyBorderPoints(frame, frame.border, meta, offsetX, offsetY)
             end
         end
@@ -247,6 +252,7 @@ function BORDER:ApplyBorderColorOverride(frame, color)
     if not frame then return end
     local frameData = GetFrameData(frame)
     frameData.cdmBorderColorOverride = color
+    if frameData.cdmPandemicActive then return end
     UpdateAllBorderColorSurfaces(frame, frameData, color)
 end
 
@@ -254,7 +260,45 @@ function BORDER:RestoreToCurrentBorderColor(frame)
     if not frame then return end
     local frameData = GetFrameData(frame)
     frameData.cdmBorderColorOverride = nil
-    UpdateAllBorderColorSurfaces(frame, frameData, frameData.cdmResolvedBorderColor or CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR))
+    if frameData.cdmPandemicActive then return end
+    UpdateAllBorderColorSurfaces(frame, frameData, BORDER:ResolveCurrentBorderColor(frameData))
+end
+
+function BORDER:ApplyPandemicBorderColor(frame, color)
+    if not frame then return end
+    local fd = GetFrameData(frame)
+    fd.cdmPandemicAppliedColor = color
+    UpdateAllBorderColorSurfaces(frame, fd, color)
+end
+
+function BORDER:ClearPandemicBorderColor(frame)
+    if not frame then return end
+    local fd = GetFrameData(frame)
+    fd.cdmPandemicAppliedColor = nil
+    UpdateAllBorderColorSurfaces(frame, fd, BORDER:ResolveCurrentBorderColor(fd))
+end
+
+function BORDER:CommitResolvedBorderColor(frame, frameData, r, g, b)
+    local resolved = frameData.cdmResolvedBorderColor
+    if not resolved then
+        resolved = {}
+        frameData.cdmResolvedBorderColor = resolved
+    end
+    resolved.r = r
+    resolved.g = g
+    resolved.b = b
+    resolved.a = 1
+
+    if frameData.borderFrame then
+        GetFrameData(frameData.borderFrame).cdmResolvedBorderColor = resolved
+    end
+
+    if frameData.cdmPandemicActive or frameData.cdmBorderColorOverride then
+        return resolved
+    end
+
+    UpdateAllBorderColorSurfaces(frame, frameData, resolved)
+    return resolved
 end
 
 CDM:RegisterRefreshCallback("borders", function()

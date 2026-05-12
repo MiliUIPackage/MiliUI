@@ -11,10 +11,10 @@ local CDM_C = CDM.CONST or {}
 
 local function PrintProfileActionError(errCode)
     if errCode == "combat_blocked" then
-        print("|cffff0000[CDM]|r " .. L["Cannot open config while in combat"])
+        print("|cffff0000[ACDM]|r " .. L["Cannot open config while in combat"])
         return
     end
-    print("|cffff0000[CDM]|r " .. tostring(errCode or L["Invalid profile data"]))
+    print("|cffff0000[ACDM]|r " .. tostring(errCode or L["Invalid profile data"]))
 end
 
 local Font12 = _G["AyijeCDM_Font12"] or CreateFont("AyijeCDM_Font12")

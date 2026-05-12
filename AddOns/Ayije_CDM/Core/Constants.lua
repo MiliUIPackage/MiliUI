@@ -67,10 +67,35 @@ CDM.CONST = {
 
 local VIEWERS = CDM.CONST.VIEWERS
 CDM.CONST.COOLDOWN_VIEWER_NAMES = { VIEWERS.ESSENTIAL, VIEWERS.UTILITY }
+CDM.CONST.ALL_VIEWER_NAMES = {
+    VIEWERS.ESSENTIAL,
+    VIEWERS.UTILITY,
+    VIEWERS.BUFF,
+    VIEWERS.BUFF_BAR,
+}
 
 CDM.CONST.VIEWERS_WITH_OVERRIDE = {
     [VIEWERS.ESSENTIAL] = true,
     [VIEWERS.UTILITY] = true,
+}
+
+CDM.CONST.STAGGER_TIERS = {
+    { enabled = "tier1Enabled", threshold = "tier1Threshold", color = "moderateColor" },
+    { enabled = "tier2Enabled", threshold = "tier2Threshold", color = "heavyColor"    },
+    { enabled = "tier3Enabled", threshold = "tier3Threshold", color = "tier3Color"    },
+    { enabled = "tier4Enabled", threshold = "tier4Threshold", color = "tier4Color"    },
+}
+
+CDM.CONST.BAR_KEYS_SUPPORTING_TICKS = {
+    Mana = true, Rage = true, Energy = true, Focus = true, RunicPower = true,
+    LunarPower = true, Maelstrom = true, Insanity = true, Fury = true,
+}
+CDM.CONST.MAX_TICKS_PER_BAR = 5
+
+CDM.CONST.TRACKER_FRAME_ACCESSORS = {
+    "GetTrinketIconFrames",
+    "GetDefensiveIconFrames",
+    "GetRacialsIconFrames",
 }
 
 

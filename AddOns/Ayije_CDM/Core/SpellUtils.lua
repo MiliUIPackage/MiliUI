@@ -232,6 +232,13 @@ local function BuildBuffGroupMatchCandidatesInto(spellID, out, outSeen)
     return out
 end
 
+function CDM:ForEachSpellMatchCandidate(spellID, fn)
+    if not fn then return end
+    local list = BuildBuffGroupMatchCandidatesInto(spellID, scratchMatchCandidatesAlt, scratchMatchSeenAlt)
+    for _, key in ipairs(list) do
+        if fn(key) then return end
+    end
+end
 
 function CDM:GetPreferredBuffGroupSpellID(frame)
     if not frame then return nil end

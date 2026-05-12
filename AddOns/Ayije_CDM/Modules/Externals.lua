@@ -36,7 +36,7 @@ local function StyleCDText(text, fontPath, fontSize, fontOutline, color)
     text:SetFont(fontPath, Pixel.FontSize(fontSize), fontOutline)
     text:SetJustifyH("CENTER")
     text:SetJustifyV("MIDDLE")
-    text:SetTextColor(color.r, color.g, color.b)
+    text:SetTextColor(color.r, color.g, color.b, color.a or 1)
     text:SetShadowOffset(0, 0)
     text:SetDrawLayer("OVERLAY", 7)
 end

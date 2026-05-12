@@ -169,7 +169,7 @@ local function ShowBarLoad(loadPage, loadManager, classKey, barKey)
         end)
     mountCB:SetPoint("TOPLEFT", 0, cYOff)
     if not isConditional then
-        mountCB.checkbox:SetEnabled(false)
+        mountCB:SetEnabled(false)
     end
     cYOff = cYOff - 40
 
@@ -183,7 +183,7 @@ local function ShowBarLoad(loadPage, loadManager, classKey, barKey)
             end)
         feralCB:SetPoint("TOPLEFT", 0, cYOff)
         if not isConditional then
-            feralCB.checkbox:SetEnabled(false)
+            feralCB:SetEnabled(false)
         end
         cYOff = cYOff - 40
     end
@@ -224,7 +224,7 @@ local function ShowBarLoad(loadPage, loadManager, classKey, barKey)
                 end)
             cb:SetPoint("TOPLEFT", 14, cYOff)
             if not isConditional then
-                cb.checkbox:SetEnabled(false)
+                cb:SetEnabled(false)
             end
             cYOff = cYOff - 28
         end

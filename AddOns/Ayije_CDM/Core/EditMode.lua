@@ -97,9 +97,9 @@ function CDM:GetCooldownViewerLockMessage(systemFrame)
     end
 
     if twoLine then
-        return L["Edit Mode locked"] .. "\n" .. L["use /cdm"]
+        return L["Edit Mode locked"] .. "\n" .. L["use /acdm"]
     end
-    return L["Edit Mode locked - use /cdm"]
+    return L["Edit Mode locked - use /acdm"]
 end
 
 function CDM:SetCooldownViewerLockText(systemFrame, shown)
@@ -137,7 +137,7 @@ function CDM:SetCooldownViewerLockText(systemFrame, shown)
     if vName == VIEWERS.ESSENTIAL or vName == VIEWERS.UTILITY then
         text:SetText(self:GetCooldownViewerLockMessage(systemFrame))
     else
-        text:SetText(L["Edit Mode locked - use /cdm"])
+        text:SetText(L["Edit Mode locked - use /acdm"])
     end
 
     text:Show()
@@ -168,7 +168,7 @@ end
 
 local function ShowLockNotice()
     if not CDM.editModeCooldownViewerNoticeShown then
-        print("|cffffd200Ayije_CDM:|r " .. L["Cooldown Viewer settings are managed by /cdm. Edit Mode changes are disabled to avoid taint."])
+        print("|cffffd200Ayije_CDM:|r " .. L["Cooldown Viewer settings are managed by /acdm."])
         CDM.editModeCooldownViewerNoticeShown = true
     end
 end
@@ -274,6 +274,8 @@ local function HasCooldownViewerEditModeApis()
         and Enum.EditModeCooldownViewerSystemIndices
         and Enum.EditModeCooldownViewerSetting
         and Enum.CooldownViewerVisibleSetting
+        and Enum.CooldownViewerBarContent
+        and Enum.EditModeLayoutType
 end
 
 local function GetActiveLayout(layoutInfo)
@@ -360,71 +362,128 @@ local function UpsertSetting(settings, settingEnum, desiredValue)
     return true
 end
 
-local function BuildDesiredCooldownViewerSettings(systemIndex)
-    local desired = {
-        [Enum.EditModeCooldownViewerSetting.VisibleSetting] = Enum.CooldownViewerVisibleSetting.Always,
-        [Enum.EditModeCooldownViewerSetting.ShowTimer] = 1,
+local POLICIES
+local function GetPolicies()
+    if POLICIES then return POLICIES end
+    local SI = Enum.EditModeCooldownViewerSystemIndices
+    local ESS, UTIL, BICON, BBAR = SI.Essential, SI.Utility, SI.BuffIcon, SI.BuffBar
+    POLICIES = {
+        {
+            id = "alwaysVisible",
+            labelKey = "Always Visible",
+            systemIndices = { ESS, UTIL, BICON, BBAR },
+            setting = Enum.EditModeCooldownViewerSetting.VisibleSetting,
+            recommendedValue = Enum.CooldownViewerVisibleSetting.Always,
+        },
+        {
+            id = "showTimer",
+            labelKey = "Show Timer",
+            systemIndices = { ESS, UTIL, BICON, BBAR },
+            setting = Enum.EditModeCooldownViewerSetting.ShowTimer,
+            recommendedValue = 1,
+        },
+        {
+            id = "hideBuffsWhenInactive",
+            labelKey = "Hide Buffs When Inactive",
+            systemIndices = { BICON, BBAR },
+            setting = Enum.EditModeCooldownViewerSetting.HideWhenInactive,
+            recommendedValue = 1,
+        },
+        {
+            id = "fullOpacity",
+            labelKey = "Full Opacity",
+            systemIndices = { ESS, UTIL, BICON, BBAR },
+            setting = Enum.EditModeCooldownViewerSetting.Opacity,
+            recommendedValue = 100,
+        },
+        {
+            id = "barIconAndName",
+            labelKey = "Bar Content: Icon & Name",
+            systemIndices = { BBAR },
+            setting = Enum.EditModeCooldownViewerSetting.BarContent,
+            recommendedValue = Enum.CooldownViewerBarContent.IconAndName,
+        },
+        {
+            id = "hideTooltips",
+            labelKey = "Hide Tooltips",
+            systemIndices = { ESS, UTIL, BICON, BBAR },
+            setting = Enum.EditModeCooldownViewerSetting.ShowTooltips,
+            recommendedValue = 0,
+        },
     }
-
-    if systemIndex == Enum.EditModeCooldownViewerSystemIndices.BuffIcon
-        or systemIndex == Enum.EditModeCooldownViewerSystemIndices.BuffBar then
-        desired[Enum.EditModeCooldownViewerSetting.HideWhenInactive] = 1
+    for _, policy in ipairs(POLICIES) do
+        local set = {}
+        for _, idx in ipairs(policy.systemIndices) do
+            set[idx] = true
+        end
+        policy.systemIndexSet = set
     end
-
-    return desired
+    return POLICIES
 end
 
-function CDM:GetCooldownViewerEditModeCompliance()
+function CDM:GetCooldownViewerEditModePolicies()
     local result = {
-        isCompliant = true,
         isReady = false,
-        mismatches = {},
-        activeLayout = nil,
+        isPresetLayout = false,
+        policies = {},
     }
 
     if not HasCooldownViewerEditModeApis() then
         return result
     end
 
+    for _, policy in ipairs(GetPolicies()) do
+        result.policies[#result.policies + 1] = {
+            id = policy.id,
+            labelKey = policy.labelKey,
+            systemIndices = policy.systemIndices,
+            systemIndexSet = policy.systemIndexSet,
+            setting = policy.setting,
+            recommendedValue = policy.recommendedValue,
+            currentByViewer = {},
+            isCompliant = true,
+        }
+    end
+
     local layoutInfo = GetLayoutInfo()
-    local activeLayout, activeLayoutIndex = GetActiveLayout(layoutInfo)
+    local activeLayout = GetActiveLayout(layoutInfo)
     if not activeLayout then
         return result
     end
 
-    result.isReady = true
-    result.activeLayout = activeLayoutIndex
+    result.isPresetLayout = (activeLayout.layoutType == Enum.EditModeLayoutType.Preset)
 
     local cooldownSystem = Enum.EditModeSystem.CooldownViewer
     local cooldownSystemsSeen = 0
     for _, systemInfo in ipairs(activeLayout.systems) do
         if systemInfo.system == cooldownSystem and type(systemInfo.settings) == "table" then
             cooldownSystemsSeen = cooldownSystemsSeen + 1
-            local desiredSettings = BuildDesiredCooldownViewerSettings(systemInfo.systemIndex)
-            for settingEnum, desiredValue in pairs(desiredSettings) do
-                local currentValue = GetSettingValue(systemInfo.settings, settingEnum)
-                if currentValue ~= desiredValue then
-                    result.isCompliant = false
-                    result.mismatches[#result.mismatches + 1] = {
-                        systemIndex = systemInfo.systemIndex,
-                        setting = settingEnum,
-                        current = currentValue,
-                        desired = desiredValue,
-                    }
+            for i, policy in ipairs(GetPolicies()) do
+                if policy.systemIndexSet[systemInfo.systemIndex] then
+                    local currentValue = GetSettingValue(systemInfo.settings, policy.setting)
+                    local policyState = result.policies[i]
+                    policyState.currentByViewer[systemInfo.systemIndex] = currentValue
+                    if currentValue ~= policy.recommendedValue then
+                        policyState.isCompliant = false
+                    end
                 end
             end
         end
     end
 
-    if cooldownSystemsSeen == 0 then
-        result.isReady = false
-        result.isCompliant = true
+    if cooldownSystemsSeen > 0 then
+        result.isReady = true
+    else
+        for _, policyState in ipairs(result.policies) do
+            policyState.isCompliant = true
+            policyState.currentByViewer = {}
+        end
     end
 
     return result
 end
 
-function CDM:ApplyCooldownViewerEditModeRecommendedSettings()
+function CDM:ApplyCooldownViewerEditModeRecommendedSettings(policyIds)
     if self._isApplyingCooldownViewerPolicy then
         return "noop"
     end
@@ -433,20 +492,42 @@ function CDM:ApplyCooldownViewerEditModeRecommendedSettings()
         return "not_ready"
     end
 
+    if InCombatLockdown() then
+        return "in_combat"
+    end
+
     local layoutInfo = GetLayoutInfo()
     local activeLayout = GetActiveLayout(layoutInfo)
     if not activeLayout then
         return "not_ready"
     end
 
+    if activeLayout.layoutType == Enum.EditModeLayoutType.Preset then
+        return "preset_layout"
+    end
+
+    local selectedSet = {}
+    if type(policyIds) == "table" and #policyIds > 0 then
+        for _, id in ipairs(policyIds) do
+            selectedSet[id] = true
+        end
+    else
+        for _, policy in ipairs(GetPolicies()) do
+            selectedSet[policy.id] = true
+        end
+    end
+
     local changed = false
     local cooldownSystem = Enum.EditModeSystem.CooldownViewer
     for _, systemInfo in ipairs(activeLayout.systems) do
         if systemInfo.system == cooldownSystem and type(systemInfo.settings) == "table" then
-            local desiredSettings = BuildDesiredCooldownViewerSettings(systemInfo.systemIndex)
-            for settingEnum, desiredValue in pairs(desiredSettings) do
-                if UpsertSetting(systemInfo.settings, settingEnum, desiredValue) then
-                    changed = true
+            for _, policy in ipairs(GetPolicies()) do
+                if selectedSet[policy.id]
+                    and policy.systemIndexSet[systemInfo.systemIndex]
+                then
+                    if UpsertSetting(systemInfo.settings, policy.setting, policy.recommendedValue) then
+                        changed = true
+                    end
                 end
             end
         end
@@ -458,6 +539,12 @@ function CDM:ApplyCooldownViewerEditModeRecommendedSettings()
 
     self._isApplyingCooldownViewerPolicy = true
     C_EditMode.SaveLayouts(layoutInfo)
+
+    if EditModeManagerFrame then
+        EditModeManagerFrame:Show()
+        EditModeManagerFrame:Hide()
+    end
+
     self._isApplyingCooldownViewerPolicy = nil
 
     return "applied"

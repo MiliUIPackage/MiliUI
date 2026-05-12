@@ -73,9 +73,20 @@ local RESOURCE_BAR_PER_KEY = {
     },
     SoulFragments   = { color = { r = 0.0, g = 0.8, b = 0.0, a = 1 }, anchorTo = "Fury" },
     Stagger         = {
+        ceilingPercent = 100,
         lightColor = { r = 0.52, g = 0.90, b = 0.52, a = 1 },
         moderateColor = { r = 1.0, g = 0.85, b = 0.36, a = 1 },
         heavyColor = { r = 1.0, g = 0.42, b = 0.42, a = 1 },
+        tier1Enabled = true,
+        tier1Threshold = 30,
+        tier2Enabled = true,
+        tier2Threshold = 60,
+        tier3Enabled = false,
+        tier3Threshold = 90,
+        tier3Color = { r = 1.0, g = 0.20, b = 0.80, a = 1 },
+        tier4Enabled = false,
+        tier4Threshold = 150,
+        tier4Color = { r = 0.75, g = 0.20, b = 1.0, a = 1 },
         anchorTo = "Energy",
     },
     MaelstromWeapon = { color = { r = 0, g = 0.5, b = 1, a = 1 }, anchorTo = "Mana", offsetY = 1 },
@@ -148,6 +159,7 @@ CDM.defaults = {
     buffBarNameOffsetY = 0,
     buffBarDurationFontSize = 15,
     buffBarDurationColor = { r = 1, g = 1, b = 1, a = 1 },
+    buffBarDurationPosition = "RIGHT",
     buffBarDurationOffsetX = -2,
     buffBarDurationOffsetY = 0,
     buffBarShowApplications = true,
@@ -234,6 +246,7 @@ CDM.defaults = {
     trinketsOffsetY = 0,
     trinketsCooldownFontSize = 15,
     trinketsShowPassive = true,
+    trinketsBlacklist = {},
     trinketsMode = "independent",       -- "independent", "defensives", "essential"
     trinketsEssentialRow = 1,           -- 1 or 2 (which row trinkets appear in)
     trinketsEssentialPosition = "end",  -- "start" or "end"
@@ -260,6 +273,7 @@ CDM.defaults = {
     castBarShowSpellName = true,
     castBarNameMaxChars = 0,
     castBarShowTimer = true,
+    castBarShowTotalDuration = false,
     castBarShowSpark = true,
     castBarNameOffsetX = 2,
     castBarNameOffsetY = 4,
@@ -385,6 +399,13 @@ CDM.defaults = {
     hideDebuffBorder = true,
     hidePandemicIndicator = true,
     hideCooldownBling = true,
+
+    pandemicCustomizationEnabled = false,
+    pandemicBorderEnabled = false,
+    pandemicBorderColor   = { r = 1.00, g = 0.70, b = 0.10, a = 1 },
+
+    chargeShowEdge  = false,
+    chargeHideSwipe = false,
 
     -- Fading
     fadingEnabled = false,

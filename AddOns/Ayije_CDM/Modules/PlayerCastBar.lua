@@ -452,7 +452,11 @@ ShowPreview = function(frame)
         frame.spellName:Hide()
     end
     if frame.cdmShowTimer ~= false then
-        frame.txtObj:SetText("1.5")
+        if frame.cdmShowTotalDuration then
+            frame.txtObj:SetText("1.0/1.5")
+        else
+            frame.txtObj:SetText("1.5")
+        end
         frame.txtObj:Show()
     else
         frame.txtObj:Hide()
@@ -502,7 +506,15 @@ OnUpdate = function(self)
                 local tenths = math.floor(remaining * 10 + 0.5)
                 if tenths ~= self._cdmLastTimerTenths then
                     self._cdmLastTimerTenths = tenths
-                    self.txtObj:SetFormattedText("%.1f", tenths * 0.1)
+                    local total = self.cdmTotalDuration
+                    if self.cdmShowTotalDuration and total and total > 0 then
+                        local elapsed = total - tenths * 0.1
+                        if elapsed < 0 then elapsed = 0
+                        elseif elapsed > total then elapsed = total end
+                        self.txtObj:SetFormattedText("%.1f/%.1f", elapsed, total)
+                    else
+                        self.txtObj:SetFormattedText("%.1f", tenths * 0.1)
+                    end
                 end
             end
         end
@@ -584,6 +596,7 @@ local function RefreshEmpowerTiming(frame)
 
     frame.curStartTime = startTime / 1000
     frame.curEndTime = endTime / 1000
+    frame.cdmTotalDuration = frame.curEndTime - frame.curStartTime
 
     local duration = UnitEmpoweredChannelDuration("player")
     if duration then
@@ -656,6 +669,7 @@ local function RefreshBarData(frame)
     frame.cachedWidth = frame:GetWidth()
 
     local totalDuration = frame.curEndTime - frame.curStartTime
+    frame.cdmTotalDuration = totalDuration
     frame.barObj:SetMinMaxValues(0, totalDuration)
 
     local duration
@@ -793,6 +807,7 @@ local function UpdateCastBarFromConfig(frame)
 
     local showTimer = CfgVal("castBarShowTimer", true)
     frame.cdmShowTimer = showTimer
+    frame.cdmShowTotalDuration = CfgVal("castBarShowTotalDuration", false) == true
     frame.timeText:SetShown(showTimer)
 
     local useAtlas = CfgVal("castBarUseAtlasTextures", true)
@@ -955,7 +970,7 @@ function CDM:DisableBlizzardPlayerCastBar()
     return true
 end
 
-function CDM:InitializePlayerCastBar()
+function CDM:CreatePlayerCastBar()
     if self.castBarFrame then return end
 
     local container = CreateFrame("Frame", "Ayije_CDM_CastBarContainer", UIParent)
@@ -1002,18 +1017,12 @@ function CDM:InitializePlayerCastBar()
     f.topOverlay:SetAllPoints()
     f.topOverlay:SetFrameLevel(15)
 
-    local fontPath = CDM_C.FONT_PATH
-    local fontOutline = CDM_C.FONT_OUTLINE or "OUTLINE"
-    local fontSize = Pixel.FontSize(15)
-
     f.spellName = f.topOverlay:CreateFontString(nil, "OVERLAY")
     f.spellName:SetIgnoreParentScale(true)
-    f.spellName:SetFont(fontPath, fontSize, fontOutline)
     f.spellName:SetPoint("LEFT", 4, 0)
 
     f.timeText = f.topOverlay:CreateFontString(nil, "OVERLAY")
     f.timeText:SetIgnoreParentScale(true)
-    f.timeText:SetFont(fontPath, fontSize, fontOutline)
     f.timeText:SetPoint("RIGHT", -4, 0)
     f.txtObj = f.timeText
 
@@ -1095,19 +1104,16 @@ function CDM:InitializePlayerCastBar()
     local h = CfgVal("castBarHeight", 20)
     Pixel.SetSize(container, w, h)
     UpdateContainerPosition()
-    UpdateCastBarFromConfig(f)
 
     if CfgVal("castBarEnabled", true) then
         EnableCastBar(f)
     end
-
-    UpdatePreviewState()
 end
 
 function CDM:UpdatePlayerCastBar()
     if not self.castBarFrame then
         if CfgVal("castBarEnabled", true) then
-            self:InitializePlayerCastBar()
+            self:CreatePlayerCastBar()
         end
         if not self.castBarFrame then return end
     end

@@ -305,10 +305,10 @@ local function CreateImportExportTab(page, tabId)
             exportEditBox:SetText(exportString)
             exportEditBox:HighlightText()
             exportEditBox:SetFocus()
-            print("|cff00ff00[CDM]|r " .. L["Profile exported! Copy the string above."])
+            print("|cff00ff00[ACDM]|r " .. L["Profile exported! Copy the string above."])
         else
             exportEditBox:SetText("")
-            print("|cffff0000[CDM]|r " .. L["Export failed."])
+            print("|cffff0000[ACDM]|r " .. L["Export failed."])
         end
     end)
 

@@ -373,7 +373,7 @@ L["Background Texture:"] = "背景材質："
 L["Position Offsets"] = "位置偏移"
 L["Power Type Colors"] = "能量類型顏色"
 L["Show All Colors"] = "顯示所有顏色"
-L["Stagger uses threshold colors: "] = "醉釀使用閾值顏色："
+L["Stagger uses threshold colors: "] = "醉仙緩勁使用閾值顏色："
 L["Light"] = "少量"
 L["Moderate"] = "中度"
 L["Heavy"] = "過量"
@@ -692,3 +692,216 @@ L["Save"] = "儲存"
 L["Overflowing"] = "滿溢之力"
 L["Overflowing Empty"] = "滿溢之力（空）"
 L["Tip of the Spear"] = "長矛之尖"
+
+-----------------------------------------------------------------------
+-- Core/EditMode.lua (acdm 變體)
+-----------------------------------------------------------------------
+
+L["Edit Mode locked - use /acdm"] = "編輯模式已鎖定 - 輸入 /acdm"
+L["Cooldown Viewer settings are managed by /acdm."] = "冷卻管理器設定由 /acdm 管理。"
+L["use /acdm"] = "輸入 /acdm"
+
+-----------------------------------------------------------------------
+-- Core/Layout/Layout.lua (acdm 變體)
+-----------------------------------------------------------------------
+
+L["Click and drag to move - /acdm > Positions to lock"] = "點擊並拖曳以移動 - /acdm > 位置 以鎖定"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/EditModeOverlay.lua
+-----------------------------------------------------------------------
+
+L["Edit Mode Settings"] = "編輯模式設定"
+L["Active layout is a preset. Switch to or create a custom layout to save changes."] = "目前版面是預設版面，請切換或建立自訂版面以儲存變更。"
+L["All settings are correct"] = "所有設定皆正確"
+L["Compliant"] = "符合"
+L["Mismatched"] = "不符"
+L["N/A"] = "不適用"
+L["Apply"] = "套用"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Border.lua (新增)
+-----------------------------------------------------------------------
+
+L["Borders & Look"] = "邊框與外觀"
+L["Look"] = "外觀"
+L["Enable Pandemic Customization"] = "啟用補綴區間自訂"
+L["Custom Pandemic Border"] = "自訂補綴區間邊框"
+L["Pandemic Display"] = "補綴區間顯示"
+L["Hide Blizzard's Pandemic Indicator (animated refresh window border)"] = "隱藏暴雪的補綴區間指示器（動態刷新視窗邊框）"
+L["Hide Swipe"] = "隱藏旋轉遮罩"
+L["Show Edge"] = "顯示邊緣"
+L["Charge Cooldowns"] = "充能冷卻"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Text.lua (新增)
+-----------------------------------------------------------------------
+
+L["Buff Icons"] = "增益圖示"
+L["Color countdown below threshold"] = "低於閾值時倒數變色"
+L["Cooldown Countdown Format"] = "冷卻倒數格式"
+L["Duration Text"] = "持續時間文字"
+L["Name Text"] = "名稱文字"
+L["Row 1 Font Size"] = "第1列字型大小"
+L["Row 1 - Stacks (Charges)"] = "第1列 - 層數（充能）"
+L["Row 2 Font Size"] = "第2列字型大小"
+L["Row 2 - Stacks (Charges)"] = "第2列 - 層數（充能）"
+L["Show decimals below (seconds, 0 = off)"] = "低於此秒數時顯示小數（0 = 關閉）"
+L["Slug"] = "精簡"
+L["Stack Count Text"] = "層數文字"
+L["Stacks (Charges)"] = "層數（充能）"
+L["Threshold (seconds)"] = "閾值（秒）"
+L["Threshold Color"] = "閾值顏色"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/CastBar.lua (新增)
+-----------------------------------------------------------------------
+
+L["Anchor Point:"] = "錨定點："
+L["Anchor To:"] = "錨定至："
+L["Bottom"] = "底部"
+L["Bottom Left"] = "左下"
+L["Bottom Right"] = "右下"
+L["Top"] = "頂部"
+L["Top Left"] = "左上"
+L["Top Right"] = "右上"
+L["Show Preview"] = "顯示預覽"
+L["Show Total Duration (e.g. 0.5/1.5)"] = "顯示總持續時間（例如 0.5/1.5）"
+L["Target Point:"] = "目標錨定點："
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Trinkets.lua (新增)
+-----------------------------------------------------------------------
+
+L["Add Item"] = "新增物品"
+L["Already blacklisted"] = "已在黑名單中"
+L["Enter a valid item ID"] = "請輸入有效的物品ID"
+L["Item ID"] = "物品ID"
+L["Manage Blacklist"] = "管理黑名單"
+L["Trinket Blacklist"] = "飾品黑名單"
+L["Unknown item ID"] = "未知物品ID"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/BuffGroups.lua (新增)
+-----------------------------------------------------------------------
+
+L["Custom buffs are triggered from your own spellcasts. You CAN'T track random auras"] = "自訂增益由你自己的施法觸發，無法追蹤隨機光環"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Resources.lua (新增)
+-----------------------------------------------------------------------
+
+L["Above"] = "上方"
+L["Anchor buff icons to resources"] = "將增益圖示錨定至資源條"
+L["Bar Anchor Point:"] = "條形錨定點："
+L["Bar Ceiling (% HP)"] = "條形上限（生命力%）"
+L["Base Color"] = "基底顏色"
+L["Below"] = "下方"
+L["Buff viewer X/Y"] = "增益管理器 X/Y"
+L["Colors"] = "顏色"
+L["Conditions"] = "條件"
+L["Copy settings from..."] = "複製設定自..."
+L["Display as %"] = "以百分比顯示"
+L["Enable Tag"] = "啟用標籤"
+L["Enabled"] = "已啟用"
+L["Fallback when no resources"] = "無資源時的備用設定"
+L["Global"] = "全域"
+L["Last resource"] = "最後一個資源"
+L["Left of"] = "左側"
+L["Load"] = "載入"
+L["More options coming soon..."] = "更多選項即將推出..."
+L["Partial Fill"] = "部分填充"
+L["Recharging"] = "充能中"
+L["Right of"] = "右側"
+L["Select a resource bar to configure"] = "選擇一個資源條進行設定"
+L["Show Tick"] = "顯示刻度"
+L["Show aura time"] = "顯示光環時間"
+L["Smooth Fill"] = "平滑填充"
+L["Stack Direction:"] = "堆疊方向："
+L["Tag (Value Text)"] = "標籤（數值文字）"
+L["Tag Anchor:"] = "標籤錨點："
+L["Tag X Offset"] = "標籤X軸偏移"
+L["Tag Y Offset"] = "標籤Y軸偏移"
+L["Textures"] = "材質"
+L["Threshold (% HP)"] = "閾值（生命力%）"
+L["Tick Color"] = "刻度顏色"
+L["Tick Placement"] = "刻度位置"
+L["Ticks"] = "刻度"
+L["Tier %d"] = "階層 %d"
+L["Wrap bars and display textured separators"] = "換列並顯示材質分隔線"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Resources_Load.lua
+-----------------------------------------------------------------------
+
+L["Always"] = "總是"
+L["Combat"] = "戰鬥"
+L["Conditional"] = "條件式"
+L["Don't care"] = "不限"
+L["Hide in Cat or Bear Form"] = "在貓形態或熊形態時隱藏"
+L["Hide when mounted"] = "騎乘時隱藏"
+L["In Combat"] = "戰鬥中"
+L["Load Mode"] = "載入模式"
+L["Never"] = "從不"
+L["Out of Combat"] = "非戰鬥中"
+L["Specialization"] = "專精"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/Resources_Conditions.lua
+-----------------------------------------------------------------------
+
+L["+ Add Check"] = "+ 新增檢查"
+L["+ Add Rule"] = "+ 新增規則"
+L["All"] = "全部"
+L["Alpha"] = "透明度"
+L["Else If:"] = "否則如果："
+L["If:"] = "如果："
+L["Is Full"] = "已滿"
+L["Is Not Full"] = "未滿"
+L["Is Not Recharging"] = "非充能中"
+L["Is Recharging"] = "充能中"
+L["Maelstrom Weapon"] = "漩渦武器"
+L["Pip"] = "能量點"
+L["Pip Recharging"] = "能量點充能中"
+L["Power %"] = "能量百分比"
+L["Power Full"] = "能量已滿"
+L["Power Value"] = "能量數值"
+L["Rule"] = "規則"
+L["Runes"] = "符文"
+L["Stagger"] = "醉仙緩勁"
+L["Tag Color"] = "標籤顏色"
+L["Target:"] = "目標："
+L["Then:"] = "則："
+
+-----------------------------------------------------------------------
+-- Modules/BuffGroupOverlays.lua
+-----------------------------------------------------------------------
+
+L["Ungrouped"] = "未分組"
+
+-----------------------------------------------------------------------
+-- Core/EditMode.lua - Edit Mode Policies
+-----------------------------------------------------------------------
+
+L["Always Visible"] = "始終顯示"
+L["Hide Buffs When Inactive"] = "非啟用時隱藏增益"
+L["Full Opacity"] = "完全不透明"
+L["Bar Content: Icon & Name"] = "條形內容：圖示與名稱"
+L["Hide Tooltips"] = "隱藏浮動提示"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/ConfigKeys.lua - Export Categories
+-----------------------------------------------------------------------
+
+L["Border & Visual Styling"] = "邊框與視覺樣式"
+L["Text & Font Settings"] = "文字與字型設定"
+L["Buff Bar Settings"] = "增益條設定"
+L["Resource Bar Settings"] = "資源條設定"
+L["Racials Tracker Settings"] = "種族技能追蹤設定"
+L["Defensives Tracker Settings"] = "防禦技能追蹤設定"
+L["Trinkets Tracker Settings"] = "飾品追蹤設定"
+L["Externals Tracker Settings"] = "外部技能追蹤設定"
+L["Cast Bar Settings"] = "施法條設定"
+L["Assist Settings"] = "輔助設定"
+L["Positions & Locking"] = "位置與鎖定"
+
