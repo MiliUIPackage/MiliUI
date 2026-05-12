@@ -505,6 +505,19 @@ local AudioTimeline = {
             [391] = { file = "ZhuanHuoDaGuai.ogg", role = "DAMAGER" },
         }
     },
+
+    [3178] = { -- 威厄高尔和艾佐拉克
+        interval = 999, 
+        startOffset = 0, 
+        alerts = {
+            [300] = "FangQiuZhanWei.ogg",
+            [302] = "GeRenJianShang.ogg",
+            [303] = "San.ogg",
+            [304] = "Er.ogg",
+            [305] = "Yi.ogg",
+        }
+    },
+
     -- [3181] = { -- CrownOfTheCosmos
     --     interval = 999, 
     --     startOffset = 0, 
@@ -751,7 +764,7 @@ local PrivateAuraList = {
     -- [1245554] = "ZhuYiZiBao", -- 阴霾触摸
     -- [1270852] = "NiBeiYiShang", -- 削弱
     -- [1245175] = "ZhuYiZiBao", -- 虚空箭
-    [1265152] = "ZhuYiZiBao", -- 穿刺
+    -- [1265152] = "ZhuYiZiBao", -- 穿刺
     -- [1255763] = "", -- 午夜化身
     -- [1262656] = "ZhuYiZiBao", -- 虚无光束
     [1255612] = "MuBiaoShiNi", -- 亡者吐息
@@ -1268,6 +1281,9 @@ local EventSoundData = {
     -- [644] = {".ogg", 1}, -- 黯灭协奏 (1284980)
 }
 local EventSoundData2 = {  
+    -- 被遗弃的二人组
+    [26]  = {"ZhunBeiZuZhou.ogg", 2}, -- 黑暗诅咒    
+    -- 烬晓
     [241] = {"TieBianFangShuiSanMiaoSanErYi.ogg", 0}, -- 炽焰腾流    
     -- 元首阿福扎恩 
     [199] = {"ZhunBeiJiTuiShiYiMiaoZhuYiDuoQuan.ogg", 2}, -- [虚空坠落] (1258880)
@@ -2314,7 +2330,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         end
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) then
             local name, instanceType, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceID = GetInstanceInfo()
-            if instanceID == 2811 then -- 魔导师平台
+            if instanceID == 2811 then -- 博學者殿堂
                 local actualLevel = UnitLevel(unitTarget)
                 local unitPowerType = UnitPowerType(unitTarget)    
                 local sex = UnitSex(unitTarget)
@@ -2323,7 +2339,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
                     local PlayerRole = GetPlayerRole()
                     if PlayerRole == "TANK" or PlayerRole == "HEALER" then
                         PlaySoundFile(MEDIA_PATH .. "TanKeChengShang.ogg", "Master")
-                    end
+                    end               
                     return
                 end
             end                
@@ -2564,7 +2580,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 if actualLevel == NEXT_PLAYER_LEVEL and unitPowerType == 3 and sex == 1 and BOSS_KILL_3072 == true then -- 影卫虚空召唤师
                     UNIT_CAST_TRACKER[unitTarget] = (UNIT_CAST_TRACKER[unitTarget] or 0) + 1
                     local remainder = UNIT_CAST_TRACKER[unitTarget] % 3
-                    if remainder == 1 then                        
+                    if remainder == 1 then    
                         PlaySoundFile(MEDIA_PATH .. "ZhaoHuanXiaoGuai.ogg", "Master")
                     elseif remainder == 2 then
                         -- PlaySoundFile(MEDIA_PATH .. "ZhuYiDianMing.ogg", "Master")
@@ -2593,7 +2609,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         end
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) then
             local name, instanceType, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceID = GetInstanceInfo()
-            if instanceID == 2811 then -- 魔导师平台
+            if instanceID == 2811 then -- 博學者殿堂
                 local actualLevel = UnitLevel(unitTarget)
                 local unitPowerType = UnitPowerType(unitTarget)    
                 local sex = UnitSex(unitTarget)
@@ -2602,7 +2618,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
                         PlaySoundFile(MEDIA_PATH .. "ZhuYiDianMing.ogg", "Master")       
                     return
                 end
-            end                
+            end         
         end
         -- if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) then
         --     if subZone == "山崁" then
@@ -2846,7 +2862,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 if preciseTime >= 69 and preciseTime <= 71 then
                     StartCircleTimerBySeconds(6)
                 end
-                if preciseTime >= 132 and preciseTime <= 134 then
+                if preciseTime >= 131 and preciseTime <= 134 then
                     StartCircleTimerBySeconds(6)
                 end
                 if preciseTime >= 190 and preciseTime <= 193 then
@@ -2910,7 +2926,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         local unitTarget = ...
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) then
             local name, instanceType, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceID = GetInstanceInfo()
-            if instanceID == 2811 then -- 魔导师平台
+            if instanceID == 2811 then -- 博學者殿堂
                 local actualLevel = UnitLevel(unitTarget)
                 local unitPowerType = UnitPowerType(unitTarget)    
                 local sex = UnitSex(unitTarget)
@@ -3116,8 +3132,13 @@ function StartMyCircleTimer(alert)
     UpdateRingColor(false)                           -- 恢复默认颜色
     -- ---------------------------
 
+-- --- 核心修改：只有在勾选时才显示 ---
+    if DiGuaTimelineAudioHelper.ringEnabled then
     cd:SetCooldown(startTime, duration)
     RingFrame:Show()
+    else
+        RingFrame:Hide() -- 确保它是关闭的
+    end
     
     -- 3. 动态延时隐藏
     C_Timer.After(duration, function()
@@ -3142,8 +3163,13 @@ function StartCircleTimerBySeconds(seconds, checkCast)
     CurrentRingIsCastSensitive = checkCast -- 记录本次是否需要检查施法
 
     UpdateRingColor(false) -- 先恢复默认颜色
+-- --- 核心修改：只有在勾选时才显示 ---
+    if DiGuaTimelineAudioHelper.ringEnabled then
     cd:SetCooldown(startTime, duration)
     RingFrame:Show()
+    else
+        RingFrame:Hide()
+    end
     
     -- 3. 动态延迟隐藏
     C_Timer.After(duration, function()
@@ -3169,10 +3195,17 @@ end
 -- ==========================================
 -- 确保在 PLAYER_LOGIN 之前就有基础数据
 if DiGuaTimelineAudioHelper == nil then
+    -- 全新用户初始化
     DiGuaTimelineAudioHelper = {
         enabled = true,
+        ringEnabled = true, 
         path = "Interface\\AddOns\\DiGuaTimelineAudioHelper\\Media\\"
     }
+else
+    -- [重点] 老用户补全逻辑：如果发现 ringEnabled 是空的，就强制设为 true
+    if DiGuaTimelineAudioHelper.ringEnabled == nil then
+        DiGuaTimelineAudioHelper.ringEnabled = true
+    end
 end
 
 -- 定义全局变量 MEDIA_PATH
@@ -3219,7 +3252,12 @@ cb:SetPoint("CENTER", -45, -5)
 local cbText = _G[cb:GetName() .. "Text"]
 cbText:SetText("啟用語音")
 cbText:SetTextColor(1, 0.82, 0)
-
+-- [新增] 复选框 2：启用倒计时光圈
+local cbRing = CreateFrame("CheckButton", "DiGuaTimelineRingCheck", f, "ChatConfigCheckButtonTemplate")
+cbRing:SetPoint("TOPLEFT", 20, -65) -- 放在第一个按钮下方
+local cbRingText = _G[cbRing:GetName() .. "Text"]
+cbRingText:SetText("顯示倒計時光圈")
+cbRingText:SetTextColor(1, 0.82, 0)
 -- ==========================================
 -- 3. 事件与点击逻辑
 -- ==========================================
@@ -3242,7 +3280,12 @@ cb:SetScript("OnClick", function(self)
     local status = DiGuaTimelineAudioHelper.enabled and "|cff00ff00已開啟|r" or "|cffff0000已禁用|r"
     print("|cffffd100[DiGua]|r 整體音效狀態: " .. status)
 end)
-
+-- [新增] 点击复选框 2 (倒计时光圈)
+cbRing:SetScript("OnClick", function(self)
+    DiGuaTimelineAudioHelper.ringEnabled = self:GetChecked()
+    local status = DiGuaTimelineAudioHelper.ringEnabled and "|cff00ff00已顯示|r" or "|cffff0000已隱藏|r"
+    print("|cffffd100[DiGua]|r 倒計時光圈圖示狀態: " .. status)
+end)
 -- 监听登录事件进行初始化
 local initFrame = CreateFrame("Frame")
 initFrame:RegisterEvent("PLAYER_LOGIN")
@@ -3250,7 +3293,7 @@ initFrame:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_LOGIN" then
         -- 1. 同步 UI 状态
         cb:SetChecked(DiGuaTimelineAudioHelper.enabled)
-        
+        cbRing:SetChecked(DiGuaTimelineAudioHelper.ringEnabled)
         -- 2. 初始计算路径
         RefreshMediaPath()
         
