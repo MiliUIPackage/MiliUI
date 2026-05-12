@@ -1283,27 +1283,12 @@ if CLS == "DEATHKNIGHT" then  -- Rune Bar --------------------------------------
 
 end
 if CLS == "PALADIN" then  -- Holy Bar -------------------------------------------------------------------------------------------------------
-	-- PaladinPowerBarFrame no longer exists in 12.0.1 (Midnight).
-	-- 5 individual orbs using point.tga, styled after the comboframe individual-circles pattern.
+	-- PaladinPowerBarFrame exists but cannot be reparented due to 12.0 security restrictions.
+	-- Custom 5-segment StatusBar implementation instead.
 	local holyPowerType = (Enum.PowerType and Enum.PowerType.HolyPower) or 9
 	local HOLY_MAX = 5
-	local HOLY_TGA = "Interface\\AddOns\\Stuf\\media\\holy_tga.tga"
-
-	local function HolyGlowOnUpdate(this, a1)
-		-- Pulse the glow alpha on active orbs, same as comboframe
-		local dir = this.dir or 1
-		local alp = (this.alp or 0.7) + a1 * dir
-		if (dir == 1 and alp > 0.95) or (dir == -1 and alp < 0.45) then
-			this.dir = dir * -1
-		end
-		this.alp = alp
-		for i = 1, HOLY_MAX do
-			local orb = this[i]
-			if orb and orb.glow and orb.glow.active then
-				orb.glow:SetAlpha(alp)
-			end
-		end
-	end
+	local HOLY_COLOR = { r = 0.914, g = 0.678, b = 0.275 }
+	local HOLY_DIM   = { r = 0.15, g = 0.15, b = 0.15, a = 0.6 }
 
 	Stuf:AddBuilder("holybar", function(unit, uf, name, db, a5, config)
 		if unit ~= "player" then return end
@@ -1313,38 +1298,31 @@ if CLS == "PALADIN" then  -- Holy Bar ------------------------------------------
 			return
 		end
 		if not f then
-			f = CreateFrame("Frame", nil, uf, BackdropTemplateMixin and 'BackdropTemplate')
+			f = CreateFrame("Frame", nil, uf)
 			f.db = db
 			uf[name] = f
-			f:SetScript("OnUpdate", HolyGlowOnUpdate)
+			f.bars = {}
 
-			-- Build 5 orb frames, each using the full holy_tga.tga image
+			local barTex = Stuf:GetMedia("statusbar", db.bartexture)
+
 			for i = 1, HOLY_MAX do
-				local orb = CreateFrame("Frame", nil, f, BackdropTemplateMixin and 'BackdropTemplate')
-				local tex = orb:CreateTexture(nil, "ARTWORK")
-				tex:SetTexture(HOLY_TGA)
-				tex:SetTexCoord(0, 1, 0, 1)
-				tex:SetAllPoints(orb)
-				orb.texture = tex
-				-- glow is the same texture on a higher layer for the pulse effect
-				local glow = orb:CreateTexture(nil, "OVERLAY")
-				glow:SetTexture(HOLY_TGA)
-				glow:SetTexCoord(0, 1, 0, 1)
-				glow:SetAllPoints(orb)
-				glow:SetBlendMode("ADD")
-				glow.active = false
-				orb.glow = glow
-				f[i] = orb
+				local bar = CreateFrame("StatusBar", nil, f)
+				bar:SetStatusBarTexture(barTex)
+				bar:SetMinMaxValues(0, 1)
+				bar:SetValue(0)
+				local bg = bar:CreateTexture(nil, "BACKGROUND")
+				bg:SetTexture(barTex)
+				bg:SetAllPoints(bar)
+				bar.bg = bg
+				f.bars[i] = bar
 			end
 
-			-- Update: extract safe plain integer from secret Holy Power value
 			local function UpdateHolyPower(evtUnit, powerToken)
 				if evtUnit and evtUnit ~= "player" then return end
 				if powerToken and powerToken ~= "HOLY_POWER" then return end
 				local fuu = su["player"]
 				local ff = fuu and not fuu.hidden and fuu[name]
 				if not ff or ff.db.hide then return end
-				-- Secret value: pcall-extract a plain integer 0-5
 				local cur = UnitPower("player", holyPowerType)
 				local points = 0
 				for i = 1, HOLY_MAX do
@@ -1352,20 +1330,18 @@ if CLS == "PALADIN" then  -- Holy Bar ------------------------------------------
 					pcall(function() match = (cur == i) end)
 					if match then points = i; break end
 				end
-				local cc = ff.db.barcolor or { r=1.0, g=0.82, b=0.0, a=1 }
-				local gc = ff.db.glowcolor or cc
+				local cc = ff.db.barcolor or HOLY_COLOR
+				local dc = ff.db.dimcolor or HOLY_DIM
 				for i = 1, HOLY_MAX do
-					local orb = ff[i]
+					local bar = ff.bars[i]
 					if i <= points then
-						orb.texture:SetVertexColor(cc.r, cc.g, cc.b, ff.db.baralpha or cc.a or 1)
-						orb.glow:SetVertexColor(gc.r, gc.g, gc.b, gc.a or 0.8)
-						orb.glow.active = true
-						orb:Show()
+						bar:SetValue(1)
+						bar:SetStatusBarColor(cc.r, cc.g, cc.b, ff.db.baralpha or 1)
+						bar.bg:SetVertexColor(cc.r * 0.3, cc.g * 0.3, cc.b * 0.3, 0.8)
 					else
-						orb.texture:SetVertexColor(cc.r * 0.25, cc.g * 0.25, cc.b * 0.25, 0.5)
-						orb.glow:SetAlpha(0)
-						orb.glow.active = false
-						orb:Show()  -- always visible as dim inactive orb
+						bar:SetValue(1)
+						bar:SetStatusBarColor(dc.r, dc.g, dc.b, dc.a or 0.6)
+						bar.bg:SetVertexColor(0, 0, 0, 0.4)
 					end
 				end
 			end
@@ -1377,39 +1353,30 @@ if CLS == "PALADIN" then  -- Holy Bar ------------------------------------------
 			Stuf:AddEvent("PLAYER_ENTERING_WORLD", function() UpdateHolyPower() end)
 		end
 
-		-- Layout orbs: use db.w as orb size, db.spacing as gap (default 2)
-		local ow = db.w or 14
-		local oh = db.h or 14
-		local spacing = db.spacing or 2
-		local cc = db.barcolor or { r=1.0, g=0.82, b=0.0, a=1 }
-		local gc = db.glowcolor or cc
+		local totalW = db.totalw or uf:GetWidth() or 200
+		local totalH = db.h or 6
+		local spacing = db.spacing or 1
+		local barW = (totalW - spacing * (HOLY_MAX - 1)) / HOLY_MAX
+		local barTex = Stuf:GetMedia("statusbar", db.bartexture)
+
 		for i = 1, HOLY_MAX do
-			local orb = f[i]
-			orb:SetWidth(ow)
-			orb:SetHeight(oh)
-			orb:ClearAllPoints()
+			local bar = f.bars[i]
+			bar:SetStatusBarTexture(barTex)
+			bar:SetWidth(barW)
+			bar:SetHeight(totalH)
+			bar:ClearAllPoints()
 			if i == 1 then
-				orb:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+				bar:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
 			else
-				orb:SetPoint("LEFT", f[i-1], "RIGHT", spacing, 0)
+				bar:SetPoint("LEFT", f.bars[i-1], "RIGHT", spacing, 0)
 			end
-			-- base texture: dim when inactive
-			orb.texture:SetTexture(HOLY_TGA)
-			orb.texture:SetTexCoord(0, 1, 0, 1)
-			orb.texture:SetVertexColor(cc.r * 0.25, cc.g * 0.25, cc.b * 0.25, 0.5)
-			-- additive glow layer: pulsing when active, hidden when inactive
-			orb.glow:SetTexture(HOLY_TGA)
-			orb.glow:SetTexCoord(0, 1, 0, 1)
-			orb.glow:SetVertexColor(gc.r, gc.g, gc.b, gc.a or 0.8)
-			orb.glow.active = false
-			orb.glow:SetAlpha(0)
+			bar.bg:SetTexture(barTex)
 		end
 
-		-- Size the container to fit all orbs
-		f:SetWidth((ow * HOLY_MAX) + (spacing * (HOLY_MAX - 1)))
-		f:SetHeight(oh)
+		f:SetWidth(totalW)
+		f:SetHeight(totalH)
 		f:ClearAllPoints()
-		f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0)
+		f:SetPoint("TOPLEFT", uf, "BOTTOMLEFT", db.x or 0, db.y or 0)
 		f:SetScale(db.scale or 1)
 		f:SetAlpha(db.alpha or 1)
 		if db.framelevel then f:SetFrameLevel(db.framelevel) end

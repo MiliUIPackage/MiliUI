@@ -208,7 +208,7 @@ function MiliUI_BuildStufDefaults()
                 border="None",
             },
             vehicleicon={ hide=true, },
-            holybar={ x=5, y=0, framelevel=0, },
+            holybar={ x=8, y=-14, totalw=200, h=6, spacing=1, framelevel=5, },
             shardbar={ x=5, y=-7, },
             chibar={ x=5, y=-2, framelevel=0, },
             arcanebar={ x=5, y=-2, },
