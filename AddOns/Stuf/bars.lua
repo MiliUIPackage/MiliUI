@@ -1303,18 +1303,33 @@ if CLS == "PALADIN" then  -- Holy Bar ------------------------------------------
 			uf[name] = f
 			f.bars = {}
 
-			local barTex = Stuf:GetMedia("statusbar", db.bartexture)
+			local SOLID = "Interface\\BUTTONS\\WHITE8x8"
 
 			for i = 1, HOLY_MAX do
-				local bar = CreateFrame("StatusBar", nil, f)
-				bar:SetStatusBarTexture(barTex)
-				bar:SetMinMaxValues(0, 1)
-				bar:SetValue(0)
-				local bg = bar:CreateTexture(nil, "BACKGROUND")
-				bg:SetTexture(barTex)
-				bg:SetAllPoints(bar)
-				bar.bg = bg
-				f.bars[i] = bar
+				local seg = CreateFrame("Frame", nil, f)
+				local fg = seg:CreateTexture(nil, "ARTWORK")
+				fg:SetTexture(SOLID)
+				fg:SetAllPoints(seg)
+				seg.fg = fg
+				local bg = seg:CreateTexture(nil, "BACKGROUND")
+				bg:SetTexture(SOLID)
+				bg:SetAllPoints(seg)
+				seg.bg = bg
+				local function MakeEdge(parent, p1, p2, w, h)
+					local e = parent:CreateTexture(nil, "OVERLAY")
+					e:SetTexture(SOLID)
+					e:SetVertexColor(0, 0, 0, 1)
+					e:SetPoint(p1)
+					e:SetPoint(p2)
+					if w then e:SetWidth(w) end
+					if h then e:SetHeight(h) end
+					return e
+				end
+				MakeEdge(seg, "TOPLEFT", "TOPRIGHT", nil, 1)
+				MakeEdge(seg, "BOTTOMLEFT", "BOTTOMRIGHT", nil, 1)
+				MakeEdge(seg, "TOPLEFT", "BOTTOMLEFT", 1, nil)
+				MakeEdge(seg, "TOPRIGHT", "BOTTOMRIGHT", 1, nil)
+				f.bars[i] = seg
 			end
 
 			local function UpdateHolyPower(evtUnit, powerToken)
@@ -1333,15 +1348,13 @@ if CLS == "PALADIN" then  -- Holy Bar ------------------------------------------
 				local cc = ff.db.barcolor or HOLY_COLOR
 				local dc = ff.db.dimcolor or HOLY_DIM
 				for i = 1, HOLY_MAX do
-					local bar = ff.bars[i]
+					local seg = ff.bars[i]
 					if i <= points then
-						bar:SetValue(1)
-						bar:SetStatusBarColor(cc.r, cc.g, cc.b, ff.db.baralpha or 1)
-						bar.bg:SetVertexColor(cc.r * 0.3, cc.g * 0.3, cc.b * 0.3, 0.8)
+						seg.fg:SetVertexColor(cc.r, cc.g, cc.b, ff.db.baralpha or 1)
+						seg.bg:SetVertexColor(cc.r * 0.3, cc.g * 0.3, cc.b * 0.3, 0.8)
 					else
-						bar:SetValue(1)
-						bar:SetStatusBarColor(dc.r, dc.g, dc.b, dc.a or 0.6)
-						bar.bg:SetVertexColor(0, 0, 0, 0.4)
+						seg.fg:SetVertexColor(dc.r, dc.g, dc.b, dc.a or 0.6)
+						seg.bg:SetVertexColor(0, 0, 0, 0.4)
 					end
 				end
 			end
@@ -1357,20 +1370,20 @@ if CLS == "PALADIN" then  -- Holy Bar ------------------------------------------
 		local totalH = db.h or 6
 		local spacing = db.spacing or 1
 		local barW = (totalW - spacing * (HOLY_MAX - 1)) / HOLY_MAX
-		local barTex = Stuf:GetMedia("statusbar", db.bartexture)
+		local SOLID = "Interface\\BUTTONS\\WHITE8x8"
 
 		for i = 1, HOLY_MAX do
-			local bar = f.bars[i]
-			bar:SetStatusBarTexture(barTex)
-			bar:SetWidth(barW)
-			bar:SetHeight(totalH)
-			bar:ClearAllPoints()
+			local seg = f.bars[i]
+			seg.fg:SetTexture(SOLID)
+			seg.bg:SetTexture(SOLID)
+			seg:SetWidth(barW)
+			seg:SetHeight(totalH)
+			seg:ClearAllPoints()
 			if i == 1 then
-				bar:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+				seg:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
 			else
-				bar:SetPoint("LEFT", f.bars[i-1], "RIGHT", spacing, 0)
+				seg:SetPoint("LEFT", f.bars[i-1], "RIGHT", spacing, 0)
 			end
-			bar.bg:SetTexture(barTex)
 		end
 
 		f:SetWidth(totalW)
