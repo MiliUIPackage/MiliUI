@@ -424,22 +424,9 @@ local function InitSettings()
     fontDesc:SetText("將 CDM 的字型大小從「像素完美」改為「等比例縮放」。\n啟用後，不同解析度 / 視窗大小下字型佔螢幕的比例會一致，\n但不再保證相同的物理像素數。需重載介面生效。")
     fontDesc:SetTextColor(0.5, 0.5, 0.5)
 
-    -- 細邊框修復 checkbox
-    local borderCB = CreateFrame("CheckButton", "MiliUI_CDMBorderFixCB", enhanceFrame, "UICheckButtonTemplate")
-    borderCB:SetPoint("TOPLEFT", fontDesc, "BOTTOMLEFT", -26, -12)
-    borderCB.text:SetText("細邊框修復")
-    borderCB.text:SetFontObject("GameFontHighlight")
-
-    local borderDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    borderDesc:SetPoint("TOPLEFT", borderCB, "BOTTOMLEFT", 26, -2)
-    borderDesc:SetWidth(520)
-    borderDesc:SetJustifyH("LEFT")
-    borderDesc:SetText("自動隱藏導致圖示邊框變粗的異常黑底材質。需重載介面生效。")
-    borderDesc:SetTextColor(0.5, 0.5, 0.5)
-
     -- 法力數字在地化縮寫 checkbox
     local cdmManaAbbrevCB = CreateFrame("CheckButton", "MiliUI_LocaleNumAbbrevCB", enhanceFrame, "UICheckButtonTemplate")
-    cdmManaAbbrevCB:SetPoint("TOPLEFT", borderDesc, "BOTTOMLEFT", -26, -12)
+    cdmManaAbbrevCB:SetPoint("TOPLEFT", fontDesc, "BOTTOMLEFT", -26, -12)
     cdmManaAbbrevCB.text:SetText("法力數字使用在地化縮寫（萬 / 億）")
     cdmManaAbbrevCB.text:SetFontObject("GameFontHighlight")
 
@@ -458,9 +445,6 @@ local function InitSettings()
         fontCB:SetChecked(edb.proportionalFont == true)
 
         if not MiliUI_DB then MiliUI_DB = {} end
-        if MiliUI_DB.cdmStyleFix == nil then MiliUI_DB.cdmStyleFix = true end
-        borderCB:SetChecked(MiliUI_DB.cdmStyleFix)
-
         if MiliUI_DB.localeNumberAbbrev == nil then MiliUI_DB.localeNumberAbbrev = true end
         cdmManaAbbrevCB:SetChecked(MiliUI_DB.localeNumberAbbrev)
     end
@@ -489,13 +473,6 @@ local function InitSettings()
         if MiliUI_CastBarEnhance then
             MiliUI_CastBarEnhance.SetProportionalFont(enabled)
         end
-    end)
-
-    borderCB:HookScript("OnClick", function(self)
-        if not MiliUI_DB then MiliUI_DB = {} end
-        local enabled = self:GetChecked() and true or false
-        MiliUI_DB.cdmStyleFix = enabled
-        print("|cff00ff00[MiliUI]|r 細邊框修復:", enabled and "開" or "關", "(需 /reload 生效)")
     end)
 
     cdmManaAbbrevCB:HookScript("OnClick", function(self)

@@ -212,6 +212,7 @@ MiliUI_AyijeCDM_Profile = {
     ["castBarContainerLocked"] = true,
     ["castBarShowIcon"] = true,
     ["castBarShowTimer"] = true,
+    ["castBarShowTotalDuration"] = true,
     ["countOffsetYMain"] = 0,
     ["countFontSize"] = 12,
     ["countPositionSec"] = "RIGHT",

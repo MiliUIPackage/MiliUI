@@ -25,7 +25,6 @@ Enhance\SlashRL.lua
 Enhance\AyijeCDM_PixelFont.lua
 Enhance\AyijeCDM_CastBar.lua
 Enhance\AyijeCDM_StufAnchor.lua
-Enhance\AyijeCDM_StyleFix.lua
 Enhance\AddonNames.lua
 Enhance\AutoSlotKeystone.lua
 Enhance\Baganator_Keystone.lua
