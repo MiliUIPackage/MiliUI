@@ -24,10 +24,22 @@ local function GetLastWeeklyReset()
     if C_DateAndTime and C_DateAndTime.GetSecondsUntilWeeklyReset then
         local secs = C_DateAndTime.GetSecondsUntilWeeklyReset()
         if secs and secs > 0 then
-            return (time() + secs) - SEVEN_DAYS
+            local resetTime = GetServerTime() + secs
+            local lastReset = resetTime - SEVEN_DAYS
+            if MiliUI_KeystoneDebug then
+                print(string.format(
+                    "|cff00ff00[Keystone]|r GetLastWeeklyReset: secsUntil=%d, nextReset=%s, lastReset=%s, serverNow=%s, localNow=%s",
+                    secs,
+                    date("%m/%d %H:%M", resetTime),
+                    date("%m/%d %H:%M", lastReset),
+                    date("%m/%d %H:%M", GetServerTime()),
+                    date("%m/%d %H:%M", time())
+                ))
+            end
+            return lastReset
         end
     end
-    return time() - SEVEN_DAYS  -- 後備：當作 7 天前
+    return GetServerTime() - SEVEN_DAYS
 end
 
 local function PruneOldRecords()
@@ -36,6 +48,15 @@ local function PruneOldRecords()
     local cutoff = GetLastWeeklyReset()
     for key, data in pairs(history) do
         if not data.timestamp or data.timestamp < cutoff then
+            if MiliUI_KeystoneDebug then
+                print(string.format(
+                    "|cff00ff00[Keystone]|r Prune: %s ts=%s cutoff=%s (差%ds)",
+                    key,
+                    data.timestamp and date("%m/%d %H:%M", data.timestamp) or "nil",
+                    date("%m/%d %H:%M", cutoff),
+                    (data.timestamp or 0) - cutoff
+                ))
+            end
             history[key] = nil
         end
     end
@@ -81,18 +102,32 @@ local function SaveKeystoneRecord(mapID, level)
     local key = GetCharacterKey()
     local existing = MiliUI_DB.characterKeystones[key]
     if existing and existing.mapID == mapID and existing.level == level then
+        if MiliUI_KeystoneDebug then
+            print(string.format(
+                "|cff00ff00[Keystone]|r Skip: %s 已存在相同記錄 map=%d lv=%d ts=%s",
+                key, mapID, level,
+                existing.timestamp and date("%m/%d %H:%M", existing.timestamp) or "nil"
+            ))
+        end
         return
     end
 
     local _, class = UnitClass("player")
+    local now = GetServerTime()
     MiliUI_DB.characterKeystones[key] = {
         name  = UnitName("player"),
         realm = GetRealmName(),
         class = class,
         mapID = mapID,
         level = level,
-        timestamp = time(),
+        timestamp = now,
     }
+    if MiliUI_KeystoneDebug then
+        print(string.format(
+            "|cff00ff00[Keystone]|r Save: %s map=%d lv=%d ts=%s",
+            key, mapID, level, date("%m/%d %H:%M", now)
+        ))
+    end
 end
 
 local function ScheduleKeystoneCheck(retry)
@@ -502,6 +537,7 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_LOGIN" then
         self:RegisterEvent("CHALLENGE_MODE_COMPLETED")
         self:RegisterEvent("GOSSIP_CLOSED")
+        self:RegisterEvent("WEEKLY_REWARDS_UPDATE")
         -- 一次性遷移舊資料：keystoneHistory → characterKeystones
         if MiliUI_DB and MiliUI_DB.keystoneHistory and not MiliUI_DB.characterKeystones then
             MiliUI_DB.characterKeystones = MiliUI_DB.keystoneHistory
@@ -513,6 +549,12 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
                 local mapID, level = ReadOwnKeystoneState()
                 lastOwnMapID, lastOwnLevel = mapID, level
                 baselineSet = true
+                if MiliUI_KeystoneDebug then
+                    print(string.format(
+                        "|cff00ff00[Keystone]|r Baseline: map=%d lv=%d",
+                        mapID, level
+                    ))
+                end
                 if mapID > 0 and level > 0 then
                     SaveKeystoneRecord(mapID, level)
                 end
@@ -524,6 +566,11 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
         if IsKeystoneNpcGossip() then
             ScheduleKeystoneCheck(0)
         end
+    elseif event == "WEEKLY_REWARDS_UPDATE" then
+        if MiliUI_KeystoneDebug then
+            print("|cff00ff00[Keystone]|r WEEKLY_REWARDS_UPDATE → ScheduleKeystoneCheck")
+        end
+        ScheduleKeystoneCheck(0)
     end
 end)
 
