@@ -156,8 +156,9 @@ local LINE_SPACING = 0.15
 
 local function MatchSelfKeyword(msg)
     if type(msg) ~= "string" or msg == "" then return false end
+    local lower = msg:lower()
     for _, kw in ipairs(SELF_REPORT_KEYWORDS) do
-        if msg:find(kw, 1, true) then return true end
+        if lower:find(kw, 1, true) then return true end
     end
     return false
 end
