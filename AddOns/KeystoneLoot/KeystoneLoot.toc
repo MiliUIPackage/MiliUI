@@ -4,7 +4,7 @@
 ## Notes-ruRU: Компактный аддон, который показывает уровни предметов из подземелий М+
 ## Author: Selina Ruesch
 ## X-Email: selina.ruesch@gmail.com
-## Version: 2.4.4
+## Version: 2.5.0
 ## IconTexture: Interface\Icons\INV_Relics_Hourglass_02
 ## Category-enUS: Dungeons & Raids
 ## Category-zhCN: 地下城和团队副本
@@ -52,6 +52,9 @@ ui/templates/mixins/icon_button.lua
 ui/templates/mixins/entry_frame.lua
 ui/templates/mixins/teleport_button.lua
 ui/templates/templates.xml
+
+ui/context_menu/mixins/context_menu.lua
+ui/context_menu/context_menu.xml
 
 ui/dungeons_frame/mixins/dungeons_frame.lua
 ui/dungeons_frame/dungeons_frame.xml
