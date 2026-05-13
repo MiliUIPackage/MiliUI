@@ -79,16 +79,16 @@ local function showRealDate(curseDate)
 	end
 end
 
-DBM.Revision = parseCurseDate("20260511035904")
+DBM.Revision = parseCurseDate("20260513000030")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 private.fakeBWVersion, private.fakeBWHash = 415, "414c990"--415.0
 
 -- The string that is shown as version
-DBM.DisplayVersion = "12.0.46"--Core version
+DBM.DisplayVersion = "12.0.47"--Core version
 DBM.classicSubVersion = 0
 DBM.dungeonSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2026, 5, 10) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2026, 5, 12) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
 -- support for github downloads, which doesn't support curse keyword expansion
@@ -118,6 +118,32 @@ if playerClass == "MAGE" or playerClass == "WARLOCK" or playerClass == "ROGUE" o
 end
 DBM_CharSavedRevision = 2
 local locale = GetLocale()
+local countdownVoiceRenames = {
+	["Jérémy"] = "Jeremy",
+	["Élise"] = "Elise",
+	["도현원"] = "Dohyunwon",
+	["하민지"] = "Haminji",
+	["Александр"] = "Alexander",
+	["Надежда"] = "Nadezhda",
+	["瑞辰"] = "Ruichen",
+	["纯如"] = "Chunru",
+	["浩"] = "Hao",
+	["玲"] = "Ling"
+}
+
+local function MigrateCountVoiceOption(options, optionName)
+	local currentValue = options[optionName]
+	if type(currentValue) == "string" and countdownVoiceRenames[currentValue] then
+		options[optionName] = countdownVoiceRenames[currentValue]
+	end
+end
+
+local function HasLegacyCountVoiceOption(options)
+	return (type(options.CountdownVoice) == "string" and countdownVoiceRenames[options.CountdownVoice]) or
+		(type(options.CountdownVoice2) == "string" and countdownVoiceRenames[options.CountdownVoice2]) or
+		(type(options.CountdownVoice3) == "string" and countdownVoiceRenames[options.CountdownVoice3]) or
+		(type(options.PullVoice) == "string" and countdownVoiceRenames[options.PullVoice])
+end
 
 DBM.DefaultOptions = {
 	WarningColors = {
@@ -137,43 +163,44 @@ DBM.DefaultOptions = {
 					(locale == "deDE" and "Karl") or
 					(locale == "esES" and "Mateo") or
 					(locale == "esMX" and "Juan") or
-					(locale == "frFR" and "Jérémy") or
-					(locale == "koKR" and "도현원") or
+					(locale == "frFR" and "Jeremy") or
+					(locale == "koKR" and "Dohyunwon") or
 					(locale == "ptBR" and "Anshlun") or
-					(locale == "ruRU" and "Александр") or
-					(locale == "zhCN" and "瑞辰") or
-					(locale == "zhTW" and "浩"),
+					(locale == "ruRU" and "Alexander") or
+					(locale == "zhCN" and "Ruichen") or
+					(locale == "zhTW" and "Hao"),
 	CountdownVoice2 = ((locale == "enUS" or locale == "enGB") and "Kolt") or
 					(locale == "deDE" and "Franziska") or
 					(locale == "esES" and "Fernanda") or
 					(locale == "esMX" and "Isabel") or
-					(locale == "frFR" and "Élise") or
-					(locale == "koKR" and "하민지") or
+					(locale == "frFR" and "Elise") or
+					(locale == "koKR" and "Haminji") or
 					(locale == "ptBR" and "Neryssa") or
-					(locale == "ruRU" and "Надежда") or
-					(locale == "zhCN" and "纯如") or
-					(locale == "zhTW" and "玲"),
+					(locale == "ruRU" and "Nadezhda") or
+					(locale == "zhCN" and "Chunru") or
+					(locale == "zhTW" and "Ling"),
 	CountdownVoice3 = ((locale == "enUS" or locale == "enGB") and "Smooth") or
 					(locale == "deDE" and "Franziska") or
 					(locale == "esES" and "Fernanda") or
 					(locale == "esMX" and "Isabel") or
-					(locale == "frFR" and "Élise") or
-					(locale == "koKR" and "하민지") or
+					(locale == "frFR" and "Elise") or
+					(locale == "koKR" and "Haminji") or
 					(locale == "ptBR" and "Neryssa") or
-					(locale == "ruRU" and "Надежда") or
-					(locale == "zhCN" and "纯如") or
-					(locale == "zhTW" and "玲"),
+					(locale == "ruRU" and "Nadezhda") or
+					(locale == "zhCN" and "Chunru") or
+					(locale == "zhTW" and "Ling"),
 	CountSize = 5,
 	PullVoice = ((locale == "enUS" or locale == "enGB") and "Corsica") or
 					(locale == "deDE" and "Karl") or
 					(locale == "esES" and "Mateo") or
 					(locale == "esMX" and "Juan") or
-					(locale == "frFR" and "Jérémy") or
-					(locale == "koKR" and "도현원") or
+					(locale == "frFR" and "Jeremy") or
+					(locale == "koKR" and "Dohyunwon") or
 					(locale == "ptBR" and "Anshlun") or
-					(locale == "ruRU" and "Александр") or
-					(locale == "zhCN" and "瑞辰") or
-					(locale == "zhTW" and "浩"),
+					(locale == "ruRU" and "Alexander") or
+					(locale == "zhCN" and "Ruichen") or
+					(locale == "zhTW" and "Hao"),
+	CountdownVoiceNamesMigrated = false,
 	ChosenVoicePack2 = "AnnieSeal",
 	VPReplacesAnnounce = true,
 	VPReplacesSADefault = true,
@@ -1706,7 +1733,7 @@ do
 	local function runDelayedFunctions(self)
 		--Check if voice pack missing
 		local activeVP = self.Options.ChosenVoicePack2
-		if activeVP ~= "None" then
+		if not self:IsNoneValue(activeVP) then
 			if not self.VoiceVersions[activeVP] or (self.VoiceVersions[activeVP] and self.VoiceVersions[activeVP] == 0) then--A voice pack is selected that does not belong
 				private.voiceSessionDisabled = true
 				--Since VEM is now bundled, users may elect to disable it by simiply disabling the module
@@ -2779,8 +2806,13 @@ do
 		end
 	end
 
-	function DBM:INSTANCE_GROUP_SIZE_CHANGED()
+	local function groupSizeRefresh()
 		difficulties:RefreshCache(true)
+	end
+
+	function DBM:INSTANCE_GROUP_SIZE_CHANGED()
+		self:Unschedule(groupSizeRefresh)
+		self:Schedule(3.5, groupSizeRefresh)
 	end
 
 	function DBM:GetNumRealPlayersInZone()
@@ -3861,6 +3893,13 @@ do
 		self.Options = DBM_AllSavedOptions[usedProfile] or {}
 		self:Enable()
 		self:AddDefaultOptions(self.Options, self.DefaultOptions)
+		if not self.Options.CountdownVoiceNamesMigrated and HasLegacyCountVoiceOption(self.Options) then
+			MigrateCountVoiceOption(self.Options, "CountdownVoice")
+			MigrateCountVoiceOption(self.Options, "CountdownVoice2")
+			MigrateCountVoiceOption(self.Options, "CountdownVoice3")
+			MigrateCountVoiceOption(self.Options, "PullVoice")
+			self.Options.CountdownVoiceNamesMigrated = true
+		end
 		DBM_AllSavedOptions[usedProfile] = self.Options
 
 		-- force enable dual profile (change default)
@@ -3882,7 +3921,7 @@ do
 			self.Options.SpecialWarningFont = "standardFont"
 		end
 		--If users previous voice pack was not set to none, don't force change it to VEM, honor whatever it was set to before
-		if self.Options.ChosenVoicePack and self.Options.ChosenVoicePack ~= "None" then
+		if self.Options.ChosenVoicePack and not self:IsNoneValue(self.Options.ChosenVoicePack) then
 			self.Options.ChosenVoicePack2 = self.Options.ChosenVoicePack
 			self.Options.ChosenVoicePack = nil
 		end
@@ -3895,7 +3934,7 @@ do
 			"InfoFrameFont", "WarningFont", "SpecialWarningFont"
 		}) do
 			-- Migrate ElvUI changes
-			if type(self.Options[setting]) == "string" and self.Options[setting]:lower() ~= "none" then
+			if type(self.Options[setting]) == "string" and not self:IsNoneValue(self.Options[setting]) then
 				FixElv(setting)
 			end
 			-- Migrate soundkit to FileData ID changes
@@ -4218,7 +4257,7 @@ do
 		if private.LastInstanceType ~= "raid" and private.LastInstanceType ~= "party" and not force then return end
 		if self.Options.RestoreSettingMusic then return end--Music was disabled by the music disable override, abort here
 		fireEvent("DBM_MusicStart", "RaidOrDungeon")
-		if self.Options.EventSoundDungeonBGM and self.Options.EventSoundDungeonBGM ~= "None" and self.Options.EventSoundDungeonBGM ~= "" and not (self.Options.EventDungMusicMythicFilter and (difficulties.savedDifficulty == "mythic" or difficulties.savedDifficulty == "challenge")) then
+		if self.Options.EventSoundDungeonBGM and not self:IsNoneValue(self.Options.EventSoundDungeonBGM) and self.Options.EventSoundDungeonBGM ~= "" and not (self.Options.EventDungMusicMythicFilter and (difficulties.savedDifficulty == "mythic" or difficulties.savedDifficulty == "challenge")) then
 			if not self.Options.RestoreSettingCustomMusic then
 				self.Options.RestoreSettingCustomMusic = tonumber(GetCVar("Sound_EnableMusic")) or 1
 				if self.Options.RestoreSettingCustomMusic == 0 then
@@ -4700,7 +4739,7 @@ do
 			self:FlashClientIcon()
 			local voice = DBM.Options.ChosenVoicePack2
 			local path = 566558--Nightelf Bell
-			if not private.voiceSessionDisabled and voice ~= "None" then
+			if not private.voiceSessionDisabled and not self:IsNoneValue(voice) then
 				path = "Interface\\AddOns\\DBM-VP" .. voice .. "\\checkhp.ogg"
 			end
 			self:PlaySoundFile(path)
@@ -4711,7 +4750,7 @@ do
 		elseif self.Options.EnteringCombatAlert and not private.IsEncounterInProgress() and self:AntiSpam(10, "COMBAT") then
 			self:FlashClientIcon()
 			local voice = DBM.Options.ChosenVoicePack2
-			if not private.voiceSessionDisabled and voice ~= "None" and private.swFilterDisabled >= 17 then
+			if not private.voiceSessionDisabled and not self:IsNoneValue(voice) and private.swFilterDisabled >= 17 then
 				self:PlaySoundFile("Interface\\AddOns\\DBM-VP" .. voice .. "\\enteringcombat.ogg")
 				self:AddMsg(L.ENTERING_COMBAT)--Shown with no sound cause voice played
 			else
@@ -4745,7 +4784,7 @@ do
 		end
 		if self.Options.LeavingCombatAlert and not private.IsEncounterInProgress() and self:AntiSpam(10, "LEAVINGCOMBAT") then
 			local voice = DBM.Options.ChosenVoicePack2
-			if not private.voiceSessionDisabled and voice ~= "None" and private.swFilterDisabled >= 17 then
+			if not private.voiceSessionDisabled and not self:IsNoneValue(voice) and private.swFilterDisabled >= 17 then
 				self:PlaySoundFile("Interface\\AddOns\\DBM-VP" .. voice .. "\\leavingcombat.ogg")
 				self:AddMsg(L.LEAVING_COMBAT)--Shown with no sound cause voice played
 			else
@@ -5437,10 +5476,10 @@ do
 				end
 				--stop pull count
 				private.pullTimerStop()
-				if self.Options.EventSoundEngage2 and self.Options.EventSoundEngage2 ~= "" and self.Options.EventSoundEngage2 ~= "None" then
+				if self.Options.EventSoundEngage2 and self.Options.EventSoundEngage2 ~= "" and not self:IsNoneValue(self.Options.EventSoundEngage2) then
 					self:PlaySoundFile(self.Options.EventSoundEngage2, nil, true)
 				end
-				if not mod.inScenario and self.Options.EventSoundMusic and self.Options.EventSoundMusic ~= "None" and self.Options.EventSoundMusic ~= "" and not (self.Options.EventMusicMythicFilter and (difficulties.savedDifficulty == "mythic" or difficulties.savedDifficulty == "challenge")) and not mod.noStatistics and not self.Options.RestoreSettingMusic then
+				if not mod.inScenario and self.Options.EventSoundMusic and not self:IsNoneValue(self.Options.EventSoundMusic) and self.Options.EventSoundMusic ~= "" and not (self.Options.EventMusicMythicFilter and (difficulties.savedDifficulty == "mythic" or difficulties.savedDifficulty == "challenge")) and not mod.noStatistics and not self.Options.RestoreSettingMusic then
 					fireEvent("DBM_MusicStart", "BossEncounter")
 					if not self.Options.RestoreSettingCustomMusic then
 						self.Options.RestoreSettingCustomMusic = tonumber(GetCVar("Sound_EnableMusic")) or 1
@@ -5513,7 +5552,7 @@ do
 				if self.Options.AFKHealthWarning2 and (health < (private.isHardcoreServer and 95 or 85)) and UnitIsAFK("player") and self:AntiSpam(5, "AFK") then
 					local voice = DBM.Options.ChosenVoicePack2
 					local path = 566558--Nightelf Bell
-					if not private.voiceSessionDisabled and voice ~= "None" then
+					if not private.voiceSessionDisabled and not self:IsNoneValue(voice) then
 						path = "Interface\\AddOns\\DBM-VP" .. voice .. "\\checkhp.ogg"
 					end
 					self:PlaySoundFile(path)
@@ -5522,7 +5561,7 @@ do
 				elseif self.Options.HealthWarningLow and health < 35 and self:AntiSpam(5, "LOWHEALTH") then
 					local voice = DBM.Options.ChosenVoicePack2
 					local path = 566558--Nightelf Bell
-					if not private.voiceSessionDisabled and voice ~= "None" then
+					if not private.voiceSessionDisabled and not self:IsNoneValue(voice) then
 						path = "Interface\\AddOns\\DBM-VP" .. voice .. "\\checkhp.ogg"
 					end
 					self:PlaySoundFile(path)
@@ -5654,7 +5693,7 @@ do
 							end
 						end
 					end
-					if self.Options.EventSoundWipe and self.Options.EventSoundWipe ~= "None" and self.Options.EventSoundWipe ~= "" then
+					if self.Options.EventSoundWipe and not self:IsNoneValue(self.Options.EventSoundWipe) and self.Options.EventSoundWipe ~= "" then
 						if self.Options.EventSoundWipe == "Random" then
 							local defeatSounds = DBM:GetDefeatSounds()
 							if #defeatSounds >= 3 then
@@ -5783,7 +5822,7 @@ do
 					private.lastBossDefeat[modId .. normalizedPlayerRealm] = GetTime()--Update last defeat time before we send it, so we don't handle our own sync
 					private.SendWorldSync(self, 8, "WBD", modId .. "\t" .. normalizedPlayerRealm .. "\t" .. name)
 				end
-				if self.Options.EventSoundVictory2 and self.Options.EventSoundVictory2 ~= "None" and self.Options.EventSoundVictory2 ~= "" and difficulties.difficultyIndex ~= 232 then--No victory in duos
+				if self.Options.EventSoundVictory2 and not self:IsNoneValue(self.Options.EventSoundVictory2) and self.Options.EventSoundVictory2 ~= "" and difficulties.difficultyIndex ~= 232 then--No victory in duos
 					if self.Options.EventSoundVictory2 == "Random" then
 						local victorySounds = DBM:GetVictorySounds()
 						if #victorySounds >= 3 then
@@ -6070,6 +6109,16 @@ do
 end
 
 do
+	-------------------------
+	--  Validation Checks  --
+	-------------------------
+
+	---@param value any
+	---@return boolean
+	function DBM:IsNoneValue(value)
+		return type(value) == "string" and value:lower() == "none"
+	end
+
 	local LSMMediaCacheBuilt, sharedMediaFileCache, validateCache = false, {}, {}
 
 	local function buildLSMFileCache()
@@ -6139,7 +6188,7 @@ do
 	end
 
 	function DBM:PlaySoundFile(path, ignoreSFX, validate)
-		if self.Options.SilentMode or path == "" or path == "None" then
+		if self.Options.SilentMode or path == "" or self:IsNoneValue(path) then
 			return
 		end
 		local soundSetting = self.Options.UseSoundChannel
@@ -6172,7 +6221,7 @@ do
 
 	local fontProbe = UIParent:CreateFontString()
 	fontProbe:Hide()
-	function DBM:IsFontValid(fontPath, standardFont)
+	function DBM:IsFontValid(fontPath, standardFont, fontSize, fontFlags)
 		-- "standardFont" is always valid (maps to locale-specific standard)
 		if fontPath == "standardFont" then
 			return true
@@ -6181,7 +6230,21 @@ do
 		if standardFont and fontPath == standardFont then
 			return true
 		end
-		return pcall(fontProbe.SetFont, fontProbe, fontPath, 12, "")
+		if type(fontPath) ~= "string" or fontPath == "" then
+			return false
+		end
+		local resolvedSize = tonumber(fontSize)
+		if not resolvedSize then
+			resolvedSize = 12
+		end
+		if resolvedSize ~= resolvedSize or resolvedSize <= 0 or resolvedSize > 200 then
+			return false
+		end
+		local resolvedFlags = type(fontFlags) == "string" and fontFlags or ""
+		if self:IsNoneValue(resolvedFlags) then
+			resolvedFlags = ""
+		end
+		return pcall(fontProbe.SetFont, fontProbe, fontPath, resolvedSize, resolvedFlags)
 	end
 end
 
@@ -6441,7 +6504,7 @@ function DBM:UNIT_DIED(args)
 		self:FlashClientIcon()
 		local voice = DBM.Options.ChosenVoicePack2
 		local path = 566558--Nightelf Bell
-		if not private.voiceSessionDisabled and voice ~= "None" then
+		if not private.voiceSessionDisabled and not self:IsNoneValue(voice) then
 			path = "Interface\\AddOns\\DBM-VP" .. voice .. "\\checkhp.ogg"
 		end
 		self:PlaySoundFile(path)
@@ -8112,7 +8175,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260510213843" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260512233822" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then
