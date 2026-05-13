@@ -47,5 +47,6 @@ Enhance\InspectTaintFix.lua
 Enhance\TinyInspectRemake_GearSlots.lua
 Enhance\TinyInspectRemake_TrackColors.lua
 Enhance\TinyInspectRemake_FlyoutItemLocation.lua
+Enhance\TinyInspectRemake_OffhandEnchant.lua
 Enhance\GameplayCVars.lua
 Enhance\CharacterNotes.lua
