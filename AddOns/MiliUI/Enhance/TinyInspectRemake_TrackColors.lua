@@ -7,6 +7,7 @@
 ---------------------------------------------------------------
 
 local DEBUG_CRAFTED = false
+local DEBUG_TRACK = false
 
 local TRACK_COLORS = {
     -- zh-TW / zh-CN
@@ -17,6 +18,7 @@ local TRACK_COLORS = {
     ["勇者"]     = "ff0070dd",
     ["英雄"]     = "ffa335ee",
     ["神話"]     = "ffff8000",
+    ["傳奇"]     = "ffff8000",
     -- enUS fallback
     ["Explorer"]   = "ffffffff",
     ["Adventurer"] = "ffffffff",
@@ -24,6 +26,7 @@ local TRACK_COLORS = {
     ["Champion"]   = "ff0070dd",
     ["Hero"]       = "ffa335ee",
     ["Myth"]       = "ffff8000",
+    ["Legendary"]  = "ffff8000",
 }
 
 local CRAFTED_COLOR = "ffffd200"
@@ -111,6 +114,36 @@ local function GetCraftedText(link)
     end
 end
 
+local FORGE_COLOR = "ffff8000"
+
+local function GetForgeInfo(link)
+    if (not GetHyperlinkAPI) then return end
+    local data = GetHyperlinkAPI(link)
+    if (not data or not data.lines) then return end
+    if (TooltipUtil and TooltipUtil.SurfaceArgs) then
+        TooltipUtil.SurfaceArgs(data)
+        for _, line in ipairs(data.lines) do
+            TooltipUtil.SurfaceArgs(line)
+        end
+    end
+    local afterName = false
+    for _, line in ipairs(data.lines) do
+        local t = line.type
+        if (t == ITEM_LEVEL_TYPE) then break end
+        if (afterName) then
+            local text = StripColorCodes(line.leftText)
+            if (text) then
+                if (text:find("虛無鍛造")) then
+                    return "虛無鍛造", FORGE_COLOR
+                elseif (text:find("Null Forge")) then
+                    return "Null Forge", FORGE_COLOR
+                end
+            end
+        end
+        if (t == ITEM_NAME_TYPE) then afterName = true end
+    end
+end
+
 local function HasActiveTrack(info)
     return info and info.trackString and info.maxLevel and info.maxLevel > 0
 end
@@ -120,6 +153,20 @@ local function BuildTrackText(link)
     if (not TinyInspectRemakeDB or not TinyInspectRemakeDB.ShowUpgradeInfo) then return end
     if (GetItemUpgradeInfoAPI) then
         local info = GetItemUpgradeInfoAPI(link)
+        if (DEBUG_TRACK) then
+            if (info) then
+                local parts = {}
+                for k, v in pairs(info) do
+                    parts[#parts + 1] = tostring(k) .. "=" .. tostring(v)
+                end
+                print("|cffffd200[MiliUI-DBG]|r UpgradeInfo: " .. table.concat(parts, ", "))
+            else
+                print("|cffffd200[MiliUI-DBG]|r UpgradeInfo: nil")
+            end
+            local crafted = IsCraftedItem(link)
+            local craftQ = GetItemCraftedQualityAPI and GetItemCraftedQualityAPI(link)
+            print("|cffffd200[MiliUI-DBG]|r IsCrafted=" .. tostring(crafted) .. " CraftedQuality=" .. tostring(craftQ))
+        end
         if (HasActiveTrack(info)) then
             local color = TRACK_COLORS[info.trackString] or "ffffd200"
             if (info.currentLevel ~= nil) then
@@ -129,6 +176,10 @@ local function BuildTrackText(link)
                 return string.format("|c%s[%s]|r %s", color, info.trackString, link)
             end
         elseif (info and info.trackString) then
+            local color = TRACK_COLORS[info.trackString]
+            if (color) then
+                return string.format("|c%s[%s]|r %s", color, info.trackString, link)
+            end
             return link
         end
     end
@@ -137,6 +188,10 @@ local function BuildTrackText(link)
         local quality = GetItemCraftedQualityAPI and GetItemCraftedQualityAPI(link)
         local color = CRAFTED_QUALITY_COLORS[quality or 0] or CRAFTED_COLOR
         return string.format("|c%s[%s]|r %s", color, craftText, link)
+    end
+    local forgeText, forgeColor = GetForgeInfo(link)
+    if (forgeText) then
+        return string.format("|c%s[%s]|r %s", forgeColor, forgeText, link)
     end
 end
 
@@ -203,7 +258,7 @@ local function GetItemLevelColor(link)
     if (not link) then return end
     if (GetItemUpgradeInfoAPI) then
         local info = GetItemUpgradeInfoAPI(link)
-        if (HasActiveTrack(info) and TRACK_COLORS[info.trackString]) then
+        if (info and info.trackString and TRACK_COLORS[info.trackString]) then
             return TRACK_COLORS[info.trackString]
         end
     end
@@ -212,6 +267,10 @@ local function GetItemLevelColor(link)
         if (q and q > 0 and CRAFTED_QUALITY_COLORS[q]) then
             return CRAFTED_QUALITY_COLORS[q]
         end
+    end
+    local _, forgeColor = GetForgeInfo(link)
+    if (forgeColor) then
+        return forgeColor
     end
 end
 
