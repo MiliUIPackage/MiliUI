@@ -183,15 +183,15 @@ local function BuildTrackText(link)
             return link
         end
     end
+    local forgeText, forgeColor = GetForgeInfo(link)
+    if (forgeText) then
+        return string.format("|c%s[%s]|r %s", forgeColor, forgeText, link)
+    end
     local craftText = GetCraftedText(link)
     if (craftText) then
         local quality = GetItemCraftedQualityAPI and GetItemCraftedQualityAPI(link)
         local color = CRAFTED_QUALITY_COLORS[quality or 0] or CRAFTED_COLOR
         return string.format("|c%s[%s]|r %s", color, craftText, link)
-    end
-    local forgeText, forgeColor = GetForgeInfo(link)
-    if (forgeText) then
-        return string.format("|c%s[%s]|r %s", forgeColor, forgeText, link)
     end
 end
 
@@ -262,15 +262,15 @@ local function GetItemLevelColor(link)
             return TRACK_COLORS[info.trackString]
         end
     end
+    local _, forgeColor = GetForgeInfo(link)
+    if (forgeColor) then
+        return forgeColor
+    end
     if (GetItemCraftedQualityAPI) then
         local q = GetItemCraftedQualityAPI(link)
         if (q and q > 0 and CRAFTED_QUALITY_COLORS[q]) then
             return CRAFTED_QUALITY_COLORS[q]
         end
-    end
-    local _, forgeColor = GetForgeInfo(link)
-    if (forgeColor) then
-        return forgeColor
     end
 end
 
