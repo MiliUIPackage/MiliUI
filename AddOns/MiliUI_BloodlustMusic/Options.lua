@@ -280,6 +280,14 @@ local musicDesc = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlight
 musicDesc:SetPoint("TOPLEFT", musicTitle, "BOTTOMLEFT", 0, -8)
 musicDesc:SetText(L["MUSIC_SETTINGS_DESC"])
 
+-- Forward declarations for track management
+local trackChecks = {}
+local trackPreviews = {}
+local trackEditBtns = {}
+local trackDelBtns = {}
+local RefreshTrackList
+local OpenTrackEditor
+
 -- Enable Music Checkbox
 local enableMusicCheck = CreateFrame("CheckButton", nil, musicPanel, "UICheckButtonTemplate")
 enableMusicCheck:SetPoint("TOPLEFT", musicDesc, "BOTTOMLEFT", -4, -15)
@@ -456,14 +464,78 @@ local trackHeader = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal"
 trackHeader:SetPoint("TOPLEFT", channelExplain, "BOTTOMLEFT", -2, -12)
 trackHeader:SetText("|cffffd100" .. L["TRACK_ENABLED"] .. "|r")
 
--- Track List (checkboxes + preview/edit/delete buttons)
-local trackChecks = {}
-local trackPreviews = {}
-local trackEditBtns = {}
-local trackDelBtns = {}
-local addTrackBtn
-local mediaHint
-local RefreshTrackList  -- forward
+-- Track scrollable area (manual clip + scrollbar to avoid nested ScrollFrame issues)
+local TRACK_SCROLL_HEIGHT = 250
+local TRACK_CONTENT_WIDTH = 400
+
+local trackScrollArea = CreateFrame("Frame", nil, musicPanel)
+trackScrollArea:SetPoint("TOPLEFT", trackHeader, "BOTTOMLEFT", 0, -2)
+trackScrollArea:SetSize(TRACK_CONTENT_WIDTH, TRACK_SCROLL_HEIGHT)
+trackScrollArea:SetClipsChildren(true)
+
+local trackScrollChild = CreateFrame("Frame", nil, trackScrollArea)
+trackScrollChild:SetPoint("TOPLEFT")
+trackScrollChild:SetWidth(TRACK_CONTENT_WIDTH)
+trackScrollChild:SetHeight(1)
+
+local trackScrollBar = CreateFrame("Slider", "MiliUI_BLM_TrackScrollBar", musicPanel)
+trackScrollBar:SetPoint("TOPLEFT", trackScrollArea, "TOPRIGHT", 10, 0)
+trackScrollBar:SetPoint("BOTTOMLEFT", trackScrollArea, "BOTTOMRIGHT", 10, 0)
+trackScrollBar:SetWidth(16)
+trackScrollBar:SetObeyStepOnDrag(true)
+
+local sbBg = trackScrollBar:CreateTexture(nil, "BACKGROUND")
+sbBg:SetAllPoints()
+sbBg:SetColorTexture(0, 0, 0, 0.3)
+
+local sbThumb = trackScrollBar:CreateTexture(nil, "OVERLAY")
+sbThumb:SetSize(16, 40)
+sbThumb:SetColorTexture(0.6, 0.6, 0.6, 0.6)
+trackScrollBar:SetThumbTexture(sbThumb)
+
+trackScrollBar:SetScript("OnValueChanged", function(self, value)
+    trackScrollChild:ClearAllPoints()
+    trackScrollChild:SetPoint("TOPLEFT", 0, value)
+end)
+trackScrollBar:SetMinMaxValues(0, 1)
+trackScrollBar:SetValueStep(1)
+trackScrollBar:SetValue(0)
+trackScrollBar:Hide()
+
+-- Add track button — right-aligned to scrollbar so it won't shift with locale/font
+local addTrackHint = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+addTrackHint:SetPoint("RIGHT", trackScrollBar, "RIGHT", 0, 0)
+addTrackHint:SetPoint("TOP", trackHeader, "TOP", 0, 0)
+addTrackHint:SetText("|cffffd100" .. (L["ADD_TRACK_HINT"] or "Add custom track") .. "|r")
+
+local addTrackBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
+addTrackBtn:SetSize(28, 22)
+addTrackBtn:SetPoint("RIGHT", addTrackHint, "LEFT", -4, 0)
+addTrackBtn:SetText("+")
+addTrackBtn:SetScript("OnClick", function() OpenTrackEditor(nil) end)
+
+trackScrollArea:EnableMouseWheel(true)
+trackScrollArea:SetScript("OnMouseWheel", function(self, delta)
+    local min, max = trackScrollBar:GetMinMaxValues()
+    local current = trackScrollBar:GetValue()
+    local step = 28
+    trackScrollBar:SetValue(math.max(min, math.min(max, current - delta * step)))
+end)
+
+local function UpdateTrackScroll()
+    local contentH = trackScrollChild:GetHeight()
+    local maxScroll = math.max(0, contentH - TRACK_SCROLL_HEIGHT)
+    trackScrollBar:SetMinMaxValues(0, maxScroll)
+    if maxScroll <= 0 then
+        trackScrollBar:Hide()
+        trackScrollBar:SetValue(0)
+    else
+        trackScrollBar:Show()
+        if trackScrollBar:GetValue() > maxScroll then
+            trackScrollBar:SetValue(maxScroll)
+        end
+    end
+end
 
 ----------------------------------------------------------------------
 -- Track Editor Dialog (add / edit a custom track)
@@ -554,7 +626,7 @@ local function EnsureTrackEditor()
     return f
 end
 
-local function OpenTrackEditor(editIndex)
+OpenTrackEditor = function(editIndex)
     local f = EnsureTrackEditor()
     local d = GetDB()
     d.customTracks = d.customTracks or {}
@@ -641,19 +713,20 @@ end
 RefreshTrackList = function()
     local d = GetDB()
     local rows = GetTrackRows()
-    local lastAnchor = trackHeader
+    local y = 0
+    local ROW_HEIGHT = 28
 
     for i, row in ipairs(rows) do
         local ck = trackChecks[i]
         if not ck then
-            ck = CreateFrame("CheckButton", nil, musicPanel, "UICheckButtonTemplate")
+            ck = CreateFrame("CheckButton", nil, trackScrollChild, "UICheckButtonTemplate")
             ck.Text = ck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
             ck.Text:SetPoint("LEFT", ck, "RIGHT", 5, 0)
             trackChecks[i] = ck
         end
 
         ck:ClearAllPoints()
-        ck:SetPoint("TOPLEFT", lastAnchor, "BOTTOMLEFT", 0, -5)
+        ck:SetPoint("TOPLEFT", trackScrollChild, "TOPLEFT", 0, -y)
         ck.Text:SetText(row.name or "")
 
         local isEnabled
@@ -680,7 +753,7 @@ RefreshTrackList = function()
         -- Preview button
         local pvBtn = trackPreviews[i]
         if not pvBtn then
-            pvBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
+            pvBtn = CreateFrame("Button", nil, trackScrollChild, "UIPanelButtonTemplate")
             pvBtn:SetSize(60, 20)
             trackPreviews[i] = pvBtn
         end
@@ -710,7 +783,7 @@ RefreshTrackList = function()
         local delBtn = trackDelBtns[i]
         if row.source == "custom" then
             if not editBtn then
-                editBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
+                editBtn = CreateFrame("Button", nil, trackScrollChild, "UIPanelButtonTemplate")
                 editBtn:SetSize(50, 20)
                 trackEditBtns[i] = editBtn
             end
@@ -721,13 +794,13 @@ RefreshTrackList = function()
             editBtn:Show()
 
             if not delBtn then
-                delBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
+                delBtn = CreateFrame("Button", nil, trackScrollChild, "UIPanelButtonTemplate")
                 delBtn:SetSize(24, 20)
                 trackDelBtns[i] = delBtn
             end
             delBtn:ClearAllPoints()
             delBtn:SetPoint("LEFT", editBtn, "RIGHT", 4, 0)
-            delBtn:SetText("-")
+            delBtn:SetText("x")
             delBtn:SetScript("OnClick", function()
                 StaticPopup_Show("MILIUI_BLM_DEL_TRACK", row.name or "", nil, { index = rowIndex })
             end)
@@ -737,7 +810,7 @@ RefreshTrackList = function()
             if delBtn then delBtn:Hide() end
         end
 
-        lastAnchor = ck
+        y = y + ROW_HEIGHT
     end
 
     -- Hide extras
@@ -748,31 +821,13 @@ RefreshTrackList = function()
         if trackDelBtns[i] then trackDelBtns[i]:Hide() end
     end
 
-    -- Add ("+") button and Media-folder hint
-    if not addTrackBtn then
-        addTrackBtn = CreateFrame("Button", nil, musicPanel, "UIPanelButtonTemplate")
-        addTrackBtn:SetSize(28, 22)
-        addTrackBtn:SetText("+")
-        addTrackBtn:SetScript("OnClick", function() OpenTrackEditor(nil) end)
-    end
-    addTrackBtn:ClearAllPoints()
-    addTrackBtn:SetPoint("TOPLEFT", lastAnchor, "BOTTOMLEFT", 4, -10)
-    addTrackBtn:Show()
-
-    if not mediaHint then
-        mediaHint = musicPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    end
-    mediaHint:ClearAllPoints()
-    mediaHint:SetPoint("LEFT", addTrackBtn, "RIGHT", 8, 0)
-    mediaHint:SetText("|cffffd100" .. (L["ADD_TRACK_HINT"] or "Add custom track") .. "|r")
-    mediaHint:Show()
+    trackScrollChild:SetHeight(math.max(y, 1))
+    UpdateTrackScroll()
 end
 
 local function ForceShowTrackList()
     for _, ck in ipairs(trackChecks) do if ck then ck:Show() end end
     for _, pvBtn in ipairs(trackPreviews) do if pvBtn then pvBtn:Show() end end
-    if addTrackBtn then addTrackBtn:Show() end
-    if mediaHint then mediaHint:Show() end
 end
 
 musicPanel:SetScript("OnShow", function()
