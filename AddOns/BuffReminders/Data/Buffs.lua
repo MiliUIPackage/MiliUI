@@ -592,6 +592,19 @@ BR.BUFF_TABLES = {
             requiresSpellID = 412710,
             clickMacro = TargetedClickMacro("timelessness"),
         },
+        {
+            -- 408233 is the cast spell (known by the player); 410318 is the link aura applied
+            -- to both the caster and the recipient. The first ID gates IsPlayerSpellCached
+            -- and click-to-cast; the second lets the last-target scan pick up the linked ally.
+            spellID = { 408233, 410318 },
+            casterBuffId = 410318,
+            key = "weyrnstone",
+            name = L["Buff.Weyrnstone"],
+            class = "EVOKER",
+            overlayText = L["Overlay.NoWeyrnstone"],
+            icons = { spells = { 408233 } }, -- Force the cast-spell icon (avoid duplicate icons from spellID list)
+            clickMacro = TargetedClickMacro("weyrnstone"),
+        },
     },
     ---@type SelfBuff[]
     self = {

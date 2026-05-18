@@ -60,6 +60,7 @@ english["Overlay.NoES"] = "NO\nES"
 english["Overlay.NoSource"] = "NO\nSOURCE"
 english["Overlay.NoScales"] = "NO\nSCALES"
 english["Overlay.NoLink"] = "NO\nLINK"
+english["Overlay.NoWeyrnstone"] = "NO\nWEYRN"
 english["Overlay.NoTimeless"] = "NO\nTIMELESS"
 english["Overlay.NoAttune"] = "NO\nATTUNE"
 english["Overlay.NoFamiliar"] = "NO\nFAMILIAR"
@@ -148,6 +149,7 @@ english["Buff.EarthShield"] = "Earth Shield"
 english["Buff.SourceOfMagic"] = "Source of Magic"
 english["Buff.SymbioticRelationship"] = "Symbiotic Relationship"
 english["Buff.Timelessness"] = "Timelessness"
+english["Buff.Weyrnstone"] = "Weyrnstone"
 -- Self
 english["Buff.ArcaneFamiliar"] = "Arcane Familiar"
 english["Buff.Attunement"] = "Attunement"
@@ -210,6 +212,7 @@ english["Tooltip.MayShowExtraIcon.Desc"] =
 english["Tooltip.InstanceEntryReminder"] = "Instance Entry Reminder"
 english["Tooltip.InstanceEntryReminder.Desc"] =
     "Briefly shown when entering a dungeon as a reminder to drop a Soulwell. Dismissed after casting or after 30 seconds."
+english["BuffTooltip.ProvidedBy"] = "Provided by %s"
 
 -- ============================================================================
 -- GLOW TYPE NAMES
@@ -423,9 +426,26 @@ english["Options.ShowMissingCountOnly"] = "Show missing count only"
 english["Options.ShowMissingCountOnly.Desc"] =
     'Show only the number of missing buffs (e.g., "1") instead of the full count (e.g., "19/20")'
 english["Options.ShowBuffReminderText"] = 'Show "BUFF!" reminder text'
-english["Options.BuffTextOffsetX"] = '"BUFF!" X'
-english["Options.BuffTextOffsetY"] = '"BUFF!" Y'
 english["Options.Size"] = "Size"
+
+-- ============================================================================
+-- OPTIONS: TEXT POSITIONS
+-- ============================================================================
+english["Options.TextPositions"] = "Text"
+english["Options.TextPositions.Zone"] = "Position"
+english["Options.TextPositions.OffsetX.Short"] = "X"
+english["Options.TextPositions.OffsetY.Short"] = "Y"
+english["Options.TextPositions.StackCount"] = "Stack count"
+english["Options.TextPositions.StatLabel"] = "Stat label"
+english["Options.TextPositions.Badge"] = "Badge (H / F)"
+english["Options.TextPositions.Vertical.Above"] = "Above"
+english["Options.TextPositions.Vertical.InsideTop"] = "Top"
+english["Options.TextPositions.Vertical.InsideMiddle"] = "Center"
+english["Options.TextPositions.Vertical.InsideBottom"] = "Bottom"
+english["Options.TextPositions.Vertical.Below"] = "Below"
+english["Options.TextPositions.Align.Left"] = "Left"
+english["Options.TextPositions.Align.Center"] = "Center"
+english["Options.TextPositions.Align.Right"] = "Right"
 
 -- ============================================================================
 -- OPTIONS: CLICK TO CAST
@@ -465,6 +485,9 @@ english["Options.PetSpecIcon.Desc"] =
     "Swap the pet icon to its specialization ability (Cunning, Ferocity, Tenacity) when hovering."
 english["Options.ShowItemTooltips"] = "Show item tooltips"
 english["Options.ShowItemTooltips.Desc"] = "When hovering over a consumable icon, show its item tooltip."
+english["Options.ShowBuffTooltips"] = "Show buff tooltips"
+english["Options.ShowBuffTooltips.Desc"] =
+    "When hovering over a raid or presence buff icon, show the spell tooltip and which class provides the buff."
 english["Options.Behavior"] = "Behavior"
 english["Options.PetPassiveCombat"] = "Pet passive only in combat"
 english["Options.PetPassiveCombat.Desc"] =
@@ -866,12 +889,11 @@ english["Appearance.Border"] = "Border"
 english["Appearance.Spacing"] = "Spacing"
 english["Appearance.Alpha"] = "Alpha"
 english["Appearance.Text"] = "Text"
-english["Appearance.TextX"] = "Text X"
-english["Appearance.TextY"] = "Text Y"
 
 -- Slider tooltip
 english["Component.AdjustValue"] = "Adjust value"
 english["Component.AdjustValue.Desc"] = "Click to type or use mouse wheel"
+english["Component.AdjustValue.ClickHint"] = "Click the number to input a specific value"
 
 -- Direction labels
 english["Direction.Left"] = "Left"

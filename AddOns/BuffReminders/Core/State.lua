@@ -283,9 +283,12 @@ local currentWeaponEnchants = {
     permanentOH = nil, -- permanent enchant ID from item link (OH)
 }
 
--- Valid group members for current refresh cycle (set once per BuffState.Refresh())
--- Each entry: { unit = "raid1", class = "WARRIOR", isPlayer = true, name = "PlayerName" }
----@type {unit: string, class: string, isPlayer: boolean, name: string?}[]
+-- Valid group members for current refresh cycle (set once per BuffState.Refresh()).
+-- Includes phased / out-of-broadcast-range allies (tagged via `isPhased`) so an
+-- already-active buff on an unreachable ally still registers as covered.
+-- Counting paths apply a "phased + missing -> skip" rule to keep unfixable gaps
+-- out of the missing math; presence/targeted scans just iterate everyone.
+---@type {unit: string, class: string, isPlayer: boolean, name: string?, isPhased: boolean}[]
 local currentValidUnits = {}
 
 -- "Are we effectively alone?" snapshot from the most recent BuildValidUnitCache().
@@ -375,7 +378,7 @@ local function GetLastTarget(buffKey)
 end
 
 -- Pool of reusable unit entry tables (avoids creating new tables each refresh)
----@type {unit: string, class: string, isPlayer: boolean, name: string?}[]
+---@type {unit: string, class: string, isPlayer: boolean, name: string?, isPhased: boolean}[]
 local unitEntryPool = {}
 local unitEntryPoolSize = 0
 
@@ -384,8 +387,9 @@ local unitEntryPoolSize = 0
 ---@param class string
 ---@param isPlayer boolean
 ---@param name string?
----@return {unit: string, class: string, isPlayer: boolean, name: string?}
-local function AcquireUnitEntry(unit, class, isPlayer, name)
+---@param isPhased boolean True when the unit is in another phase or out of broadcast range
+---@return {unit: string, class: string, isPlayer: boolean, name: string?, isPhased: boolean}
+local function AcquireUnitEntry(unit, class, isPlayer, name, isPhased)
     local entry
     if unitEntryPoolSize > 0 then
         entry = unitEntryPool[unitEntryPoolSize]
@@ -395,8 +399,9 @@ local function AcquireUnitEntry(unit, class, isPlayer, name)
         entry.class = class
         entry.isPlayer = isPlayer
         entry.name = name
+        entry.isPhased = isPhased
     else
-        entry = { unit = unit, class = class, isPlayer = isPlayer, name = name }
+        entry = { unit = unit, class = class, isPlayer = isPlayer, name = name, isPhased = isPhased }
     end
     return entry
 end
@@ -504,18 +509,24 @@ end
 -- UTILITY FUNCTIONS
 -- ============================================================================
 
----Check if a unit is a valid group member for buff tracking
----Excludes: non-existent, dead/ghost, disconnected, hostile (cross-faction in open world),
----and units phased away from the player.
+---Check if a unit is a valid group member for buff tracking.
+---Excludes: non-existent, dead/ghost, disconnected, hostile (cross-faction in open world).
+---Phased / out-of-broadcast-range allies still pass; their phase status is exposed via
+---the `isPhased` flag on the cached entry so counting paths can apply the
+---"phased + missing -> skip" rule without losing existing-buff coverage.
 ---@param unit string
 ---@return boolean
 local function IsValidGroupMember(unit)
-    return UnitExists(unit)
-        and not UnitIsDeadOrGhost(unit)
-        and UnitIsConnected(unit)
-        and UnitCanAssist("player", unit)
-        and UnitIsVisible(unit)
-        and UnitPhaseReason(unit) == nil
+    return UnitExists(unit) and not UnitIsDeadOrGhost(unit) and UnitIsConnected(unit) and UnitCanAssist("player", unit)
+end
+
+---Determine whether a unit is in a different phase from the player or out of
+---broadcast range. Used to tag entries during cache rebuild; downstream consumers
+---decide whether to include phased allies in their math.
+---@param unit string
+---@return boolean
+local function IsUnitPhased(unit)
+    return not UnitIsVisible(unit) or UnitPhaseReason(unit) ~= nil
 end
 
 ---Check if a unit benefits from a buff using spec (preferred) or class (fallback)
@@ -577,9 +588,13 @@ local function BuildValidUnitCache()
             local _, class = UnitClass(unit)
             local isPlayer = UnitIsPlayer(unit)
             local name = GetUnitName(unit, true)
-            currentValidUnits[#currentValidUnits + 1] = AcquireUnitEntry(unit, class, isPlayer, name)
-            -- Track max level per class (players only, for buff caster checks)
-            if isPlayer and class then
+            local isPhased = IsUnitPhased(unit)
+            currentValidUnits[#currentValidUnits + 1] = AcquireUnitEntry(unit, class, isPlayer, name, isPhased)
+            -- Track max level per class (players only, for buff caster checks).
+            -- Skip phased / out-of-broadcast-range allies: they can't reliably
+            -- cast on the group right now, so they shouldn't make us track buffs
+            -- no one reachable can provide (e.g. priest outside the dungeon).
+            if isPlayer and class and not isPhased then
                 local level = UnitLevel(unit)
                 if not classMaxLevels[class] or level > classMaxLevels[class] then
                     classMaxLevels[class] = level
@@ -1040,13 +1055,19 @@ local function CountMissingBuff(spellIDs, buffKey, playerOnly, playersOnly)
         -- still include NPCs via the unchanged includeNPCsInCounting check.
         if data.isPlayer or countNPCs then
             if UnitBenefitsFromBuff(specBeneficiaries, beneficiaries, allySpecCache[data.name], data.class) then
-                total = total + 1
                 local hasBuff, remaining = UnitHasBuff(data.unit, GetUnitSpellIDs(buffKey, spellIDs, data.class))
-                if not hasBuff then
-                    missing = missing + 1
-                elseif remaining then
-                    if not minRemaining or remaining < minRemaining then
-                        minRemaining = remaining
+                -- Phased / unreachable allies count only when their having the buff
+                -- contributes to coverage. A phased member who is missing the buff
+                -- would be an unfixable gap (we can't cast on them), so omit them
+                -- from both totals to keep the math actionable.
+                if not (data.isPhased and not hasBuff) then
+                    total = total + 1
+                    if not hasBuff then
+                        missing = missing + 1
+                    elseif remaining then
+                        if not minRemaining or remaining < minRemaining then
+                            minRemaining = remaining
+                        end
                     end
                 end
             end

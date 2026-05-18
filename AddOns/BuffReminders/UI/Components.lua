@@ -652,38 +652,14 @@ function Components.Slider(parent, config)
         editBox:SetFocus()
         editBox:HighlightText()
     end)
-    SetupTooltip(valueBtn, L["Component.AdjustValue"], L["Component.AdjustValue.Desc"], "ANCHOR_TOP")
-
-    -- Mouse wheel support
-    holder:EnableMouseWheel(true)
-    holder:SetScript("OnMouseWheel", function(_, delta)
-        if isEnabled then
-            local newVal
-            local remainder = currentValue % step
-            if remainder == 0 then
-                -- Already aligned, move by full step
-                newVal = currentValue + (delta * step)
-            elseif delta > 0 then
-                -- Snap up to next multiple of step
-                newVal = currentValue + (step - remainder)
-            else
-                -- Snap down to previous multiple of step
-                newVal = currentValue - remainder
-            end
-            newVal = max(config.min, min(config.max, newVal))
-            currentValue = newVal
-            valueText:SetText(displayText(currentValue))
-            UpdateVisual()
-            config.onChange(floor(currentValue))
-        end
-    end)
+    SetupTooltip(valueBtn, L["Component.AdjustValue"], L["Component.AdjustValue.ClickHint"], "ANCHOR_TOP")
 
     -- Hover tooltip (on all interactive children, chained with existing scripts)
-    local wheelHint = "Use mouse wheel to adjust"
+    local clickHint = L["Component.AdjustValue.ClickHint"]
     if config.tooltip then
         local title = config.tooltip.title
         local desc = config.tooltip.desc
-        local fullDesc = desc and (desc .. "\n\n" .. wheelHint) or wheelHint
+        local fullDesc = desc and (desc .. "\n\n" .. clickHint) or clickHint
         holder:EnableMouse(true)
         local function showTip()
             ShowTooltip(holder, title, fullDesc, "ANCHOR_TOP")
@@ -701,7 +677,7 @@ function Components.Slider(parent, config)
         valueBtn:HookScript("OnLeave", hideTip)
     else
         local function showHint()
-            ShowTooltip(holder, wheelHint, nil, "ANCHOR_TOP")
+            ShowTooltip(holder, L["Component.AdjustValue"], clickHint, "ANCHOR_TOP")
         end
         thumb:HookScript("OnEnter", showHint)
         thumb:HookScript("OnLeave", HideTooltip)
@@ -1837,6 +1813,136 @@ function Components.DirectionButtons(parent, config)
     -- Backwards compatibility: empty buttons table (no longer used)
     holder.buttons = {}
 
+    return holder
+end
+
+-- ============================================================================
+-- ZONE PICKER (vertical + alignment dropdowns)
+-- ============================================================================
+-- Two compact dropdowns covering the same 15 zones as the old spatial picker:
+-- Vertical (Above / Inside top / Inside middle / Inside bottom / Below) +
+-- Align (Left / Center / Right). Decomposition is handled by
+-- BR.TextPositions.ToVA / FromVA so the widget speaks zone strings to its
+-- callers. Reuses Components.Dropdown for both axes - no custom widget code,
+-- ~26px per row vs the old picker's 90px.
+
+---@class ZonePickerConfig
+---@field label string Item name shown to the left of the dropdowns
+---@field labelWidth? number Default 70
+---@field verticalWidth? number Width of the Vertical dropdown (default 110)
+---@field alignWidth? number Width of the Align dropdown (default 85)
+---@field get fun(): string Returns current zone name
+---@field enabled? fun(): boolean
+---@field onChange fun(zone: string)
+
+-- Each Dropdown holder reserves an extra 10px past its `width` for the
+-- chevron + internal padding (see Components.Dropdown). The container has
+-- to include that or anything anchored to picker.RIGHT lands inside the
+-- align dropdown.
+local ZONE_PICKER_DD_PADDING = 10
+local ZONE_PICKER_LABEL_COLOR = { 1, 1, 1, 1 }
+local ZONE_PICKER_LABEL_DISABLED_COLOR = { 0.5, 0.5, 0.5, 1 }
+
+-- Localized option lists, built once at file load (locale strings are stable
+-- per session). Lifted out of Components.ZonePicker so each call doesn't
+-- re-allocate the option tables.
+local ZONE_PICKER_VERTICAL_OPTIONS = {}
+for _, opt in ipairs(BR.TextPositions.VERTICAL_OPTIONS) do
+    ZONE_PICKER_VERTICAL_OPTIONS[#ZONE_PICKER_VERTICAL_OPTIONS + 1] = {
+        value = opt.value,
+        label = BR.L[opt.labelKey],
+    }
+end
+local ZONE_PICKER_ALIGN_OPTIONS = {}
+for _, opt in ipairs(BR.TextPositions.ALIGN_OPTIONS) do
+    ZONE_PICKER_ALIGN_OPTIONS[#ZONE_PICKER_ALIGN_OPTIONS + 1] = {
+        value = opt.value,
+        label = BR.L[opt.labelKey],
+    }
+end
+
+---Create a zone picker (label + vertical + align dropdowns).
+---@param parent Frame
+---@param config ZonePickerConfig
+function Components.ZonePicker(parent, config)
+    local LW = config.labelWidth or 70
+    local V_W = config.verticalWidth or 110
+    local A_W = config.alignWidth or 85
+    local GAP = 8
+
+    local holder = CreateFrame("Frame", nil, parent)
+    holder:SetSize(LW + GAP + (V_W + ZONE_PICKER_DD_PADDING) + GAP + (A_W + ZONE_PICKER_DD_PADDING), 26)
+
+    local itemLabel = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    itemLabel:SetPoint("LEFT", 0, 0)
+    itemLabel:SetWidth(LW)
+    itemLabel:SetJustifyH("LEFT")
+    itemLabel:SetWordWrap(false)
+    itemLabel:SetText(config.label or "")
+    holder.label = itemLabel
+
+    local function currentZone()
+        return (config.get and config.get()) or "INSIDE_C"
+    end
+
+    local verticalDD = Components.Dropdown(holder, {
+        label = "",
+        labelWidth = 0,
+        width = V_W,
+        options = ZONE_PICKER_VERTICAL_OPTIONS,
+        get = function()
+            local v = BR.TextPositions.ToVA(currentZone())
+            return v
+        end,
+        enabled = config.enabled,
+        onChange = function(v)
+            local _, a = BR.TextPositions.ToVA(currentZone())
+            if config.onChange then
+                config.onChange(BR.TextPositions.FromVA(v, a))
+            end
+        end,
+    })
+    verticalDD:SetPoint("LEFT", itemLabel, "RIGHT", GAP, 0)
+
+    local alignDD = Components.Dropdown(holder, {
+        label = "",
+        labelWidth = 0,
+        width = A_W,
+        options = ZONE_PICKER_ALIGN_OPTIONS,
+        get = function()
+            local _, a = BR.TextPositions.ToVA(currentZone())
+            return a
+        end,
+        enabled = config.enabled,
+        onChange = function(a)
+            local v = BR.TextPositions.ToVA(currentZone())
+            if config.onChange then
+                config.onChange(BR.TextPositions.FromVA(v, a))
+            end
+        end,
+    })
+    alignDD:SetPoint("LEFT", verticalDD, "RIGHT", GAP, 0)
+
+    holder.verticalDropdown = verticalDD
+    holder.alignDropdown = alignDD
+
+    -- Mirror the dropdowns' enabled state on the item label so the whole row
+    -- reads as one disabled element (otherwise the label stays white while
+    -- everything to its right is greyed).
+    function holder:Refresh()
+        local enabledNow = not config.enabled or config.enabled()
+        if enabledNow then
+            itemLabel:SetTextColor(unpack(ZONE_PICKER_LABEL_COLOR))
+        else
+            itemLabel:SetTextColor(unpack(ZONE_PICKER_LABEL_DISABLED_COLOR))
+        end
+    end
+
+    if config.get or config.enabled then
+        tinsert(RefreshableComponents, holder)
+    end
+
+    holder:Refresh()
     return holder
 end
 
@@ -3341,8 +3447,10 @@ end
 ---@param config AppearanceGridConfig
 ---@return {frame: Frame, height: number, holders: table}
 function Components.AppearanceGrid(parent, config)
-    -- Compute label width from the longest of all 9 row labels so columns align
-    -- regardless of locale or font replacement.
+    -- Compute label width from the longest of all 7 row labels so columns align
+    -- regardless of locale or font replacement. Text offset X/Y rows moved to
+    -- the dedicated TextPositions section (per-text-item zone + nudge), so the
+    -- grid stays focused on size/zoom/border/spacing/alpha/text size/color.
     local labels = {
         L["Appearance.Width"],
         L["Appearance.Height"],
@@ -3351,8 +3459,6 @@ function Components.AppearanceGrid(parent, config)
         L["Appearance.Spacing"],
         L["Appearance.Alpha"],
         L["Appearance.Text"],
-        L["Appearance.TextX"],
-        L["Appearance.TextY"],
     }
     local LW = 50
     for _, t in ipairs(labels) do
@@ -3541,43 +3647,11 @@ function Components.AppearanceGrid(parent, config)
     })
     textColorHolder:SetPoint("LEFT", textSizeHolder, "RIGHT", 12, 0)
 
-    -- Row 5: Text offset X / Y
-    local textOffsetXHolder = Components.Slider(frame, {
-        label = L["Appearance.TextX"],
-        labelWidth = LW,
-        min = -20,
-        max = 20,
-        get = function()
-            return config.get("textOffsetX", 0)
-        end,
-        enabled = enabled and baseEnabled or nil,
-        onChange = function(val)
-            config.set("textOffsetX", val)
-        end,
-    })
-    textOffsetXHolder:SetPoint("TOPLEFT", 0, -ROW_H * 4)
-
-    local textOffsetYHolder = Components.Slider(frame, {
-        label = L["Appearance.TextY"],
-        labelWidth = LW,
-        min = -20,
-        max = 20,
-        get = function()
-            return config.get("textOffsetY", 0)
-        end,
-        enabled = enabled and baseEnabled or nil,
-        onChange = function(val)
-            config.set("textOffsetY", val)
-        end,
-    })
-    textOffsetYHolder:SetPoint("TOPLEFT", COL2, -ROW_H * 4)
-
-    local GRID_HEIGHT_FINAL = GRID_HEIGHT + ROW_H
-    frame:SetSize(FRAME_W, GRID_HEIGHT_FINAL)
+    frame:SetSize(FRAME_W, GRID_HEIGHT)
 
     return {
         frame = frame,
-        height = GRID_HEIGHT_FINAL,
+        height = GRID_HEIGHT,
         holders = {
             width = widthHolder,
             height = heightHolder,
@@ -3588,8 +3662,6 @@ function Components.AppearanceGrid(parent, config)
             alpha = alphaHolder,
             textSize = textSizeHolder,
             textColor = textColorHolder,
-            textOffsetX = textOffsetXHolder,
-            textOffsetY = textOffsetYHolder,
         },
     }
 end

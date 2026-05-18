@@ -50,6 +50,7 @@ L["Overlay.NoES"] = "沒有\n大地盾"
 L["Overlay.NoSource"] = "沒有\n魔源"
 L["Overlay.NoScales"] = "沒有\n鱗片"
 L["Overlay.NoLink"] = "沒有\n共生"
+L["Overlay.NoWeyrnstone"] = "沒有\n龍隊石"
 L["Overlay.NoTimeless"] = "沒有\n永恆"
 L["Overlay.NoAttune"] = "沒有\n同調"
 L["Overlay.NoFamiliar"] = "沒有\n魔寵"
@@ -138,6 +139,7 @@ L["Buff.EarthShield"] = "大地之盾"
 L["Buff.SourceOfMagic"] = "魔力之源"
 L["Buff.SymbioticRelationship"] = "共生關係"
 L["Buff.Timelessness"] = "永恆不朽"
+L["Buff.Weyrnstone"] = "龍隊石"
 -- Self
 L["Buff.ArcaneFamiliar"] = "秘法魔寵"
 L["Buff.Attunement"] = "黑曜同調"
@@ -200,6 +202,7 @@ L["Tooltip.MayShowExtraIcon.Desc"] =
 L["Tooltip.InstanceEntryReminder"] = "副本進本提示"
 L["Tooltip.InstanceEntryReminder.Desc"] =
     "進入地下城時會短暫顯示放置靈魂井的提示。施放法術或30秒後將消失。"
+L["BuffTooltip.ProvidedBy"] = "由 %s 提供"
 
 -- ============================================================================
 -- GLOW TYPE NAMES
@@ -413,9 +416,26 @@ L["Options.ShowMissingCountOnly"] = "僅顯示缺失數量"
 L["Options.ShowMissingCountOnly.Desc"] =
     "僅顯示缺失增益的數量（例如：”1“），而不是完整的分數形式（例如：”19/20“）。"
 L["Options.ShowBuffReminderText"] = "顯示“補BUFF”提示文字"
-L["Options.BuffTextOffsetX"] = "“補BUFF” X軸"
-L["Options.BuffTextOffsetY"] = "“補BUFF” Y軸"
 L["Options.Size"] = "大小"
+
+-- ============================================================================
+-- OPTIONS: TEXT POSITIONS
+-- ============================================================================
+L["Options.TextPositions"] = "文字"
+L["Options.TextPositions.Zone"] = "位置"
+L["Options.TextPositions.OffsetX.Short"] = "X"
+L["Options.TextPositions.OffsetY.Short"] = "Y"
+L["Options.TextPositions.StackCount"] = "堆疊計數"
+L["Options.TextPositions.StatLabel"] = "屬性標籤"
+L["Options.TextPositions.Badge"] = "標誌 (H / F)"
+L["Options.TextPositions.Vertical.Above"] = "上方"
+L["Options.TextPositions.Vertical.InsideTop"] = "頂部"
+L["Options.TextPositions.Vertical.InsideMiddle"] = "中央"
+L["Options.TextPositions.Vertical.InsideBottom"] = "底部"
+L["Options.TextPositions.Vertical.Below"] = "下方"
+L["Options.TextPositions.Align.Left"] = "左側"
+L["Options.TextPositions.Align.Center"] = "中央"
+L["Options.TextPositions.Align.Right"] = "右側"
 
 -- ============================================================================
 -- OPTIONS: CLICK TO CAST
@@ -455,6 +475,9 @@ L["Options.PetSpecIcon.Desc"] =
     "鼠標懸停時，寵物圖示將變為對應的專精技能（狡詐、狂野、堅韌）。"
 L["Options.ShowItemTooltips"] = "顯示物品提示訊息"
 L["Options.ShowItemTooltips.Desc"] = "將鼠標懸停在消耗品圖示上時顯示物品詳細訊息。"
+L["Options.ShowBuffTooltips"] = "顯示增益工具提示"
+L["Options.ShowBuffTooltips.Desc"] =
+    "將滑鼠懸停在團隊或職業增益圖示上時，顯示法術工具提示以及提供增益的職業。"
 L["Options.Behavior"] = "行為"
 L["Options.PetPassiveCombat"] = "僅在戰鬥中提示被動寵物"
 L["Options.PetPassiveCombat.Desc"] = "僅在戰鬥中顯示被動寵物提示。禁用時則始終顯示。"
@@ -851,12 +874,11 @@ L["Appearance.Border"] = "邊框"
 L["Appearance.Spacing"] = "間距"
 L["Appearance.Alpha"] = "透明度"
 L["Appearance.Text"] = "文字"
-L["Appearance.TextX"] = "文字 X軸"
-L["Appearance.TextY"] = "文字 Y軸"
 
 -- Slider tooltip
 L["Component.AdjustValue"] = "調整數值"
 L["Component.AdjustValue.Desc"] = "點擊輸入或使用鼠標滾輪。"
+L["Component.AdjustValue.ClickHint"] = "點擊數字即可輸入具體數值"
 
 -- Direction labels
 L["Direction.Left"] = "左側"

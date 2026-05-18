@@ -13,7 +13,7 @@ BR.Options.Helpers = BR.Options.Helpers or {}
 
 BR.Options.Constants = {
     PANEL_WIDTH = 920,
-    PANEL_HEIGHT = 640,
+    PANEL_HEIGHT = 650,
     SIDEBAR_WIDTH = 188,
     SIDEBAR_X = 14,
     CONTENT_TOP_OFFSET = 64, -- Y offset from panel top to content top (below header bar)

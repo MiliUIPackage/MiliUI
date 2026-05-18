@@ -143,8 +143,6 @@ local CategorySettingKeys = {
     iconZoom = "VisualsRefresh",
     borderSize = "VisualsRefresh",
     textSize = "VisualsRefresh",
-    textOffsetX = "VisualsRefresh",
-    textOffsetY = "VisualsRefresh",
     iconAlpha = "VisualsRefresh",
     textAlpha = "VisualsRefresh",
     textColor = "VisualsRefresh",
@@ -160,8 +158,6 @@ local CategorySettingKeys = {
     -- Behavior
     showBuffReminder = "VisualsRefresh",
     buffTextSize = "VisualsRefresh",
-    buffTextOffsetX = "VisualsRefresh",
-    buffTextOffsetY = "VisualsRefresh",
     showText = "VisualsRefresh",
     -- Toggles
     useCustomAppearance = "VisualsRefresh",
@@ -214,8 +210,6 @@ local DefaultSettingKeys = {
     iconZoom = "VisualsRefresh",
     borderSize = "VisualsRefresh",
     textSize = "VisualsRefresh",
-    textOffsetX = "VisualsRefresh",
-    textOffsetY = "VisualsRefresh",
     iconAlpha = "VisualsRefresh",
     textAlpha = "VisualsRefresh",
     textColor = "VisualsRefresh",
@@ -274,6 +268,7 @@ local DefaultSettingKeys = {
     consumableTextScale = "VisualsRefresh",
     hideConsumableLabels = "VisualsRefresh",
     showConsumableTooltips = false, -- No refresh needed, read at tooltip time
+    showBuffTooltips = false, -- No refresh needed, read at tooltip time
     hideLegacyConsumables = "DisplayRefresh",
     -- Pet display mode
     petDisplayMode = "DisplayRefresh",
@@ -344,6 +339,10 @@ local function ValidatePath(segments)
                 return true, DefaultSettingKeys[setting]
             end
             return false, nil
+        end
+        -- defaults.textPositions.<item>.<field> (zone | offsetX | offsetY)
+        if segments[2] == "textPositions" and #segments == 4 then
+            return true, "VisualsRefresh"
         end
         return false, nil
     end
@@ -536,8 +535,6 @@ local AppearanceKeys = {
     iconSize = true,
     iconWidth = true,
     textSize = true,
-    textOffsetX = true,
-    textOffsetY = true,
     iconAlpha = true,
     textAlpha = true,
     textColor = true,

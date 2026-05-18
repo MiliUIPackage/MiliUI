@@ -30,40 +30,6 @@ local function Build(ctx, layout)
     LayoutSectionHeader(layout, parent, L["Options.ItemDisplay"])
     layout:Space(COMPONENT_GAP)
 
-    local hideConsumableLabelsHolder = Components.Checkbox(parent, {
-        label = L["Options.HideConsumableLabels"],
-        get = function()
-            return BR.Config.Get("defaults.hideConsumableLabels", false)
-        end,
-        tooltip = {
-            title = L["Options.HideConsumableLabels.Title"],
-            desc = L["Options.HideConsumableLabels.Desc"],
-        },
-        onChange = function(checked)
-            BR.Config.Set("defaults.hideConsumableLabels", checked)
-        end,
-    })
-    layout:Add(hideConsumableLabelsHolder, nil, COMPONENT_GAP)
-
-    local consumableTextScaleHolder = Components.Slider(parent, {
-        label = L["Options.ConsumableTextScale"],
-        min = 5,
-        max = 80,
-        step = 1,
-        suffix = "%",
-        get = function()
-            return BR.Config.Get("defaults.consumableTextScale", 25)
-        end,
-        tooltip = {
-            title = L["Options.ConsumableTextScale.Title"],
-            desc = L["Options.ConsumableTextScale.Desc"],
-        },
-        onChange = function(val)
-            BR.Config.Set("defaults.consumableTextScale", val)
-        end,
-    })
-    layout:Add(consumableTextScaleHolder, nil, COMPONENT_GAP)
-
     local updateDisplayModePreview
     local updateSubIconSideVisibility
     local displayModeHolder = Components.Dropdown(parent, {
@@ -246,8 +212,116 @@ local function Build(ctx, layout)
     end
     updateSubIconSideVisibility(BR.Config.Get("defaults.consumableDisplayMode", "sub_icons"))
 
+    -- Text subsection: everything about consumable-icon text in one place -
+    -- size, the hide-stat-labels toggle, and per-item positions. Hide-stat-
+    -- labels sits directly above the Stat label position row and gates its
+    -- enabled state, so users see at a glance that hiding the label disables
+    -- positioning it.
     layout:Space(SECTION_GAP)
-    Helpers.LayoutSubsectionHeader(layout, parent, L["Options.Behavior"])
+    Helpers.LayoutSubsectionHeader(layout, parent, L["Options.TextPositions"])
+
+    local consumableTextScaleHolder = Components.Slider(parent, {
+        label = L["Options.ConsumableTextScale"],
+        min = 5,
+        max = 80,
+        step = 1,
+        suffix = "%",
+        get = function()
+            return BR.Config.Get("defaults.consumableTextScale", 25)
+        end,
+        tooltip = {
+            title = L["Options.ConsumableTextScale.Title"],
+            desc = L["Options.ConsumableTextScale.Desc"],
+        },
+        onChange = function(val)
+            BR.Config.Set("defaults.consumableTextScale", val)
+        end,
+    })
+    layout:Add(consumableTextScaleHolder, nil, COMPONENT_GAP)
+
+    local function statLabelsShown()
+        return not BR.Config.Get("defaults.hideConsumableLabels", false)
+    end
+
+    local hideConsumableLabelsHolder = Components.Checkbox(parent, {
+        label = L["Options.HideConsumableLabels"],
+        get = function()
+            return BR.Config.Get("defaults.hideConsumableLabels", false)
+        end,
+        tooltip = {
+            title = L["Options.HideConsumableLabels.Title"],
+            desc = L["Options.HideConsumableLabels.Desc"],
+        },
+        onChange = function(checked)
+            BR.Config.Set("defaults.hideConsumableLabels", checked)
+            -- Re-evaluate the stat label position row's enabled gate.
+            Components.RefreshAll()
+        end,
+    })
+    layout:Add(hideConsumableLabelsHolder, nil, COMPONENT_GAP)
+
+    local function buildPositionRow(item, label, enabled)
+        local row = CreateFrame("Frame", nil, parent)
+        row:SetSize(parent:GetWidth(), 26)
+
+        local picker = Components.ZonePicker(row, {
+            label = label,
+            labelWidth = 80,
+            enabled = enabled,
+            get = function()
+                return select(1, BR.TextPositions.Get(item))
+            end,
+            onChange = function(zone)
+                BR.Config.Set("defaults.textPositions." .. item .. ".zone", zone)
+            end,
+        })
+        picker:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+
+        local offsetX = Components.Slider(row, {
+            label = L["Options.TextPositions.OffsetX.Short"],
+            labelWidth = 12,
+            sliderWidth = 60,
+            min = -40,
+            max = 40,
+            enabled = enabled,
+            get = function()
+                local _, x = BR.TextPositions.Get(item)
+                return x
+            end,
+            onChange = function(val)
+                BR.Config.Set("defaults.textPositions." .. item .. ".offsetX", val)
+            end,
+        })
+        offsetX:SetPoint("LEFT", picker, "RIGHT", 12, 0)
+
+        local offsetY = Components.Slider(row, {
+            label = L["Options.TextPositions.OffsetY.Short"],
+            labelWidth = 12,
+            sliderWidth = 60,
+            min = -40,
+            max = 40,
+            enabled = enabled,
+            get = function()
+                local _, _, y = BR.TextPositions.Get(item)
+                return y
+            end,
+            onChange = function(val)
+                BR.Config.Set("defaults.textPositions." .. item .. ".offsetY", val)
+            end,
+        })
+        offsetY:SetPoint("LEFT", offsetX, "RIGHT", 8, 0)
+
+        layout:Add(row, 26, COMPONENT_GAP)
+    end
+
+    buildPositionRow("statLabel", L["Options.TextPositions.StatLabel"], statLabelsShown)
+    buildPositionRow("badge", L["Options.TextPositions.Badge"])
+    buildPositionRow("stackCount", L["Options.TextPositions.StackCount"])
+
+    -- Behavior controls visibility/filtering (which consumables show at all),
+    -- which is a different concern from Item Display (how each icon looks).
+    -- Promoted to its own section header for that visual separation.
+    LayoutSectionHeader(layout, parent, L["Options.Behavior"])
 
     local showWithoutItemsHolder = Components.Checkbox(parent, {
         label = L["Options.ShowWithoutItems"],

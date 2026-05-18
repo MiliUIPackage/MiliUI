@@ -16,7 +16,6 @@ local Components = BR.Components
 local Helpers = BR.Options.Helpers
 
 local GetCategorySetting = Helpers.GetCategorySetting
-local MakeCategoryGetter = Helpers.MakeCategoryGetter
 local MakeCategorySetter = Helpers.MakeCategorySetter
 
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
@@ -25,6 +24,9 @@ local mfloor, mmax = math.floor, math.max
 
 BR.Options.BuffSections = BR.Options.BuffSections or {}
 
+-- "BUFF!" reminder is raid-only, so its toggle/size/position controls all live
+-- here. Position writes to defaults.textPositions.buffReminder (global, since
+-- only raid renders the buffReminder item).
 local function Build(ctx, layout)
     local parent = ctx.content
     local defaults = BR.defaults
@@ -82,28 +84,59 @@ local function Build(ctx, layout)
     })
     buffTextSizeHolder:SetPoint("LEFT", reminderHolder, "LEFT", 210, 0)
 
-    local buffTextOffsetXHolder = Components.Slider(parent, {
-        label = L["Options.BuffTextOffsetX"],
-        labelWidth = 60,
+    -- Position controls for the BUFF! reminder text: ZonePicker + compact
+    -- X/Y nudge sliders, all on one row. ~26px tall.
+    local reminderPosRow = CreateFrame("Frame", nil, parent)
+    reminderPosRow:SetSize(parent:GetWidth(), 26)
+
+    local reminderZone = Components.ZonePicker(reminderPosRow, {
+        label = L["Options.TextPositions.Zone"],
+        labelWidth = 70,
+        get = function()
+            return select(1, BR.TextPositions.Get("buffReminder"))
+        end,
+        enabled = showReminder,
+        onChange = function(zone)
+            BR.Config.Set("defaults.textPositions.buffReminder.zone", zone)
+        end,
+    })
+    reminderZone:SetPoint("TOPLEFT", reminderPosRow, "TOPLEFT", 0, 0)
+
+    local reminderOffsetX = Components.Slider(reminderPosRow, {
+        label = L["Options.TextPositions.OffsetX.Short"],
+        labelWidth = 12,
+        sliderWidth = 60,
         min = -40,
         max = 40,
-        get = MakeCategoryGetter("raid", "buffTextOffsetX", 0),
+        get = function()
+            local _, x = BR.TextPositions.Get("buffReminder")
+            return x
+        end,
         enabled = showReminder,
-        onChange = MakeCategorySetter("raid", "buffTextOffsetX"),
+        onChange = function(val)
+            BR.Config.Set("defaults.textPositions.buffReminder.offsetX", val)
+        end,
     })
+    reminderOffsetX:SetPoint("LEFT", reminderZone, "RIGHT", 12, 0)
 
-    local buffTextOffsetYHolder = Components.Slider(parent, {
-        label = L["Options.BuffTextOffsetY"],
-        labelWidth = 60,
+    local reminderOffsetY = Components.Slider(reminderPosRow, {
+        label = L["Options.TextPositions.OffsetY.Short"],
+        labelWidth = 12,
+        sliderWidth = 60,
         min = -40,
         max = 40,
-        get = MakeCategoryGetter("raid", "buffTextOffsetY", 0),
+        get = function()
+            local _, _, y = BR.TextPositions.Get("buffReminder")
+            return y
+        end,
         enabled = showReminder,
-        onChange = MakeCategorySetter("raid", "buffTextOffsetY"),
+        onChange = function(val)
+            BR.Config.Set("defaults.textPositions.buffReminder.offsetY", val)
+        end,
     })
+    reminderOffsetY:SetPoint("LEFT", reminderOffsetX, "RIGHT", 8, 0)
 
-    buffTextOffsetYHolder:SetPoint("LEFT", buffTextOffsetXHolder, "LEFT", 210, 0)
-    layout:Add(buffTextOffsetXHolder, nil, COMPONENT_GAP)
+    layout:Add(reminderPosRow, 26, COMPONENT_GAP)
 end
 
 BR.Options.BuffSections.RaidIcons = Build
