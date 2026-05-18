@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,heroic,mythic,challenge,timewalker"
 
-mod:SetRevision("20260428075838")
+mod:SetRevision("20260517102256")
 mod:SetCreatureID(76141)
 mod:SetEncounterID(1699)
 
@@ -49,7 +49,7 @@ if DBM:IsPostMidnight() then
 		self.vb.smashCount = 1
 		self.vb.energizeCount = 1
 		self.vb.supernovaCount = 1
-		if self:IsMythicPlus() and DBM.Options.HardcodedTimer and not badStateDetected then
+		if DBM.Options.HardcodedTimer and not badStateDetected then
 			self:IgnoreBlizzardAPI()
 			self:RegisterShortTermEvents(
 				"ENCOUNTER_TIMELINE_EVENT_ADDED",

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2811, "DBM-Party-Midnight", 7, 1315)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260510211952")
+mod:SetRevision("20260517102256")
 mod:SetCreatureID(248595)
 mod:SetEncounterID(3213)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -27,7 +27,7 @@ local timerWrestPhantomsCD			= mod:NewCDCountTimer(20.5, 1251204, nil, nil, nil,
 local timerNecroticConvergenceCD	= mod:NewCDCountTimer(70, 1250708, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 
 --Midnight private aura replacements
-mod:AddPrivateAuraSoundOption(1252130, true, 1252130, 1, 2, "watchfeet", 8)--Unmake damage (Wrest Phantoms cast is 1251204)
+--mod:AddPrivateAuraSoundOption(1252130, true, 1252130, 1, 2, "watchfeet", 8)--Unmake damage (Wrest Phantoms cast is 1251204)
 mod:AddPrivateAuraSoundOption(1251775, true, 1251775, 1, 2, "fixateyou", 19)--Final Pursuit (also encounterevent ID 688 which was hotfixed in recently. Indicating this private aura might zap soon)
 
 mod.vb.drainSoulCount = 0
@@ -63,7 +63,7 @@ function mod:OnLimitedCombatStart()
 	self.vb.unmakeCount = 1
 	self.vb.wrestPhantomsCount = 1
 	self.vb.necroticConvergenceCount = 1
-	if self:IsMythicPlus() and DBM.Options.HardcodedTimer and not badStateDetected then
+	if DBM.Options.HardcodedTimer and not badStateDetected then
 		self:IgnoreBlizzardAPI()
 		self:RegisterShortTermEvents(
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",

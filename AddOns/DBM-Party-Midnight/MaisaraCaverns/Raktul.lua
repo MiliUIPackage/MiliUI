@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2812, "DBM-Party-Midnight", 7, 1315)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260423040903")
+mod:SetRevision("20260517102256")
 mod:SetCreatureID(248605)
 mod:SetEncounterID(3214)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -22,7 +22,7 @@ local timerSoulrendingRoarCD	= mod:NewCDCountTimer(70, 1253788, nil, nil, nil, 6
 
 --Midnight private aura replacements
 mod:AddPrivateAuraSoundOption(1252675, true, 1252675, 1, 1, "leapyou", 19)--Crush Souls
-mod:AddPrivateAuraSoundOption(1253779, true, 1253779, 1, 2, "watchfeet", 8)--Spectral Decay
+--mod:AddPrivateAuraSoundOption(1253779, true, 1253779, 1, 2, "watchfeet", 8)--Spectral Decay
 
 mod.vb.spiritbreakerCount = 0
 mod.vb.crushSoulsCount = 0
@@ -51,7 +51,7 @@ function mod:OnLimitedCombatStart()
 	self.vb.spiritbreakerCount = 1
 	self.vb.crushSoulsCount = 1
 	self.vb.soulrendingRoarCount = 1
-	if self:IsMythicPlus() and DBM.Options.HardcodedTimer and not badStateDetected then
+	if DBM.Options.HardcodedTimer and not badStateDetected then
 		self:IgnoreBlizzardAPI()
 		self:RegisterShortTermEvents(
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",

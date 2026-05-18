@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2736, "DBM-Raids-Midnight", 3, 1307)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260428075631")
+mod:SetRevision("20260514023828")
 mod:SetCreatureID(240432)
 mod:SetEncounterID(3179)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -10,6 +10,7 @@ mod:SetZone(2912)
 
 mod:RegisterCombat("combat")
 
+--Encounter Event 802 was added in patch 12.0.7 for Fallen Oath
 --local warnDespoticCommand					= mod:NewCountAnnounce(1248697, 2)--Hardcode only
 
 local specWarnVoidConvergence				= mod:NewSpecialWarningCount(1243453, nil, nil, DBM_COMMON_L.ORBS, 2, 2)

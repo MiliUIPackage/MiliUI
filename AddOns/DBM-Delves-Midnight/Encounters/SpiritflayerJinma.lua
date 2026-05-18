@@ -4,10 +4,9 @@ local mod	= DBM:NewMod("SpiritflayerJinma", "DBM-Delves-Midnight", 2)
 mod.statTypes = "normal"
 mod.soloChallenge = true
 
-mod:SetRevision("20260503230113")
-mod:DisableHardcodedOptions()
+mod:SetRevision("20260515230945")
 --mod:SetCreatureID(0)--TODO
-mod:SetEncounterID(3433)
+mod:SetEncounterID(3433, 3434)
 mod:SetZone()
 
 mod:RegisterCombat("combat")

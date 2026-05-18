@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2778, "DBM-Party-Midnight", 5, 1311)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260322092648")
+mod:SetRevision("20260517003501")
 --mod:SetCreatureID()--TOO many IDs to guess
 mod:SetEncounterID(3209)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -28,8 +28,8 @@ mod:AddCustomTimerOptions(1243011, true, 5, 0)--Fury of the War God
 mod:AddCustomTimerOptions(1243569, "Tank|Healer", 5, 0)--Overwhelming Onslaught
 mod:AddCustomTimerOptions(1262846, true, 5, 0)--Spirit Thrash (probably not used anymore)
 --Midnight private aura replacements
-mod:AddPrivateAuraSoundOption(1242869, true, 1242869, 1, 1, "scatter", 2)--Echoing Maul
-mod:AddPrivateAuraSoundOption(1261781, true, 1261781, 1, 1, "safenow", 2)--Defensive Stance
+--mod:AddPrivateAuraSoundOption(1242869, true, 1242869, 1, 1, "scatter", 2)--Echoing Maul
+--mod:AddPrivateAuraSoundOption(1261781, true, 1261781, 1, 1, "safenow", 2)--Defensive Stance
 
 function mod:OnLimitedCombatStart()
 	self:EnableAlertOptions(1255385, 89, "pushbackincoming", 13, 2)

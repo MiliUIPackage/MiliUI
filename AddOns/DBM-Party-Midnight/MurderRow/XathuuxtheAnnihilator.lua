@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2681, "DBM-Party-Midnight", 2, 1304)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260322092648")
+mod:SetRevision("20260517003501")
 mod:SetCreatureID(234647)
 mod:SetEncounterID(3103)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -24,7 +24,7 @@ mod:AddCustomTimerOptions(473898, true, 5, 0)--Legion Strike
 mod:AddCustomTimerOptions(474197, true, 2, 0)--Demonic Rage
 mod:AddCustomTimerOptions(1214637, true, 3, 0)--Axe Toss
 --Midnight private aura replacements
-mod:AddPrivateAuraSoundOption(474234, true, 474234, 1, 2, "watchfeet", 8)--Burning Steps
+--mod:AddPrivateAuraSoundOption(474234, true, 474234, 1, 2, "watchfeet", 8)--Burning Steps
 --mod:AddPrivateAuraSoundOption(1218203, true, 1218203, 1, 1)--Fingers of Gul'dan
 
 function mod:OnLimitedCombatStart()

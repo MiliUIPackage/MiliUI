@@ -604,11 +604,19 @@ end
 
 do
 	local interruptSpells = {
-		[1766] = true,--Rogue Kick
+		[72] = true,--Warrior Shield Bash (Rank 1)
+		[1671] = true,--Warrior Shield Bash (Rank 2)
+		[1672] = true,--Warrior Shield Bash (Rank 3)
+		[1766] = true,--Rogue Kick (Rank 1)
+		[1767] = true,--Rogue Kick (Rank 2)
+		[1768] = true,--Rogue Kick (Rank 3)
+		[1769] = true,--Rogue Kick (Rank 4)
 		[2139] = true,--Mage Counterspell
-		[6552] = true,--Warrior Pummel
+		[6552] = true,--Warrior Pummel (Rank 1)
+		[6554] = true,--Warrior Pummel (Rank 2)
 		[15487] = true,--Priest Silence
-		[19647] = true,--Warlock pet Spell Lock
+		[19244] = true,--Warlock pet Spell Lock (Rank 1)
+		[19647] = true,--Warlock pet Spell Lock (Rank 2)
 		[47528] = true,--Death Knight Mind Freeze
 		[57994] = true,--Shaman Wind Shear
 		[78675] = true,--Druid Solar Beam
@@ -618,11 +626,14 @@ do
 		[116705] = true,--Monk Spear Hand Strike
 		[147362] = true,--Hunter Countershot
 		[183752] = true,--Demon Hunter Disrupt
-		[202137] = true,--Demon Hunter Sigil of Silence (Not uncommented because CheckInterruptFilter doesn't properly handle dual interrupts for single class yet)
+		[202137] = true,--Demon Hunter Sigil of Silence
 		[351338] = true,--Evoker Quell
 	}
-	if private.isClassic then
+	if private.isClassic or private.isBCC then
 		interruptSpells[8042] = true -- Shaman Earth Shock
+		interruptSpells[16979] = true -- Druid Feral Charge
+	elseif private.isWrath then
+		interruptSpells[16979] = true -- Druid Feral Charge
 	end
 	---@param sourceGUID string source GUID of the caster
 	---@param checkOnlyTandF boolean? is used when CheckInterruptFilter is actually being used for a simpe target/focus check and nothing more.
@@ -1265,28 +1276,37 @@ do
 	---@param optionId number spellId or JournalId that must match option ID
 	---@param encounterEventId number|table EncounterEventID from EncounterEvent.db2 that matches event we're targetting
 	---@param customOption string? Used when event supports hardcoded timers and needs different option table lookup
-	function bossModPrototype:EnableTimelineOptions(optionId, encounterEventId, customOption)
-		if DBM.Options.HideDBMBars then return end
+	---@param onlyColor boolean? Set to true to only set color and not countdown sounds, used for non timer events that still want color options
+	function bossModPrototype:EnableTimelineOptions(optionId, encounterEventId, customOption, onlyColor)
 		--Set Color (done outside option check since right now option check isnt supported until a future patch
 		--And we want to set colors on any bar even if it's "disabled" for now
 		if not DBM.Options.DontSetTimelineColors then
 			local colorType = customOption and self.Options[customOption .. "TColor"] or self.Options["CustomTimerOption" .. optionId .. "TColor"] or 0
-			local timerRed, timerGreen, timerBlue = DBT:GetColorForType(colorType, true)
+			local timerStartRed, timerStartGreen, timerStartBlue = DBT:GetColorForType(colorType)
+			local timerEndRed, timerEndGreen, timerEndBlue = DBT:GetColorForType(colorType, true)
 			if type(encounterEventId) == "table" then
 				for _, id in ipairs(encounterEventId) do
-					C_EncounterEvents.SetEventColor(id, {r = timerRed, g = timerGreen, b = timerBlue})
+					DBM:EE_SetEventColor(id, timerStartRed, timerStartGreen, timerStartBlue, timerEndRed, timerEndGreen, timerEndBlue)
 				end
 			else
-				C_EncounterEvents.SetEventColor(encounterEventId, {r = timerRed, g = timerGreen, b = timerBlue})
+				DBM:EE_SetEventColor(encounterEventId, timerStartRed, timerStartGreen, timerStartBlue, timerEndRed, timerEndGreen, timerEndBlue)
 			end
 		end
-		if optionId and (customOption and self.Options[customOption] or self.Options["CustomTimerOption" .. optionId]) then
+		if not onlyColor and optionId and (customOption and self.Options[customOption] or self.Options["CustomTimerOption" .. optionId]) then
 			--Set Countdown
+			--Known Caveats. If a bar starts with a duration shorter than highlight duration (ie a 3 second bar starts already highlighted, countdown will start at 3 and count from 5
+			--This is far less likely to happen when using a highlight value of 5000 ms but with a value of 10000ms it might happen quite a bit for initial timers that are < 10
 			local timerCountdown = not DBM.Options.DontPlayCountdowns and (customOption and self.Options[customOption .. "CVoice"] or self.Options["CustomTimerOption" .. optionId .. "CVoice"]) or 0
-			if timerCountdown ~= 0 then
+			if timerCountdown ~= 0 and self.tlCountValue then
 				if not self.tlTimerEvents then self.tlTimerEvents = {} end
 				local maxCount = DBM:GetCountMaxCountForVoice(timerCountdown)
-				local countSizePath = (maxCount == 3 or DBM.Options.CountSize == 3) and "threecount.ogg" or "fivecount.ogg"
+				local countSizePath
+				if maxCount == 3 or DBM.Options.CountSize == 3 then
+					countSizePath = self.tlCountValue == 10000 and "threecount_5s.ogg" or "threecount.ogg"
+				else
+					countSizePath = self.tlCountValue == 10000 and "fivecount_5s.ogg" or "fivecount.ogg"
+				end
+				local path
 				if type(timerCountdown) == "string" then
 					path = timerCountdown..countSizePath
 				elseif timerCountdown == 2 then

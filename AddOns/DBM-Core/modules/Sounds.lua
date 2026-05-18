@@ -10,15 +10,16 @@ local DBM = DBM
 do
 	local counts = {
 		{	text	= "Corsica",value 	= "Corsica", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Corsica\\", max = 10},
-		{	text	= "Koltrane",value 	= "Kolt", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Kolt\\", max = 10},
 		{	text	= "Smooth",value 	= "Smooth", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Smooth\\", max = 10},
 		{	text	= "Smooth (Reverb)",value 	= "SmoothR", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SmoothReverb\\", max = 10},
 		{	text	= "Pewsey",value 	= "Pewsey", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Pewsey\\", max = 10},
-		{	text	= "瑞辰 (zhCN男)",value = "瑞辰", path = "Interface\\AddOns\\DBM-Core\\Sounds\\瑞辰\\", max = 10},
+		{	text	= "Bear (Child)",value = "Bear", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Bear\\", max = 10},		
+		{	text	= "瑞辰 (zhCN)",value = "Ruichen", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ruichen\\", max = 10},
+		{	text	= "纯如 (zhCN)",value = "Chunru", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Chunru\\", max = 10},
+		{	text	= "浩 (zhTW)",value = "Hao", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Hao\\", max = 10},
+		{	text	= "玲 (zhTW)",value = "Ling", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ling\\", max = 10},
 		{	text	= "然然 (zhCN女)",value = "然然", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ranran\\", max = 10},
 		{	text	= "忘忧景久 (zhCN女)",value = "忘憂景久", path = "Interface\\AddOns\\DBM-Core\\Sounds\\WYJJ\\", max = 10},
-		{	text	= "浩 (zhTW男)",value = "浩", path = "Interface\\AddOns\\DBM-Core\\Sounds\\浩\\", max = 10},
-		{	text	= "玲 (zhTW女)",value = "玲", path = "Interface\\AddOns\\DBM-Core\\Sounds\\玲\\", max = 10},		
 	}
 	--Countdown audio that's been specifically edited to be a single 5/3 second count file
 	local midnightCounts = {
@@ -28,9 +29,10 @@ do
 		{	text	= "Smooth (Reverb)",value 	= "SmoothR", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SmoothReverb\\", max = 10},
 		{	text	= "然然 (zhCN女)",value = "然然", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ranran\\", max = 10},
 		{	text	= "忘忧景久 (zhCN女)",value = "忘憂景久", path = "Interface\\AddOns\\DBM-Core\\Sounds\\WYJJ\\", max = 10},
-		{	text	= "瑞辰 (zhCN男)",value = "瑞辰", path = "Interface\\AddOns\\DBM-Core\\Sounds\\瑞辰\\", max = 10},
-		{	text	= "浩 (zhTW男)",value = "浩", path = "Interface\\AddOns\\DBM-Core\\Sounds\\浩\\", max = 10},
-		{	text	= "玲 (zhTW女)",value = "玲", path = "Interface\\AddOns\\DBM-Core\\Sounds\\玲\\", max = 10},
+		{	text	= "瑞辰 (zhCN)",value = "Ruichen", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ruichen\\", max = 10},
+		{	text	= "纯如 (zhCN)",value = "Chunru", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Chunru\\", max = 10},
+		{	text	= "浩 (zhTW)",value = "Hao", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Hao\\", max = 10},
+		{	text	= "玲 (zhTW)",value = "Ling", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ling\\", max = 10},
 	}
 	local hasCached = false
 	local cachedTable

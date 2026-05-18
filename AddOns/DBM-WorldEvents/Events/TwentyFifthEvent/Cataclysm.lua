@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("CataEvent", "DBM-WorldEvents", 4)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260517213622")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(52409, 41376, 43324)
 mod:SetEncounterID(2320)
@@ -30,7 +30,7 @@ local warnFury					= mod:NewStackAnnounce(82524, 2, nil, "Tank|Healer")
 --Ragnaros
 local warnBurningWound			= mod:NewStackAnnounce(99399, 3, nil, "Tank|Healer")
 local warnSulfurasSmash			= mod:NewSpellAnnounce(98710, 4)--Phase 1-3 ability.
-local warnSonsLeft				= mod:NewAddsLeftAnnounce("ej2637", 2, 99014)
+local warnSonsLeft				= mod:NewAddsLeftAnnounce(-2637, 2, 99014)
 local warnBlazingHeat			= mod:NewTargetAnnounce(100460, 4)
 local warnSplittingBlow			= mod:NewAnnounce("warnSplittingBlow", 3, 98951)
 local warnEngulfingFlame		= mod:NewAnnounce("warnEngulfingFlame", 4, 99171)

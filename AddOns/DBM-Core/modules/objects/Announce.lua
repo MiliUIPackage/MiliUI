@@ -374,10 +374,16 @@ local cachedColorFunctions = setmetatable({}, {__mode = "kv"})
 
 local function setText(announceType, spellId, castTime, preWarnTime, customName, alternateSpellId)
 	local spellName
+	local baseSpellName
 	if customName then
-		spellName = customName
+		baseSpellName = customName
 	else
-		spellName = DBM:ParseSpellName(alternateSpellId or spellId, announceType) or CL.UNKNOWN
+		baseSpellName = DBM:ParseSpellName(alternateSpellId or spellId, announceType) or CL.UNKNOWN
+	end
+	if spellId then
+		spellName = DBM:GetRename(spellId, baseSpellName)
+	else
+		spellName = baseSpellName
 	end
 	local text
 	if announceType == "cast" then
@@ -399,7 +405,8 @@ local function setText(announceType, spellId, castTime, preWarnTime, customName,
 	end
 	--Automatically register alternate spellnames when detecting their use here
 	if spellId and (customName or alternateSpellId) then
-		DBM:RegisterAltSpellName(spellId, customName or spellName)
+		DBM:RegisterAltSpellName(spellId, baseSpellName)
+		DBM:AddRename(spellId, baseSpellName)
 	end
 	return text, spellName
 end
@@ -408,6 +415,8 @@ function announcePrototype:SetText(customName)
 	local text, spellName = setText(self.announceType, self.spellId, self.castTime, self.preWarnTime, customName)
 	self.text = text
 	self.spellName = spellName
+	self.customName = customName
+	self.renameRevision = DBM:GetSpellRenameRevision()
 end
 
 ---Update icon on object and nothing else.
@@ -428,6 +437,9 @@ function announcePrototype:UpdateKey(altSpellId)
 		local text, spellName = setText(self.announceType, self.spellId, self.castTime, self.preWarnTime)
 		self.text = text
 		self.spellName = spellName
+		self.customName = nil
+		self.alternateSpellId = nil
+		self.renameRevision = DBM:GetSpellRenameRevision()
 	else--Just regenerating spellName not message text because it's likely a custom text object such as NewSpecialWarning
 		self.spellName = DBM:ParseSpellName(altSpellId)
 	end
@@ -476,6 +488,17 @@ function announcePrototype:Show(...) -- todo: reduce amount of unneeded strings
 	if not self.option or self.mod.Options[self.option] then
 		if DBM.Options.DontShowBossAnnounces or DBM.Options.HideDBMWarnings then return end	-- don't show the announces if the spam filter option is set
 		if DBM.Options.DontShowTargetAnnouncements and (self.announceType == "target" or self.announceType == "targetcount") and not self.noFilter then return end--don't show announces that are generic target announces
+		local renameSpellKey = DBM:NormalizeSpellRenameKey(self.spellId)
+		if renameSpellKey and self.renameRevision ~= DBM:GetSpellRenameRevision() then
+			if self.announceType then
+				local text, spellName = setText(self.announceType, self.spellId, self.castTime, self.preWarnTime, self.customName, self.alternateSpellId)
+				self.text = text
+				self.spellName = spellName
+			else
+				self.spellName = DBM:GetRename(self.spellId, self.spellName or DBM:ParseSpellName(self.spellId) or CL.UNKNOWN)
+			end
+			self.renameRevision = DBM:GetSpellRenameRevision()
+		end
 		local argTable
 		if self.announceType ~= "blizztarget" then
 			--Don't create table out of args if it has secrets
@@ -740,6 +763,17 @@ function bossModPrototype:NewAnnounce(text, color, icon, optionDefault, optionNa
 		soundOption = 0--No Sound
 	end
 	icon = DBM:ParseSpellIcon(icon)
+	local spellName
+	local renameRevision
+	if spellID then
+		local baseSpellName = waCustomName or DBM:ParseSpellName(spellID) or CL.UNKNOWN
+		spellName = DBM:GetRename(spellID, baseSpellName)
+		renameRevision = DBM:GetSpellRenameRevision()
+		if waCustomName then
+			DBM:RegisterAltSpellName(spellID, baseSpellName)
+			DBM:AddRename(spellID, baseSpellName)
+		end
+	end
 	---@class Announce
 	local obj = setmetatable(
 		{
@@ -752,6 +786,8 @@ function bossModPrototype:NewAnnounce(text, color, icon, optionDefault, optionNa
 			mod = self,
 			icon = icon,
 			spellId = spellID,--For WeakAuras / other callbacks
+			spellName = spellName,
+			renameRevision = renameRevision,
 		},
 		mt
 	)
@@ -812,6 +848,9 @@ local function newAnnounce(self, announceType, spellId, color, icon, optionDefau
 			type = announceType,
 			spellId = spellId,
 			spellName = spellName,
+			customName = alternateSpellName,
+			alternateSpellId = alternateSpellId,
+			renameRevision = DBM:GetSpellRenameRevision(),
 			noFilter = noFilter,
 			castTime = castTime,
 			preWarnTime = preWarnTime,

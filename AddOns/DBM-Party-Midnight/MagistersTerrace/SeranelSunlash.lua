@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2661, "DBM-Party-Midnight", 3, 1300)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260428075838")
+mod:SetRevision("20260517102256")
 mod:SetCreatureID(231863)
 mod:SetEncounterID(3072)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -23,7 +23,7 @@ local timerRunicMarkCD					= mod:NewCDCountTimer(20.5, 1225787, nil, nil, nil, 3
 local timerWaveOfSilenceCD				= mod:NewCDCountTimer(20.5, 1225193, nil, nil, nil, 2, nil, DBM_COMMON_L.IMPORTANT_ICON)
 
 --Midnight private aura replacements
-mod:AddPrivateAuraSoundOption({1225787,1225792}, true, 1225787, 1, 1, "scatter", 2)--Runic Mark
+--mod:AddPrivateAuraSoundOption({1225787,1225792}, true, 1225787, 1, 1, "scatter", 2)--Runic Mark
 
 mod.vb.zoneCount = 0
 mod.vb.wardCount = 0
@@ -52,7 +52,7 @@ function mod:OnLimitedCombatStart()
 	self.vb.wardCount = 1
 	self.vb.markCount = 1
 	self.vb.waveCount = 1
-	if self:IsMythicPlus() and DBM.Options.HardcodedTimer and not badStateDetected then
+	if DBM.Options.HardcodedTimer and not badStateDetected then
 		self:IgnoreBlizzardAPI()
 		self:RegisterShortTermEvents(
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",

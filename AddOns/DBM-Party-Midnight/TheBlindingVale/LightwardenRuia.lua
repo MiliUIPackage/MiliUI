@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2771, "DBM-Party-Midnight", 4, 1309)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260322092648")
+mod:SetRevision("20260517003501")
 mod:SetCreatureID(245912)
 mod:SetEncounterID(3201)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -30,8 +30,8 @@ mod:AddCustomTimerOptions(1239885, true, 6, 0)--Bear Form
 mod:AddCustomTimerOptions(1239882, true, 6, 0)--Moonkin Form
 mod:AddCustomTimerOptions(1239883, true, 6, 0)--Haranir Form
 --Midnight private aura replacements
-mod:AddPrivateAuraSoundOption(1239825, true, 1239825, 1, 1, "runout", 2)--Lightfire
-mod:AddPrivateAuraSoundOption(1240222, true, 1240222, 1, 1, "lineyou", 17)--Pulverizing Strikes
+--mod:AddPrivateAuraSoundOption(1239825, true, 1239825, 1, 1, "runout", 2)--Lightfire
+--mod:AddPrivateAuraSoundOption(1240222, true, 1240222, 1, 1, "lineyou", 17)--Pulverizing Strikes
 
 function mod:OnLimitedCombatStart()
 	self:EnableAlertOptions(1240098, 182, "watchstep", 2, 3)

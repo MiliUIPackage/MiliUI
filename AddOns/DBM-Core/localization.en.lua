@@ -14,7 +14,7 @@ end
 
 L.HOW_TO_USE_MOD						= "Welcome to " .. L.DBM .. ". Type /dbm help for a list of supported commands. To access options type /dbm in your chat to begin configuration. Load specific zones manually to configure any boss specific settings to your liking as well. " .. L.DBM .. " will setup defaults for your spec, but you may want to fine tune these."
 L.SILENT_REMINDER						= "Reminder: " .. L.DBM .. " is still in silent mode."
-L.NEWS_UPDATE							= "|h|c11ff1111News|r|h: DBM has been updated with changes to mod structure so classic and mainline can now use unified (same) modules. This means that Vanilla (including SoD), TBC, Wrath, and Cata raid modules now need to be downloaded separately using same packages as retail. Read more about it |Haddon:DBM:news|h|cff3588ff[click here]|r|h"
+L.NEWS_UPDATE							= "|h|c11ff1111News|r|h: DBM has been updated with ability rename feature. Just do /dbm and go to mods category (raids, dungeons, etc) and navigate to the mod you want to rename abilities for."
 L.NEWS_UPDATE_REPEAT					= "|h|c11ff1111News|r|h: DBM has been updated with changes to mod structure so classic and mainline can now use unified (same) modules. This means that Vanilla (including SoD), TBC, Wrath, and Cata raid modules now need to be downloaded separately using same packages as retail. You are currently in a raid that has a missing module. This message will keep showing (and you'll have no functional alerts for this zone) until you've installed missing raid module."
 
 
@@ -24,7 +24,7 @@ L.LOAD_MOD_ERROR						= "Error while loading boss mods for %s: %s"
 L.LOAD_MOD_SUCCESS						= "Loaded '%s' mods. For more options such as custom alert sounds and personalized warning notes, type /dbm."
 L.LOAD_MOD_COMBAT						= "Loading of '%s' delayed until you leave combat"
 L.LOAD_GUI_ERROR						= "Could not load GUI: %s"
-L.LOAD_GUI_COMBAT						= "GUI cannot be initially loaded in combat. GUI will be loaded out of combat. After GUI loaded, you can open GUI in combat."
+L.LOAD_GUI_COMBAT						= "GUI cannot be opened in combat. Try again when you have left combat."
 L.BAD_LOAD								= L.DBM .. " has detected your mod for this instance failed to fully load correctly because of combat. As soon as you are out of combat, please do /console reloadui as soon as possible."
 L.LOAD_MOD_VER_MISMATCH					= "%s could not be loaded because your DBM-Core does not meet requirements. An updated version is required"
 L.LOAD_MOD_EXP_MISMATCH					= "%s could not be loaded because it is designed for a WoW expansion that's not currently available. When expansion becomes available, this mod will automatically work."

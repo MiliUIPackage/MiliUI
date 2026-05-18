@@ -79,16 +79,16 @@ local function showRealDate(curseDate)
 	end
 end
 
-DBM.Revision = parseCurseDate("20260513000030")
+DBM.Revision = parseCurseDate("20260518014447")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 private.fakeBWVersion, private.fakeBWHash = 415, "414c990"--415.0
 
 -- The string that is shown as version
-DBM.DisplayVersion = "12.0.47"--Core version
+DBM.DisplayVersion = "12.0.50"--Core version
 DBM.classicSubVersion = 0
 DBM.dungeonSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2026, 5, 12) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2026, 5, 17) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
 -- support for github downloads, which doesn't support curse keyword expansion
@@ -296,8 +296,9 @@ DBM.DefaultOptions = {
 	DisableAmbiance = false,
 	DisableMusic = false,
 	EnableModels = true,
-	GUIWidth = 800,
-	GUIHeight = 600,
+	GUIWidth = 1000,
+	GUIHeight = 800,
+	GUIResizeMigrated_1000x800 = false,
 	GroupOptionsExcludeIcon = false,
 --	GroupOptionsExcludePA = false,
 	AutoExpandSpellGroups2 = true,
@@ -452,6 +453,7 @@ DBM.DefaultOptions = {
 	NewsMessageShown2 = 2,--Apparently variable without 2 can still exist in some configs (config cleanup of no longer existing variables not working?)
 	AlwaysShowSpeedKillTimer2 = false,
 	ShowBrezFrame = false,
+	ShowKeystoneOnComplete = true,
 	BrezFont = "standardFont",
 	BrezFontSize = 18,
 	BattleRezPosition = {"TOPLEFT", 214, -29},
@@ -479,6 +481,7 @@ DBM.DefaultOptions = {
 	ShortTimerText = true,
 	HardcodedTimer = true,
 	ChatFrame = "DEFAULT_CHAT_FRAME",
+	SpellRenames = false,-- Reserved key for user spell rename overrides (actual table initialized per-profile in loadOptions)
 	CoreSavedRevision = 1,
 	SilentMode = false,
 	NoCombatScanningFeatures = false,
@@ -839,23 +842,26 @@ bossModPrototype.IsPostMidnight = DBM.IsPostMidnight
 
 ---@param self DBMModOrDBM
 ---@param includeAuras boolean?
-function DBM:MidRestrictionsActive(includeAuras)
+---@param includeEncounters boolean?
+---@param includeChat boolean?
+function DBM:MidRestrictionsActive(includeAuras, includeEncounters, includeChat)
 	--Not Midnight (or later), rest of checks don't apply
 	if not private.isRetail then
 		return false
+	end
+	--includeAura's defaults to off, other two default to true if omited
+	if not includeEncounters and not includeChat then
+		includeEncounters, includeChat = true, true
 	end
 	if includeAuras and (C_Secrets.ShouldAurasBeSecret() or C_Secrets.ShouldCooldownsBeSecret()) then--Checks cooldown and auras restrictions
 		return true
 	end
 	--In active encounter or active M+
-	if private.IsEncounterInProgress() or C_ChallengeMode.IsChallengeModeActive() then
+	if includeEncounters and (private.IsEncounterInProgress() or C_ChallengeMode.IsChallengeModeActive()) then
 		return true
 	end
-	--if GetActiveMatchState() == 3 then--In active PVP match
-	--	return true
-	--end
 	--Comms and chat messages blocked. might be redundant to above but for good measure
-	if C_ChatInfo.InChatMessagingLockdown() then
+	if includeChat and C_ChatInfo.InChatMessagingLockdown() then
 		return true
 	end
 end
@@ -973,12 +979,8 @@ function DBM:ParseSpellIcon(spellId, objectType, fallbackIcon)
 	local icon
 	if objectType and objectType == "achievement" then
 		icon = select(10, GetAchievementInfo(spellId))
-	elseif type(spellId) == "string" then--Journal ID in old format
-		if spellId:match("ej%d+") then
-			icon = select(4, DBM:EJ_GetSectionInfo(string.sub(spellId, 3)))
-		else--Icon texture ID (passed as string by module so core knows it's a FDID and not spellID
-			icon = spellId
-		end
+	elseif type(spellId) == "string" then--Icon texture ID (passed as string by module so core knows it's a FDID and not spellID)
+		icon = spellId
 	elseif type(spellId) == "number" then--SpellId or journal Id
 		if spellId < 0 then--Journal ID in new format
 			icon = select(4, DBM:EJ_GetSectionInfo(-spellId))
@@ -997,8 +999,6 @@ function DBM:ParseSpellName(spellId, objectType)
 	local spellName
 	if objectType and objectType == "achievement" then
 		spellName = select(2, GetAchievementInfo(spellId))
-	elseif type(spellId) == "string" and spellId:match("ej%d+") then--Old Journal Format
-		spellName = self:EJ_GetSectionInfo(string.sub(spellId, 3))
 	elseif type(spellId) == "number" then
 		if spellId < 0 then--New Journal Format
 			spellName = self:EJ_GetSectionInfo(-spellId)
@@ -1010,23 +1010,251 @@ function DBM:ParseSpellName(spellId, objectType)
 end
 
 do
-	local customSpellNamesByspellId = {}
+	local legacyAltSpellNamesByspellId = {}
+	local defaultSpellRenamesByspellId = {}
+	local effectiveSpellRenamesByspellId = {}
+	local spellRenameCacheDirty = true
+	DBM.spellRenameRevision = DBM.spellRenameRevision or 0
+
+	local function trimSpellRenameText(text)
+		text = text:gsub("^%s+", "")
+		text = text:gsub("%s+$", "")
+		return text
+	end
+
+	local function sanitizeSpellRenameText(text)
+		if type(text) ~= "string" then
+			return nil
+		end
+		text = trimSpellRenameText(text)
+		-- Legacy timer short-text migration helper:
+		-- strip trailing " (%s)" suffixes that were injected by old timer formatting hacks.
+		text = text:gsub("%s*%(%s*%%s%s*%)%s*$", "")
+		text = trimSpellRenameText(text)
+		if text == "" then
+			return nil
+		end
+		return text
+	end
+
+	---@param spellId number|string?
+	---@return number?
+	local function normalizeSpellRenameKey(spellId)
+		if type(spellId) == "number" then
+			return spellId
+		end
+		if type(spellId) ~= "string" then
+			return nil
+		end
+		local numericKey = tonumber(spellId)
+		return numericKey
+	end
+
+	---@param spellId number?
+	---@return boolean
+	local function isValidSpellRenameKey(spellId)
+		return type(spellId) == "number" and (spellId > 5 or spellId < 0)
+	end
+
+	local function getSpellRenameOverrides()
+		if type(DBM.Options) ~= "table" then
+			return nil
+		end
+		if type(DBM.Options.SpellRenames) ~= "table" then
+			DBM.Options.SpellRenames = {}
+		end
+		return DBM.Options.SpellRenames
+	end
+
+	local function rebuildSpellRenameCache()
+		table.wipe(effectiveSpellRenamesByspellId)
+		for spellId, rename in pairs(legacyAltSpellNamesByspellId) do
+			effectiveSpellRenamesByspellId[spellId] = rename
+		end
+		for spellId, rename in pairs(defaultSpellRenamesByspellId) do
+			effectiveSpellRenamesByspellId[spellId] = rename
+		end
+		local overrides = getSpellRenameOverrides()
+		if overrides then
+			for spellId, rename in pairs(overrides) do
+				local normalizedSpellId = normalizeSpellRenameKey(spellId)
+				if isValidSpellRenameKey(normalizedSpellId) and type(rename) == "string" and rename ~= "" then
+					if type(normalizedSpellId) == "number" then
+						effectiveSpellRenamesByspellId[normalizedSpellId] = rename
+					end
+				end
+			end
+		end
+		spellRenameCacheDirty = false
+	end
+
+	local function refreshSpellRenameCache(incrementRevision)
+		spellRenameCacheDirty = true
+		rebuildSpellRenameCache()
+		if incrementRevision then
+			DBM.spellRenameRevision = (DBM.spellRenameRevision or 0) + 1
+		end
+	end
+
+	function DBM:GetSpellRenameRevision()
+		return DBM.spellRenameRevision or 0
+	end
+	bossModPrototype.GetSpellRenameRevision = DBM.GetSpellRenameRevision
+
+	---@param text string?
+	---@return string?
+	function DBM:SanitizeSpellRename(text)
+		return sanitizeSpellRenameText(text)
+	end
+	bossModPrototype.SanitizeSpellRename = DBM.SanitizeSpellRename
+
+	---@param spellId number|string
+	---@param renameString string?
+	function DBM:AddRename(spellId, renameString)
+		spellId = normalizeSpellRenameKey(spellId)
+		if not isValidSpellRenameKey(spellId) then
+			return
+		end
+		if type(spellId) ~= "number" then
+			return
+		end
+		renameString = sanitizeSpellRenameText(renameString)
+		if not renameString then
+			return
+		end
+		if not defaultSpellRenamesByspellId[spellId] then
+			defaultSpellRenamesByspellId[spellId] = renameString
+			refreshSpellRenameCache(true)
+		end
+	end
+	bossModPrototype.AddRename = DBM.AddRename
+
+	---@param spellId number|string
+	---@param renameString string?
+	function DBM:SetRename(spellId, renameString)
+		spellId = normalizeSpellRenameKey(spellId)
+		if not isValidSpellRenameKey(spellId) then
+			return
+		end
+		if type(spellId) ~= "number" then
+			return
+		end
+		local overrides = getSpellRenameOverrides()
+		if not overrides then
+			return
+		end
+		renameString = sanitizeSpellRenameText(renameString)
+		if renameString then
+			overrides[spellId] = renameString
+		else
+			overrides[spellId] = nil
+		end
+		refreshSpellRenameCache(true)
+	end
+	bossModPrototype.SetRename = DBM.SetRename
+
+	---@param spellRenames table<number|string, string>?
+	function DBM:ReplaceSpellRenames(spellRenames)
+		local overrides = getSpellRenameOverrides()
+		if not overrides then
+			return false
+		end
+		table.wipe(overrides)
+		if type(spellRenames) == "table" then
+			for spellId, renameString in pairs(spellRenames) do
+				local normalizedSpellId = normalizeSpellRenameKey(spellId)
+				local sanitizedRename = sanitizeSpellRenameText(renameString)
+				if type(normalizedSpellId) == "number" and isValidSpellRenameKey(normalizedSpellId) and sanitizedRename then
+					---@cast normalizedSpellId number
+					---@cast sanitizedRename string
+					overrides[normalizedSpellId] = sanitizedRename
+				end
+			end
+		end
+		refreshSpellRenameCache(true)
+		return true
+	end
+	bossModPrototype.ReplaceSpellRenames = DBM.ReplaceSpellRenames
+
+	---@param spellId number|string
+	---@param fallbackName string?
+	---@return string?
+	function DBM:GetRename(spellId, fallbackName)
+		spellId = normalizeSpellRenameKey(spellId)
+		if not isValidSpellRenameKey(spellId) then
+			return fallbackName
+		end
+		if type(spellId) ~= "number" then
+			return fallbackName
+		end
+		if spellRenameCacheDirty then
+			rebuildSpellRenameCache()
+		end
+		return effectiveSpellRenamesByspellId[spellId] or fallbackName
+	end
+	bossModPrototype.GetRename = DBM.GetRename
+
+	---@param spellId number|string
+	---@return string?
+	function DBM:GetRenameDefault(spellId)
+		spellId = normalizeSpellRenameKey(spellId)
+		if not isValidSpellRenameKey(spellId) then
+			return nil
+		end
+		if type(spellId) ~= "number" then
+			return nil
+		end
+		return defaultSpellRenamesByspellId[spellId]
+	end
+	bossModPrototype.GetRenameDefault = DBM.GetRenameDefault
+
+	function DBM:RefreshSpellRenames()
+		refreshSpellRenameCache(false)
+	end
+	bossModPrototype.RefreshSpellRenames = DBM.RefreshSpellRenames
+
+	---@param spellId number|string
+	---@return number?
+	function DBM:NormalizeSpellRenameKey(spellId)
+		local normalizedSpellId = normalizeSpellRenameKey(spellId)
+		if not isValidSpellRenameKey(normalizedSpellId) then
+			return nil
+		end
+		return normalizedSpellId
+	end
+	bossModPrototype.NormalizeSpellRenameKey = DBM.NormalizeSpellRenameKey
+
 	---Function for Registering Spell Renames/ShortText to original spellIDs
-	---@param spellId number Original spellID of spell and not alternate ID
+	---@param spellId number|string Original spellID of spell and not alternate ID
 	---@param AltName string Custom name used for the spell and not alternateID
 	function DBM:RegisterAltSpellName(spellId, AltName)
 		--Protection against internal and external misuse
 		--Also filters spellIds 0-5 which are typically not real spellids such as phase announces or spell-less timer objects
-		if spellId and type(spellId) == "number" and spellId > 5 and AltName and type(AltName) == "string" then
-			if not customSpellNamesByspellId[spellId] then
-				customSpellNamesByspellId[spellId] = AltName
+		spellId = normalizeSpellRenameKey(spellId)
+		if isValidSpellRenameKey(spellId) and AltName and type(AltName) == "string" then
+			if type(spellId) ~= "number" then
+				return
+			end
+			if not legacyAltSpellNamesByspellId[spellId] then
+				legacyAltSpellNamesByspellId[spellId] = AltName
+				refreshSpellRenameCache(false)
 			end
 		end
 	end
 	---Function for providing Plater and other addons access to Spell Renames/ShortText
-	---@param spellId number
+	---@param spellId number|string
 	function DBM:GetAltSpellName(spellId)
-		return customSpellNamesByspellId[spellId]
+		spellId = normalizeSpellRenameKey(spellId)
+		if not isValidSpellRenameKey(spellId) then
+			return nil
+		end
+		if type(spellId) ~= "number" then
+			return nil
+		end
+		if spellRenameCacheDirty then
+			rebuildSpellRenameCache()
+		end
+		return effectiveSpellRenamesByspellId[spellId]
 	end
 end
 
@@ -1909,10 +2137,11 @@ do
 				C_EncounterWarnings.SetPlayCustomSoundsWhenHidden(true)--Allows DBM sounds to play even when blizzard frames aren't shown
 				if not self.Options.DontSetTimelineColors then
 					--Apply user bar color to all bars by default, since blizzard applies white (or red) to all of them by default now
-					local timerRed, timerGreen, timerBlue = DBT:GetColorForType(0)
+					local timerStartRed, timerStartGreen, timerStartBlue = DBT:GetColorForType(0)
+					local timerEndRed, timerEndGreen, timerEndBlue = DBT:GetColorForType(0, true)
 					--https://wago.tools/db2/EncounterEvent?page=25
-					for i = 1, 733 do
-						C_EncounterEvents.SetEventColor(i, {r = timerRed, g = timerGreen, b = timerBlue})
+					for i = 1, 850 do
+						DBM:EE_SetEventColor(i, timerStartRed, timerStartGreen, timerStartBlue, timerEndRed, timerEndGreen, timerEndBlue)
 					end
 				end
 				if self.Options.HideBossEmoteFrame2 then
@@ -2232,10 +2461,8 @@ do
 			if self.Options.ShowReminders then
 				C_TimerAfter(25, function() if self.Options.SilentMode then self:AddMsg(L.SILENT_REMINDER) end end)
 				C_TimerAfter(30, function() if not self.Options.SettingsMessageShown then self.Options.SettingsMessageShown = true self:AddMsg(L.HOW_TO_USE_MOD) end end)
-				if not private.isRetail then
-					--Shown only once per character on login. Repeat showings now handled by the raid module check on raid zone in, and boss pull and wipes within vanilla and wrath raids
-					C_TimerAfter(60, function() if self.Options.NewsMessageShown2 < 3 then self.Options.NewsMessageShown2 = 3 self:AddMsg(L.NEWS_UPDATE) end end)
-				end
+				--Shown only once per character on login. Repeat showings now handled by the raid module check on raid zone in, and boss pull and wipes within vanilla and wrath raids
+				C_TimerAfter(60, function() if self.Options.NewsMessageShown2 < 4 then self.Options.NewsMessageShown2 = 4 self:AddMsg(L.NEWS_UPDATE, nil, true) end end)
 			end
 			if not C_ChatInfo.IsAddonMessagePrefixRegistered(DBMPrefix) then
 				C_ChatInfo.RegisterAddonMessagePrefix(DBMPrefix) -- main prefix for DBM4
@@ -2403,6 +2630,10 @@ function DBM:CreateProfile(name)
 	DBM_AllSavedOptions[usedProfile] = DBM_AllSavedOptions[usedProfile] or {}
 	self:AddDefaultOptions(DBM_AllSavedOptions[usedProfile], self.DefaultOptions)
 	self.Options = DBM_AllSavedOptions[usedProfile]
+	if type(self.Options.SpellRenames) ~= "table" then
+		self.Options.SpellRenames = {}
+	end
+	self:RefreshSpellRenames()
 	-- rearrange position
 	DBT:CreateProfile("DBM")
 	self:RepositionFrames()
@@ -2418,6 +2649,10 @@ function DBM:ApplyProfile(name)
 	DBM_UsedProfile = usedProfile
 	self:AddDefaultOptions(DBM_AllSavedOptions[usedProfile], self.DefaultOptions)
 	self.Options = DBM_AllSavedOptions[usedProfile]
+	if type(self.Options.SpellRenames) ~= "table" then
+		self.Options.SpellRenames = {}
+	end
+	self:RefreshSpellRenames()
 	-- rearrange position
 	DBT:ApplyProfile("DBM")
 	self:RepositionFrames()
@@ -2435,6 +2670,10 @@ function DBM:CopyProfile(name)
 	DBM_AllSavedOptions[usedProfile] = CopyTable(DBM_AllSavedOptions[name])
 	self:AddDefaultOptions(DBM_AllSavedOptions[usedProfile], self.DefaultOptions)
 	self.Options = DBM_AllSavedOptions[usedProfile]
+	if type(self.Options.SpellRenames) ~= "table" then
+		self.Options.SpellRenames = {}
+	end
+	self:RefreshSpellRenames()
 	-- rearrange position
 	DBT:CopyProfile(name, "DBM", true)
 	self:RepositionFrames()
@@ -2457,6 +2696,11 @@ function DBM:DeleteProfile(name)
 	if not self.Options then
 		-- the default profile got lost somehow (maybe WoW crashed and the saved variables file got corrupted)
 		self:CreateProfile("Default")
+	else
+		if type(self.Options.SpellRenames) ~= "table" then
+			self.Options.SpellRenames = {}
+		end
+		self:RefreshSpellRenames()
 	end
 	-- rearrange position
 	DBT:DeleteProfile(name, "DBM")
@@ -2519,6 +2763,13 @@ do
 		end
 		if not dbmIsEnabled then
 			self:ForceDisableSpam()
+			return
+		end
+		local guiLoaded = C_AddOns.IsAddOnLoaded("DBM-GUI")
+		local optionsFrame = _G["DBM_GUI_OptionsFrame"]
+		local guiShown = guiLoaded and optionsFrame and optionsFrame:IsShown()
+		if InCombatLockdown() and (not guiLoaded or not guiShown) then
+			self:AddMsg(L.LOAD_GUI_COMBAT, nil, true)
 			return
 		end
 		if self.NewerVersion and private.showConstantReminder >= 1 then
@@ -3893,6 +4144,17 @@ do
 		self.Options = DBM_AllSavedOptions[usedProfile] or {}
 		self:Enable()
 		self:AddDefaultOptions(self.Options, self.DefaultOptions)
+		if not self.Options.GUIResizeMigrated_1000x800 then
+			if self.Options.GUIWidth == 800 and self.Options.GUIHeight == 600 then
+				self.Options.GUIWidth = 1000
+				self.Options.GUIHeight = 800
+			end
+			self.Options.GUIResizeMigrated_1000x800 = true
+		end
+		if type(self.Options.SpellRenames) ~= "table" then
+			self.Options.SpellRenames = {}
+		end
+		self:RefreshSpellRenames()
 		if not self.Options.CountdownVoiceNamesMigrated and HasLegacyCountVoiceOption(self.Options) then
 			MigrateCountVoiceOption(self.Options, "CountdownVoice")
 			MigrateCountVoiceOption(self.Options, "CountdownVoice2")
@@ -4582,7 +4844,7 @@ function DBM:LoadMod(mod, force, enableTestSupport)
 				end
 				-- Request timer to 3 person to prevent failure.
 				self:Unschedule(self.RequestTimers)
-				if not self:MidRestrictionsActive() then
+				if not self:MidRestrictionsActive(false, false, true) then
 					self:Schedule(7, self.RequestTimers, self, 1)
 					self:Schedule(10, self.RequestTimers, self, 2)
 					self:Schedule(13, self.RequestTimers, self, 3)
@@ -4715,6 +4977,10 @@ do
 
 	function DBM:PLAYER_REGEN_DISABLED()
 		lastCombatStarted = GetTime()
+		local optionsFrame = _G["DBM_GUI_OptionsFrame"]
+		if optionsFrame and optionsFrame:IsShown() then
+			optionsFrame:Hide()
+		end
 		if not combatInitialized then return end
 		-- detects a boss pull based on combat state, this is required for legacy or outdoor bosses that do not fire ENCOUNTER_START event on engage
 		if dbmIsEnabled and combatInfo[LastInstanceMapID] then
@@ -4862,6 +5128,45 @@ do
 		end
 	end
 
+	---@param mod DBMMod
+	---@param encounterUnitStatus table?
+	---@return number?
+	local function getEncounterWipeHealth(mod, encounterUnitStatus)
+		local function roundToHundredth(value)
+			return math.floor(value * 10000 + 0.5) / 100
+		end
+		if type(encounterUnitStatus) ~= "table" then
+			return nil
+		end
+		if mod.mainBoss then
+			for i = 1, #encounterUnitStatus do
+				local unitInfo = encounterUnitStatus[i]
+				if type(unitInfo) == "table" and unitInfo.creatureID == mod.mainBoss and type(unitInfo.remainingHealthPercent) == "number" then
+					return roundToHundredth(unitInfo.remainingHealthPercent)
+				end
+			end
+		end
+		if mod.onlyHighest then
+			local highest
+			for i = 1, #encounterUnitStatus do
+				local unitInfo = encounterUnitStatus[i]
+				if type(unitInfo) == "table" and type(unitInfo.remainingHealthPercent) == "number" then
+					highest = highest and mmax(highest, unitInfo.remainingHealthPercent) or unitInfo.remainingHealthPercent
+				end
+			end
+			if highest then
+				return roundToHundredth(highest)
+			end
+		end
+		for i = 1, #encounterUnitStatus do
+			local unitInfo = encounterUnitStatus[i]
+			if type(unitInfo) == "table" and type(unitInfo.remainingHealthPercent) == "number" then
+				return roundToHundredth(unitInfo.remainingHealthPercent)
+			end
+		end
+		return nil
+	end
+
 	function DBM:ENCOUNTER_END(encounterID, name, difficulty, size, success, encounterUnitStatus)
 		self:Debug("|cffff8800ENCOUNTER_END: |r event fired: " .. encounterID .. " " .. name .. " " .. difficulty .. " " .. size .. " " .. success, 1, nil, nil, true)
 		if success == 0 then
@@ -4886,7 +5191,7 @@ do
 			if v.multiEncounterPullDetection then
 				for _, eId in ipairs(v.multiEncounterPullDetection) do
 					if encounterID == eId then
-						self:EndCombat(v, success == 0, nil, "ENCOUNTER_END", encounterUnitStatus and encounterUnitStatus.remainingHealthPercent)
+						self:EndCombat(v, success == 0, nil, "ENCOUNTER_END", getEncounterWipeHealth(v, encounterUnitStatus))
 						if self:AntiSpam(3, "EE") then--Most bosses have both BOSS_KILL and ENCOUNTER_END, we don't want to send two EE syncs if we don't have to
 							private.sendSync(DBMSyncProtocol, "EE", encounterID .. "\t" .. success .. "\t" .. v.id .. "\t" .. (v.revision or 0), "NORMAL")
 						end
@@ -4894,7 +5199,7 @@ do
 					end
 				end
 			elseif encounterID == v.combatInfo.eId then
-				self:EndCombat(v, success == 0, nil, "ENCOUNTER_END", encounterUnitStatus and encounterUnitStatus.remainingHealthPercent)
+				self:EndCombat(v, success == 0, nil, "ENCOUNTER_END", getEncounterWipeHealth(v, encounterUnitStatus))
 				if self:AntiSpam(3, "EE") then--Most bosses have both BOSS_KILL and ENCOUNTER_END, we don't want to send two EE syncs if we don't have to
 					private.sendSync(DBMSyncProtocol, "EE", encounterID .. "\t" .. success .. "\t" .. v.id .. "\t" .. (v.revision or 0), "NORMAL")
 				end
@@ -5277,6 +5582,10 @@ do
 				if mod.addon and mod.addon.type == "SCENARIO" and (C_Scenario.IsInScenario() or test.Mocks and test.Mocks.IsInScenario()) and not mod.soloChallenge then
 					mod.inScenario = true
 				end
+				-- Cache timeline countdown duration once per pull.
+				-- nil/unset treated as default 5000. Any value besides 5000/10000 disables custom countdown registration.
+				local highlightDuration = tonumber(GetCVar("encounterTimelineHighlightDuration")) or 5000
+				mod.tlCountValue = (highlightDuration == 5000 or highlightDuration == 10000) and highlightDuration or nil
 			end
 			mod.engagedDiff = difficulties.savedDifficulty
 			mod.engagedDiffText = difficulties.difficultyText
@@ -6269,6 +6578,38 @@ function DBM:EJ_GetSectionInfo(sectionID)--Should be number, but accepts string 
 	return info.title, info.description, info.headerType, info.abilityIcon, info.creatureDisplayID, info.siblingSectionID, info.firstChildSectionID, info.filteredByDifficulty, info.link, info.startsOpen, flag1, flag2, flag3, flag4
 end
 
+do
+	local _, _, _, wowTOC = GetBuildInfo()
+	local newAPI = wowTOC >= 120007
+	---Wrapper for C_EncounterEvents.SetEventColor to future proof against API changes and make it easier to update if needed.
+	function DBM:EE_SetEventColor(eventID, startRed, startGreen, startBlue, endRed, endGreen, endBlue)
+		if newAPI then
+			--Set standard color
+			---@diagnostic disable-next-line: redundant-parameter, param-type-mismatch
+			C_EncounterEvents.SetEventColor(eventID, 1, {r = startRed, g = startGreen, b = startBlue, a = 1})
+			--Set highlight color
+			---@diagnostic disable-next-line: redundant-parameter, param-type-mismatch
+			C_EncounterEvents.SetEventColor(eventID, 2, {r = endRed, g = endGreen, b = endBlue, a = 1})
+		else
+			--Pre 12.0.7 api that only accepts single RGB value that applies to all warnings and timers
+			C_EncounterEvents.SetEventColor(eventID, {r = startRed, g = startGreen, b = startBlue})
+		end
+	end
+
+	function DBM:EE_UnsetEventColor(eventID)
+		if newAPI then
+			--Unset standard color
+			---@diagnostic disable-next-line: redundant-parameter, param-type-mismatch
+			C_EncounterEvents.SetEventColor(eventID, 1, nil)
+			--Unset highlight color
+			---@diagnostic disable-next-line: redundant-parameter, param-type-mismatch
+			C_EncounterEvents.SetEventColor(eventID, 2, nil)
+		else
+			C_EncounterEvents.SetEventColor(eventID, nil)
+		end
+	end
+end
+
 function DBM:GetDungeonInfo(id)
 	local temp = GetDungeonInfo(id)
 	return type(temp) == "table" and temp.name or tostring(temp)
@@ -6335,7 +6676,7 @@ do
 	---@param spellId string|number --Should be number, but accepts string too since Blizzards api converts strings to number.
 	function DBM:GetSpellCooldown(spellId)
 		local start, duration, enable = 0, 0, true--return off CD values if API fails (ie midnight)
-		if not self:MidRestrictionsActive(true) then
+		if not self:MidRestrictionsActive(true, false, false) then
 			if not halfAssedClassicPath then
 				local spellTable = GetSpellCooldown(spellId)
 				if spellTable then
@@ -6460,7 +6801,7 @@ do
 	---@param spellInput4 number|string|nil|unknown? --optional 4th spell, accepts spellname or spellid
 	---@param spellInput5 number|string|nil|unknown? --optional 5th spell, accepts spellname or spellid
 	function DBM:RaidUnitBuff(spellInput, spellInput2, spellInput3, spellInput4, spellInput5)
-		if self:MidRestrictionsActive(true) then return false end--Block access to UnitAura in combat in midnight
+		if self:MidRestrictionsActive(true, false, false) then return false end--Block access to UnitAura in combat in midnight
 		for uId in DBM:GetGroupMembers() do
 			local buff = DBM:UnitBuff(uId, spellInput, spellInput2, spellInput3, spellInput4, spellInput5)
 			if buff then
@@ -6478,7 +6819,7 @@ do
 	---@param spellInput5 number|string|nil|unknown? --optional 5th spell, accepts spellname or spellid
 	function DBM:RaidUnitDebuff(spellInput, spellInput2, spellInput3, spellInput4, spellInput5)
 		--Still gonna globally block this function because in no situation should we itereate entire raid in a post midnight world
-		if self:MidRestrictionsActive(true) then return false end--Block access to UnitAura in combat in midnight
+		if self:MidRestrictionsActive(true, false, false) then return false end--Block access to UnitAura in combat in midnight
 		for uId in DBM:GetGroupMembers() do
 			local debuff = DBM:UnitDebuff(uId, spellInput, spellInput2, spellInput3, spellInput4, spellInput5)
 			if debuff then
@@ -6606,7 +6947,7 @@ end
 do
 	local spamProtection = {}
 	function DBM:SendTimers(target)
-		if not dbmIsEnabled or IsTrialAccount() or self:MidRestrictionsActive() then return end
+		if not dbmIsEnabled or IsTrialAccount() or self:MidRestrictionsActive(false, false, true) then return end
 		self:Debug("SendTimers requested by " .. target, 2)
 		local spamForTarget = spamProtection[target] or 0
 		-- just try to clean up the table, that should keep the hash table at max. 4 entries or something :)
@@ -6638,7 +6979,7 @@ do
 		self:SendTimerInfo(mod, target)
 	end
 	function DBM:SendPVPTimers(target)
-		if not dbmIsEnabled or IsTrialAccount() or self:MidRestrictionsActive() then return end
+		if not dbmIsEnabled or IsTrialAccount() or self:MidRestrictionsActive(false, false, true) then return end
 		self:Debug("SendPVPTimers requested by " .. target, 2)
 		local spamForTarget = spamProtection[target] or 0
 		local time = GetTime()
@@ -6661,13 +7002,13 @@ end
 
 ---@param mod DBMMod
 function DBM:SendCombatInfo(mod, target)
-	if not dbmIsEnabled or IsTrialAccount() or self:MidRestrictionsActive() then return end
+	if not dbmIsEnabled or IsTrialAccount() or self:MidRestrictionsActive(false, false, true) then return end
 	return private.sendWhisperSync(DBMSyncProtocol, "CI", ("%s\t%s"):format(mod.id, GetTime() - mod.combatInfo.pull), target, "NORMAL")
 end
 
 ---@param mod DBMMod
 function DBM:SendTimerInfo(mod, target)
-	if not dbmIsEnabled or IsTrialAccount() or self:MidRestrictionsActive() then return end
+	if not dbmIsEnabled or IsTrialAccount() or self:MidRestrictionsActive(false, false, true) then return end
 	for _, v in ipairs(mod.timers) do
 		--Pass on any timer that has no type, or has one that isn't an ai timer
 		if not v.type or v.type and v.type ~= "ai" then
@@ -6689,7 +7030,7 @@ end
 
 ---@param mod DBMMod
 function DBM:SendVariableInfo(mod, target)
-	if not dbmIsEnabled or IsTrialAccount() or self:MidRestrictionsActive() then return end
+	if not dbmIsEnabled or IsTrialAccount() or self:MidRestrictionsActive(false, false, true) then return end
 	for vname, v in pairs(mod.vb) do
 		local v2 = tostring(v)
 		if v2 then
@@ -8175,7 +8516,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260512233822" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260518001159" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then

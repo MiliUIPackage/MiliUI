@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2792, "DBM-Party-Midnight", 6, 1313)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260322092648")
+mod:SetRevision("20260517003501")
 mod:SetCreatureID(239008)
 mod:SetEncounterID(3286)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -27,8 +27,8 @@ mod:AddCustomTimerOptions(1263977, true, 3, 0)--Noxious Breath
 mod:AddCustomTimerOptions(1226120, true, 3, 0)--Poison Splash
 mod:AddCustomTimerOptions(1262497, true, 2, 0)--Monstrous Stomp
 --Midnight private aura replacements
-mod:AddPrivateAuraSoundOption(1283506, true, 1283506, 4, 1, "fixateyou", 19)--Fixate
-mod:AddPrivateAuraSoundOption(1222484, true, 1222484, 1, 2, "watchfeet", 8)--Poison Pool
+--mod:AddPrivateAuraSoundOption(1283506, true, 1283506, 4, 1, "fixateyou", 19)--Fixate
+--mod:AddPrivateAuraSoundOption(1222484, true, 1222484, 1, 2, "watchfeet", 8)--Poison Pool
 
 function mod:OnLimitedCombatStart()
 	self:EnableAlertOptions(1222371, 46, "bigmob", 2, 2)

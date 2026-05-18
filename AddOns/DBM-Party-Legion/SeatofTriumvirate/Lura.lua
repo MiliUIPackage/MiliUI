@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1982, "DBM-Party-Legion", 13, 945)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260428075838")
+mod:SetRevision("20260517102256")
 mod:SetCreatureID(124870)--124745 Greater Rift Warden
 mod:SetEncounterID(2068)
 
@@ -65,7 +65,7 @@ if DBM:IsPostMidnight() then
 		self.vb.grimChorusCount = 1
 		self.vb.symphonyCount = 1
 		self.vb.backlashCount = 1
-		if self:IsMythicPlus() and DBM.Options.HardcodedTimer and not badStateDetected then
+		if DBM.Options.HardcodedTimer and not badStateDetected then
 			self:IgnoreBlizzardAPI()
 			self:RegisterShortTermEvents(
 				"ENCOUNTER_TIMELINE_EVENT_ADDED",

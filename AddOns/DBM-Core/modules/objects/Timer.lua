@@ -258,9 +258,10 @@ end
 
 ---Used to set fallback options to blizzard encounter API for hardcoded timers to fall back on
 ---@param encounterEventId number|table EncounterEventID from EncounterEvent.db2 that matches event we're targetting
-function timerPrototype:SetTimeline(encounterEventId)
+---@param onlyColor boolean? If true, only enable color options for this timer, not countdowns
+function timerPrototype:SetTimeline(encounterEventId, onlyColor)
 	if self.option then
-		self.mod:EnableTimelineOptions(self.spellId, encounterEventId, self.option)
+		self.mod:EnableTimelineOptions(self.spellId, encounterEventId, self.option, onlyColor)
 	end
 end
 
@@ -484,7 +485,8 @@ function timerPrototype:Start(timer, ...)
 		msg = pformat(self.mod:GetLocalizedTimerText(self.type, self.spellId, self.name), ...)
 	else
 		if type(self.text) == "number" then--spellId passed in timer text, it's a timer with short text
-			msg = pformat(self.mod:GetLocalizedTimerText(self.type, self.text, self.name), ...)
+			local renameSourceSpellId = self.spellId or self.text
+			msg = pformat(self.mod:GetLocalizedTimerText(self.type, renameSourceSpellId, self.name), ...)
 		else
 			msg = pformat(self.text, ...)
 		end
@@ -1243,16 +1245,20 @@ local function newTimer(self, timerType, timer, spellId, timerText, optionDefaul
 				--Automatically register alternate spellnames when detecting their use here
 				if spellId and altSpellName and type(altSpellName) == "string" then
 					DBM:RegisterAltSpellName(spellId, altSpellName)
+					DBM:AddRename(spellId, altSpellName)
 				end
 			--Interpret it literal with no restrictions, first checking mod local table, then just taking timerText directly
 			else
-				timerTextValue = self.localization.timers[timerText]--Check timers table first, otherwise accept it as literal timer text
+				timerTextValue = rawget(self.localization.timers, timerText)--Only keep fully localized timer text here; custom short-text should route through GetLocalizedTimerText
 				--Automatically register alternate spellnames when detecting their use here
 				if spellId and not rawget(self.localization.timers, timerText) and type(timerText) == "string" then
 					--if timerText exists in self.localization.timers table, it's not custom shorttext spell name
 					--It's also not short text if it's hacky paul stuff, but that should be filtered by the spellID check in RegisterAltSpellName which ignores when he uses spellid of 0
-					local trimmedText = timerText:gsub("%s*%(%%s%)", "")
-					DBM:RegisterAltSpellName(spellId, trimmedText)
+					local trimmedText = DBM:SanitizeSpellRename(timerText)
+					if trimmedText then
+						DBM:RegisterAltSpellName(spellId, trimmedText)
+						DBM:AddRename(spellId, trimmedText)
+					end
 				end
 			end
 		else--Short text is off, we want to be more aggressive in NOT setting short text if we can help it
@@ -1603,6 +1609,9 @@ function bossModPrototype:GetLocalizedTimerText(timerType, spellId, Name)
 		if spellName then
 			self.name = spellName
 		end
+	end
+	if spellId then
+		spellName = DBM:GetRename(spellId, spellName)
 	end
 	return pformat(L.AUTO_TIMER_TEXTS[timerType], spellName)
 end

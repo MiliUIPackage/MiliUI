@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2813, "DBM-Party-Midnight", 8, 1316)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260423040903")
+mod:SetRevision("20260517102256")
 mod:SetCreatureID(241539)--Iffy, not reported as a boss
 mod:SetEncounterID(3328)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -23,7 +23,7 @@ local timerFluxCollapseCD			= mod:NewCDCountTimer(13, 1264048, nil, nil, nil, 3)
 
 --Midnight private aura replacements
 mod:AddPrivateAuraSoundOption(1251785, true, 1251785, 1, 1, "movetobeam", 19)--Reflux Charge
-mod:AddPrivateAuraSoundOption(1264042, true, 1264042, 1, 2, "watchfeet", 8)--Arcane Spill
+--mod:AddPrivateAuraSoundOption(1264042, true, 1264042, 1, 2, "watchfeet", 8)--Arcane Spill
 
 mod.vb.coresparkDetonationCount = 0
 mod.vb.refluxChargeCount = 0
@@ -63,7 +63,7 @@ function mod:OnLimitedCombatStart()
 	activeOtherEvents = {}
 	pendingRebase = {}
 	pendingRebaseUntil = 0
-	if self:IsMythicPlus() and DBM.Options.HardcodedTimer and not badStateDetected then
+	if DBM.Options.HardcodedTimer and not badStateDetected then
 		self:IgnoreBlizzardAPI()
 		self:RegisterShortTermEvents(
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",

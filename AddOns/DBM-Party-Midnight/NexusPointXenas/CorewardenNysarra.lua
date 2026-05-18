@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2814, "DBM-Party-Midnight", 8, 1316)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260322092648")
+mod:SetRevision("20260515235655")
 mod:SetCreatureID(254227)
 mod:SetEncounterID(3332)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -43,5 +43,12 @@ function mod:OnLimitedCombatStart()
 	self:EnableTimelineOptions(1247937, 35)
 	self:EnableTimelineOptions(1252703, 36)
 	self:EnableTimelineOptions(1271684, 37)
-
+	DBM:Debug("Hardcode this mod you Fing idiot")
+	DBM:Debug("Hardcode this mod you Fing idiot")
+	DBM:Debug("Hardcode this mod you Fing idiot")
+	DBM:Debug("Hardcode this mod you Fing idiot")
+	DBM:Debug("Hardcode this mod you Fing idiot")
+	DBM:Debug("Hardcode this mod you Fing idiot")
+	DBM:Debug("Hardcode this mod you Fing idiot")
+	DBM:Debug("Hardcode this mod you Fing idiot")
 end
