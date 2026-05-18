@@ -93,7 +93,7 @@ local function DisplayNameplateText(u)
         for i = 1, #platetexts + 1 do
             if platetexts[i] and not platetexts[i]:IsShown() then
                 platetexts[i]:SetText("")
-                platetexts[i].bgTexture:SetColorTexture(0, 1, 0, 0.8)
+                platetexts[i].bgTexture:SetColorTexture(0, 1, 0, 0.7)
                 platetexts[i]:ClearAllPoints()
                 platetexts[i]:SetPoint("BOTTOM", plate, "CENTER", 0, -60)
                 platetexts[i]:Show()
@@ -118,7 +118,7 @@ local function DisplayNameplateText(u)
                 platetexts[i].bgTexture = platetexts[i].bgFrame:CreateTexture(nil, "BACKGROUND")
                 platetexts[i].bgTexture:SetColorTexture(0, 1, 0, 0.6)
                 platetexts[i].bgTexture:SetAllPoints(platetexts[i].bgFrame)
-                platetexts[i].bgFrame:SetSize(40, 40)
+                platetexts[i].bgFrame:SetSize(35, 35)
                 platetexts[i].bgFrame:SetPoint("CENTER", platetexts[i], "CENTER", 0, 0)
                 
                 platetexts[i]:SetText("")
