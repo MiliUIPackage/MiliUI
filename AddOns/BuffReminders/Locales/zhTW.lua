@@ -114,8 +114,8 @@ L["Label.LowPrimary"] = "低主屬"
 L["Label.LowSecondary"] = "低次屬"
 L["Label.RevivePet"] = "復活寵物"
 L["Label.Felguard"] = "惡魔守衛"
-L["Badge.Hearty"] = "H"
-L["Badge.Fleeting"] = "F"
+L["Badge.Hearty"] = "澎湃"
+L["Badge.Fleeting"] = "大鍋"
 
 -- ============================================================================
 -- BUFF NAMES (used in Options panel checkboxes and sound notification list)
