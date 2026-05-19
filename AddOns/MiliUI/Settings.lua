@@ -682,8 +682,6 @@ local function InitSettings()
     end)
 
     -- ===== 遊戲行為區塊 =====
-    -- 錨點：keystoneDesc 縮進 26px，用 -26 X 偏移回到左邊界對齊上方的 Baganator / 拍賣行 divider。
-    -- Y 偏移 -50 避開 swatch / button 那一整排的高度。
     local gameDivider = enhanceFrame:CreateTexture(nil, "ARTWORK")
     gameDivider:SetColorTexture(0.3, 0.3, 0.3, 0.5)
     gameDivider:SetSize(520, 1)
@@ -1047,6 +1045,189 @@ local function InitSettings()
 
     local auraCategory = Settings.RegisterCanvasLayoutSubcategory(category, auraFrame, "光環強化")
     auraCategory.ID = "MiliUI_Aura"
+
+    -- ============================================================
+    -- 子分類: 焦點目標
+    -- ============================================================
+    local focusFrame = CreateFrame("Frame")
+    focusFrame:SetSize(600, 400)
+
+    local focusTitle = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    focusTitle:SetPoint("TOPLEFT", 16, -16)
+    focusTitle:SetText("|cffffe00a焦點目標|r")
+
+    local focusDesc = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    focusDesc:SetPoint("TOPLEFT", focusTitle, "BOTTOMLEFT", 0, -8)
+    focusDesc:SetText("Shift + 點擊快速設定焦點目標，並可自動為焦點上團隊標記。")
+    focusDesc:SetTextColor(0.7, 0.7, 0.7)
+
+    -- Shift+Click 設定焦點目標 checkbox
+    local focusCB = CreateFrame("CheckButton", "MiliUI_FocuserEnabledCB", focusFrame, "UICheckButtonTemplate")
+    focusCB:SetPoint("TOPLEFT", focusDesc, "BOTTOMLEFT", 0, -20)
+    focusCB.text:SetText("Shift + 點擊設定焦點目標")
+    focusCB.text:SetFontObject("GameFontHighlight")
+
+    local focusCBDesc = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    focusCBDesc:SetPoint("TOPLEFT", focusCB, "BOTTOMLEFT", 26, -2)
+    focusCBDesc:SetWidth(520)
+    focusCBDesc:SetJustifyH("LEFT")
+    focusCBDesc:SetText("在任何單位框架上按 Shift + 左鍵即可將該目標設為焦點目標。")
+    focusCBDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    -- 自動標記 checkbox
+    local focusMarkCB = CreateFrame("CheckButton", "MiliUI_FocuserAutoMarkCB", focusFrame, "UICheckButtonTemplate")
+    focusMarkCB:SetPoint("TOPLEFT", focusCBDesc, "BOTTOMLEFT", -26, -12)
+    focusMarkCB.text:SetText("設定焦點目標時自動上團隊標記")
+    focusMarkCB.text:SetFontObject("GameFontHighlight")
+
+    local focusMarkDesc = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    focusMarkDesc:SetPoint("TOPLEFT", focusMarkCB, "BOTTOMLEFT", 26, -2)
+    focusMarkDesc:SetWidth(520)
+    focusMarkDesc:SetJustifyH("LEFT")
+    focusMarkDesc:SetText("焦點目標改變時，自動為目標加上指定的團隊標記。\n需要隊長或助理權限（野外對怪不需要）。")
+    focusMarkDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    -- 標記選擇下拉選單
+    local focusMarkOptions = {
+        { text = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_1:14|t 星形",   value = 1 },
+        { text = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_2:14|t 圓形",   value = 2 },
+        { text = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_3:14|t 菱形",   value = 3 },
+        { text = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_4:14|t 三角形", value = 4 },
+        { text = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_5:14|t 月形",   value = 5 },
+        { text = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_6:14|t 方形",   value = 6 },
+        { text = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_7:14|t 十字",   value = 7 },
+        { text = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_8:14|t 骷髏",   value = 8 },
+    }
+
+    local focusMarkLabel = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    focusMarkLabel:SetPoint("TOPLEFT", focusMarkDesc, "BOTTOMLEFT", -26, -12)
+    focusMarkLabel:SetText("標記圖示：")
+
+    local focusMarkDropdown = CreateFrame("Frame", "MiliUI_FocuserMarkDropdown", focusFrame, "UIDropDownMenuTemplate")
+    focusMarkDropdown:SetPoint("LEFT", focusMarkLabel, "RIGHT", -8, -2)
+    UIDropDownMenu_SetWidth(focusMarkDropdown, 140)
+
+    local function FocusMarkDropdown_Initialize(self, level)
+        for _, opt in ipairs(focusMarkOptions) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = opt.text
+            info.value = opt.value
+            info.func = function(item)
+                UIDropDownMenu_SetSelectedValue(focusMarkDropdown, item.value)
+                UIDropDownMenu_SetText(focusMarkDropdown, opt.text)
+                if MiliUI_Focuser then
+                    MiliUI_Focuser.SetMarkIndex(item.value)
+                end
+                print("|cff00ff00[MiliUI]|r 焦點目標自動標記:", opt.text)
+            end
+            info.checked = nil
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end
+    UIDropDownMenu_Initialize(focusMarkDropdown, FocusMarkDropdown_Initialize)
+
+    -- 取消焦點時清除標記 checkbox
+    local focusClearMarkCB = CreateFrame("CheckButton", "MiliUI_FocuserClearMarkCB", focusFrame, "UICheckButtonTemplate")
+    focusClearMarkCB:SetPoint("TOPLEFT", focusMarkLabel, "BOTTOMLEFT", 0, -36)
+    focusClearMarkCB.text:SetText("取消焦點時清除標記")
+    focusClearMarkCB.text:SetFontObject("GameFontHighlight")
+
+    local focusClearMarkDesc = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    focusClearMarkDesc:SetPoint("TOPLEFT", focusClearMarkCB, "BOTTOMLEFT", 26, -2)
+    focusClearMarkDesc:SetWidth(520)
+    focusClearMarkDesc:SetJustifyH("LEFT")
+    focusClearMarkDesc:SetText("清除焦點目標（或切換焦點）時，自動移除舊焦點身上的團隊標記。")
+    focusClearMarkDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    local function UpdateFocusMarkSubControls(enabled)
+        if enabled then
+            focusMarkCB:Enable()
+            focusMarkCB.text:SetFontObject("GameFontHighlight")
+            focusMarkDropdown:SetAlpha(1)
+            focusClearMarkCB:Enable()
+            focusClearMarkCB.text:SetFontObject("GameFontHighlight")
+        else
+            focusMarkCB:Disable()
+            focusMarkCB.text:SetFontObject("GameFontDisable")
+            focusMarkCB:SetChecked(false)
+            focusMarkDropdown:SetAlpha(0.5)
+            focusClearMarkCB:Disable()
+            focusClearMarkCB.text:SetFontObject("GameFontDisable")
+            focusClearMarkCB:SetChecked(false)
+        end
+    end
+
+    local function UpdateFocusMarkDropdownState(enabled)
+        if enabled then
+            focusMarkDropdown:SetAlpha(1)
+        else
+            focusMarkDropdown:SetAlpha(0.5)
+        end
+    end
+
+    local function SyncFocuserSettings()
+        if not MiliUI_Focuser then return end
+        local enabled = MiliUI_Focuser.IsEnabled()
+        focusCB:SetChecked(enabled)
+        focusMarkCB:SetChecked(MiliUI_Focuser.IsAutoMarkEnabled())
+        focusClearMarkCB:SetChecked(MiliUI_Focuser.IsClearMarkEnabled())
+        local idx = MiliUI_Focuser.GetMarkIndex()
+        if idx and idx > 0 then
+            UIDropDownMenu_SetSelectedValue(focusMarkDropdown, idx)
+            for _, opt in ipairs(focusMarkOptions) do
+                if opt.value == idx then
+                    UIDropDownMenu_SetText(focusMarkDropdown, opt.text)
+                    break
+                end
+            end
+        else
+            UIDropDownMenu_SetSelectedValue(focusMarkDropdown, 1)
+            UIDropDownMenu_SetText(focusMarkDropdown, focusMarkOptions[1].text)
+        end
+        UpdateFocusMarkSubControls(enabled)
+        if enabled then
+            UpdateFocusMarkDropdownState(MiliUI_Focuser.IsAutoMarkEnabled())
+        end
+    end
+    SyncFocuserSettings()
+    focusFrame:SetScript("OnShow", SyncFocuserSettings)
+
+    focusCB:HookScript("OnClick", function(self)
+        if not MiliUI_Focuser then return end
+        local enabled = self:GetChecked() and true or false
+        MiliUI_Focuser.SetEnabled(enabled)
+        UpdateFocusMarkSubControls(enabled)
+        if enabled then
+            UpdateFocusMarkDropdownState(focusMarkCB:GetChecked())
+        end
+        print("|cff00ff00[MiliUI]|r Shift+Click 焦點目標:", enabled and "開" or "關")
+    end)
+
+    focusMarkCB:HookScript("OnClick", function(self)
+        if not MiliUI_Focuser then return end
+        local enabled = self:GetChecked() and true or false
+        MiliUI_Focuser.SetAutoMark(enabled)
+        UpdateFocusMarkDropdownState(enabled)
+        if enabled then
+            local idx = MiliUI_Focuser.GetMarkIndex()
+            if idx == 0 then
+                MiliUI_Focuser.SetMarkIndex(1)
+                UIDropDownMenu_SetSelectedValue(focusMarkDropdown, 1)
+                UIDropDownMenu_SetText(focusMarkDropdown, focusMarkOptions[1].text)
+            end
+        end
+        print("|cff00ff00[MiliUI]|r 焦點目標自動標記:", enabled and "開" or "關")
+    end)
+
+    focusClearMarkCB:HookScript("OnClick", function(self)
+        if not MiliUI_Focuser then return end
+        local enabled = self:GetChecked() and true or false
+        MiliUI_Focuser.SetClearMark(enabled)
+        print("|cff00ff00[MiliUI]|r 取消焦點時清除標記:", enabled and "開" or "關")
+    end)
+
+    local focusCategory = Settings.RegisterCanvasLayoutSubcategory(category, focusFrame, "焦點目標")
+    focusCategory.ID = "MiliUI_Focus"
 
     return category
 end
