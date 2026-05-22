@@ -31,6 +31,8 @@ Enhance\AutoSlotKeystone.lua
 Enhance\Baganator_Keystone.lua
 Enhance\ChallengesUI_Buttons.lua
 Enhance\ChallengesUI_LootTable.lua
+Enhance\CraftingOrders_RewardColumn.xml
+Enhance\CraftingOrders_RewardColumn.lua
 Enhance\CharacterKeystones.lua
 Enhance\AutoStoryStroll.lua
 Enhance\TeleportMenu_Spacing.lua

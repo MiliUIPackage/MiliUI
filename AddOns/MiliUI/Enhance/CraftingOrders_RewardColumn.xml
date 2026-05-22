@@ -1,0 +1,10 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\..\FrameXML\UI.xsd">
+    <!-- TableBuilder cell template for the custom 「獎勵」 column. -->
+    <!-- Mixin is applied automatically when the TableBuilder pool creates each cell. -->
+    <Frame name="MiliUICrafterTableCellRewardsTemplate"
+           virtual="true"
+           mixin="MiliUICrafterTableCellRewardsMixin">
+    </Frame>
+</Ui>
