@@ -320,9 +320,10 @@ local function EnsureCastStatusBar(f)
     f._miliBar = nb
 
     -- Overlay: spell/time/icon 在 StatusBar 之上
+    -- framelevel 拉得很高，確保高於 f.border（child of f，預設 baseLevel+1）
     local overlay = CreateFrame("Frame", nil, f)
     overlay:SetAllPoints(f)
-    overlay:SetFrameLevel(baseLevel + 2)
+    overlay:SetFrameLevel(baseLevel + 10)
     f._miliOverlay = overlay
 
     -- Hook OnUpdate（閉包僅在此建立一次，非每幀）
@@ -343,9 +344,11 @@ local function EnsureCastStatusBar(f)
                 self._miliSafetyTimer = nil
                 if self._miliBar then self._miliBar:Hide() end
                 self.bar:SetAlpha(1)
-                if self.spell then pcall(self.spell.SetParent, self.spell, self) end
-                if self.time  then pcall(self.time.SetParent,  self.time,  self) end
-                if self.icon  then pcall(self.icon.SetParent,  self.icon,  self) end
+                -- 維持 spell/time/icon 在 overlay 上（避免被 f.border 蓋住）
+                local ov = self._miliOverlay or self
+                if self.spell then pcall(self.spell.SetParent, self.spell, ov) end
+                if self.time  then pcall(self.time.SetParent,  self.time,  ov) end
+                if self.icon  then pcall(self.icon.SetParent,  self.icon,  ov) end
                 if origOnUpdate then origOnUpdate(self, elapsed) end
                 return
             end
@@ -400,10 +403,12 @@ local function CleanupMiliCast(f)
     f._miliSafetyTimer = nil
     if f._miliBar then f._miliBar:Hide() end
     -- 拆為獨立 pcall：前者失敗不影響後者
-    if f.bar   then pcall(f.bar.SetAlpha,    f.bar,   1) end
-    if f.spell then pcall(f.spell.SetParent, f.spell, f) end
-    if f.time  then pcall(f.time.SetParent,  f.time,  f) end
-    if f.icon  then pcall(f.icon.SetParent,  f.icon,  f) end
+    -- 維持 spell/time/icon 在 overlay 上（避免被 f.border 蓋住）
+    if f.bar then pcall(f.bar.SetAlpha, f.bar, 1) end
+    local ov = f._miliOverlay or f
+    if f.spell then pcall(f.spell.SetParent, f.spell, ov) end
+    if f.time  then pcall(f.time.SetParent,  f.time,  ov) end
+    if f.icon  then pcall(f.icon.SetParent,  f.icon,  ov) end
 end
 
 ------------------------------------------------------------
@@ -787,6 +792,23 @@ loader:SetScript("OnEvent", function(self)
             end
         end
 
+        -- 為所有 castbar 預先建立 overlay，並把 spell/time/icon
+        -- 永久 reparent 到上方，避免被 f.border (f 的子 frame) 蓋住。
+        local function EnsureCastSpellOverlay(uf)
+            if not uf or not uf.castbar then return end
+            local cb = uf.castbar
+            EnsureCastStatusBar(cb)
+            local ov = cb._miliOverlay
+            if not ov then return end
+            if cb.spell then pcall(cb.spell.SetParent, cb.spell, ov) end
+            if cb.time  then pcall(cb.time.SetParent,  cb.time,  ov) end
+            if cb.icon  then pcall(cb.icon.SetParent,  cb.icon,  ov) end
+        end
+        for unit in pairs(bossAll) do EnsureCastSpellOverlay(su[unit]) end
+        for _, unit in ipairs(TARGET_FOCUS) do EnsureCastSpellOverlay(su[unit]) end
+        EnsureCastSpellOverlay(su.player)
+        EnsureCastSpellOverlay(su.pet)
+
         -- 確保 Focus RaidTargetIcon 存在
         EnsureRaidIcon(su, "focus")
         EnsureRaidIcon(su, "focustarget")
@@ -838,8 +860,17 @@ loader:SetScript("OnEvent", function(self)
             ------------------------------------------------
             if event == "PLAYER_ENTERING_WORLD" then
                 CleanupAllCastbars()
+                -- 重新套用 spell/time/icon overlay reparent（castbar 可能延遲建立）
+                for unit in pairs(bossAll) do EnsureCastSpellOverlay(su[unit]) end
+                for _, u in ipairs(TARGET_FOCUS) do EnsureCastSpellOverlay(su[u]) end
+                EnsureCastSpellOverlay(su.player)
+                EnsureCastSpellOverlay(su.pet)
                 for _, delay in ipairs(ENTERING_WORLD_DELAYS) do
                     C_Timer_After(delay, function()
+                        for unit in pairs(bossAll) do EnsureCastSpellOverlay(su[unit]) end
+                        for _, u in ipairs(TARGET_FOCUS) do EnsureCastSpellOverlay(su[u]) end
+                        EnsureCastSpellOverlay(su.player)
+                        EnsureCastSpellOverlay(su.pet)
                         for _, u in ipairs(PLAYER_PET) do
                             local uf = su[u]
                             if uf and UnitExists(u) then
@@ -896,6 +927,8 @@ loader:SetScript("OnEvent", function(self)
             elseif event == "UNIT_SPELLCAST_START"
                 or event == "UNIT_SPELLCAST_CHANNEL_START" then
                 local castUnit = arg1
+                -- 對所有單位的 castbar 都重新套用 overlay reparent
+                EnsureCastSpellOverlay(su[castUnit])
                 if castFixUnits[castUnit] then
                     local evSpellID = arg3
                     local isCast = (event == "UNIT_SPELLCAST_START")
@@ -949,6 +982,8 @@ loader:SetScript("OnEvent", function(self)
                 C_Timer_After(0.05, function()
                     EnsureRaidIcon(su, "focus")
                     EnsureRaidIcon(su, "focustarget")
+                    EnsureCastSpellOverlay(su.focus)
+                    EnsureCastSpellOverlay(su.focustarget)
                     FixFocusFrame(su)
                 end)
             end
