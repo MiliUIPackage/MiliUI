@@ -71,6 +71,14 @@ local KEYSTONE_NPC_IDS = {
     [197915] = true,
 }
 
+-- 寶庫類型：Activities=M+, Raid=團本, RankedPvP=競技場, World=世界/深淵（與 PvP 互斥）
+local VAULT_TYPES = {
+    mplus = 1,
+    raid  = 3,
+    pvp   = 2,
+    world = 6,
+}
+
 local lastOwnMapID, lastOwnLevel = 0, 0
 local baselineSet = false
 local keyCheckTimer
@@ -130,6 +138,89 @@ local function SaveKeystoneRecord(mapID, level)
     end
 end
 
+--------------------------------------------------------------------------------
+-- 寶庫資料層
+--------------------------------------------------------------------------------
+local function ReadOwnVaultSnapshot()
+    if not C_WeeklyRewards or not C_WeeklyRewards.GetActivities then return nil end
+    local snap = { timestamp = GetServerTime() }
+    local anyData = false
+    for trackName, enumVal in pairs(VAULT_TYPES) do
+        local list = C_WeeklyRewards.GetActivities(enumVal)
+        if list and #list > 0 then
+            local slots = {}
+            for i, info in ipairs(list) do
+                slots[i] = {
+                    threshold = info.threshold or 0,
+                    progress  = info.progress or 0,
+                    level     = info.level or 0,
+                }
+            end
+            snap[trackName] = slots
+            anyData = true
+        end
+    end
+    if not anyData then return nil end
+    return snap
+end
+
+local function SaveVaultSnapshot()
+    local snap = ReadOwnVaultSnapshot()
+    if not snap then return end
+    if not MiliUI_DB then MiliUI_DB = {} end
+    if not MiliUI_DB.characterKeystones then MiliUI_DB.characterKeystones = {} end
+
+    local key = GetCharacterKey()
+    local rec = MiliUI_DB.characterKeystones[key]
+    if not rec then
+        -- 還沒有鑰石記錄但有寶庫進度（例如本週還沒拿過鑰石），建一筆空殼
+        local _, class = UnitClass("player")
+        rec = {
+            name  = UnitName("player"),
+            realm = GetRealmName(),
+            class = class,
+            mapID = 0,
+            level = 0,
+            timestamp = GetServerTime(),
+        }
+        MiliUI_DB.characterKeystones[key] = rec
+    end
+    rec.vault = snap
+
+    if MiliUI_KeystoneDebug then
+        local mp = snap.mplus
+        local s = mp and string.format("M+ %d/%d/%d",
+            (mp[1] and mp[1].level) or 0,
+            (mp[2] and mp[2].level) or 0,
+            (mp[3] and mp[3].level) or 0
+        ) or "no M+"
+        print(string.format("|cff00ff00[Keystone]|r Vault saved: %s @ %s",
+            s, date("%m/%d %H:%M", snap.timestamp)))
+    end
+end
+
+-- 事件 → 延遲讀寶庫 API，讓伺服器有時間把新資料推送過來；同窗內 dedupe 防 spam
+local vaultRefreshTimer
+local VAULT_REFRESH_DELAY = 3
+local function ScheduleVaultRefresh(reason)
+    if vaultRefreshTimer then
+        if MiliUI_KeystoneDebug then
+            print("|cff00ff00[Keystone]|r vault refresh queued (dedup), reason: " .. tostring(reason))
+        end
+        return
+    end
+    vaultRefreshTimer = C_Timer.NewTimer(VAULT_REFRESH_DELAY, function()
+        vaultRefreshTimer = nil
+        if MiliUI_KeystoneDebug then
+            print("|cff00ff00[Keystone]|r vault refresh fire, reason: " .. tostring(reason))
+        end
+        SaveVaultSnapshot()
+    end)
+end
+
+-- 團本難度（給 ENCOUNTER_END 過濾用）：14 普通, 15 英雄, 16 傳奇, 17 團搜
+local RAID_DIFFICULTY_IDS = { [14] = true, [15] = true, [16] = true, [17] = true }
+
 local function ScheduleKeystoneCheck(retry)
     if keyCheckTimer then return end
     keyCheckTimer = C_Timer.NewTimer(KEY_CHECK_DELAY, function()
@@ -145,10 +236,13 @@ local function ScheduleKeystoneCheck(retry)
             if mapID > 0 and level > 0 then
                 SaveKeystoneRecord(mapID, level)
             end
+            SaveVaultSnapshot()
             return
         end
 
         if mapID == lastOwnMapID and level == lastOwnLevel then
+            -- 鑰石沒變但寶庫可能有進度（剛跑完 M+）
+            SaveVaultSnapshot()
             if (retry or 0) < KEY_CHECK_MAX_RETRY then
                 ScheduleKeystoneCheck((retry or 0) + 1)
             end
@@ -158,6 +252,7 @@ local function ScheduleKeystoneCheck(retry)
         if mapID > 0 and level > 0 then
             SaveKeystoneRecord(mapID, level)
         end
+        SaveVaultSnapshot()
     end)
 end
 
@@ -256,13 +351,240 @@ local TABLE_LEFT    = 14
 local PADDING_X     = 4
 
 local COL_DEFS = {
-    { label = "角色", width = 90,  align = "LEFT" },
-    { label = "鑰石", width = 150, align = "CENTER" },
-    { label = "日期", width = 50,  align = "CENTER" },
+    { label = "角色",     width = 88,  align = "LEFT" },
+    { label = "鑰石",     width = 132, align = "CENTER" },
+    { label = "寶庫(M+)", width = 96,  align = "CENTER" },
+    { label = "日期",     width = 50,  align = "CENTER" },
 }
+
+local VAULT_COL_INDEX = 3
+local PANEL_WIDTH     = 410
 
 local rowPool = {}
 local refreshCallback
+
+--------------------------------------------------------------------------------
+-- 寶庫 tooltip：顯示完整 3 軌道 + 快照時間
+--------------------------------------------------------------------------------
+local VAULT_TRACK_LABELS = {
+    mplus = "M+",
+    raid  = "團本",
+    world = "世界",
+    pvp   = "競技",
+}
+
+local LOCKED_CELL_R, LOCKED_CELL_G, LOCKED_CELL_B = 0.4, 0.4, 0.4
+local UNLOCKED_PLAIN_R, UNLOCKED_PLAIN_G, UNLOCKED_PLAIN_B = 0.95, 0.95, 0.95
+
+-- 對應寶庫物品稀有度：+10 以上=神話(傳說橘)，+2~+9=英雄(史詩紫)，+1=勇士(稀有藍)
+local function VaultSlotQualityColor(level)
+    if level >= 10 then
+        local c = ITEM_QUALITY_COLORS[5] -- Legendary
+        return c.r, c.g, c.b
+    elseif level >= 2 then
+        local c = ITEM_QUALITY_COLORS[4] -- Epic
+        return c.r, c.g, c.b
+    elseif level >= 1 then
+        local c = ITEM_QUALITY_COLORS[3] -- Rare
+        return c.r, c.g, c.b
+    end
+    return 0.4, 0.4, 0.4
+end
+
+-- 團本難度 ID → 顯示「難度名稱」+ 寶庫獎勵軌道對應的物品稀有度
+-- DifficultyID: 14=普通, 15=英雄, 16=傳奇, 17=團搜
+-- name 是難度名稱；quality 對應該難度給的寶庫軌道顏色（精兵/勇士/英雄/神話）
+-- 軌道色參考 Enhance/TinyInspectRemake_TrackColors.lua 的 TRACK_COLORS
+local RAID_DIFFICULTY_INFO = {
+    [17] = { name = "團搜", quality = 2 }, -- 給精兵軌道 - 綠 (Uncommon)
+    [14] = { name = "普通", quality = 3 }, -- 給勇士軌道 - 藍 (Rare)
+    [15] = { name = "英雄", quality = 4 }, -- 給英雄軌道 - 紫 (Epic)
+    [16] = { name = "傳奇", quality = 5 }, -- 給神話軌道 - 橘 (Legendary)
+}
+
+-- 解鎖格的顯示文字與顏色（依軌道與 level 決定）
+-- 世界/競技軌道的 level 語義混亂（深淵 tier、世界任務、PvP 評分各自不同編碼），
+-- 完成與否更實用，直接打勾就好
+local function VaultCellDisplay(trackKey, slot)
+    local level = slot.level
+    if trackKey == "mplus" then
+        local r, g, b = VaultSlotQualityColor(level)
+        return "+" .. level, r, g, b
+    end
+    if trackKey == "raid" then
+        local info = RAID_DIFFICULTY_INFO[level]
+        if info then
+            local q = ITEM_QUALITY_COLORS[info.quality]
+            return info.name, q.r, q.g, q.b
+        end
+    end
+    -- 用 Blizzard atlas 的勾勾圖示，避免繁中字型缺 ✓ 字符變豆腐
+    return "|A:common-icon-checkmark:14:14|a", UNLOCKED_PLAIN_R, UNLOCKED_PLAIN_G, UNLOCKED_PLAIN_B
+end
+
+--------------------------------------------------------------------------------
+-- 自製寶庫 tooltip：絕對定位 + 固定欄寬，避免不同寬度字元造成欄位錯位
+--------------------------------------------------------------------------------
+local TT = {
+    PAD              = 12,
+    TITLE_H          = 22,
+    ROW_H            = 18,
+    SPACE_AFTER_ROWS = 8,
+    FOOTER_H         = 14,
+    LABEL_W          = 44,
+    CELL_W           = 50,
+    ROW_COUNT        = 3,
+}
+TT.WIDTH  = TT.PAD * 2 + TT.LABEL_W + TT.CELL_W * 3
+TT.HEIGHT = TT.PAD * 2 + TT.TITLE_H + TT.ROW_H * TT.ROW_COUNT + TT.SPACE_AFTER_ROWS + TT.FOOTER_H
+
+local vaultTooltip
+
+local function CreateVaultTooltip()
+    local f = CreateFrame("Frame", "MiliUI_VaultTooltip", UIParent, "BackdropTemplate")
+    f:SetFrameStrata("TOOLTIP")
+    f:SetSize(TT.WIDTH, TT.HEIGHT)
+    f:SetBackdrop({
+        bgFile   = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = 1,
+    })
+    f:SetBackdropColor(0, 0, 0, 0.92)
+    f:SetBackdropBorderColor(0.6, 0.5, 0.25, 0.9)
+    f:Hide()
+
+    f.title = f:CreateFontString(nil, "OVERLAY")
+    f.title:SetFont(barFont, 14, "OUTLINE")
+    f.title:SetPoint("TOPLEFT", TT.PAD, -TT.PAD)
+    f.title:SetTextColor(1, 0.84, 0)
+
+    f.rows = {}
+    for i = 1, TT.ROW_COUNT do
+        local yOff = -(TT.PAD + TT.TITLE_H + (i - 1) * TT.ROW_H)
+        local row = {}
+
+        row.label = f:CreateFontString(nil, "OVERLAY")
+        row.label:SetFont(barFont, 12, "OUTLINE")
+        row.label:SetPoint("TOPLEFT", TT.PAD, yOff)
+        row.label:SetSize(TT.LABEL_W, TT.ROW_H)
+        row.label:SetJustifyH("LEFT")
+        row.label:SetJustifyV("MIDDLE")
+        row.label:SetWordWrap(false)
+        row.label:SetTextColor(1, 0.84, 0)
+
+        row.cells = {}
+        for j = 1, 3 do
+            local fs = f:CreateFontString(nil, "OVERLAY")
+            fs:SetFont(barFont, 12, "OUTLINE")
+            fs:SetPoint("TOPLEFT", TT.PAD + TT.LABEL_W + (j - 1) * TT.CELL_W, yOff)
+            fs:SetSize(TT.CELL_W, TT.ROW_H)
+            fs:SetJustifyH("CENTER")
+            fs:SetJustifyV("MIDDLE")
+            fs:SetWordWrap(false)
+            row.cells[j] = fs
+        end
+        f.rows[i] = row
+    end
+
+    f.snapshot = f:CreateFontString(nil, "OVERLAY")
+    f.snapshot:SetFont(barFont, 11, "OUTLINE")
+    f.snapshot:SetPoint("BOTTOMLEFT", TT.PAD, TT.PAD - 2)
+    f.snapshot:SetTextColor(0.6, 0.6, 0.6)
+
+    -- 沒資料時顯示的提示（跨整個寬度，不受 row.label 寬度限制）
+    f.noDataMain = f:CreateFontString(nil, "OVERLAY")
+    f.noDataMain:SetFont(barFont, 12, "OUTLINE")
+    f.noDataMain:SetPoint("TOPLEFT", TT.PAD, -(TT.PAD + TT.TITLE_H))
+    f.noDataMain:SetTextColor(0.7, 0.7, 0.7)
+    f.noDataMain:SetText("尚無寶庫資料")
+    f.noDataMain:Hide()
+
+    f.noDataSub = f:CreateFontString(nil, "OVERLAY")
+    f.noDataSub:SetFont(barFont, 11, "OUTLINE")
+    f.noDataSub:SetPoint("TOPLEFT", f.noDataMain, "BOTTOMLEFT", 0, -4)
+    f.noDataSub:SetPoint("RIGHT", f, "RIGHT", -TT.PAD, 0)
+    f.noDataSub:SetJustifyH("LEFT")
+    f.noDataSub:SetTextColor(0.5, 0.5, 0.5)
+    f.noDataSub:SetText("（角色尚未上線過或未開啟寶庫）")
+    f.noDataSub:Hide()
+
+    return f
+end
+
+local function ResetTooltipRows(tt)
+    for i = 1, TT.ROW_COUNT do
+        local row = tt.rows[i]
+        row.label:SetText("")
+        row.label:SetTextColor(1, 0.84, 0)
+        for j = 1, 3 do
+            row.cells[j]:SetText("")
+            row.cells[j]:SetTextColor(LOCKED_CELL_R, LOCKED_CELL_G, LOCKED_CELL_B)
+        end
+    end
+end
+
+local function FillTooltipRow(row, trackKey, slots)
+    row.label:SetText(VAULT_TRACK_LABELS[trackKey] or trackKey)
+    for j = 1, 3 do
+        local slot = slots and slots[j]
+        local cell = row.cells[j]
+        local unlocked = slot and (slot.level or 0) > 0
+            and (slot.progress or 0) >= (slot.threshold or 0)
+        if unlocked then
+            local text, r, g, b = VaultCellDisplay(trackKey, slot)
+            cell:SetText(text)
+            cell:SetTextColor(r, g, b)
+        else
+            cell:SetText("·")
+            cell:SetTextColor(LOCKED_CELL_R, LOCKED_CELL_G, LOCKED_CELL_B)
+        end
+    end
+end
+
+local function ShowVaultTooltip(owner, data)
+    vaultTooltip = vaultTooltip or CreateVaultTooltip()
+    local tt = vaultTooltip
+
+    tt:ClearAllPoints()
+    tt:SetPoint("TOPLEFT", owner, "TOPRIGHT", 6, 0)
+
+    tt.title:SetText("本週寶庫 - " .. (data and data.name or "?"))
+    ResetTooltipRows(tt)
+
+    local vault = data and data.vault
+    if not vault then
+        tt.snapshot:SetText("")
+        tt.noDataMain:Show()
+        tt.noDataSub:Show()
+        tt:Show()
+        return
+    end
+    tt.noDataMain:Hide()
+    tt.noDataSub:Hide()
+
+    -- 固定順序：M+ → 團本 → 世界/競技（兩者擇一，視伺服器資料而定）
+    local sequence = { "mplus", "raid" }
+    if vault.world then
+        sequence[#sequence + 1] = "world"
+    elseif vault.pvp then
+        sequence[#sequence + 1] = "pvp"
+    end
+
+    for i, key in ipairs(sequence) do
+        FillTooltipRow(tt.rows[i], key, vault[key])
+    end
+
+    if vault.timestamp then
+        tt.snapshot:SetText("快照時間：" .. date("%m/%d %H:%M", vault.timestamp))
+    else
+        tt.snapshot:SetText("")
+    end
+    tt:Show()
+end
+
+local function HideVaultTooltip()
+    if vaultTooltip then vaultTooltip:Hide() end
+end
 
 local function ShowRowContextMenu(row)
     if not row.data or not row.key then return end
@@ -325,11 +647,32 @@ local function GetOrCreateRow(parent, index)
     row.fsKey:SetJustifyH(COL_DEFS[2].align)
     xOff = xOff + COL_DEFS[2].width + PADDING_X
 
+    -- 寶庫欄：一個 sub-frame 含 3 個 cell 字串，整塊 hover 出 tooltip
+    row.vaultArea = CreateFrame("Frame", nil, row)
+    row.vaultArea:SetSize(COL_DEFS[VAULT_COL_INDEX].width, ROW_HEIGHT)
+    row.vaultArea:SetPoint("LEFT", row, "LEFT", xOff, 0)
+    row.vaultArea:EnableMouse(true)
+    row.vaultCells = {}
+    local cellWidth = COL_DEFS[VAULT_COL_INDEX].width / 3
+    for i = 1, 3 do
+        local fs = row.vaultArea:CreateFontString(nil, "OVERLAY")
+        fs:SetFont(barFont, 12, "OUTLINE")
+        fs:SetPoint("LEFT", row.vaultArea, "LEFT", (i - 1) * cellWidth, 0)
+        fs:SetWidth(cellWidth)
+        fs:SetJustifyH("CENTER")
+        row.vaultCells[i] = fs
+    end
+    row.vaultArea:SetScript("OnEnter", function(self)
+        ShowVaultTooltip(self, row.data)
+    end)
+    row.vaultArea:SetScript("OnLeave", HideVaultTooltip)
+    xOff = xOff + COL_DEFS[VAULT_COL_INDEX].width + PADDING_X
+
     row.fsDate = row:CreateFontString(nil, "OVERLAY")
     row.fsDate:SetFont(barFont, 12, "OUTLINE")
     row.fsDate:SetPoint("LEFT", row, "LEFT", xOff, 0)
-    row.fsDate:SetWidth(COL_DEFS[3].width)
-    row.fsDate:SetJustifyH(COL_DEFS[3].align)
+    row.fsDate:SetWidth(COL_DEFS[4].width)
+    row.fsDate:SetJustifyH(COL_DEFS[4].align)
 
     rowPool[index] = row
     return row
@@ -350,7 +693,7 @@ local function SetupCharacterKeystones()
     -- 主面板：parented to KeystoneLootFrame
     ---------------------------------------------------------------------------
     local panel = CreateFrame("Frame", "MiliUI_CharacterKeystonesPanel", lootFrame, "BackdropTemplate")
-    panel:SetSize(330, 200)
+    panel:SetSize(PANEL_WIDTH, 200)
     panel:SetPoint("TOPRIGHT", lootFrame, "TOPLEFT", -8, 0)
     panel:SetBackdrop({
         bgFile   = "Interface\\Buttons\\WHITE8X8",
@@ -478,10 +821,30 @@ local function SetupCharacterKeystones()
             end
             row.fsName:SetText(data.name or entry.key)
 
-            local mapName = (C_ChallengeMode and C_ChallengeMode.GetMapUIInfo)
-                and C_ChallengeMode.GetMapUIInfo(data.mapID) or "?"
-            row.fsKey:SetTextColor(unpack(VALUE_COLOR))
-            row.fsKey:SetText(mapName .. " +" .. (data.level or 0))
+            if data.mapID and data.mapID > 0 and (data.level or 0) > 0 then
+                local mapName = (C_ChallengeMode and C_ChallengeMode.GetMapUIInfo)
+                    and C_ChallengeMode.GetMapUIInfo(data.mapID) or "?"
+                row.fsKey:SetTextColor(unpack(VALUE_COLOR))
+                row.fsKey:SetText(mapName .. " +" .. data.level)
+            else
+                row.fsKey:SetTextColor(0.5, 0.5, 0.5)
+                row.fsKey:SetText("—")
+            end
+
+            -- 寶庫 M+ 三格：依該格鑰石等級對應寶庫物品稀有度上色（與遊戲內掉落對照表一致）
+            local mplus = data.vault and data.vault.mplus
+            for i = 1, 3 do
+                local slot = mplus and mplus[i]
+                local cell = row.vaultCells[i]
+                if slot and (slot.level or 0) > 0
+                    and (slot.progress or 0) >= (slot.threshold or 0) then
+                    cell:SetText("+" .. slot.level)
+                    cell:SetTextColor(VaultSlotQualityColor(slot.level))
+                else
+                    cell:SetText("·")
+                    cell:SetTextColor(LOCKED_CELL_R, LOCKED_CELL_G, LOCKED_CELL_B)
+                end
+            end
 
             row.fsDate:SetTextColor(unpack(VALUE_COLOR))
             row.fsDate:SetText(date("%m/%d", data.timestamp or 0))
@@ -538,6 +901,11 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
         self:RegisterEvent("CHALLENGE_MODE_COMPLETED")
         self:RegisterEvent("GOSSIP_CLOSED")
         self:RegisterEvent("WEEKLY_REWARDS_UPDATE")
+        -- 寶庫即時刷新觸發源（C 方案：細粒度事件 hook）
+        self:RegisterEvent("ENCOUNTER_END")           -- 團本 BOSS
+        self:RegisterEvent("PVP_MATCH_COMPLETE")      -- PvP 賽局結束
+        self:RegisterEvent("LFG_COMPLETION_REWARD")   -- 探究/隨機副本/情景
+        self:RegisterEvent("QUEST_TURNED_IN")         -- 世界任務（過 dedup 不會 spam）
         -- 一次性遷移舊資料：keystoneHistory → characterKeystones
         if MiliUI_DB and MiliUI_DB.keystoneHistory and not MiliUI_DB.characterKeystones then
             MiliUI_DB.characterKeystones = MiliUI_DB.keystoneHistory
@@ -558,6 +926,7 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
                 if mapID > 0 and level > 0 then
                     SaveKeystoneRecord(mapID, level)
                 end
+                SaveVaultSnapshot()
             end
         end)
     elseif event == "CHALLENGE_MODE_COMPLETED" then
@@ -571,6 +940,19 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
             print("|cff00ff00[Keystone]|r WEEKLY_REWARDS_UPDATE → ScheduleKeystoneCheck")
         end
         ScheduleKeystoneCheck(0)
+    elseif event == "ENCOUNTER_END" then
+        local _, _, difficultyID, _, success = ...
+        if success == 1 and RAID_DIFFICULTY_IDS[difficultyID] then
+            ScheduleVaultRefresh("ENCOUNTER_END diff=" .. tostring(difficultyID))
+        end
+    elseif event == "PVP_MATCH_COMPLETE" then
+        ScheduleVaultRefresh("PVP_MATCH_COMPLETE")
+    elseif event == "LFG_COMPLETION_REWARD" then
+        ScheduleVaultRefresh("LFG_COMPLETION_REWARD")
+    elseif event == "QUEST_TURNED_IN" then
+        -- 不過濾，靠 ScheduleVaultRefresh 的 dedup 限頻；
+        -- 一般主線/支線交任務也會 fire，但 3s 一次的代價可忽略
+        ScheduleVaultRefresh("QUEST_TURNED_IN")
     end
 end)
 
