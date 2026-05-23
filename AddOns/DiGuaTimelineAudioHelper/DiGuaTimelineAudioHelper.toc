@@ -12,4 +12,3 @@
 Core.lua
 Countdown.lua
 SimpleCCAlert.lua
-TTSduration.lua
