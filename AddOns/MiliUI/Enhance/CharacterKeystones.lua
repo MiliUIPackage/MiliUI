@@ -777,6 +777,27 @@ local function SetupCharacterKeystones()
     noDataText:SetText("尚無鑰石記錄")
     noDataText:Hide()
 
+    ---------------------------------------------------------------------------
+    -- 提示面板：放在主面板下方，提醒分身 key 指令
+    -- parented 到主 panel，會跟著主 panel 顯示/隱藏；anchor BOTTOM 跟主 panel 高度
+    ---------------------------------------------------------------------------
+    local tipPanel = CreateFrame("Frame", "MiliUI_CharacterKeystonesTipPanel", panel, "BackdropTemplate")
+    tipPanel:SetSize(PANEL_WIDTH, 34)
+    tipPanel:SetPoint("TOP", panel, "BOTTOM", 0, -6)
+    tipPanel:SetBackdrop({
+        bgFile   = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = 1,
+    })
+    tipPanel:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
+    tipPanel:SetBackdropBorderColor(0.6, 0.5, 0.25, 0.8)
+
+    local tipText = tipPanel:CreateFontString(nil, "OVERLAY")
+    tipText:SetFont(barFont, 12, "OUTLINE")
+    tipText:SetPoint("CENTER", tipPanel, "CENTER", 0, 0)
+    tipText:SetTextColor(0.9, 0.9, 0.9)
+    tipText:SetText("|cffffd700提示|r：在隊伍頻道輸入 |cff00ff00「分身key」|r 可發送所有分身鑰石到隊伍頻道")
+
     local rowStartY = TABLE_TOP - HEADER_HEIGHT - 8
     local sorted = {}
     local function sortByTimestamp(a, b)
