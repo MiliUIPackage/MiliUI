@@ -562,8 +562,8 @@ local function ShowVaultTooltip(owner, data)
     tt.noDataMain:Hide()
     tt.noDataSub:Hide()
 
-    -- 固定順序：M+ → 團本 → 世界/競技（兩者擇一，視伺服器資料而定）
-    local sequence = { "mplus", "raid" }
+    -- 固定順序：團本 → M+ → 世界/競技（兩者擇一，視伺服器資料而定）
+    local sequence = { "raid", "mplus" }
     if vault.world then
         sequence[#sequence + 1] = "world"
     elseif vault.pvp then
