@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2815, "DBM-Party-Midnight", 8, 1316)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260517102256")
+mod:SetRevision("20260523021914")
 mod:SetCreatureID(241546)
 mod:SetEncounterID(3333)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -13,9 +13,9 @@ mod:RegisterCombat("combat")
 
 local warnBrilliantRadiance			= mod:NewCountAnnounce(1255503, 2)
 
-local specWarnSearingRend			= mod:NewSpecialWarningCount(1255335, "Melee", nil, nil, 1, 2)
-local specWarnDivineGuile			= mod:NewSpecialWarningCount(1257567, nil, nil, nil, 2, 2)
-local specWarnFlicker				= mod:NewSpecialWarningDodgeCount(1255531, nil, nil, nil, 2, 2)
+local specWarnSearingRend			= mod:NewSpecialWarningCount(1255335, "Melee", nil, nil, 1, 2, nil, nil, "frontal")
+local specWarnDivineGuile			= mod:NewSpecialWarningCount(1257567, nil, nil, nil, 2, 2, nil, nil, "phasechange")
+local specWarnFlicker				= mod:NewSpecialWarningDodgeCount(1255531, nil, nil, nil, 2, 2, nil, nil, "watchstep")
 
 local timerSearingRendCD			= mod:NewCDCountTimer(26, 1255335, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerBrilliantDispersionCD	= mod:NewCDCountTimer(25, 1255503, nil, nil, nil, 3)
@@ -36,7 +36,7 @@ mod.vb.flickerCount = 0
 local badStateDetected = false
 
 ---@param self DBMMod
----@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+---@param dontSetAlerts boolean? Called on engage when we only want to set timeline parameters and not touch encounter alerts
 local function setFallback(self, dontSetAlerts)
 	if not dontSetAlerts then
 		warnBrilliantRadiance:SetAlert(109, "scattersoon", 2)
@@ -46,10 +46,11 @@ local function setFallback(self, dontSetAlerts)
 		end
 		specWarnFlicker:SetAlert(112, "watchstep", 2)
 	end
-	timerBrilliantDispersionCD:SetTimeline(109)
-	timerDivineGuileCD:SetTimeline(110)
-	timerSearingRendCD:SetTimeline(111)
-	timerFlickerCD:SetTimeline(112)
+	local onlyColor = not DBM.Options.HideDBMBars
+	timerBrilliantDispersionCD:SetTimeline(109, onlyColor)
+	timerDivineGuileCD:SetTimeline(110, onlyColor)
+	timerSearingRendCD:SetTimeline(111, onlyColor)
+	timerFlickerCD:SetTimeline(112, onlyColor)
 end
 
 function mod:OnLimitedCombatStart()
@@ -64,10 +65,7 @@ function mod:OnLimitedCombatStart()
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",
 			"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 		)
-		--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
-		if DBM.Options.HideDBMBars then
-			setFallback(self, true)
-		end
+		setFallback(self, true)
 	else
 		setFallback(self)
 	end

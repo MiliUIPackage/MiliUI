@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2408, "DBM-Party-Shadowlands", 7, 1188)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(166473)
 mod:SetEncounterID(2395)
@@ -37,13 +37,13 @@ local warnDevotedSacrifice			= mod:NewCastAnnounce(332329, 2)
 local warnZealous					= mod:NewTargetAnnounce(328987, 2)
 
 --Hakkar the Soulflayer
-local specWarnBloodBarrage			= mod:NewSpecialWarningInterrupt(323064, "HasInterrupt", nil, nil, 1, 2)
-local specWarnCorruptedBlood		= mod:NewSpecialWarningMoveAway(322746, nil, nil, nil, 3, 2)
+local specWarnBloodBarrage			= mod:NewSpecialWarningInterrupt(323064, "HasInterrupt", nil, nil, 1, 2, nil, nil, "kickcast")
+local specWarnCorruptedBlood		= mod:NewSpecialWarningMoveAway(322746, nil, nil, nil, 3, 2, nil, nil, "scatter")
 local yellCorruptedBlood			= mod:NewYell(322746)
-local specWarnPiercingBarb			= mod:NewSpecialWarningDefensive(322736, nil, nil, nil, 1, 2)
+local specWarnPiercingBarb			= mod:NewSpecialWarningDefensive(322736, nil, nil, nil, 1, 2, nil, nil, "defensive")
 --Son of Hakkar:
-local specWarnGTFO					= mod:NewSpecialWarningGTFO(323569, nil, nil, nil, 1, 8)
-local specWarnZealous				= mod:NewSpecialWarningRun(328987, nil, nil, nil, 4, 2)
+local specWarnGTFO					= mod:NewSpecialWarningGTFO(323569, nil, nil, nil, 1, 8, nil, nil, "watchfeet")
+local specWarnZealous				= mod:NewSpecialWarningRun(328987, nil, nil, nil, 4, 2, nil, nil, "justrun")
 
 --Hakkar the Soulflayer
 local timerBloodBarrierCD			= mod:NewCDTimer(27.9, 322773, nil, nil, nil, 6)

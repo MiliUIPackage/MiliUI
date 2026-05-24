@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2659, "DBM-Party-Midnight", 3, 1300)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260517102256")
+mod:SetRevision("20260523021914")
 mod:SetCreatureID(231861)--Iffy, doesn't report as instance boss
 mod:SetEncounterID(3071)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -13,9 +13,9 @@ mod:RegisterCombat("combat")
 
 local warnEtherealShackles				= mod:NewCountAnnounce(1214038, 2)
 
-local specWarnRefuelingProtocol			= mod:NewSpecialWarningCount(474345, nil, nil, nil, 2, 2)
-local specWarnRepulsingSlam				= mod:NewSpecialWarningCount(474496, nil, nil, nil, 1, 2)
-local specWarnArcaneExpulsion			= mod:NewSpecialWarningCount(1214081, nil, 28405, nil, 2, 2)
+local specWarnRefuelingProtocol			= mod:NewSpecialWarningCount(474345, nil, nil, nil, 2, 2, nil, nil, "catchballs")
+local specWarnRepulsingSlam				= mod:NewSpecialWarningCount(474496, nil, nil, nil, 1, 2, nil, nil, "carefly")
+local specWarnArcaneExpulsion			= mod:NewSpecialWarningCount(1214081, nil, 28405, nil, 2, 2, nil, nil, "carefly")
 
 local timerRefuelingProtocolCD			= mod:NewCDCountTimer(20.5, 474345, nil, nil, nil, 6, nil, DBM_COMMON_L.IMPORTANT_ICON)
 local timerRepulsingSlamCD				= mod:NewCDCountTimer(20.5, 474496, 182557, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Short Text "Slam"
@@ -32,7 +32,7 @@ mod.vb.expulsionCount = 0
 local badStateDetected = false
 
 ---@param self DBMMod
----@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+---@param dontSetAlerts boolean? Called on engage when we only want to set timeline parameters and not touch encounter alerts
 local function setFallback(self, dontSetAlerts)
 	--Blizz API fallbacks
 	if not dontSetAlerts then
@@ -42,10 +42,11 @@ local function setFallback(self, dontSetAlerts)
 		end
 		specWarnArcaneExpulsion:SetAlert(288, "carefly", 2, 3)
 	end
-	timerRefuelingProtocolCD:SetTimeline(281)
-	timerRepulsingSlamCD:SetTimeline(286)
-	timerEtherealShacklesCD:SetTimeline(287)
-	timerArcaneExpulsionCD:SetTimeline(288)
+	local onlyColor = not DBM.Options.HideDBMBars
+	timerRefuelingProtocolCD:SetTimeline(281, onlyColor)
+	timerRepulsingSlamCD:SetTimeline(286, onlyColor)
+	timerEtherealShacklesCD:SetTimeline(287, onlyColor)
+	timerArcaneExpulsionCD:SetTimeline(288, onlyColor)
 end
 
 function mod:OnLimitedCombatStart()
@@ -60,10 +61,7 @@ function mod:OnLimitedCombatStart()
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",
 			"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 		)
-		--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
-		if DBM.Options.HideDBMBars then
-			setFallback(self, true)
-		end
+		setFallback(self, true)
 	else
 		setFallback(self)
 	end

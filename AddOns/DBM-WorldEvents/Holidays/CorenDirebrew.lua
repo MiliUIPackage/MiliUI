@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("d287", "DBM-WorldEvents", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(23872)
 mod:SetModelID(21824)
@@ -21,7 +21,7 @@ mod:RegisterEventsInCombat(
 local warnDisarm			= mod:NewCastAnnounce(47310, 2, nil, nil, "Melee")
 local warnBarrel			= mod:NewTargetAnnounce(47442, 4)
 
-local specWarnBrew			= mod:NewSpecialWarning("specWarnBrew", nil, nil, nil, 1, 7)
+local specWarnBrew			= mod:NewSpecialWarning("specWarnBrew", nil, nil, nil, 1, 7, nil, nil, nil, nil, "useitem")
 local specWarnBrewStun		= mod:NewSpecialWarning("specWarnBrewStun")
 local yellBarrel			= mod:NewYell(47442, L.YellBarrel, "Tank")
 

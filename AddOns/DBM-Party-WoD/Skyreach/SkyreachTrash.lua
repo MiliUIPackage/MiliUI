@@ -2,7 +2,7 @@ if DBM:IsPostMidnight() then return end
 local mod	= DBM:NewMod("SkyreachTrash", "DBM-Party-WoD", 7)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 --mod:SetModelID(47785)
 
@@ -13,7 +13,7 @@ mod:RegisterEvents(
 	"SPELL_AURA_APPLIED 160303 160288"
 )
 
-local specWarnSolarDetonation		= mod:NewSpecialWarningMoveAway(160288, nil, nil, nil, 1, 2)
+local specWarnSolarDetonation		= mod:NewSpecialWarningMoveAway(160288, nil, nil, nil, 1, 2, nil, nil, "runout")
 
 function mod:SPELL_AURA_APPLIED(args)
 	if not self.Options.Enabled or self:IsDifficulty("normal5") or self:IsTrivial() then return end

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1981, "DBM-Party-Legion", 13, 945)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260517102256")
+mod:SetRevision("20260523021914")
 mod:SetCreatureID(124874)
 mod:SetEncounterID(2067)
 
@@ -12,9 +12,9 @@ if DBM:IsPostMidnight() then
 	local warnMindBlast					= mod:NewCountAnnounce(244750, 2, nil, "HasInterrupt")
 	local warnMassVoidInfusion			= mod:NewCountAnnounce(1263542, 2)
 
-	local specWarnUmbralTentacles		= mod:NewSpecialWarningCount(1263538, nil, nil, nil, 1, 2)
-	local specWarnRepulse				= mod:NewSpecialWarningCount(1263528, nil, 28405, nil, 2, 2)
-	local specWarnGatesOfAbyss			= mod:NewSpecialWarningCount(1277358, nil, nil, DBM_COMMON_L.ORBS, 2, 2)
+	local specWarnUmbralTentacles		= mod:NewSpecialWarningCount(1263538, nil, nil, nil, 1, 2, nil, nil, "mobsoon")
+	local specWarnRepulse				= mod:NewSpecialWarningCount(1263528, nil, 28405, nil, 2, 2, nil, nil, "carefly")
+	local specWarnGatesOfAbyss			= mod:NewSpecialWarningCount(1277358, nil, nil, DBM_COMMON_L.ORBS, 2, 2, nil, nil, "watchorb")
 
 	local timerMindBlastCD				= mod:NewCDCountTimer(20.5, 244750, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON..DBM_COMMON_L.TANK_ICON)
 	local timerMassVoidCD				= mod:NewCDCountTimer(20.5, 1263542, nil, nil, nil, 5, nil, DBM_COMMON_L.HEALER_ICON)
@@ -36,18 +36,19 @@ if DBM:IsPostMidnight() then
 	local badStateDetected = false
 
 	---@param self DBMMod
-	---@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+	---@param dontSetAlerts boolean? Called on engage when we only want to set timeline parameters and not touch encounter alerts
 	local function setFallback(self, dontSetAlerts)
 		if not dontSetAlerts then
 			specWarnUmbralTentacles:SetAlert(246, "mobsoon", 1, 2)
 			specWarnRepulse:SetAlert(247, "carefly", 2, 2)
 			specWarnGatesOfAbyss:SetAlert(376, "watchorb", 2, 2)
 		end
-		timerMindBlastCD:SetTimeline(244)
-		timerMassVoidCD:SetTimeline(245)
-		timerUmbralTentaclesCD:SetTimeline(246)
-		timerRepulseCD:SetTimeline(247)
-		timerGatesCD:SetTimeline(376)
+		local onlyColor = not DBM.Options.HideDBMBars
+		timerMindBlastCD:SetTimeline(244, onlyColor)
+		timerMassVoidCD:SetTimeline(245, onlyColor)
+		timerUmbralTentaclesCD:SetTimeline(246, onlyColor)
+		timerRepulseCD:SetTimeline(247, onlyColor)
+		timerGatesCD:SetTimeline(376, onlyColor)
 	end
 
 	function mod:OnLimitedCombatStart()
@@ -65,10 +66,7 @@ if DBM:IsPostMidnight() then
 				"ENCOUNTER_TIMELINE_EVENT_ADDED",
 				"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 			)
-			--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
-			if DBM.Options.HideDBMBars then
-				setFallback(self, true)
-			end
+			setFallback(self, true)
 		else
 			setFallback(self)
 		end
@@ -170,9 +168,9 @@ else
 	local warnAddsLeft						= mod:NewAddsLeftAnnounce(-16424, 2)
 	local warnTentacles						= mod:NewSpellAnnounce(244769, 2)
 
-	local specWarnHowlingDark				= mod:NewSpecialWarningInterrupt(244751, "HasInterrupt", nil, nil, 1, 2)
-	local specWarnEntropicForce				= mod:NewSpecialWarningSpell(246324, nil, nil, nil, 1, 2)
-	local specWarnAdds						= mod:NewSpecialWarningAdds(249336, "-Healer", nil, nil, 1, 2)
+	local specWarnHowlingDark				= mod:NewSpecialWarningInterrupt(244751, "HasInterrupt", nil, nil, 1, 2, nil, nil, "kickcast")
+	local specWarnEntropicForce				= mod:NewSpecialWarningSpell(246324, nil, nil, nil, 1, 2, nil, nil, "keepmove")
+	local specWarnAdds						= mod:NewSpecialWarningAdds(249336, "-Healer", nil, nil, 1, 2, nil, nil, "killmob")
 
 	local timerUmbralTentaclesCD			= mod:NewCDTimer(30.4, 244769, nil, nil, nil, 1)
 	local timerHowlingDarkCD				= mod:NewCDTimer(28.0, 244751, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)

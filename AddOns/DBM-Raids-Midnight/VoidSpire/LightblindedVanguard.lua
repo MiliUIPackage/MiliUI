@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2737, "DBM-Raids-Midnight", 3, 1307)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260509052555")
+mod:SetRevision("20260523021809")
 mod:SetCreatureID(250589)--War Chaplain Senn main boss, 250588 Commander Venel Lightblood, 250587 general Amias Bellamy
 mod:SetEncounterID(3180)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -15,20 +15,20 @@ mod:RegisterCombat("combat")
 local warnAuraofDevotion					= mod:NewCountAnnounce(1246162, 2)
 local warnZealousSpirit						= mod:NewCountAnnounce(1276243, 2)
 
-local specWarnAuraofPeace					= mod:NewSpecialWarningDodgeCount(1248451, nil, nil, nil, 2, 2)
-local specWarnSacredShield					= mod:NewSpecialWarningCount(1248674, nil, nil, nil, 2, 2)
+local specWarnAuraofPeace					= mod:NewSpecialWarningDodgeCount(1248451, nil, nil, nil, 2, 2, nil, nil, "peaceaura")
+local specWarnSacredShield					= mod:NewSpecialWarningCount(1248674, nil, nil, nil, 2, 2, nil, nil, "attackshield")
 --local specWarnElekkCharge					= mod:NewSpecialWarningDodge(1249130, nil, nil, nil, 2, 2)--Part of sacred shield
 --mod:GroupSpells(1248674, 1249130)--Sacred Shield + Elekk Charge
-local specWarnSearingRadiance				= mod:NewSpecialWarningCount(1255738, nil, nil, nil, 2, 2)
-local specWarnEmpoweredSearingRadiance		= mod:NewSpecialWarningCount(1276639, nil, nil, nil, 2, 2, 4)--Mythic empowered version
-local specWarnJudgementShield				= mod:NewSpecialWarningCount(1251857, nil, nil, L.JudgementShield, 2, 2)
-local specWarnDivineToll					= mod:NewSpecialWarningDodgeCount(1248652, nil, nil, DBM_COMMON_L.DODGES, 2, 2)
-local specWarnAuraofWrath					= mod:NewSpecialWarningCount(1248449, nil, nil, nil, 2, 2)
-local specWarnjudgementFinal				= mod:NewSpecialWarningCount(1246736, nil, nil, L.JudgementFV, 2, 2)
-local specWarnDivineStorm					= mod:NewSpecialWarningCount(1246765, "MeleeDps", nil, nil, 2, 2)--review default later
-local specWarnEmpoweredDivineStorm			= mod:NewSpecialWarningCount(1272310, "MeleeDps", nil, nil, 2, 2, 4)--Mythic empowered version
-local specWarnSacredToll					= mod:NewSpecialWarningCount(1246749, nil, nil, DBM_COMMON_L.AOEDAMAGE, 2, 2)
-local specWarnExecutionSentence				= mod:NewSpecialWarningSoakCount(1276368, nil, nil, DBM_COMMON_L.GROUPSOAKS, 2, 2)
+local specWarnSearingRadiance				= mod:NewSpecialWarningCount(1255738, nil, nil, nil, 2, 2, nil, nil, "aesoon")
+local specWarnEmpoweredSearingRadiance		= mod:NewSpecialWarningCount(1276639, nil, nil, nil, 2, 2, 4, nil, "aesoon")--Mythic empowered version
+local specWarnJudgementShield				= mod:NewSpecialWarningCount(1251857, nil, nil, L.JudgementShield, 2, 2, nil, nil, "changemt")
+local specWarnDivineToll					= mod:NewSpecialWarningDodgeCount(1248652, nil, nil, DBM_COMMON_L.DODGES, 2, 2, nil, nil, "watchstep")
+local specWarnAuraofWrath					= mod:NewSpecialWarningCount(1248449, nil, nil, nil, 2, 2, nil, nil, "wrathaura")
+local specWarnjudgementFinal				= mod:NewSpecialWarningCount(1246736, nil, nil, L.JudgementFV, 2, 2, nil, nil, "changemt")
+local specWarnDivineStorm					= mod:NewSpecialWarningCount(1246765, "MeleeDps", nil, nil, 2, 2, nil, nil, "justrun")--review default later
+local specWarnEmpoweredDivineStorm			= mod:NewSpecialWarningCount(1272310, "MeleeDps", nil, nil, 2, 2, 4, nil, "justrun")--Mythic empowered version
+local specWarnSacredToll					= mod:NewSpecialWarningCount(1246749, nil, nil, DBM_COMMON_L.AOEDAMAGE, 2, 2, nil, nil, "aesoon")
+local specWarnExecutionSentence				= mod:NewSpecialWarningSoakCount(1276368, nil, nil, DBM_COMMON_L.GROUPSOAKS, 2, 2, nil, nil, "soakincoming")
 
 local timerAuraofPeaceCD					= mod:NewCDCountTimer(20.5, 1248451, nil, nil, nil, 3, nil, DBM_COMMON_L.IMPORTANT_ICON)
 local timerSacredShieldCD					= mod:NewCDCountTimer(20.5, 1248674, nil, nil, nil, 5)
@@ -129,23 +129,24 @@ local function setFallback(self, dontSetAlerts)
 		specWarnExecutionSentence:SetAlert(85, "soakincoming", 19, 2)
 		warnZealousSpirit:SetAlert({358,359,360}, "phasechange", 2, 2)
 	end
-	timerAuraofPeaceCD:SetTimeline(71)
+	local onlyColor = not DBM.Options.HideDBMBars
+	timerAuraofPeaceCD:SetTimeline(71, onlyColor)
 --	specWarnElekkCharge:SetAlert(73, "chargemove", 2, 2, 0)
 --	timerElekkChargeCD:SetTimeline(73)
-	timerSacredShieldCD:SetTimeline(74)
-	timerTyrsWrathCD:SetTimeline(75)
-	timerAuraofDevotionCD:SetTimeline(76)
-	timerSearingRadianceCD:SetTimeline(77)--Normal, mythic empowered
-	timerEmpoweredSearingRadianceCD:SetTimeline(373)--mythic empowered
-	timerJudgementShieldCD:SetTimeline(78)
-	timerAvengerShieldCD:SetTimeline({79, 365})--Normal, mythic empowered
-	timerDivineTollCD:SetTimeline(80)
-	timerAuraofWrathCD:SetTimeline(81)
-	timerjudgementFinalCD:SetTimeline(82)
-	timerDivineStormCD:SetTimeline({83,374})--Normal, mythic empowered
-	timerSacredTollCD:SetTimeline(84)
-	timerExecutionSentenceCD:SetTimeline(85)
-	timerZealousSpiritCD:SetTimeline({358,359,360})--one for each boss
+	timerSacredShieldCD:SetTimeline(74, onlyColor)
+	timerTyrsWrathCD:SetTimeline(75, onlyColor)
+	timerAuraofDevotionCD:SetTimeline(76, onlyColor)
+	timerSearingRadianceCD:SetTimeline(77, onlyColor)--Normal, mythic empowered
+	timerEmpoweredSearingRadianceCD:SetTimeline(373, onlyColor)--mythic empowered
+	timerJudgementShieldCD:SetTimeline(78, onlyColor)
+	timerAvengerShieldCD:SetTimeline({79, 365}, onlyColor)--Normal, mythic empowered
+	timerDivineTollCD:SetTimeline(80, onlyColor)
+	timerAuraofWrathCD:SetTimeline(81, onlyColor)
+	timerjudgementFinalCD:SetTimeline(82, onlyColor)
+	timerDivineStormCD:SetTimeline({83,374}, onlyColor)--Normal, mythic empowered
+	timerSacredTollCD:SetTimeline(84, onlyColor)
+	timerExecutionSentenceCD:SetTimeline(85, onlyColor)
+	timerZealousSpiritCD:SetTimeline({358,359,360}, onlyColor)--one for each boss
 end
 
 function mod:OnLimitedCombatStart()
@@ -203,9 +204,7 @@ function mod:OnLimitedCombatStart()
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",
 			"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 		)
-		if DBM.Options.HideDBMBars then
-			setFallback(self, true)
-		end
+		setFallback(self, true)
 	else
 		setFallback(self)
 	end

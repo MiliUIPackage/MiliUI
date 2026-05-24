@@ -3,7 +3,7 @@ local mod	= DBM:NewMod("Athanos", "DBM-Challenges", 1)
 
 mod.statTypes = "normal,heroic,mythic,challenge"
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(171873)--Guessed
 mod.soloChallenge = true
@@ -24,9 +24,9 @@ mod:RegisterEventsInCombat(
 
 local warnShieldingCharging			= mod:NewSpellAnnounce(335697, 2)
 
-local specWarnPowerSwing			= mod:NewSpecialWarningSpell(335497, nil, nil, nil, 1, 2)
-local specWarnMassiveCharge			= mod:NewSpecialWarningDodge(335748, nil, nil, nil, 1, 2)
-local specWarnQuakingShockwave		= mod:NewSpecialWarningDodge(335599, nil, nil, nil, 2, 2)
+local specWarnPowerSwing			= mod:NewSpecialWarningSpell(335497, nil, nil, nil, 1, 2, nil, nil, "carefly")
+local specWarnMassiveCharge			= mod:NewSpecialWarningDodge(335748, nil, nil, nil, 1, 2, nil, nil, "chargemove")
+local specWarnQuakingShockwave		= mod:NewSpecialWarningDodge(335599, nil, nil, nil, 2, 2, nil, nil, "watchstep")
 
 local timerPowerSwingCD				= mod:NewCDTimer(12.1, 335497, nil, nil, nil, 3)--12.1-15.7
 --local timerMassiveChargeCD		= mod:NewCDTimer(30, 335748, nil, nil, nil, 3)

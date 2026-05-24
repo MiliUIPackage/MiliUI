@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("BCEvent", "DBM-WorldEvents", 4)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(17968, 21212, 19622)
 mod:SetEncounterID(2319)
@@ -25,12 +25,12 @@ local warnCharge		= mod:NewTargetAnnounce(38280, 4)
 local warnBurst			= mod:NewTargetAnnounce(32014, 3)
 
 --Vashj
-local specWarnCharge	= mod:NewSpecialWarningMoveAway(38280, nil, nil, nil, 1, 2)
+local specWarnCharge	= mod:NewSpecialWarningMoveAway(38280, nil, nil, nil, 1, 2, nil, nil, "runout")
 local yellCharge		= mod:NewYell(38280)
-local specWarnToxic		= mod:NewSpecialWarningMove(38575, nil, nil, nil, 1, 2)
+local specWarnToxic		= mod:NewSpecialWarningMove(38575, nil, nil, nil, 1, 2, nil, nil, "runaway")
 --Archimonde
-local specWarnFear		= mod:NewSpecialWarningSpell(31970, nil, nil, nil, 2, 2)
-local specWarnBurst		= mod:NewSpecialWarningYou(32014, nil, nil, nil, 1, 2)
+local specWarnFear		= mod:NewSpecialWarningSpell(31970, nil, nil, nil, 2, 2, nil, nil, "fearsoon")
+local specWarnBurst		= mod:NewSpecialWarningYou(32014, nil, nil, nil, 1, 2, nil, nil, "targetyou")
 
 
 mod.vb.phase = 0

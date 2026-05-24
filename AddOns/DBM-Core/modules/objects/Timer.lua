@@ -24,6 +24,7 @@ local mt = {__index = timerPrototype}
 local countvoice1, countvoice2, countvoice3, countvoice4
 local countvoice1max, countvoice2max, countvoice3max, countvoice4max = 5, 5, 5, 5
 local countpath1, countpath2, countpath3, countpath4
+local lastCountString, lastCountStringMax
 
 --Merged countdown object for timers with build-in countdown
 function DBM:BuildVoiceCountdownCache()
@@ -53,8 +54,14 @@ end
 
 function DBM:GetCountMaxCountForVoice(voice)
 	if type(voice) == "string" then
+		--Attempt to return cached value first to avoid hashing through a table in a hot path every time
+		if voice == lastCountString then
+			return lastCountStringMax
+		end
 		for _, count in pairs(self:GetCountSounds()) do
 			if count.value == voice then
+				lastCountString = voice
+				lastCountStringMax = count.max
 				return count.max
 			end
 		end
@@ -87,7 +94,9 @@ local function playCountdown(timerId, timer, voice, count, requiresCombat)
 	end
 	local maxCount, path
 	if type(voice) == "string" then
-		maxCount = 5--Safe to assume if it's not one of the built ins, it's likely heroes/OW, which has a max of 5
+		--String means user has override countown for specific option to use full path instead of 1-4 persets
+		--Which means we have to do manual lookup for max count
+		maxCount = DBM:GetCountMaxCountForVoice(voice) or 5
 		path = voice
 	elseif voice == 2 then
 		maxCount = countvoice2max or 10
@@ -1599,6 +1608,7 @@ end
 
 function bossModPrototype:GetLocalizedTimerText(timerType, spellId, Name)
 	local spellName
+	local originalSpellName
 	if Name then
 		spellName = Name--Pull from name stored in object
 	elseif spellId then
@@ -1611,7 +1621,10 @@ function bossModPrototype:GetLocalizedTimerText(timerType, spellId, Name)
 		end
 	end
 	if spellId then
-		spellName = DBM:GetRename(spellId, spellName)
+		originalSpellName = DBM:ParseSpellName(spellId, timerType) or spellName
+	end
+	if spellId then
+		spellName = DBM:GetRename(spellId, spellName, originalSpellName)
 	end
 	return pformat(L.AUTO_TIMER_TEXTS[timerType], spellName)
 end

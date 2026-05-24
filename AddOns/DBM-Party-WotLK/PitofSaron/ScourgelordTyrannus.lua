@@ -5,7 +5,7 @@ if not mod:IsClassic() then
 	mod.statTypes = "normal,heroic,mythic,challenge,timewalker"
 end
 
-mod:SetRevision("20260428075838")
+mod:SetRevision("20260523021914")
 mod:SetCreatureID(36658, 36661)
 mod:SetEncounterID(2000)
 mod:SetZone(658)
@@ -23,10 +23,10 @@ if DBM:IsPostMidnight() then
 	local warnRimeBlast					= mod:NewCountAnnounce(1262772, 3)
 	local warnBoneInfusion				= mod:NewCountAnnounce(1276648, 3)
 
-	local specWarnScourgelordsBrand		= mod:NewSpecialWarningCount(1262582, nil, nil, nil, 1, 2)
-	local specWarnArmyOfTheDead			= mod:NewSpecialWarningCount(1263406, nil, nil, nil, 1, 2)
-	local specWarnDeathsGrasp			= mod:NewSpecialWarningDodgeCount(1263756, nil, nil, nil, 2, 2)
-	local specWarnIcyBarrage			= mod:NewSpecialWarningDodgeCount(1276948, nil, nil, nil, 2, 2)
+	local specWarnScourgelordsBrand		= mod:NewSpecialWarningCount(1262582, nil, nil, nil, 1, 2, nil, nil, "carefly")
+	local specWarnArmyOfTheDead			= mod:NewSpecialWarningCount(1263406, nil, nil, nil, 1, 2, nil, nil, "mobsoon")
+	local specWarnDeathsGrasp			= mod:NewSpecialWarningDodgeCount(1263756, nil, nil, nil, 2, 2, nil, nil, "watchstep")
+	local specWarnIcyBarrage			= mod:NewSpecialWarningDodgeCount(1276948, nil, nil, nil, 2, 2, nil, nil, "watchstep")
 
 	local timerScourgelordsBrandCD		= mod:NewCDCountTimer(20.5, 1262582, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 	local timerArmyOfTheDeadCD			= mod:NewCDCountTimer(20.5, 1263406, nil, nil, nil, 1, nil, DBM_COMMON_L.DAMAGE_ICON)
@@ -48,8 +48,9 @@ if DBM:IsPostMidnight() then
 	local nextTwentyEightType = nil
 
 	---@param self DBMMod
-	---@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+	---@param dontSetAlerts boolean? Called on engage when we only want to set timeline parameters and not touch encounter alerts
 	local function setFallback(self, dontSetAlerts)
+		local onlyColor = not DBM.Options.HideDBMBars
 		--Blizz API fallbacks
 		if not dontSetAlerts then
 			if self:IsTank() then
@@ -59,12 +60,12 @@ if DBM:IsPostMidnight() then
 			specWarnDeathsGrasp:SetAlert(168, "watchstep", 2)
 			specWarnIcyBarrage:SetAlert(375, "watchstep", 2)
 		end
-		timerScourgelordsBrandCD:SetTimeline(164)
-		timerArmyOfTheDeadCD:SetTimeline(165)
-		timerRimeBlastCD:SetTimeline(166)
-		timerBoneInfusionCD:SetTimeline(167)
-		timerDeathsGraspCD:SetTimeline(168)
-		timerIcyBarrageCD:SetTimeline(375)
+		timerScourgelordsBrandCD:SetTimeline(164, onlyColor)
+		timerArmyOfTheDeadCD:SetTimeline(165, onlyColor)
+		timerRimeBlastCD:SetTimeline(166, onlyColor)
+		timerBoneInfusionCD:SetTimeline(167, onlyColor)
+		timerDeathsGraspCD:SetTimeline(168, onlyColor)
+		timerIcyBarrageCD:SetTimeline(375, onlyColor)
 	end
 
 	function mod:OnLimitedCombatStart()
@@ -82,10 +83,7 @@ if DBM:IsPostMidnight() then
 				"ENCOUNTER_TIMELINE_EVENT_ADDED",
 				"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 			)
-			--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
-			if DBM.Options.HideDBMBars then
-				setFallback(self, true)
-			end
+			setFallback(self, true)
 		else
 			setFallback(self)
 		end
@@ -205,11 +203,11 @@ else
 	local warnOverlordsBrand		= mod:NewTargetAnnounce(69172, 4)
 	local warnHoarfrost				= mod:NewTargetAnnounce(69246, 2)
 
-	local specWarnHoarfrost			= mod:NewSpecialWarningMoveAway(69246, nil, nil, nil, 1, 2)
+	local specWarnHoarfrost			= mod:NewSpecialWarningMoveAway(69246, nil, nil, nil, 1, 2, nil, nil, "targetyou")
 	local yellHoarfrost				= mod:NewYell(69246)
-	local specWarnIcyBlast			= mod:NewSpecialWarningMove(69238, nil, nil, nil, 1, 2)
-	local specWarnOverlordsBrand	= mod:NewSpecialWarningReflect(69172, nil, nil, nil, 3, 2)
-	local specWarnUnholyPower		= mod:NewSpecialWarningSpell(69167, nil, nil, nil, 1, 2)--Spell for now. may change to run away if damage is too high for defensive
+	local specWarnIcyBlast			= mod:NewSpecialWarningMove(69238, nil, nil, nil, 1, 2, nil, nil, "runaway")
+	local specWarnOverlordsBrand	= mod:NewSpecialWarningReflect(69172, nil, nil, nil, 3, 2, nil, nil, "stopattack")
+	local specWarnUnholyPower		= mod:NewSpecialWarningSpell(69167, nil, nil, nil, 1, 2, nil, nil, "justrun")--Spell for now. may change to run away if damage is too high for defensive
 
 	local timerCombatStart			= mod:NewCombatTimer(31)
 	local timerOverlordsBrandCD		= mod:NewCDTimer(12, 69172, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)

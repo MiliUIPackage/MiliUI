@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("WrathEvent", "DBM-WorldEvents", 4)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(36597, 34564, 15936)
 mod:SetEncounterID(2321)
@@ -46,14 +46,14 @@ local warnSummonValkyr		= mod:NewSpellAnnounce(69037, 3, 71844) --Phase 2 Add
 local warnSummonVileSpirit	= mod:NewSpellAnnounce(70498, 2) --Phase 3 Add
 
 --Anub
-local specWarnPursue		= mod:NewSpecialWarningRun(67574, nil, nil, nil, 4, 2)
+local specWarnPursue		= mod:NewSpecialWarningRun(67574, nil, nil, nil, 4, 2, nil, nil, "justrun")
 local yellPursue			= mod:NewYell(67574)
 --Lich King
-local specWarnRagingSpirit	= mod:NewSpecialWarningYou(69200, nil, nil, nil, 1, 2) --Transition Add
-local specWarnDefileCast	= mod:NewSpecialWarningMoveAway(72762, nil, nil, nil, 3, 2) --Phase 2+ Ability
+local specWarnRagingSpirit	= mod:NewSpecialWarningYou(69200, nil, nil, nil, 1, 2, nil, nil, "targetyou") --Transition Add
+local specWarnDefileCast	= mod:NewSpecialWarningMoveAway(72762, nil, nil, nil, 3, 2, nil, nil, "runout") --Phase 2+ Ability
 local yellDefile			= mod:NewYell(72762)
-local specWarnDefileNear	= mod:NewSpecialWarningClose(72762, nil, nil, nil, 1, 2) --Phase 2+ Ability
-local specWarnGTFO			= mod:NewSpecialWarningGTFO(72762, nil, nil, nil, 1, 8) --Phase 2+ Ability
+local specWarnDefileNear	= mod:NewSpecialWarningClose(72762, nil, nil, nil, 1, 2, nil, nil, "runaway") --Phase 2+ Ability
+local specWarnGTFO			= mod:NewSpecialWarningGTFO(72762, nil, nil, nil, 1, 8, nil, nil, "watchfeet") --Phase 2+ Ability
 
 --Heigan
 local timerTeleport			= mod:NewTimer(90, "TimerTeleport", "135736", nil, nil, 6)

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2494, "DBM-Party-Dragonflight", 4, 1199)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(181861)
 mod:SetEncounterID(2610)
@@ -31,12 +31,12 @@ local warnMagmaLob								= mod:NewSpellAnnounce(375068, 3)
 local warnVolatileMutation						= mod:NewCountAnnounce(374365, 3)
 local warnLavaSpray								= mod:NewTargetNoFilterAnnounce(375251, 3)
 
-local specWarnMagmaLob							= mod:NewSpecialWarningDodge(375068, false, nil, 2, 2, 2)
-local specWarnLavaSpray							= mod:NewSpecialWarningDodge(375251, nil, nil, nil, 2, 2)
+local specWarnMagmaLob							= mod:NewSpecialWarningDodge(375068, false, nil, 2, 2, 2, nil, nil, "watchstep")
+local specWarnLavaSpray							= mod:NewSpecialWarningDodge(375251, nil, nil, nil, 2, 2, nil, nil, "shockwave")
 local yellLavaSpray								= mod:NewYell(375251)
-local specWarnBlazingCharge						= mod:NewSpecialWarningDodge(375436, nil, nil, nil, 2, 2)
+local specWarnBlazingCharge						= mod:NewSpecialWarningDodge(375436, nil, nil, nil, 2, 2, nil, nil, "chargemove")
 local yellBlazingCharge							= mod:NewYell(375436)
-local specWarnGTFO								= mod:NewSpecialWarningGTFO(375204, nil, nil, nil, 1, 8)
+local specWarnGTFO								= mod:NewSpecialWarningGTFO(375204, nil, nil, nil, 1, 8, nil, nil, "watchfeet")
 
 local timerRP									= mod:NewRPTimer(9.9)
 local timerVolatileMutationCD					= mod:NewCDCountTimer(27.9, 374365, nil, nil, nil, 5, nil, DBM_COMMON_L.DAMAGE_ICON)--Can get spell queued behind other abilities

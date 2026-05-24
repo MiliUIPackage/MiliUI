@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("Tonks", "DBM-WorldEvents", 3)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260322030743")
+mod:SetRevision("20260523021914")
 mod:SetZone(974)
 
 if DBM:IsPostMidnight() then
@@ -19,7 +19,7 @@ else
 end
 mod.noStatistics = true
 
-local specWarnMarked			= mod:NewSpecialWarningRun(102341, nil, nil, 2, 4, 2)
+local specWarnMarked			= mod:NewSpecialWarningRun(102341, nil, nil, 2, 4, 2, nil, nil, "justrun")
 
 local timerGame					= mod:NewBuffActiveTimer(60, 102178, nil, nil, nil, 5, nil, nil, nil, 1, 5)
 

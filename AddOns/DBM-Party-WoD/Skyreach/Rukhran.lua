@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,heroic,mythic,challenge,timewalker"
 
-mod:SetRevision("20260517102256")
+mod:SetRevision("20260523021914")
 mod:SetCreatureID(76143)
 mod:SetEncounterID(1700)
 
@@ -11,9 +11,9 @@ mod:RegisterCombat("combat")
 
 --TODO, some actual custom sounds and timer disables when apis added
 if DBM:IsPostMidnight() then
-	local specWarnSunbreak			= mod:NewSpecialWarningCount(1253510, nil, nil, DBM_COMMON_L.ADD, 1, 2)
-	local specWarnBurningClaws		= mod:NewSpecialWarningCount(1253519, "Tank", nil, nil, 2, 2)
-	local specWarnSearingQuills		= mod:NewSpecialWarningCount(1253527, nil, nil, nil, 2, 12)
+	local specWarnSunbreak			= mod:NewSpecialWarningCount(1253510, nil, nil, DBM_COMMON_L.ADD, 1, 2, nil, nil, "mobsoon")
+	local specWarnBurningClaws		= mod:NewSpecialWarningCount(1253519, "Tank", nil, nil, 2, 2, nil, nil, "defensive")
+	local specWarnSearingQuills		= mod:NewSpecialWarningCount(1253527, nil, nil, nil, 2, 12, nil, nil, "breaklos")
 
 	local timerSunbreakCD			= mod:NewCDCountTimer(20.5, 1253510, DBM_COMMON_L.ADD.." (%s)", nil, nil, 1)
 	local timerBurningClawsCD		= mod:NewCDCountTimer(20.5, 1253519, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
@@ -30,8 +30,9 @@ if DBM:IsPostMidnight() then
 	local badStateDetected = false
 
 	---@param self DBMMod
-	---@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+	---@param dontSetAlerts boolean? Called on engage when we only want to set timeline parameters and not touch encounter alerts
 	local function setFallback(self, dontSetAlerts)
+		local onlyColor = not DBM.Options.HideDBMBars
 		if not dontSetAlerts then
 			specWarnSunbreak:SetAlert(305, "mobsoon", 2, 2)
 			if self:IsTank() then
@@ -40,9 +41,9 @@ if DBM:IsPostMidnight() then
 			specWarnSearingQuills:SetAlert(308, "breaklos", 12, 2)
 			self:EnableAlertOptions(1253511, 603, "mobsoon", 2, 2, 0)--Using old object because it has no timer thus no hardcode
 		end
-		timerSunbreakCD:SetTimeline(305)
-		timerBurningClawsCD:SetTimeline(306)
-		timerSearingQuillsCD:SetTimeline(308)
+		timerSunbreakCD:SetTimeline(305, onlyColor)
+		timerBurningClawsCD:SetTimeline(306, onlyColor)
+		timerSearingQuillsCD:SetTimeline(308, onlyColor)
 	end
 
 	function mod:OnLimitedCombatStart()
@@ -57,10 +58,7 @@ if DBM:IsPostMidnight() then
 				"ENCOUNTER_TIMELINE_EVENT_ADDED",
 				"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 			)
-			--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
-			if DBM.Options.HideDBMBars then
-				setFallback(self, true)
-			end
+			setFallback(self, true)
 		else
 			setFallback(self)
 		end
@@ -142,10 +140,10 @@ else
 
 	local warnSolarFlare			= mod:NewSpellAnnounce(153810, 3)
 
-	local specWarnPierceArmor		= mod:NewSpecialWarningDefensive(153794, nil, nil, nil, 1, 2)
-	local specWarnFixate			= mod:NewSpecialWarningYou(176544, nil, nil, nil, 1, 2)
-	local specWarnQuills			= mod:NewSpecialWarningMoveTo(159382, nil, nil, nil, 2, 13)
-	local specWarnQuillsEnd			= mod:NewSpecialWarningEnd(159382, nil, nil, nil, 1, 2)
+	local specWarnPierceArmor		= mod:NewSpecialWarningDefensive(153794, nil, nil, nil, 1, 2, nil, nil, "defensive")
+	local specWarnFixate			= mod:NewSpecialWarningYou(176544, nil, nil, nil, 1, 2, nil, nil, "targetyou")
+	local specWarnQuills			= mod:NewSpecialWarningMoveTo(159382, nil, nil, nil, 2, 13, nil, nil, "breaklos")
+	local specWarnQuillsEnd			= mod:NewSpecialWarningEnd(159382, nil, nil, nil, 1, 2, nil, nil, "safenow")
 
 	local timerSolarFlareCD			= mod:NewCDTimer(17, 153810, nil, nil, nil, 3)
 	local timerQuills				= mod:NewBuffActiveTimer(17, 159382, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)

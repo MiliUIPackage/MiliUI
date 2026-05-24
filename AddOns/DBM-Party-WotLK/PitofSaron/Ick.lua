@@ -5,7 +5,7 @@ if not mod:IsClassic() then
 	mod.statTypes = "normal,heroic,mythic,challenge,timewalker"
 end
 
-mod:SetRevision("20260428075838")
+mod:SetRevision("20260523021914")
 mod:SetCreatureID(36476)
 mod:SetEncounterID(2001)
 mod:SetZone(658)
@@ -24,10 +24,10 @@ if DBM:IsPostMidnight() then
 	--Note. https://www.wowhead.com/spell=1282138/shade-bomb is ignored on purpose to avoid spam
 	local warnGetEmIck					= mod:NewCountAnnounce(1264363, 3)
 
-	local specWarnShadeShift			= mod:NewSpecialWarningSwitchCount(1264027, nil, nil, nil, 1, 2)
-	local specWarnPlagueExpulsion		= mod:NewSpecialWarningDodgeCount(1264336, nil, nil, nil, 2, 2)
-	local specWarnBlightSmash			= mod:NewSpecialWarningCount(1264287, nil, nil, nil, 1, 18)
-	local specWarnLumberingFixation		= mod:NewSpecialWarningBlizzYou(1264453, nil, nil, nil, 1, 19)
+	local specWarnShadeShift			= mod:NewSpecialWarningSwitchCount(1264027, nil, nil, nil, 1, 2, nil, nil, "killmob")
+	local specWarnPlagueExpulsion		= mod:NewSpecialWarningDodgeCount(1264336, nil, nil, nil, 2, 2, nil, nil, "watchstep")
+	local specWarnBlightSmash			= mod:NewSpecialWarningCount(1264287, nil, nil, nil, 1, 18, nil, nil, "poolyou")
+	local specWarnLumberingFixation		= mod:NewSpecialWarningBlizzYou(1264453, nil, nil, nil, 1, 19, nil, nil, "fixateyou")
 
 	local timerGetEmIckCD				= mod:NewCDCountTimer(20.5, 1264363, nil, nil, nil, 3, nil, DBM_COMMON_L.IMPORTANT_ICON)--Get 'Em, Ick! (parent of Lumbering Fixation)
 	local timerShadeShiftCD				= mod:NewCDCountTimer(20.5, 1264027, nil, nil, nil, 1, nil, DBM_COMMON_L.DAMAGE_ICON)
@@ -49,8 +49,9 @@ if DBM:IsPostMidnight() then
 	local recurringNineteenCount = 0
 
 	---@param self DBMMod
-	---@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+	---@param dontSetAlerts boolean? Called on engage when we only want to set timeline parameters and not touch encounter alerts
 	local function setFallback(self, dontSetAlerts)
+		local onlyColor = not DBM.Options.HideDBMBars
 		--Blizz API fallbacks
 		if not dontSetAlerts then
 			specWarnShadeShift:SetAlert(204, "killmob", 2)
@@ -60,10 +61,10 @@ if DBM:IsPostMidnight() then
 			end
 			specWarnLumberingFixation:SetAlert(561, "fixateyou", 19, 2, 0)
 		end
-		timerGetEmIckCD:SetTimeline(203)
-		timerShadeShiftCD:SetTimeline(204)
-		timerPlagueExpulsionCD:SetTimeline(205)
-		timerBlightSmashCD:SetTimeline(206)
+		timerGetEmIckCD:SetTimeline(203, onlyColor)
+		timerShadeShiftCD:SetTimeline(204, onlyColor)
+		timerPlagueExpulsionCD:SetTimeline(205, onlyColor)
+		timerBlightSmashCD:SetTimeline(206, onlyColor)
 		--timerLumberingFixationCD:SetTimeline(561)
 	end
 
@@ -81,10 +82,7 @@ if DBM:IsPostMidnight() then
 				"ENCOUNTER_TIMELINE_EVENT_ADDED",
 				"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 			)
-			--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
-			if DBM.Options.HideDBMBars then
-				setFallback(self, true)
-			end
+			setFallback(self, true)
 		else
 			setFallback(self)
 		end
@@ -191,10 +189,10 @@ else
 	local warnPursuitCast			= mod:NewCastAnnounce(68987, 3)
 	local warnPursuit				= mod:NewTargetNoFilterAnnounce(68987, 4)
 
-	local specWarnToxic				= mod:NewSpecialWarningMove(69024, nil, nil, nil, 1, 2)
-	local specWarnMines				= mod:NewSpecialWarningSpell(69015, nil, nil, nil, 2, 2)
-	local specWarnPursuit			= mod:NewSpecialWarningRun(68987, nil, nil, 2, 4, 2)
-	local specWarnPoisonNova		= mod:NewSpecialWarningRun(68989, "Melee", nil, 2, 4, 2)
+	local specWarnToxic				= mod:NewSpecialWarningMove(69024, nil, nil, nil, 1, 2, nil, nil, "runaway")
+	local specWarnMines				= mod:NewSpecialWarningSpell(69015, nil, nil, nil, 2, 2, nil, nil, "watchstep")
+	local specWarnPursuit			= mod:NewSpecialWarningRun(68987, nil, nil, 2, 4, 2, nil, nil, "justrun")
+	local specWarnPoisonNova		= mod:NewSpecialWarningRun(68989, "Melee", nil, 2, 4, 2, nil, nil, "runout")
 
 	local timerSpecialCD			= mod:NewCDSpecialTimer(20)--Every 20-22 seconds. In rare cases he skips a special though and goes 40 seconds. unsure of cause
 	local timerPursuitCast			= mod:NewCastTimer(5, 68987, nil, nil, nil, 3)

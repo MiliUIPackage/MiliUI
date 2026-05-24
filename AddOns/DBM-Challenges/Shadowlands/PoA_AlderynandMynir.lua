@@ -3,7 +3,7 @@ local mod	= DBM:NewMod("AlderynandMynir", "DBM-Challenges", 1)
 
 mod.statTypes = "normal,heroic,mythic,challenge"
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(172408, 172409)
 mod.soloChallenge = true
@@ -22,8 +22,8 @@ mod:RegisterEventsInCombat(
 	"CRITERIA_COMPLETE"
 )
 
-local specWarnAnimaSeed				= mod:NewSpecialWarningSoak(337175, nil, nil, nil, 1, 2)
-local specWarnAnimaDervish			= mod:NewSpecialWarningDodge(337013, nil, nil, nil, 2, 2)
+local specWarnAnimaSeed				= mod:NewSpecialWarningSoak(337175, nil, nil, nil, 1, 2, nil, nil, "helpsoak")
+local specWarnAnimaDervish			= mod:NewSpecialWarningDodge(337013, nil, nil, nil, 2, 2, nil, nil, "watchstep")
 
 local timerAnimaSeedCD				= mod:NewCDTimer(25.1, 337175, nil, nil, nil, 5)
 local timerAnimaDervishCD			= mod:NewCDTimer(11.7, 337013, nil, nil, nil, 3)

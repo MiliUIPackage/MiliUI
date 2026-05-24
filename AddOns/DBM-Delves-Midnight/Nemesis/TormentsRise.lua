@@ -4,7 +4,7 @@ local L		= mod:GetLocalizedStrings()
 mod.statTypes = "normal,mythic"
 mod.soloChallenge = true
 
-mod:SetRevision("20260405085116")
+mod:SetRevision("20260523021914")
 --mod:SetCreatureID(244752)--Not known which 2 are nemesis boss yet and which 2 are random spawns
 mod:SetEncounterID(3372, 3430)
 mod:SetHotfixNoticeRev(20250220000000)
@@ -20,8 +20,8 @@ mod:RegisterCombat("combat")
 
 local warnDevouringEssence					= mod:NewCountAnnounce(1256358, 2)
 
-local specWarnImplodingStrike				= mod:NewSpecialWarningDefensive(1256355, nil, nil, nil, 1, 2)
-local specWarnEmptinessOfTheVoid			= mod:NewSpecialWarningInterruptCount(1256351, nil, nil, nil, 3, 2)
+local specWarnImplodingStrike				= mod:NewSpecialWarningDefensive(1256355, nil, nil, nil, 1, 2, nil, nil, "defensive")
+local specWarnEmptinessOfTheVoid			= mod:NewSpecialWarningInterruptCount(1256351, nil, nil, nil, 3, 2, nil, nil, "kickcast")
 
 local timerDevouringEssenceCD				= mod:NewCDCountTimer(20.5, 1256358, DBM_COMMON_L.DEBUFF.." (%s)", nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)
 local timerImplodingStrikeCD				= mod:NewCDCountTimer(20.5, 1256355, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)

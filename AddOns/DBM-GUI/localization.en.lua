@@ -114,8 +114,10 @@ L.GroupOptionsExcludeIcon			= "Exclude 'Set Icon' options from getting grouped b
 L.GroupOptionsExcludePrivateAura	= "Exclude 'Private Aura' sound options from getting grouped by spell (they will be grouped together in their own 'Private Auras' category instead)"
 L.AutoExpandSpellGroups2			= "Auto expand options that are grouped by spell"
 L.ShowWAKeys						= "Show WeakAuras keys next to spell names to assist in writing WeakAuras using Boss Mod triggers."
-L.RenameSpellButton				= "Rename"
-L.RenameSpellHeader				= "Set custom name for %s"
+L.RenameSpellButton					= "Rename"
+L.RenameSpellHeader					= "Set custom name for %s"
+L.GTFOAbilityTitle					= "GTFO"
+L.GTFOAbilityDescription			= "Any ability that deals damage that you should move away from"
 --L.ShowSpellDescWhenExpanded		= "Continue showing spell description when groups are expanded"--Might not be used
 L.NoDescription						= "This ability has no description"
 L.CustomOptions						= "This category contains custom options for an ability or event that has no spell or journal ID of it's own. These options have been grouped together using a custom manual ID for the ease of creating WeakAuras"
@@ -592,19 +594,6 @@ L.FilterInterruptHealer				= "Do not show if you're in a healer spec"
 L.FilterInterruptNoteName			= "Do not show if alert has a count but your name isn't in the custom note"--Only used on bosses, trash mods don't assign counts
 L.Area_BInterruptFilterFooter		= "If no filters are selected, all interrupts are shown (May be spammy)\nSome mods may ignore these filters entirely if spell is critically important"
 L.Area_TInterruptFilter				= "Trash Interrupt Filter Options"--Reuses above 3 strings
-
--- Panel: DBM Handholding
-L.Panel_HandFilter					= "Reduce DBM Handholding"
-L.Area_SpamFilter_SpecRoleFilters	= "Special Announce Type Filters (control how much handholding DBM does)"
-L.SpamSpecInformationalOnly			= "Change all instructional text/voice pack alerts from special announcements (Requires UI Reload). Alerts still show and play audio but will be generic and less directive"
-L.SpamSpecRoleDispel				= "Do not show 'dispel' alerts (No text or sound at all)"
-L.SpamSpecRoleInterrupt				= "Do not show 'interrupt' alerts (No text or sound at all)"
-L.SpamSpecRoleDefensive				= "Do not show 'defensive' alerts (No text or sound at all)"
-L.SpamSpecRoleTaunt					= "Do not show 'taunt' alerts (No text or sound at all)"
-L.SpamSpecRoleSoak					= "Do not show 'soak' alerts (No text or sound at all)"
-L.SpamSpecRoleStack					= "Do not show 'high stack' alerts (No text or sound at all)"
-L.SpamSpecRoleSwitch				= "Do not show 'target swap' &amp; 'adds' alerts (No text or sound at all)"
-L.SpamSpecRoleGTFO					= "Do not show 'gtfo' alerts (No text or sound at all)"
 
 -- Panel: Blizzard Features
 L.Panel_HideBlizzard				= "Block Blizzard Features"

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2392, "DBM-Party-Shadowlands", 1, 1182)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(162689)
 mod:SetEncounterID(2389)
@@ -39,15 +39,15 @@ local warnMeatHook					= mod:NewTargetNoFilterAnnounce(322681, 3)
 local warnStichNeedle				= mod:NewTargetNoFilterAnnounce(320200, 3, nil, false, 2)--Kind of spammy
 local warnMorbidFixation			= mod:NewTargetAnnounce(343556, 3)
 
-local specWarnEmbalmingIchor		= mod:NewSpecialWarningMoveAway(327664, nil, nil, nil, 1, 2)
+local specWarnEmbalmingIchor		= mod:NewSpecialWarningMoveAway(327664, nil, nil, nil, 1, 2, nil, nil, "runout")
 local yellEmbalmingIchor			= mod:NewShortYell(327664)
-local specWarnMeatHook				= mod:NewSpecialWarningMoveTo(322681, nil, nil, nil, 3, 2)
+local specWarnMeatHook				= mod:NewSpecialWarningMoveTo(322681, nil, nil, nil, 3, 2, nil, nil, "targetyou")
 local yellMeatHook					= mod:NewShortYell(322681)
 local yellMeatHookFades				= mod:NewShortFadesYell(322681)
-local specWarnMorbidFixation		= mod:NewSpecialWarningDodge(343556, nil, nil, nil, 2, 2)
+local specWarnMorbidFixation		= mod:NewSpecialWarningDodge(343556, nil, nil, nil, 2, 2, nil, nil, "targetyou")
 local yellMorbidFixation			= mod:NewShortYell(343556)
 --local specWarnHealingBalm			= mod:NewSpecialWarningInterrupt(257397, "HasInterrupt", nil, nil, 1, 2)
-local specWarnGTFO					= mod:NewSpecialWarningGTFO(320366, nil, nil, nil, 1, 8)
+local specWarnGTFO					= mod:NewSpecialWarningGTFO(320366, nil, nil, nil, 1, 8, nil, nil, "watchfeet")
 
 local timerSummonCreationCD			= mod:NewCDCountTimer(35.1, 320358, nil, nil, nil, 1)
 local timerEmbalmingIchorCD			= mod:NewCDCountTimer(18, 327664, nil, nil, nil, 3)

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("d286", "DBM-WorldEvents", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(25740)--25740 Ahune, 25755, 25756 the two types of adds
 mod:SetModelID(23447)--Frozen Core, ahunes looks pretty bad.
@@ -25,7 +25,7 @@ local warnEmerged				= mod:NewAnnounce("Emerged", 2, "Interface\\AddOns\\DBM-Cor
 
 local specWarnAttack
 if not mod:IsRetail() then
-	specWarnAttack = mod:NewSpecialWarning("specWarnAttack", nil, nil, nil, 1, 2)
+	specWarnAttack = mod:NewSpecialWarning("specWarnAttack", nil, nil, nil, 1, 2, nil, nil, nil, nil, "changetarget")
 end
 
 local timerEmerge				= mod:NewTimer(33.5, "EmergeTimer", "Interface\\AddOns\\DBM-Core\\textures\\CryptFiendUnBurrow.blp", nil, nil, 6)

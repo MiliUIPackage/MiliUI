@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("Greench", "DBM-WorldEvents", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 local isRetail = DBM:IsRetail()
 if isRetail then
@@ -51,7 +51,7 @@ else
 	warnSnowCrash				= mod:NewCastAnnounce(101907, 3)
 	warnTree					= mod:NewSpellAnnounce(101938, 2)--Needs a custom icon, i'll find one soon.
 
-	specWarnShrinkHeart			= mod:NewSpecialWarningMove(101873, nil, nil, nil, 1, 2)
+	specWarnShrinkHeart			= mod:NewSpecialWarningMove(101873, nil, nil, nil, 1, 2, nil, nil, "keepmove")
 
 	timerShrinkHeartCD			= mod:NewCDTimer(32.5, 101873, nil, nil, nil, 2)
 	timerSnowmanCD				= mod:NewCDTimer(10, 101910, nil, nil, nil, 3)--He alternates these

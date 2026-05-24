@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2657, "DBM-Party-Midnight", 1, 1299)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260517102256")
+mod:SetRevision("20260523021914")
 mod:SetCreatureID(231631)
 mod:SetEncounterID(3058)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -14,10 +14,10 @@ mod:RegisterCombat("combat")
 local warnRecklessLeap				= mod:NewCountAnnounce(1283247, 2)
 local warnBladestorm				= mod:NewCountAnnounce(470966, 2, nil, false)
 
-local specWarnRampage				= mod:NewSpecialWarningCount(467620, nil, nil, nil, 1, 2)
-local specWarnIntimidatingShout		= mod:NewSpecialWarningCount(1253026, nil, nil, nil, 2, 2)
-local specWarnRallyingBellow		= mod:NewSpecialWarningSwitchCount(472043, nil, nil, DBM_COMMON_L.ADDS, 2, 3)
-local specWarnRecklessLeap			= mod:NewSpecialWarningBlizzYou(1283247, nil, nil, nil, 1, 2)
+local specWarnRampage				= mod:NewSpecialWarningCount(467620, nil, nil, nil, 1, 2, nil, nil, "defensive")
+local specWarnIntimidatingShout		= mod:NewSpecialWarningCount(1253026, nil, nil, nil, 2, 2, nil, nil, "gathershare")
+local specWarnRallyingBellow		= mod:NewSpecialWarningSwitchCount(472043, nil, nil, DBM_COMMON_L.ADDS, 2, 3, nil, nil, "mobsoon")
+local specWarnRecklessLeap			= mod:NewSpecialWarningBlizzYou(1283247, nil, nil, nil, 1, 2, nil, nil, "runout")
 
 local timerRampageCD				= mod:NewCDCountTimer("d30", 467620, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerIntimidatingShoutCD		= mod:NewCDCountTimer("d45", 1253026, nil, nil, nil, 2, nil, DBM_COMMON_L.MYTHIC_ICON)
@@ -39,7 +39,7 @@ local activeEventTypes = {}
 local lastRallyingBellow = 0
 
 ---@param self DBMMod
----@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+---@param dontSetAlerts boolean? Called on engage when we only want to set timeline parameters and not touch encounter alerts
 local function setFallback(self, dontSetAlerts)
 	if not dontSetAlerts then
 		if self:IsTank() then
@@ -49,10 +49,11 @@ local function setFallback(self, dontSetAlerts)
 		specWarnRallyingBellow:SetAlert(215, "mobsoon", 2, 3, 0)
 		specWarnRecklessLeap:SetAlert({212, 214}, "runout", 2, 2, 0)
 	end
-	timerRampageCD:SetTimeline({210, 556})
-	timerIntimidatingShoutCD:SetTimeline({211, 213})
-	timerRecklessLeapCD:SetTimeline({212, 214})
-	timerBladestormCD:SetTimeline(216)
+	local onlyColor = not DBM.Options.HideDBMBars
+	timerRampageCD:SetTimeline({210, 556}, onlyColor)
+	timerIntimidatingShoutCD:SetTimeline({211, 213}, onlyColor)
+	timerRecklessLeapCD:SetTimeline({212, 214}, onlyColor)
+	timerBladestormCD:SetTimeline(216, onlyColor)
 end
 
 function mod:OnLimitedCombatStart()
@@ -71,10 +72,7 @@ function mod:OnLimitedCombatStart()
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",
 			"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 		)
-		--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
-		if DBM.Options.HideDBMBars then
-			setFallback(self, true)
-		end
+		setFallback(self, true)
 	else
 		setFallback(self)
 	end

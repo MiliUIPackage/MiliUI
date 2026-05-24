@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2401, "DBM-Party-Shadowlands", 6, 1187)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(162317)
 mod:SetEncounterID(2365)
@@ -25,9 +25,9 @@ mod:RegisterEventsInCombat(
 --]]
 local warnMeatHooks					= mod:NewCountAnnounce(322795, 2)
 
-local specWarnTenderizingSmash		= mod:NewSpecialWarningRunCount(318406, nil, nil, nil, 4, 2)
-local specWarnHatefulStrike			= mod:NewSpecialWarningDefensive(323515, nil, nil, nil, 1, 2)
-local specWarnGTFO					= mod:NewSpecialWarningGTFO(323130, nil, nil, nil, 1, 8)
+local specWarnTenderizingSmash		= mod:NewSpecialWarningRunCount(318406, nil, nil, nil, 4, 2, nil, nil, "justrun")
+local specWarnHatefulStrike			= mod:NewSpecialWarningDefensive(323515, nil, nil, nil, 1, 2, nil, nil, "defensive")
+local specWarnGTFO					= mod:NewSpecialWarningGTFO(323130, nil, nil, nil, 1, 8, nil, nil, "watchfeet")
 
 local timerMeatHooksCD				= mod:NewCDCountTimer(20.2, 322795, nil, nil, nil, 1)--"v20.6-24.3"
 local timerTenderizingSmashCD		= mod:NewCDCountTimer(19.0, 318406, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)--19.4 unless delayed by another spell

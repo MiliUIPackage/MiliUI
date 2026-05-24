@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2414, "DBM-Party-Shadowlands", 5, 1186)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(162060)
 mod:SetEncounterID(2358)
@@ -33,9 +33,9 @@ local warnPurifyingBlast			= mod:NewTargetNoFilterAnnounce(334053, 3)
 
 --local specWarnEmpyrealOrdnance		= mod:NewSpecialWarningMoveAway(321936, nil, nil, nil, 1, 2)--Not in combat log, aura hidden
 --local yellEmpyrealOrdnance			= mod:NewYell(321936)--Not in combat log, aura hidden
-local specWarnEmpyrealOrdnance		= mod:NewSpecialWarningDodge(324427, nil, nil, nil, 2, 2)
-local specWarnAnimaField			= mod:NewSpecialWarningMove(324392, "Tank", nil, nil, 1, 2)
-local specWarnPurifyingBlast		= mod:NewSpecialWarningMoveAway(334053, nil, nil, nil, 1, 2)
+local specWarnEmpyrealOrdnance		= mod:NewSpecialWarningDodge(324427, nil, nil, nil, 2, 2, nil, nil, "runout")
+local specWarnAnimaField			= mod:NewSpecialWarningMove(324392, "Tank", nil, nil, 1, 2, nil, nil, "moveboss")
+local specWarnPurifyingBlast		= mod:NewSpecialWarningMoveAway(334053, nil, nil, nil, 1, 2, nil, nil, "scatter")
 local yellPurifyingBlast			= mod:NewYell(334053)
 --local specWarnGTFO					= mod:NewSpecialWarningGTFO(257274, nil, nil, nil, 1, 8)
 

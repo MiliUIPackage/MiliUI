@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2511, "DBM-Party-Dragonflight", 8, 1204)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(189729)
 mod:SetEncounterID(2618)
@@ -30,7 +30,7 @@ local warnFocusedDeluge							= mod:NewCastAnnounce(387571, 3)--On for everyone,
 local warnInfusedGlobule						= mod:NewCountAnnounce(387474, 2)
 local warnTempestsFury							= mod:NewCountAnnounce(388424, 3)
 
-local specWarnSquallBuffet						= mod:NewSpecialWarningYou(387504, nil, nil, nil, 1, 2)
+local specWarnSquallBuffet						= mod:NewSpecialWarningYou(387504, nil, nil, nil, 1, 2, nil, nil, "carefly")
 
 local timerSquallBuffetCD						= mod:NewCDTimer(35, 387504, DBM_COMMON_L.TANKCOMBO, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Squall Buffet/Focused Deluge tank combo
 local timerInfusedGlobuleCD						= mod:NewCDCountTimer(17.5, 387474, nil, nil, nil, 3)

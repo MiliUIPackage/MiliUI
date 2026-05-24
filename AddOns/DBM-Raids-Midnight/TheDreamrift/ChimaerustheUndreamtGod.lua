@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2795, "DBM-Raids-Midnight", 2, 1314)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260509052555")
+mod:SetRevision("20260523021809")
 mod:SetCreatureID(256116)
 mod:SetEncounterID(3306)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -15,16 +15,16 @@ mod:RegisterCombat("combat")
 --NOTE, https://www.wowhead.com/spell=1280127/stage-two also exists, but based on most recent testing blizzard uses consume for p2 and not this bar anymore
 --local warnAlndustUpheaval				= mod:NewBlizzTargetAnnounce(1262289, 2)
 
-local specWarnRavenousDive				= mod:NewSpecialWarningCount(1245404, nil, 218027, nil, 2, 2)
-local specWarnRiftEmergence				= mod:NewSpecialWarningCount(1251021, nil, nil, DBM_COMMON_L.ADDS, 2, 2)
-local specWarnCausticPhlegm				= mod:NewSpecialWarningCount(1246621, nil, nil, DBM_COMMON_L.AOEDAMAGE, 2, 2)
-local specWarnRendingTear				= mod:NewSpecialWarningDodgeCount(1272726, nil, nil, DBM_COMMON_L.FRONTAL, 2, 2)
-local specWarnCorruptedDevastation		= mod:NewSpecialWarningDodgeCount(1245452, nil, 17088, nil, 2, 2)
-local specWarnFearsomecry				= mod:NewSpecialWarningInterrupt(1249017, "HasInterrupt", nil, nil, 1, 2)--Add alert
-local specWarnDiscordantRoar			= mod:NewSpecialWarningCount(1245451, false, nil, nil, 2, 2)--Add alert (evalulate default by cast frequency)
-local specWarnAlndustUpheaval			= mod:NewSpecialWarningBlizzTarget(1262289, nil, nil, DBM_COMMON_L.GROUPSOAK, 2, 2)
-local specWarnConsume					= mod:NewSpecialWarningCount(1245396, nil, nil, nil, 2, 2)
-local specWarnCannibalized				= mod:NewSpecialWarningSpell(1245844, nil, nil, nil, 1, 2)--Basically screwing up the add killing
+local specWarnRavenousDive				= mod:NewSpecialWarningCount(1245404, nil, 218027, nil, 2, 2, nil, nil, "phasechange")
+local specWarnRiftEmergence				= mod:NewSpecialWarningCount(1251021, nil, nil, DBM_COMMON_L.ADDS, 2, 2, nil, nil, "mobsoon")
+local specWarnCausticPhlegm				= mod:NewSpecialWarningCount(1246621, nil, nil, DBM_COMMON_L.AOEDAMAGE, 2, 2, nil, nil, "aesoon")
+local specWarnRendingTear				= mod:NewSpecialWarningDodgeCount(1272726, nil, nil, DBM_COMMON_L.FRONTAL, 2, 2, nil, nil, "frontal")
+local specWarnCorruptedDevastation		= mod:NewSpecialWarningDodgeCount(1245452, nil, 17088, nil, 2, 2, nil, nil, "breathsoon")
+local specWarnFearsomecry				= mod:NewSpecialWarningInterrupt(1249017, "HasInterrupt", nil, nil, 1, 2, nil, nil, "kickcast")--Add alert
+local specWarnDiscordantRoar			= mod:NewSpecialWarningCount(1245451, false, nil, nil, 2, 2, nil, nil, "aesoon")--Add alert (evalulate default by cast frequency)
+local specWarnAlndustUpheaval			= mod:NewSpecialWarningBlizzTarget(1262289, nil, nil, DBM_COMMON_L.GROUPSOAK, 2, 2, nil, nil, "soakincoming")
+local specWarnConsume					= mod:NewSpecialWarningCount(1245396, nil, nil, nil, 2, 2, nil, nil, "aesoon")
+local specWarnCannibalized				= mod:NewSpecialWarningSpell(1245844, nil, nil, nil, 1, 2, nil, nil, "stilldanger")--Basically screwing up the add killing
 mod:GroupSpells(1245396, 1245844)--Group Cannibalized with Consume
 
 local timerRavenousDiveCD				= mod:NewCDCountTimer(20.5, 1245404, 218027, nil, nil, 6)--Stage 1 bar, shortname "Dive"
@@ -82,17 +82,18 @@ local function setFallback(self, dontSetAlerts)
 		specWarnConsume:SetAlert(307, "aesoon", 2, 3)
 		specWarnCannibalized:SetAlert(555, "stilldanger", 1, 2, 0)
 	end
-	timerRavenousDiveCD:SetTimeline(48)
-	timerRiftEmergenceCD:SetTimeline(49)
-	timerCausticPhlegmCD:SetTimeline(50)
-	timerRendingTearCD:SetTimeline(51)
-	timerCorruptedDevastationCD:SetTimeline({53,458})
-	timerConsumingMiasmaCD:SetTimeline(119)
-	timerAlndustUpheavalCD:SetTimeline({149,431})
-	timerBerserkCD:SetTimeline(170)
-	timerRiftMadnessCD:SetTimeline(217)
-	timerConsumeCD:SetTimeline(307)
-	timerStage2CD:SetTimeline(353)
+	local onlyColor = not DBM.Options.HideDBMBars
+	timerRavenousDiveCD:SetTimeline(48, onlyColor)
+	timerRiftEmergenceCD:SetTimeline(49, onlyColor)
+	timerCausticPhlegmCD:SetTimeline(50, onlyColor)
+	timerRendingTearCD:SetTimeline(51, onlyColor)
+	timerCorruptedDevastationCD:SetTimeline({53,458}, onlyColor)
+	timerConsumingMiasmaCD:SetTimeline(119, onlyColor)
+	timerAlndustUpheavalCD:SetTimeline({149,431}, onlyColor)
+	timerBerserkCD:SetTimeline(170, onlyColor)
+	timerRiftMadnessCD:SetTimeline(217, onlyColor)
+	timerConsumeCD:SetTimeline(307, onlyColor)
+	timerStage2CD:SetTimeline(353, onlyColor)
 end
 
 function mod:OnLimitedCombatStart()
@@ -122,9 +123,7 @@ function mod:OnLimitedCombatStart()
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",
 			"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 		)
-		if DBM.Options.HideDBMBars then
-			setFallback(self, true)
-		end
+		setFallback(self, true)
 	else
 		setFallback(self)
 	end

@@ -79,16 +79,16 @@ local function showRealDate(curseDate)
 	end
 end
 
-DBM.Revision = parseCurseDate("20260518014447")
+DBM.Revision = parseCurseDate("20260523031259")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 private.fakeBWVersion, private.fakeBWHash = 415, "414c990"--415.0
 
 -- The string that is shown as version
-DBM.DisplayVersion = "12.0.50"--Core version
+DBM.DisplayVersion = "12.0.51"--Core version
 DBM.classicSubVersion = 0
 DBM.dungeonSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2026, 5, 17) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2026, 5, 22) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
 -- support for github downloads, which doesn't support curse keyword expansion
@@ -297,8 +297,8 @@ DBM.DefaultOptions = {
 	DisableMusic = false,
 	EnableModels = true,
 	GUIWidth = 1000,
-	GUIHeight = 800,
-	GUIResizeMigrated_1000x800 = false,
+	GUIHeight = 700,
+	GUIResizeMigrated_1000x700 = false,
 	GroupOptionsExcludeIcon = false,
 --	GroupOptionsExcludePA = false,
 	AutoExpandSpellGroups2 = true,
@@ -321,6 +321,7 @@ DBM.DefaultOptions = {
 	InfoFrameShowSelf = false,
 	InfoFrameLines = 0,
 	InfoFrameCols = 0,
+	InfoFrameStrata = "DIALOG",
 	InfoFrameFont = "standardFont",
 	InfoFrameFontSize = 12,
 	InfoFrameFontStyle = "None",
@@ -391,15 +392,6 @@ DBM.DefaultOptions = {
 	DontPlayPrivateAuraSound = false,
 	DontShowPrivateAuraFrame = false,
 	DontPlayTrivialSpecialWarningSound = true,
-	SpamSpecInformationalOnly = false,
-	SpamSpecRoledispel = false,
-	SpamSpecRoleinterrupt = false,
-	SpamSpecRoledefensive = false,
-	SpamSpecRoletaunt = false,
-	SpamSpecRolesoak = false,
-	SpamSpecRolestack = false,
-	SpamSpecRoleswitch = false,
-	SpamSpecRolegtfo = false,
 	DontShowBossTimers = false,
 	DontShowTrashTimers = false,
 	DontShowEventTimers = false,
@@ -1066,6 +1058,32 @@ do
 		return DBM.Options.SpellRenames
 	end
 
+	---@param overrides table<any, any>?
+	---@param spellId number
+	---@return any
+	local function getSpellRenameOverrideValue(overrides, spellId)
+		if type(overrides) ~= "table" then
+			return nil
+		end
+		local numericValue = overrides[spellId]
+		if numericValue ~= nil then
+			return numericValue
+		end
+		return overrides[tostring(spellId)]
+	end
+
+	---@param overrides table<any, any>
+	---@param spellId number
+	---@param renameString string?
+	local function setSpellRenameOverrideValue(overrides, spellId, renameString)
+		-- Always clear both equivalent key forms to avoid stale mixed-key state.
+		overrides[spellId] = nil
+		overrides[tostring(spellId)] = nil
+		if renameString ~= nil then
+			overrides[spellId] = renameString
+		end
+	end
+
 	local function rebuildSpellRenameCache()
 		table.wipe(effectiveSpellRenamesByspellId)
 		for spellId, rename in pairs(legacyAltSpellNamesByspellId) do
@@ -1143,11 +1161,20 @@ do
 		if not overrides then
 			return
 		end
+		if type(renameString) == "string" then
+			local trimmedRename = trimSpellRenameText(renameString)
+			if trimmedRename == "" then
+				-- Explicit clear sentinel: preserve an override entry that suppresses built-in/default renames.
+				setSpellRenameOverrideValue(overrides, spellId, "")
+				refreshSpellRenameCache(true)
+				return
+			end
+		end
 		renameString = sanitizeSpellRenameText(renameString)
 		if renameString then
-			overrides[spellId] = renameString
+			setSpellRenameOverrideValue(overrides, spellId, renameString)
 		else
-			overrides[spellId] = nil
+			setSpellRenameOverrideValue(overrides, spellId, nil)
 		end
 		refreshSpellRenameCache(true)
 	end
@@ -1164,10 +1191,15 @@ do
 			for spellId, renameString in pairs(spellRenames) do
 				local normalizedSpellId = normalizeSpellRenameKey(spellId)
 				local sanitizedRename = sanitizeSpellRenameText(renameString)
-				if type(normalizedSpellId) == "number" and isValidSpellRenameKey(normalizedSpellId) and sanitizedRename then
+				local explicitClear = type(renameString) == "string" and trimSpellRenameText(renameString) == ""
+				if type(normalizedSpellId) == "number" and isValidSpellRenameKey(normalizedSpellId) and (sanitizedRename or explicitClear) then
 					---@cast normalizedSpellId number
-					---@cast sanitizedRename string
-					overrides[normalizedSpellId] = sanitizedRename
+					if sanitizedRename then
+						---@cast sanitizedRename string
+						overrides[normalizedSpellId] = sanitizedRename
+					else
+						overrides[normalizedSpellId] = ""
+					end
 				end
 			end
 		end
@@ -1178,14 +1210,26 @@ do
 
 	---@param spellId number|string
 	---@param fallbackName string?
+	---@param clearFallbackName string?
 	---@return string?
-	function DBM:GetRename(spellId, fallbackName)
+	function DBM:GetRename(spellId, fallbackName, clearFallbackName)
 		spellId = normalizeSpellRenameKey(spellId)
 		if not isValidSpellRenameKey(spellId) then
 			return fallbackName
 		end
 		if type(spellId) ~= "number" then
 			return fallbackName
+		end
+		local overrides = getSpellRenameOverrides()
+		local overrideValue = getSpellRenameOverrideValue(overrides, spellId)
+		if overrideValue ~= nil then
+			if overrideValue == "" then
+				-- Explicit clear sentinel means "do not use any built-in/default rename for this spell".
+				return clearFallbackName or fallbackName
+			end
+			if type(overrideValue) == "string" then
+				return overrideValue
+			end
 		end
 		if spellRenameCacheDirty then
 			rebuildSpellRenameCache()
@@ -1250,6 +1294,16 @@ do
 		end
 		if type(spellId) ~= "number" then
 			return nil
+		end
+		local overrides = getSpellRenameOverrides()
+		local overrideValue = getSpellRenameOverrideValue(overrides, spellId)
+		if overrideValue ~= nil then
+			if overrideValue == "" then
+				return nil
+			end
+			if type(overrideValue) == "string" then
+				return overrideValue
+			end
 		end
 		if spellRenameCacheDirty then
 			rebuildSpellRenameCache()
@@ -2259,6 +2313,7 @@ do
 						C_TimerAfter(0.01, function()
 							local voiceValue = C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-ShortName")
 							local voiceVersion = tonumber(C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-Version") or 0)
+							local voiceMaxCount = tonumber(C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-MaxCount") or 10)
 							if voiceVersion > 0 then--Do not insert voice version 0 into THIS table. 0 should be used by voice packs that insert only countdown
 								tinsert(self.Voices, {text = C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-Name"), value = voiceValue})
 							end
@@ -2268,9 +2323,9 @@ do
 							self:Schedule(10, self.CheckVoicePackVersion, self, voiceValue)--Still at 1 since the count sounds won't break any mods or affect filter. V2 if support countsound path
 							if C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-HasCount") then--Supports adding countdown options, insert new countdown into table
 								if C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-MidnightCompat") then--Add to TOC only if your count pack supports "fivecount.ogg"
-									DBM:AddCountSound(C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-Name"), "VP: " .. voiceValue, "Interface\\AddOns\\DBM-VP" .. voiceValue .. "\\count\\", nil, true)
+									DBM:AddCountSound(C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-Name"), "VP: " .. voiceValue, "Interface\\AddOns\\DBM-VP" .. voiceValue .. "\\count\\", voiceMaxCount, true)
 								else
-									DBM:AddCountSound(C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-Name"), "VP: " .. voiceValue, "Interface\\AddOns\\DBM-VP" .. voiceValue .. "\\count\\")
+									DBM:AddCountSound(C_AddOns.GetAddOnMetadata(i, "X-DBM-Voice-Name"), "VP: " .. voiceValue, "Interface\\AddOns\\DBM-VP" .. voiceValue .. "\\count\\", voiceMaxCount)
 								end
 							end
 						end)
@@ -4144,12 +4199,12 @@ do
 		self.Options = DBM_AllSavedOptions[usedProfile] or {}
 		self:Enable()
 		self:AddDefaultOptions(self.Options, self.DefaultOptions)
-		if not self.Options.GUIResizeMigrated_1000x800 then
+		if not self.Options.GUIResizeMigrated_1000x700 then
 			if self.Options.GUIWidth == 800 and self.Options.GUIHeight == 600 then
 				self.Options.GUIWidth = 1000
-				self.Options.GUIHeight = 800
+				self.Options.GUIHeight = 700
 			end
-			self.Options.GUIResizeMigrated_1000x800 = true
+			self.Options.GUIResizeMigrated_1000x700 = true
 		end
 		if type(self.Options.SpellRenames) ~= "table" then
 			self.Options.SpellRenames = {}
@@ -8516,7 +8571,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260518001159" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20260523031259" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then

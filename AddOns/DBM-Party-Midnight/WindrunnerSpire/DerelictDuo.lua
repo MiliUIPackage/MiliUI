@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2656, "DBM-Party-Midnight", 1, 1299)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260517102256")
+mod:SetRevision("20260523021914")
 mod:SetCreatureID(231626)--Kalis flagged as main boss, Latch (231629) is secondary
 mod:SetEncounterID(3057)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -14,11 +14,11 @@ mod:RegisterCombat("combat")
 --NOTE: Heaving Yank happens at same time as Shriek and doesn't need it's own timer/warnings
 local warnSplatteringSpew			= mod:NewCountAnnounce(472745, 2)
 
-local specWarnHeavingYank			= mod:NewSpecialWarningBlizzYou(472793, nil, nil, nil, 3, 2)
-local specWarnSplatteringSpew		= mod:NewSpecialWarningBlizzYou(472745, nil, nil, nil, 1, 2)
-local specWarnBoneHack				= mod:NewSpecialWarningCount(472888, nil, nil, nil, 1, 2)
-local specWarnDebilitatingShriek	= mod:NewSpecialWarningCount(472736, nil, nil, nil, 2, 2)
-local specWarnCurseofDarkness		= mod:NewSpecialWarningCount(474105, nil, nil, nil, 2, 2)
+local specWarnHeavingYank			= mod:NewSpecialWarningBlizzYou(472793, nil, nil, nil, 3, 2, nil, nil, "behindboss")
+local specWarnSplatteringSpew		= mod:NewSpecialWarningBlizzYou(472745, nil, nil, nil, 1, 2, nil, nil, "poolyou")
+local specWarnBoneHack				= mod:NewSpecialWarningCount(472888, nil, nil, nil, 1, 2, nil, nil, "defensive")
+local specWarnDebilitatingShriek	= mod:NewSpecialWarningCount(472736, nil, nil, nil, 2, 2, nil, nil, "aesoon")
+local specWarnCurseofDarkness		= mod:NewSpecialWarningCount(474105, nil, nil, nil, 2, 2, nil, nil, "mobsoon")
 
 local timerBoneHackCD				= mod:NewCDCountTimer(17.3, 472888, nil, "Tank", nil, 2, nil, DBM_COMMON_L.TANK_ICON)
 local timerCurseofDarknessCD		= mod:NewCDCountTimer(22.7, 474105, nil, nil, 2, 3, nil, DBM_COMMON_L.CURSE_ICON)
@@ -40,7 +40,7 @@ local activeEventTypes = {}
 local shriekTiming = {}
 
 ---@param self DBMMod
----@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+---@param dontSetAlerts boolean? Called on engage when we only want to set timeline parameters and not touch encounter alerts
 local function setFallback(self, dontSetAlerts)
 	if not dontSetAlerts then
 		if self:IsTank() then
@@ -51,10 +51,11 @@ local function setFallback(self, dontSetAlerts)
 		specWarnHeavingYank:SetAlert(29, "behindboss", 2, 4, 0)
 		specWarnSplatteringSpew:SetAlert(28, "poolyou", 18, 2, 0)
 	end
-	timerBoneHackCD:SetTimeline(25)
-	timerCurseofDarknessCD:SetTimeline(26)
-	timerDebilitatingShriekCD:SetTimeline(27)
-	timerSplatteringSpewCD:SetTimeline(28)
+	local onlyColor = not DBM.Options.HideDBMBars
+	timerBoneHackCD:SetTimeline(25, onlyColor)
+	timerCurseofDarknessCD:SetTimeline(26, onlyColor)
+	timerDebilitatingShriekCD:SetTimeline(27, onlyColor)
+	timerSplatteringSpewCD:SetTimeline(28, onlyColor)
 end
 
 function mod:OnLimitedCombatStart()
@@ -72,10 +73,7 @@ function mod:OnLimitedCombatStart()
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",
 			"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 		)
-		--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
-		if DBM.Options.HideDBMBars then
-			setFallback(self, true)
-		end
+		setFallback(self, true)
 	else
 		setFallback(self)
 	end

@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,timewalker"
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(118488)--Lord Erdris Thorn
 mod.soloChallenge = true
@@ -34,10 +34,10 @@ mod:RegisterEventsInCombat(
 
 local warnArcaneBlitz		= mod:NewStackAnnounce(235833, 2)
 
-local specWarnManaSting		= mod:NewSpecialWarningMoveTo(235984, nil, nil, nil, 1, 2)
-local specWarnArcaneBlitz	= mod:NewSpecialWarningStack(235833, nil, 4, nil, nil, 1, 6)--Fine tune the numbers
-local specWarnIgniteSoul	= mod:NewSpecialWarningYou(237188, nil, nil, nil, 3, 2)
-local specWarnKnifeDance	= mod:NewSpecialWarningInterrupt(235823, nil, nil, nil, 1, 2)
+local specWarnManaSting		= mod:NewSpecialWarningMoveTo(235984, nil, nil, nil, 1, 2, nil, nil, "findshelter")
+local specWarnArcaneBlitz	= mod:NewSpecialWarningStack(235833, nil, 4, nil, nil, 1, 6, nil, nil, "stackhigh")--Fine tune the numbers
+local specWarnIgniteSoul	= mod:NewSpecialWarningYou(237188, nil, nil, nil, 3, 2, nil, nil, "targetyou")
+local specWarnKnifeDance	= mod:NewSpecialWarningInterrupt(235823, nil, nil, nil, 1, 2, nil, nil, "kickcast")
 
 --local timerEarthquakeCD	= mod:NewNextTimer(60, 237950, nil, nil, nil, 2)
 local timerIgniteSoulCD		= mod:NewAITimer(18, 237188, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON, nil, 3, 4)

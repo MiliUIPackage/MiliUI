@@ -22,9 +22,9 @@
 ## X-DBM-Mod-Name-zhCN: 地下堡 (至暗之夜)
 ## X-DBM-Mod-Sort: 115
 ## X-DBM-Mod-MapID: 3003, 2961, 2962, 2963, 2964, 2953, 2933, 2952, 2979, 2965, 2966
-## X-DBM-Mod-MinCoreRevision: 20260322092548
+## X-DBM-Mod-MinCoreRevision: 20260522000000
 ## X-DBM-Mod-MinExpansion: 11
-## Version: r249
+## Version: r252-1
 ## Category-zhTW: 地城與團隊
 
 ## Category-zhTW: 副本

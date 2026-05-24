@@ -3,7 +3,7 @@ local mod	= DBM:NewMod("Echthra", "DBM-Challenges", 1)
 
 mod.statTypes = "normal,heroic,mythic,challenge"
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(172177)
 mod.soloChallenge = true
@@ -22,7 +22,7 @@ mod:RegisterEventsInCombat(
 local warnFoulWaste							= mod:NewSpellAnnounce(336715, 2)
 local warnSummonCrawlers					= mod:NewSpellAnnounce(336709, 2)
 
-local specWarnBefuddlingFumes				= mod:NewSpecialWarningDodge(336096, nil, nil, nil, 2, 2)
+local specWarnBefuddlingFumes				= mod:NewSpecialWarningDodge(336096, nil, nil, nil, 2, 2, nil, nil, "shockwave")
 
 local timerBefuddlingFumesCD				= mod:NewCDTimer(23.1, 336096, nil, nil, nil, 3)
 --local timerFoulWasteCD					= mod:NewCDTimer(12.2, 336715, nil, nil, nil, 3)--12.2-21.8

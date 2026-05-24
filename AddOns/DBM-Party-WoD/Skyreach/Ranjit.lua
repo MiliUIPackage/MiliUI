@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,heroic,mythic,challenge,timewalker"
 
-mod:SetRevision("20260517102256")
+mod:SetRevision("20260523021914")
 mod:SetCreatureID(75964)
 mod:SetEncounterID(1698)
 
@@ -12,9 +12,9 @@ mod:RegisterCombat("combat")
 if DBM:IsPostMidnight() then
 	local warnGaleSurge				= mod:NewCountAnnounce(1252733, 2)
 
-	local specWarnFanofBlades		= mod:NewSpecialWarningCount(153757, nil, nil, DBM_COMMON_L.AOEDAMAGE, 2, 2)
-	local specWarnWindChakram		= mod:NewSpecialWarningCount(1258148, nil, nil, DBM_COMMON_L.FRONTAL, 2, 15)
-	local specWarnChakramVortex		= mod:NewSpecialWarningCount(156793, nil, nil, nil, 2, 2)
+	local specWarnFanofBlades		= mod:NewSpecialWarningCount(153757, nil, nil, DBM_COMMON_L.AOEDAMAGE, 2, 2, nil, nil, "aesoon")
+	local specWarnWindChakram		= mod:NewSpecialWarningCount(1258148, nil, nil, DBM_COMMON_L.FRONTAL, 2, 15, nil, nil, "frontal")
+	local specWarnChakramVortex		= mod:NewSpecialWarningCount(156793, nil, nil, nil, 2, 2, nil, nil, "watchstep")
 
 	local timerGaleSurgeCD			= mod:NewCDCountTimer(20.5, 1252733, 28405, nil, nil, 3)
 	local timerFanofBladesCD		= mod:NewCDCountTimer(20.5, 153757, DBM_COMMON_L.AOEDAMAGE.." (%s)", nil, nil, 2, nil, DBM_COMMON_L.BLEED_ICON..DBM_COMMON_L.HEALER_ICON)
@@ -31,17 +31,18 @@ if DBM:IsPostMidnight() then
 	local badStateDetected = false
 
 	---@param self DBMMod
-	---@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+	---@param dontSetAlerts boolean? Called on engage when we only want to set timeline parameters and not touch encounter alerts
 	local function setFallback(self, dontSetAlerts)
+		local onlyColor = not DBM.Options.HideDBMBars
 		if not dontSetAlerts then
 			specWarnFanofBlades:SetAlert(299, "aesoon", 2, 2)
 			specWarnWindChakram:SetAlert(300, "frontal", 15, 2)
 			specWarnChakramVortex:SetAlert(301, "watchstep", 2, 2)
 		end
-		timerGaleSurgeCD:SetTimeline(298)
-		timerFanofBladesCD:SetTimeline(299)
-		timerWindChakramCD:SetTimeline(300)
-		timerChakramVortexCD:SetTimeline(301)
+		timerGaleSurgeCD:SetTimeline(298, onlyColor)
+		timerFanofBladesCD:SetTimeline(299, onlyColor)
+		timerWindChakramCD:SetTimeline(300, onlyColor)
+		timerChakramVortexCD:SetTimeline(301, onlyColor)
 	end
 
 	function mod:OnLimitedCombatStart()
@@ -56,10 +57,7 @@ if DBM:IsPostMidnight() then
 				"ENCOUNTER_TIMELINE_EVENT_ADDED",
 				"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 			)
-			--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
-			if DBM.Options.HideDBMBars then
-				setFallback(self, true)
-			end
+			setFallback(self, true)
 		else
 			setFallback(self)
 		end
@@ -141,10 +139,10 @@ else
 	local warnPiercingRush		= mod:NewTargetNoFilterAnnounce(165731, 2)--EJ shows tank warning but in my encounter it could target anyone. If this changes I'll tweak the default to tank/healer
 	local warnLensFlare			= mod:NewSpellAnnounce(154043, 3)
 
-	local specWarnFourWinds		= mod:NewSpecialWarningSpell(156793, nil, nil, nil, 2, 2)
-	local specWarnWindFallMove	= mod:NewSpecialWarningMove(153315, nil, nil, nil, 1, 8)
+	local specWarnFourWinds		= mod:NewSpecialWarningSpell(156793, nil, nil, nil, 2, 2, nil, nil, "wwsoon")
+	local specWarnWindFallMove	= mod:NewSpecialWarningMove(153315, nil, nil, nil, 1, 8, nil, nil, "watchfeet")
 	local specWarnLensFlare		= mod:NewSpecialWarningSpell(154043, nil, nil, nil, 2)
-	local specWarnLensFlareMove	= mod:NewSpecialWarningMove(154043, nil, nil, nil, 1, 8)
+	local specWarnLensFlareMove	= mod:NewSpecialWarningMove(154043, nil, nil, nil, 1, 8, nil, nil, "watchfeet")
 
 	local timerFourWinds		= mod:NewBuffActiveTimer(18, 156793)
 	local timerFourWindsCD		= mod:NewCDTimer(30, 156793)

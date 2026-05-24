@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2487, "DBM-Party-Dragonflight", 2, 1197)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(184018)
 mod:SetEncounterID(2556)
@@ -35,9 +35,9 @@ mod:RegisterEventsInCombat(
 local warnCalloftheDeep							= mod:NewCountAnnounce(369605, 3)
 local warnBloodlust								= mod:NewSpellAnnounce(369754, 3)
 
-local specWarnQuakingTotem						= mod:NewSpecialWarningSwitchCount(369700, "-Healer", nil, nil, 1, 2)
-local specWarnChainLightning					= mod:NewSpecialWarningInterrupt(369675, "HasInterrupt", nil, nil, 1, 2)
-local specWarnThunderingSlam					= mod:NewSpecialWarningDodgeCount(369703, nil, nil, nil, 2, 2)
+local specWarnQuakingTotem						= mod:NewSpecialWarningSwitchCount(369700, "-Healer", nil, nil, 1, 2, nil, nil, "attacktotem")
+local specWarnChainLightning					= mod:NewSpecialWarningInterrupt(369675, "HasInterrupt", nil, nil, 1, 2, nil, nil, "kickcast")
+local specWarnThunderingSlam					= mod:NewSpecialWarningDodgeCount(369703, nil, nil, nil, 2, 2, nil, nil, "watchstep")
 
 local timerCalloftheDeepCD						= mod:NewCDCountTimer(27.4, 369605, nil, nil, nil, 1)--28-30
 local timerQuakingTotemCD						= mod:NewCDCountTimer(30, 369700, nil, nil, nil, 5)

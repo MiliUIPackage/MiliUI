@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2452, "DBM-Party-Shadowlands", 9, 1194)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260322094133")
+mod:SetRevision("20260523021914")
 mod:SetCreatureID(176564)
 mod:SetEncounterID(2440)
 mod:SetHotfixNoticeRev(20220405000000)
@@ -65,15 +65,15 @@ local warnDrumroll					= mod:NewSpellAnnounce(357513, 2)
 local warnRipChord					= mod:NewSpellAnnounce(357542, 2)
 
 --Stage One: Unruly Patrons
-local specWarnSecuritySlam			= mod:NewSpecialWarningDefensive(350916, nil, nil, nil, 1, 2)--Reused for boss too
-local specWarnMenacingShout			= mod:NewSpecialWarningInterrupt(350922, "HasInterrupt", nil, nil, 1, 2)
+local specWarnSecuritySlam			= mod:NewSpecialWarningDefensive(350916, nil, nil, nil, 1, 2, nil, nil, "defensive")--Reused for boss too
+local specWarnMenacingShout			= mod:NewSpecialWarningInterrupt(350922, "HasInterrupt", nil, nil, 1, 2, nil, nil, "kickcast")
 --local specWarnGTFO				= mod:NewSpecialWarningGTFO(320366, nil, nil, nil, 1, 8)
 --Stage Two: Closing Time
-local specWarnSupressionSpark		= mod:NewSpecialWarningMoveAway(350916, nil, nil, nil, 2, 2)
-local specWarnCrowdControl			= mod:NewSpecialWarningDodge(350919, nil, nil, nil, 2, 2)
+local specWarnSupressionSpark		= mod:NewSpecialWarningMoveAway(350916, nil, nil, nil, 2, 2, nil, nil, "scatter")
+local specWarnCrowdControl			= mod:NewSpecialWarningDodge(350919, nil, nil, nil, 2, 2, nil, nil, "shockwave")
 --Hard Mode Mechanics
-local specWarnDischordantSong		= mod:NewSpecialWarningInterrupt(357404, "HasInterrupt", nil, nil, 1, 2)
-local specWarnInfectiousSolo		= mod:NewSpecialWarningRun(357436, nil, nil, nil, 4, 2)
+local specWarnDischordantSong		= mod:NewSpecialWarningInterrupt(357404, "HasInterrupt", nil, nil, 1, 2, nil, nil, "kickcast")
+local specWarnInfectiousSolo		= mod:NewSpecialWarningRun(357436, nil, nil, nil, 4, 2, nil, nil, "justrun")
 
 --Stage One: Unruly Patrons
 --Oasis Security

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2413, "DBM-Party-Shadowlands", 4, 1185)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260222023214")
+mod:SetRevision("20260523021914")
 mod:SetCreatureID(164218)
 mod:SetEncounterID(2381)
 mod:SetHotfixNoticeRev(20250808000000)
@@ -49,10 +49,10 @@ mod:RegisterEventsInCombat(
 local warnTelekineticToss			= mod:NewCountAnnounce(323142, 2)
 --local warnStigmaofPride			= mod:NewTargetNoFilterAnnounce(323437, 4)
 
-local specWarnUnleashedSuffering	= mod:NewSpecialWarningDodgeCount(323236, nil, nil, nil, 2, 2)
-local specWarnTelekineticOnslaught	= mod:NewSpecialWarningDodge(329113, nil, nil, nil, 2, 2)
-local specWarnEruptingTorment		= mod:NewSpecialWarningRunCount(1236973, nil, nil, nil, 4, 2)--327885
-local specWarnRitualofWoe			= mod:NewSpecialWarningSoakCount(328791, nil, nil, nil, 1, 7)
+local specWarnUnleashedSuffering	= mod:NewSpecialWarningDodgeCount(323236, nil, nil, nil, 2, 2, nil, nil, "shockwave")
+local specWarnTelekineticOnslaught	= mod:NewSpecialWarningDodge(329113, nil, nil, nil, 2, 2, nil, nil, "watchstep")
+local specWarnEruptingTorment		= mod:NewSpecialWarningRunCount(1236973, nil, nil, nil, 4, 2, nil, nil, "justrun")--327885
+local specWarnRitualofWoe			= mod:NewSpecialWarningSoakCount(328791, nil, nil, nil, 1, 7, nil, nil, "helpsoak")
 --local specWarnGTFO				= mod:NewSpecialWarningGTFO(257274, nil, nil, nil, 1, 8)
 
 local timerTelekineticTossCD		= mod:NewVarCountTimer("v9.7-12.5", 323142, nil, nil, nil, 3)

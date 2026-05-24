@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2736, "DBM-Raids-Midnight", 3, 1307)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260514023828")
+mod:SetRevision("20260523021809")
 mod:SetCreatureID(240432)
 mod:SetEncounterID(3179)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -13,11 +13,11 @@ mod:RegisterCombat("combat")
 --Encounter Event 802 was added in patch 12.0.7 for Fallen Oath
 --local warnDespoticCommand					= mod:NewCountAnnounce(1248697, 2)--Hardcode only
 
-local specWarnVoidConvergence				= mod:NewSpecialWarningCount(1243453, nil, nil, DBM_COMMON_L.ORBS, 2, 2)
-local specWarnFracturedProjection			= mod:NewSpecialWarningCount(1254081, "HasInterrupt", nil, nil, 2, 2)
-local specWarnShatteringTwilight			= mod:NewSpecialWarningCount(1253024, nil, nil, nil, 2, 2)
-local specWarnTwilightObscurity				= mod:NewSpecialWarningCount(1250686, nil, nil, DBM_COMMON_L.AOEDAMAGE, 2, 2)
-local specWarnEntropicUnraveling			= mod:NewSpecialWarningCount(1246175, nil, nil, nil, 2, 2)
+local specWarnVoidConvergence				= mod:NewSpecialWarningCount(1243453, nil, nil, DBM_COMMON_L.ORBS, 2, 2, nil, nil, "targetchange")
+local specWarnFracturedProjection			= mod:NewSpecialWarningCount(1254081, "HasInterrupt", nil, nil, 2, 2, nil, nil, "crowdcontrol")
+local specWarnShatteringTwilight			= mod:NewSpecialWarningCount(1253024, nil, nil, nil, 2, 2, nil, nil, "watchstep")
+local specWarnTwilightObscurity				= mod:NewSpecialWarningCount(1250686, nil, nil, DBM_COMMON_L.AOEDAMAGE, 2, 2, nil, nil, "aesoon")
+local specWarnEntropicUnraveling			= mod:NewSpecialWarningCount(1246175, nil, nil, nil, 2, 2, nil, nil, "dpshard")
 
 local timerVoidConvergenceCD				= mod:NewCDCountTimer(20.5, 1243453, DBM_COMMON_L.ORBS.." (%s)", nil, nil, 5, nil, DBM_COMMON_L.IMPORTANT_ICON)
 local timerDespoticCommandCD				= mod:NewCDCountTimer(20.5, 1248697, DBM_COMMON_L.POOLS.." (%s)", nil, nil, 3, nil, DBM_COMMON_L.HEALER_ICON)
@@ -63,13 +63,14 @@ local function setFallback(self, dontSetAlerts)
 		specWarnTwilightObscurity:SetAlert(143, "aesoon", 2, 2)
 		specWarnEntropicUnraveling:SetAlert(148, "dpshard", 2, 2, 0)
 	end
-	timerVoidConvergenceCD:SetTimeline(139)
-	timerDespoticCommandCD:SetTimeline(140)
-	timerFracturedProjectionCD:SetTimeline(141)
-	timerShatteringTwilightCD:SetTimeline(142)
-	timerTwilightObscurityCD:SetTimeline(143)
-	timerEntropicUnravelingCD:SetTimeline(148)
-	timerBerserkCD:SetTimeline(633)
+	local onlyColor = not DBM.Options.HideDBMBars
+	timerVoidConvergenceCD:SetTimeline(139, onlyColor)
+	timerDespoticCommandCD:SetTimeline(140, onlyColor)
+	timerFracturedProjectionCD:SetTimeline(141, onlyColor)
+	timerShatteringTwilightCD:SetTimeline(142, onlyColor)
+	timerTwilightObscurityCD:SetTimeline(143, onlyColor)
+	timerEntropicUnravelingCD:SetTimeline(148, onlyColor)
+	timerBerserkCD:SetTimeline(633, onlyColor)
 end
 
 function mod:OnLimitedCombatStart()
@@ -84,9 +85,7 @@ function mod:OnLimitedCombatStart()
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",
 			"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 		)
-		if DBM.Options.HideDBMBars then
-			setFallback(self, true)
-		end
+		setFallback(self, true)
 	else
 		setFallback(self)
 	end
@@ -103,17 +102,32 @@ do
 	---@param timer number
 	---@param timerExact number
 	---@param eventID number
-	local function timersNonMythic(self, timer, timerExact, eventID)
+	---@param eventState number
+	local function timersNonMythic(self, timer, timerExact, eventID, eventState)
+		if eventState ~= 0 then return end--Ignore bugged timer that start paused or canceled (yes blizzards code is that bad)
+		if timer > 101 and timer ~= 490 then return end--Ignore blizzard resending berserk timer for no reason
 		--Logic confirmed against normal and LFR and heroic
 		if timer == 490 then--Berserk
 			timerBerserkCD:Start(490)
 		elseif timer == 100 then--Entropic Unraveling, phase change marker
 			if not self:AntiSpam(2, 1) then
+				DBM:Debug("Skipping first bugged Entropic Unraveling bar", nil, nil, nil, true)
 				return--Bugged duplicate add at the same moment, ignore second event
 			end
 	--		resetCounts(self)--Phase reset point
 			next45Type = "twisted"--Shared 45s open as Twisted/Fractured after phase transition
 			timerEntropicUnravelingCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "entropic", "entropicUnravelingCount"))
+			if not timerEntropicUnravelingCD:IsBuggedEventID(eventID) then--We haven't seen the bugged 80 yet
+				--Currently, blizzard has a bug where they always cancel both Entropic Unraveling bars after they start 2 of them on 2nd and later cast.
+				--We ignore the first bugged 100 sec one at line 175-177. then we allow 2nd one to start and prevent it from being canceled by blizzard.
+				--We also hardcode the alert to show since there won't be a valid state changed event later to trigger off of
+				timerEntropicUnravelingCD:SetBuggedEventID(eventID)
+				specWarnEntropicUnraveling:Schedule(100, self.vb.entropicUnravelingCount+1)
+				specWarnEntropicUnraveling:ScheduleVoice(100, "dpshard")
+--				timerEntropicUnravelingCD:Stop()
+--				timerEntropicUnravelingCD:Start(100, self.vb.entropicUnravelingCount+1)
+				DBM:Debug("Protecting second bugged Entropic Unraveling bar", nil, nil, nil, true)
+			end
 		elseif timer == 27 or timer == 46 then--Despotic Command
 			timerDespoticCommandCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "despotic", "despoticCommandCount"))
 			if timer == 46 then
@@ -165,14 +179,28 @@ do
 	---@param eventState number
 	local function timersMythic(self, timer, timerExact, eventID, eventState)
 		--Logic confirmed against Mythic Week3 logs
+		if eventState ~= 0 then return end--Ignore bugged timer that start paused or canceled (yes blizzards code is that bad)
+		if timer > 101 and timer ~= 370 then return end--Ignore blizzard resending berserk timer for no reason
 		if timer == 370 then--Berserk
 			timerBerserkCD:Start(370)
 		elseif timer == 100 then--Entropic Unraveling, phase change marker
 			if not self:AntiSpam(2, 1) then
+				DBM:Debug("Skipping first bugged Entropic Unraveling bar", nil, nil, nil, true)
 				return--Bugged duplicate add at the same moment, ignore second event
 			end
 			next45Type = "twisted"--Shared 45s open as Twisted/Fractured after phase transition
 			timerEntropicUnravelingCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "entropic", "entropicUnravelingCount"))
+			if not timerEntropicUnravelingCD:IsBuggedEventID(eventID) then--We haven't seen the bugged 80 yet
+				--Currently, blizzard has a bug where they always cancel both Entropic Unraveling bars after they start 2 of them on 2nd and later cast.
+				--We ignore the first bugged 100 sec one at line 175-177. then we allow 2nd one to start and prevent it from being canceled by blizzard.
+				--We also hardcode the alert to show since there won't be a valid state changed event later to trigger off of
+				timerEntropicUnravelingCD:SetBuggedEventID(eventID)
+				specWarnEntropicUnraveling:Schedule(100, self.vb.entropicUnravelingCount+1)
+				specWarnEntropicUnraveling:ScheduleVoice(100, "dpshard")
+--				timerEntropicUnravelingCD:Stop()
+--				timerEntropicUnravelingCD:Start(100, self.vb.entropicUnravelingCount+1)
+				DBM:Debug("Protecting second bugged Entropic Unraveling bar", nil, nil, nil, true)
+			end
 		elseif timer == 22 or timer == 46 then--Despotic Command
 			timerDespoticCommandCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "despotic", "despoticCommandCount"))
 			if timer == 46 then
@@ -229,7 +257,7 @@ do
 			if self:IsMythic() then
 				timersMythic(self, timer, timerExact, eventID, eventState)
 			else
-				timersNonMythic(self, timer, timerExact, eventID)
+				timersNonMythic(self, timer, timerExact, eventID, eventState)
 			end
 		end
 	end
@@ -263,7 +291,12 @@ do
 				end
 			end
 		elseif eventState == 3 then--Canceled/removed
-			self:TLCountCancel(eventID)
+			if timerEntropicUnravelingCD:IsBuggedEventID(eventID) then
+				--Prevent mod from subtracking count because it thinks it was canceled
+				timerEntropicUnravelingCD:UnsetBuggedEventID(eventID)
+			else
+				self:TLCountCancel(eventID)
+			end
 		end
 	end
 end

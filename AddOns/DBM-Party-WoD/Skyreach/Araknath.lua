@@ -3,16 +3,16 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,heroic,mythic,challenge,timewalker"
 
-mod:SetRevision("20260517102256")
+mod:SetRevision("20260523021914")
 mod:SetCreatureID(76141)
 mod:SetEncounterID(1699)
 
 mod:RegisterCombat("combat")
 
 if DBM:IsPostMidnight() then
-	local specWarnFierySmash	= mod:NewSpecialWarningCount(154115, nil, nil, nil, 1, 15)
-	local specWarnEnergize		= mod:NewSpecialWarningCount(154162, nil, nil, DBM_COMMON_L.GROUPSOAKS, 1, 17)
-	local specWarnSupernova		= mod:NewSpecialWarningCount(154135, nil, nil, nil, 2, 2)
+	local specWarnFierySmash	= mod:NewSpecialWarningCount(154115, nil, nil, nil, 1, 15, nil, nil, "frontal")
+	local specWarnEnergize		= mod:NewSpecialWarningCount(154162, nil, nil, DBM_COMMON_L.GROUPSOAKS, 1, 17, nil, nil, "soakbeam")
+	local specWarnSupernova		= mod:NewSpecialWarningCount(154135, nil, nil, nil, 2, 2, nil, nil, "aesoon")
 
 	local timerSmashCD			= mod:NewCDCountTimer(20.5, 154115, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 	local timerEnergizeCD		= mod:NewCDCountTimer(20.5, 154162, DBM_COMMON_L.GROUPSOAKS.." (%s)", nil, nil, 5, nil, DBM_COMMON_L.IMPORTANT_ICON)
@@ -26,8 +26,9 @@ if DBM:IsPostMidnight() then
 	local badStateDetected = false
 
 	---@param self DBMMod
-	---@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+	---@param dontSetAlerts boolean? Called on engage when we only want to set timeline parameters and not touch encounter alerts
 	local function setFallback(self, dontSetAlerts)
+		local onlyColor = not DBM.Options.HideDBMBars
 		if not dontSetAlerts then
 			if self:IsTank() then
 				specWarnFierySmash:SetAlert(302, "frontal", 15, 1)
@@ -39,9 +40,9 @@ if DBM:IsPostMidnight() then
 			end
 			specWarnSupernova:SetAlert(304, "aesoon", 2, 2)
 		end
-		timerSmashCD:SetTimeline(302)
-		timerEnergizeCD:SetTimeline(303)
-		timerSupernovaCD:SetTimeline(304)
+		timerSmashCD:SetTimeline(302, onlyColor)
+		timerEnergizeCD:SetTimeline(303, onlyColor)
+		timerSupernovaCD:SetTimeline(304, onlyColor)
 	end
 
 	function mod:OnLimitedCombatStart()
@@ -55,10 +56,7 @@ if DBM:IsPostMidnight() then
 				"ENCOUNTER_TIMELINE_EVENT_ADDED",
 				"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 			)
-			--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
-			if DBM.Options.HideDBMBars then
-				setFallback(self, true)
-			end
+			setFallback(self, true)
 		else
 			setFallback(self)
 		end
@@ -136,8 +134,8 @@ else
 	--Add smash? it's a 1 sec cast, can it be dodged?
 	local warnEnergize		= mod:NewSpellAnnounce(154159, 3)
 
-	local specWarnBurst		= mod:NewSpecialWarningCount(154135, nil, nil, nil, 2, 2)
-	local specWarnSmash		= mod:NewSpecialWarningDodge(154110, "Tank", nil, 2, 1, 2)
+	local specWarnBurst		= mod:NewSpecialWarningCount(154135, nil, nil, nil, 2, 2, nil, nil, "aesoon")
+	local specWarnSmash		= mod:NewSpecialWarningDodge(154110, "Tank", nil, 2, 1, 2, nil, nil, "watchstep")
 
 	local timerEnergozeCD	= mod:NewNextTimer(20, 154159, nil, nil, nil, 5)
 	local timerBurstCD		= mod:NewCDCountTimer(23, 154135, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)

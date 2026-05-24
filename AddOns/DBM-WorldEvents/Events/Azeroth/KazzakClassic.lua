@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("KazzakClassic", "DBM-WorldEvents", 4)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(121818)--121818 TW ID, 12397 classic ID
 --mod:SetModelID(17887)
@@ -20,7 +20,7 @@ local warningFrenzy				= mod:NewSpellAnnounce(156598, 3)
 local warningMark				= mod:NewTargetAnnounce(243723, 4)
 local warningShadowBoltVolley	= mod:NewSpellAnnounce(243712, 2)
 
-local specWarnMark				= mod:NewSpecialWarningMoveAway(243723, nil, nil, nil, 1, 2)
+local specWarnMark				= mod:NewSpecialWarningMoveAway(243723, nil, nil, nil, 1, 2, nil, nil, "runout")
 
 local timerVoidBoltCD			= mod:NewCDTimer(27.8, 243713, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Iffy
 local timerMarkCD				= mod:NewCDTimer(13.3, 243723, nil, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)

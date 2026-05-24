@@ -4,7 +4,7 @@ local mod	= DBM:NewMod("SpiritflayerJinma", "DBM-Delves-Midnight", 2)
 mod.statTypes = "normal"
 mod.soloChallenge = true
 
-mod:SetRevision("20260515230945")
+mod:SetRevision("20260523021914")
 --mod:SetCreatureID(0)--TODO
 mod:SetEncounterID(3433, 3434)
 mod:SetZone()
@@ -17,7 +17,7 @@ mod:RegisterSafeEventsInCombat(
 
 local warnClaimSpirits			= mod:NewCountAnnounce(1266337, 3)
 
-local specWarnRagingSpirits		= mod:NewSpecialWarningCount(1265958, nil, nil, nil, 2, 2)
+local specWarnRagingSpirits		= mod:NewSpecialWarningCount(1265958, nil, nil, nil, 2, 2, nil, nil, "ghostsoon")
 
 local timerRagingSpiritsCD		= mod:NewCDCountTimer(17, 1265958, nil, nil, nil, 5)
 local timerClaimSpiritsCD		= mod:NewCDCountTimer(42.4, 1266337, nil, nil, nil, 1)

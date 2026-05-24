@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2739, "DBM-Raids-Midnight", 1, 1308)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260502015920")
+mod:SetRevision("20260523021809")
 --mod:SetCreatureID()--No Data Yet, has 4 CIDs
 mod:SetEncounterID(3182)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -16,17 +16,17 @@ mod:RegisterCombat("combat")
 --Stage 1
 local warnVoidlightConvergenceSoon		= mod:NewSoonAnnounce(1242515, 3)
 
-local specWarnEmbersofBeloren			= mod:NewSpecialWarningCount(1241282, nil, nil, DBM_COMMON_L.ADDS, 1, 2)
-local specWarnRadiantEchoes				= mod:NewSpecialWarningCount(1242981, nil, nil, DBM_COMMON_L.ORBS, 2, 2)
-local specWarnGuardiansEdict			= mod:NewSpecialWarningCount(1260763, nil, nil, DBM_COMMON_L.TANKCOMBO, 1, 2)
-local specWarnVoidlightConvergence		= mod:NewSpecialWarningBlizzYou(1242515, nil, nil, nil, 2, 2)--No PA to detect color, can only just warn to check color
-local specWarnLightFeather				= mod:NewSpecialWarningYou(1241162, nil, nil, nil, 1, 2)--Untested
-local specWarnVoidFeather				= mod:NewSpecialWarningYou(1241163, nil, nil, nil, 1, 2)--Untested
+local specWarnEmbersofBeloren			= mod:NewSpecialWarningCount(1241282, nil, nil, DBM_COMMON_L.ADDS, 1, 2, nil, nil, "mobsoon")
+local specWarnRadiantEchoes				= mod:NewSpecialWarningCount(1242981, nil, nil, DBM_COMMON_L.ORBS, 2, 2, nil, nil, "orbsincoming")
+local specWarnGuardiansEdict			= mod:NewSpecialWarningCount(1260763, nil, nil, DBM_COMMON_L.TANKCOMBO, 1, 2, nil, nil, "tankcombo")
+local specWarnVoidlightConvergence		= mod:NewSpecialWarningBlizzYou(1242515, nil, nil, nil, 2, 2, nil, nil, "colorchange")--No PA to detect color, can only just warn to check color
+local specWarnLightFeather				= mod:NewSpecialWarningYou(1241162, nil, nil, nil, 1, 2, nil, nil, "lightyou")--Untested
+local specWarnVoidFeather				= mod:NewSpecialWarningYou(1241163, nil, nil, nil, 1, 2, nil, nil, "voidyou")--Untested
 --mod:GroupSpells(1242515, 1241162, 1241163)--Uncomment group when hardcode enables parent warning
-local specWarnDeathDrop					= mod:NewSpecialWarningCount(1246709, nil, nil, nil, 2, 2)
+local specWarnDeathDrop					= mod:NewSpecialWarningCount(1246709, nil, nil, nil, 2, 2, nil, nil, "justrun")
 --Adds
-local specWarnLightDiver				= mod:NewSpecialWarningYou(1241292, nil, nil, DBM_COMMON_L.GROUPSOAK, 1, 2)
-local specWarnVoidDiver					= mod:NewSpecialWarningYou(1241339, nil, nil, DBM_COMMON_L.GROUPSOAK, 1, 2)
+local specWarnLightDiver				= mod:NewSpecialWarningYou(1241292, nil, nil, DBM_COMMON_L.GROUPSOAK, 1, 2, nil, nil, "lightsoak")
+local specWarnVoidDiver					= mod:NewSpecialWarningYou(1241339, nil, nil, DBM_COMMON_L.GROUPSOAK, 1, 2, nil, nil, "voidsoak")
 
 local timerEmbersofBelorenCD			= mod:NewCDCountTimer(20.5, 1241282, DBM_COMMON_L.ADDS.." (%s)", nil, nil, 1)
 local timerRadiantEchoesCD				= mod:NewCDCountTimer(20.5, 1242981, DBM_COMMON_L.ORBS.." (%s)", nil, nil, 5)
@@ -44,8 +44,8 @@ mod:AddPrivateAuraSoundOption(1242091, true, 1242260, 1, 1, "lineyou", 17)--Void
 mod:AddPrivateAuraSoundOption(1241840, true, 1241292, 1, 2, "watchfeet", 8)--Light Patch (dropped by Light Dive)
 mod:AddPrivateAuraSoundOption(1241841, true, 1241339, 1, 2, "watchfeet", 8)--Void Patch (dropped by Void Dive)
 --Stage 2
-local specWarnIncubationofFlames		= mod:NewSpecialWarningCount(1242792, nil, nil, nil, 2, 2)
-local specWarnRebirth					= mod:NewSpecialWarningCount(1241313, nil, nil, nil, 1, 2)
+local specWarnIncubationofFlames		= mod:NewSpecialWarningCount(1242792, nil, nil, nil, 2, 2, nil, nil, "watchstep")
+local specWarnRebirth					= mod:NewSpecialWarningCount(1241313, nil, nil, nil, 1, 2, nil, nil, "dpshard")
 
 local timerIncubationofFlamesCD			= mod:NewCDCountTimer(20.5, 1242792, nil, nil, nil, 3)--Might not even have a timer, if not kill object
 local timerRebirthCD					= mod:NewCastTimer(20.5, 1241313, nil, nil, nil, 6)--Iffy
@@ -66,7 +66,7 @@ local lastEmbersEventID = 0
 local heroicSequenceSlot = 0
 
 ---@param self DBMMod
----@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+---@param dontSetAlerts boolean? Called on engage when we only want to set timeline parameters and not touch encounter alerts
 local function setFallback(self, dontSetAlerts)
 	--Blizz API fallbacks
 	if not dontSetAlerts then
@@ -85,16 +85,19 @@ local function setFallback(self, dontSetAlerts)
 		specWarnRebirth:SetAlert(497, "dpshard", 16, 3, 0)
 	end
 
-	timerEmbersofBelorenCD:SetTimeline(128)
-	timerRadiantEchoesCD:SetTimeline(130)
-	timerGuardiansEdictCD:SetTimeline(134)
-	timerEternalBurnsCD:SetTimeline(138)
-	timerInfusedQuillsCD:SetTimeline(161)
-	timerVoidlightConvergenceCD:SetTimeline(218)
-	timerDeathDropCD:SetTimeline(272)
-	timerIncubationofFlamesCD:SetTimeline(273)
-	timerRebirthCD:SetTimeline(497)
-	timerBerserkCD:SetTimeline(500)
+	--If user has dbm bars enabled, countdowns will be sent by dbm bars
+	--if user has dbm bars off, SetTimeline will set color and countdowns
+	local onlyColor = not DBM.Options.HideDBMBars
+	timerEmbersofBelorenCD:SetTimeline(128, onlyColor)
+	timerRadiantEchoesCD:SetTimeline(130, onlyColor)
+	timerGuardiansEdictCD:SetTimeline(134, onlyColor)
+	timerEternalBurnsCD:SetTimeline(138, onlyColor)
+	timerInfusedQuillsCD:SetTimeline(161, onlyColor)
+	timerVoidlightConvergenceCD:SetTimeline(218, onlyColor)
+	timerDeathDropCD:SetTimeline(272, onlyColor)
+	timerIncubationofFlamesCD:SetTimeline(273, onlyColor)
+	timerRebirthCD:SetTimeline(497, onlyColor)
+	timerBerserkCD:SetTimeline(500, onlyColor)
 end
 
 function mod:OnLimitedCombatStart(delay)
@@ -117,10 +120,9 @@ function mod:OnLimitedCombatStart(delay)
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",
 			"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 		)
-		--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
-		if DBM.Options.HideDBMBars then
-			setFallback(self, true)
-		end
+		--Even when using hardcodes, we still want to customize the timeline in certain ways
+		--Many use timeline in conjunction with DBM warnings
+		setFallback(self, true)
 	else
 		setFallback(self)
 	end

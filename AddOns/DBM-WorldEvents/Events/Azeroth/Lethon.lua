@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("Lethon", "DBM-WorldEvents", 4)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(121821)--121821 TW ID, 14888 classic ID
 --mod:SetModelID(17887)
@@ -18,8 +18,8 @@ mod:RegisterEventsInCombat(
 --TODO, maybe taunt special warnings for classic version when it matters more.
 local warnNoxiousBreath			= mod:NewStackAnnounce(243401, 2, nil, "Tank")
 
-local specWarnSleepingFog		= mod:NewSpecialWarningDodge(243399, nil, nil, nil, 2, 2)
-local specWarnShadowBoltWhirl	= mod:NewSpecialWarningDodge(243468, nil, nil, nil, 2, 2)
+local specWarnSleepingFog		= mod:NewSpecialWarningDodge(243399, nil, nil, nil, 2, 2, nil, nil, "watchstep")
+local specWarnShadowBoltWhirl	= mod:NewSpecialWarningDodge(243468, nil, nil, nil, 2, 2, nil, nil, "watchorb")
 
 local timerNoxiousBreathCD		= mod:NewCDTimer(18.3, 243401, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Iffy
 local timerSleepingFogCD		= mod:NewCDTimer(16.8, 243399, nil, nil, nil, 3)

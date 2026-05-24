@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2509, "DBM-Party-Dragonflight", 5, 1201)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260428075838")
+mod:SetRevision("20260523021914")
 mod:SetCreatureID(194181)
 mod:SetEncounterID(2562)
 mod:SetHotfixNoticeRev(20221015000000)
@@ -17,10 +17,10 @@ if DBM:IsPostMidnight() then
 	--Midnight private aura replacements
 --	mod:AddPrivateAuraSoundOption(386181, true, 386181, 1)
 
-	local specWarnArcaneOrbs			= mod:NewSpecialWarningCount(385974, nil, nil, DBM_COMMON_L.ORBS, 2, 2)
-	local specWarnManaBombs				= mod:NewSpecialWarningCount(386173, nil, nil, DBM_COMMON_L.POOL, 2, 2)
-	local specWarnArcaneExpulsion		= mod:NewSpecialWarningCount(385958, nil, "Tank|Healer", nil, 1, 2)
-	local specWarnArcaneFissure			= mod:NewSpecialWarningCount(388537, nil, nil, DBM_COMMON_L.AOEDAMAGE, 2, 2)
+	local specWarnArcaneOrbs			= mod:NewSpecialWarningCount(385974, nil, nil, DBM_COMMON_L.ORBS, 2, 2, nil, nil, "catchballs")
+	local specWarnManaBombs				= mod:NewSpecialWarningCount(386173, nil, nil, DBM_COMMON_L.POOL, 2, 2, nil, nil, "scattersoon")
+	local specWarnArcaneExpulsion		= mod:NewSpecialWarningCount(385958, nil, "Tank|Healer", nil, 1, 2, nil, nil, "defensive")
+	local specWarnArcaneFissure			= mod:NewSpecialWarningCount(388537, nil, nil, DBM_COMMON_L.AOEDAMAGE, 2, 2, nil, nil, "aesoon")
 
 	local timerArcaneOrbsCD				= mod:NewCDCountTimer(20.5, 385974, DBM_COMMON_L.ORBS.." (%s)", nil, nil, 5)
 	local timerManaBombsCD				= mod:NewCDCountTimer(20.5, 386173, DBM_COMMON_L.POOLS.." (%s)", nil, nil, 3)
@@ -36,7 +36,7 @@ if DBM:IsPostMidnight() then
 	local eighteenCount = 1
 
 	---@param self DBMMod
-	---@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+	---@param dontSetAlerts boolean? Called on engage when we only want to set timeline parameters and not touch encounter alerts
 	local function setFallback(self, dontSetAlerts)
 		if not dontSetAlerts then
 			specWarnArcaneOrbs:SetAlert(274, "catchballs", 2)
@@ -46,10 +46,11 @@ if DBM:IsPostMidnight() then
 			end
 			specWarnArcaneFissure:SetAlert(277, "aesoon", 2)
 		end
-		timerArcaneOrbsCD:SetTimeline(274)
-		timerManaBombsCD:SetTimeline(275)
-		timerArcaneExpulsionCD:SetTimeline(276)
-		timerArcaneFissureCD:SetTimeline(277)
+		local onlyColor = not DBM.Options.HideDBMBars
+		timerArcaneOrbsCD:SetTimeline(274, onlyColor)
+		timerManaBombsCD:SetTimeline(275, onlyColor)
+		timerArcaneExpulsionCD:SetTimeline(276, onlyColor)
+		timerArcaneFissureCD:SetTimeline(277, onlyColor)
 	end
 
 	function mod:OnLimitedCombatStart()
@@ -66,10 +67,7 @@ if DBM:IsPostMidnight() then
 				"ENCOUNTER_TIMELINE_EVENT_ADDED",
 				"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 			)
-			--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
-			if DBM.Options.HideDBMBars then
-				setFallback(self, true)
-			end
+			setFallback(self, true)
 		else
 			setFallback(self)
 		end
@@ -180,12 +178,12 @@ else
 	local warnArcaneOrbs							= mod:NewCountAnnounce(385974, 3)
 	local warnManaBombs								= mod:NewTargetNoFilterAnnounce(386173, 3)
 
-	local specWarnArcaneFissure						= mod:NewSpecialWarningDodgeCount(388537, nil, nil, nil, 1, 2)
-	local specWarnManaBomb							= mod:NewSpecialWarningMoveAway(386181, nil, nil, nil, 1, 2)
+	local specWarnArcaneFissure						= mod:NewSpecialWarningDodgeCount(388537, nil, nil, nil, 1, 2, nil, nil, "aesoon")
+	local specWarnManaBomb							= mod:NewSpecialWarningMoveAway(386181, nil, nil, nil, 1, 2, nil, nil, "runout")
 	local yellManaBomb								= mod:NewYell(386181)
 	local yellManaBombFades							= mod:NewShortFadesYell(386181)
-	local specWarnArcaneExpulsion					= mod:NewSpecialWarningDefensive(385958, nil, nil, nil, 1, 2)
-	local specWarnGTFO								= mod:NewSpecialWarningGTFO(386201, nil, nil, nil, 1, 8)
+	local specWarnArcaneExpulsion					= mod:NewSpecialWarningDefensive(385958, nil, nil, nil, 1, 2, nil, nil, "defensive")
+	local specWarnGTFO								= mod:NewSpecialWarningGTFO(386201, nil, nil, nil, 1, 8, nil, nil, "watchfeet")
 
 	local timerRP									= mod:NewRPTimer(19.8)
 	local timerArcaneOrbsCD							= mod:NewCDCountTimer(16.8, 385974, nil, nil, nil, 5)

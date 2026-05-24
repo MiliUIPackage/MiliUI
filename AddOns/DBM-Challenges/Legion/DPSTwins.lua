@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,timewalker"
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(116409, 116410)--Raest Magespear, Karam Magespear
 mod:SetBossHPInfoToHighest()
@@ -25,11 +25,11 @@ local warnPhase					= mod:NewPhaseChangeAnnounce()
 local warnRisingDragon			= mod:NewSpellAnnounce(235426, 3)
 
 --Karam
-local specWarnFixate			= mod:NewSpecialWarningRun(202081, nil, nil, nil, 4, 2)
+local specWarnFixate			= mod:NewSpecialWarningRun(202081, nil, nil, nil, 4, 2, nil, nil, "justrun")
 --Raest
-local specWarnGrasp				= mod:NewSpecialWarningInterrupt(235578, nil, nil, nil, 1, 2)
-local specWarnRift				= mod:NewSpecialWarningSwitch(235446, nil, nil, nil, 1, 2)
-local specWarnRune				= mod:NewSpecialWarningMoveTo(236460, nil, nil, nil, 1, 12)
+local specWarnGrasp				= mod:NewSpecialWarningInterrupt(235578, nil, nil, nil, 1, 2, nil, nil, "kickcast")
+local specWarnRift				= mod:NewSpecialWarningSwitch(235446, nil, nil, nil, 1, 2, nil, nil, "killmob")
+local specWarnRune				= mod:NewSpecialWarningMoveTo(236460, nil, nil, nil, 1, 12, nil, nil, "getinyellowrunes")
 
 --Karam
 local timerRisingDragonCD		= mod:NewCDTimer(35, 235426, nil, nil, nil, 2)

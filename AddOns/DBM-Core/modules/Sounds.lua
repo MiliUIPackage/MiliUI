@@ -13,7 +13,7 @@ do
 		{	text	= "Smooth",value 	= "Smooth", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Smooth\\", max = 10},
 		{	text	= "Smooth (Reverb)",value 	= "SmoothR", path = "Interface\\AddOns\\DBM-Core\\Sounds\\SmoothReverb\\", max = 10},
 		{	text	= "Pewsey",value 	= "Pewsey", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Pewsey\\", max = 10},
-		{	text	= "Bear (Child)",value = "Bear", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Bear\\", max = 10},		
+		{	text	= "Bear (Child)",value = "Bear", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Bear\\", max = 10},
 		{	text	= "瑞辰 (zhCN)",value = "Ruichen", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Ruichen\\", max = 10},
 		{	text	= "纯如 (zhCN)",value = "Chunru", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Chunru\\", max = 10},
 		{	text	= "浩 (zhTW)",value = "Hao", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Hao\\", max = 10},
@@ -58,7 +58,7 @@ do
 				text	= text,
 				value	= value or text,
 				path	= path,
-				max		= max or 3
+				max		= max or 10
 			})
 		else
 			tinsert(counts, {

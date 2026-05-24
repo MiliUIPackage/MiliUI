@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,heroic,mythic,challenge"--No Follower dungeon
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(198996)
 mod:SetEncounterID(2667)
@@ -36,10 +36,10 @@ mod:RegisterEvents(
 --NOTE: 10.2 seems to have utterly deleted "Unwind" from encounter. For now its commented but kept in case this is an error or still around but not noted
 local warnChronoFaded								= mod:NewTargetCountAnnounce(405696, 3)
 
-local specWarnChronofaded							= mod:NewSpecialWarningMoveTo(405696, nil, nil, nil, 1, 2)
+local specWarnChronofaded							= mod:NewSpecialWarningMoveTo(405696, nil, nil, nil, 1, 2, nil, nil, "targetyou")
 local yellChronofaded								= mod:NewShortPosYell(405696)
 local yellChronofadedFades							= mod:NewIconFadesYell(405696)
-local specWarnFragmentsofTime						= mod:NewSpecialWarningDodgeCount(405431, nil, nil, nil, 2, 2)
+local specWarnFragmentsofTime						= mod:NewSpecialWarningDodgeCount(405431, nil, nil, nil, 2, 2, nil, nil, "watchorb")
 --local specWarnGTFO								= mod:NewSpecialWarningGTFO(386201, nil, nil, nil, 1, 8)
 
 local timerRP										= mod:NewRPTimer(13.3)

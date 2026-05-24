@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2490, "DBM-Party-Dragonflight", 4, 1199)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetCreatureID(189340)
 mod:SetEncounterID(2613)
@@ -33,11 +33,11 @@ local warnGroundingSpear						= mod:NewTargetNoFilterAnnounce(373424, 3)
 local warnFetterStack							= mod:NewStackAnnounce(374655, 1)
 local warnFetter								= mod:NewTargetNoFilterAnnounce(374655, 1)--Boss Only
 
-local specWarnMagmaWave							= mod:NewSpecialWarningDodge(373742, nil, nil, nil, 2, 2)
-local specWarnGroundingSpear					= mod:NewSpecialWarningYou(373424, nil, nil, nil, 1, 2)
+local specWarnMagmaWave							= mod:NewSpecialWarningDodge(373742, nil, nil, nil, 2, 2, nil, nil, "watchwave")
+local specWarnGroundingSpear					= mod:NewSpecialWarningYou(373424, nil, nil, nil, 1, 2, nil, nil, "targetyou")
 local yellGroundingSpear						= mod:NewYell(373424)
-local specWarnFieryFocus						= mod:NewSpecialWarningInterrupt(375056, nil, nil, nil, 1, 13)
-local specWarnGTFO								= mod:NewSpecialWarningGTFO(374854, nil, nil, nil, 1, 8)
+local specWarnFieryFocus						= mod:NewSpecialWarningInterrupt(375056, nil, nil, nil, 1, 13, nil, nil, "chainboss")
+local specWarnGTFO								= mod:NewSpecialWarningGTFO(374854, nil, nil, nil, 1, 8, nil, nil, "watchfeet")
 
 local timerDragonStrikeCD						= mod:NewCDCountTimer(12.1, 373733, nil, nil, nil, 3, nil, DBM_COMMON_L.BLEED_ICON)--12 but lowest spell queue priority, it's often delayed by several more seconds
 local timerMagmaWaveCD							= mod:NewCDCountTimer(12.1, 373742, nil, nil, nil, 3)--Actual CD still not known, since you'd never fully see it unhindered by blade lock or reset by fetter

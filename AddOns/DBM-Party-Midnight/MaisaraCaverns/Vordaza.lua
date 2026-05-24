@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2811, "DBM-Party-Midnight", 7, 1315)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260517102256")
+mod:SetRevision("20260523021914")
 mod:SetCreatureID(248595)
 mod:SetEncounterID(3213)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -16,10 +16,10 @@ mod:RegisterCombat("combat")
 --NOTE: https://www.wowhead.com/spell=1251813/lingering-dread has a private aura but it doesn't need an alert, just anchor tracking
 --NOTE: Wrest Phantoms timeline spellID is 1251204; 1252130 is the damage aura tracked by AddPrivateAuraSoundOption below
 
-local specWarnDrainSoul				= mod:NewSpecialWarningCount(1251554, nil, nil, nil, 1, 2)
-local specWarnUnmake				= mod:NewSpecialWarningDodgeCount(1252054, nil, nil, DBM_COMMON_L.FRONTAL, 2, 2)
-local specWarnWrestPhantoms			= mod:NewSpecialWarningCount(1251204, nil, nil, nil, 2, 2)
-local specWarnNecroticConvergence	= mod:NewSpecialWarningCount(1250708, nil, nil, nil, 1, 2)
+local specWarnDrainSoul				= mod:NewSpecialWarningCount(1251554, nil, nil, nil, 1, 2, nil, nil, "defensive")
+local specWarnUnmake				= mod:NewSpecialWarningDodgeCount(1252054, nil, nil, DBM_COMMON_L.FRONTAL, 2, 2, nil, nil, "frontal")
+local specWarnWrestPhantoms			= mod:NewSpecialWarningCount(1251204, nil, nil, nil, 2, 2, nil, nil, "mobsoon")
+local specWarnNecroticConvergence	= mod:NewSpecialWarningCount(1250708, nil, nil, nil, 1, 2, nil, nil, "attackshield")
 
 local timerDrainSoulCD				= mod:NewCDCountTimer(20.5, 1251554, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerUnmakeCD					= mod:NewCDCountTimer(20.5, 1252054, DBM_COMMON_L.FRONTAL.." (%s)", nil, nil, 3)
@@ -40,7 +40,7 @@ local badStateDetected = false
 local necroticCDInfo = {}--tracks startTime and duration per eventID to detect on-time state 3 cancels for Necrotic Convergence
 
 ---@param self DBMMod
----@param dontSetAlerts boolean? Called when user has disabled DBM bars and is ONLY using timeline, therefor we must enable SetTimeline calls even in hardcodes
+---@param dontSetAlerts boolean? Called on engage when we only want to set timeline parameters and not touch encounter alerts
 local function setFallback(self, dontSetAlerts)
 	if not dontSetAlerts then
 		if self:IsTank() then
@@ -50,10 +50,11 @@ local function setFallback(self, dontSetAlerts)
 		specWarnWrestPhantoms:SetAlert(19, "mobsoon", 2)
 		specWarnNecroticConvergence:SetAlert(20, "attackshield", 2)
 	end
-	timerDrainSoulCD:SetTimeline(16)
-	timerUnmakeCD:SetTimeline(17)
-	timerWrestPhantomsCD:SetTimeline(19)
-	timerNecroticConvergenceCD:SetTimeline(20)
+	local onlyColor = not DBM.Options.HideDBMBars
+	timerDrainSoulCD:SetTimeline(16, onlyColor)
+	timerUnmakeCD:SetTimeline(17, onlyColor)
+	timerWrestPhantomsCD:SetTimeline(19, onlyColor)
+	timerNecroticConvergenceCD:SetTimeline(20, onlyColor)
 end
 
 function mod:OnLimitedCombatStart()
@@ -69,10 +70,7 @@ function mod:OnLimitedCombatStart()
 			"ENCOUNTER_TIMELINE_EVENT_ADDED",
 			"ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED"
 		)
-		--SetTimeline events since user has disabled DBM Bars (so they can still get countdowns in blizzard timeline API instead)
-		if DBM.Options.HideDBMBars then
-			setFallback(self, true)
-		end
+		setFallback(self, true)
 	else
 		setFallback(self)
 	end

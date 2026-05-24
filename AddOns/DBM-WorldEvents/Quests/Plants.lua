@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("PlantsVsZombies", "DBM-WorldEvents", 2)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260315034941")
+mod:SetRevision("20260523021914")
 mod:DisableHardcodedOptions()
 mod:SetZone(DBM_DISABLE_ZONE_DETECTION)
 
@@ -19,7 +19,7 @@ local warnAberration			= mod:NewSpellAnnounce(92228, 3)
 local warnAbomination			= mod:NewSpellAnnounce(92606, 4)
 local warnTotalAdds				= mod:NewAnnounce("warnTotalAdds", 2)
 
-local specWarnWave				= mod:NewSpecialWarning("specWarnWave", nil, nil, nil, 2, 2)
+local specWarnWave				= mod:NewSpecialWarning("specWarnWave", nil, nil, nil, 2, 2, nil, nil, nil, nil, "mobsoon")
 
 local wave = 0
 local addCount = 0
