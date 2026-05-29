@@ -66,12 +66,27 @@ local function GetCurrentDifficultyID()
     return nil
 end
 
--- 只保留可裝備的武器/護甲；過濾掉圖紙、家具、坐騎、寵物蛋、消耗品等
--- GetItemInfoInstant 同步回傳，class 2=Weapon、4=Armor
-local function IsEquipment(itemID)
-    if not itemID then return false end
-    local _, _, _, _, _, classID = GetItemInfoInstant(itemID)
-    return classID == 2 or classID == 4
+-- 判斷一筆 EJ loot 是否為「裝備相關」（含套裝兌換物 tier token）。
+-- 依據實測資料（/agsc loot）：
+--   * 可裝備物品 equipLoc = 真實欄位 (INVTYPE_HEAD / INVTYPE_TRINKET / INVTYPE_WEAPON...)
+--   * 非裝備物品 equipLoc = "INVTYPE_NON_EQUIP_IGNORE"（注意：非空字串！）
+--   * 公式/圖樣=class9、戰利品袋/材料=class20、tier token=class15
+-- 規則：真實裝備欄位，或 class15(tier token，排除坐騎/寵物) → 視為裝備；其餘略過。
+local function IsEquipment(info)
+    if not info or not info.itemID then return false end
+    local _, _, _, equipLoc, _, classID, subClassID = GetItemInfoInstant(info.itemID)
+
+    -- 真實可裝備欄位（排除 INVTYPE_NON_EQUIP_IGNORE 這種「不可裝備」標記）
+    if equipLoc and equipLoc ~= "" and equipLoc ~= "INVTYPE_NON_EQUIP_IGNORE" then
+        return true
+    end
+
+    -- 套裝兌換物 (tier token)：Miscellaneous(15)，排除坐騎(5)/伴隨寵物(2)
+    if classID == 15 and subClassID ~= 5 and subClassID ~= 2 then
+        return true
+    end
+
+    return false
 end
 
 -- ============================================================
@@ -87,7 +102,7 @@ local function DoFullScan(classID)
         local numLoot = EJ_GetNumLoot() or 0
         for i = 1, numLoot do
             local info = C_EncounterJournal.GetLootInfoByIndex(i)
-            if info and info.itemID and IsEquipment(info.itemID) then
+            if info and info.itemID and IsEquipment(info) then
                 local itemID = info.itemID
                 local m = ns.itemSpecMap[itemID]
                 if not m then
@@ -128,8 +143,11 @@ local function ScanIfNeeded()
     if ns.SCANNING then return end
     if not EncounterJournal then return end
 
+    -- 只需要選了「職業」即可掃描；具體天賦(specID)不是必要——掃描時我們自己對
+    -- 每個天賦切換 filter。specID 只用來決定預設基準天賦，0(所有天賦) 也 OK。
     local classID, specID = EJ_GetLootFilter()
-    if not classID or classID == 0 or not specID or specID == 0 then
+    specID = specID or 0
+    if not classID or classID == 0 then
         ns.enabled = false
         wipe(ns.itemSpecMap)
         wipe(ns.itemInfoCache)
@@ -241,6 +259,22 @@ local commands = {
               ns.classID, ns.specID,
               tostring(ns.encounterID), tostring(ns.difficultyID), n))
     end,
+    loot = function()
+        -- 列出目前 filter 下每筆 loot 的 classID/subClassID/filterType，方便診斷過濾
+        local num = EJ_GetNumLoot() or 0
+        print(string.format("|cff66ccff[AGSC]|r 目前 loot 共 %d 筆：", num))
+        for i = 1, num do
+            local info = C_EncounterJournal.GetLootInfoByIndex(i)
+            if info and info.itemID then
+                local _, _, _, equipLoc, _, classID, subClassID = GetItemInfoInstant(info.itemID)
+                print(string.format("  [%d] %s | id=%d class=%s sub=%s ft=%s equip=%s",
+                    i, tostring(info.name), info.itemID,
+                    tostring(classID), tostring(subClassID),
+                    tostring(info.filterType),
+                    (equipLoc ~= "" and equipLoc) or "-"))
+            end
+        end
+    end,
     panel = function()
         if ns.TogglePanel then ns.TogglePanel() end
     end,
@@ -258,6 +292,6 @@ SlashCmdList["AGSC"] = function(msg)
     if fn then
         fn()
     else
-        print("|cff66ccff[AGSC]|r 指令：/agsc " .. table.concat({"rescan", "dump", "panel", "badges"}, " | "))
+        print("|cff66ccff[AGSC]|r 指令：/agsc " .. table.concat({"rescan", "dump", "panel", "badges", "loot"}, " | "))
     end
 end

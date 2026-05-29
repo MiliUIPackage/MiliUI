@@ -7,10 +7,10 @@
 
 local addonName, ns = ...
 
-local BADGE_SIZE     = 14
-local BADGE_GAP      = 2
-local BADGE_OFFSET_X = -4
-local BADGE_OFFSET_Y = 2
+local BADGE_SIZE     = 16
+local BADGE_GAP      = 5     -- 徽章間距，留白讓排版更清爽
+local BADGE_OFFSET_X = -10   -- 距右邊內縮，不貼邊
+local BADGE_OFFSET_Y = -6    -- 錨在 TOPRIGHT，對齊物品名稱行，避開底部的部位/類型文字
 
 -- ============================================================
 -- Badge factory
@@ -103,7 +103,7 @@ local function ApplyBadges(row, elementData)
         local b = badges[i]
         b.icon:SetTexture(spec.icon)
         b:ClearAllPoints()
-        b:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT",
+        b:SetPoint("TOPRIGHT", row, "TOPRIGHT",
                    BADGE_OFFSET_X - (i - 1) * (BADGE_SIZE + BADGE_GAP),
                    BADGE_OFFSET_Y)
 
