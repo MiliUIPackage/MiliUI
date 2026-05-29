@@ -366,7 +366,7 @@ local debuffs = {
             1214038, -- Ethereal Shackles
             1243905, -- Unstable Energy
             1214081, -- Arcane Expulsion
-            474407, -- Arcane Empowerment
+            "474407", -- Arcane Empowerment (track by ID: zhTW name "秘法活化" collides with player buff 1254550)
             1214089, -- Arcane Residue
         },
         [2661] = { -- Seranel Sunlash

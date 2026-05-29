@@ -598,24 +598,41 @@ local function BorderIcon_SetCooldown(frame, start, duration, debuffType, textur
         frame.cooldown:SetSwipeColor(r, g, b)
         frame.cooldown:_SetCooldown(start, duration)
 
-        if not frame.showDuration then
+        if Cell.isMidnight then
+            -- Midnight: the countdown is rendered by Blizzard's built-in cooldown numbers
+            -- (toggled via SetHideCountdownNumbers in BorderIcon_ShowDuration). Cell's own
+            -- duration FontString + OnUpdate MUST stay off here, otherwise both render and
+            -- overlap -- e.g. Blizzard "29分" (localized, rounds up) on top of Cell's "28m"
+            -- (literal "m", truncated). This keeps the non-secret SetCooldown path consistent
+            -- with the secret SetCooldownFromAura path, which already shows only Blizzard's.
             frame.duration:Hide()
+            frame:SetScript("OnUpdate", nil)
+            frame._start = nil
+            frame._duration = nil
+            frame._remain = nil
+            frame._elapsed = nil
+            frame._threshold = nil
+            frame._elapsedTime = nil
         else
-            if frame.showDuration == true then
-                frame._threshold = duration
-            elseif frame.showDuration >= 1 then
-                frame._threshold = frame.showDuration
-            else -- < 1
-                frame._threshold = frame.showDuration * duration
+            if not frame.showDuration then
+                frame.duration:Hide()
+            else
+                if frame.showDuration == true then
+                    frame._threshold = duration
+                elseif frame.showDuration >= 1 then
+                    frame._threshold = frame.showDuration
+                else -- < 1
+                    frame._threshold = frame.showDuration * duration
+                end
+                frame.duration:Show()
             end
-            frame.duration:Show()
-        end
 
-        if frame.showDuration then
-            frame._start = start
-            frame._duration = duration
-            frame._elapsed = 0.1 -- update immediately
-            frame:SetScript("OnUpdate", useElapsedTime and Icon_OnUpdate_ElapsedTime or Icon_OnUpdate)
+            if frame.showDuration then
+                frame._start = start
+                frame._duration = duration
+                frame._elapsed = 0.1 -- update immediately
+                frame:SetScript("OnUpdate", useElapsedTime and Icon_OnUpdate_ElapsedTime or Icon_OnUpdate)
+            end
         end
     end
 
