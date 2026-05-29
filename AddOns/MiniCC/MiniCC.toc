@@ -1,6 +1,8 @@
 ## Interface: 120005
 ## Title: MiniCC
+## Title-zhTW: |cFF00FFFF[戰鬥]|r PvP控場提示
 ## Notes: Shows CC and important spells on frames/nameplates/alerts in PvP.
+## Category-zhTW: 戰鬥
 ## Author: Verz
 ## Version: 3.23.0
 ## SavedVariables: MiniCCDB

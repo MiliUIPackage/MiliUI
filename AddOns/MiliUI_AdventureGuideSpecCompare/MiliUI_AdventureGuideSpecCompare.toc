@@ -5,8 +5,10 @@
 ## Notes-zhTW: 在冒險指南顯示同職業不同天賦的裝備差異（每件裝備加上天賦徽章 + 右側差異面板）
 ## Author: Custom
 ## Version: 1.0
+## IconTexture: Interface\Icons\INV_Misc_Book_07
 ## SavedVariables: AGSCDB
 ## OptionalDeps: Blizzard_EncounterJournal
+## Category-zhTW: 資訊
 
 core.lua
 badges.lua
