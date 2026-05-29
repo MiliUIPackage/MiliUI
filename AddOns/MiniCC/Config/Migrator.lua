@@ -43,7 +43,7 @@ local dbDefaults = {
 				Grow = "RIGHT",
 
 				Icons = {
-					Size = 32,
+					Size = 15,
 					SizeIsPercent = false,
 					SizePercent = 80,
 					Glow = true,
@@ -426,7 +426,7 @@ local dbDefaults = {
 				Offset = { X = 0, Y = 0 },
 				Grow = "CENTER",
 				Icons = {
-					Size = 30,
+					Size = 15,
 					SizeIsPercent = false,
 					SizePercent = 75,
 					Glow = true,
@@ -482,7 +482,7 @@ local dbDefaults = {
 				Predictive = true,
 				IconSpacing = 2,
 				Icons = {
-					Size = 40,
+					Size = 15,
 					SizeIsPercent = false,
 					SizePercent = 100,
 					ReverseCooldown = true,
