@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2454, "DBM-Party-Shadowlands", 9, 1194)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260523021914")
+mod:SetRevision("20260525233013")
 mod:SetCreatureID(176556, 176555, 176705)
 mod:SetEncounterID(2441)
 mod:SetUsedIcons(1)
@@ -81,7 +81,7 @@ mod:AddSetIconOption("SetIconOnGluttony", 349627, true, 0, {1})
 --Achillite
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(23231))
 local specWarnVentingProtocol		= mod:NewSpecialWarningDodge(349987, nil, nil, nil, 2, 2, nil, nil, "watchorb")
-local specWarnPurificationProtocol	= mod:NewSpecialWarningDispel(349954, "RemoveMagic", nil, nil, 1, 2)
+local specWarnPurificationProtocol	= mod:NewSpecialWarningDispel(349954, "RemoveMagic", nil, nil, 1, 2, nil, nil, "helpdispel")
 
 local timerAchilliteCD				= mod:NewNextTimer(23, -23231, nil, nil, nil, 1, "132349")
 local timerVentingProtocolCD		= mod:NewCDTimer(26.6, 349987, nil, nil, nil, 3)

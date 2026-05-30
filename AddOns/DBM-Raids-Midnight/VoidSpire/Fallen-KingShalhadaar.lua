@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2736, "DBM-Raids-Midnight", 3, 1307)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260523021809")
+mod:SetRevision("20260526200807")
 mod:SetCreatureID(240432)
 mod:SetEncounterID(3179)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -12,19 +12,25 @@ mod:RegisterCombat("combat")
 
 --Encounter Event 802 was added in patch 12.0.7 for Fallen Oath
 --local warnDespoticCommand					= mod:NewCountAnnounce(1248697, 2)--Hardcode only
+DBM:RegisterAltSpellName(1253024, 1248137)--Shattering Twilight -> Dark Star
+DBM:RegisterAltSpellName(1243453, DBM_COMMON_L.ORBS)--Void Convergence -> Orbs
+DBM:RegisterAltSpellName(1250686, DBM_COMMON_L.AOEDAMAGE)--Twilight Obscurity -> AoE
+DBM:RegisterAltSpellName(1248697, DBM_COMMON_L.POOLS)--Despotic Command -> Pools
+DBM:RegisterAltSpellName(1254081, DBM_COMMON_L.INTERRUPTS)--Fractured Projection -> Interrupts
+DBM:RegisterAltSpellName(1246175, 207544)--Entropic Unraveling -> Beams
 
-local specWarnVoidConvergence				= mod:NewSpecialWarningCount(1243453, nil, nil, DBM_COMMON_L.ORBS, 2, 2, nil, nil, "targetchange")
+local specWarnVoidConvergence				= mod:NewSpecialWarningCount(1243453, nil, nil, nil, 2, 2, nil, nil, "targetchange")
 local specWarnFracturedProjection			= mod:NewSpecialWarningCount(1254081, "HasInterrupt", nil, nil, 2, 2, nil, nil, "crowdcontrol")
 local specWarnShatteringTwilight			= mod:NewSpecialWarningCount(1253024, nil, nil, nil, 2, 2, nil, nil, "watchstep")
-local specWarnTwilightObscurity				= mod:NewSpecialWarningCount(1250686, nil, nil, DBM_COMMON_L.AOEDAMAGE, 2, 2, nil, nil, "aesoon")
+local specWarnTwilightObscurity				= mod:NewSpecialWarningCount(1250686, nil, nil, nil, 2, 2, nil, nil, "aesoon")
 local specWarnEntropicUnraveling			= mod:NewSpecialWarningCount(1246175, nil, nil, nil, 2, 2, nil, nil, "dpshard")
 
-local timerVoidConvergenceCD				= mod:NewCDCountTimer(20.5, 1243453, DBM_COMMON_L.ORBS.." (%s)", nil, nil, 5, nil, DBM_COMMON_L.IMPORTANT_ICON)
-local timerDespoticCommandCD				= mod:NewCDCountTimer(20.5, 1248697, DBM_COMMON_L.POOLS.." (%s)", nil, nil, 3, nil, DBM_COMMON_L.HEALER_ICON)
-local timerFracturedProjectionCD			= mod:NewCDCountTimer(20.5, 1254081, DBM_COMMON_L.INTERRUPTS.." (%s)", nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
-local timerShatteringTwilightCD				= mod:NewCDCountTimer(20.5, 1253024, 1248137, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--shortname "Dark Star"
-local timerTwilightObscurityCD				= mod:NewCDCountTimer(20.5, 1250686, DBM_COMMON_L.AOEDAMAGE.." (%s)", nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
-local timerEntropicUnravelingCD				= mod:NewCDCountTimer(20.5, 1246175, DBM_COMMON_L.LINES.." (%s)", nil, nil, 6, nil, DBM_COMMON_L.DAMAGE_ICON)
+local timerVoidConvergenceCD				= mod:NewCDCountTimer(20.5, 1243453, nil, nil, nil, 5, nil, DBM_COMMON_L.IMPORTANT_ICON)
+local timerDespoticCommandCD				= mod:NewCDCountTimer(20.5, 1248697, nil, nil, nil, 3, nil, DBM_COMMON_L.HEALER_ICON)
+local timerFracturedProjectionCD			= mod:NewCDCountTimer(20.5, 1254081, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerShatteringTwilightCD				= mod:NewCDCountTimer(20.5, 1253024, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--shortname "Dark Star"
+local timerTwilightObscurityCD				= mod:NewCDCountTimer(20.5, 1250686, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
+local timerEntropicUnravelingCD				= mod:NewCDCountTimer(20.5, 1246175, nil, nil, nil, 6, nil, DBM_COMMON_L.DAMAGE_ICON)
 local timerBerserkCD						= mod:NewBerserkTimer(600)
 
 mod:AddPrivateAuraSoundOption(1250828, true, 1243453, 1, 3, "watchfeet", 8)--Void Exposure (People who soak void convergence)
@@ -102,9 +108,7 @@ do
 	---@param timer number
 	---@param timerExact number
 	---@param eventID number
-	---@param eventState number
-	local function timersNonMythic(self, timer, timerExact, eventID, eventState)
-		if eventState ~= 0 then return end--Ignore bugged timer that start paused or canceled (yes blizzards code is that bad)
+	local function timersNonMythic(self, timer, timerExact, eventID)
 		if timer > 101 and timer ~= 490 then return end--Ignore blizzard resending berserk timer for no reason
 		--Logic confirmed against normal and LFR and heroic
 		if timer == 490 then--Berserk
@@ -176,10 +180,8 @@ do
 	---@param timer number
 	---@param timerExact number
 	---@param eventID number
-	---@param eventState number
-	local function timersMythic(self, timer, timerExact, eventID, eventState)
+	local function timersMythic(self, timer, timerExact, eventID)
 		--Logic confirmed against Mythic Week3 logs
-		if eventState ~= 0 then return end--Ignore bugged timer that start paused or canceled (yes blizzards code is that bad)
 		if timer > 101 and timer ~= 370 then return end--Ignore blizzard resending berserk timer for no reason
 		if timer == 370 then--Berserk
 			timerBerserkCD:Start(370)
@@ -210,8 +212,6 @@ do
 			timerFracturedProjectionCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "fractured", "fracturedProjectionCount"))
 		elseif timer == 44 then--Shattering Twilight
 			timerShatteringTwilightCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "shattering", "shatteringTwilightCount"))
-		elseif eventState == 1 and self:IsRoundedTimer(timerExact, 34.7, 1) then--Carryover bar during Entropic overwrite window (covers 33.7-35.7 instant-cancel artifacts)
-			return
 		elseif timer == 11 or timer == 47 then--Void Convergence
 			timerVoidConvergenceCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "convergence", "convergenceCount"))
 			next45Type = "twisted"
@@ -250,14 +250,15 @@ do
 	function mod:ENCOUNTER_TIMELINE_EVENT_ADDED(eventInfo)
 		if eventInfo.source ~= 0 then return end
 		local eventID = eventInfo.id
-		local eventState = eventInfo.state
+		local eventState = C_EncounterTimeline.GetEventState(eventID)
+		if eventState ~= 0 then return end--Ignore bugged timer that start paused or canceled (yes blizzards code is that bad)
 		local timerExact = eventInfo.duration
 		local timer = math.floor(timerExact + 0.5)
 		if not badStateDetected then
 			if self:IsMythic() then
-				timersMythic(self, timer, timerExact, eventID, eventState)
+				timersMythic(self, timer, timerExact, eventID)
 			else
-				timersNonMythic(self, timer, timerExact, eventID, eventState)
+				timersNonMythic(self, timer, timerExact, eventID)
 			end
 		end
 	end

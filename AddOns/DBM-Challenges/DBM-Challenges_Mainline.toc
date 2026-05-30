@@ -1,4 +1,4 @@
-## Interface: 120005
+## Interface: 120005, 120007
 ## X-Min-Interface: 80000
 ## Category: DBM
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Challenges|r
@@ -25,7 +25,7 @@
 ## X-DBM-Mod-MinExpansion: 4
 ## X-Curse-Project-ID: 61621
 ## X-Wago-ID: Rn6VLLGd
-## Version: r252-1
+## Version: r252-2
 ## Category-zhTW: 地城與團隊
 ## Category-zhTW: 副本
 

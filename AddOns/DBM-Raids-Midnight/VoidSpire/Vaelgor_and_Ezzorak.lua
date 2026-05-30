@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2735, "DBM-Raids-Midnight", 3, 1307)
 --local L		= mod:GetLocalizedStrings()--Nothing to localize for blank mods
 
-mod:SetRevision("20260523021809")
+mod:SetRevision("20260526004034")
 mod:SetCreatureID(250892)--Vaelgor main boss, 254109 for Ezzorak
 mod:SetEncounterID(3178)
 --mod:SetHotfixNoticeRev(20250823000000)
@@ -13,12 +13,15 @@ mod:RegisterCombat("combat")
 --NOTE: hardcode can probably combine cosmisis abilities into a single https://www.wowhead.com/ptr/spell=1263623/cosmosis timer
 --local warnRadiantBarrier			= mod:NewCountAnnounce(1248847, 1)
 local warnGrabblingMaw				= mod:NewCountAnnounce(1280458, 2, nil, "Tank")
+DBM:RegisterAltSpellName(1244221, 17088)--Dread Breath -> Breath
+DBM:RegisterAltSpellName(1244917, DBM_COMMON_L.ORBS)--Void Howl -> Orbs
+DBM:RegisterAltSpellName(1249748, DBM_COMMON_L.AOEDAMAGE)--Midnight Flames -> AoE
 
 local specWarnNullBeam				= mod:NewSpecialWarningCount(1262623, nil, nil, nil, 2, 2, nil, nil, "beamincoming")
-local specWarnVoidHowl				= mod:NewSpecialWarningCount(1244917, nil, nil, DBM_COMMON_L.ORBS, 2, 2, nil, nil, "range5")
+local specWarnVoidHowl				= mod:NewSpecialWarningCount(1244917, nil, nil, nil, 2, 2, nil, nil, "range5")
 local specWarnGloom					= mod:NewSpecialWarningBlizzTarget(1245391, nil, nil, nil, 2, 2, nil, nil, "gloomincoming")
-local specWarnDreadBreath			= mod:NewSpecialWarningBlizzTarget(1244221, nil, 17088, nil, 2, 2, nil, nil, "breathsoon")
-local specWarnMidnightFlames		= mod:NewSpecialWarningCount(1249748, nil, nil, DBM_COMMON_L.AOEDAMAGE, 2, 2, nil, nil, "aesoon")
+local specWarnDreadBreath			= mod:NewSpecialWarningBlizzTarget(1244221, nil, nil, nil, 2, 2, nil, nil, "breathsoon")
+local specWarnMidnightFlames		= mod:NewSpecialWarningCount(1249748, nil, nil, nil, 2, 2, nil, nil, "aesoon")
 --local specWarnGrabblingMaw		= mod:NewSpecialWarningCount(1280458, nil, nil, nil, 1, 2)
 local specWarnRakfang				= mod:NewSpecialWarningDefensive(1245645, nil, nil, nil, 1, 2, nil, nil, "defensive")
 local specWarnVaelwing				= mod:NewSpecialWarningDefensive(1265131, nil, nil, nil, 1, 2, nil, nil, "defensive")
@@ -29,10 +32,10 @@ local specWarnCosmosisVoidHowl		= mod:NewSpecialWarningCount(1277473, nil, nil, 
 local specWarnRadiantBarrier		= mod:NewSpecialWarningCount(1248847, nil, nil, nil, 2, 2, nil, nil, "findshield")
 
 local timerNullBeamCD				= mod:NewCDCountTimer(20.5, 1262623, nil, nil, nil, 3, nil, DBM_COMMON_L.IMPORTANT_ICON)
-local timerVoidHowlCD				= mod:NewCDCountTimer("d20.5", 1244917, DBM_COMMON_L.ORBS.." (%s)", nil, nil, 2)
+local timerVoidHowlCD				= mod:NewCDCountTimer("d20.5", 1244917, nil, nil, nil, 2)
 local timerGloomCD					= mod:NewCDCountTimer(20.5, 1245391, nil, nil, nil, 3, nil, DBM_COMMON_L.IMPORTANT_ICON)
-local timerDreadBreathCD			= mod:NewCDCountTimer(20.5, 1244221, 17088, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)
-local timerMidnightFlamesCD			= mod:NewCDCountTimer(20.5, 1249748, DBM_COMMON_L.AOEDAMAGE.." (%s)", nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
+local timerDreadBreathCD			= mod:NewCDCountTimer(20.5, 1244221, nil, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)
+local timerMidnightFlamesCD			= mod:NewCDCountTimer(20.5, 1249748, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
 local timerGrabblingMawCD			= mod:NewCDCountTimer(20.5, 1280458, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerRakfangCD				= mod:NewCDCountTimer(20.5, 1245645, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerVaelwingCD				= mod:NewCDCountTimer("d20.5", 1265131, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
@@ -443,17 +446,17 @@ do
 						self:SetStage(1.5)
 					end
 				end
-			elseif self:IsRoundedTimer(timer, 8) then--Midnight Flames marker (mythic stage transition is driven by Radiant Barrier count)
-				timerMidnightFlamesCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "flames", "flamesCount"))
 			elseif self:IsRoundedTimer(timer, 6, 0.3) or self:IsRoundedTimer(timer, 17) or self:IsRoundedTimer(timer, 19) then--Vaelwing cadence confirmed in mythic stage 1
 				timerVaelwingCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "vaelwing", "vaelwingCount"))
 			elseif self:IsRoundedTimer(timer, 7, 0.3) or self:IsRoundedTimer(timer, 65) then--Dread Breath opener and repeats
 				timerDreadBreathCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "dread", "dreadCount"))
 				--Initial stage 1 breath has bugged bar stage changed (doesn't fire one at all)
 				self:Schedule(6, BuggedBreathDelay, self, eventID)
-			elseif self:IsRoundedTimer(timer, 10) then--Gloom opener
+			elseif self:IsRoundedTimer(timer, 8, 0.1) then--Midnight Flames marker (mythic stage transition is driven by Radiant Barrier count)
+				timerMidnightFlamesCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "flames", "flamesCount"))
+			elseif self:IsRoundedTimer(timer, 10, 0.3) then--Gloom opener
 				timerGloomCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "gloom", "gloomCount"))
-			elseif self:IsRoundedTimer(timer, 12) then--Rakfang opener
+			elseif self:IsRoundedTimer(timer, 12, 0.3) then--Rakfang opener
 				timerRakfangCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "rakfang", "rakfangCount"))
 			elseif self:IsRoundedTimer(timer, 21) then--Rakfang recurring cadence
 				timerRakfangCD:TLStart(timerExact, eventID, self:TLCountStart(eventID, "rakfang", "rakfangCount"))

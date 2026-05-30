@@ -3,7 +3,7 @@ local mod	= DBM:NewMod("d640", "DBM-Challenges", 4, nil, function(t)
 end)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260523021914")
+mod:SetRevision("20260525233013")
 mod:DisableHardcodedOptions()
 mod.noStatistics = true
 
@@ -45,7 +45,7 @@ local specWarnBanshee		= mod:NewSpecialWarningSwitch(142838, nil, nil, nil, 1, 2
 --Healer
 local specWarnStinger		= mod:NewSpecialWarningSwitch(145198, false, nil, nil, 1, 2, nil, nil, "targetchange")
 local specWarnSonicBlast	= mod:NewSpecialWarningInterrupt(145200, false, nil, nil, 1, 2, nil, nil, "kickcast")--have to be pretty damn fast to interrupt this, off by default and for the very skilled mainly
-local specWarnAquaBomb		= mod:NewSpecialWarningTarget(145206, nil, nil, nil, 1, 2)--It's cast too often to dispel them off, so it's better as a target warning.
+local specWarnAquaBomb		= mod:NewSpecialWarningTarget(145206, nil, nil, nil, 1, 2, nil, nil, "targetchange")--It's cast too often to dispel them off, so it's better as a target warning.
 
 --Tank
 local timerWindBlastCD		= mod:NewCDNPTimer(17.7, 144106, nil, nil, nil, 5)

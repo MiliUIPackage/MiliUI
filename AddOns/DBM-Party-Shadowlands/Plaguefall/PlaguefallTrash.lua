@@ -2,7 +2,7 @@ if DBM:IsPostMidnight() then return end
 local mod	= DBM:NewMod("PlaguefallTrash", "DBM-Party-Shadowlands", 2)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20260523021914")
+mod:SetRevision("20260525233013")
 mod:DisableHardcodedOptions()
 mod:SetZone(2289)
 --mod:SetModelID(47785)
@@ -41,7 +41,7 @@ local specWarnBulwarkofMaldraxxus		= mod:NewSpecialWarningMove(336451, "Tank", n
 local specWarnCallVenomfang				= mod:NewSpecialWarningInterrupt(328338, "HasInterrupt", nil, nil, 1, 2, nil, nil, "kickcast")
 --Unknown
 local specWarnWonderGrow				= mod:NewSpecialWarningInterrupt(328016, "HasInterrupt", nil, nil, 1, 2, nil, nil, "kickcast")
-local specWarnWonderGrowDispel			= mod:NewSpecialWarningDispel(328015, "MagicDispeller", nil, nil, 1, 2)
+local specWarnWonderGrowDispel			= mod:NewSpecialWarningDispel(328015, "MagicDispeller", nil, nil, 1, 2, nil, nil, "dispelboss")
 local specWarnJaggedSpines				= mod:NewSpecialWarningDodge(320517, nil, nil, nil, 2, 2, nil, nil, "watchstep")
 
 local timerMetamorphosis				= mod:NewCastTimer(10, 322232, nil, nil, nil, 1)
