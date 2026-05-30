@@ -1,4 +1,22 @@
-﻿12.0.12 - 8th April 2026
+﻿12.0.20 - 27th May 2026
+- For 'Enhance dressup' ('Interface'), fixed a secrets issue with the link outfit button.
+- Fixed a secrets issue with the mount special keybinding.
+
+12.0.19 - 21st May 2026
+- The 'Increase chat history' option ('Chat') has been removed due to a secrets issue.
+
+12.0.18 - 20th May 2026
+- For 'Move editbox to top' ('Chat'), fixed a secrets issue which caused a Lua error.
+- For 'Show durability status' ('Interface'), fixed a situational, minor issue with coloring.
+
+12.0.16 - 6th May 2026
+- PTR (12.0.7): Updated for game patch 12.0.7.
+- For 'Enhance dressup' ('Interface'), the zoom speed slider now applies to the mount journal and pet journal too.
+
+12.0.14 - 22nd April 2026
+- Updated for game patch 12.0.5.
+
+12.0.12 - 8th April 2026
 - For 'Media', added 'Atal'Aman', 'Silvermoon City (Midnight)' and 'Zul'Aman (Midnight)' ('Zones') and 'Dreamrift' and 'Windrunner Spire' ('Dungeons').
 
 12.0.11 - 26th March 2026

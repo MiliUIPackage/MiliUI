@@ -17,7 +17,9 @@
 
 	<!-- Mount special -->
 	<Binding name="LEATRIX_PLUS_GLOBAL_MOUNTSPECIAL" category = "Leatrix Plus">
-		DoEmote('mountspecial')
+		if not C_RestrictedActions.IsAddOnRestrictionActive(Enum.AddOnRestrictionType.Chat) then
+			DoEmote('mountspecial')
+		end
 	</Binding>
 
 	<!-- Flares -->

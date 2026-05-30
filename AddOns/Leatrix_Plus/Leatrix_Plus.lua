@@ -1,5 +1,5 @@
 ﻿----------------------------------------------------------------------
--- 	Leatrix Plus 12.0.12 (8th April 2026)
+-- 	Leatrix Plus 12.0.20 (27th May 2026)
 ----------------------------------------------------------------------
 
 --	01:Functions 02:Locks,  03:Restart 40:Player
@@ -18,7 +18,7 @@
 	local void
 
 	-- Version
-	LeaPlusLC["AddonVer"] = "12.0.12"
+	LeaPlusLC["AddonVer"] = "12.0.20"
 
 	-- Get locale table
 	local void, Leatrix_Plus = ...
@@ -34,7 +34,7 @@
 			end)
 			return
 		end
-		if gametocversion and gametocversion >= 120001 then -- 12.0.1
+		if gametocversion and gametocversion >= 120007 then -- 12.0.7
 			LeaPlusLC.NewPatch = true
 		end
 	end
@@ -619,7 +619,6 @@
 		or	(LeaPlusLC["UseArrowKeysInChat"]	~= LeaPlusDB["UseArrowKeysInChat"])		-- Use arrow keys in chat
 		or	(LeaPlusLC["NoChatFade"]			~= LeaPlusDB["NoChatFade"])				-- Disable chat fade
 		or	(LeaPlusLC["RecentChatWindow"]		~= LeaPlusDB["RecentChatWindow"])		-- Recent chat window
-		or	(LeaPlusLC["MaxChatHstory"]			~= LeaPlusDB["MaxChatHstory"])			-- Increase chat history
 		or	(LeaPlusLC["FilterChatMessages"]	~= LeaPlusDB["FilterChatMessages"])		-- Filter chat messages
 		or	(LeaPlusLC["RestoreChatMessages"]	~= LeaPlusDB["RestoreChatMessages"])	-- Restore chat messages
 
@@ -968,7 +967,7 @@
 				if (not UnitExists("party1") or UnitIsGroupLeader("player") or UnitIsGroupAssistant("player")) and strlower(strtrim(arg1)) == strlower(LeaPlusLC["InvKey"]) then
 					if not LeaPlusLC:IsInLFGQueue() then
 						if event == "CHAT_MSG_WHISPER" then
-							local void, void, void, void, viod, void, void, void, void, guid = ...
+							local void, void, void, void, void, void, void, void, void, guid = ...
 							if LeaPlusLC:FriendCheck(arg2, guid) or LeaPlusLC["InviteFriendsOnly"] == "Off" then
 								-- If whisper name is same realm, remove realm name
 								local theWhisperName, theWhisperRealm = strsplit("-", arg2, 2)
@@ -1626,8 +1625,8 @@
 			end)
 			MovieFrame:HookScript("OnKeyUp", function(self, key)
 				if key == "SPACE" or key == "ESCAPE" or key == "ENTER" then
-					if MovieFrame:IsShown() and MovieFrame.CloseDialog and MovieFrame.CloseDialog.ConfirmButton then
-						MovieFrame.CloseDialog.ConfirmButton:Click()
+					if MovieFrame.CloseDialog.Buttons.ConfirmButton then
+						MovieFrame.CloseDialog.Buttons.ConfirmButton:Click()
 					end
 				end
 			end)
@@ -2144,6 +2143,7 @@
 
 			SetButton(DressUpFrameCancelButton, "C", "Close")
 			SetButton(DressUpFrameResetButton, "R", "Reset")
+			SetButton(DressUpFrame.LinkButton, "L", "Link outfit")
 
 			-- Remove all items button (parented to reset button so they show with reset button)
 			LeaPlusLC:CreateButton("DressUpNudeBtn", DressUpFrameResetButton, "N", "BOTTOMLEFT", 106, 79, 80, 22, false, "")
@@ -2241,117 +2241,10 @@
 				end
 			end)
 
-			-- Hide link button
-			DressUpFrame.LinkButton:HookScript("OnShow", DressUpFrame.LinkButton.Hide)
-
-			-- Create editbox for link to slash command
-			local pFrame = CreateFrame("Frame", nil, DressUpFrame)
-			pFrame:ClearAllPoints()
-			pFrame:SetPoint("CENTER", DressUpFrame, "CENTER", 0, -10)
-			pFrame:SetSize(230,300)
-			pFrame:Hide()
-			pFrame:SetFrameLevel(5000)
-			pFrame:SetScript("OnMouseDown", function(self, btn)
-				if btn == "RightButton" then
-					pFrame:Hide()
-				end
-			end)
-
-			-- Add text
-			LeaPlusLC:MakeTx(pFrame, "Share outfit online", 16, -72)
-			pFrame.txt = LeaPlusLC:MakeWD(pFrame, "Press CTRL/C to copy this command to the clipboard for sharing your outfit online.", 16, -136)
-			pFrame.txt:SetWordWrap(true)
-			pFrame.txt:SetWidth(200)
-
-			pFrame.btn = LeaPlusLC:CreateButton("ShareOutfitDone", pFrame, "Okay", "TOPLEFT", 16, -212, 0, 25, true, "")
-			pFrame.btn:ClearAllPoints()
-			pFrame.btn:SetPoint("BOTTOMRIGHT", pFrame, "BOTTOMRIGHT", -10, 10)
-
-			pFrame.btn:SetScript("OnClick", function()
-				pFrame:Hide()
-			end)
-
-			-- Hide frame when outfit changes
-			hooksecurefunc(DressUpFrame.CustomSetDropdown, "UpdateSaveButton", function() pFrame:Hide() end)
-
-			-- Add background color
-			pFrame.t = pFrame:CreateTexture(nil, "BACKGROUND")
-			pFrame.t:SetAllPoints()
-			pFrame.t:SetColorTexture(0.05, 0.05, 0.05, 0.8)
-
-			-- Create editbox
-			local petEB = CreateFrame("EditBox", nil, pFrame)
-			petEB:SetPoint("TOPLEFT", 15, -100)
-			petEB:SetSize(200, 16)
-			petEB:SetTextInsets(2, 2, 2, 2)
-			petEB:SetFontObject("GameFontNormal")
-			petEB:SetTextColor(1.0, 1.0, 1.0, 1)
-			petEB:SetBlinkSpeed(0)
-			petEB:SetAltArrowKeyMode(true)
-
-			-- Create tooltip
-			petEB.tiptext = L["Press CTRL/C to copy."]
-			petEB:HookScript("OnEnter", function()
-				GameTooltip:SetOwner(petEB, "ANCHOR_TOP", 0, 10)
-				GameTooltip:SetText(petEB.tiptext, nil, nil, nil, nil, true)
-			end)
-			petEB:HookScript("OnLeave", GameTooltip_Hide)
-
-			-- Prevent changes
-			petEB:SetScript("OnEscapePressed", function() pFrame:Hide() end)
-			petEB:SetScript("OnEnterPressed", function() petEB:HighlightText() end)
-			petEB:SetScript("OnMouseDown", function(self, btn)
-				petEB:ClearFocus()
-				if btn == "RightButton" then
-					pFrame:Hide()
-				end
-			end)
-			petEB:SetScript("OnMouseUp", function() petEB:HighlightText() end)
-
-			-- Link to chat
-			LeaPlusLC:CreateButton("DressUpLinkChatBtn", DressUpFrameResetButton, "L", "BOTTOMLEFT", 26, 79, 80, 22, false, "")
-			LeaPlusCB["DressUpLinkChatBtn"]:ClearAllPoints()
-			LeaPlusCB["DressUpLinkChatBtn"]:SetPoint("BOTTOMLEFT", DressUpFrame, "BOTTOMLEFT", 2, 4)
-			SetButton(LeaPlusCB["DressUpLinkChatBtn"], "L", "Link outfit in chat")
-			LeaPlusCB["DressUpLinkChatBtn"]:SetScript("OnClick", function()
-				local playerActor = DressUpFrame.ModelScene:GetPlayerActor()
-				local itemTransmogInfoList = playerActor and playerActor:GetItemTransmogInfoList()
-				local hyperlink = C_TransmogCollection.GetCustomSetHyperlinkFromItemTransmogInfoList(itemTransmogInfoList)
-				if not ChatFrameUtil.InsertLink(hyperlink) then
-					ChatFrame_OpenChat(hyperlink)
-				end
-			end)
-
-			-- Share outfit online
-			LeaPlusLC:CreateButton("DressUpLinkSlashBtn", DressUpFrameResetButton, "W", "BOTTOMLEFT", 26, 79, 80, 22, false, "")
-			LeaPlusCB["DressUpLinkSlashBtn"]:ClearAllPoints()
-			LeaPlusCB["DressUpLinkSlashBtn"]:SetPoint("LEFT", LeaPlusCB["DressUpLinkChatBtn"], "RIGHT", 0, 0)
-			SetButton(LeaPlusCB["DressUpLinkSlashBtn"], "W", "Share outfit online")
-			LeaPlusCB["DressUpLinkSlashBtn"]:SetScript("OnClick", function()
-				local playerActor = DressUpFrame.ModelScene:GetPlayerActor()
-				local itemTransmogInfoList = playerActor and playerActor:GetItemTransmogInfoList()
-				local slashCommand = TransmogUtil.CreateCustomSetSlashCommand(itemTransmogInfoList)
-
-				-- Function to refresh editbox text
-				local function RefreshEditBoxText()
-					petEB:SetText(slashCommand)
-					petEB:HighlightText()
-					petEB:SetFocus()
-					petEB:SetCursorPosition(0)
-				end
-
-				-- Prevent changes to editbox value
-				petEB:SetScript("OnChar", RefreshEditBoxText)
-				petEB:SetScript("OnKeyUp", RefreshEditBoxText)
-				RefreshEditBoxText()
-
-				if pFrame:IsShown() then pFrame:Hide() else pFrame:Show() end
-			end)
-
 			-- Toggle buttons
 			LeaPlusLC:CreateButton("DressUpButonsBtn", DressUpFrameResetButton, "B", "BOTTOMLEFT", 26, 79, 80, 22, false, "")
 			LeaPlusCB["DressUpButonsBtn"]:ClearAllPoints()
-			LeaPlusCB["DressUpButonsBtn"]:SetPoint("LEFT", LeaPlusCB["DressUpLinkSlashBtn"], "RIGHT", 0, 0)
+			LeaPlusCB["DressUpButonsBtn"]:SetPoint("LEFT", DressUpFrame.LinkButton, "RIGHT", 0, 0)
 			SetButton(LeaPlusCB["DressUpButonsBtn"], "B", "Toggle buttons")
 			LeaPlusCB["DressUpButonsBtn"]:SetScript("OnClick", function()
 				if LeaPlusLC["DressupItemButtons"] == "On" then LeaPlusLC["DressupItemButtons"] = "Off" else LeaPlusLC["DressupItemButtons"] = "On" end
@@ -2384,12 +2277,6 @@
 
 				_G.LeaPlusGlobalDressUpOutfitOnTargetBtn = LeaPlusCB["DressUpOutfitOnTargetBtn"]
 				LeaPlusLC.ElvUI:GetModule("Skins"):HandleButton(_G.LeaPlusGlobalDressUpOutfitOnTargetBtn)
-
-				_G.LeaPlusGlobalDressUpLinkChatBtn = LeaPlusCB["DressUpLinkChatBtn"]
-				LeaPlusLC.ElvUI:GetModule("Skins"):HandleButton(_G.LeaPlusGlobalDressUpLinkChatBtn)
-
-				_G.LeaPlusGlobalDressUpLinkSlashBtn = LeaPlusCB["DressUpLinkSlashBtn"]
-				LeaPlusLC.ElvUI:GetModule("Skins"):HandleButton(_G.LeaPlusGlobalDressUpLinkSlashBtn)
 			end
 
 			----------------------------------------------------------------------
@@ -2428,6 +2315,29 @@
 			----------------------------------------------------------------------
 			-- Wardrobe and inspect system
 			----------------------------------------------------------------------
+
+			-- Set zoom speed for mount and pet journal
+			EventUtil.ContinueOnAddOnLoaded("Blizzard_Collections",function()
+
+				-- Set zoom speed for mount journal
+				MountJournal.MountDisplay.ModelScene:SetScript("OnMouseWheel", function(self, delta)
+					for i = 1, LeaPlusLC["DressupFasterZoom"] do
+						if MountJournal.MountDisplay.ModelScene.activeCamera then
+							MountJournal.MountDisplay.ModelScene.activeCamera:OnMouseWheel(delta)
+						end
+					end
+				end)
+
+				-- Set zoom speed for pet journal
+				PetJournalPetCard.modelScene:SetScript("OnMouseWheel", function(self, delta)
+					for i = 1, LeaPlusLC["DressupFasterZoom"] do
+						if PetJournalPetCard.modelScene.activeCamera then
+							PetJournalPetCard.modelScene.activeCamera:OnMouseWheel(delta)
+						end
+					end
+				end)
+
+			end)
 
 			EventUtil.ContinueOnAddOnLoaded("Blizzard_Transmog",function()
 
@@ -4386,7 +4296,7 @@
 								valcol = (durapercent >= 80 and "|cff00FF00") or (durapercent >= 60 and "|cff99FF00") or (durapercent >= 40 and "|cffFFFF00") or (durapercent >= 20 and "|cffFF9900") or (durapercent >= 0 and "|cffFF2000") or ("|cffFFFFFF")
 								_G["GameTooltipTextLeft1"]:SetText(L["Durability"])
 								_G["GameTooltipTextLeft2"]:SetText(_G["GameTooltipTextLeft2"]:GetText() .. SlotsFriendly[k] .. "|n")
-								_G["GameTooltipTextRight2"]:SetText(_G["GameTooltipTextRight2"]:GetText() ..  valcol .. durapercent .. "%" .. "|n")
+								_G["GameTooltipTextRight2"]:SetText(_G["GameTooltipTextRight2"]:GetText() ..  valcol .. durapercent .. "%" .. "|r|n")
 							end
 
 							duravaltotal = duravaltotal + duraval
@@ -4527,28 +4437,6 @@
 				if arg1 == "LeftButton" then
 					ChatFrame1:StopMovingOrSizing()
 					FCF_SavePositionAndDimensions(ChatFrame1)
-				end
-			end)
-		end
-
-		----------------------------------------------------------------------
-		--	Increase chat history
-		----------------------------------------------------------------------
-
-		if LeaPlusLC["MaxChatHstory"] == "On" and not LeaLockList["MaxChatHstory"] then
-			-- Process normal and existing chat frames
-			for i = 1, 50 do
-				if _G["ChatFrame" .. i] and _G["ChatFrame" .. i]:GetMaxLines() ~= 4096 then
-					_G["ChatFrame" .. i]:SetMaxLines(4096);
-				end
-			end
-			-- Process temporary chat frames
-			hooksecurefunc("FCF_OpenTemporaryWindow", function()
-				local cf = FCF_GetCurrentChatFrame():GetName() or nil
-				if cf then
-					if (_G[cf]:GetMaxLines() ~= 4096) then
-						_G[cf]:SetMaxLines(4096);
-					end
 				end
 			end)
 		end
@@ -5869,6 +5757,17 @@
 						myButton:HookScript("OnLeave", function()
 							_G[name]:GetScript("OnLeave")()
 						end)
+					elseif name == "LibDBIcon10_WoWtility" then
+						-- Wowtility
+						local myButton = LibStub("LibDBIcon-1.0"):GetMinimapButton("LeaPlusCustomIcon_" .. name)
+						myButton.icon:SetTexture("Interface\\AddOns\\WoWtility\\WoWtility.blp")
+						myButton:SetScript("OnClick", function(self, btn) LibDBIcon10_WoWtility:Click(btn) end)
+						myButton:HookScript("OnEnter", function()
+							_G[name]:GetScript("OnEnter")(_G[name], true)
+						end)
+						myButton:HookScript("OnLeave", function()
+							_G[name]:GetScript("OnLeave")()
+						end)
 					elseif name == "AltoholicMinimapButton" then
 						-- Altoholic
 						local myButton = LibStub("LibDBIcon-1.0"):GetMinimapButton("LeaPlusCustomIcon_" .. name)
@@ -5958,6 +5857,7 @@
 				-- Create LibDBIcon buttons for these addons that have LibDBIcon prefixes
 				local customButtonTable = {
 					"LibDBIcon10_MethodRaidTools", -- Method Raid Tools
+					"LibDBIcon10_WoWtility", -- Wowtility
 				}
 
 				-- Do not create LibDBIcon buttons for these special case buttons
@@ -9712,32 +9612,22 @@
 			for i = 1, 50 do
 				if _G["ChatFrame" .. i] then
 					-- Position the editbox
-					_G["ChatFrame" .. i .. "EditBox"]:ClearAllPoints();
-					_G["ChatFrame" .. i .. "EditBox"]:SetPoint("TOPLEFT", _G["ChatFrame" .. i], 0, 0);
-					_G["ChatFrame" .. i .. "EditBox"]:SetWidth(_G["ChatFrame" .. i]:GetWidth());
-					-- Ensure editbox width matches chatframe width
-					_G["ChatFrame" .. i]:HookScript("OnSizeChanged", function()
-						_G["ChatFrame" .. i .. "EditBox"]:SetWidth(_G["ChatFrame" .. i]:GetWidth())
-					end)
+					_G["ChatFrame" .. i .. "EditBox"]:ClearAllPoints()
+					_G["ChatFrame" .. i .. "EditBox"]:SetPoint("TOP", _G["ChatFrame" .. i], "TOP", 0, 0)
+					_G["ChatFrame" .. i .. "EditBox"]:SetPoint("LEFT", _G["ChatFrame" .. i], "LEFT", 0, 0)
+					_G["ChatFrame" .. i .. "EditBox"]:SetPoint("RIGHT", _G["ChatFrame" .. i], "RIGHT", 0, 0)
 				end
 			end
 
 			-- Do the functions above for other chat frames (pet battles, whispers, etc)
 			hooksecurefunc("FCF_OpenTemporaryWindow", function()
-
 				local cf = FCF_GetCurrentChatFrame():GetName() or nil
 				if cf then
-
 					-- Position the editbox
-					_G[cf .. "EditBox"]:ClearAllPoints();
-					_G[cf .. "EditBox"]:SetPoint("TOPLEFT", cf, "TOPLEFT", 0, 0);
-					_G[cf .. "EditBox"]:SetWidth(_G[cf]:GetWidth());
-
-					-- Ensure editbox width matches chatframe width
-					_G[cf]:HookScript("OnSizeChanged", function()
-						_G[cf .. "EditBox"]:SetWidth(_G[cf]:GetWidth())
-					end)
-
+					_G[cf .. "EditBox"]:ClearAllPoints()
+					_G[cf .. "EditBox"]:SetPoint("TOP", cf, "TOP", 0, 0)
+					_G[cf .. "EditBox"]:SetPoint("LEFT", cf, "LEFT", 0, 0)
+					_G[cf .. "EditBox"]:SetPoint("RIGHT", cf, "RIGHT", 0, 0)
 				end
 			end)
 
@@ -10896,7 +10786,6 @@
 				LeaPlusLC:LoadVarChk("UnivGroupColor", "Off")				-- Universal group color
 				LeaPlusLC:LoadVarChk("RecentChatWindow", "Off")				-- Recent chat window
 				LeaPlusLC:LoadVarNum("RecentChatSize", 170, 170, 600)		-- Recent chat size
-				LeaPlusLC:LoadVarChk("MaxChatHstory", "Off")				-- Increase chat history
 				LeaPlusLC:LoadVarChk("FilterChatMessages", "Off")			-- Filter chat messages
 				LeaPlusLC:LoadVarChk("BlockSpellLinks", "Off")				-- Block spell links
 				LeaPlusLC:LoadVarChk("BlockDrunkenSpam", "Off")				-- Block drunken spam
@@ -11104,7 +10993,6 @@
 								Lock("NoStickyChat", reason, "Chat") -- Disable sticky chat
 								Lock("UseArrowKeysInChat", reason, "Chat") -- Use arrow keys in chat
 								Lock("NoChatFade", reason, "Chat") -- Disable chat fade
-								Lock("MaxChatHstory", reason, "Chat") -- Increase chat history
 								Lock("RestoreChatMessages", reason, "Chat") -- Restore chat messages (E.db.chat.chatHistory)
 							end
 
@@ -11259,7 +11147,6 @@
 			LeaPlusDB["UnivGroupColor"]			= LeaPlusLC["UnivGroupColor"]
 			LeaPlusDB["RecentChatWindow"]		= LeaPlusLC["RecentChatWindow"]
 			LeaPlusDB["RecentChatSize"]			= LeaPlusLC["RecentChatSize"]
-			LeaPlusDB["MaxChatHstory"]			= LeaPlusLC["MaxChatHstory"]
 			LeaPlusDB["FilterChatMessages"]		= LeaPlusLC["FilterChatMessages"]
 			LeaPlusDB["BlockSpellLinks"]		= LeaPlusLC["BlockSpellLinks"]
 			LeaPlusDB["BlockDrunkenSpam"]		= LeaPlusLC["BlockDrunkenSpam"]
@@ -13889,6 +13776,27 @@
 				end)
 				LeaPlusLC:Print("TaintMap started.")
 				return
+			elseif str == "forced" then
+				-- Enable all addon restrictions
+				-- Example: /run ChatFrame1:SetMaxLines(4096) and whipser yourself
+				SetCVar("addonMapRestrictionsForced", "1")
+				SetCVar("addonChatRestrictionsForced", "1")
+				SetCVar("addonCombatRestrictionsForced", "1")
+				SetCVar("addonPvPMatchRestrictionsForced", "1")
+				SetCVar("addonEncounterRestrictionsForced", "1")
+				SetCVar("addonChallengeModeRestrictionsForced", "1")
+				LeaPlusLC:Print("Addon restrictions are now enforced.")
+				return
+			elseif str == "unforced" then
+				-- Remove all addon restrictions
+				SetCVar("addonMapRestrictionsForced", "0")
+				SetCVar("addonChatRestrictionsForced", "0")
+				SetCVar("addonCombatRestrictionsForced", "0")
+				SetCVar("addonPvPMatchRestrictionsForced", "0")
+				SetCVar("addonEncounterRestrictionsForced", "0")
+				SetCVar("addonChallengeModeRestrictionsForced", "0")
+				LeaPlusLC:Print("Addon restrictions are no longer enforced.")
+				return
 			elseif str == "admin" then
 				-- Preset profile (used for testing)
 				LpEvt:UnregisterAllEvents()						-- Prevent changes
@@ -13944,7 +13852,6 @@
 				LeaPlusDB["UnivGroupColor"] = "On"				-- Universal group color
 				LeaPlusDB["RecentChatWindow"] = "On"			-- Recent chat window
 				LeaPlusDB["RecentChatSize"] = 170				-- Recent chat size
-				LeaPlusDB["MaxChatHstory"] = "Off"				-- Increase chat history
 				LeaPlusDB["FilterChatMessages"] = "On"			-- Filter chat messages
 				LeaPlusDB["BlockSpellLinks"] = "On"				-- Block spell links
 				LeaPlusDB["BlockDrunkenSpam"] = "On"			-- Block drunken spam
@@ -14373,9 +14280,8 @@
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "NoChatFade"				, 	"Disable chat fade"				, 	340, -132, 	true,	"If checked, chat text will not fade out after a time period.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "UnivGroupColor"			,	"Universal group color"			,	340, -152,	false,	"If checked, raid chat and instance chat will both be colored blue (to match the default party chat color).")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "RecentChatWindow"			,	"Recent chat window"			, 	340, -172, 	true,	"If checked, you can hold down the control key and click a chat tab to view recent chat in a copy-friendly window.")
-	LeaPlusLC:MakeCB(LeaPlusLC[pg], "MaxChatHstory"				,	"Increase chat history"			, 	340, -192, 	true,	"If checked, your chat history will increase to 4096 lines.  If unchecked, the default will be used (128 lines).|n|nEnabling this option may prevent some chat text from showing during login.")
-	LeaPlusLC:MakeCB(LeaPlusLC[pg], "FilterChatMessages"		, 	"Filter chat messages"			,	340, -212, 	true,	"If checked, you can block spell links, drunken spam and duel spam.")
-	LeaPlusLC:MakeCB(LeaPlusLC[pg], "RestoreChatMessages"		, 	"Restore chat messages"			,	340, -232, 	true,	"If checked, recent chat will be restored when you reload your interface.")
+	LeaPlusLC:MakeCB(LeaPlusLC[pg], "FilterChatMessages"		, 	"Filter chat messages"			,	340, -192, 	true,	"If checked, you can block spell links, drunken spam and duel spam.")
+	LeaPlusLC:MakeCB(LeaPlusLC[pg], "RestoreChatMessages"		, 	"Restore chat messages"			,	340, -212, 	true,	"If checked, recent chat will be restored when you reload your interface.")
 
 	LeaPlusLC:CfgBtn("NoChatButtonsBtn", LeaPlusCB["NoChatButtons"])
 	LeaPlusLC:CfgBtn("SetChatFontSizeBtn", LeaPlusCB["SetChatFontSize"])

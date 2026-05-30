@@ -649,7 +649,7 @@
 		"|Cffffffff" .. L["The War Within"] .. " |r#6036525#147", -- interface/cinematics/tww_110_ug.mp3 (1023)
 		"|Cffffffff" .. L["Thrall and Anduin"] .. " |r#6027243#285", -- interface/cinematics/tww_110_ta.mp3 (1014)
 		"|Cffffffff" .. L["Threads of Destiny"] .. " |r#6036526#313", -- interface/cinematics/tww_110_lc.mp3 (1021)
-		"|Cffffffff" .. L["The Story So Far"] .. " |r#6031151#230", -- interface/cinematics/tww_recap_cinematic.mp3#6031151 (1024)
+		"|Cffffffff" .. L["The Story So Far (The War Within)"] .. " |r#6031151#230", -- interface/cinematics/tww_recap_cinematic.mp3#6031151 (1024)
 		"|Cffffffff" .. L["Dalaran Arrives at Khaz Algar"] .. " |r#5932222#83", -- interface/cinematics/tww_110_tod.mp3 (1010)
 		"|Cffffffff" .. L["Magni's Sacrifice"] .. " |r#6036523#208", -- interface/cinematics/tww_110_mag.mp3 (1013)
 		"|Cffffffff" .. L["Ascension Day"] .. " |r#6036522#77", -- interface/cinematics/tww_110_tcn.mp3 (1020)
@@ -667,7 +667,7 @@
 		"|Cffffffff" .. L["Midnight"] .. " |r#7569816#266", -- (1051)
 		"|Cffffffff" .. L["Supremacy"] .. " |r#7671194#252", -- (1061)
 		"|Cffffffff" .. L["Immolation"] .. " |r#7728589#122", -- (1062)
-		"|Cffffffff" .. L["The Story So Far"] .. " |r#7728181#219", -- (1066)
+		"|Cffffffff" .. L["The Story So Far (Midnight)"] .. " |r#7728181#219", -- (1066)
 
 	})
 
@@ -732,14 +732,14 @@
 	Zn(L["Movies"], L["Movies"], L["Battle for Azeroth"]						, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Battle for Azeroth"], prefol, L["Battle for Azeroth"] .. " |r(852)",	L["Warbringers Sylvanas"] .. " |r(853)", L["The Fall of Lordaeron"] .. " |r(855)", L["Jaina Joins the Battle"] .. " |r(856)", L["Embers of War"] .. " |r(854)", L["Arrival to Zandalar"] .. " |r(857)",	L["Vision of Sailor's Memory"] .. " |r(858)", L["Jaina Returns to Kul Tiras"] .. " |r(859)", L["Jaina's Nightmare"] .. " |r(860)", L["Warbringers Jaina"] .. " |r(861)", L["A Deal with Death"] .. " |r(862)", L["The Threat Within"] .. " |r(863)", L["The Return of Hope"] .. " |r(864)",	L["Realm Of Torment"] .. " |r(865)", L["Terror of Darkshore"] .. " |r(874)", L["An Unexpected Reunion"] .. " |r(879)", L["Siege of Dazar'alor"] .. " |r(876)",	L["Battle of Dazar'alor"] .. " |r(875)", L["Warbringers Azshara"] .. " |r(884)",	L["Rise of Azshara (Horde)"] .. " |r(894)",	L["Rise of Azshara (Alliance)"] .. " |r(883)",	L["The Negotiation"] .. " |r(903)",	L["Reckoning"] .. " |r(904)", L["Azshara's Eternal Palace"] .. " |r(920)", L["Wrathion's Scene"] .. " |r(927)", L["Visions of N'Zoth"] .. " |r(928)",})
 	Zn(L["Movies"], L["Movies"], L["Shadowlands"]								, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Shadowlands"], prefol, L["Shadowlands"] .. " |r(936)", L["Afterlives Ardenweald"] .. " |r(935)", L["Afterlives Bastion"] .. " |r(932)", L["Afterlives Maldraxxus"] .. " |r(934)", L["Afterlives Revendreth"] .. " |r(933)", L["Exile's Reach (Horde)"] .. " |r(931)", L["Exile's Reach (Alliance)"] .. " |r(895)", L["Dark Abduction"] .. " |r(937)",	L["For Teldrassil"] .. " |r(942)", L["Beyond The Veil"] .. " |r(943)", L["Remember This Lesson"] .. " |r(944)", L["Breaking The Arbiter"] .. " |r(945)", L["A Glimpse Into Darkness"] .. " |r(946)", L["No More Lies"] .. " |r(947)", L["Sylvanas' Choice"] .. " |r(948)", L["Kingsmourne"] .. " |r(949)",	L["Ysera Reborn"] .. " |r(941)", L["Battle For Ardenweald"] .. " |r(951)", L["Fate of Sylvanas"] .. " |r(950)", L["By Our Hand"] .. " |r(953)",	L["Arbiter Pelagos"] .. " |r(954)",	L["Shattered Legacies"] .. " |r(955)",	L["Arthas Menethil's Fate"] .. " |r(956)",	L["Eternity's End"] .. " |r(957)",	L["The Jailer's Fall"] .. " |r(958)",})
 	Zn(L["Movies"], L["Movies"], L["Dragonflight"]								, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Dragonflight"], prefol, L["Dragonflight"] .. " |r(960)", L["Take To The Skies"] .. " |r(973)", L["Raszageth the Storm-Eater (1)"] .. " |r(961)", L["Raszageth the Storm-Eater (2)"] .. " |r(962)", L["Raszageth Confronts Alexstrasza"] .. " |r(965)", L["Dragonflight Legacies (1)"] .. " |r(966)", L["Dragonflight Legacies (2)"] .. " |r(967)", L["Dragonflight Legacies (3)"] .. " |r(968)", L["The Ebon Scales"] .. " |r(969)", L["The Seed of Hope"] .. " |r(963)", L["Tempest Unleashed"] .. " |r(962)", L["Incarnates Released"] .. " |r(964)",	L["Secrets of the Reach"] .. " |r(974)", L["Opening The Way"] .. " |r(979)", L["Fyrakk Incinerates Loamm"] .. " |r(981)", L["A Symbol of Hope"] .. " |r(980)", L["Dawn of the Infinite (Interlude)"] .. " |r(991)", L["Dawn of the Infinite (Finale)"] .. " |r(992)", L["A Matter of Time"] .. " |r(993)", L["Fury Incarnate"] .. " |r(1001)",	L["Crown of Flame"] .. " |r(1002)",	L["Blessing of Amirdrassil"] .. " |r(1003)", L["Iridikron and Vyranoth"] .. " |r(1009)",})
-	Zn(L["Movies"], L["Movies"], L["The War Within"]							, {	"|cffffd800" .. L["Movies"] .. ": " .. L["The War Within"], prefol, L["The War Within"] .. " |r(1023)",	L["Thrall and Anduin"] .. " |r(1014)", L["Threads of Destiny"] .. " |r(1021)",	L["The Story So Far"] .. " |r(1024)", L["Dalaran Arrives at Khaz Algar"] .. " |r(1010)", L["The Guardian and the Harbinger"] .. " |r(1012)", L["Magni's Sacrifice"] .. " |r(1013)", L["Ascension Day"] .. " |r(1020)",	L["Confronting Xal'atath"] .. " |r(1019)",	L["Orweyna's Vision"] .. " |r(1030)", L["Gallywix and Xal'atath"] .. " |r(1028)", L["Undermined"] .. " |r(1029)", L["A Shadowy Invitation"] .. " |r(1033)", L["Dimensius Defeat"] .. " |r(1034)", L["Voidstorm"] .. " |r(1040)", L["The Radiant Visions"] .. " |r(1052)",})
+	Zn(L["Movies"], L["Movies"], L["The War Within"]							, {	"|cffffd800" .. L["Movies"] .. ": " .. L["The War Within"], prefol, L["The War Within"] .. " |r(1023)",	L["Thrall and Anduin"] .. " |r(1014)", L["Threads of Destiny"] .. " |r(1021)",	L["The Story So Far (The War Within)"] .. " |r(1024)", L["Dalaran Arrives at Khaz Algar"] .. " |r(1010)", L["The Guardian and the Harbinger"] .. " |r(1012)", L["Magni's Sacrifice"] .. " |r(1013)", L["Ascension Day"] .. " |r(1020)",	L["Confronting Xal'atath"] .. " |r(1019)",	L["Orweyna's Vision"] .. " |r(1030)", L["Gallywix and Xal'atath"] .. " |r(1028)", L["Undermined"] .. " |r(1029)", L["A Shadowy Invitation"] .. " |r(1033)", L["Dimensius Defeat"] .. " |r(1034)", L["Voidstorm"] .. " |r(1040)", L["The Radiant Visions"] .. " |r(1052)",})
 
 	-- Movies: Midnight
 	Zn(L["Movies"], L["Movies"], L["Midnight"]					, {	"|cffffd800" .. L["Movies"] .. ": " .. L["Midnight"], prefol,
 		L["Midnight"] .. " |r(1051)",
 		L["Supremacy"] .. " |r(1061)",
 		L["Immolation"] .. " |r(1062)",
-		L["The Story So Far"] .. " |r(1066)",
+		L["The Story So Far (Midnight)"] .. " |r(1066)",
 	})
 
 	----------------------------------------------------------------------
