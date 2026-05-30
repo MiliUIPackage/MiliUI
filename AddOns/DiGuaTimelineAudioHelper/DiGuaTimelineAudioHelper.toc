@@ -6,7 +6,7 @@
 ## Author: 神秘地瓜
 ## Category: Raid
 ## Category-zhTW: 副本
-## Version: 1.4.5
+## Version: 1.4.8
 ## SavedVariables: DiGuaTimelineAudioHelper
 
 Core.lua
