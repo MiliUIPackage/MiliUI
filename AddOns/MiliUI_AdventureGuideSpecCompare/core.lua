@@ -237,7 +237,9 @@ loader:SetScript("OnEvent", function(_, event, name)
     elseif event == "ADDON_LOADED" and name == addonName then
         AGSCDB = AGSCDB or { showBadges = true }
         ns.db = AGSCDB
-        AGSCDB.showPanel = nil  -- 已棄用，面板改成永遠強制顯示；清掉殘留值
+        AGSCDB.showPanel = nil  -- 已棄用
+        if AGSCDB.featureEnabled == nil then AGSCDB.featureEnabled = true end       -- 主開關（右上按鈕）
+        if AGSCDB.baselineShowShared == nil then AGSCDB.baselineShowShared = true end -- 對照欄顯示全系共用（預設開）
         if IsEJLoaded() then InitEJ() end
     elseif event == "PLAYER_LOGIN" then
         if IsEJLoaded() then InitEJ() end

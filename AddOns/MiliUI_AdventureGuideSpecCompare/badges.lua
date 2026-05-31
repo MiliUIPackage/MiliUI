@@ -20,9 +20,16 @@ local function BuildBadge(parent)
     b:SetSize(BADGE_SIZE, BADGE_SIZE)
     b:SetFrameLevel(parent:GetFrameLevel() + 2)
 
+    -- 1px 外框（比圖示大 1px 的純色底，襯在後面露出邊）
+    b.outline = b:CreateTexture(nil, "BACKGROUND")
+    b.outline:SetColorTexture(0, 0, 0, 1)
+
     b.icon = b:CreateTexture(nil, "OVERLAY")
     b.icon:SetAllPoints()
     b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+
+    b.outline:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -1, 1)
+    b.outline:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", 1, -1)
 
     b.border = b:CreateTexture(nil, "OVERLAY", nil, 1)
     b.border:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
@@ -110,6 +117,7 @@ local function ApplyBadges(row, elementData)
         local usable = specMap[spec.id] and true or false
         if usable then
             b.icon:SetDesaturated(false)
+            b.outline:SetColorTexture(0, 0, 0, 1)          -- 可用：黑框
             if spec.id == currentSpec then
                 b:SetAlpha(1.0)
                 b.border:Show()
@@ -119,6 +127,7 @@ local function ApplyBadges(row, elementData)
             end
         else
             b.icon:SetDesaturated(true)
+            b.outline:SetColorTexture(0.7, 0.7, 0.7, 1)    -- 淡出：淺灰框
             b:SetAlpha(0.25)
             b.border:Hide()
         end
