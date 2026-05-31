@@ -357,8 +357,38 @@ local COL_DEFS = {
     { label = "日期",     width = 50,  align = "CENTER" },
 }
 
-local VAULT_COL_INDEX = 3
-local PANEL_WIDTH     = 410
+local VAULT_COL_INDEX  = 3
+local DATE_COL_INDEX   = 4   -- 有 Syndicator 載入時會被調為 5
+local SPARK_COL_INDEX  = nil -- 有 Syndicator 載入時會被設為 4
+local PANEL_WIDTH      = 410 -- 有 Syndicator 載入時會加上虛無之核欄寬度
+
+-- 星雲虛無之核（Midnight Season 1 賽季鍛造材料 currency）
+local SPARK_CURRENCY_ID = 3418
+local SPARK_COL_WIDTH   = 64  -- 「虛無之核」4 字寬度
+
+-- 把 GetRealmName() 的結果規格化成 Syndicator 用的格式（移除空白、連字號、單引號）
+local function NormalizeRealmName(realm)
+    if not realm then return "" end
+    return (realm:gsub("[%s%-']", ""))
+end
+
+-- 偵測 Syndicator 是否可用
+local function HasSyndicator()
+    return Syndicator and Syndicator.API and Syndicator.API.GetCurrencyInfo and true or false
+end
+
+-- 一次抓所有分身的虛無之核持有量；回傳 lookup table keyed by "Name-NormalizedRealm"
+local function BuildSparkLookup()
+    if not HasSyndicator() then return nil end
+    local list = Syndicator.API.GetCurrencyInfo(SPARK_CURRENCY_ID, false, false)
+    if not list then return nil end
+    local map = {}
+    for _, entry in ipairs(list) do
+        local key = (entry.character or "") .. "-" .. (entry.realmNormalized or "")
+        map[key] = entry.quantity or 0
+    end
+    return map
+end
 
 local rowPool = {}
 local refreshCallback
@@ -668,11 +698,21 @@ local function GetOrCreateRow(parent, index)
     row.vaultArea:SetScript("OnLeave", HideVaultTooltip)
     xOff = xOff + COL_DEFS[VAULT_COL_INDEX].width + PADDING_X
 
+    -- 虛無之核欄（只在 Syndicator 載入時建立）
+    if SPARK_COL_INDEX then
+        row.fsSpark = row:CreateFontString(nil, "OVERLAY")
+        row.fsSpark:SetFont(barFont, 12, "OUTLINE")
+        row.fsSpark:SetPoint("LEFT", row, "LEFT", xOff, 0)
+        row.fsSpark:SetWidth(COL_DEFS[SPARK_COL_INDEX].width)
+        row.fsSpark:SetJustifyH(COL_DEFS[SPARK_COL_INDEX].align)
+        xOff = xOff + COL_DEFS[SPARK_COL_INDEX].width + PADDING_X
+    end
+
     row.fsDate = row:CreateFontString(nil, "OVERLAY")
     row.fsDate:SetFont(barFont, 12, "OUTLINE")
     row.fsDate:SetPoint("LEFT", row, "LEFT", xOff, 0)
-    row.fsDate:SetWidth(COL_DEFS[4].width)
-    row.fsDate:SetJustifyH(COL_DEFS[4].align)
+    row.fsDate:SetWidth(COL_DEFS[DATE_COL_INDEX].width)
+    row.fsDate:SetJustifyH(COL_DEFS[DATE_COL_INDEX].align)
 
     rowPool[index] = row
     return row
@@ -688,6 +728,14 @@ local function SetupCharacterKeystones()
     if not lootFrame then return end
 
     setupDone = true
+
+    -- 有 Syndicator 才加虛無之核欄；無此插件就維持 4 欄不顯示
+    if HasSyndicator() then
+        table.insert(COL_DEFS, 4, { label = "虛無之核", width = SPARK_COL_WIDTH, align = "CENTER" })
+        SPARK_COL_INDEX = 4
+        DATE_COL_INDEX  = 5
+        PANEL_WIDTH     = PANEL_WIDTH + SPARK_COL_WIDTH + PADDING_X
+    end
 
     ---------------------------------------------------------------------------
     -- 主面板：parented to KeystoneLootFrame
@@ -815,6 +863,9 @@ local function SetupCharacterKeystones()
         end
         noDataText:Hide()
 
+        -- 每次重整建立一次虛無之核 lookup，避免每 row 都掃一遍 Syndicator 資料
+        local sparkLookup = SPARK_COL_INDEX and BuildSparkLookup() or nil
+
         for i = #sorted, 1, -1 do sorted[i] = nil end
         for key, data in pairs(history) do
             sorted[#sorted + 1] = { key = key, data = data }
@@ -864,6 +915,19 @@ local function SetupCharacterKeystones()
                 else
                     cell:SetText("·")
                     cell:SetTextColor(LOCKED_CELL_R, LOCKED_CELL_G, LOCKED_CELL_B)
+                end
+            end
+
+            -- 虛無之核欄（Syndicator 載入時才有）
+            if row.fsSpark then
+                local lookupKey = (data.name or "") .. "-" .. NormalizeRealmName(data.realm)
+                local count = sparkLookup and sparkLookup[lookupKey] or 0
+                if count > 0 then
+                    row.fsSpark:SetText(tostring(count))
+                    row.fsSpark:SetTextColor(1, 0.84, 0)
+                else
+                    row.fsSpark:SetText("·")
+                    row.fsSpark:SetTextColor(LOCKED_CELL_R, LOCKED_CELL_G, LOCKED_CELL_B)
                 end
             end
 
