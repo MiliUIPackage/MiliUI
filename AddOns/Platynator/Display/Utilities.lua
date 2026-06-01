@@ -108,7 +108,7 @@ function addonTable.Display.Utilities.IsInRelevantInstance(state)
     return false
   end
   state = state or {dungeon = true}
-  local _, instanceType, difficultyID = GetInstanceInfo()
+  local _, instanceType, _, label = GetInstanceInfo()
   if state.dungeon and (instanceType == "party") then
     return true
   end
@@ -118,7 +118,7 @@ function addonTable.Display.Utilities.IsInRelevantInstance(state)
   if state.pvp and (instanceType == "arena" or instanceType == "pvp") then
     return true
   end
-  if state.delve and difficultyID == 208 then
+  if state.delve and label == DELVES_LABEL then
     return true
   end
   return false
@@ -130,7 +130,7 @@ if addonTable.Constants.IsClassic then
     ["DEATHKNIGHT"] = {47528},
     ["WARRIOR"] = {6552},
     ["WARLOCK"] = {19647, 89766},
-    ["SHAMAN"] = {57994, --[[Earth Shock, ranks 10-1:]] 49231, 49230, 25454, 10414, 10413, 10412, 8046, 8045, 8044, 8042},
+    ["SHAMAN"] = {57994},
     ["ROGUE"] = {1766},
     ["PRIEST"] = {15487},
     ["PALADIN"] = {31935, 96231},
@@ -143,7 +143,7 @@ else
   interruptMap = {
     ["DEATHKNIGHT"] = {47528},
     ["WARRIOR"] = {6552},
-    ["WARLOCK"] = {89766, 119910, 132409},
+    ["WARLOCK"] = {89766, 119910},
     ["SHAMAN"] = {57994},
     ["ROGUE"] = {1766},
     ["PRIEST"] = {15487},
@@ -456,7 +456,6 @@ do
 
   local role = roleType.Damage
   local isTank = false
-  local rangeLimit = 0
   local _, playerClass = UnitClass("player")
 
   local function GetPlayerRole()
@@ -477,22 +476,6 @@ do
     return roleType.Damage
   end
 
-  local function AssignRange()
-    if addonTable.Constants.IsEra or addonTable.Constants.IsBC or addonTable.Constants.IsWrath then
-      rangeLimit = addonTable.Constants.DefaultRange[playerClass] - 1
-    else
-      local specIndex = C_SpecializationInfo.GetSpecialization()
-      local specID = C_SpecializationInfo.GetSpecializationInfo(specIndex)
-      rangeLimit = addonTable.Constants.DefaultRange[specID] - 1
-      for spellID, range in pairs(addonTable.Constants.RangeModifier) do
-        if C_SpellBook.IsSpellKnown(spellID) then
-          rangeLimit = range - 1
-          break
-        end
-      end
-    end
-  end
-
   do
     local specializationMonitor = CreateFrame("Frame")
 
@@ -506,17 +489,13 @@ do
       specializationMonitor:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
     end
     specializationMonitor:RegisterEvent("PLAYER_ENTERING_WORLD")
-    specializationMonitor:RegisterEvent("SPELLS_CHANGED")
 
-    specializationMonitor:SetScript("OnEvent", function(_, e)
-      AssignRange()
-      if e ~= "SPELLS_CHANGED" then
-        local newRole = GetPlayerRole()
-        if newRole ~= role then
-          role = newRole
-          isTank = role == roleType.Tank
-          addonTable.CallbackRegistry:TriggerEvent("RoleChange")
-        end
+    specializationMonitor:SetScript("OnEvent", function()
+      local newRole = GetPlayerRole()
+      if newRole ~= role then
+        role = newRole
+        isTank = role == roleType.Tank
+        addonTable.CallbackRegistry:TriggerEvent("RoleChange")
       end
     end)
   end
@@ -524,28 +503,28 @@ do
   function addonTable.Display.Utilities.IsTankRole()
     return isTank
   end
-
-  function addonTable.Display.Utilities.GetRangedLimit()
-    return rangeLimit
-  end
 end
 
 do
+  local inRelevantInstance = false
+
+  -- Checking for party members below the player's level which indicates the mobs will be shifted down one
+  -- Except when the dungeon is already at its minimum level, in which case the level won't shift.
   local instanceTracker = CreateFrame("Frame")
   instanceTracker:RegisterEvent("PLAYER_ENTERING_WORLD")
   instanceTracker:RegisterEvent("PLAYER_LEVEL_UP")
   instanceTracker:RegisterEvent("ZONE_CHANGED_NEW_AREA")
   instanceTracker:RegisterEvent("INSTANCE_GROUP_SIZE_CHANGED")
   instanceTracker:SetScript("OnEvent", function(_, event)
-    local inInstance = addonTable.Display.Utilities.IsInRelevantInstance({dungeon = true, raid = true, delve = true, pvp = true})
+    inRelevantInstance = addonTable.Display.Utilities.IsInRelevantInstance({dungeon = true, raid = true, delve = true, pvp = true})
     local _, _, _, _, _, _, _, _, _, lfgDungeonID = GetInstanceInfo()
     if PLATYNATOR_LAST_INSTANCE == nil
-      or inInstance ~= PLATYNATOR_LAST_INSTANCE.inInstance
+      or (inRelevantInstance or inRelevantInstance) ~= PLATYNATOR_LAST_INSTANCE.inInstance
       or PLATYNATOR_LAST_INSTANCE.lastLFGInstanceID ~= lfgDungeonID
-      or not inInstance then
+      or not inRelevantInstance then
       PLATYNATOR_LAST_INSTANCE = {
         lastLFGInstanceID = lfgDungeonID,
-        inInstance = inInstance,
+        inInstance = inRelevantInstance,
         instanceLieutenantLevel = nil,
       }
       if lfgDungeonID and addonTable.Display.Utilities.IsInRelevantInstance({dungeon = true}) then
@@ -555,17 +534,6 @@ do
       end
     end
   end)
-
-  local HasMana
-  if UnitHasPowerType then
-    HasMana = function(unit)
-      return UnitHasPowerType(unit, Enum.PowerType.Mana)
-    end
-  else
-    HasMana = function(unit)
-      return UnitPowerType(unit) == Enum.PowerType.Mana
-    end
-  end
 
   function addonTable.Display.Utilities.GetEliteType(unit, casterOverride)
     local classification = UnitClassification(unit)
@@ -580,10 +548,21 @@ do
       elseif isRetail and (level == dungeonLevel + 2 or lieutentantLevel and level == lieutentantLevel + 1) or level == -1 then
         return "boss"
       else
-        return HasMana(unit) and "caster" or "melee"
+        local class = UnitClassBase(unit)
+        if class == "PALADIN" or class == "MAGE" or class == "PRIEST" then
+          return "caster"
+        else
+          return "melee"
+        end
       end
     elseif classification == "normal" or classification == "trivial" or classification == "minus" then
-      return casterOverride and HasMana(unit) and "caster" or "trivial"
+      if casterOverride then
+        local class = UnitClassBase(unit)
+        if class == "PALADIN" or class == "MAGE" or class == "PRIEST" then
+          return "caster"
+        end
+      end
+      return "trivial"
     end
   end
 
@@ -605,7 +584,12 @@ do
     elseif classification == "rareelite" then
       return "rare"
     elseif classification == "normal" then
-      return HasMana(unit) and "caster" or "melee"
+      local class = UnitClassBase(unit)
+      if class == "PALADIN" or class == "MAGE" or class == "PRIEST" then
+        return "caster"
+      else
+        return "melee"
+      end
     elseif classification == "trivial" or classification == "minus" then
       return "trivial"
     end
@@ -670,73 +654,5 @@ do
 
   function addonTable.Display.Utilities.GetOtherTanks()
     return knownTanksAndPetsList
-  end
-end
-
-do
-  local encounterID
-  local showEnergy = true
-
-  local encountersForNoEnergy = {
-    -- Midnight: Magister's Terrace
-    [3073] = true, -- Gemellus
-    [3074] = true, -- Degentrius
-    -- Midnight: Maisara Caverns
-    [3212] = true, -- Muro'jin
-    [3213] = true, -- Vordaza
-    -- Draenor: Skyreach
-    [1698] = true, -- Ranjit
-  }
-
-  local encounterTracker = CreateFrame("Frame")
-  encounterTracker:RegisterEvent("ENCOUNTER_START")
-  encounterTracker:RegisterEvent("ENCOUNTER_END")
-  encounterTracker:SetScript("OnEvent", function(_, event, newEncounterID)
-    if event == "ENCOUNTER_START" then
-      encounterID = newEncounterID
-      showEnergy = encountersForNoEnergy[encounterID] == nil
-    else
-      encounterID = nil
-      showEnergy = true
-    end
-
-    addonTable.CallbackRegistry:TriggerEvent("EncounterUpdate")
-  end)
-
-  function addonTable.Display.Utilities.ShouldShowEnergy()
-    return showEnergy
-  end
-end
-
-do
-  local auraFormatter
-  if C_StringUtil and C_StringUtil.CreateNumericRuleFormatter then
-    auraFormatter = C_StringUtil.CreateNumericRuleFormatter()
-    auraFormatter:SetBreakpoints({
-      {
-        threshold = 0,
-        step = 0.1,
-        format = "%.1f",
-      },
-      {
-        threshold = 3,
-        step = 1,
-        format = "%d",
-      },
-      {
-        threshold = 60,
-        format = COOLDOWN_DURATION_MIN,
-        components = {
-          {
-            div = 60,
-            step = 1,
-          }
-        }
-      }
-    })
-  end
-
-  function addonTable.Display.Utilities.GetAuraNumericFormatter()
-    return auraFormatter
   end
 end

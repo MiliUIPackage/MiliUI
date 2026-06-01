@@ -6,7 +6,7 @@ local LSM = LibStub("LibSharedMedia-3.0")
 local textureHeight = 20
 
 local function GetLabelsValues(allAssets, filter, showName, widthMod)
-  widthMod = widthMod or 1
+  widthMod = widthMod or 0
   local labels, values = {}, {}
 
   local allKeys = GetKeysArray(allAssets)
@@ -44,6 +44,8 @@ local function GetLabelsValues(allAssets, filter, showName, widthMod)
       end
       if details.mode == addonTable.Assets.Mode.Special then
         text = text .. " " .. addonTable.Locales.SPECIAL_BRACKETS
+      elseif details.mode ~= nil and showHeight then
+        text = text .. " " .. addonTable.Locales.PERCENT_BRACKETS:format(details.mode)
       end
 
       table.insert(labels, text)
@@ -832,21 +834,6 @@ addonTable.CustomiseDialog.WidgetsConfig = {
     },
     ["level"] = {
       {
-        label = addonTable.Locales.GENERAL,
-        entries = {
-          {
-            label = addonTable.Locales.SHOW_MODIFIERS_BRACKETS_EXAMPLES,
-            kind = "checkbox",
-            setter = function(details, value)
-              details.showModifiers = value
-            end,
-            getter = function(details)
-              return details.showModifiers
-            end,
-          },
-        }
-      },
-      {
         label = addonTable.Locales.COLORS,
         entries = {
           {
@@ -1166,7 +1153,6 @@ addonTable.CustomiseDialog.WidgetsConfig = {
               return details.limit
             end,
           },
-          { kind = "spacer" },
           {
             label = addonTable.Locales.SHOW_TYPE_BORDER,
             kind = "checkbox",
@@ -1185,16 +1171,6 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             end,
             getter = function(details)
               return details.showSwipe
-            end,
-          },
-          {
-            label = addonTable.Locales.SHOW_TOOLTIPS,
-            kind = "checkbox",
-            setter = function(details, value)
-              details.showTooltips = value
-            end,
-            getter = function(details)
-              return details.showTooltips
             end,
           },
         },
@@ -1240,6 +1216,21 @@ addonTable.CustomiseDialog.WidgetsConfig = {
     },
     ["debuffs"] = {
       {
+        label = addonTable.Locales.GENERAL,
+        entries = {
+          {
+            label = addonTable.Locales.SHOW_PANDEMIC,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.showPandemic = value
+            end,
+            getter = function(details)
+              return details.showPandemic
+            end,
+          },
+        },
+      },
+      {
         label = addonTable.Locales.TEXTS,
         entries = {
           {
@@ -1278,24 +1269,24 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             end,
           },
         }
-      },
+      }
+    },
+    ["buffs"] = {
       {
-        label = addonTable.Locales.PANDEMIC,
+        label = addonTable.Locales.GENERAL,
         entries = {
           {
-            label = addonTable.Locales.SHOW_PANDEMIC,
+            label = addonTable.Locales.SHOW_PURGEABLE_BORDER,
             kind = "checkbox",
             setter = function(details, value)
-              details.showPandemic = value
+              details.showStealable = value
             end,
             getter = function(details)
-              return details.showPandemic
+              return details.showStealable
             end,
           },
         },
       },
-    },
-    ["buffs"] = {
       {
         label = addonTable.Locales.TEXTS,
         entries = {
@@ -1345,22 +1336,7 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             end,
           },
         }
-      },
-      {
-        label = addonTable.Locales.PURGEABLE,
-        entries = {
-          {
-            label = addonTable.Locales.SHOW_PURGEABLE_BORDER,
-            kind = "checkbox",
-            setter = function(details, value)
-              details.showStealable = value
-            end,
-            getter = function(details)
-              return details.showStealable
-            end,
-          },
-        },
-      },
+      }
     },
     ["crowdControl"] = {
       {
@@ -1597,231 +1573,41 @@ addonTable.CustomiseDialog.WidgetsConfig = {
           },
         }
       }
-    },
-    ["healthFillText"] = {
-      {
-        label = addonTable.Locales.GENERAL,
-        entries = {
-          {
-            label = addonTable.Locales.SCALE,
-            kind = "slider",
-            min = 1, max = 300,
-            valuePattern = "%d%%",
-            setter = function(details, value)
-              details.scale = value / 100
-            end,
-            getter = function(details)
-              return details.scale * 100
-            end,
-          },
-          {
-            label = addonTable.Locales.LAYER,
-            kind = "slider",
-            min = 0, max = 6,
-            valuePattern = "%d",
-            setter = function(details, value)
-              details.layer = value
-            end,
-            getter = function(details)
-              return details.layer
-            end,
-          },
-          { kind = "spacer" },
-          {
-            label = addonTable.Locales.BACKGROUND_COLOR,
-            kind = "colorPicker",
-            setter = function(details, value)
-              details.background.color = value
-            end,
-            getter = function(details)
-              return details.background.color
-            end,
-          },
-          {
-            label = addonTable.Locales.ABSORB_COLOR,
-            kind = "colorPicker",
-            setter = function(details, value)
-              details.absorb.color = value
-            end,
-            getter = function(details)
-              return details.absorb.color
-            end,
-          },
-          { kind = "spacer" },
-          {
-            label = addonTable.Locales.ANIMATE,
-            kind = "checkbox",
-            setter = function(details, value)
-              details.animate = value
-            end,
-            getter = function(details)
-              return details.animate
-            end,
-          },
-        }
-      },
-      {
-        label = addonTable.Locales.COLORS,
-        entries = {
-          {
-            label = "",
-            kind = "autoColors",
-            lockedElements = {reaction = true},
-            setter = function() end,
-            getter = function(details)
-              return details.autoColors
-            end,
-          },
-        },
-      },
-    },
-  },
-  ["regions"] = {
-    ["*"] = {
-      {
-        label = addonTable.Locales.GENERAL,
-        entries = {
-          {
-            label = addonTable.Locales.AUTOMATICALLY_SIZED,
-            kind = "checkbox",
-            setter = function(details, value)
-              details.autoSized = value
-            end,
-            getter = function(details)
-              return details.autoSized
-            end
-          },
-          {
-            label = addonTable.Locales.HEIGHT,
-            kind = "slider",
-            min = 10, max = 1500,
-            formatter = function(value) return value .. "%" end,
-            setter = function(details, value)
-              local currentHeight = details.height * addonTable.Assets.BarBordersSize.height
-              local newHeight = value / 100 * addonTable.Assets.BarBordersSize.height
-              local rect = addonTable.Utilities.GetRectFromRegion(details, 1, details.anchor)
-              local newRect = {left = rect.left, bottom = rect.bottom - (newHeight - currentHeight) / 2, width = rect.width, height = newHeight}
-              local newDetails = addonTable.Utilities.ConvertRectToWidget(newRect)
-              details.anchor = newDetails.anchor
-
-              local old = details.height
-              details.height = value / 100
-              if details.height ~= old then
-                details.autoSized = false
-              end
-            end,
-            getter = function(details)
-              return details.height * 100
-            end,
-          },
-          {
-            label = addonTable.Locales.WIDTH,
-            kind = "slider",
-            min = 10, max = 500,
-            formatter = function(value) return value .. "%" end,
-            setter = function(details, value)
-              local currentWidth = details.width * addonTable.Assets.BarBordersSize.width
-              local newWidth = value / 100 * addonTable.Assets.BarBordersSize.width
-              local rect = addonTable.Utilities.GetRectFromRegion(details, 1, details.anchor)
-              local newRect = {left = rect.left - (newWidth - currentWidth) / 2, bottom = rect.bottom, width = newWidth, height = rect.height}
-              local newDetails = addonTable.Utilities.ConvertRectToWidget(newRect)
-              details.anchor = newDetails.anchor
-
-              local old = details.width
-              details.width = value / 100
-              if details.width ~= old then
-                details.autoSized = false
-              end
-            end,
-            getter = function(details)
-              return details.width * 100
-            end,
-          },
-        },
-      },
     }
   }
 }
 
-addonTable.CustomiseDialog.AurasTextsConfig = {
-  ["countdown"] = {
-    {
-      label = addonTable.Locales.VISIBLE,
-      kind = "checkbox",
-      setter = function(details, value)
-        details.visible = value
-      end,
-      getter = function(details)
-        return details.visible
-      end,
-    },
-    {
-      label = addonTable.Locales.SCALE,
-      kind = "slider",
-      min = 1, max = 300,
-      valuePattern = "%d%%",
-      setter = function(details, value)
-        details.scale = value / 100
-      end,
-      getter = function(details)
-        return details.scale * 100
-      end,
-    },
-    {
-      label = addonTable.Locales.COLOR,
-      kind = "colorPicker",
-      setter = function(details, value)
-        details.color = value
-      end,
-      getter = function(details)
-        return details.color
-      end,
-    },
-    { kind = "spacer" },
-    {
-      label = addonTable.Locales.SHOW_FRACTIONS,
-      kind = "checkbox",
-      setter = function(details, value)
-        details.showFractions = value
-      end,
-      getter = function(details)
-        return details.showFractions
-      end,
-      hide = not addonTable.Constants.IsCooldownFormattingAvailable,
-    },
+addonTable.CustomiseDialog.AurasConfig = {
+  {
+    label = addonTable.Locales.VISIBLE,
+    kind = "checkbox",
+    setter = function(details, value)
+      details.visible = value
+    end,
+    getter = function(details)
+      return details.visible
+    end,
   },
-  ["stacks"] = {
-    {
-      label = addonTable.Locales.VISIBLE,
-      kind = "checkbox",
-      setter = function(details, value)
-        details.visible = value
-      end,
-      getter = function(details)
-        return details.visible
-      end,
-    },
-    {
-      label = addonTable.Locales.SCALE,
-      kind = "slider",
-      min = 1, max = 300,
-      valuePattern = "%d%%",
-      setter = function(details, value)
-        details.scale = value / 100
-      end,
-      getter = function(details)
-        return details.scale * 100
-      end,
-    },
-    {
-      label = addonTable.Locales.COLOR,
-      kind = "colorPicker",
-      setter = function(details, value)
-        details.color = value
-      end,
-      getter = function(details)
-        return details.color
-      end,
-    },
-  }
+  {
+    label = addonTable.Locales.SCALE,
+    kind = "slider",
+    min = 1, max = 300,
+    valuePattern = "%d%%",
+    setter = function(details, value)
+      details.scale = value / 100
+    end,
+    getter = function(details)
+      return details.scale * 100
+    end,
+  },
+  {
+    label = addonTable.Locales.COLOR,
+    kind = "colorPicker",
+    setter = function(details, value)
+      details.color = value
+    end,
+    getter = function(details)
+      return details.color
+    end,
+  },
 }

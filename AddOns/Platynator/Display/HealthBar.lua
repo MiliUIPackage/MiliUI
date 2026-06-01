@@ -3,6 +3,8 @@ local addonTable = select(2, ...)
 
 addonTable.Display.HealthBarMixin = {}
 
+local ConvertColor = addonTable.Display.Utilities.ConvertColor
+
 function addonTable.Display.HealthBarMixin:PostInit()
   if self.details.background.applyColor then -- Apply tint to colours
     self.modColors = addonTable.Display.Utilities.TintAutoColors(self.details.autoColors, self.details.background.color)

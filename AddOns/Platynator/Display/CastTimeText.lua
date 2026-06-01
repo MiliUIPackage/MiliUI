@@ -3,41 +3,6 @@ local addonTable = select(2, ...)
 
 addonTable.Display.CastTimeLeftTextMixin = {}
 
-local formatter
-
-local exceedsLimit = ">30"
-
-if C_StringUtil and C_StringUtil.CreateSecondsFormatter then
-  formatter = C_StringUtil.CreateNumericRuleFormatter()
-  formatter:SetBreakpoints({
-    {
-      threshold = 0,
-      step = 0.1,
-      format = "%.1f",
-    },
-    {
-      threshold = 10,
-      step = 1,
-      format = "%d",
-    },
-    {
-      threshold = 30,
-      step = 1,
-      format = exceedsLimit,
-    },
-  })
-end
-
-local function ClassicFormatter(duration)
-  if duration < 10 then
-    return string.format("%.1f", duration)
-  elseif duration < 30 then
-    return string.format("%d", duration)
-  else
-    return exceedsLimit
-  end
-end
-
 function addonTable.Display.CastTimeLeftTextMixin:SetUnit(unit)
   self.unit = unit
   if self.unit then
@@ -85,15 +50,15 @@ function addonTable.Display.CastTimeLeftTextMixin:ApplyCasting(state)
       else
         self.duration = UnitCastingDuration(self.unit)
       end
-      self.text:SetText(self.duration:FormatRemainingDuration(formatter))
+      self.text:SetText(string.format("%.1f", self.duration:GetRemainingDuration()))
       self.timer = C_Timer.NewTicker(0.005, function()
-        self.text:SetText(self.duration:FormatRemainingDuration(formatter))
+        self.text:SetText(string.format("%.1f", self.duration:GetRemainingDuration()))
       end)
     else
       self.endTime = endTime / 1000
-      self.text:SetText(ClassicFormatter(self.endTime - GetTime()))
+      self.text:SetText(string.format("%.1f", self.endTime - GetTime()))
       self.timer = C_Timer.NewTicker(0.005, function()
-        self.text:SetText(ClassicFormatter(self.endTime - GetTime()))
+        self.text:SetText(string.format("%.1f", self.endTime - GetTime()))
       end)
     end
   else

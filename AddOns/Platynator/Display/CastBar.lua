@@ -16,6 +16,7 @@ end
 function addonTable.Display.CastBarMixin:SetUnit(unit)
   self.unit = unit
   if self.unit then
+    self.interrupted = nil
 
     addonTable.Display.Cache:RegisterCallback(self.unit, "cast", function(state)
       if state.interrupted then
@@ -45,6 +46,7 @@ function addonTable.Display.CastBarMixin:StripInternal()
     self.timer:Cancel()
     self.timer = nil
   end
+  self.interrupted = nil
 
   self:UnregisterAllEvents()
   addonTable.Display.UnregisterForColorEvents(self)
@@ -57,9 +59,20 @@ function addonTable.Display.CastBarMixin:Strip()
 end
 
 function addonTable.Display.CastBarMixin:ApplyInterrupt()
+  self.interrupted = true
   self:Show()
   self.statusBar:SetMinMaxValues(0, 1)
   self.statusBar:SetValue(1)
+  if self.timer then
+    self.timer:Cancel()
+    self.timer = nil
+  end
+  self.timer = C_Timer.NewTimer(addonTable.Constants.CastInterruptedDelay, function()
+    if self.interrupted then
+      self.interrupted = nil
+      self:Hide()
+    end
+  end)
   self:SetScript("OnUpdate", nil)
   self.interruptMarker:Hide()
 end
@@ -74,30 +87,28 @@ function addonTable.Display.CastBarMixin:OnEvent(eventName, ...)
   end
 end
 
-function addonTable.Display.CastBarMixin:SetColor(r, g, b)
-  if r == nil then
-    self:Hide()
-    return
-  end
-
-  self.statusBar:GetStatusBarTexture():SetVertexColor(r, g, b)
-  self.marker:SetVertexColor(r, g, b)
+function addonTable.Display.CastBarMixin:SetColor(...)
+  self.statusBar:GetStatusBarTexture():SetVertexColor(...)
+  self.marker:SetVertexColor(...)
   if self.details.background.applyColor then
     local mod = self.details.background.color
     if self.modColors then
       self.background:SetVertexColor(addonTable.Display.GetColor(self.modColors, self.colorState, self.unit))
     else
+      local r, g, b = ...
       self.background:SetVertexColor(r, g, b, mod.a)
     end
   end
 end
 
 function addonTable.Display.CastBarMixin:ClearCast()
-  if self.timer then
-    self.timer:Cancel()
-    self.timer = nil
+  if not self.interrupted then
+    if self.timer then
+      self.timer:Cancel()
+      self.timer = nil
+    end
+    self:Hide()
   end
-  self:Hide()
   self.isChanneled = nil
   self.notInterruptible = nil
   self.uninterruptibleCheck = nil
@@ -122,6 +133,8 @@ if UnitCastingDuration then
       else
         notInterruptible = state.cast[8]
       end
+
+      self.interrupted = nil
 
       if self.timer then
         self.timer:Cancel()
@@ -180,6 +193,7 @@ else
     end
 
     if name ~= nil then
+      self.interrupted = nil
       self.notInterruptible = notInterruptible
 
       self:Show()

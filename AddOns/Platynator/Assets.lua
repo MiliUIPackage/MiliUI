@@ -125,7 +125,6 @@ addonTable.Assets.Highlights = {
   ["Platy: Arrow Solid Down"] = {file = "Interface/AddOns/Platynator/Assets/%s/Highlights/arrow-solid-down.png", width = 207, height = 132, has4k = true, mode = renderMode.Fixed, tag = "arrows"},
   ["Platy: Arrow Hi-vis"] = {file = "Interface/AddOns/Platynator/Assets/%s/Highlights/hi-vis-arrows.png", width = 158, height = 50, has4k = true, margin = 0.5, extra = 0, modifier = 0.42, shiftModifierV = 1, DPIScale = 8/10, mode = renderMode.Sliced, tag = "arrows"},
   ["Platy: Arrow Hi-vis Down"] = {file = "Interface/AddOns/Platynator/Assets/%s/Highlights/hi-vis-arrow-down.png", width = 125, height = 185, has4k = true, mode = renderMode.Fixed, tag = "arrows"},
-  ["Platy: Arrow Blocky"] = {file = "Interface/AddOns/Platynator/Assets/%s/Highlights/arrows-blocky.png", width = 68, height = 50, has4k = true, margin = 0.5, extra = 0, modifier = 0.42, shiftModifierV = 1, DPIScale = 8/10, mode = renderMode.Sliced, tag = "arrows"},
 
   ["Platy: Brackets"] = {file = "Interface/AddOns/Platynator/Assets/%s/Highlights/brackets.png", width = 154, height = 56, has4k = true, margin = 0.45, extra = 0, modifier = 0.3, shiftModifierV = 1, DPIScale = 8/10, mode = renderMode.Sliced},
 
@@ -184,6 +183,9 @@ addonTable.Assets.Markers = {
   ["normal/blizzard-raid"] = {file = "Interface/TargetingFrame/UI-RaidTargetingIcons", preview = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1.blp", width = 150, height = 150, tag = "raid"},
 
   ["normal/blizzard-pvp"] = {file = "Interface/AddOns/Platynator/Assets/Special/Markers/pvp.png", width = 150, height = 150, tag = "pvp"},
+
+  ["normal/class"] = {preview = "Interface/AddOns/Platynator/Assets/Special/Markers/ClassIcons/Default/Monk.png", file = "Interface/AddOns/Platynator/Assets/Special/Markers/ClassIcons/Default/%s.png", width = 200, height = 200, tag = "class", text = "Default"},
+  ["normal/class-minimalist"] = {preview = "Interface/AddOns/Platynator/Assets/Special/Markers/ClassIcons/Minimalist/Monk.png", file = "Interface/AddOns/Platynator/Assets/Special/Markers/ClassIcons/Minimalist/%s.png", width = 200, height = 200, tag = "class", text = "Minimalist"},
 
   ["faction-legacy"] = {preview = "Interface/AddOns/Platynator/Assets/Special/Markers/faction-legacy-horde.png", alliance = "Interface/AddOns/Platynator/Assets/Special/Markers/faction-legacy-alliance.png", horde = "Interface/AddOns/Platynator/Assets/Special/Markers/faction-legacy-horde.png", width = 200, height = 200, tag = "faction", text = "Legacy"},
   ["faction-assault"] = {preview = "Interface/AddOns/Platynator/Assets/Special/Markers/faction-assault-horde.png", alliance = "Interface/AddOns/Platynator/Assets/Special/Markers/faction-assault-alliance.png", horde = "Interface/AddOns/Platynator/Assets/Special/Markers/faction-assault-horde.png", width = 200, height = 200, tag = "faction", text = "Assault"},

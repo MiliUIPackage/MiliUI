@@ -22,12 +22,7 @@ function addonTable.Display.EnergyBarMixin:SetUnit(unit)
       self:RegisterUnitEvent("UNIT_POWER_UPDATE", self.unit)
       self:RegisterUnitEvent("UNIT_MAXPOWER", self.unit)
       self:UpdateValue()
-
-      addonTable.CallbackRegistry:RegisterCallback("EncounterUpdate", function()
-        self:SetShown(addonTable.Display.Utilities.ShouldShowEnergy())
-      end, self)
-      self:SetShown(addonTable.Display.Utilities.ShouldShowEnergy())
-
+      self:Show()
       addonTable.Display.RegisterForColorEvents(self, self.details.autoColors)
     else
       self:Hide()
@@ -54,7 +49,6 @@ end
 function addonTable.Display.EnergyBarMixin:Strip()
   self:UnregisterAllEvents()
   addonTable.Display.UnregisterForColorEvents(self)
-  addonTable.CallbackRegistry:UnregisterCallback("EncounterUpdate", self)
 
   self.powerKind = nil
 end

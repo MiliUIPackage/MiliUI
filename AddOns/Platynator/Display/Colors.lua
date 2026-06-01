@@ -14,13 +14,6 @@ local IsTankRole = addonTable.Display.Utilities.IsTankRole
 local GetEliteType = addonTable.Display.Utilities.GetEliteType
 local GetDelveType = addonTable.Display.Utilities.GetDelveType
 
-local roleMap = {
-  TANK = "tank",
-  HEALER = "healer",
-  DAMAGER = "damage",
-  NONE = "damage",
-}
-
 local inRelevantThreatInstance, inRelevantEliteInstance, inRelevantDelveInstance = false, false, false
 
 -- Checking for party members below the player's level which indicates the mobs will be shifted down one
@@ -44,10 +37,15 @@ local kindToEvent = {
   softTarget = {"PLAYER_TARGET_CHANGED", "PLAYER_SOFT_ENEMY_CHANGED", "PLAYER_SOFT_FRIEND_CHANGED"},
   focus = {"PLAYER_FOCUS_CHANGED"},
   execute = {"UNIT_HEALTH"},
-  eliteType = {"UNIT_CLASSIFICATION_CHANGED"},
-  rarity = {"UNIT_CLASSIFICATION_CHANGED"},
-  delveType = {"UNIT_CLASSIFICATION_CHANGED"},
-  party = {"GROUP_ROSTER_UPDATE"}
+  eliteType = {
+    "UNIT_CLASSIFICATION_CHANGED",
+  },
+  rarity = {
+    "UNIT_CLASSIFICATION_CHANGED",
+  },
+  delveType = {
+    "UNIT_CLASSIFICATION_CHANGED",
+  },
 }
 local kindToCallback = {
   quest = {"QuestInfoUpdate"},
@@ -62,11 +60,7 @@ local kindToCache = {
   castTargetsYou = {"cast"},
   importantCast = {"cast"},
   cast = {"cast"},
-  notCast = {"cast"},
-  isCast = {"cast"},
   threat = {"threat"},
-  inRange = {"range"},
-  outOfRange = {"range"},
 }
 
 function addonTable.Display.UnregisterForColorEvents(frame)
@@ -410,27 +404,10 @@ function addonTable.Display.GetColor(settings, state, unit)
       end
       if text ~= nil then
         table.insert(colorQueue, {color = isEmpowered and s.colors.empowered or isChannel and s.colors.channel or s.colors.cast})
-        break
-      elseif cacheInfo.interrupted then
+      else
         table.insert(colorQueue, {color = s.colors.interrupted})
-        break
       end
-    elseif s.kind == "notCast" then
-      local cacheInfo = addonTable.Display.Cache:Get(unit, "cast")
-      local castInfo = cacheInfo.cast
-      local channelInfo = cacheInfo.channel
-      if castInfo[1] == nil and channelInfo[1] == nil and cacheInfo.interrupted == nil then
-        table.insert(colorQueue, {color = s.colors.notCast})
-        break
-      end
-    elseif s.kind == "isCast" then
-      local cacheInfo = addonTable.Display.Cache:Get(unit, "cast")
-      local castInfo = cacheInfo.cast
-      local channelInfo = cacheInfo.channel
-      if castInfo[1] ~= nil or channelInfo[1] ~= nil or cacheInfo.interrupted ~= nil then
-        table.insert(colorQueue, {color = s.colors.isCast})
-        break
-      end
+      break
     elseif s.kind == "fixed" then
       table.insert(colorQueue, {color = s.colors.fixed})
       break
@@ -459,31 +436,6 @@ function addonTable.Display.GetColor(settings, state, unit)
       local mapped = addonTable.Constants.PowerMap[kind]
       if s.colors[mapped] then
         table.insert(colorQueue, {color = s.colors[mapped]})
-        break
-      end
-    elseif s.kind == "inRange" then
-      local range = addonTable.Display.Cache:Get(unit, "range")
-      if range then
-        table.insert(colorQueue, {color = s.colors.inRange})
-        break
-      end
-    elseif s.kind == "outOfRange" then
-      local range = addonTable.Display.Cache:Get(unit, "range")
-      if not range then
-        table.insert(colorQueue, {color = s.colors.outOfRange})
-        break
-      end
-    elseif s.kind == "party" then
-      if UnitInParty(unit) then
-        if UnitGroupRolesAssigned then
-          local role = UnitGroupRolesAssigned(unit)
-          if role then
-            table.insert(colorQueue, {color = s.colors[roleMap[role]]})
-            break
-          end
-        end
-
-        table.insert(colorQueue, {color = s.colors.damage})
         break
       end
     end

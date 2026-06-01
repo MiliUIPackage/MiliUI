@@ -3,8 +3,6 @@ local addonTable = select(2, ...)
 
 local LSM = LibStub("LibSharedMedia-3.0")
 
-local hasSlug = UIParent:CreateFontString().SetSmoothScaling ~= nil
-
 local fonts = {}
 
 function addonTable.Core.GetFontByDesign(design)
@@ -12,7 +10,7 @@ function addonTable.Core.GetFontByDesign(design)
   local outline = design.font.outline and "OUTLINE" or ""
   local shadow = design.font.shadow and "SHADOW" or ""
   local slug = ""
-  if hasSlug and (outline ~= "" or shadow == "") then
+  if addonTable.Constants.IsRetail and (outline ~= "" or shadow == "") then
     slug = design.font.slug and "SLUG" or ""
   end
   local key = id:lower() .. outline .. shadow .. slug

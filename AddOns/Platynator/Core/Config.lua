@@ -3,27 +3,21 @@ local addonTable = select(2, ...)
 addonTable.Config = {}
 
 local settings = {
-  MIGRATION = {key = "migration", default = 1, new = 4},
-
   STYLE = {key = "style", default = "_deer"},
   CURRENT_SKIN = {key = "current_skin", default = "blizzard", refresh = {addonTable.Constants.RefreshReason.Skin}},
 
   GLOBAL_SCALE = {key = "global_scale", default = 1, refresh = {addonTable.Constants.RefreshReason.Scale}},
 
   LEGACY_DESIGN = {key = "design_all", default = {}},
-  LEGACY_DESIGNS_ASSIGNED = {key = "designs_assigned", default = {}},
-  LEGACY_DESIGNS_ENABLED = {key = "designs_enabled", default = { pvpInstance = false, pvpWorld = false, combat = false }},
-  LEGACY_SIMPLIFIED_NAMEPLATES = {key = "simplified_nameplates", default = {minion = true, minor = true, instancesNormal = true}},
 
   DESIGNS = {key = "designs", default = {}, refresh = {addonTable.Constants.RefreshReason.Design}},
-  DESIGN_ASSIGNMENTS = {key = "design_assignments", default = {}, new = {
-    {criteria = {"cannot-attack"}, simplified = false, scale = 1, style = "_name-only"},
-    {criteria = {"can-attack", "class-minor"}, simplified = true, scale = 1, style = "_hare_simplified"},
-    {criteria = {"can-attack", "minion"}, simplified = true, scale = 1, style = "_hare_simplified"},
-    {criteria = {"can-attack", "loc-dungeon", "class-normal"}, simplified = true, scale = 1, style = "_hare_simplified"},
-    {criteria = {"can-attack"}, simplified = false, scale = 1, style = "_deer"},
-  }, refresh = {addonTable.Constants.RefreshReason.DesignSelection, addonTable.Constants.RefreshReason.Design}},
-  SIMPLIFIED_ASSIGNED_FALLBACK = {key = "simplified_assigned_fallback", default = "_hare_simplified"},
+  DESIGNS_ASSIGNED = {key = "designs_assigned", default = {
+    ["friend"] = "_name-only", ["friendCombat"] = "_deer", ["friendPvPPlayer"] = "_name-only",
+    ["enemy"] = "_deer", ["enemyCombat"] = "_deer", ["enemyPvPPlayer"] = "_deer",
+    ["enemySimplified"] = "_hare_simplified", ["enemySimplifiedCombat"] = "_hare_simplified",
+  }, refresh = {addonTable.Constants.RefreshReason.Design}},
+
+  DESIGNS_ENABLED = {key = "designs_enabled", default = { pvpInstance = false, pvpWorld = false, combat = false }, refresh = {addonTable.Constants.RefreshReason.Design}},
 
   TARGET_SCALE = {key = "target_scale", default = 1.2, refresh = {addonTable.Constants.RefreshReason.TargetBehaviour}},
   CAST_SCALE = {key = "cast_scale", default = 1.1, refresh = {addonTable.Constants.RefreshReason.TargetBehaviour}},
@@ -33,8 +27,6 @@ local settings = {
 
   OBSCURED_ALPHA = {key = "obscured_alpha", default = 0.4},
   OBSCURED_COMBAT_ALPHA = {key = "obscured_combat_alpha", default = 0.4},
-  OUT_OF_RANGE_ALPHA = {key = "out_of_range_alpha", default = 1, refresh = {addonTable.Constants.RefreshReason.Design}},
-  NOT_IN_PULL_ALPHA = {key = "not_in_combat_alpha", default = 1, refresh = {addonTable.Constants.RefreshReason.Design}},
 
   STACKING_NAMEPLATES = {key = "stacking_nameplates", default = {friend = false, enemy = true}, refresh = {addonTable.Constants.RefreshReason.StackingBehaviour}},
   CLOSER_TO_SCREEN_EDGES = {key = "closer_to_screen_edges", default = true, refresh = {addonTable.Constants.RefreshReason.StackingBehaviour}},
@@ -45,16 +37,10 @@ local settings = {
   STACK_REGION_SCALE_X = {key = "stack_region_scale_x", default = 1.2, refresh = {addonTable.Constants.RefreshReason.StackingBehaviour}},
   STACK_REGION_SCALE_Y = {key = "stack_region_scale_y", default = 1.4, refresh = {addonTable.Constants.RefreshReason.StackingBehaviour}},
 
-  VERTICAL_OFFSET = {key = "vertical_offset", default = 0},
-
-  CAST_INTERRUPTED_TIMEOUT = {key = "cast_interrupted_timeout", default = 0.3},
-
   SHOW_NAMEPLATES_ONLY_NEEDED = {key = "show_nameplates_only_needed", default = false, refresh = {addonTable.Constants.RefreshReason.ShowBehaviour}},
-  SHOW_NAMEPLATES = {key = "show_nameplates", default = {
-    friendlyNPC = true, friendlyPlayer = true, friendlyMinion = false, enemy = true, enemyMinion = true, enemyMinor = true
-  }, refresh = {addonTable.Constants.RefreshReason.ShowBehaviour}},
+  SHOW_NAMEPLATES = {key = "show_nameplates", default = {friendlyNPC = true, friendlyPlayer = true, friendlyMinion = false, enemy = true, enemyMinion = true, enemyMinor = true}, refresh = {addonTable.Constants.RefreshReason.ShowBehaviour}},
   SHOW_FRIENDLY_IN_INSTANCES = {key = "show_friendly_in_instances_1", default = "always", refresh = {addonTable.Constants.RefreshReason.ShowBehaviour}},
-  NAMEPLATE_POSITION = {key = "nameplate_position", default = "top"},
+  SIMPLIFIED_NAMEPLATES = {key = "simplified_nameplates", default = {minion = true, minor = true, instancesNormal = true}, refresh = {addonTable.Constants.RefreshReason.Simplified}},
 
   SIMPLIFIED_SCALE = {key = "simplified_scale", default = 0.6, refresh = {addonTable.Constants.RefreshReason.SimplifiedScale}},
   BLIZZARD_WIDGET_SCALE = {key = "blizzard_widget_scale", default = 1.2},
@@ -66,7 +52,6 @@ addonTable.Config.RefreshType = {}
 
 addonTable.Config.Options = {}
 addonTable.Config.Defaults = {}
-addonTable.Config.NewDefaults = {}
 
 for key, details in pairs(settings) do
   if details.refresh then
@@ -78,11 +63,6 @@ for key, details in pairs(settings) do
   end
   addonTable.Config.Options[key] = details.key
   addonTable.Config.Defaults[details.key] = details.default
-  if details.new ~= nil then
-    addonTable.Config.NewDefaults[details.key] = details.new
-  else
-    addonTable.Config.NewDefaults[details.key] = details.default
-  end
 end
 
 function addonTable.Config.IsValidOption(name)
@@ -187,19 +167,15 @@ function addonTable.Config.Install(name, defaultValue)
   end
 end
 
-function addonTable.Config.ResetOne(name, announce)
-  local newValue = addonTable.Config.NewDefaults[name]
+function addonTable.Config.ResetOne(name)
+  local newValue = addonTable.Config.Defaults[name]
   if newValue == nil then
     error("Can't reset that", name)
   else
     if type(newValue) == "table" then
       newValue = CopyTable(newValue)
     end
-    if announce ~= false then
-      addonTable.Config.Set(name, newValue)
-    else
-      RawSet(name, newValue)
-    end
+    addonTable.Config.Set(name, newValue)
   end
 end
 
@@ -215,8 +191,7 @@ function addonTable.Config.Reset()
 end
 
 local function ImportDefaultsToProfile()
-  local isNew = next(addonTable.Config.CurrentProfile) == nil
-  for option, value in pairs(isNew and addonTable.Config.NewDefaults or addonTable.Config.Defaults) do
+  for option, value in pairs(addonTable.Config.Defaults) do
     if addonTable.Config.CurrentProfile[option] == nil then
       if type(value) == "table" then
         addonTable.Config.CurrentProfile[option] = CopyTable(value)
