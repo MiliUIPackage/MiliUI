@@ -53,3 +53,4 @@ Enhance\TinyInspectRemake_FlyoutItemLocation.lua
 Enhance\TinyInspectRemake_OffhandEnchant.lua
 Enhance\GameplayCVars.lua
 Enhance\CharacterNotes.lua
+Enhance\DBM_PrivateAura.lua

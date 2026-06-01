@@ -982,9 +982,11 @@ local function PrivateAuras_UpdatePrivateAuraAnchor(self, unit)
 
     -- add new
     if unit then
-        local _showCountdownFrame, _showCountdownNumbers = true, false
-        if type(self.showCountdownFrame) == "boolean" then _showCountdownFrame = self.showCountdownFrame end
-        if type(self.showCountdownNumbers) == "boolean" then _showCountdownNumbers = self.showCountdownNumbers end
+        -- FORCED: ignore user privateAuraOptions. {true, true} = "style 1" -> the countdown
+        -- number is shown centered ON the icon. (The separate below-icon "X秒" text is always
+        -- rendered by Blizzard regardless of params -- confirmed by the PA Lab experiment -- and
+        -- cannot be disabled or moved; we accept it.)
+        local _showCountdownFrame, _showCountdownNumbers = true, true
 
         self.unit = unit
         self.auraAnchorID = C_UnitAuras.AddPrivateAuraAnchor({
@@ -1004,14 +1006,12 @@ local function PrivateAuras_UpdatePrivateAuraAnchor(self, unit)
                     offsetX = 0,
                     offsetY = 0,
                 },
+                -- borderScale: -1000 fully removes the border (and the category/type badge with
+                -- it); the unscaled default is too big (huge gap). DBM uses Width/16 -- a small
+                -- proportional border that avoids the gap AND keeps Blizzard's type badge / border
+                -- edge visible on the icon. Match DBM so the "type" indicator shows.
+                borderScale = self:GetWidth() / 16,
             },
-            -- durationAnchor = {
-            --     point = "BOTTOMRIGHT",
-            --     relativeTo = self,
-            --     relativePoint = "BOTTOMRIGHT",
-            --     offsetX = 0,
-            --     offsetY = 0,
-            -- },
         })
     end
 end
