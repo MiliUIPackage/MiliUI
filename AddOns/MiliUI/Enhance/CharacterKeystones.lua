@@ -141,6 +141,32 @@ end
 --------------------------------------------------------------------------------
 -- 寶庫資料層
 --------------------------------------------------------------------------------
+-- 本週寶庫最多計入的 M+ 場次（最高門檻＝8 場）
+local MPLUS_MAX_RUNS = 8
+
+-- 讀本週 M+ 場次，排序（level 降冪、同分 mapID 升冪），只取最高前 8 場
+-- （寶庫最高門檻＝8 場，多的不影響獎勵，存清單長度即可當「X/8」用）
+-- 參數 (false, true)：本週 + includeIncompleteRuns=true，與 Blizzard 寶庫 tooltip
+-- (WeeklyRewardsActivityMixin:AddTopRunsToTooltip) 完全一致。
+-- 注意：true 才會包含「超時但打完」(depleted) 的場次——這種場次算寶庫進度，
+-- 用 false 會漏掉它們，導致清單場次數與寶庫格不符。
+local function ReadOwnMythicRuns()
+    if not (C_MythicPlus and C_MythicPlus.GetRunHistory) then return nil end
+    local runs = C_MythicPlus.GetRunHistory(false, true)  -- 本週、含超時通關
+    if not runs or #runs == 0 then return nil end
+    table.sort(runs, function(a, b)
+        if a.level == b.level then
+            return (a.mapChallengeModeID or 0) < (b.mapChallengeModeID or 0)
+        end
+        return (a.level or 0) > (b.level or 0)
+    end)
+    local list = {}
+    for i = 1, math.min(MPLUS_MAX_RUNS, #runs) do
+        list[i] = { mapID = runs[i].mapChallengeModeID, level = runs[i].level or 0 }
+    end
+    return list
+end
+
 local function ReadOwnVaultSnapshot()
     if not C_WeeklyRewards or not C_WeeklyRewards.GetActivities then return nil end
     local snap = { timestamp = GetServerTime() }
@@ -159,6 +185,12 @@ local function ReadOwnVaultSnapshot()
             snap[trackName] = slots
             anyData = true
         end
+    end
+    -- 本週 M+ 場次清單（最高前 8 場，長度即「X/8」）
+    local runs = ReadOwnMythicRuns()
+    if runs then
+        snap.mplusRuns = runs
+        anyData = true
     end
     if not anyData then return nil end
     return snap
@@ -454,26 +486,40 @@ end
 
 --------------------------------------------------------------------------------
 -- 自製寶庫 tooltip：絕對定位 + 固定欄寬，避免不同寬度字元造成欄位錯位
+-- 高度動態（依 M+ 場次清單行數），寬度固定
 --------------------------------------------------------------------------------
 local TT = {
-    PAD              = 12,
-    TITLE_H          = 22,
-    ROW_H            = 18,
-    SPACE_AFTER_ROWS = 8,
-    FOOTER_H         = 14,
-    LABEL_W          = 44,
-    CELL_W           = 50,
-    ROW_COUNT        = 3,
+    PAD           = 12,
+    TITLE_H       = 22,
+    ROW_H         = 18,
+    SPACE         = 8,   -- 區塊間距
+    RUNS_HEADER_H = 18,
+    RUN_LINE_H    = 16,
+    FOOTER_H      = 14,
+    LABEL_W       = 44,
+    CELL_W        = 50,
+    ROW_COUNT     = 3,
+    MAX_RUN_LINES = 8,   -- = MPLUS_MAX_RUNS
 }
-TT.WIDTH  = TT.PAD * 2 + TT.LABEL_W + TT.CELL_W * 3
-TT.HEIGHT = TT.PAD * 2 + TT.TITLE_H + TT.ROW_H * TT.ROW_COUNT + TT.SPACE_AFTER_ROWS + TT.FOOTER_H
+TT.WIDTH = TT.PAD * 2 + TT.LABEL_W + TT.CELL_W * 3
+
+-- 把 M+ 場次格式化成一行：「+15  薩倫之淵」，等級依品質上色
+local function FormatRunLine(run)
+    local name = (C_ChallengeMode and C_ChallengeMode.GetMapUIInfo
+        and C_ChallengeMode.GetMapUIInfo(run.mapID)) or "?"
+    local r, g, b = VaultSlotQualityColor(run.level or 0)
+    local hex = string.format("%02x%02x%02x",
+        math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
+    return string.format("|cff%s+%d|r  %s", hex, run.level or 0, name)
+end
 
 local vaultTooltip
 
 local function CreateVaultTooltip()
     local f = CreateFrame("Frame", "MiliUI_VaultTooltip", UIParent, "BackdropTemplate")
     f:SetFrameStrata("TOOLTIP")
-    f:SetSize(TT.WIDTH, TT.HEIGHT)
+    -- 初始高度只是佔位，每次 ShowVaultTooltip 都會依內容重新 SetHeight
+    f:SetSize(TT.WIDTH, TT.PAD * 2 + TT.TITLE_H + TT.ROW_H * TT.ROW_COUNT + TT.FOOTER_H)
     f:SetBackdrop({
         bgFile   = "Interface\\Buttons\\WHITE8X8",
         edgeFile = "Interface\\Buttons\\WHITE8X8",
@@ -516,9 +562,31 @@ local function CreateVaultTooltip()
         f.rows[i] = row
     end
 
+    -- M+ 場次清單：標題 + 最多 8 行（位置在 ShowVaultTooltip 動態設定）
+    f.runsHeader = f:CreateFontString(nil, "OVERLAY")
+    f.runsHeader:SetFont(barFont, 12, "OUTLINE")
+    f.runsHeader:SetSize(TT.WIDTH - TT.PAD * 2, TT.RUNS_HEADER_H)
+    f.runsHeader:SetJustifyH("LEFT")
+    f.runsHeader:SetJustifyV("MIDDLE")
+    f.runsHeader:SetWordWrap(false)
+    f.runsHeader:SetTextColor(1, 0.84, 0)
+    f.runsHeader:Hide()
+
+    f.runLines = {}
+    for i = 1, TT.MAX_RUN_LINES do
+        local fs = f:CreateFontString(nil, "OVERLAY")
+        fs:SetFont(barFont, 12, "OUTLINE")
+        fs:SetSize(TT.WIDTH - TT.PAD * 2, TT.RUN_LINE_H)
+        fs:SetJustifyH("LEFT")
+        fs:SetJustifyV("MIDDLE")
+        fs:SetWordWrap(false)
+        fs:SetTextColor(0.95, 0.95, 0.95)
+        fs:Hide()
+        f.runLines[i] = fs
+    end
+
     f.snapshot = f:CreateFontString(nil, "OVERLAY")
     f.snapshot:SetFont(barFont, 11, "OUTLINE")
-    f.snapshot:SetPoint("BOTTOMLEFT", TT.PAD, TT.PAD - 2)
     f.snapshot:SetTextColor(0.6, 0.6, 0.6)
 
     -- 沒資料時顯示的提示（跨整個寬度，不受 row.label 寬度限制）
@@ -571,6 +639,13 @@ local function FillTooltipRow(row, trackKey, slots)
     end
 end
 
+local function HideAllRunLines(tt)
+    tt.runsHeader:Hide()
+    for i = 1, TT.MAX_RUN_LINES do
+        tt.runLines[i]:Hide()
+    end
+end
+
 local function ShowVaultTooltip(owner, data)
     vaultTooltip = vaultTooltip or CreateVaultTooltip()
     local tt = vaultTooltip
@@ -580,17 +655,20 @@ local function ShowVaultTooltip(owner, data)
 
     tt.title:SetText("本週寶庫 - " .. (data and data.name or "?"))
     ResetTooltipRows(tt)
+    HideAllRunLines(tt)
 
     local vault = data and data.vault
     if not vault then
-        tt.snapshot:SetText("")
+        tt.snapshot:Hide()
         tt.noDataMain:Show()
         tt.noDataSub:Show()
+        tt:SetHeight(TT.PAD * 2 + TT.TITLE_H + 42)
         tt:Show()
         return
     end
     tt.noDataMain:Hide()
     tt.noDataSub:Hide()
+    tt.snapshot:Show()
 
     -- 固定順序：團本 → M+ → 世界/競技（兩者擇一，視伺服器資料而定）
     local sequence = { "raid", "mplus" }
@@ -604,11 +682,41 @@ local function ShowVaultTooltip(owner, data)
         FillTooltipRow(tt.rows[i], key, vault[key])
     end
 
+    -- 從標題下方開始，依序往下排版並累計高度
+    local y = TT.PAD + TT.TITLE_H + #sequence * TT.ROW_H
+
+    -- M+ 場次清單
+    local runs = vault.mplusRuns
+    local nRuns = runs and #runs or 0
+    if nRuns > 0 then
+        y = y + TT.SPACE
+        tt.runsHeader:ClearAllPoints()
+        tt.runsHeader:SetPoint("TOPLEFT", TT.PAD, -y)
+        tt.runsHeader:SetText(string.format("本週 M+ 紀錄 (%d/%d)", nRuns, MPLUS_MAX_RUNS))
+        tt.runsHeader:Show()
+        y = y + TT.RUNS_HEADER_H
+        for i = 1, nRuns do
+            local line = tt.runLines[i]
+            line:ClearAllPoints()
+            line:SetPoint("TOPLEFT", TT.PAD, -y)
+            line:SetText(FormatRunLine(runs[i]))
+            line:Show()
+            y = y + TT.RUN_LINE_H
+        end
+    end
+
+    -- 快照時間
+    y = y + TT.SPACE
+    tt.snapshot:ClearAllPoints()
+    tt.snapshot:SetPoint("TOPLEFT", TT.PAD, -y)
     if vault.timestamp then
         tt.snapshot:SetText("快照時間：" .. date("%m/%d %H:%M", vault.timestamp))
     else
         tt.snapshot:SetText("")
     end
+    y = y + TT.FOOTER_H + TT.PAD
+
+    tt:SetHeight(y)
     tt:Show()
 end
 
