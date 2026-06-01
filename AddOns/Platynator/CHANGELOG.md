@@ -1,8 +1,7 @@
 # Platynator
 
-## [375](https://github.com/TheMouseNest/Platynator/tree/375) (2026-05-01)
-[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/374...375) 
+## [404](https://github.com/TheMouseNest/Platynator/tree/404) (2026-05-30)
+[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/403...404) 
 
-- Fix nil error  
-- Take pets into account for "Off tank" threat colour  
-- Add "Energy" bar and text widgets to show unit power levels in dungeons  
+- Fading: Fix cast alpha setting  
+- Classic: Include Earth Shock as an interrupt  

@@ -1,6 +1,7 @@
 ---@class addonTablePlatynator
 local addonTable = select(2, ...)
 
+local RangeCheck = LibStub("LibRangeCheck-3.0")
 local GetOtherTanks = addonTable.Display.Utilities.GetOtherTanks
 local IsTank = addonTable.Display.Utilities.IsTankRole
 
@@ -22,20 +23,27 @@ local getter = {
   ["cast"] = function(oldState, unit, eventName, ...)
     if eventName == "UNIT_SPELLCAST_INTERRUPTED" then
       local _, _, interrupterGUID = ...
-      return {cast = {}, channel = {}, interrupted = {guid = interrupterGUID}}, true
+      return {cast = {}, channel = {}, interrupted = {guid = interrupterGUID, time = GetTime() * 1000}}, true, addonTable.Config.Get(addonTable.Config.Options.CAST_INTERRUPTED_TIMEOUT)
     end
     if eventName == "UNIT_SPELLCAST_CHANNEL_STOP" then
       local _, _, interrupterGUID = ...
-      return {cast = {}, channel = {}, interrupted = interrupterGUID and {guid = interrupterGUID} or nil}, true
+      return {cast = {}, channel = {}, interrupted = interrupterGUID and {guid = interrupterGUID, time = GetTime() * 1000} or nil}, true, interrupterGUID and addonTable.Config.Get(addonTable.Config.Options.CAST_INTERRUPTED_TIMEOUT) or nil
     end
     if eventName == "UNIT_SPELLCAST_EMPOWER_STOP" then
       local _, _, _, interrupterGUID = ...
-      return {cast = {}, channel = {}, interrupted = {guid = interrupterGUID}}, true
+      return {cast = {}, channel = {}, interrupted = interrupterGUID and {guid = interrupterGUID, time = GetTime() * 1000} or nil}, true, interrupterGUID and addonTable.Config.Get(addonTable.Config.Options.CAST_INTERRUPTED_TIMEOUT) or nil
     end
+    local new, state = nil, false
     if eventName == "UNIT_SPELLCAST_DELAYED" and next(oldState.cast) == nil or eventName == "UNIT_SPELLCAST_CHANNEL_UPDATE" and next(oldState.channel) == nil then
-      return {cast = {}, channel = {}, interrupted = nil}, false
+      new, state = {cast = {}, channel = {}, interrupted = nil}, false
+    else
+      new, state = {cast = {UnitCastingInfo(unit)}, channel = {UnitChannelInfo(unit)}, interrupted = nil}, true
     end
-    return {cast = {UnitCastingInfo(unit)}, channel = {UnitChannelInfo(unit)}, interrupted = nil}, true
+    -- Using approximated milliseconds to avoid rounding errors breaking the time comparison
+    if oldState and oldState.interrupted and math.ceil(GetTime()*1000) - math.floor(oldState.interrupted.time) < addonTable.Config.Get(addonTable.Config.Options.CAST_INTERRUPTED_TIMEOUT) * 1000 and next(new.cast) == nil and next(new.channel) == nil then
+      new.interrupted = oldState.interrupted
+    end
+    return new, state
   end,
   ["threat"] = function(oldState, unit)
     local result = {situation = UnitThreatSituation("player", unit), otherTankAggro = false}
@@ -49,6 +57,11 @@ local getter = {
     end
     return result, not oldState or result.situation ~= oldState.situation or result.otherTankAggro ~= oldState.otherTankAggro
   end,
+  ["range"] = function(oldState, unit)
+    local range = RangeCheck:GetRange(unit)
+    local result = range == nil or range <= addonTable.Display.Utilities.GetRangedLimit()
+    return result, result ~= oldState
+  end
 }
 
 local eventsFromKind = {
@@ -108,14 +121,25 @@ function addonTable.Display.CacheMixin:OnLoad()
     self:RegisterEvent(event)
   end
 
+  C_Timer.NewTicker(0.1, function()
+    local kind = "range"
+    for unit, details in pairs(self.monitoring) do
+      if details.range then
+        local data, update = getter[kind](self.state[unit][kind], unit)
+        self.state[unit][kind] = data
+        if update then
+          for _, callback in ipairs(self.registeredCallbacks[unit][kind]) do
+            callback(data)
+          end
+        end
+      end
+    end
+  end)
+
   addonTable.CallbackRegistry:RegisterCallback("LegacyInterrupter", function(_, playerGUID, destGUID)
     for unit, details in pairs(self.monitoring) do
       if details.cast and UnitGUID(unit) == destGUID then
-        local data = {cast = {}, channel = {}, interrupted = {guid = playerGUID}}
-        self.state[unit]["cast"] = data
-        for _, callback in ipairs(self.registeredCallbacks[unit]["cast"]) do
-          callback(data)
-        end
+        self:Process("cast", unit, "UNIT_SPELLCAST_INTERRUPTED", nil, nil, playerGUID)
       end
     end
   end)
@@ -151,18 +175,26 @@ function addonTable.Display.CacheMixin:Get(unit, kind)
   end
 end
 
-function addonTable.Display.CacheMixin:OnEvent(eventName, unit, ...)
-  if not self.monitoring[unit] then
+function addonTable.Display.CacheMixin:Process(kind, unit, eventName, ...)
+  if not self.monitoring[unit] or not self.monitoring[unit][kind] then
     return
   end
-  local kind = eventToKind[eventName]
-  if self.monitoring[unit][kind] then
-    local data, update = getter[kind](self.state[unit][kind], unit, eventName, ...)
-    self.state[unit][kind] = data
-    if update then
-      for index, callback in ipairs(self.registeredCallbacks[unit][kind]) do
-        callback(data)
-      end
+
+  local data, update, timer = getter[kind](self.state[unit][kind], unit, eventName, ...)
+  self.state[unit][kind] = data
+  if update then
+    for _, callback in ipairs(self.registeredCallbacks[unit][kind]) do
+      callback(data)
     end
   end
+  if timer then
+    C_Timer.After(timer, function()
+      self:Process(kind, unit)
+    end)
+  end
+end
+
+function addonTable.Display.CacheMixin:OnEvent(eventName, unit, ...)
+  local kind = eventToKind[eventName]
+  self:Process(kind, unit, eventName, ...)
 end

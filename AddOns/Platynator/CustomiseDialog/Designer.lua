@@ -7,6 +7,14 @@ local function Announce()
   if addonTable.Config.Get(addonTable.Config.Options.STYLE):match("^_") then
     addonTable.Config.Set(addonTable.Config.Options.STYLE, addonTable.Constants.CustomName)
   end
+  local design = addonTable.CustomiseDialog.GetCurrentDesign()
+  local click, stack = addonTable.Utilities.GenerateRects(design)
+  if design.regions.click.autoSized then
+    design.regions.click = addonTable.Utilities.ConvertRectToWidget(click)
+  end
+  if design.regions.stack.autoSized then
+    design.regions.stack = addonTable.Utilities.ConvertRectToWidget(stack)
+  end
   addonTable.CallbackRegistry:TriggerEvent("RefreshStateChange", {[addonTable.Constants.RefreshReason.Design] = true})
 end
 
@@ -349,12 +357,19 @@ local function GetAurasTextPositioning(rootParent, iconID)
   wrapper.Border:SetVertexColor(0, 0, 0)
   wrapper.Border:SetAllPoints()
 
-  local widgetOptionsContainer = CreateFrame("Frame", nil, container)
-  widgetOptionsContainer:SetPoint("TOP", preview, "BOTTOM", 0, -30)
-  widgetOptionsContainer:SetPoint("LEFT")
-  widgetOptionsContainer:SetPoint("RIGHT")
-  widgetOptionsContainer:SetHeight(10)
-  local allFrames = GenerateOptions(widgetOptionsContainer, 0, 0, addonTable.CustomiseDialog.AurasConfig)
+  local expectedTexts = {"countdown", "stacks"}
+
+  local widgetOptions = {}
+  for _, kind in ipairs(expectedTexts) do
+    local optionsContainer = CreateFrame("Frame", nil, container)
+    optionsContainer:SetPoint("TOP", preview, "BOTTOM", 0, -30)
+    optionsContainer:SetPoint("LEFT")
+    optionsContainer:SetPoint("RIGHT")
+    optionsContainer:SetHeight(10)
+    optionsContainer.allFrames = GenerateOptions(optionsContainer, 0, 0, addonTable.CustomiseDialog.AurasTextsConfig[kind])
+
+    widgetOptions[kind] = optionsContainer
+  end
 
   local titleText = container:CreateFontString(nil, nil, "GameFontHighlightLarge")
   titleText:SetPoint("TOP", previewInset, "BOTTOM", 0, -10)
@@ -414,13 +429,19 @@ local function GetAurasTextPositioning(rootParent, iconID)
       selectedMarker:SetPoint("TOPLEFT", selection, "TOPLEFT", -2, 2)
       selectedMarker:SetPoint("BOTTOMRIGHT", selection, "BOTTOMRIGHT", 2, -2)
 
-      widgetOptionsContainer:Show()
-      widgetOptionsContainer.details = selection.details
-      for _, f in ipairs(allFrames) do
-        if f.getInitData then
-          f:Init(f.getInitData(selection.details))
+      for kind, optionsContainer in pairs(widgetOptions) do
+        if kind == selection.kind then
+          optionsContainer:Show()
+          optionsContainer.details = selection.details
+          for _, f in ipairs(optionsContainer.allFrames) do
+            if f.getInitData then
+              f:Init(f.getInitData(selection.details))
+            end
+            f:SetValue(f.Getter())
+          end
+        else
+          optionsContainer:Hide()
         end
-        f:SetValue(f.Getter())
       end
 
       titleText:Show()
@@ -428,7 +449,9 @@ local function GetAurasTextPositioning(rootParent, iconID)
       keyboardTrap:SetShown(not InCombatLockdown())
     else
       titleText:Hide()
-      widgetOptionsContainer:Hide()
+      for _, optionsContainer in pairs(widgetOptions) do
+        optionsContainer:Hide()
+      end
       selectedMarker:Hide()
       keyboardTrap:Hide()
     end
@@ -446,8 +469,6 @@ local function GetAurasTextPositioning(rootParent, iconID)
     selection = w
     UpdateSelection()
   end
-
-  local expectedTexts = {"countdown", "stacks"}
 
   preview.widgets = {}
 
@@ -495,15 +516,32 @@ local function GetAurasTextPositioning(rootParent, iconID)
       local text = preview.widgets[key].text
       text:ClearAllPoints()
       text:SetFontObject(addonTable.CurrentFont)
-      text:SetTextScale(textDetails.scale)
+      if text.SetSmoothScaling then
+        text:SetSmoothScaling(addonTable.CurrentFontUsesSmoothing)
+      end
+      if addonTable.CurrentFontUsesSmoothing then
+        text:SetTextScale(1)
+        text:SetScale(textDetails.scale)
+      else
+        text:SetTextScale(textDetails.scale)
+        text:SetScale(1)
+      end
       text:SetPoint(textDetails.anchor[1] or "CENTER")
       text:SetTextColor(textDetails.color.r, textDetails.color.g, textDetails.color.b)
+      if key == "countdown" and addonTable.Constants.IsCooldownFormattingAvailable then
+        if textDetails.showFractions then
+          text:SetText("2.9")
+        else
+          text:SetText("3")
+        end
+      end
       if textDetails.visible then
         preview.widgets[key]:SetAlpha(1)
       else
         preview.widgets[key]:SetAlpha(0.5)
       end
-      preview.widgets[key]:SetSize(text:GetSize())
+      local w, h = text:GetSize()
+      preview.widgets[key]:SetSize(w * text:GetScale(), h * text:GetScale())
       preview.widgets[key].details = textDetails
 
       addonTable.Display.ApplyAnchor(preview.widgets[key], textDetails.anchor)
@@ -622,8 +660,12 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
   local UpdateSelection
   local widgets
   local selectionIndexes = {}
+  local hiddenIndexes = {}
   local fociOnDown = {}
   local autoSelectedDetails
+  local shouldShowRegions = false
+  local UpdateHiding
+  local GenerateWidgets
 
   local titleMap = {}
 
@@ -640,22 +682,53 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
   end
 
   local previewInset = CreateFrame("Frame", nil, container, "InsetFrameTemplate")
-  previewInset:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
-  previewInset:SetPoint("LEFT", 20, 0)
-  previewInset:SetPoint("RIGHT", -20, 0)
-  previewInset:SetHeight(220)
+  previewInset:EnableMouse(true)
+  previewInset:SetFrameStrata("HIGH")
+  local maximizeButton = CreateFrame("Frame", nil, previewInset, "MaximizeMinimizeButtonFrameTemplate")
+  local isMaximized = false
 
   local preview = CreateFrame("Frame", nil, previewInset)
 
-  preview:SetPoint("TOP")
+  preview:SetPoint("TOP", 0, -15)
 
   preview:SetAllPoints()
   preview:SetFlattensRenderLayers(true)
-  preview:SetScale(2)
+
+  local function SetPreviewMaximised(state)
+    previewInset:ClearAllPoints()
+    isMaximized = state
+    if state then
+      maximizeButton:SetMinimizedLook()
+      previewInset:SetPoint("CENTER", container, 0, 30)
+      previewInset:SetSize(math.min(UIParent:GetWidth() * 0.8, container:GetHeight() * 2), container:GetHeight() * 0.95)
+      preview:SetScale(4)
+      preview:SetPoint("TOP", 0, 0)
+      GenerateWidgets()
+      UpdateSelection()
+    else
+      maximizeButton:SetMaximizedLook()
+      previewInset:SetPoint("TOP", allFrames[2], "BOTTOM", 0, -15)
+      previewInset:SetPoint("LEFT", 20, 0)
+      previewInset:SetPoint("RIGHT", -20, 0)
+      previewInset:SetHeight(235)
+      preview:SetPoint("TOP", 0, -15)
+      preview:SetScale(2)
+      GenerateWidgets()
+      UpdateSelection()
+    end
+  end
+
+  maximizeButton:SetPoint("BOTTOMRIGHT", previewInset)
+  function maximizeButton.maximizedCallback()
+    SetPreviewMaximised(true)
+  end
+  function maximizeButton.minimizedCallback()
+    SetPreviewMaximised(false)
+  end
 
   local contextHoverMarker = GetSelectorMarker(CreateFrame("Frame", nil, container), false)
 
-  local function ToggleSelection(rawFoci)
+  local function ToggleSelection(rawFoci, rawButton)
     local foci = tFilter(rawFoci, function(w) return w:GetParent() == preview end, true)
     local ApplyIndex
     if IsShiftKeyDown() then
@@ -667,6 +740,11 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
           table.insert(selectionIndexes, index)
         end
         UpdateSelection()
+      end
+    elseif rawButton == "MiddleButton" then
+      ApplyIndex = function(index)
+        hiddenIndexes[index] = true
+        UpdateHiding()
       end
     else
       ApplyIndex = function(index)
@@ -791,7 +869,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
       newCursorY = newCursorY / preview:GetEffectiveScale()
       for _, index in ipairs(backupSelectionIndexes) do
         local w = widgets[index]
-        if w.kind == "texts" then -- Because the Wrapper determines the base position
+        if w.Wrapper and w.kind ~= "auras" then -- Because the Wrapper determines the base position
           w.Wrapper:AdjustPointsOffset(newCursorX - cursorX, newCursorY - cursorY)
         else
           w:AdjustPointsOffset(newCursorX - cursorX, newCursorY - cursorY)
@@ -817,20 +895,34 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
     table.sort(selectionIndexes, function(a, b) return a > b end)
     for _, index in ipairs(selectionIndexes) do
       local kind = widgets[index].kind
-      local details = widgets[index].details
-      local design = addonTable.CustomiseDialog.GetCurrentDesign()
-      local index = tIndexOf(design[kind], details)
-      table.remove(design[kind], index)
+      if kind == "regions" then
+        widgets[index].details.autoSized = true
+      else
+        local details = widgets[index].details
+        local design = addonTable.CustomiseDialog.GetCurrentDesign()
+        table.remove(design[kind], tIndexOf(design[kind], details))
+
+        -- Update hidden widget indexes
+        local keys = GetKeysArray(hiddenIndexes)
+        hiddenIndexes = {}
+        for _, k in ipairs(keys) do
+          if k > index then
+            hiddenIndexes[k - 1] = true
+          elseif k ~= index then
+            hiddenIndexes[k] = true
+          end
+        end
+      end
     end
     selectionIndexes = {}
     Announce()
   end
 
-  local selectorPool = CreateFramePool("Frame", container, nil, nil, false, GetSelectorMarker)
+  local selectorPool = CreateFramePool("Frame", previewInset, nil, nil, false, GetSelectorMarker)
   local keyboardTrap = CreateFrame("Frame", nil, container)
   keyboardTrap:Hide()
 
-  local hoverMarker = GetSelectorMarker(CreateFrame("Frame", nil, container), true)
+  local hoverMarker = GetSelectorMarker(CreateFrame("Frame", nil, previewInset), true)
 
   local titleText = container:CreateFontString(nil, nil, "GameFontHighlightLarge")
   titleText:SetPoint("TOP", previewInset, "BOTTOM", 0, -15)
@@ -878,9 +970,9 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
   end)
 
   local addButton = CreateFrame("DropdownButton", nil, previewInset, "UIPanelDynamicResizeButtonTemplate")
-  addButton:SetText(addonTable.Locales.ADD_WIDGET)
+  addButton:SetText(addonTable.Locales.ADD)
   DynamicResizeButton_Resize(addButton)
-  addButton:SetPoint("TOPLEFT", 0, addButton:GetHeight() + 2)
+  addButton:SetPoint("TOPLEFT", 1, -1)
   addButton:SetupMenu(function(menu, rootDescription)
     local design = addonTable.CustomiseDialog.GetCurrentDesign()
     for _, details in ipairs(addonTable.CustomiseDialog.DesignWidgets) do
@@ -889,6 +981,9 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
       else
         local skip = false
         if details.noDuplicates then
+          if design[details.kind][details.default.kind] then
+            skip = true
+          end
           for _, entry in ipairs(design[details.kind]) do
             if entry.kind == details.default.kind then
               skip = true
@@ -911,12 +1006,52 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
   end)
 
   local deleteButton = CreateFrame("Button", nil, previewInset, "UIPanelDynamicResizeButtonTemplate")
-  deleteButton:SetText(addonTable.Locales.DELETE_WIDGET)
+  deleteButton:SetText(addonTable.Locales.DELETE)
   DynamicResizeButton_Resize(deleteButton)
-  deleteButton:SetPoint("TOPRIGHT", 0, addButton:GetHeight() + 2)
+  deleteButton:SetPoint("TOPRIGHT", -1, -1)
   deleteButton:SetScript("OnClick", function()
     DeleteCurrentWidget()
   end)
+
+  local showAllButton = CreateFrame("Button", nil, previewInset, "UIPanelDynamicResizeButtonTemplate")
+  showAllButton:SetText(addonTable.Locales.SHOW_ALL)
+  DynamicResizeButton_Resize(showAllButton)
+  showAllButton:SetPoint("TOP", 0, -1)
+  showAllButton:SetScript("OnClick", function()
+    hiddenIndexes = {}
+    UpdateHiding()
+  end)
+
+  local showRegionsButton = CreateFrame("Button", nil, previewInset, "UIPanelDynamicResizeButtonTemplate")
+  showRegionsButton:SetText(addonTable.Locales.REGIONS)
+  DynamicResizeButton_Resize(showRegionsButton)
+  showRegionsButton:SetPoint("BOTTOMLEFT", 1, 1)
+  showRegionsButton:SetScript("OnClick", function()
+    shouldShowRegions = not shouldShowRegions
+    UpdateHiding()
+    if not shouldShowRegions then
+      addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "click", false)
+      addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "stack", false)
+    else
+      addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "click", addonTable.CustomiseDialog.GetCurrentDesign().regions.click.autoSized)
+    end
+  end)
+  if not addonTable.Constants.IsHitTestPointsAvailable then
+    showRegionsButton:Hide()
+  end
+
+  UpdateHiding = function()
+    for index, w in ipairs(widgets) do
+      w:SetShown(hiddenIndexes[index] ~= true and (w.kind ~= "regions" or shouldShowRegions))
+    end
+    showAllButton:SetShown(next(hiddenIndexes) ~= nil)
+    DynamicResizeButton_Resize(showRegionsButton)
+    local oldSize = #selectionIndexes
+    selectionIndexes = tFilter(selectionIndexes, function(i) return widgets[i] and not hiddenIndexes[i] and (widgets[i].kind ~= "regions" or shouldShowRegions) end, true)
+    if #selectionIndexes ~= oldSize then
+      UpdateSelection()
+    end
+  end
 
   local auraContainers = {
     buffs = CreateFrame("Frame", nil, preview, "PlatynatorPropagateMouseTemplate"),
@@ -991,13 +1126,65 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
         ForceSelection(fociOnDown)
         StartMovingSelection()
       end)
-      w:SetScript("OnMouseUp", function()
-        ToggleSelection(GetMouseFoci())
+      w:SetScript("OnMouseUp", function(_, button)
+        ToggleSelection(GetMouseFoci(), button)
       end)
     end
   end
 
-  local function GenerateWidgets()
+  local regionWidgets = {
+    click = CreateFrame("Frame", nil, preview, "PlatynatorPropagateMouseTemplate"),
+    stack = CreateFrame("Frame", nil, preview, "PlatynatorPropagateMouseTemplate"),
+  }
+  for _, w in pairs(regionWidgets) do
+    w.kind = "regions"
+    w.visual = w:CreateTexture()
+    w.visual:SetAllPoints()
+    w.border = w:CreateTexture()
+    w.border:SetAllPoints()
+    local borderSliceDetails = LSM:Fetch("nineslice", "Platy: 4px")
+    assert(borderSliceDetails)
+    w.border:SetTexture(borderSliceDetails.file)
+    w.border:SetScale(borderSliceDetails.scaleModifier)
+    w.border:SetTextureSliceMargins(borderSliceDetails.margins.left, borderSliceDetails.margins.top, borderSliceDetails.margins.right, borderSliceDetails.margins.bottom)
+    w:SetScript("OnEnter", function()
+      if w == GetMouseFoci()[1] then
+        hoverMarker:Show()
+        hoverMarker:SetFrameStrata("HIGH")
+        hoverMarker:ClearAllPoints()
+        hoverMarker:SetPoint("TOPLEFT", w, "TOPLEFT", -2, 2)
+        hoverMarker:SetPoint("BOTTOMRIGHT", w, "BOTTOMRIGHT", 2, -2)
+      end
+    end)
+    w:SetScript("OnLeave", function()
+      local foci = GetMouseFoci()
+      if foci[1] and foci[1]:GetParent() == preview then
+        foci[1]:GetScript("OnEnter")()
+      else
+        hoverMarker:Hide()
+      end
+    end)
+    w:SetMovable(true)
+    w:EnableMouse(true)
+    w:RegisterForDrag("LeftButton")
+    w:SetScript("OnMouseDown", function()
+      NotifyMouseDown()
+    end)
+    w:SetScript("OnDragStart", function()
+      ForceSelection(fociOnDown)
+      w.details.autoSized = false
+      StartMovingSelection()
+    end)
+    w:SetScript("OnMouseUp", function(_, button)
+      ToggleSelection(GetMouseFoci(), button)
+    end)
+  end
+  regionWidgets.click.visual:SetColorTexture(addonTable.Constants.ClickRegionColor.r, addonTable.Constants.ClickRegionColor.g, addonTable.Constants.ClickRegionColor.b, addonTable.Constants.ClickRegionColor.a)
+  regionWidgets.click.border:SetVertexColor(addonTable.Constants.ClickRegionBorderColor.r, addonTable.Constants.ClickRegionBorderColor.g, addonTable.Constants.ClickRegionBorderColor.b)
+  regionWidgets.stack.visual:SetColorTexture(addonTable.Constants.StackRegionColor.r, addonTable.Constants.StackRegionColor.g, addonTable.Constants.StackRegionColor.b, addonTable.Constants.StackRegionColor.a)
+  regionWidgets.stack.border:SetVertexColor(addonTable.Constants.StackRegionBorderColor.r, addonTable.Constants.StackRegionBorderColor.g, addonTable.Constants.StackRegionBorderColor.b)
+
+  GenerateWidgets = function ()
     if widgets then
       addonTable.Display.ReleaseWidgets(tFilter(widgets, function(w) return w.Strip end, true), true)
     end
@@ -1129,6 +1316,34 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
           table.insert(points, {set = i <= 4, color = color})
         end
         w:SetValue(points)
+      elseif w.kind == "specialBars" and w.details.kind == "healthFillText" then
+        local text = "Cheesanator"
+        w.background:SetText(text)
+        w.foreground:SetText(text)
+        w.absorb:SetText(text)
+        w.absorbPlacer:SetText(text)
+        w.statusBar:SetMinMaxValues(0, 100)
+        w.statusBar:SetValue(70)
+        w.statusBarAbsorb:SetMinMaxValues(0, 100)
+        w.statusBarAbsorb:SetValue(10)
+        local defaultColor
+        for _, s in ipairs(w.details.autoColors) do
+          if s.kind == "classColors" then
+            defaultColor = RAID_CLASS_COLORS["MAGE"]
+            break
+          elseif s.kind == "threat" then
+            defaultColor = s.colors.warning
+            break
+          elseif s.kind == "reaction" then
+            defaultColor = s.colors.hostile
+            break
+          end
+        end
+        w.foreground:SetTextColor(defaultColor.r, defaultColor.g, defaultColor.b)
+        if w.details.background.applyColor then
+          local mod = w.details.background.color
+          w.background:SetTextColor(defaultColor.r * mod.r, defaultColor.g * mod.g, defaultColor.b * mod.b, mod.a)
+        end
       elseif w.kind == "markers" then
         local asset = addonTable.Assets.Markers[w.details.asset]
         if asset.preview then
@@ -1138,7 +1353,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
           w.background:Show()
         end
       elseif w.kind == "highlights" then
-        w:Show(true)
+        w:Show()
       end
 
       w:SetScript("OnEnter", function()
@@ -1169,8 +1384,8 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
         ForceSelection(fociOnDown)
         StartMovingSelection()
       end)
-      w:SetScript("OnMouseUp", function()
-        ToggleSelection(GetMouseFoci())
+      w:SetScript("OnMouseUp", function(_, button)
+        ToggleSelection(GetMouseFoci(), button)
       end)
     end
     for _, container in pairs(auraContainers) do
@@ -1188,19 +1403,40 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
       end
       local cdText = container.auras[1].Cooldown:GetRegions()
       cdText:SetFontObject(addonTable.CurrentFont)
-      cdText:SetTextScale(details.texts.countdown.scale)
+      if addonTable.CurrentFontUsesSmoothing then
+        cdText:SetTextScale(1)
+        cdText:SetScale(details.texts.countdown.scale)
+      else
+        cdText:SetTextScale(details.texts.countdown.scale)
+        cdText:SetScale(1)
+      end
       cdText:SetTextColor(details.texts.countdown.color.r, details.texts.countdown.color.g, details.texts.countdown.color.b)
-      container.auras[1].Cooldown:SetCooldown(GetTime() - 2, 5)
+      if cdText.SetSmoothScaling then
+        cdText:SetSmoothScaling(addonTable.CurrentFontUsesSmoothing)
+      end
+      container.auras[1].Cooldown:SetCooldown(GetTime() - 2.1, 5)
       container.auras[1].Cooldown:Pause()
+      if container.auras[1].Cooldown.SetCountdownFormatter then
+        container.auras[1].Cooldown:SetCountdownFormatter(details.texts.countdown.showFractions and addonTable.Display.Utilities.GetAuraNumericFormatter() or nil)
+      end
       container.auras[1].Cooldown:SetHideCountdownNumbers(not details.texts.countdown.visible)
       container.auras[1].Cooldown:SetDrawSwipe(details.showSwipe)
       container.auras[1].Cooldown:SetDrawEdge(details.showSwipe)
-      addonTable.Display.ApplyAnchor(cdText, details.texts.countdown.anchor)
+      addonTable.Display.ApplyAnchor(cdText, details.texts.countdown.anchor, addonTable.CurrentFontUsesSmoothing and 1/details.texts.countdown.scale or 1)
       container.auras[1].CountFrame.Count:SetText(2)
       container.auras[1].CountFrame.Count:SetFontObject(addonTable.CurrentFont)
-      container.auras[1].CountFrame.Count:SetTextScale(details.texts.stacks.scale)
       container.auras[1].CountFrame.Count:SetShown(details.texts.stacks.visible)
-      addonTable.Display.ApplyAnchor(container.auras[1].CountFrame.Count, details.texts.stacks.anchor)
+      if container.auras[1].CountFrame.Count.SetSmoothScaling then
+        container.auras[1].CountFrame.Count:SetSmoothScaling(addonTable.CurrentFontUsesSmoothing)
+      end
+      if addonTable.CurrentFontUsesSmoothing then
+        container.auras[1].CountFrame.Count:SetTextScale(1)
+        container.auras[1].CountFrame.Count:SetScale(details.texts.stacks.scale)
+      else
+        container.auras[1].CountFrame.Count:SetTextScale(details.texts.stacks.scale)
+        container.auras[1].CountFrame.Count:SetScale(1)
+      end
+      addonTable.Display.ApplyAnchor(container.auras[1].CountFrame.Count, details.texts.stacks.anchor, addonTable.CurrentFontUsesSmoothing and 1/details.texts.stacks.scale or 1)
       container.auras[1].CountFrame.Count:SetTextColor(details.texts.stacks.color.r, details.texts.stacks.color.g, details.texts.stacks.color.b)
       container.auras[1].DispelBorder:SetShown(details.showType)
       container:SetSize(22 * container.count * details.scale, 20 * details.height * details.scale)
@@ -1222,12 +1458,32 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
       container:ClearAllPoints()
       addonTable.Display.ApplyAnchor(container, details.anchor)
     end
+
+    for _, key in pairs({"click", "stack"}) do
+      local details = design.regions[key]
+      local w = regionWidgets[key]
+      w.details = details
+      w.details.kind = key
+      w:SetSize(details.width * addonTable.Assets.BarBordersSize.width, details.height * addonTable.Assets.BarBordersSize.height)
+      w:SetFrameLevel(9000 + 10 * (key == "click" and 1 or 0))
+      addonTable.Display.ApplyAnchor(w, details.anchor)
+      w:SetShown(shouldShowRegions)
+      table.insert(widgets, w)
+    end
+
+    UpdateHiding()
   end
 
   GenerateWidgets()
 
+  local previousDesign = addonTable.Config.Get(addonTable.Config.Options.STYLE)
+
   addonTable.CallbackRegistry:RegisterCallback("RefreshStateChange", function(_, state)
     if state[addonTable.Constants.RefreshReason.Design] then
+      local currentDesign = addonTable.Config.Get(addonTable.Config.Options.STYLE)
+      if previousDesign ~= currentDesign and (not previousDesign:match("^_") or currentDesign ~= addonTable.Constants.CustomName) then
+        hiddenIndexes = {}
+      end
       local design = addonTable.CustomiseDialog.GetCurrentDesign()
       addonTable.CurrentFont = addonTable.Core.GetFontByDesign(design)
       designScale:SetValue(design.scale * 100)
@@ -1426,6 +1682,14 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
 
   UpdateSelection = function()
     selectionIndexes = tFilter(selectionIndexes, function(i) return i <= #widgets end, true)
+
+    if shouldShowRegions then
+      local stackSelected = tIndexOf(selectionIndexes, tIndexOf(widgets, regionWidgets.stack)) ~= nil
+      local clickSelected = tIndexOf(selectionIndexes, tIndexOf(widgets, regionWidgets.click)) ~= nil
+      addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "click", regionWidgets.click.details.autoSized and not stackSelected or clickSelected)
+      addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "stack", stackSelected)
+    end
+
     if #selectionIndexes == 0 then
       keyboardTrap:Hide()
       deleteButton:Disable()
@@ -1450,17 +1714,23 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
       local w = widgets[selectionIndexes[1]]
       titleText:SetText(titleMap[w.kind] and titleMap[w.kind][w.details.kind] or UNKNOWN)
 
-      for _, frame in ipairs(settingsFrames) do
-        if not frame:IsFor(w.kind, w.details) then
-          frame:Hide()
+      if not isMaximized then
+        for _, frame in ipairs(settingsFrames) do
+          if not frame:IsFor(w.kind, w.details) then
+            frame:Hide()
+          end
         end
-      end
 
-      for _, frame in ipairs(settingsFrames) do
-        if frame:IsFor(w.kind, w.details) then
-          frame.details = nil
-          frame:Show()
-          frame:Set(w.details)
+        for _, frame in ipairs(settingsFrames) do
+          if frame:IsFor(w.kind, w.details) then
+            frame.details = nil
+            frame:Show()
+            frame:Set(w.details)
+          end
+        end
+      else
+        for _, frame in ipairs(settingsFrames) do
+          frame:Hide()
         end
       end
     end
@@ -1492,8 +1762,12 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
     designScale:SetValue(addonTable.CustomiseDialog.GetCurrentDesign().scale * 100)
 
     selectionIndexes = {}
-    UpdateSelection()
-
+    SetPreviewMaximised(false)
+  end)
+  container:SetScript("OnHide", function()
+    shouldShowRegions = false
+    addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "click", false)
+    addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "stack", false)
   end)
 
   return container
