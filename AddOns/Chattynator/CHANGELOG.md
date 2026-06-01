@@ -1,6 +1,7 @@
 # Chattynator
 
-## [205](https://github.com/TheMouseNest/Chattynator/tree/205) (2026-05-01)
-[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/204...205) 
+## [209](https://github.com/TheMouseNest/Chattynator/tree/209) (2026-05-23)
+[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/208...209) 
 
-- Fix whisper tabs not generating properly  
+- [Fixes #205] Resolve community channel name issues  
+- Customise: Rearrange options to better associate them with the tab names  

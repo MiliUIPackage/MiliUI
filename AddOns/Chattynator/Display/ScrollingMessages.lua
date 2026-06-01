@@ -22,16 +22,6 @@ function addonTable.Display.ScrollingMessagesMixin:MyOnLoad()
   self.pool = CreateFontStringPool(self, "BACKGROUND", 0, addonTable.Messages.font)
   self.barPool = CreateTexturePool(self, "BACKGROUND")
 
-  if not IsMacClient() then
-    local edgeFadeTop = 20
-    local edgeFadeLeft = 0
-    local edgeFadeRight = 0
-    local edgeFadeBottom = 0
-
-    self:SetAlphaGradient(0, CreateVector2D(edgeFadeLeft, edgeFadeTop))
-    self:SetAlphaGradient(1, CreateVector2D(edgeFadeRight, edgeFadeBottom))
-  end
-
   self:SetScript("OnMouseWheel", function(_, delta)
     self.currentFadeOffsetTime = GetTime()
     local multiplier = 1
@@ -233,7 +223,7 @@ function addonTable.Display.ScrollingMessagesMixin:Render(newMessages)
         fs:SetTextColor(1, 1, 1)
         fs:SetJustifyH("LEFT")
         fs:SetPoint("LEFT", self, addonTable.Messages.inset + 3, 0)
-        fs:SetPoint("RIGHT", self)
+        fs:SetPoint("RIGHT", self, -1, 0)
         fs:SetPoint("BOTTOM", self, 0, 2)
         fs:SetText(m.text)
         fs:SetTextColor(m.color.r, m.color.g, m.color.b)
