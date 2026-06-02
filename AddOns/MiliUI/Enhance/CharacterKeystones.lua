@@ -464,6 +464,18 @@ local RAID_DIFFICULTY_INFO = {
     [16] = { name = "傳奇", quality = 5 }, -- 給神話軌道 - 橘 (Legendary)
 }
 
+-- 本週 M+ 計入寶庫的場次數（以寶庫進度為準，取各 slot progress 最大值）
+-- GetRunHistory 的客戶端快取偶爾比寶庫進度慢一拍，用這個當「X/8」的權威來源
+local function VaultMythicProgress(vault)
+    local slots = vault and vault.mplus
+    if not slots then return 0 end
+    local maxP = 0
+    for _, s in ipairs(slots) do
+        if (s.progress or 0) > maxP then maxP = s.progress end
+    end
+    return maxP
+end
+
 -- 解鎖格的顯示文字與顏色（依軌道與 level 決定）
 -- 世界/競技軌道的 level 語義混亂（深淵 tier、世界任務、PvP 評分各自不同編碼），
 -- 完成與否更實用，直接打勾就好
@@ -686,13 +698,16 @@ local function ShowVaultTooltip(owner, data)
     local y = TT.PAD + TT.TITLE_H + #sequence * TT.ROW_H
 
     -- M+ 場次清單
+    -- 場次數以寶庫進度為準（即時），清單行數來自 GetRunHistory（偶爾慢一拍會少 1）
     local runs = vault.mplusRuns
     local nRuns = runs and #runs or 0
+    local count = math.min(VaultMythicProgress(vault), MPLUS_MAX_RUNS)
+    if count == 0 then count = nRuns end  -- 舊資料無寶庫進度時退回清單長度
     if nRuns > 0 then
         y = y + TT.SPACE
         tt.runsHeader:ClearAllPoints()
         tt.runsHeader:SetPoint("TOPLEFT", TT.PAD, -y)
-        tt.runsHeader:SetText(string.format("本週 M+ 紀錄 (%d/%d)", nRuns, MPLUS_MAX_RUNS))
+        tt.runsHeader:SetText(string.format("本週 M+ 紀錄 (%d/%d)", count, MPLUS_MAX_RUNS))
         tt.runsHeader:Show()
         y = y + TT.RUNS_HEADER_H
         for i = 1, nRuns do
@@ -1053,9 +1068,21 @@ local function SetupCharacterKeystones()
 
     refreshCallback = PopulateList
 
-    -- 每次顯示時填充（更新 stale 狀態）
-    panel:HookScript("OnShow", PopulateList)
-    if panel:IsVisible() then PopulateList() end
+    -- 開面板時重讀「當前角色」的即時鑰石＋寶庫再填充。
+    -- 事件觸發（完成/洗 key）偶爾會錯過更新窗口，開面板是最可靠的刷新時機。
+    local function RefreshOwnAndPopulate()
+        local mapID, level = ReadOwnKeystoneState()
+        if mapID > 0 and level > 0 then
+            SaveKeystoneRecord(mapID, level)
+            lastOwnMapID, lastOwnLevel = mapID, level
+            baselineSet = true
+        end
+        SaveVaultSnapshot()
+        PopulateList()
+    end
+
+    panel:HookScript("OnShow", RefreshOwnAndPopulate)
+    if panel:IsVisible() then RefreshOwnAndPopulate() end
 end
 
 --------------------------------------------------------------------------------
