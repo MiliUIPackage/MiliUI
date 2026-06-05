@@ -432,6 +432,18 @@ local function UpdateScroll()
     end
 end
 
+-- 標題＝「{副本名稱} 天賦裝備比對」，隨目前檢視的副本變動
+local function UpdateTitle()
+    if not panel then return end
+    local name = EJ_GetInstanceInfo and EJ_GetInstanceInfo()
+    local title = (name and name ~= "") and (name .. " 天賦裝備比對") or "天賦裝備比對"
+    if panel.SetTitle then
+        panel:SetTitle(title)
+    elseif panel.TitleText then
+        panel.TitleText:SetText(title)
+    end
+end
+
 local function showEmpty(text)
     panel.empty:SetText(text)
     panel.empty:Show()
@@ -468,6 +480,7 @@ end
 
 Refresh = function()
     if not panel then return end
+    UpdateTitle()
     panel.itemPool:ReleaseAll()
     panel.headerPool:ReleaseAll()
     panel.subPool:ReleaseAll()

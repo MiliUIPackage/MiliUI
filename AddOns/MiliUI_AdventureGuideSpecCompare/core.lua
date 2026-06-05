@@ -61,6 +61,14 @@ local function GetCurrentEncounterID()
     return EncounterJournal and EncounterJournal.encounterID or nil
 end
 
+local function GetCurrentInstanceID()
+    if EJ_GetCurrentInstance then
+        local id = EJ_GetCurrentInstance()
+        if id and id ~= 0 then return id end
+    end
+    return EncounterJournal and EncounterJournal.instanceID or nil
+end
+
 local function GetCurrentDifficultyID()
     if EJ_GetDifficulty then return EJ_GetDifficulty() end
     return nil
@@ -153,14 +161,16 @@ local function ScanIfNeeded()
         wipe(ns.itemInfoCache)
         wipe(ns.currentItemIDs)
         ns.classID, ns.specID, ns.classFile = 0, 0, nil
-        ns.encounterID, ns.difficultyID = nil, nil
+        ns.encounterID, ns.difficultyID, ns.instanceID = nil, nil, nil
         fireList(ns.onScanned, "callback")
         return
     end
 
     local currentEncounter   = GetCurrentEncounterID()
+    local currentInstance    = GetCurrentInstanceID()
     local currentDifficulty  = GetCurrentDifficultyID()
     local sameContext        = (ns.classID == classID
+                            and ns.instanceID == currentInstance
                             and ns.encounterID == currentEncounter
                             and ns.difficultyID == currentDifficulty
                             and next(ns.itemSpecMap) ~= nil)
@@ -170,6 +180,7 @@ local function ScanIfNeeded()
     if not sameContext then
         -- 完整掃描
         ns.classID       = classID
+        ns.instanceID    = currentInstance
         ns.encounterID   = currentEncounter
         ns.difficultyID  = currentDifficulty
         local classInfo  = C_CreatureInfo and C_CreatureInfo.GetClassInfo
@@ -257,8 +268,8 @@ local commands = {
     dump = function()
         local n = 0
         for _ in pairs(ns.itemSpecMap) do n = n + 1 end
-        print(string.format("|cff66ccff[AGSC]|r class=%d spec=%d enc=%s diff=%s items=%d",
-              ns.classID, ns.specID,
+        print(string.format("|cff66ccff[AGSC]|r class=%d spec=%d inst=%s enc=%s diff=%s items=%d",
+              ns.classID, ns.specID, tostring(ns.instanceID),
               tostring(ns.encounterID), tostring(ns.difficultyID), n))
     end,
     loot = function()
