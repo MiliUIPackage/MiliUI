@@ -46,10 +46,48 @@ local function GetAccountDB()
     return MiliUI_DB.notes
 end
 
+-- 舊版：每角色獨立 SavedVariables，僅用於一次性遷移來源
 local function GetCharDB()
     if type(MiliUI_CharDB) ~= "table" then MiliUI_CharDB = {} end
     if type(MiliUI_CharDB.notes) ~= "table" then MiliUI_CharDB.notes = {} end
     return MiliUI_CharDB.notes
+end
+
+------------------------------------------------------------
+-- 角色筆記改存帳號層，才能跨分身檢視
+-- 結構：MiliUI_DB.charNotes[key] = { meta = {name, realm, class}, notes = {...} }
+------------------------------------------------------------
+-- 目前選取要檢視的分身 key（角色專屬模式用；登入時預設為當前角色）
+local selectedCharKey
+
+-- 延後清理：登入時不掃所有分身，首次存取某分身才 Sanitize
+local sanitizedChars = {}
+local SanitizeCharNotes  -- 前向宣告（實作需用到稍後定義的 SanitizeNoteList）
+
+local function GetCharNotesDB()
+    if type(MiliUI_DB) ~= "table" then MiliUI_DB = {} end
+    if type(MiliUI_DB.charNotes) ~= "table" then MiliUI_DB.charNotes = {} end
+    return MiliUI_DB.charNotes
+end
+
+-- 回傳 當前角色 key, 名稱, 伺服器
+local function GetCurrentCharKey()
+    local name  = UnitName("player") or "?"
+    local realm = GetNormalizedRealmName() or GetRealmName() or ""
+    return name .. "-" .. realm, name, realm
+end
+
+-- 取得（必要時建立）某分身的容器：{ meta=..., notes={...} }
+local function GetCharEntry(key)
+    local db = GetCharNotesDB()
+    if type(db[key]) ~= "table" then db[key] = {} end
+    if type(db[key].notes) ~= "table" then db[key].notes = {} end
+    return db[key]
+end
+
+local function GetNotesForCharKey(key)
+    SanitizeCharNotes(key)  -- 首次存取才清理（把登入成本攤到實際檢視時）
+    return GetCharEntry(key).notes
 end
 
 ------------------------------------------------------------
@@ -95,6 +133,14 @@ local function SanitizeNoteList(notes)
     end
 end
 
+-- 延後清理某分身的筆記（每個 key 只做一次）
+SanitizeCharNotes = function(key)
+    if not key or sanitizedChars[key] then return end
+    sanitizedChars[key] = true
+    local entry = GetCharNotesDB()[key]
+    if type(entry) == "table" then SanitizeNoteList(entry.notes) end
+end
+
 ------------------------------------------------------------
 -- 將舊的 content 字串遷移成 blocks（一行 = 一個 text block）
 ------------------------------------------------------------
@@ -114,8 +160,37 @@ end
 local function InitDB()
     GetAccountDB()  -- 觸發 type-check 與初始化
     GetCharDB()
+    GetCharNotesDB()
     SanitizeNoteList(MiliUI_DB.notes)
-    SanitizeNoteList(MiliUI_CharDB.notes)
+
+    local curKey, curName, curRealm = GetCurrentCharKey()
+    local charDB = GetCharNotesDB()
+
+    -- 一次性遷移：舊的 per-character SavedVariables → 帳號層 charNotes[curKey]
+    local legacy = MiliUI_CharDB and MiliUI_CharDB.notes
+    if type(legacy) == "table" and #legacy > 0
+       and not (type(charDB[curKey]) == "table" and charDB[curKey].migrated) then
+        local entry = GetCharEntry(curKey)
+        if #entry.notes == 0 then
+            for _, n in ipairs(legacy) do table.insert(entry.notes, n) end
+        end
+        entry.migrated = true
+        MiliUI_CharDB.notes = {}  -- 清掉舊資料，避免重複遷移
+    end
+
+    -- 更新當前角色 meta（每次登入刷新名稱/伺服器/職業，供下拉選單顯示）
+    local entry = GetCharEntry(curKey)
+    entry.meta = type(entry.meta) == "table" and entry.meta or {}
+    local _, classFile = UnitClass("player")
+    entry.meta.name  = curName
+    entry.meta.realm = curRealm
+    entry.meta.class = classFile
+
+    -- 只清理當前角色；其他分身於首次檢視時才清理（見 GetNotesForCharKey）
+    SanitizeCharNotes(curKey)
+
+    selectedCharKey = curKey  -- 預設檢視當前角色
+
     -- 編輯器位置
     if MiliUI_DB.notesEditorPos and type(MiliUI_DB.notesEditorPos) ~= "table" then
         MiliUI_DB.notesEditorPos = nil
@@ -140,7 +215,7 @@ end
 
 local function GetNotesForScope(scope)
     if scope == NOTE_SCOPE_CHAR then
-        return GetCharDB()
+        return GetNotesForCharKey(selectedCharKey or (GetCurrentCharKey()))
     end
     return GetAccountDB()
 end
@@ -282,9 +357,123 @@ local listContent    -- 列表捲動內容
 local editorFrame    -- 獨立浮動編輯視窗（parent: UIParent）
 local titleEditBox   -- 標題輸入
 local scopeButton    -- 帳號/角色 切換按鈕（OnClick 內要更新文字）
+local addButton      -- 新增按鈕（LayoutToolbar 時要重新錨定）
+local charDropdown   -- 分身選擇下拉（僅角色專屬模式顯示）
 local searchBox      -- 搜尋輸入框
 local charTab        -- 標籤按鈕
 -- listScroll / bodyScroll 已宣告於上方狀態區（CancelDrag/CancelBlockDrag 需要先看見它們）
+
+------------------------------------------------------------
+-- 分身標籤：職業圖示 + 職業色名稱
+------------------------------------------------------------
+local CLASS_ICON_TEX = "Interface\\TargetingFrame\\UI-Classes-Circles"
+
+local function ClassIconMarkup(classFile, size)
+    size = size or 14
+    local c = classFile and CLASS_ICON_TCOORDS[classFile]
+    if not c then return "" end
+    local function px(v) return math.floor(v * 256 + 0.5) end
+    return string.format("|T%s:%d:%d:0:0:256:256:%d:%d:%d:%d|t",
+        CLASS_ICON_TEX, size, size, px(c[1]), px(c[2]), px(c[3]), px(c[4]))
+end
+
+local function ClassColoredName(name, classFile)
+    name = name or "?"
+    local col = classFile and RAID_CLASS_COLORS[classFile]
+    if col then
+        return string.format("|cff%02x%02x%02x%s|r",
+            col.r * 255, col.g * 255, col.b * 255, name)
+    end
+    return name
+end
+
+local function CharLabelMarkup(meta, size, showRealm)
+    if type(meta) ~= "table" then return "?" end
+    local icon = ClassIconMarkup(meta.class, size)
+    local name = ClassColoredName(meta.name, meta.class)
+    local label = (icon ~= "") and (icon .. " " .. name) or name
+    -- 同名跨服分身：補上淡灰色伺服器名以區分
+    if showRealm and type(meta.realm) == "string" and meta.realm ~= "" then
+        label = label .. "|cff808080-" .. meta.realm .. "|r"
+    end
+    return label
+end
+
+-- 找出有「同名」的分身（同名才需要顯示伺服器來區分）
+local function GetDuplicateNameSet()
+    local db = GetCharNotesDB()
+    local count, dup = {}, {}
+    for _, e in pairs(db) do
+        local nm = type(e) == "table" and type(e.meta) == "table" and e.meta.name
+        if nm then count[nm] = (count[nm] or 0) + 1 end
+    end
+    for nm, c in pairs(count) do
+        if c > 1 then dup[nm] = true end
+    end
+    return dup
+end
+
+-- 分身 key 排序：當前角色置頂，其餘字典序
+local function GetSortedCharKeys()
+    local db = GetCharNotesDB()
+    local curKey = GetCurrentCharKey()
+    local keys = {}
+    for k in pairs(db) do keys[#keys + 1] = k end
+    table.sort(keys, function(a, b)
+        if a == curKey then return true end
+        if b == curKey then return false end
+        return a < b
+    end)
+    return keys
+end
+
+local function UpdateCharDropdownText()
+    if not charDropdown then return end
+    local entry = GetCharEntry(selectedCharKey or (GetCurrentCharKey()))
+    local meta = entry and entry.meta
+    local showRealm = meta and GetDuplicateNameSet()[meta.name]
+    charDropdown._text:SetText(CharLabelMarkup(meta, 14, showRealm))
+end
+
+-- 工具列依目前 scope 重新排版：角色專屬時顯示分身下拉
+local function LayoutToolbar()
+    if not charDropdown or not addButton or not scopeButton then return end
+    if currentScope == NOTE_SCOPE_CHAR then
+        charDropdown:Show()
+        UpdateCharDropdownText()
+        addButton:ClearAllPoints()
+        addButton:SetPoint("LEFT", charDropdown, "RIGHT", 4, 0)
+    else
+        charDropdown:Hide()
+        addButton:ClearAllPoints()
+        addButton:SetPoint("LEFT", scopeButton, "RIGHT", 4, 0)
+    end
+end
+
+local function ShowCharSelectMenu(anchor)
+    if not (MenuUtil and MenuUtil.CreateContextMenu) then return end
+    local keys = GetSortedCharKeys()
+    local dup = GetDuplicateNameSet()
+    MenuUtil.CreateContextMenu(anchor, function(owner, root)
+        root:CreateTitle("選擇分身")
+        for _, key in ipairs(keys) do
+            local entry = GetCharEntry(key)
+            local meta = entry and entry.meta
+            local label = CharLabelMarkup(meta, 16, meta and dup[meta.name])
+            local k = key
+            root:CreateButton(label, function()
+                SaveCurrentNote()
+                selectedCharKey = k
+                selectedNoteID = nil
+                ClearEditor()
+                if searchBox then searchBox:SetText("") end
+                currentFilter = ""
+                UpdateCharDropdownText()
+                RefreshNoteList()
+            end)
+        end
+    end)
+end
 
 local function BuildUI()
     if tabFrame then return end
@@ -331,6 +520,10 @@ local function BuildUI()
         if currentScope == NOTE_SCOPE_ACCOUNT then
             currentScope = NOTE_SCOPE_CHAR
             scopeButton._miliText:SetText("角色專屬")
+            -- 進入角色專屬：確保 selectedCharKey 有效（預設當前角色）
+            if not selectedCharKey or type(GetCharNotesDB()[selectedCharKey]) ~= "table" then
+                selectedCharKey = GetCurrentCharKey()
+            end
         else
             currentScope = NOTE_SCOPE_ACCOUNT
             scopeButton._miliText:SetText("戰隊共用")
@@ -340,11 +533,39 @@ local function BuildUI()
         ClearEditor()
         if searchBox then searchBox:SetText("") end
         currentFilter = ""
+        LayoutToolbar()
         RefreshNoteList()
     end)
 
+    -- 分身選擇下拉（僅角色專屬模式顯示，由 LayoutToolbar 控制）
+    charDropdown = CreateFrame("Button", nil, toolbar, "BackdropTemplate")
+    charDropdown:SetSize(150, TOOLBAR_HEIGHT - 4)
+    charDropdown:SetPoint("LEFT", scopeButton, "RIGHT", 4, 0)
+    charDropdown:SetBackdrop(S.Backdrop)
+    charDropdown:SetBackdropColor(unpack(S.Colors.bg))
+    charDropdown:SetBackdropBorderColor(unpack(S.Colors.border))
+    charDropdown:Hide()
+
+    local cdText = charDropdown:CreateFontString(nil, "OVERLAY")
+    cdText:SetFont(S.Font, 11, "OUTLINE")
+    cdText:SetPoint("LEFT", 6, 0)
+    cdText:SetPoint("RIGHT", -16, 0)
+    cdText:SetJustifyH("LEFT")
+    cdText:SetWordWrap(false)
+    charDropdown._text = cdText
+
+    local cdArrow = charDropdown:CreateFontString(nil, "OVERLAY")
+    cdArrow:SetFont(S.Font, 9, "OUTLINE")
+    cdArrow:SetPoint("RIGHT", -5, 0)
+    cdArrow:SetText("v")
+    cdArrow:SetTextColor(unpack(S.Colors.text))
+
+    charDropdown:SetScript("OnEnter", function(self) self:SetBackdropColor(unpack(S.Colors.bgHover)) end)
+    charDropdown:SetScript("OnLeave", function(self) self:SetBackdropColor(unpack(S.Colors.bg)) end)
+    charDropdown:SetScript("OnClick", function(self) ShowCharSelectMenu(self) end)
+
     -- 新增按鈕
-    local addButton = CreateFrame("Button", nil, toolbar, "BackdropTemplate")
+    addButton = CreateFrame("Button", nil, toolbar, "BackdropTemplate")
     addButton:SetSize(50, TOOLBAR_HEIGHT - 4)
     addButton:SetPoint("LEFT", scopeButton, "RIGHT", 4, 0)
     S.ApplyButton(addButton, "新增", nil, 11)
@@ -570,6 +791,7 @@ local function BuildUI()
     blockDragLine:Hide()
 
     ClearEditor()
+    LayoutToolbar()  -- 依還原後的 scope 設定工具列（角色專屬時顯示分身下拉）
 end
 
 ------------------------------------------------------------
@@ -618,6 +840,24 @@ CancelBlockDrag = function()
 end
 
 ------------------------------------------------------------
+-- 子樹範圍：回傳 [startIdx, endIdx]
+-- 一個區塊的「子樹」= 它本身 + 緊接其後、縮排比它「更深」的連續區塊。
+-- 用於拖曳 parent 時連同底下的 child 一起搬移。
+------------------------------------------------------------
+local function GetBlockGroupRange(blocks, idx)
+    local baseIndent = blocks[idx].indent or 0
+    local endI = idx
+    for j = idx + 1, #blocks do
+        if (blocks[j].indent or 0) > baseIndent then
+            endI = j
+        else
+            break
+        end
+    end
+    return idx, endI
+end
+
+------------------------------------------------------------
 -- 區塊 row 建立（每個區塊一個 row，object pool 重用）
 ------------------------------------------------------------
 local function CreateBlockRow()
@@ -658,7 +898,16 @@ local function CreateBlockRow()
     row.dragHandle:SetScript("OnDragStart", function()
         if not row._block or not bodyScroll then return end
         blockDragState = { sourceIdx = row._index, targetIdx = nil }
-        row:SetAlpha(0.4)
+        -- 計算子樹範圍，整段一起淡化（讓使用者看出 child 會跟著走）
+        local blocks = currentNoteForBlocks and currentNoteForBlocks.blocks
+        if blocks then
+            local s, e = GetBlockGroupRange(blocks, row._index)
+            for k = s, e do
+                if blockRows[k] then blockRows[k]:SetAlpha(0.4) end
+            end
+        else
+            row:SetAlpha(0.4)
+        end
         bodyScroll:SetScript("OnUpdate", BlockDragMonitor)
     end)
     row.dragHandle:SetScript("OnDragStop", function()
@@ -672,12 +921,24 @@ local function CreateBlockRow()
         local blocks = currentNoteForBlocks and currentNoteForBlocks.blocks
         if not blocks then return end
 
-        local block = table.remove(blocks, srcIdx)
+        -- 取出整段子樹（parent + 其下更深縮排的 child）
+        local s, e = GetBlockGroupRange(blocks, srcIdx)
         local tgt = state.targetIdx
-        if tgt > srcIdx then tgt = tgt - 1 end
+        -- 不允許把 parent 放進自己的子樹內部（s < tgt <= e 為段落內的插入點）
+        if tgt > s and tgt <= e then return end
+
+        local count = e - s + 1
+        local moving = {}
+        for k = s, e do moving[#moving + 1] = blocks[k] end
+        for k = e, s, -1 do table.remove(blocks, k) end
+
+        -- 移除段落後，落在段落之後的插入點需往前位移整段長度
+        if tgt > e then tgt = tgt - count end
         if tgt < 1 then tgt = 1 end
         if tgt > #blocks + 1 then tgt = #blocks + 1 end
-        table.insert(blocks, tgt, block)
+        for k = #moving, 1, -1 do
+            table.insert(blocks, tgt, moving[k])
+        end
         RefreshBlocks()
     end)
 
@@ -1461,6 +1722,24 @@ local function SetupTab()
                 if charTab._SetTabSelected then
                     charTab._isSelected = false
                     charTab:_SetTabSelected(false)
+                end
+            end)
+        end
+    end
+
+    -- 原生子面板被顯示時（例如按 C 走 ToggleCharacter 切回角色頁，
+    -- 或其他插件程式化切換 tab），收起筆記浮層，避免它蓋在角色頁上方。
+    -- 這條路徑不會觸發原生 tab 的 OnClick，故需另外掛 OnShow。
+    local nativeSubFrames = { PaperDollFrame, ReputationFrame, TokenFrame, CurrencyFrame }
+    for _, f in ipairs(nativeSubFrames) do
+        if f and f.HookScript then
+            f:HookScript("OnShow", function()
+                if tabFrame and tabFrame:IsShown() then
+                    HideNotesTab()
+                    if charTab._SetTabSelected then
+                        charTab._isSelected = false
+                        charTab:_SetTabSelected(false)
+                    end
                 end
             end)
         end
