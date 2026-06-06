@@ -231,35 +231,39 @@ local function SaveVaultSnapshot()
     end
 end
 
--- 事件 → 延遲讀寶庫 API，讓伺服器有時間把新資料推送過來；同窗內 dedupe 防 spam
-local vaultRefreshTimer
-local VAULT_REFRESH_DELAY = 3
-local function ScheduleVaultRefresh(reason)
-    if vaultRefreshTimer then
-        if MiliUI_KeystoneDebug then
-            print("|cff00ff00[Keystone]|r vault refresh queued (dedup), reason: " .. tostring(reason))
-        end
-        return
+-- 向伺服器請求最新的寶庫＋M+資料。
+-- 重點：C_WeeklyRewards.GetActivities / C_MythicPlus.GetRunHistory 讀的是「客戶端快取」，
+-- 這快取只有靠這兩個請求才會刷新（與 Blizzard 寶庫 UI 開啟時做的事一致）：
+--   OnUIInteract()  → 觸發 WEEKLY_REWARDS_UPDATE（刷新寶庫進度 GetActivities）
+--   RequestMapInfo() → 觸發 CHALLENGE_MODE_MAPS_UPDATE（刷新 M+ 場次 GetRunHistory）
+-- 資料到達後，由 dataFrame 的這兩個事件呼叫 SnapshotAndRefresh 真正存檔（那時才是新資料）。
+-- 用 GetTime 節流，避免世界任務等高頻事件狂打伺服器。
+local lastVaultRequest = 0
+local VAULT_REQUEST_THROTTLE = 2
+local function RequestVaultData(reason)
+    local now = GetTime()
+    if now - lastVaultRequest < VAULT_REQUEST_THROTTLE then return end
+    lastVaultRequest = now
+    if C_MythicPlus and C_MythicPlus.RequestMapInfo then
+        C_MythicPlus.RequestMapInfo()
     end
-    vaultRefreshTimer = C_Timer.NewTimer(VAULT_REFRESH_DELAY, function()
-        vaultRefreshTimer = nil
-        if MiliUI_KeystoneDebug then
-            print("|cff00ff00[Keystone]|r vault refresh fire, reason: " .. tostring(reason))
-        end
-        SaveVaultSnapshot()
-    end)
+    if C_WeeklyRewards and C_WeeklyRewards.OnUIInteract then
+        C_WeeklyRewards.OnUIInteract()
+    end
+    if MiliUI_KeystoneDebug then
+        print("|cff00ff00[Keystone]|r RequestVaultData, reason: " .. tostring(reason))
+    end
 end
 
 -- 團本難度（給 ENCOUNTER_END 過濾用）：14 普通, 15 英雄, 16 傳奇, 17 團搜
 local RAID_DIFFICULTY_IDS = { [14] = true, [15] = true, [16] = true, [17] = true }
 
+-- 只負責追蹤鑰石（GetOwnedKeystone 永遠是最新的，不需請求伺服器）。
+-- 寶庫/M+場次的刷新走 RequestVaultData → update 事件 → SnapshotAndRefresh。
 local function ScheduleKeystoneCheck(retry)
     if keyCheckTimer then return end
     keyCheckTimer = C_Timer.NewTimer(KEY_CHECK_DELAY, function()
         keyCheckTimer = nil
-        if C_MythicPlus and C_MythicPlus.RequestRewards then
-            C_MythicPlus.RequestRewards()
-        end
         local mapID, level = ReadOwnKeystoneState()
 
         if not baselineSet then
@@ -268,13 +272,10 @@ local function ScheduleKeystoneCheck(retry)
             if mapID > 0 and level > 0 then
                 SaveKeystoneRecord(mapID, level)
             end
-            SaveVaultSnapshot()
             return
         end
 
         if mapID == lastOwnMapID and level == lastOwnLevel then
-            -- 鑰石沒變但寶庫可能有進度（剛跑完 M+）
-            SaveVaultSnapshot()
             if (retry or 0) < KEY_CHECK_MAX_RETRY then
                 ScheduleKeystoneCheck((retry or 0) + 1)
             end
@@ -284,7 +285,6 @@ local function ScheduleKeystoneCheck(retry)
         if mapID > 0 and level > 0 then
             SaveKeystoneRecord(mapID, level)
         end
-        SaveVaultSnapshot()
     end)
 end
 
@@ -424,6 +424,23 @@ end
 
 local rowPool = {}
 local refreshCallback
+local keystonePanel        -- 主面板參照（給事件刷新時判斷是否顯示）
+
+-- 寶庫資料到達後存檔並重畫面板（debounce 合併 update 事件的連發）
+local snapshotDebounceTimer
+local function SnapshotAndRefresh(reason)
+    if snapshotDebounceTimer then snapshotDebounceTimer:Cancel() end
+    snapshotDebounceTimer = C_Timer.NewTimer(0.3, function()
+        snapshotDebounceTimer = nil
+        SaveVaultSnapshot()
+        if keystonePanel and keystonePanel:IsShown() and refreshCallback then
+            refreshCallback()
+        end
+        if MiliUI_KeystoneDebug then
+            print("|cff00ff00[Keystone]|r SnapshotAndRefresh fire, reason: " .. tostring(reason))
+        end
+    end)
+end
 
 --------------------------------------------------------------------------------
 -- 寶庫 tooltip：顯示完整 3 軌道 + 快照時間
@@ -864,6 +881,7 @@ local function SetupCharacterKeystones()
     -- 主面板：parented to KeystoneLootFrame
     ---------------------------------------------------------------------------
     local panel = CreateFrame("Frame", "MiliUI_CharacterKeystonesPanel", lootFrame, "BackdropTemplate")
+    keystonePanel = panel
     panel:SetSize(PANEL_WIDTH, 200)
     panel:SetPoint("TOPRIGHT", lootFrame, "TOPLEFT", -8, 0)
     panel:SetBackdrop({
@@ -1068,8 +1086,8 @@ local function SetupCharacterKeystones()
 
     refreshCallback = PopulateList
 
-    -- 開面板時重讀「當前角色」的即時鑰石＋寶庫再填充。
-    -- 事件觸發（完成/洗 key）偶爾會錯過更新窗口，開面板是最可靠的刷新時機。
+    -- 開面板時：先用當前快取即時顯示（鑰石永遠最新；寶庫可能稍舊），
+    -- 同時向伺服器請求最新寶庫/M+資料，資料到達後由 update 事件 → SnapshotAndRefresh 自動補上。
     local function RefreshOwnAndPopulate()
         local mapID, level = ReadOwnKeystoneState()
         if mapID > 0 and level > 0 then
@@ -1079,6 +1097,7 @@ local function SetupCharacterKeystones()
         end
         SaveVaultSnapshot()
         PopulateList()
+        RequestVaultData("panel open")
     end
 
     panel:HookScript("OnShow", RefreshOwnAndPopulate)
@@ -1120,12 +1139,14 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_LOGIN" then
         self:RegisterEvent("CHALLENGE_MODE_COMPLETED")
         self:RegisterEvent("GOSSIP_CLOSED")
-        self:RegisterEvent("WEEKLY_REWARDS_UPDATE")
-        -- 寶庫即時刷新觸發源（C 方案：細粒度事件 hook）
+        -- 寶庫/M+資料「到達」事件（資料變新後伺服器推送）→ 真正存檔的時機
+        self:RegisterEvent("WEEKLY_REWARDS_UPDATE")        -- GetActivities 已刷新
+        self:RegisterEvent("CHALLENGE_MODE_MAPS_UPDATE")   -- GetRunHistory 已刷新
+        -- 活動完成事件 → 向伺服器「請求」最新資料（不直接讀，等上面兩個事件回來再存）
         self:RegisterEvent("ENCOUNTER_END")           -- 團本 BOSS
         self:RegisterEvent("PVP_MATCH_COMPLETE")      -- PvP 賽局結束
         self:RegisterEvent("LFG_COMPLETION_REWARD")   -- 探究/隨機副本/情景
-        self:RegisterEvent("QUEST_TURNED_IN")         -- 世界任務（過 dedup 不會 spam）
+        self:RegisterEvent("QUEST_TURNED_IN")         -- 世界任務（RequestVaultData 內建節流）
         -- 一次性遷移舊資料：keystoneHistory → characterKeystones
         if MiliUI_DB and MiliUI_DB.keystoneHistory and not MiliUI_DB.characterKeystones then
             MiliUI_DB.characterKeystones = MiliUI_DB.keystoneHistory
@@ -1147,32 +1168,33 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
                     SaveKeystoneRecord(mapID, level)
                 end
                 SaveVaultSnapshot()
+                RequestVaultData("login baseline")
             end
         end)
     elseif event == "CHALLENGE_MODE_COMPLETED" then
         ScheduleKeystoneCheck(0)
+        RequestVaultData("CHALLENGE_MODE_COMPLETED")
     elseif event == "GOSSIP_CLOSED" then
         if IsKeystoneNpcGossip() then
             ScheduleKeystoneCheck(0)
         end
+    -- 以下兩個是「資料已刷新」事件 → 直接存檔（此刻 GetActivities/GetRunHistory 才是新的）
     elseif event == "WEEKLY_REWARDS_UPDATE" then
-        if MiliUI_KeystoneDebug then
-            print("|cff00ff00[Keystone]|r WEEKLY_REWARDS_UPDATE → ScheduleKeystoneCheck")
-        end
-        ScheduleKeystoneCheck(0)
+        SnapshotAndRefresh("WEEKLY_REWARDS_UPDATE")
+    elseif event == "CHALLENGE_MODE_MAPS_UPDATE" then
+        SnapshotAndRefresh("CHALLENGE_MODE_MAPS_UPDATE")
+    -- 以下是「活動完成」事件 → 請求最新資料（等上面兩個事件回來才存）
     elseif event == "ENCOUNTER_END" then
         local _, _, difficultyID, _, success = ...
         if success == 1 and RAID_DIFFICULTY_IDS[difficultyID] then
-            ScheduleVaultRefresh("ENCOUNTER_END diff=" .. tostring(difficultyID))
+            RequestVaultData("ENCOUNTER_END diff=" .. tostring(difficultyID))
         end
     elseif event == "PVP_MATCH_COMPLETE" then
-        ScheduleVaultRefresh("PVP_MATCH_COMPLETE")
+        RequestVaultData("PVP_MATCH_COMPLETE")
     elseif event == "LFG_COMPLETION_REWARD" then
-        ScheduleVaultRefresh("LFG_COMPLETION_REWARD")
+        RequestVaultData("LFG_COMPLETION_REWARD")
     elseif event == "QUEST_TURNED_IN" then
-        -- 不過濾，靠 ScheduleVaultRefresh 的 dedup 限頻；
-        -- 一般主線/支線交任務也會 fire，但 3s 一次的代價可忽略
-        ScheduleVaultRefresh("QUEST_TURNED_IN")
+        RequestVaultData("QUEST_TURNED_IN")
     end
 end)
 
