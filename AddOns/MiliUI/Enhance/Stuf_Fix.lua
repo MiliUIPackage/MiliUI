@@ -44,6 +44,10 @@ local UnitChannelDuration = UnitChannelDuration
 local UnitEmpoweredChannelDuration = UnitEmpoweredChannelDuration
 local UnitHealthPercent = UnitHealthPercent
 local string_find = string.find
+local UnitClass = UnitClass
+local format = string.format
+local issecretvalue = _G.issecretvalue
+local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 
 ------------------------------------------------------------
 -- 常數查表（避免每次事件建立臨時表）
@@ -68,6 +72,7 @@ castFixUnits["focus"] = true
 local PLAYER_PET   = {"player", "pet"}
 local TARGET_FOCUS = {"target", "focus"}
 local ENTERING_WORLD_DELAYS = {0.5, 1.5, 3.0}
+local TEXT_SLOTS = {"text1", "text2", "text3", "text4", "text5", "text6", "text7", "text8"}
 
 -- OnEvent hook: 需要攔截的 Stuf 事件（table lookup 取代字串比較）
 local CAST_STOP_EVENTS = {
@@ -203,6 +208,27 @@ local function SafeFallbackPortrait(d3, d2, unit)
 end
 
 ------------------------------------------------------------
+-- 取職業色前綴（best-effort）
+--   classFile 在戰鬥中可能是 secret string，
+--   issecretvalue() 判定後才能當 table key，否則會污染。
+--   非玩家單位 RAID_CLASS_COLORS[classFile] 為 nil → 回 nil（不上色）。
+------------------------------------------------------------
+local function SafeClassColorPrefix(unit)
+    local _, classFile = UnitClass(unit)
+    if type(classFile) == "nil" then return nil end
+    if issecretvalue and issecretvalue(classFile) then return nil end
+    local c = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classFile]
+    if not c then return nil end
+    return format("|cff%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
+end
+
+-- 預定義（避免每次 FixName 建立匿名 closure）
+-- name 可能是 secret string；串接 secret string 合法。
+local function SafeColorConcat(prefix, name)
+    return prefix .. name .. "|r"
+end
+
+------------------------------------------------------------
 -- 修正名字
 ------------------------------------------------------------
 local function FixName(unit, uf)
@@ -212,8 +238,16 @@ local function FixName(unit, uf)
     local ok, unitName = pcall(GetUnitName, unit)
     if not ok or type(unitName) == "nil" then return end
 
+    -- 職業色（串接 secret string 合法；SetText 接受 secret string）
+    local coloredName
+    local okc, prefix = pcall(SafeClassColorPrefix, unit)
+    if okc and type(prefix) == "string" then
+        local okcat, ct = pcall(SafeColorConcat, prefix, unitName)
+        if okcat and type(ct) ~= "nil" then coloredName = ct end
+    end
+
     for t = 1, 8 do
-        local tname = "text" .. t
+        local tname = TEXT_SLOTS[t]
         local tf = uf[tname]
         if tf and tf.fontstring and tf:IsShown() and tf.db then
             local pat = tf.db.pattern
@@ -221,7 +255,14 @@ local function FixName(unit, uf)
                 local ok2, pos = pcall(string_find, pat, "name")
                 if ok2 and pos then
                     uf.skiprefreshelement[tname] = true
-                    pcall(tf.fontstring.SetText, tf.fontstring, unitName)
+                    local fs = tf.fontstring
+                    if coloredName ~= nil then
+                        if not pcall(fs.SetText, fs, coloredName) then
+                            pcall(fs.SetText, fs, unitName)
+                        end
+                    else
+                        pcall(fs.SetText, fs, unitName)
+                    end
                 end
             end
         end
@@ -560,6 +601,43 @@ local function FixCastbar(unit, uf, evSpellID, isCast)
 end
 
 ------------------------------------------------------------
+-- 切換目標/焦點時補抓「進行中」的施法
+--   原生 RefreshCast 對 secret endTime 算術失敗即 return，
+--   且 PLAYER_TARGET_CHANGED 不會呼叫 FixCastbar，
+--   導致「選到正在引導中的 Boss」時 target 施法條空白。
+--   這裡主動偵測單位是否在施法，讓 FixCastbar 用 Duration API 接管。
+------------------------------------------------------------
+local function FixCastbarOnTargetChange(unit, uf)
+    if not uf then return end
+    local f = uf.castbar
+    if not f then return end
+    if f.db and f.db.hide then return end
+
+    -- 偵測是否正在施法 / 引導（含蓄力，UnitChannelInfo 通常回報）
+    local casting, isCast = false, nil
+    local ok, info = pcall(UnitCastingInfo, unit)
+    if ok and type(info) ~= "nil" then
+        casting, isCast = true, true
+    else
+        local ok2, info2 = pcall(UnitChannelInfo, unit)
+        if ok2 and type(info2) ~= "nil" then
+            casting, isCast = true, false
+        end
+    end
+
+    if casting then
+        -- 清掉原生殘留 cstate，略過 FixCastbar 的「已處理」early-return
+        if not f._miliCasting then f.cstate = nil end
+        FixCastbar(unit, uf, nil, isCast)
+    else
+        -- 切到沒在施法的目標：清除殘留，避免顯示上一個目標的施法條
+        if f._miliCasting then CleanupMiliCast(f) end
+        f.cstate = nil
+        f:Hide()
+    end
+end
+
+------------------------------------------------------------
 -- 修正 3D 頭像
 ------------------------------------------------------------
 local function FixPortrait(unit, uf)
@@ -844,6 +922,7 @@ loader:SetScript("OnEvent", function(self)
         eventFrame:RegisterEvent("RAID_TARGET_UPDATE")
         eventFrame:RegisterEvent("UNIT_SPELLCAST_START")
         eventFrame:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
+        eventFrame:RegisterEvent("UNIT_SPELLCAST_EMPOWER_START")
         eventFrame:RegisterEvent("UNIT_HEALTH")
 
         -- Target / Focus 相關
@@ -925,7 +1004,8 @@ loader:SetScript("OnEvent", function(self)
             -- 施法（Boss + Target + Focus）
             ------------------------------------------------
             elseif event == "UNIT_SPELLCAST_START"
-                or event == "UNIT_SPELLCAST_CHANNEL_START" then
+                or event == "UNIT_SPELLCAST_CHANNEL_START"
+                or event == "UNIT_SPELLCAST_EMPOWER_START" then
                 local castUnit = arg1
                 -- 對所有單位的 castbar 都重新套用 overlay reparent
                 EnsureCastSpellOverlay(su[castUnit])
@@ -973,6 +1053,8 @@ loader:SetScript("OnEvent", function(self)
             elseif event == "PLAYER_TARGET_CHANGED" then
                 C_Timer_After(0.05, function()
                     FixTargetFrame(su)
+                    EnsureCastSpellOverlay(su.target)
+                    FixCastbarOnTargetChange("target", su.target)
                 end)
 
             ------------------------------------------------
@@ -985,8 +1067,28 @@ loader:SetScript("OnEvent", function(self)
                     EnsureCastSpellOverlay(su.focus)
                     EnsureCastSpellOverlay(su.focustarget)
                     FixFocusFrame(su)
+                    FixCastbarOnTargetChange("focus", su.focus)
                 end)
             end
+        end)
+
+        ------------------------------------------------------------
+        -- ToT / FocusTarget 名字輪詢
+        --   skiprefreshelement 永久關掉了原生 metro 對名字的刷新，
+        --   而 ToT 沒有可靠的變更事件（原生本就靠輪詢），
+        --   故在此補回節流輪詢，避免名字停在上一個目標（如 "Amy"）。
+        ------------------------------------------------------------
+        -- 0.2s：比原生 metro 對 ToT 的有效刷新週期 (~0.28s) 還快，
+        -- 又不過度密集，平衡反應速度與 CPU/GC。
+        local totThrottle = 0
+        eventFrame:SetScript("OnUpdate", function(_, elapsed)
+            totThrottle = totThrottle + elapsed
+            if totThrottle < 0.2 then return end
+            totThrottle = 0
+            local uf = su.targettarget
+            if uf and UnitExists("targettarget") then FixName("targettarget", uf) end
+            uf = su.focustarget
+            if uf and UnitExists("focustarget") then FixName("focustarget", uf) end
         end)
     end
 
