@@ -44,10 +44,6 @@ local UnitChannelDuration = UnitChannelDuration
 local UnitEmpoweredChannelDuration = UnitEmpoweredChannelDuration
 local UnitHealthPercent = UnitHealthPercent
 local string_find = string.find
-local UnitClass = UnitClass
-local format = string.format
-local issecretvalue = _G.issecretvalue
-local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 
 ------------------------------------------------------------
 -- 常數查表（避免每次事件建立臨時表）
@@ -208,28 +204,9 @@ local function SafeFallbackPortrait(d3, d2, unit)
 end
 
 ------------------------------------------------------------
--- 取職業色前綴（best-effort）
---   classFile 在戰鬥中可能是 secret string，
---   issecretvalue() 判定後才能當 table key，否則會污染。
---   非玩家單位 RAID_CLASS_COLORS[classFile] 為 nil → 回 nil（不上色）。
-------------------------------------------------------------
-local function SafeClassColorPrefix(unit)
-    local _, classFile = UnitClass(unit)
-    if type(classFile) == "nil" then return nil end
-    if issecretvalue and issecretvalue(classFile) then return nil end
-    local c = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classFile]
-    if not c then return nil end
-    return format("|cff%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
-end
-
--- 預定義（避免每次 FixName 建立匿名 closure）
--- name 可能是 secret string；串接 secret string 合法。
-local function SafeColorConcat(prefix, name)
-    return prefix .. name .. "|r"
-end
-
-------------------------------------------------------------
 -- 修正名字
+--   只還原名字本身（不做職業上色；上色屬於血條的職責）。
+--   unitName 在戰鬥中可能是 secret string，SetText 可接受。
 ------------------------------------------------------------
 local function FixName(unit, uf)
     if not uf or not uf:IsShown() then return end
@@ -237,14 +214,6 @@ local function FixName(unit, uf)
 
     local ok, unitName = pcall(GetUnitName, unit)
     if not ok or type(unitName) == "nil" then return end
-
-    -- 職業色（串接 secret string 合法；SetText 接受 secret string）
-    local coloredName
-    local okc, prefix = pcall(SafeClassColorPrefix, unit)
-    if okc and type(prefix) == "string" then
-        local okcat, ct = pcall(SafeColorConcat, prefix, unitName)
-        if okcat and type(ct) ~= "nil" then coloredName = ct end
-    end
 
     for t = 1, 8 do
         local tname = TEXT_SLOTS[t]
@@ -255,14 +224,7 @@ local function FixName(unit, uf)
                 local ok2, pos = pcall(string_find, pat, "name")
                 if ok2 and pos then
                     uf.skiprefreshelement[tname] = true
-                    local fs = tf.fontstring
-                    if coloredName ~= nil then
-                        if not pcall(fs.SetText, fs, coloredName) then
-                            pcall(fs.SetText, fs, unitName)
-                        end
-                    else
-                        pcall(fs.SetText, fs, unitName)
-                    end
+                    pcall(tf.fontstring.SetText, tf.fontstring, unitName)
                 end
             end
         end
