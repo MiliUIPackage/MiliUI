@@ -6,12 +6,12 @@ addonTable.Display.CastTargetTextMixin = {}
 function addonTable.Display.CastTargetTextMixin:SetUnit(unit)
   self.unit = unit
   if self.unit then
-    addonTable.Display.Cache:RegisterCallback(self.unit, "cast", function(state)
+    addonTable.Cache:RegisterCallback(self.unit, "cast", function(state)
       self:UpdateTarget(state)
       self:UpdateText()
     end)
 
-    self:UpdateTarget(addonTable.Display.Cache:Get(self.unit, "cast"))
+    self:UpdateTarget(addonTable.Cache:Get(self.unit, "cast"))
     self:UpdateText()
   else
     self:Strip()
@@ -23,17 +23,22 @@ function addonTable.Display.CastTargetTextMixin:Strip()
   self.targetClass = nil
 end
 
-function addonTable.Display.CastTargetTextMixin:UpdateTarget(state)
-  self.target = nil
-  self.targetClass = nil
+if UnitSpellTargetName then
+  function addonTable.Display.CastTargetTextMixin:UpdateTarget(state)
+    self.target = nil
+    self.targetClass = nil
 
-  if state.cast[1] or state.channel[1] then
-    if UnitSpellTargetName then
-      if UnitShouldDisplaySpellTargetName(self.unit) then
-        self.target = UnitSpellTargetName(self.unit)
-        self.targetClass = UnitSpellTargetClass(self.unit)
-      end
-    else
+    if state.cast[1] or state.channel[1] and UnitShouldDisplaySpellTargetName(self.unit) then
+      self.target = UnitSpellTargetName(self.unit)
+      self.targetClass = UnitSpellTargetClass(self.unit)
+    end
+  end
+else
+  function addonTable.Display.CastTargetTextMixin:UpdateTarget(state)
+    self.target = nil
+    self.targetClass = nil
+
+    if state.cast[1] or state.channel[1] then
       self.target = UnitName(self.unit .. "target")
       self.targetClass = UnitClassBase(self.unit .. "target")
     end

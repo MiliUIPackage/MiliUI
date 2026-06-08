@@ -56,39 +56,8 @@ function addonTable.Display.Utilities.GetUnitDifficulty(unit)
 end
 
 do
-  local function IsInCombatWith(unit)
-    return UnitAffectingCombat(unit) and
-      (
-        UnitIsFriend("player", unit) and (UnitInParty(unit) == true or UnitInRaid(unit)== true ) or
-        UnitThreatSituation("player", unit) ~= nil or
-        UnitInParty(unit .. "target") == true or UnitInRaid(unit .. "target") == true
-      )
-  end
-
-  local watching = {}
-  C_Timer.NewTicker(0.08, function()
-    local units = GetKeysArray(watching)
-    for _, unit in ipairs(units) do
-      local newState = IsInCombatWith(unit)
-      if newState ~= watching[unit] then
-        watching[unit] = newState
-        addonTable.CallbackRegistry:TriggerEvent("CombatStatusChange", unit)
-      end
-    end
-  end)
-  local frame = CreateFrame("Frame")
-  frame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
-  frame:SetScript("OnEvent", function(_, _, unit)
-    watching[unit] = nil
-  end)
-
   function addonTable.Display.Utilities.IsInCombatWith(unit)
-    if watching[unit] ~= nil then
-      return watching[unit]
-    else
-      watching[unit] = IsInCombatWith(unit)
-      return watching[unit]
-    end
+    return addonTable.Cache:Get(unit, "combat")
   end
 end
 
@@ -108,7 +77,7 @@ function addonTable.Display.Utilities.IsInRelevantInstance(state)
     return false
   end
   state = state or {dungeon = true}
-  local _, instanceType, _, label = GetInstanceInfo()
+  local _, instanceType, difficultyID = GetInstanceInfo()
   if state.dungeon and (instanceType == "party") then
     return true
   end
@@ -118,7 +87,7 @@ function addonTable.Display.Utilities.IsInRelevantInstance(state)
   if state.pvp and (instanceType == "arena" or instanceType == "pvp") then
     return true
   end
-  if state.delve and label == DELVES_LABEL then
+  if state.delve and difficultyID == 208 then
     return true
   end
   return false
@@ -130,7 +99,7 @@ if addonTable.Constants.IsClassic then
     ["DEATHKNIGHT"] = {47528},
     ["WARRIOR"] = {6552},
     ["WARLOCK"] = {19647, 89766},
-    ["SHAMAN"] = {57994},
+    ["SHAMAN"] = {57994, --[[Earth Shock, ranks 10-1:]] 49231, 49230, 25454, 10414, 10413, 10412, 8046, 8045, 8044, 8042},
     ["ROGUE"] = {1766},
     ["PRIEST"] = {15487},
     ["PALADIN"] = {31935, 96231},
@@ -143,7 +112,7 @@ else
   interruptMap = {
     ["DEATHKNIGHT"] = {47528},
     ["WARRIOR"] = {6552},
-    ["WARLOCK"] = {89766, 119910},
+    ["WARLOCK"] = {89766, 119910, 132409},
     ["SHAMAN"] = {57994},
     ["ROGUE"] = {1766},
     ["PRIEST"] = {15487},
@@ -263,8 +232,21 @@ function addonTable.Display.Utilities.GetInterruptSpells()
   return currentInterrupt
 end
 
-function addonTable.Display.Utilities.GetInterruptSpellPriority()
-  return currentInterrupt[1]
+if C_Spell.GetSpellCooldownDuration then
+  local duration
+  local lastDurationTime = 0
+  function addonTable.Display.Utilities.GetInterruptSpellPriority()
+    local interrupt = currentInterrupt[1]
+    if interrupt and lastDurationTime ~= GetTime() then
+      duration = C_Spell.GetSpellCooldownDuration(interrupt)
+      lastDurationTime = GetTime()
+    end
+    return interrupt, duration
+  end
+else
+  function addonTable.Display.Utilities.GetInterruptSpellPriority()
+    return currentInterrupt[1]
+  end
 end
 
 function addonTable.Display.Utilities.GetExecuteRange()
@@ -456,7 +438,12 @@ do
 
   local role = roleType.Damage
   local isTank = false
+  local rangeLimit = 0
+  local harmChecker
   local _, playerClass = UnitClass("player")
+
+  local RangeCheck = LibStub("LibRangeCheck-3.0")
+  RangeCheck.RegisterCallback("Platynator", RangeCheck.CHECKERS_CHANGED, function() harmChecker = RangeCheck:GetHarmMaxChecker(addonTable.Display.Utilities.GetRangedLimit() or RangeCheck.MeleeRange) end)
 
   local function GetPlayerRole()
     if addonTable.Constants.IsEra or addonTable.Constants.IsBC or addonTable.Constants.IsWrath then
@@ -476,6 +463,23 @@ do
     return roleType.Damage
   end
 
+  local function AssignRange()
+    if addonTable.Constants.IsEra or addonTable.Constants.IsBC or addonTable.Constants.IsWrath then
+      rangeLimit = addonTable.Constants.DefaultRange[playerClass]
+    else
+      local specIndex = C_SpecializationInfo.GetSpecialization()
+      local specID = C_SpecializationInfo.GetSpecializationInfo(specIndex)
+      rangeLimit = addonTable.Constants.DefaultRange[specID]
+      for spellID, range in pairs(addonTable.Constants.RangeModifier) do
+        if C_SpellBook.IsSpellKnown(spellID) then
+          rangeLimit = range
+          break
+        end
+      end
+    end
+    harmChecker = RangeCheck:GetHarmMaxChecker(addonTable.Display.Utilities.GetRangedLimit())
+  end
+
   do
     local specializationMonitor = CreateFrame("Frame")
 
@@ -489,13 +493,17 @@ do
       specializationMonitor:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
     end
     specializationMonitor:RegisterEvent("PLAYER_ENTERING_WORLD")
+    specializationMonitor:RegisterEvent("SPELLS_CHANGED")
 
-    specializationMonitor:SetScript("OnEvent", function()
-      local newRole = GetPlayerRole()
-      if newRole ~= role then
-        role = newRole
-        isTank = role == roleType.Tank
-        addonTable.CallbackRegistry:TriggerEvent("RoleChange")
+    specializationMonitor:SetScript("OnEvent", function(_, e)
+      AssignRange()
+      if e ~= "SPELLS_CHANGED" then
+        local newRole = GetPlayerRole()
+        if newRole ~= role then
+          role = newRole
+          isTank = role == roleType.Tank
+          addonTable.CallbackRegistry:TriggerEvent("RoleChange")
+        end
       end
     end)
   end
@@ -503,28 +511,32 @@ do
   function addonTable.Display.Utilities.IsTankRole()
     return isTank
   end
+
+  function addonTable.Display.Utilities.GetRangedLimit()
+    return rangeLimit
+  end
+
+  function addonTable.Display.Utilities.GetRangeChecker()
+    return harmChecker
+  end
 end
 
 do
-  local inRelevantInstance = false
-
-  -- Checking for party members below the player's level which indicates the mobs will be shifted down one
-  -- Except when the dungeon is already at its minimum level, in which case the level won't shift.
   local instanceTracker = CreateFrame("Frame")
   instanceTracker:RegisterEvent("PLAYER_ENTERING_WORLD")
   instanceTracker:RegisterEvent("PLAYER_LEVEL_UP")
   instanceTracker:RegisterEvent("ZONE_CHANGED_NEW_AREA")
   instanceTracker:RegisterEvent("INSTANCE_GROUP_SIZE_CHANGED")
   instanceTracker:SetScript("OnEvent", function(_, event)
-    inRelevantInstance = addonTable.Display.Utilities.IsInRelevantInstance({dungeon = true, raid = true, delve = true, pvp = true})
+    local inInstance = addonTable.Display.Utilities.IsInRelevantInstance({dungeon = true, raid = true, delve = true, pvp = true})
     local _, _, _, _, _, _, _, _, _, lfgDungeonID = GetInstanceInfo()
     if PLATYNATOR_LAST_INSTANCE == nil
-      or (inRelevantInstance or inRelevantInstance) ~= PLATYNATOR_LAST_INSTANCE.inInstance
+      or inInstance ~= PLATYNATOR_LAST_INSTANCE.inInstance
       or PLATYNATOR_LAST_INSTANCE.lastLFGInstanceID ~= lfgDungeonID
-      or not inRelevantInstance then
+      or not inInstance then
       PLATYNATOR_LAST_INSTANCE = {
         lastLFGInstanceID = lfgDungeonID,
-        inInstance = inRelevantInstance,
+        inInstance = inInstance,
         instanceLieutenantLevel = nil,
       }
       if lfgDungeonID and addonTable.Display.Utilities.IsInRelevantInstance({dungeon = true}) then
@@ -534,6 +546,17 @@ do
       end
     end
   end)
+
+  local HasMana
+  if UnitHasPowerType then
+    HasMana = function(unit)
+      return UnitHasPowerType(unit, Enum.PowerType.Mana)
+    end
+  else
+    HasMana = function(unit)
+      return UnitPowerType(unit) == Enum.PowerType.Mana
+    end
+  end
 
   function addonTable.Display.Utilities.GetEliteType(unit, casterOverride)
     local classification = UnitClassification(unit)
@@ -548,21 +571,10 @@ do
       elseif isRetail and (level == dungeonLevel + 2 or lieutentantLevel and level == lieutentantLevel + 1) or level == -1 then
         return "boss"
       else
-        local class = UnitClassBase(unit)
-        if class == "PALADIN" or class == "MAGE" or class == "PRIEST" then
-          return "caster"
-        else
-          return "melee"
-        end
+        return HasMana(unit) and "caster" or "melee"
       end
     elseif classification == "normal" or classification == "trivial" or classification == "minus" then
-      if casterOverride then
-        local class = UnitClassBase(unit)
-        if class == "PALADIN" or class == "MAGE" or class == "PRIEST" then
-          return "caster"
-        end
-      end
-      return "trivial"
+      return casterOverride and HasMana(unit) and "caster" or "trivial"
     end
   end
 
@@ -584,12 +596,7 @@ do
     elseif classification == "rareelite" then
       return "rare"
     elseif classification == "normal" then
-      local class = UnitClassBase(unit)
-      if class == "PALADIN" or class == "MAGE" or class == "PRIEST" then
-        return "caster"
-      else
-        return "melee"
-      end
+      return HasMana(unit) and "caster" or "melee"
     elseif classification == "trivial" or classification == "minus" then
       return "trivial"
     end
@@ -654,5 +661,73 @@ do
 
   function addonTable.Display.Utilities.GetOtherTanks()
     return knownTanksAndPetsList
+  end
+end
+
+do
+  local encounterID
+  local showEnergy = true
+
+  local encountersForNoEnergy = {
+    -- Midnight: Magister's Terrace
+    [3073] = true, -- Gemellus
+    [3074] = true, -- Degentrius
+    -- Midnight: Maisara Caverns
+    [3212] = true, -- Muro'jin
+    [3213] = true, -- Vordaza
+    -- Draenor: Skyreach
+    [1698] = true, -- Ranjit
+  }
+
+  local encounterTracker = CreateFrame("Frame")
+  encounterTracker:RegisterEvent("ENCOUNTER_START")
+  encounterTracker:RegisterEvent("ENCOUNTER_END")
+  encounterTracker:SetScript("OnEvent", function(_, event, newEncounterID)
+    if event == "ENCOUNTER_START" then
+      encounterID = newEncounterID
+      showEnergy = encountersForNoEnergy[encounterID] == nil
+    else
+      encounterID = nil
+      showEnergy = true
+    end
+
+    addonTable.CallbackRegistry:TriggerEvent("EncounterUpdate")
+  end)
+
+  function addonTable.Display.Utilities.ShouldShowEnergy()
+    return showEnergy
+  end
+end
+
+do
+  local auraFormatter
+  if C_StringUtil and C_StringUtil.CreateNumericRuleFormatter then
+    auraFormatter = C_StringUtil.CreateNumericRuleFormatter()
+    auraFormatter:SetBreakpoints({
+      {
+        threshold = 0,
+        step = 0.1,
+        format = "%.1f",
+      },
+      {
+        threshold = 3,
+        step = 1,
+        format = "%d",
+      },
+      {
+        threshold = 60,
+        format = COOLDOWN_DURATION_MIN,
+        components = {
+          {
+            div = 60,
+            step = 1,
+          }
+        }
+      }
+    })
+  end
+
+  function addonTable.Display.Utilities.GetAuraNumericFormatter()
+    return auraFormatter
   end
 end

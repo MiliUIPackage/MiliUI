@@ -389,6 +389,7 @@ function addonTable.Display.AurasManagerMixin:OnEvent(_, _, refreshData)
       if stored then
         self.auraData[auraInstanceID] = nil
 
+        ---@type number[]
         local list = self[stored.kind]
         local index = tIndexOf(list, auraInstanceID)
         if index then
@@ -402,7 +403,7 @@ function addonTable.Display.AurasManagerMixin:OnEvent(_, _, refreshData)
   self:SortAurasAndReport(changes)
 end
 
-if addonTable.Constants.IsRetail then
+if addonTable.Constants.IsSecretsActive then
   function addonTable.Display.AurasManagerMixin:AddAuras(addedAuras)
     local changes = {}
     if self.debuffsDetails and self.debuffsDetails.filters.important or self.buffsDetails and self.buffsDetails.filters.important then

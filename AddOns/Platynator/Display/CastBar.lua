@@ -16,9 +16,8 @@ end
 function addonTable.Display.CastBarMixin:SetUnit(unit)
   self.unit = unit
   if self.unit then
-    self.interrupted = nil
 
-    addonTable.Display.Cache:RegisterCallback(self.unit, "cast", function(state)
+    addonTable.Cache:RegisterCallback(self.unit, "cast", function(state)
       if state.interrupted then
         self:ApplyInterrupt()
       elseif state.cast[1] == nil and state.channel[1] == nil then
@@ -28,11 +27,7 @@ function addonTable.Display.CastBarMixin:SetUnit(unit)
       end
     end)
 
-    if self.showInterruptMarker then
-      self:RegisterEvent("SPELL_UPDATE_USABLE")
-    end
-
-    self:ApplyCasting(addonTable.Display.Cache:Get(self.unit, "cast"))
+    self:ApplyCasting(addonTable.Cache:Get(self.unit, "cast"))
 
     addonTable.Display.RegisterForColorEvents(self, self.details.autoColors)
   else
@@ -41,16 +36,14 @@ function addonTable.Display.CastBarMixin:SetUnit(unit)
 end
 
 function addonTable.Display.CastBarMixin:StripInternal()
-  self:RefreshInterruptMarker()
   if self.timer then
     self.timer:Cancel()
     self.timer = nil
   end
-  self.interrupted = nil
+  self.uninterruptibleCheck = nil
 
   self:UnregisterAllEvents()
   addonTable.Display.UnregisterForColorEvents(self)
-  self:SetScript("OnUpdate", nil)
 end
 
 function addonTable.Display.CastBarMixin:Strip()
@@ -59,102 +52,79 @@ function addonTable.Display.CastBarMixin:Strip()
 end
 
 function addonTable.Display.CastBarMixin:ApplyInterrupt()
-  self.interrupted = true
   self:Show()
   self.statusBar:SetMinMaxValues(0, 1)
   self.statusBar:SetValue(1)
-  if self.timer then
-    self.timer:Cancel()
-    self.timer = nil
-  end
-  self.timer = C_Timer.NewTimer(addonTable.Constants.CastInterruptedDelay, function()
-    if self.interrupted then
-      self.interrupted = nil
-      self:Hide()
-    end
-  end)
-  self:SetScript("OnUpdate", nil)
   self.interruptMarker:Hide()
 end
 
 function addonTable.Display.CastBarMixin:OnEvent(eventName, ...)
-  if eventName == "SPELL_UPDATE_USABLE" and self.showInterruptMarker then
-    self:RefreshInterruptMarker()
-  end
-
   if self:IsShown() then
     self:ColorEventHandler(eventName)
   end
 end
 
-function addonTable.Display.CastBarMixin:SetColor(...)
-  self.statusBar:GetStatusBarTexture():SetVertexColor(...)
-  self.marker:SetVertexColor(...)
+function addonTable.Display.CastBarMixin:SetColor(r, g, b)
+  if r == nil then
+    self:Hide()
+    return
+  end
+
+  self.statusBar:GetStatusBarTexture():SetVertexColor(r, g, b)
+  self.marker:SetVertexColor(r, g, b)
   if self.details.background.applyColor then
     local mod = self.details.background.color
     if self.modColors then
       self.background:SetVertexColor(addonTable.Display.GetColor(self.modColors, self.colorState, self.unit))
     else
-      local r, g, b = ...
       self.background:SetVertexColor(r, g, b, mod.a)
     end
   end
 end
 
 function addonTable.Display.CastBarMixin:ClearCast()
-  if not self.interrupted then
-    if self.timer then
-      self.timer:Cancel()
-      self.timer = nil
-    end
-    self:Hide()
+  if self.timer then
+    self.timer:Cancel()
+    self.timer = nil
   end
-  self.isChanneled = nil
+  self:Hide()
   self.notInterruptible = nil
   self.uninterruptibleCheck = nil
 end
 
-if UnitCastingDuration then
+if addonTable.Constants.IsSecretsActive then
   function addonTable.Display.CastBarMixin:ApplyCasting(state)
-    self.isChanneled = state.channel[1] ~= nil
-    local isEmpowered = state.channel[9] == true
-    local castDuration
-    if isEmpowered then
-      castDuration = UnitEmpoweredChannelDuration(self.unit, true)
-    elseif self.isChanneled then
-      castDuration = UnitChannelDuration(self.unit)
-    else
-      castDuration = UnitCastingDuration(self.unit)
-    end
+    local isChanneled, isEmpowered = state.channelDuration ~= nil, state.empoweredDuration ~= nil
+    local castDuration = state.empoweredDuration or state.channelDuration or state.castDuration
+
     if castDuration ~= nil then
       local notInterruptible
-      if self.isChanneled then
+      if isChanneled then
         notInterruptible = state.channel[7]
       else
         notInterruptible = state.cast[8]
       end
-
-      self.interrupted = nil
+      if notInterruptible == nil then
+        notInterruptible = false
+      end
 
       if self.timer then
         self.timer:Cancel()
         self.timer = nil
       end
 
-      self:Show()
-
-      self.statusBar:SetTimerDuration(castDuration, nil, self.isChanneled and not isEmpowered and Enum.StatusBarTimerDirection.RemainingTime or Enum.StatusBarTimerDirection.ElapsedTime)
-      local spellID
+      self.statusBar:SetTimerDuration(castDuration, nil, isChanneled and not isEmpowered and Enum.StatusBarTimerDirection.RemainingTime or Enum.StatusBarTimerDirection.ElapsedTime)
+      local spellID, interruptDuration
       if self.showInterruptMarker then
-        spellID = GetInterruptSpell()
+        spellID, interruptDuration = GetInterruptSpell()
       end
       self.interruptMarker:SetShown(spellID ~= nil)
       self.interruptPositioner:SetShown(spellID ~= nil)
       if spellID then
-        self:ReverseInterruptMarker(self.isChanneled and not isEmpowered)
-        local interruptDuration = C_Spell.GetSpellCooldownDuration(spellID)
-        self.interruptPositioner:SetMinMaxValues(0, castDuration:GetTotalDuration())
-        self.interruptMarker:SetMinMaxValues(0, castDuration:GetTotalDuration())
+        self:ReverseInterruptMarker(isChanneled and not isEmpowered)
+        local total = castDuration:GetTotalDuration()
+        self.interruptPositioner:SetMinMaxValues(0, total)
+        self.interruptMarker:SetMinMaxValues(0, total)
         self.uninterruptibleCheck = C_CurveUtil.EvaluateColorValueFromBoolean(notInterruptible, 0, 1)
         self.interruptPositioner:SetValue(castDuration:GetElapsedDuration())
         self.interruptMarker:SetValue(interruptDuration:GetRemainingDuration())
@@ -162,21 +132,16 @@ if UnitCastingDuration then
         self.timer = C_Timer.NewTicker(0.1, function()
           self:RefreshInterruptMarker()
         end)
-      else
-        self.isChanneled = nil
       end
+      self:Show()
     else
       self:ClearCast()
     end
   end
 
   function addonTable.Display.CastBarMixin:RefreshInterruptMarker()
-    if self.isChanneled == nil then
-      return
-    end
-    local spellID = GetInterruptSpell()
+    local spellID, interruptDuration = GetInterruptSpell()
     if spellID then
-      local interruptDuration = C_Spell.GetSpellCooldownDuration(spellID)
       self.uninterruptibleCheck = C_CurveUtil.EvaluateColorValueFromBoolean(interruptDuration:IsZero(), 0, self.uninterruptibleCheck)
       self.interruptMarker:SetAlpha(self.uninterruptibleCheck)
     end
@@ -184,16 +149,15 @@ if UnitCastingDuration then
 else
   function addonTable.Display.CastBarMixin:ApplyCasting(state)
     local name, startTime, endTime, notInterruptible, _
-    self.isChanneled = state.channel[1] ~= nil
+    local isChanneled = state.channel[1] ~= nil
 
-    if not self.isChanneled then
+    if not isChanneled then
       name, _, _, startTime, endTime, _, _, notInterruptible = unpack(state.cast)
     else
       name, _, _, startTime, endTime, _, notInterruptible, _ = unpack(state.channel)
     end
 
     if name ~= nil then
-      self.interrupted = nil
       self.notInterruptible = notInterruptible
 
       self:Show()
@@ -232,7 +196,7 @@ else
         end
       end
 
-      if self.isChanneled then
+      if isChanneled then
         self.timer = C_Timer.NewTicker(0.005, function()
           self.statusBar:SetValue(endTime / 1000 - GetTime())
         end)
@@ -249,9 +213,6 @@ else
   end
 
   function addonTable.Display.CastBarMixin:RefreshInterruptMarker()
-    if self.isChanneled == nil then
-      return
-    end
     local spellID = GetInterruptSpell()
     if spellID and not self.notInterruptible and self.interruptMarker:IsShown() then
       local info = C_Spell.GetSpellCooldown(spellID)
