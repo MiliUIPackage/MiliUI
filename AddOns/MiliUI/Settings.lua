@@ -232,7 +232,7 @@ local function InitSettings()
     guide:SetText(
         "|cff8888cc•|r  點擊左側 |cffffd200預設值匯入|r 將推薦設定匯入到各插件\n" ..
         "|cff8888cc•|r  點擊左側 |cffffd200插件強化|r 調整施法條美化等額外功能\n" ..
-        "|cff8888cc•|r  點擊左側 |cffffd200光環強化|r 自訂 Buff/Debuff 時間文字樣式"
+        "|cff8888cc•|r  點擊左側 |cffffd200光環時間美化|r 自訂 Buff/Debuff 時間文字樣式"
     )
     guide:SetSpacing(4)
 
@@ -761,14 +761,14 @@ local function InitSettings()
     enhanceCategory.ID = "MiliUI_Enhance"
 
     -- ============================================================
-    -- 子分類: 光環強化
+    -- 子分類: 光環時間美化
     -- ============================================================
     local auraFrame = CreateFrame("Frame")
     auraFrame:SetSize(600, 700)
 
     local auraTitle = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     auraTitle:SetPoint("TOPLEFT", 16, -16)
-    auraTitle:SetText("|cffffe00a光環強化|r")
+    auraTitle:SetText("|cffffe00a光環時間美化|r")
 
     local auraDesc = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     auraDesc:SetPoint("TOPLEFT", auraTitle, "BOTTOMLEFT", 0, -8)
@@ -784,7 +784,7 @@ local function InitSettings()
     -- 啟用 checkbox
     local auraCB = CreateFrame("CheckButton", "MiliUI_BuffDurEnabledCB", auraFrame, "UICheckButtonTemplate")
     auraCB:SetPoint("TOPLEFT", durLabel, "BOTTOMLEFT", 0, -8)
-    auraCB.text:SetText("啟用時間文字強化")
+    auraCB.text:SetText("啟用時間文字美化")
     auraCB.text:SetFontObject("GameFontHighlight")
 
     local auraCBDesc = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -797,7 +797,7 @@ local function InitSettings()
     -- 描邊 checkbox
     local outlineCB = CreateFrame("CheckButton", "MiliUI_BuffDurOutlineCB", auraFrame, "UICheckButtonTemplate")
     outlineCB:SetPoint("TOPLEFT", auraCBDesc, "BOTTOMLEFT", -26, -12)
-    outlineCB.text:SetText("文字描邊")
+    outlineCB.text:SetText("文字邊框")
     outlineCB.text:SetFontObject("GameFontHighlight")
 
     local outlineDesc = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -867,7 +867,7 @@ local function InitSettings()
 
     local anchorLabel = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     anchorLabel:SetPoint("TOPLEFT", countCBDesc, "BOTTOMLEFT", -26, -14)
-    anchorLabel:SetText("錨點位置：")
+    anchorLabel:SetText("位置：")
 
     local anchorDropdown = CreateFrame("Frame", "MiliUI_CountAnchorDropdown", auraFrame, "UIDropDownMenuTemplate")
     anchorDropdown:SetPoint("LEFT", anchorLabel, "RIGHT", -8, -2)
@@ -990,14 +990,14 @@ local function InitSettings()
         if enabled then
             UpdateCountSubControls(countCB:GetChecked())
         end
-        print("|cff00ff00[MiliUI]|r 時間文字強化:", enabled and "開" or "關")
+        print("|cff00ff00[MiliUI]|r 時間文字美化:", enabled and "開" or "關")
     end)
 
     outlineCB:HookScript("OnClick", function(self)
         if not MiliUI_BuffDurationStyle then return end
         local enabled = self:GetChecked() and true or false
         MiliUI_BuffDurationStyle.SetOutline(enabled)
-        print("|cff00ff00[MiliUI]|r 文字描邊:", enabled and "開" or "關")
+        print("|cff00ff00[MiliUI]|r 文字邊框:", enabled and "開" or "關")
     end)
 
     fontSizeSlider:SetScript("OnValueChanged", function(self, value)
@@ -1043,7 +1043,7 @@ local function InitSettings()
 
 
 
-    local auraCategory = Settings.RegisterCanvasLayoutSubcategory(category, auraFrame, "光環強化")
+    local auraCategory = Settings.RegisterCanvasLayoutSubcategory(category, auraFrame, "光環時間美化")
     auraCategory.ID = "MiliUI_Aura"
 
     -- ============================================================
