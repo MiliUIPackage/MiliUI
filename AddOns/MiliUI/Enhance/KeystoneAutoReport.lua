@@ -222,7 +222,22 @@ end
 
 local KEY_CHECK_MAX_RETRY = 6   -- 最多重試次數 (API 延遲時才需要)
 
-local function ScheduleKeystoneCheck(retry)
+-- 判斷剛完成的副本是否使用「自己的」鑰石。
+-- 完成 M+ 後隊伍每位成員都會獲得新鑰石，若不判斷，非鑰石主人也會誤報。
+-- 完成前自己持有的鑰石 (lastOwnMapID/Level) 與本場副本的 mapID/level 相符者，才是鑰石主人。
+-- 必須在事件當下 (鑰石尚未被換新前) 呼叫，lastOwnMapID/Level 此時仍為完成前的值。
+local function CompletedWithOwnKeystone()
+    if (not C_ChallengeMode or not C_ChallengeMode.GetCompletionInfo) then
+        return false
+    end
+    local mapID, level = C_ChallengeMode.GetCompletionInfo()
+    if (not mapID or mapID <= 0 or not level or level <= 0) then return false end
+    return mapID == lastOwnMapID and level == lastOwnLevel
+end
+
+-- allowReport：是否允許把變動貼到隊伍 (NPC 洗鑰石永遠允許；副本完成僅 key 主人允許)。
+-- 無論是否允許通報，偵測到的有效新鑰石都會更新 baseline，避免後續比對失準。
+local function ScheduleKeystoneCheck(retry, allowReport)
     if (keyCheckTimer) then return end
     keyCheckTimer = C_Timer.NewTimer(KEY_CHECK_DELAY, function()
         keyCheckTimer = nil
@@ -240,13 +255,18 @@ local function ScheduleKeystoneCheck(retry)
         if (mapID == lastOwnMapID and level == lastOwnLevel) then
             -- 沒變動：可能是 API 還沒更新，再試一次
             if ((retry or 0) < KEY_CHECK_MAX_RETRY) then
-                ScheduleKeystoneCheck((retry or 0) + 1)
+                ScheduleKeystoneCheck((retry or 0) + 1, allowReport)
             end
             return
         end
+
+        -- 鑰石被消耗 (在副本內啟動 key) 等暫時無鑰石的狀態：不覆寫 baseline，
+        -- 以保留「完成前的 key」供 key 主人判斷使用。
+        if (mapID <= 0 or level <= 0) then return end
+
         lastOwnMapID, lastOwnLevel = mapID, level
 
-        if (mapID <= 0 or level <= 0) then return end
+        if (not allowReport) then return end  -- 非本場 key 主人 / 被動取得，不通報
 
         local channel = GetPartyChannel()
         if (not channel) then return end
@@ -255,10 +275,6 @@ local function ScheduleKeystoneCheck(retry)
             SendChatMessage("鑰石更新：" .. link, channel)
         end
     end)
-end
-
-local function CheckOwnKeystoneChanged()
-    ScheduleKeystoneCheck(0)
 end
 
 local function SetBaselineIfNeeded()
@@ -294,10 +310,12 @@ f:SetScript("OnEvent", function(self, event, ...)
         self:RegisterEvent("GOSSIP_CLOSED")
         C_Timer.After(BASELINE_DELAY, SetBaselineIfNeeded)
     elseif (event == "CHALLENGE_MODE_COMPLETED") then
-        CheckOwnKeystoneChanged()
+        -- 僅本場「key 主人」才通報，避免完成後每位隊員都被換新鑰石而誤報。
+        ScheduleKeystoneCheck(0, CompletedWithOwnKeystone())
     elseif (event == "GOSSIP_CLOSED") then
         if (IsKeystoneNpcGossip()) then
-            CheckOwnKeystoneChanged()
+            -- 在鑰石 NPC 主動洗 / 換 / 降鑰石，永遠允許通報。
+            ScheduleKeystoneCheck(0, true)
         end
     elseif (event == "CHAT_MSG_ADDON") then
         local prefix, text, channel, sender = ...
