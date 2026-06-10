@@ -36,6 +36,7 @@ local lastRespondedAt = 0
 local lastOwnMapID, lastOwnLevel = 0, 0
 local baselineSet = false
 local keyCheckTimer
+local keystoneGossipOpen = false  -- GOSSIP_SHOW 當下判定是否為鑰石 NPC，供 GOSSIP_CLOSED 使用
 
 local function GetOwnKeystone()
     local level, mapID, rating = 0, 0, 0
@@ -260,9 +261,15 @@ local function ScheduleKeystoneCheck(retry, allowReport)
             return
         end
 
-        -- 鑰石被消耗 (在副本內啟動 key) 等暫時無鑰石的狀態：不覆寫 baseline，
-        -- 以保留「完成前的 key」供 key 主人判斷使用。
-        if (mapID <= 0 or level <= 0) then return end
+        -- 暫時無鑰石的狀態 (剛完成、舊 key 已消耗但新 key 尚未發到手；或在副本內啟動 key)：
+        -- 不覆寫 baseline (保留「完成前的 key」供 key 主人判斷)，且需繼續重試，
+        -- 否則 key 主人會在這個空窗期被直接中止而漏報。
+        if (mapID <= 0 or level <= 0) then
+            if ((retry or 0) < KEY_CHECK_MAX_RETRY) then
+                ScheduleKeystoneCheck((retry or 0) + 1, allowReport)
+            end
+            return
+        end
 
         lastOwnMapID, lastOwnLevel = mapID, level
 
@@ -307,13 +314,18 @@ f:SetScript("OnEvent", function(self, event, ...)
         self:RegisterEvent("CHAT_MSG_INSTANCE_CHAT_LEADER")
         self:RegisterEvent("CHAT_MSG_ADDON")
         self:RegisterEvent("CHALLENGE_MODE_COMPLETED")
+        self:RegisterEvent("GOSSIP_SHOW")
         self:RegisterEvent("GOSSIP_CLOSED")
         C_Timer.After(BASELINE_DELAY, SetBaselineIfNeeded)
     elseif (event == "CHALLENGE_MODE_COMPLETED") then
         -- 僅本場「key 主人」才通報，避免完成後每位隊員都被換新鑰石而誤報。
         ScheduleKeystoneCheck(0, CompletedWithOwnKeystone())
+    elseif (event == "GOSSIP_SHOW") then
+        -- 視窗開啟時 "npc" unit 仍有效，先判定是否為鑰石 NPC 並記下旗標。
+        keystoneGossipOpen = IsKeystoneNpcGossip()
     elseif (event == "GOSSIP_CLOSED") then
-        if (IsKeystoneNpcGossip()) then
+        if (keystoneGossipOpen) then
+            keystoneGossipOpen = false
             -- 在鑰石 NPC 主動洗 / 換 / 降鑰石，永遠允許通報。
             ScheduleKeystoneCheck(0, true)
         end
