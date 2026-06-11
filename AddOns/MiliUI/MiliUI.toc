@@ -9,6 +9,8 @@
 ## SavedVariables: MiliUI_DB, MiliUI_CastBarEnhanceDB
 ## SavedVariablesPerCharacter: MiliUI_CharDB
 
+Libs\Libs.xml
+
 Config\Luxthos_Platynator.lua
 # Config\Luxthos_Sensei.lua
 # Config\Luxthos_CMC.lua
@@ -30,6 +32,7 @@ Enhance\AddonNames.lua
 Enhance\AutoSlotKeystone.lua
 Enhance\Baganator_Keystone.lua
 Enhance\ChallengesUI_Buttons.lua
+Enhance\PartyKeystone.lua
 Enhance\ChallengesUI_LootTable.lua
 Enhance\CraftingOrders_RewardColumn.xml
 Enhance\CraftingOrders_RewardColumn.lua

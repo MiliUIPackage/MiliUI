@@ -1130,6 +1130,18 @@ if C_AddOns.IsAddOnLoaded("KeystoneLoot") then
     if setupDone then uiFrame:UnregisterEvent("ADDON_LOADED") end
 end
 
+-- 登出前最後同步補抓鑰石。
+-- 用途：剛從寶庫領到本週鑰石後馬上登出，這之間沒有任何既有事件
+-- （CHALLENGE_MODE_COMPLETED / GOSSIP_CLOSED）會重讀鑰石，而 ScheduleKeystoneCheck
+-- 走 C_Timer，在登出瞬間不會執行 → 那把 key 就漏存。PLAYER_LOGOUT 時
+-- SavedVariables 仍會寫出，且 GetOwnedKeystone 永遠是最新的，故在此同步補抓一次。
+local function SaveKeystoneOnLogout()
+    local mapID, level = ReadOwnKeystoneState()
+    if mapID > 0 and level > 0 then
+        SaveKeystoneRecord(mapID, level)
+    end
+end
+
 --------------------------------------------------------------------------------
 -- 載入：資料追蹤
 --------------------------------------------------------------------------------
@@ -1139,6 +1151,7 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_LOGIN" then
         self:RegisterEvent("CHALLENGE_MODE_COMPLETED")
         self:RegisterEvent("GOSSIP_CLOSED")
+        self:RegisterEvent("PLAYER_LOGOUT")               -- 登出前同步補抓鑰石
         -- 寶庫/M+資料「到達」事件（資料變新後伺服器推送）→ 真正存檔的時機
         self:RegisterEvent("WEEKLY_REWARDS_UPDATE")        -- GetActivities 已刷新
         self:RegisterEvent("CHALLENGE_MODE_MAPS_UPDATE")   -- GetRunHistory 已刷新
@@ -1178,8 +1191,13 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
         if IsKeystoneNpcGossip() then
             ScheduleKeystoneCheck(0)
         end
+    elseif event == "PLAYER_LOGOUT" then
+        SaveKeystoneOnLogout()
     -- 以下兩個是「資料已刷新」事件 → 直接存檔（此刻 GetActivities/GetRunHistory 才是新的）
     elseif event == "WEEKLY_REWARDS_UPDATE" then
+        -- 領寶庫會給本週鑰石，但不觸發 CHALLENGE_MODE_COMPLETED / 鑰石 NPC gossip，
+        -- 在此排一次鑰石檢查，讓還在線上時也能即時更新（登出情境由 PLAYER_LOGOUT 兜底）。
+        ScheduleKeystoneCheck(0)
         SnapshotAndRefresh("WEEKLY_REWARDS_UPDATE")
     elseif event == "CHALLENGE_MODE_MAPS_UPDATE" then
         SnapshotAndRefresh("CHALLENGE_MODE_MAPS_UPDATE")

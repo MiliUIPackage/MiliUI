@@ -1,61 +1,30 @@
 
 ---------------------------------------------------------------
--- MiliUI Enhance: Keystone Auto Report
--- 功能一：隊伍聊天完全匹配 key / keys / !key / !keys / 鑰石 時，以 LibKS addon channel
---   協議 (DBM-Core 的 LibKeystone 同款) 主動向隊員請求鑰石資料，
---   彙整後貼到隊伍。多人安裝本 plugin 時以 CLAIM 協議做確定性
---   leader election，只有 GUID 最小者回報，沒有 race condition。
--- 功能二：自己的鑰石變動時 (M+ 完成、城內洗鑰石、洗降級等)，
---   自動在隊伍裡貼出鑰石連結。
+-- MiliUI Enhance: Keystone Auto Report (自己鑰石變動自動通報)
+-- 自己的鑰石變動時，自動在隊伍裡貼出鑰石連結：
+--   * M+ 完成：僅當你是本場「鑰石主人」時才通報
+--     (完成後全隊都會拿到新鑰石，不判斷會讓非主人也誤報)。
+--   * 在鑰石 NPC 主動洗 / 換 / 降鑰石：永遠通報。
+--
+-- 「查看隊友鑰石」(鑰石頁面面板、打字 key/鑰石 彙報全隊) 已移到
+-- Enhance/PartyKeystone.lua，改用 LibOpenRaid + LibKeystone 可靠同步。
 -- Author: Mili
 ---------------------------------------------------------------
 
-local KS_PREFIX        = "LibKS"      -- LibKeystone 協議共用前綴
-local DEDUP_PREFIX     = "MiliUIKey"  -- 本 plugin 內部去重用
-local RESPOND_THROTTLE = 3            -- 回應請求的節流秒數 (對齊 LibKeystone)
-local CLAIM_WINDOW     = 1.8          -- 收集 CLAIM + keystone 資料的窗口
-local REPLY_COOLDOWN   = 30           -- 送出回報後的冷卻秒數
-local LINE_SPACING     = 0.15         -- 每行之間小延遲避免 server throttle
-
-local KEY_CHECK_DELAY  = 1             -- 事件後每次 check 間隔秒數
-local BASELINE_DELAY   = 10            -- 登入後設定基準值延遲
-local KEYSTONE_NPC_IDS = {             -- 鑰石 NPC (洗 / 換 / 降)
+local KEY_CHECK_DELAY     = 1   -- 事件後每次 check 間隔秒數
+local BASELINE_DELAY      = 10  -- 登入後設定基準值延遲
+local KEY_CHECK_MAX_RETRY = 6   -- 最多重試次數 (API 延遲時才需要)
+local KEYSTONE_NPC_IDS = {      -- 鑰石 NPC (洗 / 換 / 降)
     [197711] = true,   -- 主城
     [197915] = true,   -- 副本內
 }
 
-local hasLibKeystone = false  -- PLAYER_LOGIN 時 re-evaluate，避免 load order 誤判
 local issecretvalue = _G.issecretvalue or function() return false end
-
-local collected = {}
-local claims = {}
-local scheduledSend
-local lastReply = 0
-local lastRespondedAt = 0
 
 local lastOwnMapID, lastOwnLevel = 0, 0
 local baselineSet = false
 local keyCheckTimer
 local keystoneGossipOpen = false  -- GOSSIP_SHOW 當下判定是否為鑰石 NPC，供 GOSSIP_CLOSED 使用
-
-local function GetOwnKeystone()
-    local level, mapID, rating = 0, 0, 0
-    if (C_MythicPlus) then
-        if (C_MythicPlus.GetOwnedKeystoneLevel) then
-            level = C_MythicPlus.GetOwnedKeystoneLevel() or 0
-        end
-        if (C_MythicPlus.GetOwnedKeystoneChallengeMapID) then
-            mapID = C_MythicPlus.GetOwnedKeystoneChallengeMapID() or 0
-        end
-    end
-    if (C_PlayerInfo and C_PlayerInfo.GetPlayerMythicPlusRatingSummary) then
-        local s = C_PlayerInfo.GetPlayerMythicPlusRatingSummary("player")
-        if (s and s.currentSeasonScore) then
-            rating = s.currentSeasonScore
-        end
-    end
-    return level, mapID, rating
-end
 
 local function GetPartyChannel()
     if (IsInGroup(LE_PARTY_CATEGORY_INSTANCE)) then
@@ -64,126 +33,6 @@ local function GetPartyChannel()
         return "PARTY"
     end
 end
-
-local function RespondToKSRequest(channel)
-    if (hasLibKeystone) then return end
-    local now = GetTime()
-    if (now - lastRespondedAt < RESPOND_THROTTLE) then return end
-    lastRespondedAt = now
-    local level, mapID, rating = GetOwnKeystone()
-    C_ChatInfo.SendAddonMessage(KS_PREFIX,
-        string.format("%d,%d,%d", level, mapID, rating), channel)
-end
-
-local function CollectSelfKeystone()
-    local level, mapID, rating = GetOwnKeystone()
-    if (level > 0 and mapID > 0) then
-        collected[UnitName("player")] = { level = level, mapID = mapID, rating = rating }
-    end
-end
-
-local function OnKSMessage(text, channel, sender)
-    if (issecretvalue(text)) then return end
-    if (type(text) ~= "string") then return end
-    if (text == "R") then
-        RespondToKSRequest(channel)
-        return
-    end
-    local lvlStr, mapStr, rateStr = text:match("^(%-?%d+),(%-?%d+),(%d+)$")
-    if (not lvlStr) then return end
-    local level = tonumber(lvlStr)
-    local mapID = tonumber(mapStr)
-    if (not level or not mapID or level <= 0 or mapID <= 0) then return end
-    collected[Ambiguate(sender, "none")] = {
-        level = level,
-        mapID = mapID,
-        rating = tonumber(rateStr) or 0,
-    }
-end
-
-local TRIGGER_KEYWORDS = { ["key"]=true, ["keys"]=true, ["!key"]=true, ["!keys"]=true, ["鑰石"]=true }
-
-local function MatchKeyword(msg)
-    if (issecretvalue(msg)) then return false end
-    if (type(msg) ~= "string") then return false end
-    return TRIGGER_KEYWORDS[msg:match("^%s*(.-)%s*$"):lower()] or false
-end
-
-local function FormatReply()
-    local lines = {}
-    for sender, info in pairs(collected) do
-        local mapName = C_ChallengeMode and C_ChallengeMode.GetMapUIInfo
-            and C_ChallengeMode.GetMapUIInfo(info.mapID) or "?"
-        lines[#lines + 1] = string.format("%s: %s (+%d)", sender, mapName, info.level)
-    end
-    table.sort(lines)
-    return lines
-end
-
-local function SendReply()
-    local channel = GetPartyChannel()
-    if (not channel) then return end
-    local lines = FormatReply()
-    if (#lines == 0) then return end
-    lastReply = GetTime()
-    C_ChatInfo.SendAddonMessage(DEDUP_PREFIX, "SENT", channel)
-    for i, line in ipairs(lines) do
-        C_Timer.After((i - 1) * LINE_SPACING, function()
-            SendChatMessage(line, channel)
-        end)
-    end
-end
-
-local function OnTrigger()
-    if (scheduledSend) then return end
-    if (GetTime() - lastReply < REPLY_COOLDOWN) then return end
-    local channel = GetPartyChannel()
-    if (not channel) then return end
-    local me = UnitGUID("player")
-    if (not me) then return end
-
-    wipe(collected)
-    wipe(claims)
-    claims[me] = true
-    CollectSelfKeystone()
-
-    C_ChatInfo.SendAddonMessage(KS_PREFIX, "R", channel)
-    C_ChatInfo.SendAddonMessage(DEDUP_PREFIX, "CLAIM:" .. me, channel)
-
-    scheduledSend = C_Timer.NewTimer(CLAIM_WINDOW, function()
-        scheduledSend = nil
-        local winner = me
-        for id in pairs(claims) do
-            if (id < winner) then winner = id end
-        end
-        if (winner == me) then
-            SendReply()
-        end
-        wipe(collected)
-        wipe(claims)
-    end)
-end
-
-local function OnPeerDedup(text)
-    if (issecretvalue(text)) then return end
-    if (type(text) ~= "string") then return end
-    if (text == "SENT") then
-        if (scheduledSend) then
-            scheduledSend:Cancel()
-            scheduledSend = nil
-        end
-        lastReply = GetTime()
-        wipe(collected)
-        wipe(claims)
-        return
-    end
-    local id = text:match("^CLAIM:(.+)$")
-    if (id) then
-        claims[id] = true
-    end
-end
-
--- === 自己鑰石變動自動貼出 ===
 
 -- 掃背包找出當前身上的鑰石 hyperlink。
 -- server 會把 addon 自己拼的 keystone 連結（affix 對不齊等）當作偽造剝掉外層
@@ -220,8 +69,6 @@ local function ReadOwnKeystoneState()
     end
     return mapID, level
 end
-
-local KEY_CHECK_MAX_RETRY = 6   -- 最多重試次數 (API 延遲時才需要)
 
 -- 判斷剛完成的副本是否使用「自己的」鑰石。
 -- 完成 M+ 後隊伍每位成員都會獲得新鑰石，若不判斷，非鑰石主人也會誤報。
@@ -305,14 +152,6 @@ local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
 f:SetScript("OnEvent", function(self, event, ...)
     if (event == "PLAYER_LOGIN") then
-        hasLibKeystone = _G.LibStub and _G.LibStub("LibKeystone", true) ~= nil
-        C_ChatInfo.RegisterAddonMessagePrefix(KS_PREFIX)
-        C_ChatInfo.RegisterAddonMessagePrefix(DEDUP_PREFIX)
-        self:RegisterEvent("CHAT_MSG_PARTY")
-        self:RegisterEvent("CHAT_MSG_PARTY_LEADER")
-        self:RegisterEvent("CHAT_MSG_INSTANCE_CHAT")
-        self:RegisterEvent("CHAT_MSG_INSTANCE_CHAT_LEADER")
-        self:RegisterEvent("CHAT_MSG_ADDON")
         self:RegisterEvent("CHALLENGE_MODE_COMPLETED")
         self:RegisterEvent("GOSSIP_SHOW")
         self:RegisterEvent("GOSSIP_CLOSED")
@@ -329,18 +168,5 @@ f:SetScript("OnEvent", function(self, event, ...)
             -- 在鑰石 NPC 主動洗 / 換 / 降鑰石，永遠允許通報。
             ScheduleKeystoneCheck(0, true)
         end
-    elseif (event == "CHAT_MSG_ADDON") then
-        local prefix, text, channel, sender = ...
-        if (prefix == KS_PREFIX) then
-            OnKSMessage(text, channel, sender)
-        elseif (prefix == DEDUP_PREFIX) then
-            OnPeerDedup(text)
-        end
-    else
-        local msg = ...
-        if (MatchKeyword(msg)) then
-            OnTrigger()
-        end
     end
 end)
-

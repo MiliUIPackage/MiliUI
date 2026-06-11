@@ -1,0 +1,17 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+	<!--
+		MiliUI 內嵌函式庫。
+		全部為 LibStub 共用庫，會自動以最高版本去重，與其他插件不衝突。
+		依「依賴先載入」順序排列：
+		  LibStub → CallbackHandler → AceSerializer → AceComm(含 ChatThrottleLib)
+		  → LibDeflate → LibOpenRaid → LibKeystone
+		用途：隊友鑰石同步 (Enhance/PartyKeystone.lua)
+	-->
+	<Script file="LibStub\LibStub.lua" />
+	<Script file="CallbackHandler-1.0\CallbackHandler-1.0.lua" />
+	<Include file="AceSerializer-3.0\AceSerializer-3.0.xml" />
+	<Include file="AceComm-3.0\AceComm-3.0.xml" />
+	<Include file="LibDeflate\lib.xml" />
+	<Include file="LibOpenRaid\lib.xml" />
+	<Script file="LibKeystone\LibKeystone.lua" />
+</Ui>
