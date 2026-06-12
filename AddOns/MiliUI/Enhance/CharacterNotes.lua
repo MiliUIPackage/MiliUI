@@ -191,9 +191,11 @@ local function InitDB()
 
     selectedCharKey = curKey  -- 預設檢視當前角色
 
-    -- 編輯器位置
-    if MiliUI_DB.notesEditorPos and type(MiliUI_DB.notesEditorPos) ~= "table" then
-        MiliUI_DB.notesEditorPos = nil
+    -- 編輯器位置：改以 CharacterFrame 右上為錨點記錄偏移，舊版絕對座標直接捨棄
+    MiliUI_DB.notesEditorPos = nil
+    local off = MiliUI_DB.notesEditorOffset
+    if type(off) ~= "table" or type(off.x) ~= "number" or type(off.y) ~= "number" then
+        MiliUI_DB.notesEditorOffset = nil
     end
 end
 
@@ -666,15 +668,11 @@ local function BuildUI()
     editorFrame:SetMovable(true)
     editorFrame:Hide()
 
-    -- 位置：優先使用使用者上次存的，沒有就預設貼在 CharacterFrame 右側
-    local savedPos = MiliUI_DB and MiliUI_DB.notesEditorPos
-    if savedPos and savedPos.point then
-        editorFrame:ClearAllPoints()
-        editorFrame:SetPoint(savedPos.point, UIParent, savedPos.relPoint or savedPos.point,
-            savedPos.x or 0, savedPos.y or 0)
-    else
-        editorFrame:SetPoint("TOPLEFT", CharacterFrame, "TOPRIGHT", 8, 0)
-    end
+    -- 位置：以 CharacterFrame 右上為錨點（偏移量持久化），跟著角色視窗一起移動
+    local off = MiliUI_DB and MiliUI_DB.notesEditorOffset
+    local offX = (type(off) == "table" and type(off.x) == "number") and off.x or 8
+    local offY = (type(off) == "table" and type(off.y) == "number") and off.y or 0
+    editorFrame:SetPoint("TOPLEFT", CharacterFrame, "TOPRIGHT", offX, offY)
     editorFrame:SetBackdrop(S.Backdrop)
     editorFrame:SetBackdropColor(unpack(S.Colors.panelBg))
     editorFrame:SetBackdropBorderColor(unpack(S.Colors.border))
@@ -692,10 +690,16 @@ local function BuildUI()
     header:SetScript("OnDragStart", function() editorFrame:StartMoving() end)
     header:SetScript("OnDragStop", function()
         editorFrame:StopMovingOrSizing()
-        -- 持久化位置
+        -- 換算成相對 CharacterFrame 右上的偏移量持久化，並重新錨定回 CharacterFrame
+        -- （StopMovingOrSizing 後錨點會變成 UIParent 絕對座標）
         if not MiliUI_DB then MiliUI_DB = {} end
-        local point, _, relPoint, x, y = editorFrame:GetPoint(1)
-        MiliUI_DB.notesEditorPos = { point = point, relPoint = relPoint, x = x, y = y }
+        local es = editorFrame:GetEffectiveScale()
+        local cs = CharacterFrame:GetEffectiveScale()
+        local x = (editorFrame:GetLeft() * es - CharacterFrame:GetRight() * cs) / es
+        local y = (editorFrame:GetTop() * es - CharacterFrame:GetTop() * cs) / es
+        MiliUI_DB.notesEditorOffset = { x = x, y = y }
+        editorFrame:ClearAllPoints()
+        editorFrame:SetPoint("TOPLEFT", CharacterFrame, "TOPRIGHT", x, y)
     end)
 
     local headerText = header:CreateFontString(nil, "OVERLAY")
