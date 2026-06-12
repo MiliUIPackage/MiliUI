@@ -57,3 +57,4 @@ Enhance\TinyInspectRemake_OffhandEnchant.lua
 Enhance\GameplayCVars.lua
 Enhance\CharacterNotes.lua
 Enhance\DBM_PrivateAura.lua
+Enhance\ItemUpgrade_PreviewIcon.lua
