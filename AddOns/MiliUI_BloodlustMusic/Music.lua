@@ -591,7 +591,10 @@ local function GetLustBuffInfo()
 end
 
 local function IsDebuffFresh(expirationTime)
-    if not expirationTime or expirationTime <= 0 then return true end
+    -- Unreadable expiration (common right after login/loading screens):
+    -- treat as STALE. Better to miss one playback than false-trigger on
+    -- every zone change while the exhaustion debuff is up.
+    if not expirationTime or expirationTime <= 0 then return false end
     return (expirationTime - GetTime()) > LUST_DEBUFF_FRESH_THRESHOLD
 end
 
@@ -613,14 +616,25 @@ end
 ----------------------------------------------------------------------
 -- UNIT_AURA: main detection + bar refresh
 ----------------------------------------------------------------------
+-- Playback suppression window: set on login / zone changes so that
+-- re-detecting an existing exhaustion debuff after a loading screen
+-- never replays the music. A real lust cast never lands this early.
+local suppressPlayUntil = 0
+local SUPPRESS_GRACE = 5
+
 local function OnUnitAura(unit, updateInfo)
     if unit ~= "player" then return end
+
+    -- Full updates fire at login/zone-in; a genuine new lust cast always
+    -- arrives as an incremental addedAuras payload. Treat full updates
+    -- (and a missing payload) as state-sync only — never playback.
+    local isFullUpdate = not updateInfo or updateInfo.isFullUpdate
 
     -- Fast path: skip pure-update events using the 12.0 payload.
     -- Full updates (login/zone) always scan; otherwise we care about:
     --   • any aura being added (can't cheaply tell which → scan), or
     --   • our tracked debuff instance being removed.
-    if updateInfo and not updateInfo.isFullUpdate then
+    if not isFullUpdate then
         local relevant =
             (updateInfo.addedAuras and #updateInfo.addedAuras > 0) or
             RemovedContainsTracked(updateInfo.removedAuraInstanceIDs, trackedDebuffInstanceID)
@@ -646,9 +660,22 @@ local function OnUnitAura(unit, updateInfo)
             return
         end
 
+        local buffID, buffName, buffIcon, buffDuration, buffExpiration = GetLustBuffInfo()
+
+        -- Login / loading-screen re-detection: sync state, restore the
+        -- countdown bar if the buff is genuinely still running, but never
+        -- start the music.
+        if isFullUpdate or GetTime() < suppressPlayUntil then
+            DebugPrint("Lust detected during full update / grace period, music suppressed")
+            if buffID then
+                ShowBar(buffID, buffName or DEFAULT_LUST_NAME, buffIcon or DEFAULT_LUST_ICON,
+                        buffDuration or 40, buffExpiration or (GetTime() + 40))
+            end
+            return
+        end
+
         DebugPrint("Lust TRIGGERED via debuff", debuffID)
 
-        local buffID, buffName, buffIcon, buffDuration, buffExpiration = GetLustBuffInfo()
         local displayName       = buffName or DEFAULT_LUST_NAME
         local displayIcon       = buffIcon or DEFAULT_LUST_ICON
         local displayDuration   = buffDuration or 40
@@ -690,6 +717,7 @@ end
 ----------------------------------------------------------------------
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("UNIT_AURA")
 
 eventFrame:SetScript("OnEvent", function(self, event, ...)
@@ -754,6 +782,12 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         end)
 
         print(L["LOADED_MSG"])
+
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        -- Fires at login and after every loading screen (zone/instance
+        -- change). Auras re-detected within this window are pre-existing,
+        -- not a fresh cast — block music for a few seconds.
+        suppressPlayUntil = GetTime() + SUPPRESS_GRACE
 
     elseif event == "UNIT_AURA" then
         if db then OnUnitAura(...) end
