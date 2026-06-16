@@ -8,16 +8,19 @@ local DB                      = KeystoneLoot.DB;
 local Query                   = KeystoneLoot.Query;
 local L                       = KeystoneLoot.L;
 
-local SHARE_PREFIX            = "KeystoneLoot:v1";
+local EXPORT_PREFIX           = "KeystoneLoot:v3";
+local COMPRESSION_METHOD      = Enum.CompressionMethod.Zlib;
 
 Favorites.TIER_NICE           = 1;
 Favorites.TIER_MUST           = 2;
 Favorites.TIER_BIS            = 3;
+Favorites.TIER_TRANSMOG       = 4;
 
 Favorites.TIER_TEXTURE        = {
     [1] = "Interface\\AddOns\\KeystoneLoot\\assets\\tier_nice",
     [2] = "Interface\\AddOns\\KeystoneLoot\\assets\\tier_must",
     [3] = "Interface\\AddOns\\KeystoneLoot\\assets\\tier_bis",
+    [4] = "Interface\\AddOns\\KeystoneLoot\\assets\\tier_transmog",
 };
 
 Favorites.TIER_NAME           = {
@@ -26,6 +29,182 @@ Favorites.TIER_NAME           = {
     [3] = L["Best in Slot"],
     [4] = L["Transmog"],
 };
+
+local function SplitOutsideParens(str, delimiter)
+    local result = {};
+    local depth  = 0;
+    local start  = 1;
+
+    for i = 1, #str do
+        local c = string.sub(str, i, i);
+        if (c == "(") then
+            depth = depth + 1;
+        elseif (c == ")") then
+            depth = depth - 1;
+        elseif (c == delimiter and depth == 0) then
+            table.insert(result, string.sub(str, start, i - 1));
+            start = i + 1;
+        end
+    end
+
+    if (start <= #str) then
+        table.insert(result, string.sub(str, start));
+    end
+
+    return result;
+end
+
+-- v1: KeystoneLoot:v1,specId:item1:item2[,specId:item3]
+-- Returns: importedItems[specId] = { { itemId, tier, bonusIds }, ... }
+local function ParseV1(dataStr)
+    local importedItems = {};
+
+    for specSection in string.gmatch(dataStr, "([^,]+)") do
+        local specId, itemsStr = string.match(specSection, "^(%d+):(.+)$");
+
+        if (specId and itemsStr) then
+            specId = tonumber(specId);
+            if (not importedItems[specId]) then
+                importedItems[specId] = {};
+            end
+
+            for itemId in string.gmatch(itemsStr, "([^:]+)") do
+                itemId = tonumber(itemId);
+                if (itemId) then
+                    table.insert(importedItems[specId], {
+                        itemId = itemId,
+                        tier   = Favorites.TIER_MUST
+                    });
+                end
+            end
+        end
+    end
+
+    return importedItems;
+end
+
+-- v2: KeystoneLoot:v2,specId:item1(tier,b1,b2):item2(tier)[,specId:item3(tier)]
+-- Returns: importedItems[specId] = { { itemId, tier, bonusIds }, ... }
+local function ParseV2(dataStr)
+    local importedItems = {};
+
+    for _, specSection in ipairs(SplitOutsideParens(dataStr, ",")) do
+        local specId, itemsStr = string.match(specSection, "^(%d+):(.+)$");
+
+        if (specId and itemsStr) then
+            specId = tonumber(specId);
+            if (not importedItems[specId]) then
+                importedItems[specId] = {};
+            end
+
+            for itemToken in string.gmatch(itemsStr, "([^:]+)") do
+                local itemId, metaStr = string.match(itemToken, "^(%d+)%(([^)]+)%)$");
+                if (not itemId) then
+                    itemId = string.match(itemToken, "^(%d+)$");
+                end
+                itemId = tonumber(itemId);
+
+                if (itemId) then
+                    local tier     = Favorites.TIER_MUST;
+                    local bonusIds = nil;
+
+                    if (metaStr) then
+                        local values = {};
+                        for v in string.gmatch(metaStr, "([^,]+)") do
+                            table.insert(values, tonumber(v));
+                        end
+
+                        tier = values[1] or Favorites.TIER_MUST;
+                        if (#values > 1) then
+                            bonusIds = { unpack(values, 2) };
+                        end
+                    end
+
+                    table.insert(importedItems[specId], {
+                        itemId   = itemId,
+                        tier     = tier,
+                        bonusIds = bonusIds,
+                    });
+                end
+            end
+        end
+    end
+
+    return importedItems;
+end
+
+-- v3: KeystoneLoot:v3,<base64(compress(json))>
+-- JSON: { ["<specId>"] = { { itemId=, tier=, bonusIds={}, gems={}, enchant= }, ... } }
+-- Returns: importedItems[specId] = { { itemId, tier, bonusIds, gems, enchant }, ... }
+local function ParseV3(dataStr)
+    local importedItems = {};
+
+    local ok, decoded = pcall(C_EncodingUtil.DecodeBase64, dataStr);
+    if (not ok or not decoded) then
+        return importedItems;
+    end
+
+    local okDecomp, json = pcall(C_EncodingUtil.DecompressString, decoded, COMPRESSION_METHOD);
+    if (not okDecomp or not json) then
+        return importedItems;
+    end
+
+    local okJson, data = pcall(C_EncodingUtil.DeserializeJSON, json);
+    if (not okJson or type(data) ~= "table") then
+        return importedItems;
+    end
+
+    for specKey, itemList in pairs(data) do
+        local specId = tonumber(specKey);
+
+        if (specId and type(itemList) == "table") then
+            if (not importedItems[specId]) then
+                importedItems[specId] = {};
+            end
+
+            for _, itemData in ipairs(itemList) do
+                local itemId = tonumber(itemData.itemId);
+
+                if (itemId) then
+                    table.insert(importedItems[specId], {
+                        itemId   = itemId,
+                        tier     = tonumber(itemData.tier) or Favorites.TIER_MUST,
+                        bonusIds = itemData.bonusIds,
+                        gems     = itemData.gems,
+                        enchant  = itemData.enchant,
+                    });
+                end
+            end
+        end
+    end
+
+    return importedItems;
+end
+
+-- Ordered by preference: newest version first
+local VERSIONS = {
+    { prefix = "KeystoneLoot:v3", Parse = ParseV3 },
+    { prefix = "KeystoneLoot:v2", Parse = ParseV2 },
+    { prefix = "KeystoneLoot:v1", Parse = ParseV1 },
+};
+
+local function DetectVersion(importStr)
+    local dataStr = string.gsub(importStr, "%s+", "");
+
+    for _, v in ipairs(VERSIONS) do
+        if (string.sub(dataStr, 1, #v.prefix) == v.prefix) then
+            return v.Parse, string.sub(dataStr, #v.prefix + 2);
+        end
+    end
+
+    -- Looks like a KeystoneLoot string but no known version matched,
+    -- so it was created by a newer addon build.
+    if (string.match(dataStr, "^KeystoneLoot:v%d+")) then
+        return nil, nil, true;
+    end
+
+    return nil, nil, false;
+end
 
 function Favorites:Init()
     local characterKey = Character:GetKey();
@@ -40,7 +219,7 @@ function Favorites:Init()
     DB:Set("ui.selectedCharacterKey", characterKey);
 end
 
-function Favorites:Add(sourceId, specId, itemId, icon, tier)
+function Favorites:Add(sourceId, specId, itemId, tier, bonusIds, gems, enchant)
     if (not sourceId or specId == nil or not itemId) then
         return false;
     end
@@ -60,7 +239,7 @@ function Favorites:Add(sourceId, specId, itemId, icon, tier)
             -- Catalyst: add for all specs of the class
             for index = 1, C_SpecializationInfo.GetNumSpecializationsForClassID(classId) do
                 local resolvedSpecId = GetSpecializationInfoForClassID(classId, index);
-                self:Add(sourceId, resolvedSpecId, itemId, icon, tier);
+                self:Add(sourceId, resolvedSpecId, itemId, tier, bonusIds, gems, enchant);
             end
 
             return true;
@@ -70,7 +249,7 @@ function Favorites:Add(sourceId, specId, itemId, icon, tier)
         if (item and item.classes[classId]) then
             -- Regular item: add only for specs that can use it
             for _, resolvedSpecId in ipairs(item.classes[classId]) do
-                self:Add(sourceId, resolvedSpecId, itemId, icon, tier);
+                self:Add(sourceId, resolvedSpecId, itemId, tier, bonusIds, gems, enchant);
             end
 
             return true;
@@ -96,8 +275,10 @@ function Favorites:Add(sourceId, specId, itemId, icon, tier)
 
     -- Add item
     favorites[characterKey][sourceId][specId][itemId] = {
-        icon = icon,
-        tier = tier or self.TIER_MUST,
+        tier     = tier or self.TIER_MUST,
+        bonusIds = bonusIds,
+        gems     = gems,
+        enchant  = enchant,
     };
 
     -- Save to DB
@@ -132,7 +313,7 @@ function Favorites:Remove(itemId, specId)
         end
     else
         -- Remove for specific spec
-        for sourceId, sourceData in pairs(favorites[characterKey]) do
+        for _, sourceData in pairs(favorites[characterKey]) do
             if (sourceData[specId] and sourceData[specId][itemId]) then
                 sourceData[specId][itemId] = nil;
                 removed = true;
@@ -216,6 +397,39 @@ function Favorites:GetAnyTier(itemId, useCurrentChar)
         end
     end
     return maxTier;
+end
+
+local function GetExtras(itemId, extra, specId)
+    if (not itemId) then
+        return nil;
+    end
+
+    local characterKey = Character:GetSelectedKey();
+    local favorites    = DB:Get("favorites");
+
+    if (not favorites or not favorites[characterKey]) then
+        return nil;
+    end
+
+    for _, sourceData in pairs(favorites[characterKey]) do
+        if (sourceData[specId] and sourceData[specId][itemId]) then
+            return sourceData[specId][itemId][extra];
+        end
+    end
+
+    return nil;
+end
+
+function Favorites:GetBonusIds(itemId, specId)
+    return GetExtras(itemId, "bonusIds", specId);
+end
+
+function Favorites:GetGems(itemId, specId)
+    return GetExtras(itemId, "gems", specId);
+end
+
+function Favorites:GetEnchant(itemId, specId)
+    return GetExtras(itemId, "enchant", specId);
 end
 
 function Favorites:SetTier(itemId, specId, tier)
@@ -318,13 +532,11 @@ function Favorites:GetList(sourceId, specId)
 
         for currentSpecId, specData in pairs(sourceFavorites) do
             for itemId, itemInfo in pairs(specData) do
-                if (sourceId == "catalyst" or Query:GetItemInfo(itemId)) then
-                    tmp[itemId] = {
-                        itemId = itemId,
-                        specId = currentSpecId,
-                        icon = itemInfo.icon
-                    };
-                end
+                tmp[itemId] = {
+                    itemId = itemId,
+                    specId = currentSpecId,
+                    bonusIds = itemInfo.bonusIds
+                };
             end
         end
 
@@ -333,12 +545,10 @@ function Favorites:GetList(sourceId, specId)
         end
     elseif (sourceFavorites[selectedSpecId]) then
         for itemId, itemInfo in pairs(sourceFavorites[selectedSpecId]) do
-            if (sourceId == "catalyst" or Query:GetItemInfo(itemId)) then
-                table.insert(itemList, {
-                    itemId = itemId,
-                    icon = itemInfo.icon
-                });
-            end
+            table.insert(itemList, {
+                itemId = itemId,
+                bonusIds = itemInfo.bonusIds
+            });
         end
     end
 
@@ -354,40 +564,40 @@ function Favorites:Export()
     end
 
     local exportTable = {};
-    local exportStr = SHARE_PREFIX;
+    local hasEntries  = false;
 
     for _, sourceData in pairs(favorites[characterKey]) do
         for specId, specData in pairs(sourceData) do
-            if (not exportTable[specId]) then
-                exportTable[specId] = {};
-            end
+            -- JSON object keys are strings; ParseV3 turns them back via tonumber
+            local specKey = tostring(specId);
 
-            for itemId, _ in pairs(specData) do
-                table.insert(exportTable[specId], itemId);
-            end
-        end
-    end
-
-    for specId, itemList in pairs(exportTable) do
-        local numItems = #itemList;
-
-        if (numItems > 0) then
-            exportStr = exportStr .. "," .. specId .. ":";
-
-            for i, itemId in ipairs(itemList) do
-                exportStr = exportStr .. itemId;
-                if (i < numItems) then
-                    exportStr = exportStr .. ":";
+            for itemId, itemInfo in pairs(specData) do
+                if (not exportTable[specKey]) then
+                    exportTable[specKey] = {};
                 end
+
+                table.insert(exportTable[specKey], {
+                    itemId   = itemId,
+                    tier     = itemInfo.tier or self.TIER_MUST,
+                    bonusIds = itemInfo.bonusIds,
+                    gems     = itemInfo.gems,
+                    enchant  = itemInfo.enchant,
+                });
+
+                hasEntries = true;
             end
         end
     end
 
-    if (exportStr == SHARE_PREFIX) then
+    if (not hasEntries) then
         return L["No favorites found"];
     end
 
-    return exportStr;
+    local json       = C_EncodingUtil.SerializeJSON(exportTable);
+    local compressed = C_EncodingUtil.CompressString(json, COMPRESSION_METHOD);
+    local encoded    = C_EncodingUtil.EncodeBase64(compressed);
+
+    return EXPORT_PREFIX .. "," .. encoded;
 end
 
 function Favorites:Import(importStr, overwrite)
@@ -395,41 +605,22 @@ function Favorites:Import(importStr, overwrite)
         return false, L["Invalid import string."], false;
     end
 
-    local dataStr = importStr:gsub("%s+", "");
-    if (not dataStr:match("^" .. SHARE_PREFIX)) then
+    local Parse, dataStr, outdated = DetectVersion(importStr);
+    if (not Parse) then
+        if (outdated) then
+            return false, L["This import string requires a newer version of KeystoneLoot."], false;
+        end
+
         return false, L["Invalid import string."], false;
     end
 
     local characterKey = Character:GetSelectedKey();
-
-    -- Validate selected character
     local info = Character:ParseKey(characterKey);
     if (not info) then
         return false, L["No character selected."], false;
     end
 
-    dataStr = dataStr:gsub("^" .. SHARE_PREFIX .. ",", "");
-    local importedItems = {};
-    local totalImported = 0;
-
-    -- Parse import string
-    for specSection in dataStr:gmatch("([^,]+)") do
-        local specId, itemsStr = specSection:match("^(%d+):(.+)$");
-
-        if (specId and itemsStr) then
-            specId = tonumber(specId);
-            if (not importedItems[specId]) then
-                importedItems[specId] = {};
-            end
-
-            for itemId in itemsStr:gmatch("([^:]+)") do
-                itemId = tonumber(itemId);
-                if (itemId) then
-                    table.insert(importedItems[specId], itemId);
-                end
-            end
-        end
-    end
+    local importedItems = Parse(dataStr);
 
     if (not next(importedItems)) then
         return false, L["Invalid import string."], false;
@@ -452,19 +643,20 @@ function Favorites:Import(importStr, overwrite)
     end
 
     -- Track skipped specs due to class mismatch
-    local skippedSpecs = false;
+    local skippedSpecs    = false;
+    local totalImported   = 0;
+    local skippedExisting = 0;
 
     -- Import items
     for specId, itemList in pairs(importedItems) do
         if (validSpecs[specId]) then
-            for _, itemId in ipairs(itemList) do
-                local sourceId = Query:GetItemSource(itemId);
-                local item = KeystoneLoot.ItemDatabase[itemId];
-                local catalystItem = KeystoneLoot.CatalystDatabase[itemId];
-                local icon = (catalystItem and catalystItem.icon) or (item and item.icon);
+            for _, itemData in ipairs(itemList) do
+                local sourceId = Query:GetItemSource(itemData.itemId);
 
-                if (sourceId and icon) then
-                    local isValid = false;
+                if (sourceId) then
+                    local item         = KeystoneLoot.ItemDatabase[itemData.itemId];
+                    local catalystItem = KeystoneLoot.CatalystDatabase[itemData.itemId];
+                    local isValid      = false;
 
                     if (catalystItem) then
                         isValid = catalystItem.classId == classId;
@@ -475,11 +667,22 @@ function Favorites:Import(importStr, overwrite)
                                 break;
                             end
                         end
+                    elseif (sourceId == "custom") then
+                        isValid = Query:GetItemIcon(itemData.itemId) ~= nil;
                     end
 
                     if (isValid) then
-                        self:Add(sourceId, specId, itemId, icon);
-                        totalImported = totalImported + 1;
+                        local exists = favorites[characterKey]
+                            and favorites[characterKey][sourceId]
+                            and favorites[characterKey][sourceId][specId]
+                            and favorites[characterKey][sourceId][specId][itemData.itemId];
+
+                        if (overwrite or not exists) then
+                            self:Add(sourceId, specId, itemData.itemId, itemData.tier, itemData.bonusIds, itemData.gems, itemData.enchant);
+                            totalImported = totalImported + 1;
+                        else
+                            skippedExisting = skippedExisting + 1;
+                        end
                     end
                 end
             end
@@ -490,6 +693,10 @@ function Favorites:Import(importStr, overwrite)
 
     if (totalImported > 0) then
         return true, totalImported, skippedSpecs;
+    end
+
+    if (skippedExisting > 0) then
+        return true, 0, skippedSpecs;
     end
 
     return false, L["No valid items found."], skippedSpecs;

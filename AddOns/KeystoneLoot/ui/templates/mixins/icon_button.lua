@@ -5,7 +5,6 @@ local Upgrade = KeystoneLoot.Upgrade;
 local Favorites = KeystoneLoot.Favorites;
 local Character = KeystoneLoot.Character;
 local Query = KeystoneLoot.Query;
-local L = KeystoneLoot.L;
 local Voidcore = KeystoneLoot.Voidcore;
 
 local STAT_HIGHLIGHT_KEYS = {
@@ -21,17 +20,12 @@ local function GetFavoritesSpecId()
         return 0;
     end
 
-    local specId = DB:Get("filters.specId");
-    if (specId == 0) then
-        return 0;
-    end
-
     local classId = DB:Get("filters.classId");
     if (classId ~= info.classId) then
         return 0;
     end
 
-    return specId;
+    return DB:Get("filters.specId");
 end
 
 local function IsItemValidForCharacter()
@@ -97,7 +91,7 @@ function KeystoneLootLootIconButtonMixin:Init(item)
     self.itemId = item.itemId;
     self.isHovered = false;
 
-    self.Content.Icon:SetTexture(item.icon);
+    self.Content.Icon:SetTexture(Query:GetItemIcon(item.itemId));
     self:UpdateFavoriteIcon();
     self:UpdateVoidcoreIcon();
     self:UpdateHighlight();
@@ -116,41 +110,14 @@ function KeystoneLootLootIconButtonMixin:UpdateHighlight()
     local highlighted = false;
 
     if (DB:Get("settings.highlighting.comboMode")) then
-        local anyEnabled = false;
-
-        for _, key in pairs(STAT_HIGHLIGHT_KEYS) do
-            if (DB:Get("settings.highlighting." .. key)) then
-                anyEnabled = true;
-                break;
-            end
-        end
-
-        if (not anyEnabled) then
-            highlighted = not item.stats;
-        elseif (item.stats) then
-            local itemStatSet = {};
-            for _, stat in ipairs(item.stats) do
-                itemStatSet[stat] = true;
-            end
-
+        if (item.stats) then
             highlighted = true;
 
-            for stat, key in pairs(STAT_HIGHLIGHT_KEYS) do
-                if (DB:Get("settings.highlighting." .. key)) then
-                    if (not itemStatSet[stat]) then
-                        highlighted = false;
-                        break;
-                    end
-                end
-            end
-
-            if (highlighted) then
-                for _, stat in ipairs(item.stats) do
-                    local key = STAT_HIGHLIGHT_KEYS[stat];
-                    if (not key or not DB:Get("settings.highlighting." .. key)) then
-                        highlighted = false;
-                        break;
-                    end
+            for _, stat in ipairs(item.stats) do
+                local key = STAT_HIGHLIGHT_KEYS[stat];
+                if (key and not DB:Get("settings.highlighting." .. key)) then
+                    highlighted = false;
+                    break;
                 end
             end
         end
@@ -283,10 +250,6 @@ function KeystoneLootLootIconButtonMixin:OnClick()
         return;
     end
 
-    local item = KeystoneLoot.ItemDatabase[self.itemId];
-    local catalystItem = KeystoneLoot.CatalystDatabase[self.itemId];
-    local icon = (catalystItem and catalystItem.icon) or (item and item.icon);
-
     local info = Character:ParseKey(Character:GetSelectedKey());
     local classesMatch = info and DB:Get("filters.classId") == info.classId;
 
@@ -312,7 +275,6 @@ function KeystoneLootLootIconButtonMixin:OnClick()
         itemId      = self.itemId,
         specId      = specId,
         sourceId    = sourceId,
-        icon        = icon,
         currentTier = currentTier,
     });
 end

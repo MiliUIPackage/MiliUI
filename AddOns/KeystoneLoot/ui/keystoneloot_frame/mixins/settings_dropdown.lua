@@ -4,6 +4,7 @@ local DB = KeystoneLoot.DB;
 local Favorites = KeystoneLoot.Favorites;
 local Character = KeystoneLoot.Character;
 local L = KeystoneLoot.L;
+local Voidcore = KeystoneLoot.Voidcore;
 
 local HIGHLIGHTS = {
     { key = "settings.highlighting.crit",        label = ITEM_MOD_CRIT_RATING_SHORT },
@@ -35,9 +36,13 @@ local function HandleImportResult(success, result, skippedSpecs, overwrite)
     end
 
     if (success) then
-        local suffix = overwrite and L[" (overwritten)"] or "";
-        print(YELLOW_FONT_COLOR:WrapTextInColorCode(string.format(L["%d |4favorite:favorites; imported%s."], result, suffix)));
-        DB:Set("filters.slotId", -1);
+        if (result > 0) then
+            local suffix = overwrite and L[" (overwritten)"] or "";
+            print(YELLOW_FONT_COLOR:WrapTextInColorCode(string.format(L["%d |4favorite:favorites; imported%s."], result, suffix)));
+            DB:Set("filters.slotId", -1);
+        else
+            print(YELLOW_FONT_COLOR:WrapTextInColorCode(L["All items are already in your favorites."]));
+        end
     else
         print(YELLOW_FONT_COLOR:WrapTextInColorCode(string.format(L["Import failed - %s"], tostring(result))));
     end
@@ -89,7 +94,7 @@ StaticPopupDialogs.KEYSTONELOOT_EXPORT = {
 };
 
 StaticPopupDialogs.KEYSTONELOOT_IMPORT = {
-    text = L["Import favorites for %s\nPaste import string here:"],
+    text = L["Import favorites for %s\nPaste import string here:"] .. "\n\n" .. L["Merge keeps your existing favorites and only adds new items. Overwrite replaces all of them."],
     button1 = L["Merge"],
     button2 = L["Overwrite"],
     button3 = CANCEL,
@@ -190,11 +195,20 @@ function KeystoneLootSettingsDropdownMixin:Init()
             function() DB:Set("settings.hideOtherItems", not DB:Get("settings.hideOtherItems")); end
         );
         rootDescription:CreateCheckbox(
+            L["Multiple slot filtering"],
+            function() return DB:Get("settings.multiSlotFilter"); end,
+            function() DB:Set("settings.multiSlotFilter", not DB:Get("settings.multiSlotFilter")); end
+        );
+        rootDescription:CreateCheckbox(
             L["Wide mode"],
             function() return DB:Get("settings.wideMode"); end,
             function() DB:Set("settings.wideMode", not DB:Get("settings.wideMode")); end
         );
 
+        local rescanButton = rootDescription:CreateButton(L["Rescan bonus rolls"], function()
+            Voidcore:CheckAll(true);
+        end);
+        rescanButton:SetEnabled(UnitLevel("player") == 90);
 
         local manageButton = rootDescription:CreateButton(L["Manage characters"]);
         local extent = 20;

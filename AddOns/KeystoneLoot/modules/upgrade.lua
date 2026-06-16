@@ -2,8 +2,11 @@ local AddonName, KeystoneLoot = ...;
 
 KeystoneLoot.Upgrade = {};
 
-local Upgrade = KeystoneLoot.Upgrade;
-local DB = KeystoneLoot.DB;
+local Upgrade   = KeystoneLoot.Upgrade;
+local DB        = KeystoneLoot.DB;
+local Favorites = KeystoneLoot.Favorites;
+local Character = KeystoneLoot.Character;
+local Query     = KeystoneLoot.Query;
 
 local SPECIAL_BONUS_IDS = {
     [178708] = 6917, -- Unbändiger Wechselbalg
@@ -68,19 +71,42 @@ function Upgrade:BuildItemLink(itemId)
         return string.format("item:%d", itemId);
     end
 
+    -- Get the correct specId
+    local slotId = DB:Get("filters.slotId");
+    local specId = DB:Get("filters.specId");
+    local classId = Character:GetCurrentClassId();
+
+    if (slotId == -1 and DB:Get("filters.classId") ~= classId) then
+        specId = 0;
+    end
+
+    if (specId == 0) then
+        specId = Character:GetCurrentSpecId();
+    end
+
     -- Calculate bonus IDs needed
     local bonusIds = {};
 
-    -- 1. Item level adjustment bonus
-    local levelDiff = upgrade.ilvl - baseItemLevel;
-    local levelBonusId = ITEM_LEVEL_BONUS_IDS[levelDiff];
-    if (levelBonusId) then
-        table.insert(bonusIds, levelBonusId);
+    -- 1. Use stored bonus IDs from favorites
+    local storedBonusIds = Favorites:GetBonusIds(itemId, specId);
+    if (storedBonusIds) then
+        for _, id in ipairs(storedBonusIds) do
+            table.insert(bonusIds, id);
+        end
     end
 
-    -- 2. Upgrade track bonus (champion/hero/myth)
-    if (upgrade.bonusId) then
-        table.insert(bonusIds, upgrade.bonusId);
+    if (Query:GetItemSource(itemId) ~= "custom") then
+        -- 2. Item level adjustment bonus
+        local levelDiff    = upgrade.ilvl - baseItemLevel;
+        local levelBonusId = ITEM_LEVEL_BONUS_IDS[levelDiff];
+        if (levelBonusId) then
+            table.insert(bonusIds, levelBonusId);
+        end
+
+        -- 3. Upgrade track bonus (champion/hero/myth)
+        if (upgrade.bonusId) then
+            table.insert(bonusIds, upgrade.bonusId);
+        end
     end
 
     -- 3. Special item bonus
@@ -97,15 +123,24 @@ function Upgrade:BuildItemLink(itemId)
         table.insert(bonusIds, 13534);
     end
 
+    -- 6. Optional enchant and/or gems from favorites
+    local enchant = Favorites:GetEnchant(itemId, specId) or "";
+    local gems    = Favorites:GetGems(itemId, specId);
+    local gem1    = gems and gems[1] or "";
+    local gem2    = gems and gems[2] or "";
+    local gem3    = gems and gems[3] or "";
+    local gem4    = gems and gems[4] or "";
+    local extras  = string.format("%s:%s:%s:%s:%s", enchant, gem1, gem2, gem3, gem4);
+
     -- Build link
     local playerLevel = UnitLevel("player");
-    local specId = DB:Get("filters.specId");
     local numBonusIds = #bonusIds;
     local bonusString = table.concat(bonusIds, ":");
 
     return string.format(
-        "item:%d::::::::%d:%d:::%d:%s",
+        "item:%d:%s:::%d:%d:::%d:%s",
         itemId,
+        extras,
         playerLevel,
         specId,
         numBonusIds,

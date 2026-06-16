@@ -8,14 +8,14 @@ local ICON_SPACING             = 8;
 local ICON_TOP_OFFSET          = -90;
 local FRAME_BASE_HEIGHT        = 104;
 
-KeystoneLootCatalystFrameMixin = {};
+KeystoneLootCustomItemFrameMixin = {};
 
-function KeystoneLootCatalystFrameMixin:OnLoad()
-    self.Border.Bg:SetTexture('Interface\\FrameGeneral\\UI-Background-Marble');
+function KeystoneLootCustomItemFrameMixin:OnLoad()
+    self.Border.Bg:SetTexture("Interface\\FrameGeneral\\UI-Background-Marble");
     self.iconPool = CreateFramePool("Button", self, "KeystoneLootLootIconButtonTemplate");
 end
 
-function KeystoneLootCatalystFrameMixin:Init()
+function KeystoneLootCustomItemFrameMixin:Init()
     local function OnChanged()
         self:Refresh();
     end
@@ -23,15 +23,14 @@ function KeystoneLootCatalystFrameMixin:Init()
     DB:AddObserver("filters.specId", OnChanged);
     DB:AddObserver("filters.slotId", OnChanged);
     DB:AddObserver("ui.selectedCharacterKey", OnChanged);
-    DB:AddObserver("settings.multiSlotFilter", OnChanged);
 
     self:Refresh();
 end
 
-function KeystoneLootCatalystFrameMixin:Refresh()
+function KeystoneLootCustomItemFrameMixin:Refresh()
     self.iconPool:ReleaseAll();
 
-    local items = Query:GetCatalystItems();
+    local items = Query:GetCustomItems();
     local numItems = #items;
     local LastIcon = nil;
 

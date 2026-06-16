@@ -6,8 +6,8 @@ local DB = KeystoneLoot.DB;
 
 local CURRENT_SEASON = KeystoneLoot.Config.season;
 
-local DB_VERSION = 7;
-local CHAR_DB_VERSION = 2;
+local DB_VERSION = 8;
+local CHAR_DB_VERSION = 3;
 
 local observers = {};
 
@@ -107,13 +107,17 @@ function DB:MigrateGlobalDB(fromVersion)
         KeystoneLootDB.settings.lootReminder.dropAlert = true;
         KeystoneLootDB.settings.lootReminder.whisperMessage = "Can I have {item} please?";
     end
+
+    if (fromVersion == 7) then
+        KeystoneLootDB.settings.multiSlotFilter = false;
+    end
 end
 
 function DB:MigrateCharDB(fromVersion)
     if (fromVersion == 0) then
         -- First install
         local _, _, classId = UnitClass("player");
-        local specId = GetSpecializationInfo(GetSpecialization() or 1);
+        local specId = C_SpecializationInfo.GetSpecializationInfo(C_SpecializationInfo.GetSpecialization() or 1);
 
         KeystoneLootCharDB.filters = {
             classId = classId,
@@ -137,6 +141,10 @@ function DB:MigrateCharDB(fromVersion)
 
     if (fromVersion == 1) then
         KeystoneLootCharDB.voidcore = {};
+    end
+
+    if (fromVersion == 2) then
+        KeystoneLootCharDB.voidcoreChecked = false;
     end
 end
 
