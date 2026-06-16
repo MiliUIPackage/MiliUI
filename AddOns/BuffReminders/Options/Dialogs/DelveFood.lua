@@ -12,7 +12,7 @@ BR.Options.Dialogs.DelveFood = BR.Options.Helpers.SingletonDialog(function()
     local timerHolder = Components.Checkbox(dialog, {
         label = L["Options.DelveFoodTimer"],
         get = function()
-            return BR.Config.Get("defaults.delveFoodTimer", false) == true
+            return BR.Config.Get("defaults.delveFoodTimer") == true
         end,
         tooltip = {
             title = L["Options.DelveFoodTimer"],

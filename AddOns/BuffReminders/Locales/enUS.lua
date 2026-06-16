@@ -294,6 +294,9 @@ english["Page.Sounds.Desc"] =
 
 -- Per-category page section headers
 english["Section.Tracking"] = "Tracking"
+english["Section.TrackingOverrides"] = "Tracking overrides"
+english["Section.TrackingOverrides.Desc"] =
+    "Narrow the tracking mode in specific situations. Leave a situation on Default to always use the mode above. When several apply at once (e.g. fighting while leveling), the most restrictive one wins."
 
 -- ============================================================================
 -- OPTIONS: SOUND ALERTS
@@ -421,7 +424,8 @@ english["Options.FreeConsumables.Override.Desc"] =
 -- ============================================================================
 english["Options.Icons"] = "Icons"
 english["Options.ShowText"] = "Show text on icons"
-english["Options.ShowText.Desc"] = "Display count or missing text overlays on buff icons for this category"
+english["Options.ShowText.Desc"] =
+    "Display count and missing-buff text overlays on buff icons for this category. The expiring countdown timer always stays visible"
 english["Options.ShowMissingCountOnly"] = "Show missing count only"
 english["Options.ShowMissingCountOnly.Desc"] =
     'Show only the number of missing buffs (e.g., "1") instead of the full count (e.g., "19/20")'
@@ -475,6 +479,7 @@ english["ChatRequest.skyfury"] = "Skyfury buff pls"
 english["ChatRequest.atrophicNumbingPoison"] = "Atrophic/Numbing Poison pls"
 english["ChatRequest.devotionAura"] = "Devotion Aura pls"
 english["ChatRequest.soulstone"] = "Soulstone pls"
+english["ChatRequest.healthstone"] = "Healthstones pls"
 
 -- ============================================================================
 -- OPTIONS: PET
@@ -693,9 +698,16 @@ english["Options.BuffTracking.Smart.Desc"] =
 english["Options.BuffTracking.Mode"] = "Buff tracking mode"
 english["Options.BuffTracking.Mode.Desc"] =
     "Controls which raid and presence buffs are shown, and whether they track the full group or only you."
-english["Options.BuffTracking.SelfOnlyOutsideInstances"] = "Force self-only outside dungeons and raids"
-english["Options.BuffTracking.SelfOnlyOutsideInstances.Desc"] =
-    "When enabled, only your own class buffs on yourself are tracked while in the open world. The selected tracking mode is still used inside dungeons, raids, scenarios, and PvP."
+english["Options.BuffTracking.Override.Default"] = "Default (use mode above)"
+english["Options.BuffTracking.Override.OutsideInstances"] = "Outside dungeons & raids"
+english["Options.BuffTracking.Override.OutsideInstances.Desc"] =
+    "Tracking mode to use in the open world. The mode selected above is still used inside dungeons, raids, scenarios, and PvP."
+english["Options.BuffTracking.Override.Combat"] = "In combat"
+english["Options.BuffTracking.Override.Combat.Desc"] =
+    "Tracking mode to use while in combat. For example, narrowing to 'Only my buffs' keeps reminders for buffs from other classes visible out of combat so you can call them out, but hides them once the fight starts."
+english["Options.BuffTracking.Override.Leveling"] = "While leveling"
+english["Options.BuffTracking.Override.Leveling.Desc"] =
+    "Tracking mode to use below max level. Once you reach max level, the mode selected above is used."
 
 -- ============================================================================
 -- OPTIONS: PROFILES TAB

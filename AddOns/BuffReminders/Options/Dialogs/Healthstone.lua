@@ -20,7 +20,7 @@ BR.Options.Dialogs.Healthstone = BR.Options.Helpers.SingletonDialog(function()
         labelWidth = labelW,
         width = 200,
         get = function()
-            return BR.Config.Get("defaults.healthstoneVisibility", "readyCheck")
+            return BR.Config.Get("defaults.healthstoneVisibility")
         end,
         options = {
             {
@@ -49,7 +49,7 @@ BR.Options.Dialogs.Healthstone = BR.Options.Helpers.SingletonDialog(function()
     local lowStockHolder = Components.Checkbox(dialog, {
         label = L["Options.Healthstone.LowStock"],
         get = function()
-            return BR.Config.Get("defaults.healthstoneLowStock", false)
+            return BR.Config.Get("defaults.healthstoneLowStock")
         end,
         tooltip = {
             title = L["Options.Healthstone.LowStock"],
@@ -69,10 +69,10 @@ BR.Options.Dialogs.Healthstone = BR.Options.Helpers.SingletonDialog(function()
         max = 2,
         step = 1,
         get = function()
-            return BR.Config.Get("defaults.healthstoneThreshold", 1)
+            return BR.Config.Get("defaults.healthstoneThreshold")
         end,
         enabled = function()
-            return BR.Config.Get("defaults.healthstoneLowStock", false)
+            return BR.Config.Get("defaults.healthstoneLowStock")
         end,
         tooltip = { title = L["Options.Healthstone.Threshold"], desc = L["Options.Healthstone.Threshold.Desc"] },
         onChange = function(val)

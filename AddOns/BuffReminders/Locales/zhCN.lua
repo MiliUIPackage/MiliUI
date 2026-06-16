@@ -5,7 +5,7 @@ end
 
 local L = BR.L -- luacheck: ignore 211
 
--- Credit by Elnarfim
+-- Credit by neolhfs
 
 -- ============================================================================
 -- CATEGORY LABELS
@@ -658,9 +658,6 @@ L["Options.BuffTracking.Smart.Desc"] =
 L["Options.BuffTracking.SelfOnly"] = "仅我的增益，仅限自身"
 L["Options.BuffTracking.SelfOnly.Desc"] =
     "仅显示你的职业能提供的增益，且仅检查你自身是否拥有。不计算团队数量，不包含你对他人施放的增益。"
-L["Options.BuffTracking.SelfOnlyOutsideInstances"] = "在地下城和团队副本外强制仅追踪自身"
-L["Options.BuffTracking.SelfOnlyOutsideInstances.Desc"] =
-    "启用后，在野外环境仅追踪对自己施放的本职业增益。在地下城、团队副本、场景战役和PvP中仍会使用你选择的追踪模式。"
 L["Options.BuffTracking.Mode"] = "增益追踪模式"
 L["Options.BuffTracking.Mode.Desc"] =
     "设置要显示的团队和特殊增益，以及是追踪整个队伍还是仅追踪自身。"

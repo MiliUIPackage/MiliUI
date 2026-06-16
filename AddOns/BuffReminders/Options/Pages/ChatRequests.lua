@@ -12,6 +12,7 @@ local L = BR.L
 local Components = BR.Components
 local CreateButton = BR.CreateButton
 local CreateBuffIcon = BR.CreateBuffIcon
+local GetBuffIcons = BR.Helpers.GetBuffIcons
 
 local LayoutSectionHeader = BR.Options.Helpers.LayoutSectionHeader
 local LayoutSectionNote = BR.Options.Helpers.LayoutSectionNote
@@ -28,19 +29,17 @@ local LABEL_WIDTH = 150
 local ROW_GAP = 6
 local MAX_INPUT_WIDTH = 320
 
--- Spell IDs are referenced only for icon textures here; the keys link back to
--- the buff system via BR.profile.chatRequestMessages[key].
-local CHAT_REQUEST_BUFFS = {
-    { key = "intellect", labelKey = "Buff.ArcaneIntellect", spellID = 1459 },
-    { key = "attackPower", labelKey = "Buff.BattleShout", spellID = 6673 },
-    { key = "stamina", labelKey = "Buff.PowerWordFortitude", spellID = 21562 },
-    { key = "versatility", labelKey = "Buff.MarkOfTheWild", spellID = 1126 },
-    { key = "skyfury", labelKey = "Buff.Skyfury", spellID = 462854 },
-    { key = "bronze", labelKey = "Buff.BlessingOfTheBronze", spellID = 364342 },
-    { key = "devotionAura", labelKey = "Buff.DevotionAura", spellID = 465 },
-    { key = "atrophicNumbingPoison", labelKey = "Buff.AtrophicNumbingPoison", spellID = 381637 },
-    { key = "soulstone", labelKey = "Buff.Soulstone", spellID = 20707 },
-}
+-- The requestable buff list and the categories to refresh are derived from the
+-- `chatRequestable` flag by Core/ChatRequest.lua - the single source of truth
+-- shared with the runtime overlay wiring (SecureButtons).
+local ChatRequest = BR.ChatRequest
+
+-- Re-evaluate click overlays for every category that hosts a chat-requestable buff.
+local function RefreshChatActions()
+    for _, cat in ipairs(ChatRequest.Categories()) do
+        BR.Display.UpdateActionButtons(cat)
+    end
+end
 
 local function Build(content, scrollFrame)
     local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = -10 })
@@ -61,8 +60,7 @@ local function Build(content, scrollFrame)
         },
         onChange = function(checked)
             BR.profile.requestBuffInChat = checked
-            BR.Display.UpdateActionButtons("raid")
-            BR.Display.UpdateActionButtons("presence")
+            RefreshChatActions()
             Components.RefreshAll()
         end,
     })
@@ -76,9 +74,8 @@ local function Build(content, scrollFrame)
     end
 
     -- Each row: [icon] [TextInput with embedded buff-name label].
-    -- The TextInput holder anchors at COL_PADDING + ICON_SIZE + ICON_GAP, so
+    -- The TextInput holder anchors at ICON_SIZE + ICON_GAP within rowsHost, so
     -- the icon sits in the left gutter aligned with each input.
-    local rowX = COL_PADDING + ICON_SIZE + ICON_GAP
     local rowsHost = CreateFrame("Frame", nil, content)
     rowsHost:SetSize(contentWidth - COL_PADDING * 2, 1)
 
@@ -88,10 +85,10 @@ local function Build(content, scrollFrame)
     local rowY = 0
     local inputHolders = {}
 
-    for _, entry in ipairs(CHAT_REQUEST_BUFFS) do
+    for _, entry in ipairs(ChatRequest.Buffs()) do
         local key = entry.key
         local holder = Components.TextInput(content, {
-            label = L[entry.labelKey],
+            label = entry.name,
             labelWidth = LABEL_WIDTH,
             width = inputWidth,
             get = function()
@@ -109,15 +106,14 @@ local function Build(content, scrollFrame)
                 else
                     BR.profile.chatRequestMessages[key] = text
                 end
-                BR.Display.UpdateActionButtons("raid")
-                BR.Display.UpdateActionButtons("presence")
+                RefreshChatActions()
             end,
         })
         holder.editBox:SetMaxLetters(120)
         holder:SetPoint("TOPLEFT", rowsHost, "TOPLEFT", ICON_SIZE + ICON_GAP, -rowY)
         inputHolders[key] = holder
 
-        local icon = CreateBuffIcon(rowsHost, ICON_SIZE, C_Spell.GetSpellTexture(entry.spellID))
+        local icon = CreateBuffIcon(rowsHost, ICON_SIZE, GetBuffIcons(entry)[1])
         icon:SetPoint("RIGHT", holder, "LEFT", -ICON_GAP, 0)
 
         rowY = rowY + ICON_SIZE + ROW_GAP
@@ -130,12 +126,10 @@ local function Build(content, scrollFrame)
     layout:Space(4)
     local resetBtn = CreateButton(content, L["Options.ChatRequest.ResetAll"], function()
         BR.profile.chatRequestMessages = {}
-        for key, holder in pairs(inputHolders) do
+        for _, holder in pairs(inputHolders) do
             holder:SetValue("")
-            local _ = key
         end
-        BR.Display.UpdateActionButtons("raid")
-        BR.Display.UpdateActionButtons("presence")
+        RefreshChatActions()
     end)
     layout:Add(resetBtn, nil, COMPONENT_GAP)
 
@@ -172,9 +166,6 @@ local function Build(content, scrollFrame)
     layout:AddText(fixAttemptNote, math.ceil(fixAttemptNote:GetStringHeight()), COMPONENT_GAP)
 
     content:SetHeight(abs(layout:GetY()) + 20)
-
-    -- rowX is reserved for absolute-positioned children; suppress unused-var.
-    local _ = rowX
 end
 
 BR.Options.Pages.chatRequests = {

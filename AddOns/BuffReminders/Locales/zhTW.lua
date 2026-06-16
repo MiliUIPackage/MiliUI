@@ -284,6 +284,12 @@ L["Page.Sounds.Desc"] =
 
 -- Per-category page section headers
 L["Section.Tracking"] = "追蹤"
+L["Section.TrackingOverrides"] = "追蹤覆蓋"
+L["Section.TrackingOverrides.Desc"] =
+    "無論上面的選擇如何，都會在特定條件下自動縮小追蹤模式。"
+L["Section.TrackingOverrides.Desc"] =
+    "在特定情況下縮小追蹤模式。將情況保留為“預設”以始終使用上述模式。當幾個同時適用時（例如，在練級時戰鬥），限制最嚴格的那個獲勝。"
+
 
 -- ============================================================================
 -- OPTIONS: SOUND ALERTS
@@ -411,7 +417,8 @@ L["Options.FreeConsumables.Override.Desc"] =
 -- ============================================================================
 L["Options.Icons"] = "圖示"
 L["Options.ShowText"] = "在圖示上顯示文字"
-L["Options.ShowText.Desc"] = "在此類別的增益圖示上顯示層數或缺失文字覆蓋。"
+L["Options.ShowText.Desc"] =
+    "在該類別的增益圖示上顯示層數或缺失增益文字覆蓋。即將到期的倒計時器始終保持可見"
 L["Options.ShowMissingCountOnly"] = "僅顯示缺失數量"
 L["Options.ShowMissingCountOnly.Desc"] =
     "僅顯示缺失增益的數量（例如：”1“），而不是完整的分數形式（例如：”19/20“）。"
@@ -465,6 +472,7 @@ L["ChatRequest.skyfury"] = "請補上天怒增益"
 L["ChatRequest.atrophicNumbingPoison"] = "請補上萎縮/麻痺毒藥"
 L["ChatRequest.devotionAura"] = "請補上虔誠光環"
 L["ChatRequest.soulstone"] = "請補上靈魂石"
+L["ChatRequest.healthstone"] = "請補上治療石"
 
 -- ============================================================================
 -- OPTIONS: PET
@@ -671,7 +679,7 @@ L["Options.BuffTracking.MyBuffs.Desc"] =
 L["Options.BuffTracking.OnlyMine"] = "所有增益，僅我需要的"
 L["Options.BuffTracking.OnlyMine.Desc"] =
     "顯示所有類型的增益，但僅檢查自身是否擁有。不顯示團體數量統計。"
-L["Options.BuffTracking.SelfOnly"] = "只有我的增益，僅我需要的"
+L["Options.BuffTracking.SelfOnly"] = "只有我的增益，只在我身上"
 L["Options.BuffTracking.SelfOnly.Desc"] =
     "只顯示你的職業可以提供的增益，並且僅檢查自身是否擁有。沒有團體數量統計，也沒有你對其他人施加的增益。"
 L["Options.BuffTracking.Smart"] = "智能"
@@ -680,9 +688,15 @@ L["Options.BuffTracking.Smart.Desc"] =
 L["Options.BuffTracking.Mode"] = "增益追蹤模式"
 L["Options.BuffTracking.Mode.Desc"] =
     "設置要顯示的團隊和職業增益，以及是追蹤整個隊伍還是僅追蹤自身。"
-L["Options.BuffTracking.SelfOnlyOutsideInstances"] = "強制在地下城與團隊副本之外只有自己"
-L["Options.BuffTracking.SelfOnlyOutsideInstances.Desc"] =
-    "當啟用以後，在開放世界中，只會追蹤您自己的職業增益。選定的追蹤模式仍然在地下城、團隊副本、場景和 PvP中使用。"
+L["Options.BuffTracking.Override.OutsideInstances"] = "地下城與團隊副本之外"
+L["Options.BuffTracking.Override.OutsideInstances.Desc"] =
+    "在開放世界中使用的追蹤模式。上面選擇的模式仍然在地下城、團隊副本、場景和PvP中使用。"
+L["Options.BuffTracking.Override.Combat"] = "戰鬥中"
+L["Options.BuffTracking.Override.Combat.Desc"] =
+    "在戰鬥中使用的追蹤模式。例如，縮小到'僅我的增益'會在戰鬥之外顯示其他類別的增益的提醒，以便您可以叫出它們，但在戰鬥開始後隱藏它們。"
+L["Options.BuffTracking.Override.Leveling"] = "當練級時"
+L["Options.BuffTracking.Override.Leveling.Desc"] =
+    "在低於最大等級時使用的追蹤模式。一旦達到最高級別，就會使用上面選擇的模式。"
 
 -- ============================================================================
 -- OPTIONS: PROFILES TAB

@@ -366,7 +366,11 @@ local defaults = {
     hideInCombat = false,
     hideExpiringInCombat = true,
     buffTrackingMode = "all",
-    selfOnlyOutsideInstances = true,
+    -- Per-context tracking overrides: each is a tracking mode, or "default" for
+    -- no override. When several apply at once, the most restrictive mode wins.
+    outsideInstancesMode = "self_only",
+    combatMode = "default",
+    levelingMode = "my_buffs",
     hideAllInVehicle = false,
     hideWhileMounted = false,
     hideInLegacyInstances = true,
@@ -437,7 +441,9 @@ local defaults = {
         },
         healthstoneVisibility = "readyCheck",
         healthstoneThreshold = 1,
+        healthstoneLowStock = false,
         soulstoneVisibility = "readyCheck",
+        soulstoneHideCooldown = false,
         consumableDisplayMode = "sub_icons",
         consumableTextScale = 25,
         hideConsumableLabels = false,
@@ -446,6 +452,7 @@ local defaults = {
         hideLegacyConsumables = true,
         petDisplayMode = "generic", -- "generic" or "expanded"
         petLabels = true,
+        petLabelScale = 100,
         petSpecIconOnHover = true,
         petLabelClasses = {
             HUNTER = true,
@@ -463,6 +470,10 @@ local defaults = {
             statLabel = { zone = "INSIDE_TL", offsetX = 0, offsetY = 0 },
             badge = { zone = "INSIDE_L", offsetX = 0, offsetY = 0 },
             buffReminder = { zone = "BELOW_C", offsetX = 0, offsetY = 0 },
+            -- petLabel: BELOW_C baseline is dy=-4; prior hard-coded anchor was
+            -- dy=-2, so a +2 offsetY keeps the visual identical for users who
+            -- never touch this setting.
+            petLabel = { zone = "BELOW_C", offsetX = 0, offsetY = 2 },
         },
     },
 
@@ -552,7 +563,7 @@ local defaults = {
     ---@type AllCategorySettings
     categorySettings = { -- Per-category settings
         main = {
-            position = { point = "CENTER", x = 0, y = 450 },
+            position = { point = "CENTER", x = 0, y = 200 },
             -- main frame always uses defaults for appearance/behavior
         },
         raid = {
@@ -863,6 +874,15 @@ local function ShouldShowText(category)
     return not cs or cs.showText ~= false
 end
 
+---The count fontstring multiplexes three kinds of text: missing-buff labels ("NO X"),
+---group counts ("17/20"), and live countdowns. Countdowns are duration context that
+---always render; only labels and counts are governed by the per-category showText toggle.
+---@param entry BuffStateEntry
+---@return boolean
+local function IsCountdownText(entry)
+    return entry.isEating or entry.displayType == "expiring"
+end
+
 ---Calculate font size from explicit textSize
 ---@param scale? number
 ---@param textSize number
@@ -1055,24 +1075,38 @@ local function ResolveFrameTexture(frame)
     return GetBuffIcons(def)[1]
 end
 
----Re-fetch the Burning Rush icon after spell data settles.
----The warlock green-fire cosmetic override isn't applied yet at login, so
----C_Spell.GetSpellTexture returns the orange icon initially and the green
----variant only after data loads (see commit bdeaadb). Other buffs either have
----stable textures from frame creation or resolve their icon dynamically per
----render (consumables, dynamicIcon), so a broad cache wipe would briefly flash
----the wrong icon for them.
-local function RefreshBurningRushIcon()
-    local frame = buffFrames.burningRush
-    if not (frame and frame.icon and frame.buffDef) then
-        return
-    end
-    local def = frame.buffDef
-    spellTextureCache[def.spellID] = nil
-    def._iconsCache = nil
-    local texture = ResolveFrameTexture(frame)
-    if texture then
-        frame.icon:SetTexture(texture)
+---Invalidate the cached texture for a spell ID and re-resolve every buff
+---frame whose def uses it. Used after spell data settles to pick up cosmetic
+---overrides (e.g. warlock green fire on Burning Rush) that
+---C_Spell.GetSpellTexture doesn't return at login time. Consumable frames
+---paint bag-item icons per-render and don't reference these spell IDs, so
+---they're left alone - no flash.
+---@param spellID number
+local function InvalidateBuffIconBySpellID(spellID)
+    spellTextureCache[spellID] = nil
+    for _, frame in pairs(buffFrames) do
+        local def = frame.buffDef
+        if def and frame.icon then
+            -- def.spellID is SpellID (number|number[]); match either form so
+            -- a future multi-spell buff sharing this ID is also covered.
+            local sid = def.spellID
+            local matches = sid == spellID
+            if not matches and type(sid) == "table" then
+                for _, id in ipairs(sid) do
+                    if id == spellID then
+                        matches = true
+                        break
+                    end
+                end
+            end
+            if matches then
+                def._iconsCache = nil
+                local texture = ResolveFrameTexture(frame)
+                if texture then
+                    frame.icon:SetTexture(texture)
+                end
+            end
+        end
     end
 end
 
@@ -2520,8 +2554,9 @@ local function RenderVisibleEntry(frame, entry)
         end
     end
 
-    -- Per-category text visibility (uses buff's actual category, not effective/main)
-    if not ShouldShowText(frame.buffCategory) then
+    -- Per-category text visibility (uses buff's actual category, not effective/main).
+    -- Countdowns always stay (see IsCountdownText); labels and counts respect the toggle.
+    if not ShouldShowText(frame.buffCategory) and not IsCountdownText(entry) then
         frame.count:Hide()
         frame.stackCount:Hide()
         ClearConsumableOverlays(frame)
@@ -2685,9 +2720,20 @@ local function UpdatePetLabels(frame, petAction)
         return
     end
 
-    -- Early out if nothing changed since last call
+    -- Early out if nothing changed since last call. Zone + offsets are part
+    -- of the key so live position edits re-anchor on the next display update.
     local scale = defs.petLabelScale or 100
-    local cacheKey = format("%s:%s:%s:%d", petAction.key, petAction.label or "", petAction.petFamily or "", scale)
+    local zone, offX, offY = BR.TextPositions.Get("petLabel")
+    local cacheKey = format(
+        "%s:%s:%s:%d:%s:%s:%s",
+        petAction.key,
+        petAction.label or "",
+        petAction.petFamily or "",
+        scale,
+        zone,
+        tostring(offX),
+        tostring(offY)
+    )
     if frame._br_pet_label_key == cacheKey then
         return
     end
@@ -2703,8 +2749,7 @@ local function UpdatePetLabels(frame, petAction)
     local nameSize = max(7, floor(frame:GetWidth() * 0.18 * ratio))
     local familySize = max(7, floor(nameSize * 0.85))
     frame._br_pet_name_text:SetFont(fontPath, nameSize, outlineFlag)
-    frame._br_pet_name_text:ClearAllPoints()
-    frame._br_pet_name_text:SetPoint("TOP", frame, "BOTTOM", 0, -2)
+    BR.TextPositions.Apply(frame._br_pet_name_text, frame, zone, offX, offY)
     frame._br_pet_name_text:SetText(petAction.label or "")
     frame._br_pet_name_text:SetTextColor(1, 1, 1)
     frame._br_pet_name_text:Show()
@@ -3982,7 +4027,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         -- ====================================================================
         -- Versioned migrations - each runs exactly once, tracked by dbVersion
         -- ====================================================================
-        local DB_VERSION = 42
+        local DB_VERSION = 44
 
         local migrations = {
             -- [1] Consolidate all pre-versioning migrations (v2.8 -> v3.x)
@@ -4842,6 +4887,45 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
                     db.categorySettings.targeted.clickable = true
                 end
             end,
+
+            -- [43] Materialize defaults.textPositions.petLabel for users who
+            -- already have a saved textPositions table. The new BELOW_C zone
+            -- baseline is dy=-4, but the prior hard-coded anchor was dy=-2, so
+            -- we bake +2 into offsetY to preserve the exact visual. Skip if
+            -- the user has no saved textPositions yet - AceDB will serve the
+            -- code-default directly on first access.
+            [43] = function()
+                if db.defaults and type(db.defaults.textPositions) == "table" then
+                    if db.defaults.textPositions.petLabel == nil then
+                        db.defaults.textPositions.petLabel = { zone = "BELOW_C", offsetX = 0, offsetY = 2 }
+                    end
+                end
+            end,
+
+            -- [44] Tracking overrides: convert the three boolean overrides into
+            -- per-context mode enums (value = a tracking mode, or "default" for no
+            -- override). Map each old boolean to the mode it used to force so every
+            -- user keeps their current effective behavior, then clear the old keys.
+            -- Guard on the OLD key's presence, not the new one: the new root keys
+            -- live in the AceDB profile defaults, so copyDefaults has already
+            -- rawset them before migrations run (`db.outsideInstancesMode == nil`
+            -- is never true here). A missing old key means the user kept its
+            -- historical default (which AceDB stripped on logout), so we leave the
+            -- eagerly-copied new default in place - it matches the old behavior.
+            [44] = function()
+                if db.selfOnlyOutsideInstances ~= nil then
+                    db.outsideInstancesMode = db.selfOnlyOutsideInstances and "self_only" or "default"
+                end
+                if db.hideOthersInCombat ~= nil then
+                    db.combatMode = db.hideOthersInCombat and "my_buffs" or "default"
+                end
+                if db.myBuffsOnlyWhileLeveling ~= nil then
+                    db.levelingMode = db.myBuffsOnlyWhileLeveling and "my_buffs" or "default"
+                end
+                db.selfOnlyOutsideInstances = nil
+                db.hideOthersInCombat = nil
+                db.myBuffsOnlyWhileLeveling = nil
+            end,
         }
 
         -- Run pending migrations
@@ -5005,9 +5089,17 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
                     BR.SecureButtons.UpdateActionButtons(cat)
                 end
             end
-            -- Refresh Burning Rush icon after spell data settles (green-fire
-            -- cosmetic override isn't applied yet at login).
-            C_Timer.After(2, RefreshBurningRushIcon)
+            -- Re-resolve icons for spells with cosmetic overrides that aren't
+            -- applied yet at login (e.g. warlock green fire on Burning Rush).
+            -- Covers built-in self buff and custom buffs at the same spellID.
+            C_Timer.After(2, function()
+                for _, def in ipairs(SelfBuffs) do
+                    if def.key == "burningRush" then
+                        InvalidateBuffIconBySpellID(def.spellID)
+                        return
+                    end
+                end
+            end)
         end
         BR.SecureButtons.InvalidateConsumableCache()
         -- Instance entry can flip IsInGroup(2) without firing GROUP_ROSTER_UPDATE

@@ -35,7 +35,7 @@ local function Build(ctx, layout)
     local displayModeHolder = Components.Dropdown(parent, {
         label = L["Options.ItemDisplay"],
         get = function()
-            return BR.Config.Get("defaults.consumableDisplayMode", "sub_icons")
+            return BR.Config.Get("defaults.consumableDisplayMode")
         end,
         options = {
             {
@@ -185,10 +185,10 @@ local function Build(ctx, layout)
         previewHolder:SetWidth((MODE_ICON_COUNT[mode] or 3) * P_STEP)
     end
 
-    updateDisplayModePreview(BR.Config.Get("defaults.consumableDisplayMode", "sub_icons"))
+    updateDisplayModePreview(BR.Config.Get("defaults.consumableDisplayMode"))
 
     function previewHolder:Refresh()
-        updateDisplayModePreview(BR.Config.Get("defaults.consumableDisplayMode", "sub_icons"))
+        updateDisplayModePreview(BR.Config.Get("defaults.consumableDisplayMode"))
     end
     tinsert(BR.RefreshableComponents, previewHolder)
 
@@ -210,7 +210,7 @@ local function Build(ctx, layout)
     updateSubIconSideVisibility = function(mode)
         subIconSideHolder:SetShown(mode == "sub_icons")
     end
-    updateSubIconSideVisibility(BR.Config.Get("defaults.consumableDisplayMode", "sub_icons"))
+    updateSubIconSideVisibility(BR.Config.Get("defaults.consumableDisplayMode"))
 
     -- Text subsection: everything about consumable-icon text in one place -
     -- size, the hide-stat-labels toggle, and per-item positions. Hide-stat-
@@ -227,7 +227,7 @@ local function Build(ctx, layout)
         step = 1,
         suffix = "%",
         get = function()
-            return BR.Config.Get("defaults.consumableTextScale", 25)
+            return BR.Config.Get("defaults.consumableTextScale")
         end,
         tooltip = {
             title = L["Options.ConsumableTextScale.Title"],
@@ -240,13 +240,13 @@ local function Build(ctx, layout)
     layout:Add(consumableTextScaleHolder, nil, COMPONENT_GAP)
 
     local function statLabelsShown()
-        return not BR.Config.Get("defaults.hideConsumableLabels", false)
+        return not BR.Config.Get("defaults.hideConsumableLabels")
     end
 
     local hideConsumableLabelsHolder = Components.Checkbox(parent, {
         label = L["Options.HideConsumableLabels"],
         get = function()
-            return BR.Config.Get("defaults.hideConsumableLabels", false)
+            return BR.Config.Get("defaults.hideConsumableLabels")
         end,
         tooltip = {
             title = L["Options.HideConsumableLabels.Title"],
@@ -326,7 +326,7 @@ local function Build(ctx, layout)
     local showWithoutItemsHolder = Components.Checkbox(parent, {
         label = L["Options.ShowWithoutItems"],
         get = function()
-            return BR.Config.Get("defaults.showConsumablesWithoutItems", false) == true
+            return BR.Config.Get("defaults.showConsumablesWithoutItems") == true
         end,
         tooltip = {
             title = L["Options.ShowWithoutItems.Title"],
@@ -344,10 +344,10 @@ local function Build(ctx, layout)
     local readyCheckOnlyHolder = Components.Checkbox(parent, {
         label = L["Options.ShowWithoutItemsReadyCheckOnly"],
         get = function()
-            return BR.Config.Get("defaults.showWithoutItemsOnlyOnReadyCheck", false) == true
+            return BR.Config.Get("defaults.showWithoutItemsOnlyOnReadyCheck") == true
         end,
         enabled = function()
-            return BR.Config.Get("defaults.showConsumablesWithoutItems", false) == true
+            return BR.Config.Get("defaults.showConsumablesWithoutItems") == true
         end,
         tooltip = {
             title = L["Options.ShowWithoutItemsReadyCheckOnly.Title"],
@@ -363,7 +363,7 @@ local function Build(ctx, layout)
     local delveFoodOnlyHolder = Components.Checkbox(parent, {
         label = L["Options.DelveFoodOnly"],
         get = function()
-            return BR.Config.Get("defaults.delveFoodOnly", false) == true
+            return BR.Config.Get("defaults.delveFoodOnly") == true
         end,
         tooltip = {
             title = L["Options.DelveFoodOnly"],
@@ -378,7 +378,7 @@ local function Build(ctx, layout)
     local hideLegacyHolder = Components.Checkbox(parent, {
         label = L["Options.HideLegacyConsumables"],
         get = function()
-            return BR.Config.Get("defaults.hideLegacyConsumables", true) ~= false
+            return BR.Config.Get("defaults.hideLegacyConsumables") ~= false
         end,
         tooltip = {
             title = L["Options.HideLegacyConsumables.Title"],

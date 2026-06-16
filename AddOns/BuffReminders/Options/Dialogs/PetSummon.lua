@@ -12,7 +12,7 @@ BR.Options.Dialogs.PetSummon = BR.Options.Helpers.SingletonDialog(function()
     local felDomHolder = Components.Checkbox(dialog, {
         label = L["Options.FelDomination"],
         get = function()
-            return BR.Config.Get("defaults.useFelDomination", false)
+            return BR.Config.Get("defaults.useFelDomination")
         end,
         tooltip = {
             title = L["Options.FelDomination.Title"],

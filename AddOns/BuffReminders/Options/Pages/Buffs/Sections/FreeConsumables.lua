@@ -57,7 +57,7 @@ local function Build(ctx, layout)
     Helpers.LayoutSubsectionNote(layout, parent, L["Options.FreeConsumables.Note"])
 
     local function IsFreeOverride()
-        return BR.Config.Get("defaults.freeConsumableMode", "override") == "override"
+        return BR.Config.Get("defaults.freeConsumableMode") == "override"
     end
 
     local freeOverrideHolder = Components.Checkbox(parent, {

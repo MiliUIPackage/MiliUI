@@ -58,6 +58,7 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field class ClassName
 ---@field levelRequired? number
 ---@field playersOnly? boolean Exclude NPCs from the count (e.g. buffs NPCs provide themselves)
+---@field chatRequestable? boolean Offer "request this buff in chat" on click for players who can't provide it
 
 ---@class PresenceBuff
 ---@field spellID SpellID
@@ -77,6 +78,7 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field glowDetectable? boolean Use action bar glow as fallback detection when aura API is restricted
 ---@field groupOnly? boolean Only show when in a group (hide when solo)
 ---@field suppressedByEntry? string Hide when this entry key is already visible (e.g., self buff covers it)
+---@field chatRequestable? boolean Offer "request this buff in chat" on click for players who can't provide it
 
 ---@class TargetedBuff
 ---@field spellID SpellID
@@ -142,6 +144,7 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field permanentRuneItemIDs? number[] Item IDs that, if in bags, make this a free consumable (bypass content gates)
 ---@field showOnInstanceEntry? boolean Only show briefly when entering an instance
 ---@field disabledInCompetitivePvP? boolean Unusable in arenas and rated BGs
+---@field chatRequestable? boolean Offer "request this buff in chat" on click for players who can't provide it (e.g. non-warlock requesting a Healthstone)
 
 ---@class BuffGroup
 ---@field displayName string
@@ -397,8 +400,16 @@ BR.BUFF_TABLES = {
             name = L["Buff.ArcaneIntellect"],
             class = "MAGE",
             levelRequired = 8,
+            chatRequestable = true,
         }, -- 432778 = NPC version
-        { spellID = 6673, key = "attackPower", name = L["Buff.BattleShout"], class = "WARRIOR", levelRequired = 10 },
+        {
+            spellID = 6673,
+            key = "attackPower",
+            name = L["Buff.BattleShout"],
+            class = "WARRIOR",
+            levelRequired = 10,
+            chatRequestable = true,
+        },
         {
             spellID = {
                 381732,
@@ -421,6 +432,7 @@ BR.BUFF_TABLES = {
             class = "EVOKER",
             levelRequired = 30,
             playersOnly = true, -- NPCs have their own bronze variant (e.g. 432658)
+            chatRequestable = true,
         },
         {
             spellID = { 1126, 432661 },
@@ -428,9 +440,24 @@ BR.BUFF_TABLES = {
             name = L["Buff.MarkOfTheWild"],
             class = "DRUID",
             levelRequired = 10,
+            chatRequestable = true,
         }, -- 432661 = NPC version
-        { spellID = 21562, key = "stamina", name = L["Buff.PowerWordFortitude"], class = "PRIEST", levelRequired = 10 },
-        { spellID = 462854, key = "skyfury", name = L["Buff.Skyfury"], class = "SHAMAN", levelRequired = 16 },
+        {
+            spellID = 21562,
+            key = "stamina",
+            name = L["Buff.PowerWordFortitude"],
+            class = "PRIEST",
+            levelRequired = 10,
+            chatRequestable = true,
+        },
+        {
+            spellID = 462854,
+            key = "skyfury",
+            name = L["Buff.Skyfury"],
+            class = "SHAMAN",
+            levelRequired = 16,
+            chatRequestable = true,
+        },
     },
     ---@type PresenceBuff[]
     presence = {
@@ -446,6 +473,7 @@ BR.BUFF_TABLES = {
             overlayText = L["Overlay.NoDrPoison"],
             groupOnly = true, -- self-buff "roguePoisons" already covers solo
             suppressedByEntry = "roguePoisons", -- hide when self poison icon is already showing
+            chatRequestable = true,
         },
         {
             spellID = 465,
@@ -454,6 +482,7 @@ BR.BUFF_TABLES = {
             class = "PALADIN",
             levelRequired = 10,
             overlayText = L["Overlay.NoAura"],
+            chatRequestable = true,
         },
         {
             spellID = 20707,
@@ -462,6 +491,7 @@ BR.BUFF_TABLES = {
             class = "WARLOCK",
             levelRequired = 13,
             overlayText = L["Overlay.NoSoulstone"],
+            chatRequestable = true,
             readyCheckOnly = true,
             castOnOthers = true,
             noExpirationGlow = true,
@@ -1188,6 +1218,8 @@ BR.BUFF_TABLES = {
             groupId = "healthstone",
             icons = { textures = { 538745 } }, -- Healthstone icon
             freeConsumable = true,
+            -- Non-warlocks (no creation spell, none in bag) click to ask a warlock in chat
+            chatRequestable = true,
             clickMacro = function()
                 local spellID = (GetNumGroupMembers() > 0 and IsInInstance()) and 29893 or 6201
                 local name = BR.GetSpellName(spellID)

@@ -13,7 +13,7 @@ BR.Options.Dialogs.Soulstone = BR.Options.Helpers.SingletonDialog(function()
         label = L["Options.Visibility"],
         width = 200,
         get = function()
-            return BR.Config.Get("defaults.soulstoneVisibility", "readyCheck")
+            return BR.Config.Get("defaults.soulstoneVisibility")
         end,
         options = {
             {
@@ -38,7 +38,7 @@ BR.Options.Dialogs.Soulstone = BR.Options.Helpers.SingletonDialog(function()
     local cdHolder = Components.Checkbox(dialog, {
         label = L["Options.Soulstone.HideCooldown"],
         get = function()
-            return BR.Config.Get("defaults.soulstoneHideCooldown", false)
+            return BR.Config.Get("defaults.soulstoneHideCooldown")
         end,
         tooltip = {
             title = L["Options.Soulstone.HideCooldown"],

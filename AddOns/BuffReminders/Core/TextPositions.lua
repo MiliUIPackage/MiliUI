@@ -47,6 +47,7 @@ BR.TextPositions.Items = {
     "statLabel", -- consumable page (Sections/ItemDisplay)
     "badge",
     "stackCount",
+    "petLabel", -- pet page (Sections/PetDisplay); anchors pet name, family/extra stack below
 }
 
 -- Two-axis decomposition of zone names so the UI can present "Vertical" +
@@ -113,6 +114,7 @@ local DEFAULT_ZONES = {
     statLabel = "INSIDE_TL",
     badge = "INSIDE_L",
     buffReminder = "BELOW_C",
+    petLabel = "BELOW_C",
 }
 BR.TextPositions.DefaultZones = DEFAULT_ZONES
 

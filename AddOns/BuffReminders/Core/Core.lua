@@ -118,7 +118,9 @@ local RootSettings = {
     frameLocked = false, -- No refresh needed
     position = false, -- Table with x, y
     buffTrackingMode = false, -- No auto-refresh, manually calls UpdateDisplay
-    selfOnlyOutsideInstances = "DisplayRefresh",
+    outsideInstancesMode = "DisplayRefresh",
+    combatMode = "DisplayRefresh",
+    levelingMode = "DisplayRefresh",
     showMissingCountOnly = "DisplayRefresh",
     -- Visibility toggles (routed through Config.Set -> VisibilityRefresh)
     hideInCombat = "VisibilityRefresh",
@@ -416,14 +418,26 @@ function BR.Config.Set(path, value)
         print("|cffff6600BuffReminders:|r Invalid config path: " .. path)
     end
 
-    -- Navigate to parent and get old value
+    -- Navigate to parent and get old value.
+    --
+    -- Level 1 reads through the BR.profile proxy's __index to reach the real
+    -- AceDB profile sub-table (the proxy itself is an empty shell, so rawget
+    -- would always miss and we'd overwrite real data via __newindex).
+    --
+    -- Levels 2+ use rawget so the metatable on db.defaults (which falls back
+    -- to the shared code-defaults table for missing keys) doesn't make us
+    -- walk into that shared table and mutate it. Writes must always land in
+    -- the user's own saved table, even for nested paths like
+    -- defaults.textPositions.<item>.<field>.
     local parent = db
     for i = 1, #segments - 1 do
         local key = segments[i]
-        if parent[key] == nil then
-            parent[key] = {}
+        local child = (i == 1) and parent[key] or rawget(parent, key)
+        if child == nil then
+            child = {}
+            parent[key] = child
         end
-        parent = parent[key]
+        parent = child
     end
 
     local finalKey = segments[#segments]
@@ -494,13 +508,16 @@ function BR.Config.SetMulti(changes)
                 print("|cffff6600BuffReminders:|r Invalid config path: " .. path)
             end
 
+            -- See BR.Config.Set for why level 1 uses __index and levels 2+ use rawget.
             local parent = db
             for i = 1, #segments - 1 do
                 local key = segments[i]
-                if parent[key] == nil then
-                    parent[key] = {}
+                local child = (i == 1) and parent[key] or rawget(parent, key)
+                if child == nil then
+                    child = {}
+                    parent[key] = child
                 end
-                parent = parent[key]
+                parent = child
             end
 
             local finalKey = segments[#segments]

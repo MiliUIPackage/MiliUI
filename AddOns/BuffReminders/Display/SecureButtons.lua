@@ -16,29 +16,11 @@ local _, playerClass = UnitClass("player")
 local GetCategorySettings = BR.Helpers.GetCategorySettings
 local IsCategorySplit = BR.Helpers.IsCategorySplit
 
--- Chat request: categories that support "request buff in chat" on click
-local chatRequestableCategories = { raid = true, presence = true }
-
---- Returns the macro slash command prefix for the current group type.
-local function GetChatRequestPrefix()
-    if IsInGroup(2) then -- instance group
-        return "/instance "
-    elseif IsInRaid() then
-        return "/raid "
-    elseif IsInGroup() then
-        return "/party "
-    end
-    return "/say "
-end
-
---- Resolve the chat-request message for a buff key from the current profile.
---- Used by SetupChatRequestOverlay (initial setup) and RefreshChatRequestMacros
---- (refresh on profile switch / group transition) so both paths produce the same
---- text without duplicating the lookup chain.
-local function ResolveChatRequestMsg(frame)
-    local customMsg = (BR.profile.chatRequestMessages or {})[frame.key]
-    return (customMsg and customMsg ~= "") and customMsg or L["ChatRequest." .. frame.key] or frame.displayName
-end
+-- Chat-request prefix/message resolution lives in Core/ChatRequest.lua so this
+-- file and the options page share one definition. Used by SetupChatRequestOverlay
+-- (initial setup) and RefreshChatRequestMacros (profile switch / group transition)
+-- so both paths produce identical text.
+local ChatRequest = BR.ChatRequest
 
 local GetTime = GetTime
 
@@ -1084,28 +1066,13 @@ local function SetupChatRequestOverlay(frame, showHighlight)
     overlay._br_clickMacroSpellID = nil
     overlay.itemID = nil
     overlay._br_chatRequestKey = frame.key
-    overlay._br_chatRequestMsg = ResolveChatRequestMsg(frame)
+    overlay._br_chatRequestMsg = ChatRequest.ResolveMessage(frame.key, frame.displayName)
     overlay:SetAttribute("type", "macro")
-    overlay:SetAttribute("macrotext", GetChatRequestPrefix() .. overlay._br_chatRequestMsg)
+    overlay:SetAttribute("macrotext", ChatRequest.GetPrefix() .. overlay._br_chatRequestMsg)
     overlay:EnableMouse(true)
     if overlay.highlight then
         overlay.highlight:SetShown(showHighlight)
     end
-end
-
----Disable a click overlay: mark inactive, disable mouse, hide, clear position cache.
----@param overlay table SecureActionButton overlay
-local function DisableOverlay(overlay)
-    overlay._br_has_action = false
-    overlay._br_clickMacroFn = nil
-    overlay._br_clickMacroSpellID = nil
-    overlay._br_chatRequestKey = nil
-    overlay._br_chatRequestMsg = nil
-    overlay._br_chatRequestCooldownUntil = nil
-    overlay.itemID = nil
-    overlay:EnableMouse(false)
-    overlay:Hide()
-    overlay._br_left = nil
 end
 
 ---Clear chat-request state from an overlay being repurposed for a non-chat
@@ -1114,10 +1081,25 @@ end
 ---enters the anti-spam cooldown branch on it; a stale flag would suppress
 ---legitimate click-macro updates and disable the overlay's mouse for 5s on
 ---every click. RefreshChatRequestMacros also iterates by this flag.
+---This is the single place that lists the chat-request fields - DisableOverlay
+---delegates here so a new field never has to be cleared in two spots.
 local function ClearChatRequestState(overlay)
     overlay._br_chatRequestKey = nil
     overlay._br_chatRequestMsg = nil
     overlay._br_chatRequestCooldownUntil = nil
+end
+
+---Disable a click overlay: mark inactive, disable mouse, hide, clear position cache.
+---@param overlay table SecureActionButton overlay
+local function DisableOverlay(overlay)
+    overlay._br_has_action = false
+    overlay._br_clickMacroFn = nil
+    overlay._br_clickMacroSpellID = nil
+    ClearChatRequestState(overlay)
+    overlay.itemID = nil
+    overlay:EnableMouse(false)
+    overlay:Hide()
+    overlay._br_left = nil
 end
 
 ---Set pet summon spell or Fel Domination macro attributes on an overlay.
@@ -1358,6 +1340,11 @@ local function UpdateActionButtons(category)
                         if overlay.highlight then
                             overlay.highlight:SetShown(showHighlight)
                         end
+                    elseif def and def.chatRequestable and db.requestBuffInChat then
+                        -- Player can neither create the consumable nor has one in
+                        -- bags - ask the provider class in chat (e.g. non-warlock
+                        -- requesting a healthstone), just like raid/presence buffs.
+                        SetupChatRequestOverlay(frame, frameHighlight)
                     elseif frame.clickOverlay then
                         -- No action resolved; clear fields but don't Hide() - let
                         -- SyncSecureButtons handle visibility via _br_has_action check.
@@ -1365,6 +1352,7 @@ local function UpdateActionButtons(category)
                         frame.clickOverlay._br_clickMacroFn = nil
                         frame.clickOverlay._br_clickMacroSpellID = nil
                         frame.clickOverlay.itemID = nil
+                        ClearChatRequestState(frame.clickOverlay)
                         frame.clickOverlay:EnableMouse(false)
                     end
                     UpdateConsumableSubElements(frame, actionItems, showHighlight, frameHighlight, db)
@@ -1455,7 +1443,12 @@ local function UpdateActionButtons(category)
                         if frame._br_pet_spec_icon then
                             HookPetSpecIconHover(overlay, frame)
                         end
-                    elseif db.requestBuffInChat and chatRequestableCategories[category] and not frame.isPlayerBuff then
+                    elseif
+                        db.requestBuffInChat
+                        and frame.buffDef
+                        and frame.buffDef.chatRequestable
+                        and not frame.isPlayerBuff
+                    then
                         SetupChatRequestOverlay(frame, frameHighlight)
                     elseif frame.clickOverlay then
                         DisableOverlay(frame.clickOverlay)
@@ -1484,14 +1477,14 @@ local function RefreshChatRequestMacros()
     if InCombatLockdown() or not BR.Display or not BR.Display.frames then
         return
     end
-    local prefix = GetChatRequestPrefix()
+    local prefix = ChatRequest.GetPrefix()
     for _, frame in pairs(BR.Display.frames) do
         local overlay = frame.clickOverlay
         if overlay and overlay._br_chatRequestKey then
             -- Re-resolve message from the current profile (profile switch may
             -- have changed chatRequestMessages[key] since setup).
             -- Guard against nil msg (frame.displayName fallback may be missing).
-            local msg = ResolveChatRequestMsg(frame)
+            local msg = ChatRequest.ResolveMessage(frame.key, frame.displayName)
             overlay._br_chatRequestMsg = msg
             if msg then
                 overlay:SetAttribute("macrotext", prefix .. msg)
