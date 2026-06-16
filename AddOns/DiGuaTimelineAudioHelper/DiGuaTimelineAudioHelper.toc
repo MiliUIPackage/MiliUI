@@ -6,9 +6,14 @@
 ## Author: 神秘地瓜
 ## Category: Raid
 ## Category-zhTW: 副本
-## Version: 1.4.8
+## Version: 1.5.5
 ## SavedVariables: DiGuaTimelineAudioHelper
 
+CoTankPrivateAuras.lua
+PrivateAura.lua
+EncounterEvents.lua
+EncounterTimeline.lua
 Core.lua
 Countdown.lua
 SimpleCCAlert.lua
+
