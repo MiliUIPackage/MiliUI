@@ -1,15 +1,16 @@
 ## Interface: 120005
 ## Title: MiliUI Adventure Guide Spec Compare
 ## Title-zhTW: |cFF2DA267[裝備]|r 冒險指南天賦比較
-## Notes: Compare loot across specs of the same class in the Encounter Journal.
-## Notes-zhTW: 在冒險指南顯示同職業不同天賦的裝備差異（每件裝備加上天賦徽章 + 右側差異面板）
+## Notes: Compare loot across specs of the same class in the Encounter Journal, and mark loot you've already obtained.
+## Notes-zhTW: 在冒險指南顯示同職業不同天賦的裝備差異（每件裝備加上天賦徽章 + 右側差異面板），並標示你已取得過的裝備
 ## Author: Custom
-## Version: 1.0
+## Version: 1.2
 ## IconTexture: Interface\Icons\INV_Misc_Book_07
 ## SavedVariables: AGSCDB
-## OptionalDeps: Blizzard_EncounterJournal
+## OptionalDeps: Blizzard_EncounterJournal, KeystoneLoot
 ## Category-zhTW: 資訊
 
 core.lua
+looted.lua
 badges.lua
 diffpanel.lua

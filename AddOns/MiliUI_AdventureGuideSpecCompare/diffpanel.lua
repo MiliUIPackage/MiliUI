@@ -68,6 +68,13 @@ local function BuildItemButton(btn)
     btn.name:SetHeight(ITEM_HEIGHT)
     btn.name:SetWordWrap(false)
 
+    -- 「已取得」骰子（疊在物品圖示右下角往右下挪一點，與 KeystoneLoot 同一個 atlas）
+    btn.lootedCheck = btn:CreateTexture(nil, "OVERLAY")
+    btn.lootedCheck:SetAtlas("lootroll-toast-icon-need-up")
+    btn.lootedCheck:SetSize(14, 14)
+    btn.lootedCheck:SetPoint("BOTTOMRIGHT", btn.icon, "BOTTOMRIGHT", 4, -4)
+    btn.lootedCheck:Hide()
+
     btn.hl = btn:CreateTexture(nil, "HIGHLIGHT")
     btn.hl:SetAllPoints()
     btn.hl:SetColorTexture(1, 1, 1, 0.08)
@@ -78,6 +85,17 @@ local function BuildItemButton(btn)
             GameTooltip:SetHyperlink(self._link)
         elseif self._itemID then
             GameTooltip:SetItemByID(self._itemID)
+        end
+        -- 已取得明細（按難度 / 天賦）
+        if self._itemID and ns.Looted then
+            local lines = ns.Looted:GetSummaryLines(self._itemID)
+            if lines then
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine("|cff44ff44已取得：|r")
+                for _, line in ipairs(lines) do
+                    GameTooltip:AddLine("|cff44ff44  " .. line .. "|r")
+                end
+            end
         end
         GameTooltip:Show()
     end)
@@ -323,6 +341,14 @@ local function fillItem(b, info)
         info.name or ("item:" .. info.itemID)))
     b._link   = info.link
     b._itemID = info.itemID
+
+    -- 「已取得」骰子（資料來自 KeystoneLoot）
+    if b.lootedCheck then
+        local show = ns.db and ns.db.showLooted ~= false and ns.Looted
+                     and ns.Looted:HasAny(info.itemID)
+        b.lootedCheck:SetShown(show and true or false)
+    end
+
     b:Show()
 end
 

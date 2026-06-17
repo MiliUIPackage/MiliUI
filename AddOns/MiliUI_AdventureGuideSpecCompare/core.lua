@@ -251,6 +251,8 @@ loader:SetScript("OnEvent", function(_, event, name)
         AGSCDB.showPanel = nil  -- 已棄用
         if AGSCDB.featureEnabled == nil then AGSCDB.featureEnabled = true end       -- 主開關（右上按鈕）
         if AGSCDB.baselineShowShared == nil then AGSCDB.baselineShowShared = true end -- 對照欄顯示全系共用（預設開）
+        if AGSCDB.showLooted == nil then AGSCDB.showLooted = true end                -- 顯示「已取得」骰子（預設開）
+        AGSCDB.looted = nil                                                          -- v1.2 起改純讀 KeystoneLoot，清掉舊的自有記錄
         if IsEJLoaded() then InitEJ() end
     elseif event == "PLAYER_LOGIN" then
         if IsEJLoaded() then InitEJ() end
@@ -296,6 +298,15 @@ local commands = {
         print("|cff66ccff[AGSC]|r 徽章:", ns.db.showBadges and "開" or "關")
         fireList(ns.onScanned, "callback")
     end,
+    looted = function()
+        ns.db.showLooted = not ns.db.showLooted
+        print("|cff66ccff[AGSC]|r 已取得骰子:", ns.db.showLooted and "開" or "關")
+        if ns.RefreshLootedMarks then ns.RefreshLootedMarks() end
+        fireList(ns.onScanned, "callback")
+    end,
+    lootinfo = function()
+        if ns.Looted and ns.Looted.PrintStats then ns.Looted:PrintStats() end
+    end,
 }
 
 SLASH_AGSC1 = "/agsc"
@@ -305,6 +316,6 @@ SlashCmdList["AGSC"] = function(msg)
     if fn then
         fn()
     else
-        print("|cff66ccff[AGSC]|r 指令：/agsc " .. table.concat({"rescan", "dump", "panel", "badges", "loot"}, " | "))
+        print("|cff66ccff[AGSC]|r 指令：/agsc " .. table.concat({"rescan", "dump", "panel", "badges", "looted", "lootinfo", "loot"}, " | "))
     end
 end
