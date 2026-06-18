@@ -18,3 +18,4 @@
 
 # Exclude from git archive
 .agent/ export-ignore
+*.py export-ignore
