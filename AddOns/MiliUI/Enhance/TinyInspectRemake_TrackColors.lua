@@ -116,6 +116,15 @@ end
 
 local FORGE_COLOR = "ffff8000"
 
+-- 特殊裝備關鍵字 (出現在物品名稱與物品等級之間的提示行)，一律套傳奇橘色。
+-- match 為字串時做子字串比對；為表格時需「全部」子字串都出現才算命中。
+-- text 省略時顯示整行原文。
+local SPECIAL_KEYWORDS = {
+    { match = "虛無鍛造",  text = "虛無鍛造" },  -- Null Forge (zh-TW)
+    { match = "Null Forge", text = "Null Forge" },
+    { match = { "含孢", "傳奇" }, text = "含孢：傳奇" },  -- 只有「含孢：傳奇」套橘色，其餘含孢軌跡維持原色
+}
+
 local function GetForgeInfo(link)
     if (not GetHyperlinkAPI) then return end
     local data = GetHyperlinkAPI(link)
@@ -133,10 +142,22 @@ local function GetForgeInfo(link)
         if (afterName) then
             local text = StripColorCodes(line.leftText)
             if (text) then
-                if (text:find("虛無鍛造")) then
-                    return "虛無鍛造", FORGE_COLOR
-                elseif (text:find("Null Forge")) then
-                    return "Null Forge", FORGE_COLOR
+                for _, kw in ipairs(SPECIAL_KEYWORDS) do
+                    local hit
+                    if (type(kw.match) == "table") then
+                        hit = true
+                        for _, m in ipairs(kw.match) do
+                            if (not text:find(m, 1, true)) then
+                                hit = false
+                                break
+                            end
+                        end
+                    else
+                        hit = text:find(kw.match, 1, true) ~= nil
+                    end
+                    if (hit) then
+                        return kw.text or text, FORGE_COLOR
+                    end
                 end
             end
         end
