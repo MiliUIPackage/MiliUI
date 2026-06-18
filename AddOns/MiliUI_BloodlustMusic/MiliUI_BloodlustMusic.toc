@@ -1,4 +1,4 @@
-## Interface: 120005, 120007
+## Interface: 120007
 ## Title: MiliUI BloodlustMusic
 ## Notes: Bloodlust / Heroism music playback and countdown bar.|n|n|cffffd200Usage: |rEsc>Options>AddOns>Bloodlust Music or type /blm to configure.
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 嗜血音樂

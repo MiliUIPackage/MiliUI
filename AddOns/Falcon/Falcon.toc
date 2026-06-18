@@ -1,4 +1,4 @@
-## Interface: 120000, 120001, 120005
+## Interface: 120007
 ## Title: |cffEEE4AESkyriding Falcon|r
 ## Author: Yuyuli
 ## Version: 0.8.5

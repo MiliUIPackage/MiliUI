@@ -1,4 +1,4 @@
-## Interface: 120005
+## Interface: 120007
 ## Title: MiliUI Adventure Guide Spec Compare
 ## Title-zhTW: |cFF2DA267[裝備]|r 冒險指南天賦比較
 ## Notes: Compare loot across specs of the same class in the Encounter Journal, and mark loot you've already obtained.

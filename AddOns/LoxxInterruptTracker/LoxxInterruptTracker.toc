@@ -1,4 +1,4 @@
-## Interface: 120001, 120005
+## Interface: 120007
 ## Title: |cFF00DDDDLoxx Interrupt Tracker|r
 ## IconTexture: Interface\Icons\ability_kick
 ## Notes: Party interrupt cooldown tracker for M+ dungeons

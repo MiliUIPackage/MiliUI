@@ -2,7 +2,7 @@
 ## Notes: Cooldown Manager
 ## Author: Ayije
 ## Version: 3.87
-## Interface: 120005
+## Interface: 120007
 ## DefaultState: enabled
 ## OptionalDeps: MiliUI
 ## SavedVariables: Ayije_CDMDB

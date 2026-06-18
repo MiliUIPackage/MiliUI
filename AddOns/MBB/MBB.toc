@@ -1,4 +1,4 @@
-## Interface: 120005
+## Interface: 120007
 ## Author: skunfly (former: karlsnyder, vallantv)
 ## Contributors: CosmicCleric
 ## Version: 4.0.15
