@@ -82,6 +82,22 @@ end
 -- 規則：真實裝備欄位，或 class15(tier token，排除坐騎/寵物) → 視為裝備；其餘略過。
 local function IsEquipment(info)
     if not info or not info.itemID then return false end
+
+    -- 玩具不是裝備，但常被標成 class15/sub0（與套裝令牌同特徵），會誤觸下方 tier token 規則。
+    -- 實測新團本（/agsc loot）：264313 狂菇紅帽、264367 真菌法師的爐石
+    --   = class15 sub0 equip=INVTYPE_NON_EQUIP_IGNORE ft=14，皆為玩具。
+    -- 直接問 ToyBox 是不是玩具，是就排除——比 class/sub/equipLoc 都準。
+    if C_ToyBox and C_ToyBox.GetToyInfo and C_ToyBox.GetToyInfo(info.itemID) then
+        return false
+    end
+
+    -- 純造型（class4/sub5 = Armor/Cosmetic）有真實 equipLoc 會通過下方判斷，但沒屬性
+    -- 也無天賦限制（全天賦皆可穿），對天賦比對是純雜訊，排除。
+    -- 實測：268280 孢子之王的蘑菇軟帽 = class4 sub5 INVTYPE_HEAD。
+    if C_Item and C_Item.IsCosmeticItem and C_Item.IsCosmeticItem(info.itemID) then
+        return false
+    end
+
     local _, _, _, equipLoc, _, classID, subClassID = GetItemInfoInstant(info.itemID)
 
     -- 真實可裝備欄位（排除 INVTYPE_NON_EQUIP_IGNORE 這種「不可裝備」標記）
