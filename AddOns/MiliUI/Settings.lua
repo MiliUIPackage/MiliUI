@@ -1043,7 +1043,7 @@ local function InitSettings()
 
 
 
-    local auraCategory = Settings.RegisterCanvasLayoutSubcategory(category, auraFrame, "光環時間美化")
+    local auraCategory = Settings.RegisterCanvasLayoutSubcategory(category, auraFrame, "光環時間")
     auraCategory.ID = "MiliUI_Aura"
 
     -- ============================================================
