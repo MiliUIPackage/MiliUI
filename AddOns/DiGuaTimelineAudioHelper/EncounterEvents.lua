@@ -30,14 +30,14 @@ addonTable.EventSoundData = {
     [223] = { {"DuoKaiZhengMian.ogg", 1} }, -- 虚空之掌 (1268916)
     [224] = { {"ZhunBeiTiaoRen.ogg", 1} }, -- 残杀 (1263282)
     [225] = { {"ZhunBeiAOE.ogg", 1} }, -- 渗漏猛击 (1263399)
-    [226] = { {"WuMiaoHouTanKeJianCiSanErYi.ogg", 2, {TANK = true, HEALER = true}}, {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}}}, -- 虚空挥砍 (1263440)
+    [226] = { {"WuMiaoHouTanKeJianCiSanErYi.ogg", 2, {TANK = true, HEALER = true}}, {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 虚空挥砍 (1263440)
     -- [238] = { {"XiaoXinJiTui.ogg", 1} }, -- 崩解虚空 (1263304)
     
     -- 萨普瑞什
     [234] = { {"ZhuYiDuoQuan.ogg", 1} }, -- 虚空炸弹 (247175)
     -- [235] = { {".ogg", 1} }, -- 相位冲锋 (1263509)
     [236] = { {"DaDuanDuTiao.ogg", 0, {DAMAGER = true, TANK = true}} }, -- 恐惧尖啸 (248831)
-    [237] = { {"DanShuaLiuXue.ogg", 1, {HEALER = true}} }, -- 暗影突袭 (245738)
+    [237] = { {"DanShuaLiuXue.ogg", 1, {HEALER = true}}, {"ZhunBeiLiuXueSanErYi.ogg", 2, {DAMAGER = true, HEALER = true}} }, -- 暗影突袭 (245738)
     -- [243] = { {".ogg", 1} }, -- 过载 (1263523)
     
     -- 总督奈扎尔
@@ -87,7 +87,7 @@ addonTable.EventSoundData = {
     
     -- 核心守卫奈萨拉 
     [36]  = { {"ZhunBeiXiaoGuaiLiuMiaoXiaoGuaiJiHuo.ogg", 1} }, -- 空无先锋
-    [35]  = { {"WuMiaoHouTanKeJianCiSanErYi.ogg", 2, {TANK = true, HEALER = true}}, {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 幽影鞭笞   
+    [35]  = { {"WuMiaoHouTanKeJianCi.ogg", 2, {TANK = true, HEALER = true}}, {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 幽影鞭笞   
     [34]  = { {"ZhunBeiYiShangJiuMiaoKuaiJinShengGuang.ogg", 0} }, -- 光痕耀斑
     -- [33]  = { {"ZhunBeiDianMing.ogg", 2} }, -- 蚀光步伐    
     

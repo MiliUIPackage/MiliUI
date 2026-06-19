@@ -1,14 +1,15 @@
+## Interface: 120005,120007
 ## Title: [神秘地瓜] 副本语音助手
 ## Title-zhTW: |cffFF7F00[語音]|r 神秘地瓜-副本語音助手
 ## Notes: 根据战斗时间轴播放自定义音频
 ## Notes-zhTW: 根據戰鬥時間軸播放自訂語音提醒，支援團隊首領與傳奇鑰石地城。
-## Interface: 120007
 ## Author: 神秘地瓜
 ## Category: Raid
 ## Category-zhTW: 副本
-## Version: 1.5.5
+## Version: 1.5.6
 ## SavedVariables: DiGuaTimelineAudioHelper
 
+PlayerSpellCooldown.lua
 CoTankPrivateAuras.lua
 PrivateAura.lua
 EncounterEvents.lua

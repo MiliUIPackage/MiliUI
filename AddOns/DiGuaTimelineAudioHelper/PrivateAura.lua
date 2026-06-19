@@ -204,7 +204,7 @@ addonTable.PrivateAura.list = {
     -- [1253104] = ".ogg", -- 黎明光障
     -- [1282470] = ".ogg", -- 黑暗类星体
     -- [1284984] = ".ogg", -- 黯灭协奏
-    -- [1253031] = ".ogg", -- 闪烁
+    -- [1253031] = "HuoDeShuiJing.ogg", -- 闪烁
     [1279512] = "SheXianDianNi.ogg", -- 星辰裂片
     [1285510] = "SheXianDianNi.ogg", -- 星辰裂片
     -- [1282016] = ".ogg", -- 湮灭之虹
@@ -215,8 +215,8 @@ addonTable.PrivateAura.list = {
     -- [1266946] = ".ogg", -- 断离
     -- [1254635] = "JingBao.ogg", -- 黑色浪潮
     -- 腐沼
-    [1221639] = "NiShiHongSe.ogg", -- Shroomling
-    [1299508] = "NiShiLanSe.ogg", -- Fungling
+    [1221639] = "LvSeLianXian.ogg", -- Shroomling
+    [1299508] = "HongSeLianXian.ogg", -- Fungling
     [1222088] = "TieBianFangShui.ogg", -- Festering Vines
     [1222129] = "JingBao.ogg", -- Writhing Vines
 }
