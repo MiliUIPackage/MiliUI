@@ -2,6 +2,7 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("MiliUI_BurstPotionHelper", "zhTW")
 if not L then return end
 
+L["ADDON_NAME"]          = "MiliUI 爆發藥水助手"
 L["SETTINGS_TITLE"]      = "爆發藥水助手"
 L["SETTINGS_DESC"]       = "用一個小列切換你的爆發藥水與品質，再用下方的巨集喝下。"
 L["SECTION_GENERAL"]     = "功能"
