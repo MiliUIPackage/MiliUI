@@ -1,0 +1,22 @@
+## Interface: 120007
+## Title: MiliUI Burst Potion Helper
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 爆發藥水助手
+## Title-zhCN: |cff4488FF[MiliUI]|r 爆发药水助手
+## Notes: Switch burst combat potions from a tiny bar; bind one macro: /click MiliUIBurstButton. Switchable and taint-safe in combat.
+## Notes-zhTW: MiliUI Burst Potion Helper|n|n用小列切換爆發藥水與品質，只需綁定一個巨集：/click MiliUIBurstButton。戰鬥中可切換、不觸發秘密值與污染。
+## Notes-zhCN: 用小条切换爆发药水与品质，只需绑定一个宏：/click MiliUIBurstButton。战斗中可切换、不触发秘密值与污染。
+## Author: Mili
+## Version: 1.0.0
+## SavedVariables: MiliUI_BurstPotionHelperDB
+## IconTexture: Interface\Icons\inv_12_profession_alchemy_lightpotion_yellow
+## Category: Combat
+## Category-zhTW: 戰鬥
+## Category-zhCN: 战斗
+
+embeds.xml
+Locales\Locales.xml
+Data.lua
+Core.lua
+Secure.lua
+Bar.lua
+Options.lua
