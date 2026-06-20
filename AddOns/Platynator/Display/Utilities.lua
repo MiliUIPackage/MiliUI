@@ -183,7 +183,7 @@ local sootheSpells = {
 
 local executeCurve
 if C_CurveUtil then
-  executeCurve = C_CurveUtil.CreateCurve()
+  executeCurve = C_CurveUtil.CreateColorCurve()
   executeCurve:SetType(Enum.LuaCurveType.Step)
 end
 
@@ -210,12 +210,6 @@ do
       if C_SpellBook.IsSpellKnown(s) then
         currentExecute = math.max(amount, currentExecute)
       end
-    end
-
-    if executeCurve and currentExecute > 0 then
-      executeCurve:ClearPoints()
-      executeCurve:AddPoint(0, 1)
-      executeCurve:AddPoint(currentExecute, 0)
     end
 
     isSootheAvailable = false
@@ -445,13 +439,24 @@ do
   local RangeCheck = LibStub("LibRangeCheck-3.0")
   RangeCheck.RegisterCallback("Platynator", RangeCheck.CHECKERS_CHANGED, function() harmChecker = RangeCheck:GetHarmMaxChecker(addonTable.Display.Utilities.GetRangedLimit() or RangeCheck.MeleeRange) end)
 
+  local isDiscovery = C_Seasons and C_Seasons.GetActiveSeason() == Enum.SeasonID.SeasonOfDiscovery or false
+
   local function GetPlayerRole()
     if addonTable.Constants.IsEra or addonTable.Constants.IsBC or addonTable.Constants.IsWrath then
       -- we're in classic
       local form = GetShapeshiftForm()
       if (playerClass == "WARRIOR" and form == 2) or (playerClass == "DRUID" and form == 1) then
         return roleType.Tank
-      elseif playerClass == "PALADIN" and C_UnitAuras.GetUnitAuraBySpellID("player", 25780) ~= nil then
+      elseif playerClass == "PALADIN" and (
+        C_UnitAuras.GetUnitAuraBySpellID("player", 25780) ~= nil or
+        isDiscovery and C_UnitAuras.GetUnitAuraBySpellID("player", 407627)
+      ) then
+        return roleType.Tank
+      elseif isDiscovery and playerClass == "SHAMAN" and C_UnitAuras.GetUnitAuraBySpellID("player", 408680) then
+        return roleType.Tank
+      elseif isDiscovery and playerClass == "WARLOCK" and C_UnitAuras.GetUnitAuraBySpellID("player", 403789) then
+        return roleType.Tank
+      elseif isDiscovery and playerClass == "ROGUE" and C_UnitAuras.GetUnitAuraBySpellID("player", 400014) then
         return roleType.Tank
       end
     else
@@ -486,7 +491,7 @@ do
     if addonTable.Constants.IsEra or addonTable.Constants.IsBC or addonTable.Constants.IsWrath then
       if playerClass == "WARRIOR" or playerClass == "DRUID" then
         specializationMonitor:RegisterEvent("UPDATE_SHAPESHIFT_FORM")
-      elseif playerClass == "PALADIN" then
+      elseif playerClass == "PALADIN" or isDiscovery and (playerClass == "SHAMAN" or playerClass == "WARLOCK" or playerClass == "ROGUE") then
         specializationMonitor:RegisterUnitEvent("UNIT_AURA", "player")
       end
     elseif C_EventUtils.IsEventValid("PLAYER_SPECIALIZATION_CHANGED") then

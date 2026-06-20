@@ -50,7 +50,7 @@ local kindToCallback = {
   threat = {"RoleChange"},
 }
 local kindToCache = {
-  threat = {"combat"},
+  threat = {"combat", "threat"},
   inCombat = {"combat"},
   interruptReady = {"cast"},
   interruptNotReady = {"cast"},
@@ -60,13 +60,13 @@ local kindToCache = {
   cast = {"cast"},
   notCast = {"cast"},
   isCast = {"cast"},
-  threat = {"threat"},
   inRange = {"range"},
   outOfRange = {"range"},
   target = {"target"},
   notTarget = {"target"},
   softTarget = {"softTarget"},
   mouseover = {"target", "mouseover"},
+  notMouseover = {"target", "mouseover"},
   focus = {"focus"},
 }
 
@@ -123,7 +123,9 @@ function addonTable.Display.RegisterForColorEvents(frame, settings, defaultColor
         if not frame.colorState.caches[c] then
           frame.colorState.caches[c] = true
           addonTable.Cache:RegisterCallback(frame.unit, c, function()
-            frame:ColorEventHandler("FORCED")
+            if frame.unit then -- Shield against deactivation of the widget
+              frame:ColorEventHandler("FORCED")
+            end
           end)
         end
       end
@@ -176,7 +178,7 @@ function addonTable.Display.GetColor(settings, state, unit)
         break
       end
     elseif s.kind == "softTarget" then
-      if not addonTable.Cache:Get(unit, "softTarget") then
+      if addonTable.Cache:Get(unit, "softTarget") then
         table.insert(colorQueue, {color = s.colors.softTarget})
         break
       end
@@ -188,6 +190,11 @@ function addonTable.Display.GetColor(settings, state, unit)
     elseif s.kind == "mouseover" then
       if addonTable.Cache:Get(unit, "mouseover") and (s.includeTarget or not addonTable.Cache:Get(unit, "target")) then
         table.insert(colorQueue, {color = s.colors.mouseover})
+        break
+      end
+    elseif s.kind == "notMouseover" then
+      if not (addonTable.Cache:Get(unit, "mouseover") and (s.includeTarget or not addonTable.Cache:Get(unit, "target"))) then
+        table.insert(colorQueue, {color = s.colors.notMouseover})
         break
       end
     elseif s.kind == "threat" then
@@ -437,16 +444,22 @@ function addonTable.Display.GetColor(settings, state, unit)
       break
     elseif s.kind == "execute" then
       local executeRange = addonTable.Display.Utilities.GetExecuteRange()
-      if executeRange > 0 then
+      if executeRange > 0 and IsInCombatWith(unit) then
         if UnitHealthPercent then
-          -- Unable to do the execute colour currently, waiting on a solution from Blizzard
-          --local alpha = UnitHealthPercent(unit, true, executeCurve)
-          --table.insert(colorQueue, {state = {{value = Convert10ToBoolean(alpha)}}, color = s.colors.execute})
+          local curve = addonTable.Display.Utilities.GetExecuteCurve()
+          curve:ClearPoints()
+          curve:AddPoint(0, CreateColor(s.colors.execute.r ,s.colors.execute.g, s.colors.execute.b, s.colors.execute.a))
+          curve:AddPoint(executeRange, CreateColor(s.colors.inCombat.r ,s.colors.inCombat.g, s.colors.inCombat.b, s.colors.inCombat.a))
+          local color = UnitHealthPercent(unit, nil, curve)
+          table.insert(colorQueue, {color = color})
+          break
         else
           local percent = UnitHealth(unit) / UnitHealthMax(unit)
-          if percent <= addonTable.Display.Utilities.GetExecuteRange() then
+          if percent <= executeRange then
             table.insert(colorQueue, {color = s.colors.execute})
             break
+          else
+            table.insert(colorQueue, {color = s.colors.inCombat})
           end
         end
       end
